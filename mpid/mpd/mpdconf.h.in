@@ -35,12 +35,6 @@
 /* Define if union semun is defined in sys/sem.h */
 #undef HAVE_UNION_SEMUN
 
-/* Define if crypt requires a prototype */
-#undef NEED_CRYPT_PROTOTYPE
-
-/* Define if the XOPEN versions of routines and header files are needed */
-#undef _XOPEN_SOURCE
-
 /* Define if you have the getcwd function.  */
 #undef HAVE_GETCWD
 
@@ -79,6 +73,12 @@
 
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H
+
+/* if xopen needed for crypt */
+#undef _XOPEN_SOURCE
+
+/* if a prototype for crypt is needed */
+#undef NEED_CRYPT_PROTOTYPE
 
 /* define if strtok_r requires a decl */
 #undef NEEDS_STRTOK_R_DECL

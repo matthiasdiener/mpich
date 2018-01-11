@@ -34,8 +34,8 @@ EOF
     fi
     if test ! -s conftest ; then
       echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS 
+      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
     ifelse([$3], , , [$3
 ])
     else
@@ -523,7 +523,7 @@ cat > conftest.c <<EOF
 int main() { exit(0); }
 int t() { return 0; }
 EOF
-${CC-cc} $CFLAGS conftest.c -o conftest $LIBS
+${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS
 rm -f conftest* 
 #
 # End of output
@@ -606,7 +606,7 @@ if test -d $CCBUGS ; then
         cp $file conftest.c
         broken=1
         rm -f conftest.out conftest.rout
-        if eval $LTESTCC $CFLAGS -o conftest conftest.c $LIBS >conftest.out 2>&1 ; then
+        if eval $LTESTCC $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS >conftest.out 2>&1 ; then
 	    if test -s conftest ; then
                 ./conftest 2>&1 1>conftest.rout
                 if test $? = 0 ; then
@@ -638,7 +638,7 @@ if test -d $CCBUGS ; then
         cp $file conftest.c
         nbroken=1
 	rm -f conftest.out conftest.rout
-        if eval $LTESTCC $CFLAGS -o conftest conftest.c $LIBS >conftest.out 2>&1 ; then
+        if eval $LTESTCC $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS >conftest.out 2>&1 ; then
 	    if test -s conftest ; then
                 ./conftest 2>&1 1>conftest.rout
                 if test $? = 0 ; then
@@ -1088,10 +1088,10 @@ case $1 in
               F77=f77
               ASM=as
               if test -z "$USERFLINKER" ; then
-                  FLINKER=cjabif77
+                  FLINKER="cjabif77 $LDFLAGS"
               fi
-              if test -z "$USERFLINKER" ; then
-                  CLINKER=cjabicc
+              if test -z "$USERCLINKER" ; then
+                  CLINKER="cjabicc $LDFLAGS"
               fi
            else
               CCC=CC
@@ -1106,10 +1106,10 @@ case $1 in
               fi
 #
               if test -z "$USERFLINKER" ; then
-                  FLINKER=cjf77
+                  FLINKER="cjf77 $LDFLAGS"
               fi
-              if test -z "$USERFLINKER" ; then
-                  CLINKER=cjcc
+              if test -z "$USERCLINKER" ; then
+                  CLINKER="cjcc $LDFLAGS"
               fi
            fi
 #
@@ -1313,7 +1313,7 @@ case $1 in
    intelnx|paragon|i860) F77=if77 ;;
    cm5) # TMC Told us this should be f77
         F77=f77 ; if test -z "$USERFLINKER" ; then
-		      FLINKER="cmmd-ld -comp $F77"
+		      FLINKER="cmmd-ld -comp $F77 $LDFLAGS"
 		  fi ;;
    CRAY)
    # The Fortran compiler might be cf77 or f77
@@ -1333,7 +1333,7 @@ case $1 in
    FFLAGS="$FFLAGS -Ccray-t3d -dp"
    F77GETARG="call pxfgetarg(i,s,len(s),ierr)"
    if test -z "$USERFLINKER" ; then
-       FLINKER="$F77 -Ccray-t3d"
+       FLINKER="$F77 -Ccray-t3d $LDFLAGS"
    fi
    ;;
 #
@@ -1397,18 +1397,18 @@ EOF
          if test -z "$USERCCLINKER" ; then
             CCLINKER="CC -h$float"; fi
          if test -z "$USERFLINKER" ; then
-            FLINKER="f77 -$float"; fi
+            FLINKER="f77 -$float $LDFLAGS"; fi
 #
          if test "$w8" = "ew" ; then
-            FLINKER="$FLINKER -ew"
+            FLINKER="$FLINKER -ew $LDFLAGS"
             CFLAGS="$CFLAGS -D_W8"
             FFLAGS="$FFLAGS -ew"
          fi
 #
          if test "$sx4int" = "int64" ; then
             CFLAGS="$CFLAGS -hint64"
-            CLINKER="$CLINKER -hint64"
-            FLINKER="$FLINKER -Wl'-int64'"
+            CLINKER="$CLINKER -hint64 $LDFLAGS"
+            FLINKER="$FLINKER -Wl'-int64' $LDFLAGS"
          fi
 #
          CCFLAGS="$CFLAGS"
@@ -1478,7 +1478,7 @@ EOF
 esac
 fi
 if test -z "$USERFLINKER" -a -z "$FLINKER" ; then
-    FLINKER="$F77"
+    FLINKER="$F77 $LDFLAGS"
 fi
 #
 # Check that the Fortran compiler is actually available:
@@ -1835,7 +1835,7 @@ ifelse([$5], , , [else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   $5
 ])dnl
@@ -1843,7 +1843,7 @@ ifelse([$5], , , [else
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 )
 fi
@@ -1875,7 +1875,7 @@ cat > conftest.c <<EOF
 EOF
 dnl Don't try to run the program, which would prevent cross-configuring.
 if test -z "$ac_compile_link" ; then 
-    ac_compile_link='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+    ac_compile_link='${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >>config.log 2>&1'
 fi
 echo "$ac_compile_link" >>config.log
 cat conftest.c >>config.log
@@ -2022,12 +2022,12 @@ fi
 if test -z "$Pac_CV_NAME" ; then
     # Try to compile/link with the Fortran compiler instead.  This
     # worked for the NEC SX-4
-    compile_f='${CC-cc} $CFLAGS -c conftest.c; ${F77-f77} $FFLAGS -o conftest conftest.o $LIBS >config.log 2>&1'
+    compile_f='${CC-cc} $CFLAGS -c conftest.c; ${F77-f77} $FFLAGS -o conftest conftest.o $LDFLAGS $LIBS >config.log 2>&1'
     echo "$compile_f" >> config.log
     eval $compile_f
     if test ! -s conftest ; then 
 	echo "Could not build executable program:"
-	echo "${F77-f77} $FFLAGS -o conftest conftest.o $LIBS"
+	echo "${F77-f77} $FFLAGS -o conftest conftest.o $LDFLAGS $LIBS"
     else
 	/bin/rm -f conftestout
 	if test -s conftest && (./conftest;exit) 2>conftestout ; then
@@ -2166,18 +2166,18 @@ fi
 KINDVAL=""
 # We must be careful in case the F90LINKER isn't the same as F90
 # (e.g., it has extra options or is a different program)
-if $F90 -c -o conftest.o conftest.f >conftest.out 2>&1 ; then
+if $F90 -c -o conftest.o conftest.f $LDFLAGS >conftest.out 2>&1 ; then
     # Use F90 if we can (in case the linker prepares programs
     # for a parallel environment).
-    echo "$F90 -o conftest conftest.o" >> config.log
-    if $F90 -o conftest conftest.o >>config.log 2>&1 ; then
+    echo "$F90 -o conftest conftest.o $LDFLAGS" >> config.log
+    if $F90 -o conftest conftest.o $LDFLAGS >>config.log 2>&1 ; then
 	F90LINKERTEST="$F90" 
     elif test -z "$F90LINKER" ; then 
 	F90LINKERTEST="$F90"
     else
 	F90LINKERTEST="$F90LINKER"
     fi
-    if $F90LINKERTEST -o conftest conftest.o >conftest.out 2>&1 ; then
+    if $F90LINKERTEST -o conftest conftest.o $LDFLAGS >conftest.out 2>&1 ; then
         ./conftest >>conftest.out 2>&1
         if test -s conftest1.out ; then
 	    # Because of write, there may be a leading blank.
@@ -2188,11 +2188,11 @@ if $F90 -c -o conftest.o conftest.f >conftest.out 2>&1 ; then
         fi
     else
         echo "Failure to link program to test for INTEGER kind" >>config.log
-        $F90LINKER -o conftest conftest.f >>config.log 2>&1
+        $F90LINKER -o conftest conftest.f $LDFLAGS >>config.log 2>&1
     fi
 else 
    echo "Failure to build program to test for INTEGER kind" >>config.log
-   $F90 -o conftest conftest.f >>config.log 2>&1
+   $F90 -o conftest conftest.f $LDFLAGS >>config.log 2>&1
 fi
 rm -f conftest*
 if test -n "$KINDVAL" -a "$KINDVAL" != "-1" ; then
@@ -2232,7 +2232,7 @@ return rc;
 }
 EOF
 rm -f conftest.out
-if eval ${CC-cc} $CFLAGS -o conftest conftest.c > conftest.out 2>&1 ; then
+if eval ${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS > conftest.out 2>&1 ; then
     if ./conftest ; then
 	AC_MSG_RESULT(yes)
     else
@@ -3179,16 +3179,16 @@ CFLAGS="$1 $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
-   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS >conftest.out 2>&1 ; then
       if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
          AC_MSG_RESULT(yes)
          AC_MSG_CHECKING([that routines compiled with $1 can be linked with ones compiled  without $1])       
          /bin/rm -f conftest.out
          /bin/rm -f conftest.bas
          if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
-               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.out 2>&1 ; then
                   if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
 	             AC_MSG_RESULT(yes)	  
                      $2
@@ -3268,14 +3268,14 @@ cat >conftest3.f <<EOF
 EOF
 /bin/rm -f conftest1.out conftest2.out
 /bin/rm -f conftest3.out
-if $F77 $FFLAGS -o conftest conftest.f > conftest1.out 2>&1 ; then
-    if $F77 $FFLAGSSAV -o conftest conftest.f > conftest2.out 2>&1 ; then
+if $F77 $FFLAGS -o conftest conftest.f $LDFLAGS > conftest1.out 2>&1 ; then
+    if $F77 $FFLAGSSAV -o conftest conftest.f $LDFLAGS > conftest2.out 2>&1 ; then
         if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
             AC_MSG_RESULT(yes)
             AC_MSG_CHECKING([that routines compiled with $1 can be linked with ones compiled without $1])
             /bin/rm -f conftest1.out 
             if $F77 -c $FFLAGSSAVE conftest3.f >conftest3.out 2>&1 ;then
-                if $F77 $FFLAGS -o conftest conftest3.o conftest.f >conftest1.out 2>&1 ; then
+                if $F77 $FFLAGS -o conftest conftest3.o conftest.f $LDFLAGS >conftest1.out 2>&1 ; then
                     if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
                         AC_MSG_RESULT(yes)  
 			$2
@@ -3509,8 +3509,8 @@ semctl(semset_id,0,IPC_RMID,arg); }
 return 0; 
 }
 EOF
-echo "${CC-cc} $CFLAGS -o conftest conftest.c $LIBS" >> config.log
-if ${CC-cc} $CFLAGS -o conftest conftest.c $LIBS >> config.log 2>&1 ; then
+echo "${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS" >> config.log
+if ${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS >> config.log 2>&1 ; then
     if test -x conftest ; then
 	/bin/rm -f conftest.out
 	./conftest > conftest.out
@@ -3707,14 +3707,41 @@ fflush(stdout);
 return 0;
 }
 int main() { func( 1, 2 ); return 0;}],check_compile)
+dnl Generate the result message
 case $check_compile in 
     0)  AC_MSG_RESULT(yes)
-        AC_DEFINE(USE_STDARG)
+	;;
+    1)  AC_MSG_RESULT([yes with warnings])
+	;;
+    2)  AC_MSG_RESULT(no)
+	;;
+esac
+dnl Compiling is not enough.  Linking may also be a problem.
+dnl For example, the gcc stdarg may be used with a non-gcc compiler
+dnl In this case, compilation will succeed but linking will fail
+dnl because gcc builtins such as __builtin_next_arg are not found
+AC_MSG_CHECKING([whether programs using stdarg link])
+AC_TRY_LINK([#include <stdarg.h>
+int foo( int a, ... )
+{
+    va_list Argp;
+    int     b;
+    va_start( Argp, a );
+    b = va_arg(Argp,int);
+    va_end(Argp);
+    return 2*a-b;
+}
+],[return foo(1,2)],check_link=yes,check_link=no)
+AC_MSG_RESULT($check_link)
+if test $check_link = no ; then
+    check_compile=2
+fi
+case $check_compile in 
+    0)  AC_DEFINE(USE_STDARG)
         USE_STDARG=1
 	ifelse([$1],,,[$1])
 	;;
-    1)  AC_MSG_RESULT([yes with warnings])
-        AC_DEFINE(USE_STDARG)
+    1)  AC_DEFINE(USE_STDARG)
         USE_STDARG=1
 	if test $pac_old_warning = "yes" ; then
 	    # A Risky move: if both gave warnings, choose old-style
@@ -3723,8 +3750,7 @@ case $check_compile in
 	    ifelse([$1],,:,[$1])
         fi
 	;;
-    2)  AC_MSG_RESULT(no)
-	ifelse([$3],,,[$3])
+    2)  ifelse([$3],,,[$3])
 	;;
 esac
 fi])
@@ -3754,16 +3780,17 @@ if ${CC-cc} -c $CFLAGS conftest1.c >>config.log 2>&1 ; then
     if test -n "$F77" ; then
 	AC_MSG_CHECKING([that Fortran programs can link with needed C functions])
         cat > conftest.f <<EOF
-	program main
-	end
+        program main
+        end
 EOF
-	if $F77 -o conftest conftest.f conftest1.o $LIBS $F77_LIBS >>config.log 2>&1 ; then
+        if test -z "$FLINKER" ; then FLINKER="$F77 $LDFLAGS" ; fi
+	if $FLINKER -o conftest conftest.f conftest1.o $LIBS $F77_LIBS >>config.log 2>&1 ; then
 	    AC_MSG_RESULT(yes)
 	    ifelse([$2],,,[$2=yes])
 	else
 	    AC_MSG_RESULT(no)
 	    ifelse([$2],,,[$2=no])
-	    echo "$F77 -o conftest conftest.f conftest1.o $LIBS $F77_LIBS" >>config.log
+	    echo "$FLINKER -o conftest conftest.f conftest1.o $LIBS $F77_LIBS" >>config.log
 	    echo "Error linking" >>config.log
 	    cat conftest.f >>config.log
 	fi
@@ -3776,13 +3803,13 @@ EOF
 	cat > conftest.cc <<EOF
 	int main() { return 0; }
 EOF
-	if $CXX -o conftest conftest.cc conftest1.o $LIBS $CXX_LIBS >>config.log 2>&1 ; then
+	if $CXX -o conftest conftest.cc conftest1.o $LDFLAGS $LIBS $CXX_LIBS >>config.log 2>&1 ; then
 	    AC_MSG_RESULT(yes)
 	    ifelse([$3],,,[$3=yes])
 	else
 	    AC_MSG_RESULT(no)
 	    ifelse([$3],,,[$3=no])
-	    echo "$CXX -o conftest conftest.cc conftest1.o $LIBS $CXX_LIBS" >>config.log 
+	    echo "$CXX -o conftest conftest.cc conftest1.o $LDFLAGS $LIBS $CXX_LIBS" >>config.log 
 	    echo "Error linking" >>config.log
 	    cat conftest.cc >>config.log
 	fi

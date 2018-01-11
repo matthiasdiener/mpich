@@ -130,6 +130,7 @@ clean:
 		sendvector.sun4 sendvector.freebsd \
 		sendstruct.sun4 sendstruct.freebsd \
 	        sendchar sendshort sendvector sendstruct
+	@-rm -f work.pc work.pcl
 	@for dir in $(SUBDIRS) ;\
 		do \
 			echo " " ;\

@@ -2847,10 +2847,10 @@ case $CARCH in
               F77=f77
               ASM=as
               if test -z "$USERFLINKER" ; then
-                  FLINKER=cjabif77
+                  FLINKER="cjabif77 $LDFLAGS"
               fi
-              if test -z "$USERFLINKER" ; then
-                  CLINKER=cjabicc
+              if test -z "$USERCLINKER" ; then
+                  CLINKER="cjabicc $LDFLAGS"
               fi
            else
               CCC=CC
@@ -2865,10 +2865,10 @@ case $CARCH in
               fi
 #
               if test -z "$USERFLINKER" ; then
-                  FLINKER=cjf77
+                  FLINKER="cjf77 $LDFLAGS"
               fi
-              if test -z "$USERFLINKER" ; then
-                  CLINKER=cjcc
+              if test -z "$USERCLINKER" ; then
+                  CLINKER="cjcc $LDFLAGS"
               fi
            fi
 #
@@ -2945,8 +2945,8 @@ CFLAGS="-Ae $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
-   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS >conftest.out 2>&1 ; then
       if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
          if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -2982,8 +2982,8 @@ fi
          /bin/rm -f conftest.out
          /bin/rm -f conftest.bas
          if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
-               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.out 2>&1 ; then
                   if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
 	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -3110,8 +3110,8 @@ CFLAGS="-Aa $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
-   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS >conftest.out 2>&1 ; then
       if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
          if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -3147,8 +3147,8 @@ fi
          /bin/rm -f conftest.out
          /bin/rm -f conftest.bas
          if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
-               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.out 2>&1 ; then
                   if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
 	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -3288,8 +3288,8 @@ CFLAGS="-Aa $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
-   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS >conftest.out 2>&1 ; then
       if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
          if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -3325,8 +3325,8 @@ fi
          /bin/rm -f conftest.out
          /bin/rm -f conftest.bas
          if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
-               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.out 2>&1 ; then
                   if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
 	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -3489,7 +3489,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   hpux_ansi=0
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -3500,7 +3500,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -4113,7 +4113,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_ccworks=no"
    
@@ -4339,7 +4339,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_ccworks=no"
    
@@ -4363,7 +4363,7 @@ cat > conftest.c <<EOF
 int main() { exit(0); }
 int t() { return 0; }
 EOF
-${CC-cc} $CFLAGS conftest.c -o conftest $LIBS
+${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS
 rm -f conftest* 
 #
 # End of output
@@ -4425,7 +4425,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_ccworks=no"
    
@@ -4513,7 +4513,7 @@ case $CARCH in
    intelnx|paragon|i860) F77=if77 ;;
    cm5) # TMC Told us this should be f77
         F77=f77 ; if test -z "$USERFLINKER" ; then
-		      FLINKER="cmmd-ld -comp $F77"
+		      FLINKER="cmmd-ld -comp $F77 $LDFLAGS"
 		  fi ;;
    CRAY)
    # The Fortran compiler might be cf77 or f77
@@ -4608,7 +4608,7 @@ fi
    FFLAGS="$FFLAGS -Ccray-t3d -dp"
    F77GETARG="call pxfgetarg(i,s,1,ierr)"
    if test -z "$USERFLINKER" ; then
-       FLINKER="$F77 -Ccray-t3d"
+       FLINKER="$F77 -Ccray-t3d $LDFLAGS"
    fi
    ;;
 #
@@ -4672,18 +4672,18 @@ EOF
          if test -z "$USERCCLINKER" ; then
             CCLINKER="CC -h$float"; fi
          if test -z "$USERFLINKER" ; then
-            FLINKER="f77 -$float"; fi
+            FLINKER="f77 -$float $LDFLAGS"; fi
 #
          if test "$w8" = "ew" ; then
-            FLINKER="$FLINKER -ew"
+            FLINKER="$FLINKER -ew $LDFLAGS"
             CFLAGS="$CFLAGS -D_W8"
             FFLAGS="$FFLAGS -ew"
          fi
 #
          if test "$sx4int" = "int64" ; then
             CFLAGS="$CFLAGS -hint64"
-            CLINKER="$CLINKER -hint64"
-            FLINKER="$FLINKER -Wl'-int64'"
+            CLINKER="$CLINKER -hint64 $LDFLAGS"
+            FLINKER="$FLINKER -Wl'-int64' $LDFLAGS"
          fi
 #
          CCFLAGS="$CFLAGS"
@@ -4974,7 +4974,7 @@ fi
 esac
 fi
 if test -z "$USERFLINKER" -a -z "$FLINKER" ; then
-    FLINKER="$F77"
+    FLINKER="$F77 $LDFLAGS"
 fi
 #
 # Check that the Fortran compiler is actually available:
@@ -5230,7 +5230,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   compile_check=no
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -5241,7 +5241,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -5308,7 +5308,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_ccworks=no"
    
@@ -5397,7 +5397,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_ccworks=no"
    
@@ -5484,7 +5484,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_ccworks=no"
    
@@ -5705,7 +5705,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
@@ -5783,8 +5783,8 @@ CFLAGS="-fPIC $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
-   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS >conftest.out 2>&1 ; then
       if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
          if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -5820,8 +5820,8 @@ fi
          /bin/rm -f conftest.out
          /bin/rm -f conftest.bas
          if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
-               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.out 2>&1 ; then
                   if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
 	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -5949,8 +5949,8 @@ CFLAGS="-KPIC $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
-   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS >conftest.out 2>&1 ; then
       if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
          if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -5986,8 +5986,8 @@ fi
          /bin/rm -f conftest.out
          /bin/rm -f conftest.bas
          if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
-               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.out 2>&1 ; then
                   if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
 	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -6122,8 +6122,8 @@ CFLAGS="-KPIC $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
-   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS >conftest.out 2>&1 ; then
       if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
          if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -6159,8 +6159,8 @@ fi
          /bin/rm -f conftest.out
          /bin/rm -f conftest.bas
          if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
-               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.out 2>&1 ; then
                   if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
 	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -6311,8 +6311,8 @@ cat >conftest3.f <<EOF
 EOF
 /bin/rm -f conftest1.out conftest2.out
 /bin/rm -f conftest3.out
-if $F77 $FFLAGS -o conftest conftest.f > conftest1.out 2>&1 ; then
-    if $F77 $FFLAGSSAV -o conftest conftest.f > conftest2.out 2>&1 ; then
+if $F77 $FFLAGS -o conftest conftest.f $LDFLAGS > conftest1.out 2>&1 ; then
+    if $F77 $FFLAGSSAV -o conftest conftest.f $LDFLAGS > conftest2.out 2>&1 ; then
         if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -6347,7 +6347,7 @@ echo $ac_n "checking that routines compiled with -PIC can be linked with ones co
 fi
             /bin/rm -f conftest1.out 
             if $F77 -c $FFLAGSSAVE conftest3.f >conftest3.out 2>&1 ;then
-                if $F77 $FFLAGS -o conftest conftest3.o conftest.f >conftest1.out 2>&1 ; then
+                if $F77 $FFLAGS -o conftest conftest3.o conftest.f $LDFLAGS >conftest1.out 2>&1 ; then
                     if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
                         if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -6457,8 +6457,8 @@ cat >conftest3.f <<EOF
 EOF
 /bin/rm -f conftest1.out conftest2.out
 /bin/rm -f conftest3.out
-if $F77 $FFLAGS -o conftest conftest.f > conftest1.out 2>&1 ; then
-    if $F77 $FFLAGSSAV -o conftest conftest.f > conftest2.out 2>&1 ; then
+if $F77 $FFLAGS -o conftest conftest.f $LDFLAGS > conftest1.out 2>&1 ; then
+    if $F77 $FFLAGSSAV -o conftest conftest.f $LDFLAGS > conftest2.out 2>&1 ; then
         if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -6493,7 +6493,7 @@ echo $ac_n "checking that routines compiled with -fPIC can be linked with ones c
 fi
             /bin/rm -f conftest1.out 
             if $F77 -c $FFLAGSSAVE conftest3.f >conftest3.out 2>&1 ;then
-                if $F77 $FFLAGS -o conftest conftest3.o conftest.f >conftest1.out 2>&1 ; then
+                if $F77 $FFLAGS -o conftest conftest3.o conftest.f $LDFLAGS >conftest1.out 2>&1 ; then
                     if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
                         if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -6603,8 +6603,8 @@ cat >conftest3.f <<EOF
 EOF
 /bin/rm -f conftest1.out conftest2.out
 /bin/rm -f conftest3.out
-if $F77 $FFLAGS -o conftest conftest.f > conftest1.out 2>&1 ; then
-    if $F77 $FFLAGSSAV -o conftest conftest.f > conftest2.out 2>&1 ; then
+if $F77 $FFLAGS -o conftest conftest.f $LDFLAGS > conftest1.out 2>&1 ; then
+    if $F77 $FFLAGSSAV -o conftest conftest.f $LDFLAGS > conftest2.out 2>&1 ; then
         if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -6639,7 +6639,7 @@ echo $ac_n "checking that routines compiled with -KPIC can be linked with ones c
 fi
             /bin/rm -f conftest1.out 
             if $F77 -c $FFLAGSSAVE conftest3.f >conftest3.out 2>&1 ;then
-                if $F77 $FFLAGS -o conftest conftest3.o conftest.f >conftest1.out 2>&1 ; then
+                if $F77 $FFLAGS -o conftest conftest3.o conftest.f $LDFLAGS >conftest1.out 2>&1 ; then
                     if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
                         if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -7121,7 +7121,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -7196,8 +7196,8 @@ EOF
     fi
     if test ! -s conftest ; then
       echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS 
+      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
     ac_cv_mmap=0
 
     else
@@ -7308,8 +7308,8 @@ semctl(semset_id,0,IPC_RMID,arg); }
 return 0; 
 }
 EOF
-echo "${CC-cc} $CFLAGS -o conftest conftest.c $LIBS" >> config.log
-if ${CC-cc} $CFLAGS -o conftest conftest.c $LIBS >> config.log 2>&1 ; then
+echo "${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS" >> config.log
+if ${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS >> config.log 2>&1 ; then
     if test -x conftest ; then
 	/bin/rm -f conftest.out
 	./conftest > conftest.out
@@ -7540,8 +7540,8 @@ cat >conftest3.f <<EOF
 EOF
 /bin/rm -f conftest1.out conftest2.out
 /bin/rm -f conftest3.out
-if $F77 $FFLAGS -o conftest conftest.f > conftest1.out 2>&1 ; then
-    if $F77 $FFLAGSSAV -o conftest conftest.f > conftest2.out 2>&1 ; then
+if $F77 $FFLAGS -o conftest conftest.f $LDFLAGS > conftest1.out 2>&1 ; then
+    if $F77 $FFLAGSSAV -o conftest conftest.f $LDFLAGS > conftest2.out 2>&1 ; then
         if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -7576,7 +7576,7 @@ echo $ac_n "checking that routines compiled with $P4_MDEPFFLAGS can be linked wi
 fi
             /bin/rm -f conftest1.out 
             if $F77 -c $FFLAGSSAVE conftest3.f >conftest3.out 2>&1 ;then
-                if $F77 $FFLAGS -o conftest conftest3.o conftest.f >conftest1.out 2>&1 ; then
+                if $F77 $FFLAGS -o conftest conftest3.o conftest.f $LDFLAGS >conftest1.out 2>&1 ; then
                     if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
                         if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -7777,7 +7777,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   compile_check=no
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -7788,7 +7788,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -7854,7 +7854,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   compile_check=no
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -7865,7 +7865,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -8218,7 +8218,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -8280,8 +8280,8 @@ EOF
     fi
     if test ! -s conftest ; then
       echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS 
+      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""one!"
 else
@@ -8381,7 +8381,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_header_$ac_safe=no"
    
@@ -8499,7 +8499,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -8564,7 +8564,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   sigaction_ok="no"
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -8575,7 +8575,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -9070,8 +9070,8 @@ EOF
     fi
     if test ! -s conftest ; then
       echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS 
+      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
     pac_r=1
 
     else
@@ -9189,7 +9189,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   HAS_XDR=0
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -9200,7 +9200,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -9308,7 +9308,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -9371,7 +9371,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_header_$ac_safe=no"
    
@@ -9486,7 +9486,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -9664,7 +9664,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -9759,7 +9759,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -9853,7 +9853,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -9919,7 +9919,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_header_$ac_safe=no"
    
@@ -10330,10 +10330,11 @@ else
 echo $ac_n "checking that Fortran programs can link with needed C functions""... $ac_c" 1>&1
 fi
         cat > conftest.f <<EOF
-	program main
-	end
+        program main
+        end
 EOF
-	if $F77 -o conftest conftest.f conftest1.o $LIBS $F77_LIBS >>config.log 2>&1 ; then
+        if test -z "$FLINKER" ; then FLINKER="$F77 $LDFLAGS" ; fi
+	if $FLINKER -o conftest conftest.f conftest1.o $LIBS $F77_LIBS >>config.log 2>&1 ; then
 	    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
@@ -10347,7 +10348,7 @@ else
 echo "$ac_t""no" 1>&1
 fi
 	    fort_works=no
-	    echo "$F77 -o conftest conftest.f conftest1.o $LIBS $F77_LIBS" >>config.log
+	    echo "$FLINKER -o conftest conftest.f conftest1.o $LIBS $F77_LIBS" >>config.log
 	    echo "Error linking" >>config.log
 	    cat conftest.f >>config.log
 	fi
@@ -10385,7 +10386,7 @@ fi
 	cat > conftest.cc <<EOF
 	int main() { return 0; }
 EOF
-	if $CXX -o conftest conftest.cc conftest1.o $LIBS $CXX_LIBS >>config.log 2>&1 ; then
+	if $CXX -o conftest conftest.cc conftest1.o $LDFLAGS $LIBS $CXX_LIBS >>config.log 2>&1 ; then
 	    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
@@ -10399,7 +10400,7 @@ else
 echo "$ac_t""no" 1>&1
 fi
 	    cxx_works=no
-	    echo "$CXX -o conftest conftest.cc conftest1.o $LIBS $CXX_LIBS" >>config.log 
+	    echo "$CXX -o conftest conftest.cc conftest1.o $LDFLAGS $LIBS $CXX_LIBS" >>config.log 
 	    echo "Error linking" >>config.log
 	    cat conftest.cc >>config.log
 	fi
@@ -10541,7 +10542,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -10703,7 +10704,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_header_$ac_safe=no"
    
@@ -10862,7 +10863,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_header_$ac_safe=no"
    
@@ -10953,7 +10954,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_header_$ac_safe=no"
    
@@ -11044,7 +11045,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_header_$ac_safe=no"
    
@@ -11308,7 +11309,95 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-        
+	;;
+    1)  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes with warnings"
+else
+echo "$ac_t""yes with warnings" 1>&1
+fi
+	;;
+    2)  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+	;;
+esac
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking whether programs using stdarg link""... $ac_c"
+else
+echo $ac_n "checking whether programs using stdarg link""... $ac_c" 1>&1
+fi
+
+if test -z "$ac_ext" ; then 
+    ac_ext=c
+fi
+cat > conftest.$ac_ext <<EOF
+#include "confdefs.h"
+#include <stdarg.h>
+int foo( int a, ... )
+{
+    va_list Argp;
+    int     b;
+    va_start( Argp, a );
+    b = va_arg(Argp,int);
+    va_end(Argp);
+    return 2*a-b;
+}
+
+int main() { return 0; }
+int t() {
+return foo(1,2)
+; return 0; }
+EOF
+rm -f conftest.out
+if test -z "$ac_link" ; then
+ac_link='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >conftest.out 2>&1'
+fi
+if eval $ac_link; then
+  rm -rf conftest*
+  check_link=yes
+else
+  echo "$ac_link" >>config.log
+  echo "Failed program was" >>config.log
+  cat conftest.$ac_ext >>config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+rm -rf conftest*
+  check_link=no
+fi
+rm -f conftest*
+
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""$check_link"
+else
+echo "$ac_t""$check_link" 1>&1
+fi
+if test $check_link = no ; then
+    check_compile=2
+fi
+case $check_compile in 
+    0)  
 {
 test -n "$verbose" && \
 echo "	defining USE_STDARG"
@@ -11323,12 +11412,7 @@ SEDDEFS="${SEDDEFS}\${SEDdA}USE_STDARG\${SEDdB}USE_STDARG\${SEDdC}1\${SEDdD}
         USE_STDARG=1
 	newflag="-DUSE_STDARG"
 	;;
-    1)  if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""yes with warnings"
-else
-echo "$ac_t""yes with warnings" 1>&1
-fi
-        
+    1)  
 {
 test -n "$verbose" && \
 echo "	defining USE_STDARG"
@@ -11348,12 +11432,7 @@ SEDDEFS="${SEDDEFS}\${SEDdA}USE_STDARG\${SEDdB}USE_STDARG\${SEDdC}1\${SEDdD}
 	    newflag="-DUSE_STDARG"
         fi
 	;;
-    2)  if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-	
+    2)  
 	;;
 esac
 fi
@@ -11430,7 +11509,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_malloc=char"
    
@@ -11548,7 +11627,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -11641,7 +11720,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -11734,7 +11813,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -11801,7 +11880,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_header_$ac_safe=no"
    
@@ -11895,7 +11974,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_header_$ac_safe=no"
    
@@ -11986,7 +12065,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_header_$ac_safe=no"
    
@@ -12113,7 +12192,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_ccworks=no"
    
@@ -12137,7 +12216,7 @@ cat > conftest.c <<EOF
 int main() { exit(0); }
 int t() { return 0; }
 EOF
-${CC-cc} $CFLAGS conftest.c -o conftest $LIBS
+${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS
 rm -f conftest* 
 #
 # End of output
@@ -12289,7 +12368,7 @@ fi
         cp $file conftest.c
         broken=1
         rm -f conftest.out conftest.rout
-        if eval $LTESTCC $CFLAGS -o conftest conftest.c $LIBS >conftest.out 2>&1 ; then
+        if eval $LTESTCC $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS >conftest.out 2>&1 ; then
 	    if test -s conftest ; then
                 ./conftest 2>&1 1>conftest.rout
                 if test $? = 0 ; then
@@ -12354,7 +12433,7 @@ fi
         cp $file conftest.c
         nbroken=1
 	rm -f conftest.out conftest.rout
-        if eval $LTESTCC $CFLAGS -o conftest conftest.c $LIBS >conftest.out 2>&1 ; then
+        if eval $LTESTCC $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS >conftest.out 2>&1 ; then
 	    if test -s conftest ; then
                 ./conftest 2>&1 1>conftest.rout
                 if test $? = 0 ; then
@@ -12729,8 +12808,8 @@ EOF
     fi
     if test ! -s conftest ; then
       echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS 
+      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
     Pac_CV_NAME=""
 
     else
@@ -12896,8 +12975,8 @@ EOF
     fi
     if test ! -s conftest ; then
       echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS 
+      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
     Pac_CV_NAME=""
 
     else
@@ -13004,8 +13083,8 @@ EOF
     fi
     if test ! -s conftest ; then
       echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS 
+      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
     Pac_CV_NAME=""
 
     else
@@ -13186,8 +13265,8 @@ EOF
     fi
     if test ! -s conftest ; then
       echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS 
+      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
     Pac_CV_NAME=""
 
     else
@@ -13326,8 +13405,8 @@ EOF
     fi
     if test ! -s conftest ; then
       echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS 
+      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
     Pac_CV_NAME=""
 
     else
@@ -13450,8 +13529,8 @@ EOF
     fi
     if test ! -s conftest ; then
       echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS 
+      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
     has_long_long=0
 
     else
@@ -13635,7 +13714,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   ldok=0
    
@@ -13693,8 +13772,8 @@ EOF
     fi
     if test ! -s conftest ; then
       echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS 
+      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
@@ -13815,8 +13894,8 @@ EOF
     fi
     if test ! -s conftest ; then
       echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS 
+      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
     ac_cv_sizeof_double=0
 
     else
@@ -13923,8 +14002,8 @@ EOF
     fi
     if test ! -s conftest ; then
       echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS 
+      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
     ac_cv_sizeof_long_double=0
 
     else
@@ -14585,7 +14664,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   ac_cv_cpprworks="no"
    

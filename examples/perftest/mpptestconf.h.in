@@ -37,3 +37,6 @@
 /* Version number of package */
 #undef VERSION
 
+/* if C does not support restrict */
+#undef restrict
+

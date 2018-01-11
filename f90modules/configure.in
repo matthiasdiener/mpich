@@ -132,6 +132,8 @@ AC_SUBST(MAKE)
 
 AC_MSG_CHECKING(for module suffix)
 rm -f conftest*
+# Intel ifc compiler generates files by the name of work.pc and work.pcl (!)
+rm -f work*
 cat >conftest.f <<EOF
 	module conftest
         integer n
@@ -160,6 +162,9 @@ if $F90 -c conftest.f > conftest.out 2>&1 ; then
     else
         AC_MSG_RESULT($MOD)
     fi
+    if test -s work.pcl ; then
+        AC_MSG_WARN([Compiler generates auxillery files!])
+    fi
 else
     AC_MSG_RESULT(unknown)
 fi
@@ -179,32 +184,58 @@ AC_SUBST(MPICONSTMOD)
 
 # Check for module include path (some use -I, some (Solaris) use -M, some 
 # (absoft) use -p).
+# Intel compilers use a wierd system: -cl,filename.pcl .  If no file is
+# specified, work.pcl and work.pc are created.  However, if you specify
+# a file, it must contain a the name of a file ending in .pc .  Ugh!
 # Use the module made above
 AC_MSG_CHECKING(for module directory path flag)
 madedir=0
 if test ! -d conf ; then mkdir conf ; madedir=1; fi
 cp $testname.$MOD conf
-rm -f conftest* CONFTEST*
+rm -f conftest* CONFTEST* 
 cat >conftest1.f <<EOF
-	program main
+        program main
         use conftest
-	print *, n
-	end
+        print *, n
+        end
 EOF
+F90_WORK_FILES_ARG=""
+F90MODINCSPEC=""
 if $F90 -c -Iconf conftest1.f > conftest.out 2>&1 ; then
     MODDIRFLAG="-I"
+    F90MODINCSPEC="-I<dir>"
     AC_MSG_RESULT(-I)
 elif $F90 -c -Mconf conftest1.f >> conftest.out 2>&1 ; then
     MODDIRFLAG="-M"
+    F90MODINCSPEC="-M<dir>"
     AC_MSG_RESULT(-M)
 elif $F90 -c -pconf conftest1.f >> conftest.out 2>&1 ; then
     MODDIRFLAG="-p"
+    F90MODINCSPEC="-p<dir>"
     AC_MSG_RESULT(-p)
-else
+elif test -s work.pc ; then 
+     cp work.pc conf/mpimod.pc
+     echo "mpimod.pc" > conf/mpimod.pcl
+     echo "`pwd`/conf/mpimod.pc" >> conf/mpimod.pcl
+     if $F90 -c -cl,conf/mpimod.pcl conftest1.f >>conftest.out 2>&1 ; then
+         MODDIRFLAG='-cl,mpimod.pcl'
+         AC_MSG_RESULT([-cl,filename where filename contains a list of files and directories])
+	 F90_WORK_FILES_ARG="-cl,mpimod.pcl"
+         F90MODINCSPEC="-cl,<dir>/<file>mod.pcl"
+	 AC_SUBST(F90_WORK_FILES_ARG)
+     else 
+         # The version of the Intel compiler that I have refuses to let
+	 # you put the "work catalog" list anywhere but the current directory.
+	 # For example, you cannot in
+         :
+     fi
+fi
+if test -z "MODDIRFLAG" ; then
     AC_MSG_RESULT(unknown)
 fi
 AC_SUBST(MODDIRFLAG)
-rm -f conftest* conf/conftest* conf/CONFTEST* CONFTEST*
+AC_SUBST(F90MODINCSPEC)
+rm -f conftest* conf/conftest* conf/CONFTEST* CONFTEST* conf/mpimod*
 if test $madedir = 1 ; then rmdir conf ; fi
 
 if test $mpif_ok != 1 ; then

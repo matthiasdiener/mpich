@@ -69,10 +69,9 @@ fpilog: fpi.o
 	$(MPI_FLINKER) $(FC_LDFLAGS) -o $@ $? $(FLIB_PATH) $(DEBUG_LIBS) -lm
 
 srtest: srtest.o
-	$(MPI_CLINKER) $(CC_LDFLAGS)  -o $@ $? $(LOG_LIBS) $(DEBUG_LIBS) -lm 
-	
+	$(MPI_CLINKER) $(CC_LDFLAGS)  -o $@ $? $(LOG_LIBS) $(DEBUG_LIBS) -lm
 cxgraphics: cxgraphics.o
-	$(MPI_CLINKER) $(CC_LDFLAGS)  -o $@ $? $(XGRAPH_LIBS) $(DEBUG_LIBS) -lm 
+	$(MPI_CLINKER) $(CC_LDFLAGS)  -o $@ $? $(XGRAPH_LIBS) $(DEBUG_LIBS) -lm
 
 fxgraphics: fxgraphics.o
 	$(MPI_FLINKER) $(FC_LDFLAGS) -o $@ $? $(XGRAPH_LIBS) $(DEBUG_LIBS) -lm
@@ -164,6 +163,7 @@ linktest_f77:
 	  fi
 
 clean:
+	@-$(RM) -f work.pc work.pcl
 	@-$(RM) -f *.o *~ PI* $(EXECS) \
 	           cpilog cpi_anim cpi_trace cpi_log fpilog cxgraphics fxgraphics
 

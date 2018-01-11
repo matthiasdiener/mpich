@@ -293,7 +293,13 @@ if test "$pac_lib_mpi_is_building" = "yes" ; then
     dnl We also need to check that Fortran 90 is compatible with this
     dnl selection.  If not, turn off Fortran 90
     dnl
-    if test -n "$F90" -a "$enable_f90" != "no" ; then
+    if test "$F90" = "$F77" ; then 
+        # We don't need to do anything
+	pac_cv_prog_f90_cmdarg_fflags="$pac_cv_prog_f77_cmdarg_fflags"
+	pac_cv_prog_f90_cmdarg_ldflags="$pac_cv_prog_f77_cmdarg_ldflags"
+        F90_GETARG_FFLAGS="$pac_cv_prog_f90_cmdarg_fflags"
+        F90_GETARG_LDFLAGS="$pac_cv_prog_f90_cmdarg_ldflags"
+    elif test -n "$F90" -a "$enable_f90" != "no" ; then
         AC_MSG_CHECKING([how to compile and link Fortran 90 programs with Fortran 77 programs that access the command line])
         AC_CACHE_VAL(pac_cv_prog_f90_cmdarg,[
 	AC_MSG_RESULT([searching...])
@@ -307,11 +313,10 @@ if test "$pac_lib_mpi_is_building" = "yes" ; then
        end              
 EOF
 	MSG="$pac_cv_prog_f77_cmdarg"
-	if test "$NOG2C" = "yes" ; then
-            trial_LIBS="0 -lU77"
-	else
-	    trial_LIBS="0 -lU77 -lg2c"
-	fi
+        trial_LIBS="0 -lU77 -lPEPCF90"
+        if test "$NOG2C" != "1" ; then
+            trial_LIBS="$trial_LIBS -lg2c"
+        fi
 	trial_FLAGS="0 -YEXT_NAMES=UCS -YEXT_NAMES=LCS -YCFRL=1 +U77"
         for libs in $trial_LIBS ; do
             if test -n "$pac_cv_prog_f90_cmdarg" ; then break ; fi
@@ -761,7 +766,8 @@ if test -n "$F90" -a "$enable_f90" != "no" ; then
 		    export MAKE ; F90LINKER="$F90LINKER" ; \
 		    export F90LINKER ; \
  	   	    $top_srcdir_val/f90modules/configure --with-mpich)
- 	F90_MODINCFLAG=`$MAKE -f ../../f90modules/Makefile f90modflag`
+ 	F90_MODINCFLAG="`$MAKE -f ../../f90modules/Makefile f90modflag`"
+	F90MODINCSPEC="`$MAKE -f ../../f90modules/Makefile f90modspec`"
         if test -z "$USER_SET_F90INC" -a -z "$F90INC" ; then 
 	    # This should use a test or try to get it from the f90module.
 	    F90INC=`$MAKE -f ../../f90modules/Makefile f90incflag`
@@ -781,6 +787,7 @@ AC_SUBST(f90libdir)
 AC_SUBST(F90_LDFLAGS)
 AC_SUBST(F90INC)
 AC_SUBST(F90_MODINCFLAG)
+AC_SUBST(F90MODINCSPEC)
 AC_SUBST(F90FLAGS)
 AC_SUBST(F90LINKER)
 AC_SUBST(F90LIB_PATH)

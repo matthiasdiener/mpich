@@ -35,3 +35,4 @@ distclean-local:
 	rm -f config.system
 clean-local:
 	rm -f ${EXTRA_PROGRAMS}
+	rm -f work.pc work.pcl

@@ -32,3 +32,5 @@ EXTRA_DIST		= $(libmpi___a_SOURCES) $(libpmpi___a_SOURCES)
 
 SOURCEFILES		= $(EXTRA_DIST)
 include $(top_srcdir)/Makefile.depend
+clean-local:
+	rm -f *.ii *.ti

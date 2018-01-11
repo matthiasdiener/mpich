@@ -48,6 +48,8 @@ define([AC_CACHE_LOAD],
         cache_system=`echo $cache_file | sed -e 's%^\(.*/\)[^/]*%\1/config.system%'`
 	changequote([,])
         test "x$cache_system" = "x$cache_file" && cache_system="config.system"
+    else
+        enable_cache=no
     fi
 fi
 dnl
@@ -73,6 +75,9 @@ if test "X$enable_cache" = "Xnotgiven" -o "X$enable_cache" = "X" ; then
 	    enable_cache="yes"
         fi
     fi
+fi
+if test "X$enable_cache" = "Xyes" -a "$cache_file" = "/dev/null" ; then
+    enable_cache=no
 fi
 if test "X$enable_cache" = "Xyes" ; then
   if test -r "$cache_file" ; then
@@ -111,6 +116,24 @@ AC_DEFUN(PAC_ARG_CACHING,[
 AC_ARG_ENABLE(cache,
 [--enable-cache  - Turn on configure caching],
 enable_cache="$enableval",enable_cache="notgiven")
+])
+dnl
+dnl Create a cache file before ac_output so that subdir configures don't
+dnl make mistakes. 
+dnl We can't use OUTPUT_COMMANDS to remove the cache file, because those
+dnl commands are executed *before* the subdir configures.
+AC_DEFUN(PAC_SUBDIR_CACHE,[
+if test "$cache_file" = "/dev/null" -a "X$enable_cache" = "Xnotgiven" ; then
+    cache_file=$$conf.cache
+    touch $cache_file
+    AC_CACHE_SAVE
+    ac_configure_args="$ac_configure_args -enable-cache"
+fi
+])
+AC_DEFUN(PAC_SUBDIR_CACHE_CLEANUP,[
+if test "$cache_file" != "/dev/null" -a "X$enable_cache" = "Xnotgiven" ; then
+   rm -f $cache_file
+fi
 ])
 
 dnl
@@ -447,16 +470,16 @@ CFLAGS="$1 $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $save_CFLAGS $CPPFLAGS -o conftest conftest.c >conftest.bas 2>&1 ; then
-   if ${CC-cc} $CFLAGS $CPPFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+if ${CC-cc} $save_CFLAGS $CPPFLAGS -o conftest conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS $CPPFLAGS -o conftest conftest.c $LDFLAGS >conftest.out 2>&1 ; then
       if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
          AC_MSG_RESULT(yes)
          AC_MSG_CHECKING([that routines compiled with $1 can be linked with ones compiled  without $1])       
          /bin/rm -f conftest.out
          /bin/rm -f conftest.bas
          if ${CC-cc} -c $save_CFLAGS $CPPFLAGS conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS $CPPFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
-               if ${CC-cc} $CFLAGS $CPPFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS $CPPFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS $CPPFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.out 2>&1 ; then
                   if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
 	             AC_MSG_RESULT(yes)	  
 		     CFLAGS="$save_CFLAGS"
@@ -739,7 +762,7 @@ if test "$ac_cv_func_semctl" = "yes" ; then
 #include <sys/sem.h>],[union semun arg;arg.val=0;],
     pac_cv_type_union_semun="yes",pac_cv_type_union_semun="no")])
     if test "$pac_cv_type_union_semun" = "yes" ; then
-        AC_DEFINE(HAVE_UNION_SEMUN)
+        AC_DEFINE(HAVE_UNION_SEMUN,,[Has union semun])
         #
         # See if we can use an int in semctl or if we need the union
         AC_CACHE_CHECK([whether semctl needs union semun],
@@ -752,7 +775,7 @@ int arg = 0; semctl( 1, 1, SETVAL, arg );],
         pac_cv_func_semctl_needs_semun="no")
         ])
         if test "$pac_cv_func_semctl_needs_semun" = "yes" ; then
-            AC_DEFINE(SEMCTL_NEEDS_SEMUN)
+            AC_DEFINE(SEMCTL_NEEDS_SEMUN,[Needs an explicit definition of semun])
         fi
     fi
 fi
@@ -774,7 +797,7 @@ pac_cv_c_volatile,[
 AC_TRY_COMPILE(,[volatile int a;],pac_cv_c_volatile="yes",
 pac_cv_c_volatile="no")])
 if test "$pac_cv_c_volatile" = "no" ; then
-    AC_DEFINE(volatile,)
+    AC_DEFINE(volatile,,[if C does not support volatile])
 fi
 ])dnl
 dnl
@@ -794,7 +817,7 @@ pac_cv_c_inline,[
 AC_TRY_COMPILE([inline int a( int b ){return b+1;}],[int a;],
 pac_cv_c_inline="yes",pac_cv_c_inline="no")])
 if test "$pac_cv_c_inline" = "no" ; then
-    AC_DEFINE(inline,)
+    AC_DEFINE(inline,,[if C does not support inline])
 fi
 ])dnl
 dnl
@@ -875,9 +898,12 @@ if test "$pac_cv_c_restrict" = "no" ; then
 fi
 ])
 if test "$pac_cv_c_restrict" = "no" ; then
-  AC_DEFINE(restrict, )
+  restrict_val=""
 elif test "$pac_cv_c_restrict" != "restrict" ; then
-  AC_DEFINE_UNQUOTED(restrict,$pac_cv_c_restrict)
+  restrict_val=$pac_cv_c_restrict
+fi
+if test "$restrict_val" != "restrict" ; then 
+  AC_DEFINE_UNQUOTED(restrict,$restrict_val,[if C does not support restrict])
 fi
 ])dnl
 dnl
@@ -1124,11 +1150,11 @@ if test "$pac_cv_prog_c_weak_symbols" = "no" ; then
     ifelse([$2],,:,[$2])
 else
     case "$pac_cv_prog_c_weak_symbols" in
-	"pragma weak") AC_DEFINE(HAVE_PRAGMA_WEAK) 
+	"pragma weak") AC_DEFINE(HAVE_PRAGMA_WEAK,,[Supports weak pragma]) 
 	;;
-	"pragma _HP")  AC_DEFINE(HAVE_PRAGMA_HP_SEC_DEF)
+	"pragma _HP")  AC_DEFINE(HAVE_PRAGMA_HP_SEC_DEF,,[HP style weak pragma])
 	;;
-	"pragma _CRI") AC_DEFINE(HAVE_PRAGMA_CRI_DUP)
+	"pragma _CRI") AC_DEFINE(HAVE_PRAGMA_CRI_DUP,,[Cray style weak pragma])
 	;;
     esac
     ifelse([$1],,:,[$1])
@@ -1184,9 +1210,9 @@ double crypt(double a){return a;}],[return 0];,
 pac_cv_func_crypt_xopen="no",pac_cv_func_crypt_xopen="yes")])
 fi
 if test "$pac_cv_func_crypt_xopen" = "yes" ; then
-    AC_DEFINE(_XOPEN_SOURCE)
+    AC_DEFINE(_XOPEN_SOURCE,,[if xopen needed for crypt])
 elif test "$pac_cv_func_crypt_defined" = "no" ; then
-    AC_DEFINE(NEED_CRYPT_PROTOTYPE)
+    AC_DEFINE(NEED_CRYPT_PROTOTYPE,,[if a prototype for crypt is needed])
 fi
 ])dnl
 dnl/*D
@@ -1344,7 +1370,7 @@ echo 'extern int a; int main( ){ return a; }' > conftest2.c
 if ${CC-cc} $CFLAGS -c conftest1.c >conftest.out 2>&1 ; then
     if ${AR-ar} cr libconftest.a conftest1.o ; then
         if ${RANLIB-:} libconftest.a ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.c libconftest.a ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a ; then
 		# Success!  C works
 		ac_cv_prog_cc_globals_work=yes
 	    else
@@ -1353,7 +1379,7 @@ if ${CC-cc} $CFLAGS -c conftest1.c >conftest.out 2>&1 ; then
 		rm -f libconftest.a
 		${AR-ar} cr libconftest.a conftest1.o
 	        ${RANLIB-:} libconftest.a
-	        if ${CC-cc} $CFLAGS -o conftest conftest2.c libconftest.a ; then
+	        if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a ; then
 		    ac_cv_prob_cc_globals_work="needs -fno-common"
 		    CFLAGS="$CFLAGS -fno-common"
 		fi
@@ -1363,6 +1389,141 @@ if ${CC-cc} $CFLAGS -c conftest1.c >conftest.out 2>&1 ; then
 fi
 rm -f conftest* libconftest*
 AC_MSG_RESULT($ac_cv_prog_cc_globals_work)
+])
+dnl
+dnl
+dnl Return the structure alignment in pac_cv_c_struct_align
+AC_DEFUN(PAC_C_STRUCT_ALIGNMENT,[
+AC_CACHE_CHECK([for C struct alignment],pac_cv_c_struct_align,[
+AC_TRY_RUN([
+#include <stdio.h>
+#define DBG(a,b,c)
+int main( int argc, char *argv[] )
+{
+    FILE *cf;
+    int is_packed  = 1;
+    int is_two     = 1;
+    int is_four    = 1;
+    int is_eight   = 1;
+    int is_largest = 1;
+    struct { char a; int b; } char_int;
+    struct { char a; short b; } char_short;
+    struct { char a; long b; } char_long;
+    struct { char a; float b; } char_float;
+    struct { char a; double b; } char_double;
+    struct { char a; int b; char c; } char_int_char;
+    struct { char a; short b; char c; } char_short_char;
+#ifdef HAVE_LONG_DOUBLE
+    struct { char a; long double b; } char_long_double;
+#endif
+    int size, extent;
+
+    size = sizeof(char) + sizeof(int);
+    extent = sizeof(char_int);
+    if (size != extent) is_packed = 0;
+    if ( (extent % sizeof(int)) != 0) is_largest = 0;
+    if ( (extent % 2) != 0) is_two = 0;
+    if ( (extent % 4) != 0) is_four = 0;
+    if (sizeof(int) == 8 && (extent % 8) != 0) is_eight = 0;
+    DBG("char_int",size,extent);
+
+    size = sizeof(char) + sizeof(short);
+    extent = sizeof(char_short);
+    if (size != extent) is_packed = 0;
+    if ( (extent % sizeof(short)) != 0) is_largest = 0;
+    if ( (extent % 2) != 0) is_two = 0;
+    if (sizeof(short) == 4 && (extent % 4) != 0) is_four = 0;
+    if (sizeof(short) == 8 && (extent % 8) != 0) is_eight = 0;
+    DBG("char_short",size,extent);
+
+    size = sizeof(char) + sizeof(long);
+    extent = sizeof(char_long);
+    if (size != extent) is_packed = 0;
+    if ( (extent % sizeof(long)) != 0) is_largest = 0;
+    if ( (extent % 2) != 0) is_two = 0;
+    if ( (extent % 4) != 0) is_four = 0;
+    if (sizeof(long) == 8 && (extent % 8) != 0) is_eight = 0;
+    DBG("char_long",size,extent);
+
+    size = sizeof(char) + sizeof(float);
+    extent = sizeof(char_float);
+    if (size != extent) is_packed = 0;
+    if ( (extent % sizeof(float)) != 0) is_largest = 0;
+    if ( (extent % 2) != 0) is_two = 0;
+    if ( (extent % 4) != 0) is_four = 0;
+    if (sizeof(float) == 8 && (extent % 8) != 0) is_eight = 0;
+    DBG("char_float",size,extent);
+
+    size = sizeof(char) + sizeof(double);
+    extent = sizeof(char_double);
+    if (size != extent) is_packed = 0;
+    if ( (extent % sizeof(double)) != 0) is_largest = 0;
+    if ( (extent % 2) != 0) is_two = 0;
+    if ( (extent % 4) != 0) is_four = 0;
+    if (sizeof(double) == 8 && (extent % 8) != 0) is_eight = 0;
+    DBG("char_double",size,extent);
+
+#ifdef HAVE_LONG_DOUBLE
+    size = sizeof(char) + sizeof(long double);
+    extent = sizeof(char_long_double);
+    if (size != extent) is_packed = 0;
+    if ( (extent % sizeof(long double)) != 0) is_largest = 0;
+    if ( (extent % 2) != 0) is_two = 0;
+    if ( (extent % 4) != 0) is_four = 0;
+    if (sizeof(long double) >= 8 && (extent % 8) != 0) is_eight = 0;
+    DBG("char_long-double",size,extent);
+#endif
+
+    /* char int char helps separate largest from 4/8 aligned */
+    size = sizeof(char) + sizeof(int) + sizeof(char);
+    extent = sizeof(char_int_char);
+    if (size != extent) is_packed = 0;
+    if ( (extent % sizeof(int)) != 0) is_largest = 0;
+    if ( (extent % 2) != 0) is_two = 0;
+    if ( (extent % 4) != 0) is_four = 0;
+    if (sizeof(int) == 8 && (extent % 8) != 0) is_eight = 0;
+    DBG("char_int_char",size,extent);
+
+    /* char short char helps separate largest from 4/8 aligned */
+    size = sizeof(char) + sizeof(short) + sizeof(char);
+    extent = sizeof(char_short_char);
+    if (size != extent) is_packed = 0;
+    if ( (extent % sizeof(short)) != 0) is_largest = 0;
+    if ( (extent % 2) != 0) is_two = 0;
+    if (sizeof(short) == 4 && (extent % 4) != 0) is_four = 0;
+    if (sizeof(short) == 8 && (extent % 8) != 0) is_eight = 0;
+    DBG("char_short_char",size,extent);
+
+    /* If aligned mod 8, it will be aligned mod 4 */
+    if (is_eight) { is_four = 0; is_two = 0; }
+
+    if (is_four) is_two = 0;
+
+    /* largest superceeds eight */
+    if (is_largest) is_eight = 0;
+
+    /* Tabulate the results */
+    cf = fopen( "ctest.out", "w" );
+    if (is_packed + is_largest + is_two + is_four + is_eight == 0) {
+	fprintf( cf, "Could not determine alignment\n" );
+    }
+    else {
+	if (is_packed + is_largest + is_two + is_four + is_eight != 1) {
+	    fprintf( cf, "Multiple cases:\n" );
+	}
+	if (is_packed) fprintf( cf, "packed\n" );
+	if (is_largest) fprintf( cf, "largest\n" );
+	if (is_two) fprintf( cf, "two\n" );
+	if (is_four) fprintf( cf, "four\n" );
+	if (is_eight) fprintf( cf, "eight\n" );
+    }
+    fclose( cf );
+    return 0;
+}],
+pac_cv_c_struct_align=`cat ctest.out`
+,pac_cv_c_struct_align="unknown",pac_cv_c_struct_align="unknown")
+rm -f ctest.out
+])
 ])
 
 AC_DEFUN(AM_IGNORE,[])
@@ -2449,8 +2610,8 @@ EOF
 dnl It is important to use the AC_TRY_EVAL in case F77 is not a single word
 dnl but is something like "f77 -64" (where the switch has changed the
 dnl compiler)
-ac_fscompilelink='${F77-f77} $save_FFLAGS -o conftest conftest.f >conftest.bas 2>&1'
-ac_fscompilelink2='${F77-f77} $FFLAGS -o conftest conftest.f >conftest.out 2>&1'
+ac_fscompilelink='${F77-f77} $save_FFLAGS -o conftest conftest.f $LDFLAGS >conftest.bas 2>&1'
+ac_fscompilelink2='${F77-f77} $FFLAGS -o conftest conftest.f $LDFLAGS >conftest.out 2>&1'
 if AC_TRY_EVAL(ac_fscompilelink) && test -x conftest ; then
    if AC_TRY_EVAL(ac_fscompilelink2) && test -x conftest ; then
       if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
@@ -2459,7 +2620,7 @@ if AC_TRY_EVAL(ac_fscompilelink) && test -x conftest ; then
          /bin/rm -f conftest2.out
          /bin/rm -f conftest.bas
 	 ac_fscompile3='${F77-f77} -c $save_FFLAGS conftest2.f >conftest2.out 2>&1'
-	 ac_fscompilelink4='${F77-f77} $FFLAGS -o conftest conftest2.o conftest.f >conftest.bas 2>&1'
+	 ac_fscompilelink4='${F77-f77} $FFLAGS -o conftest conftest2.o conftest.f $LDFLAGS >conftest.bas 2>&1'
          if AC_TRY_EVAL(ac_fscompile3) && test -s conftest2.o ; then
             if AC_TRY_EVAL(ac_fscompilelink4) && test -x conftest ; then
                if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
@@ -2585,7 +2746,7 @@ $fxx_module
 EOF
     found_answer="no"
     if test -z "$ac_fcompilelink" ; then
-        ac_fcompilelink="${F77-f77} -o conftest $FFLAGS $flags conftest.f $LIBS 1>&AC_FD_CC"
+        ac_fcompilelink="${F77-f77} -o conftest $FFLAGS $flags conftest.f $LDFLAGS $LIBS 1>&AC_FD_CC"
     fi
     AC_MSG_CHECKING([if ${F77-f77} $flags $libs works with GETARG and IARGC])
     if AC_TRY_EVAL(ac_fcompilelink) && test -x conftest ; then
@@ -2625,7 +2786,7 @@ EOF
         program main
         end
 EOF
-    ac_fcompilelink_test='${F77-f77} -o conftest $FFLAGS conftest.f $libs $LIBS 1>&AC_FD_CC'
+    ac_fcompilelink_test='${F77-f77} -o conftest $FFLAGS conftest.f $LDFLAGS $libs $LIBS 1>&AC_FD_CC'
     for libs in $save_trial_LIBS ; do
 	if test "$libs" = "0" ; then
 	    lib_ok="yes"
@@ -2698,8 +2859,7 @@ EOF
 	    AC_MSG_CHECKING([that Fortran 77 routine names are case-insensitive $flagval])
 	    dnl we can use double quotes here because all is already
             dnl evaluated
-            ac_fcompilelink_test="${F77-f77} -o conftest $fflag $FFLAGS
-conftest.f $LIBS 1>&AC_FD_CC"
+            ac_fcompilelink_test="${F77-f77} -o conftest $fflag $FFLAGS conftest.f $LDFLAGS $LIBS 1>&AC_FD_CC"
 	    if AC_TRY_EVAL(ac_fcompilelink_test) && test -x conftest ; then
 	        AC_MSG_RESULT(yes)
 	    else
@@ -2812,7 +2972,7 @@ EOF
                 AC_MSG_CHECKING([if ${F77-f77} $flags $libs works with $MSG])
 		IFS="$save_IFS"
 		dnl We need this here because we've fiddled with IFS
-	        ac_fcompilelink_test="${F77-f77} -o conftest $FFLAGS $flags conftest.f $libs $LIBS 1>&AC_FD_CC"
+	        ac_fcompilelink_test="${F77-f77} -o conftest $FFLAGS $flags conftest.f $LDFLAGS $libs $LIBS 1>&AC_FD_CC"
 		found_answer="no"
                 if AC_TRY_EVAL(ac_fcompilelink_test) && test -x conftest ; then
 		    if test "$ac_cv_prog_f77_cross" = "no" ; then
@@ -2889,7 +3049,7 @@ pac_cv_prog_f77_library_dir_flag,
         program main
         end
 EOF
-    ac_fcompileldtest='${F77-f77} -o conftest $FFLAGS ${ldir}. conftest.f 1>&AC_FD_CC'
+    ac_fcompileldtest='${F77-f77} -o conftest $FFLAGS ${ldir}. conftest.f $LDFLAGS 1>&AC_FD_CC'
     for ldir in "-L" "-Wl,-L," ; do
         if AC_TRY_EVAL(ac_fcompileldtest) && test -s conftest ; then
 	    pac_cv_prog_f77_library_dir_flag="$ldir"
@@ -3181,9 +3341,9 @@ cat > conftest.f <<EOF
         end
 EOF
 if AC_TRY_EVAL(ac_compile); then
-    if ${F77} -o conftest conftest.o conftest1.o 2>&AC_FD_CC ; then
+    if ${F77} -o conftest conftest.o conftest1.o $LDFLAGS 2>&AC_FD_CC ; then
 	AC_MSG_RESULT([Use Fortran to link programs])
-    elif ${CC} -o conftest conftest.o conftest1.o $FLIBS 2>&AC_FD_CC ; then
+    elif ${CC} -o conftest conftest.o conftest1.o $LDFLAGS $FLIBS 2>&AC_FD_CC ; then
 	AC_MSG_RESULT([Use C with FLIBS to link programs])
 	F77LINKER="$CC"
         F77_LDFLAGS="$F77_LDFLAGS $FLIBS"

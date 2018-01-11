@@ -276,9 +276,7 @@ int  **counts, **bytesize, *n;
 *n	 = MAX_TEST;
 }
 
-int CheckData( inbuf, outbuf, size_bytes )
-void *inbuf, *outbuf;
-int  size_bytes;
+int CheckData( void *inbuf, void *outbuf, int size_bytes )
 {
 char *in = (char *)inbuf, *out = (char *)outbuf;
 int  i;

@@ -22,7 +22,7 @@ dnl
 dnlD*/
 AC_DEFUN(PAC_PROG_CC,[
 AC_PROVIDE([AC_PROG_CC])
-AC_CHECK_PROGS(CC, cc xlC xlc pgcc gcc )
+AC_CHECK_PROGS(CC, cc xlC xlc pgcc icc gcc )
 test -z "$CC" && AC_MSG_ERROR([no acceptable cc found in \$PATH])
 PAC_PROG_CC_WORKS
 AC_PROG_CC_GNU
@@ -353,7 +353,7 @@ if test "$ac_cv_func_semctl" = "yes" ; then
 #include <sys/sem.h>],[union semun arg;arg.val=0;],
     pac_cv_type_union_semun="yes",pac_cv_type_union_semun="no")])
     if test "$pac_cv_type_union_semun" = "yes" ; then
-        AC_DEFINE(HAVE_UNION_SEMUN)
+        AC_DEFINE(HAVE_UNION_SEMUN,,[Has union semun])
         #
         # See if we can use an int in semctl or if we need the union
         AC_CACHE_CHECK([whether semctl needs union semun],
@@ -366,7 +366,7 @@ int arg = 0; semctl( 1, 1, SETVAL, arg );],
         pac_cv_func_semctl_needs_semun="no")
         ])
         if test "$pac_cv_func_semctl_needs_semun" = "yes" ; then
-            AC_DEFINE(SEMCTL_NEEDS_SEMUN)
+            AC_DEFINE(SEMCTL_NEEDS_SEMUN,[Needs an explicit definition of semun])
         fi
     fi
 fi
@@ -388,7 +388,7 @@ pac_cv_c_volatile,[
 AC_TRY_COMPILE(,[volatile int a;],pac_cv_c_volatile="yes",
 pac_cv_c_volatile="no")])
 if test "$pac_cv_c_volatile" = "no" ; then
-    AC_DEFINE(volatile,)
+    AC_DEFINE(volatile,,[if C does not support volatile])
 fi
 ])dnl
 dnl
@@ -408,7 +408,7 @@ pac_cv_c_inline,[
 AC_TRY_COMPILE([inline int a( int b ){return b+1;}],[int a;],
 pac_cv_c_inline="yes",pac_cv_c_inline="no")])
 if test "$pac_cv_c_inline" = "no" ; then
-    AC_DEFINE(inline,)
+    AC_DEFINE(inline,,[if C does not support inline])
 fi
 ])dnl
 dnl
@@ -489,9 +489,12 @@ if test "$pac_cv_c_restrict" = "no" ; then
 fi
 ])
 if test "$pac_cv_c_restrict" = "no" ; then
-  AC_DEFINE(restrict, )
+  restrict_val=""
 elif test "$pac_cv_c_restrict" != "restrict" ; then
-  AC_DEFINE_UNQUOTED(restrict,$pac_cv_c_restrict)
+  restrict_val=$pac_cv_c_restrict
+fi
+if test "$restrict_val" != "restrict" ; then 
+  AC_DEFINE_UNQUOTED(restrict,$restrict_val,[if C does not support restrict])
 fi
 ])dnl
 dnl
@@ -738,11 +741,11 @@ if test "$pac_cv_prog_c_weak_symbols" = "no" ; then
     ifelse([$2],,:,[$2])
 else
     case "$pac_cv_prog_c_weak_symbols" in
-	"pragma weak") AC_DEFINE(HAVE_PRAGMA_WEAK) 
+	"pragma weak") AC_DEFINE(HAVE_PRAGMA_WEAK,,[Supports weak pragma]) 
 	;;
-	"pragma _HP")  AC_DEFINE(HAVE_PRAGMA_HP_SEC_DEF)
+	"pragma _HP")  AC_DEFINE(HAVE_PRAGMA_HP_SEC_DEF,,[HP style weak pragma])
 	;;
-	"pragma _CRI") AC_DEFINE(HAVE_PRAGMA_CRI_DUP)
+	"pragma _CRI") AC_DEFINE(HAVE_PRAGMA_CRI_DUP,,[Cray style weak pragma])
 	;;
     esac
     ifelse([$1],,:,[$1])
@@ -798,9 +801,9 @@ double crypt(double a){return a;}],[return 0];,
 pac_cv_func_crypt_xopen="no",pac_cv_func_crypt_xopen="yes")])
 fi
 if test "$pac_cv_func_crypt_xopen" = "yes" ; then
-    AC_DEFINE(_XOPEN_SOURCE)
+    AC_DEFINE(_XOPEN_SOURCE,,[if xopen needed for crypt])
 elif test "$pac_cv_func_crypt_defined" = "no" ; then
-    AC_DEFINE(NEED_CRYPT_PROTOTYPE)
+    AC_DEFINE(NEED_CRYPT_PROTOTYPE,,[if a prototype for crypt is needed])
 fi
 ])dnl
 dnl/*D
@@ -936,4 +939,180 @@ dnl   AC_MSG_RESULT($alt_argv)
 dnl fi
 dnl 
 dnl
+dnl Check whether we need -fno-common to correctly compile the source code.
+dnl This is necessary if global variables are defined without values in
+dnl gcc.  Here is the test
+dnl conftest1.c:
+dnl extern int a; int a;
+dnl conftest2.c:
+dnl extern int a; int main(int argc; char *argv[] ){ return a; }
+dnl Make a library out of conftest1.c and try to link with it.
+dnl If that fails, recompile it with -fno-common and see if that works.
+dnl If so, add -fno-common to CFLAGS
+dnl An alternative is to use, on some systems, ranlib -c to force 
+dnl the system to find common symbols.
 dnl
+dnl NOT TESTED
+AC_DEFUN(PAC_PROG_C_BROKEN_COMMON,[
+AC_MSG_CHECKING([whether global variables handled properly])
+ac_cv_prog_cc_globals_work=no
+echo 'extern int a; int a;' > conftest1.c
+echo 'extern int a; int main( ){ return a; }' > conftest2.c
+if ${CC-cc} $CFLAGS -c conftest1.c >conftest.out 2>&1 ; then
+    if ${AR-ar} cr libconftest.a conftest1.o ; then
+        if ${RANLIB-:} libconftest.a ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.c libconftest.a ; then
+		# Success!  C works
+		ac_cv_prog_cc_globals_work=yes
+	    else
+	        # Failure!  Do we need -fno-common?
+	        ${CC-cc} $CFLAGS -fno-common -c conftest1.c > conftest.out 2>&1
+		rm -f libconftest.a
+		${AR-ar} cr libconftest.a conftest1.o
+	        ${RANLIB-:} libconftest.a
+	        if ${CC-cc} $CFLAGS -o conftest conftest2.c libconftest.a ; then
+		    ac_cv_prob_cc_globals_work="needs -fno-common"
+		    CFLAGS="$CFLAGS -fno-common"
+		fi
+	    fi
+        fi
+    fi
+fi
+rm -f conftest* libconftest*
+AC_MSG_RESULT($ac_cv_prog_cc_globals_work)
+])
+dnl
+dnl
+dnl Return the structure alignment in pac_cv_c_struct_align
+AC_DEFUN(PAC_C_STRUCT_ALIGNMENT,[
+AC_CACHE_CHECK([for C struct alignment],pac_cv_c_struct_align,[
+AC_TRY_RUN([
+#include <stdio.h>
+#define DBG(a,b,c)
+int main( int argc, char *argv[] )
+{
+    FILE *cf;
+    int is_packed  = 1;
+    int is_two     = 1;
+    int is_four    = 1;
+    int is_eight   = 1;
+    int is_largest = 1;
+    struct { char a; int b; } char_int;
+    struct { char a; short b; } char_short;
+    struct { char a; long b; } char_long;
+    struct { char a; float b; } char_float;
+    struct { char a; double b; } char_double;
+    struct { char a; int b; char c; } char_int_char;
+    struct { char a; short b; char c; } char_short_char;
+#ifdef HAVE_LONG_DOUBLE
+    struct { char a; long double b; } char_long_double;
+#endif
+    int size, extent;
+
+    size = sizeof(char) + sizeof(int);
+    extent = sizeof(char_int);
+    if (size != extent) is_packed = 0;
+    if ( (extent % sizeof(int)) != 0) is_largest = 0;
+    if ( (extent % 2) != 0) is_two = 0;
+    if ( (extent % 4) != 0) is_four = 0;
+    if (sizeof(int) == 8 && (extent % 8) != 0) is_eight = 0;
+    DBG("char_int",size,extent);
+
+    size = sizeof(char) + sizeof(short);
+    extent = sizeof(char_short);
+    if (size != extent) is_packed = 0;
+    if ( (extent % sizeof(short)) != 0) is_largest = 0;
+    if ( (extent % 2) != 0) is_two = 0;
+    if (sizeof(short) == 4 && (extent % 4) != 0) is_four = 0;
+    if (sizeof(short) == 8 && (extent % 8) != 0) is_eight = 0;
+    DBG("char_short",size,extent);
+
+    size = sizeof(char) + sizeof(long);
+    extent = sizeof(char_long);
+    if (size != extent) is_packed = 0;
+    if ( (extent % sizeof(long)) != 0) is_largest = 0;
+    if ( (extent % 2) != 0) is_two = 0;
+    if ( (extent % 4) != 0) is_four = 0;
+    if (sizeof(long) == 8 && (extent % 8) != 0) is_eight = 0;
+    DBG("char_long",size,extent);
+
+    size = sizeof(char) + sizeof(float);
+    extent = sizeof(char_float);
+    if (size != extent) is_packed = 0;
+    if ( (extent % sizeof(float)) != 0) is_largest = 0;
+    if ( (extent % 2) != 0) is_two = 0;
+    if ( (extent % 4) != 0) is_four = 0;
+    if (sizeof(float) == 8 && (extent % 8) != 0) is_eight = 0;
+    DBG("char_float",size,extent);
+
+    size = sizeof(char) + sizeof(double);
+    extent = sizeof(char_double);
+    if (size != extent) is_packed = 0;
+    if ( (extent % sizeof(double)) != 0) is_largest = 0;
+    if ( (extent % 2) != 0) is_two = 0;
+    if ( (extent % 4) != 0) is_four = 0;
+    if (sizeof(double) == 8 && (extent % 8) != 0) is_eight = 0;
+    DBG("char_double",size,extent);
+
+#ifdef HAVE_LONG_DOUBLE
+    size = sizeof(char) + sizeof(long double);
+    extent = sizeof(char_long_double);
+    if (size != extent) is_packed = 0;
+    if ( (extent % sizeof(long double)) != 0) is_largest = 0;
+    if ( (extent % 2) != 0) is_two = 0;
+    if ( (extent % 4) != 0) is_four = 0;
+    if (sizeof(long double) >= 8 && (extent % 8) != 0) is_eight = 0;
+    DBG("char_long-double",size,extent);
+#endif
+
+    /* char int char helps separate largest from 4/8 aligned */
+    size = sizeof(char) + sizeof(int) + sizeof(char);
+    extent = sizeof(char_int_char);
+    if (size != extent) is_packed = 0;
+    if ( (extent % sizeof(int)) != 0) is_largest = 0;
+    if ( (extent % 2) != 0) is_two = 0;
+    if ( (extent % 4) != 0) is_four = 0;
+    if (sizeof(int) == 8 && (extent % 8) != 0) is_eight = 0;
+    DBG("char_int_char",size,extent);
+
+    /* char short char helps separate largest from 4/8 aligned */
+    size = sizeof(char) + sizeof(short) + sizeof(char);
+    extent = sizeof(char_short_char);
+    if (size != extent) is_packed = 0;
+    if ( (extent % sizeof(short)) != 0) is_largest = 0;
+    if ( (extent % 2) != 0) is_two = 0;
+    if (sizeof(short) == 4 && (extent % 4) != 0) is_four = 0;
+    if (sizeof(short) == 8 && (extent % 8) != 0) is_eight = 0;
+    DBG("char_short_char",size,extent);
+
+    /* If aligned mod 8, it will be aligned mod 4 */
+    if (is_eight) { is_four = 0; is_two = 0; }
+
+    if (is_four) is_two = 0;
+
+    /* largest superceeds eight */
+    if (is_largest) is_eight = 0;
+
+    /* Tabulate the results */
+    cf = fopen( "ctest.out", "w" );
+    if (is_packed + is_largest + is_two + is_four + is_eight == 0) {
+	fprintf( cf, "Could not determine alignment\n" );
+    }
+    else {
+	if (is_packed + is_largest + is_two + is_four + is_eight != 1) {
+	    fprintf( cf, "Multiple cases:\n" );
+	}
+	if (is_packed) fprintf( cf, "packed\n" );
+	if (is_largest) fprintf( cf, "largest\n" );
+	if (is_two) fprintf( cf, "two\n" );
+	if (is_four) fprintf( cf, "four\n" );
+	if (is_eight) fprintf( cf, "eight\n" );
+    }
+    fclose( cf );
+    return 0;
+}],
+pac_cv_c_struct_align=`cat ctest.out`
+,pac_cv_c_struct_align="unknown",pac_cv_c_struct_align="unknown")
+rm -f ctest.out
+])
+])

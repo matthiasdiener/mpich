@@ -855,8 +855,8 @@ EOF
     fi
     if test ! -s conftest ; then
       echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS 
+      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
     ac_cv_mmap=0
 
     else
@@ -927,8 +927,8 @@ semctl(semset_id,0,IPC_RMID,arg); }
 return 0; 
 }
 EOF
-echo "${CC-cc} $CFLAGS -o conftest conftest.c $LIBS" >> config.log
-if ${CC-cc} $CFLAGS -o conftest conftest.c $LIBS >> config.log 2>&1 ; then
+echo "${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS" >> config.log
+if ${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS >> config.log 2>&1 ; then
     if test -x conftest ; then
 	/bin/rm -f conftest.out
 	./conftest > conftest.out
@@ -1025,7 +1025,7 @@ return rc;
 }
 EOF
 rm -f conftest.out
-if eval ${CC-cc} $CFLAGS -o conftest conftest.c > conftest.out 2>&1 ; then
+if eval ${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS > conftest.out 2>&1 ; then
     if ./conftest ; then
 	echo "$ac_t""yes" 1>&1
     else

@@ -29,9 +29,16 @@ f90libdir=@f90libdir@
 #
 F90BASE="@F90@"
 F90LINKERBASE="@F90LINKER@"
+LDFLAGSBASE="@LDFLAGS@"
 BASE_FFLAGS="@BASE_FFLAGS@ @F90_GETARG_FFLAGS@"
 F90INC="@F90INC@"
+# f90modinc specifies how to add a directory to the search path for modules.
+# Some compilers (Intel ifc) do not support this concept, and instead need
+# a specific list of files that contain module names and directories.
+# The f90modincspec is a more general approach that uses <dir> and <file>
+# for the directory and file respectively.
 F90MODINC="@F90_MODINCFLAG@"
+F90MODINCSPEC="@F90MODINCSPEC@"
 USER_FFLAGS="@FFLAGS@"
 #
 # Linker flags
@@ -277,15 +284,20 @@ EOF
 done
 #
 # Set the module directory
-if [ -n "$F90MODINC" ] ; then
-    if [ $choice -lt 2 ] ; then
-        moduledir="${F90MODINC}${f90includedir}/f90choice"
-        modulelib=${MPILIBNAME}f90
-    else
-        moduledir="${F90MODINC}${f90includedir}/f90base"
-        modulelib=${MPILIBNAME}f90nc
-    fi
-    compileargs="$compileargs $moduledir"
+if [ $choice -lt 2 ] ; then
+    moduledir="${f90includedir}/f90choice"
+    modulelib=${MPILIBNAME}f90
+else
+    moduledir="${f90includedir}/f90base"
+    modulelib=${MPILIBNAME}f90nc
+fi
+if [ -n "$F90MODINCSPEC" ] ; then
+    newarg=`echo A"$F90MODINCSPEC" | \
+	sed -e 's/^A//' -e 's%<dir>%'"$moduledir%g" -e 's/<file>/mpi/g'`
+    compileargs="$compileargs $newarg"
+    linkargs="$linkargs -l$modulelib"
+elif [ -n "$F90MODINC" ] ; then
+    compileargs="$compileargs ${F90MODINC}$moduledir"
     linkargs="$linkargs -l$modulelib"
 fi
 
@@ -318,6 +330,10 @@ if [ $DoCompile = 1 -o $show_compile = 1 ] ; then
     fi
 fi
 if [ $DoLink = 1 -o $show_link = 1 ] ; then
+    # If no LDFLAGS defined, use the ones that MPICH was built with
+    if [ -z "$LDFLAGS" ] ; then
+        LDFLAGS="$LDFLAGSBASE"
+    fi
     # Figure out the library list.  Because we want to support both a single
     # mpi library containing both C and Fortran interfaces, as well as 
     # a library that allows multiple Fortran interfaces, we may need different
@@ -368,7 +384,7 @@ if [ $DoLink = 1 -o $show_link = 1 ] ; then
 	fi
 	mpilibs="-l${FLIBNAME}farg $mpilibs" 
     fi
-    $Show $F90LINKER $F90_LDFLAGS $BASE_FFLAGS $flibpath ${F90LIB_PATH_LEADER}${F90LIB_PATH} $linkobjs $MPILOG $linkargs $mpilibs $BASE_LIB_LIST $FLIB_LIST
+    $Show $F90LINKER $F90_LDFLAGS $LDFLAGS $BASE_FFLAGS $flibpath ${F90LIB_PATH_LEADER}${F90LIB_PATH} $linkobjs $MPILOG $linkargs $mpilibs $BASE_LIB_LIST $FLIB_LIST
     status=$?
 fi
 #

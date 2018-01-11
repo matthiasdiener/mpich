@@ -911,6 +911,14 @@ fi
 #
 # Some systems don't include support for xdr.  Check for it
 AC_HAVE_FUNCS(xdrmem_create)
+AC_COMPILE_CHECK("XDR includes and functions",[#include <rpc/rpc.h>],[
+int a=1;
+],HAS_XDR=1,HAS_XDR=0)
+if test "$HAS_XDR" = 1 ; then
+	AC_DEFINE(HAS_XDR)
+else 
+    print_error  "XDR not available on this system" 
+fi
 
 #
 # If Scyld/bproc selected, (-p4comm=bproc), see if we can define it

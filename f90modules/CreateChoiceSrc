@@ -158,5 +158,5 @@ cat >>mpi-nochoice.${F90SUFFIX} <<EOF
         USE MPI1
         USE MPI2
 
-        END MODULE MPI	
+        END MODULE MPI
 EOF

@@ -28,6 +28,7 @@ f77libdir=@f77libdir@
 #
 F77BASE="@F77@"
 FLINKERBASE="@F77LINKER@"
+LDFLAGSBASE="@LDFLAGS@"
 BASE_FFLAGS="@BASE_FFLAGS@ @F77_GETARG_FFLAGS@"
 FINC="@F77_INCDIR@"
 USER_FFLAGS="@FFLAGS@"
@@ -293,6 +294,10 @@ if [ $DoCompile = 1 -o $show_compile = 1 ] ; then
     fi
 fi
 if [ $DoLink = 1 -o $show_link = 1 ] ; then
+    # If no LDFLAGS defined, use the ones that MPICH was built with
+    if [ -z "$LDFLAGS" ] ; then
+        LDFLAGS="$LDFLAGSBASE"
+    fi
     # Figure out the library list.  Because we want to support both a single
     # mpi library containing both C and Fortran interfaces, as well as 
     # a library that allows multiple Fortran interfaces, we may need different
@@ -347,7 +352,7 @@ if [ $DoLink = 1 -o $show_link = 1 ] ; then
     if [ "$F77LINKER" != "$F77" ] ; then
         F77_LAST_LDFLAGS="$F77_LDFLAGS"
     fi
-    $Show $F77LINKER $F77_LDFLAGS $BASE_FFLAGS $flibpath ${FLIB_PATH_LEADER}${FLIB_PATH} $linkobjs $MPILOG $linkargs $mpilibs $BASE_LIB_LIST $FLIB_LIST $F77_LAST_LDFLAGS
+    $Show $F77LINKER $F77_LDFLAGS $LDFLAGS $BASE_FFLAGS $flibpath ${FLIB_PATH_LEADER}${FLIB_PATH} $linkobjs $MPILOG $linkargs $mpilibs $BASE_LIB_LIST $FLIB_LIST $F77_LAST_LDFLAGS
     status=$?
 fi
 #

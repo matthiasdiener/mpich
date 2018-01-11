@@ -79,7 +79,9 @@ struct local_data *alloc_local_listener( void )
     l->my_id = LISTENER_ID;
     l->procgroup = NULL;
     l->queued_messages = NULL;
+#ifdef CAN_DO_XDR
     l->xdr_buff = NULL;
+#endif
     l->soft_errors = 0;
     l->conntab = 0;
     return (l);

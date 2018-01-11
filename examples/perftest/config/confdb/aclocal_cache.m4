@@ -36,6 +36,8 @@ define([AC_CACHE_LOAD],
         cache_system=`echo $cache_file | sed -e 's%^\(.*/\)[^/]*%\1/config.system%'`
 	changequote([,])
         test "x$cache_system" = "x$cache_file" && cache_system="config.system"
+    else
+        enable_cache=no
     fi
 fi
 dnl
@@ -61,6 +63,9 @@ if test "X$enable_cache" = "Xnotgiven" -o "X$enable_cache" = "X" ; then
 	    enable_cache="yes"
         fi
     fi
+fi
+if test "X$enable_cache" = "Xyes" -a "$cache_file" = "/dev/null" ; then
+    enable_cache=no
 fi
 if test "X$enable_cache" = "Xyes" ; then
   if test -r "$cache_file" ; then
@@ -99,4 +104,22 @@ AC_DEFUN(PAC_ARG_CACHING,[
 AC_ARG_ENABLE(cache,
 [--enable-cache  - Turn on configure caching],
 enable_cache="$enableval",enable_cache="notgiven")
+])
+dnl
+dnl Create a cache file before ac_output so that subdir configures don't
+dnl make mistakes. 
+dnl We can't use OUTPUT_COMMANDS to remove the cache file, because those
+dnl commands are executed *before* the subdir configures.
+AC_DEFUN(PAC_SUBDIR_CACHE,[
+if test "$cache_file" = "/dev/null" -a "X$enable_cache" = "Xnotgiven" ; then
+    cache_file=$$conf.cache
+    touch $cache_file
+    AC_CACHE_SAVE
+    ac_configure_args="$ac_configure_args -enable-cache"
+fi
+])
+AC_DEFUN(PAC_SUBDIR_CACHE_CLEANUP,[
+if test "$cache_file" != "/dev/null" -a "X$enable_cache" = "Xnotgiven" ; then
+   rm -f $cache_file
+fi
 ])

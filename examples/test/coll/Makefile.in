@@ -125,8 +125,8 @@ longuser: longuser.o
 #	    ln -s $(MPIR_HOME)/include/mpif.h . ; \
 #	fi
 clean:
-	@-/bin/rm -f *.o *~ PI* $(EXECS) core *.out coll.diff *.trace mpif.h \
-		${srcdir}/*.o *.stdo
+	@-/bin/rm -f *.o *~ PI* $(EXECS) core *.out coll.diff *.trace mpif.h 
+	@-rm -f work.pc work.pcl ${srcdir}/*.o *.stdo
 
 .c.o:
 	$(CC) $(CFLAGS) -c $<

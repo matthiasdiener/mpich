@@ -46,6 +46,7 @@ libdir=@libbuild_dir@
 # libraries and compilers, including ones for 32 and 64 bit systems.
 CCBASE="@CC@"
 CLINKERBASE="@CLINKER@"
+LDFLAGSBASE="@LDFLAGS@"
 USER_CFLAGS="@USER_CFLAGS@"
 ROMIO_TCFLAGS="@ROMIO_TCFLAGS@"
 ROMIO_LFLAGS="@ROMIO_LFLAGS@"
@@ -300,6 +301,10 @@ fi
 # by making a dummy library.
 # 
 if [ $DoLink = 1 -o $show_link = 1 ] ; then
+    # If no LDFLAGS defined, use the ones that MPICH was built with
+    if [ -z "$LDFLAGS" ] ; then
+        LDFLAGS="$LDFLAGSBASE"
+    fi
     # Figure out the library list.  Because we want to support both a single
     # mpi library containing both C and Fortran interfaces, as well as 
     # a library that allows multiple Fortran interfaces, we may need different
@@ -354,7 +359,7 @@ if [ $DoLink = 1 -o $show_link = 1 ] ; then
     # used in some of the C/Fortran routines.  For Fortran subroutines,
     # we need to add the Fortran routines in a separate library 
     # ahead of the C implementation.
-    $Show $CLINKER $USER_CFLAGS $ROMIO_LFLAGS $clibpath $LIB_PATH $linkobjs $MPILOG $linkargs $mpilibs $BASE_LIB_LIST $F77_IN_C_LIBS
+    $Show $CLINKER $USER_CFLAGS $LDFLAGS $ROMIO_LFLAGS $clibpath $LIB_PATH $linkobjs $MPILOG $linkargs $mpilibs $BASE_LIB_LIST $F77_IN_C_LIBS
     status=$?
 fi
 exit $status

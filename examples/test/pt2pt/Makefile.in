@@ -333,6 +333,7 @@ typebasef: $(MPIFDEP) typebasef.o
 clean:
 	@-/bin/rm -f *.o *~ PI* $(EXECS) *.out core pt2pt.diff $(OTHEREXECS) \
 		*.trace rdb.* startup.* mpif.h ${srcdir}/*.o *.stdo
+	@-rm -f work.pc work.pcl
 	@-for file in $(EXECS) Makefile ; do \
 	   /bin/rm -f $$file.sun4 $$file.alpha $$file.IRIX $$file.freebsd ;\
 	done

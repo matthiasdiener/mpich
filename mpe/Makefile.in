@@ -95,6 +95,7 @@ rmprog:
 	@-$(RM) -f bin/mpereconfig bin/mpereconfig.dat
 
 clean: rmprog
+	@-$(RM) -f work.pc work.pcl
 	@( cd src ; $(MAKE) clean )
 	@-for dir in contrib/life contrib/mandel contrib/mastermind \
 	             contrib/test share/examples ; do \

@@ -537,7 +537,9 @@ serv_p4 server:
 # We pass MAKE to the MPE Makefile to make sure that it has a valid
 # version of make.  Since MPE is configured separately, it might have
 # a make choice from a previous configuration.
+# work.* are produced by the Intel ifc Fortran compiler.
 clean:
+	@-rm -f work.pc work.pcl
 	@-for dir in tsuite bugs mpid/server mpid/mpd installtest \
 		f90modules ; do \
 	    if [ -d $$dir -a -s $$dir/Makefile ] ; then \

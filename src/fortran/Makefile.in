@@ -78,6 +78,7 @@ install-alt: src/lib${FLIBNAME}.a
 	cp src/mpif77.conf ${sysconfdir}/mpif77${subname}.conf
 
 clean: 
+	@-rm -f work.pc work.pcl
 	@-rm -f *.o *~ ${PROGRAMS} ${other_PROGRAMS} core TAGS
 	@-for dir in ${SUBDIRS} ; do \
 	    (cd $$dir ; ${MAKE} clean ) ; done

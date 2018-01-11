@@ -5,7 +5,7 @@ SHELL = /bin/sh
 F90 = @F90@
 F90LINKER = @F90LINKER@
 F90SUFFIX = @F90SUFFIX@
-# Module suffix.  M and mod are known
+# Module suffix.  M, mod, and d are known
 MOD = @MOD@
 SHELL = /bin/sh
 .SUFFIXES:
@@ -50,22 +50,39 @@ copysrcs:
 	if [ ! -d ${includebuild_dir}/f90choice ] ; then \
 		mkdir ${includebuild_dir}/f90choice ; fi
 	cp @MPIMOD@*.$(MOD) ${includebuild_dir}/f90choice
+	@if [ -n "@F90_WORK_FILES_ARG@" ] ; then \
+	    cp work.pc ${includebuild_dir}/f90choice/mpimod.pc ; \
+	    echo "mpimod.pc" > ${includebuild_dir}/f90choice/mpimod.pcl ; \
+	    echo "${includebuild_dir}/f90choice/mpimod.pc" >> \
+	         ${includebuild_dir}/f90choice/mpimod.pcl ; \
+	fi
 mpi-base.$(MOD): mpi.$(F90SUFFIX) \
 	@MPICONSTMOD@.$(MOD) @MPIMOD@1.$(MOD) @MPIMOD@2.$(MOD)
 	if [ ! -d .tmp ] ; then mkdir .tmp ; fi
 	cp mpi-nochoice.$(F90SUFFIX) .tmp/mpi.$(F90SUFFIX)
 	rm -f .tmp/@MPIMOD@2.$(MOD) .tmp/@MPIMOD@1.$(MOD) .tmp/@MPICONSTMOD@.$(MOD)
+	@if [ -n "@F90_WORK_FILES_ARG@" ] ; then \
+	    cp work.pc .tmp/mpimod.pc ; \
+	    echo mpimod.pc > .tmp/mpimod.pcl ; \
+            echo "`pwd`/mpimod.pc" >> .tmp/mpimod.pcl ; \
+	fi
 	@(cd .tmp ; @LN_S@ ../@MPIMOD@1.$(MOD) @MPIMOD@1.$(MOD) ;\
 	@LN_S@ ../@MPIMOD@2.$(MOD) @MPIMOD@2.$(MOD) ;\
 	@LN_S@ ../@MPICONSTMOD@.$(MOD) @MPICONSTMOD@.$(MOD) ;\
-	$(F90) -c $(FFLAGS) ./mpi.$(F90SUFFIX) )
+	$(F90) -c $(FFLAGS) @F90_WORK_FILES_ARG@ ./mpi.$(F90SUFFIX) )
 	@AR@ ${libbuild_dir}/lib@MPIMODLIBNAMENC@.a .tmp/mpi.o mpi1.o mpi2.o \
 		mpi_constants.o
 	@cp .tmp/@MPIMOD@.$(MOD) mpi-base.$(MOD)
-	@rm -f .tmp/*
-	@if [ -d .tmp ] ; then rmdir .tmp ; fi
 	if [ ! -d ${includebuild_dir}/f90base ] ; then \
 		mkdir ${includebuild_dir}/f90base ; fi
+	@if [ -n "@F90_WORK_FILES_ARG@" ] ; then \
+	    cp .tmp/mpimod.pc ${includebuild_dir}/f90base ; \
+	    echo mpimod.pc > ${includebuild_dir}/f90base/mpimod.pcl ; \
+            echo "${includebuild_dir}/f90base/mpimod.pc" >> \
+		${includebuild_dir}/f90base/mpimod.pcl ; \
+	fi
+	@rm -f .tmp/*
+	@if [ -d .tmp ] ; then rmdir .tmp ; fi
 	cp mpi-base.${MOD} ${includebuild_dir}/f90base/@MPIMOD@.${MOD}
 	cp @MPICONSTMOD@.${MOD} ${includebuild_dir}/f90base
 	cp @MPIMOD@1.${MOD} ${includebuild_dir}/f90base
@@ -138,6 +155,8 @@ f90suffix:
 	@echo "@F90SUFFIX@"
 f90incflag:
 	@echo "@F90INC@"
+f90modspec:
+	@echo "@F90MODINCSPEC@"
 #
 # Add the module's object file to the module library as well.
 .$(F90SUFFIX).$(MOD): 
@@ -148,10 +167,10 @@ f90incflag:
 # $(F90SUFFIX) in case .f or .f90 is the F90SUFFIX
 .f90:
 	$(F90) -c $(FFLAGS) $<
-	$(F90LINKER) -o $* $(FFLAGS) $*.o
+	$(F90LINKER) -o $* $(FFLAGS) $(LDFLAGS) $*.o
 .f:
 	$(F90) -c $(FFLAGS) $<
-	$(F90LINKER) -o $* $(FFLAGS) $*.o
+	$(F90LINKER) -o $* $(FFLAGS) $(LDFLAGS) $*.o
 .f.o:
 	$(F90) -c $(FFLAGS) $<
 
@@ -159,10 +178,12 @@ configure: configure.in
 	./makeconfigure
 
 # Remove both .f90 and .f incase the Fortran90 compiler does not accept f90
-# Ditto for .M and .mod
+# Ditto for .M, .mod, and .d .  The work files can be created by the Intel
+# ifc compiler
 clean:
 	@-rm -f *.o *.M conftest* ${srcdir}/*.M ${srcdir}/*.o *.mod \
-		${srcdir}/*.mod ${srcdir}/mpi.f90
+		${srcdir}/*.mod ${srcdir}/mpi.f90 *.d ${srcdir}/*.d 
+	@-rm -f work.pc work.pcl ${srcdir}/work.pc ${srcdir}/work.pcl
 	@-rm -f  mpi1__[cilr][a-z0-9]*_[vs]*.f90 \
 	       mpi2__[cilr][a-z0-9]*_[vs]*.f90 \
 	       mpi.add mpi.f90 mpi-nochoice.f90 \

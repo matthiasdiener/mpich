@@ -159,9 +159,10 @@ CheckBuffer(bufferspace, buffertype, bufferlen)
     valerr[0] = 0;
     for (j = 0; j < bufferlen; j++) {
 	if (buffertype == MPI_CHAR) {
-	    if (((char *)bufferspace)[j] != (char)j) {
+	    char val = *(char *)&j;
+	    if (((char *)bufferspace)[j] != val) {
 		sprintf( valerr, "%x != %x", 
-			((char *)bufferspace)[j], (char)j );
+			((char *)bufferspace)[j], val );
 		break;
 		}
 	} else if (buffertype == MPI_SHORT) {

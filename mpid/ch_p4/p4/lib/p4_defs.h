@@ -101,9 +101,11 @@ struct local_data {		/* local to each process */
     struct connection *conntab;	/* pointer to array of connections */
     struct p4_procgroup *procgroup;
     int soft_errors;            /* false if errors cause termination */
+#ifdef CAN_DO_XDR
     char *xdr_buff;
     XDR xdr_enc;
     XDR xdr_dec;
+#endif
     int  in_wait_for_exit;  /* true if in p4_wait_for_exit */
 };
 PUBLIC struct local_data *p4_local;

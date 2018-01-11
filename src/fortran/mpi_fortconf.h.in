@@ -6,15 +6,6 @@
 /* Define if you have the ANSI C header files.  */
 #undef STDC_HEADERS
 
-/* Define if #pragma weak supported */
-#undef HAVE_PRAGMA_WEAK
-
-/* Define is #pragma _HP_SECONDARY_DEF supported */
-#undef HAVE_PRAGMA_HP_SEC_DEF
-
-/* Define is #pragma _CRI duplicate x as y supported */
-#undef HAVE_PRAGMA_CRI_DUP
-
 /* Define as empty if C does not support inline */
 #undef inline
 /* acconfig_f77.h */
@@ -118,6 +109,15 @@
 
 /* Define if long long allowed */
 #undef HAVE_LONG_LONG
+
+/* Supports weak pragma */
+#undef HAVE_PRAGMA_WEAK
+
+/* HP style weak pragma */
+#undef HAVE_PRAGMA_HP_SEC_DEF
+
+/* Cray style weak pragma */
+#undef HAVE_PRAGMA_CRI_DUP
 
 /* Define if using gcc and g77 together */
 #undef USE_GCC_G77_DECLS

@@ -171,6 +171,7 @@ ALL_SOURCES = ${PROGRAM_SOURCES} ${SOURCES}
 .SUFFIXES: .o .po .c .f
 
 clean: 
+	@-rm -f work.pc work.pcl
 	@-rm -f *.o *.po *~ ${PROGRAMS} ${other_PROGRAMS} core TAGS \
 		   ${srcdir}/*.o
 	@-rm -rf .tmp

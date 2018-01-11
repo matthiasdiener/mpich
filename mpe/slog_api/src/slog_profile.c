@@ -23,8 +23,10 @@
 #  ifdef _AIX
  #pragma alloca
 #  else
-#   ifndef alloca /* predefined by HP cc +Olibcalls */
+#   ifdef HAVE_ALLOCA
+#     ifndef alloca /* predefined by HP cc +Olibcalls */
 char *alloca ();
+#     endif
 #   endif
 #  endif
 # endif

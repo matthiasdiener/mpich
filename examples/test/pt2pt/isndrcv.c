@@ -149,7 +149,8 @@ int bufferlen;
     int j;
     for (j = 0; j < bufferlen; j++) {
 	if (buffertype == MPI_CHAR) {
-	    if (((char *)bufferspace)[j] != (char)j)
+	    char val = *(char *)&j;
+	    if (((char *)bufferspace)[j] != val)
 		return 1;
 	} else if (buffertype == MPI_SHORT) {
 	    if (((short *)bufferspace)[j] != (short)j)

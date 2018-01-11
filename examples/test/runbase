@@ -84,13 +84,16 @@ CheckOutput() {
         echo "No output file ${bfile}.out!"
     else
 	fileok="no"
-	cmpfile=""	
+	cmpfile=""
+        # Handle Fortran systems that generate stop statements
+        rm -f ${bfile}.tout
+	grep -v 'FORTRAN STOP' ${bfile}.out > ${bfile}.tout
 	for stdfile in $srcdir/${bfile}.std $srcdir/${bfile}.std2 \
 			${bfile}.stdo ; do
 	    if [ -z "$cmpfile" -a -s "$stdfile" ] ; then
 		cmpfile=$stdfile
 	    fi
-	    if test -s $stdfile && diff -b ${bfile}.out $stdfile > /dev/null ; then
+	    if test -s $stdfile && diff -b ${bfile}.tout $stdfile > /dev/null ; then
 		fileok=yes
 		break;
 	    fi
@@ -99,20 +102,21 @@ CheckOutput() {
 	    if [ -n "$difffile" ] ; then
    	        if [ -n "$cmpfile" ] ; then
                     echo "Differences in ${bfile}.out" >> ${difffile}
-	            diff -b ${bfile}.out $cmpfile >> ${difffile}
+	            diff -b ${bfile}.tout $cmpfile >> ${difffile}
 	        else
                     echo "Cannot find a file to compare against for test ${bfile}.out"
 	        fi
 	    else
    	        if [ -n "$cmpfile" ] ; then
                     echo "Differences in ${bfile}.out"
-	            diff -b ${bfile}.out $cmpfile
+	            diff -b ${bfile}.tout $cmpfile
 	        else
                     echo "Cannot find a file to compare against for test ${bfile}.out"
 	        fi
             fi
 	    nodiff=0
 	fi
+        rm -f ${bfile}.tout
     fi
 }
 

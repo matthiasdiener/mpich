@@ -621,12 +621,24 @@ else
         for file in $includebuild_dir/f90base/* ; do
 	    CopyFile $file $includedir/f90base
 	done
+        if [ -s $includebuild_dir/f90base/mpimod.pcl ] ; then
+	    rm -f $includedir/f90base/mpimod.pcl
+	    echo "mpimod.pc" >$includedir/f90base/mpimod.pcl
+	    echo "$includedir/f90base/mpimod.pc" >> $includedir/f90base/mpimod.pcl
+	    echo "/bin/rm -f $includedir/f90base/mpimod.pcl" >> $UNINSTALLFILE
+	fi
     fi
     if [ -d $includebuild_dir/f90choice -a "@NO_F90@" = "0" ] ; then
         MkDir $includedir/f90choice
         for file in $includebuild_dir/f90choice/* ; do
 	    CopyFile $file $includedir/f90choice
 	done
+        if [ -s $includebuild_dir/f90choice/mpimod.pcl ] ; then
+	    rm -f $includedir/f90choice/mpimod.pcl
+	    echo "mpimod.pc" >$includedir/f90choice/mpimod.pcl
+	    echo "$includedir/f90choice/mpimod.pc" >> $includedir/f90choice/mpimod.pcl
+	    echo "/bin/rm -f $includedir/f90choice/mpimod.pcl" >> $UNINSTALLFILE
+	fi
     fi
 fi
 #
@@ -678,12 +690,24 @@ if [ -z "$libonly" ] ; then
         for file in $includebuild_dir/f90base/* ; do
 	    CopyFile $file $includedir/f90base
 	done
+        if [ -s $includebuild_dir/f90base/mpimod.pcl ] ; then
+	    rm -f $includedir/f90base/mpimod.pcl
+	    echo "mpimod.pc" >$includedir/f90base/mpimod.pcl
+	    echo "$includedir/f90base/mpimod.pc" >> $includedir/f90base/mpimod.pcl
+	    echo "/bin/rm -f $includedir/f90base/mpimod.pcl" >> $UNINSTALLFILE
+	fi
     fi
     if [ -d $includebuild_dir/f90choice -a "@NO_F90@" = "0" ] ; then
         MkDir $includedir/f90choice
         for file in $includebuild_dir/f90choice/* ; do
 	    CopyFile $file $includedir/f90choice
 	done
+        if [ -s $includebuild_dir/f90choice/mpimod.pcl ] ; then
+	    rm -f $includedir/f90choice/mpimod.pcl
+	    echo "mpimod.pc" >$includedir/f90choice/mpimod.pcl
+	    echo "$includedir/f90choice/mpimod.pc" >> $includedir/f90choice/mpimod.pcl
+	    echo "/bin/rm -f $includedir/f90choice/mpimod.pcl" >> $UNINSTALLFILE
+	fi
     fi
 fi
 #

@@ -32,4 +32,5 @@ distclean: rmprog
 	-cd doc/tex; $(MAKE) distclean
 	@-$(RM) -f sbin/install-viewer sbin/uninstall-viewer \
 		sbin/exejar
-	@-$(RM) -f Makefile config.log config.status jumpshot.html
+	@-$(RM) -f Makefile config.log config.status jumpshot.html \
+		jumpshot3.html

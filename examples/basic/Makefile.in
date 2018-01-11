@@ -85,8 +85,11 @@ hello++: hello++.o
 
 unsafe: unsafe.o
 	$(CLINKER) $(OPTFLAGS) -o unsafe unsafe.o 
+# Intel Fortran (ifc) creates work.*; pgCC creates .ti and .ii files
 clean:
+	rm -f work.pc work.pcl
 	rm -f *.o *~ PI* $(ALL_EXECS) upshot rdb.* startup.* core
+	rm -f hello++.ti hello++.ii
 
 cpilog.o: cpilog.c
 	@if test -z "$(MPE_DIR)" ; then \
