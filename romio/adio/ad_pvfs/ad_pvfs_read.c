@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_pvfs_read.c,v 1.8 2002/10/24 17:00:58 gropp Exp $    
+ *   $Id: ad_pvfs_read.c,v 1.12 2003/04/05 17:55:39 David Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -48,16 +48,19 @@ void ADIOI_PVFS_ReadContig(ADIO_File fd, void *buf, int count,
     if (err != -1) MPIR_Status_set_bytes(status, datatype, err);
 #endif
 
-#ifdef PRINT_ERR_MSG
-    *error_code = (err == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
-#else
     if (err == -1) {
+#ifdef MPICH2
+	*error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, MPI_ERR_IO, "**io",
+	    "**io %s", strerror(errno));
+#elif defined(PRINT_ERR_MSG)
+	*error_code = MPI_ERR_UNKNOWN;
+#else /* MPICH-1 */
 	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
 			      myname, "I/O Error", "%s", strerror(errno));
 	ADIOI_Error(fd, *error_code, myname);	    
+#endif
     }
     else *error_code = MPI_SUCCESS;
-#endif
 }
 
 
@@ -116,7 +119,7 @@ void ADIOI_PVFS_ReadStridedListIO(ADIO_File fd, void *buf, int count,
     int start_k, start_j, new_file_read, new_buffer_read;
     int start_mem_offset;
 
-#define MAX_ARRAY_SIZE 11
+#define MAX_ARRAY_SIZE 1024
 
 #ifndef PRINT_ERR_MESG
   static char myname[] = "ADIOI_PVFS_ReadStrided";

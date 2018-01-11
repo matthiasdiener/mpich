@@ -1,5 +1,5 @@
 /*
- *  $Id: intra_fns_new.c,v 1.20 2002/12/04 23:01:04 thakur Exp $
+ *  $Id: intra_fns_new.c,v 1.21 2003/02/10 21:32:37 thakur Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -3204,7 +3204,7 @@ static int intra_Reduce_scatter (
   int type_size, dis[2], blklens[2], total_count, nbytes, src, dst;
   int mask, dst_tree_root, my_tree_root, j, k;
   MPI_Datatype sendtype, recvtype;
-  int nprocs_completed, tmp_mask, tree_root;
+  int nprocs_completed, tmp_mask, tree_root, received;
   MPI_User_function *uop;
   struct MPIR_OP *op_ptr;
   MPI_Status status;
@@ -3362,7 +3362,9 @@ static int intra_Reduce_scatter (
 
           MPI_Type_indexed(2, blklens, dis, datatype->self, &recvtype);
           MPI_Type_commit(&recvtype);
-              
+
+          received = 0;
+
           if (dst < size) {
               /* tmp_results contains data to be sent in each step. Data is
                  received in tmp_recvbuf and then accumulated into
@@ -3373,6 +3375,7 @@ static int intra_Reduce_scatter (
                                        1, recvtype, dst,
                                        MPIR_REDUCE_SCATTER_TAG, comm->self,
                                        &status); 
+              received = 1;
               if (mpi_errno) return mpi_errno;
           }
 
@@ -3425,47 +3428,23 @@ static int intra_Reduce_scatter (
                       mpi_errno = MPI_Recv(tmp_recvbuf, 1, recvtype, dst,
                                            MPIR_REDUCE_SCATTER_TAG,
                                            comm->self, &status); 
+                      received = 1;
                       if (mpi_errno) return mpi_errno;
-
-                      if ((op_ptr->commute) || (dst_tree_root <
-                                                my_tree_root)) { 
-                          (*uop)(tmp_recvbuf, tmp_results, &blklens[0],
-                                 &datatype->self); 
-                          (*uop)(((char *)tmp_recvbuf + dis[1]*extent),
-                                 ((char *)tmp_results + dis[1]*extent),
-                                 &blklens[1], &datatype->self); 
-                      }
-                      else {
-                          (*uop)(tmp_results, tmp_recvbuf, &blklens[0],
-                                 &datatype->self); 
-                          (*uop)(((char *)tmp_results + dis[1]*extent),
-                                 ((char *)tmp_recvbuf + dis[1]*extent),
-                                 &blklens[1], &datatype->self); 
-                          /* copy result back into tmp_results */
-                          mpi_errno = MPI_Sendrecv(tmp_recvbuf, 1,
-                                                   recvtype, rank, 
-                                                   MPIR_REDUCE_SCATTER_TAG, 
-                                                   tmp_results, 1,
-                                                   recvtype, rank, 
-                                                   MPIR_REDUCE_SCATTER_TAG, 
-                                                   comm->self, &status);
-                          if (mpi_errno) return mpi_errno;
-                      }
                   }
                   tmp_mask >>= 1;
                   k--;
               }
           }
 
-          /* the following could have been done just after the
-             MPI_Sendrecv above in the (if dst < size) case . however, 
-             for a noncommutative op, we would need an extra temp buffer so
-             as not to overwrite temp_recvbuf, because temp_recvbuf may have
+          /* The following reduction is done here instead of after 
+             the MPI_Sendrecv or MPI_Recv above. This is
+             because to do it above, in the noncommutative 
+             case, we would need an extra temp buffer so as not to
+             overwrite temp_recvbuf, because temp_recvbuf may have
              to be communicated to other processes in the
              non-power-of-two case. To avoid that extra allocation,
              we do the reduce here. */
-          dst = rank ^ mask;
-          if (dst < size) {
+          if (received) {
               if ((op_ptr->commute) || (dst_tree_root < my_tree_root)) {
                   (*uop)(tmp_recvbuf, tmp_results, &blklens[0],
                          &datatype->self); 

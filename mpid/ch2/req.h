@@ -229,7 +229,7 @@ union MPIR_HANDLE {
 
 /* These have been added to provide a procedural interface to these 
    fields; the Globus device implements these in a different way */
-#define MPID_SendRequestCancelled(r) (r)->shandle.s.MPI_TAG == MPIR_MSG_CANCELLED
+#define MPID_SendRequestCancelled(r) ((r)->shandle.s.MPI_TAG == MPIR_MSG_CANCELLED)
 #define MPID_SendRequestErrval(r) (r)->s.MPI_ERROR
 
 #endif

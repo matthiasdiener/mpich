@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_hints.c,v 1.12 2002/11/20 13:58:29 gropp Exp $    
+ *   $Id: ad_hints.c,v 1.13 2003/04/23 00:16:14 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -285,7 +285,9 @@ void ADIOI_GEN_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code)
 	    /* get rid of this value if it is set */
 	    MPI_Info_delete(info, "ind_wr_buffer_size");
 	}
-	fd->hints->ind_wr_buffer_size = -1;
+	/* note: leave ind_wr_buffer_size alone; used for other cases
+	 * as well. -- Rob Ross, 04/22/2003
+	 */
 	MPI_Info_set(info, "romio_ds_write", "disable");
 	fd->hints->ds_write = ADIOI_HINT_DISABLE;
     }

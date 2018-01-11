@@ -157,17 +157,12 @@ int MPI_Testall(
 	    }
 	    switch (request->handle_type) {
 	    case MPIR_SEND:
-		/* There was a test on 	
-		   array_of_statuses[i].MPI_TAG != MPIR_MSG_CANCELLED
-		   here to avoid the MPID_SendRequestCancelled call,
-		   but that depends on setting the MPI_TAG field
-		   in the array of statuses.  It would be better to 
-		   make the MPID_SendRequestCancelled routine a 
-		   macro */
-		if (!MPID_SendRequestCancelled(request)) {
+		if ((array_of_statuses && 
+		    array_of_statuses[i].MPI_TAG != MPIR_MSG_CANCELLED) ||
+		    !MPID_SendRequestCancelled(request)) {
 		    MPIR_FORGET_SEND( &request->shandle );
 		    MPID_SendFree( array_of_requests[i] );
-		    array_of_requests[i] = MPI_REQUEST_NULL;
+		    array_of_requests[i] = 0;
 		}
 		break;
 	    case MPIR_RECV:
@@ -190,7 +185,7 @@ int MPI_Testall(
 		    if (array_of_statuses) 
 			array_of_statuses[i] = request->rhandle.s;
 		    MPID_RecvFree( array_of_requests[i] );
-		    array_of_requests[i] = MPI_REQUEST_NULL;
+		    array_of_requests[i] = 0;
 		}
 		break;
 	    case MPIR_PERSISTENT_SEND:
