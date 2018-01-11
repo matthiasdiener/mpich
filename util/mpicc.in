@@ -149,7 +149,7 @@ for arg in "$@" ; do
 	    UsesPmpi=1
         fi
 	if [ "$hasMPE" = "yes" ] ; then
-   	    MPILOG=-ltmpe
+   	    MPILOG="-ltmpe -lmpe"
 	else
 	    echo "-mpitrace requires the MPE libraries"
 	fi

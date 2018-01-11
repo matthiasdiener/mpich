@@ -1,5 +1,5 @@
 /*
- *  $Id: gatherv.c,v 1.11 2000/07/03 21:30:19 gropp Exp $
+ *  $Id: gatherv.c,v 1.12 2001/11/14 19:50:12 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -58,7 +58,7 @@ Output Parameter:
 .N MPI_ERR_TYPE
 .N MPI_ERR_BUFFER
 @*/
-EXPORT_MPI_API int MPI_Gatherv ( void *sendbuf, int sendcnt, MPI_Datatype sendtype, 
+int MPI_Gatherv ( void *sendbuf, int sendcnt, MPI_Datatype sendtype, 
                   void *recvbuf, int *recvcnts, int *displs, 
 		  MPI_Datatype recvtype, 
                   int root, MPI_Comm comm )

@@ -13,16 +13,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_UNPACK = PMPI_UNPACK
-EXPORT_MPI_API void MPI_UNPACK ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_UNPACK ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_unpack__ = pmpi_unpack__
-EXPORT_MPI_API void mpi_unpack__ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_unpack__ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_unpack = pmpi_unpack
-EXPORT_MPI_API void mpi_unpack ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_unpack ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_unpack_ = pmpi_unpack_
-EXPORT_MPI_API void mpi_unpack_ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_unpack_ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -151,11 +151,11 @@ if (_isfcd(outbuf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_unpack_ ( void *, MPI_Fint *, MPI_Fint *, void *, 
+FORTRAN_API void FORT_CALL mpi_unpack_ ( void *, MPI_Fint *, MPI_Fint *, void *, 
                              MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                              MPI_Fint * );
 
-EXPORT_MPI_API void mpi_unpack_ ( void *inbuf, MPI_Fint *insize, MPI_Fint *position, void *outbuf, MPI_Fint *outcount, MPI_Fint *type, MPI_Fint *comm, 
+FORTRAN_API void FORT_CALL mpi_unpack_ ( void *inbuf, MPI_Fint *insize, MPI_Fint *position, void *outbuf, MPI_Fint *outcount, MPI_Fint *type, MPI_Fint *comm, 
 		   MPI_Fint *__ierr )
 {
     int l_position;

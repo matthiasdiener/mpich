@@ -1,5 +1,5 @@
 /*
- *  $Id: type_ind.c,v 1.8 1999/08/30 15:49:58 swider Exp $
+ *  $Id: type_ind.c,v 1.9 2001/11/14 20:10:08 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -71,7 +71,7 @@ consider declaring the Fortran array with a zero origin
 .N MPI_ERR_ARG
 .N MPI_ERR_EXHAUSTED
 @*/
-EXPORT_MPI_API int MPI_Type_indexed( 
+int MPI_Type_indexed( 
 	int count, 
 	int blocklens[], 
 	int indices[], 

@@ -3,6 +3,9 @@
 #ifdef HAVE_SLOGCONF_H
 #include "slog_config.h"
 #endif
+#ifdef HAVE_SLOG_WINCONFIG_H
+#include "slog_winconfig.h"
+#endif
 #if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
 #include <stdlib.h>
 #endif
@@ -278,7 +281,7 @@ int SLOG_PSTAT_Init( SLOG_STREAM  *slog )
     /*  count the WHOLE states in display profile  */
     profile  = slog->prof;
     pstat_Nset = 0;
-    for ( idx = 0; idx < profile->Nentries; idx++ ) {
+    for ( idx = 0; idx < (int)profile->Nentries; idx++ ) {
         if ( SLOG_IntvlInfo_IsKeyWholeIntvl( &( profile->entries[ idx ] ) ) )
             pstat_Nset++;
     }
@@ -337,7 +340,7 @@ int SLOG_PSTAT_Init( SLOG_STREAM  *slog )
     pstat    = slog->pstat;
 
     count = 0;
-    for ( idx = 0; idx < profile->Nentries; idx++ ) {
+    for ( idx = 0; idx < (int)profile->Nentries; idx++ ) {
         if ( SLOG_IntvlInfo_IsKeyWholeIntvl( &( profile->entries[ idx ] ) ) ) {
             SLOG_StatSet_SetIntvltype( pstat->sets[ count ],
                                        ( profile->entries[ idx ] ).intvltype );
@@ -465,7 +468,7 @@ int SLOG_PSTAT_Write( SLOG_STREAM  *slog )
     }
     Nbytes_written += ierr * SLOG_typesz[  ts  ];
 
-    for ( idx = 0; idx < slog->pstat->Nset; idx++ ) {
+    for ( idx = 0; idx < (int)slog->pstat->Nset; idx++ ) {
         ierr = SLOG_StatSet_DepositToFbuf( slog->pstat->sets[ idx ],
                                            tmp_fbuf );
         if ( ierr == SLOG_FAIL ) {
@@ -655,7 +658,7 @@ int SLOG_PSTAT_Read( SLOG_STREAM  *slog )
     }
     Nbytes_read += ierr * SLOG_typesz[  ts  ];
 
-    for ( idx = 0; idx < slog->pstat->Nset; idx++ ) {
+    for ( idx = 0; idx < (int)slog->pstat->Nset; idx++ ) {
         ierr = SLOG_StatSet_WithdrawFromFbuf( slog->pstat->sets[ idx ],
                                               tmp_fbuf );
         if ( ierr == SLOG_FAIL ) {
@@ -953,7 +956,7 @@ int SLOG_PSTAT_GetSeqIdx( const SLOG_pstat_t     *pstat,
 {
     int   idx;
     
-    for ( idx = 0; idx < pstat->Nset; idx++ ) {
+    for ( idx = 0; idx < (int)pstat->Nset; idx++ ) {
         if ( pstat->seq_idx_vals[ idx ] == ( SLOG_int32 ) in_intvltype )
             return idx;
     }
@@ -971,7 +974,7 @@ void SLOG_PSTAT_Print( FILE *outfd, const SLOG_pstat_t  *pstat )
         fprintf( outfd, "Collect At : Starttime = "fmt_time", "
                         "Endtime = "fmt_time"\n\n",
                         pstat->starttime, pstat->endtime );
-        for ( idx = 0; idx < pstat->Nset; idx++ ) {
+        for ( idx = 0; idx < (int)pstat->Nset; idx++ ) {
             fprintf( outfd, "\t""Preview Statistics Set %d : \n", idx );
             SLOG_StatSet_Print( outfd, pstat->sets[ idx ] );
             fprintf( outfd, "\n" );
@@ -1191,7 +1194,7 @@ int SLOG_StatSet_DepositToFbuf( const SLOG_statset_t   *statset,
 
     ierr = fbuf_deposit( statset->bins, SLOG_typesz[ sbin ],
                          statset->Nbin, fbuf );
-    if ( ierr < statset->Nbin ) {
+    if ( ierr < (int)statset->Nbin ) {
         fprintf( errfile, __FILE__":SLOG_StatSet_DepositToFbuf() - Cannot "
                           "deposit the bins[0.."fmt_ui32"-1] to the SLOG "
                           "filebuffer, "fmt_ui32" bytes written so far\n",
@@ -1271,7 +1274,7 @@ int SLOG_StatSet_WithdrawFromFbuf( SLOG_statset_t   *statset,
 
     ierr = fbuf_withdraw( statset->bins, SLOG_typesz[ sbin ],
                           statset->Nbin, fbuf );
-    if ( ierr < statset->Nbin ) {
+    if ( ierr < (int)statset->Nbin ) {
         fprintf( errfile, __FILE__
                           ":SLOG_StatSet_WithdrawFromFbuf() - Cannot "
                           "withdraw the bins[0.."fmt_ui32"-1] from the SLOG "
@@ -1296,7 +1299,7 @@ void SLOG_StatSet_Print( FILE *outfd, const SLOG_statset_t  *statset )
                     "intvltype = "fmt_itype_t"\n",
                     statset->rectype, statset->intvltype );
     fprintf( outfd, "\t""label = %s \n", statset->label );
-    for ( ii = 0; ii < statset->Nbin; ii++ ) {
+    for ( ii = 0; ii < (int)statset->Nbin; ii++ ) {
         fprintf( outfd, fmt_sbin", ", statset->bins[ ii ] );
         if ( ii % Nitems_per_line == Nitems_per_line - 1 )
             fprintf( outfd, "\n" );

@@ -44,6 +44,11 @@ AC_PROG_LN_S
 AC_PROG_RANLIB
 AC_CHECK_PROG(GDB,gdb,1,0)
 
+# In case clinker is not defined
+if test -z "$CLINKER" ; then 
+    CLINKER="$CC"
+    AC_SUBST(CLINKER)
+fi
 dnl Create command to process dependencies
 #   Create command to process dependencies
 dnl PAC_C_DEPENDS
@@ -71,7 +76,14 @@ PAC_HEADER_STDARG(,AC_MSG_ERROR([mpd requires C-standard stdarg]))
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 # Checking typedefs, structures, and compiler characteristics.
-AC_TYPE_PID_T
+dnl AC_TYPE_PID_T
+AC_MSG_CHECKING([for pid_t defined])
+AC_TRY_COMPILE([#include <sys/types.h>],
+[pid_t a;],ac_cv_pid_t=yes,ac_cv_pid_t=no)
+AC_MSG_RESULT($ac_cv_pid_t)
+if test "$ac_cv_pid_t" = "no" ; then
+    AC_DEFINE(pid_t,int,[Define as int if not defined in sys/types.h])
+fi
 AC_HEADER_TIME
 AC_C_CONST
 #
@@ -112,7 +124,7 @@ fi
 dnl Checks for library functions.
 # Checking library functions
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS(getcwd gethostname gettimeofday putenv select socket strsignal strtok_r)
+AC_CHECK_FUNCS(getcwd gethostname gettimeofday putenv select socket strsignal strtok_r mkstemp)
 
 dnl Check whether you need to declare strtok_r (AIX and Solaris do)
 AC_MSG_CHECKING([whether strtok_r needs a declaration])

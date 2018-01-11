@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_getnksf.c,v 1.1 2000/05/26 21:29:26 gropp Exp $    
+ *   $Id: info_getnksf.c,v 1.4 2001/12/12 23:36:42 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -14,16 +14,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_INFO_GET_NKEYS = PMPI_INFO_GET_NKEYS
-EXPORT_MPI_API void MPI_INFO_GET_NKEYS (MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void MPI_INFO_GET_NKEYS (MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_info_get_nkeys__ = pmpi_info_get_nkeys__
-EXPORT_MPI_API void mpi_info_get_nkeys__ (MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void mpi_info_get_nkeys__ (MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_info_get_nkeys = pmpi_info_get_nkeys
-EXPORT_MPI_API void mpi_info_get_nkeys (MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void mpi_info_get_nkeys (MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #else
 #pragma weak mpi_info_get_nkeys_ = pmpi_info_get_nkeys_
-EXPORT_MPI_API void mpi_info_get_nkeys_ (MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void mpi_info_get_nkeys_ (MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -81,10 +81,10 @@ EXPORT_MPI_API void mpi_info_get_nkeys_ (MPI_Fint *, MPI_Fint *, MPI_Fint *);
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_info_get_nkeys_ (MPI_Fint *, MPI_Fint *, MPI_Fint *);
+FORTRAN_API void FORT_CALL mpi_info_get_nkeys_ (MPI_Fint *, MPI_Fint *, MPI_Fint *);
 
 /* Definitions of Fortran Wrapper routines */
-EXPORT_MPI_API void mpi_info_get_nkeys_(MPI_Fint *info, MPI_Fint *nkeys, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_info_get_nkeys_(MPI_Fint *info, MPI_Fint *nkeys, MPI_Fint *__ierr )
 {
     MPI_Info info_c;
     int l_nkeys;

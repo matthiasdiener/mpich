@@ -10,30 +10,30 @@
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_KEYVAL_CREATE = PMPI_KEYVAL_CREATE
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
-EXPORT_MPI_API void MPI_KEYVAL_CREATE ( MPI_Copy_function **, MPI_Delete_function **, MPI_Fint *, void *, MPI_Fint * );
+void MPI_KEYVAL_CREATE ( MPI_Copy_function **, MPI_Delete_function **, MPI_Fint *, void *, MPI_Fint * );
 #else
-EXPORT_MPI_API void MPI_KEYVAL_CREATE ( MPI_Copy_function *, MPI_Delete_function *, MPI_Fint *, void *, MPI_Fint * );
+void MPI_KEYVAL_CREATE ( MPI_Copy_function *, MPI_Delete_function *, MPI_Fint *, void *, MPI_Fint * );
 #endif
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_keyval_create__ = pmpi_keyval_create__
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
-EXPORT_MPI_API void mpi_keyval_create__ ( MPI_Copy_function **, MPI_Delete_function **, MPI_Fint *, void *, MPI_Fint * );
+void mpi_keyval_create__ ( MPI_Copy_function **, MPI_Delete_function **, MPI_Fint *, void *, MPI_Fint * );
 #else
-EXPORT_MPI_API void mpi_keyval_create__ ( MPI_Copy_function *, MPI_Delete_function *, MPI_Fint *, void *, MPI_Fint * );
+void mpi_keyval_create__ ( MPI_Copy_function *, MPI_Delete_function *, MPI_Fint *, void *, MPI_Fint * );
 #endif
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_keyval_create = pmpi_keyval_create
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
-EXPORT_MPI_API void mpi_keyval_create ( MPI_Copy_function **, MPI_Delete_function **, MPI_Fint *, void *, MPI_Fint * );
+void mpi_keyval_create ( MPI_Copy_function **, MPI_Delete_function **, MPI_Fint *, void *, MPI_Fint * );
 #else
-EXPORT_MPI_API void mpi_keyval_create ( MPI_Copy_function *, MPI_Delete_function *, MPI_Fint *, void *, MPI_Fint * );
+void mpi_keyval_create ( MPI_Copy_function *, MPI_Delete_function *, MPI_Fint *, void *, MPI_Fint * );
 #endif
 #else
 #pragma weak mpi_keyval_create_ = pmpi_keyval_create_
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
-EXPORT_MPI_API void mpi_keyval_create_ ( MPI_Copy_function **, MPI_Delete_function **, MPI_Fint *, void *, MPI_Fint * );
+void mpi_keyval_create_ ( MPI_Copy_function **, MPI_Delete_function **, MPI_Fint *, void *, MPI_Fint * );
 #else
-EXPORT_MPI_API void mpi_keyval_create_ ( MPI_Copy_function *, MPI_Delete_function *, MPI_Fint *, void *, MPI_Fint * );
+void mpi_keyval_create_ ( MPI_Copy_function *, MPI_Delete_function *, MPI_Fint *, void *, MPI_Fint * );
 #endif
 #endif
 
@@ -93,16 +93,16 @@ EXPORT_MPI_API void mpi_keyval_create_ ( MPI_Copy_function *, MPI_Delete_functio
 
 /* Prototype to suppress warnings about missing prototypes */
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
-EXPORT_MPI_API void mpi_keyval_create_ ( MPI_Copy_function **, 
+FORTRAN_API void FORT_CALL mpi_keyval_create_ ( MPI_Copy_function **, 
 				    MPI_Delete_function **, MPI_Fint *, 
                                     void *, MPI_Fint * );
 #else
-EXPORT_MPI_API void mpi_keyval_create_ ( MPI_Copy_function *, 
+FORTRAN_API void FORT_CALL mpi_keyval_create_ ( MPI_Copy_function *, 
 				    MPI_Delete_function *, MPI_Fint *, 
                                     void *, MPI_Fint * );
 #endif
 
-EXPORT_MPI_API void mpi_keyval_create_ (
+FORTRAN_API void FORT_CALL mpi_keyval_create_ (
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
 	MPI_Copy_function   **copy_fn,
 	MPI_Delete_function **delete_fn,

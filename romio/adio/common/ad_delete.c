@@ -1,11 +1,15 @@
 /* 
- *   $Id: ad_delete.c,v 1.6 2001/03/07 16:58:18 gropp Exp $    
+ *   $Id: ad_delete.c,v 1.7 2002/01/04 15:52:29 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "adio.h"
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 void ADIOI_GEN_Delete(char *filename, int *error_code)
 {

@@ -13,16 +13,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_BSEND_INIT = PMPI_BSEND_INIT
-EXPORT_MPI_API void MPI_BSEND_INIT ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_BSEND_INIT ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_bsend_init__ = pmpi_bsend_init__
-EXPORT_MPI_API void mpi_bsend_init__ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_bsend_init__ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_bsend_init = pmpi_bsend_init
-EXPORT_MPI_API void mpi_bsend_init ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_bsend_init ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_bsend_init_ = pmpi_bsend_init_
-EXPORT_MPI_API void mpi_bsend_init_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_bsend_init_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -146,11 +146,11 @@ if (_isfcd(buf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_bsend_init_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_bsend_init_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                  MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                  MPI_Fint * );
 
-EXPORT_MPI_API void mpi_bsend_init_( void *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm, MPI_Fint *request, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_bsend_init_( void *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm, MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest;
     *__ierr = MPI_Bsend_init(MPIR_F_PTR(buf),(int)*count,

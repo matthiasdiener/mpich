@@ -11,14 +11,14 @@
  */
 
 /* Prototype definitions */
-int MPID_SHMEM_Eagerb_send_short ANSI_ARGS(( void *, int, int, int, int, int, 
-					     MPID_Msgrep_t ));
-int MPID_SHMEM_Eagerb_isend_short ANSI_ARGS(( void *, int, int, int, int, int, 
-					      MPID_Msgrep_t, MPIR_SHANDLE * ));
-int MPID_SHMEM_Eagerb_recv_short ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
-int MPID_SHMEM_Eagerb_save_short ANSI_ARGS(( MPIR_RHANDLE *, int, void *));
-int MPID_SHMEM_Eagerb_unxrecv_start_short ANSI_ARGS(( MPIR_RHANDLE *, void * ));
-void MPID_SHMEM_Eagerb_short_delete ANSI_ARGS(( MPID_Protocol * ));
+int MPID_SHMEM_Eagerb_send_short ( void *, int, int, int, int, int, 
+					     MPID_Msgrep_t );
+int MPID_SHMEM_Eagerb_isend_short ( void *, int, int, int, int, int, 
+					      MPID_Msgrep_t, MPIR_SHANDLE * );
+int MPID_SHMEM_Eagerb_recv_short ( MPIR_RHANDLE *, int, void * );
+int MPID_SHMEM_Eagerb_save_short ( MPIR_RHANDLE *, int, void *);
+int MPID_SHMEM_Eagerb_unxrecv_start_short ( MPIR_RHANDLE *, void * );
+void MPID_SHMEM_Eagerb_short_delete ( MPID_Protocol * );
 /*
  * Definitions of the actual functions
  */

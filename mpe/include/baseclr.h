@@ -42,8 +42,8 @@ static char *(colornames[]) = { "white", "black", "red", "yellow", "green",
 #define XBPixFromInteger(win,color) (win)->cmapping[color]
 
 /* Prototypes */
-Colormap XBCreateColormap ANSI_ARGS(( Display *, int, Visual * ));
-int XBHlsToRgb ANSI_ARGS(( int, int, int, 
-			  unsigned char *, unsigned char *, unsigned char * ));
+Colormap XBCreateColormap ( Display *, int, Visual * );
+int XBHlsToRgb ( int, int, int, 
+			  unsigned char *, unsigned char *, unsigned char * );
 
 #endif

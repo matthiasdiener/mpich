@@ -1,5 +1,5 @@
 /* 
- *   $Id: adioi_fs_proto.h,v 1.8 2001/07/31 18:41:08 rross Exp $    
+ *   $Id: adioi_fs_proto.h,v 1.10 2001/11/27 19:23:33 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -259,6 +259,69 @@ ADIO_Offset ADIOI_UFS_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
                        int whence, int *error_code);
 void ADIOI_UFS_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code);
 #endif
+
+#ifdef ROMIO_NTFS
+extern struct ADIOI_Fns_struct ADIO_NTFS_operations;
+
+void ADIOI_NTFS_Open(ADIO_File fd, int *error_code);
+void ADIOI_NTFS_Close(ADIO_File fd, int *error_code);
+void ADIOI_NTFS_ReadContig(ADIO_File fd, void *buf, int count, 
+                      MPI_Datatype datatype, int file_ptr_type,
+                     ADIO_Offset offset, ADIO_Status *status, int
+		     *error_code);
+void ADIOI_NTFS_WriteContig(ADIO_File fd, void *buf, int count, 
+                      MPI_Datatype datatype, int file_ptr_type,
+                      ADIO_Offset offset, ADIO_Status *status, int
+		      *error_code);   
+void ADIOI_NTFS_IwriteContig(ADIO_File fd, void *buf, int count, 
+                      MPI_Datatype datatype, int file_ptr_type,
+                      ADIO_Offset offset, ADIO_Request *request, int
+		      *error_code);   
+void ADIOI_NTFS_IreadContig(ADIO_File fd, void *buf, int count, 
+                      MPI_Datatype datatype, int file_ptr_type,
+                      ADIO_Offset offset, ADIO_Request *request, int
+		      *error_code);   
+int ADIOI_NTFS_ReadDone(ADIO_Request *request, ADIO_Status *status, int
+		       *error_code);
+int ADIOI_NTFS_WriteDone(ADIO_Request *request, ADIO_Status *status, int
+		       *error_code);
+void ADIOI_NTFS_ReadComplete(ADIO_Request *request, ADIO_Status *status, int
+		       *error_code); 
+void ADIOI_NTFS_WriteComplete(ADIO_Request *request, ADIO_Status *status,
+			int *error_code); 
+void ADIOI_NTFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int
+		*error_code); 
+void ADIOI_NTFS_WriteStrided(ADIO_File fd, void *buf, int count,
+		       MPI_Datatype datatype, int file_ptr_type,
+		       ADIO_Offset offset, ADIO_Status *status, int
+		       *error_code);
+void ADIOI_NTFS_ReadStrided(ADIO_File fd, void *buf, int count,
+		       MPI_Datatype datatype, int file_ptr_type,
+		       ADIO_Offset offset, ADIO_Status *status, int
+		       *error_code);
+void ADIOI_NTFS_WriteStridedColl(ADIO_File fd, void *buf, int count,
+		       MPI_Datatype datatype, int file_ptr_type,
+		       ADIO_Offset offset, ADIO_Status *status, int
+		       *error_code);
+void ADIOI_NTFS_ReadStridedColl(ADIO_File fd, void *buf, int count,
+		       MPI_Datatype datatype, int file_ptr_type,
+		       ADIO_Offset offset, ADIO_Status *status, int
+		       *error_code);
+void ADIOI_NTFS_IreadStrided(ADIO_File fd, void *buf, int count,
+		       MPI_Datatype datatype, int file_ptr_type,
+		       ADIO_Offset offset, ADIO_Request *request, int
+		       *error_code);
+void ADIOI_NTFS_IwriteStrided(ADIO_File fd, void *buf, int count,
+		       MPI_Datatype datatype, int file_ptr_type,
+		       ADIO_Offset offset, ADIO_Request *request, int
+		       *error_code);
+void ADIOI_NTFS_Flush(ADIO_File fd, int *error_code);
+void ADIOI_NTFS_Resize(ADIO_File fd, ADIO_Offset size, int *error_code);
+ADIO_Offset ADIOI_NTFS_SeekIndividual(ADIO_File fd, ADIO_Offset offset, 
+                       int whence, int *error_code);
+void ADIOI_NTFS_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code);
+#endif
+
 
 #ifdef HFS
 extern struct ADIOI_Fns_struct ADIO_HFS_operations;

@@ -3,6 +3,9 @@
 #ifdef HAVE_SLOGCONF_H
 #include "slog_config.h"
 #endif
+#ifdef HAVE_SLOG_WINCONFIG_H
+#include "slog_winconfig.h"
+#endif
 #if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
 #include <stdlib.h>
 #endif
@@ -276,7 +279,7 @@ int SLOG_PVIEW_Read( SLOG_STREAM *slog )
     }
 
     ierr = bswp_fread( slog->pview->data, 1, slog->pview->Nbytes, slog->fd );
-    if ( ierr != slog->pview->Nbytes ) {
+    if ( ierr != (int)slog->pview->Nbytes ) {
         fprintf( errfile,  __FILE__":SLOG_PVIEW_Read() - "
                            "Reading data section of Preview fails\n" );
         fflush( errfile );

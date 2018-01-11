@@ -14,16 +14,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_GATHER = PMPI_GATHER
-EXPORT_MPI_API void MPI_GATHER ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_GATHER ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_gather__ = pmpi_gather__
-EXPORT_MPI_API void mpi_gather__ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_gather__ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_gather = pmpi_gather
-EXPORT_MPI_API void mpi_gather ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_gather ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_gather_ = pmpi_gather_
-EXPORT_MPI_API void mpi_gather_ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_gather_ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -155,11 +155,11 @@ if (_isfcd(recvbuf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_gather_ ( void *, MPI_Fint *, MPI_Fint *, void *, 
+FORTRAN_API void FORT_CALL mpi_gather_ ( void *, MPI_Fint *, MPI_Fint *, void *, 
                              MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                              MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_gather_ ( void *sendbuf, MPI_Fint *sendcnt, MPI_Fint *sendtype, void *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, 
+FORTRAN_API void FORT_CALL mpi_gather_ ( void *sendbuf, MPI_Fint *sendcnt, MPI_Fint *sendtype, void *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, 
    MPI_Fint *root, MPI_Fint *comm, MPI_Fint *__ierr )
 {
     *__ierr = MPI_Gather(MPIR_F_PTR(sendbuf), (int)*sendcnt,

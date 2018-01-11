@@ -8,16 +8,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_CART_RANK = PMPI_CART_RANK
-EXPORT_MPI_API void MPI_CART_RANK ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_CART_RANK ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_cart_rank__ = pmpi_cart_rank__
-EXPORT_MPI_API void mpi_cart_rank__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_cart_rank__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_cart_rank = pmpi_cart_rank
-EXPORT_MPI_API void mpi_cart_rank ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_cart_rank ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_cart_rank_ = pmpi_cart_rank_
-EXPORT_MPI_API void mpi_cart_rank_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_cart_rank_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -75,9 +75,9 @@ EXPORT_MPI_API void mpi_cart_rank_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fin
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_cart_rank_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_cart_rank_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_cart_rank_ ( MPI_Fint *comm, MPI_Fint *coords, MPI_Fint *rank, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_cart_rank_ ( MPI_Fint *comm, MPI_Fint *coords, MPI_Fint *rank, MPI_Fint *__ierr )
 {
     MPI_Comm l_comm;
     int lcoords[20];

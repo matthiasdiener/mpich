@@ -1,5 +1,5 @@
 /* 
- *   $Id: get_viewf.c,v 1.9 2000/11/03 20:17:44 thakur Exp $    
+ *   $Id: get_viewf.c,v 1.12 2001/12/12 23:38:08 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -8,8 +8,8 @@
 #if _UNICOS
 #include <fortran.h>
 #endif
-#include "mpio.h"
 #include "adio.h"
+#include "mpio.h"
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
@@ -138,10 +138,10 @@ void mpi_file_get_view_(MPI_Fint *fh,MPI_Offset *disp,MPI_Datatype *etype,
     int str_len = _fcdlen(datarep_fcd);
 #else
 /* Prototype to keep compiler happy */
-void mpi_file_get_view_(MPI_Fint *fh,MPI_Offset *disp,MPI_Datatype *etype,
+FORTRAN_API void FORT_CALL mpi_file_get_view_(MPI_Fint *fh,MPI_Offset *disp,MPI_Datatype *etype,
 		MPI_Datatype *filetype,char *datarep, int *ierr, int str_len );
 
-void mpi_file_get_view_(MPI_Fint *fh,MPI_Offset *disp,MPI_Datatype *etype,
+FORTRAN_API void FORT_CALL mpi_file_get_view_(MPI_Fint *fh,MPI_Offset *disp,MPI_Datatype *etype,
    MPI_Datatype *filetype,char *datarep, int *ierr, int str_len )
 {
 #endif

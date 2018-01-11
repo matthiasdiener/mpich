@@ -1,5 +1,5 @@
 /*
- *  $Id: errclass.c,v 1.6 1999/08/30 15:45:17 swider Exp $
+ *  $Id: errclass.c,v 1.7 2001/11/14 19:56:37 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -38,7 +38,7 @@ Output Parameter:
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Error_class( 
+int MPI_Error_class( 
 	int errorcode, 
 	int *errorclass)
 {

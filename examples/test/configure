@@ -787,7 +787,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_ccworks=no"
    
@@ -811,7 +811,7 @@ cat > conftest.c <<EOF
 int main() { exit(0); }
 int t() { return 0; }
 EOF
-${CC-cc} $CFLAGS conftest.c -o conftest $LIBS
+${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS
 rm -f conftest* 
 #
 # End of output
@@ -1005,6 +1005,9 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+	echo "Unexpected output from make with program" >>config.log
+	cat conftest >>config.log
+	echo "str" >> config.log
     fi
 else
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -1258,7 +1261,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_header_$ac_safe=no"
    
@@ -1345,7 +1348,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_header_$ac_safe=no"
    
@@ -1434,7 +1437,7 @@ return 0;
 int main() { func( 1, 2 ); return 0;}
 EOF
 if test -z "$ac_compile_link" ; then 
-    ac_compile_link='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+    ac_compile_link='${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >>config.log 2>&1'
 fi
 echo "$ac_compile_link" >>config.log
 cat conftest.c >>config.log
@@ -1571,7 +1574,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   ldok=0
    
@@ -1625,8 +1628,8 @@ EOF
     fi
     if test ! -s conftest ; then
       echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS 
+      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
@@ -1730,8 +1733,8 @@ EOF
     fi
     if test ! -s conftest ; then
       echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS 
+      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
     has_long_long=0
 
     else
@@ -1895,7 +1898,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_ccworks=no"
    
@@ -1981,7 +1984,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   eval "ac_cv_header_$ac_safe=no"
    
@@ -2091,7 +2094,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -2179,7 +2182,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -2296,7 +2299,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi

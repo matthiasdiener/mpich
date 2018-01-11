@@ -1,5 +1,5 @@
 /*
- *  $Id: waitany.c,v 1.14 1999/11/22 22:43:45 gropp Exp $
+ *  $Id: waitany.c,v 1.17 2002/01/04 22:42:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -27,6 +27,11 @@
 #endif
 #include "reqalloc.h"
 
+/* index is a function in string.h.  Define this to suppress warnings about
+   shadowed symbols from the C compiler */
+#ifndef index
+#define index idx
+#endif
 /*@
     MPI_Waitany - Waits for any specified send or receive to complete
 
@@ -52,7 +57,7 @@ If all of the requests are 'MPI_REQUEST_NULL', then 'index' is returned as
 .N MPI_ERR_REQUEST
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Waitany(
+int MPI_Waitany(
 	int count, 
 	MPI_Request array_of_requests[], 
 	int *index, 

@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_putval.c,v 1.10 2001/04/20 19:38:30 gropp Exp $
+ *  $Id: attr_putval.c,v 1.11 2001/11/14 19:54:18 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -59,7 +59,7 @@ corresponding keyval was created) will be called.
 
 .seealso MPI_Attr_get, MPI_Keyval_create, MPI_Attr_delete
 @*/
-EXPORT_MPI_API int MPI_Attr_put ( MPI_Comm comm, int keyval, void *attr_value )
+int MPI_Attr_put ( MPI_Comm comm, int keyval, void *attr_value )
 {
   MPIR_HBT_node *attr;
   MPIR_Attr_key *attr_key;

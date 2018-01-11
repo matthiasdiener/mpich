@@ -9,16 +9,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_ERRHANDLER_FREE = PMPI_ERRHANDLER_FREE
-EXPORT_MPI_API void MPI_ERRHANDLER_FREE ( MPI_Fint *, MPI_Fint * );
+void MPI_ERRHANDLER_FREE ( MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_errhandler_free__ = pmpi_errhandler_free__
-EXPORT_MPI_API void mpi_errhandler_free__ ( MPI_Fint *, MPI_Fint * );
+void mpi_errhandler_free__ ( MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_errhandler_free = pmpi_errhandler_free
-EXPORT_MPI_API void mpi_errhandler_free ( MPI_Fint *, MPI_Fint * );
+void mpi_errhandler_free ( MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_errhandler_free_ = pmpi_errhandler_free_
-EXPORT_MPI_API void mpi_errhandler_free_ ( MPI_Fint *, MPI_Fint * );
+void mpi_errhandler_free_ ( MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -76,9 +76,9 @@ EXPORT_MPI_API void mpi_errhandler_free_ ( MPI_Fint *, MPI_Fint * );
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_errhandler_free_ ( MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_errhandler_free_ ( MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_errhandler_free_( MPI_Fint *errhandler, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_errhandler_free_( MPI_Fint *errhandler, MPI_Fint *__ierr )
 {
     MPI_Errhandler l_errhandler = MPI_Errhandler_c2f(*errhandler);
     *__ierr = MPI_Errhandler_free( &l_errhandler );

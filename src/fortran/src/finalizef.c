@@ -9,16 +9,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_FINALIZE = PMPI_FINALIZE
-EXPORT_MPI_API void MPI_FINALIZE ( MPI_Fint *__ierr );
+void MPI_FINALIZE ( MPI_Fint *__ierr );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_finalize__ = pmpi_finalize__
-EXPORT_MPI_API void mpi_finalize__ ( MPI_Fint *__ierr );
+void mpi_finalize__ ( MPI_Fint *__ierr );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_finalize = pmpi_finalize
-EXPORT_MPI_API void mpi_finalize ( MPI_Fint *__ierr );
+void mpi_finalize ( MPI_Fint *__ierr );
 #else
 #pragma weak mpi_finalize_ = pmpi_finalize_
-EXPORT_MPI_API void mpi_finalize_ ( MPI_Fint *__ierr );
+void mpi_finalize_ ( MPI_Fint *__ierr );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -75,9 +75,9 @@ EXPORT_MPI_API void mpi_finalize_ ( MPI_Fint *__ierr );
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_finalize_( MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_finalize_( MPI_Fint * );
 
-EXPORT_MPI_API void mpi_finalize_( MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_finalize_( MPI_Fint *__ierr )
 {
     *__ierr = MPI_Finalize();
 }

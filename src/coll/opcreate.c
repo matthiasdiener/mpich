@@ -1,5 +1,5 @@
 /*
- *  $Id: opcreate.c,v 1.9 1999/08/30 15:41:45 swider Exp $
+ *  $Id: opcreate.c,v 1.10 2001/11/14 19:50:12 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -59,7 +59,7 @@ Notes on the user function:
 
 .seealso: MPI_Op_free
 @*/
-EXPORT_MPI_API int MPI_Op_create( 
+int MPI_Op_create( 
 	MPI_User_function *function, 
 	int commute, 
 	MPI_Op *op )

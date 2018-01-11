@@ -1,5 +1,5 @@
 /*
- *  $Id: bsendutil2.c,v 1.12 2001/03/21 22:18:06 gropp Exp $
+ *  $Id: bsendutil2.c,v 1.13 2001/10/19 22:01:20 gropp Exp $
  *
  *  (C) 1993, 1996 by Argonne National Laboratory and 
  *      Mississipi State University.
@@ -100,15 +100,15 @@ typedef struct _bsenddata {
 static BSendData *Bsend = 0;
 static int BsendSize = 0;
 
-static BSendData *MPIR_MergeBlock ANSI_ARGS(( BSendData *));
-static int MPIR_BsendAlloc ANSI_ARGS((int, BSendData **));
-static void MPIR_BsendCopyData ANSI_ARGS((BSendData *,
+static BSendData *MPIR_MergeBlock ( BSendData *);
+static int MPIR_BsendAlloc (int, BSendData **);
+static void MPIR_BsendCopyData (BSendData *,
 					 struct MPIR_COMMUNICATOR *,
 					 void *, 
 					 int,
 					 struct MPIR_DATATYPE *,
 					 void **,
-					 int *));
+					 int *);
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
 static int MPIR_BsendBufferPrint( );
 #endif                 /* #DEBUG_BSEND_END# */

@@ -10,16 +10,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_ATTR_PUT = PMPI_ATTR_PUT
-EXPORT_MPI_API void MPI_ATTR_PUT ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_ATTR_PUT ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_attr_put__ = pmpi_attr_put__
-EXPORT_MPI_API void mpi_attr_put__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_attr_put__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_attr_put = pmpi_attr_put
-EXPORT_MPI_API void mpi_attr_put ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_attr_put ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_attr_put_ = pmpi_attr_put_
-EXPORT_MPI_API void mpi_attr_put_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_attr_put_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -77,10 +77,10 @@ EXPORT_MPI_API void mpi_attr_put_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_attr_put_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_attr_put_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                MPI_Fint * );
 
-EXPORT_MPI_API void mpi_attr_put_ ( MPI_Fint *comm, MPI_Fint *keyval, MPI_Fint *attr_value, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_attr_put_ ( MPI_Fint *comm, MPI_Fint *keyval, MPI_Fint *attr_value, MPI_Fint *__ierr )
 {
     *__ierr = MPI_Attr_put( MPI_Comm_f2c(*comm), (int)*keyval,
                             (void *)(MPI_Aint)((int)*attr_value));

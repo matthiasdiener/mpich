@@ -1,5 +1,5 @@
 /*
- *  $Id: wtime.c,v 1.6 1999/08/30 15:46:25 swider Exp $
+ *  $Id: wtime.c,v 1.7 2001/11/14 19:56:42 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -44,7 +44,7 @@
 
 .see also: MPI_Wtick, MPI_Attr_get
 @*/
-EXPORT_MPI_API double MPI_Wtime()
+double MPI_Wtime()
 {
     double t1;
     MPID_Wtime( &t1 );

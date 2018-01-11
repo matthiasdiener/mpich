@@ -10,16 +10,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_NULL_COPY_FN = PMPI_NULL_COPY_FN
-EXPORT_MPI_API void MPI_NULL_COPY_FN ( MPI_Fint, MPI_Fint *, void *, void *, void *, MPI_Fint *, MPI_Fint * );
+void MPI_NULL_COPY_FN ( MPI_Fint, MPI_Fint *, void *, void *, void *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_null_copy_fn__ = pmpi_null_copy_fn__
-EXPORT_MPI_API void mpi_null_copy_fn__ ( MPI_Fint, MPI_Fint *, void *, void *, void *, MPI_Fint *, MPI_Fint * );
+void mpi_null_copy_fn__ ( MPI_Fint, MPI_Fint *, void *, void *, void *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_null_copy_fn = pmpi_null_copy_fn
-EXPORT_MPI_API void mpi_null_copy_fn ( MPI_Fint, MPI_Fint *, void *, void *, void *, MPI_Fint *, MPI_Fint * );
+void mpi_null_copy_fn ( MPI_Fint, MPI_Fint *, void *, void *, void *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_null_copy_fn_ = pmpi_null_copy_fn_
-EXPORT_MPI_API void mpi_null_copy_fn_ ( MPI_Fint, MPI_Fint *, void *, void *, void *, MPI_Fint *, MPI_Fint * );
+void mpi_null_copy_fn_ ( MPI_Fint, MPI_Fint *, void *, void *, void *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -74,10 +74,10 @@ EXPORT_MPI_API void mpi_null_copy_fn_ ( MPI_Fint, MPI_Fint *, void *, void *, vo
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_null_copy_fn_ ( MPI_Fint, MPI_Fint *, void *, void *, 
+FORTRAN_API void FORT_CALL mpi_null_copy_fn_ ( MPI_Fint, MPI_Fint *, void *, void *, 
 				   void *, MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_null_copy_fn_ ( MPI_Fint comm, MPI_Fint *keyval, 
+FORTRAN_API void FORT_CALL mpi_null_copy_fn_ ( MPI_Fint comm, MPI_Fint *keyval, 
 					void *extra_state, void *attr_in, 
 					void *attr_out, MPI_Fint *flag, 
 					MPI_Fint *err )

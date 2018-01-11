@@ -1,5 +1,5 @@
 /*
- *  $Id: opfree.c,v 1.7 1999/08/30 15:41:47 swider Exp $
+ *  $Id: opfree.c,v 1.8 2001/11/14 19:50:13 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -48,7 +48,7 @@ Notes:
 
 .seealso: MPI_Op_create
 @*/
-EXPORT_MPI_API int MPI_Op_free( MPI_Op *op )
+int MPI_Op_free( MPI_Op *op )
 {
     int mpi_errno = MPI_SUCCESS;
     struct MPIR_OP *old;

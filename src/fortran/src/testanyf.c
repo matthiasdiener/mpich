@@ -11,16 +11,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_TESTANY = PMPI_TESTANY
-EXPORT_MPI_API void MPI_TESTANY ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_TESTANY ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_testany__ = pmpi_testany__
-EXPORT_MPI_API void mpi_testany__ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_testany__ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_testany = pmpi_testany
-EXPORT_MPI_API void mpi_testany ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_testany ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_testany_ = pmpi_testany_
-EXPORT_MPI_API void mpi_testany_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_testany_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -78,10 +78,10 @@ EXPORT_MPI_API void mpi_testany_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_testany_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_testany_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, 
 			      MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_testany_( MPI_Fint *count, MPI_Fint array_of_requests[], MPI_Fint *index, MPI_Fint *flag, MPI_Fint *status, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_testany_( MPI_Fint *count, MPI_Fint array_of_requests[], MPI_Fint *index, MPI_Fint *flag, MPI_Fint *status, MPI_Fint *__ierr )
 {
     int lindex;
     int lflag;

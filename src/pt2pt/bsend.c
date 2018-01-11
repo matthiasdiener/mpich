@@ -1,5 +1,5 @@
 /*
- *  $Id: bsend.c,v 1.10 1999/08/30 15:48:36 swider Exp $
+ *  $Id: bsend.c,v 1.11 2001/11/14 20:09:55 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -80,7 +80,7 @@ delivered.)
 
 .seealso: MPI_Buffer_attach, MPI_Ibsend, MPI_Bsend_init
 @*/
-EXPORT_MPI_API int MPI_Bsend( 
+int MPI_Bsend( 
 	void *buf, 
 	int count, 
 	MPI_Datatype datatype, 

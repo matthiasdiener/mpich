@@ -1,13 +1,5 @@
 #ifndef MPIR_REQUEST_COOKIE
 
-#ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
-#define ANSI_ARGS(a) a
-#else
-#define ANSI_ARGS(a) ()
-#endif
-#endif
-
 #include "datatype.h"
 
 /*
@@ -86,11 +78,11 @@ struct _MPIR_SHANDLE {
 
     /* New fields are the functions to call */
     /* Is test a field or a function ? */
-    int (*test)   ANSI_ARGS((MPIR_SHANDLE *));
-    int (*push)   ANSI_ARGS((MPIR_SHANDLE *));
-    int (*wait)   ANSI_ARGS((MPIR_SHANDLE *));
-    int (*cancel) ANSI_ARGS((MPIR_SHANDLE *));
-    int (*finish) ANSI_ARGS((MPIR_SHANDLE *));
+    int (*test)   (MPIR_SHANDLE *);
+    int (*push)   (MPIR_SHANDLE *);
+    int (*wait)   (MPIR_SHANDLE *);
+    int (*cancel) (MPIR_SHANDLE *);
+    int (*finish) (MPIR_SHANDLE *);
 };
 
 /* 
@@ -140,15 +132,15 @@ struct _MPIR_RHANDLE {
 
     /* New fields are the functions to call */
     /* Is test a field or a function ? */
-    int (*test)   ANSI_ARGS((MPIR_RHANDLE *));
+    int (*test)   (MPIR_RHANDLE *);
     /* Push is called to advance the completion; the second arg may be
        a pkt or, in the case of an unexpected receive, the saved request.
        In the unexpected case, the saved request may already be complete */
-    int (*push)   ANSI_ARGS((MPIR_RHANDLE *, void *));
+    int (*push)   (MPIR_RHANDLE *, void *);
     /* Status is saved in the request */
-    int (*wait)   ANSI_ARGS((MPIR_RHANDLE *));
-    int (*cancel) ANSI_ARGS((MPIR_RHANDLE *));
-    int (*finish) ANSI_ARGS((MPIR_RHANDLE *));
+    int (*wait)   (MPIR_RHANDLE *);
+    int (*cancel) (MPIR_RHANDLE *);
+    int (*finish) (MPIR_RHANDLE *);
 };
 
 typedef struct {
@@ -167,9 +159,9 @@ typedef struct {
     void         *perm_buf;
     struct MPIR_DATATYPE *perm_datatype;
     struct MPIR_COMMUNICATOR *perm_comm;
-    void         (*send) ANSI_ARGS((struct MPIR_COMMUNICATOR *, void *, int, 
+    void         (*send) (struct MPIR_COMMUNICATOR *, void *, int, 
 				    struct MPIR_DATATYPE *,
-				    int, int, int, int, MPI_Request, int *));
+				    int, int, int, int, MPI_Request, int *);
                     /* IsendDatatype, IssendDatatype, Ibsend, IrsendDatatype */
     } MPIR_PSHANDLE;
 	
@@ -188,12 +180,12 @@ typedef struct {
     int         ref_count;      /* Used to handle freed (by user) but
 				   not complete */
     int         active;         /* Should this be ignored? */
-    int         (*create_ureq) ANSI_ARGS((MPI_Request));
-    int         (*free_ureq)   ANSI_ARGS((MPI_Request));
-    int         (*wait_ureq)   ANSI_ARGS((MPI_Request));
-    int         (*test_ureq)   ANSI_ARGS((MPI_Request));
-    int         (*start_ureq)  ANSI_ARGS((MPI_Request));
-    int         (*cancel_ureq) ANSI_ARGS((MPI_Request));
+    int         (*create_ureq) (MPI_Request);
+    int         (*free_ureq)   (MPI_Request);
+    int         (*wait_ureq)   (MPI_Request);
+    int         (*test_ureq)   (MPI_Request);
+    int         (*start_ureq)  (MPI_Request);
+    int         (*cancel_ureq) (MPI_Request);
     void        *private_data;
 } MPIR_UHANDLE;
 

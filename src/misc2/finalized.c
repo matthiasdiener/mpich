@@ -1,5 +1,5 @@
 /*
- *  $Id: finalized.c,v 1.7 1999/08/30 15:47:27 swider Exp $
+ *  $Id: finalized.c,v 1.8 2001/11/14 20:08:04 ashton Exp $
  *
  *  (C) 1997 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -34,7 +34,7 @@ Output Parameter:
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Finalized( int *flag )
+int MPI_Finalized( int *flag )
 {
 /* 
    MPI_Init sets MPIR_Has_been_initialized to 1, MPI_Finalize sets to 2.

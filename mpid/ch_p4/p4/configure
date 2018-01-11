@@ -29,8 +29,9 @@ Usage: ${progname} -p4arch=ARCH_TYPE [-alog={on,off}] [-dprintfl={on,off}]
 		   [-p4device=device]
                    [-p4comm=shared]  [-listener_pathname="\<pathname\>"]
                    [-rsh=command] [-rshnol] [-cflags=flags] 
-                   [-threaded_listener] [-nothreaded_listener]
+                   [-enable-threaded-listener] [-disable-nothreaded-listener]
                    [-dlast] [-listenersig=name] [--disable-nonblockread]
+		   [--enable-nonblocking-listener]
 "
 RSHCOMMAND=
 MDEP_LIBS=
@@ -44,7 +45,10 @@ USERF77=0
 FC=${FC:-f77}
 threaded_listener=0
 userSet_threaded_listener=0
+enable_lazy_gethostbyname="no"
+enable_nonblocking_listener="no"
 listener_sig=""
+cross_compiling=0
 # use modern socket code (EOF on socket can be distinquished from no-data)
 # unless the test below fails.  This can be turned off with
 # --disable-nonblockread
@@ -114,11 +118,11 @@ case $arg in
   -listenersig=*)
      listener_sig=`echo A$arg|sed -e 's/A-listenersig=//g'`
      ;;
-  -threaded_list*)
+  -threaded_list*|-enable-threaded_list*|--enable-threaded-list*)
      threaded_listener=1
      userSet_threaded_listener=1
      ;;
-  -nothreaded_list*)
+  -nothreaded_list*|-disable-threaded_list*|--disable-threaded-list*)
      threaded_listener=0
      userSet_threaded_listener=1
      ;;
@@ -146,12 +150,28 @@ case $arg in
    -*disable-nonblockread)
 	use_nonblock_read=0
      ;;
+
    -enable-g | --enable-g | --enable-g=* | -enable-g=* )
      OPTFLAGS="$OPTFLAGS -g"	
      ;;
-
    -disable-g | --disable-g )
      ;;
+
+   -enable-lazy-gethostbyname | --enable-lazy-gethostbyname )
+	# If enabled, gethostbyname is called only when needed for 
+	# a connection, rather than for all processes
+	enable_lazy_gethostbyname="yes"
+	;;	
+   -disable-lazy-gethostbyname | --disable-lazy-gethostbyname )
+	enable_lazy_gethostbyname="no"
+	;;	
+
+   -enable-nonblocking-listener | --enable-nonblocking-listener )
+        enable_nonblocking_listener=yes
+        ;;
+   -disable-nonblocking-listener | --disable-nonblocking-listener )
+        enable_nonblocking_listener=no
+        ;;
 
    -*enable-*)
      # ignore unrecognized options
@@ -247,13 +267,22 @@ esac
 configure_args="$*"
 
 
+# Check for valid options
+if test "$p4device" = "ch_p4mpd" -a "$p4comm" = "shared" ; then
+   if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""Error: P4mpd does not support comm=shared"
+else
+echo "$ac_t""Error: P4mpd does not support comm=shared" 1>&1
+fi
+exit 1
+fi
 # Standard directories
 if test -z "$top_srcdir" -o "$top_srcdir" = "." ; then 
-    top_srcdir=$srcdir
+    top_srcdir="$srcdir"
 fi
 # Remove the config file from the srcdir if this is a VPATH build.
 # (the include target is a link)
-rm -f $top_srcdir/p4_config.h $top_srcdir/include/p4_config.h
+rm -f "$top_srcdir/p4_config.h" "$top_srcdir/include/p4_config.h"
 
 
 if test -z "$exec_prefix" ; then 
@@ -6889,6 +6918,93 @@ fi
 fi
 done
 
+for ac_hdr in sys/types.h sys/wait.h
+do
+ac_safe=`echo "$ac_hdr" | tr '[a-z]./' '[A-Z]__'`
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for $ac_hdr""... $ac_c"
+else
+echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+#include <$ac_hdr>
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  
+  
+  eval "ac_cv_header_$ac_safe=yes"
+
+else
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
+  fi
+  eval "ac_cv_header_$ac_safe=no"
+   
+fi
+rm -f conftest*
+if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+    ac_tr_hdr=HAVE_`echo $ac_hdr | tr '[a-z]./' '[A-Z]__'`
+  
+{
+test -n "$verbose" && \
+echo "	defining $ac_tr_hdr"
+echo "#define" $ac_tr_hdr 1 >> confdefs.h
+DEFS="$DEFS -D$ac_tr_hdr=1"
+}
+ 
+else
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+done
+
 #
 # In some cases, we need both string.h and strings.h .  Some systems
 # apparently complain, so we try to include them both
@@ -8794,6 +8910,18 @@ echo "#define" HAS_RSHCOMMAND 1 >> confdefs.h
 DEFS="$DEFS -DHAS_RSHCOMMAND=1"
 }
 
+    # Check for arguments (actually the blanks separating them) in the command
+    tst=`echo "$RSHCOMMAND" | sed -e 's/ /-/g'`
+    if test "$tst" != "$RSHCOMMAND" ; then
+        
+{
+test -n "$verbose" && \
+echo "	defining RSH_NEEDS_OPTS"
+echo "#define" RSH_NEEDS_OPTS 1 >> confdefs.h
+DEFS="$DEFS -DRSH_NEEDS_OPTS=1"
+}
+
+    fi
 fi
 if test -n "$RSHNOL" ; then
     
@@ -8980,6 +9108,26 @@ fi
     esac
 fi
 
+if test "$enable_lazy_gethostbyname" = "yes" ; then 
+    
+{
+test -n "$verbose" && \
+echo "	defining LAZY_GETHOSTBYNAME"
+echo "#define" LAZY_GETHOSTBYNAME 1 >> confdefs.h
+DEFS="$DEFS -DLAZY_GETHOSTBYNAME=1"
+}
+
+fi
+if test "$enable_nonblocking_listener" = "yes" ; then
+    
+{
+test -n "$verbose" && \
+echo "	defining USE_NONBLOCKING_LISTENER_SOCKETS"
+echo "#define" USE_NONBLOCKING_LISTENER_SOCKETS 1 >> confdefs.h
+DEFS="$DEFS -DUSE_NONBLOCKING_LISTENER_SOCKETS=1"
+}
+
+fi
 #
 # Check whether u_int should be used for xdr_array 
 use_u_int=0
@@ -9850,6 +9998,37 @@ echo "	defining" LISTENER_ATTN_SIGNAL to be $listener_sig
 echo "#define" LISTENER_ATTN_SIGNAL $listener_sig >> confdefs.h
 DEFS="$DEFS -DLISTENER_ATTN_SIGNAL=$listener_sig"
 }
+
+fi
+if test "$cross_compiling" != 1 ; then
+                        echo checking byte ordering
+cat > conftest.c <<EOF
+#include "confdefs.h"
+main () {
+  /* Are we little or big endian?  From Harbison&Steele.  */
+  union
+  {
+    long l;
+    char c[sizeof (long)];
+  } u;
+  u.l = 1;
+  exit (u.c[sizeof (long) - 1] == 1);
+}
+EOF
+eval $compile
+if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  :
+else
+  
+{
+test -n "$verbose" && \
+echo "	defining WORDS_BIGENDIAN"
+echo "#define" WORDS_BIGENDIAN 1 >> confdefs.h
+DEFS="$DEFS -DWORDS_BIGENDIAN=1"
+}
+
+fi
+rm -fr conftest*
 
 fi
 #

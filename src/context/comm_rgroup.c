@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_rgroup.c,v 1.6 1999/08/30 15:42:58 swider Exp $
+ *  $Id: comm_rgroup.c,v 1.7 2001/11/14 19:54:21 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -43,7 +43,7 @@ Output Parameter:
 .N MPI_SUCCESS
 .N MPI_ERR_COMM
 @*/
-EXPORT_MPI_API int MPI_Comm_remote_group ( MPI_Comm comm, MPI_Group *group )
+int MPI_Comm_remote_group ( MPI_Comm comm, MPI_Group *group )
 {
     struct MPIR_COMMUNICATOR *comm_ptr;
     struct MPIR_GROUP *group_ptr;

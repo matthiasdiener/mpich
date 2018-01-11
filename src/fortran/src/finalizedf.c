@@ -10,16 +10,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_FINALIZED = PMPI_FINALIZED
-EXPORT_MPI_API void MPI_FINALIZED ( MPI_Fint *, MPI_Fint * );
+void MPI_FINALIZED ( MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_finalized__ = pmpi_finalized__
-EXPORT_MPI_API void mpi_finalized__ ( MPI_Fint *, MPI_Fint * );
+void mpi_finalized__ ( MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_finalized = pmpi_finalized
-EXPORT_MPI_API void mpi_finalized ( MPI_Fint *, MPI_Fint * );
+void mpi_finalized ( MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_finalized_ = pmpi_finalized_
-EXPORT_MPI_API void mpi_finalized_ ( MPI_Fint *, MPI_Fint * );
+void mpi_finalized_ ( MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -77,10 +77,10 @@ EXPORT_MPI_API void mpi_finalized_ ( MPI_Fint *, MPI_Fint * );
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_finalized_ ( MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_finalized_ ( MPI_Fint *, MPI_Fint * );
 
 /* Definitions of Fortran Wrapper routines */
-EXPORT_MPI_API void mpi_finalized_( MPI_Fint *flag, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_finalized_( MPI_Fint *flag, MPI_Fint *__ierr )
 {
     int lflag;
     *__ierr = MPI_Finalized(&lflag);

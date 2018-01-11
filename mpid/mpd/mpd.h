@@ -69,6 +69,8 @@ struct jobentry {
     int alive_here_sofar;
     int alive_in_job_sofar;
     int added_to_job_sofar;
+    char program[MAXLINE];
+    char username[80];
 };
 
 /* 
@@ -287,9 +289,10 @@ int  generate_shmemkey( int, int, int );
 void encode_num( int, char * );
 int  parse_groups( char *, gid_t[], int * );
 void console_setup_failed( char * );
-void chg_rhs_to_rhs2( int );
+int  chg_rhs_to_rhs2( int );
+void reknit_ring( int );
 void init_myrinet_port_counter( void );
-int get_next_myrinet_port( void );
+int  get_next_myrinet_port( void );
 /* for rio */
 void handle_rio_listen_input( int );
 void handle_control_input( int );
@@ -309,6 +312,7 @@ void handle_monitor_input( int );
 void send_msg( int, char *, int );	
 void strcompress( char * );
 void datastr_to_xml( char *, char *, char * );
+void enter_ring ( void );
 
 /* couldn't find on Solaris */
 /* int gethostname(char *, int );   */

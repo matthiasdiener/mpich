@@ -152,6 +152,27 @@
         END INTERFACE ! MPI_FILE_WRITE_SHARED
 
         CONTAINS
+ 
+! Fortran bindings
+ 
+! Process Creation and Management
+ 
+! One-Sided Communications
+ 
+! Extended Collective Operations
+ 
+! External Interfaces
+ 
+! Miscellany
+
+        SUBROUTINE MPI_SIZEOF_T( X, SIZE, IERROR )
+        <type> X(*)
+        INTEGER SIZE, IERROR
+        IERROR = 0
+        SIZE = <typesize>
+        END SUBROUTINE MPI_SIZEOF_T
+
+! I/O
 !
         SUBROUTINE MPI_FILE_IREAD_T(FH, BUF, COUNT, DATATYPE, REQUEST, &
       &   IERROR) 

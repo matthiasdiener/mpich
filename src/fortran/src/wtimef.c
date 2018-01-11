@@ -8,16 +8,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_WTIME = PMPI_WTIME
-EXPORT_MPI_API double MPI_WTIME ( void );
+double MPI_WTIME ( void );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_wtime__ = pmpi_wtime__
-EXPORT_MPI_API double mpi_wtime__ ( void );
+double mpi_wtime__ ( void );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_wtime = pmpi_wtime
-EXPORT_MPI_API double mpi_wtime ( void );
+double mpi_wtime ( void );
 #else
 #pragma weak mpi_wtime_ = pmpi_wtime_
-EXPORT_MPI_API double mpi_time_ ( void );
+double mpi_time_ ( void );
 
 #endif
 
@@ -75,9 +75,9 @@ EXPORT_MPI_API double mpi_time_ ( void );
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API double mpi_wtime_ ( void );
+FORTRAN_API double FORT_CALL mpi_wtime_ ( void );
 
-EXPORT_MPI_API double  mpi_wtime_()
+FORTRAN_API double FORT_CALL mpi_wtime_()
 {
     return MPI_Wtime();
 }

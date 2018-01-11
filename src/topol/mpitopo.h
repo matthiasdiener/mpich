@@ -31,8 +31,7 @@ typedef union {
 } MPIR_TOPOLOGY;
 
 
-int MPIR_Topology_copy_fn ANSI_ARGS(( MPI_Comm, int, void *, void *, void *, 
-				      int * ));
-int MPIR_Topology_delete_fn ANSI_ARGS(( MPI_Comm, int, void *, void * ));
-void MPIR_Topology_finalize ANSI_ARGS(( void ));
+int MPIR_Topology_copy_fn ( MPI_Comm, int, void *, void *, void *, int * );
+int MPIR_Topology_delete_fn ( MPI_Comm, int, void *, void * );
+void MPIR_Topology_finalize ( void );
 #endif

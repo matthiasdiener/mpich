@@ -6,7 +6,7 @@ char whoami[100];
 char local_domain[100];
 
 /* Forward decls */
-VOID kill_server ANSI_ARGS(( char * ));
+VOID kill_server ( char * );
 
 main(argc,argv)
 int argc;

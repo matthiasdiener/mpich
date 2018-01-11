@@ -1,5 +1,5 @@
 /*
- *  $Id: sendrecv_rep.c,v 1.14 2000/08/23 17:49:23 gropp Exp $
+ *  $Id: sendrecv_rep.c,v 1.15 2001/11/14 20:10:02 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -58,7 +58,7 @@ Output Parameters:
 .N MPI_ERR_EXHAUSTED
 
 @*/
-EXPORT_MPI_API int MPI_Sendrecv_replace( void *buf, int count, MPI_Datatype datatype, 
+int MPI_Sendrecv_replace( void *buf, int count, MPI_Datatype datatype, 
 			  int dest, int sendtag, int source, int recvtag, 
 			  MPI_Comm comm, MPI_Status *status )
 {

@@ -5,7 +5,7 @@
 #define MINVAL(a,b) (((a)<(b)) ? (a) : (b))
 #define ABSVAL(a)   (((a)>=0 ) ? (a) : -(a))
 
-static P4VOID init_p4_brdcst_info ANSI_ARGS((void));
+static P4VOID init_p4_brdcst_info (void);
 
 int p4_broadcastx(type, data, data_len, data_type)
 int type;
@@ -97,7 +97,7 @@ int type, from, data_len, data_type;
     return status;
 }
 
-static P4VOID init_p4_brdcst_info ANSI_ARGS((void))
+static P4VOID init_p4_brdcst_info (void)
 /*
   Construct tree connections for cluster-master and slave
   processes and insert into global structure
@@ -211,7 +211,7 @@ P4VOID *x;
 int nelem;
 int size;
 int data_type;
-P4VOID(*op) ANSI_ARGS((char *, char *, int));
+P4VOID(*op) (char *, char *, int);
 /* see userman for more details */
 {
     int me = p4_get_my_id();

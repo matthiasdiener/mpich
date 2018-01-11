@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_dup.c,v 1.11 2001/08/14 14:43:42 lacour Exp $
+ *  $Id: comm_dup.c,v 1.12 2001/11/14 19:54:19 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -75,7 +75,7 @@ Notes:
 .seealso: MPI_Comm_free, MPI_Keyval_create, MPI_Attr_set, MPI_Attr_delete
 
 @*/
-EXPORT_MPI_API int MPI_Comm_dup ( 
+int MPI_Comm_dup ( 
 	MPI_Comm comm, 
 	MPI_Comm *comm_out )
 {

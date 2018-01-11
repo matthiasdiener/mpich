@@ -68,142 +68,129 @@ typedef struct rpcinfo_ {
   int n_fn;
 } rpcinfo;
 
-
-
-/* I got this trick from the Tcl implementation */
-#ifdef _ANSI_ARGS_
-#undef _ANSI_ARGS_
-#endif
-
-#ifdef __STDC__
-#define _ANSI_ARGS_(x) x
-#else
-#define _ANSI_ARGS_(x) ()
-#endif
-
-void WriteWrappers _ANSI_ARGS_(( FILE *outf, char **wrapperFiles,
+void WriteWrappers ( FILE *outf, char **wrapperFiles,
 				 int nwrapperFiles, fn_def *fn_list,
-				 int n_fn ));
+				 int n_fn );
 
-void ReadWrapperFile _ANSI_ARGS_(( FILE *outf, char *fileName, int filenum,
+void ReadWrapperFile ( FILE *outf, char *fileName, int filenum,
 				   fn_def *fn_list, int n_fn,
-				   wrapperinfo *winfo ));
+				   wrapperinfo *winfo );
 
-char *ReadFileIntoString _ANSI_ARGS_(( FILE *inf ));
+char *ReadFileIntoString ( FILE *inf );
 
 
-void ProcessString _ANSI_ARGS_(( FILE *outf,
+void ProcessString ( FILE *outf,
 				 fileinfo *finfo,
 				 rpcinfo *rinfo,
-				 wrapperinfo *winfo ));
+				 wrapperinfo *winfo );
 
 /* either substitute with for{each,all}fn (outf), or define a new
    wrapper with fn[all] (winfo) */
 /* escStartLine is set to the first line of the start of the escape */
-void ProcessEscape _ANSI_ARGS_(( FILE *outf,
+void ProcessEscape ( FILE *outf,
 				 fileinfo *finfo,
 				 rpcinfo *rinfo,
 				 wrapperinfo *winfo,
 				 char **escBodyList, int escBodyLen,
-				 char *escBody, int escStartLine ));
+				 char *escBody, int escStartLine );
 
 /* finfo->lineno set to the first line of what is to be read */
 /* is returned set to whatever is after what was read */
 /* escStartLine tells what line the escape starts on */
-int ReadUntilMatch _ANSI_ARGS_(( fileinfo *finfo,
+int ReadUntilMatch ( fileinfo *finfo,
                                  char *start,
 				 char *end, char **escbody,
-				 int escStartLine ));
+				 int escStartLine );
 
-int ReadUntilEscape _ANSI_ARGS_(( fileinfo *finfo,
+int ReadUntilEscape ( fileinfo *finfo,
 				  char **preceding, char ***escBodyList,
 				  int *escBodyLen, char **escBodyLiteral,
-				  int *escStartLine ));
+				  int *escStartLine );
 
-int CountNewlines _ANSI_ARGS_(( char *start, char *end ));
+int CountNewlines ( char *start, char *end );
 
-int RegisterVarType _ANSI_ARGS_(( char *type, xpandList varTypes ));
+int RegisterVarType ( char *type, xpandList varTypes );
 
 /* makes a copy of the string, and freeing will be difficult */
-void ListizeString _ANSI_ARGS_(( char *str, char ***list, int *len ));
+void ListizeString ( char *str, char ***list, int *len );
 
-int IsReservedName _ANSI_ARGS_(( char *name ));
+int IsReservedName ( char *name );
 
-void OutChar _ANSI_ARGS_(( int c, int where, void *outputForm ));
+void OutChar ( int c, int where, void *outputForm );
 
-void DoForEach _ANSI_ARGS_(( FILE *outf,
+void DoForEach ( FILE *outf,
 			     fileinfo *finfo,
 			     rpcinfo *rinfo,
 			     char **argv,
 			     int argc, char *escBody, int startLine,
-			     char *body ));
+			     char *body );
 
-void DoForAll _ANSI_ARGS_(( FILE *outf,
+void DoForAll ( FILE *outf,
 			    fileinfo *finfo,
 			    rpcinfo *rinfo,
 			    char **argv,
 			    int argc, char *escBody, int startLine,
-			    char *body ));
+			    char *body );
 
-void DoFn _ANSI_ARGS_(( fileinfo *finfo,
+void DoFn ( fileinfo *finfo,
 		        rpcinfo *rinfo,
 		        wrapperinfo *winfo,
 		        char **argv,
 			int argc,
                         char *body,
-		        int startingLine ));
+		        int startingLine );
 
-void DoFnAll _ANSI_ARGS_(( fileinfo *finfo,
+void DoFnAll ( fileinfo *finfo,
 			   rpcinfo *rinfo,
 			   wrapperinfo *winfo,
 			   char **argv,
 			   int argc,
 			   char *body,
-			   int startingLine ));
+			   int startingLine );
 
-void ReadFnDef _ANSI_ARGS_(( fileinfo *finfo,
+void ReadFnDef ( fileinfo *finfo,
 			     rpcinfo *rinfo,
 			     wrapperinfo *winfo,
 			     char **argv,
 			     int argc,
 			     char *body,
 			     int startingLine,
-			     int allFn ));
+			     int allFn );
 
-void WriteFunctionCalls _ANSI_ARGS_(( FILE *outf,
+void WriteFunctionCalls ( FILE *outf,
 				      fn_def *fn_list,
 				      int n_fn,
-				      wrapperinfo *winfo ));
+				      wrapperinfo *winfo );
 
-int IsFnInList _ANSI_ARGS_(( char *fn, fn_def *fn_list, int n_fn ));
+int IsFnInList ( char *fn, fn_def *fn_list, int n_fn );
 
-char ***CreateUniqueVarNames _ANSI_ARGS_(( wrapperdef *wrapperList,
-					   int nwrappers ));
+char ***CreateUniqueVarNames ( wrapperdef *wrapperList,
+					   int nwrappers );
 
-void ReadVardecl _ANSI_ARGS_(( fileinfo *finfo, int startLine,
+void ReadVardecl ( fileinfo *finfo, int startLine,
 			       char *body, wrapperinfo *winfo,
-			       xpandList vars ));
+			       xpandList vars );
 
-int ReadVardeclBasetype _ANSI_ARGS_(( char *filename, int lineno,
+int ReadVardeclBasetype ( char *filename, int lineno,
 				      char *body, char **basetype,
-				      char **end ));
+				      char **end );
 
-int ReadVardeclVarname _ANSI_ARGS_(( char **readPt, char **varPrefix,
-				     char **varName, char **varSuffix ));
+int ReadVardeclVarname ( char **readPt, char **varPrefix,
+				     char **varName, char **varSuffix );
 
-void CheckForHiddenArgs _ANSI_ARGS_(( fn_def *fn_list, int fn_num,
-				      wrapperinfo *winfo, int wrapperNum ));
+void CheckForHiddenArgs ( fn_def *fn_list, int fn_num,
+				      wrapperinfo *winfo, int wrapperNum );
 
-int IsUnique _ANSI_ARGS_(( char *str, wrapperdef* wrapperList, int nwrappers,
+int IsUnique ( char *str, wrapperdef* wrapperList, int nwrappers,
 			   char ***others,
-			   int wrapperNum ));
+			   int wrapperNum );
 
-void PrintWrapperCode _ANSI_ARGS_(( FILE *outf,
+void PrintWrapperCode ( FILE *outf,
 				    fn_def *fn_list,
 				    int n_fn,
 				    wrapperinfo *winfo,
 				    char ***varNames,
 				    int fn_num,
-				    int wrapperNumIdx ));
+				    int wrapperNumIdx );
 
 #endif

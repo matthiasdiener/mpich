@@ -1,5 +1,5 @@
 /*
- *  $Id: bcast.c,v 1.8 2000/02/26 14:58:52 gropp Exp $
+ *  $Id: bcast.c,v 1.9 2001/11/14 19:50:12 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -60,7 +60,7 @@ efficient value on different machines.
 .N MPI_ERR_BUFFER
 .N MPI_ERR_ROOT
 @*/
-EXPORT_MPI_API int MPI_Bcast ( void *buffer, int count, MPI_Datatype datatype, int root, 
+int MPI_Bcast ( void *buffer, int count, MPI_Datatype datatype, int root, 
 		MPI_Comm comm )
 {
     int mpi_errno = MPI_SUCCESS;

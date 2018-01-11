@@ -37,8 +37,9 @@ Usage: ${progname} -p4arch=ARCH_TYPE [-alog={on,off}] [-dprintfl={on,off}]
 		   [-p4device=device]
                    [-p4comm=shared]  [-listener_pathname="\<pathname\>"]
                    [-rsh=command] [-rshnol] [-cflags=flags] 
-                   [-threaded_listener] [-nothreaded_listener]
+                   [-enable-threaded-listener] [-disable-nothreaded-listener]
                    [-dlast] [-listenersig=name] [--disable-nonblockread]
+		   [--enable-nonblocking-listener]
 "
 RSHCOMMAND=
 MDEP_LIBS=
@@ -52,7 +53,10 @@ USERF77=0
 FC=${FC:-f77}
 threaded_listener=0
 userSet_threaded_listener=0
+enable_lazy_gethostbyname="no"
+enable_nonblocking_listener="no"
 listener_sig=""
+cross_compiling=0
 # use modern socket code (EOF on socket can be distinquished from no-data)
 # unless the test below fails.  This can be turned off with
 # --disable-nonblockread
@@ -122,11 +126,11 @@ case $arg in
   -listenersig=*)
      listener_sig=`echo A$arg|sed -e 's/A-listenersig=//g'`
      ;;
-  -threaded_list*)
+  -threaded_list*|-enable-threaded_list*|--enable-threaded-list*)
      threaded_listener=1
      userSet_threaded_listener=1
      ;;
-  -nothreaded_list*)
+  -nothreaded_list*|-disable-threaded_list*|--disable-threaded-list*)
      threaded_listener=0
      userSet_threaded_listener=1
      ;;
@@ -154,12 +158,28 @@ case $arg in
    -*disable-nonblockread)
 	use_nonblock_read=0
      ;;
+
    -enable-g | --enable-g | --enable-g=* | -enable-g=* )
      OPTFLAGS="$OPTFLAGS -g"	
      ;;
-
    -disable-g | --disable-g )
      ;;
+
+   -enable-lazy-gethostbyname | --enable-lazy-gethostbyname )
+	# If enabled, gethostbyname is called only when needed for 
+	# a connection, rather than for all processes
+	enable_lazy_gethostbyname="yes"
+	;;	
+   -disable-lazy-gethostbyname | --disable-lazy-gethostbyname )
+	enable_lazy_gethostbyname="no"
+	;;	
+
+   -enable-nonblocking-listener | --enable-nonblocking-listener )
+        enable_nonblocking_listener=yes
+        ;;
+   -disable-nonblocking-listener | --disable-nonblocking-listener )
+        enable_nonblocking_listener=no
+        ;;
 
    -*enable-*)
      # ignore unrecognized options
@@ -207,13 +227,17 @@ LISTENER_PATHNAME=""
 rm -f config.log p4_config.h include/p4_config.h
 AC_PREPARE()
 
+# Check for valid options
+if test "$p4device" = "ch_p4mpd" -a "$p4comm" = "shared" ; then
+   AC_MSG_ERROR([P4mpd does not support comm=shared])
+fi
 # Standard directories
 if test -z "$top_srcdir" -o "$top_srcdir" = "." ; then 
-    top_srcdir=$srcdir
+    top_srcdir="$srcdir"
 fi
 # Remove the config file from the srcdir if this is a VPATH build.
 # (the include target is a link)
-rm -f $top_srcdir/p4_config.h $top_srcdir/include/p4_config.h
+rm -f "$top_srcdir/p4_config.h" "$top_srcdir/include/p4_config.h"
 
 AC_SUBST(top_srcdir)
 if test -z "$exec_prefix" ; then 
@@ -680,6 +704,7 @@ PAC_CHECK_HEADERS(unistd.h)
 PAC_CHECK_HEADERS(string.h)
 PAC_CHECK_HEADERS(strings.h)
 PAC_CHECK_HEADERS(termio.h termios.h)
+PAC_CHECK_HEADERS(sys/types.h sys/wait.h)
 #
 # In some cases, we need both string.h and strings.h .  Some systems
 # apparently complain, so we try to include them both
@@ -808,6 +833,11 @@ int main() { struct sgttyb tty_new;
 
 if test -n "$RSHCOMMAND" ; then
     AC_DEFINE(HAS_RSHCOMMAND)
+    # Check for arguments (actually the blanks separating them) in the command
+    tst=`echo "$RSHCOMMAND" | sed -e 's/ /-/g'`
+    if test "$tst" != "$RSHCOMMAND" ; then
+        AC_DEFINE(RSH_NEEDS_OPTS)
+    fi
 fi
 if test -n "$RSHNOL" ; then
     AC_DEFINE(RSH_HAS_NO_L)
@@ -845,6 +875,12 @@ return rc;}],found_sockopt_type)
     esac
 fi
 
+if test "$enable_lazy_gethostbyname" = "yes" ; then 
+    AC_DEFINE(LAZY_GETHOSTBYNAME)
+fi
+if test "$enable_nonblocking_listener" = "yes" ; then
+    AC_DEFINE(USE_NONBLOCKING_LISTENER_SOCKETS)
+fi
 #
 # Check whether u_int should be used for xdr_array 
 use_u_int=0
@@ -946,6 +982,14 @@ if test -n "$listener_sig" ; then
 fi
 dnl # Check for byte ordering
 dnl PAC_WORDS_BIGENDIAN
+if test "$cross_compiling" != 1 ; then
+    dnl Set WORDS_BIGENDIAN if MSB is first.  We use this to
+    dnl differentiate between ia32 and non-ia32 platforms that are 
+    dnl running portable operating systems such as Linux, Solaris, or
+    dnl FreeBSD.  This is needed because the old P4 code associates
+    dnl the OS type with the architecture type
+    AC_WORDS_BIGENDIAN
+fi
 #
 # Variables used by Makefile.in's:
 MDEP_LIBS="$LIBS"

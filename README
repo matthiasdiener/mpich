@@ -1,7 +1,7 @@
 
 		      Portable MPI Model Implementation
 
-			 Version 1.2.2, August, 2001
+			 Version 1.2.3, January, 2002
 
                                  David Ashton
                                  Anthony Chan
@@ -20,13 +20,31 @@ Interface Standard.  It contains a complete implementation of version 1.2 of
 the MPI Standard and also significant parts of MPI-2, particularly in the
 area of parallel I/O.
 
-The installation and user's manuals may be found in doc/install.ps.gz and
-doc/guide.ps.gz respectively.  Man pages for each MPI routine, along with
-commands for compiling and running MPI programs, are provided in the
-directories man (Unix man format) and www (HTML).
+The installation and user's manuals have been combined as of the
+1.2.3. release; in addition, device-specific versions are available,
+simplifying the use of the manuals when troubleshooting.  The manual may be
+found in doc/mpichman-devicename.ps.gz, where devicename is one of the MPICH
+devices.  For example, most Beowulf users should look at either
+doc/mpichman-chp4mpd.ps.gz (for the ch_p4mpd device) or
+doc/mpichman-chp4.ps.gz (for the ch_p4 device).  Users of a single shared
+memory multiprocessor can use doc/mpichman-chshmem.ps.gz.  Globus users may
+use mpichman-globus2.ps.gz. PDF versions of all of these are also provided.
 
-Version 1.2.2 is primarily a bug-fix and improved-portability release,
-particularly in the area of Linux support.  
+Man pages for each MPI routine, along with commands for compiling and running
+MPI programs, are provided in the directories man (Unix man format) and www
+(HTML). 
+
+Version 1.2.3 is primarily a bug-fix and improved-portability release,
+particularly in the area of Linux and Mac OS X support.  Other new features
+include better support for Intel compilers, particularly for IA64 Linux,
+better support for various Fortran compilers, and some fixes for rare race
+conditions in the ch_p4 device.  The documentation on the ch_p4mpd device and
+the MPD system has been improved.  Version 1.2.3 also includes all of the
+source for both the Unix and Windows versions.  Windows users should still
+use the self-installing version available through the web page.  The globus
+device now supports version 2 of Globus.
+
+Features new or improved in Version 1.2.2 included:
 
 There are a number of improvements to the ch_p4 device that improve both
 performance and reliability, particularly on Linux platforms. 

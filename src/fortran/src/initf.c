@@ -1,5 +1,5 @@
 /*
- *  $Id: initf.c,v 1.2 2000/06/30 17:53:25 gropp Exp $
+ *  $Id: initf.c,v 1.5 2001/12/12 23:36:43 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -26,16 +26,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_INIT = PMPI_INIT
-EXPORT_MPI_API void MPI_INIT ( MPI_Fint * );
+void MPI_INIT ( MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_init__ = pmpi_init__
-EXPORT_MPI_API void mpi_init__ ( MPI_Fint * );
+void mpi_init__ ( MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_init = pmpi_init
-EXPORT_MPI_API void mpi_init ( MPI_Fint * );
+void mpi_init ( MPI_Fint * );
 #else
 #pragma weak mpi_init_ = pmpi_init_
-EXPORT_MPI_API void mpi_init_ ( MPI_Fint * );
+void mpi_init_ ( MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -93,7 +93,7 @@ EXPORT_MPI_API void mpi_init_ ( MPI_Fint * );
 
 
 /* Get the correct versions of the argument programs */
-#ifdef F77_NAME_UPPER
+#if defined(F77_NAME_UPPER) || defined(USE_FARG_UPPER)
 #define mpir_iargc_ MPIR_IARGC
 #define mpir_getarg_ MPIR_GETARG
 #elif defined(F77_NAME_LOWER_2USCORE)
@@ -108,7 +108,7 @@ EXPORT_MPI_API void mpi_init_ ( MPI_Fint * );
 /* #define DEBUG(a) {a}  */
 #define DEBUG(a)
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_init_ ( MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_init_ ( MPI_Fint * );
 MPI_Fint mpir_iargc_ (void);
 
 #ifdef MPI_CRAY
@@ -117,7 +117,7 @@ void mpir_getarg_ ( MPI_Fint *, _fcd );
 void mpir_getarg_ ( MPI_Fint *, char *, MPI_Fint );
 #endif
 
-EXPORT_MPI_API void mpi_init_( MPI_Fint *ierr )
+FORTRAN_API void FORT_CALL mpi_init_( MPI_Fint *ierr )
 {
     int  Argc;
     MPI_Fint i, argsize = 1024;

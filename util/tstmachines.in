@@ -60,6 +60,11 @@ fi
 list=`cat $machineFile | sed -e '/\#/d' | tr -s '\012' ' '`
 /bin/rm -f mpichfoo
 echo "A test" > mpichfoo
+if [ ! -s mpichfoo ] ; then
+    echo "Could not create test file in this directory. "
+    echo "cd to a directory in which you have write privs and rerun this test"
+    exit 1
+fi
 # Use same mechanism as in mpirun to get the value of pwd...
 if [ -n "@AUTOMOUNTFIX@" ] ; then
     PWDtest=`pwd | @AUTOMOUNTFIX@`

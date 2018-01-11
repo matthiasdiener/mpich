@@ -18,6 +18,13 @@ echo making configure in `pwd`
 #    autoheader=/homes/gropp/bin/autoheader
 #fi
 # Must use patched automake
+if [ -z "$ARCH" ] ; then
+    system="`uname -sr | sed -e 's/ /-/g'`"
+    case "$system" in 
+	SunOS-5*) ARCH=solaris-2 ;;
+	Linux*)   ARCH=linux ;;
+    esac
+fi
 larch=$ARCH
 #automake=/homes/gropp/bin/$larch/automake
 #aclocal=/homes/gropp/bin/$larch/aclocal

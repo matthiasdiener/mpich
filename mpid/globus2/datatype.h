@@ -62,15 +62,7 @@ struct MPIR_DATATYPE {
 #endif
 };
 
-#ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
-#define ANSI_ARGS(a) a
-#else
-#define ANSI_ARGS(a) ()
-#endif
-#endif
-
-extern void *MPIR_ToPointer ANSI_ARGS(( int ));
+extern void *MPIR_ToPointer ( int );
 
 #define MPIR_GET_DTYPE_PTR(idx) \
     (struct MPIR_DATATYPE *)MPIR_ToPointer( idx )

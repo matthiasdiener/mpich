@@ -152,16 +152,7 @@ extern usc_time_t usc_MD_rollover_val;
 /* ----------------------
   function prototypes
 ---------------------- */
-#ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus)
-#define ANSI_ARGS(a) a
-#else
-#define ANSI_ARGS(a) ()
-#endif
-#endif
-
-
-VOID usc_init ANSI_ARGS((void));
-usc_time_t usc_MD_clock ANSI_ARGS((void));
+VOID usc_init (void);
+usc_time_t usc_MD_clock (void);
 
 #endif

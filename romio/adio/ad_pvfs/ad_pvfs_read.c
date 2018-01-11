@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_pvfs_read.c,v 1.4 2000/02/09 21:29:56 thakur Exp $    
+ *   $Id: ad_pvfs_read.c,v 1.5 2001/10/23 17:47:39 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -21,14 +21,14 @@ void ADIOI_PVFS_ReadContig(ADIO_File fd, void *buf, int count,
 
     if (file_ptr_type == ADIO_EXPLICIT_OFFSET) {
 	if (fd->fp_sys_posn != offset)
-	    pvfs_lseek(fd->fd_sys, offset, SEEK_SET);
+	    pvfs_lseek64(fd->fd_sys, offset, SEEK_SET);
 	err = pvfs_read(fd->fd_sys, buf, len);
 	fd->fp_sys_posn = offset + err;
 	/* individual file pointer not updated */        
     }
     else {  /* read from curr. location of ind. file pointer */
 	if (fd->fp_sys_posn != fd->fp_ind)
-	    pvfs_lseek(fd->fd_sys, fd->fp_ind, SEEK_SET);
+	    pvfs_lseek64(fd->fd_sys, fd->fp_ind, SEEK_SET);
 	err = pvfs_read(fd->fd_sys, buf, len);
 	fd->fp_ind += err; 
 	fd->fp_sys_posn = fd->fp_ind;

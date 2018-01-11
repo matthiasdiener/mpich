@@ -14,16 +14,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_SENDRECV_REPLACE = PMPI_SENDRECV_REPLACE
-EXPORT_MPI_API void MPI_SENDRECV_REPLACE ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_SENDRECV_REPLACE ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_sendrecv_replace__ = pmpi_sendrecv_replace__
-EXPORT_MPI_API void mpi_sendrecv_replace__ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_sendrecv_replace__ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_sendrecv_replace = pmpi_sendrecv_replace
-EXPORT_MPI_API void mpi_sendrecv_replace ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_sendrecv_replace ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_sendrecv_replace_ = pmpi_sendrecv_replace_
-EXPORT_MPI_API void mpi_sendrecv_replace_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_sendrecv_replace_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -137,11 +137,11 @@ if (_isfcd(buf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_sendrecv_replace_ ( void *, MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_sendrecv_replace_ ( void *, MPI_Fint *, MPI_Fint *, 
                                        MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                        MPI_Fint *, MPI_Fint *, MPI_Fint *,
                                        MPI_Fint * );
-EXPORT_MPI_API void mpi_sendrecv_replace_( void *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *sendtag, 
+FORTRAN_API void FORT_CALL mpi_sendrecv_replace_( void *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *sendtag, 
      MPI_Fint *source, MPI_Fint *recvtag, MPI_Fint *comm, MPI_Fint *status, MPI_Fint *__ierr )
 {
     MPI_Status c_status;

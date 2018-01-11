@@ -1,5 +1,5 @@
 /*
- *  $Id: chdebug.c,v 1.19 2001/07/16 22:22:21 gropp Exp $
+ *
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -33,9 +33,9 @@ void MPID_Print_Send_Handle ( MPIR_SHANDLE * );
 
 /* Should each mode have its own print routines? */
 
-int MPID_Rndv_print_pkt( fp, pkt )
-FILE       *fp;
-MPID_PKT_T *pkt;
+int MPID_Rndv_print_pkt( 
+	FILE       *fp,
+	MPID_PKT_T *pkt)
 {
     /* A "send_id" is a 8byte item on heterogeneous systems.  On 
        systems without 8byte longs, we need special code to print these.
@@ -98,9 +98,7 @@ MPID_PKT_T *pkt;
     return MPI_SUCCESS;
 }
 
-int MPID_Cancel_print_pkt( fp, pkt )
-FILE       *fp;
-MPID_PKT_T *pkt;
+int MPID_Cancel_print_pkt( FILE *fp, MPID_PKT_T *pkt )
 {
     /* A "send_id" is a 64bit item on heterogeneous systems.  On 
        systems without 64bit longs, we need special code to print these.
@@ -223,9 +221,9 @@ int MPID_Print_packet( FILE *fp, MPID_PKT_T *pkt )
     return MPI_SUCCESS;
 }
 
-void MPID_Get_print_pkt( fp, pkt )
-FILE       *fp;
-MPID_PKT_T *pkt;
+void MPID_Get_print_pkt( 
+	FILE       *fp,
+	MPID_PKT_T *pkt)
 {
 #ifndef MPID_HAS_HETERO
     FPRINTF( fp, "\
@@ -245,9 +243,9 @@ MPID_PKT_T *pkt;
 #endif
 }
 
-int MPID_Print_mode( fp, pkt )
-FILE        *fp;
-MPID_PKT_T  *pkt;
+int MPID_Print_mode( 
+	FILE        *fp,
+	MPID_PKT_T  *pkt)
 {
     char *modename=0;
     switch (pkt->short_pkt.mode) {
@@ -290,10 +288,7 @@ MPID_PKT_T  *pkt;
     return MPI_SUCCESS;
 }
     
-void MPID_Print_pkt_data( msg, address, len )
-char *msg;
-char *address;
-int  len;
+void MPID_Print_pkt_data( char *msg, char *address, int len )
 {
     int i; char *aa = (char *)address;
 
@@ -308,8 +303,8 @@ int  len;
     fflush( MPID_DEBUG_FILE );
 }
 
-void MPID_Print_Send_Handle( shandle )
-MPIR_SHANDLE *shandle;
+void MPID_Print_Send_Handle( 
+	MPIR_SHANDLE *shandle)
 {
     FPRINTF( stdout, "[%d]* dmpi_send_contents:\n\
 * totallen    = %d\n\
@@ -318,8 +313,7 @@ MPIR_SHANDLE *shandle;
 		 shandle->recv_handle );
 }
 
-void MPID_SetDebugFile( name )
-char *name;
+void MPID_SetDebugFile( char *name )
 {
     char filename[1024];
     
@@ -337,8 +331,7 @@ char *name;
     if (!MPID_DEBUG_FILE) MPID_DEBUG_FILE = stdout;
 }
 
-void MPID_Set_tracefile( name )
-char *name;
+void MPID_Set_tracefile( char *name )
 {
     char filename[1024];
 
@@ -358,8 +351,7 @@ char *name;
 	MPID_TRACE_FILE = stdout;
 }
 
-void MPID_SetSpaceDebugFlag( flag )
-int flag;
+void MPID_SetSpaceDebugFlag( int flag )
 {
 /*      DebugSpace = flag; */
 #ifdef CHAMELEON_COMM   /* #CHAMELEON_START# */
@@ -371,8 +363,7 @@ int flag;
     }
 #endif                  /* #CHAMELEON_END# */
 }
-void MPID_SetDebugFlag( f )
-int f;
+void MPID_SetDebugFlag( int f )
 {
     MPID_DebugFlag = f;
     MPID_UseDebugFile = f;
@@ -382,8 +373,7 @@ int f;
    Data about messages
  */
 static int DebugMsgFlag = 0;
-void MPID_SetMsgDebugFlag( f )
-int f;
+void MPID_SetMsgDebugFlag( int f )
 {
     DebugMsgFlag = f;
 }
@@ -398,9 +388,9 @@ void MPID_PrintMsgDebug()
 /*
  * Print information about a request
  */
-void MPID_Print_rhandle( fp, rhandle )
-FILE *fp;
-MPIR_RHANDLE *rhandle;
+void MPID_Print_rhandle( 
+	FILE *fp,
+	MPIR_RHANDLE *rhandle)
 {
     FPRINTF( fp, "rhandle at %lx\n\
 \tcookie     \t= %lx\n\
@@ -415,9 +405,9 @@ MPIR_RHANDLE *rhandle;
 	     rhandle->is_complete, 
 	     (long)rhandle->buf );
 }
-void MPID_Print_shandle( fp, shandle )
-FILE *fp;
-MPIR_SHANDLE *shandle;
+void MPID_Print_shandle( 
+	FILE *fp,
+	MPIR_SHANDLE *shandle)
 {
     FPRINTF( fp, "shandle at %lx\n\
 \tcookie     \t= %lx\n\

@@ -3,6 +3,9 @@
 #ifdef HAVE_SLOGCONF_H
 #include "slog_config.h"
 #endif
+#ifdef HAVE_SLOG_WINCONFIG_H
+#include "slog_winconfig.h"
+#endif
 #if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
 #include <stdlib.h>
 #endif
@@ -364,7 +367,7 @@ int SLOG_WriteInitFrameDir( SLOG_STREAM *slog )
         return SLOG_FAIL;
     }
 
-    for ( ii = 0; ii < slog->hdr->max_Ndirframe; ii ++ ){
+    for ( ii = 0; ii < (int)slog->hdr->max_Ndirframe; ii ++ ){
         ( ( slog->frame_dir ).entries[ ii ] ).fptr2framehdr
         = SLOG_fptr_NULL;
         ( ( slog->frame_dir ).entries[ ii ] ).starttime
@@ -412,7 +415,7 @@ int SLOG_WriteInitFrameDir( SLOG_STREAM *slog )
     }
 #endif
 
-    for ( ii = 0; ii < slog->hdr->max_Ndirframe; ii ++ ) {
+    for ( ii = 0; ii < (int)slog->hdr->max_Ndirframe; ii ++ ) {
         SLOG_WriteFrameDirEntryGiven( slog->fd, 
                                       &( ( slog->frame_dir ).entries[ ii ] )
                                     );
@@ -504,7 +507,7 @@ int SLOG_ReadFrameDir( SLOG_STREAM *slog )
   /*
       Read in the Frame Directory records entries
   */
-    for ( ii = 0; ii < ( slog->frame_dir ).Nframe; ii ++ )
+    for ( ii = 0; ii < (int)( slog->frame_dir ).Nframe; ii ++ )
         SLOG_ReadFrameDirEntry( slog->fd,
                                 &( (slog->frame_dir).entries[ ii ] )
                               );
@@ -1334,7 +1337,7 @@ int SLOG_STM_WithdrawBBuf(       SLOG_intvlrec_blist_t *Bbuf,
     Bbuf->Nbytes_in_file = 0;
     Bbuf->count_irec     = 0;
 
-    for ( ii = 0; ii < Nrec_expected; ii++ ) {
+    for ( ii = 0; ii < (int)Nrec_expected; ii++ ) {
 
         irec = SLOG_Irec_WithdrawFromFbuf( slog_recdefs, fbuf );
         if ( irec == NULL ) {
@@ -2158,7 +2161,7 @@ void SLOG_STM_PrintFrameDirEntries( const SLOG_STREAM *slog, FILE *outfd )
     int ii;
 
     if ( slog != NULL && (slog->frame_dir).entries != NULL )
-        for ( ii = 0; ii < (slog->frame_dir).Nframe; ii ++ ) {
+        for ( ii = 0; ii < (int)(slog->frame_dir).Nframe; ii ++ ) {
             fprintf( outfd, "       "fmt_fptr" "fmt_time" "fmt_time"\n",
                             ( (slog->frame_dir).entries[ ii ] ).fptr2framehdr,
                             ( (slog->frame_dir).entries[ ii ] ).starttime,
@@ -2208,7 +2211,7 @@ int SLOG_STM_IsPROFConsistentWithRDEF( const SLOG_prof_t          *profile,
         return SLOG_FALSE;
     }
 
-    for ( ii = 0; ii < profile->Nentries; ii++ ) {
+    for ( ii = 0; ii < (int)profile->Nentries; ii++ ) {
         intvlinfo = &( profile->entries[ ii ] );
         recdef    = SLOG_RDEF_GetRecDef( recdefs,
                                          intvlinfo->intvltype,

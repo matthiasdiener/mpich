@@ -16,7 +16,7 @@ P4VOID xx_init_shmalloc();
 #endif
 
 #ifdef SYSV_IPC
-void p4_shmat_errmsg ANSI_ARGS(( int ));
+void p4_shmat_errmsg ( int );
 void p4_shmat_errmsg( x )
 int x;
 {
@@ -63,7 +63,7 @@ P4VOID MD_initmem(int memsize)
                                -1,0);
     if ( memory == UNMAPPED)
     {
-        p4_error("OOPS: mmap failed\n",memory);
+        p4_error("OOPS: mmap failed",memory);
     }
     xx_init_shmalloc(memory, size);
 #endif
@@ -96,7 +96,7 @@ P4VOID MD_initmem(int memsize)
 	nsegs = memsize / segsize + 1;
 
     if (nsegs > P4_MAX_SYSV_SHMIDS) 
-	p4_error( "exceeding max num of P4_MAX_SYSV_SHMIDS\n", P4_MAX_SYSV_SHMIDS );
+	p4_error( "exceeding max num of P4_MAX_SYSV_SHMIDS", P4_MAX_SYSV_SHMIDS );
 	
     size = nsegs * segsize;
     /* Try first to get a single section of memeory.  If that doesn't work,
@@ -111,7 +111,7 @@ P4VOID MD_initmem(int memsize)
 	/* Piece it together */
 	if ((sysv_shmid[0] = shmget(getpid(),segsize,IPC_CREAT|0600)) == -1)
 	{
-	    p4_error("OOPS: shmget failed\n",sysv_shmid[0]);
+	    p4_error("OOPS: shmget failed",sysv_shmid[0]);
 	}
 	if ((mem = (char *)shmat(sysv_shmid[0],NULL,0)) == (char *)-1)
 	{
@@ -126,7 +126,7 @@ P4VOID MD_initmem(int memsize)
 	{
 	    if ((sysv_shmid[i] = shmget(i+getpid(),segsize,IPC_CREAT|0600)) == -1)
 	    {
-		p4_error("OOPS: shmget failed\n",sysv_shmid[i]);
+		p4_error("OOPS: shmget failed",sysv_shmid[i]);
 	    }
 	    if ((tmem = sysv_shmat[i] = 
 		 (char *)shmat(sysv_shmid[i],pmem+segsize,0)) == (char *)-1)
@@ -162,11 +162,11 @@ P4VOID MD_initmem(int memsize)
 
     if (usconfig(CONF_INITUSERS,P4_MAX_MSG_QUEUES) == -1)
     {
-	p4_error("MD_initmem: usconfig failed for users: \n",memsize);
+	p4_error("MD_initmem: usconfig failed for users: ",memsize);
     }
     if (usconfig(CONF_INITSIZE,memsize) == -1)
     {
-	p4_error("MD_initmem: usconfig failed: cannot map shared arena\n",memsize);
+	p4_error("MD_initmem: usconfig failed: cannot map shared arena",memsize);
     }
     p4_sgi_usptr = usinit(p4_sgi_shared_arena_filename);
     if (p4_sgi_usptr == NULL) {	/* try usinit several times */
@@ -178,7 +178,7 @@ P4VOID MD_initmem(int memsize)
 	}
     }
     if (p4_sgi_usptr == NULL) 
-	p4_error("MD_initmem: usinit failed: cannot map shared arena\n",
+	p4_error("MD_initmem: usinit failed: cannot map shared arena",
 		 memsize);
 #endif
 
@@ -195,7 +195,7 @@ P4VOID MD_initmem(int memsize)
 					     p4_shared_map_fd, (off_t) 0);
 	if (p4_start_shared_area == (caddr_t)-1)
 	{
-	    p4_error("OOPS: mmap failed: cannot map shared memory\n",memsize);
+	    p4_error("OOPS: mmap failed: cannot map shared memory",memsize);
 	}
 	xx_init_shmalloc(p4_start_shared_area,memsize);
     }
@@ -1185,7 +1185,7 @@ char **argv;
     bm_msg.slave_pid = p4_i_to_n(getpid());
     bm_msg.switch_port = p4_i_to_n(-1);
     ns_host[0] = '\0';
-    get_qualified_hostname(ns_host);
+    get_qualified_hostname(ns_host,100);
     strcpy(bm_msg.host_name,ns_host);
 
 #   if defined(IPSC860)
@@ -1222,7 +1222,7 @@ char **argv;
     if (strcmp(bm_msg.version,P4_PATCHLEVEL) != 0)
     {
 	p4_dprintf("my version is %s\n",P4_PATCHLEVEL);
-	p4_error("version does not match master \n",0);
+	p4_error("version does not match master",0);
     }
     if ((s = (char *) rindex(bm_msg.pgm,'/'))  !=  NULL)
     {
@@ -1450,13 +1450,13 @@ int init_sysv_semset(int setnum)
 
     if ((semid = semget(getpid()+setnum,10,IPC_CREAT|0600)) < 0)
     {
-	p4_error("semget failed for setnum=%d\n",setnum);
+	p4_error("semget failed for setnum",setnum);
     }
     for (i=0; i < 10; i++)
     {
 	if (semctl(semid,i,SETVAL,arg) == -1)
 	{
-	    p4_error("semctl setval failed\n",-1);
+	    p4_error("semctl setval failed",-1);
 	}
     }
     return(semid);
@@ -1470,7 +1470,7 @@ int setnum;
     setnum = p4_global->sysv_next_lock / 10;
     if (setnum > P4_MAX_SYSV_SEMIDS)
     {
-	p4_error("exceeding max num of p4 semids\n",P4_MAX_SYSV_SEMIDS);
+	p4_error("exceeding max num of p4 semids",P4_MAX_SYSV_SEMIDS);
     }
     if (p4_global->sysv_next_lock % 10 == 0)
     {
@@ -1489,7 +1489,8 @@ P4VOID MD_lock(MD_lock_t *L)
     sem_lock[0].sem_num = L->semnum;
     if (semop(L->semid,&sem_lock[0],1) < 0)
     {
-        p4_error("OOPS: semop lock failed\n",(int)L->semid);
+	/* Use -1 so that we get the value from perror for the call */
+	p4_error("OOPS: semop lock failed",-1); /* (int)L->semid); */
     }
 }
 
@@ -1498,7 +1499,7 @@ P4VOID MD_unlock(MD_lock_t *L)
     sem_unlock[0].sem_num = L->semnum;
     if (semop(L->semid,&sem_unlock[0],1) < 0)
     {
-        p4_error("OOPS: semop unlock failed\n",(int)L->semid);
+        p4_error("OOPS: semop unlock failed",(int)L->semid);
     }
 }
 #endif
@@ -1596,9 +1597,16 @@ int data_representation( char *machine_type )
     if (strcmp(machine_type, "SYMMETRY") == 0)        return 2;
     if (strcmp(machine_type, "SYMMETRY_PTX") == 0)    return 2;
     if (strcmp(machine_type, "SUN386I") == 0)         return 2;
+#ifdef WORDS_BIGENDIAN
+    /* These are ported to some non-IA32 system */
+    if (strcmp(machine_type, "LINUX") == 0)           return 21;
+    if (strcmp(machine_type, "FREEBSD") == 0)         return 22;
+    if (strcmp(machine_type, "NETBSD") == 0)          return 23;
+#else
     if (strcmp(machine_type, "LINUX") == 0)           return 2;
     if (strcmp(machine_type, "FREEBSD") == 0)         return 2;
     if (strcmp(machine_type, "NETBSD") == 0)          return 2;
+#endif
     if (strcmp(machine_type, "I86_SOLARIS") == 0)     return 2;
     if (strcmp(machine_type, "DEC5000") == 0)         return 3;
     if (strcmp(machine_type, "IBM3090") == 0)         return 4;

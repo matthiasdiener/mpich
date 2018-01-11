@@ -26,15 +26,15 @@ int MPI_Waitall(int, MPI_Request *, MPI_Status *);
 int MPI_Testall(int, MPI_Request *, int *, MPI_Status *);
 int MPI_Waitsome(int, MPI_Request *, int *, int *, MPI_Status *);
 int MPI_Testsome(int, MPI_Request *, int *, int *, MPI_Status *);
-int MPI_Iprobe(int, int, MPI_Comm, int *flag, MPI_Status *);
+int MPI_Iprobe(int, int, MPI_Comm, int *, MPI_Status *);
 int MPI_Probe(int, int, MPI_Comm, MPI_Status *);
 int MPI_Cancel(MPI_Request *);
-int MPI_Test_cancelled(MPI_Status *, int *flag);
+int MPI_Test_cancelled(MPI_Status *, int *);
 int MPI_Send_init(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
-int MPI_Bsend_init(void*, int, MPI_Datatype, int,int, MPI_Comm, MPI_Request *);
-int MPI_Ssend_init(void*, int, MPI_Datatype, int,int, MPI_Comm, MPI_Request *);
-int MPI_Rsend_init(void*, int, MPI_Datatype, int,int, MPI_Comm, MPI_Request *);
-int MPI_Recv_init(void*, int, MPI_Datatype, int,int, MPI_Comm, MPI_Request *);
+int MPI_Bsend_init(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+int MPI_Ssend_init(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+int MPI_Rsend_init(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+int MPI_Recv_init(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int MPI_Start(MPI_Request *);
 int MPI_Startall(int, MPI_Request *);
 int MPI_Sendrecv(void *, int, MPI_Datatype,int, int, void *, int, 
@@ -125,8 +125,8 @@ int MPI_Graph_create(MPI_Comm, int, int *, int *, int, MPI_Comm *);
 int MPI_Graphdims_get(MPI_Comm, int *, int *);
 int MPI_Graph_get(MPI_Comm, int, int, int *, int *);
 int MPI_Cartdim_get(MPI_Comm, int *);
-int MPI_Cart_get(MPI_Comm, int, int *dims, int *, int *);
-int MPI_Cart_rank(MPI_Comm, int *coords, int *rank);
+int MPI_Cart_get(MPI_Comm, int, int *, int *, int *);
+int MPI_Cart_rank(MPI_Comm, int *, int *);
 int MPI_Cart_coords(MPI_Comm, int, int, int *);
 int MPI_Graph_neighbors_count(MPI_Comm, int, int *);
 int MPI_Graph_neighbors(MPI_Comm, int, int, int *);
@@ -150,6 +150,7 @@ double PMPI_Wtime(void);
 double PMPI_Wtick(void);
 #endif
 int MPI_Init(int *, char ***);
+int MPI_Init_thread(int *, char ***, int, int *);
 int MPI_Finalize(void);
 int MPI_Initialized(int *);
 int MPI_Abort(MPI_Comm, int);
@@ -161,9 +162,9 @@ int MPI_Comm_get_name(MPI_Comm, char *, int *);
 #ifdef HAVE_NO_C_CONST
 /* Default Solaris compiler does not accept const but does accept prototypes */
 #if defined(USE_STDARG) 
-EXPORT_MPI_API int MPI_Pcontrol(int, ...);
+int MPI_Pcontrol(int, ...);
 #else
-EXPORT_MPI_API int MPI_Pcontrol(int);
+int MPI_Pcontrol(int);
 #endif
 #else
 int MPI_Pcontrol(const int, ...);
@@ -182,8 +183,6 @@ int MPI_Type_create_indexed_block(int, int, int *, MPI_Datatype,
 int MPI_Type_get_envelope(MPI_Datatype, int *, int *, int *, int *); 
 int MPI_Type_get_contents(MPI_Datatype, int, int, int, int *, 
              MPI_Aint *, MPI_Datatype *);
-int MPI_Comm_name_get( MPI_Comm, char *, int * );
-int MPI_Comm_name_set( MPI_Comm, char * );
 int MPI_Type_create_subarray(int, int *, int *, int *, int, 
                       MPI_Datatype, MPI_Datatype *);
 
@@ -219,36 +218,44 @@ int PMPI_Get_count(MPI_Status *, MPI_Datatype, int *);
 int PMPI_Bsend(void*, int, MPI_Datatype, int, int, MPI_Comm);
 int PMPI_Ssend(void*, int, MPI_Datatype, int, int, MPI_Comm);
 int PMPI_Rsend(void*, int, MPI_Datatype, int, int, MPI_Comm);
-int PMPI_Buffer_attach( void* buffer, int size);
-int PMPI_Buffer_detach( void* buffer, int* size);
+int PMPI_Buffer_attach( void* buffer, int);
+int PMPI_Buffer_detach( void* buffer, int*);
 int PMPI_Isend(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int PMPI_Ibsend(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int PMPI_Issend(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int PMPI_Irsend(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
-int PMPI_Irecv(void*, int, MPI_Datatype, int,  int, MPI_Comm, MPI_Request *);
+int PMPI_Irecv(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int PMPI_Wait(MPI_Request *, MPI_Status *);
 int PMPI_Test(MPI_Request *, int *flag, MPI_Status *);
 int PMPI_Request_free(MPI_Request *);
 int PMPI_Waitany(int, MPI_Request *, int *, MPI_Status *);
 int PMPI_Testany(int, MPI_Request *, int *, int *, MPI_Status *);
 int PMPI_Waitall(int, MPI_Request *, MPI_Status *);
-int PMPI_Testall(int, MPI_Request *, int *flag, MPI_Status *);
+int PMPI_Testall(int, MPI_Request *, int *, MPI_Status *);
 int PMPI_Waitsome(int, MPI_Request *, int *, int *, MPI_Status *);
 int PMPI_Testsome(int, MPI_Request *, int *, int *, MPI_Status *);
-int PMPI_Iprobe(int, int, MPI_Comm, int *flag, MPI_Status *);
+int PMPI_Iprobe(int, int, MPI_Comm, int *, MPI_Status *);
 int PMPI_Probe(int, int, MPI_Comm, MPI_Status *);
 int PMPI_Cancel(MPI_Request *);
-int PMPI_Test_cancelled(MPI_Status *, int *flag);
-int PMPI_Send_init(void*, int, MPI_Datatype, int,int, MPI_Comm, MPI_Request *);
-int PMPI_Bsend_init(void*, int, MPI_Datatype,int,int, MPI_Comm, MPI_Request *);
-int PMPI_Ssend_init(void*, int, MPI_Datatype,int,int, MPI_Comm, MPI_Request *);
-int PMPI_Rsend_init(void*, int, MPI_Datatype,int,int, MPI_Comm, MPI_Request *);
-int PMPI_Recv_init(void*, int, MPI_Datatype, int,int, MPI_Comm, MPI_Request *);
+int PMPI_Test_cancelled(MPI_Status *, int *);
+int PMPI_Send_init(void*, int, MPI_Datatype, int, 
+		  int, MPI_Comm, MPI_Request *);
+int PMPI_Bsend_init(void*, int, MPI_Datatype, int, 
+		   int, MPI_Comm, MPI_Request *);
+int PMPI_Ssend_init(void*, int, MPI_Datatype, int, 
+		   int, MPI_Comm, MPI_Request *);
+int PMPI_Rsend_init(void*, int, MPI_Datatype, int, 
+		   int, MPI_Comm, MPI_Request *);
+int PMPI_Recv_init(void*, int, MPI_Datatype, int, 
+		  int, MPI_Comm, MPI_Request *);
 int PMPI_Start(MPI_Request *);
 int PMPI_Startall(int, MPI_Request *);
-int PMPI_Sendrecv(void *, int, MPI_Datatype, int, int, void *, int, 
-		 MPI_Datatype, int, int, MPI_Comm, MPI_Status *);
-int PMPI_Sendrecv_replace(void*, int, MPI_Datatype, int, int, int, int, 
+int PMPI_Sendrecv(void *, int, MPI_Datatype, 
+		 int, int, void *, int, 
+		 MPI_Datatype, int, int, 
+		 MPI_Comm, MPI_Status *);
+int PMPI_Sendrecv_replace(void*, int, MPI_Datatype, 
+			 int, int, int, int, 
 			 MPI_Comm, MPI_Status *);
 int PMPI_Type_contiguous(int, MPI_Datatype, MPI_Datatype *);
 int PMPI_Type_vector(int, int, int, MPI_Datatype, MPI_Datatype *);
@@ -273,10 +280,10 @@ int PMPI_Pack(void*, int, MPI_Datatype, void *, int, int *,  MPI_Comm);
 int PMPI_Unpack(void*, int, int *, void *, int, MPI_Datatype, MPI_Comm);
 int PMPI_Pack_size(int, MPI_Datatype, MPI_Comm, int *);
 int PMPI_Barrier(MPI_Comm );
-int PMPI_Bcast(void* buffer, int, MPI_Datatype, int, MPI_Comm );
+int PMPI_Bcast(void*, int, MPI_Datatype, int, MPI_Comm );
 int PMPI_Gather(void* , int, MPI_Datatype, void*, int, MPI_Datatype, 
 	       int, MPI_Comm); 
-int PMPI_Gatherv(void* , int, MPI_Datatype, void*, int *, int *,
+int PMPI_Gatherv(void* , int, MPI_Datatype, void*, int *, int *, 
 		MPI_Datatype, int, MPI_Comm); 
 int PMPI_Scatter(void* , int, MPI_Datatype, void*, int, MPI_Datatype, 
 		int, MPI_Comm);
@@ -293,7 +300,7 @@ int PMPI_Alltoallv(void* , int *, int *, MPI_Datatype, void*, int *,
 int PMPI_Reduce(void* , void*, int, MPI_Datatype, MPI_Op, int, MPI_Comm);
 int PMPI_Op_create(MPI_User_function *, int, MPI_Op *);
 int PMPI_Op_free( MPI_Op *);
-int PMPI_Allreduce(void* , void*, int,  MPI_Datatype, MPI_Op, MPI_Comm);
+int PMPI_Allreduce(void* , void*, int, MPI_Datatype, MPI_Op, MPI_Comm);
 int PMPI_Reduce_scatter(void* , void*, int *, MPI_Datatype, MPI_Op, MPI_Comm);
 int PMPI_Scan(void* , void*, int, MPI_Datatype, MPI_Op, MPI_Comm );
 int PMPI_Group_size(MPI_Group group, int *);
@@ -306,29 +313,30 @@ int PMPI_Group_intersection(MPI_Group, MPI_Group, MPI_Group *);
 int PMPI_Group_difference(MPI_Group, MPI_Group, MPI_Group *);
 int PMPI_Group_incl(MPI_Group group, int, int *, MPI_Group *);
 int PMPI_Group_excl(MPI_Group group, int, int *, MPI_Group *);
-int PMPI_Group_range_incl(MPI_Group, int, int [][3], MPI_Group *);
-int PMPI_Group_range_excl(MPI_Group, int, int [][3], MPI_Group *);
+int PMPI_Group_range_incl(MPI_Group group, int, int [][3], MPI_Group *);
+int PMPI_Group_range_excl(MPI_Group group, int, int [][3], MPI_Group *);
 int PMPI_Group_free(MPI_Group *);
 int PMPI_Comm_size(MPI_Comm, int *);
 int PMPI_Comm_rank(MPI_Comm, int *);
-int PMPI_Comm_compare(MPI_Comm, MPI_Comm, int *);
+int PMPI_Comm_compare(MPI_Comm comm1, MPI_Comm comm2, int *result);
 int PMPI_Comm_dup(MPI_Comm, MPI_Comm *);
-int PMPI_Comm_create(MPI_Comm, MPI_Group, MPI_Comm *);
-int PMPI_Comm_split(MPI_Comm, int, int, MPI_Comm *);
-int PMPI_Comm_free(MPI_Comm *);
+int PMPI_Comm_create(MPI_Comm, MPI_Group group, MPI_Comm *);
+int PMPI_Comm_split(MPI_Comm, int color, int key, MPI_Comm *);
+int PMPI_Comm_free(MPI_Comm *comm);
 int PMPI_Comm_test_inter(MPI_Comm, int *);
 int PMPI_Comm_remote_size(MPI_Comm, int *);
 int PMPI_Comm_remote_group(MPI_Comm, MPI_Group *);
-int PMPI_Intercomm_create(MPI_Comm, int, MPI_Comm, int, int, MPI_Comm *);
-int PMPI_Intercomm_merge(MPI_Comm, int, MPI_Comm *);
+int PMPI_Intercomm_create(MPI_Comm local_comm, int, MPI_Comm peer_comm, int, 
+			 int, MPI_Comm *);
+int PMPI_Intercomm_merge(MPI_Comm intercomm, int, MPI_Comm *);
 int PMPI_Keyval_create(MPI_Copy_function *, MPI_Delete_function *, 
 		      int *, void*);
 int PMPI_Keyval_free(int *);
-int PMPI_Attr_put(MPI_Comm, int, void*);
+int PMPI_Attr_put(MPI_Comm, int, void *);
 int PMPI_Attr_get(MPI_Comm, int, void *, int *);
 int PMPI_Attr_delete(MPI_Comm, int);
 int PMPI_Topo_test(MPI_Comm, int *);
-int PMPI_Cart_create(MPI_Comm, int, int *, int *, int, MPI_Comm *);
+int PMPI_Cart_create(MPI_Comm comm_old, int, int *, int *, int, MPI_Comm *);
 int PMPI_Dims_create(int, int, int *);
 int PMPI_Graph_create(MPI_Comm, int, int *, int *, int, MPI_Comm *);
 int PMPI_Graphdims_get(MPI_Comm, int *, int *);
@@ -351,18 +359,13 @@ int PMPI_Errhandler_get(MPI_Comm, MPI_Errhandler *);
 int PMPI_Errhandler_free(MPI_Errhandler *);
 int PMPI_Error_string(int, char *, int *);
 int PMPI_Error_class(int, int *);
-
-int PMPI_Type_get_envelope(MPI_Datatype, int *, int *, int *, int *); 
+int PMPI_Type_get_envelope(MPI_Datatype, int *, int *, int *, int *);
 int PMPI_Type_get_contents(MPI_Datatype, int, int, int, int *, 
              MPI_Aint *, MPI_Datatype *);
-
 int PMPI_Type_create_subarray(int, int *, int *, int *, int, 
                       MPI_Datatype, MPI_Datatype *);
-
 int PMPI_Type_create_darray(int, int, int, int *, int *, int *, int *, 
                     int, MPI_Datatype, MPI_Datatype *);
-
-
 int PMPI_Info_create(MPI_Info *);
 int PMPI_Info_set(MPI_Info, char *, char *);
 int PMPI_Info_delete(MPI_Info, char *);
@@ -382,15 +385,12 @@ int PMPI_Init_thread(int *, char ***, int, int *);
 int PMPI_Finalize(void);
 int PMPI_Initialized(int *);
 int PMPI_Abort(MPI_Comm, int);
-/* MPI-2 communicator naming functions */
-/* int PMPI_Comm_set_name(MPI_Comm, char *); */
-/* int PMPI_Comm_get_name(MPI_Comm, char **); */
 #ifdef HAVE_NO_C_CONST
 /* Default Solaris compiler does not accept const but does accept prototypes */
 #if defined(USE_STDARG) 
-EXPORT_MPI_API int PMPI_Pcontrol(int, ...);
+int PMPI_Pcontrol(int, ...);
 #else
-EXPORT_MPI_API int PMPI_Pcontrol(int);
+int PMPI_Pcontrol(int);
 #endif
 #else
 int PMPI_Pcontrol(const int, ...);

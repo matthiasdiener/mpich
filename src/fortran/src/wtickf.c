@@ -8,16 +8,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_WTICK = PMPI_WTICK
-EXPORT_MPI_API double MPI_WTICK ( void );
+double MPI_WTICK ( void );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_wtick__ = pmpi_wtick__
-EXPORT_MPI_API double mpi_wtick__ ( void );
+double mpi_wtick__ ( void );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_wtick = pmpi_wtick
-EXPORT_MPI_API double mpi_wtick ( void );
+double mpi_wtick ( void );
 #else
 #pragma weak mpi_wtick_ = pmpi_wtick_
-EXPORT_MPI_API double mpi_wtick_ ( void );
+double mpi_wtick_ ( void );
 
 #endif
 
@@ -75,9 +75,9 @@ EXPORT_MPI_API double mpi_wtick_ ( void );
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API double mpi_wtick_ ( void );
+FORTRAN_API double FORT_CALL mpi_wtick_ ( void );
 
-EXPORT_MPI_API double  mpi_wtick_()
+FORTRAN_API double FORT_CALL mpi_wtick_()
 {
     return MPI_Wtick();
 }

@@ -258,8 +258,8 @@ EOF
 dnl It is important to use the AC_TRY_EVAL in case F77 is not a single word
 dnl but is something like "f77 -64" (where the switch has changed the
 dnl compiler)
-ac_fscompilelink='${F77-f77} $save_FFLAGS -o conftest conftest.f >conftest.bas 2>&1'
-ac_fscompilelink2='${F77-f77} $FFLAGS -o conftest conftest.f >conftest.out 2>&1'
+ac_fscompilelink='${F77-f77} $save_FFLAGS -o conftest conftest.f $LDFLAGS >conftest.bas 2>&1'
+ac_fscompilelink2='${F77-f77} $FFLAGS -o conftest conftest.f $LDFLAGS >conftest.out 2>&1'
 if AC_TRY_EVAL(ac_fscompilelink) && test -x conftest ; then
    if AC_TRY_EVAL(ac_fscompilelink2) && test -x conftest ; then
       if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
@@ -268,7 +268,7 @@ if AC_TRY_EVAL(ac_fscompilelink) && test -x conftest ; then
          /bin/rm -f conftest2.out
          /bin/rm -f conftest.bas
 	 ac_fscompile3='${F77-f77} -c $save_FFLAGS conftest2.f >conftest2.out 2>&1'
-	 ac_fscompilelink4='${F77-f77} $FFLAGS -o conftest conftest2.o conftest.f >conftest.bas 2>&1'
+	 ac_fscompilelink4='${F77-f77} $FFLAGS -o conftest conftest2.o conftest.f $LDFLAGS >conftest.bas 2>&1'
          if AC_TRY_EVAL(ac_fscompile3) && test -s conftest2.o ; then
             if AC_TRY_EVAL(ac_fscompilelink4) && test -x conftest ; then
                if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
@@ -383,18 +383,18 @@ $fxx_module
         integer i, j
         character*20 s
         $f77_getargdecl
-	i = 0
+        i = 0
         $f77_getarg
         i=$f77_iargc
-	if (i .gt. 1) then
-	    j = i - $f77_iargc
-	    j = 1.0 / j
-	endif
+        if (i .gt. 1) then
+            j = i - $f77_iargc
+            j = 1.0 / j
+        endif
         end
 EOF
     found_answer="no"
     if test -z "$ac_fcompilelink" ; then
-        ac_fcompilelink="${F77-f77} -o conftest $FFLAGS $flags conftest.f $LIBS 1>&AC_FD_CC"
+        ac_fcompilelink="${F77-f77} -o conftest $FFLAGS $flags conftest.f $LDFLAGS $LIBS 1>&AC_FD_CC"
     fi
     AC_MSG_CHECKING([if ${F77-f77} $flags $libs works with GETARG and IARGC])
     if AC_TRY_EVAL(ac_fcompilelink) && test -x conftest ; then
@@ -434,7 +434,7 @@ EOF
         program main
         end
 EOF
-    ac_fcompilelink_test='${F77-f77} -o conftest $FFLAGS conftest.f $libs $LIBS 1>&AC_FD_CC'
+    ac_fcompilelink_test='${F77-f77} -o conftest $FFLAGS conftest.f $LDFLAGS $libs $LIBS 1>&AC_FD_CC'
     for libs in $save_trial_LIBS ; do
 	if test "$libs" = "0" ; then
 	    lib_ok="yes"
@@ -470,13 +470,27 @@ $libs"
     # -YCFRL=1 causes Absoft f90 to work with g77 and similar (f2c-based) 
     # Fortran compilers
     #
-trial_FLAGS="000
+    # Problem:  The Intel efc compiler hangs when presented with -N109 .
+    # The only real fix for this is to detect this compiler and exclude
+    # the test.  We may want to reorganize these tests so that if we
+    # can compile code without special options, we never look for them.
+    # 
+    using_intel_efc="no"
+    pac_test_msg=`$F77 -V 2>&1 | grep 'Intel(R) Fortran Itanium'`
+    if test "$pac_test_msg" != "" ; then
+	using_intel_efc="yes"
+    fi
+    if test "$using_intel_efc" = "yes" ; then
+        trial_FLAGS="000"
+    else
+        trial_FLAGS="000
 -N109
 -f
 -YEXT_NAMES=UCS
 -YEXT_NAMES=LCS
 -YCFRL=1
 +U77"
+    fi
     # Discard options that are not available:
     save_IFS="$IFS"
     IFS=" 
@@ -507,8 +521,7 @@ EOF
 	    AC_MSG_CHECKING([that Fortran 77 routine names are case-insensitive $flagval])
 	    dnl we can use double quotes here because all is already
             dnl evaluated
-            ac_fcompilelink_test="${F77-f77} -o conftest $fflag $FFLAGS
-conftest.f $LIBS 1>&AC_FD_CC"
+            ac_fcompilelink_test="${F77-f77} -o conftest $fflag $FFLAGS conftest.f $LDFLAGS $LIBS 1>&AC_FD_CC"
 	    if AC_TRY_EVAL(ac_fcompilelink_test) && test -x conftest ; then
 	        AC_MSG_RESULT(yes)
 	    else
@@ -598,13 +611,13 @@ $FXX_MODULE
         integer i, j
         character*20 s
         $F77_GETARGDECL
-	i = 0
+        i = 0
         $F77_GETARG
         i=$F77_IARGC
-	if (i .gt. 1) then
-	    j = i - $F77_IARGC
-	    j = 1.0 / j
-	endif
+        if (i .gt. 1) then
+            j = i - $F77_IARGC
+            j = 1.0 / j
+        endif
         end
 EOF
     #
@@ -621,7 +634,7 @@ EOF
                 AC_MSG_CHECKING([if ${F77-f77} $flags $libs works with $MSG])
 		IFS="$save_IFS"
 		dnl We need this here because we've fiddled with IFS
-	        ac_fcompilelink_test="${F77-f77} -o conftest $FFLAGS $flags conftest.f $libs $LIBS 1>&AC_FD_CC"
+	        ac_fcompilelink_test="${F77-f77} -o conftest $FFLAGS $flags conftest.f $LDFLAGS $libs $LIBS 1>&AC_FD_CC"
 		found_answer="no"
                 if AC_TRY_EVAL(ac_fcompilelink_test) && test -x conftest ; then
 		    if test "$ac_cv_prog_f77_cross" = "no" ; then
@@ -688,23 +701,45 @@ dnl command attempts to determine what is accepted.  The flag is
 dnl placed into 'F77_LIBDIR_LEADER'.
 dnl
 dnlD*/
+dnl
+dnl An earlier version of this only tried the arguments without using
+dnl a library.  This failed when the HP compiler complained about the
+dnl arguments, but produced an executable anyway.  
 AC_DEFUN(PAC_PROG_F77_LIBRARY_DIR_FLAG,[
 if test "X$F77_LIBDIR_LEADER" = "X" ; then
 AC_CACHE_CHECK([for Fortran 77 flag for library directories],
 pac_cv_prog_f77_library_dir_flag,
 [
-    rm -f conftest.*
+    
+    rm -f conftest.* conftest1.* 
     cat > conftest.f <<EOF
         program main
+        call f1conf
         end
 EOF
-    ac_fcompileldtest='${F77-f77} -o conftest $FFLAGS ${ldir}. conftest.f 1>&AC_FD_CC'
-    for ldir in "-L" "-Wl,-L," ; do
-        if AC_TRY_EVAL(ac_fcompileldtest) && test -s conftest ; then
-	    pac_cv_prog_f77_library_dir_flag="$ldir"
-	    break
-       fi
-    done
+    cat > conftest1.f <<EOF
+        subroutine f1conf
+        end
+EOF
+dnl Build library
+    ac_fcompileforlib='${F77-f77} -c $FFLAGS conftest1.f 1>&AC_FD_CC'
+    if AC_TRY_EVAL(ac_fcompileforlib) && test -s conftest1.o ; then
+        if test ! -d conftest ; then mkdir conftest2 ; fi
+	dnl Use arcmd incase AR is defined as "ar cr"
+        AC_TRY_COMMAND(${ARCMD-"ar"} cr conftest2/libconftest.a conftest1.o)
+        AC_TRY_COMMAND(${RANLIB-ranlib} conftest2/libconftest.a)
+        ac_fcompileldtest='${F77-f77} -o conftest $FFLAGS ${ldir}conftest2 conftest.f -lconftest $LDFLAGS 1>&AC_FD_CC'
+        for ldir in "-L" "-Wl,-L," ; do
+            if AC_TRY_EVAL(ac_fcompileldtest) && test -s conftest ; then
+	        pac_cv_prog_f77_library_dir_flag="$ldir"
+	        break
+            fi
+        done
+        rm -rf ./conftest2
+    else
+        echo "configure: failed program was:" >&AC_FD_CC
+        cat conftest1.f >&AC_FD_CC
+    fi
     rm -f conftest*
 ])
     AC_SUBST(F77_LIBDIR_LEADER)
@@ -990,9 +1025,9 @@ cat > conftest.f <<EOF
         end
 EOF
 if AC_TRY_EVAL(ac_compile); then
-    if ${F77} -o conftest conftest.o conftest1.o 2>&AC_FD_CC ; then
+    if ${F77} -o conftest conftest.o conftest1.o $LDFLAGS 2>&AC_FD_CC ; then
 	AC_MSG_RESULT([Use Fortran to link programs])
-    elif ${CC} -o conftest conftest.o conftest1.o $FLIBS 2>&AC_FD_CC ; then
+    elif ${CC} -o conftest conftest.o conftest1.o $LDFLAGS $FLIBS 2>&AC_FD_CC ; then
 	AC_MSG_RESULT([Use C with FLIBS to link programs])
 	F77LINKER="$CC"
         F77_LDFLAGS="$F77_LDFLAGS $FLIBS"
@@ -1004,3 +1039,55 @@ else
 fi
 AC_LANG_RESTORE
 ])
+dnl
+dnl
+dnl
+AC_DEFUN(PAC_PROG_F77_CHECK_FLIBS,
+[AC_MSG_CHECKING([Whether C can link with $FLIBS])
+# Try to link a C program with all of these libraries
+save_LIBS="$LIBS"
+LIBS="$LIBS $FLIBS"
+AC_TRY_LINK(,[int a;],runs=yes,runs=no)
+LIBS="$save_LIBS"
+AC_MSG_RESULT($runs)
+if test "$runs" = "no" ; then
+    AC_MSG_CHECKING([which libraries can be used])
+    pac_ldirs=""
+    pac_libs=""
+    pac_other=""
+    for name in $FLIBS ; do
+        case $name in 
+        -l*) pac_libs="$pac_libs $name" ;;
+        -L*) pac_ldirs="$pac_ldirs $name" ;;
+        *)   pac_other="$pac_other $name" ;;
+        esac
+    done
+    save_LIBS="$LIBS"
+    keep_libs=""
+    for name in $pac_libs ; do 
+        LIBS="$save_LIBS $pac_ldirs $pac_other $name"
+        AC_TRY_LINK(,[int a;],runs=yes,runs=no)
+        if test $runs = "yes" ; then keep_libs="$keep_libs $name" ; fi
+    done
+    AC_MSG_RESULT($keep_libs)
+    LIBS="$save_LIBS"
+    FLIBS="$pac_ldirs $pac_other $keep_libs"
+fi
+])
+AC_DEFUN(PAC_PROG_F77_NEW_CHAR_DECL,[
+AC_CACHE_CHECK([whether Fortran supports new-style character declarations],
+pac_cv_prog_f77_new_char_decl,[
+AC_LANG_SAVE
+AC_LANG_FORTRAN77
+AC_TRY_COMPILE(,[
+character (len=10) s
+],pac_cv_prog_f77_new_char_decl="yes",
+pac_cv_prog_f77_new_char_decl="no")
+AC_LANG_RESTORE
+])
+if test "$pac_cv_prog_f77_new_char_decl" = "yes" ; then
+    ifelse([$1],,:,$1)
+else
+    ifelse([$2],,:,$2)
+fi
+])dnl

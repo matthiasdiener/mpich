@@ -10,9 +10,14 @@
 #if defined(HAVE_GETTIMEOFDAY) || defined(USE_WIERDGETTIMEOFDAY) || \
     defined(HAVE_BSDGETTIMEOFDAY)
 /* do nothing */
-#elif defined(HAVE_CLOCK_GETRES) && defined(HAVE_CLOCK_GETTIME) &&\
+#elif defined(HAVE_CLOCK_GETRES) && defined(HAVE_CLOCK_GETTIME) && \
       !defined(MPID_CH_Wtime)
 #define USING_POSIX_CLOCK
+/* FreeBSD incorrectly puts the necessary definitions into sys/time.h 
+   (time.h is clearly and explicitly required by Posix).  Since FreeBSD
+   didn't implement Posix headers correctly, we do not trust them to 
+   implement the Posix clocks correctly.  Instead, use one of the other
+   clocks */
 #include <time.h>
 #endif
 /* 

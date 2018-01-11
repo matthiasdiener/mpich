@@ -9,16 +9,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_ERRHANDLER_SET = PMPI_ERRHANDLER_SET
-EXPORT_MPI_API void MPI_ERRHANDLER_SET ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_ERRHANDLER_SET ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_errhandler_set__ = pmpi_errhandler_set__
-EXPORT_MPI_API void mpi_errhandler_set__ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_errhandler_set__ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_errhandler_set = pmpi_errhandler_set
-EXPORT_MPI_API void mpi_errhandler_set ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_errhandler_set ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_errhandler_set_ = pmpi_errhandler_set_
-EXPORT_MPI_API void mpi_errhandler_set_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_errhandler_set_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -76,10 +76,10 @@ EXPORT_MPI_API void mpi_errhandler_set_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_errhandler_set_ ( MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_errhandler_set_ ( MPI_Fint *, MPI_Fint *, 
                                      MPI_Fint * );
 
-EXPORT_MPI_API void mpi_errhandler_set_( MPI_Fint *comm, MPI_Fint *errhandler, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_errhandler_set_( MPI_Fint *comm, MPI_Fint *errhandler, MPI_Fint *__ierr )
 {
     MPI_Errhandler l_errhandler = MPI_Errhandler_f2c(*errhandler);
     *__ierr = MPI_Errhandler_set(MPI_Comm_f2c(*comm), l_errhandler );

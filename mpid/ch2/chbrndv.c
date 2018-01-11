@@ -1,5 +1,5 @@
 /*
- *  $Id: chbrndv.c,v 1.11 2000/08/09 22:29:35 gropp Exp $
+ *  $Id: chbrndv.c,v 1.12 2001/11/13 22:53:46 ashton Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -63,12 +63,15 @@ static int TagsInUse = 0;
  * Definitions of the actual functions
  */
 
-int MPID_CH_Rndvb_isend( buf, len, src_lrank, tag, context_id, dest,
-			 msgrep, shandle )
-void          *buf;
-int           len, tag, context_id, src_lrank, dest;
-MPID_Msgrep_t msgrep;
-MPIR_SHANDLE  *shandle;
+int MPID_CH_Rndvb_isend( 
+	void *buf, 
+	int len, 
+	int src_lrank, 
+	int tag, 
+	int context_id, 
+	int dest,
+	MPID_Msgrep_t msgrep, 
+	MPIR_SHANDLE *shandle )
 {
     MPID_PKT_REQUEST_SEND_T  pkt;
 
@@ -123,11 +126,14 @@ MPIR_SHANDLE  *shandle;
     return MPI_SUCCESS;
 }
 
-int MPID_CH_Rndvb_send( buf, len, src_lrank, tag, context_id, dest,
-			 msgrep )
-void          *buf;
-int           len, tag, context_id, src_lrank, dest;
-MPID_Msgrep_t msgrep;
+int MPID_CH_Rndvb_send( 
+	void *buf, 
+	int len, 
+	int src_lrank, 
+	int tag, 
+	int context_id, 
+	int dest,
+	MPID_Msgrep_t msgrep )
 {
     MPIR_SHANDLE shandle;
 
@@ -146,10 +152,10 @@ MPID_Msgrep_t msgrep;
  * This is the routine called when a packet of type MPID_PKT_REQUEST_SEND is
  * seen and the receive has been posted.
  */
-int MPID_CH_Rndvb_irecv( rhandle, from, in_pkt )
-MPIR_RHANDLE *rhandle;
-int          from;
-void         *in_pkt;
+int MPID_CH_Rndvb_irecv( 
+	MPIR_RHANDLE *rhandle,
+	int          from,
+	void         *in_pkt)
 {
     MPID_PKT_REQUEST_SEND_T *pkt = (MPID_PKT_REQUEST_SEND_T *)in_pkt;
     int    msglen, err = MPI_SUCCESS;
@@ -251,10 +257,10 @@ void         *in_pkt;
 }
 
 /* Save an unexpected message in rhandle */
-int MPID_CH_Rndvb_save( rhandle, from, in_pkt )
-MPIR_RHANDLE *rhandle;
-int          from;
-void         *in_pkt;
+int MPID_CH_Rndvb_save( 
+	MPIR_RHANDLE *rhandle,
+	int          from,
+	void         *in_pkt)
 {
     MPID_PKT_REQUEST_SEND_T   *pkt = (MPID_PKT_REQUEST_SEND_T *)in_pkt;
 
@@ -294,10 +300,10 @@ void         *in_pkt;
 /*
  * This is an internal routine to return an OK TO SEND packet
  */
-int MPID_CH_Rndvb_ok_to_send( send_id, rtag, from )
-MPID_Aint   send_id;
-MPID_RNDV_T rtag;
-int         from;
+int MPID_CH_Rndvb_ok_to_send( 
+	MPID_Aint   send_id,
+	MPID_RNDV_T rtag, 
+	int         from)
 {
     MPID_PKT_OK_TO_SEND_T pkt;
 
@@ -319,9 +325,9 @@ int         from;
  * This routine is called when it is time to receive an unexpected
  * message
  */
-int MPID_CH_Rndvb_unxrecv_start( rhandle, in_runex )
-MPIR_RHANDLE *rhandle;
-void         *in_runex;
+int MPID_CH_Rndvb_unxrecv_start( 
+	MPIR_RHANDLE *rhandle,
+	void         *in_runex)
 {
     MPIR_RHANDLE *runex = (MPIR_RHANDLE *)in_runex;
     MPID_RNDV_T rtag;
@@ -369,8 +375,8 @@ void         *in_runex;
    This is the wait routine for a rendezvous message that was unexpected.
    A request for the message has already been sent.
  */
-int MPID_CH_Rndvb_unxrecv_end( rhandle )
-MPIR_RHANDLE *rhandle;
+int MPID_CH_Rndvb_unxrecv_end( 
+	MPIR_RHANDLE *rhandle)
 {
     /* This is a blocking transfer */
 
@@ -405,8 +411,8 @@ MPIR_RHANDLE *rhandle;
    This is the test routine for a rendezvous message that was unexpected.
    A request for the message has already been sent.
  */
-int MPID_CH_Rndvb_unxrecv_test_end( rhandle )
-MPIR_RHANDLE *rhandle;
+int MPID_CH_Rndvb_unxrecv_test_end( 
+	MPIR_RHANDLE *rhandle)
 {
     /* This is a blocking transfer */
     /* If the transfer is ready, do it, else just return */
@@ -426,9 +432,9 @@ MPIR_RHANDLE *rhandle;
 
 /* This is the routine that is called when an "ok to send" packet is
    received. */
-int MPID_CH_Rndvb_ack( in_pkt, from_grank )
-void  *in_pkt;
-int   from_grank;
+int MPID_CH_Rndvb_ack( 
+	void  *in_pkt,
+	int   from_grank)
 {
     MPID_PKT_OK_TO_SEND_T *pkt = (MPID_PKT_OK_TO_SEND_T *)in_pkt;
     MPIR_SHANDLE *shandle=0;
@@ -485,10 +491,10 @@ int   from_grank;
 /***************************************************************************/
 
 /* Save an unexpected message in rhandle for sent to self */
-int MPID_CH_Rndvb_save_self( rhandle, from, in_pkt )
-MPIR_RHANDLE *rhandle;
-int          from;
-void         *in_pkt;
+int MPID_CH_Rndvb_save_self( 
+	MPIR_RHANDLE *rhandle,
+	int          from,
+	void         *in_pkt)
 {
     MPID_PKT_REQUEST_SEND_T   *pkt = (MPID_PKT_REQUEST_SEND_T *)in_pkt;
 
@@ -520,9 +526,9 @@ void         *in_pkt;
  * message.  This is simple; we can just copy the data with memcpy.
  * Once the memcpy is done, we mark the SEND as completed.
  */
-int MPID_CH_Rndvb_unxrecv_start_self( rhandle, in_runex )
-MPIR_RHANDLE *rhandle;
-void         *in_runex;
+int MPID_CH_Rndvb_unxrecv_start_self( 
+	MPIR_RHANDLE *rhandle,
+	void         *in_runex)
 {
     MPIR_RHANDLE *runex = (MPIR_RHANDLE *)in_runex;
     MPIR_SHANDLE *shandle;
@@ -578,8 +584,8 @@ void         *in_runex;
  * Don't forget to update MPID_n_pending as needed.
  */
 
-void MPID_CH_Rndvb_delete( p )
-MPID_Protocol *p;
+void MPID_CH_Rndvb_delete( 
+	MPID_Protocol *p)
 {
     FREE( p );
 }

@@ -9,16 +9,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_INTERCOMM_CREATE = PMPI_INTERCOMM_CREATE
-EXPORT_MPI_API void MPI_INTERCOMM_CREATE ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_INTERCOMM_CREATE ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_intercomm_create__ = pmpi_intercomm_create__
-EXPORT_MPI_API void mpi_intercomm_create__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_intercomm_create__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_intercomm_create = pmpi_intercomm_create
-EXPORT_MPI_API void mpi_intercomm_create ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_intercomm_create ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_intercomm_create_ = pmpi_intercomm_create_
-EXPORT_MPI_API void mpi_intercomm_create_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_intercomm_create_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -76,11 +76,11 @@ EXPORT_MPI_API void mpi_intercomm_create_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_intercomm_create_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *,
+FORTRAN_API void FORT_CALL mpi_intercomm_create_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *,
 				       MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                        MPI_Fint * );
 
-EXPORT_MPI_API void mpi_intercomm_create_ ( MPI_Fint *local_comm, MPI_Fint *local_leader, MPI_Fint *peer_comm, 
+FORTRAN_API void FORT_CALL mpi_intercomm_create_ ( MPI_Fint *local_comm, MPI_Fint *local_leader, MPI_Fint *peer_comm, 
                            MPI_Fint *remote_leader, MPI_Fint *tag, MPI_Fint *comm_out, MPI_Fint *__ierr )
 {
     MPI_Comm l_comm_out;

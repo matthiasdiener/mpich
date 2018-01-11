@@ -1,5 +1,5 @@
 /*
- *  $Id: pkutil.c,v 1.10 2001/02/27 22:41:51 gropp Exp $
+ *  $Id: pkutil.c,v 1.11 2001/10/19 22:01:19 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -58,20 +58,20 @@
 #define MPIR_Mem_XDR_Init    MPID_Mem_XDR_Init
 #define MPIR_Mem_XDR_Free    MPID_Mem_XDR_Free
 
-int MPIR_Type_XDR_encode ANSI_ARGS(( unsigned char *, unsigned char *, 
-				     struct MPIR_DATATYPE *, int, void * ));
-int MPIR_Type_XDR_decode ANSI_ARGS(( unsigned char *, int, 
+int MPIR_Type_XDR_encode ( unsigned char *, unsigned char *, 
+				     struct MPIR_DATATYPE *, int, void * );
+int MPIR_Type_XDR_decode ( unsigned char *, int, 
 				     struct MPIR_DATATYPE*, int, 
-			  unsigned char *, int, int *, int *, void * ));
+			  unsigned char *, int, int *, int *, void * );
 
 #ifdef MPID_HAS_HETERO
 #ifdef HAS_XDR
 #include "rpc/rpc.h"
-int MPIR_Mem_XDR_Init ANSI_ARGS((char *, int, enum xdr_op, XDR * ));
-int MPIR_Mem_XDR_Free ANSI_ARGS((XDR *));
+int MPIR_Mem_XDR_Init (char *, int, enum xdr_op, XDR * );
+int MPIR_Mem_XDR_Free (XDR *);
 #endif
-int MPIR_Type_swap_copy ANSI_ARGS((unsigned char *, unsigned char *,
-				   struct MPIR_DATATYPE *, int, void *));
+int MPIR_Type_swap_copy (unsigned char *, unsigned char *,
+				   struct MPIR_DATATYPE *, int, void *);
 #endif
 
 #define MPIR_MSGFORM_XDR MPID_MSG_XDR
@@ -85,8 +85,8 @@ int MPIR_Type_swap_copy ANSI_ARGS((unsigned char *, unsigned char *,
 
 #define MPIR_Type_swap_copy MPID_Type_swap_copy
 #define MPIR_Mem_convert_len MPID_Mem_convert_len
-int MPIR_Type_swap_copy ANSI_ARGS((unsigned char *, unsigned char *,
-				   struct MPIR_DATATYPE *, int, void *));
+int MPIR_Type_swap_copy (unsigned char *, unsigned char *,
+				   struct MPIR_DATATYPE *, int, void *);
 
 /*
    This code assumes that we can use char * pointers (previous code 
@@ -120,9 +120,9 @@ int MPIR_Unpack (
 	MPID_Msgrep_t msgrep, 
 	void *dest, int *act_len, int *dest_len )
 {
-int (*unpackcontig) ANSI_ARGS((unsigned char *, int, struct MPIR_DATATYPE*, 
+int (*unpackcontig) (unsigned char *, int, struct MPIR_DATATYPE*, 
 			       int, unsigned char *, int, int *, int *, 
-			       void *)) = 0;
+			       void *) = 0;
 void *unpackctx = 0;
 int err, used_len;
 #if defined(MPID_HAS_HETERO) && defined(HAS_XDR)
@@ -220,7 +220,7 @@ int MPIR_Pack2(
 	int count, 
 	int maxcount, 
 	struct MPIR_DATATYPE *type, 
-	int (*packcontig) ANSI_ARGS((unsigned char *, unsigned char *, struct MPIR_DATATYPE*, int, void *)), 
+	int (*packcontig) (unsigned char *, unsigned char *, struct MPIR_DATATYPE*, int, void *), 
 	void *packctx, 
 	char *dest, 
 	int *outlen, 
@@ -377,7 +377,7 @@ int MPIR_Unpack2 (
 	char *src, 
 	int count, 
 	struct MPIR_DATATYPE *type, 
-	int (*unpackcontig) ANSI_ARGS((unsigned char *, int, struct MPIR_DATATYPE*, int, unsigned char *, int, int *, int *, void *)),
+	int (*unpackcontig) (unsigned char *, int, struct MPIR_DATATYPE*, int, unsigned char *, int, int *, int *, void *),
 	void *unpackctx, 
 	char *dest, 
 	int srclen, 

@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_delval.c,v 1.9 2001/04/20 19:38:30 gropp Exp $
+ *  $Id: attr_delval.c,v 1.10 2001/11/14 19:54:17 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -41,7 +41,7 @@ Input Parameters:
 .N MPI_ERR_COMM
 .N MPI_ERR_PERM_KEY
 @*/
-EXPORT_MPI_API int MPI_Attr_delete ( MPI_Comm comm, int keyval )
+int MPI_Attr_delete ( MPI_Comm comm, int keyval )
 {
   MPIR_HBT_node *attr;
   MPIR_Attr_key *attr_key;

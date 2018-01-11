@@ -1,5 +1,5 @@
 /*
- *  $Id: pack.c,v 1.11 1999/08/30 15:49:08 swider Exp $
+ *  $Id: pack.c,v 1.12 2001/11/14 20:10:00 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -52,7 +52,7 @@ Output Parameter:
 .seealso: MPI_Unpack, MPI_Pack_size
 
 @*/
-EXPORT_MPI_API int MPI_Pack ( void *inbuf, int incount, MPI_Datatype datatype, 
+int MPI_Pack ( void *inbuf, int incount, MPI_Datatype datatype, 
 	       void *outbuf, int outcount, int *position, MPI_Comm comm )
 {
   int mpi_errno = MPI_SUCCESS;

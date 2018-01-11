@@ -8,16 +8,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_TYPE_COMMIT = PMPI_TYPE_COMMIT
-EXPORT_MPI_API void MPI_TYPE_COMMIT ( MPI_Fint *, MPI_Fint * );
+void MPI_TYPE_COMMIT ( MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_type_commit__ = pmpi_type_commit__
-EXPORT_MPI_API void mpi_type_commit__ ( MPI_Fint *, MPI_Fint * );
+void mpi_type_commit__ ( MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_type_commit = pmpi_type_commit
-EXPORT_MPI_API void mpi_type_commit ( MPI_Fint *, MPI_Fint * );
+void mpi_type_commit ( MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_type_commit_ = pmpi_type_commit_
-EXPORT_MPI_API void mpi_type_commit_ ( MPI_Fint *, MPI_Fint * );
+void mpi_type_commit_ ( MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -75,9 +75,9 @@ EXPORT_MPI_API void mpi_type_commit_ ( MPI_Fint *, MPI_Fint * );
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_type_commit_ ( MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_type_commit_ ( MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_type_commit_ ( MPI_Fint *datatype, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_type_commit_ ( MPI_Fint *datatype, MPI_Fint *__ierr )
 {
     MPI_Datatype ldatatype = MPI_Type_f2c(*datatype);
     *__ierr = MPI_Type_commit( &ldatatype );

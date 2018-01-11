@@ -1,5 +1,5 @@
 /*
- *  $Id: type_free.c,v 1.7 1999/08/30 15:49:52 swider Exp $
+ *  $Id: type_free.c,v 1.8 2001/11/14 20:10:07 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -57,7 +57,7 @@ it clear that it is an error to free a null datatype.
 .N MPI_ERR_TYPE
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Type_free ( MPI_Datatype *datatype )
+int MPI_Type_free ( MPI_Datatype *datatype )
 {
     int mpi_errno = MPI_SUCCESS;
     struct MPIR_DATATYPE *dtype_ptr;

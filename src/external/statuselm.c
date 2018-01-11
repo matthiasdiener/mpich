@@ -29,7 +29,7 @@
 -  count    - number of elements to associate with status (integer)
 
 @*/
-EXPORT_MPI_API int MPI_Status_set_elements( MPI_Status *status, MPI_Datatype datatype,
+int MPI_Status_set_elements( MPI_Status *status, MPI_Datatype datatype,
 			     int count )
 {
     int size;

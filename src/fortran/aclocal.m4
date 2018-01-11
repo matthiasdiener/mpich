@@ -15,12 +15,16 @@ dnl/*D
 dnl AC_CACHE_LOAD - Replacement for autoconf cache load 
 dnl
 dnl Notes:
-dnl Caching in autoconf is broken.  The problem is that the cache is read
+dnl Caching in autoconf is broken (through version 2.13).  The problem is 
+dnl that the cache is read
 dnl without any check for whether it makes any sense to read it.
 dnl A common problem is a build on a shared file system; connecting to 
 dnl a different computer and then building within the same directory will
 dnl lead to at best error messages from configure and at worse a build that
 dnl is wrong but fails only at run time (e.g., wrong datatype sizes used).
+dnl Later versions of autoconf do include some checks for changes in the
+dnl environment that impact the choices, but still misses problems with
+dnl multiple different systems.
 dnl 
 dnl This fixes that by requiring the user to explicitly enable caching 
 dnl before the cache file will be loaded.
@@ -37,19 +41,29 @@ dnl configure will enable caching.  In order to ensure that the configure
 dnl tests make sense, the values of CC, F77, F90, and CXX are also included 
 dnl in the config.system file.
 dnl
+dnl Bugs:
+dnl This does not work with the Cygnus configure because the enable arguments
+dnl are processed *after* AC_CACHE_LOAD (!).  To address this, we avoid 
+dnl changing the value of enable_cache, and use real_enable_cache, duplicating
+dnl the "notgiven" value.
+dnl
 dnl See Also:
 dnl PAC_ARG_CACHING
 dnlD*/
 define([AC_CACHE_LOAD],
 [if test "X$cache_system" = "X" ; then
+    # A default file name, just in case
+    cache_system="config.system"
     if test "$cache_file" != "/dev/null" ; then
         # Get the directory for the cache file, if any
 	changequote(,)
         cache_system=`echo $cache_file | sed -e 's%^\(.*/\)[^/]*%\1/config.system%'`
 	changequote([,])
         test "x$cache_system" = "x$cache_file" && cache_system="config.system"
-    else
-        enable_cache=no
+#    else
+#        We must *not* set enable_cache to no because we need to know if
+#        enable_cache was not set.  
+#        enable_cache=no
     fi
 fi
 dnl
@@ -57,29 +71,34 @@ dnl The "action-if-not-given" part of AC_ARG_ENABLE is not executed until
 dnl after the AC_CACHE_LOAD is executed (!).  Thus, the value of 
 dnl enable_cache if neither --enable-cache or --disable-cache is selected
 dnl is null.  Just in case autoconf ever fixes this, we test both cases.
-if test "X$enable_cache" = "Xnotgiven" -o "X$enable_cache" = "X" ; then
+if test -z "$real_enable_cache" ; then
+    real_enable_cache=$enable_cache
+    if test -z "$real_enable_cache" ; then real_enable_cache="notgiven" ; fi
+fi
+if test "X$real_enable_cache" = "Xnotgiven" ; then
     # check for valid cache file
+    if test -z "$cache_system" ; then cache_system="config.system" ; fi
     if uname -srm >/dev/null 2>&1 ; then
 	dnl cleanargs=`echo "$*" | tr '"' ' '`
 	cleanargs=`echo "$CC $F77 $CXX $F90" | tr '"' ' '`
         testval="`uname -srm` $cleanargs"
         if test -f "$cache_system" -a -n "$testval" ; then
 	    if test "$testval" = "`cat $cache_system`" ; then
-	        enable_cache="yes"
+	        real_enable_cache="yes"
 	    fi
         elif test ! -f "$cache_system" -a -n "$testval" ; then
 	    echo "$testval" > $cache_system
 	    # remove the cache file because it may not correspond to our
 	    # system
 	    rm -f $cache_file
-	    enable_cache="yes"
+	    real_enable_cache="yes"
         fi
     fi
 fi
-if test "X$enable_cache" = "Xyes" -a "$cache_file" = "/dev/null" ; then
-    enable_cache=no
+if test "X$real_enable_cache" = "Xyes" -a "$cache_file" = "/dev/null" ; then
+    real_enable_cache=no
 fi
-if test "X$enable_cache" = "Xyes" ; then
+if test "X$real_enable_cache" = "Xyes" ; then
   if test -r "$cache_file" ; then
     echo "loading cache $cache_file"
     . $cache_file
@@ -123,15 +142,35 @@ dnl make mistakes.
 dnl We can't use OUTPUT_COMMANDS to remove the cache file, because those
 dnl commands are executed *before* the subdir configures.
 AC_DEFUN(PAC_SUBDIR_CACHE,[
-if test "$cache_file" = "/dev/null" -a "X$enable_cache" = "Xnotgiven" ; then
+if test "$cache_file" = "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; then
     cache_file=$$conf.cache
     touch $cache_file
+    dnl 
+    dnl For Autoconf 2.52+, we should ensure that the environment is set
+    dnl for the cache.
+    ac_cv_env_CC_set=set
+    ac_cv_env_CC_value=$CC
+    ac_cv_env_CFLAGS_set=set
+    ac_cv_env_CFLAGS_value=$CFLAGS
+    ac_cv_env_CPP_set=set
+    ac_cv_env_CPP_value=$CPP
+    ac_cv_env_CPPFLAGS_set=set
+    ac_cv_env_CPPFLAGS_value=$CPPFLAGS
+    ac_cv_env_LDFLAGS_set=set
+    ac_cv_env_LDFLAGS_value=$LDFLAGS
+    export CC
+    export CFLAGS
+    export LDFLAGS
+    export CPPFLAGS
+    export CPP
+    dnl other parameters are
+    dnl build_alias, host_alias, target_alias
     AC_CACHE_SAVE
     ac_configure_args="$ac_configure_args -enable-cache"
 fi
 ])
 AC_DEFUN(PAC_SUBDIR_CACHE_CLEANUP,[
-if test "$cache_file" != "/dev/null" -a "X$enable_cache" = "Xnotgiven" ; then
+if test "$cache_file" != "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; then
    rm -f $cache_file
 fi
 ])
@@ -1740,10 +1779,10 @@ fi # is not cross compiling
 dnl
 dnl
 dnl Note: This checks for f95 before f90, since F95 is the more recent
-dnl revision of Fortran 90.
+dnl revision of Fortran 90.  efc is the Intel Fortran 77/90/95 compiler
 AC_DEFUN(PAC_PROG_F90,[
 if test -z "$F90" ; then
-    AC_CHECK_PROGS(F90,f95 f90 xlf90 pgf90)
+    AC_CHECK_PROGS(F90,f95 f90 xlf90 pgf90 efc)
     test -z "$F90" && AC_MSG_WARN([no acceptable Fortran 90 compiler found in \$PATH])
 fi
 if test -n "$F90" ; then
@@ -1753,6 +1792,17 @@ dnl Cache these so we don't need to change in and out of f90 mode
 ac_f90ext=$pac_cv_f90_ext
 ac_f90compile='${F90-f90} -c $F90FLAGS conftest.$ac_f90ext 1>&AC_FD_CC'
 ac_f90link='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest.$ac_f90ext $LIBS 1>&AC_FD_CC'
+# Check for problems with Intel efc compiler
+cat > conftest.$ac_f90ext <<EOF
+        program main
+        end
+EOF
+pac_msg=`$F90 -o conftest $F90FLAGS $LDFLAGS conftest.$ac_f90ext $LIBS 2>&1 | grep 'bfd assertion fail'`
+if test -n "$pac_msg" ; then
+    pac_msg=`$F90 -o conftest $F90FLAGS $LDFLAGS conftest.$ac_f90ext -i_dynamic $LIBS 2>&1 | grep 'bfd assertion fail'`
+    if test -z "$pac_msg" ; then LDFLAGS="-i_dynamic" ; fi
+    # There should really be f90linker flags rather than generic ldflags.
+fi
 ])
 dnl Internal routine for testing F90
 dnl PAC_PROG_F90_WORKS()
@@ -1849,7 +1899,7 @@ dnl  symbol 'MAKE'.  If 'MAKE' is not set, chooses 'make' for 'MAKE'.
 dnl
 dnl See also:
 dnl PAC_PROG_MAKE
-dnlD*/
+dnl D*/
 dnl
 AC_DEFUN(PAC_PROG_MAKE_ECHOS_DIR,[
 AC_CACHE_CHECK([whether make echos directory changes],
@@ -1860,17 +1910,20 @@ AC_REQUIRE([PAC_PROG_MAKE_PROGRAM])
 cat > conftest <<.
 SHELL=/bin/sh
 ALL:
-	@(dir=`pwd` ; cd .. ; \$(MAKE) -f \$\$dir/conftest SUB)
+	@(dir="`pwd`" ; cd .. ; \$(MAKE) -f "\$\$dir/conftest" SUB)
 SUB:
 	@echo "success"
 .
-str=`$MAKE -f conftest 2>&1`
+str="`$MAKE -f conftest 2>&1`"
 if test "$str" != "success" ; then
-    str=`$MAKE --no-print-directory -f conftest 2>&1`
+    str="`$MAKE --no-print-directory -f conftest 2>&1`"
     if test "$str" = "success" ; then
 	pac_cv_prog_make_echos_dir="yes using --no-print-directory"
     else
 	pac_cv_prog_make_echos_dir="no"
+	echo "Unexpected output from make with program" >>config.log
+	cat conftest >>config.log
+	echo "str" >> config.log
     fi
 else
     pac_cv_prog_make_echos_dir="no"
@@ -1900,7 +1953,7 @@ dnl
 dnl See Also:
 dnl  PAC_PROG_MAKE
 dnl
-dnlD*/
+dnl D*/
 dnl
 AC_DEFUN(PAC_PROG_MAKE_INCLUDE,[
 AC_CACHE_CHECK([whether make supports include],pac_cv_prog_make_include,[
@@ -1944,7 +1997,7 @@ dnl Some versions of OSF V3 make do not all comments in action commands.
 dnl
 dnl See Also:
 dnl  PAC_PROG_MAKE
-dnlD*/
+dnl D*/
 dnl
 AC_DEFUN(PAC_PROG_MAKE_ALLOWS_COMMENTS,[
 AC_CACHE_CHECK([whether make allows comments in actions],
@@ -1998,7 +2051,7 @@ dnl
 dnl See Also:
 dnl PAC_PROG_MAKE
 dnl
-dnlD*/
+dnl D*/
 dnl
 AC_DEFUN(PAC_PROG_MAKE_VPATH,[
 AC_SUBST(VPATH)AM_IGNORE(VPATH)
@@ -2059,7 +2112,7 @@ dnl makefile.
 dnl
 dnl See Also:
 dnl PAC_PROG_MAKE
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_PROG_MAKE_SET_CFLAGS,[
 AC_CACHE_CHECK([whether make sets CFLAGS],
 pac_cv_prog_make_set_cflags,[
@@ -2084,6 +2137,33 @@ else
     ifelse([$1],,:,[$1])
 fi
 ])dnl
+dnl/*D
+dnl
+dnl D*/
+AC_DEFUN(PAC_PROG_MAKE_CLOCK_SKEW,[
+AC_CACHE_CHECK([whether clock skew breaks make],
+pac_cv_prog_make_found_clock_skew,[
+AC_REQUIRE([PAC_PROG_MAKE_PROGRAM])
+rm -f conftest*
+cat > conftest <<EOF
+ALL:
+	@-echo "success"
+EOF
+$MAKE -f conftest > conftest.out 2>&1
+if grep -i skew conftest >/dev/null 2>&1 ; then
+    pac_cv_prog_make_found_clock_skew=yes
+else
+    pac_cv_prog_make_found_clock_skew=no
+fi
+rm -f conftest*
+])
+dnl We should really do something if we detect clock skew.  The question is,
+dnl what?
+if test "$pac_cv_prog_make_found_clock_skew" = "yes" ; then
+    AC_MSG_WARN([Clock skew found by make.  The configure and build may fail.
+Consider building in a local instead of NFS filesystem.])
+fi
+])
 dnl
 dnl/*D
 dnl PAC_PROG_MAKE_HAS_PATTERN_RULES - Determine if the make program supports
@@ -2104,7 +2184,7 @@ dnl
 dnl See Also:
 dnl PAC_PROG_MAKE
 dnl 
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_PROG_MAKE_HAS_PATTERN_RULES,[
 AC_CACHE_CHECK([whether make has pattern rules],
 pac_cv_prog_make_has_patterns,[
@@ -2118,7 +2198,7 @@ conftest%.dep: %.c
 	@cat \[$]< >\[$]@
 EOF
 date > conftest.c
-if ${MAKE} -f conftestmm conftestconftest.dep 1>&AC_FD_CC 2>&1 ; then
+if ${MAKE} -f conftestmm conftestconftest.dep 1>&AC_FD_CC 2>&1 </dev/null ; then
     pac_cv_prog_make_has_patterns="yes"
 else
     pac_cv_prog_make_has_patterns="no"
@@ -2153,10 +2233,11 @@ dnl It may call 'AC_PROG_MAKE_SET', which sets 'SET_MAKE' to 'MAKE = @MAKE@'
 dnl if the make program does not set the value of make, otherwise 'SET_MAKE'
 dnl is set to empty; if the make program echos the directory name, then 
 dnl 'SET_MAKE' is set to 'MAKE = $MAKE'.
-dnlD*/
+dnl D*/
 dnl
 AC_DEFUN(PAC_PROG_MAKE,[
 PAC_PROG_MAKE_PROGRAM
+PAC_PROG_MAKE_CLOCK_SKEW
 PAC_PROG_MAKE_ECHOS_DIR
 PAC_PROG_MAKE_INCLUDE
 PAC_PROG_MAKE_ALLOWS_COMMENTS
@@ -2735,13 +2816,13 @@ $fxx_module
         integer i, j
         character*20 s
         $f77_getargdecl
-	i = 0
+        i = 0
         $f77_getarg
         i=$f77_iargc
-	if (i .gt. 1) then
-	    j = i - $f77_iargc
-	    j = 1.0 / j
-	endif
+        if (i .gt. 1) then
+            j = i - $f77_iargc
+            j = 1.0 / j
+        endif
         end
 EOF
     found_answer="no"
@@ -2822,13 +2903,27 @@ $libs"
     # -YCFRL=1 causes Absoft f90 to work with g77 and similar (f2c-based) 
     # Fortran compilers
     #
-trial_FLAGS="000
+    # Problem:  The Intel efc compiler hangs when presented with -N109 .
+    # The only real fix for this is to detect this compiler and exclude
+    # the test.  We may want to reorganize these tests so that if we
+    # can compile code without special options, we never look for them.
+    # 
+    using_intel_efc="no"
+    pac_test_msg=`$F77 -V 2>&1 | grep 'Intel(R) Fortran Itanium'`
+    if test "$pac_test_msg" != "" ; then
+	using_intel_efc="yes"
+    fi
+    if test "$using_intel_efc" = "yes" ; then
+        trial_FLAGS="000"
+    else
+        trial_FLAGS="000
 -N109
 -f
 -YEXT_NAMES=UCS
 -YEXT_NAMES=LCS
 -YCFRL=1
 +U77"
+    fi
     # Discard options that are not available:
     save_IFS="$IFS"
     IFS=" 
@@ -2949,13 +3044,13 @@ $FXX_MODULE
         integer i, j
         character*20 s
         $F77_GETARGDECL
-	i = 0
+        i = 0
         $F77_GETARG
         i=$F77_IARGC
-	if (i .gt. 1) then
-	    j = i - $F77_IARGC
-	    j = 1.0 / j
-	endif
+        if (i .gt. 1) then
+            j = i - $F77_IARGC
+            j = 1.0 / j
+        endif
         end
 EOF
     #
@@ -3039,23 +3134,45 @@ dnl command attempts to determine what is accepted.  The flag is
 dnl placed into 'F77_LIBDIR_LEADER'.
 dnl
 dnlD*/
+dnl
+dnl An earlier version of this only tried the arguments without using
+dnl a library.  This failed when the HP compiler complained about the
+dnl arguments, but produced an executable anyway.  
 AC_DEFUN(PAC_PROG_F77_LIBRARY_DIR_FLAG,[
 if test "X$F77_LIBDIR_LEADER" = "X" ; then
 AC_CACHE_CHECK([for Fortran 77 flag for library directories],
 pac_cv_prog_f77_library_dir_flag,
 [
-    rm -f conftest.*
+    
+    rm -f conftest.* conftest1.* 
     cat > conftest.f <<EOF
         program main
+        call f1conf
         end
 EOF
-    ac_fcompileldtest='${F77-f77} -o conftest $FFLAGS ${ldir}. conftest.f $LDFLAGS 1>&AC_FD_CC'
-    for ldir in "-L" "-Wl,-L," ; do
-        if AC_TRY_EVAL(ac_fcompileldtest) && test -s conftest ; then
-	    pac_cv_prog_f77_library_dir_flag="$ldir"
-	    break
-       fi
-    done
+    cat > conftest1.f <<EOF
+        subroutine f1conf
+        end
+EOF
+dnl Build library
+    ac_fcompileforlib='${F77-f77} -c $FFLAGS conftest1.f 1>&AC_FD_CC'
+    if AC_TRY_EVAL(ac_fcompileforlib) && test -s conftest1.o ; then
+        if test ! -d conftest ; then mkdir conftest2 ; fi
+	dnl Use arcmd incase AR is defined as "ar cr"
+        AC_TRY_COMMAND(${ARCMD-"ar"} cr conftest2/libconftest.a conftest1.o)
+        AC_TRY_COMMAND(${RANLIB-ranlib} conftest2/libconftest.a)
+        ac_fcompileldtest='${F77-f77} -o conftest $FFLAGS ${ldir}conftest2 conftest.f -lconftest $LDFLAGS 1>&AC_FD_CC'
+        for ldir in "-L" "-Wl,-L," ; do
+            if AC_TRY_EVAL(ac_fcompileldtest) && test -s conftest ; then
+	        pac_cv_prog_f77_library_dir_flag="$ldir"
+	        break
+            fi
+        done
+        rm -rf ./conftest2
+    else
+        echo "configure: failed program was:" >&AC_FD_CC
+        cat conftest1.f >&AC_FD_CC
+    fi
     rm -f conftest*
 ])
     AC_SUBST(F77_LIBDIR_LEADER)
@@ -3355,4 +3472,56 @@ else
 fi
 AC_LANG_RESTORE
 ])
+dnl
+dnl
+dnl
+AC_DEFUN(PAC_PROG_F77_CHECK_FLIBS,
+[AC_MSG_CHECKING([Whether C can link with $FLIBS])
+# Try to link a C program with all of these libraries
+save_LIBS="$LIBS"
+LIBS="$LIBS $FLIBS"
+AC_TRY_LINK(,[int a;],runs=yes,runs=no)
+LIBS="$save_LIBS"
+AC_MSG_RESULT($runs)
+if test "$runs" = "no" ; then
+    AC_MSG_CHECKING([which libraries can be used])
+    pac_ldirs=""
+    pac_libs=""
+    pac_other=""
+    for name in $FLIBS ; do
+        case $name in 
+        -l*) pac_libs="$pac_libs $name" ;;
+        -L*) pac_ldirs="$pac_ldirs $name" ;;
+        *)   pac_other="$pac_other $name" ;;
+        esac
+    done
+    save_LIBS="$LIBS"
+    keep_libs=""
+    for name in $pac_libs ; do 
+        LIBS="$save_LIBS $pac_ldirs $pac_other $name"
+        AC_TRY_LINK(,[int a;],runs=yes,runs=no)
+        if test $runs = "yes" ; then keep_libs="$keep_libs $name" ; fi
+    done
+    AC_MSG_RESULT($keep_libs)
+    LIBS="$save_LIBS"
+    FLIBS="$pac_ldirs $pac_other $keep_libs"
+fi
+])
+AC_DEFUN(PAC_PROG_F77_NEW_CHAR_DECL,[
+AC_CACHE_CHECK([whether Fortran supports new-style character declarations],
+pac_cv_prog_f77_new_char_decl,[
+AC_LANG_SAVE
+AC_LANG_FORTRAN77
+AC_TRY_COMPILE(,[
+character (len=10) s
+],pac_cv_prog_f77_new_char_decl="yes",
+pac_cv_prog_f77_new_char_decl="no")
+AC_LANG_RESTORE
+])
+if test "$pac_cv_prog_f77_new_char_decl" = "yes" ; then
+    ifelse([$1],,:,$1)
+else
+    ifelse([$2],,:,$2)
+fi
+])dnl
 

@@ -132,10 +132,11 @@ int *x, *y, *button, *wasPressed;
 
 /* convert start and end coordinates to x,y,width,height coords. */
 /* different transformations required for each dragVisual. */
-
-static int ConvertCoords( dragVisual, x1, y1, x2, y2, ratio,
-		      cx1, cy1, cwidth, cheight )
-int dragVisual, x1, y1, x2, y2, *cx1, *cy1, *cwidth, *cheight;
+/* y_1 instead of y1 because y1 is a function in math.h (Bessel function
+   of the second kind) */
+static int ConvertCoords( dragVisual, x1, y_1, x2, y_2, ratio,
+		      cx1, cy_1, cwidth, cheight )
+int dragVisual, x1, y_1, x2, y_2, *cx1, *cy_1, *cwidth, *cheight;
 double ratio;
 {
   int width, height, left, top, longestSide;
@@ -146,20 +147,20 @@ double ratio;
   } else {
     left = x2; width = x1-x2;
   }
-  if (y1<y2) {
-    top = y1; height = y2-y1;
+  if (y_1<y_2) {
+    top = y_1; height = y_2-y_1;
   } else {
-    top = y2; height = y1-y2;
+    top = y_2; height = y_1-y_2;
   }
-  dist = (double)sqrt( (double)((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1)) );
+  dist = (double)sqrt( (double)((x2-x1)*(x2-x1) + (y_2-y_1)*(y_2-y_1)) );
   longestSide = (width>height)?width:height;
 
   switch (dragVisual) {
   case MPE_DRAG_LINE:
     *cx1 = x1;
-    *cy1 = y1;
+    *cy_1 = y_1;
     *cwidth = x2;
-    *cheight = y2;
+    *cheight = y_2;
     break;
 
   case MPE_DRAG_FIXED_RECT:
@@ -170,35 +171,35 @@ double ratio;
       width = height / ratio;
     }
     *cx1 = (x1>x2) ? (x1-width)  : x1;
-    *cy1 = (y1>y2) ? (y1-height) : y1;
+    *cy_1 = (y_1>y_2) ? (y_1-height) : y_1;
     *cwidth = width;
     *cheight = height;
     break;
 
   case MPE_DRAG_SQUARE:
     *cx1 = (x1>x2) ? (x1-longestSide) : x1;
-    *cy1 = (y1>y2) ? (y1-longestSide) : y1;
+    *cy_1 = (y_1>y_2) ? (y_1-longestSide) : y_1;
     *cwidth = longestSide;
     *cheight = longestSide;
     break;
 
   case MPE_DRAG_CIRCLE_RADIUS:
     *cx1 = x1-dist;
-    *cy1 = y1-dist;
+    *cy_1 = y_1-dist;
     *cwidth = dist*2;
     *cheight = dist*2;
     break;
 
   case MPE_DRAG_CIRCLE_DIAMETER:
     *cx1 = (x1+x2)/2 - dist/2;
-    *cy1 = (y1+y2)/2 - dist/2;
+    *cy_1 = (y_1+y_2)/2 - dist/2;
     *cwidth = dist;
     *cheight = dist;
     break;
 
   case MPE_DRAG_CIRCLE_BBOX:
     *cx1 = (x1>x2) ? (x1-longestSide) : x1;
-    *cy1 = (y1>y2) ? (y1-longestSide) : y1;
+    *cy_1 = (y_1>y_2) ? (y_1-longestSide) : y_1;
     *cwidth = longestSide;
     *cheight = longestSide;
     break;
@@ -208,7 +209,7 @@ double ratio;
   case MPE_DRAG_RECT:
 
     *cx1 = left;
-    *cy1 = top;
+    *cy_1 = top;
     *cwidth = width;
     *cheight = height;
     break;
@@ -220,22 +221,22 @@ double ratio;
 
 /* ratio is in terms of height/width */
 
-static int DrawDragVisual( dragVisual, graph, x1, y1, x2, y2, ratio )
-int dragVisual, x1, y1, x2, y2;
+static int DrawDragVisual( dragVisual, graph, x1, y_1, x2, y_2, ratio )
+int dragVisual, x1, y_1, x2, y_2;
 double ratio;
 MPE_XGraph graph;
 {
   int width, height, top, left;
 
 /*
-  if ( !(x1-x2) || !(y1-y2) ) {
+  if ( !(x1-x2) || !(y_1-y_2) ) {
     return 0;
   } else {
-    fprintf( stderr, "%d %d %d %d\n", x1, y1, x2, y2 );
+    fprintf( stderr, "%d %d %d %d\n", x1, y_1, x2, y_2 );
   }
 */
 
-  ConvertCoords( dragVisual, x1, y1, x2, y2, ratio, &left, &top,
+  ConvertCoords( dragVisual, x1, y_1, x2, y_2, ratio, &left, &top,
 		 &width, &height );
 
 

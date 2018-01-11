@@ -3,6 +3,9 @@
 #ifdef HAVE_SLOGCONF_H
 #include "slog_config.h"
 #endif
+#ifdef HAVE_SLOG_WINCONFIG_H
+#include "slog_winconfig.h"
+#endif
 #if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
 #include <stdlib.h>
 #endif
@@ -26,7 +29,7 @@ int SLOG_RDEF_IsDuplicated( const SLOG_recdefs_table_t  *recdefs,
     int             ii;
     int             NotMatched = 1;
 
-    for ( ii = 0; NotMatched && (ii < recdefs->Nentries); ii++ ) {
+    for ( ii = 0; NotMatched && (ii < (int)recdefs->Nentries); ii++ ) {
         cur_def = &( recdefs->entries[ ii ] );
         NotMatched = ! SLOG_RecDef_IsKeyEqualTo( cur_def, in_def );
     }
@@ -217,7 +220,7 @@ int SLOG_RDEF_Close( SLOG_STREAM  *slog )
         fflush( errfile );
         return SLOG_FAIL;
     }
-    for ( ii = 0; ii < recdefs->Nentries; ii++ ) {
+    for ( ii = 0; ii < (int)recdefs->Nentries; ii++ ) {
         ierr = SLOG_RecDef_WriteToFile( &( recdefs->entries[ ii ] ),
                                         slog->fd );
         if ( ierr != SLOG_TRUE ) {
@@ -311,7 +314,7 @@ int SLOG_RDEF_SetExtraNumOfRecDefs(       SLOG_STREAM  *slog,
         fflush( errfile );
         return SLOG_FAIL;
     }
-    for ( ii = 0; ii < recdefs->Nentries; ii++ ) {
+    for ( ii = 0; ii < (int)recdefs->Nentries; ii++ ) {
         ierr = SLOG_RecDef_WriteToFile( &( recdefs->entries[ ii ] ), 
                                         slog->fd );
         if ( ierr != SLOG_TRUE ) {
@@ -330,7 +333,7 @@ int SLOG_RDEF_SetExtraNumOfRecDefs(       SLOG_STREAM  *slog,
 
     /*  Write some blank record definitions to fill up the reserved space.  */
 
-    for ( ii = recdefs->Nentries; ii < recdefs->capacity; ii++ ) {
+    for ( ii = recdefs->Nentries; ii < (int)recdefs->capacity; ii++ ) {
         ierr = SLOG_RecDef_WriteToFile( &blank_def, slog->fd );
         if ( ierr != SLOG_TRUE ) {
             fprintf( errfile,  __FILE__":SLOG_RDEF_SetExtraNumOfRecDefs() - \n"
@@ -484,7 +487,7 @@ SLOG_recdef_t *SLOG_RDEF_GetRecDef( const SLOG_recdefs_table_t   *recdefs,
     SLOG_recdef_t  *cur_def;
     int             ii;
 
-    for ( ii = 0; ii < recdefs->Nentries; ii++ ) {
+    for ( ii = 0; ii < (int)recdefs->Nentries; ii++ ) {
         cur_def = &( recdefs->entries[ ii ] );
         if (    ( cur_def->intvltype == intvltype )
              && ( cur_def->bebits[0] == bebit_0 )
@@ -876,7 +879,7 @@ int SLOG_RDEF_ReadRecDefs( SLOG_STREAM  *slog )
         return SLOG_FAIL;
     }
     
-    for ( ii = 0; ii < recdefs->Nentries; ii++ ) {
+    for ( ii = 0; ii < (int)recdefs->Nentries; ii++ ) {
         ierr = SLOG_RecDef_ReadFromFile( &( recdefs->entries[ ii ] ), 
                                          slog->fd );
         if ( ierr != SLOG_TRUE ) {
@@ -898,7 +901,7 @@ void SLOG_RDEF_Print( FILE* fd, const SLOG_recdefs_table_t *recdefs )
 {
     int ii;
 
-    for ( ii = 0; ii < recdefs->Nentries; ii++ ) {
+    for ( ii = 0; ii < (int)recdefs->Nentries; ii++ ) {
         fprintf( fd, " def[%i] = ", ii );
         SLOG_RecDef_Print( &( recdefs->entries[ ii ] ), fd );
         fprintf( fd, "\n" );
@@ -1028,7 +1031,7 @@ SLOG_RecDef_NumOfAssocs( const SLOG_recdefs_table_t   *recdefs,
     SLOG_recdef_t  *cur_def;
     int             ii;
 
-    for ( ii = 0; ii < recdefs->Nentries; ii++ ) {
+    for ( ii = 0; ii < (int)recdefs->Nentries; ii++ ) {
         cur_def = &( recdefs->entries[ ii ] );
         if (    ( cur_def->intvltype == intvltype )
              && ( cur_def->bebits[0] == bebit_0 )
@@ -1058,7 +1061,7 @@ SLOG_RecDef_NumOfArgs( const SLOG_recdefs_table_t   *recdefs,
     SLOG_recdef_t  *cur_def;
     int             ii;
 
-    for ( ii = 0; ii < recdefs->Nentries; ii++ ) {
+    for ( ii = 0; ii < (int)recdefs->Nentries; ii++ ) {
         cur_def = &( recdefs->entries[ ii ] );
         if (    ( cur_def->intvltype == intvltype )
              && ( cur_def->bebits[0] == bebit_0 )

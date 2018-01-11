@@ -29,7 +29,7 @@ rmlib:
 
 distclean: rmprog
 	-cd src; $(MAKE) distclean
-	-cd doc/tex; $(MAKE) distclean
+	-if [ -d doc/tex ] ; then cd doc/tex; $(MAKE) distclean ; fi
 	@-$(RM) -f sbin/install-viewer sbin/uninstall-viewer \
 		sbin/exejar
 	@-$(RM) -f Makefile config.log config.status jumpshot.html \

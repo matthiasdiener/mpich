@@ -1,5 +1,5 @@
 /*
- *  $Id: initutil.c,v 1.28 2001/09/14 21:13:32 lacour Exp $
+ *  $Id: initutil.c,v 1.30 2002/01/04 15:52:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -10,7 +10,10 @@
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
-/* #include "cmnargs.h"  */
+#ifdef HAVE_WINDOWS_H
+/* for some reason this include was commented out.  I need it for a clean build on Windows */
+#include "cmnargs.h"
+#endif
 #include "sbcnst2.h"
 /* Error handlers in pt2pt */
 #include "mpipt2pt.h"
@@ -19,6 +22,7 @@
 /* This is needed to use select for a timeout */
 #ifdef HAVE_WINSOCK2_H
 #include <winsock2.h>
+#include "nt_global.h"
 #else
 #include <sys/time.h>
 #endif
@@ -109,9 +113,7 @@ int MPICHX_QOS_PARAMETERS = MPI_KEYVAL_INVALID;
    from the linker about multiply defined libraries.
 
  */
-int MPIR_Init(argc,argv)
-int  *argc;
-char ***argv;
+int MPIR_Init(int *argc, char ***argv)
 {
     int            size, mpi_errno, i;
     void           *ADIctx = 0;
@@ -185,7 +187,6 @@ char ***argv;
 	 * about where and who all the other processes are 
 	 * and flatten it in case the debugger wants it.
 	 */
-	int i;
 	MPIR_proctable = (MPIR_PROCDESC *)MALLOC(MPID_MyWorldSize*sizeof(MPIR_PROCDESC));
 	
 	/* Cause extra state to be remembered */
@@ -413,7 +414,6 @@ char ***argv;
 
     /* Search for "-mpi debug" options etc.  We need a better interface.... */
     if (argv && *argv) {
-	int i;
 	for (i=1; i<*argc; i++) {
 	    if ((*argv)[i]) {
 		if (strcmp( (*argv)[i], "-mpiqueue" ) == 0) {

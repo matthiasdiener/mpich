@@ -11,16 +11,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_GRAPH_GET = PMPI_GRAPH_GET
-EXPORT_MPI_API void MPI_GRAPH_GET ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_GRAPH_GET ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_graph_get__ = pmpi_graph_get__
-EXPORT_MPI_API void mpi_graph_get__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_graph_get__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_graph_get = pmpi_graph_get
-EXPORT_MPI_API void mpi_graph_get ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_graph_get ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_graph_get_ = pmpi_graph_get_
-EXPORT_MPI_API void mpi_graph_get_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_graph_get_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -78,10 +78,10 @@ EXPORT_MPI_API void mpi_graph_get_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fin
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_graph_get_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_graph_get_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                 MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_graph_get_ ( MPI_Fint *comm, MPI_Fint *maxindex, MPI_Fint *maxedges, MPI_Fint *index, MPI_Fint *edges, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_graph_get_ ( MPI_Fint *comm, MPI_Fint *maxindex, MPI_Fint *maxedges, MPI_Fint *index, MPI_Fint *edges, MPI_Fint *__ierr )
 {
     if (sizeof(MPI_Fint) == sizeof(int))
         *__ierr = MPI_Graph_get( MPI_Comm_f2c(*comm), *maxindex,

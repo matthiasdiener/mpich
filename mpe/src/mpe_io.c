@@ -18,6 +18,9 @@
 /* Prototype for dup2; also defines STDOUT_FILENO */
 #include <unistd.h>
 #endif
+#ifdef HAVE_WINDOWS_H
+#include <io.h>
+#endif
 
 #ifndef STDOUT_FILENO
 #define STDOUT_FILENO 1

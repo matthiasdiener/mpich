@@ -19,9 +19,7 @@
 static int rm_num;
 static int rm_flag;
 
-int rm_start(argc, argv)
-int *argc;
-char **argv;
+int rm_start( int *argc, char **argv)
 {
     int bm_fd, bm_port;
     char *s,*bm_host;
@@ -53,9 +51,6 @@ char **argv;
     freopen(P4_OUTFILE, "w", stderr);
 #endif
 
-    if (*argc < 4)
-	p4_error("Invalid arguments to remote_master", *argc);
-
     conn_retries = 5;
     if (execer_mynodenum)
     {
@@ -65,6 +60,9 @@ char **argv;
     }
     else
     {
+	if (*argc < 4)
+	    p4_error("Invalid arguments to remote_master", *argc);
+
 	bm_host = argv[1];
 	bm_port = atoi(argv[2]);
     }
@@ -246,12 +244,9 @@ char **argv;
 }
 
 
-P4VOID create_rm_processes(nslaves, bm_fd)
-int nslaves;
-int bm_fd;
+P4VOID create_rm_processes(int nslaves, int bm_fd)
 {
     struct p4_global_data *g = p4_global;
-    struct listener_data *l;
     int end_1, end_2, slave_pid, listener_pid;
     int slave_idx, listener_port, listener_fd;
     char rm_host[100];
@@ -275,9 +270,12 @@ int bm_fd;
      * eventually become the listener.
      */
 
-    l = listener_info = alloc_listener_info();
+    /* nslaves is total number of processes on the remote machine; this
+     * is not the case in the big master code, though. */
+    listener_info = alloc_listener_info(nslaves);
 
-    net_setup_anon_listener(10, &listener_port, &listener_fd);
+    net_setup_anon_listener(MAX_P4_CONN_BACKLOG, &listener_port, &listener_fd);
+    listener_info->listening_fd = listener_fd;
 
     p4_dprintfl(70, "created listener on port %d fd %d\n", listener_port,
 		listener_fd);
@@ -288,7 +286,7 @@ int bm_fd;
     net_send(bm_fd, &bm_msg, sizeof(struct bm_rm_msg), P4_FALSE);
 
     rm_host[0] = '\0';
-    get_qualified_hostname(rm_host);
+    get_qualified_hostname(rm_host,100);
     rm_switch_port = getswport(rm_host);
 
     /* Send my info to the bm */
@@ -296,9 +294,9 @@ int bm_fd;
     bm_msg.slave_idx = p4_i_to_n(0);
     bm_msg.slave_pid = p4_i_to_n(getpid());
     bm_msg.switch_port = p4_i_to_n(rm_switch_port);
-    strcpy(bm_msg.host_name,rm_host);
-    strcpy(bm_msg.local_name,g->my_host_name);
-    strcpy(bm_msg.machine_type,P4_MACHINE_TYPE);
+    strncpy(bm_msg.host_name,rm_host,HOSTNAME_LEN);
+    strncpy(bm_msg.local_name,g->my_host_name,HOSTNAME_LEN);
+    strncpy(bm_msg.machine_type,P4_MACHINE_TYPE,sizeof(bm_msg.machine_type));
     net_send(bm_fd, &bm_msg, sizeof(struct bm_rm_msg), P4_FALSE);
 
     g->local_slave_count = 0;
@@ -338,36 +336,64 @@ int bm_fd;
     }
 #   else
 
-#   if !defined(NO_LISTENER)
-    get_pipe(&end_1, &end_2);
-#   endif
     for (slave_idx = 1; slave_idx <= nslaves - 1; slave_idx++)
     {
 	p4_dprintfl(20,"remote master creating local slave %d\n",slave_idx);
 		    
+#   if !defined(NO_LISTENER)
+	get_pipe(&end_1, &end_2);
+	listener_info->slave_fd[slave_idx] = end_2;
+#   endif
 	slave_pid = fork_p4();
+#   if !defined(NO_LISTENER)
+	listener_info->slave_pid[slave_idx] = slave_pid;
+#   endif
 	if (slave_pid)
 	    p4_dprintfl(10,"remote master created local slave %d\n",slave_idx);
 	if (slave_pid == 0)
 	{
 	    /* In the slave process */
-
 	    sprintf(whoami_p4, "rm_s_%d_%d_%d", rm_num, slave_idx, (int)getpid());
 
 	    p4_local = alloc_local_slave();
-	    p4_local->listener_fd = end_1;
+
+	    /* Check for environment variables that redirect stdin */
+	    mpiexec_reopen_stdin();
+
+
+#   if !defined(NO_LISTENER)
+	    {
+#ifdef USE_NONBLOCKING_LISTENER_SOCKETS
+	    int cc;
+		cc = fcntl(end_1, F_SETFL, O_NONBLOCK);
+		if (cc < 0) {
+		    p4_error("create_rm_processes: set listener nonblocking",
+		      cc);
+		}
+#endif
+		p4_local->listener_fd = end_1;
 #           if !defined(THREAD_LISTENER)
-	    close(listener_fd);
 	    close(end_2);
 #           endif
 
+	    }
+#endif
+	    close( listener_fd );
+
+
+	    /* hang for a valid proctable.  The master holds this lock
+	       until the slave processes are created, so this lock/unlock
+	       ensures that we wait until the proctable is valid. */
+	    p4_lock(&g->slave_lock);
+	    p4_unlock(&g->slave_lock);
+
+	    /* Don't enable the interrupt handler until a valid proctable 
+	       exists.  To handle the possibility that an interrupt may
+	       be lost, the listener will reissue interrupts if the slave
+	       does not respond quickly. */
 #ifndef THREAD_LISTENER
             SIGNAL_P4(LISTENER_ATTN_SIGNAL, handle_connection_interrupt);
 #endif
-
-	    /* hang for a valid proctable */
-	    p4_lock(&g->slave_lock);
-	    p4_unlock(&g->slave_lock);
 
 	    p4_local->my_id = p4_get_my_id_from_proc();
 	    sprintf(whoami_p4, "p%d_%d", p4_get_my_id(), (int)getpid());
@@ -392,6 +418,10 @@ int bm_fd;
 	    return;
 	}
 
+#   if !defined(NO_LISTENER)
+	/* slave holds this end */
+	close(end_1);
+#   endif
 	/* Send off the slave info to the bm */
 	bm_msg.type = p4_i_to_n(REMOTE_SLAVE_INFO);
 	bm_msg.slave_idx = p4_i_to_n(slave_idx);
@@ -421,18 +451,18 @@ int bm_fd;
     g->listener_fd   = listener_fd;
 
 #   if !defined(IPSC860)  &&  !defined(CM5)  &&  !defined(NCUBE)  &&  !defined(SP1_EUI) && !defined(SP1_EUIH)
+    get_pipe(&end_1, &end_2);
     p4_local->listener_fd = end_1;
-    l->listening_fd = listener_fd;
-    l->slave_fd = end_2;
+    listener_info->slave_fd[0] = end_2;
 #   if !defined(NO_LISTENER) && !defined(THREAD_LISTENER)
     listener_pid = fork_p4();
     if (listener_pid == 0)
     {
 	/* Inside listener */
+	listener_info->slave_pid[0] = getppid();
+	close(end_1);
 	sprintf(whoami_p4, "rm_l_%d_%d", rm_num, (int)getpid());
 	p4_dprintfl(70, "inside listener pid %d\n", getpid());
-	p4_local = alloc_local_listener();
-	close(end_1);
 	{
 	    /* exec external listener process */
 
@@ -442,10 +472,13 @@ int bm_fd;
 	    {
 		char dbg_c[10], max_c[10], lfd_c[10], sfd_c[10];
 
+		/*
+		p4_error("external listener not supported", 0);
+		*/
 		sprintf(dbg_c, "%d", p4_debug_level);
 		sprintf(max_c, "%d", p4_global->max_connections);
-		sprintf(lfd_c, "%d", l->listening_fd);
-		sprintf(sfd_c, "%d", l->slave_fd);
+		sprintf(lfd_c, "%d", listener_info->listening_fd);
+		sprintf(sfd_c, "%d", listener_info->slave_fd[0]);
 		p4_dprintfl(70, "exec %s %s %s %s %s\n",
 			    listener_prg, dbg_c, max_c, lfd_c, sfd_c);
 		execlp(listener_prg, listener_prg,
@@ -458,6 +491,8 @@ int bm_fd;
 	exit(0);
     }
 #   endif
+    close(listener_fd);
+    close(end_2);
 
     /* Else we're still in the remote master */
 #   if defined(THREAD_LISTENER)
@@ -470,19 +505,13 @@ int bm_fd;
 #   endif
 
     p4_dprintfl(70, "created listener pid %d\n", listener_pid);
-    /* We need to close the fds from the listener setup */
-#   if !defined(THREAD_LISTENER)
-    close(listener_fd);
-    close(end_2);
-#   endif
     g->listener_pid = listener_pid;
-#   endif
+#   endif  /* !IPSC860 etc */
     rm_flag = 1;  /* I am the remote master */
 }
 
 
-P4VOID receive_proc_table(bm_fd)
-int bm_fd;
+P4VOID receive_proc_table(int bm_fd)
 {
     P4BOOL done;
     struct bm_rm_msg msg;

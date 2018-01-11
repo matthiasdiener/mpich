@@ -107,6 +107,12 @@
 /* Define if you have the mpi library (-lmpi).  */
 #undef HAVE_LIBMPI
 
+/* Define if C compiler supports long long type */
+#undef HAVE_LONG_LONG
+
+/* Define if C compiler supports long double type */
+#undef HAVE_LONG_DOUBLE
+
 /* Define if long long allowed */
 #undef HAVE_LONG_LONG
 

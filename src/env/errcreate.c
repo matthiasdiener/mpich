@@ -1,5 +1,5 @@
 /*
- *  $Id: errcreate.c,v 1.6 1999/08/30 15:45:29 swider Exp $
+ *  $Id: errcreate.c,v 1.7 2001/11/14 19:56:38 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -51,7 +51,7 @@ freed.
 .N MPI_SUCCESS
 .N MPI_ERR_EXHAUSTED
 @*/
-EXPORT_MPI_API int MPI_Errhandler_create( 
+int MPI_Errhandler_create( 
 	MPI_Handler_function *function,
 	MPI_Errhandler       *errhandler)
 {

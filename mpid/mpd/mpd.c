@@ -28,14 +28,16 @@ int         opt;
 struct fdentry fdtable[MAXFDENTRIES];
 extern int fdtable_high_water_mark;
 
-extern void     sigint_handler( int );
+extern void sigint_handler( int );
 
-static int get_config( void );
+static int get_config( char * );
 static int use_old_passwd( void );
 
 char mydir[MAXLINE];
 char lhshost[MAXHOSTNMLEN];
+char orig_lhshost[MAXHOSTNMLEN];
 int  lhsport = -1;                
+int  orig_lhsport = -1;                
 char rhshost[MAXHOSTNMLEN];        
 int  rhsport = -1;                
 char rhs2host[MAXHOSTNMLEN];        
@@ -45,6 +47,7 @@ char mynickname[MAXHOSTNMLEN];
 int  my_listener_port = 0;	/* might be set on command line, else bind chooses */
 char console_name[MAXLINE];
 char logfile_name[MAXLINE];
+int  generation;
 
 int logfile_idx          = -1;
 int listener_idx	 = -1;
@@ -74,8 +77,7 @@ char mpd_passwd[PASSWDLEN];
 
 char working_directory[MAXLINE], c_lhs_port[MAXLINE], c_allow_console[MAXLINE];
 char c_debug[MAXLINE], c_listener_port[MAXLINE], c_tell_listener_port[MAXLINE];
-char c_backgrounded[MAXLINE], c_no_execute[MAXLINE];
-
+char c_backgrounded[MAXLINE], c_no_execute[MAXLINE], configfilename[MAXLINE];
 
 /* jobid data */
 int first_avail, last_avail, first_pool, last_pool;
@@ -87,6 +89,7 @@ int main( int argc, char *argv[] )
 {
     int  i, allow_console, rc, num_fds;
     char in_buf[MAXLINE], out_buf[MAXLINE], cmd[MAXLINE];
+    char *homedir;
     struct timeval tv;
     struct passwd *pwent = 0;
 
@@ -118,13 +121,35 @@ int main( int argc, char *argv[] )
     c_backgrounded[0]       = '\0';
     c_no_execute[0]         = '\0';
 
+#ifdef ROOT_ENABLED
+    strncpy( configfilename, "/etc/mpd.conf", MAXLINE );
+#else
+    if ( ( homedir = getenv( "HOME" ) ) == NULL ) {
+	mpdprintf( 1, "get_config: unable to obtain pathname for home directory\n" );
+	return( -1 );
+    }
+    else
+	sprintf( configfilename, "%s/.mpd.conf", homedir );
+#endif
+
+    /* overwrite configfilename if it is on command line */
+    for ( i = 0; i < argc; i++ ) {
+	if ( strncmp( argv[i], "-f", 2 ) == 0 ) {
+	    strcpy( configfilename, argv[i+1] );
+	    break;
+	}
+    }
+
     /* get config info from file */
-    if ( get_config( ) < 0 )
-        if ( use_old_passwd( ) < 0 )
+    if ( get_config( configfilename ) < 0 )
+	if ( use_old_passwd( ) < 0 )
 	    exit(-1);
 
-    while ( ( opt = getopt( argc, argv, "cp:nh:?d:w:l:bet" ) ) != EOF ) {
+    /* overwrite arguments from configfile with command-line arguments */
+    while ( ( opt = getopt( argc, argv, "cp:nh:f:?d:w:l:bet" ) ) != EOF ) {
         switch ( opt ) {
+        case 'f':
+	    /* configfile name extracted above */               break;
         case 'w':
             strncpy( working_directory, optarg, MAXLINE );	break;
         case 'h':
@@ -137,24 +162,32 @@ int main( int argc, char *argv[] )
             strncpy( c_debug, "yes", MAXLINE );      		break;
 	case 'l':
 	    strncpy( c_listener_port, optarg, MAXLINE );	break;
-	case 't':
-            strncpy( c_tell_listener_port, "yes", MAXLINE );    break;
 	case 'b':
             strncpy( c_backgrounded, "yes", MAXLINE );          break;
 	case 'e':
             strncpy( c_no_execute, "yes", MAXLINE );            break;
+	case 't':
+            strncpy( c_tell_listener_port, "yes", MAXLINE );    break;
         case '?':
-            usage(argv[0]);              		break;
+            usage(argv[0]);              		        break;
         default:
             usage(argv[0]);
         }
     }
-    if ( lhshost[0] )
+
+    if ( lhshost[0] ) {
         amfirst = 0;
+    }
     if ( c_lhs_port[0] ) {
         amfirst = 0;
 	lhsport = atoi( c_lhs_port );
     }
+    if ( amfirst )
+	generation = 1;
+    else
+	generation = 0;
+    mpdprintf( debug, "initializing generation number to %d\n", generation );
+
     allow_console = 1;  /* default */
     if ( strcmp( c_allow_console, "no" ) == 0 )
         allow_console = 0;
@@ -230,7 +263,8 @@ int main( int argc, char *argv[] )
     /* first mpd is own lhs */
     if ( amfirst ) {
         strncpy( lhshost, mynickname, MAXHOSTNMLEN );
-        lhsport = fdtable[listener_idx].portnum;
+        lhsport	     = fdtable[listener_idx].portnum;
+	orig_lhsport = lhsport;
         init_jobids();		/* protected from executing twice */
     }
 
@@ -246,9 +280,9 @@ int main( int argc, char *argv[] )
     /* Send message to lhs, telling him to treat me as his new rhs */
     sprintf( out_buf, "dest=%s_%d cmd=new_rhs_req host=%s port=%d version=%d\n",
              lhshost, lhsport, mynickname, my_listener_port, MPD_VERSION ); 
-    mpdprintf( 0, "sending to lhs: %s", out_buf );        
+    mpdprintf( debug, "main: sending to lhs: :%s:\n", out_buf );        
     write_line( lhs_idx, out_buf );
-    if ( ! amfirst ) {
+    if ( ! amfirst ) {		/* don't challenge self */
 	recv_msg( fdtable[lhs_idx].fd, in_buf, MAXLINE );
 	strncpy( out_buf, in_buf, MAXLINE );
 	mpd_parse_keyvals( out_buf );
@@ -275,8 +309,9 @@ int main( int argc, char *argv[] )
         fdtable[rhs_idx].fd      = accept_connection( fdtable[listener_idx].fd );
         fdtable[rhs_idx].portnum = rhsport;
         strncpy( fdtable[rhs_idx].name, rhshost, MAXSOCKNAMELEN );
-        recv_msg( fdtable[rhs_idx].fd, in_buf, MAXLINE );
+        read_line( fdtable[rhs_idx].fd, in_buf, MAXLINE );
         /* check that it worked */
+	mpdprintf( debug, "test msg received: :%s:\n", in_buf );
         if ( strncmp( in_buf, out_buf, strlen( out_buf ) ) ) {
              mpdprintf( 1, "initial test message to self failed!\n" );
              exit( -1 );
@@ -289,6 +324,9 @@ int main( int argc, char *argv[] )
 	 * on the right.  Get ready for that.
 	 */
     }
+
+    strcpy( orig_lhshost, lhshost );
+    orig_lhsport = lhsport;
 
     /* put myself in the background if flag is set */
     if ( backgrounded )
@@ -355,10 +393,11 @@ int main( int argc, char *argv[] )
 
 	/* QD_BEGIN(HANDLING); */ 
 
-	if ( pulse_chkr == 1 ) {    /* go thru loop once first */
+	if ( pulse_chkr == 1  &&  rhs_idx >= 0 ) {    /* go thru loop once first */
 	    sprintf( out_buf, "src=%s dest=%s_%d cmd=pulse\n", 
 		     myid, rhshost, rhsport ); 
-	    mpdprintf( 0, "sending pulse\n" );
+	    mpdprintf( 0, "sending pulse rhs_idx=%d fd=%d\n",
+		       rhs_idx, fdtable[rhs_idx].fd );
 	    write_line( rhs_idx, out_buf );
 	    pulse_chkr++;
 	}
@@ -369,7 +408,9 @@ int main( int argc, char *argv[] )
 	    if ( pulse_chkr >= 4 )
 	    {
 		mpdprintf( 1, "rhs must be dead; no ack from pulse\n" );
-	        chg_rhs_to_rhs2( rhs_idx );
+		syslog( LOG_INFO, "rhs did not respond to pulse within %d seconds",
+			tv.tv_sec );
+	        reknit_ring( rhs_idx );
 		pulse_chkr = 0;
 	    }
             continue;
@@ -400,7 +441,7 @@ int main( int argc, char *argv[] )
     QD_FINALIZE( "QDoutput" );
 */
 
-    syslog( LOG_INFO, "mpd terminated" );
+    syslog( LOG_INFO, "mpd %s terminating normally", myid );
 
     closelog();
 
@@ -490,16 +531,14 @@ int allocate_jobid()
     return new_jobid;
 }
 
-void add_jobids( first, last )
-int first, last;
+void add_jobids( int first, int last )
 {
     mpdprintf( 0, "received new jobids: first=%d, last=%d\n", first, last );
     first_pool = first;
     last_pool  = last;
 }
 
-int steal_jobids( first, last )
-int *first, *last;
+int steal_jobids( int *first, int *last )
 {
     if ( last_pool >= first_pool + 2 * BIGCHUNKSIZE ) {
 	*first = first_pool;
@@ -513,31 +552,26 @@ int *first, *last;
 	return -1;
 }
 
-static int get_config( void )
+static int get_config( char *filename )
 {
-    char *homedir, config_pathname[MAXLINE], buf[MAXLINE], inbuf[MAXLINE];
+    char buf[MAXLINE], inbuf[MAXLINE];
     struct stat statbuf;
     int n, fd;
 
-    if ( ( homedir = getenv( "HOME" ) ) == NULL ) {
-	mpdprintf( 1, "get_config: unable to obtain pathname for home directory\n" );
-	return( -1 );
-    }
-#ifdef ROOT_ENABLED
-    strncpy( config_pathname, "/etc/mpd.conf", MAXLINE );
-#else
-    sprintf( config_pathname, "%s/.mpd.conf", homedir );
-#endif
-    if ( lstat( config_pathname, &statbuf ) != 0 ) {
-	mpdprintf( debug, "get_config: unable to stat %s\n", config_pathname );
+    /* The configure file can come from the command line, from the user's home directory
+       as .mpd.conf, or (if ROOT) from /etc/mpd.conf
+    */
+
+    if ( stat( filename, &statbuf ) != 0 ) {
+	mpdprintf( 1, "get_config: unable to stat %s\n", filename );
 	return( -1 );
     }
     if ( statbuf.st_mode & 00077 ) {  /* if anyone other than owner  can access the file */
-	mpdprintf( 1, "get_config: other users can access %s\n", config_pathname );
+	mpdprintf( 1, "get_config: other users can access %s\n", filename );
 	return( -1 );
     }
-    if ( ( fd = open( config_pathname, O_RDONLY ) ) == -1 ) {
-	mpdprintf( 1, "get_config: cannot open %s\n", config_pathname );
+    if ( ( fd = open( configfilename, O_RDONLY ) ) == -1 ) {
+	mpdprintf( 1, "get_config: cannot open %s\n", filename );
 	return( -1 );
     }
     buf[0] = '\0';
@@ -580,10 +614,11 @@ static int use_old_passwd( void )
 {
     char *homedir, passwd_pathname[MAXLINE];
     struct stat statbuf;
-    int n, fd;
+    int fd;
 
     if ( ( homedir = getenv( "HOME" ) ) == NULL ) {
-	mpdprintf( 1, "use_old_passwd: unable to obtain pathname for home directory\n" );
+	mpdprintf( 1, "Looking for file containing MPD password; could"
+		      " not find $HOME directory\n" );
 	return( -1 );
     }
 #ifdef ROOT_ENABLED
@@ -591,23 +626,68 @@ static int use_old_passwd( void )
 #else
     sprintf( passwd_pathname, "%s/.mpdpasswd", homedir );
 #endif
-    if ( lstat( passwd_pathname, &statbuf ) != 0 ) {
-	mpdprintf( 1, "use_old_passwd: unable to stat %s\n", passwd_pathname );
+    if ( stat( passwd_pathname, &statbuf ) != 0 ) {
+	mpdprintf( 1, "Looking for file containing MPD password; "
+		      "could not find %s\n", passwd_pathname );
 	return( -1 );
     }
     if ( statbuf.st_mode & 00077 ) {  /* if anyone other than owner  can access the file */
-	mpdprintf( 1, "use_old_passwd: other users can access %s\n", passwd_pathname );
+	mpdprintf( 1, "Password file %s must not be readable by other users\n",
+		   passwd_pathname );
 	return( -1 );
     }
     if ( ( fd = open( passwd_pathname, O_RDONLY ) ) == -1 ) {
-	mpdprintf( 1, "use_old_passwd: cannot open %s\n", passwd_pathname );
+	mpdprintf( 1, "MPD password file %s cannot be opened\n", passwd_pathname );
 	return( -1 );
     }
-    if ( ( n = read_line( fd, mpd_passwd, MAXLINE ) ) <= 0 ) {
+    if ( ( read_line( fd, mpd_passwd, MAXLINE ) ) <= 0 ) {
 	/* note mpd_passwd contains the newline at the end of the file if it exists */
-	mpdprintf( 1, "unable to obtain passwd from %s\n", passwd_pathname );
+	mpdprintf( 1, "Unable to obtain MPD password from %s\n", passwd_pathname );
 	return( -1 );
     }
 
     return( 0 );
 }
+
+void enter_ring( void )
+{
+    int i, lhs_gen, gotit = 0, max_tries = 5;
+    char out_buf[MAXLINE], in_buf[MAXLINE], cmd[MAXLINE];
+    char c_lhs_gen[10];
+
+    /* sleep( 2 ); */ /* RMB: TEMP */
+    /* Send message to lhs, telling him to treat me as his new rhs */
+    sprintf( out_buf, "dest=%s_%d cmd=new_rhs_req host=%s port=%d version=%d\n",
+             lhshost, lhsport, mynickname, my_listener_port, MPD_VERSION ); 
+    for ( i = 0; i < max_tries; i++ ) { 
+	mpdprintf( debug, "enter_ring: sending to lhs: %s", out_buf );        
+	write_line( lhs_idx, out_buf );
+	read_line( fdtable[lhs_idx].fd, in_buf, MAXLINE );
+	mpdprintf( debug, "enter_ring: recvd buf=:%s:\n", in_buf );        
+	mpd_parse_keyvals( in_buf );
+	mpd_getval( "cmd", cmd );
+	if ( strcmp( cmd, "challenge" ) != 0 ) {
+	    mpdprintf( 1, "enter_ring: expecting challenge, got %s\n", in_buf );
+	    exit( -1 );
+	}
+	else {
+	    mpd_getval( "generation", c_lhs_gen );
+	    lhs_gen = atoi( c_lhs_gen );
+	    if ( lhs_gen > generation ) {
+		newconn_challenge( lhs_idx ); /* respond to challenge */
+		generation = lhs_gen;         /* set generation to that of lhs */
+		gotit = 1;
+		mpdprintf( debug, "enter_ring: connected after %d tries\n", i+1 );
+		break;
+	    }
+	    else {
+		sleep( 2 ); 
+	    }
+	}
+    }
+    if ( ! gotit ) {
+	mpdprintf( 1, "enter_ring: exiting; failed to enter the ring after %d tries\n", max_tries );
+	exit( -1 );
+    }
+}
+

@@ -3,6 +3,9 @@
 #ifdef HAVE_SLOGCONF_H
 #include "slog_config.h"
 #endif
+#ifdef HAVE_SLOG_WINCONFIG_H
+#include "slog_winconfig.h"
+#endif
 #if defined( STDC_HEADERS ) || defined( HAVE_CTYPE_H )
 #include <ctype.h>
 #endif

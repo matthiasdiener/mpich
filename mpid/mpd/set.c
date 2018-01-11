@@ -527,7 +527,7 @@ int main(int argc, char *argv[])
     if (argc > 1)
 	size = atoi(argv[1]);
     
-    srandom(time(NULL));
+    srand(time(NULL));
 
     s = set_create(size, sizeof(int), cmpint);
     t = set_create(size, sizeof(int), cmpint);
@@ -538,7 +538,7 @@ int main(int argc, char *argv[])
 
     printf("Inserting into first set...\n");
     for (i = 0; i < size; i++){
-	int y = random() % size;
+	int y = rand() % size;
 
 	printf("%d ", y);
 	set_insert(s, &y);
@@ -552,7 +552,7 @@ int main(int argc, char *argv[])
 
     printf("Inserting into second set...\n");
     for (i = 0; i < size; i++){
-	int y = random() % size;
+	int y = rand() % size;
 
 	printf("%d ", y);
 	set_insert(t, &y);

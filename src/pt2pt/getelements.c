@@ -1,5 +1,5 @@
 /*
- *  $Id: getelements.c,v 1.10 1999/08/30 15:48:54 swider Exp $
+ *  $Id: getelements.c,v 1.11 2001/11/14 20:09:57 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -45,7 +45,7 @@ Output Parameter:
 .N MPI_ERR_TYPE
 
 @*/
-EXPORT_MPI_API int MPI_Get_elements ( MPI_Status *status, MPI_Datatype datatype, 
+int MPI_Get_elements ( MPI_Status *status, MPI_Datatype datatype, 
 		       int *elements )
 {
     int count;

@@ -373,10 +373,10 @@ struct p4_procgroup *pg;
     if (!(p4_global->local_communication_only))
     {
 	listener_fd = p4_global->listener_fd;
-	listener_info = alloc_listener_info();
+	listener_info = alloc_listener_info(1);
 	l = listener_info;
 	get_pipe(&end_1, &end_2); /* used even by thread listener */
-	l->slave_fd = end_2;
+	l->slave_fd[0] = end_2;
     }
 #   endif
 
@@ -571,7 +571,7 @@ struct p4_procgroup *pg;
 	    /* Inside listener */
 	    p4_local = alloc_local_listener();
 	    l->listening_fd = listener_fd;
-	    l->slave_fd = end_2;
+	    l->slave_fd[0] = end_2;
 	    close(end_1);
 	    {
 		/* exec external listener process */
@@ -585,7 +585,7 @@ struct p4_procgroup *pg;
 		    sprintf(dbg_c, "%d", p4_debug_level);
 		    sprintf(max_c, "%d", p4_global->max_connections);
 		    sprintf(lfd_c, "%d", l->listening_fd);
-		    sprintf(sfd_c, "%d", l->slave_fd);
+		    sprintf(sfd_c, "%d", l->slave_fd[0]);
 		    p4_dprintfl(70, "exec %s %s %s %s %s\n",
 				listener_prg, dbg_c, max_c, lfd_c, sfd_c);
 		    execlp(listener_prg, listener_prg,
@@ -659,7 +659,7 @@ struct p4_procgroup *pg;
 	strcpy(p4_global->my_host_name,pg->entries[0].host_name);
 	strcpy(p4_global->proctable[0].host_name,pg->entries[0].host_name);
     }
-    get_qualified_hostname(p4_global->proctable[0].host_name);
+    get_qualified_hostname(p4_global->proctable[0].host_name, HOSTNAME_LEN);
     p4_dprintfl(10,"hostname for first entry in proctable is %s\n",
 		p4_global->proctable[0].host_name);
     p4_global->proctable[0].group_id = 0;
@@ -673,7 +673,8 @@ struct p4_procgroup *pg;
 		       p4_global->proctable[0].host_name);
 	    else
 		strcpy(p4_global->proctable[ptidx].host_name,pe->host_name);
-	    get_qualified_hostname(p4_global->proctable[ptidx].host_name);
+	    get_qualified_hostname(p4_global->proctable[ptidx].host_name,
+				   HOSTNAME_LEN);
 	    p4_global->proctable[ptidx].group_id = i;
 #           ifdef CAN_DO_SOCKET_MSGS
 	    {

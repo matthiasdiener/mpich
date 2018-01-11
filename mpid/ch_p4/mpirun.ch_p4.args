@@ -1,6 +1,7 @@
 #! /bin/sh
 #
-# Special args for the ch_nx device
+# Special args for the ch_p4 device
+setrshcmd="no"
 case $arg in 
     --INIT)
 	p4pgfile=
@@ -44,6 +45,11 @@ case $arg in
       	fi
         device_knows_arg=1
 	;;
+    -rsh)
+        rshcmd="$1"
+	setrshcmd="yes"
+	shift
+	;;
     -usage | --usage)
 cat <<EOF
     Special Options for ch_p4 device:
@@ -69,5 +75,7 @@ cat <<EOF
 
     -leave_pg
             Don't delete the P4 procgroup file after running
+    -rsh cmd
+            Use the named command as the command to start remote processes
 EOF
 esac

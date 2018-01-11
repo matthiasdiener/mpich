@@ -1226,12 +1226,12 @@ static int recv_commworldchannels(globus_io_handle_t *handle)
 
     /* making sure there's enough room in CommWorldChannelsTable */
     /* to accomodate incoming comm worlds                        */
-    if (CommworldChannelsTableNcommWorlds + nrecv < CommworldChannelsTableSize)
+    if (CommworldChannelsTableNcommWorlds + nrecv > CommworldChannelsTableSize)
     {
 	/* have to increase size of CommWorldChannelsTable */
 
 	while (CommworldChannelsTableNcommWorlds + nrecv 
-		< CommworldChannelsTableSize)
+		> CommworldChannelsTableSize)
 	    CommworldChannelsTableSize += COMMWORLDCHANNELS_TABLE_STEPSIZE;
 
 	if (!(CommWorldChannelsTable = (struct commworldchannels *) 
@@ -1647,7 +1647,7 @@ static int receive_info_from_master(MPI_Comm comm,
 	    {
 		CommworldChannelsTableSize += COMMWORLDCHANNELS_TABLE_STEPSIZE;
 		if (!(CommWorldChannelsTable = (struct commworldchannels *)
-			globus_libc_realloc((void *) CommworldChannelsTableSize,
+			globus_libc_realloc((void *) CommWorldChannelsTable,
 		CommworldChannelsTableSize*sizeof(struct commworldchannels))))
 		{
 		    globus_libc_fprintf(stderr,

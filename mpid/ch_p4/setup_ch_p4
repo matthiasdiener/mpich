@@ -29,14 +29,14 @@ for arg in $device_args $@; do
         cat >&2 <<EOF
 --with-device=$DEVICE[:-listener_sig=SIGNALNAME][-dlast][-socksize=BYTES]
 
-The option '-listener_sig' applies to the $DEVICE device, and changes the
+The option \'-listener_sig\' applies to the $DEVICE device, and changes the
 signal that is used to signal that a new connection should be made.  By
 default, SIGUSR1 is used.
 
-The option '-dlast' causes the p4 device to remember the last few debugging
+The option \'-dlast\' causes the p4 device to remember the last few debugging
 messages, printing them out only when the job terminates abnormally.
 
-The option '-socksize' changes the size of the socket buffers used.  
+The option \'-socksize\' changes the size of the socket buffers used.  
 EOF
 	exit 0;
 	;;
@@ -194,7 +194,7 @@ export CC ; export RSHCOMMAND
 rm -f $top_srcdir/mpid/ch_p4/mpich-mpid.h mpid/ch_p4/mpich-mpid.h
 # Export ARCH so that the machines file will get made in the right place
 (cd mpid/ch_p4 ; export ARCH ; \
-$top_srcdir/mpid/ch_p4/configure) # --srcdir=$srcdir)
+"$top_srcdir/mpid/ch_p4/configure" ) # --srcdir=$srcdir)
 # Variable assignments from configure are in localdefs
 if [ ! -f mpid/ch_p4/localdefs ] ; then
     echo "Failed to build file of local definitions"
@@ -216,14 +216,14 @@ fi
 export VPATH
 # We use the eval to make sure that otherargs is evaluate correct in the
 # case where it contains quoted arguments with blanks 
-# (e.g., rshcommand="ssh -x")
+# (e.g., rshcommand="ssh -q")
 (cd mpid/ch_p4$P4EXT/p4$P4EXT ; \
-eval $top_srcdir/mpid/ch_p4$P4EXT/p4$P4EXT/configure -p4arch=$P4_ARCH \
+eval "$top_srcdir/mpid/ch_p4$P4EXT/p4$P4EXT/configure" -p4arch=$P4_ARCH \
     -p4make="'$MAKE'" -opt="'$OPTFLAGS'" -cc="'$CC'" -p4comm="$COMM" \
     -p4device=$DEVICE -srcdir=$top_srcdir/mpid/ch_p4$P4EXT/p4$P4EXT \
     -exec-prefix=$exec_prefix \
     -libbuild_dir=$libbuild_dir \
-    -cflags="'$USER_CFLAGS $P4_CFLAGS $CC_SHARED_OPT'" $otherargs )
+    -cflags="'$USER_CFLAGS $P4_CFLAGS $CC_SHARED_OPT'" $otherargs $enable_args )
 if test $? != 0 ; then
     print_error "Configure of the p4$P4EXT sub-system may have failed!"
     exit 1
@@ -270,7 +270,7 @@ if [ ! -d mpid/server ] ; then mkdir mpid/server ; fi
 echo "Configuring new p4 secure server"
 (cd mpid/server ; \
     CC="$CC" ; export CC ; \
-    $top_srcdir/mpid/server/configure )
+    "$top_srcdir/mpid/server/configure" )
 if test $? != 0 ; then
     print_error "Configure of the secure server may have failed!"
     print_error "The secure server is not required for p4, but can be "

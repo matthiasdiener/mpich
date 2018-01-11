@@ -1,5 +1,5 @@
 /*
- *  $Id: queue.c,v 1.8 2000/07/24 19:55:27 gropp Exp $
+ *  $Id: queue.c,v 1.10 2001/11/06 21:40:57 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -33,6 +33,7 @@ static void *MPID_qels = 0;
 /* #include "mpisys.h" */
 #include "queue.h"
 
+/* We should initialize this global variable */
 MPID_QHDR MPID_recvs;
 
 /*
@@ -49,7 +50,7 @@ MPID_QHDR MPID_recvs;
    However, there is a requirement on progress that requires SOME mechanism;
    the one here is easy to articulate and matches what many users expect.
    
-   There are many comprimises that must be considered when deciding how to
+   There are many compromises that must be considered when deciding how to
    provide for these different criteria.  
 
    The code here takes the simple view that the number of unexpected messages
@@ -63,7 +64,7 @@ MPID_QHDR MPID_recvs;
    The current system does a linear search through the entire list, and 
    thus will always give the earliest in delivery order AS RECEIVED BY THE
    ADI.  We've had trouble with message-passing systems that the ADI is
-   using not providing a fair delivers (starving some sources); this 
+   using not providing a fair delivery (starving some sources); this 
    should be fixed by the ADI or underlying message-passing system rather
    than by this level of MPI routine.  
  */
@@ -128,10 +129,10 @@ MPID_QHDR *header;
 }
 
 
-int MPID_Enqueue( header, src_lrank, tag, context_id, rhandle )
-MPID_QUEUE    *header;
-int           src_lrank, tag, context_id;
-MPIR_RHANDLE  *rhandle;
+/* This routine is made static so that we can be sure that it is only called
+   from within this file, where the proper locks are applied to the queue */
+static int MPID_Enqueue( MPID_QUEUE *header, int src_lrank, int tag, 
+			 int context_id, MPIR_RHANDLE *rhandle )
 {
     MPID_QEL *p;
 
@@ -165,8 +166,17 @@ MPIR_RHANDLE  *rhandle;
 	    (MPI_Aint)p )); 
 
     /* Insert at the tail of the queue, nice and simple ! */
-    *(header->lastp)= p;
     p->next         = 0;
+    /* It is important to set the next field to zero *first*.  Some of the
+       queue search routines do not lock the list (because they do not update
+       it).  If we inserted the element p and *then* set the next field,
+       MPID_Search_unexpected_queue could read and follow the next field before
+       it was set to null.  Note that just setting the value first in
+       this file is not really enough; we should ensure that the compiler 
+       does not reorder the operations and that the memory system also
+       does not reorder the ops.
+    */
+    *(header->lastp)= p;
     header->lastp   = &p->next;
 
     DEBUG(MPID_Dump_queue(&MPID_recvs)); 
@@ -174,9 +184,19 @@ MPIR_RHANDLE  *rhandle;
 }
 
 /*
- * Remove the given request from the queue (for MPID_Cancel)
+ * Remove the given request from the queue (for MPID_RecvCancel)
  *
  * Returns 0 on success, MPI_ERR_INTERN on not found.
+ *
+ * Lock and unlock to make any update atomic.  
+ *
+ * Comments on the code:
+ * The code uses the address of the next pointer (pp) so that it is easy to
+ * set the pointer to the next element using the same code for an element in
+ * the list and an element at the head of the list.  This removes an extra
+ * test from the code to update the next pointer (e.g., are we at the head of 
+ * the list or not) and doesn't involve any extra steps (you need to compute
+ * the address 
  */
 int MPID_Dequeue( header, rhandle )
 MPID_QUEUE   *header;
@@ -185,6 +205,7 @@ MPIR_RHANDLE *rhandle;
     MPID_QEL **pp;
     MPID_QEL *p;
 
+    MPID_THREAD_DS_LOCK(&MPID_recvs)
     /* Look for the one we need */
     for (pp = &(header->first); 
 	 (p = *pp) != 0; 
@@ -194,8 +215,10 @@ MPIR_RHANDLE *rhandle;
 	    break; 
     }
 
-    if (p == NULL)
+    if (p == NULL) {
+        MPID_THREAD_DS_UNLOCK(&MPID_recvs)
 	return MPI_ERR_INTERN;		/* It's not there. Oops */
+    }
     else
     {					/* Remove from the Q and delete */
 	if ((*pp = p->next) == 0)		
@@ -203,6 +226,7 @@ MPIR_RHANDLE *rhandle;
 	
 	MPID_SBfree( MPID_qels, p );	/* free queue element */
     }	    
+    MPID_THREAD_DS_UNLOCK(&MPID_recvs)
     return MPI_SUCCESS;
 }
 
@@ -212,12 +236,13 @@ MPIR_RHANDLE *rhandle;
    A flag of 1 causes a successful search to delete the element found 
 
    handleptr is set to non-null if an entry is found.
+
+   This routine is made static to ensure that it is not called outside of
+   this file (since it does not lock the queues) 
  */
-int MPID_Search_posted_queue( src, tag, context_id, flag, handleptr )
-register int          src, tag;
-register int          context_id;
-MPIR_RHANDLE          **handleptr;
-int                   flag;
+static int MPID_Search_posted_queue( register int src, register int tag, 
+				     register int context_id, int flag, 
+				     MPIR_RHANDLE **handleptr )
 {
   /* Eventually, we'll want to separate this into the three cases
      described above.  We may also want different queues for each
@@ -320,6 +345,11 @@ int MPID_Search_unexpected_for_request( MPIR_SHANDLE *shandle,
    A flag of 1 causes a successful search to delete the element found 
 
    handleptr is non-null if an element is found
+
+   This routine is called with a flag of one only by routines within this
+   file; those routines must be careful to ensure that they hold a lock.
+   The probe and iprobe routines use this routine with a flag of zero, and
+   do not update the queue.
  */
 int MPID_Search_unexpected_queue( src, tag, context_id, flag, handleptr )
 register int src, tag;
@@ -383,7 +413,7 @@ MPIR_RHANDLE **dmpi_recv_handle;
     MPID_Search_posted_queue( src, tag, context_id, 1, dmpi_recv_handle);
     if ( *dmpi_recv_handle )
     {
-        MPID_THREAD_DS_UNLOCK(MPID_recvs)
+        MPID_THREAD_DS_UNLOCK(&MPID_recvs)
 	*foundflag = 1;	
 	/* note this overwrites any wild-card values in the posted handle */
 	handleptr         	= *dmpi_recv_handle;

@@ -260,60 +260,54 @@ SETUPSTRUCTTYPEUB(MPI_BYTE,char,"MPI_BYTE");
    indeed, large enough) 
  */
 #define MAX_TEST 70
-void AllocateForData( types, inbufs, outbufs, counts, bytesize, names, n )
-MPI_Datatype **types;
-void ***inbufs;
-void ***outbufs;
-char ***names;
-int  **counts, **bytesize, *n;
+void AllocateForData( MPI_Datatype **types, void ***inbufs, void ***outbufs, 
+		      int **counts, int **bytesize, char ***names, int *n )
 {
-*types	 = (MPI_Datatype *)malloc( MAX_TEST * sizeof(MPI_Datatype) );
-*inbufs	 = (void **) malloc( MAX_TEST * sizeof(void *) );
-*outbufs = (void **) malloc( MAX_TEST * sizeof(void *) );
-*names	 = (char **) malloc( MAX_TEST * sizeof(char *) );
-*counts  = (int *)   malloc( MAX_TEST * sizeof(int) );
-*bytesize= (int *)   malloc( MAX_TEST * sizeof(int) );
-*n	 = MAX_TEST;
+    *types    = (MPI_Datatype *)malloc( MAX_TEST * sizeof(MPI_Datatype) );
+    *inbufs   = (void **) malloc( MAX_TEST * sizeof(void *) );
+    *outbufs  = (void **) malloc( MAX_TEST * sizeof(void *) );
+    *names    = (char **) malloc( MAX_TEST * sizeof(char *) );
+    *counts   = (int *)   malloc( MAX_TEST * sizeof(int) );
+    *bytesize = (int *)   malloc( MAX_TEST * sizeof(int) );
+    *n	      = MAX_TEST;
 }
 
 int CheckData( void *inbuf, void *outbuf, int size_bytes )
 {
-char *in = (char *)inbuf, *out = (char *)outbuf;
-int  i;
-for (i=0; i<size_bytes; i++) {
-    if (in[i] != out[i]) {
-	return i + 1;
+    char *in = (char *)inbuf, *out = (char *)outbuf;
+    int  i;
+    for (i=0; i<size_bytes; i++) {
+	if (in[i] != out[i]) {
+	    return i + 1;
 	}
     }
-return 0;
+    return 0;
 }
 
 /* 
  * This is a version of CheckData that prints error messages
  */
-int CheckDataAndPrint( inbuf, outbuf, size_bytes, typename, typenum )
-void *inbuf, *outbuf;
-int  size_bytes, typenum;
-char *typename;
+int CheckDataAndPrint( void *inbuf, void *outbuf, int size_bytes, 
+		       char *typename, int typenum )
 {
-int errloc, world_rank;
-
-if ((errloc = CheckData( inbuf, outbuf, size_bytes ))) {
-    char *p1, *p2;
-    MPI_Comm_rank( MPI_COMM_WORLD, &world_rank );
-    fprintf( stderr, 
-	    "Error in data with type %s (type %d on %d) at byte %d of %d\n", 
-	    typename, typenum, world_rank, errloc - 1, size_bytes );
-    p1 = (char *)inbuf;
-    p2 = (char *)outbuf;
-    fprintf( stderr, 
-	    "Got %x expected %x\n", p2[errloc-1], p1[errloc-1] );
+    int errloc, world_rank;
+    
+    if ((errloc = CheckData( inbuf, outbuf, size_bytes ))) {
+	char *p1, *p2;
+	MPI_Comm_rank( MPI_COMM_WORLD, &world_rank );
+	fprintf( stderr, 
+	 "Error in data with type %s (type %d on %d) at byte %d of %d\n", 
+		 typename, typenum, world_rank, errloc - 1, size_bytes );
+	p1 = (char *)inbuf;
+	p2 = (char *)outbuf;
+	fprintf( stderr, 
+		 "Got %x expected %x\n", p2[errloc-1], p1[errloc-1] );
 #if 0
-    MPIR_PrintDatatypeUnpack( stderr, counts[j], types[j], 
-			     0, 0 );
+	MPIR_PrintDatatypeUnpack( stderr, counts[j], types[j], 
+				  0, 0 );
 #endif
     }
-return errloc;
+    return errloc;
 }
 
 void FreeDatatypes( types, inbufs, outbufs, counts, bytesize, names, n )

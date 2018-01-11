@@ -12,9 +12,6 @@
 /* Define if you have the vprintf function.  */
 #undef HAVE_VPRINTF
 
-/* Define to `int' if <sys/types.h> doesn't define.  */
-#undef pid_t
-
 /* Define if you have the ANSI C header files.  */
 #undef STDC_HEADERS
 
@@ -43,6 +40,9 @@
 
 /* Define if you have the gettimeofday function.  */
 #undef HAVE_GETTIMEOFDAY
+
+/* Define if you have the mkstemp function.  */
+#undef HAVE_MKSTEMP
 
 /* Define if you have the putenv function.  */
 #undef HAVE_PUTENV
@@ -79,6 +79,9 @@
 
 /* if a prototype for crypt is needed */
 #undef NEED_CRYPT_PROTOTYPE
+
+/* Define as int if not defined in sys/types.h */
+#undef pid_t
 
 /* define if strtok_r requires a decl */
 #undef NEEDS_STRTOK_R_DECL

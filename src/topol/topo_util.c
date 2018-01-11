@@ -1,11 +1,16 @@
 /*
- *  $Id: topo_util.c,v 1.4 1999/08/20 02:28:06 ashton Exp $
+ *  $Id: topo_util.c,v 1.6 2002/01/04 22:42:27 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+/* index is a function in string.h.  Define this to suppress warnings about
+   shadowed symbols from the C compiler */
+#ifndef index
+#define index idx
+#endif
 #include "mpitopo.h"
 #include "sbcnst2.h"
 #define MPIR_SBinit MPID_SBinit
@@ -16,6 +21,7 @@
    Keyval for topologies.
  */
 int MPIR_TOPOLOGY_KEYVAL = MPI_KEYVAL_INVALID;
+
 
 /* 
    Topology implementation uses small blocks; for efficiency, these are

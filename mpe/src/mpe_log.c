@@ -17,6 +17,9 @@
 /* Needed for getenv */
 #include <stdlib.h>
 #endif
+#ifdef HAVE_STRING_H
+#include <string.h>
+#endif
 
 /* we want to use the PMPI routines instead of the MPI routines for all of 
    the logging calls internal to the mpe_log package */

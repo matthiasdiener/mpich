@@ -1,5 +1,5 @@
 /*
- *  $Id: group_tranks.c,v 1.8 1999/08/30 15:43:28 swider Exp $
+ *  $Id: group_tranks.c,v 1.9 2001/11/14 19:54:26 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -50,7 +50,7 @@ correspondence exists.
 .N MPI_ERR_RANK
 
 @*/
-EXPORT_MPI_API int MPI_Group_translate_ranks ( MPI_Group group_a, int n, int *ranks_a, 
+int MPI_Group_translate_ranks ( MPI_Group group_a, int n, int *ranks_a, 
 				MPI_Group group_b, int *ranks_b )
 {
   int i, j;

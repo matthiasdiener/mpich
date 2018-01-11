@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_shift.c,v 1.11 2001/05/01 18:21:12 gropp Exp $
+ *  $Id: cart_shift.c,v 1.12 2001/11/14 20:10:52 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -53,7 +53,7 @@ Cartesian mesh.
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Cart_shift ( MPI_Comm comm, int direction, int displ, 
+int MPI_Cart_shift ( MPI_Comm comm, int direction, int displ, 
 		     int *source, int *dest )
 {
   int rank, flag;

@@ -1,5 +1,5 @@
 /*
- *  $Id: sbcnst2.h,v 1.2 1998/11/01 17:13:43 gropp Exp $
+ *  $Id: sbcnst2.h,v 1.3 2001/10/19 22:01:19 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -18,25 +18,17 @@
 
 #include <stdio.h>
 
-#ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
-#define ANSI_ARGS(a) a
-#else
-#define ANSI_ARGS(a) ()
-#endif
-#endif
-
 typedef struct _MPID_SBHeader *MPID_SBHeader;
-extern MPID_SBHeader MPID_SBinit ANSI_ARGS(( int, int, int ));
-extern void  MPID_SBfree ANSI_ARGS(( MPID_SBHeader, void * )),
-            *MPID_SBalloc ANSI_ARGS(( MPID_SBHeader )),
-             MPID_SBPrealloc ANSI_ARGS(( MPID_SBHeader, int )),
-             MPID_SBdestroy ANSI_ARGS(( MPID_SBHeader )),
-             MPID_SBrelease ANSI_ARGS(( MPID_SBHeader, void * )),
-             MPID_SBFlush ANSI_ARGS(( MPID_SBHeader )),
-             MPID_SBDump ANSI_ARGS(( FILE *, MPID_SBHeader )),
-             MPID_SBReleaseAvail ANSI_ARGS(( MPID_SBHeader )),
-             MPID_SBvalid ANSI_ARGS(( MPID_SBHeader ));
+extern MPID_SBHeader MPID_SBinit ( int, int, int );
+extern void  MPID_SBfree ( MPID_SBHeader, void * ),
+            *MPID_SBalloc ( MPID_SBHeader ),
+             MPID_SBPrealloc ( MPID_SBHeader, int ),
+             MPID_SBdestroy ( MPID_SBHeader ),
+             MPID_SBrelease ( MPID_SBHeader, void * ),
+             MPID_SBFlush ( MPID_SBHeader ),
+             MPID_SBDump ( FILE *, MPID_SBHeader ),
+             MPID_SBReleaseAvail ( MPID_SBHeader ),
+             MPID_SBvalid ( MPID_SBHeader );
 
 /* Chameleon/PETSc includes memory tracing functions that can be used
    to track storage leaks.  This code chooses that or the copy that 

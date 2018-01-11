@@ -13,16 +13,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_STATUS_SET_CANCELLED = PMPI_STATUS_SET_CANCELLED
-EXPORT_MPI_API void MPI_STATUS_SET_CANCELLED (MPI_Status *, int *, int * );
+void MPI_STATUS_SET_CANCELLED (MPI_Status *, int *, int * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_status_set_cancelled__ = pmpi_status_set_cancelled__
-EXPORT_MPI_API void mpi_status_set_cancelled__ (MPI_Status *, int *, int * );
+void mpi_status_set_cancelled__ (MPI_Status *, int *, int * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_status_set_cancelled = pmpi_status_set_cancelled
-EXPORT_MPI_API void mpi_status_set_cancelled (MPI_Status *, int *, int * );
+void mpi_status_set_cancelled (MPI_Status *, int *, int * );
 #else
 #pragma weak mpi_status_set_cancelled_ = pmpi_status_set_cancelled_
-EXPORT_MPI_API void mpi_status_set_cancelled_ (MPI_Status *, int *, int * );
+void mpi_status_set_cancelled_ (MPI_Status *, int *, int * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -80,13 +80,13 @@ EXPORT_MPI_API void mpi_status_set_cancelled_ (MPI_Status *, int *, int * );
 
 
 
-EXPORT_MPI_API void mpi_status_set_cancelled_(MPI_Status *, int *, int * );
+FORTRAN_API void FORT_CALL mpi_status_set_cancelled_(MPI_Status *, int *, int * );
 
 /* Definitions of Fortran Wrapper routines */
 #if defined(__cplusplus)
 extern "C" {
 #endif
-EXPORT_MPI_API void mpi_status_set_cancelled_(MPI_Status *status, int *flag, int *__ierr )
+FORTRAN_API void FORT_CALL mpi_status_set_cancelled_(MPI_Status *status, int *flag, int *__ierr )
 {
 	*__ierr = MPI_Status_set_cancelled(status,*flag);
 }

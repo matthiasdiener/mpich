@@ -14,16 +14,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_ADDRESS = PMPI_ADDRESS
-EXPORT_MPI_API void MPI_ADDRESS ( void *, MPI_Fint *, MPI_Fint * );
+void MPI_ADDRESS ( void *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_address__ = pmpi_address__
-EXPORT_MPI_API void mpi_address__ ( void *, MPI_Fint *, MPI_Fint * );
+void mpi_address__ ( void *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_address = pmpi_address
-EXPORT_MPI_API void mpi_address ( void *, MPI_Fint *, MPI_Fint * );
+void mpi_address ( void *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_address_ = pmpi_address_
-EXPORT_MPI_API void mpi_address_ ( void *, MPI_Fint *, MPI_Fint * );
+void mpi_address_ ( void *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -138,9 +138,9 @@ if (_isfcd(location)) {
 #else
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_address_ ( void *, MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_address_ ( void *, MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_address_( void *location, MPI_Fint *address, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_address_( void *location, MPI_Fint *address, MPI_Fint *__ierr )
 {
     MPI_Aint a, b;
 

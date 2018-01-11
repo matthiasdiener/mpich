@@ -4,16 +4,6 @@
 #include "clogimpl.h" 
 #include "clog.h"
 
-#ifdef ANSI_ARGS
-#undef ANSI_ARGS
-#endif
-
-#if defined(__STDC__) || defined(__cplusplus)
-#define ANSI_ARGS(x) x
-#else
-#define ANSI_ARGS(x) ()
-#endif
-
 /* clog2slog structure */
 
 /**** state_info
@@ -75,41 +65,39 @@ struct list_elemnt {
 
 /** initializations **/
 
-/*  void checkForBigEndian ANSI_ARGS(( void ));  */
+/*  void checkForBigEndian ( void );  */
 int  CLOG_init_state_defs ( double * );
 int  CLOG_init_all_mpi_state_defs( void );
-int  init_SLOG ANSI_ARGS(( long, long, char * ));
-int  init_SLOG_TTAB ANSI_ARGS(( void ));
-int  init_SLOG_PROF_RECDEF ANSI_ARGS(( void ));
-int  init_clog2slog ANSI_ARGS(( char*, char** ));
+int  init_SLOG ( long, long, char * );
+int  init_SLOG_TTAB ( void );
+int  init_SLOG_PROF_RECDEF ( void );
+int  init_clog2slog ( char*, char** );
 void CLOG_init_essential_values ( long, int );
 
 /** actual logging */
 
 #ifdef FOO
-int  logEvent ANSI_ARGS(( CLOG_HEADER * ,CLOG_RAW * )); 
-int  writeSLOGInterval ANSI_ARGS(( CLOG_HEADER*, CLOG_RAW*, 
-				   struct list_elemnt ));
-int  handleStartEvent ANSI_ARGS(( int, CLOG_HEADER*, 
-				  CLOG_RAW* ));
-int  handle_extra_state_defs ANSI_ARGS(( CLOG_STATE * ));
+int  logEvent ( CLOG_HEADER * ,CLOG_RAW * ); 
+int  writeSLOGInterval ( CLOG_HEADER*, CLOG_RAW*, struct list_elemnt ));
+int  handleStartEvent ( int, CLOG_HEADER*, CLOG_RAW* );
+int  handle_extra_state_defs ( CLOG_STATE * );
 
 /** state_info and list_elemnt linked lists accessors **/
 
-int  addState ANSI_ARGS(( int ,int ,int ,CLOG_CNAME ,CLOG_DESC ));
-int  replace_state_in_list ANSI_ARGS(( int, int, CLOG_CNAME, CLOG_DESC ));
-int  findState_strtEvnt ANSI_ARGS(( int ));
-int  findState_endEvnt ANSI_ARGS(( int ));
-int  get_new_state_id ANSI_ARGS(( void ));
-int  addToList ANSI_ARGS(( int ,int ,int ,double ));
-int  find_elemnt ANSI_ARGS(( int ,int ,int ,struct list_elemnt* ));
-int  addToMsgList ANSI_ARGS(( int ,int ,int ,int, double ));
-int  find_msg_elemnt ANSI_ARGS(( int ,int ,int ,int, struct list_elemnt* ));
-void freeList ANSI_ARGS(( void ));
-void freeMsgList ANSI_ARGS(( void ));
-void freeStateInfo ANSI_ARGS(( void ));
-void printEventList ANSI_ARGS(( void ));
-void printMsgEventList ANSI_ARGS(( void ));
+int  addState ( int ,int ,int ,CLOG_CNAME ,CLOG_DESC );
+int  replace_state_in_list ( int, int, CLOG_CNAME, CLOG_DESC );
+int  findState_strtEvnt ( int );
+int  findState_endEvnt ( int );
+int  get_new_state_id ( void );
+int  addToList ( int ,int ,int ,double );
+int  find_elemnt ( int ,int ,int ,struct list_elemnt* );
+int  addToMsgList ( int ,int ,int ,int, double );
+int  find_msg_elemnt ( int ,int ,int ,int, struct list_elemnt* );
+void freeList ( void );
+void freeMsgList ( void );
+void freeStateInfo ( void );
+void printEventList ( void );
+void printMsgEventList ( void );
 #endif
 void CLOG_freeStateInfo(void);
 int  CLOG_makeSLOG ( double * ); 

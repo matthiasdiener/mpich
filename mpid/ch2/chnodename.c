@@ -24,9 +24,9 @@
 
 #include <string.h>
 
-void MPID_Node_name( name, nlen )
-char *name;
-int  nlen;
+void MPID_Node_name( 
+	char *name,
+	int  nlen)
 {
 /* This is the perfered form, IF IT WORKS. */
 #if defined(HAVE_UNAME) && defined(HAVE_GETHOSTBYNAME)

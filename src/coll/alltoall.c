@@ -1,5 +1,5 @@
 /*
- *  $Id: alltoall.c,v 1.10 1999/08/30 15:41:33 swider Exp $
+ *  $Id: alltoall.c,v 1.11 2001/11/14 19:50:11 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -51,7 +51,7 @@ Output Parameter:
 .N MPI_ERR_TYPE
 .N MPI_ERR_BUFFER
 @*/
-EXPORT_MPI_API int MPI_Alltoall( void *sendbuf, int sendcount, MPI_Datatype sendtype, 
+int MPI_Alltoall( void *sendbuf, int sendcount, MPI_Datatype sendtype, 
                   void *recvbuf, int recvcnt, MPI_Datatype recvtype, 
 		  MPI_Comm comm )
 {

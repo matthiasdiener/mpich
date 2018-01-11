@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_create.c,v 1.11 2001/08/14 14:43:41 lacour Exp $
+ *  $Id: comm_create.c,v 1.12 2001/11/14 19:54:18 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -48,7 +48,7 @@ Output Parameter:
 
 .seealso: MPI_Comm_free
 @*/
-EXPORT_MPI_API int MPI_Comm_create ( MPI_Comm comm, MPI_Group group, MPI_Comm *comm_out )
+int MPI_Comm_create ( MPI_Comm comm, MPI_Group group, MPI_Comm *comm_out )
 {
   int mpi_errno = MPI_SUCCESS;
   struct MPIR_COMMUNICATOR *comm_ptr, *new_comm;

@@ -1,5 +1,5 @@
 /*
- *  $Id: init.c,v 1.10 1999/10/08 21:36:48 gropp Exp $
+ *  $Id: init.c,v 1.11 2001/11/14 19:56:40 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -144,7 +144,7 @@
 .N MPI_SUCCESS
 .N MPI_ERR_INIT
 @*/
-EXPORT_MPI_API int MPI_Init(int *argc, char ***argv)
+int MPI_Init(int *argc, char ***argv)
 {
     return MPIR_Init(argc,argv);
 }

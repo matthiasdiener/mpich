@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_util.c,v 1.7 2001/04/20 19:38:31 gropp Exp $
+ *  $Id: attr_util.c,v 1.8 2001/12/15 01:12:58 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -42,7 +42,9 @@ int MPIR_Attr_copy_node (
   MPIR_Attr_key *attr_key;
   MPIR_HBT_node *attr;
   int            flag;
+#ifndef MPID_NO_FORTRAN
   int            attr_ival;
+#endif
   int            mpi_errno = MPI_SUCCESS;
   int            copy_errno = 0;
 

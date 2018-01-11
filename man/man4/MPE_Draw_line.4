@@ -1,12 +1,12 @@
-.TH MPE_Draw_line 4 "6/19/2001" " " "MPE"
+.TH MPE_Draw_line 4 "12/6/2001" " " "MPE"
 .SH NAME
 MPE_Draw_line \-  Draws a line on an X11 display 
 .SH SYNOPSIS
 .nf
 #include "mpe.h" 
-int MPE_Draw_line( handle, x1, y1, x2, y2, color )
+int MPE_Draw_line( handle, x1, y_1, x2, y_2, color )
 MPE_XGraph handle;
-int        x1, y1, x2, y2;
+int        x1, y_1, x2, y_2;
 MPE_Color  color;
 .fi
 .SH INPUT PARAMETERS
@@ -17,13 +17,13 @@ MPE_Color  color;
 .PD 1
 .PD 0
 .TP
-.B x1,y1 
+.B x1,y_1 
 - pixel position of one end of the line to draw.  Coordinates are 
 upper-left origin (standard X11)
 .PD 1
 .PD 0
 .TP
-.B x2,y2 
+.B x2,y_2 
 - pixel position of the other end of the line to draw.  Coordinates 
 are upper-left origin (standard X11)
 .PD 1

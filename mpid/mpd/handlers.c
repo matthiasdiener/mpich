@@ -7,8 +7,11 @@
 extern struct fdentry fdtable[MAXFDENTRIES];
 extern int    console_idx;
 extern int    client_idx;
+extern int    listener_idx;
 extern char   lhshost[MAXHOSTNMLEN];
+extern char   orig_lhshost[MAXHOSTNMLEN];
 extern int    lhsport;
+extern int    orig_lhsport;
 extern char   rhshost[MAXHOSTNMLEN];
 extern int    rhsport;
 extern char   rhs2host[MAXHOSTNMLEN];
@@ -26,6 +29,8 @@ extern int    keyval_tab_idx;
 extern char   mpd_passwd[PASSWDLEN];
 extern int    pulse_chkr;
 extern int    shutting_down;
+extern int    generation;
+extern int    amfirst;
 
 int connecting_to_self_as_lhs = 0;
 
@@ -299,11 +304,11 @@ void handle_rhs_input( int idx )
     else {
 	buf[0] = '\0';
 	n = read_line( fdtable[idx].fd, buf, MAXLINE );
-	if ( n == 0 || (n == -1 && errno == EPIPE) ) { /* EOF, next sib died */
-	    mpdprintf( debug,
-		       "next sibling died; n=%d strerror=:%s: reconnecting to rhs2host=%s rhs2port=%d\n",
-	               n, strerror(errno), rhs2host, rhs2port );
-	    chg_rhs_to_rhs2( idx );
+	if ( n == 0 || (n == -1 && errno == EPIPE ) ) { /* EOF, next sib died */
+	    mpdprintf( 0000, "next sibling died; reknitting ring: n=%d strerror=:%s:\n",
+	               n, strerror(errno) );
+	    syslog( LOG_INFO, "unexpected EOF on rhs" );
+	    reknit_ring( idx );
 	}
 	else {
 	    strcpy( parse_buf, buf );
@@ -311,6 +316,10 @@ void handle_rhs_input( int idx )
 	    mpd_getval( "cmd", cmd );
 	    if ( strcmp( cmd, "pulse_ack" ) == 0 )
 	        pulse_chkr = 0;
+	    else if ( strcmp( cmd, "rebuilding_the_ring" ) == 0 ) {
+		mpdprintf( 0000, "received rebuilding message from rhs\n" );
+		reknit_ring( idx );
+	    }
 	    else
 		mpdprintf( 1, "handle_rhs_input: got n=%d unexpected msg=:%s:\n", n, buf );
 	}
@@ -440,10 +449,11 @@ void newconn_moninfo_conn_req( int idx )
     else {
 	mpdprintf( debug, "got cmd=moninfo_conn_req\n" ); 
 	gettimeofday( &tv, ( struct timezone * ) 0 );
-	srandom( tv.tv_usec * 167.5 );
-	fdtable[idx].rn = random( );
-	sprintf( challenge_buf, "cmd=challenge dest=anyone rand=%d type=new_moninfo\n",
-		 fdtable[idx].rn );
+	srand( tv.tv_usec * 167.5 );
+	fdtable[idx].rn = rand( );
+	sprintf( challenge_buf,
+		 "cmd=challenge dest=anyone rand=%d type=new_moninfo generation=%d\n",
+		 fdtable[idx].rn, generation );
 	write_line( idx, challenge_buf );
     }
 }
@@ -479,6 +489,9 @@ void newconn_challenge( int idx )
     mpd_getval( "rand", buf );
     mpd_getval( "type", type );
     challenge_num = atoi( buf );
+    mpd_getval( "generation", buf );
+    generation = atoi( buf );
+    mpdprintf( debug, "setting generation to %d\n", generation );
     encode_num( challenge_num, encoded_num );
     sprintf( buf, "cmd=%s dest=anyone encoded_num=%s host=%s port=%d\n",
 	     type, encoded_num, mynickname, my_listener_port );
@@ -529,10 +542,11 @@ void newconn_new_rhs_req( int idx )
     else {
 	mpdprintf( debug, "got cmd=new_rhs_req host=%s port=%d\n", newhost, newport ); 
 	gettimeofday( &tv, ( struct timezone * ) 0 );
-	srandom( tv.tv_usec * 167.5 );
-	fdtable[idx].rn = random( );
-	sprintf( challenge_buf, "cmd=challenge dest=anyone rand=%d type=new_rhs\n",
-		 fdtable[idx].rn );
+	srand( tv.tv_usec * 167.5 );
+	fdtable[idx].rn = rand( );
+	sprintf( challenge_buf,
+		 "cmd=challenge dest=anyone rand=%d type=new_rhs generation=%d\n",
+		 fdtable[idx].rn, generation );
 	write_line( idx, challenge_buf );
     }
 }
@@ -568,9 +582,11 @@ void newconn_new_lhs_req( int idx )
 
     mpdprintf( debug, "got cmd=new_lhs_req host=%s port=%d\n", newhost, newport ); 
     gettimeofday( &tv, ( struct timezone * ) 0 );
-    srandom( tv.tv_usec * 167.5 );
-    fdtable[idx].rn = random( );
-    sprintf( challenge_buf, "cmd=challenge dest=anyone rand=%d type=new_lhs\n", fdtable[idx].rn );
+    srand( tv.tv_usec * 167.5 );
+    fdtable[idx].rn = rand( );
+    sprintf( challenge_buf,
+	     "cmd=challenge dest=anyone rand=%d type=new_lhs generation=%d\n",
+	     fdtable[idx].rn, generation );
     write_line( idx, challenge_buf );
 }
 
@@ -589,6 +605,7 @@ void newconn_new_rhs( int idx )
     encode_num( fdtable[idx].rn, buf );
     if ( strcmp( buf, encoded_num ) != 0 ) {
 	/* response did not meet challenge */
+	mpdprintf( debug, "newconn_new_rhs:  rejecting new rhs connection\n" );
 	dclose( fdtable[idx].fd );
 	deallocate_fdentry( idx );
 	return;
@@ -647,6 +664,7 @@ int idx;
     encode_num( fdtable[idx].rn, buf );
     if ( strcmp( buf, encoded_num ) != 0 ) {
 	/* response did not meet challenge */
+	mpdprintf( debug, "newconn_new_lhs:  rejecting new lhs connection\n" );
 	dclose( fdtable[idx].fd );
 	deallocate_fdentry( idx );
 	return;
@@ -672,15 +690,112 @@ int idx;
     }
 }
 
-void chg_rhs_to_rhs2( int idx )
+/* we come here because the "old" rhs has disappeared */
+void reknit_ring( int old_rhs_idx )
+{
+    char in_buf[MAXLINE], out_buf[MAXLINE];
+    int temp_port, temp_fd;
+
+    mpdprintf( debug, "inside reknit_ring\n" );
+    /*****
+    if (chg_rhs_to_rhs2( old_rhs_idx ) == 0) {
+	mpdprintf( debug, "successfully connected to rhs2\n" );
+	return;
+    }
+    *****/
+    dclose( fdtable[old_rhs_idx].fd );  /* RMB: only while above commented */
+    deallocate_fdentry( old_rhs_idx );  /* RMB: only while above commented */
+
+    mpdprintf( 0000, "reknit_ring: checking to see if should notify lhs\n" );
+    if ( lhs_idx >= 0 )
+    {
+	/* send msg to current lhs telling him we need to rebuild the ring */
+	mpdprintf( 0000, "sending first rebuilding message to lhs, lhs_idx=%d fd=%d\n",
+		   lhs_idx, fdtable[lhs_idx].fd );
+	write_line( lhs_idx, "cmd=rebuilding_the_ring\n" );	/* might fail! - RL */ 
+	mpdprintf( 0000, "sent first rebuilding message to lhs, lhs_idx = %d fd=%d\n",
+		   lhs_idx, fdtable[lhs_idx].fd );
+	dclose( fdtable[lhs_idx].fd );
+	deallocate_fdentry( lhs_idx );
+	lhs_idx = -1;
+    }
+    pulse_chkr = 0;  /* useful ? */
+    strcpy( lhshost, orig_lhshost );
+    lhsport = orig_lhsport;
+    if ( amfirst ) {
+	/* reconnect to myself */
+	temp_fd = setup_network_socket( &temp_port );
+	mpdprintf( debug, "reconnecting to self at host=%s port=%d\n", lhshost, temp_port );
+	lhs_idx                  = allocate_fdentry( );
+	fdtable[lhs_idx].read    = 1;
+	fdtable[lhs_idx].write   = 0;
+	fdtable[lhs_idx].handler = LHS;
+	fdtable[lhs_idx].fd      = network_connect( lhshost, temp_port );
+	mpdprintf( debug, "connected to self at host=%s port=%d\n", lhshost, temp_port );
+	fdtable[lhs_idx].portnum = lhsport;
+	strncpy( fdtable[lhs_idx].name, lhshost, MAXSOCKNAMELEN );
+
+        strncpy( rhshost, mynickname, MAXHOSTNMLEN );
+        rhsport = my_listener_port;
+        strncpy( rhs2host, mynickname, MAXHOSTNMLEN );
+        rhs2port = my_listener_port;
+
+	/* Send message to lhs, telling him to treat me as his new rhs */
+	sprintf( out_buf, "dest=%s_%d cmd=new_rhs_req host=%s port=%d version=%d\n",
+		 lhshost, lhsport, mynickname, my_listener_port, MPD_VERSION ); 
+	mpdprintf( debug, "sending test message to self outbuf=:%s:", out_buf );        
+	write_line( lhs_idx, out_buf );
+
+        /* accept connection from self, done in "set up lhs fd" above */
+        rhs_idx                  = allocate_fdentry();
+        fdtable[rhs_idx].read    = 1;
+        fdtable[rhs_idx].write   = 0;
+        fdtable[rhs_idx].handler = RHS;
+        fdtable[rhs_idx].fd      = accept_connection( temp_fd );
+	mpdprintf( debug, "accepted connection from self rhs_idx=%d fd=%d\n",rhs_idx,fdtable[rhs_idx].fd );
+
+        fdtable[rhs_idx].portnum = rhsport;
+        strncpy( fdtable[rhs_idx].name, rhshost, MAXSOCKNAMELEN );
+        read_line( fdtable[rhs_idx].fd, in_buf, MAXLINE );
+	mpdprintf( debug, "received test message from self in_buf=:%s:\n", in_buf );
+        /* check that it worked */
+        if ( strncmp( in_buf, out_buf, strlen( out_buf ) ) ) {
+             mpdprintf( 1, "reknit_ring: initial test message to self failed!\n" );
+             exit( -1 );
+        }
+	generation++;
+	mpdprintf( debug, "first mpd incrementing generation number to %d\n", generation );
+	close(temp_fd);
+    }
+    else {
+	/* connect to my original ring entry point as my new lhs */
+	mpdprintf( debug, "connecting to original lhs\n" );
+	lhs_idx                  = allocate_fdentry();
+	fdtable[lhs_idx].read    = 1;
+	fdtable[lhs_idx].write   = 0;
+	fdtable[lhs_idx].handler = LHS;
+	fdtable[lhs_idx].fd      = network_connect( lhshost, lhsport );
+	fdtable[lhs_idx].portnum = lhsport;
+	strncpy( fdtable[lhs_idx].name, lhshost, MAXSOCKNAMELEN );
+	enter_ring( );  /* enter a new generation of the ring */
+    }
+    mpdprintf( debug, "exiting reknit_ring\n" );
+}
+
+int chg_rhs_to_rhs2( int idx )
 {
     char buf[MAXLINE], parse_buf[MAXLINE], cmd[MAXLINE];
 
+    syslog( LOG_INFO, "connecting around mpd on host %s, port %d", rhshost, rhsport );
     dclose( fdtable[idx].fd );
     mpdprintf( debug,"reconnecting to: %s_%d\n",rhs2host,rhs2port );
     if ( strcmp( rhs2host, mynickname ) == 0 && rhs2port == my_listener_port )
         connecting_to_self_as_lhs = 1;  /* reset in handler */
     fdtable[idx].fd      = network_connect( rhs2host, rhs2port );
+    if ( fdtable[idx].fd == -1 ) {
+        deallocate_fdentry( idx );
+	return( -1 );
+    }
     fdtable[idx].read    = 1;
     fdtable[idx].write   = 0;
     fdtable[idx].handler = RHS;
@@ -695,7 +810,8 @@ void chg_rhs_to_rhs2( int idx )
         sprintf( buf, "src=%s dest=%s_%d cmd=new_lhs_req host=%s port=%d\n",
 	         myid, rhs2host, rhs2port, mynickname, my_listener_port );
         write_line( idx, buf );
-        recv_msg( fdtable[idx].fd, buf, MAXLINE );
+	if ( read_line( fdtable[idx].fd, buf, MAXLINE ) < 0 )
+	    return(-1);
         strcpy( parse_buf, buf );
         mpd_parse_keyvals( parse_buf );
         mpd_getval( "cmd", cmd );
@@ -708,13 +824,15 @@ void chg_rhs_to_rhs2( int idx )
         if ( strcmp( lhshost, rhshost ) != 0  ||  lhsport != rhsport ) {
 	    sprintf( buf, "src=%s dest=%s_%d cmd=rhs2info rhs2host=%s rhs2port=%d\n",
 		     myid, lhshost, lhsport, rhs2host, rhs2port );
-	    write_line( idx, buf );
+	    if ( write_line( idx, buf ) < 0 )
+		return(-1);
         }
         strcpy( rhshost, rhs2host );
         rhsport = rhs2port;
         rhs_idx = idx;
     }
     pulse_chkr = 0;
+    return( 0 );
 }
 
 #ifdef NEED_CRYPT_PROTOTYPE

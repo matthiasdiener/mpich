@@ -1,5 +1,5 @@
 /*
- *  $Id: chcancel.c,v 1.4 2000/07/17 20:46:26 swider Exp $
+ *  $Id: chcancel.c,v 1.5 2001/12/13 23:58:03 ashton Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -36,11 +36,9 @@ int expect_cancel_ack = 0;
    anti-send packet to the calling process's partner.  If successful,
    the error_code will return MPI_SUCCESS, otherwise the error_code will
    return MPI_ERR_OTHER */
-void MPID_SendCancelPacket( request, err_code )
-MPI_Request *request;
-int         *err_code;
-
-{  /* begin MPID_SendCancelPacket */
+void MPID_SendCancelPacket( MPI_Request *request, int *err_code )
+{  
+    /* begin MPID_SendCancelPacket */
 
     MPIR_SHANDLE *shandle = (MPIR_SHANDLE *)*request; 
 
@@ -75,11 +73,9 @@ int         *err_code;
    purpose is to search for the request found in the pkt in the unexpected
    queue.  If found, set the pkt.cancel to 1, otherwise, set pkt.cancel to 
    0.  Send this information back in an anti-send-ok pkt. */
-void MPID_SendCancelOkPacket( in_pkt, from )
-void *in_pkt;
-int  from;
-
-{  /* begin MPID_SendCancelOkPacket */
+void MPID_SendCancelOkPacket( void *in_pkt, int from )
+{  
+    /* begin MPID_SendCancelOkPacket */
 
   MPID_PKT_ANTI_SEND_T *pkt = (MPID_PKT_ANTI_SEND_T *)in_pkt;
 #ifdef MPID_USE_SHMEM
@@ -158,11 +154,9 @@ int  from;
 /* This routine is called when a process receives an anti-send-ok packet.
    If pkt->cancel = 1, then set the request found in the pkt as
    cancelled and complete.  If pkt->cancel = 0, do nothing. */
-void MPID_RecvCancelOkPacket( in_pkt, from )
-void *in_pkt;
-int  from;
-
-{  /* begin MPID_RecvCancelOkPacket */
+void MPID_RecvCancelOkPacket( void *in_pkt, int from )
+{  
+    /* begin MPID_RecvCancelOkPacket */
 
    MPID_PKT_ANTI_SEND_T *pkt = (MPID_PKT_ANTI_SEND_T *)in_pkt;
 
@@ -200,10 +194,9 @@ int  from;
 
 /* This routine will block while a process is still expecting an ack from
    a cancel request.  Called by MPID_CH_End */
-void MPID_FinishCancelPackets( dev )
-MPID_Device *dev;
-
-{  /* begin MPID_FinishCancelPackets */
+void MPID_FinishCancelPackets( MPID_Device *dev )
+{  
+    /* begin MPID_FinishCancelPackets */
 
     DEBUG_PRINT_MSG("Entering MPID_FinishCancelPackets");
     DEBUG_PRINT_MSG("Entering while expect_cancel_ack > 0");

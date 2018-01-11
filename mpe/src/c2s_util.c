@@ -562,7 +562,9 @@ int init_SLOG (long num_frames, long frame_size, char *slog_file ) {
     this is of no use and should be taken out whenever the
     dependency on the file "SLOG_Preview.txt"  gets removed
   */
+#ifndef HAVE_WINDOWS_H
   SLOG_SetPreviewName(slog,SLOG_PREVIEW_NAME);
+#endif
 
   /*
     initializing slog tread table, profiling and record definition table.

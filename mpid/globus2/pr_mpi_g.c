@@ -3,6 +3,7 @@
 
 #if defined(VMPI)
 
+
 /* 
  * THIS MUST BE THE VENDOR'S mpi.h ... NOT MPICH's, 
  * so we must make sure that this file is compiled WITHOUT MPICH's -I path.

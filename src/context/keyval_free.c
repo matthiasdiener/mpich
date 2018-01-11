@@ -1,5 +1,5 @@
 /*
- *  $Id: keyval_free.c,v 1.7 1999/08/30 15:43:39 swider Exp $
+ *  $Id: keyval_free.c,v 1.8 2001/11/14 19:54:27 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -47,7 +47,7 @@ Key values are global (they can be used with any and all communicators)
 
 .seealso: MPI_Keyval_create
 @*/
-EXPORT_MPI_API int MPI_Keyval_free ( int *keyval )
+int MPI_Keyval_free ( int *keyval )
 {
   int mpi_errno = MPI_SUCCESS;
   MPIR_Attr_key *attr_key;

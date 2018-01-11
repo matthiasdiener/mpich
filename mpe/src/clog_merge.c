@@ -1,6 +1,9 @@
 #include "mpeconf.h"
 
 #include <fcntl.h>
+#ifdef HAVE_WINDOWS_H
+#include <io.h>
+#endif
 #if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
 #include <stdlib.h>
 #endif
@@ -185,19 +188,19 @@ Output parameters
 -  rchild - right child in binary tree (or -1 if none)
 
 @*/
-void CLOG_treesetup( self, nprocs, parent, lchild, rchild)
-int self, nprocs, *parent, *lchild, *rchild;
+void CLOG_treesetup( self, numprocs, myparent, mylchild, myrchild)
+int self, numprocs, *myparent, *mylchild, *myrchild;
 {
     if (self == 0)
-	*parent = -1;
+	*myparent = -1;
     else
-	*parent = (self - 1) / 2;
+	*myparent = (self - 1) / 2;
 
-    if ((*lchild = (2 * self) + 1) > nprocs - 1)
-	*lchild = -1;
+    if ((*mylchild = (2 * self) + 1) > numprocs - 1)
+	*mylchild = -1;
 
-    if ((*rchild = (2 * self) + 2) > nprocs - 1)
-	*rchild = -1;
+    if ((*myrchild = (2 * self) + 2) > numprocs - 1)
+	*myrchild = -1;
 }
 
 
@@ -561,11 +564,11 @@ double diffs[];
 void CLOG_printdiffs( diffs )
 double diffs[];
 {
-    int i, numprocs, me;
+    int i, numprocs, self;
 
     PMPI_Comm_size(MPI_COMM_WORLD, &numprocs);
-    PMPI_Comm_rank(MPI_COMM_WORLD, &me);
-    printf("[%d] time shift array:  ", me);
+    PMPI_Comm_rank(MPI_COMM_WORLD, &self);
+    printf("[%d] time shift array:  ", self);
     for (i = 0; i < numprocs; i++)
 	printf("%f ", diffs[i]);
     printf("\n");

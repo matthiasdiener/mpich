@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_getnthf.c,v 1.3 2001/04/19 20:50:47 gropp Exp $    
+ *   $Id: info_getnthf.c,v 1.6 2001/12/12 23:36:42 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,16 +19,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_INFO_GET_NTHKEY = PMPI_INFO_GET_NTHKEY
-EXPORT_MPI_API void MPI_INFO_GET_NTHKEY (MPI_Fint *, MPI_Fint *, char *, MPI_Fint *, MPI_Fint);
+void MPI_INFO_GET_NTHKEY (MPI_Fint *, MPI_Fint *, char *, MPI_Fint *, MPI_Fint);
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_info_get_nthkey__ = pmpi_info_get_nthkey__
-EXPORT_MPI_API void mpi_info_get_nthkey__ (MPI_Fint *, MPI_Fint *, char *, MPI_Fint *, MPI_Fint);
+void mpi_info_get_nthkey__ (MPI_Fint *, MPI_Fint *, char *, MPI_Fint *, MPI_Fint);
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_info_get_nthkey = pmpi_info_get_nthkey
-EXPORT_MPI_API void mpi_info_get_nthkey (MPI_Fint *, MPI_Fint *, char *, MPI_Fint *, MPI_Fint);
+void mpi_info_get_nthkey (MPI_Fint *, MPI_Fint *, char *, MPI_Fint *, MPI_Fint);
 #else
 #pragma weak mpi_info_get_nthkey_ = pmpi_info_get_nthkey_
-EXPORT_MPI_API void mpi_info_get_nthkey_ (MPI_Fint *, MPI_Fint *, char *, MPI_Fint *, MPI_Fint);
+void mpi_info_get_nthkey_ (MPI_Fint *, MPI_Fint *, char *, MPI_Fint *, MPI_Fint);
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -86,12 +86,22 @@ EXPORT_MPI_API void mpi_info_get_nthkey_ (MPI_Fint *, MPI_Fint *, char *, MPI_Fi
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_info_get_nthkey_ (MPI_Fint *, MPI_Fint *, char *, 
+/*
+FORTRAN_API void FORT_CALL mpi_info_get_nthkey_ (MPI_Fint *, MPI_Fint *, char *, 
 				     MPI_Fint *, MPI_Fint);
+*/
+/* Definitions of Fortran Wrapper routines */
+/*
+FORTRAN_API void FORT_CALL mpi_info_get_nthkey_(MPI_Fint *info, MPI_Fint *n, char *key, 
+			  MPI_Fint *__ierr, MPI_Fint keylen)
+*/
+/* Prototype to suppress warnings about missing prototypes */
+FORTRAN_API void FORT_CALL mpi_info_get_nthkey_ (MPI_Fint *, MPI_Fint *, char * FORT_MIXED_LEN_DECL, 
+				     MPI_Fint * FORT_END_LEN_DECL);
 
 /* Definitions of Fortran Wrapper routines */
-EXPORT_MPI_API void mpi_info_get_nthkey_(MPI_Fint *info, MPI_Fint *n, char *key, 
-			  MPI_Fint *__ierr, MPI_Fint keylen)
+FORTRAN_API void FORT_CALL mpi_info_get_nthkey_(MPI_Fint *info, MPI_Fint *n, char *key FORT_MIXED_LEN(keylen), 
+			  MPI_Fint *__ierr FORT_END_LEN(keylen))
 {
     MPI_Info info_c;
     int i, tmpkeylen;

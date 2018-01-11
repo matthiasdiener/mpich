@@ -88,6 +88,8 @@ cat <<EOF
             Take the list of possible machines to run on from the
             file <machine-file name>.  This is a list of all available
             machines; use -np <np> to request a specific number of machines.
+    -machinedir <directory>
+            Look for the machine files in the indicated directory
     -np <np>
             specify the number of processors to run on
     -nodes <nodes>
@@ -264,6 +266,10 @@ while [ 1 -le $# ] ; do
 	eval machineFile$narch="$1"
 	shift
 	;;
+    -machinedir)
+        machineDir="$1"
+	shift
+	;;
     -randommachines)
         MPIRUN_RANDOM="yes"
 	export MPIRUN_RANDOM
@@ -425,7 +431,7 @@ echo "mem: Memory requested ($mem MB/node) greater than maximum available ($max_
 	echo "default_device = $default_device"
 	echo "machine	     = $machine"
 	;;
-    -usage|-help|-\?)
+    -usage|--usage|-help|--help|-\?)
       	# Accept these for help until the program name is provided.
       	if [ "$progname" = "" ] ; then
 	   if [ "$hasprinthelp" = "1" ] ; then
@@ -551,6 +557,8 @@ if [ -z "$larch" ] ; then larch=$default_arch ; fi
 # particular filename, since this will fail if the directory is not
 # writable by the user.
 # 
+# Finally, some shells don't allow you to SET!! PWD.  (Mac OS X for one)
+# To get around that, we avoid the name PWD and use PWDreal
 if [ -n "$AUTOMOUNTFIX" ] ; then
     PWDtest=`pwd | $AUTOMOUNTFIX`
     if [ ! -d $PWDtest ] ; then
@@ -563,24 +571,24 @@ if [ -n "$AUTOMOUNTFIX" ] ; then
         if `eval "echo test > $PWDtest2/.mpirtmp$$" 2>/dev/null` ; then
             if [ ! -s $PWDtest/.mpirtmp$$ ] ; then
 	        /bin/rm -f $PWDtest2/.mpirtmp$$
-                PWD=$PWDtest
+                PWDreal=$PWDtest
 	    else
-		PWD=$PWDtest2
+		PWDreal=$PWDtest2
 	    fi
 	else
 	    # Current directory is not writable.  Hope for the best
-            PWD=$PWDtest        
+            PWDreal=$PWDtest        
         fi
         /bin/rm -f $PWDtest/.mpirtmp$$ $PWDtest2/.mpirtmp$$
     else 
-        PWD=$PWDtest
+        PWDreal=$PWDtest
     fi
 else
-    PWD=`pwd`
+    PWDreal=`pwd`
 fi
 #
-if [ -n "$PWD" ] ; then
-    PWD_TRIAL=$PWD
+if [ -n "$PWDreal" ] ; then
+    PWD_TRIAL=$PWDreal
 else
     PWD_TRIAL=$PWDtest
 fi

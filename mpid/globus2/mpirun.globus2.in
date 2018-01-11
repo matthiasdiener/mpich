@@ -37,7 +37,18 @@ createRslJob() {
 	    echo "   (jobtype=mpi)"
 	fi
 	echo "   (label=\"subjob $my_cnt\")"
-        echo "   (environment=(GLOBUS_DUROC_SUBJOB_INDEX $my_subjob_idx))"
+	if [ -z $GLOBUS_LOCATION ]; then
+            #
+            # GLOBUS_LOCATION not defined ==> assuming using pre-globus v2.0
+            #
+            echo "   (environment=(GLOBUS_DUROC_SUBJOB_INDEX $my_subjob_idx))"
+        else
+            #
+            # using globus v2.0 or later which uses shared lib path
+            #
+            echo "   (environment=(GLOBUS_DUROC_SUBJOB_INDEX $my_subjob_idx)"
+            echo "                (LD_LIBRARY_PATH $GLOBUS_LOCATION/lib/))"
+        fi
 #
 # Need to test that $my_cmdLineArgs is non-empty AND that it is
 # not equal to a single space because mpirun.args will set $my_cmdLineArgs

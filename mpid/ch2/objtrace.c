@@ -5,9 +5,9 @@
 FILE *MPIR_Ref_fp = 0;
 int  MPIR_Ref_flags = 0;
 
-void MPIR_Ref_init( flag, filename )
-int flag;
-char *filename;
+void MPIR_Ref_init( 
+	int flag,
+	char *filename)
 {
     MPIR_Ref_flags = flag;
     if (flag) {

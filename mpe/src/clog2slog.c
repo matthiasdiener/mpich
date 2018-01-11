@@ -32,6 +32,10 @@
 #include <unistd.h>
 #endif
 #include "clog2slog.h"
+#ifdef HAVE_WINDOWS_H
+#include <io.h>
+#include "getopt.h"
+#endif
 
 int main (int argc, char **argv) {
 

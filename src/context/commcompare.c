@@ -1,5 +1,5 @@
 /*
- *  $Id: commcompare.c,v 1.8 1999/10/10 20:35:38 gropp Exp $
+ *  $Id: commcompare.c,v 1.9 2001/11/14 19:54:22 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -57,7 +57,7 @@ $(5.4.1. Communicator Accessors)
 .N MPI_SUCCESS
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Comm_compare ( 
+int MPI_Comm_compare ( 
 	MPI_Comm  comm1,
 	MPI_Comm  comm2,
 	int *result)

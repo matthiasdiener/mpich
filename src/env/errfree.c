@@ -1,5 +1,5 @@
 /*
- *  $Id: errfree.c,v 1.7 1999/08/30 15:45:31 swider Exp $
+ *  $Id: errfree.c,v 1.8 2001/11/14 19:56:38 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -41,7 +41,7 @@ exit.
 .N MPI_SUCCESS
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Errhandler_free( MPI_Errhandler *errhandler )
+int MPI_Errhandler_free( MPI_Errhandler *errhandler )
 {
     struct MPIR_Errhandler *old;
     static char myname[] = "MPI_ERRHANDLER_FREE";

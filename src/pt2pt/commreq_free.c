@@ -1,5 +1,5 @@
 /*
- *  $Id: commreq_free.c,v 1.8 1999/08/30 15:48:46 swider Exp $
+ *  $Id: commreq_free.c,v 1.9 2001/11/14 20:09:56 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -56,7 +56,7 @@ MPI_Recv_init, MPI_Send_init, MPI_Ssend_init, MPI_Rsend_init, MPI_Wait,
 MPI_Test, MPI_Waitall, MPI_Waitany, MPI_Waitsome, MPI_Testall, MPI_Testany,
 MPI_Testsome
 @*/
-EXPORT_MPI_API int MPI_Request_free( MPI_Request *request )
+int MPI_Request_free( MPI_Request *request )
 {
     int mpi_errno = MPI_SUCCESS;
     MPI_Request rq;

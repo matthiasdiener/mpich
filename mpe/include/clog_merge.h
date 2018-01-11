@@ -11,13 +11,13 @@
 #define CMERGE_SHIFT        1
 #define CMERGE_NOSHIFT      0
 
-void CLOG_mergelogs ANSI_ARGS(( int, char *, int ));
-void CLOG_treesetup ANSI_ARGS(( int, int, int *, int *, int * ));
-void CLOG_procbuf ANSI_ARGS(( double * ));
-void CLOG_mergend ANSI_ARGS(( void ));
-void CLOG_output ANSI_ARGS(( double * ));
-void CLOG_cput ANSI_ARGS(( double ** ));
-void CLOG_csync ANSI_ARGS(( int, double * ));
-void CLOG_printdiffs ANSI_ARGS(( double * ));
-void CLOG_reinit_buff ANSI_ARGS(( void ));
-void clog2alog ANSI_ARGS(( char * ));
+void CLOG_mergelogs ( int, char *, int );
+void CLOG_treesetup ( int, int, int *, int *, int * );
+void CLOG_procbuf ( double * );
+void CLOG_mergend ( void );
+void CLOG_output ( double * );
+void CLOG_cput ( double ** );
+void CLOG_csync ( int, double * );
+void CLOG_printdiffs ( double * );
+void CLOG_reinit_buff ( void );
+void clog2alog ( char * );

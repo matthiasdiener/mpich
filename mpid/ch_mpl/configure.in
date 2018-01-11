@@ -17,6 +17,6 @@ if test "$MPILIBNAME" = "mpi" ; then
 fi
 # We need to check for gettimeofday in case we are not using the Switch
 # timer
-AC_HAVE_FUNCS(gettimeofday)
+AC_CHECK_FUNCS(gettimeofday)
 
 AC_OUTPUT()

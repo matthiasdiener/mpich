@@ -10,6 +10,11 @@
 #endif
 #include "clogimpl.h"
 #include "mpi.h"
+#ifdef HAVE_WINDOWS_H
+#include <io.h>
+#include <stdlib.h>
+#include <windows.h>
+#endif
 
 void CLOG_nodebuffer2disk( void );
 
@@ -190,7 +195,12 @@ void CLOG_init_tmpfilename( void )
 	if ( env_tmpdir != NULL )
             strcat( tmpdirname_ref, env_tmpdir );
         else
+#ifdef HAVE_WINDOWS_H
+	    if (GetTempPath(CLOG_name_len, tmpdirname_ref) == 0)
+		strcat( tmpdirname_ref, "\\");
+#else
             strcat( tmpdirname_ref, "/tmp" );
+#endif
     }
 
     /*  Let everyone in MPI_COMM_WORLD know  */
@@ -223,7 +233,11 @@ void CLOG_init_tmpfilename( void )
     strcat( CLOG_tmpfilename, tmpfilename );
 
     /*  Make the filename unique ( optional ) */
+#ifdef HAVE_MKSTEMP
+    mkstemp( CLOG_tmpfilename );
+#else
     mktemp( CLOG_tmpfilename );
+#endif
 }
     
     

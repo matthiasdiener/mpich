@@ -35,9 +35,9 @@ void TR_stack_init( int flag )
 }
 
 /* Generate a stack trace */
-void TR_stack_print( fp, dir )
-FILE *fp;
-int  dir;
+void TR_stack_print( 
+	FILE *fp, 
+	int dir )
 {
     int i;
 

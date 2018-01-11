@@ -3,8 +3,13 @@
 #ifdef HAVE_SLOGCONF_H
 #include "slog_config.h"
 #endif
+#ifdef HAVE_SLOG_WINCONFIG_H
+#include "slog_winconfig.h"
+#endif
 #if defined( HAVE_ALLOCA_H )
 #include <alloca.h>
+#elif defined( HAVE_MALLOC_H )
+#include <malloc.h>
 #else
 #if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
 #include <stdlib.h>
@@ -46,8 +51,8 @@ void bswp_byteswap( const bswp_uint32_t   Nelem,
     int ii, jj;
 
     bptr = bytes;
-    for ( jj = 0; jj < Nelem; jj++ ) {
-         for ( ii = 0; ii < elem_sz/2; ii++ ) {
+    for ( jj = 0; jj < (int)Nelem; jj++ ) {
+         for ( ii = 0; ii < (int)elem_sz/2; ii++ ) {
              end_ii          = elem_sz - 1 - ii;
              btmp            = bptr[ ii ];
              bptr[ ii ]      = bptr[ end_ii ];

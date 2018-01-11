@@ -9,16 +9,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_COMM_SPLIT = PMPI_COMM_SPLIT
-EXPORT_MPI_API void MPI_COMM_SPLIT ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_COMM_SPLIT ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_comm_split__ = pmpi_comm_split__
-EXPORT_MPI_API void mpi_comm_split__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_comm_split__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_comm_split = pmpi_comm_split
-EXPORT_MPI_API void mpi_comm_split ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_comm_split ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_comm_split_ = pmpi_comm_split_
-EXPORT_MPI_API void mpi_comm_split_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_comm_split_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -76,10 +76,10 @@ EXPORT_MPI_API void mpi_comm_split_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fi
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_comm_split_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_comm_split_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                  MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_comm_split_ ( MPI_Fint *comm, MPI_Fint *color, MPI_Fint *key, MPI_Fint *comm_out, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_comm_split_ ( MPI_Fint *comm, MPI_Fint *color, MPI_Fint *key, MPI_Fint *comm_out, MPI_Fint *__ierr )
 {
     MPI_Comm l_comm_out;
 

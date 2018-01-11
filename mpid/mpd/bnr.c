@@ -14,7 +14,7 @@ void bnr_deallocate_group( BNR_Group * );
 int bnr_man_msgs_fd;
 extern void (*MPD_user_peer_msg_handler)(char *);
 
-extern int MPD_global_fence_flag;
+volatile extern int MPD_global_fence_flag;
 
 #define BNR_MAX_GROUPS 256
 

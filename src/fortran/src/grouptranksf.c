@@ -11,16 +11,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_GROUP_TRANSLATE_RANKS = PMPI_GROUP_TRANSLATE_RANKS
-EXPORT_MPI_API void MPI_GROUP_TRANSLATE_RANKS ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_GROUP_TRANSLATE_RANKS ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_group_translate_ranks__ = pmpi_group_translate_ranks__
-EXPORT_MPI_API void mpi_group_translate_ranks__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_group_translate_ranks__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_group_translate_ranks = pmpi_group_translate_ranks
-EXPORT_MPI_API void mpi_group_translate_ranks ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_group_translate_ranks ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_group_translate_ranks_ = pmpi_group_translate_ranks_
-EXPORT_MPI_API void mpi_group_translate_ranks_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_group_translate_ranks_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -78,11 +78,11 @@ EXPORT_MPI_API void mpi_group_translate_ranks_ ( MPI_Fint *, MPI_Fint *, MPI_Fin
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_group_translate_ranks_ ( MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_group_translate_ranks_ ( MPI_Fint *, MPI_Fint *, 
                                             MPI_Fint *, MPI_Fint *, 
                                             MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_group_translate_ranks_ ( MPI_Fint *group_a, 
+FORTRAN_API void FORT_CALL mpi_group_translate_ranks_ ( MPI_Fint *group_a, 
      MPI_Fint *n, MPI_Fint *ranks_a, MPI_Fint *group_b, MPI_Fint *ranks_b,
 				  MPI_Fint *__ierr )
 {

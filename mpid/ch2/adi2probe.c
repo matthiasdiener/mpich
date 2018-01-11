@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2probe.c,v 1.2 2000/07/17 20:43:50 swider Exp $
+ *  $Id: adi2probe.c,v 1.3 2001/11/12 23:06:50 ashton Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -10,11 +10,14 @@
 #include "mpid_debug.h"
 #include "../util/queue.h"
 
-void MPID_Iprobe( comm_ptr, tag, context_id, src_lrank, found, error_code, 
-		  status )
-struct MPIR_COMMUNICATOR *comm_ptr;
-int        tag, context_id, src_lrank, *found, *error_code;
-MPI_Status *status;
+void MPID_Iprobe( 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	int tag, 
+	int context_id, 
+	int src_lrank, 
+	int *found, 
+	int *error_code, 
+	MPI_Status *status )
 {
     MPIR_RHANDLE *rhandle;
 
@@ -42,10 +45,13 @@ MPI_Status *status;
     DEBUG_PRINT_MSG("Exiting Iprobe");
 }
 
-void MPID_Probe( comm_ptr, tag, context_id, src_lrank, error_code, status )
-struct MPIR_COMMUNICATOR *comm_ptr;
-int        tag, src_lrank, context_id, *error_code;
-MPI_Status *status;
+void MPID_Probe( 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	int tag, 
+	int context_id, 
+	int src_lrank, 
+	int *error_code, 
+	MPI_Status *status )
 {
     int found;
 

@@ -1,5 +1,5 @@
 /*
- *  $Id: ic_create.c,v 1.13 2001/08/14 14:43:42 lacour Exp $
+ *  $Id: ic_create.c,v 1.14 2001/11/14 19:54:27 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -89,7 +89,7 @@ Algorithm:
 .seealso: MPI_Intercomm_merge, MPI_Comm_free, MPI_Comm_remote_group, 
           MPI_Comm_remote_size
 @*/
-EXPORT_MPI_API int MPI_Intercomm_create ( MPI_Comm local_comm, int local_leader, 
+int MPI_Intercomm_create ( MPI_Comm local_comm, int local_leader, 
 			   MPI_Comm peer_comm, int remote_leader, int tag, 
 			   MPI_Comm *comm_out )
 {

@@ -1,4 +1,4 @@
-/* $Id: basex11.h,v 1.1 2000/06/14 06:16:44 chan Exp $ */
+/* $Id: basex11.h,v 1.2 2001/10/19 22:01:11 gropp Exp $ */
 
 
 /*
@@ -97,69 +97,59 @@ if (xbwin->gc.cur_pix != pixval) { \
 #define ERR_ILLEGAL_SIZE         0x10004
 
 /* Routines */
-#ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus)
-#define ANSI_ARGS(a) a
-#else
-#define ANSI_ARGS(a) ()
-#endif
-#endif
 
-extern PixVal    XBGetColor ANSI_ARGS((XBWindow *, char *, int));
+extern PixVal    XBGetColor (XBWindow *, char *, int);
 
 /* xwmap */
-extern int XB_wait_map ANSI_ARGS(( XBWindow *, 
-			       void (*)( XBWindow *, int, int, int, int ) ));
-extern void XBSync ANSI_ARGS(( XBWindow * ));
+extern int XB_wait_map ( XBWindow *, 
+			       void (*)( XBWindow *, int, int, int, int ) );
+extern void XBSync ( XBWindow * );
 
 /* xinit */
-extern XBWindow *XBWinCreate ANSI_ARGS((void));
-extern void      XBWinDestroy ANSI_ARGS((XBWindow *));
-extern int XBOpenDisplay ANSI_ARGS(( XBWindow *, char * ));
-extern int XBSetVisual   ANSI_ARGS(( XBWindow *, int, Colormap, int ));
-extern int XBSetGC       ANSI_ARGS(( XBWindow *, PixVal ));
-extern int XBOpenWindow  ANSI_ARGS(( XBWindow * ));
-extern int XBDisplayWindow ANSI_ARGS(( XBWindow *, char *, int, int, int, int,
-				       PixVal ));
-extern void XBGetArgs    ANSI_ARGS(( int *, char **, int, int *, int *, 
-				     int *, int * ));
-extern void XBGetArgsDisplay ANSI_ARGS(( int *, char **, int, int, char * ));
-extern int XBiQuickWindow ANSI_ARGS(( XBWindow *, char *, char *, 
-				      int, int, int, int, int ));
-extern int XBQuickWindow ANSI_ARGS((XBWindow *, char *, char *, 
-				    int,int,int,int));
-extern int XBQuickWindowFromWindow ANSI_ARGS(( XBWindow *, char *, Window ));
-extern void XBFlush      ANSI_ARGS(( XBWindow * ));
-extern void XBSetWindowLabel ANSI_ARGS(( XBWindow *, char * ));
-extern void XBCaptureWindowToFile ANSI_ARGS(( XBWindow *, char * ));
+extern XBWindow *XBWinCreate (void);
+extern void      XBWinDestroy (XBWindow *);
+extern int XBOpenDisplay ( XBWindow *, char * );
+extern int XBSetVisual   ( XBWindow *, int, Colormap, int );
+extern int XBSetGC       ( XBWindow *, PixVal );
+extern int XBOpenWindow  ( XBWindow * );
+extern int XBDisplayWindow ( XBWindow *, char *, int, int, int, int, PixVal );
+extern void XBGetArgs    ( int *, char **, int, int *, int *, int *, int * );
+extern void XBGetArgsDisplay ( int *, char **, int, int, char * );
+extern int XBiQuickWindow ( XBWindow *, char *, char *, 
+				      int, int, int, int, int );
+extern int XBQuickWindow (XBWindow *, char *, char *, 
+				    int,int,int,int);
+extern int XBQuickWindowFromWindow ( XBWindow *, char *, Window );
+extern void XBFlush      ( XBWindow * );
+extern void XBSetWindowLabel ( XBWindow *, char * );
+extern void XBCaptureWindowToFile ( XBWindow *, char * );
 
 /* xframe */
-extern int XBFrameColors ANSI_ARGS(( XBWindow *, XBDecoration *, 
-				     char *, char * ));
-extern int XBDrawFrame ANSI_ARGS(( XBWindow *, XBDecoration * ));
-extern void XBClearWindow ANSI_ARGS(( XBWindow *, int, int, int, int ));
-extern void XBFrameColorsByName ANSI_ARGS(( XBWindow *, char *, char * ));
+extern int XBFrameColors ( XBWindow *, XBDecoration *, char *, char * );
+extern int XBDrawFrame ( XBWindow *, XBDecoration * );
+extern void XBClearWindow ( XBWindow *, int, int, int, int );
+extern void XBFrameColorsByName ( XBWindow *, char *, char * );
 
 /* xcolor */
-extern void XBInitColors ANSI_ARGS(( XBWindow *, Colormap, int ));
-extern int XBInitCmap    ANSI_ARGS(( XBWindow * ));
-extern int XBCmap        ANSI_ARGS(( unsigned char [], unsigned char [],
-				     unsigned char [], int, XBWindow * ));
-extern int XBSetVisualClass ANSI_ARGS(( XBWindow * ));
-extern int XBGetVisualClass ANSI_ARGS(( XBWindow * ));
-extern Colormap XBCreateColormap ANSI_ARGS(( Display *, int, Visual * ));
-extern int XBSetColormap ANSI_ARGS(( XBWindow * ));
-extern int XBAllocBW     ANSI_ARGS(( XBWindow *, PixVal *, PixVal * ));
-extern int XBGetBaseColor ANSI_ARGS(( XBWindow *, PixVal *, PixVal * ));
-extern int XBSetGamma     ANSI_ARGS(( double ));
-extern int XBSetCmapHue   ANSI_ARGS(( unsigned char *, unsigned char *,
-				      unsigned char *, int ));
-extern int XBFindColor    ANSI_ARGS(( XBWindow *, char *, PixVal * ));
-extern int XBAddCmap      ANSI_ARGS(( unsigned char [], unsigned char [],
-				      unsigned char [], int, XBWindow * ));
-extern PixVal XBGetColor  ANSI_ARGS(( XBWindow *, char *, int ));
-extern PixVal XBSimColor  ANSI_ARGS(( XBWindow *, PixVal, int, int ));
-extern void XBUniformHues ANSI_ARGS(( XBWindow *, int ));
-extern void XBSetCmapLight ANSI_ARGS(( unsigned char *, unsigned char *,
-				       unsigned char *, int ));
+extern void XBInitColors ( XBWindow *, Colormap, int );
+extern int XBInitCmap    ( XBWindow * );
+extern int XBCmap        ( unsigned char [], unsigned char [],
+				     unsigned char [], int, XBWindow * );
+extern int XBSetVisualClass ( XBWindow * );
+extern int XBGetVisualClass ( XBWindow * );
+extern Colormap XBCreateColormap ( Display *, int, Visual * );
+extern int XBSetColormap ( XBWindow * );
+extern int XBAllocBW     ( XBWindow *, PixVal *, PixVal * );
+extern int XBGetBaseColor ( XBWindow *, PixVal *, PixVal * );
+extern int XBSetGamma     ( double );
+extern int XBSetCmapHue   ( unsigned char *, unsigned char *,
+				      unsigned char *, int );
+extern int XBFindColor    ( XBWindow *, char *, PixVal * );
+extern int XBAddCmap      ( unsigned char [], unsigned char [],
+				      unsigned char [], int, XBWindow * );
+extern PixVal XBGetColor  ( XBWindow *, char *, int );
+extern PixVal XBSimColor  ( XBWindow *, PixVal, int, int );
+extern void XBUniformHues ( XBWindow *, int );
+extern void XBSetCmapLight ( unsigned char *, unsigned char *,
+				       unsigned char *, int );
 #endif

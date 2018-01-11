@@ -1,5 +1,5 @@
 /*
- *  $Id: type_contig.c,v 1.8 2000/08/10 22:15:35 toonen Exp $
+ *  $Id: type_contig.c,v 1.9 2001/11/14 20:10:06 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -49,7 +49,7 @@ Output Parameter:
 .N MPI_ERR_COUNT
 .N MPI_ERR_EXHAUSTED
 @*/
-EXPORT_MPI_API int MPI_Type_contiguous( 
+int MPI_Type_contiguous( 
 	int count,
 	MPI_Datatype old_type,
 	MPI_Datatype *newtype)

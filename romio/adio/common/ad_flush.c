@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_flush.c,v 1.4 2000/02/09 21:30:05 thakur Exp $    
+ *   $Id: ad_flush.c,v 1.8 2002/01/04 14:35:27 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -7,15 +7,17 @@
 
 #include "adio.h"
 
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
 void ADIOI_GEN_Flush(ADIO_File fd, int *error_code)
 {
     int err;
 #ifndef PRINT_ERR_MSG
     static char myname[] = "ADIOI_GEN_FLUSH";
 #endif
-
     err = fsync(fd->fd_sys);
-
 #ifdef PRINT_ERR_MSG
     *error_code = (err == 0) ? MPI_SUCCESS : MPI_ERR_UNKNOWN;
 #else

@@ -21,22 +21,11 @@ typedef struct xpand_list_String_ {
   int size;
 } xpand_list_String;
 
-/* I got this trick from the Tcl implementation */
-#ifdef _ANSI_ARGS_
-#undef _ANSI_ARGS_
-#endif
+xpand_list_Strings *Strings_CreateList (int initialLen);
 
-#ifdef __STDC__
-#define _ANSI_ARGS_(x) x
-#else
-#define _ANSI_ARGS_(x) ()
-#endif
+xpand_list_String *String_CreateList (int initialLen);
 
-xpand_list_Strings *Strings_CreateList _ANSI_ARGS_((int initialLen));
-
-xpand_list_String *String_CreateList _ANSI_ARGS_((int initialLen));
-
-xpand_list_Int *Int_CreateList _ANSI_ARGS_((int initialLen));
+xpand_list_Int *Int_CreateList (int initialLen);
 
 #define ListItem( listPtr, idx ) ( (listPtr)->list[(idx)] )
 

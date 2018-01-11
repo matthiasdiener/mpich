@@ -1,5 +1,5 @@
 /*
- *  $Id: barrier.c,v 1.5 1999/08/30 15:41:37 swider Exp $
+ *  $Id: barrier.c,v 1.6 2001/11/14 19:50:11 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -51,7 +51,7 @@ communicator.  We can modifiy this to use "blocks" at a later time
 .N MPI_SUCCESS
 .N MPI_ERR_COMM
 @*/
-EXPORT_MPI_API int MPI_Barrier ( 
+int MPI_Barrier ( 
 	MPI_Comm comm )
 {
   int        mpi_errno = MPI_SUCCESS;

@@ -48,6 +48,10 @@ extern char *sys_errlist[];
 
 #include "p4_globals.h"
 
+#ifndef MAX_P4_CONN_BACKLOG
+#define MAX_P4_CONN_BACKLOG 32
+#endif
+
 #ifdef P4_WITH_MPD
 #include "bnr.h"    /* BNR interface to mpd */
 #endif

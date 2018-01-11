@@ -1,5 +1,5 @@
 /*
- *  $Id: red_scat.c,v 1.7 1999/08/30 15:41:49 swider Exp $
+ *  $Id: red_scat.c,v 1.8 2001/11/14 19:50:13 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -57,7 +57,7 @@ Output Parameter:
 .N MPI_ERR_OP
 .N MPI_ERR_BUFFER_ALIAS
 @*/
-EXPORT_MPI_API int MPI_Reduce_scatter ( void *sendbuf, void *recvbuf, int *recvcnts, 
+int MPI_Reduce_scatter ( void *sendbuf, void *recvbuf, int *recvcnts, 
 			 MPI_Datatype datatype, MPI_Op op, MPI_Comm comm )
 {
   int   mpi_errno = MPI_SUCCESS;

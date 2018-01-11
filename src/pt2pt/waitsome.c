@@ -1,5 +1,5 @@
 /*
- *  $Id: waitsome.c,v 1.11 2001/04/04 15:16:34 gropp Exp $
+ *  $Id: waitsome.c,v 1.12 2001/11/14 20:10:11 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -59,7 +59,7 @@ returns with 'outcount' set to 'MPI_UNDEFINED'.
 .N MPI_ERR_ARG
 .N MPI_ERR_IN_STATUS
 @*/
-EXPORT_MPI_API int MPI_Waitsome( 
+int MPI_Waitsome( 
 	int incount, 
 	MPI_Request array_of_requests[], 
 	int *outcount, 

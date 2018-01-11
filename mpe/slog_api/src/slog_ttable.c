@@ -3,6 +3,9 @@
 #ifdef HAVE_SLOGCONF_H
 #include "slog_config.h"
 #endif
+#ifdef HAVE_SLOG_WINCONFIG_H
+#include "slog_winconfig.h"
+#endif
 #if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
 #include <stdlib.h>
 #endif
@@ -24,7 +27,7 @@ int SLOG_TTAB_IsDuplicated( const SLOG_threadinfo_table_t  *ttable,
     int                 ii;
     int                 NotMatched = 1;
 
-    for ( ii = 0; NotMatched && (ii < ttable->Nentries); ii++ ) {
+    for ( ii = 0; NotMatched && (ii < (int)ttable->Nentries); ii++ ) {
         cur_thread = &( ttable->entries[ ii ] );
         NotMatched = ! SLOG_ThInfo_IsKeyEqualTo( cur_thread, in_thread );
     }
@@ -205,7 +208,7 @@ int SLOG_TTAB_Close( SLOG_STREAM  *slog )
         fflush( errfile );
         return SLOG_FAIL;
     }
-    for ( ii = 0; ii < ttable->Nentries; ii++ ) {
+    for ( ii = 0; ii < (int)ttable->Nentries; ii++ ) {
         ierr = SLOG_ThInfo_WriteToFile( &( ttable->entries[ ii ] ),
                                         slog->fd );
         if ( ierr != SLOG_TRUE ) {
@@ -297,7 +300,7 @@ int SLOG_TTAB_ReadThreadInfos( SLOG_STREAM  *slog )
         return SLOG_FAIL;
     }
 
-    for ( ii = 0; ii < ttable->Nentries; ii++ ) {
+    for ( ii = 0; ii < (int)ttable->Nentries; ii++ ) {
         ierr = SLOG_ThInfo_ReadFromFile( &( ttable->entries[ ii ] ),
                                          slog->fd );
         if ( ierr != SLOG_TRUE ) {
@@ -319,7 +322,7 @@ void SLOG_TTAB_Print( FILE* fd, const SLOG_threadinfo_table_t *ttable )
 {
     int                         ii;
 
-    for ( ii = 0; ii < ttable->Nentries; ii++ ) {
+    for ( ii = 0; ii < (int)ttable->Nentries; ii++ ) {
         fprintf( fd, " threadinfo[%i] = ", ii );
         SLOG_ThInfo_Print( &( ttable->entries[ ii ] ), fd );
         fprintf( fd, "\n" );

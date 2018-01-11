@@ -1,5 +1,5 @@
 /*
- *  $Id: sendrecv.c,v 1.7 1999/08/30 15:49:22 swider Exp $
+ *  $Id: sendrecv.c,v 1.8 2001/11/14 20:10:02 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -56,7 +56,7 @@ Output Parameters:
 .N MPI_ERR_RANK
 
 @*/
-EXPORT_MPI_API int MPI_Sendrecv( void *sendbuf, int sendcount, MPI_Datatype sendtype, 
+int MPI_Sendrecv( void *sendbuf, int sendcount, MPI_Datatype sendtype, 
 		  int dest, int sendtag, 
                   void *recvbuf, int recvcount, MPI_Datatype recvtype, 
 		  int source, int recvtag, MPI_Comm comm, MPI_Status *status )

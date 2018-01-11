@@ -1,5 +1,5 @@
 /*
- *  $Id: sbcnst2.c,v 1.5 1999/11/04 23:02:11 gropp Exp $
+ *  $Id: sbcnst2.c,v 1.7 2001/11/12 23:34:10 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -106,10 +106,12 @@ struct _MPID_SBHeader {
             sizeincr;            /* # of blocks to allocate when more needed */
     };
 
-void MPID_SBiAllocate ANSI_ARGS(( MPID_SBHeader, int, int ));
+void MPID_SBiAllocate ( MPID_SBHeader, int, int );
 
-MPID_SBHeader MPID_SBinit( bsize, nb, nbincr )
-int bsize, nb, nbincr;
+MPID_SBHeader MPID_SBinit( 
+	int bsize, 
+	int nb, 
+	int nbincr )
 {
 MPID_SBHeader head;
 
@@ -145,9 +147,9 @@ return head;
 
     This just adds to the headers free list.
  */    
-void MPID_SBfree( sb, ptr )
-MPID_SBHeader sb;
-void          *ptr;
+void MPID_SBfree( 
+	MPID_SBHeader sb, 
+	void          *ptr)
 {
     MPID_THREAD_DS_LOCK(sb)
 #ifdef DEBUG1
@@ -171,9 +173,10 @@ void          *ptr;
 /*
     Internal routine to allocate space
  */
-void MPID_SBiAllocate( sb, bsize, nb )
-MPID_SBHeader sb;
-int           bsize, nb;
+void MPID_SBiAllocate( 
+	MPID_SBHeader sb, 
+	int bsize, 
+	int nb )
 {
     char          *p, *p2;
     int           i, headeroffset, n;
@@ -195,7 +198,7 @@ if (!p) {
 n = bsize * nb + headeroffset;
 #ifdef DEBUG
 for (i=0; i<n; i++) 
-    p[i] = 0xea;
+    p[i] = (char)0xea;
 #endif
 
 header          = (MPID_SBiAlloc *)p;
@@ -234,8 +237,8 @@ sb->nbfree += nb;
     Returns:
     Address of new block.  Allocates more blocks if required.
  */
-void *MPID_SBalloc( sb )
-MPID_SBHeader sb;
+void *MPID_SBalloc( 
+	MPID_SBHeader sb)
 {
 MPID_SBblock *p;
 
@@ -279,9 +282,9 @@ sb->nbfree--;
     is available for a new object (e.g., a sparse matrix), reusing any
     available blocks.
  */
-void MPID_SBPrealloc( sb, nb )
-MPID_SBHeader sb;
-int           nb;
+void MPID_SBPrealloc( 
+	MPID_SBHeader sb,
+	int           nb)
 {
 if (sb->nbfree < nb) {
     MPID_SBiAllocate( sb, sb->sizeb, nb - sb->nbfree );
@@ -292,8 +295,8 @@ if (sb->nbfree < nb) {
     MPID_SBdestroy - Destroy a fixed-block allocation context
 
  */
-void MPID_SBdestroy( sb )
-MPID_SBHeader sb;
+void MPID_SBdestroy( 
+	MPID_SBHeader sb)
 {
 MPID_SBiAlloc *p, *pn;
 
@@ -309,9 +312,9 @@ FREE( sb );
 }
 
 /* Decrement the use count for the block containing p */
-void MPID_SBrelease( sb, ptr )
-MPID_SBHeader sb;
-void          *ptr;
+void MPID_SBrelease( 
+	MPID_SBHeader sb,
+	void          *ptr)
 {
 char *p = (char *)ptr;
 MPID_SBiAlloc *b;
@@ -333,8 +336,8 @@ MPID_THREAD_DS_UNLOCK(sb)
 }
 
 /* Release any unused chuncks */
-void MPID_SBFlush( sb )
-MPID_SBHeader sb;
+void MPID_SBFlush( 
+	MPID_SBHeader sb)
 {
 MPID_SBiAlloc *b, *bnext, *bprev = 0;
 
@@ -356,9 +359,9 @@ MPID_THREAD_DS_UNLOCK(sb)
 }
 
 /* Print the allocated blocks */
-void MPID_SBDump( fp, sb )
-FILE          *fp;
-MPID_SBHeader sb;
+void MPID_SBDump( 
+	FILE          *fp,
+	MPID_SBHeader sb)
 {
 MPID_SBiAlloc *b = sb->blocks;
 
@@ -369,8 +372,8 @@ while (b) {
     }
 }
 
-void MPID_SBReleaseAvail( sb )
-MPID_SBHeader sb;
+void MPID_SBReleaseAvail( 
+	MPID_SBHeader sb)
 {
 MPID_SBblock *p, *pnext;
 	
@@ -388,8 +391,8 @@ MPID_THREAD_DS_UNLOCK(sb)
 
 #ifdef DEBUG
 /* Check that the sb space remains valid ... */
-void MPID_SBvalid( sb )
-MPID_SBHeader sb;
+void MPID_SBvalid( 
+	MPID_SBHeader sb)
 {
 MPID_SBblock *p;
 	

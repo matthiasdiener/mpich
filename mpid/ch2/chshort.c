@@ -1,5 +1,5 @@
 /*
- *  $Id: chshort.c,v 1.9 2001/07/06 19:25:24 gropp Exp $
+ *
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -25,11 +25,14 @@ void MPID_CH_Eagerb_short_delete ( MPID_Protocol * );
  * Definitions of the actual functions
  */
 
-int MPID_CH_Eagerb_send_short( buf, len, src_lrank, tag, context_id, dest,
-			       msgrep )
-void          *buf;
-int           len, tag, context_id, src_lrank, dest;
-MPID_Msgrep_t msgrep;
+int MPID_CH_Eagerb_send_short( 
+	void *buf, 
+	int len, 
+	int src_lrank, 
+	int tag, 
+	int context_id, 
+	int dest,
+	MPID_Msgrep_t msgrep )
 {
     int pkt_len;
     MPID_PKT_SHORT_T pkt;
@@ -91,12 +94,15 @@ MPID_Msgrep_t msgrep;
     return MPI_SUCCESS;
 }
 
-int MPID_CH_Eagerb_isend_short( buf, len, src_lrank, tag, context_id, dest,
-			 msgrep, shandle )
-void          *buf;
-int           len, tag, context_id, src_lrank, dest;
-MPID_Msgrep_t msgrep;
-MPIR_SHANDLE *shandle;
+int MPID_CH_Eagerb_isend_short( 
+	void *buf, 
+	int len, 
+	int src_lrank, 
+	int tag, 
+	int context_id, 
+	int dest,
+	MPID_Msgrep_t msgrep, 
+	MPIR_SHANDLE *shandle )
 {
     int pkt_len;
     MPID_PKT_SHORT_T pkt;
@@ -172,10 +178,10 @@ MPIR_SHANDLE *shandle;
 
 }
 
-int MPID_CH_Eagerb_recv_short( rhandle, from_grank, in_pkt )
-MPIR_RHANDLE *rhandle;
-int          from_grank;
-void         *in_pkt;
+int MPID_CH_Eagerb_recv_short( 
+	MPIR_RHANDLE *rhandle,
+	int          from_grank,
+	void         *in_pkt)
 {
     MPID_PKT_SHORT_T *pkt = (MPID_PKT_SHORT_T *)in_pkt;
     int          msglen;
@@ -215,9 +221,9 @@ void         *in_pkt;
  * This routine is called when it is time to receive an unexpected
  * message
  */
-int MPID_CH_Eagerb_unxrecv_start_short( rhandle, in_runex )
-MPIR_RHANDLE *rhandle;
-void         *in_runex;
+int MPID_CH_Eagerb_unxrecv_start_short( 
+	MPIR_RHANDLE *rhandle,
+	void         *in_runex)
 {
     MPIR_RHANDLE *runex = (MPIR_RHANDLE *)in_runex;
     int          msglen, err = 0;
@@ -246,10 +252,10 @@ void         *in_runex;
 }
 
 /* Save an unexpected message in rhandle */
-int MPID_CH_Eagerb_save_short( rhandle, from, in_pkt )
-MPIR_RHANDLE *rhandle;
-int          from;
-void         *in_pkt;
+int MPID_CH_Eagerb_save_short( 
+	MPIR_RHANDLE *rhandle,
+	int          from,
+	void         *in_pkt)
 {
     MPID_PKT_SHORT_T   *pkt = (MPID_PKT_SHORT_T *)in_pkt;
 
@@ -282,8 +288,8 @@ void         *in_pkt;
     return 0;
 }
 
-void MPID_CH_Eagerb_short_delete( p )
-MPID_Protocol *p;
+void MPID_CH_Eagerb_short_delete( 
+	MPID_Protocol *p)
 {
     FREE( p );
 }

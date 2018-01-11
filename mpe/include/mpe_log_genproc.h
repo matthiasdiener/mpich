@@ -19,17 +19,6 @@
 #define LOG_MESG_SEND -101
 #define LOG_MESG_RECV -102
 
-/* I got this trick from the Tcl implementation */
-#ifdef _ANSI_ARGS_
-#undef _ANSI_ARGS_
-#endif
-
-#if defined(__STDC__) || defined(__cplusplus)
-#define _ANSI_ARGS_(x) x
-#else
-#define _ANSI_ARGS_(x) ()
-#endif
-
 typedef struct _MPE_Log_BLOCK {
   struct _MPE_Log_BLOCK *next;
   int size;
@@ -164,38 +153,34 @@ typedef struct _MPE_Log_MBuf {
   int    *p, *plast;		 /* Pointers to current and last+1 entries */
   int    buf[MPE_Log_MBUF_SIZE]; /* Holds blog buffer plus some */
   double t;			 /* Time of current entry */
-  int    (*reload) _ANSI_ARGS_(( struct _MPE_Log_MBuf *, int * ));
+  int    (*reload) ( struct _MPE_Log_MBuf *, int * );
     /* routine and context used to reload buf */
   void   *reload_ctx;
 } MPE_Log_MBuf;
 
-static void MPE_Log_GenerateHeader _ANSI_ARGS_(( FILE *fp ));
-static void MPE_Log_Output _ANSI_ARGS_(( MPE_Log_MBuf *inBuffer, MPE_Log_MBuf
+static void MPE_Log_GenerateHeader ( FILE *fp );
+static void MPE_Log_Output ( MPE_Log_MBuf *inBuffer, MPE_Log_MBuf
 				    *outBuffer, int mesgtag, int *srcs,
-				    FILE *fp, int parent ));
-static void MPE_Log_FormatRecord _ANSI_ARGS_(( FILE *fp, int procid, 
-					       int *rec ));
-static int MPE_Log_ReloadFromData _ANSI_ARGS_(( MPE_Log_MBuf *destBuffer,
-					        int *srcs ));
-static int MPE_Log_ReloadFromChild _ANSI_ARGS_(( MPE_Log_MBuf *destBuffer,
-						 int msgtype, int *srcs ));
-static int MPE_Log_ReloadFromChildL _ANSI_ARGS_(( MPE_Log_MBuf *b,
-						  int *srcs ));
-static int MPE_Log_ReloadFromChildR _ANSI_ARGS_(( MPE_Log_MBuf *b,
-						  int *srcs ));
-static MPE_Log_BLOCK *MPE_Log_Sort _ANSI_ARGS_(( MPE_Log_BLOCK *readBlock ));
-static void MPE_Log_SetTreeNodes _ANSI_ARGS_(( int procid, int np, int *lchild,
+				    FILE *fp, int parent );
+static void MPE_Log_FormatRecord ( FILE *fp, int procid, int *rec );
+static int MPE_Log_ReloadFromData ( MPE_Log_MBuf *destBuffer, int *srcs );
+static int MPE_Log_ReloadFromChild ( MPE_Log_MBuf *destBuffer,
+						 int msgtype, int *srcs );
+static int MPE_Log_ReloadFromChildL ( MPE_Log_MBuf *b, int *srcs );
+static int MPE_Log_ReloadFromChildR ( MPE_Log_MBuf *b, int *srcs ));
+static MPE_Log_BLOCK *MPE_Log_Sort ( MPE_Log_BLOCK *readBlock );
+static void MPE_Log_SetTreeNodes ( int procid, int np, int *lchild,
 					  int *rchild, int *parent,
-					  int *am_left ));
-static MPE_Log_ParallelMerge _ANSI_ARGS_(( char *filename ));
-static void MPE_Log_GetStatistics _ANSI_ARGS_(( int *nevents, int *ne_types,
+					  int *am_left );
+static MPE_Log_ParallelMerge ( char *filename );
+static void MPE_Log_GetStatistics ( int *nevents, int *ne_types,
 					   double *startTime,
-					   double *endTime ));
+					   double *endTime );
 
-MPE_Log_BLOCK *MPE_Log_GetBuf _ANSI_ARGS_(( void ));
-MPE_Log_BLOCK *MPE_Log_Flush _ANSI_ARGS_(( void ));
-int MPE_Log_FreeLogMem  _ANSI_ARGS_ ((MPE_Log_BLOCK * ));
-int MPE_Log_init_clock _ANSI_ARGS_ (( void ));
-void MPE_Log_def _ANSI_ARGS_ (( int, char * ));
-/* void MPE_Log_FlushOutput _ANSI_ARGS_(()); */
+MPE_Log_BLOCK *MPE_Log_GetBuf ( void );
+MPE_Log_BLOCK *MPE_Log_Flush ( void );
+int MPE_Log_FreeLogMem  (MPE_Log_BLOCK * );
+int MPE_Log_init_clock ( void );
+void MPE_Log_def ( int, char * );
+/* void MPE_Log_FlushOutput (); */
 

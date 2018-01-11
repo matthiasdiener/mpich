@@ -244,6 +244,19 @@ AC_TRY_COMPILE([#include <signal.h>],[
 struct sigaction act; sigaddset( &act.sa_mask, SIGINT );],sigaction_ok="yes",sigaction_ok="no")
 AC_MSG_RESULT($sigaction_ok)
 AC_CHECK_FUNCS(sigprocmask signal sigmask sigset)
+# If using sigprocmask, we need to check that segset_t is defined.  At least
+# one SGI installation had trouble with this.
+if test "$ac_cv_func_sigprocmask" = "yes" ; then
+    AC_MSG_CHECKING([that sigset_t is defined])
+    AC_TRY_LINK([
+#include <signal.h>
+],[sigset_t newset;],
+AC_MSG_RESULT(yes),
+AC_MSG_RESULT(no)
+AC_MSG_ERROR([Your system claims to support sigprocmask but does not define
+sigset_t.  Please check your system include files])
+)
+fi
 # Also need to get signal hander arg count 1? 3? 4? something else?
 PAC_SIGNALS_WORK
 AC_RETSIGTYPE

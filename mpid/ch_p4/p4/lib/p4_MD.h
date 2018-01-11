@@ -732,7 +732,7 @@ static unsigned int allocated = 0;
 #endif
 
 /* Some systems don't include XDR */
-#if !defined(HAVE_XDRMEM_CREATE) || !defined(HAVE_XDR)
+#if !defined(HAVE_XDRMEM_CREATE) || !defined(HAS_XDR)
 #undef CAN_DO_XDR
 #endif
 

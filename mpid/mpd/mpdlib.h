@@ -70,6 +70,7 @@ int MPD_Man_msgs_fd( void );
 int MPD_Test_connections( int *, int * );
 int MPD_Request_connect_from_peer( int, int );
 void MPD_Man_msg_handler( char * );
+void MPD_Set_debug( int );
 void MPD_Printf( int, char *, ... ); 
 
 struct mpd_keyval_pairs

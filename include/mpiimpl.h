@@ -1,5 +1,5 @@
 /*
- *  $Id: mpiimpl.h,v 1.23 2001/03/06 20:50:50 toonen Exp $
+ *  $Id: mpiimpl.h,v 1.25 2001/12/15 00:04:30 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -17,6 +17,10 @@
 #ifdef HAVE_NO_C_CONST
 #define const
 #endif
+#endif
+
+#if defined(USE_MPI_INTERNALLY)
+#include "pmpi2mpi.h"
 #endif
 
 /* mpi.h includes most of the definitions (all of the user-visible ones) */

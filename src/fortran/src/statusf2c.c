@@ -1,5 +1,5 @@
 /*
- *  $Id: statusf2c.c,v 1.2 2000/08/15 19:37:55 gropp Exp $
+ *  $Id: statusf2c.c,v 1.3 2001/11/14 20:06:44 ashton Exp $
  *
  *  (C) 1997 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -42,7 +42,7 @@ Output Parameter:
 .N MPI_SUCCESS
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Status_f2c( MPI_Fint *f_status, MPI_Status *c_status )
+int MPI_Status_f2c( MPI_Fint *f_status, MPI_Status *c_status )
 {
     int i;
     int *c_status_arr = (int *)c_status;

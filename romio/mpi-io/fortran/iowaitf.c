@@ -1,12 +1,12 @@
 /* 
- *   $Id: iowaitf.c,v 1.8 2000/08/22 21:19:36 gropp Exp $    
+ *   $Id: iowaitf.c,v 1.11 2001/12/12 23:38:09 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
-#include "mpio.h"
 #include "adio.h"
+#include "mpio.h"
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
 #ifdef FORTRANCAPS
@@ -84,9 +84,9 @@
 #endif
 
 /* Prototype to keep compiler happy */
-void mpio_wait_(MPI_Fint *request,MPI_Status *status, int *ierr );
+FORTRAN_API void FORT_CALL mpio_wait_(MPI_Fint *request,MPI_Status *status, int *ierr );
 
-void mpio_wait_(MPI_Fint *request,MPI_Status *status, int *ierr )
+FORTRAN_API void FORT_CALL mpio_wait_(MPI_Fint *request,MPI_Status *status, int *ierr )
 {
     MPIO_Request req_c;
     

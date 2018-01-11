@@ -22,15 +22,8 @@
 #include <sys/wait.h>
 #endif
 
-#ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus)
-#define ANSI_ARGS(a) a
-#else
-#define ANSI_ARGS(a) ()
-#endif
-#endif
 
-extern char *inet_ntoa ANSI_ARGS(( struct in_addr ));  /* from <arpa/inet.h> */
+extern char *inet_ntoa ( struct in_addr );  /* from <arpa/inet.h> */
 
 #ifdef FOO
 /* These are in p4_sys.h, done better */
@@ -75,7 +68,7 @@ extern char *optarg;
 #define notice3(a,b,c) {sprintf(tmpbuf, a, b,c); notice(tmpbuf);}
 #define failure2(a,b) {sprintf(tmpbuf, a, b); failure(tmpbuf);}
 
-/* extern char *crypt ANSI_ARGS(( const char *, const char * )); */
+/* extern char *crypt ( const char *, const char * ); */
 extern char *crypt();
 #ifndef HAVE_STRERROR
 extern char *sys_errlist[];
@@ -101,22 +94,21 @@ int debug = 0;
 char *this_username;
 int this_uid;
 
-void doit                    ANSI_ARGS((int));
-void execute                 ANSI_ARGS(( char *, char *, int, int, 
-					 struct hostent * ));
-int getline                  ANSI_ARGS(( char *, int ));
-void failure                 ANSI_ARGS(( char * ));
-void notice                  ANSI_ARGS(( char * ));
-int net_accept               ANSI_ARGS(( int ));
-void net_setup_listener      ANSI_ARGS(( int, int, int * ));
-void net_setup_anon_listener ANSI_ARGS(( int, int *, int *));
-void error_check             ANSI_ARGS(( int, char * ));
-char *timestamp              ANSI_ARGS(( void ));
+void doit                    (int);
+void execute                 ( char *, char *, int, int, struct hostent * );
+int getline                  ( char *, int );
+void failure                 ( char * );
+void notice                  ( char * );
+int net_accept               ( int );
+void net_setup_listener      ( int, int, int * );
+void net_setup_anon_listener ( int, int *, int *);
+void error_check             ( int, char * );
+char *timestamp              ( void );
 
-char *save_string            ANSI_ARGS(( char * ));
-static int connect_to_listener ANSI_ARGS(( struct hostent *, int ));
-void reaper ANSI_ARGS(( int ));
-int main ANSI_ARGS(( int, char ** ));
+char *save_string            ( char * );
+static int connect_to_listener ( struct hostent *, int );
+void reaper ( int );
+int main ( int, char ** );
 
 /*
  * Notes on the use of file descriptors (fds)

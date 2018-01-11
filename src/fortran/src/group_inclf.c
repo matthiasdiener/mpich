@@ -11,16 +11,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_GROUP_INCL = PMPI_GROUP_INCL
-EXPORT_MPI_API void MPI_GROUP_INCL ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_GROUP_INCL ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_group_incl__ = pmpi_group_incl__
-EXPORT_MPI_API void mpi_group_incl__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_group_incl__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_group_incl = pmpi_group_incl
-EXPORT_MPI_API void mpi_group_incl ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_group_incl ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_group_incl_ = pmpi_group_incl_
-EXPORT_MPI_API void mpi_group_incl_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_group_incl_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -78,10 +78,10 @@ EXPORT_MPI_API void mpi_group_incl_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fi
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_group_incl_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_group_incl_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                  MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_group_incl_ ( MPI_Fint *group, MPI_Fint *n, MPI_Fint *ranks, MPI_Fint *group_out, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_group_incl_ ( MPI_Fint *group, MPI_Fint *n, MPI_Fint *ranks, MPI_Fint *group_out, MPI_Fint *__ierr )
 {
     MPI_Group l_group_out;
 

@@ -2,6 +2,9 @@
 #include "p4_sys.h"
 
 #ifndef THREAD_LISTENER
+static P4BOOL process_slave_message(int fd);
+static P4BOOL process_connect_request(int fd);
+
 P4VOID listener()
 {
     struct listener_data *l = listener_info;
@@ -16,7 +19,7 @@ P4VOID listener()
     {
 	FD_ZERO(&read_fds);
 	FD_SET(l->listening_fd, &read_fds);
-	FD_SET(l->slave_fd, &read_fds);
+	FD_SET(l->slave_fd[0], &read_fds);
 
 	SYSCALL_P4(nfds, select(p4_global->max_connections, &read_fds, 0, 0, 0));
 	if (nfds < 0)
@@ -31,14 +34,14 @@ P4VOID listener()
 	    {
 		if (FD_ISSET(fd, &read_fds))
 		{
-		    if (fd == l->listening_fd || fd == l->slave_fd)
+		    if (fd == l->listening_fd || fd == l->slave_fd[0])
 			break;
 		}
 		fd++;
 	    }
 
 	    p4_dprintfl(70, "got fd=%d listening_fd=%d slave_fd=%d\n",
-			fd, l->listening_fd, l->slave_fd);
+			fd, l->listening_fd, l->slave_fd[0]);
 
 	    /* We use |= to insure that after the loop, we haven't lost
 	       any "done" messages. 
@@ -47,7 +50,7 @@ P4VOID listener()
 	     */
 	    if (fd == l->listening_fd)
 		done |= process_connect_request(fd);
-	    else if (fd == l->slave_fd) 
+	    else if (fd == l->slave_fd[0]) 
 		done |= process_slave_message(fd);
 	    fd++;
 	}
@@ -59,8 +62,7 @@ P4VOID listener()
     exit(0);
 }
 
-P4BOOL process_connect_request(fd)
-int fd;
+static P4BOOL process_connect_request(int fd)
 {
     struct slave_listener_msg msg;
     int type, msglen;
@@ -103,7 +105,7 @@ int fd;
 	p4_dprintfl(70, "connection_request2: poking slave: from=%d lport=%d to_pid=%d to=%d\n",
 		    from, lport, to_pid, to);
 
-	slave_fd = listener_info->slave_fd;
+	slave_fd = listener_info->slave_fd[0];
 
 	if (kill(to_pid, LISTENER_ATTN_SIGNAL) == -1)
 	{
@@ -138,8 +140,7 @@ int fd;
     close(connection_fd);
     return (rc);
 }
-P4BOOL process_slave_message(fd)
-int fd;
+static P4BOOL process_slave_message(int fd)
 {
     struct slave_listener_msg msg;
     int type;
@@ -232,10 +233,10 @@ P4VOID thread_listener()
       
       FD_ZERO(&read_fds);
       FD_SET(p4_global->listener_fd, &read_fds);
-      FD_SET(listener_info->slave_fd, &read_fds);
+      FD_SET(listener_info->slave_fd[0], &read_fds);
 
       nfds_in = p4_global->listener_fd;
-      if (listener_info->slave_fd > nfds_in) nfds_in = listener_info->slave_fd;
+      if (listener_info->slave_fd[0] > nfds_in) nfds_in = listener_info->slave_fd[0];
       nfds_in++;
       SYSCALL_P4(nfds, select(nfds_in, &read_fds, 0, 0, 0));
       if (nfds < 0)
@@ -314,11 +315,11 @@ P4VOID thread_listener()
 		  
 		  /* Send dummy message to P */
 		  p4_dprintfl(70,"TL: sending dummy msg on fd=%d\n",
-			      listener_info->slave_fd);
-		  net_send(listener_info->slave_fd, &msg, sizeof(msg), 
+			      listener_info->slave_fd[0]);
+		  net_send(listener_info->slave_fd[0], &msg, sizeof(msg), 
 			   P4_FALSE);
 		  p4_dprintfl(70,"TL: sent dummy msg on fd=%d\n",
-			      listener_info->slave_fd);
+			      listener_info->slave_fd[0]);
 	      }
 	      else {
 		  /* If the connection is in any other state, we've already
@@ -334,10 +335,10 @@ P4VOID thread_listener()
 	      break;
 	  }
       }
-      else if (FD_ISSET(listener_info->slave_fd, &read_fds)) {
+      else if (FD_ISSET(listener_info->slave_fd[0], &read_fds)) {
 	  p4_dprintfl( 70, "TL: connection request from slave\n" );
 	  /* Read this message */
-	  net_recv( listener_info->slave_fd, &msg, sizeof(msg) );
+	  net_recv( listener_info->slave_fd[0], &msg, sizeof(msg) );
 	  from   = p4_n_to_i(msg.from);
 	  to_pid = p4_n_to_i(msg.to_pid);
 	  to     = p4_n_to_i(msg.to);
@@ -368,11 +369,11 @@ P4VOID thread_listener()
 	      
 		  /* Send dummy message to P */
 		  p4_dprintfl(70,"TL: sending dummy msg on fd=%d\n",
-			      listener_info->slave_fd);
-		  net_send(listener_info->slave_fd, &msg, sizeof(msg), 
+			      listener_info->slave_fd[0]);
+		  net_send(listener_info->slave_fd[0], &msg, sizeof(msg), 
 			   P4_FALSE);
 		  p4_dprintfl(70,"TL: sent dummy msg on fd=%d\n",
-			      listener_info->slave_fd);
+			      listener_info->slave_fd[0]);
 	      }
 	      else {
 		  /* Otherwise, we need to wait for the connection to come

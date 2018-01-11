@@ -1,5 +1,5 @@
 /*
- *  $Id: ic_merge.c,v 1.10 1999/10/18 22:17:16 gropp Exp $
+ *  $Id: ic_merge.c,v 1.11 2001/11/14 19:54:27 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -57,7 +57,7 @@ Algorithm:
 
 .seealso: MPI_Intercomm_create, MPI_Comm_free
 @*/
-EXPORT_MPI_API int MPI_Intercomm_merge ( MPI_Comm comm, int high, MPI_Comm *comm_out )
+int MPI_Intercomm_merge ( MPI_Comm comm, int high, MPI_Comm *comm_out )
 {
   int              mpi_errno = MPI_SUCCESS;
   struct MPIR_COMMUNICATOR *new_comm, *comm_ptr;

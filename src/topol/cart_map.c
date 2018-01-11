@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_map.c,v 1.8 1999/08/30 15:50:47 swider Exp $
+ *  $Id: cart_map.c,v 1.9 2001/11/14 20:10:52 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -47,7 +47,7 @@ Output Parameter:
 .N MPI_ERR_DIMS
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Cart_map ( 
+int MPI_Cart_map ( 
 	MPI_Comm comm_old,
 	int ndims,
 	int *dims,

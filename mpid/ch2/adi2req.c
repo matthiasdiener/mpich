@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2req.c,v 1.3 1999/04/08 16:52:01 gropp Exp $
+ *
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -17,8 +17,8 @@
  *
  ***************************************************************************/
 
-void MPID_Request_free( request )
-MPI_Request request;
+void MPID_Request_free( 
+	MPI_Request request)
 {
     MPI_Request rq = request ; /* MPID_devset->req_pending; */
     int         mpi_errno = MPI_SUCCESS;

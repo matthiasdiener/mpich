@@ -1,6 +1,9 @@
 #if ! defined( _SLOG )
 #define _SLOG
 
+#ifdef HAVE_SLOG_WINCONFIG_H
+#include "slog_winconfig.h"
+#endif
 #include <stdio.h>
 #include "fbuf.h"
 
@@ -24,7 +27,11 @@ typedef  unsigned short      SLOG_uint16;
 #define  fmt_ui16            "%hu"
 typedef  unsigned int        SLOG_uint32;
 #define  fmt_ui32            "%u"
+#if defined (HAVE_WINDOWS_H) && defined (HAVE_INT64)
+typedef unsigned __int64 SLOG_uint64;
+#else
 typedef  unsigned long long  SLOG_uint64;
+#endif
 #define  fmt_ui64            "%llu"
 typedef  double              SLOG_time  ;
 #define  fmt_time            "%21.17f"

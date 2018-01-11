@@ -43,7 +43,7 @@ foreach $_ (@ARGV) {
 	    '^--->', '^---<', 
 	    '^\*# --->', '^\*# ---<',
 	    'In file included from \/usr\/include\/sys', 
-	            '^\/usr\/include\/asm\/resource\.h:26',
+ 	    '^\/usr\/include\/asm\/resource\.h:26',
 	    '^The path for wish, ', '^\(Some systems limit the length'
 	   );
 if ( $MPICH_WARNING_SEP ne "" ) {
@@ -52,24 +52,28 @@ if ( $MPICH_WARNING_SEP ne "" ) {
 #
 # Various classes of messages to exclude
 @CompilerMsgs = ( '^\s*cc\s', '^\s*gcc\s', '^\s*xlc\s', '^\s*xlC\s', 
-		  '^\s*(pg)?f77\s', '^\s*(pg)?f90\s', '^\s*g77\s', 
-		  '^\s*(pg)?cc\s', '^\s*f95\s', '^\s*icc\s',
-		  '^\s*(mp)?xlf(90)?\s', '^\s*mpicc\s',
+		 '^\s*(pg)?f77\s', '^\s*(pg)?f90\s', '^\s*g77\s', 
+		 '^\s*F90:\s',
+		 '^\s*(pg)?cc\s', '^\s*f95\s', '^\s*icc\s',
+		 '^\s*ecc\s', '^\s*efc\s', '^\s*ifc\s',
+		 '^\s*(mp)?xlf(90)?\s', '^\s*mpicc\s',
 		 '^\s*mpiCC\s', '^\s*mpcc\s', '^\s*mpCC\s',
 		 '^\s*mpif77\s', '\s*mpif90\s', '^\s*javac\s', '^\s*jar\s', 
-		  '^\s*[-0-9A-Za-z_\./]*/cc\s',  # For things like /usr/ucb/cc
-		  '^\s*[-0-9A-Za-z_\./]*/mpicc\s',
-		  '^\s*[-0-9A-Za-z_\./]*/mpiCC\s',
-		  '^\s*[-0-9A-Za-z_\./]*/mpcc\s',
-		  '^\s*[-0-9A-Za-z_\./]*/mpCC\s',
-		  '^\s*[-0-9A-Za-z_\./]*/mpif77\s',
-		  '^\s*[-0-9A-Za-z_\./]*/mpif90\s',
-		  '^\s*[-0-9A-Za-z_\./]*/mpich-globus2-cc\s',
-		  '^\s*[-0-9A-Za-z_\./]*/mpich-globus2-f90\s',
-		  '^\s*[-0-9A-Za-z_\./]*/javac\s',
-		  '^\s*[-0-9A-Za-z_\./]*/jar\s',
-		  '^\s*[-0-9A-Za-z_\./]*/rmic\s*-classpath\s',
-		  '^\s*mpir_[a-z_]*:\s*$',
+		 '^\s*[-0-9A-Za-z_\./]*/cc\s',  # For things like /usr/ucb/cc
+		 '^\s*[-0-9A-Za-z_\./]*/mpicc\s',
+		 '^\s*[-0-9A-Za-z_\./]*/mpiCC\s',
+		 '^\s*[-0-9A-Za-z_\./]*/mpcc\s',
+		 '^\s*[-0-9A-Za-z_\./]*/mpCC\s',
+		 '^\s*[-0-9A-Za-z_\./]*/mpif77\s',
+		 '^\s*[-0-9A-Za-z_\./]*/mpif90\s',
+		 '^\s*[-0-9A-Za-z_\./]*/mpich-globus2-cc\s',
+		 '^\s*[-0-9A-Za-z_\./]*/mpich-globus2-f90\s',
+		 '^\s*[-0-9A-Za-z_\./]*/javac\s',
+		 '^\s*[-0-9A-Za-z_\./]*/jar\s',
+		 '^\s*[-0-9A-Za-z_\./]*/rmic\s*-classpath\s',
+		 '^\s*mpir_[a-z_]*:\s*$', 
+                 '^\s*external function [A-Za-z0-9_]*\s*$',
+		 '^\s*external subroutine [A-Za-z0-9_]*\s*$',
                   '^\s*C\+\+ prelinker: executing:'
 		  );
 @LinkerMsgs = ( '^Linking:\s*$' );
@@ -81,7 +85,13 @@ if ( $MPICH_WARNING_SEP ne "" ) {
 		   '^[-/A-Za-z0-9\._]*:\s*$', # icc echos file name!
  );
 # pgCC echos file name!
-@CompilerNoise = ('\s*[-0-9A-Za-z_\./]*\.cc:\s*$'
+# Intel ifc echos module name
+# Intel ifc tells you how many lines
+# Intel ifc also echos module
+@CompilerNoise = ('\s*[-0-9A-Za-z_\./]*\.cc:\s*$',
+                  '^\s*module\s*subroutine\s*[A-Za-z0-9_]*$',
+                  '^\s*[0-9]* Lines Compiled\s*$',
+		  '^\s*module\s*[A-Za-z0-9_]*\s*$'
 	       );
 
 # These are only for SGI (?)
@@ -103,6 +113,8 @@ if ( $MPICH_WARNING_SEP ne "" ) {
 	'/usr/include/sys/ioctl.h.*this is the location',
         '/usr/include/sys/termios\.h.*/usr/ucbinclude/sys/ttychars\.h',
         '/usr/include/sys/termios\.h.*/usr/ucbinclude/sys/ioctl\.h',
+        'Useless typedef declaration .*/usr/include/sys/select.h',
+        'More than one type specified .*/usr/include/sys/select.h',
         'RLIM_INFINITY'
 		       );
 
@@ -126,7 +138,9 @@ if ( $MPICH_WARNING_SEP ne "" ) {
                'modification time in the future' );
 
 if ($is_loose) { 
-    @ProgramMsgs = ( @ProgramMsgs, '^\s*/bin/rm ', '^\+\s*/bin/rm ', 
+    @ConfigureNoise = ( @ConfigureNoise,
+                     'Put JAVA', 'Cannot locate JAVA' );
+    @ProgramMsgs = ( @ProgramMsgs, '^\s*/bin/rm ', '^\+\s*/bin/rm ',
 		     '^\+\s*rm\s',
 		     '^running /bin/sh ', '^\+\s*rmdir ',
 		     '^\+ \[ -d', '^\+ make ', '^\+ cd ',
@@ -134,6 +148,8 @@ if ($is_loose) {
                      '^\s*\+\s*gnumake .* clean',
                      '^\s*\./bin/mpiinstall -prefix=',
                      '^building profiling interface',
+                     '^Done installing documentation',
+                     '^Send bug reports',
 		     '^\s*ln -s ' );
     @MakeNoise   = ( @MakeNoise, '^making ', '^[Cc]ompiling ',
 		     '^\s*test -z ', '^Copying ',
@@ -238,7 +254,7 @@ LINE: while (<INFD>) {
 	}
     }
     # Fortran compiler messages:
-    if (/^[A-Za-z0-9]*\.f:$/) {
+    if (/^[-A-Za-z0-9\/_]*\.f:$/) {
         #print "In fortran with $_";
 	while (<INFD>) {
 	    $cur_line++;

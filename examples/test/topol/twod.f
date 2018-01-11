@@ -100,14 +100,14 @@ c
       call MPI_BARRIER( MPI_COMM_WORLD, ierr )
       t1 = MPI_WTIME()
       do 10 it=1, 100
-	call exchng2( a, b, sx, ex, sy, ey, comm2d, stride, 
+        call exchng2( a, b, sx, ex, sy, ey, comm2d, stride, 
      $                nbrleft, nbrright, nbrtop, nbrbottom )
-	call sweep2d( b, f, nx, sx, ex, sy, ey, a )
-	call exchng2( b, a, sx, ex, sy, ey, comm2d, stride, 
+        call sweep2d( b, f, nx, sx, ex, sy, ey, a )
+        call exchng2( b, a, sx, ex, sy, ey, comm2d, stride, 
      $                nbrleft, nbrright, nbrtop, nbrbottom )
-	call sweep2d( a, f, nx, sx, ex, sy, ey, b )
-	dwork = diff2d( a, b, nx, sx, ex, sy, ey )
-	call MPI_Allreduce( dwork, diffnorm, 1, MPI_DOUBLE_PRECISION, 
+        call sweep2d( a, f, nx, sx, ex, sy, ey, b )
+        dwork = diff2d( a, b, nx, sx, ex, sy, ey )
+        call MPI_Allreduce( dwork, diffnorm, 1, MPI_DOUBLE_PRECISION, 
      $                     MPI_SUM, comm2d, ierr )
         if (diffnorm .lt. 1.0e-5) goto 20
 c        if (myid .eq. 0) print *, 2*it, ' Difference is ', diffnorm
@@ -160,24 +160,24 @@ c
 c
        nx = ex - sx + 1
 c  These are just like the 1-d versions, except for less data
-	call MPI_SENDRECV( b(ex,sy),  nx, MPI_DOUBLE_PRECISION, 
-     $ 	                  nbrtop, 0,
+        call MPI_SENDRECV( b(ex,sy),  nx, MPI_DOUBLE_PRECISION, 
+     $                    nbrtop, 0,
      $                    a(sx-1,sy), nx, MPI_DOUBLE_PRECISION, 
      $                    nbrbottom, 0, comm2d, status, ierr )
-	call MPI_SENDRECV( b(sx,sy),  nx, MPI_DOUBLE_PRECISION,
+        call MPI_SENDRECV( b(sx,sy),  nx, MPI_DOUBLE_PRECISION,
      $                    nbrbottom, 1,
      $                    a(ex+1,sy), nx, MPI_DOUBLE_PRECISION, 
      $                    nbrtop, 1, comm2d, status, ierr )
 c
 c This uses the "strided" datatype
-	call MPI_SENDRECV( b(sx,ey),  1, stride, nbrright,  0,
+        call MPI_SENDRECV( b(sx,ey),  1, stride, nbrright,  0,
      $                     a(sx,sy-1), 1, stride, nbrleft,  0, 
      $                     comm2d, status, ierr )
-	call MPI_SENDRECV( b(sx,sy),  1, stride, nbrleft,   1,
+        call MPI_SENDRECV( b(sx,sy),  1, stride, nbrleft,   1,
      $                     a(sx,ey+1), 1, stride, nbrright, 1, 
      $                     comm2d, status, ierr )
-	return
-	end
+        return
+        end
 
 c
 c  The rest of the 2-d program
@@ -247,9 +247,9 @@ c
       integer deficit
 c
       nlocal  = n / numprocs
-      s	      = myid * nlocal + 1
+      s       = myid * nlocal + 1
       deficit = mod(n,numprocs)
-      s	      = s + min(myid,deficit)
+      s       = s + min(myid,deficit)
       if (myid .lt. deficit) then
           nlocal = nlocal + 1
       endif
@@ -289,5 +289,3 @@ c
 c
       return
       end
-      
-

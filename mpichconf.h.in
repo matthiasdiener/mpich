@@ -151,6 +151,10 @@
 /* Define if there is a routine to print tracebacks */
 #undef HAVE_PRINT_BACKTRACE
 
+/* Define for POSIX Clocks.  See the tests to see why these are here */
+#undef HAVE_CLOCK_GETTIME
+#undef HAVE_CLOCK_GETRES
+
 /* Define if you have catclose.  */
 #undef HAVE_CATCLOSE
 
@@ -159,12 +163,6 @@
 
 /* Define if you have catopen.  */
 #undef HAVE_CATOPEN
-
-/* Define if you have clock_getres.  */
-#undef HAVE_CLOCK_GETRES
-
-/* Define if you have clock_gettime.  */
-#undef HAVE_CLOCK_GETTIME
 
 /* Define if you have gethostname.  */
 #undef HAVE_GETHOSTNAME

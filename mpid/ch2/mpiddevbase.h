@@ -44,15 +44,13 @@ if ((actlen) < (msglen)) {\
     }
 
 /* Function prototypes for routines known only to the device */
-extern MPID_Device *MPID_CH_InitMsgPass ANSI_ARGS(( int *, char ***, 
-						    int, int ));
+extern MPID_Device *MPID_CH_InitMsgPass ( int *, char ***, int, int );
 extern MPID_Protocol *MPID_CH_Short_setup (void);
 extern MPID_Protocol *MPID_CH_Eagerb_setup (void);
 extern MPID_Protocol *MPID_CH_Rndvb_setup (void);
 extern MPID_Protocol *MPID_CH_Eagern_setup (void);
 extern MPID_Protocol *MPID_CH_Rndvn_setup (void);
-extern int MPID_CH_Check_incoming ANSI_ARGS(( MPID_Device *, 
-					      MPID_BLOCKING_TYPE));
+extern int MPID_CH_Check_incoming ( MPID_Device *, MPID_BLOCKING_TYPE);
 extern int  MPID_CH_Init_hetero ( int *, char *** );
 extern void MPID_CH_Pkt_pack ( void *, int, int );
 extern void MPID_CH_Pkt_unpack ( void *, int, int );

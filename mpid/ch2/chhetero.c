@@ -1,5 +1,5 @@
 /*
- *  $Id: chhetero.c,v 1.7 2001/02/27 22:41:49 gropp Exp $
+ *
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -221,8 +221,7 @@ int MPID_CH_Init_hetero( int *argc, char **argv[] )
  * Note that this requires an ABSOLUTE destination; ANY or RELATIVE 
  * are not valid.
  */
-int MPID_CH_Dest_byte_order( dest )
-int dest;
+int MPID_CH_Dest_byte_order( int dest )
 {
 if (MPID_IS_HETERO)
     return MPID_procinfo[dest].byte_order;
@@ -297,9 +296,10 @@ int MPID_CH_Comm_msgrep( struct MPIR_COMMUNICATOR *comm_ptr )
 #include <netinet/in.h>
 /* These need to use 32bit ints.  The 4's here are sizeof(int32) */
 
-void MPID_CH_Pkt_pack( in_pkt, size, dest )
-void       *in_pkt;
-int        size, dest;
+void MPID_CH_Pkt_pack( 
+	void *in_pkt, 
+	int size, 
+	int dest )
 {
 MPID_PKT_T *pkt = (MPID_PKT_T *)in_pkt;
 int i;
@@ -327,9 +327,10 @@ if (MPID_IS_HETERO &&
     }
 }
 
-void MPID_CH_Pkt_unpack( in_pkt, size, from )
-void       *in_pkt;
-int        size, from;
+void MPID_CH_Pkt_unpack( 
+	void *in_pkt,
+	int size, 
+	int from)
 {
 MPID_PKT_T *pkt = (MPID_PKT_T *)in_pkt;
 int i;
@@ -373,8 +374,9 @@ int MPID_GetByteOrder( )
     return 0;
 }
 
-void MPID_ByteSwapInt(buff,n)
-int *buff,n;
+void MPID_ByteSwapInt(
+	int *buff,
+	int n)
 {
     int  i,j,tmp;
     char *ptr1,*ptr2 = (char *) &tmp;

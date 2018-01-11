@@ -142,7 +142,7 @@ MPIINIT_OBJECTS = initfutil.o initfcmn.o initfdte.o
 MPIINIT_SOURCES = initfutil.c initfcmn.f initfdte.f
 
 
-SOURCES = ${MPI1_SOURCES} ${MPI2_SOURCES} ${MPIINIT_OBJECTS}
+SOURCES = ${MPI1_SOURCES} ${MPI2_SOURCES} ${MPIINIT_SOURCES}
 
 ${libbuild_dir}/lib${FLIBNAME}.a: ${OBJECTS} ${MPIINIT_OBJECTS}
 	${AR} cr $@ $?

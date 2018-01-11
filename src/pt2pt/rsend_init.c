@@ -1,5 +1,5 @@
 /*
- *  $Id: rsend_init.c,v 1.8 1999/08/30 15:49:17 swider Exp $
+ *  $Id: rsend_init.c,v 1.9 2001/11/14 20:10:01 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -55,7 +55,7 @@ Output Parameter:
 
 .seealso: MPI_Start, MPI_Request_free, MPI_Send_init
 @*/
-EXPORT_MPI_API int MPI_Rsend_init( void *buf, int count, MPI_Datatype datatype, int dest, 
+int MPI_Rsend_init( void *buf, int count, MPI_Datatype datatype, int dest, 
 		    int tag, MPI_Comm comm, MPI_Request *request )
 {
     int mpi_errno = MPI_SUCCESS;

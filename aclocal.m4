@@ -440,6 +440,10 @@ fi)dnl
 dnl AC_MSG_WARN(msg)
 dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 define(AC_MSG_WARN,[AC_MSG_RESULT([Warning: $1])])
+dnl AC_MSG_ERROR(msg)
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
+define(AC_MSG_ERROR,[AC_MSG_RESULT([Error: $1])
+exit 1])
 dnl
 dnl PAC_CHECK_HEADER(HEADER-FILE, ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND],
 dnl PRE-REQ-HEADERS )
@@ -951,6 +955,9 @@ if test "$str" != "success" ; then
 	AC_MSG_RESULT(yes using --no-print-directory)
     else
 	AC_MSG_RESULT(no)
+	echo "Unexpected output from make with program" >>config.log
+	cat conftest >>config.log
+	echo "str" >> config.log
     fi
 else
     AC_MSG_RESULT(no)
@@ -1075,6 +1082,8 @@ dnl Looks for special versions
 dnl of C compilers, particularly cross compilers.  May also set some
 dnl compile flags.  Clears GCC if it sets CC.  Calls "print_error" for
 dnl error messages
+dnl 
+dnl Also checks for special linker flags
 dnl
 define(PAC_GET_CC,[
 AC_PROVIDE([AC_PROG_CC])
@@ -1262,7 +1271,9 @@ case $1 in
       if test -z "$CC" ; then
           CCval=""
           # Pick the vendor's cc ahead of gcc.
-          PAC_PROGRAMS_CHECK(CCval,cc gcc pgcc)
+	  # ecc, icc are various Intel compilers
+	  # pgcc is the Portland group compiler
+          PAC_PROGRAMS_CHECK(CCval,cc gcc pgcc ecc icc)
           # For pgcc, we might want to add -Muchar (char == unsigned char)
           if test -n "$CCval" ; then
 	      CC=$CCval
@@ -1276,6 +1287,26 @@ dnl    PAC_PROGRAM_CHECK(HAS_CC,$CC,1,0)
 dnl fi
 if test -z "$USERCLINKER" -a -z "$CLINKER" ; then
     CLINKER="$CC"
+fi
+dnl
+dnl Special check for Intel linker
+pac_msg=`$CC -V 2>&1 | grep Itanium`
+if test "$CC" = "ecc" -o -n "$pac_msg" ; then
+    AC_MSG_CHECKING([if -i_dynamic is required for Itanium C compiler])
+    pac_result=no
+    cat > conftest.c <<EOF
+int main( int argc, char **argv ) { return 0; }	
+EOF
+    pac_msg=`$CLINKER -o conftest conftest.c 2>&1 | grep 'bfd assertion fail'`
+    if test -n "$pac_msg" ; then
+        pac_msg=`$CLINKER -o conftest conftest.c -i_dynamic 2>&1 | grep 'bfd assertion fail'`
+	if test -x conftest -a -z "$pac_msg" ; then 
+	    pac_result=yes
+	    CLINKER="$CLINKER -i_dynamic"
+        fi
+    fi
+    AC_MSG_RESULT($pac_result)
+    rm -f conftest*
 fi
 ])dnl
 dnl
@@ -1320,7 +1351,7 @@ case $1 in
    # This wierd function uses the VALUE of the first argument before
    # the second!
    F77=	
-   PAC_PROGRAMS_CHECK(F77,cf77 f77)
+   PAC_PROGRAMS_CHECK(F77,cf77 f77 f95 f90)
    ;;
    cray_t3d)        
 # The dp switch on the following lines allows compilation of "double precision"
@@ -1460,7 +1491,7 @@ EOF
     ncube)   F77=nf77 ;;
     rs6000)  F77=xlf ;;
     LINUX|linux) 
-      PAC_PROGRAMS_CHECK(FCval,f77 fort77 g77 pgf77)
+      PAC_PROGRAMS_CHECK(FCval,f77 fort77 g77 pgf77 f95 f90 pgf90)
       if test "$FCval" != "$F77" -a "$USERF77" != 1 ; then 
   	  F77="$FCval"
       fi
@@ -1469,14 +1500,20 @@ EOF
     *)
       # Fujitsu Fortran is frt
       # We must use an FCval (undefined variable) to ensure
-      # that we make the tests
-      PAC_PROGRAMS_CHECK(FCval,f77 g77 fort77 frt,,,F77FULL)
+      # that we make the tests.  Also, fall back on f90 or f95 
+      PAC_PROGRAMS_CHECK(FCval,f77 g77 fort77 frt pgf77 f95 f90,,,F77FULL)
       if test "$FCval" != "$F77" -a "$USERF77" != 1 ; then 
   	  F77="$FCval"
       fi
       ;;
 esac
 fi
+if test -z "$F77" -a -n "$F90" ; then
+    # If no Fortran 77 compiler has been selected but there is a Fortran 90
+    # compiler, choose that.
+    F77="$F90"
+fi
+
 if test -z "$USERFLINKER" -a -z "$FLINKER" ; then
     FLINKER="$F77 $LDFLAGS"
 fi
@@ -1498,6 +1535,27 @@ if test -n "$F77" ; then
     # fi
 else
     HAS_F77=0
+fi
+dnl
+dnl Special check for Intel linker
+pac_msg=`$F77 -V 2>&1 | grep Itanium`
+if test "$F77" = "efc" -o -n "$pac_msg" ; then
+    AC_MSG_CHECKING([if -i_dynamic is required for Itanium Fortran compiler])
+    pac_result=no
+    cat > conftest.f <<EOF
+        program main
+        end
+EOF
+    pac_msg=`$FLINKER -o conftest conftest.f 2>&1 | grep 'bfd assertion fail'`
+    if test -n "$pac_msg" ; then
+        pac_msg=`$FLINKER -o conftest conftest.f -i_dynamic 2>&1 | grep 'bfd assertion fail'`
+	if test -x conftest -a -z "$pac_msg" ; then 
+	    pac_result=yes
+	    FLINKER="$FLINKER -i_dynamic"
+        fi
+    fi
+    AC_MSG_RESULT($pac_result)
+    rm -f conftest*
 fi
 ])dnl
 dnl
@@ -2543,6 +2601,58 @@ EOF
     fi
 fi
 rm -f conftest.o conftest.c
+dnl 
+dnl Check that ranlib doesn't need -c option (Mac OSX needs this; FreeBSD
+dnl probably does too)
+AC_MSG_CHECKING([for broken handling of common symbols])
+result="could not test"
+cat > conftest.c <<EOF
+extern int foo;
+int main( int argc, char **argv ) { return foo; }
+EOF
+cat > conftest1.c <<EOF
+extern int foo;
+int foo;
+EOF
+dnl
+dnl Compile the main program
+compileonly='${CC-cc} -c $CFLAGS conftest.c >conftest.out 2>&1'
+if eval $compileonly ; then 
+    :
+else
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+    broken=1;
+fi
+dnl
+dnl Build the library
+compileonly='${CC-cc} -c $CFLAGS conftest1.c >conftest.out 2>&1'
+if eval $compileonly ; then 
+    arcmd='$AR libfoo.a conftest1.o >conftest.out 2>&1'
+    eval $arcmd
+    ranlibtest='$RANLIB libfoo.a >>conftest.out 2>&1'
+    if eval $ranlibtest ; then
+        if ${CLINKER} -o conftest conftest.o -L. -lfoo >>conftest.out 2>&1 ; then
+	    result=no
+	else
+	    # try ranlib -c
+	    ranlibtest='$RANLIB -c libfoo.a >>conftest.out 2>&1'
+	    if eval $ranlibtest ; then
+	        if ${CLINKER} -o conftest conftest.o -L. -lfoo >>conftest.out 2>&1 ; then
+		    result="yes! using -c to fix"
+		    RANLIB="$RANLIB -c"
+                fi
+            fi
+	fi
+    else
+	if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+        broken=1
+    fi
+    rm -f libfoo.a conftest*
+else
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+    broken=1;
+fi
+AC_MSG_RESULT($result)
 ])dnl
 dnl
 dnl PAC_OUTPUT_EXEC(files[,mode]) - takes files (as shell script or others),

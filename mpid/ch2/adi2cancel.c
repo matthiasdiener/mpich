@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2cancel.c,v 1.5 2000/07/17 20:42:41 swider Exp $
+ *  $Id: adi2cancel.c,v 1.6 2001/11/12 23:00:40 ashton Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -18,11 +18,9 @@
  * cancel implementations.
  */
 
-void MPID_SendCancel( request, error_code )
-MPI_Request request;
-int         *error_code;
-
-{  /* begin MPID_SendCancel */
+void MPID_SendCancel( MPI_Request request, int *error_code )
+{  
+	/* begin MPID_SendCancel */
 
     MPIR_SHANDLE *shandle = &request->shandle;
 
@@ -55,11 +53,8 @@ int         *error_code;
 }  /* end MPID_SendCancel */
 
  
-void MPID_RecvCancel( request, error_code )
-MPI_Request request;
-int         *error_code;
+void MPID_RecvCancel( MPI_Request request, int *error_code )
 {
-
     MPIR_RHANDLE *rhandle = &request->rhandle;
 
     DEBUG_PRINT_MSG("S Starting RecvCancel"); 

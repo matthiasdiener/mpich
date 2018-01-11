@@ -17,7 +17,7 @@ SHELL       = /bin/sh
 
 
 # Target library
-LIB = libtvmpich.so.1
+LIB = libtvmpich.so.1.0
 
 #
 # The rules for regenerating things
@@ -63,14 +63,16 @@ ${libbuild_dir}/${LIB}: ${LIB}
 # The following works for Solaris and some other systems
 #	${LINKER} ${LDFLAGS} -o ${LIB} ${OBJS} ${LIBS} ; \
 # Several makes could not handle these expansions, so we have replaced the
-# filenames directly
+# filenames directly.
+# Let makesharedlib choose the suffix so that shared library handling
+# is the same for all shared libraries
 #${LIB}: ${OBJS}
-libtvmpich.so.1: dll_mpich.o
+libtvmpich.so.1.0: dll_mpich.o
 	-if test "@SHAREDKIND_FOR_TV@" != "ignore" ; then \
 	${REMOVER} ${LIB}; \
 	( CC="${CC}" ; export CC ; CLINKER="@CLINKER@" ; export CLINKER ; \
 	${top_srcdir}/util/makesharedlib -lib=libtvmpich.a -obj="${OBJS}" \
-		 -kind=@SHAREDKIND_FOR_TV@ -local -suffix=so ; ) fi
+		 -kind=@SHAREDKIND_FOR_TV@ -local ; ) ; fi
 
 compile: ${OBJS}
 

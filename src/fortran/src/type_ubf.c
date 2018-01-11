@@ -8,16 +8,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_TYPE_UB = PMPI_TYPE_UB
-EXPORT_MPI_API void MPI_TYPE_UB ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_TYPE_UB ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_type_ub__ = pmpi_type_ub__
-EXPORT_MPI_API void mpi_type_ub__ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_type_ub__ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_type_ub = pmpi_type_ub
-EXPORT_MPI_API void mpi_type_ub ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_type_ub ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_type_ub_ = pmpi_type_ub_
-EXPORT_MPI_API void mpi_type_ub_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_type_ub_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -75,9 +75,9 @@ EXPORT_MPI_API void mpi_type_ub_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_type_ub_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_type_ub_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_type_ub_ ( MPI_Fint *datatype, MPI_Fint *displacement, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_type_ub_ ( MPI_Fint *datatype, MPI_Fint *displacement, MPI_Fint *__ierr )
 {
     MPI_Aint c_displacement;
 

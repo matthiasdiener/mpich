@@ -1,12 +1,12 @@
 /* 
- *   $Id: get_amodef.c,v 1.8 2000/08/20 18:00:29 gropp Exp $    
+ *   $Id: get_amodef.c,v 1.11 2001/12/12 23:38:05 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
-#include "mpio.h"
 #include "adio.h"
+#include "mpio.h"
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
@@ -85,9 +85,9 @@
 #endif
 
 /* Prototype to keep compiler happy */
-void mpi_file_get_amode_(MPI_Fint *fh,int *amode, int *ierr );
+FORTRAN_API void FORT_CALL mpi_file_get_amode_(MPI_Fint *fh,int *amode, int *ierr );
 
-void mpi_file_get_amode_(MPI_Fint *fh,int *amode, int *ierr )
+FORTRAN_API void FORT_CALL mpi_file_get_amode_(MPI_Fint *fh,int *amode, int *ierr )
 {
     MPI_File fh_c;
     

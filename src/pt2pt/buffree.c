@@ -1,5 +1,5 @@
 /*
- *  $Id: buffree.c,v 1.7 1999/08/30 15:48:42 swider Exp $
+ *  $Id: buffree.c,v 1.8 2001/11/14 20:09:56 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -80,7 +80,7 @@ Notes for C:
     really the address of a void pointer.  See the rationale in the 
     standard for more details. 
 @*/
-EXPORT_MPI_API int MPI_Buffer_detach( 
+int MPI_Buffer_detach( 
 	void *bufferptr, 
 	int *size )
 {

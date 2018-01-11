@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_get_sh_fp.c,v 1.3 2000/02/09 21:30:05 thakur Exp $    
+ *   $Id: ad_get_sh_fp.c,v 1.4 2001/12/03 17:11:46 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -28,10 +28,13 @@ void ADIO_Get_shared_fp(ADIO_File fd, int incr, ADIO_Offset *shared_fp,
 
     if (fd->shared_fp_fd == ADIO_FILE_NULL) {
 	MPI_Comm_dup(MPI_COMM_SELF, &dupcommself);
-	fd->shared_fp_fd = ADIO_Open(dupcommself, fd->shared_fp_fname, 
-             fd->file_system, ADIO_CREATE | ADIO_RDWR | ADIO_DELETE_ON_CLOSE, 
-             0, MPI_BYTE, MPI_BYTE, M_ASYNC, MPI_INFO_NULL, 
-             ADIO_PERM_NULL, error_code);
+	fd->shared_fp_fd = ADIO_Open(MPI_COMM_SELF, dupcommself, 
+				     fd->shared_fp_fname, 
+				     fd->file_system, 
+				     ADIO_CREATE | ADIO_RDWR | ADIO_DELETE_ON_CLOSE, 
+				     0, MPI_BYTE, MPI_BYTE, M_ASYNC, 
+				     MPI_INFO_NULL, 
+				     ADIO_PERM_NULL, error_code);
 	if (*error_code != MPI_SUCCESS) return;
 	*shared_fp = 0;
 	ADIOI_WRITE_LOCK(fd->shared_fp_fd, 0, SEEK_SET, sizeof(ADIO_Offset));

@@ -73,7 +73,7 @@ extern MPID_Protocol *MPID_SHMEM_Eagerb_setup (void);
 extern MPID_Protocol *MPID_SHMEM_Rndvb_setup (void);
 extern MPID_Protocol *MPID_SHMEM_Eagern_setup (void);
 extern MPID_Protocol *MPID_SHMEM_Rndvn_setup (void);
-extern int MPID_SHMEM_Check_incoming ( MPID_Device *, MPID_BLOCKING_TYPE));
+extern int MPID_SHMEM_Check_incoming ( MPID_Device *, MPID_BLOCKING_TYPE);
 extern int  MPID_CH_Init_hetero ( int *, char *** );
 extern MPID_PKT_T *MPID_SHMEM_GetSendPkt (int);
 extern void *MPID_SetupGetAddress ( void *, int *, int );

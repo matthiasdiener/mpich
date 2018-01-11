@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2hrecv.c,v 1.2 1998/01/29 14:25:26 gropp Exp $
+ *  $Id: adi2hrecv.c,v 1.3 2001/11/12 23:01:41 ashton Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -18,13 +18,16 @@
  */
 /***************************************************************************/
 
-void MPID_RecvDatatype( comm_ptr, buf, count, dtype_ptr, src_lrank, tag, 
-			context_id, status, error_code )
-struct MPIR_COMMUNICATOR *    comm_ptr;
-void         *buf;
-int          count, src_lrank, tag, context_id, *error_code;
-struct MPIR_DATATYPE * dtype_ptr;
-MPI_Status   *status;
+void MPID_RecvDatatype( 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	void *buf, 
+	int count, 
+	struct MPIR_DATATYPE *dtype_ptr, 
+	int src_lrank, 
+	int tag, 
+	int context_id, 
+	MPI_Status *status, 
+	int *error_code )
 {
     MPIR_RHANDLE rhandle;
     MPI_Request  request = (MPI_Request)&rhandle;
@@ -40,13 +43,16 @@ MPI_Status   *status;
     }
 }
 
-void MPID_IrecvDatatype( comm_ptr, buf, count, dtype_ptr, src_lrank, tag, 
-			 context_id, request, error_code )
-struct MPIR_COMMUNICATOR *    comm_ptr;
-void         *buf;
-int          count, src_lrank, tag, context_id, *error_code;
-struct MPIR_DATATYPE * dtype_ptr;
-MPI_Request  request;
+void MPID_IrecvDatatype( 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	void *buf, 
+	int count, 
+	struct MPIR_DATATYPE *dtype_ptr, 
+	int src_lrank, 
+	int tag, 
+	int context_id, 
+	MPI_Request request, 
+	int *error_code )
 {
     MPIR_RHANDLE    *dmpi_unexpected, *rhandle = &request->rhandle;
     int             len;

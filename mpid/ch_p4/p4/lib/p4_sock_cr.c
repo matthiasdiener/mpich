@@ -5,17 +5,17 @@
 #include <sys/bproc.h>
 #endif
 
-int create_remote_processes(pg)
-struct p4_procgroup *pg;
+int create_remote_processes(struct p4_procgroup *pg)
 {
     struct p4_procgroup_entry *pe;
     struct net_initial_handshake hs;
     int i, serv_port, serv_fd, rm_fd, rm_fds[P4_MAXPROCS], rm_num;
 
-    net_setup_anon_listener(5, &serv_port, &serv_fd);
+    net_setup_anon_listener(MAX_P4_CONN_BACKLOG, &serv_port, &serv_fd);
     if (execer_starting_remotes)
     {
-	put_execer_port(serv_port);
+	if (pg->num_entries > 1) 
+	    put_execer_port(serv_port);
 	for (i=1, pe = pg->entries+1; i < pg->num_entries; i++, pe++)
 	{
 	    rm_fd = net_accept(serv_fd);
@@ -163,7 +163,7 @@ static char errbuf[256];
 static int  child_pid = 0;
 /* active_fd is the fd that we're waiting on when the timeout happened */
 static int  active_fd = -1;
-P4VOID p4_accept_timeout ANSI_ARGS(( int ));
+P4VOID p4_accept_timeout ( int );
 P4VOID p4_accept_timeout(sigval)
 int sigval;
 {
@@ -191,14 +191,11 @@ int sigval;
  *	Run the slave pgm on host; returns the file descriptor of the
  *	connection to the slave.
  */
-int net_create_slave(serv_port, serv_fd, host, pgm, username)
-int serv_port, serv_fd;
-char *host;
-char *pgm;
-char *username;
+int net_create_slave( int serv_port, int serv_fd, char *host, char *pgm, 
+		      char *username)
 {
     struct net_initial_handshake hs;
-    char myhost[100];
+    char myhostname[100];
     char remote_shell[P4_MAX_PGM_LEN];
     char serv_port_c[64];
     int rc;
@@ -218,21 +215,21 @@ char *username;
     defined(CONVEX)   || defined(KSR)  || \
     defined(FX2800)   || defined(FX2800_SWITCH)  || \
     defined(SP1)
-/*     char *getpw_ss ANSI_ARGS((char *)); */
+/*     char *getpw_ss (char *); */
 #   endif
 
 #   if defined(SP1)
-    strcpy(myhost,p4_global->proctable[0].host_name);
-    p4_dprintfl(80,"net_create_slave: myhost=%s\n",myhost);
+    strcpy(myhostname,p4_global->proctable[0].host_name);
+    p4_dprintfl(80,"net_create_slave: myhost=%s\n",myhostname);
 #   else
-    myhost[0] = '\0';
-    get_qualified_hostname(myhost);
+    myhostname[0] = '\0';
+    get_qualified_hostname(myhostname,sizeof(myhostname));
 #   endif
 
     if (hand_start_remotes)
     {
 	printf("waiting for process on host %s:\n%s %s %d %s\n",
-	       host, pgm, myhost, serv_port, am_slave_c);
+	       host, pgm, myhostname, serv_port, am_slave_c);
         rc = 0;
     }
     else
@@ -240,6 +237,14 @@ char *username;
 	/* try to connect to (secure) server */
 
 #       if !defined(P4_DO_NOT_USE_SERVER)
+
+        /* Do not try the secure server by default.  The attempt to contact
+	   the default secure server port can cause the startup step to
+	   hang, due to IP security settings that cause some connections
+	   to go unacknowledged (not even refused).  Currently, the test
+	   for this is on the sserver_port, which is initialized to -1
+	   (rather than the old default of 753).
+	   */
 
 	/*****  secure server stuff  *******/
 	p4_dprintfl(20, "trying to create remote slave on %s via server\n",host);
@@ -279,7 +284,7 @@ char *username;
 	    p4_dprintfl(20, "creating remote slave on %s via old server\n",host);
 	    msg.type = p4_i_to_n(NET_EXEC);
 	    strcpy(msg.pgm, pgm);
-	    strcpy(msg.host, myhost);
+	    strcpy(msg.host, myhostname);
 	    strcpy(msg.am_slave, am_slave_c);
 	    msg.port = p4_i_to_n(serv_port);
 	    net_send(connection_fd, &msg, sizeof(msg), P4_FALSE);
@@ -336,7 +341,7 @@ char *username;
 		  char *argv[4];
 		  static char port_str[6];
 		  snprintf (port_str, 5, "%d", serv_port);
-		  argv[1] = myhost;
+		  argv[1] = myhostname;
 		  argv[2] = port_str;
 		  rm_start (&argc, argv);
 		}
@@ -350,7 +355,12 @@ char *username;
 
 #else /* !BEOWULF */
 #if defined(HAS_RSHCOMMAND)
-	    strcpy( remote_shell, RSHCOMMAND );
+	    strncpy( remote_shell, RSHCOMMAND, P4_MAX_PGM_LEN );
+	    /* Allow the environment variable "P4RSHCOMMAND" to 
+               override the default choice */
+	    { char *p = getenv( "P4_RSHCOMMAND" ); 
+	    if (p && *p) strncpy( remote_shell, p, P4_MAX_PGM_LEN );
+	    }
 #endif
 #if defined(DELTA)
 	    p4_dprintf("delta cannot create remote processes\n");
@@ -388,10 +398,10 @@ char *username;
 		/* If host is localhost or myhost, then we don't need to run 
 		   remote shell (do we? what about stdin/out/err?) */
 		if (strcmp( host, "localhost" ) == 0 ||
-		    strcmp( myhost, host ) == 0) { 
+		    strcmp( myhostname, host ) == 0) { 
 		    p4_dprintfl( 80, "Not using rsh to localhost\n" );
 		    rc = execlp(pgm, pgm,
-			    myhost, serv_port_c, am_slave_c, NULL);
+			    myhostname, serv_port_c, am_slave_c, NULL);
 		}
 		else {
 		    rc = execlp(remote_shell, remote_shell,
@@ -400,7 +410,8 @@ char *username;
 			    "-l", username, 
 #endif
 			    "-n", pgm,
-			    myhost, serv_port_c, am_slave_c, NULL);
+			    myhostname, serv_port_c, am_slave_c, 
+			    "-p4yourname", host, NULL);
 		}
 #else
 #   if defined(LINUX)
@@ -412,15 +423,63 @@ char *username;
 		am_slave_c = "\\-p4amslave";
 #   endif
 
+/* #define RSH_NEEDS_OPTS */
+#ifdef RSH_NEEDS_OPTS
+		/* The following code allows the remote shell command string
+		   to include additional command line options, such as
+		   ssh -q */
+		{
+		    char *argv[64];
+		    char rshell_string[P4_MAX_PGM_LEN];
+		    char *next_parm;
+		    int argcount = 0;
+
+		    strcpy( rshell_string, remote_shell );
+		    /* Find the first blank, set next_parm to the next char,
+		       and set the blank to null.  If no next_parm, leave
+		       it pointing at the null */
+		    next_parm = strchr( rshell_string, ' ' );
+		    if (next_parm) {
+			*next_parm++ = 0;
+		    }
+		    argv[argcount++] = rshell_string;
+		    argv[argcount++] = host;
+#if !defined(RSH_HAS_NO_L)
+		    argv[argcount++] = "-l";
+		    argv[argcount++] = username;
+#endif
+		    while (next_parm && argcount < 55) {
+			argv[argcount++] = next_parm;
+			next_parm = strchr( next_parm, ' ' );
+			if (next_parm) {
+			    *next_parm++ = 0;
+			}
+		    }
+		    argv[argcount++] = "-n";
+		    argv[argcount++] = pgm;
+		    argv[argcount++] = myhostname;
+		    argv[argcount++] = serv_port_c;
+		    argv[argcount++] = am_slave_c;
+		    argv[argcount++] = "-p4yourname";
+		    argv[argcount++] = host;
+		    argv[argcount++] = 0;
+		    rc = execvp( rshell_string, argv );
+		}
+		    /* ENOEXEC - unrecognized executable,
+		       ENOENT  - file no found */
+#else
 		rc = execlp(remote_shell, remote_shell,
 			    host, 
 #if !defined(RSH_HAS_NO_L)
 			    "-l", username, 
 #endif
 			    "-n", pgm,
-			    myhost, serv_port_c, am_slave_c, NULL);
+			    myhostname, serv_port_c, am_slave_c, 
+			    "-p4yourname", host,
+			    NULL);
+#endif /* RSH_NEEDS_OPTS */
 #endif /* Short_circuit_localhost */
-		/* host,"-n","cluster","5",pgm,myhost,serv_port_c,0); for butterfly */
+		/* host,"-n","cluster","5",pgm,myhostname,serv_port_c,0); for butterfly */
 		if (rc < 0)
 		    p4_error("net_create_slave: execlp", rc);
 	    }

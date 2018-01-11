@@ -10,7 +10,7 @@ SHELL	  = @SHELL@
 CC	  = @CC@
 INCLUDES  = -I. -I${srcdir}
 CPPFLAGS  = @CPPFLAGS@
-CLINKER	  = ${CC}
+CLINKER	  = @CLINKER@
 COPTIONS  = @COPTIONS@
 LDFLAGS	  = @LDFLAGS@
 LIBS	  = @LIBS@ 
@@ -129,13 +129,13 @@ install:
 	if [ ! -d ${bindir} ] ; then \
 	    mkdir -p ${bindir} ;\
 	fi   
-	cp mpd ${bindir}/mpd
-	cp mpdcon ${bindir}/mpdcon
+	cp -f mpd ${bindir}/mpd
+	cp -f mpdcon ${bindir}/mpdcon
 	@if [ "`whoami`" = "root" ] ; then \
 	    echo "chmod 4755 ${bindir}/mpdcon" ;\
 	    chmod 4755 ${bindir}/mpdcon ;\
 	fi
-	cp mpdman ${bindir}/mpdman
+	cp -f mpdman ${bindir}/mpdman
 #	if [ -f startdaemons -a mpd.hosts ] ; then \
 #	    cp startdaemons ${bindir}/startdaemons ;\
 #	    cp mpd.hosts ${bindir}/mpd.hosts ;\

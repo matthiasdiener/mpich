@@ -9,16 +9,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_PCONTROL = PMPI_PCONTROL
-EXPORT_MPI_API void MPI_PCONTROL ( MPI_Fint *, MPI_Fint * );
+void MPI_PCONTROL ( MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_pcontrol__ = pmpi_pcontrol__
-EXPORT_MPI_API void mpi_pcontrol__ ( MPI_Fint *, MPI_Fint * );
+void mpi_pcontrol__ ( MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_pcontrol = pmpi_pcontrol
-EXPORT_MPI_API void mpi_pcontrol ( MPI_Fint *, MPI_Fint * );
+void mpi_pcontrol ( MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_pcontrol_ = pmpi_pcontrol_
-EXPORT_MPI_API void mpi_pcontrol_ ( MPI_Fint *, MPI_Fint * );
+void mpi_pcontrol_ ( MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -76,9 +76,9 @@ EXPORT_MPI_API void mpi_pcontrol_ ( MPI_Fint *, MPI_Fint * );
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_pcontrol_ ( MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_pcontrol_ ( MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_pcontrol_( MPI_Fint *level, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_pcontrol_( MPI_Fint *level, MPI_Fint *__ierr )
 {
     *__ierr = MPI_Pcontrol((int)*level);
 }

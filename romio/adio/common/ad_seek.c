@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_seek.c,v 1.7 2000/08/23 17:47:29 gropp Exp $    
+ *   $Id: ad_seek.c,v 1.11 2002/01/04 14:35:28 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -17,6 +17,10 @@
 
 #ifdef tflops
 #define lseek eseek
+#endif
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
 #endif
 
 ADIO_Offset ADIOI_GEN_SeekIndividual(ADIO_File fd, ADIO_Offset offset, 

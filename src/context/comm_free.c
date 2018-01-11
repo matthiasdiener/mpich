@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_free.c,v 1.7 1999/08/30 15:42:50 swider Exp $
+ *  $Id: comm_free.c,v 1.8 2001/11/14 19:54:19 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -59,7 +59,7 @@ disallows freeing a null communicator.  The text from the standard is:
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Comm_free ( MPI_Comm *commp )
+int MPI_Comm_free ( MPI_Comm *commp )
 {
   int mpi_errno = MPI_SUCCESS;
   int attr_free_err = 0;

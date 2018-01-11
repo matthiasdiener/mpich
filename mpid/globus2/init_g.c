@@ -1144,7 +1144,7 @@ static int globus_init(int *argc, char ***argv)
 	} /* endif */
 
 	distribute_byte_array(my_commworld_id,
-				strlen((const char *) my_commworld_id)+1,
+				COMMWORLDCHANNELSNAMELEN,
 				rank_in_my_subjob,
 				my_subjob_size,
 				subjob_addresses,
@@ -1708,7 +1708,7 @@ static void create_my_miproto(globus_byte_t **my_miproto, int *nbytes)
 #   endif
     
     /* copying TCP */
-    globus_libc_sprintf(cp, "%s %s %s %d %s %d ", s_tcptype, hostname, s_port,
+    globus_libc_sprintf(cp, "%s %s %s %d %s %d", s_tcptype, hostname, s_port,
                                                   lan_id_lng, lan_id,
                                                   localhost_id);
     cp += strlen(s_tcptype) + 1  + strlen(hostname) + 1  + strlen(s_port) + 1

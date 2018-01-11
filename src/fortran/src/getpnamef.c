@@ -1,5 +1,5 @@
 /*
- *  $Id: getpnamef.c,v 1.2 2000/08/28 19:03:06 gropp Exp $
+ *  $Id: getpnamef.c,v 1.5 2001/12/12 23:36:36 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -30,16 +30,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_GET_PROCESSOR_NAME = PMPI_GET_PROCESSOR_NAME
-EXPORT_MPI_API void MPI_GET_PROCESSOR_NAME ( char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
+void MPI_GET_PROCESSOR_NAME ( char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_get_processor_name__ = pmpi_get_processor_name__
-EXPORT_MPI_API void mpi_get_processor_name__ ( char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
+void mpi_get_processor_name__ ( char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_get_processor_name = pmpi_get_processor_name
-EXPORT_MPI_API void mpi_get_processor_name ( char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
+void mpi_get_processor_name ( char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
 #else
 #pragma weak mpi_get_processor_name_ = pmpi_get_processor_name_
-EXPORT_MPI_API void mpi_get_processor_name_ ( char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
+void mpi_get_processor_name_ ( char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -121,10 +121,17 @@ _fcd name_fcd;
 
 #else
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_get_processor_name_ ( char *, MPI_Fint *, 
+/*
+FORTRAN_API void FORT_CALL mpi_get_processor_name_ ( char *, MPI_Fint *, 
                                          MPI_Fint *, MPI_Fint );
 
-EXPORT_MPI_API void mpi_get_processor_name_( char *name, MPI_Fint *len, MPI_Fint *ierr, MPI_Fint d )
+FORTRAN_API void FORT_CALL mpi_get_processor_name_( char *name, MPI_Fint *len, MPI_Fint *ierr, MPI_Fint d )
+*/
+/* Prototype to suppress warnings about missing prototypes */
+FORTRAN_API void FORT_CALL mpi_get_processor_name_ ( char * FORT_MIXED_LEN_DECL, MPI_Fint *, 
+                                         MPI_Fint * FORT_END_LEN_DECL);
+
+FORTRAN_API void FORT_CALL mpi_get_processor_name_( char *name FORT_MIXED_LEN(d), MPI_Fint *len, MPI_Fint *ierr FORT_END_LEN(d))
 {
   char cres[MPI_MAX_PROCESSOR_NAME];
   int l_len;
@@ -133,7 +140,7 @@ EXPORT_MPI_API void mpi_get_processor_name_( char *name, MPI_Fint *len, MPI_Fint
 
     /* This handles blank padding required by Fortran */
     MPIR_cstr2fstr( name, (int)d, cres );
-    l_len  = LOCAL_MIN( strlen( cres ), (int)d );
+    l_len  = LOCAL_MIN( strlen( cres ), (unsigned int)d );
     *len = l_len;
     *ierr = MPI_SUCCESS;
 }

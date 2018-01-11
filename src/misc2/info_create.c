@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_create.c,v 1.7 1999/08/30 15:47:30 swider Exp $    
+ *   $Id: info_create.c,v 1.8 2001/11/14 20:08:04 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -35,7 +35,7 @@ Output Parameters:
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Info_create(MPI_Info *info)
+int MPI_Info_create(MPI_Info *info)
 {
     *info	    = (MPI_Info) MALLOC(sizeof(struct MPIR_Info));
     (*info)->cookie = MPIR_INFO_COOKIE;

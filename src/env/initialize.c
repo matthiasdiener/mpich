@@ -1,5 +1,5 @@
 /*
- *  $Id: initialize.c,v 1.5 1999/08/30 15:46:14 swider Exp $
+ *  $Id: initialize.c,v 1.6 2001/11/14 19:56:41 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -34,7 +34,7 @@ Output Parameter:
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Initialized( int *flag )
+int MPI_Initialized( int *flag )
 {
 /* 
    MPI_Init sets MPIR_Has_been_initialized to 1, MPI_Finalize sets to 2.

@@ -1,5 +1,5 @@
 /*
- *  $Id: create_recv.c,v 1.8 1999/08/30 15:48:48 swider Exp $
+ *  $Id: create_recv.c,v 1.9 2001/11/14 20:09:57 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -54,7 +54,7 @@ Output Parameter:
 
 .seealso: MPI_Start, MPI_Request_free
 @*/
-EXPORT_MPI_API int MPI_Recv_init( void *buf, int count, MPI_Datatype datatype, int source, 
+int MPI_Recv_init( void *buf, int count, MPI_Datatype datatype, int source, 
 		   int tag, MPI_Comm comm, MPI_Request *request )
 {
     int         mpi_errno = MPI_SUCCESS;

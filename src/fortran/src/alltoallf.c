@@ -14,16 +14,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_ALLTOALL = PMPI_ALLTOALL
-EXPORT_MPI_API void MPI_ALLTOALL ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_ALLTOALL ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_alltoall__ = pmpi_alltoall__
-EXPORT_MPI_API void mpi_alltoall__ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_alltoall__ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_alltoall = pmpi_alltoall
-EXPORT_MPI_API void mpi_alltoall ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_alltoall ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_alltoall_ = pmpi_alltoall_
-EXPORT_MPI_API void mpi_alltoall_ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_alltoall_ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -151,11 +151,11 @@ if (_isfcd(recvbuf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_alltoall_ ( void *, MPI_Fint *, MPI_Fint *, void *, 
+FORTRAN_API void FORT_CALL mpi_alltoall_ ( void *, MPI_Fint *, MPI_Fint *, void *, 
                                MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                MPI_Fint * );
 
-EXPORT_MPI_API void mpi_alltoall_( void *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, 
+FORTRAN_API void FORT_CALL mpi_alltoall_( void *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, 
                   void *recvbuf, MPI_Fint *recvcnt, MPI_Fint *recvtype, MPI_Fint *comm, MPI_Fint *__ierr )
 {
     *__ierr = MPI_Alltoall(MPIR_F_PTR(sendbuf), (int)*sendcount,

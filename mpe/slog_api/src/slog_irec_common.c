@@ -3,6 +3,9 @@
 #ifdef HAVE_SLOGCONF_H
 #include "slog_config.h"
 #endif
+#ifdef HAVE_SLOG_WINCONFIG_H
+#include "slog_winconfig.h"
+#endif
 #if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
 #include <stdlib.h>
 #endif
@@ -458,7 +461,7 @@ int SLOG_Irec_DepositToFbuf( const SLOG_intvlrec_t *irec,
     Nbytes_written += ierr * SLOG_typesz[ dura_t ];
 
     ierr = SLOG_TaskID_DepositToFbuf( &( irec->origID ), fbuf );
-    if ( ierr < SLOG_typesz[ taskID_t ] ) {
+    if ( ierr < (int)SLOG_typesz[ taskID_t ] ) {
         fprintf( errfile, __FILE__":SLOG_Irec_DepositToFbuf() - Cannot "
                           "deposit the Origin TASK IDs to the SLOG "
                           "filebuffer, "fmt_ui32" bytes written so far\n",
@@ -472,7 +475,7 @@ int SLOG_Irec_DepositToFbuf( const SLOG_intvlrec_t *irec,
 
     if ( SLOG_global_IsOffDiagRec( irec->rectype ) ) {
         ierr = SLOG_TaskID_DepositToFbuf( &( irec->destID ), fbuf );
-        if ( ierr < SLOG_typesz[ taskID_t ] ) {
+        if ( ierr < (int)SLOG_typesz[ taskID_t ] ) {
             fprintf( errfile, __FILE__":SLOG_Irec_DepositToFbuf() - Cannot "
                               "deposit the Destination TASK IDs to the SLOG "
                               "filebuffer, "fmt_ui32" bytes written so far\n",
@@ -711,7 +714,7 @@ SLOG_Irec_WithdrawFromFbuf( const SLOG_recdefs_table_t  *slog_recdefs,
     Nbytes_read += ierr * SLOG_typesz[ dura_t ];
 
     ierr = SLOG_TaskID_WithdrawFromFbuf( &( irec->origID ), fbuf );
-    if ( ierr < SLOG_typesz[ taskID_t ] ) {
+    if ( ierr < (int)SLOG_typesz[ taskID_t ] ) {
         fprintf( errfile, __FILE__":SLOG_Irec_WithdrawFromFbuf() - Cannot "
                           "withdraw the Origin Task IDs from the SLOG "
                           "filebuffer, "fmt_ui32" bytes read so far\n",
@@ -726,7 +729,7 @@ SLOG_Irec_WithdrawFromFbuf( const SLOG_recdefs_table_t  *slog_recdefs,
 
     if ( SLOG_global_IsOffDiagRec( irec->rectype ) ) {
         ierr = SLOG_TaskID_WithdrawFromFbuf( &( irec->destID ), fbuf );
-        if ( ierr < SLOG_typesz[ taskID_t ] ) {
+        if ( ierr < (int)SLOG_typesz[ taskID_t ] ) {
             fprintf( errfile, __FILE__":SLOG_Irec_WithdrawFromFbuf() - Cannot "
                               "withdraw the Destination Task IDs from the SLOG "
                               "filebuffer, "fmt_ui32" bytes read so far\n",

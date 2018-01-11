@@ -1,5 +1,5 @@
 /* 
- *   $Id: shfp_fname.c,v 1.1.1.1 1999/08/06 17:47:13 thakur Exp $    
+ *   $Id: shfp_fname.c,v 1.3 2001/11/27 19:23:30 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -34,14 +34,22 @@ void ADIOI_Shfp_fname(ADIO_File fd, int rank)
 	
 	strcpy(fd->shared_fp_fname, fd->filename);
 	
+#ifdef ROMIO_NTFS
+	slash = strrchr(fd->filename, '\\');
+#else
 	slash = strrchr(fd->filename, '/');
+#endif
 	if (!slash) {
 	    strcpy(fd->shared_fp_fname, ".");
 	    strcpy(fd->shared_fp_fname + 1, fd->filename);
 	}
 	else {
 	    ptr = slash;
+#ifdef ROMIO_NTFS
+		slash = strrchr(fd->shared_fp_fname, '\\');
+#else
 	    slash = strrchr(fd->shared_fp_fname, '/');
+#endif
 	    strcpy(slash + 1, ".");
 	    strcpy(slash + 2, ptr + 1);
 	}

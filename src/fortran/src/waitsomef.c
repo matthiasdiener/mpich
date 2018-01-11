@@ -11,16 +11,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_WAITSOME = PMPI_WAITSOME
-EXPORT_MPI_API void MPI_WAITSOME ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint * );
+void MPI_WAITSOME ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_waitsome__ = pmpi_waitsome__
-EXPORT_MPI_API void mpi_waitsome__ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint * );
+void mpi_waitsome__ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_waitsome = pmpi_waitsome
-EXPORT_MPI_API void mpi_waitsome ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint * );
+void mpi_waitsome ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint * );
 #else
 #pragma weak mpi_waitsome_ = pmpi_waitsome_
-EXPORT_MPI_API void mpi_waitsome_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint * );
+void mpi_waitsome_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -78,11 +78,11 @@ EXPORT_MPI_API void mpi_waitsome_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fin
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_waitsome_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_waitsome_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, 
                                MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE],
                                MPI_Fint * );
 
-EXPORT_MPI_API void mpi_waitsome_( MPI_Fint *incount, MPI_Fint array_of_requests[], MPI_Fint *outcount, MPI_Fint array_of_indices[], 
+FORTRAN_API void FORT_CALL mpi_waitsome_( MPI_Fint *incount, MPI_Fint array_of_requests[], MPI_Fint *outcount, MPI_Fint array_of_indices[], 
     MPI_Fint array_of_statuses[][MPI_STATUS_SIZE], MPI_Fint *__ierr )
 {
     int i,j,found;

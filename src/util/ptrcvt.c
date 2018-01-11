@@ -1,5 +1,5 @@
 /*
- *  $Id: ptrcvt.c,v 1.9 2000/06/30 17:55:36 gropp Exp $
+ *  $Id: ptrcvt.c,v 1.10 2001/10/19 22:01:20 gropp Exp $
  *
  *  (C) 1994 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -99,7 +99,7 @@ void MPIR_PointerOpts( int flag )
     DebugFlag = flag;
 }
 
-static void MPIR_InitPointer ANSI_ARGS((void))
+static void MPIR_InitPointer (void)
 {
     int  i;
 
@@ -127,7 +127,7 @@ static void MPIR_InitPointer ANSI_ARGS((void))
 /*
  * Free any space allocated by the pointer routines
  */
-void MPIR_DestroyPointer ANSI_ARGS((void))
+void MPIR_DestroyPointer (void)
 {
     int blocknum;
     for (blocknum=1; blocknum<MAX_BLOCKS; blocknum++) {

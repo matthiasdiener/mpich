@@ -8,7 +8,7 @@
 #include "tr2.h"
 #endif
 #ifdef MPID_FLOW_CONTROL
-void MPID_FlowDebug ANSI_ARGS(( int ));
+void MPID_FlowDebug ( int );
 #endif
 /* 
    Includes for control options

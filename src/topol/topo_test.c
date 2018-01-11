@@ -1,5 +1,5 @@
 /*
- *  $Id: topo_test.c,v 1.6 1999/08/30 15:51:15 swider Exp $
+ *  $Id: topo_test.c,v 1.7 2001/11/14 20:10:56 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -47,7 +47,7 @@ Output Parameter:
 
 .seealso: MPI_Graph_create, MPI_Cart_create
 @*/
-EXPORT_MPI_API int MPI_Topo_test ( MPI_Comm comm, int *top_type )
+int MPI_Topo_test ( MPI_Comm comm, int *top_type )
 {
   int mpi_errno = MPI_SUCCESS, flag;
   MPIR_TOPOLOGY *topo;

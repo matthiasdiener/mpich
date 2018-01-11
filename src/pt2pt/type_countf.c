@@ -8,16 +8,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(FORTRANCAPS)
 #pragma weak MPI_TYPE_COUNT = PMPI_TYPE_COUNT
-EXPORT_MPI_API void MPI_TYPE_COUNT ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_TYPE_COUNT ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #pragma weak mpi_type_count__ = pmpi_type_count__
-EXPORT_MPI_API void mpi_type_count__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_type_count__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(FORTRANUNDERSCORE)
 #pragma weak mpi_type_count = pmpi_type_count
-EXPORT_MPI_API void mpi_type_count ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_type_count ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_type_count_ = pmpi_type_count_
-EXPORT_MPI_API void mpi_type_count_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_type_count_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)

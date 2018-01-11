@@ -1,5 +1,5 @@
 /*
- *  $Id: ibsend.c,v 1.10 2001/03/06 20:50:58 toonen Exp $
+ *  $Id: ibsend.c,v 1.11 2001/11/14 20:09:58 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -54,7 +54,7 @@ Output Parameter:
 .N MPI_ERR_BUFFER
 
 @*/
-EXPORT_MPI_API int MPI_Ibsend( void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+int MPI_Ibsend( void *buf, int count, MPI_Datatype datatype, int dest, int tag,
 		MPI_Comm comm, MPI_Request *request )
 {
     int         mpi_errno = MPI_SUCCESS;

@@ -9,16 +9,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_ERROR_CLASS = PMPI_ERROR_CLASS
-EXPORT_MPI_API void MPI_ERROR_CLASS ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_ERROR_CLASS ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_error_class__ = pmpi_error_class__
-EXPORT_MPI_API void mpi_error_class__ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_error_class__ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_error_class = pmpi_error_class
-EXPORT_MPI_API void mpi_error_class ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_error_class ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_error_class_ = pmpi_error_class_
-EXPORT_MPI_API void mpi_error_class_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_error_class_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -76,9 +76,9 @@ EXPORT_MPI_API void mpi_error_class_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_error_class_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_error_class_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_error_class_( MPI_Fint *errorcode, MPI_Fint *errorclass, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_error_class_( MPI_Fint *errorcode, MPI_Fint *errorclass, MPI_Fint *__ierr )
 {
     int l_errorclass;
 

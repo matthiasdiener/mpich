@@ -237,24 +237,28 @@ typedef struct communicator_t
  * We have a list of these on the process info, so that we can
  * share the group between multiple communicators.
  */
+/*
+ * Changed parameter name from index to idx to make -Wshadow happy in gcc
+ * (Unix BSD index function)
+ */
 /**********************************************************************/
 /* Translate a process number */
-static int translate (group_t *this, int index) 
+static int translate (group_t *this, int idx) 
 { 	
-  if (index == MQS_INVALID_PROCESS ||
-      ((unsigned int)index) >= ((unsigned int) this->entries))
+  if (idx == MQS_INVALID_PROCESS ||
+      ((unsigned int)idx) >= ((unsigned int) this->entries))
     return MQS_INVALID_PROCESS;
   else
-    return this->local_to_global[index]; 
+    return this->local_to_global[idx]; 
 } /* translate */
 
 /**********************************************************************/
 /* Reverse translate a process number i.e. global to local*/
-static int reverse_translate (group_t * this, int index) 
+static int reverse_translate (group_t * this, int idx) 
 { 	
   int i;
   for (i=0; i<this->entries; i++)
-    if (this->local_to_global[i] == index)
+    if (this->local_to_global[i] == idx)
       return i;
 
   return MQS_INVALID_PROCESS;

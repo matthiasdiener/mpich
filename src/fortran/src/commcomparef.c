@@ -9,16 +9,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_COMM_COMPARE = PMPI_COMM_COMPARE
-EXPORT_MPI_API void MPI_COMM_COMPARE ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_COMM_COMPARE ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_comm_compare__ = pmpi_comm_compare__
-EXPORT_MPI_API void mpi_comm_compare__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_comm_compare__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_comm_compare = pmpi_comm_compare
-EXPORT_MPI_API void mpi_comm_compare ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_comm_compare ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_comm_compare_ = pmpi_comm_compare_
-EXPORT_MPI_API void mpi_comm_compare_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_comm_compare_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -76,10 +76,10 @@ EXPORT_MPI_API void mpi_comm_compare_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_comm_compare_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_comm_compare_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                    MPI_Fint * );
 
-EXPORT_MPI_API void mpi_comm_compare_ ( MPI_Fint *comm1, MPI_Fint *comm2, MPI_Fint *result, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_comm_compare_ ( MPI_Fint *comm1, MPI_Fint *comm2, MPI_Fint *result, MPI_Fint *__ierr )
 {
     int l_result;
 

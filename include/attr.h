@@ -51,27 +51,26 @@ struct _MPIR_HBT {
 };
 #define MPIR_HBT_COOKIE 0x03b7c007
 
-int MPIR_Attr_copy_node ANSI_ARGS(( struct MPIR_COMMUNICATOR *, 
+int MPIR_Attr_copy_node ( struct MPIR_COMMUNICATOR *, 
 				    struct MPIR_COMMUNICATOR *, 
-				    MPIR_HBT_node * ));
-int MPIR_Attr_copy_subtree ANSI_ARGS(( struct MPIR_COMMUNICATOR *, 
+				    MPIR_HBT_node * );
+int MPIR_Attr_copy_subtree ( struct MPIR_COMMUNICATOR *, 
 				       struct MPIR_COMMUNICATOR *, MPIR_HBT, 
-				       MPIR_HBT_node * ));
-int MPIR_Attr_free_node ANSI_ARGS(( struct MPIR_COMMUNICATOR *, 
-				    MPIR_HBT_node * ));
-int MPIR_Attr_free_subtree ANSI_ARGS(( struct MPIR_COMMUNICATOR *, 
-				       MPIR_HBT_node * ));
+				       MPIR_HBT_node * );
+int MPIR_Attr_free_node ( struct MPIR_COMMUNICATOR *, MPIR_HBT_node * );
+int MPIR_Attr_free_subtree ( struct MPIR_COMMUNICATOR *, 
+				       MPIR_HBT_node * );
 
-int MPIR_HBT_new_tree ANSI_ARGS(( MPIR_HBT * ));
-int MPIR_HBT_new_node ANSI_ARGS(( MPIR_Attr_key *, void *, MPIR_HBT_node ** ));
-int MPIR_HBT_free_node ANSI_ARGS(( MPIR_HBT_node * ));
-int MPIR_HBT_free_subtree ANSI_ARGS(( MPIR_HBT_node * ));
-int MPIR_HBT_free_tree ANSI_ARGS(( MPIR_HBT ));
-int MPIR_HBT_lookup ANSI_ARGS(( MPIR_HBT, int, MPIR_HBT_node ** ));
-int MPIR_HBT_insert ANSI_ARGS(( MPIR_HBT, MPIR_HBT_node * ));
-int MPIR_HBT_delete ANSI_ARGS(( MPIR_HBT, int, MPIR_HBT_node ** ));
-void MPIR_HBT_Init ANSI_ARGS((void));
-void MPIR_HBT_Free ANSI_ARGS((void));
+int MPIR_HBT_new_tree ( MPIR_HBT * );
+int MPIR_HBT_new_node ( MPIR_Attr_key *, void *, MPIR_HBT_node ** );
+int MPIR_HBT_free_node ( MPIR_HBT_node * );
+int MPIR_HBT_free_subtree ( MPIR_HBT_node * );
+int MPIR_HBT_free_tree ( MPIR_HBT );
+int MPIR_HBT_lookup ( MPIR_HBT, int, MPIR_HBT_node ** );
+int MPIR_HBT_insert ( MPIR_HBT, MPIR_HBT_node * );
+int MPIR_HBT_delete ( MPIR_HBT, int, MPIR_HBT_node ** );
+void MPIR_HBT_Init (void);
+void MPIR_HBT_Free (void);
 
 #define MPIR_GET_KEYVAL_PTR(idx) \
     (MPIR_Attr_key *)MPIR_ToPointer( idx )

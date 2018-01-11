@@ -399,7 +399,7 @@ P4VOID alloc_global(void)
 
     gethostname_p4(g->my_host_name,HOSTNAME_LEN);
 
-    /* get_qualified_hostname(g->my_host_name); */
+    /* get_qualified_hostname(g->my_host_name,HOSTNAME_LEN); */
 
     p4_barrier_init(&(g->cluster_barrier));
 
@@ -424,14 +424,27 @@ P4VOID alloc_global(void)
 
 }
 
-struct listener_data *alloc_listener_info(void)
+/*
+ * When there are multiple processes sharing memory, the listener needs
+ * a separate pipe for each process.  The "slave_pid" is used to identify
+ * each particular pipe (processes are identified by other processes 
+ * by their pid).
+ */
+struct listener_data *alloc_listener_info( int num )
 {
     struct listener_data *l;
+    int i;
 
     l = (struct listener_data *) p4_malloc(sizeof(struct listener_data));
-
+    
     l->listening_fd = -1;
-    l->slave_fd = -1;
+    l->num = num;
+    l->slave_pid = p4_malloc(num * sizeof(*l->slave_fd));
+    l->slave_fd = p4_malloc(num * sizeof(*l->slave_fd));
+    for (i=0; i<num; i++) {
+	l->slave_pid[i] = -1;
+	l->slave_fd[i] = -1;
+    }
 
     return (l);
 }

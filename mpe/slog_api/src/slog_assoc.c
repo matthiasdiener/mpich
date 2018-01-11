@@ -1,6 +1,9 @@
 #ifdef HAVE_SLOGCONF_H
 #include "slog_config.h"
 #endif
+#ifdef HAVE_SLOG_WINCONFIG_H
+#include "slog_winconfig.h"
+#endif
 #include "slog_assoc.h"
 
 int SLOG_Assoc_IsEqualTo( const SLOG_N_assocs_t   Nassocs1,

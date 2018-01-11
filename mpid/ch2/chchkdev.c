@@ -1,5 +1,5 @@
 /*
- *  $Id: chchkdev.c,v 1.6 2000/08/10 22:04:44 gropp Exp $
+ *
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -34,9 +34,9 @@
     This is the message-passing version.  The shared-memory version is
     in chchkshdev.c .
  */    
-int MPID_CH_Check_incoming( dev, is_blocking )
-MPID_Device        *dev;
-MPID_BLOCKING_TYPE is_blocking;
+int MPID_CH_Check_incoming( 
+	MPID_Device *dev,
+	MPID_BLOCKING_TYPE is_blocking)
 {
     MPID_PKT_T   pkt;
     int          from_grank;

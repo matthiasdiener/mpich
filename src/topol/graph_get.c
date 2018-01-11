@@ -1,5 +1,5 @@
 /*
- *  $Id: graph_get.c,v 1.7 1999/08/30 15:51:02 swider Exp $
+ *  $Id: graph_get.c,v 1.10 2002/01/04 22:42:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -25,7 +25,14 @@
 #undef __MPI_BINDINGS
 #include "binding.h"
 #endif
+/* index is a function in string.h.  Define this to suppress warnings about
+   shadowed symbols from the C compiler */
+#ifndef index
+#define index idx
+#endif
+
 #include "mpitopo.h"
+
 
 /*@
 
@@ -49,7 +56,7 @@ Output Parameter:
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Graph_get ( MPI_Comm comm, int maxindex, int maxedges, 
+int MPI_Graph_get ( MPI_Comm comm, int maxindex, int maxedges, 
 		    int *index, int *edges )
 {
   int i, num, flag;

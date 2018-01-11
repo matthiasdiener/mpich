@@ -1,5 +1,5 @@
 /*
- *  $Id: keyvalcreate.c,v 1.5 1999/08/30 15:43:41 swider Exp $
+ *  $Id: keyvalcreate.c,v 1.6 2001/11/14 19:54:28 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -54,7 +54,7 @@ Fortran and C in the same program need to be sure that they follow this rule.
 .N MPI_ERR_EXHAUSTED
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Keyval_create ( 
+int MPI_Keyval_create ( 
 	MPI_Copy_function *copy_fn, 
 	MPI_Delete_function *delete_fn, 
 	int *keyval, 

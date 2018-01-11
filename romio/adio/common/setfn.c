@@ -1,5 +1,5 @@
 /* 
- *   $Id: setfn.c,v 1.9 2001/07/31 18:41:06 rross Exp $    
+ *   $Id: setfn.c,v 1.11 2001/11/27 19:23:29 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -37,6 +37,15 @@ void ADIOI_SetFunctions(ADIO_File fd)
 	*(fd->fns) = ADIO_UFS_operations;
 #else
 	FPRINTF(stderr, "ADIOI_SetFunctions: ROMIO has not been configured to use the UFS file system\n");
+        MPI_Abort(MPI_COMM_WORLD, 1);
+#endif
+	break;
+
+    case ADIO_NTFS:
+#ifdef ROMIO_NTFS
+	*(fd->fns) = ADIO_NTFS_operations;
+#else
+	FPRINTF(stderr, "ADIOI_SetFunctions: ROMIO has not been configured to use the NTFS file system\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
 #endif
 	break;

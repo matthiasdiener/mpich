@@ -1,5 +1,5 @@
 /*
- *  $Id: cancel.c,v 1.9 1999/12/02 18:57:33 gropp Exp $
+ *  $Id: cancel.c,v 1.10 2001/11/14 20:09:56 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -56,7 +56,7 @@ messages).
 .N MPI_ERR_REQUEST
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Cancel( MPI_Request *request )
+int MPI_Cancel( MPI_Request *request )
 {
     static char myname[] = "MPI_CANCEL";
     int mpi_errno = MPI_SUCCESS;

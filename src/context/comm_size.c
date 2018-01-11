@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_size.c,v 1.6 1999/08/30 15:43:02 swider Exp $
+ *  $Id: comm_size.c,v 1.7 2001/11/14 19:54:21 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -47,7 +47,7 @@ Notes:
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Comm_size ( MPI_Comm comm, int *size )
+int MPI_Comm_size ( MPI_Comm comm, int *size )
 {
     int mpi_errno = MPI_SUCCESS;
     struct MPIR_COMMUNICATOR *comm_ptr;

@@ -1,5 +1,5 @@
 /*
- *  $Id: type_commit.c,v 1.8 2000/08/10 22:15:35 toonen Exp $
+ *  $Id: type_commit.c,v 1.9 2001/11/14 20:10:05 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -38,7 +38,7 @@ Input Parameter:
 .N MPI_SUCCESS
 .N MPI_ERR_TYPE
 @*/
-EXPORT_MPI_API int MPI_Type_commit ( MPI_Datatype *datatype )
+int MPI_Type_commit ( MPI_Datatype *datatype )
 {
     struct MPIR_DATATYPE *dtype_ptr;
     static char myname[] = "MPI_TYPE_COMMIT";

@@ -11,16 +11,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_WAITALL = PMPI_WAITALL
-EXPORT_MPI_API void MPI_WAITALL ( MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint *);
+void MPI_WAITALL ( MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint *);
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_waitall__ = pmpi_waitall__
-EXPORT_MPI_API void mpi_waitall__ ( MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint *);
+void mpi_waitall__ ( MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint *);
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_waitall = pmpi_waitall
-EXPORT_MPI_API void mpi_waitall ( MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint *);
+void mpi_waitall ( MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint *);
 #else
 #pragma weak mpi_waitall_ = pmpi_waitall_
-EXPORT_MPI_API void mpi_waitall_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint *);
+void mpi_waitall_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint *);
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -78,11 +78,11 @@ EXPORT_MPI_API void mpi_waitall_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STAT
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_waitall_ ( MPI_Fint *, MPI_Fint [],
+FORTRAN_API void FORT_CALL mpi_waitall_ ( MPI_Fint *, MPI_Fint [],
 			      MPI_Fint [][MPI_STATUS_SIZE], 
 			      MPI_Fint *);
 
-EXPORT_MPI_API void mpi_waitall_(MPI_Fint *count, MPI_Fint array_of_requests[], MPI_Fint array_of_statuses[][MPI_STATUS_SIZE], MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_waitall_(MPI_Fint *count, MPI_Fint array_of_requests[], MPI_Fint array_of_statuses[][MPI_STATUS_SIZE], MPI_Fint *__ierr )
 {
     int i;
     MPI_Request *lrequest = 0;

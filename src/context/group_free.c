@@ -1,5 +1,5 @@
 /*
- *  $Id: group_free.c,v 1.6 1999/08/30 15:43:14 swider Exp $
+ *  $Id: group_free.c,v 1.7 2001/11/14 19:54:23 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -44,7 +44,7 @@ On output, group is set to 'MPI_GROUP_NULL'.
 .N MPI_ERR_ARG
 .N MPI_ERR_PERM_GROUP
 @*/
-EXPORT_MPI_API int MPI_Group_free ( MPI_Group *group )
+int MPI_Group_free ( MPI_Group *group )
 {
     struct MPIR_GROUP *group_ptr;
     int mpi_errno = MPI_SUCCESS;

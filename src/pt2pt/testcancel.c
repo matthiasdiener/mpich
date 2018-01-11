@@ -1,5 +1,5 @@
 /*
- *  $Id: testcancel.c,v 1.6 1999/08/30 15:49:39 swider Exp $
+ *  $Id: testcancel.c,v 1.7 2001/11/14 20:10:05 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -37,7 +37,7 @@ Output Parameter:
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Test_cancelled( 
+int MPI_Test_cancelled( 
 	MPI_Status *status,
 	int        *flag)
 {

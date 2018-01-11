@@ -63,6 +63,6 @@ typedef struct { int id, from, type; } MPL_Aid;
 #define PIiFinish MPID_MPL_End
 #define SYexitall(msg,code) mpc_stopall(code)
 
-void MPID_MPL_Init ANSI_ARGS(( int *, char *** ));
-void MPID_MPL_End  ANSI_ARGS((void));
+void MPID_MPL_Init ( int *, char *** );
+void MPID_MPL_End  (void);
 #endif

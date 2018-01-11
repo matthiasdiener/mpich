@@ -331,12 +331,34 @@ int sig;
     p4_dprintfl(70, "Inside handle_connection_interrupt fd=%d\n",p4_local->listener_fd);
     listener_fd = p4_local->listener_fd;
 
+#ifdef USE_NONBLOCKING_LISTENER_SOCKETS
+    /*
+     * Must read non-blocking due to race conditions with using
+     * signals as IPC mechanism.  See the fcntl near get_pipe where
+     * these are created.
+     */
+    for (;;) {
+	int cc = read(listener_fd, &msg, sizeof(msg));
+	if (cc == 0)
+	    p4_error("handle_connection_interrupt: EOF from listener", 0);
+	if (cc < 0) {
+	    if (errno == EAGAIN)
+		continue;
+	    p4_error("handle_connection_interrupt: read listener", cc);
+	}
+	/* these should be atomic: AF_UNIX, AF_STREAM */
+	if (cc != sizeof(msg))
+	    p4_error("handle_connection_interrupt: short read"
+	      " from listener", 0);
+	break;
+    }
+#else
     if (net_recv(listener_fd, &msg, sizeof(msg)) == PRECV_EOF)
     {
 	p4_dprintf("OOPS: got eof in handle_connection_interrupt\n");
 	return;
     }
-
+#endif
     type = p4_n_to_i(msg.type);
     if (type != CONNECTION_REQUEST)
     {
@@ -505,7 +527,7 @@ P4VOID request_connection(int dest_id)
     p4_dprintfl(70, "request_connection: sending CONNECTION_REQUEST to %d on fd=%d size=%d\n",
 		dest_id,dest_listener_con_fd,sizeof(msg));
     net_send(dest_listener_con_fd, &msg, sizeof(msg), P4_FALSE);
-    p4_dprintfl(70, "request_connection: sent CONNECTION_REQUEST to dest_listener\n");
+    p4_dprintfl(70, "request_connection: sent CONNECTION_REQUEST for %d (pid %d) to dest_listener on fd %d\n", dest_id, dest_pi->unix_id, dest_listener_con_fd);
 
     if (my_id < dest_id)
     {
@@ -548,6 +570,16 @@ int sig;
     struct proc_info *from_pi;
     int myid = p4_get_my_id();
     int num_tries;
+    static int in_handler = 0;
+
+    /* There is a small chance that we'll be in the handler when another 
+       signal is delivered.  Since the listener will send a signal 
+       every .1 seconds until there is a response, we can simply return.
+       This test does have a race condition, but it is very small, and
+       we're going to ignore it.
+    */
+    if (in_handler) return;
+    in_handler = 1;
 
     listener_fd = p4_local->listener_fd;
     p4_dprintfl(70, "Inside handle_connection_interrupt, listener_fd=%d\n",
@@ -556,6 +588,7 @@ int sig;
     if (net_recv(listener_fd, &msg, sizeof(msg)) == PRECV_EOF)
     {
 	p4_dprintf("OOPS: got eof in handle_connection_interrupt\n");
+	in_handler = 0;
 	return;
     }
 
@@ -574,6 +607,7 @@ int sig;
     if (type != CONNECTION_REQUEST)
     {
 	p4_dprintf("handle_connection_interrupt: invalid type %d\n", type);
+	in_handler = 0;
 	return;
     }
 
@@ -638,7 +672,18 @@ int sig;
     p4_dprintfl(70, "handle_connection_interrupt: exiting handling intr from %d\n",from);
     
     /* If the return from this is SIG_DFL, then there is a problem ... */
+    /* The following re-establishes the signal handler, which is needed on
+       systems where the handler is reset to SIG_DFL when it is triggered.
+       Such systems are *broken*, since there is no good way to avoid the
+       resulting race conditions.  Unfortunately, we must work with those 
+       systems.  
+
+       We could reset the signal handler only on systems that require it.
+       However, this should be safe for all cases. 
+    */
     SIGNAL_P4(LISTENER_ATTN_SIGNAL, handle_connection_interrupt);
+
+    in_handler = 0;
 }
 #endif
 
@@ -776,8 +821,7 @@ void p4_chgval( char *keystr, char *valstr )
 #define     ESC '\\'
 #define ESC_ESC '\''
 
-void p4_stuff_arg(arg,stuffed)
-char arg[], stuffed[];
+void p4_stuff_arg( char arg[], char stuffed[])
 {
     int i,j;
 
@@ -799,8 +843,7 @@ char arg[], stuffed[];
     stuffed[j] = '\0';
 }
 
-void p4_destuff_arg(stuffed,arg)
-char stuffed[], arg[];
+void p4_destuff_arg(char stuffed[], char arg[])
 {
     int i,j;
 

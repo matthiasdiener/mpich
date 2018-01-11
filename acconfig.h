@@ -180,3 +180,7 @@
 
 /* Define if there is a routine to print tracebacks */
 #undef HAVE_PRINT_BACKTRACE
+
+/* Define for POSIX Clocks.  See the tests to see why these are here */
+#undef HAVE_CLOCK_GETTIME
+#undef HAVE_CLOCK_GETRES

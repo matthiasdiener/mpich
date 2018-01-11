@@ -32,7 +32,7 @@ typedef int p4_sockopt_len_t;
 
 /* #define DEBUG */
 
-char *start_prog_error;
+char *start_prog_error = 0;
 
 /* extern int errno; */
 
@@ -48,14 +48,14 @@ char *start_prog_error;
 extern char *sys_errlist[];
 #endif
 
-static int connect_to_server ANSI_ARGS((char *));
-static void send_string ANSI_ARGS((int,char *));
-static void recv_string ANSI_ARGS((int,char *,int));
+static int connect_to_server (char *);
+static void send_string (int,char *);
+static void recv_string (int,char *,int);
 
 int start_slave(host, username, prog, port, am_slave, pw_hook)
 char *host, *username, *prog, *am_slave;
 int port;
-char *(*pw_hook) ANSI_ARGS(( char *, char *));
+char *(*pw_hook) ( char *, char *);
 {
     int n, conn;
     struct passwd *pw;
@@ -64,7 +64,7 @@ char *(*pw_hook) ANSI_ARGS(( char *, char *));
     char *pw_string;
     static char buf[250];
     char *local_username;
-    char myhost[MAXHOSTNAMELEN];
+    char myhost_local[MAXHOSTNAMELEN];
     int new_port, new_fd, stdout_fd;
     char msg[500];
     struct sockaddr_in temp;
@@ -74,13 +74,20 @@ char *(*pw_hook) ANSI_ARGS(( char *, char *));
     struct timeval tv;
     fd_set rcv_fds;
 
-    myhost[0] = '\0';
-    get_qualified_hostname(myhost);
-    /* gethostname(myhost, sizeof(myhost)); */
+    /* If no sserver port has been selected, just return failure */
+    if (sserver_port < 0) {
+        start_prog_error = "No secure server port set";
+        return -1;
+    }
+    myhost_local[0] = '\0';
+    get_qualified_hostname(myhost_local,sizeof(myhost_local));
+    /* gethostname(myhost_local, sizeof(myhost_local)); */
 
     conn = connect_to_server(host);
-    if (conn < 0)
+    if (conn < 0) {
+        start_prog_error = "Could not connect";
 	return -1;
+    }
 
 #ifdef DEBUG
     printf("Connected\n");
@@ -175,14 +182,14 @@ char *(*pw_hook) ANSI_ARGS(( char *, char *));
     /* Send the program and then the args */
     send_string(conn, prog);
 
-    sprintf(pgm_args_string, "%s %d %s", myhost, port, am_slave);
+    sprintf(pgm_args_string, "%s %d %s", myhost_local, port, am_slave);
     send_string(conn, pgm_args_string);
 
     if ((pid = fork_p4()) == 0)
     {
 	/* This branch of the if is the process that listens to the
 	   remote process and receives data to send to stdout/stderr */
-	net_setup_anon_listener(10, &new_port, &new_fd);
+	net_setup_anon_listener(MAX_P4_CONN_BACKLOG, &new_port, &new_fd);
 	fflush(stdout);
 	sprintf(port_string, "%d", new_port);
 	send_string(conn, port_string);
@@ -350,7 +357,7 @@ char *buf;
 
 static struct sgttyb orig_tty;
 
-static int echo_off ANSI_ARGS((void))
+static int echo_off (void)
 {
     struct sgttyb tty_new;
 
@@ -371,7 +378,7 @@ static int echo_off ANSI_ARGS((void))
     return 0;
 }
 
-static int echo_on ANSI_ARGS((void))
+static int echo_on (void)
 {
     if (ioctl(0, TIOCSETP, &orig_tty) < 0)
     {
@@ -386,7 +393,7 @@ static int echo_on ANSI_ARGS((void))
 
 struct termio tty_orig;
 
-static int echo_off ANSI_ARGS((void))
+static int echo_off (void)
 {
     struct termio tty_new;
 
@@ -408,7 +415,7 @@ static int echo_off ANSI_ARGS((void))
     return (0);
 }
 
-static int echo_on ANSI_ARGS((void))
+static int echo_on (void)
 {
     if (ioctl(0, TCSETA, &tty_orig) < 0)
     {
@@ -422,7 +429,7 @@ static int echo_on ANSI_ARGS((void))
 
 struct termios tty_orig;
 
-static int echo_off ANSI_ARGS((void))
+static int echo_off (void)
 {
     struct termios tty_new;
 
@@ -444,7 +451,7 @@ static int echo_off ANSI_ARGS((void))
     return (0);
 }
 
-static int echo_on ANSI_ARGS((void))
+static int echo_on (void)
 {
     if (ioctl(0, TIOCSETA, &tty_orig) < 0)
     {
@@ -458,12 +465,12 @@ static int echo_on ANSI_ARGS((void))
 /* 
  *  No common way to turn echo on/off.  Just ignore.
  */
-static int echo_off ANSI_ARGS((void))
+static int echo_off (void)
 {
     return 0;
 }
 
-static int echo_on ANSI_ARGS((void))
+static int echo_on (void)
 {
     return 0;
 }

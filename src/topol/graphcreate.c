@@ -1,5 +1,5 @@
 /*
- *  $Id: graphcreate.c,v 1.9 1999/08/30 15:51:09 swider Exp $
+ *  $Id: graphcreate.c,v 1.12 2002/01/04 22:42:27 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -25,9 +25,15 @@
 #undef __MPI_BINDINGS
 #include "binding.h"
 #endif
+/* index is a function in string.h.  Define this to suppress warnings about
+   shadowed symbols from the C compiler */
+#ifndef index
+#define index idx
+#endif
 #include "mpitopo.h"
 #include "sbcnst2.h"
 #define MPIR_SBalloc MPID_SBalloc
+
 
 /*@
 
@@ -55,7 +61,7 @@ We ignore the 'reorder' info currently.
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Graph_create ( MPI_Comm comm_old, int nnodes, int *index, int *edges, 
+int MPI_Graph_create ( MPI_Comm comm_old, int nnodes, int *index, int *edges, 
 		       int reorder, MPI_Comm *comm_graph )
 {
   int range[1][3];

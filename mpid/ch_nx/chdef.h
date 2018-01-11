@@ -61,6 +61,6 @@ extern int __NUMNODES, __MYPROCID;
 #define SYexitall(msg,code) exit(code);
 #endif
 
-void MPID_NX_Init ANSI_ARGS(( int *, char *** ));
-void MPID_NX_End  ANSI_ARGS((void));
+void MPID_NX_Init ( int *, char *** );
+void MPID_NX_End  (void);
 #endif

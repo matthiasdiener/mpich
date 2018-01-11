@@ -1,5 +1,5 @@
 /* 
- *   $Id: darray.c,v 1.11 1999/09/13 20:09:35 thakur Exp $    
+ *   $Id: darray.c,v 1.12 2001/11/14 20:08:03 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -61,7 +61,7 @@ Output Parameters:
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Type_create_darray(int size, int rank, int ndims, 
+int MPI_Type_create_darray(int size, int rank, int ndims, 
      	                   int *array_of_gsizes, int *array_of_distribs, 
                            int *array_of_dargs, int *array_of_psizes, 
                            int order, MPI_Datatype oldtype, 

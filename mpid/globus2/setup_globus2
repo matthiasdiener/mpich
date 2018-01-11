@@ -162,10 +162,17 @@ if test $globus_packaged -eq 0 ; then
 
     globus_makefile_path=$GLOBUSDIR/etc/$makefile_name
 else
-    if test -f $GLOBUS_LOCATION/include/$flavor/$makefile_name ; then
-        globus_makefile_path=$GLOBUS_LOCATION/include/$flavor/$makefile_name
+    if test -f $GLOBUS_LOCATION/sbin/globus-makefile-header ; then
+	makefile_name=Makefile.mpich
+	if test ! -f mpid/${DEVICE}/${makefile_name}  ; then
+	    cp ${top_srcdir}/mpid/${DEVICE}/${makefile_name} mpid/${DEVICE}/
+	fi
+	$GLOBUS_LOCATION/sbin/globus-makefile-header -flavor=$flavor \
+	    globus_common globus_gram_client globus_io globus_data_conversion \
+	    globus_duroc_runtime globus_duroc_bootstrap >mpid/${DEVICE}/Makefile.mpich.header
+        globus_makefile_path=mpid/${DEVICE}/$makefile_name
     else
-        print_error "Unable to locate $GLOBUS_LOCATION/include/$flavor/$makefile_name" 
+        print_error "Unable to locate $GLOBUS_LOCATION/sbin/globus-makefile-header" 
 	exit 1
     fi
 fi
@@ -188,11 +195,6 @@ get_globus_setting()
 	exit 1
     fi
 }
-
-#
-# Check the version of Globus
-#
-get_globus_setting globusversion globusversion
 
 #
 # Determine whether or not we are using the vendor's MPI as one of our

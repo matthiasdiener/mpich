@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_getnks.c,v 1.6 1999/08/30 15:47:41 swider Exp $    
+ *   $Id: info_getnks.c,v 1.7 2001/11/14 20:08:06 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -37,7 +37,7 @@ Output Parameters:
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Info_get_nkeys(MPI_Info info, int *nkeys)
+int MPI_Info_get_nkeys(MPI_Info info, int *nkeys)
 {
     MPI_Info curr;
     int mpi_errno;

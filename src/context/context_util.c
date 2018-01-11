@@ -1,5 +1,5 @@
 /*
- *  $Id: context_util.c,v 1.5 1999/10/15 20:08:29 gropp Exp $
+ *  $Id: context_util.c,v 1.6 2001/12/14 22:08:08 toonen Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -99,7 +99,7 @@ int MPIR_Context_alloc (
     unsigned int groupUsedMap[ 1 + MPID_MAX_CONTEXT/INTBITS ];
 
     /* Get the or of the masks everywhere */
-    MPI_Allreduce(usedContextMap, groupUsedMap, 1 + MPID_MAX_CONTEXT/INTBITS,
+    PMPI_Allreduce(usedContextMap, groupUsedMap, 1 + MPID_MAX_CONTEXT/INTBITS,
 		  MPI_UNSIGNED,MPI_BOR,comm);
 
     result = findFree(groupUsedMap, num_contexts);
@@ -115,7 +115,7 @@ int MPIR_Context_alloc (
     int rank;
 
     /* Find the allocated mask in the local group */
-    MPI_Allreduce(usedContextMap, localUsedMap, 1 + MPID_MAX_CONTEXT/INTBITS,
+    PMPI_Allreduce(usedContextMap, localUsedMap, 1 + MPID_MAX_CONTEXT/INTBITS,
 		  MPI_UNSIGNED, MPI_BOR, intra);
 
     MPIR_Comm_rank ( comm, &rank );
@@ -125,9 +125,10 @@ int MPIR_Context_alloc (
        * two people participating), so simply swap the masks and do the or
        * by hand 
        */
-      MPI_Sendrecv( localUsedMap,1+MPID_MAX_CONTEXT/INTBITS, MPI_UNSIGNED, 0, 0, 
-                    allUsedMap,  1+MPID_MAX_CONTEXT/INTBITS, MPI_UNSIGNED, 0, 0, 
-		    inter, &status);
+      PMPI_Sendrecv(
+	  localUsedMap,1+MPID_MAX_CONTEXT/INTBITS, MPI_UNSIGNED, 0, 0, 
+	  allUsedMap,  1+MPID_MAX_CONTEXT/INTBITS, MPI_UNSIGNED, 0, 0, 
+	  inter, &status);
       
       for (i=0; i<1+MPID_MAX_CONTEXT/INTBITS; i++)
 	  allUsedMap[i] |= localUsedMap[i];
@@ -135,7 +136,7 @@ int MPIR_Context_alloc (
       result = findFree(allUsedMap, num_contexts);
     }
     /* Leader give context info to local group */
-    MPI_Bcast (&result, 1, MPIR_CONTEXT_TYPE, 0, intra); 
+    PMPI_Bcast (&result, 1, MPIR_CONTEXT_TYPE, 0, intra); 
   }    
 
   if (result < 0)
@@ -223,7 +224,8 @@ MPIR_CONTEXT *context;
   if (comm->comm_type == MPIR_INTRA) {
 
     /* Find the highest context */
-    MPI_Allreduce(&high_context,context,1,MPIR_CONTEXT_TYPE,MPI_MAX,comm->self);
+    PMPI_Allreduce(&high_context,context,1,MPIR_CONTEXT_TYPE,MPI_MAX,
+		   comm->self);
   }
 
   /* Allocate contexts for inter-comms */
@@ -235,20 +237,22 @@ MPIR_CONTEXT *context;
     int          rank;
 
     /* Find the highest context on the local group */
-    MPI_Allreduce(&high_context,context,1,MPIR_CONTEXT_TYPE,MPI_MAX,intra->self);
+    PMPI_Allreduce(&high_context,context,1,MPIR_CONTEXT_TYPE,MPI_MAX,
+		   intra->self);
 
     MPIR_Comm_rank ( comm, &rank );
     if (rank == 0) {
       /* Leaders swap info */
-      MPI_Sendrecv(   context, 1, MPIR_CONTEXT_TYPE, 0, 0, 
-                    &rcontext, 1, MPIR_CONTEXT_TYPE, 0, 0, inter->self, &status);
+      PMPI_Sendrecv(   context, 1, MPIR_CONTEXT_TYPE, 0, 0, 
+		       &rcontext, 1, MPIR_CONTEXT_TYPE, 0, 0,
+		       inter->self, &status);
 
       /* Update context to be the highest context */
       (*context) = MPIR_MAX((*context),rcontext);
     }
 
     /* Leader give context info to everyone else */
-    MPI_Bcast (context, 1, MPIR_CONTEXT_TYPE, 0, intra->self); 
+    PMPI_Bcast (context, 1, MPIR_CONTEXT_TYPE, 0, intra->self); 
   }
 
   /* Reset the highest context */

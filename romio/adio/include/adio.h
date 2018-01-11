@@ -1,5 +1,5 @@
 /* 
- *   $Id: adio.h,v 1.10 2001/07/31 18:41:08 rross Exp $    
+ *   $Id: adio.h,v 1.16 2001/12/12 23:38:02 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -26,17 +26,56 @@
 #define _POSIX_SOURCE
 #endif
 
+#ifdef USE_FORT_STDCALL
+#define FORT_CALL __stdcall
+#elif defined (USE_FORT_CDECL)
+#define FORT_CALL __cdecl
+#else
+#define FORT_CALL
+#endif
+
+#ifdef USE_FORT_MIXED_STR_LEN
+#define FORT_MIXED_LEN_DECL   , int
+#define FORT_END_LEN_DECL
+#define FORT_MIXED_LEN(a)     , int a
+#define FORT_END_LEN(a)
+#else
+#define FORT_MIXED_LEN_DECL
+#define FORT_END_LEN_DECL     , int
+#define FORT_MIXED_LEN(a)
+#define FORT_END_LEN(a)       , int a
+#endif
+
+#ifdef HAVE_FORTRAN_API
+# ifdef FORTRAN_EXPORTS
+#  define FORTRAN_API __declspec(dllexport)
+# else
+#  define FORTRAN_API __declspec(dllimport)
+# endif
+#else
+# define FORTRAN_API
+#endif
+
+#include "romioconf.h"
+
 #include "mpi.h"
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #ifdef SPPUX
 #include <sys/cnx_fcntl.h>
+#endif
+
+#ifdef ROMIO_NTFS
+#include <winsock2.h>
+#include <windows.h>
+#define FDTYPE HANDLE
+#else
+#define FDTYPE int
 #endif
 
 #ifdef MPI_OFFSET_IS_INT
@@ -49,6 +88,9 @@
 #  else
 #     define ADIO_OFFSET MPI_DOUBLE
 #  endif
+#elif defined(HAVE_INT64)
+   typedef __int64 ADIO_Offset;
+#  define ADIO_OFFSET MPI_DOUBLE
 #else
    typedef long ADIO_Offset;
 #  define ADIO_OFFSET MPI_LONG
@@ -115,10 +157,11 @@ MPI_Info PMPI_Info_f2c(MPI_Fint info);
 #endif
 
 typedef struct ADIOI_Fns_struct ADIOI_Fns;
+typedef struct ADIOI_Hints_struct ADIOI_Hints;
 
 struct ADIOI_FileD {
     int cookie;              /* for error checking */
-    int fd_sys;              /* system file descriptor */
+    FDTYPE fd_sys;              /* system file descriptor */
 #ifdef XFS
     int fd_direct;           /* On XFS, this is used for direct I/O; 
                                 fd_sys is used for buffered I/O */
@@ -142,6 +185,7 @@ struct ADIOI_FileD {
     MPI_Datatype etype;      /* reqd. for MPI-IO */
     MPI_Datatype filetype;   /* reqd. for MPI-IO */
     int etype_size;          /* in bytes */
+    ADIOI_Hints *hints;      /* structure containing fs-indep. info values */
     MPI_Info info;
     int split_coll_count;    /* count of outstanding split coll. ops. */
     char *shared_fp_fname;   /* name of file containing shared file pointer */
@@ -213,7 +257,8 @@ typedef struct {
 #define ADIO_HFS                 155   /* HP/Convex */
 #define ADIO_SFS                 156   /* NEC */
 #define ADIO_PVFS                157   /* PVFS for Linux Clusters from Clemson Univ. */
-#define ADIO_TESTFS              158   /* fake file system for testing */
+#define ADIO_NTFS                158   /* NTFS for Windows NT */
+#define ADIO_TESTFS              159   /* fake file system for testing */
 
 #define ADIO_SEEK_SET            SEEK_SET
 #define ADIO_SEEK_CUR            SEEK_CUR
@@ -248,7 +293,8 @@ typedef struct {
 
 void ADIO_Init(int *argc, char ***argv, int *error_code);
 void ADIO_End(int *error_code);
-ADIO_File ADIO_Open(MPI_Comm comm, char *filename, int file_system,
+ADIO_File ADIO_Open(MPI_Comm orig_comm, MPI_Comm comm, char *filename, 
+		    int file_system,
                     int access_mode, ADIO_Offset disp, MPI_Datatype etype, 
                     MPI_Datatype filetype, int iomode, 
                     MPI_Info info, int perm, int *error_code);

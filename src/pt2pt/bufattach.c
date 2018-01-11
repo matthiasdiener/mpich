@@ -1,5 +1,5 @@
 /*
- *  $Id: bufattach.c,v 1.8 1999/08/30 15:48:40 swider Exp $
+ *  $Id: bufattach.c,v 1.9 2001/11/14 20:09:55 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -65,7 +65,7 @@ is in 'mpi.h' (for C) and 'mpif.h' (for Fortran).
 
 .seealso: MPI_Buffer_detach, MPI_Bsend
 @*/
-EXPORT_MPI_API int MPI_Buffer_attach( void *buffer, int size )
+int MPI_Buffer_attach( void *buffer, int size )
 {
     int mpi_errno;
     static char myname[] = "MPI_BUFFER_ATTACH";

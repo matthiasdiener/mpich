@@ -1,5 +1,5 @@
 /*
- *  $Id: graph_map.c,v 1.7 1999/08/30 15:51:04 swider Exp $
+ *  $Id: graph_map.c,v 1.10 2002/01/04 22:42:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -26,6 +26,12 @@
 #include "binding.h"
 #endif
 
+/* index is a function in string.h.  Define this to suppress warnings about
+   shadowed symbols from the C compiler */
+#ifndef index
+#define index idx
+#endif
+
 /*@
 
 MPI_Graph_map - Maps process to graph topology information
@@ -48,7 +54,7 @@ calling process does not belong to graph (integer)
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Graph_map ( MPI_Comm comm_old, int nnodes, int *index, int *edges, 
+int MPI_Graph_map ( MPI_Comm comm_old, int nnodes, int *index, int *edges, 
 		    int *newrank )
 {
   int rank, size;

@@ -158,7 +158,7 @@ C
 C
 C    This is now handled with either the "pointer" extension or this same
 C    code, appended at the end.
-C      COMMON /MPIPRIV/ MPI_BOTTOM,MPI_STATUS_IGNORE,MPI_STATUSES_IGNORE      
+C      COMMON /MPIPRIV/ MPI_BOTTOM,MPI_STATUS_IGNORE,MPI_STATUSES_IGNORE
 CC
 CC     Without this save, some Fortran implementations may make the common
 CC     dynamic!

@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2ssend.c,v 1.1.1.1 1997/09/17 20:39:28 gropp Exp $
+ *  $Id: adi2ssend.c,v 1.2 2001/11/12 23:09:30 ashton Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -19,12 +19,16 @@
  */
 /***************************************************************************/
 
-void MPID_SsendContig( comm_ptr, buf, len, src_lrank, tag, context_id, 
-			      dest_grank, msgrep, error_code )
-struct MPIR_COMMUNICATOR *     comm_ptr;
-void          *buf;
-int           len, src_lrank, tag, context_id, dest_grank, *error_code;
-MPID_Msgrep_t msgrep;
+void MPID_SsendContig( 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	void *buf, 
+	int len, 
+	int src_lrank, 
+	int tag, 
+	int context_id, 
+	int dest_grank, 
+	MPID_Msgrep_t msgrep, 
+	int *error_code )
 {
     MPID_Device *dev = MPID_devset->dev[dest_grank];
 
@@ -36,13 +40,18 @@ MPID_Msgrep_t msgrep;
     *error_code = (*(dev->rndv->send))( buf, len, src_lrank, tag, context_id, 
 					dest_grank, msgrep );
 }
-void MPID_IssendContig( comm_ptr, buf, len, src_lrank, tag, context_id, 
-			      dest_grank, msgrep, request, error_code )
-struct MPIR_COMMUNICATOR *     comm_ptr;
-void          *buf;
-int           len, src_lrank, tag, context_id, dest_grank, *error_code;
-MPID_Msgrep_t msgrep;
-MPI_Request   request;
+
+void MPID_IssendContig( 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	void *buf, 
+	int len, 
+	int src_lrank, 
+	int tag, 
+	int context_id, 
+	int dest_grank, 
+	MPID_Msgrep_t msgrep, 
+	MPI_Request request, 
+	int *error_code )
 {
     MPID_Device *dev = MPID_devset->dev[dest_grank];
 

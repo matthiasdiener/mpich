@@ -34,6 +34,7 @@ extern int    keyval_tab_idx;
 extern char   mpd_passwd[PASSWDLEN];
 extern int    no_execute;
 extern int    shutting_down;
+extern int    generation;
 
 void sib_reconnect_rhs( int idx ) 
 {
@@ -161,7 +162,7 @@ void sib_req_perm_to_shutdown( void )
 	sprintf( buf, "src=%s dest=%s_%d cmd=perm_to_shutdown\n",
 		 myid, rhshost, rhsport );
 	write_line( rhs_idx, buf );
-	chg_rhs_to_rhs2( rhs_idx );
+	reknit_ring( rhs_idx );
     }
 }
 
@@ -186,7 +187,7 @@ void sib_mpexec( void )		/* designed to work with process managers */
 	 temparg[MAXLINE], argid[MAXLINE],
 	 tempenv[MAXLINE], envid[MAXLINE],
 	 temploc[MAXLINE], locid[MAXLINE];
-    char src[MAXLINE], program[MAXLINE], username[MAXLINE];
+    char src[MAXLINE], program[MAXLINE], username[80];
     int  pid, i, saved_i, j, rc, argc, envc, locc, gdb, tvdebug;
     int  line_labels, whole_lines, shmemgrpsize;
     char *argv[25];
@@ -207,14 +208,11 @@ void sib_mpexec( void )		/* designed to work with process managers */
     int  man_listener_fd, last_man_listener_fd, man_listener_port, last_man_listener_port;
     int  first_man_listener_port = -1, first_man_listener_fd;
     char host0[MAXHOSTNMLEN], prevhost[MAXHOSTNMLEN];
-    char groups[6*MAXGIDS];
     int  port0, prevport;
     char host0_next_mpd[MAXHOSTNMLEN];
     int  port0_next_mpd;
-    int  hopcount, iotree, do_mpexec_here, groupid;
+    int  hopcount, iotree, do_mpexec_here;
 #if defined(ROOT_ENABLED)
-    gid_t gidlist[MAXGIDS];
-    int  numgids;
     struct passwd *pwent;
 #endif
 
@@ -246,9 +244,6 @@ void sib_mpexec( void )		/* designed to work with process managers */
     mpd_getval( "shmemgrpsize", buf );
     shmemgrpsize = atoi( buf );
     mpd_getval( "username", username );
-    mpd_getval( "groupid", buf );
-    groupid = atoi( buf );
-    mpd_getval( "groups", groups );
     mpd_getval( "myrinet_job", buf );
     myrinet_job = atoi( buf );
 
@@ -274,7 +269,6 @@ void sib_mpexec( void )		/* designed to work with process managers */
 	    sprintf(locid,"loc%d",i);
 	    mpd_getval(locid,buf);
 	    mpd_destuff_arg(buf,temploc);
-            /* Here is where to insert the group check */
 	    if ( my_hostname_is_in_pattern( temploc ) )  {
 		do_mpexec_here = 1;
 		break;
@@ -301,6 +295,7 @@ void sib_mpexec( void )		/* designed to work with process managers */
 	/* notify console */
 	sprintf( buf, "cmd=jobinfo jobid=%d status=failed\n",jobid );
 	write_line( console_idx, buf );
+	dclose( fdtable[console_idx].fd ); /* without this we get "Broken Pipe" */
 	return;
     } 
 
@@ -369,12 +364,11 @@ void sib_mpexec( void )		/* designed to work with process managers */
 	    "cmd=mpexec conhost=%s conport=%d host0=%s port0=%d prevhost=%s prevport=%d "
 	    "iotree=%d rank=%d src=%s dest=anyone job=%d jobsize=%d prog=%s hopcount=%d "
 	    "gdb=%d tvdebug=%d line_labels=%d whole_lines=%d "
-	    "shmemgrpsize=%d username=%s groupid=%d "
-	    "groups=%s myrinet_job=%d ",
+	    "shmemgrpsize=%d username=%s myrinet_job=%d ",
 	    conhost, conport, host0_next_mpd, port0_next_mpd, myhostname,
 	    last_man_listener_port, iotree, jobrank + shmemgrpsize, src, jobid, jobsize,
 	    program, hopcount + 1, gdb, tvdebug, line_labels, whole_lines,
-	    shmemgrpsize, username, groupid, groups, myrinet_job );
+	    shmemgrpsize, username, myrinet_job );
     /* no newline in above buffer because we are not finished adding things to it */
 
     /* set up locations for fwded message; locc already parsed above */
@@ -446,6 +440,8 @@ void sib_mpexec( void )		/* designed to work with process managers */
 	}
 	jobtable[jidx].jobid = jobid;
 	jobtable[jidx].jobsize = jobsize;
+	strncpy( jobtable[jidx].program, program, MAXLINE );
+	strncpy( jobtable[jidx].username, username, 80 );
 	mpdprintf( debug, "sib_mpexec: jobid=%d in jobtable at jidx=%d: \n",jobid,jidx );
 
 	/* set up socket for mpd-manager communication */
@@ -484,9 +480,9 @@ void sib_mpexec( void )		/* designed to work with process managers */
 	env[i++] = env_mpd_fd; 
 	/* acquire next available myrinet port and put in environment for manager */
 	if ( myrinet_job ) {
-	    int rc;
-	    rc = get_next_myrinet_port( );
-	    if ( rc < 0 ) {
+	    int mrc;
+	    mrc = get_next_myrinet_port( );
+	    if ( mrc < 0 ) {
 		mpdprintf( 1, "mpexec: could not acquire myrinet port\n" );
 		syslog( LOG_INFO, "could not get myrinet port for job %d; user=%s pgm=%s",
 			jobid, username, program );
@@ -495,7 +491,7 @@ void sib_mpexec( void )		/* designed to work with process managers */
 	        write_line( rhs_idx, buf );
 	    }
 	    else {
-		sprintf( env_myrinet_port, "MPD_MYRINET_PORT=%d", rc );
+		sprintf( env_myrinet_port, "MPD_MYRINET_PORT=%d", mrc );
 		env[i++] = env_myrinet_port;
 	    }
 	}
@@ -598,21 +594,15 @@ void sib_mpexec( void )		/* designed to work with process managers */
 	    sprintf( myid, "man_%d_before_exec", jobrank );
 	    mpdprintf( debug, "manager before exec closing fd %d\n", man_mpd_socket[0] );
 	    dclose( man_mpd_socket[0] );
-	    setpgid(0,0);
+	    setpgid(0,0);	/* set process group id of manager to pid of manager */
 #if defined(ROOT_ENABLED)
 	    /* set group membership here */
-	    rc = setgroups( numgids, gidlist );
-	    error_check( rc, "setting groups" );
-	    setgid( groupid );
+	    initgroups( username, pwent->pw_gid ); 
+	    setgid( pwent->pw_gid );
 	    setuid( pwent->pw_uid );
-	    mpdprintf( 0, "groups before execve = :%s:\n", groups );
-	    parse_groups( groups, gidlist, &numgids );
-	    for ( i = 0; i < numgids; i++ ) 
-		mpdprintf( 0, "sibproc:  member of group %d\n", gidlist[i] );
 #endif
 	    rc = execve( MANAGER_PATHNAME, argv, env );
-	    if ( rc < 0 )
-	    {
+	    if ( rc < 0 ) {
 	        sprintf( buf, "src=%s dest=%s cmd=jobstarted job=%d status=failed\n",
 		         myid, src, jobid );
 	        mpdprintf( debug, "mpexec: sending jobstarted-failed: job=%d dest=%s manager pathname=%s\n", jobid, src, MANAGER_PATHNAME );
@@ -717,7 +707,7 @@ void sib_jobstarted( void )
     mpd_getval( "jobid", buf );
     jobid = atoi( buf );
     mpd_getval( "status", statusbuf );
-    sprintf( buf, "cmd=jobinfo jobid=%d status=%s\n",jobid,statusbuf );
+    sprintf( buf, "cmd=jobinfo jobid=%d status=%s\n", jobid, statusbuf );
     write_line( console_idx, buf );
 }
 
@@ -805,15 +795,16 @@ void sib_trace( void )
         return;
     mpd_getval( "src", srcid );
     if ( strcmp( srcid, myid ) == 0 ) {
-        sprintf( buf, "%s:  lhs=%s_%d  rhs=%s_%d  rhs2=%s_%d\n",
-                 myid, lhshost, lhsport, rhshost, rhsport, rhs2host, rhs2port);
+        sprintf( buf, "%s:  lhs=%s_%d  rhs=%s_%d  rhs2=%s_%d gen=%d\n",
+                 myid, lhshost, lhsport, rhshost, rhsport, rhs2host, rhs2port, generation);
         write_line( console_idx, buf );
     }
     else {
 	mpdprintf(debug,"sending my trace info to %s\n",srcid);
-	sprintf( buf,"src=%s dest=%s cmd=trace_info lhs=%s_%d rhs=%s_%d rhs2=%s_%d\n",
+	sprintf( buf,
+		 "src=%s dest=%s cmd=trace_info lhs=%s_%d rhs=%s_%d rhs2=%s_%d gen=%d\n",
 		 myid, srcid, lhshost, lhsport, rhshost, rhsport,
-		 rhs2host, rhs2port );
+		 rhs2host, rhs2port, generation );
 	write_line( rhs_idx, buf );
     }
 }
@@ -837,14 +828,15 @@ void sib_trace_trailer( void )
 void sib_trace_info( void )
 {
     char buf[MAXLINE];
-    char srcid[IDSIZE], lhsid[IDSIZE], rhsid[IDSIZE], rhs2id[IDSIZE];
+    char srcid[IDSIZE], lhsid[IDSIZE], rhsid[IDSIZE], rhs2id[IDSIZE], gen[8];
 
     mpd_getval( "src", srcid );
     mpd_getval( "lhs", lhsid );
     mpd_getval( "rhs", rhsid );
     mpd_getval( "rhs2", rhs2id );
-    sprintf( buf, "%s:  lhs=%s  rhs=%s  rhs2=%s\n",
-             srcid, lhsid, rhsid, rhs2id );
+    mpd_getval( "gen", gen );
+    sprintf( buf, "%s:  lhs=%s  rhs=%s  rhs2=%s gen=%s\n",
+             srcid, lhsid, rhsid, rhs2id, gen );
     write_line( console_idx, buf );
 }
 
@@ -852,40 +844,43 @@ void sib_listjobs( void )
 {
     int i;
     char buf[MAXLINE];
-    char srcid[IDSIZE];
+    char con_mpd_id[IDSIZE];
 
-    mpd_getval( "src", srcid );
-    if ( strcmp( srcid, myid ) == 0 ) {
-	for (i=0; i < MAXJOBS; i++) {
-	    if ( jobtable[i].active ) {
-                sprintf( buf, "%s:  jobid=%d\n", myid, jobtable[i].jobid );
-                write_line( console_idx, buf );
-	    }
+    mpd_getval( "con_mpd_id", con_mpd_id );   
+    mpdprintf( debug, "got listjobs con_mpd_id=%s\n", con_mpd_id );
+    if ( strcmp( con_mpd_id,myid ) != 0 ) {
+	reconstruct_message_from_keyvals( buf );
+	write_line( rhs_idx, buf );
+    }
+    for (i=0; i < MAXJOBS; i++) {
+	if ( jobtable[i].active ) {
+	    sprintf( buf,
+		     "con_mpd_id=%s cmd=listjobs_info dest=anyone info_src=%s jobid=%d "
+		     "user=%s program=%s\n",
+		     con_mpd_id, myid, jobtable[i].jobid,
+		     jobtable[i].username, jobtable[i].program );
+	    write_line( rhs_idx, buf );
 	}
     }
-    else {
-	for (i=0; i < MAXJOBS; i++) {
-	    if ( jobtable[i].active ) {
-                sprintf( buf,"src=%s dest=%s cmd=listjobs_info jobid=%d\n",
-                         myid, srcid, jobtable[i].jobid );
-                write_line( rhs_idx, buf );
-	    }
-	}
+    if ( strcmp( con_mpd_id, myid ) == 0 ) {
+	sprintf( buf, "con_mpd_id=%s dest=anyone cmd=listjobs_trailer\n", myid );
+	write_line( rhs_idx, buf );
     }
 }
 
 void sib_listjobs_trailer( void )
 {
     char buf[MAXLINE];
-    char srcid[IDSIZE];
+    char con_mpd_id[IDSIZE];
 
-    mpd_getval( "src", srcid );
-    if ( strcmp( srcid, myid ) == 0 ) {
+    mpd_getval( "con_mpd_id", con_mpd_id );
+    mpdprintf( debug, "sibproc got trailer from %s\n", con_mpd_id );
+    if ( strcmp( con_mpd_id, myid ) == 0 ) {
         sprintf( buf, "listjobs done\n" );
         write_line( console_idx, buf );
     }
     else {
-        sprintf( buf, "cmd=listjobs_trailer src=%s\n", srcid );
+        sprintf( buf, "cmd=listjobs_trailer dest=anyone con_mpd_id=%s\n", con_mpd_id );
         write_line( rhs_idx, buf );
     }
 }
@@ -893,18 +888,22 @@ void sib_listjobs_trailer( void )
 void sib_listjobs_info( void )
 {
     char buf[MAXLINE];
-    char srcid[IDSIZE], jobid[IDSIZE], destid[IDSIZE];
+    char con_mpd_id[IDSIZE], info_src[IDSIZE], jobid[IDSIZE], username[80], program[MAXLINE];
 
-    mpd_getval( "src", srcid );
+    mpd_getval( "con_mpd_id", con_mpd_id );
+    mpd_getval( "info_src", info_src );
     mpd_getval( "jobid", jobid );
-    mpd_getval( "dest", destid );
-    if ( strcmp( srcid, myid ) == 0 ) {
-        sprintf( buf, "%s:  jobid=%s\n", srcid, jobid );
+    mpd_getval( "user", username );
+    mpd_getval( "program", program );
+    mpdprintf( debug, "sibproc got listjobs_info from info_src=%s con_mpd_id=%s\n",
+	       info_src, con_mpd_id );
+    if ( strcmp( con_mpd_id, myid ) == 0 ) {
+        sprintf( buf, "%s: running jobid=%s user=%s program=%s\n",
+		 info_src, jobid, username, program );
         write_line( console_idx, buf );
     }
     else {
-	sprintf( buf,"src=%s dest=%s cmd=listjobs_info jobid=%s\n",
-		 srcid, destid, jobid );
+	reconstruct_message_from_keyvals( buf );
         write_line( rhs_idx, buf );
     }
 }
@@ -1104,10 +1103,10 @@ void sib_moninfo_data( void )
 void sigchld_handler( int signo )
 {
     pid_t pid;
-    int i, stat, jidx;
+    int i, wait_stat, jidx;
 
-    /* pid = wait( &stat ); */
-    while ( ( pid = waitpid( -1, &stat, WNOHANG ) ) > 0 ) {
+    /* pid = wait( &wait_stat ); */
+    while ( ( pid = waitpid( -1, &wait_stat, WNOHANG ) ) > 0 ) {
 	for (i=0; i < MAXPROCS; i++) {
 	    if (proctable[i].active && proctable[i].pid == pid) {
                 jidx = find_jobid_in_jobtable(proctable[i].jobid);

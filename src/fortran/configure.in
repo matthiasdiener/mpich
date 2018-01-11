@@ -178,6 +178,8 @@ AC_SUBST(libbuild_dir)
 
 PAC_PROG_CC
 AC_C_CONST
+AC_TRY_COMPILE(,[long long i;],AC_DEFINE(HAVE_LONG_LONG,1,[Define if C compiler supports long long type]))
+AC_TRY_COMPILE(,[long double d;],AC_DEFINE(HAVE_LONG_DOUBLE,1,[Define if C compiler supports long double type]))
 dnl
 dnl Autoconf bug: AC_PROG_F77 sets FFLAGS 
 save_FFLAGS="$FFLAGS"
@@ -355,7 +357,10 @@ EOF
 fi
 dnl
 dnl This option requires the config.guess etc.
+FLIBS_save="$FLIBS"
+FLIBS=""
 AC_F77_LIBRARY_LDFLAGS
+PAC_PROG_F77_CHECK_FLIBS
 dnl
 PAC_PROG_F77_LINKER_WITH_C
 dnl For name mangle, we need the library flags
@@ -365,6 +370,8 @@ PAC_PROG_F77_IN_C_LIBS
 AC_SUBST(F77_IN_C_LIBS)
 AC_LANG_FORTRAN77
 PAC_PROG_F77_EXCLAIM_COMMENTS(has_exclaim="yes",has_exclaim="no")
+PAC_PROG_F77_NEW_CHAR_DECL(CHARDECL="(LEN=*)",CHARDECL="*(*)")
+AC_SUBST(CHARDECL)
 dnl PAC_F77_CHECK_COMPILER_OPTION(-g)
 PAC_PROG_F77_HAS_INCDIR(include)
 if test -n "$F77_INCDIR" ; then

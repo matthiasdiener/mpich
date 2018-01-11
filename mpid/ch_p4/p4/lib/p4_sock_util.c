@@ -49,6 +49,9 @@ extern char *getenv();
  *        dump_sockinfo(msg, fd)
  */
 
+/* Forward references */
+static void get_sock_info_by_hostname ( char *, struct sockaddr_in ** );
+
 /*
  * Socket control - allows various socket parameters to be set through
  * the command line.  The format is
@@ -210,9 +213,7 @@ void p4_socket_control( char *argstr )
  * If size is -1, get the size from either the environment (P4_SOCKBUFSIZE) or
  * the default (which may have been set through the command line)
  */
-P4VOID net_set_sockbuf_size(size, skt)	/* 7/12/95, bri@sgi.com */
-int size;
-int skt;
+P4VOID net_set_sockbuf_size(int size, int skt)	/* 7/12/95, bri@sgi.com */
 {
     int rc;
     char *env_value;
@@ -346,12 +347,9 @@ int skt;
 #endif
 }
 
-P4VOID net_setup_listener(backlog, port, skt)
-int backlog;
-int port;
-int *skt;
+P4VOID net_setup_listener(int backlog, int port, int *skt)
 {
-    struct sockaddr_in sin;
+    struct sockaddr_in s_in;
     int rc, optval = P4_TRUE;
 
     SYSCALL_P4(*skt, socket(AF_INET, SOCK_STREAM, 0));
@@ -366,11 +364,11 @@ int *skt;
 	p4_print_sock_params( *skt );
 #endif
 
-    sin.sin_family	= AF_INET;
-    sin.sin_addr.s_addr	= INADDR_ANY;
-    sin.sin_port	= htons(port);
+    s_in.sin_family	= AF_INET;
+    s_in.sin_addr.s_addr	= INADDR_ANY;
+    s_in.sin_port	= htons(port);
 
-    SYSCALL_P4(rc, bind(*skt, (struct sockaddr *) & sin, sizeof(sin)));
+    SYSCALL_P4(rc, bind(*skt, (struct sockaddr *) & s_in, sizeof(s_in)));
     if (rc < 0)
 	p4_error("net_setup_listener bind", -1);
 
@@ -379,14 +377,11 @@ int *skt;
 	p4_error("net_setup_listener listen", -1);
 }
 
-P4VOID net_setup_anon_listener(backlog, port, skt)
-int backlog;
-int *port;
-int *skt;
+P4VOID net_setup_anon_listener(int backlog, int *port, int *skt)
 {
     int rc;
     p4_sockopt_len_t sinlen;
-    struct sockaddr_in sin;
+    struct sockaddr_in s_in;
     int optval = P4_TRUE;
 
     SYSCALL_P4(*skt, socket(AF_INET, SOCK_STREAM, 0));
@@ -401,13 +396,13 @@ int *skt;
 	p4_print_sock_params( *skt );
 #endif
 
-    sin.sin_family = AF_INET;
-    sin.sin_addr.s_addr = INADDR_ANY;
-    sin.sin_port = htons(0);
+    s_in.sin_family = AF_INET;
+    s_in.sin_addr.s_addr = INADDR_ANY;
+    s_in.sin_port = htons(0);
 
-    sinlen = sizeof(sin);
+    sinlen = sizeof(s_in);
 
-    SYSCALL_P4(rc, bind(*skt, (struct sockaddr *) & sin, sizeof(sin)));
+    SYSCALL_P4(rc, bind(*skt, (struct sockaddr *) & s_in, sizeof(s_in)));
     if (rc < 0)
 	p4_error("net_setup_anon_listener bind", -1);
 
@@ -415,8 +410,8 @@ int *skt;
     if (rc < 0)
 	p4_error("net_setup_anon_listener listen", -1);
 
-    getsockname(*skt, (struct sockaddr *) & sin, &sinlen);
-    *port = ntohs(sin.sin_port);
+    getsockname(*skt, (struct sockaddr *) & s_in, &sinlen);
+    *port = ntohs(s_in.sin_port);
 }
 
 /*
@@ -480,9 +475,8 @@ int net_accept(int skt)
     return (skt2);
 }
 
-void get_sock_info_by_hostname(hostname,sockinfo)
-char *hostname;
-struct sockaddr_in **sockinfo;
+static void 
+get_sock_info_by_hostname(char *hostname, struct sockaddr_in **sockinfo)
 {
 #ifndef P4_WITH_MPD
     int i;
@@ -495,6 +489,9 @@ struct sockaddr_in **sockinfo;
 	    p4_dprintfl(90,"looking up (%s), looking at (%s)\n",
 			hostname,p4_global->proctable[i].host_name);
 	    if (strcmp(p4_global->proctable[i].host_name,hostname) == 0) {
+#ifdef LAZY_GETHOSTBYNAME
+	      p4_procgroup_setsockaddr( &p4_global->proctable[i] );
+#endif
 		if (p4_global->proctable[i].sockaddr.sin_port == 0)
 		    p4_error( "Uninitialized sockaddr port",i);
 		*sockinfo = &(p4_global->proctable[i].sockaddr);
@@ -507,33 +504,40 @@ struct sockaddr_in **sockinfo;
 /* Error, no sockinfo.
    Try to get it from the hostname (this is NOT signal safe, so we 
    had better not be in a signal handler.  This MAY be ok for the listener) */
+    p4_dprintfl(40, "get_sock_info_by_hostname: calling gethostbyname for %s\n",
+      hostname);
     {
     struct hostent *hp = gethostbyname_p4( hostname );
-    static struct sockaddr_in listener;
+    static struct sockaddr_in listener_sockaddr;
     if (hp) {
-	bzero((P4VOID *) &listener, sizeof(listener));
-	bcopy((P4VOID *) hp->h_addr, (P4VOID *) &listener.sin_addr, 
+	bzero((P4VOID *) &listener_sockaddr, sizeof(listener_sockaddr));
+	if (hp->h_length != 4)
+	    p4_error("get_sock_info_by_hostname: hp length", hp->h_length);
+	bcopy((P4VOID *) hp->h_addr, (P4VOID *) &listener_sockaddr.sin_addr, 
 	      hp->h_length);
-	listener.sin_family = hp->h_addrtype;
-	*sockinfo = &listener;
+	listener_sockaddr.sin_family = hp->h_addrtype;
+	*sockinfo = &listener_sockaddr;
 	return;
 	}
     }
 
-*sockinfo = 0;
-p4_error("Unknown host in getting sockinfo from proctable",-1);
+    *sockinfo = 0;
+    p4_error("Unknown host in getting sockinfo from proctable",-1);
 }
 
-int net_conn_to_listener(hostname, port, num_tries)
-char *hostname;
-int port, num_tries;
+/*
+ * We must be careful here is using the sockinfo information from 
+ * get_sock_info_by_hostname.  That routine returns a *pointer* to the
+ * socket info, which is ok for readonly data, but we will need to 
+ * have a modifiable version (so that we can set the indicated port).  
+ * Thus, we first get a pointer to the readonly structure, then make 
+ * a local copy of it.  Thanks to Peter Wycoff for finding this.
+ */
+int net_conn_to_listener(char *hostname, int port, int num_tries)
 {
     int flags, rc, s;
-/* RL
-    struct sockaddr_in listener;
-*/
-    struct sockaddr_in *sockinfo;
-/*    struct hostent *hp; */
+    struct sockaddr_in sockinfo;
+    struct sockaddr_in *sockinfo_ro; /* _ro for Read-Only */
     P4BOOL optval = P4_TRUE;
     P4BOOL connected = P4_FALSE;
 
@@ -545,10 +549,11 @@ int port, num_tries;
     listener.sin_family = hp->h_addrtype;
     listener.sin_port = htons(port);
 */
-    get_sock_info_by_hostname(hostname,&sockinfo);
-    sockinfo->sin_port = htons(port);
+    get_sock_info_by_hostname(hostname,&sockinfo_ro);
+    memcpy(&sockinfo, sockinfo_ro, sizeof(sockinfo));
+    sockinfo.sin_port = htons(port);
 #if !defined(CRAY)
-    dump_sockaddr("sockinfo",sockinfo);
+    dump_sockaddr("sockinfo",&sockinfo);
 #endif
     connected = P4_FALSE;
     s = -1;
@@ -566,17 +571,14 @@ int port, num_tries;
 	    p4_print_sock_params( s );
 #       endif
 
-/*  RL
-	SYSCALL_P4(rc, connect(s, (struct sockaddr *) &listener, sizeof(listener)));
-*/
-	SYSCALL_P4(rc, connect(s, (struct sockaddr *) sockinfo,
+	SYSCALL_P4(rc, connect(s, (struct sockaddr *) &sockinfo,
 			       sizeof(struct sockaddr_in)));
 	if (rc < 0)
 	{
 	    /* Since the socket is not yet non-blocking, EINPROGRESS should not
 	       happen.  Other errors are fatal to the socket */
 	    p4_dprintfl( 70, "Connect failed; closed socket %d\n", s );
-	    if (70 > p4_debug_level) {
+	    if (p4_debug_level > 70) {
 		/* Give the reason that the connection failed. */
 		perror("Connection failed for reason: ");
 	    }
@@ -676,7 +678,7 @@ int size;
 	    if (eof_counter < 5)
 		continue;
 	    else
-		p4_error("net_recv read:  probable EOF on socket", read_counter);
+		p4_error("net_recv read:  probable EOF on socket fd", fd );
 	}
 #else
 	{
@@ -706,15 +708,15 @@ int size;
 		   trying to get the message to us
 		 */
 		if (p4_use_net_recv_w) {
-		    fd_set         read_fds;
-		    struct timeval tv;
-		    int            n1;
-		    tv.tv_sec = 5;     /* This is arbitrary */
-		    tv.tv_usec = 0;
-		    FD_ZERO(&read_fds);
-		    FD_SET(fd, &read_fds);
+		    fd_set         lread_fds;  /* l is for local */
+		    struct timeval ltv;
+		    int            ln1;
+		    ltv.tv_sec = 5;     /* This is arbitrary */
+		    ltv.tv_usec = 0;
+		    FD_ZERO(&lread_fds);
+		    FD_SET(fd, &lread_fds);
 		    COLLECT_STAT(n_recv_select++);
-		    SYSCALL_P4(n1, select(fd+1, &read_fds, 0, 0, &tv));
+		    SYSCALL_P4(ln1, select(fd+1, &lread_fds, 0, 0, &ltv));
 		}
 		else if (p4_use_readb && !set_fd_blocking) {
 		    int flags;
@@ -962,17 +964,31 @@ void p4_socket_stat( FILE *fp )
    service (this is not uncommon on LINUX clusters).  There is currently
    no fix for this (we need something like the timeout code in other 
    parts of the P4 implementation).
+
+   We have added rudimentary timing to this routine to keep track of the
+   amount of time that is spent in this routine.
+
+   Another option, not implemented, is to maintain a local cache of
+   names.  This would prevent us from making multiple queries about the same
+   name.  However, since occurs most often when testing rather than using the
+   p4 system, we have not implemented this idea.
  */
 #include <sys/time.h>
+static time_t time_in_gethostbyname = 0;
+static int    n_gethostbyname = 0;
+void p4_timein_hostbyname( int *t, int *count )
+{
+    *t     = (int)time_in_gethostbyname;
+    *count = n_gethostbyname;
+}
 #ifndef TIMEOUT_VALUE 
 #define TIMEOUT_VALUE 60
 #endif
-struct hostent *gethostbyname_p4(hostname)
-char *hostname;
+struct hostent *gethostbyname_p4(char *hostname)
 {
     struct hostent *hp;
 #ifdef SCYLD_BEOWULF
-    struct sockaddr_in sin;    
+    struct sockaddr_in s_in;    
     long nodenum;
     int size;
     
@@ -981,7 +997,7 @@ char *hostname;
     nodenum=strtol(hostname,NULL,10);
     
     size=sizeof(struct sockaddr_in);
-    bproc_nodeaddr(nodenum,(struct sockaddr *)&sin,&size);
+    bproc_nodeaddr(nodenum,(struct sockaddr *)&s_in,&size);
     
     hp=(struct hostent *)calloc(1,sizeof(struct hostent));
     hp->h_name=strdup(hostname);
@@ -990,7 +1006,7 @@ char *hostname;
     hp->h_length=4;
     hp->h_addr_list=(char **)calloc(2,sizeof(char *));
     hp->h_addr_list[0]=calloc(1,4);
-    memcpy(hp->h_addr_list[0],(char *)&(sin.sin_addr.s_addr),4);
+    memcpy(hp->h_addr_list[0],(char *)&(s_in.sin_addr.s_addr),4);
     hp->h_addr_list[1]=NULL;
 #else
     int i = 100;
@@ -1018,6 +1034,8 @@ char *hostname;
 	    }
 	}
     }
+    time_in_gethostbyname += (time( (time_t) 0 ) - start_time );
+    n_gethostbyname ++;
 #endif /* SCYLD_BEOWULF */
     return(hp);
 }
@@ -1041,7 +1059,7 @@ struct in_addr *addr;
     struct hostent *hp;
 
     hostname[0] = '\0';
-    get_qualified_hostname(hostname);
+    get_qualified_hostname(hostname,sizeof(hostname));
     hp = gethostbyname_p4(hostname);
     bcopy(hp->h_addr, addr, hp->h_length);
 }
@@ -1118,9 +1136,7 @@ void p4_print_sock_params( int skt )
 /* cray complains about addr being addr of bit field */
 /* can probably get around this problem if ever necessary */
 
-P4VOID dump_sockaddr(who,sa)
-char *who;
-struct sockaddr_in *sa;
+P4VOID dump_sockaddr(char *who, struct sockaddr_in *sa)
 {
     unsigned char *addr;
 
@@ -1128,14 +1144,12 @@ struct sockaddr_in *sa;
 
     p4_dprintfl(90,"%s: family=%d port=%d addr=%d.%d.%d.%d\n",
 		who,
-                ntohs(sa->sin_family),
+                sa->sin_family,
                 ntohs(sa->sin_port),
                 addr[0], addr[1], addr[2], addr[3]);
 }
 
-P4VOID dump_sockinfo(msg, fd)
-char *msg;
-int fd;
+P4VOID dump_sockinfo( char *msg, int fd)
 {
     p4_sockopt_len_t nl;
     struct sockaddr_in peer, me;
@@ -1152,3 +1166,65 @@ int fd;
 }
 
 #endif
+
+/*
+ * mpiexec_reopen_stdin is used by the OSC mpiexec interface.  This 
+ * reinitializes stdin to a selected host and port.
+ */
+
+/*
+ * Search the environment for variables which might say that mpiexec
+ * requested stdin be grabbed from the spawning process.  Only happens
+ * in the case of "-allstdin", i.e., where the user requested that the
+ * same input be replicated into each process.
+ */
+void
+mpiexec_reopen_stdin(void)
+{
+    char *host = getenv("MPIEXEC_STDIN_HOST");
+    char *sport = getenv("MPIEXEC_STDIN_PORT");
+    struct sockaddr_in s_in;
+    char *cq;
+    int fd, port, tries;
+    struct hostent *hp;
+
+    if (!sport || !host)
+	return;
+    hp = gethostbyname_p4(host);
+    if (!hp)
+	p4_error("mpiexec_reopen_stdin: MPIEXEC_STDIN_HOST did not parse", 0);
+    port = strtol(sport, &cq, 10);
+    if (*cq)
+	p4_error("mpiexec_reopen_stdin: MPIEXEC_STDIN_PORT did not parse", 0);
+    fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0)
+	p4_error("mpiexec_reopen_stdin: socket", fd);
+    memset(&s_in, 0, sizeof(s_in));
+    s_in.sin_family = AF_INET;
+    s_in.sin_port = htons(port);
+    memcpy(&s_in.sin_addr, hp->h_addr_list[0], hp->h_length);
+
+    /*
+     * Probably not necessary in the general case, but a swamped mpiexec
+     * stdio process with a short listening backlog might require this.
+     */
+    tries = 0;
+    for (;;) {
+	int cc;
+
+	cc = connect(fd, (struct sockaddr *)&s_in, sizeof(s_in));
+	if (cc == 0)
+	    break;
+	if ((errno == ECONNREFUSED || errno == EINTR || errno == EAGAIN)
+	  && tries < 5) {
+	    ++tries;
+	    sleep(1);
+	    continue;
+	}
+	p4_error("mpiexec_reopen_stdin: connect", cc);
+    }
+    close(0);
+    dup2(fd, 0);
+    close(fd);
+}
+

@@ -11,16 +11,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_TYPE_HINDEXED = PMPI_TYPE_HINDEXED
-EXPORT_MPI_API void MPI_TYPE_HINDEXED ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_TYPE_HINDEXED ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_type_hindexed__ = pmpi_type_hindexed__
-EXPORT_MPI_API void mpi_type_hindexed__ ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_type_hindexed__ ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_type_hindexed = pmpi_type_hindexed
-EXPORT_MPI_API void mpi_type_hindexed ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_type_hindexed ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_type_hindexed_ = pmpi_type_hindexed_
-EXPORT_MPI_API void mpi_type_hindexed_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_type_hindexed_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -78,10 +78,10 @@ EXPORT_MPI_API void mpi_type_hindexed_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [], M
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_type_hindexed_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [], 
+FORTRAN_API void FORT_CALL mpi_type_hindexed_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [], 
                                     MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_type_hindexed_( MPI_Fint *count, MPI_Fint blocklens[], MPI_Fint indices[], MPI_Fint *old_type, MPI_Fint *newtype, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_type_hindexed_( MPI_Fint *count, MPI_Fint blocklens[], MPI_Fint indices[], MPI_Fint *old_type, MPI_Fint *newtype, MPI_Fint *__ierr )
 {
     MPI_Aint     *c_indices;
     MPI_Aint     local_c_indices[MPIR_USE_LOCAL_ARRAY];

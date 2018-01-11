@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2send.c,v 1.3 2000/07/17 20:44:39 swider Exp $
+ *
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -18,13 +18,16 @@
  * which can be ignored on homogeneous systems.
  */
 /***************************************************************************/
-
-void MPID_SendContig( comm_ptr, buf, len, src_lrank, tag, context_id, 
-			      dest_grank, msgrep, error_code )
-struct MPIR_COMMUNICATOR *comm_ptr;
-void     *buf;
-int      len, src_lrank, tag, context_id, dest_grank, *error_code;
-MPID_Msgrep_t msgrep;
+void MPID_SendContig( 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	void *buf, 
+	int len, 
+	int src_lrank, 
+	int tag, 
+	int context_id, 
+	int dest_grank, 
+	MPID_Msgrep_t msgrep, 
+	int *error_code )
 {
     MPID_Device *dev = MPID_devset->dev[dest_grank];
     int (*fcn) ( void *, int, int, int, int, int, MPID_Msgrep_t );
@@ -46,13 +49,17 @@ MPID_Msgrep_t msgrep;
 			    msgrep );
 }
 
-void MPID_IsendContig( comm_ptr, buf, len, src_lrank, tag, context_id, 
-		       dest_grank, msgrep, request, error_code )
-struct MPIR_COMMUNICATOR *   comm_ptr;
-void        *buf;
-int         len, src_lrank, tag, context_id, dest_grank, *error_code;
-MPID_Msgrep_t msgrep;
-MPI_Request request;
+void MPID_IsendContig( 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	void *buf, 
+	int len, 
+	int src_lrank, 
+	int tag, 
+	int context_id, 
+	int dest_grank, 
+	MPID_Msgrep_t msgrep, 
+	MPI_Request request, 
+	int *error_code )
 {
     MPID_Device *dev = MPID_devset->dev[dest_grank];
     int (*fcn) ( void *, int, int, int, int, int, MPID_Msgrep_t, 
@@ -81,12 +88,16 @@ MPI_Request request;
 
 
 /* Bsend is just a test for short send */
-void MPID_BsendContig( comm_ptr, buf, len, src_lrank, tag, context_id, 
-			 dest_grank, msgrep, error_code )
-struct MPIR_COMMUNICATOR *comm_ptr;
-void     *buf;
-int      len, src_lrank, tag, context_id, dest_grank, *error_code;
-MPID_Msgrep_t msgrep;
+void MPID_BsendContig( 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	void *buf, 
+	int len, 
+	int src_lrank, 
+	int tag, 
+	int context_id, 
+	int dest_grank, 
+	MPID_Msgrep_t msgrep, 
+	int *error_code )
 {
     MPID_Device *dev = MPID_devset->dev[dest_grank];
     int rc;
@@ -101,9 +112,9 @@ MPID_Msgrep_t msgrep;
     *error_code = rc;
 }
 
-int MPID_SendIcomplete( request, error_code )
-MPI_Request request;
-int         *error_code;
+int MPID_SendIcomplete( 
+	MPI_Request request,
+	int         *error_code)
 {
     MPIR_SHANDLE *shandle = &request->shandle;
     int lerr;
@@ -134,9 +145,9 @@ int         *error_code;
     return shandle->is_complete;
 }
 
-void MPID_SendComplete( request, error_code )
-MPI_Request request;
-int         *error_code;
+void MPID_SendComplete( 
+	MPI_Request request,
+	int         *error_code)
 {
     MPIR_SHANDLE *shandle = &request->shandle;
     int          lerr;

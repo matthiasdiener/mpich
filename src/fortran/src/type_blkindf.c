@@ -16,16 +16,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_TYPE_CREATE_INDEXED_BLOCK = PMPI_TYPE_CREATE_INDEXED_BLOCK
-EXPORT_MPI_API void MPI_TYPE_CREATE_INDEXED_BLOCK (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void MPI_TYPE_CREATE_INDEXED_BLOCK (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_type_create_indexed_block__ = pmpi_type_create_indexed_block__
-EXPORT_MPI_API void mpi_type_create_indexed_block__ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void mpi_type_create_indexed_block__ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_type_create_indexed_block = pmpi_type_create_indexed_block
-EXPORT_MPI_API void mpi_type_create_indexed_block (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void mpi_type_create_indexed_block (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #else
 #pragma weak mpi_type_create_indexed_block_ = pmpi_type_create_indexed_block_
-EXPORT_MPI_API void mpi_type_create_indexed_block_ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void mpi_type_create_indexed_block_ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -83,11 +83,11 @@ EXPORT_MPI_API void mpi_type_create_indexed_block_ (MPI_Fint *, MPI_Fint *, MPI_
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_type_create_indexed_block_ (MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_type_create_indexed_block_ (MPI_Fint *, MPI_Fint *, 
 					       MPI_Fint *, MPI_Fint *,
 					       MPI_Fint *, MPI_Fint *);
 /* Definitions of Fortran Wrapper routines */
-EXPORT_MPI_API void mpi_type_create_indexed_block_( MPI_Fint *count, MPI_Fint *blocklength, 
+FORTRAN_API void FORT_CALL mpi_type_create_indexed_block_( MPI_Fint *count, MPI_Fint *blocklength, 
 				     MPI_Fint array_of_displacements[], MPI_Fint *old_type, 
 				     MPI_Fint *newtype, MPI_Fint *__ierr )
 {

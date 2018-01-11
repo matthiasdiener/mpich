@@ -5,6 +5,8 @@ SHELL = /bin/sh
 F90 = @F90@
 F90LINKER = @F90LINKER@
 F90SUFFIX = @F90SUFFIX@
+LDFLAGS = @LDFLAGS@
+FFLAGS  = @FFLAGS@
 # Module suffix.  M, mod, and d are known
 MOD = @MOD@
 SHELL = /bin/sh

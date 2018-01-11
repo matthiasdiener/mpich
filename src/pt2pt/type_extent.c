@@ -1,5 +1,5 @@
 /*
- *  $Id: type_extent.c,v 1.8 1999/08/30 15:49:50 swider Exp $
+ *  $Id: type_extent.c,v 1.9 2001/11/14 20:10:06 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -42,7 +42,7 @@ Output Parameter:
 .N MPI_SUCCESS
 .N MPI_ERR_TYPE
 @*/
-EXPORT_MPI_API int MPI_Type_extent( MPI_Datatype datatype, MPI_Aint *extent )
+int MPI_Type_extent( MPI_Datatype datatype, MPI_Aint *extent )
 {
   struct MPIR_DATATYPE *dtype_ptr;
   static char myname[] = "MPI_TYPE_EXTENT";

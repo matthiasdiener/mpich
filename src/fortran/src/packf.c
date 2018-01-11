@@ -13,16 +13,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_PACK = PMPI_PACK
-EXPORT_MPI_API void MPI_PACK ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_PACK ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_pack__ = pmpi_pack__
-EXPORT_MPI_API void mpi_pack__ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_pack__ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_pack = pmpi_pack
-EXPORT_MPI_API void mpi_pack ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_pack ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_pack_ = pmpi_pack_
-EXPORT_MPI_API void mpi_pack_ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_pack_ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -154,10 +154,10 @@ if (_isfcd(outbuf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_pack_ ( void *, MPI_Fint *, MPI_Fint *, void *, 
+FORTRAN_API void FORT_CALL mpi_pack_ ( void *, MPI_Fint *, MPI_Fint *, void *, 
                            MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_pack_ ( void *inbuf, MPI_Fint *incount, MPI_Fint *type, void *outbuf, MPI_Fint *outcount, MPI_Fint *position, MPI_Fint *comm, 
+FORTRAN_API void FORT_CALL mpi_pack_ ( void *inbuf, MPI_Fint *incount, MPI_Fint *type, void *outbuf, MPI_Fint *outcount, MPI_Fint *position, MPI_Fint *comm, 
 		 MPI_Fint *__ierr )
 {
     int lposition;

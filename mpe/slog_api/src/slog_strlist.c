@@ -3,6 +3,9 @@
 #ifdef HAVE_SLOGCONF_H
 #include "slog_config.h"
 #endif
+#ifdef HAVE_SLOG_WINCONFIG_H
+#include "slog_winconfig.h"
+#endif
 #if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
 #include <stdlib.h>
 #endif
@@ -48,7 +51,7 @@ SLOG_strlist_t *SLOG_StrList_CreateFromVarArgs( const SLOG_uint32 Nstrs, ... )
     }
 
     va_start( unnamed_arg, Nstrs );
-    for ( ii = 0; ii < strlist->Nstrs; ii++ ) {
+    for ( ii = 0; ii < (int)strlist->Nstrs; ii++ ) {
         in_str = va_arg( unnamed_arg, char * );
         in_strlen = strlen( in_str ) + 1;
         strlist->strs[ ii ] = ( char * ) malloc( in_strlen * sizeof( char ) );
@@ -96,7 +99,7 @@ SLOG_strlist_t *SLOG_StrList_CreateFromArray( const SLOG_uint32   Nstrs,
         return NULL;
     }
 
-    for ( ii = 0; ii < strlist->Nstrs; ii++ ) {
+    for ( ii = 0; ii < (int)strlist->Nstrs; ii++ ) {
         in_strlen = strlen( strs[ ii ] ) + 1;
         strlist->strs[ ii ] = ( char * ) malloc( in_strlen * sizeof( char ) );
         if ( in_strlen > 0 && strlist->strs[ ii ] == NULL ) {
@@ -143,7 +146,7 @@ SLOG_strlist_t *SLOG_StrList_Copy( const SLOG_strlist_t *src )
         return NULL;
     }
 
-    for ( ii = 0; ii < src->Nstrs; ii++ ) {
+    for ( ii = 0; ii < (int)src->Nstrs; ii++ ) {
         src_strlen = strlen( src->strs[ ii ] ) + 1;
         dest->strs[ ii ] = ( char * ) malloc( src_strlen * sizeof( char ) );
         strcpy( dest->strs[ ii ], src->strs[ ii ] );
@@ -182,7 +185,7 @@ SLOG_strlist_t *SLOG_StrList_Append(       SLOG_strlist_t *dest,
         return NULL;
     }
 
-    for ( ii = 0; ii < src->Nstrs; ii++ ) {
+    for ( ii = 0; ii < (int)src->Nstrs; ii++ ) {
         src_strlen = strlen( src->strs[ ii ] ) + 1;
         dest->strs[ dest->Nstrs + ii ] = ( char * )
                                          malloc( src_strlen * sizeof( char ) );
@@ -201,7 +204,7 @@ void SLOG_StrList_Free( SLOG_strlist_t  *strlist )
 
     if ( strlist != NULL ) {
         if ( strlist->Nstrs > 0 && strlist->strs == NULL ) {
-            for ( ii = 0; ii < strlist->Nstrs; ii++ )
+            for ( ii = 0; ii < (int)strlist->Nstrs; ii++ )
                 free( strlist->strs[ ii ] );
             free( strlist->strs );
         }
@@ -223,7 +226,7 @@ int SLOG_StrList_Print( const SLOG_strlist_t *strlist, FILE *outfd )
     }
 
     fprintf( outfd, "( " );
-    for ( ii = 0; ii < strlist->Nstrs; ii++ )
+    for ( ii = 0; ii < (int)strlist->Nstrs; ii++ )
         fprintf( outfd, "\"%s\" ", strlist->strs[ ii ] );
     fprintf( outfd, ") " );
 
@@ -243,7 +246,7 @@ int SLOG_StrList_WriteToFile( const SLOG_strlist_t *strlist, FILE *fd )
     ierr = bswp_fwrite( &( strlist->Nstrs ), SLOG_typesz[ ui32 ], 1, fd );
     if ( ierr < 1 ) return SLOG_FAIL;
 
-    for ( ii = 0; ii < strlist->Nstrs; ii++ ) {
+    for ( ii = 0; ii < (int)strlist->Nstrs; ii++ ) {
         /*  The last "+ 1" should include the NULL terminating character  */
         lgth = strlen( strlist->strs[ ii ] ) + 1;
 
@@ -285,7 +288,7 @@ SLOG_strlist_t *SLOG_StrList_ReadFromFile( FILE *fd )
         return NULL;
     }
 
-    for ( ii = 0; ii < strlist->Nstrs; ii++ ) {
+    for ( ii = 0; ii < (int)strlist->Nstrs; ii++ ) {
         ierr = bswp_fread( &lgth, SLOG_typesz[ ui32 ], 1, fd );
         if ( ierr < 1 ) return NULL;
 
@@ -331,8 +334,8 @@ int SLOG_StrList_WriteToFileAsStrs( const SLOG_strlist_t *strlist, FILE *fd )
                         sizeof( char ), SLOG_STRING_LEN, fd );
     if ( ierr < SLOG_STRING_LEN ) return SLOG_FAIL;
 
-    for ( ii = 0; ii < strlist->Nstrs; ii++ ) {
-        if ( strlen( strlist->strs[ ii ] ) <= lgth ) {
+    for ( ii = 0; ii < (int)strlist->Nstrs; ii++ ) {
+        if ( (int)strlen( strlist->strs[ ii ] ) <= lgth ) {
             sprintf( strs_str, "%s", strlist->strs[ ii ] );
             strs_str[ lgth+1 ] = delimiter;
             ierr = bswp_fwrite( strs_str,
@@ -385,7 +388,7 @@ SLOG_strlist_t *SLOG_StrList_ReadFromFileAsStrs( FILE *fd )
         return NULL;
     }
 
-    for ( ii = 0; ii < strlist->Nstrs; ii++ ) {
+    for ( ii = 0; ii < (int)strlist->Nstrs; ii++ ) {
         ierr = bswp_fread( strs_str,
                            sizeof( char ), SLOG_STRING_LEN, fd );
         if ( ierr < SLOG_STRING_LEN ) return NULL;
@@ -417,7 +420,7 @@ int SLOG_StrList_IsEqualTo( const SLOG_strlist_t *strlist1,
            return SLOG_FALSE;
 
        if ( strlist1->strs != strlist2->strs ) {
-           for ( ii = 0; ii < strlist1->Nstrs; ii++ )
+           for ( ii = 0; ii < (int)strlist1->Nstrs; ii++ )
                if ( strcmp( strlist1->strs[ ii ], strlist2->strs[ ii ] ) != 0 )
                    return SLOG_FALSE;
        }

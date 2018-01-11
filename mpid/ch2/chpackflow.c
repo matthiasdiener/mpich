@@ -1,5 +1,5 @@
 /*
- *  $Id: chpackflow.c,v 1.8 2000/07/17 20:49:56 swider Exp $
+ *  $Id: chpackflow.c,v 1.9 2001/11/12 23:20:53 ashton Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -38,9 +38,7 @@ void MPID_PacketFlowSetup( )
 }  /* end MPID_PacketFlowSetup */
 
 /* Send Protocol ACK packet */
-void MPID_SendProtoAck( me, partner )
-int me, partner;
-
+void MPID_SendProtoAck( int me, int partner )
 {  /* begin MPID_SendProtoAck */
 
 #ifdef MPID_USE_SHMEM
@@ -78,10 +76,7 @@ int me, partner;
 
 /* Receive Protocol Ack or ACK protocol packet and send an ACK proto
    packet. */
-void MPID_RecvProtoAck( in_pkt, partner )
-MPID_PKT_T *in_pkt;
-int        partner;
-
+void MPID_RecvProtoAck( MPID_PKT_T *in_pkt, int partner )
 {  /* begin MPID_RecvProtoAck */
     
     MPID_PKT_FLOW_T *ack_pkt = (MPID_PKT_FLOW_T *)in_pkt;

@@ -117,31 +117,26 @@ typedef struct MPE_Point_ {
 #define MPE_GRAPH_INDEPENDENT MPE_GRAPH_INDEPDENT
 #define MPE_GRAPH_COLLECTIVE 1
 
-extern int MPE_Open_graphics ( MPE_XGraph *handle, MPI_Comm comm, 
-	   char *display, int x, int y, int w, int h, int is_collective );
+extern int MPE_Open_graphics ( MPE_XGraph *, MPI_Comm, 
+	   char *, int, int, int, int, int );
 
-extern int MPE_Draw_point ( MPE_XGraph handle, int x, int y,
-	   MPE_Color color );
+extern int MPE_Draw_point ( MPE_XGraph, int, int, MPE_Color );
 
-extern int MPE_Draw_line ( MPE_XGraph handle, int x1, int y1,
-	   int x2, int y2, MPE_Color color );
+extern int MPE_Draw_line ( MPE_XGraph, int, int, int, int, MPE_Color );
 
 extern int MPE_Draw_circle ( MPE_XGraph, int, int, int, MPE_Color );
 
-extern int MPE_Draw_string ( MPE_XGraph, int, int, MPE_Color,
-				       char * );
+extern int MPE_Draw_string ( MPE_XGraph, int, int, MPE_Color, char * );
 
-extern int MPE_Fill_rectangle ( MPE_XGraph handle, int x, int y,
-	   int w, int h, MPE_Color color );
+extern int MPE_Fill_rectangle ( MPE_XGraph, int, int, int, int, MPE_Color );
 
-extern int MPE_Update ( MPE_XGraph handle );
+extern int MPE_Update ( MPE_XGraph );
 
-extern int MPE_Num_colors ( MPE_XGraph handle, int *nc );
+extern int MPE_Num_colors ( MPE_XGraph, int * );
 
-extern int MPE_Make_color_array ( MPE_XGraph handle, int ncolors, 
-	   MPE_Color array[] );
+extern int MPE_Make_color_array ( MPE_XGraph, int, MPE_Color [] );
 
-extern int MPE_Close_graphics ( MPE_XGraph *handle );
+extern int MPE_Close_graphics ( MPE_XGraph * );
 
 extern int MPE_CaptureFile ( MPE_XGraph, char *, int );
 
@@ -157,20 +152,17 @@ extern int MPE_Draw_dashes ( MPE_XGraph, int );
 
 extern int MPE_Dash_offset ( MPE_XGraph, int );
 
-extern int MPE_Add_RGB_color ( MPE_XGraph, int, int, int, 
-					 MPE_Color * );
+extern int MPE_Add_RGB_color ( MPE_XGraph, int, int, int, MPE_Color * );
 
 extern int MPE_Xerror ( int, char * );
 
 /* xmouse */
 extern int MPE_Get_mouse_press ( MPE_XGraph, int *, int *, int * );
-extern int MPE_Iget_mouse_press ( MPE_XGraph, int *, int *, int *,
-					    int * );
+extern int MPE_Iget_mouse_press ( MPE_XGraph, int *, int *, int *, int * );
 extern int MPE_Get_drag_region ( MPE_XGraph, int, int, 
-					   int *, int *, int *, int * );
+				 int *, int *, int *, int * );
 extern int MPE_Get_drag_region_fixratio ( MPE_XGraph, int, double, 
-						    int *, int *, 
-						    int *, int * );
+ 	  			          int *, int *, int *, int * );
 
 #endif
 

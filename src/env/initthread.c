@@ -93,7 +93,7 @@
 .N MPI_SUCCESS
 .N MPI_ERR_INIT
 @*/
-EXPORT_MPI_API int MPI_Init_thread(int *argc, char ***argv, int required, int *provided )
+int MPI_Init_thread(int *argc, char ***argv, int required, int *provided )
 {
     /* The g++ compiler (2.95.1) does not accept char *((*argv)[]) (argv is a 
        pointer to an array of pointers).  Rather than use different bindings

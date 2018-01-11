@@ -109,7 +109,7 @@ while [ $curarch -le $narch ] ; do
         if [ "$machine" = "ibmspx" -a -x /usr/local/bin/getjid ] ; then
 	    machineFile="/sphome/$LOGNAME/SPnodes.`/usr/local/bin/getjid`"
         else
-	    machineDir=$datadir
+	    if [ -z "$machineDir" ] ; then machineDir=$datadir ; fi
             for march in $archlist ; do
                 machineFile="${machineDir}/machines.${march}"
 	        if [ -r $machineFile ] ; then break ; fi
@@ -184,7 +184,7 @@ while [ $curarch -le $narch ] ; do
     np=`expr $np + 0`
     if [ $nolocal = 0 -o $curarch -gt 1 ] ; then
         machineavail=`cat $machineFile | \
-		sed -e '/^#/d' -e 's/#.*^//g' | head -${np} | \
+		sed -e '/^#/d' -e 's/#.*$//g' | head -${np} | \
 		tr '\012' ' '`
     else
         if [ $np -gt 1 -o $nolocal = 1 ] ; then

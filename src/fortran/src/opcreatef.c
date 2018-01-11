@@ -10,30 +10,30 @@
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_OP_CREATE = PMPI_OP_CREATE
 #ifdef  FORTRAN_SPECIAL_FUNCTION_PTR
-EXPORT_MPI_API void MPI_OP_CREATE ( MPI_User_function **, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_OP_CREATE ( MPI_User_function **, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
-EXPORT_MPI_API void MPI_OP_CREATE ( MPI_User_function *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_OP_CREATE ( MPI_User_function *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_op_create__ = pmpi_op_create__
 #ifdef  FORTRAN_SPECIAL_FUNCTION_PTR
-EXPORT_MPI_API void mpi_op_create__ ( MPI_User_function **, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_op_create__ ( MPI_User_function **, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
-EXPORT_MPI_API void mpi_op_create__ ( MPI_User_function *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_op_create__ ( MPI_User_function *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_op_create = pmpi_op_create
 #ifdef  FORTRAN_SPECIAL_FUNCTION_PTR
-EXPORT_MPI_API void mpi_op_create ( MPI_User_function **, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_op_create ( MPI_User_function **, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
-EXPORT_MPI_API void mpi_op_create ( MPI_User_function *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_op_create ( MPI_User_function *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 #else
 #pragma weak mpi_op_create_ = pmpi_op_create_
 #ifdef  FORTRAN_SPECIAL_FUNCTION_PTR
-EXPORT_MPI_API void mpi_op_create_ ( MPI_User_function **, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_op_create_ ( MPI_User_function **, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
-EXPORT_MPI_API void mpi_op_create_ ( MPI_User_function *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_op_create_ ( MPI_User_function *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 #endif
 
@@ -93,14 +93,14 @@ EXPORT_MPI_API void mpi_op_create_ ( MPI_User_function *, MPI_Fint *, MPI_Fint *
 
 /* Prototype to suppress warnings about missing prototypes */
 #ifdef  FORTRAN_SPECIAL_FUNCTION_PTR
-EXPORT_MPI_API void mpi_op_create_ ( MPI_User_function **, MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_op_create_ ( MPI_User_function **, MPI_Fint *, MPI_Fint *, 
 				MPI_Fint * );
 #else
-EXPORT_MPI_API void mpi_op_create_ ( MPI_User_function *, MPI_Fint *, MPI_Fint *,
+FORTRAN_API void FORT_CALL mpi_op_create_ ( MPI_User_function *, MPI_Fint *, MPI_Fint *,
                                 MPI_Fint * );
 #endif
 
-EXPORT_MPI_API void mpi_op_create_(
+FORTRAN_API void FORT_CALL mpi_op_create_(
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
 	MPI_User_function **function,
 #else

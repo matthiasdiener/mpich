@@ -161,7 +161,7 @@ CheckBuffer(bufferspace, buffertype, bufferlen)
 	if (buffertype == MPI_CHAR) {
 	    if (((char *)bufferspace)[j] != (char)(j & 0x7f)) {
 		sprintf( valerr, "%x != %x", 
-			((char *)bufferspace)[j], (char)(j & 0x7f));
+			((char *)bufferspace)[j], (char)(j&0x7f) );
 		break;
 		}
 	} else if (buffertype == MPI_SHORT) {

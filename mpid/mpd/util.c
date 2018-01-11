@@ -270,19 +270,19 @@ void kill_job( int jobid, int signum )
 	if ( proctable[i].active  &&  jobid == proctable[i].jobid ) {
 	    mpdprintf( debug, "kill_job: killing jobid=%d pid=%d\n",
 		       jobid, proctable[i].pid );
-	    killpg( proctable[i].pid, signum );
+	    kill( -proctable[i].pid, signum ); /* -pid means kill process group */
 	}
 }
 
 void kill_allproc( int signum )
 {
-    int i, stat;
+    int i, wait_stat;
  
     for ( i = 0; i < MAXPROCS; i++ ) {
         if ( proctable[i].active && proctable[i].pid > 0 ) {
 	    mpdprintf( 1, "killing process %d at entry %d\n", proctable[i].pid, i);
 	    kill( proctable[i].pid, signum );
-	    waitpid( proctable[i].pid, &stat, 0 );
+	    waitpid( proctable[i].pid, &wait_stat, 0 );
 	}
     }
 }
@@ -403,6 +403,7 @@ void error_check( int val, char *str )
 	char errmsg[80];
 	sprintf( errmsg, "[%s] %s: %d", myid, str, val );
 	perror( errmsg );
+	syslog( LOG_INFO, "terminating abnormally, %s", errmsg );
 	mpd_cleanup();
 	fatal_error( val, str );		
     }
@@ -437,7 +438,7 @@ char *st;
     fprintf( stderr, "Options are:\n" );
     fprintf( stderr, "-h <host to connect to>\n" );
     fprintf( stderr, "-p <port to connect to>\n" );
-    fprintf( stderr, "-c (allow console, the default)\n" );
+    fprintf( stderr, "-f <config file>\n" );
     fprintf( stderr, "-n (don't allow console)\n" );
     fprintf( stderr, "-d <debug (0 or 1)>\n" );
     fprintf( stderr, "-w <working directory>\n" );
@@ -598,7 +599,7 @@ int read_line( int fd, char *buf, int maxlen )
     for ( n = 1; n < maxlen; n++ ) {
       again:
 	rc = read( fd, &c, 1 );
-	/* mpdprintf( 1111, "read_line rc=%d c=:%c:\n",rc,c ); */
+	/* mpdprintf( 111, "read_line rc=%d c=:%c:\n",rc,c ); */
 	if ( rc == 1 ) {
 	    *ptr++ = c;
 	    if ( c == '\n' )	/* note \n is stored, like in fgets */
@@ -625,13 +626,13 @@ int write_line( int idx, char *buf )
     int size, n;
 
     size = strlen( buf );
+
     if ( size > MAXLINE ) {
 	buf[MAXLINE-1] = '\0';
 	mpdprintf( 1, "write_line: message string too big: :%s:\n", buf );
     }
-    else if ( buf[strlen( buf ) - 1] != '\n' )  /* error:  no newline at end */
-	    mpdprintf( 1, "write_line: message string doesn't end in newline: :%s:\n",
-		       buf );
+    else if ( buf[size-1] != '\n' )  /* error:  no newline at end */
+	mpdprintf( 1, "write_line: message string doesn't end in newline: :%s:\n", buf );
     else {
         if ( idx != -1 ) {
 	    n = write( fdtable[idx].fd, buf, size );

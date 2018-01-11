@@ -1,5 +1,5 @@
 /*
- *  $Id: groupcompare.c,v 1.7 1999/08/30 15:43:31 swider Exp $
+ *  $Id: groupcompare.c,v 1.8 2001/11/14 19:54:26 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -46,7 +46,7 @@ and 'MPI_UNEQUAL' otherwise
 .N MPI_ERR_GROUP
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Group_compare ( MPI_Group group1, MPI_Group group2, int *result )
+int MPI_Group_compare ( MPI_Group group1, MPI_Group group2, int *result )
 {
   int       mpi_errno = MPI_SUCCESS;
   int       size1, size2;

@@ -60,32 +60,20 @@ typedef enum _Fractal_type {MBROT, JULIA, NEWTON} Fractal_type;
   NUM_ADD( NUM_MULT( INT2NUM( (x) - (xmin) ), NUM_DIV( \
     NUM_SUB( (cmax), (cmin) ), INT2NUM( (xmax)-(xmin) ) ) ), (cmin) )
 
-#ifdef _ANSI_ARGS_
-#undef _ANSI_ARGS_
-#endif
+void Mbrot_Settings (double boundary, int maxiter);
+int  MbrotCalcIter (NUM re, NUM im);
+void Julia_Settings (double boundary, int maxiter, NUM real, NUM imag);
+int  JuliaCalcIter (NUM re, NUM im);
+void Mbrotrep_Settings (double boundary, int maxiter, int miniter,
+		       int longestCycle, double fudgeFactor);
+int  MbrotrepCalcIter (NUM re, NUM im);
 
-#ifdef __STDC__
-#define _ANSI_ARGS_(x) x
-#else
-#define _ANSI_ARGS_(x) ()
-#endif
+void CalcField ( Fractal_type, int *iterField,
+		int xstart, int xend, int ystart, int yend);
 
-
-void Mbrot_Settings _ANSI_ARGS_((double boundary, int maxiter));
-int  MbrotCalcIter _ANSI_ARGS_((NUM re, NUM im));
-void Julia_Settings _ANSI_ARGS_((double boundary, int maxiter, NUM real, NUM
-				imag));
-int  JuliaCalcIter _ANSI_ARGS_((NUM re, NUM im));
-void Mbrotrep_Settings _ANSI_ARGS_((double boundary, int maxiter, int miniter,
-		       int longestCycle, double fudgeFactor));
-int  MbrotrepCalcIter _ANSI_ARGS_((NUM re, NUM im));
-
-void CalcField _ANSI_ARGS_(( Fractal_type, int *iterField,
-		int xstart, int xend, int ystart, int yend));
-
-void Copysub2DArray _ANSI_ARGS_((int *mainArray, int *subArray, int mainWidth,
+void Copysub2DArray (int *mainArray, int *subArray, int mainWidth,
 		     int mainHeight, int subWidth, int subHeight,
-		     int xpos, int ypos));
+		     int xpos, int ypos);
 
 typedef struct Mbrot_settings_ {
   double boundary_sq;		/* maximum allowable distance from origin,

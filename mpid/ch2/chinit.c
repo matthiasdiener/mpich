@@ -1,5 +1,5 @@
 /*
- *  $Id: chinit.c,v 1.16 2001/06/21 21:39:26 gropp Exp $
+ *
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -52,10 +52,7 @@ void MPID_CH_Version_name ( char * );
     Returns a device.  
     This sets up a message-passing device (short/eager/rendezvous protocols)
  */
-MPID_Device *MPID_CH_InitMsgPass( argc, argv, short_len, long_len )
-int  *argc;
-char ***argv;
-int  short_len, long_len;
+MPID_Device *MPID_CH_InitMsgPass( int *argc, char ***argv, int short_len, int long_len )
 {
     MPID_Device *dev;
 
@@ -142,8 +139,8 @@ int MPID_CH_Abort( struct MPIR_COMMUNICATOR *comm_ptr, int code, char *msg )
     return 0;
 }
 
-int MPID_CH_End( dev )
-MPID_Device *dev;
+int MPID_CH_End( 
+	MPID_Device *dev )
 {
     DEBUG_PRINT_MSG("Entering MPID_CH_End\n");
     /* Finish off any pending transactions */
@@ -182,8 +179,7 @@ MPID_Device *dev;
     return 0;
 }
 
-void MPID_CH_Version_name( name )
-char *name;
+void MPID_CH_Version_name( char *name )
 {
     sprintf( name, "ADI version %4.2f - transport %s", MPIDPATCHLEVEL, 
 	     MPIDTRANSPORT );

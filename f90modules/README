@@ -95,3 +95,6 @@ removing the less-used variations (e.g., logical2).
 
 A complete binding for arrays requires a *separate* version for each number of
 dimensions.  We've limited it to two dimensions for now.
+
+Fortran 95 has deprecated character*(x), so we need to check for support for
+character (len=x) and use that form instead.

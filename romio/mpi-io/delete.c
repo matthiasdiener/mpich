@@ -1,5 +1,5 @@
 /* 
- *   $Id: delete.c,v 1.10 2001/06/07 23:22:53 rross Exp $    
+ *   $Id: delete.c,v 1.11 2001/11/14 19:28:36 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -94,7 +94,10 @@ int MPI_File_delete(char *filename, MPI_Info info)
 
     /* skip prefix on filename if there is one */
     tmp = strchr(filename, ':');
-    if (tmp) filename = tmp + 1;
+    /* Only skip prefixes greater than length one to allow for windows drive specification (c:\...)*/
+    /*if (tmp) filename = tmp + 1;*/
+    if (tmp > filename + 1)
+	filename = tmp + 1;
 
     /* call the fs-specific delete function */
     (fsops->ADIOI_xxx_Delete)(filename, &error_code);

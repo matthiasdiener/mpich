@@ -1,3 +1,4 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 #include "p4.h"
 #include "p4_sys.h"
 
@@ -38,9 +39,7 @@ char *p4_machine_type()
 }
 
 
-int p4_initenv(argc, argv)
-int *argc;
-char **argv;
+int p4_initenv(int *argc, char **argv)
 {
     int i, rc;
     char *env_value;
@@ -64,7 +63,9 @@ char **argv;
     globmemsize = p4_globmemsize;		/* 7/12/95, bri@sgi.com */
 
     logging_flag = P4_FALSE;
-    sserver_port = 753;
+    /* Set no default port */
+    /* sserver_port = 753; */
+    sserver_port = -1;
     process_args(argc,argv);
 
     for (i=0; i < *argc; i++)
@@ -229,7 +230,7 @@ int *end;
 int p4_get_my_id_from_proc()
 {
     int i, my_unix_id;
-    int n_match, match_id;
+    int n_match, match_id, best_match_id, best_match_nchars;
     struct proc_info *pi;
     struct hostent *myhp, *pghp;
     struct in_addr myaddr;       /* 8/14/96, llewins@msmail4.hac.com */
@@ -289,9 +290,17 @@ int p4_get_my_id_from_proc()
      * with its pid).  This would guarantee that the correct name would 
      * be used, and could be different from the name used to establish 
      * connections. - WDG
+     * 
+     * I have fixed this by including the name that the master process
+     * used to identify this process as an argument pair (-p4yourname host) 
+     * in the argument list given to the remote process creation routine.
+     * This name is stored in p4_myname_in_procgroup.  We can use this
+     * for a match if it is non-empty.
      */
     n_match = 0;
     match_id = -1;
+    best_match_id = -1;
+    best_match_nchars = 0;
     for (pi = p4_global->proctable, i = 0; i < p4_global->num_in_proctable; i++, pi++)
     {
 	p4_dprintfl(88, "pid %d ?= %d\n", pi->unix_id, my_unix_id );
@@ -300,7 +309,22 @@ int p4_get_my_id_from_proc()
 	    /* Save match incase hostname test fails */
 	    n_match++;
 	    match_id = i;
-
+	    
+	    /* Check for exact match with delivered name.  Ignore
+	       if the name is localhost.  Putting the test here
+	       could eliminate some calls to gethostbyname; if this
+	       works well, we could structure the "find my entry" to
+	       first check the pair (pi->unix_id, pi->hostname) against 
+	       (my_unix_id, p4_myname_in_procgroup), and if a match is
+	       found, return that match.  Only if that fails should
+	       we enter this loop */
+	    if (p4_myname_in_procgroup[0] && 
+		strcmp( p4_myname_in_procgroup, pi->host_name ) == 0 &&
+		strcmp( p4_myname_in_procgroup, "localhost" ) != 0) {
+		p4_dprintfl(60,
+  "get_my_id_from_proc (myname from arg with pi->host_name): returning %d\n",i);
+                return (i);
+	    }
             pghp = gethostbyname_p4(pi->host_name);
 	    p4_dprintfl( 60, ":%s: ?= :%s:\n", pghp->h_name, myname );
 	    /* We might have localhost.... and the same system.  
@@ -310,10 +334,16 @@ int p4_get_my_id_from_proc()
             {
 		p4_dprintfl(60,"get_my_id_from_proc: returning %d\n",i);
                 return (i);
-            }   
-            /* all nodes on sp1 seem to have same inet address by this test.
-*/
+            }
+            /* all nodes on sp1 seem to have same inet address by this test. */
             /* After the fix above, the SP1 will probably be fine!! llewins */
+
+	    /* Compare the name to the name in the procgroup */
+	    if (p4_myname_in_procgroup[0] && 
+		strcmp( p4_myname_in_procgroup, pghp->h_name ) == 0) {
+		p4_dprintfl(60,"get_my_id_from_proc (myname from arg): returning %d\n",i);
+                return (i);
+            }   
 #           if !defined(SP1)
 	    else
 	    {
@@ -325,7 +355,19 @@ int p4_get_my_id_from_proc()
 		    return (i);
 		}
 	    }
-#           endif
+#           endif /* !SP1 */
+	    /* Look for a partial match to the name.  What we really need
+	       is a list of names that this machine is known as (short and
+	       long, localhost, and alternate networks.) */
+	    {
+		char *p1 = pghp->h_name, *p2 = myname;
+		int  common_chars = 0;
+		while (*p1 && *p2 && *p1 == *p2) common_chars++;
+		if (common_chars > best_match_nchars) { 
+		    best_match_nchars = common_chars;
+		    best_match_id     = i;
+		}
+	    }
 	}
     }
 
@@ -333,14 +375,41 @@ int p4_get_my_id_from_proc()
     if (n_match == 1) return match_id;
 
     /* If we reach here, we did not find the process */
-    p4_dprintf("process not in process table; my_unix_id = %d my_host=%s\n",
-	       getpid(), p4_global->my_host_name);
-    p4_dprintf("Probable cause:  local slave on uniprocessor without shared memory\n");
-    p4_dprintf("Probable fix:  ensure only one process on %s\n",p4_global->my_host_name);
-    p4_dprintf("(on master process this means 'local 0' in the procgroup file)\n");
-    p4_dprintf("You can also remake p4 with SYSV_IPC set in the OPTIONS file\n");
-    p4_dprintf( "Alternate cause:  Using localhost as a machine name in the progroup\n" );
-    p4_dprintf( "file.  The names used should match the external network names.\n" );
+    if (n_match > 1) {
+	/* We found too many matches.  Look for a partial match to the name 
+	   before declaring failure */
+#if !defined(SYSV_IPC) && !defined(VENDOR_IPC)
+	/* If there is no comm=shared support, the best match should
+	   be the one that we want */
+	if (best_match_nchars > 4) {
+	    /* the test for four characters is arbitrary, but it helps
+	       eliminate pathalogical cases */
+	    p4_dprintfl( 60, "Using best match because no exact match found\n" );
+	    return best_match_id;
+	}
+	else 
+#endif /* !SYSV_IPC && !VENDOR_IPC */
+	{
+	    p4_dprintf( "Could not determine the process; my_unix_id = %d my_host=%s\n",
+		  getpid(), p4_global->my_host_name); 
+	    p4_dprintf("Probable cause:  local slave on uniprocessor without shared memory\n");
+	    p4_dprintf("Probable fix:  ensure only one process on %s\n",p4_global->my_host_name);
+	    p4_dprintf("(on master process this means 'local 0' in the procgroup file)\n");
+	    p4_dprintf("You can also remake p4 with SYSV_IPC set in the OPTIONS file\n");
+	    p4_dprintf( "Alternate cause:  Using localhost as a machine name in the progroup\n" );
+	    p4_dprintf( "file.  The names used should match the external network names.\n" );
+	}
+    }
+    else {
+	p4_dprintf("process not in process table; my_unix_id = %d my_host=%s\n",
+		  getpid(), p4_global->my_host_name);
+	p4_dprintf("Probable cause:  local slave on uniprocessor without shared memory\n");
+	p4_dprintf("Probable fix:  ensure only one process on %s\n",p4_global->my_host_name);
+	p4_dprintf("(on master process this means 'local 0' in the procgroup file)\n");
+	p4_dprintf("You can also remake p4 with SYSV_IPC set in the OPTIONS file\n");
+	p4_dprintf( "Alternate cause:  Using localhost as a machine name in the progroup\n" );
+	p4_dprintf( "file.  The names used should match the external network names.\n" );
+    }
     p4_error("p4_get_my_id_from_proc",0);
 #   endif
     return (-2);
@@ -564,9 +633,7 @@ char *ap;
 }
 #endif
 
-P4VOID get_pipe(end_1, end_2)
-int *end_1;
-int *end_2;
+P4VOID get_pipe(int *end_1, int *end_2)
 {
     int p[2];
 
@@ -704,6 +771,8 @@ P4VOID remove_sysv_ipc()
 }
 #endif
 
+static int n_slaves_left;
+
 /* This routine is called if the wait fails to complete quickly */
 #include <sys/time.h>
 #ifndef TIMEOUT_VALUE_WAIT 
@@ -714,12 +783,12 @@ P4VOID p4_accept_wait_timeout(sigval)
 int sigval;
 {
     fprintf( stderr, 
-"Timeout in waiting for processes to exit.  This may be due to a defective\n\
+"Timeout in waiting for processes to exit, %d left.  This may be due to a defective\n\
 rsh program (Some versions of Kerberos rsh have been observed to have this\n\
 problem).\n\
 This is not a problem with P4 or MPICH but a problem with the operating\n\
 environment.  For many applications, this problem will only slow down\n\
-process termination.\n" );
+process termination.\n", n_slaves_left);
 
 /* Why is p4_error commented out?  On some systems (like FreeBSD), we
    need to to kill the generated rsh processes.
@@ -731,6 +800,13 @@ p4_error( "Timeout in waiting for processes to exit.  This may be due to a defec
 /* exit(1); */
 }
 
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef HAVE_SYS_WAIT_H
+#include <sys/wait.h>
+#endif
+
 int p4_wait_for_end( void )
 {
     int status;
@@ -738,7 +814,6 @@ int p4_wait_for_end( void )
 #ifndef THREAD_LISTENER
     struct slave_listener_msg msg;
 #endif
-    char job_filename[64];
 
     /* p4_socket_stat is a routine that conditionally prints information
        about the socket status.  -p4sctrl stat=y must be selected */
@@ -747,6 +822,14 @@ int p4_wait_for_end( void )
     ALOG_LOG(p4_local->my_id,END_USER,0,"");
     ALOG_OUTPUT;
 
+    /* System call statistics */
+#ifdef FOO
+    if (0) {
+	int t, count;
+	p4_timein_hostbyname( &t, &count );
+	printf( "gethostbyname: (%d) calls in %d seconds\n", count, t );
+    }
+#endif
 #   if defined(IPSC860)
     for (i=0; i < NUMAVAILS; i++)
     {
@@ -807,14 +890,23 @@ int p4_wait_for_end( void )
         n_forked_slaves = p4_global->n_forked_pids;
     else
         n_forked_slaves = p4_global->n_forked_pids - 1;
+    n_slaves_left = n_forked_slaves;
     for (i = 0; i < n_forked_slaves; i++)
     {
 	pid = wait(&status);
+	/* If we got an EINTR, ignore it */
 	if (pid < 0) {
-	    p4_dprintfl( 90, "wait returned error (EINTR?)\n" );
+	    if (errno != EINTR) 
+		p4_error("p4_wait_for_end: wait error", pid);
+	    p4_dprintfl( 90, "wait returned EINTR\n" );
+	    /* Instead of break, we could restart the wait.  We'll
+	       take the position that an interrupt should force us
+	       to stop waiting on processes */
 	    break;
 	    }
-	p4_dprintfl(90, "detected that proc %d died \n", pid);
+	--n_slaves_left;
+	p4_dprintfl(10, "waited successfully for proc %d, %d left\n", pid,
+	  n_slaves_left);
     }
 #ifndef CRAY
     timelimit.it_value	  = tzero;   /* Turn off timer */
@@ -869,12 +961,7 @@ int p4_wait_for_end( void )
 
 #   endif
 
-    if (execer_starting_remotes  &&  execer_mynodenum == 0)
-    {
-	strcpy(job_filename,"/tmp/p4_");
-	strcat(job_filename,execer_jobname);
-	unlink(job_filename);
-    }
+    clean_execer_port();
 
     if (p4_get_my_id())
         p4_dprintfl(20,"process exiting\n");
@@ -1039,10 +1126,10 @@ P4VOID zap_remote_p4_processes()
 	    msg.type = p4_i_to_n(KILL_SLAVE);
 	    msg.from = p4_i_to_n(my_id);
 	    msg.to_pid = p4_i_to_n(dest_pid);
-	    p4_dprintfl(40, "zap_remote_p4_processes: sending DIE to %d on fd=%d size=%d\n",
+	    p4_dprintfl(40, "zap_remote_p4_processes: sending KILL_SLAVE to %d on fd=%d size=%d\n",
 			dest_id,dest_listener_con_fd,sizeof(msg));
 	    net_send(dest_listener_con_fd, &msg, sizeof(msg), P4_FALSE);
-	    p4_dprintfl(40, "zap_remote_p4_processes: sent DIE to dest_listener\n");
+	    p4_dprintfl(40, "zap_remote_p4_processes: sent KILL_SLAVE to dest_listener\n");
 	    /* Construct a die message for remote listener */
 	    if (strcmp(prev_hostname,dest_pi->host_name) != 0 || prev_port != dest_pi->port)
 	    {
@@ -1070,44 +1157,43 @@ P4VOID zap_remote_p4_processes()
     p4_dprintfl(40, "zap_remote_p4_processes: done\n");
 }
 
-P4VOID get_qualified_hostname(str)
-char *str;
+P4VOID get_qualified_hostname(char *str, int maxlen)
 {
+    str[maxlen-1] = 0;
 #   if (defined(IPSC860)  &&  !defined(IPSC860_SOCKETS))  ||  \
        (defined(CM5)      &&  !defined(CM5_SOCKETS))      ||  \
        (defined(NCUBE)    &&  !defined(NCUBE_SOCKETS))    ||  \
        (defined(SP1_EUI))                                 ||  \
        (defined(SP1_EUIH))
-    strcpy(str,"cube_node");
+    strncpy(str,"cube_node",maxlen-1);
 #   else
 #       if defined(SUN_SOLARIS) || defined(MEIKO_CS2)
         if (*str == '\0') {
             if (p4_global)
-		strcpy(str,p4_global->my_host_name);
+		strncpy(str,p4_global->my_host_name,maxlen-1);
 	    else
-		if (sysinfo(SI_HOSTNAME, str, HOSTNAME_LEN) == -1)
+		if (sysinfo(SI_HOSTNAME, str, maxlen-1) == -1)
 		    p4_error("could not get qualified hostname", getpid());
 	    }
 #       else
         if (*str == '\0')
 	{
             if (p4_global)
-                strcpy(str,p4_global->my_host_name);
+                strncpy(str,p4_global->my_host_name,maxlen-1);
             else
-                gethostname_p4(str, 100);
+                gethostname_p4(str, maxlen);
 	}
 #       endif
     if (*local_domain != '\0'  &&  !index(str,'.'))
     {
-	strcat(str,".");
-	strcat(str,local_domain);
+	strncat(str,".",maxlen-1);
+	strncat(str,local_domain,maxlen-1);
     }
 #endif
 }
 
 
-int getswport(hostname)
-char *hostname;
+int getswport(char *hostname)
 {
 #ifdef CAN_DO_SWITCH_MSGS
     char local_host[MAXHOSTNAMELEN];
@@ -1115,7 +1201,7 @@ char *hostname;
     if (strcmp(hostname, "local") == 0)
     {
 	local_host[0] = '\0';
-	get_qualified_hostname(local_host);
+	get_qualified_hostname(local_host,sizeof(local_host));
 	return getswport(local_host);
     }
     if (strcmp(hostname, "hurley") == 0)
@@ -1182,16 +1268,16 @@ char **exename;
 }
 	       
 
-P4VOID put_execer_port(port)
-int port;
+#ifdef OLD_EXECER
+P4VOID put_execer_port( int port )
 {
     int fd;
     char job_filename[64];
     char port_c[16];
 
     sprintf(port_c,"%d",port);
-    strcpy(job_filename,"/tmp/p4_");
-    strcat(job_filename,execer_jobname);
+    strncpy(job_filename,"/tmp/p4_",64);
+    strncat(job_filename,execer_jobname,64);
     if ((fd = open(job_filename, O_WRONLY | O_CREAT | O_TRUNC, 0600)) < 0)
     {
 	p4_error("put_execer_port: open failed ",fd);
@@ -1203,8 +1289,7 @@ int port;
     close(fd);
 }
 
-int get_execer_port(master_hostname)
-char *master_hostname;
+int get_execer_port(char *master_hostname)
 {
     int port, num_read, sleep_time, status;
     FILE *fp;
@@ -1235,7 +1320,42 @@ char *master_hostname;
 
     return(port);
 }
+void clean_execer_port( void )
+{
+    char job_filename[64];
+    if (execer_starting_remotes  &&  execer_mynodenum == 0)
+    {
+	strncpy(job_filename,"/tmp/p4_",64);
+	strncat(job_filename,execer_jobname,64);
+	unlink(job_filename);
+    }
+}
+#else
+P4VOID put_execer_port(int port)
+{
+    struct sockaddr_in s_in;
+    int len = sizeof(s_in);
+    int fd, cc;
 
+    /* send my local listening number to execer_mastport */
+    fd = socket(PF_INET, SOCK_DGRAM, 0);
+    if (fd < 0)
+        p4_error("put_execer_port: socket", errno);
+    s_in.sin_family = AF_INET;
+    s_in.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    s_in.sin_port = htons(execer_mastport);
+    cc = sendto(fd, &port, sizeof(port), 0, (struct sockaddr *)&s_in, len);
+    if (cc < 0)
+        p4_error("put_execer_port: sendto", errno);
+    if (cc != sizeof(port))
+        p4_error("put_execer_port: partial write", 0);
+    if (close(fd) < 0)
+        p4_error("put_execer_port: close", errno);
+}
+void clean_execer_port(void)
+{
+}
+#endif
 /* high-resolution clock, made out of p4_clock and p4_ustimer */
 
 static int clock_start_ms;

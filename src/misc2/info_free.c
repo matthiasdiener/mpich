@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_free.c,v 1.9 2000/07/20 16:14:07 gropp Exp $    
+ *   $Id: info_free.c,v 1.10 2001/11/14 20:08:05 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -35,7 +35,7 @@ Input Parameters:
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Info_free(MPI_Info *info)
+int MPI_Info_free(MPI_Info *info)
 {
     MPI_Info curr, next;
     int mpi_errno;

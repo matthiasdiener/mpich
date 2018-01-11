@@ -1,5 +1,5 @@
 /*
- *  $Id: issend.c,v 1.8 1999/08/30 15:49:06 swider Exp $
+ *  $Id: issend.c,v 1.9 2001/11/14 20:09:59 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -53,7 +53,7 @@ Output Parameter:
 .N MPI_ERR_RANK
 .N MPI_ERR_EXHAUSTED
 @*/
-EXPORT_MPI_API int MPI_Issend( void *buf, int count, MPI_Datatype datatype, int dest, 
+int MPI_Issend( void *buf, int count, MPI_Datatype datatype, int dest, 
 		int tag, MPI_Comm comm, MPI_Request *request )
 {
     struct MPIR_COMMUNICATOR *comm_ptr;

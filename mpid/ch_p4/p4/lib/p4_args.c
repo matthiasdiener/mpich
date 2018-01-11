@@ -11,9 +11,9 @@
 
 static char pgm[100];		/* Used to keep argv[0] for the usage cmd. */
 
-static P4VOID usage ANSI_ARGS((void));
-static P4VOID print_version_info ANSI_ARGS((void));
-static P4VOID strip_out_args ANSI_ARGS((char **, int*, int *, int));
+static P4VOID usage (void);
+static P4VOID print_version_info (void);
+static P4VOID strip_out_args (char **, int*, int *, int);
 
 
 P4VOID process_args(int *argc, char **argv)
@@ -42,11 +42,14 @@ P4VOID process_args(int *argc, char **argv)
     procgroup_file[0] = '\0';
     p4_wd[0] = '\0';
     strcpy(local_domain, "");
+    p4_myname_in_procgroup[0] = '\0';
     hand_start_remotes = P4_FALSE;
     execer_starting_remotes = P4_FALSE;
     execer_id[0] = '\0';
     execer_masthost[0] = '\0';
+#ifdef OLD_EXECER
     execer_jobname[0] = '\0';
+#endif
     execer_mynodenum = 0;
     execer_mastport = 0;
     execer_pg = NULL;
@@ -65,6 +68,22 @@ P4VOID process_args(int *argc, char **argv)
 
         if (strcmp(*a, "-execer_id") == 0)
         {
+	    /*
+	     * Format of the rest of the args, example job:
+	     *   node00:1 + node01:3 + node02:1
+	     * Big master:
+	     * a.out -execer_id mpiexec -master_host node00 -my_hostname node00
+	     *   -my_nodenum 0 -my_numprocs 1 -total_numnodes 3 -mastport 4444
+	     *  -remote_info node01 3 node02 1
+	     * Remote masters:
+	     * a.out -execer_id mpiexec -master_host node00 -my_hostname node01
+	     *  -my_nodenum 1 -my_numprocs 3 -total_numnodes 3 -master_port 5555
+	     * a.out -execer_id mpiexec -master_host node00 -my_hostname node02
+	     *  -my_nodenum 2 -my_numprocs 1 -total_numnodes 3 -master_port 5555
+	     *
+	     * Master will be started first, then report its listening
+	     * socket, then slaves can be started all at once in any order.
+	     */
             execer_starting_remotes = P4_TRUE;
             strcpy(execer_id,*(a+1));
             strcpy(execer_masthost,*(a+3));
@@ -72,7 +91,12 @@ P4VOID process_args(int *argc, char **argv)
             execer_mynodenum = atoi(*(a+7));
             execer_mynumprocs = atoi(*(a+9));
 	    execer_numtotnodes = atoi(*(a+11));
+#ifdef OLD_EXECER
             strcpy(execer_jobname,*(a+13));
+#else
+	    execer_mastport = atoi(*(a+13));
+	    nextarg = 14;
+#endif
 	    if (execer_mynodenum == 0)
 	    {
 		execer_pg = p4_alloc_procgroup();
@@ -82,25 +106,37 @@ P4VOID process_args(int *argc, char **argv)
 		strcpy(pe->slave_full_pathname,argv[0]);
 		pe->username[0] = '\0'; /* unused */
 		execer_pg->num_entries++;
-		nextarg = 15;
 		for (i=0; i < (execer_numtotnodes-1); i++)
 		{
+		    if (i == 0)
+			++nextarg;  /* "-remote_info" fake arg */
 		    pe++;
 		    strcpy(pe->host_name,*(a+nextarg));
 		    nextarg++;
+#ifdef OLD_EXECER
 		    nextarg++;  /* skip node num */
+#endif
 		    pe->numslaves_in_group = atoi(*(a+nextarg));
 		    nextarg++;
+#ifdef OLD_EXECER
 		    strcpy(pe->slave_full_pathname,*(a+nextarg)); /* unused */
 		    nextarg++;
+#else
+		    *pe->slave_full_pathname = 0;
+#endif
 		    pe->username[0] = '\0'; /* unused */
+
 		    execer_pg->num_entries++;
 		}
 	    }
+#ifdef OLD_EXECER
 	    else
 	    {
 		execer_mastport = get_execer_port(execer_masthost);
 	    }
+#else
+	    strip_out_args(a, argc, &c, nextarg);
+#endif
             continue;
         }
 
@@ -108,7 +144,8 @@ P4VOID process_args(int *argc, char **argv)
 	{
 	    if (bad_arg(a[1]))
 		usage();
-	    strcpy(procgroup_file, a[1]);
+	    strncpy(procgroup_file, a[1], 256);
+	    procgroup_file[255] = 0;
 	    strip_out_args(a, argc, &c, 2);
 	    continue;
 	}
@@ -116,7 +153,8 @@ P4VOID process_args(int *argc, char **argv)
 	{
 	    if (bad_arg(a[1]))
 		usage();
-	    strcpy(p4_wd, a[1]);
+	    strncpy(p4_wd, a[1], 255);
+	    p4_wd[255] = 0;
 	    strip_out_args(a, argc, &c, 2);
 	    continue;
 	}
@@ -164,7 +202,8 @@ P4VOID process_args(int *argc, char **argv)
 	{
 	    if (bad_arg(a[1]))
 		usage();
-	    strcpy(bm_outfile, a[1]);
+	    strncpy(bm_outfile, a[1], 100);
+	    bm_outfile[99] = 0;
 	    strip_out_args(a, argc, &c, 2);
 	    continue;
 	}
@@ -172,7 +211,8 @@ P4VOID process_args(int *argc, char **argv)
 	{
 	    if (bad_arg(a[1]))
 		usage();
-	    strcpy(rm_outfile_head, a[1]);
+	    strncpy(rm_outfile_head, a[1], 100);
+	    rm_outfile_head[99] = 0;
 	    strip_out_args(a, argc, &c, 2);
 	    continue;
 	}
@@ -204,13 +244,28 @@ P4VOID process_args(int *argc, char **argv)
 	    continue;
 	}
 
+	if (!strcmp(*a, "-p4yourname"))
+	{
+	    /* Capture the name that the master is using in its procgroup
+	       file.  This really belongs with the various "remote master"
+	       arguments, but putting it there will mess up lots of 
+	       code.  Using a separate argument for this makes it
+	       easier to make this an optional value */
+	    if (bad_arg(a[1]))
+		usage();
+	    strncpy(p4_myname_in_procgroup, a[1], MAXHOSTNAMELEN);
+	    strip_out_args(a, argc, &c, 2);
+	    continue;
+	}
+
 	if (!strcmp(*a, "-p4help"))
 	    usage();
     }
     if (!execer_starting_remotes) {
 	if (procgroup_file[0] == '\0')
 	{
-	    strcpy(procgroup_file,argv[0]);
+	    strncpy(procgroup_file,argv[0],250);
+	    procgroup_file[249] = 0;
 	    strcat(procgroup_file,".pg");
 	    if ((fp = fopen(procgroup_file,"r")) == NULL) {
                 /* pgm.pg not there */

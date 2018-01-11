@@ -14,16 +14,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_CART_SHIFT = PMPI_CART_SHIFT
-EXPORT_MPI_API void MPI_CART_SHIFT ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_CART_SHIFT ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_cart_shift__ = pmpi_cart_shift__
-EXPORT_MPI_API void mpi_cart_shift__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_cart_shift__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_cart_shift = pmpi_cart_shift
-EXPORT_MPI_API void mpi_cart_shift ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_cart_shift ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_cart_shift_ = pmpi_cart_shift_
-EXPORT_MPI_API void mpi_cart_shift_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_cart_shift_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -81,10 +81,10 @@ EXPORT_MPI_API void mpi_cart_shift_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fi
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_cart_shift_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_cart_shift_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                  MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_cart_shift_( MPI_Fint *comm, MPI_Fint *direction, MPI_Fint *shift, MPI_Fint *source, MPI_Fint *dest, MPI_Fint *ierr )
+FORTRAN_API void FORT_CALL mpi_cart_shift_( MPI_Fint *comm, MPI_Fint *direction, MPI_Fint *shift, MPI_Fint *source, MPI_Fint *dest, MPI_Fint *ierr )
 {
     int lsource;
     int ldest;

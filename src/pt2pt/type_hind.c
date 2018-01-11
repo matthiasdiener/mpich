@@ -1,5 +1,5 @@
 /*
- *  $Id: type_hind.c,v 1.10 2000/08/10 22:15:36 toonen Exp $
+ *  $Id: type_hind.c,v 1.11 2001/11/14 20:10:07 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -53,7 +53,7 @@ Also see the discussion for MPI_Type_indexed about the 'indices' in Fortran.
 .N MPI_ERR_EXHAUSTED
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Type_hindexed( 
+int MPI_Type_hindexed( 
 	int count, 
 	int blocklens[], 
 	MPI_Aint indices[], 

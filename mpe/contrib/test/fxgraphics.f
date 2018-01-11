@@ -13,7 +13,7 @@ c Input/Output : modified argument
 
       if ( len( str ) .gt. 0 ) then
          iptr = len( str )
-         do while ( iptr .gt. 0 .and. str( iptr:iptr ) .eq. ' ' )  ! dangerous
+         do while ( iptr .gt. 0 .and. str( iptr:iptr ) .eq. ' ' )  
             iptr = iptr - 1
          enddo
          lnblnk = iptr
@@ -85,6 +85,9 @@ C     write(6,'(i3," : MPE_Update = ",i3)') my_rank, ierr
 
 C     call sleep( 15 )
       if ( my_rank .eq. 0 ) then
+C         The following is non-portable; the $ asks the Fortran runtime
+C         not to generate a newline at the end of the line.  If this
+C         causes problems, replace this line with a simple print statement
           write(6,'(A,$)') 'Hit any key then return to terminate  '
           read(5,'(A)') chr
       endif

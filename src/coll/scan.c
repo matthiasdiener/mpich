@@ -1,5 +1,5 @@
 /*
- *  $Id: scan.c,v 1.7 1999/08/30 15:41:53 swider Exp $
+ *  $Id: scan.c,v 1.8 2001/11/14 19:50:14 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -55,7 +55,7 @@ Output Parameter:
 .N MPI_ERR_BUFFER
 .N MPI_ERR_BUFFER_ALIAS
 @*/
-EXPORT_MPI_API int MPI_Scan ( void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
+int MPI_Scan ( void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
 	       MPI_Op op, MPI_Comm comm )
 {
   int        mpi_errno = MPI_SUCCESS;

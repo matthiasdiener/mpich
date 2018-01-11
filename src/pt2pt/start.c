@@ -1,5 +1,5 @@
 /*
- *  $Id: start.c,v 1.6 1999/08/30 15:49:30 swider Exp $
+ *  $Id: start.c,v 1.7 2001/11/14 20:10:03 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -45,7 +45,7 @@ Input Parameter:
 .N MPI_ERR_REQUEST
 
 @*/
-EXPORT_MPI_API int MPI_Start( 
+int MPI_Start( 
 	MPI_Request *request)
 {
     int mpi_errno = MPI_SUCCESS;

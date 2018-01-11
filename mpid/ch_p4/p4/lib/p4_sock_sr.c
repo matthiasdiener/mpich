@@ -304,8 +304,8 @@ int is_blocking;
 			}
 			if (tmsg->ack_req & P4_CLOSE_MASK) 
 			{
-			    p4_dprintfl(20,"Received close connection on %d\n",
-					i );
+			    p4_dprintfl(20,"Received close connection on %d (fd %d)\n",
+					i, fd );
 			    p4_local->conntab[i].type = CONN_REMOTE_CLOSED;
 			    /* Discard the message */
 			    free_p4_msg( tmsg );
@@ -673,18 +673,23 @@ int p4_sockets_ready( int write_fd, int q_block )
 	FD_SET(write_fd,&write_fds);
 	max_fd = write_fd;
 
-	for (i = 0; i < p4_global->num_in_proctable; i++)
-	{
-	    if (p4_local->conntab[i].type == CONN_REMOTE_EST)
+	if (p4_global && p4_local && p4_local->conntab) {
+	    /* This routine may, in some rare cases, be called 
+	       during the p4_initenv step before the p4_global and p4_local
+	       structures are fully initialized */
+	    for (i = 0; i < p4_global->num_in_proctable; i++)
 	    {
-		fd = p4_local->conntab[i].port;
-		FD_SET(fd,&read_fds);
-		if (fd > max_fd) max_fd = fd;
-	    }
-	    else if (p4_local->conntab[i].type == CONN_REMOTE_DYING) {
-		/* We need to detect that some are down... */
-		ndown++;
-		/* Now, what to do ? */
+		if (p4_local->conntab[i].type == CONN_REMOTE_EST)
+		{
+		    fd = p4_local->conntab[i].port;
+		    FD_SET(fd,&read_fds);
+		    if (fd > max_fd) max_fd = fd;
+		}
+		else if (p4_local->conntab[i].type == CONN_REMOTE_DYING) {
+		    /* We need to detect that some are down... */
+		    ndown++;
+		    /* Now, what to do ? */
+		}
 	    }
 	}
 	/* Now we have found the fds to wait on */
@@ -763,7 +768,7 @@ void p4_look_for_close( int i )
 	n = net_recv(fd, &nmsg, sizeof(struct p4_net_msg_hdr));
 	if (p4_n_to_i(nmsg.ack_req) & P4_CLOSE_MASK) 
 	{
-	    p4_dprintfl(20,"Received close connection on %d\n",	i );
+	    p4_dprintfl(20,"Received looked-for close connection on %d (fd %d)\n",	i, fd );
 	    p4_local->conntab[i].type = CONN_REMOTE_CLOSED;
 	}
 	else {

@@ -1,5 +1,5 @@
 /*
- *  $Id: getpname.c,v 1.8 2001/04/03 15:46:02 gropp Exp $
+ *  $Id: getpname.c,v 1.9 2001/11/14 19:56:40 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -41,7 +41,7 @@ be the same as might be returned by 'gethostname', 'uname', or 'sysinfo'.
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Get_processor_name( 
+int MPI_Get_processor_name( 
 	char *name,
 	int *resultlen)
 {

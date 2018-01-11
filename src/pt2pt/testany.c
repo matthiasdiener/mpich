@@ -1,5 +1,5 @@
 /*
- *  $Id: testany.c,v 1.14 1999/11/06 21:44:13 gropp Exp $
+ *  $Id: testany.c,v 1.17 2002/01/04 22:42:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -27,6 +27,12 @@
 #endif
 #include "reqalloc.h"
 
+/* index is a function in string.h.  Define this to suppress warnings about
+   shadowed symbols from the C compiler */
+#ifndef index
+#define index idx
+#endif
+
 /*@
     MPI_Testany - Tests for completion of any previdously initiated 
                   communication
@@ -48,7 +54,7 @@ Output Parameters:
 .N Errors
 .N MPI_SUCCESS
 @*/
-EXPORT_MPI_API int MPI_Testany( 
+int MPI_Testany( 
 	int count, 
 	MPI_Request array_of_requests[], 
 	int *index, int *flag, 

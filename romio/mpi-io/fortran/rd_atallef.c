@@ -1,12 +1,12 @@
 /* 
- *   $Id: rd_atallef.c,v 1.7 2000/09/28 15:49:14 gropp Exp $    
+ *   $Id: rd_atallef.c,v 1.10 2001/12/12 23:38:11 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
-#include "mpio.h"
 #include "adio.h"
+#include "mpio.h"
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
@@ -85,9 +85,9 @@
 #endif
 
 /* Prototype to keep compiler happy */
-void mpi_file_read_at_all_end_(MPI_Fint *fh,void *buf,MPI_Status *status, int *ierr );
+FORTRAN_API void FORT_CALL mpi_file_read_at_all_end_(MPI_Fint *fh,void *buf,MPI_Status *status, int *ierr );
 
-void mpi_file_read_at_all_end_(MPI_Fint *fh,void *buf,MPI_Status *status, int *ierr )
+FORTRAN_API void FORT_CALL mpi_file_read_at_all_end_(MPI_Fint *fh,void *buf,MPI_Status *status, int *ierr )
 {
     MPI_File fh_c;
     

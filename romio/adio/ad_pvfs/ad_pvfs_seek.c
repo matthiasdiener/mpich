@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_pvfs_seek.c,v 1.6 2001/06/05 21:06:09 rross Exp $    
+ *   $Id: ad_pvfs_seek.c,v 1.7 2001/10/23 17:47:39 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -69,7 +69,7 @@ ADIO_Offset ADIOI_PVFS_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
 #ifdef PROFILE
     MPE_Log_event(11, 0, "start seek");
 #endif
-    err = pvfs_lseek(fd->fd_sys, off, SEEK_SET);
+    err = pvfs_lseek64(fd->fd_sys, off, SEEK_SET);
 #ifdef PROFILE
     MPE_Log_event(12, 0, "end seek");
 #endif

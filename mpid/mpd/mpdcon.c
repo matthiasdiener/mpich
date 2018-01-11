@@ -97,7 +97,7 @@ int main( int argc, char *argv[] )
 
     if ((pwent = getpwuid(getuid())) == NULL) {
         printf( "getpwuid failed\n" );
-        exit( -1 );
+        exit( 1 );
     }
 
 #   if defined(ROOT_ENABLED)
@@ -105,12 +105,27 @@ int main( int argc, char *argv[] )
     old_gid = getgid();
     if ( geteuid() != 0 ) {
         printf( "this pgm must run as setuid root\n" );
-        exit( -1 );
+        exit( 1 );
     }
     setuid(0);  /* temporarily until I connect to unix socket; only possible if euid=0 */
     setgid(0);
 #   endif
-    
+
+    /* mpirun must not require -np in the first position (doing so
+       keeps the test suite from running */
+    if ( strcmp( pgmname, "mpirun" ) == 0) {
+	/* Look for -np in the arg list */
+	int i = argc, found = 0;
+	for (i=1; i<argc; i++) {
+	    if (strcmp( argv[i], "-np" ) == 0) { found = 1 ; break; }
+	}
+	if (!found) 
+	{
+	    usage_mpirun();
+	    exit( 1 );
+	}
+    }
+
     if ((s = rindex(argv[0],'/')) == NULL)
 	strcpy(pgmname,argv[0]);
     else
@@ -119,12 +134,6 @@ int main( int argc, char *argv[] )
 	rc = mpdhelp( argc, argv );
     else if ( strcmp( pgmname,"mpdcleanup" ) == 0 )
 	rc = mpdcleanup( argc, argv );
-    else if ( strcmp( pgmname,"mpirun" ) == 0  &&  
-              (argc < 4 || strcmp( argv[1], "-np" ) != 0 ) )
-    {
-        usage_mpirun();
-	exit( -1 );
-    }
     else
     {
 #       if defined(ROOT_ENABLED)
@@ -150,8 +159,12 @@ int main( int argc, char *argv[] )
 		cfd = start_mpds( console_name );
 	}
 #       endif
+	if ( cfd == -1 ) {
+	    mpdprintf( 1, "mpirun for the ch_p4mpd device, and other mpd commands,\n" );
+	    mpdprintf( 1, "require an mpd to be running on the local machine\n" );  
+	    mpdprintf( 1, "See the Installation and User Guides for how to start mpd's\n" );
+	}
 	error_check( cfd, "local_connect failed to connect to an mpd: " );
-	mpdprintf( debug, "local_connect; socket=%d\n", cfd );
 
 	if ( read_line( cfd, buf, MAXLINE ) != 0 ) {
 	    int version;
@@ -161,12 +174,12 @@ int main( int argc, char *argv[] )
 	    if ( version != MPD_VERSION ) {
 		mpdprintf( 1, "connected to mpd with mismatched version %d; mine is %d\n",
 			   version, MPD_VERSION );
-		exit( -1 );
+		exit( 1 );
 	    }
 	} 
 	else {
 	    mpdprintf( 1, "console lost contact with mpd unexpectedly\n" );
-	    exit ( -1 );
+	    exit ( 1 );
 	}
 
         tzero.tv_sec	   = 0;
@@ -178,6 +191,21 @@ int main( int argc, char *argv[] )
 #       if defined(ROOT_ENABLED)
 	setuid(old_uid);  /* chg back now that I have the local socket */
 	setgid(old_gid);
+
+	/* some commands shouldn't be run by a non-root user if the mpd is 
+	   running as root
+	*/
+	if ( ( old_uid != 0 ) &&
+	     ( strcmp( pgmname, "mpdallexit" ) == 0 ||
+	       strcmp( pgmname, "mpdexit"    ) == 0 ||
+	       strcmp( pgmname, "mpdclean"   ) == 0 ||
+	       strcmp( pgmname, "mpdkilljob" ) == 0 ||
+	       strcmp( pgmname, "mpdshutdown") == 0 ||
+	       strcmp( pgmname, "mpdbomb"    ) == 0 )) {
+	    printf( "only root can execute %s\n", pgmname );
+	    exit( 1 );
+	}
+
 #       endif
 
 	if ( strcmp( pgmname,"mpdringtest" ) == 0 )
@@ -212,7 +240,7 @@ int main( int argc, char *argv[] )
 	    rc = mpigdb( argc, argv );
 	else {
 	    printf( "unrecognized pgm name from console \n" );
-	    exit( -1 );
+	    exit( 1 );
 	}
     }
     if (rc != 0) {
@@ -395,7 +423,6 @@ int mpdlistjobs( int argc, char *argv[] )
     sprintf( buf, "cmd=listjobs\n" );
     send_msg( cfd, buf, strlen( buf ) );
     read_line( cfd, buf, MAXLINE );  /* get ack from mpd */
-    mpdprintf( debug, "mpdlistjobs: msg from mpd: %s", buf );
     while ( strcmp( buf, "listjobs done\n" ) != 0 ) {
         read_line( cfd, buf, MAXLINE );
 	if ( strcmp( buf, "listjobs done\n" ) != 0 )
@@ -422,9 +449,7 @@ char *argv[];
     return(0);
 }
 
-int mpdexit(argc,argv)
-int argc;
-char *argv[];
+int mpdexit(int argc, char *argv[])
 {
     char buf[MAXLINE];
     int rc;
@@ -448,9 +473,7 @@ char *argv[];
     return(0);
 }
 
-int mpdallexit(argc,argv)
-int argc;
-char *argv[];
+int mpdallexit(int argc, char *argv[])
 {
     char buf[MAXLINE];
 
@@ -529,8 +552,8 @@ int mpdmpexec( int argc, char *argv[] )
     int i, argcnt, envcnt, envflag, loccnt, locflag, rc, num_fds, optcount;
     int shmemgrpsize;
     char buf[MAXLINE], argbuf[MAXLINE], stuffed_arg[MAXLINE], wdirname[MAXPATHLEN];
-    char path[MAXPATHLEN], executable[MAXPATHLEN], jobinfobuf[8];
-    char display[MAXLINE], machinefile[MAXPATHLEN];
+    char path[MAXPATHLEN], executable[MAXPATHLEN], jobinfobuf[8], jobidbuf[8];
+    char display[MAXLINE], machinefile[MAXPATHLEN], jobidfile[MAXPATHLEN];
     char myhostname[MAXHOSTNMLEN];
     char *p;
     fd_set readfds, writefds;
@@ -538,13 +561,15 @@ int mpdmpexec( int argc, char *argv[] )
     int path_was_supplied_by_user, line_labels, close_stdin, myrinet_job;
     int first_at_console;  /* run first process on same node as console */
     int whole_lines;
-    size_t numgids;
-    gid_t gidlist[MAXGIDS];
-    char groups[5*MAXGIDS], groupbuf[6];
     char hostlist_patterns[128][PATSIZE], tempbuf[128], hostlist_buf[MAXLINE];
+    char requested_jobid[10], requested_userid[10];
+    FILE *jfp;
 
-    machinefile[0] = '\0';
-    display[0]     = '\0';
+    machinefile[0]	= '\0';
+    display[0]		= '\0';
+    requested_jobid[0]	= '\0';
+    requested_userid[0]	= '\0';
+    jobidfile[0]        = '\0';
 
     if (argc < 3) {
 	printf( "usage: mpdmpexec -n numprocs [-l] "
@@ -568,7 +593,7 @@ int mpdmpexec( int argc, char *argv[] )
 
     optcount = 1;		/* counts argv[0] */
     gethostname( myhostname, MAXHOSTNMLEN );
-    getcwd(wdirname,MAXPATHLEN);
+    getcwd( wdirname, MAXPATHLEN );
     mpdprintf( debug, "current console working directory = %s\n", wdirname );
     strcpy( path, getenv( "PATH" ) ); /* may want to propagate to manager */
 
@@ -589,22 +614,30 @@ int mpdmpexec( int argc, char *argv[] )
 	if ( argv[optcount][1] == 'n' ) {
 	    for (i=0; i < strlen( argv[optcount+1] ); i++) {
 	        if ( ! isdigit( argv[optcount+1][i] ) ) {
-		    printf( "invalid jobsize specified\n" );
+		    fprintf( stderr, "invalid jobsize specified: %s\n", argv[optcount+1] );
 		    return( -1 );
 		}
 	    }
 	    jobsize = atoi( argv[optcount + 1] );
+	    if ( ( jobsize == 0 ) || ( jobsize > MAXPROCS ) ) {
+		fprintf( stderr, "jobsize must be > 0 and < %d\n", MAXPROCS );
+		return( -1 );
+	    }
 	    optcount += 2;
 	}
 	else if ( argv[optcount][1] == 'i' ) {
 	    iotree = 0;
 	    optcount++;
 	}
+	else if ( argv[optcount][1] == 'h' ) {
+	    usage_mpirun( );
+	    optcount++;
+	}
 	else if ( argv[optcount][1] == 'l' ) {
 	    line_labels = 1;
 	    optcount++;
 	}
-	else if ( argv[optcount][1] == 'w' ) {
+	else if ( strcmp( argv[optcount], "whole" ) == 0 ) {
 	    whole_lines = 1;
 	    optcount++;
 	}
@@ -623,18 +656,27 @@ int mpdmpexec( int argc, char *argv[] )
 	else if ( argv[optcount][1] == 'g' ) {
 	    for (i=0; i < strlen( argv[optcount+1] ); i++) {
 	        if ( ! isdigit( argv[optcount+1][i] ) ) {
-		    printf( "invalid shmemsize specified\n" );
+		    printf( "invalid groupsize specified\n" );
 		    return( -1 );
 		}
 	    }
 	    shmemgrpsize = atoi( argv[optcount + 1] );
 	    optcount += 2;
 	}
+	else if ( strcmp( argv[optcount], "-jid" ) == 0 ) {
+	    strncpy( requested_jobid, argv[optcount+1], 10 );
+	    optcount += 2;
+	}
+	else if ( argv[optcount][1] == 'u' ) {
+	    strncpy( requested_userid, argv[optcount+1], 10 );
+	    optcount += 2;
+	}
 	else if ( strcmp( argv[optcount], "-mvhome" ) == 0 )
 	    optcount++;		/* ignore this argument */
 	else if ( strcmp( argv[optcount], "-mvback" ) == 0 )
 	    optcount += 2;	/* ignore this argument and the next */
-	else if ( argv[optcount][1] == 'm' ) { /* note potential conflict with above 2 */
+	else if ( argv[optcount][1] == 'm' ) { /* note potential conflict with above 2,
+						handled by having this after them */
 	    strcpy( machinefile,argv[optcount+1] );
 	    squash( machinefile, hostlist_patterns );
 	    optcount += 2;
@@ -646,11 +688,32 @@ int mpdmpexec( int argc, char *argv[] )
 		strcat( hostlist_buf, tempbuf );
 	    }
 	}
+	else if ( strcmp ( argv[optcount], "-wdir" ) == 0 ) {
+	    if ( argv[optcount+1][0] == '-' ) {
+		fprintf( stderr, "no working directory specified after -wdir\n" );
+		return( -1 );
+	    }
+	    else {
+		strncpy( wdirname, argv[optcount+1], MAXPATHLEN );
+		optcount += 2;
+	    }
+	}
+	else if ( strcmp ( argv[optcount], "-jidfile" ) == 0 ) {
+	    if ( argv[optcount+1][0] == '-' ) {
+		fprintf( stderr, "no file name specified after -jidfile\n" );
+		return( -1 );
+	    }
+	    else {
+		strncpy( jobidfile, argv[optcount+1], MAXPATHLEN );
+		optcount += 2;
+	    }
+	}
 	else {
+	    fprintf( stderr, "Unrecognized argument: %s\n", argv[optcount] );
 	    if ( mpirunning )
 		usage_mpirun( );
 	    else
-		printf( "usage: mpdmpexec -n numprocs [-l] "
+		fprintf( stderr, "usage: mpdmpexec -n numprocs [-l] "
 			"[-g <shmemgrpsize>] [-s] executable"
 			" [args] [-MPDENV- env] [-MPDLOC- loc(s)]\n" );
 	    return(-1);
@@ -674,30 +737,16 @@ int mpdmpexec( int argc, char *argv[] )
 	mergeprompts = jobsize;	   /* initially talking to all gdb's */
     }
 
-/* get user's groups, especially for ROOT_ENABLED stuff */
-    numgids = getgroups( MAXGIDS, gidlist );
-    error_check( numgids, "mpdmpexec: could not get groups" );
-    for ( i = 0; i < numgids; i++ ) 
-	mpdprintf( 0, "member of group %d\n", gidlist[i] );
-/* create string of group ids */
-    groups[0] = '\0';		/* set group string to empty */
-    for ( i = 0; i < numgids ; i++ ) {
-	sprintf( groupbuf, "%d,", (int)gidlist[i] );
-	strncat( groups, groupbuf, sizeof( groupbuf ) );
-    }
-    groups[strlen(groups) - 1] = '\0'; /* chop off trailing comma */
-    mpdprintf( 0, "group string = :%s:\n", groups );
-
     sprintf( buf,
 	     "cmd=mpexec hostname=%s portnum=%d iotree=%d numprocs=%d "
 	     "executable=%s gdb=%d tvdebug=%d line_labels=%d shmemgrpsize=%d "
              "first_at_console=%d myrinet_job=%d "
              "whole_lines=%d "
-             "username=%s groupid=%d groups=%s ",
+             "username=%s requested_jobid=%s requested_userid=%s ",
 	     myhostname, fdtable[listener_idx].portnum, iotree, jobsize,
 	     executable, gdb, tvdebug, line_labels, shmemgrpsize,
 	     first_at_console, myrinet_job, whole_lines,
-             pwent->pw_name, (int)getgid( ), groups );
+             pwent->pw_name, requested_jobid, requested_userid );
     argcnt  = 0;
     envcnt  = 0;
     envflag = 0;
@@ -719,7 +768,7 @@ int mpdmpexec( int argc, char *argv[] )
             strcat(buf,hostlist_buf);
 	else {
 	    printf("exiting: squash buffer not large enough to handle host list\n");
-	    exit(-1);
+	    exit(1);
 	}
     }
     if (argc > optcount)
@@ -782,7 +831,7 @@ int mpdmpexec( int argc, char *argv[] )
     }
 */
     
-    sprintf( argbuf, "PWD=%s", wdirname );
+    sprintf( argbuf, "PWD=%s", wdirname ); 
     mpd_stuff_arg(argbuf,stuffed_arg);
     envcnt++;
     sprintf( argbuf, " env%d=%s", envcnt, stuffed_arg );
@@ -794,20 +843,20 @@ int mpdmpexec( int argc, char *argv[] )
     strcat( buf, argbuf );
 
     strcat( buf, "\n" );
-    mpdprintf( 0, "mpdmpexec: sending to mpd :%s:\n", buf );
+    mpdprintf( debug, "mpdmpexec: sending to mpd :%s:\n", buf );
     send_msg( cfd, buf, strlen( buf ) );
 
     rc = read_line( cfd, buf, MAXLINE );  /* get ack_from_mpd */
     if ( rc == -1 ) {
 	printf( "console lost contact with local mpd\n" );
-	exit ( -1 );
+	exit ( 1 );
     }
     else {
 	mpdprintf( debug, "mpdmpexec: msg from mpd: %s", buf );
 	if ( strcmp( buf, "cmd=ack_from_mpd\n" ) != 0 ) {
 	    printf( "possible invalid cmd from user; invalid response from mpd: %s\n",
 		    buf );
-	    exit(-1);
+	    exit(1);
 	}
     }
 
@@ -818,7 +867,7 @@ int mpdmpexec( int argc, char *argv[] )
     mpd_getval( "cmd", jobinfobuf );
     if ( strcmp( jobinfobuf, "jobinfo" ) != 0 ) {
 	mpdprintf( 1, "expecting jobinfo msg; got :%s:\n", jobinfobuf );
-	exit(-1);
+	exit(1);
     }
     mpd_getval( "jobid", jobinfobuf );
     jobid = atoi( jobinfobuf );
@@ -829,10 +878,20 @@ int mpdmpexec( int argc, char *argv[] )
 		      "or the set of mpds you specified may only run root jobs \n"
 		      "or mpd may not be able to find mpdman\n",
 		   jobid );
-	exit(-1);
+	exit(1);
     }
     /* fprintf( stderr, "%s", buf );*/  	/* print job id */
-
+    if ( jobidfile[0] != '\0' ) {
+	if ( ( jfp = fopen( jobidfile, "w" ) ) == NULL ) {
+	    fprintf( stderr, "could not open file %s to put job id into\n", jobidfile );
+	}	
+	else {
+	    sprintf( jobidbuf, "%d\n", jobid );
+	    fputs( jobidbuf, jfp );
+	    fclose( jfp );
+	}
+    }
+    
     /* don't close socket to mpd until later when we get ctl stream from mpdman*/
     /* dclose( cfd ); */
 
@@ -897,13 +956,19 @@ int mpdmpexec( int argc, char *argv[] )
 
 int mpirun( int argc, char *argv[] )
 {
-    if (argc < 4 || strcmp( argv[1], "-np" ) != 0 )
+    /* mpirun must not require -np in the first position (doing so
+       keeps the test suite from running */
+    int i = argc, found = 0;
+    for (i=1; i<argc; i++) {
+	if (strcmp( argv[i], "-np" ) == 0) { found = 1 ; break; }
+    }
+    if (!found) 
     {
 	usage_mpirun();
-	exit(1);
+	exit( 1 );
     }
-    argv[1][2] = '\0';		/* replace -np by -n */
-    mpirunning = 1;		/* so command-line parsing will do corrent err_msg */
+    argv[i][2] = '\0';		/* replace -np by -n */
+    mpirunning = 1;		/* so command-line parsing will do correct err_msg */
     mpdmpexec( argc, argv );
     return( 0 );
 }
@@ -1454,15 +1519,19 @@ void usage_mpirun()
 {
     fprintf( stderr, "Usage: mpirun <args> executable <args_to_executable>\n" );
     fprintf( stderr, "Arguments are:\n" );
-    fprintf( stderr, "  -np num_processes_to_run  (required as first two args)\n" );
+    fprintf( stderr, "  [-np num_processes_to_run] (required) \n" );
     fprintf( stderr, "  [-s]  (close stdin; can run in bkgd w/o tty input problems)\n" );
-    fprintf( stderr, "  [-g shmem_group_size]  (start shmem group per mpd)\n" );
+    fprintf( stderr, "  [-h]  print this message\n" );
+    fprintf( stderr, "  [-g group_size]  (start group_size procs per mpd)\n" );
     fprintf( stderr, "  [-m machine_file]  (filename for allowed machines)\n" );
-    fprintf( stderr, "  [-i]  (do not pre-build the I/O tree; faster startup, but may lose some I/O\n" );
-    fprintf( stderr, "  [-l]  (line labels; unique id for each process' output\n" );
-    fprintf( stderr, "  [-w]  (stdout is guaranteed to stay in whole lines)\n" );
+    /* fprintf( stderr, "  [-i]  (do not pre-build the I/O tree; faster startup, but may lose some I/O\n" ); unadvertised feature */
+    fprintf( stderr, "  [-l]  (line labels; unique id for each process's output\n" );
     fprintf( stderr, "  [-1]  (do NOT start first process locally)\n" );
     fprintf( stderr, "  [-y]  (run as Myrinet job)\n" );
+    fprintf( stderr, "  [-whole]  (stdout is guaranteed to stay in whole lines)\n" );
+    fprintf( stderr, "  [-wdir dirname] (set working directory for application)\n" );
+    /* fprintf( stderr, "  [-jid jobid] (run job with id jobid if possible)\n" ); */
+    fprintf( stderr, "  [-jidfile file] (place job id in file file)\n" );
 }
 
 #define  MAXMACHINES 2048

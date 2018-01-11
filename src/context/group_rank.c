@@ -1,5 +1,5 @@
 /*
- *  $Id: group_rank.c,v 1.6 1999/08/30 15:43:20 swider Exp $
+ *  $Id: group_rank.c,v 1.7 2001/11/14 19:54:24 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -45,7 +45,7 @@ process is not a member (integer)
 .N MPI_ERR_ARG
 
 @*/
-EXPORT_MPI_API int MPI_Group_rank ( MPI_Group group, int *rank )
+int MPI_Group_rank ( MPI_Group group, int *rank )
 {
   int mpi_errno = MPI_SUCCESS;
   struct MPIR_GROUP *group_ptr;

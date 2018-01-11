@@ -1,5 +1,5 @@
 /*
- *  $Id: unpack.c,v 1.9 1999/08/30 15:50:11 swider Exp $
+ *  $Id: unpack.c,v 1.10 2001/11/14 20:10:10 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -51,7 +51,7 @@ Output Parameter:
 
 .seealso: MPI_Pack, MPI_Pack_size
 @*/
-EXPORT_MPI_API int MPI_Unpack ( void *inbuf, int insize, int *position, 
+int MPI_Unpack ( void *inbuf, int insize, int *position, 
 		 void *outbuf, int outcount, MPI_Datatype datatype, 
 		 MPI_Comm comm )
 {

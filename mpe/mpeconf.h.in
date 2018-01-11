@@ -90,6 +90,9 @@
 /* Define if we want to include the MPI IO routines */
 #undef HAVE_MPI_IO
 
+/* Define if you have the mkstemp function.  */
+#undef HAVE_MKSTEMP
+
 /* Define if you have the sysinfo function.  */
 #undef HAVE_SYSINFO
 

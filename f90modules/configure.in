@@ -94,9 +94,10 @@ AC_SUBST(includechoice_dir)
 AC_SUBST(includenochoice_dir)
 
 # The library name:
+if test -z "$MPILIBNAME" ; then MPILIBNAME=mpich ; fi
 if test -z "$MPIMODLIBNAME" ; then
     if test $is_mpich = 1 ; then
-	MPIMODLIBNAME="mpichf90"
+	MPIMODLIBNAME="${MPILIBNAME}f90"
     else
         MPIMODLIBNAME="mpif90"
     fi
@@ -105,7 +106,7 @@ AC_SUBST(MPIMODLIBNAME)
 # The library name for the no-choice library
 if test -z "$MPIMODLIBNAMENC" ; then
     if test $is_mpich = 1 ; then
-	MPIMODLIBNAMENC="mpichf90nc"
+	MPIMODLIBNAMENC="${MPILIBNAME}f90nc"
     else
         MPIMODLIBNAMENC="mpif90nc"
     fi

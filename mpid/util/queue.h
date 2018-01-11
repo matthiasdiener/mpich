@@ -38,6 +38,12 @@
    The queue header has a pointer to the first element in the queue, and a
    pointer to the pointer to the last element (this avoids an emptiness test
    when inserting).  
+
+   In a multithreaded environment, we may want to make the following elements
+   *volatile*:
+   struct _MPID_QEL *next
+   MPID_QEL *first
+   MPID_QEL **lastp;
  */
 
 typedef struct _MPID_QEL {  /* queue elements */
@@ -84,7 +90,7 @@ struct _MPIR_SQEL {
   int		 db_target;		/* Who is it to     */
   int		 db_tag;		/* What tag was it sent with */
   void *	 db_data;		/* Where it came from */
-  int		 db_byte_length;	/* How long is it */		         /* ("That's rather a personal question, Sir") */
+  int		 db_byte_length;	/* How long is it */
   /* May also want the MPI data type and replication count... */
   struct _MPIR_SQEL *db_next;   	/* For the chain */
 }; 
@@ -99,9 +105,9 @@ typedef struct
 
 void MPID_Dump_queue (MPID_QHDR *);
 void MPID_Dump_queues (void);
-int  MPID_Enqueue (MPID_QUEUE *, int, int, int, MPIR_RHANDLE *);
+/* int  MPID_Enqueue (MPID_QUEUE *, int, int, int, MPIR_RHANDLE *); */
 int  MPID_Dequeue (MPID_QUEUE *, MPIR_RHANDLE *);
-int MPID_Search_posted_queue ( int, int, int, int, MPIR_RHANDLE **);
+/* int MPID_Search_posted_queue ( int, int, int, int, MPIR_RHANDLE **); */
 int MPID_Search_unexpected_for_request( MPIR_SHANDLE *, 
 					MPIR_RHANDLE **, int * );
 int MPID_Search_unexpected_queue ( int, int, int, int, MPIR_RHANDLE **);
@@ -110,6 +116,7 @@ void MPID_Search_unexpected_queue_and_post ( int, int, int,
 				       MPIR_RHANDLE *, MPIR_RHANDLE **);
 void MPID_Free_unexpected ( MPIR_RHANDLE * );
 void MPID_InitQueue (void);
+
 #endif
 
 

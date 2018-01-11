@@ -36,10 +36,9 @@ void con_mpexec( )
     int  console_portnum, iotree;
     int  numprocs, jid, gdb, tvdebug, line_labels, shmemgrpsize, myrinet_job;
     int  whole_lines;
-    int  i, locc, envc, argc;
+    int  i, locc, envc, argc, n;
     int  first_at_console;
-    int  groupid;
-    char groups[5*MAXGIDS];
+    char requested_jobid[10], requested_userid[10];
 
     mpd_getval( "hostname", console_hostname );
     mpd_getval( "portnum", buf );
@@ -64,12 +63,24 @@ void con_mpexec( )
     shmemgrpsize = atoi( buf );
     mpd_getval( "executable", program );
     mpd_getval( "username", username );
-    mpd_getval( "groupid", buf );
-    groupid = atoi( buf );
-    mpd_getval( "groups", groups );
+    mpd_getval( "requested_jobid", requested_jobid );
+    mpd_getval( "requested_userid", requested_userid );
 
-    jid = allocate_jobid();
-    mpdprintf( debug, "con_mpexec: new job id allocated = %d\n", jid );
+    n = sscanf( requested_jobid, "%d", &jid ); /* look for optional request for jid */
+    if ( n != 1 )
+	jid = allocate_jobid();
+
+    mpdprintf( debug, "con_mpexec: new job id  = %d\n", jid );
+
+    /* optionally overwrite user with requested_userid:  */
+
+#if defined(ROOT_ENABLED)
+    if ( ( strcmp( username, "root" ) == 0 ) && ( requested_userid[0] ) ) {
+	mpdprintf( debug, "replacing username %s by requested userid %s\n", username,
+		   requested_userid );
+	strcpy( username, requested_userid );
+    }
+#endif
 
     /* hopcount is for checking that an mpexec message has gone around the ring without
        any processes getting started, which indicates a bad machine name in MPDLOC */
@@ -77,10 +88,10 @@ void con_mpexec( )
 	    "cmd=mpexec conhost=%s conport=%d rank=0 src=%s "
 	    "iotree=%d dest=anyone job=%d jobsize=%d prog=%s hopcount=0 gdb=%d "
 	    "tvdebug=%d line_labels=%d whole_lines=%d "
-	    "shmemgrpsize=%d username=%s groupid=%d groups=%s myrinet_job=%d ",
+	    "shmemgrpsize=%d username=%s myrinet_job=%d ",
 	    console_hostname, console_portnum, myid, iotree, jid, numprocs, program,
 	    gdb, tvdebug, line_labels, whole_lines, shmemgrpsize,
-	    username, groupid, groups, myrinet_job );
+	    username, myrinet_job );
 
     /* now add other arguments, which are already in key=val form */
     if ( mpd_getval( "locc", buf ) )
@@ -292,9 +303,7 @@ void con_listjobs( )
     char listbuf[MAXLINE];
 	
     /* send message to next mpd in ring; it will be forwarded all the way around */
-    sprintf( listbuf, "src=%s bcast=true cmd=listjobs\n", myid );
-    write_line( rhs_idx, listbuf );
-    sprintf( listbuf, "src=%s bcast=true cmd=listjobs_trailer\n", myid );
+    sprintf( listbuf, "con_mpd_id=%s dest=anyone cmd=listjobs\n", myid );
     write_line( rhs_idx, listbuf );
 }
 

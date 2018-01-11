@@ -28,6 +28,10 @@ struct proc_info {
     char local_name[HOSTNAME_LEN];
 #   ifdef CAN_DO_SOCKET_MSGS
     struct sockaddr_in sockaddr;
+#ifdef LAZY_GETHOSTBYNAME
+    int sockaddr_setup;     /* Used to keep track of lazy initialization
+			       of the sockaddr fields */
+#endif
 #   endif
     char machine_type[16];
 };
@@ -39,6 +43,11 @@ struct p4_avail_buff {
     struct p4_msg *buff;
 };
 
+/*
+ * This structure is shared among all processes that share memory on 
+ * a single node.  If comm=shared is selected, note that the proctable
+ * is SHARED among the local processes.
+ */
 struct p4_global_data {
 #   ifdef SYSV_IPC
     int sysv_num_semids;
@@ -112,7 +121,10 @@ PUBLIC struct local_data *p4_local;
 
 struct listener_data {
     int listening_fd;
-    int slave_fd;
+    int num;  /* of slaves, including big or remote master */
+    int *slave_pid;
+    int *slave_fd;
+
 };
 PUBLIC struct listener_data *listener_info;
 
@@ -193,7 +205,7 @@ struct slave_listener_msg {
 #define SYNC_MSG                18
 
 #ifndef P4_MAX_PGM_LEN 
-#define P4_MAX_PGM_LEN 256
+#define P4_MAX_PGM_LEN 1024
 #endif
 struct bm_rm_msg {
     int type:32;

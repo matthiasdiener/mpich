@@ -1,5 +1,5 @@
 /*
- *  $Id: initfutil.c,v 1.14 2001/09/19 13:39:24 gropp Exp $
+ *  $Id: initfutil.c,v 1.16 2002/01/18 16:09:46 gropp Exp $
  *
  *  (C) 2000 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
@@ -201,8 +201,7 @@ void MPIR_Free_Fortran_keyvals( void )
    This routine is CALLED by MPIR_init_fcm to provide the address of 
    the Fortran MPI_BOTTOM to C 
  */ 
-void mpir_init_bottom_( p )
-void *p;
+void mpir_init_bottom_( void *p )
 {
     MPIR_F_MPI_BOTTOM	   = p;
     MPIR_F_STATUS_IGNORE   = ((MPI_Fint*)p) + 1;
@@ -230,6 +229,9 @@ int MPIR_InitFortranDatatypes( void )
     nodetype = MPIR_FORT_INT;
     if (sizeof(int) == MPIR_FSIZE_R) nodetype = MPIR_INT;
     else if (sizeof(long) == MPIR_FSIZE_R) nodetype = MPIR_LONG;
+#ifdef HAVE_LONG_LONG
+    else if (sizeof(long long) == MPIR_FSIZE_R) nodetype = MPIR_LONGLONGINT;
+#endif
     MPIR_Setup_base_datatype( MPI_INTEGER, &MPIR_I_INTEGER, nodetype, 
 			      MPIR_FSIZE_R );
     MPIR_Setup_base_datatype( MPI_LOGICAL, &MPIR_I_LOGICAL, MPIR_LOGICAL, 

@@ -9,16 +9,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_COMM_CREATE = PMPI_COMM_CREATE
-EXPORT_MPI_API void MPI_COMM_CREATE ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_COMM_CREATE ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_comm_create__ = pmpi_comm_create__
-EXPORT_MPI_API void mpi_comm_create__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_comm_create__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_comm_create = pmpi_comm_create
-EXPORT_MPI_API void mpi_comm_create ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_comm_create ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_comm_create_ = pmpi_comm_create_
-EXPORT_MPI_API void mpi_comm_create_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_comm_create_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -76,10 +76,10 @@ EXPORT_MPI_API void mpi_comm_create_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_F
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_comm_create_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_comm_create_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
 				  MPI_Fint * );
 
-EXPORT_MPI_API void mpi_comm_create_ ( MPI_Fint *comm, MPI_Fint *group, MPI_Fint *comm_out, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_comm_create_ ( MPI_Fint *comm, MPI_Fint *group, MPI_Fint *comm_out, MPI_Fint *__ierr )
 {
     MPI_Comm l_comm_out;
 

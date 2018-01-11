@@ -9,16 +9,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_GROUP_UNION = PMPI_GROUP_UNION
-EXPORT_MPI_API void MPI_GROUP_UNION ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_GROUP_UNION ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_group_union__ = pmpi_group_union__
-EXPORT_MPI_API void mpi_group_union__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_group_union__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_group_union = pmpi_group_union
-EXPORT_MPI_API void mpi_group_union ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_group_union ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_group_union_ = pmpi_group_union_
-EXPORT_MPI_API void mpi_group_union_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_group_union_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -76,10 +76,10 @@ EXPORT_MPI_API void mpi_group_union_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_F
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_group_union_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_group_union_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
 				  MPI_Fint * );
 
-EXPORT_MPI_API void mpi_group_union_ ( MPI_Fint *group1, MPI_Fint *group2, MPI_Fint *group_out, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_group_union_ ( MPI_Fint *group1, MPI_Fint *group2, MPI_Fint *group_out, MPI_Fint *__ierr )
 {
     MPI_Group l_group_out;
     *__ierr = MPI_Group_union( MPI_Group_f2c(*group1), 

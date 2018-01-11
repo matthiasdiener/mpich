@@ -1,5 +1,5 @@
 /*
- *  $Id: global_ops.c,v 1.12 2001/09/19 13:39:24 gropp Exp $
+ *  $Id: global_ops.c,v 1.13 2001/12/14 00:10:49 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -560,7 +560,7 @@ void MPIR_LAND (
   case MPIR_FLOAT: {
     float *a = (float *)inoutvec; float *b = (float *)invec;
     for ( i=0; i<len; i++ )
-      a[i] = MPIR_LLAND(a[i],b[i]);
+      a[i] = (float)MPIR_LLAND(a[i],b[i]);
     break;
   }
   case MPIR_DOUBLE: {
@@ -767,7 +767,7 @@ void MPIR_LOR (
   case MPIR_FLOAT: {
     float *a = (float *)inoutvec; float *b = (float *)invec;
     for ( i=0; i<len; i++ )
-      a[i] = MPIR_LLOR(a[i],b[i]);
+      a[i] = (float)MPIR_LLOR(a[i],b[i]);
     break;
   }
   case MPIR_DOUBLE: {
@@ -973,7 +973,7 @@ void MPIR_LXOR (
   case MPIR_FLOAT: {
     float *a = (float *)inoutvec; float *b = (float *)invec;
     for ( i=0; i<len; i++ )
-      a[i] = MPIR_LLXOR(a[i],b[i]);
+      a[i] = (float)MPIR_LLXOR(a[i],b[i]);
     break;
   }
   case MPIR_DOUBLE: {

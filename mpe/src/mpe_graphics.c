@@ -308,8 +308,8 @@ int        is_collective;
   if (!successful) {
 #ifndef MPE_NOMPI
     char myname[MPI_MAX_PROCESSOR_NAME];
-    int namelen;
-    MPI_Get_processor_name( myname, &namelen );
+    int mynamelen;
+    MPI_Get_processor_name( myname, &mynamelen );
     fprintf( stderr, "Failed to connect to %s from %s\n", 
 	     display, myname );
 #endif
@@ -606,9 +606,9 @@ int a, **boundaryPoints, *ncolors;
 
     Input Parameters:
 +   handle - MPE graphics handle 
-.   x1,y1 - pixel position of one end of the line to draw.  Coordinates are 
+.   x1,y_1 - pixel position of one end of the line to draw.  Coordinates are 
             upper-left origin (standard X11)
-.   x2,y2 - pixel position of the other end of the line to draw.  Coordinates 
+.   x2,y_2 - pixel position of the other end of the line to draw.  Coordinates 
             are upper-left origin (standard X11)
 -   color - Color `index` value.  See 'MPE_MakeColorArray'.  
     By default, the colors
@@ -619,9 +619,9 @@ int a, **boundaryPoints, *ncolors;
 
 .N XGRAPHICS_FORTRAN
 @*/
-int MPE_Draw_line( handle, x1, y1, x2, y2, color )
+int MPE_Draw_line( handle, x1, y_1, x2, y_2, color )
 MPE_XGraph handle;
-int        x1, y1, x2, y2;
+int        x1, y_1, x2, y_2;
 MPE_Color  color;
 {
   if (handle->Cookie != MPE_G_COOKIE) {
@@ -637,7 +637,7 @@ MPE_Color  color;
   {
     XBSetPixVal( handle->xwin, handle->xwin->cmapping[color] );
     XDrawLine( handle->xwin->disp, handle->xwin->win, 
-	      handle->xwin->gc.set, x1, y1, x2, y2 );
+	      handle->xwin->gc.set, x1, y_1, x2, y_2 );
   }
   return MPE_SUCCESS;
 }

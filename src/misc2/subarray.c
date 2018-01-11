@@ -1,5 +1,5 @@
 /* 
- *   $Id: subarray.c,v 1.10 1999/12/13 17:31:01 swider Exp $    
+ *   $Id: subarray.c,v 1.11 2001/11/14 20:08:07 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -42,7 +42,7 @@ Output Parameters:
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Type_create_subarray(
+int MPI_Type_create_subarray(
 	int ndims, 
 	int *array_of_sizes, 
 	int *array_of_subsizes, 

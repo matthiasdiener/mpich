@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_get.c,v 1.7 1999/08/30 15:50:45 swider Exp $
+ *  $Id: cart_get.c,v 1.8 2001/11/14 20:10:51 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -52,7 +52,7 @@ Output Parameters:
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Cart_get ( 
+int MPI_Cart_get ( 
 	MPI_Comm comm, 
 	int maxdims, 
 	int *dims, 

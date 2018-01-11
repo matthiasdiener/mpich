@@ -6,7 +6,7 @@
 #include <unistd.h>
 #endif
 
-int MPD_global_fence_flag; /* used to implement MPD_Fence */
+volatile int MPD_global_fence_flag; /* used to implement MPD_Fence */
 volatile int MPD_tvdebug_synch_flag = 0;
 void (*MPD_user_peer_msg_handler)(char *) = NULL;  /* default */
 void mpdlib_sigusr1_handler( int );
@@ -62,7 +62,7 @@ int MPD_Init( void (*peer_msg_handler)(char *) )
         mpdlib_peer_listen_fd = atoi( p );
     else
         mpdlib_peer_listen_fd = -1;
-    MPD_Printf( mpdlib_debug, "MPD_Init: retrieved from env rank=%d manfd=%d clifd=%d\n",
+    MPD_Printf( mpdlib_debug, "MPD_Init: retrieved  from env rank=%d manfd=%d clifd=%d\n",
                mpdlib_myrank,mpdlib_man_msgs_fd,mpdlib_peer_listen_fd );
 
     mpdlib_getexecname( execname, sizeof( execname ) );
@@ -84,6 +84,7 @@ int MPD_Init( void (*peer_msg_handler)(char *) )
 	MPD_Printf( mpdlib_debug, "client finished waiting for release by manager\n" );
     }
 
+    MPD_Printf( mpdlib_debug, "MPD_Init: returning\n");
     return(0);
 }
 
@@ -96,7 +97,7 @@ static void mpdlib_getexecname( char * execname, size_t len )
     else
 	execname[rc] = '\0';
 #else
-    execname[0] = '\0';
+    execname[0] = '\0';		/* would it be better to return "unknown" */
     MPD_Printf( mpdlib_debug, "mpdlib_getexecname not implemented on non-Linux systems.....yet\n" );
 #endif
 }
@@ -224,6 +225,7 @@ void mpdlib_sigusr1_handler( int signo )
         else
             done = 1;
     }
+    MPD_Printf( mpdlib_debug, "mpdlib_sigusr1_handler exiting\n" );
 }
 
 void MPD_Man_msg_handler( char *buf )

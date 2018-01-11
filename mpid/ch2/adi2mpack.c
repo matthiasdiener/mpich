@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2mpack.c,v 1.2 1997/10/06 18:30:46 gropp Exp $
+ *  $Id: adi2mpack.c,v 1.3 2001/11/12 23:05:09 ashton Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -16,15 +16,17 @@
  * datatypes by providing routines to pack and unpack messages 
  */
 
-void MPID_PackMessage( src, count, dtype_ptr, comm_ptr, dest_grank, 
-		       msgrep, msgact, 
-		       mybuf, mylen, error_code )
-void            *src, **mybuf;
-struct MPIR_COMMUNICATOR *       comm_ptr;
-int             count, dest_grank, *mylen, *error_code;
-MPID_Msgrep_t   msgrep;
-struct MPIR_DATATYPE *   dtype_ptr;
-MPID_Msg_pack_t msgact;
+void MPID_PackMessage( 
+	void *src, 
+	int count, 
+	struct MPIR_DATATYPE *dtype_ptr, 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	int dest_grank, 
+	MPID_Msgrep_t msgrep, 
+	MPID_Msg_pack_t msgact, 
+	void **mybuf, 
+	int *mylen, 
+	int *error_code )
 {
     int position = 0;
 
@@ -47,8 +49,8 @@ MPID_Msg_pack_t msgact;
     }
 }
 
-int MPID_PackMessageFree( shandle )
-MPIR_SHANDLE *shandle;
+int MPID_PackMessageFree( 
+	MPIR_SHANDLE *shandle)
 {
     if (shandle->start) {
 	FREE( shandle->start );
@@ -58,13 +60,15 @@ MPIR_SHANDLE *shandle;
     return 0;
 }
 
-void MPID_UnpackMessageSetup( count, dtype_ptr, comm_ptr, dest_grank, msgrep, 
-			      mybuf, mylen, error_code )
-int          count, dest_grank, *mylen, *error_code;
-MPID_Msgrep_t msgrep;
-struct MPIR_DATATYPE *dtype_ptr;
-struct MPIR_COMMUNICATOR *    comm_ptr;
-void         **mybuf;
+void MPID_UnpackMessageSetup( 
+	int count, 
+	struct MPIR_DATATYPE *dtype_ptr, 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	int dest_grank, 
+	MPID_Msgrep_t msgrep, 
+	void **mybuf, 
+	int *mylen, 
+	int *error_code )
 {
     /* Get "max" size for message */
     MPID_Pack_size( count, dtype_ptr, MPID_MSG_XDR, mylen );
@@ -83,8 +87,8 @@ void         **mybuf;
     }
 }
 
-int MPID_UnpackMessageComplete( rhandle )
-MPIR_RHANDLE *rhandle;
+int MPID_UnpackMessageComplete( 
+	MPIR_RHANDLE *rhandle)
 {
     int in_position = 0, out_position = 0;
 

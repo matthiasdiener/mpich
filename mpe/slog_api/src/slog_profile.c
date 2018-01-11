@@ -3,6 +3,9 @@
 #ifdef HAVE_SLOGCONF_H
 #include "slog_config.h"
 #endif
+#ifdef HAVE_SLOG_WINCONFIG_H
+#include "slog_winconfig.h"
+#endif
 #if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
 #include <stdlib.h>
 #endif
@@ -49,7 +52,7 @@ int SLOG_PROF_IsDuplicated( const SLOG_prof_t       *profile,
     int                ii;
     int                NotMatched = 1;
 
-    for ( ii = 0; NotMatched && (ii < profile->Nentries); ii++ ) {
+    for ( ii = 0; NotMatched && (ii < (int)profile->Nentries); ii++ ) {
         cur_info = &( profile->entries[ ii ] );
         NotMatched = ! SLOG_IntvlInfo_IsKeyEqualTo( cur_info, in_info );
     }
@@ -425,7 +428,7 @@ int SLOG_PROF_Close( SLOG_STREAM  *slog )
         fflush( errfile );
         return SLOG_FAIL;
     }
-    for ( ii = 0; ii < profile->Nentries; ii++ ) {
+    for ( ii = 0; ii < (int)profile->Nentries; ii++ ) {
         ierr = SLOG_IntvlInfo_WriteToFile( &( profile->entries[ ii ] ),
                                         slog->fd );
         if ( ierr != SLOG_TRUE ) {
@@ -525,7 +528,7 @@ int SLOG_PROF_SetExtraNumOfIntvlInfos(       SLOG_STREAM  *slog,
         fflush( errfile );
         return SLOG_FAIL;
     }
-    for ( ii = 0; ii < profile->Nentries; ii++ ) {
+    for ( ii = 0; ii < (int)profile->Nentries; ii++ ) {
         ierr = SLOG_IntvlInfo_WriteToFile( &( profile->entries[ ii ] ), 
                                         slog->fd );
         if ( ierr != SLOG_TRUE ) {
@@ -548,7 +551,7 @@ int SLOG_PROF_SetExtraNumOfIntvlInfos(       SLOG_STREAM  *slog,
 
     /*  Write some blank record definitions to fill up the reserved space.  */
 
-    for ( ii = profile->Nentries; ii < profile->capacity; ii++ ) {
+    for ( ii = (int)profile->Nentries; ii < (int)profile->capacity; ii++ ) {
         ierr = SLOG_IntvlInfo_WriteToFile( &blank_info, slog->fd );
         if ( ierr != SLOG_TRUE ) {
             fprintf( errfile,  __FILE__
@@ -713,7 +716,7 @@ SLOG_intvlinfo_t *SLOG_PROF_GetIntvlInfo( const SLOG_prof_t       *profile,
     SLOG_intvlinfo_t  *cur_def;
     int                ii;
 
-    for ( ii = 0; ii < profile->Nentries; ii++ ) {
+    for ( ii = 0; ii < (int)profile->Nentries; ii++ ) {
         cur_def = &( profile->entries[ ii ] );
         if (    ( cur_def->intvltype == intvltype )
              && ( cur_def->bebits[0] == bebit_0 )
@@ -1074,7 +1077,7 @@ void SLOG_PROF_Free( SLOG_prof_t *profile )
 
     if ( profile != NULL ) {
         if ( profile->Nentries > 0 && profile->entries != NULL ) {
-            for ( ii = 0; ii < profile->Nentries; ii ++ )
+            for ( ii = 0; ii < (int)profile->Nentries; ii ++ )
                 SLOG_StrList_Free( profile->entries[ ii ].arg_labels );
             free( profile->entries );
             profile->entries = NULL;
@@ -1146,7 +1149,7 @@ int SLOG_PROF_ReadIntvlInfos( SLOG_STREAM  *slog )
         return SLOG_FAIL;
     }
     
-    for ( ii = 0; ii < profile->Nentries; ii++ ) {
+    for ( ii = 0; ii < (int)profile->Nentries; ii++ ) {
         ierr = SLOG_IntvlInfo_ReadFromFile( &( profile->entries[ ii ] ), 
                                             slog->fd );
         if ( ierr != SLOG_TRUE ) {
@@ -1174,7 +1177,7 @@ void SLOG_PROF_Print( FILE* fd, const SLOG_prof_t *profile )
 {
     int ii;
 
-    for ( ii = 0; ii < profile->Nentries; ii++ ) {
+    for ( ii = 0; ii < (int)profile->Nentries; ii++ ) {
         fprintf( fd, " def[%i] = ", ii );
         SLOG_IntvlInfo_Print( &( profile->entries[ ii ] ), fd );
         fprintf( fd, "\n" );

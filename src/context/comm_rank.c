@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_rank.c,v 1.6 1999/08/30 15:42:56 swider Exp $
+ *  $Id: comm_rank.c,v 1.7 2001/11/14 19:54:20 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -43,7 +43,7 @@ Output Parameter:
 .N MPI_SUCCESS
 .N MPI_ERR_COMM
 @*/
-EXPORT_MPI_API int MPI_Comm_rank ( MPI_Comm comm, int *rank )
+int MPI_Comm_rank ( MPI_Comm comm, int *rank )
 {
     struct MPIR_COMMUNICATOR *comm_ptr;
     static char myname[] = "MPI_COMM_RANK";

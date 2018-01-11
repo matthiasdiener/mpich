@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_rank.c,v 1.7 2001/04/19 20:56:01 gropp Exp $
+ *  $Id: cart_rank.c,v 1.8 2001/11/14 20:10:52 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -52,7 +52,7 @@ Notes:
 .N MPI_ERR_RANK
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Cart_rank ( 
+int MPI_Cart_rank ( 
 	MPI_Comm comm, 
 	int *coords, 
 	int *rank )

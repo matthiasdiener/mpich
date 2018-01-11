@@ -741,11 +741,34 @@ for file in $libbuild_dir/*.a ; do
 	fi
     fi
 done
-# Copy the Message Queue dynamic link library if it exists
+# Copy the Message Queue dynamic link library if it exists.  Handle the 
+# shared library versioning.  This is the same as the step that installs 
+# the shared libraries
+# 
 for file in $libbuild_dir/libtvmpich.so* ; do
-    if [ -f $file ] ; then
-	CopyFileP $file $libdir $XMODE
+    # Also need to handle any links!
+    if [ ! -h $file -a -f $file ] ; then 
+        CopyFileP $file $libdir $XMODE
     fi
+done
+# Get the current directory (see pushd/popd comments in shared lib code)
+curdir="`pwd`"
+# Create links from foo.so.n.m to foo.so.n and foo.so.n to foo.so
+for file in $libdir/libtvmpich.so* ; do
+    # pushd would be cleaner, but not all systems support it (e.g.,IRIX)
+    #pushd $sharedlib_dir >/dev/null
+    cd $libdir >/dev/null
+    file=`basename $file`
+    filebase=`echo $file | sed -e 's%\.[0-9]*$%%'`
+    while [ $filebase != $file ]; do
+	 if [ ! -h $filebase -a -s $file ] ; then 
+	     $Show ln -s $file $filebase
+	     echo "/bin/rm -f $libdir/$filebase" >>$UNINSTALLFILE
+	 fi
+	 file=$filebase
+	 filebase=`echo $file | sed -e 's%\.[0-9]*$%%'`
+    done
+    cd "$curdir" >/dev/null
 done
 # The Fortran wrapper libraries should have been created in libbuild_dir
 #if [ "@NOF77@" = "0" ] ; then
@@ -883,11 +906,19 @@ if [ -z "$noman" -a -z "$libonly" ] ; then
     echo "Done installing documentation"
 fi
 if [ -z "$libonly" ] ; then
-    for file in functions.ps.gz guide.ps.gz install.ps.gz ; do
-	if [ -f $top_srcdir/doc/$file ] ; then 
-            CopyFile $top_srcdir/doc/$file $docdir
+    echo "Installing manuals"
+    for file in $top_srcdir/doc/mpichman*.ps.gz \
+	        $top_srcdir/doc/mpeman*.ps.gz \
+                $top_srcdir/doc/mpichman*.pdf \
+                $top_srcdir/doc/mpeman*.pdf \
+                $top_srcdir/doc/mpiman.ps ; do
+	if [ -f $file ] ; then 
+            CopyFile $file $docdir
 	fi
     done
+    if [ -f $top_srcdir/romio/doc/users-guide.ps.gz ] ; then
+        CopyFile $top_srcdir/romio/doc/users-guide.ps.gz $docdir/romio-users.ps.gz
+    fi
     #$Show $CPRP -r doc $prefix
     #if [ -f ref/adiman.ps.gz ] ; then 
     #    CopyFile ref/adiman.ps.gz $prefix/doc
@@ -895,6 +926,7 @@ if [ -z "$libonly" ] ; then
     if [ -f $top_srcdir/ref/mpiman.ps.gz ] ; then 
         CopyFile $top_srcdir/ref/mpiman.ps.gz $docdir
     fi
+    echo "Done installing manuals"
 fi
 #
 if [ "$NOMPE" = "0" ] ; then

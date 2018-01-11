@@ -6,7 +6,7 @@ typedef long P4_Aint;
 #if !defined(NEXT) && !defined(HAVE_STDLIB_H)
 /* Note Sun 4.1.3 defines exit as int exit(int), even though DOCUMENTED as
    void exit(int).  Try to use the definition in stdlib.h instead */
-extern P4VOID exit ANSI_ARGS((int));
+extern P4VOID exit (int);
 #endif
 
 /*
@@ -38,11 +38,11 @@ int p4_hard_errors = 1;
 #define HANDLER_ARGS int
 #endif
 
-static P4_HANDLER_TYPE (*prev_sigint_handler) ANSI_ARGS((HANDLER_ARGS)) = NULL;
-static P4_HANDLER_TYPE (*prev_sigsegv_handler) ANSI_ARGS((HANDLER_ARGS)) = NULL;
-static P4_HANDLER_TYPE (*prev_sigbus_handler) ANSI_ARGS((HANDLER_ARGS)) = NULL;
-static P4_HANDLER_TYPE (*prev_sigfpe_handler) ANSI_ARGS((HANDLER_ARGS)) = NULL;
-static P4_HANDLER_TYPE (*prev_err_handler) ANSI_ARGS((HANDLER_ARGS)) = NULL;
+static P4_HANDLER_TYPE (*prev_sigint_handler) (HANDLER_ARGS) = NULL;
+static P4_HANDLER_TYPE (*prev_sigsegv_handler) (HANDLER_ARGS) = NULL;
+static P4_HANDLER_TYPE (*prev_sigbus_handler) (HANDLER_ARGS) = NULL;
+static P4_HANDLER_TYPE (*prev_sigfpe_handler) (HANDLER_ARGS) = NULL;
+static P4_HANDLER_TYPE (*prev_err_handler) (HANDLER_ARGS) = NULL;
 static int err_sig;
 #if defined(HAVE_FOUR_ARG_SIGS)
 static int                err_code;
@@ -64,17 +64,19 @@ int p4_soft_errors( int onoff )
 
 P4VOID p4_error( char *string, int value )
 {
-    char job_filename[64];
+    static int in_p4_error = 0;
 #ifdef USE_PRINT_LAST_ON_ERROR
     char ch_debug_string[128];
 #endif
-    static int in_p4_error = 0;
 
     if (in_p4_error) {
 	/* Recursive call - emergency stop */
 	exit(1);
     }
     in_p4_error = 1;
+
+    /* This is a good place to implement a trace back */
+    /* MPIR_Print_backtrace( "cpi", 1, "Call stack\n" ); */
 
     /* If the following line generates a warning about prototypes,
        see the comment at the head of the file */
@@ -99,6 +101,15 @@ P4VOID p4_error( char *string, int value )
     MPID_Ch_send_last_p4error( ch_debug_string );
 
     p4_dprint_last( stderr );
+#endif
+
+#if 0
+    /* Enable this when debugging the listener logic */
+    SIGNAL_P4(LISTENER_ATTN_SIGNAL, SIG_IGN);
+    p4_dprintf("p4_error: ******** pausing before any zap **********\n");
+    fflush(stdout);
+    fflush(stderr);
+    pause();
 #endif
 
     /* Send interrupt to all known processes */
@@ -140,12 +151,7 @@ P4VOID p4_error( char *string, int value )
       BNR_Kill( mygroup );
     }
 #endif
-    if (execer_starting_remotes  &&  execer_mynodenum == 0)
-    {
-	strcpy(job_filename,"/tmp/p4_");
-	strcat(job_filename,execer_jobname);
-	unlink(job_filename);
-    }
+    clean_execer_port();
 
     if (interrupt_caught && value != SIGINT)
     {
@@ -165,7 +171,7 @@ P4VOID p4_error( char *string, int value )
 	    prev_err_handler = NULL;
 	    break;
 	}
-	if (prev_err_handler == (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))) NULL)
+	if (prev_err_handler == (P4_HANDLER_TYPE (*) (HANDLER_ARGS)) NULL)
 	{
 	    /* return to default handling of the interrupt by the OS */
 	    SIGNAL_P4(value,SIG_DFL); 
@@ -241,11 +247,11 @@ static P4VOID sig_err_handler(int sig)
 */
 P4VOID trap_sig_errs( void )
 {
-    P4_HANDLER_TYPE (*rc) ANSI_ARGS((HANDLER_ARGS));
+    P4_HANDLER_TYPE (*rc) (HANDLER_ARGS);
 
     SIGNAL_WITH_OLD_P4(SIGINT, sig_err_handler,
-                           rc= (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))));
-    if (rc == (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))) -1)
+                           rc= (P4_HANDLER_TYPE (*) (HANDLER_ARGS)));
+    if (rc == (P4_HANDLER_TYPE (*) (HANDLER_ARGS)) -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGINT);
     if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
 	prev_sigint_handler = rc;
@@ -255,7 +261,7 @@ P4VOID trap_sig_errs( void )
 */
 #ifdef CAN_HANDLE_SIGSEGV
     SIGNAL_WITH_OLD_P4(SIGSEGV, sig_err_handler, 
-                           rc= (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))));
+                           rc= (P4_HANDLER_TYPE (*) (HANDLER_ARGS)));
     if ((P4_Aint) rc == -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGSEGV);
     if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
@@ -263,7 +269,7 @@ P4VOID trap_sig_errs( void )
 #endif
 
     SIGNAL_WITH_OLD_P4(SIGBUS, sig_err_handler,
-                 rc= (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))));
+                 rc= (P4_HANDLER_TYPE (*) (HANDLER_ARGS)));
     if ((P4_Aint) rc == -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGBUS);
     if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
@@ -274,7 +280,7 @@ P4VOID trap_sig_errs( void )
        SIGFPE (e.g.,move a divide through the test for divide by zero).
        If SIGFPE is SIG_IGN, then restore the signal handler */
     SIGNAL_WITH_OLD_P4(SIGFPE, sig_err_handler,
-                           rc= (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))));
+                           rc= (P4_HANDLER_TYPE (*) (HANDLER_ARGS)));
     if ((P4_Aint) rc == -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGFPE);
     /* Test for ignore FPE */

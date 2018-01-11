@@ -1,12 +1,12 @@
 /* 
- *   $Id: write_atallf.c,v 1.9 2000/11/03 20:17:48 thakur Exp $    
+ *   $Id: write_atallf.c,v 1.12 2001/12/12 23:38:17 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
-#include "mpio.h"
 #include "adio.h"
+#include "mpio.h"
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
@@ -104,11 +104,11 @@ void mpi_file_write_at_all_(MPI_Fint *fh,MPI_Offset *offset,void *buf,
 }
 #else
 /* Prototype to keep compiler happy */
-void mpi_file_write_at_all_(MPI_Fint *fh,MPI_Offset *offset,void *buf,
+FORTRAN_API void FORT_CALL mpi_file_write_at_all_(MPI_Fint *fh,MPI_Offset *offset,void *buf,
                           int *count,MPI_Datatype *datatype,
 			    MPI_Status *status, int *ierr );
 
-void mpi_file_write_at_all_(MPI_Fint *fh,MPI_Offset *offset,void *buf,
+FORTRAN_API void FORT_CALL mpi_file_write_at_all_(MPI_Fint *fh,MPI_Offset *offset,void *buf,
                           int *count,MPI_Datatype *datatype,
                           MPI_Status *status, int *ierr )
 {

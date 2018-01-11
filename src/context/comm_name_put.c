@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_name_put.c,v 1.6 2001/06/20 16:08:40 gropp Exp $
+ *  $Id: comm_name_put.c,v 1.7 2001/11/14 19:54:20 ashton Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -47,7 +47,7 @@ static int MPIR_Name_put (struct MPIR_COMMUNICATOR *, char *);
 .N MPI_SUCCESS
 .N MPI_ERR_COMM
 @*/
-EXPORT_MPI_API int MPI_Comm_set_name( MPI_Comm com, char *name )
+int MPI_Comm_set_name( MPI_Comm com, char *name )
 {
     int mpi_errno;
   struct MPIR_COMMUNICATOR *comm = MPIR_GET_COMM_PTR(com);

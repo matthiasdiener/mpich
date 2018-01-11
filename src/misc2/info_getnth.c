@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_getnth.c,v 1.7 1999/08/30 15:47:43 swider Exp $    
+ *   $Id: info_getnth.c,v 1.8 2001/11/14 20:08:06 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -38,7 +38,7 @@ Output Parameters:
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Info_get_nthkey(MPI_Info info, int n, char *key)
+int MPI_Info_get_nthkey(MPI_Info info, int n, char *key)
 {
     MPI_Info curr;
     int nkeys, i;

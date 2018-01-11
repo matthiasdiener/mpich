@@ -1,5 +1,5 @@
 /*
- *  $Id: mpirutil.c,v 1.6 1999/08/20 02:28:07 ashton Exp $
+ *  $Id: mpirutil.c,v 1.7 2001/10/19 22:01:20 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -11,7 +11,7 @@
 
 #include "mpiimpl.h"
 
-int MPIR_Tab ANSI_ARGS(( int ));
+int MPIR_Tab ( int );
 
 /* Old comments on queueing messages ... */
 /*

@@ -31,16 +31,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_GROUP_RANGE_INCL = PMPI_GROUP_RANGE_INCL
-EXPORT_MPI_API void MPI_GROUP_RANGE_INCL ( MPI_Fint *, MPI_Fint *, MPI_Fint [][3], MPI_Fint *, MPI_Fint * );
+void MPI_GROUP_RANGE_INCL ( MPI_Fint *, MPI_Fint *, MPI_Fint [][3], MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_group_range_incl__ = pmpi_group_range_incl__
-EXPORT_MPI_API void mpi_group_range_incl__ ( MPI_Fint *, MPI_Fint *, MPI_Fint [][3], MPI_Fint *, MPI_Fint * );
+void mpi_group_range_incl__ ( MPI_Fint *, MPI_Fint *, MPI_Fint [][3], MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_group_range_incl = pmpi_group_range_incl
-EXPORT_MPI_API void mpi_group_range_incl ( MPI_Fint *, MPI_Fint *, MPI_Fint [][3], MPI_Fint *, MPI_Fint * );
+void mpi_group_range_incl ( MPI_Fint *, MPI_Fint *, MPI_Fint [][3], MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_group_range_incl_ = pmpi_group_range_incl_
-EXPORT_MPI_API void mpi_group_range_incl_ ( MPI_Fint *, MPI_Fint *, MPI_Fint [][3], MPI_Fint *, MPI_Fint * );
+void mpi_group_range_incl_ ( MPI_Fint *, MPI_Fint *, MPI_Fint [][3], MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -98,11 +98,11 @@ EXPORT_MPI_API void mpi_group_range_incl_ ( MPI_Fint *, MPI_Fint *, MPI_Fint [][
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_group_range_incl_ ( MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_group_range_incl_ ( MPI_Fint *, MPI_Fint *, 
                                        MPI_Fint [][3], MPI_Fint *, 
                                        MPI_Fint * );
 
-EXPORT_MPI_API void mpi_group_range_incl_ ( MPI_Fint *group, MPI_Fint *n, MPI_Fint ranges[][3], MPI_Fint *newgroup, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_group_range_incl_ ( MPI_Fint *group, MPI_Fint *n, MPI_Fint ranges[][3], MPI_Fint *newgroup, MPI_Fint *__ierr )
 {
     MPI_Group l_newgroup;
  
@@ -110,7 +110,7 @@ EXPORT_MPI_API void mpi_group_range_incl_ ( MPI_Fint *group, MPI_Fint *n, MPI_Fi
 	/* We cast ranges here in case MPI_Fint != int and the compiler
 	   wants to complain...*/
         *__ierr = MPI_Group_range_incl(MPI_Group_f2c(*group), *n,
-                                       (int (*)[])ranges, &l_newgroup);
+                                       (int (*)[3])ranges, &l_newgroup);
     }
     else {
 	int *l_ranges;

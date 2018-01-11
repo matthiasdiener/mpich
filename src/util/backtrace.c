@@ -39,10 +39,11 @@ f2()
 
 /* Local variables used for the traceback.  Should we attempt to allocate
  these? */
+#define MAX_SYMBOLS 512
 static char savedExecutable[1025] = "\0";
 static unsigned int  idx, address[1024];
-static char loc[1024][128];
-static char procname[1024][128];
+static char loc[1024][MAX_SYMBOLS];
+static char procname[1024][MAX_SYMBOLS];
 
 void MPIR_Print_backtrace( char *executable, int print_flag, char *fmt, ... )
 {
@@ -70,7 +71,7 @@ void MPIR_Print_backtrace( char *executable, int print_flag, char *fmt, ... )
 	return;
     }
     idx = 0;
-    while (fgets(input_line,100,fp) != NULL && idx < 128)
+    while (fgets(input_line,100,fp) != NULL && idx < MAX_SYMBOLS)
     {
 	if (!isdigit(input_line[0]))
 	    continue;

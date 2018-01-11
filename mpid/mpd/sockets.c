@@ -11,25 +11,25 @@ int setup_network_socket( int *port ) /* returns fd */
     int rc;
     mpd_sockopt_len_t sinlen;
     int skt_fd;
-    struct sockaddr_in sin;
+    struct sockaddr_in s_in;
 
-    sin.sin_family	= AF_INET;
-    sin.sin_addr.s_addr	= INADDR_ANY;
-    sin.sin_port	= htons( *port );
-    sinlen              = sizeof( sin );
+    s_in.sin_family	 = AF_INET;
+    s_in.sin_addr.s_addr = INADDR_ANY;
+    s_in.sin_port	 = htons( *port );
+    sinlen		 = sizeof( s_in );
 
     skt_fd = socket( AF_INET, SOCK_STREAM, 0 );
     error_check( skt_fd, "setup_network_socket: socket" );
 
-    rc = bind( skt_fd, ( struct sockaddr * ) &sin, sizeof( sin ) );
+    rc = bind( skt_fd, ( struct sockaddr * ) &s_in, sizeof( s_in ) );
     error_check( rc, "setup_network_socket: bind" );
 
-    rc = getsockname( skt_fd, (struct sockaddr *) &sin, &sinlen ); 
+    rc = getsockname( skt_fd, (struct sockaddr *) &s_in, &sinlen ); 
     error_check( rc, "setup_network_socket: getsockname" );
 
     mpdprintf( 0, "network socket port is %d, len = %d\n",
-	    ntohs(sin.sin_port), sinlen);
-    *port = ntohs(sin.sin_port);
+	    ntohs(s_in.sin_port), sinlen);
+    *port = ntohs(s_in.sin_port);
 
     rc = listen( skt_fd, backlog );
     error_check( rc, "setup_network_socket: listen" );
@@ -78,8 +78,11 @@ int network_connect( char *hostname, int port )
     if (hp == NULL)
     {
 	char errmsg[80];
-	sprintf( errmsg, "network_connect: gethostbyname=:%s:", hostname );
-	perror( errmsg );
+	sprintf( errmsg, "network_connect: gethostbyname failed for %s h_errno=%d", 
+		 hostname,h_errno );
+	if ( h_errno == HOST_NOT_FOUND ) 
+	    strcat( errmsg, " HOST_NOT_FOUND " );
+	mpdprintf( 1, "%s\n", errmsg );
 	fatal_error( -1, errmsg );	
     }
 
@@ -104,18 +107,17 @@ int network_connect( char *hostname, int port )
 	rc = connect( s, (struct sockaddr *) &sa, sizeof(sa) );
 	if ( rc == 0 )
 	    connected = 1;
-	else {
+	else 
 	    numtriesleft--;
-	    dclose( s );
-	}
     }
-    if ( !connected ) 
-	mpdprintf( 1, "failed to connect after %d tries\n", NUMTOTRY );
-
-    error_check( rc, "network_connect, connect");
+    if ( !connected ) {
+	mpdprintf( 111, "failed to connect to port %d on host %s after %d tries\n",
+		   port, hostname, NUMTOTRY );
+	return( -1 );
+    }
 
     if ( numtriesleft < NUMTOTRY )
-	mpdprintf( 1, "network_connect, connected on fd %d after %d %s\n", s,
+	mpdprintf( debug, "network_connect, connected on fd %d after %d %s\n", s,
 		   NUMTOTRY + 1 - numtriesleft,
 		   NUMTOTRY + 1 - numtriesleft > 1 ? "tries" : "try" );
     return s;

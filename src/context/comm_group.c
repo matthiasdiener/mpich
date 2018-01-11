@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_group.c,v 1.6 1999/08/30 15:42:52 swider Exp $
+ *  $Id: comm_group.c,v 1.7 2001/11/14 19:54:19 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -58,7 +58,7 @@ behavior of 'MPI_Comm_group' to detect this violation of the MPI standard.
 .N MPI_SUCCESS
 .N MPI_ERR_COMM
 @*/
-EXPORT_MPI_API int MPI_Comm_group ( 
+int MPI_Comm_group ( 
 	MPI_Comm comm, 
 	MPI_Group *group )
 {

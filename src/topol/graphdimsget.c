@@ -1,5 +1,5 @@
 /*
- *  $Id: graphdimsget.c,v 1.8 2000/06/30 17:55:36 gropp Exp $
+ *  $Id: graphdimsget.c,v 1.9 2001/11/14 20:10:55 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -47,7 +47,7 @@ Output Parameter:
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Graphdims_get ( MPI_Comm comm, int *nnodes, int *nedges )
+int MPI_Graphdims_get ( MPI_Comm comm, int *nnodes, int *nedges )
 {
   int mpi_errno = MPI_SUCCESS, flag;
   MPIR_TOPOLOGY *topo;

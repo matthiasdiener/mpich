@@ -9,16 +9,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_COMM_REMOTE_SIZE = PMPI_COMM_REMOTE_SIZE
-EXPORT_MPI_API void MPI_COMM_REMOTE_SIZE ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_COMM_REMOTE_SIZE ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_comm_remote_size__ = pmpi_comm_remote_size__
-EXPORT_MPI_API void mpi_comm_remote_size__ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_comm_remote_size__ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_comm_remote_size = pmpi_comm_remote_size
-EXPORT_MPI_API void mpi_comm_remote_size ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_comm_remote_size ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_comm_remote_size_ = pmpi_comm_remote_size_
-EXPORT_MPI_API void mpi_comm_remote_size_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_comm_remote_size_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -76,10 +76,10 @@ EXPORT_MPI_API void mpi_comm_remote_size_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * )
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_comm_remote_size_ ( MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_comm_remote_size_ ( MPI_Fint *, MPI_Fint *, 
                                        MPI_Fint * );
 
-EXPORT_MPI_API void mpi_comm_remote_size_ ( MPI_Fint *comm, MPI_Fint *size, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_comm_remote_size_ ( MPI_Fint *comm, MPI_Fint *size, MPI_Fint *__ierr )
 {
     int l_size;
 

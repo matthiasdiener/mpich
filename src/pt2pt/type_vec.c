@@ -1,5 +1,5 @@
 /*
- *  $Id: type_vec.c,v 1.8 1999/08/30 15:50:09 swider Exp $
+ *  $Id: type_vec.c,v 1.9 2001/11/14 20:10:09 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -41,7 +41,7 @@ Output Parameter:
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Type_vector( 
+int MPI_Type_vector( 
 	int count, 
 	int blocklen, 
 	int stride, 

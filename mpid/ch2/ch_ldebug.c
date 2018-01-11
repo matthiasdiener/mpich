@@ -13,13 +13,13 @@ static int  ch_msg_bottom = 0;
    then set the top back to 0 and the bottom to 1.  Then, copy the string 
    which was created in the macro to the appropriate place in the debug
    output array. */
-void MPID_Print_last_args( char *ch_debug_buf ) 
+void MPID_Print_last_args( char *msg )
 {
     if ( ch_msg_top >= CH_LAST_DEBUG ) {
 	ch_msg_top = 0;
 	ch_msg_bottom = 1;
     }
-    strcpy( ch_debug_msgs[ch_msg_top++], ch_debug_buf );
+    strcpy( ch_debug_msgs[ch_msg_top++], msg );
 }
 
 /*  This function prints to stderr the debug statements in the debug output

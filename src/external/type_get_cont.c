@@ -1,5 +1,5 @@
 /* 
- *   $Id: type_get_cont.c,v 1.7 1999/08/30 15:46:49 swider Exp $    
+ *   $Id: type_get_cont.c,v 1.8 2001/11/14 19:57:22 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -44,7 +44,7 @@ Output Parameters:
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Type_get_contents(
+int MPI_Type_get_contents(
 	MPI_Datatype datatype, 
 	int max_integers, 
 	int max_addresses, 

@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_set.c,v 1.11 2001/02/27 22:39:38 gropp Exp $    
+ *   $Id: info_set.c,v 1.12 2001/11/14 20:08:07 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -50,7 +50,7 @@ Input Parameters:
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Info_set(MPI_Info info, char *key, char *value)
+int MPI_Info_set(MPI_Info info, char *key, char *value)
 {
     MPI_Info prev, curr;
     int mpi_errno;

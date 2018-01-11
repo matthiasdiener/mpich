@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2hsend.c,v 1.2 1997/10/06 18:30:34 gropp Exp $
+ *  $Id: adi2hsend.c,v 1.3 2001/11/12 23:02:13 ashton Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -17,12 +17,16 @@
  */
 /***************************************************************************/
 
-void MPID_SendDatatype( comm_ptr, buf, count, dtype_ptr, src_lrank, tag, 
-			context_id, dest_grank, error_code )
-struct MPIR_COMMUNICATOR *comm_ptr;
-struct MPIR_DATATYPE     *dtype_ptr;
-void         *buf;
-int          count, src_lrank, tag, context_id, dest_grank, *error_code;
+void MPID_SendDatatype( 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	void *buf, 
+	int count, 
+	struct MPIR_DATATYPE *dtype_ptr, 
+	int src_lrank, 
+	int tag, 
+	int context_id, 
+	int dest_grank, 
+	int *error_code )
 {
     int             len, contig_size;
     void            *mybuf;
@@ -73,13 +77,17 @@ int          count, src_lrank, tag, context_id, dest_grank, *error_code;
  * implement this, the individual "send" routines would have to know how to
  * handle general datatypes.  We'll leave that for later.
  */
-void MPID_IsendDatatype( comm_ptr, buf, count, dtype_ptr, src_lrank, tag, 
-			 context_id, dest_grank, request, error_code )
-struct MPIR_COMMUNICATOR *comm_ptr;
-struct MPIR_DATATYPE     *dtype_ptr;
-void         *buf;
-int          count, src_lrank, tag, context_id, dest_grank, *error_code;
-MPI_Request  request;
+void MPID_IsendDatatype( 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	void *buf, 
+	int count, 
+	struct MPIR_DATATYPE *dtype_ptr, 
+	int src_lrank, 
+	int tag, 
+	int context_id, 
+	int dest_grank, 
+	MPI_Request request, 
+	int *error_code )
 {
     int             len, contig_size;
     char            *mybuf;

@@ -8,16 +8,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_TOPO_TEST = PMPI_TOPO_TEST
-EXPORT_MPI_API void MPI_TOPO_TEST ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_TOPO_TEST ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_topo_test__ = pmpi_topo_test__
-EXPORT_MPI_API void mpi_topo_test__ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_topo_test__ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_topo_test = pmpi_topo_test
-EXPORT_MPI_API void mpi_topo_test ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_topo_test ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_topo_test_ = pmpi_topo_test_
-EXPORT_MPI_API void mpi_topo_test_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_topo_test_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -75,9 +75,9 @@ EXPORT_MPI_API void mpi_topo_test_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_topo_test_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_topo_test_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_topo_test_ ( MPI_Fint *comm, MPI_Fint *top_type, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_topo_test_ ( MPI_Fint *comm, MPI_Fint *top_type, MPI_Fint *__ierr )
 {
     int ltop_type;
     *__ierr = MPI_Topo_test( MPI_Comm_f2c(*comm), &ltop_type);

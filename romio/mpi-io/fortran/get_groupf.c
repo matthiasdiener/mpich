@@ -1,12 +1,12 @@
 /* 
- *   $Id: get_groupf.c,v 1.10 2000/11/03 20:17:44 thakur Exp $    
+ *   $Id: get_groupf.c,v 1.13 2001/12/12 23:38:07 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
-#include "mpio.h"
 #include "adio.h"
+#include "mpio.h"
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
@@ -99,9 +99,9 @@ void mpi_file_get_group_(MPI_Fint *fh,MPI_Fint *group, int *ierr )
 }
 #else
 /* Prototype to keep compiler happy */
-void mpi_file_get_group_(MPI_Fint *fh,MPI_Group *group, int *ierr );
+FORTRAN_API void FORT_CALL mpi_file_get_group_(MPI_Fint *fh,MPI_Group *group, int *ierr );
 
-void mpi_file_get_group_(MPI_Fint *fh,MPI_Group *group, int *ierr )
+FORTRAN_API void FORT_CALL mpi_file_get_group_(MPI_Fint *fh,MPI_Group *group, int *ierr )
 {
     MPI_File fh_c;
     

@@ -1,5 +1,5 @@
 /*
- *  $Id: getversion.c,v 1.7 1999/08/30 15:46:00 swider Exp $
+ *  $Id: getversion.c,v 1.8 2001/11/14 19:56:40 ashton Exp $
  *
  *  (C) 1997 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
@@ -40,7 +40,7 @@ version specified in the 'mpi.h' and 'mpif.h' files.
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Get_version( 
+int MPI_Get_version( 
 	int *version, 
 	int *subversion )
 {

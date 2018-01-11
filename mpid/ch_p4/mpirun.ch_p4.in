@@ -97,9 +97,9 @@ EOF
     archval=$archlocal
     proginstance=`echo $progname | sed "s/%a/$archval/g"`
     prognamemain=$proginstance
-    if [ $just_testing = 1 ] ; then
+    if [ "$just_testing" = 1 ] ; then
        echo "Procgroup file:"
-       if [ $nolocal = 0 ] ; then
+       if [ "$nolocal" = 0 ] ; then
 	    if [ -z "$nproclocal" ] ; then
 	        nprocval=0
 	    else
@@ -111,7 +111,7 @@ EOF
             procNum=2
        fi
     else
-       if [ $nolocal = 0 ] ; then
+       if [ "$nolocal" = 0 ] ; then
 	    if [ -z "$MPI_HOST" ] ; then
 		echo "No value for MPI_HOST!"
 	        echo "MPI_HOST is set either from your environment or by"
@@ -174,12 +174,6 @@ $SYNCLOC > /dev/null 2>&1
 if [ "$p4workdir" = "" ] ; then
     p4workdir=$PWD_TRIAL
 fi
-startpgm="$prognamemain $cmdLineArgs -p4pg $p4pgfile -p4wd $p4workdir"
-# The following could use the -stdin filename from mpirun, though
-# it doesn't handle the problem of the created jobs.
-#if [ -n "$stdinfile" ] ; then
-# startpgm="$startpgm < $stdinfile"
-#fi
 #
 # Having a p4p4file_master allows us to move the pg file to a location
 # where the master process can read it, even if the master does not
@@ -189,12 +183,25 @@ if [ "$nolocal" = 1 -a "$move_pgfile_to_master" = "yes" ] ; then
     # Should we use $TMPDIR  instead of /tmp here?
     p4pgfile_master=/tmp/`basename $p4pgfile`
 fi
+startpgm="$prognamemain $cmdLineArgs -p4pg $p4pgfile_master -p4wd $p4workdir"
+# The following could use the -stdin filename from mpirun, though
+# it doesn't handle the problem of the created jobs.
+#if [ -n "$stdinfile" ] ; then
+# startpgm="$startpgm < $stdinfile"
+#fi
+# Last rshcmd steps
+if [ "$setrshcmd" = "yes" ] ; then
+    P4_RSHCOMMAND="$rshcmd"
+fi
+if [ -n "$P4_RSHCOMMAND" ] ; then
+    export P4_RSHCOMMAND
+fi
 #
 # Handle debuggers
 #
 if [ "$debugger" != "" ] ; then
     if [ -x "$MPIRUN_HOME/mpirun_dbg.$debugger" ] ; then
-        $MPIRUN_HOME/mpirun_dbg.$debugger -progname $prognamemain -p4pg $p4pgfile -p4wd $p4workdir -cmdlineargs "$cmdLineArgs"
+        $MPIRUN_HOME/mpirun_dbg.$debugger -progname $prognamemain -p4pg $p4pgfile_master -p4wd $p4workdir -cmdlineargs "$cmdLineArgs"
     else
         echo "Cannot run debugger - no debugger script." 
 	exit 1
@@ -216,7 +223,7 @@ else
     #
     # Add rsh'ery if requested
     #
-    if [ $nolocal = 1 ] ; then
+    if [ "$nolocal" = 1 ] ; then
         if [ "$stdinfile" = "/dev/null" ] ; then
             doitall="$doitall $rshcmd -n $machinehead"
         else
@@ -234,15 +241,14 @@ else
         exitstatus=$?
     fi
 fi
-if [ $just_testing != 1 ] ; then
-    if [ $leavePGFile = 1 ] ; then
+if [ "$just_testing" != 1 ] ; then
+    if [ "$leavePGFile" = 1 ] ; then
         echo "P4 procgroup file is $p4pgfile."
     else
-        if [ $nolocal = 1 -a "$move_pgfile_to_master" = "yes" ] ; then
+        if [ "$nolocal" = 1 -a "$move_pgfile_to_master" = "yes" ] ; then
 	    $rshcmd -n $machinehead /bin/rm $p4pgfile_master
-        else
-            /bin/rm "$p4pgfile"
         fi
+        /bin/rm "$p4pgfile"
     fi
     if [ "$MPIRUN_RANDOM" = "yes" ] ; then
         /bin/rm -f "$TEMPDIR/mpirand-$LOGNAME"*

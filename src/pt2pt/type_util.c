@@ -1,5 +1,5 @@
 /*
- *  $Id: type_util.c,v 1.7 2000/08/10 22:15:36 toonen Exp $
+ *  $Id: type_util.c,v 1.8 2002/01/18 16:09:46 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -194,6 +194,14 @@ void MPIR_Free_perm_type( MPI_Datatype datatype )
     struct MPIR_DATATYPE *dtype_ptr;
 
     dtype_ptr = MPIR_ToPointer( datatype );
+    /* 
+     * In some cases, particularly when Fortran is modified to make
+     * REAL and DOUBLE PRECISION the same datatype, the datatype may
+     * already have been freed.  This test causes free to return without
+     * trying to free an already freed type.
+     */
+    if (dtype_ptr == NULL) 
+	return;
     /* We can't set the type to not permanent, because the datatypes structures
        are in static storage, and permanent is how we know this */
        /* dtype_ptr->permanent = 0;*/

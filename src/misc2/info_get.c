@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_get.c,v 1.8 1999/08/30 15:47:39 swider Exp $    
+ *   $Id: info_get.c,v 1.9 2001/11/14 20:08:05 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -43,7 +43,7 @@ Output Parameters:
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Info_get(MPI_Info info, char *key, int valuelen, char *value, int *flag)
+int MPI_Info_get(MPI_Info info, char *key, int valuelen, char *value, int *flag)
 {
     MPI_Info curr;
     int mpi_errno;

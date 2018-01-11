@@ -19,26 +19,26 @@
 #endif
 
 
-void CLOG_dumplog ANSI_ARGS(( void ));
-void CLOG_outblock ANSI_ARGS((double *));
-void CLOG_dumpblock ANSI_ARGS(( double * ));
-int  CLOG_reclen ANSI_ARGS(( int ));
-void CLOG_msgtype ANSI_ARGS(( int ));
-void CLOG_commtype ANSI_ARGS(( int ));
-void CLOG_colltype ANSI_ARGS(( int ));
-void CLOG_rectype ANSI_ARGS(( int ));
+void CLOG_dumplog ( void );
+void CLOG_outblock (double *);
+void CLOG_dumpblock ( double * );
+int  CLOG_reclen ( int );
+void CLOG_msgtype ( int );
+void CLOG_commtype ( int );
+void CLOG_colltype ( int );
+void CLOG_rectype ( int );
 
-void adjust_CLOG_HEADER ANSI_ARGS(( CLOG_HEADER * ));
-void adjust_CLOG_MSG ANSI_ARGS(( CLOG_MSG * ));
-void adjust_CLOG_COLL ANSI_ARGS(( CLOG_COLL * ));
-void adjust_CLOG_COMM ANSI_ARGS(( CLOG_COMM * ));
-void adjust_CLOG_STATE ANSI_ARGS(( CLOG_STATE * ));
-void adjust_CLOG_EVENT ANSI_ARGS(( CLOG_EVENT * ));
-void adjust_CLOG_SRC ANSI_ARGS(( CLOG_SRC * ));
-void adjust_CLOG_RAW ANSI_ARGS(( CLOG_RAW * ));
+void adjust_CLOG_HEADER ( CLOG_HEADER * );
+void adjust_CLOG_MSG ( CLOG_MSG * );
+void adjust_CLOG_COLL ( CLOG_COLL * );
+void adjust_CLOG_COMM ( CLOG_COMM * );
+void adjust_CLOG_STATE ( CLOG_STATE * );
+void adjust_CLOG_EVENT ( CLOG_EVENT * );
+void adjust_CLOG_SRC ( CLOG_SRC * );
+void adjust_CLOG_RAW ( CLOG_RAW * );
 
-void CLOGByteSwapDouble ANSI_ARGS((double *, int));
-void CLOGByteSwapInt ANSI_ARGS((int *, int));
+void CLOGByteSwapDouble (double *, int);
+void CLOGByteSwapInt (int *, int);
 
 #endif
 

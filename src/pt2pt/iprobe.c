@@ -1,5 +1,5 @@
 /*
- *  $Id: iprobe.c,v 1.9 1999/08/30 15:48:58 swider Exp $
+ *  $Id: iprobe.c,v 1.10 2001/11/14 20:09:58 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -48,7 +48,7 @@ Output Parameter:
 .N MPI_ERR_RANK
 
 @*/
-EXPORT_MPI_API int MPI_Iprobe( int source, int tag, MPI_Comm comm, int *flag, 
+int MPI_Iprobe( int source, int tag, MPI_Comm comm, int *flag, 
 		MPI_Status *status )
 {
     int mpi_errno = MPI_SUCCESS;

@@ -9,16 +9,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_START = PMPI_START
-EXPORT_MPI_API void MPI_START ( MPI_Fint *, MPI_Fint * );
+void MPI_START ( MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_start__ = pmpi_start__
-EXPORT_MPI_API void mpi_start__ ( MPI_Fint *, MPI_Fint * );
+void mpi_start__ ( MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_start = pmpi_start
-EXPORT_MPI_API void mpi_start ( MPI_Fint *, MPI_Fint * );
+void mpi_start ( MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_start_ = pmpi_start_
-EXPORT_MPI_API void mpi_start_ ( MPI_Fint *, MPI_Fint * );
+void mpi_start_ ( MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -76,9 +76,9 @@ EXPORT_MPI_API void mpi_start_ ( MPI_Fint *, MPI_Fint * );
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_start_ ( MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_start_ ( MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_start_( MPI_Fint *request, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_start_( MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest = MPI_Request_f2c(*request );
     *__ierr = MPI_Start( &lrequest );

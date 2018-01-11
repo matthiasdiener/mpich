@@ -11,16 +11,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_TYPE_STRUCT = PMPI_TYPE_STRUCT
-EXPORT_MPI_API void MPI_TYPE_STRUCT ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint * );
+void MPI_TYPE_STRUCT ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_type_struct__ = pmpi_type_struct__
-EXPORT_MPI_API void mpi_type_struct__ ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint * );
+void mpi_type_struct__ ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_type_struct = pmpi_type_struct
-EXPORT_MPI_API void mpi_type_struct ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint * );
+void mpi_type_struct ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_type_struct_ = pmpi_type_struct_
-EXPORT_MPI_API void mpi_type_struct_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint * );
+void mpi_type_struct_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -78,11 +78,11 @@ EXPORT_MPI_API void mpi_type_struct_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_type_struct_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [], 
+FORTRAN_API void FORT_CALL mpi_type_struct_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [], 
                                   MPI_Fint [], MPI_Fint *, 
                                   MPI_Fint * );
 
-EXPORT_MPI_API void mpi_type_struct_( MPI_Fint *count, MPI_Fint blocklens[], MPI_Fint indices[], MPI_Fint old_types[], MPI_Fint *newtype, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_type_struct_( MPI_Fint *count, MPI_Fint blocklens[], MPI_Fint indices[], MPI_Fint old_types[], MPI_Fint *newtype, MPI_Fint *__ierr )
 {
     MPI_Aint     *c_indices;
     MPI_Aint     local_c_indices[MPIR_USE_LOCAL_ARRAY];

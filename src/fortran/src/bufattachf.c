@@ -12,16 +12,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_BUFFER_ATTACH = PMPI_BUFFER_ATTACH
-EXPORT_MPI_API void MPI_BUFFER_ATTACH ( void *, MPI_Fint *, MPI_Fint * );
+void MPI_BUFFER_ATTACH ( void *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_buffer_attach__ = pmpi_buffer_attach__
-EXPORT_MPI_API void mpi_buffer_attach__ ( void *, MPI_Fint *, MPI_Fint * );
+void mpi_buffer_attach__ ( void *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_buffer_attach = pmpi_buffer_attach
-EXPORT_MPI_API void mpi_buffer_attach ( void *, MPI_Fint *, MPI_Fint * );
+void mpi_buffer_attach ( void *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_buffer_attach_ = pmpi_buffer_attach_
-EXPORT_MPI_API void mpi_buffer_attach_ ( void *, MPI_Fint *, MPI_Fint * );
+void mpi_buffer_attach_ ( void *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -119,9 +119,9 @@ if (_isfcd(buffer)) {
 #else
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_buffer_attach_ ( void *, MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_buffer_attach_ ( void *, MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_buffer_attach_( void *buffer, MPI_Fint *size, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_buffer_attach_( void *buffer, MPI_Fint *size, MPI_Fint *__ierr )
 {
     *__ierr = MPI_Buffer_attach(buffer,(int)*size);
 }

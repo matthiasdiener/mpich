@@ -461,7 +461,7 @@ else
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
   fi
   echo '#include "confdefs.h"
 #include <sys/select.h>' > conftest.c
@@ -498,7 +498,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -726,7 +726,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -880,7 +880,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -966,7 +966,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -1055,7 +1055,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -1131,7 +1131,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -1207,7 +1207,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi
@@ -1750,8 +1750,8 @@ EOF
     fi
     if test ! -s conftest ; then
       echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS 
+      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
     TK_VERSION="unavailable"
 
     else
@@ -1868,7 +1868,7 @@ fi
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
     fi
 
 fi

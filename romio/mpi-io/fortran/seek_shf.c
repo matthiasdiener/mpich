@@ -1,12 +1,12 @@
 /* 
- *   $Id: seek_shf.c,v 1.7 2000/08/24 16:18:27 gropp Exp $    
+ *   $Id: seek_shf.c,v 1.10 2001/12/12 23:38:14 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
-#include "mpio.h"
 #include "adio.h"
+#include "mpio.h"
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
@@ -85,10 +85,10 @@
 #endif
 
 /* Prototype to keep compiler happy */
-void mpi_file_seek_shared_(MPI_Fint *fh,MPI_Offset *offset,int *whence, 
+FORTRAN_API void FORT_CALL mpi_file_seek_shared_(MPI_Fint *fh,MPI_Offset *offset,int *whence, 
 			   int *ierr );
 
-void mpi_file_seek_shared_(MPI_Fint *fh,MPI_Offset *offset,int *whence, int *ierr )
+FORTRAN_API void FORT_CALL mpi_file_seek_shared_(MPI_Fint *fh,MPI_Offset *offset,int *whence, int *ierr )
 {
     MPI_File fh_c;
     

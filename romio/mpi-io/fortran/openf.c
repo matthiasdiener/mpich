@@ -1,5 +1,5 @@
 /* 
- *   $Id: openf.c,v 1.9 2000/11/03 20:17:45 thakur Exp $    
+ *   $Id: openf.c,v 1.12 2001/12/12 23:38:10 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -8,8 +8,8 @@
 #if _UNICOS
 #include <fortran.h>
 #endif
-#include "mpio.h"
 #include "adio.h"
+#include "mpio.h"
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
@@ -136,11 +136,19 @@ void mpi_file_open_(MPI_Comm *comm,_fcd filename_fcd,int *amode,
     int str_len = _fcdlen(filename_fcd);
 #else
 /* Prototype to keep compiler happy */
-void mpi_file_open_(MPI_Comm *comm,char *filename,int *amode,
+/*
+FORTRAN_API void FORT_CALL mpi_file_open_(MPI_Comm *comm,char *filename,int *amode,
 		    MPI_Fint *info, MPI_Fint *fh, int *ierr, int str_len );
 
-void mpi_file_open_(MPI_Comm *comm,char *filename,int *amode,
+FORTRAN_API void FORT_CALL mpi_file_open_(MPI_Comm *comm,char *filename,int *amode,
                   MPI_Fint *info, MPI_Fint *fh, int *ierr, int str_len )
+*/
+/* Prototype to keep compiler happy */
+FORTRAN_API void FORT_CALL mpi_file_open_(MPI_Comm *comm,char *filename FORT_MIXED_LEN_DECL,int *amode,
+		    MPI_Fint *info, MPI_Fint *fh, int *ierr FORT_END_LEN_DECL);
+
+FORTRAN_API void FORT_CALL mpi_file_open_(MPI_Comm *comm,char *filename FORT_MIXED_LEN(str_len),int *amode,
+                  MPI_Fint *info, MPI_Fint *fh, int *ierr FORT_END_LEN(str_len))
 {
 #endif
     char *newfname;

@@ -1,5 +1,5 @@
 /*
- *  $Id: reduce.c,v 1.7 1999/08/30 15:41:51 swider Exp $
+ *  $Id: reduce.c,v 1.8 2001/11/14 19:50:13 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -59,7 +59,7 @@ This implementation currently uses a simple tree algorithm.
 .N MPI_ERR_BUFFER
 .N MPI_ERR_BUFFER_ALIAS
 @*/
-EXPORT_MPI_API int MPI_Reduce ( void *sendbuf, void *recvbuf, int count, 
+int MPI_Reduce ( void *sendbuf, void *recvbuf, int count, 
 		 MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm )
 {
     int mpi_errno = MPI_SUCCESS;

@@ -131,6 +131,19 @@ for (i=0; i<ncomm; i++) {
 		fprintf( stderr, 
                   "Error in data with type %s (type %d on %d) at byte %d\n", 
 			 names[j], j, world_rank, errloc - 1 );
+		if (err < 10) {
+		    /* Give details on only the first 10 errors */
+		    unsigned char *in_p = (unsigned char *)inbufs[j],
+			*out_p = (unsigned char *)outbufs[j];
+		    int jj;
+		    jj = errloc - 1;
+ 		    jj &= 0xfffffffc; /* lop off a few bits */ 
+		    in_p += jj;
+		    out_p += jj;
+		    fprintf( stderr, "%02x%02x%02x%02x should be %02x%02x%02x%02x\n",
+			     out_p[0], out_p[1], out_p[2], out_p[3],
+			     in_p[0], in_p[1], in_p[2], in_p[3] );
+		}
                 err++;
 #if 0
 		MPIR_PrintDatatypeUnpack( stdout, counts[j], offsettype, 

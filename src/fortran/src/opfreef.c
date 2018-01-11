@@ -9,16 +9,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_OP_FREE = PMPI_OP_FREE
-EXPORT_MPI_API void MPI_OP_FREE ( MPI_Fint *, MPI_Fint * );
+void MPI_OP_FREE ( MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_op_free__ = pmpi_op_free__
-EXPORT_MPI_API void mpi_op_free__ ( MPI_Fint *, MPI_Fint * );
+void mpi_op_free__ ( MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_op_free = pmpi_op_free
-EXPORT_MPI_API void mpi_op_free ( MPI_Fint *, MPI_Fint * );
+void mpi_op_free ( MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_op_free_ = pmpi_op_free_
-EXPORT_MPI_API void mpi_op_free_ ( MPI_Fint *, MPI_Fint * );
+void mpi_op_free_ ( MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -76,9 +76,9 @@ EXPORT_MPI_API void mpi_op_free_ ( MPI_Fint *, MPI_Fint * );
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_op_free_ ( MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_op_free_ ( MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_op_free_( MPI_Fint *op, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_op_free_( MPI_Fint *op, MPI_Fint *__ierr )
 {
     MPI_Op l_op = MPI_Op_f2c(*op);
     *__ierr = MPI_Op_free(&l_op);

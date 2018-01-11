@@ -1,5 +1,5 @@
 /*
- *  $Id: errget.c,v 1.8 1999/09/03 20:53:10 gropp Exp $
+ *  $Id: errget.c,v 1.9 2001/11/14 19:56:38 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -54,7 +54,7 @@ by 'MPI_Comm_group' is no longer needed.
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Errhandler_get( MPI_Comm comm, MPI_Errhandler *errhandler )
+int MPI_Errhandler_get( MPI_Comm comm, MPI_Errhandler *errhandler )
 {
     struct MPIR_COMMUNICATOR *comm_ptr;
     static char myname[] = "MPI_ERRHANDLER_GET";

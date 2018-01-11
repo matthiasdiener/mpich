@@ -10,30 +10,30 @@
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_ERRHANDLER_CREATE = PMPI_ERRHANDLER_CREATE
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
-EXPORT_MPI_API void MPI_ERR_HANDLER_CREATE ( MPI_Handler_function **, MPI_Fint *, MPI_Fint * );
+void MPI_ERR_HANDLER_CREATE ( MPI_Handler_function **, MPI_Fint *, MPI_Fint * );
 #else
-EXPORT_MPI_API void MPI_ERRHANDLER_CREATE ( MPI_Handler_function *, MPI_Fint *, MPI_Fint * );
+void MPI_ERRHANDLER_CREATE ( MPI_Handler_function *, MPI_Fint *, MPI_Fint * );
 #endif
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_errhandler_create__ = pmpi_errhandler_create__
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
-EXPORT_MPI_API void mpi_errhandler_create__ ( MPI_Handler_function **, MPI_Fint *, MPI_Fint * );
+void mpi_errhandler_create__ ( MPI_Handler_function **, MPI_Fint *, MPI_Fint * );
 #else
-EXPORT_MPI_API void mpi_errhandler_create__ ( MPI_Handler_function *, MPI_Fint *, MPI_Fint * );
+void mpi_errhandler_create__ ( MPI_Handler_function *, MPI_Fint *, MPI_Fint * );
 #endif
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_errhandler_create = pmpi_errhandler_create
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
-EXPORT_MPI_API void mpi_errhandler_create ( MPI_Handler_function **, MPI_Fint *, MPI_Fint * );
+void mpi_errhandler_create ( MPI_Handler_function **, MPI_Fint *, MPI_Fint * );
 #else
-EXPORT_MPI_API void mpi_errhandler_create ( MPI_Handler_function *, MPI_Fint *, MPI_Fint * );
+void mpi_errhandler_create ( MPI_Handler_function *, MPI_Fint *, MPI_Fint * );
 #endif
 #else
 #pragma weak mpi_errhandler_create_ = pmpi_errhandler_create_
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
-EXPORT_MPI_API void mpi_errhandler_create_ ( MPI_Handler_function **, MPI_Fint *, MPI_Fint * );
+void mpi_errhandler_create_ ( MPI_Handler_function **, MPI_Fint *, MPI_Fint * );
 #else
-EXPORT_MPI_API void mpi_errhandler_create_ ( MPI_Handler_function *, MPI_Fint *, MPI_Fint * );
+void mpi_errhandler_create_ ( MPI_Handler_function *, MPI_Fint *, MPI_Fint * );
 #endif
 #endif
 
@@ -93,14 +93,14 @@ EXPORT_MPI_API void mpi_errhandler_create_ ( MPI_Handler_function *, MPI_Fint *,
 
 /* Prototype to suppress warnings about missing prototypes */
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
-EXPORT_MPI_API void mpi_errhandler_create_ ( MPI_Handler_function **, 
+FORTRAN_API void FORT_CALL mpi_errhandler_create_ ( MPI_Handler_function **, 
 					MPI_Fint *, MPI_Fint * );
 #else
-EXPORT_MPI_API void mpi_errhandler_create_ ( MPI_Handler_function *, 
+FORTRAN_API void FORT_CALL mpi_errhandler_create_ ( MPI_Handler_function *, 
 					MPI_Fint *, MPI_Fint * );
 #endif
 
-EXPORT_MPI_API void mpi_errhandler_create_(
+FORTRAN_API void FORT_CALL mpi_errhandler_create_(
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
 	MPI_Handler_function **function,
 #else

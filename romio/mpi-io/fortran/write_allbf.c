@@ -1,12 +1,12 @@
 /* 
- *   $Id: write_allbf.c,v 1.7 2000/09/28 15:49:15 gropp Exp $    
+ *   $Id: write_allbf.c,v 1.10 2001/12/12 23:38:16 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
-#include "mpio.h"
 #include "adio.h"
+#include "mpio.h"
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
@@ -100,9 +100,9 @@ void mpi_file_write_all_begin_(MPI_Fint *fh,void *buf,int *count,
 }
 #else
 /* Prototype to keep compiler happy */
-void mpi_file_write_all_begin_(MPI_Fint *fh,void *buf,int *count,
+FORTRAN_API void FORT_CALL mpi_file_write_all_begin_(MPI_Fint *fh,void *buf,int *count,
 			       MPI_Datatype *datatype, int *ierr );
-void mpi_file_write_all_begin_(MPI_Fint *fh,void *buf,int *count,
+FORTRAN_API void FORT_CALL mpi_file_write_all_begin_(MPI_Fint *fh,void *buf,int *count,
                        MPI_Datatype *datatype, int *ierr ){
     MPI_File fh_c;
     

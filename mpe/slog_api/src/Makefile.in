@@ -7,7 +7,7 @@
 SLOGNAME     = @SLOGNAME@
 SLOG_HOME    = @SLOG_HOME@
 CC           = @CC@
-CLINKER      = $(CC)
+CLINKER      = @CLINKER@
 AR           = @AR@
 ARFLAGS      = crl
 RANLIB       = @RANLIB@
@@ -66,7 +66,7 @@ LIB_OBJ  = $(LIB_SRC:.c=.o)
 	$(CC) $(CFLAGS) -c $< $(INC_DIR)
 
 .o:	
-	$(CC) $(CFLAGS) -o $@ $< -L$(LIB_DIR) -l$(SLOGNAME) $(DEBUG_LIBS)
+	$(CLINKER) $(CFLAGS) -o $@ $< -L$(LIB_DIR) -l$(SLOGNAME) $(DEBUG_LIBS)
 
 
 default: $(LIB_DIR)/lib$(SLOGNAME).a prog slog_destlib
@@ -98,7 +98,7 @@ rmprog:
 	    cd $(TEST_DIR); $(RM) -f slogfile.data* core ; fi
 
 clean:	
-	-$(RM) -f *.o *~ $(MAIN_EXE) PI* core
+	-$(RM) -f *.o ${srcdir}/*.o *~ $(MAIN_EXE) PI* core
 	-@for dir in test_fbuf test_misc ; do \
 	    if [ -s $$dir/Makefile ] ; then \
 	        ( cd $$dir ; $(MAKE) clean ) ; \

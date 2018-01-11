@@ -1,10 +1,14 @@
 /*
- *  $Id: abort.c,v 1.8 1999/08/30 15:45:00 swider Exp $
+ *  $Id: abort.c,v 1.11 2001/12/14 00:04:04 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
+
 #include "mpiimpl.h"
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
 
 #ifdef HAVE_WEAK_SYMBOLS
 
@@ -38,7 +42,7 @@ most systems (all to date), terminates `all` processes.
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Abort( MPI_Comm comm, int errorcode )
+int MPI_Abort( MPI_Comm comm, int errorcode )
 {
     struct MPIR_COMMUNICATOR *comm_ptr;
     static char myname[] = "MPI_ABORT";

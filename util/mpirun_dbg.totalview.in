@@ -29,7 +29,7 @@ while [ 1 -le $# ] ; do
   esac   
 done
 #
-if [ $just_testing = 1 ] ; then
+if [ "$just_testing" = 1 ] ; then
     doitall="echo"
 else
     # We need the eval to handle arguments containing blanks.

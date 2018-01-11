@@ -23,9 +23,10 @@
    cases N = 2, 4, 8 (and 16 for long double and perhaps long long)
  */
 void 
-MPID_BSwap_N_inplace(b, N, n)
-unsigned char *b;
-int n, N;
+MPID_BSwap_N_inplace(
+	unsigned char *b,
+	int N, 
+	int n)
 {
   int i, j;
   for (i = 0; i < n*N; i += N)
@@ -37,9 +38,11 @@ int n, N;
 /* Byte swap an array of length n of N byte integal elements */
 
 void 
-MPID_BSwap_N_copy(d, s, N, n)
-unsigned char *d, *s;
-int n, N;
+MPID_BSwap_N_copy(
+	unsigned char *d, 
+	unsigned char *s, 
+	int N, 
+	int n)
 {
   int i, j;
   for (i = 0; i < n * N; i += N)
@@ -48,11 +51,12 @@ int n, N;
   
 }
 
-int MPID_Type_swap_copy(d, s, t, N, ctx) 
-unsigned char *d, *s;
-struct MPIR_DATATYPE  *t;
-int           N;
-void          *ctx;
+int MPID_Type_swap_copy(
+	unsigned char *d, 
+	unsigned char *s, 
+	struct MPIR_DATATYPE *t, 
+	int N, 
+	void *ctx) 
 {
     int len;
 
@@ -108,10 +112,10 @@ void          *ctx;
   return len;
 }
 
-void MPID_Type_swap_inplace(b, t, N)
-unsigned char *b;
-struct MPIR_DATATYPE *t;
-int N;
+void MPID_Type_swap_inplace(
+	unsigned char *b, 
+	struct MPIR_DATATYPE *t, 
+	int N)
 {
 
     switch (t->dte_type) {
@@ -157,10 +161,10 @@ int N;
     }
 }
 
-int MPID_Mem_convert_len( dest_type, dtype_ptr, count )
-MPID_Msgrep_t dest_type;
-int           count;
-struct MPIR_DATATYPE *dtype_ptr;
+int MPID_Mem_convert_len( 
+	MPID_Msgrep_t dest_type, 
+	struct MPIR_DATATYPE *dtype_ptr, 
+	int count )
 {
 #ifdef HAS_XDR
     if (dest_type == MPID_MSGREP_XDR) 
@@ -185,9 +189,9 @@ struct MPIR_DATATYPE *dtype_ptr;
 #define XDR_DBL_LEN 8
 #define XDR_CHR_LEN 4
 
-int MPID_Mem_XDR_Len( dtype_ptr, count )
-struct MPIR_DATATYPE *dtype_ptr;
-int count;
+int MPID_Mem_XDR_Len( 
+	struct MPIR_DATATYPE *dtype_ptr, 
+	int count )
 {
 /* XDR buffer must be a multiple of 4 in size! */
 /* This is a very, very pessimistic value.  It assumes that the data 
@@ -200,19 +204,19 @@ int count;
 }
 
 /* initialize an xdr buffer */
-void MPID_Mem_XDR_Init( buf, size, xdr_dir, xdr_ctx )
-char *buf;
-int  size;
-enum xdr_op xdr_dir;
-XDR  *xdr_ctx;
+void MPID_Mem_XDR_Init( 
+	char *buf, 
+	int size, 
+	enum xdr_op xdr_dir, 
+	XDR *xdr_ctx )
 {
-xdrmem_create(xdr_ctx, buf, size, xdr_dir );
+	xdrmem_create(xdr_ctx, buf, size, xdr_dir );
 }
 
-void MPID_Mem_XDR_Free( xdr_ctx )
-XDR *xdr_ctx;
+void MPID_Mem_XDR_Free( 
+	XDR *xdr_ctx )
 {
-xdr_destroy( xdr_ctx );
+	xdr_destroy( xdr_ctx );
 }
 
 /* 
@@ -234,11 +238,11 @@ xdr_destroy( xdr_ctx );
    Note that the destination is actually encoded in the xdr_ctx, and the
    parameter "d" is ignored.
  */
-int MPID_Mem_XDR_Encode(d, s, t, N, elsize, xdr_ctx) 
-unsigned char *d, *s;    /* dest, source */
-xdrproc_t     t;         /* type */
-int           N, elsize; /* count and element size */
-XDR           *xdr_ctx;
+int MPID_Mem_XDR_Encode(
+	unsigned char *d, unsigned char *s, /* dest, source */
+	xdrproc_t t, /* type */
+	int N, int elsize, /* count and element size */
+	XDR *xdr_ctx) 
 { 
     int   rval;
     int   total; 
@@ -257,11 +261,12 @@ XDR           *xdr_ctx;
     total = xdr_getpos( xdr_ctx ) - total;
     return total;
 }
+
 /* Special byte version */
-int MPID_Mem_XDR_ByteEncode(d, s, N, xdr_ctx ) 
-unsigned char *d, *s;    /* dest, source */
-int           N;         /* count */
-XDR           *xdr_ctx;
+int MPID_Mem_XDR_ByteEncode(
+	unsigned char *d, unsigned char *s, /* dest, source */
+	int N, /* count */
+	XDR *xdr_ctx ) 
 { 
     int   rval;
     int   total; 
@@ -282,11 +287,11 @@ XDR           *xdr_ctx;
 
 #ifndef MPID_NO_FORTRAN
 /* Special version for Fortran LOGICAL data */
-int MPID_Mem_XDR_Encode_Logical(d, s, t, N, xdr_ctx) 
-unsigned char *d, *s;    /* dest, source */
-xdrproc_t     t;         /* type */
-int           N;         /* count and element size */
-XDR           *xdr_ctx;
+int MPID_Mem_XDR_Encode_Logical(
+	unsigned char *d, unsigned char *s, /* dest, source */
+	xdrproc_t t, /* type */
+	int N, /* count and element size */
+	XDR *xdr_ctx) 
 { 
     int   rval;
     int   total; 
@@ -318,14 +323,13 @@ XDR           *xdr_ctx;
  * Note that we don't just use N * <appropriate size> because if act_bytes
  * is shorter than N * xdrsize, we'll stop early.
  */
-int MPID_Mem_XDR_Decode(d, s, t, N, size, act_bytes, srclen, destlen, 
-			xdr_ctx ) 
-unsigned char *d, *s;    /* dest and source */
-xdrproc_t     t;         /* type */
-int           N, size;   /* count and element size */
-int           act_bytes; /* Number of bytes in message */
-int           *srclen, *destlen;
-XDR           *xdr_ctx;
+int MPID_Mem_XDR_Decode(
+	unsigned char *d, unsigned char *s, /* dest and source */
+	xdrproc_t t, /* type */
+	int N, int size, /* count and element size */
+	int act_bytes, /* Number of bytes in message */
+	int *srclen, int *destlen, 
+	XDR *xdr_ctx ) 
 { 
     int rval = 1;
     int total; 
@@ -354,12 +358,12 @@ XDR           *xdr_ctx;
 }
 
 /* Special byte version */
-int MPID_Mem_XDR_ByteDecode(d, s, N, act_bytes, srclen, destlen, xdr_ctx ) 
-unsigned char *d, *s;    /* dest and source */
-int           N;         /* count */
-int           act_bytes; /* Number of bytes in message */
-int           *srclen, *destlen;
-XDR           *xdr_ctx;
+int MPID_Mem_XDR_ByteDecode(
+	unsigned char *d, unsigned char *s, /* dest and source */
+	int N, /* count */
+	int act_bytes, /* Number of bytes in message */
+	int *srclen, int *destlen, 
+	XDR *xdr_ctx ) 
 { 
     int rval = 1;
     int total; 
@@ -380,15 +384,15 @@ XDR           *xdr_ctx;
     if (!rval) return MPI_ERR_INTERN;
     return MPI_SUCCESS;
 }
+
 #ifndef MPID_NO_FORTRAN
-int MPID_Mem_XDR_Decode_Logical(d, s, t, N, size, act_bytes, srclen, destlen, 
-			xdr_ctx ) 
-unsigned char *d, *s;    /* dest and source */
-xdrproc_t     t;         /* type */
-int           N, size;   /* count and element size */
-int           act_bytes; /* Number of bytes in message */
-int           *srclen, *destlen;
-XDR           *xdr_ctx;
+int MPID_Mem_XDR_Decode_Logical(
+	unsigned char *d, unsigned char *s, /* dest and source */
+	xdrproc_t t, /* type */
+	int N, int size, /* count and element size */
+	int act_bytes, /* Number of bytes in message */
+	int *srclen, int *destlen, 
+	XDR *xdr_ctx ) 
 { 
     int rval = 1;
     int total; 
@@ -420,11 +424,11 @@ XDR           *xdr_ctx;
 }
 #endif
 
-int MPID_Type_XDR_encode(d, s, t, N, ctx) 
-unsigned char *d, *s;
-struct MPIR_DATATYPE  *t;
-int           N;
-void          *ctx;
+int MPID_Type_XDR_encode(
+	unsigned char *d, unsigned char *s, 
+	struct MPIR_DATATYPE *t, 
+	int N, 
+	void *ctx) 
 {
   int len; 
   XDR *xdr_ctx = (XDR *)ctx;
@@ -510,12 +514,16 @@ return len;
    stored in d is set in destlen.
    Needs to return the other as well.
  */
-int MPID_Type_XDR_decode(s, N, t, elm_size, d, 
-			 srclen, srcreadlen, destlen, ctx )
-unsigned char         *d, *s;
-struct MPIR_DATATYPE  *t;
-int                   N, elm_size, srclen, *srcreadlen, *destlen;
-void                  *ctx;
+int MPID_Type_XDR_decode(
+	unsigned char *s, 
+	int N, 
+	struct MPIR_DATATYPE *t, 
+	int elm_size, 
+	unsigned char *d, 
+	int srclen, 
+	int *srcreadlen, 
+	int *destlen, 
+	void *ctx )
 {
   int act_size;
   int mpi_errno = MPI_SUCCESS;

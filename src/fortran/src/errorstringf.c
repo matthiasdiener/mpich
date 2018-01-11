@@ -12,16 +12,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_ERROR_STRING = PMPI_ERROR_STRING
-EXPORT_MPI_API void MPI_ERROR_STRING ( MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
+void MPI_ERROR_STRING ( MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_error_string__ = pmpi_error_string__
-EXPORT_MPI_API void mpi_error_string__ ( MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
+void mpi_error_string__ ( MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_error_string = pmpi_error_string
-EXPORT_MPI_API void mpi_error_string ( MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
+void mpi_error_string ( MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
 #else
 #pragma weak mpi_error_string_ = pmpi_error_string_
-EXPORT_MPI_API void mpi_error_string_ ( MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
+void mpi_error_string_ ( MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -97,10 +97,17 @@ int *__ierr;
 #else
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_error_string_ ( MPI_Fint *, char *, MPI_Fint *, 
+/*
+FORTRAN_API void FORT_CALL mpi_error_string_ ( MPI_Fint *, char *, MPI_Fint *, 
                                    MPI_Fint *, MPI_Fint );
 
-EXPORT_MPI_API void mpi_error_string_( MPI_Fint *errorcode, char *string, MPI_Fint *resultlen, MPI_Fint *__ierr, MPI_Fint d )
+FORTRAN_API void FORT_CALL mpi_error_string_( MPI_Fint *errorcode, char *string, MPI_Fint *resultlen, MPI_Fint *__ierr, MPI_Fint d )
+*/
+/* Prototype to suppress warnings about missing prototypes */
+FORTRAN_API void FORT_CALL mpi_error_string_ ( MPI_Fint *, char * FORT_MIXED_LEN_DECL, MPI_Fint *, 
+                                   MPI_Fint * FORT_END_LEN_DECL );
+
+FORTRAN_API void FORT_CALL mpi_error_string_( MPI_Fint *errorcode, char *string FORT_MIXED_LEN(d), MPI_Fint *resultlen, MPI_Fint *__ierr FORT_END_LEN(d))
 {
   char cres[MPI_MAX_ERROR_STRING];
   int l_resultlen;

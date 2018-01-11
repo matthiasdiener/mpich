@@ -8,16 +8,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_GET_COUNT = PMPI_GET_COUNT
-EXPORT_MPI_API void MPI_GET_COUNT ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_GET_COUNT ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_get_count__ = pmpi_get_count__
-EXPORT_MPI_API void mpi_get_count__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_get_count__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_get_count = pmpi_get_count
-EXPORT_MPI_API void mpi_get_count ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_get_count ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_get_count_ = pmpi_get_count_
-EXPORT_MPI_API void mpi_get_count_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_get_count_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -75,10 +75,10 @@ EXPORT_MPI_API void mpi_get_count_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fin
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_get_count_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_get_count_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                 MPI_Fint * );
 
-EXPORT_MPI_API void mpi_get_count_( MPI_Fint *status, MPI_Fint *datatype, MPI_Fint *count, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_get_count_( MPI_Fint *status, MPI_Fint *datatype, MPI_Fint *count, MPI_Fint *__ierr )
 {
     int lcount;
     MPI_Status c_status;

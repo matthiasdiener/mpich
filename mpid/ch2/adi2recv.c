@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2recv.c,v 1.7 2001/02/27 23:59:26 rross Exp $
+ *
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -32,12 +32,15 @@
  * we'd like to make everything work to the limit of the buffer)?
  */
 
-void MPID_RecvContig( comm_ptr, buf, maxlen, src_lrank, tag, context_id, 
-		      status, error_code )
-struct MPIR_COMMUNICATOR *comm_ptr;
-void       *buf;
-int        maxlen, src_lrank, tag, context_id, *error_code;
-MPI_Status *status;
+void MPID_RecvContig( 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	void *buf, 
+	int maxlen, 
+	int src_lrank, 
+	int tag, 
+	int context_id, 
+	MPI_Status *status, 
+	int *error_code )
 {
     MPIR_RHANDLE rhandle;
     MPI_Request  request = (MPI_Request)&rhandle;
@@ -56,12 +59,15 @@ MPI_Status *status;
     }
 }
 
-void MPID_IrecvContig( comm_ptr, buf, maxlen, src_lrank, tag, context_id, 
-		       request, error_code )
-struct MPIR_COMMUNICATOR *comm_ptr;
-void        *buf;
-int         maxlen, src_lrank, tag, context_id, *error_code;
-MPI_Request request;
+void MPID_IrecvContig( 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	void *buf, 
+	int maxlen, 
+	int src_lrank, 
+	int tag, 
+	int context_id, 
+	MPI_Request request, 
+	int *error_code )
 {
     MPIR_RHANDLE *dmpi_unexpected, *rhandle = &request->rhandle;
 
@@ -104,10 +110,10 @@ MPI_Request request;
     DEBUG_PRINT_MSG("R Exiting IrecvContig");
 }
 
-int MPID_RecvIcomplete( request, status, error_code )
-MPI_Request request;
-MPI_Status  *status;
-int         *error_code;
+int MPID_RecvIcomplete( 
+	MPI_Request request,
+	MPI_Status  *status,
+	int         *error_code)
 {
     MPIR_RHANDLE *rhandle = &request->rhandle;
     MPID_Device *dev;
@@ -151,10 +157,10 @@ int         *error_code;
     return 0;
 }
 
-void MPID_RecvComplete( request, status, error_code )
-MPI_Request request;
-MPI_Status  *status;
-int         *error_code;
+void MPID_RecvComplete( 
+	MPI_Request request,
+	MPI_Status  *status,
+	int         *error_code)
 {
     MPIR_RHANDLE *rhandle = &request->rhandle;
     int          lerr;

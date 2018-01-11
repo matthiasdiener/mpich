@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_sub.c,v 1.8 1999/08/30 15:50:54 swider Exp $
+ *  $Id: cart_sub.c,v 1.9 2001/11/14 20:10:53 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -52,7 +52,7 @@ process (handle)
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Cart_sub ( MPI_Comm comm, int *remain_dims, MPI_Comm *comm_new )
+int MPI_Cart_sub ( MPI_Comm comm, int *remain_dims, MPI_Comm *comm_new )
 {
   int i, j, ndims, flag;
   int num_remain_dims = 0;

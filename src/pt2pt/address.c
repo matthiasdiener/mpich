@@ -1,5 +1,5 @@
 /*
- *  $Id: address.c,v 1.6 1999/08/30 15:48:34 swider Exp $
+ *  $Id: address.c,v 1.7 2001/11/14 20:09:54 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -44,7 +44,7 @@ Output Parameter:
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Address( void *location, MPI_Aint *address)
+int MPI_Address( void *location, MPI_Aint *address)
 {
   /* SX_4 needs to set CHAR_PTR_IS_ADDRESS 
      The reason is that it computes the different in two pointers in

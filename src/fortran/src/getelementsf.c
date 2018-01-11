@@ -8,16 +8,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_GET_ELEMENTS = PMPI_GET_ELEMENTS
-EXPORT_MPI_API void MPI_GET_ELEMENTS ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_GET_ELEMENTS ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_get_elements__ = pmpi_get_elements__
-EXPORT_MPI_API void mpi_get_elements__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_get_elements__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_get_elements = pmpi_get_elements
-EXPORT_MPI_API void mpi_get_elements ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_get_elements ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_get_elements_ = pmpi_get_elements_
-EXPORT_MPI_API void mpi_get_elements_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_get_elements_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -75,10 +75,10 @@ EXPORT_MPI_API void mpi_get_elements_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_get_elements_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_get_elements_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                    MPI_Fint * );
 
-EXPORT_MPI_API void mpi_get_elements_ ( MPI_Fint *status, MPI_Fint *datatype, MPI_Fint *elements, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_get_elements_ ( MPI_Fint *status, MPI_Fint *datatype, MPI_Fint *elements, MPI_Fint *__ierr )
 {
     int lelements;
     MPI_Status c_status;

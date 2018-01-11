@@ -9,16 +9,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_ATTR_DELETE = PMPI_ATTR_DELETE
-EXPORT_MPI_API void MPI_ATTR_DELETE ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_ATTR_DELETE ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_attr_delete__ = pmpi_attr_delete__
-EXPORT_MPI_API void mpi_attr_delete__ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_attr_delete__ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_attr_delete = pmpi_attr_delete
-EXPORT_MPI_API void mpi_attr_delete ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_attr_delete ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_attr_delete_ = pmpi_attr_delete_
-EXPORT_MPI_API void mpi_attr_delete_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_attr_delete_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -76,9 +76,9 @@ EXPORT_MPI_API void mpi_attr_delete_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_attr_delete_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_attr_delete_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_attr_delete_ ( MPI_Fint *comm, MPI_Fint *keyval, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_attr_delete_ ( MPI_Fint *comm, MPI_Fint *keyval, MPI_Fint *__ierr )
 {
     *__ierr = MPI_Attr_delete( MPI_Comm_f2c(*comm), (int)*keyval);
 }

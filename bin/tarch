@@ -131,6 +131,8 @@ for LARCH in $ARCHLIST ; do
                 GARCH=ALPHA
             fi
         break;;
+	Darwin|Macintosh) 
+            FARCH=freebsd ; break ;;
    esac
    LLARCH=$LARCH
 done

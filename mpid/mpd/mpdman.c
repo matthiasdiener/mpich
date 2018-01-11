@@ -79,8 +79,8 @@ int main( int argc, char *argv[], char *envp[] )
 #ifdef NEED_PWENT
     struct passwd *pwent;
 #endif
-    struct sockaddr_in sin;
-    mpd_sockopt_len_t sinlen = sizeof( sin );
+    struct sockaddr_in s_in;
+    mpd_sockopt_len_t sinlen = sizeof( s_in );
     char cmd[MAXLINE];
     int optval = 1;
     char *shmemkey, *shmemgrpsize, *shmemgrprank;
@@ -166,8 +166,8 @@ int main( int argc, char *argv[], char *envp[] )
     fdtable[listener_idx].fd	  = listener_fd;
     fdtable[listener_idx].read	  = 1;
     fdtable[listener_idx].write	  = 0;
-    rc = getsockname( fdtable[listener_idx].fd, (struct sockaddr *) &sin, &sinlen ); 
-    my_listener_port = ntohs(sin.sin_port);
+    rc = getsockname( fdtable[listener_idx].fd, (struct sockaddr *) &s_in, &sinlen ); 
+    my_listener_port = ntohs(s_in.sin_port);
     fdtable[listener_idx].portnum = my_listener_port;
     fdtable[listener_idx].handler = MAN_LISTEN;
     strcpy( fdtable[listener_idx].name, "listener" );
@@ -383,9 +383,26 @@ int main( int argc, char *argv[], char *envp[] )
 	   waiting for the cligo message, so we can do gets */
 	if ( myrinet_job ) {
 	    /* get pointer unique file name */
-	    char *p, *myr_filename = tmpnam( NULL );
-	    FILE *fp = fopen( myr_filename, "w" );
+	    char *p, *myr_filename;
 	    char val[MAXHOSTNMLEN+8];
+	    FILE *fp;
+#ifdef HAVE_MKSTEMP
+	    char uniq_filename[100];
+#ifdef P_tmpdir
+	    /* P_tmpdir is used in SVID or XOPEN to define the temporary 
+	       directory */
+	    uniq_filename[0] = 0;
+	    strncat( uniq_filename, P_tmpdir, 99 );
+	    strncat( uniq_filename, "/XXXXXX", 99 );
+#else
+	    strncpy( uniq_filename, "/tmp/XXXXXX", 99 );
+#endif
+	    fp = fdopen( mkstemp( uniq_filename ), "w" );
+	    myr_filename = uniq_filename;
+#else
+	    myr_filename = tmpnam( NULL );
+	    fp = fopen( myr_filename, "w" );
+#endif
 	    if ( !fp ) {
 		mpdprintf( 1, "cli_before_exec:  could not open myrinet host file\n" );
 		exit( -1 );
@@ -433,7 +450,7 @@ int main( int argc, char *argv[], char *envp[] )
 	}
 
 	strcpy( pwd_for_exec, getenv( "PWD" ) );
-	mpdprintf( debug, "pwdforexec=:%s:\n", pwd_for_exec );
+	mpdprintf( debug, "pwdforexec in mpdman=:%s:\n", pwd_for_exec );
 	rc = chdir( pwd_for_exec );
         if (rc < 0)
 	    chdir( getenv( "HOME" ) );
@@ -1202,11 +1219,11 @@ void handle_client_msgs_input( int idx )
 		       WEXITSTATUS(client_stat) );
 	    if ( WIFSIGNALED(client_stat) ) {
 #if defined(HAVE_STRSIGNAL)
-		sprintf( sigdesc, ": %s", strsignal(WTERMSIG(client_stat)) );
+		sprintf( sigdesc, ": %s", ( char * ) strsignal(WTERMSIG(client_stat)) );
 #else
 		sigdesc[0] = '\0';
 #endif
-		mpdprintf( 1, "application program signaled with signal %d%s\n",
+		mpdprintf( 1, "application program signaled with signal %d (%s)\n",
 			   WTERMSIG(client_stat), sigdesc);
 	    }
 	    /* behave as if received abort message from client */
@@ -1435,7 +1452,7 @@ void handle_lhs_msgs_input( int idx )
 	    }
 	}
 	else if ( strcmp( cmdval, "abort_job" ) == 0 ) {
-	    int jobid, abort_code, rank;
+	    int jobid, abort_code;
 	    char tmpbuf1[MAXLINE], tmpbuf2[MAXLINE];
 
 	    if ( myrank != 0 )
@@ -1743,8 +1760,7 @@ void man_cli_accepting_signals( int fd )
 }
 
 
-void man_cli_findclient(client_fd)
-int client_fd;
+void man_cli_findclient( int fd )
 {    
     char buf[MAXLINE];
     int  rank, job;
@@ -1760,8 +1776,7 @@ int client_fd;
     return;
 }
 
-void man_cli_interrupt_peer_with_msg(client_fd)
-int client_fd;
+void man_cli_interrupt_peer_with_msg( fd )
 {    
     char buf[MAXLINE], msg[MAXLINE];
     int  torank, fromrank, grp;

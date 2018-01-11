@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_testfs_read.c,v 1.4 2001/08/01 22:10:28 rross Exp $    
+ *   $Id: ad_testfs_read.c,v 1.5 2001/12/03 17:09:51 rross Exp $    
  *
  *   Copyright (C) 2001 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -22,20 +22,23 @@ void ADIOI_TESTFS_ReadContig(ADIO_File fd, void *buf, int count,
     MPI_Type_size(datatype, &datatype_size);
     FPRINTF(stdout, "[%d/%d] ADIOI_TESTFS_ReadContig called on %s\n", myrank, 
 	    nprocs, fd->filename);
-    FPRINTF(stdout, "[%d/%d]    reading (buf = 0x%x, loc = %Ld, sz = %Ld)\n",
-	    myrank, nprocs, (int) buf, (long long) offset, 
-	    (long long) datatype_size * count);
-
     if (file_ptr_type != ADIO_EXPLICIT_OFFSET)
     {
+	offset = fd->fp_ind;
 	fd->fp_ind += datatype_size * count;
 	fd->fp_sys_posn = fd->fp_ind;
+#if 0
 	FPRINTF(stdout, "[%d/%d]    new file position is %Ld\n", myrank, 
 		nprocs, (long long) fd->fp_ind);
+#endif
     }
     else {
 	fd->fp_sys_posn = offset + datatype_size * count;
     }
+
+    FPRINTF(stdout, "[%d/%d]    reading (buf = 0x%x, loc = %Ld, sz = %Ld)\n",
+	    myrank, nprocs, (int) buf, (long long) offset, 
+	    (long long) datatype_size * count);
 
 #ifdef HAVE_STATUS_SET_BYTES
     MPIR_Status_set_bytes(status, datatype, datatype_size * count);

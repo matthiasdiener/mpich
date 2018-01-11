@@ -1,5 +1,5 @@
 /*
- *  $Id: type_blkind.c,v 1.9 1999/08/30 15:47:55 swider Exp $
+ *  $Id: type_blkind.c,v 1.10 2001/11/14 20:08:07 ashton Exp $
  *
  *  (C) 1997 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -71,7 +71,7 @@ consider declaring the Fortran array with a zero origin
 .N MPI_ERR_ARG
 .N MPI_ERR_EXHAUSTED
 @*/
-EXPORT_MPI_API int MPI_Type_create_indexed_block( 
+int MPI_Type_create_indexed_block( 
 	int count, 
 	int blocklength, 
 	int array_of_displacements[], 

@@ -88,7 +88,7 @@ struct MPIR_COMMUNICATOR {
 					   calls MPI routines */
     MPI_Errhandler error_handler;  /* Error handler */
     int            permanent;      /* Is this a permanent object? */
-    void          *mutex;          /* Local for threaded versions */
+    MPID_THREAD_DS_LOCK_DECLARE    /* Local for threaded versions */
 
     /*** BEGIN HETEROGENEOUS ONLY ***/
     MPID_Msg_pack_t  msgform;      /* Message representation form for 

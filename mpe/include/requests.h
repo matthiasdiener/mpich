@@ -57,8 +57,8 @@ typedef struct request_list_ {
   while (rq && (rq->request != req)) rq = rq->next; }
 
 #define rq_init( head_alloc ) {\
-  int i; request_list *newrq; head_alloc = 0;\
-  for (i=0;i<20;i++) {\
+  int rq_i; request_list *newrq; head_alloc = 0;\
+  for (rq_i=0;rq_i<20;rq_i++) {\
       newrq = (request_list*) malloc(sizeof( request_list ));\
       newrq->next = head_alloc;\
       head_alloc = newrq;\

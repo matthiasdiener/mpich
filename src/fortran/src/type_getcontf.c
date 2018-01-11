@@ -12,16 +12,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_TYPE_GET_CONTENTS = PMPI_TYPE_GET_CONTENTS
-EXPORT_MPI_API void MPI_TYPE_GET_CONTENTS (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void MPI_TYPE_GET_CONTENTS (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_type_get_contents__ = pmpi_type_get_contents__
-EXPORT_MPI_API void mpi_type_get_contents__ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void mpi_type_get_contents__ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_type_get_contents = pmpi_type_get_contents
-EXPORT_MPI_API void mpi_type_get_contents (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void mpi_type_get_contents (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #else
 #pragma weak mpi_type_get_contents_ = pmpi_type_get_contents_
-EXPORT_MPI_API void mpi_type_get_contents_ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void mpi_type_get_contents_ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -79,12 +79,12 @@ EXPORT_MPI_API void mpi_type_get_contents_ (MPI_Fint *, MPI_Fint *, MPI_Fint *, 
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_type_get_contents_ (MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_type_get_contents_ (MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                        MPI_Fint *, MPI_Fint *, MPI_Fint *,
 				       MPI_Fint *, MPI_Fint *);
 
 /* Definitions of Fortran Wrapper routines */
-EXPORT_MPI_API void mpi_type_get_contents_(MPI_Fint *datatype, MPI_Fint *max_integers, MPI_Fint *max_addresses, MPI_Fint *max_datatypes, 
+FORTRAN_API void FORT_CALL mpi_type_get_contents_(MPI_Fint *datatype, MPI_Fint *max_integers, MPI_Fint *max_addresses, MPI_Fint *max_datatypes, 
 										   MPI_Fint *array_of_integers, MPI_Fint *array_of_addresses, MPI_Fint *array_of_datatypes, MPI_Fint *__ierr )
 {
     int i;

@@ -11,16 +11,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_GRAPH_NEIGHBORS = PMPI_GRAPH_NEIGHBORS
-EXPORT_MPI_API void MPI_GRAPH_NEIGHBORS ( MPI_Fint*, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_GRAPH_NEIGHBORS ( MPI_Fint*, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_graph_neighbors__ = pmpi_graph_neighbors__
-EXPORT_MPI_API void mpi_graph_neighbors__ ( MPI_Fint*, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_graph_neighbors__ ( MPI_Fint*, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_graph_neighbors = pmpi_graph_neighbors
-EXPORT_MPI_API void mpi_graph_neighbors ( MPI_Fint*, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_graph_neighbors ( MPI_Fint*, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_graph_neighbors_ = pmpi_graph_neighbors_
-EXPORT_MPI_API void mpi_graph_neighbors_ ( MPI_Fint*, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_graph_neighbors_ ( MPI_Fint*, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -78,10 +78,10 @@ EXPORT_MPI_API void mpi_graph_neighbors_ ( MPI_Fint*, MPI_Fint *, MPI_Fint *, MP
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_graph_neighbors_ ( MPI_Fint*, MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_graph_neighbors_ ( MPI_Fint*, MPI_Fint *, MPI_Fint *, 
                                       MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_graph_neighbors_ ( MPI_Fint *comm, MPI_Fint *rank, MPI_Fint *maxneighbors, MPI_Fint *neighbors, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_graph_neighbors_ ( MPI_Fint *comm, MPI_Fint *rank, MPI_Fint *maxneighbors, MPI_Fint *neighbors, MPI_Fint *__ierr )
 {
 
     if (sizeof(MPI_Fint) == sizeof(int))

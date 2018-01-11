@@ -8,16 +8,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_TYPE_HVECTOR = PMPI_TYPE_HVECTOR
-EXPORT_MPI_API void MPI_TYPE_HVECTOR ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_TYPE_HVECTOR ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_type_hvector__ = pmpi_type_hvector__
-EXPORT_MPI_API void mpi_type_hvector__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_type_hvector__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_type_hvector = pmpi_type_hvector
-EXPORT_MPI_API void mpi_type_hvector ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_type_hvector ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_type_hvector_ = pmpi_type_hvector_
-EXPORT_MPI_API void mpi_type_hvector_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_type_hvector_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -75,10 +75,10 @@ EXPORT_MPI_API void mpi_type_hvector_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_type_hvector_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_type_hvector_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                    MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_type_hvector_( MPI_Fint *count, MPI_Fint *blocklen, MPI_Fint *stride, MPI_Fint *old_type, MPI_Fint *newtype, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_type_hvector_( MPI_Fint *count, MPI_Fint *blocklen, MPI_Fint *stride, MPI_Fint *old_type, MPI_Fint *newtype, MPI_Fint *__ierr )
 {
     MPI_Aint     c_stride = (MPI_Aint)*stride;
     MPI_Datatype ldatatype;

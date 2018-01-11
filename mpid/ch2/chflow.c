@@ -1,5 +1,5 @@
 /*
- *  $Id: chflow.c,v 1.7 2000/08/09 22:29:36 gropp Exp $
+ *
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -44,9 +44,9 @@ void MPID_SendFlowPacket( int partner )
 
 }
 
-void MPID_RecvFlowPacket( in_pkt, partner )
-MPID_PKT_T *in_pkt;
-int        partner;
+void MPID_RecvFlowPacket( 
+	MPID_PKT_T *in_pkt,
+	int        partner)
 {
     MPID_PKT_FLOW_T  *pkt = (MPID_PKT_FLOW_T *)in_pkt;
 
@@ -57,8 +57,9 @@ int        partner;
 #endif
 }
 
-void MPID_FlowSetup( buf_thresh, mem_thresh )
-int buf_thresh, mem_thresh;
+void MPID_FlowSetup( 
+	int buf_thresh, 
+	int mem_thresh )
 {
     int i;
 

@@ -1,5 +1,5 @@
 /*
- *  $Id: getversionf.c,v 1.1 2000/05/26 21:29:19 gropp Exp $
+ *  $Id: getversionf.c,v 1.4 2001/12/12 23:36:36 ashton Exp $
  *
  *  (C) 1997 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
@@ -14,16 +14,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_GET_VERSION = PMPI_GET_VERSION
-EXPORT_MPI_API void MPI_GET_VERSION ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_GET_VERSION ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_get_version__ = pmpi_get_version__
-EXPORT_MPI_API void mpi_get_version__ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_get_version__ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_get_version = pmpi_get_version
-EXPORT_MPI_API void mpi_get_version ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_get_version ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_get_version_ = pmpi_get_version_
-EXPORT_MPI_API void mpi_get_version_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_get_version_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -81,9 +81,9 @@ EXPORT_MPI_API void mpi_get_version_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_get_version_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_get_version_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_get_version_( MPI_Fint *version, MPI_Fint *subversion, MPI_Fint *ierr )
+FORTRAN_API void FORT_CALL mpi_get_version_( MPI_Fint *version, MPI_Fint *subversion, MPI_Fint *ierr )
 {
     *version    = MPI_VERSION;
     *subversion = MPI_SUBVERSION;

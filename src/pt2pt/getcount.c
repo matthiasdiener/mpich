@@ -1,5 +1,5 @@
 /*
- *  $Id: getcount.c,v 1.8 1999/08/30 15:48:52 swider Exp $
+ *  $Id: getcount.c,v 1.9 2001/11/14 20:09:57 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -47,7 +47,7 @@ size of 'datatype' (so that 'count' would not be integral), a 'count' of
 .N MPI_SUCCESS
 .N MPI_ERR_TYPE
 @*/
-EXPORT_MPI_API int MPI_Get_count( 
+int MPI_Get_count( 
 	MPI_Status *status, 
 	MPI_Datatype datatype, 
 	int *count )

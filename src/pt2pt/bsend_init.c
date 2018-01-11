@@ -1,5 +1,5 @@
 /*
- *  $Id: bsend_init.c,v 1.9 2001/03/06 20:50:58 toonen Exp $
+ *  $Id: bsend_init.c,v 1.11 2001/12/14 00:07:18 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -52,14 +52,13 @@ Output Parameter:
 .N MPI_ERR_RANK
 .N MPI_ERR_TAG
 @*/
-EXPORT_MPI_API int MPI_Bsend_init( void *buf, int count, MPI_Datatype datatype, int dest, 
+int MPI_Bsend_init( void *buf, int count, MPI_Datatype datatype, int dest, 
 		    int tag, MPI_Comm comm, MPI_Request *request )
 {
     int         mpi_errno = MPI_SUCCESS;
     struct MPIR_DATATYPE *dtype_ptr;
     struct MPIR_COMMUNICATOR *comm_ptr;
     MPIR_PSHANDLE *shandle;
-    MPIR_ERROR_DECL;
     static char myname[] = "MPI_BSEND_INIT";
 
     TR_PUSH(myname);

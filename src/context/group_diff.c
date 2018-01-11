@@ -1,5 +1,5 @@
 /*
- *  $Id: group_diff.c,v 1.8 1999/08/30 15:43:10 swider Exp $
+ *  $Id: group_diff.c,v 1.9 2001/11/14 19:54:23 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -48,7 +48,7 @@ Output Parameter:
 
 .seealso: MPI_Group_free
 @*/
-EXPORT_MPI_API int MPI_Group_difference ( MPI_Group group1, MPI_Group group2, 
+int MPI_Group_difference ( MPI_Group group1, MPI_Group group2, 
 			   MPI_Group *group_out )
 {
   int        i, j, global_rank;

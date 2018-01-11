@@ -1,5 +1,5 @@
 /*
- *  $Id: type_lb.c,v 1.7 1999/08/30 15:50:00 swider Exp $
+ *  $Id: type_lb.c,v 1.8 2001/11/14 20:10:08 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -43,7 +43,7 @@ Output Parameter:
 .N MPI_ERR_TYPE
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Type_lb ( MPI_Datatype datatype, MPI_Aint *displacement )
+int MPI_Type_lb ( MPI_Datatype datatype, MPI_Aint *displacement )
 {
   int mpi_errno = MPI_SUCCESS;
   struct MPIR_DATATYPE *dtype_ptr;

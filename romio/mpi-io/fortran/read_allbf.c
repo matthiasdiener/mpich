@@ -1,12 +1,12 @@
 /* 
- *   $Id: read_allbf.c,v 1.8 2000/11/03 20:17:46 thakur Exp $    
+ *   $Id: read_allbf.c,v 1.11 2001/12/12 23:38:11 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
-#include "mpio.h"
 #include "adio.h"
+#include "mpio.h"
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
@@ -102,10 +102,10 @@ void mpi_file_read_all_begin_(MPI_Fint *fh,void *buf,int *count,
 }
 #else
 /* Prototype to keep compiler happy */
-void mpi_file_read_all_begin_(MPI_Fint *fh,void *buf,int *count,
+FORTRAN_API void FORT_CALL mpi_file_read_all_begin_(MPI_Fint *fh,void *buf,int *count,
 			      MPI_Datatype *datatype, int *ierr );
 
-void mpi_file_read_all_begin_(MPI_Fint *fh,void *buf,int *count,
+FORTRAN_API void FORT_CALL mpi_file_read_all_begin_(MPI_Fint *fh,void *buf,int *count,
                       MPI_Datatype *datatype, int *ierr ){
     MPI_File fh_c;
     

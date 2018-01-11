@@ -1,5 +1,5 @@
 /*
- *  $Id: cartdim_get.c,v 1.7 2000/07/03 21:30:24 gropp Exp $
+ *  $Id: cartdim_get.c,v 1.8 2001/11/14 20:10:53 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -45,7 +45,7 @@ Output Parameter:
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Cartdim_get ( MPI_Comm comm, int *ndims )
+int MPI_Cartdim_get ( MPI_Comm comm, int *ndims )
 {
   int mpi_errno = MPI_SUCCESS, flag;
   MPIR_TOPOLOGY *topo;

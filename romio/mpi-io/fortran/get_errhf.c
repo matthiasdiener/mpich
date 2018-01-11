@@ -1,12 +1,12 @@
 /* 
- *   $Id: get_errhf.c,v 1.3 2000/08/24 16:18:24 gropp Exp $    
+ *   $Id: get_errhf.c,v 1.6 2001/12/12 23:38:06 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
-#include "mpio.h"
 #include "adio.h"
+#include "mpio.h"
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
@@ -85,9 +85,9 @@
 #endif
 
 /* Prototype to keep compiler happy */
-void mpi_file_get_errhandler_(MPI_Fint *fh, MPI_Fint *err_handler, int *ierr);
+FORTRAN_API void FORT_CALL mpi_file_get_errhandler_(MPI_Fint *fh, MPI_Fint *err_handler, int *ierr);
 
-void mpi_file_get_errhandler_(MPI_Fint *fh, MPI_Fint *err_handler, int *ierr)
+FORTRAN_API void FORT_CALL mpi_file_get_errhandler_(MPI_Fint *fh, MPI_Fint *err_handler, int *ierr)
 {
     MPI_File fh_c;
     MPI_Errhandler err_handler_c;

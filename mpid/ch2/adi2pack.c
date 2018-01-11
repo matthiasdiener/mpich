@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2pack.c,v 1.7 2001/02/27 22:41:48 gropp Exp $
+ *
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -8,6 +8,9 @@
 #include <stdio.h>
 #include "mpid.h"
 #include "mpidmpi.h"
+#ifdef HAVE_WINDOWS_H
+#include "mpiddev.h"
+#endif
 
 /* 
  * This file contains the interface to the Pack/Unpack routines.
@@ -22,12 +25,12 @@
  * partner.  The partner is the GLOBAL RANK in COMM_WORLD, not the relative
  * rank in the communicator.
  */
-void MPID_Msg_rep( comm_ptr, partner, dtype_ptr, msgrep, msgact )
-struct MPIR_COMMUNICATOR *comm_ptr;
-int             partner;
-struct MPIR_DATATYPE *dtype_ptr;
-MPID_Msgrep_t   *msgrep;
-MPID_Msg_pack_t *msgact;
+void MPID_Msg_rep( 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	int partner, 
+	struct MPIR_DATATYPE *dtype_ptr, 
+	MPID_Msgrep_t *msgrep, 
+	MPID_Msg_pack_t *msgact )
 {
 #ifndef MPID_HAS_HETERO
 	*msgrep = MPID_MSGREP_RECEIVER;
@@ -80,12 +83,12 @@ MPID_Msg_pack_t *msgact;
 #endif
 }
 
-void MPID_Msg_act( comm_ptr, partner, dtype_ptr, msgrep, msgact )
-struct MPIR_COMMUNICATOR *comm_ptr;
-int             partner;
-struct MPIR_DATATYPE *dtype_ptr;
-MPID_Msgrep_t   msgrep;
-MPID_Msg_pack_t *msgact;
+void MPID_Msg_act( 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	int partner, 
+	struct MPIR_DATATYPE *dtype_ptr, 
+	MPID_Msgrep_t msgrep, 
+	MPID_Msg_pack_t *msgact )
 {
     int mpi_errno;
     switch (msgrep) {
@@ -113,10 +116,11 @@ MPID_Msg_pack_t *msgact;
     }
 }
 
-void MPID_Pack_size( count, dtype_ptr, msgact, size )
-int             count, *size;
-struct MPIR_DATATYPE *dtype_ptr;
-MPID_Msg_pack_t msgact;
+void MPID_Pack_size( 
+	int count, 
+	struct MPIR_DATATYPE *dtype_ptr, 
+	MPID_Msg_pack_t msgact, 
+	int *size )
 {
     int contig_size;
 
@@ -147,14 +151,18 @@ MPID_Msg_pack_t msgact;
  *
  * Note also that msgrep is ignored.
  */
-void MPID_Pack( src, count, dtype_ptr, dest, maxcount, position, 
-           comm_ptr, partner, msgrep, msgact, error_code )
-void            *src, *dest;
-int             count, maxcount, *position, partner, *error_code;
-MPID_Msgrep_t   msgrep;
-struct MPIR_DATATYPE *dtype_ptr;
-struct MPIR_COMMUNICATOR *comm_ptr;
-MPID_Msg_pack_t msgact;
+void MPID_Pack( 
+	void *src, 
+	int count, 
+	struct MPIR_DATATYPE *dtype_ptr, 
+	void *dest, 
+	int maxcount, 
+	int *position, 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	int partner, 
+	MPID_Msgrep_t msgrep, 
+	MPID_Msg_pack_t msgact, 
+	int *error_code )
 {
     int (*packcontig) (unsigned char *, unsigned char *, 
 				 struct MPIR_DATATYPE *, 
@@ -178,13 +186,17 @@ MPID_Msg_pack_t msgact;
      */
 #ifdef MPID_HAS_HETERO
     switch (msgact) {
-#ifdef HAS_XDR
     case MPID_MSG_XDR:
+#ifdef HAS_XDR
 	MPID_Mem_XDR_Init( dest, maxcount, XDR_ENCODE, &xdr_ctx );
 	packctx = (void *)&xdr_ctx;
 	packcontig = MPID_Type_XDR_encode;
-	break;
+#else
+	*error_code = MPIR_Err_setmsg( MPI_ERR_INTERN, MPIR_ERR_MSGREP_UNKNOWN,
+				       (char *)0, (char *)0,
+		     "Error in packing data: xdr format not implemented!" );
 #endif
+	break;
     case MPID_MSG_SWAP:
 	packcontig = MPID_Type_swap_copy;
 	break;
@@ -206,15 +218,18 @@ MPID_Msg_pack_t msgact;
 #endif    
 }
 
-void MPID_Unpack( src, maxcount, msgrep, in_position, 
-		  dest, count, dtype_ptr, out_position,
-		  comm_ptr, partner, error_code )
-void          *src, *dest;
-int           maxcount, *in_position, count, *out_position, partner, 
-              *error_code;
-struct MPIR_DATATYPE     *dtype_ptr;
-struct MPIR_COMMUNICATOR *comm_ptr;
-MPID_Msgrep_t msgrep;
+void MPID_Unpack( 
+	void *src, 
+	int maxcount, 
+	MPID_Msgrep_t msgrep, 
+	int *in_position, 
+	void *dest, 
+	int count, 
+	struct MPIR_DATATYPE *dtype_ptr, 
+	int *out_position,
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	int partner, 
+	int *error_code )
 {
     int act_len = 0;
     int dest_len = 0;

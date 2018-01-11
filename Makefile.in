@@ -96,24 +96,28 @@ mpi: mkbuilddirs preinstall clean rmlib
 
 # This target makes all of the code.  You can use this to avoid the "clean"
 # step *when you are certain that it is ok*.  
+# The ranlib in the romio step is there to ensure that ranlib with the
+# appropriate options is used. (e.g., ranlib -c on MacOSX)
 mpi-modules:
 	$(MAKE) mpilib
 	@if [ $(NOF77) = 0 ] ; then \
 	    echo "Making Fortran interface" ; \
-	    (cd src/fortran ; $(MAKE) ); fi
+	    if cd src/fortran && $(MAKE) ; then : ; else exit 1 ; fi ; fi
 	@if [ "@HAS_WEAK_SYMBOLS@" = 0  ] ; then \
 	    $(MAKE) clean ; $(MAKE) profile ; fi
 	@if [ $(ROMIO) = 1 -a -d romio ] ; then \
 	    echo "making romio" ;  \
-            (cd romio ; $(MAKE) )    \
-        fi
+            if cd romio && $(MAKE) ; then \
+	        ${RANLIB} $(libbuild_dir)/lib${MPILIBNAME}.a ;\
+	    else exit 1 ; fi ; \
+	fi
 	@-if [ $(BUILDCPP) = 1 -a -d "${CPP_DIR}" ] ; then \
             echo "making C++ interface" ; \
 	    $(MAKE) cpplib ; \
 	fi
 	@-if [ -s f90modules/Makefile -a "@NO_F90@" = 0 ] ; then \
 	    echo "making Fortran 90 module for MPI" ; \
-	    (cd f90modules ; $(MAKE) ) ;\
+	    (cd f90modules && $(MAKE) ) ;\
 	fi
 
 # Use this target to test the libraries
@@ -152,7 +156,7 @@ mpi-utils:
 	@$(MAKE) ./bin/mpiinstall
 
 examples: ${binbuild_dir}/mpirun
-	( cd examples ; $(MAKE) default )
+	( cd examples && $(MAKE) default )
 
 # 
 # This is an experimental target.  We do only the libraries that we know 
@@ -216,36 +220,18 @@ mkbuilddirs:
 # when it fails.
 linktest:
 	@if [ $(NOF77) = 1 ] ; then \
-	( cd examples/test/pt2pt ; $(MAKE) linktest1 ) ; \
+	( cd examples/test/pt2pt && $(MAKE) linktest1 ) ; \
 	else \
-	( cd examples/test/pt2pt ; $(MAKE) linktest ) ; \
+	( cd examples/test/pt2pt && $(MAKE) linktest ) ; \
 	fi
 
 testing:
-	(cd examples/test ; $(MAKE) testing)
+	(cd examples/test && $(MAKE) testing)
 #
 # testing-boot is the same as testing except that mpichboot and mpichstop
 # are executed around the test
 testing-boot:
-	(cd examples/test ; $(MAKE) testing-boot )
-
-#
-# This is the target for the report function.  The optional lines on the make
-# are
-#   AUTHOR=string
-#   CONFIGLOG=file
-#
-report:
-	( if [ -n "$(AUTHOR)" ] ; then auth=-author="$(AUTHOR)" ; fi ; \
-	  if [ -n "$(CONFIGLOG)" ] ; then conf=-config=$(CONFIGLOG) ; fi ; \
-	doc/port -dotest $$auth $$conf ; )
-	doc/docgather
-	mv doc.tar doc$(ARCH)$(DEVICE).tar
-	@echo "Final location of tar file is doc$(DEVICE).tar"
-	@echo "util/insttest -prefix=install_directory"
-	@echo "may be run to complete the testing.  This must be run"
-	@echo "in the foreground.  It will try to start Upshot and Nupshot."
-	@echo "It also does an installation into 'install_directory'"
+	(cd examples/test && $(MAKE) testing-boot )
 
 
 #
@@ -253,7 +239,7 @@ report:
 # that point.
 #	${top_srcdir}/makelinks
 mpilib: ${top_srcdir}/Makefile.in ${includebuild_dir}/mpichconf.h
-	-@(cd mpid/@DEVICE@ ; $(MAKE) setlinks)
+	-@(cd mpid/@DEVICE@ && $(MAKE) setlinks)
 	@for dir in $(CODEDIRS) ;\
 	  do \
 	  echo " " ;\
@@ -268,7 +254,7 @@ mpilib: ${top_srcdir}/Makefile.in ${includebuild_dir}/mpichconf.h
 		echo "Exit status from make was $$st" ; fi ; exit $$st ) ;\
 	  if [ $$? != 0 ] ; then exit 1 ; fi ; \
 	  done
-	-@(cd src/infoexport ; $(MAKE) default_all )
+	-@(cd src/infoexport && $(MAKE) default_all )
 	${RANLIB} $(libbuild_dir)/lib${MPILIBNAME}.a
 	@if [ -w $(libbuild_dir)/lib${MPILIBNAME}++.a ] ; then \
 		${RANLIB} $(libbuild_dir)/lib${MPILIBNAME}++.a ; fi
@@ -311,7 +297,7 @@ rmlib:
 mpelib:
 	@if [ $(NOMPE) = 0 ] ; then \
               echo "Making MPE Profiling Libraries" ; \
-	      ( cd mpe ; $(MAKE) ) ; if [ $$? != 0 ] ; then exit 1 ; fi ; \
+	      ( cd mpe && $(MAKE) ) ; if [ $$? != 0 ] ; then exit 1 ; fi ; \
 	      ( MPE_TMP_PREFIX=`pwd` ; \
 	        cd mpe ; ./sbin/mpeinstall -prefix=$${MPE_TMP_PREFIX} ) ; \
 	      echo "Finished making MPE Profiling Libraries" ; echo ; \
@@ -382,13 +368,12 @@ cpplib:
 	fi
 
 mpidevlib:
-	(cd mpid/$(DEVICE) ; $(MAKE) clean )
+	(cd mpid/$(DEVICE) && $(MAKE) clean )
 	@for dir in mpid/$(DEVICE) ;\
 	  do \
 	  echo " " ;\
 	  echo making mpir in directory $$dir ;\
-	  (cd $$dir ; \
-	  $(MAKE) default) ;\
+	  (cd $$dir && $(MAKE) default) ;\
 	  done
 
 #
@@ -543,29 +528,29 @@ clean:
 	@-for dir in tsuite bugs mpid/server mpid/mpd installtest \
 		f90modules ; do \
 	    if [ -d $$dir -a -s $$dir/Makefile ] ; then \
-		(cd $$dir ; $(MAKE) clean ) ; fi ; done
+		(cd $$dir && $(MAKE) clean ) ; fi ; done
 	@-if [ -d romio -a -s romio/Makefile -a "@ROMIO@" = 1 ] ; then \
-	    (cd romio ; $(MAKE) clean ) ; fi
+	    (cd romio && $(MAKE) clean ) ; fi
 	@-if [ -d "${CPP_DIR}" -a -s ${CPP_DIR}/Makefile -a "@buildcpp@" = 1 ] ; then \
-	    (cd ${CPP_DIR} ; $(MAKE) clean ) ; fi
+	    (cd ${CPP_DIR} && $(MAKE) clean ) ; fi
 	@-if [ -d mpe -a -s mpe/Makefile -a "@NOMPE@" = 0 ] ; then \
 	    ( if [ -x $(binbuild_dir)/../sbin/mpeuninstall ] ; then \
 	          $(binbuild_dir)/../sbin/mpeuninstall > /dev/null ; fi ) ; \
-	    ( cd mpe ; $(MAKE) MAKE="$(MAKE)" clean ) ; \
+	    ( cd mpe && $(MAKE) MAKE="$(MAKE)" clean ) ; \
 	  fi
 	@-if [ -d src/fortran -a -s src/fortran/Makefile ] ; then \
-	    (cd src/fortran ; $(MAKE) clean ) ; fi
+	    (cd src/fortran && $(MAKE) clean ) ; fi
 	@-for dir in $(DIRS) ;\
 	  do \
 	  if [ -s $$dir/Makefile ] ; then \
 	  echo cleaning $$dir ;\
-	  (cd $$dir ; $(MAKE) clean ; ) ; fi ;\
+	  (cd $$dir && $(MAKE) clean ) ; fi ;\
 	  done
 	-@if [ -s mpid/ch_shmem/p2ptest/Makefile ] ; then \
 	    echo "cleaning mpid/ch_shmem/p2ptest" ; \
-	    (cd mpid/ch_shmem/p2ptest ; $(MAKE) clean ) ; fi
+	    (cd mpid/ch_shmem/p2ptest && $(MAKE) clean ) ; fi
 	-@if [ -s mpid/tests/Makefile ] ; then \
-	    (cd mpid/tests ; $(MAKE) clean ) ; fi
+	    (cd mpid/tests && $(MAKE) clean ) ; fi
 cleanslate: clean
 	(cd util ; if [ -s Makefile ] ; then $(MAKE) clean ; fi )
 #
@@ -583,16 +568,15 @@ distclean: cleanslate
 	    machines.cray* machines.CRAY* machines.LINUX machines.rs600 \
 	    machines.alpha machines.hp* ) ; fi
 	-rm -f util/mympiinstall* util/mpichlib.conf
-	-rm -f doc/port doc/portbuild doc/portperf doc/porttest
 	-if [ -d mpid/server -a -s mpid/server/Makefile ] ; then \
-	       (cd mpid/server ; $(MAKE) distclean) ; fi
+	       (cd mpid/server && $(MAKE) distclean) ; fi
 	-if [ -d jumpshot ] ; then \
 	  rm -f jumpshot/confdefs.h jumpshot/config.log \
 	  jumpshot/config.cache jumpshot/config.status ; fi
 	-if [ -d mpe -a -s mpe/Makefile -a "@NOMPE@" = 0 ] ; then \
-	    (cd mpe ; $(MAKE) MAKE=$(MAKE) distclean ) ; fi
+	    (cd mpe && $(MAKE) MAKE=$(MAKE) distclean ) ; fi
 	-if [ -s f90modules/Makefile ] ; then \
-	    (cd f90modules ; $(MAKE) distclean ) ; fi
+	    (cd f90modules && $(MAKE) distclean ) ; fi
 	-rm -f lib/*.[oa] lib/*.so.* lib/*.so lib/shared/* 
 	-rm -rf lib
 	-rm -rf include/f90choice include/f90base
@@ -607,18 +591,18 @@ distclean: cleanslate
 	   fi ; \
 	done
 	if [ -d mpid/tests -a -s mpid/tests/Makefile ] ; then \
-	    (cd mpid/tests ; $(MAKE) distclean ) ; fi
+	    (cd mpid/tests && $(MAKE) distclean ) ; fi
 	if [ -s examples/perftest/Makefile ] ; then \
-	    (cd examples/perftest ; ${MAKE} distclean ) ; fi
+	    (cd examples/perftest && ${MAKE} distclean ) ; fi
 	if [ -s romio/Makefile ] ; then \
-	    (cd  romio ; $(MAKE) cleanall ) ; fi
+	    (cd  romio && $(MAKE) cleanall ) ; fi
 	-rm examples/test/io examples/io
 	if [ -d "${CPP_DIR}" -a -s ${CPP_DIR}/Makefile -a "@buildcpp@" = 1 ] ; then \
-	    (cd ${CPP_DIR} ; $(MAKE) distclean ) ; fi
+	    (cd ${CPP_DIR} && $(MAKE) distclean ) ; fi
 	for dir in $(DIRS) ;\
 	  do \
 	  echo removing Makefile in $$dir ;\
-	  (cd $$dir ; rm -f Makefile) ;\
+	  (cd $$dir && rm -f Makefile) ;\
 	  done
 	for dir in . coll context env profile pt2pt topol ; do \
 	    if [ -s examples/test/$$dir/runtests ] ; then \
@@ -628,7 +612,7 @@ distclean: cleanslate
 	if [ -s src/env/Makefile ] ; then \
 	    rm -f src/env/mpehname.c  src/env/farg.f ; fi
 	if [ -s src/fortran/Makefile ] ; then \
-	    (cd src/fortran ; ${MAKE} distclean ) ;  fi
+	    (cd src/fortran && ${MAKE} distclean ) ;  fi
 	rm -f Makefile config.log config.status mpichconf.h
 #
 # Make an ID database from a suitable subset of the sources
@@ -684,12 +668,14 @@ util/mympiinstall.in: ${top_srcdir}/util/mpiinstall.in
 preinstall:
 	@cp mpichconf.h ${includebuild_dir}
 	@cp ${top_srcdir}/mpichconf.h.in ${includebuild_dir}
-	@for file in mpicc mpiCC mpif77 mpif90 mpiinstall mpiman ; do \
+	@for file in mpicc mpicxx mpif77 mpif90 mpiinstall mpiman ; do \
 	    if test -s util/$$file ; then \
 	        rm -f ${binbuild_dir}/$$file ; \
 		mv util/$$file ${binbuild_dir}/$$file ;\
 	    fi ;\
 	done
+	@if [ "@CASE_SENSITIVE@" = "no" ] ; then \
+	    cp ${binbuild_dir}/mpicxx ${binbuild_dir}/mpiCC ; fi
 
 ${includebuild_dir}/mpichconf.h: mpichconf.h
 	cp mpichconf.h ${includebuild_dir}

@@ -7,7 +7,7 @@
 top_srcdir     = @top_srcdir@
 
 CC             = @CC@
-CLINKER        = $(CC)
+CLINKER        = @CLINKER@
 MPI_CC         = @MPI_CC@
 MPI_CLINKER    = $(MPI_CC)
 AR             = @AR@
@@ -280,7 +280,7 @@ clean:
 	@-if [ "$(SLOG_HOME)" != "" -a -d "$(SLOG_HOME)" ]; then \
 	    ( cd ../slog_api ; $(MAKE) clean ) \
 	fi
-	-@$(RM) -f *.o *~ $(EXECS) PI*
+	-@$(RM) -f *.o ${srcdir}/*.o *~ $(EXECS) PI*
 
 distclean: clean rmprog rmlib
 	@-if [ "$(SLOG_HOME)" != "" -a -d "$(SLOG_HOME)" ]; then \

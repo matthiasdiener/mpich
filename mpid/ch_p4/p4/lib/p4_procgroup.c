@@ -158,11 +158,18 @@ int install_in_proctable( int group_id, int port, int unix_id,
     strcpy(pi->host_name, host_name);
     strcpy(pi->local_name, local_name );
 
+#ifdef LAZY_GETHOSTBYNAME
+    pi->sockaddr_setup = 0;
+#else
+    /* gethostbyname can require contacting a central name server.  This
+       option allows us to defer this until they are needed for
+       establising a connection */
     /* gethostchange newstuff -RL */
     hp = gethostbyname_p4(host_name);
     bzero((P4VOID *) &pi->sockaddr, sizeof(pi->sockaddr));
     bcopy((P4VOID *) hp->h_addr, (P4VOID *) &pi->sockaddr.sin_addr, hp->h_length);
     pi->sockaddr.sin_family = hp->h_addrtype;
+#endif
     pi->sockaddr.sin_port = htons(port);
     /* end of gethostchange newstuff -RL */
 
@@ -175,3 +182,23 @@ int install_in_proctable( int group_id, int port, int unix_id,
     return (g->num_installed - 1);
 }
 
+#ifdef LAZY_GETHOSTBYNAME
+void p4_procgroup_setsockaddr( struct proc_info *pi )
+{
+    struct hostent *hp;
+    int saveport;
+
+    if (pi->sockaddr_setup) return;
+    pi->sockaddr_setup = 1;
+
+    /* gethostchange newstuff -RL */
+    saveport = pi->sockaddr.sin_port;
+    hp = gethostbyname_p4(pi->host_name);
+    bzero((P4VOID *) &pi->sockaddr, sizeof(pi->sockaddr));
+    bcopy((P4VOID *) hp->h_addr, (P4VOID *) &pi->sockaddr.sin_addr, 
+	  hp->h_length);
+    pi->sockaddr.sin_family = hp->h_addrtype;
+    pi->sockaddr.sin_port = saveport;
+    /* end of gethostchange newstuff -RL */
+}
+#endif

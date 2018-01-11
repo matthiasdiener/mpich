@@ -6,19 +6,26 @@
     
 /* Debugging information */
 
+#ifndef MAXHOSTNAMELEN
+#define MAXHOSTNAMELEN 256
+#endif
+
 PUBLIC char procgroup_file[256];
 PUBLIC char bm_outfile[100];
 PUBLIC char rm_outfile_head[100];
 PUBLIC char whoami_p4[100];
 PUBLIC int  p4_debug_level, p4_remote_debug_level;
 PUBLIC char p4_wd[256];
+PUBLIC char p4_myname_in_procgroup[MAXHOSTNAMELEN];
 PUBLIC int  logging_flag;
 PUBLIC int  execer_mynodenum;
 PUBLIC char execer_id[132];
 PUBLIC char execer_myhost[100];
 PUBLIC int  execer_mynumprocs;
 PUBLIC char execer_masthost[100];
+#ifdef OLD_EXECER
 PUBLIC char execer_jobname[100];
+#endif
 PUBLIC int  execer_mastport;
 PUBLIC int  execer_numtotnodes;
 PUBLIC struct p4_procgroup *execer_pg;

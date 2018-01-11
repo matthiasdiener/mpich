@@ -1,5 +1,5 @@
 /*
- *  $Id: group_excl.c,v 1.9 1999/08/30 15:43:12 swider Exp $
+ *  $Id: group_excl.c,v 1.10 2001/11/14 19:54:23 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -57,7 +57,7 @@ function is erroneous.  This restriction is per the draft.
 
 .seealso: MPI_Group_free
 @*/
-EXPORT_MPI_API int MPI_Group_excl ( MPI_Group group, int n, int *ranks, MPI_Group *newgroup )
+int MPI_Group_excl ( MPI_Group group, int n, int *ranks, MPI_Group *newgroup )
 {
   int i, j, rank;
   struct MPIR_GROUP *new_group_ptr;

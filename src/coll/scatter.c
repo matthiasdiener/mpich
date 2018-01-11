@@ -1,5 +1,5 @@
 /*
- *  $Id: scatter.c,v 1.9 1999/10/15 20:08:27 gropp Exp $
+ *  $Id: scatter.c,v 1.10 2001/11/14 19:50:14 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -56,7 +56,7 @@ Output Parameter:
 .N MPI_ERR_TYPE
 .N MPI_ERR_BUFFER
 @*/
-EXPORT_MPI_API int MPI_Scatter ( 
+int MPI_Scatter ( 
 	void *sendbuf, 
 	int sendcnt, 
 	MPI_Datatype sendtype, 

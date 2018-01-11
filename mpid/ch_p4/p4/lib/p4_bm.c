@@ -131,7 +131,8 @@ else {
 #   ifdef CAN_DO_SOCKET_MSGS
     if (!p4_global->local_communication_only)
     {
-	net_setup_anon_listener(10, &listener_port, &listener_fd);
+	net_setup_anon_listener(MAX_P4_CONN_BACKLOG, &listener_port, 
+				&listener_fd); 
 	p4_global->listener_port = listener_port;
 	p4_global->listener_fd = listener_fd;
 	p4_dprintfl(90, "setup listener on port %d fd %d\n",
@@ -247,11 +248,9 @@ else {
     return (0);
 }
 
-int create_bm_processes(pg)
-struct p4_procgroup *pg;
+int create_bm_processes( struct p4_procgroup *pg)
 {
     struct p4_procgroup_entry *local_pg;
-    struct listener_data *ldata = NULL;
     int nslaves, end_1, end_2;
     int slave_pid, listener_pid = -1;
     int slave_idx, listener_fd = -1;
@@ -279,10 +278,8 @@ struct p4_procgroup *pg;
     if (!(p4_global->local_communication_only))
     {
 	listener_fd = p4_global->listener_fd;
-	listener_info = alloc_listener_info();
-	ldata = listener_info;
-	get_pipe(&end_1, &end_2); /* used even by thread listener */
-	ldata->slave_fd = end_2;
+	listener_info = alloc_listener_info(nslaves+1);
+	listener_info->listening_fd = listener_fd;
     }
 #   endif
 
@@ -352,7 +349,19 @@ struct p4_procgroup *pg;
     for (slave_idx = 1; slave_idx <= nslaves; slave_idx++)
     {
 	p4_dprintfl(20, "creating local slave %d of %d\n",slave_idx,nslaves);
+#       if defined(CAN_DO_SOCKET_MSGS)  &&  !defined(NO_LISTENER)
+        if (!(p4_global->local_communication_only)) {
+	    get_pipe(&end_1, &end_2);
+	    listener_info->slave_fd[slave_idx] = end_2;
+	    slave_pid = fork_p4();
+	    listener_info->slave_pid[slave_idx] = slave_pid;
+	}
+	else {
+	    slave_pid = fork_p4();
+	}
+#       else
 	slave_pid = fork_p4();
+#       endif
 	if (slave_pid < 0)
 	    p4_error("create_bm_processes fork", slave_pid);
 	else
@@ -365,24 +374,45 @@ struct p4_procgroup *pg;
 	    p4_free(p4_local);	/* Doesn't work for weird memory model. */
 	    p4_local = alloc_local_slave();
 
+	    /* Check for environment variables that redirect stdin */
+	    mpiexec_reopen_stdin();
+
 #           ifdef CAN_DO_SOCKET_MSGS
 	    if (!(p4_global->local_communication_only))
 	    {
+#ifdef USE_NONBLOCKING_LISTENER_SOCKETS
+		/* Set the listener socket to be nonblocking.  Why? */
+		int cc = fcntl(end_1, F_SETFL, O_NONBLOCK);
+		if (cc < 0) {
+		    p4_error("create_bm_processes: set listener nonblocking",
+		      cc);
+		}
+#endif
 		p4_local->listener_fd = end_1;
 #               if !defined(THREAD_LISTENER)
 		close(end_2);
 #               endif
 		close(listener_fd);
 	    }
-#ifndef THREAD_LISTENER
-	    SIGNAL_P4(LISTENER_ATTN_SIGNAL, handle_connection_interrupt);
-#endif
 #           endif
 
-	    /* hang for a valid proctable */
+	    /* hang for a valid proctable.  Note that the master locks the
+	     slave lock before is starts creating the slave processes, so
+	     the initial lock is not acquired until *after* the master 
+	     releases the lock. */
 	    p4_lock(&p4_global->slave_lock);
 	    p4_unlock(&p4_global->slave_lock);
 
+#ifdef CAN_DO_SOCKET_MSGS
+	    /* Wait to install the listener interrupt handler until
+	       the proctable is valid.  The listener will reissue the
+	       interrupt if the slave misses because it was waiting on the
+	       lock around the proctable 
+	    */
+#ifndef THREAD_LISTENER
+	    SIGNAL_P4(LISTENER_ATTN_SIGNAL, handle_connection_interrupt);
+#endif
+#endif
 	    p4_local->my_id = p4_get_my_id_from_proc();
 #if defined(SUN_SOLARIS)
 /*****  Shyam code, removed by RL
@@ -429,6 +459,11 @@ struct p4_procgroup *pg;
 	    return (0);
 	}
 
+#   ifdef CAN_DO_SOCKET_MSGS
+	/* slave holds this end */
+	close(end_1);
+#   endif
+
 	/* master installing local slaves */
 	install_in_proctable(0, p4_global->listener_port, slave_pid,
 			     p4_global->my_host_name, 
@@ -468,17 +503,20 @@ struct p4_procgroup *pg;
 #   if defined(CAN_DO_SOCKET_MSGS)  &&  !defined(NO_LISTENER) && !defined(THREAD_LISTENER)
     if (!(p4_global->local_communication_only))
     {
+	/* communication big master <--> listener */
+	get_pipe(&end_1, &end_2);
+	p4_local->listener_fd = end_1;
+	listener_info->slave_fd[0] = end_2;
+
 	listener_pid = fork_p4();
 	if (listener_pid < 0)
 	    p4_error("create_bm_processes listener fork", listener_pid);
 	if (listener_pid == 0)
 	{
+	    close(end_1);
 	    sprintf(whoami_p4, "bm_list_%d", (int)getpid());
 	    /* Inside listener */
 	    p4_local = alloc_local_listener();
-	    ldata->listening_fd = listener_fd;
-	    ldata->slave_fd = end_2;
-	    close(end_1);
 	    {
 		/* exec external listener process */
 
@@ -488,10 +526,14 @@ struct p4_procgroup *pg;
 		{
 		    char dbg_c[10], max_c[10], lfd_c[10], sfd_c[10];
 
+		    /* 
+		    p4_error("external listener not supported", 0);
+		    */
 		    sprintf(dbg_c, "%d", p4_debug_level);
 		    sprintf(max_c, "%d", p4_global->max_connections);
-		    sprintf(lfd_c, "%d", ldata->listening_fd);
-		    sprintf(sfd_c, "%d", ldata->slave_fd);
+		    sprintf(lfd_c, "%d", listener_info->listening_fd);
+		    sprintf(sfd_c, "%d", listener_info->slave_fd[0]);
+
 		    p4_dprintfl(70, "exec %s %s %s %s %s\n",
 				listener_prg, dbg_c, max_c, lfd_c, sfd_c);
 		    execlp(listener_prg, listener_prg,
@@ -527,11 +569,11 @@ struct p4_procgroup *pg;
     /* NT version put the last arg of CreateThread into listener_pid */
 #   endif
 
-    /* We need to close the fds from the listener setup */
+    /* We need to close the fds from the listener setup, in big master
+     * process, slave number 0. */
 #   if defined(CAN_DO_SOCKET_MSGS)  &&  !defined(NO_LISTENER) 
     if (!(p4_global->local_communication_only))
     {
-	p4_local->listener_fd = end_1;
 #       if !defined(THREAD_LISTENER)
 	close(listener_fd);
 	close(end_2);
@@ -548,8 +590,7 @@ struct p4_procgroup *pg;
 }
 
 
-P4VOID procgroup_to_proctable(pg)
-struct p4_procgroup *pg;
+P4VOID procgroup_to_proctable( struct p4_procgroup *pg)
 {
     int i, j, ptidx;
     struct p4_procgroup_entry *pe;
@@ -565,7 +606,7 @@ struct p4_procgroup *pg;
 	strcpy(p4_global->my_host_name,pg->entries[0].host_name);
 	strcpy(p4_global->proctable[0].host_name,pg->entries[0].host_name);
     }
-    get_qualified_hostname(p4_global->proctable[0].host_name);
+    get_qualified_hostname(p4_global->proctable[0].host_name,HOSTNAME_LEN);
     p4_dprintfl(10,"hostname for first entry in proctable is %s\n",
 		p4_global->proctable[0].host_name);
     p4_global->proctable[0].group_id = 0;
@@ -579,21 +620,28 @@ struct p4_procgroup *pg;
 		       p4_global->proctable[0].host_name);
 	    else
 		strcpy(p4_global->proctable[ptidx].host_name,pe->host_name);
-	    get_qualified_hostname(p4_global->proctable[ptidx].host_name);
+	    get_qualified_hostname(p4_global->proctable[ptidx].host_name,
+				   HOSTNAME_LEN);
 	    p4_global->proctable[ptidx].group_id = i;
 #           ifdef CAN_DO_SOCKET_MSGS
 	    {
 	    struct hostent *hp = 
 		gethostbyname_p4(p4_global->proctable[ptidx].host_name);
-	    struct sockaddr_in *listener = 
+	    struct sockaddr_in *listener_sockaddr = 
 		&p4_global->proctable[ptidx].sockaddr;
-	    bzero( (P4VOID*) listener, sizeof(struct sockaddr_in) );
-	    bcopy((P4VOID *) hp->h_addr, (P4VOID *)&listener->sin_addr, 
+#ifdef LAZY_GETHOSTBYNAME
+	    /* Since we just set the *address* above,we can confirm the
+	       data next */
+	    p4_procgroup_setsockaddr( &p4_global->proctable[ptidx] );
+#endif
+	    bzero( (P4VOID*) listener_sockaddr, sizeof(struct sockaddr_in) );
+	    bcopy((P4VOID *) hp->h_addr, 
+		  (P4VOID *)&listener_sockaddr->sin_addr, 
 		  hp->h_length);
-	    listener->sin_family = hp->h_addrtype;
+	    listener_sockaddr->sin_family = hp->h_addrtype;
 	    /* Set a dummy port so that we can detect that the field
 	       has been initialized */
-	    listener->sin_port = 1;
+	    listener_sockaddr->sin_port = 1;
 	    }
 #           endif
 	    ptidx++;

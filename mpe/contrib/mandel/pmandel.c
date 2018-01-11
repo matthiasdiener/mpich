@@ -19,17 +19,9 @@ FILE *debug_file;
 
 MPI_Datatype winspecs_type, flags_type, NUM_type, rect_type;
 
-/* Forward refs */
-#ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus)
-#define ANSI_ARGS(a) a
-#else
-#define ANSI_ARGS(a) ()
-#endif
-#endif
-void DrawImage           ANSI_ARGS(( MPE_XGraph, Winspecs *, Flags * ));
-void ProcessArgsFromFile ANSI_ARGS(( MPE_XGraph, Winspecs *, Flags *));
-int DragZoom             ANSI_ARGS(( MPE_XGraph, Flags *));
+void DrawImage           ( MPE_XGraph, Winspecs *, Flags * );
+void ProcessArgsFromFile ( MPE_XGraph, Winspecs *, Flags *);
+int DragZoom             ( MPE_XGraph, Flags *);
 
 int main( argc, argv )
 int argc;

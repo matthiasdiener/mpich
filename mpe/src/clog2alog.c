@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
+#ifdef HAVE_WINDOWS_H
+#include <io.h>
+#endif
 #if defined( HAVE_UNISTD_H )
 #include <unistd.h>
 #endif

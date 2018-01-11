@@ -1,5 +1,5 @@
 /* 
- *   $Id: subarrayf.c,v 1.4 2001/04/19 20:50:49 gropp Exp $    
+ *   $Id: subarrayf.c,v 1.7 2001/12/12 23:36:50 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -16,16 +16,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_TYPE_CREATE_SUBARRAY = PMPI_TYPE_CREATE_SUBARRAY
-EXPORT_MPI_API void MPI_TYPE_CREATE_SUBARRAY (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void MPI_TYPE_CREATE_SUBARRAY (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_type_create_subarray__ = pmpi_type_create_subarray__
-EXPORT_MPI_API void mpi_type_create_subarray__ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void mpi_type_create_subarray__ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_type_create_subarray = pmpi_type_create_subarray
-EXPORT_MPI_API void mpi_type_create_subarray (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void mpi_type_create_subarray (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #else
 #pragma weak mpi_type_create_subarray_ = pmpi_type_create_subarray_
-EXPORT_MPI_API void mpi_type_create_subarray_ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void mpi_type_create_subarray_ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -83,12 +83,12 @@ EXPORT_MPI_API void mpi_type_create_subarray_ (MPI_Fint *, MPI_Fint *, MPI_Fint 
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_type_create_subarray_ (MPI_Fint *, MPI_Fint *, MPI_Fint *,
+FORTRAN_API void FORT_CALL mpi_type_create_subarray_ (MPI_Fint *, MPI_Fint *, MPI_Fint *,
 					  MPI_Fint *, MPI_Fint *, MPI_Fint *,
 					  MPI_Fint *, MPI_Fint * );
 
 /* Definitions of Fortran Wrapper routines */
-EXPORT_MPI_API void mpi_type_create_subarray_(MPI_Fint *ndims, MPI_Fint *array_of_sizes,
+FORTRAN_API void FORT_CALL mpi_type_create_subarray_(MPI_Fint *ndims, MPI_Fint *array_of_sizes,
                                MPI_Fint *array_of_subsizes,
 			       MPI_Fint *array_of_starts, MPI_Fint *order,
 			       MPI_Fint *oldtype, MPI_Fint *newtype, 

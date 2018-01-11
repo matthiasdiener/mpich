@@ -9,16 +9,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_INTERCOMM_MERGE = PMPI_INTERCOMM_MERGE
-EXPORT_MPI_API void MPI_INTERCOMM_MERGE ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_INTERCOMM_MERGE ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_intercomm_merge__ = pmpi_intercomm_merge__
-EXPORT_MPI_API void mpi_intercomm_merge__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_intercomm_merge__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_intercomm_merge = pmpi_intercomm_merge
-EXPORT_MPI_API void mpi_intercomm_merge ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_intercomm_merge ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_intercomm_merge_ = pmpi_intercomm_merge_
-EXPORT_MPI_API void mpi_intercomm_merge_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_intercomm_merge_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -76,10 +76,10 @@ EXPORT_MPI_API void mpi_intercomm_merge_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, M
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_intercomm_merge_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+FORTRAN_API void FORT_CALL mpi_intercomm_merge_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                       MPI_Fint * );
 
-EXPORT_MPI_API void mpi_intercomm_merge_ ( MPI_Fint *comm, MPI_Fint *high, MPI_Fint *comm_out, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_intercomm_merge_ ( MPI_Fint *comm, MPI_Fint *high, MPI_Fint *comm_out, MPI_Fint *__ierr )
 {
     MPI_Comm l_comm_out;
 

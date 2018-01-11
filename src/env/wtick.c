@@ -1,5 +1,5 @@
 /*
- *  $Id: wtick.c,v 1.6 1999/08/30 15:46:24 swider Exp $
+ *  $Id: wtick.c,v 1.7 2001/11/14 19:56:41 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -38,7 +38,7 @@
   This is a function, declared as 'DOUBLE PRECISION MPI_WTICK()' in Fortran.
   
 @*/
-EXPORT_MPI_API double MPI_Wtick()
+double MPI_Wtick()
 {
     double t1;
     MPID_Wtick( &t1 );

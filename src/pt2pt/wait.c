@@ -1,5 +1,5 @@
 /*
- *  $Id: wait.c,v 1.6 1999/08/30 15:50:13 swider Exp $
+ *  $Id: wait.c,v 1.7 2001/11/14 20:10:10 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -45,7 +45,7 @@ Output Parameter:
 .N MPI_ERR_REQUEST
 .N MPI_ERR_ARG
 @*/
-EXPORT_MPI_API int MPI_Wait ( 
+int MPI_Wait ( 
 	MPI_Request  *request,
 	MPI_Status   *status)
 {

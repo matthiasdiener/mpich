@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_split.c,v 1.10 2001/08/14 14:43:42 lacour Exp $
+ *  $Id: comm_split.c,v 1.12 2001/12/14 16:34:28 toonen Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -76,7 +76,7 @@ that can be removed.  Here is what we do for now
 
 .seealso: MPI_Comm_free
 @*/
-EXPORT_MPI_API int MPI_Comm_split ( MPI_Comm comm, int color, int key, MPI_Comm *comm_out )
+int MPI_Comm_split ( MPI_Comm comm, int color, int key, MPI_Comm *comm_out )
 {
   int           size, rank, head, new_size, i;
   int          *table, *table_in;
@@ -112,7 +112,7 @@ EXPORT_MPI_API int MPI_Comm_split ( MPI_Comm comm, int color, int key, MPI_Comm 
   MPIR_ERROR_PUSH(comm_ptr);
 
   /* Combine the split table. I only have to combine the colors and keys */
-  mpi_errno = MPI_Allreduce(table_in, table, size * 2, MPI_INT, MPI_SUM, comm);
+  mpi_errno = PMPI_Allreduce(table_in, table, size * 2, MPI_INT, MPI_SUM, comm);
 
   /* Allocate 2 contexts */
   mpi_errno = MPIR_Context_alloc( comm_ptr, 2, &context );

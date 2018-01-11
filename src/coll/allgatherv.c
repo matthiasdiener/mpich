@@ -1,5 +1,5 @@
 /*
- *  $Id: allgatherv.c,v 1.9 1999/10/15 20:08:26 gropp Exp $
+ *  $Id: allgatherv.c,v 1.10 2001/11/14 19:50:10 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -67,7 +67,7 @@ Notes:
 .N MPI_ERR_COUNT
 .N MPI_ERR_TYPE
 @*/
-EXPORT_MPI_API int MPI_Allgatherv ( void *sendbuf, int sendcount, MPI_Datatype sendtype, 
+int MPI_Allgatherv ( void *sendbuf, int sendcount, MPI_Datatype sendtype, 
                      void *recvbuf, int *recvcounts, int *displs, 
 		     MPI_Datatype recvtype, MPI_Comm comm )
 {

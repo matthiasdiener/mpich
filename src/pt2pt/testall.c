@@ -1,5 +1,5 @@
 /*
- *  $Id: testall.c,v 1.22 2001/04/04 15:16:34 gropp Exp $
+ *  $Id: testall.c,v 1.23 2001/11/14 20:10:04 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -53,7 +53,7 @@ Notes:
 .N MPI_ERR_IN_STATUS
 
 @*/
-EXPORT_MPI_API int MPI_Testall( 
+int MPI_Testall( 
 	int count, 
 	MPI_Request array_of_requests[], 
 	int *flag, 

@@ -1,5 +1,5 @@
 /*
- *  $Id: finalize.c,v 1.17 2001/03/17 19:07:43 gropp Exp $
+ *  $Id: finalize.c,v 1.19 2001/12/15 00:27:36 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -26,7 +26,10 @@
 #include "binding.h"
 #endif
 #include "reqalloc.h"
-/* #include "queue.h" */
+#ifdef HAVE_WINDOWS_H
+/* for some reason this include was commented out.  I need it for a clean build on Windows */
+#include "queue.h"
+#endif
 #define MPIR_SBdestroy MPID_SBdestroy
 extern int MPIR_Dump_Mem;
 extern int MPIR_Dump_Ptrs;
@@ -54,7 +57,7 @@ extern void MPIR_Topology_finalize (void);
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Finalize()
+int MPI_Finalize()
 {
     TR_PUSH("MPI_Finalize");
 

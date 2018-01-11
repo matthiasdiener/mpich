@@ -1,5 +1,5 @@
 /*
- *  $Id: pack_size.c,v 1.12 2000/06/30 17:55:35 gropp Exp $
+ *  $Id: pack_size.c,v 1.13 2001/11/14 20:10:00 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -55,7 +55,7 @@ the maximum that is needed by either 'MPI_Pack' or 'MPI_Unpack'.
 .N MPI_ERR_ARG
 
 @*/
-EXPORT_MPI_API int MPI_Pack_size ( int incount, MPI_Datatype datatype, MPI_Comm comm, 
+int MPI_Pack_size ( int incount, MPI_Datatype datatype, MPI_Comm comm, 
 		    int *size )
 {
   int mpi_errno = MPI_SUCCESS;

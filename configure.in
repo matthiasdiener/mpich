@@ -65,10 +65,11 @@ cat <<EOF
 Usage: ${progname} [--with-arch=ARCH_TYPE] [--with-comm=COMM_TYPE]
             [--with-device=DEVICE]
             [--with-mpe] [--without-mpe] 
+            [--without-romio]
 	    [--disable-f77] [--disable-f90] [--with-f90nag] [--with-f95nag] 
 	    [--disable-f90modules]
             [--disable-gencat] [--disable-doc]
-            [--enable-c++ ] [--disable-c++]
+            [--enable-cxx ] [--disable-cxx]
             [--enable-mpedbg] [--disable-mpedbg] 
             [--enable-devdebug] [--disable-devdebug] 
             [--enable-debug] [--disable-debug] 
@@ -98,7 +99,7 @@ Usage: ${progname} [--with-arch=ARCH_TYPE] [--with-comm=COMM_TYPE]
             [-automountfix=AUTOMOUNTFIX]
             [-noranlib] [-ar_nolocal] 
             [-rsh=RSHCOMMAND] [-rshnol]
-            [-noromio] [-file_system=FILE_SYSTEM]
+            [-file_system=FILE_SYSTEM]
             [-p4_opts=P4_OPTS]
 where
    ARCH_TYPE       = the type of machine that MPI is to be configured for
@@ -150,6 +151,12 @@ Packages that may be included with MPICH
                          (preliminary version intended for use *instead* 
                          of a Fortran 77 compiler)
 --with-f95nag          - Choose the NAG f95 compiler for Fortran
+--with-cross=file      - Use the file for cross compilation. The file
+                         should contain assignments of the form
+                            CROSS_SIZEOF_INT=4
+                         for each cross compilation variable.  The command
+                            egrep 'CROSS_[A-Z_]*=' configure | sed 's/=.*//g'
+                         will list each variable.
 
 You can use --without-<featurename> to turn off a feature (except for 
 device).
@@ -173,7 +180,7 @@ done
 cat <<EOF
 Features that may be included with MPICH
 
---enable-c++          - Build C++ interfaces to the MPI-1 routines 
+--enable-cxx          - Build C++ interfaces to the MPI-1 routines 
                         (default)
 --enable-f77          - Build Fortran 77 interfaces to the MPI 
                         routines (default)
@@ -221,13 +228,6 @@ values for these but their settings may be overridden by the configure
 script.  Using '-cc=\$CC -fc=\$FC' will force configure to use those
 compilers.
 
-If '-with-cross=file is given, use the file for cross compilation.  The file
-should contain assignments of the form
-             CROSS_SIZEOF_INT=4
-for each cross compilation variable.  The command
-             egrep 'CROSS_[A-Z_]*=' configure | sed 's/=.*//g'
-will list each variable.
-
 The option '-opt' allows you to specify optimization options for the
 compilers (both C and Fortran).  For example, '-opt=-O' chooses optimized
 code generation on many systems.  '-optcc' and '-optf77' allow you to
@@ -243,10 +243,8 @@ may be needed by a particular device.  Most devices do NOT need this
 option; check the installation instructions for those that might.
 
 The option '-make' may be used to select an alternate make program.  For
-example, on FreeBSD systems, -make=gnumake may be required because makes
-derived from BSD 4.4 do not support the include operation (instead using
-the form .include, unlike all other makes); this is used in the wrappergen
-utility.
+example, to make use of VPATH builds (building in one directory with the
+source in a different directory), -make=gnumake may be required.
 
 The option '--disable-short-longs' may be used to suppress support for 
 the C types 'long long' (a common extension) and 'long double' (ANSI/ISO C)
@@ -271,29 +269,13 @@ local directory, they can fail (destroying the library in the process) if
 the temporary directory (usually '/tmp') does not have enough space.
 This has occured on some OSF systems.
 
-The option '-memdebug' enables extensive internal memory debugging code.
-This should be used only if you are trying to find a memory problem (it
-can be used to help find memory problems in user code as well).  Running
-programs with the option '-mpidb memdump' will produce a summary, when 
-'MPI_Finalize' is called, of all unfreed memory allocated my MPI.   For
-example, a user-created datatype that was not later freed would be 
-reported.
-
-The option '-tracing' enables tracing of internal calls.  This should be
-used only for debugging the MPICH implementation itself.
-
-The option '-dlast' enables tracing of the most recent operations performed
-by the device.  These can be output when a signal (like SIGINT), error, 
-or call to a special routine occurs.  There is a performance penalty for
-this option, but it can be very useful for implementors attempting to debug
-problems.  
-
-The option '-rsh' allows you to select an alternative remote shell
-command (by default, configure will use 'rsh' or 'remsh' from your
-'PATH').  If your remote shell command does not support the '-l' option
+The environment variable 'RSHCOMMAND' allows you to select an alternative 
+remote shell command (by default, configure will use 'rsh' or 'remsh' from 
+your 'PATH').  If your remote shell command does not support the '-l' option
 (some AFS versions of 'rsh' have this bug), also give the option
 '-rshnol'.  These options are useful only when building a network version
-of MPICH (e.g., '--with-device=ch_p4').
+of MPICH (e.g., '--with-device=ch_p4').  
+The configure option '-rsh' is supported for backward compatibility.
 
 Special Tuning Options:
 
@@ -311,18 +293,38 @@ operations in addition to the basic point-to-point operations.
 Currently, most systems do not support this option (it is ignored) and on
 the others it has not been extensively tested.  
 
+Options for Experts:
+
+The option '-memdebug' enables extensive internal memory debugging code.
+This should be used only if you are trying to find a memory problem (it
+can be used to help find memory problems in user code as well).  Running
+programs with the option '-mpidb memdump' will produce a summary, when 
+'MPI_Finalize' is called, of all unfreed memory allocated my MPI.   For
+example, a user-created datatype that was not later freed would be 
+reported.
+
+The option '-tracing' enables tracing of internal calls.  This should be
+used only for debugging the MPICH implementation itself.
+
+The option '-dlast' enables tracing of the most recent operations performed
+by the device.  These can be output when a signal (like SIGINT), error, 
+or call to a special routine occurs.  There is a performance penalty for
+this option, but it can be very useful for implementors attempting to debug
+problems.  
+
 Sample Configure Usage:
 
-To make for running on sun4's running SunOS with ch_p4 as the device,
+To make for running on Sun's running Solaris with ch_p4 as the device,
  and with the installation directory equal to the current directory:
 
-  ./configure --with-device=ch_p4 --with-arch=sun4
+  ./configure --with-device=ch_p4 --with-arch=solaris
   make
 
 Known devices are 
         ch_nx     (native Intel NX calls), 
         ch_mpl    (native IBM EUI or MPL calls),
         ch_p4     (p4)
+        ch_p4mpd  (p4 with the MPD startup system)
 	globus2   (Globus: globus_io/vMPI)
         ch_meiko  (for Meiko CS2, using NX compatibility library),
         ch_shmem  (for shared memory systems, such as SMPs), 
@@ -341,33 +343,30 @@ support these devices:
 These are no longer distributed with the MPICH distribution.      
 
 Known architectures include (case is important)
-        sun4      (SUN OS 4.x)
-        solaris   (Solaris)
-	solaris86 (Solaris on Intel platforms)
+        alpha     (Compaq alpha)
+        CRAY      (CRAY XMP, YMP, C90, J90, T90)
+        cray_t3d  (CRAY T3D)
+        EWS_UX_V  (NEC EWS4800/360AD Series workstation.  Untested.)
+        freebsd   (PC clones running FreeBSD)
         hpux      (HP UX)
-        sppux     (SPP UX)
-        rs6000    (AIX for IBM RS6000)
-        sgi       (Silicon Graphics IRIX 4.x, 5.x or 6.x)
-        sgi5      (Silicon Graphics IRIX 5.x on R4400's, for the MESHINE)
+        intelnx   (Intel i860 or Intel Delta)
         IRIX      (synonym for sgi)
         IRIX32    (IRIX with 32bit objects -32)
         IRIXN32   (IRIX with -n32)
         IRIX64    (IRIX with 64bit objects)
-        alpha     (DEC alpha)
-        intelnx   (Intel i860 or Intel Delta)
-        paragon   (Intel Paragon)
-	tflops    (Intel TFLOPS)
-        meiko     (Meiko CS2)
-        CRAY      (CRAY XMP, YMP, C90, J90, T90)
-        cray_t3d  (CRAY T3D)
-        freebsd   (PC clones running FreeBSD)
-        netbsd    (PC clones running NetBSD)
+        ksr       (Kendall Square KSR1 and KSR2)
 	LINUX     (PC clones running LINUX)
         LINUX_ALPHA (Linux on Alpha processors)
-        ksr       (Kendall Square KSR1 and KSR2)
-        EWS_UX_V  (NEC EWS4800/360AD Series workstation.  Untested.)
-        UXPM      (UXP/M. Untested.)
-        uxpv      (uxp/v. Untested.)
+        meiko     (Meiko CS2)
+        netbsd    (PC clones running NetBSD)
+        paragon   (Intel Paragon)
+        rs6000    (AIX for IBM RS6000)
+        sgi       (Silicon Graphics IRIX 4.x, 5.x or 6.x)
+        sgi5      (Silicon Graphics IRIX 5.x on R4400's, for the MESHINE)
+        solaris   (Solaris)
+	solaris86 (Solaris on Intel platforms)
+        sppux     (SPP UX)
+        sun4      (SUN OS 4.x)
         SX_4_float0
                   (NEC SX-4; Floating point format float0
                              Conforms IEEE 754 standard.
@@ -391,6 +390,11 @@ Known architectures include (case is important)
                               64-bit int's)
                     C:       sizeof (int)     = 8; sizeof (float) = 8
                     FORTRAN: sizeof (INTEGER) = 8; sizeof (REAL)  = 8)
+	tflops    (Intel TFLOPS)
+        UXPM      (UXP/M. Untested.)
+        uxpv      (uxp/v. Untested.)
+
+    Others may be recognized.
 
 Special notes:
 
@@ -399,7 +403,6 @@ For SGI (--with-arch=IRIX) multiprocessors running the ch_p4 device, use
 device, and -comm=shared to enable the shared-memory p4 communication
 device.  The default is to enable the shared-memory communication device.
 
-Others may be recognized.
 EOF
 }
 #
@@ -510,7 +513,7 @@ if test -s include/patchlevel.h ; then
 else
     # try to determine the source dir
     tmpsrcdir=`echo $0 | sed -e 's%/configure%%' -e "s%^~/%$HOME/%"`
-    if test ! -s $tmpsrcdir/include/patchlevel.h ; then
+    if test ! -s "$tmpsrcdir/include/patchlevel.h" ; then
         tmpsrcdir=""
     fi
 fi
@@ -694,15 +697,16 @@ do
         # The definition of GCC_WALL allows us to conditionally change the
 	# code when gcc generates a spurious error message, particularly
 	# for uninitialized data.
-	CFLAGS="$CFLAGS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL"
-	USER_CFLAGS="$USER_CFLAGS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL"
-	ROMIO_CFLAGS="$ROMIO_CFLAGS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL"
+	# -wshadow?
+	CFLAGS="$CFLAGS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -DGCC_WALL"
+	USER_CFLAGS="$USER_CFLAGS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -DGCC_WALL"
+	ROMIO_CFLAGS="$ROMIO_CFLAGS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -DGCC_WALL"
 	needs_gcc=yes
 	if test -z "$CC" ; then
 	    CC=gcc
 	    USERCC=1
         fi
-	COPTIONS="$COPTIONS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL"
+	COPTIONS="$COPTIONS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -DGCC_WALL"
         export COPTIONS
         enable_args="$enable_args $arg"
 	enable_strict="yes"
@@ -827,6 +831,7 @@ do
 	;;
 
      -disable-g | --disable-g )
+        enable_g="no"
 	enable_args="$enable_args --disable-g"
 	;;
 
@@ -958,6 +963,10 @@ do
 	FC=f95
         F77GETARGDECL=""
 	F90GETARGDECL=""
+        FXX_MODULE="       use f90_unix_env"
+	F77_GETARGDECL=""
+	F77_GETARG="       call getarg(i,s)"
+	F77_IARGC="       iargc()"
 	f95nag=1
 	# -mismatch allows type mismatches in arguments.  This 
 	# is necessary until we have a Fortran 90 module with
@@ -1295,6 +1304,20 @@ dnl library directory before the builds take place.
 AC_CONFIG_HEADER(mpichconf.h)
 # We may need to delete this
 PAC_FIXUP_SRCDIR
+# Check that file system understands different file name cases
+CASE_SENSITIVE=no
+AC_MSG_CHECKING([whether filesystem respects case in file names])
+echo 1 > CONFTEST
+echo 2 > conftest
+if diff CONFTEST conftest 2>&1 >/dev/null ; then
+    AC_MSG_RESULT([no])
+    AC_MSG_WARN([You may encounter problems with the commands mpicc and MPICC])
+    CASE_SENSITIVE=yes
+else
+    AC_MSG_RESULT([yes])
+fi
+rm -f CONFTEST conftest
+AC_SUBST(CASE_SENSITIVE)
 #
 #
 # Load any cross-compiling definitions
@@ -1326,7 +1349,7 @@ fi
 #
 # Find the home directory if not specified
 if test "X$srcdir" != "X." -a -s $srcdir/src/pt2pt/Makefile.in ; then 
-    MPIR_TRIAL=$srcdir
+    MPIR_TRIAL="$srcdir"
 else
     PAC_GETWD(MPIR_TRIAL,src/pt2pt/Makefile.in)
 fi
@@ -1351,7 +1374,7 @@ if test -z "$ARCH" ; then
         arch_cray_t3d=1
     fi
 fi
-if test -z "$ARCH" -a -x $srcdir/bin/tarch ; then
+if test -z "$ARCH" -a -x "$srcdir/bin/tarch" ; then
     AC_MSG_CHECKING(for architecture)
     ARCH=`$srcdir/bin/tarch | sed s/-/_/g`
     if test -z "$ARCH" ; then
@@ -1458,7 +1481,7 @@ fi
 # Check that a DEVICE was set
 # If it wasn't set, try to guess using "bin/tdevice"
 #
-if test -z "$DEVICE" -a -x $srcdir/bin/tdevice ; then
+if test -z "$DEVICE" -a -x "$srcdir/bin/tdevice" ; then
     AC_MSG_CHECKING(device)
     DEVICE=`$srcdir/bin/tdevice $ARCH`
     if test ! -n "$DEVICE" ; then
@@ -1472,13 +1495,13 @@ if test -z "$DEVICE" -a -x $srcdir/bin/tdevice ; then
 fi
 #
 # Check for a VALID device
-if test ! -d $srcdir/mpid/$DEVICE ; then
+if test ! -d "$srcdir/mpid/$DEVICE" ; then
     print_error "$DEVICE is not a valid device!" 
     exit 1
 fi
 #
 #
-F77=${FC:-f77}
+F77="${FC:-f77}"
 if test -n "$FC" ; then
     USERF77=1
 fi
@@ -1693,6 +1716,8 @@ AC_SUBST(sysconfdir)
 
 if test -z "$NOCXX" ; then
     CPP_DIR="${CPP_DIR:-MPI-2-C++}"
+    # Allow standard environment variable for the C++ compiler
+    if test -n "$CXX" ; then CPP_COMPILER="$CXX" ; fi
     if test -n "$CPP_COMPILER" ; then
         AC_MSG_CHECKING([if $CPP_COMPILER returns correct error code])
         cat > conftest.cc <<EOF
@@ -1713,7 +1738,7 @@ EOF
         # We need to check that the compiler actually works!
 	# (note that g++ doesn't work on some Solaris 2.7 (64bit) platforms)
         # Allow user to use CXX or CCC as an alternative for the compiler
-	for program in $GXX $CXX $CCC xlC g++ c++ aCC CC cxx ; do
+	for program in "$GXX" "$CXX" "$CCC" xlC g++ c++ aCC CC cxx ; do
 	    # Does program exist?
             AC_PROGRAM_CHECK(GXXTRIAL,$program,$program,)
   	    if test "$GXXTRIAL" = "xlC" -a "$DEVICE" = "ch_mpl" ; then
@@ -1760,12 +1785,33 @@ EOF
 	    if test -n "$GXX" ; then break ; fi
 	done
     fi
+    # If we have a compiler, check that it works.  
+    # pgCC failed to compile iostream.h on some Linux platforms
+    # (we need this test here because the test for compiling iostream.h
+    # used above is used only to *find* a compiler; if the user selected
+    # a compiler that doesn't work, we still need the test.
+    if test -n "$CPP_COMPILER" ; then 
+        AC_MSG_CHECKING([that selected C++ compiler can compile iostream.h])
+        rm -f conftest*
+        cat > conftest.cc <<EOF
+#include <iostream.h>	
+EOF
+        if $CPP_COMPILER -c conftest.cc>conftest.out 2>&1 ; then 
+            AC_MSG_RESULT(yes)
+	else
+	    AC_MSG_RESULT([no!...Cannot use $CPP_COMPILER compiler])
+	    CPP_COMPILER=""
+	    NOCXX=1
+        fi
+	/bin/rm conftest*
+    fi
     # Note that C++ doesn't support VPATH build yet.
     # It does (sort of!)
     if test -d ${top_srcdir}/${CPP_DIR} -a -n "$CPP_COMPILER" ; then
 	echo ' '
 	if test -d ${top_srcdir}/${CPP_DIR}/balky ; then
-  	    echo 'Include C++ bindings for MPI from http://www.mpi.nd.edu/research/mpi2c++'
+  	    echo 'Include C++ bindings for MPI from http://www.osl.iu.edu/research/mpi2c++'
+	    echo 'Send bug reports about the C++ to mpi2cpp-devel@osl.iu.edu'
 	fi
 	echo ' '
 	if test ! -d ${CPP_DIR} ; then mkdir ${CPP_DIR} ; fi
@@ -2006,7 +2052,7 @@ if test "$UseSharedLibs" = 1 -o "$debug_version" = 1 ; then
 	# (none)
         # -PIC (SunOS)
         # -KPIC (Solaris, IRIX)
-	# -fPIC (g77)
+	# -fPIC (gcc/g77)
 	# This is made more compilicated by the fact that some systems
 	# accept -PIC, but for very different options (e.g., absoft).
 	#
@@ -2111,7 +2157,7 @@ DEFAULT_MACHINE=$DEVICE
 #
 eval top_srcdir_val="$top_srcdir"
 device_setupfile="setup_$DEVICE"
-if test -f $srcdir/mpid/$DEVICE/$device_setupfile ; then
+if test -f "$srcdir/mpid/$DEVICE/$device_setupfile" ; then
     # Source the file.  This way it inherits all variables and can
     # change any that it wants.  The alternative is to have an explicit
     # import/export list.
@@ -2130,10 +2176,10 @@ if test -f $srcdir/mpid/$DEVICE/$device_setupfile ; then
     # being done.
     # if we're the developers, we may need to create the
     # initial configure files.
-    if test ! -x $top_srcdir_val/mpid/$DEVICE/configure -a \
-	      -s $top_srcdir_val/mpid/$DEVICE/configure.in -a \
-	      -x $top_srcdir_val/mpid/$DEVICE/makeconfigure ; then
-	(cd $top_srcdir_val/mpid/$DEVICE ; ./makeconfigure)
+    if test ! -x "$top_srcdir_val/mpid/$DEVICE/configure" -a \
+	      -s "$top_srcdir_val/mpid/$DEVICE/configure.in" -a \
+	      -x "$top_srcdir_val/mpid/$DEVICE/makeconfigure" ; then
+	(cd "$top_srcdir_val/mpid/$DEVICE" ; ./makeconfigure)
     fi
     echo "Running device-specific setup program"
     #
@@ -2150,7 +2196,7 @@ if test -f $srcdir/mpid/$DEVICE/$device_setupfile ; then
     fi
     # We must run this from the relative directory, since we may be building
     # a build tree in another location (. != $srcdir)
-    . $srcdir/mpid/$DEVICE/$device_setupfile
+    . "$srcdir/mpid/$DEVICE/$device_setupfile"
     if test $? != 0 ; then
 	print_error "Setup of $DEVICE failed!  Aborting configure"
 	exit 1
@@ -2533,7 +2579,24 @@ fi
 #
 # clock_gettime is the POSIX gettimeofday
 # gethrtime is the Solaris high-resolution timer
-AC_HAVE_FUNCS(clock_gettime clock_getres gethrtime)
+AC_HAVE_FUNCS(gethrtime)
+# POSIX *requires* that the include for clock_gettime is <time.h>.
+# Unfortunately, FreeBSD incorrectly uses sys/time.h.  Since time.h is
+# provided, we need to check that CLOCK_REALTIME is defined
+AC_FUNC_CHECK(clock_gettime,have_clock_gettime=yes,have_clock_gettime=no)
+AC_FUNC_CHECK(clock_getres,have_clock_getres=yes,have_clock_getres=no)
+if test "$have_clock_gettime" = "yes" -a "$have_clock_getres" = "yes" ; then
+    AC_COMPILE_CHECK([whether CLOCK_REALTIME is defined in time.h],
+[#include <time.h>],[clockid_t cid = CLOCK_REALTIME;],
+    posix_time=yes,posix_time=no)
+    if test "$posix_time" = "yes" ; then
+        AC_DEFINE(HAVE_CLOCK_GETTIME,,[have posix gettime])
+        AC_DEFINE(HAVE_CLOCK_GETRES,,[have posix getres])
+    else
+        AC_MSG_WARN([Posix timers not correctly implemented])
+    fi
+fi
+
 #
 # Some devices use gettimeofday.  If this is one of them, check to see 
 # what form it is
@@ -2558,10 +2621,40 @@ if test $TRY_WEAK_SYMBOLS = 1 ; then
 #pragma weak PFoo = Foo
 int Foo(a) { return a; }
 ],[return PFoo(1);],has_pragma_weak=1)
-  if test "$has_pragma_weak" = 1 ; then
+#
+# Some systems (Linux ia64 and ecc, for example), support weak symbols
+# only within a single object file!  This tests that case.
+if test "$has_pragma_weak" = 1 ; then
     AC_MSG_RESULT([pragma weak])
+    AC_MSG_CHECKING([that weak symbols are visible to other files])
+    rm -f conftest*
+    cat >>conftest1.c <<EOF
+#pragma weak PFoo = Foo
+int Foo(int);
+int Foo(a) { return a; }
+EOF
+    cat >>conftest2.c <<EOF
+int main() {
+return PFoo(0);}
+EOF
+    ac_link2='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest1.c conftest2.c $LIBS >conftest.out 2>&1'
+    if eval $ac_link2 ; then
+        AC_MSG_RESULT(yes)
+    else
+      echo "$ac_link2" >>config.log
+      echo "Failed program was" >>config.log
+      cat conftest1.c >>config.log
+      cat conftest2.c >>config.log
+      if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+      AC_MSG_RESULT(no)
+      has_pragma_weak=0
+    fi
+    rm -f conftest*
+fi
+#
+  if test "$has_pragma_weak" = 1 ; then
+    dnl    AC_MSG_RESULT([pragma weak]) (setup above)
     HAS_WEAK_SYMBOLS=1
-    AC_DEFINE(HAVE_WEAK_SYMBOLS)
     AC_DEFINE(HAVE_PRAGMA_WEAK)
   else
     AC_TRY_LINK([
@@ -2571,7 +2664,6 @@ int Foo(a) { return a; }
     if test "$has_pragma_hp_secondary" = 1 ; then 
         AC_MSG_RESULT([pragma _HP_SECONDARY_DEF])
         HAS_WEAK_SYMBOLS=1
-        AC_DEFINE(HAVE_WEAK_SYMBOLS)
         AC_DEFINE(HAVE_PRAGMA_HP_SEC_DEF)
     else
         AC_TRY_LINK([
@@ -2581,7 +2673,6 @@ int Foo(a) { return a; }
         if test "$has_pragma_cri_duplicate" = 1 ; then
 	    AC_MSG_RESULT([pragma _CRI duplicate x as y])
 	    HAS_WEAK_SYMBOLS=1
-	    AC_DEFINE(HAVE_WEAK_SYMBOLS)
 	    AC_DEFINE(HAVE_PRAGMA_CRI_DUP)
         else    
             AC_MSG_RESULT(no)
@@ -2590,6 +2681,7 @@ int Foo(a) { return a; }
   fi
 fi
 if test "$HAS_WEAK_SYMBOLS" = "1" ; then
+    AC_DEFINE(HAVE_WEAK_SYMBOLS)
     MPI_WITH_PMPI="yes"
 else
     MPI_WITH_PMPI="no"
@@ -2613,11 +2705,17 @@ if test -n "$PERL" ; then
     changequote(<<,>>)
 dnl    perlversion=`$PERL -v | grep 'This is perl' | \
 dnl	sed -e 's/^.*version *\([0-9]\).*$/\1/'`
-dnl This might not work in previous versions of perl, but that is ok!
+dnl This might not work in previous versions of perl.
+dnl In particular, perl v 4 returns a long string for $] rather than
+dnl a useful version number.
     perlversion=`$PERL -e 'print <<substr>>($],0,1)."\n";' </dev/null`
     changequote([,])
     # Should do a test first for ch_p4 etc.
     if test "$perlversion" != 5 ; then
+        if test "$perlversion" = "\$" ; then
+            # Get the entire string
+            perlversion=`$PERL -e 'print $]."\n";' </dev/null`
+	fi
         echo "Some scripts require perl version 5, which configure did not find."
         echo "You can set the environment variable PERL to contain the "
         echo "location of perl version 5."
@@ -3099,7 +3197,7 @@ if test "$cross_compiling" = 0 -o -z "$cross_compiling" ; then
    fi
    AC_MSG_CHECKING([for structure alignment])
    rm -f conftest*
-   cat confdefs.h $srcdir/util/structlayout.c > conftest.c
+   cat confdefs.h "$srcdir/util/structlayout.c" > conftest.c
    eval $compile
    if test ! -s conftest ; then
 	AC_MSG_RESULT([Could not build executable program to test alignment])
@@ -3167,7 +3265,7 @@ if test "$try_traceback" = "yes" ; then
        AC_MSG_CHECKING([whether backtrace works])
        bktrace_works=no
        
-       if $TESTCC -o conftest -DTEST_BACKTRACE $top_srcdir_val/src/util/backtrace.c ; then
+       if $TESTCC -o conftest -DTEST_BACKTRACE "$top_srcdir_val/src/util/backtrace.c" ; then
            if ./conftest >conftest.out 2>&1 ; then
 	       #cat conftest.out
 	       bktrace_works=yes
@@ -3263,6 +3361,52 @@ dnl fi
 # BASE_LIB_LIST lets us separate the MPI library from the other libs
 BASE_LIB_LIST="$LIB_LIST"
 # used to be LIB_LIST="$LIB_LIST -lmpi" I switched it, inspired by HPUX
+# 
+# Before we accept MPILIBNAME, we need to make sure that it does not conflict
+# with other libraries.  We had this problem at NCSA, where -L. -lmpich gives
+# does not give libmpich.a in the current directory; instead, it uses 
+# libmpich.a in another, system directory.  This is really a misconfigured
+# ecc.cfg file, but here is the place to check for it.
+AC_MSG_CHECKING([that $MPILIBNAME can be used as the library name])
+canuse=yes
+cat >conftest.c <<EOF
+int foobar( int );
+int foobar( int a ) { return a; }
+EOF
+if test -z "$ac_compile" ; then
+    ac_compile='${CC-cc} $CFLAGS $CPPFLAGS conftest.c -c 1>&AC_FD_CC 2>&AC_FD_CC'
+fi
+if test -z "$ac_link" ; then
+    ac_link='${CC-cc} $CFLAGS $CPPFLAGS $LDFLAGS conftest.c -o conftest $LIBS 1>&AC_FD_CC 2>&AC_FD_CC'
+fi
+if eval $ac_compile ; then
+    # Create the library (AR includes the cr options)
+    rm -f lib$MPILIBNAME.a
+    ${AR} lib$MPILIBNAME.a conftest.o
+    ${RANLIB} lib$MPILIBNAME.a
+    rm -f conftest*
+    # create the main program
+    cat >conftest.c <<EOF
+extern int foobar( int );
+int main( int argc, char **argv ) { return foobar(0); }
+EOF
+    save_LIBS="$LIBS"
+    LIBS="-L. -l$MPILIBNAME"
+    if eval $ac_link ; then
+        :
+    else
+	canuse=no
+    fi
+    LIBS="$save_LIBS"
+fi
+AC_MSG_RESULT($canuse)
+if test "$canuse" = "no" ; then
+    AC_MSG_ERROR([$MPILIBNAME cannot be used as the name for the MPICH library
+Pick another name and set the environment variable MPILIBNAME to that name
+and rerun configure])
+fi
+#
+rm -rf conftest* lib$MPILIBNAME.a
 LIB_LIST="-l$MPILIBNAME $LIB_LIST"
 #
 # Generate the name for the MPI-C, MPI-CC, and MPI-F77 compilers (for use
@@ -3305,19 +3449,21 @@ if test "$NOF77" != 1 ; then
   # nsl (! a bug in HAVE_LIBRARY in autoconf 1.7)
   # if we're the developers, we may need to create the
   # initial configure files.
-  if test ! -x $top_srcdir_val/src/fortran/configure -a \
-            -s $top_srcdir_val/src/fortran/configure.in -a \
-	    -x $top_srcdir_val/src/fortran/makeconfigure ; then
-      (cd $top_srcdir_val/src/fortran ; ./makeconfigure)
+  if test ! -x "$top_srcdir_val/src/fortran/configure" -a \
+            -s "$top_srcdir_val/src/fortran/configure.in" -a \
+	    -x "$top_srcdir_val/src/fortran/makeconfigure" ; then
+      (cd "$top_srcdir_val/src/fortran" ; ./makeconfigure)
   fi
   # The test versions (e.g., TESTCC) are used for cross-compilation cases when
   # they allow programs to be built and run
+  # Export the F77_xxx and F90xxx incase they were set with the -nagxxx switch
   (cd src/fortran ; \
   export CC ;\
   export CFLAGS ;\
   export F77 ;\
   export FFLAGS ;\
   export F90 ;\
+  export LDFLAGS ;\
   export TESTCC ;\
   export TESTF77 ;\
   export TESTF90 ;\
@@ -3340,6 +3486,12 @@ if test "$NOF77" != 1 ; then
   export F90LIB_PATH ;\
   export f90nag ;\
   export f95nag ;\
+  export F77GETARGDECL; \
+  export F90GETARGDECL; \
+  export FXX_MODULE; \
+  export F77_GETARGDECL; \
+  export F77_GETARG; \
+  export F77_IARGC; \
   export MPIVERSION ;\
   export MPIR_HOME ;\
   export libbuild_dir ;\
@@ -3426,7 +3578,7 @@ if test $ROMIO = 1 ; then
   # If we find that we can't build ROMIO, set the appropriate
   # --with args so that subdirectory configures won't assume that
   # ROMIO is present
-  if test -d ${top_srcdir}/romio ; then 
+  if test -d "${top_srcdir}/romio" ; then 
       echo "Configuring ROMIO, for support of MPI-IO"
       # Check first for some ROMIO-specific requirements
       PAC_MACRO_NAME_IN_MACRO(,ROMIO=0)
@@ -3439,7 +3591,7 @@ if test $ROMIO = 1 ; then
       with_args="$with_args --without-romio --without-mpiio"
   fi
 fi
-if test $ROMIO = 1 -a -d ${top_srcdir}/romio ; then
+if test $ROMIO = 1 -a -d "${top_srcdir}/romio" ; then
   # If integer*8 not supported, then tell ROMIO not to use it.
   # We do this indirectly by telling ROMIO to use an offset type of int.
   if test "$NOF77" = "0" ; then
@@ -3470,16 +3622,17 @@ if test $ROMIO = 1 -a -d ${top_srcdir}/romio ; then
   export CROSS_SIZEOF_VOID_P; \
   export int_len ; export void_star_len ; export OFFSET_KIND ; \
   export long_long_len ; \
-  ${top_srcdir}/romio/configure -arch="$ARCH" $ROMIO_ARGS $ROMIO_FILE_SYSTEM \
-            -mpi=mpich -from_mpich \
+  "${top_srcdir}/romio/configure" -arch="$ARCH" $ROMIO_ARGS $ROMIO_FILE_SYSTEM \
+            --with-mpi=mpich -from_mpich \
 	    -make="$MAKE" \
             -mpiincdir=$includebuild_dir \
 	    -mpibindir=$binbuild_dir \
             -mpilib=$libbuild_dir/lib$MPILIBNAME.a \
             -mpiolib=$libbuild_dir/lib$MPILIBNAME.a \
             -cc="$CC" -cflags="$ROMIO_CFLAGS $CC_SHARED_OPT" \
-            -fc="$F77" -fflags="$ROMIO_FFLAGS $FC_SHARED_OPT" -f90="$F90" $romio_config_args )
-  /bin/rm -f include/mpio.h ${top_srcdir}/include/mpio.h
+            -fc="$F77" -fflags="$ROMIO_FFLAGS $FC_SHARED_OPT" \
+	    -f90="$F90" $romio_config_args $enable_args $with_args )
+  /bin/rm -f include/mpio.h "${top_srcdir}/include/mpio.h"
   cp romio/include/mpio.h include
   ROMIO_LFLAGS="`$MAKE -f romio/Makefile romio_lflags`"
   ROMIO_TCFLAGS="`$MAKE -f romio/Makefile romio_tcflags`"
@@ -3495,7 +3648,7 @@ if test $ROMIO = 1 -a -d ${top_srcdir}/romio ; then
 	if test "$NOF77" = 0 -a -x src/fortran/src/mpif77 ; then
 	    for file in mpif77 mpif77.conf mpif90 mpif90.conf ; do 
 	       if test ! -s src/fortran/src/$file ; then continue ; fi
-	       rm -f .tmp
+	       rm -rf .tmp
 	       make_x=no
 	       if test -x src/fortran/src/$file ; then make_x=yes ; fi
   	       cp src/fortran/src/$file .tmp
@@ -3517,7 +3670,7 @@ if test $ROMIO = 1 -a -d ${top_srcdir}/romio ; then
 	           chmod a+x src/fortran/src/$file
 	       fi
 	    done
-	    rm -f .tmp
+	    rm -rf .tmp
         fi
   fi
 # mpif.h prepared for ROMIO at end of configure
@@ -3538,7 +3691,7 @@ fi
 # - the option to MPE configure, --with-f2cmpilibs, allows different
 #   Fortran to C MPI wrapper library name.  This should allow MPICH
 #   to use a different name if it is needed.
-if test "$NOMPE" = 0 -a -d ${top_srcdir}/mpe ; then
+if test "$NOMPE" = 0 -a -d "${top_srcdir}/mpe" ; then
     MPE_ARGS="$ENABLE_MPEDBG $MPE_OPTS";
     if test "$NOF77" != "0" ; then
         MPE_ARGS="$MPE_ARGS --disable-f77"
@@ -3550,7 +3703,8 @@ if test "$NOMPE" = 0 -a -d ${top_srcdir}/mpe ; then
       MPI_F77=${binbuild_dir}/mpif77 ; export MPI_F77 ; \
       CC="${TESTCC}" ; export CC ; \
       F77="${TESTF77}" ; export F77 ; \
-      ${top_srcdir}/mpe/configure --enable-mpich --disable-checkMPI \
+      export CLINKER ; export FLINKER ; \
+      "${top_srcdir}/mpe/configure" --enable-mpich --disable-checkMPI \
                                   --with-f2cmpilibs=-lf$MPILIBNAME \
                                   --with-flib_path_leader=$LIB_PATH_LEADER \
                                   --prefix=${prefix} $enable_args $with_args \
@@ -3577,13 +3731,13 @@ fi
 AC_SUBST(RSHCOMMAND)dnl
 #
 AC_SUBST(SYNCLOC)dnl
-# Variables defined ONLY for the doc/port file:
-AC_SUBST(CONFIGURE_ARGS)dnl
-AC_SUBST(NODEVDEBUG)dnl
-AC_SUBST(PKTSIZE)dnl
-AC_SUBST(LIMITEDBUFFERS)dnl
-AC_SUBST(ADI_COLLECTIVE)dnl
-AC_SUBST(cross_compiling)dnl
+dnl # Variables defined ONLY for the doc/port file:
+dnl AC_SUBST(CONFIGURE_ARGS)dnl
+dnl AC_SUBST(NODEVDEBUG)dnl
+dnl AC_SUBST(PKTSIZE)dnl
+dnl AC_SUBST(LIMITEDBUFFERS)dnl
+dnl AC_SUBST(ADI_COLLECTIVE)dnl
+dnl AC_SUBST(cross_compiling)dnl
 # Variables used by Makefile.in's:
 AC_SUBST(ASM)dnl
 AC_SUBST(ASMFILES_O)dnl
@@ -3668,7 +3822,7 @@ AC_SUBST(P4_ARCH)dnl
 AC_SUBST(P4_DIR)dnl
 AC_SUBST(RHS_COMMAND)dnl
 # P4_MDEPCFLAGS now used only in doc/port.in - delete this
-AC_SUBST(P4_MDEPCFLAGS)dnl
+dnl AC_SUBST(P4_MDEPCFLAGS)dnl
 AC_SUBST(PREFIX)dnl
 AC_SUBST(RANLIB)dnl
 AC_SUBST(USER_CFLAGS)dnl
@@ -3689,7 +3843,7 @@ AC_SUBST(MPE_OPTS)dnl
 #
 # Make sure we remove any configuration file incase there is out-of-date data.
 # We remove the version in include in case this is a vpath build
-/bin/rm -f mpichconf.h ${top_srcdir}/include/mpichconf.h include/mpichconf.h
+/bin/rm -f mpichconf.h "${top_srcdir}/include/mpichconf.h include/mpichconf.h"
 
 # Make the directories that do not contain Makefiles (should they?) but 
 # are needed for the subsequent directories.
@@ -3712,7 +3866,7 @@ export CONFIG_HEADERS
 # should eventually be built by only those devices (which should also know
 # about installing them)
 # FIXME: mv util/chkserv util/chkmachine and util/tstmachines elsewhere.
-PAC_OUTPUT_EXEC(util/mpicc util/mpiCC util/mpiinstall \
+PAC_OUTPUT_EXEC(util/mpicc util/mpicxx util/mpiinstall \
 		util/mpirun util/mpichlib.conf util/mpiman \
                 util/chkserv util/chkmachine util/tstmachines, a+x )
 dnl
@@ -3720,9 +3874,9 @@ dnl mpif.h created by the Fortran subsystem
 rm -f $includebuild_dir/mpidefs.h 
 rm -f $includebuild_dir/mpif.f90
 dnl rm -f $includebuild_dir/mpif.h 
-rm -f $top_srcdir/include/mpidefs.h 
-rm -f $top_srcdir/include/mpif.f90
-dnl rm -f $top_srcdir/include/mpif.h
+rm -f "$top_srcdir/include/mpidefs.h"
+rm -f "$top_srcdir/include/mpif.f90"
+dnl rm -f "$top_srcdir/include/mpif.h"
 PAC_OUTPUT_EXEC(include/mpidefs.h,a+r)
 PAC_OUTPUT_EXEC(include/mpif.f90,a+r)
 dnl PAC_OUTPUT_EXEC(include/mpif.h,a+r)
@@ -3730,12 +3884,12 @@ dnl PAC_OUTPUT_EXEC(include/mpif.h,a+r)
 unset CONFIG_HEADERS
 
 # Get the files needed by USER programs into the includebuild_dir
-if test ! -s $includebuild_dir/mpi.h ; then
-    cp ${top_srcdir}/include/mpi.h $includebuild_dir
-    cp ${top_srcdir}/include/mpi_errno.h $includebuild_dir
+if test ! -s "$includebuild_dir/mpi.h" ; then
+    cp "${top_srcdir}/include/mpi.h" "$includebuild_dir"
+    cp "${top_srcdir}/include/mpi_errno.h" "$includebuild_dir"
 fi
-if test ! -s $includebuild_dir/mpidefs.h ; then 
-    cp ${top_srcdir}/include/mpidefs.h $includebuild_dir
+if test ! -s "$includebuild_dir/mpidefs.h" ; then 
+    cp "${top_srcdir}/include/mpidefs.h" "$includebuild_dir"
     dnl cp ${top_srcdir}/include/mpif.h $includebuild_dir
 fi
 
@@ -3789,7 +3943,7 @@ fi
 # The eval causes the \" in the f77 case above to be properly expanded.
 ( cd examples/test ;
   export MPIBOOT ; export MPIUNBOOT ; \
-  eval $srcdir/examples/test/configure -basecc=\"$CC\" -cc=\"$MPICC\" \
+  eval "$srcdir/examples/test/configure" -basecc=\"$CC\" -cc=\"$MPICC\" \
                                   -make=\"$MAKE\" -device="$DEVICE" \
 			          -mpichpath="$binbuild_dir" \
 				  --enable-boot \
@@ -3805,16 +3959,16 @@ fi
 # This is the autoconf 2 version.
 # if we're the developers, we may need to create the
 # initial configure files.
-if test ! -x $top_srcdir_val/examples/perftest/configure -a \
-          -s $top_srcdir_val/examples/perftest/configure.in -a \
-	  -x $top_srcdir_val/examples/perftest/makeconfigure ; then
-    (cd $top_srcdir_val/examples/perftest ; ./makeconfigure)
+if test ! -x "$top_srcdir_val/examples/perftest/configure" -a \
+          -s "$top_srcdir_val/examples/perftest/configure.in" -a \
+	  -x "$top_srcdir_val/examples/perftest/makeconfigure" ; then
+    (cd "$top_srcdir_val/examples/perftest" ; ./makeconfigure)
 fi
 (cd examples/perftest ; \
     export MAKE ; export CC ; export F77 ; export MPICC ; export MPIF77 ; \
     export MPILIBNAME ; export TESTCC ; export TESTF77 ; \
     export F90 ; export TESTF90 ; \
-    $srcdir/examples/perftest/configure \
+    "$srcdir/examples/perftest/configure" \
 	--with-mpichbuilding --with-mpich=$binbuild_dir \
 	-prefix=$prefix $otherargs )
 
@@ -3832,7 +3986,7 @@ fi
 #
 # Configure JUST the correct device file
 CONFIG_FILES="mpid/$DEVICE/Makefile"
-if test -f $srcdir/mpid/tests/Makefile.in ; then
+if test -f "$srcdir/mpid/tests/Makefile.in" ; then
     CONFIG_FILES="$CONFIG_FILES mpid/tests/Makefile"
 fi
 export CONFIG_FILES
@@ -3877,11 +4031,6 @@ if test -d examples/test/mpitc ; then
     CONFIG_FILES=""
     unset CONFIG_FILES
 fi
-#
-dnl # If the doc/port.in file is available, generate it
-dnl if test -f $srcdir/doc/port.in ; then
-dnl    PAC_OUTPUT_EXEC(doc/port doc/portbuild doc/portperf doc/porttest,a+x)
-dnl fi
 #
 if test ! -f .mpich -a -z "$nobanner" ; then
   print_error "--->"

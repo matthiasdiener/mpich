@@ -8,16 +8,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_TYPE_FREE = PMPI_TYPE_FREE
-EXPORT_MPI_API void MPI_TYPE_FREE ( MPI_Fint *, MPI_Fint * );
+void MPI_TYPE_FREE ( MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_type_free__ = pmpi_type_free__
-EXPORT_MPI_API void mpi_type_free__ ( MPI_Fint *, MPI_Fint * );
+void mpi_type_free__ ( MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_type_free = pmpi_type_free
-EXPORT_MPI_API void mpi_type_free ( MPI_Fint *, MPI_Fint * );
+void mpi_type_free ( MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_type_free_ = pmpi_type_free_
-EXPORT_MPI_API void mpi_type_free_ ( MPI_Fint *, MPI_Fint * );
+void mpi_type_free_ ( MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -75,9 +75,9 @@ EXPORT_MPI_API void mpi_type_free_ ( MPI_Fint *, MPI_Fint * );
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_type_free_ ( MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_type_free_ ( MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_type_free_ ( MPI_Fint *datatype, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_type_free_ ( MPI_Fint *datatype, MPI_Fint *__ierr )
 {
     MPI_Datatype ldatatype = MPI_Type_f2c(*datatype);
     *__ierr = MPI_Type_free(&ldatatype);

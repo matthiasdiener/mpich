@@ -14,16 +14,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_STATUS_SET_ELEMENTS = PMPI_STATUS_SET_ELEMENTS
-EXPORT_MPI_API void MPI_STATUS_SET_ELEMENTS (MPI_Status *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_STATUS_SET_ELEMENTS (MPI_Status *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_status_set_elements__ = pmpi_status_set_elements__
-EXPORT_MPI_API void mpi_status_set_elements__ (MPI_Status *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_status_set_elements__ (MPI_Status *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_status_set_elements = pmpi_status_set_elements
-EXPORT_MPI_API void mpi_status_set_elements (MPI_Status *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_status_set_elements (MPI_Status *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_status_set_elements_ = pmpi_status_set_elements_
-EXPORT_MPI_API void mpi_status_set_elements_ (MPI_Status *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_status_set_elements_ (MPI_Status *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -80,13 +80,13 @@ EXPORT_MPI_API void mpi_status_set_elements_ (MPI_Status *, MPI_Fint *, MPI_Fint
 #endif
 
 
-EXPORT_MPI_API void mpi_status_set_elements_(MPI_Status *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_status_set_elements_(MPI_Status *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
 /* Definitions of Fortran Wrapper routines */
 #if defined(__cplusplus)
 extern "C" {
 #endif
-EXPORT_MPI_API void mpi_status_set_elements_(MPI_Status *status, MPI_Fint *datatype,
+FORTRAN_API void FORT_CALL mpi_status_set_elements_(MPI_Status *status, MPI_Fint *datatype,
         MPI_Fint *count, MPI_Fint *__ierr )
 {
     *__ierr = MPI_Status_set_elements(status, MPI_Type_f2c( *datatype ), 

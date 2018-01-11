@@ -1,5 +1,5 @@
 /* 
- *   $Id: darrayf.c,v 1.3 2001/04/19 20:50:45 gropp Exp $    
+ *   $Id: darrayf.c,v 1.6 2001/12/12 23:36:32 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -13,16 +13,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_TYPE_CREATE_DARRAY = PMPI_TYPE_CREATE_DARRAY
-EXPORT_MPI_API void MPI_TYPE_CREATE_DARRAY (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void MPI_TYPE_CREATE_DARRAY (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_type_create_darray__ = pmpi_type_create_darray__
-EXPORT_MPI_API void mpi_type_create_darray__ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void mpi_type_create_darray__ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_type_create_darray = pmpi_type_create_darray
-EXPORT_MPI_API void mpi_type_create_darray (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void mpi_type_create_darray (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #else
 #pragma weak mpi_type_create_darray_ = pmpi_type_create_darray_
-EXPORT_MPI_API void mpi_type_create_darray_ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+void mpi_type_create_darray_ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -80,13 +80,13 @@ EXPORT_MPI_API void mpi_type_create_darray_ (MPI_Fint *, MPI_Fint *, MPI_Fint *,
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_type_create_darray_ (MPI_Fint *, MPI_Fint *, MPI_Fint *,
+FORTRAN_API void FORT_CALL mpi_type_create_darray_ (MPI_Fint *, MPI_Fint *, MPI_Fint *,
 					MPI_Fint *, MPI_Fint *, MPI_Fint *,
 					MPI_Fint *, MPI_Fint *, MPI_Fint *,
 					MPI_Fint *, MPI_Fint *);
 
 /* Definitions of Fortran Wrapper routines */
-EXPORT_MPI_API void mpi_type_create_darray_(MPI_Fint *size, MPI_Fint *rank, 
+FORTRAN_API void FORT_CALL mpi_type_create_darray_(MPI_Fint *size, MPI_Fint *rank, 
 			     MPI_Fint *ndims,
                              MPI_Fint *array_of_gsizes,
 			     MPI_Fint *array_of_distribs,

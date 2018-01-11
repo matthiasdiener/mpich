@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_getf.c,v 1.2 2000/06/30 17:53:24 gropp Exp $    
+ *   $Id: info_getf.c,v 1.5 2001/12/12 23:36:42 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,16 +19,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_INFO_GET = PMPI_INFO_GET
-EXPORT_MPI_API void MPI_INFO_GET (MPI_Fint *, char *, MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint, MPI_Fint);
+void MPI_INFO_GET (MPI_Fint *, char *, MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint, MPI_Fint);
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_info_get__ = pmpi_info_get__
-EXPORT_MPI_API void mpi_info_get__ (MPI_Fint *, char *, MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint, MPI_Fint);
+void mpi_info_get__ (MPI_Fint *, char *, MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint, MPI_Fint);
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_info_get = pmpi_info_get
-EXPORT_MPI_API void mpi_info_get (MPI_Fint *, char *, MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint, MPI_Fint);
+void mpi_info_get (MPI_Fint *, char *, MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint, MPI_Fint);
 #else
 #pragma weak mpi_info_get_ = pmpi_info_get_
-EXPORT_MPI_API void mpi_info_get_ (MPI_Fint *, char *, MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint, MPI_Fint);
+void mpi_info_get_ (MPI_Fint *, char *, MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint, MPI_Fint);
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -86,12 +86,22 @@ EXPORT_MPI_API void mpi_info_get_ (MPI_Fint *, char *, MPI_Fint *, char *, MPI_F
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_info_get_ (MPI_Fint *, char *, MPI_Fint *, char *,
+/*
+FORTRAN_API void FORT_CALL mpi_info_get_ (MPI_Fint *, char *, MPI_Fint *, char *,
 			      MPI_Fint *, MPI_Fint *, MPI_Fint, MPI_Fint);
+*/
+/* Definitions of Fortran Wrapper routines */
+/*
+FORTRAN_API void FORT_CALL mpi_info_get_(MPI_Fint *info, char *key, MPI_Fint *valuelen, char *value, 
+        MPI_Fint *flag, MPI_Fint *__ierr, MPI_Fint keylen, MPI_Fint valspace)
+*/
+/* Prototype to suppress warnings about missing prototypes */
+FORTRAN_API void FORT_CALL mpi_info_get_ (MPI_Fint *, char * FORT_MIXED_LEN_DECL, MPI_Fint *, char * FORT_MIXED_LEN_DECL,
+			      MPI_Fint *, MPI_Fint * FORT_END_LEN_DECL FORT_END_LEN_DECL);
 
 /* Definitions of Fortran Wrapper routines */
-EXPORT_MPI_API void mpi_info_get_(MPI_Fint *info, char *key, MPI_Fint *valuelen, char *value, 
-        MPI_Fint *flag, MPI_Fint *__ierr, MPI_Fint keylen, MPI_Fint valspace)
+FORTRAN_API void FORT_CALL mpi_info_get_(MPI_Fint *info, char *key FORT_MIXED_LEN(keylen), MPI_Fint *valuelen, char *value FORT_MIXED_LEN(valspace), 
+        MPI_Fint *flag, MPI_Fint *__ierr FORT_END_LEN(keylen) FORT_END_LEN(valspace))
 {
     MPI_Info info_c;
     char *newkey, *tmpvalue;

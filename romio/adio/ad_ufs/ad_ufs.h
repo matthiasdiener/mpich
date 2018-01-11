@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_ufs.h,v 1.3 2000/02/09 21:30:00 thakur Exp $    
+ *   $Id: ad_ufs.h,v 1.4 2001/11/29 22:35:46 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -18,6 +18,9 @@
 #include <sys/asynch.h>
 #else
 #include <aio.h>
+#ifdef NEEDS_ADIOCB_T
+typedef struct adiocb adiocb_t;
+#endif
 #endif
 #endif
 

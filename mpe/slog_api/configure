@@ -2473,6 +2473,8 @@ fi
 #
 CFLAGS="$CFLAGS $COPTIONS"
 #
+if test -z "$CLINKER" ; then CLINKER="$CC" ; fi
+
 
 
 
@@ -2584,6 +2586,7 @@ s%@LN_S@%$LN_S%g
 s%@RANLIB@%$RANLIB%g
 s%@AR@%$AR%g
 s%@ALLOCA@%$ALLOCA%g
+s%@CLINKER@%$CLINKER%g
 s%@SLOGNAME@%$SLOGNAME%g
 s%@SLOG_HOME@%$SLOG_HOME%g
 s%@DEBUG_LIBS@%$DEBUG_LIBS%g

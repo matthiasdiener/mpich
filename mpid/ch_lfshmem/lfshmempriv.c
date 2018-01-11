@@ -17,7 +17,7 @@ MPID_SHMEM_lglobmem MPID_lshmem;
 int                 MPID_myid = -1;
 int                 MPID_numids = 0;
 /* Forward declarations */
-void				MPID_SHMEM_lbarrier  ANSI_ARGS((void));
+void				MPID_SHMEM_lbarrier  (void);
 
 /*
    Get an integer from the environment; otherwise, return defval.

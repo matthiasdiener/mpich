@@ -32,7 +32,7 @@
 .N Errors
 .N MPI_SUCCESS
 @*/
-EXPORT_MPI_API int MPI_Status_set_cancelled( MPI_Status *status, int flag )
+int MPI_Status_set_cancelled( MPI_Status *status, int flag )
 {
 #ifdef MPIR_CHECK_ARGS
 #endif

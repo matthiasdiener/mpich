@@ -9,16 +9,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_CANCEL = PMPI_CANCEL
-EXPORT_MPI_API void MPI_CANCEL ( MPI_Fint *, MPI_Fint * );
+void MPI_CANCEL ( MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_cancel__ = pmpi_cancel__
-EXPORT_MPI_API void mpi_cancel__ ( MPI_Fint *, MPI_Fint * );
+void mpi_cancel__ ( MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_cancel = pmpi_cancel
-EXPORT_MPI_API void mpi_cancel ( MPI_Fint *, MPI_Fint * );
+void mpi_cancel ( MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_cancel_ = pmpi_cancel_
-EXPORT_MPI_API void mpi_cancel_ ( MPI_Fint *, MPI_Fint * );
+void mpi_cancel_ ( MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -76,9 +76,9 @@ EXPORT_MPI_API void mpi_cancel_ ( MPI_Fint *, MPI_Fint * );
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_cancel_ ( MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_cancel_ ( MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_cancel_( MPI_Fint *request, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_cancel_( MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest;
 

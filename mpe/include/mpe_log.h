@@ -29,48 +29,35 @@
 #define MPE_Log_NOT_INITIALIZED 4
   /* logging not initialized */
 
-
-/* I got this trick from the Tcl implementation */
-#ifdef _ANSI_ARGS_
-#undef _ANSI_ARGS_
-#endif
-
-#if defined(__STDC__) || defined(__cplusplus)
-#define _ANSI_ARGS_(x) x
-#else
-#define _ANSI_ARGS_(x) ()
-#endif
-
-int MPE_Init_log _ANSI_ARGS_((void));
+int MPE_Init_log (void);
   /* call before calling any other logging functions */
 
-int MPE_Initialized_logging _ANSI_ARGS_ ((void));
+int MPE_Initialized_logging (void);
 
-int MPE_Describe_state _ANSI_ARGS_(( int start, int end, char *name,
-				   char *color ));
+int MPE_Describe_state ( int start, int end, char *name, char *color );
   /* create state description lines */
 
-int MPE_Describe_event _ANSI_ARGS_(( int event, char *name));
+int MPE_Describe_event ( int event, char *name);
   /* create event description lines */
 
-int MPE_Log_get_event_number _ANSI_ARGS_(( void ));
+int MPE_Log_get_event_number ( void );
   /* Get a new event number */
-int MPE_Start_log _ANSI_ARGS_((void));
+int MPE_Start_log (void);
   /* set timer to 0 */
 
-int MPE_Log_event _ANSI_ARGS_(( int event, int data, char *string ));
+int MPE_Log_event ( int event, int data, char *string );
   /* log one event */
 
-int MPE_Log_send _ANSI_ARGS_(( int receiver, int tag, int size ));
+int MPE_Log_send ( int receiver, int tag, int size );
   /* log the sending of a message */
 
-int MPE_Log_receive _ANSI_ARGS_(( int sender, int tag, int size ));
+int MPE_Log_receive ( int sender, int tag, int size );
   /* log the receiving of a message */
 
-int MPE_Stop_log _ANSI_ARGS_((void));
+int MPE_Stop_log (void);
   /* stop logging events */
 
-int MPE_Finish_log _ANSI_ARGS_(( char *filename ));
+int MPE_Finish_log ( char *filename );
   /* write out data to a file */
 
 #endif

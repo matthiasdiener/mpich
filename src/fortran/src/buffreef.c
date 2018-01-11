@@ -10,16 +10,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_BUFFER_DETACH = PMPI_BUFFER_DETACH
-EXPORT_MPI_API void MPI_BUFFER_DETACH ( void **, MPI_Fint *, MPI_Fint * );
+void MPI_BUFFER_DETACH ( void **, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_buffer_detach__ = pmpi_buffer_detach__
-EXPORT_MPI_API void mpi_buffer_detach__ ( void **, MPI_Fint *, MPI_Fint * );
+void mpi_buffer_detach__ ( void **, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_buffer_detach = pmpi_buffer_detach
-EXPORT_MPI_API void mpi_buffer_detach ( void **, MPI_Fint *, MPI_Fint * );
+void mpi_buffer_detach ( void **, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_buffer_detach_ = pmpi_buffer_detach_
-EXPORT_MPI_API void mpi_buffer_detach_ ( void **, MPI_Fint *, MPI_Fint * );
+void mpi_buffer_detach_ ( void **, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -77,9 +77,9 @@ EXPORT_MPI_API void mpi_buffer_detach_ ( void **, MPI_Fint *, MPI_Fint * );
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_buffer_detach_ ( void **, MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_buffer_detach_ ( void **, MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_buffer_detach_( void **buffer, MPI_Fint *size, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_buffer_detach_( void **buffer, MPI_Fint *size, MPI_Fint *__ierr )
 {
   void *tmp = (void *)buffer;
   int lsize;

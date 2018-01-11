@@ -1,5 +1,5 @@
 /*
- *  $Id: ssend.c,v 1.9 1999/09/18 15:50:08 gropp Exp $
+ *  $Id: ssend.c,v 1.10 2001/11/14 20:10:03 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -48,7 +48,7 @@ Input Parameters:
 .N MPI_ERR_TAG
 .N MPI_ERR_RANK
 @*/
-EXPORT_MPI_API int MPI_Ssend( void *buf, int count, MPI_Datatype datatype, 
+int MPI_Ssend( void *buf, int count, MPI_Datatype datatype, 
 	       int dest, int tag, MPI_Comm comm )
 {
     int         mpi_errno = MPI_SUCCESS;

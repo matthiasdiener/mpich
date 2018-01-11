@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_dup.c,v 1.10 2001/02/27 22:39:38 gropp Exp $    
+ *   $Id: info_dup.c,v 1.11 2001/11/14 20:08:05 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -51,7 +51,7 @@ Output Parameters:
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Info_dup(MPI_Info info, MPI_Info *newinfo)
+int MPI_Info_dup(MPI_Info info, MPI_Info *newinfo)
 {
     MPI_Info curr_old, curr_new;
     int mpi_errno;

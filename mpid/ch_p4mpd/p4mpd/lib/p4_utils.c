@@ -752,12 +752,14 @@ int p4_wait_for_end()
 
 #   endif
 
+#ifdef OLD_EXECER
     if (execer_starting_remotes  &&  execer_mynodenum == 0)
     {
 	strcpy(job_filename,"/tmp/p4_");
 	strcat(job_filename,execer_jobname);
 	unlink(job_filename);
     }
+#endif
 
     if (p4_get_my_id())
         p4_dprintfl(20,"process exiting\n");
@@ -910,37 +912,37 @@ P4VOID zap_remote_p4_processes()
 */
 }
 
-P4VOID get_qualified_hostname(str)
-char *str;
+P4VOID get_qualified_hostname(char *str, int maxlen)
 {
+    str[maxlen-1] = 0;
 #   if (defined(IPSC860)  &&  !defined(IPSC860_SOCKETS))  ||  \
        (defined(CM5)      &&  !defined(CM5_SOCKETS))      ||  \
        (defined(NCUBE)    &&  !defined(NCUBE_SOCKETS))    ||  \
        (defined(SP1_EUI))                                 ||  \
        (defined(SP1_EUIH))
-    strcpy(str,"cube_node");
+    strncpy(str,"cube_node",maxlen-1);
 #   else
-#       if defined(SUN_SOLARIS)
+#       if defined(SUN_SOLARIS) || defined(MEIKO_CS2)
         if (*str == '\0') {
             if (p4_global)
-		strcpy(str,p4_global->my_host_name);
+		strncpy(str,p4_global->my_host_name,maxlen-1);
 	    else
-		if (sysinfo(SI_HOSTNAME, str, HOSTNAME_LEN) == -1)
+		if (sysinfo(SI_HOSTNAME, str, maxlen-1) == -1)
 		    p4_error("could not get qualified hostname", getpid());
 	    }
 #       else
         if (*str == '\0')
 	{
             if (p4_global)
-                strcpy(str,p4_global->my_host_name);
+                strncpy(str,p4_global->my_host_name,maxlen-1);
             else
-                gethostname(str, 100);
+                gethostname_p4(str, maxlen);
 	}
 #       endif
     if (*local_domain != '\0'  &&  !index(str,'.'))
     {
-	strcat(str,".");
-	strcat(str,local_domain);
+	strncat(str,".",maxlen-1);
+	strncat(str,local_domain,maxlen-1);
     }
 #endif
 }
@@ -1021,9 +1023,8 @@ char **exename;
     }
 }
 	       
-
-P4VOID put_execer_port(port)
-int port;
+#ifdef OLD_EXECER
+P4VOID put_execer_port(int port)
 {
     int fd;
     char job_filename[64];
@@ -1043,8 +1044,7 @@ int port;
     close(fd);
 }
 
-int get_execer_port(master_hostname)
-char *master_hostname;
+int get_execer_port( char *master_hostname)
 {
     int port, num_read, sleep_time, status;
     FILE *fp;
@@ -1075,6 +1075,24 @@ char *master_hostname;
 
     return(port);
 }
+void clean_execer_port( void )
+{
+    char job_filename[64];
+    if (execer_starting_remotes  &&  execer_mynodenum == 0)
+    {
+	strncpy(job_filename,"/tmp/p4_",64);
+	strncat(job_filename,execer_jobname,64);
+	unlink(job_filename);
+    }
+}
+#else
+void put_execer_port( int port )
+{
+}
+void clean_execer_port( void )
+{
+}
+#endif
 
 /* high-resolution clock, made out of p4_clock and p4_ustimer */
 

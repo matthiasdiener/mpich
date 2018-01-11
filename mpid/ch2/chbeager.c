@@ -1,5 +1,5 @@
 /*
- *  $Id: chbeager.c,v 1.9 2000/08/09 22:29:35 gropp Exp $
+ *
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -32,11 +32,14 @@ void MPID_CH_Eagerb_delete ( MPID_Protocol * );
 /*
  * Definitions of the actual functions
  */
-int MPID_CH_Eagerb_send( buf, len, src_lrank, tag, context_id, dest,
-			 msgrep )
-void *buf;
-int  len, tag, context_id, src_lrank, dest;
-MPID_Msgrep_t msgrep;
+int MPID_CH_Eagerb_send( 
+	void *buf, 
+	int len, 
+	int src_lrank, 
+	int tag, 
+	int context_id, 
+	int dest,
+	MPID_Msgrep_t msgrep )
 {
     int              pkt_len;
     MPID_PKT_LONG_T  pkt;
@@ -113,10 +116,10 @@ MPID_Msgrep_t msgrep;
  * This is the routine called when a packet of type MPID_PKT_LONG is
  * seen.  It receives the data as shown (final interface not set yet)
  */
-int MPID_CH_Eagerb_recv( rhandle, from, in_pkt )
-MPIR_RHANDLE *rhandle;
-int          from;
-void         *in_pkt;
+int MPID_CH_Eagerb_recv( 
+	MPIR_RHANDLE *rhandle,
+	int          from,
+	void         *in_pkt)
 {
     MPID_PKT_LONG_T   *pkt = (MPID_PKT_LONG_T *)in_pkt;
     int    msglen, err = MPI_SUCCESS;
@@ -160,9 +163,9 @@ void         *in_pkt;
  * This routine is called when it is time to receive an unexpected
  * message
  */
-int MPID_CH_Eagerb_unxrecv_start( rhandle, in_runex )
-MPIR_RHANDLE *rhandle;
-void         *in_runex;
+int MPID_CH_Eagerb_unxrecv_start( 
+	MPIR_RHANDLE *rhandle,
+	void         *in_runex)
 {
     MPIR_RHANDLE *runex = (MPIR_RHANDLE *)in_runex;
     int          msglen, err = 0;
@@ -195,10 +198,10 @@ void         *in_runex;
 }
 
 /* Save an unexpected message in rhandle */
-int MPID_CH_Eagerb_save( rhandle, from, in_pkt )
-MPIR_RHANDLE *rhandle;
-int          from;
-void         *in_pkt;
+int MPID_CH_Eagerb_save( 
+	MPIR_RHANDLE *rhandle,
+	int          from,
+	void         *in_pkt)
 {
     MPID_PKT_T *pkt = (MPID_PKT_T *)in_pkt;
 
@@ -236,12 +239,15 @@ void         *in_pkt;
     return 0;
 }
 
-int MPID_CH_Eagerb_isend( buf, len, src_lrank, tag, context_id, dest,
-			 msgrep, shandle )
-void *buf;
-int  len, tag, context_id, src_lrank, dest;
-MPID_Msgrep_t msgrep;
-MPIR_SHANDLE *shandle;
+int MPID_CH_Eagerb_isend( 
+	void *buf, 
+	int len, 
+	int src_lrank, 
+	int tag, 
+	int context_id, 
+	int dest,
+	MPID_Msgrep_t msgrep, 
+	MPIR_SHANDLE *shandle )
 {
     int pkt_len; 
     MPID_PKT_LONG_T  pkt;
@@ -327,17 +333,17 @@ MPIR_SHANDLE *shandle;
     return MPI_SUCCESS;
 }
 
-int MPID_CH_Eagerb_cancel_send( shandle )
-MPIR_SHANDLE *shandle;
+int MPID_CH_Eagerb_cancel_send( 
+	MPIR_SHANDLE *shandle)
 {
     return 0;
 }
 
 /* This routine is called when a message arrives and was expected */
-int MPID_CH_Eagerb_irecv( rhandle, from, in_pkt )
-MPIR_RHANDLE *rhandle;
-int          from;
-void         *in_pkt;
+int MPID_CH_Eagerb_irecv( 
+	MPIR_RHANDLE *rhandle,
+	int          from,
+	void         *in_pkt)
 {
     MPID_PKT_LONG_T *pkt = (MPID_PKT_LONG_T *)in_pkt;
     int    msglen, err = MPI_SUCCESS;
@@ -412,8 +418,8 @@ int MPID_CH_Eagerb_wait_recv( )
 
 #endif
 
-void MPID_CH_Eagerb_delete( p )
-MPID_Protocol *p;
+void MPID_CH_Eagerb_delete( 
+	MPID_Protocol *p)
 {
     FREE( p );
 }

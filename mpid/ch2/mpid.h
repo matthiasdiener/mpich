@@ -19,14 +19,6 @@
 #define MPIR_HAS_COOKIES
 #include "cookie.h"
 
-#ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
-#define ANSI_ARGS(a) a
-#else
-#define ANSI_ARGS(a) ()
-#endif
-#endif
-
 /* This include brings in any definitions needed by all that are relevant 
  * to the device.  For example, MPID_HAS_HETERO
  */
@@ -46,6 +38,26 @@
 #define FPRINTF fprintf
 #define SPRINTF sprintf
 #define FPUTS   fputs
+#endif
+
+/* #define MPID_STATUS_SET_ELEMENTS(status,datatype,count) */
+/*
+ * Thread definitions.  We show an example of pthreads, as well as
+ * a default set for no threading.  
+ */
+#if defined(HAVE_PTHREAD_MUTEX_INIT) && defined(USE_PTHREADS)
+#define MPID_THREAD_DS_LOCK_DECLARE pthread_mutex_t mutex;
+#define MPID_THREAD_DS_LOCK_INIT(p) pthread_mutex_init( &(p)->mutex, \
+                                    pthread_mutexattr_default );
+#define MPID_THREAD_DS_LOCK(p)      pthread_mutex_lock( &(p)->mutex );
+#define MPID_THREAD_DS_UNLOCK(p)    pthread_mutex_unlock( &(p)->mutex );
+#define MPID_THREAD_DS_LOCK_FREE(p) pthread_mutex_destroy( &(p)->mutex );
+#elif !defined(MPID_THREAD_DS_LOCK)
+#define MPID_THREAD_DS_LOCK_DECLARE 
+#define MPID_THREAD_DS_LOCK_INIT(p) 
+#define MPID_THREAD_DS_LOCK(p)      
+#define MPID_THREAD_DS_UNLOCK(p)    
+#define MPID_THREAD_DS_LOCK_FREE(p) 
 #endif
 
 /*
@@ -208,28 +220,14 @@ extern struct MPIR_COMMUNICATOR *MPIR_COMM_WORLD;
 /*
  * A device can also define how to set the status for an arbitrary value.
  */
-/* #define MPID_STATUS_SET_ELEMENTS(status,datatype,count) */
-/*
- * Thread definitions.  We show an example of pthreads, as well as
- * a default set for no threading.  
- */
-#if defined(HAVE_PTHREAD_MUTEX_INIT) && defined(USE_PTHREADS)
-#define MPID_THREAD_DS_LOCK_DECLARE pthread_mutex_t mutex;
-#define MPID_THREAD_DS_LOCK_INIT(p) pthread_mutex_init( &(p)->mutex, \
-                                    pthread_mutexattr_default );
-#define MPID_THREAD_DS_LOCK(p)      pthread_mutex_lock( &(p)->mutex );
-#define MPID_THREAD_DS_UNLOCK(p)    pthread_mutex_unlock( &(p)->mutex );
-#define MPID_THREAD_DS_LOCK_FREE(p) pthread_mutex_destroy( &(p)->mutex );
-#elif !defined(MPID_THREAD_DS_LOCK)
-#define MPID_THREAD_DS_LOCK_DECLARE 
-#define MPID_THREAD_DS_LOCK_INIT(p) 
-#define MPID_THREAD_DS_LOCK(p)      
-#define MPID_THREAD_DS_UNLOCK(p)    
-#define MPID_THREAD_DS_LOCK_FREE(p) 
-#endif
-
 /* Globals for the world */
+#ifdef __cplusplus /* David Ashton */
+extern "C" {
 extern int          MPID_MyWorldSize, MPID_MyWorldRank;
+};
+#else
+extern int          MPID_MyWorldSize, MPID_MyWorldRank;
+#endif
 
 /* External routines */
 #include "mpid_bind.h"

@@ -1,5 +1,5 @@
 /*
- *  $Id: group_incl.c,v 1.9 1999/08/30 15:43:16 swider Exp $
+ *  $Id: group_incl.c,v 1.10 2001/11/14 19:54:24 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -57,7 +57,7 @@ ranks to ensure that there are no duplicates.
 
 .seealso: MPI_Group_free
 @*/
-EXPORT_MPI_API int MPI_Group_incl ( MPI_Group group, int n, int *ranks, MPI_Group *group_out )
+int MPI_Group_incl ( MPI_Group group, int n, int *ranks, MPI_Group *group_out )
 {
   int       i, j, rank;
   struct MPIR_GROUP *group_ptr, *new_group_ptr;

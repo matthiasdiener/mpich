@@ -1,5 +1,5 @@
 /* 
- *   $Id: adioi.h,v 1.8 2001/03/06 20:17:43 rross Exp $    
+ *   $Id: adioi.h,v 1.14 2002/01/04 22:47:21 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -49,6 +49,35 @@ typedef struct ADIOI_Malloc_req_ptr {
     struct ADIOI_Malloc_req_ptr *next;
 } ADIOI_Malloc_req;
 
+/* used to keep track of fs-independent hint/info values.
+ * Note that there are a lot of int-sized values in here...they are
+ * used as int-sized entities other places as well.  This would be a 
+ * problem on 32-bit systems using > 2GB files in some cases...
+ */
+struct ADIOI_Hints_struct {
+    int initialized;
+    int cb_read;
+    int cb_write;
+    int cb_nodes;
+    int cb_buffer_size;
+    int ds_read;
+    int ds_write;
+    int no_indep_rw;
+    int ind_rd_buffer_size;
+    int ind_wr_buffer_size;
+    char *cb_config_list;
+    int *ranklist;
+};
+
+/* Values for use with cb_read, cb_write, ds_read, and ds_write 
+   (IBM xlc, Compaq Tru64 compilers object to a comma after the last item)
+   (that's just wrong)
+ */
+enum {
+    ADIOI_HINT_AUTO    = 0,
+    ADIOI_HINT_ENABLE  = 1,
+    ADIOI_HINT_DISABLE = 2
+};
 
 /* flattened datatypes. Each datatype is stored as a node of a
    globally accessible linked list. Once attribute caching on a
@@ -137,6 +166,8 @@ struct ADIOI_Fns_struct {
        with file locking. If buffer size is large there is more contention 
        for locks. */
 #define ADIOI_IND_WR_BUFFER_SIZE_DFLT     "524288"
+    /* use one process per processor name by default */
+#define ADIOI_CB_CONFIG_LIST_DFLT "*:1"
 
 
 /* some of the ADIO functions are macro-replaced */
@@ -252,6 +283,10 @@ void ADIOI_GEN_ReadStrided(ADIO_File fd, void *buf, int count,
                        MPI_Datatype datatype, int file_ptr_type,
                        ADIO_Offset offset, ADIO_Status *status, int
                        *error_code);
+void ADIOI_GEN_ReadStrided_naive(ADIO_File fd, void *buf, int count,
+                       MPI_Datatype buftype, int file_ptr_type,
+                       ADIO_Offset offset, ADIO_Status *status, int
+                       *error_code);
 void ADIOI_GEN_WriteStrided(ADIO_File fd, void *buf, int count,
                        MPI_Datatype datatype, int file_ptr_type,
                        ADIO_Offset offset, ADIO_Status *status, int
@@ -275,11 +310,12 @@ void ADIOI_Calc_file_domains(ADIO_Offset *st_offsets, ADIO_Offset
 			     ADIO_Offset *min_st_offset_ptr,
 			     ADIO_Offset **fd_start_ptr, ADIO_Offset 
 			     **fd_end_ptr, ADIO_Offset *fd_size_ptr);
-void ADIOI_Calc_my_req(ADIO_Offset *offset_list, int *len_list, int
+void ADIOI_Calc_my_req(ADIO_File fd, ADIO_Offset *offset_list, 
+			    int *len_list, int
 			    contig_access_count, ADIO_Offset 
 			    min_st_offset, ADIO_Offset *fd_start,
 			    ADIO_Offset *fd_end, ADIO_Offset fd_size,
-                            int nprocs, int nprocs_for_coll, 
+                            int nprocs,
                             int *count_my_req_procs_ptr,
 			    int **count_my_req_per_proc_ptr,
 			    ADIOI_Access **my_req_ptr,
@@ -287,7 +323,7 @@ void ADIOI_Calc_my_req(ADIO_Offset *offset_list, int *len_list, int
 void ADIOI_Calc_others_req(ADIO_File fd, int count_my_req_procs, 
 				int *count_my_req_per_proc,
 				ADIOI_Access *my_req, 
-				int nprocs, int myrank, int nprocs_for_coll, 
+				int nprocs, int myrank,
 				int *count_others_req_procs_ptr,
 				ADIOI_Access **others_req_ptr);  
 ADIO_Offset ADIOI_GEN_SeekIndividual(ADIO_File fd, ADIO_Offset offset, 
@@ -319,6 +355,18 @@ int MPIR_Status_set_bytes(MPI_Status *status, MPI_Datatype datatype, int nbytes)
      ADIOI_Set_lock64((fd)->fd_sys, F_SETLK64, F_UNLCK, offset, whence, len); \
    else ADIOI_Set_lock((fd)->fd_sys, F_SETLK, F_UNLCK, offset, whence, len)
 
+#elif (defined(ROMIO_NTFS))
+
+#define ADIOI_LOCK_CMD		0
+#define ADIOI_UNLOCK_CMD	1
+
+#   define ADIOI_WRITE_LOCK(fd, offset, whence, len) \
+          ADIOI_Set_lock((fd)->fd_sys, ADIOI_LOCK_CMD, LOCKFILE_EXCLUSIVE_LOCK, offset, whence, len)
+#   define ADIOI_READ_LOCK(fd, offset, whence, len) \
+          ADIOI_Set_lock((fd)->fd_sys, ADIOLOCK, 0, offset, whence, len)
+#   define ADIOI_UNLOCK(fd, offset, whence, len) \
+          ADIOI_Set_lock((fd)->fd_sys, ADIOI_UNLOCK_CMD, LOCKFILE_FAIL_IMMEDIATELY, offset, whence, len)
+
 #else
 
 #   define ADIOI_WRITE_LOCK(fd, offset, whence, len) \
@@ -330,8 +378,8 @@ int MPIR_Status_set_bytes(MPI_Status *status, MPI_Datatype datatype, int nbytes)
 
 #endif
 
-int ADIOI_Set_lock(int fd_sys, int cmd, int type, ADIO_Offset offset, int whence, ADIO_Offset len);
-int ADIOI_Set_lock64(int fd_sys, int cmd, int type, ADIO_Offset offset, int whence, ADIO_Offset len);
+int ADIOI_Set_lock(FDTYPE fd_sys, int cmd, int type, ADIO_Offset offset, int whence, ADIO_Offset len);
+int ADIOI_Set_lock64(FDTYPE fd_sys, int cmd, int type, ADIO_Offset offset, int whence, ADIO_Offset len);
 
 #define ADIOI_Malloc(a) ADIOI_Malloc(a,__LINE__,__FILE__)
 #define ADIOI_Calloc(a,b) ADIOI_Calloc(a,b,__LINE__,__FILE__)

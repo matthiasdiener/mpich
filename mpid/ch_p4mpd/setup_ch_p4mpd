@@ -328,7 +328,7 @@ RSHCOMMAND="${RSHCOMMAND-$rshcommand}"
 echo "Configuring mpd subsystem..."
 (cd mpid/mpd ; \
     export VPATH ; export RSHCOMMAND ;\
-    export CC ;\
+    export CC ; export CLINKER ; \
     $top_srcdir/mpid/mpd/configure --with-cc="$CC" \
                 --with-opt="$OPTFLAGS" \
                 --with-top_srcdir=$top_srcdir \

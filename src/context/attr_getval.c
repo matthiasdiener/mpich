@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_getval.c,v 1.8 1999/09/15 22:43:40 gropp Exp $
+ *  $Id: attr_getval.c,v 1.9 2001/11/14 19:54:18 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -59,7 +59,7 @@ Notes for C:
 .N MPI_ERR_COMM
 .N MPI_ERR_KEYVAL
 @*/
-EXPORT_MPI_API int MPI_Attr_get ( 
+int MPI_Attr_get ( 
 	MPI_Comm comm, 
 	int keyval, 
 	void *attr_value, 

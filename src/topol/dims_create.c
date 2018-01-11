@@ -1,5 +1,5 @@
 /*
- *  $Id: dims_create.c,v 1.12 2000/07/03 21:30:25 gropp Exp $
+ *  $Id: dims_create.c,v 1.13 2001/11/14 20:10:53 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -725,7 +725,7 @@ dimension
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Dims_create(
+int MPI_Dims_create(
 	int nnodes, 
 	int ndims, 
 	int *dims)

@@ -1,5 +1,5 @@
 /*
- *  $Id: group_rincl.c,v 1.8 1999/08/30 15:43:24 swider Exp $
+ *  $Id: group_rincl.c,v 1.9 2001/11/14 19:54:25 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -58,7 +58,7 @@ ranges to include are valid ranks in the group.
 
 .seealso: MPI_Group_free
 @*/
-EXPORT_MPI_API int MPI_Group_range_incl ( MPI_Group group, int n, int ranges[][3], 
+int MPI_Group_range_incl ( MPI_Group group, int n, int ranges[][3], 
 			   MPI_Group *newgroup )
 {
   int i, j, k, ranks, first, last, stride;

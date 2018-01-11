@@ -122,8 +122,7 @@ static long    TRMaxMemAllow = 0;
    MPID_trinit - Setup the space package.  Only needed for 
    error messages and flags.
 +*/
-void MPID_trinit( rank )
-int rank;
+void MPID_trinit( int rank )
 {
     world_rank = rank;
 }
@@ -140,10 +139,7 @@ int rank;
     double aligned pointer to requested storage, or null if not
     available.
  +*/
-void *MPID_trmalloc( a, lineno, fname )
-unsigned int a;
-int      lineno;
-char     *fname;
+void *MPID_trmalloc( unsigned int a, int lineno, char *fname )
 {
     TRSPACE          *head;
     char             *new;
@@ -161,7 +157,7 @@ char     *fname;
     nsize = a;
     if (nsize & TR_ALIGN_MASK) 
 	nsize += (TR_ALIGN_BYTES - (nsize & TR_ALIGN_MASK));
-    if (allocated + nsize > TRMaxMemAllow && TRMaxMemAllow) {
+    if (allocated + (long)nsize > TRMaxMemAllow && TRMaxMemAllow) {
 	/* Return a null when memory would be exhausted */
 	fprintf( stderr, "Exceeded allowed memory! \n" );
 	return 0;
@@ -210,10 +206,7 @@ char     *fname;
 .  line - line in file where called
 .  file - Name of file where called
  +*/
-void MPID_trfree( a_ptr, line, file )
-void *a_ptr;
-int  line;
-char *file;
+void MPID_trfree( void *a_ptr, int line, char *file )
 {
     TRSPACE  *head;
     char     *ahead;
@@ -331,8 +324,7 @@ $   Block at address %lx is corrupted
 
    No output is generated if there are no problems detected.
 +*/
-int MPID_trvalid( str )
-char *str;
+int MPID_trvalid( char *str )
 {
 TRSPACE *head;
 char    *a;
@@ -376,8 +368,9 @@ return errs;
 .   space - number of bytes currently allocated
 .   frags - number of blocks currently allocated
  +*/
-void MPID_trspace( space, fr )
-int *space, *fr;
+void MPID_trspace( 
+	int *space, 
+	int *fr)
 {
     /* We use ints because systems without prototypes will usually
        allow calls with ints instead of longs, leading to unexpected
@@ -392,8 +385,8 @@ int *space, *fr;
   Input Parameter:
 .  fp  - file pointer.  If fp is NULL, stderr is assumed.
  +*/
-void MPID_trdump( fp )
-FILE *fp;
+void MPID_trdump( 
+	FILE *fp)
 {
     TRSPACE *head;
     int     id;
@@ -446,17 +439,13 @@ FILE *fp;
 #endif
 #include <search.h>
 typedef struct { int id, size, lineno; char *fname; } TRINFO;
-static int IntCompare( a, b )
-TRINFO *a, *b;
+static int IntCompare( TRINFO *a, TRINFO *b )
 {
 return a->id - b->id;
 }
 static FILE *TRFP;
 /*ARGSUSED*/
-static void PrintSum( a, order, level )
-TRINFO **a;  
-VISIT  order;
-int    level;
+static void PrintSum( TRINFO **a, VISIT  order, int level )
 { 
 if (order == postorder || order == leaf) 
     fprintf( TRFP, "[%d]%s[%d] has %d\n", 
@@ -473,8 +462,8 @@ if (order == postorder || order == leaf)
   This routine is the same as MPID_trDump on those systems that do not include
   /usr/include/search.h .
  +*/
-void MPID_trSummary( fp )
-FILE *fp;
+void MPID_trSummary( 
+	FILE *fp)
 {
 TRSPACE *head;
 TRINFO  *root, *key, **fnd;
@@ -522,8 +511,7 @@ fprintf( fp, "# [%d] The maximum space allocated was %ld bytes [%ld]\n",
 /*+
   MPID_trid - set an "id" field to be used with each fragment
  +*/
-void MPID_trid( id )
-int id;
+void MPID_trid( int id)
 {
 TRid = id;
 }
@@ -539,8 +527,7 @@ TRid = id;
   Note:
   You can add levels together to get combined tracing.
  +*/
-void MPID_trlevel( level )
-int level;
+void MPID_trlevel( int level )
 {
 TRlevel = level;
 }
@@ -551,8 +538,7 @@ TRlevel = level;
    Input Parameters:
 .  a      - value to push
 +*/
-void MPID_trpush( a )
-int a;
+void MPID_trpush( int a )
 {
 if (TRstackp < MAX_TR_STACK - 1)
     TRstack[++TRstackp] = a;
@@ -579,8 +565,7 @@ else
 .   level - level of debugging.  Currently, either 0 (no checking) or 1
     (use MPID_trvalid at each MPID_trmalloc or MPID_trfree).
 +*/
-void MPID_trDebugLevel( level )
-int level;
+void MPID_trDebugLevel( int level )
 {
 TRdebugLevel = level;
 }
@@ -598,10 +583,11 @@ TRdebugLevel = level;
     Double aligned pointer to requested storage, or null if not
     available.
  +*/
-void *MPID_trcalloc( nelem, elsize, lineno, fname )
-unsigned nelem, elsize;
-int      lineno;
-char     *fname;
+void *MPID_trcalloc( 
+	unsigned nelem, 
+	unsigned elsize, 
+	int lineno, 
+	char *fname )
 {
 void *p;
 
@@ -626,10 +612,11 @@ return p;
     available.  This implementation ALWAYS allocates new space and copies 
     the contents into the new space.
  +*/
-void *MPID_trrealloc( p, size, lineno, fname )
-void *p;
-int  size, lineno;
-char *fname;
+void *MPID_trrealloc( 
+	void *p,
+	int  size, 
+	int lineno,
+	char *fname)
 {
     void    *pnew;
     char    *pa;
@@ -731,9 +718,9 @@ if (l2) tail->next = l2;
 return head;
 }
 /* Sort head with n elements, returning the head */
-TRSPACE *MPID_trIsort( head, n )
-TRSPACE *head;
-int     n;
+TRSPACE *MPID_trIsort( 
+	TRSPACE *head,
+	int     n)
 {
 TRSPACE *p, *l1, *l2;
 int     m, i;
@@ -767,8 +754,8 @@ TRhead = MPID_trIsort( TRhead, cnt );
 }
 
 /* Takes sorted input and dumps as an aggregate */
-void MPID_trdumpGrouped( fp )
-FILE *fp;
+void MPID_trdumpGrouped(
+	FILE *fp)
 {
 TRSPACE *head, *cur;
 int     nblocks, nbytes;
@@ -796,8 +783,7 @@ while (head) {
 fflush( fp );
 }
 
-void MPID_TrSetMaxMem( size )
-int size;
+void MPID_TrSetMaxMem( int size )
 {
     TRMaxMemAllow = size;
 }

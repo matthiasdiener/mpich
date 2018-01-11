@@ -1,5 +1,5 @@
 /* 
- *   $Id: type_get_env.c,v 1.6 1999/08/30 15:46:50 swider Exp $    
+ *   $Id: type_get_env.c,v 1.7 2001/11/14 19:57:22 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -42,7 +42,7 @@ Output Parameters:
 
 .N fortran
 @*/
-EXPORT_MPI_API int MPI_Type_get_envelope(
+int MPI_Type_get_envelope(
 	MPI_Datatype datatype, 
 	int *num_integers, 
 	int *num_addresses, 

@@ -1,5 +1,5 @@
 /*
- *  $Id: type_struct.c,v 1.17 2000/08/10 22:15:36 toonen Exp $
+ *  $Id: type_struct.c,v 1.18 2001/11/14 20:10:09 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -103,7 +103,7 @@ for the structure foo
 .N MPI_ERR_COUNT
 .N MPI_ERR_EXHAUSTED
 @*/
-EXPORT_MPI_API int MPI_Type_struct( 
+int MPI_Type_struct( 
 	int count, 
 	int blocklens[], 
 	MPI_Aint indices[], 

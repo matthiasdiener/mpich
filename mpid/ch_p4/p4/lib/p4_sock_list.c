@@ -2,32 +2,79 @@
 #include "p4_sys.h"
 
 #ifndef THREAD_LISTENER
+/*
+ * This listener is based on a rewrite provided by Pete Wykcoff <pw@osc.edu>.
+ * His rewrite fixes a number of problems with the multiple slave (comm=shared)
+ * version, which could cause the listener to become confused about which 
+ * slave it was communicating with.  The fix involves using a separate pipe 
+ * for each slave and keeping track of the state of each individual socket.
+ * Thanks, Pete!
+ */
+typedef struct {
+    enum { OK, BUSY, DEAD } state;
+    int busycount;  /* number of outstanding messages */
+} sock_state_t;
+static sock_state_t *sock_state = 0;
+
+static void wakeup_slave(int idx);
+static int process_slave_message(int idx);
+static int process_connect_request(int listening_fd);
+
 P4VOID listener( void )
 {
-    struct listener_data *l = listener_info;
     P4BOOL done = P4_FALSE;
-    fd_set read_fds;
-    int i, nfds, fd;
-    int max_fd;
+    int i;
 
-    p4_dprintfl(70, "enter listener \n");
+    p4_dprintfl(70, "enter listener, pid %d\n", getpid());
     dump_listener(70);
 
-    while (!done)
-    {
-	FD_ZERO(&read_fds);
-	FD_SET(l->listening_fd, &read_fds);
-	FD_SET(l->slave_fd, &read_fds);
-	max_fd = l->listening_fd;
-	if (l->slave_fd > max_fd) max_fd = l->slave_fd;
+    sock_state = p4_malloc(listener_info->num * sizeof(*sock_state));
+    for (i=0; i<listener_info->num; i++) {
+	sock_state[i].state = OK;
+	sock_state[i].busycount = 0;
+    }
 
-	SYSCALL_P4(nfds, select(max_fd + 1, &read_fds, 0, 0, 0));
-	/* SYSCALL_P4 retries on EINTR; other errors are fatal */
+    while (!done) {
+	int max_fd, nfds, numbusy;
+	fd_set read_fds;
+	struct timeval tv, *tvp;
+
+	FD_ZERO(&read_fds);
+	FD_SET(listener_info->listening_fd, &read_fds);
+	max_fd = listener_info->listening_fd;
+	numbusy = 0;
+	for (i=0; i<listener_info->num; i++) {
+	    if (sock_state[i].state != DEAD) {
+		FD_SET(listener_info->slave_fd[i], &read_fds);
+		if (listener_info->slave_fd[i] > max_fd)
+		    max_fd = listener_info->slave_fd[i];
+		if (sock_state[i].state == BUSY)
+		    ++numbusy;
+	    }
+	}
+
+	if (numbusy) {
+	    tvp = &tv;
+	    tv.tv_sec = 0;
+	    tv.tv_usec = 100000;
+	} else
+	    tvp = 0;
+ 
+ 	/* SYSCALL_P4 retries on EINTR; other errors are fatal */
+	SYSCALL_P4(nfds, select(max_fd + 1, &read_fds, 0, 0, tvp));
 	if (nfds < 0) {
 	    p4_error("listener select", nfds);
 	}
 	if (nfds == 0) {
-	    p4_dprintfl(70, "select timeout\n");
+	    if (tvp) {
+		for (i=0; i<listener_info->num; i++)
+		    if (sock_state[i].state == BUSY) {
+			p4_dprintfl(70, "wakeup slave %d from timeout\n", i);
+			wakeup_slave(i);
+		    }
+	    } else
+		p4_dprintfl(70, "select timeout\n");
+
 	    continue;
 	}
 
@@ -36,34 +83,91 @@ P4VOID listener( void )
 	   There really are some nasty race conditions here, and all
 	   this does is cause us to NOT lose a "DIE" message
 	*/
-	if (FD_ISSET(l->listening_fd,&read_fds)) {
-	    p4_dprintfl(70, "input on listening_fd=%d\n", l->listening_fd);
-	    done |= process_connect_request(l->listening_fd);
+	if (FD_ISSET(listener_info->listening_fd, &read_fds)) {
+	    p4_dprintfl(70, "input on listening_fd %d\n",
+	      listener_info->listening_fd);
+	    done |= process_connect_request(listener_info->listening_fd);
+	    --nfds;
 	}
-	if (FD_ISSET(l->slave_fd,&read_fds)) {
-	    p4_dprintfl(70, "input on slave_fd=%d\n", l->slave_fd);
-	    done |= process_slave_message(l->slave_fd);
+	for (i=0; nfds && i<listener_info->num; i++) {
+	    if (FD_ISSET(listener_info->slave_fd[i], &read_fds)) {
+		p4_dprintfl(70, "input on pipe %d, slave_fd = %d, pid = %d\n",
+		  i, listener_info->slave_fd[i], listener_info->slave_pid[i]);
+		done |= process_slave_message(i);
+		--nfds;
+	    }
 	}
     }
 
+	/*
     close( l->listening_fd );
     close( l->slave_fd );
+	*/
 
     p4_dprintfl(70, "exit listener\n");
     exit(0);
 }
 
-P4BOOL process_connect_request(int fd)
+/*
+ * Return index in array based on incoming pid.
+ */
+static int
+lookup_slave_by_pid(int pid)
+{
+    int i;
+
+    for (i=0; i<listener_info->num; i++) {
+	if (listener_info->slave_pid[i] == pid)
+	    return i;
+    }
+    p4_error("lookup_slave_index_by_pid: %d not found", pid);
+    return -1;
+}
+
+/*
+ * Forward a message received from the net to the pipe for
+ * the destination slave.
+ */
+static void
+message_to_slave(int idx, struct slave_listener_msg *msg)
+{
+    net_send(listener_info->slave_fd[idx], msg, sizeof(*msg), P4_FALSE);
+    sock_state[idx].state = BUSY;
+    ++sock_state[idx].busycount;
+    wakeup_slave(idx);
+}
+
+/*
+ * Send a signal to the process telling him to pay attention to the
+ * pipe from the listener.
+ */
+static void
+wakeup_slave(int idx)
+{
+    if (kill(listener_info->slave_pid[idx], LISTENER_ATTN_SIGNAL) == -1) {
+	/* might have died on his own, okay */
+	p4_dprintf("wakeup_slave: unable to interrupt slave %d pid %d\n",
+          idx, listener_info->slave_pid[idx]);
+	sock_state[idx].state = DEAD;
+    }
+}
+
+/*
+ * Accept a new socket from the network, deal with it, possibly
+ * forwarding the message on to a slave.  The new connection is
+ * always closed immediately after receipt of this message.
+ */
+static P4BOOL process_connect_request(int listening_fd)
 {
     struct slave_listener_msg msg;
-    int type, msglen;
-    int connection_fd, slave_fd;
-    int from, lport, to_pid, to;
+    int msglen;
+    int connection_fd;
+    int from, to_pid, idx, type, lport;
     P4BOOL rc = P4_FALSE;
 
-    p4_dprintfl(70, "processing connect check/request on %d\n", fd);
+    p4_dprintfl(70, "process_connect_request on %d\n", listening_fd);
 
-    connection_fd = net_accept(fd);
+    connection_fd = net_accept(listening_fd);
 
     p4_dprintfl(70, "accepted on connection_fd=%d reading size=%d\n", connection_fd,sizeof(msg));
 
@@ -74,18 +178,20 @@ P4BOOL process_connect_request(int fd)
        message cookie).  Because we need a timeout, we can't use net_recv.
        Since we don't need a very complex receive message, this isn't
        such a bad thing */
-    if ((msglen = net_recv_timeout(connection_fd, &msg, sizeof(msg), 10)) == 
-	PRECV_EOF || msglen != sizeof(msg))
-    {
-	close( connection_fd );
+    msglen = net_recv_timeout(connection_fd, &msg, sizeof(msg), 10);
+    if (msglen == PRECV_EOF || msglen != sizeof(msg)) {
+	p4_dprintf("process_connect_request: bad connect request len %d"
+		   " wanted %d\n", msglen, sizeof(msg));
+	close(connection_fd);
 	return (P4_FALSE);
     }
+    close( connection_fd );
 
     type = p4_n_to_i(msg.type);
     switch (type)
     {
       case IGNORE_THIS:
-	p4_dprintfl(70, "got IGNORE_THIS\n");
+	p4_dprintfl(70, "got IGNORE_THIS from net\n");
 	break;
 
       case DIE:
@@ -95,11 +201,18 @@ P4BOOL process_connect_request(int fd)
 	break;
 
       case KILL_SLAVE:
-	  /* A KILL_SLAVE message is very strong and causes nearly immediate 
-	     exit by the slave.  */
+        /*
+	 * KILL_SLAVE is used by a remote machine to destroy a particular
+	 * process here, but not the listener (see DIE).
+	 * A KILL_SLAVE message is very strong and causes nearly immediate 
+	 * exit by the slave.  */
 	from = p4_n_to_i(msg.from);
 	to_pid = p4_n_to_i(msg.to_pid);
-	p4_dprintfl(99, "received kill_slave %d msg from remote %d\n", to_pid, from);
+	idx = lookup_slave_by_pid( to_pid );
+	p4_dprintfl(10, "received msg for %d: kill_slave from %d to_pid %d\n",
+	  idx, from, to_pid);
+	message_to_slave( idx, &msg );
+#ifdef FOO
 	slave_fd = listener_info->slave_fd;
 
 	if (kill(to_pid, LISTENER_ATTN_SIGNAL) == -1)
@@ -126,16 +239,18 @@ P4BOOL process_connect_request(int fd)
 		     p4_i_to_n(msg.type));
 	    }
 	p4_dprintfl(70, "back from slave handling interrupt\n");
+#endif
 	break;
 
       case CONNECTION_REQUEST:
 	from = p4_n_to_i(msg.from);
 	to_pid = p4_n_to_i(msg.to_pid);
-	to = p4_n_to_i(msg.to);
-	lport = p4_n_to_i(msg.lport);
-	p4_dprintfl(70, "connection_request2: poking slave: from=%d lport=%d to_pid=%d to=%d\n",
-		    from, lport, to_pid, to);
-
+	idx = lookup_slave_by_pid(to_pid);
+/*	to = p4_n_to_i(msg.to); */
+	lport = p4_n_to_i(msg.lport); 
+	p4_dprintfl(70, "process_connect_request: to slave %d pid %d from %d port %d\n", idx, to_pid, from, lport );
+	message_to_slave( idx, &msg );
+#ifdef FOO
 	slave_fd = listener_info->slave_fd;
 
 	if (kill(to_pid, LISTENER_ATTN_SIGNAL) == -1)
@@ -162,6 +277,7 @@ P4BOOL process_connect_request(int fd)
 		     p4_i_to_n(msg.type));
 	    }
 	p4_dprintfl(70, "back from slave handling interrupt\n");
+#endif
 	break;
 
       default:
@@ -172,27 +288,57 @@ P4BOOL process_connect_request(int fd)
     return (rc);
 }
 
-P4BOOL process_slave_message(fd)
-int fd;
+static P4BOOL process_slave_message(int idx)
 {
     struct slave_listener_msg msg;
-    int type;
-    int from;
     P4BOOL rc = P4_FALSE;
-    int status;
+    int type, from, cc;
 
-    status = net_recv(fd, &msg, sizeof(msg));
-    if (status == PRECV_EOF)
-    {
-	p4_error("slave_listener_msg: got eof on fd=", fd);
+    /*
+     * An EOF will happen naturally if the slave process exits.  Do
+     * not force an error.  In fact, don't even use net_recv() since
+     * this is a local pipe.  Just read it.
+     */
+    cc = read(listener_info->slave_fd[idx], &msg, sizeof(msg));
+    if (cc == 0 || (cc < 0 && errno == ECONNRESET)) {
+	/* ECONNRESET means there was still data on the connection, but
+	 * it can be ignored since the slave already exited.
+	 */
+	sock_state[idx].state = DEAD;
+	close(listener_info->slave_fd[idx]);
+	return rc;
     }
+    if (cc < 0) {
+	p4_dprintf("process_slave_message: idx %d fd %d pid %d cc %d"
+	  " errno %d\n",
+	  idx, listener_info->slave_fd[idx], listener_info->slave_pid[idx],
+	  cc, errno);
+	p4_error("process_slave_message: read pipe", cc);
+    }
+    if (cc != sizeof(msg))
+	p4_error("process_slave_message: short read from pipe", 0);
 
     type = p4_n_to_i(msg.type);
     from = p4_n_to_i(msg.from);
 
     switch (type)
     {
+      case IGNORE_THIS:
+	/* response to forwarded message, clear his busy flag */
+	if (sock_state[idx].state == BUSY) {
+	    p4_dprintfl(20, "process_slave_message: slave %d busy was %d\n",
+	      idx, sock_state[idx].busycount);
+	    --sock_state[idx].busycount;
+	    if (sock_state[idx].busycount == 0)
+		sock_state[idx].state = OK;
+	} else {
+	    p4_dprintf("process_slave_message: ignoring IGNORE_THIS for %d",
+	      idx);
+	}
+	break;
+
       case DIE:
+	/* see DIE from remote above, just quit the listener */
 	p4_dprintfl(70, "received die msg from slave %d\n", from);
 	rc = P4_TRUE;
 	break;

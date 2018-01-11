@@ -9,16 +9,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_ABORT = PMPI_ABORT
-EXPORT_MPI_API void MPI_ABORT ( MPI_Fint *comm, MPI_Fint *errorcode, MPI_Fint *__ierr );
+void MPI_ABORT ( MPI_Fint *comm, MPI_Fint *errorcode, MPI_Fint *__ierr );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_abort__ = pmpi_abort__
-EXPORT_MPI_API void mpi_abort__ ( MPI_Fint *comm, MPI_Fint *errorcode, MPI_Fint *__ierr );
+void mpi_abort__ ( MPI_Fint *comm, MPI_Fint *errorcode, MPI_Fint *__ierr );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_abort = pmpi_abort
-EXPORT_MPI_API void mpi_abort ( MPI_Fint *comm, MPI_Fint *errorcode, MPI_Fint *__ierr );
+void mpi_abort ( MPI_Fint *comm, MPI_Fint *errorcode, MPI_Fint *__ierr );
 #else
 #pragma weak mpi_abort_ = pmpi_abort_
-EXPORT_MPI_API void mpi_abort_ ( MPI_Fint *comm, MPI_Fint *errorcode, MPI_Fint *__ierr );
+void mpi_abort_ ( MPI_Fint *comm, MPI_Fint *errorcode, MPI_Fint *__ierr );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -75,9 +75,9 @@ EXPORT_MPI_API void mpi_abort_ ( MPI_Fint *comm, MPI_Fint *errorcode, MPI_Fint *
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_abort_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_abort_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_abort_( MPI_Fint *comm, MPI_Fint *errorcode, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_abort_( MPI_Fint *comm, MPI_Fint *errorcode, MPI_Fint *__ierr )
 {
     *__ierr = MPI_Abort( MPI_Comm_f2c(*comm), (int)*errorcode);
 }

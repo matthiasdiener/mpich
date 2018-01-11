@@ -1,5 +1,5 @@
 /*
- *  $Id: sbcnst.h,v 1.1.1.1 1997/09/17 20:38:06 gropp Exp $
+ *  $Id: sbcnst.h,v 1.2 2001/10/19 22:01:11 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -9,20 +9,12 @@
 #ifndef _SBCNST
 #define _SBCNST
 
-#ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
-#define ANSI_ARGS(a) a
-#else
-#define ANSI_ARGS(a) ()
-#endif
-#endif
-
 #ifndef _SBCNSTDEF
-extern void *MPIR_SBinit ANSI_ARGS(( int, int, int )), 
-             MPIR_SBfree ANSI_ARGS(( void *, void * )),
-             MPIR_SBiAllocate ANSI_ARGS(( void *, int, int )),
-            *MPIR_SBalloc ANSI_ARGS(( void * )),
-             MPIR_SBPrealloc ANSI_ARGS(( void *, int ));
+extern void *MPIR_SBinit ( int, int, int ), 
+             MPIR_SBfree ( void *, void * ),
+             MPIR_SBiAllocate ( void *, int, int ),
+            *MPIR_SBalloc ( void * ),
+             MPIR_SBPrealloc ( void *, int );
 #endif
 
 #define SBinit BUGGG%
@@ -52,9 +44,9 @@ extern void *MPIR_SBinit ANSI_ARGS(( int, int, int )),
 
 #elif defined(MPIR_MEMDEBUG)
 /* Use MPI tr version of MALLOC/FREE */
-extern void *MPIR_trmalloc ANSI_ARGS((unsigned,int,char *)), 
-            MPIR_trfree ANSI_ARGS((char *, int, char *)), 
-           *MPIR_trcalloc ANSI_ARGS((unsigned,unsigned,int,char *));
+extern void *MPIR_trmalloc (unsigned,int,char *), 
+            MPIR_trfree (char *, int, char *), 
+           *MPIR_trcalloc (unsigned,unsigned,int,char *);
 #define MALLOC(a)    MPIR_trmalloc((unsigned)(a),__LINE__,__FILE__)
 #define CALLOC(a,b)  \
     MPIR_trcalloc((unsigned)(a),(unsigned)(b),__LINE__,__FILE__)

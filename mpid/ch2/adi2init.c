@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2init.c,v 1.5 2000/08/10 22:04:43 gropp Exp $
+ *
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -47,10 +47,7 @@ int MPID_Complete_pending (void);
 
 static int MPID_Short_len = -1;
 
-void MPID_Init( argc, argv, config, error_code )
-int  *argc, *error_code;
-void *config;
-char ***argv;
+void MPID_Init( int *argc, char ***argv, void *config, int *error_code )
 {
     int i, np;
     MPID_Device *dev;
@@ -154,10 +151,11 @@ char ***argv;
    There should probably be a separate argument for whether it is a 
    user requested or internal abort.
  */
-void MPID_Abort( comm_ptr, code, user, str )
-struct MPIR_COMMUNICATOR *comm_ptr;
-int      code;
-char     *user, *str;
+void MPID_Abort( 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	int code, 
+	char *user, 
+	char *str )
 {
     MPID_Device *dev;
     char abortString[256];
@@ -244,8 +242,8 @@ void MPID_End()
 
 /* Returns 1 if something found, -1 otherwise (if is_blocking is 
    MPID_NOTBLOCKING)  */
-int MPID_DeviceCheck( is_blocking )
-MPID_BLOCKING_TYPE is_blocking;
+int MPID_DeviceCheck( 
+	MPID_BLOCKING_TYPE is_blocking)
 {
     MPID_Device *dev;
     int found = 0;
@@ -307,8 +305,7 @@ int MPID_Complete_pending()
     return MPI_SUCCESS;
 }
 
-void MPID_SetPktSize( len )
-int len;
+void MPID_SetPktSize( int len )
 {
     MPID_Short_len = len;
 }
@@ -316,24 +313,23 @@ int len;
 /*
   Perhaps this should be a util function
  */
-int MPID_WaitForCompleteSend( request )
-MPIR_SHANDLE *request;
+int MPID_WaitForCompleteSend( 
+	MPIR_SHANDLE *request)
 {
     while (!request->is_complete)
 	MPID_DeviceCheck( MPID_BLOCKING );
     return MPI_SUCCESS;
 }
 
-int MPID_WaitForCompleteRecv( request )
-MPIR_RHANDLE *request;
+int MPID_WaitForCompleteRecv( 
+	MPIR_RHANDLE *request)
 {
     while (!request->is_complete)
 	MPID_DeviceCheck( MPID_BLOCKING );
     return MPI_SUCCESS;
 }
 
-void MPID_Version_name( name )
-char *name;
+void MPID_Version_name( char *name )
 {
     sprintf( name, "ADI version %4.2f - transport %s", MPIDPATCHLEVEL, 
 	     MPIDTRANSPORT );

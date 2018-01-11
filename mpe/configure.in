@@ -383,7 +383,17 @@ if test "$enable_checkMPI" = "yes" -a "$enable_checkMPIO" = "yes" ; then
                           [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
     if test "$mpe_link_ok" = "yes" ; then
         AC_MSG_RESULT(yes)
-        AC_DEFINE( HAVE_MPI_IO )
+        AC_MSG_CHECKING( [for the C version of PMPI_File_open()] )
+        PAC_MPI_LINK_CC_FUNC( $MPI_CC, [$CFLAGS $MPI_INC], $MPI_LIBS,
+                              [ int itmp; MPI_File fh ],
+                              [ itmp=PMPI_File_open( MPI_COMM_WORLD, "mpiiotest", MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &fh ) ],
+                              [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
+        if test "$mpe_link_ok" = "yes" ; then
+            AC_MSG_RESULT(yes)
+            AC_DEFINE( HAVE_MPI_IO )
+        else
+            AC_MSG_RESULT([no, assumed No MPI-IO routines])
+        fi
     else
         AC_MSG_RESULT([no, assumed No MPI-IO routines])
     fi
@@ -402,6 +412,7 @@ fi
  
 if test -n "$F77" -a "$NOF77" = 0 ; then 
     AC_F77_LIBRARY_LDFLAGS
+    PAC_PROG_F77_CHECK_FLIBS
     PAC_PROG_F77_NAME_MANGLE
 fi
 
@@ -715,6 +726,8 @@ else
 fi
 AC_HAVE_FUNCS(system)
 AC_HAVE_FUNCS(sysinfo)
+# mkstemp is a better replacement for mktemp
+AC_HAVE_FUNCS(mkstemp)
 AC_CHECK_FUNC(uname,AC_DEFINE(HAVE_UNAME)haveuname=1)
 AC_CHECK_FUNC(gethostbyname,AC_DEFINE(HAVE_GETHOSTBYNAME)havegethostbyname=1)
 #
@@ -773,12 +786,16 @@ MPE_CFLAGS="$MPE_CFLAGS $COPTIONS"
 AC_PROG_RANLIB
 AC_CHECK_PROG(AR, ar, ar, ;)
 #
+if test -z "$CLINKER" ; then CLINKER="$CC" ; fi
+if test -z "$FLINKER" ; then FLINKER="$F77" ; fi
 AC_SUBST(AR)
 AC_SUBST(RANLIB)
 AC_SUBST(MPICH)
 AC_SUBST(CC)
+AC_SUBST(CLINKER)
 AC_SUBST(MPI_CC)
 AC_SUBST(F77)
+AC_SUBST(FLINKER)
 AC_SUBST(MPI_F77)
 AC_SUBST(LDFLAGS)
 AC_SUBST(NO_X)
@@ -827,6 +844,7 @@ else
     viewers_dir=
     LOGVIEWERS=0
 fi
+export CLINKER
 AC_CONFIG_SUBDIRS($viewers_dir)
 AC_SUBST(LOGVIEWERS)
 

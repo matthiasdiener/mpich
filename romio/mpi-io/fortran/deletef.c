@@ -1,5 +1,5 @@
 /* 
- *   $Id: deletef.c,v 1.8 2000/08/20 18:00:28 gropp Exp $    
+ *   $Id: deletef.c,v 1.11 2001/12/12 23:38:04 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -8,8 +8,8 @@
 #if _UNICOS
 #include <fortran.h>
 #endif
-#include "mpio.h"
 #include "adio.h"
+#include "mpio.h"
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
@@ -88,7 +88,8 @@
 #endif
 
 /* Prototype to keep compiler happy */
-void mpi_file_delete_(char *filename, MPI_Fint *info, int *ierr, int str_len);
+/*
+FORTRAN_API void FORT_CALL mpi_file_delete_(char *filename, MPI_Fint *info, int *ierr, int str_len);
 
 #if _UNICOS
 void mpi_file_delete_(_fcd filename_fcd, MPI_Fint *info, int *ierr)
@@ -96,7 +97,18 @@ void mpi_file_delete_(_fcd filename_fcd, MPI_Fint *info, int *ierr)
     char *filename = _fcdtocp(filename_fcd);
     int str_len = _fcdlen(filename_fcd);
 #else
-void mpi_file_delete_(char *filename, MPI_Fint *info, int *ierr, int str_len)
+FORTRAN_API void FORT_CALL mpi_file_delete_(char *filename, MPI_Fint *info, int *ierr, int str_len)
+*/
+/* Prototype to keep compiler happy */
+FORTRAN_API void FORT_CALL mpi_file_delete_(char *filename FORT_MIXED_LEN_DECL, MPI_Fint *info, int *ierr FORT_END_LEN_DECL);
+
+#if _UNICOS
+void mpi_file_delete_(_fcd filename_fcd, MPI_Fint *info, int *ierr)
+{
+    char *filename = _fcdtocp(filename_fcd);
+    int str_len = _fcdlen(filename_fcd);
+#else
+FORTRAN_API void FORT_CALL mpi_file_delete_(char *filename FORT_MIXED_LEN(str_len), MPI_Fint *info, int *ierr FORT_END_LEN(str_len))
 {
 #endif
     char *newfname;

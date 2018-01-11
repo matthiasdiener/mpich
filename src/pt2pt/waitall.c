@@ -1,5 +1,5 @@
 /*
- *  $Id: waitall.c,v 1.19 2001/04/04 15:16:34 gropp Exp $
+ *  $Id: waitall.c,v 1.20 2001/11/14 20:10:10 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -49,7 +49,7 @@ Output Parameter:
 .N MPI_ERR_IN_STATUS
 .N MPI_ERR_PENDING
 @*/
-EXPORT_MPI_API int MPI_Waitall(
+int MPI_Waitall(
 	int count, 
 	MPI_Request array_of_requests[], 
 	MPI_Status array_of_statuses[] )

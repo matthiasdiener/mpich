@@ -8,16 +8,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_TYPE_EXTENT = PMPI_TYPE_EXTENT
-EXPORT_MPI_API void MPI_TYPE_EXTENT ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void MPI_TYPE_EXTENT ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_type_extent__ = pmpi_type_extent__
-EXPORT_MPI_API void mpi_type_extent__ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_type_extent__ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_type_extent = pmpi_type_extent
-EXPORT_MPI_API void mpi_type_extent ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_type_extent ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #else
 #pragma weak mpi_type_extent_ = pmpi_type_extent_
-EXPORT_MPI_API void mpi_type_extent_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_type_extent_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -75,9 +75,9 @@ EXPORT_MPI_API void mpi_type_extent_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
 
 /* Prototype to suppress warnings about missing prototypes */
-EXPORT_MPI_API void mpi_type_extent_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
+FORTRAN_API void FORT_CALL mpi_type_extent_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_type_extent_( MPI_Fint *datatype, MPI_Fint *extent, MPI_Fint *__ierr )
+FORTRAN_API void FORT_CALL mpi_type_extent_( MPI_Fint *datatype, MPI_Fint *extent, MPI_Fint *__ierr )
 {
     MPI_Aint c_extent;
     *__ierr = MPI_Type_extent(MPI_Type_f2c(*datatype), &c_extent);

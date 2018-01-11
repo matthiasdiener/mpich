@@ -1,5 +1,5 @@
 /*
- *  $Id: graph_nbr.c,v 1.7 1999/08/30 15:51:07 swider Exp $
+ *  $Id: graph_nbr.c,v 1.8 2001/11/14 20:10:54 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -54,7 +54,7 @@ Output Parameters:
 .N MPI_ERR_ARG
 .N MPI_ERR_RANK
 @*/
-EXPORT_MPI_API int MPI_Graph_neighbors ( MPI_Comm comm, int rank, int maxneighbors, 
+int MPI_Graph_neighbors ( MPI_Comm comm, int rank, int maxneighbors, 
 			  int *neighbors )
 {
   int i, begin, end, flag;
