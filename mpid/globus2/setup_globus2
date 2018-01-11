@@ -190,7 +190,8 @@ else
     fi
     $gmh -flavor=$flavor \
 	globus_common globus_gram_client globus_io globus_data_conversion \
-	globus_duroc_runtime globus_duroc_bootstrap >mpid/${DEVICE}/Makefile.mpich.header
+	globus_duroc_runtime globus_duroc_bootstrap globus_ftp_control \
+	>mpid/${DEVICE}/Makefile.mpich.header
     if test $? != 0 ; then
 	print_error "ERROR: failed globus-makefile-header: missing Globus components"
 	cat mpid/${DEVICE}/Makefile.mpich.header

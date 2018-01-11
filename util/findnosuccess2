@@ -90,6 +90,7 @@ if ( $MPICH_WARNING_SEP ne "" ) {
                    '^added manifest', # java message
 		   'Note: Some input files use', # java message
 		   'Note: Recompile with -deprecation', # java message
+		   'Warning: JIT compiler', # java message
 		   '^[-\/A-Za-z0-9\._]*:\s*$', # icc echos file name!
  );
 # pgCC echos file name!

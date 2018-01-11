@@ -31,6 +31,7 @@ struct LaunchThreadStruct
     bool bUseDebugFlag;
     int priorityClass;
     int priority;
+    bool bAttachToWorkstation;
 
     int nPid;
     int nKRank;
@@ -60,6 +61,7 @@ LaunchThreadStruct::LaunchThreadStruct()
     bUseDebugFlag = false;
     priorityClass = BELOW_NORMAL_PRIORITY_CLASS;
     priority = THREAD_PRIORITY_NORMAL;
+    bAttachToWorkstation = false;
 
     nPid = -1;
     nKRank = 0;
@@ -382,11 +384,11 @@ void LaunchThread(LaunchThreadStruct *pArg)
     bool bProcessAborted = false;
     SYSTEMTIME stime;
     char timestamp[256];
+    HANDLE hIn, hOut, hErr;
+    int nError;
 
     pArg->Print();
 
-    HANDLE hIn, hOut, hErr;
-    int nError;
     if (strlen(pArg->pszEnv))
     {
 	sprintf(pszStr, "|MPD_ID=%s", pArg->pszSrcId);

@@ -722,7 +722,7 @@ globus_bool_t send_ack_over_tcp(int grank, void *liba, int libasize)
 		globus_libc_fprintf(
 		    stderr,
 		    "ERROR: send_ack_over_tcp: deteremined that Headerlen "
-		    "(%ld) - sizeof(int) (%ld) < waiter for ack's libasize %d"
+		    "(%d) - sizeof(int) (%ld) < waiter for ack's libasize %d"
 		    " and will therefore not fit into header\n", 
 		    Headerlen, 
 		    globus_dc_sizeof_int(1), 
@@ -990,7 +990,6 @@ void remove_and_free_mpircvreq(struct mpircvreq *mp)
  */
 int mpi_recv_or_post(MPIR_RHANDLE *in_req, int *error_code)
 {
-    int rc;
     int err;
     int flag;
 

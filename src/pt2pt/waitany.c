@@ -1,5 +1,5 @@
 /*
- *  $Id: waitany.c,v 1.19 2002/11/27 19:58:17 gropp Exp $
+ *  $Id: waitany.c,v 1.20 2003/01/09 20:48:42 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -42,7 +42,7 @@ Input Parameters:
 Output Parameters:
 + index - index of handle for operation that completed (integer).  In the
 range '0' to 'count-1'.  In Fortran, the range is '1' to 'count'.
-- status - status object (Status).  May be 'MPI_STATUS_NULL'.
+- status - status object (Status).  May be 'MPI_STATUS_IGNORE'.
 
 Notes:
 If all of the requests are 'MPI_REQUEST_NULL', then 'index' is returned as 

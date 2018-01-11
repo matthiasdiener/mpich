@@ -143,6 +143,8 @@ if test -z "$subdir" ; then
 fi
 #
 AC_MSG_CHECKING(for Java in known locations)
+# Make sure that we have glob expansion turned on
+set +f
 for dir in \
     /usr \
     /usr/jdk* \

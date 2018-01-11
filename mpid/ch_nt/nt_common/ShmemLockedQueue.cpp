@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include "lock.h"
 
+#define SHM_Q_INITIALIZED 0x12345678
+
 // Function name	: ShmemLockedQueue::ShmemLockedQueue
 // Description	    : 
 // Return type		: 
@@ -34,7 +36,8 @@ ShmemLockedQueue::~ShmemLockedQueue()
 	if (m_hMapping != NULL)
 	{
 		if (m_pBottom != NULL)
-			UnmapViewOfFile(m_pBottom);
+			//UnmapViewOfFile(m_pBottom);
+			UnmapViewOfFile((void*)(((LONG*)m_pBottom) - 1)); // back up over the initialized field to the true beginning
 		CloseHandle(m_hMapping);
 	}
 	if (m_hMsgAvailableEvent != NULL)
@@ -50,10 +53,12 @@ ShmemLockedQueue::~ShmemLockedQueue()
 bool ShmemLockedQueue::Init(char *name, unsigned long size)
 {
 	bool bFirst = true;
+	HANDLE hInitEvent = NULL;
+	LONG *pInitialized;
 
 	m_dwMaxMsgSize = size;
 
-	size = size + sizeof(ShmemLockedQueueHeader) + 5*sizeof(LONG);
+	size = size + sizeof(ShmemLockedQueueHeader) + 6*sizeof(LONG);
 
 	// Create a mapping from the page file
 	m_hMapping = CreateFileMapping(
@@ -85,13 +90,20 @@ bool ShmemLockedQueue::Init(char *name, unsigned long size)
 		return false;
 	}
 
+	/* NEW Jan 9, 2003
+	 Added an initialized field before the m_pBottom pointer
+	 This means that m_pBottom must be moved back in the finalize function before it can be released
+	 */
+	pInitialized = (LONG*)m_pBottom;
+	m_pBottom = (void*)(((LONG*)m_pBottom) + 1);
+
 	m_plQMutex = (LONG*)m_pBottom;
 	m_plQEmptyTrigger = &((LONG*)m_pBottom)[1];
 	m_plMsgAvailableTrigger = &((LONG*)m_pBottom)[2];
 
-	m_pEnd = (LPBYTE)m_pBottom + size;
+	m_pEnd = (LPBYTE)m_pBottom + size - sizeof(LONG);
 	m_pBase = (LPBYTE)m_pBottom + 3*sizeof(LONG);
-	m_dwSize = size;
+	m_dwSize = size - sizeof(LONG);
 
 	// If this process is creating the mapping, 
 	// then set up the head and tail pointers
@@ -117,6 +129,24 @@ bool ShmemLockedQueue::Init(char *name, unsigned long size)
 		CloseHandle(m_plQMutex);
 		m_hMapping = NULL;
 		m_plQMutex = NULL;
+		return false;
+	}
+
+	if (bFirst)
+	{
+	    // mark the queue as initialized
+	    *pInitialized = SHM_Q_INITIALIZED;
+	}
+	else
+	{
+	    // wait until the queue is initialized
+	    int retry = 100;
+	    while (*pInitialized != SHM_Q_INITIALIZED && retry)
+	    {
+		Sleep(200);
+		retry--;
+	    }
+	    if (*pInitialized != SHM_Q_INITIALIZED)
 		return false;
 	}
 
@@ -333,7 +363,7 @@ bool ShmemLockedQueue::RemoveNext(
 				if (WaitForSingleObject(m_hMsgAvailableEvent, INFINITE) 
 						!= WAIT_OBJECT_0)
 				{
-					printf("Wait for MsgAvailableEvent failed\n");
+					printf("ShmemLockedQueue:RemoveNext:Wait for MsgAvailableEvent on an empty queue failed, error %d\n", GetLastError());fflush(stdout);
 					return false;
 				}
 			}
@@ -365,7 +395,7 @@ bool ShmemLockedQueue::RemoveNext(
 			if (WaitForSingleObject(m_hMsgAvailableEvent, INFINITE) 
 					!= WAIT_OBJECT_0)
 			{
-				printf("Wait for MsgAvailableEvent failed\n");
+				printf("ShmemLockedQueue:RemoveNext:Wait for MsgAvailableEvent failed, error %d\n", GetLastError());fflush(stdout);
 				return false;
 			}
 		}
@@ -380,7 +410,7 @@ bool ShmemLockedQueue::RemoveNext(
 	// Check that the buffer provided is large enough to hold the data
 	if (pMessage->length > *length)
 	{
-		printf("length %d > *length %d\n", pMessage->length, *length);
+		printf("ShmemLockedQueue:RemoveNext:shmem message length %d > %d user buffer length\n", pMessage->length, *length);
 		unlock(m_plQMutex);
 		return false;
 	}
@@ -453,7 +483,7 @@ bool ShmemLockedQueue::RemoveNextInsert(MessageQueue *pMsgQueue, bool bBlocking)
 					if (WaitForSingleObject(m_hMsgAvailableEvent, INFINITE) 
 						!= WAIT_OBJECT_0)
 					{
-						printf("Wait for MsgAvailableEvent failed\n");
+						printf("ShmemLockedQueue:RemoveNextInsert:Wait for MsgAvailableEvent on an empty queue failed, error %d\n", GetLastError());fflush(stdout);
 						return false;
 					}
 				}
@@ -485,7 +515,7 @@ bool ShmemLockedQueue::RemoveNextInsert(MessageQueue *pMsgQueue, bool bBlocking)
 				if (WaitForSingleObject(m_hMsgAvailableEvent, INFINITE) 
 					!= WAIT_OBJECT_0)
 				{
-					printf("Wait for MsgAvailableEvent failed\n");
+					printf("ShmemLockedQueue:RemoveNextInsert:Wait for MsgAvailableEvent failed, error %d\n", GetLastError());fflush(stdout);
 					return false;
 				}
 			}

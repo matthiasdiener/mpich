@@ -1,5 +1,5 @@
 /*
- *  $Id: testsome.c,v 1.13 2002/03/15 15:21:16 gropp Exp $
+ *  $Id: testsome.c,v 1.14 2003/01/09 20:48:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -40,7 +40,7 @@ Output Parameters:
 . array_of_indices - array of indices of operations that 
 completed (array of integers) 
 - array_of_statuses - array of status objects for 
-    operations that completed (array of Status).  May be 'MPI_STATUSES_NULL'.
+    operations that completed (array of Status).  May be 'MPI_STATUSES_IGNORE'.
 
 .N waitstatus
 

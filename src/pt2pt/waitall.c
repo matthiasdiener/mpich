@@ -1,5 +1,5 @@
 /*
- *  $Id: waitall.c,v 1.23 2002/11/27 19:58:17 gropp Exp $
+ *  $Id: waitall.c,v 1.24 2003/01/09 20:48:42 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -37,7 +37,7 @@ Input Parameters:
 
 Output Parameter:
 . array_of_statuses - array of status objects (array of Status).  May be
-  'MPI_STATUSES_NULL'
+  'MPI_STATUSES_IGNORE'
 
 .N waitstatus
 

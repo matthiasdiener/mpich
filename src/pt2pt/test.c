@@ -1,5 +1,5 @@
 /*
- *  $Id: test.c,v 1.9 2002/03/15 18:51:55 gropp Exp $
+ *  $Id: test.c,v 1.10 2003/01/09 20:48:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -34,7 +34,7 @@ Input Parameter:
 
 Output Parameter:
 + flag - true if operation completed (logical) 
-- status - status object (Status).  May be 'MPI_STATUS_NULL'.
+- status - status object (Status).  May be 'MPI_STATUS_IGNORE'.
 
 .N waitstatus
 

@@ -3,6 +3,12 @@
 
 extern void *			VMPI_Internal_Comm;
 
+/* START GRIDFTP */
+extern int MPICHX_PARALLELSOCKETS_PARAMETERS; 
+
+int enable_gridftp(struct MPIR_COMMUNICATOR *comm, void *attr_value); 
+/* END GRIDFTP */
+
 #undef DEBUG_FN_NAME
 #define DEBUG_FN_NAME MPID_Comm_init
 int MPID_Comm_init(
@@ -150,7 +156,6 @@ int MPID_Comm_init(
     for (i = 0; i < newcomm->np; i++)
     {
 	int				vlrank;
-	int				vgrank;
 
 	vlrank = newcomm->lrank_to_vlrank[i];
 	if (vlrank >= 0)
@@ -340,9 +345,13 @@ int MPID_Comm_init(
     newcomm->vgrank_to_vlrank = NULL;
 #endif   /* VMPI */
 
-  /* fn_exit: */
+#ifdef VMPI
+  fn_exit:
+#endif   /* VMPI */
     if ( rc == MPI_SUCCESS  &&  newcomm )
+    {
         rc = topology_initialization(newcomm);
+    } /* endif */
     DEBUG_FN_EXIT(DEBUG_MODULE_COMM);
     return rc;
 }
@@ -377,3 +386,22 @@ int MPID_Comm_free(
     return MPI_SUCCESS;
 }
 
+/* START GRIDFTP */
+int MPID_Attr_set(struct MPIR_COMMUNICATOR *comm, int keyval, void *attr_value)
+{
+    int rc;
+
+    if (keyval == MPICHX_PARALLELSOCKETS_PARAMETERS)
+    {
+        rc = enable_gridftp(comm, attr_value); 
+    }
+    else
+    {
+        /* I don't care about any other attr */
+        rc = MPI_SUCCESS; 
+    } /* endif */
+
+    return rc;
+
+} /* end MPID_Attr_set() */
+/* END GRIDFTP */

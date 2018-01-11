@@ -242,5 +242,7 @@ fi
 /usr/man/man4/*
 
 %changelog
+* Sat Jan  4 2003 William Gropp <gropp@mcs.anl.gov>
+- Update for 1.2.5 version number.
 * Thu Apr 26 2001 Frederick (Rick) A Niles <niles@scyld.com>
 - Initial version

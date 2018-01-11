@@ -1194,6 +1194,13 @@ P4VOID zap_remote_p4_processes( void )
 	    /* Construct a die message for remote listener */
 	    if (strcmp(prev_hostname,dest_pi->host_name) != 0 || prev_port != dest_pi->port)
 	    {
+		/* The listener closes the connection after receiving a 
+		   message, so we need to get a new connection in order to
+		   send it another message.  Thanks to Vincent Newsum 
+		   <Newsum@fel.tno.nl> for this fix */
+		dest_listener_con_fd = net_conn_to_listener(dest_host,dest_listener,2);
+		if (dest_listener_con_fd == -1)
+		    continue;
 		msg.type = p4_i_to_n(DIE);
 		msg.from = p4_i_to_n(my_id);
 		p4_dprintfl(40, "zap_remote_p4_processes: sending DIE to %d on fd=%d size=%d\n",

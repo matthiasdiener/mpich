@@ -1,5 +1,5 @@
 /*
- *  $Id: testall.c,v 1.25 2002/03/15 18:51:55 gropp Exp $
+ *  $Id: testall.c,v 1.26 2003/01/09 20:48:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -38,7 +38,7 @@ Input Parameters:
 Output Parameters:
 + flag - (logical) 
 - array_of_statuses - array of status objects (array of Status).  May be
- 'MPI_STATUSES_NULL'.
+ 'MPI_STATUSES_IGNORE'.
 
 Notes:
   'flag' is true only if all requests have completed.  Otherwise, flag is

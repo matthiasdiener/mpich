@@ -1,3 +1,4 @@
+#include "mpid.h"    /* GRIDFTP */
 #include "globdev.h"
 #include "reqalloc.h"
 #include "queue.h" /* for queue traversal stuff in cancelling message  */
@@ -15,6 +16,7 @@ extern volatile int       TcpOutstandingRecvReqs;
 extern globus_size_t      Headerlen;
 int			  MpichGlobus2TcpBufsz = 0;
 extern struct commworldchannels *CommWorldChannelsTable;
+int MPICHX_PARALLELSOCKETS_PARAMETERS = MPI_KEYVAL_INVALID;  /* GRIDFTP */
 
 static void data_arrived(struct tcp_rw_handle_t *rwhp);
 static void send_cancel_result_over_tcp(char *msgid_src_commworld_id,
@@ -27,6 +29,33 @@ static void send_cancel_result_over_tcp(char *msgid_src_commworld_id,
 					unsigned long msgid_ctr);
 
 static globus_bool_t i_establish_socket(int dest_grank);
+/*****************/
+/* START GRIDFTP */
+/*****************/
+static void gridftp_connect_read_callback(void *callback_arg,
+                                struct globus_ftp_control_handle_s *handle,
+                                unsigned int stripe_ndx,
+                                globus_bool_t resuse,
+                                globus_object_t *error);
+static void gridftp_read_all_callback(void * callback_arg,
+                                globus_ftp_control_handle_t *handle,
+                                globus_object_t *error,
+                                globus_byte_t *buffer,
+                                globus_size_t length,
+                                globus_off_t offset,
+                                globus_bool_t eof);
+void g_ftp_monitor_init(g_ftp_perf_monitor_t *monitor);
+void g_ftp_monitor_reset(g_ftp_perf_monitor_t *monitor);
+static void test_result(globus_result_t res, char *msg, int line_no);
+static void setup_ftp_handle(globus_ftp_control_handle_t *ftp_handle,
+                            struct gridftp_params *gfp);
+static int enable_gridftp_internal(struct gridftp_params *gfp,
+                                    int partner_grank);
+int enable_gridftp(struct MPIR_COMMUNICATOR *comm, void *attr_value);
+/***************/
+/* END GRIDFTP */
+/***************/
+
 
 /**********************/
 /* Callback functions */
@@ -396,6 +425,11 @@ void read_callback(void *callback_arg,
 		 *          cancel_success_flag, 
 		 *          msgid_src_commworld_id,msgid_src_commworld_displ,
 		 *          msgid_sec,msgid_usec,msgid_ctr,liba 
+                 *
+                 * START GRIDFTP
+                 * OR
+                 * type==gridftp_port, partner_grank, gridftp_port
+                 * END GRIDFTP
 		 */
 
                 globus_dc_get_int(&cp, &type, 1, (int) (rwhp->remote_format));
@@ -462,18 +496,108 @@ void read_callback(void *callback_arg,
 
 		    if (rwhp->dataorigin_bufflen)
 		    {
+                        struct channel_t *chp;    /* GRIDFTP */
+                        struct tcp_miproto_t *tp; /* GRIDFTP */
+                        int proto;                /* GRIDFTP */
+
 			g_malloc(rwhp->incoming_raw_data, 
 				    globus_byte_t *, 
 				    rwhp->dataorigin_bufflen);
+                        /* START GRIDFTP */
+                        /*********************************************/
+                        /* figuring out if this channel uses gridFTP */
+                        /*********************************************/
 
-			rwhp->state = await_data;
-			globus_io_register_read(&(rwhp->handle),
+                        /* NICK: have to check whether the grank used */
+                        /*       here assumes all comm=MPI_COMM_WORLD */
+                        if (!(chp = get_channel(rwhp->msg_id_src_grank)))
+                        {
+                            globus_libc_fprintf(stderr,
+                                "ERROR: read_callback: await_header: "
+                                "user_data: proc %d: failed get_channel "
+                                "rwhp->msg_id_src_grank %d\n",
+                                MPID_MyWorldRank, rwhp->msg_id_src_grank);
+                            print_channels();
+                            exit(-1);
+                        }
+                        else if (!(chp->selected_proto))
+                        {
+                            globus_libc_fprintf(stderr,
+                                "ERROR: read_callback: await_header: "
+                                "user_data: proc %d does not have selected "
+                                "proto for rwhp->msg_id_src_grank %d\n",
+                                MPID_MyWorldRank, rwhp->msg_id_src_grank);
+                            print_channels();
+                            exit(-1);
+                        }
+                        else if ((proto = (chp->selected_proto)->type) != tcp)
+                        {
+                            globus_libc_fprintf(stderr,
+                                "ERROR: read_callback: await_header: "
+                                "user_data: proc %d selected proto is not "
+                                "TCP proto for rwhp->msg_id_src_grank %d\n",
+                                MPID_MyWorldRank, rwhp->msg_id_src_grank);
+                            print_channels();
+                            exit(-1);
+                        } /* endif */
+                        tp = (chp->selected_proto)->info;
+                        if (tp->use_grid_ftp)
+                        {
+                            g_ftp_user_args_t ua;
+                            globus_result_t res;
+
+                            g_ftp_monitor_reset(&(tp->read_monitor));
+
+                            ua.monitor      = &(tp->read_monitor);
+                            ua.ftp_handle_r = &(tp->ftp_handle_r);
+                            ua.buffer       = rwhp->incoming_raw_data;
+                            ua.nbytes       = rwhp->dataorigin_bufflen;
+
+                            /* this can be used over and over again */
+
+                            res = globus_ftp_control_data_connect_read(
+                                    ua.ftp_handle_r,
+                                    gridftp_connect_read_callback,
+                                    (void *) &ua);
+                            if (res != GLOBUS_SUCCESS)
+                            {
+                                globus_libc_fprintf(stderr,
+                                    "ERROR: read_callback: await_header: "
+                                    "user_data: proc %d failed "
+                                    "globus_ftp_control_data_connect_read"
+                                    "to rwhp->msg_id_src_grank %d\n",
+                                    MPID_MyWorldRank, rwhp->msg_id_src_grank);
+                                exit(-1);
+                            } /* endif */
+
+			    while(!(tp->read_monitor.done))
+			    {
+				G2_WAIT
+			    } /* endwhile */
+
+                            data_arrived(rwhp);
+                            /* transition to 'await_header' state */
+                            rwhp->state = await_header;
+                            globus_io_register_read(&(rwhp->handle),
+                                    rwhp->incoming_header, /* data will sit */
+                                          /* here when callback is envoked */
+                                rwhp->incoming_header_len, /* max nbytes */
+                                rwhp->incoming_header_len, /* wait for nbytes */
+                                        read_callback,
+                                    (void *) rwhp); /* optional callback arg */
+                        }
+                        else
+                        {
+                        /* END GRIDFTP */
+			    rwhp->state = await_data;
+			    globus_io_register_read(&(rwhp->handle),
 				    rwhp->incoming_raw_data, /* data will sit */
 					  /* here when callback is envoked */
 				rwhp->dataorigin_bufflen, /* max nbytes */
 				rwhp->dataorigin_bufflen, /* wait for nbytes */
 						read_callback,
 				    (void *) rwhp); /* optional callback arg */
+                        } /* endif GRIDFTP */
 		    }
 		    else
 		    {
@@ -713,6 +837,71 @@ void read_callback(void *callback_arg,
 
 		    TcpOutstandingRecvReqs --;
 /* globus_libc_fprintf(stderr, "NICK: %d: read_callback: await_header: cancel_result: just decremented TcpOutstandingRecvReqs to %d\n", MPID_MyWorldRank, TcpOutstandingRecvReqs); */
+
+		    /* transition back to same state, 'await_header' */
+		    rwhp->state = await_header;
+		    globus_io_register_read(&(rwhp->handle),
+				    rwhp->incoming_header, /* data will sit */
+					  /* here when callback is envoked */
+				rwhp->incoming_header_len, /* max nbytes */
+				rwhp->incoming_header_len, /* wait for nbytes */
+					    read_callback,
+				    (void *) rwhp); /* optional callback arg */
+		}
+		else if (type == gridftp_port)
+		{
+		    /* assumes that partner_grank w.r.t. comm=MPI_COMM_WORLD */
+		    struct channel_t *chp;
+		    struct tcp_miproto_t *tp;
+		    int proto;
+		    int partner_grank;
+		    int gridftp_port;
+
+		    /* unpacking rest of header: partner_grank, gridftp_port */
+		    globus_dc_get_int(&cp, &partner_grank, 1, 
+					(int) (rwhp->remote_format));
+		    globus_dc_get_int(&cp, &gridftp_port, 1, 
+					(int) (rwhp->remote_format));
+
+/* fprintf(stderr, "NICK: %d: read_callback: await_header: gridftp_port: partner_grank %d\n", MPID_MyWorldRank, partner_grank);  */
+		    /***************************************/
+		    /* validating partner_grank proto==TCP */
+		    /***************************************/
+
+		    if (!(chp = get_channel(partner_grank)))
+		    {
+			globus_libc_fprintf(stderr,
+			    "ERROR: read_callback: await_header: gridftp_port: "
+			    "proc %d: failed get_channel partner_grank %d\n",
+			    MPID_MyWorldRank, partner_grank);
+			print_channels();
+			exit(-1);
+		    }
+		    else if (!(chp->selected_proto))
+		    {
+			globus_libc_fprintf(stderr,
+			    "ERROR: read_callback: await_header: gridftp_port: "
+			    "proc %d does not have selected proto for "
+			    "partner_grank %d\n",
+			    MPID_MyWorldRank, partner_grank);
+			print_channels();
+			exit(-1);
+		    }
+		    else if ((proto = (chp->selected_proto)->type) != tcp)
+		    {
+			globus_libc_fprintf(stderr,
+			    "ERROR: read_callback: await_header: gridftp_port: "
+			    "proc %d selected proto is not "
+			    "TCP proto for partner_grank %d\n",
+				    MPID_MyWorldRank, partner_grank);
+			print_channels();
+			exit(-1);
+		    } /* endif */
+
+		    tp = (chp->selected_proto)->info;
+
+		    tp->partner_port       = gridftp_port;
+		    tp->recvd_partner_port = GLOBUS_TRUE;
 
 		    /* transition back to same state, 'await_header' */
 		    rwhp->state = await_header;
@@ -1473,3 +1662,368 @@ static globus_bool_t i_establish_socket(int dest_grank)
 
 } /* end setting i_establish_socket() */
 
+/*****************/
+/* START GRIDFTP */
+/*****************/
+
+static void test_result(globus_result_t res, char *msg, int line_no)
+{
+
+    if(res != GLOBUS_SUCCESS)
+    {
+        printf("error:%s at line %d\n",
+            globus_object_printable_to_string(globus_error_get(res)),
+            line_no);
+        printf("%s\n", msg);
+        assert(GLOBUS_FALSE);
+    } /* endif */
+
+} /* end test_result() */
+
+static void setup_ftp_handle(globus_ftp_control_handle_t *ftp_handle,
+			    struct gridftp_params *gfp)
+{
+    globus_result_t                             res;
+    globus_ftp_control_tcpbuffer_t              tcp_buffer;
+    globus_ftp_control_parallelism_t            parallelism;
+
+    /*
+     *  set transfer type
+     */
+    res = globus_ftp_control_handle_init(ftp_handle);
+    test_result(res, "setup_ftp_handle:handle_init", __LINE__);
+    /* NICK: put into binary mode */
+    res = globus_ftp_control_local_type(ftp_handle,
+				      GLOBUS_FTP_CONTROL_TYPE_IMAGE,
+				      0);
+    test_result(res, "setup_ftp_handle:local_type", __LINE__);
+
+    /*
+     *  set transfer mode
+     */
+    /* NICK: data channel mode of ftp */
+    res = globus_ftp_control_local_mode(ftp_handle,
+				      GLOBUS_FTP_CONTROL_MODE_EXTENDED_BLOCK);
+    test_result(res, "setup_ftp_handle:local_mode", __LINE__);
+ 
+    /*
+     *  set parallel level
+     */
+    /* NICK: i tell you that level of parallelism is fixed */
+    parallelism.mode = GLOBUS_FTP_CONTROL_PARALLELISM_FIXED;
+    parallelism.fixed.size = gfp->nsocket_pairs;
+    res = globus_ftp_control_local_parallelism(ftp_handle, &parallelism);
+    test_result(res, "setup_ftp_handle:local_parallelism", __LINE__);
+
+    /*
+     *  set tcp buffer size
+     */
+    /* NICK: using cmd line arg to be set window size */
+    tcp_buffer.mode = GLOBUS_FTP_CONTROL_TCPBUFFER_FIXED;
+    tcp_buffer.fixed.size = gfp->tcp_buffsize;
+    res = globus_ftp_control_local_tcp_buffer(ftp_handle, &tcp_buffer);
+    test_result(res, "setup_ftp_handle:tcp buffer", __LINE__);
+
+} /* end setup_ftp_handle() */
+
+static int enable_gridftp_internal(struct gridftp_params *gfp, 
+				    int partner_grank)
+{
+    int proto;
+    struct channel_t *cp;
+    struct tcp_miproto_t *tp;
+    globus_result_t res;
+    struct tcpsendreq *sr;
+    globus_ftp_control_host_port_t              host_port_read;
+    globus_ftp_control_host_port_t              host_port_write;
+
+/* fprintf(stderr, "NICK: %d: enter enable_gridftp_internal(): partner_grank %d\n", MPID_MyWorldRank, partner_grank);  */
+
+    /***************************************/
+    /* validating partner_grank proto==TCP */
+    /***************************************/
+
+    if (!(cp = get_channel(partner_grank)))
+    {
+	globus_libc_fprintf(stderr,
+	    "ERROR: enable_gridftp_internal: proc %d: failed get_channel "
+	    "grank %d\n",
+	    MPID_MyWorldRank, partner_grank);
+	print_channels();
+	exit(-1);
+    }
+    else if (!(cp->selected_proto))
+    {
+	globus_libc_fprintf(stderr,
+		    "ERROR: enable_gridftp_internal: proc %d does not have "
+		    "selected proto for dest %d\n",
+		    MPID_MyWorldRank, partner_grank);
+	print_channels();
+	exit(-1);
+    }
+    else if ((proto = (cp->selected_proto)->type) != tcp)
+    {
+	globus_libc_fprintf(stderr,
+		    "ERROR: enable_gridftp_internal: proc %d selected proto "
+		    "is not TCP proto for dest %d\n",
+		    MPID_MyWorldRank, partner_grank);
+	print_channels();
+	exit(-1);
+    } /* endif */
+
+    tp = (cp->selected_proto)->info;
+
+    if (tp->use_grid_ftp)
+    {
+	globus_libc_fprintf(stderr,
+	    "ERROR: enable_gridftp_internal: proc %d: partner_grank %d: "
+	    " tp->use_grid_ftp is already TRUE\n",
+	    MPID_MyWorldRank, partner_grank);
+	print_channels();
+	MPID_Abort(NULL, 0, "MPICH-G2 (internal error)", "mpi_put_attr()");
+    }
+    else if (!(tp->whandle))
+    {
+	/* should only have to be done once */
+/* fprintf(stderr, "NICK: %d: enable_gridftp_internal(): partner_grank %d: before prime_the_line\n", MPID_MyWorldRank, partner_grank);  */
+	prime_the_line(tp, partner_grank);
+/* fprintf(stderr, "NICK: %d: enable_gridftp_internal(): partner_grank %d: after prime_the_line\n", MPID_MyWorldRank, partner_grank);  */
+
+	if (!(tp->whandle))
+	{
+	    globus_libc_fprintf(stderr,
+		"ERROR: enable_gridftp_internal: proc %d: partner_grank %d: "
+		" after call to prime_the_line tp->whandle is still NULL\n",
+		MPID_MyWorldRank, partner_grank);
+	    print_channels();
+	    MPID_Abort(NULL, 0, "MPICH-G2 (internal error)", "mpi_put_attr()");
+	} /* endif */
+    } /* endif */
+/* fprintf(stderr, "NICK: %d: enable_gridftp_internal(): partner_grank %d: we know line is primed\n", MPID_MyWorldRank, partner_grank);  */
+
+    /*******************************/
+    /* setting up parallel sockets */
+    /*******************************/
+
+    setup_ftp_handle(&(tp->ftp_handle_r), gfp);
+    setup_ftp_handle(&(tp->ftp_handle_w), gfp);
+
+    /* START NEWGRIDFTP */
+    /* tp->max_outstanding_writes = gfp->max_outstanding_writes; */
+    tp->gftp_tcp_buffsize = gfp->tcp_buffsize;
+    /* END NEWGRIDFTP */
+
+    /*************/
+    /* handshake */
+    /*************/
+
+    if (i_establish_socket(partner_grank))
+    {
+/* fprintf(stderr, "NICK: %d: enable_gridftp_internal(): partner_grank %d: handshake: i_estab_sock = TRUE\n", MPID_MyWorldRank, partner_grank);  */
+	/* set up a listener for the reader */
+	res = globus_io_tcp_get_local_address(tp->whandle,
+					      host_port_read.host,
+					      &host_port_read.port);
+	test_result(res, "enable_gridftp_internal", __LINE__);
+	host_port_read.port = 0;
+	res = globus_ftp_control_local_pasv(&(tp->ftp_handle_r), 
+					    &host_port_read);
+	test_result(res, "enable_gridftp_internal", __LINE__);
+
+	/* send port number on control channel */
+	/* packing header: type=gridftp_port,MPID_MyWorldRank,port */
+	g_malloc(sr, struct tcpsendreq *, sizeof(struct tcpsendreq));
+	sr->type                   = gridftp_port;
+	sr->dest_grank             = partner_grank;
+	sr->gridftp_partner_grank  = MPID_MyWorldRank;
+	sr->gridftp_port           = (int) host_port_read.port;
+	enqueue_tcp_send(sr);
+/* fprintf(stderr, "NICK: %d: enable_gridftp_internal(): handshake: i_estab_sock = TRUE: after enqueue_tcp_send\n", MPID_MyWorldRank);  */
+
+	/* wait for other side's port to arrive */
+	TcpOutstandingRecvReqs ++;
+
+/* fprintf(stderr, "NICK: %d: enable_gridftp_internal(): handshake: i_estab_sock = TRUE: TcpOutstandingRecvReqs %d: before tp->recvd_partner_port loop\n", MPID_MyWorldRank, TcpOutstandingRecvReqs); */
+	while (tp->recvd_partner_port == GLOBUS_FALSE)
+	{
+	    /* give all protos that are waiting for something a nudge */
+	    MPID_DeviceCheck(MPID_NOTBLOCKING);
+	} /* endwhile */
+/* fprintf(stderr, "NICK: %d: enable_gridftp_internal(): handshake: i_estab_sock = TRUE: after tp->recvd_partner_port loop\n", MPID_MyWorldRank); */
+
+	/* 
+	 * I got the TCP message that I was waiting for so 
+	 * I decrement TcpOutstandingRecvReqs here.
+	 * originally I was decrementing TcpOutstandingRecvReqs in
+	 * the read_callback state machine when the message
+	 * arrived, but that led to a race condition where
+	 * if multiple grid_port messages came in _before_
+	 * there were actual requests for them (e.g., many other
+	 * sides were requesting parallel sockets before I got
+	 * around to calling this function) then the TcpOutstandingRecvReqs
+	 * was being decremented far below zero, and as a undesired
+	 * result of that, MPID_DeviceCheck would not poll TCP.
+	 */
+	TcpOutstandingRecvReqs --;
+/* fprintf(stderr, "NICK: %d: enable_gridftp_internal(): handshake: i_estab_sock = TRUE: after decrementing TcpOutstandingsRecvReqs to %d\n", MPID_MyWorldRank, TcpOutstandingRecvReqs);  */
+
+	/* 
+	 * since ftp handle will be listening on same IP as the control 
+	 *      socket we may just get the IP address from this socket.
+	 */
+	res = globus_io_tcp_get_remote_address(tp->whandle,
+					      host_port_write.host,
+					      &host_port_write.port);
+	test_result(res, "enable_gridftp_internal", __LINE__);
+	host_port_write.port = tp->partner_port;
+
+	/* tell ftp_control the ip:port of the reader */
+	res = globus_ftp_control_local_port(&(tp->ftp_handle_w), 
+					    &host_port_write);
+	test_result(res, "enable_gridftp_internal", __LINE__);
+    }
+    else
+    {
+/* fprintf(stderr, "NICK: %d: enable_gridftp_internal(): partner_grank %d: handshake: i_estab_sock = FALSE\n", MPID_MyWorldRank, partner_grank);  */
+
+	/* set up a listener for the reader */
+	res = globus_io_tcp_get_local_address(tp->whandle,
+					      host_port_read.host,
+					      &host_port_read.port);
+	test_result(res, "enable_gridftp_internal", __LINE__);
+	host_port_read.port = 0;
+	res = globus_ftp_control_local_pasv(&(tp->ftp_handle_r), 
+					    &host_port_read);
+	test_result(res, "enable_gridftp_internal", __LINE__);
+
+	/* wait for other side's port to arrive */
+	TcpOutstandingRecvReqs ++;
+
+/* fprintf(stderr, "NICK: %d: enable_gridftp_internal(): handshake: i_estab_sock = FALSE: before waitloop\n", MPID_MyWorldRank);  */
+	while (tp->recvd_partner_port == GLOBUS_FALSE)
+	{
+	    /* give all protos that are waiting for something a nudge */
+	    MPID_DeviceCheck(MPID_NOTBLOCKING);
+	} /* endwhile */
+/* fprintf(stderr, "NICK: %d: enable_gridftp_internal(): handshake: i_estab_sock = FALSE: after waitloop\n", MPID_MyWorldRank);  */
+
+	/* 
+	 * I got the TCP message that I was waiting for so 
+	 * I decrement TcpOutstandingRecvReqs here.
+	 * originally I was decrementing TcpOutstandingRecvReqs in
+	 * the read_callback state machine when the message
+	 * arrived, but that led to a race condition where
+	 * if multiple grid_port messages came in _before_
+	 * there were actual requests for them (e.g., many other
+	 * sides were requesting parallel sockets before I got
+	 * around to calling this function) then the TcpOutstandingRecvReqs
+	 * was being decremented far below zero, and as a undesired
+	 * result of that, MPID_DeviceCheck would not poll TCP.
+	 */
+	TcpOutstandingRecvReqs --;
+/* fprintf(stderr, "NICK: %d: enable_gridftp_internal(): handshake: i_estab_sock = FALSE: after decrementing TcpOutstandingsRecvReqs to %d\n", MPID_MyWorldRank, TcpOutstandingRecvReqs);  */
+
+	/* since ftp handle will be listening on same IP as the control 
+	 * socket we may just get the IP address from this socket.
+	 */
+	res = globus_io_tcp_get_remote_address(tp->whandle,
+					      host_port_write.host,
+					      &host_port_write.port);
+	test_result(res, "enable_gridftp_internal", __LINE__);
+	host_port_write.port = tp->partner_port;
+
+	/* tell ftp_control the ip:port of the reader */
+	res = globus_ftp_control_local_port(&(tp->ftp_handle_w), 
+					    &host_port_write);
+	test_result(res, "enable_gridftp_internal", __LINE__);
+
+	/* packing header: type=gridftp_pong,MPID_MyWorldRank,port */
+	g_malloc(sr, struct tcpsendreq *, sizeof(struct tcpsendreq));
+	sr->type                   = gridftp_port;
+	sr->dest_grank             = partner_grank;
+	sr->gridftp_partner_grank  = MPID_MyWorldRank;
+	sr->gridftp_port           = (int) host_port_read.port;
+	enqueue_tcp_send(sr);
+
+    } /* endif */
+
+    tp->use_grid_ftp = GLOBUS_TRUE;
+    g_ftp_monitor_init(&(tp->read_monitor));
+    g_ftp_monitor_init(&(tp->write_monitor));
+
+/* fprintf(stderr, "NICK: %d: exit enable_gridftp_internal(): partner_grank %d\n", MPID_MyWorldRank, partner_grank);  */
+
+    return MPI_SUCCESS;
+
+} /* end enable_gridftp_internal() */
+
+int enable_gridftp(struct MPIR_COMMUNICATOR *comm, void *attr_value)
+{
+    struct gridftp_params *gfp = (struct gridftp_params *) attr_value;
+    int rc;
+
+    if (gfp->partner_rank >= 0 && gfp->partner_rank < comm->np)
+    {
+	rc = enable_gridftp_internal(gfp, 
+		comm->lrank_to_grank[gfp->partner_rank]);
+    }
+    else
+    {
+	/* globus_libc_fprintf(stderr, */
+	printf(
+	    "ERROR: MPICH-G2: enable_gridftp: MPI_COMM_WORLD rank %d: "
+	    "specified partner rank %d for communicator with size %d\n",
+	    MPID_MyWorldRank, gfp->partner_rank, comm->np);
+	rc = MPI_ERR_INTERN;
+    } /* endif */
+
+    return rc;
+
+} /* end enable_gridftp() */
+
+static void gridftp_connect_read_callback(void *callback_arg,
+                                struct globus_ftp_control_handle_s *handle,
+                                unsigned int stripe_ndx,
+                                globus_bool_t resuse,
+                                globus_object_t *error)
+{
+    g_ftp_user_args_t *ua = (g_ftp_user_args_t *) callback_arg;
+    globus_result_t                             res;
+
+    res = globus_ftp_control_data_read_all(ua->ftp_handle_r,
+                        ua->buffer,
+                        ua->nbytes,
+                        gridftp_read_all_callback,
+                        (void *) ua->monitor);
+    test_result(res, "pr_tcp_g.c:gridftp_connect_read_callback", __LINE__);
+
+} /* end gridftp_connect_read_callback() */
+
+static void gridftp_read_all_callback(void * callback_arg,
+                                globus_ftp_control_handle_t * handle,
+                                globus_object_t * error,
+                                globus_byte_t * buffer,
+                                globus_size_t length,
+                                globus_off_t offset,
+                                globus_bool_t eof)
+{
+    g_ftp_perf_monitor_t *monitor = (g_ftp_perf_monitor_t *) callback_arg;
+
+    if (error != GLOBUS_NULL)
+    {
+        char *errstring = globus_object_printable_to_string(error);
+        printf("ERROR: read_all_callback passed err: %s\n", errstring);
+        assert(GLOBUS_FALSE);
+    } /* endif */
+
+    if (eof)
+    {
+	monitor->done = GLOBUS_TRUE;
+	G2_SIGNAL
+    } /* endif */
+
+} /* end gridftp_read_all_callback() */
+
+/***************/
+/* END GRIDFTP */
+/***************/

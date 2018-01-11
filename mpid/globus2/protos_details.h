@@ -5,7 +5,8 @@
 /* TCP proto stuff */
 /*******************/
 
-enum header_type {user_data, ack, cancel_send, cancel_result};
+enum header_type {user_data, ack, cancel_send, cancel_result,
+		    gridftp_port}; /* GRIDFTP */
 
 /* header =
  * type==user_data,src,tag,contextid,dataoriginbuffsize,ssendflag,packed_flag,
@@ -52,6 +53,8 @@ struct tcpsendreq
     void * liba;
     int libasize;
     MPIR_SHANDLE *sreq;
+    int gridftp_port;          /* GRIDFTP */
+    int gridftp_partner_grank; /* GRIDFTP */
 }; 
 
 /* 
@@ -90,6 +93,23 @@ struct tcp_rw_handle_t
     unsigned long msg_id_ctr;                               /* message id */
 };
 
+/* START GRIDFTP */
+typedef struct g_ftp_perf_monitor_s
+{
+    globus_bool_t done;
+    int           count;
+} g_ftp_perf_monitor_t;
+
+typedef struct g_ftp_user_args_s
+{
+    g_ftp_perf_monitor_t                *monitor;
+    globus_ftp_control_handle_t *       ftp_handle_r;
+    globus_byte_t *                     buffer;
+    int                                 nbytes; /* buffer length */
+    int                                 gftp_tcp_buffsize;
+} g_ftp_user_args_t;
+/* END GRIDFTP */
+
 struct tcp_miproto_t
 {
     char                            hostname[G2_MAXHOSTNAMELEN];
@@ -126,6 +146,17 @@ struct tcp_miproto_t
     /* Different levels for TCP: WAN-TCP > LAN-TCP > localhost-TCP */
     char *globus_lan_id;
     int localhost_id;
+
+    /* START GRIDFTP */
+    globus_bool_t 		recvd_partner_port;
+    globus_bool_t 		use_grid_ftp;
+    int 			partner_port;
+    int 			gftp_tcp_buffsize;
+    globus_ftp_control_handle_t ftp_handle_r;
+    globus_ftp_control_handle_t ftp_handle_w;
+    g_ftp_perf_monitor_t        read_monitor;
+    g_ftp_perf_monitor_t 	write_monitor;
+    /* END GRIDFTP */
 };
 
 /*******************/

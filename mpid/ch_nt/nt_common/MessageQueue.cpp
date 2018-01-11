@@ -252,7 +252,7 @@ void MessageQueue::FindNode(MessageQueue::InternalNode *&node)
 		find_buffer = pNode->link.posted->list.buffer;
 		if (find_length > pNode->link.posted->list.length)
 		{
-		    printf("find_length: %d, pNode->link.posted->list.length: %d\n", find_length, pNode->link.posted->list.length);
+		    printf("MessageQueue:FindNode:Error - find_length: %d, pNode->link.posted->list.length: %d\n", find_length, pNode->link.posted->list.length);fflush(stdout);
 		    pNode->link.posted->list.length = -1;
 		}
 		else
@@ -455,7 +455,7 @@ bool MessageQueue::FillThisBuffer(int tag, void *buffer, int *length, int *from)
 	{
 		if (ret_length == -1)
 		{
-			printf("length == -1\n");
+			printf("MessageQueue:FillThisBuffer:Error - length == -1\n");
 			return false;
 		}
 		bDeleteNeeded = false;
@@ -512,7 +512,7 @@ bool MessageQueue::PostBufferForFilling(int tag, void *buffer, int length, int *
 	pID[3] = -1;
 	if (pID[2] == -1)
 	{
-		printf("PostBufferForFilling:Buffer too short - %d < %d", length, find_length);
+		printf("MessageQueue:PostBufferForFilling:Buffer too short - %d < %d", length, find_length);
 		fflush(stdout);
 	}
 

@@ -3,8 +3,9 @@ Name: mpich
 Version: 1.2.5
 Vendor: Argonne National Laboratory
 Packager: William Gropp <gropp@mcs.anl.gov>
-Copyright: BSD
+Copyright: BSD-like
 Group: System Environment/Libraries 
+URL: http://www.mcs.anl.gov/mpi/mpich/
 #
 # This spec file was inspired by spec files created by others for MPICH,
 # including the Scyld version, written by Frederick (Rick) Niles of Scyld, and 
@@ -12,7 +13,7 @@ Group: System Environment/Libraries
 #
 # Construct the source RPM with
 #  mkdir ...
-#  rpm mpich.spec ....
+#  rpm -ba mpich.spec ....
 # This spec file requires a suitably recent version of RPM. Is there an
 # RPM version tag that we should set?
 
@@ -35,6 +36,8 @@ Group: System Environment/Libraries
 # clusters of SMPs.  
 %define device ch_p4mpd
 %define other_device_opts %{nil}
+# (warning: you cannot comment out a macro definition because they
+# are apparently evaluated *before* comment processing (!!!)
 # for ch_p4:
 # define device ch_p4
 # define other_device_opts -comm=shared
@@ -53,8 +56,25 @@ Group: System Environment/Libraries
 # Define this to +pvfs if pvfs is available.
 %define other_file_systems %{nil}
 
+#
+# Define any other options for configure.  For example, 
+# Turn off mpe
+# define other_config_opts --without-mpe
+# Turn off building the logfile viewers
+# define other_config_opts -mpe-opts=--disable-viewers
+%define other_config_opts %{nil}
+
+#
+# Define the release value; this will be used, along with the compiler
+# choice, to specify an actual Release name
 %define rel 1
 
+#
+# Set update_paths to 1 when building an RPM for distribution.  Set it
+# to 0 when building a test RPM that you want to tryout when a BUILDRROOT
+# is specified (if update_paths is 1, then the MPICH commands that need
+# to know the file locations are edited to remove the BUILDROOT).
+%define update_paths 1
 #
 # These definitions are approximate.  They are taken in part from the
 # mpich-scyld.spec file, though the choices here rely more on the MPICH
@@ -116,27 +136,66 @@ Group: System Environment/Libraries
 %endif
 
 Release: %{release}
-Source0: ftp://ftp.mcs.anl.gov/pub/mpi/%{name}-%{version}.tar.gz
+Source0: ftp://ftp.mcs.anl.gov/pub/mpi/%{name}-%{version}-1.tar.gz
 Buildroot: %{_tmppath}/%{name}-root
 #BuildRequires: %{c_compiler}
 Provides: libmpich.so.1
 
+# Define alternate root directories for installation here
+%define _prefix /usr/local/cca
+%define _mandir /usr/local/cca/man
+%define _docdir /usr/local/cca/doc
+
+%define fullname %{name}-%{version}
+
+# These directories are defined in terms of the above directories (-prefix 
+# and _mandir)  
+%define _webdir %{_prefix}/%{fullname}/www
+
+#
+# If these are changed, make sure that you change the directories selected 
+# under the files step.
+
 %define prefixdir   %{?buildroot:%{buildroot}}%{_prefix}
-%define sharedir %{?buildroot:%{buildroot}}%{_datadir}/%{name}
-%define libdir   %{?buildroot:%{buildroot}}%{_libdir}/%{name}
-%define mandir   %{?buildroot:%{buildroot}}%{_mandir}
+%define sharedir %{?buildroot:%{buildroot}}%{_datadir}/%{fullname}
+%define libdir   %{?buildroot:%{buildroot}}%{_libdir}/%{fullname}
 
-%package devel
-Summary: Static libraries and header files for MPI.
-Group: Development/Libraries 
-PreReq: %{name} = %{version}
+# Choose whether the man pages go into a common directory or an mpich one
+# define mandir   %{?buildroot:%{buildroot}}%{_mandir}
+%define mandir   %{?buildroot:%{buildroot}}%{_mandir}/%{fullname}
 
-%description devel
-Static libraries and header files for MPI.
+%define exec_prefix %{?buildroot:%{buildroot}}%{_exec_prefix}/%{fullname}
+%define bindir %{?buildroot:%{buildroot}}%{_bindir}
+%define sbindir %{?buildroot:%{buildroot}}%{_sbindir}
+%define datadir %{?buildroot:%{buildroot}}%{_datadir}
+%define docdir %{?buildroot:%{buildroot}}%{_docdir}
 
-%description
-An implementation of the Message-Passing Interface (MPI) by Argonne
-National Laboratory. 
+# Choose whether you want all .h files in a common include dir or one
+# with the mpich name in it
+# define includedir %{?buildroot:%{buildroot}}%{_includedir}
+%define includedir %{?buildroot:%{buildroot}}%{_includedir}/%{fullname}
+
+%define sharedstatedir %{?buildroot:%{buildroot}}%{_sharedstatedir}
+%define webdir %{?buildroot:%{buildroot}}%{_webdir}
+
+#package devel
+#Summary: Static libraries and header files for MPI.
+#Group: Development/Libraries 
+#PreReq: %{name} = %{version}
+
+#description devel
+#Static libraries and header files for MPI.
+
+%description 
+MPICH is an open-source and portable implementation of the Message-Passing
+Interface (MPI, www.mpi-forum.org).  MPI is a library for parallel programming,
+and is available on a wide range of parallel machines, from single laptops to
+massively parallel vector parallel processors.  
+MPICH includes all of the routines in MPI 1.2, along with the I/O routines
+from MPI-2 and some additional routines from MPI-2, including those supporting
+MPI Info and some of the additional datatype constructors.  MPICH  was
+developed by Argonne National Laboratory. See www.mcs.anl.gov/mpi/mpich for
+more information.
 
 %prep
 %setup -q -n mpich-%{version}
@@ -154,16 +213,18 @@ National Laboratory.
 %build
 %setenvs
 ./configure --prefix=%{prefixdir} \
-        --exec-prefix=%{_exec_prefix} \
-        --bindir=%{_bindir} \
-	--sbindir=%{_sbindir} \
-        --datadir=%{_datadir}/mpich/ \
-        --includedir=%{_includedir} \
+        --exec-prefix=%{exec_prefix} \
+        --bindir=%{bindir} \
+	--sbindir=%{sbindir} \
+        --datadir=%{datadir}/%{fullname}/ \
+        --includedir=%{includedir} \
 	--libdir=%{libdir} \
-        --sharedstatedir=%{_sharedstatedir} \
+	--docdir=%{docdir} \
+        --sharedstatedir=%{sharedstatedir} \
         --mandir=%{mandir} \
+	--wwwdir=%{webdir} \
         --with-device=%{device} --enable-sharedlib=%{libdir} \
-        %{other_device_opts} \
+        %{other_device_opts} %{other_config_opts} \
         --with-romio=--file_system=nfs+ufs%{other_file_systems}
         
 %{__make}
@@ -184,6 +245,7 @@ rm -f %{sharedir}/examples/MPI-2-C++/mpirun
 rm -f %{sharedir}/examples/mpirun
 
 # Fix the paths in the shell scripts
+if [ %{update_paths} = 1 ] ; then
 for i in `find %{sharedir} %{prefixdir}/bin -type f`
  do
     sed 's@%{?buildroot:%{buildroot}}@@g' $i > tmpfile
@@ -194,7 +256,7 @@ for i in `find %{sharedir} %{prefixdir}/bin -type f`
         chmod 0644 $i
     fi
  done
-
+fi
 %post	-p /sbin/ldconfig
 
 %postun -p /sbin/ldconfig
@@ -207,21 +269,33 @@ fi
 %files
 %defattr(-,root,root)
 %doc README COPYRIGHT doc/mpichman-chp4.ps.gz doc/mpichman-chp4mpd.ps.gz
-%doc doc/mpichman-chshmem.ps.gz doc/mpeman.ps.gz
-/usr/bin/*
-#/usr/sbin/*  
-/usr/lib/%{name}/*.so.*
-%{_mandir}/man1/*
+%doc doc/mpichman-chshmem.ps.gz doc/mpeman.ps.gz 
+%doc doc/mpeman.pdf doc/mpeman.ps.gz doc/mpiman.ps
+%doc doc/mpichman-chp4.pdf doc/mpichman-chp4mpd.pdf 
+%doc doc/mpichman-chshmem.pdf 
+%doc doc/mpichman-globus2.pdf doc/mpichman-globus2.ps.gz
+%{_bindir}/*
+%{_sbindir}/*
+#%{_webdir}/*
+%{_docdir}/*
+%{_libdir}/%{fullname}/*.so.*
+%{_libdir}/%{fullname}/*.a
+%{_libdir}/%{fullname}/*.so
+%{_libdir}/%{fullname}/mpe_prof.o
+%{_mandir}/%{fullname}/man1/*
+%{_mandir}/%{fullname}/man3/*
+%{_mandir}/%{fullname}/man4/*
+%{_mandir}/%{fullname}/mandesc
+%{_datadir}/%{fullname}
+%{_prefix}/share/upshot
+%{_prefix}/share/jumpshot-3
+%{_prefix}/share/jumpshot-2
+%{_exec_prefix}/%{fullname}
+%{_includedir}/%{fullname}/*
 
-%files devel
-%defattr(-,root,root)
-/usr/share/*
-/usr/include/*
-/usr/lib/%{name}/*.a
-/usr/lib/%{name}/*.so
-%{_mandir}/man3/*
-%{_mandir}/man4/*
 
 %changelog
-* Thu Apr 25 2002 William (Bill) Gropp <gropp@mcs.anl.gov>
+* Fri Jan 10 2003 Willam Gropp <gropp@mcs.anl.gov>
+- Update to MPICH 1.2.5 and fixed buildroot
+* Thu Apr 25 2002 William Gropp <gropp@mcs.anl.gov>
 - Initial version

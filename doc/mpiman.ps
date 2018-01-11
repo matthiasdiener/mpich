@@ -8,7 +8,7 @@
 %DVIPSWebPage: (www.radicaleye.com)
 %DVIPSCommandLine: dvips -o mpiman.ps mpiman
 %DVIPSParameters: dpi=300
-%DVIPSSource:  TeX output 2003.01.06:0926
+%DVIPSSource:  TeX output 2003.01.13:1620
 %%BeginProcSet: tex.pro
 %!
 /TeXDict 300 dict def TeXDict begin/N{def}def/B{bind def}N/S{exch}N/X{S
@@ -1227,9 +1227,9 @@ y(Ewing)g(Lusk)g(Mathematics)g(and)f(Computer)h(Scienc)n(e)h(Division)
 515 1439 y(A)o(r)n(gonne)f(National)g(L)n(ab)n(or)n(atory)688
 1572 y(Nathan)g(Doss)636 1630 y(A)o(nthony)g(Skjel)r(lum)471
 1688 y(Dep)n(artment)g(of)f(Computer)g(Scienc)n(e)528
-1747 y(Mississippi)g(State)h(University)681 2318 y Fl(Jan)o(uary)13
-b(6,)g(2003)225 2398 y Fg(This)h(w)o(ork)f(w)o(as)g(supp)q(orted)i(b)o
-(y)e(the)g(Mathematical,)i(Information,)f(and)g(Com-)225
+1747 y(Mississippi)g(State)h(University)670 2318 y Fl(Jan)o(uary)c(13,)
+f(2003)225 2398 y Fg(This)h(w)o(ork)f(w)o(as)g(supp)q(orted)i(b)o(y)e
+(the)g(Mathematical,)i(Information,)f(and)g(Com-)225
 2447 y(putational)g(Sciences)f(Division)i(subprogram)e(of)f(the)f
 (O\016ce)h(of)f(Computational)225 2497 y(and)k(T)m(ec)o(hnology)h
 (Researc)o(h,)g(U.S.)d(Departmen)o(t)j(of)e(Energy)m(,)h(under)h(Con)o
@@ -9777,8 +9777,8 @@ b Fl(comm)o(unication)10 b(request)16 b(\(handle\))60
 999 y Fj(Output)j(P)n(arameter)60 1076 y Ff(\015ag)256
 b Fl(true)15 b(if)e(op)q(eration)h(completed)f(\(logical\))60
 1126 y Ff(status)204 b Fl(status)15 b(ob)r(ject)f(\(Status\).)19
-b(Ma)o(y)14 b(b)q(e)g Fd(MPI_STATUS_NULL)p Fl(.)60 1263
-y Fj(Note)k(on)h(status)g(for)f(send)h(op)r(erations)60
+b(Ma)o(y)14 b(b)q(e)g Fd(MPI_STATUS_IGNORE)p Fl(.)60
+1263 y Fj(Note)k(on)h(status)g(for)f(send)h(op)r(erations)60
 1339 y Fl(F)m(or)13 b(send)i(op)q(erations,)f(the)g(only)g(use)g(of)g
 (status)g(is)g(for)f(MPI)p Fd(_)p Fl(T)m(est)p Fd(_)p
 Fl(cancelled)i(or)f(in)g(the)g(case)h(that)f(there)h(is)f(an)60
@@ -9862,15 +9862,15 @@ Ff(coun)o(t)213 b Fl(lists)14 b(length)g(\(in)o(teger\))60
 358 y Fj(Output)19 b(P)n(arameters)60 435 y Ff(\015ag)256
 b Fl(\(logical\))60 485 y Ff(arra)o(y)p Fd(_)p Ff(of)p
 Fd(_)p Ff(statuses)375 535 y Fl(arra)o(y)14 b(of)f(status)i(ob)r(jects)
-g(\(arra)o(y)e(of)h(Status\).)k(Ma)o(y)c(b)q(e)g Fd(MPI_STATUSES_NULL)p
-Fl(.)60 672 y Fj(Notes)60 748 y Fd(flag)f Fl(is)h(true)g(only)g(if)f
-(all)f(requests)k(ha)o(v)o(e)e(completed.)j(Otherwise,)e(\015ag)f(is)f
-(false)h(and)g(neither)h(the)60 798 y Fd(array_of_requests)10
-b Fl(nor)k(the)h Fd(array_of_statuse)o(s)c Fl(is)j(mo)q(di\014ed.)60
-935 y Fj(Note)k(on)h(status)g(for)f(send)h(op)r(erations)60
-1012 y Fl(F)m(or)13 b(send)i(op)q(erations,)f(the)g(only)g(use)g(of)g
-(status)g(is)g(for)f(MPI)p Fd(_)p Fl(T)m(est)p Fd(_)p
-Fl(cancelled)i(or)f(in)g(the)g(case)h(that)f(there)h(is)f(an)60
+g(\(arra)o(y)e(of)h(Status\).)k(Ma)o(y)c(b)q(e)g Fd
+(MPI_STATUSES_IGNORE)o Fl(.)60 672 y Fj(Notes)60 748
+y Fd(flag)f Fl(is)h(true)g(only)g(if)f(all)f(requests)k(ha)o(v)o(e)e
+(completed.)j(Otherwise,)e(\015ag)f(is)f(false)h(and)g(neither)h(the)60
+798 y Fd(array_of_requests)10 b Fl(nor)k(the)h Fd(array_of_statuse)o(s)
+c Fl(is)j(mo)q(di\014ed.)60 935 y Fj(Note)k(on)h(status)g(for)f(send)h
+(op)r(erations)60 1012 y Fl(F)m(or)13 b(send)i(op)q(erations,)f(the)g
+(only)g(use)g(of)g(status)g(is)g(for)f(MPI)p Fd(_)p Fl(T)m(est)p
+Fd(_)p Fl(cancelled)i(or)f(in)g(the)g(case)h(that)f(there)h(is)f(an)60
 1061 y(error,)g(in)g(whic)o(h)g(case)g(the)h(MPI)p Fd(_)p
 Fl(ERR)o(OR)e(\014eld)h(of)f(status)i(will)d(b)q(e)j(set.)60
 1198 y Fj(Notes)j(for)h(F)-5 b(ortran)60 1275 y Fl(All)13
@@ -9952,7 +9952,7 @@ b(of)f(op)q(eration)h(that)g(completed,)f(or)h Fd(MPI_UNDEFINED)d
 Fl(if)i(none)h(completed)f(\(in)o(teger\))60 1680 y Ff(\015ag)256
 b Fl(true)15 b(if)e(one)h(of)f(the)i(op)q(erations)f(is)g(complete)f
 (\(logical\))60 1730 y Ff(status)204 b Fl(status)15 b(ob)r(ject)f
-(\(Status\).)19 b(Ma)o(y)14 b(b)q(e)g Fd(MPI_STATUS_NULL)p
+(\(Status\).)19 b(Ma)o(y)14 b(b)q(e)g Fd(MPI_STATUS_IGNORE)p
 Fl(.)60 1867 y Fj(Note)k(on)h(status)g(for)f(send)h(op)r(erations)60
 1943 y Fl(F)m(or)13 b(send)i(op)q(erations,)f(the)g(only)g(use)g(of)g
 (status)g(is)g(for)f(MPI)p Fd(_)p Fl(T)m(est)p Fd(_)p
@@ -10009,13 +10009,13 @@ y Ff(arra)o(y)p Fd(_)p Ff(of)p Fd(_)p Ff(indi)o(ces)375
 y Ff(arra)o(y)p Fd(_)p Ff(of)p Fd(_)p Ff(statuses)375
 2205 y Fl(arra)o(y)h(of)f(status)i(ob)r(jects)g(for)e(op)q(erations)h
 (that)g(completed)g(\(arra)o(y)f(of)h(Status\).)k(Ma)o(y)c(b)q(e)375
-2255 y Fd(MPI_STATUSES_NULL)o Fl(.)60 2376 y Fj(Note)k(on)h(status)g
-(for)f(send)h(op)r(erations)60 2453 y Fl(F)m(or)13 b(send)i(op)q
-(erations,)f(the)g(only)g(use)g(of)g(status)g(is)g(for)f(MPI)p
-Fd(_)p Fl(T)m(est)p Fd(_)p Fl(cancelled)i(or)f(in)g(the)g(case)h(that)f
-(there)h(is)f(an)60 2503 y(error,)g(in)g(whic)o(h)g(case)g(the)h(MPI)p
-Fd(_)p Fl(ERR)o(OR)e(\014eld)h(of)f(status)i(will)d(b)q(e)j(set.)p
-eop
+2255 y Fd(MPI_STATUSES_IGNO)o(RE)p Fl(.)60 2376 y Fj(Note)k(on)h
+(status)g(for)f(send)h(op)r(erations)60 2453 y Fl(F)m(or)13
+b(send)i(op)q(erations,)f(the)g(only)g(use)g(of)g(status)g(is)g(for)f
+(MPI)p Fd(_)p Fl(T)m(est)p Fd(_)p Fl(cancelled)i(or)f(in)g(the)g(case)h
+(that)f(there)h(is)f(an)60 2503 y(error,)g(in)g(whic)o(h)g(case)g(the)h
+(MPI)p Fd(_)p Fl(ERR)o(OR)e(\014eld)h(of)f(status)i(will)d(b)q(e)j
+(set.)p eop
 %%Page: 172 174
 172 173 bop 60 -100 a Fe(2)41 b(MPI)14 b(R)o(OUTINES)1391
 b Fl(172)60 45 y Fj(Notes)18 b(for)h(F)-5 b(ortran)60
@@ -11157,11 +11157,11 @@ b(*request,)234 2472 y(MPI_Status)64 b(*status\))p eop
 b Fl(193)60 45 y Fj(Input)19 b(P)n(arameter)60 122 y
 Ff(request)176 b Fl(request)15 b(\(handle\))60 259 y
 Fj(Output)k(P)n(arameter)60 335 y Ff(status)204 b Fl(status)15
-b(ob)r(ject)f(\(Status\))h(.)j(Ma)o(y)13 b(b)q(e)i Fd(MPI_STATUS_NULL)p
-Fl(.)60 472 y Fj(Note)j(on)h(status)g(for)f(send)h(op)r(erations)60
-549 y Fl(F)m(or)13 b(send)i(op)q(erations,)f(the)g(only)g(use)g(of)g
-(status)g(is)g(for)f(MPI)p Fd(_)p Fl(T)m(est)p Fd(_)p
-Fl(cancelled)i(or)f(in)g(the)g(case)h(that)f(there)h(is)f(an)60
+b(ob)r(ject)f(\(Status\))h(.)j(Ma)o(y)13 b(b)q(e)i Fd
+(MPI_STATUS_IGNORE)o Fl(.)60 472 y Fj(Note)j(on)h(status)g(for)f(send)h
+(op)r(erations)60 549 y Fl(F)m(or)13 b(send)i(op)q(erations,)f(the)g
+(only)g(use)g(of)g(status)g(is)g(for)f(MPI)p Fd(_)p Fl(T)m(est)p
+Fd(_)p Fl(cancelled)i(or)f(in)g(the)g(case)h(that)f(there)h(is)f(an)60
 599 y(error,)g(in)g(whic)o(h)g(case)g(the)h(MPI)p Fd(_)p
 Fl(ERR)o(OR)e(\014eld)h(of)f(status)i(will)d(b)q(e)j(set.)60
 736 y Fj(Notes)j(for)h(F)-5 b(ortran)60 812 y Fl(All)13
@@ -11215,12 +11215,12 @@ y Ff(coun)o(t)213 b Fl(lists)14 b(length)g(\(in)o(teger\))60
 537 y Fj(Output)19 b(P)n(arameter)60 613 y Ff(arra)o(y)p
 Fd(_)p Ff(of)p Fd(_)p Ff(statuses)375 663 y Fl(arra)o(y)14
 b(of)f(status)i(ob)r(jects)g(\(arra)o(y)e(of)h(Status\).)k(Ma)o(y)c(b)q
-(e)g Fd(MPI_STATUSES_NULL)60 800 y Fj(Note)k(on)h(status)g(for)f(send)h
-(op)r(erations)60 877 y Fl(F)m(or)13 b(send)i(op)q(erations,)f(the)g
-(only)g(use)g(of)g(status)g(is)g(for)f(MPI)p Fd(_)p Fl(T)m(est)p
-Fd(_)p Fl(cancelled)i(or)f(in)g(the)g(case)h(that)f(there)h(is)f(an)60
-927 y(error,)g(in)g(whic)o(h)g(case)g(the)h(MPI)p Fd(_)p
-Fl(ERR)o(OR)e(\014eld)h(of)f(status)i(will)d(b)q(e)j(set.)60
+(e)g Fd(MPI_STATUSES_IGNORE)60 800 y Fj(Note)k(on)h(status)g(for)f
+(send)h(op)r(erations)60 877 y Fl(F)m(or)13 b(send)i(op)q(erations,)f
+(the)g(only)g(use)g(of)g(status)g(is)g(for)f(MPI)p Fd(_)p
+Fl(T)m(est)p Fd(_)p Fl(cancelled)i(or)f(in)g(the)g(case)h(that)f(there)
+h(is)f(an)60 927 y(error,)g(in)g(whic)o(h)g(case)g(the)h(MPI)p
+Fd(_)p Fl(ERR)o(OR)e(\014eld)h(of)f(status)i(will)d(b)q(e)j(set.)60
 1064 y Fj(Notes)j(for)h(F)-5 b(ortran)60 1140 y Fl(All)13
 b(MPI)h(routines)h(in)e(F)m(ortran)h(\(except)h(for)f
 Fd(MPI_WTIME)e Fl(and)h Fd(MPI_WTICK)p Fl(\))g(ha)o(v)o(e)g(an)h
@@ -11312,7 +11312,7 @@ b Fl(index)14 b(of)f(handle)g(for)g(op)q(eration)h(that)g(completed)f
 Fd(count-1)p Fl(.)390 1967 y(In)g(F)m(ortran,)f(the)i(range)f(is)f
 Fd(1)h Fl(to)g Fd(count)p Fl(.)60 2011 y Ff(status)204
 b Fl(status)15 b(ob)r(ject)f(\(Status\).)19 b(Ma)o(y)14
-b(b)q(e)g Fd(MPI_STATUS_NULL)p Fl(.)60 2148 y Fj(Notes)60
+b(b)q(e)g Fd(MPI_STATUS_IGNORE)p Fl(.)60 2148 y Fj(Notes)60
 2224 y Fl(If)g(all)e(of)h(the)i(requests)h(are)e Fd(MPI_REQUEST_NULL)p
 Fl(,)c(then)15 b Fd(index)e Fl(is)g(returned)j(as)e Fd(MPI_UNDEFINED)p
 Fl(,)c(and)k Fd(status)60 2274 y Fl(is)g(returned)h(as)f(an)g(empt)o(y)
@@ -11383,7 +11383,7 @@ f(op)q(erations)i(that)f(completed)f(\(arra)o(y)h(of)f(in)o(tegers\))60
 271 y Ff(arra)o(y)p Fd(_)p Ff(of)p Fd(_)p Ff(statuses)375
 321 y Fl(arra)o(y)h(of)f(status)i(ob)r(jects)g(for)e(op)q(erations)h
 (that)g(completed)g(\(arra)o(y)f(of)h(Status\).)k(Ma)o(y)c(b)q(e)375
-371 y Fd(MPI_STATUSES_NULL)o Fl(.)60 492 y Fj(Notes)60
+371 y Fd(MPI_STATUSES_IGNO)o(RE)p Fl(.)60 492 y Fj(Notes)60
 569 y Fl(The)g(arra)o(y)g(of)f(indicies)h(are)g(in)g(the)g(range)g
 Fd(0)g Fl(to)g Fd(incount)20 b(-)i(1)13 b Fl(for)h(C)g(and)f(in)h(the)g
 (range)g Fd(1)g Fl(to)g Fd(incount)e Fl(for)60 618 y(F)m(ortran.)60

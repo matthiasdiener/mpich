@@ -3,6 +3,7 @@
 
 #include <globus_common.h>
 #include <globus_io.h>
+#include <globus_ftp_control.h> /* GRIDFTP */
 
 /*******************/
 /* Data Structures */

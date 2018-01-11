@@ -290,19 +290,19 @@ bool PutRootPortInMPDDatabase(char *str, int port, char *barrier_name)
 	sprintf(pszStr, "dbput name=%s key=port value=%d", dbname, port);
 	if (WriteString(sock, pszStr) == SOCKET_ERROR)
 	{
-		printf("ERROR: Unable to write '%s' to socket[%d]\n", pszStr, sock);
+		printf("ERROR:PutRootPortInMPDDatabase: Unable to write '%s' to socket[%d]\n", pszStr, sock);
 		easy_closesocket(sock);
 		return false;
 	}
 	if (!ReadStringTimeout(sock, pszStr, MPICH_MPD_TIMEOUT))
 	{
-		printf("ERROR: put failed: error %d", WSAGetLastError());
+		printf("ERROR:PutRootPortInMPDDatabase: put failed: error %d", WSAGetLastError());
 		easy_closesocket(sock);
 		return false;
 	}
 	if (strnicmp(pszStr, "DBS_SUCCESS", 11) != 0)
 	{
-	    printf("ERROR: putting the root port in the mpd database failed.\n%s", pszStr);
+	    printf("ERROR:PutRootPortInMPDDatabase: putting the root port in the mpd database failed.\n%s", pszStr);
 	    WriteString(sock, "done");
 	    easy_closesocket(sock);
 	    return false;
@@ -311,7 +311,7 @@ bool PutRootPortInMPDDatabase(char *str, int port, char *barrier_name)
 	sprintf(pszStr, "barrier name=%s count=2", barrier_name);
 	if (WriteString(sock, pszStr) == SOCKET_ERROR)
 	{
-		printf("ERROR: Unable to write the barrier command: error %d", WSAGetLastError());
+		printf("ERROR:PutRootPortInMPDDatabase: Unable to write the barrier command: error %d", WSAGetLastError());
 		easy_closesocket(sock);
 		return false;
 	}
@@ -320,7 +320,7 @@ bool PutRootPortInMPDDatabase(char *str, int port, char *barrier_name)
 	{
 	    if (!ReadStringTimeout(sock, pszStr, MPICH_MPD_TIMEOUT))
 	    {
-		printf("ERROR: Unable to read the result of the barrier command: error %d", WSAGetLastError());
+		printf("ERROR:PutRootPortInMPDDatabase: Unable to read the result of the barrier command: error %d", WSAGetLastError());
 		easy_closesocket(sock);
 		return false;
 	    }
@@ -330,7 +330,7 @@ bool PutRootPortInMPDDatabase(char *str, int port, char *barrier_name)
 		if (strncmp(pszStr, "INFO", 4))
 		{
 		    // If it is not an 'INFO - ...' message then it is an error
-		    printf("ERROR: barrier failed:\n%s", pszStr);
+		    printf("ERROR:PutRootPortInMPDDatabase: barrier failed:\n%s", pszStr);
 		    easy_closesocket(sock);
 		    return false;
 		}
@@ -389,21 +389,21 @@ bool UpdateMPIFinalizedInMPD()
     sprintf(pszStr, "setMPIFinalized %s", g_pszMPDId);
     if (WriteString(sock, pszStr) == SOCKET_ERROR)
     {
-	printf("ERROR: Unable to write '%s' to socket[%d]\n", pszStr, sock);
+	printf("ERROR:UpdateMPIFinalized: Unable to write '%s' to socket[%d]\n", pszStr, sock);
 	fflush(stdout);
 	easy_closesocket(sock);
 	return false;
     }
     if (!ReadStringTimeout(sock, pszStr, MPICH_MPD_TIMEOUT))
     {
-	printf("ERROR: Unable to read the result of the setMPIFinalized command\n");
+	printf("ERROR:UpdateMPIFinalized: Unable to read the result of the setMPIFinalized command\n");
 	fflush(stdout);
 	easy_closesocket(sock);
 	return false;
     }
     if (stricmp(pszStr, "SUCCESS") != 0)
     {
-	printf("ERROR: setMPIFinalized failed.\n");
+	printf("ERROR:UpdateMPIFinalized: setMPIFinalized failed.\n");
 	fflush(stdout);
 	WriteString(sock, "done");
 	easy_closesocket(sock);

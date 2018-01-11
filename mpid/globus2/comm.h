@@ -232,6 +232,44 @@ extern MPIR_Comm_list MPIR_All_communicators;
    RETURNV(MPIR_ERROR(comm,MPI_ERR_ERRHANDLER_CORRUPT,routine_name));}}
 #endif
 
+/*****************/
+/* START GRIDFTP */
+/*****************/
+
+/* 
+ * these overwrite default macros found in mpid/ch2/mpid.h 
+ * any device that overwrites one must overwrite all three.
+ *
+ * vvvvvvvvvvvvv from mpid/ch2/mpid.h
+ * These macros define an interface between the device and the rest of the 
+ * MPI code for attributes.  If the device needs to use these, it *must*
+ * define all 3.
+ *
+ * MPID_ATTR_SET(struct MPIR_COMMUNICATOR *comm, int keyval, void *attr_value)
+ * is called when the user sets an attribute value for any keyval.
+ *
+ * MPID_ATTR_GET(struct MPIR_COMMUNICATOR *comm, int keyval, void *attr_value)
+ * is called when the user gets an attribute value The last argument is a 
+ * pointer to a value, not a pointer to a pointer (store into the storage
+ * defined by the user, don't change the pointer)
+ *
+ * MPID_KEYVAL_INIT()
+ * The device should also call MPI_Keyval_create() for any keyvals that 
+ * it wishes to be available for users.  Otherwise, the keyvals will have
+ * value MPI_KEYVAL_INVALID.
+ * ^^^^^^^^^^^^^ from mpid/ch2/mpid.h
+ */
+
+#define MPID_ATTR_SET(a,b,c) MPID_Attr_set((a), (b), (c));
+#define MPID_ATTR_GET(comm_ptr,keyval,attr_value_p) 
+#define MPID_KEYVAL_INIT()                  \
+     MPI_Keyval_create(MPI_NULL_COPY_FN,    \
+			MPI_NULL_DELETE_FN, \
+			&MPICHX_PARALLELSOCKETS_PARAMETERS,    \
+			(void *) 0);
+/***************/
+/* END GRIDFTP */
+/***************/
 
 /*
  * Function prototypes

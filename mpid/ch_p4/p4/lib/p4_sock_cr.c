@@ -386,7 +386,7 @@ int net_create_slave( int serv_port, int serv_fd, char *host, char *pgm,
 		p4_dprintfl(20, "bproc: (pid=%d) child pid is %d\n",getpid(),child_pid);
 	    }
 
-#else /* !BEOWULF */
+#else /* !SCYLD_BEOWULF */
 #if defined(HAS_RSHCOMMAND)
 	    strncpy( remote_shell, RSHCOMMAND, P4_MAX_PGM_LEN );
 	    /* Allow the environment variable "P4RSHCOMMAND" to 
@@ -518,6 +518,89 @@ int net_create_slave( int serv_port, int serv_fd, char *host, char *pgm,
 		    /* ENOEXEC - unrecognized executable,
 		       ENOENT  - file no found */
 #else
+
+		{ /* Code to pass environment variables for MPICH-G2 (RL) */
+		    char *p;
+		    p = getenv( "P4_SETS_ALL_ENVVARS" ); 
+		    if ( p ) {
+			/* This code prepends "setenv FOO BAR;setenv FAZZ BAZZ; ..." to
+			   the program name to be rsh'd */
+			/* This code needs more stringent attention to string lengths */
+                        /*                      ^^^^^^                                */
+			extern char **environ;
+			int i, pgm_prefix_len;
+#                       define MAX_PGM_PREFIX_LEN 1024
+			char pgm_prefix[MAX_PGM_PREFIX_LEN], *c;
+			char envvar_buf[256], setenv_buf[256], varname[256], varvalue[1024];
+
+			p4_dprintfl( 10, "P4_SETS_ALL_ENVVARS is set\n"); 
+			pgm_prefix_len = 0;
+			for (i = 0; environ[i] != NULL; i++ ) { 
+			    p4_dprintfl( 90, "environ[%d]: %s\n", i, environ[i] );
+			    pgm_prefix_len += strlen(environ[i]);
+			}
+			/* prefix will need accumulated length plus room for i
+			   copies of "setenv ;" where i is the number of env vars */
+			pgm_prefix_len += i * strlen("setenv ;");
+			p4_dprintfl( 90, "prefix needs %d characters\n", pgm_prefix_len);
+			/* 256 seems to be limit of string passed to rsh through execlp */
+/*
+			if ( pgm_prefix_len > 256 - strlen(pgm) )
+			    p4_error( "environment-setting prefix would be too long: ",
+				      pgm_prefix_len);
+*/
+			pgm_prefix[0] = '\0';
+			for (i = 0; environ[i] != NULL; i++ ) { 
+			    /* separate name from value; add setenv cmd */
+			    strcpy(envvar_buf, environ[i] );
+			    c = strtok( envvar_buf, "=" ); /* get varname */
+			    strcpy( varname, c );
+			    /* here is where to exclude some env vars */
+			    if ( strcmp( varname, "P4_SETS_ALL_ENVVARS" ) == 0 )
+				continue;
+			    if ( strcmp( varname, "FOO" ) == 0 )
+				continue;
+			    if ( strcmp( varname, "PWD" ) == 0 )
+				continue;
+			    if ( strcmp( varname, "MACHTYPE" ) == 0 )
+				continue;
+			    if ( strcmp( varname, "SHLVL" ) == 0 )
+				continue;
+			    if ( strcmp( varname, "SHELL" ) == 0 )
+				continue;
+			    if ( strcmp( varname, "OSTYPE" ) == 0 )
+				continue;
+			    if ( strcmp( varname, "HOSTTYPE" ) == 0 )
+				continue;
+			    if ( strcmp( varname, "TERM" ) == 0 )
+				continue;
+			    if ( strcmp( varname, "PATH" ) == 0 )
+				continue;
+			    c = strtok( NULL, "\n" ); /* get varvalue */
+			    if ( c )
+				strcpy( varvalue, c );
+			    else
+				varvalue[0] = '\0';
+			    sprintf( setenv_buf, "setenv %s %s;", varname, varvalue);
+			    p4_dprintfl( 90, "setenv_buf = :%s:\n", setenv_buf );
+			    strcat( pgm_prefix, setenv_buf );
+			}
+			p4_dprintfl( 90, "prefix=:%s:\n", pgm_prefix );
+			/* now prepend to pgm if not too long */
+			if (strlen(pgm_prefix) + strlen(pgm) >= P4_MAX_PGM_LEN )
+			    p4_error("prefix too long", 0 );
+			else {
+			    strcat(pgm_prefix, pgm);
+			    strcpy(pgm, pgm_prefix);
+			}
+		    }
+		    /*
+		    p4_dprintf( "pgm argument to remote shell = :%s:\n", pgm );
+		    p4_dprintf( "length of pgm argument to remote shell = %d\n",
+				strlen(pgm) );
+		    */
+		}
+
 		rc = execlp(remote_shell, remote_shell,
 			    host, 
 #if !defined(RSH_HAS_NO_L)

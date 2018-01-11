@@ -122,36 +122,38 @@ util.o: util.c mpd.h
 # Installation target
 # This installation target isn't ready yet; it needs to be more careful
 # of modes (particularly setting a+x)
+# Note that it uses relative paths for the symlinks.  This is cleaner
+# and works with RPM
 install:
 # startdaemons at least temporarily obsolete      
 #	sed -e "s/^DIR=.*$/DIR=${bindir}/g" ${top_srcdir}/mpid/mpd/startdaemons.in ${bindir}/startdaemons
-#	chmod ${XMODE} ${bindir}/startdaemons
-	if [ ! -d ${bindir} ] ; then \
-	    mkdir -p ${bindir} ;\
+#	chmod ${XMODE} ${DESTDIR}${bindir}/startdaemons
+	if [ ! -d ${DESTDIR}${bindir} ] ; then \
+	    mkdir -p ${DESTDIR}${bindir} ;\
 	fi   
-	cp -f mpd ${bindir}/mpd
-	cp -f mpdcon ${bindir}/mpdcon
+	cp -f mpd ${DESTDIR}${bindir}/mpd
+	cp -f mpdcon ${DESTDIR}${bindir}/mpdcon
 	@if [ "`whoami`" = "root" ] ; then \
-	    echo "chmod 4755 ${bindir}/mpdcon" ;\
-	    chmod 4755 ${bindir}/mpdcon ;\
+	    echo "chmod 4755 ${DESTDIR}${bindir}/mpdcon" ;\
+	    chmod 4755 ${DESTDIR}${bindir}/mpdcon ;\
 	fi
-	cp -f mpdman ${bindir}/mpdman
+	cp -f mpdman ${DESTDIR}${bindir}/mpdman
 #	if [ -f startdaemons -a mpd.hosts ] ; then \
-#	    cp startdaemons ${bindir}/startdaemons ;\
-#	    cp mpd.hosts ${bindir}/mpd.hosts ;\
+#	    cp startdaemons ${DESTDIR}${bindir}/startdaemons ;\
+#	    cp mpd.hosts ${DESTDIR}${bindir}/mpd.hosts ;\
 #	fi
 	-@for cmd in ${CMDS_FROM_CON} ; do \
-	    rm -f ${bindir}/$$cmd ; \
-	    @LN_S@ -f ${bindir}/mpdcon ${bindir}/$$cmd ; done
+	    rm -f ${DESTDIR}${bindir}/$$cmd ; \
+	    (cd ${DESTDIR}${bindir} && @LN_S@ -f mpdcon $$cmd ); done
 #  Some other part of mpich install might have created an mpirun
-	/bin/rm -f ${bindir}/mpirun
-	@LN_S@ -f ${bindir}/mpdcon ${bindir}/mpirun
+	/bin/rm -f ${DESTDIR}${bindir}/mpirun
+	(cd ${DESTDIR}${bindir} && @LN_S@ -f mpdcon mpirun )
 	-@if [ -n "${UNINSTALLFILE}" ] ; then \
 	    for file in mpd mpdcon mpdman mpdtrace mpddump mpdexit mpirun \
 	        mpdallexit mpdbomb mpdhelp mpdcleanup mpdmpexec \
 	        mpdclean \
 		mpigdb mpdmandump mpdlistjobs mpdkilljob mpdringtest mpdringsize mpdshutdown; do \
-	        echo "/bin/rm -f ${bindir}/$$file" >> "${UNINSTALLFILE}" ; \
+	        echo "/bin/rm -f ${DESTDIR}${bindir}/$$file" >> "${UNINSTALLFILE}" ; \
 	    done ; \
 	fi
 #

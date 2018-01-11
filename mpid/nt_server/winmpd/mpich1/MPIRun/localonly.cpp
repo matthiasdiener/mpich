@@ -291,6 +291,8 @@ void RunLocal(bool bDoSMP)
 	    {
 		Translate_Error(GetLastError(), error_msg, "ReadFile failed ");
 		printf(error_msg);
+		CloseHandle(hFile);
+		DeleteFile(pszExtra);
 		return;
 	    }
 	    if (num_read == 0)
@@ -299,6 +301,8 @@ void RunLocal(bool bDoSMP)
 		{
 		    printf("Wait for process 0 to write port to temporary file timed out\n");
 		    TerminateProcess(hProcess, 0);
+		    CloseHandle(hFile);
+		    DeleteFile(pszExtra);
 		    return;
 		}
 		Sleep(100);

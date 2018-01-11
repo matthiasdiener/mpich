@@ -1029,12 +1029,15 @@ fi
 #
 echo $ac_n "checking for Java in known locations""... $ac_c" 1>&6
 echo "configure:1032: checking for Java in known locations" >&5
+# Make sure that we have glob expansion turned on
+set +f
 reverse_dirs=""
 for dir in \
     /usr \
     /usr/jdk* \
     /usr/j2sdk* \
     /usr/java* \
+    /usr/java/j2sdk* \
     /usr/local \
     /usr/local/java* \
     /usr/local/jdk* \
@@ -1095,7 +1098,7 @@ for dir in $reverse_dirs ; do
         if test -n "${JAVA_HOME}" ; then
             echo "$ac_t""found ${JAVA_HOME}" 1>&6
             echo $ac_n "checking if ${JAVA_HOME}/bin/javac compiles""... $ac_c" 1>&6
-echo "configure:1099: checking if ${JAVA_HOME}/bin/javac compiles" >&5
+echo "configure:1102: checking if ${JAVA_HOME}/bin/javac compiles" >&5
             
 pac_JC="${JAVA_HOME}/bin/javac"
 pac_JFLAGS=""
@@ -1114,7 +1117,7 @@ class conftest {
 EOF
 
     pac_jcompile='${pac_JC} ${pac_JFLAGS} conftest.java 1>&5'
-    if { (eval echo configure:1118: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
+    if { (eval echo configure:1121: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
         rm -rf conftest* ;  pac_java_working=yes 
     else
         rm -rf conftest* ;  pac_java_working=no  
@@ -1126,7 +1129,7 @@ EOF
             else
                 echo "$ac_t""no" 1>&6
                 echo $ac_n "checking for working Java in known locations""... $ac_c" 1>&6
-echo "configure:1130: checking for working Java in known locations" >&5
+echo "configure:1133: checking for working Java in known locations" >&5
                 JAVA_HOME=""
             fi
         fi
@@ -1165,7 +1168,7 @@ fi
 
 if test "$FOUND_ENV_JAVA_HOME" = "no" ; then
     echo $ac_n "checking if $JC compiles""... $ac_c" 1>&6
-echo "configure:1169: checking if $JC compiles" >&5
+echo "configure:1172: checking if $JC compiles" >&5
     if test -x "$JC" ; then
         
 pac_JC="$JC"
@@ -1185,7 +1188,7 @@ class conftest {
 EOF
 
     pac_jcompile='${pac_JC} ${pac_JFLAGS} conftest.java 1>&5'
-    if { (eval echo configure:1189: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
+    if { (eval echo configure:1192: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
         rm -rf conftest* ;  pac_java_working=yes 
     else
         rm -rf conftest* ;  pac_java_working=no  
@@ -1219,7 +1222,7 @@ fi
 
 for exe in "$RMIC" "$JAR" "$JVM" ; do
     echo $ac_n "checking if $exe exists""... $ac_c" 1>&6
-echo "configure:1223: checking if $exe exists" >&5
+echo "configure:1226: checking if $exe exists" >&5
     if test -x "$exe" ; then
         echo "$ac_t""yes" 1>&6
     else
@@ -1236,7 +1239,7 @@ fi
 done
 
 echo $ac_n "checking if $JC compiles Swing-1.1.1 code""... $ac_c" 1>&6
-echo "configure:1240: checking if $JC compiles Swing-1.1.1 code" >&5
+echo "configure:1243: checking if $JC compiles Swing-1.1.1 code" >&5
 
 pac_JC="$JC"
 pac_JFLAGS=""
@@ -1258,7 +1261,7 @@ public static void main( String args[] )
 EOF
 
     pac_jcompile='${pac_JC} ${pac_JFLAGS} conftest.java 1>&5'
-    if { (eval echo configure:1262: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
+    if { (eval echo configure:1265: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
         rm -rf conftest* ;  pac_java_working=yes 
     else
         rm -rf conftest* ;  pac_java_working=no  
@@ -1288,7 +1291,7 @@ fi
 
 if test "$enable_internalswing" = "yes" ; then
     echo $ac_n "checking if $JC with swing.jar compiles Swing-1.1.1 code""... $ac_c" 1>&6
-echo "configure:1292: checking if $JC with swing.jar compiles Swing-1.1.1 code" >&5
+echo "configure:1295: checking if $JC with swing.jar compiles Swing-1.1.1 code" >&5
     
 pac_JC="$JC"
 pac_JFLAGS="-classpath $JAVA_LIBS:$srcdir/swing/swing.jar:. -d ."
@@ -1310,7 +1313,7 @@ public static void main( String args[] )
 EOF
 
     pac_jcompile='${pac_JC} ${pac_JFLAGS} conftest.java 1>&5'
-    if { (eval echo configure:1314: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
+    if { (eval echo configure:1317: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
         rm -rf conftest* ;  pac_java_working=yes 
     else
         rm -rf conftest* ;  pac_java_working=no  
@@ -1335,7 +1338,7 @@ fi
 
 # Try to filter out the broken RMIC from JDK-1.2 pre-release
 echo $ac_n "checking if $RMIC generates stub""... $ac_c" 1>&6
-echo "configure:1339: checking if $RMIC generates stub" >&5
+echo "configure:1342: checking if $RMIC generates stub" >&5
 
 pac_RMIC="$RMIC"
 pac_JRFLAGS="-classpath $JAVA_LIBS:. -d . $JFLAGS"
@@ -1364,9 +1367,9 @@ public class conftest_rmic extends UnicastRemoteObject
 EOF
 
     pac_jcompile='${pac_JC} ${pac_JFLAGS} conftest_remote.java conftest_rmic.java 1>&5'
-    if { (eval echo configure:1368: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest_rmic.class ; then
+    if { (eval echo configure:1371: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest_rmic.class ; then
         pac_jrmic='${pac_RMIC} ${pac_JRFLAGS} conftest_rmic 1>&5'
-        if { (eval echo configure:1370: \"$pac_jrmic\") 1>&5; (eval $pac_jrmic) 2>&5; } && test -s conftest_rmic_Stub.class ; then
+        if { (eval echo configure:1373: \"$pac_jrmic\") 1>&5; (eval $pac_jrmic) 2>&5; } && test -s conftest_rmic_Stub.class ; then
             rm -rf conftest* ;  pac_java_working=yes 
         else
             rm -rf conftest* ;  pac_java_working=no  
@@ -1386,7 +1389,7 @@ fi
 # Filter out the version of JDK that causes problem
 if test "$enable_checkversion" = "yes" ; then
     echo $ac_n "checking for Java version""... $ac_c" 1>&6
-echo "configure:1390: checking for Java version" >&5
+echo "configure:1393: checking for Java version" >&5
     VERSION=`$JAVA_HOME/bin/java -fullversion 2>&1`
     case "$VERSION" in
 	*1.0*)
@@ -1449,7 +1452,7 @@ if test "$enable_internalswing" = "yes" ; then
     SWING_LIBRARIES=`echo $SWING_LIBS | sed 's/:/ /g'`
     for library in $SWING_LIBRARIES ; do
         echo $ac_n "checking for $library""... $ac_c" 1>&6
-echo "configure:1453: checking for $library" >&5
+echo "configure:1456: checking for $library" >&5
         if test -f "$library" ; then
             echo "$ac_t""yes" 1>&6
         else

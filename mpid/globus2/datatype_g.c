@@ -50,7 +50,7 @@ int MPID_Type_permanent_setup(
 	dtype_ptr->vmpi_cookie = MPID_DATATYPE_COOKIE;
     }
     
-  fn_exit:
+  /* fn_exit: */
     DEBUG_PRINTF(DEBUG_MODULE_TYPES, DEBUG_INFO_RC,
 		 ("rc=%d\n", rc));
     DEBUG_FN_EXIT(DEBUG_MODULE_TYPES);
@@ -90,7 +90,7 @@ int MPID_Type_commit(
 	    mp_type_commit(dtype_ptr->vmpi_type));
     }
 
-  fn_exit:
+  /* fn_exit: */
     DEBUG_PRINTF(DEBUG_MODULE_TYPES, DEBUG_INFO_RC,
 		 ("rc=%d\n", rc));
     DEBUG_FN_EXIT(DEBUG_MODULE_TYPES);
@@ -135,7 +135,7 @@ int MPID_Type_free(
 
     dtype_ptr->vmpi_cookie = 0;
     
-  fn_exit:
+  /* fn_exit: */
     DEBUG_PRINTF(DEBUG_MODULE_TYPES, DEBUG_INFO_RC,
 		 ("rc=%d\n", rc));
     DEBUG_FN_EXIT(DEBUG_MODULE_TYPES);
@@ -181,7 +181,7 @@ int MPID_Type_contiguous(
 	newtype_ptr->vmpi_cookie = MPID_DATATYPE_COOKIE;
     }
     
-  fn_exit:
+  /* fn_exit: */
     DEBUG_PRINTF(DEBUG_MODULE_TYPES, DEBUG_INFO_RC,
 		 ("rc=%d\n", rc));
     DEBUG_FN_EXIT(DEBUG_MODULE_TYPES);
@@ -231,7 +231,7 @@ int MPID_Type_hindexed(
 	newtype_ptr->vmpi_cookie = MPID_DATATYPE_COOKIE;
     }
     
-  fn_exit:
+  /* fn_exit: */
     DEBUG_PRINTF(DEBUG_MODULE_TYPES, DEBUG_INFO_RC,
 		 ("rc=%d\n", rc));
     DEBUG_FN_EXIT(DEBUG_MODULE_TYPES);
@@ -281,7 +281,7 @@ int MPID_Type_hvector(
 	newtype_ptr->vmpi_cookie = MPID_DATATYPE_COOKIE;
     }
     
-  fn_exit:
+  /* fn_exit: */
     DEBUG_PRINTF(DEBUG_MODULE_TYPES, DEBUG_INFO_RC,
 		 ("rc=%d\n", rc));
     DEBUG_FN_EXIT(DEBUG_MODULE_TYPES);
@@ -473,7 +473,7 @@ static int mpich_type_to_vmpi_type(
          break;
      } /* end switch */
 
-  fn_exit:
+  /* fn_exit: */
     DEBUG_PRINTF(DEBUG_MODULE_TYPES, DEBUG_INFO_RC,
 		 ("rc=%d\n", rc));
     DEBUG_FN_EXIT(DEBUG_MODULE_TYPES);

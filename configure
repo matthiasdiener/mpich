@@ -2466,10 +2466,8 @@ fi
 # just use prefix=localdir
 # Alternate is to use build/<arch>/<device>/include
 # Include dir for USER PROGRAMS
-if test -z "$prefix" ; then
-    prefix=$MPIR_HOME
-fi
-includedir="${prefix}/include"
+if test -z "$prefix" ; then prefix=$MPIR_HOME ; fi
+if test -z "$includedir" ; then includedir="${prefix}/include" ; fi
 
 #
 # We can't use a relative srcdir path because autoconf1 has a bug that
@@ -9303,6 +9301,7 @@ fi
 cat > conftest.$ac_ext <<EOF
 #include "confdefs.h"
 
+extern int PFoo(int a);
 #pragma weak PFoo = Foo
 int Foo(a) { return a; }
 
@@ -9363,6 +9362,7 @@ echo $ac_n "checking that weak symbols are visible to other files""... $ac_c" 1>
 fi
     rm -f conftest*
     cat >>conftest1.c <<EOF
+extern int PFoo(int a);
 #pragma weak PFoo = Foo
 int Foo(int);
 int Foo(a) { return a; }
@@ -15815,7 +15815,9 @@ if test "$NOMPE" = 0 -a -d "${top_srcdir}/mpe" ; then
                                   --with-f2cmpilibs=-lf$MPILIBNAME \
                                   --with-flib_path_leader=$LIB_PATH_LEADER \
                                   --prefix=${prefix} $enable_args $with_args \
-                                  $MPE_ARGS )
+                                  --libdir=${libdir} --bindir=${bindir} \
+				  --includedir=${includedir} \
+				  $MPE_ARGS )
     if test $? = 0 ; then
         echo "Done configuring MPE Profiling Libraries" ; echo
     else

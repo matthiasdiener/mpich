@@ -20,6 +20,22 @@ static void write_callback(void *arg,
 			    globus_result_t result, 
 			    globus_byte_t *buff, 
 			    globus_size_t nbytes);
+/* START GRIDFTP */
+static void gridftp_setup_sockets_callback(void *callback_arg,
+                                struct globus_ftp_control_handle_s *handle,
+                                unsigned int stripe_ndx,
+                                globus_bool_t reuse,
+                                globus_object_t *error);
+static void gridftp_write_callback(void *callback_arg,
+                                    globus_ftp_control_handle_t *handle,
+                                    globus_object_t *error,
+                                    globus_byte_t *buffer,
+                                    globus_size_t length,
+                                    globus_off_t offset,
+                                    globus_bool_t eof);
+void g_ftp_monitor_init(g_ftp_perf_monitor_t *monitor);
+void g_ftp_monitor_reset(g_ftp_perf_monitor_t *monitor);
+/* END GRIDFTP */
 static void remove_and_continue(struct tcpsendreq *sr);
 static void free_and_mark_sreq(struct tcpsendreq *sr, globus_bool_t data_sent);
 static void send_datatype(struct MPIR_COMMUNICATOR *comm,
@@ -186,7 +202,9 @@ void MPID_SendDatatype(struct MPIR_COMMUNICATOR *comm,
         *error_code = MPI_ERR_INTERN;
     } /* endif */
 
-  /* fn_exit: */
+#if defined(VMPI)
+  fn_exit:
+#endif
     DEBUG_FN_EXIT(DEBUG_MODULE_SEND);
 } /* end MPID_SendDatatype() */
 
@@ -476,7 +494,9 @@ void MPID_SsendDatatype(struct MPIR_COMMUNICATOR *comm,
         *error_code = MPI_ERR_INTERN;
     } /* endif */
 
-  /* fn_exit: */
+#if defined(VMPI)
+  fn_exit:
+#endif
     DEBUG_FN_EXIT(DEBUG_MODULE_SEND);
 } /* end MPID_SsendDatatype() */
 
@@ -681,7 +701,6 @@ int MPID_SendIcomplete(MPI_Request request, int *error_code)
 	if (sreq->req_src_proto == mpi)
 	{
 	    MPI_Status status;
-	    struct mpircvreq * recvreq;
 	    
 	    /* normally relaxed RC semantics would require a lock here to
                acquire the shared sreq data, but we already did an acquire
@@ -1404,6 +1423,58 @@ static int start_tcp_send(struct tcpsendreq *sr)
 		    break;
 		} /* end switch() */
 
+                /* START GRIDFTP */
+                if (tp->use_grid_ftp)
+                {
+                    g_ftp_user_args_t ua;
+                    globus_result_t res;
+
+                    g_ftp_monitor_reset(&(tp->write_monitor));
+
+                    ua.monitor                = &(tp->write_monitor);
+                    ua.buffer                 = sr->src;
+                    ua.nbytes                 = bufflen;
+                    /* START NEWGRIDFTP */
+                    /* ua.max_outstanding_writes = tp->max_outstanding_writes; */
+                    ua.gftp_tcp_buffsize = tp->gftp_tcp_buffsize;
+                    /* END NEWGRIDFTP */
+                    /****************/
+                    /* WRITE BUFFER */
+                    /****************/
+
+                    /*
+                     * this can be used over and over again ...
+                     * it simply opens connections and deploys callback when
+                     * ready to go
+                     */
+                    res = globus_ftp_control_data_connect_write(
+                            &(tp->ftp_handle_w),
+                            gridftp_setup_sockets_callback,
+                            &ua);
+                    if (res != GLOBUS_SUCCESS)
+                    {
+                        globus_libc_fprintf(
+                            stderr,
+                            "ERROR: start_tcp_send: "
+                            "register gridftp write payload %d failed\n",
+                            bufflen);
+                        remove_and_continue(sr);
+                        free_and_mark_sreq(sr, GLOBUS_FALSE);
+                        rc = -1;
+                        goto fn_exit;
+                    } /* endif */
+
+		    while (!(tp->write_monitor.done))
+		    {
+			G2_WAIT
+		    } /* endwhile */
+
+                    remove_and_continue(sr);
+                    free_and_mark_sreq(sr, GLOBUS_TRUE);
+                }
+                else
+                /* END GRIDFTP */
+
 		if (globus_io_register_write(tp->whandle, 
 					     sr->src, 
 					     (globus_size_t) bufflen, 
@@ -1433,6 +1504,35 @@ static int start_tcp_send(struct tcpsendreq *sr)
 	    } /* endif */
 	} /* esac user_data */
       break;
+
+      /* START GRIDFTP */
+      case gridftp_port:
+        {
+            globus_result_t rc2;
+
+            globus_dc_put_int(&cp, &sr->type,                    1);
+            globus_dc_put_int(&cp, &sr->gridftp_partner_grank,   1);
+            globus_dc_put_int(&cp, &sr->gridftp_port,            1);
+
+            /* sending header */
+            rc2 = globus_io_write(
+                    &(((struct tcp_rw_handle_t *)(tp->handlep))->handle),
+                    tp->header,
+                    Headerlen,
+                    &nbytes_sent);
+            remove_and_continue(sr);
+            g_free(sr);
+
+            if (rc2 != GLOBUS_SUCCESS)
+            {
+                globus_libc_fprintf(stderr,
+                    "ERROR: send_ack_over_tcp: write header failed\n");
+                rc = -1;
+                goto fn_exit;
+            } /* endif */
+        }
+      break;
+      /* END GRIDFTP */
 
       case cancel_send: break; /* here only to get rid of 
                                   annoying compiler warning */
@@ -1490,6 +1590,110 @@ static void write_callback(void *arg,
     free_and_mark_sreq(sr, GLOBUS_TRUE);
 
 } /* end write_callback */
+
+/* START GRIDFTP */
+/*
+ * this gets called when sockets are all setup and 
+ * you're ready to start writing.
+ */
+static void gridftp_setup_sockets_callback(void *callback_arg,
+                                struct globus_ftp_control_handle_s *handle,
+                                unsigned int stripe_ndx,
+                                globus_bool_t reuse,
+                                globus_object_t *error)
+{
+    g_ftp_perf_monitor_t                        monitor;
+    int                                         nsent;
+    globus_bool_t                               eof;
+    globus_result_t                             res;
+    g_ftp_user_args_t *ua = (g_ftp_user_args_t *) callback_arg;
+    g_ftp_perf_monitor_t *done_monitor = ua->monitor;
+    globus_byte_t *next_write_start;
+    int bytes_per_write;
+
+    g_ftp_monitor_init(&monitor);
+ 
+/* START NEWGRIDFTP */
+#if 0
+    if ((bytes_per_write = ua->nbytes/ua->max_outstanding_writes) < 1)
+        bytes_per_write = 1;
+#else
+    bytes_per_write = ua->gftp_tcp_buffsize;
+#endif 
+/* END NEWGRIDFTP */
+
+    nsent = 0;
+    next_write_start = ua->buffer;
+    eof = GLOBUS_FALSE;
+    while (!eof)
+    {
+        if (nsent + bytes_per_write >= ua->nbytes)
+        {
+            eof = GLOBUS_TRUE;
+            bytes_per_write = ua->nbytes - nsent;
+        } /* endif */
+
+        res = globus_ftp_control_data_write(handle, /* same ftp_handle */
+                                  next_write_start,    /* buff */
+                                  bytes_per_write,     /* buffsize */
+                                  nsent,               /* offset into payload */
+                                  eof,                 /* flag */
+                                  gridftp_write_callback,
+                                  (void *) &monitor);  /* user arg */
+        /* test_result(res, "connect_write_callback:data_write", __LINE__); */
+
+        next_write_start += bytes_per_write;
+        nsent += bytes_per_write;
+        monitor.count++;
+    } /* endwhile */
+
+    /* wait for all the callbacks to return */
+    while(monitor.count != 0)
+    {
+	G2_WAIT
+    } /* endwhile */
+
+    /* signalling that write of entire payload is complete */
+    done_monitor->done = GLOBUS_TRUE;
+    G2_SIGNAL
+
+} /* end gridftp_setup_sockets_callback() */
+
+static void gridftp_write_callback(void *callback_arg,
+                                    globus_ftp_control_handle_t *handle,
+                                    globus_object_t *error,
+                                    globus_byte_t *buffer,
+                                    globus_size_t length,
+                                    globus_off_t offset,
+                                    globus_bool_t eof)
+{
+    g_ftp_perf_monitor_t *                   monitor;
+
+    monitor = (g_ftp_perf_monitor_t *)callback_arg;
+
+    if(error != GLOBUS_NULL)
+    {
+        assert(GLOBUS_FALSE);
+    } /* endif */
+
+    monitor->count--;
+    G2_SIGNAL
+
+} /* end gridftp_write_callback() */
+
+void g_ftp_monitor_init(g_ftp_perf_monitor_t *monitor)
+{
+    g_ftp_monitor_reset(monitor);
+} /* end g_ftp_monitor_init() */
+
+void g_ftp_monitor_reset(g_ftp_perf_monitor_t *monitor)
+{
+    monitor->done = GLOBUS_FALSE;
+    monitor->count = 0;
+} /* end g_ftp_monitor_reset() */
+
+/* END GRIDFTP */
+
 
 /*
  * it is assumed that upon entrance to this function:

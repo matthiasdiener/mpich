@@ -69,10 +69,12 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
     char pszIOE[10];
     char *dbg_str = "no";
     char *pszMap = NULL;
+    bool bLocalStartup = false;
 
     if (arg->bUseDebugFlag)
 	dbg_str = "yes";
 
+    /*
     if (arg->i == 0 && HostIsLocal(arg->pszHost))
     {
 	CreateInProcessMPD();
@@ -82,6 +84,11 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
     {
 	error = ConnectToMPD(arg->pszHost, nPort, arg->pszPassPhrase, &sock);
     }
+    */
+
+    if (arg->i == 0 && HostIsLocal(arg->pszHost))
+	bLocalStartup = true;
+    error = ConnectToMPD(arg->pszHost, nPort, arg->pszPassPhrase, &sock);
 
     //printf("MPIRunLaunchProcess:connecting to %s:%d rank %d\n", arg->pszHost, nPort, arg->i);fflush(stdout);
     //if ((error = ConnectToMPD(arg->pszHost, nPort, arg->pszPassPhrase, &sock)) == 0)
@@ -246,61 +253,16 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
 	    delete pszMap;
 	}
 	//printf("MPIRunLaunchProcess:launch command = %s\n", pszStr);fflush(stdout);
-	if (WriteString(sock, pszStr) == SOCKET_ERROR)
+	if (bLocalStartup)
 	{
-	    printf("ERROR: Unable to send launch command to '%s'\r\nError %d", arg->pszHost, WSAGetLastError());
-	    easy_closesocket(sock);
-	    SetEvent(g_hAbortEvent);
-	    delete arg;
-	    return;
+	    // launch process
+	    nPid = -1;
 	}
-	if (!ReadStringTimeout(sock, pszStr, g_nMPIRUN_SHORT_TIMEOUT))
+	else
 	{
-	    printf("ERROR: Unable to read the result of the launch command on '%s'\r\nError %d", arg->pszHost, WSAGetLastError());
-	    easy_closesocket(sock);
-	    SetEvent(g_hAbortEvent);
-	    delete arg;
-	    return;
-	}
-	launchid = atoi(pszStr);
-	// save the launch id, get the pid
-	sprintf(pszStr, "getpid %d", launchid);
-	if (WriteString(sock, pszStr) == SOCKET_ERROR)
-	{
-	    printf("ERROR: Unable to send getpid command to '%s'\r\nError %d", arg->pszHost, WSAGetLastError());
-	    easy_closesocket(sock);
-	    SetEvent(g_hAbortEvent);
-	    delete arg;
-	    return;
-	}
-	// the following timeout needs to be longer than MPIRUN_SHORT_TIMEOUT because the CreateProcess command may take
-	// a while to start the process if it lives in a shared directory
-	if (!ReadStringTimeout(sock, pszStr, g_nMPIRUN_CREATE_PROCESS_TIMEOUT))
-	{
-	    error = WSAGetLastError();
-	    if (error == ERROR_TIMEOUT || error == 0)
-	    {
-		printf("Launch process error: Timed out waiting for the result of the process launch command sent to host '%s'\r\n", arg->pszHost);
-	    }
-	    else
-	    {
-		printf("Launch process error: Unable to read the result of the getpid command on '%s'\r\nError %d", arg->pszHost, error);
-		fflush(stdout);
-	    }
-	    printf("Attempt to launch '%s' on '%s' failed.\n", arg->pszCmdLine, arg->pszHost);
-	    fflush(stdout);
-	    easy_closesocket(sock);
-	    SetEvent(g_hAbortEvent);
-	    delete arg;
-	    return;
-	}
-	nPid = atoi(pszStr);
-	if (nPid == -1)
-	{
-	    sprintf(pszStr, "geterror %d", launchid);
 	    if (WriteString(sock, pszStr) == SOCKET_ERROR)
 	    {
-		printf("ERROR: Unable to send geterror command after an unsuccessful launch on '%s'\r\nError %d", arg->pszHost, WSAGetLastError());
+		printf("ERROR: Unable to send launch command to '%s'\r\nError %d", arg->pszHost, WSAGetLastError());
 		easy_closesocket(sock);
 		SetEvent(g_hAbortEvent);
 		delete arg;
@@ -308,34 +270,87 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
 	    }
 	    if (!ReadStringTimeout(sock, pszStr, g_nMPIRUN_SHORT_TIMEOUT))
 	    {
-		printf("ERROR: Unable to read the result of the geterror command on '%s'\r\nError %d", arg->pszHost, WSAGetLastError());
+		printf("ERROR: Unable to read the result of the launch command on '%s'\r\nError %d", arg->pszHost, WSAGetLastError());
 		easy_closesocket(sock);
 		SetEvent(g_hAbortEvent);
 		delete arg;
 		return;
 	    }
-	    if (strcmp(pszStr, "ERROR_SUCCESS"))
+	    launchid = atoi(pszStr);
+	    // save the launch id, get the pid
+	    sprintf(pszStr, "getpid %d", launchid);
+	    if (WriteString(sock, pszStr) == SOCKET_ERROR)
 	    {
-		if (arg->i == 0 && !g_bNoMPI)
+		printf("ERROR: Unable to send getpid command to '%s'\r\nError %d", arg->pszHost, WSAGetLastError());
+		easy_closesocket(sock);
+		SetEvent(g_hAbortEvent);
+		delete arg;
+		return;
+	    }
+	    // the following timeout needs to be longer than MPIRUN_SHORT_TIMEOUT because the CreateProcess command may take
+	    // a while to start the process if it lives in a shared directory
+	    if (!ReadStringTimeout(sock, pszStr, g_nMPIRUN_CREATE_PROCESS_TIMEOUT))
+	    {
+		error = WSAGetLastError();
+		if (error == ERROR_TIMEOUT || error == 0)
 		{
-		    printf("Failed to launch the root process:\n%s\n%s\n", arg->pszCmdLine, pszStr);fflush(stdout);
+		    printf("Launch process error: Timed out waiting for the result of the process launch command sent to host '%s'\r\n", arg->pszHost);
 		}
 		else
 		{
-		    printf("Failed to launch process %d:\n'%s'\n%s\n", arg->i, arg->pszCmdLine, pszStr);fflush(stdout);
+		    printf("Launch process error: Unable to read the result of the getpid command on '%s'\r\nError %d", arg->pszHost, error);
+		    fflush(stdout);
 		}
-
-		sprintf(pszStr, "freeprocess %d", launchid);
-		WriteString(sock, pszStr);
-		ReadStringTimeout(sock, pszStr, g_nMPIRUN_SHORT_TIMEOUT);
-		WriteString(sock, "done");
+		printf("Attempt to launch '%s' on '%s' failed.\n", arg->pszCmdLine, arg->pszHost);
+		fflush(stdout);
 		easy_closesocket(sock);
 		SetEvent(g_hAbortEvent);
 		delete arg;
 		return;
 	    }
+	    nPid = atoi(pszStr);
+	    if (nPid == -1)
+	    {
+		sprintf(pszStr, "geterror %d", launchid);
+		if (WriteString(sock, pszStr) == SOCKET_ERROR)
+		{
+		    printf("ERROR: Unable to send geterror command after an unsuccessful launch on '%s'\r\nError %d", arg->pszHost, WSAGetLastError());
+		    easy_closesocket(sock);
+		    SetEvent(g_hAbortEvent);
+		    delete arg;
+		    return;
+		}
+		if (!ReadStringTimeout(sock, pszStr, g_nMPIRUN_SHORT_TIMEOUT))
+		{
+		    printf("ERROR: Unable to read the result of the geterror command on '%s'\r\nError %d", arg->pszHost, WSAGetLastError());
+		    easy_closesocket(sock);
+		    SetEvent(g_hAbortEvent);
+		    delete arg;
+		    return;
+		}
+		if (strcmp(pszStr, "ERROR_SUCCESS"))
+		{
+		    if (arg->i == 0 && !g_bNoMPI)
+		    {
+			printf("Failed to launch the root process:\n%s\n%s\n", arg->pszCmdLine, pszStr);fflush(stdout);
+		    }
+		    else
+		    {
+			printf("Failed to launch process %d:\n'%s'\n%s\n", arg->i, arg->pszCmdLine, pszStr);fflush(stdout);
+		    }
+		    
+		    sprintf(pszStr, "freeprocess %d", launchid);
+		    WriteString(sock, pszStr);
+		    ReadStringTimeout(sock, pszStr, g_nMPIRUN_SHORT_TIMEOUT);
+		    WriteString(sock, "done");
+		    easy_closesocket(sock);
+		    SetEvent(g_hAbortEvent);
+		    delete arg;
+		    return;
+		}
+	    }
 	}
-	
+
 	// Get the port number and redirect input to the first process
 	if (arg->i == 0 && !g_bNoMPI)
 	{
@@ -393,64 +408,71 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
 		    }
 		    else
 		    {
-			sprintf(pszStr, "getexitcode %d", launchid);
-			if (WriteString(sock, pszStr) == SOCKET_ERROR)
+			if (bLocalStartup)
 			{
-			    printf("Error: Unable to send a getexitcode command to '%s'\r\nError %d", 
-				arg->pszHost, WSAGetLastError());fflush(stdout);
-			    easy_closesocket(sock);
-			    SetEvent(g_hAbortEvent);
-			    delete arg;
-			    return;
-			}
-			if (!ReadStringTimeout(sock, pszStr, g_nLaunchTimeout))
-			{
-			    printf("ERROR: Unable to read the result of the root getexitcode command on '%s': error %d", 
-				arg->pszHost, WSAGetLastError());
-			    sprintf(pszStr, "freeprocess %d", launchid);
-			    WriteString(sock, pszStr);
-			    ReadStringTimeout(sock, pszStr, g_nMPIRUN_SHORT_TIMEOUT);
-			    WriteString(sock, "done");
-			    easy_closesocket(sock);
-			    SetEvent(g_hAbortEvent);
-			    delete arg;
-			    return;
-			}
-			if (stricmp(pszStr, "ACTIVE") == 0)
-			{
-			    printf("ERROR: timed-out waiting for the root process to call MPI_Init\n");
-			    if (g_bUseJobHost)
-			    {
-				// Save this process's information to the job database
-				PutJobProcessInDatabase(arg, nPid);
-			    }
+			    // check to see if the process is still running
 			}
 			else
 			{
-			    printf("ERROR: The root process has unexpectedly exited.\n");
-			    if (g_bUseJobHost)
+			    sprintf(pszStr, "getexitcode %d", launchid);
+			    if (WriteString(sock, pszStr) == SOCKET_ERROR)
 			    {
-				sprintf(pszStr, "geterror %d", launchid);
-				WriteString(sock, pszStr);
-				pszStr[0] = '\0';
-				ReadStringTimeout(sock, pszStr, g_nMPIRUN_SHORT_TIMEOUT);
-				// Save this process's information to the job database
-				PutJobProcessInDatabase(arg, nPid);
-				UpdateJobKeyValue(0, "error", pszStr);
+				printf("Error: Unable to send a getexitcode command to '%s'\r\nError %d", 
+				    arg->pszHost, WSAGetLastError());fflush(stdout);
+				easy_closesocket(sock);
+				SetEvent(g_hAbortEvent);
+				delete arg;
+				return;
 			    }
+			    if (!ReadStringTimeout(sock, pszStr, g_nLaunchTimeout))
+			    {
+				printf("ERROR: Unable to read the result of the root getexitcode command on '%s': error %d", 
+				    arg->pszHost, WSAGetLastError());
+				sprintf(pszStr, "freeprocess %d", launchid);
+				WriteString(sock, pszStr);
+				ReadStringTimeout(sock, pszStr, g_nMPIRUN_SHORT_TIMEOUT);
+				WriteString(sock, "done");
+				easy_closesocket(sock);
+				SetEvent(g_hAbortEvent);
+				delete arg;
+				return;
+			    }
+			    if (stricmp(pszStr, "ACTIVE") == 0)
+			    {
+				printf("ERROR: timed-out waiting for the root process to call MPI_Init\n");
+				if (g_bUseJobHost)
+				{
+				    // Save this process's information to the job database
+				    PutJobProcessInDatabase(arg, nPid);
+				}
+			    }
+			    else
+			    {
+				printf("ERROR: The root process has unexpectedly exited.\n");
+				if (g_bUseJobHost)
+				{
+				    sprintf(pszStr, "geterror %d", launchid);
+				    WriteString(sock, pszStr);
+				    pszStr[0] = '\0';
+				    ReadStringTimeout(sock, pszStr, g_nMPIRUN_SHORT_TIMEOUT);
+				    // Save this process's information to the job database
+				    PutJobProcessInDatabase(arg, nPid);
+				    UpdateJobKeyValue(0, "error", pszStr);
+				}
+				sprintf(pszStr, "freeprocess %d", launchid);
+				WriteString(sock, pszStr);
+				ReadStringTimeout(sock, pszStr, g_nMPIRUN_SHORT_TIMEOUT);
+				WriteString(sock, "done");
+				easy_closesocket(sock);
+				SetEvent(g_hAbortEvent);
+				delete arg;
+				return;
+			    }
+
 			    sprintf(pszStr, "freeprocess %d", launchid);
 			    WriteString(sock, pszStr);
 			    ReadStringTimeout(sock, pszStr, g_nMPIRUN_SHORT_TIMEOUT);
-			    WriteString(sock, "done");
-			    easy_closesocket(sock);
-			    SetEvent(g_hAbortEvent);
-			    delete arg;
-			    return;
 			}
-			
-			sprintf(pszStr, "freeprocess %d", launchid);
-			WriteString(sock, pszStr);
-			ReadStringTimeout(sock, pszStr, g_nMPIRUN_SHORT_TIMEOUT);
 		    }
 		    WriteString(sock, "done");
 		    easy_closesocket(sock);
@@ -478,9 +500,12 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
 			    if (id == launchid)
 			    {
 				printf("ERROR: root process has unexpectedly exited. Exit code = %d\n", x);
-				sprintf(pszStr, "freeprocess %d", launchid);
-				WriteString(sock, pszStr);
-				ReadStringTimeout(sock, pszStr, g_nMPIRUN_SHORT_TIMEOUT);
+				if (bLocalStartup)
+				{
+				    sprintf(pszStr, "freeprocess %d", launchid);
+				    WriteString(sock, pszStr);
+				    ReadStringTimeout(sock, pszStr, g_nMPIRUN_SHORT_TIMEOUT);
+				}
 				WriteString(sock, "done");
 				easy_closesocket(sock);
 				SetEvent(g_hAbortEvent);
@@ -492,9 +517,12 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
 		    else
 		    {
 			printf("ERROR: barrier failed on '%s':\n%s", arg->pszHost, pszStr);
-			sprintf(pszStr, "freeprocess %d", launchid);
-			WriteString(sock, pszStr);
-			ReadStringTimeout(sock, pszStr, g_nMPIRUN_SHORT_TIMEOUT);
+			if (bLocalStartup)
+			{
+			    sprintf(pszStr, "freeprocess %d", launchid);
+			    WriteString(sock, pszStr);
+			    ReadStringTimeout(sock, pszStr, g_nMPIRUN_SHORT_TIMEOUT);
+			}
 			WriteString(sock, "done");
 			easy_closesocket(sock);
 			SetEvent(g_hAbortEvent);
@@ -585,16 +613,23 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
 	}
 
 	// Wait for the process to exit
-	sprintf(pszStr, "getexitcodewait %d", launchid);
-	if (WriteString(sock, pszStr) == SOCKET_ERROR)
+	if (bLocalStartup)
 	{
-	    printf("Error: Unable to send a getexitcodewait command to '%s'\r\nError %d", arg->pszHost, WSAGetLastError());fflush(stdout);
-	    easy_closesocket(sock);
-	    SetEvent(g_hAbortEvent);
-	    delete arg;
-	    return;
+	    // send a simulated getexitcodewait command to the local process
 	}
-	//printf("getexitcodewait %d socket: 0x%p:%d\n", arg->i, sock, sock);fflush(stdout);
+	else
+	{
+	    sprintf(pszStr, "getexitcodewait %d", launchid);
+	    if (WriteString(sock, pszStr) == SOCKET_ERROR)
+	    {
+		printf("Error: Unable to send a getexitcodewait command to '%s'\r\nError %d", arg->pszHost, WSAGetLastError());fflush(stdout);
+		easy_closesocket(sock);
+		SetEvent(g_hAbortEvent);
+		delete arg;
+		return;
+	    }
+	    //printf("getexitcodewait %d socket: 0x%p:%d\n", arg->i, sock, sock);fflush(stdout);
+	}
 
 	int i = InterlockedIncrement(&g_nNumProcessSockets) - 1;
 	g_pProcessSocket[i] = sock;

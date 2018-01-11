@@ -61,12 +61,12 @@ AC_DEFUN(AC_CHECK_SSL,
 	found_ssl_in_cache="no"
     ])
     if test "$found_ssl_in_cache" = "no"; then
-	AC_FIND_USER_INCLUDE(ssl,, ac_cv_sys_ssl="yes", ac_cv_sys_ssl="no")
+	AC_FIND_USER_INCLUDE(ssl,/usr/local/openssl, ac_cv_sys_ssl="yes", ac_cv_sys_ssl="no")
     else
 	AC_MSG_RESULT($ac_cv_sys_ssl)
     fi
     if test "$ac_cv_sys_ssl" = "yes"; then
-        AC_FIND_USER_INCLUDE(ssllib,,ac_cvs_sys_ssl="yes",ac_cv_sys_ssl="no")
+        AC_FIND_USER_INCLUDE(ssllib,/usr/local/openssl,ac_cvs_sys_ssl="yes",ac_cv_sys_ssl="no")
     fi
     if test "$ac_cv_sys_ssl" = "yes"; then
 	AC_DEFINE(HAVE_SSL)
@@ -127,7 +127,7 @@ for dir in $2 \
 	/opt/$1 \
 	/opt/local \
 	/opt/local/$1 \
-	/local/encap/$1 ; do
+	/local/encap/$1 $USER_INCLUDE_DIRS ; do
 	if test -r $dir/$1.h ; then
 	    ac_find_inc_dir=$dir
 	    break

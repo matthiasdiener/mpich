@@ -10,6 +10,8 @@
 /* allow the user to access the underlying topology */
 #include "topology_access.h"
 
+extern int MPICHX_PARALLELSOCKETS_PARAMETERS; /* GRIDFTP */
+
 #include <globus_duroc_runtime.h>
 #include <globus_duroc_bootstrap.h>
 #include <globus_gram_myjob.h>
@@ -314,6 +316,10 @@ void MPID_End(void)
 #endif
 
     destroy_topology_access_keys();
+    /* START GRIDFTP */
+    if ( MPICHX_PARALLELSOCKETS_PARAMETERS != MPI_KEYVAL_INVALID )
+        MPI_Keyval_free(&MPICHX_PARALLELSOCKETS_PARAMETERS);
+    /* END GRIDFTP */
 
 #   if defined(VMPI)
     {
@@ -328,7 +334,7 @@ void MPID_End(void)
 			  MPID_MyWorldRank));
 	} /* endif */
 
-	while (mp = MpiPostedQueue.head)
+	while ((mp = MpiPostedQueue.head) != NULL)
 	{
 	    MpiPostedQueue.head = mp->next;
 	    g_free(mp);
@@ -393,6 +399,7 @@ void MPID_End(void)
     
     globus_module_deactivate(GLOBUS_NEXUS_MODULE);
     globus_module_deactivate(GLOBUS_IO_MODULE);
+    globus_module_deactivate(GLOBUS_FTP_CONTROL_MODULE); /* GRIDFTP */
     globus_module_deactivate(GLOBUS_COMMON_MODULE);
 
     /*
@@ -653,6 +660,8 @@ void build_channels(int nprocs,
 		    tp->cancel_head = tp->cancel_tail = 
 			tp->send_head = tp->send_tail = 
 			    (struct tcpsendreq *) NULL;
+                    tp->recvd_partner_port = GLOBUS_FALSE; /* GRIDFTP */
+                    tp->use_grid_ftp       = GLOBUS_FALSE; /* GRIDFTP */
 		    g_malloc(tp->header, globus_byte_t *, Headerlen);
                     sscanf(cp, "%s %d %d", tp->hostname, &dummy,
                                            &lan_id_lng);
@@ -976,6 +985,17 @@ static int globus_init(int *argc, char ***argv)
 	    "globus_module_activate(GLOBUS_IO_MODULE)\n");
 	abort();
     } /* endif */
+
+    /* START GRIDFTP */
+    rc = globus_module_activate(GLOBUS_FTP_CONTROL_MODULE);
+    if (rc != GLOBUS_SUCCESS)
+    {
+        globus_libc_fprintf(stderr, 
+            "globus_init: failed "
+            "globus_module_activate(GLOBUS_FTP_CONTROL_MODULE)\n");
+        abort();
+    } /* endif */
+    /* END GRIDFTP */
 
     /* 
      * we have to activate the nexus and disable fault tolerance
@@ -1876,8 +1896,6 @@ static void build_vmpi_maps()
     
 	for (i = 0; i < MPID_MyWorldSize; i++)
 	{
-	    struct mpi_miproto_t *		mpi_miproto;
-
 	    miproto = CommworldChannels[i].selected_proto;
 
 	    if (i == MPID_MyWorldRank)
@@ -1909,8 +1927,6 @@ static void build_vmpi_maps()
     
 	for (i = 0; i < MPID_MyWorldSize; i++)
 	{
-	    struct mpi_miproto_t *		mpi_miproto;
-
 	    miproto = CommworldChannels[i].selected_proto;
 
 	    if (VMPI_GRank_to_VGRank[i] >= 0)

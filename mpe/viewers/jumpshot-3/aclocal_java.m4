@@ -143,12 +143,15 @@ if test -z "$subdir" ; then
 fi
 #
 AC_MSG_CHECKING(for Java in known locations)
+# Make sure that we have glob expansion turned on
+set +f
 reverse_dirs=""
 for dir in \
     /usr \
     /usr/jdk* \
     /usr/j2sdk* \
     /usr/java* \
+    /usr/java/j2sdk* \
     /usr/local \
     /usr/local/java* \
     /usr/local/jdk* \

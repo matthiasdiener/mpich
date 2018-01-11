@@ -256,7 +256,7 @@ case $arg in
   -cflags=* | --cflags=*)
      package="`echo $arg|sed 's/-*cflags=//'`"
      USER_CFLAGS="$package"
-     CFLAGS="$CFLAGS $package" 
+     CFLAGS="$package $CFLAGS"
      ;;
   -fflags=* | --fflags=*)
      package="`echo $arg|sed 's/-*fflags=//'`"
@@ -2472,12 +2472,12 @@ if test "$pac_cv_c_inline" = "no" ; then
     
 {
 test -n "$verbose" && \
-echo "	defining" inline to be empty
-echo "#define" inline  >> confdefs.h
-DEFS="$DEFS -Dinline="
-SEDDEFS="${SEDDEFS}\${SEDdA}inline\${SEDdB}inline\${SEDdC}\${SEDdD}
-\${SEDuA}inline\${SEDuB}inline\${SEDuC}\${SEDuD}
-\${SEDeA}inline\${SEDeB}inline\${SEDeC}\${SEDeD}
+echo "	defining inline"
+echo "#define" inline 1 >> confdefs.h
+DEFS="$DEFS -Dinline=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}inline\${SEDdB}inline\${SEDdC}1\${SEDdD}
+\${SEDuA}inline\${SEDuB}inline\${SEDuC}1\${SEDuD}
+\${SEDeA}inline\${SEDeB}inline\${SEDeC}1\${SEDeD}
 "
 }
 
@@ -3824,6 +3824,7 @@ cat > conftest.$ac_ext <<EOF
 #include "confdefs.h"
 
 #pragma weak PFoo = Foo
+extern int PFoo(int);
 int Foo(a) { return a; }
 
 int main() { return 0; }
@@ -3879,11 +3880,13 @@ echo $ac_n "checking that weak symbols are visible to other files""... $ac_c" 1>
 fi
     rm -f conftest*
     cat >>conftest1.c <<EOF
+extern int PFoo(int);
 #pragma weak PFoo = Foo
 int Foo(int);
 int Foo(a) { return a; }
 EOF
     cat >>conftest2.c <<EOF
+extern int PFoo(int);
 int main() {
 return PFoo(0);}
 EOF

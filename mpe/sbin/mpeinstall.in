@@ -76,7 +76,7 @@ appendUninstall=0
 if [ -z "$UNINSTALLFILE" ] ; then
     INSTALL_base=`basename $0`
     UNINSTALL_base=`echo $INSTALL_base | sed -e 's/install/uninstall/'`
-    UNINSTALLFILE=${sbindir}/${UNINSTALL_base}
+    UNINSTALLFILE=$DESTDIR${sbindir}/${UNINSTALL_base}
 fi
 
 for arg in "$@" ; do
@@ -155,10 +155,11 @@ if [ -z "$3" ] ; then
 else
     mode=$3
 fi
-if [ -d $2 ] ; then
-    dest=$2/`basename $1`
+dest=$DESTDIR$2
+if [ -d $dest ] ; then
+    dest=$dest/`basename $1`
 else
-    dest=$2
+    dest=$dest
 fi
 if [ $replace = 0 -a -f $dest ] ; then
     if [ $verbose = 1 ] ; then echo "$dest exists; not changed" ; fi
@@ -216,7 +217,7 @@ if [ -n "$1" -a -n "$2" ] ; then
         set $1 $2 ${3:-$MODE} `pwd`
         cd $1
         for file in * ; do
-            if [ -f $file -a ! -f $2/$file ] ; then
+            if [ -f $file -a ! -f $DESTDIR$2/$file ] ; then
                 CopyFileP $file $2/$file $3
             fi
         done
@@ -230,20 +231,18 @@ if [ -n "$1" -a -n "$2" ] ; then
         done
         # cd back where it comes from
         # counter the effect of "cd $1" above,
-        # so "for" loop stiil works
+        # so "for" loop still works
         cd $4
     fi 
 fi
 }
 
-
-
 #
 # Make the given directory.  This handles building intermediate directories
 # as required, and maintains a list of created directories in dirlist.
 MkDir() {
-if [ ! -d $1 ] ; then
-    dir=`echo $1 | sed 's%/% /%g'`
+if [ ! -d $DESTDIR$1 ] ; then
+    dir=`echo $DESTDIR$1 | sed 's%/% /%g'`
     path_to_date=''
     for path in $dir ; do
         path_to_date="$path_to_date$path"
@@ -279,10 +278,11 @@ fi
 # Fixup files that need #...# replaced
 #
 FixupFile() {
-if [ -d $2 ] ; then
-    dest=$2/`basename $1`
+dest=$DESTDIR$2
+if [ -d $dest ] ; then
+    dest=$dest/`basename $1`
 else
-    dest=$2
+    dest=$dest
 fi
 if [ $replace = 0 -a -f $dest ] ; then
     if [ $verbose = 1 ] ; then echo "$dest exists; not changed" ; fi
@@ -315,7 +315,7 @@ if [ -z "$3" ] ; then
 else
     mode=$3
 fi
-$Show chmod $mode $2
+$Show chmod $mode $dest
 rc=$?
 if [ $rc != 0 ] ; then
     echo "**Error setting mode on file $2**"
@@ -375,11 +375,11 @@ fi
 if [ -n "$includebuild_dir" ] ; then
     if [ -d $includebuild_dir ] ; then
         echo "Copying MPE include files to $includedir"
-	if [ ! -d $includedir ] ; then
+	if [ ! -d $DESTDIR$includedir ] ; then
 	    MkDir $includedir
 	fi
 	for file in $MPE_HEADERS ; do
-	    if [ -f $includebuild_dir/$file -a ! -f $includedir/$file ] ; then
+	    if [ -f $includebuild_dir/$file -a ! -f $DESTDIR$includedir/$file ] ; then
 	        CopyFileP $includebuild_dir/$file $includedir/$file $MODE
 	    fi
 	done
@@ -401,7 +401,7 @@ if [ -n "$binbuild_dir" ] ; then
          CopyDirRecurP $binbuild_dir $bindir $XMODE
     fi
     # Create mpereconfig from mpereconfig.in
-    $Show /bin/rm -f $bindir/mpereconfig
+    $Show /bin/rm -f $DESTDIR$bindir/mpereconfig
     if [ $verbose = 1 ] ; then
         echo "Creating mpereconfig from mpereconfig.in"
     fi
@@ -441,9 +441,9 @@ if [ $MPICH = 1 ] ; then
 		-e "s%^ac_given_srcdir=.*$%ac_given_srcdir=%g" \
 		-e '/if test "\$ac_dir/,/^[ ]*fi[ ]*$/d' \
 		-e 's/ac_dir_suffix/ac_dir/' \
-                > $bindir/mpereconfig.dat
+                > ${DESTDIR}$bindir/mpereconfig.dat
         filelist="$filelist $bindir/mpereconfig.dat"
-        chmod $XMODE $bindir/mpereconfig.dat
+        chmod $XMODE ${DESTDIR}$bindir/mpereconfig.dat
     else 
         cat <<.
             cat config.status | \
@@ -466,9 +466,9 @@ else
 		-e "s%^ac_given_srcdir=.*$%ac_given_srcdir=%g" \
 		-e '/if test "\$ac_dir/,/^[ ]*fi[ ]*$/d' \
 		-e 's/ac_dir_suffix/ac_dir/' \
-                > $bindir/mpereconfig.dat
+                > $DESTDIR$bindir/mpereconfig.dat
         filelist="$filelist $bindir/mpereconfig.dat"
-        chmod $XMODE $bindir/mpereconfig.dat
+        chmod $XMODE $DESTDIR$bindir/mpereconfig.dat
     else 
         cat <<.
             cat config.status | \
@@ -488,23 +488,25 @@ fi
 CopyDirRecurP $top_srcdir/contrib/test $examplesdir
 
 # Create MPE examples Makefile
-( cd $examplesdir ; $bindir/mpereconfig Makefile ) 
+( cd $DESTDIR$examplesdir ; $bindir/mpereconfig Makefile ) 
 filelist="$filelist $examplesdir/Makefile"
 
 if [ -x $bindir/mpirun ] ; then
-    $Show "( cd $examplesdir ; \
+    $Show "( cd $DESTDIR$examplesdir ; \
              /bin/rm -f mpirun ; \
              ln -s $bindir/mpirun mpirun )"
     filelist="$filelist $examplesdir/mpirun" 
 fi
- 
-if [ -f $examplesdir/Makefile ] ; then
+
+if [ -z "$DESTDIR" ]; then 
+  if [ -f $DESTDIR$examplesdir/Makefile ] ; then
     echo "About to run installation test for C programs..."
-    $Show "( cd $examplesdir ; $MAKE linktest_C )"
+    $Show "( cd $DESTDIR$examplesdir ; $MAKE linktest_C )"
     if test "$NOF77" = "0" ; then
         echo "About to run installation test for Fortran programs..."
         $Show "( cd $examplesdir ; $MAKE linktest_f77 )"
     fi
+  fi
 fi
 
 # Remove old uninstall file
@@ -537,7 +539,7 @@ if [ $LOGVIEWERS = 1 ] ; then
     fi
 fi
 
-if [ -s $examplesdir/Makefile ] ; then
+if [ -s $DESTDIR$examplesdir/Makefile ] ; then
     echo "( cd $examplesdir ; $MAKE clean )" >> $UNINSTALLFILE
 fi
 

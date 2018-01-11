@@ -10,9 +10,9 @@ if [ -z "$MAKE" -o -z "$XMODE" ] ; then
 fi
 if [ -f mpid/mpd/Makefile ] ; then
     export XMODE
-    (cd mpid/mpd ; $MAKE install UNINSTALLFILE=$UNINSTALLFILE )
-    rm -f ${bindir}/mpichboot
-    cat >${bindir}/mpichboot <<EOF
+    (cd mpid/mpd ; $MAKE install UNINSTALLFILE=$UNINSTALLFILE DESTDIR=$DESTDIR )
+    rm -f $DESTDIR${bindir}/mpichboot
+    cat >$DESTDIR${bindir}/mpichboot <<EOF
 #! /bin/sh
 if [ ! -s $HOME/.mpdpasswd -a ! -s $HOME/.mpd.conf ] ; then
     echo "In mpichboot:"
@@ -24,14 +24,14 @@ fi
 # calling process.  
 ${bindir}/mpd -b &
 EOF
-    chmod $XMODE ${bindir}/mpichboot
+    chmod $XMODE $DESTDIR${bindir}/mpichboot
     echo "rm -f ${bindir}/mpichboot" >>$UNINSTALLFILE
-    rm -f ${bindir}/mpichstop
-    cat >${bindir}/mpichstop <<EOF
+    rm -f $DESTDIR${bindir}/mpichstop
+    cat >$DESTDIR${bindir}/mpichstop <<EOF
 #! /bin/sh
 ${bindir}/mpdallexit
 EOF
-    chmod $XMODE ${bindir}/mpichstop
+    chmod $XMODE $DESTDIR${bindir}/mpichstop
     echo "rm -f ${bindir}/mpichstop" >>$UNINSTALLFILE
 else
     echo "Could not find Makefile for mpid/mpd!"

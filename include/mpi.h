@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi.h,v 1.40 2002/08/01 21:08:21 lacour Exp $
+ *  $Id: mpi.h,v 1.43 2003/01/10 15:55:40 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -205,7 +205,7 @@ typedef int (MPI_Delete_function) ( MPI_Comm, int, void *, void * );
 #define MPI_VERSION    1
 #define MPI_SUBVERSION 2
 #define MPICH_NAME     1
-#define MPICH_VERSION "1.2.4"
+#define MPICH_VERSION "1.2.5"
 
 /********************** MPI-2 FEATURES BEGIN HERE ***************************/
 #define MPICH_HAS_C2F
@@ -286,6 +286,20 @@ extern int MPICHX_TOPOLOGY_COLORS;
 #define MPICHX_LAN_LEVEL 1    /* communicate thru LAN TCP links */
 #define MPICHX_HOST_LEVEL 2   /* communicate inside a machine thru TCP */
 #define MPICHX_VMPI_LEVEL 3   /* use vendor-MPI library */
+
+/* START GRIDFTP */
+/******** Globus-2 device use of GridFTP ********/
+/* Attribute keys.  These are set to MPI_KEYVAL_INVALID by default */
+extern int MPICHX_PARALLELSOCKETS_PARAMETERS;
+struct gridftp_params
+{
+    int partner_rank;
+
+    int nsocket_pairs;
+    int max_outstanding_writes;
+    int tcp_buffsize;
+}; /* end struct gridftp_params */
+/* END GRIDFTP */
 
 /******** End of Globus-2 device keys *************************************/
 

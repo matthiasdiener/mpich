@@ -72,7 +72,7 @@ int mp_init(
 
     MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
 
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
     return rc;
@@ -102,7 +102,7 @@ void mp_finalize()
 	MPI_Finalize();
     }
 
-  fn_exit:
+  /* fn_exit: */
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
 } /* end mp_finalize() */
 
@@ -158,7 +158,7 @@ void mp_create_miproto(
 
     globus_libc_free(buff);
 
-  fn_exit:
+  /* fn_exit: */
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
 } /* end mp_create_miproto() */
 
@@ -186,7 +186,7 @@ int mp_send(
 
     debug_check_mpi_result("MPI_Send()", rc);
 
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
     return rc;
@@ -218,7 +218,7 @@ int mp_isend(
 
     debug_check_mpi_result("MPI_Isend()", rc);
 
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
     return rc;
@@ -248,7 +248,7 @@ int mp_ssend(
 
     debug_check_mpi_result("MPI_Ssend()", rc);
 
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
     return rc;
@@ -280,7 +280,7 @@ int mp_issend(
 
     debug_check_mpi_result("MPI_Issend()", rc);
 
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
     return rc;
@@ -299,7 +299,7 @@ int mp_cancel(void *request)
 
     debug_check_mpi_result("MPI_Cancel()", rc);
 
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
     return rc;
@@ -334,7 +334,7 @@ int mp_recv(
 
     debug_check_mpi_result("MPI_Recv()", rc);
 
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
     return rc;
@@ -354,7 +354,7 @@ int mp_wait(
 
     debug_check_mpi_result("MPI_Wait()", rc);
 
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
     return rc;
@@ -374,7 +374,7 @@ int mp_test_cancelled(
 
     debug_check_mpi_result("MPI_Test_cancelled()", rc);
 
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
     return rc;
@@ -395,7 +395,7 @@ int mp_test(
 
     debug_check_mpi_result("MPI_Test()", rc);
 
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
     return rc;
@@ -420,7 +420,7 @@ int mp_probe(
 
     debug_check_mpi_result("MPI_Probe()", rc);
 
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
     return rc;
@@ -451,7 +451,7 @@ int mp_iprobe(
 
     debug_check_mpi_result("MPI_IProbe()", rc);
 
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
     return rc;
@@ -475,7 +475,7 @@ int mp_get_count(
 
     debug_check_mpi_result("MPI_Get_count()", rc);
 
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
     return rc;
@@ -499,7 +499,7 @@ int mp_get_elements(
 
     debug_check_mpi_result("MPI_Get_elements()", rc);
 
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
     return rc;
@@ -517,7 +517,7 @@ int mp_status_get_source(
 
     rc = ((MPI_Status *) status)->MPI_SOURCE;
 
-  fn_exit:
+  /* fn_exit: */
     DEBUG_PRINTF(DEBUG_MODULE_MP, DEBUG_INFO_RC,
 		 ("source=%d\n", rc));
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
@@ -536,7 +536,7 @@ int mp_status_get_tag(
 
     rc = ((MPI_Status *) status)->MPI_TAG;
 
-  fn_exit:
+  /* fn_exit: */
     DEBUG_PRINTF(DEBUG_MODULE_MP, DEBUG_INFO_RC,
 		 ("tag=%d\n", rc));
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
@@ -555,7 +555,7 @@ int mp_status_get_error(
 
     rc = mpi_error_to_vmpi_error(((MPI_Status *) status)->MPI_ERROR);
 
-  fn_exit:
+  /* fn_exit: */
     DEBUG_PRINTF(DEBUG_MODULE_MP, DEBUG_INFO_RC,
 		 ("error=%d\n", rc));
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
@@ -605,7 +605,7 @@ int mp_comm_split(
 		     ("vendor MPI_Comm_split() failed"));
     }
     
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_PRINTF(DEBUG_MODULE_MP | DEBUG_MODULE_COMM, DEBUG_INFO_RC,
 		 ("rc=%d\n", rc));
@@ -641,7 +641,7 @@ int mp_comm_dup(
 		     ("vendor MPI_Comm_dup() failed"));
     }
     
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_PRINTF(DEBUG_MODULE_MP | DEBUG_MODULE_COMM, DEBUG_INFO_RC,
 		 ("rc=%d\n", rc));
@@ -688,7 +688,7 @@ int mp_intercomm_create(
 		     ("vendor MPI_Intercomm_create() failed"));
     }
     
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_PRINTF(DEBUG_MODULE_MP | DEBUG_MODULE_COMM, DEBUG_INFO_RC,
 		 ("rc=%d\n", rc));
@@ -724,7 +724,7 @@ int mp_intercomm_merge(
 		     ("vendor MPI_Intercomm_merge() failed"));
     }
     
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_PRINTF(DEBUG_MODULE_MP | DEBUG_MODULE_COMM, DEBUG_INFO_RC,
 		 ("rc=%d\n", rc));
@@ -754,7 +754,7 @@ int mp_comm_free(
 		     ("vendor MPI_Comm_free() failed"));
     }
     
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_PRINTF(DEBUG_MODULE_MP | DEBUG_MODULE_COMM, DEBUG_INFO_RC,
 		 ("rc=%d\n", rc));
@@ -776,7 +776,7 @@ int mp_request_free(
 
     debug_check_mpi_result("MPI_Request_free()", rc);
 
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
     return rc;
@@ -919,7 +919,7 @@ int mp_type_permanent_setup(
          break;
      } /* end switch */
 
-  fn_exit:
+  /* fn_exit: */
     *((MPI_Datatype *) mpi_type) = rc;
     DEBUG_PRINTF(DEBUG_MODULE_TYPES, DEBUG_INFO_RC,
 		 ("mpi_type=%d\n", rc));
@@ -1041,7 +1041,7 @@ int mp_bootstrap_bcast(void *buff, int	count, int type)
 
     debug_check_mpi_result("MPI_bootstrap_Bcast()", rc);
     
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
     return rc;
@@ -1068,7 +1068,7 @@ int mp_bootstrap_gather(void *sbuff, int scnt, void *rbuff, int rcnt)
 
     debug_check_mpi_result("MPI_bootstrap_Gather()", rc);
     
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
     return rc;
@@ -1100,7 +1100,7 @@ int mp_bootstrap_gatherv(void *sbuff,
 
     debug_check_mpi_result("MPI_bootstrap_Gatherv()", rc);
     
-  fn_exit:
+  /* fn_exit: */
     rc = mpi_error_to_vmpi_error(rc);
     DEBUG_FN_EXIT(DEBUG_MODULE_MP);
     return rc;

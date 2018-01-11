@@ -179,6 +179,46 @@ HANDLE GetUserHandle(char *account, char *domain, char *password, int *pError)
     return hUser;
 }
 
+HANDLE GetUserHandleNoCache(char *account, char *domain, char *password, int *pError)
+{
+    HANDLE hUser;
+    int error;
+    int num_tries = 3;
+
+    // logon the user
+    while (!LogonUser(
+	account,
+	domain, 
+	password,
+	LOGON32_LOGON_INTERACTIVE, 
+	LOGON32_PROVIDER_DEFAULT, 
+	&hUser))
+    {
+	error = GetLastError();
+	if (error == ERROR_NO_LOGON_SERVERS)
+	{
+	    if (num_tries)
+		Sleep(250);
+	    else
+	    {
+		*pError = error;
+		return INVALID_HANDLE_VALUE;
+	    }
+	    num_tries--;
+	}
+	else
+	{
+	    *pError = error;
+	    return INVALID_HANDLE_VALUE;
+	}
+    }
+
+    // cache the user handle
+    CacheUserHandle(account, domain, password, hUser);
+
+    return hUser;
+}
+
 // Function name	: SetEnvironmentVariables
 // Description	    : 
 // Return type		: void 
@@ -368,6 +408,8 @@ HANDLE LaunchProcess(char *cmd, char *env, char *dir, int priorityClass, int pri
     saInfo.hStdInput = hPipeStdinR;
     saInfo.hStdOutput = hPipeStdoutW;
     saInfo.dwFlags = STARTF_USESTDHANDLES;
+    //saInfo.lpDesktop = "WinSta0\\Default";
+    //saInfo.wShowWindow = SW_SHOW;
     
     SetEnvironmentVariables(env);
     pEnv = GetEnvironmentStrings();
@@ -456,7 +498,7 @@ static void ParseAccountDomain(char *DomainAccount, char *tAccount, char *tDomai
     }
 }
 
-bool ValidateUser(char *pszAccount, char *pszPassword, int *pError)
+bool ValidateUser(char *pszAccount, char *pszPassword, bool bUseCache, int *pError)
 {
     HANDLE hUser;
     char account[100], domain[100] = "", *pszDomain;
@@ -467,9 +509,79 @@ bool ValidateUser(char *pszAccount, char *pszPassword, int *pError)
     else
 	pszDomain = domain;
 
-    hUser = GetUserHandle(account, pszDomain, pszPassword, pError);
+    if (bUseCache)
+	hUser = GetUserHandle(account, pszDomain, pszPassword, pError);
+    else
+	hUser = GetUserHandleNoCache(account, pszDomain, pszPassword, pError);
+
+    // does hUser need to be closed?
+
     return (hUser != INVALID_HANDLE_VALUE);
 }
+
+//#define USE_WINDOW_STATIONS
+#undef USE_WINDOW_STATIONS
+
+#ifdef USE_WINDOW_STATIONS
+
+// Insert code here to figure out a way to launch a process in the interactive WorkStation and Desktop
+
+HWINSTA hwinstaSave = NULL;
+HDESK hdeskSave = NULL;
+HWINSTA hwinstaUser = NULL;
+HDESK hdeskUser = NULL;
+
+bool AttachToWorkstation()
+{
+    DWORD dwThreadId;
+ 
+    // Ensure connection to service window station and desktop, and 
+    // save their handles. 
+
+    hwinstaSave = GetProcessWindowStation(); 
+    dwThreadId = GetCurrentThreadId(); 
+    hdeskSave = GetThreadDesktop(dwThreadId); 
+ 
+    // connect to the User's window station and desktop. 
+
+    //RpcImpersonateClient(h); 
+    hwinstaUser = OpenWindowStation("WinSta0", TRUE, MAXIMUM_ALLOWED); 
+    if (hwinstaUser == NULL) 
+    { 
+        //RpcRevertToSelf();
+	err_printf("AttachToWorkstation:OpenWindowStation failed, error %d.\n", GetLastError());
+        return false; 
+    } 
+    SetProcessWindowStation(hwinstaUser); 
+    hdeskUser = OpenInputDesktop(DF_ALLOWOTHERACCOUNTHOOK, TRUE, MAXIMUM_ALLOWED); 
+    /*
+	DESKTOP_CREATEMENU | DESKTOP_CREATEWINDOW | DESKTOP_ENUMERATE |
+	DESKTOP_HOOKCONTROL | DESKTOP_JOURNALPLAYBACK | DESKTOP_JOURNALRECORD |
+	DESKTOP_READOBJECTS | DESKTOP_SWITCHDESKTOP | DESKTOP_WRITEOBJECTS);
+	*/
+    //RpcRevertToSelf(); 
+    if (hdeskUser == NULL) 
+    { 
+        SetProcessWindowStation(hwinstaSave); 
+        CloseWindowStation(hwinstaUser);
+	err_printf("AttachToWorkstation:OpenInputDesktop failed, error %d\n", GetLastError());
+        return false;
+    } 
+    SetThreadDesktop(hdeskUser);
+
+    return true;
+}
+
+bool DetachFromWorkstation()
+{
+    // Restore window station and desktop. 
+    SetThreadDesktop(hdeskSave); 
+    SetProcessWindowStation(hwinstaSave); 
+    CloseDesktop(hdeskUser); 
+    CloseWindowStation(hwinstaUser); 
+    return true;
+}
+#endif /* USE_WINDOW_STATIONS */
 
 HANDLE LaunchProcessLogon(char *domainaccount, char *password, char *cmd, char *env, char *map, char *dir, int priorityClass, int priority, HANDLE *hIn, HANDLE *hOut, HANDLE *hErr, int *pdwPid, int *nError, char *pszError, bool bDebug)
 {
@@ -602,6 +714,8 @@ HANDLE LaunchProcessLogon(char *domainaccount, char *password, char *cmd, char *
     saInfo.hStdOutput = hPipeStdoutW;
     saInfo.hStdError  = hPipeStderrW;
     saInfo.dwFlags    = STARTF_USESTDHANDLES;
+    //saInfo.lpDesktop = "WinSta0\\Default";
+    //saInfo.wShowWindow = SW_SHOW;
     
     SetEnvironmentVariables(env);
     pEnv = GetEnvironmentStrings();
@@ -645,7 +759,11 @@ HANDLE LaunchProcessLogon(char *domainaccount, char *password, char *cmd, char *
 	    CREATE_SUSPENDED | CREATE_NO_WINDOW | priorityClass;
 	if (bDebug)
 	    launch_flag = launch_flag | DEBUG_PROCESS;
-	
+
+#ifdef USE_WINDOW_STATIONS
+	AttachToWorkstation();
+#endif
+
 	num_tries = 4;
 	do
 	{
@@ -689,6 +807,9 @@ HANDLE LaunchProcessLogon(char *domainaccount, char *password, char *cmd, char *
 	    }
 	} while (num_tries);
 	//RevertToSelf(); // If you call RevertToSelf, the network mapping goes away.
+#ifdef USE_WINDOW_STATIONS
+	DetachFromWorkstation();
+#endif
     }
     else
     {

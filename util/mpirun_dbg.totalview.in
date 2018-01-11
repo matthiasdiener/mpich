@@ -38,5 +38,15 @@ fi
 # Note that this is run from within the mpirun.ch_p4 script only (!), so
 # the argument list is p4 specific.  FIX ME!
 #
+# mpirun.ch_p4 exports nolocal and machinehead if not a local run.
+if [ "$nolocal" = 1 ] ; then
+    # Note that mpirun.ch_p4 exports P4_RSHCOMMAND
+    rshcommand=${P4_RSHCOMMAND-ssh}
+    if [ "$rshcommand" = "ssh" ] ; then
+        doitall="$doitall $rshcommand -X $machinehead"
+    else
+        doitall="$doitall $rshcommand env DISPLAY=$DISPLAY"
+    fi
+fi
 $doitall $tvcommand $prognamemain -a $cmdLineArgs -p4pg $p4pgfile -p4wd $p4workdir -mpichtv
 

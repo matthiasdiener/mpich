@@ -26,22 +26,28 @@ void main(int argc, char *argv[])
 	int nPort = MPD_DEFAULT_PORT;
 	SOCKET sock;
 	int error;
+	bool bUseCache = true;
 
 	if ((argc > 1) && (stricmp(argv[1], "-remove") == 0))
 	{
 		if (DeleteCurrentPasswordRegistryEntry())
+		{
+			DeleteCachedPassword();
 			printf("Account and password removed from the Registry.\n");
+		}
 		else
 			printf("Error: Unable to remove the encrypted password.\n");
 		return;
 	}
 
-	if ((argc > 1) && (stricmp(argv[1], "-validate") == 0))
+	if (GetOpt(argc, argv, "-validate"))
 	{
 	    if (SetupCryptoClient())
 	    {
 		if (ReadPasswordFromRegistry(account, password))
 		{
+		    if (GetOpt(argc, argv, "-nocache"))
+			bUseCache = false;
 		    if (!GetOpt(argc, argv, "-host", pszHost))
 		    {
 			DWORD len = 100;
@@ -54,7 +60,7 @@ void main(int argc, char *argv[])
 		    if ((error = ConnectToMPD(pszHost, nPort, pszPassPhrase, &sock)) == 0)
 		    {
 			pszEncoded = EncodePassword(password);
-			sprintf(pszStr, "validate a=%s p=%s", account, pszEncoded);
+			sprintf(pszStr, "validate a=%s p=%s c=%s", account, pszEncoded, bUseCache ? "yes" : "no");
 			WriteString(sock, pszStr);
 			strcpy(pszStr, "FAIL");
 			ReadStringTimeout(sock, pszStr, 20);

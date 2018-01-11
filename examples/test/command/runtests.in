@@ -4,10 +4,10 @@
 #   -Dname=\"foo bar\"
 #   -Dname='"foo bar"'
 #   
-mpicc=@MPICC@
-mpiCC=@MPICPLUSPLUS@
-mpif77=@MPIF77@
-mpif90=@MPIF90@
+mpicc="@MPICC@"
+mpiCC="@MPICPLUSPLUS@"
+mpif77="@MPIF77@"
+mpif90="@MPIF90@"
 
 # Create test files
 trap 'rm -f a.out rtest* *.o' 0

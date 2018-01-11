@@ -14,6 +14,17 @@ void UpdateMPICH(char *pszFileName)
 
     if (len == 0)
     {
+	if (GetSystemWindowsDirectory(pszStr, 4096))
+	{
+	    strcat(pszStr, "\\system32\\mpich.dll");
+	    if (!MoveFileEx(pszFileName, pszStr, MOVEFILE_COPY_ALLOWED | MOVEFILE_REPLACE_EXISTING))
+	    {
+		error = GetLastError();
+		Translate_Error(error, pszStr);
+		err_printf("Unable to move '%s' to '%s'\nError: %s\n", pszFileName, filename, pszStr);
+		return;
+	    }
+	}
 	err_printf("unable to find mpich.dll\n");
 	return;
     }
@@ -50,6 +61,17 @@ void UpdateMPICHd(char *pszFileName)
 
     if (len == 0)
     {
+	if (GetSystemWindowsDirectory(pszStr, 4096))
+	{
+	    strcat(pszStr, "\\system32\\mpichd.dll");
+	    if (!MoveFileEx(pszFileName, pszStr, MOVEFILE_COPY_ALLOWED | MOVEFILE_REPLACE_EXISTING))
+	    {
+		error = GetLastError();
+		Translate_Error(error, pszStr);
+		err_printf("Unable to move '%s' to '%s'\nError: %s\n", pszFileName, filename, pszStr);
+		return;
+	    }
+	}
 	err_printf("unable to find mpichd.dll\n");
 	return;
     }

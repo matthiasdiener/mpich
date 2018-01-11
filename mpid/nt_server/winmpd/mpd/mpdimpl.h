@@ -208,7 +208,7 @@ void UpdateMPICH(char *pszFileName);
 void UpdateMPICHd(char *pszFileName);
 void ConcatenateProcessesToString(char *pszStr);
 void GetNameKeyValue(char *str, char *name, char *key, char *value);
-bool ValidateUser(char *pszAccount, char *pszPassword, int *pError);
+bool ValidateUser(char *pszAccount, char *pszPassword, bool bUseCache, int *pError);
 HANDLE LaunchProcess(char *cmd, char *env, char *dir, int priorityClass, int priority, HANDLE *hIn, HANDLE *hOut, HANDLE *hErr, int *pdwPid, int *nError, char *pszError, bool bDebug);
 HANDLE LaunchProcessLogon(char *domainaccount, char *password, char *cmd, char *env, char *map, char *dir, int priorityClass, int priority, HANDLE *hIn, HANDLE *hOut, HANDLE *hErr, int *pdwPid, int *nError, char *pszError, bool bDebug);
 void DebugWaitForProcess(bool &bAborted, char *pszError);

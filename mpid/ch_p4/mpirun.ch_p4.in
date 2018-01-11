@@ -201,6 +201,9 @@ fi
 #
 if [ "$debugger" != "" ] ; then
     if [ -x "$MPIRUN_HOME/mpirun_dbg.$debugger" ] ; then
+        export nolocal
+	export machinehead
+	export stdinfile
         $MPIRUN_HOME/mpirun_dbg.$debugger -progname $prognamemain -p4pg $p4pgfile_master -p4wd $p4workdir -cmdlineargs "$cmdLineArgs"
     else
         echo "Cannot run debugger - no debugger script." 

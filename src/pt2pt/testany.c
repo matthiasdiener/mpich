@@ -1,5 +1,5 @@
 /*
- *  $Id: testany.c,v 1.18 2002/03/15 15:21:16 gropp Exp $
+ *  $Id: testany.c,v 1.19 2003/01/09 20:48:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -45,7 +45,7 @@ Output Parameters:
 + index - index of operation that completed, or 'MPI_UNDEFINED'  if none 
   completed (integer) 
 . flag - true if one of the operations is complete (logical) 
-- status - status object (Status).  May be 'MPI_STATUS_NULL'.
+- status - status object (Status).  May be 'MPI_STATUS_IGNORE'.
 
 .N waitstatus
 

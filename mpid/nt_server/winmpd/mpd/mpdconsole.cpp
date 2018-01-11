@@ -1373,7 +1373,8 @@ void HandleConsoleRead(MPD_Context *p)
 	}
 	else if (strnicmp(p->pszIn, "validate ", 9) == 0)
 	{
-	    char pszAccount[100], pszPassword[300];
+	    char pszAccount[100], pszPassword[300], pszCache[10];
+	    bool bUseCache = true;
 	    int error;
 	    _snprintf(pszStr, MAX_CMD_LENGTH, "FAIL - invalid arguments");
 	    if (GetStringOpt(&p->pszIn[9], "a", pszAccount))
@@ -1381,7 +1382,12 @@ void HandleConsoleRead(MPD_Context *p)
 		if (GetStringOpt(&p->pszIn[9], "p", pszPassword))
 		{
 		    DecodePassword(pszPassword);
-		    if (ValidateUser(pszAccount, pszPassword, &error))
+		    if (GetStringOpt(&p->pszIn[9], "c", pszCache))
+		    {
+			if (stricmp(pszCache, "no") == 0)
+			    bUseCache = false;
+		    }
+		    if (ValidateUser(pszAccount, pszPassword, bUseCache, &error))
 		    {
 			_snprintf(pszStr, MAX_CMD_LENGTH, "SUCCESS");
 		    }

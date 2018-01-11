@@ -4,7 +4,7 @@
 #define COPYRIGHT "Copyright 2002 Argonne National Lab"
 #define VERSION_RELEASE 1
 #define VERSION_MAJOR   2
-#define VERSION_MINOR   4
+#define VERSION_MINOR   5
 
 #define MAX_CMD_LENGTH	    8192
 #define MAX_HOST_LENGTH	    64
@@ -24,7 +24,7 @@
 
 #define CONSOLE_STR_LENGTH 10*MAX_CMD_LENGTH
 
-#define MPD_DEFAULT_TIMEOUT 30
-#define MPD_SHORT_TIMEOUT   10
+#define MPD_DEFAULT_TIMEOUT 45
+#define MPD_SHORT_TIMEOUT   20
 
 #endif

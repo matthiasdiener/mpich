@@ -78,7 +78,7 @@ createRslJob() {
 	    echo "   (directory=\"$my_dirname\")"
 	    echo "   (executable=\"$my_progname\")"
 	else
-	    echo "   (executable=\"\$(GLOBUSRUN_GASS_URL)$my_progname\")"
+	    echo "   (executable=\$(GLOBUSRUN_GASS_URL) # \"$my_progname\")"
 	fi
 	echo ")"
 

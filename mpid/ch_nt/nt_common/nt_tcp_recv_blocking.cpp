@@ -42,8 +42,14 @@ int ReceiveBlocking(SOCKET sock, WSAEVENT event, char *buffer, int len, int flag
 		if (ret_val != WSA_WAIT_EVENT_0)
 			return ret_val;
 
-		if (WSAEnumNetworkEvents(sock, event, &nevents) == SOCKET_ERROR)
-			return WSAGetLastError();
+		while (true)
+		{
+		    if (WSAEnumNetworkEvents(sock, event, &nevents) == 0)
+			break;
+		    error = WSAGetLastError();
+		    if (error != WSAEWOULDBLOCK)
+			return error;
+		}
 
 		if (nevents.lNetworkEvents & FD_READ)
 		{
@@ -110,8 +116,14 @@ int ReceiveBlockingTimeout(SOCKET sock, WSAEVENT event, char *buffer, int len, i
 		if (ret_val != WSA_WAIT_EVENT_0)
 			return ret_val;
 
-		if (WSAEnumNetworkEvents(sock, event, &nevents) == SOCKET_ERROR)
-			return WSAGetLastError();
+		while (true)
+		{
+		    if (WSAEnumNetworkEvents(sock, event, &nevents) == 0)
+			break;
+		    error = WSAGetLastError();
+		    if (error != WSAEWOULDBLOCK)
+			return error;
+		}
 
 		if (nevents.lNetworkEvents & FD_READ)
 		{

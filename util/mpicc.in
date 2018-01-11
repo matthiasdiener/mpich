@@ -351,7 +351,8 @@ if [ $DoLink = 1 -o $show_link = 1 ] ; then
     # Since that enviroment variable would then need to be set for all
     # hosts where the program might run (since rsh doesn't propagate 
     # the environment), we don't make this the default.
-    if [ "${SHAREDKIND}" != "ignore" -a $UseSharedLib = "yes" ] ; then
+    if [ "${SHAREDKIND}" != "ignore" -a \
+        \( $UseSharedLib = "yes" -o "$libdir" = "$sharedlibdir" \) ] ; then
 	clibpath="-L${sharedlibdir}"
         if [ -n "${SHARED_LIB_SEARCH_PATH_LEADER}" ] ; then
 	    clibpath="${SHARED_LIB_SEARCH_PATH_LEADER}${sharedlibdir} $clibpath"

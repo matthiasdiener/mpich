@@ -68,7 +68,7 @@ appendUninstall=0
 if [ -z "$UNINSTALLFILE" ] ; then
     INSTALL_base=`basename $0`
     UNINSTALL_base=`echo $INSTALL_base | sed -e 's/install/uninstall/'`
-    UNINSTALLFILE=${sbindir}/${UNINSTALL_base}
+    UNINSTALLFILE=$DESTDIR${sbindir}/${UNINSTALL_base}
 fi
 
 # Update the $prefix if necessary
@@ -139,10 +139,11 @@ if [ -z "$3" ] ; then
 else
     mode=$3
 fi
-if [ -d $2 ] ; then
-    dest=$2/`basename $1`
+dest=$DESTDIR$2
+if [ -d $dest ] ; then
+    dest=$dest/`basename $1`
 else
-    dest=$2
+    dest=$dest
 fi
 if [ $replace = 0 -a -f $dest ] ; then
     if [ $verbose = 1 ] ; then echo "$dest exists; not changed" ; fi
@@ -204,7 +205,7 @@ if [ -n "$1" -a -n "$2" ] ; then
         set $1 $2 ${3:-$MODE} `pwd`
         cd $1
         for file in * ; do
-            if [ -f $file -a ! -f $2/$file ] ; then
+            if [ -f $file -a ! -f $DESTDIR$2/$file ] ; then
                 CopyFileP $file $2/$file $3
             fi
         done
@@ -230,8 +231,8 @@ fi
 # Make the given directory.  This handles building intermediate directories
 # as required, and maintains a list of created directories in dirlist.
 MkDir() {
-if [ ! -d $1 ] ; then
-    dir=`echo $1 | sed 's%/% /%g'`
+if [ ! -d $DESTDIR$1 ] ; then
+    dir=`echo $DESTDIR$1 | sed 's%/% /%g'`
     path_to_date=''
     for path in $dir ; do
         path_to_date="$path_to_date$path"
@@ -299,7 +300,7 @@ if [ "$prefix_override" = 1 ] ; then
     mandir=$prefix/man
     htmldir=$prefix/html
     if [ $appendUninstall = 0 ] ; then
-	UNINSTALLFILE=${sbindir}/${UNINSTALL_base}
+	UNINSTALLFILE=$DESTDIR${sbindir}/${UNINSTALL_base}
     fi
 fi
 
