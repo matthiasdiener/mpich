@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_prealloc.c,v 1.1 2004/11/01 20:33:37 robl Exp $
  *
  *   Copyright (C) 2004 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -20,6 +19,7 @@ void ADIOI_GEN_Prealloc(ADIO_File fd, ADIO_Offset diskspace, int *error_code)
 	ADIO_Status status;
 	int i, ntimes;
 	char *buf;
+	ADIO_Fcntl_t *fcntl_struct;
 	static char myname[] = "ADIOI_GEN_PREALLOC";
 
 	/* will be called by one process only */
@@ -31,7 +31,12 @@ void ADIOI_GEN_Prealloc(ADIO_File fd, ADIO_Offset diskspace, int *error_code)
            preallocation is needed.
            read/write in sizes of no more than ADIOI_PREALLOC_BUFSZ */
 
-	curr_fsize = fd->fp_ind;
+	/*curr_fsize = fd->fp_ind; */
+	fcntl_struct = (ADIO_Fcntl_t *) ADIOI_Malloc(sizeof(ADIO_Fcntl_t));
+	ADIO_Fcntl(fd, ADIO_FCNTL_GET_FSIZE, fcntl_struct, error_code);
+
+	curr_fsize = fcntl_struct->fsize; /* don't rely on fd->fp_ind: might be
+					    working on a pre-existing file */
 	alloc_size = diskspace;
 
 	size = ADIOI_MIN(curr_fsize, alloc_size);
@@ -71,6 +76,7 @@ void ADIOI_GEN_Prealloc(ADIO_File fd, ADIO_Offset diskspace, int *error_code)
 		done += len;  
 	    }
 	}
+	ADIOI_Free(fcntl_struct);
 	ADIOI_Free(buf);
 	*error_code = MPI_SUCCESS;
 }

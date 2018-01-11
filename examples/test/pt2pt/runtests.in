@@ -91,6 +91,8 @@ writesummaryfile=no
 
 # If cannot run test, do that and exit
 if [ $check_canrun = 1 ] ; then
+    # Make sure that we don't have an old file lying around
+    rm -f third third.o third.exe
     MakeExe third
     rm -f third.out
     echo '*** Testing Unexpected messages ***' >> third.out

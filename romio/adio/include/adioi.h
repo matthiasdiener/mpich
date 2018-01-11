@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: adioi.h,v 1.27 2005/05/24 17:41:15 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -542,7 +541,7 @@ int MPIOI_File_iread(MPI_File fh,
 #   define ADIOI_WRITE_LOCK(fd, offset, whence, len) \
           ADIOI_Set_lock((fd)->fd_sys, ADIOI_LOCK_CMD, LOCKFILE_EXCLUSIVE_LOCK, offset, whence, len)
 #   define ADIOI_READ_LOCK(fd, offset, whence, len) \
-          ADIOI_Set_lock((fd)->fd_sys, ADIOLOCK, 0, offset, whence, len)
+          ADIOI_Set_lock((fd)->fd_sys, ADIOI_LOCK_CMD, 0, offset, whence, len)
 #   define ADIOI_UNLOCK(fd, offset, whence, len) \
           ADIOI_Set_lock((fd)->fd_sys, ADIOI_UNLOCK_CMD, LOCKFILE_FAIL_IMMEDIATELY, offset, whence, len)
 
@@ -564,6 +563,33 @@ int ADIOI_Set_lock64(FDTYPE fd_sys, int cmd, int type, ADIO_Offset offset, int w
 #define ADIOI_Calloc(a,b) ADIOI_Calloc_fn(a,b,__LINE__,__FILE__)
 #define ADIOI_Realloc(a,b) ADIOI_Realloc_fn(a,b,__LINE__,__FILE__)
 #define ADIOI_Free(a) ADIOI_Free_fn(a,__LINE__,__FILE__)
+
+int ADIOI_Strncpy( char *outstr, const char *instr, size_t maxlen );
+int ADIOI_Strnapp( char *, const char *, size_t );
+char *ADIOI_Strdup( const char * );
+
+/* Provide a fallback snprintf for systems that do not have one */
+/* Define attribute as empty if it has no definition */
+#ifndef ATTRIBUTE
+#ifdef HAVE_GCC_ATTRIBUTE
+#define ATTRIBUTE(a) __attribute__(a)
+#else
+#define ATTRIBUTE(a)
+#endif
+#endif
+
+/* style: allow:snprintf:1 sig:0 */
+
+#ifdef HAVE_SNPRINTF
+#define ADIOI_Snprintf snprintf
+/* Sometimes systems don't provide prototypes for snprintf */
+#ifdef NEEDS_SNPRINTF_DECL
+extern int snprintf( char *, size_t, const char *, ... ) ATTRIBUTE((format(printf,3,4)));
+#endif
+#else
+int ADIOI_Snprintf( char *str, size_t size, const char *format, ... ) 
+     ATTRIBUTE((format(printf,3,4)));
+#endif /* HAVE_SNPRINTF */
 
 #define FPRINTF fprintf
 

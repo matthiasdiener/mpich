@@ -1,4 +1,4 @@
-/* mpich-mpid.h.in.  Generated automatically from configure.in by autoheader.  */
+/* mpich-mpid.h.in.  Generated automatically from configure.in by autoheader 2.13.  */
 
 /* Define if mmap does not work correctly for anonymous memory */
 #undef HAVE_NO_ANON_MMAP

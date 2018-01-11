@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_fcntl.c,v 1.2 2005/05/23 23:27:48 rross Exp $
  *
  *   Copyright (C) 2005 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

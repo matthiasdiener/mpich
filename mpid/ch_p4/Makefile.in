@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.30 2004/08/18 12:17:41 gropp Exp $
+#  $Id: Makefile.in,v 1.31 2005/10/17 16:25:11 gropp Exp $
 #
 #  {C} 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -62,7 +62,7 @@ ${MPI_OBJECTS}: ${srcdir}/chdef.h
 # is the same, but for the profile library
 default_all: setlinks p4inmpi default_all_files
 default_all_files: ${MPI_OBJECTS}
-	${AR} ${LIBNAME} $?
+	${AR} cr ${LIBNAME} $?
 profile_all: 
 
 # We need to clean the srcdir of any .o files because they can confuse the
@@ -136,11 +136,11 @@ setlinks:
 #	${CC} ${DEFS} ${CFLAGS} ${BASEOPT} -c -S $< ${MPI_PROFILE}
 
 ${LIBNAME}: ${MPI_OBJECTS} 
-	${AR} $@ $?
+	${AR} cr $@ $?
 	${RANLIB} $@
 
 libmpid.a: ${MPI_OBJECTS} mprerr.o
-	${AR} $@ $?
+	${AR} cr $@ $?
 	${RANLIB} $@
 
 configure: configure.in ../../aclocal.m4

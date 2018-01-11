@@ -751,7 +751,34 @@ return PFoo(0);}
 EOF
     ac_link2='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest1.c conftest2.c $LIBS >conftest.out 2>&1'
     if eval $ac_link2 ; then
-        pac_cv_prog_c_weak_symbols="pragma weak"
+        # The gcc 3.4.x compiler accepts the pragma weak, but does not
+        # correctly implement it on systems where the loader doesn't 
+        # support weak symbols (e.g., cygwin).  This is a bug in gcc, but it
+        # it is one that *we* have to detect.
+        rm -f conftest*
+        cat >>conftest1.c <<EOF
+extern int PFoo(int);
+#pragma weak PFoo = Foo
+int Foo(int);
+int Foo(int a) { return a; }
+EOF
+    cat >>conftest2.c <<EOF
+extern int Foo(int);
+int PFoo(int a) { return a+1;}
+int main(int argc, char **argv) {
+return Foo(0);}
+EOF
+        if eval $ac_link2 ; then
+            pac_cv_prog_c_weak_symbols="pragma weak"
+        else 
+            echo "$ac_link2" >> config.log
+	    echo "Failed program was" >> config.log
+            cat conftest1.c >>config.log
+            cat conftest2.c >>config.log
+            if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+            has_pragma_weak=0
+            pragma_extra_message="pragma weak accepted but does not work (probably creates two non-weak entries)"
+        fi
     else
       echo "$ac_link2" >>config.log
       echo "Failed program was" >>config.log
@@ -962,6 +989,8 @@ dnl Not yet available: options when using other compilers.  However,
 dnl here are some possible choices
 dnl Solaris cc
 dnl  -fd -v -Xc
+dnl -Xc is strict ANSI (some version) and does not allow "long long", for 
+dnl example
 dnl IRIX
 dnl  -ansi -DEBUG:trap_uninitialized=ON:varargs_interface_check=ON:verbose_runtime=ON
 dnl
@@ -1172,6 +1201,7 @@ AC_CACHE_CHECK([whether global variables handled properly],
 ac_cv_prog_cc_globals_work,[
 AC_REQUIRE([AC_PROG_RANLIB])
 ac_cv_prog_cc_globals_work=no
+rm -f libconftest.a
 echo 'extern int a; int a;' > conftest1.c
 echo 'extern int a; int main( ){ return a; }' > conftest2.c
 if ${CC-cc} $CFLAGS -c conftest1.c >conftest.out 2>&1 ; then
@@ -1181,6 +1211,17 @@ if ${CC-cc} $CFLAGS -c conftest1.c >conftest.out 2>&1 ; then
 		# Success!  C works
 		ac_cv_prog_cc_globals_work=yes
 	    else
+		echo "Error linking program with uninitialized global" >&AC_FD_CC
+	        echo "Programs were:" >&AC_FD_CC
+		echo "conftest1.c:" >&AC_FD_CC
+                cat conftest1.c >&AC_FD_CC
+		echo "conftest2.c:" >&AC_FD_CC
+		cat conftest2.c >&AC_FD_CC
+		echo "and link line was:" >&AC_FD_CC
+		echo "${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a" >&AC_FD_CC
+		echo "with output:" >&AC_FD_CC
+		cat conftest.out >&AC_FD_CC
+
 	        # Failure!  Do we need -fno-common?
 	        ${CC-cc} $CFLAGS -fno-common -c conftest1.c >> conftest.out 2>&1
 		rm -f libconftest.a
@@ -1191,7 +1232,9 @@ if ${CC-cc} $CFLAGS -c conftest1.c >conftest.out 2>&1 ; then
 		    CFLAGS="$CFLAGS -fno-common"
                 elif test -n "$RANLIB" ; then 
 		    # Try again, with ranlib changed to ranlib -c
-		    ${RANLIB} -c libconftest.a
+                    # (send output to /dev/null incase this ranlib
+                    # doesn't know -c)
+		    ${RANLIB} -c libconftest.a >/dev/null 2>&1
 		    if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a >> conftest.out 2>&1 ; then
 			RANLIB="$RANLIB -c"
 	 	    #else
@@ -1450,6 +1493,13 @@ main()
   fprintf(f, "%d\n", sizeof(a) + sizeof(b));
   exit(0);
 }],AC_CV_NAME=`cat conftestval`,AC_CV_NAME=0,ifelse([$4],,,AC_CV_NAME=$4))])
+if test "X$AC_CV_NAME" = "X" ; then
+    # We have a problem.  The test returned a zero status, but no output,
+    # or we're cross-compiling (or think we are) and have no value for 
+    # this object
+    :
+fi
+rm -f conftestval
 AC_MSG_RESULT($AC_CV_NAME)
 dnl AC_DEFINE_UNQUOTED(AC_TYPE_NAME,$AC_CV_NAME)
 undefine([AC_TYPE_NAME])undefine([AC_CV_NAME])

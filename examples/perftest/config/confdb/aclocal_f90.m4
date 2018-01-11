@@ -10,7 +10,11 @@ define([AC_LANG], [FORTRAN90])dnl
 ac_ext=$pac_cv_f90_ext
 ac_compile='${F90-f90} -c $F90FLAGS conftest.$ac_ext 1>&AC_FD_CC'
 ac_link='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&AC_FD_CC'
-cross_compiling=$pac_cv_prog_f90_cross
+dnl cross_compiling no longer maintained by autoconf as part of the
+dnl AC_LANG changes.  If we set it here, a later AC_LANG may not 
+dnl restore it (in the case where one compiler claims to be a cross compiler
+dnl and another does not)
+dnl cross_compiling=$pac_cv_prog_f90_cross
 ])
 dnl
 dnl This is an addition for AC_TRY_COMPILE, but for f90.  If the current 
@@ -322,7 +326,7 @@ dnl f90/f95 - Miscellaneous compilers, including NAG, Solaris, IRIX
 # ifc - An older Intel compiler
 AC_DEFUN(PAC_PROG_F90,[
 if test -z "$F90" ; then
-    AC_CHECK_PROGS(F90,f90 xlf90 pgf90 ifort epcf90 f95 fort xlf95 lf95 pathf90 g95 fc ifc efc)
+    AC_CHECK_PROGS(F90,f90 xlf90 pgf90 ifort epcf90 f95 fort xlf95 lf95 pathf90 g95 gfortran ifc efc)
     test -z "$F90" && AC_MSG_WARN([no acceptable Fortran 90 compiler found in \$PATH])
 fi
 if test -n "$F90" ; then
@@ -382,7 +386,11 @@ define([AC_LANG], [FORTRAN90])dnl
 ac_ext=$pac_cv_f90_ext
 ac_compile='${F90-f90} -c $F90FLAGS conftest.$ac_ext 1>&AC_FD_CC'
 ac_link='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&AC_FD_CC'
-cross_compiling=$pac_cv_prog_f90_cross
+dnl cross_compiling no longer maintained by autoconf as part of the
+dnl AC_LANG changes.  If we set it here, a later AC_LANG may not 
+dnl restore it (in the case where one compiler claims to be a cross compiler
+dnl and another does not)
+dnl cross_compiling=$pac_cv_prog_f90_cross
 # Include a Fortran 90 construction to distinguish between Fortran 77 
 # and Fortran 90 compilers.
 cat >conftest.$ac_ext <<EOF
@@ -412,7 +420,11 @@ if test $pac_cv_prog_f90_works = no; then
 fi
 AC_MSG_CHECKING([whether the Fortran 90 compiler ($F90 $F90FLAGS $LDFLAGS) is a cross-compiler])
 AC_MSG_RESULT($pac_cv_prog_f90_cross)
-cross_compiling=$pac_cv_prog_f90_cross
+dnl cross_compiling no longer maintained by autoconf as part of the
+dnl AC_LANG changes.  If we set it here, a later AC_LANG may not 
+dnl restore it (in the case where one compiler claims to be a cross compiler
+dnl and another does not)
+dnl cross_compiling=$pac_cv_prog_f90_cross
 ])
 dnl
 dnl This version uses a Fortran program to link programs.
@@ -525,11 +537,11 @@ cat > conftest1.$ac_ext_f90 <<EOF
        program main
        integer a
        a = 1
-       call t1(a)
+       call t1_2(a)
        end
 EOF
 cat > conftest2.f <<EOF
-       subroutine t1(b)
+       subroutine t1_2(b)
        integer b
        b = b + 1
        end

@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*-
  * vim: ts=8 sts=4 sw=4 noexpandtab
- *   $Id: ad_pvfs2_common.h,v 1.11 2004/10/04 15:51:10 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

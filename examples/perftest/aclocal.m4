@@ -878,7 +878,34 @@ return PFoo(0);}
 EOF
     ac_link2='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest1.c conftest2.c $LIBS >conftest.out 2>&1'
     if eval $ac_link2 ; then
-        pac_cv_prog_c_weak_symbols="pragma weak"
+        # The gcc 3.4.x compiler accepts the pragma weak, but does not
+        # correctly implement it on systems where the loader doesn't 
+        # support weak symbols (e.g., cygwin).  This is a bug in gcc, but it
+        # it is one that *we* have to detect.
+        rm -f conftest*
+        cat >>conftest1.c <<EOF
+extern int PFoo(int);
+#pragma weak PFoo = Foo
+int Foo(int);
+int Foo(int a) { return a; }
+EOF
+    cat >>conftest2.c <<EOF
+extern int Foo(int);
+int PFoo(int a) { return a+1;}
+int main(int argc, char **argv) {
+return Foo(0);}
+EOF
+        if eval $ac_link2 ; then
+            pac_cv_prog_c_weak_symbols="pragma weak"
+        else 
+            echo "$ac_link2" >> config.log
+	    echo "Failed program was" >> config.log
+            cat conftest1.c >>config.log
+            cat conftest2.c >>config.log
+            if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+            has_pragma_weak=0
+            pragma_extra_message="pragma weak accepted but does not work (probably creates two non-weak entries)"
+        fi
     else
       echo "$ac_link2" >>config.log
       echo "Failed program was" >>config.log
@@ -1089,6 +1116,8 @@ dnl Not yet available: options when using other compilers.  However,
 dnl here are some possible choices
 dnl Solaris cc
 dnl  -fd -v -Xc
+dnl -Xc is strict ANSI (some version) and does not allow "long long", for 
+dnl example
 dnl IRIX
 dnl  -ansi -DEBUG:trap_uninitialized=ON:varargs_interface_check=ON:verbose_runtime=ON
 dnl
@@ -1299,6 +1328,7 @@ AC_CACHE_CHECK([whether global variables handled properly],
 ac_cv_prog_cc_globals_work,[
 AC_REQUIRE([AC_PROG_RANLIB])
 ac_cv_prog_cc_globals_work=no
+rm -f libconftest.a
 echo 'extern int a; int a;' > conftest1.c
 echo 'extern int a; int main( ){ return a; }' > conftest2.c
 if ${CC-cc} $CFLAGS -c conftest1.c >conftest.out 2>&1 ; then
@@ -1308,6 +1338,17 @@ if ${CC-cc} $CFLAGS -c conftest1.c >conftest.out 2>&1 ; then
 		# Success!  C works
 		ac_cv_prog_cc_globals_work=yes
 	    else
+		echo "Error linking program with uninitialized global" >&AC_FD_CC
+	        echo "Programs were:" >&AC_FD_CC
+		echo "conftest1.c:" >&AC_FD_CC
+                cat conftest1.c >&AC_FD_CC
+		echo "conftest2.c:" >&AC_FD_CC
+		cat conftest2.c >&AC_FD_CC
+		echo "and link line was:" >&AC_FD_CC
+		echo "${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a" >&AC_FD_CC
+		echo "with output:" >&AC_FD_CC
+		cat conftest.out >&AC_FD_CC
+
 	        # Failure!  Do we need -fno-common?
 	        ${CC-cc} $CFLAGS -fno-common -c conftest1.c >> conftest.out 2>&1
 		rm -f libconftest.a
@@ -1318,7 +1359,9 @@ if ${CC-cc} $CFLAGS -c conftest1.c >conftest.out 2>&1 ; then
 		    CFLAGS="$CFLAGS -fno-common"
                 elif test -n "$RANLIB" ; then 
 		    # Try again, with ranlib changed to ranlib -c
-		    ${RANLIB} -c libconftest.a
+                    # (send output to /dev/null incase this ranlib
+                    # doesn't know -c)
+		    ${RANLIB} -c libconftest.a >/dev/null 2>&1
 		    if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a >> conftest.out 2>&1 ; then
 			RANLIB="$RANLIB -c"
 	 	    #else
@@ -1577,6 +1620,13 @@ main()
   fprintf(f, "%d\n", sizeof(a) + sizeof(b));
   exit(0);
 }],AC_CV_NAME=`cat conftestval`,AC_CV_NAME=0,ifelse([$4],,,AC_CV_NAME=$4))])
+if test "X$AC_CV_NAME" = "X" ; then
+    # We have a problem.  The test returned a zero status, but no output,
+    # or we're cross-compiling (or think we are) and have no value for 
+    # this object
+    :
+fi
+rm -f conftestval
 AC_MSG_RESULT($AC_CV_NAME)
 dnl AC_DEFINE_UNQUOTED(AC_TYPE_NAME,$AC_CV_NAME)
 undefine([AC_TYPE_NAME])undefine([AC_CV_NAME])
@@ -2301,6 +2351,7 @@ dnl Adds the following command line options to configure
 dnl+ \-\-with\-mpich[=path] - MPICH.  'path' is the location of MPICH commands
 dnl. \-\-with\-ibmmpi - IBM MPI
 dnl. \-\-with\-lammpi[=path] - LAM/MPI
+dnl. \-\-with\-mpichnt - MPICH NT
 dnl- \-\-with\-sgimpi - SGI MPI
 dnl If no type is selected, and a default ("mpich", "ibmmpi", or "sgimpi")
 dnl is given, that type is used as if '--with-<default>' was given.
@@ -2311,6 +2362,13 @@ dnl Also sets 'MPIBOOT' and 'MPIUNBOOT'.  These are used to specify
 dnl programs that may need to be run before and after running MPI programs.
 dnl For example, 'MPIBOOT' may start demons necessary to run MPI programs and
 dnl 'MPIUNBOOT' will stop those demons.
+dnl 
+dnl The two forms of the compilers are to allow for tests of the compiler
+dnl when the MPI version of the compiler creates executables that cannot
+dnl be run on the local system (for example, the IBM SP, where executables
+dnl created with mpcc will not run locally, but executables created
+dnl with xlc may be used to discover properties of the compiler, such as
+dnl the size of data types).
 dnl
 dnl See also:
 dnl PAC_LANG_PUSH_COMPILERS, PAC_LIB_MPI
@@ -2347,6 +2405,11 @@ fi
 if test "$ac_mpi_type" = "unknown" -a "$pac_lib_mpi_is_building" = "yes" ; then
     ac_mpi_type="mpich"
 fi
+# Set defaults
+MPIRUN_NP="-np "
+MPIEXEC_N="-n "
+AC_SUBST(MPIRUN_NP)
+AC_SUBST(MPIEXEC_N)
 case $ac_mpi_type in
 	mpich)
         dnl 
@@ -2375,6 +2438,7 @@ case $ac_mpi_type in
             TESTCXX=${CXX-CC}
             CXX="$MPICXX"
 	    # We may want to restrict this to the path containing mpirun
+	    AC_PATH_PROG(MPIEXEC,mpiexec)
 	    AC_PATH_PROG(MPIRUN,mpirun)
 	    AC_PATH_PROG(MPIBOOT,mpichboot)
 	    AC_PATH_PROG(MPIUNBOOT,mpichstop)
@@ -2438,6 +2502,11 @@ case $ac_mpi_type in
 	;;
 
 	ibmmpi)
+	AC_CHECK_PROGS(MPCC,mpcc)
+	AC_CHECK_PROGS(MPXLF,mpxlf)
+	if test -z "$MPCC" -o -z "$MPXLF" ; then
+	    AC_MSG_ERROR([Could not find IBM MPI compilation scripts.  Either mpcc or mpxlf is missing])
+	fi
 	TESTCC=${CC-xlC}; TESTF77=${F77-xlf}; CC=mpcc; F77=mpxlf
 	# There is no mpxlf90, but the options langlvl and free can
 	# select the F90 version of xlf
@@ -2534,7 +2603,11 @@ define([AC_LANG], [FORTRAN90])dnl
 ac_ext=$pac_cv_f90_ext
 ac_compile='${F90-f90} -c $F90FLAGS conftest.$ac_ext 1>&AC_FD_CC'
 ac_link='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&AC_FD_CC'
-cross_compiling=$pac_cv_prog_f90_cross
+dnl cross_compiling no longer maintained by autoconf as part of the
+dnl AC_LANG changes.  If we set it here, a later AC_LANG may not 
+dnl restore it (in the case where one compiler claims to be a cross compiler
+dnl and another does not)
+dnl cross_compiling=$pac_cv_prog_f90_cross
 ])
 dnl
 dnl This is an addition for AC_TRY_COMPILE, but for f90.  If the current 
@@ -2846,7 +2919,7 @@ dnl f90/f95 - Miscellaneous compilers, including NAG, Solaris, IRIX
 # ifc - An older Intel compiler
 AC_DEFUN(PAC_PROG_F90,[
 if test -z "$F90" ; then
-    AC_CHECK_PROGS(F90,f90 xlf90 pgf90 ifort epcf90 f95 fort xlf95 lf95 pathf90 g95 fc ifc efc)
+    AC_CHECK_PROGS(F90,f90 xlf90 pgf90 ifort epcf90 f95 fort xlf95 lf95 pathf90 g95 gfortran ifc efc)
     test -z "$F90" && AC_MSG_WARN([no acceptable Fortran 90 compiler found in \$PATH])
 fi
 if test -n "$F90" ; then
@@ -2906,7 +2979,11 @@ define([AC_LANG], [FORTRAN90])dnl
 ac_ext=$pac_cv_f90_ext
 ac_compile='${F90-f90} -c $F90FLAGS conftest.$ac_ext 1>&AC_FD_CC'
 ac_link='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&AC_FD_CC'
-cross_compiling=$pac_cv_prog_f90_cross
+dnl cross_compiling no longer maintained by autoconf as part of the
+dnl AC_LANG changes.  If we set it here, a later AC_LANG may not 
+dnl restore it (in the case where one compiler claims to be a cross compiler
+dnl and another does not)
+dnl cross_compiling=$pac_cv_prog_f90_cross
 # Include a Fortran 90 construction to distinguish between Fortran 77 
 # and Fortran 90 compilers.
 cat >conftest.$ac_ext <<EOF
@@ -2936,7 +3013,11 @@ if test $pac_cv_prog_f90_works = no; then
 fi
 AC_MSG_CHECKING([whether the Fortran 90 compiler ($F90 $F90FLAGS $LDFLAGS) is a cross-compiler])
 AC_MSG_RESULT($pac_cv_prog_f90_cross)
-cross_compiling=$pac_cv_prog_f90_cross
+dnl cross_compiling no longer maintained by autoconf as part of the
+dnl AC_LANG changes.  If we set it here, a later AC_LANG may not 
+dnl restore it (in the case where one compiler claims to be a cross compiler
+dnl and another does not)
+dnl cross_compiling=$pac_cv_prog_f90_cross
 ])
 dnl
 dnl This version uses a Fortran program to link programs.
@@ -3049,11 +3130,11 @@ cat > conftest1.$ac_ext_f90 <<EOF
        program main
        integer a
        a = 1
-       call t1(a)
+       call t1_2(a)
        end
 EOF
 cat > conftest2.f <<EOF
-       subroutine t1(b)
+       subroutine t1_2(b)
        integer b
        b = b + 1
        end
@@ -3207,11 +3288,15 @@ case $pac_namecheck in
     *) AC_MSG_WARN([Unknown Fortran naming scheme]) ;;
 esac
 AC_SUBST(F77_NAME_MANGLE)
+# Get the standard call definition
+# FIXME: This should use F77_STDCALL, not STDCALL (non-conforming name)
 if test "X$pac_cv_test_stdcall" = "X" ; then
-        AC_DEFINE(STDCALL,,[Define calling convention])
+    F77_STDCALL=""
 else
-        AC_DEFINE(STDCALL,__stdcall,[Define calling convention])
+    F77_STDCALL="__stdcall"
 fi
+# 
+AC_DEFINE_UNQUOTED(STDCALL,$F77_STDCALL,[Define calling convention])
 ],[$1])
 ])
 dnl
@@ -3418,10 +3503,9 @@ AC_CACHE_CHECK([whether Fortran accepts ! for comments],
 pac_cv_prog_f77_exclaim_comments,[
 AC_LANG_SAVE
 AC_LANG_FORTRAN77
-AC_TRY_COMPILE(,[
-!      This is a comment
-],pac_cv_prog_f77_exclaim_comments="yes",
-pac_cv_prog_f77_exclaim_comments="no")
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,[!        This is a comment])],
+     pac_cv_prog_f77_exclaim_comments="yes",
+     pac_cv_prog_f77_exclaim_comments="no")
 AC_LANG_RESTORE
 ])
 if test "$pac_cv_prog_f77_exclaim_comments" = "yes" ; then
@@ -3806,6 +3890,13 @@ $flag"
 		continue
 	   fi
 	   ;;
+	7) # gfortran won't find getarg if it is marked as external 
+	   FXX_MODULE=""
+	   F77_GETARGDECL="intrinsic GETARG"
+	   F77_GETARG="call GETARG(i,s)"
+	   F77_IARGC="IARGC()"
+	   MSG="intrinsic GETARG and IARGC"
+	   ;;
         *) # exit from while loop
 	   FXX_MODULE=""
 	   F77_GETARGDECL=""
@@ -3937,8 +4028,11 @@ dnl Build library
     ac_fcompileforlib='${F77-f77} -c $FFLAGS conftest1.f 1>&AC_FD_CC'
     if AC_TRY_EVAL(ac_fcompileforlib) && test -s conftest1.o ; then
         if test ! -d conftest ; then mkdir conftest2 ; fi
-	dnl Use arcmd incase AR is defined as "ar cr"
-        AC_TRY_COMMAND(${ARCMD-"ar"} cr conftest2/libconftest.a conftest1.o)
+	# We have had some problems with "AR" set to "ar cr"; this is
+	# a user-error; AR should be set to just the program (plus
+	# any flags that affect the object file format, such as -X64 
+	# required for 64-bit objects in some versions of AIX).
+        AC_TRY_COMMAND(${AR-"ar"} cr conftest2/libconftest.a conftest1.o)
         AC_TRY_COMMAND(${RANLIB-ranlib} conftest2/libconftest.a)
         ac_fcompileldtest='${F77-f77} -o conftest $FFLAGS ${ldir}conftest2 conftest.f -lconftest $LDFLAGS 1>&AC_FD_CC'
         for ldir in "-L" "-Wl,-L," ; do
@@ -4060,11 +4154,13 @@ AC_CACHE_CHECK([whether Fortran has pointer declaration],
 pac_cv_prog_f77_has_pointer,[
 AC_LANG_SAVE
 AC_LANG_FORTRAN77
-AC_TRY_COMPILE(,[
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,[
         integer M
         pointer (MPTR,M)
         data MPTR/0/
-],pac_cv_prog_f77_has_pointer="yes",pac_cv_prog_f77_has_pointer="no")
+])],
+    pac_cv_prog_f77_has_pointer="yes",
+    pac_cv_prog_f77_has_pointer="no")
 AC_LANG_RESTORE
 ])
 if test "$pac_cv_prog_f77_has_pointer" = "yes" ; then
@@ -4244,9 +4340,14 @@ cat > conftest.f <<EOF
         end
 EOF
 if AC_TRY_EVAL(ac_compile); then
-    if ${F77} -o conftest conftest.o conftest1.o $LDFLAGS 2>&AC_FD_CC ; then
+    # We include $FFLAGS on the link line because this is 
+    # the way in which most of the configure tests run.  In particular,
+    # many users are used to using FFLAGS (and CFLAGS) to select
+    # different instruction sets, such as 64-bit with -xarch=v9 for 
+    # Solaris.
+    if ${F77} ${FFLAGS} -o conftest conftest.o conftest1.o $LDFLAGS 2>&AC_FD_CC ; then
 	AC_MSG_RESULT([Use Fortran to link programs])
-    elif ${CC} -o conftest conftest.o conftest1.o $LDFLAGS $FLIBS 2>&AC_FD_CC ; then
+    elif ${CC} ${CFLAGS} -o conftest conftest.o conftest1.o $LDFLAGS $FLIBS 2>&AC_FD_CC ; then
 	AC_MSG_RESULT([Use C with FLIBS to link programs])
 	F77LINKER="$CC"
         F77_LDFLAGS="$F77_LDFLAGS $FLIBS"
@@ -4298,10 +4399,9 @@ AC_CACHE_CHECK([whether Fortran supports new-style character declarations],
 pac_cv_prog_f77_new_char_decl,[
 AC_LANG_SAVE
 AC_LANG_FORTRAN77
-AC_TRY_COMPILE(,[
-        character (len=10) s
-],pac_cv_prog_f77_new_char_decl="yes",
-pac_cv_prog_f77_new_char_decl="no")
+AC_COMPILE_IFLESE([AC_LANG_PROGRAM(,[        character (len=10) s])],
+    pac_cv_prog_f77_new_char_decl="yes",
+    pac_cv_prog_f77_new_char_decl="no")
 AC_LANG_RESTORE
 ])
 if test "$pac_cv_prog_f77_new_char_decl" = "yes" ; then

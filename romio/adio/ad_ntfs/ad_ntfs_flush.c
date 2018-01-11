@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_ntfs_flush.c,v 1.9 2004/10/04 15:50:54 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -11,17 +10,21 @@
 void ADIOI_NTFS_Flush(ADIO_File fd, int *error_code)
 {
     int err;
-    static char myname[] = "ADIOI_GEN_FLUSH";
+    static char myname[] = "ADIOI_NTFS_Flush";
 
     err = (fd->access_mode & ADIO_RDONLY) ? TRUE :
 	FlushFileBuffers(fd->fd_sys);
 
-    if (err == FALSE) {
+    /* --BEGIN ERROR HANDLING-- */
+    if (err == FALSE)
+    {
+	err = GetLastError();
 	*error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
 					   myname, __LINE__, MPI_ERR_IO,
 					   "**io",
-					   "**io %s", strerror(errno));
+					   "**io %s", ADIOI_NTFS_Strerror(err));
 	return;
     }
-    else *error_code = MPI_SUCCESS;
+    /* --END ERROR HANDLING-- */
+    *error_code = MPI_SUCCESS;
 }

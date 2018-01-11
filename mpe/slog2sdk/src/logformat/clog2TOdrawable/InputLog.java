@@ -23,14 +23,202 @@ import logformat.clog2.*;
 public class InputLog extends logformat.clog2.InputLog
                       implements base.drawable.InputAPI
 {
+    private int                    next_avail_kindID;
+    private TopologyIterator       itr_topo;
+    private ContentIterator        itr_objdef_dobj;
+    private YCoordMapIterator      itr_ycoordmap;
+    private boolean                isFirstPeekForCategory;
+
+    public InputLog( String pathname )
+    {
+        super( pathname );
+        itr_topo         = null;
+        itr_ycoordmap    = null;
+        itr_objdef_dobj  = null;
+        this.initialize();
+    }
+
+    private void initialize()
+    {
+        itr_topo = new TopologyIterator( Kind.TOPOLOGY_ID );
+        // Initialize boolean variable, isFirstPeekForCategory
+        isFirstPeekForCategory = true;
+    }
+
+    public Kind peekNextKind()
+    {
+        switch ( next_avail_kindID ) {
+            case Kind.TOPOLOGY_ID :
+                if ( itr_topo.hasNext() )
+                    return Kind.TOPOLOGY;
+                itr_objdef_dobj  = new ContentIterator( Kind.PRIMITIVE_ID );
+                    return Kind.CATEGORY;  /* return the Arrow Category */
+            case Kind.CATEGORY_ID :
+            case Kind.PRIMITIVE_ID :
+            case Kind.COMPOSITE_ID :
+                if ( itr_objdef_dobj.hasNext() ) {
+                    switch ( next_avail_kindID ) {
+                        case Kind.CATEGORY_ID:
+                            return Kind.CATEGORY;
+                        case Kind.PRIMITIVE_ID:
+                            return Kind.PRIMITIVE;
+                        case Kind.COMPOSITE_ID:
+                            return Kind.COMPOSITE;
+                    }
+                }
+                itr_ycoordmap  = new YCoordMapIterator( Kind.YCOORDMAP_ID );
+            case Kind.YCOORDMAP_ID :
+                if ( itr_ycoordmap.hasNext() )
+                    return Kind.YCOORDMAP;
+            case Kind.EOF_ID:
+                return Kind.EOF;
+            default:
+                System.err.println( "InputLog.peekNextKind(): Error!\n"
+                                  + "\tUnknown Kind ID: " + next_avail_kindID );
+                break;
+        }
+        return null;
+    }
+
+    public Topology getNextTopology()
+    {
+        return (Topology) itr_topo.next();
+    }
+
+    // getNextCategory() is called after peekNextKind() returns Kind.CATEGORY
+    public Category getNextCategory()
+    {
+        if ( isFirstPeekForCategory ) {
+            isFirstPeekForCategory  = false;
+            return itr_objdef_dobj.getArrowCategory();
+        }
+        else
+            return (Category) itr_objdef_dobj.next();
+    }
+
+    // getNextYCoordMap() is called after peekNextKind() returns Kind.YCOORDMAP
+    public YCoordMap getNextYCoordMap()
+    {
+        return (YCoordMap) itr_ycoordmap.next();
+    }
+
+    // getNextPrimitive() is called after peekNextKind() returns Kind.PRIMITIVE
+    public Primitive getNextPrimitive()
+    {
+        return (Primitive) itr_objdef_dobj.next();
+    }
+
+    // getNextComposite() is called after peekNextKind() returns Kind.COMPOSITE
+    public Composite getNextComposite()
+    {
+        return (Composite) itr_objdef_dobj.next();
+    }
+
+    public void close()
+    {
+        super.close();
+    }
+
+    public long getNumberOfUnMatchedEvents()
+    {
+        return itr_objdef_dobj.getNumberOfUnMatchedEvents();
+    }
+
+    public long getTotalBytesRead()
+    {
+        return itr_objdef_dobj.getTotalBytesRead();
+    }
+
+
+
+
+    private class TopologyIterator implements Iterator
+    {
+        private int  num_topology_returned;
+
+        public TopologyIterator( int kindID )
+        {
+             InputLog.this.next_avail_kindID  = kindID;
+             num_topology_returned  = 0;
+        }
+
+        public boolean hasNext()
+        {
+             return num_topology_returned < 3;
+        }
+
+        public Object next()
+        {
+            switch ( num_topology_returned ) {
+                case 0:
+                    num_topology_returned = 1;
+                    return Topology.EVENT;
+                case 1:
+                    num_topology_returned = 2;
+                    return Topology.STATE;
+                case 2:
+                    num_topology_returned = 3;
+                    return Topology.ARROW;
+                default:
+                    System.err.println( "All Topologies have been returned." );
+            }
+            return null;
+        }
+
+        public void remove() {}
+    }
+
+
+    private class YCoordMapIterator implements Iterator
+    {
+        private Iterator      ycoordmap_itr;
+        private YCoordMap     next_ycoordmap;
+
+        public YCoordMapIterator( int kindID )
+        {
+            InputLog.this.next_avail_kindID  = kindID;
+
+            List  ycoordmaps;
+            ycoordmaps     = InputLog.this.itr_objdef_dobj.getYCoordMapList();
+            ycoordmap_itr  = ycoordmaps.iterator();
+            if ( ycoordmap_itr.hasNext() )
+                next_ycoordmap = (YCoordMap) ycoordmap_itr.next();
+            else
+                next_ycoordmap = null;
+        }
+
+        public boolean hasNext()
+        {
+            return  next_ycoordmap != null;
+        }
+
+        public Object next()
+        {
+            YCoordMap  loosen_ycoordmap  = next_ycoordmap;
+            if ( ycoordmap_itr.hasNext() )
+                next_ycoordmap = (YCoordMap) ycoordmap_itr.next();
+            else
+                next_ycoordmap = null;
+            return loosen_ycoordmap;
+        }
+
+        public void remove() {}
+    }
+
+
+
+private class ContentIterator implements Iterator
+{
     private MixedDataInputStream   blk_ins;
     private long                   total_bytesize;
-    private int                    rectype;
 
+    private CommLineIDMap          commlineIDmap;
     private Map                    evtdefs;
     private List                   topos;
     private ObjDef                 statedef;
     private ObjDef                 arrowdef;
+    private ObjDef                 eventdef;
+    private ObjDef                 dobjdef;
     private Primitive              drawobj;
 
     private RecHeader              header  ;
@@ -45,23 +233,24 @@ public class InputLog extends logformat.clog2.InputLog
     private RecSrc                 src     ;
     private RecTshift              tshift  ;
 
+    private Topo_Event             eventform;
     private Topo_Arrow             arrowform;
     private Topo_State             stateform;
     private ObjMethod              obj_fn;
     private Object[]               arglist;
 
-    private boolean                isFirstPeekForCategory;
-    private int                    num_topology_returned;
-
-    
-    public InputLog( String pathname )
+    public ContentIterator( int kindID )
     {
-        super( pathname );
+        // Map to hold (CommLineID's lineID, CommLineID) pairs. 
+        commlineIDmap  = new CommLineIDMap();
+        commlineIDmap.initialize();
+
+        InputLog.this.next_avail_kindID  = kindID;
 
         // Stack event matching object function list, evtdefs.
         evtdefs   = new HashMap();
 
-        // drawable's topology list, objdefs.
+        // drawable's topology list of objdefs, ie.statedef, arrowdef & eventdef
         topos = new ArrayList();
 
         ColorNameMap.initMapFromRGBtxt( "jumpshot.colors" );
@@ -83,13 +272,12 @@ public class InputLog extends logformat.clog2.InputLog
         evtdefs.put( arrowdef.final_evt,
                      arrowform.getFinalEventObjMethod() );
 
-        // Gather all the MPI and user defined undefined RecDefState's,
-        // i.e. CLOG_STATE
-        List defs = logformat.clog2.RecDefState.getMPIinitUndefinedStateDefs();
-        defs.addAll(
-             logformat.clog2.RecDefState.getUSERinitUndefinedStateDefs() );
+        // Gather all the known (i.e. MPI's, internal MPE/CLOG's) and
+        // user-defined undefined RecDefStates, i.e. CLOG_Rec_StateDef_t.
+        List defs = InputLog.super.getKnownUndefinedInitedStateDefs();
+        defs.addAll( InputLog.super.getUserUndefinedInitedStateDefs() );
 
-        // Convert them to the appropriate categories + corresponding 
+        // Convert them to the appropriate categories + corresponding
         // stack event matching object functions.
         Iterator itr = defs.iterator();
         while ( itr.hasNext() ) {
@@ -104,6 +292,9 @@ public class InputLog extends logformat.clog2.InputLog
             evtdefs.put( statedef.final_evt,
                          stateform.getFinalEventObjMethod() );
         }
+
+        // Add all the user-defined undefined RecDefEvents, CLOG_Rec_EventDef_t.
+        defs.addAll( InputLog.super.getUserUndefinedInitedEventDefs() );
 
         /*
         System.err.println( "\n\t evtdefs : " );
@@ -131,30 +322,18 @@ public class InputLog extends logformat.clog2.InputLog
         // Initialize the total_bytesize read from the CLOG stream
         total_bytesize = 0;
 
-        // Initialize Topology name return counter
-        num_topology_returned = 0;
-
-        // Initialize boolean variable, isFirstPeekForCategory
-        isFirstPeekForCategory = true;
-
         // Initialize the CLOG block-input-stream for peekNextKind()
-        blk_ins = super.getBlockStream();
+        blk_ins = InputLog.super.getBlockStream();
     }
 
-    public Kind peekNextKind()
+    public boolean hasNext()
     {
         ObjMethod       evt_pairing, obj_meth1, obj_meth2;
+        CommLineID      commlineID;
         int             bytes_read;
         int             bare_etype, cargo_etype, msg_etype;
+        int             rectype;
         int             idx;
-
-        // Return all the Topology names.
-        if ( num_topology_returned < 3 )
-            return Kind.TOPOLOGY;
-
-        // Return the Arrow Category which is non existed in CLOG file.
-        if ( isFirstPeekForCategory )
-            return Kind.CATEGORY;
 
         while ( blk_ins != null ) {
             rectype = logformat.clog2.Const.AllType.UNDEF;
@@ -162,7 +341,7 @@ public class InputLog extends logformat.clog2.InputLog
                   && rectype != logformat.clog2.Const.RecType.ENDLOG ) {
                 bytes_read = header.readFromDataStream( blk_ins );
                 total_bytesize += bytes_read;
-    
+
                 rectype = header.getRecType();
                 switch ( rectype ) {
                     case RecDefState.RECTYPE:
@@ -184,14 +363,13 @@ public class InputLog extends logformat.clog2.InputLog
                             evtdefs.put( statedef.final_evt,
                                          stateform.getFinalEventObjMethod() );
                         }
-                        else {  // i.e. obj_meth1 != null && obj_meth2 != null 
+                        else {  // i.e. obj_meth1 != null && obj_meth2 != null
                             if ( obj_meth1.obj == obj_meth2.obj ) {
                                 stateform = ( Topo_State ) obj_meth1.obj;
                                 statedef = ( ObjDef ) stateform.getCategory();
                                 statedef.setName( staterec.name );
                                 statedef.setColor(
-                                 ColorNameMap.getColorAlpha( staterec.color ) );
-                                statedef.setInfoKeys( staterec.format );
+                                 ColorNameMap.getColorAlpha( staterec.color ) );                                statedef.setInfoKeys( staterec.format );
                             }
                             else {
                                 System.err.println( "**** Error! "
@@ -199,13 +377,34 @@ public class InputLog extends logformat.clog2.InputLog
                                                   + obj_meth2.obj );
                             }
                         }
-
-                        return Kind.CATEGORY;
+                        dobjdef  = statedef;
+                        InputLog.this.next_avail_kindID = Kind.CATEGORY_ID;
+                        return true;
                     case RecDefEvent.RECTYPE:
-                        bytes_read
-                        = eventrec.skipBytesFromDataStream( blk_ins );
+                        bytes_read = eventrec.readFromDataStream( blk_ins );
                         total_bytesize += bytes_read;
-                        break;
+
+                        obj_meth1 = ( ObjMethod ) evtdefs.get( eventrec.etype );
+                        if ( obj_meth1 == null ) {
+                            eventform = new Topo_Event();
+                            idx  = ObjDef.getNextCategoryIndex();
+                            eventdef = new ObjDef( idx, eventrec,
+                                                   eventform, 1 );
+                            eventform.setCategory( eventdef );
+                            evtdefs.put( eventdef.start_evt,
+                                         eventform.getEventObjMethod() );
+                        }
+                        else { // i.e. obj_meth1 != null
+                            eventform = ( Topo_Event ) obj_meth1.obj;
+                            eventdef = ( ObjDef ) eventform.getCategory();
+                            eventdef.setName( eventrec.name );
+                            eventdef.setColor(
+                              ColorNameMap.getColorAlpha( eventrec.color ) );
+                            eventdef.setInfoKeys( eventrec.format );
+                        }
+                        dobjdef  = eventdef;
+                        InputLog.this.next_avail_kindID = Kind.CATEGORY_ID;
+                        return true;
                     case RecDefConst.RECTYPE:
                         bytes_read
                         = constrec.skipBytesFromDataStream( blk_ins );
@@ -217,8 +416,7 @@ public class InputLog extends logformat.clog2.InputLog
 
                         bare_etype = bare.etype.intValue();
                         if ( bare_etype != Const.AllType.UNDEF ) {
-                       	    evt_pairing = (ObjMethod) evtdefs.get( bare.etype );
-                            // arglist = new Object[] { header, bare=null };
+                            evt_pairing = (ObjMethod) evtdefs.get( bare.etype );                            // arglist = new Object[] { header, bare=null };
                             arglist[ 0 ] = header;
                             arglist[ 1 ] = null;
                             drawobj = null;
@@ -242,8 +440,12 @@ public class InputLog extends logformat.clog2.InputLog
                                 System.exit(1);
                             }
 
-                            if ( drawobj != null )
-                                return Kind.PRIMITIVE;
+                            if ( drawobj != null ) {
+                                commlineIDmap.setCommLineIDUsed( drawobj );
+                                InputLog.this.next_avail_kindID
+                                = Kind.PRIMITIVE_ID;
+                                return true;
+                            }
                         }
                         break;
                     case RecCargo.RECTYPE:
@@ -278,8 +480,12 @@ public class InputLog extends logformat.clog2.InputLog
                                 System.exit(1);
                             }
 
-                            if ( drawobj != null )
-                                return Kind.PRIMITIVE;
+                            if ( drawobj != null ) {
+                                commlineIDmap.setCommLineIDUsed( drawobj );
+                                InputLog.this.next_avail_kindID
+                                = Kind.PRIMITIVE_ID;
+                                return true;
+                            }
                         }
                         break;
                     case RecMsg.RECTYPE:
@@ -313,8 +519,12 @@ public class InputLog extends logformat.clog2.InputLog
                                 System.exit(1);
                             }
 
-                            if ( drawobj != null )
-                                return Kind.PRIMITIVE;
+                            if ( drawobj != null ) {
+                                commlineIDmap.setCommLineIDUsed( drawobj );
+                                InputLog.this.next_avail_kindID
+                                = Kind.PRIMITIVE_ID;
+                                return true;
+                            }
                         }
                         break;
                     case RecColl.RECTYPE:
@@ -322,8 +532,10 @@ public class InputLog extends logformat.clog2.InputLog
                         total_bytesize += bytes_read;
                         break;
                     case RecComm.RECTYPE:
-                        bytes_read = comm.skipBytesFromDataStream( blk_ins );
-                        total_bytesize += bytes_read; 
+                        bytes_read = comm.readFromDataStream( blk_ins );
+                        total_bytesize += bytes_read;
+                        commlineID = new CommLineID( comm );
+                        commlineIDmap.addCommLineID( commlineID );
                         break;
                     case RecSrc.RECTYPE:
                         bytes_read = src.skipBytesFromDataStream( blk_ins );
@@ -334,7 +546,7 @@ public class InputLog extends logformat.clog2.InputLog
                         total_bytesize += bytes_read;
                         break;
                     case logformat.clog2.Const.RecType.ENDBLOCK:
-                        blk_ins = super.getBlockStream();
+                        blk_ins = InputLog.super.getBlockStream();
                         // System.out.println( "End Of Block" );
                         break;
                     case logformat.clog2.Const.RecType.ENDLOG:
@@ -348,57 +560,34 @@ public class InputLog extends logformat.clog2.InputLog
             }   //  endof while ( rectype != (ENDBLOCK/ENDLOG) )
         }   //  endof while ( getBlockStream() )
 
-        return Kind.EOF;
+        return false;
     }
 
-    public Topology getNextTopology()
+    public Object next()
     {
-        switch ( num_topology_returned ) {
-            case 0:
-                num_topology_returned = 1;
-                return Topology.EVENT;
-            case 1:
-                num_topology_returned = 2;
-                return Topology.STATE;
-            case 2:
-                num_topology_returned = 3;
-                return Topology.ARROW;
+        switch (InputLog.this.next_avail_kindID) {
+            case Kind.CATEGORY_ID:
+                topos.add( dobjdef.getTopology() );
+                return dobjdef;
+            case Kind.PRIMITIVE_ID:
+                return drawobj;
             default:
-                System.err.println( "All Topology Names have been returned" );
-        }
-        return null;
-    }
-
-    // getNextCategory() is called after peekNextKind() returns Kind.CATEGORY
-    public Category getNextCategory()
-    {
-        if ( isFirstPeekForCategory ) {
-            isFirstPeekForCategory = false;
-            topos.add( arrowdef.getTopology() );
-            return arrowdef;
-        }
-        else {
-            topos.add( statedef.getTopology() );
-            return statedef;
+                return null;
         }
     }
 
-    // getNextPrimitive() is called after peekNextKind() returns Kind.PRIMITIVE
-    public Primitive getNextPrimitive()
+    public void remove() {}
+
+    public Category getArrowCategory()
     {
-        return drawobj;
+        topos.add( arrowdef.getTopology() );
+        return arrowdef;
     }
 
-    // getNextComposite() is called after peekNextKind() returns Kind.COMPOSITE
-    public Composite getNextComposite()
+    public List getYCoordMapList()
     {
-        return null;
-    }
-
-    // getNextYCoordMap() is called after peekNextKind() returns Kind.YCOORDMAP
-    public YCoordMap getNextYCoordMap()
-    {
-        return null;
+        commlineIDmap.finish();
+        return commlineIDmap.createYCoordMapList();
     }
 
     public long getTotalBytesRead()
@@ -406,18 +595,21 @@ public class InputLog extends logformat.clog2.InputLog
         return total_bytesize;
     }
 
-    public List getAllUsedTopos()
-    {
-        return topos;
-    }
-
     public long getNumberOfUnMatchedEvents()
     {
+        Topology  topo;
         int num_matched = 0;
         Iterator topos_itr = topos.iterator();
-        while ( topos_itr.hasNext() )
-            num_matched += ( (TwoEventsMatching) topos_itr.next() )
-                           .getPartialObjects().size();
+        while ( topos_itr.hasNext() ) {
+            topo = ( Topology ) topos_itr.next();
+            if ( topo instanceof TwoEventsMatching ) {
+                num_matched += ( (TwoEventsMatching) topo )
+                               .getPartialObjects().size();
+            }
+        }
         return num_matched;
     }
 }
+
+
+}   // End of InputLog class

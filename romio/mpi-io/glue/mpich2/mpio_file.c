@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: mpio_file.c,v 1.3 2004/10/28 22:40:33 rross Exp $    
  *
  *   Copyright (C) 2004 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

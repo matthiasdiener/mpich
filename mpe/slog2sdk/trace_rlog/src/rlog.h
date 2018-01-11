@@ -1,5 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
-/*  $Id: rlog.h,v 1.5 2005/02/23 23:31:06 ashton Exp $
+/*  $Id: rlog.h,v 1.6 2005/07/05 18:38:54 ashton Exp $
  *
  *  (C) 2001 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
@@ -176,7 +176,7 @@ typedef struct RLOG_Struct
 
 /* logging functions */
 RLOG_Struct* RLOG_InitLog(int rank, int size);
-int RLOG_FinishLog(RLOG_Struct* pRLOG, const char *filename);
+int RLOG_FinishLog(RLOG_Struct* pRLOG);
 /*void RLOG_LogEvent(RLOG_Struct *pRLOG, int event, double starttime, double endtime, int recursion);*/
 void RLOG_LogSend(RLOG_Struct* pRLOG, int dest, int tag, int size);
 void RLOG_LogRecv(RLOG_Struct* pRLOG, int src, int tag, int size);

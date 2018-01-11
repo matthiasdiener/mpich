@@ -263,7 +263,8 @@ EOF
 	if [ -s "$arg" ] ; then
 	    ext=`expr "$arg" : '.*\(\..*\)'`
 	    if [ "$ext" = ".f" -o "$ext" = ".F" -o "$ext" = ".f90" -o \
-		 "$ext" = ".for" -o "$ext" = ".FOR" -o "$ext" = ".F90" ] ; then
+		 "$ext" = ".for" -o "$ext" = ".FOR" -o "$ext" = ".F90" -o \
+		 "$ext" = ".fpp" -o "$ext" = ".FPP" ] ; then
 	        DoCompile=1
 	        compileargs="$compileargs $arg"
 	        fname=`basename $arg $ext`
@@ -341,6 +342,10 @@ else
     F90INC=${F90INC}${includedir}
 fi
 status=0
+if [ $HasDashC = 1 -a $DoCompile = 0 -a $DoLink = 0 ] ; then
+    # Specified -c but no files.  Try to force -c behavior from compiler
+    DoCompile=1
+fi
 if [ $DoCompile = 1 -o $show_compile = 1 ] ; then 
     if [ $HasDashC != 1 ] ; then
         compileargs="-c $compileargs"

@@ -194,7 +194,7 @@ AC_ARG_VAR([F90FLAGS], [Fortran 90 compiler flags])dnl
 _AC_ARG_VAR_LDFLAGS()dnl
 AC_CHECK_TOOLS(F90,
       [m4_default([$1],
-                  [f95 f90 pgf90 ifort epcf90 fort xlf95 xlf90 xlf lf95 pathf90 g95 fc ifc efc])])
+                  [f95 f90 pgf90 ifort epcf90 fort xlf95 xlf90 xlf lf95 pathf90 g95 gfortran ifc efc])])
 
 # Once we find the compiler, confirm the extension 
 AC_MSG_CHECKING([that $ac_ext works as the extension for Fortran 90 program])
@@ -1056,11 +1056,11 @@ cat > conftest1.$ac_ext_f90 <<EOF
        program main
        integer a
        a = 1
-       call t1(a)
+       call t1_2(a)
        end
 EOF
 cat > conftest2.f <<EOF
-       subroutine t1(b)
+       subroutine t1_2(b)
        integer b
        b = b + 1
        end
@@ -1129,7 +1129,11 @@ dnl define([AC_LANG], [FORTRAN90])dnl
 ac_ext=$pac_cv_f90_ext
 ac_compile='${F90-f90} -c $F90FLAGS conftest.$ac_ext 1>&AC_FD_CC'
 ac_link='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&AC_FD_CC'
-cross_compiling=$pac_cv_prog_f90_cross
+dnl cross_compiling no longer maintained by autoconf as part of the
+dnl AC_LANG changes.  If we set it here, a later AC_LANG may not 
+dnl restore it (in the case where one compiler claims to be a cross compiler
+dnl and another does not)
+dnl cross_compiling=$pac_cv_prog_f90_cross
 # Include a Fortran 90 construction to distinguish between Fortran 77 
 # and Fortran 90 compilers.
 cat >conftest.$ac_ext <<EOF
@@ -1159,7 +1163,11 @@ if test "$pac_cv_prog_f90_works" = no; then
 fi
 AC_MSG_CHECKING([whether the Fortran 90 compiler ($F90 $F90FLAGS $LDFLAGS) is a cross-compiler])
 AC_MSG_RESULT($pac_cv_prog_f90_cross)
-cross_compiling=$pac_cv_prog_f90_cross
+dnl cross_compiling no longer maintained by autoconf as part of the
+dnl AC_LANG changes.  If we set it here, a later AC_LANG may not 
+dnl restore it (in the case where one compiler claims to be a cross compiler
+dnl and another does not)
+dnl cross_compiling=$pac_cv_prog_f90_cross
 ])
 dnl
 dnl PAC_F90_AND_F77_COMPATIBLE([action-if-true],[action-if-false])

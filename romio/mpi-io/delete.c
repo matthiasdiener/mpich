@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: delete.c,v 1.21 2005/02/18 00:39:04 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -47,6 +46,8 @@ int MPI_File_delete(char *filename, MPI_Info info)
     HPMP_IO_START(fl_xmpi, BLKMPIFILEDELETE, TRDTBLOCK,
                 MPI_FILE_NULL, MPI_DATATYPE_NULL, -1);
 #endif /* MPI_hpux */
+
+    MPIU_UNREFERENCED_ARG(info);
 
     MPID_CS_ENTER();
     MPIR_Nest_incr();

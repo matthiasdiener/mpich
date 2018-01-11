@@ -39,11 +39,11 @@ profile: ${libbuild_dir}/libp@MPILIBNAME@.a
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
 default_all: ${MPI_OBJECTS}
-	${AR} ${libbuild_dir}/lib@MPILIBNAME@.a $?
+	${AR} cr ${libbuild_dir}/lib@MPILIBNAME@.a $?
 profile_all: ${MPI_OBJECTS}
-	${AR} ${libbuild_dir}/libp@MPILIBNAME@.a $?
+	${AR} cr ${libbuild_dir}/libp@MPILIBNAME@.a $?
 default_conly: ${MPI_COBJECTS}
-	${AR} ${libbuild_dir}/lib@MPILIBNAME@.a $?
+	${AR} cr ${libbuild_dir}/lib@MPILIBNAME@.a $?
 	${RANLIB} ${libbuild_dir}/lib@MPILIBNAME@.a
 
 source_names:
@@ -53,11 +53,11 @@ source_names:
 	${CC} ${DEFS} ${INCLUDES} ${CFLAGS} ${OPTFLAGSC} ${OPTFLAGS} -c $<
 
 ${libbuild_dir}/lib@MPILIBNAME@.a: ${MPI_OBJECTS} 
-	${AR} $@ $?
+	${AR} cr $@ $?
 	${RANLIB} $@
 
 ${libbuild_dir}/libp@MPILIBNAME@.a: ${MPI_OBJECTS} 
-	${AR} $@ $?
+	${AR} cr $@ $?
 	${RANLIB} $@
 
 # We need to clean the srcdir of any .o files because they can confuse the

@@ -54,17 +54,17 @@ profile: ${libbuild_dir}/libp${MPILIBNAME}.a
 # is the same, but for the profile library
 default_all: default_objs 
 default_objs: ${MPI_OBJECTS}
-	${AR} ${libbuild_dir}/lib${MPILIBNAME}.a $?
+	${AR} cr ${libbuild_dir}/lib${MPILIBNAME}.a $?
 default_conly: ${MPI_COBJECTS}
-	${AR} ${libbuild_dir}/lib${MPILIBNAME}.a $?
+	${AR} cr ${libbuild_dir}/lib${MPILIBNAME}.a $?
 	${RANLIB} ${libbuild_dir}/lib${MPILIBNAME}.a
 profile_all: ${MPI_OBJECTS}
-	${AR} ${libbuild_dir}/libp${MPILIBNAME}.a $?
+	${AR} cr ${libbuild_dir}/libp${MPILIBNAME}.a $?
 
 ${MPI_OBJECTS} :  ${MPI_INCLUDE}
 
 mpe_debug_objs: @MPE_MPI_EXT_O@
-	${AR} ${libbuild_dir}/lib${MPILIBNAME}.a @MPE_MPI_EXT_O@
+	${AR} cr ${libbuild_dir}/lib${MPILIBNAME}.a @MPE_MPI_EXT_O@
 	${RANLIB} ${libbuild_dir}/lib${MPILIBNAME}.a
 
 source_names:
@@ -148,11 +148,11 @@ nerrmsg.o: ${srcdir}/nerrmsg.c mpierrstrings.h
 	${CC} ${DEFS} ${CFLAGS} @NLS_DEFS@ -c ${srcdir}/nerrmsg.c
 
 ${libbuild_dir}/lib${MPILIBNAME}.a: ${MPI_OBJECTS}
-	${AR} $@ $?
+	${AR} cr $@ $?
 	${RANLIB} $@
 
 ${libbuild_dir}/libp${MPILIBNAME}.a: ${MPI_OBJECTS}
-	${AR} $@ $?
+	${AR} cr $@ $?
 	${RANLIB} $@
 tstmsg:
 	${CC} ${CFLAGS} -DTEST_MSGS @NLS_DEFS@ -c nerrmsg.c

@@ -1889,6 +1889,71 @@ test -n "$verbose" && echo "	setting INSTALL_DATA to $INSTALL_DATA"
 # we've identified the proper compiler etc, we'll try this 
 # ranlib below; if it fails, we'll replace it with ':'
 #
+# Extract the first word of "ar", so it can be a program name with args.
+set dummy ar; ac_word=$2
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for $ac_word""... $ac_c"
+else
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
+fi
+ac_prog_where=""
+if test -n "$AR"; then
+  ac_pg_AR="$AR" # Let the user override the test.
+else
+  ac_first_char=`expr "ar" : "\(.\)"`
+  # Use ac_word instead of ar in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
+       ac_pg_AR=""
+       ac_prog_where=ar
+  else
+      IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
+      for ac_dir in $PATH; do
+        test -z "$ac_dir" && ac_dir=.
+        if test -f $ac_dir/$ac_word; then
+          ac_pg_AR=""
+          ac_prog_where=$ac_dir/$ac_word
+          break
+        fi
+      done
+      IFS="$ac_save_ifs"
+  fi
+fi;AR="$ac_pg_AR"
+if test -n "$ac_prog_where" ; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""found $ac_prog_where ($AR)"
+else
+echo "$ac_t""found $ac_prog_where ($AR)" 1>&1
+fi
+  
+else
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+
 if test -z "$RANLIB" ; then
     if test -z "$RANLIB"; then
   # Extract the first word of `ranlib', so it can be a program name with args.
@@ -1912,8 +1977,8 @@ fi
 # Problem: Using the ar_local option can cause low performance; not using it
 # can cause failures.  Should we try to get disk space, and pick default 
 # based on a guess about the available space?
-AR="ar cr$AR_LOCAL"
-ARCMD="ar"
+# Back when systems had small disks, we let AR be "ar crl" where "l" 
+# was defined as "local" (don't use /tmp for intermediate files)
 # CPRP is the version of cp that accepts -r and -p arguments.
 # See CRAY below
 CPRP="cp"
@@ -5389,9 +5454,9 @@ fi
 if test -z "$USERAR" ; then
 case $CARCH in 
    intelnx|paragon|i860) AR="ar860 crl" ; ARNAME="ar860" ; ARARGS="crl" ;;
-   cm5) AR="ar cr" ; ARNAME="ar" ; ARARGS="cr"
+   cm5) AR="ar" ; ARNAME="ar" ; ARARGS="cr"
    ;;
-   meiko|solaris) AR="ar cr" ; ARNAME="ar" ; ARARGS="cr" 
+   meiko|solaris) AR="ar" ; ARNAME="ar" ; ARARGS="cr" 
    ;;
    ncube) AR="nar cr" ; ARNAME="nar" ; ARARGS="cr" ;;
    *)
@@ -5478,9 +5543,8 @@ if test -z "$ARNAME" ; then
     ARNAME="ar"
 fi
 if test -z "$AR" ; then 
-    AR="$ARNAME cr$ARLOCAL" ; ARARGS="cr$ARLOCAL" 
+    AR="$ARNAME" ; ARARGS="cr$ARLOCAL" 
 fi
-
 
 #
 # Check to see if the compilers work at all (you'd be surprised!)
@@ -13692,7 +13756,7 @@ echo "$ac_t""no" 1>&1
 fi
     print_error "Error in creating test object for ranlib!"
 else
-    arcmd='$AR foo.a conftest.o >conftest.out 2>&1'
+    arcmd='$AR cr foo.a conftest.o >conftest.out 2>&1'
     eval $arcmd
     ranlibtest='$RANLIB foo.a >>conftest.out 2>&1'
     if eval $ranlibtest ; then
@@ -13794,7 +13858,7 @@ else
 fi
 compileonly='${CC-cc} -c $CFLAGS conftest1.c >conftest.out 2>&1'
 if eval $compileonly ; then 
-    arcmd='$AR libfoo.a conftest1.o >conftest.out 2>&1'
+    arcmd='$AR cr libfoo.a conftest1.o >conftest.out 2>&1'
     eval $arcmd
     ranlibtest='$RANLIB libfoo.a >>conftest.out 2>&1'
     if eval $ranlibtest ; then
@@ -13831,6 +13895,9 @@ fi
 # path)
 # Remove any arguments from the string AR
 ARTEST=`expr "$AR" : "\(.*\) "`
+if test -z "$ARTEST" ; then 
+    ARTEST=$AR
+fi
 # Extract the first word of "$ARTEST", so it can be a program name with args.
 set dummy $ARTEST; ac_word=$2
 if test -z "$ac_echo_n" ; then
@@ -16164,9 +16231,9 @@ if test -z "$ac_link" ; then
     ac_link='${CC-cc} $CFLAGS $CPPFLAGS $LDFLAGS conftest.c -o conftest $LIBS 1>&2 2>&2'
 fi
 if eval $ac_compile ; then
-    # Create the library (AR includes the cr options)
+    # Create the library
     rm -f lib$MPILIBNAME.a
-    ${AR} lib$MPILIBNAME.a conftest.o
+    ${AR} cr lib$MPILIBNAME.a conftest.o
     ${RANLIB} lib$MPILIBNAME.a
     rm -f conftest*
     # create the main program
@@ -16844,7 +16911,6 @@ binbuild_dir='$binbuild_dir'
 includebuild_dir='$includebuild_dir'
 sysconfdir='$sysconfdir'
 GXXTRIAL='$GXXTRIAL'
-ARNAME='$ARNAME'
 HAVE_NO_C_CONST='$HAVE_NO_C_CONST'
 EXEEXT='$EXEEXT'
 CPP='$CPP'
@@ -16981,7 +17047,7 @@ for file in .. ${CONFIG_FILES}; do if test "x$file" != x..; then
   echo creating $file
   rm -f $file
   echo "# Generated automatically from `echo $file|sed 's|.*/||'`.in by configure." > $file
-cat $top_srcdir/${file}.in | sed -e "
+  sed -e "
 $prsub
 $extrasub
 s%@CASE_SENSITIVE@%$CASE_SENSITIVE%g
@@ -17015,7 +17081,6 @@ s%@binbuild_dir@%$binbuild_dir%g
 s%@includebuild_dir@%$includebuild_dir%g
 s%@sysconfdir@%$sysconfdir%g
 s%@GXXTRIAL@%$GXXTRIAL%g
-s%@ARNAME@%$ARNAME%g
 s%@HAVE_NO_C_CONST@%$HAVE_NO_C_CONST%g
 s%@EXEEXT@%$EXEEXT%g
 s%@CPP@%$CPP%g
@@ -17023,7 +17088,7 @@ s%@SHARED_LIB_SEARCH_PATH_LEADER@%$SHARED_LIB_SEARCH_PATH_LEADER%g
 s%@CXXENABLE@%$CXXENABLE%g
 s%@CC_SHARED_OPT@%$CC_SHARED_OPT%g
 s%@CC_SHARED_OPT_FOR_TV@%$CC_SHARED_OPT_FOR_TV%g
-s%@CXXFLAGS_FOR_SHARED@%$CXXFLAGS_FOR_SHARED%g" | sed -e "
+s%@CXXFLAGS_FOR_SHARED@%$CXXFLAGS_FOR_SHARED%g
 s%@SHAREDKIND@%$SHAREDKIND%g
 s%@SHAREDKIND_FOR_TV@%$SHAREDKIND_FOR_TV%g
 s%@MPI_STATUS_SIZE@%$MPI_STATUS_SIZE%g
@@ -17065,7 +17130,7 @@ s%@CPRP@%$CPRP%g
 s%@DEFAULT_MACHINE@%$DEFAULT_MACHINE%g
 s%@DEVCFLAGS@%$DEVCFLAGS%g
 s%@DEVCFILES@%$DEVCFILES%g
-s%@DEVOFILES@%$DEVOFILES%g" | sed -e "
+s%@DEVOFILES@%$DEVOFILES%g
 s%@DEV_DEFS@%$DEV_DEFS%g
 s%@DEVICE@%$DEVICE%g
 s%@DEVICE_MAKE_INCLUDE@%$DEVICE_MAKE_INCLUDE%g
@@ -17107,7 +17172,7 @@ s%@NLS_DEFS@%$NLS_DEFS%g
 s%@NEWTESTDIRS@%$NEWTESTDIRS%g
 s%@OPTFLAGS@%$OPTFLAGS%g
 s%@OPTFLAGSC@%$OPTFLAGSC%g
-s%@OPTFLAGSF@%$OPTFLAGSF%g" | sed -e "
+s%@OPTFLAGSF@%$OPTFLAGSF%g
 s%@P4_ARCH@%$P4_ARCH%g
 s%@P4_DIR@%$P4_DIR%g
 s%@RHS_COMMAND@%$RHS_COMMAND%g
@@ -17126,7 +17191,7 @@ s%@hasMPE@%$hasMPE%g
 s%@MPE_OPTS@%$MPE_OPTS%g
 s%@MPI_INTRA@%$MPI_INTRA%g
 s%@LIBS@%$LIBS%g
-s%@DEFS@%-DHAVE_CONFIG_H%" >> $file
+s%@DEFS@%-DHAVE_CONFIG_H%" $top_srcdir/${file}.in >> $file
 fi; done
 
 CONFIG_HEADERS=${CONFIG_HEADERS-"mpichconf.h"}

@@ -319,8 +319,19 @@ do
 
      -with-mpich=*|--with-mpich=*)
         mpichpath=`echo A$arg | sed 's/A-*with-mpich=//'`
-	MPIRUNARGS='"-mvhome"'
-	MPIRUNMVBACK="-mvback"
+	# Let the user provide the top-level path for MPICH as well
+	# as the bin directory
+	if test ! -x "$mpichpath/mpicc" -a -x "$mpichpath/bin/mpicc" ; then
+	    mpichpath="$mpichpath/mpicc"
+	fi
+	# Check for mpiexec; if found, use it, otherwise, set MPICH-1 specific
+	# mpirun options
+        if test -x "$mpichpath/mpiexec" ; then
+	    MPIRUN="$mpichpath/mpiexec"
+        elif test -z "$MPIRUN" ; then
+	    MPIRUNARGS='"-mvhome"'
+	    MPIRUNMVBACK="-mvback"
+        fi
 	MPIINCDIR=$mpichpath/../include
 	;;
      -mpi2)
@@ -681,9 +692,6 @@ fi
 #
 #
 MPE_CFLAGS="$MPE_CFLAGS $DEFS"
-if test -n "$MPILIBNAME" ; then
-    LIB_LIST="$LIB_LIST -l$MPILIBNAME"
-fi
 
 #
 # We can check for MPICH by trying to compile a program that uses MPICH_NAME
@@ -705,16 +713,25 @@ int main(int argc, char **argv)
  return 0;
 }
 EOF
-    if $MPICC -o conftest conftest.c $LIB_LIST >conftest.log 2>&1 ; then
-	:
+    if test -n "$MPILIBNAME" ; then
+        TLIB_LIST="$LIB_LIST -l$MPILIBNAME"
+    fi
+    if $MPICC -o conftest conftest.c $LIB_LIST > conftest.log 2>&1 ; then
+        :
+    elif $MPICC -o conftest conftest.c $TLIB_LIST >conftest.log 2>&1 ; then
+        # Accept the -l$MPILIBNAME in the liblist
+        LIB_LIST=$TLIB_LIST
     else
-        # Try adding -lmpi
+        # Try adding -lmpi instead of $MPILIBNAME
         rm conftest.log
         if $MPICC -o conftest conftest.c $LIB_LIST -lmpi >conftest.log 2>&1 ; then
             LIB_LIST="$LIB_LIST -lmpi"
         else
 	    AC_MSG_WARN([Could not compile/link a program containing MPI_Init])
-            if test -s conftest.log ; then cat conftest.out ; fi
+	    echo "Test program was:"
+	    cat conftest.c
+	    echo "Compiler output was:"
+            if test -s conftest.log ; then cat conftest.log ; fi
         fi
     fi
     rm -f conftest*

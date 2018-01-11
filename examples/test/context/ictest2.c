@@ -1,3 +1,4 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* ictest2.c 
    This is like ictest.c, but it creates communictors that are valid only
    at the "leaders"; other members of the local communicator are NOT
@@ -14,6 +15,8 @@
 #include "mpi.h"
 #include <stdio.h>
 #include "test.h"
+
+int verbose = 0;
 
 int main( int argc, char **argv )
 {
@@ -41,14 +44,14 @@ int main( int argc, char **argv )
     if (key == 1) {
 	/* Odd rank communicator discarded */
 	MPI_Comm_free( &evenComm );
-	}
-
+    }
+    
     /* Create the odd communicator */
     MPI_Comm_split ( MPI_COMM_WORLD, key, rank, &oddComm );
     if (key == 0) {
 	/* Even rank communicator discarded */
 	MPI_Comm_free( &oddComm );
-	}
+    }
 
     /* Create the odd + 0 communicator */
     if (rank == 0) key = 1;
@@ -56,58 +59,75 @@ int main( int argc, char **argv )
     if (key == 0) {
 	/* Even rank communicator discarded */
 	MPI_Comm_free( &remComm );
-	}
+    }
     else {
 	MPI_Comm_rank( remComm, &lrank );
-	printf( "[%d] lrank in remComm is %d (color = %d, key=%d)\n", 
-	        rank, lrank, rank, key );
-	remLeader = (lrank == 0) ? 1 : 0;
+	if (verbose) {
+	    printf( "[%d] lrank in remComm is %d (color = %d, key=%d)\n", 
+		    rank, lrank, rank, key );
 	}
+	remLeader = (lrank == 0) ? 1 : 0;
+    }
     /* Now, choose the local and remote communicators */
     if (rank % 2) {
 	/* Odd */
 	myComm  = oddComm;
-	}
+    }
     else {
 	myComm  = evenComm;
-	}
+    }
 
     /* Check that the leader is who we think he is */
     MPI_Comm_rank( myComm, &lrank );
-    printf( "[%d] local rank is %d\n", rank, lrank );
+    if (verbose) {
+	printf( "[%d] local rank is %d\n", rank, lrank );
+    }
     if (rank == 0) {
 	int trank;
 	MPI_Comm_rank( myComm, &trank );
 	if (trank != 0) {
 	    printf( "[%d] Comm split improperly ordered group (myComm)\n",
 		    rank );
-	    }
+	    fflush(stdout);
+	    errors++;
+	}
 	MPI_Comm_rank( remComm, &trank );
 	if (trank != 0) {
 	    printf( "[%d] Comm split improperly ordered group (remComm)\n",
 		    rank );
-	    }
+	    fflush(stdout);
+	    errors++;
 	}
-    fflush(stdout);
+    }
     /* Perform the intercomm create and test it */
     /* local leader is first process in local_comm, i.e., has rank 0 */
     /* remote leader is process 0 (if odd) or 1 (if even) in remComm */
     MPI_Intercomm_create (myComm, 0, remComm, remLeader, 1, &myFirstComm );
 /* temp */
-    printf( "[%d] through intercom create\n", rank );
-    fflush( stdout );
+    if (verbose) {
+	printf( "[%d] through intercom create\n", rank );
+	fflush( stdout );
+    }
     MPI_Barrier( MPI_COMM_WORLD );
-    printf( "[%d] through barrier at end of intercom create\n", rank );
+    if (verbose) {
+	printf( "[%d] through barrier at end of intercom create\n", rank );
+	fflush( stdout );
+    }
 /* temp */
 
     /* Try to dup this communicator */
     MPI_Comm_dup ( myFirstComm, &mySecondComm );
 
 /* temp */
-    printf( "[%d] through comm dup\n", rank );
-    fflush( stdout );
+    if (verbose) {
+	printf( "[%d] through comm dup\n", rank );
+	fflush( stdout );
+    }
     MPI_Barrier( MPI_COMM_WORLD );
-    printf( "[%d] through barrier at end of comm dup\n", rank );
+    if (verbose) {
+	printf( "[%d] through barrier at end of comm dup\n", rank );
+	fflush( stdout );
+    }
 /* temp */
 
     /* Each member shares data with his "partner".  Note that process 0 in
@@ -116,9 +136,11 @@ int main( int argc, char **argv )
     MPI_Comm_rank( mySecondComm, &lrank );
     MPI_Comm_remote_size( mySecondComm, &rsize );
 
-    printf( "[%d] lrank in secondcomm is %d and remote size is %d\n", 
-	   rank, lrank, rsize );
-    fflush( stdout );
+    if (verbose) {
+	printf( "[%d] lrank in secondcomm is %d and remote size is %d\n", 
+		rank, lrank, rsize );
+	fflush( stdout );
+    }
 
     /* Send key * size + rank in communicator */
     if (lrank < rsize) {
@@ -126,9 +148,11 @@ int main( int argc, char **argv )
       key     = rank % 2;
       myval   = key * size + lrank;
       hisval  = -1;
-      printf( "[%d] exchanging %d with %d in intercomm\n", 
-	     rank, myval, lrank );
-      fflush( stdout );
+      if (verbose) {
+	  printf( "[%d] exchanging %d with %d in intercomm\n", 
+		  rank, myval, lrank );
+	  fflush( stdout );
+      }
       MPI_Sendrecv (&myval,  1, MPI_INT, lrank, 0,
                     &hisval, 1, MPI_INT, lrank, 0, mySecondComm, &status);
       if (hisval != (lrank + (!key)*size)) {
@@ -138,8 +162,10 @@ int main( int argc, char **argv )
 	  }
       }
     
-    if (errors)
-      printf("[%d] Failed!\n",rank);
+    if (errors) {
+	printf("[%d] Failed!\n",rank);
+	fflush(stdout);
+    }
 
     /* Key is 1 for oddComm, 0 for evenComm (note both contain 0 in WORLD) */
     MPI_Intercomm_merge ( mySecondComm, key, &merge1 );
@@ -155,7 +181,9 @@ int main( int argc, char **argv )
 
     /* Free communicators */
     MPI_Comm_free( &myComm );
-    MPI_Comm_free( &remComm );
+    /* remComm may have been freed above */
+    if (remComm != MPI_COMM_NULL) 
+	MPI_Comm_free( &remComm );
     MPI_Comm_free( &myFirstComm );
     MPI_Comm_free( &mySecondComm );
     MPI_Comm_free( &merge1 );
@@ -163,8 +191,9 @@ int main( int argc, char **argv )
     MPI_Comm_free( &merge3 );
     MPI_Comm_free( &merge4 );
   }
-  else 
-    printf("[%d] Failed - at least 2 nodes must be used\n",rank);
+  else {
+      printf("[%d] Failed - at least 2 nodes must be used\n",rank);
+  }
 
   MPI_Barrier( MPI_COMM_WORLD );
   MPI_Allreduce( &errors, &sum_errors, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
@@ -172,20 +201,9 @@ int main( int argc, char **argv )
       printf( "%d errors on process %d\n", errors, rank );
       }
   else if (rank == 0) {
-      printf( "Completed successfully\n" );
+      printf( " No Errors\n" );
       }
-  /* Finalize and end! */
 
   MPI_Finalize();
   return 0;
 }
-
-
-
-
-
-
-
-
-
-

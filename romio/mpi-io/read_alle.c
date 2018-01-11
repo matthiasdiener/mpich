@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: read_alle.c,v 1.20 2005/02/18 00:39:09 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -56,6 +55,8 @@ int MPIOI_File_read_all_end(MPI_File mpi_fh,
 {
     int error_code;
     ADIO_File fh;
+
+    MPIU_UNREFERENCED_ARG(buf);
 
     MPID_CS_ENTER();
     MPIR_Nest_incr();

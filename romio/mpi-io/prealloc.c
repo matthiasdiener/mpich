@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: prealloc.c,v 1.19 2005/02/18 00:39:08 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -36,7 +35,7 @@ Input Parameters:
 int MPI_File_preallocate(MPI_File mpi_fh, MPI_Offset size)
 {
     ADIO_Fcntl_t *fcntl_struct;
-    int error_code, mynod;
+    int error_code=0, mynod=0;
     ADIO_File fh;
     static char myname[] = "MPI_FILE_PREALLOCATE";
     MPI_Offset tmp_sz;

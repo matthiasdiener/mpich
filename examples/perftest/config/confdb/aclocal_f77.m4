@@ -124,11 +124,15 @@ case $pac_namecheck in
     *) AC_MSG_WARN([Unknown Fortran naming scheme]) ;;
 esac
 AC_SUBST(F77_NAME_MANGLE)
+# Get the standard call definition
+# FIXME: This should use F77_STDCALL, not STDCALL (non-conforming name)
 if test "X$pac_cv_test_stdcall" = "X" ; then
-        AC_DEFINE(STDCALL,,[Define calling convention])
+    F77_STDCALL=""
 else
-        AC_DEFINE(STDCALL,__stdcall,[Define calling convention])
+    F77_STDCALL="__stdcall"
 fi
+# 
+AC_DEFINE_UNQUOTED(STDCALL,$F77_STDCALL,[Define calling convention])
 ],[$1])
 ])
 dnl
@@ -335,10 +339,9 @@ AC_CACHE_CHECK([whether Fortran accepts ! for comments],
 pac_cv_prog_f77_exclaim_comments,[
 AC_LANG_SAVE
 AC_LANG_FORTRAN77
-AC_TRY_COMPILE(,[
-!      This is a comment
-],pac_cv_prog_f77_exclaim_comments="yes",
-pac_cv_prog_f77_exclaim_comments="no")
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,[!        This is a comment])],
+     pac_cv_prog_f77_exclaim_comments="yes",
+     pac_cv_prog_f77_exclaim_comments="no")
 AC_LANG_RESTORE
 ])
 if test "$pac_cv_prog_f77_exclaim_comments" = "yes" ; then
@@ -723,6 +726,13 @@ $flag"
 		continue
 	   fi
 	   ;;
+	7) # gfortran won't find getarg if it is marked as external 
+	   FXX_MODULE=""
+	   F77_GETARGDECL="intrinsic GETARG"
+	   F77_GETARG="call GETARG(i,s)"
+	   F77_IARGC="IARGC()"
+	   MSG="intrinsic GETARG and IARGC"
+	   ;;
         *) # exit from while loop
 	   FXX_MODULE=""
 	   F77_GETARGDECL=""
@@ -854,8 +864,11 @@ dnl Build library
     ac_fcompileforlib='${F77-f77} -c $FFLAGS conftest1.f 1>&AC_FD_CC'
     if AC_TRY_EVAL(ac_fcompileforlib) && test -s conftest1.o ; then
         if test ! -d conftest ; then mkdir conftest2 ; fi
-	dnl Use arcmd incase AR is defined as "ar cr"
-        AC_TRY_COMMAND(${ARCMD-"ar"} cr conftest2/libconftest.a conftest1.o)
+	# We have had some problems with "AR" set to "ar cr"; this is
+	# a user-error; AR should be set to just the program (plus
+	# any flags that affect the object file format, such as -X64 
+	# required for 64-bit objects in some versions of AIX).
+        AC_TRY_COMMAND(${AR-"ar"} cr conftest2/libconftest.a conftest1.o)
         AC_TRY_COMMAND(${RANLIB-ranlib} conftest2/libconftest.a)
         ac_fcompileldtest='${F77-f77} -o conftest $FFLAGS ${ldir}conftest2 conftest.f -lconftest $LDFLAGS 1>&AC_FD_CC'
         for ldir in "-L" "-Wl,-L," ; do
@@ -977,11 +990,13 @@ AC_CACHE_CHECK([whether Fortran has pointer declaration],
 pac_cv_prog_f77_has_pointer,[
 AC_LANG_SAVE
 AC_LANG_FORTRAN77
-AC_TRY_COMPILE(,[
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,[
         integer M
         pointer (MPTR,M)
         data MPTR/0/
-],pac_cv_prog_f77_has_pointer="yes",pac_cv_prog_f77_has_pointer="no")
+])],
+    pac_cv_prog_f77_has_pointer="yes",
+    pac_cv_prog_f77_has_pointer="no")
 AC_LANG_RESTORE
 ])
 if test "$pac_cv_prog_f77_has_pointer" = "yes" ; then
@@ -1161,9 +1176,14 @@ cat > conftest.f <<EOF
         end
 EOF
 if AC_TRY_EVAL(ac_compile); then
-    if ${F77} -o conftest conftest.o conftest1.o $LDFLAGS 2>&AC_FD_CC ; then
+    # We include $FFLAGS on the link line because this is 
+    # the way in which most of the configure tests run.  In particular,
+    # many users are used to using FFLAGS (and CFLAGS) to select
+    # different instruction sets, such as 64-bit with -xarch=v9 for 
+    # Solaris.
+    if ${F77} ${FFLAGS} -o conftest conftest.o conftest1.o $LDFLAGS 2>&AC_FD_CC ; then
 	AC_MSG_RESULT([Use Fortran to link programs])
-    elif ${CC} -o conftest conftest.o conftest1.o $LDFLAGS $FLIBS 2>&AC_FD_CC ; then
+    elif ${CC} ${CFLAGS} -o conftest conftest.o conftest1.o $LDFLAGS $FLIBS 2>&AC_FD_CC ; then
 	AC_MSG_RESULT([Use C with FLIBS to link programs])
 	F77LINKER="$CC"
         F77_LDFLAGS="$F77_LDFLAGS $FLIBS"
@@ -1215,10 +1235,9 @@ AC_CACHE_CHECK([whether Fortran supports new-style character declarations],
 pac_cv_prog_f77_new_char_decl,[
 AC_LANG_SAVE
 AC_LANG_FORTRAN77
-AC_TRY_COMPILE(,[
-        character (len=10) s
-],pac_cv_prog_f77_new_char_decl="yes",
-pac_cv_prog_f77_new_char_decl="no")
+AC_COMPILE_IFLESE([AC_LANG_PROGRAM(,[        character (len=10) s])],
+    pac_cv_prog_f77_new_char_decl="yes",
+    pac_cv_prog_f77_new_char_decl="no")
 AC_LANG_RESTORE
 ])
 if test "$pac_cv_prog_f77_new_char_decl" = "yes" ; then

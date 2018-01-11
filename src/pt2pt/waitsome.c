@@ -1,5 +1,5 @@
 /*
- *  $Id: waitsome.c,v 1.14 2003/01/09 20:48:42 gropp Exp $
+ *  $Id: waitsome.c,v 1.15 2005/08/15 17:20:47 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -82,8 +82,8 @@ int MPI_Waitsome(
        The same is true for waitall.c .
      */
     nnull = 0;
+    MPID_DeviceCheck( MPID_NOTBLOCKING );
     while (nfound == 0 && nnull < incount ) {
-	MPID_DeviceCheck( MPID_NOTBLOCKING );
 	nnull = 0;
 	for (i = 0; i < incount; i++) {
 	    /* Skip over null handles.  We need this for handles generated
@@ -219,6 +219,8 @@ int MPI_Waitsome(
 		break;
 	    }
 	}
+	if (nfound == 0 && nnull < incount) 
+	    MPID_DeviceCheck( MPID_BLOCKING );
     }
     if (nnull == incount)
 	*outcount = MPI_UNDEFINED;

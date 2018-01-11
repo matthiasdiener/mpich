@@ -942,13 +942,7 @@ if [ -z "$noman" -a -z "$libonly" ] ; then
     MkDir $htmldir
     if [ -s $top_srcdir/www/index.html ] ; then
         # Some development versions don't include the www directories
-        # Be careful of the top-level directory.  Some users may
-        # pick a top-level (e.g., /usr/doc/www) directory, and we
-	# do not want to replace index.html in that directory.  
-	# This is a little more awkward for people who install
-	# into a separate directory, but it is more important not
-	# to overwrite a general index.html file
-        CopyFile $top_srcdir/www/index.html $htmldir/mpich.html
+        CopyFile $top_srcdir/www/index.html $htmldir
         # No files in www5 (was ADI routines)
         for dir1 in www1 www3 www4 ; do
            MkDir $htmldir/$dir1

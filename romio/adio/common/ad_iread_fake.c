@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_iread_fake.c,v 1.1 2005/05/23 23:26:22 rross Exp $    
  *
  *   Copyright (C) 2004 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

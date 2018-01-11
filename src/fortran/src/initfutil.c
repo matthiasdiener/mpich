@@ -1,5 +1,5 @@
 /*
- *  $Id: initfutil.c,v 1.19.4.2 2005/05/31 12:47:59 gropp Exp $
+ *  $Id: initfutil.c,v 1.19 2004/07/26 18:26:13 gropp Exp $
  *
  *  (C) 2000 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
@@ -80,9 +80,6 @@ void mpir_init_flog_ ( MPI_Fint *, MPI_Fint * );
 #endif
 
 void mpir_init_fsize_ ( float *, float *, double *, double * );
-#if !defined(SIZEOF_F77_REAL) || !defined(SIZEOF_F77_DOUBLE_PRECISION)
-#error 'SIZEOF_F77_REAL and/or DOUBLE_PRECISION not defined'
-#endif
 #if SIZEOF_F77_REAL == 0 || SIZEOF_F77_DOUBLE_PRECISION == 0 
 void mpir_get_fsize_ (  void );
 #endif

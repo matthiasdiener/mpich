@@ -10,27 +10,6 @@ print_error()
 }
 
 #
-# mpidi_mkdir_p()
-#
-# Simulate "mkdir -p" since it is not available everywhere.  Portions
-# of this code were taken from mpich2/confdb/aclocal.m4.
-#
-mpidi_mkdir_p()
-{(
-    saveIFS="${IFS}"
-    IFS="/"
-    tmp_curdir=""
-    for tmp_subdir in $1 ; do
-        tmp_curdir="${tmp_curdir}${tmp_subdir}"
-        if test -n "${tmp_curdir}" -a ! -d "${tmp_curdir}" ; then
-	    mkdir "${tmp_curdir}"
-	fi
-        tmp_curdir="${tmp_curdir}/"
-    done
-    IFS="${saveIFS}"
-)}
-
-#
 # Rename the MPICH libraries for G2 over vMPI-MPICH
 #
 MPILIBNAME="mpichg2"
@@ -158,7 +137,6 @@ EOF
     esac
 done
 
-mpidi_mkdir_p mpid/${DEVICE}
 if test $globus_packaged -eq 0 ; then
     if test -z "$GLOBUSDIR" ; then
     	if test -x $GLOBUS_INSTALL_PATH/bin/globus-development-path ; then
@@ -271,7 +249,6 @@ fi
 #
 # We need to supply some header files to do the VMPI name transformations
 #
-mpidi_mkdir_p ${includebuild_dir}
 if test $VMPI -ne 0 ; then
     HAVE_MPID_DEFS_H=1
     cp ${top_srcdir}/mpid/$DEVICE/mpid_defs.h ${includebuild_dir}
@@ -285,14 +262,12 @@ if test $F77_SED -ne 0 ; then
     # doing sed replacement causes some problems with F90 modules.
     # we could probably fix this, but not before the first release. -- (Brian)
     NO_F90=1
+    HAVE_MPID_FORTDEFS_H=1
+    export HAVE_MPID_FORTDEFS_H
+    cp ${top_srcdir}/mpid/$DEVICE/mpid_fortdefs.h \
+    	${builddir}/src/fortran/include
+    cp ${top_srcdir}/mpid/$DEVICE/mpid_fortdefs.h ${includebuild_dir}
 fi
-mpidi_mkdir_p ${builddir}/src/fortran/include
-HAVE_MPID_FORTDEFS_H=1
-export HAVE_MPID_FORTDEFS_H
-sed -e "s!@F77_SED@!${F77_SED}!" ${top_srcdir}/mpid/$DEVICE/mpid_fortdefs.h.in \
-    >${builddir}/src/fortran/include/mpid_fortdefs.h
-sed -e "s!@F77_SED@!${F77_SED}!" ${top_srcdir}/mpid/$DEVICE/mpid_fortdefs.h.in \
-    >${includebuild_dir}/mpid_fortdefs.h
 
 #
 # Get the libraries, etc (there's also a globuslibpath and globuslib)
@@ -471,15 +446,15 @@ get_globus_setting globus_threads_enabled globus_threads_enabled
 #
 if test "$ARCH" = "rs6000" -a $VMPI -ne 0 ; then
     if test "$globus_threads_enabled" = "yes" ; then    
-    	GLOBUS_TEST_CLINKER=xlc_r
-    	GLOBUS_TEST_CXXLINKER=xlC_r
-    	GLOBUS_TEST_F77LINKER=xlf_r
-    	GLOBUS_TEST_F90LINKER=xlf90_r
+    	GLOBUS_TEST_CLINKER="xlc_r`echo $GLOBUS_CLINKER | sed 's/[^ ]*//'`"
+    	GLOBUS_TEST_CXXLINKER="xlC_r`echo $GLOBUS_CXXLINKER | sed 's/[^ ]*//'`"
+    	GLOBUS_TEST_F77LINKER="xlf_r`echo $GLOBUS_F77LINKER | sed 's/[^ ]*//'`"
+    	GLOBUS_TEST_F90LINKER="xlf90_r`echo $GLOBUS_F90LINKER | sed 's/[^ ]*//'`"
     else
-    	GLOBUS_TEST_CLINKER=xlc
-    	GLOBUS_TEST_CXXLINKER=xlC
-    	GLOBUS_TEST_F77LINKER=xlf
-    	GLOBUS_TEST_F90LINKER=xlf90
+    	GLOBUS_TEST_CLINKER="xlc`echo $GLOBUS_CLINKER | sed 's/[^ ]*//'`"
+    	GLOBUS_TEST_CXXLINKER="xlC`echo $GLOBUS_CXXLINKER | sed 's/[^ ]*//'`"
+    	GLOBUS_TEST_F77LINKER="xlf`echo $GLOBUS_F77LINKER | sed 's/[^ ]*//'`"
+    	GLOBUS_TEST_F90LINKER="xlf90`echo $GLOBUS_F90LINKER | sed 's/[^ ]*//'`"
     fi
 fi
 
@@ -495,7 +470,6 @@ export MPICH_GLOBUS2_CONFIGURE_ACTIVE
 #
 # Create compiler scripts
 #
-mpidi_mkdir_p ${binbuild_dir}
 sed -e "s!@GC@!$GLOBUS_CC!" \
     -e "s!@GCFLAGS@!$GLOBUS_CFLAGS!" \
     -e "s!@GL@!$GLOBUS_CLINKER!" \
@@ -554,6 +528,58 @@ if test $NO_F90 -eq 0 ; then
     	${top_srcdir}/mpid/$DEVICE/mpich-globus2-fc.in \
     	>${binbuild_dir}/mpich-globus2-f90
     chmod +x ${binbuild_dir}/mpich-globus2-f90
+fi
+
+#
+# The AIX "ar" command require the option "-X 64" when building 64-bit
+# libraries.  MPICH doesn't seem to do this detection for us, so we
+# must do it here.
+#
+if test "$ARCH" = "rs6000" -a $VMPI -ne 0 ; then
+    cat >conftest.c <<EOF
+int foo(int bar);
+
+int foo(int bar)
+{
+    return bar;
+}
+EOF
+    if test -z "$ac_echo_test" ; then
+	echo $ac_n "checking if ar requires -X64""... $ac_c"
+    else
+	echo $ac_n "determing if ar requires -X64""... $ac_c" 1>&1
+    fi
+    errmsg=""
+    if $CC -c conftest.c >>conftest.out 2>&1; then
+	test_XAR=`echo ${AR} | sed 's/ / -X64 /'`
+	if $AR conftest.a conftest.o >>conftest.out 2>&1 ; then
+	    result=no
+	elif $test_XAR conftest.a conftest.o >>conftest.out 2>&1 ; then
+	    result=yes
+	    AR=$test_XAR
+	    export AR
+	    ARCMD="ar -X64"
+	    export ARCMD
+	    ARNAME="ar -X64"
+	    export ARNAME
+	else
+	    result="all trials failed"
+	    errmsg="unable to build a library with ar"
+	fi
+    else
+	result="compile failure"
+	errmsg="unable to compile a simple program"
+    fi
+    if test -z "$ac_echo_test" ; then
+	echo "$ac_t""$result"
+    else
+	echo "$ac_t""$result" 1>&1
+    fi
+    if test -n "$errmsg" ; then
+	echo "ERROR: $errmsg"
+	exit 1
+    fi
+    rm -f conftest*
 fi
 
 #
@@ -670,7 +696,7 @@ if test "$vmpi" = "yes" ; then
     #       it may be larger.
     #
     get_vendor_size MPI_Aint
-    MPI_AINT_SIZE = $VENDOR_MPI_AINT_SIZE
+    MPI_AINT_SIZE=$VENDOR_MPI_AINT_SIZE
 
     #
     # If the vendor's MPI doesn't support MPI_LONG_LONG or MPI_LONG_LONG_INT

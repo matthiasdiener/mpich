@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.5 2004/08/11 15:30:28 gropp Exp $
+#  $Id: Makefile.in,v 1.6 2005/10/17 16:25:13 gropp Exp $
 #
 #  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -38,7 +38,7 @@ local: ../$(DEVICE)/libmpid.a
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
 default_all: $(MPI_OBJECTS)
-	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a $?
+	$(AR) cr ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a $?
 profile_all: 
 
 clean:
@@ -48,10 +48,10 @@ clean:
 	$(CC) $(CFLAGS) $(BASEOPT) -c $*.c $(MPI_PROFILE)
 
 ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
-	$(AR) $@ $?
+	$(AR) cr $@ $?
 	$(RANLIB) $@
 
 ../$(DEVICE)/libmpid.a: $(MPI_OBJECTS) 
-	$(AR) $@ $?
+	$(AR) cr $@ $?
 	$(RANLIB) $@
 

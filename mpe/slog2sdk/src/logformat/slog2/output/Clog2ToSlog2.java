@@ -10,6 +10,7 @@
 package logformat.slog2.output;
 
 import java.util.*;
+import java.io.File;
 
 import base.drawable.*;
 import logformat.clog2TOdrawable.*;
@@ -28,10 +29,12 @@ public class Clog2ToSlog2
         logformat.clog2TOdrawable.InputLog  dobj_ins;
         logformat.slog2.output.OutputLog    slog_outs;
         Kind                                next_kind;
+        Topology                            topo;
         CategoryMap                         objdefs;   // Drawable def'n
         Map                                 shadefs;   // Shadow   def'n
         Category                            objdef;
-        Topology                            topo;
+        LineIDMapList                       lineIDmaps;
+        LineIDMap                           lineIDmap;
         Primitive                           prime_obj;
         Composite                           cmplx_obj;
         long                                Nobjs;
@@ -52,6 +55,7 @@ public class Clog2ToSlog2
 
         objdefs       = new CategoryMap();
         shadefs       = new HashMap();
+        lineIDmaps    = new LineIDMapList();
         Nobjs         = 0;
 
         /* */    Date time1 = new Date();
@@ -77,6 +81,11 @@ public class Clog2ToSlog2
                 objdefs.put( new Integer( objdef.getIndex() ), objdef );
                 shadefs.put( topo, objdef );
                 // System.out.println( "TOPOLOGY: " + topo );
+            }
+            else if ( next_kind == Kind.YCOORDMAP ) {
+                lineIDmap = new LineIDMap( dobj_ins.getNextYCoordMap() );
+                lineIDmaps.add( lineIDmap );
+                // System.out.println( "YCOORDMAP: = " + lineIDmap );
             }
             else if ( next_kind == Kind.CATEGORY ) {
                 objdef = dobj_ins.getNextCategory();
@@ -118,17 +127,32 @@ public class Clog2ToSlog2
                                   + "from peekNextKind() = " + next_kind );
             }
         }   // Endof while ( dobj_ins.peekNextKind() )
-        treetrunk.flushToFile();
 
-        objdefs.removeUnusedCategories();
-        slog_outs.writeCategoryMap( objdefs );
+        // Check if flushToFile is successful,
+        // i.e. if treetrunk contains drawables.
+        if ( treetrunk.flushToFile() ) {
+            objdefs.removeUnusedCategories();
+            slog_outs.writeCategoryMap( objdefs );
 
-        LineIDMapList lineIDmaps = new LineIDMapList();
-        lineIDmaps.add( treetrunk.getIdentityLineIDMap() );
-        slog_outs.writeLineIDMapList( lineIDmaps );
+            lineIDmaps.add( treetrunk.getIdentityLineIDMap() );
+            slog_outs.writeLineIDMapList( lineIDmaps );
 
-        slog_outs.close();
-        dobj_ins.close();
+            slog_outs.close();
+            dobj_ins.close();
+        }
+        else {
+            slog_outs.close();
+            dobj_ins.close();
+            System.err.println( "Error: No drawable is found in the trace "
+                              + in_filename );
+            File slog_file  = new File( out_filename );
+            if ( slog_file.isFile() && slog_file.exists() ) {
+                System.err.println( "       Removing the remnants of the file "
+                                  + out_filename + " ....." );
+                slog_file.delete();
+            }
+            System.exit( 1 );
+        }
 
         /* */    Date time3 = new Date();
         System.out.println( "\n" );

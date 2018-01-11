@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: deletef.c,v 1.15 2003/07/08 22:25:42 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -136,7 +135,7 @@ FORTRAN_API void FORT_CALL mpi_file_delete_(char *filename FORT_MIXED_LEN(str_le
     real_len = i + 1;
 
     newfname = (char *) ADIOI_Malloc((real_len+1)*sizeof(char));
-    strncpy(newfname, filename, real_len);
+    ADIOI_Strncpy(newfname, filename, real_len);
     newfname[real_len] = '\0';
 
     *ierr = MPI_File_delete(newfname, info_c);

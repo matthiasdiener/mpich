@@ -249,7 +249,8 @@ EOF
 	if [ -s "$arg" ] ; then
 	    ext=`expr "$arg" : '.*\(\..*\)'`
 	    if [ "$ext" = ".f" -o "$ext" = ".F" -o \
-		 "$ext" = ".for" -o "$ext" = ".FOR" ] ; then
+		 "$ext" = ".for" -o "$ext" = ".FOR" -o \
+		 "$ext" = ".fpp" -o "$ext" = ".FPP" ] ; then
 	        DoCompile=1
 	        compileargs="$compileargs $arg"
 	        fname=`basename $arg $ext`
@@ -285,7 +286,7 @@ if [ -z "$FINC" ] ; then
     # -r is true if we can read the file, which is what we want
     if [ ! -r mpif.h ] ; then
         #echo "Adding a symbolic link for mpif.h"
-	trap "$Show rm -f mpif.h" 0
+	trap "$Show rm mpif.h" 0
 	$Show ln -s $f77includedir/mpif.h mpif.h
         added_link=1
     fi
@@ -293,6 +294,10 @@ else
     FINC="$FINC$f77includedir"
 fi
 status=0
+if [ $HasDashC = 1 -a $DoCompile = 0 -a $DoLink = 0 ] ; then
+    # Specified -c but no files.  Try to force -c behavior from compiler
+    DoCompile=1
+fi
 if [ $DoCompile = 1 -o $show_compile = 1 ] ; then 
     if [ $HasDashC != 1 ] ; then
         compileargs="-c $compileargs"

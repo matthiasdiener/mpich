@@ -9,25 +9,41 @@
 
 void ADIOI_NTFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *error_code)
 {
-    DWORD dwTemp;
+    DWORD err;
+    LONG dwTemp;
     static char myname[] = "ADIOI_NTFS_FCNTL";
 
-    switch(flag) {
+    switch(flag)
+    {
     case ADIO_FCNTL_GET_FSIZE:
 	fcntl_struct->fsize = SetFilePointer(fd->fd_sys, 0, 0, FILE_END);
 	if (fd->fp_sys_posn != -1) 
 	{
-		dwTemp = DWORDHIGH(fd->fp_sys_posn);
-		SetFilePointer(fd->fd_sys, DWORDLOW(fd->fp_sys_posn), &dwTemp, FILE_BEGIN);
+	    dwTemp = DWORDHIGH(fd->fp_sys_posn);
+	    if (SetFilePointer(fd->fd_sys, DWORDLOW(fd->fp_sys_posn), &dwTemp, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
+	    {
+		err = GetLastError();
+		if (err != NO_ERROR)
+		{
+		    *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+			myname, __LINE__, MPI_ERR_IO,
+			"**io", "**io %s", ADIOI_NTFS_Strerror(err));
+		    return;
+		}
+	    }
 	}
-	if (fcntl_struct->fsize == -1) {
+	/* --BEGIN ERROR HANDLING-- */
+	if (fcntl_struct->fsize == INVALID_SET_FILE_POINTER)
+	{
+	    dwTemp = GetLastError();
 	    *error_code = MPIO_Err_create_code(MPI_SUCCESS,
 					       MPIR_ERR_RECOVERABLE, myname,
 					       __LINE__, MPI_ERR_IO, "**io",
-					       "**io %s", strerror(errno));
+					       "**io %s", ADIOI_NTFS_Strerror(dwTemp));
 	    return;
 	}
-	else *error_code = MPI_SUCCESS;
+	/* --END ERROR HANDLING-- */
+	*error_code = MPI_SUCCESS;
 	break;
 
     case ADIO_FCNTL_SET_DISKSPACE:
@@ -35,10 +51,12 @@ void ADIOI_NTFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *e
 	break;
 
     case ADIO_FCNTL_SET_ATOMICITY:
-	/* fd->atomicity = (fcntl_struct->atomicity == 0) ? 0 : 1; */
-	/* *error_code = MPI_SUCCESS; */
+	fd->atomicity = (fcntl_struct->atomicity == 0) ? 0 : 1;
+	*error_code = MPI_SUCCESS;
+	/*
 	fd->atomicity = 0;
 	*error_code = MPI_ERR_UNSUPPORTED_OPERATION;
+	*/
 	break;
 
     default:

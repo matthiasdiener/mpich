@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_xfs_write.c,v 1.16 2005/05/23 23:27:47 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -11,6 +10,8 @@
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
+
+/* style: allow:free:2 sig:0 */
 
 static void ADIOI_XFS_Aligned_Mem_File_Write(ADIO_File fd, void *buf, int len, 
 					     ADIO_Offset offset, int *err);

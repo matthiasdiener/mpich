@@ -1564,6 +1564,7 @@ AC_PROG_INSTALL
 # we've identified the proper compiler etc, we'll try this 
 # ranlib below; if it fails, we'll replace it with ':'
 #
+PAC_PROGRAM_CHECK(AR,ar)
 if test -z "$RANLIB" ; then
     AC_PROG_RANLIB
 fi
@@ -1571,8 +1572,8 @@ fi
 # Problem: Using the ar_local option can cause low performance; not using it
 # can cause failures.  Should we try to get disk space, and pick default 
 # based on a guess about the available space?
-AR="ar cr$AR_LOCAL"
-ARCMD="ar"
+# Back when systems had small disks, we let AR be "ar crl" where "l" 
+# was defined as "local" (don't use /tmp for intermediate files)
 # CPRP is the version of cp that accepts -r and -p arguments.
 # See CRAY below
 CPRP="cp"
@@ -1993,7 +1994,6 @@ if test "$HAS_F77" = "0" ; then
 fi
 #
 PAC_GET_AR($CARCH)
-AC_SUBST(ARNAME)
 #
 # Check to see if the compilers work at all (you'd be surprised!)
 AC_COMPILE_CHECK([whether compiler works],,,compile_check=yes,compile_check=no)
@@ -3210,6 +3210,9 @@ fi
 # path)
 # Remove any arguments from the string AR
 ARTEST=`expr "$AR" : "\(.*\) "`
+if test -z "$ARTEST" ; then 
+    ARTEST=$AR
+fi
 PAC_PROGRAM_CHECK(ARFOUND,$ARTEST,1,,ARLOC)
 if test -z "$ARLOC" ; then 
     # Check for /usr/ccs/bin/ar ; Solaris likes to hide anything remotely
@@ -3503,9 +3506,9 @@ if test -z "$ac_link" ; then
     ac_link='${CC-cc} $CFLAGS $CPPFLAGS $LDFLAGS conftest.c -o conftest $LIBS 1>&AC_FD_CC 2>&AC_FD_CC'
 fi
 if eval $ac_compile ; then
-    # Create the library (AR includes the cr options)
+    # Create the library
     rm -f lib$MPILIBNAME.a
-    ${AR} lib$MPILIBNAME.a conftest.o
+    ${AR} cr lib$MPILIBNAME.a conftest.o
     ${RANLIB} lib$MPILIBNAME.a
     rm -f conftest*
     # create the main program

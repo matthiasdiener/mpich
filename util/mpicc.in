@@ -315,6 +315,10 @@ for arg in "$@" ; do
 done
 #
 status=0
+if [ $HasDashC = 1 -a $DoCompile = 0 -a $DoLink = 0 ] ; then
+    # Specified -c but no files.  Try to force -c behavior from compiler
+    DoCompile=1
+fi
 if [ $DoCompile = 1 -o $show_compile = 1 ] ; then 
     if [ $HasDashC != 1 ] ; then
         compileargs="-c $compileargs"

@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: shfp_fname.c,v 1.5 2003/04/24 21:10:20 David Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -33,7 +32,7 @@ void ADIOI_Shfp_fname(ADIO_File fd, int rank)
 	tm *= 1000000.0;
 	i = (int) tm;
 	
-	strcpy(fd->shared_fp_fname, fd->filename);
+	ADIOI_Strncpy(fd->shared_fp_fname, fd->filename, 256);
 	
 #ifdef ROMIO_NTFS
 	slash = strrchr(fd->filename, '\\');
@@ -41,8 +40,8 @@ void ADIOI_Shfp_fname(ADIO_File fd, int rank)
 	slash = strrchr(fd->filename, '/');
 #endif
 	if (!slash) {
-	    strcpy(fd->shared_fp_fname, ".");
-	    strcpy(fd->shared_fp_fname + 1, fd->filename);
+	    ADIOI_Strncpy(fd->shared_fp_fname, ".", 2);
+	    ADIOI_Strncpy(fd->shared_fp_fname + 1, fd->filename, 255);
 	}
 	else {
 	    ptr = slash;
@@ -51,12 +50,13 @@ void ADIOI_Shfp_fname(ADIO_File fd, int rank)
 #else
 	    slash = strrchr(fd->shared_fp_fname, '/');
 #endif
-	    strcpy(slash + 1, ".");
-	    strcpy(slash + 2, ptr + 1);
+	    ADIOI_Strncpy(slash + 1, ".", 2);
+	    len = 256 - (slash+2 - fd->shared_fp_fname);
+	    ADIOI_Strncpy(slash + 2, ptr + 1, len);
 	}
 	    
-	sprintf(tmp, ".shfp.%d", i);
-	strcat(fd->shared_fp_fname, tmp);
+	ADIOI_Snprintf(tmp, 128, ".shfp.%d", i);
+	ADIOI_Strnapp(fd->shared_fp_fname, tmp, 256);
 	
 	len = (int)strlen(fd->shared_fp_fname);
 	MPI_Bcast(&len, 1, MPI_INT, 0, fd->comm);

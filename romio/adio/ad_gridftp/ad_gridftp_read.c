@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_gridftp_read.c,v 1.3 2005/05/24 17:59:19 thakur Exp $    
  *
  *   Copyright (C) 2003 University of Chicago, Ohio Supercomputer Center. 
  *   See COPYRIGHT notice in top-level directory.
@@ -17,7 +16,7 @@ static void readcontig_ctl_cb(void *myargs, globus_ftp_client_handle_t *handle, 
 {
     if (error)
 	{
-	    fprintf(stderr, "%s\n", globus_object_printable_to_string(error));
+	    FPRINTF(stderr, "%s\n", globus_object_printable_to_string(error));
 	}
     globus_mutex_lock(&readcontig_ctl_lock);
     if ( readcontig_ctl_done!=GLOBUS_TRUE )
@@ -36,7 +35,7 @@ static void readcontig_data_cb(void *myargs, globus_ftp_client_handle_t *handle,
     bytes_read=(globus_size_t *)myargs;
     if (error)
 	{
-	    fprintf(stderr, "%s\n", globus_object_printable_to_string(error));
+	    FPRINTF(stderr, "%s\n", globus_object_printable_to_string(error));
 	}
     *bytes_read+=length;
     /* I don't understand why the data callback has to keep recalling register_read,
@@ -52,7 +51,7 @@ static void readcontig_data_cb(void *myargs, globus_ftp_client_handle_t *handle,
 	readcontig_data_cb: buffer 0x404d0008 length 65536 offset 32178176 eof 0
      */
 #if 0
-    fprintf(stderr, "%s: buffer %p length %d offset %Ld eof %d\n",
+    FPRINTF(stderr, "%s: buffer %p length %d offset %Ld eof %d\n",
       __func__, buffer, length, offset, eof);
 #endif
     if ( !eof )
@@ -71,7 +70,7 @@ static void readdiscontig_ctl_cb(void *myargs, globus_ftp_client_handle_t *handl
 {
     if (error)
 	{
-	    fprintf(stderr, "%s\n", globus_object_printable_to_string(error));
+	    FPRINTF(stderr, "%s\n", globus_object_printable_to_string(error));
 	}
     globus_mutex_lock(&readdiscontig_ctl_lock);
     if ( readdiscontig_ctl_done!=GLOBUS_TRUE )
@@ -90,7 +89,7 @@ static void readdiscontig_data_cb(void *myargs, globus_ftp_client_handle_t *hand
     bytes_read=(globus_size_t *)myargs;
     if (error)
 	{
-	    fprintf(stderr, "%s\n", globus_object_printable_to_string(error));
+	    FPRINTF(stderr, "%s\n", globus_object_printable_to_string(error));
 	}
     *bytes_read+=length;
     /* I don't understand why the data callback has to keep recalling register_read,
@@ -280,7 +279,7 @@ void ADIOI_GRIDFTP_ReadDiscontig(ADIO_File fd, void *buf, int count,
 	}
     if ( extent < count*btype_size )
 	{
-	    fprintf(stderr,"[%d/%d] %s error in computing extent -- extent %d is smaller than total bytes requested %d!\n",
+	    FPRINTF(stderr,"[%d/%d] %s error in computing extent -- extent %d is smaller than total bytes requested %d!\n",
 		    myrank,nprocs,myname,extent,count*btype_size);
 	    fflush(stderr);
 	    *error_code = MPIO_Err_create_code(MPI_SUCCESS, 
@@ -289,7 +288,7 @@ void ADIOI_GRIDFTP_ReadDiscontig(ADIO_File fd, void *buf, int count,
 	    return;
 	}
     end=start+(globus_off_t)extent;
-    tmp=(globus_byte_t *)malloc((size_t)extent*sizeof(globus_byte_t));
+    tmp=(globus_byte_t *)ADIOI_Malloc((size_t)extent*sizeof(globus_byte_t));
 
     /* start up the globus partial read */
     globus_mutex_init(&readdiscontig_ctl_lock, GLOBUS_NULL);
@@ -367,7 +366,7 @@ void ADIOI_GRIDFTP_ReadDiscontig(ADIO_File fd, void *buf, int count,
 		}
 	    nblks++;
 	}
-    free(tmp);
+    ADIOI_Free(tmp);
 
 #ifdef HAVE_STATUS_SET_BYTES
     MPIR_Status_set_bytes(status, datatype, bytes_read);
@@ -436,14 +435,14 @@ void ADIOI_GRIDFTP_ReadStrided(ADIO_File fd, void *buf, int count,
 	    int posn=0;
 
 	    /* read contiguous data into intermediate buffer */
-	    intermediate=(globus_byte_t *)malloc((size_t)bufsize);
+	    intermediate=(globus_byte_t *)ADIOI_Malloc((size_t)bufsize);
 	    ADIOI_GRIDFTP_ReadContig(fd, intermediate, bufsize, MPI_BYTE,
 				     file_ptr_type, offset, status, error_code);
 
 	    /* explode contents of intermediate buffer into main buffer */
 	    MPI_Unpack(intermediate,bufsize,&posn,buf,count,datatype,fd->comm);
 
-	    free(intermediate);
+	    ADIOI_Free(intermediate);
 	}
     else if ( !buf_contig && !file_contig )
 	{
@@ -451,7 +450,7 @@ void ADIOI_GRIDFTP_ReadStrided(ADIO_File fd, void *buf, int count,
 	    int posn=0;
 
 	    /* Read discontiguous data into intermediate buffer */
-	    intermediate=(globus_byte_t *)malloc((size_t)bufsize);
+	    intermediate=(globus_byte_t *)ADIOI_Malloc((size_t)bufsize);
 	    ADIOI_GRIDFTP_ReadDiscontig(fd, intermediate, bufsize, MPI_BYTE,
 					file_ptr_type, offset, status, error_code);
 
@@ -459,7 +458,7 @@ void ADIOI_GRIDFTP_ReadStrided(ADIO_File fd, void *buf, int count,
 	    posn=0;
 	    MPI_Unpack(intermediate,bufsize,&posn,buf,count,datatype,fd->comm);
 
-	    free(intermediate);
+	    ADIOI_Free(intermediate);
 	}
     else 
 	{

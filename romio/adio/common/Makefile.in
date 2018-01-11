@@ -27,7 +27,8 @@ AD_OBJECTS = ad_close.o ad_init.o ad_end.o ad_open.o flatten.o \
       ad_read_str_naive.o gencheck.o ad_set_view.o ad_iopen.o \
       ad_write_str_naive.o ad_resize.o ad_read.o ad_write.o ad_iread.o \
       ad_iwrite.o ad_done.o ad_wait.o adi_close.o ad_prealloc.o ad_fcntl.o \
-      ad_iread_fake.o ad_iwrite_fake.o ad_done_fake.o ad_wait_fake.o
+      ad_iread_fake.o ad_iwrite_fake.o ad_done_fake.o ad_wait_fake.o \
+      ad_subarray.o ad_darray.o strfns.o
 
 all: $(LIBNAME)
 	@if [ "@ENABLE_SHLIB@" != "none" ] ; then \
@@ -39,8 +40,8 @@ all: $(LIBNAME)
 .c.o:
 	$(CC) $(CFLAGS) $(INC) -c $<
 .c.lo:
-	$(C_COMPILE_SHL) $(CFLAGS) $(INC) -c $<
-	@mv -f $*.o $*.lo
+	$(C_COMPILE_SHL) $(CFLAGS) -c $< -o _s$*.o
+	@mv -f _s$*.o $*.lo
 
 $(LIBNAME): $(AD_OBJECTS)
 	$(AR) $(LIBNAME) $(AD_OBJECTS)
@@ -50,7 +51,6 @@ AD_LOOBJECTS = $(AD_OBJECTS:.o=.lo)
 
 $(SHLIBNAME).la: $(AD_LOOBJECTS)
 	$(AR) $(SHLIBNAME).la $(AD_LOOBJECTS)
-	$(RANLIB) $(SHLIBNAME) 
 
 clean:
 	@rm -f *.o *.lo

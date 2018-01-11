@@ -4,7 +4,6 @@
  *      See COPYRIGHT in top-level directory.
  */
 #include "mpi.h"
-#include "mpio.h"  /* not necessary with MPICH 1.1.1 or HPMPI 1.4 */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -260,9 +259,9 @@ void default_str(int mynod, int len, ADIO_cb_name_array array, char *dest)
 		    p = snprintf(ptr, len, "%s,", array->names[i]);
 		    ptr += p;
 	    }
+	    /* chop off that last comma */
+	    dest[strlen(dest) - 1] = '\0';
 	}
-	/* chop off that last comma */
-	dest[strlen(dest) - 1] = '\0';
 	MPI_Bcast(dest, len, MPI_CHAR, 0, MPI_COMM_WORLD);
 }
 void reverse_str(int mynod, int len, ADIO_cb_name_array array, char *dest) 
@@ -275,8 +274,8 @@ void reverse_str(int mynod, int len, ADIO_cb_name_array array, char *dest)
 		    p = snprintf(ptr, len, "%s,", array->names[i]);
 		    ptr += p;
 	    }
+	    dest[strlen(dest) - 1] = '\0';
 	}
-	dest[strlen(dest) - 1] = '\0';
 	MPI_Bcast(dest, len, MPI_CHAR, 0, MPI_COMM_WORLD);
 }
 
@@ -296,9 +295,9 @@ void reverse_alternating_str(int mynod, int len, ADIO_cb_name_array array, char 
 		    p = snprintf(ptr, len, "%s,", array->names[i]);
 		    ptr += p;
 	    }
-    }
-	dest[strlen(dest) - 1] = '\0';
-    MPI_Bcast(dest, len, MPI_CHAR, 0, MPI_COMM_WORLD);
+	    dest[strlen(dest) - 1] = '\0';
+	}
+	MPI_Bcast(dest, len, MPI_CHAR, 0, MPI_COMM_WORLD);
 }
 
 void simple_shuffle_str(int mynod, int len, ADIO_cb_name_array array, char *dest)
@@ -315,8 +314,8 @@ void simple_shuffle_str(int mynod, int len, ADIO_cb_name_array array, char *dest
 		    p = snprintf(ptr, len, "%s,", array->names[i]);
 		    ptr += p;
 	    }
+	    dest[strlen(dest) - 1] = '\0';
 	}
-	dest[strlen(dest) - 1] = '\0';
 	MPI_Bcast(dest, len, MPI_CHAR, 0, MPI_COMM_WORLD);
 }
 

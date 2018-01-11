@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_open.c,v 1.30 2005/05/23 23:27:48 rross Exp $
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -28,10 +27,11 @@ MPI_File ADIO_Open(MPI_Comm orig_comm,
     int orig_amode_excl, orig_amode_wronly, err, rank, procs, agg_rank;
     char *value;
     static char myname[] = "ADIO_OPEN";
-
     int rank_ct, max_error_code;
     int *tmp_ranklist;
     MPI_Comm aggregator_comm = MPI_COMM_NULL; /* just for deferred opens */
+
+    ADIOI_UNREFERENCED_ARG(iomode);
 
     *error_code = MPI_SUCCESS;
 
@@ -45,7 +45,7 @@ MPI_File ADIO_Open(MPI_Comm orig_comm,
     fd->fp_ind = disp;
     fd->fp_sys_posn = 0;
     fd->comm = comm;       /* dup'ed in MPI_File_open */
-    fd->filename = strdup(filename);
+    fd->filename = ADIOI_Strdup(filename);
     fd->file_system = file_system;
 
     /* TODO: VERIFY THAT WE DON'T NEED TO ALLOCATE THESE, THEN DON'T. */
@@ -107,7 +107,7 @@ MPI_File ADIO_Open(MPI_Comm orig_comm,
 	fd->hints->cb_nodes = rank_ct;
 	/* TEMPORARY -- REMOVE WHEN NO LONGER UPDATING INFO FOR FS-INDEP. */
 	value = (char *) ADIOI_Malloc((MPI_MAX_INFO_VAL+1)*sizeof(char));
-	sprintf(value, "%d", rank_ct);
+	ADIOI_Snprintf(value, MPI_MAX_INFO_VAL+1, "%d", rank_ct);
 	MPI_Info_set(fd->info, "cb_nodes", value);
 	ADIOI_Free(value);
     }
@@ -253,7 +253,7 @@ MPI_File ADIO_Open(MPI_Comm orig_comm,
         }
 
 	if (fd->fns) ADIOI_Free(fd->fns);
-	if (fd->filename) free(fd->filename);
+	if (fd->filename) ADIOI_Free(fd->filename);
 	if (fd->info != MPI_INFO_NULL) MPI_Info_free(&(fd->info));
 	ADIOI_Free(fd);
         fd = ADIO_FILE_NULL;

@@ -10,8 +10,6 @@
 #include "mpioimpl.h"
 #include "adio_extern.h"
 
-#define NMPI_Comm_call_errhandler PMPI_Comm_call_errhandler
-
 /* MPICH2 error handling implementation */
 int MPIR_Err_create_code_valist(int, int, const char [], int, int, 
 				const char [], const char [], va_list );
@@ -84,7 +82,7 @@ int MPIO_Err_return_file(MPI_File mpi_fh, int error_code)
     /* --BEGIN ERROR HANDLING-- */
     if (MPIR_Err_is_fatal(error_code) || kind == 0) 
     {
-	sprintf(error_msg, "I/O error: ");
+	ADIOI_Snprintf(error_msg, 4096, "I/O error: ");
 	len = (int)strlen(error_msg);
 	MPIR_Err_get_string(error_code, &error_msg[len], 4096-len, NULL);
 	MPID_Abort(NULL, MPI_SUCCESS, error_code, error_msg);
@@ -103,6 +101,6 @@ int MPIO_Err_return_comm(MPI_Comm mpi_comm, int error_code)
     /* note: MPI calls inside the MPICH2 implementation are prefixed
      * with an "N", indicating a nested call.
      */
-    NMPI_Comm_call_errhandler(mpi_comm, error_code);
+    MPI_Comm_call_errhandler(mpi_comm, error_code);
     return error_code;
 }

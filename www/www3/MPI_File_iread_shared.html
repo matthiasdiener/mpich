@@ -12,8 +12,8 @@ Nonblocking read using shared file pointer
 #ifdef HAVE_MPI_GREQUEST
 #include "mpiu_greq.h"
 
-int MPI_File_iread_shared(MPI_File mpi_fh, void *buf, int count, 
-                        MPI_Datatype datatype, MPIO_Request *request)
+#if defined(HAVE_WINDOWS_H) && defined(USE_WIN_THREADED_IO)
+typedef struct iread_shared_args
 </PRE>
 <H2>Input Parameters</H2>
 <DL><DT><B>fh </B> <DD> file handle (handle)

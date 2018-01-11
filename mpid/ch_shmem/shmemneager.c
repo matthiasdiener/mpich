@@ -309,8 +309,8 @@ int MPID_SHMEM_Eagern_save( MPIR_RHANDLE *rhandle, int from, void *in_pkt )
 #ifdef LEAVE_IN_SHARED_MEM
     rhandle->start        = address;
 #else
-    if (pkt->len > 0) {
-	rhandle->start	  = (void *)MALLOC( pkt->len );
+    if (len > 0) {
+	rhandle->start	  = (void *)MALLOC( len );
 	rhandle->is_complete  = 1;
 	if (!rhandle->start) {
 	    rhandle->s.MPI_ERROR = MPI_ERR_INTERN;

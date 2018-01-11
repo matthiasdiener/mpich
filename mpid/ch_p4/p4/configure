@@ -482,6 +482,15 @@ if test -n "$p4arch_LINUX"; then
       DEFINE_SYSV_IPC="#define SYSV_IPC"
     fi
 fi
+#						PowerPC running Linux
+if test -n "$p4arch_LINUX_PPC"; then
+    # LINUX_PPC needs to be separate from LINUX because of 
+    # byte ordering
+    P4ARCH=LINUX_PPC
+    if test -n "$p4comm_shared"; then
+      DEFINE_SYSV_IPC="#define SYSV_IPC"
+    fi
+fi
 
 #                                                Alpha running Linux
 if test -n "$p4arch_LINUX_ALPHA"; then
@@ -11801,7 +11810,7 @@ for file in .. ${CONFIG_FILES}; do if test "x$file" != x..; then
   echo creating $file
   rm -f $file
   echo "# Generated automatically from `echo $file|sed 's|.*/||'`.in by configure." > $file
-cat $top_srcdir/${file}.in | sed -e "
+  sed -e "
 $prsub
 $extrasub
 s%@top_srcdir@%$top_srcdir%g
@@ -11839,7 +11848,7 @@ s%@RSHCOMMAND@%$RSHCOMMAND%g
 s%@LIBS@%$LIBS%g
 s%@srcdir@%$srcdir%g
 s%@DEFS@%$DEFS%
-" >> $file
+" $top_srcdir/${file}.in >> $file
 fi; done
 
 

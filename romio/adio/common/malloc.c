@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: malloc.c,v 1.11 2005/05/23 23:27:49 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -27,6 +26,13 @@
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
+
+/* for the style checker */
+/* style: allow:malloc:1 sig:0 */
+/* style: allow:free:1 sig:0 */
+/* style: allow:calloc:1 sig:0 */
+/* style: allow:realloc:1 sig:0 */
+
 
 #define FPRINTF fprintf
 void *ADIOI_Malloc_fn(size_t size, int lineno, char *fname);
@@ -88,4 +94,5 @@ void ADIOI_Free_fn(void *ptr, int lineno, char *fname)
 
     free(ptr);
 }
+
 

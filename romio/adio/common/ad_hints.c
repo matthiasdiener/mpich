@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_hints.c,v 1.19 2004/10/04 15:51:24 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +18,7 @@ void ADIOI_GEN_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code)
 
     MPI_Info info;
     char *value;
-    int flag, intval, tmp_val, nprocs, nprocs_is_valid = 0;
+    int flag, intval, tmp_val, nprocs=0, nprocs_is_valid = 0, len;
     static char myname[] = "ADIOI_GEN_SETINFO";
 
     if (fd->info == MPI_INFO_NULL) MPI_Info_create(&(fd->info));
@@ -55,7 +54,7 @@ void ADIOI_GEN_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code)
 	/* number of processes that perform I/O in collective I/O */
 	MPI_Comm_size(fd->comm, &nprocs);
 	nprocs_is_valid = 1;
-	sprintf(value, "%d", nprocs);
+	ADIOI_Snprintf(value, MPI_MAX_INFO_VAL+1, "%d", nprocs);
 	MPI_Info_set(info, "cb_nodes", value);
 	fd->hints->cb_nodes = nprocs;
 
@@ -303,11 +302,12 @@ void ADIOI_GEN_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code)
 		 * either by the user or to the default
 		 */
 	    	MPI_Info_set(info, "cb_config_list", value);
-		fd->hints->cb_config_list = ADIOI_Malloc((strlen(value)+1) * sizeof(char));
+		len = (strlen(value)+1) * sizeof(char);
+		fd->hints->cb_config_list = ADIOI_Malloc(len);
 		if (fd->hints->cb_config_list == NULL) {
 		    /* NEED TO HANDLE ENOMEM */
 		}
-		strcpy(fd->hints->cb_config_list, value);
+		ADIOI_Strncpy(fd->hints->cb_config_list, value, len);
 	    }
 	    /* if it has been set already, we ignore it the second time. 
 	     * otherwise we would get an error if someone used the same
@@ -321,11 +321,12 @@ void ADIOI_GEN_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code)
      */
     if (fd->hints->cb_config_list == NULL) {
 	MPI_Info_set(info, "cb_config_list", ADIOI_CB_CONFIG_LIST_DFLT);
-	fd->hints->cb_config_list = ADIOI_Malloc((strlen(ADIOI_CB_CONFIG_LIST_DFLT)+1) * sizeof(char));
+	len = (strlen(ADIOI_CB_CONFIG_LIST_DFLT)+1) * sizeof(char);
+	fd->hints->cb_config_list = ADIOI_Malloc(len);
 	if (fd->hints->cb_config_list == NULL) {
 	    /* NEED TO HANDLE ENOMEM */
 	}
-	strcpy(fd->hints->cb_config_list, ADIOI_CB_CONFIG_LIST_DFLT);
+	ADIOI_Strncpy(fd->hints->cb_config_list, ADIOI_CB_CONFIG_LIST_DFLT, len);
     }
     /* deferred_open won't be set by callers, but if the user doesn't
      * explicitly disable collecitve buffering (two-phase) and does hint that

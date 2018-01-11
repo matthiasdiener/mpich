@@ -307,8 +307,19 @@ do
 
      -with-mpich=*|--with-mpich=*)
         mpichpath=`echo A$arg | sed 's/A-*with-mpich=//'`
-	MPIRUNARGS='"-mvhome"'
-	MPIRUNMVBACK="-mvback"
+	# Let the user provide the top-level path for MPICH as well
+	# as the bin directory
+	if test ! -x "$mpichpath/mpicc" -a -x "$mpichpath/bin/mpicc" ; then
+	    mpichpath="$mpichpath/mpicc"
+	fi
+	# Check for mpiexec; if found, use it, otherwise, set MPICH-1 specific
+	# mpirun options
+        if test -x "$mpichpath/mpiexec" ; then
+	    MPIRUN="$mpichpath/mpiexec"
+        elif test -z "$MPIRUN" ; then
+	    MPIRUNARGS='"-mvhome"'
+	    MPIRUNMVBACK="-mvback"
+        fi
 	MPIINCDIR=$mpichpath/../include
 	;;
      -mpi2)
@@ -2433,9 +2444,6 @@ fi
 #
 #
 MPE_CFLAGS="$MPE_CFLAGS $DEFS"
-if test -n "$MPILIBNAME" ; then
-    LIB_LIST="$LIB_LIST -l$MPILIBNAME"
-fi
 
 #
 # We can check for MPICH by trying to compile a program that uses MPICH_NAME
@@ -2527,10 +2535,16 @@ int main(int argc, char **argv)
  return 0;
 }
 EOF
-    if $MPICC -o conftest conftest.c $LIB_LIST >conftest.log 2>&1 ; then
-	:
+    if test -n "$MPILIBNAME" ; then
+        TLIB_LIST="$LIB_LIST -l$MPILIBNAME"
+    fi
+    if $MPICC -o conftest conftest.c $LIB_LIST > conftest.log 2>&1 ; then
+        :
+    elif $MPICC -o conftest conftest.c $TLIB_LIST >conftest.log 2>&1 ; then
+        # Accept the -l$MPILIBNAME in the liblist
+        LIB_LIST=$TLIB_LIST
     else
-        # Try adding -lmpi
+        # Try adding -lmpi instead of $MPILIBNAME
         rm conftest.log
         if $MPICC -o conftest conftest.c $LIB_LIST -lmpi >conftest.log 2>&1 ; then
             LIB_LIST="$LIB_LIST -lmpi"
@@ -2540,7 +2554,10 @@ echo "$ac_t""Warning: Could not compile/link a program containing MPI_Init"
 else
 echo "$ac_t""Warning: Could not compile/link a program containing MPI_Init" 1>&1
 fi
-            if test -s conftest.log ; then cat conftest.out ; fi
+	    echo "Test program was:"
+	    cat conftest.c
+	    echo "Compiler output was:"
+            if test -s conftest.log ; then cat conftest.log ; fi
         fi
     fi
     rm -f conftest*
@@ -2933,7 +2950,7 @@ for file in .. ${CONFIG_FILES}; do if test "x$file" != x..; then
   echo creating $file
   rm -f $file
   echo "# Generated automatically from `echo $file|sed 's|.*/||'`.in by configure." > $file
-cat $top_srcdir/${file}.in | sed -e "
+  sed -e "
 $prsub
 $extrasub
 s%@prefix@%$prefix%g
@@ -2975,7 +2992,7 @@ s%@MPE_CFLAGS@%$MPE_CFLAGS%g
 s%@MPICH_VERSION@%$MPICH_VERSION%g
 s%@MPIR_HOME@%$MPIR_HOME%g
 s%@MPI_FOBJECTS@%$MPI_FOBJECTS%g
-s%@MPIFDEP@%$MPIFDEP%g" | sed -e "
+s%@MPIFDEP@%$MPIFDEP%g
 s%@MPILIBNAME@%$MPILIBNAME%g
 s%@MPICC@%$MPICC%g
 s%@MPIF77@%$MPIF77%g
@@ -2990,7 +3007,7 @@ s%@HAS_MPI2@%$HAS_MPI2%g
 s%@LIBS@%$LIBS%g
 s%@srcdir@%$srcdir%g
 s%@DEFS@%$DEFS%
-" >> $file
+" $top_srcdir/${file}.in >> $file
 fi; done
 
 

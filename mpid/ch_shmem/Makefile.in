@@ -1,6 +1,6 @@
 
 #
-#  $Id: Makefile.in,v 1.27 2004/08/18 12:17:42 gropp Exp $
+#  $Id: Makefile.in,v 1.28 2005/10/17 16:25:11 gropp Exp $
 #
 #  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -80,7 +80,7 @@ shmempriv.o: ${srcdir}/shmempriv.c
 # is the same, but for the profile library
 default_all: setlinks default_files
 default_files: $(MPI_OBJECTS)
-	$(AR) $(LIBNAME) $?
+	$(AR) cr $(LIBNAME) $?
 profile_all: 
 
 clean:
@@ -139,11 +139,11 @@ configure: configure.in ../../aclocal.m4
 	autoconf   --localdir=../..
 
 ${libbuild_dir}/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
-	$(AR) $@ $?
+	$(AR) cr $@ $?
 	$(RANLIB) $@
 
 libmpid.a: $(MPI_OBJECTS) mprerr.o
-	$(AR) $@ $?
+	$(AR) cr $@ $?
 	$(RANLIB) $@
 
 

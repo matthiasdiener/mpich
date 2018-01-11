@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_pfs_open.c,v 1.12 2005/05/23 23:27:43 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -70,13 +69,13 @@ void ADIOI_PFS_Open(ADIO_File fd, int *error_code)
 	err = fcntl(fd->fd_sys, F_GETSATTR, &attr);
 
 	if (!err) {
-	    sprintf(value, "%d", attr.s_sunitsize);
+	    ADIOI_Snprintf(value, MPI_MAX_INFO_VAL+1, "%d", attr.s_sunitsize);
 	    MPI_Info_set(fd->info, "striping_unit", value);
 
-	    sprintf(value, "%d", attr.s_sfactor);
+	    ADIOI_Snprintf(value, MPI_MAX_INFO_VAL+1, "%d", attr.s_sfactor);
 	    MPI_Info_set(fd->info, "striping_factor", value);
 
-	    sprintf(value, "%d", attr.s_start_sdir);
+	    ADIOI_Snprintf(value, MPI_MAX_INFO_VAL+1, "%d", attr.s_start_sdir);
 	    MPI_Info_set(fd->info, "start_iodevice", value);
 	}
 	ADIOI_Free(value);

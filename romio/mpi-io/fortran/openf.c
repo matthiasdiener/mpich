@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: openf.c,v 1.16 2003/07/08 22:25:45 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -123,7 +122,7 @@ void mpi_file_open_(MPI_Fint *comm,char *filename,MPI_Fint *amode,
     real_len = i + 1;
 
     newfname = (char *) ADIOI_Malloc((real_len+1)*sizeof(char));
-    strncpy(newfname, filename, real_len);
+    ADIOI_Strncpy(newfname, filename, real_len);
     newfname[real_len] = '\0';
 
     *ierr = MPI_File_open(comm_c, newfname, *amode, info_c, &fh_c);
@@ -177,7 +176,7 @@ FORTRAN_API void FORT_CALL mpi_file_open_(MPI_Fint *comm,char *filename FORT_MIX
     real_len = i + 1;
 
     newfname = (char *) ADIOI_Malloc((real_len+1)*sizeof(char));
-    strncpy(newfname, filename, real_len);
+    ADIOI_Strncpy(newfname, filename, real_len);
     newfname[real_len] = '\0';
 
     *ierr = MPI_File_open((MPI_Comm)(*comm), newfname, *amode, info_c, &fh_c);

@@ -563,39 +563,39 @@ if [ -z "$larch" ] ; then larch=$default_arch ; fi
 if [ -n "$AUTOMOUNTFIX" ] ; then
     # We have had some reports of problems in this step.  We try not to
     # assume here that pwd works, or that the AUTOMOUNTFIX is correct
-    PWDtest=`pwd | $AUTOMOUNTFIX`
+    PWDtest="`pwd | $AUTOMOUNTFIX`"
     if [ ! -d "$PWDtest" ] ; then
-        PWDtest=`pwd`
+        PWDtest="`pwd`"
     elif [ -z "$PWDtest" ] ; then 
-        PWDtest=`pwd`
+        PWDtest="`pwd`"
     fi
     if [ -n "$PWD" ] ; then
 	# Use a process-specific filename
-	PWDtest2=`echo $PWD | $AUTOMOUNTFIX`
-        rm -f $PWDtest/.mpirtmp$$ $PWDtest2/.mpirtmp$$
-        if `eval "echo test > $PWDtest2/.mpirtmp$$" 2>/dev/null` ; then
+	PWDtest2="`echo "$PWD" | $AUTOMOUNTFIX`"
+        rm -f "$PWDtest"/.mpirtmp$$ "$PWDtest2"/.mpirtmp$$
+        if `eval "echo test > \"$PWDtest2\"/.mpirtmp$$" 2>/dev/null` ; then
             if [ ! -s "$PWDtest/.mpirtmp$$" ] ; then
-	        rm -f $PWDtest2/.mpirtmp$$
-                PWDreal=$PWDtest
+	        rm -f "$PWDtest2"/.mpirtmp$$
+                PWDreal="$PWDtest"
 	    else
-		PWDreal=$PWDtest2
+		PWDreal="$PWDtest2"
 	    fi
 	else
 	    # Current directory is not writable.  Hope for the best
-            PWDreal=$PWDtest        
+            PWDreal="$PWDtest"
         fi
-        rm -f $PWDtest/.mpirtmp$$ $PWDtest2/.mpirtmp$$
+        rm -f "$PWDtest"/.mpirtmp$$ "$PWDtest2"/.mpirtmp$$
     else 
-        PWDreal=$PWDtest
+        PWDreal="$PWDtest"
     fi
 else
-    PWDreal=`pwd`
+    PWDreal="`pwd`"
 fi
 #
 if [ -n "$PWDreal" ] ; then
-    PWD_TRIAL=$PWDreal
+    PWD_TRIAL="$PWDreal"
 else
-    PWD_TRIAL=$PWDtest
+    PWD_TRIAL="$PWDtest"
 fi
 # The test for PWD_TRIAL usable is within the p4/execer test (since that
 # is where it matters)
@@ -744,11 +744,11 @@ if [ "$machine" = p4 -o "$machine" = execer -o \
   # message about the automounter unless we're using ch_p4
   #
   if [ "$PWD_TRIAL" != "" ] ; then
-    PWD_TRIAL=`pwd | sed -e 's%/tmp_mnt/%/%g'`
-    if [ ! -d $PWD_TRIAL ] ; then 
+    PWD_TRIAL="`pwd | sed -e 's%/tmp_mnt/%/%g'`"
+    if [ ! -d "$PWD_TRIAL" ] ; then 
         echo "Warning: your default path uses the automounter; this may"
         echo "cause some problems if you use other NFS-connected systems."
-        PWD_TRIAL=`pwd`
+        PWD_TRIAL="`pwd`"
     fi
   fi
 fi
@@ -760,7 +760,7 @@ if [ $mpirun_verbose = 1 ] ; then
       while [ $cnt -le $narch ] ; do
         eval mp=\$"np$cnt"
         eval archm=\$"arch$cnt"
-	proginstance=`echo $progname | sed "s/%a/$archm/"`
+	proginstance="`echo "$progname" | sed "s/%a/$archm/"`"
 	echo "running $proginstance on $mp $archm $machine processors"
 	cnt=`expr $cnt + 1`
       done

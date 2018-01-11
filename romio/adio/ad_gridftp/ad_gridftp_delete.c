@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_gridftp_delete.c,v 1.3 2005/05/24 17:59:18 thakur Exp $    
  *
  *   Copyright (C) 2003 University of Chicago, Ohio Supercomputer Center. 
  *   See COPYRIGHT notice in top-level directory.
@@ -17,7 +16,7 @@ static void delete_cb(void *myarg, globus_ftp_client_handle_t *handle, globus_ob
     
     if (error)
 	{
-	    fprintf(stderr, "%s\n", globus_object_printable_to_string(error));
+	    FPRINTF(stderr, "%s\n", globus_object_printable_to_string(error));
 	}
     else
 	{

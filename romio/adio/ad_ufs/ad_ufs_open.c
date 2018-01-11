@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_ufs_open.c,v 1.15 2005/05/23 23:27:46 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -38,6 +37,7 @@ void ADIOI_UFS_Open(ADIO_File fd, int *error_code)
     if ((fd->fd_sys != -1) && (fd->access_mode & ADIO_APPEND))
 	fd->fp_ind = fd->fp_sys_posn = lseek(fd->fd_sys, 0, SEEK_END);
 
+    /* --BEGIN ERROR HANDLING-- */
     if (fd->fd_sys == -1) {
 	if (errno == ENAMETOOLONG)
 	    *error_code = MPIO_Err_create_code(MPI_SUCCESS,
@@ -84,5 +84,6 @@ void ADIOI_UFS_Open(ADIO_File fd, int *error_code)
 					       "**io %s", strerror(errno));
 	}
     }
+    /* --END ERROR HANDLING */
     else *error_code = MPI_SUCCESS;
 }

@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: get_view.c,v 1.18 2005/02/18 00:39:06 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -73,7 +72,7 @@ int MPI_File_get_view(MPI_File mpi_fh,
     /* --END ERROR HANDLING-- */
 
     *disp = fh->disp;
-    strcpy(datarep, "native");
+    ADIOI_Strncpy(datarep, "native", MPI_MAX_DATAREP_STRING);
 
     MPI_Type_get_envelope(fh->etype, &i, &j, &k, &combiner);
     if (combiner == MPI_COMBINER_NAMED) *etype = fh->etype;

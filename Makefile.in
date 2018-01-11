@@ -20,7 +20,6 @@ MPILIBNAME  = @MPILIBNAME@
 FMPILIBNAME = f@MPILIBNAME@
 
 AR          = @AR@
-ARCMD       = @ARNAME@
 RANLIB      = @RANLIB@
 ### End User configurable options ###
 
@@ -195,21 +194,35 @@ mpichsharelibs:
 	for lib in lib${MPILIBNAME}.a libp${MPILIBNAME}.a \
             lib${FMPILIBNAME}.a ; do \
 	    if [ -s $$lib ] ; then \
-	      ${top_srcdir}/util/makesharedlib -exceptobjs="farg.o farg90.o initf.o" -lib=$$lib -kind=@SHAREDKIND@ ; \
+	      ${top_srcdir}/util/makesharedlib -exceptobjs="farg.o _farg.o farg90.o _farg90.o initf.o _initf.o" \
+		  -lib=$$lib -kind=@SHAREDKIND@ ; \
 	    fi ; \
 	done ; \
         if [ $(NOF77) = 0 ] ; then \
 	    if [ "@FLIBNAME@" != "@MPILIBNAME@" ] ; then \
-	      ${top_srcdir}/util/makesharedlib -exceptobjs="farg.o farg90.o initf.o" -lib=lib@FLIBNAME@.a -kind=@SHAREDKIND@ ; \
-	        ${ARCMD} x lib@FLIBNAME@.a farg.o initf.o 2>/dev/null ; \
-	        ${AR} lib@FLIBNAME@farg.a farg.o initf.o ; \
+	      ${top_srcdir}/util/makesharedlib -exceptobjs="farg.o _farg.o farg90.o _farg90.o initf.o _initf.o" \
+		  -lib=lib@FLIBNAME@.a -kind=@SHAREDKIND@ ; \
+	        ${AR} x lib@FLIBNAME@.a farg.o initf.o 2>/dev/null ; \
+	        ${AR} cr lib@FLIBNAME@farg.a farg.o initf.o ; \
 	        rm -f farg.o initf.o ; \
+		if test "@HAS_WEAK_SYMBOLS@" = 0 ; then \
+	            ${AR} x libp${MPILIBNAME}.a _initf.o 2>/dev/null ; \
+		    ${AR} cr lib@FLIBNAME@farg.a _initf.o ; \
+	            rm -f _initf.o ; \
+		fi; \
 	    else \
-	        ${ARCMD} x lib${MPILIBNAME}.a farg.o initf.o 2>/dev/null ; \
+	        ${AR} x lib${MPILIBNAME}.a farg.o initf.o 2>/dev/null ; \
 	        if [ -s farg.o -a -s initf.o ] ; then \
-	            ${AR} lib${MPILIBNAME}farg.a farg.o initf.o ; \
+	            ${AR} cr lib${MPILIBNAME}farg.a farg.o initf.o ; \
 	            rm -f farg.o initf.o ; \
                 fi ;\
+		if test "@HAS_WEAK_SYMBOLS@" = 0 ; then \
+		    ${AR} x libp${MPILIBNAME}.a _initf.o 2>/dev/null ; \
+	            if test -s _initf.o ; then \
+			${AR} cr lib@FLIBNAME@farg.a _initf.o ; \
+	        	rm -f _initf.o ; \
+		    fi; \
+		fi; \
 	    fi ; \
 	fi ; \
 	)
@@ -347,6 +360,7 @@ cpplib:
 	CXXFLAGS="" ; export CXXFLAGS ; \
 	CXX="g++" ; export CXX ; \
 	CC="@CC@" ; export CC ; \
+	AR="$(ARCMD)" ; export AR ; \
 	ldir=`echo $(libdir) | sed -e 's%$(MPIR_HOME)/%%g'` ; \
 	if ${top_srcdir}/${CPP_DIR}/configure --with-mpich=.. \
 			--with-libopt=" " \
@@ -574,7 +588,7 @@ distclean: cleanslate
 	    (cd util && rm -f chkmachine chkserv Makefile ) ; \
 	    (cd util/machines && \
 	    rm -f machines.IRIX* machines.sun* machines.solaris* \
-	    machines.cray* machines.CRAY* machines.LINUX machines.rs6000 \
+	    machines.cray* machines.CRAY* machines.LINUX machines.rs600 \
 	    machines.alpha machines.hp* ) ; fi
 	-rm -f util/mympiinstall* util/mpichlib.conf
 	-if [ -d mpid/server -a -s mpid/server/Makefile ] ; then \

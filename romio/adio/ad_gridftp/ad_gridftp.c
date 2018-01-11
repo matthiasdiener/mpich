@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_gridftp.c,v 1.2 2005/05/23 23:27:38 rross Exp $
  *
  *   Copyright (C) 2003 University of Chicago, Ohio Supercomputer Center. 
  *   See COPYRIGHT notice in top-level directory.

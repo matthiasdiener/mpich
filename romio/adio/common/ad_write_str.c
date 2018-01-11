@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_write_str.c,v 1.14 2004/10/29 21:32:57 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -16,7 +15,13 @@
            ADIO_WriteContig(fd, writebuf, writebuf_len, MPI_BYTE, \
                   ADIO_EXPLICIT_OFFSET, writebuf_off, &status1, error_code); \
            if (!(fd->atomicity)) ADIOI_UNLOCK(fd, writebuf_off, SEEK_SET, writebuf_len); \
-           if (*error_code != MPI_SUCCESS) return; \
+           if (*error_code != MPI_SUCCESS) { \
+               *error_code = MPIO_Err_create_code(*error_code, \
+                                                  MPIR_ERR_RECOVERABLE, myname, \
+                                                  __LINE__, MPI_ERR_IO, \
+                                                  "**iowswc", 0); \
+               return; \
+           } \
         } \
 	writebuf_off = req_off; \
         writebuf_len = (int) (ADIOI_MIN(max_bufsize,end_offset-writebuf_off+1));\
@@ -27,7 +32,7 @@
 	    *error_code = MPIO_Err_create_code(*error_code, \
 					       MPIR_ERR_RECOVERABLE, myname, \
 					       __LINE__, MPI_ERR_IO, \
-					       "**ioRMWrdwr", 0); \
+					       "**iowsrc", 0); \
 	    return; \
 	} \
     } \
@@ -37,7 +42,13 @@
         ADIO_WriteContig(fd, writebuf, writebuf_len, MPI_BYTE, \
                   ADIO_EXPLICIT_OFFSET, writebuf_off, &status1, error_code); \
         if (!(fd->atomicity)) ADIOI_UNLOCK(fd, writebuf_off, SEEK_SET, writebuf_len); \
-        if (*error_code != MPI_SUCCESS) return; \
+        if (*error_code != MPI_SUCCESS) { \
+            *error_code = MPIO_Err_create_code(*error_code, \
+                                               MPIR_ERR_RECOVERABLE, myname, \
+                                               __LINE__, MPI_ERR_IO, \
+                                               "**iowswc", 0); \
+            return; \
+        } \
         req_len -= write_sz; \
         userbuf_off += write_sz; \
         writebuf_off += writebuf_len; \
@@ -49,7 +60,7 @@
 	    *error_code = MPIO_Err_create_code(*error_code, \
 					       MPIR_ERR_RECOVERABLE, myname, \
 					       __LINE__, MPI_ERR_IO, \
-					       "**ioRMWrdwr", 0); \
+					       "**iowsrc", 0); \
 	    return; \
 	} \
         write_sz = ADIOI_MIN(req_len, writebuf_len); \
@@ -65,7 +76,13 @@
     if (req_off >= writebuf_off + writebuf_len) { \
         ADIO_WriteContig(fd, writebuf, writebuf_len, MPI_BYTE, \
                  ADIO_EXPLICIT_OFFSET, writebuf_off, &status1, error_code); \
-        if (*error_code != MPI_SUCCESS) return; \
+        if (*error_code != MPI_SUCCESS) { \
+            *error_code = MPIO_Err_create_code(*error_code, \
+                                               MPIR_ERR_RECOVERABLE, myname, \
+                                               __LINE__, MPI_ERR_IO, \
+                                               "**iowswc", 0); \
+            return; \
+        } \
 	writebuf_off = req_off; \
         writebuf_len = (int) (ADIOI_MIN(max_bufsize,end_offset-writebuf_off+1));\
     } \
@@ -74,7 +91,13 @@
     while (write_sz != req_len) { \
         ADIO_WriteContig(fd, writebuf, writebuf_len, MPI_BYTE, \
                 ADIO_EXPLICIT_OFFSET, writebuf_off, &status1, error_code); \
-        if (*error_code != MPI_SUCCESS) return; \
+        if (*error_code != MPI_SUCCESS) { \
+            *error_code = MPIO_Err_create_code(*error_code, \
+                                               MPIR_ERR_RECOVERABLE, myname, \
+                                               __LINE__, MPI_ERR_IO, \
+                                               "**iowswc", 0); \
+            return; \
+        } \
         req_len -= write_sz; \
         userbuf_off += write_sz; \
         writebuf_off += writebuf_len; \

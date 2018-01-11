@@ -55,6 +55,13 @@
 # define FORTRAN_API
 #endif
 
+/* Use this macro for each parameter to a function that is not referenced in the body of the function */
+#ifdef HAVE_WINDOWS_H
+#define ADIOI_UNREFERENCED_ARG(a) a
+#else
+#define ADIOI_UNREFERENCED_ARG(a)
+#endif
+
 /* Include romioconf.h if we haven't already (some include files may
    need to include romioconf before some system includes) */
 #ifndef ROMIOCONF_H_INCLUDED
@@ -164,6 +171,8 @@ MPI_Fint PMPI_Info_c2f(MPI_Info info);
 MPI_Info PMPI_Info_f2c(MPI_Fint info);
 
 #endif
+
+/* style: allow:strdup:1 sig:0 */
 
 #if defined(HAVE_STRDUP) && defined(NEEDS_STRDUP_DECL) && !defined(strdup)
 char *strdup(const char *s);
@@ -388,6 +397,20 @@ void ADIO_Get_shared_fp(ADIO_File fd, int size, ADIO_Offset *shared_fp,
 void ADIO_Set_shared_fp(ADIO_File fd, ADIO_Offset offset, int *error_code);
 void ADIO_Set_view(ADIO_File fd, ADIO_Offset disp, MPI_Datatype etype, 
 		MPI_Datatype filetype, MPI_Info info,  int *error_code);
+
+/* functions to help deal with the array datatypes */
+int ADIO_Type_create_subarray(int ndims,
+                              int *array_of_sizes,
+                              int *array_of_subsizes,
+                              int *array_of_starts,
+                              int order,
+                              MPI_Datatype oldtype,
+                              MPI_Datatype *newtype);
+int ADIO_Type_create_darray(int size, int rank, int ndims, 
+			    int *array_of_gsizes, int *array_of_distribs, 
+			    int *array_of_dargs, int *array_of_psizes, 
+			    int order, MPI_Datatype oldtype, 
+			    MPI_Datatype *newtype);
 
 /* MPI_File management functions (in mpio_file.c) */
 MPI_File MPIO_File_create(int size);

@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.28 2002/11/01 20:07:28 karonis Exp $
+#  $Id: Makefile.in,v 1.29 2005/10/17 16:25:12 gropp Exp $
 #
 #  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -73,7 +73,7 @@ local: libmpid.a
 # is the same, but for the profile library.  
 
 default_all: $(MPI_OBJECTS)
-	$(AR) $(LIBNAME) $(MPI_OBJECTS)
+	$(AR) cr $(LIBNAME) $(MPI_OBJECTS)
 profile_all: 
 
 #
@@ -247,11 +247,11 @@ CIA: $(CIAS)
 	cia $(CIAS)
 
 ${libbuild_dir}/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
-	$(AR) $@ $?
+	$(AR) cr $@ $?
 	$(RANLIB) $@
 
 libmpid.a: $(MPI_OBJECTS) 
-	$(AR) $@ $?
+	$(AR) cr $@ $?
 	$(RANLIB) $@
 
 FORCE:

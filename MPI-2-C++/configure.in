@@ -463,6 +463,13 @@ if test "$MPI_IMP" = "mpich"; then
 		if test -z "$MPICH_BIN"; then
 		    AC_MSG_ERROR([when configuring for 1.2.6, --with-mpichbin must be specified])
 		fi
+	    elif test "$MPICH_VERSION" = "1.2.7."; then
+		AC_DEFINE(MPI2CPP_MPICH121)
+		AC_MSG_RESULT([1.2.7 (good)])
+		WANT_UPGRADE=0
+		if test -z "$MPICH_BIN"; then
+		    AC_MSG_ERROR([when configuring for 1.2.7, --with-mpichbin must be specified])
+		fi
 	    else
 		AC_DEFINE(MPI2CPP_MPICHUNKNOWN, 1)
 		AC_MSG_RESULT([unrecognized MPICH level -- good luck!])
@@ -1005,6 +1012,11 @@ fi
 
 LOCAL_CXXFLAGS_SAVE=$CXXFLAGS
 CXXFLAGS="$CXXFLAGS"
+#
+# Note that PROG_CXX looks in CCC, not CXX !!
+if test -z "$CCC" -a -n "$CXX" ; then
+    CCC="$CXX"
+fi
 AC_PROG_CXX
 AC_PROG_CXXCPP
 CXXFLAGS="$LOCAL_CXXFLAGS_SAVE"

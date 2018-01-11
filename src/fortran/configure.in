@@ -1,6 +1,6 @@
+AC_PREREQ(2.59) dnl needed for SHELL, added in 2.13
 AC_INIT(Makefile.in)
 dnl
-AC_PREREQ(2.13) dnl needed for SHELL, added in 2.13
 rm -f ${srcdir}/mpi_fortconf.h mpi_fortconf.h
 AC_CONFIG_HEADER(mpi_fortconf.h)
 dnl We need install.sh, config.guess, etc. for the code that
@@ -174,7 +174,7 @@ AC_SUBST(libbuild_dir)
 AC_SUBST(FORTRAN_INITOBJ)
 AC_SUBST(INCLUDES)
 if test "$pac_lib_mpi_is_building" = "yes" ; then 
-    AC_DEFINE(BUILDING_IN_MPICH)
+    AC_DEFINE(BUILDING_IN_MPICH,1,[Define if building within MPICH1])
     FORTRAN_INITOBJ="initfutil.o"
     # We should replace mpicc with the values used in the MPICH build.
     # This is best done with an environment variable (? what about 
@@ -245,7 +245,7 @@ if test -z "$F77LINKER" ; then
 fi
 
 if test "$pac_lib_mpi_is_building" = "yes" ; then
-    AC_DEFINE(HAVE_MPI_F2C)
+    AC_DEFINE(HAVE_MPI_F2C,1,[Define if MP_Xxx_f2c functions available])
 else
     PAC_MPI_F2C
 
@@ -401,7 +401,10 @@ PAC_PROG_F77_IN_C_LIBS
 AC_SUBST(F77_IN_C_LIBS)
 AC_LANG_FORTRAN77
 PAC_PROG_F77_EXCLAIM_COMMENTS(has_exclaim="yes",has_exclaim="no")
-PAC_PROG_F77_NEW_CHAR_DECL(CHARDECL="(LEN=*)",CHARDECL="*(*)")
+dnl We're having trouble with this macro, so we use the old but
+dnl always valid format for character declarations
+dnl PAC_PROG_F77_NEW_CHAR_DECL(CHARDECL="(LEN=*)",CHARDECL="*(*)")
+CHARDECL="*(*)"
 AC_SUBST(CHARDECL)
 dnl PAC_F77_CHECK_COMPILER_OPTION(-g)
 PAC_PROG_F77_HAS_INCDIR(include)
@@ -438,7 +441,7 @@ if test "$f77_has_pointer" = "yes" -a "$use_pointer_in_f77" = "yes" ; then
         data MPI_BOTTOM_PTR/0/, MPI_STATUS_IG_PTR/0/
 	data MPI_STATUSES_IG_PTR/0/
 EOF
-    AC_DEFINE(USE_POINTER_FOR_BOTTOM)
+    AC_DEFINE(USE_POINTER_FOR_BOTTOM,1[Define if pointer should be use for MPI_BOTTOM])
     dnl Note that with this, we do not need the call to mpir_init_fcm
     dnl in initfcmn.f .
 else
@@ -473,11 +476,16 @@ PAC_PROG_F77_CHECK_SIZEOF(double precision,$CROSS_F77_SIZEOF_DOUBLE_PRECISION)
 # If we have sizes for real and double, we do not need to call mpir_get_fsize
 # at run time.
 #
-AC_TRY_COMPILE(,[      integer*1 i],has_integer_1=1,has_integer_1=0)
-AC_TRY_COMPILE(,[      integer*2 i],has_integer_2=2,has_integer_2=0)
-AC_TRY_COMPILE(,[      integer*4 i],has_integer_4=4,has_integer_4=0)
-AC_TRY_COMPILE(,[      integer*8 i],has_integer_8=8,has_integer_8=0)
-AC_TRY_COMPILE(,[      integer*16 i],has_integer_16=16,has_integer_16=0)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,[      integer*1 i])],
+    has_integer_1=1,has_integer_1=0)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,[      integer*2 i])],
+    has_integer_2=2,has_integer_2=0)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,[      integer*4 i])],
+    has_integer_4=4,has_integer_4=0)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,[      integer*8 i])],
+    has_integer_8=8,has_integer_8=0)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,[      integer*16 i])],
+    has_integer_16=16,has_integer_16=0)
 dnl PAC_PROG_F77_CHECK_SIZEOF(integer*1,0)
 dnl PAC_PROG_F77_CHECK_SIZEOF(integer*2,0)
 dnl PAC_PROG_F77_CHECK_SIZEOF(integer*4,0)
@@ -487,9 +495,12 @@ dnl PAC_PROG_F77_CHECK_SIZEOF(integer*16,0)
 dnl PAC_PROG_F77_CHECK_SIZEOF(real*4,0)
 dnl PAC_PROG_F77_CHECK_SIZEOF(real*8,0)
 dnl PAC_PROG_F77_CHECK_SIZEOF(real*16,0)
-AC_TRY_COMPILE(,[      real*4 a],has_real_4=4,has_real_4=0)
-AC_TRY_COMPILE(,[      real*8 a],has_real_8=8,has_real_8=0)
-AC_TRY_COMPILE(,[      real*16 a],has_real_16=16,has_real_16=0)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,[      real*4 a])],
+    has_real_4=4,has_real_4=0)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,[      real*8 a])],
+    has_real_8=8,has_real_8=0)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,[      real*16 a])],
+    has_real_16=16,has_real_16=0)
 
 
 # Compare the sizes of these types to the C types
@@ -501,7 +512,7 @@ AC_CHECK_HEADERS(stdlib.h string.h)
 # Current bug: this is needed for mpi.h, which should eventually remove
 #   the ifdef test on USE_STDARG 
 # It is also used in the definition of MPIR_Err_setmsg.
-PAC_HEADER_STDARG([AC_DEFINE(USE_STDARG)],[AC_DEFINE(USE_OLDSTYLE_STDARG)])
+PAC_HEADER_STDARG([AC_DEFINE(USE_STDARG,1,[if stdarg available])],[AC_DEFINE(USE_OLDSTYLE_STDARG,1,[Define if only old-style stdarg available])])
 
 # Get defaults for cross compilation case
 CROSS_SIZEOF_CHAR=${CROSS_SIZEOF_CHAR:-0}
@@ -623,7 +634,7 @@ AC_SUBST(MPI_FINT_TYPE)
 dnl
 dnl Include a defined value for Fint is int
 if test "$MPI_FINT_TYPE" = "int" ; then
-    AC_DEFINE(FINT_IS_INT)
+    AC_DEFINE(FINT_IS_INT,,[Define if Fortran INTEGER is the same as C int])
 fi
 
 PAC_PROG_C_UNALIGNED_DOUBLES(,
@@ -632,7 +643,7 @@ to doubles.  This is required for interoperation with
 Fortran (the Fortran standard requires it).)])
 
 if test "$enable_weak" = "yes" ; then
-    PAC_PROG_C_WEAK_SYMBOLS(AC_DEFINE(HAVE_WEAK_SYMBOLS))
+    PAC_PROG_C_WEAK_SYMBOLS(AC_DEFINE(HAVE_WEAK_SYMBOLS,,[Define if weak symbols available]))
 fi
 
 #
@@ -664,7 +675,7 @@ int main()
     true_val="`echo $pac_cv_prog_f77_true_false_value | sed -e 's/ .*//g'`"
     false_val="`echo $pac_cv_prog_f77_true_false_value | sed -e 's/.*  *//g'`"
     if test -n "$true_val" -a -n "$false_val" ; then
-        AC_DEFINE(F77_TRUE_VALUE_SET)
+        AC_DEFINE(F77_TRUE_VALUE_SET,,[Define if Fortran logical values known])
         AC_DEFINE_UNQUOTED(F77_TRUE_VALUE,$true_val)
         AC_DEFINE_UNQUOTED(F77_FALSE_VALUE,$false_val)
 	AC_MSG_RESULT([True is $true_val and False is $false_val])
@@ -678,12 +689,13 @@ PAC_LANG_POP_COMPILERS
 if test "$pac_lib_mpi_is_building" = "yes" ; then
     AC_LANG_C
     FARGOBJ="farg.o"
-    AC_DEFINE(HAS_MPIR_ERR_SETMSG)
+    AC_DEFINE(HAS_MPIR_ERR_SETMSG,1,[Define if MPICH err msg routine available])
 else
     # Test for mpir_iargc; if not found, add farg.f.in
     AC_MSG_CHECKING([for mpir_iargc provided for command line in Fortran])
     AC_LANG_FORTRAN77
-    AC_TRY_LINK(,[mpir_iargc()],found="yes",found="no")
+    AC_LINK_IFELSE([AC_LANG_PROGRAM(,[mpir_iargc()])],
+        found="yes",found="no")
     if test "$found" = "no" ; then
         AC_MSG_RESULT(no)
         PAC_LANG_PUSH_COMPILERS
@@ -721,7 +733,7 @@ compile_check=yes,compile_check=no)
 	    AC_MSG_WARN([You may have problems compiling the Fortran interface
 specifically calls to  _fcdtocp])
         elif test "$compile_check" = "yes" ; then
-            AC_DEFINE(_TWO_WORD_FCD)
+            AC_DEFINE(_TWO_WORD_FCD,,[Define if Cray two-word FCD used])
         fi
         CFLAGS=$TEMP_CFLAGS
     fi
@@ -731,7 +743,7 @@ if test -n "$arch_UXPM" -o -n "$arch_uxpv" ; then
     # This asserts that Fortran passes functions by passing the address of the
     # pointer to the function.
     # We really need a TEST for this
-    AC_DEFINE(FORTRAN_SPECIAL_FUNCTION_PTR)
+    AC_DEFINE(FORTRAN_SPECIAL_FUNCTION_PTR,,[Define if function pointers special])
     # Suggested values for these are
     dnl CFLAGS=-O
     dnl    #FFLAGS=-Oe,-U -Aabe ( Parameter e is not supported on  uxp/m )

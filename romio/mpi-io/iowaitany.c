@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: iowaitany.c,v 1.6 2005/02/27 15:13:39 gropp Exp $    
  *
  *   Copyright (C) 2003 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

@@ -24,7 +24,7 @@ if [ -n "$p4ssport" ] ; then
     fi
     # Old server
     if [ -r $HOME/.p4apps ] ; then
-        if grep $progname $HOME/.p4apps > /dev/null 2>&1 ; then 
+        if grep "$progname" $HOME/.p4apps > /dev/null 2>&1 ; then 
 	    :
 	else 
 	    echo "$progname" >> $HOME/.p4apps
@@ -68,20 +68,20 @@ fi
 # select a second network whose names are not those returned by
 # "hostname".  For example, a system with a DEC Gigiswitch, Myricom 
 # network, or IP over the IBM SP2 switch (HPS).
-prognamemain=$progname
+prognamemain="$progname"
 if [ -z "$p4pgfile"  ] ; then
     p4pgfile="$PWD_TRIAL/PI$$"
     # We need to explicitly redirect stderr.
     # Under Solaris, an echo that fails aborts the script (!)  There is
     # no way around this using echo, so we use cat instead.
-    cat <<EOF 2>/dev/null > $p4pgfile
+    cat <<EOF 2>/dev/null > "$p4pgfile"
 Test
 EOF
     if [ ! -s "$p4pgfile" ] ; then
 	# May not be able to write there.  Try the user's home directory
-	p4pgfile=$HOME/PI$$
+	p4pgfile="$HOME/PI$$"
     else
-	rm -rf $p4pgfile
+	rm -rf "$p4pgfile"
     fi
     # cnt is the "index" into the list of machines
     procNum=1
@@ -95,8 +95,8 @@ EOF
     fi
     nprocval=`expr $nprocval - 1`
     archval=$archlocal
-    proginstance=`echo $progname | sed "s/%a/$archval/g"`
-    prognamemain=$proginstance
+    proginstance="`echo "$progname" | sed "s/%a/$archval/g"`"
+    prognamemain="$proginstance"
     if [ "$just_testing" = 1 ] ; then
        echo "Procgroup file:"
        if [ "$nolocal" = 0 ] ; then
@@ -126,9 +126,9 @@ EOF
 	    else
 	        nprocval=`expr $nproclocal - 1`
 	    fi
-	    echo "$MPI_HOST $nprocval $proginstance" > $p4pgfile
+	    echo "$MPI_HOST $nprocval $proginstance" > "$p4pgfile"
        else
-	    echo "$machinehead $nprocval $proginstance" > $p4pgfile
+	    echo "$machinehead $nprocval $proginstance" > "$p4pgfile"
             procNum=2
        fi
     fi
@@ -140,11 +140,11 @@ EOF
 	archval=`echo $archuselist | cut -d' ' -f$cnt`
 	nprocval=`echo $nprocuselist | cut -d' ' -f$cnt`
 	cnt=`expr $cnt + 1`
-	proginstance=`echo $progname | sed "s/%a/$archval/g"`
+	proginstance="`echo "$progname" | sed "s/%a/$archval/g"`"
 	if [ $just_testing = 1 ] ; then
-	    echo $machine $nprocval $proginstance
+	    echo "$machine $nprocval $proginstance"
 	else
-	    echo $machine $nprocval $proginstance >> $p4pgfile
+	    echo "$machine $nprocval $proginstance" >> "$p4pgfile"
 	fi
     done
 
@@ -172,18 +172,18 @@ $SYNCLOC > /dev/null 2>&1
 # given as command line argument
 #
 if [ "$p4workdir" = "" ] ; then
-    p4workdir=$PWD_TRIAL
+    p4workdir="$PWD_TRIAL"
 fi
 #
 # Having a p4pgfile_master allows us to move the pg file to a location
 # where the master process can read it, even if the master does not
 # share a file system with the process that mpirun is executing on 
-p4pgfile_master=$p4pgfile
+p4pgfile_master="$p4pgfile"
 if [ "$nolocal" = 1 -a "$move_pgfile_to_master" = "yes" ] ; then
     # Should we use $TMPDIR  instead of /tmp here?
     p4pgfile_master=/tmp/`basename $p4pgfile`
 fi
-startpgm="$prognamemain $cmdLineArgs -p4pg $p4pgfile_master -p4wd $p4workdir"
+startpgm="\"$prognamemain\" $cmdLineArgs -p4pg \"$p4pgfile_master\" -p4wd \"$p4workdir\""
 # The following could use the -stdin filename from mpirun, though
 # it doesn't handle the problem of the created jobs.
 #if [ -n "$stdinfile" ] ; then
@@ -204,7 +204,7 @@ if [ "$debugger" != "" ] ; then
         export nolocal
 	export machinehead
 	export stdinfile
-        $MPIRUN_HOME/mpirun_dbg.$debugger -progname $prognamemain -p4pg $p4pgfile_master -p4wd $p4workdir -cmdlineargs "$cmdLineArgs"
+        $MPIRUN_HOME/mpirun_dbg.$debugger -progname "$prognamemain" -p4pg "$p4pgfile_master" -p4wd "$p4workdir" -cmdlineargs "$cmdLineArgs"
     else
         echo "Cannot run debugger - no debugger script." 
 	exit 1
@@ -237,10 +237,10 @@ else
         fi
     fi
     if [ -n "$stdinfile" ] ; then
-        $doitall $startpgm < $stdinfile
+        $doitall "$startpgm" < $stdinfile
         exitstatus=$?
     else
-        $doitall $startpgm
+        $doitall "$startpgm"
         exitstatus=$?
     fi
 fi
@@ -251,7 +251,7 @@ if [ "$just_testing" != 1 ] ; then
         fi
     else
         if [ "$nolocal" = 1 -a "$move_pgfile_to_master" = "yes" ] ; then
-	    $rshcmd -n $machinehead /bin/rm $p4pgfile_master
+	    $rshcmd -n $machinehead /bin/rm "$p4pgfile_master"
         fi
         rm "$p4pgfile"
     fi

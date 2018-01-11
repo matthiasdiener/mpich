@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_init.c,v 1.11 2004/10/04 15:51:24 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -49,6 +48,9 @@ void ADIO_Init(int *argc, char ***argv, int *error_code)
 #ifdef ROMIO_XFS
     char *c;
 #endif
+
+    ADIOI_UNREFERENCED_ARG(argc);
+    ADIOI_UNREFERENCED_ARG(argv);
 
 /* initialize the linked list containing flattened datatypes */
     ADIOI_Flatlist = (ADIOI_Flatlist_node *) ADIOI_Malloc(sizeof(ADIOI_Flatlist_node));

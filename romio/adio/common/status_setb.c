@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: status_setb.c,v 1.14 2005/05/23 23:27:49 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -17,6 +16,7 @@
 int MPIR_Status_set_bytes(MPI_Status *status, MPI_Datatype datatype, 
 			  int nbytes)
 {
+    ADIOI_UNREFERENCED_ARG(datatype);
     /* it's ok that ROMIO stores number-of-bytes in status, not 
      * count-of-copies, as long as MPI_GET_COUNT knows what to do */
     if (status != MPI_STATUS_IGNORE)

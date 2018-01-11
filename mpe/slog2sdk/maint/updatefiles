@@ -40,11 +40,10 @@ if [ "$acWorks" != yes ] ; then
 fi
 rm -rf .tmp
 
-# The directory of this script is located
-PWD=`pwd`
-curr_dir="$PWD/`dirname $0`"
 # The parent directory of where this script is located
-master_dir="`dirname $curr_dir`"
+saved_wd=`pwd`
+cd `dirname $0`/.. && master_dir=`pwd`
+cd $saved_wd
 
 # Locate all the configure.in under master_dir
 cfgins=`find $master_dir -name 'configure.in' -print`
@@ -55,5 +54,5 @@ for cfgin in $cfgins ; do
     if [ -n "`grep AC_CONFIG_HEADER $cfgin`" ] ; then
         $SLOG2_AUTOHEADER
     fi
-    $SLOG2_AUTOCONF
+    $SLOG2_AUTOCONF && rm -rf autom4te*.cache
 done

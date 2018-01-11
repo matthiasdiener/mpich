@@ -1,21 +1,20 @@
 #if !defined(MPID_FORT_H)
 #define MPID_FORT_H
 
-#define HAVE_MPI_OPEN_PORT 1
-#define F77_SED @F77_SED@
 
-#if F77_SED
+
 /*
- * This section of the header file converts all MPI_ names into MPQ_ names, so
- * that we avoid name clashing when using the vendor's MPI library.
+ * This header file converts all MPI_ names into MPQ_ names, so that we avoid
+ * name clashing when using the vendor's MPI library.
  *
  * Based on a C hack by Warren Smith, extended to Fortran by Olle Larsson,
  * updated and integrated in the MPICH distribution by Nick Karonis and
  * Brian Toonen.
  *
- * This code is used only when you specify -f77sed during MPICH configuration,
+ * This file is used only when you specify -f77sed during MPICH configuration,
  * and under those circumstances, fortran90 will not work.  This file is
- * intended to be used as a fallback position ... it is NOT our first choice.
+ * intended to be used as a fallback position ... it is NOT our first
+ * choice.
  *
  */
 
@@ -2435,7 +2434,5 @@
 #   endif
 #   define pmpi_status_set_elements_ pmpq_status_set_elements_
 #endif
-
-#endif /* F77_SED */
 
 #endif /* !defined(MPID_FORT_H) */

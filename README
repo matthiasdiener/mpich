@@ -1,15 +1,17 @@
 
 		      Portable MPI Model Implementation
 
-			 Version 1.2.7, June, 2005
+			 Version 1.2.7p1, November, 2005
 
                                  David Ashton
                                  Anthony Chan
 				  Bill Gropp
                                   Rob Latham
 				  Rusty Lusk
+                                 Neill Miller
                                    Rob Ross
                                  Rajeev Thakur
+                                 Brian Toonen
 
 		  Mathematics and Computer Science Division
 			 Argonne National Laboratory
@@ -21,8 +23,7 @@ the MPI Standard and also significant parts of MPI-2, particularly in the
 area of parallel I/O.
 
 This is only a bug fix release.  All new work is in MPICH2, available at
-www.mcs.anl.gov/mpi/mpich2 .  In fact, this may be the last release
-of MPICH1.  
+www.mcs.anl.gov/mpi/mpich2 .
 
 The installation and user's manuals have been combined as of the
 1.2.3. release; in addition, device-specific versions are available,
@@ -60,6 +61,8 @@ fixed)
 Systems on which we test frequently and which MPICH is known to run include
 
 Linux for IA32 (several flavors)
+Linux for IA64
+Linux for Alpha
 Solaris (both 32 bit and 64 bit)
 
 MPICH has also been built on 
@@ -154,9 +157,7 @@ called MPICH2 and is available at www.mcs.anl.gov/mpi/mpich2 .
 
 Reporting Bugs:
 
-If you have trouble, first try MPICH2 (www.mcs.anl.gov/mpi/mpich2) .
-
-If you need to use MPICH1, check the installation and user manuals (in 
+If you have trouble, first check the installation and user manuals (in 
 mpich/doc/) .  Next, check the on-line bug list at
 http://www.mcs.anl.gov/mpi/mpich .  Finally, if you are still having problems,
 send

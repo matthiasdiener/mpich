@@ -65,6 +65,17 @@ typedef unsigned long usc_time_t;
 #endif
 
 /* --------------------------------
+   Machine Synonyms
+   When P4 and the usc package were designed, there were no truely
+   portable operating systems, so using the OS name for the machine
+   was a 1-1 mapping.  With various Unix versions, particularly Linux, 
+   this is no longer true.
+   -------------------------------- */
+#if defined(LINUX_PPC) && !defined(LINUX)
+#define LINUX
+#endif
+
+/* --------------------------------
  Machine dependent declarations
 -------------------------------- */
 

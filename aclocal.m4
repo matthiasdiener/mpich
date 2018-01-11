@@ -1712,9 +1712,9 @@ define(PAC_GET_AR,[
 if test -z "$USERAR" ; then
 case $1 in 
    intelnx|paragon|i860) AR="ar860 crl" ; ARNAME="ar860" ; ARARGS="crl" ;;
-   cm5) AR="ar cr" ; ARNAME="ar" ; ARARGS="cr"
+   cm5) AR="ar" ; ARNAME="ar" ; ARARGS="cr"
    ;;
-   meiko|solaris) AR="ar cr" ; ARNAME="ar" ; ARARGS="cr" 
+   meiko|solaris) AR="ar" ; ARNAME="ar" ; ARARGS="cr" 
    ;;
    ncube) AR="nar cr" ; ARNAME="nar" ; ARARGS="cr" ;;
    *)
@@ -1725,7 +1725,7 @@ if test -z "$ARNAME" ; then
     ARNAME="ar"
 fi
 if test -z "$AR" ; then 
-    AR="$ARNAME cr$ARLOCAL" ; ARARGS="cr$ARLOCAL" 
+    AR="$ARNAME" ; ARARGS="cr$ARLOCAL" 
 fi
 ])dnl
 dnl --------------------------------------------------------
@@ -2590,7 +2590,7 @@ if test $broken = 1 ; then
     AC_MSG_RESULT(no)
     print_error "Error in creating test object for ranlib!"
 else
-    arcmd='$AR foo.a conftest.o >conftest.out 2>&1'
+    arcmd='$AR cr foo.a conftest.o >conftest.out 2>&1'
     eval $arcmd
     ranlibtest='$RANLIB foo.a >>conftest.out 2>&1'
     if eval $ranlibtest ; then
@@ -2662,7 +2662,7 @@ dnl
 dnl Build the library
 compileonly='${CC-cc} -c $CFLAGS conftest1.c >conftest.out 2>&1'
 if eval $compileonly ; then 
-    arcmd='$AR libfoo.a conftest1.o >conftest.out 2>&1'
+    arcmd='$AR cr libfoo.a conftest1.o >conftest.out 2>&1'
     eval $arcmd
     ranlibtest='$RANLIB libfoo.a >>conftest.out 2>&1'
     if eval $ranlibtest ; then

@@ -78,11 +78,19 @@ int main( int argc, char **argv)
             flag = 0;
 	    /* This test depends on a working wtime.  Make a simple check */
 	    if (t0 == 0 && MPI_Wtime() == 0) {
-		fprintf( stderr, 
-		 "MPI_WTIME is returning 0; a working value is needed\n\
+		int loopcount = 1000000;
+		/* This test is too severe (systems with fast 
+		   processors and large MPI_Wtick values can 
+		   fail.  Try harder to test MPI_Wtime */
+		while (loopcount-- && MPI_Wtime() == 0) ;
+		if (loopcount <= 0) {
+		    fprintf( stderr, 
+			     "MPI_WTIME is returning 0; a working value is needed\n\
 for this test.\n" );
-		Test_Failed(Current_Test);
-		MPI_Abort( MPI_COMM_WORLD, 1 );
+		    Test_Failed(Current_Test);
+		    MPI_Abort( MPI_COMM_WORLD, 1 );
+		}
+		t0 = MPI_Wtime();
 	    }
             while (MPI_Wtime() - t0 < MAX_TIME) {
                 MPI_Iprobe( src, 2, MPI_COMM_WORLD, &flag, &status );

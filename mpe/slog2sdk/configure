@@ -274,7 +274,8 @@ PACKAGE_BUGREPORT=
 ac_subdirs_all="$ac_subdirs_all src"
 ac_subdirs_all="$ac_subdirs_all trace_sample"
 ac_subdirs_all="$ac_subdirs_all trace_rlog"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS top_srcdir_abs VPATH MAKE RM build build_cpu build_vendor build_os host host_cpu host_vendor host_os JVMFLAGS JVM JPATH_START JPATH_FINAL libbuild_dir binbuild_dir docbuild_dir etcbuild_dir sharebuild_dir sbinbuild_dir logfilesbuild_dir subdirs TRACE_LIBDIR EXEFILES LIBOBJS LTLIBOBJS'
+ac_subdirs_all="$ac_subdirs_all $oldsource_dirname"
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS top_srcdir_abs logfilesdir docdir VPATH MAKE RM build build_cpu build_vendor build_os host host_cpu host_vendor host_os JVMFLAGS JVM JPATH_START JPATH_FINAL libbuild_dir binbuild_dir docbuild_dir etcbuild_dir sharebuild_dir sbinbuild_dir logfilesbuild_dir subdirs TRACE_LIBDIR EXEFILES LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -811,6 +812,9 @@ Optional Features:
 --enable-rlog                      - Build RLOG TRACE-API implementation.
                                      Java Standard Development Kit, SDK,
                                      is needed.  The default is enable=yes.
+--enable-clog                      - Build CLOG related wrappers, e.g.
+                                     clog2TOslog2, clog2print....
+                                     The default is enable=yes.
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -837,6 +841,15 @@ Optional Packages:
 --with-trace-name=TRACE_NAME       - The new name prefix that replaces
                                      the word trace in the utility programs
                                      traceprint and traceTOslog2.
+--with-logfilesdir=dir             - Specify the logfiles directory.
+--with-docdir=dir                  - Specify the documentation directory.
+--with-oldsource=OLD_SRCDIR        - Build the old jar files from the given OLD
+                                     Java source and to build slog2updater.
+                                     This option is ignored if --enable-source
+                                     is turned off.  The option should be set
+                                     with a valid directory name. e.g. src_205,
+                                     then --with-oldsource=src_205.
+                                     The default is no.
 
 _ACEOF
 fi
@@ -1437,6 +1450,41 @@ if test "${with_trace_name+set}" = set; then
   withval="$with_trace_name"
   TRACE_NAME=$withval
 fi;
+
+
+# Check whether --with-logfilesdir or --without-logfilesdir was given.
+if test "${with_logfilesdir+set}" = set; then
+  withval="$with_logfilesdir"
+
+else
+  with_logfilesdir='${prefix}/logfiles'
+fi;
+
+
+# Check whether --with-docdir or --without-docdir was given.
+if test "${with_docdir+set}" = set; then
+  withval="$with_docdir"
+
+else
+  with_docdir='${prefix}/doc'
+fi;
+
+#
+# Set the defaults for directories that are not included in configure's
+# repetoire
+if test -n "$with_logfilesdir" ; then
+    logfilesdir=$with_logfilesdir
+else
+    logfilesdir='${prefix}/logfiles'
+fi
+
+
+if test -n "$with_docdir" ; then
+    docdir=$with_docdir
+else
+    docdir='${prefix}/doc'
+fi
+
 
 # Fixup for make
 MAKE=${MAKE:-make}
@@ -2452,6 +2500,7 @@ fi
 
 
 # Options to disselect individual subpackage
+# slog2_enable_{build|source|sample|rlog} are env. variables set by MPE2
 # Check whether --enable-build or --disable-build was given.
 if test "${enable_build+set}" = set; then
   enableval="$enable_build"
@@ -2484,6 +2533,23 @@ else
   enable_rlog=${slog2_enable_rlog:-yes}
 fi;
 
+# Check whether --enable-clog or --disable-clog was given.
+if test "${enable_clog+set}" = set; then
+  enableval="$enable_clog"
+
+else
+  enable_clog=yes
+fi;
+
+
+# Check whether --with-oldsource or --without-oldsource was given.
+if test "${with_oldsource+set}" = set; then
+  withval="$with_oldsource"
+
+else
+  with_oldsource=""
+fi;
+
 if test "$enable_build" = "no" ; then
     enable_source=no;
     enable_sample=no;
@@ -2496,6 +2562,13 @@ sample_dirname="trace_sample"
 rlog_dirname="trace_rlog"
 
 trial_pkgs="source sample rlog"
+
+# The XXX in XXX_dirname below must match with AC_ARG_WITH( XXX, .. ) above
+if test "$enable_source" = "yes" \
+     -a "X$with_oldsource" != "X" ; then
+    oldsource_dirname="$with_oldsource"
+    trial_pkgs="$trial_pkgs oldsource"
+fi
 
 echo "$as_me:$LINENO: checking for leftover Makefiles in subpackages " >&5
 echo $ECHO_N "checking for leftover Makefiles in subpackages ... $ECHO_C" >&6
@@ -2548,10 +2621,22 @@ if test "$enable_rlog" = "yes" \
 subdirs="$subdirs trace_rlog"
 
 fi
+if test "X$with_oldsource" != "X" \
+     -a -s $srcdir/$oldsource_dirname/configure ; then
+    selected_pkgs="$selected_pkgs oldsource"
 
+
+subdirs="$subdirs $oldsource_dirname"
+
+fi
 # Define bindir's executables, and pass them down to sbindir's install-package
-BASIC_PGMS="clogprint clogTOslog2 clog2print clog2TOslog2 slog2navigator slog2print slog2filter logconvertor jumpshot"
+BASIC_PGMS="slog2print slog2navigator slog2filter slog2updater logconvertor jumpshot"
 TRACE_PGMS="traceprint traceTOslog2"
+
+CLOG_PGMS="clogprint clogTOslog2 clog2print clog2TOslog2"
+if test "$enable_clog" = "yes" ; then
+    BASIC_PGMS="$BASIC_PGMS $CLOG_PGMS"
+fi
 
 if test "x$TRACE_LIBDIR" != "x" ; then
     echo "$as_me:$LINENO: checking for libTraceInput.so and TraceInput.dll" >&5
@@ -3178,6 +3263,8 @@ s,@ECHO_N@,$ECHO_N,;t t
 s,@ECHO_T@,$ECHO_T,;t t
 s,@LIBS@,$LIBS,;t t
 s,@top_srcdir_abs@,$top_srcdir_abs,;t t
+s,@logfilesdir@,$logfilesdir,;t t
+s,@docdir@,$docdir,;t t
 s,@VPATH@,$VPATH,;t t
 s,@MAKE@,$MAKE,;t t
 s,@RM@,$RM,;t t

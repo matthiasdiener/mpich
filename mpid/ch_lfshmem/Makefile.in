@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.10 2004/08/18 12:17:40 gropp Exp $
+#  $Id: Makefile.in,v 1.11 2005/10/17 16:25:10 gropp Exp $
 #
 #  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -70,7 +70,7 @@ p2p.o: ../ch_shmem/p2psemop.c p2p.c ../ch_shmem/p2pprocs.c
 # is the same, but for the profile library
 default_all: setlinks default_files
 default_files: $(MPI_OBJECTS)
-	$(AR) $(LIBNAME) $?
+	$(AR) cr $(LIBNAME) $?
 profile_all: 
 
 clean:
@@ -115,11 +115,11 @@ setlinks:
 	$(ASM) -o $*.o $*.s
 
 ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
-	$(AR) $@ $?
+	$(AR) cr $@ $?
 	$(RANLIB) $@
 
 libmpid.a: $(MPI_OBJECTS) mprerr.o
-	$(AR) $@ $?
+	$(AR) cr $@ $?
 	$(RANLIB) $@
 
 lint:

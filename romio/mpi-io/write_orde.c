@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: write_orde.c,v 1.18 2005/02/18 00:39:11 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -41,6 +40,8 @@ int MPI_File_write_ordered_end(MPI_File mpi_fh, void *buf, MPI_Status *status)
     int error_code;
     static char myname[] = "MPI_FILE_WRITE_ORDERED_END";
     ADIO_File fh;
+
+    MPIU_UNREFERENCED_ARG(buf);
 
     MPID_CS_ENTER();
 

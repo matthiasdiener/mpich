@@ -24,14 +24,18 @@ int main( int argc, char *argv[] )
     /* This test depends on a working wtime.  Make a simple check */
     t0 = MPI_Wtime();
     if (t0 == 0 && MPI_Wtime() == 0) {
-	/* We MAY have a problem.  Check some more */
-	for (a=0; a<1000; a++) t0 = MPI_Wtime();
-	if (t0 == 0) {
+	int loopcount = 1000000;
+	/* This test is too severe (systems with fast 
+	   processors and large MPI_Wtick values can 
+	   fail.  Try harder to test MPI_Wtime */
+	while (loopcount-- && MPI_Wtime() == 0) ;
+	if (loopcount <= 0) {
 	    fprintf( stderr, 
 		     "MPI_WTIME is returning 0; a working value is needed\n\
 for this test.\n" );
 	    MPI_Abort( MPI_COMM_WORLD, 1 );
 	}
+	t0 = MPI_Wtime();
     }
 
     easy = 1;

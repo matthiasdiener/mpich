@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_iopen.c,v 1.1 2003/06/08 05:21:43 robl Exp $
  *
  *   Copyright (C) 2002 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
