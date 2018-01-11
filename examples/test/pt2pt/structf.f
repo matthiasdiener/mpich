@@ -24,8 +24,9 @@ C
       character buf(bufsize)
       character name*(10)
       integer status(MPI_STATUS_SIZE)
-      integer*4 i
-      real*8 x
+      integer i
+      double precision x
+      integer src, dest
 
 C     Enroll in MPI
       call mpi_init(ierr)
@@ -34,8 +35,10 @@ C     get my rank
       call mpi_comm_rank(MPI_COMM_WORLD, me, ierr)
 
       comm = MPI_COMM_WORLD
+      src = 0
+      dest = 1
 
-      if(me.eq.0) then
+      if(me.eq.src) then
           i=5
           x=5.1234d0
           name="hello"
@@ -50,15 +53,17 @@ C     get my rank
 
           call mpi_type_struct(2,length,disp,type,newtype,ierr)
           call mpi_type_commit(newtype,ierr)
-          call mpi_send(MPI_BOTTOM,1,newtype,1,1,comm,ierr)
+          call mpi_barrier( MPI_COMM_WORLD, ierr )
+          call mpi_send(MPI_BOTTOM,1,newtype,dest,1,comm,ierr)
           call mpi_type_free(newtype,ierr)
 C         write(*,*) "Sent ",name(1:5),x
-      else if (me.eq.1) then
+      else if (me.eq.dest) then
+          call mpi_barrier( MPI_COMM_WORLD, ierr )
           position=0
 
           name = " "
           x    = 0.0d0
-          call mpi_recv(buf,bufsize,MPI_PACKED, 0,
+          call mpi_recv(buf,bufsize,MPI_PACKED, src,
      .    1, comm, status, ierr)
 
           call mpi_unpack(buf,bufsize,position,

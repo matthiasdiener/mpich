@@ -1,5 +1,5 @@
 /*
- *  $Id: sendq.h,v 1.1 1996/07/05 16:00:09 gropp Exp $
+ *  $Id: sendq.h,v 1.3 1997/01/07 01:50:00 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -21,7 +21,10 @@
  * one test on a global variable in isend, wait and so on)
  * then change the definition below.
  */
-#define MPI_KEEP_SEND_QUEUE
+/*
+ * This definition is now set by the configure process
+ */
+/* #define MPI_KEEP_SEND_QUEUE */
 
 #ifdef MPI_KEEP_SEND_QUEUE
 /* Useful definitions */
@@ -34,8 +37,8 @@
 #define MPIR_SENDQ_INIT()     MPIR_Sendq_init()
 #define MPIR_SENDQ_FINALIZE() MPIR_Sendq_finalize()
 
-#if defined(__STDC__) || defined(__cplusplus)
-extern void MPIR_Remember_send(MPIR_SHANDLE *, void *, int, MPI_Datatype, int, int, MPI_Comm);
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
+extern void MPIR_Remember_send(MPIR_SHANDLE *, void *, int, MPI_Datatype, int, int, struct MPIR_COMMUNICATOR *);
 extern void MPIR_Forget_send(MPIR_SHANDLE *);
 #else
 extern void MPIR_Remember_send();

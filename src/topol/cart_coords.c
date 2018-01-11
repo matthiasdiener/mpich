@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_coords.c,v 1.15 1996/04/12 15:42:14 gropp Exp $
+ *  $Id: cart_coords.c,v 1.17 1997/01/07 01:48:01 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -41,13 +41,18 @@ int      *coords;
   int mpi_errno = MPI_SUCCESS;
   MPIR_TOPOLOGY *topo;
   int nnodes;
+  struct MPIR_COMMUNICATOR *comm_ptr;
+  static char myname[] = "MPI_CART_COORDS";
+
+  TR_PUSH(myname);
+  comm_ptr = MPIR_GET_COMM_PTR(comm);
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
   /* Check for valid arguments */
-  if ( MPIR_TEST_COMM( comm, comm ) ||
-       ((rank                <  0)       && (mpi_errno = MPI_ERR_RANK))      ||
+  if ( ((rank                <  0)       && (mpi_errno = MPI_ERR_RANK))      ||
        ((maxdims             <  1)       && (mpi_errno = MPI_ERR_DIMS))      ||
        MPIR_TEST_ARG(coords) )
-    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_CART_COORDS" );
+    return MPIR_ERROR( comm_ptr, mpi_errno, myname );
 
   /* Get topology information from the communicator */
   MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );
@@ -56,7 +61,7 @@ int      *coords;
   if ( ( (flag != 1)                 && (mpi_errno = MPI_ERR_TOPOLOGY))  ||
        ( (topo->type != MPI_CART)    && (mpi_errno = MPI_ERR_TOPOLOGY))  ||
        ( (rank >= topo->cart.nnodes) && (mpi_errno = MPI_ERR_RANK))      )
-    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_CART_COORDS" );
+    return MPIR_ERROR( comm_ptr, mpi_errno, myname );
 
   /* Calculate coords */
   nnodes = topo->cart.nnodes;
@@ -66,5 +71,6 @@ int      *coords;
     rank      = rank % nnodes;
   }
 
+  TR_POP;
   return (mpi_errno);
 }

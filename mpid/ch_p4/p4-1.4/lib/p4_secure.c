@@ -1,21 +1,23 @@
 #include "p4.h"
 #include "p4_sys.h"
 
-#if defined(SYMMETRY) || defined(SUN)  || \
+/* #if defined(SYMMETRY) || defined(SUN)  || \
     defined(DEC5000)  || defined(SGI)  || \
     defined(RS6000)   || defined(HP)   || \
     defined(NEXT)     || defined(CRAY) || \
     defined(CONVEX)   || defined(KSR)  || \
     defined(FX2800)   || defined(FX2800_SWITCH)  || \
-    defined(SP1)
+    defined(SP1)      || defined(LINUX) */
+
+#if !defined(P4_DO_NOT_USE_SERVER)
 
 /**********************************
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <pwd.h>
-#include <stdio.h>
+ #include <sys/types.h>
+ #include <sys/socket.h>
+ #include <netinet/in.h>
+ #include <netdb.h>
+ #include <pwd.h>
+ #include <stdio.h>
 **********************************/
 
 /* #define DEBUG */
@@ -23,7 +25,18 @@
 char *start_prog_error;
 
 extern int errno;
+
+/* 
+   The strerror function may be defined in string.h .  If you get warnings 
+   about lines that reference strerror and HAVE_STRERROR is defined,
+   make sure that <string.h> is being included (and contains the 
+   prototype for strerror).  Note that some systems, such as Solaris,
+   define strerror in string.h ONLY when the compiler asserts __STDC__ .
+ */
+#ifndef HAVE_STRERROR
+#define strerror(n) sys_errlist[n]
 extern char *sys_errlist[];
+#endif
 
 static int connect_to_server ANSI_ARGS((char *));
 static void send_string ANSI_ARGS((int,char *));
@@ -32,7 +45,7 @@ static void recv_string ANSI_ARGS((int,char *,int));
 int start_slave(host, username, prog, port, am_slave, pw_hook)
 char *host, *username, *prog, *am_slave;
 int port;
-char *(*pw_hook) ();
+char *(*pw_hook) ANSI_ARGS(( char *, char *));
 {
     int n, conn;
     struct passwd *pw;
@@ -41,7 +54,7 @@ char *(*pw_hook) ();
     char *pw_string;
     static char buf[250];
     char *local_username;
-    char myhost[256];
+    char myhost[MAXHOSTNAMELEN];
     int new_port, new_fd, stdout_fd;
     char msg[500];
     struct sockaddr_in temp;
@@ -65,7 +78,7 @@ char *(*pw_hook) ();
     pw = getpwuid(geteuid());
     if (pw == NULL)
     {
-	extern char *getlogin();
+	extern char *getlogin ANSI_ARGS((void));
 
 	local_username = getlogin();
 	if (local_username == NULL)
@@ -129,6 +142,8 @@ char *(*pw_hook) ();
 
     if ((pid = fork_p4()) == 0)
     {
+	/* This branch of the if is the process that listens to the
+	   remote process and receives data to send to stdout/stderr */
 	net_setup_anon_listener(10, &new_port, &new_fd);
 	fflush(stdout);
 	sprintf(port_string, "%d", new_port);
@@ -145,7 +160,14 @@ char *(*pw_hook) ();
 	    SYSCALL_P4(n, read(stdout_fd, msg, 499));
 	    if (n > 0)
 	    {
+		/* This can lose output if the write is blocked.
+		   it should probably defer or at least indicate
+		   data lost.  Note that if it waits for the write
+		   to complete, it might cause the writes on the
+		   other end to stall.  
+		 */
 		SYSCALL_P4(rc, write(1,msg,n));
+		/* This fflush is unnecessary; write will bypass anyway (?) */
 		fflush(stdout);
 	    }
 	}
@@ -197,7 +219,7 @@ char *host;
     SYSCALL_P4(conn, socket(AF_INET, SOCK_STREAM, 0));
     if (conn < 0)
     {
-	start_prog_error = sys_errlist[errno];
+	start_prog_error = strerror(errno);
 	return -1;
     }
 
@@ -214,7 +236,7 @@ char *host;
     SYSCALL_P4(rc, connect(conn, (struct sockaddr *) &addr, sizeof(addr)));
     if (rc < 0)
     {
-	start_prog_error = sys_errlist[errno];
+	start_prog_error = strerror(errno);
 	return -1;
     }
 
@@ -228,6 +250,11 @@ char *str;
     int rc, len = strlen(str);
     char nl = 10;
 
+    /* This code relies on the writes succeeding completely.
+       This will probably happen if the total length sent is no greater
+       than the socket buffer size.  More robust code would loop
+       until total length sent
+     */
     SYSCALL_P4(rc, write(sock, str, len));
     if (rc < 0)
     {
@@ -269,6 +296,10 @@ char *buf;
     *bptr = 0;
 }
 
+#if defined(LINUX)
+#define NO_ECHO
+#endif
+
 #if defined(P4BSD) && !defined(NO_ECHO)
 
 #ifdef FREEBSD
@@ -285,7 +316,7 @@ static int echo_off ANSI_ARGS((void))
 
     if (ioctl(0, TIOCGETP, &orig_tty) < 0)
     {
-	fprintf(stderr, "iotcl TIOCGETP failed: %s\n", sys_errlist[errno]);
+	fprintf(stderr, "iotcl TIOCGETP failed: %s\n", strerror(errno));
 	return -1;
     }
 
@@ -294,7 +325,7 @@ static int echo_off ANSI_ARGS((void))
 
     if (ioctl(0, TIOCSETP, &tty_new) < 0)
     {
-	fprintf(stderr, "iotcl TIOCSETP failed: %s\n", sys_errlist[errno]);
+	fprintf(stderr, "iotcl TIOCSETP failed: %s\n", strerror(errno));
 	return -1;
     }
     return 0;
@@ -304,14 +335,13 @@ static int echo_on ANSI_ARGS((void))
 {
     if (ioctl(0, TIOCSETP, &orig_tty) < 0)
     {
-	fprintf(stderr, "iotcl TIOCSETP failed: %s\n", sys_errlist[errno]);
+	fprintf(stderr, "iotcl TIOCSETP failed: %s\n", strerror(errno));
 	return -1;
     }
     return 0;
 }
 
-#else
-
+#elif defined(HAVE_TERMIO_H)
 #include <termio.h>
 
 struct termio tty_orig;
@@ -322,7 +352,7 @@ static int echo_off ANSI_ARGS((void))
 
     if (ioctl(0, TCGETA, &tty_orig) < 0)
     {
-	fprintf(stderr, "tcgetattr failed: %s\n", sys_errlist[errno]);
+	fprintf(stderr, "tcgetattr failed: %s\n", strerror(errno));
 	return -1;
     }
 
@@ -332,7 +362,7 @@ static int echo_off ANSI_ARGS((void))
 
     if (ioctl(0, TCSETA, &tty_new) < 0)
     {
-	fprintf(stderr, "tcsetattr failed: %s\n", sys_errlist[errno]);
+	fprintf(stderr, "tcsetattr failed: %s\n", strerror(errno));
 	return -1;
     }
     return (0);
@@ -342,13 +372,63 @@ static int echo_on ANSI_ARGS((void))
 {
     if (ioctl(0, TCSETA, &tty_orig) < 0)
     {
-	fprintf(stderr, "tcsetattr failed: %s\n", sys_errlist[errno]);
+	fprintf(stderr, "tcsetattr failed: %s\n", strerror(errno));
+	return -1;
+    }
+    return (0);
+}
+#elif defined(HAVE_TERMIOS_H)
+#include <termios.h>
+
+struct termios tty_orig;
+
+static int echo_off ANSI_ARGS((void))
+{
+    struct termios tty_new;
+
+    if (ioctl(0, TIOCGETA, &tty_orig) < 0)
+    {
+	fprintf(stderr, "tcgetattr failed: %s\n", strerror(errno));
+	return -1;
+    }
+
+    tty_new = tty_orig;
+
+    tty_new.c_lflag &= ~(ECHO);
+
+    if (ioctl(0, TIOCSETA, &tty_new) < 0)
+    {
+	fprintf(stderr, "tcsetattr failed: %s\n", strerror(errno));
 	return -1;
     }
     return (0);
 }
 
+static int echo_on ANSI_ARGS((void))
+{
+    if (ioctl(0, TIOCSETA, &tty_orig) < 0)
+    {
+	fprintf(stderr, "tcsetattr failed: %s\n", strerror(errno));
+	return -1;
+    }
+    return (0);
+}
+
+#else
+/* 
+ *  No common way to turn echo on/off.  Just ignore.
+ */
+static int echo_off ANSI_ARGS((void))
+{
+    return 0;
+}
+
+static int echo_on ANSI_ARGS((void))
+{
+    return 0;
+}
 #endif
+
 
 char *getpw_ss(host, name)
 char *host, *name;

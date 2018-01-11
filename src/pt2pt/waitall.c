@@ -1,5 +1,5 @@
 /*
- *  $Id: waitall.c,v 1.35 1996/06/26 19:27:12 gropp Exp $
+ *  $Id: waitall.c,v 1.39 1997/01/24 21:55:18 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -23,6 +23,8 @@ Input Parameters:
 Output Parameter:
 . array_of_statuses - array of status objects (array of Status) 
 
+.N waitstatus
+
 .N fortran
 
 .N Errors
@@ -37,7 +39,8 @@ MPI_Status  array_of_statuses[];
 {
     int i;
     MPI_Request request;
-    int mpi_errno = MPI_SUCCESS;
+    int mpi_errno = MPI_SUCCESS, rc = MPI_SUCCESS;
+    static char myname[] = "MPI_WAITALL";
 
 #ifdef MPI_ADI2
     /* NOTE:
@@ -67,10 +70,12 @@ MPI_Status  array_of_statuses[];
 	    }
 
 	if ( request->handle_type == MPIR_SEND ) {
-	    MPID_SendComplete( request, &mpi_errno );
-	    if (mpi_errno) 
-		MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-			    "Could not complete send in MPI_WAITALL");
+	    rc = MPI_SUCCESS;
+	    MPID_SendComplete( request, &rc );
+	    if (rc) {
+		array_of_statuses[i].MPI_ERROR = rc;
+		mpi_errno = MPI_ERR_IN_STATUS;
+	    }
 	    MPIR_FORGET_SEND( &request->shandle );
 	    MPID_SendFree( array_of_requests[i] );
 	    array_of_requests[i]    = 0;
@@ -84,10 +89,12 @@ MPI_Status  array_of_statuses[];
 		array_of_statuses[i].count	= 0;
 		continue;
 	    }
-	    MPID_SendComplete( request, &mpi_errno );
-	    if (mpi_errno) 
-		MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-			    "Could not complete send in MPI_WAITALL");
+	    rc = MPI_SUCCESS;
+	    MPID_SendComplete( request, &rc );
+	    if (rc) {
+		array_of_statuses[i].MPI_ERROR = rc;
+		mpi_errno = MPI_ERR_IN_STATUS;
+		}
 	    request->persistent_shandle.active = 0;
 	}
     }
@@ -106,8 +113,12 @@ MPI_Status  array_of_statuses[];
 	if ( request->handle_type == MPIR_RECV ) {
 	    /*FPRINTF( stderr, "[%d] receive request %d\n", MPIR_tid, i );*/
 	    /* Old code does test first */
-	    MPID_RecvComplete( request, &array_of_statuses[i], &mpi_errno );
-	    if (mpi_errno) mpi_errno = MPI_ERR_IN_STATUS;
+	    rc = MPI_SUCCESS;
+	    MPID_RecvComplete( request, &array_of_statuses[i], &rc );
+	    if (rc) {
+		/* array_of_statuses[i].MPI_ERROR = rc; */
+		mpi_errno = MPI_ERR_IN_STATUS;
+	    }
 	    MPID_RecvFree( array_of_requests[i] );
 	    array_of_requests[i] = 0;
 	}
@@ -119,8 +130,9 @@ MPI_Status  array_of_statuses[];
 		array_of_statuses[i].count	    = 0;
 		continue;
 	    }
-	    MPID_RecvComplete( request, &array_of_statuses[i], &mpi_errno );
-	    if (mpi_errno) mpi_errno = MPI_ERR_IN_STATUS;
+	    rc = MPI_SUCCESS;
+	    MPID_RecvComplete( request, &array_of_statuses[i], &rc );
+	    if (rc) mpi_errno = MPI_ERR_IN_STATUS;
 	    request->persistent_rhandle.active = 0;
 	}
     }
@@ -156,7 +168,7 @@ MPI_Status  array_of_statuses[];
 	if ( request->type == MPIR_SEND ) {
 	    MPIR_CALL(MPID_Complete_send( request->shandle.comm->ADIctx, 
 					  &request->shandle ),
-		      MPI_COMM_WORLD,"Could not complete send in MPI_WAITALL");
+		      MPIR_COMM_WORLD,"Could not complete send in MPI_WAITALL");
 #if defined(MPID_PACK_IN_ADVANCE) || defined(MPID_HAS_HETERO)
 	  if (request->shandle.bufpos && 
 	      (mpi_errno = MPIR_SendBufferFree( request ))){
@@ -165,9 +177,12 @@ MPI_Status  array_of_statuses[];
 	  }
 #endif	  
 	  if (!request->chandle.persistent) {
-	      if (--request->chandle.datatype->ref_count <= 0) {
+	      MPIR_Type_free( &request->chandle.datatype );
+/*
+	      if (--request->chandle.datatype->ref_ count <= 0) {
 		  MPIR_Type_free( &request->chandle.datatype );
 		  }
+		  */
 	      /*FPRINTF( stderr, "[%d] freeing request %d\n", MPIR_tid, i );*/
 	      MPI_Request_free( &array_of_requests[i] );
 	      /* sets array_of_requests[i]    = NULL; */
@@ -225,9 +240,12 @@ MPI_Status  array_of_statuses[];
 		}
 #endif
 	    if (!request->chandle.persistent) {
-		if (--request->chandle.datatype->ref_count <= 0) {
+		MPIR_Type_free( &request->chandle.datatype );
+/*
+		if (--request->chandle.datatype->ref_ count <= 0) {
 		    MPIR_Type_free( &request->chandle.datatype );
 		    }
+		    */
 		/*FPRINTF( stderr, "[%d] freeing request %d\n", MPIR_tid, i );*/
 		MPI_Request_free( &array_of_requests[i] );
 		/* sets array_of_requests[i]    = NULL; */
@@ -239,7 +257,7 @@ MPI_Status  array_of_statuses[];
     }
 #endif
     if (mpi_errno) {
-	return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, "Error in MPI_WAITALL");
+	return MPIR_ERROR(MPIR_COMM_WORLD, mpi_errno, myname);
 	}
     return mpi_errno;
 }

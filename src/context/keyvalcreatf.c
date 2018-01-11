@@ -2,12 +2,6 @@
 /* CUSTOM WRAPPER */
 #include "mpiimpl.h"
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_keyval_create_ PMPI_KEYVAL_CREATE
@@ -51,6 +45,7 @@ int                 *keyval;
 void                *extra_state;
 int                 *__ierr;
 {
+    *keyval = 0;
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
     *__ierr = MPIR_Keyval_create( *copy_fn, *delete_fn, keyval, 
 				  extra_state, 1 );

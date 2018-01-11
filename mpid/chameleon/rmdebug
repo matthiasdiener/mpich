@@ -1,4 +1,0 @@
-#! /bin/sh
-#
-# Take the input file name and remove debug statements, writing to stdout
-sed -e '/#DEBUG_START#/,/#DEBUG_END#/d' $1

@@ -71,7 +71,7 @@ int memsize;
     size = nsegs * segsize;
     /* Try first to get a single section of memeory.  If that doesn't work,
        try to piece it together */
-    if ((sysv_shmid[0] = shmget(getpid(),size,IPC_CREAT|0600))) {
+    if ((sysv_shmid[0] = shmget(getpid(),size,IPC_CREAT|0600)) >= 0) {
 	if ((mem = (char *)shmat(sysv_shmid[0],NULL,0)) == (char *)-1) {
 	    switch (errno) {
 	    case EACCES: 
@@ -91,7 +91,7 @@ See your system administrator\n");
 		perror( "Reason " );
 		break;
 	    }
-	    p4_error("OOPS: shmat failed ",(int)mem);
+	    p4_error("OOPS: shmat failed ",(int)sysv_shmid[0]);
 	}
     }
     else {
@@ -120,7 +120,7 @@ See your system administrator\n");
 		perror( "Reason " );
 		break;
 	    }
-	    p4_error("OOPS: shmat failed ",(int)mem);
+	    p4_error("OOPS: shmat failed ",(int)sysv_shmid[0]);
 	}
 	sysv_num_shmids++;
 	nsegs--;
@@ -174,6 +174,7 @@ See your system administrator\n");
  *   strcpy(p4_sgi_shared_arena_filename,"/tmp/shared_arena_");
  */
 
+
     strcpy(p4_sgi_shared_arena_filename,"/usr/tmp/p4_shared_arena_");	/* 7/12/95, bri@sgi.com */
 
     sprintf(&(p4_sgi_shared_arena_filename[strlen(p4_sgi_shared_arena_filename)]),"%d",getpid());
@@ -187,10 +188,17 @@ See your system administrator\n");
 	p4_error("MD_initmem: usconfig failed: cannot map shared arena\n",memsize);
     }
     p4_sgi_usptr = usinit(p4_sgi_shared_arena_filename);
-    if (p4_sgi_usptr == NULL)
-    {
-	p4_error("MD_initmem: usinit failed: cannot map shared arena\n",memsize);
+    if (p4_sgi_usptr == NULL) {	/* try usinit several times */
+	int ctr = 0;
+	while ((ctr < 3) && (p4_sgi_usptr == NULL)) {
+	    ctr++;
+	    sleep(2);
+	    p4_sgi_usptr = usinit(p4_sgi_shared_arena_filename);
+	}
     }
+    if (p4_sgi_usptr == NULL) 
+	p4_error("MD_initmem: usinit failed: cannot map shared arena\n",
+		 memsize);
 #endif
 
 #if defined(USE_XX_SHMALLOC) && defined(SUN_SOLARIS)
@@ -387,7 +395,7 @@ int *lock;
 	if (atomior32(lock, 1) == 0)
 	    got_lock = 1;
     }
-    return(TRUE);
+    return(P4_TRUE);
 }
 
 #define wait_factor 13.0                /* appx 10 microseconds */
@@ -403,7 +411,7 @@ P4BOOL simple_unlock(lock)
 int *lock;
 {
     atomand32(lock, 0);
-    return(TRUE);
+    return(P4_TRUE);
 }
 
 #endif
@@ -432,7 +440,7 @@ int *lock;
 	if (xmemi(lock, 1) == 0)
 	    got_lock = 1;
     }
-    return (TRUE);
+    return (P4_TRUE);
 }
 
 #define wait_factor 13.0	/* appx 10 microseconds */
@@ -453,7 +461,7 @@ P4BOOL simple_unlock(lock)
 int *lock;
 {
     *lock = 0;
-    return (TRUE);
+    return (P4_TRUE);
 }
 
 #endif
@@ -627,7 +635,7 @@ int typ, n;
 	{
 	    shmem_seg = SHMEM_BASE + (vm_page_size * blk_cnt) * i;
 	    if (vm_allocate_and_bind(task_self(), &shmem_seg, blk_cnt * vm_page_size,
-				     FALSE, i) != KERN_SUCCESS)
+				     P4_FALSE, i) != KERN_SUCCESS)
 	    {
 		printf("vm_allocate_and_bind failed\n");
 		ok = 0;
@@ -889,9 +897,9 @@ MD_eui_msgs_available()
 
     mpc_probe(&from,&type,&numbytes);
     if (numbytes == -1)
-	return FALSE;
+	return P4_FALSE;
     else
-	return TRUE;
+	return P4_TRUE;
 }
 
 /* end of include for EUI */
@@ -948,9 +956,9 @@ MD_euih_msgs_available()
 
     mp_probe(&from,&type,&numbytes);
     if (numbytes == -1)
-	return FALSE;
+	return P4_FALSE;
     else
-	return TRUE;
+	return P4_TRUE;
 }
 
 /* end of include for SP1_EUIH */
@@ -1256,7 +1264,7 @@ char **argv;
     p4_local = alloc_local_rm();
     p4_global->num_in_proctable = p4_n_to_i(bm_msg.numinproctab);
     p4_global->local_slave_count = p4_n_to_i(bm_msg.numslaves);
-    debug_level = p4_n_to_i(bm_msg.debug_level);
+    p4_debug_level = p4_n_to_i(bm_msg.debug_level);
     strcpy(p4_global->application_id, bm_msg.application_id);
 
 #   if defined(IPSC860)
@@ -1545,9 +1553,9 @@ int *req_from,*req_type;
 			    TCMP_NOBLOCK | TCMP_NOCOPY | TCMP_NODEQUEUE,
 			    &len_rcvd, &msg);
     if (tcmpstat == TCMP_SUCCESS)
-	return(TRUE);
+	return(P4_TRUE);
     else
-	return(FALSE);
+	return(P4_FALSE);
 }
 
 int MD_tcmp_send(type, from, to, msg, len, data_type, ack_req)

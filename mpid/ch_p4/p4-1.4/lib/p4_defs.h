@@ -168,6 +168,9 @@ struct slave_listener_msg {
 #define PROC_TABLE_END          17
 #define SYNC_MSG                18
 
+#ifndef P4_MAX_PGM_LEN 
+#define P4_MAX_PGM_LEN 256
+#endif
 struct bm_rm_msg {
     int type:32;
 
@@ -195,9 +198,9 @@ struct bm_rm_msg {
     char host_name[HOSTNAME_LEN];
 
     /* also for INITIAL INFO */
-    char pgm[128];
+    char pgm[P4_MAX_PGM_LEN];
     char version[8];
-    char outfile[128];
+    char outfile[P4_MAX_PGM_LEN];
     char application_id[16];
     char machine_type[16];
 };

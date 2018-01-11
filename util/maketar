@@ -3,18 +3,52 @@
 # This just assembles the tar file in /tmp
 # You can change the name with -name= and add directories with -add=
 #
+# Change to distribution approach:
+#  Because of the difficulties in getting "contributed" devices updated, 
+#  and because we want to emphasize the flexibility of the package, 
+#  we need multiple distributions.  I'm going to start with:
+#      Full distribution (as now)
+#      Workstations only (ch_p4, ch_shmem)
+#      MPPs only (ch_mpl, ch_nx, ch_cmmd)
+#      No devices at all
+#
+#  with separate distributions for the devices
+#    ch_cenju3
+#    ch_lfshmem
+#    ch_nc
+#    ch_nexus
+#    meiko
+#    nx
+#    t3d
+#    t3e
+#    tests
+#
+#  Note that the meiko, nx, t3d, t3e all will fail
+#  because they are ADI-2.  
+#
+# In addition, we build the various MPI/MPE standalone packages if
+# -mpienv is specified
+#
 OTHERDEVICES="mpid/ch_nx mpid/ch_p4 mpid/ch_nc mpid/ch_cmmd mpid/ch_mpl \
 		mpid/ch_meiko mpid/ch_shmem mpid/ch_lfshmem mpid/t3d \
 		mpid/sgi mpid/nx mpid/ch_nexus mpid/ch_cenju3"
 MAKE=make
 MPIR_HOME=/home/MPI/mpich
-relname=1.0.13
+relname=1.1.0
+# By default, destdir is the misc tryout directory.
+destdir=/home/ftp/pub/mpi/misc
 if [ -s $MPIR_HOME/relname ] ; then
     relname=`cat $MPIR_HOME/relname`
 fi
 tarname=mpich
 extrafiles=""
 cleanonly=0
+do_autoconf=1
+verbose=1
+mpienv=0
+do_all_tar=1
+do_copy=1
+rmtmpfile=1
 for arg in "$@" ; do
     case $arg in 
 	-name=* )
@@ -33,6 +67,34 @@ for arg in "$@" ; do
 	set -x
 	;;
 
+	-quiet)
+	verbose=0
+	;;
+
+	-noautoconf)
+	do_autoconf=0
+	;;
+
+	-mainonly)
+	do_all_tar=0
+	;;
+
+	-nocopy)
+	do_copy=0
+	;;
+	
+	-mpienv)
+	mpienv=1
+	;;
+
+	-destdir=*)
+	destdir="`echo A$arg | sed -e 's/A-destdir=//'`"
+	if [ ! -d "$destdir" ] ; then 
+	    echo "$destdir is not a valid directory"
+	    exit 1
+	fi
+	;;
+
 	*)
 	if test -n "$arg" ; then
    	    echo "port: Unknown argument ($arg)"
@@ -45,6 +107,8 @@ done
 cd $MPIR_HOME
 #
 # First, clean out the various files.
+# We export make for the Makefiles just in case we need a different make...
+export MAKE
 $MAKE clean
 for dir in $OTHERDEVICES ; 
      do echo cleaning $dir
@@ -61,33 +125,64 @@ if [ $cleanonly = 1 ] ; then
     exit 0
 fi
 #
+# Update the configure programs
+if [ $do_autoconf = 1 ] ; then
+    autoconf
+    /bin/rm -f .tmp
+    sed -e 's/PAC_CHECK_HEADERS/AC_HAVE_HEADERS/g' \
+        -e 's/PAC_CHECK_HEADER/AC_HAVE_HEADERS/g' configure.in > .tmp
+    autoheader .tmp > mpichconf.h.in
+    /bin/rm -f .tmp
+    maint/splitsed < configure > configure.2
+    echo "Some configure creations may generate errors; these can be ignored"
+    if [ -s mpid/ch_tcp/p3/configure.in ] ; then
+        (cd mpid/ch_tcp/p3 ; /bin/rm -f configure ; /usr/local/bin/autoconf )
+    fi
+    for dir in mpid/ch_p4/p4-1.4 mpid/ch_shmem/p2ptest profiling/wrappergen \
+	    profiling/nupshot mpe examples/perftest examples/test ; do
+        if [ -s $dir/configure.in ] ; then
+	    ( cd $dir ; /bin/rm -f configure ; autoconf )
+        fi
+    done
+    # The generalized server is autoconf 2
+    (cd mpid/server ; /usr/local/cvs-test/bin/cvs update ; \
+		/usr/local/bin/autoconf )
+    echo "Done with configure updates"
+fi
+#
 /bin/rm -rf /tmp/$tarname /tmp/mpich-tmp /tmp/mpifoo.tar
 # This relies on bin being a link to util.
 #tar cXf Xclude /tmp/mpifoo.tar 
 # SGI versions of tar don't support X (eXclude); use the following line instead
 #tar cf /tmp/mpifoo.tar 
+# This creates a temporary directory containing the part of MPICH that
+# we will distribute.
+if [ $verbose = 1 ] ; then echo "Copying MPICH into /tmp..." ; fi
+# Removed mpid/chameleon
 tar cXf Xclude /tmp/mpifoo.tar \
  COPYRIGHT README \
- Makefile.in configure aclocal.m4 bin ptx_ifile \
+ Makefile.in configure configure.2 aclocal.m4 bin ptx_ifile \
  doc/functions.ps.Z doc/perf.ps.Z doc/guide.ps.Z doc/install.ps.Z \
  doc/port.in doc/portbuild.in doc/portperf.in doc/porttest.in \
  doc/latexinfo.sty doc/epsf.sty doc/epsf.tex doc/doc.bib \
  doc/docgather doc/portrun doc/docmake \
  ref/adiman.ps.Z ref/mpiman.ps.Z \
- configure.in examples include man mpe ccbugs \
+ configure.in mpichconf.h.in acconfig.h examples include man mpe ccbugs \
  mpid/ch2 mpid/util mpid/tests \
- mpid/ch_nx mpid/chameleon mpid/ch_p4 \
+ mpid/ch_nx mpid/ch_p4 \
  mpid/ch_mpl mpid/ch_cmmd mpid/ch_nc mpid/ch_meiko mpid/ch_shmem \
- mpid/meiko mpid/t3d mpid/nx mpid/ch_nexus mpid/ch_lfshmem mpid/ch_cenju3 \
- mpid/NewDevice mpid/updatedev \
+ mpid/meiko mpid/t3d mpid/t3e mpid/nx mpid/ch_nexus mpid/ch_lfshmem \
+ mpid/ch_cenju3 \
+ mpid/NewDevice mpid/updatedev mpid/server \
  installtest src util/mandesc util/finderrors util/insttest \
  util/mpirun.* util/mpireconfig.in util/execer util/machines \
  util/mpiman.in util/upshot util/tarch util/tdevice \
  util/mpicc.in util/mpiCC.in util/mpif77.in util/mpiinstall.in \
  util/tstmachines.in util/chp4_servs.in util/cleanipcs \
- util/maketar util/chkserv util/chkmachine profiling
+ util/maketar util/chkserv util/chkmachine util/Makefile.in profiling
 #
 # Untar into /tmp, remove stuff we don't want in the full file
+if [ $verbose = 1 ] ; then echo "Cleaning distribution directories..." ; fi
 curdir=`pwd`
 mkdir /tmp/mpich-tmp
 cd /tmp/mpich-tmp
@@ -102,7 +197,9 @@ cd /tmp
 	      mpich-tmp/profiling/upshot/bin/upshot.old \
 	      mpich-tmp/profiling/upshot/logfiles \
 	      mpich-tmp/util/machines/machines.* \
-	      mpich-tmp/mpe/Makefile_nompi
+	      mpich-tmp/mpe/Makefile_nompi \
+	      mpich-tmp/examples/perftest/save \
+	      mpich-tmp/examples/perftest/*.cit
 mkdir mpich-tmp/profiling/upshot/logfiles
 cp $MPIR_HOME/profiling/upshot/logfiles/fft.trf \
 	mpich-tmp/profiling/upshot/logfiles
@@ -112,7 +209,8 @@ cp $MPIR_HOME/profiling/upshot/logfiles/states.c \
 	mpich-tmp/profiling/upshot/logfiles
 cp $MPIR_HOME/util/machines/machines.sample mpich-tmp/util/machines
 find mpich-tmp \( -name 'RCS' -o -name '*.o' -o -name '#*#' -o \
-              -name '*~' -o -name 'mputil.mp*' \) -print | \
+              -name '*~' -o -name 'mputil.mp*' -o -name Makefile -o \
+	      -name makefile -o -name 'CVS' \) -print | \
 	sed 's%^%/bin/rm -rf %g' | sh
 find mpich-tmp/examples -name '*.pg' -exec /bin/rm \{\} \;
 find mpich-tmp/mpe -name '*.pg' -exec /bin/rm \{\} \;
@@ -120,6 +218,9 @@ find mpich-tmp/mpe -name 'Makefile' -exec /bin/rm \{\} \;
 find mpich-tmp/examples -name 'Makefile' -exec /bin/rm \{\} \;
 find mpich-tmp/src -name 'Makefile' -exec /bin/rm \{\} \;
 find mpich-tmp/profiling -name 'Makefile' -exec /bin/rm \{\} \;
+# Files of the form rdb.* appear to be Nexus files that are not being
+# removed and that have not been added to the clean target in the Makefiles
+find mpich-tmp/examples -name 'rdb.*' -exec /bin/rm \{\} \;
 #
 # Remove the 'LOCAL' information from the main Makefile, if present.
 sed -e 's/mpi: Makefile.in/mpi:/g' \
@@ -133,11 +234,112 @@ find /tmp/mpich-tmp -name '#*#' -print
 # This requires prune.
 find /tmp/mpich-tmp -name 'lib' -prune -o -name '*.o' -print 
 #
-# Finally, compress the file
+# Finally, create the tar files and compress the results
 cd /tmp
 mv /tmp/mpich-tmp /tmp/$tarname
+if [ $verbose = 1 ] ; then echo "Full distribution" ; fi
+# Full distribution
+/bin/rm -f /tmp/$tarname-$relname.tar.Z /tmp/$tarname-$relname.tar.gz
 tar cof - $tarname | compress > /tmp/$tarname-$relname.tar.Z
 tar cof - $tarname | gzip > /tmp/$tarname-$relname.tar.gz
-/bin/rm -rf /tmp/$tarname /tmp/mpifoo.tar 
-echo "Tar file is in /tmp/$tarname-$relname.tar.Z"
-echo "Tar file is in /tmp/$tarname-$relname.tar.gz"
+tarfiles="$tarname-$relname.tar"
+if [ $do_all_tar = 1 ] ; then 
+    # Individual devices
+    if [ $verbose = 1 ] ; then echo "Individual devices" ; fi
+    cd $tarname/mpid
+    for dev in ch_p4 ch_shmem ch_lfshmem ch_nc ch_nexus ch_cenju3 \
+    	   meiko nx t3d t3e tests ; do
+        /bin/rm -f /tmp/$dev-$relname.tar.Z /tmp/$dev-$relname.tar.gz	
+        tar cof - $dev | compress > /tmp/$dev-$relname.tar.Z
+        tar cof - $dev | gzip > /tmp/$dev-$relname.tar.gz
+        tarfiles="$tarfiles $dev-$relname.tar"
+    done
+
+    cd /tmp
+    # Workstation build.  From mpid, include only util, ch2, ch_p4, ch_shmem
+    if [ $verbose = 1 ] ; then echo "Workstation version" ; fi
+    /bin/rm -rf /tmp/mpid
+    mv $tarname/mpid .
+    mkdir $tarname/mpid
+    mv mpid/ch_p4 $tarname/mpid
+    mv mpid/ch_shmem $tarname/mpid
+    mv mpid/server $tarname/mpid
+    mv mpid/ch2 $tarname/mpid
+    mv mpid/util $tarname/mpid
+    /bin/rm -f /tmp/$tarname-ws-$relname.tar.Z
+    /bin/rm -f /tmp/$tarname-ws-$relname.tar.gz
+    tar cof - $tarname | compress > /tmp/$tarname-ws-$relname.tar.Z
+    tar cof - $tarname | gzip > /tmp/$tarname-ws-$relname.tar.gz
+    tarfiles="$tarfiles $tarname-ws-$relname.tar"
+    mv $tarname/mpid/ch_p4 mpid
+    mv $tarname/mpid/ch_shmem mpid
+    mv $tarname/mpid/server mpid
+    #
+    # Mpp build only (ch_mpl, ch_nx, ch_cmmd)
+    if [ $verbose = 1 ] ; then echo "MPP version" ; fi
+    mv mpid/ch_mpl $tarname/mpid
+    mv mpid/ch_nx $tarname/mpid
+    mv mpid/ch_cmmd $tarname/mpid
+    /bin/rm -f /tmp/$tarname-mpp-$relname.tar.Z 
+    /bin/rm -f /tmp/$tarname-mpp-$relname.tar.gz
+    tar cof - $tarname | compress > /tmp/$tarname-mpp-$relname.tar.Z
+    tar cof - $tarname | gzip > /tmp/$tarname-mpp-$relname.tar.gz
+    tarfiles="$tarfiles $tarname-mpp-$relname.tar"
+    mv $tarname/mpid/ch_mpl mpid
+    mv $tarname/mpid/ch_nx mpid
+    mv $tarname/mpid/ch_cmmd mpid
+    #
+    # No devices (I've left util and ch2 as examples and for support)
+    # 
+    if [ $verbose = 1 ] ; then echo "No device version" ; fi
+    /bin/rm -f /tmp/$tarname-nodev-$relname.tar.Z
+    /bin/rm -f /tmp/$tarname-nodev-$relname.tar.gz
+    tar cof - $tarname | compress > /tmp/$tarname-nodev-$relname.tar.Z
+    tar cof - $tarname | gzip > /tmp/$tarname-nodev-$relname.tar.gz
+    tarfiles="$tarfiles $tarname-ws-$relname.tar"
+    #
+fi
+/bin/rm -rf /tmp/$tarname /tmp/mpifoo.tar /tmp/mpid
+if [ $do_copy = 1 ] ; then
+    for tarfile in $tarfiles ; do
+        if [ -f $tarfile.gz ] ; then 
+	    if [ $verbose = 1 ] ; then 
+	        echo -n "Copying $tarfile.gz to $destdir ... "
+	    fi
+	    cp $tarfile.gz $destdir
+	    if [ $rmtmpfile = 1 ] ; then 
+	        /bin/rm $tarfile.gz
+	    fi
+	    if [ $verbose = 1 ] ; then echo " done." ; fi
+        fi
+        if [ -f $tarfile.Z ] ;  then 
+	    if [ $verbose = 1 ] ; then 
+	        echo -n "Copying $tarfile.Z to $destdir ... "
+	    fi
+	    cp $tarfile.Z $destdir
+	    if [ $rmtmpfile = 1 ] ; then 
+	        /bin/rm $tarfile.Z
+	    fi
+	    if [ $verbose = 1 ] ; then echo " done." ; fi
+        fi
+    done
+else
+    echo "Created tar files are $tarfiles"
+fi
+#
+if [ $mpienv = 1 ] ; then
+    # This one moves directly into /home/ftp/pub/mpi/mpi-test
+    (cd examples/test ; ./maketar )
+    # This leaves in /tmp
+    (cd examples/perftest ; ./maketar )
+    cp /tmp/perftest.tar.gz /home/ftp/pub/mpi/misc
+    if [ $rmtmpfile = 1 ] ; then
+	/bin/rm /tmp/perftest.tar.gz
+    fi 
+    # This leaves in /tmp
+    (cd mpe ; ./maketar )
+    cp /tmp/mpe.tar.gz /home/ftp/pub/mpi/misc
+    if [ $rmtmpfile = 1 ] ; then
+	/bin/rm /tmp/mpe.tar.gz
+    fi 
+fi

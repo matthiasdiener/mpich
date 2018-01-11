@@ -28,6 +28,7 @@ fi
 # If the programs are not available, run make.
 runtests=1
 makeeach=0
+quiet=0
 check_at_once=1
 MAKE="@MAKE@"
 for arg in "$@" ; do
@@ -44,6 +45,10 @@ for arg in "$@" ; do
 	;;
 	-small)
 	makeeach=1
+	;;
+	-quiet)
+	shift
+	quiet=1
 	;;
 	-atend)
 	check_at_once=0
@@ -77,6 +82,16 @@ MakeExe() {
 CleanExe() {
     if [ $makeeach = 1 ] ; then
 	/bin/rm -f $1 $1.o
+    fi
+}
+# Output marker
+OutTime() {
+    if [ $quiet = 0 ] ; then
+	if [ -z "$hostname" ] ; then
+	    hostname=`hostname`
+	fi
+	d=`date`
+	echo "$hostname : $d"
     fi
 }
 # Do an "on the fly" check for problems.
@@ -128,6 +143,7 @@ testfiles=""
 if [ $runtests = 1 ] ; then
 echo '**** Testing MPI Profiling routines ****'
 
+OutTime
 testfiles="$testfiles ptest.out"
 /bin/rm -f ptest.out
 MakeExe ptest

@@ -1,5 +1,5 @@
 /*
- *  $Id: context_util.c,v 1.18 1995/06/21 03:06:30 gropp Exp $
+ *  $Id: context_util.c,v 1.20 1997/03/29 16:07:39 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -79,6 +79,8 @@ static int findFree(unsigned int * map, const int number)
 
 MPIR_Context_alloc - allocate some number of contiguous contexts over given communicator
 
+THREAD_SAFETY_ISSUE - this routine may currently be used in ways that is
+not safe in a multithreaded environment.
  */
 int MPIR_Context_alloc ( comm, num_contexts, context )
 MPI_Comm      comm;
@@ -205,7 +207,7 @@ MPIR_Context_alloc - allocate some number of contexts over given communicator
 
  */
 int MPIR_Context_alloc ( comm, num_contexts, context )
-MPI_Comm      comm;
+struct MPIR_COMMUNICATOR *comm;
 int           num_contexts;
 MPIR_CONTEXT *context;
 {
@@ -218,32 +220,32 @@ MPIR_CONTEXT *context;
   if (comm->comm_type == MPIR_INTRA) {
 
     /* Find the highest context */
-    MPI_Allreduce(&high_context,context,1,MPIR_CONTEXT_TYPE,MPI_MAX,comm);
+    MPI_Allreduce(&high_context,context,1,MPIR_CONTEXT_TYPE,MPI_MAX,comm->self);
   }
 
   /* Allocate contexts for inter-comms */
   else {
     MPIR_CONTEXT rcontext;
     MPI_Status   status;
-    MPI_Comm     inter = comm->comm_coll;
-    MPI_Comm     intra = inter->comm_coll;
+    struct MPIR_COMMUNICATOR *inter = comm->comm_coll;
+    struct MPIR_COMMUNICATOR *intra = inter->comm_coll;
     int          rank;
 
     /* Find the highest context on the local group */
-    MPI_Allreduce(&high_context,context,1,MPIR_CONTEXT_TYPE,MPI_MAX,intra);
+    MPI_Allreduce(&high_context,context,1,MPIR_CONTEXT_TYPE,MPI_MAX,intra->self);
 
     MPIR_Comm_rank ( comm, &rank );
     if (rank == 0) {
       /* Leaders swap info */
       MPI_Sendrecv(   context, 1, MPIR_CONTEXT_TYPE, 0, 0, 
-                    &rcontext, 1, MPIR_CONTEXT_TYPE, 0, 0, inter, &status);
+                    &rcontext, 1, MPIR_CONTEXT_TYPE, 0, 0, inter->self, &status);
 
       /* Update context to be the highest context */
       (*context) = MPIR_MAX((*context),rcontext);
     }
 
     /* Leader give context info to everyone else */
-    MPI_Bcast (context, 1, MPIR_CONTEXT_TYPE, 0, intra); 
+    MPI_Bcast (context, 1, MPIR_CONTEXT_TYPE, 0, intra->self); 
   }
 
   /* Reset the highest context */
@@ -262,7 +264,7 @@ MPIR_Context_dealloc - deallocate previously allocated contexts
 +*/
 /*ARGSUSED*/
 int MPIR_Context_dealloc ( comm, num, context )
-MPI_Comm     comm;
+struct MPIR_COMMUNICATOR *comm;
 int          num;
 MPIR_CONTEXT context;
 {

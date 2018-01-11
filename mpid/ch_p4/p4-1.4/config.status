@@ -4,14 +4,14 @@
 # This directory was configured as follows,
 # on host godzilla.mcs.anl.gov:
 #
-# ./configure -p4arch=SUN -p4make=make -opt=-g -p4comm=ch_p4
+# ./configure -p4arch=SUN -p4make=make -opt=-g -p4comm=ch_p4 -cflags= 
 
 for arg
 do
   case "$arg" in
     -recheck | --recheck | --rechec | --reche | --rech | --rec | --re | --r)
-    echo running ${CONFIG_SHELL-/bin/sh} ./configure -p4arch=SUN -p4make=make -opt=-g -p4comm=ch_p4
-    exec ${CONFIG_SHELL-/bin/sh} ./configure -p4arch=SUN -p4make=make -opt=-g -p4comm=ch_p4 ;;
+    echo running ${CONFIG_SHELL-/bin/sh} ./configure -p4arch=SUN -p4make=make -opt=-g -p4comm=ch_p4 -cflags= 
+    exec ${CONFIG_SHELL-/bin/sh} ./configure -p4arch=SUN -p4make=make -opt=-g -p4comm=ch_p4 -cflags=  ;;
     *) echo "Usage: config.status --recheck" 2>&1; exit 1 ;;
   esac
 done
@@ -21,8 +21,8 @@ RANLIB='ranlib'
 P4ARCH='SUN'
 MAKE='make'
 CC='cc'
-DEFS=' -DHAVE_STDLIB_H=1 -DHAVE_UNISTD_H=1 -DHAVE_STRING_H=1 -DHAVE_STRINGS_H=1 -DHAVE_SIGACTION=1'
-CFLAGS=''
+DEFS=' -DHAVE_STDLIB_H=1 -DHAVE_UNISTD_H=1 -DHAVE_STRING_H=1 -DHAVE_STRINGS_H=1 -DHAVE_TERMIO_H=1 -DHAVE_TERMIOS_H=1 -DBOTH_STRING_INCS=1 -DHAVE_SIGACTION=1 -DHAVE_VPRINTF=1'
+CFLAGS='   -DHAVE_STDLIB_H=1 -DHAVE_UNISTD_H=1 -DHAVE_STRING_H=1 -DHAVE_STRINGS_H=1 -DHAVE_TERMIO_H=1 -DHAVE_TERMIOS_H=1 -DBOTH_STRING_INCS=1 -DHAVE_SIGACTION=1 -DHAVE_VPRINTF=1'
 FC='f77'
 CLINKER='cc'
 FLINKER='f77'
@@ -31,11 +31,11 @@ RM='/bin/rm'
 P4_OBJ='$(P4_COMM_OBJ) $(P4_SOCK_OBJ) $(P4_SHMEM_OBJ)'
 MDEP_LIBS=''
 CRYPT_LIBS=''
-MDEP_CFLAGS=' '
+MDEP_CFLAGS=''
 MDEP_FFLAGS=''
 MDEP_LFLAGS=''
 OPTFLAGS='-g'
-P4_CONFIGURED_TIME='Sat Jul 27 08:35:32 CDT 1996'
+P4_CONFIGURED_TIME='Fri Apr 18 14:40:07 CDT 1997'
 DEFINE_ALOG='#undef ALOG_TRACE'
 DEFINE_SYSV_IPC='#undef SYSV_IPC'
 DEFINE_VENDOR_IPC='#undef VENDOR_IPC'
@@ -44,7 +44,7 @@ LISTENER_PATHNAME=''
 RSHCOMMAND=''
 LIBS=''
 srcdir='.'
-DEFS=' -DHAVE_STDLIB_H=1 -DHAVE_UNISTD_H=1 -DHAVE_STRING_H=1 -DHAVE_STRINGS_H=1 -DHAVE_SIGACTION=1'
+DEFS=' -DHAVE_STDLIB_H=1 -DHAVE_UNISTD_H=1 -DHAVE_STRING_H=1 -DHAVE_STRINGS_H=1 -DHAVE_TERMIO_H=1 -DHAVE_TERMIOS_H=1 -DBOTH_STRING_INCS=1 -DHAVE_SIGACTION=1 -DHAVE_VPRINTF=1'
 prefix=''
 exec_prefix=''
 prsub=''

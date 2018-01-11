@@ -124,7 +124,7 @@ MPI_Comm comm;
 
   /* Return the average time taken/processor */
   slavetime = MPI_Wtime() - starttime;
-  MPI_Reduce (&totaltime, &slavetime, 1, MPI_DOUBLE, MPI_SUM, 0, comm);
+  MPI_Reduce (&slavetime, &totaltime, 1, MPI_DOUBLE, MPI_SUM, 0, comm);
   return (totaltime/(double)size);
 }
 
@@ -139,6 +139,10 @@ char *argv[] ;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank) ;
 
   /* If I'm process 0, determine the matrix size and # of iterations */
+  /* This relies on the MPI implementation properly flushing output
+     that does not end in a newline.  MPI does not require this, though
+     high-quality implementations will do this.
+   */
   if ( rank == 0 ) {
     printf("Matrix Size : ") ;
     scanf("%d",&N) ;

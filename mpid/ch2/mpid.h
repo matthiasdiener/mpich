@@ -2,6 +2,14 @@
 #ifndef MPID_INC
 #define MPID_INC
 
+#if defined(HAVE_CONFIG_H) && !defined(MPICHCONF_INC)
+/* This includes the definitions found by configure, and can be found in
+   the library directory (lib/$ARCH/$COMM) corresponding to this configuration
+ */
+#define MPICHCONF_INC
+#include "mpichconf.h"
+#endif
+
 /* This is defined to allow MPIR code to know which ADI it is compiled for */
 #ifndef MPI_ADI2
 #define MPI_ADI2
@@ -9,7 +17,14 @@
 
 #include "mpi.h"
 #include "cookie.h"
-#include "mpi_error.h"
+
+#ifndef ANSI_ARGS
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
+#define ANSI_ARGS(a) a
+#else
+#define ANSI_ARGS(a) ()
+#endif
+#endif
 
 /* This include brings in any definitions needed by all that are relevant 
  * to the device.  For example, MPID_HAS_HETERO
@@ -137,6 +152,12 @@ typedef enum { MPID_MSG_OK, MPID_MSG_SWAP, MPID_MSG_XDR } MPID_Msg_pack_t;
 /* Heterogeneous only; needs MPID_INFO from dev? */
 #include "chhetero.h"
 #include "attach.h"
+#include "objtrace.h"
+#include "calltrace.h"
+
+#include "mpi_error.h"
+/* We need to reference MPIR_COMM_WORLD for some error handling */
+extern struct MPIR_COMMUNICATOR *MPIR_COMM_WORLD;
 
 #define MPID_TAG_UB (1<<30)-1
 #define MPID_MAX_CONTEXT_ID (1<<16)-1
@@ -187,9 +208,9 @@ extern int fprintf(FILE*,const char*,...);
 extern int printf(const char*,...);
 extern int fflush(FILE *);
 extern int fclose(FILE *);
-extern int fscanf(FILE *,char *,...);
+extern int fscanf(FILE *,const char *,...);
 extern int fputs(const char *,FILE *);
-extern int sscanf(char *, char *, ... );
+extern int sscanf(const char *, const char *, ... );
 #include <sys/types.h>
 extern void *memset(void *, int, size_t);
 #endif

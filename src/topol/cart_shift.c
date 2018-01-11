@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_shift.c,v 1.17 1996/04/12 15:52:58 gropp Exp $
+ *  $Id: cart_shift.c,v 1.19 1997/01/07 01:48:01 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -45,13 +45,17 @@ int      *dest;
   int source_position, dest_position, save_position, periodic;
   int mpi_errno = MPI_SUCCESS;
   MPIR_TOPOLOGY *topo;
+  struct MPIR_COMMUNICATOR *comm_ptr;
+  static char myname[] = "MPI_CART_SHIFT";
 
+  TR_PUSH(myname);
+  comm_ptr = MPIR_GET_COMM_PTR(comm);
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
   /* Check for valid arguments */
-  if ( MPIR_TEST_COMM(comm,comm)                     ||
-       ((direction <  0) && (mpi_errno = MPI_ERR_ARG))   ||
+  if ( ((direction <  0) && (mpi_errno = MPI_ERR_ARG))   ||
        MPIR_TEST_ARG(dest) || MPIR_TEST_ARG(source)) 
-    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_CART_SHIFT" );
+    return MPIR_ERROR( comm_ptr, mpi_errno, myname );
 
   /* Get topology information from the communicator */
   MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );
@@ -60,17 +64,17 @@ int      *dest;
   if ( ( (flag != 1)                      && (mpi_errno = MPI_ERR_TOPOLOGY)) ||
        ( (topo->type != MPI_CART)         && (mpi_errno = MPI_ERR_TOPOLOGY)) ||
        ( (direction  >= topo->cart.ndims) && (mpi_errno=MPI_ERR_ARG))        )
-    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_CART_SHIFT" );
+    return MPIR_ERROR( comm_ptr, mpi_errno, myname );
   
   /* Check the case for a 0 displacement */
-  MPIR_Comm_rank (comm, &rank);
+  MPIR_Comm_rank (comm_ptr, &rank);
   if (displ == 0) {
     (*source) = (*dest) = rank;
     return (mpi_errno);
   }
 
   /* Get ready for shifting */
-  MPIR_Comm_size (comm, &size);
+  MPIR_Comm_size (comm_ptr, &size);
   periodic = topo->cart.periods[direction];
   save_position = source_position = dest_position = 
       topo->cart.position[direction];
@@ -112,6 +116,7 @@ int      *dest;
   /* Restore my position */
   topo->cart.position[direction] = save_position;
 
+  TR_POP;
   return (mpi_errno);
 }
 

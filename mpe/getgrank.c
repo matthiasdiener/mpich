@@ -1,4 +1,5 @@
 #include "mpi.h"
+#include "mpeexten.h"
 
 /*@
   MPE_Comm_global_rank - Returns the rank in MPI_COMM_WORLD for a

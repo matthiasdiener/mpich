@@ -1,13 +1,9 @@
-/* 	$Id: grouptest.c,v 1.11 1996/06/26 19:26:32 gropp Exp $	 */
+/* 	$Id: grouptest.c,v 1.12 1996/11/24 20:17:45 gropp Exp $	 */
 
-#ifndef lint
-static char vcid[] = "$Id: grouptest.c,v 1.11 1996/06/26 19:26:32 gropp Exp $";
-#endif /* lint */
 #include "mpi.h"
+#include <stdio.h>
+#include "test.h"
 
-/*
-    grouptest -
-*/
 int main( argc, argv )
 int argc;
 char **argv;

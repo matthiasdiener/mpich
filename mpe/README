@@ -6,3 +6,15 @@ They include (so far)
   logging routines
   real-time graphics routines
   parallel I/O routines
+
+
+The command 'configure' may be used to create the Makefiles needed
+
+Useful configure commands are:
+
+   Cray T3D with native MPI
+   configure -cc="/mpp/bin/cc -Tcray-t3d" -nof77
+
+   SGI Power Challenge with native MPI
+   configure -cc=cc -nof77
+  

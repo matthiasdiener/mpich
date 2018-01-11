@@ -1,5 +1,5 @@
 /*
- *  $Id: group_rank.c,v 1.12 1996/04/12 14:11:20 gropp Exp $
+ *  $Id: group_rank.c,v 1.15 1997/01/07 01:47:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -31,14 +31,21 @@ MPI_Group group;
 int *rank;
 {
   int mpi_errno = MPI_SUCCESS;
+  struct MPIR_GROUP *group_ptr;
+  static char myname[] = "MPI_GROUP_RANK";
+
+  TR_PUSH(myname);
+
+  group_ptr = MPIR_GET_GROUP_PTR(group);
+  MPIR_TEST_MPI_GROUP(group,group_ptr,MPIR_COMM_WORLD,myname);
 
   /* Check for invalid arguments */
-  if ( MPIR_TEST_GROUP(MPI_COMM_WORLD,group) ||
-       MPIR_TEST_ARG(rank) )
-	return MPIR_ERROR(MPI_COMM_WORLD,mpi_errno,"Error in MPI_GROUP_RANK");
+  if ( MPIR_TEST_ARG(rank) )
+      return MPIR_ERROR(MPIR_COMM_WORLD,mpi_errno,myname );
 
   /* Get the rank of the group */
-  (*rank) = group->local_rank;
+  (*rank) = group_ptr->local_rank;
 
+  TR_POP;
   return (mpi_errno);
 }

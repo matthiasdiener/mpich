@@ -37,6 +37,7 @@ MPI_CSOURCES = keyval_free.c keyvalcreate.c attr_getval.c \
 		group_inter.c group_rexcl.c group_rincl.c groupcompare.c \
 		group_rank.c group_size.c group_union.c group_util.c \
 		comm_dup.c comm_free.c comm_group.c comm_create.c \
+	        comm_name_get.c comm_name_put.c \
 		comm_size.c comm_util.c comm_split.c context_util.c \
 		group_tranks.c comm_testic.c comm_rank.c commcompare.c \
 		comm_rsize.c comm_rgroup.c ic_create.c ic_merge.c \
@@ -56,6 +57,7 @@ MPI_WSOURCES = keyval_freef.c \
 # still making comm_sizef.c and comm_rankf.c by hand
 # MUST make attr_putvalf.c and attr_getvalf.c by hand
 # MUST make group_rinclf.c and group_rexclf.c by hand
+# MUST make comm_nameputf.c and comm_namegetf.c by hand
 MPI_TSOURCES = 
 
 MPI_COBJECTS = keyval_free.o keyvalcreate.o attr_getval.o \
@@ -64,6 +66,7 @@ MPI_COBJECTS = keyval_free.o keyvalcreate.o attr_getval.o \
 		group_inter.o group_rexcl.o group_rincl.o groupcompare.o \
 		group_rank.o group_size.o group_union.o group_util.o \
 		comm_dup.o comm_free.o comm_group.o comm_create.o comm_rank.o \
+		comm_name_get.o comm_name_put.o \
 		comm_size.o comm_util.o comm_split.o context_util.o \
 		group_tranks.o comm_testic.o commcompare.o \
 		comm_rsize.o comm_rgroup.o ic_create.o ic_merge.o \
@@ -76,6 +79,7 @@ MPI_WOBJECTS = keyval_freef.o keyvalcreatf.o attr_getvalf.o \
 		group_interf.o \
 		group_rankf.o group_sizef.o group_unionf.o groupcomparf.o \
 		comm_dupf.o comm_freef.o comm_groupf.o comm_createf.o \
+	        comm_nameputf.o comm_namegetf.o \
 		comm_sizef.o comm_splitf.o grouptranksf.o \
 		comm_testicf.o comm_rankf.o commcomparef.o \
 		comm_rsizef.o comm_rgroupf.o ic_createf.o ic_mergef.o \
@@ -110,8 +114,7 @@ wrappers:
 	    /bin/mv groupcomparef.c groupcomparf.c ; fi
 manpages:
 	../../util/doctext -mpath ../../man/man3 -ext 3 -I pubinc \
-	   -index ../../www.index -jumpfile ../../jumpfile.list \
-	   -indexdir "http:/www.mcs.anl.gov/mpi/www/www3" -heading MPI \
+	   -jumpfile ../../jumpfile.list -heading MPI \
 		-quotefmt ../../util/fortnotes ../../util/errnotes \
 		$(MPI_CSOURCES)
 	../../util/doc2lt $(MPI_CSOURCES) >> ../../rsum.tmp
@@ -120,7 +123,7 @@ wwwpages:
 	../../util/doctext -html -mpath ../../www/www3 -I pubinc \
 	   -index ../../www.index -jumpfile ../../jumpfile.list \
 	   -mapref $(MPIR_HOME)/util/mpis.cit \
-	   -indexdir "http:/www.mcs.anl.gov/mpi/www/www3" -heading MPI \
+	   -indexdir "http://www.mcs.anl.gov/mpi/www/www3" -heading MPI \
 		-quotefmt ../../util/fortnotes ../../util/errnotes \
 		$(MPI_CSOURCES)
 

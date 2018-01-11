@@ -1,5 +1,5 @@
 /*
- *  $Id: type_ind.c,v 1.20 1996/04/11 20:25:32 gropp Exp $
+ *  $Id: type_ind.c,v 1.24 1997/02/18 23:05:35 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -53,6 +53,7 @@ consider declaring the Fortran array with a zero origin
 .N Errors
 .N MPI_ERR_COUNT
 .N MPI_ERR_TYPE
+.N MPI_ERR_ARG
 .N MPI_ERR_EXHAUSTED
 @*/
 int MPI_Type_indexed( count, blocklens, indices, old_type, newtype )
@@ -65,23 +66,26 @@ MPI_Datatype *newtype;
   MPI_Aint      *hindices;
   int           i, mpi_errno = MPI_SUCCESS;
   int           total_count;
+  struct MPIR_DATATYPE *old_dtype_ptr;
+  static char myname[] = "MPI_TYPE_INDEXED";
   MPIR_ERROR_DECL;
 
+  TR_PUSH(myname);
   /* Check for bad arguments */
-  MPIR_GET_REAL_DATATYPE(old_type)
-  if ( MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,old_type) ||
+  old_dtype_ptr   = MPIR_GET_DTYPE_PTR(old_type);
+  MPIR_TEST_DTYPE(old_type,old_dtype_ptr,MPIR_COMM_WORLD,myname);
+  if ( 
    ( (count    <  0)                 && (mpi_errno = MPI_ERR_COUNT) ) ||
-   ( (old_type->dte_type == MPIR_UB) && (mpi_errno = MPI_ERR_TYPE) )  ||
-   ( (old_type->dte_type == MPIR_LB) && (mpi_errno = MPI_ERR_TYPE) ) )
-	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno,
-					  "Error in MPI_TYPE_INDEXED" );
+   ( (old_dtype_ptr->dte_type == MPIR_UB) && (mpi_errno = MPI_ERR_TYPE) )  ||
+   ( (old_dtype_ptr->dte_type == MPIR_LB) && (mpi_errno = MPI_ERR_TYPE) ) )
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno,myname);
 	
   /* Are we making a null datatype? */
   total_count = 0;
   for (i=0; i<count; i++) {
       total_count += blocklens[i];
       if (blocklens[i] < 0) {
-	  return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_ARG,
+	  return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ARG,
 			     "Invalid blocklens in MPI_TYPE_INDEXED" );
       }
   }
@@ -93,84 +97,15 @@ MPI_Datatype *newtype;
      a temporary displacement array, multiplying all displacements
      by extent(old_type), and using that */
   MPIR_ALLOC(hindices,(MPI_Aint *)MALLOC(count*sizeof(MPI_Aint)),
-	     MPI_COMM_WORLD,MPI_ERR_EXHAUSTED,"Error in MPI_TYPE_INDEXED");
+	     MPIR_COMM_WORLD,MPI_ERR_EXHAUSTED,myname);
   for (i=0; i<count; i++) {
-      hindices[i] = (MPI_Aint)indices[i] * old_type->extent;
+      hindices[i] = (MPI_Aint)indices[i] * old_dtype_ptr->extent;
   }
-  MPIR_ERROR_PUSH(MPI_COMM_WORLD);
+  MPIR_ERROR_PUSH(MPIR_COMM_WORLD);
   mpi_errno = MPI_Type_hindexed( count, blocklens, hindices, old_type, 
 				 newtype );
-  MPIR_ERROR_POP(MPI_COMM_WORLD);
+  MPIR_ERROR_POP(MPIR_COMM_WORLD);
   FREE(hindices);
-  MPIR_RETURN(MPI_COMM_WORLD,mpi_errno, "Error in MPI_TYPE_INDEXED");
-#ifdef FOO
-  /* Create and fill in the datatype */
-  MPIR_ALLOC(dteptr,(MPI_Datatype) MPIR_SBalloc( MPIR_dtes ), MPI_COMM_WORLD, 
-	     MPI_ERR_EXHAUSTED, "Out of space in MPI_TYPE_INDEXED" );
-  *newtype = dteptr;
-  MPIR_SET_COOKIE(dteptr,MPIR_DATATYPE_COOKIE)
-  dteptr->dte_type    = MPIR_INDEXED;
-  dteptr->committed   = 0;
-  dteptr->basic       = 0;
-  dteptr->permanent   = 0;
-  dteptr->is_contig   = 0;
-  dteptr->ref_count   = 1;
-  dteptr->align       = old_type->align;
-  dteptr->old_type    = (MPI_Datatype)MPIR_Type_dup (old_type);
-  dteptr->count       = count;
-  dteptr->elements    = 0;
-  dteptr->has_ub      = old_type->has_ub;
-  dteptr->has_lb      = old_type->has_lb;
-
-  /* Create indices and blocklens arrays and fill them */
-  dteptr->indices     = ( MPI_Aint * ) MALLOC( count * sizeof( MPI_Aint ) );
-  dteptr->blocklens   = ( int * ) MALLOC( count * sizeof( int ) );
-  if (!dteptr->indices || !dteptr->blocklens) 
-      return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-			 "Out of space in MPI_TYPE_HINDEXED" );
-  high                = (indices[0] + blocklens[0]) * old_type->extent;
-  low                 = (indices[0] * old_type->extent);
-  if (high < low) {
-	tmp  = high;
-	high = low;
-	low  = tmp;
-  }
-  for (i = 0; i < count; i++)  {
-	dteptr->indices[i]    = indices[i] * old_type->extent;
-	dteptr->blocklens[i]  = blocklens[i];
-	ub = dteptr->indices[i] + (blocklens[i] * old_type->extent) ;
-	lb = dteptr->indices[i];
-	if (ub > lb) {
-	  if ( high < ub ) high = ub;
-	  if ( low  > lb ) low  = lb;
-	}
-	else {
-	  if ( high < lb ) high = lb;
-	  if ( low  > ub ) low  = ub;
-	}
-	dteptr->elements     += blocklens[i];
-  }
-
-  /* Set the upper/lower bounds and the extent and size */
-  if (old_type->has_lb) 
-      dteptr->lb = old_type->lb;
-  else
-      dteptr->lb = low;
-  if (old_type->has_ub)
-      dteptr->ub = old_type->ub;
-  else
-      dteptr->ub = high;
-  dteptr->extent      = high - low;
-  dteptr->size        = dteptr->elements * old_type->size;
-
-  /* 
-    dteptr->elements contains the number of elements in the top level
-	type.  to get the total elements, we multiply by the number of elements
-	in the old type.
-  */
-  /* Using *= on hpux with -O optimization causes this routine to fail (!) */
-  dteptr->elements   = dteptr->elements * old_type->elements;
-
-  return (mpi_errno);
-#endif
+  TR_POP;
+  MPIR_RETURN(MPIR_COMM_WORLD,mpi_errno, myname);
 }

@@ -6,6 +6,7 @@
 #
 #
 # Parameters for all programs and systems
+set -x
 device=ch_p4
 mpihome=../../..
 rshcmd=rsh
@@ -22,7 +23,7 @@ getelmfiles=""
 # arch1 is local, arch2 is remote
 arch1=sun4
 arch2=freebsd
-name2=elvis
+name2=owl
 #
 debug_args=""
 fail_hard=1

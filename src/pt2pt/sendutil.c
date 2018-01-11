@@ -1,5 +1,5 @@
 /*
- *  $Id: sendutil.c,v 1.1 1996/07/05 16:03:20 gropp Exp $
+ *  $Id: sendutil.c,v 1.3 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -46,28 +46,32 @@ void MPIR_Sendq_finalize()
 			state of the program from a debugger.
 */
 
-void MPIR_Remember_send( sh, buff, count, datatype, target, tag, comm )
+void MPIR_Remember_send( sh, buff, count, datatype, target, tag, comm_ptr )
 MPIR_SHANDLE * sh;
 void *buff;
 int count;
 MPI_Datatype datatype;
 int target;
 int tag;
-MPI_Comm comm;
+struct MPIR_COMMUNICATOR *comm_ptr;
 {
+  struct MPIR_DATATYPE *dtype_ptr;
+
   /* Assume that the allocator maintains its own lock */
+
   MPIR_SQEL * sqe = (MPIR_SQEL *) MPID_SBalloc( MPIR_sqels );
   int contig_size = 0;
 
   sqe->db_shandle = sh;
-  sqe->db_comm    = comm;
+  sqe->db_comm    = comm_ptr;
   sqe->db_target  = target;
   sqe->db_tag     = tag;
   sqe->db_data    = buff;
   sqe->db_next    = (MPIR_SQEL *)0;
   
   /* ***Assume that it's a flat datatype... *** */
-  MPIR_DATATYPE_GET_SIZE(datatype,contig_size);
+  dtype_ptr   = MPIR_GET_DTYPE_PTR(datatype);
+  contig_size = MPIR_GET_DTYPE_SIZE(datatype,dtype_ptr);
 
   sqe->db_byte_length = count * contig_size;
 

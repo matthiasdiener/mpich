@@ -1,0 +1,339 @@
+OK.  I've gotten around to getting the specification done for the second
+generation ADI.  Basically, it looks like the MPI_Send() and MPI_Recv()
+cases are very optimized, but that using MPI_Pack() is not terrible,
+either.
+
+Comments on any changes needed are more than welcome.  Right now, I have
+a base code skeleton setup, but no design decisions have been made.  I
+can easily change anything in here, because most of the code does not
+exist (except in my head).
+
+With the new ADI, MPI_Send() directly calls MPID_SendDatatype(), so if
+we optimize MPID_SendDatatype(), we optimize the sends that happen.
+Likewise, MPI_Recv() directly calls MPID_RecvDatatype(), so we can make
+sure that the frequently used cases can be optimized.
+
+Some significant changes from the 1st ADI:
+
+*  There is no longer an MPI packet on the front of the message because
+   we are directly hanndling all the packets.  We do have to put some
+   header information in the packets, though, like tag, context, etc.
+
+*  Because we are handling all the packets, there currently is not a
+   small message protocol.  All messages are sent in one big packet.
+   This should be slightly more efficient than before because previously
+   we sent both messages immediately.  The second message was not
+   delayed until the receiving side was ready for it.  Also, this allows
+   Nexus to optimize as it sees fit.
+
+   All puts will be done with nexus_put_direct_TYPE(), so the two
+   message protocol should kick in automatically for big messages and be
+   transparent to the MPI Nexus device.  YEAH! :)
+
+   NOTE from Steve:  True, though to make this happen, the interface to
+   Nexus messaging has become significantly more complex with the
+   nexus_direct_*() and nexus_user*() calls.
+
+*  Data conversion only happens once since we control the data
+   immediately after the user passes it to MPI.  It does not get
+   transformed before we see it.  This also lets Nexus optimize data
+   conversion as it sees fit.
+
+*  The queueing is thread safe and thread aware.  One thread should not
+   block another thread.  They should all work smoothly with each
+   other.
+
+*  If Rusty and Bill fix a problem in the 2nd ADI code, we will not get
+   the fix.  Our code is not a derivative of theirs, and it will not
+   have their bugs.  This means we will have our own bugs to play with
+   and fix.  We still inherit the most complex part of the code,
+   however, so this isn't the worst possible situation.
+
+That being the case, the pseudo-code for those functions follows:
+
+MPID_SendDatatype()
+{
+    /*
+     * Get Nexus ready to send a RSR to the send_datatype handler on the
+     * destination node.  Init, Size, Pack, and Send the info.
+     */
+    nexus_init_remote_service_request(send_datatype_handler);
+
+    /*
+     * See ~geisler/mpich/mpid/ch_nexus2/adi2pack.c for details on the
+     * next two function calls.  I think I have them written as
+     * succinctly as possible.  They do not depend on design issues;
+     * that is why they are already completed.
+     */
+    num_elements = MPID_Pack_buffer_elements();
+    buf_size = MPID_Pack_buffer_size();
+    nexus_set_buffer_size();
+
+    nexus_put_int(sender);
+    nexus_put_int(tag);
+    nexus_put_int(context);
+    /* put any other header information here */
+
+    MPID_Pack_buffer(); /* calls to nexus_direct_put_TYPE() */
+
+    nexus_send_remote_service_request();
+}
+
+/*
+ * The code for MPID_RecvContig() should be nearly identical to the
+ * MPID_RecvDatatype() except the datatype is a contiguous buffer.
+ * Since MPICH currently does not call MPID_RecvContig(), we do not
+ * need to prototype it in this spec.  We may even skip it for the
+ * preliminary implementation and only add it after we know we have
+ * everything else working.
+ */
+MPID_RecvDatatype()
+{
+    /*
+     * Check queue for message that has already arrived that matches
+     * this request.  If one does, take it, otherwise wait for one to
+     * show up.
+     */
+    nexus_mutex_lock(queue);
+    for each element in queue
+    {
+	if (   element.sender  == expected sender 
+	    && element.tag     == expected tag
+	    && element.context == expected context)
+	{
+	    getQ(element);
+	    nexus_mutex_unlock(queue);
+	    MPID_Unpack_stashed_buffer(element.buffer);
+	    return ;
+	}
+    }
+    /* 
+     * Put recv information in different queue so data can directly
+     * be copied into the user buffer.
+     */
+    request.address = buffer;
+    request.type = datatype;
+    request.count = count;
+    request.sender = sender;
+    request.tag = tag;
+    request.context = context;
+    request.satisfied = FALSE;
+    PutQ(request);
+
+    while(request.satisfied == FALSE)
+    {
+        nexus_cond_wait();
+    }
+    nexus_mutex_unlock(queue);
+}
+
+MPID_IRecvDatatype()
+{
+    /*
+     * Just check the queue for a message that has already arrived that
+     * matches this request.  If one exists, take it, otherwise return
+     */
+    nexus_mutex_lock(queue);
+    for each element in queue
+    {
+	if (   element.sender  == expected sender
+	    && element.tag     == expected tag
+	    && element.context == expected context)
+	{
+	    getQ(element);
+	    nexus_mutex_unlock(queue);
+	    return element.buffer;
+	}
+    }
+    nexus_mutex_unlock(queue);
+    return NOTHING_RECEIVED;
+}
+
+send_datatype_handler()
+{
+    nexus_get_int(sender);
+    nexus_get_int(tag);
+    nexus_get_int(context);
+
+    nexus_mutex_lock(queue);
+    for each request in queue
+    {
+	if (   request.sender  == sender
+	    && request.tag     == tag
+	    && request.context == context)
+	{
+	    /*
+	     * There is a thread waiting for this message.  We can
+	     * directly receive the message into the user's address
+	     * space. :)
+	     */
+	    GetQ(request);
+	    if (!request->is_freed)
+	    {
+	        MPID_Unpack_buffer(request.address, request.type, request.count);
+	        request.satisfied = TRUE;
+	        nexus_cond_broadcast();
+	    }
+	    nexus_mutex_unlock(queue);
+	    return ;
+	}
+    }
+
+    /*
+     * Put this message into the queue for later processing.  No thread
+     * is waiting for this message, so we must stash the buffer for
+     * later use.
+     */
+    element.sender = sender;
+    element.tag = tag;
+    element.buffer = buffer;
+    nexus_stash_buffer_lineraly(buffer);
+    PutQ(element);
+
+    nexus_mutex_unlock(queue);
+}
+
+
+/*
+ * This routine typifies the MPID_Pack*() routines.  An MPI Datatype
+ * can consist of other MPI Datatypes, or of primitive types.  We must
+ * go through each datatype until we get to the datatypes that Nexus
+ * can handle easily.
+ *
+ * It is only called internally by other Nexus device functions and is
+ * not a formal part of the ADI specification.  If the user is trying
+ * to pack something, he/she will end up calling MPID_Pack().  The
+ * difference between the two is to replace nexus_direct_put_DATATYPE()
+ * with nexus_user_put_DATATYPE().  No need to duplicate pseudo code
+ * that does nearly identical stuff.
+ */
+MPID_Pack_buffer()
+{
+    if (DATATYPE is primitive)
+    {
+	/*
+	 * Let Nexus make the decision on whether the data is too large
+	 * to fit into one message or to be put into two separate ones.
+	 */
+	nexus_direct_put_DATATYPE();
+    }
+    else
+    {
+	for each sub-datatype in DATATYPE
+	{
+	    MPID_Pack_buffer(sub-datatype);
+	}
+    }
+}
+
+/*
+ * This buffer gets called only internally to the Nexus device for MPICH
+ * and none of the MPICH code will call this.  It should be used to
+ * unpack a nexus buffer directly into user space.  The
+ * MPID_Unpack_stashed_buffer() should be used for buffers that have
+ * already been stashed waiting for the receive to be posted.
+ */
+MPID_Unpack_buffer()
+{
+    if (DATATYPE is primitive)
+    {
+        left = number of elements to get
+        while(left)
+        {
+	    if (direct_stash.buffer)
+	    {
+		if (left < direct_stash.num_elements)
+		{
+		    nexus_user_get_DATATYPE();
+		    direct_stash.location += left * sizeof DATATYPE;
+		    direct_stash.num_elements -= left;
+		    left = 0;
+		}
+		else
+		{
+		    nexus_user_get_DATATYPE();
+		    free(direct_stash.buffer);
+		    direct_stash.buffer = NULL;
+		    left -= direct_stash.num_elements;
+		}
+	    }
+	    else
+	    {
+	        get_count = nexus_check_get_DATATYPE();
+	        if (get_count > 0)
+	        {
+	            nexus_get_DATATYPE(get_count);
+	            left -= get_count;
+	        }
+    		else if (get_count == 0)
+		{
+	            get_count = nexus_check_direct_get_DATATYPE();
+	            if (get_count <= left && get_count > 0)
+	            {
+	                nexus_direct_get_DATATYPE();
+	                left -= get_count;
+	            }
+		    else if (get_count > left)
+		    {
+			direct_stash.num_elements = get_count;
+			size = nexus_check_direct_user_size();
+			direct_stash.buffer = malloc(size);
+			direct_stash.location = 0;
+			nexus_direct_get_DATATYPE();
+		    }
+	            else if (get_count < 0)
+	            {
+			/* We should never get here becuase
+			 * nexus_check_direct_get_DATATYPE() doesn't
+			 * return 0.  Check for robustness.
+			 */
+			nexus_fatal("Internal buffer error\n");
+		    }
+		}
+	        else if (get_count < 0)
+	        {
+		    /*
+		     * We should never get to this in the code, because
+		     * get_count should be >= 0 always.  It doesn't make
+		     * any sense for there to be negative elements in a
+		     * buffer.
+		     */
+		    nexus_fatal("Internal buffer error\n");
+	        }
+	    }
+        }
+    }
+    else /* DATATYPE is not primitive */
+    {
+	for each sub-datatype in DATATYPE
+	{
+	    MPID_Unpack_buffer(sub-datatype);
+	}
+    }
+}
+
+/*
+ * This gets called when a user wished to unpack a buffer he/she
+ * received with MPI_Recv(MPI_PACKED).  The data has been put into a
+ * user buffer and nexus_user_get_DATATYPE() routines should work.
+ *
+ * MPID_Unpack_stashed_buffer() should be identical to this except that
+ * it will use nexus_get_stashed_DATATYPE() instead of
+ * nexus_user_get_DATATYPE().  No sense in repeating pseudo-code :)
+ */
+MPID_Unpack()
+{
+    if DATATYPE is primitive
+    {
+	nexus_user_get_DATATYPE();
+    }
+    else
+    {
+	for each sub-datatype in DATATYPE
+	{
+	    MPID_Unpack(sub-datatype);
+	}
+    }
+}
+
+						>=- Jonathan -=<

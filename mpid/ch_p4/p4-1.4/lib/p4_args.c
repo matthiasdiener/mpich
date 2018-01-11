@@ -33,13 +33,13 @@ char **argv;
 	strcpy(pgm, *argv);
 
     /* Set all command line flags (except procgroup) to their defaults */
-    debug_level = 0;
-    remote_debug_level = 0;
+    p4_debug_level = 0;
+    p4_remote_debug_level = 0;
     bm_outfile[0] = '\0';
     procgroup_file[0] = '\0';
     strcpy(local_domain, "");
-    hand_start_remotes = FALSE;
-    execer_starting_remotes = FALSE;
+    hand_start_remotes = P4_FALSE;
+    execer_starting_remotes = P4_FALSE;
     execer_id[0] = '\0';
     execer_masthost[0] = '\0';
     execer_jobname[0] = '\0';
@@ -62,7 +62,7 @@ char **argv;
 
         if (strcmp(*a, "-execer_id") == 0)
         {
-            execer_starting_remotes = TRUE;
+            execer_starting_remotes = P4_TRUE;
             strcpy(execer_id,*(a+1));
             strcpy(execer_masthost,*(a+3));
             strcpy(execer_myhost,*(a+5));
@@ -113,7 +113,7 @@ char **argv;
 	{
 	    if (bad_arg(a[1]))
 		usage();
-	    debug_level = atoi(a[1]);
+	    p4_debug_level = atoi(a[1]);
 	    strip_out_args(a, argc, &c, 2);
 	    continue;
 	}
@@ -129,7 +129,7 @@ char **argv;
 	{
 	    if (bad_arg(a[1]))
 		usage();
-	    remote_debug_level = atoi(a[1]);
+	    p4_remote_debug_level = atoi(a[1]);
 	    strip_out_args(a, argc, &c, 2);
 	    continue;
 	}
@@ -168,13 +168,13 @@ char **argv;
 	if (!strcmp(*a, "-p4log"))
 	{
 	    strip_out_args(a, argc, &c, 1);
-	    logging_flag = TRUE;
+	    logging_flag = P4_TRUE;
 	    continue;
 	}
 	if (!strcmp(*a, "-p4norem"))
 	{
 	    strip_out_args(a, argc, &c, 1);
-	    hand_start_remotes = TRUE;
+	    hand_start_remotes = P4_TRUE;
 	    continue;
 	}
 	if (!strcmp(*a, "-p4version"))
@@ -186,16 +186,20 @@ char **argv;
 	if (!strcmp(*a, "-p4help"))
 	    usage();
     }
-    if (procgroup_file[0] == '\0')
-    {
-	strcpy(procgroup_file,argv[0]);
-	strcat(procgroup_file,".pg");
-	if ((fp = fopen(procgroup_file,"r")) == NULL)  /* pgm.pg not there */
-	    strcpy(procgroup_file, "procgroup");
-	else
-	    fclose(fp);
+    if (!execer_starting_remotes) {
+	if (procgroup_file[0] == '\0')
+	{
+	    strcpy(procgroup_file,argv[0]);
+	    strcat(procgroup_file,".pg");
+	    if ((fp = fopen(procgroup_file,"r")) == NULL) {
+                /* pgm.pg not there */
+		strcpy(procgroup_file, "procgroup");
+	    }
+	    else
+		fclose(fp);
+	}
+	p4_dprintfl(10,"using procgroup file %s\n",procgroup_file);
     }
-    p4_dprintfl(10,"using procgroup file %s\n",procgroup_file);
 }
 
 static P4VOID strip_out_args(argv, argc, c, num)

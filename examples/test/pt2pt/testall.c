@@ -1,7 +1,12 @@
 #include "mpi.h"
 #include <stdio.h>
-#include <memory.h>
+#include <stdlib.h>
 #include "dtypes.h"
+#include "gcomm.h"
+
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
 
 /* 
    Multiple completions
@@ -81,7 +86,7 @@ for (i=0; i<ncomm; i++) {
 		err++;
 		fprintf( stderr, "MPI_Testall returned flag == true!\n" );
 		}
-	    if (!requests[1]) {
+	    if (requests[1] == MPI_REQUEST_NULL) {
 		err++;
 		fprintf( stderr, "MPI_Testall freed a request\n" );
 		}
@@ -101,7 +106,8 @@ for (i=0; i<ncomm; i++) {
 		err++;
 		fprintf( stderr, "MPI_Testall returned flag == false!\n" );
 		}
-	    if (requests[0] || requests[1]) {
+	    if (requests[0] != MPI_REQUEST_NULL || 
+		requests[1] != MPI_REQUEST_NULL) {
 		err++;
 		fprintf( stderr, "MPI_Testall failed to free requests\n" );
 		}

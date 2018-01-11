@@ -1,5 +1,6 @@
 /* ictest.c */
 #include "mpi.h"
+#include "test.h"
 
 int main( argc, argv )
      int argc;
@@ -69,6 +70,7 @@ int main( argc, argv )
   /* Finalize and end! */
 
   MPI_Finalize();
+  return 0;
 }
 
 

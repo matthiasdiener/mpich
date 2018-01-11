@@ -1,7 +1,19 @@
+#if defined(HAVE_CONFIG_H) && !defined(MPICHCONF_INC)
+/* This includes the definitions found by configure, and can be found in
+   the library directory (lib/$ARCH/$COMM) corresponding to this configuration
+ */
+#define MPICHCONF_INC
+#include "mpichconf.h"
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #define _TR_SOURCE
+
 #include "tr2.h"
+
+/* Needed for MPI_Aint (int that is the size of void *) */
+#include "mpi.h"
 
 #if HAVE_STDLIB_H
 #include <stdlib.h>
@@ -15,6 +27,10 @@ extern char *malloc();
 extern char *calloc();
 extern int free();
 #endif
+#endif
+
+#ifdef NEEDS_STDLIB_PROTOTYPES
+#include "protofix.h"
 #endif
 
 #undef TRSPACE
@@ -175,7 +191,8 @@ char     *fname;
     frags     ++;
 
     if (TRlevel & TR_MALLOC) 
-	fprintf( stderr, "Allocating %d bytes at %lx\n", a, (long)new );
+	fprintf( stderr, "[%d] Allocating %d bytes at %lx in %s:%d\n", 
+		 world_rank, a, (MPI_Aint)new, fname, lineno );
     return (void *)new;
 }
 
@@ -196,7 +213,7 @@ char *file;
     char     *ahead;
     char     *a = (char *)a_ptr;
     unsigned long *nend;
-    int      l;
+    int      l, nset;
 
 /* Don't try to handle empty blocks */
     if (!a) return;
@@ -211,8 +228,8 @@ char *file;
     if (head->cookie != COOKIE_VALUE) {
 	/* Damaged header */
 	fprintf( stderr, "[%d] Block at address %lx is corrupted; cannot free;\n\
-may be block not allocated with MPID_trmalloc or MALLOC\n", world_rank, 
-		 (long)a );
+may be block not allocated with MPID_trmalloc or MALLOC\n\
+called in %s at line %d\n", world_rank, (MPI_Aint)a, file, line );
 	return;
     }
     nend = (unsigned long *)(ahead + head->size);
@@ -220,15 +237,16 @@ may be block not allocated with MPID_trmalloc or MALLOC\n", world_rank,
     if ((sizeof(long) == 4 && ((long)nend & 0x3) != 0) ||
 	(sizeof(long) == 8 && ((long)nend & 0x7) != 0)) {
 	fprintf( stderr,
- "[%d] Block at address %lx is corrupted (invalid address or header)\n",
-		 world_rank, (long)a + sizeof(TrSPACE) );
+ "[%d] Block at address %lx is corrupted (invalid address or header)\n\
+called in %s at line %d\n", world_rank, (long)a + sizeof(TrSPACE), 
+		 file, line );
 	return;
     }
     if (*nend != COOKIE_VALUE) {
 	if (*nend == ALREADY_FREED) {
 	    fprintf( stderr, 
 		     "[%d] Block [id=%d(%lu)] at address %lx was already freed\n", 
-		     world_rank, head->id, head->size, (long)a + sizeof(TrSPACE) );
+		     world_rank, head->id, head->size, (MPI_Aint)a + sizeof(TrSPACE) );
 	    head->fname[TR_FNAME_LEN-1]	  = 0;  /* Just in case */
 	    head->freed_fname[TR_FNAME_LEN-1] = 0;  /* Just in case */
 	    fprintf( stderr, 
@@ -243,7 +261,7 @@ may be block not allocated with MPID_trmalloc or MALLOC\n", world_rank,
 	    /* Damaged tail */
 	    fprintf( stderr, 
 		     "[%d] Block [id=%d(%lu)] at address %lx is corrupted (probably write past end)\n", 
-		     world_rank, head->id, head->size, (long)a );
+		     world_rank, head->id, head->size, (MPI_Aint)a );
 	    head->fname[TR_FNAME_LEN-1]= 0;  /* Just in case */
 	    fprintf( stderr, 
 		     "[%d] Block allocated in %s[%d]\n", world_rank, 
@@ -266,8 +284,17 @@ may be block not allocated with MPID_trmalloc or MALLOC\n", world_rank,
     if (head->next)
 	head->next->prev = head->prev;
     if (TRlevel & TR_FREE)
-	fprintf( stderr, "Freeing %lu bytes at %lx\n", 
-		 head->size, (long)a + sizeof(TrSPACE) );
+	fprintf( stderr, "[%d] Freeing %lu bytes at %lx in %s:%d\n", 
+		 world_rank, head->size, (MPI_Aint)a + sizeof(TrSPACE),
+		 file, line );
+    
+    /* 
+       Now, scrub the data (except possibly the first few ints) to
+       help catch access to already freed data 
+     */
+    nset = head->size -  2 * sizeof(int);
+    if (nset > 0) 
+	memset( ahead + 2 * sizeof(int), 0xda, nset );
     free( a );
 }
 
@@ -312,7 +339,7 @@ while (head) {
 	if (!errs) fprintf( stderr, "%s\n", str );
 	errs++;
 	fprintf( stderr, "[%d] Block at address %lx is corrupted\n", 
-                 world_rank, (long)head );
+                 world_rank, (MPI_Aint)head );
 	/* Must stop because if head is invalid, then the data in the
 	   head is probably also invalid, and using could lead to SEGV or BUS
 	 */
@@ -326,7 +353,7 @@ while (head) {
 	head->fname[TR_FNAME_LEN-1]= 0;  /* Just in case */
 	fprintf( stderr, 
 "[%d] Block [id=%d(%lu)] at address %lx is corrupted (probably write past end)\n", 
-	     world_rank, head->id, head->size, (long)a );
+	     world_rank, head->id, head->size, (MPI_Aint)a );
 	fprintf( stderr, 
 		"[%d] Block allocated in %s[%d]\n", 
                 world_rank, head->fname, head->lineno );
@@ -368,27 +395,29 @@ FILE *fp;
     if (fp == 0) fp = stderr;
     head = TRhead;
     while (head) {
-	fprintf( fp, "%lu at [%lx], id = ", 
-		 head->size, (long)head + sizeof(TrSPACE) );
+	fprintf( fp, "[%d] %lu at [%lx], id = ", 
+		 world_rank, head->size, (MPI_Aint)head + sizeof(TrSPACE) );
 	if (head->id >= 0) {
 	    head->fname[TR_FNAME_LEN-1] = 0;
-	    fprintf( fp, "%d %s[%d]\n", head->id, head->fname, head->lineno );
+	    fprintf( fp, "%d %s[%d]\n", 
+		     head->id, head->fname, head->lineno );
 	}
 	else {
 	    /* Decode the package values */
 	    head->fname[TR_FNAME_LEN-1] = 0;
 	    id = head->id;
-	    fprintf( fp, "%d %s[%d]\n", id, head->fname, head->lineno );
+	    fprintf( fp, "%d %s[%d]\n", 
+		     id, head->fname, head->lineno );
 	}
 	head = head->next;
     }
 /*
-    fprintf( fp, "# The maximum space allocated was %ld bytes [%ld]\n", 
-	     TRMaxMem, TRMaxMemId );
+    fprintf( fp, "# [%d] The maximum space allocated was %ld bytes [%ld]\n", 
+	     world_rank, TRMaxMem, TRMaxMemId );
  */
 }
 
-/* Confiure will set HAVE_SEARCH for these systems.  We assume that
+/* Configure will set HAVE_SEARCH for these systems.  We assume that
    the system does NOT have search.h unless otherwise noted.
    The otherwise noted lets the non-configure approach work on our
    two major systems */
@@ -471,16 +500,16 @@ while (head) {
 TRFP = fp;
 twalk( (char *)root, (void (*)())PrintSum );
 /*
-fprintf( fp, "# The maximum space allocated was %d bytes [%d]\n", 
-	 TRMaxMem, TRMaxMemId );
+fprintf( fp, "# [%d] The maximum space allocated was %d bytes [%d]\n", 
+	 world_rank, TRMaxMem, TRMaxMemId );
 	 */
 }
 #else
 void MPID_trSummary( fp )
 FILE *fp;
 {
-fprintf( fp, "# The maximum space allocated was %ld bytes [%ld]\n", 
-	 TRMaxMem, TRMaxMemId );
+fprintf( fp, "# [%d] The maximum space allocated was %ld bytes [%ld]\n", 
+	 world_rank, TRMaxMem, TRMaxMemId );
 }	
 #endif
 
@@ -606,8 +635,9 @@ char *fname;
     head = (TRSPACE *)(pa - sizeof(TrSPACE));
     if (head->cookie != COOKIE_VALUE) {
 	/* Damaged header */
-	fprintf( stderr, "Block at address %lx is corrupted; cannot realloc;\n\
-may be block not allocated with MPID_trmalloc or MALLOC\n", (long)pa );
+	fprintf( stderr, "[%d] Block at address %lx is corrupted; cannot realloc;\n\
+may be block not allocated with MPID_trmalloc or MALLOC\n", 
+		 world_rank, (MPI_Aint)pa );
 	return 0;
     }
 
@@ -730,8 +760,8 @@ while (head) {
 	nbytes += (int)cur->size;
 	cur    = cur->next;
 	}
-    fprintf( fp, "File %13s line %5d: %d bytes in %d allocation%c\n", 
-	     head->fname, head->lineno, nbytes, nblocks, 
+    fprintf( fp, "[%d] File %13s line %5d: %d bytes in %d allocation%c\n", 
+	     world_rank, head->fname, head->lineno, nbytes, nblocks, 
 	     (nblocks > 1) ? 's' : ' ' );
     head = cur;
     }

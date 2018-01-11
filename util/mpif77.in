@@ -9,6 +9,7 @@ linkargs=
 linkobjs=
 gettinglinkarg=0
 HasDashC=0
+UsesPmpi=0
 for arg in "$@" ; do
 #    echo procssing arg $arg
     # Special processing for -o name
@@ -40,7 +41,18 @@ for arg in "$@" ; do
 	    DoLink=1
         fi
 	;;
+	-l*)
+	# This SHOULD be the -l<lib> argument.  Only for the linker
+	linkargs="$linkargs $arg"
+	allargs="$allargs $arg"
+	;;
 	-mpilog)
+	if [ $UsesPmpi = 1 ] ; then
+	    echo "Only one of -mpilog, -mpitrace, or -mpianim may be used."
+	    exit 1
+	else
+	    UsesPmpi=1
+        fi
 	if [ -n "@MPE_LIBS@" ] ; then
 		MPILOG="-lf@MPILIBNAME@ -llmpi"
 	else
@@ -48,6 +60,12 @@ for arg in "$@" ; do
 	fi
 	;;
 	-mpitrace)
+	if [ $UsesPmpi = 1 ] ; then
+	    echo "Only one of -mpilog, -mpitrace, or -mpianim may be used."
+	    exit 1
+	else
+	    UsesPmpi=1
+        fi
 	if [ -n "@MPE_LIBS@" ] ; then
    	    MPILOG="-lf@MPILIBNAME@ -ltmpi"
 	else
@@ -55,6 +73,12 @@ for arg in "$@" ; do
 	fi
 	;;
 	-mpianim)
+	if [ $UsesPmpi = 1 ] ; then
+	    echo "Only one of -mpilog, -mpitrace, or -mpianim may be used."
+	    exit 1
+	else
+	    UsesPmpi=1
+        fi
 	if [ -n "@MPE_LIBS@" ] ; then
 	    MPILOG="-lf@MPILIBNAME@ -lampi @MPE_LIBS@ @X_LIB@"
 	else
@@ -134,7 +158,7 @@ if [ $DoCompile = 1 ] ; then
     if [ $HasDashC != 1 ] ; then
         compileargs="-c $compileargs"
     fi
-    $Show @F77@ $finc @FFLAGS@ @OPTFLAGS@ $compileargs
+    $Show @F77@ $finc @FFLAGS@ $compileargs
     status=$?
     if [ $status != 0 ] ; then 
 	exit $status
@@ -142,9 +166,9 @@ if [ $DoCompile = 1 ] ; then
 fi
 if [ $DoLink = 1 ] ; then
     if [ -n "$MPILOG" ] ; then
-        $Show @FLINKER@ $linkobjs @FLIB_PATH@ $MPILOG $linkargs -lp@MPILIBNAME@ @LIB_LIST@
+        $Show @FLINKER@ @FLIB_PATH@ $linkobjs $MPILOG $linkargs -lp@MPILIBNAME@ @LIB_LIST@
     else
-        $Show @FLINKER@ $linkobjs $linkargs @FLIB_PATH@ @LIB_LIST@
+        $Show @FLINKER@ @FLIB_PATH@ $linkobjs $linkargs @LIB_LIST@
     fi
     status=$?
 fi

@@ -1,5 +1,5 @@
 /*
- *  $Id: graph_map.c,v 1.8 1996/04/12 15:53:51 gropp Exp $
+ *  $Id: graph_map.c,v 1.10 1997/01/07 01:48:01 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -36,21 +36,33 @@ int     *index;
 int     *edges;
 int     *newrank;
 {
-  int rank;
+  int rank, size;
   int mpi_errno = MPI_SUCCESS;
+  struct MPIR_COMMUNICATOR *comm_old_ptr;
+  static char myname[] = "MPI_GRAPH_MAP";
 
-  if (MPIR_TEST_COMM(comm_old,comm_old) ||
-      ((nnodes   <  1)             && (mpi_errno = MPI_ERR_ARG))  ||
+  TR_PUSH(myname);
+  comm_old_ptr = MPIR_GET_COMM_PTR(comm_old);
+  MPIR_TEST_MPI_COMM(comm_old,comm_old_ptr,comm_old_ptr,myname);
+
+  if (((nnodes   <  1)             && (mpi_errno = MPI_ERR_ARG))  ||
       MPIR_TEST_ARG(newrank) || MPIR_TEST_ARG(index) ||
       MPIR_TEST_ARG(edges))
-    return MPIR_ERROR( comm_old, mpi_errno, "Error in MPI_GRAPH_MAP" );
+    return MPIR_ERROR( comm_old_ptr, mpi_errno, myname );
   
+  /* Test that the communicator is large enough */
+  MPIR_Comm_size( comm_old_ptr, &size );
+  if (size < nnodes) {
+      return MPIR_ERROR( comm_old_ptr, MPI_ERR_ARG, myname );
+  }
+
   /* Am I in this topology? */
-  MPIR_Comm_rank ( comm_old, &rank );
+  MPIR_Comm_rank ( comm_old_ptr, &rank );
   if ( rank < nnodes )
     (*newrank) = rank;
   else
     (*newrank) = MPI_UNDEFINED;
 
+  TR_POP;
   return (mpi_errno);
 }

@@ -1,5 +1,5 @@
 /*
- *  $Id: finalize.c,v 1.34 1996/06/07 15:12:21 gropp Exp $
+ *  $Id: finalize.c,v 1.40 1997/01/17 22:59:21 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -9,6 +9,7 @@
 #ifdef MPI_ADI2
 #include "reqalloc.h"
 #define MPIR_SBdestroy MPID_SBdestroy
+extern int MPIR_Dump_Mem;
 #else
 #include "mpisys.h"
 extern int MPIR_Print_queues;
@@ -36,6 +37,9 @@ int MPI_Finalize()
 {
 
     void *ADIctx;
+
+    TR_PUSH("MPI_Finalize");
+
     DBG(FPRINTF( stderr, "Entering system finalize\n" ); fflush(stderr);)
 
     /* Complete any remaining buffered sends first */
@@ -84,25 +88,27 @@ int MPI_Finalize()
     /* Un-initialize topology code */
     MPIR_Topology_finalize();
 
-    ADIctx = MPI_COMM_WORLD->ADIctx;
+    ADIctx = MPIR_COMM_WORLD->ADIctx;
 
     /* Like the basic datatypes, the predefined operators are in 
        permanent storage */
-#ifdef FOO
+
     DBG(FPRINTF( stderr, "About to free operators\n" ); fflush( stderr );)
-    MPI_Op_free( &MPI_MAX );
-    MPI_Op_free( &MPI_MIN );
-    MPI_Op_free( &MPI_SUM );
-    MPI_Op_free( &MPI_PROD );
-    MPI_Op_free( &MPI_LAND );
-    MPI_Op_free( &MPI_BAND );
-    MPI_Op_free( &MPI_LOR );
-    MPI_Op_free( &MPI_BOR );
-    MPI_Op_free( &MPI_LXOR );
-    MPI_Op_free( &MPI_BXOR );
-    MPI_Op_free( &MPI_MAXLOC );
-    MPI_Op_free( &MPI_MINLOC );
-#endif
+	{ MPI_Op tmp; 
+    tmp = MPI_MAX; MPI_Op_free( &tmp );
+    tmp = MPI_MIN; MPI_Op_free( &tmp );
+    tmp = MPI_SUM; MPI_Op_free( &tmp );
+    tmp = MPI_PROD; MPI_Op_free( &tmp );
+    tmp = MPI_LAND; MPI_Op_free( &tmp );
+    tmp = MPI_BAND; MPI_Op_free( &tmp );
+    tmp = MPI_LOR; MPI_Op_free( &tmp );
+    tmp = MPI_BOR; MPI_Op_free( &tmp );
+    tmp = MPI_LXOR; MPI_Op_free( &tmp );
+    tmp = MPI_BXOR; MPI_Op_free( &tmp );
+    tmp = MPI_MAXLOC; MPI_Op_free( &tmp );
+    tmp = MPI_MINLOC; MPI_Op_free( &tmp );
+	}
+
 
     /* Free allocated space */
     /* Note that permanent datatypes are now stored in static storage
@@ -152,36 +158,58 @@ int MPI_Finalize()
 #endif
     DBG(FPRINTF( stderr, "About to free COMM_WORLD\n" ); fflush( stderr );)
 
-    MPI_Comm_free ( &MPI_COMM_WORLD );
+	{ MPI_Comm lcomm = MPI_COMM_WORLD;
+	MPI_Comm_free ( &lcomm ); }
 
     DBG(FPRINTF( stderr, "About to free COMM_SELF\n" ); fflush( stderr );)
 
-    MPI_Comm_free ( &MPI_COMM_SELF );
+	{ MPI_Comm lcomm = MPI_COMM_SELF;
+	MPI_Comm_free ( &lcomm ); }
 
     DBG(FPRINTF( stderr, "About to free GROUP_EMPTY\n" ); fflush( stderr );)
 
-    MPI_Group_free ( &MPI_GROUP_EMPTY );
+	{ MPI_Group lgroup = MPI_GROUP_EMPTY;
+	MPI_Group_free ( &lgroup ); }
 
     DBG(FPRINTF(stderr,"About to free permanent keyval's\n");fflush(stderr);)
-	  
-    MPI_Keyval_free( &MPI_TAG_UB );
-    MPI_Keyval_free( &MPI_HOST );
-    MPI_Keyval_free( &MPI_IO );
-    MPI_Keyval_free( &MPI_WTIME_IS_GLOBAL );
-    MPI_Keyval_free( &MPIR_TAG_UB );
-    MPI_Keyval_free( &MPIR_HOST );
-    MPI_Keyval_free( &MPIR_IO );
-    MPI_Keyval_free( &MPIR_WTIME_IS_GLOBAL );
 
-    MPI_Errhandler_free( &MPI_ERRORS_RETURN );
-    MPI_Errhandler_free( &MPI_ERRORS_ARE_FATAL );
-    MPI_Errhandler_free( &MPIR_ERRORS_WARN );
+/* 
+   Free keyvals
+ */
+	{int tmp;
+	tmp = MPI_TAG_UB;
+	MPI_Keyval_free( &tmp );
+	tmp = MPI_HOST;
+	MPI_Keyval_free( &tmp );
+	tmp = MPI_IO;
+	MPI_Keyval_free( &tmp );
+	tmp = MPI_WTIME_IS_GLOBAL;
+	MPI_Keyval_free( &tmp );
+	tmp = MPIR_TAG_UB;
+	MPI_Keyval_free( &tmp );
+	tmp = MPIR_HOST;
+	MPI_Keyval_free( &tmp );
+	tmp = MPIR_IO;
+	MPI_Keyval_free( &tmp );
+	tmp = MPIR_WTIME_IS_GLOBAL;
+	MPI_Keyval_free( &tmp );
+	}
+
+    {MPI_Errhandler tmp;
+    tmp = MPI_ERRORS_RETURN;
+    MPI_Errhandler_free( &tmp );
+    tmp = MPI_ERRORS_ARE_FATAL;
+    MPI_Errhandler_free( &tmp );
+    tmp = MPIR_ERRORS_WARN;
+    MPI_Errhandler_free( &tmp );
+    }
 
 #ifdef MPI_ADI2
 #ifdef MPID_HAS_PROC_INFO
     /* Release any space we allocated for the proc table */
-    if (MPIR_proctable != 0)
+    if (MPIR_proctable != 0) {
 	FREE(MPIR_proctable);
+    }
 #endif
 #endif
     /* Tell device that we are done.  We place this here to allow
@@ -201,33 +229,39 @@ int MPI_Finalize()
     MPIR_SBdestroy( MPIR_dtes );
 #ifndef MPI_ADI2
     MPIR_SBdestroy( MPIR_qels );
-#endif
-#ifdef FOO
-    MPIR_SBdestroy( MPIR_fdtels );
-#endif
     MPIR_SBdestroy( MPIR_shandles );
     MPIR_SBdestroy( MPIR_rhandles );
+#endif
+
+    MPIR_SBdestroy( MPIR_errhandlers );
 
     MPIR_HBT_Free();
     MPIR_Topology_Free();
 
+    MPIR_SENDQ_FINALIZE();
 #ifdef MPIR_MEMDEBUG
-#ifndef MPI_ADI2
-    MPIR_trdump( stdout );
-#endif
     /* 
        This dumps the number of Fortran pointers still in use.  For this 
        to be useful, we should delete all of the one that were allocated
        by the initutil.c routine.  Instead, we just set a "highwatermark"
        for the initial values.
      */
-    MPIR_UsePointer( stdout );
+    if (MPIR_Dump_Mem) {
+	MPIR_UsePointer( stdout );
+	MPIR_DumpPointers( stdout );
+    }
+    MPIR_DestroyPointer();
+
+#ifdef MPI_ADI2
+    if (MPIR_Dump_Mem) {
+	MPID_trdump( stdout );
+    }
+#else
+    MPIR_trdump( stdout );
+#endif
+
 #endif    
     /* barrier */
+    TR_POP;
     return MPI_SUCCESS;
 }
-
-
-
-
-

@@ -1,0 +1,4 @@
+@LIBBASE@_@target@.@LIBFILE@:	ports0_@target@ $(OBJS_@target@)
+	@RM@ -f @LIBBASE@_@target@.@LIBFILE@
+	@MK_SHARED_LIB@ $(OBJS_@target@) $(PORTS0_OBJS_@target@)
+

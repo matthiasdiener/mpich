@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_group.c,v 1.12 1996/04/12 14:04:03 gropp Exp $
+ *  $Id: comm_group.c,v 1.16 1997/01/07 01:47:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -27,14 +27,21 @@ int MPI_Comm_group ( comm, group )
 MPI_Comm comm;
 MPI_Group *group;
 {
-    int mpi_errno;
-    if (MPIR_TEST_COMM(comm,comm) ) {
+    struct MPIR_COMMUNICATOR *comm_ptr;
+    struct MPIR_GROUP *new_group;
+    static char myname[] = "MPI_COMM_GROUP";
+
+    TR_PUSH(myname);
+
+    comm_ptr = MPIR_GET_COMM_PTR(comm);
+    if (MPIR_TEST_COMM_NOTOK(comm,comm_ptr) ) {
 	(*group) = MPI_GROUP_NULL;
-	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-			   "Error in MPI_COMM_GROUP" );
+	return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_COMM, myname);
     }
     else {
-	(void) MPIR_Group_dup( comm->local_group, group );
+	MPIR_Group_dup( comm_ptr->local_group, &new_group );
+	*group = new_group->self;
+	TR_POP;
 	return (MPI_SUCCESS);
     }
 }

@@ -8,6 +8,9 @@
  */
 #include "mpi.h"
 #include <stdio.h>
+#include "test.h"
+
+/* #define DEBUG */
 
 int main( argc, argv )
      int argc;
@@ -165,7 +168,7 @@ int main( argc, argv )
 
     /* Free communicators */
     MPI_Comm_free( &newComm );
-    MPI_Comm_free( &peerComm );
+    if (peerComm != MPI_COMM_NULL) MPI_Comm_free( &peerComm );
     MPI_Comm_free( &myFirstComm );
     MPI_Comm_free( &mySecondComm );
     MPI_Comm_free( &merge1 );
@@ -187,14 +190,5 @@ int main( argc, argv )
   /* Finalize and end! */
 
   MPI_Finalize();
+  return 0;
 }
-
-
-
-
-
-
-
-
-
-

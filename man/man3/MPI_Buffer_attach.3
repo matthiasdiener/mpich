@@ -1,4 +1,4 @@
-.TH MPI_Buffer_attach 3 "4/11/1996" " " "MPI"
+.TH MPI_Buffer_attach 3 "1/6/1997" " " "MPI"
 .SH NAME
 MPI_Buffer_attach \-  Attaches a user-defined buffer for sending 
 .SH SYNOPSIS
@@ -27,17 +27,21 @@ For the purposes of calculating size, you should use
 .I MPI_Pack_size
 .
 In other words, in the code
+.nf
 MPI_Buffer_attach( buffer, size );
 MPI_Bsend( ..., count=20, datatype=type1,  ... );
 ...
 MPI_Bsend( ..., count=40, datatype=type2, ... );
+.fi
 the value of 
 .I size
 in the MPI_Buffer_attach call should be greater than
 the value computed by
+.nf
 MPI_Pack_size( 20, type1, comm, &s1 );
 MPI_Pack_size( 40, type2, comm, &s2 );
 size = s1 + s2 + 2 * MPI_BSEND_OVERHEAD;
+.fi
 The 
 .I MPI_BSEND_OVERHEAD
 gives the maximum amount of space that may be used in
@@ -95,6 +99,12 @@ an error.
 .TP
 .B MPI_SUCCESS 
 - No error; MPI routine completed successfully.
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_BUFFER 
+- Invalid buffer pointer.  Usually a null buffer where
+one is not valid.
 .PD 1
 .PD 0
 .TP

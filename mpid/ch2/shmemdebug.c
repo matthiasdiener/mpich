@@ -1,5 +1,5 @@
 /*
- *  $Id: shmemdebug.c,v 1.2 1996/07/05 15:36:07 gropp Exp $
+ *  $Id: shmemdebug.c,v 1.4 1997/02/23 19:23:30 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -74,8 +74,8 @@ MPID_PKT_T *pkt;
 \tmode       = ", 
 	pkt->head.len, pkt->head.tag, pkt->head.context_id, pkt->head.lrank,
 	pkt->get_pkt.cur_offset, pkt->get_pkt.len_avail, 
-	     (long)pkt->get_pkt.send_id, (long)pkt->get_pkt.recv_id,
-	     (long)pkt->get_pkt.address );
+	     (MPI_Aint)pkt->get_pkt.send_id, (MPI_Aint)pkt->get_pkt.recv_id,
+	     (MPI_Aint)pkt->get_pkt.address );
 #endif
 }
 
@@ -227,15 +227,16 @@ MPIR_RHANDLE *rhandle;
 \tcookie     \t= %lx\n\
 \tis_complete\t= %d\n\
 \tbuf        \t= %lx\n", 
-	     (long)rhandle, 
+	     (MPI_Aint)rhandle, 
 #ifdef MPIR_HAS_COOKIES
 	     rhandle->cookie, 
 #else
 	     0,
 #endif
 	     rhandle->is_complete, 
-	     (long)rhandle->buf );
+	     (MPI_Aint)rhandle->buf );
 }
+
 void MPID_Print_shandle( fp, shandle )
 FILE *fp;
 MPIR_SHANDLE *shandle;
@@ -246,14 +247,14 @@ MPIR_SHANDLE *shandle;
 \tstart      \t= %lx\n\
 \tbytes_as_contig\t= %d\n\
 ", 
-	     (long)shandle, 
+	     (MPI_Aint)shandle, 
 #ifdef MPIR_HAS_COOKIES
 	     shandle->cookie, 
 #else
 	     0,
 #endif
 	     shandle->is_complete, 
-	     (long)shandle->start,
+	     (MPI_Aint)shandle->start,
 	     shandle->bytes_as_contig
  );
 }

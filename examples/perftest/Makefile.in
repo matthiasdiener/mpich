@@ -5,23 +5,18 @@ SHELL = /bin/sh
 ARCH        = @ARCH@
 COMM        = @COMM@
 MPIR_HOME   = @MPIR_HOME@
-CC          = @MPIR_HOME@/lib/@ARCH@/@COMM@/mpicc
+CC          = @MPICC@
 CLINKER     = $(CC)
-CCC         = @MPIR_HOME@/lib/@ARCH@/@COMM@/mpiCC
-CCLINKER    = $(CCC)
-F77         = @MPIR_HOME@/lib/@ARCH@/@COMM@/mpif77
+F77         = @MPIF77@
 FLINKER     = $(F77)
-PROFILING   = $(PMPILIB)
 OPTFLAGS    = @OPTFLAGS@
 
 ### End User configurable options ###
 
-PROFLIB = 
 CFLAGS  = $(OPTFLAGS)
 CCFLAGS = $(CFLAGS)
 FFLAGS = $(OPTFLAGS)
-LIBS = $(PROFLIB) -lm
-LIBSPP = $(MPIPPLIB) $(LIBS)
+LIBS = -lm
 EXECS = mpptest goptest vectest stress ctest cluster
 
 default: $(EXECS)
@@ -60,7 +55,7 @@ vectest: mpif.h vectest.o
 clean:
 	/bin/rm -f *.o *~ $(EXECS) tunepkt pktuse core TAGS .foo *.gpl \
 	           *.log gop.ps *.gpl *.gcm makeplot info.txt basetest.tar \
-	           copytest
+	           copytest gmon.* config.status
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

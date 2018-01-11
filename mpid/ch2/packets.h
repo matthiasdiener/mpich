@@ -62,6 +62,13 @@
    There is no special support for ready-send messages.  It isn't hard
    to add, but at the level of hardware that a portable implementation
    can reach, there isn't much to do.
+
+   For debugging purposes, it would be useful to detect various
+   recoverable "multi-party" errors.  These include
+
+       Rsend not matched be receive
+       Type signature mismatch between sender and receiver
+       Error in collective operation
  */
 #define MPID_PKT_LAST_MSG MPID_PKT_DO_GET
 typedef enum { MPID_PKT_SHORT=0, MPID_PKT_LONG=1, 
@@ -228,6 +235,9 @@ typedef struct {
     MPID_Aint   send_id;        /* Id sent by REQUEST_SEND */
     MPID_RNDV_T recv_handle;    /* additional data for sender */
     } MPID_PKT_OK_TO_SEND_T;
+/* The "rendezvous" packets can be canceled by sending a message with
+   mode MPID_PKT_ANTI_SEND and acknowledged with MPID_PKT_ANTI_SEND_OK
+ */
 
 /* Note that recv_id, len_avail, and cur_offset are needed only for
    partial transfers; sync_id is redundant (but eliminating it requires

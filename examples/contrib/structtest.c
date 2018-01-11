@@ -17,7 +17,8 @@ struct Partstruct particle[SIZE];
 
 doit()
 {
-  int i, dest, rank, extent, size, count, lb, ub, myrank;
+  int i, dest, rank, extent, size, count, myrank;
+  MPI_Aint lb, ub;
   MPI_Comm comm;
 
   /* Build datatype describing structure */
@@ -42,8 +43,9 @@ doit()
 
   MPI_Type_extent(Particletype,&extent);
   MPI_Type_size(Particletype,&size);
-  MPI_Type_count(Particletype,&count);
-   -- MPI_Type_count removed from MPI --
+  /* MPI_Type_count(Particletype,&count);
+   -- MPI_Type_count removed from MPI -- 
+   */
   MPI_Type_lb(Particletype,&lb);
   MPI_Type_ub(Particletype,&ub);
 

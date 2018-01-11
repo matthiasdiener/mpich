@@ -9,13 +9,18 @@
 #include "str_dup.h"
 #include "cvt_args.h"
 
+#ifdef NEEDS_STDLIB_PROTOTYPES
+#include "protofix.h"
+#endif
 
-static int Load ARGS(( Tcl_Interp*, logFile* ));
-static int CreateCmd ARGS(( ClientData, Tcl_Interp*, int, char** ));
-static int Cmd ARGS(( ClientData, Tcl_Interp*, int, char** ));
-static logFormat FormatStr2Enum ARGS(( char *str ));
-static int ReturnDouble ARGS(( Tcl_Interp*, double ));
-static int ReturnInt ARGS(( Tcl_Interp*, int ));
+
+
+static int Load ANSI_ARGS(( Tcl_Interp*, logFile* ));
+static int CreateCmd ANSI_ARGS(( ClientData, Tcl_Interp*, int, char** ));
+static int Cmd ANSI_ARGS(( ClientData, Tcl_Interp*, int, char** ));
+static logFormat FormatStr2Enum ANSI_ARGS(( char *str ));
+static int ReturnDouble ANSI_ARGS(( Tcl_Interp*, double ));
+static int ReturnInt ANSI_ARGS(( Tcl_Interp*, int ));
 
 
 
@@ -41,6 +46,7 @@ char *pct_done;
   log->format = format;
   log->filename = STRDUP( filename );
   log->cmdname = STRDUP( cmdname );
+  log->creator = 0;
 
   Tcl_CreateCommand( interp, log->cmdname, Cmd, (ClientData)log,
 		     (Tcl_CmdDeleteProc*)0 );
@@ -68,6 +74,12 @@ char *pct_done;
   log->is_reading = 0;
   log->loaded = 1;
 
+/* For this to be effective, the window title must NOT be set in mainwin.tcl 
+  if( log->creator ) {
+      int code;
+      code = Tcl_VarEval(interp, "wm title . ", log->creator, (char *) NULL);
+  }
+  */
   if (load_status != TCL_OK) {
     Log_Close( log );
     return 0;
@@ -96,6 +108,7 @@ logFile *log;
   Tcl_DeleteCommand( log->interp, log->cmdname );
   free( log->filename );
   free( log->cmdname );
+  if (log->creator) free( log->creator );
   Event_Close( log->events );
   State_Close( log->states );
   Msg_Close( log->msgs );
@@ -434,9 +447,17 @@ char **argv;
 
     /* first letter of the command is 'c' */
   case 'c':
-    if (strcmp( argv[1], "close" )) goto unrecognized_cmd;
-    return Log_Close( log );
-
+    if (strcmp( argv[1], "close" ) == 0) 
+	return Log_Close( log );
+    if (strcmp( argv[1], "creator" ) == 0) {
+	if (log->creator) {
+	    Tcl_AppendElement( interp, log->creator );
+	}
+	else
+	    Tcl_AppendElement( interp, "" );
+	return TCL_OK;
+    }
+    goto unrecognized_cmd;
     /* first letter of the command is 'e' */
   case 'e':
     if (strcmp( argv[1], "endtime" )) goto unrecognized_cmd;

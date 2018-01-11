@@ -1,0 +1,9 @@
+config.log
+config.status
+config.cache
+Makefile
+makefile_header
+stamp-h
+test_dc
+test_dc.o
+error_file

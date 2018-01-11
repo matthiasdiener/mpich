@@ -4,7 +4,7 @@
 P4VOID listener()
 {
     struct listener_data *l = listener_info;
-    P4BOOL done = FALSE;
+    P4BOOL done = P4_FALSE;
     fd_set read_fds;
     int i, nfds, fd;
 
@@ -52,6 +52,8 @@ P4VOID listener()
 	}
     }
 
+    close( l->listening_fd );
+
     p4_dprintfl(70, "exit listener\n");
     exit(0);
 }
@@ -63,7 +65,7 @@ int fd;
     int type;
     int connection_fd, slave_fd;
     int from, lport, to_pid, to;
-    P4BOOL rc = FALSE;
+    P4BOOL rc = P4_FALSE;
 
     p4_dprintfl(70, "processing connect check/request on %d\n", fd);
 
@@ -73,7 +75,7 @@ int fd;
 
     if (net_recv(connection_fd, &msg, sizeof(msg)) == PRECV_EOF)
     {
-	return (FALSE);
+	return (P4_FALSE);
     }
 
     type = p4_n_to_i(msg.type);
@@ -99,7 +101,7 @@ int fd;
 	    break;
 	}
 
-	net_send(slave_fd, &msg, sizeof(msg), FALSE);
+	net_send(slave_fd, &msg, sizeof(msg), P4_FALSE);
 	/* wait for msg from slave indicating it got connected */
 	/*
 	 * do not accept any more connections for slave until it has fully
@@ -133,7 +135,7 @@ int fd;
     struct slave_listener_msg msg;
     int type;
     int from;
-    P4BOOL rc = FALSE;
+    P4BOOL rc = P4_FALSE;
     int status;
 
     status = net_recv(fd, &msg, sizeof(msg));
@@ -149,7 +151,7 @@ int fd;
     {
       case DIE:
 	p4_dprintfl(70, "received die msg from %d\n", from);
-	rc = TRUE;
+	rc = P4_TRUE;
 	break;
 
       default:

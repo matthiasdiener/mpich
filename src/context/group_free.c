@@ -1,5 +1,5 @@
 /*
- *  $Id: group_free.c,v 1.15 1996/04/12 14:09:43 gropp Exp $
+ *  $Id: group_free.c,v 1.18 1997/01/07 01:47:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -28,31 +28,41 @@ On output, group is set to 'MPI_GROUP_NULL'.
 int MPI_Group_free ( group )
 MPI_Group *group;
 {
-  int mpi_errno = MPI_SUCCESS;
+    struct MPIR_GROUP *group_ptr;
+    int mpi_errno = MPI_SUCCESS;
+    static char myname[] = "MPI_GROUP_FREE";
+    
+    TR_PUSH(myname);
 
-  /* Check for bad arguments */
-  if ( MPIR_TEST_ARG(group) )
-	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-			   "Error in MPI_GROUP_FREE" );
+    /* Check for bad arguments */
+    if ( MPIR_TEST_ARG(group) )
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 
-  /* Free null groups succeeds silently */
-  if ( (*group) == MPI_GROUP_NULL )
-	return (MPI_SUCCESS);
+    /* Free null groups generates error */
+    if ( (*group) == MPI_GROUP_NULL ) {
+	TR_POP;
+	return MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_GROUP, myname );
+    }
 	 
-  /* We can't free permanent objects unless finalize has been called */
-  if  ( ( (*group)->permanent == 1 ) && (*group)->ref_count <= 1 && 
+    group_ptr = MPIR_GET_GROUP_PTR(*group);
+    MPIR_TEST_MPI_GROUP(*group,group_ptr,MPIR_COMM_WORLD,myname);
+
+    /* We can't free permanent objects unless finalize has been called */
+    if  ( ( group_ptr->permanent == 1 ) && group_ptr->ref_count <= 1 && 
           (MPIR_Has_been_initialized == 1) )
-	return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_PERM_GROUP,
-					  "Error in MPI_GROUP_FREE" );
+	return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_PERM_GROUP,myname );
 
-  /* Free group */
-  if ( (*group)->ref_count <= 1 ) 
-	MPIR_FreeGroup(*group);
-  else 
-	(*group)->ref_count--;
-  /* This could be dangerous if the object is MPI_GROUP_EMPTY and not just
-     a copy of it.... */
-  (*group) = MPI_GROUP_NULL;
+    /* Free group */
+    if ( group_ptr->ref_count <= 1 ) {
+	MPIR_FreeGroup( group_ptr );
+    }
+    else {
+	MPIR_REF_DECR(group_ptr);
+    }
+    /* This could be dangerous if the object is MPI_GROUP_EMPTY and not just
+     a copy of it.... It would also be illegal. */
+    (*group) = MPI_GROUP_NULL;
 
-  return (mpi_errno);
+    TR_POP;
+    return (mpi_errno);
 }

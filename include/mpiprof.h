@@ -83,6 +83,8 @@
 #define MPI_Issend PMPI_Issend
 #define MPI_Keyval_create PMPI_Keyval_create
 #define MPI_Keyval_free PMPI_Keyval_free
+#define MPI_Name_get PMPI_Name_get
+#define MPI_Name_put PMPI_Name_put
 #define MPI_Op_create PMPI_Op_create
 #define MPI_Op_free PMPI_Op_free
 #define MPI_Pack PMPI_Pack

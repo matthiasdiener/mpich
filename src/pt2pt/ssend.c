@@ -1,5 +1,5 @@
 /*
- *  $Id: ssend.c,v 1.7 1996/04/11 20:22:07 gropp Exp $
+ *  $Id: ssend.c,v 1.8 1996/12/01 23:30:59 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -39,14 +39,18 @@ MPI_Comm         comm;
     MPI_Request handle;
     MPI_Status  status;
     MPIR_ERROR_DECL;
-    static char myname[] = "Error in MPI_Ssend";
+    struct MPIR_COMMUNICATOR *comm_ptr;
+    static char myname[] = "MPI_SSEND";
 
     if (dest != MPI_PROC_NULL)
     {
-	MPIR_ERROR_PUSH(comm);
+	comm_ptr = MPIR_GET_COMM_PTR(comm);
+	MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,"MPI_SSEND");
+
+	MPIR_ERROR_PUSH(comm_ptr);
 	MPIR_CALL_POP(MPI_Issend( buf, count, datatype, dest, tag, comm, 
-			        &handle ),comm,myname);
-	MPIR_CALL_POP(MPI_Wait( &handle, &status ),comm,myname);
+			        &handle ),comm_ptr,myname);
+	MPIR_CALL_POP(MPI_Wait( &handle, &status ),comm_ptr,myname);
     }
     return mpi_errno;
 }

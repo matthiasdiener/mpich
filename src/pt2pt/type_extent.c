@@ -1,5 +1,5 @@
 /*
- *  $Id: type_extent.c,v 1.8 1996/04/11 20:24:49 gropp Exp $
+ *  $Id: type_extent.c,v 1.11 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -30,14 +30,13 @@ int MPI_Type_extent( datatype, extent )
 MPI_Datatype  datatype;
 MPI_Aint     *extent;
 {
-  int mpi_errno;
-  /* Check for bad datatype */
-  if (MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,datatype))
-	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-			  "Error in MPI_TYPE_EXTENT" );
+  struct MPIR_DATATYPE *dtype_ptr;
+  static char myname[] = "MPI_TYPE_EXTENT";
 
-  MPIR_GET_REAL_DATATYPE(datatype)
+  dtype_ptr   = MPIR_GET_DTYPE_PTR(datatype);
+  MPIR_TEST_DTYPE(datatype,dtype_ptr,MPIR_COMM_WORLD,myname);
+
   /* Assign the extent and return */
-  (*extent) = datatype->extent;
+  (*extent) = dtype_ptr->extent;
   return (MPI_SUCCESS);
 }

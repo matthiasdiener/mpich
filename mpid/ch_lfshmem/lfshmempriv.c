@@ -7,6 +7,9 @@
 #include "mpiddev.h"
 #include "mpimem.h"
 
+/* Pointer used to store the address for eager sends */
+/* void               *MPID_Eager_address; */
+
 /* MPID_shmem is not volatile but its contents are */
 MPID_SHMEM_globmem *MPID_shmem = 0;
 /* LOCAL copy of some of MPID_shmem */
@@ -110,11 +113,16 @@ char **argv;
    call, there are more */
     p2p_setpgrp();
 
-    p2p_create_procs( numprocs - 1 );
+    p2p_create_procs( numprocs - 1, *argc, argv );
 
+#if 0
+     /* This is now done inside p2p_create_procs, so that the processes
+      * can be ordered in the pid array
+      */
     p2p_lock( &MPID_shmem->globlock );
     MPID_myid = MPID_shmem->globid++;
     p2p_unlock( &MPID_shmem->globlock );
+#endif
 
     MPID_lshmem.mypool = MPID_shmem->pool[MPID_myid];
     for (i=0; i<MPID_numids; i++) 
@@ -148,7 +156,10 @@ void MPID_SHMEM_lbarrier()
 
 /* If process 0, change phase. Reset the OTHER counter*/
     if (MPID_myid == 0) {
+	/* Note that this requires that these operations occur
+	   in EXACTLY THIS ORDER */
 	MPID_shmem->barrier.phase = ! MPID_shmem->barrier.phase;
+	p2p_write_sync();
 	*cntother = MPID_shmem->barrier.size;
     }
     else 
@@ -255,7 +266,7 @@ int        size, dest;
   /* Force ready == 0 until we actually do the set; this does NOT need
      to be memory synchronous */
   pkt->head.ready = 0;
-  MPID_PKT_COPYIN( &MPID_lshmem.pool[dest][MPID_myid], pkt, size );
+  MPID_PKT_COPYIN( (void *)&MPID_lshmem.pool[dest][MPID_myid], pkt, size );
   MPID_PKT_READY_SET(destready);
 
   return MPI_SUCCESS;
@@ -283,7 +294,7 @@ int  *len, dest;
 	while(tlen > 0 && !(new = p2p_shmalloc(tlen))) 
 	    tlen = tlen / 2;
 	if (tlen == 0) {
-	    fprintf( stderr, "Could not get any shared memory for long message!" );
+	    p2p_error( "Could not get any shared memory for long message!",0 );
 	    exit(1);
 	}
 	/* fprintf( stderr, "Message too long; sending partial data\n" ); */

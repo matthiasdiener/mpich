@@ -4,6 +4,10 @@
 #include <assert.h>
 #include <mpi.h>
 
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
+
 #define MAXPES 32
 #define MYBUFSIZE 16*1024
 static int buffer[MAXPES][MYBUFSIZE];

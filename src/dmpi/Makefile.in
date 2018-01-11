@@ -53,8 +53,7 @@ wrappers:
 #		-anyname -I pubinc $(MPI_CSOURCES)	
 manpages:
 	../../util/doctext -mpath ../../man/man3 -ext 3 -I pubinc \
-	   -index ../../www.index -jumpfile ../../jumpfile.list \
-	   -indexdir "http:/www.mcs.anl.gov/mpi/www/www3" -heading MPI \
+	   -jumpfile ../../jumpfile.list -heading MPI \
 		-quotefmt ../../util/fortnotes ../../util/errnotes \
 		$(MPI_CSOURCES)
 	../../util/doc2lt $(MPI_CSOURCES) >> ../../rsum.tmp
@@ -63,7 +62,7 @@ wwwpages:
 	../../util/doctext -html -mpath ../../www/www3 -I pubinc \
 	   -index ../../www.index -jumpfile ../../jumpfile.list \
 	   -mapref $(MPIR_HOME)/util/mpis.cit \
-	   -indexdir "http:/www.mcs.anl.gov/mpi/www/www3" -heading MPI \
+	   -indexdir "http://www.mcs.anl.gov/mpi/www/www3" -heading MPI \
 		-quotefmt ../../util/fortnotes ../../util/errnotes \
 		$(MPI_CSOURCES)
 

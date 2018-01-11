@@ -4,12 +4,6 @@
 #include "mpiimpl.h"
 #include "mpifort.h"
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_attr_get_ PMPI_ATTR_GET
@@ -31,10 +25,10 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_attr_get_ ANSI_ARGS(( MPI_Comm, int *, int *, int *, int * ));
+void mpi_attr_get_ ANSI_ARGS(( MPI_Comm *, int *, int *, int *, int * ));
 
 void mpi_attr_get_ ( comm, keyval, attr_value, found, __ierr )
-MPI_Comm comm;
+MPI_Comm *comm;
 int *keyval;
 int *attr_value;
 int *found;
@@ -42,9 +36,7 @@ int *__ierr;
 {
     void *vval;
 
-    *__ierr = MPI_Attr_get(
-	(MPI_Comm)MPIR_ToPointer( *((int*)comm)),
-	*keyval,&vval,found);
+    *__ierr = MPI_Attr_get( *comm, *keyval,&vval,found);
 
     /* Convert attribute value to integer.  This code handles the case
        where sizeof(int) < sizeof(void *), and the value was stored as a

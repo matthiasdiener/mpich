@@ -1,5 +1,5 @@
 /*
- *  $Id: send.c,v 1.24 1996/06/07 15:07:30 gropp Exp $
+ *  $Id: send.c,v 1.27 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -48,6 +48,9 @@ MPI_Datatype     datatype;
 MPI_Comm         comm;
 {
     int          mpi_errno = MPI_SUCCESS;
+    struct MPIR_COMMUNICATOR *comm_ptr;
+    struct MPIR_DATATYPE *dtype_ptr;
+    static char myname[] = "MPI_SEND";
 #ifndef MPI_ADI2
     MPIR_SHANDLE shandle;
     MPI_Request  request;
@@ -56,34 +59,39 @@ MPI_Comm         comm;
     if (dest == MPI_PROC_NULL) 
 	return mpi_errno;
 
-    if (MPIR_TEST_COMM(comm,comm) || 
-	MPIR_TEST_COUNT(comm,count) ||
-	MPIR_TEST_DATATYPE(comm,datatype) || 
+    comm_ptr = MPIR_GET_COMM_PTR(comm);
+    MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+
+    dtype_ptr = MPIR_GET_DTYPE_PTR(datatype);
+    MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
+
+    if (MPIR_TEST_COUNT(comm,count) ||
 	MPIR_TEST_SEND_TAG(comm,tag) ||
-	MPIR_TEST_SEND_RANK(comm,dest)) 
-	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_SEND" );
+	MPIR_TEST_SEND_RANK(comm_ptr,dest)) 
+	return MPIR_ERROR(comm_ptr, mpi_errno, myname );
 
 #ifdef MPI_ADI2
     if (dest == MPI_PROC_NULL) return MPI_SUCCESS;
 
     /* This COULD test for the contiguous homogeneous case first .... */
-    MPID_SendDatatype( comm, buf, count, datatype, comm->local_rank, tag, 
-		       comm->send_context, comm->lrank_to_grank[dest], 
+    MPID_SendDatatype( comm_ptr, buf, count, dtype_ptr, comm_ptr->local_rank, 
+		       tag, 
+		       comm_ptr->send_context, comm_ptr->lrank_to_grank[dest], 
 		       &mpi_errno );
-    MPIR_RETURN(comm, mpi_errno, "Error in MPI_SEND" );
+    MPIR_RETURN(comm_ptr, mpi_errno, myname );
 #else
     request = (MPI_Request)&shandle;
 
     request->type      = MPIR_SEND;
-    shandle.contextid  = comm->send_context;
-    shandle.dest       = comm->lrank_to_grank[dest];
+    shandle.contextid  = comm_ptr->send_context;
+    shandle.dest       = comm_ptr->lrank_to_grank[dest];
     shandle.tag        = tag;
     
-    MPID_Clr_completed(comm->ADIctx, request);
+    MPID_Clr_completed(comm_ptr->ADIctx, request);
 
-    MPIR_GET_REAL_DATATYPE(datatype)
+/*     MPIR_GET_REAL_DATATYPE(datatype) */
     shandle.datatype   = datatype;
-    datatype->ref_count++;
+/*    datatype->ref_ count++; */
     shandle.comm       = comm;
 
 #ifdef MPID_HAS_HETERO
@@ -93,7 +101,7 @@ MPI_Comm         comm;
     shandle.bufadd     = buf;
     shandle.count      = count;
     shandle.mode       = MPIR_MODE_STANDARD;
-    shandle.lrank      = comm->local_rank;
+    shandle.lrank      = comm_ptr->local_rank;
     
 /*
    The above is in 
@@ -102,15 +110,15 @@ MPI_Comm         comm;
  */
     shandle.persistent   = 0;
 
-    MPID_Alloc_send_handle(comm->ADIctx, &shandle.dev_shandle);
-    MPID_Set_send_is_nonblocking(comm->ADIctx, &shandle.dev_shandle, 0);
+    MPID_Alloc_send_handle(comm_ptr->ADIctx, &shandle.dev_shandle);
+    MPID_Set_send_is_nonblocking(comm_ptr->ADIctx, &shandle.dev_shandle, 0);
 
     /* It is only at this point that we can detect a null input buffer.
        The next "routine" is a macro that sets mpi_errno */
     MPIR_SEND_SETUP_BUFFER( &request, shandle );
     if (mpi_errno) 
-	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_SEND" );
-    MPID_Blocking_send( comm->ADIctx, &shandle );
+	return MPIR_ERROR(comm, mpi_errno, myname );
+    MPID_Blocking_send( comm_ptr->ADIctx, &shandle );
 #if defined(MPID_PACK_IN_ADVANCE) || defined(MPID_HAS_HETERO)
     /* If this request had to allocate a buffer to send from,
        free it */
@@ -119,7 +127,7 @@ MPI_Comm         comm;
 		   "Could not free allocated send buffer in MPI_SEND" );
 	}
 #endif
-    shandle.datatype->ref_count--;
+/*    shandle.datatype->ref_ count--; */
     return mpi_errno;
 #endif
 }

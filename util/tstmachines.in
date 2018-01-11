@@ -43,8 +43,8 @@ if [ ! -f $machineFile ] ; then
     exit 1
 fi
 list=`cat $machineFile | sed -e '/\#/d' | tr -s '\012' ' '`
-/bin/rm -f foo
-echo "A test" > foo
+/bin/rm -f mpichfoo
+echo "A test" > mpichfoo
 # Use same mechanism as in mpirun to get the value of pwd...
 if [ -n "#AUTOMOUNTFIX#" ] ; then
     PWDtest=`pwd | #AUTOMOUNTFIX#`
@@ -79,12 +79,17 @@ fi
 #
 # First try running a simple program
 # (test for access or stty/who am i problems)
-myprog=$PWD_TRIAL/foo
+myprog=$PWD_TRIAL/mpichfoo
 errcnt=0
 errsimple=0
 livelist=""
 printedheader=""
 for machine in $list ; do
+    # Strip cluster size from machine name
+    ntest=`expr $machine : '.*:\([0-9]*\)'`
+    if [ -n "$ntest" ] ; then
+        machine=`expr $machine : '\(.*\):.*'`
+    fi
     if [ $verbose = 1 ] ; then 
 	echo "Trying true on $machine ..."
     fi
@@ -135,19 +140,25 @@ fi
 # Next try running ls
 # (Test for consistent filesystem)
 #
-myprog=$PWD_TRIAL/foo
+myprog=$PWD_TRIAL/mpichfoo
 errcnt=0
 errls=0
 livelist=""
 printedheader=""
 #
-# Get the output form to expect from ls.
-tstout=`ls $myprog`
+# Get the output form to expect from ls.  
+# Use /bin/ls to avoid any alias problems
+tstout=`/bin/ls $myprog`
 for machine in $list ; do
+    # Strip cluster size from machine name
+    ntest=`expr $machine : '.*:\([0-9]*\)'`
+    if [ -n "$ntest" ] ; then
+        machine=`expr $machine : '\(.*\):.*'`
+    fi
     if [ $verbose = 1 ] ; then 
 	echo "Trying ls on $machine ..."
     fi
-    output=`$rsh $machine -n ls $myprog 2>&1`
+    output=`$rsh $machine -n /bin/ls $myprog 2>&1`
     if [ "$output" != "$tstout" ] ; then
 	if [ -z "$printedheader" ] ; then
 	    echo "Errors while trying to run ls $myprog"
@@ -161,7 +172,7 @@ for machine in $list ; do
 	livelist="$livelist $machine"
     fi
 done
-/bin/rm -f foo
+/bin/rm -f mpichfoo
 if [ $errls -gt 0 ] ; then
 cat <<EOF
     The ls test failed on some machines.
@@ -188,6 +199,7 @@ main(){return 0;}
 #CLINKER# -o tstfoo tstfoo.o
 if [ ! -x tstfoo ] ; then
     echo "Could not build a sample program using #CC# and #CLINKER#!"
+    /bin/rm -f tstfoo.c
     exit 1
 fi
 myprog=$PWD_TRIAL/tstfoo

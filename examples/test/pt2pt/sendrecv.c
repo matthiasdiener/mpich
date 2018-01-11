@@ -24,7 +24,7 @@ static int do_test2 = 1;
 static int do_test3 = 1;
 
 #define MAX_TYPES 12
-#if defined(__STDC__) 
+#if defined(HAVE_LONG_DOUBLE) 
 static int ntypes = 12;
 #else
 static int ntypes = 11;
@@ -33,6 +33,21 @@ static MPI_Datatype BasicTypes[MAX_TYPES];
 
 static int maxbufferlen = 10000;
 static char *(BasicNames[MAX_TYPES]);
+
+/* In order to quiet noisy C compilers, we provide ANSI-style prototypes
+   where possible */
+
+void AllocateBuffers ANSI_ARGS(( void **, MPI_Datatype *, int, int ));
+void FreeBuffers ANSI_ARGS(( void **, int ));
+void FillBuffers ANSI_ARGS(( void **, MPI_Datatype *, int, int ));
+int CheckBuffer ANSI_ARGS(( void *, MPI_Datatype, int ));
+void SetupBasicTypes ANSI_ARGS((void));
+void SenderTest1 ANSI_ARGS((void));
+void ReceiverTest1 ANSI_ARGS((void));
+void SenderTest2 ANSI_ARGS((void));
+void ReceiverTest2 ANSI_ARGS((void));
+void SenderTest3 ANSI_ARGS((void));
+void ReceiverTest3 ANSI_ARGS((void));
 
 void 
 AllocateBuffers(bufferspace, buffertypes, num_types, bufferlen)
@@ -63,8 +78,8 @@ AllocateBuffers(bufferspace, buffertypes, num_types, bufferlen)
 	    bufferspace[i] = malloc(bufferlen * sizeof(float));
 	else if (buffertypes[i] == MPI_DOUBLE)
 	    bufferspace[i] = malloc(bufferlen * sizeof(double));
-#if defined(__STDC__) 
-	else if (MPI_LONG_DOUBLE && buffertypes[i] == MPI_LONG_DOUBLE) {
+#if defined(HAVE_LONG_DOUBLE) 
+	else if (buffertypes[i] == MPI_LONG_DOUBLE) {
 	    int dlen;
 	    MPI_Type_size( MPI_LONG_DOUBLE, &dlen );
 	    bufferspace[i] = malloc(bufferlen * dlen);
@@ -115,8 +130,8 @@ FillBuffers(bufferspace, buffertypes, num_types, bufferlen)
 		((float *)bufferspace[i])[j] = (float)j;
 	    else if (buffertypes[i] == MPI_DOUBLE)
 		((double *)bufferspace[i])[j] = (double)j;
-#if defined(__STDC__) 
-	    else if (MPI_LONG_DOUBLE && buffertypes[i] == MPI_LONG_DOUBLE)
+#if defined(HAVE_LONG_DOUBLE) 
+	    else if (buffertypes[i] == MPI_LONG_DOUBLE)
 		((long double *)bufferspace[i])[j] = (long double)j;
 #endif
 	    else if (buffertypes[i] == MPI_BYTE)
@@ -181,8 +196,8 @@ CheckBuffer(bufferspace, buffertype, bufferlen)
 	    if (((double *)bufferspace)[j] != (double)j) {
 		break;
 		}
-#if defined(__STDC__)
-	} else if (MPI_LONG_DOUBLE && buffertype == MPI_LONG_DOUBLE) {
+#if defined(HAVE_LONG_DOUBLE)
+	} else if (buffertype == MPI_LONG_DOUBLE) {
 	    if (((long double *)bufferspace)[j] != (long double)j) {
 		break;
 		}
@@ -207,6 +222,7 @@ CheckBuffer(bufferspace, buffertype, bufferlen)
 void 
 SetupBasicTypes()
 {
+    int l;
     BasicTypes[0] = MPI_CHAR;        BasicNames[0] = "MPI_CHAR" ;
     BasicTypes[1] = MPI_SHORT;       BasicNames[1] = "MPI_SHORT";
     BasicTypes[2] = MPI_INT;         BasicNames[2] = "MPI_INT"  ;
@@ -220,8 +236,11 @@ SetupBasicTypes()
     BasicTypes[10] = MPI_BYTE;       BasicNames[10] = "MPI_BYTE";
     /* By making the BYTE type LAST, we make it easier to handle heterogeneous
        systems that may not support all of the types */
-#if defined (__STDC__)
-    if (MPI_LONG_DOUBLE) {
+#if defined (HAVE_LONG_DOUBLE)
+    /* This test allows us to use MPI_LONG_DOUBLE, but rely on size > 0 
+       for "actually implemented" */
+    MPI_Type_size( MPI_LONG_DOUBLE, &l );
+    if (l > 0) {
 	BasicTypes[11] = MPI_LONG_DOUBLE; BasicNames[11] = "MPI_LONG_DOUBLE";
 	}
     else {
@@ -418,7 +437,7 @@ ReceiverTest3()
     int *tag_ubp;
     int large_tag, flag, small_tag;
 
-    MPI_Errhandler_set(MPI_COMM_WORLD, MPIR_ERRORS_WARN);
+    MPI_Errhandler_set(MPI_COMM_WORLD, TEST_ERRORS_WARN);
 
     MPI_Comm_rank( MPI_COMM_WORLD, &myrank );
 

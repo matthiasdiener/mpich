@@ -1,5 +1,5 @@
 /*
- *  $Id: errcreate.c,v 1.8 1996/04/11 20:27:58 gropp Exp $
+ *  $Id: errcreate.c,v 1.11 1997/01/07 01:46:11 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -40,16 +40,15 @@ int MPI_Errhandler_create( function, errhandler )
 MPI_Handler_function *function;
 MPI_Errhandler       *errhandler;
 {
-    MPI_Errhandler new;
+    struct MPIR_Errhandler *new;
 
-    MPIR_ALLOC(new,(MPI_Errhandler) MPIR_SBalloc( MPIR_errhandlers ),
-	       MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-			   "Error in MPI_ERRHANDLER_CREATE" );
+    MPIR_ALLOC(new,(struct MPIR_Errhandler*) MPIR_SBalloc( MPIR_errhandlers ),
+	       MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, "MPI_ERRHANDLER_CREATE" );
 
     MPIR_SET_COOKIE(new,MPIR_ERRHANDLER_COOKIE);
     new->routine   = function;
     new->ref_count = 1;
 
-    *errhandler = new;
+    *errhandler = (MPI_Errhandler)MPIR_FromPointer( new );
     return MPI_SUCCESS;
 }

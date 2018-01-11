@@ -73,6 +73,15 @@ if (size > 4)   record is:
 #define MPE_Log_CHAR 1
 #define MPE_Log_DOUBLE 2
 
+/* 
+ * This is needed incase we're compiling with the header that changes all
+ * MPI_ to PMPI_, including MPI_Wtime.  This should be ok, except the IBM
+ * MPI has PMPI_Wtime always returning zero (!).
+ */
+#ifdef MPI_Wtime
+#undef MPI_Wtime
+#endif
+
 /* These give the sizes in ints */
 #define MPE_Log_HEADERSIZE    (sizeof(MPE_Log_HEADER)/sizeof(int))
 #define MPE_Log_VFIELDSIZE(n) ((sizeof(MPE_Log_VFIELD)/sizeof(int))+(n-1))
@@ -182,3 +191,11 @@ static MPE_Log_ParallelMerge _ANSI_ARGS_(( char *filename ));
 static void MPE_Log_GetStatistics _ANSI_ARGS_(( int *nevents, int *ne_types,
 					   double *startTime,
 					   double *endTime ));
+
+MPE_Log_BLOCK *MPE_Log_GetBuf _ANSI_ARGS_(( void ));
+MPE_Log_BLOCK *MPE_Log_Flush _ANSI_ARGS_(( void ));
+int MPE_Log_FreeLogMem  _ANSI_ARGS_ ((MPE_Log_BLOCK * ));
+int MPE_Log_init_clock _ANSI_ARGS_ (( void ));
+void MPE_Log_def _ANSI_ARGS_ (( int, char * ));
+/* void MPE_Log_FlushOutput _ANSI_ARGS_(()); */
+

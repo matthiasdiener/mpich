@@ -107,8 +107,8 @@ char ***argv;
     MPE_Describe_state( S_IPROBE_EVENT, E_IPROBE_EVENT, 
 		       "Iprobe", "seagreen:gray" );
   }
-  sprintf( logFileName, "%s_profile.log", (*argv)[0] );
-
+  /* sprintf( logFileName, "%s_profile.log", (*argv)[0] ); */
+  sprintf( logFileName, "%s", (*argv)[0] );
 
   return returnVal;
 }

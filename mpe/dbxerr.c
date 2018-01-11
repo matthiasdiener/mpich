@@ -1,5 +1,14 @@
+#if defined(HAVE_CONFIG_H) && !defined(MPICHCONF_INC)
+/* This includes the definitions found by configure, and can be found in
+   the library directory (lib/$ARCH/$COMM) corresponding to this configuration
+ */
+#define MPICHCONF_INC
+#include "mpichconf.h"
+#endif
+
 #include "mpi.h"
 #include "mpe.h"
+#include "mpeexten.h"
 
 /*
    Handler prints warning messsage and starts the specified debugger.
@@ -23,11 +32,23 @@ extern int free();
 #endif
 #endif
 
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
+
 #ifndef DBX_NAME
 #ifdef MPI_IRIX
 #define DBX_NAME "/bin/dbx"
 #else
 #define DBX_NAME "/usr/ucb/dbx"
+#endif
+#endif
+
+#ifndef GDB_NAME
+#ifdef MPI_IRIX
+#define GDB_NAME "/bin/gdb"
+#else
+#define GDB_NAME "/usr/local/bin/gdb"
 #endif
 #endif
 
@@ -236,86 +257,130 @@ if (dbg) {
     strcpy( debugger, dbg );
     }
 
-MPI_Errhandler_create( MPE_Errors_to_dbx, &err );
+MPI_Errhandler_create( (MPI_Handler_function *)MPE_Errors_to_dbx, &err );
 MPI_Errhandler_set( MPI_COMM_WORLD, err );
 }
 
 char *MPER_Copy_string( str )
 char *str;
 {
-char *new;
-new = (char *)malloc( strlen(str) + 1 );
-strcpy( new, str );
-return new;
+    char *new;
+    new = (char *)malloc( strlen(str) + 1 );
+    strcpy( new, str );
+    return new;
 }
 
 void MPE_Errors_call_xdbx( pgm, display )
 char *pgm, *display;
 {
-char **args;
+    char **args;
 
 /* By default, we use the name of the root node */
-if (!display) {
-    display = getenv( "DISPLAY" );
-    if (!display || display[0] == ':') {
-	display = (char *)malloc( 100 );
-	MPE_GetHostName( display, 100 );
-	strcat( display, ":0" );
+    if (!display) {
+	display = getenv( "DISPLAY" );
+	if (!display || display[0] == ':') {
+	    display = (char *)malloc( 100 );
+	    MPE_GetHostName( display, 100 );
+	    strcat( display, ":0" );
 	}
     }
 
-args    = (char **)malloc( 5 * sizeof(char *) );
-args[0] = MPER_Copy_string( "/usr/X11/bin/xdbx" );
-args[1] = MPER_Copy_string( "-display" );
-args[2] = MPER_Copy_string( display );
-args[3] = MPER_Copy_string( pgm );
-args[4] = 0;
+    args    = (char **)malloc( 5 * sizeof(char *) );
+    args[0] = MPER_Copy_string( "/usr/X11/bin/xdbx" );
+    args[1] = MPER_Copy_string( "-display" );
+    args[2] = MPER_Copy_string( display );
+    args[3] = MPER_Copy_string( pgm );
+    args[4] = 0;
 
-MPE_Errors_call_debugger( pgm, (char *)0, args );
+    MPE_Errors_call_debugger( pgm, (char *)0, args );
 }
 
 /* This routine is collective; all processes in MPI_COMM_WORLD must call */
 void MPE_Errors_call_dbx_in_xterm( pgm, display )
 char *pgm, *display;
 {
-char **args;
-int  myid, str_len;
+    char **args;
+    int  myid, str_len;
 
 /* By default, we use the name of the root node */
-if (!display) {
-    MPI_Comm_rank( MPI_COMM_WORLD, &myid );
-    if (myid == 0) {
-	display = getenv( "DISPLAY" );
-	if (!display || display[0] == ':') {
-	    display = (char *)malloc( 100);
-	    MPE_GetHostName( display, 100 );
-	    strcat( display, ":0" );
+    if (!display) {
+	MPI_Comm_rank( MPI_COMM_WORLD, &myid );
+	if (myid == 0) {
+	    display = getenv( "DISPLAY" );
+	    if (!display || display[0] == ':') {
+		display = (char *)malloc( 100);
+		MPE_GetHostName( display, 100 );
+		strcat( display, ":0" );
 	    }
-	str_len = strlen( display ) + 1;
+	    str_len = strlen( display ) + 1;
 	}
-    MPI_Bcast( &str_len, 1, MPI_INT, 0, MPI_COMM_WORLD );
-    if (myid != 0)
-	display = (char *) malloc( str_len );
-    MPI_Bcast( display, str_len, MPI_CHAR, 0, MPI_COMM_WORLD );
+	MPI_Bcast( &str_len, 1, MPI_INT, 0, MPI_COMM_WORLD );
+	if (myid != 0)
+	    display = (char *) malloc( str_len );
+	MPI_Bcast( display, str_len, MPI_CHAR, 0, MPI_COMM_WORLD );
     }
 
-args    = (char **)malloc( 7 * sizeof(char *) );
-args[0] = MPER_Copy_string( "xterm" );
-args[1] = MPER_Copy_string( "-display" );
-args[2] = MPER_Copy_string( display );
-args[3] = MPER_Copy_string( "-e" );
+    args    = (char **)malloc( 7 * sizeof(char *) );
+    args[0] = MPER_Copy_string( "xterm" );
+    args[1] = MPER_Copy_string( "-display" );
+    args[2] = MPER_Copy_string( display );
+    args[3] = MPER_Copy_string( "-e" );
 #if defined(MPI_hpux)
-args[4] = MPER_Copy_string( "xdb" );
+    args[4] = MPER_Copy_string( "xdb" );
 #else
-args[4] = MPER_Copy_string( DBX_NAME );
+    args[4] = MPER_Copy_string( DBX_NAME );
 #endif
 #ifndef MPI_IRIX
 /* No program name in IRIX */
-args[5] = MPER_Copy_string( pgm );
+    args[5] = MPER_Copy_string( pgm );
 #endif
-args[6] = 0;
+    args[6] = 0;
 
-MPE_Errors_call_debugger( pgm, (char *)0, args );
+    MPE_Errors_call_debugger( pgm, (char *)0, args );
+}
+
+/* This routine is collective; all processes in MPI_COMM_WORLD must call */
+void MPE_Errors_call_gdb_in_xterm( pgm, display )
+char *pgm, *display;
+{
+    char **args;
+    int  myid, str_len;
+
+/* By default, we use the name of the root node */
+    if (!display) {
+	MPI_Comm_rank( MPI_COMM_WORLD, &myid );
+	if (myid == 0) {
+	    display = getenv( "DISPLAY" );
+	    if (!display || display[0] == ':') {
+		display = (char *)malloc( 100);
+		MPE_GetHostName( display, 100 );
+		strcat( display, ":0" );
+	    }
+	    str_len = strlen( display ) + 1;
+	}
+	MPI_Bcast( &str_len, 1, MPI_INT, 0, MPI_COMM_WORLD );
+	if (myid != 0)
+	    display = (char *) malloc( str_len );
+	MPI_Bcast( display, str_len, MPI_CHAR, 0, MPI_COMM_WORLD );
+    }
+
+    args    = (char **)malloc( 7 * sizeof(char *) );
+    args[0] = MPER_Copy_string( "xterm" );
+    args[1] = MPER_Copy_string( "-display" );
+    args[2] = MPER_Copy_string( display );
+    args[3] = MPER_Copy_string( "-e" );
+#if defined(MPI_hpux)
+    args[4] = MPER_Copy_string( "xdb" );
+#else
+    args[4] = MPER_Copy_string( GDB_NAME );
+#endif
+#ifndef MPI_IRIX
+/* No program name in IRIX */
+    args[5] = MPER_Copy_string( pgm );
+#endif
+    args[6] = 0;
+
+    MPE_Errors_call_debugger( pgm, (char *)0, args );
 }
 
 /* This routine handles signals that usually abort a user's code */
@@ -403,6 +468,13 @@ signal( SIGSYS,  (void (*)ANSI_ARGS((SIG_HANDLER_PROTOTYPE)))
 /* Some systems don't support SIGSTOP; for them, we just issue a warning 
    message ... */
 void MPE_Errors_call_dbx_in_xterm( pgm, display )
+char *pgm, *display;
+{
+    fprintf( stderr, 
+	     "This system does not support SIGSTOP, needed to implement\n\
+calling of the debugger from a this program.\n" );
+}
+void MPE_Errors_call_gdb_in_xterm( pgm, display )
 char *pgm, *display;
 {
     fprintf( stderr, 

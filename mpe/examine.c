@@ -1,4 +1,5 @@
 #include "mpi.h"
+#include "mpeexten.h"
 #include <stdio.h>
 
 /*
@@ -78,27 +79,30 @@ extern void MPIR_RmPointer();
 #define mpe_print_datatype_pack_action_   mpe_print_datatype_pack_action
 #endif
 
+void mpe_print_datatype_unpack_action_ ANSI_ARGS(( int *, int *, 
+						   MPI_Datatype *,
+						   int *, int *, int * ));
 void mpe_print_datatype_unpack_action_( fp, count, type, 
 				        in_offset, out_offset, __ierr )
 int *fp;
 int *count;
-MPI_Datatype type;
+MPI_Datatype *type;
 int          *in_offset, *out_offset, *__ierr;
 {
-*__ierr = MPE_Print_datatype_unpack_action( stdout, *count, 
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(type) ), 
+*__ierr = MPE_Print_datatype_unpack_action( stdout, *count,*type,
 					   *in_offset, *out_offset);
 }
 
+void mpe_print_datatype_pack_action_ ANSI_ARGS(( int *, int *, MPI_Datatype *,
+						 int *, int *, int * ));
 void mpe_print_datatype_pack_action_( fp, count, type, 
 				        in_offset, out_offset, __ierr )
 int *fp;
 int *count;
-MPI_Datatype type;
+MPI_Datatype *type;
 int          *in_offset, *out_offset, *__ierr;
 {
-*__ierr = MPE_Print_datatype_pack_action( stdout, *count, 
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(type) ), 
+*__ierr = MPE_Print_datatype_pack_action( stdout, *count,*type, 
 					   *in_offset, *out_offset);
 }
 

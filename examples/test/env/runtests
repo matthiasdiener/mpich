@@ -25,6 +25,7 @@ if [ -z "$mpirun" ] ; then
     exit 1
 fi
 #
+quiet=0
 runtests=1
 makeeach=0
 MAKE="make"
@@ -39,6 +40,10 @@ for arg in "$@" ; do
 	;;
 	-small)
 	makeeach=1
+	;;
+	-quiet)
+	shift
+	quiet=1
 	;;
 	-help|-u)
 	echo "runtests [-checkonly] [-margs='...']"
@@ -67,6 +72,16 @@ CleanExe() {
 	/bin/rm -f $1 $1.o
     fi
 }
+# Output marker
+OutTime() {
+    if [ $quiet = 0 ] ; then
+	if [ -z "$hostname" ] ; then
+	    hostname=`hostname`
+	fi
+	d=`date`
+	echo "$hostname : $d"
+    fi
+}
 # If the programs are not available, run make.
 if [ ! -x sigchk -a $makeeach = 0 ] ; then
     $MAKE default
@@ -75,50 +90,71 @@ fi
 testfiles=""
 if [ $runtests = 1 ] ; then
 
+OutTime
 testfiles="$testfiles timers.out"
 /bin/rm -f timers.out
 MakeExe timers
 echo "*** Timer tests ***"
 echo "*** Timer tests ***" >> timers.out
-$mpirun $args -np 1 timers $* >> timers.out
+$mpirun $args -np 1 timers $* >> timers.out 2>&1
 echo "*** Timer tests ***" >> timers.out
 CleanExe timers
 
+OutTime
 testfiles="$testfiles init.out"
 /bin/rm -f init.out
 MakeExe init
 echo "*** MPI_Initialized tests ***"
 echo "*** MPI_Initialized tests ***" >> init.out
-$mpirun $args -np 2 ./init $* >> init.out
+$mpirun $args -np 2 ./init $* >> init.out 2>&1
 echo "*** MPI_Initialized tests ***" >> init.out
 CleanExe init
 
+OutTime
 testfiles="$testfiles baseattr.out"
 /bin/rm -f baseattr.out
 MakeExe baseattr
 echo "*** Basic attributes ***"
 echo "*** Basic attributes ***" >> baseattr.out
-$mpirun $args -np 1 baseattr $* >> baseattr.out
+$mpirun $args -np 1 baseattr $* >> baseattr.out 2>&1
 echo "*** Basic attributes ***" >> baseattr.out
 CleanExe baseattr
 
+OutTime
 testfiles="$testfiles errhand.out"
 /bin/rm -f errhand.out
 MakeExe errhand
 echo "*** Tests of error handling ***" 
 echo "*** Tests of error handling ***" >>errhand.out
-$mpirun $args -np 1 errhand $* >> errhand.out
+$mpirun $args -np 1 errhand $* >> errhand.out 2>&1
 echo "*** Tests of error handling ***" >>errhand.out
 CleanExe errhand
 
+OutTime
 testfiles="$testfiles sigchk.out"
 /bin/rm -f sigchk.out
 MakeExe sigchk
 echo "*** Tests of signals used ***"
 echo "*** Tests of signals used ***" >> sigchk.out
-$mpirun $args -np 1 sigchk $* >> sigchk.out
+$mpirun $args -np 1 sigchk $* >> sigchk.out 2>&1
 echo "*** Tests of signals used ***" >> sigchk.out
 CleanExe sigchk
+
+#
+# Run Fortran tests ONLY if Fortran available
+if [ 1 = 1 ] ; then 
+
+    OutTime
+    testfiles="$testfiles errstringsf.out"
+    /bin/rm -f errstringsf.out
+    MakeExe errstringsf
+    echo "*** Tests of Fortran error strings ***"
+    echo "*** Tests of  Fortran error strings ***" >> errstringsf.out
+    $mpirun $args -np 1 errstringsf $* >> errstringsf.out 2>&1
+    echo "*** Tests of  Fortran error strings ***" >> errstringsf.out
+    CleanExe errstringsf
+
+fi
 
 else
     # Just run checks

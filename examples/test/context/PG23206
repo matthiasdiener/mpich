@@ -1,4 +1,0 @@
-hostname=donner.mcs.anl.gov progname=/Net/alriga/alriga9/MPI/mpich/examples/test/context/ictest2 listport=28207 progargs=""
-hostname=victory.mcs.anl.gov progname=/Net/alriga/alriga9/MPI/mpich/examples/test/context/ictest2 listport=28208 progargs=""
-hostname=eagle.mcs.anl.gov progname=/Net/alriga/alriga9/MPI/mpich/examples/test/context/ictest2 listport=28209 progargs=""
-hostname=lutra.mcs.anl.gov progname=/Net/alriga/alriga9/MPI/mpich/examples/test/context/ictest2 listport=28210 progargs=""

@@ -1,4 +1,5 @@
 #include "mpi.h"
+#include "test.h"
 
 /* 
 From: hook@nas.nasa.gov (Edward C. Hook)

@@ -20,7 +20,7 @@ OPTFLAGS    = @OPTFLAGS@
 
 TCL_DIR     = @TCL_DIR@
 TK_DIR      = @TK_DIR@
-AC_FLAGS    = @DEFS@
+AC_FLAGS    = @DEFS@ @USER_CFLAGS@
 
 TCL_LIB     = -L$(TCL_DIR)/lib
 TK_LIB      = -L$(TK_DIR)/lib

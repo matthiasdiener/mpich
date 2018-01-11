@@ -1,5 +1,5 @@
 /*
- *  $Id: type_contig.c,v 1.21 1996/07/17 18:04:00 gropp Exp $
+ *  $Id: type_contig.c,v 1.24 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -39,25 +39,29 @@ int          count;
 MPI_Datatype old_type;
 MPI_Datatype *newtype;
 {
-  MPI_Datatype  dteptr;
+  struct MPIR_DATATYPE *dteptr;
   int mpi_errno = MPI_SUCCESS;
+  struct MPIR_DATATYPE *old_dtype_ptr;
+  static char myname[] = "MPI_TYPE_CONTIGUOUS";
 
+  TR_PUSH(myname);
   /* Check for bad arguments */
-  MPIR_GET_REAL_DATATYPE(old_type)
-  if ( MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,old_type) ||
+  old_dtype_ptr   = MPIR_GET_DTYPE_PTR(old_type);
+  MPIR_TEST_DTYPE(old_type,old_dtype_ptr,MPIR_COMM_WORLD,myname);
+  if ( 
    ( (count   <  0)                  && (mpi_errno = MPI_ERR_COUNT) ) ||
-   ( (old_type->dte_type == MPIR_UB) && (mpi_errno = MPI_ERR_TYPE) )  ||
-   ( (old_type->dte_type == MPIR_LB) && (mpi_errno = MPI_ERR_TYPE) ) )
-	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno,
-					  "Error in MPI_TYPE_CONTIGUOUS" );
+   ( (old_dtype_ptr->dte_type == MPIR_UB) && (mpi_errno = MPI_ERR_TYPE) )  ||
+   ( (old_dtype_ptr->dte_type == MPIR_LB) && (mpi_errno = MPI_ERR_TYPE) ) )
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno,
+					  "MPI_TYPE_CONTIGUOUS" );
 
+  MPIR_ALLOC(dteptr,(struct MPIR_DATATYPE *) MPIR_SBalloc( MPIR_dtes ),
+	     MPIR_COMM_WORLD,MPI_ERR_EXHAUSTED, myname );
+  *newtype = (MPI_Datatype) MPIR_FromPointer( dteptr );
+  dteptr->self = *newtype;
   /* Are we making a null datatype? */
   if (count == 0) {
       /* (*newtype) = MPI_DATATYPE_NULL; */
-      MPIR_ALLOC(dteptr,(MPI_Datatype) MPIR_SBalloc( MPIR_dtes ),
-		 MPI_COMM_WORLD,MPI_ERR_EXHAUSTED,
-		 "Error in MPI_TYPE_CONTIGUOUS" );
-      *newtype = dteptr;		 
       MPIR_SET_COOKIE(dteptr,MPIR_DATATYPE_COOKIE)
       dteptr->dte_type    = MPIR_CONTIG;
       dteptr->committed   = 0;
@@ -80,25 +84,25 @@ MPI_Datatype *newtype;
       dteptr->size        = 0;
       dteptr->real_lb     = 0;
       dteptr->real_ub     = 0;
-      dteptr->old_type    = (MPI_Datatype)MPIR_Type_dup (old_type);
+      dteptr->self        = *newtype;
+      dteptr->old_type    = MPIR_Type_dup (old_dtype_ptr);
+      TR_POP;
       return (mpi_errno);
       }
 
   /* Create and fill in the datatype */
-  MPIR_ALLOC(dteptr,(MPI_Datatype) MPIR_SBalloc( MPIR_dtes ),MPI_COMM_WORLD,
-	     MPI_ERR_EXHAUSTED,"Error in MPI_TYPE_CONTIGUOUS");
-  *newtype = dteptr;
   MPIR_SET_COOKIE(dteptr,MPIR_DATATYPE_COOKIE)
   dteptr->dte_type    = MPIR_CONTIG;
   dteptr->committed   = 0;
   dteptr->basic       = 0;
   dteptr->permanent   = 0;
   dteptr->ref_count   = 1;
-  dteptr->align       = old_type->align;
+  dteptr->align       = old_dtype_ptr->align;
   dteptr->stride      = 1;
   dteptr->blocklen    = 1;
-  dteptr->is_contig   = old_type->is_contig;
-  dteptr->elements    = count * old_type->elements;
+  dteptr->is_contig   = old_dtype_ptr->is_contig;
+  dteptr->elements    = count * old_dtype_ptr->elements;
+  dteptr->self        = *newtype;
   dteptr->has_ub      = 0;
   dteptr->has_lb      = 0;
 
@@ -107,12 +111,12 @@ MPI_Datatype *newtype;
      as contiguous (byt the code in MPI_Type_commit) may have not have
      an old_type.
    */
-  if (old_type->is_contig && old_type->old_type) {
-	dteptr->old_type  = (MPI_Datatype)MPIR_Type_dup (old_type->old_type);
-	dteptr->count     = count * old_type->count;
+  if (old_dtype_ptr->is_contig && old_dtype_ptr->old_type) {
+	dteptr->old_type  = MPIR_Type_dup (old_dtype_ptr->old_type);
+	dteptr->count     = count * old_dtype_ptr->count;
   }
   else {
-	dteptr->old_type  = (MPI_Datatype)MPIR_Type_dup (old_type);
+	dteptr->old_type  = MPIR_Type_dup (old_dtype_ptr);
 	dteptr->count     = count;
   }
 
@@ -120,8 +124,19 @@ MPI_Datatype *newtype;
   dteptr->lb          = dteptr->old_type->lb;
   dteptr->has_lb      = dteptr->old_type->has_lb;
   dteptr->extent      = (MPI_Aint)dteptr->count * dteptr->old_type->extent;
+  /* 
+     If the old type has an explicit ub, then the ub for this type is
+     the location of that ub as updated by the count of this datatype.
+     I.e., if there is 2 x {(int,0),(ub,8)}, the effective type signature is
+     {(int,0),(ub,8),(int,8),(ub,16)}, and the ub is at 16, not 8.
+     Note that the offset of each datatype's displacement is in terms of
+     the extent of the original type.  This applies even to the ub and
+     lb (since the extend is non-negative, we don't need to adjust the
+     lb).
+   */
   if (dteptr->old_type->has_ub) {
-      dteptr->ub     = dteptr->old_type->ub;
+      dteptr->ub     = dteptr->old_type->ub + 
+	  (count - 1) *dteptr->old_type->extent;
       dteptr->has_ub = 1;
       }
   else 
@@ -134,5 +149,7 @@ MPI_Datatype *newtype;
   dteptr->real_ub     = (MPI_Aint)dteptr->count * 
       (dteptr->old_type->real_ub - dteptr->old_type->real_lb) + 
 	  dteptr->old_type->real_lb;
+  
+  TR_POP;
   return (mpi_errno);
 }

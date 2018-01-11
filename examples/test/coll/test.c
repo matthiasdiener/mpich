@@ -2,8 +2,9 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "test.h"
 
-#ifdef __STDC__
+#if defined(USE_STDARG)
 #include <stdarg.h>
 #else
 #include <varargs.h>

@@ -9,6 +9,10 @@
 #define SIZE 100
 /* SIZE 16 worked on Paragon */
 
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
+
 int main(argc,argv)
 int argc;
 char *argv[];

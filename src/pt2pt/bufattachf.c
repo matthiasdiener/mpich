@@ -6,12 +6,6 @@
 #include <stdarg.h>
 #endif
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_buffer_attach_ PMPI_BUFFER_ATTACH

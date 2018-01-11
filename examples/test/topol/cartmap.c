@@ -1,8 +1,8 @@
 #include "mpi.h"
 #include <stdio.h>
-#include <memory.h>
 /* stdlib.h Needed for malloc declaration */
 #include <stdlib.h>
+#include "test.h"
 
 #define NUM_DIMS 2
 

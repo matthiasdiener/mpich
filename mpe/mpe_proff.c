@@ -1,24 +1,34 @@
 /* myprof.c */
 /* Custom Fortran interface file */
 /* These have been edited because they require special string processing */
+/* See mpe_prof.c for what these are interfacing to */
 #ifdef MPI_BUILD_PROFILING
 #undef MPI_BUILD_PROFILING
 #endif
 #include "mpi.h"
+/* 
+   Include a definition of MALLOC and FREE to allow the use of Chameleon
+   memory debug code 
+*/
+#ifdef DEVICE_CHAMELEON
 #include "mpisys.h"
+
+#elif defined(MPIR_MEMDEBUG)
+/* Enable memory tracing.  This requires MPICH's mpid/util/tr2.c codes */
+#define MALLOC(a)    MPID_trmalloc((unsigned)(a),__LINE__,__FILE__)
+#define FREE(a)      MPID_trfree(a,__LINE__,__FILE__)
+
+#else
+#define MALLOC(a) malloc(a)
+#define FREE(a)   free(a)
+#define MPID_trvalid(a)
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+#endif
 
 #ifndef DEBUG_ALL
 #define DEBUG_ALL
-#endif
-
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
 #endif
 
 #ifdef FORTRANCAPS
@@ -122,26 +132,22 @@ FREE( ArgvSave );
  void mpi_send_( buf, count, datatype, dest, tag, comm, __ierr )
 void             *buf;
 int              *count, *dest, *tag;
-MPI_Datatype     datatype;
-MPI_Comm         comm;
+MPI_Datatype     *datatype;
+MPI_Comm         *comm;
 int *__ierr;
 {
-*__ierr = MPI_Send(buf,*count,
-	(MPI_Datatype)MPIR_ToPointer(*((int*)datatype)),*dest,*tag,
-	(MPI_Comm)MPIR_ToPointer(*((int*)comm)));
+*__ierr = MPI_Send(buf,*count,*datatype,*dest,*tag,*comm);
 }
 
  void mpi_recv_( buf, count, datatype, source, tag, comm, status, __ierr )
 void             *buf;
 int              *count, *source, *tag;
-MPI_Datatype     datatype;
-MPI_Comm         comm;
+MPI_Datatype     *datatype;
+MPI_Comm         *comm;
 MPI_Status       *status;
 int *__ierr;
 {
-*__ierr = MPI_Recv(buf,*count,
-	(MPI_Datatype)MPIR_ToPointer(*((int*)datatype)),*source,*tag,
-	(MPI_Comm)MPIR_ToPointer(*((int*)comm)),status);
+*__ierr = MPI_Recv(buf,*count,*datatype,*source,*tag,*comm,status);
 }
 
  void mpi_sendrecv_( sendbuf, sendcount, sendtype, dest, sendtag, 
@@ -149,88 +155,76 @@ int *__ierr;
                   comm, status, __ierr )
 void         *sendbuf;
 int           *sendcount;
-MPI_Datatype  sendtype;
+MPI_Datatype  *sendtype;
 int           *dest, *sendtag;
 void         *recvbuf;
 int           *recvcount;
-MPI_Datatype  recvtype;
+MPI_Datatype  *recvtype;
 int           *source, *recvtag;
-MPI_Comm      comm;
+MPI_Comm      *comm;
 MPI_Status   *status;
 int *__ierr;
 {
-*__ierr = MPI_Sendrecv(sendbuf,*sendcount,
-	(MPI_Datatype)MPIR_ToPointer(*((int*)sendtype)),
+*__ierr = MPI_Sendrecv(sendbuf,*sendcount,*sendtype,
 		       *dest,*sendtag,recvbuf,*recvcount,
-	(MPI_Datatype)MPIR_ToPointer(*((int*)recvtype)),*source,*recvtag,
-	(MPI_Comm)MPIR_ToPointer(*((int*)comm)),status);
+		       *recvtype,*source,*recvtag,*comm,status);
 }
 
  void mpi_bcast_ ( buffer, count, datatype, root, comm, __ierr )
 void             *buffer;
 int               *count;
-MPI_Datatype      datatype;
+MPI_Datatype      *datatype;
 int               *root;
-MPI_Comm          comm;
+MPI_Comm          *comm;
 int *__ierr;
 {
-*__ierr = MPI_Bcast(buffer,*count,
-	(MPI_Datatype)MPIR_ToPointer(*((int*)datatype)),*root,
-	(MPI_Comm)MPIR_ToPointer(*((int*)comm)));
+*__ierr = MPI_Bcast(buffer,*count,*datatype,*root,*comm);
 }
 
  void mpi_reduce_ ( sendbuf, recvbuf, count, datatype, op, root, comm, __ierr )
 void             *sendbuf;
 void             *recvbuf;
 int               *count;
-MPI_Datatype      datatype;
-MPI_Op            op;
+MPI_Datatype      *datatype;
+MPI_Op            *op;
 int               *root;
-MPI_Comm          comm;
+MPI_Comm          *comm;
 int *__ierr;
 {
-*__ierr = MPI_Reduce(sendbuf,recvbuf,*count,
-	(MPI_Datatype)MPIR_ToPointer(*((int*)datatype)),
-	(MPI_Op)MPIR_ToPointer(*((int*)op)),*root,
-	(MPI_Comm)MPIR_ToPointer(*((int*)comm)));
+*__ierr = MPI_Reduce(sendbuf,recvbuf,*count,*datatype,*op,*root,*comm);
 }
 
  void mpi_barrier_ ( comm, __ierr )
-MPI_Comm comm;
+MPI_Comm *comm;
 int *__ierr;
 {
-*__ierr = MPI_Barrier(
-	(MPI_Comm)MPIR_ToPointer(*((int*)comm)));
+*__ierr = MPI_Barrier(*comm);
 }
 
  void mpi_isend_( buf, count, datatype, dest, tag, comm, request, __ierr )
 void             *buf;
 int              *count;
-MPI_Datatype     datatype;
+MPI_Datatype     *datatype;
 int              *dest;
 int              *tag;
-MPI_Comm         comm;
+MPI_Comm         *comm;
 MPI_Request      *request;
 int *__ierr;
 {
-*__ierr = MPI_Isend(buf,*count,
-	(MPI_Datatype)MPIR_ToPointer(*((int*)datatype)),*dest,*tag,
-	(MPI_Comm)MPIR_ToPointer(*((int*)comm)),request);
+*__ierr = MPI_Isend(buf,*count,*datatype,*dest,*tag,*comm,request);
 }
 
  void mpi_irecv_( buf, count, datatype, source, tag, comm, request, __ierr )
 void             *buf;
 int              *count;
-MPI_Datatype     datatype;
+MPI_Datatype     *datatype;
 int              *source;
 int              *tag;
-MPI_Comm         comm;
+MPI_Comm         *comm;
 MPI_Request      *request;
 int *__ierr;
 {
-*__ierr = MPI_Irecv(buf,*count,
-	(MPI_Datatype)MPIR_ToPointer(*((int*)datatype)),*source,*tag,
-	(MPI_Comm)MPIR_ToPointer(*((int*)comm)),request);
+*__ierr = MPI_Irecv(buf,*count,*datatype,*source,*tag,*comm,request);
 }
 
  void mpi_wait_ ( request, status, __ierr )
@@ -272,13 +266,11 @@ int *__ierr;
  void mpi_ssend_( buf, count, datatype, dest, tag, comm, __ierr )
 void             *buf;
 int              *count, *dest, *tag;
-MPI_Datatype     datatype;
-MPI_Comm         comm;
+MPI_Datatype     *datatype;
+MPI_Comm         *comm;
 int *__ierr;
 {
-*__ierr = MPI_Ssend(buf,*count,
-	(MPI_Datatype)MPIR_ToPointer(*((int*)datatype)),*dest,*tag,
-	(MPI_Comm)MPIR_ToPointer(*((int*)comm)));
+*__ierr = MPI_Ssend(buf,*count,*datatype,*dest,*tag,*comm);
 }
 
  void mpi_finalize_(__ierr )
@@ -290,13 +282,10 @@ int *__ierr;
 void             *sendbuf;
 void             *recvbuf;
 int               *count;
-MPI_Datatype      datatype;
-MPI_Op            op;
-MPI_Comm          comm;
+MPI_Datatype      *datatype;
+MPI_Op            *op;
+MPI_Comm          *comm;
 int *__ierr;
 {
-*__ierr = MPI_Allreduce(sendbuf,recvbuf,*count,
-	(MPI_Datatype)MPIR_ToPointer(*((int*)datatype)),
-	(MPI_Op)MPIR_ToPointer(*((int*)op)),
-	(MPI_Comm)MPIR_ToPointer(*((int*)comm)));
+*__ierr = MPI_Allreduce(sendbuf,recvbuf,*count,*datatype,*op,*comm);
 }

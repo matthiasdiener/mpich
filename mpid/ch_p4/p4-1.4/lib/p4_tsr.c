@@ -16,7 +16,7 @@ P4BOOL deq;
 
     tqp = NULL;
     qpp = NULL;
-    found = FALSE;
+    found = P4_FALSE;
 
     qp = p4_local->queued_messages->first_msg;
     while (qp)
@@ -41,7 +41,7 @@ P4BOOL deq;
 	if (((qp->qmsg->type == req_type) || (req_type == -1)) &&
 	    ((qp->qmsg->from == req_from) || (req_from == -1)))
 	{
-	    found = TRUE;
+	    found = P4_TRUE;
 	    if (deq)
 	    {
 		if (p4_local->queued_messages->first_msg ==
@@ -110,7 +110,7 @@ char **msg;
     ALOG_LOG(p4_local->my_id,END_USER,0,"");
     ALOG_LOG(p4_local->my_id,BEGIN_RECV,*req_from,"");
 
-    for (good = FALSE; !good;)
+    for (good = P4_FALSE; !good;)
     {
 	ALOG_LOG(p4_local->my_id,END_RECV,0,"");
 	ALOG_LOG(p4_local->my_id,BEGIN_WAIT,0,"");
@@ -133,7 +133,7 @@ char **msg;
 	if (((tmsg->type == *req_type) || (*req_type == -1)) &&
 	    ((tmsg->from == *req_from) || (*req_from == -1)))
 	{
-	    good = TRUE;
+	    good = P4_TRUE;
 	}
 	if (tmsg->ack_req & P4_BROADCAST_MASK)
 	{
@@ -190,11 +190,11 @@ int *req_type, *req_from;
     !defined(CAN_DO_CUBE_MSGS)   && \
     !defined(CAN_DO_SWITCH_MSGS)
 
-    return (socket_recv( TRUE ));
+    return (socket_recv( P4_TRUE ));
 
 #else
 
-    while (TRUE)
+    while (P4_TRUE)
     {
 #       if defined(CAN_DO_SHMEM_MSGS)
 	if (shmem_msgs_available())
@@ -217,7 +217,7 @@ int *req_type, *req_from;
 #       if defined(CAN_DO_SOCKET_MSGS)
 	if (socket_msgs_available())
 	{
-	    return (socket_recv( FALSE ));
+	    return (socket_recv( P4_FALSE ));
 	}
 #       endif
 
@@ -291,10 +291,10 @@ int *req_type, *req_from;
     ALOG_LOG(p4_local->my_id,END_USER,0,"");
     ALOG_LOG(p4_local->my_id,BEGIN_WAIT,1,"");
 
-    found = FALSE;
+    found = P4_FALSE;
     if ((tmsg = search_p4_queue(*req_type, *req_from, 0)))
     {
-	found = TRUE;
+	found = P4_TRUE;
 	*req_type = tmsg->type;
 	*req_from = tmsg->from;
     }
@@ -306,7 +306,7 @@ int *req_type, *req_from;
 	if (((tmsg->type == *req_type) || (*req_type == -1)) &&
 	    ((tmsg->from == *req_from) || (*req_from == -1)))
 	{
-	    found = TRUE;
+	    found = P4_TRUE;
 	    *req_type = tmsg->type;
 	    *req_from = tmsg->from;
 	}
@@ -317,12 +317,12 @@ int *req_type, *req_from;
 #   if defined(CAN_DO_SOCKET_MSGS)
     while (!found && socket_msgs_available())
     {
-	tmsg = socket_recv( FALSE );
+	tmsg = socket_recv( P4_FALSE );
 	if (tmsg) {
 	    if (((tmsg->type == *req_type) || (*req_type == -1)) &&
 		((tmsg->from == *req_from) || (*req_from == -1)))
 		{
-		found	  = TRUE;
+		found	  = P4_TRUE;
 		*req_type = tmsg->type;
 		*req_from = tmsg->from;
 		}
@@ -338,7 +338,7 @@ int *req_type, *req_from;
 	if (((tmsg->type == *req_type) || (*req_type == -1)) &&
 	    ((tmsg->from == *req_from) || (*req_from == -1)))
 	{
-	    found = TRUE;
+	    found = P4_TRUE;
 	    (*req_type) = tmsg->type;
 	    *req_from = tmsg->from;
 	}
@@ -352,13 +352,13 @@ int *req_type, *req_from;
     {
 	int len;
 	if (sw_probe(req_from, p4_local->my_id, req_type, &len))
-	    found = TRUE;
+	    found = P4_TRUE;
     }
 #endif
 
 #if defined(CAN_DO_TCMP_MSGS)
     if (!found && MD_tcmp_msgs_available(req_from,req_type))
-	found = TRUE;
+	found = P4_TRUE;
 #endif
 
     if (!found) {

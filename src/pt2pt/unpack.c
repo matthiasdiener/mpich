@@ -1,5 +1,5 @@
 /*
- *  $Id: unpack.c,v 1.21 1996/07/17 18:04:00 gropp Exp $
+ *  $Id: unpack.c,v 1.24 1997/01/17 22:59:08 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -46,33 +46,48 @@ MPI_Comm      comm;
 {
   int mpi_errno = MPI_SUCCESS;
   int out_pos;
+  struct MPIR_COMMUNICATOR *comm_ptr;
+  struct MPIR_DATATYPE     *dtype_ptr;
+  static char myname[] = "MPI_UNPACK";
 #ifndef MPI_ADI2
   int dest_len, actlen;
 #endif
 
+  TR_PUSH(myname);
+
+  comm_ptr = MPIR_GET_COMM_PTR(comm);
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+
+  dtype_ptr = MPIR_GET_DTYPE_PTR(datatype);
+  MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
+
   /* NOT ENOUGH ERROR CHECKING AT PRESENT */
-  if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_DATATYPE(comm,datatype) ||
-      MPIR_TEST_COUNT(comm,insize) || MPIR_TEST_ARG(position) ||
+  if (MPIR_TEST_COUNT(comm,insize) || MPIR_TEST_ARG(position) ||
       ( (*position < 0 ) && (mpi_errno = MPI_ERR_ARG) ) ) 
-      return MPIR_ERROR(comm,mpi_errno,"Error in MPI_UNPACK" );
+      return MPIR_ERROR(comm_ptr,mpi_errno,myname );
+
+  if (!dtype_ptr->committed) {
+      return MPIR_ERROR( comm_ptr, MPI_ERR_UNCOMMITTED, myname );
+  }
 
 #ifdef MPI_ADI2
   /* The data WAS received with MPI_PACKED format, and so was SENT with
      the format of the communicator */
   /* We need to compute the PACKED msgrep from the comm msgFORM. */
   out_pos = 0;
-  MPID_Unpack( inbuf, insize, MPID_Msgrep_from_comm( comm ), position,
-	       outbuf, outcount, datatype, &out_pos, 
-	       comm, MPI_ANY_SOURCE, &mpi_errno );
-  MPIR_RETURN(comm,mpi_errno,"Error in MPI_UNPACK");
+  MPID_Unpack( inbuf, insize, MPID_Msgrep_from_comm( comm_ptr ), position,
+	       outbuf, outcount, dtype_ptr, &out_pos, 
+	       comm_ptr, MPI_ANY_SOURCE, &mpi_errno );
+  TR_POP;
+  MPIR_RETURN(comm_ptr,mpi_errno,myname);
 #else  
   /* Is the inbuf big enough for the type that's being unpacked? */
   /* 
     We can't use this test because Pack_size is not exact but is rather
     an upper bound.
-  MPIR_Pack_size ( outcount, datatype, comm, comm->msgrep, &size );
+  MPIR_Pack_size ( outcount, datatype, comm, comm_ptr->msgrep, &size );
   if (((*position) + size) > insize)
-	return MPIR_ERROR(comm, MPI_ERR_LIMIT, 
+	return MPIR_ERROR(comm_ptr, MPI_ERR_LIMIT, 
 				       "Input buffer too small in MPI_UNPACK");
    */
   /* Note that for pack/unpack, the data representation is stored in the 
@@ -81,9 +96,9 @@ MPI_Comm      comm;
      dest_len) */
   mpi_errno = MPIR_Unpack( comm, 
 			  (char *)inbuf + (*position), insize - *position, 
-			  outcount, datatype, comm->msgrep, outbuf, &actlen, 
+			  outcount, datatype, comm_ptr->msgrep, outbuf, &actlen, 
 			  &dest_len );
-  if (mpi_errno) MPIR_ERROR(comm,mpi_errno,"Error in MPI_UNPACK" );
+  if (mpi_errno) MPIR_ERROR(comm_ptr,mpi_errno,myname );
   (*position) += actlen;
   return (mpi_errno);
 #endif

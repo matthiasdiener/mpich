@@ -1,0 +1,30 @@
+#
+# rcsid = $Header: /home/MPI/servers/master/server/Makefile.in,v 1.4 1996/12/04 16:50:51 gropp Exp $
+#
+# This is the small Makefile for the secure server.  It should be fairly
+# simple with only one source file and one executable to produce.  Here
+# is a first attempt that will most likely need to be changed.
+#
+ALL: server clientlib.a lclient
+
+server: server.o server_ssl.o
+	@CC@ @LDFLAGS@ -o server server.o server_ssl.o
+
+server.o: serv_p4.c
+	@CC@ @CFLAGS@ -c serv_p4.c -o server.o
+
+clientlib.a: clients.o
+	ar cr clientlib.a clients.o
+	@RANLIB@ clientlib.a
+
+lclient: lclient.o clientlib.a
+	@CC@ @CFLAGS@ -o lclient lclient.o clientlib.a
+clean:
+	rm -rf server *.o clientlib.a lclient
+
+distclean: clean
+	rm -rf Makefile config.cache config.log config.status server.h
+
+.c.o:
+	@CC@ @CFLAGS@ -c $*.c
+

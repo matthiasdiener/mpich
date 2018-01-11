@@ -1,5 +1,5 @@
 /*
- *  $Id: chbrndv.c,v 1.4 1996/07/17 18:04:59 gropp Exp $
+ *  $Id: chbrndv.c,v 1.5 1997/02/18 23:09:04 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -158,7 +158,7 @@ void         *in_pkt;
 	    fprintf( stderr, "shandle is %lx\n", (long)shandle );
 	    fprintf( stderr, "shandle cookie is %lx\n", shandle->cookie );
 	    MPID_Print_shandle( stderr, shandle );
-	    MPID_Abort( (MPI_Comm)0, 1, "MPI internal", 
+	    MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPI internal", 
 			"Bad address in Rendezvous send (irecv-self)" );
 	}
 #endif	
@@ -356,7 +356,7 @@ int   from_grank;
 	fprintf( stderr, "shandle is %lx\n", (long)shandle );
 	fprintf( stderr, "shandle cookie is %lx\n", shandle->cookie );
 	MPID_Print_shandle( stderr, shandle );
-	MPID_Abort( (MPI_Comm)0, 1, "MPI internal", 
+	MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPI internal", 
 		    "Bad address in Rendezvous send (ack)" );
     }
 #endif	
@@ -426,7 +426,7 @@ void         *in_runex;
 	fprintf( stderr, "shandle is %lx\n", (long)shandle );
 	fprintf( stderr, "shandle cookie is %lx\n", shandle->cookie );
 	MPID_Print_shandle( stderr, shandle );
-	MPID_Abort( (MPI_Comm)0, 1, "MPI internal", 
+	MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPI internal", 
 		    "Bad address in Rendezvous send (unx_start_self)" );
     }
 #endif	

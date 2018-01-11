@@ -1,5 +1,5 @@
 /*
- *  $Id: iprobe.c,v 1.11 1996/04/11 20:19:17 gropp Exp $
+ *  $Id: iprobe.c,v 1.13 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -39,11 +39,18 @@ int         *flag;
 MPI_Comm    comm;
 MPI_Status  *status;
 {
-    int mpi_errno;
-    if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_RECV_TAG(comm,tag) ||
-	MPIR_TEST_RECV_RANK(comm,source))
-	return MPIR_ERROR( comm, mpi_errno, "Error in MPI_IPROBE" );
+    int mpi_errno = MPI_SUCCESS;
+    struct MPIR_COMMUNICATOR *comm_ptr;
+    static char myname[] = "MPI_IPROBE";
 
+    TR_PUSH(myname);
+
+    comm_ptr = MPIR_GET_COMM_PTR(comm);
+    MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+    if (MPIR_TEST_RECV_TAG(comm,tag) ||
+	MPIR_TEST_RECV_RANK(comm_ptr,source)) {
+	return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+    }
     if (source == MPI_PROC_NULL) {
 	status->MPI_SOURCE = MPI_PROC_NULL;
 	status->MPI_TAG	   = MPI_ANY_TAG;
@@ -51,21 +58,20 @@ MPI_Status  *status;
 	return MPI_SUCCESS;
 	}
 #ifdef MPI_ADI2
-    MPID_Iprobe( comm, tag, comm->recv_context, source, flag, &mpi_errno, 
-		 status );
+    MPID_Iprobe( comm_ptr, tag, comm_ptr->recv_context, source, flag, 
+		 &mpi_errno, status );
 #else
 
 #ifdef MPID_NEEDS_WORLD_SRC_INDICES
-    MPID_Iprobe( comm->ADIctx, 
+    MPID_Iprobe( comm_ptr->ADIctx, 
 		 tag, 
-		 (source >= 0) ? (comm->lrank_to_grank[source]) : source,
-		 comm->recv_context, flag, status );
+		 (source >= 0) ? (comm_ptr->lrank_to_grank[source]) : source,
+		 comm_ptr->recv_context, flag, status );
 #else
-    MPID_Iprobe( comm->ADIctx, 
-		 tag, 
-		 source, 
-		 comm->recv_context, flag, status );
+    MPID_Iprobe( comm_ptr->ADIctx, tag, source, 
+		 comm_ptr->recv_context, flag, status );
 #endif
 #endif
-    return MPI_SUCCESS;
+    TR_POP;
+    MPIR_RETURN( comm_ptr, mpi_errno, myname );
 }

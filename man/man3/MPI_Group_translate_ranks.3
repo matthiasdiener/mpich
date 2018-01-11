@@ -1,4 +1,4 @@
-.TH MPI_Group_translate_ranks 3 "4/12/1996" " " "MPI"
+.TH MPI_Group_translate_ranks 3 "2/18/1997" " " "MPI"
 .SH NAME
 MPI_Group_translate_ranks \-  Translates the ranks of processes in one group to  those in another group 
 .SH SYNOPSIS
@@ -108,6 +108,21 @@ an error.
 identified by a specific error class (e.g., 
 .I MPI_ERR_RANK
 ).
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_RANK 
+- Invalid source or destination rank.  Ranks must be between
+zero and the size of the communicator minus one; ranks in a receive
+(
+.I MPI_Recv
+, 
+.I MPI_Irecv
+, 
+.I MPI_Sendrecv
+, etc.) may also be 
+.I MPI_ANY_SOURCE
+.
 .PD 1
 
 .SH LOCATION

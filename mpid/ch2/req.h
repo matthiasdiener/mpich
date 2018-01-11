@@ -1,12 +1,15 @@
 #ifndef MPIR_REQUEST_COOKIE
 
 #ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus)
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
 #define ANSI_ARGS(a) a
 #else
 #define ANSI_ARGS(a) ()
 #endif
 #endif
+
+#include "datatype.h"
+
 /*
  * Modified definitions of the request.  The "device" handle has been 
  * integrated.
@@ -117,8 +120,8 @@ struct _MPIR_RHANDLE {
     void         *start;
     int          bytes_as_contig;
     int          count;
-    MPI_Datatype datatype;   /* basic or derived datatype */
-    MPI_Comm     comm;
+    struct MPIR_DATATYPE *datatype;   /* basic or derived datatype */
+    struct MPIR_COMMUNICATOR *comm;
     MPID_Msgrep_t msgrep;     /* Message representation; used to indicate
 				XDR, sender, receiver used */
 
@@ -140,8 +143,8 @@ typedef struct {
     int          active;
     int          perm_tag, perm_source, perm_count;
     void         *perm_buf;
-    MPI_Datatype perm_datatype;
-    MPI_Comm     perm_comm;
+    struct MPIR_DATATYPE *perm_datatype;
+    struct MPIR_COMMUNICATOR *perm_comm;
     } MPIR_PRHANDLE;
 
 typedef struct {
@@ -149,9 +152,10 @@ typedef struct {
     int          active;
     int          perm_tag, perm_dest, perm_count;
     void         *perm_buf;
-    MPI_Datatype perm_datatype;
-    MPI_Comm     perm_comm;
-    void         (*send) ANSI_ARGS((MPI_Comm, void *, int, MPI_Datatype, 
+    struct MPIR_DATATYPE *perm_datatype;
+    struct MPIR_COMMUNICATOR *perm_comm;
+    void         (*send) ANSI_ARGS((struct MPIR_COMMUNICATOR *, void *, int, 
+				    struct MPIR_DATATYPE *,
 				    int, int, int, int, MPI_Request, int *));
                     /* IsendDatatype, IssendDatatype, Ibsend, IrsendDatatype */
     } MPIR_PSHANDLE;

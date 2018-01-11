@@ -8,7 +8,7 @@
 #include "str_dup.h"
 
 
-static int SortEvents ARGS(( eventData *event_data, int *list, int n ));
+static int SortEvents ANSI_ARGS(( eventData *event_data, int *list, int n ));
 
 
 eventData *Event_Create()
@@ -216,6 +216,7 @@ eventData *data;
 
 #if USE_QSORT
 static eventData *sort_data;
+static int SetSortData ANSI_ARGS(( eventData * ));
 
 static int SetSortData( event_data )
 eventData *event_data;

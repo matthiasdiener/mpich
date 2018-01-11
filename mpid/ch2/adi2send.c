@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2send.c,v 1.3 1996/07/17 18:04:59 gropp Exp $
+ *  $Id: adi2send.c,v 1.4 1996/12/01 23:34:41 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -19,9 +19,9 @@
  */
 /***************************************************************************/
 
-void MPID_SendContig( comm, buf, len, src_lrank, tag, context_id, 
+void MPID_SendContig( comm_ptr, buf, len, src_lrank, tag, context_id, 
 			      dest_grank, msgrep, error_code )
-MPI_Comm comm;
+struct MPIR_COMMUNICATOR *comm_ptr;
 void     *buf;
 int      len, src_lrank, tag, context_id, dest_grank, *error_code;
 MPID_Msgrep_t msgrep;
@@ -46,9 +46,9 @@ MPID_Msgrep_t msgrep;
 			    msgrep );
 }
 
-void MPID_IsendContig( comm, buf, len, src_lrank, tag, context_id, 
+void MPID_IsendContig( comm_ptr, buf, len, src_lrank, tag, context_id, 
 		       dest_grank, msgrep, request, error_code )
-MPI_Comm    comm;
+struct MPIR_COMMUNICATOR *   comm_ptr;
 void        *buf;
 int         len, src_lrank, tag, context_id, dest_grank, *error_code;
 MPID_Msgrep_t msgrep;
@@ -81,9 +81,9 @@ MPI_Request request;
 
 
 /* Bsend is just a test for short send */
-void MPID_BsendContig( comm, buf, len, src_lrank, tag, context_id, 
+void MPID_BsendContig( comm_ptr, buf, len, src_lrank, tag, context_id, 
 			 dest_grank, msgrep, error_code )
-MPI_Comm comm;
+struct MPIR_COMMUNICATOR *comm_ptr;
 void     *buf;
 int      len, src_lrank, tag, context_id, dest_grank, *error_code;
 MPID_Msgrep_t msgrep;

@@ -15,7 +15,7 @@
 #define _MPID_DEV
 
 #ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus)
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
 #define ANSI_ARGS(a) a
 #else
 #define ANSI_ARGS(a) ()
@@ -66,7 +66,8 @@ struct _MPID_Device {
 					     MPID_BLOCKING_TYPE));
     /* Run down and abort - do these need self (device)? */
     int           (*terminate)        ANSI_ARGS((MPID_Device *));
-    int           (*abort)            ANSI_ARGS((MPI_Comm, int, char *));
+    int           (*abort)            ANSI_ARGS((struct MPIR_COMMUNICATOR *, 
+						 int, char *));
 
     /* This next field is used to link together all of the devices */
     struct _MPID_Device *next;

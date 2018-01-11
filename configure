@@ -1,3 +1,6 @@
+
+
+
 #!/bin/sh
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf.
@@ -22,25 +25,29 @@ print_error() {
     }
 print_usage() {
 cat <<.
-Usage: ${progname} -arch=ARCH_TYPE -comm=COMM_TYPE -device=DEVICE
-                   [-prefix=INSTALL_DIR]  [-c++[=C++_COMPILER]]
-                   [-cc=C_COMPILER] [-fc=FORTRAN_COMPILER]
-                   [-clinker=C_LINKER] [-flinker=FORTRAN_LINKER]
-                   [-mpe] [-nompe] [-nof77] [-f90nag] [-opt=OPTFLAGS] 
-	           [-make=MAKEPGM]
-                   [-cflags=CFLAGS] [-fflags=FFLAGS]
-                   [-optcc=C_OPTFLAGS] [-optf77=F77_OPTFLAGS]
-                   [-lib=LIBRARY] [-mpilibname=MPINAME]
-                   [-no_mpegraphics] [-no_short_longs] [-memdebug]
-                   [-x11_lib=X11LIB] [-x11_inc=X11INC]
-                   [-mpedbg] [-nompedbg] [-cross] [-devdebug] [-nodevdebug] 
-                   [-debug] [-nodebug]
-		   [-var_pkt] [-pkt_size=LENGTH] [-adi_collective]
-                   [-adi_coll_world]
-                   [-wish=WISH] [-tcldir=TCLDIR] [-tkdir=TKDIR]
-                   [-fortnames=FORTRANNAMES]
-                   [-ar_nolocal] [-automountfix=AUTOMOUNTFIX]
-                   [-noranlib] [-rsh=RSHCOMMAND] [-rshnol]
+Usage: ${progname} [-arch=ARCH_TYPE] [-comm=COMM_TYPE]
+            [-device=DEVICE]
+            [-prefix=INSTALL_DIR]  [-c++[=C++_COMPILER]]
+            [-cc=C_COMPILER] [-fc=FORTRAN_COMPILER]
+            [-clinker=C_LINKER] [-flinker=FORTRAN_LINKER]
+            [-c++linker=CC_LINKER] 
+            [-mpe] [-nompe] [-nof77] [-f90nag] [-opt=OPTFLAGS] 
+	    [-make=MAKEPGM]
+            [-cflags=CFLAGS] [-fflags=FFLAGS] [-c++flags=CCFLAGS]
+            [-optcc=C_OPTFLAGS] [-optf77=F77_OPTFLAGS]
+            [-lib=LIBRARY] [-mpilibname=MPINAME]
+            [-no_mpegraphics] [-no_short_longs] [-memdebug]
+            [-x11_lib=X11LIB] [-x11_inc=X11INC]
+            [-mpedbg] [-nompedbg] [-cross] [-devdebug] [-nodevdebug] 
+            [-debug] [-nodebug] [-tracing]
+	    [-var_pkt] [-pkt_size=LENGTH] [-adi_collective]
+            [-adi_coll_world]
+            [-wish=WISH] [-tcldir=TCLDIR] [-tkdir=TKDIR]
+            [-fortnames=FORTRANNAMES]
+            [-ar_nolocal] [-automountfix=AUTOMOUNTFIX]
+            [-noranlib] [-rsh=RSHCOMMAND] [-rshnol]
+	    [-nexusthreads] [-nexusdir=NEXUSDIR] [-nexuslib=NEXUSLIB]
+            [-nexusdebug]
 where
    ARCH_TYPE    = the type of machine that MPI is to be configured for
    COMM_TYPE    = communications layer or option to be used
@@ -55,9 +62,9 @@ where
                   to long message protocol
    WISH         = Name of tcl/tk wish executable.  Configure will attempt
                   to find a version of wish for you, but if there is
-                  no wish in your path or you need to use a different version,
-                  use this option.  Used only for the display tools 
-                  (nupshot and upshot).  tk 3.x required for nupshot;
+                  no wish in your path or you need to use a different
+                  version, use this option.  Used only for the display
+                  tools (nupshot and upshot).  tk 3.x required for nupshot;
                   tk 3.x or 4.x for upshot.
    TCLDIR       = Directory containing tcl.  Must have lib/libtcl.a and
                   include/tcl.h .  Used only for nupshot.
@@ -73,130 +80,165 @@ where
                   library.  If set, libMPILIBNAME will be used instead
                   or libmpi.  This can be used on systems with
                   several different MPI implementations.
+   NEXUSDIR     = the location of the nexus distribution
+   NEXUSLIB     = the location of the nexus library, if not in the standard
+                  place within the distribution
 
-One and only one 'arch', 'comm', and 'prefix' argument should be
-provided.  'arch' MUST be specified before 'comm'.
+All arguments are optional, but if 'arch', 'comm', or 'prefix' arguments
+are provided, there must be only one.  'arch' must be specified before
+'comm' if they both appear.
 
-If '-c++' is included as an option, then the C++ interface is also built.  By
-default, g++ is used as the c++ compiler.  THIS IS CURRENTLY UNSUPPORTED.
+If '-c++' is included as an option, then the C++ interface is also built.
+By default, g++ is used as the c++ compiler.  THIS IS CURRENTLY
+UNSUPPORTED.
 
-You can select a different C and Fortran compiler by using the '-cc' and 'fc'
-switches.  The environment variables 'CC' and 'FC' can also provide values for
-these but their settings may be overridden by the configure script.  Using
-'-cc=\$CC -fc=\$FC' will force configure to use those compilers.
+You can select a different C and Fortran compiler by using the '-cc' and
+'fc' switches.  The environment variables 'CC' and 'FC' can also provide
+values for these but their settings may be overridden by the configure
+script.  Using '-cc=\$CC -fc=\$FC' will force configure to use those
+compilers.
 
-If '-cross' is given, configure assumes that you are cross-compiling.  If it
-is not given, configure expects to be able to run programs.  Even if '-cross'
-is not selected, configure will try to determine if you are cross-compiling;
-this switch is needed only on systems where attempting to run a cross-compiled
-program causes the configure script to hang.
+If '-cross' is given, configure assumes that you are cross-compiling.  If
+it is not given, configure expects to be able to run programs.  Even if
+'-cross' is not selected, configure will try to determine if you are
+cross-compiling; this switch is needed only on systems where attempting
+to run a cross-compiled program causes the configure script to hang.
 
-If '-mpe' is included as an option, then the MPE 'helper' libraries will also
-be built.  '-nompe' causes the MPE libraries to not be built.  The default is
-'-mpe'.  If '-no_mpegraphics' is used, then the MPE routines that make use of
-X11 graphics will NOT be built; this is appropriate for systems that either do
-not have the X11 include files or that do not support X11 graphics (some
-message-passing systems cannot interoperate with X11).  The options -x11_inc
-and -x11_lib may be used to specify the locations of the X11 include files and
-libraries in the event that configure cannot find them (they should both be
-specified in that case).
+If '-mpe' is included as an option, then the MPE 'helper' libraries will
+also be built.  '-nompe' causes the MPE libraries to not be built.  The
+default is '-mpe'.  If '-no_mpegraphics' is used, then the MPE routines
+that make use of X11 graphics will NOT be built; this is appropriate for
+systems that either do not have the X11 include files or that do not
+support X11 graphics (some message-passing systems cannot interoperate
+with X11).  The options -x11_inc and -x11_lib may be used to specify the
+locations of the X11 include files and libraries in the event that
+configure cannot find them (they should both be specified in that case).
 
 The option '-mpedbg' enables the '-mpedbg' command line switch in MPI
-programs.  When used with an MPI program, the default error handler (i.e.,
-MPI_COMM_WORLD's error handler) tries to start xterm's running dbx for each
-process that detects an error.  This option is intended primarily for
-workstation environments but should work on some MPPs (such as IBM SP2).
+programs.  When used with an MPI program, the default error handler
+(i.e., MPI_COMM_WORLD's error handler) tries to start xterm's running dbx
+for each process that detects an error.  This option is intended
+primarily for workstation environments but should work on some MPPs (such
+as IBM SP2).
 
 The option '-nof77' prevents the compilation of routines that require a
-Fortran compiler.  If this option is selected, you may not use the Fortran
-interface to MPI.
+Fortran compiler.  If this option is selected, you may not use the
+Fortran interface to MPI.
 
-The option '-f90nag' allows you to use the NAG Fortran 90 instead of Fortran
-77.  This is a preliminary version and is based on the version for NeXTs.
+The option '-f90nag' allows you to use the NAG Fortran 90 instead of
+Fortran 77.  This is a preliminary version and is based on the version
+for NeXTs.
 
-The option '-opt' allows you to specify options for the compilers (both C and
-Fortran).  For example, '-opt=-O' chooses optimized code generation on many
-systems.  '-optcc' and '-optf77' allow you to specify options for just the C
-or Fortran compilers
+The option '-opt' allows you to specify optimization options for the
+compilers (both C and Fortran).  For example, '-opt=-O' chooses optimized
+code generation on many systems.  '-optcc' and '-optf77' allow you to
+specify options for just the C or Fortran compilers.  Use -cflags and
+-fflags for options not related to optimization.
 
-The option '-lib' allows you to specify the location of a library that may be
-needed by a particular device.  Most devices do NOT need this option; check
-the installation instructions for those that might.
+The option '-nexusthreads' enables multithreading within the ch_nexus
+device.  The default version of the ch_nexus device is configured as
+single-threaded.
+
+The option '-nexusdebug' enables special debugging services in the
+ch_nexus device.  The default version of the ch_nexus device is
+configured without debugging.
+
+The option '-nexusdir=NEXUSDIR' allows one to specify the location of an
+installed version of Nexus.  The default is to use a version that is
+distributed with MPICH, in the mpid/ch_nexus directory.
+
+The option '-nexuslib=NEXUSLIB' allows one to specify a specific nexus
+library to link against.  The default is -lnexus_dl.  Note that this is
+not a path name.
+
+The option '-lib' allows you to specify the location of a library that
+may be needed by a particular device.  Most devices do NOT need this
+option; check the installation instructions for those that might.
 
 The option '-make' may be used to select an alternate make program.  For
-example, on FreeBSD systems, -make=gnumake may be required because of bugs in
-the system make.
+example, on FreeBSD systems, -make=gnumake may be required because of
+bugs in the system make.
 
-The option '-no_short_longs' may be used to suppress support for ANSI C types
-'long long int' and 'long double' when they are the same size as 'long' and
-'double' respectively.  Some systems allow these long ANSI C types, but
-generate a warning message when they are used; this option may be used to
-suppress these messages (and support for these types).
+The option '-no_short_longs' may be used to suppress support for ANSI C
+types 'long long int' and 'long double' when they are the same size as
+'long' and 'double' respectively.  Some systems allow these long ANSI C
+types, but generate a warning message when they are used; this option may
+be used to suppress these messages (and support for these types).
 
-The option '-fortnames=FORTRANNAMES' allows you to specify the form of the
-Fortran names.  This is used primarily to generate names with and without
-trailing underscores for those systems that support both.  Possible values are
+The option '-fortnames=FORTRANNAMES' allows you to specify the form of
+the Fortran names.  This is used primarily to generate names with and
+without trailing underscores for those systems that support both.
+Possible values are
     FORTRANNAMES value     if Fortran MPI_SEND looks like
     DOUBLEUNDERSCORE       mpi_send__
     UNDERSCORE             mpi_send_
     CAPS                   MPI_SEND
     NOUNDERSCORE           mpi_send 
-This option should normally NOT be used; configure determines what the Fortran
-compiler generates.  This can be used to override that choice.
 
-The option '-ar_nolocal' prevents the library archive command from attempting
-to use the local directory for temporary space.  This option should be used
-when (a) there isn't much space (less than 20 MB) available in the partition
-where MPICH resides and (b) there is enough space in /tmp (or wherever ar
-places temporary files by default).
+This option should normally NOT be used; configure determines what the
+Fortran compiler generates.  This can be used to override that choice.
 
-The option '-noranlib' causes the 'ranlib' step (needed on some systems to
-build an object library) to be skipped.  This is particularly useful on
-systems where 'ranlib' is optional (allowed but not needed; because it is
-allowed, configure chooses to use it just in case) but can fail (some
-'ranlib's are implemented as scripts using 'ar'; if they don't use the local
-directory, they can fail (destroying the library in the process) if the
-temporary directory (usually '/tmp') does not have enough space.  This has
-occured on some OSF systems.
+The option '-ar_nolocal' prevents the library archive command from
+attempting to use the local directory for temporary space.  This option
+should be used when (a) there isn't much space (less than 20 MB)
+available in the partition where MPICH resides and (b) there is enough
+space in /tmp (or wherever ar places temporary files by default).
 
-The option '-memdebug' enables extensive internal memory debugging code.  This
-should be used only if you are trying to find a memory problem (it can be used
-to help find memory problems in user code as well).
+The option '-noranlib' causes the 'ranlib' step (needed on some systems
+to build an object library) to be skipped.  This is particularly useful
+on systems where 'ranlib' is optional (allowed but not needed; because it
+is allowed, configure chooses to use it just in case) but can fail (some
+'ranlib's are implemented as scripts using 'ar'; if they don't use the
+local directory, they can fail (destroying the library in the process) if
+the temporary directory (usually '/tmp') does not have enough space.
+This has occured on some OSF systems.
 
-The option '-rsh' allows you to select an alternative remote shell command (by
-default, configure will use 'rsh' or 'remsh' from your 'PATH').  If your
-remote shell command does not support the '-l' option (some AFS versions of
-'rsh' have this bug), also give the option '-rshnol'.  These options are
-useful only when building a network version of MPICH (e.g., '-device=ch_p4' or
-'-device=ch_tcp').
+The option '-memdebug' enables extensive internal memory debugging code.
+This should be used only if you are trying to find a memory problem (it
+can be used to help find memory problems in user code as well).
+
+The option '-debug' enables the collection of additional information for
+parallel debuggers such as Totalview.
+
+The option '-tracing' enables tracing of internal calls.  This should be
+used only for debugging the MPICH implementation itself.
+
+The option '-rsh' allows you to select an alternative remote shell
+command (by default, configure will use 'rsh' or 'remsh' from your
+'PATH').  If your remote shell command does not support the '-l' option
+(some AFS versions of 'rsh' have this bug), also give the option
+'-rshnol'.  These options are useful only when building a network version
+of MPICH (e.g., '-device=ch_p4' or '-device=ch_tcp').
 
 Special Tuning Options:
 
-There are a number of options for tuning the behavoir of the ADI (Abstract
-Device Interface) which is the low-level message-passing interface.  These
-should NOT be used unless you are sure you know what you are doing.
+There are a number of options for tuning the behavoir of the ADI
+(Abstract Device Interface) which is the low-level message-passing
+interface.  These should NOT be used unless you are sure you know what
+you are doing.
 
 The option '-nodevdebug' disables the debugging code in the MPI ADI code.
 This should be used only when you are sure that everything is working
-correctly.  (This option is also present to remind benchmarkers that the low
-level code by default may contain debugging code.)  Note also that some of the
-device code (in mpid/*) has had the debugging code removed from the source
-code.  '-devdebug' turns on the debugging code.  '-nodevdebug' is the default.
+correctly.  (This option is also present to remind benchmarkers that the
+low level code by default may contain debugging code.)  Note also that
+some of the device code (in mpid/*) has had the debugging code removed
+from the source code.  '-devdebug' turns on the debugging code.
+'-nodevdebug' is the default.
 
 The option '-var_pkt' allows you to set the message size at which MPICH
 changes from its short to long message protocol.
 
-The option '-pkt_size=LENGTH' allows you to choose the message length at which
-the ADI (Abstract Device Interface) switches from its short to long message
-format.  LENGTH must be positive.
+The option '-pkt_size=LENGTH' allows you to choose the message length at
+which the ADI (Abstract Device Interface) switches from its short to long
+message format.  LENGTH must be positive.
 
 The option '-adi_collective' allows the ADI to provide some collective
-operations in addition to the basic point-to-point operations.  Currently,
-most systems do not support this option (it is ignored) and on the others it
-has not been extensively tested.  The option '-adi_coll_world' asks the ADI to
-try and use any collective operations that are supported only on the
-MPI_COMM_WORLD communicator (and any communicator with a similiar group).
-This is also untested.
+operations in addition to the basic point-to-point operations.
+Currently, most systems do not support this option (it is ignored) and on
+the others it has not been extensively tested.  The option
+'-adi_coll_world' asks the ADI to try and use any collective operations
+that are supported only on the MPI_COMM_WORLD communicator (and any
+communicator with a similiar group).  This is also untested.
 
 
 Sample Configure Usage:
@@ -207,21 +249,25 @@ To make for running on sun4's running SunOS with ch_p4 as the device,
   ./configure -device=ch_p4 -arch=sun4
   make
 
-Known devices are chameleon, 
+Known devices are 
         ch_nx     (native Intel NX calls), 
         ch_mpl    (native IBM EUI or MPL calls),
-        ch_nc     (native nCUBE calls, requires -arch=ncube),
-        ch_cmmd   (native TMC CM-5 CMMD calls), 
         ch_p4     (p4)
 	ch_nexus  (Nexus)
         ch_meiko  (for Meiko CS2, using NX compatibility library),
         ch_shmem  (for shared memory systems, such as SMPs), 
-        ch_lfshmem(for shared memory systems, such as SMPs; uses lock-free
-                   message buffers), 
-        ch_cenju3 (native NEC Cenju-3 calls),
+        ch_lfshmem(for shared memory systems, such as SMPs; uses
+                   lock-free message buffers), 
+        ch_cenju3 (native NEC Cenju-3 calls)
+
+The following devices were supported with ADI-1, but are currently
+unsupported.  Please contact us if you are interested in helping us
+support these devices:
         meiko     (for Meiko CS2, using elan tport library), and
 	nx        (for Intel Paragon),
 	t3d	  (for the Cray T3D, using Cray shmem library).
+        ch_nc     (native nCUBE calls, requires -arch=ncube),
+        ch_cmmd   (native TMC CM-5 CMMD calls), 
 
 Known architectures include (case is important)
         sun4      (SUN OS 4.x)
@@ -232,6 +278,8 @@ Known architectures include (case is important)
         sgi       (Silicon Graphics IRIX 4.x, 5.x or 6.x)
         sgi5      (Silicon Graphics IRIX 5.x on R4400's, for the MESHINE)
         IRIX      (synonym for sgi)
+        IRIX32    (IRIX with 32bit objects -32)
+        IRIXN32   (IRIX with -n32)
         IRIX64    (IRIX with 64bit objects)
         alpha     (DEC alpha)
         intelnx   (Intel i860 or Intel Delta)
@@ -271,10 +319,10 @@ Known architectures include (case is important)
 
 Special notes:
 
-For SGI (-arch=IRIX) multiprocessors running the ch_p4 device, use -comm=ch_p4
-to disable the use of the shared-memory p4 communication device, and
--comm=shared to enable the shared-memory p4 communication device.  The default
-is to enable the shared-memory communication device.
+For SGI (-arch=IRIX) multiprocessors running the ch_p4 device, use
+-comm=ch_p4 to disable the use of the shared-memory p4 communication
+device, and -comm=shared to enable the shared-memory p4 communication
+device.  The default is to enable the shared-memory communication device.
 
 Others may be recognized.
 .
@@ -314,6 +362,14 @@ DEVICE_KIND=MPP
 cross_compiling=0
 is_adi1=0
 debug_version=0
+# Note default directory is relative to mpid/ch_nexus, but user may override
+# with full path
+NEXUSDEFAULTDIR="nexus"
+NEXUSDIR="$NEXUSDEFAULTDIR"
+NEXUSLIB="-lnexus_dl"
+nexusthreads=0
+#
+MPIFDEP="mpif.h"
 #
 # -mpedbg
 MPE_MPI_EXT_C="$MPE_MPI_EXT_C dbxerr.c mpehname.c"
@@ -428,6 +484,13 @@ do
 	is_adi1=1
 	;;
 
+     -adi1ok)
+	# THIS IS A SECRET FLAG.  DON'T USE THIS UNLESS YOU KNOW WHAT
+	# YOU ARE DOING.  IF YOU DON'T KNOW WHAT WE'RE TALKING ABOUT,
+	# DON'T USE IT.
+	adi1_ok=1
+	;;
+
      -mpedbg | --mpedbg)
 	# Definitions of DEFS must follow the PREPARE
 	MPE_MPI_EXT_C="$MPE_MPI_EXT_C dbxerr.c mpehname.c"
@@ -476,6 +539,10 @@ do
 
      -memdebug | --memdebug)
 	MEMDEBUG=1
+	;;
+
+     -tracing | --tracing)
+	TRDEBUG=1
 	;;
 
      -cross)
@@ -578,6 +645,11 @@ do
 	USERCLINKER=1
 	;;
 
+     -c++linker=* | --c++linker=*)
+	CCLINKER=`echo $arg|sed 's/-*c++linker=//'`
+	USERCCLINKER=1
+	;;
+
      -flinker=* | --flinker=*)
 	FLINKER=`echo $arg|sed 's/-*flinker=//'`
 	USERFLINKER=1
@@ -611,6 +683,11 @@ do
        package="`echo $arg|sed 's/-*cflags=//'`"
        USER_CFLAGS="$package"
        CFLAGS="$CFLAGS $package" ;;
+
+     -c++flags=* | --c++flags=*)
+       package="`echo $arg|sed 's/-*c++flags=//'`"
+       USER_CCFLAGS="$package"
+       CCFLAGS="$CCFLAGS $package" ;;
 
      -fflags=* | --fflags=*)
        package="`echo $arg|sed 's/-*fflags=//'`"
@@ -675,7 +752,23 @@ do
         configure_echo=1
 	;;
 
-     -u | -usage | --usage | --usag | --usa | --us | --u | -help | --help )
+     -nexusthreads | --nexusthreads )
+        nexusthreads=1
+        ;;
+
+     -nexusdebug | --nexusdebug )
+        nexusdebug=1
+        ;;
+
+     -nexusdir=* | --nexusdir=*)
+	NEXUSDIR="`echo $arg|sed 's/-*nexusdir=//'`"
+       ;;
+
+     -nexuslib=* | --nexuslib=*)
+	NEXUSLIB="`echo $arg|sed 's/-*nexuslib=//'`"
+       ;;
+
+      -u | -usage | --usage | --usag | --usa | --us | --u | -help | --help )
 	print_usage >& 2
        exit 1 ;;
 
@@ -684,6 +777,7 @@ do
 
      *) 
 	print_error "Unrecognized configure option $arg" 
+	exit 1
 	;;
     esac
   fi
@@ -738,6 +832,40 @@ esac
 # Save the original args to write them into config.status later.
 configure_args="$*"
 
+
+# Make sure we remove any configuration file incase there is out-of-date data.
+/bin/rm -f mpichconf.h
+
+# Find the source files, if location was not specified.
+if test "$srcdirdefaulted" = "yes" ; then
+  srcdir=""
+  # Try the directory containing this script, then `..'.
+  prog=$0
+  confdir=`echo $prog|sed 's%/[^/][^/]*$%%'`
+  # Remove all trailing /'s 
+  confdir=`echo $confdir|sed 's%[/*]$%%'`
+  test "X$confdir" = "X$prog" && confdir=.
+  srcdir=$confdir
+  if test ! -r $srcdir/$unique_file; then
+    srcdir=..
+  fi
+fi
+if test ! -r $srcdir/$unique_file; then
+  if test x$srcdirdefaulted = xyes; then
+    echo "configure: Can not find sources in \`${confdir}' or \`..'." 1>&2
+  else
+    echo "configure: Can not find sources in \`${srcdir}'." 1>&2
+  fi
+  exit 1
+fi
+# Preserve a srcdir of `.' to avoid automounter screwups with pwd.
+# (and preserve ./ and .//)
+# But we can't avoid them for `..', to make subdirectories work.
+case $srcdir in
+  .|./|.//|/*|~*) ;;
+  *) srcdir=`cd $srcdir; pwd` ;; # Make relative path absolute.
+esac
+
 if test ! -f .mpich -a -z "$nobanner" ; then
   print_error " "
   print_error You should register your copy of MPICH with us by sending mail
@@ -762,6 +890,10 @@ test -n "$verbose" && \
 echo "	defining MPID_USE_ADI_COLLECTIVE"
 echo "#define" MPID_USE_ADI_COLLECTIVE 1 >> confdefs.h
 DEFS="$DEFS -DMPID_USE_ADI_COLLECTIVE=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}MPID_USE_ADI_COLLECTIVE\${SEDdB}MPID_USE_ADI_COLLECTIVE\${SEDdC}1\${SEDdD}
+\${SEDuA}MPID_USE_ADI_COLLECTIVE\${SEDuB}MPID_USE_ADI_COLLECTIVE\${SEDuC}1\${SEDuD}
+\${SEDeA}MPID_USE_ADI_COLLECTIVE\${SEDeB}MPID_USE_ADI_COLLECTIVE\${SEDeC}1\${SEDeD}
+"
 }
 
 fi
@@ -772,6 +904,10 @@ test -n "$verbose" && \
 echo "	defining MPID_COLL_WORLD"
 echo "#define" MPID_COLL_WORLD 1 >> confdefs.h
 DEFS="$DEFS -DMPID_COLL_WORLD=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}MPID_COLL_WORLD\${SEDdB}MPID_COLL_WORLD\${SEDdC}1\${SEDdD}
+\${SEDuA}MPID_COLL_WORLD\${SEDuB}MPID_COLL_WORLD\${SEDuC}1\${SEDuD}
+\${SEDeA}MPID_COLL_WORLD\${SEDeB}MPID_COLL_WORLD\${SEDeC}1\${SEDeD}
+"
 }
 
 fi
@@ -789,6 +925,10 @@ test -n "$verbose" && \
 echo "	defining MPI_KEEP_SEND_QUEUE"
 echo "#define" MPI_KEEP_SEND_QUEUE 1 >> confdefs.h
 DEFS="$DEFS -DMPI_KEEP_SEND_QUEUE=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}MPI_KEEP_SEND_QUEUE\${SEDdB}MPI_KEEP_SEND_QUEUE\${SEDdC}1\${SEDdD}
+\${SEDuA}MPI_KEEP_SEND_QUEUE\${SEDuB}MPI_KEEP_SEND_QUEUE\${SEDuC}1\${SEDuD}
+\${SEDeA}MPI_KEEP_SEND_QUEUE\${SEDeB}MPI_KEEP_SEND_QUEUE\${SEDeC}1\${SEDeD}
+"
 }
 
 fi
@@ -882,15 +1022,49 @@ if test -z "$ARCH" ; then
     fi
 fi
 if test -z "$ARCH" -a -x util/tarch ; then
-    echo "Trying to guess architecture ..."
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for architecture""... $ac_c"
+else
+echo $ac_n "checking for architecture""... $ac_c" 1>&1
+fi
     ARCH=`./util/tarch | sed s/-/_/g`
     if test -z "$ARCH" ; then
+       if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""Unknown!"
+else
+echo "$ac_t""Unknown!" 1>&1
+fi
        print_error "Error: Couldn't guess target architecture, you must"
        print_error "       set an architecture type with -arch=<value>"
        exit 1
     fi
     eval "arch_$ARCH=1"
-    echo "  configuring for \"$ARCH\" target architecture"
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""$ARCH"
+else
+echo "$ac_t""$ARCH" 1>&1
+fi
 fi
 if test -n "$arch_sgi" ; then
     arch_IRIX=1
@@ -923,15 +1097,49 @@ fi
 # If it wasn't set, try to guess using "util/tdevice"
 #
 if test -z "$DEVICE" -a -x util/tdevice ; then
-		echo "Trying to guess device ..."
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking device""... $ac_c"
+else
+echo $ac_n "checking device""... $ac_c" 1>&1
+fi
     DEVICE=`util/tdevice $ARCH`
     if test ! -n "$DEVICE" ; then
+	if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""Unknown!"
+else
+echo "$ac_t""Unknown!" 1>&1
+fi
        print_error "Error: Couldn't guess device, you must" 
        print_error "       set a device with -device=<value>" 
        exit 1
     fi
     eval "device_$DEVICE=1" 
-    echo "  configuring for \"$DEVICE\" device"
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""$DEVICE"
+else
+echo "$ac_t""$DEVICE" 1>&1
+fi
 fi
 #
 # Check for a VALID device
@@ -1217,6 +1425,10 @@ test -n "$verbose" && \
 echo "	defining MPE_USE_EXTENSIONS"
 echo "#define" MPE_USE_EXTENSIONS 1 >> confdefs.h
 DEFS="$DEFS -DMPE_USE_EXTENSIONS=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}MPE_USE_EXTENSIONS\${SEDdB}MPE_USE_EXTENSIONS\${SEDdC}1\${SEDdD}
+\${SEDuA}MPE_USE_EXTENSIONS\${SEDuB}MPE_USE_EXTENSIONS\${SEDuC}1\${SEDuD}
+\${SEDeA}MPE_USE_EXTENSIONS\${SEDeB}MPE_USE_EXTENSIONS\${SEDeC}1\${SEDeD}
+"
 }
 
 fi
@@ -1490,7 +1702,6 @@ if test -n "$device_chameleon"; then
   echo "supported)."
   exit 1
 fi
-
 # 
 # Check for Unix Variants
 echo checking for AIX
@@ -1532,6 +1743,10 @@ test -n "$verbose" && \
 echo "	defining _ALL_SOURCE"
 echo "#define" _ALL_SOURCE 1 >> confdefs.h
 DEFS="$DEFS -D_ALL_SOURCE=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}_ALL_SOURCE\${SEDdB}_ALL_SOURCE\${SEDdC}1\${SEDdD}
+\${SEDuA}_ALL_SOURCE\${SEDuB}_ALL_SOURCE\${SEDuC}1\${SEDuD}
+\${SEDeA}_ALL_SOURCE\${SEDeB}_ALL_SOURCE\${SEDeC}1\${SEDeD}
+"
 }
 
 
@@ -1560,6 +1775,10 @@ test -n "$verbose" && \
 echo "	defining _POSIX_SOURCE"
 echo "#define" _POSIX_SOURCE 1 >> confdefs.h
 DEFS="$DEFS -D_POSIX_SOURCE=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}_POSIX_SOURCE\${SEDdB}_POSIX_SOURCE\${SEDdC}1\${SEDdD}
+\${SEDuA}_POSIX_SOURCE\${SEDuB}_POSIX_SOURCE\${SEDuC}1\${SEDuD}
+\${SEDeA}_POSIX_SOURCE\${SEDeB}_POSIX_SOURCE\${SEDeC}1\${SEDeD}
+"
 }
 
   
@@ -1568,6 +1787,10 @@ test -n "$verbose" && \
 echo "	defining" _POSIX_1_SOURCE to be 2
 echo "#define" _POSIX_1_SOURCE 2 >> confdefs.h
 DEFS="$DEFS -D_POSIX_1_SOURCE=2"
+SEDDEFS="${SEDDEFS}\${SEDdA}_POSIX_1_SOURCE\${SEDdB}_POSIX_1_SOURCE\${SEDdC}2\${SEDdD}
+\${SEDuA}_POSIX_1_SOURCE\${SEDuB}_POSIX_1_SOURCE\${SEDuC}2\${SEDuD}
+\${SEDeA}_POSIX_1_SOURCE\${SEDeB}_POSIX_1_SOURCE\${SEDeC}2\${SEDeD}
+"
 }
 
   
@@ -1576,12 +1799,15 @@ test -n "$verbose" && \
 echo "	defining _MINIX"
 echo "#define" _MINIX 1 >> confdefs.h
 DEFS="$DEFS -D_MINIX=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}_MINIX\${SEDdB}_MINIX\${SEDdC}1\${SEDdD}
+\${SEDuA}_MINIX\${SEDuB}_MINIX\${SEDuC}1\${SEDuD}
+\${SEDeA}_MINIX\${SEDeB}_MINIX\${SEDeC}1\${SEDeD}
+"
 }
 
 fi
 
 #
-
 # This is a first cut at the information needed.  Information that I am
 # providing is:
 #
@@ -1594,7 +1820,8 @@ fi
 #
 #  More can be needed if necessary.
 if test -n "$device_ch_nexus"; then
-  is_adi1=1
+  CC=gcc
+  USERCC=1
   DEVICE_KIND=network
   # find some way to find Nexus since there is no standard location for
   # it, currently (/usr/local/nexus ?)
@@ -1641,6 +1868,35 @@ done
       else
             echo "Could not find mpCC or mpcc!"
 	    exit 1
+      fi
+      for p in mpxlf "$F77"
+do
+if test -z "$F77val"; then
+  # Extract the first word of `$p', so it can be a program name with args.
+  set dummy $p; word=$2
+  echo checking for $word
+  IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
+  for dir in $PATH; do
+    test -z "$dir" && dir=.
+    if test -f $dir/$word; then
+      F77val="$p"
+      break
+    fi
+  done
+  IFS="$saveifs"
+fi
+
+test -n "$F77val" && test -n "$verbose" && echo "	setting F77val to $F77val"
+
+test -n "$F77val" && break
+done
+
+      if test -n "$F77val" ; then
+	    F77=$F77val
+            USERF77=1
+	    FLINKER=$F77val
+      else
+            echo "Could not find mpxlf!"
       fi
       ;;
     IRIX)
@@ -1692,7 +1948,7 @@ done
     solaris)
       # More stuff, but I've never tried this version, so I don't know
       # them, yet.
-      NEXUS_EXTRA_LIBS="";;
+      NEXUS_EXTRA_LIBS="-lnsl -lsocket";;
     alpha)
       # More stuff, but I've never tried this version, so I don't know
       # them, yet.
@@ -1784,8 +2040,56 @@ fi
       print_error "handle a routine prototype."
       exit 1
   fi
-  # Need a way to find where Nexus is located.
   
+  # Here we override the above code that hunts for 
+  # the nexus libraries in favor of using either the default location
+  # (inside the distribution) or a location specified as an argument to
+  # configure.  Then we will build nexus ourselves.
+
+  NEXUS_INCLUDE_DIR=$NEXUSDIR/include
+  NEXUS_LIB_DIR=$NEXUSDIR/lib
+
+  # Here we build Nexus from the source files included here, if the default
+  # location for Nexus was not overridden to specify a previously-installed
+  # Nexus
+
+
+  if test "$NEXUSDIR" = "$NEXUSDEFAULTDIR" ; then
+    # By default, Nexus will be built w/o threads unless specified
+    # as an option to configure (--without-threads is the Nexus configure
+    # flag which must be propagated.
+
+    echo "Configuring Nexus subsystem..."
+
+    if test "$nexusthreads" = 0; then
+        nexusthreadsflag="--without-threads"
+    else
+        nexusthreadsflag=""
+    fi
+    if test "$nexusdebug" = 1; then
+        nexusdebugflag="--enable-debug"
+    else
+        nexusdebugflag=""
+    fi
+
+    if test "$USERCC" = "1" && test "$ARCH" != "rs6000" \
+       && test "$CC" != "mpCC" && test "$CC" != "mpcc" ; then
+	export CC
+    fi
+    export MAKE
+
+    rm -f mpid/ch_nexus/$NEXUSDIR/config.cache
+
+    (cd mpid/ch_nexus/$NEXUSDIR; ./configure $nexusthreadsflag $nexusdebugflag)
+
+    if test $? != 0 ; then
+      print_error "Configure of the Nexus sub-system may have failed!"
+    fi
+  fi
+
+  # Need a way to find where Nexus is located.
+  if test -z "$NEXUS_INCLUDE_DIR" ; then
+      
 if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
@@ -1836,6 +2140,10 @@ for dir in /usr/local/nexus/include /usr/local/iway/app/nexus/include /usr/local
 	pac_lib_file=$dir/lib/libnexus.a
 	break
     fi
+    if test -r $dir/lib/libnexus.so ; then
+	pac_lib_file=$dir/lib/libnexus.so
+	break
+    fi
 done
 if test -n "$pac_inc_dir" ; then 
   if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -1853,13 +2161,17 @@ fi
   
 fi
 
-  if test -n "$pac_inc_dir" ; then
-      NEXUS_INCLUDE_PATH=-I$pac_inc_dir
+      if test -n "$pac_inc_dir" ; then
+          NEXUS_INCLUDE_PATH=-I$pac_inc_dir
+      else
+          print_error "Could not find NEXUS include files"
+          exit 1
+      fi
   else
-      print_error "Could not find NEXUS include files"
-      exit 1
+      NEXUS_INCLUDE_PATH=-I$NEXUS_INCLUDE_DIR
   fi
-  
+  if test -z "$NEXUS_LIB_DIR" ; then
+      
 if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
@@ -1899,26 +2211,29 @@ for dir in /usr/local/nexus /usr/local/iway/app/nexus/lib /usr/local/iway/app/ne
     /opt/local \
     /opt/local/nexuslite_opt \
     /local/encap/nexuslite_opt ; do
-    if test -r $dir/nexuslite_opt.a ; then
-	pac_lib_file=$dir/nexuslite_opt.a
-        pac_lib_dir=$dir
-	break
-    fi
-    if test -r $dir/libnexuslite_opt.a ; then
-	pac_lib_file=$dir/libnexuslite_opt.a
-        pac_lib_dir=$dir
-	break
-    fi
-    if test -r $dir/lib/nexuslite_opt.a ; then
-	pac_lib_file=$dir/lib/nexuslite_opt.a
-        pac_lib_dir=$dir/lib
-	break
-    fi
-    if test -r $dir/lib/libnexuslite_opt.a ; then
-	pac_lib_file=$dir/lib/libnexuslite_opt.a
-        pac_lib_dir=$dir/lib
-	break
-    fi
+    for suffix in a so ; do
+        if test -n "$pac_lib_dir" ; then break ; fi
+        if test -r $dir/nexuslite_opt.$suffix ; then
+	    pac_lib_file=$dir/nexuslite_opt.$suffix
+            pac_lib_dir=$dir
+	    break
+        fi
+        if test -r $dir/libnexuslite_opt.$suffix ; then
+	    pac_lib_file=$dir/libnexuslite_opt.$suffix
+            pac_lib_dir=$dir
+	    break
+        fi
+        if test -r $dir/lib/nexuslite_opt.$suffix ; then
+	    pac_lib_file=$dir/lib/nexuslite_opt.$suffix
+            pac_lib_dir=$dir/lib
+	    break
+        fi
+        if test -r $dir/lib/libnexuslite_opt.$suffix ; then
+	    pac_lib_file=$dir/lib/libnexuslite_opt.$suffix
+            pac_lib_dir=$dir/lib
+	    break
+        fi
+    done
 done
 if test -n "$pac_lib_file" ; then 
   if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -1936,17 +2251,37 @@ fi
   
 fi
 
-  if test -n "$pac_lib_dir" ; then
-      NEXUS_LIB_PATH="-L$pac_lib_dir"
+      if test -n "$pac_lib_dir" ; then
+          NEXUS_LIB_PATH="-L$pac_lib_dir"
+      else
+          print_error "Could not find NEXUS library"
+          exit 1
+      fi
   else
-      print_error "Could not find NEXUS library"
-      exit 1
+      NEXUS_LIB_PATH="-L$NEXUS_LIB_DIR"
   fi
   #
   # Need a way to find which Nexus to use. (i.e., Lite vs. Full)
   # Lite is assumed currently
   #
-  NEXUS_LIBS="-lnexuslite_opt"
+  #NEXUS_LIBS="-lnexuslite_opt"
+  if test "$nexusdebug" = "1" ; then
+     NEXUSLIB="-lnexus_dl"
+  else
+     NEXUSLIB="-lnexus_l"
+  fi
+  NEXUS_LIBS=$NEXUSLIB
+
+  # test whether we are using an external Nexus or the one in ch_nexus
+  if test "$NEXUSDIR" = "$NEXUSDEFAULTDIR" ; then
+    NEXUS_LIB_PATH="-L$MPIR_HOME/mpid/ch_nexus/$NEXUSDIR/lib"
+    # get nexus includes, followed by device includes
+    CFLAGS="-I$MPIR_HOME/mpid/ch_nexus/$NEXUSDIR/include -I$MPIR_HOME/mpid/ch_nexus $CFLAGS"
+  else
+    NEXUS_LIB_PATH="-L$NEXUS_LIB_DIR"
+    CFLAGS="-I$NEXUS_INCLUDE_DIR -I$MPIR_HOME/mpid/ch_nexus $CFLAGS"
+  fi
+
   LIB_PATH="$LIB_PATH $NEXUS_LIB_PATH $NEXUS_EXTRA_LIB_PATH"
   LIB_LIST="$LIB_LIST $NEXUS_LIBS $NEXUS_EXTRA_LIBS"
   # These files are only included by files in mpich/mpid/ch_nexus/*.c
@@ -2152,6 +2487,9 @@ fi
   
   
   
+# Nexus doesn't yet have long doubles, even though gcc does
+  NOSHORTLONGS=1
+  echo "Finished configuring Nexus subsystem"
 fi
 
 # Get the C compiler, Fortran compiler, and archiver
@@ -2168,23 +2506,42 @@ esac
 
 if test -z "$USERCC" ; then
 case $CARCH in 
-   cenju3) CC=/usr/necccs/bin/cc
-           F77=/usr/necccs/bin/f77
-           ASM=/usr/necccs/bin/as
-           if test ! -x $CC ; then
+   cenju3) if test $ARCH = abi
+           then
+              CCC=CC
+              CCLINKER=cjCC
               CC=cc
               F77=f77
               ASM=as
+              if test -z "$USERFLINKER" ; then
+                  FLINKER=cjabif77
+              fi
+              if test -z "$USERFLINKER" ; then
+                  CLINKER=cjabicc
+              fi
+           else
+              CCC=CC
+              CCLINKER=cjCC
+              CC=/usr/necccs/bin/cc
+              F77=/usr/necccs/bin/f77
+              ASM=/usr/necccs/bin/as
+              if test ! -x $CC ; then
+                 CC=cc
+                 F77=f77
+                 ASM=as
+              fi
+#
+              if test -z "$USERFLINKER" ; then
+                  FLINKER=cjf77
+              fi
+              if test -z "$USERFLINKER" ; then
+                  CLINKER=cjcc
+              fi
            fi
+#
            DEVCFLAGS="$DEVCFLAGS -O -Kmips2"
            MPILIBNAME=mpich
            ASMFILES_O=get_stack.o
-           if test -z "$USERFLINKER" ; then
-               FLINKER=cjf77
-           fi
-           if test -z "$USERFLINKER" ; then
-               CLINKER=cjcc
-           fi
           ;;
    intelnx|paragon) CC=icc ; GCC="" 
 	  # If this version of the intel compiler accepts the -nx flag, use it.
@@ -2201,13 +2558,26 @@ case $CARCH in
    cray_t3d)        
 	# Some Cray's require -Ccray-t3d instead of -Tcray-t3d.  
         # We have no diagnostic for this behavior yet.
-                    CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3d" ; GCC="" 
+                    CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3d -DT3D" ; GCC="" 
                     if test -z "$USERCLINKER" ; then 
 	            CLINKER="$CC -Tcray-t3d" ; fi ;;
    hpux) if test "`which ${CC-cc}`" = "/usr/convex/bin/cc" ; then 
         CFLAGS="$CFLAGS -or none -U_REENTRANT -D_POSIX_SOURCE -D_HPUX_SOURCE -DMPI_cspp"
          elif test "$CC" != "gcc" ; then
-            CFLAGS="$CFLAGS -Aa -D_POSIX_SOURCE -D_HPUX_SOURCE"
+	    # If cflags includes -Ae or -Aa, we don't need to add -Aa
+            # In a perfect world, we might want to try -Ae
+	    hasarg=`echo A$CFLAGS | sed -n -e '/-Aa/p' -e '/-Ae/p'`
+	    if test -z "$hasarg" ; then
+                CFLAGS="$CFLAGS -Aa"
+	    fi
+            # We need these flags to get the correct system include
+            # files.
+            CFLAGS="$CFLAGS -D_POSIX_SOURCE -D_HPUX_SOURCE"
+	    # P4 needs these to get the correct system includes
+            P4_CFLAGS="-D_POSIX_SOURCE -D_HPUX_SOURCE"
+	    # We MUST have an ANSI compiler for HPUX, even for USER code
+	    # If the regular cpp worked, we would not need to do this.
+	    USER_CFLAGS="$USER_CFLAGS -Aa"
 	    # Alternate...
 	    # -Ae is extended -Aa (only on some PA RISC systems)
 	    #CFLAGS="$CFLAGS -Ae +Olibcalls"
@@ -2928,20 +3298,21 @@ done
 #                   FORTRAN: sizeof (INTEGER) = 8; sizeof (REAL)  = 8
 #
    SX_4_float0 | SX_4_float1 | SX_4_float2 | SX_4_float2_int64)
-         float=`expr $CARCH : 'SX_4_\(float.\).*'`
-         if test "$CARCH" = "SX_4_$float" ; then
-             sx4int=int32
-         else
-             sx4int=int64
-         fi
-#
          arch_SX_4=1
+#
+         float=`expr $CARCH : 'SX_4_\(float.\).*'`
+         w8=`expr $CARCH : "SX_4_float._\(ew\).*" \| "dw"`
+         sx4int=`expr $CARCH : ".*_\(int64\).*" \| "int32"`
+#
          echo "Generating MPICH for floating point format \`\`$float''"
 #
-         if test "$sx4int" = "int64" ; then
-            echo "                 and sizeof (int) = 64"
-         elif test "$float" = "float2" ; then
-            cat << EOF
+         if test "$w8" = "ew" ; then
+            echo "                 and extended numeric storage \`\`$w8''"
+         else
+            if test "$sx4int" = "int64" ; then
+               echo "                 and sizeof (int) = 64"
+            elif test "$float" = "float2" ; then
+               cat << EOF
 ***********************************************************************
 *
 *   WARNING:
@@ -2952,25 +3323,38 @@ done
 *
 ***********************************************************************
 EOF
+            fi
          fi
 #
-         CC="cc"; ASM="as -h $float"
-         OPTFLAGSC="-h2 -pvctl,nomsg"
+         CCC="CC"
+         CC="cc"; ASM="as -m -h $float"
+         OPTFLAGSC="-h2 -hsetmain -hnoflunf -pvctl,nomsg"
          CFLAGS="-h$float -DCHAR_PTR_IS_ADDRESS"
          FFLAGS="-$float"
+         LIB_LIST="$LIB_LIST -li77sx"
 #
          if test -z "$USERCLINKER" ; then
-            CLINKER="f77 -$float"; fi
+            CLINKER="cc -h$float"; fi
+         if test -z "$USERCCLINKER" ; then
+            CCLINKER="CC -h$float"; fi
          if test -z "$USERFLINKER" ; then
             FLINKER="f77 -$float"; fi
 #
+         if test "$w8" = "ew" ; then
+            FLINKER="$FLINKER -ew"
+            CFLAGS="$CFLAGS -D_W8"
+            FFLAGS="$FFLAGS -ew"
+         fi
+#
          if test "$sx4int" = "int64" ; then
             CFLAGS="$CFLAGS -hint64"
-            CLINKER="$CLINKER -Wl'-int64'"
+            CLINKER="$CLINKER -hint64"
             FLINKER="$FLINKER -Wl'-int64'"
          fi
+#
+         CCFLAGS="$CFLAGS"
     ;;
-
+#
    hpux) 
     # This may eliminate the need for +U77 ....
     if test "`which $F77`" != "/usr/convex/bin/fc" ; then 
@@ -2983,6 +3367,7 @@ EOF
         # The Convex compiler needs to have optimization messages suppressed
         FFLAGS="$FFLAGS -or none"
     fi
+    # There are reports that version 10 Fortran requires +U77
     ;;
     convex_spp)  F77="/usr/convex/bin/fc" ;;
     ibmpoe)
@@ -3131,7 +3516,7 @@ echo "$ac_t""found $ac_prog_where ($HAS_F77)"
 else
 echo "$ac_t""found $ac_prog_where ($HAS_F77)" 1>&1
 fi
-  
+   F77FULL=$ac_prog_where  
 else
   if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
@@ -3140,6 +3525,10 @@ echo "$ac_t""no" 1>&1
 fi
 fi
 
+    # if test -n "$F77FULL" ; then
+	# Really should replace with full path....
+        # but would need to capture arguments as well...
+	    # fi
 fi
 
 else
@@ -3160,6 +3549,169 @@ if test -z "$AR" ; then
     AR="ar cr$ARLOCAL" ; ARNAME="ar" ; ARARGS="cr$ARLOCAL" 
 fi
 
+#
+# Check to see if the compiler accepts prototypes
+
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that the compiler $CC accepts ANSI prototypes""... $ac_c"
+else
+echo $ac_n "checking that the compiler $CC accepts ANSI prototypes""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+int f(double a){return 0;}
+int main() { exit(0); }
+int t() {  }
+EOF
+if eval $compile; then
+  
+  rm -rf conftest*
+  eval "ac_cv_ccworks=yes"
+
+else
+  rm -rf conftest*
+  eval "ac_cv_ccworks=no"
+   
+fi
+rm -f conftest*
+
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""$ac_cv_ccworks"
+else
+echo "$ac_t""$ac_cv_ccworks" 1>&1
+fi
+if test $ac_cv_ccworks = "yes" ; then
+    
+{
+test -n "$verbose" && \
+echo "	defining HAVE_PROTOTYPES"
+echo "#define" HAVE_PROTOTYPES 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_PROTOTYPES=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}HAVE_PROTOTYPES\${SEDdB}HAVE_PROTOTYPES\${SEDdC}1\${SEDdD}
+\${SEDuA}HAVE_PROTOTYPES\${SEDuB}HAVE_PROTOTYPES\${SEDuC}1\${SEDuD}
+\${SEDeA}HAVE_PROTOTYPES\${SEDeB}HAVE_PROTOTYPES\${SEDeC}1\${SEDeD}
+"
+}
+
+MPE_CFLAGS="$MPE_CFLAGS -DHAVE_PROTOTYPES"
+else
+    :
+fi
+
+#
+# Check to see if it accepts const
+
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that the compiler $CC accepts const modifier""... $ac_c"
+else
+echo $ac_n "checking that the compiler $CC accepts const modifier""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+int f(const int a){return a;}
+int main() { exit(0); }
+int t() {  }
+EOF
+if eval $compile; then
+  
+  rm -rf conftest*
+  eval "ac_cv_ccworks=yes"
+
+else
+  rm -rf conftest*
+  eval "ac_cv_ccworks=no"
+   
+fi
+rm -f conftest*
+
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""$ac_cv_ccworks"
+else
+echo "$ac_t""$ac_cv_ccworks" 1>&1
+fi
+if test $ac_cv_ccworks = "yes" ; then
+    :
+else
+    
+{
+test -n "$verbose" && \
+echo "	defining HAVE_NO_C_CONST"
+echo "#define" HAVE_NO_C_CONST 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_NO_C_CONST=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}HAVE_NO_C_CONST\${SEDdB}HAVE_NO_C_CONST\${SEDdC}1\${SEDdD}
+\${SEDuA}HAVE_NO_C_CONST\${SEDuB}HAVE_NO_C_CONST\${SEDuC}1\${SEDuD}
+\${SEDeA}HAVE_NO_C_CONST\${SEDeB}HAVE_NO_C_CONST\${SEDeC}1\${SEDeD}
+"
+}
+
+MPE_CFLAGS="$MPE_CFLAGS -DHAVE_NO_C_CONST"
+fi
 
 #
 # Special flags for dbx versions; this should go into aclocal eventually
@@ -3174,6 +3726,7 @@ DEFAULT_MACHINE=$DEVICE
 #
 if test -n "$device_nx"; then
   DEFAULT_MACHINE="paragon"
+  is_adi1=1
   # Check for fast collective routines
   if test  -r /usr/lib/libjmc.a; then
     CFLAGS="$CFLAGS -DICCLIB"
@@ -3249,6 +3802,78 @@ rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
    :; LIB_LIST="$LIB_LIST -lthread"
+else
+   :; 
+fi
+
+    # the C compiler might include this for us, but the Fortran compiler
+    # does not
+    LIBS_save="${LIBS}"
+LIBS="${LIBS} -lnsl"
+have_lib=""
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for -lnsl""... $ac_c"
+else
+echo $ac_n "checking for -lnsl""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  rm -rf conftest*
+  have_lib="1"
+
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+rm -f conftest*
+LIBS="${LIBS_save}"
+if test -n "${have_lib}"; then
+   :; LIB_LIST="$LIB_LIST -lnsl"
 else
    :; 
 fi
@@ -3511,6 +4136,99 @@ fi
 	print_error "required for this device."
 	exit 1
     fi
+    if test $MPILIBNAME = "mpi" ; then 
+	print_error "You should select a name for the MPICH library with"
+	print_error "-mpilibname=name_of_library.  Using mpich as the"
+	print_error "library name."
+	MPILIBNAME="mpich"
+    fi
+    # We need to check for gettimeofday in case we are not using the Switch
+    # timer
+    for func in gettimeofday
+do
+trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for ${func}""... $ac_c"
+else
+echo $ac_n "checking for ${func}""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_${func}) || defined (__stub___${func})
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char ${func}(); ${func}();
+#endif
+ }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  rm -rf conftest*
+  {
+test -n "$verbose" && \
+echo "	defining ${trfunc}"
+echo "#define" ${trfunc} 1 >> confdefs.h
+DEFS="$DEFS -D${trfunc}=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}${trfunc}\${SEDdB}${trfunc}\${SEDdC}1\${SEDdD}
+\${SEDuA}${trfunc}\${SEDuB}${trfunc}\${SEDuC}1\${SEDuD}
+\${SEDeA}${trfunc}\${SEDeB}${trfunc}\${SEDeC}1\${SEDeD}
+"
+}
+
+
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+rm -f conftest*
+done
+
 fi
 #
 #
@@ -3518,8 +4236,6 @@ fi
 if test -n "$device_ch_shmem" -o -n "$device_ch_lfshmem" ; then
    DEFAULT_MACHINE="smp"
    # Check for MMAP
-   SAVEDEFS="$DEFS"
-   DEFS=""
    # mmap doesn't help if it does not have MAP_ANONYMOUS
    for func in mmap
 do
@@ -3590,6 +4306,10 @@ test -n "$verbose" && \
 echo "	defining ${trfunc}"
 echo "#define" ${trfunc} 1 >> confdefs.h
 DEFS="$DEFS -D${trfunc}=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}${trfunc}\${SEDdB}${trfunc}\${SEDdC}1\${SEDdD}
+\${SEDuA}${trfunc}\${SEDuB}${trfunc}\${SEDuC}1\${SEDuD}
+\${SEDeA}${trfunc}\${SEDeB}${trfunc}\${SEDeC}1\${SEDeD}
+"
 }
 
 
@@ -3602,10 +4322,7 @@ fi
 rm -f conftest*
 done
 
-   for func in msem_init
-do
-trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
-if test -z "$ac_echo_n" ; then
+      if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -3627,9 +4344,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking for ${func}""... $ac_c"
+echo $ac_n "checking for msem_init""... $ac_c"
 else
-echo $ac_n "checking for ${func}""... $ac_c" 1>&1
+echo $ac_n "checking for msem_init""... $ac_c" 1>&1
 fi
 if test ! -f confdefs.h ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -3651,11 +4368,11 @@ int t() {
 /* The GNU C library defines this for functions which it implements
     to always fail with ENOSYS.  Some functions are actually named
     something starting with __ and the normal name is an alias.  */
-#if defined (__stub_${func}) || defined (__stub___${func})
+#if defined (__stub_msem_init) || defined (__stub___msem_init)
 choke me
 #else
 /* Override any gcc2 internal prototype to avoid an error.  */
-extern char ${func}(); ${func}();
+extern char msem_init(); msem_init();
 #endif
  }
 EOF
@@ -3668,11 +4385,15 @@ fi
   rm -rf conftest*
   {
 test -n "$verbose" && \
-echo "	defining ${trfunc}"
-echo "#define" ${trfunc} 1 >> confdefs.h
-DEFS="$DEFS -D${trfunc}=1"
+echo "	defining HAVE_MSEM_INIT"
+echo "#define" HAVE_MSEM_INIT 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_MSEM_INIT=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}HAVE_MSEM_INIT\${SEDdB}HAVE_MSEM_INIT\${SEDdC}1\${SEDdD}
+\${SEDuA}HAVE_MSEM_INIT\${SEDuB}HAVE_MSEM_INIT\${SEDuC}1\${SEDuD}
+\${SEDeA}HAVE_MSEM_INIT\${SEDeB}HAVE_MSEM_INIT\${SEDeC}1\${SEDeD}
+"
 }
-
+have_msem_init=1
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
@@ -3681,8 +4402,106 @@ echo "$ac_t""no" 1>&1
 fi
 fi
 rm -f conftest*
-done
 
+   if test "$have_msem_init" = 1 ; then
+       # If have msem_init, we need to see if we need struct msemaphore or just
+       # msemaphore.
+       true
+       if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for Is msemaphore a typedef or struct name?""... $ac_c"
+else
+echo $ac_n "checking for Is msemaphore a typedef or struct name?""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+#include <ctype.h>
+#include <sys/mman.h>
+int main() { exit(0); }
+int t() { 
+typedef struct msemaphore MPID_Msemaphore;
+typedef struct { MPID_Msemaphor lock; int a; } Msem;
+Msem sem;
+        }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  rm -rf conftest*
+  is_struct=1
+
+else
+  rm -rf conftest*
+  is_struct=0
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+rm -f conftest*
+
+        if test $is_struct = 1 ; then
+	    
+{
+test -n "$verbose" && \
+echo "	defining MSEMAPHORE_IS_STRUCT"
+echo "#define" MSEMAPHORE_IS_STRUCT 1 >> confdefs.h
+DEFS="$DEFS -DMSEMAPHORE_IS_STRUCT=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}MSEMAPHORE_IS_STRUCT\${SEDdB}MSEMAPHORE_IS_STRUCT\${SEDdC}1\${SEDdD}
+\${SEDuA}MSEMAPHORE_IS_STRUCT\${SEDuB}MSEMAPHORE_IS_STRUCT\${SEDuC}1\${SEDuD}
+\${SEDeA}MSEMAPHORE_IS_STRUCT\${SEDeB}MSEMAPHORE_IS_STRUCT\${SEDeC}1\${SEDeD}
+"
+}
+
+	    echo struct
+        else
+	    echo typedef
+        fi
+   fi
+   #
+   # Here's a horrible "feature".  Solaris include null stubs for 
+   # mutex_init in libc (!), so that users can build threaded code that
+   # doesn't work (rather than putting this null stubs in -lnothread, 
+   # where they belong).  Thus, if mutex_init IS found, we need to 
+   # check for -lthread.   (Which we should have done above)
+   #
    for func in mutex_init
 do
 trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
@@ -3752,6 +4571,10 @@ test -n "$verbose" && \
 echo "	defining ${trfunc}"
 echo "#define" ${trfunc} 1 >> confdefs.h
 DEFS="$DEFS -D${trfunc}=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}${trfunc}\${SEDdB}${trfunc}\${SEDdC}1\${SEDdD}
+\${SEDuA}${trfunc}\${SEDuB}${trfunc}\${SEDuC}1\${SEDuD}
+\${SEDeA}${trfunc}\${SEDeB}${trfunc}\${SEDeC}1\${SEDeD}
+"
 }
 
 
@@ -3833,6 +4656,10 @@ test -n "$verbose" && \
 echo "	defining ${trfunc}"
 echo "#define" ${trfunc} 1 >> confdefs.h
 DEFS="$DEFS -D${trfunc}=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}${trfunc}\${SEDdB}${trfunc}\${SEDdC}1\${SEDdD}
+\${SEDuA}${trfunc}\${SEDuB}${trfunc}\${SEDuC}1\${SEDuD}
+\${SEDeA}${trfunc}\${SEDeB}${trfunc}\${SEDeC}1\${SEDeD}
+"
 }
 
 
@@ -3914,6 +4741,10 @@ test -n "$verbose" && \
 echo "	defining ${trfunc}"
 echo "#define" ${trfunc} 1 >> confdefs.h
 DEFS="$DEFS -D${trfunc}=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}${trfunc}\${SEDdB}${trfunc}\${SEDdC}1\${SEDdD}
+\${SEDuA}${trfunc}\${SEDuB}${trfunc}\${SEDuC}1\${SEDuD}
+\${SEDeA}${trfunc}\${SEDeB}${trfunc}\${SEDeC}1\${SEDeD}
+"
 }
 
 
@@ -3979,6 +4810,10 @@ test -n "$verbose" && \
 echo "	defining HAS_VOLATILE"
 echo "#define" HAS_VOLATILE 1 >> confdefs.h
 DEFS="$DEFS -DHAS_VOLATILE=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}HAS_VOLATILE\${SEDdB}HAS_VOLATILE\${SEDdC}1\${SEDdD}
+\${SEDuA}HAS_VOLATILE\${SEDuB}HAS_VOLATILE\${SEDuC}1\${SEDuD}
+\${SEDeA}HAS_VOLATILE\${SEDeB}HAS_VOLATILE\${SEDeC}1\${SEDeD}
+"
 }
 if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -4069,6 +4904,10 @@ test -n "$verbose" && \
 echo "	defining ${trfunc}"
 echo "#define" ${trfunc} 1 >> confdefs.h
 DEFS="$DEFS -D${trfunc}=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}${trfunc}\${SEDdB}${trfunc}\${SEDdC}1\${SEDdD}
+\${SEDuA}${trfunc}\${SEDuB}${trfunc}\${SEDuC}1\${SEDuD}
+\${SEDeA}${trfunc}\${SEDeB}${trfunc}\${SEDeC}1\${SEDeD}
+"
 }
 
 
@@ -4150,6 +4989,10 @@ test -n "$verbose" && \
 echo "	defining ${trfunc}"
 echo "#define" ${trfunc} 1 >> confdefs.h
 DEFS="$DEFS -D${trfunc}=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}${trfunc}\${SEDdB}${trfunc}\${SEDdC}1\${SEDdD}
+\${SEDuA}${trfunc}\${SEDuB}${trfunc}\${SEDuC}1\${SEDuD}
+\${SEDeA}${trfunc}\${SEDeB}${trfunc}\${SEDeC}1\${SEDeD}
+"
 }
 
 
@@ -4231,6 +5074,10 @@ test -n "$verbose" && \
 echo "	defining ${trfunc}"
 echo "#define" ${trfunc} 1 >> confdefs.h
 DEFS="$DEFS -D${trfunc}=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}${trfunc}\${SEDdB}${trfunc}\${SEDdC}1\${SEDdD}
+\${SEDuA}${trfunc}\${SEDuB}${trfunc}\${SEDuC}1\${SEDuD}
+\${SEDeA}${trfunc}\${SEDeB}${trfunc}\${SEDeC}1\${SEDeD}
+"
 }
 
 
@@ -4245,6 +5092,80 @@ done
 
    # Also need to get signal hander arg count 1? 3? 4? something else?
    
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking whether cross-compiling""... $ac_c"
+else
+echo $ac_n "checking whether cross-compiling""... $ac_c" 1>&1
+fi
+# If we cannot run a trivial program, we must be cross compiling.
+cat > conftest.c <<EOF
+#include "confdefs.h"
+main(){exit(0);}
+EOF
+eval $compile
+if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  pac_ok=1
+
+else
+  pac_ok=0
+fi
+rm -fr conftest*
+if test $pac_ok = 1 ; then
+    cat > conftest.c <<EOF
+#include "confdefs.h"
+main(){exit(1);}
+EOF
+eval $compile
+if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  pac_ok=0 
+
+fi
+rm -fr conftest*
+    if test $pac_ok = 1 ; then
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    else
+        cross_compiling=1
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+    fi
+else
+    cross_compiling=1
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+fi
+
+
 if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
@@ -4377,6 +5298,10 @@ test -n "$verbose" && \
 echo "	defining" RETSIGTYPE to be void
 echo "#define" RETSIGTYPE void >> confdefs.h
 DEFS="$DEFS -DRETSIGTYPE=void"
+SEDDEFS="${SEDDEFS}\${SEDdA}RETSIGTYPE\${SEDdB}RETSIGTYPE\${SEDdC}void\${SEDdD}
+\${SEDuA}RETSIGTYPE\${SEDuB}RETSIGTYPE\${SEDuC}void\${SEDuD}
+\${SEDeA}RETSIGTYPE\${SEDeB}RETSIGTYPE\${SEDeC}void\${SEDeD}
+"
 }
 
 
@@ -4388,6 +5313,10 @@ test -n "$verbose" && \
 echo "	defining" RETSIGTYPE to be int
 echo "#define" RETSIGTYPE int >> confdefs.h
 DEFS="$DEFS -DRETSIGTYPE=int"
+SEDDEFS="${SEDDEFS}\${SEDdA}RETSIGTYPE\${SEDdB}RETSIGTYPE\${SEDdC}int\${SEDdD}
+\${SEDuA}RETSIGTYPE\${SEDuB}RETSIGTYPE\${SEDuC}int\${SEDuD}
+\${SEDeA}RETSIGTYPE\${SEDeB}RETSIGTYPE\${SEDeC}int\${SEDeD}
+"
 }
 
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -4469,6 +5398,10 @@ test -n "$verbose" && \
 echo "	defining ${trfunc}"
 echo "#define" ${trfunc} 1 >> confdefs.h
 DEFS="$DEFS -D${trfunc}=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}${trfunc}\${SEDdB}${trfunc}\${SEDdC}1\${SEDdD}
+\${SEDuA}${trfunc}\${SEDuB}${trfunc}\${SEDuC}1\${SEDuD}
+\${SEDeA}${trfunc}\${SEDeB}${trfunc}\${SEDeC}1\${SEDeD}
+"
 }
 
 
@@ -4550,6 +5483,10 @@ test -n "$verbose" && \
 echo "	defining ${trfunc}"
 echo "#define" ${trfunc} 1 >> confdefs.h
 DEFS="$DEFS -D${trfunc}=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}${trfunc}\${SEDdB}${trfunc}\${SEDdC}1\${SEDdD}
+\${SEDuA}${trfunc}\${SEDuB}${trfunc}\${SEDuC}1\${SEDuD}
+\${SEDeA}${trfunc}\${SEDeB}${trfunc}\${SEDeC}1\${SEDeD}
+"
 }
 
 
@@ -4563,8 +5500,6 @@ rm -f conftest*
 done
 
 
-   DEV_DEFS="$DEFS"
-   DEFS="$SAVEDEFS"
 fi
 
 if test -n "$device_ch_tcp" ; then
@@ -4626,6 +5561,10 @@ test -n "$verbose" && \
 echo "	defining HAVE_VPRINTF"
 echo "#define" HAVE_VPRINTF 1 >> confdefs.h
 DEFS="$DEFS -DHAVE_VPRINTF=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}HAVE_VPRINTF\${SEDdB}HAVE_VPRINTF\${SEDdC}1\${SEDdD}
+\${SEDuA}HAVE_VPRINTF\${SEDuB}HAVE_VPRINTF\${SEDuC}1\${SEDuD}
+\${SEDeA}HAVE_VPRINTF\${SEDeB}HAVE_VPRINTF\${SEDeC}1\${SEDeD}
+"
 }
 
 
@@ -4698,6 +5637,10 @@ test -n "$verbose" && \
 echo "	defining HAVE_DOPRNT"
 echo "#define" HAVE_DOPRNT 1 >> confdefs.h
 DEFS="$DEFS -DHAVE_DOPRNT=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}HAVE_DOPRNT\${SEDdB}HAVE_DOPRNT\${SEDdC}1\${SEDdD}
+\${SEDuA}HAVE_DOPRNT\${SEDuB}HAVE_DOPRNT\${SEDuC}1\${SEDuD}
+\${SEDeA}HAVE_DOPRNT\${SEDeB}HAVE_DOPRNT\${SEDeC}1\${SEDeD}
+"
 }
 
 
@@ -4750,34 +5693,51 @@ if test -n "$device_ch_p4"; then
 #
 # What to do with R10000?  R5000?
 ########################################################################
+# NEW TABLE
+#
+#       OS      COMM    CPU             P4_ARCH         Other options
+#       --      ----    ---             -------         ---------------
+#       6                               SGI6
+#       6       shared                  SGI6            -p4comm=shared
+#       5                               SGI5
+#       5       shared                  SGI5            -p4comm=shared
+#       *                               SGI
+#       *       shared                  SGI             -p4comm=shared
+#
+# Also supported are special cases of SGI6: SGIN32, SGI32, and SGI64
+#              
+########################################################################
 
   elif test "$ARCH" = "IRIX64" ; then
-    P4_ARCH=SGI_CH64
-    DEFAULT_MACHINE="sgi_mp"
+    P4_ARCH=SGI6       #SGI_CH64
+#    DEFAULT_MACHINE="sgi_mp"
   elif test "$ARCH" = "IRIX" ; then
     P4_ARCH=SGI
     if test $osversion = 6 ; then
-        if test "$COMM" = "shared" ; then
-  	    # Use IRIX64 for SGI_CH64
- 	    P4_ARCH=SGI_CH32
-#	    if test $cputype = 8000 ; then
-#	        P4_ARCH=SGI_CH32
-	        DEFAULT_MACHINE="sgi_mp"
-#	    fi
-	else
+#        if test "$COMM" = "shared" ; then
+#  	    # Use IRIX64 for SGI_CH64
+# 	    P4_ARCH=SGI_CH32
+##	    if test $cputype = 8000 ; then
+##	        P4_ARCH=SGI_CH32
+#	        DEFAULT_MACHINE="sgi_mp"
+##	    fi
+#	else
      	    P4_ARCH=SGI6
-	    if test $cputype = 8000 ; then
-	        P4_ARCH=SGI6
-	        #DEFAULT_MACHINE="sgi"
-	    fi
-	fi
+#	    if test $cputype = 8000 ; then
+#	        P4_ARCH=SGI6
+#	        #DEFAULT_MACHINE="sgi"
+#	    fi
+#	fi
     elif test $osversion = 5 ; then 
-        P4_ARCH=SGI
-        if test "$COMM" = "shared" ; then
-	    P4_ARCH=SGI_MP
-	    DEFAULT_MACHINE="sgi_mp"
-	fi
-    fi  
+        P4_ARCH=SGI5         # SGI
+#        if test "$COMM" = "shared" ; then
+#	    P4_ARCH=SGI_MP
+#	    DEFAULT_MACHINE="sgi_mp"
+#	fi
+    fi
+    if test "$COMM" = "shared" ; then
+	DEFAULT_MACHINE="sgi_mp"
+    fi
   else
     # Note that this will change IRIXxxx to SGIxxx (i.e., IRIX32 to SGI32)
     P4_ARCH=`echo $ARCH | sed \
@@ -4793,7 +5753,7 @@ if test -n "$device_ch_p4"; then
 	    -e 's/cm5/CM5/g'               -e 's/meiko/MEIKO_CS2/g'  \
             -e 's/rs6000/RS6000/g'	   -e 's/symm_ptx/SYMMETRY_PTX/g'`
   fi
-echo "Done setting p4arch..."
+echo "Finished setting p4arch..."
 #
 echo "Configuring p4 subsystem..."
 # Make sure that the lib Makefile gets remade
@@ -4811,18 +5771,18 @@ echo "Configuring p4 subsystem..."
   fi
   if test "$USERCC" = 1 ; then 
       (cd mpid/ch_p4/p4-1.4 ; \
-	./configure -p4arch=$P4_ARCH -p4make="$MAKE" -opt="$OPTFLAGS" -cc="$CC" -p4comm="$COMM" -cflags="$USER_CFLAGS" $otherargs )
+	./configure -p4arch=$P4_ARCH -p4make="$MAKE" -opt="$OPTFLAGS" -cc="$CC" -p4comm="$COMM" -cflags="$USER_CFLAGS $P4_CFLAGS" $otherargs )
       if test $? != 0 ; then
           print_error "Configure of the p4 sub-system may have failed!"
       fi
     else
       (cd mpid/ch_p4/p4-1.4 ; \
-	./configure -p4arch=$P4_ARCH -p4make="$MAKE" -opt="$OPTFLAGS" -p4comm="$COMM" $otherargs )
+	./configure -p4arch=$P4_ARCH -p4make="$MAKE" -opt="$OPTFLAGS" -p4comm="$COMM" -cflags="$USER_CFLAGS $P4_CFLAGS" $otherargs )
       if test $? != 0 ; then
           print_error "Configure of the p4 sub-system may have failed"
       fi
   fi
-  echo "Done configuring the p4 subsystem"
+  echo "Finished configuring the p4 subsystem"
   P4_MDEPLIBS=`$MAKE -f mpid/ch_p4/p4-1.4/lib/Makefile p4mdeplibs | grep -v make`
   LIB_LIST="$LIB_LIST $P4_MDEPLIBS"
   #
@@ -4850,6 +5810,7 @@ echo "Configuring p4 subsystem..."
 #   LIB_LIST="$LIB_LIST -lp4";
   IS_HETERO=1
   
+
 if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
@@ -4921,7 +5882,6 @@ fi
 /bin/rm -f conftest conftest.c conftest.o
 
   # For the timers, we try for gettimeofday.  Just for the device
-  SAVEDEFS="$DEFS"
   for func in gettimeofday
 do
 trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
@@ -4991,6 +5951,10 @@ test -n "$verbose" && \
 echo "	defining ${trfunc}"
 echo "#define" ${trfunc} 1 >> confdefs.h
 DEFS="$DEFS -D${trfunc}=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}${trfunc}\${SEDdB}${trfunc}\${SEDdC}1\${SEDdD}
+\${SEDuA}${trfunc}\${SEDuB}${trfunc}\${SEDuC}1\${SEDuD}
+\${SEDeA}${trfunc}\${SEDeB}${trfunc}\${SEDeC}1\${SEDeD}
+"
 }
 
 
@@ -5072,6 +6036,10 @@ test -n "$verbose" && \
 echo "	defining ${trfunc}"
 echo "#define" ${trfunc} 1 >> confdefs.h
 DEFS="$DEFS -D${trfunc}=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}${trfunc}\${SEDdB}${trfunc}\${SEDdC}1\${SEDdD}
+\${SEDuA}${trfunc}\${SEDuB}${trfunc}\${SEDuC}1\${SEDuD}
+\${SEDeA}${trfunc}\${SEDeB}${trfunc}\${SEDeC}1\${SEDeD}
+"
 }
 
 
@@ -5084,8 +6052,6 @@ fi
 rm -f conftest*
 done
 
-  DEV_DEFS="$DEV_DEFS $DEFS"
-  DEFS="$SAVEDEFS"
 fi
 
 #
@@ -5121,52 +6087,31 @@ if test -n "$arch_IRIX"; then
         # Turn off warnings about long doubles not being supported.
 	if test "$CC" != "gcc" ; then
             CFLAGS="$CFLAGS -woff 728"
-	# Other useful woff values are: 852,635,813,831,835
+	    # Other useful woff values are: 852,635,813,831,835
         fi
    elif test $osversion = 6 ; then
 #       these flags settings are handled by including MDEPCFLAGS from p4
+	SYMTYPE=""
 	if test $cputype = 8000 -o $cputype = 10000 ; then
 	    if test -n "$arch_IRIX64" ; then
-		CC="$CC -64 -mips4"
-	        F77="$F77 -64 -mips4"
-  	        CLINKER="$CC -64 -mips4"
-	        FLINKER="$F77 -64 -mips4"
-            elif test -n $arch_IRIXN32 ; then
-		CC="$CC -n32"
-		F77="$F77 -n32"
-  	        CLINKER="$CC -n32"
-	        FLINKER="$F77 -n32"
+	        SYMTYPE="-64 -mips4"
+            elif test -n "$arch_IRIXN32" ; then
+		SYMTYPE="-n32"
             else 
-		CC="$CC -32"
-		F77="$F77 -32"
-  	        CLINKER="$CC -32"
-	        FLINKER="$F77 -32"
+		SYMTYPE="-32"
             fi
 	elif test $cputype -gt 4000 ; then
 	    if test -n "$arch_IRIX64" ; then
-		CC="$CC -64 -mips3"
-		F77="$F77 -64 -mips3"
-	        CLINKER="$CC -64 -mips3" # -non_shared"
-	        FLINKER="$F77 -64 -mips3" # -non_shared"
-            elif test -n $arch_IRIXN32 ; then
-		CC="$CC -n32"
-		F77="$F77 -n32"
-  	        CLINKER="$CC -n32"
-	        FLINKER="$F77 -n32"
+		SYMTYPE="-64 -mips3"
+            elif test -n "$arch_IRIXN32" ; then
+		SYMTYPE="-n32"
             else 
-		CC="$CC -32"
-		F77="$F77 -32"
-  	        CLINKER="$CC -32"
-	        FLINKER="$F77 -32"
+		SYMTYPE="-32"
             fi
         else
 	    # According to winfrid.tschiedel@mch.sni.de, need -n32 for R4000
-#	    CFLAGS="$CFLAGS -n32 -mips3" 
-#	    FFLAGS="$FFLAGS -n32 -mips3"
-	    CC="$CC -n32"
-	    F77="$F77 -n32"
-	    CLINKER="$CC -n32 -mips3" # -non_shared"
-	    FLINKER="$F77 -n32 -mips3" # -non_shared"
+	    SYMTYPE="-n32"
+            # Not "-n32 -mips3"?
         fi
 	if test -n "$P4_MDEPCFLAGS" ; then
   	    FFLAGS="$FFLAGS $P4_MDEPCFLAGS"
@@ -5177,6 +6122,21 @@ if test -n "$arch_IRIX"; then
         if test "$CC" != "gcc" ; then
             CFLAGS="$CFLAGS -woff 1184,1174"
         fi
+	# Check whether we need to add SYMTYPE to CFLAGS and FFLAGS
+	hasarg=`echo A$CFLAGS | sed -n -e '/-n32/p' -e '/-32/p' -e '/-64/p'`
+#       override SYMTYPE computed above (2/21)
+        SYMTYPE=""
+	if test -z "$hasarg" ; then
+            CC="$CC $SYMTYPE"
+	    F77="$F77 $SYMTYPE"
+	    CLINKER="$CC $SYMTYPE"
+	    FLINKER="$F77 $SYMTYPE"
+#	else 
+#	    hasarg=`echo A$CLINKER | sed -n -e '/-n32/p' -e '/-32/p' -e '/-64/p'`
+#	    if test -z "$hasarg" ; then
+#		# We need to make the linker compatible with the compiler.
+#	    fi
+	fi
    fi
    echo "Messages about long doubles not being supported are being suppressed"
    fi
@@ -5227,16 +6187,79 @@ if test -n "$arch_CRAY"; then
    # to the defines.
    # According to Laurie Costello <lmc@cray.com>, the Triton needs this
    # definition
-   if test -n "$arch_CRAYTS" ; then 
-       
+   if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for whether TWO_WORD_FCDs are used""... $ac_c"
+else
+echo $ac_n "checking for whether TWO_WORD_FCDs are used""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <fortran.h>
+int main() { exit(0); }
+int t() { void  *buf;_fcd temp;temp = _fcdtocp(buf); }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  rm -rf conftest*
+  
 {
 test -n "$verbose" && \
 echo "	defining _TWO_WORD_FCD"
 echo "#define" _TWO_WORD_FCD 1 >> confdefs.h
 DEFS="$DEFS -D_TWO_WORD_FCD=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}_TWO_WORD_FCD\${SEDdB}_TWO_WORD_FCD\${SEDdC}1\${SEDdD}
+\${SEDuA}_TWO_WORD_FCD\${SEDuB}_TWO_WORD_FCD\${SEDuC}1\${SEDuD}
+\${SEDeA}_TWO_WORD_FCD\${SEDeB}_TWO_WORD_FCD\${SEDeC}1\${SEDeD}
+"
 }
 
-   fi
+
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+rm -f conftest*
+
+   # 
 fi
 
 #
@@ -5245,7 +6268,7 @@ fi
 # setenv TARGET cray-t3d
 # Also need -lsma library
 if test -n "$arch_cray_t3d"; then
-   is_adi1=1
+   is_adi1=0
    DEFAULT_MACHINE="cray_t3d"
    LIB_LIST="$LIB_LIST -lsma"
    RANLIB=true
@@ -5258,6 +6281,10 @@ test -n "$verbose" && \
 echo "	defining MPI_NO_MPEDBG"
 echo "#define" MPI_NO_MPEDBG 1 >> confdefs.h
 DEFS="$DEFS -DMPI_NO_MPEDBG=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}MPI_NO_MPEDBG\${SEDdB}MPI_NO_MPEDBG\${SEDdC}1\${SEDdD}
+\${SEDuA}MPI_NO_MPEDBG\${SEDuB}MPI_NO_MPEDBG\${SEDuC}1\${SEDuD}
+\${SEDeA}MPI_NO_MPEDBG\${SEDeB}MPI_NO_MPEDBG\${SEDeC}1\${SEDeD}
+"
 }
 
    # The CRAY cp doesn't even support -r (!!) but at least there 
@@ -5269,14 +6296,17 @@ DEFS="$DEFS -DMPI_NO_MPEDBG=1"
        print_error "switches are not supported."
    fi
    #  ASMFILES_O="shmem_stack.o get_stack.o"
-   # Some users needed /mpp/bin/asm
-   if test -s /mpp/bin/cam ; then 
-        ASM="/mpp/bin/cam"
-   elif test -s /mpp/bin/asm ; then
-	ASM="/mpp/bin/asm"
-   else
+   # Some users needed /mpp/bin/asm, others /opt/ctl/bin/cam
+   for asm in /mpp/bin/cam /opt/ctl/bin/cam /mpp/bin/asm ; do
+       if test -s $asm ; then
+           ASM=$asm
+           break
+       fi
+   done
+   if test -z "$ASM" ; then 
         print_error Cannot find assembler needed to build MPICH
-        print_error Neither /mpp/bin/cam nor /mpp/bin/asm is available
+        print_error Neither /mpp/bin/cam, /opt/ctl/bin/cam,  nor 
+        print_error /mpp/bin/asm is available
         exit 1
    fi
    # 
@@ -5287,6 +6317,10 @@ test -n "$verbose" && \
 echo "	defining _TWO_WORD_FCD"
 echo "#define" _TWO_WORD_FCD 1 >> confdefs.h
 DEFS="$DEFS -D_TWO_WORD_FCD=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}_TWO_WORD_FCD\${SEDdB}_TWO_WORD_FCD\${SEDdC}1\${SEDdD}
+\${SEDuA}_TWO_WORD_FCD\${SEDuB}_TWO_WORD_FCD\${SEDuC}1\${SEDuD}
+\${SEDeA}_TWO_WORD_FCD\${SEDeB}_TWO_WORD_FCD\${SEDeC}1\${SEDeD}
+"
 }
 
 fi
@@ -5316,6 +6350,10 @@ test -n "$verbose" && \
 echo "	defining FORTRAN_SPECIAL_FUNCTION_PTR"
 echo "#define" FORTRAN_SPECIAL_FUNCTION_PTR 1 >> confdefs.h
 DEFS="$DEFS -DFORTRAN_SPECIAL_FUNCTION_PTR=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}FORTRAN_SPECIAL_FUNCTION_PTR\${SEDdB}FORTRAN_SPECIAL_FUNCTION_PTR\${SEDdC}1\${SEDdD}
+\${SEDuA}FORTRAN_SPECIAL_FUNCTION_PTR\${SEDuB}FORTRAN_SPECIAL_FUNCTION_PTR\${SEDuC}1\${SEDuD}
+\${SEDeA}FORTRAN_SPECIAL_FUNCTION_PTR\${SEDeB}FORTRAN_SPECIAL_FUNCTION_PTR\${SEDeC}1\${SEDeD}
+"
 }
 
     # Suggested values for these are
@@ -5333,6 +6371,10 @@ test -n "$verbose" && \
 echo "	defining FORTRAN_SPECIAL_FUNCTION_PTR"
 echo "#define" FORTRAN_SPECIAL_FUNCTION_PTR 1 >> confdefs.h
 DEFS="$DEFS -DFORTRAN_SPECIAL_FUNCTION_PTR=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}FORTRAN_SPECIAL_FUNCTION_PTR\${SEDdB}FORTRAN_SPECIAL_FUNCTION_PTR\${SEDdC}1\${SEDdD}
+\${SEDuA}FORTRAN_SPECIAL_FUNCTION_PTR\${SEDuB}FORTRAN_SPECIAL_FUNCTION_PTR\${SEDuC}1\${SEDuD}
+\${SEDeA}FORTRAN_SPECIAL_FUNCTION_PTR\${SEDeB}FORTRAN_SPECIAL_FUNCTION_PTR\${SEDeC}1\${SEDeD}
+"
 }
 
     # Suggested values for these are
@@ -5365,7 +6407,7 @@ if test -n "$arch_SX_4" ; then
     # Also note that it causes -hobjlst (assembly listing) to silently fail.
         if test -n "$device_ch_lfshmem" ; then
        ASMFILES_O="vtest1.o syncvset0.o syncvset1.o vmemcpy.o tslock.o tsunlock.o tslock_init.o"
-       DEVCFLAGS="$DEVCFLAGS -DUSE_FAST_SX4_LOCKS -DMPID_USE_SX4_VOPS"
+       DEVCFLAGS="$DEVCFLAGS -DLOCKS_PICKED -DUSE_TSLOCKS -DMPID_USE_SX4_VOPS"
 #
        for file in $ASMFILES_O
        do
@@ -5376,7 +6418,7 @@ if test -n "$arch_SX_4" ; then
     else
        DEVCFLAGS="$DEVCFLAGS -DLOCKS_PICKED -DUSE_SEMOP"
     fi
-    DEVCFLAGS="$DEVCFLAGS -DHAVE_SHMAT=1 -DHAVE_SEMOP=1 -DRETSIGTYPE=void -DHAVE_SIGACTION -DMPI_SX_4"
+    DEVCFLAGS="$DEVCFLAGS -DHAVE_SHMAT=1 -DHAVE_SEMOP=1 -DRETSIGTYPE=void -DHAVE_SIGACTION -DMPI_SX_4 -DMPID_SETUP_SIGNALS"
 fi
 # check whether --comm=pvm3 was given
 if test -n "$comm_pvm3"; then
@@ -5423,20 +6465,45 @@ main(){exit(0);}
 EOF
 eval $compile
 if test -s conftest && (./conftest; exit) 2>/dev/null; then
-  if test -z "$ac_echo_test" -a 1 = 1 ; then
+  pac_ok=1
+
+else
+  pac_ok=0
+fi
+rm -fr conftest*
+if test $pac_ok = 1 ; then
+    cat > conftest.c <<EOF
+#include "confdefs.h"
+main(){exit(1);}
+EOF
+eval $compile
+if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  pac_ok=0 
+
+fi
+rm -fr conftest*
+    if test $pac_ok = 1 ; then
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-
+    else
+        cross_compiling=1
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
 else
-  cross_compiling=1;if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes" 1>&1
+fi
+    fi
+else
+    cross_compiling=1
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
 fi
-rm -fr conftest*
 
 fi
 if test $cross_compiling = 1 ; then
@@ -5449,7 +6516,8 @@ fi
 # Some devices use gettimeofday.  If this is one of them, check to see 
 # what form it is
 if test -n "$arch_solaris" -o -n "$arch_SX_4" ; then
-    if test -z "$ac_echo_n" ; then
+    
+if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -5475,11 +6543,12 @@ echo $ac_n "checking for how many arguments gettimeofday takes""... $ac_c"
 else
 echo $ac_n "checking for how many arguments gettimeofday takes""... $ac_c" 1>&1
 fi
-    cat > conftest.c <<EOF
+# Test sets "wierd" only for FAILURE to accept 2
+cat > conftest.c <<EOF
 #include "confdefs.h"
 #include <sys/time.h>
-    main() {struct timeval tp;
-    gettimeofday(&tp,(void*)0);return 0;}
+main() {struct timeval tp;
+gettimeofday(&tp,(void*)0);return 0;}
 EOF
 eval $compile
 if test -s conftest && (./conftest; exit) 2>/dev/null; then
@@ -5489,15 +6558,17 @@ else
 echo "$ac_t""two - whew" 1>&1
 fi
 
+
 else
-  DEVCFLAGS="$DEVCFLAGS -DUSE_WIERDGETTIMEOFDAY"
-    if test -z "$ac_echo_test" -a 1 = 1 ; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""one!"
 else
 echo "$ac_t""one!" 1>&1
 fi
+DEVCFLAGS="$DEVCFLAGS -DUSE_WIERDGETTIMEOFDAY"
 fi
 rm -fr conftest*
+
 fi
 #
 #
@@ -5871,7 +6942,7 @@ fi
 
   fi
   if test -n "$MPE_GRAPHICS" -a -z "$no_x" ; then
-    MPE_LIBS="-lmpe -lX11 -lm"
+    MPE_LIBS="-lmpe -lpmpi -lX11 -lm"
     MPEGRAPHICS_SOURCE="mpe_graphics.c xcolor.c xframe.c xinit.c xwmap.c xmouse.c"
     MPEGRAPHICS_OBJS="mpe_graphics.o xcolor.o xframe.o xinit.o xwmap.o xmouse.o"
     MPEGRAPHICS_FSOURCE="mpe_graphicsf.c"
@@ -5981,8 +7052,19 @@ fi
 if test $HAS_F77 = 0 -a $NOF77 = 0 ; then
     NOF77=1
     HAS_FORTRAN=0
-    CFLAGS="$CFLAGS -DMPID_NO_FORTRAN"
-    MPI_FOBJECTS="" 
+    
+{
+test -n "$verbose" && \
+echo "	defining MPID_NO_FORTRAN"
+echo "#define" MPID_NO_FORTRAN 1 >> confdefs.h
+DEFS="$DEFS -DMPID_NO_FORTRAN=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}MPID_NO_FORTRAN\${SEDdB}MPID_NO_FORTRAN\${SEDdC}1\${SEDdD}
+\${SEDuA}MPID_NO_FORTRAN\${SEDuB}MPID_NO_FORTRAN\${SEDuC}1\${SEDuD}
+\${SEDeA}MPID_NO_FORTRAN\${SEDeB}MPID_NO_FORTRAN\${SEDeC}1\${SEDeD}
+"
+}
+
+        MPI_FOBJECTS="" 
 elif test $HAS_F77 = 1 ; then
     
    # Check for strange behavior of Fortran.  For example, some FreeBSD
@@ -6008,9 +7090,7 @@ EOF
         print_error "object file)."
 	NOF77=1
         HAS_FORTRAN=0
-   elif test -n "$FORTRANNAMES" ; then
-	WDEF="-D$FORTRANNAMES"
-   else
+   elif test -z "$FORTRANNAMES" ; then
     # We have to be careful here, since the name may occur in several
     # forms.  We try to handle this by testing for several forms
     # directly.
@@ -6029,17 +7109,17 @@ EOF
     /bin/rm -f confftest.f confftest.o
     if test -n "$nameform4" ; then
 	echo "Fortran externals are lower case and have 1 or 2 trailing underscores"
-	WDEF=-DFORTRANDOUBLEUNDERSCORE
+	FORTRANNAMES="FORTRANDOUBLEUNDERSCORE"
     elif test -n "$nameform1" ; then
         # We don't set this in CFLAGS; it is a default case
         echo "Fortran externals have a trailing underscore and are lowercase"
-	WDEF=-DFORTRANUNDERSCORE
+	FORTRANNAMES="FORTRANUNDERSCORE"
     elif test -n "$nameform2" ; then
 	echo "Fortran externals are uppercase"     
-	WDEF=-DFORTRANCAPS 
+	FORTRANNAMES="FORTRANCAPS" 
     elif test -n "$nameform3" ; then
 	echo "Fortran externals are lower case"
-	WDEF=-DFORTRANNOUNDERSCORE 
+	FORTRANNAMES="FORTRANNOUNDERSCORE"
     else
 	print_error "Unable to determine the form of Fortran external names"
 	print_error "Make sure that the compiler $F77 can be run on this system"
@@ -6081,8 +7161,23 @@ EOF
 #	;;
 #   esac
     fi
+    if test -n "$FORTRANNAMES" ; then
+        WDEF="-D$FORTRANNAMES"
+    fi
+    
     if test $HAS_FORTRAN = 0 ; then
-	CFLAGS="$CFLAGS -DMPID_NO_FORTRAN"
+		
+{
+test -n "$verbose" && \
+echo "	defining MPID_NO_FORTRAN"
+echo "#define" MPID_NO_FORTRAN 1 >> confdefs.h
+DEFS="$DEFS -DMPID_NO_FORTRAN=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}MPID_NO_FORTRAN\${SEDdB}MPID_NO_FORTRAN\${SEDdC}1\${SEDdD}
+\${SEDuA}MPID_NO_FORTRAN\${SEDuB}MPID_NO_FORTRAN\${SEDuC}1\${SEDuD}
+\${SEDeA}MPID_NO_FORTRAN\${SEDeB}MPID_NO_FORTRAN\${SEDeC}1\${SEDeD}
+"
+}
+
         MPI_FOBJECTS=""
     elif test -n "$WDEF" ; then
         CFLAGS="$CFLAGS $WDEF"
@@ -6226,6 +7321,10 @@ test -n "$verbose" && \
 echo "	defining HAS_XDR"
 echo "#define" HAS_XDR 1 >> confdefs.h
 DEFS="$DEFS -DHAS_XDR=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}HAS_XDR\${SEDdB}HAS_XDR\${SEDdC}1\${SEDdD}
+\${SEDuA}HAS_XDR\${SEDuB}HAS_XDR\${SEDuC}1\${SEDuD}
+\${SEDeA}HAS_XDR\${SEDeB}HAS_XDR\${SEDeC}1\${SEDeD}
+"
 }
 
     else 
@@ -6236,7 +7335,171 @@ fi
 # Processor_name.  Save these defines in a special place.
 SAVEDEFS="$DEFS"
 DEFS=""
-for func in gethostname sysinfo uname
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for uname""... $ac_c"
+else
+echo $ac_n "checking for uname""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_uname) || defined (__stub___uname)
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char uname(); uname();
+#endif
+ }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  rm -rf conftest*
+  {
+test -n "$verbose" && \
+echo "	defining HAVE_UNAME"
+echo "#define" HAVE_UNAME 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_UNAME=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}HAVE_UNAME\${SEDdB}HAVE_UNAME\${SEDdC}1\${SEDdD}
+\${SEDuA}HAVE_UNAME\${SEDuB}HAVE_UNAME\${SEDuC}1\${SEDuD}
+\${SEDeA}HAVE_UNAME\${SEDeB}HAVE_UNAME\${SEDeC}1\${SEDeD}
+"
+}
+haveuname=1
+
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+rm -f conftest*
+
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for gethostbyname""... $ac_c"
+else
+echo $ac_n "checking for gethostbyname""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_gethostbyname) || defined (__stub___gethostbyname)
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char gethostbyname(); gethostbyname();
+#endif
+ }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  rm -rf conftest*
+  {
+test -n "$verbose" && \
+echo "	defining HAVE_GETHOSTBYNAME"
+echo "#define" HAVE_GETHOSTBYNAME 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_GETHOSTBYNAME=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}HAVE_GETHOSTBYNAME\${SEDdB}HAVE_GETHOSTBYNAME\${SEDdC}1\${SEDdD}
+\${SEDuA}HAVE_GETHOSTBYNAME\${SEDuB}HAVE_GETHOSTBYNAME\${SEDuC}1\${SEDuD}
+\${SEDeA}HAVE_GETHOSTBYNAME\${SEDeB}HAVE_GETHOSTBYNAME\${SEDeC}1\${SEDeD}
+"
+}
+havegethostbyname=1
+
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+rm -f conftest*
+
+# If we have uname and gethostbyname, we can skip getdomainname ...
+if test "$haveuname" != 1 -o "$havegethostbyname" != 1 ; then
+    for func in gethostname sysinfo
 do
 trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
 if test -z "$ac_echo_n" ; then
@@ -6305,6 +7568,10 @@ test -n "$verbose" && \
 echo "	defining ${trfunc}"
 echo "#define" ${trfunc} 1 >> confdefs.h
 DEFS="$DEFS -D${trfunc}=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}${trfunc}\${SEDdB}${trfunc}\${SEDdC}1\${SEDdD}
+\${SEDuA}${trfunc}\${SEDuB}${trfunc}\${SEDuC}1\${SEDuD}
+\${SEDeA}${trfunc}\${SEDeB}${trfunc}\${SEDeC}1\${SEDeD}
+"
 }
 
 
@@ -6317,309 +7584,9 @@ fi
 rm -f conftest*
 done
 
-#
-# getdomainname is special BECAUSE IT MAY BE USELESS (!Network computing 
-# indeed - stuff like this is why Windows95/NT WILL WIN). 
-if test -z "$ac_echo_n" ; then
-ac_echo_n=yes
-if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
-  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
-  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
-    ac_n= ac_c='
-' ac_t='	'
-  else
-    ac_n=-n ac_c= ac_t=
-  fi
-else
-  ac_n= ac_c='\c' ac_t=
-fi
-ac_echo_test=`echo foo 1>&1`
-if test -z "$ac_echo_test" ; then
-     print_error "Your sh shell does not handle the output redirection"
-     print_error "1>&1 correctly.  Configure will work around this problem,"
-     print_error "but you should report the problem to your vendor."
-fi
-
-fi
-if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking for getdomainname""... $ac_c"
-else
-echo $ac_n "checking for getdomainname""... $ac_c" 1>&1
-fi
-cat > conftest.$ac_ext <<EOF
-#include "confdefs.h"
-#include <ctype.h> /* Arbitrary system header to define __stub macros. */
-#ifdef __cplusplus
-extern "C" { char getdomainname(); };
-#else
-char getdomainname();
-#endif
-int main() { return 0; }
-int t() {
-/* The GNU C library defines this for functions which it implements
-    to always fail with ENOSYS.  Some functions are actually named
-    something starting with __ and the normal name is an alias.  */
-#if defined (__stub_getdomainname) || defined (__stub___getdomainname)
-choke me
-#else
-/* Override any gcc2 internal prototype to avoid an error.  */
-getdomainname();
-#endif
-
-; return 0; }
-EOF
-if eval $ac_link; then
-  rm -rf conftest*
-  eval "ac_cv_func_getdomainname=yes"
-else
-  rm -rf conftest*
-  eval "ac_cv_func_getdomainname=no"
-fi
-rm -f conftest*
-if eval "test \"`echo '$ac_cv_func_'getdomainname`\" = yes"; then
-  if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""yes"
-else
-echo "$ac_t""yes" 1>&1
-fi
-  has_getdomainname=1
-else
-  if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-has_getdomainname=0
-fi
-
-if test $has_getdomainname = 1 -a $cross_compiling = 0 ; then
-    # Extract the first word of "domainname", so it can be a program name with args.
-set dummy domainname; ac_word=$2
-if test -z "$ac_echo_n" ; then
-ac_echo_n=yes
-if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
-  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
-  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
-    ac_n= ac_c='
-' ac_t='	'
-  else
-    ac_n=-n ac_c= ac_t=
-  fi
-else
-  ac_n= ac_c='\c' ac_t=
-fi
-ac_echo_test=`echo foo 1>&1`
-if test -z "$ac_echo_test" ; then
-     print_error "Your sh shell does not handle the output redirection"
-     print_error "1>&1 correctly.  Configure will work around this problem,"
-     print_error "but you should report the problem to your vendor."
-fi
-
-fi
-if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking for $ac_word""... $ac_c"
-else
-echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
-fi
-ac_prog_where=""
-if test -n "$has_domainname"; then
-  ac_pg_has_domainname="$has_domainname" # Let the user override the test.
-else
-  ac_first_char=`expr "domainname" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "domainname" ; then
-       ac_pg_has_domainname="1"
-       ac_prog_where=domainname
-  else
-      IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
-      for ac_dir in $PATH; do
-        test -z "$ac_dir" && ac_dir=.
-        if test -f $ac_dir/$ac_word; then
-          ac_pg_has_domainname="1"
-          ac_prog_where=$ac_dir/$ac_word
-          break
-        fi
-      done
-      IFS="$ac_save_ifs"
-  fi
-  test -z "$ac_pg_has_domainname" && ac_pg_has_domainname="0"
-fi;has_domainname="$ac_pg_has_domainname"
-if test -n "$ac_prog_where" ; then
-  if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""found $ac_prog_where ($has_domainname)"
-else
-echo "$ac_t""found $ac_prog_where ($has_domainname)" 1>&1
-fi
-   d_domainname=$ac_prog_where  
-else
-  if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-fi
-
-    # Extract the first word of "hostname", so it can be a program name with args.
-set dummy hostname; ac_word=$2
-if test -z "$ac_echo_n" ; then
-ac_echo_n=yes
-if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
-  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
-  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
-    ac_n= ac_c='
-' ac_t='	'
-  else
-    ac_n=-n ac_c= ac_t=
-  fi
-else
-  ac_n= ac_c='\c' ac_t=
-fi
-ac_echo_test=`echo foo 1>&1`
-if test -z "$ac_echo_test" ; then
-     print_error "Your sh shell does not handle the output redirection"
-     print_error "1>&1 correctly.  Configure will work around this problem,"
-     print_error "but you should report the problem to your vendor."
-fi
-
-fi
-if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking for $ac_word""... $ac_c"
-else
-echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
-fi
-ac_prog_where=""
-if test -n "$has_hostname"; then
-  ac_pg_has_hostname="$has_hostname" # Let the user override the test.
-else
-  ac_first_char=`expr "hostname" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "hostname" ; then
-       ac_pg_has_hostname="1"
-       ac_prog_where=hostname
-  else
-      IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
-      for ac_dir in $PATH; do
-        test -z "$ac_dir" && ac_dir=.
-        if test -f $ac_dir/$ac_word; then
-          ac_pg_has_hostname="1"
-          ac_prog_where=$ac_dir/$ac_word
-          break
-        fi
-      done
-      IFS="$ac_save_ifs"
-  fi
-  test -z "$ac_pg_has_hostname" && ac_pg_has_hostname="0"
-fi;has_hostname="$ac_pg_has_hostname"
-if test -n "$ac_prog_where" ; then
-  if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""found $ac_prog_where ($has_hostname)"
-else
-echo "$ac_t""found $ac_prog_where ($has_hostname)" 1>&1
-fi
-   d_hostname=$ac_prog_where  
-else
-  if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-fi
-
-    # Extract the first word of "rup", so it can be a program name with args.
-set dummy rup; ac_word=$2
-if test -z "$ac_echo_n" ; then
-ac_echo_n=yes
-if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
-  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
-  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
-    ac_n= ac_c='
-' ac_t='	'
-  else
-    ac_n=-n ac_c= ac_t=
-  fi
-else
-  ac_n= ac_c='\c' ac_t=
-fi
-ac_echo_test=`echo foo 1>&1`
-if test -z "$ac_echo_test" ; then
-     print_error "Your sh shell does not handle the output redirection"
-     print_error "1>&1 correctly.  Configure will work around this problem,"
-     print_error "but you should report the problem to your vendor."
-fi
-
-fi
-if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking for $ac_word""... $ac_c"
-else
-echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
-fi
-ac_prog_where=""
-if test -n "$has_rup"; then
-  ac_pg_has_rup="$has_rup" # Let the user override the test.
-else
-  ac_first_char=`expr "rup" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "rup" ; then
-       ac_pg_has_rup="1"
-       ac_prog_where=rup
-  else
-      IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
-      for ac_dir in $PATH; do
-        test -z "$ac_dir" && ac_dir=.
-        if test -f $ac_dir/$ac_word; then
-          ac_pg_has_rup="1"
-          ac_prog_where=$ac_dir/$ac_word
-          break
-        fi
-      done
-      IFS="$ac_save_ifs"
-  fi
-  test -z "$ac_pg_has_rup" && ac_pg_has_rup="0"
-fi;has_rup="$ac_pg_has_rup"
-if test -n "$ac_prog_where" ; then
-  if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""found $ac_prog_where ($has_rup)"
-else
-echo "$ac_t""found $ac_prog_where ($has_rup)" 1>&1
-fi
-   d_rup=$ac_prog_where  
-else
-  if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-fi
-
-    # Form hostname.domainname, do rup to it
-    # rup may not be enabled, but short of running a program to lookup the
-    # local host, there does not seem to be a better alternative.
     #
-    if test $has_domainname = 1 -a $has_hostname = 1 -a $has_rup = 1 ; then
-
-        fullhost=`$d_hostname | sed -e 's/^\([^\.]*\)\..*/\1/'`
-
-#	echo $fullhost
-        fullhost="${fullhost}.`$d_domainname`"
-        response=`($d_rup $fullhost 2>&1) | grep 'Unknown host'`
-#	echo $fullhost
-        if test -n "$response" ; then
-   print_error "The getdomainname system routine has been rendered USELESS"
-   print_error "on your system.  This is not a bug and will not affect"
-   print_error "MPICH.  Some MPE routines (particularly those that"
-   print_error "interact with X Windows) may not work."
-        else
-             
-{
-test -n "$verbose" && \
-echo "	defining HAVE_GETDOMAINNAME"
-echo "#define" HAVE_GETDOMAINNAME 1 >> confdefs.h
-DEFS="$DEFS -DHAVE_GETDOMAINNAME=1"
-}
-
-        fi
-    fi
-fi
-#
-# systeminfo is needed for sysinfo 
-for ac_hdr in sys/systeminfo.h
+    # systeminfo is needed for sysinfo 
+    for ac_hdr in sys/systeminfo.h
 do
 ac_safe=`echo "$ac_hdr" | tr '[a-z]./' '[A-Z]__'`
 if test -z "$ac_echo_n" ; then
@@ -6691,6 +7658,10 @@ test -n "$verbose" && \
 echo "	defining $ac_tr_hdr"
 echo "#define" $ac_tr_hdr 1 >> confdefs.h
 DEFS="$DEFS -D$ac_tr_hdr=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}$ac_tr_hdr\${SEDdB}$ac_tr_hdr\${SEDdC}1\${SEDdD}
+\${SEDuA}$ac_tr_hdr\${SEDuB}$ac_tr_hdr\${SEDuC}1\${SEDuD}
+\${SEDeA}$ac_tr_hdr\${SEDeB}$ac_tr_hdr\${SEDeC}1\${SEDeD}
+"
 }
  
 else
@@ -6702,6 +7673,317 @@ fi
 fi
 done
 
+    #
+    # getdomainname is special BECAUSE IT MAY BE USELESS (!Network computing 
+    # indeed - stuff like this is why Windows95/NT WILL WIN). 
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for getdomainname""... $ac_c"
+else
+echo $ac_n "checking for getdomainname""... $ac_c" 1>&1
+fi
+if test -z "$ac_ext" ; then 
+    ac_ext=c
+fi
+cat > conftest.$ac_ext <<EOF
+#include "confdefs.h"
+#include <ctype.h> /* Arbitrary system header to define __stub macros. */
+#ifdef __cplusplus
+extern "C" { char getdomainname(); };
+#else
+char getdomainname();
+#endif
+int main() { return 0; }
+int t() {
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_getdomainname) || defined (__stub___getdomainname)
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+getdomainname();
+#endif
+
+; return 0; }
+EOF
+if test -z "$ac_link" ; then
+ac_link='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&2'
+fi
+if eval $ac_link; then
+  rm -rf conftest*
+  eval "ac_cv_func_getdomainname=yes"
+else
+  rm -rf conftest*
+  eval "ac_cv_func_getdomainname=no"
+fi
+rm -f conftest*
+if eval "test \"`echo '$ac_cv_func_'getdomainname`\" = yes"; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  has_getdomainname=1
+else
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+has_getdomainname=0
+fi
+
+    if test $has_getdomainname = 1 -a $cross_compiling = 0 ; then
+        # Extract the first word of "domainname", so it can be a program name with args.
+set dummy domainname; ac_word=$2
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for $ac_word""... $ac_c"
+else
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
+fi
+ac_prog_where=""
+if test -n "$has_domainname"; then
+  ac_pg_has_domainname="$has_domainname" # Let the user override the test.
+else
+  ac_first_char=`expr "domainname" : "\(.\)"`
+  if test "$ac_first_char" = "/" -a -x "domainname" ; then
+       ac_pg_has_domainname="1"
+       ac_prog_where=domainname
+  else
+      IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
+      for ac_dir in $PATH; do
+        test -z "$ac_dir" && ac_dir=.
+        if test -f $ac_dir/$ac_word; then
+          ac_pg_has_domainname="1"
+          ac_prog_where=$ac_dir/$ac_word
+          break
+        fi
+      done
+      IFS="$ac_save_ifs"
+  fi
+  test -z "$ac_pg_has_domainname" && ac_pg_has_domainname="0"
+fi;has_domainname="$ac_pg_has_domainname"
+if test -n "$ac_prog_where" ; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""found $ac_prog_where ($has_domainname)"
+else
+echo "$ac_t""found $ac_prog_where ($has_domainname)" 1>&1
+fi
+   d_domainname=$ac_prog_where  
+else
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+
+        # Extract the first word of "hostname", so it can be a program name with args.
+set dummy hostname; ac_word=$2
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for $ac_word""... $ac_c"
+else
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
+fi
+ac_prog_where=""
+if test -n "$has_hostname"; then
+  ac_pg_has_hostname="$has_hostname" # Let the user override the test.
+else
+  ac_first_char=`expr "hostname" : "\(.\)"`
+  if test "$ac_first_char" = "/" -a -x "hostname" ; then
+       ac_pg_has_hostname="1"
+       ac_prog_where=hostname
+  else
+      IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
+      for ac_dir in $PATH; do
+        test -z "$ac_dir" && ac_dir=.
+        if test -f $ac_dir/$ac_word; then
+          ac_pg_has_hostname="1"
+          ac_prog_where=$ac_dir/$ac_word
+          break
+        fi
+      done
+      IFS="$ac_save_ifs"
+  fi
+  test -z "$ac_pg_has_hostname" && ac_pg_has_hostname="0"
+fi;has_hostname="$ac_pg_has_hostname"
+if test -n "$ac_prog_where" ; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""found $ac_prog_where ($has_hostname)"
+else
+echo "$ac_t""found $ac_prog_where ($has_hostname)" 1>&1
+fi
+   d_hostname=$ac_prog_where  
+else
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+
+        # Extract the first word of "rup", so it can be a program name with args.
+set dummy rup; ac_word=$2
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for $ac_word""... $ac_c"
+else
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
+fi
+ac_prog_where=""
+if test -n "$has_rup"; then
+  ac_pg_has_rup="$has_rup" # Let the user override the test.
+else
+  ac_first_char=`expr "rup" : "\(.\)"`
+  if test "$ac_first_char" = "/" -a -x "rup" ; then
+       ac_pg_has_rup="1"
+       ac_prog_where=rup
+  else
+      IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
+      for ac_dir in $PATH; do
+        test -z "$ac_dir" && ac_dir=.
+        if test -f $ac_dir/$ac_word; then
+          ac_pg_has_rup="1"
+          ac_prog_where=$ac_dir/$ac_word
+          break
+        fi
+      done
+      IFS="$ac_save_ifs"
+  fi
+  test -z "$ac_pg_has_rup" && ac_pg_has_rup="0"
+fi;has_rup="$ac_pg_has_rup"
+if test -n "$ac_prog_where" ; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""found $ac_prog_where ($has_rup)"
+else
+echo "$ac_t""found $ac_prog_where ($has_rup)" 1>&1
+fi
+   d_rup=$ac_prog_where  
+else
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+
+        # Form hostname.domainname, do rup to it
+        # rup may not be enabled, but short of running a program to lookup the
+        # local host, there does not seem to be a better alternative.
+        #
+        if test $has_domainname = 1 -a $has_hostname = 1 -a $has_rup = 1 ; then
+
+            fullhost=`$d_hostname | sed -e 's/^\([^\.]*\)\..*/\1/'`
+
+#	    echo $fullhost
+            fullhost="${fullhost}.`$d_domainname`"
+            response=`($d_rup $fullhost 2>&1) | egrep '(Unknown host|translation failed)'`
+#	    echo $fullhost
+            if test -n "$response" ; then
+   print_error "The getdomainname system routine has been rendered USELESS"
+   print_error "on your system.  This is not a bug and will not affect"
+   print_error "MPICH.  Some MPE routines (particularly those that"
+   print_error "interact with X Windows) may not work."
+            else
+                
+{
+test -n "$verbose" && \
+echo "	defining HAVE_GETDOMAINNAME"
+echo "#define" HAVE_GETDOMAINNAME 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_GETDOMAINNAME=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}HAVE_GETDOMAINNAME\${SEDdB}HAVE_GETDOMAINNAME\${SEDdC}1\${SEDdD}
+\${SEDuA}HAVE_GETDOMAINNAME\${SEDuB}HAVE_GETDOMAINNAME\${SEDuC}1\${SEDuD}
+\${SEDeA}HAVE_GETDOMAINNAME\${SEDeB}HAVE_GETDOMAINNAME\${SEDeC}1\${SEDeD}
+"
+}
+
+	    fi
+        fi
+    fi
+fi
 GETNAME_DEFS="$DEFS"
 DEFS="$SAVEDEFS"
 #
@@ -6782,6 +8064,10 @@ test -n "$verbose" && \
 echo "	defining ${trfunc}"
 echo "#define" ${trfunc} 1 >> confdefs.h
 DEFS="$DEFS -D${trfunc}=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}${trfunc}\${SEDdB}${trfunc}\${SEDdC}1\${SEDdD}
+\${SEDuA}${trfunc}\${SEDuB}${trfunc}\${SEDuC}1\${SEDuD}
+\${SEDeA}${trfunc}\${SEDeB}${trfunc}\${SEDeC}1\${SEDeD}
+"
 }
 
 
@@ -6795,7 +8081,21 @@ rm -f conftest*
 done
 
 # Will need to generate binary form of file
-# Extract the first word of "gencat", so it can be a program name with args.
+# !!! We have a report that on Cray, gencat is a completely different command
+# (parallel fscks?).  We're supposed to use 
+# caterr -c cat_file msg_file.  Instead, we'll skip it
+if test -n "$device_td3" ; then 
+ # May try caterr -c cat_file msg_file
+ print_error "Configure needs the gencat program to generate message catalogs"
+ print_error "Some (all?) Cray T3D systems have a program named gencat"
+ print_error "that performs file system checks instead.  For this reason,"
+ print_error "message catalogs will not be created for the T3D device."
+ print_error "You may be able to use the caterr command instead."
+ print_error "MPICH will work without the message catalogs (though the"
+ print_error "ability to generate error messages in languages other than"
+ print_error "US English will be lost)."
+else
+ # Extract the first word of "gencat", so it can be a program name with args.
 set dummy gencat; ac_word=$2
 if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
@@ -6860,13 +8160,17 @@ echo "$ac_t""no" 1>&1
 fi
 fi
 
-if test $has_gencat = 1 ; then
+ if test $has_gencat = 1 ; then
     
 {
 test -n "$verbose" && \
 echo "	defining HAVE_GENCAT"
 echo "#define" HAVE_GENCAT 1 >> confdefs.h
 DEFS="$DEFS -DHAVE_GENCAT=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}HAVE_GENCAT\${SEDdB}HAVE_GENCAT\${SEDdC}1\${SEDdD}
+\${SEDuA}HAVE_GENCAT\${SEDuB}HAVE_GENCAT\${SEDuC}1\${SEDuD}
+\${SEDeA}HAVE_GENCAT\${SEDeB}HAVE_GENCAT\${SEDeC}1\${SEDeD}
+"
 }
 
     for ac_hdr in nl_types.h
@@ -6941,6 +8245,10 @@ test -n "$verbose" && \
 echo "	defining $ac_tr_hdr"
 echo "#define" $ac_tr_hdr 1 >> confdefs.h
 DEFS="$DEFS -D$ac_tr_hdr=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}$ac_tr_hdr\${SEDdB}$ac_tr_hdr\${SEDdC}1\${SEDdD}
+\${SEDuA}$ac_tr_hdr\${SEDuB}$ac_tr_hdr\${SEDuC}1\${SEDuD}
+\${SEDeA}$ac_tr_hdr\${SEDeB}$ac_tr_hdr\${SEDeC}1\${SEDeD}
+"
 }
  
 else
@@ -6985,12 +8293,14 @@ fi
     (cd src/env ; \
     for file in mpich.*.msg ; do \
 	fileroot=`basename $file .msg` ; \
-        /bin/rm -f $fileroot.cat ; \
-        gencat $fileroot.cat $file ; \
+        /bin/rm -f $fileroot.cat $fileroot.cat.m ; \
+        gencat $fileroot.cat $file > /dev/null 2>&1 ; \
         if test -s $fileroot.cat ; then \
+	    /bin/rm -f ../../lib/$ARCH/$fileroot.cat ; \
 	    cp $fileroot.cat ../../lib/$ARCH ; \
         fi ; \
         if test -s $fileroot.cat.m ; then \
+	    /bin/rm -f ../../lib/$ARCH/$fileroot.cat.m ; \
 	    cp $fileroot.cat.m ../../lib/$ARCH ; \
         fi ; \
     done \
@@ -7011,6 +8321,7 @@ else
 echo "$ac_t"""Could not create catalog; US English messages will be used"" 1>&1
 fi
     fi
+ fi
 fi
 DEFS="$SAVEDEFS"
 #
@@ -7051,6 +8362,10 @@ test -n "$verbose" && \
 echo "	defining STDC_HEADERS"
 echo "#define" STDC_HEADERS 1 >> confdefs.h
 DEFS="$DEFS -DSTDC_HEADERS=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}STDC_HEADERS\${SEDdB}STDC_HEADERS\${SEDdC}1\${SEDdD}
+\${SEDuA}STDC_HEADERS\${SEDuB}STDC_HEADERS\${SEDuC}1\${SEDuD}
+\${SEDeA}STDC_HEADERS\${SEDeB}STDC_HEADERS\${SEDeC}1\${SEDeD}
+"
 }
 
 
@@ -7138,6 +8453,10 @@ test -n "$verbose" && \
 echo "	defining $ac_tr_hdr"
 echo "#define" $ac_tr_hdr 1 >> confdefs.h
 DEFS="$DEFS -D$ac_tr_hdr=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}$ac_tr_hdr\${SEDdB}$ac_tr_hdr\${SEDdC}1\${SEDdD}
+\${SEDuA}$ac_tr_hdr\${SEDuB}$ac_tr_hdr\${SEDuC}1\${SEDuD}
+\${SEDeA}$ac_tr_hdr\${SEDeB}$ac_tr_hdr\${SEDeC}1\${SEDeD}
+"
 }
  
 else
@@ -7149,6 +8468,8 @@ fi
 fi
 done
 
+# MPE needs to know about stdlib.h
+MPE_CFLAGS="$MPE_CFLAGS $DEFS"
 for ac_hdr in unistd.h
 do
 ac_safe=`echo "$ac_hdr" | tr '[a-z]./' '[A-Z]__'`
@@ -7221,6 +8542,10 @@ test -n "$verbose" && \
 echo "	defining $ac_tr_hdr"
 echo "#define" $ac_tr_hdr 1 >> confdefs.h
 DEFS="$DEFS -D$ac_tr_hdr=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}$ac_tr_hdr\${SEDdB}$ac_tr_hdr\${SEDdC}1\${SEDdD}
+\${SEDuA}$ac_tr_hdr\${SEDuB}$ac_tr_hdr\${SEDuC}1\${SEDuD}
+\${SEDeA}$ac_tr_hdr\${SEDeB}$ac_tr_hdr\${SEDeC}1\${SEDeD}
+"
 }
  
 else
@@ -7301,6 +8626,10 @@ test -n "$verbose" && \
 echo "	defining HAVE_STDARG_H"
 echo "#define" HAVE_STDARG_H 1 >> confdefs.h
 DEFS="$DEFS -DHAVE_STDARG_H=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}HAVE_STDARG_H\${SEDdB}HAVE_STDARG_H\${SEDdC}1\${SEDdD}
+\${SEDuA}HAVE_STDARG_H\${SEDuB}HAVE_STDARG_H\${SEDuC}1\${SEDuD}
+\${SEDeA}HAVE_STDARG_H\${SEDeB}HAVE_STDARG_H\${SEDeC}1\${SEDeD}
+"
 }
 
 havestdarg=1
@@ -7391,8 +8720,13 @@ test -n "$verbose" && \
 echo "	defining USE_STDARG"
 echo "#define" USE_STDARG 1 >> confdefs.h
 DEFS="$DEFS -DUSE_STDARG=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}USE_STDARG\${SEDdB}USE_STDARG\${SEDdC}1\${SEDdD}
+\${SEDuA}USE_STDARG\${SEDuB}USE_STDARG\${SEDuC}1\${SEDuD}
+\${SEDeA}USE_STDARG\${SEDeB}USE_STDARG\${SEDeC}1\${SEDeD}
+"
 }
 
+MPE_CFLAGS="$MPE_CFLAGS -DUSE_STDARG"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
@@ -7471,6 +8805,10 @@ test -n "$verbose" && \
 echo "	defining MALLOC_RET_VOID"
 echo "#define" MALLOC_RET_VOID 1 >> confdefs.h
 DEFS="$DEFS -DMALLOC_RET_VOID=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}MALLOC_RET_VOID\${SEDdB}MALLOC_RET_VOID\${SEDdC}1\${SEDdD}
+\${SEDuA}MALLOC_RET_VOID\${SEDuB}MALLOC_RET_VOID\${SEDuC}1\${SEDuD}
+\${SEDeA}MALLOC_RET_VOID\${SEDeB}MALLOC_RET_VOID\${SEDeC}1\${SEDeD}
+"
 }
 
 fi
@@ -7548,6 +8886,10 @@ test -n "$verbose" && \
 echo "	defining ${trfunc}"
 echo "#define" ${trfunc} 1 >> confdefs.h
 DEFS="$DEFS -D${trfunc}=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}${trfunc}\${SEDdB}${trfunc}\${SEDdC}1\${SEDdD}
+\${SEDuA}${trfunc}\${SEDuB}${trfunc}\${SEDuC}1\${SEDuD}
+\${SEDeA}${trfunc}\${SEDeB}${trfunc}\${SEDeC}1\${SEDeD}
+"
 }
 
 
@@ -7631,6 +8973,10 @@ test -n "$verbose" && \
 echo "	defining ${trfunc}"
 echo "#define" ${trfunc} 1 >> confdefs.h
 DEFS="$DEFS -D${trfunc}=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}${trfunc}\${SEDdB}${trfunc}\${SEDdC}1\${SEDdD}
+\${SEDuA}${trfunc}\${SEDuB}${trfunc}\${SEDuC}1\${SEDuD}
+\${SEDeA}${trfunc}\${SEDeB}${trfunc}\${SEDeC}1\${SEDeD}
+"
 }
 
 
@@ -7644,13 +8990,102 @@ rm -f conftest*
 done
 
 #
+# Look for headers that might have memset()....
+for ac_hdr in memory.h string.h
+do
+ac_safe=`echo "$ac_hdr" | tr '[a-z]./' '[A-Z]__'`
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for $ac_hdr""... $ac_c"
+else
+echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+#include <$ac_hdr>
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  
+  rm -rf conftest*
+  eval "ac_cv_header_$ac_safe=yes"
+
+else
+  rm -rf conftest*
+  eval "ac_cv_header_$ac_safe=no"
+   
+fi
+rm -f conftest*
+if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+    ac_tr_hdr=HAVE_`echo $ac_hdr | tr '[a-z]./' '[A-Z]__'`
+  
+{
+test -n "$verbose" && \
+echo "	defining $ac_tr_hdr"
+echo "#define" $ac_tr_hdr 1 >> confdefs.h
+DEFS="$DEFS -D$ac_tr_hdr=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}$ac_tr_hdr\${SEDdB}$ac_tr_hdr\${SEDdC}1\${SEDdD}
+\${SEDuA}$ac_tr_hdr\${SEDuB}$ac_tr_hdr\${SEDuC}1\${SEDuD}
+\${SEDeA}$ac_tr_hdr\${SEDeB}$ac_tr_hdr\${SEDeC}1\${SEDeD}
+"
+}
+ 
+else
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+done
+
+#
 # Turn off F77
 # One problem with this is that some part of the ar will fail.  Lets hope
 # it isn't fatal.  We've tried to fix this by defining MPI_FOBJECTS
 # as the object files created from Fortran.
 if test $NOF77 = 1 ; then
-  F77=true
-  FLINKER=true
+  F77="echo no Fortran compiler"
+  FLINKER="$F77"
 fi
 #
 #
@@ -7674,6 +9109,7 @@ fi
 # be run or just compiled.  And eventually, this should be run EARLY,
 # before checking for things like functions and include files.
 #
+
 
 if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
@@ -7806,9 +9242,20 @@ fi
         cat conftest.out
     fi
     NOF77=1;HAS_FORTRAN=0;HAS_F77=0;
-       CFLAGS="-DMPID_NO_FORTRAN $CFLAGS"
-       F77=true
-       FLINKER=true
+       
+{
+test -n "$verbose" && \
+echo "	defining MPID_NO_FORTRAN"
+echo "#define" MPID_NO_FORTRAN 1 >> confdefs.h
+DEFS="$DEFS -DMPID_NO_FORTRAN=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}MPID_NO_FORTRAN\${SEDdB}MPID_NO_FORTRAN\${SEDdC}1\${SEDdD}
+\${SEDuA}MPID_NO_FORTRAN\${SEDuB}MPID_NO_FORTRAN\${SEDuC}1\${SEDuD}
+\${SEDeA}MPID_NO_FORTRAN\${SEDeB}MPID_NO_FORTRAN\${SEDeC}1\${SEDeD}
+"
+}
+
+              F77="echo no Fortran compiler"
+       FLINKER="$F77"
        MPI_FOBJECTS=""
 elif test ! -s conftest.o ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -7822,9 +9269,20 @@ fi
         cat conftest.out
     fi
     NOF77=1;HAS_FORTRAN=0;HAS_F77=0;
-       CFLAGS="-DMPID_NO_FORTRAN $CFLAGS"
-       F77=true
-       FLINKER=true
+       
+{
+test -n "$verbose" && \
+echo "	defining MPID_NO_FORTRAN"
+echo "#define" MPID_NO_FORTRAN 1 >> confdefs.h
+DEFS="$DEFS -DMPID_NO_FORTRAN=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}MPID_NO_FORTRAN\${SEDdB}MPID_NO_FORTRAN\${SEDdC}1\${SEDdD}
+\${SEDuA}MPID_NO_FORTRAN\${SEDuB}MPID_NO_FORTRAN\${SEDuC}1\${SEDuD}
+\${SEDeA}MPID_NO_FORTRAN\${SEDeB}MPID_NO_FORTRAN\${SEDeC}1\${SEDeD}
+"
+}
+
+              F77="echo no Fortran compiler"
+       FLINKER="$F77"
        MPI_FOBJECTS=""
 else    
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -7919,6 +9377,7 @@ rm -f conftest*
 fi
 if test $do_test = 1 ; then
     
+
 if test -z "$CCBUGS" ; then CCBUGS=ccbugs ; fi
 if test -d $CCBUGS ; then 
     # Use "LTESTCC" as "local Test CC"
@@ -8148,12 +9607,13 @@ echo $ac_n "checking that ranlib works""... $ac_c"
 else
 echo $ac_n "checking that ranlib works""... $ac_c" 1>&1
 fi
+broken=0
 cat <<EOF >conftest.c
 int a(){return 1;}
 EOF
 compileonly='$CC -c $CFLAGS conftest.c >/dev/null 2>&1'
 if eval $compileonly ; then 
-    broken=0;
+    :
 else
     broken=1;
 fi
@@ -8169,19 +9629,44 @@ else
     eval $arcmd
     ranlibtest='$RANLIB foo.a >/dev/null 2>&1'
     if eval $ranlibtest ; then
-        broken=0;
-	if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""yes"
-else
-echo "$ac_t""yes" 1>&1
-fi
+        : 
     else
-        broken=1;
-	if test -z "$ac_echo_test" -a 1 = 1 ; then
+        broken=1
+    fi
+    cat <<EOF >conftest.c
+int a(); int main(argc,argv)int argc; char **argv;{ return a();}
+EOF
+    compileonly='$CC -c $CFLAGS conftest.c >/dev/null 2>&1'
+    if eval $compileonly ; then 
+        : 
+    else
+        broken=1
+    fi
+    if test $broken = 1 ; then
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+        print_error "Error in creating test program for ranlib test!"
+    else
+	# Check that we can link the program
+        if eval $CLINKER $CFLAGS $LDFLAGS conftest.o -o conftest foo.a $LIBS \
+		>/dev/null 2>&1 ; then
+	    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+	else
+	    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+	    print_error "Error linking with ranlibed library"
+	    broken=1
+        fi
     fi
     /bin/rm -f foo.a
     if test $broken = 1 ; then
@@ -8358,7 +9843,7 @@ EOF
   rm -fr conftest*
 fi
 
-if test -n "$Pac_CV_NAME" ; then
+if test -n "$Pac_CV_NAME" -a "$Pac_CV_NAME" != 0 ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""$Pac_CV_NAME"
 else
@@ -8412,6 +9897,10 @@ test -n "$verbose" && \
 echo "	defining POINTER_64_BITS"
 echo "#define" POINTER_64_BITS 1 >> confdefs.h
 DEFS="$DEFS -DPOINTER_64_BITS=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}POINTER_64_BITS\${SEDdB}POINTER_64_BITS\${SEDdC}1\${SEDdD}
+\${SEDuA}POINTER_64_BITS\${SEDuB}POINTER_64_BITS\${SEDuC}1\${SEDuD}
+\${SEDeA}POINTER_64_BITS\${SEDeB}POINTER_64_BITS\${SEDeC}1\${SEDeD}
+"
 }
 
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -8503,7 +9992,7 @@ EOF
   rm -fr conftest*
 fi
 
-if test -n "$Pac_CV_NAME" ; then
+if test -n "$Pac_CV_NAME" -a "$Pac_CV_NAME" != 0 ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""$Pac_CV_NAME"
 else
@@ -8593,7 +10082,7 @@ EOF
   rm -fr conftest*
 fi
 
-if test -n "$Pac_CV_NAME" ; then
+if test -n "$Pac_CV_NAME" -a "$Pac_CV_NAME" != 0 ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""$Pac_CV_NAME"
 else
@@ -8649,6 +10138,10 @@ test -n "$verbose" && \
 echo "	defining INT_LT_POINTER"
 echo "#define" INT_LT_POINTER 1 >> confdefs.h
 DEFS="$DEFS -DINT_LT_POINTER=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}INT_LT_POINTER\${SEDdB}INT_LT_POINTER\${SEDdC}1\${SEDdD}
+\${SEDuA}INT_LT_POINTER\${SEDuB}INT_LT_POINTER\${SEDuC}1\${SEDuD}
+\${SEDeA}INT_LT_POINTER\${SEDeB}INT_LT_POINTER\${SEDeC}1\${SEDeD}
+"
 }
 
        if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -8672,6 +10165,10 @@ test -n "$verbose" && \
 echo "	defining POINTER_64_BITS"
 echo "#define" POINTER_64_BITS 1 >> confdefs.h
 DEFS="$DEFS -DPOINTER_64_BITS=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}POINTER_64_BITS\${SEDdB}POINTER_64_BITS\${SEDdC}1\${SEDdD}
+\${SEDuA}POINTER_64_BITS\${SEDuB}POINTER_64_BITS\${SEDuC}1\${SEDuD}
+\${SEDeA}POINTER_64_BITS\${SEDeB}POINTER_64_BITS\${SEDeC}1\${SEDeD}
+"
 }
 
 fi
@@ -8713,6 +10210,10 @@ test -n "$verbose" && \
 echo "	defining HAVE_LONG_DOUBLE"
 echo "#define" HAVE_LONG_DOUBLE 1 >> confdefs.h
 DEFS="$DEFS -DHAVE_LONG_DOUBLE=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}HAVE_LONG_DOUBLE\${SEDdB}HAVE_LONG_DOUBLE\${SEDdC}1\${SEDdD}
+\${SEDuA}HAVE_LONG_DOUBLE\${SEDuB}HAVE_LONG_DOUBLE\${SEDuC}1\${SEDuD}
+\${SEDeA}HAVE_LONG_DOUBLE\${SEDeB}HAVE_LONG_DOUBLE\${SEDeC}1\${SEDeD}
+"
 }
 
 if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -8766,6 +10267,10 @@ test -n "$verbose" && \
 echo "	defining HAVE_LONG_DOUBLE"
 echo "#define" HAVE_LONG_DOUBLE 1 >> confdefs.h
 DEFS="$DEFS -DHAVE_LONG_DOUBLE=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}HAVE_LONG_DOUBLE\${SEDdB}HAVE_LONG_DOUBLE\${SEDdC}1\${SEDdD}
+\${SEDuA}HAVE_LONG_DOUBLE\${SEDuB}HAVE_LONG_DOUBLE\${SEDuC}1\${SEDuD}
+\${SEDeA}HAVE_LONG_DOUBLE\${SEDeB}HAVE_LONG_DOUBLE\${SEDeC}1\${SEDeD}
+"
 }
 if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -8831,6 +10336,10 @@ test -n "$verbose" && \
 echo "	defining HAVE_LONG_LONG_INT"
 echo "#define" HAVE_LONG_LONG_INT 1 >> confdefs.h
 DEFS="$DEFS -DHAVE_LONG_LONG_INT=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}HAVE_LONG_LONG_INT\${SEDdB}HAVE_LONG_LONG_INT\${SEDdC}1\${SEDdD}
+\${SEDuA}HAVE_LONG_LONG_INT\${SEDuB}HAVE_LONG_LONG_INT\${SEDuC}1\${SEDuD}
+\${SEDeA}HAVE_LONG_LONG_INT\${SEDeB}HAVE_LONG_LONG_INT\${SEDeC}1\${SEDeD}
+"
 }
 if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
@@ -9040,6 +10549,12 @@ for dir in $PATH ; do
     if test -x $dir/wish ; then
 	wishloc=$dir/wish
         break
+    elif test -x $dir/tcl7.3-tk3.6/bin/wish ; then
+	wishloc=$dir/tcl7.3-tk3.6/bin/wish
+	break
+    elif test -x $dir/tcl7.4-tk4.0/bin/wish ; then
+        wishloc=$dir/tcl7.4-tk4.0/bin/wish
+	break
     fi
 done
 IFS="$saveifs"
@@ -9064,6 +10579,7 @@ for dir in \
     /usr/unsupported/bin \
     /usr/bin \
     /bin \
+    /usr/sgitcl \
     /local/encap/tcl-7.1/bin ; do
     if test -x $dir/wish ; then
 	wishloc=$dir/wish
@@ -9106,6 +10622,70 @@ if test -z "$TCL_DIR" ; then
     
 # Look for Tcl
 if test -z "$TCL_DIR" ; then
+# Extract the first word of "tclsh", so it can be a program name with args.
+set dummy tclsh; ac_word=$2
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for $ac_word""... $ac_c"
+else
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
+fi
+ac_prog_where=""
+if test -n "$TCLSH"; then
+  ac_pg_TCLSH="$TCLSH" # Let the user override the test.
+else
+  ac_first_char=`expr "tclsh" : "\(.\)"`
+  if test "$ac_first_char" = "/" -a -x "tclsh" ; then
+       ac_pg_TCLSH="1"
+       ac_prog_where=tclsh
+  else
+      IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
+      for ac_dir in $PATH; do
+        test -z "$ac_dir" && ac_dir=.
+        if test -f $ac_dir/$ac_word; then
+          ac_pg_TCLSH="1"
+          ac_prog_where=$ac_dir/$ac_word
+          break
+        fi
+      done
+      IFS="$ac_save_ifs"
+  fi
+fi;TCLSH="$ac_pg_TCLSH"
+if test -n "$ac_prog_where" ; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""found $ac_prog_where ($TCLSH)"
+else
+echo "$ac_t""found $ac_prog_where ($TCLSH)" 1>&1
+fi
+   tclshloc=$ac_prog_where  
+else
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+
 if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
@@ -9132,13 +10712,28 @@ echo $ac_n "checking for Tcl""... $ac_c"
 else
 echo $ac_n "checking for Tcl""... $ac_c" 1>&1
 fi
-for dir in \
+# See if tclsh is in the path
+if test -n "$tclshloc" ; then
+    cat >conftest <<EOF
+puts stdout \$tcl_library
+EOF
+    tcllibloc=`$tclshloc conftest`
+    # The tcllibloc is the directory containing the .tcl files.  
+    # The .a files may be one directory up
+    tcllibloc=`dirname $tcllibloc`
+    # and the lib directory one above that
+    tcllibs="$tcllibloc `dirname $tcllibloc`"
+    /bin/rm -f conftest   
+fi
+for dir in $tcllibs \
     /usr \
     /usr/local \
+    /usr/local/tcl7.5 \
     /usr/local/tcl7.3 \
     /usr/local/tcl7.3-tk3.6 \
     /usr/local/tcl7.0 \
     /usr/local/tcl7.0-tk3.3 \
+    /usr/local/tcl7.* \
     /usr/contrib \
     /usr/contrib/tk3.6 \
     /usr/contrib/tcl7.3-tk3.6 \
@@ -9146,29 +10741,48 @@ for dir in \
     /usr/contrib/tcl7.0-tk3.3 \
     $HOME/tcl \
     $HOME/tcl7.3 \
+    $HOME/tcl7.5 \
     /opt/Tcl \
     /opt/local \
-    /opt/local/tcl7.0 \
+    /opt/local/tcl7.5 \
+    /opt/local/tcl7.* \
+    /usr/bin \
     /Tools/tcl \
+    /usr/sgitcl \
     /local/encap/tcl-7.1 ; do
-    if test -r $dir/include/tcl.h -a -r $dir/lib/libtcl.a ; then
-	TCL_DIR=$dir
-	break
+    if test -r $dir/include/tcl.h ; then 
+        if test -r $dir/lib/libtcl.a -o -r $dir/lib/libtcl.so ; then
+ 	    TCL_DIR=$dir
+	    break
+        fi
+	for file in $dir/lib/libtcl*.a ; do
+	    if test -r $file ; then 
+                TCL_DIR_W="$TCL_DIR_W $file"
+	    fi
+	done
     fi
 done
 fi
 if test -n "$TCL_DIR" ; then 
   if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""found $TCL_DIR/include/tcl.h and $TCL_DIR/lib/libtcl.a"
+echo "$ac_t""found $TCL_DIR/include/tcl.h and $TCL_DIR/lib/libtcl"
 else
-echo "$ac_t""found $TCL_DIR/include/tcl.h and $TCL_DIR/lib/libtcl.a" 1>&1
+echo "$ac_t""found $TCL_DIR/include/tcl.h and $TCL_DIR/lib/libtcl" 1>&1
 fi
 else
-  if test -z "$ac_echo_test" -a 1 = 1 ; then
+  if test -n "$TCL_DIR_W" ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""found $TCL_DIR_W but need libtcl.a"
+else
+echo "$ac_t""found $TCL_DIR_W but need libtcl.a" 1>&1
+fi
+  else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+  fi
 fi
 # Look for Tk (look in tcl dir if the code is nowhere else)
 if test -z "$TK_DIR" ; then
@@ -9198,7 +10812,20 @@ echo $ac_n "checking for Tk""... $ac_c"
 else
 echo $ac_n "checking for Tk""... $ac_c" 1>&1
 fi
-for dir in \
+if test -n "$wishloc" ; then
+    cat >conftest <<EOF
+puts stdout \$tk_library
+exit
+EOF
+    tklibloc=`$wishloc -file conftest`
+    # The tklibloc is the directory containing the .k files.  
+    # The .a files may be one directory up
+    tklibloc=`dirname $tklibloc`
+    # and the lib directory one above that
+    tklibs="$tklibloc `dirname $tklibloc`"
+    /bin/rm -f conftest   
+fi
+for dir in $tklibs \
     /usr \
     /usr/local \
     /usr/local/tk3.6 \
@@ -9215,21 +10842,43 @@ for dir in \
     /opt/Tcl \
     /opt/local \
     /opt/local/tk3.6 \
+    /usr/bin \
     /Tools/tk \
+    /usr/sgitcl \
     /local/encap/tk-3.4 $TCL_DIR ; do
-    if test -r $dir/include/tk.h -a -r $dir/lib/libtk.a ; then
-	TK_DIR=$dir
-	break
+    if test -r $dir/include/tk.h ; then 
+        if test -r $dir/lib/libtk.a -o -r $dir/lib/libtk.so ; then
+	    TK_DIR=$dir
+	    break
+	fi
+	for file in $dir/lib/libtk*.a ; do
+	    if test -r $file ; then 
+                TK_DIR_W="$TK_DIR_W $file"
+	    fi
+	done
     fi
 done
 fi
 if test -n "$TK_DIR" ; then 
   if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""found $TK_DIR/include/tk.h and $TK_DIR/lib/libtk.a"
+echo "$ac_t""found $TK_DIR/include/tk.h and $TK_DIR/lib/libtk"
 else
-echo "$ac_t""found $TK_DIR/include/tk.h and $TK_DIR/lib/libtk.a" 1>&1
+echo "$ac_t""found $TK_DIR/include/tk.h and $TK_DIR/lib/libtk" 1>&1
 fi
 else
+  if test -n "$TK_DIR_W" ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""found $TK_DIR_W but need libtk.a (and version 3.6) "
+else
+echo "$ac_t""found $TK_DIR_W but need libtk.a (and version 3.6) " 1>&1
+fi
+  else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+  fi
   if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
@@ -9702,9 +11351,76 @@ fi
 # Set the location of the bitmaps
 #
 USER_CFLAGS="$CFLAGS $USER_DEFS"
-CFLAGS="$CFLAGS $DEFS"
+CFLAGS="$CFLAGS -DHAVE_CONFIG_H"
+#
 if test $is_adi1 = 0 ; then
-    CFLAGS="$CFLAGS -DMPI_ADI2 -I../../mpid/ch2"
+    
+{
+test -n "$verbose" && \
+echo "	defining MPI_ADI2"
+echo "#define" MPI_ADI2 1 >> confdefs.h
+DEFS="$DEFS -DMPI_ADI2=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}MPI_ADI2\${SEDdB}MPI_ADI2\${SEDdC}1\${SEDdD}
+\${SEDuA}MPI_ADI2\${SEDuB}MPI_ADI2\${SEDuC}1\${SEDuD}
+\${SEDeA}MPI_ADI2\${SEDeB}MPI_ADI2\${SEDeC}1\${SEDeD}
+"
+}
+
+        CFLAGS="$CFLAGS -I../../mpid/ch2 -I../../lib/$ARCH/$COMM"
+    if test "$MEMDEBUG" = "1" ; then 
+	
+{
+test -n "$verbose" && \
+echo "	defining MPIR_MEMDEBUG"
+echo "#define" MPIR_MEMDEBUG 1 >> confdefs.h
+DEFS="$DEFS -DMPIR_MEMDEBUG=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}MPIR_MEMDEBUG\${SEDdB}MPIR_MEMDEBUG\${SEDdC}1\${SEDdD}
+\${SEDuA}MPIR_MEMDEBUG\${SEDuB}MPIR_MEMDEBUG\${SEDuC}1\${SEDuD}
+\${SEDeA}MPIR_MEMDEBUG\${SEDeB}MPIR_MEMDEBUG\${SEDeC}1\${SEDeD}
+"
+}
+
+	
+{
+test -n "$verbose" && \
+echo "	defining MPIR_OBJDEBUG"
+echo "#define" MPIR_OBJDEBUG 1 >> confdefs.h
+DEFS="$DEFS -DMPIR_OBJDEBUG=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}MPIR_OBJDEBUG\${SEDdB}MPIR_OBJDEBUG\${SEDdC}1\${SEDdD}
+\${SEDuA}MPIR_OBJDEBUG\${SEDuB}MPIR_OBJDEBUG\${SEDuC}1\${SEDuD}
+\${SEDeA}MPIR_OBJDEBUG\${SEDeB}MPIR_OBJDEBUG\${SEDeC}1\${SEDeD}
+"
+}
+
+	    fi
+    if test "$TRDEBUG" = "1" ; then 
+	
+{
+test -n "$verbose" && \
+echo "	defining DEBUG_TRACE"
+echo "#define" DEBUG_TRACE 1 >> confdefs.h
+DEFS="$DEFS -DDEBUG_TRACE=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}DEBUG_TRACE\${SEDdB}DEBUG_TRACE\${SEDdC}1\${SEDdD}
+\${SEDuA}DEBUG_TRACE\${SEDuB}DEBUG_TRACE\${SEDuC}1\${SEDuD}
+\${SEDeA}DEBUG_TRACE\${SEDeB}DEBUG_TRACE\${SEDeC}1\${SEDeD}
+"
+}
+
+            fi
+fi
+if test $is_adi1 = 1 -a -z "$adi1_ok" ; then
+    cat <<EOF
+The MPICH implementation of MPI no longer supports the ADI-1 interface.
+The supported devices are all ADI-2 interfaces (e.g., ch_p4, ch_shmem, 
+ch_nx, etc.).  
+
+All implementors that we know about are notified about changes in the MPICH
+implementation.  If you are an implementor using MPICH, please let us know
+about you so that we can add you to the list of MPICH developers.  Send
+mail to mpi-bugs@mcs.anl.gov and asked to be added to the MPICH developers 
+list.
+EOF
+    exit 1
 fi
 LIB_PATH="-L$MPIR_HOME/lib/$ARCH/$COMM $LIB_PATH"
 #
@@ -9898,7 +11614,10 @@ LIB_LIST="-l$MPILIBNAME $LIB_LIST"
 MPICC=$MPIR_HOME/lib/$ARCH/$COMM/mpicc
 MPIF77=$MPIR_HOME/lib/$ARCH/$COMM/mpif77
 MPICPLUSPLUS=$MPIR_HOME/lib/$ARCH/$COMM/mpiCC
+LIB_DIR=$MPIR_HOME/lib/$ARCH/$COMM
 #
+# Some mpi2 commands supported (for the testing scripts)
+HAS_MPI2=1
 #
 # Substitute variables
 # Variables used in scripts only
@@ -9952,11 +11671,12 @@ do
   esac
 done
 
-trap 'rm -f Makefile examples/Makefile examples/test/Makefile examples/test/pt2pt/Makefile examples/test/coll/Makefile examples/test/topol/Makefile examples/test/context/Makefile examples/test/env/Makefile examples/test/profile/Makefile examples/test/lederman/Makefile examples/contrib/Makefile examples/contrib/usingmpi/Makefile examples/contrib/life/Makefile examples/contrib/nuclei/Makefile examples/contrib/C++/Makefile examples/contrib/mandel-pvm/Makefile examples/perftest/Makefile src/pt2pt/Makefile src/coll/Makefile src/context/Makefile src/dmpi/Makefile src/env/Makefile src/topol/Makefile src/profile/Makefile src/util/Makefile src/c++/Makefile mpe/Makefile mpe/Makefile_nompi examples/basic/Makefile profiling/examples/Makefile profiling/lib/Makefile mpe/contrib/mandel/Makefile mpe/contrib/mastermind/Makefile mpe/contrib/life/Makefile mpe/test/Makefile ; exit 1' 1 3 15
+trap 'rm -fr Makefile util/Makefile examples/Makefile examples/test/Makefile examples/test/pt2pt/Makefile examples/test/coll/Makefile examples/test/topol/Makefile examples/test/context/Makefile examples/test/env/Makefile examples/test/profile/Makefile examples/test/lederman/Makefile examples/contrib/Makefile examples/contrib/usingmpi/Makefile examples/contrib/life/Makefile examples/contrib/nuclei/Makefile examples/contrib/C++/Makefile examples/contrib/mandel-pvm/Makefile examples/perftest/Makefile src/pt2pt/Makefile src/coll/Makefile src/context/Makefile src/dmpi/Makefile src/env/Makefile src/topol/Makefile src/profile/Makefile src/util/Makefile src/c++/Makefile mpe/Makefile mpe/Makefile_nompi examples/basic/Makefile profiling/examples/Makefile profiling/lib/Makefile mpe/contrib/mandel/Makefile mpe/contrib/mastermind/Makefile mpe/contrib/life/Makefile mpe/test/Makefile  mpichconf.h conftest*; exit 1' 1 3 15
 CC='$CC'
 RANLIB='$RANLIB'
 CPP='$CPP'
 CCval='$CCval'
+F77val='$F77val'
 XTERMLOC='$XTERMLOC'
 GDBLOC='$GDBLOC'
 DBXLOC='$DBXLOC'
@@ -9986,7 +11706,6 @@ BASE_LIB_LIST='$BASE_LIB_LIST'
 BOPT='$BOPT'
 CFLAGS='$CFLAGS'
 CLINKER='$CLINKER'
-CCC='$CCC'
 CCFLAGS='$CCFLAGS'
 CCLINKER='$CCLINKER'
 COMM='$COMM'
@@ -10008,10 +11727,12 @@ FLIB_PATH_LEADER='$FLIB_PATH_LEADER'
 FLINKER='$FLINKER'
 GETNAME_DEFS='$GETNAME_DEFS'
 HAS_FORTRAN='$HAS_FORTRAN'
+HAS_MPI2='$HAS_MPI2'
 ICCLIB='$ICCLIB'
 INCLUDE_PATH='$INCLUDE_PATH'
 LIB_LIST='$LIB_LIST'
 LIB_PATH='$LIB_PATH'
+LIB_DIR='$LIB_DIR'
 MAKE='$MAKE'
 MPEGRAPHICS_FOBJS='$MPEGRAPHICS_FOBJS'
 MPEGRAPHICS_FSOURCE='$MPEGRAPHICS_FSOURCE'
@@ -10024,12 +11745,14 @@ MPE_LIBS='$MPE_LIBS'
 MPE_MPI_EXT_C='$MPE_MPI_EXT_C'
 MPE_MPI_EXT_O='$MPE_MPI_EXT_O'
 MPIR_HOME='$MPIR_HOME'
+MPIFDEP='$MPIFDEP'
 MPI_FOBJECTS='$MPI_FOBJECTS'
 MPILIBNAME='$MPILIBNAME'
 MPICC='$MPICC'
 MPIF77='$MPIF77'
 MPICPLUSPLUS='$MPICPLUSPLUS'
 MEMDEBUG='$MEMDEBUG'
+NEXUSDIR='$NEXUSDIR'
 NLS_DEFS='$NLS_DEFS'
 OPTFLAGS='$OPTFLAGS'
 OPTFLAGSC='$OPTFLAGSC'
@@ -10039,7 +11762,6 @@ P4_DIR='$P4_DIR'
 RHS_COMMAND='$RHS_COMMAND'
 P4_MDEPCFLAGS='$P4_MDEPCFLAGS'
 PREFIX='$PREFIX'
-TOOLS_DIR='$TOOLS_DIR'
 USER_CFLAGS='$USER_CFLAGS'
 USER_INCLUDE_PATH='$USER_INCLUDE_PATH'
 X_INC='$X_INC'
@@ -10049,7 +11771,6 @@ F77GETARG='$F77GETARG'
 F90UNIX='$F90UNIX'
 LIBS='$LIBS'
 srcdir='$srcdir'
-DEFS='$DEFS'
 prefix='$prefix'
 exec_prefix='$exec_prefix'
 prsub='$prsub'
@@ -10059,7 +11780,7 @@ cat >> config.status <<\EOF
 
 top_srcdir=$srcdir
 
-CONFIG_FILES=${CONFIG_FILES-"Makefile examples/Makefile examples/test/Makefile examples/test/pt2pt/Makefile examples/test/coll/Makefile examples/test/topol/Makefile examples/test/context/Makefile examples/test/env/Makefile examples/test/profile/Makefile examples/test/lederman/Makefile examples/contrib/Makefile examples/contrib/usingmpi/Makefile examples/contrib/life/Makefile examples/contrib/nuclei/Makefile examples/contrib/C++/Makefile examples/contrib/mandel-pvm/Makefile examples/perftest/Makefile src/pt2pt/Makefile src/coll/Makefile src/context/Makefile src/dmpi/Makefile src/env/Makefile src/topol/Makefile src/profile/Makefile src/util/Makefile src/c++/Makefile mpe/Makefile mpe/Makefile_nompi examples/basic/Makefile profiling/examples/Makefile profiling/lib/Makefile mpe/contrib/mandel/Makefile mpe/contrib/mastermind/Makefile mpe/contrib/life/Makefile mpe/test/Makefile "}
+CONFIG_FILES=${CONFIG_FILES-"Makefile util/Makefile examples/Makefile examples/test/Makefile examples/test/pt2pt/Makefile examples/test/coll/Makefile examples/test/topol/Makefile examples/test/context/Makefile examples/test/env/Makefile examples/test/profile/Makefile examples/test/lederman/Makefile examples/contrib/Makefile examples/contrib/usingmpi/Makefile examples/contrib/life/Makefile examples/contrib/nuclei/Makefile examples/contrib/C++/Makefile examples/contrib/mandel-pvm/Makefile examples/perftest/Makefile src/pt2pt/Makefile src/coll/Makefile src/context/Makefile src/dmpi/Makefile src/env/Makefile src/topol/Makefile src/profile/Makefile src/util/Makefile src/c++/Makefile mpe/Makefile mpe/Makefile_nompi examples/basic/Makefile profiling/examples/Makefile profiling/lib/Makefile mpe/contrib/mandel/Makefile mpe/contrib/mastermind/Makefile mpe/contrib/life/Makefile mpe/test/Makefile "}
 for file in .. ${CONFIG_FILES}; do if test "x$file" != x..; then
   srcdir=$top_srcdir
   # Remove last slash and all that follows it.  Not all systems have dirname.
@@ -10078,6 +11799,7 @@ s%@CC@%$CC%g
 s%@RANLIB@%$RANLIB%g
 s%@CPP@%$CPP%g
 s%@CCval@%$CCval%g
+s%@F77val@%$F77val%g
 s%@XTERMLOC@%$XTERMLOC%g
 s%@GDBLOC@%$GDBLOC%g
 s%@DBXLOC@%$DBXLOC%g
@@ -10107,7 +11829,6 @@ s%@BASE_LIB_LIST@%$BASE_LIB_LIST%g
 s%@BOPT@%$BOPT%g
 s%@CFLAGS@%$CFLAGS%g
 s%@CLINKER@%$CLINKER%g
-s%@CCC@%$CCC%g
 s%@CCFLAGS@%$CCFLAGS%g
 s%@CCLINKER@%$CCLINKER%g
 s%@COMM@%$COMM%g
@@ -10129,10 +11850,12 @@ s%@FLIB_PATH_LEADER@%$FLIB_PATH_LEADER%g
 s%@FLINKER@%$FLINKER%g
 s%@GETNAME_DEFS@%$GETNAME_DEFS%g
 s%@HAS_FORTRAN@%$HAS_FORTRAN%g
+s%@HAS_MPI2@%$HAS_MPI2%g
 s%@ICCLIB@%$ICCLIB%g
 s%@INCLUDE_PATH@%$INCLUDE_PATH%g
 s%@LIB_LIST@%$LIB_LIST%g
 s%@LIB_PATH@%$LIB_PATH%g
+s%@LIB_DIR@%$LIB_DIR%g
 s%@MAKE@%$MAKE%g
 s%@MPEGRAPHICS_FOBJS@%$MPEGRAPHICS_FOBJS%g
 s%@MPEGRAPHICS_FSOURCE@%$MPEGRAPHICS_FSOURCE%g
@@ -10145,12 +11868,14 @@ s%@MPE_LIBS@%$MPE_LIBS%g
 s%@MPE_MPI_EXT_C@%$MPE_MPI_EXT_C%g
 s%@MPE_MPI_EXT_O@%$MPE_MPI_EXT_O%g
 s%@MPIR_HOME@%$MPIR_HOME%g
+s%@MPIFDEP@%$MPIFDEP%g
 s%@MPI_FOBJECTS@%$MPI_FOBJECTS%g
 s%@MPILIBNAME@%$MPILIBNAME%g
 s%@MPICC@%$MPICC%g
 s%@MPIF77@%$MPIF77%g
 s%@MPICPLUSPLUS@%$MPICPLUSPLUS%g
 s%@MEMDEBUG@%$MEMDEBUG%g
+s%@NEXUSDIR@%$NEXUSDIR%g
 s%@NLS_DEFS@%$NLS_DEFS%g
 s%@OPTFLAGS@%$OPTFLAGS%g
 s%@OPTFLAGSC@%$OPTFLAGSC%g
@@ -10160,7 +11885,6 @@ s%@P4_DIR@%$P4_DIR%g
 s%@RHS_COMMAND@%$RHS_COMMAND%g
 s%@P4_MDEPCFLAGS@%$P4_MDEPCFLAGS%g
 s%@PREFIX@%$PREFIX%g
-s%@TOOLS_DIR@%$TOOLS_DIR%g
 s%@USER_CFLAGS@%$USER_CFLAGS%g
 s%@USER_INCLUDE_PATH@%$USER_INCLUDE_PATH%g
 s%@X_INC@%$X_INC%g
@@ -10170,9 +11894,104 @@ s%@F77GETARG@%$F77GETARG%g
 s%@F90UNIX@%$F90UNIX%g
 s%@LIBS@%$LIBS%g
 s%@srcdir@%$srcdir%g
-s%@DEFS@%$DEFS%
-" $top_srcdir/${file}.in >> $file
+s%@DEFS@%-DHAVE_CONFIG_H%" $top_srcdir/${file}.in >> $file
 fi; done
+
+CONFIG_HEADERS=${CONFIG_HEADERS-"mpichconf.h"}
+for file in .. ${CONFIG_HEADERS}; do if test "x$file" != x..; then
+echo creating $file
+
+# These sed commands are put into SEDDEFS when defining a macro.
+# They are broken into pieces to make the sed script easier to manage.
+# They are passed to sed as "A NAME B NAME C VALUE D", where NAME
+# is the cpp macro being defined and VALUE is the value it is being given.
+# Each defining turns into a single global substitution command.
+#
+# SEDd sets the value in "#define NAME VALUE" lines.
+SEDdA='s@^\([ 	]*\)#\([ 	]*define[ 	][ 	]*\)'
+SEDdB='\([ 	][ 	]*\)[^ 	]*@\1#\2'
+SEDdC='\3'
+SEDdD='@g'
+# SEDu turns "#undef NAME" with trailing blanks into "#define NAME VALUE".
+SEDuA='s@^\([ 	]*\)#\([ 	]*\)undef\([ 	][ 	]*\)'
+SEDuB='\([ 	]\)@\1#\2define\3'
+SEDuC=' '
+SEDuD='\4@g'
+# SEDe turns "#undef NAME" without trailing blanks into "#define NAME VALUE".
+SEDeA='s@^\([ 	]*\)#\([ 	]*\)undef\([ 	][ 	]*\)'
+SEDeB='$@\1#\2define\3'
+SEDeC=' '
+SEDeD='@g'
+rm -f conftest.sed
+EOF
+# Turn off quoting long enough to insert the sed commands.
+rm -f conftest.sh
+cat > conftest.sh <<EOF
+$SEDDEFS
+EOF
+
+# Break up $SEDDEFS (now in conftest.sh) because some shells have a limit
+# on the size of here documents.
+
+# Maximum number of lines to put in a single here document.
+maxshlines=9
+
+while :
+do
+  # wc gives bogus results for an empty file on some systems.
+  lines=`grep -c . conftest.sh`
+  if test -z "$lines" || test "$lines" -eq 0; then break; fi
+  rm -f conftest.s1 conftest.s2
+  sed ${maxshlines}q conftest.sh > conftest.s1 # Like head -20.
+  sed 1,${maxshlines}d conftest.sh > conftest.s2 # Like tail +21.
+  # Write a limited-size here document to append to conftest.sed.
+  echo 'cat >> conftest.sed <<CONFEOF' >> config.status
+  cat conftest.s1 >> config.status
+  echo 'CONFEOF' >> config.status
+  rm -f conftest.s1 conftest.sh
+  mv conftest.s2 conftest.sh
+done
+rm -f conftest.sh
+
+# Now back to your regularly scheduled config.status.
+cat >> config.status <<\EOF
+# This sed command replaces #undef's with comments.  This is necessary, for
+# example, in the case of _POSIX_SOURCE, which is predefined and required
+# on some systems where configure will not decide to define it in
+# mpichconf.h.
+cat >> conftest.sed <<\CONFEOF
+s,^[ 	]*#[ 	]*undef[ 	][ 	]*[a-zA-Z_][a-zA-Z_0-9]*,/* & */,
+CONFEOF
+rm -f conftest.h
+# Break up the sed commands because old seds have small limits.
+maxsedlines=20
+cp $top_srcdir/$file.in conftest.h1
+while :
+do
+  lines=`grep -c . conftest.sed`
+  if test -z "$lines" || test "$lines" -eq 0; then break; fi
+  rm -f conftest.s1 conftest.s2 conftest.h2
+  sed ${maxsedlines}q conftest.sed > conftest.s1 # Like head -20.
+  sed 1,${maxsedlines}d conftest.sed > conftest.s2 # Like tail +21.
+  sed -f conftest.s1 < conftest.h1 > conftest.h2
+  rm -f conftest.s1 conftest.h1 conftest.sed
+  mv conftest.h2 conftest.h1
+  mv conftest.s2 conftest.sed
+done
+rm -f conftest.sed conftest.h
+echo "/* $file.  Generated automatically by configure.  */" > conftest.h
+cat conftest.h1 >> conftest.h
+rm -f conftest.h1
+if cmp -s $file conftest.h 2>/dev/null; then
+  # The file exists and we would not be changing it.
+  echo "$file is unchanged"
+  rm -f conftest.h
+else
+  rm -f $file
+  mv conftest.h $file
+fi
+fi; done
+
 
 
 exit 0
@@ -10208,7 +12027,10 @@ done
 
 #
 # Configure JUST the correct device file
-CONFIG_FILES="mpid/$DEVICE/Makefile mpid/tests/Makefile"
+CONFIG_FILES="mpid/$DEVICE/Makefile"
+if test -f mpid/tests/Makefile.in ; then
+    CONFIG_FILES="$CONFIG_FILES mpid/tests/Makefile"
+fi
 if test -n "$device_ch_shmem" ; then
     if test -s mpid/ch_shmem/p2ptest/Makefile.in ; then
         CONFIG_FILES="$CONFIG_FILES mpid/ch_shmem/p2ptest/Makefile"
@@ -10223,7 +12045,9 @@ CONFIG_FILES=""
 #
 # The programs that run on the front end need a different compiler
 if test $cross_compiling != 1 ; then
-    CONFIG_FILES="profiling/wrappergen/Makefile profiling/nupshot/Makefile"
+    CONFIG_FILES="profiling/wrappergen/Makefile"
+    # nupshot is handled with its own configure file
+    #  "profiling/nupshot/Makefile"
     export CONFIG_FILES
     ./config.status
     CONFIG_FILES=""
@@ -10241,12 +12065,14 @@ for src in mpicc mpiCC mpif77 mpiinstall ; do
 done
 #
 # Set the final choices of flags
-if test "$MEMDEBUG" = "1" ; then
-    /bin/rm -f include/mpisys.h
-    (cd include ; echo "#define MPIR_MEMDEBUG" | cat - mpisys.h.in > mpisys.h)
-else 
-    /bin/rm -f include/mpisys.h
-    cp include/mpisys.h.in include/mpisys.h
+if test "$is_adi1" = 1 ; then 
+    if test "$MEMDEBUG" = "1" ; then
+        /bin/rm -f include/mpisys.h
+        (cd include ; echo "#define MPIR_MEMDEBUG" | cat - mpisys.h.in > mpisys.h)
+    else 
+        /bin/rm -f include/mpisys.h
+        cp include/mpisys.h.in include/mpisys.h
+    fi
 fi
 
 #
@@ -10300,7 +12126,13 @@ fi
 # 
 /bin/rm -f lib/$ARCH/$COMM/config.status
 cp ./config.status lib/$ARCH/$COMM
-
+#
+# If we put the DEF values into this file, copy it to the library directory
+# We also need the .in file for config.status (used by mpireconfig)
+if test -f mpichconf.h ; then
+    mv mpichconf.h lib/$ARCH/$COMM
+    cp mpichconf.h.in lib/$ARCH/$COMM
+fi
 #
 # Try to update the upshot script
 #if test -f profiling/upshot/bin/upshot.in

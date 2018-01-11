@@ -4,6 +4,7 @@
 typedef struct request_list_ {
     MPI_Request request;
     int         status, size, tag, otherParty;
+    int         is_persistent;
     struct request_list_ *next;
 } request_list;
 
@@ -17,7 +18,24 @@ typedef struct request_list_ {
 **
 */
 
-#define rq_remove( head, rq ) { \
+#define rq_alloc( head_alloc, newrq ) {\
+      if (head_alloc) {\
+        newrq=head_alloc;head_alloc=newrq->next;\
+	}else{\
+      newrq = (request_list*) malloc(sizeof( request_list ));\
+      }}
+
+#define rq_remove_at( head, tail, head_alloc, ptr, last ) { \
+  if (ptr) { \
+    if (!last) { \
+      head = ptr->next; \
+    } else { \
+      last->next = ptr->next; \
+      if (tail == ptr) tail = last; \
+    } \
+	  ptr->next = head_alloc; head_alloc = ptr;}}
+
+#define rq_remove( head, tail, head_alloc, rq ) { \
   request_list *ptr, *last; \
   ptr = head; \
   last = 0; \
@@ -25,23 +43,28 @@ typedef struct request_list_ {
     last = ptr; \
     ptr = ptr->next; \
   } \
-  if (ptr) { \
-    if (!last) { \
-      head = ptr->next; \
-    } else { \
-      last->next = ptr->next; \
-    } \
-    free( ptr ); }}
+	rq_remove_at( head, tail, head_alloc, ptr, last );}
 
 #define rq_add( head, tail, rq ) { \
   if (!head) { \
     head = tail = rq; \
   } else { \
-    tail->next = rq; \
+    tail->next = rq; tail = rq; \
   }}
 
 #define rq_find( head, req, rq ) { \
   rq = head; \
   while (rq && (rq->request != req)) rq = rq->next; }
 
+#define rq_init( head_alloc ) {\
+  int i; request_list *newrq; head_alloc = 0;\
+  for (i=0;i<20;i++) {\
+      newrq = (request_list*) malloc(sizeof( request_list ));\
+      newrq->next = head_alloc;\
+      head_alloc = newrq;\
+  }}
+
+#define rq_end( head_alloc ) {\
+  request_list *rq; while (head_alloc) {\
+	rq = head_alloc->next;free(head_alloc);head_alloc=rq;}}
 #endif

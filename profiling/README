@@ -2,6 +2,35 @@
 
 				MPI Profiling
 
+This directory contains both the upshot and nupshot tools, and tools for
+building profiling libraries that exploit the MPI profiling interface.
+This directory is distributed as part of MPICH, and is also available
+separately.  If you have this as part of MPICH, use the MPICH build and
+installation steps to build and install these tools; no separate steps are
+required.
+
+Building Nupshot
+================
+If you acquired this package separately (as profiling.tar.gz), you can build
+nupshot with
+
+    cd profiling/nupshot
+    ./configure
+    make
+
+Building nupshot separately from the MPICH distribution has not been
+extensively tested, but has been done on a few systems.  If you have problems,
+please send the output from 
+
+    ./configure -echo
+    make
+
+to mpi-bugs@mcs.anl.gov .  Note that you are working with the separate
+profiling distribution.
+
+
+Contents
+========
 
 The sample profiling wrappers for MPICH are distributed as wrapper
 definition code.  The wrapper definition code is run through the

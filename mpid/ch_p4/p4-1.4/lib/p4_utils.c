@@ -4,6 +4,23 @@
 static char hold_patchlevel[16];
 static char hold_machine_type[16];
 
+/* getenv is part of stdlib.h */
+#ifndef HAVE_STDLIB_H
+extern char *getenv();
+#endif
+
+void p4_post_init()
+{
+    /* This routine can be called to do any further initialization after p4
+       has itself been intialized. */
+
+#ifdef P4_PRECONNECT
+    /* set up all sockets on systems with interrupt-unsafe socket calls */
+    p4_dprintfl(10, "pre-establishing connections\n");
+    p4_establish_all_conns();
+#endif
+}    
+
 char *p4_version()
 {
     strcpy(hold_patchlevel,P4_PATCHLEVEL);
@@ -24,8 +41,7 @@ char **argv;
     int i, rc;
     char *env_value;
     int p4_globmemsize;
-    P4BOOL am_slave = FALSE;
-    extern char *getenv();
+    P4BOOL am_slave = P4_FALSE;
 
     /*****
     char hname[100];
@@ -43,7 +59,7 @@ char **argv;
 	    p4_globmemsize = atoi(env_value);	/* 7/12/95, bri@sgi.com */
     globmemsize = p4_globmemsize;		/* 7/12/95, bri@sgi.com */
 
-    logging_flag = FALSE;
+    logging_flag = P4_FALSE;
     sserver_port = 753;
     process_args(argc,argv);
 
@@ -55,13 +71,13 @@ char **argv;
 	{
 	    strcpy(argv[i]," ");    
 	    /* strip this arg as Prolog engine flags begin with - SRM */
-	    am_slave = TRUE;
+	    am_slave = P4_TRUE;
 	}
     }
 
     p4_dprintfl(90,"mport=%d nodenum=%d\n",execer_mastport,execer_mynodenum);
     if (execer_mastport  &&  execer_mynodenum)
-        am_slave = TRUE;
+        am_slave = P4_TRUE;
 
 #   if defined(SP1_EUI)
     mpc_environ(&eui_numtasks,&eui_mynode);
@@ -79,7 +95,7 @@ char **argv;
                         || defined(SP1_EUI) || defined(SP1_EUIH)
 
     if (MYNODE() != 0)
-        am_slave = TRUE;
+        am_slave = P4_TRUE;
 #    endif
 
 #   if defined(CM5)
@@ -195,6 +211,7 @@ int *end;
     *end = p4_global->hi_cluster_id;
 }
 
+
 /* This is used to figure out the local id of the calling process by
  * indexing into the proctable until you find a hostname and a unix id
  * that are the same as yours.
@@ -202,8 +219,11 @@ int *end;
 int p4_get_my_id_from_proc()
 {
     int i, my_unix_id;
+    int n_match, match_id;
     struct proc_info *pi;
     struct hostent *myhp, *pghp;
+    struct in_addr myaddr;       /* 8/14/96, llewins@msmail4.hac.com */
+    char myname[MAXHOSTNAMELEN]; /* 9/10/96, llewins@msmail4.hac.com */
 #ifdef SGI
     struct hostent myh;			/* 7/12/95, bri@sgi.com */
 #endif
@@ -224,21 +244,61 @@ int p4_get_my_id_from_proc()
 #else
     myhp = gethostbyname_p4(p4_global->my_host_name);
 #endif
+    bcopy(myhp->h_addr, (char *)&myaddr, myhp->h_length); /* 8/14/96, llewins@msmail4.hac.com */
+    strcpy(myname, myhp->h_name);                         /* 9/10/96, llewins@msmail4.hac.com */
 
+/*    p4_dprintf( "proctable size is %d\n", p4_global->num_in_proctable ); */
+    /*
+     * The following code identifies the rank of the running process relative
+     * to the procgroup file.  It does this by finding the pid of the process
+     * in the proctable, and comparing it to the procid of the calling process.
+     * A match isn't good enough, since some clusters could manage to 
+     * co-incidentally assign the same process id to several of the processes
+     * in the procgroup.  To check for this case, we compare the host name
+     * in the procgroup to the hostname of the calling process.
+     *
+     * BUT what we really want to compare is an id of the physical hardware,
+     * and since a machine might have multiple network interfaces, this test
+     * might also fail.  So as a backstop, if there is precisely ONE match
+     * to the process ids, we accept that as the UNIQUE solution.
+     * 
+     * Note that this code is trying to catch a procgroup file that is 
+     * inconsistent with the build.  This should be caught in the procgroup
+     * file reading routine instead.
+     *
+     * Remaining bugs: if there are multiple matches, we can't resolve which
+     * we are if the hostname matching didn't find us (because of different
+     * interfaces).
+     */
+    n_match = 0;
     for (pi = p4_global->proctable, i = 0; i < p4_global->num_in_proctable; i++, pi++)
     {
+	p4_dprintfl(88, "pid %d ?= %d\n", pi->unix_id, my_unix_id );
 	if (pi->unix_id == my_unix_id)
 	{
-	    if (strcmp(pi->host_name, p4_global->my_host_name) == 0)
-	    {
-		return (i);
-	    }
-	    /* all nodes on sp1 seem to have same inet address by this test */
+	    /* Save match incase hostname test fails */
+	    n_match++;
+	    match_id = i;
+
+            pghp = gethostbyname_p4(pi->host_name);
+	    p4_dprintfl( 60, "%s ?= %s\n", pghp->h_name, myname );
+	    /* We might have localhost.... and the same system.  
+	       This test won't handle that.  
+	     */
+            if (strcmp(pghp->h_name, myname) == 0) /* 8/27/96, llewins@msmail4.hac.com */
+            {
+                return (i);
+            }   
+            /* all nodes on sp1 seem to have same inet address by this test.
+*/
+            /* After the fix above, the SP1 will probably be fine!! llewins */
 #           if !defined(SP1)
 	    else
 	    {
-		pghp = gethostbyname_p4(pi->host_name);
-		if (bcmp(myhp->h_addr, pghp->h_addr, myhp->h_length) == 0)
+/*		p4_dprintf( "Compare inet addresses %x ?= %x\n",
+			    *(int *)&myaddr, *(int *)pghp->h_addr ); */
+                if (bcmp((char *)&myaddr, pghp->h_addr, pghp->h_length) == 0) 
+/* 8/14/96, llewins@msmail4.hac.com */
 		{
 		    return (i);
 		}
@@ -246,12 +306,19 @@ int p4_get_my_id_from_proc()
 #           endif
 	}
     }
+
+    /* See comments above on match algorithm */
+    if (n_match == 1) return match_id;
+
+    /* If we reach here, we did not find the process */
     p4_dprintf("process not in process table; my_unix_id = %d my_host=%s\n",
 	       getpid(), p4_global->my_host_name);
     p4_dprintf("Probable cause:  local slave on uniprocessor without shared memory\n");
     p4_dprintf("Probable fix:  ensure only one process on %s\n",p4_global->my_host_name);
     p4_dprintf("(on master process this means 'local 0' in the procgroup file)\n");
     p4_dprintf("You can also remake p4 with SYSV_IPC set in the OPTIONS file\n");
+    p4_dprintf( "Alternate cause:  Using localhost as a machine name in the progroup\n" );
+    p4_dprintf( "file.  The names used should match the external network names.\n" );
     p4_error("p4_get_my_id_from_proc",0);
 #   endif
     return (-1);
@@ -700,7 +767,7 @@ int p4_wait_for_end()
 		    p4_global->listener_pid, p4_local->listener_fd);
 	msg.type = p4_i_to_n(DIE);
 	msg.from = p4_i_to_n(p4_get_my_id());
-	net_send(p4_local->listener_fd, &msg, sizeof(msg), FALSE);
+	net_send(p4_local->listener_fd, &msg, sizeof(msg), P4_FALSE);
 	/* Make sure that no further reads are possible for the LISTENER
 	   on this FD */
 	close( p4_local->listener_fd );
@@ -735,7 +802,9 @@ int p4_wait_for_end()
     p4_free(p4_local->conntab);
     p4_shfree((P4VOID *)(p4_local->queued_messages->m.qs));
     p4_free(p4_local->queued_messages);
+#ifdef CAN_DO_XDR
     p4_free(p4_local->xdr_buff);
+#endif
     p4_free(p4_local);
     free_avail_quels();		/* (in p4_global)  */
 
@@ -859,7 +928,7 @@ int getswport(hostname)
 char *hostname;
 {
 #ifdef CAN_DO_SWITCH_MSGS
-    char local_host[256];
+    char local_host[MAXHOSTNAMELEN];
 
     if (strcmp(hostname, "local") == 0)
     {
@@ -905,15 +974,16 @@ int id1, id2;
     return (data_representation(p1->machine_type) == data_representation(p2->machine_type));
 }
 
-/* Given rank and a place to put the hostname, returns the pid and the
- * hostname of the process with the given rank.  Returns 0 if the rank is
- * invalid.
+/* Given rank and places to put the hostname and image names, returns
+ * the pid, and fills in the host and image names of the process with
+ * the given rank.  Returns 0 if the rank is invalid.
  */
-int p4_proc_info(i, hostname)
+int p4_proc_info(i, hostname, exename)
 int i;
 char **hostname;
+char **exename;
 {
-    if (((unsigned) i) >= p4_global->num_in_proctable)
+  if (((unsigned) i) >= p4_global->num_in_proctable)
     {
 	*hostname = 0;
 	return(0);
@@ -922,7 +992,10 @@ char **hostname;
     {
 	struct proc_info *p1 = &(p4_global->proctable[i]);
 	*hostname = p1->host_name;
-	return(p1->unix_id);
+ 
+ 	/* Get the executable name from the procgroup */
+ 	*exename = p4_local->procgroup->entries[i].slave_full_pathname;
+ 	return (p1->unix_id);
     }
 }
 	       
@@ -953,7 +1026,7 @@ char *master_hostname;
 {
     int port, num_read, sleep_time, status;
     FILE *fp;
-    char cmd[128];
+    char cmd[P4_MAX_PGM_LEN];
 
     sprintf(cmd,"rsh %s cat /tmp/p4_%s",master_hostname,execer_jobname);
     num_read = 0;

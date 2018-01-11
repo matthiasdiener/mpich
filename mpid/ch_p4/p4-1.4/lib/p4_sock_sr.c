@@ -1,6 +1,8 @@
 #include "p4.h"
 #include "p4_sys.h"
 
+/* Look for u_int xdr_len; some systems define as u_int, others as int */
+
 #ifdef CAN_DO_XDR
 int xdr_send(type, from, to, msg, len, data_type, ack_req)
 char *msg;
@@ -14,7 +16,7 @@ int type, from, to, len, data_type, ack_req;
     char *xdr_buff;
     int xdr_elsize, els_per_buf, xdr_numels;
     int xdr_len1, len_bytes;
-#if defined(SUN_SOLARIS) || defined(CRAY)
+#if defined(SUN_SOLARIS) || defined(CRAY) || defined(SGI)
     u_int xdr_len;
 #else
     int xdr_len;
@@ -58,7 +60,7 @@ int type, from, to, len, data_type, ack_req;
     nmsg.ack_req = p4_i_to_n(ack_req);
     nmsg.data_type = p4_i_to_n(data_type);
 
-    flag = (myid < to) ? TRUE : FALSE;
+    flag = (myid < to) ? P4_TRUE : P4_FALSE;
     net_send(fd, &nmsg, sizeof(struct p4_net_msg_hdr), flag);
 
     xdr_enc = &(p4_local->xdr_enc);
@@ -125,7 +127,7 @@ char *msg;
     nmsg.ack_req = p4_i_to_n(ack_req);
     nmsg.data_type = p4_i_to_n(data_type);
     p4_dprintfl(30,"setting imm_from: to = %d, from = %d, imm_from = %d, p4_i_to_n(imm_from) =%d in socket_send\n", to, from, p4_local->my_id, p4_i_to_n(p4_local->my_id));
-    flag = (from < to) ? TRUE : FALSE;
+    flag = (from < to) ? P4_TRUE : P4_FALSE;
     net_send(fd, &nmsg, sizeof(struct p4_net_msg_hdr), flag);
     p4_dprintfl(20, "sent hdr for type %d from %d to %d via socket\n",type,from,to);
 
@@ -172,7 +174,9 @@ int fd;
     nmsg.ack_req   = p4_i_to_n(P4_CLOSE_MASK);
     nmsg.data_type = p4_i_to_n(0);
 
-    net_send(fd, &nmsg, sizeof(struct p4_net_msg_hdr), FALSE );
+    net_send(fd, &nmsg, sizeof(struct p4_net_msg_hdr), P4_FALSE );
+
+    close( fd );
 
     return 0;
 }
@@ -188,7 +192,7 @@ int is_blocking;
 {
     int    i, fd, nfds;
     struct p4_msg *tmsg = NULL;
-    P4BOOL found = FALSE;
+    P4BOOL found = P4_FALSE;
     struct timeval tv;
     fd_set read_fds;
     int    nactive;
@@ -246,7 +250,7 @@ int is_blocking;
 		    if (FD_ISSET(fd,&read_fds)  &&  sock_msg_avail_on_fd(fd))
 		    {
 			tmsg = socket_recv_on_fd(fd);
-			found = TRUE;
+			found = P4_TRUE;
 			if (tmsg->ack_req & P4_ACK_REQ_MASK)
 			{
 			    send_ack(fd, tmsg->from);
@@ -259,10 +263,10 @@ int is_blocking;
 			    /* Discard the message */
 			    free_p4_msg( tmsg );
 			    tmsg      = 0;
-			    found     = FALSE;
+			    found     = P4_FALSE;
 			    /* Remember that we found a command (see
 			       code above for no connections) */
-			    found_cmd = TRUE;
+			    found_cmd = P4_TRUE;
 			    /* Note that if we called this because we
 			       found a message available, we may want
 			       to return a "no more messages" without
@@ -352,7 +356,7 @@ P4BOOL socket_msgs_available()
 	    fd = p4_local->conntab[i].port;
 	    if (sock_msg_avail_on_fd(fd))
 	    {
-		return (TRUE);
+		return (P4_TRUE);
 	    }
 	}
 	else if (p4_local->conntab[i].type == CONN_REMOTE_DYING) {
@@ -361,7 +365,7 @@ P4BOOL socket_msgs_available()
 	    /* Now, what to do ? */
 	    }
     }
-    return (FALSE);
+    return (P4_FALSE);
 }
 
 P4BOOL sock_msg_avail_on_fd(fd)
@@ -372,7 +376,7 @@ int fd;
     fd_set read_fds;
     char tempbuf[2];
 
-    rc = FALSE;
+    rc = P4_FALSE;
     tv.tv_sec = 0;
     tv.tv_usec = 0;
     FD_ZERO(&read_fds);
@@ -403,7 +407,7 @@ int fd;
 		}
 	}
 	else
-	    rc = TRUE;
+	    rc = P4_TRUE;
     }
     return (rc);
 }
@@ -416,11 +420,11 @@ struct p4_msg *rmsg;
     xdrproc_t xdr_proc;
     XDR *xdr_dec;
     char *xdr_buff, *msg;
-    int i, n;
+    int n;
     int msg_len = 0, nbytes_read = 0;
     int xdr_elsize, els_per_buf, xdr_numels;
     int xdr_len1, len_bytes;
-#if defined(SUN_SOLARIS) || defined(CRAY)
+#if defined(SUN_SOLARIS) || defined(CRAY) || defined(SGI)
     u_int xdr_len;
 #else
     int xdr_len;
@@ -523,7 +527,7 @@ int fd, to;
     ack.msg_len = p4_i_to_n(0);
     ack.to = p4_i_to_n(to);
     ack.ack_req = p4_i_to_n(P4_ACK_REPLY_MASK);
-    net_send(fd, &ack, sizeof(ack), FALSE);
+    net_send(fd, &ack, sizeof(ack), P4_FALSE);
     p4_dprintfl(30, "sent ack to %d\n", to);
 }
 

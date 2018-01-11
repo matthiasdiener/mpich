@@ -1,0 +1,10 @@
+#! /bin/sh
+#
+# Helper script to autoconf-r
+#
+
+dir=`dirname $1`
+echo $dir
+
+(cd $dir ; autoconf )
+

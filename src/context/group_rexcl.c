@@ -1,5 +1,5 @@
 /*
- *  $Id: group_rexcl.c,v 1.17 1996/04/12 14:11:26 gropp Exp $
+ *  $Id: group_rexcl.c,v 1.21 1997/01/07 01:47:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -41,6 +41,8 @@ function is erroneous.  This restriction is per the draft.
 .N MPI_SUCCESS
 .N MPI_ERR_GROUP
 .N MPI_ERR_EXHAUSTED
+.N MPI_ERR_RANK
+.N MPI_ERR_ARG
 
 .seealso: MPI_Group_free
 @*/
@@ -50,85 +52,109 @@ int       n, ranges[][3];
 {
   int i, j, first, last, stride;
   int np;
-  MPI_Group new_group;
+  struct MPIR_GROUP *group_ptr, *new_group_ptr;
   int mpi_errno = MPI_SUCCESS;
+  static char myname[] = "MPI_GROUP_RANGE_EXCL";
+
+  TR_PUSH(myname);
 
   /* Check for bad arguments */
-  if ( MPIR_TEST_GROUP(MPI_COMM_WORLD,group) ) 
-    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-					  "Error in MPI_GROUP_RANGE_EXCL" );
+  group_ptr = MPIR_GET_GROUP_PTR(group);
+  MPIR_TEST_MPI_GROUP(group,group_ptr,MPIR_COMM_WORLD,myname);
 
   /* Check for a EMPTY input group */
   if ( (group == MPI_GROUP_EMPTY) ) {
-      (void) MPIR_Group_dup ( MPI_GROUP_EMPTY, newgroup );
+      MPIR_Group_dup ( MPIR_GROUP_EMPTY, &new_group_ptr );
+      *newgroup = new_group_ptr->self;
+      TR_POP;
       return (mpi_errno);
   }
 
   /* Check for no range ranks to exclude */
-  if ( n <= 0 ) {
-    (void) MPIR_Group_dup ( group, newgroup );
+  if ( n == 0 ) {
+    MPIR_Group_dup ( group_ptr, &new_group_ptr );
+    *newgroup = new_group_ptr->self;
     return (mpi_errno);
   }
 
+  if (n < 0) 
+      return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ARG, myname );
+
   /* Allocate set marking space for group if necessary */
-  if (group->set_mark == NULL) {
-      MPIR_ALLOC(group->set_mark,(int *) MALLOC( group->np * sizeof(int) ),
-		 MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-		 "Out of space in MPI_GROUP_RANGE_EXCL" );
+  if (group_ptr->set_mark == NULL) {
+      MPIR_ALLOC(group_ptr->set_mark,(int *) MALLOC( group_ptr->np * sizeof(int) ),
+		 MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, myname );
   }
-  (void) memset( group->set_mark, (char)0, group->np * sizeof(int) );
+  (void) memset( group_ptr->set_mark, (char)0, group_ptr->np * sizeof(int) );
 
   /* Mark the ranks to be excluded */
-  np = group->np;  
+  np = group_ptr->np;  
   for (i=0; i<n; i++) {
     first = ranges[i][0]; last = ranges[i][1]; stride = ranges[i][2];
-    if (stride != 0)
-      for ( j=first; j*stride <= last*stride; j += stride )
-        if ( (j < group->np) && (j >= 0) ) 
-          if (group->set_mark[j] == MPIR_UNMARKED) {
-            group->set_mark[j] = MPIR_MARKED;
-            np--;
-          }
+    if (stride != 0) {
+	if ( (stride > 0 && first > last) ||
+	     (stride < 0 && first < last) ) {
+	    return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ARG, 
+			       "range non terminating" );
+	}
+	for ( j=first; j*stride <= last*stride; j += stride )
+	  if ( (j < group_ptr->np) && (j >= 0) ) {
+	      if (group_ptr->set_mark[j] == MPIR_UNMARKED) {
+		  group_ptr->set_mark[j] = MPIR_MARKED;
+		  np--;
+	      }
+	  }
+	  else{
+	      MPIR_ERROR_PUSH_ARG(&j);
+	      return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_RANK, myname );
+	  }
+    }
+    else {
+	return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ARG, "Zero stride" );
+    }
   }
 
   /* Check np to see if we have original group or if we have null group */
   if (np == 0) {
-      (void) MPIR_Group_dup ( MPI_GROUP_EMPTY, newgroup );
+      MPIR_Group_dup ( MPIR_GROUP_EMPTY, &new_group_ptr );
+      *newgroup = new_group_ptr->self;
       return (mpi_errno);
   }
-  if (np == group->np) {
-    (void) MPIR_Group_dup ( group, newgroup );
+  if (np == group_ptr->np) {
+    MPIR_Group_dup ( group_ptr, &new_group_ptr );
+    *newgroup = new_group_ptr->self;
     return (mpi_errno);
   }
 
   /* Create the new group */
-  MPIR_ALLOC(new_group,NEW(struct MPIR_GROUP),MPI_COMM_WORLD, 
-	     MPI_ERR_EXHAUSTED, "Out of space in MPI_GROUP_REXCL" );
-  *newgroup = new_group;
-  MPIR_SET_COOKIE(new_group,MPIR_GROUP_COOKIE)
-  new_group->ref_count      = 1;
-  new_group->permanent      = 0;
-  new_group->local_rank     = MPI_UNDEFINED;
-  new_group->set_mark       = (int *)0;
-  new_group->np             = np;
-  new_group->lrank_to_grank = (int *) MALLOC( np * sizeof(int) );
-  if (!new_group->lrank_to_grank) {
-	return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-					  "Out of space in MPI_GROUP_RANGE_EXCL" );
+  MPIR_ALLOC(new_group_ptr,NEW(struct MPIR_GROUP),MPIR_COMM_WORLD, 
+	     MPI_ERR_EXHAUSTED, myname );
+  *newgroup = (MPI_Group) MPIR_FromPointer( new_group_ptr );
+  new_group_ptr->self = *newgroup;
+  MPIR_SET_COOKIE(new_group_ptr,MPIR_GROUP_COOKIE)
+  new_group_ptr->ref_count      = 1;
+  new_group_ptr->permanent      = 0;
+  new_group_ptr->local_rank     = MPI_UNDEFINED;
+  new_group_ptr->set_mark       = (int *)0;
+  new_group_ptr->np             = np;
+  new_group_ptr->lrank_to_grank = (int *) MALLOC( np * sizeof(int) );
+  if (!new_group_ptr->lrank_to_grank) {
+	return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, myname );
   }
   
   /* Fill in new group */
-  for (i=j=0; i < group->np ; i++) 
-    if ( (group->set_mark[i] == MPIR_UNMARKED) && (j < new_group->np ) ) {
-      if (group->local_rank == i)
-        new_group->local_rank = j;
-      new_group->lrank_to_grank[j++] = group->lrank_to_grank[i];
+  for (i=j=0; i < group_ptr->np ; i++) 
+    if ( (group_ptr->set_mark[i] == MPIR_UNMARKED) && (j < new_group_ptr->np ) ) {
+      if (group_ptr->local_rank == i)
+        new_group_ptr->local_rank = j;
+      new_group_ptr->lrank_to_grank[j++] = group_ptr->lrank_to_grank[i];
     }
 
   /* Determine the previous and next powers of 2 */
-  MPIR_Powers_of_2 ( new_group->np, &(new_group->N2_next), 
-		     &(new_group->N2_prev) );
+  MPIR_Powers_of_2 ( new_group_ptr->np, &(new_group_ptr->N2_next), 
+		     &(new_group_ptr->N2_prev) );
 
+  TR_POP;
   return (mpi_errno);
 }
 

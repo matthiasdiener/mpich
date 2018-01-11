@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi.h,v 1.51 1996/07/05 15:36:32 gropp Exp $
+ *  $Id: mpi.h,v 1.56 1997/02/18 23:10:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -10,11 +10,28 @@
 #ifndef _MPI_INCLUDE
 #define _MPI_INCLUDE
 
+/* 
+   NEW_POINTERS enables using ints for the MPI objects instead of addresses.
+   This is required by MPI 1.1, particularly for Fortran (also for C, 
+   since you can now have "constant" values for things like MPI_INT, and
+   they are stronger than "constant between MPI_INIT and MPI_FINALIZE".
+   For example, we might want to allow MPI_INT as a case label.
+
+   NEW_POINTERS is the default; I'm purging all code that doesn't use
+   NEW_POINTERS from the source.
+ */
+#define NEW_POINTERS
+
 /* Keep C++ compilers from getting confused */
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
+#define MPIR_ARGS(a) a
+#else
+#define MPIR_ARGS(a) ()
+#endif
 
  /* Results of the compare operations */
 /* These should stay ordered */
@@ -23,97 +40,31 @@ extern "C" {
 #define MPI_SIMILAR   2
 #define MPI_UNEQUAL   3
 
-/* Data types */
-typedef struct MPIR_DATATYPE *MPI_Datatype;
-
-#ifndef FOO
-/* These "magic" values are typical for 4-byte-word machines; these 
-   encode type and length.  
-   Q: will a datatype need to be an int?  That is, will MPI_Datatype
-   need to be an int?  gcc accepts these as case labels.  But icc and
-   xlc do not.  Well, what if MPI_Datatype is MPI_Aint?  The slipperly slope?
-
-   Grumble.  What to do about non-contiguous, predefined names (e.g.,
-   MPI_DOUBLE_INT)?  What about MPI_UB/LB?
-   For the moment, leave these as pointers to the structures
+/* Data types
+ * A more aggressive yet homogeneous implementation might want to 
+ * make the values here the number of bytes in the basic type, with
+ * a simple test against a max limit (e.g., 16 for long double), and
+ * non-contiguous structures with indices greater than that.
  */
-#define MPI_CHAR           ((MPI_Datatype)0x10)
-#define MPI_UNSIGNED_CHAR  ((MPI_Datatype)0x20)
-#define MPI_BYTE           ((MPI_Datatype)0x30)
-#define MPI_SHORT          ((MPI_Datatype)0x11)
-#define MPI_UNSIGNED_SHORT ((MPI_Datatype)0x21)
-#define MPI_INT            ((MPI_Datatype)0x13)
-#define MPI_UNSIGNED       ((MPI_Datatype)0x23)
-#define MPI_LONG           ((MPI_Datatype)0x33)
-#define MPI_UNSIGNED_LONG  ((MPI_Datatype)0x43)
-#define MPI_FLOAT          ((MPI_Datatype)0x53)
-#define MPI_DOUBLE         ((MPI_Datatype)0x17)
-#define MPI_LONG_DOUBLE    ((MPI_Datatype)0x1f)
-#define MPI_LONG_LONG_INT  ((MPI_Datatype)0x2f)
-#endif
+typedef int MPI_Datatype;
+#define MPI_CHAR           ((MPI_Datatype)1)
+#define MPI_UNSIGNED_CHAR  ((MPI_Datatype)2)
+#define MPI_BYTE           ((MPI_Datatype)3)
+#define MPI_SHORT          ((MPI_Datatype)4)
+#define MPI_UNSIGNED_SHORT ((MPI_Datatype)5)
+#define MPI_INT            ((MPI_Datatype)6)
+#define MPI_UNSIGNED       ((MPI_Datatype)7)
+#define MPI_LONG           ((MPI_Datatype)8)
+#define MPI_UNSIGNED_LONG  ((MPI_Datatype)9)
+#define MPI_FLOAT          ((MPI_Datatype)10)
+#define MPI_DOUBLE         ((MPI_Datatype)11)
+#define MPI_LONG_DOUBLE    ((MPI_Datatype)12)
+#define MPI_LONG_LONG_INT  ((MPI_Datatype)13)
 
-/* 
-   To allow compile-time use of MPI 'constants', they are declared in
-   static storage.  This is incomplete at present. 
+#define MPI_PACKED         ((MPI_Datatype)14)
+#define MPI_LB             ((MPI_Datatype)15)
+#define MPI_UB             ((MPI_Datatype)16)
 
-   Note that this will work for C but not for Fortran; in the Fortran
-   case we will probably need predefined indices.  A C version that
-   uses indices might have lower latency because of few cache misses
-   while searching out the features of the basic datatypes.
- */
-#ifdef FOO
-extern struct MPIR_DATATYPE MPIR_I_CHAR, MPIR_I_SHORT, MPIR_I_INT, MPIR_I_LONG,
-                            MPIR_I_UCHAR, MPIR_I_USHORT, MPIR_I_UINT, 
-                            MPIR_I_ULONG, MPIR_I_FLOAT, MPIR_I_DOUBLE, 
-                            MPIR_I_LONG_DOUBLE, MPIR_I_LONG_LONG_INT, 
-                            MPIR_I_BYTE;
-#endif
-extern struct MPIR_DATATYPE MPIR_I_PACKED, MPIR_I_LONG_DOUBLE_INT,
-                            MPIR_I_UB, MPIR_I_LB,
-                            MPIR_I_2INTEGER, 
-                            MPIR_I_FLOAT_INT, MPIR_I_DOUBLE_INT, 
-                            MPIR_I_LONG_INT, MPIR_I_SHORT_INT, MPIR_I_2INT,
-                            MPIR_I_REAL, MPIR_I_DOUBLE_PRECISION, 
-                            MPIR_I_COMPLEX, MPIR_I_DCOMPLEX, 
-                            MPIR_I_LONG_DOUBLE_INT, 
-                            MPIR_I_LOGICAL;
-#ifdef FOO
-#define MPI_CHAR (&MPIR_I_CHAR)
-#define MPI_BYTE (&MPIR_I_BYTE)
-#define MPI_SHORT (&MPIR_I_SHORT)
-#define MPI_INT (&MPIR_I_INT)
-#define MPI_LONG (&MPIR_I_LONG)
-#define MPI_FLOAT (&MPIR_I_FLOAT)
-#define MPI_DOUBLE (&MPIR_I_DOUBLE)
-
-#define MPI_UNSIGNED_CHAR  (&MPIR_I_UCHAR)
-#define MPI_UNSIGNED_SHORT (&MPIR_I_USHORT)
-#define MPI_UNSIGNED (&MPIR_I_UINT)
-#define MPI_UNSIGNED_LONG (&MPIR_I_ULONG)
-#endif
-
-#define MPI_PACKED          (&MPIR_I_PACKED)
-#define MPI_UB              (&MPIR_I_UB)
-#define MPI_LB              (&MPIR_I_LB)
-
-#define MPI_FLOAT_INT       (&MPIR_I_FLOAT_INT)
-#define MPI_LONG_INT        (&MPIR_I_LONG_INT)
-#define MPI_DOUBLE_INT      (&MPIR_I_DOUBLE_INT)
-#define MPI_SHORT_INT       (&MPIR_I_SHORT_INT)
-#define MPI_2INT            (&MPIR_I_2INT)
-
-#define MPI_LONG_DOUBLE_INT (&MPIR_I_LONG_DOUBLE_INT)
-
-/***********************************************************************/
-/* The following datatypes are for Fortran and SHOULD NOT BE USED      */
-/***********************************************************************/
-extern MPI_Datatype MPI_2INTEGER;
-extern MPI_Datatype MPIR_2real_dte, MPIR_2double_dte, 
-                    MPIR_2complex_dte, MPIR_2dcomplex_dte, 
-                    MPIR_int1_dte, 
-                    MPIR_int2_dte, MPIR_int4_dte, MPIR_real4_dte, 
-                    MPIR_real8_dte, MPI_REAL, MPI_DOUBLE_PRECISION;
-/***********************************************************************/
 /* 
    The layouts for the types MPI_DOUBLE_INT etc are simply
    struct { 
@@ -122,38 +73,63 @@ extern MPI_Datatype MPIR_2real_dte, MPIR_2double_dte,
    }
    This is documented in the man pages on the various datatypes.   
  */
+#define MPI_FLOAT_INT      ((MPI_Datatype)17)
+#define MPI_DOUBLE_INT     ((MPI_Datatype)18)
+#define MPI_LONG_INT       ((MPI_Datatype)19)
+#define MPI_SHORT_INT      ((MPI_Datatype)20)
+#define MPI_2INT           ((MPI_Datatype)21)
+#define MPI_LONG_DOUBLE_INT ((MPI_Datatype)22)
+
+/* Fortran types */
+#define MPI_COMPLEX        ((MPI_Datatype)23)
+#define MPI_DOUBLE_COMPLEX ((MPI_Datatype)24)
+#define MPI_LOGICAL        ((MPI_Datatype)25)
+#define MPI_REAL           ((MPI_Datatype)26)
+#define MPI_DOUBLE_PRECISION ((MPI_Datatype)27)
+#define MPI_INTEGER        ((MPI_Datatype)28)
+#define MPI_2INTEGER       ((MPI_Datatype)29)
+#define MPI_2COMPLEX       ((MPI_Datatype)30)
+#define MPI_2DOUBLE_COMPLEX   ((MPI_Datatype)31)
+#define MPI_2REAL             ((MPI_Datatype)32)
+#define MPI_2DOUBLE_PRECISION ((MPI_Datatype)33)
+#define MPI_CHARACTER         ((MPI_Datatype)1)
 
 /* Communicators */
-typedef struct MPIR_COMMUNICATOR *MPI_Comm;
-extern MPI_Comm MPI_COMM_WORLD, MPI_COMM_SELF;
+typedef int MPI_Comm;
+#define MPI_COMM_WORLD 91
+#define MPI_COMM_SELF 92
 
 /* Groups */
-typedef struct MPIR_GROUP *MPI_Group;
-extern MPI_Group MPI_GROUP_EMPTY;
+typedef int MPI_Group;
+#define MPI_GROUP_EMPTY 90
 
 /* Collective operations */
-typedef struct MPIR_OP *MPI_Op;
-extern struct MPIR_OP MPIR_I_MAX, MPIR_I_MIN, MPIR_I_SUM, MPIR_I_PROD, 
-              MPIR_I_LAND, MPIR_I_BAND, MPIR_I_LOR, MPIR_I_BOR, MPIR_I_LXOR, 
-              MPIR_I_BXOR, MPIR_I_MINLOC, MPIR_I_MAXLOC;
-#define MPI_MAX    (MPI_Op)(&(MPIR_I_MAX))
-#define MPI_MIN    (MPI_Op)(&(MPIR_I_MIN))
-#define MPI_SUM    (MPI_Op)(&(MPIR_I_SUM))
-#define MPI_PROD   (MPI_Op)(&(MPIR_I_PROD))
-#define MPI_LAND   (MPI_Op)(&(MPIR_I_LAND))
-#define MPI_BAND   (MPI_Op)(&(MPIR_I_BAND))
-#define MPI_LOR    (MPI_Op)(&(MPIR_I_LOR))
-#define MPI_BOR    (MPI_Op)(&(MPIR_I_BOR))
-#define MPI_LXOR   (MPI_Op)(&(MPIR_I_LXOR))
-#define MPI_BXOR   (MPI_Op)(&(MPIR_I_BXOR))
-#define MPI_MINLOC (MPI_Op)(&(MPIR_I_MINLOC))
-#define MPI_MAXLOC (MPI_Op)(&(MPIR_I_MAXLOC))
+typedef int MPI_Op;
+
+#define MPI_MAX    (MPI_Op)(100)
+#define MPI_MIN    (MPI_Op)(101)
+#define MPI_SUM    (MPI_Op)(102)
+#define MPI_PROD   (MPI_Op)(103)
+#define MPI_LAND   (MPI_Op)(104)
+#define MPI_BAND   (MPI_Op)(105)
+#define MPI_LOR    (MPI_Op)(106)
+#define MPI_BOR    (MPI_Op)(107)
+#define MPI_LXOR   (MPI_Op)(108)
+#define MPI_BXOR   (MPI_Op)(109)
+#define MPI_MINLOC (MPI_Op)(110)
+#define MPI_MAXLOC (MPI_Op)(111)
 
 /* Permanent key values */
 /* C Versions (return pointer to value) */
-extern int MPI_TAG_UB, MPI_HOST, MPI_IO, MPI_WTIME_IS_GLOBAL;
-/* Fortran Versions (return value) */
-extern int MPIR_TAG_UB, MPIR_HOST, MPIR_IO, MPIR_WTIME_IS_GLOBAL;
+#define MPI_TAG_UB 81
+#define MPI_HOST 83
+#define MPI_IO 85
+#define MPI_WTIME_IS_GLOBAL 87
+/* Fortran Versions (return integer value) */
+#define MPIR_TAG_UB 80
+#define MPIR_HOST 82
+#define MPIR_IO 84
+#define MPIR_WTIME_IS_GLOBAL 86
 
 /* Define some null objects */
 #define MPI_COMM_NULL      ((MPI_Comm)0)
@@ -161,11 +137,12 @@ extern int MPIR_TAG_UB, MPIR_HOST, MPIR_IO, MPIR_WTIME_IS_GLOBAL;
 #define MPI_GROUP_NULL     ((MPI_Group)0)
 #define MPI_DATATYPE_NULL  ((MPI_Datatype)0)
 #define MPI_REQUEST_NULL   ((MPI_Request)0)
-#define MPI_ERRHANDLER_NULL 0
+#define MPI_ERRHANDLER_NULL ((MPI_Errhandler )0)
 
 /* These are only guesses; make sure you change them in mpif.h as well */
 #define MPI_MAX_PROCESSOR_NAME 256
-#define MPI_MAX_ERROR_STRING   256
+#define MPI_MAX_ERROR_STRING   512
+#define MPI_MAX_NAME_STRING     63		/* How long a name do you need ? */
 
 /* Pre-defined constants */
 #define MPI_UNDEFINED      (-32766)
@@ -185,7 +162,6 @@ extern int MPIR_TAG_UB, MPIR_HOST, MPIR_IO, MPIR_WTIME_IS_GLOBAL;
 #define MPI_ANY_SOURCE 	(-2)
 #define MPI_ANY_TAG	(-1)
 
-
 /* 
    Status object.  It is the only user-visible MPI data-structure 
    The "count" field is PRIVATE; use MPI_Get_count to access it. 
@@ -201,20 +177,24 @@ typedef struct {
    to change this */
 #if (defined(_SX) && !defined(_LONG64))
 /* NEC SX-4 in some modes needs this */
-typedef long long MPI_Aint
+typedef long long MPI_Aint;
 #else
 typedef long MPI_Aint;
 #endif
 
-#if (defined(__STDC__) || defined(__cplusplus))
-typedef void (MPI_Handler_function)( MPI_Comm *, int *, ... );
+/* MPI Error handlers.  Systems that don't support stdargs can't use
+   this definition
+ */
+#if defined(USE_STDARG) 
+typedef void (MPI_Handler_function) MPIR_ARGS(( MPI_Comm *, int *, ... ));
 #else
-typedef void (MPI_Handler_function)();
+typedef void (MPI_Handler_function) ();
 #endif
 
-typedef struct MPIR_Errhandler *MPI_Errhandler;
-extern MPI_Errhandler MPI_ERRORS_ARE_FATAL, MPI_ERRORS_RETURN, 
-       MPIR_ERRORS_WARN;
+#define MPI_ERRORS_ARE_FATAL ((MPI_Errhandler)119)
+#define MPI_ERRORS_RETURN    ((MPI_Errhandler)120)
+#define MPIR_ERRORS_WARN     ((MPI_Errhandler)121)
+typedef int MPI_Errhandler;
 /* Make the C names for the null functions all upper-case.  Note that 
    this is required for systems that use all uppercase names for Fortran 
    externals.  */
@@ -226,24 +206,33 @@ extern MPI_Errhandler MPI_ERRORS_ARE_FATAL, MPI_ERRORS_RETURN,
 typedef union MPIR_HANDLE *MPI_Request;
 
 /* User combination function */
-#if defined(__STDC__) || defined(__cplusplus)
-typedef void (MPI_User_function)( void *invec, void *inoutvec, int *len,  
-				   MPI_Datatype *datatype); 
-#else
-typedef void (MPI_User_function)();
-#endif
+typedef void (MPI_User_function) MPIR_ARGS(( void *, void *, int *, 
+					     MPI_Datatype *)); 
 
 /* MPI Attribute copy and delete functions */
-#if defined(__STDC__) || defined(__cplusplus)
-typedef int (MPI_Copy_function)( MPI_Comm oldcomm, int keyval, 
-				 void *extra_state,
-			         void *attr_in, void *attr_out, int *flag);
-typedef int (MPI_Delete_function)( MPI_Comm comm, int keyval, void *attr_val,
-			           void *extra_state );
-#else
-typedef int (MPI_Copy_function)( );
-typedef int (MPI_Delete_function)( );
-#endif
+typedef int (MPI_Copy_function) MPIR_ARGS(( MPI_Comm, int, void *,
+					    void *, void *, int *));
+typedef int (MPI_Delete_function) MPIR_ARGS(( MPI_Comm, int, void *, void * ));
+
+#define MPI_VERSION 1
+#define MPI_SUBVERSION 1
+
+/********************** MPI-2 FEATURES BEGIN HERE ***************************/
+#define MPICH_HAS_HANDLE2INT
+
+/* Handle conversion types/functions */
+typedef void *MPI_Handle_type;
+/* Note: this may need to be typedef long MPI_Fint; instead */
+typedef int  MPI_Fint;
+typedef enum { MPI_DATATYPE_HANDLE, MPI_REQUEST_HANDLE, MPI_COMM_HANDLE, 
+	       MPI_GROUP_HANDLE, MPI_ERRHANDLE_HANDLE, MPI_OP_HANDLE } 
+MPI_Handle_enum;
+
+/* These routines have changed(!) */
+MPI_Handle_type MPI_Int2handle MPIR_ARGS(( MPI_Fint, MPI_Handle_enum ));
+MPI_Fint MPI_Handle2int MPIR_ARGS(( MPI_Handle_type, MPI_Handle_enum ));
+
+/********************** MPI-2 FEATURES END HERE ***************************/
 
 /* MPI's error classes */
 #include "mpi_errno.h"
@@ -256,7 +245,3 @@ typedef int (MPI_Delete_function)( );
 #endif
 
 #endif
-
-
-
-

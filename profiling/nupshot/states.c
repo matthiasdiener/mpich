@@ -18,25 +18,17 @@
 #define USE_QSORT 1
 
 
-#ifdef __STDC__
-#define ARGS(x) x
-#else
-#define ARGS(x) ()
-#endif
-
-
-
 
   /* store the starting end of a state */
-static int PushState ARGS(( stateData *state_data, int proc, int type,
+static int PushState ANSI_ARGS(( stateData *state_data, int proc, int type,
 		      double time ));
-static int FindMatchingPost ARGS(( stateData*, int proc, int type ));
-static int GetPostInfo ARGS(( stateData*, int proc, int slot_no, stateInfo* ));
-static int ClosePost ARGS(( stateData*, int proc, int slot_no,
+static int FindMatchingPost ANSI_ARGS(( stateData*, int proc, int type ));
+static int GetPostInfo ANSI_ARGS(( stateData*, int proc, int slot_no, stateInfo* ));
+static int ClosePost ANSI_ARGS(( stateData*, int proc, int slot_no,
 		      int finalRestingPlace ));
-static int CreateStateIndices ARGS(( stateData *state_data ));
-static int SortStart ARGS(( stateData *state_data, int *a, int n ));
-static int SortEnd ARGS(( stateData *state_data, int *a, int n ));
+static int CreateStateIndices ANSI_ARGS(( stateData *state_data ));
+static int SortStart ANSI_ARGS(( stateData *state_data, int *a, int n ));
+static int SortEnd ANSI_ARGS(( stateData *state_data, int *a, int n ));
 
 
 stateData *State_Create()
@@ -401,7 +393,7 @@ static int Bsearch( state_data, list, time, state_time_fn )
 stateData *state_data;
 xpandList /*int*/ list;
 double time;
-double (*state_time_fn) ARGS(( stateData*, int ));
+double (*state_time_fn) ANSI_ARGS(( stateData*, int ));
 {
   int top, mid, bottom;
 
@@ -424,7 +416,7 @@ static int BsearchLE( state_data, list, time, state_time_fn )
 stateData *state_data;
 xpandList /*int*/ list;
 double time;
-double (*state_time_fn) ARGS(( stateData*, int ));
+double (*state_time_fn) ANSI_ARGS(( stateData*, int ));
 {
   int i;
 
@@ -437,7 +429,7 @@ static int BsearchGE( state_data, list, time, state_time_fn )
 stateData *state_data;
 xpandList /*int*/ list;
 double time;
-double (*state_time_fn) ARGS(( stateData*, int ));
+double (*state_time_fn) ANSI_ARGS(( stateData*, int ));
 {
   int i;
 

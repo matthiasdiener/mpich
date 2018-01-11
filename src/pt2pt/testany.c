@@ -1,5 +1,5 @@
 /*
- *  $Id: testany.c,v 1.30 1996/06/26 19:27:12 gropp Exp $
+ *  $Id: testany.c,v 1.34 1997/01/24 21:55:18 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -26,6 +26,8 @@ Output Parameters:
 . flag - true if one of the operations is complete (logical) 
 . status - status object (Status) 
 
+.N waitstatus
+
 .N fortran
 
 .N Errors
@@ -42,7 +44,9 @@ MPI_Status  *status;
     int i, found, mpi_errno = MPI_SUCCESS;
     MPI_Request request;
     int nnull = 0;
+    static char myname[] = "MPI_TESTANY";
 
+    TR_PUSH(myname);
     *index = MPI_UNDEFINED;
 
 #ifdef MPI_ADI2
@@ -113,13 +117,15 @@ MPI_Status  *status;
 	status->MPI_ERROR  = MPI_SUCCESS;
 	status->count	   = 0;
 	*flag              = 1;
+	TR_POP;
 	return MPI_SUCCESS;
 	}
     *flag = found;
     
     if (mpi_errno) {
-	return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, "Error in MPI_TESTSOME");
+	return MPIR_ERROR(MPIR_COMM_WORLD, mpi_errno, myname );
 	}
+    TR_POP;
     return mpi_errno;
 #else
     /* Check for the trivial case of nothing to do; check requests for
@@ -129,8 +135,7 @@ MPI_Status  *status;
     for (i=0; i<count; i++) {
 	if (array_of_requests[i]) {
 	    if (MPIR_TEST_REQUEST(MPI_COMM_WORLD,array_of_requests[i]))
-		return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, 
-				  "Error in MPI_TESTANY" );
+		return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, myname );
 	    if (array_of_requests[i]->chandle.active) found = 1;
 	    }
 	}
@@ -207,9 +212,12 @@ MPI_Status  *status;
 #endif
 	    }
 	    if (!request->chandle.persistent) {
-		if (--request->chandle.datatype->ref_count <= 0) {
+		MPIR_Type_free( &request->chandle.datatype );
+		/*
+		if (--request->chandle.datatype->ref _count <= 0) {
 		    MPIR_Type_free( &request->chandle.datatype );
 		    }
+		    */
 		MPI_Request_free( &array_of_requests[i] );
 		array_of_requests[i]    = NULL;
 		}
@@ -221,7 +229,7 @@ MPI_Status  *status;
     }
     *flag = found;
     if (mpi_errno) {
-	return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, "Error in MPI_TESTANY");
+	return MPIR_ERROR(MPIR_COMM_WORLD, mpi_errno, myname );
 	}
     return mpi_errno;
 #endif

@@ -1,4 +1,4 @@
-.TH MPI_Intercomm_create 3 "6/26/1996" " " "MPI"
+.TH MPI_Intercomm_create 3 "1/6/1997" " " "MPI"
 .SH NAME
 MPI_Intercomm_create \-  Creates an intercommuncator from two intracommunicators 
 .SH SYNOPSIS
@@ -32,7 +32,7 @@ MPI_Comm *comm_out;
 .PD 0
 .TP
 .B remote_leader 
-- Rank in peer_comm of leader (often 0)
+- Rank in peer_comm of remote leader (often 0)
 .PD 1
 .PD 0
 .TP
@@ -128,9 +128,11 @@ be used to allocate new contexts during the merge and dup operations.
 For the resulting inter-communicator, 
 .I comm_out
 
+.nf
 comm_out                       = inter-communicator
 comm_out->comm_coll            = "collective" inter-communicator
 comm_out->comm_coll->comm_coll = safe collective intra-communicator
+.fi
 
 .SH ERRORS
 

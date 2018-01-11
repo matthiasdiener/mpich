@@ -9,6 +9,10 @@
 #include "test.h"
 /* #define SHOWMSG */
 
+/* Prototypes for picky compilers */
+void ClearArray ANSI_ARGS(( double *, int, double ));
+void SetArray ANSI_ARGS(( double *, int ));
+
 void ClearArray( a, n, v )
 double *a, v;
 int    n;

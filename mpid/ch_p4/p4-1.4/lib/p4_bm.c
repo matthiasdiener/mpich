@@ -6,14 +6,15 @@ int *argc;
 char **argv;
 {
     int bm_switch_port;
-    char *s,pgmname[100];
+    char *s,pgmname[P4_MAX_PGM_LEN];
 
     sprintf(whoami_p4, "p0_%d", getpid());
     p4_dprintfl(90,"entering bm_start\n");
 
     trap_sig_errs();		/* Errors can happen any time */
 
-    strcpy(pgmname,argv[0]);
+    strncpy(pgmname,argv[0],P4_MAX_PGM_LEN);
+    pgmname[P4_MAX_PGM_LEN-1] = 0;
     if ((s = (char *) rindex(pgmname,'/'))  !=  NULL)
     {
         *s = '\0';  /* chg to directory name only */
@@ -63,8 +64,10 @@ int p4_create_procgroup()
 {
 
     p4_dprintfl(90,"entering p4_create_procgroup\n");
-    if (p4_local->my_id != 0)
+    if (p4_local->my_id != 0) {
+	p4_local->procgroup = 0;
 	return(0);
+    }
     if (execer_pg)
     {
 	p4_local->procgroup = execer_pg;
@@ -116,7 +119,7 @@ else {
 
     procgroup_to_proctable(pg);
     if (pg->num_entries > 1)
-	p4_global->local_communication_only = FALSE;
+	p4_global->local_communication_only = P4_FALSE;
 
 #   ifdef CAN_DO_SOCKET_MSGS
     if (!p4_global->local_communication_only)
@@ -164,11 +167,15 @@ else {
     bm_msg.type = p4_i_to_n(INITIAL_INFO);
     bm_msg.numinproctab = p4_i_to_n(p4_global->num_in_proctable);
     bm_msg.numslaves = p4_i_to_n(local_pg->numslaves_in_group);
-    bm_msg.debug_level = p4_i_to_n(remote_debug_level);
+    bm_msg.debug_level = p4_i_to_n(p4_remote_debug_level);
     bm_msg.memsize = p4_i_to_n(globmemsize);
     bm_msg.logging_flag = p4_i_to_n(logging_flag);
     strcpy(bm_msg.application_id, p4_global->application_id);
     strcpy(bm_msg.version, P4_PATCHLEVEL);
+    if (strlen( local_pg->slave_full_pathname ) >= P4_MAX_PGM_LEN) {
+	p4_error("Program name is too long, must be less than", 
+		 P4_MAX_PGM_LEN);
+    }
     strcpy(bm_msg.pgm, local_pg->slave_full_pathname);
     for (i = 1; i <= nslaves; i++)
     {
@@ -459,7 +466,7 @@ struct p4_procgroup *pg;
 		{
 		    char dbg_c[10], max_c[10], lfd_c[10], sfd_c[10];
 
-		    sprintf(dbg_c, "%d", debug_level);
+		    sprintf(dbg_c, "%d", p4_debug_level);
 		    sprintf(max_c, "%d", p4_global->max_connections);
 		    sprintf(lfd_c, "%d", l->listening_fd);
 		    sprintf(sfd_c, "%d", l->slave_fd);
@@ -576,7 +583,7 @@ P4VOID sync_with_remotes()
 	node = rm[i];
 	fd = p4_local->conntab[node].port;
 	msg.type = p4_i_to_n(SYNC_MSG);
-	net_send(fd, &msg, sizeof(msg), FALSE);
+	net_send(fd, &msg, sizeof(msg), P4_FALSE);
     }
 #   endif
 }
@@ -613,14 +620,14 @@ P4VOID send_proc_table()
 	    strcpy(msg.host_name, pe->host_name);
 	    strcpy(msg.machine_type,pe->machine_type);
 	    msg.switch_port = p4_i_to_n(pe->switch_port);
-	    net_send(fd, &msg, sizeof(msg), FALSE);
+	    net_send(fd, &msg, sizeof(msg), P4_FALSE);
 	    p4_dprintfl(90, "%s sent proctable entry to slave %d: %s \n", 
                         p4_global->proctable[0].host_name,
                         ent+1, pe->host_name);
 	}
 	p4_dprintfl(90, "  sending end_of_proc_table\n");
 	msg.type = p4_i_to_n(PROC_TABLE_END);
-	net_send(fd, &msg, sizeof(msg), FALSE);
+	net_send(fd, &msg, sizeof(msg), P4_FALSE);
     }
 #   endif
 }

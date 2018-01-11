@@ -269,7 +269,7 @@ int   from_grank;
 	fprintf( stderr, "shandle is %lx\n", (long)shandle );
 	fprintf( stderr, "shandle cookie is %lx\n", shandle->cookie );
 	MPID_Print_shandle( stderr, shandle );
-	MPID_Abort( (MPI_Comm)0, 1, "MPI internal", 
+	MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPI internal", 
 		    "Bad address in Rendezvous send" );
     }
 #endif	

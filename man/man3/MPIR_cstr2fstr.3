@@ -1,0 +1,30 @@
+.TH MPIR_cstr2fstr 3 "12/9/1996" " " "MPI"
+.SH NAME
+MPIR_cstr2fstr \-  onvert a C string into a Fortran string. 
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPIR_cstr2fstr (res, reslen, src)
+char * res;
+long reslen;
+char * src;
+.fi
+.SH INPUT PARAMETERS
+.  res     - Pointer to the result space
+.PD 0
+.TP
+.B resLen  
+- Length of result space
+.PD 1
+.PD 0
+.TP
+.B src     
+- The C string
+.PD 1
+
+The result is 1 if the assignment was possible without truncation,
+zero otherwise.
+
+Blank padding is added to the Fortran string as required.
+.SH LOCATION
+fstrutils.c

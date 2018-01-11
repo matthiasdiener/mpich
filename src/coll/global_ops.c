@@ -1,5 +1,5 @@
 /*
- *  $Id: global_ops.c,v 1.36 1996/06/07 15:08:09 gropp Exp $
+ *  $Id: global_ops.c,v 1.39 1997/01/07 01:47:46 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -9,11 +9,15 @@
 
 Global Compute Operations 
 
+Note with the new integer values for MPI_INT etc, we can just switch on
+the datatype in most cases.
+
  */
 
 #include "mpiimpl.h"
 #include "coll.h"
 #include "mpifort.h"
+int MPIR_Op_errno;
 
 typedef struct { 
   float re;
@@ -32,8 +36,7 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
-  MPI_Datatype dtype = *type;
-  MPIR_GET_REAL_DATATYPE(dtype)
+  struct MPIR_DATATYPE *dtype = MPIR_GET_DTYPE_PTR(*type);
 
   switch ((dtype)->dte_type) {
   case MPIR_INT: {
@@ -110,8 +113,9 @@ MPI_Datatype *type;
   }
 #endif
   default:
-    MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
-	       "Error in MPI_MAX" );
+      MPIR_Op_errno = MPI_ERR_OP_NOT_DEFINED;
+    MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
+	       "MPI_MAX" );
     break;
   }
 }
@@ -123,8 +127,7 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
-  MPI_Datatype dtype = *type;
-  MPIR_GET_REAL_DATATYPE(dtype)
+  struct MPIR_DATATYPE *dtype = MPIR_GET_DTYPE_PTR(*type);
 
   switch ((dtype)->dte_type) {
   case MPIR_INT: {
@@ -201,8 +204,9 @@ MPI_Datatype *type;
   }
 #endif
   default:
-    MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
-	       "Error in MPI_MIN" );
+      MPIR_Op_errno = MPI_ERR_OP_NOT_DEFINED;
+    MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
+	       "MPI_MIN" );
     break;
   }
 }
@@ -216,8 +220,7 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
-  MPI_Datatype dtype = *type;
-  MPIR_GET_REAL_DATATYPE(dtype)
+  struct MPIR_DATATYPE *dtype = MPIR_GET_DTYPE_PTR(*type);
 
   switch ((dtype)->dte_type) {
   case MPIR_INT: {
@@ -309,8 +312,9 @@ MPI_Datatype *type;
     break;
   }
   default:
-    MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
-	       "Error in MPI_SUM" );
+      MPIR_Op_errno = MPI_ERR_OP_NOT_DEFINED;
+    MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
+	       "MPI_SUM" );
     break;
   }
 }
@@ -324,8 +328,7 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
-  MPI_Datatype dtype = *type;
-  MPIR_GET_REAL_DATATYPE(dtype)
+  struct MPIR_DATATYPE *dtype = MPIR_GET_DTYPE_PTR(*type);
 
   switch ((dtype)->dte_type) {
   case MPIR_INT: {
@@ -421,8 +424,9 @@ MPI_Datatype *type;
     break;
   }
   default:
-    MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
-	       "Error in MPI_PROD" );
+      MPIR_Op_errno = MPI_ERR_OP_NOT_DEFINED;
+    MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
+	       "MPI_PROD" );
     break;
   }
 }
@@ -438,8 +442,7 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
-  MPI_Datatype dtype = *type;
-  MPIR_GET_REAL_DATATYPE(dtype)
+  struct MPIR_DATATYPE *dtype = MPIR_GET_DTYPE_PTR(*type);
 
   switch ((dtype)->dte_type) {
   case MPIR_INT: {
@@ -524,8 +527,9 @@ MPI_Datatype *type;
       break;
       }
   default:
-    MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
-	       "Error in MPI_LAND" );
+      MPIR_Op_errno = MPI_ERR_OP_NOT_DEFINED;
+    MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
+	       "MPI_LAND" );
     break;
   }
 }
@@ -541,8 +545,7 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
-  MPI_Datatype dtype = *type;
-  MPIR_GET_REAL_DATATYPE(dtype)
+  struct MPIR_DATATYPE *dtype = MPIR_GET_DTYPE_PTR(*type);
 
   switch ((dtype)->dte_type) {
   case MPIR_LOGICAL: {
@@ -611,8 +614,9 @@ MPI_Datatype *type;
     break;
   }
   default:
-    MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
-	       "Error in MPI_BAND" );
+      MPIR_Op_errno = MPI_ERR_OP_NOT_DEFINED;
+    MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
+	       "MPI_BAND" );
     break;
   }
 }
@@ -628,8 +632,7 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
-  MPI_Datatype dtype = *type;
-  MPIR_GET_REAL_DATATYPE(dtype)
+  struct MPIR_DATATYPE *dtype = MPIR_GET_DTYPE_PTR(*type);
 
   switch ((dtype)->dte_type) {
   case MPIR_INT: {
@@ -714,8 +717,9 @@ MPI_Datatype *type;
       }
 
   default:
-    MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
-	       "Error in MPI_LOG" );
+      MPIR_Op_errno = MPI_ERR_OP_NOT_DEFINED;
+    MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
+	       "MPI_LOG" );
     break;
   }
 }
@@ -730,8 +734,7 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
-  MPI_Datatype dtype = *type;
-  MPIR_GET_REAL_DATATYPE(dtype)
+  struct MPIR_DATATYPE *dtype = MPIR_GET_DTYPE_PTR(*type);
 
   switch ((dtype)->dte_type) {
   case MPIR_LOGICAL: {
@@ -800,8 +803,9 @@ MPI_Datatype *type;
     break;
   }
   default:
-    MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
-	       "Error in MPI_BOR" );
+      MPIR_Op_errno = MPI_ERR_OP_NOT_DEFINED;
+    MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
+	       "MPI_BOR" );
     break;
   }
 }
@@ -817,8 +821,7 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
-  MPI_Datatype dtype = *type;
-  MPIR_GET_REAL_DATATYPE(dtype)
+  struct MPIR_DATATYPE *dtype = MPIR_GET_DTYPE_PTR(*type);
 
   switch ((dtype)->dte_type) {
   case MPIR_INT: {
@@ -903,8 +906,9 @@ MPI_Datatype *type;
       break;
       }
   default:
-    MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
-	       "Error in MPI_LXOR" );
+      MPIR_Op_errno = MPI_ERR_OP_NOT_DEFINED;
+    MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
+	       "MPI_LXOR" );
     break;
   }
 }
@@ -920,8 +924,7 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
-  MPI_Datatype dtype = *type;
-  MPIR_GET_REAL_DATATYPE(dtype)
+  struct MPIR_DATATYPE *dtype = MPIR_GET_DTYPE_PTR(*type);
 
   switch ((dtype)->dte_type) {
   case MPIR_LOGICAL: {
@@ -991,8 +994,9 @@ MPI_Datatype *type;
     break;
   }
   default:
-    MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
-	       "Error in MPI_BXOR" );
+      MPIR_Op_errno = MPI_ERR_OP_NOT_DEFINED;
+    MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
+	       "MPI_BXOR" );
     break;
   }
 }
@@ -1039,8 +1043,7 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
-  MPI_Datatype dtype = *type;
-  MPIR_GET_REAL_DATATYPE(dtype)
+  struct MPIR_DATATYPE *dtype = MPIR_GET_DTYPE_PTR(*type);
 
   if ((dtype)->dte_type == MPIR_STRUCT) {
     /* Perform the operation based on the type of the first type in */
@@ -1128,15 +1131,16 @@ MPI_Datatype *type;
     }
 #endif
     default:
-      MPIR_ERROR(MPI_COMM_WORLD, MPI_ERR_OP|MPIR_ERR_NOT_DEFINED, 
-                 "MAXLOC operation not supported on type");
+      MPIR_Op_errno = MPI_ERR_OP_NOT_DEFINED;
+      MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
+		 "MPI_MAXLOC"); 
     }
   }
 
   /* Some types are defined as contiguous with 2 elements */
   else if ((dtype)->dte_type == MPIR_CONTIG && ((dtype)->count == 2)) {
       
-    MPI_Datatype oldtype = (dtype)->old_type;
+    struct MPIR_DATATYPE *oldtype = (dtype)->old_type;
 
     /* Set the actual length */
     len = len * (dtype)->count;
@@ -1231,14 +1235,16 @@ MPI_Datatype *type;
     }
 #endif
     default: 
-      MPIR_ERROR(MPI_COMM_WORLD, MPI_ERR_OP|MPIR_ERR_NOT_DEFINED, 
-                 "MAXLOC operation not supported on type");
+      MPIR_Op_errno = MPI_ERR_OP_NOT_DEFINED;
+      MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
+                 "MPI_MAXLOC");
       break;
     }
   }
   else {
-      MPIR_ERROR(MPI_COMM_WORLD, MPI_ERR_OP|MPIR_ERR_NOT_DEFINED, 
-                 "MAXLOC operation not supported on type");
+      MPIR_Op_errno = MPI_ERR_OP_NOT_DEFINED;
+      MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_OP|MPIR_ERR_NOT_DEFINED, 
+                 "MPI_MAXLOC" );
       }
 }
 
@@ -1249,8 +1255,7 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
-  MPI_Datatype dtype = *type;
-  MPIR_GET_REAL_DATATYPE(dtype)
+  struct MPIR_DATATYPE *dtype = MPIR_GET_DTYPE_PTR(*type);
 
   if ((dtype)->dte_type == MPIR_STRUCT) {
     /* Perform the operation based on the type of the first type in */
@@ -1338,13 +1343,14 @@ MPI_Datatype *type;
     }
 #endif
     default:
-      MPIR_ERROR(MPI_COMM_WORLD, MPI_ERR_OP|MPIR_ERR_NOT_DEFINED, 
-                 "MINLOC operation not supported on type");
+      MPIR_Op_errno = MPI_ERR_OP_NOT_DEFINED;
+      MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_OP|MPIR_ERR_NOT_DEFINED, 
+                 "MPI_MINLOC" );
     }
   }
   else if ((dtype)->dte_type == MPIR_CONTIG && ((dtype)->count == 2)) {
 
-    MPI_Datatype oldtype = (dtype)->old_type;
+    struct MPIR_DATATYPE *oldtype = (dtype)->old_type;
 
     /* Set the actual length */
     len = len * (dtype)->count;
@@ -1439,14 +1445,16 @@ MPI_Datatype *type;
     }
 #endif
     default: 
-      MPIR_ERROR(MPI_COMM_WORLD, MPI_ERR_OP|MPIR_ERR_NOT_DEFINED, 
-                 "MINLOC operation not supported on type");
+      MPIR_Op_errno = MPI_ERR_OP_NOT_DEFINED;
+      MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_OP|MPIR_ERR_NOT_DEFINED, 
+                 "MPI_MINLOC" );
       break;
     }
   }
   else {
-      MPIR_ERROR(MPI_COMM_WORLD, MPI_ERR_OP|MPIR_ERR_NOT_DEFINED, 
-                 "MINLOC operation not supported on type");
+      MPIR_Op_errno = MPI_ERR_OP_NOT_DEFINED;
+      MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_OP|MPIR_ERR_NOT_DEFINED, 
+                 "MPI_MINLOC" );
       }
 }
 

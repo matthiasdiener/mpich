@@ -1,8 +1,9 @@
 #include <mpi.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "test.h"
 
-void main(argc,argv)
+int main(argc,argv)
 int argc;
 char **argv;
 {
@@ -17,7 +18,7 @@ char **argv;
   MPI_Comm_rank ( MPI_COMM_WORLD, &rank );
   MPI_Comm_size ( MPI_COMM_WORLD, &size );
 
-  if (size > 10) return;
+  if (size > 10) return 1;
   
   if (rank == 0) {
     for ( i = 1; i < size; i++ )
@@ -29,6 +30,7 @@ char **argv;
 
     Test_Waitforall( );
   MPI_Finalize();
+  return 0;
 }
 
 #if 0

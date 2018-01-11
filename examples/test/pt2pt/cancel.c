@@ -7,6 +7,10 @@
 #include "mpi.h"
 #include <stdio.h>
 
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
+
 int main( argc, argv )
 int  argc; 
 char **argv;
@@ -92,6 +96,20 @@ char **argv;
 		      MPI_BOTTOM, 0, MPI_INT, partner, 1,
 		      MPI_COMM_WORLD, &status );
     }
+
+    /* 
+       Next test - check that a cancel for a request receive from
+       MPI_PROC_NULL succeeds (there is some suspicion that some
+       systems can't handle this - also, MPI_REQUEST_NULL 
+
+       Note that a null request is invalid (see the various NULL comments)
+    r1 = MPI_REQUEST_NULL;
+    MPI_Cancel( &r1 );
+    */
+    MPI_Irecv( buf, 10, MPI_INT, MPI_PROC_NULL, 0, MPI_COMM_WORLD, &r1 );
+    MPI_Cancel( &r1 );
+
+    MPI_Request_free( &r1 );
     MPI_Finalize();
     return 0;
 }

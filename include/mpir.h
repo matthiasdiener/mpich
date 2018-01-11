@@ -1,5 +1,5 @@
 /*
- *  $Id: mpir.h,v 1.53 1996/06/26 19:28:38 gropp Exp $
+ *  $Id: mpir.h,v 1.54 1996/11/24 20:22:15 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -18,7 +18,7 @@
 #include "dm.h"
 
 #ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus)
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
 #define ANSI_ARGS(a) a
 #else
 #define ANSI_ARGS(a) ()
@@ -41,6 +41,8 @@
 /* to demonstrate that the added functionality has low cost                  */
 /*****************************************************************************/
 
+#include "../mpid/ch2/datatype.h"
+#ifdef FOO
 #define MPIR_DATATYPE_COOKIE 0xea31beaf
 struct MPIR_DATATYPE {
     MPIR_NODETYPE dte_type; /* type of datatype element this is */
@@ -84,6 +86,7 @@ extern MPI_Datatype MPIR_datatypes[MPIR_MAX_DATATYPE_ARRAY];
 /* For ONLY the predefined datatypes, the size MAY be encoded in the 
    value of the datatype */
 #define MPIR_DATATYPE_SIZE(a) (1 + ( (MPI_Aint)(a)&0xf ) )
+#endif
 
 /*****************************************************************************/
 /* Requests come in many flavors                                             */

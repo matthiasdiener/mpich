@@ -13,14 +13,19 @@ int main(argc,argv)
 int argc;
 char *argv[];
 {
-    int done = 0, n, myid, numprocs, i, rc, repeat;
+    int  n, myid, numprocs, i, j, rc, repeat;
     double PI25DT = 3.141592653589793238462643;
     double mypi, pi, h, sum, x, a;
     double startwtime, endwtime;
+    int namelen;
+    char processor_name[MPI_MAX_PROCESSOR_NAME];
 
     MPI_Init(&argc,&argv);
     MPI_Comm_size(MPI_COMM_WORLD,&numprocs);
     MPI_Comm_rank(MPI_COMM_WORLD,&myid);
+
+    MPI_Get_processor_name(processor_name,&namelen);
+    fprintf(stderr,"Process %d running on %s\n", myid, processor_name);
 
     MPE_Init_log();
     if (myid == 0) {
@@ -30,56 +35,48 @@ char *argv[];
 	MPE_Describe_state(7, 8, "Sync",      "yellow:gray");
     }
 
-    while (!done)
+    if (myid == 0) 
     {
-	if (myid == 0) 
-	{
-	    n = 1000000;
-	    startwtime = MPI_Wtime();
-	}
-	MPI_Barrier(MPI_COMM_WORLD);
-	MPE_Start_log();
+	n = 1000000;
+	startwtime = MPI_Wtime();
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPE_Start_log();
 
+    for (j = 0; j < 5; j++)
+    {
 	MPE_Log_event(1, 0, "start broadcast");
 	MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	MPE_Log_event(2, 0, "end broadcast");
     
-	if (n == 0)
-	    done = 1;
-	else
-	{
-	    for (repeat=5; repeat; repeat--)
-	    {
-		MPE_Log_event(7,0,"Start Sync");
-		MPI_Barrier(MPI_COMM_WORLD);
-		MPE_Log_event(8,0,"End Sync");
-		MPE_Log_event(3, 0, "start compute");
-		h   = 1.0 / (double) n;
-		sum = 0.0;
-		for (i = myid + 1; i <= n; i += numprocs)
-		{
-		    x = h * ((double)i - 0.5);
-		    sum += f(x);
-		}
-		mypi = h * sum;
-		MPE_Log_event(4, 0, "end compute");
-		fprintf( stderr, "[%d] mypi = %lf\n", myid, mypi );
+	MPE_Log_event(7,0,"Start Sync");
+	MPI_Barrier(MPI_COMM_WORLD);
+	MPE_Log_event(8,0,"End Sync");
 
-		MPE_Log_event(5, 0, "start reduce");
-		MPI_Reduce(&mypi, &pi, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-		MPE_Log_event(6, 0, "end reduce");
-		if (myid == 0)
-		{
-		    printf("pi is approximately %.16f, Error is %.16f\n",
-			   pi, fabs(pi - PI25DT));
-		    endwtime = MPI_Wtime();
-		    printf("wall clock time = %f\n", endwtime-startwtime); 
-		}
-	    }
-	    n = 0;
-        }
-	MPE_Stop_log();
+	MPE_Log_event(3, 0, "start compute");
+	h   = 1.0 / (double) n;
+	sum = 0.0;
+	for (i = myid + 1; i <= n; i += numprocs)
+	{
+	    x = h * ((double)i - 0.5);
+	    sum += f(x);
+	}
+	mypi = h * sum;
+	MPE_Log_event(4, 0, "end compute");
+
+	MPE_Log_event(5, 0, "start reduce");
+	MPI_Reduce(&mypi, &pi, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+	MPE_Log_event(6, 0, "end reduce");
     }
+    MPE_Stop_log();
     MPE_Finish_log("cpilog.log");
+
+    if (myid == 0)
+    {
+	endwtime = MPI_Wtime();
+	printf("pi is approximately %.16f, Error is %.16f\n",
+	       pi, fabs(pi - PI25DT));
+	printf("wall clock time = %f\n", endwtime-startwtime);	       
+    }
     MPI_Finalize();
 }

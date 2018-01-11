@@ -1,5 +1,5 @@
 /*
- *  $Id: errget.c,v 1.7 1996/04/11 20:28:10 gropp Exp $
+ *  $Id: errget.c,v 1.10 1997/01/07 01:46:11 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -28,18 +28,18 @@ int MPI_Errhandler_get( comm, errhandler )
 MPI_Comm comm;
 MPI_Errhandler *errhandler;
 {
-    int mpi_errno;
-    if (MPIR_TEST_COMM(comm,comm)) {
-	return MPIR_ERROR( comm, mpi_errno, "Error in MPI_ERRHANDLER_GET" );
-    }
-    else {
-	if (MPIR_TEST_ERRHANDLER(comm,comm->error_handler)) {
-	    return MPIR_ERROR( comm, mpi_errno,"Error in MPI_ERRHANDLER_GET" );
-	}
-	*errhandler = comm->error_handler;
-	/* A get creates a reference to an error handler; the user must 
-	   explicitly free this reference */
-	comm->error_handler->ref_count ++;
-    }
+    struct MPIR_COMMUNICATOR *comm_ptr;
+    static char myname[] = "MPI_ERRHANDLER_GET";
+
+    TR_PUSH(myname);
+    comm_ptr = MPIR_GET_COMM_PTR(comm);
+    MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+
+    *errhandler = comm_ptr->error_handler;
+    /* A get creates a reference to an error handler; the user must 
+       explicitly free this reference */
+    MPIR_Errhandler_mark( *errhandler, 1 );
+    
+    TR_POP;
     return MPI_SUCCESS;
 }

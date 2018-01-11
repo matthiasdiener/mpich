@@ -1,0 +1,248 @@
+#!/bin/ksh
+#
+#
+# COMPONENT_NAME: (CC) C Set ++ for AIX
+#
+# FUNCTIONS: Create a C++ shared library from an export list and a list
+#	     of object files.  Ensure that static constructors will be run.
+#
+# (C) COPYRIGHT International Business Machines Corp. 1991, 1992, 1993
+# All Rights Reserved
+# Licensed Materials - Property of IBM
+#
+# US Government Users Restricted Rights - Use, duplication or
+# disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+EXE=${EXE-/usr/lpp/xlC/exe}
+BIN=${BIN-/usr/lpp/xlC/bin}
+LIB=${LIB-/usr/lpp/xlC/lib}
+LIBCPP=-lC
+NM=${NM-/bin/nm -eC}
+DEFAULT_LIBPATHS="/usr/lib/dce /lib /usr/lib /usr/lpp/xlC/lib"
+OUTPUT=shr.o
+TMPFILE=/tmp/exp$$
+EXPFILE=/tmp/tmpe$$
+SAVEEXPFILE=
+RENAMEFILE=/tmp/ren$$
+NMFILE=/tmp/nm$$
+LDOUTFILE=/tmp/ld$$
+FILES="$TMPFILE $EXPFILE $RENAMEFILE $NMFILE $LDOUTFILE"
+OPTIONS="-bhalt:4"
+trap '/bin/rm -f __cd$$.[oc] $FILES' 0
+trap '/bin/rm -f __cd$$.[oc] $FILES; exit 0' 2 3 15
+
+function RenameTemplates
+{
+    awk -F'|' '{
+	if ($3 != "extern" || substr($7,1,1) == " ") continue
+	sub ("  *", "", $1); sub ("  *", "", $7)
+	if (($7 == ".text") || ($7 == ".data") || ($7 == ".bss")) {
+	    if (index ($1, "__tf1") == 1)
+		printf("rename %s %s\n", $1, substr ($1, 7))
+	    else if (index ($1, ".__tf1") == 1)
+		printf("rename %s .%s\n", $1, substr ($1, 8))
+	    else if (index ($1, "__tf9") == 1)
+		printf("rename %s %s\n", $1, substr ($1, 15))
+	    else if (index ($1, ".__tf9") == 1)
+		printf("rename %s .%s\n", $1, substr ($1, 16))
+	}
+    }' >> $RENAMEFILE < $NMFILE
+}
+
+function CreateExportList
+{
+    awk -F'|' '{
+	if ($3 != "extern" || substr($7,1,1) == " ") continue
+	sub ("  *", "", $1); sub ("  *", "", $7)
+	if ( (($7 == ".text") || ($7 == ".data") || ($7 == ".bss"))  \
+		&& ( substr($1,1,1) != ".")) {
+	    if (substr ($1, 1, 7) != "__sinit" &&
+		    substr ($1, 1, 7) != "__sterm") {
+		if (substr ($1, 1, 5) == "__tf1")
+		    print (substr ($1, 7))
+		else if (substr ($1, 1, 5) == "__tf9")
+		    print (substr ($1, 15))
+		else
+		    print $1
+	    }
+	}
+    }' >> $EXPFILE < $NMFILE
+}
+
+outputarg=false
+entrypointarg=false
+boptarg=false
+exportsarg=false
+importsarg=false
+prioarg=false
+libdirsarg=false
+libfilesarg=false
+strpopt=
+newargs=
+NEXUS_LIB=
+
+for opt in $* ; do
+  if [ "$libdirsarg" = "true" ] ; then
+    libdirsarg=false
+    LIBS="$LIBS -L$opt"
+    LIBPATHS="$LIBPATHS $opt"
+  elif [ "$libfilesarg" = "true" ] ; then
+    libfilesarg=false
+    LIBS="$LIBS -l$opt"
+    LIBFILES="$LIBFILES $opt"
+  elif [ "$prioarg" = "true" ] ; then
+    prioarg=false
+    PRIO=$opt
+  elif [ "$exportsarg" = "true" ] ; then
+    exportsarg=false
+    EXPORTS="$EXPORTS -bE:$opt"
+  elif [ "$importsarg" = "true" ] ; then
+    importsarg=false
+    IMPORTS="$IMPORTS -bI:$opt"
+  elif [ "$entrypointarg" = "true" ] ; then
+    entrypointarg=false
+    OPTIONS="$OPTIONS -e$opt"
+  elif [ "$boptarg" = "true" ] ; then
+    bopt=false
+    OPTIONS="$OPTIONS -b$opt"
+  elif [ "$outputarg" = "true" ] ; then
+    outputarg=false
+    OUTPUT="$opt"
+  else
+    case $opt in
+	-L)
+	    libdirsarg=true
+	    ;;
+	-L*)
+	    LIBS="$LIBS $opt"
+	    strpopt=`echo $opt | sed -e 's/-L//'`
+	    LIBPATHS="$LIBPATHS $strpopt"
+	    ;;
+	-l)
+	    libfilesarg=true
+	    ;;
+	-l*)
+	    LIBS="$LIBS $opt"
+	    strpopt=`echo $opt | sed -e 's/-l//'`
+	    LIBFILES="$LIBFILES $strpopt"
+	    ;;
+	-o) outputarg=true
+	    ;;
+	-p) prioarg=true ;;
+	-p*) PRIO=`echo $opt | sed -e 's/-p//'` ;;
+	-E) exportsarg=true ;;
+	-E*) EXPORTS="$EXPORTS -bE:`echo $opt | sed -e 's/-E//'`" ;;
+	-I) importsarg=true ;;
+	-I*) IMPORTS="$IMPORTS -bI:`echo $opt | sed -e 's/-I//'`" ;;
+	-c) FLAGS="$FLAGS $1"
+	    ;;
+	-x) LIBCPP=
+	    ;;
+	-n) entrypointarg=true ;;
+	-n*) OPTIONS="$OPTIONS -e`echo $opt | sed -e 's/-n//'`" ;;
+	-b) boptarg=true ;;
+	-b*)
+	    OPTIONS="$OPTIONS -b`echo $opt | sed -e 's/-b//'`"
+	    ;;
+	-g) ;;
+	-q*) NEXUS_LIB="`echo $opt | sed -e 's/-q//'`"
+	     ;;
+	-*) 
+	    OPTIONS="$OPTIONS $opt"
+	    ;;
+	*)
+	    newargs="$newargs $opt"
+	    ;;
+    esac
+  fi
+done
+args="$newargs"
+
+if [[ -z "$PRIO" ]] then
+    echo `dspmsg xlClib.cat -s 4 1 '%s: 1543-301 Priority must be specified' $0`
+    exit 3;
+fi
+
+# bias PRIO by 2**31 (and convert to hex)
+PRIO=0x$(bc << XX
+obase=16
+$PRIO + 2147483648
+XX
+)
+
+# remove -- argument
+shift
+
+if [[ $# = 0 ]] then
+    echo `dspmsg xlClib.cat -s 4 2 '%s: 1543-302 No object files given on command line' $0`
+    exit 4
+fi
+
+# expand all the libraries so that we can run 'munch' on them
+LIBPATHS="$LIBPATHS $DEFAULT_LIBPATHS"
+for i in $LIBFILES
+do
+    for j in $LIBPATHS
+    do
+	if [[ -r $j/lib$i.a ]] then
+	    FINALLIBS="$FINALLIBS $j/lib$i.a"
+	    break
+	fi
+    done
+done
+
+# handle template functions and data (and create export list if needed)
+/bin/rm -f $RENAMEFILE $EXPFILE
+for i in $*
+do
+    $NM $i > $NMFILE 2> /dev/null
+    RenameTemplates
+    if [[ -z "$EXPORTS" ]] then
+cat << DONE > $EXPFILE
+_nx_thd_context_entry
+DONE
+	CreateExportList
+    fi
+    /bin/rm -f $NMFILE
+done
+
+# don't create export lists from libraries
+for i in $FINALLIBS
+do
+    $NM $i > $NMFILE 2>/dev/null; RenameTemplates; /bin/rm -f $NMFILE
+done
+
+/bin/sort -u $RENAMEFILE -o $RENAMEFILE
+if [[ -z "$EXPORTS" ]] then
+    /bin/sort -u $EXPFILE -o $EXPFILE; EXPORTS=-bE:$EXPFILE
+    if [[ ! -z "$SAVEEXPFILE" ]] then
+	/bin/cp $EXPFILE $SAVEEXPFILE
+    fi
+fi
+
+echo "void __priority$PRIO() {}"  > __cd$$.c
+$EXE/munch -p $PRIO -l $FLAGS $args $FINALLIBS >> __cd$$.c
+ret=$?
+RESULT=__cd$$.o
+EXPORTS="$EXPORTS -bE:$TMPFILE"
+echo "__priority$PRIO" > $TMPFILE
+if [[ $ret = 0 ]] then # we have constructors/destructors
+    /bin/cc -c __cd$$.c
+    echo "__cdtors" >> $TMPFILE
+elif [[ $ret = 2 ]] then # no constructors/destructors
+    /bin/cc -c __cd$$.c
+else
+    echo `dspmsg xlClib.cat -s 4 3 '%s: 1543-303 Error during munch phase' $0`
+    exit 5
+fi
+
+# now create the shared library
+ld -bM:SRE -o $OUTPUT -T512 -H512 -L /usr/lib/dce -L $LIB $args $EXPORTS $OPTIONS \
+  $RESULT -bex2:$RENAMEFILE /usr/lpp/xlC/lib/crt0_r.o $LIBS $LIBCPP -lc_r -lpthreads -lm > $LDOUTFILE 2>&1
+status=$?
+if [ $status = 0 ] ; then
+  $NEXUS_LIB/ibm_entrypt $OUTPUT > $LDOUTFILE 2>&1
+  status=$?
+fi
+$BIN/c++filt < $LDOUTFILE
+exit $status

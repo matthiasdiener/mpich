@@ -29,7 +29,7 @@ CCFLAGS = $(CFLAGS) $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
 default_all: global.o
-	$(AR) ../../lib/$(ARCH)/$(COMM)/lib@MPILIBBAME@++.a $?
+	$(AR) ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@++.a $?
 profile_all: 
 
 default: ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@++.a

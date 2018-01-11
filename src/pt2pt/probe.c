@@ -1,5 +1,5 @@
 /*
- *  $Id: probe.c,v 1.17 1996/04/11 20:21:10 gropp Exp $
+ *  $Id: probe.c,v 1.19 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -36,10 +36,15 @@ int         tag;
 MPI_Comm    comm;
 MPI_Status  *status;
 {
-    int mpi_errno;
-    if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_RECV_TAG(comm,tag) ||
-	MPIR_TEST_RECV_RANK(comm,source))
-	return MPIR_ERROR( comm, mpi_errno, "Error in MPI_PROBE" );
+    int mpi_errno = MPI_SUCCESS;
+    struct MPIR_COMMUNICATOR *comm_ptr;
+    static char myname[] = "MPI_PROBE";
+    
+    comm_ptr = MPIR_GET_COMM_PTR(comm);
+    MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+
+    if (MPIR_TEST_RECV_TAG(comm,tag) || MPIR_TEST_RECV_RANK(comm_ptr,source))
+	return MPIR_ERROR( comm_ptr, mpi_errno, myname );
 
     if (source == MPI_PROC_NULL) {
 	status->MPI_SOURCE = MPI_PROC_NULL;
@@ -48,8 +53,9 @@ MPI_Status  *status;
 	return MPI_SUCCESS;
 	}
 #ifdef MPI_ADI2
-    MPID_Probe( comm, tag, comm->recv_context, source, &mpi_errno, status );
-    MPIR_RETURN(comm,mpi_errno,"Error in MPI_PROBE");
+    MPID_Probe( comm_ptr, tag, comm_ptr->recv_context, source, &mpi_errno, 
+		status );
+    MPIR_RETURN(comm_ptr,mpi_errno,myname);
 #else
 #ifdef MPID_NEEDS_WORLD_SRC_INDICES
     MPID_Probe( comm->ADIctx, tag, 

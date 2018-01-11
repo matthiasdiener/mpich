@@ -1,5 +1,5 @@
 /*
- *  $Id: bsendutil.c,v 1.8 1996/06/07 15:12:34 gropp Exp $
+ *  $Id: bsendutil.c,v 1.10 1997/03/29 16:07:27 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -52,6 +52,7 @@
  * when the data has been moved.
  */
 
+#include "mpiimpl.h"
 
 #ifdef MPI_ADI2
 #include "bsendutil2.c"
@@ -243,7 +244,8 @@ if (tp && tp->req == MPI_REQUEST_NULL) {
 		 (MPI_Aint)tp, (MPI_Aint)b );
 #endif                 /* #DEBUG_BSEND_END# */
     b->next = tp->next;
-    if (tp->next) tp->next->prev = b->prev;
+    /* was if (tp->next) tp->next->prev = b->prev; */
+    if (tp->next) tp->next->prev = b;  /* per Lloyd, 1/29/97 */
     b->len += tp->len + sizeof(BSendData);
     }
 DEBUG_PRINT("Exiting MPIR_MergeBlock")

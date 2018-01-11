@@ -8,8 +8,18 @@
 #ifndef _SBCNST
 #define _SBCNST
 
+#if defined(HAVE_CONFIG_H) && !defined(MPICHCONF_INC)
+/* This includes the definitions found by configure, and can be found in
+   the library directory (lib/$ARCH/$COMM) corresponding to this configuration
+ */
+#define MPICHCONF_INC
+#include "mpichconf.h"
+#endif
+
+#include <stdio.h>
+
 #ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus)
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
 #define ANSI_ARGS(a) a
 #else
 #define ANSI_ARGS(a) ()

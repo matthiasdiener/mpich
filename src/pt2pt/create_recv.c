@@ -1,5 +1,5 @@
 /*
- *  $Id: create_recv.c,v 1.19 1996/06/07 15:07:30 gropp Exp $
+ *  $Id: create_recv.c,v 1.22 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -49,55 +49,63 @@ int          tag;
 MPI_Comm     comm;
 {
     int         mpi_errno;
+    struct MPIR_DATATYPE *dtype_ptr;
+    struct MPIR_COMMUNICATOR *comm_ptr;
+    static char myname[] = "MPI_RECV_INIT";
 #ifdef MPI_ADI2
     MPIR_PRHANDLE *rhandle;
 #else
     MPI_Request handleptr;
 #endif
 
-    if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,count) ||
-	MPIR_TEST_DATATYPE(comm,datatype) || MPIR_TEST_RECV_TAG(comm,tag) ||
-	MPIR_TEST_RECV_RANK(comm,source)) 
-	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_RECV_INIT" );
+    TR_PUSH(myname);
+
+    comm_ptr = MPIR_GET_COMM_PTR(comm);
+    MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+    
+    dtype_ptr   = MPIR_GET_DTYPE_PTR(datatype);
+    MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
+
+    if (MPIR_TEST_COUNT(comm,count) || MPIR_TEST_RECV_TAG(comm,tag) ||
+	MPIR_TEST_RECV_RANK(comm_ptr,source)) 
+	return MPIR_ERROR(comm_ptr, mpi_errno, myname );
 
 #ifdef MPI_ADI2
     MPIR_ALLOC(*request,(MPI_Request)MPID_PRecvAlloc(),
-	       comm,MPI_ERR_EXHAUSTED,"Error in MPI_RECV_INIT" );
+	       comm_ptr,MPI_ERR_EXHAUSTED,myname );
     rhandle = &(*request)->persistent_rhandle;
     MPID_Request_init( &(rhandle->rhandle), MPIR_PERSISTENT_RECV );
     /* Save the information about the operation, being careful with
        ref-counted items */
-    MPIR_GET_REAL_DATATYPE(datatype)
-    datatype->ref_count++;
-    rhandle->perm_datatype = datatype;
+    MPIR_REF_INCR(dtype_ptr);
+    rhandle->perm_datatype = dtype_ptr;
     rhandle->perm_tag	   = tag;
     rhandle->perm_source   = source;
     rhandle->perm_count	   = count;
     rhandle->perm_buf	   = buf;
-    comm->ref_count++;
-    rhandle->perm_comm	   = comm;
+    MPIR_REF_INCR(comm_ptr);
+    rhandle->perm_comm	   = comm_ptr;
     rhandle->active	   = 0;
     /* dest of MPI_PROC_NULL handled in start */
 #else
     /* See MPI_TYPE_FREE.  A free can not happen while the datatype may
        be in use.  Thus, a nonblocking operation increments the
        reference count */
-    MPIR_GET_REAL_DATATYPE(datatype)
-    datatype->ref_count++;
+    MPIR_REF_INCR(dtype_ptr);
     MPIR_ALLOC(handleptr,(MPI_Request) MPIR_SBalloc( MPIR_rhandles ),
-	       comm,MPI_ERR_EXHAUSTED,"Error in MPI_RECV_INIT");
+	       comm_ptr,MPI_ERR_EXHAUSTED,myname);
     *request			   = handleptr;
     MPIR_SET_COOKIE(&handleptr->rhandle,MPIR_REQUEST_COOKIE)
     handleptr->type		   = MPIR_RECV;
 #ifdef MPID_NEEDS_WORLD_SRC_INDICES
     handleptr->rhandle.source	   = 
-	(source >= 0) ? (comm->lrank_to_grank[source]) : source;
+	(source >= 0) ? (comm_ptr->lrank_to_grank[source]) : source;
 #else
     handleptr->rhandle.source	   = source;
 #endif
     handleptr->rhandle.tag	   = tag;
     handleptr->rhandle.errval	   = MPI_SUCCESS;
-    handleptr->rhandle.contextid   = comm->recv_context;
+    handleptr->rhandle.contextid   = comm_ptr->recv_context;
     handleptr->rhandle.comm	   = comm;
     handleptr->rhandle.datatype	   = datatype;
     handleptr->rhandle.bufadd	   = buf;
@@ -109,14 +117,15 @@ MPI_Comm     comm;
     
 
     if (source == MPI_PROC_NULL) {
-	MPID_Set_completed(  comm->ADIctx, handleptr );
+	MPID_Set_completed(  comm_ptr->ADIctx, handleptr );
 	handleptr->rhandle.bufpos = 0;
 	}
     else {
-	MPID_Clr_completed(  comm->ADIctx, handleptr );
+	MPID_Clr_completed(  comm_ptr->ADIctx, handleptr );
 	}
-    MPID_Alloc_recv_handle(handleptr->rhandle.comm->ADIctx,
+    MPID_Alloc_recv_handle(handleptr->rhandle.comm_ptr->ADIctx,
 			   &((handleptr)->rhandle.dev_rhandle));
 #endif
+    TR_POP;
     return MPI_SUCCESS;
 }

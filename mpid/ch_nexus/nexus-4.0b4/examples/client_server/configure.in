@@ -1,0 +1,5 @@
+dnl
+dnl rcsid = $Header: /nfs/globus1/src/master/nexus_examples/client_server/configure.in,v 1.2 1996/02/06 19:39:57 geisler Exp $
+dnl
+AC_INIT(broker.c)
+AC_OUTPUT(Makefile)

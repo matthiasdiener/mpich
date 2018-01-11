@@ -7,12 +7,6 @@
 #include "mpisys.h"
 #endif
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_startall_ PMPI_STARTALL
@@ -45,17 +39,18 @@ int *__ierr;
     int i;
     MPI_Request *r;
 
-    r = (MPI_Request*)MALLOC(sizeof(MPI_Request)* *count);
-    if (!r) {
-	MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_EXHAUSTED,"Error in MPI_STARTALL");
-	*__ierr = MPI_ERR_EXHAUSTED;
-	return;
+    if (*count > 0) {
+	MPIR_FALLOC(r,(MPI_Request*)MALLOC(sizeof(MPI_Request) * *count),
+		    MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+		    "Out of space in MPI_STARTALL" );
+	for (i=0; i<*count; i++) {
+	    r[i] = MPIR_ToPointer( *((int *)(array_of_requests)+i) );
+	}
+	*__ierr = MPI_Startall(*count,r);
+	FREE( r );
     }
-    for (i=0; i<*count; i++) {
-	r[i] = MPIR_ToPointer( *((int *)(array_of_requests)+i) );
-    }
-    *__ierr = MPI_Startall(*count,r);
-    FREE( r );
+    else 
+	*__ierr = MPI_Startall(*count,(MPI_Request *)0);
 #else
     *__ierr = MPI_Startall(*count,array_of_requests);
 #endif

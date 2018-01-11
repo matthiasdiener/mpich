@@ -1,4 +1,4 @@
-.TH MPI_Type_indexed 3 "4/11/1996" " " "MPI"
+.TH MPI_Type_indexed 3 "2/18/1997" " " "MPI"
 .SH NAME
 MPI_Type_indexed \-  Creates an indexed datatype 
 .SH SYNOPSIS
@@ -66,6 +66,7 @@ in Fortran.
 
 The indices are displacements, and are based on a zero origin.  A common error
 is to do something like to following
+.nf
 integer a(100)
 integer blens(10), indices(10)
 do i=1,10
@@ -74,6 +75,7 @@ blens(i)   = 1
 call MPI_TYPE_INDEXED(10,blens,indices,MPI_INTEGER,newtype,ierr)
 call MPI_TYPE_COMMIT(newtype,ierr)
 call MPI_SEND(a,1,newtype,...)
+.fi
 expecting this to send 
 .I a(1),a(11),...
 because the indices have values
@@ -89,7 +91,9 @@ it actually sends
 
 If you wish to consider the displacements as indices into a Fortran array,
 consider declaring the Fortran array with a zero origin
+.nf
 integer a(0:99)
+.fi
 
 .SH ERRORS
 
@@ -125,6 +129,14 @@ non-negative; a count of zero is often valid.
 MPI_Datatype (see 
 .I MPI_Type_commit
 ).
+.PD 0
+.TP
+.B MPI_ERR_ARG 
+- Invalid argument.  Some argument is invalid and is not
+identified by a specific error class (e.g., 
+.I MPI_ERR_RANK
+).
+.PD 1
 .PD 0
 .TP
 .B MPI_ERR_INTERN 

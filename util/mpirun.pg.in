@@ -8,6 +8,14 @@
 # The original csh code made extensive use of csh arrays, which are quite
 # nice for reading parts of a file into a variable.
 #
+# Format of machines list is lines containing either a single
+#    machinename
+# or
+#    machinename:n
+# where n is the number of available processors.
+# We use : separators instead of spaces to simplify parsing of the file
+# 
+#
 if [ "$argsset" = "" ] ; then
    . mpirun.args
 fi
@@ -22,17 +30,19 @@ if [ $narch = 0 ] ; then
     np1=$np
 fi
 if [ $nolocal = 1 ] ; then
-    #echo don\'t run local instance
+    # echo don\'t run local instance
     # if the job is not to be run locally, then don't include this machine
     # in the list
     procFound=0
 else
     # echo run local instance
+    # Note that in the SMP cluster case, we may need to increase this
     procFound=1
 fi
 #
 machinelist=""
 archuselist=""
+nprocuselist=""
 curarch=1
 nolocalsave=$nolocal
 archlocal=$arch1
@@ -88,7 +98,7 @@ while [ $curarch -le $narch ] ; do
 	    # Thanks to Bjarne Herland for modification to 
 	    # remove EXACTLY the host machine (eg., bar and not bark)
 	    machineavail=`cat $machineFile | sed -e '/^#/d' -e 's/#.*^//g' | \
-		    grep -v "^$MPI_HOST\([ -.]\)" | head -${np} | tr '\012' ' '`
+		grep -v "^$MPI_HOST\([ -\.:]\)" | head -${np} | tr '\012' ' '`
 	else
 	    machineavail=""
         fi
@@ -112,15 +122,39 @@ while [ $curarch -le $narch ] ; do
     #
     KeepHost=0
     loopcnt=0
+    nleft=`expr $np - $procFound`
     while [ $procFound -lt $np ] ; do
         nfound=0
         for machineName in $machineavail ; do
+	    # Split off the number of processors, if present
+	    nprocmachine=1
+	    ntest=`expr $machineName : '.*:\([0-9]*\)'`
+	    if [ -n "$ntest" ] ; then
+		nprocmachine=$ntest
+	        machineName=`expr $machineName : '\(.*\):.*'`
+	    fi
+	    #
 	    if [ $nolocal = 1 -o $KeepHost = 1 -o \
 		 $machineName != "$MPI_HOST" ] ; then
+		# Should we convert this the ${machineName}:$nprocmachine
+                # (with a care taken for nprocmachine > np - procFound).
+		if [ $nprocmachine -gt $nleft ] ; then
+		    nprocmachine=$nleft
+		fi
+		# Limit the allowed number
+		if [ -z "$MPI_MAX_CLUSTER_SIZE" ] ; then
+		    nprocmachine=1
+		elif [ "$MPI_MAX_CLUSTER_SIZE" -lt $nprocmachine ] ; then
+		    nprocmachine=$MPI_MAX_CLUSTER_SIZE
+		fi
+		# Even better, we should use 
+		# machinename:nproc:arch, so that everything is together.
 	        machinelist="$machinelist $machineName"
 		archuselist="$archuselist $arch"
-	        procFound=`expr $procFound + 1`
-	        nfound=`expr $nfound + 1`
+		nprocuselist="$nprocuselist $nprocmachine"
+	        procFound=`expr $procFound + $nprocmachine`
+	        nfound=`expr $nfound + $nprocmachine`
+		nleft=`expr $nleft - $nprocmachine`
             fi
             if [ $procFound = $np ] ; then break ; fi
 	    if [ $machineName = $MPI_HOST ] ; then KeepHost=1 ; fi

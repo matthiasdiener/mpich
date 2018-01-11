@@ -1,14 +1,29 @@
-.TH MPE_Log_event 4 "6/6/1996" " " "MPE"
+.TH MPE_Log_event 4 "1/24/1997" " " "MPE"
 .SH NAME
 MPE_Log_event \-  Logs an event 
 .SH SYNOPSIS
 .nf
 #include <stdio.h>
 #include "mpe.h"
-
 int MPE_Log_event(event,data,string)
 int event, data;
 char *string;
 .fi
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B event 
+- Event number
+.PD 1
+.PD 0
+.TP
+.B data  
+- Integer data value
+.PD 1
+.PD 0
+.TP
+.B string 
+- Optional string describing event
+.PD 1
 .SH LOCATION
 mpe_log.c

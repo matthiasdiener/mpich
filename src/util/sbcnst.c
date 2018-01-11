@@ -1,5 +1,5 @@
 /*
- *  $Id: sbcnst.c,v 1.17 1996/06/07 15:12:34 gropp Exp $
+ *  $Id: sbcnst.c,v 1.18 1996/12/09 20:44:08 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -8,9 +8,9 @@
 #include <stdio.h>
 #define _SBCNSTDEF
 #include "mpiimpl.h"
-#include "mpisys.h"
 
 #ifndef MPI_ADI2
+#include "mpisys.h"
 /* ADI2 version in mpid/util/sbcnst2.c */
 /* #define DEBUG */
 

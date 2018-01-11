@@ -2,12 +2,6 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_type_free_ PMPI_TYPE_FREE
@@ -35,11 +29,5 @@ void mpi_type_free_ ( datatype, __ierr )
 MPI_Datatype *datatype;
 int *__ierr;
 {
-    MPI_Datatype ldatatype = (MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) );
-    *__ierr = MPI_Type_free(&ldatatype);
-    /* We need to recover this pointer */
-    if (!ldatatype) {
-	MPIR_RmPointer( *(int*)(datatype) );
-	*(int*)datatype = 0;
-    }
+    *__ierr = MPI_Type_free(datatype);
 }

@@ -8,6 +8,12 @@
 #include "mpi.h"
 #endif
 
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#else
+extern char *getenv();
+#endif
+
 #define MPE_INTERNAL
 #include "mpe.h"        /*I "mpe.h" I*/
 
@@ -120,7 +126,10 @@ int        is_collective;
   XGCValues  values;
   char       fontname[128];
 #endif
-  int        myid, numprocs, namelen, successful;
+#ifndef MPE_NOMPI
+  int        numprocs, namelen;
+#endif
+  int        myid, successful;
   
   myid = 0;		     /* for the single processor version */
   *handle            = 0;    /* In case of errors */
@@ -159,7 +168,6 @@ int        is_collective;
 #endif
 
     if (myid == 0) {
-      extern char *getenv();
       display = getenv( "DISPLAY" );
 
 #if DEBUG
@@ -810,9 +818,10 @@ MPE_Color color;
   }
 
   XBSetPixVal( graph->xwin, graph->xwin->cmapping[color] );
-  returnVal = XDrawArc( graph->xwin->disp, XBDrawable(graph->xwin),
+  XDrawArc( graph->xwin->disp, XBDrawable(graph->xwin),
 		        graph->xwin->gc.set, centerx-radius, centery-radius, 
 		        radius*2, radius*2, 0, 360*64 );
+  returnVal = 0;
   return MPE_Xerror( returnVal, "MPE_DrawCircle" );
 }
 
@@ -841,9 +850,10 @@ MPE_Color color;
   }
 
   XBSetPixVal( graph->xwin, graph->xwin->cmapping[color] );
-  returnVal = XFillArc( graph->xwin->disp, XBDrawable(graph->xwin),
+  XFillArc( graph->xwin->disp, XBDrawable(graph->xwin),
 		        graph->xwin->gc.set, centerx-radius, centery-radius, 
 		        radius*2, radius*2, 0, 360*64 );
+  returnVal = 0;
   return MPE_Xerror( returnVal, "MPE_FillCircle" );
 }
 
@@ -904,8 +914,9 @@ int function;
     fprintf( stderr, "Handle argument is incorrect or corrupted\n" );
     return MPE_ERR_BAD_ARGS;
   }
-  returnVal = XSetFunction( graph->xwin->disp,
+  XSetFunction( graph->xwin->disp,
 			    graph->xwin->gc.set, function );
+  returnVal = 0;
   MPE_Xerror( returnVal, "MPE_DrawLogic" );
   return returnVal;
 }

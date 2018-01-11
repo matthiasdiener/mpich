@@ -24,6 +24,14 @@ static int dest = 1;
 /* static int Do_Buffer = 1; */
 /* static int Do_Standard = 1; */
 
+/* Prototypes for picky compilers */
+void Generate_Data ANSI_ARGS(( double *, int ));
+void Normal_Test_Recv ANSI_ARGS(( double *, int ));
+void Buffered_Test_Send ANSI_ARGS(( double *, int ));
+void Buffered_Test_Ibsend ANSI_ARGS(( double *, int ));
+int Check_Data ANSI_ARGS(( double *, int ));
+void Clear_Buffer ANSI_ARGS(( double *, int ));
+
 void Generate_Data(buffer, buff_size)
 double *buffer;
 int buff_size;

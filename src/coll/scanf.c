@@ -7,12 +7,6 @@
 #include <stdarg.h>
 #endif
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_scan_ PMPI_SCAN
@@ -42,9 +36,9 @@
 void             *sendbuf;
 void             *recvbuf;
 int		*count;
-MPI_Datatype      datatype;
-MPI_Op            op;
-MPI_Comm          comm;
+MPI_Datatype     *datatype;
+MPI_Op            *op;
+MPI_Comm          *comm;
 int 		*__ierr;
 int             buflen;
 va_list         ap;
@@ -53,8 +47,7 @@ va_start(ap, unknown);
 sendbuf = unknown;
 if (_numargs() == NUMPARAMS+1) {
     /* Note that we can't set __ierr because we don't know where it is! */
-    (void) MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_ONE_CHAR, 
-			  "Error in MPI_SCANF" );
+    (void) MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ONE_CHAR, "MPI_SCANF" );
     return;
 }
 if (_numargs() == NUMPARAMS+2) {
@@ -65,15 +58,13 @@ if (_numargs() == NUMPARAMS+2) {
         buflen = va_arg(ap, int) /8;          /* This is in bits. */
 }
 count =     	va_arg (ap, int *);
-datatype =      va_arg(ap, MPI_Datatype);
-op =		va_arg(ap, MPI_Op);
-comm =          va_arg(ap, MPI_Comm);
+datatype =      va_arg(ap, MPI_Datatype*);
+op =		va_arg(ap, MPI_Op *);
+comm =          va_arg(ap, MPI_Comm*);
 __ierr =        va_arg(ap, int *);
 
-*__ierr = MPI_Scan(MPIR_F_PTR(sendbuf),MPIR_F_PTR(recvbuf),*count,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),
-	(MPI_Op)MPIR_ToPointer( *(int*)(op) ),
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
+*__ierr = MPI_Scan(MPIR_F_PTR(sendbuf),MPIR_F_PTR(recvbuf),*count,*datatype,
+		   *op,*comm);
 }
 
 #else
@@ -82,9 +73,9 @@ __ierr =        va_arg(ap, int *);
 void             *sendbuf;
 void             *recvbuf;
 int*count;
-MPI_Datatype      datatype;
-MPI_Op            op;
-MPI_Comm          comm;
+MPI_Datatype     *datatype;
+MPI_Op            *op;
+MPI_Comm          *comm;
 int *__ierr;
 {
 _fcd            temp;
@@ -97,29 +88,25 @@ if (_isfcd(recvbuf)) {
         recvbuf = (void *)temp;
 }
 
-*__ierr = MPI_Scan(MPIR_F_PTR(sendbuf),MPIR_F_PTR(recvbuf),*count,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),
-	(MPI_Op)MPIR_ToPointer( *(int*)(op) ),
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
+*__ierr = MPI_Scan(MPIR_F_PTR(sendbuf),MPIR_F_PTR(recvbuf),*count,*datatype,
+		   *op,*comm);
 }
 
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_scan_ ANSI_ARGS(( void *, void *, int *, MPI_Datatype, MPI_Op, 
-			   MPI_Comm, int * ));
+void mpi_scan_ ANSI_ARGS(( void *, void *, int *, MPI_Datatype *, MPI_Op *, 
+			   MPI_Comm *, int * ));
 void mpi_scan_ ( sendbuf, recvbuf, count, datatype, op, comm, __ierr )
 void             *sendbuf;
 void             *recvbuf;
 int*count;
-MPI_Datatype      datatype;
-MPI_Op            op;
-MPI_Comm          comm;
+MPI_Datatype      *datatype;
+MPI_Op            *op;
+MPI_Comm          *comm;
 int *__ierr;
 {
     *__ierr = MPI_Scan(MPIR_F_PTR(sendbuf),MPIR_F_PTR(recvbuf),*count,
-		       (MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),
-		       (MPI_Op)MPIR_ToPointer( *(int*)(op) ),
-		       (MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
+		       *datatype,*op, *comm);
 }
 #endif

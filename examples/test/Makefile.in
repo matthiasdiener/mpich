@@ -51,7 +51,7 @@ linktest:
 # test program; for example, 
 # make TESTARGS="-small"
 # to run in "small" mode (build executable, run, remove executable)
-testing: $(MPIR_HOME)/util/mpirun
+testing: 
 	@-for dir in $(TESTDIRS) ;\
 		do \
 			echo " " ;\
@@ -63,7 +63,7 @@ testing: $(MPIR_HOME)/util/mpirun
 #
 # This is a version of testing, but it saves the "diff" files in the top 
 # level directory
-testing_save: $(MPIR_HOME)/util/mpirun
+testing_save: 
 	@-for dir in $(TESTDIRS) ;\
 		do \
 			echo " " ;\
@@ -74,7 +74,7 @@ testing_save: $(MPIR_HOME)/util/mpirun
 		done
 
 clean:
-	/bin/rm -f test.log *.diff sendchar.sun4 sendchar.freebsd \
+	/bin/rm -f test.log testing.log *.diff sendchar.sun4 sendchar.freebsd \
 		sendshort.sun4 sendshort.freebsd *.o \
 		sendvector.sun4 sendvector.freebsd \
 		sendstruct.sun4 sendstruct.freebsd \

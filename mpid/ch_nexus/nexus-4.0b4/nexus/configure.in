@@ -1,0 +1,212 @@
+dnl
+dnl rcsid = $Header: /nfs/globus1/src/master/nexus_source/configure.in,v 1.54 1996/12/12 12:04:44 tuecke Exp $
+dnl
+AC_REVISION($Revision: 1.54 $)dnl
+AC_INIT(nexus.h)
+AC_CONFIG_HEADER(nexus_config.h)
+AC_PREREQ(2.10)
+
+LAC_INIT
+LAC_NEXUS_INIT
+LAC_BUILD_LIBDIR
+
+LAC_PATH_THREADS
+LAC_PROG_CC
+AC_C_CROSS
+AC_PROG_CPP
+
+AC_PROG_INSTALL
+AC_PROG_LN_S
+AC_PATH_PROG(MKDIR,"mkdir")
+
+LAC_NEXUS_ALIGN
+
+if test "$GCC" = yes -a "$ac_cv_prog_gcc_shared" = no; then
+  lac_build_shared="no"
+fi
+
+if test "$lac_build_shared" = yes; then
+  LAC_SHARED_LIB
+  lib_target=shared_lib
+  LIBEXT=$SOEXT
+else
+  lib_target=lib
+  LIBEXT=a
+fi
+AC_SUBST(lib_target)
+AC_SUBST(LIBEXT)
+
+AC_PREFIX_DEFAULT(/usr/local/nexus)
+
+AC_PATH_PROG(MKDIR,"mkdir")
+
+dnl --Check for libraries
+AC_CHECK_SSL
+
+dnl --Check for header files
+AC_CHECK_HEADERS(libc.h)
+AC_CHECK_HEADERS(malloc.h)
+AC_CHECK_HEADERS(unistd.h)
+AC_HEADER_STDC
+AC_HEADER_TIME
+AC_CHECK_HEADERS(sys/types.h sys/param.h sys/access.h sys/errno.h sys/file.h)
+AC_CHECK_HEADERS(sys/uio.h)
+AC_CHECK_HEADERS(sys/time.h sys/signal.h sys/select.h sys/ioctl.h)
+AC_CHECK_HEADERS(dce/cma_ux.h)
+AC_CHECK_HEADERS(netdb.h)
+AC_HEADER_SYS_WAIT
+AC_SYS_X_ACC
+AC_SYS_X_OK
+dnl --Check for typedefs
+AC_TYPE_SIGNAL
+AC_CHECK_SELECT_PROTOTYPE
+dnl --Check for structures
+dnl --Check for compiler characteristics
+dnl --Check for library functions
+AC_CHECK_FUNCS(waitpid)
+AC_CHECK_FUNCS(strtoul)
+AC_CHECK_FUNCS(wait3)
+dnl AC_FUNC_WAIT3
+AC_CHECK_FUNCS(sighold)
+AC_CHECK_FUNCS(sigblock)
+AC_FUNC_FILE_LOCK
+dnl --Check for system services
+AC_CHECK_POSIX_SIGNALS
+
+AC_DEFINE_UNQUOTED(NEXUS_LISTENER,"$prefix/bin/listener")
+
+AC_CACHE_CHECK(critical path timer, nx_cv_critical_path_timer, [dnl
+AC_ARG_ENABLE(critical-path-timer,
+	[  --enable-critical-path-timer  time the critical path],
+	[nx_cv_critical_path_timer="$enableval"],
+	[nx_cv_critical_path_timer="no"])
+])
+
+if test "$nx_cv_critical_path_timer" = "yes"; then
+  AC_DEFINE(NEXUS_CRITICAL_PATH_TIMER)
+fi
+
+dnl AC_CACHE_CHECK(poll range checking, nx_cv_poll_range_checking, [dnl
+dnl AC_ARG_ENABLE(poll-range-checking,
+dnl	[  --enable-poll-range-checking  check poll ranges],
+dnl	[nx_cv_poll_range_checking="$enableval"],
+dnl	[nx_cv_poll_range_checking="no"])
+dnl])
+dnl
+dnl if test "$nx_cv_poll_range_checking" = "yes"; then
+dnl  AC_DEFINE(NEXUS_POLL_RANGE_CHECK)
+dnl fi
+
+AC_CACHE_CHECK(segmentation fault catching, nx_cv_sigsegv_catching, [dnl
+AC_ARG_ENABLE(sigsegv-catching,
+	[  --enable-sigsegv-catching     install signal handler for sigsegv],
+	[nx_cv_sigsegv_catching="$enableval"],
+	[nx_cv_sigsegv_catching="yes"])
+])
+
+if test "$nx_cv_sigsegv_catching" = "no"; then
+  AC_DEFINE(NEXUS_DONT_CATCH_SIGSEGV)
+fi
+
+proto_modules=""
+startup_modules=""
+static_objs=""
+
+if test "$proto_tcp" = "yes"; then
+  proto_modules="$proto_modules pr_tcp.$OFILE"
+fi
+
+if test "$proto_inx" = "yes"; then
+  proto_modules="$proto_modules pr_inx.$OFILE"
+fi
+
+if test "$proto_shm" = "yes"; then
+  proto_modules="$proto_modules pr_shm.$OFILE"
+fi
+
+if test "$start_fork" = "yes"; then
+  startup_modules="$startup_modules st_fork.$OFILE"
+fi
+
+if test "$start_rsh" = "yes"; then
+  startup_modules="$startup_modules st_rsh.$OFILE"
+fi
+
+if test "$start_ss" = "yes"; then
+  startup_modules="$startup_modules st_ss.$OFILE"
+fi
+
+if test "$start_ibmds" = "yes"; then
+  startup_modules="$startup_modules st_ibmds.$OFILE"
+  static_objs="$static_objs st_ibmds2.$OFILE st_ibmds4.$OFILE"
+fi
+
+if test "$proto_mpl" = "yes"; then
+  if test "$start_ibmds" = "yes"; then
+    static_objs="$static_objs pr_mpl2.$OFILE"
+  else
+    proto_modules="$proto_modules pr_mpl2.$OFILE"
+  fi
+fi
+
+if test "$start_mpl" = "yes"; then
+  if test "$start_ibmds" = "yes"; then
+    static_objs="$static_objs st_mpl.$OFILE"
+  else
+    startup_modules="$startup_modules st_mpl.$OFILE"
+  fi
+fi
+
+NEXUS_TRANSFORM_MODULES=""
+#transform_modules="transform_gzip.@OFILE@"
+
+NEXUS_PROTO_OBJS="$proto_modules"
+NEXUS_STARTUP_OBJS="$startup_modules"
+NEXUS_TRANSFORM_OBJS="$transform_modules"
+NEXUS_STATIC_OBJS="$static_objs"
+NEXUS_TH_MODULE="th_p0"
+NEXUS_MD_MODULE="md_unix"
+NEXUS_NL_MODULE="nl_file"
+
+case "$target" in
+  sparc-sun-sunos5* | sparc-sun-solaris2* )
+    ARFLAGS="ruv"
+  ;;
+  rs6000-ibm-aix3* )
+    ARFLAGS="ruv"
+dnl    case "$poepackage" in
+dnl        *1 )
+dnl            CCfull=`pwd`/../tools/mpxlc_r"
+dnl            CClite="/bin/mpcc"
+dnl            ARFLAGS="ruv"
+dnl        ;;
+dnl        *0 )
+dnl            ARFLAGS="qv"
+dnl        ;;
+dnl    esac
+  ;;
+  mips-sgi-irix5* )
+    ARFLAGS="crv"
+  ;;
+  m68k-next-nextstep3* )
+    ARFLAGS="ruv"
+  ;;
+esac
+
+AC_SUBST(NEXUS_PROTO_OBJS)
+AC_SUBST(NEXUS_STARTUP_OBJS)
+AC_SUBST(NEXUS_TRANSFORM_OBJS)
+AC_SUBST(NEXUS_DATABASE_OBJS)
+AC_SUBST(NEXUS_STATIC_OBJS)
+
+AC_SUBST(NEXUS_TH_MODULE)
+AC_SUBST(NEXUS_MD_MODULE)
+AC_SUBST(NEXUS_NL_MODULE)
+AC_SUBST(ARFLAGS)
+
+LAC_MAKEFILES(makefile_header, Makefile)
+
+AC_OUTPUT($lac_makefiles $lac_makefile_headers, 
+  LAC_INSERT_MAKEFILE_HEADERS echo timestamp > stamp-h,
+  [lac_makefiles="$lac_makefiles"]
+)

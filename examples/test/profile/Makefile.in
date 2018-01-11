@@ -15,7 +15,7 @@ OPTFLAGS    = @OPTFLAGS@
 SHELL = /bin/sh
 
 PROFLIB =
-CFLAGS  = $(OPTFLAGS) 
+CFLAGS  = @MPE_CFLAGS@ $(OPTFLAGS) 
 CCFLAGS = $(CFLAGS)
 FFLAGS = $(OPTFLAGS)
 # Use LIBS to add any special libraries for C programs

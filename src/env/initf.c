@@ -1,5 +1,5 @@
 /*
- *  $Id: initf.c,v 1.14 1996/06/07 15:12:21 gropp Exp $
+ *  $Id: initf.c,v 1.17 1997/02/18 23:06:23 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -16,12 +16,6 @@
 #ifdef MPI_CRAY
 /* Cray requires special code for sending strings to/from Fortran */
 #include <fortran.h>
-#endif
-
-#if !defined(POINTER_64_BITS)
-#define MPIR_ToPointer(a) a
-#define MPIR_FromPointer(a) (int)a
-#define MPIR_RmPointer(a) 
 #endif
 
 #if defined(MPI_BUILD_PROFILING)
@@ -55,6 +49,12 @@
 #define DEBUG(a)
 /* Prototype to suppress warnings about missing prototypes */
 void mpi_init_ ANSI_ARGS(( int * ));
+int mpir_iargc_ ANSI_ARGS((void));
+#ifdef MPI_CRAY
+void mpir_getarg_ ANSI_ARGS(( int *, _fcd ));
+#else
+void mpir_getarg_ ANSI_ARGS(( int *, char *, int ));
+#endif
 
 void mpi_init_( ierr )
 int *ierr;
@@ -73,14 +73,15 @@ int *ierr;
     ArgvSave	= Argv = (char **)MALLOC( Argc * sizeof(char *) );    
     ArgvValSave	= (char **)MALLOC( Argc * sizeof(char *) );
     if (!Argv || !ArgvValSave) {
-	*ierr = MPIR_ERROR( (MPI_Comm)0, MPI_ERR_EXHAUSTED, 
+	*ierr = MPIR_ERROR( (struct MPIR_COMMUNICATOR *)0, MPI_ERR_EXHAUSTED, 
 			    "Out of space in MPI_INIT" );
 	return;
     }
     for (i=0; i<Argc; i++) {
 	ArgvValSave[i] = Argv[i] = (char *)MALLOC( argsize + 1 );
 	if (!Argv[i]) {
-	    *ierr = MPIR_ERROR( (MPI_Comm)0, MPI_ERR_EXHAUSTED, 
+	    *ierr = MPIR_ERROR( (struct MPIR_COMMUNICATOR *)0, 
+				MPI_ERR_EXHAUSTED, 
 				"Out of space in MPI_INIT" );
 	    return;
         }

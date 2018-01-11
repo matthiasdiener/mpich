@@ -1,5 +1,5 @@
 /*
- *  $Id: type_size.c,v 1.9 1996/04/11 20:25:46 gropp Exp $
+ *  $Id: type_size.c,v 1.12 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -33,13 +33,18 @@ MPI_Datatype  datatype;
 int           *size;
 {
   int mpi_errno;
-  if (MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,datatype) || MPIR_TEST_ARG(size))
-	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-			   "Error in MPI_TYPE_SIZE" );
+  struct MPIR_DATATYPE *dtype_ptr;
+  static char myname[] = "MPI_TYPE_SIZE";
+
+  TR_PUSH(myname);
+  if (MPIR_TEST_ARG(size))
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+
+  dtype_ptr   = MPIR_GET_DTYPE_PTR(datatype);
+  MPIR_TEST_DTYPE(datatype,dtype_ptr,MPIR_COMM_WORLD,myname);
 
   /* Assign the size and return */
-  /* For SOME versions, could use just MPIR_DATATYPE_SIZE */
-  MPIR_GET_REAL_DATATYPE(datatype)
-  (*size) = (int)(datatype->size);
+  (*size) = (int)(dtype_ptr->size);
+  TR_POP;
   return (MPI_SUCCESS);
 }

@@ -1,5 +1,5 @@
 /*
- *  $Id: scatter.c,v 1.24 1996/04/12 15:40:41 gropp Exp $
+ *  $Id: scatter.c,v 1.26 1997/01/07 01:47:46 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -50,15 +50,28 @@ int               root;
 MPI_Comm          comm;
 {
   int        mpi_errno = MPI_SUCCESS;
+  struct MPIR_COMMUNICATOR *comm_ptr;
+  struct MPIR_DATATYPE     *stype_ptr;
+  struct MPIR_DATATYPE     *rtype_ptr;
+  static char myname[] = "MPI_SCATTER";
   MPIR_ERROR_DECL;  
 
-  if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_DATATYPE(comm,sendtype)) 
-      return MPIR_ERROR(comm,mpi_errno,"Error in MPI_SCATTER" );
+  TR_PUSH(myname);
+  comm_ptr = MPIR_GET_COMM_PTR(comm);
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
-  MPIR_ERROR_PUSH(comm);
-  mpi_errno = comm->collops->Scatter(sendbuf, sendcnt, sendtype, 
-				recvbuf, recvcnt, recvtype, 
-				root, comm );
-  MPIR_ERROR_POP(comm);
-  MPIR_RETURN(comm,mpi_errno,"Error in MPI_SCATTER");
+  /* Significant only at root */
+  stype_ptr = MPIR_GET_DTYPE_PTR(sendtype);
+  MPIR_TEST_DTYPE(sendtype,stype_ptr,comm_ptr,myname);
+
+  rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
+  MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr,myname);
+
+  MPIR_ERROR_PUSH(comm_ptr);
+  mpi_errno = comm_ptr->collops->Scatter(sendbuf, sendcnt, stype_ptr, 
+				recvbuf, recvcnt, rtype_ptr, 
+				root, comm_ptr );
+  MPIR_ERROR_POP(comm_ptr);
+  TR_POP;
+  MPIR_RETURN(comm_ptr,mpi_errno,myname);
 }

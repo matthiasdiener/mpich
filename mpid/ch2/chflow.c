@@ -1,5 +1,5 @@
 /*
- *  $Id: chflow.c,v 1.1 1996/07/05 16:02:22 gropp Exp $
+ *  $Id: chflow.c,v 1.2 1996/12/01 23:34:41 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -43,18 +43,22 @@ int        partner;
     MPID_FLOW_MEM_GET(pkt,partner);
 }
 
-void MPID_FlowSetup()
+void MPID_FlowSetup( buf_thresh, mem_thresh )
+int buf_thresh, mem_thresh;
 {
     int i;
+
     MPID_flow_info = (MPID_Flow *)MALLOC( 
 	MPID_MyWorldSize * sizeof(MPID_Flow) );
     if (!MPID_flow_info) {
 	exit(1);
     }
+    if (buf_thresh <= 0) buf_thresh = 16384;
+    if (mem_thresh <= 0) mem_thresh = MPID_FLOW_BASE_THRESH;
     memset( MPID_flow_info, 0, sizeof(MPID_Flow) * MPID_MyWorldSize );
     for (i=0; i<MPID_MyWorldSize; i++) {
-	MPID_flow_info[i].mem_thresh = MPID_FLOW_BASE_THRESH;
-	MPID_flow_info[i].buf_thresh = 16384;
+	MPID_flow_info[i].mem_thresh = mem_thresh;
+	MPID_flow_info[i].buf_thresh = buf_thresh;
     }
 }
 

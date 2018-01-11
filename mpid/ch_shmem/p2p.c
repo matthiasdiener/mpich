@@ -59,7 +59,7 @@ p2p_setpgrp()
 {
 #ifdef FOO
    MPID_SHMEM_ppid = getpid();
-   if(setpgid(MPID_SHMEM_ppid,MPID_SHMEM_ppid)) {
+   if(setpgid((pid_t)MPID_SHMEM_ppid,(pid_t)MPID_SHMEM_ppid)) {
        perror("failure in p2p_setpgrp");
        exit(-1);
    }
@@ -68,7 +68,7 @@ p2p_setpgrp()
 #if defined(MPI_cpss)
    if (cnx_exec == 0) {
 	MPID_SHMEM_ppid = getpid();
-	if(setpgid(MPID_SHMEM_ppid,MPID_SHMEM_ppid)) {
+	if(setpgid((pid_t)MPID_SHMEM_ppid,(pid_t)MPID_SHMEM_ppid)) {
 		perror("failure in p2p_setpgrp");
 		exit(-1);
 	}
@@ -112,12 +112,24 @@ int memsize;
     static int p2p_shared_map_fd;
 #if defined(USE_MMAP) 
 
-#if !defined(MAP_ANONYMOUS)
+#if !defined(MAP_ANONYMOUS) || !defined(MAP_VARIABLE)
     p2p_shared_map_fd = open("/dev/zero", O_RDWR);
+    if (p2p_shared_map_fd < 0) {
+	perror( "Open of /dev/zero failed" );
+	p2p_error( "OOPS: Could not open anonymous mmap area - check \
+protections on /dev/zero\n", 0 );
+    }
     p2p_start_shared_area = (char *) mmap((caddr_t) 0, memsize,
 			PROT_READ|PROT_WRITE|PROT_EXEC,
 			MAP_SHARED, 
 			p2p_shared_map_fd, (off_t) 0);
+
+#elif defined(MAP_ANONYMOUS) && !defined(MAP_VARIABLE)
+    /* This is for LINUX, I think */
+    p2p_start_shared_area = (char *) mmap((caddr_t) 0, memsize,
+			PROT_READ|PROT_WRITE|PROT_EXEC,
+			MAP_SHARED|MAP_ANONYMOUS,
+			-1, (off_t) 0);
 
 #else
     p2p_start_shared_area = (char *) mmap((caddr_t) 0, memsize,
@@ -338,6 +350,18 @@ va_dcl
 
 *****/
 
+/*
+ * Generate an error message for operations that have errno values.
+ */
+void p2p_syserror( string, value )
+char *string;
+int  value;
+{
+    perror( "Error detected by system routine: " );
+    p2p_error( string, value );
+}
+
+
 void p2p_error(string,value)
 char * string;
 int value;
@@ -489,7 +513,9 @@ union header
 
 typedef union header Header;
 
-static Header **freep;		/* pointer to pointer to start of free list */
+static Header **freep;		/* pointer to pointer to start of free list
+                                   *freep = NULL: shared memory is entirely
+used */
 static p2p_lock_t *p2p_shmem_lock;	/* Pointer to lock */
 
 void xx_init_shmalloc(memory, nbytes)
@@ -526,16 +552,17 @@ unsigned nbytes;
 
     /*
      * Shared memory region is structured as follows
-     * 
-     * 1) (Header *) freep ... free list pointer 2) (p2p_lock_t) p2p_shmem_lock ...
+     *
+     * 1) (Header *) freep ... free list pointer 2) (p2p_lock_t) p2p_shmem_lock
+...
      * space to hold lock 3) padding up to alignment boundary 4) First header
      * of free list
      */
 
     freep = (Header **) region;	/* Free space pointer in first block  */
-#if defined(MPI_hpux)    
+#if defined(MPI_hpux)
     p2p_shmem_lock = (p2p_lock_t *) ((char *)freep + 16);/* aligned for HP  */
-#else 
+#else
     p2p_shmem_lock = (p2p_lock_t *) (freep + 1);/* Lock still in first block */
 #endif
     (region + 1)->s.ptr = *freep = region + 1;	/* Data in rest */
@@ -568,6 +595,9 @@ unsigned nbytes;
     nbytes += sizeof(MPID_msemaphore);
 #endif
 
+    if (*freep) {
+        /* Look for free shared memory */
+
     nunits = ((nbytes + sizeof(Header) - 1) >> LOG_ALIGN) + 1;
 
     prevp = *freep;
@@ -576,7 +606,16 @@ unsigned nbytes;
 	if (p->s.size >= nunits)
 	{			/* Big enuf */
 	    if (p->s.size == nunits)	/* exact fit */
-		prevp->s.ptr = p->s.ptr;
+            {
+           	if (p == p->s.ptr)
+                {
+                   /* No more shared memory available */
+                   prevp = (Header *) NULL;
+              	}
+               	else {
+	  	   prevp->s.ptr = p->s.ptr;
+             	}
+            }
 	    else
 	    {			/* allocate tail end */
 		p->s.size -= nunits;
@@ -594,13 +633,15 @@ unsigned nbytes;
 	    break;
 	}
     }
+    }
 
     /* End critical region */
     (void) p2p_unlock(p2p_shmem_lock);
 
 	    /*
     if (address == NULL)
-	p2p_dprintf("xx_shmalloc: returning NULL; requested %d bytes\n",nbytes);
+	p2p_dprintf("xx_shmalloc: returning NULL; requested %d
+bytes\n",nbytes);
 	*/
     return address;
 }
@@ -610,22 +651,35 @@ char *ap;
 {
     Header *bp, *p;
 
-    /* Begin critical region */
-    (void) p2p_lock(p2p_shmem_lock);
-
     if (!ap)
 	return;			/* Do nothing with NULL pointers */
 
+    /* Begin critical region */
+
+    (void) p2p_lock(p2p_shmem_lock);
+
     bp = (Header *) ap - 1;	/* Point to block header */
 
-    for (p = *freep; !(bp > p && bp < p->s.ptr); p = p->s.ptr)
+    if (*freep) {
+         /* there are already free region(s) in the shared memory region */
+
+    	for (p = *freep; !(bp > p && bp < p->s.ptr); p = p->s.ptr) {
 	if (p >= p->s.ptr && (bp > p || bp < p->s.ptr))
 	    break;		/* Freed block at start of end of arena */
 
+    	}
+
+        /* Integrate bp in list */
+
+    	*freep = p;
+
     if (bp + bp->s.size == p->s.ptr)
     {				/* join to upper neighbour */
+                if (p->s.ptr == *freep) *freep = bp;
+                if (p->s.ptr == p) bp->s.ptr = bp;
+                else               bp->s.ptr = p->s.ptr->s.ptr;
+
 	bp->s.size += p->s.ptr->s.size;
-	bp->s.ptr = p->s.ptr->s.ptr;
     }
     else
 	bp->s.ptr = p->s.ptr;
@@ -638,7 +692,14 @@ char *ap;
     else
 	p->s.ptr = bp;
 
-    *freep = p;
+    }
+    else {
+        /* There wasn't a free shared memory region before */
+
+       	bp->s.ptr = bp;
+
+       	*freep = bp;
+    }
 
     /* End critical region */
     (void) p2p_unlock(p2p_shmem_lock);

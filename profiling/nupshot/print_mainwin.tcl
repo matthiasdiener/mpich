@@ -48,12 +48,14 @@ proc Print_MainWin {log id pwin} {
    # set fg black
    # set bg white
 
+   set title_y 20
    set bg_rect [$pc create rect 0 0 0 0 -outline "" -fill $bg]
 
    set legend_height [Legend_Squeeze $id.legend]
    # set left_gap [GetDefault display_left_gap 40]
    set left_gap $mainwin($id,procWidth)
    set y [expr $legend_height + 2]
+   set y [ expr $y + $title_y ]
    set display_width [winfo width $id.displays]
    set display_list [$id.displays list]
    foreach disp $display_list {
@@ -69,20 +71,33 @@ proc Print_MainWin {log id pwin} {
       incr y [expr 1 + $this_height]
    }
 
+      # Copy logfile title
+    # Make a canvas containing the data
+    $pc create text $left_gap $title_y -text "Logfile Title:" \
+            -anchor sw -fill "white" -tags "label"
+    set bbox [$pc bbox "label"]
+    set label_width [ expr [ lindex $bbox 2 ] - [ lindex $bbox 0 ] ]
+    $pc create text [ expr $left_gap + $label_width + 4 ] $title_y \
+            -text [ $id.titlelegend.val get 1.0 end ] \
+	    -anchor sw -fill "white"
+
       # copy legend
       # legend might have to resize and readjust, will return the temporary
       # height needed
 
-   Legend_Copy $id.legend $pc [expr $left_gap + 1] 1
+   set legend_y 1
+   set legend_y $title_y
+   Legend_Copy $id.legend $pc [expr $left_gap + 1] $legend_y
       # create border for legend
-   $pc create rect $left_gap 0 [expr $display_width - 19] \
-	 [expr $legend_height + 2] \
+   $pc create rect $left_gap $title_y [expr $display_width - 19] \
+	 [expr $legend_height + 2 + $title_y] \
 	 -outline $fg -fill ""
       # the legend was squeezed to fit between the left and right gaps;
       # unqueeze it
    Legend_Unsqueeze $id.legend
 
    set time_lbl_height [winfo height $id.bottom.tlbl]
+
 
    # copy over time_lbl
    

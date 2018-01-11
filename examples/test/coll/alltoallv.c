@@ -1,6 +1,7 @@
 #include "mpi.h"
-#include <memory.h>
+#include <stdlib.h>
 #include <stdio.h>
+#include "test.h"
 
 /*
   This program tests MPI_Alltoallv by having processor i send different

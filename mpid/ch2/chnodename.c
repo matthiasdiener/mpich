@@ -9,8 +9,11 @@
 #if defined(HAVE_UNAME)
 #include <sys/utsname.h>
 #endif
+#if defined(HAVE_GETHOSTBYNAME)
+#include <netdb.h>
+#endif
 #if defined(HAVE_SYSINFO)
-#if defined(HAVE_SYSTEMINFO_H)
+#if defined(HAVE_SYS_SYSTEMINFO_H)
 #include <sys/systeminfo.h>
 #else
 #ifdef HAVE_SYSINFO
@@ -25,6 +28,26 @@ void MPID_Node_name( name, nlen )
 char *name;
 int  nlen;
 {
+/* This is the perfered form, IF IT WORKS. */
+#if defined(HAVE_UNAME) && defined(HAVE_GETHOSTBYNAME)
+    struct utsname utname;
+    struct hostent *he;
+    uname( &utname );
+    he = gethostbyname( utname.nodename );
+    /* We must NOT use strncpy because it will null pad to the full length
+       (nlen).  If the user has not allocated MPI_MAX_PROCESSOR_NAME chars,
+       then this will unnecessarily overwrite storage.
+     */
+    /* strncpy(name,he->h_name,nlen); */
+    {
+	char *p_out = name;
+	char *p_in  = he->h_name;
+	int  i;
+	for (i=0; i<nlen-1 && *p_in; i++) 
+	    *p_out++ = *p_in++;
+	*p_out = 0;
+    }
+#else
 #if defined(solaris) || defined(HAVE_UNAME)
     struct utsname utname;
     uname(&utname);
@@ -54,10 +77,11 @@ int  nlen;
 	l = strlen(name);
 	name[l++] = '.';
 	name[l] = 0;  /* In case we have neither SYSINFO or GETDOMAINNAME */
-#if defined(solaris) || defined(HAVE_SYSINFO)
+#if defined(HAVE_SYSINFO) && defined(SI_SRPC_DOMAIN)
 	sysinfo( SI_SRPC_DOMAIN,name+l,nlen-l);
 #elif defined(HAVE_GETDOMAINNAME)
 	getdomainname( name+l, nlen - l );
 #endif
   }
+#endif
 }

@@ -1,0 +1,17 @@
+#!/bin/sh
+# Nexus debugger script for Sparcworks debugger on Sol2.3
+#
+DBX=debugger
+XTERM=/usr/bin/X11/xterm
+RM="/usr/bin/rm -f"
+TMP=/tmp/nexus.debug.$$
+TITLE="$0:  dbx $NEXUS_DEBUG_CONTEXT"
+trap "$RM $TMP; exit 1" 1 2 15
+export NEXUS_DEBUG_CONTEXT
+export NEXUS_DEBUG_ARGS
+export NEXUS_DEBUG_DISPLAY
+DISPLAY=$NEXUS_DEBUG_DISPLAY
+export DISPLAY
+echo "dalias go 'run $NEXUS_DEBUG_ARGS' " > $TMP
+$DBX -s $TMP $NEXUS_DEBUG_CONTEXT
+

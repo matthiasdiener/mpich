@@ -1,0 +1,21 @@
+all:
+	echo ""
+
+install:
+
+mostlyclean:
+	echo ""
+
+clean:
+	echo ""
+
+#
+# config.cache is normally in ../, but put it here just in case
+#
+XTRA_FILES=config.cache \
+	   config.log \
+	   config.status \
+	   Makefile
+
+distclean:
+	rm -f $(XTRA_FILES)

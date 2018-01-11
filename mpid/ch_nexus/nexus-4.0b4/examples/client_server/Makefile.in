@@ -1,0 +1,96 @@
+#
+# rcsid = $Header: /nfs/globus1/src/master/nexus_examples/client_server/Makefile.in,v 1.4 1996/02/07 19:50:58 geisler Exp $
+#
+
+#######################################################################
+# Pick one of the following machine configurations
+#
+
+# SunOS 4.1.x config
+NEXUS_DIR=/usr/local/iway/app/nexus/nexus
+CC=/usr/local/gcc-2.7.0/bin/gcc
+DEBUG_CFLAGS=-g
+OPT_CFLAGS=-O3
+OTHER_LIBS=-lgthreads -lmalloc
+
+# SGI Irix 5.3 config
+#NEXUS_DIR=/usr/local/iway/app/nexus/nexus
+#CC=ncc
+#DEBUG_CFLAGS=-g
+#OPT_CFLAGS=-O
+#OTHER_LIBS=-lqt
+
+# IBM RS/6000 AIX 3.2.5
+#NEXUS_DIR=/usr/local/iway/app/nexus/nexus
+#CC=xlc_r
+#DEBUG_CFLAGS=-g
+#OPT_CFLAGS=-O
+#OTHER_LIBS=
+
+#######################################################################
+# Pick one of the following nexus configurations
+# You should do a "make clean" if you change this.
+#
+
+# debugging
+NEXUS_CFLAGS=$(DEBUG_CFLAGS) -DNEXUS_DEBUG
+NEXUS_LIB=-lnexus_debug
+
+#optimized
+#NEXUS_CFLAGS=-$(OPT_CFLAGS)
+#NEXUS_LIB=-lnexus_opt
+
+#######################################################################
+# And here's all the glue
+#
+
+NEXUS_INC_DIR=$(NEXUS_DIR)/include
+NEXUS_LIB_DIR=$(NEXUS_DIR)/lib
+NEXUS_BIN_DIR=$(NEXUS_DIR)/bin
+
+CFLAGS=$(NEXUS_CFLAGS) -I$(NEXUS_INC_DIR)
+LIBS=-L$(NEXUS_LIB_DIR) $(NEXUS_LIB) $(OTHER_LIBS)
+
+OBJS = util.o
+
+HDRS = nx_c2c.h
+
+
+all: broker hash bcontrol
+
+broker.o:	broker.c $(HDRS)
+	$(CC) $(CFLAGS) -c broker.c
+
+broker:	broker.o $(OBJS)
+	$(CC) $(CFLAGS) -o broker broker.o $(OBJS) $(LIBS)
+
+
+bcontrol.o:	bcontrol.c $(HDRS)
+	$(CC) $(CFLAGS) -c bcontrol.c
+
+bcontrol:	bcontrol.o $(OBJS)
+	$(CC) $(CFLAGS) -o bcontrol bcontrol.o $(OBJS) $(LIBS)
+
+
+hash:	hash.c
+	$(CC) -o hash hash.c
+
+
+mostlyclean:
+	rm -f *.o broker bcontrol
+
+clean:
+	rm -f *.o *~ broker bcontrol hash 
+
+#
+# config.cache is normally in ../../, but put it here just to be safe
+#
+# do we want to include hash.c here for the distribution?
+#
+XTRA_FILES=config.cache \
+	   config.log \
+	   config.status \
+	   Makefile
+
+distclean: clean
+	rm -f $(XTRA_FILES)

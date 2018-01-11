@@ -6,6 +6,8 @@
 */
 
 
+#include "colors.h"
+
 static char *color_list[] = {
   "red", "blue", "green", "cyan", "yellow", "magenta", "orange3",
   "maroon", "gray45", "gray75", "purple4", "darkgreen", "white",

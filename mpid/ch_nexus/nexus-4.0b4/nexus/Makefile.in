@@ -1,0 +1,375 @@
+#
+# rcsid = "$Header: /nfs/globus1/src/master/nexus_source/Makefile.in,v 1.36 1997/02/20 20:08:45 tuecke Exp $"
+#
+
+#
+# Set release version to be next version above currently released one.
+# since 3.0 is the current release, 3.1alpha is the next value, but you
+# can't put alpha in a library name (I don't think), so just drop it for
+# the time being
+#
+REL_VERSION=4.0
+    
+# This is inserted by configure
+@makefile_header@
+
+PORTS0_DIR	= ../ports0
+RDB_DIR		= ../rdb
+TOOLS_DIR	= ../tools
+DC_DIR          = ../data_conversion
+
+NEXUS_INCLUDES= -I. -I$(srcdir) -I$(srcdir)/.. \
+	-I$(srcdir)/$(PORTS0_DIR) -I$(PORTS0_DIR) \
+	-I$(srcdir)/$(RDB_DIR) \
+	-I$(srcdir)/$(TOOLS_DIR) -I$(TOOLS_DIR) \
+	-I$(srcdir)/$(DC_DIR) -I$(DC_DIR)
+NEXUS_CFLAGS=$(NEXUS_INCLUDES) $(ALL_CFLAGS)
+
+SHARED_LIB=$(build_dir_lib)/libnexus@nexus_flavor@.@SOEXT@
+STATIC_LIB=$(build_dir_lib)/libnexus@nexus_flavor@.a
+
+BASE_OBJS = \
+	@NEXUS_TH_MODULE@.@OFILE@ \
+	@NEXUS_MD_MODULE@.@OFILE@ \
+	@NEXUS_NL_MODULE@.@OFILE@ \
+	@NEXUS_STARTUP_OBJS@ \
+	@NEXUS_PROTO_OBJS@ \
+        @NEXUS_TRANSFORM_OBJS@ \
+	args.@OFILE@ \
+	attach.@OFILE@ \
+	buffer.@OFILE@ \
+	commlink.@OFILE@ \
+	context.@OFILE@ \
+	error.@OFILE@ \
+	event.@OFILE@ \
+	fault.@OFILE@ \
+	init.@OFILE@ \
+	mac_func.@OFILE@ \
+        transform_iface.@OFILE@ \
+	nx_ver.@OFILE@ \
+	pablo.@OFILE@ \
+	pr_iface.@OFILE@ \
+	pr_local.@OFILE@ \
+	process.@OFILE@ \
+	put_get.@OFILE@ \
+	put_get_direct.@OFILE@ \
+	put_get_user.@OFILE@ \
+	sanity.@OFILE@  \
+	st_iface.@OFILE@ \
+	trace.@OFILE@  \
+	util.@OFILE@
+
+STATIC_OBJS = \
+	@NEXUS_STATIC_OBJS@ \
+	initwrap.@OFILE@
+
+OBJS = $(BASE_OBJS) $(STATIC_OBJS) 
+
+#
+# The "| grep -v directory" pipes in the following 
+# are to work around a bug in gnumake. Apparently
+# gnumake looses track of the silent option when its already in 
+# a recursive make.  If this Makefile is used directly, then the -s
+# does the job.  But if this it happening from within a recursive
+# make (i.e. the top level Makefile does a recursive make into this
+# subdirectory), then the -s has no effect.
+# The "| grep -v directory" gets rid of the extraneous "Entering directory"
+# and "Leaving directory" messages that gnumake prints in this case.
+#
+PORTS0_OBJS        = `$(MAKE) -s -f $(PORTS0_DIR)/Makefile print-shared-objs | grep -v directory`
+PORTS0_STATIC_OBJS = `$(MAKE) -s -f $(PORTS0_DIR)/Makefile print-static-objs | grep -v directory`
+RDB_OBJS           = `$(MAKE) -s -f $(RDB_DIR)/Makefile print-shared-objs | grep -v directory`
+RDB_STATIC_OBJS    = `$(MAKE) -s -f $(RDB_DIR)/Makefile print-static-objs | grep -v directory`
+DC_OBJS            = `$(MAKE) -s -f $(DC_DIR)/Makefile print-shared-objs | grep -v directory`
+DC_STATIC_OBJS     = `$(MAKE) -s -f $(DC_DIR)/Makefile print-static-objs | grep -v directory`
+
+ALL_SHARED_OBJS           = $(BASE_OBJS) $(PORTS0_OBJS) $(RDB_OBJS) $(DC_OBJS)
+ALL_STATIC_OBJS           = $(STATIC_OBJS) $(PORTS0_STATIC_OBJS) $(RDB_STATIC_OBJS) $(DC_STATIC_OBJS)
+
+HDRS = \
+	$(srcdir)/@NEXUS_TH_MODULE@.h \
+	$(srcdir)/@NEXUS_TH_MODULE@_i.h \
+	nexus_config.h \
+	$(srcdir)/dbgstate.h \
+	$(srcdir)/defs.h \
+	$(srcdir)/funcs.h \
+	$(srcdir)/globals.h \
+	$(srcdir)/internal.h \
+	$(srcdir)/macros.h \
+	$(srcdir)/nexus.h \
+	$(srcdir)/nx_sanity.h \
+	$(srcdir)/nx_ver.h \
+	$(srcdir)/pablo.h \
+	$(srcdir)/types.h
+
+INSTALL_HDRS = \
+	$(srcdir)/@NEXUS_TH_MODULE@.h \
+	nexus_config.h \
+	$(srcdir)/nexus.h \
+	$(srcdir)/dbgstate.h \
+	$(srcdir)/nexuslite.h \
+	$(srcdir)/nx_sanity.h \
+	$(srcdir)/nx_ver.h 
+
+all: build_dir_headers @lib_target@ 
+
+test_nx: all
+	cd ../test; make test_nx
+
+force:
+
+lib: $(STATIC_LIB)
+shared_lib: $(SHARED_LIB)
+
+build_dir_lib: force
+	@if  test ! -d "${build_dir_lib}"; then \
+	   mkdir ${build_dir_lib}; \
+	fi
+
+build_dir_inc: force
+	@if  test ! -d "${build_dir_inc}"; then \
+	   mkdir ${build_dir_inc}; \
+	fi
+
+$(STATIC_LIB): $(OBJS)
+	if  test ! -d "${build_dir_lib}"; then \
+	   mkdir ${build_dir_lib}; \
+	fi
+	$(RM) -f $(STATIC_LIB)
+	$(AR) $(ARFLAGS) $(STATIC_LIB) $(ALL_SHARED_OBJS) $(ALL_STATIC_OBJS)
+	$(RANLIB) $(STATIC_LIB)
+
+@link_makefile@
+
+install:
+
+#install: install_lib install_headers
+
+install_lib: force
+	$(CP) $(INST_LIB) $(INSTALL_LIB_DIR)/$(INST_LIB)
+	$(CHMOD) $(FILE_MODE) $(INSTALL_LIB_DIR)/$(INST_LIB)
+	$(RANLIB) $(INSTALL_LIB_DIR)/$(INST_LIB)
+
+args.@OFILE@: $(srcdir)/args.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/args.c
+
+attach.@OFILE@: $(srcdir)/attach.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/attach.c
+
+buffer.@OFILE@:	$(srcdir)/buffer.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/buffer.c
+
+context.@OFILE@: $(srcdir)/context.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/context.c
+
+error.@OFILE@: $(srcdir)/error.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/error.c
+
+event.@OFILE@: $(srcdir)/event.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/event.c
+
+fault.@OFILE@: $(srcdir)/fault.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/fault.c
+
+commlink.@OFILE@: $(srcdir)/commlink.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/commlink.c
+
+gmalloc.@OFILE@: $(srcdir)/gmalloc.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/gmalloc.c
+
+init.@OFILE@: $(srcdir)/init.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/init.c
+
+initwrap.@OFILE@: $(srcdir)/initwrap.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/initwrap.c
+
+nx_ver.@OFILE@: $(srcdir)/nx_ver.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/nx_ver.c
+
+mac_func.@OFILE@: $(srcdir)/mac_func.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/mac_func.c
+
+transform_iface.@OFILE@: $(srcdir)/transform_iface.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/transform_iface.c
+
+transform_gzip.@OFILE@: $(srcdir)/transform_gzip.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/transform_gzip.c
+
+pablo.@OFILE@: $(srcdir)/pablo.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/pablo.c
+
+pr_eui.@OFILE@: $(srcdir)/pr_mp.c $(srcdir)/mp_eui.h $(HDRS)
+	@RM@ -f pr_eui.c
+	@LN_S@ $(srcdir)/pr_mp.c $(srcdir)/pr_eui.c
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS)   -DNEXUS_MP_INCLUDE=\"mp_eui.h\" \
+		-c $(srcdir)/pr_eui.c
+
+pr_inx.@OFILE@: $(srcdir)/pr_mp.c $(srcdir)/mp_inx.h $(HDRS)
+	@RM@ -f pr_inx.c
+	@LN_S@ $(srcdir)/pr_mp.c $(srcdir)/pr_inx.c
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS)   -DNEXUS_MP_INCLUDE=\"mp_inx.h\" \
+		-c $(srcdir)/pr_inx.c
+
+pr_mpl.@OFILE@: $(srcdir)/pr_mp.c $(srcdir)/mp_mpl.h $(HDRS)
+	@RM@ -f pr_mpl.c
+	@LN_S@ $(srcdir)/pr_mp.c $(srcdir)/pr_mpl.c
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS)   -DNEXUS_MP_INCLUDE=\"mp_mpl.h\" \
+		-c $(srcdir)/pr_mpl.c
+
+pr_mpl1.@OFILE@: $(srcdir)/pr_mp.c $(srcdir)/mp_mpl1.h $(HDRS)
+	@RM@ -f pr_mpl1.c
+	@LN_S@ $(srcdir)/pr_mp.c $(srcdir)/pr_mpl1.c
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS)   -DNEXUS_MP_INCLUDE=\"mp_mpl1.h\" \
+		-c $(srcdir)/pr_mpl1.c
+
+pr_mpl2.@OFILE@: $(srcdir)/pr_mp.c $(srcdir)/mp_mpl2.h $(HDRS)
+	@RM@ -f pr_mpl2.c
+	@LN_S@ $(srcdir)/pr_mp.c $(srcdir)/pr_mpl2.c
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS)   -DNEXUS_MP_INCLUDE=\"mp_mpl2.h\" \
+		-c $(srcdir)/pr_mpl2.c
+
+pr_iface.@OFILE@: $(srcdir)/pr_iface.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/pr_iface.c
+
+pr_local.@OFILE@: $(srcdir)/pr_local.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/pr_local.c
+
+pr_tcp_forward.@OFILE@: $(srcdir)/pr_tcp_forward.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/pr_tcp_forward.c
+
+pr_tcp.@OFILE@:	$(srcdir)/pr_tcp.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/pr_tcp.c
+
+pr_atm.@OFILE@:	$(srcdir)/pr_rx.c $(srcdir)/rx_atm.h $(HDRS)
+	@RM@ -f pr_atm.c
+	@LN_S@ $(srcdir)/pr_rx.c $(srcdir)/pr_atm.c
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) $(FORE_INC) -DNEXUS_RX_INCLUDE=\"rx_atm.h\" \
+		-c $(srcdir)/pr_atm.c
+
+pr_udp.@OFILE@:	$(srcdir)/pr_rx.c $(srcdir)/rx_udp.h $(HDRS)
+	@RM@ -f pr_udp.c
+	@LN_S@ $(srcdir)/pr_rx.c $(srcdir)/pr_udp.c
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -DNEXUS_RX_INCLUDE=\"rx_udp.h\" \
+		-c $(srcdir)/pr_udp.c
+
+pr_mn_udp.@OFILE@: $(srcdir)/pr_rx.c $(srcdir)/rx_mn_udp.h $(HDRS)
+	@RM@ -f pr_mn_udp.c
+	@LN_S@ $(srcdir)/pr_rx.c $(srcdir)/pr_mn_udp.c
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -DNEXUS_RX_INCLUDE=\"rx_mn_udp.h\" \
+		-c $(srcdir)/pr_mn_udp.c
+
+pr_pvm.@OFILE@:	$(srcdir)/pr_pvm.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/pr_pvm.c
+
+pr_mp.@OFILE@: $(srcdir)/pr_mp.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/pr_mp.c
+
+process.@OFILE@: $(srcdir)/process.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/process.c
+
+put_get.@OFILE@: $(srcdir)/put_get.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/put_get.c
+
+put_get_direct.@OFILE@: $(srcdir)/put_get_direct.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/put_get_direct.c
+
+put_get_user.@OFILE@: $(srcdir)/put_get_user.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/put_get_user.c
+
+sanity.@OFILE@:	$(srcdir)/sanity.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/sanity.c
+
+st_iface.@OFILE@: $(srcdir)/st_iface.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/st_iface.c
+
+st_eui.@OFILE@:	$(srcdir)/st_eui.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/st_eui.c
+
+st_fork.@OFILE@: $(srcdir)/st_fork.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/st_fork.c
+
+st_inx.@OFILE@:	$(srcdir)/st_inx.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/st_inx.c
+
+st_mpl.@OFILE@:	$(srcdir)/st_mpl.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/st_mpl.c
+
+st_pvm.@OFILE@:	$(srcdir)/st_pvm.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/st_pvm.c
+
+st_rsh.@OFILE@:	$(srcdir)/st_rsh.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/st_rsh.c
+
+st_ss.@OFILE@: $(srcdir)/st_ss.c $(HDRS) $(srcdir)/$(TOOLS_DIR)/ss_start.h
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/st_ss.c
+
+st_soldl.@OFILE@: $(srcdir)/st_soldl.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/st_soldl.c
+
+st_ibmld.@OFILE@: $(srcdir)/st_ibmld.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/st_ibmld.c
+
+ibm_cpp_load.@OFILE@: $(srcdir)/ibm_cpp_load.o.save
+	$(G_CP) -p $(srcdir)/ibm_cpp_load.@OFILE@.save ibm_cpp_load.@OFILE@
+
+st_ibmds.@OFILE@: $(srcdir)/st_ibmds.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/st_ibmds.c
+
+st_ibmds2.@OFILE@: $(srcdir)/st_ibmds2.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/st_ibmds2.c
+
+st_ibmds4.@OFILE@: $(srcdir)/st_ibmds4.s $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/st_ibmds4.s
+
+trace.@OFILE@: $(srcdir)/trace.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/trace.c
+
+util.@OFILE@: $(srcdir)/util.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/util.c
+
+@NEXUS_TH_MODULE@.@OFILE@: $(srcdir)/@NEXUS_TH_MODULE@.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/@NEXUS_TH_MODULE@.c
+
+@NEXUS_MD_MODULE@.@OFILE@: $(srcdir)/@NEXUS_MD_MODULE@.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/@NEXUS_MD_MODULE@.c
+
+@NEXUS_NL_MODULE@.@OFILE@: $(srcdir)/@NEXUS_NL_MODULE@.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(NEXUS_CFLAGS) -c $(srcdir)/@NEXUS_NL_MODULE@.c
+
+install_headers: $(INSTALL_HDRS)
+	rm -rf $(prefix)/include/nexus
+	-mkdir $(prefix)/include/nexus
+	for i in $(INSTALL_HDRS); do \
+		$(INSTALL_DATA) $$i $(prefix)/include/nexus/$$i; \
+	done
+
+rel_to_build_include=../nexus
+build_dir_headers:
+	@if  test ! -d "${build_dir_inc}"; then \
+	   mkdir ${build_dir_inc}; \
+	fi
+	@ for hdr in $(INSTALL_HDRS) ; do \
+           if [ -f $${hdr} ] ; then \
+	     lnk_file=$(build_dir_inc)/`echo $${hdr} | ${SED} -e 's|.*/||'`; \
+             if test ! \( -f $$lnk_file \) ; then \
+                case "$${hdr}" in \
+                   /* ) $(LN_S) $${hdr} $$lnk_file ;; \
+                   ../* ) $(LN_S) $${hdr} $$lnk_file ;; \
+                   * ) $(LN_S) $(rel_to_build_include)/$${hdr} $$lnk_file ;; \
+                esac ; \
+	     fi; \
+	  fi \
+	done
+
+tcp_forwarder: tcp_forwarder.@OFILE@
+	$(CC) @CC_SHARED_OPTS@ @CCOPTS_lite@ @CFLAGS@ $(MY_LDFLAGS) -o tcp_forwarder tcp_forwarder.@OFILE@
+
+tcp_forwarder.@OFILE@: @srcdir@/tcp_forwarder.c $(FORWARD_HDRS)
+	$(CC) @CC_SHARED_OPTS@ @CCOPTS_lite@ @CFLAGS@ $(MY_CFLAGS) -c @srcdir@/tcp_forwarder.c
+
+clean:	force
+	$(RM) -rf *.@OFILE@ *.a *.@SOEXT@
+
+distclean: clean
+	${RM} -f config.* Makefile nexus_config.h makefile_header stamp-h 
+

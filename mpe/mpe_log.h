@@ -51,6 +51,8 @@ int MPE_Describe_state _ANSI_ARGS_(( int start, int end, char *name,
 int MPE_Describe_event _ANSI_ARGS_(( int event, char *name));
   /* create event description lines */
 
+int MPE_Log_get_event_number _ANSI_ARGS_(( void ));
+  /* Get a new event number */
 int MPE_Start_log _ANSI_ARGS_((void));
   /* set timer to 0 */
 

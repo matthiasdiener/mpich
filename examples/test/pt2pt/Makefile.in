@@ -9,13 +9,14 @@ CCLINKER    = $(CCC)
 F77         = @MPIF77@
 FLINKER     = @MPIF77@
 OPTFLAGS    = @OPTFLAGS@
+MPIFDEP     = @MPIFDEP@
 
 ### End User configurable options ###
 
 SHELL = /bin/sh
 
 PROFLIB =
-CFLAGS  = $(OPTFLAGS) 
+CFLAGS  = @MPE_CFLAGS@ $(OPTFLAGS) 
 CCFLAGS = $(CFLAGS)
 FFLAGS = $(OPTFLAGS)
 # Use LIBS to add any special libraries for C programs
@@ -25,11 +26,11 @@ FLIBS =
 EXECS = overtake sendrecv isndrcv third fourth fifth sixth hvectest \
 	hvectest2 hvec probe probe1 testtest1 ssendtest ssendtest2 typetest\
 	dtypelife issendtest issendinit relrank nullproc trunc \
-	typeub irecvtest htmsg \
+	typeub typeub2 typeub3 irecvtest htmsg \
 	isendtest self sendrecv2 sendrecv3 sendrecv4 persistent waitall \
 	pack bsendtest typebase irsend irsendinit \
 	testsome getelm testall sndrcv nbtest nblock sendmany order hindexed \
-	commit cancel
+	commit cancel persist typecreate reqcreate sndrcvrep flood flood2
 OTHEREXECS = testtypes secondf allpair systest send1 \
 		systest1 allpair2 bsendtest structf typebasef 
 default: $(EXECS)
@@ -60,24 +61,29 @@ sendrecv: sendrecv.o test.o
 persistent: persistent.o
 	$(CLINKER) $(OPTFLAGS) -o persistent persistent.o $(LIBS)
 
+flood: flood.o test.o
+	$(CLINKER) $(OPTFLAGS) -o flood flood.o test.o $(LIBS)
+
+flood2: flood2.o test.o
+	$(CLINKER) $(OPTFLAGS) -o flood2 flood2.o test.o $(LIBS)
+
+persist: persist.o
+	$(CLINKER) $(OPTFLAGS) -o persist persist.o $(LIBS)
+
 sendrecv2: sendrecv2.o dtypes.o gcomm.o
-	$(CLINKER) $(OPTFLAGS) -o sendrecv2 sendrecv2.o dtypes.o gcomm.o \
-		$(LIBS)
+	$(CLINKER) $(OPTFLAGS) -o sendrecv2 sendrecv2.o dtypes.o gcomm.o $(LIBS)
 
 sendrecv3: sendrecv3.o dtypes.o gcomm.o
-	$(CLINKER) $(OPTFLAGS) -o sendrecv3 sendrecv3.o dtypes.o gcomm.o \
-		$(LIBS)
+	$(CLINKER) $(OPTFLAGS) -o sendrecv3 sendrecv3.o dtypes.o gcomm.o $(LIBS)
 
 sendrecv4: sendrecv4.o dtypes.o gcomm.o
-	$(CLINKER) $(OPTFLAGS) -o sendrecv4 sendrecv4.o dtypes.o gcomm.o \
-		$(LIBS)
+	$(CLINKER) $(OPTFLAGS) -o sendrecv4 sendrecv4.o dtypes.o gcomm.o $(LIBS)
 
 irsend: irsend.o dtypes.o gcomm.o
 	$(CLINKER) $(OPTFLAGS) -o irsend irsend.o dtypes.o gcomm.o $(LIBS)
 
 irsendinit: irsendinit.o dtypes.o gcomm.o
-	$(CLINKER) $(OPTFLAGS) -o irsendinit irsendinit.o dtypes.o gcomm.o \
-		$(LIBS)
+	$(CLINKER) $(OPTFLAGS) -o irsendinit irsendinit.o dtypes.o gcomm.o $(LIBS)
 
 testsome: testsome.o dtypes.o gcomm.o
 	$(CLINKER) $(OPTFLAGS) -o testsome testsome.o dtypes.o gcomm.o $(LIBS)
@@ -88,6 +94,9 @@ testall: testall.o dtypes.o gcomm.o
 sndrcv: sndrcv.o dtypes.o gcomm.o
 	$(CLINKER) $(OPTFLAGS) -o sndrcv sndrcv.o dtypes.o gcomm.o $(LIBS)
 
+sndrcvrep: sndrcvrep.o
+	$(CLINKER) $(OPTFLAGS) -o sndrcvrep sndrcvrep.o $(LIBS)
+
 getelm: getelm.o 
 	$(CLINKER) $(OPTFLAGS) -o getelm getelm.o $(LIBS)
 
@@ -96,6 +105,18 @@ self: self.o test.o
 
 typeub: typeub.o test.o
 	$(CLINKER) $(OPTFLAGS) -o typeub typeub.o $(LIBS)
+
+typeub2: typeub2.o
+	$(CLINKER) $(OPTFLAGS) -o typeub2 typeub2.o $(LIBS)
+
+typeub3: typeub3.o
+	$(CLINKER) $(OPTFLAGS) -o typeub3 typeub3.o $(LIBS)
+
+typecreate: typecreate.o
+	$(CLINKER) $(OPTFLAGS) -o typecreate typecreate.o $(LIBS)
+
+reqcreate: reqcreate.o
+	$(CLINKER) $(OPTFLAGS) -o reqcreate reqcreate.o $(LIBS)
 
 isndrcv: isndrcv.o test.o
 	$(CLINKER) $(OPTFLAGS) -o isndrcv isndrcv.o test.o $(LIBS)
@@ -196,25 +217,25 @@ commit: commit.o
 cancel: cancel.o
 	$(CLINKER) $(OPTFLAGS) -o cancel cancel.o $(LIBS)
 
-secondf: mpif.h secondf.o
+secondf: $(MPIFDEP) secondf.o
 	$(FLINKER) $(OPTFLAGS) -o secondf secondf.o $(FLIBS)
 
-allpair: mpif.h allpair.o 
+allpair: $(MPIFDEP) allpair.o 
 	$(FLINKER) $(OPTFLAGS) -o allpair allpair.o $(FLIBS)
 
-allpair2: mpif.h allpair2.o
+allpair2: $(MPIFDEP) allpair2.o
 	$(FLINKER) $(OPTFLAGS) -o allpair2 allpair2.o $(FLIBS)
 
-structf: mpif.h structf.o
+structf: $(MPIFDEP) structf.o
 	$(FLINKER) $(OPTFLAGS) -o structf structf.o $(FLIBS)
 
-send1: mpif.h send1.o
+send1: $(MPIFDEP) send1.o
 	$(FLINKER) $(OPTFLAGS) -o send1 send1.o $(FLIBS)
 
-pingpong: mpif.h pingpong.o
+pingpong: $(MPIFDEP) pingpong.o
 	$(FLINKER) $(OPTFLAGS) -o pingpong pingpong.o $(FLIBS)
 
-typebasef: mpif.h typebasef.o
+typebasef: $(MPIFDEP) typebasef.o
 	$(FLINKER) $(OPTFLAGS) -o typebasef typebasef.o $(FLIBS)
 
 #
@@ -229,7 +250,8 @@ mpif.h: $(MPIR_HOME)/include/mpif.h
 #
 # Make sure that we remove executables for specific architectures
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) *.out core pt2pt.diff $(OTHEREXECS)
+	/bin/rm -f *.o *~ PI* $(EXECS) *.out core pt2pt.diff $(OTHEREXECS) \
+		*.trace rdb.* startup.* 
 	for file in $(EXECS) Makefile ; do \
 	   /bin/rm -f $$file.sun4 $$file.alpha $$file.IRIX $$file.freebsd ;\
 	done

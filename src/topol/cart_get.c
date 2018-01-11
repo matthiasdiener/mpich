@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_get.c,v 1.9 1996/04/12 15:43:04 gropp Exp $
+ *  $Id: cart_get.c,v 1.12 1997/01/07 01:48:01 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -31,6 +31,7 @@ Output Parameters:
 .N MPI_SUCCESS
 .N MPI_ERR_TOPOLOGY
 .N MPI_ERR_COMM
+.N MPI_ERR_ARG
 @*/
 int MPI_Cart_get ( comm, maxdims, dims, periods, coords )
 MPI_Comm comm;
@@ -41,18 +42,25 @@ int *dims, *periods, *coords;
   int *array;
   int mpi_errno = MPI_SUCCESS;
   MPIR_TOPOLOGY *topo;
+  struct MPIR_COMMUNICATOR *comm_ptr;
+  static char myname[] = "MPI_CART_GET";
+
+  TR_PUSH(myname);
+
+  comm_ptr = MPIR_GET_COMM_PTR(comm);
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
   /* Check for valid arguments */
-  if (MPIR_TEST_COMM(comm,comm))
-    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_CART_GET" );
 
   /* Get topology information from the communicator */
   MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );
 
   /* Check for valid topology */
   if ( ( (flag != 1)                 && (mpi_errno = MPI_ERR_TOPOLOGY))  ||
-       ( (topo->type != MPI_CART)    && (mpi_errno = MPI_ERR_TOPOLOGY))  )
-    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_CART_GET" );
+       ( (topo->type != MPI_CART)    && (mpi_errno = MPI_ERR_TOPOLOGY))  ||
+       ( (maxdims < 0)               && (mpi_errno = MPI_ERR_ARG) )
+      )
+    return MPIR_ERROR( comm_ptr, mpi_errno, myname );
 
   /* Get dims */
   num = topo->cart.ndims;
@@ -75,5 +83,6 @@ int *dims, *periods, *coords;
     for ( i=0; (i<maxdims) && (i<num); i++ )
       (*coords++) = (*array++);
 
+  TR_POP;
   return (mpi_errno);
 }

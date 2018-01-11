@@ -7,6 +7,13 @@
 #
 # This sh script is designed to use other scripts to provide the commands
 # to run each system, using the . filename.sh mechanism
+#
+# Debuggers should be handled by running 
+# mpirun.db.<debugger_name>
+# e.g., mpirun.db.gdb or mpirun.db.xxgdb.
+# This will allow users to add there own debuggers 
+# (with -debug=<debugger_name>)
+#
 
 #set verbose
 MPIR_HOME=#MPIR_HOME#

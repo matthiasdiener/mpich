@@ -1,5 +1,5 @@
 /*
- *  $Id: pcontrol.c,v 1.7 1996/04/12 15:57:08 gropp Exp $
+ *  $Id: pcontrol.c,v 1.8 1996/11/24 20:20:27 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,8 +7,12 @@
 
 #include "mpiimpl.h"
 
-#ifdef __STDC__
+#if defined(__STDC__) || defined(HAVE_PROTOTYPES)
+#ifdef HAVE_NO_C_CONST
+int MPI_Pcontrol( int level, ... )
+#else
 int MPI_Pcontrol( const int level, ... )
+#endif
 {
     return MPI_SUCCESS;
 }

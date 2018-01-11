@@ -1,5 +1,5 @@
 /*
- *  $Id: group_tranks.c,v 1.13 1996/04/12 14:11:44 gropp Exp $
+ *  $Id: group_tranks.c,v 1.17 1997/02/18 23:06:13 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -28,6 +28,7 @@ correspondence exists.
 .N MPI_SUCCESS
 .N MPI_ERR_GROUP
 .N MPI_ERR_ARG
+.N MPI_ERR_RANK
 
 @*/
 int MPI_Group_translate_ranks ( group_a, n, ranks_a, group_b, ranks_b )
@@ -39,15 +40,22 @@ int       *ranks_b;
 {
   int i, j;
   int pid_a, rank_a;
+  struct MPIR_GROUP *group_a_ptr, *group_b_ptr;
   int mpi_errno = MPI_SUCCESS;
+  static char myname[] = "MPI_GROUP_TRANSLATE_RANKS";
+
+  TR_PUSH(myname);
+
+  group_a_ptr = MPIR_GET_GROUP_PTR(group_a);
+  MPIR_TEST_MPI_GROUP(group_a,group_a_ptr,MPIR_COMM_WORLD,myname);
+
+  group_b_ptr = MPIR_GET_GROUP_PTR(group_b);
+  MPIR_TEST_MPI_GROUP(group_b,group_b_ptr,MPIR_COMM_WORLD,myname);
 
   /* Check for bad arguments */
-  if ( MPIR_TEST_GROUP(MPI_COMM_WORLD,group_a) ||
-       MPIR_TEST_GROUP(MPI_COMM_WORLD,group_b) || 
-	   ( (n       <= 0)              && (mpi_errno = MPI_ERR_ARG) )   ||
+  if ( ( (n       <= 0)              && (mpi_errno = MPI_ERR_ARG) )   ||
        MPIR_TEST_ARG(ranks_a) || MPIR_TEST_ARG(ranks_b))
-    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-				  "Error in MPI_GROUP_TRANSLATE_RANKS" );
+    return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 
   /* Set ranks_b array to MPI_UNDEFINED */
   for ( i=0; i<n; i++ )
@@ -55,14 +63,18 @@ int       *ranks_b;
  
   /* Translate the ranks in ranks_a to ranks_b */
   for ( i=0 ; i<n; i++ ) {
-    if ( ((rank_a = ranks_a[i]) >= group_a->np) || (rank_a < 0) ) 
+      if ( ((rank_a = ranks_a[i]) >= group_a_ptr->np) || (rank_a < 0) ) {
+	  MPIR_ERROR_PUSH_ARG(&rank_a);
+	  return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_RANK, myname );
       break;
-    pid_a = group_a->lrank_to_grank[rank_a];
-    for ( j=0; j<group_b->np; j++ ) 
-      if ( pid_a == group_b->lrank_to_grank[j] ) {
+      }
+    pid_a = group_a_ptr->lrank_to_grank[rank_a];
+    for ( j=0; j<group_b_ptr->np; j++ ) 
+      if ( pid_a == group_b_ptr->lrank_to_grank[j] ) {
         ranks_b[i] = j;
         break;
       }
   }
-  return (mpi_errno);
+  TR_POP;
+  return MPI_SUCCESS;
 }

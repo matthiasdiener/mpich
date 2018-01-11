@@ -7,8 +7,12 @@ typedef int MPI_Comm;
 #include "mpi.h"
 #endif
 
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
+
 #ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus)
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
 #define ANSI_ARGS(a) a
 #else
 #define ANSI_ARGS(a) ()
@@ -127,8 +131,10 @@ extern int MPE_Draw_point ANSI_ARGS(( MPE_XGraph handle, int x, int y,
 extern int MPE_Draw_line ANSI_ARGS(( MPE_XGraph handle, int x1, int y1,
 	   int x2, int y2, MPE_Color color ));
 
-extern int MPE_Draw_circle ANSI_ARGS(( MPE_XGraph handle, int centerx,
-	   int centery, int radius, MPE_Color color ));
+extern int MPE_Draw_circle ANSI_ARGS(( MPE_XGraph, int, int, int, MPE_Color ));
+
+extern int MPE_Draw_string ANSI_ARGS(( MPE_XGraph, int, int, MPE_Color,
+				       char * ));
 
 extern int MPE_Fill_rectangle ANSI_ARGS(( MPE_XGraph handle, int x, int y,
 	   int w, int h, MPE_Color color ));

@@ -160,7 +160,8 @@ extern int MPID_DebugFlow;
 
 extern void MPID_SendFlowPacket ANSI_ARGS((int));
 extern void MPID_RecvFlowPacket ANSI_ARGS((MPID_PKT_T *, int));
-extern void MPID_FlowSetup ANSI_ARGS((void));
+extern void MPID_FlowSetup ANSI_ARGS((int,int));
 extern void MPID_FlowDelete ANSI_ARGS((void));
 extern void MPID_FlowDump ANSI_ARGS((FILE *));
+extern void MPID_FlowDebug ANSI_ARGS((int));
 #endif

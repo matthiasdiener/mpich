@@ -6,7 +6,6 @@ COMM        = @COMM@
 DEVICE      = @DEVICE@
 BOPT        = @BOPT@
 P4_DIR      = @P4_DIR@
-TOOLS_DIR   = @TOOLS_DIR@
 MPIR_HOME   = @MPIR_HOME@
 INCLUDE_DIR = @INCLUDE_PATH@ -Impid/@DEVICE@ -Iinclude
 PREFIX	    = @PREFIX@
@@ -23,13 +22,13 @@ MPIDIRS  = src/pt2pt src/env src/dmpi src/util src/context src/coll \
 DIRS     = $(MPIDIRS) mpid/$(DEVICE) @CPP_DIR@ @MPE_DIR@ \
 	   examples examples/basic examples/test/pt2pt examples/test/coll \
 	   examples/test/topol examples/test/context \
-	   examples/test/env examples/test \
+	   examples/test/env examples/test/profile examples/test \
 	   examples/contrib examples/perftest \
            profiling/examples profiling/lib profiling/wrappergen
 # 
 # This is a list of the devices that are available
 DEVICES  = mpid/ch2 \
-	   mpid/chameleon mpid/ch_nx mpid/ch_p4 mpid/ch_nc mpid/ch_cmmd \
+	   mpid/ch_nx mpid/ch_p4 mpid/ch_nc mpid/ch_cmmd \
 	   mpid/ch_mpl mpid/meiko mpid/t3d mpid/ch_meiko mpid_ch_shmem \
 	   mpid/ch_tcp mpid/sgi mpid/nx mpid/ch_nexus mpid/ch_lfshmem \
 	   mpid/ch_cenju3
@@ -62,6 +61,8 @@ mpi:
 	@if [ $(COMM) = "ch_p4" ] ; then \
 	    echo "You may want to do" ; \
 	    echo "    $(MAKE) serv_p4" ; \
+	    echo "or"; \
+	    echo "    $(MAKE) server "; \
 	    echo "as well." ; \
 	fi
 	/bin/rm -f util/mpirun
@@ -134,9 +135,9 @@ mpilib: Makefile.in
 	  $(MAKE) default_all ; if [ $$? != 0 ] ; then \
 		echo "Exit status from make was $$?" ; exit 1 ; fi ;) ;\
 	  done
-	@RANLIB@ lib/$(LARCH)/$(COMM)/libmpi.a
-	@if test -w lib/$(LARCH)/$(COMM)/libmpi++.a ; then \
-		@RANLIB@ lib/$(LARCH)/$(COMM)/libmpi++.a ; fi
+	@RANLIB@ lib/$(LARCH)/$(COMM)/lib@MPILIBNAME@.a
+	@if test -w lib/$(LARCH)/$(COMM)/lib@MPILIBNAME@++.a ; then \
+		@RANLIB@ lib/$(LARCH)/$(COMM)/lib@MPILIBNAME@++.a ; fi
 	@if test -w lib/$(LARCH)/$(COMM)/libmpe.a ; then \
 		@RANLIB@ lib/$(LARCH)/$(COMM)/libmpe.a ; fi
 	@if test -w lib/$(LARCH)/$(COMM)/libmpe_nompi.a ; then \
@@ -150,7 +151,7 @@ mpiflib: Makefile.in
 	  (cd $$dir; \
 	  $(MAKE) wrapperlib ) ;\
 	  done
-	@RANLIB@ lib/$(LARCH)/$(COMM)/libfmpi.a
+	@RANLIB@ lib/$(LARCH)/$(COMM)/libf@MPILIBNAME@.a
 
 #
 # This target is used to remove the libraries for this configuration; this
@@ -191,10 +192,10 @@ mpilibdebug:
 	  (cd $$dir ; $(MAKE) clean ; \
 	  $(MAKE) profile_all MPIPROFILE="-DMPIR_DEBUG_MEM -DMPI_BUILD_PROFILING");\
 	  done 
-	@RANLIB@ lib/$(LARCH)/$(COMM)/libmpi.a
-	@RANLIB@ lib/$(LARCH)/$(COMM)/libpmpi.a
-	@if test -w lib/$(LARCH)/$(COMM)/libmpi++.a ; then \
-		@RANLIB@ lib/$(LARCH)/$(COMM)/libmpi++.a ; fi
+	@RANLIB@ lib/$(LARCH)/$(COMM)/lib@MPILIBNAME@.a
+	@RANLIB@ lib/$(LARCH)/$(COMM)/libp@MPILIBNAME@.a
+	@if test -w lib/$(LARCH)/$(COMM)/lib@MPILIBNAME@++.a ; then \
+		@RANLIB@ lib/$(LARCH)/$(COMM)/lib@MPILIBNAME@++.a ; fi
 	@if test -w lib/$(LARCH)/$(COMM)/libmpe.a ; then \
 		@RANLIB@ lib/$(LARCH)/$(COMM)/libmpe.a ; fi
 	@if test -w lib/$(LARCH)/$(COMM)/libmpe_nompi.a ; then \
@@ -209,7 +210,7 @@ profile:
 	  (cd $$dir; \
 	  $(MAKE) profile_all MPIPROFILE="-DMPI_BUILD_PROFILING" ) ;\
 	  done
-	@RANLIB@ lib/$(LARCH)/$(COMM)/libpmpi.a
+	@RANLIB@ lib/$(LARCH)/$(COMM)/libp@MPILIBNAME@.a
 
 #
 # Make mpirun from mpirun.*.in
@@ -308,6 +309,22 @@ serv_p4:
 	-cp util/chp4_servs lib/$(LARCH)/$(COMM)
 	-cp util/chkserv lib/$(LARCH)/$(COMM)
 	-cp util/chkmachine lib/$(LARCH)/$(COMM)
+#
+# If you change this, ALSO change it in the install target!
+server:
+	( cd mpid/server ; ./configure ; $(MAKE) server ; \
+	  cp server ../../lib/$(LARCH)/$(COMM) )
+	/bin/rm -f util/chp4_servs
+	cat util/chp4_servs.in | sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
+		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
+		-e "s%\#RSH_COMMAND\#%$(RSH_COMMAND)%g" \
+		-e "s%\#DEFAULT_MACHINE\#%$(DEFAULT_MACHINE)%g" \
+		-e "s%\#DEFAULT_ARCH\#%$(LARCH)%g" > \
+		    util/chp4_servs ;\
+	chmod 775 util/chp4_servs
+	-cp util/chp4_servs lib/$(LARCH)/$(COMM)
+	-cp util/chkserv lib/$(LARCH)/$(COMM)
+	-cp util/chkmachine lib/$(LARCH)/$(COMM)
 
 #
 # Changed clean to not remove the library, only the object files
@@ -322,7 +339,7 @@ clean:
 	    (cd tsuite ; $(MAKE) clean ) ; fi
 	@-if [ -d bugs -a -s bugs/Makefile ] ; then \
 	    (cd bugs ; $(MAKE) clean ) ; fi
-	@-for dir in $(DIRS) ;\
+	@-for dir in $(DIRS) util ;\
 	  do \
 	  echo cleaning $$dir ;\
 	  (cd $$dir; if [ -s Makefile ] ; then $(MAKE) clean ; fi ) ;\
@@ -330,7 +347,7 @@ clean:
 	-if [ -s mpid/ch_shmem/p2ptest/Makefile ] ; then \
 	    echo "cleaning mpid/ch_shmem/p2ptest" ; \
 	    (cd mpid/ch_shmem/p2ptest ; $(MAKE) clean ) ; fi
-	-if [ -d mpid/tests ] ; then \
+	-if [ -d mpid/tests -a -s mpid/tests/Makefile ] ; then \
 	    (cd mpid/tests ; $(MAKE) clean ) ; fi
 #
 # Realclean removes mpirun etc as well as the libraries.
@@ -342,9 +359,6 @@ realclean: clean
 	-/bin/rm -f lib/*/*/*.[oa]
 	-/bin/rm -f lib/*/*.[oa]
 	-/bin/rm -f ID
-	if [ -n "$(TOOLS_DIR)" ] ; then  \
-	    echo "cleaning mpid/chameleon" ; \
-	    (cd mpid/chameleon ; $(MAKE) clean )  ; fi
 	@-for dir in $(OTHERDEVICES) ; do echo cleaning $$dir ; \
 	     (cd $$dir ; if [ -s Makefile ] ; then $(MAKE) clean ; fi ) ; done
 	if [ -s mpid/ch_p4/p4-1.4/Makefile ] ; then \
@@ -352,7 +366,7 @@ realclean: clean
 	@for dir in $(DIRS) ;\
 	  do \
 	  echo removing Makefile in $$dir ;\
-	  (cd $$dir; /bin/rm Makefile) ;\
+	  (cd $$dir; /bin/rm -f Makefile) ;\
 	  done
 	@/bin/rm Makefile
 #
@@ -367,6 +381,8 @@ ID: frc
 frc:
 
 
+
+
 # Configure the Makefiles for some popular versions for ANL
 anlchp4: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
@@ -377,7 +393,7 @@ anltcp: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=sun4 -device=ch_tcp -var_pkt -opt="-g" -cc=gcc \
 	-devdebug -memdebug \
-	-cflags="-Wall -Wstrict-prototypes -Wmissing-prototypes -Dlint -DNEEDS_STDLIB_PROTOTYPES"
+	-cflags="-Wall -Wstrict-prototypes -Wmissing-prototypes -Dlint -DNEEDS_STDLIB_PROTOTYPES -munaligned-doubles"
 	-cp config.status lib/sun4/ch_tcp
 	@-chmod g+ws lib lib/sun4 lib/sun4/ch_tcp >/dev/null 2>&1
 anlnexus: configure 
@@ -395,8 +411,8 @@ anlchp4mem: configure
 anlchp4chk: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=sun4 -device=ch_p4 -var_pkt -memdebug -devdebug \
-	-opt=-g \
-	-cflags="-Wall -Wstrict-prototypes -Wmissing-prototypes -Dlint -DNEEDS_STDLIB_PROTOTYPES" \
+	-tracing -opt=-g -debug \
+	-cflags="-Wall -Wstrict-prototypes -Wmissing-prototypes -Dlint -DNEEDS_STDLIB_PROTOTYPES -munaligned-doubles" \
 	-cc=gcc
 	-cp config.status lib/sun4/ch_p4
 	@-chmod g+ws lib lib/sun4 lib/sun4/ch_p4 >/dev/null 2>&1
@@ -417,7 +433,7 @@ anlchp4alphamem: configure
 anlchp4fbsd: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=freebsd -device=ch_p4 -var_pkt -memdebug \
-		-opt="-g" 
+		-opt="-g" -tracing -debug
 	-cp config.status lib/freebsd/ch_p4
 	@-chmod g+ws lib lib/freebsd lib/freebsd/ch_p4 >/dev/null 2>&1
 # RS6000 sh umask returns 3 digits, not four!
@@ -472,13 +488,15 @@ INSTALLDIR = /usr/local/mpi
 # The install target really needs to use some for of 'install' program that
 # will create directories, set modes and owners, etc.  Alas, such a function
 # is not standard.
-# Note that clean removes mpirun (!) so we need to make sure that it is
-# around before doing the instal
+# Note that clean removes mpirun (!) and mpiinstall (!) so we need to make
+# sure that it is around before doing the install
+util/mpiinstall: util/mpireconfig
+	(cd util ; ./mpireconfig mpiinstall ; chmod a+x mpiinstall )
 install: mpirun util/mpiinstall
-	util/mpiinstall -prefix=$(PREFIX)
+	./util/mpiinstall -prefix=$(PREFIX)
 
 installlib: mpirun util/mpiinstall
-	util/mpiinstall -prefix-$(PREFIX) -libonly
+	./util/mpiinstall -prefix=$(PREFIX) -libonly -device=$(DEVICE)
 
 #
 # Install adds ALL of the examples to the installation area

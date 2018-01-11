@@ -1,4 +1,4 @@
-.TH MPI_Waitall 3 "6/26/1996" " " "MPI"
+.TH MPI_Waitall 3 "1/24/1997" " " "MPI"
 .SH NAME
 MPI_Waitall \-  Waits for all given communications to complete 
 .SH SYNOPSIS
@@ -27,6 +27,11 @@ MPI_Status  array_of_statuses[];
 .B array_of_statuses 
 - array of status objects (array of Status) 
 .PD 1
+
+.SH NOTE ON STATUS FOR SEND OPERATIONS
+For send operations, the only use of status is for MPI_Test_cancelled or
+in the case that there is an error, in which case the MPI_ERROR field of
+status will be set.
 
 .SH NOTES FOR FORTRAN
 All MPI routines in Fortran (except for 

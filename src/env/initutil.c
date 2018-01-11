@@ -1,5 +1,5 @@
 /*
- *  $Id: initutil.c,v 1.11 1996/07/05 15:36:58 gropp Exp $
+ *  $Id: initutil.c,v 1.20 1997/02/18 23:06:23 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -12,11 +12,27 @@
  */
 #include "mpiimpl.h"
 #ifdef MPI_ADI2
+/* #include "cmnargs.h" */
 #include "sbcnst2.h"
 /* Error handlers in pt2pt */
 #include "mpipt2pt.h"
 #else
 #include "mpisys.h"
+#endif
+
+#if defined(MPID_HAS_PROC_INFO)
+/* This is needed to use select for a timeout */
+#include <sys/time.h>
+#include <sys/types.h>
+#endif
+
+#ifdef HAVE_UNISTD_H
+/* For nice, sleep */
+#include <unistd.h>
+#endif
+
+#if defined(MPE_USE_EXTENSIONS) && !defined(MPI_NO_MPEDBG)
+#include "mpeexten.h"
 #endif
 
 #ifndef PATCHLEVEL_SUBMINOR
@@ -26,35 +42,24 @@
 /* #define DEBUG(a) {a}  */
 #define DEBUG(a)
 
-#if defined(POINTER_64_BITS)
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
-#define MPIR_ToPointer(a) a
-#define MPIR_FromPointer(a) (int)a
-#define MPIR_RmPointer(a) 
-#endif
-
 #ifdef FORTRANCAPS
 #define mpir_init_fcm_   MPIR_INIT_FCM
-#define mpir_init_fop_   MPIR_INIT_FOP
 #define mpir_init_flog_  MPIR_INIT_FLOG
 #define mpir_init_bottom_ MPIR_INIT_BOTTOM
-#define mpir_init_fattr_  MPIR_INIT_FATTR
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpir_init_fcm_   mpir_init_fcm__
-#define mpir_init_fop_   mpir_init_fop__
 #define mpir_init_flog_  mpir_init_flog__
 #define mpir_init_bottom_ mpir_init_bottom__
-#define mpir_init_fattr_  mpir_init_fattr__
 #elif !defined(FORTRANUNDERSCORE)
 #define mpir_init_fcm_   mpir_init_fcm
-#define mpir_init_fop_   mpir_init_fop
 #define mpir_init_flog_  mpir_init_flog
 #define mpir_init_bottom_ mpir_init_bottom
-#define mpir_init_fattr_  mpir_init_fattr
 #endif
+
+/* Prototypes for Fortran interface functions */
+void mpir_init_fcm_ ANSI_ARGS(( void ));
+void mpir_init_flog_ ANSI_ARGS(( int *, int * ));
+void mpir_init_bottom_ ANSI_ARGS(( void * ));
 
 /* Global memory management variables for fixed-size blocks */
 #ifndef MPI_ADI2
@@ -73,21 +78,33 @@ MPIR_QHDR MPIR_unexpected_recvs;
 #endif
 
 /* Global communicators.  Initialize as null in case we fail during startup */
-MPI_Comm MPI_COMM_SELF = 0, MPI_COMM_WORLD = 0;
-MPI_Group MPI_GROUP_EMPTY = 0;
+/* We need the structure that MPI_COMM_WORLD refers to so often, 
+   we export it */
+struct MPIR_COMMUNICATOR *MPIR_COMM_WORLD = 0;
+struct MPIR_COMMUNICATOR *MPIR_COMM_SELF = 0;
+
+struct MPIR_GROUP *MPIR_GROUP_EMPTY = 0;
+
+/* Home for this variable (used in MPI_Initialized) */
+int MPIR_Has_been_initialized = 0;
+
+/* MPI_Comm MPI_COMM_SELF = 0, MPI_COMM_WORLD = 0; */
+/* MPI_Group MPI_GROUP_EMPTY = 0; */
 
 /* Global MPIR process id (from device) */
 int MPIR_tid;
 
 /* Permanent attributes */
-int MPI_TAG_UB, MPI_HOST, MPI_IO, MPI_WTIME_IS_GLOBAL;
 /* Places to hold the values of the attributes */
 static int MPI_TAG_UB_VAL, MPI_HOST_VAL, MPI_IO_VAL, MPI_WTIME_IS_GLOBAL_VAL;
-/* Fortran versions of the names */
-int MPIR_TAG_UB, MPIR_HOST, MPIR_IO, MPIR_WTIME_IS_GLOBAL;
 
 /* Command-line flags */
 int MPIR_Print_queues = 0;
+#ifdef MPIR_MEMDEBUG
+int MPIR_Dump_Mem = 0;
+#else
+int MPIR_Dump_Mem = 1;
+#endif
 
 /* Fortran logical values */
 int MPIR_F_TRUE, MPIR_F_FALSE;
@@ -98,9 +115,6 @@ int MPIR_F_TRUE, MPIR_F_FALSE;
  This is done by the macro MPIR_F_PTR.
  */
 void *MPIR_F_MPI_BOTTOM = 0;
-
-MPI_Errhandler MPI_ERRORS_ARE_FATAL, MPI_ERRORS_RETURN, 
-       MPIR_ERRORS_WARN;
 
 /*
    MPIR_Init - Initialize the MPI execution environment
@@ -120,12 +134,16 @@ int MPIR_Init(argc,argv)
 int  *argc;
 char ***argv;
 {
-    int            size, mpi_errno;
+    int            size, mpi_errno, i;
     void           *ADIctx = 0;
+    static char myname[] = "MPI_INIT";
+
+    TR_PUSH("MPIR_Init");
 
     if (MPIR_Has_been_initialized) 
     return 
-        MPIR_ERROR( (MPI_Comm)0, MPI_ERR_INIT, "Cannot MPI_INIT again" );
+        MPIR_ERROR( (struct MPIR_COMMUNICATOR *)0, MPI_ERR_INIT, 
+		    "Cannot MPI_INIT again" );
 
     /* Sanity check.  If this program is being run with MPIRUN, check that
        we have the expected information.  That is, make sure that we
@@ -135,9 +153,13 @@ char ***argv;
      */
 #if defined(MPIRUN_DEVICE) && defined(MPIRUN_MACHINE)
     {char *p1, *p2;
+#ifdef HAVE_NO_C_CONST
+    extern char *getenv ANSI_ARGS((char *));
+#else
     extern char *getenv ANSI_ARGS((const char *));
+#endif
 
-    mpi_errno = 0;
+    mpi_errno = MPI_SUCCESS;
     p1 = getenv( "MPIRUN_DEVICE" );
     p2 = getenv( "MPIRUN_MACHINE" );
     if (p1 && strcmp( p1, MPIRUN_DEVICE ) != 0) mpi_errno = MPI_ERR_MPIRUN;
@@ -145,7 +167,7 @@ char ***argv;
     if (mpi_errno) {
 	MPIR_ERROR_PUSH_ARG(p1);
 	MPIR_ERROR_PUSH_ARG(MPIRUN_DEVICE);
-	MPIR_Errors_are_fatal( (MPI_Comm*)0, &mpi_errno, "Error in MPI_INIT",
+	MPIR_Errors_are_fatal( (MPI_Comm*)0, &mpi_errno, myname,
 			       __FILE__, (int *)0 );
     }
     }
@@ -162,6 +184,10 @@ char ***argv;
      * 2) causes the other processes to stop in mpi_init (see below).
      */
     MPID_Init( argc, argv, (void *)0, &mpi_errno );
+    if (mpi_errno) {
+	MPIR_Errors_are_fatal( (MPI_Comm*)0, &mpi_errno, myname, 
+			       __FILE__, (int *)0 );
+    }
     DEBUG(MPIR_tid=MPID_MyWorldRank;)
 
 #ifdef MPID_HAS_PROC_INFO
@@ -173,14 +199,20 @@ char ***argv;
 	int i;
 	MPIR_proctable = (MPIR_PROCDESC *)MALLOC(MPID_MyWorldSize*sizeof(MPIR_PROCDESC));
 	
+	/* Cause extra state to be remembered */
+	MPIR_being_debugged = 1;
+	
 	if (MPIR_proctable)
 	{
 	    for (i=0; i<MPID_MyWorldSize; i++)
 	    {
 		MPIR_PROCDESC *this = &MPIR_proctable[i];
 
-		this->pid = MPID_getpid(i, &this->host_name);
-		DEBUG(PRINTF("[%d] %s :: %d\n", i, this->host_name,this->pid);)
+		this->pid = MPID_getpid(i, &this->host_name, &this->executable_name);
+		DEBUG(PRINTF("[%d] %s :: %s %d\n", i, 
+			     this->host_name ? this->hostname : "local",
+			     this->executable_name ? this->executable_name : "", 
+			     this->pid);)
 	    }
 	    
 	    MPIR_proctable_size = MPID_MyWorldSize;
@@ -237,20 +269,27 @@ char ***argv;
 #endif
 
     /* Create Error handlers */
-    MPI_Errhandler_create( MPIR_Errors_are_fatal, &MPI_ERRORS_ARE_FATAL );
-    MPI_Errhandler_create( MPIR_Errors_return, &MPI_ERRORS_RETURN );
-    MPI_Errhandler_create( MPIR_Errors_warn, &MPIR_ERRORS_WARN );
+    /* Must create at preassigned values */
+    MPIR_Errhandler_create( MPIR_Errors_are_fatal, MPI_ERRORS_ARE_FATAL );
+    MPIR_Errhandler_create( MPIR_Errors_return,    MPI_ERRORS_RETURN );
+    MPIR_Errhandler_create( MPIR_Errors_warn,      MPIR_ERRORS_WARN );
     
     /* GROUP_EMPTY is a valid empty group */
     DEBUG(PRINTF("[%d] About to create groups and communicators\n", MPIR_tid);)
-    MPI_GROUP_EMPTY     = MPIR_CreateGroup(0);
-    MPI_GROUP_EMPTY->permanent = 1;
+    MPIR_GROUP_EMPTY     = MPIR_CreateGroup(0);
+    MPIR_GROUP_EMPTY->self = MPI_GROUP_EMPTY;
+    MPIR_RegPointerIdx( MPI_GROUP_EMPTY, MPIR_GROUP_EMPTY );
+    MPIR_GROUP_EMPTY->permanent = 1;
 
-    MPIR_ALLOC(MPI_COMM_WORLD,NEW(struct MPIR_COMMUNICATOR),(MPI_Comm)0,
-	       MPI_ERR_EXHAUSTED,"Error in MPI_INIT");
-    MPIR_SET_COOKIE(MPI_COMM_WORLD,MPIR_COMM_COOKIE)
-    MPI_COMM_WORLD->comm_type	   = MPIR_INTRA;
-    MPI_COMM_WORLD->ADIctx	   = ADIctx;
+    MPIR_ALLOC(MPIR_COMM_WORLD,NEW(struct MPIR_COMMUNICATOR),
+	       (struct MPIR_COMMUNICATOR *)0,
+	       MPI_ERR_EXHAUSTED,myname);
+    MPIR_SET_COOKIE(MPIR_COMM_WORLD,MPIR_COMM_COOKIE)
+    MPIR_RegPointerIdx( MPI_COMM_WORLD, MPIR_COMM_WORLD );
+    MPIR_COMM_WORLD->self = MPI_COMM_WORLD;
+
+    MPIR_COMM_WORLD->comm_type	   = MPIR_INTRA;
+    MPIR_COMM_WORLD->ADIctx	   = ADIctx;
 #ifdef MPI_ADI2
     size     = MPID_MyWorldSize;
     MPIR_tid = MPID_MyWorldRank;
@@ -258,48 +297,53 @@ char ***argv;
     MPID_Mysize( ADIctx, &size );
     MPID_Myrank( ADIctx, &MPIR_tid );
 #endif
-    MPI_COMM_WORLD->group	   = MPIR_CreateGroup( size );
+    MPIR_COMM_WORLD->group	   = MPIR_CreateGroup( size );
+    MPIR_COMM_WORLD->group->self   = 
+	(MPI_Group) MPIR_FromPointer( MPIR_COMM_WORLD->group );
 #if defined(MPID_DEVICE_SETS_LRANKS)
-    MPID_Set_lranks ( MPI_COMM_WORLD->group );
+    MPID_Set_lranks ( MPIR_COMM_WORLD->group );
 #else
-    MPIR_SetToIdentity( MPI_COMM_WORLD->group );
+    MPIR_SetToIdentity( MPIR_COMM_WORLD->group );
 #endif
-    (void)MPIR_Group_dup ( MPI_COMM_WORLD->group, 
-			   &(MPI_COMM_WORLD->local_group) );
+    MPIR_Group_dup ( MPIR_COMM_WORLD->group, 
+			   &(MPIR_COMM_WORLD->local_group) );
 #ifndef MPI_ADI2
-    (void)MPID_Comm_init( ADIctx, (MPI_Comm)0, MPI_COMM_WORLD );
+    (void)MPID_Comm_init( ADIctx, (MPI_Comm)0, MPIR_COMM_WORLD );
 #endif
 
-    MPI_COMM_WORLD->local_rank	   = MPI_COMM_WORLD->local_group->local_rank;
-    MPI_COMM_WORLD->lrank_to_grank = MPI_COMM_WORLD->group->lrank_to_grank;
-    MPI_COMM_WORLD->np		   = MPI_COMM_WORLD->group->np;
-    MPI_COMM_WORLD->send_context   = MPIR_WORLD_PT2PT_CONTEXT;
-    MPI_COMM_WORLD->recv_context   = MPIR_WORLD_PT2PT_CONTEXT;
-    MPI_COMM_WORLD->error_handler  = MPI_ERRORS_ARE_FATAL;
-    MPI_COMM_WORLD->use_return_handler = 0;
-    MPI_ERRORS_ARE_FATAL->ref_count ++;
-    MPI_COMM_WORLD->ref_count	   = 1;
-    MPI_COMM_WORLD->permanent	   = 1;
+    MPIR_COMM_WORLD->local_rank	   = MPIR_COMM_WORLD->local_group->local_rank;
+    MPIR_COMM_WORLD->lrank_to_grank = MPIR_COMM_WORLD->group->lrank_to_grank;
+    MPIR_COMM_WORLD->np		   = MPIR_COMM_WORLD->group->np;
+    MPIR_COMM_WORLD->send_context   = MPIR_WORLD_PT2PT_CONTEXT;
+    MPIR_COMM_WORLD->recv_context   = MPIR_WORLD_PT2PT_CONTEXT;
+    MPIR_COMM_WORLD->error_handler  = MPI_ERRORS_ARE_FATAL;
+    MPIR_COMM_WORLD->use_return_handler = 0;
+    MPIR_Errhandler_mark( MPI_ERRORS_ARE_FATAL, 1 );
+    MPIR_COMM_WORLD->ref_count	   = 1;
+    MPIR_COMM_WORLD->permanent	   = 1;
 #ifdef MPI_ADI2
-    MPID_CommInit( (MPI_Comm)0, MPI_COMM_WORLD );
+    MPID_CommInit( (struct MPIR_COMMUNICATOR *)0, MPIR_COMM_WORLD );
 #endif
 
-    MPIR_Attr_create_tree ( MPI_COMM_WORLD );
-    MPI_COMM_WORLD->comm_cache	   = 0;
-    MPIR_Comm_make_coll ( MPI_COMM_WORLD, MPIR_INTRA );
+    MPIR_Attr_create_tree ( MPIR_COMM_WORLD );
+    MPIR_COMM_WORLD->comm_cache	   = 0;
+    MPIR_Comm_make_coll ( MPIR_COMM_WORLD, MPIR_INTRA );
 
-    MPI_COMM_WORLD->comm_name      = 0;
-    MPIR_Comm_set_name ( MPI_COMM_WORLD, "COMM_WORLD");
+    MPIR_COMM_WORLD->comm_name      = 0;
+    MPI_Comm_set_name ( MPI_COMM_WORLD, "MPI_COMM_WORLD");
 
     /* Predefined attributes for MPI_COMM_WORLD */
     DEBUG(PRINTF("[%d] About to create keyvals\n", MPIR_tid);)
 #define NULL_COPY (MPI_Copy_function *)0
 #define NULL_DEL  (MPI_Delete_function*)0
-    MPI_Keyval_create( NULL_COPY, NULL_DEL, &MPI_TAG_UB, (void *)0 );
-    MPI_Keyval_create( NULL_COPY, NULL_DEL, &MPI_HOST,   (void *)0 );
-    MPI_Keyval_create( NULL_COPY, NULL_DEL, &MPI_IO,     (void *)0 );
-    MPI_Keyval_create( NULL_COPY, NULL_DEL, &MPI_WTIME_IS_GLOBAL, 
-		       (void *)0 );
+	i = MPI_TAG_UB;
+    MPIR_Keyval_create( NULL_COPY, NULL_DEL, &i, (void *)0, 0 );
+        i = MPI_HOST;
+    MPIR_Keyval_create( NULL_COPY, NULL_DEL, &i, (void *)0, 0 );
+        i = MPI_IO;
+    MPIR_Keyval_create( NULL_COPY, NULL_DEL, &i, (void *)0, 0 );
+        i = MPI_WTIME_IS_GLOBAL;
+    MPIR_Keyval_create( NULL_COPY, NULL_DEL, &i, (void *)0, 0 );
     MPI_TAG_UB_VAL = MPID_TAG_UB;
 #ifndef MPID_HOST
 #define MPID_HOST MPI_PROC_NULL
@@ -326,14 +370,14 @@ char ***argv;
     /* Do the Fortran versions - Pass the actual value.  Note that these
        use MPIR_Keyval_create with the "is_fortran" flag set. 
        If you change these; change the removal in finalize.c. */
-    MPIR_Keyval_create( NULL_COPY, NULL_DEL, &MPIR_TAG_UB, 
-		        (void *)0, 1 );
-    MPIR_Keyval_create( NULL_COPY, NULL_DEL, &MPIR_HOST, 
-		        (void *)0, 1 );
-    MPIR_Keyval_create( NULL_COPY, NULL_DEL, &MPIR_IO, 
-		        (void *)0, 1 );
-    MPIR_Keyval_create( NULL_COPY, NULL_DEL, &MPIR_WTIME_IS_GLOBAL, 
-		        (void *)0, 1 );
+        i = MPIR_TAG_UB;
+    MPIR_Keyval_create( NULL_COPY, NULL_DEL, &i, (void *)0, 1 );
+        i = MPIR_HOST;
+    MPIR_Keyval_create( NULL_COPY, NULL_DEL, &i, (void *)0, 1 );
+        i = MPIR_IO;
+    MPIR_Keyval_create( NULL_COPY, NULL_DEL, &i, (void *)0, 1 );
+        i = MPIR_WTIME_IS_GLOBAL;
+    MPIR_Keyval_create( NULL_COPY, NULL_DEL, &i, (void *)0, 1 );
     MPI_Attr_put( MPI_COMM_WORLD, MPIR_TAG_UB, (void*)MPI_TAG_UB_VAL );
     MPI_Attr_put( MPI_COMM_WORLD, MPIR_HOST,   (void*)MPI_HOST_VAL );
     MPI_Attr_put( MPI_COMM_WORLD, MPIR_IO,     (void*)MPI_IO_VAL );
@@ -360,43 +404,50 @@ char ***argv;
     MPIR_Attr_make_perm( MPIR_WTIME_IS_GLOBAL );
 
     /* Remember COMM_WORLD for the debugger */
-    MPIR_Comm_remember ( MPI_COMM_WORLD );
+    MPIR_Comm_remember ( MPIR_COMM_WORLD );
 
     /* COMM_SELF is the communicator consisting only of myself */
-    MPIR_ALLOC(MPI_COMM_SELF,NEW(struct MPIR_COMMUNICATOR),(MPI_Comm)0,
-	       MPI_ERR_EXHAUSTED,"Error in MPI_INIT");
-    MPIR_SET_COOKIE(MPI_COMM_SELF,MPIR_COMM_COOKIE)
-    MPI_COMM_SELF->comm_type		    = MPIR_INTRA;
-    MPI_COMM_SELF->group		    = MPIR_CreateGroup( 1 );
-    MPI_COMM_SELF->group->local_rank	    = 0;
-    MPI_COMM_SELF->group->lrank_to_grank[0] = MPIR_tid;
-    (void) MPIR_Group_dup ( MPI_COMM_SELF->group, 
-			    &(MPI_COMM_SELF->local_group) );
+    MPIR_ALLOC(MPIR_COMM_SELF,NEW(struct MPIR_COMMUNICATOR),
+	       (struct MPIR_COMMUNICATOR *)0,
+	       MPI_ERR_EXHAUSTED,myname);
+    MPIR_SET_COOKIE(MPIR_COMM_SELF,MPIR_COMM_COOKIE)
+    MPIR_RegPointerIdx( MPI_COMM_SELF, MPIR_COMM_SELF );
+    MPIR_COMM_SELF->self = MPI_COMM_SELF;
+
+    MPIR_COMM_SELF->comm_type		    = MPIR_INTRA;
+    MPIR_COMM_SELF->group		    = MPIR_CreateGroup( 1 );
+    MPIR_COMM_SELF->group->self   = 
+	(MPI_Group) MPIR_FromPointer( MPIR_COMM_SELF->group );
+    MPIR_COMM_SELF->group->local_rank	    = 0;
+    MPIR_COMM_SELF->group->lrank_to_grank[0] = MPIR_tid;
+    MPIR_Group_dup ( MPIR_COMM_SELF->group, 
+			    &(MPIR_COMM_SELF->local_group) );
 #ifndef MPI_ADI2
     (void)MPID_Comm_init( ADIctx, (MPI_Comm)0, MPI_COMM_SELF );
 #endif
-    MPI_COMM_SELF->local_rank	      = 
-	MPI_COMM_SELF->local_group->local_rank;
-    MPI_COMM_SELF->lrank_to_grank     = 
-	MPI_COMM_SELF->group->lrank_to_grank;
-    MPI_COMM_SELF->np		      = MPI_COMM_SELF->group->np;
-    MPI_COMM_SELF->send_context	      = MPIR_SELF_PT2PT_CONTEXT;
-    MPI_COMM_SELF->recv_context	      = MPIR_SELF_PT2PT_CONTEXT;
-    MPI_COMM_SELF->error_handler      = MPI_ERRORS_ARE_FATAL;
-    MPI_COMM_SELF->use_return_handler = 0;
-    MPI_ERRORS_ARE_FATAL->ref_count ++;
-    MPI_COMM_SELF->ref_count	      = 1;
-    MPI_COMM_SELF->permanent	      = 1;
+    MPIR_COMM_SELF->local_rank	      = 
+	MPIR_COMM_SELF->local_group->local_rank;
+    MPIR_COMM_SELF->lrank_to_grank     = 
+	MPIR_COMM_SELF->group->lrank_to_grank;
+    MPIR_COMM_SELF->np		      = MPIR_COMM_SELF->group->np;
+    MPIR_COMM_SELF->send_context	      = MPIR_SELF_PT2PT_CONTEXT;
+    MPIR_COMM_SELF->recv_context	      = MPIR_SELF_PT2PT_CONTEXT;
+    MPIR_COMM_SELF->error_handler      = MPI_ERRORS_ARE_FATAL;
+    MPIR_COMM_SELF->use_return_handler = 0;
+    MPIR_Errhandler_mark( MPI_ERRORS_ARE_FATAL, 1 );
+    MPIR_COMM_SELF->ref_count	      = 1;
+    MPIR_COMM_SELF->permanent	      = 1;
 #ifdef MPI_ADI2
-    MPID_CommInit( MPI_COMM_WORLD, MPI_COMM_SELF );
+    MPID_CommInit( MPIR_COMM_WORLD, MPIR_COMM_SELF );
 #endif
-    MPIR_Attr_create_tree ( MPI_COMM_SELF );
-    MPI_COMM_SELF->comm_cache	      = 0;
-    MPIR_Comm_make_coll ( MPI_COMM_SELF, MPIR_INTRA );
+    MPIR_Attr_create_tree ( MPIR_COMM_SELF );
+    MPIR_COMM_SELF->comm_cache	      = 0;
+    MPIR_Comm_make_coll ( MPIR_COMM_SELF, MPIR_INTRA );
     /* Remember COMM_SELF for the debugger */
-    MPI_COMM_SELF->comm_name          = 0;
-    MPIR_Comm_set_name ( MPI_COMM_SELF, "COMM_SELF");
-    MPIR_Comm_remember ( MPI_COMM_SELF );
+    MPIR_COMM_SELF->comm_name          = 0;
+    MPI_Comm_set_name ( MPI_COMM_SELF, "MPI_COMM_SELF");
+    MPIR_Comm_remember ( MPIR_COMM_SELF );
+
 
     /* Predefined combination functions */
     DEBUG(PRINTF("[%d] About to create combination functions\n", MPIR_tid);)
@@ -415,47 +466,9 @@ char ***argv;
     MPIR_Op_setup( MPIR_MINLOC, 1, 1, MPI_MINLOC );
 
 #ifndef MPID_NO_FORTRAN
-    DEBUG(PRINTF("[%d] About to setup Fortran functions\n", MPIR_tid);)
-	{ 
-	int i_max = MPIR_FromPointer(MPI_MAX),
-	    i_min = MPIR_FromPointer(MPI_MIN),
-	    i_sum = MPIR_FromPointer(MPI_SUM),
-	    i_prod = MPIR_FromPointer(MPI_PROD),
-	    i_land = MPIR_FromPointer(MPI_LAND),
-	    i_band = MPIR_FromPointer(MPI_BAND),
-	    i_lor  = MPIR_FromPointer(MPI_LOR),
-	    i_bor  = MPIR_FromPointer(MPI_BOR),
-	    i_lxor = MPIR_FromPointer(MPI_LXOR),
-	    i_bxor = MPIR_FromPointer(MPI_BXOR),
-	    i_maxloc = MPIR_FromPointer(MPI_MAXLOC),
-	    i_minloc = MPIR_FromPointer(MPI_MINLOC),
-	    i_err_fatal = MPIR_FromPointer( MPI_ERRORS_ARE_FATAL ),
-	    i_err_ret   = MPIR_FromPointer( MPI_ERRORS_RETURN );
-	  mpir_init_fop_( &i_max, &i_min, &i_sum, &i_prod, 
-                    &i_land, &i_band,
-                    &i_lor, &i_bor, &i_lxor, &i_bxor, 
-                    &i_maxloc, &i_minloc, &i_err_fatal, &i_err_ret );
-	}
-#endif
-
-#ifndef MPID_NO_FORTRAN
     mpir_init_flog_( &MPIR_F_TRUE, &MPIR_F_FALSE );
-#endif
-
-#ifndef MPID_NO_FORTRAN
-    DEBUG(PRINTF("[%d] About to setup Fortran communicators\n", MPIR_tid);)
-#ifdef POINTER_64_BITS
-	{ int i_world = MPIR_FromPointer(MPI_COMM_WORLD),
-	      i_self  = MPIR_FromPointer(MPI_COMM_SELF),
-	      i_empty = MPIR_FromPointer(MPI_GROUP_EMPTY);
-	  mpir_init_fcm_( &i_world, &i_self, &i_empty );
-	  }
-#else
-    mpir_init_fcm_( &MPI_COMM_WORLD, &MPI_COMM_SELF, &MPI_GROUP_EMPTY );
-#endif
-    DEBUG(PRINTF("[%d] About to setup Fortran attributes\n", MPIR_tid););
-    mpir_init_fattr_( &MPIR_TAG_UB, &MPIR_HOST, &MPIR_IO,
-		      &MPIR_WTIME_IS_GLOBAL );
+    /* fcm sets MPI_BOTTOM */
+    mpir_init_fcm_( );
 #endif
 
     MPIR_PointerPerm( 0 );
@@ -481,8 +494,9 @@ char ***argv;
 #else
 		    MPID_Version_name( ADIctx, ADIname );
 #endif
-		    printf( "MPI model implementation %4.2f.%d., %s\n", 
-			   PATCHLEVEL, PATCHLEVEL_SUBMINOR, ADIname );
+		    printf( "MPI model implementation %d.%d.%d., %s\n", 
+			    PATCHLEVEL, PATCHLEVEL_MINOR, PATCHLEVEL_SUBMINOR, 
+			    ADIname );
 		    printf( "Configured with %s\n", CONFIGURE_ARGS_CLEAN );
 		    (*argv)[i] = 0;
 		    }
@@ -523,6 +537,13 @@ char ***argv;
 		    (*argv)[i] = 0;
 		    }
 #endif
+#if defined(MPE_USE_EXTENSIONS) && !defined(MPI_NO_MPEDBG)
+		else if (strcmp((*argv)[i],"-mpegdb" ) == 0) {
+		    MPE_Errors_call_gdb_in_xterm( (*argv)[0], (char *)0 ); 
+		    MPE_Signals_call_debugger();
+		    (*argv)[i] = 0;
+		    }
+#endif
 #ifdef MPI_ADI2 
 #ifdef MPID_HAS_PROC_INFO
 		else if (strcmp((*argv)[i],"-mpichtv" ) == 0) {
@@ -538,10 +559,26 @@ char ***argv;
 		     */
 		    if (MPID_MyWorldRank != 0) {
 			while (MPIR_debug_gate == 0) {
-			    sleep(1);
+			  /* Wait to be attached to, select avoids 
+			   * signaling and allows a smaller timeout than 
+			   * sleep(1)
+			   */
+			    struct timeval timeout;
+			    timeout.tv_sec  = 0;
+			    timeout.tv_usec = 250000;
+			    select( 0, (void *)0, (void *)0, (void *)0,
+				    &timeout );
 			}
 		    }
 		}
+		else if (strcmp((*argv)[i],"-mpichksq") == 0) {
+                  /* This tells us to Keep Send Queues so that we 
+		   * can look at them if we're attached to.
+		   */
+	          (*argv)[i] = 0; /* Eat it up so the user doesn't see it */
+	          MPIR_being_debugged = 1;
+	        }
+	      
 #endif
 #endif
 #ifndef MPI_ADI2
@@ -606,6 +643,7 @@ char ***argv;
     MPIR_Has_been_initialized = 1;
 
     DEBUG(PRINTF("[%d] About to exit from MPI_Init\n", MPIR_tid);)
+    TR_POP;
     return MPI_SUCCESS;
 }
 
@@ -622,3 +660,53 @@ MPIR_F_MPI_BOTTOM = p;
 }
 
 #endif /* MPID_NO_FORTRAN */
+
+/****************************************************************************/
+/* The various MPI objects (MPI_Errhandler, MPI_Op, ... ) require some      */
+/* special routines to initialize and manipulate them.  For the "smaller"   */
+/* objects, that code is here.  The larger objects (e.g., MPI_Comm)         */
+/* have their own xxx_util.c or initxxx.c files that contain the needed     */
+/* code.                                                                    */
+/****************************************************************************/
+/* Utility code for Errhandlers                                             */
+/****************************************************************************/
+#ifdef MPI_ADI2
+#define MPIR_SBalloc MPID_SBalloc
+#endif
+int MPIR_Errhandler_create( function, errhandler )
+MPI_Handler_function *function;
+MPI_Errhandler       errhandler;
+{
+    struct MPIR_Errhandler *new;
+
+    MPIR_ALLOC(new,(struct MPIR_Errhandler*) MPIR_SBalloc( MPIR_errhandlers ),
+	       MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+			   "MPI_ERRHANDLER_CREATE" );
+
+    MPIR_SET_COOKIE(new,MPIR_ERRHANDLER_COOKIE);
+    new->routine   = function;
+    new->ref_count = 1;
+
+    MPIR_RegPointerIdx( errhandler, new );
+    return MPI_SUCCESS;
+}
+
+/* Change the reference count of errhandler by incr */
+#ifdef MPIR_ToPointer
+#undef MPIR_ToPointer
+#endif
+void MPIR_Errhandler_mark( errhandler, incr )
+MPI_Errhandler errhandler;
+int            incr;
+{
+    struct MPIR_Errhandler *new = (struct MPIR_Errhandler *) 
+	MPIR_ToPointer( errhandler );
+    if (new) {
+	if (incr == 1) {
+	    MPIR_REF_INCR(new);
+	}
+	else {
+	    MPIR_REF_DECR(new);
+	}
+    }
+}

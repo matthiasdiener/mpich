@@ -29,7 +29,10 @@ and -tkdir options to configure:
 More documentation is on the way.
 
 Let me know if there are any features or enhancements you would like
-to see in Nupshot.
+to see in Nupshot.  Send these to mpi-bugs@mcs.anl.gov .
 
-Ed Karrels
-karrels@mcs.anl.gov
+Nupshot was written by Ed Karrels while a student at Argonne National
+Laboratory, under the direction of Ewing Lusk.  Additional direction and
+development were performed by William Gropp.
+
+

@@ -12,10 +12,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Sorry about this kludge, but our ANSI C compiler on our suns has broken
-   header files */
-#ifdef GCC_WALL
-int fprintf( FILE *, const char *, ... );
+#include "str_dup.h"
+#ifdef NEEDS_STDLIB_PROTOTYPES
+#include "protofix.h"
 #endif
 
 

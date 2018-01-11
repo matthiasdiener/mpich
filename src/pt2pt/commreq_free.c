@@ -1,5 +1,5 @@
 /*
- *  $Id: commreq_free.c,v 1.19 1996/07/17 18:04:00 gropp Exp $
+ *  $Id: commreq_free.c,v 1.23 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -46,10 +46,12 @@ MPI_Request *request;
 {
     int mpi_errno = MPI_SUCCESS;
     MPI_Request rq;
+    static char myname[] = "MPI_REQUEST_FREE";
+
+    TR_PUSH(myname);
 
     if (MPIR_TEST_ARG(request) || MPIR_TEST_REQUEST(MPI_COMM_WORLD,*request))
-	return MPIR_ERROR(MPI_COMM_WORLD,mpi_errno,
-			  "Error in MPI_REQUEST_FREE" );
+	return MPIR_ERROR(MPIR_COMM_WORLD,mpi_errno, myname );
 #ifdef MPI_ADI2
     rq = *request;
     switch( rq->handle_type) {
@@ -75,8 +77,9 @@ MPI_Request *request;
     case MPIR_PERSISTENT_SEND:
 	if (!rq->persistent_shandle.active) {
 	    /* Must also free references to perm objects */
+	    MPI_Comm ctmp = rq->persistent_shandle.perm_comm->self;
 	    MPIR_Type_free( &rq->persistent_shandle.perm_datatype );
-	    MPI_Comm_free( &rq->persistent_shandle.perm_comm );
+	    MPI_Comm_free( &ctmp );
 	    MPID_PSendFree( rq );
 	}
 	else {
@@ -86,8 +89,9 @@ MPI_Request *request;
 	break;
     case MPIR_PERSISTENT_RECV:
 	if (!rq->persistent_rhandle.active) {
+	    MPI_Comm ctmp = rq->persistent_rhandle.perm_comm->self;
 	    MPIR_Type_free( &rq->persistent_rhandle.perm_datatype );
-	    MPI_Comm_free( &rq->persistent_rhandle.perm_comm );
+	    MPI_Comm_free( &ctmp );
 	    MPID_PRecvFree( rq );
 	}
 	else {
@@ -100,9 +104,11 @@ MPI_Request *request;
 #else
     rq = *request;
     if (rq->chandle.persistent) {
-	if (--rq->chandle.datatype->ref_count <= 1) {
+	MPIR_Type_free( &rq->chandle.datatype );
+/*	if (--rq->chandle.datatype->ref_count <= 1) {
 	    MPIR_Type_free( &rq->chandle.datatype );
 	    }
+	    */
 	/* Note: if this persistent request is ACTIVE, we must wait 
 	   until it completes before freeing it; that free must take 
 	   place within the wait */
@@ -116,22 +122,23 @@ MPI_Request *request;
      */
 	MPID_Free_send_handle( rq->shandle.comm->ADIctx, 
 			       &(rq->shandle.dev_shandle));
-	MPIR_SET_COOKIE(&rq->shandle,0);
+	MPIR_CLR_COOKIE(&rq->shandle);
 	MPIR_SBfree( MPIR_shandles, rq );
     }
     else if (rq->type == MPIR_RECV)
     {
 	MPID_Free_recv_handle( rq->rhandle.comm->ADIctx, 
 			       &(rq->rhandle.dev_rhandle));
-	MPIR_SET_COOKIE(&rq->rhandle,0);
+	MPIR_CLR_COOKIE(&rq->rhandle);
 	MPIR_SBfree( MPIR_rhandles, rq );
     }
     else
-	mpi_errno = MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_INTERN, 
+	mpi_errno = MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_INTERN, 
 			    "MPI_Request_free:  bad request type" );
 
     *request = MPI_REQUEST_NULL;
 #endif
+    TR_POP;
     return mpi_errno;
 }
 

@@ -7,7 +7,7 @@
  *  listener_p4
  *
  *  args:
- *    debug_level
+ *    p4_debug_level
  *    max_connections
  *    listening_fd
  *    slave_fd
@@ -23,7 +23,7 @@ char **argv;
     if (argc != 5)
 	p4_error("listener_p4: invalid argc", argc);
 
-    debug_level = atoi(argv[1]);
+    p4_debug_level = atoi(argv[1]);
     p4_dprintfl(70, "got: %s %s %s %s\n",
 		argv[1], argv[2], argv[3], argv[4]);
 

@@ -2,7 +2,10 @@
 #include <stdio.h>
 /* stdlib.h needed for malloc declaration */
 #include <stdlib.h>
-#include <memory.h>
+
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
 
 /*
  * This file tests MPI_Type_hindexed by describing parts of a triangular
@@ -90,7 +93,7 @@ char **argv;
 	    if (rbuf[i] != sbuf[row + col*mat_n]) {
 		err++;
 		fprintf( stderr, "rbuf(%d,%d) = %d, not %d\n",
-			 row, col, rbuf[row+col*mat_n], sbuf[row+col*mat_n] );
+			 row, col, rbuf[i], sbuf[row+col*mat_n] );
 	    }
 	    i++;
 	}

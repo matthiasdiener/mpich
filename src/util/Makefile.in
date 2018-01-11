@@ -28,8 +28,7 @@ MPI_INCLUDE    = ../../include/mpi.h ../../include/mpi_bc.h \
                  ../../include/mpir.h ../../include/mpi_ad.h \
 		 ../../include/mpisys.h 
 DEVICE_LIB = 
-CFLAGS = @CFLAGS@ $(OPTFLAGS) @OPTFLAGSC@ $(INCLUDE_DIR) \
-	-DMPI_$(ARCH) $(MPIPROFILE)
+CFLAGS = @CFLAGS@ $(OPTFLAGS) @OPTFLAGSC@ $(INCLUDE_DIR) $(MPIPROFILE)
 
 LIBS = ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $(DEVICE_LIB)
 MPI_CSOURCES = util_hbt.c mpirutil.c sbcnst.c ptrcvt.c bsendutil.c tr.c
@@ -61,8 +60,7 @@ wrappers:
 
 manpages:
 	../../util/doctext -mpath ../../man/man3 -ext 3 -I pubinc \
-	   -index ../../www.index -jumpfile ../../jumpfile.list \
-	   -indexdir "http:/www.mcs.anl.gov/mpi/www/www3" -heading MPI \
+	   -jumpfile ../../jumpfile.list -heading MPI \
 		-quotefmt ../../util/fortnotes ../../util/errnotes \
 		$(MPI_CSOURCES)
 	../../util/doc2lt $(MPI_CSOURCES) >> ../../rsum.tmp
@@ -71,7 +69,7 @@ wwwpages:
 	../../util/doctext -html -mpath ../../www/www3 -I pubinc \
 	   -index ../../www.index -jumpfile ../../jumpfile.list \
 	   -mapref $(MPIR_HOME)/util/mpis.cit \
-	   -indexdir "http:/www.mcs.anl.gov/mpi/www/www3" -heading MPI \
+	   -indexdir "http://www.mcs.anl.gov/mpi/www/www3" -heading MPI \
 		-quotefmt ../../util/fortnotes ../../util/errnotes \
 		$(MPI_CSOURCES)
 

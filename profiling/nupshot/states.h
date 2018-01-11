@@ -84,13 +84,16 @@ typedef struct statePost_ {
 struct stateData_;
 
 
-#ifdef __STDC__
-#define ARGS(x) x
+#ifndef ANSI_ARGS
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
+#define ANSI_ARGS(a) a
 #else
-#define ARGS(x) ()
+#define ANSI_ARGS(a) ()
+#endif
 #endif
 
-typedef int drawStateFn ARGS(( void *, int idx, int type, int proc,
+
+typedef int drawStateFn ANSI_ARGS(( void *, int idx, int type, int proc,
 			       double startTime, double endTime,
 			       int parent, int firstChild, int overlapLevel ));
 
@@ -127,73 +130,73 @@ typedef struct statesVisible_ {
 
 
   /* Create the state record */
-stateData *State_Create ARGS(());
+stateData *State_Create ANSI_ARGS((void));
 
   /* Prepare to recieve state instances */
-int State_DataInit ARGS(( stateData *, int np ));
+int State_DataInit ANSI_ARGS(( stateData *, int np ));
 
   /* Call any functions that have asked for state information,
      particularly for drawing. */
-int State_Draw ARGS(( stateData *, int idx ));
+int State_Draw ANSI_ARGS(( stateData *, int idx ));
 
   /* Add a function to the list that want to be called at each state */
-void *State_AddDraw ARGS(( stateData *, drawStateFn *, void *data ));
+void *State_AddDraw ANSI_ARGS(( stateData *, drawStateFn *, void *data ));
 
   /* Remove function from the list */
-int State_RmDraw ARGS(( stateData *, void *token ));
+int State_RmDraw ANSI_ARGS(( stateData *, void *token ));
 
   /* Return the # of state definitions */
-int State_Ndefs ARGS(( stateData * ));
+int State_Ndefs ANSI_ARGS(( stateData * ));
 
   /* Add state definition, return type num */
-int State_AddDef ARGS(( stateData *, char *color,
+int State_AddDef ANSI_ARGS(( stateData *, char *color,
 		        char *bitmap, char *name ));
 
   /* Retrieve a state definition */
-int State_GetDef ARGS(( stateData *, int n, char **name, char **color,
+int State_GetDef ANSI_ARGS(( stateData *, int n, char **name, char **color,
 		        char **bitmap ));
 
   /* Change a state definition */
-int State_SetDef ARGS(( stateData *, int n, char *name, char *color,
+int State_SetDef ANSI_ARGS(( stateData *, int n, char *name, char *color,
 		        char *bitmap ));
 
   /* mark the start of a state */
-int State_Start ARGS(( stateData *, int stateType, int proc,
+int State_Start ANSI_ARGS(( stateData *, int stateType, int proc,
 		       double time ));
 
   /* mark the end of a state */
-int State_End ARGS(( stateData *, int stateType, int proc,
+int State_End ANSI_ARGS(( stateData *, int stateType, int proc,
 		     double time ));
 
   /* return the number of state instances logged */
-int State_N ARGS(( stateData * ));
+int State_N ANSI_ARGS(( stateData * ));
 
 /* return the # of instances logged of the given state type. */
-int State_TypeNinst ARGS(( stateData*, int typeno ));
+int State_TypeNinst ANSI_ARGS(( stateData*, int typeno ));
 
   /* Get info on state instance.  If parent is -1, this state had no parent.
      If parent is -2, this state has a parent, but the parent has not
      exited yet.  If nonnegative, parent is the index of the parent's canvas
      ID. */
-int State_Get ARGS(( stateData *, int stateNum, int *type, int *proc,
+int State_Get ANSI_ARGS(( stateData *, int stateNum, int *type, int *proc,
 		     double *startTime, double *endTime,
 		     int *parent, int *firstChild, int *overlapLevel ));
 
   /* finished adding states, create indices */
-int State_DoneAdding ARGS(( stateData * ));
+int State_DoneAdding ANSI_ARGS(( stateData * ));
 
   /* Get two lists of all the states that may overlap a given period of time */
-int State_GetVis ARGS(( stateData *, double time1, double time2,
+int State_GetVis ANSI_ARGS(( stateData *, double time1, double time2,
 		        int **list1, int *n1,
 		        int **list2, int *n2 ));
 
 
   /* free all memory associated with the state data */
-int State_Close ARGS(( stateData *));
+int State_Close ANSI_ARGS(( stateData *));
 
 #if TESTING
-int State_PrintDefs ARGS(( stateData * ));
-int State_PrintAll ARGS(( stateData * ));
+int State_PrintDefs ANSI_ARGS(( stateData * ));
+int State_PrintAll ANSI_ARGS(( stateData * ));
 #endif
 
 #endif

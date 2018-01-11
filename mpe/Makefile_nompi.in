@@ -8,7 +8,10 @@ ARCH        = @ARCH@
 COMM        = @COMM@
 BOPT        = @BOPT@
 MPIR_HOME   = @MPIR_HOME@
-CC          = @CC@
+# We must use mpicc since some defines (like -D_ALL_SOURCE for AIX) are
+# included there and not in the "USER_FLAGS".  We should clean this up
+# at some point....
+CC          = @MPICC@
 CLINKER     = @CLINKER@
 F77         = @F77@
 AR          = @AR@
@@ -20,6 +23,7 @@ MPE_GRAPH   = @MPE_GRAPHICS@
 LIB_PATH    = @LIB_PATH@ @X_LIB@
 # On the meiko, you need to add -lsocket to LIB_LIST
 LIB_LIST    = @LIB_LIST@
+LIB_DIR     = @LIB_DIR@
 
 MPEGRAPHICS_SOURCE = @MPEGRAPHICS_SOURCE@
 MPEGRAPHICS_OBJS   = @MPEGRAPHICS_OBJS@
@@ -29,8 +33,8 @@ MPEGRAPHICS_FOBJS   = @MPEGRAPHICS_FOBJS@
 
 SHELL = /bin/sh
 
-CFLAGS = @CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) $(MPIPROFILE) -DMPI_$(ARCH) \
-	 $(MPE_GRAPH)
+CFLAGS = @USER_CFLAGS@ @MPE_CFLAGS@ @GETNAME_DEFS@ $(OPTFLAGS) $(INCLUDE_DIR) \
+	 $(MPIPROFILE) -DMPI_$(ARCH) $(MPE_GRAPH)
 
 MPE_CSOURCES = timers.c  $(MPEGRAPHICS_SOURCE) mpe_log.c decomp.c \
 	       mpe_seq.c mpehname.c
@@ -48,7 +52,7 @@ MPE_OBJECTS = $(MPE_COBJECTS) $(MPE_WOBJECTS)
 # but this would require that all makes properly handle library dependencies.
 # Since makes that DO are the exception rather than the rule, we don't
 # use this form
-$(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpe_nompi.a: $(MPEGRAPHICS_OBJS) mpehname.o
+$(LIB_DIR)/libmpe_nompi.a: $(MPEGRAPHICS_OBJS) mpehname.o
 	$(AR) $@ $?
 	$(RANLIB) $@
 	-/bin/rm -f $?

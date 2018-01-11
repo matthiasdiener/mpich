@@ -3,12 +3,6 @@
 #include "mpiimpl.h"
 #include "mpifort.h"
 
-#ifndef INT_LT_POINTER
-#define MPIR_ToPointer(a) a
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_op_create_ PMPI_OP_CREATE
@@ -47,11 +41,9 @@ int               *commute;
 MPI_Op            *op;
 int               *__ierr;
 {
-    MPI_Op lop;
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
-    *__ierr = MPI_Op_create(*function,MPIR_FROM_FLOG(*commute),&lop);
+    *__ierr = MPI_Op_create(*function,MPIR_FROM_FLOG(*commute),op);
 #else
-    *__ierr = MPI_Op_create(function,MPIR_FROM_FLOG(*commute),&lop);
+    *__ierr = MPI_Op_create(function,MPIR_FROM_FLOG(*commute),op);
 #endif
-    *(int*)op = MPIR_FromPointer( lop );
 }

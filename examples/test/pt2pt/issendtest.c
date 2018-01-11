@@ -22,6 +22,9 @@
 static int src  = 1;
 static int dest = 0;
 
+/* Prototypes for picky compilers */
+void Generate_Data ANSI_ARGS(( int *, int ));
+
 void Generate_Data(buffer, buff_size)
 int *buffer;
 int buff_size;
@@ -47,6 +50,16 @@ char **argv;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    /* This test depends on a working wtime.  Make a simple check */
+    t0 = MPI_Wtime();
+    if (t0 == 0 && MPI_Wtime() == 0) {
+	fprintf( stderr, 
+		 "MPI_WTIME is returning 0; a working value is needed\n\
+for this test.\n" );
+	Test_Failed(Current_Test);
+	MPI_Abort( MPI_COMM_WORLD, 1 );
+    }
 
     Current_Test = "Issend waits for recv";
     if (rank == src) { 

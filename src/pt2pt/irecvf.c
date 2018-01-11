@@ -45,10 +45,10 @@ extern void MPIR_RmPointer();
 {
 void             *buf;
 int*count;
-MPI_Datatype     datatype;
+MPI_Datatype     *datatype;
 int*source;
 int*tag;
-MPI_Comm         comm;
+MPI_Comm         *comm;
 MPI_Request      *request;
 int *__ierr;
 MPI_Request lrequest;
@@ -61,16 +61,15 @@ if (_numargs() == NUMPARAMS+1) {
         buflen = va_arg(ap, int) /8;          /* This is in bits. */
 }
 count =         va_arg (ap, int *);
-datatype =      va_arg(ap, MPI_Datatype);
+datatype =      va_arg(ap, MPI_Datatype*);
 source =          va_arg(ap, int *);
 tag =           va_arg(ap, int *);
-comm =          va_arg(ap, MPI_Comm);
+comm =          va_arg(ap, MPI_Comm*);
 request =       va_arg(ap, MPI_Request *);
 __ierr =        va_arg(ap, int *);
 
-*__ierr = MPI_Irecv(MPIR_F_PTR(buf),*count,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),*source,*tag,
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),&lrequest);
+*__ierr = MPI_Irecv(MPIR_F_PTR(buf),*count,*datatype,*source,*tag,*comm,
+		    &lrequest);
 *(int*)request = MPIR_FromPointer(lrequest);
 }
 
@@ -78,10 +77,10 @@ __ierr =        va_arg(ap, int *);
 void mpi_irecv_( buf, count, datatype, source, tag, comm, request, __ierr )
 void             *buf;
 int*count;
-MPI_Datatype     datatype;
+MPI_Datatype    * datatype;
 int*source;
 int*tag;
-MPI_Comm         comm;
+MPI_Comm         *comm;
 MPI_Request      *request;
 int *__ierr;
 {
@@ -91,33 +90,30 @@ if (_isfcd(buf)) {
 	temp = _fcdtocp(buf);
 	buf = (void *)temp;
 }
-*__ierr = MPI_Irecv(MPIR_F_PTR(buf),*count,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),*source,*tag,
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),&lrequest);
+*__ierr = MPI_Irecv(MPIR_F_PTR(buf),*count,*datatype,*source,*tag,*comm,
+	&lrequest);
 *(int*)request = MPIR_FromPointer(lrequest);
 }
 
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_irecv_ ANSI_ARGS(( void *, int *, MPI_Datatype, int *, int *, 
-			    MPI_Comm, MPI_Request *, int * ));
+void mpi_irecv_ ANSI_ARGS(( void *, int *, MPI_Datatype *, int *, int *, 
+			    MPI_Comm *, MPI_Request *, int * ));
 
 void mpi_irecv_( buf, count, datatype, source, tag, comm, request, __ierr )
 void             *buf;
-int*count;
-MPI_Datatype     datatype;
-int*source;
-int*tag;
-MPI_Comm         comm;
+int              *count;
+MPI_Datatype     *datatype;
+int              *source;
+int              *tag;
+MPI_Comm         *comm;
 MPI_Request      *request;
 int *__ierr;
 {
     MPI_Request lrequest;
-    *__ierr = MPI_Irecv(MPIR_F_PTR(buf),*count,
-			(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),
-			*source,*tag,
-			(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),&lrequest);
+    *__ierr = MPI_Irecv(MPIR_F_PTR(buf),*count,*datatype,
+			*source,*tag,*comm,&lrequest);
     *(int*)request = MPIR_FromPointer(lrequest);
 }
 #endif

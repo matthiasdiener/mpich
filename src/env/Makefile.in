@@ -30,14 +30,14 @@ FFLAGS = @FFLAGS@ $(OPTFLAGS) @OPTFLAGSF@
 LIBS = ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $(DEVICE_LIB)
 MPI_FOBJECTS = farg.o initfcmn.o initfdte.o
 MPI_COBJECTS = abort.o debugutil.o init.o initutil.o finalize.o initialize.o \
-	errorstring.o initdte.o \
+	errorstring.o fstrutils.o initdte.o \
 	getpname.o errcreate.o errset.o errget.o errfree.o errclass.o \
-	wtime.o wtick.o errmsg.o
+	wtime.o wtick.o errmsg.o int2handle.o handle2int.o
 MPI_FSOURCES = farg.f initfcmn.f initfdte.f
 MPI_CSOURCES = abort.c debugutil.c init.c initutil.c \
-	finalize.c initialize.c errorstring.c initdte.c \
+	finalize.c fstrutils.c initialize.c errorstring.c initdte.c \
 	getpname.c errcreate.c errset.c errget.c errfree.c errclass.c \
-	wtime.c wtick.c errmsg.c
+	wtime.c wtick.c errmsg.c int2handle.c handle2int.c
 MPI_TSOURCES = errclass.c 
 MPI_WSOURCES = abortf.c finalizef.c errclassf.c
 MPI_WOBJECTS = initializef.o abortf.o initf.o finalizef.o errorstringf.o \
@@ -71,8 +71,7 @@ wrappers:
 		-anyname -I pubinc $(MPI_TSOURCES)	
 manpages:
 	../../util/doctext -mpath ../../man/man3 -ext 3 -I pubinc \
-	   -index ../../www.index -jumpfile ../../jumpfile.list \
-	   -indexdir "http:/www.mcs.anl.gov/mpi/www/www3" -heading MPI \
+	   -jumpfile ../../jumpfile.list -heading MPI \
 		-quotefmt ../../util/fortnotes ../../util/errnotes \
 		$(MPI_CSOURCES)
 	../../util/doc2lt $(MPI_CSOURCES) >> ../../rsum.tmp
@@ -81,7 +80,7 @@ wwwpages:
 	../../util/doctext -html -mpath ../../www/www3 -I pubinc \
 	   -index ../../www.index -jumpfile ../../jumpfile.list \
 	   -mapref $(MPIR_HOME)/util/mpis.cit \
-	   -indexdir "http:/www.mcs.anl.gov/mpi/www/www3" -heading MPI \
+	   -indexdir "http://www.mcs.anl.gov/mpi/www/www3" -heading MPI \
 		-quotefmt ../../util/fortnotes ../../util/errnotes \
 		$(MPI_CSOURCES)
 
@@ -106,7 +105,8 @@ initutil.o: initutil.c
 # we have to.  We use the part of CFLAGS that does not include the
 # optimization switches.
 debugutil.o: debugutil.c
-	$(CC) -g @CFLAGS@ $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPIPROFILE) -c $<
+	$(CC) -g @CFLAGS@ $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPIPROFILE) -c \
+		debugutil.c
 
 # GETNAME_DEFS are needed by mpehname.c; these need mpe includes
 mpehname.o: mpehname.c

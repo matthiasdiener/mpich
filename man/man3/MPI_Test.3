@@ -1,4 +1,4 @@
-.TH MPI_Test 3 "4/11/1996" " " "MPI"
+.TH MPI_Test 3 "1/24/1997" " " "MPI"
 .SH NAME
 MPI_Test \-  Tests for the completion of a send or receive 
 .SH SYNOPSIS
@@ -27,6 +27,11 @@ MPI_Status   *status;
 .B status 
 - status object (Status) 
 .PD 1
+
+.SH NOTE ON STATUS FOR SEND OPERATIONS
+For send operations, the only use of status is for MPI_Test_cancelled or
+in the case that there is an error, in which case the MPI_ERROR field of
+status will be set.
 
 .SH NOTES FOR FORTRAN
 All MPI routines in Fortran (except for 

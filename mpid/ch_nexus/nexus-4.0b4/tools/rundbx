@@ -1,0 +1,20 @@
+#!/bin/sh
+# Nexus debugger script for AIX 3.2. To modify
+# for Solaris 2.3, use "-c source $TMP" instead of
+# -c $TMP.
+#
+DBX=/usr/ucb/dbx
+#XTERM=/usr/bin/X11/xterm
+XTERM=/usr/local/X11R5/bin/xterm
+RM="/usr/bin/rm -f"
+TMP=/tmp/nexus.debug.$$
+TITLE="$0:  dbx $NEXUS_DEBUG_CONTEXT"
+trap "$RM $TMP; exit 1" 1 2 15
+export NEXUS_DEBUG_CONTEXT
+export NEXUS_DEBUG_ARGS
+export NEXUS_DEBUG_DISPLAY
+echo "alias go 'run $NEXUS_DEBUG_ARGS' " > $TMP
+$XTERM -title "$TITLE" -display $NEXUS_DEBUG_DISPLAY \
+    -e $DBX -c $TMP \
+    $NEXUS_DEBUG_CONTEXT
+$RM $TMP

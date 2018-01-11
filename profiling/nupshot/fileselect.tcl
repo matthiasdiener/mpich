@@ -108,7 +108,7 @@ proc fileselect {
    label $w.file.eframe.pattern_lbl -anchor w -width 24 -text "Pattern:"
    entry $w.file.eframe.pattern_entry -relief sunken 
    $w.file.eframe.pattern_entry insert 0 \
-	 [GetDefault logfile_name_glob_pattern "*.log *.trf"]
+	 [GetDefault logfile_name_glob_pattern "*.alog *.log *.trf"]
    # $w.file.eframe.pattern_entry insert 0 \
 	 [GetDefault logfile_name_glob_pattern "*.log"]
    

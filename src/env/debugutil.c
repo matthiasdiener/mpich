@@ -1,5 +1,5 @@
 /*
- *  $Id: debugutil.c,v 1.1 1996/07/05 16:03:09 gropp Exp $
+ *  $Id: debugutil.c,v 1.5 1997/04/11 13:44:49 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -67,15 +67,40 @@ MPIR_Comm_list MPIR_All_communicators;
 		     MPIR_debug_state, so that the debugger can see
 		     what is going on.
 
-@*/
+*/
 void MPIR_Breakpoint()
 {
-    /* This routine is only here to have a breakpoint set in it,
-     * it doesn't need any contents itself, but we don't want
-     * it inlined and removed despite that.
-     */
+  /* This routine is only here to have a breakpoint set in it,
+   * it doesn't need any contents itself, but we don't want
+   * it inlined and removed despite that.
+   */
+
+  /* With some compilers and debug formats, (e.g. Digital Unix ("the
+   * operating system formerly known as OSF1"), and AIX), including
+   * the header files is not sufficient to cause the type definitions
+   * to be included in the object file debug information.  To cause
+   * this to happen you also need to instance an entity of that type.
+   * This simplest way to do that (without causing static space to be
+   * allocated) is to instance local variables in a function. Since we
+   * have this function to hand, and it doesn't hurt any of the other
+   * implementations, we just put these in always.
+   *
+   * This also has the useful effect of documenting the 
+   * types which are used by TotalView's MPICH support, and here 
+   * they are.
+   *
+   * Note that picky compilers may complain about "declared and not used"
+   * variables.  Some compilers may provide a #pragma that can
+   * turn off those warnings; others may be quiet if the variables are
+   * declared static.
+   */
+  MPIR_SQUEUE       sq;
+  MPID_QHDR         qh;
+  MPID_QUEUE         q;
+  MPID_QEL         qel;
+  MPIR_SQEL       sqel;
+  MPIR_RHANDLE      rh;
+  MPIR_Comm_list    cl;
+  MPIR_Communicator  c;
+  MPI_Status         s;
 }
-
-
-
-

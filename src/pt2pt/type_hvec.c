@@ -1,5 +1,5 @@
 /*
- *  $Id: type_hvec.c,v 1.20 1996/04/11 20:25:26 gropp Exp $
+ *  $Id: type_hvec.c,v 1.25 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -44,18 +44,20 @@ MPI_Aint     stride;
 MPI_Datatype old_type;
 MPI_Datatype *newtype;
 {
-  MPI_Datatype  dteptr;
+  struct MPIR_DATATYPE  *dteptr;
   int           mpi_errno = MPI_SUCCESS;
+  struct MPIR_DATATYPE *old_dtype_ptr;
+  static char myname[] = "MPI_TYPE_HVECTOR";
 
   /* Check for bad arguments */
-  MPIR_GET_REAL_DATATYPE(old_type)
-  if ( MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,old_type) ||
+  old_dtype_ptr   = MPIR_GET_DTYPE_PTR(old_type);
+  MPIR_TEST_DTYPE(old_type,old_dtype_ptr,MPIR_COMM_WORLD,myname);
+  if ( 
    ( (count   <  0)                  && (mpi_errno = MPI_ERR_COUNT) ) ||
    ( (blocklen <  0)                 && (mpi_errno = MPI_ERR_ARG) )   ||
-   ( (old_type->dte_type == MPIR_UB) && (mpi_errno = MPI_ERR_TYPE) )  ||
-   ( (old_type->dte_type == MPIR_LB) && (mpi_errno = MPI_ERR_TYPE) ) )
-	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno,
-					  "Error in MPI_TYPE_HVECTOR" );
+   ( (old_dtype_ptr->dte_type == MPIR_UB) && (mpi_errno = MPI_ERR_TYPE) )  ||
+   ( (old_dtype_ptr->dte_type == MPIR_LB) && (mpi_errno = MPI_ERR_TYPE) ) )
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 
   /* Are we making a null datatype? */
   if (count*blocklen == 0) {
@@ -63,14 +65,15 @@ MPI_Datatype *newtype;
       }
 	
   /* Handle the case where blocklen & stride make a contiguous type */
-  if ( ((blocklen * old_type->extent) == stride) ||
+  if ( ((blocklen * old_dtype_ptr->extent) == stride) ||
 	   (count                         == 1) )
 	return MPI_Type_contiguous ( count * blocklen, old_type, newtype );
 
   /* Create and fill in the datatype */
-  MPIR_ALLOC(dteptr,(MPI_Datatype) MPIR_SBalloc( MPIR_dtes ),MPI_COMM_WORLD, 
+  MPIR_ALLOC(dteptr,(struct MPIR_DATATYPE *) MPIR_SBalloc( MPIR_dtes ),MPIR_COMM_WORLD, 
 	     MPI_ERR_EXHAUSTED, "Out of space in MPI_TYPE_HVECTOR" );
-  *newtype = dteptr;
+  *newtype = (MPI_Datatype) MPIR_FromPointer( dteptr );
+  dteptr->self = *newtype;
   MPIR_SET_COOKIE(dteptr,MPIR_DATATYPE_COOKIE)
   dteptr->dte_type    = MPIR_HVECTOR;
   dteptr->committed   = 0;
@@ -78,37 +81,61 @@ MPI_Datatype *newtype;
   dteptr->permanent   = 0;
   dteptr->is_contig   = 0;
   dteptr->ref_count   = 1;
-  dteptr->align       = old_type->align;
-  dteptr->elements    = count * blocklen * old_type->elements;
+  dteptr->align       = old_dtype_ptr->align;
+  dteptr->elements    = count * blocklen * old_dtype_ptr->elements;
   dteptr->stride      = stride;
   dteptr->blocklen    = blocklen;
-  dteptr->old_type    = (MPI_Datatype)MPIR_Type_dup (old_type);
+  dteptr->old_type    = MPIR_Type_dup (old_dtype_ptr);
   dteptr->count       = count;
-  dteptr->has_ub      = old_type->has_ub;
-  dteptr->has_lb      = old_type->has_lb;
+  dteptr->has_ub      = old_dtype_ptr->has_ub;
+  dteptr->has_lb      = old_dtype_ptr->has_lb;
+  dteptr->self        = *newtype;
+
+  if (old_dtype_ptr->has_ub) {
+      if (stride > 0) {
+	  dteptr->ub = old_dtype_ptr->ub + 
+	      ((count-1) * stride) + ((blocklen - 1)* old_dtype_ptr->extent);
+      }
+      else {
+	  dteptr->ub = old_dtype_ptr->ub;
+      }
+  }
+
+  if (old_dtype_ptr->has_lb) {
+      if (stride < 0) {
+	  dteptr->lb = old_dtype_ptr->lb + 
+	      ((count-1) * stride) + ((blocklen-1) * old_dtype_ptr->extent);
+      }
+      else {
+	  dteptr->lb = old_dtype_ptr->lb;
+      }
+  }
+  
 
   /* Set the upper/lower bounds and the extent and size */
-  dteptr->extent      = ((count-1) * stride) + (blocklen * old_type->extent);
+  dteptr->extent      = ((count-1) * stride) + (blocklen * old_dtype_ptr->extent);
   if (dteptr->extent < 0) {
-	dteptr->ub     = old_type->lb;
-	dteptr->lb     = dteptr->ub + dteptr->extent;
-	dteptr->real_ub= old_type->real_lb;
+      if (! old_dtype_ptr->has_ub)
+	  dteptr->ub     = old_dtype_ptr->lb;
+      if (! old_dtype_ptr->has_lb) 
+	  dteptr->lb     = dteptr->ub + dteptr->extent; 
+	dteptr->real_ub= old_dtype_ptr->real_lb;
 	dteptr->real_lb= dteptr->real_ub + 
 	    ((count-1) * stride) + 
-		(blocklen * (old_type->real_ub - old_type->real_lb));
+		(blocklen * (old_dtype_ptr->real_ub - old_dtype_ptr->real_lb));
 	dteptr->extent = -dteptr->extent;
   }
   else {
-	dteptr->lb     = old_type->lb;
-	if (dteptr->has_ub) 
-	    dteptr->ub = old_type->ub;
-	else
-	    dteptr->ub = dteptr->lb + dteptr->extent;
-	dteptr->real_lb = old_type->real_lb;
+      if (! old_dtype_ptr->has_lb) 
+	  dteptr->lb     = old_dtype_ptr->lb;
+      if (! old_dtype_ptr->has_ub)
+	  dteptr->ub = dteptr->lb + dteptr->extent;
+	dteptr->real_lb = old_dtype_ptr->real_lb;
 	dteptr->real_ub = dteptr->real_lb + ((count-1) * stride) + 
-		(blocklen * (old_type->real_ub - old_type->real_lb));  
+		(blocklen * (old_dtype_ptr->real_ub - old_dtype_ptr->real_lb));  
   }
-  dteptr->size        = count * blocklen * dteptr->old_type->size;
+  dteptr->extent  = dteptr->ub - dteptr->lb;
+  dteptr->size    = count * blocklen * dteptr->old_type->size;
   
   return (mpi_errno);
 }

@@ -98,6 +98,8 @@ int net_send ANSI_ARGS(( int, void *, int, int ))	;
 P4VOID net_setup_anon_listener ANSI_ARGS((int, int *, int *))	;
 P4VOID net_setup_listener ANSI_ARGS((int, int, int *))	;
 /* P4VOID net_setup_named_listener ANSI_ARGS(( ))	; */
+P4VOID net_set_sockbuf_size ANSI_ARGS(( int, int ));
+void get_sock_info_by_hostname ANSI_ARGS(( char *, struct sockaddr_in ** ));
 int num_in_mon_queue ANSI_ARGS((p4_monitor_t *,int));
 P4VOID alloc_global ANSI_ARGS((void));
 struct p4_msg *alloc_p4_msg ANSI_ARGS((int));
@@ -134,6 +136,7 @@ P4VOID waitspin ANSI_ARGS((int));
 #endif
 P4BOOL sock_msg_avail_on_fd ANSI_ARGS((int));
 int socket_send ANSI_ARGS((int,int,int,char *,int,int,int));
+int socket_close_conn ANSI_ARGS((int));
 int start_slave ANSI_ARGS((char *, char *, char *, int, char *, 
 			   char *(*)(char *, char *)));
 int subtree_broadcast_p4 ANSI_ARGS((int, int, void *,int,int));
@@ -149,6 +152,7 @@ P4VOID zap_p4_processes ANSI_ARGS((void));
 struct p4_msg *MD_tcmp_recv ANSI_ARGS((void));
 int MD_tcmp_send ANSI_ARGS((int, int, int, char *, int, int, int));
 struct hostent *gethostbyname_p4 ANSI_ARGS(( char *));
+char *getpw_ss ANSI_ARGS((char *, char * ));
 
 #ifdef SYSV_IPC
 int init_sysv_semset ANSI_ARGS((int));
@@ -172,6 +176,7 @@ extern int fflush(FILE *);
 extern int fclose(FILE *);
 extern int fscanf(FILE *,char *,...);
 extern int sscanf(char *, char *, ... );
+extern int pclose (FILE *);
 
 /* String.h */
 extern void bzero( void *, size_t );
@@ -184,12 +189,38 @@ extern void perror(const char *);
 extern int  gethostname( char *, int );
 extern int  getdtablesize(void);
 
+/* time.h */
+extern time_t   time (time_t *);
+
+/* signal.h */
+extern int sigblock (int);
+extern int sigsetmask (int);
+
 /* sys/socket.h */
 extern int socket( int, int, int );
 extern int bind( int, const struct sockaddr *, int);
 extern int listen( int, int );
 extern int accept( int, struct sockaddr *, int *);
 extern int connect( int, const struct sockaddr *, int);
+extern int socketpair( int, int, int, int[2] );
+extern int setsockopt( int, int, int, const void *, int );
+extern int getsockopt(int, int, int, void *, int *);
+extern int getsockname(int, struct sockaddr *, int *);
+extern int getpeername(int, struct sockaddr *, int *);
+extern int recv(int, void *, int, int);
+extern int shutdown(int, int);
+
+/* netinet/in.h or arpa/inet.h */
+extern char *inet_ntoa(struct in_addr);
+
+/* sys/select.h */
+int select (int, fd_set *, fd_set *, fd_set *, struct timeval *);
+
+/* sys/time.h */
+extern int setitimer (int, struct itimerval *, struct itimerval *);
+
+/* unistd.h */
+extern char *getlogin(void);
 
 #ifdef FOO
 /* Unistd.h */

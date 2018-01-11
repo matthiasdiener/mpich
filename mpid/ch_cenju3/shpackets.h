@@ -232,7 +232,7 @@ fprintf( MPID_TRACE_FILE,"[%d] %20s on %4d (type %d) at %s:%d\n", \
 */
 
 #define MPID_NUM_PKTS 4
-#define MPID_BUF_EAGER_MAX_DATA_SIZE 4500
+#define MPID_BUF_EAGER_MAX_DATA_SIZE 16384
 
 typedef struct {
     char         *buf;
@@ -242,7 +242,7 @@ typedef struct {
 } MPID_DEST_READY;
 
 typedef struct {
-MPID_PKT_T packets [MPID_NUM_PKTS]
+MPID_PKT_T packets [MPID_NUM_PKTS];
 } MPID_POOL_T;
 
 /*

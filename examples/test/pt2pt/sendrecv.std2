@@ -243,13 +243,13 @@ Message of count 9000, type 10 received correctly.
 Message of count 9500, type 10 received correctly.
 There should be eight error messages about invalid communicator
 count argument, datatype argument, tag, rank, buffer send and buffer recv
-0 - Error in MPI_SEND : Invalid communicator
-0 - Error in MPI_SEND : Invalid count argument
-0 - Error in MPI_SEND : Invalid datatype argument
-0 - Error in MPI_SEND : Invalid message tag -2
-0 - Error in MPI_SEND : Invalid message tag -1
-0 - Error in MPI_SEND : Invalid rank 300
-0 - Error in MPI_SEND : Invalid buffer pointer
-0 - Error in MPI_RECV : Invalid buffer pointer
+0 - MPI_SEND : Invalid communicator: Null communicator
+0 - MPI_SEND : Invalid count argument
+0 - MPI_SEND : Invalid datatype argument: Datatype is MPI_TYPE_NULL
+0 - MPI_SEND : Invalid message tag -2
+0 - MPI_SEND : Invalid message tag -1
+0 - MPI_SEND : Invalid rank 300
+0 - MPI_SEND : Invalid buffer pointer
+0 - MPI_RECV : Invalid buffer pointer
 All processes completed test
 **** Testing MPI_Send and MPI_Recv ****

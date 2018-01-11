@@ -2,12 +2,6 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_errhandler_create_ PMPI_ERRHANDLER_CREATE
@@ -46,11 +40,9 @@ MPI_Handler_function *function;
 MPI_Errhandler       *errhandler;
 int *__ierr;
 {
-    MPI_Errhandler new;
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
-    *__ierr = MPI_Errhandler_create( *function, &new );
+    *__ierr = MPI_Errhandler_create( *function, errhandler );
 #else
-    *__ierr = MPI_Errhandler_create( function, &new );
+    *__ierr = MPI_Errhandler_create( function, errhandler );
 #endif
-    *(int *)errhandler = MPIR_FromPointer(new);
 }

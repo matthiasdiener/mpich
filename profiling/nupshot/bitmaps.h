@@ -14,15 +14,17 @@
 #include "tcl.h"
 
 
-#ifdef __STDC__
-#define ARGS(x) x
+#ifndef ANSI_ARGS
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
+#define ANSI_ARGS(a) a
 #else
-#define ARGS(x) ()
+#define ANSI_ARGS(a) ()
+#endif
 #endif
 
-int Bitmap_Init ARGS(( Tcl_Interp *interp ));
-int Bitmap_Reset();
-char *Bitmap_Get();
+int Bitmap_Init ANSI_ARGS(( Tcl_Interp *interp ));
+int Bitmap_Reset ANSI_ARGS(( void ));
+char *Bitmap_Get ANSI_ARGS(( void ));
 
 
 #endif

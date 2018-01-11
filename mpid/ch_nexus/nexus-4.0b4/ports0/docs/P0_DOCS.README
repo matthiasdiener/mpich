@@ -1,0 +1,5 @@
+This is a subdirectory that contains the following:
+
+handbill/    a short description of Ports0, also appears to be a minutes
+	     from some time ago
+spec/        the spec for the Ports0 runtime system.

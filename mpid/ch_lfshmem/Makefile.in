@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.4 1996/07/17 18:07:23 gropp Exp $
+#  $Id: Makefile.in,v 1.6 1997/04/16 19:53:33 gropp Exp $
 #
 #  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -63,7 +63,7 @@ default: $(LIBNAME)
 libdev: $(LIBDEV)
 
 $(MPI_OBJECTS): ../ch2/mpid.h mpiddev.h shdef.h
-p2p.o: p2psemop.c p2p.c 
+p2p.o: p2psemop.c p2p.c p2pprocs.c
 
 # default_all is the same as default, but without the RANLIB.  This
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
@@ -87,8 +87,8 @@ setlinks:
 	if [ ! -s $*.c ] ; then ln -s ../ch2/$*.c $*.c ; fi
 	$(CC) $(CFLAGS) $(BASEOPT) -c $*.c $(MPI_PROFILE)
 
-.o.s:
-	$(CC) $(CFLAGS) $(BASEOPT) -c -S $*.c $(MPI_PROFILE)
+#.c.s:
+#	$(CC) $(CFLAGS) $(BASEOPT) -c -S $*.c $(MPI_PROFILE)
 
 .s.o:
 	$(ASM) -o $*.o $*.s

@@ -2,9 +2,16 @@
 /*****************************************************************************/
 /* Datatypes.  The contiguous, predefined datatypes are handled separately   */
 /* to demonstrate that the added functionality has low cost                  */
+/* In order to conform to MPI 1.1, MPI_Datatype is an int, and is mapped to  */
+/* a struct MPIR_DATATYPE * with MPIR_ToPointer.  As an (unimplemented)      */
+/* optimziation, the lengths of the predefined datatypes could be held either*/
+/* in the ints themselves (e.g., MPI_INT == sizeof(int)) or in an array      */
+/* indexed by the values (e.g., datatype_size[datatype] for datatype< 20     */
 /*****************************************************************************/
 
-/* Note that MPIR_VECTOR and MPIR_INDEXED are not used */
+/* Note that MPIR_VECTOR and MPIR_INDEXED are not used - but they'll be needed
+   in MPI 2.
+ */
 typedef enum {
     MPIR_INT, MPIR_FLOAT, MPIR_DOUBLE, MPIR_COMPLEX, MPIR_LONG, MPIR_SHORT,
     MPIR_CHAR, MPIR_BYTE, MPIR_UCHAR, MPIR_USHORT, MPIR_ULONG, MPIR_UINT,
@@ -37,20 +44,34 @@ struct MPIR_DATATYPE {
     MPI_Aint      *indices; /* array of indices, for (H)INDEXED, STRUCT */
     int           blocklen; /* blocklen, for VECTOR and HVECTOR types */
     int         *blocklens; /* array of blocklens for (H)INDEXED, STRUCT */
+    struct MPIR_DATATYPE *old_type,
+                **old_types,
+                *flattened;
+    MPI_Datatype self;      /* Index for this structure */
+#ifdef FOO
     MPI_Datatype old_type;  /* type this type is built of, if 1 */
     MPI_Datatype *old_types;/* array of types, for STRUCT */
     MPI_Datatype flattened; /* Flattened version, if available */
+#endif
 };
 
-/* Holds translation from integer to MPI_Datatype */
-#define MPIR_MAX_DATATYPE_ARRAY 256
-/* defined in src/env/initutil.c */
-/* MPIR_datatypes[0] is always 0, so null->null requires no special test */
-extern MPI_Datatype MPIR_datatypes[MPIR_MAX_DATATYPE_ARRAY];
+extern void *MPIR_ToPointer ANSI_ARGS(( int ));
 
-/* Used to allocate elements */
+#define MPIR_GET_DTYPE_PTR(idx) \
+    (struct MPIR_DATATYPE *)MPIR_ToPointer( idx )
+#define MPIR_GET_DTYPE_SIZE(idx,ptr) \
+   ((ptr)->is_contig) ? (ptr)->size : 0
+#define MPIR_TEST_DTYPE(idx,ptr,comm,routine_name) {\
+   if (!(ptr)) {RETURNV(MPIR_ERROR(comm,MPI_ERR_TYPE_NULL,routine_name));}\
+   if ((ptr)->cookie != MPIR_DATATYPE_COOKIE){\
+    MPIR_ERROR_PUSH_ARG(&(ptr)->cookie);\
+   RETURNV(MPIR_ERROR(comm,MPI_ERR_TYPE_CORRUPT,routine_name));}}
+
+ /* Used to allocate elements */
 extern void *MPIR_dtes;   /* sbcnst datatype elements */
 
+#ifdef NEW_POINTERS
+#else
 /* Translate between index and datatype pointer */
 #define MPIR_GET_REAL_DATATYPE(a) \
   {if(MPIR_TEST_PREDEF_DATATYPE(a)) a = MPIR_datatypes[(MPI_Aint)(a)];}
@@ -74,4 +95,6 @@ extern void *MPIR_dtes;   /* sbcnst datatype elements */
    else {MPIR_GET_REAL_DATATYPE(a);\
    if ((a)->is_contig) contig_size = (a)->size; else contig_size = 0;}
 #endif
+
+#endif /* new pointers */
 #endif

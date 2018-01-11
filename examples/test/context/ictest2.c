@@ -3,15 +3,23 @@
    at the "leaders"; other members of the local communicator are NOT
    in the remote communicator.  This is done by creating two communicators:
    0, + odd rank and even rank.  Only 0 is in in both communicators.
+
+   This test originally tested the part of the standard that allowed the 
+   leader to be in both groups.  This has been disallowed.  This test was
+   recently changed to operate correctly under the new definition.
+
+   Note that it generates unordered printf output, and is not suitable for
+   automated testing.
  */
 #include "mpi.h"
 #include <stdio.h>
+#include "test.h"
 
 int main( argc, argv )
      int argc;
      char **argv;
 {
-  int size, rank, key, lrank, rsize, result;
+  int size, rank, key, lrank, rsize, result, remLeader;
   MPI_Comm myComm;
   MPI_Comm myFirstComm;
   MPI_Comm mySecondComm;
@@ -37,27 +45,33 @@ int main( argc, argv )
 	MPI_Comm_free( &evenComm );
 	}
 
-    /* Create the odd + 0 communicator */
-    if (rank == 0) key = 1;
-    MPI_Comm_split( MPI_COMM_WORLD, key, rank, &oddComm );
+    /* Create the odd communicator */
+    MPI_Comm_split ( MPI_COMM_WORLD, key, rank, &oddComm );
     if (key == 0) {
 	/* Even rank communicator discarded */
 	MPI_Comm_free( &oddComm );
 	}
+
+    /* Create the odd + 0 communicator */
+    if (rank == 0) key = 1;
+    MPI_Comm_split( MPI_COMM_WORLD, key, rank, &remComm );
+    if (key == 0) {
+	/* Even rank communicator discarded */
+	MPI_Comm_free( &remComm );
+	}
     else {
-	MPI_Comm_rank( oddComm, &lrank );
-	printf( "[%d] lrank in oddComm is %d (color = %d, key=%d)\n", 
-	        rank, lrank, key, rank );
+	MPI_Comm_rank( remComm, &lrank );
+	printf( "[%d] lrank in remComm is %d (color = %d, key=%d)\n", 
+	        rank, lrank, rank, key );
+	remLeader = (lrank == 0) ? 1 : 0;
 	}
     /* Now, choose the local and remote communicators */
     if (rank % 2) {
 	/* Odd */
 	myComm  = oddComm;
-	remComm = evenComm;
 	}
     else {
 	myComm  = evenComm;
-	remComm = oddComm;
 	}
 
     /* Check that the leader is who we think he is */
@@ -78,7 +92,9 @@ int main( argc, argv )
 	}
     fflush(stdout);
     /* Perform the intercomm create and test it */
-    MPI_Intercomm_create (myComm, 0, remComm, 0, 1, &myFirstComm );
+    /* local leader is first process in local_comm, i.e., has rank 0 */
+    /* remote leader is process 0 (if odd) or 1 (if even) in remComm */
+    MPI_Intercomm_create (myComm, 0, remComm, remLeader, 1, &myFirstComm );
 /* temp */
     printf( "[%d] through intercom create\n", rank );
     fflush( stdout );
@@ -109,6 +125,7 @@ int main( argc, argv )
     /* Send key * size + rank in communicator */
     if (lrank < rsize) {
       int myval, hisval;
+      key     = rank % 2;
       myval   = key * size + lrank;
       hisval  = -1;
       printf( "[%d] exchanging %d with %d in intercomm\n", 
@@ -140,6 +157,7 @@ int main( argc, argv )
 
     /* Free communicators */
     MPI_Comm_free( &myComm );
+    MPI_Comm_free( &remComm );
     MPI_Comm_free( &myFirstComm );
     MPI_Comm_free( &mySecondComm );
     MPI_Comm_free( &merge1 );
@@ -161,6 +179,7 @@ int main( argc, argv )
   /* Finalize and end! */
 
   MPI_Finalize();
+  return 0;
 }
 
 

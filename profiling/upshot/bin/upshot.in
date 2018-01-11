@@ -14,7 +14,8 @@ set defaultFile ~/.upshot.defaults
 # Get the version.  If you KNOW the version, you can just do, e.g., 
 #    set tk_version 4.1
 # Remove the patch info from the patchLevel
-set tk_version [ string range $tk_patchLevel 0 2 ]
+if { $tk_version == ""} {
+    set tk_version [ string range $tk_patchLevel 0 2 ] }
 #set err [ catch { expr { #TK_VERSION# + 0 } } tk_version ]
 #if { $err != 0 } { set tk_version 3.6 } 
 
@@ -3508,7 +3509,12 @@ proc fileselect {
 
     set err [ catch { GetDefault logfiledirectory "." } curdir ]
     #puts stdout "directory is $curdir"
-    if { $err == 0 } { cd $curdir }
+    if { $err == 0 } { 
+        set sts [ catch { cd $curdir } ]
+	if { $sts != 0 } then {
+	    $errorHandler "Directory $curdir does not exist"
+	}
+    }
 
     label $w.file.eframe.pattern_lbl -anchor w -width 24 -text "Pattern:"
     entry $w.file.eframe.pattern_entry -relief sunken 

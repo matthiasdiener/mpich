@@ -1,5 +1,5 @@
 /*
- *  $Id: chdebug.c,v 1.5 1996/07/23 20:20:44 gropp Exp $
+ *  $Id: chdebug.c,v 1.6 1996/11/24 20:21:44 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -10,7 +10,13 @@
 #include "mpiddev.h"
 #include <string.h>
 
-FILE *MPID_DEBUG_FILE = stderr;
+/* 
+   Unfortunately, stderr is not a guarenteed to be a compile-time
+   constant in ANSI C, so we can't initialize MPID_DEBUG_FILE with
+   stderr.  Instead, we set it to null, and check for null.  Note
+   that stdout is used in chinit.c 
+ */
+FILE *MPID_DEBUG_FILE = 0;
 FILE *MPID_TRACE_FILE = 0;
 int MPID_DebugFlag = 0;
 

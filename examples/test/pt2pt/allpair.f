@@ -73,9 +73,7 @@ c
 
          call msg_check( recv_buf, prev, tag, count, status, TEST_SIZE,
      .                   'send and recv' )
-
       else
-
          call MPI_Recv(recv_buf, TEST_SIZE, MPI_REAL,
      .                 MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD,
      .                 status, ierr)

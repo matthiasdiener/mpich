@@ -1,5 +1,5 @@
 /*
- *  $Id: graphcreate.c,v 1.3 1996/04/12 15:54:07 gropp Exp $
+ *  $Id: graphcreate.c,v 1.5 1997/01/07 01:48:01 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -54,32 +54,35 @@ MPI_Comm *comm_graph;
   int mpi_errno = MPI_SUCCESS;
   int flag, size;
   MPIR_TOPOLOGY *topo;
+  struct MPIR_COMMUNICATOR *comm_old_ptr;
+  static char myname[] = "MPI_GRAPH_CREATE";
+
+  TR_PUSH(myname);
+  comm_old_ptr = MPIR_GET_COMM_PTR(comm_old);
+  MPIR_TEST_MPI_COMM(comm_old,comm_old_ptr,comm_old_ptr,myname);
 
   /* Check validity of arguments */
-  if (MPIR_TEST_COMM(comm_old,comm_old) || 
-      MPIR_TEST_ARG(comm_graph) || MPIR_TEST_ARG(index) || 
+  if (MPIR_TEST_ARG(comm_graph) || MPIR_TEST_ARG(index) || 
       MPIR_TEST_ARG(edges) || 
       ((nnodes     <  1)             && (mpi_errno = MPI_ERR_ARG))   )
-    return MPIR_ERROR( comm_old, mpi_errno, "Error in MPI_GRAPH_CREATE" );
+    return MPIR_ERROR( comm_old_ptr, mpi_errno, myname );
 
   /* Check for Intra-communicator */
   MPI_Comm_test_inter ( comm_old, &flag );
   if (flag)
-    return MPIR_ERROR(comm_old, MPI_ERR_COMM,
-                      "Inter-communicator invalid in MPI_GRAPH_CREATE");
+    return MPIR_ERROR(comm_old_ptr, MPI_ERR_COMM_INTER, myname );
   
   /* Determine number of ranks in topology */
   num_ranks = nnodes;
   if ( num_ranks < 1 ) {
     (*comm_graph)  = MPI_COMM_NULL;
-    return MPIR_ERROR( comm_old, MPI_ERR_TOPOLOGY, 
-		       "Error in MPI_GRAPH_CREATE" );
+    return MPIR_ERROR( comm_old_ptr, MPI_ERR_TOPOLOGY, myname );
   }
 
   /* Is the old communicator big enough? */
   MPI_Comm_size (comm_old, &size);
   if (num_ranks > size) 
-	return MPIR_ERROR(comm_old, MPI_ERR_ARG, 
+	return MPIR_ERROR(comm_old_ptr, MPI_ERR_ARG, 
 			         "Topology size too big in MPI_GRAPH_CREATE");
 
   /* Make new communicator */
@@ -93,22 +96,34 @@ MPI_Comm *comm_graph;
   /* Store topology information in new communicator */
   if ( (*comm_graph) != MPI_COMM_NULL ) {
       MPIR_ALLOC(topo,(MPIR_TOPOLOGY *) MPIR_SBalloc ( MPIR_topo_els ),
-		 comm_old,MPI_ERR_EXHAUSTED,"Error in MPI_GRAPH_CREATE");
+		 comm_old_ptr,MPI_ERR_EXHAUSTED,myname );
       MPIR_SET_COOKIE(&topo->graph,MPIR_GRAPH_TOPOL_COOKIE)
 	  topo->graph.type       = MPI_GRAPH;
       topo->graph.nnodes     = nnodes;
       topo->graph.nedges     = index[nnodes-1];
       MPIR_ALLOC(topo->graph.index,
 		 (int *)MALLOC(sizeof(int)*(nnodes+index[nnodes-1])),
-		 comm_old,MPI_ERR_EXHAUSTED,"Error in MPI_GRAPH_CREATE");
+		 comm_old_ptr,MPI_ERR_EXHAUSTED,myname);
       topo->graph.edges      = topo->graph.index + nnodes;
-      for ( i=0; i<nnodes; i++ )
+      /* Indices must be non decreasing and nonnegative */
+      for ( i=0; i<nnodes; i++ ) {
+	  if (index[i] < 0) {
+	      return MPIR_ERROR( comm_old_ptr, MPI_ERR_ARG, myname );
+	  }
 	  topo->graph.index[i] = index[i];
-      for ( i=0; i<index[nnodes-1]; i++ )
-	  topo->graph.edges[i] = edges[i];
+      }
+      /* The edges list is basically the neighbors; check that
+	 they are in range from 0 to num_ranks - 1 */
+      for ( i=0; i<index[nnodes-1]; i++ ) {
+	  if (edges[i] < 0 || edges[i] >= num_ranks) {
+	      return MPIR_ERROR( comm_old_ptr, MPI_ERR_ARG, myname );
+	  }
+	  topo->graph.edges[i] = edges[i]; 
+      }
 
       /* cache topology information */
       MPI_Attr_put ( (*comm_graph), MPIR_TOPOLOGY_KEYVAL, (void *)topo );
   }
+  TR_POP;
   return (mpi_errno);
 }

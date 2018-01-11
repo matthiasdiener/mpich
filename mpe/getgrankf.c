@@ -3,16 +3,6 @@
 #include <stdio.h>
 #include "mpe.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpe_comm_global_rank_ PMPE_COMM_GLOBAL_RANK
@@ -33,11 +23,11 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
+void mpe_comm_global_rank_ ANSI_ARGS(( MPI_Comm *, int *, int *, int * ));
  void  mpe_comm_global_rank_( comm, rank, grank, __ierr )
-MPI_Comm comm;
+MPI_Comm *comm;
 int*rank, *grank;
 int *__ierr;
 {
-MPE_Comm_global_rank(
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),*rank,grank);
+    MPE_Comm_global_rank( *comm,*rank,grank);
 }

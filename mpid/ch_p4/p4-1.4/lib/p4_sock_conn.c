@@ -6,18 +6,35 @@
 #ifndef TIMEOUT_VALUE 
 #define TIMEOUT_VALUE 300
 #endif
+int p4_has_timedout ANSI_ARGS(( int ));
+int p4_establish_all_conns ANSI_ARGS(( void ));
+
 int p4_has_timedout( flag )
 int flag;
 {
-static time_t start_time;
-time_t curtime;
-curtime = time((time_t)0);
-if (flag) {
-    if (curtime - start_time > TIMEOUT_VALUE) return 1;
+    static time_t start_time;
+    time_t curtime;
+    curtime = time((time_t)0);
+    if (flag) {
+	if (curtime - start_time > TIMEOUT_VALUE) return 1;
     }
-else
-    start_time = curtime;
-return 0;
+    else
+	start_time = curtime;
+    return 0;
+}
+
+int p4_establish_all_conns()
+{
+    int myid = p4_get_my_id();
+    int i;
+
+    for (i = 0; i < p4_global->num_in_proctable; i++) {
+	if (!in_same_cluster(i,myid)) {
+	    p4_dprintfl(20,"establishing early connection to %d\n",i);
+	    establish_connection(i);
+	}
+    }
+    return 0;
 }
 
 int establish_connection(dest_id)
@@ -40,7 +57,7 @@ int dest_id;
 		}
 	    }
     }
-    return (TRUE);
+    return (P4_TRUE);
 }
 
 
@@ -53,7 +70,6 @@ int dest_id;
     struct slave_listener_msg msg;
     int connection_fd;
     int dest_listener_con_fd;
-    int connected_to_dest_listener;
     int my_listener, dest_listener;
     int new_listener_port, new_listener_fd;
     int oldmask;
@@ -116,7 +132,7 @@ int dest_id;
     /* Send it to dest_id's listener */
     p4_dprintfl(70, "request_connection: sending CONNECTION_REQUEST to %d on fd=%d size=%d\n",
 		dest_id,dest_listener_con_fd,sizeof(msg));
-    net_send(dest_listener_con_fd, &msg, sizeof(msg), FALSE);
+    net_send(dest_listener_con_fd, &msg, sizeof(msg), P4_FALSE);
     p4_dprintfl(70, "request_connection: sent CONNECTION_REQUEST to dest_listener\n");
 
     if (my_id < dest_id)
@@ -233,7 +249,7 @@ int sig;
     msg.type = p4_i_to_n(IGNORE_THIS);
     p4_dprintfl(70, "handle_connection_interrupt: sending IGNORE_THIS to my_listener\n");
     /* send msg to listener indicating I made the connection */
-    net_send(listener_fd, &msg, sizeof(msg), FALSE);
+    net_send(listener_fd, &msg, sizeof(msg), P4_FALSE);
     p4_dprintfl(70, "handle_connection_interrupt: exiting handling intr from %d\n",from);
     
     /* If the return from this is SIG_DFL, then there is a problem ... */

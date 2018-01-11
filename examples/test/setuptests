@@ -35,7 +35,7 @@ for file in Makefile.in */Makefile.in */runtests.in ; do
     fi
     fname=`basename $file .in`
     echo creating $dir/$fname
-    rm -f $fname
+    rm -f $dir/$fname
     sed -e "
 s%@MAKE@%$MAKE%g
 s%@HAS_FORTRAN@%$HAS_FORTRAN%g

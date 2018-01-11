@@ -171,6 +171,12 @@ if [ $dolong = 1 ] ; then
 	    -reps 25 -tgoal 1.0 -autoreps -sample_reps 5
     perfiles="$perfiles long.gcm long.gpl"
     PLOTFILE="$PLOTFILE long.gcm"
+    /bin/rm -f longnb.gcm longnb.gpl
+    $mpirun -np 2 mpptest -async -size 262144 1048576 32768 $graph \
+	-fname $outputdir/longnb.gcm \
+	    -reps 25 -tgoal 1.0 -autoreps -sample_reps 5
+    perfiles="$perfiles longnb.gcm longnb.gpl"
+    PLOTFILE="$PLOTFILE longnb.gcm"
 fi
 #
 ReportProgress "Short messages out of cache"
@@ -256,19 +262,27 @@ if [ -r long.gcm ] ; then
     latency4="`grep 'startup' long.gcm | cut -d' ' -f 4,5`"
     rate4="`grep 'startup' long.gcm | cut -d' ' -f 10,11`"
 fi
+if [ -r longnb.gcm ] ; then
+    latency5="`grep 'startup' longnb.gcm | cut -d' ' -f 4,5`"
+    rate5="`grep 'startup' longnb.gcm | cut -d' ' -f 10,11`"
+fi
 # Collective parameters
 outcnt=1
 for NP in $NPLIST ; do
     if [ -r bshort$NP.gcm ] ; then
 	file=bshort$NP.gcm
-	eval blatency$outcnt="`grep 'startup' $file | cut -d' ' -f 4,5`"
-	eval brate$outcnt="`grep 'startup' $file | cut -d' ' -f 10,11`"
+        lat="`grep 'startup' $file | cut -d' ' -f 4,5`"
+	eval blatency$outcnt=\""$lat"\"
+        rat="`grep 'startup' $file | cut -d' ' -f 10,11`"
+	eval brate$outcnt=\""$rat"\"
 	eval np$outcnt=$NP
     fi
     if [ -r blong$NP.gcm ] ; then
 	file=blong$NP.gcm
-	eval bllatency$outcnt="`grep 'startup' $file | cut -d' ' -f 4,5`"
-	eval blrate$outcnt="`grep 'startup' $file | cut -d' ' -f 10,11`"
+        lat="`grep 'startup' $file | cut -d' ' -f 4,5`"
+	eval bllatency$outcnt=\""$lat"\"
+        rat="`grep 'startup' $file | cut -d' ' -f 10,11`"
+	eval blrate$outcnt=\""$rat"\"
 	eval np$outcnt=$NP
     fi
     outcnt=`expr $outcnt + 1`
@@ -277,13 +291,22 @@ done
 # Still need to get something from the dsum output.
 # Still need to generate in a "nice" form (fixed length latency and rate)
 cat >>info.txt <<EOF
+Results from fit to measured data.  Please check the graphs to understand
+the actual performance.
+
 Point to Point results:
                             latency           bandwidth
-short messages              $latency1         $rate1
+short messages (blocking)   $latency1         $rate1
  not in cache               $latency2         $rate2
  strides of 128             $latency3         $rate3
+EOF
+if [ $dolong = 1 ] ; then
+    cat >>info.txt <<EOF
 long messages               $latency4         $rate4
-
+long messages (nonblocking) $latency5         $rate5
+EOF
+fi
+cat >>info.txt <<EOF
 Collective results:
 Bisection tests
 EOF

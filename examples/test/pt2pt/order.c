@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include "mpi.h"
 
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
+
 
 int main(argc, argv)
 int argc;
@@ -13,11 +17,20 @@ char *argv[];
     int b;
     MPI_Request request;
     MPI_Status  status;
-    double t1;
+    double t1, t0;
     
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    /* This test depends on a working wtime.  Make a simple check */
+    t0 = MPI_Wtime();
+    if (t0 == 0 && MPI_Wtime() == 0) {
+	fprintf( stderr, 
+		 "MPI_WTIME is returning 0; a working value is needed\n\
+for this test.\n" );
+	MPI_Abort( MPI_COMM_WORLD, 1 );
+    }
 
     easy = 1;
 

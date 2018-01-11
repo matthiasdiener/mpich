@@ -7,8 +7,8 @@
 #
 ##### User configurable options #####
 ARCH        = sun4
-COMM        = ch_p4-2
-MPIR_HOME   = /Net/alriga/alriga9/MPI/mpich
+COMM        = ch_p4
+MPIR_HOME   = /home/MPI/mpich
 CC          = gcc -Wall -Wstrict-prototypes -Wmissing-prototypes
 CLINKER     = gcc -Wl,-y_MALLOC 
 CCC         = 
@@ -31,7 +31,7 @@ ALL: $(EXECS)
 
 EXECS = aditest1 aditest2 aditest3 aditest4 aditest5 aditest6 aditest7 \
 	aditest8 aditest9 aditest10 timers trunc
-OTHERLIBS = /home/MPI/mpich/mpid/ch_p4-2/libp4.a
+OTHERLIBS = /home/MPI/mpich/mpid/ch_p4/p4-1.4/lib/libp4.a
 LIBNAME  = ../$(COMM)/libmpid.a $(OTHERLIBS)
 CFLAGS   =  -DFORTRANUNDERSCORE  -DMPE_USE_EXTENSIONS=1 -DHAS_XDR=1  -DHAVE_STDLIB_H=1 -DHAVE_SYSTEM=1 -DHAVE_NICE=1 $(OPTFLAGS) -I../.. -I../../include -I./ -I../$(COMM) \
 		-I../ch2
@@ -53,37 +53,37 @@ timers: timers.o $(LIBS)
 trunc: trunc.o $(LIBS)
 	-$(CLINKER) -o trunc $(OPTFLAGS) trunc.o $(LIBS) ./libmpi.a
 	if [ ! -x trunc ] ; then /bin/rm -f trunc ; fi
-aditest1: aditest1.o check.o $(LIBS)
-	-$(CLINKER) -o aditest1 $(OPTFLAGS) aditest1.o check.o $(LIBS)
+aditest1: aditest1.o check.o testsup.o $(LIBS)
+	-$(CLINKER) -o aditest1 $(OPTFLAGS) aditest1.o check.o testsup.o $(LIBS)
 	if [ ! -x aditest1 ] ; then /bin/rm -f aditest1 ; fi
-aditest2: aditest2.o check.o $(LIBS)
-	-$(CLINKER) -o aditest2 $(OPTFLAGS) aditest2.o check.o $(LIBS)
+aditest2: aditest2.o check.o testsup.o $(LIBS)
+	-$(CLINKER) -o aditest2 $(OPTFLAGS) aditest2.o check.o testsup.o $(LIBS)
 	if [ ! -x aditest2 ] ; then /bin/rm -f aditest2 ; fi
-aditest3: aditest3.o check.o $(LIBS)
-	-$(CLINKER) -o aditest3 $(OPTFLAGS) aditest3.o check.o $(LIBS)
+aditest3: aditest3.o check.o testsup.o $(LIBS)
+	-$(CLINKER) -o aditest3 $(OPTFLAGS) aditest3.o check.o testsup.o $(LIBS)
 	if [ ! -x aditest3 ] ; then /bin/rm -f aditest3 ; fi
-aditest4: aditest4.o check.o $(LIBS)
-	-$(CLINKER) -o aditest4 check.o $(OPTFLAGS) aditest4.o $(LIBS)
+aditest4: aditest4.o check.o testsup.o $(LIBS)
+	-$(CLINKER) -o aditest4 check.o testsup.o $(OPTFLAGS) aditest4.o $(LIBS)
 	if [ ! -x aditest4 ] ; then /bin/rm -f aditest4 ; fi
-aditest5: aditest5.o check.o $(LIBS)
-	-$(CLINKER) -o aditest5 check.o $(OPTFLAGS) aditest5.o $(LIBS)
+aditest5: aditest5.o check.o testsup.o $(LIBS)
+	-$(CLINKER) -o aditest5 check.o testsup.o $(OPTFLAGS) aditest5.o $(LIBS)
 	if [ ! -x aditest5 ] ; then /bin/rm -f aditest5 ; fi
-aditest6: aditest6.o check.o $(LIBS)
-	-$(CLINKER) -o aditest6 check.o $(OPTFLAGS) aditest6.o $(LIBS)
+aditest6: aditest6.o check.o testsup.o $(LIBS)
+	-$(CLINKER) -o aditest6 check.o testsup.o $(OPTFLAGS) aditest6.o $(LIBS)
 	if [ ! -x aditest6 ] ; then /bin/rm -f aditest6 ; fi
-aditest7: aditest7.o check.o $(LIBS)
-	-$(CLINKER) -o aditest7 check.o $(OPTFLAGS) aditest7.o $(LIBS)
+aditest7: aditest7.o check.o testsup.o $(LIBS)
+	-$(CLINKER) -o aditest7 check.o testsup.o $(OPTFLAGS) aditest7.o $(LIBS)
 	if [ ! -x aditest7 ] ; then /bin/rm -f aditest7 ; fi
-aditest8: aditest8.o check.o $(LIBS)
-	-$(CLINKER) -o aditest8 check.o $(OPTFLAGS) aditest8.o $(LIBS)
+aditest8: aditest8.o check.o testsup.o $(LIBS)
+	-$(CLINKER) -o aditest8 check.o testsup.o $(OPTFLAGS) aditest8.o $(LIBS)
 	if [ ! -x aditest8 ] ; then /bin/rm -f aditest8 ; fi
-aditest9: aditest9.o check.o $(LIBS)
+aditest9: aditest9.o check.o testsup.o $(LIBS)
 	-$(CLINKER) -Wl,-M -Wl,-y_MPID_Type_swap_inplace \
-	-o aditest9 check.o $(OPTFLAGS) aditest9.o $(LIBS) \
+	-o aditest9 check.o testsup.o $(OPTFLAGS) aditest9.o $(LIBS) \
 		./libmpi.a
 	if [ ! -x aditest9 ] ; then /bin/rm -f aditest9 ; fi
 #		-L/home/MPI/mpich/lib/sun4/ch_p4 -lmpi
-aditest10: aditest10.o check.o $(LIBS)
+aditest10: aditest10.o check.o testsup.o $(LIBS)
 	-$(CLINKER) -o aditest10 check.o $(OPTFLAGS) aditest10.o $(LIBS) \
 		./libmpi.a
 	if [ ! -x aditest10 ] ; then /bin/rm -f aditest10 ; fi

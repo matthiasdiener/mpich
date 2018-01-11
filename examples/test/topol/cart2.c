@@ -1,4 +1,6 @@
 #include "mpi.h"
+#include <stdio.h>
+#include "test.h"
 
 #define NUM_DIMS 2
 

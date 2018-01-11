@@ -1,0 +1,41 @@
+#
+# rcsid = $Header: /nfs/globus1/src/master/ports0/docs/Makefile.in,v 1.2 1996/02/07 19:51:10 geisler Exp $
+#
+
+SHELL=/bin/sh
+
+default:
+	echo "skipping docs in this case"
+
+dvi:
+	for subdir in @SUBDIRS@; do \
+	    echo "making dvi in $$subdir"; \
+	    (cd $$subdir && $(MAKE) dvi) \
+	done
+
+mostlyclean:
+	for subdir in @SUBDIRS@; do \
+	    echo "making mostlyclean in $$subdir"; \
+	    (cd $$subdir && $(MAKE) mostlyclean) \
+	done
+
+clean:
+	for subdir in @SUBDIRS@; do \
+	    echo "making clean in $$subdir"; \
+	    (cd $$subdir && $(MAKE) clean) \
+	done
+
+#
+# config.cache is normally in ../../, but put it here just to be safe
+#
+XTRA_FILES=config.cache \
+	   config.log \
+	   config.status \
+	   Makefile
+
+distclean: clean
+	for subdir in @SUBDIRS@; do \
+	    echo "making distclean in $$subdir"; \
+	    (cd $$subdir && $(MAKE) distclean) \
+	done
+	rm -f $(XTRA_FILES)

@@ -9,28 +9,43 @@ $set 1 MPI_ERR_BUFFER
 1 Invalid buffer pointer
 2 Can not attach buffer when a buffer already exists
 3 Insufficent space available in user-defined buffer
-4 Arguments must specify different buffers (no aliasing)
+4 Invalid buffer pointer: Arguments must specify different buffers (no aliasing)
+5 Buffer size (%d) is illegal
 $set 2 MPI_ERR_COUNT
 1 Invalid count argument
+2 Invalid count argument: count[%d] is %d
 $set 3 MPI_ERR_TYPE
 1 Invalid datatype argument
-2 Datatype has not been committed
+2 Invalid datatype argument: Datatype has not been committed
+3 Invalid datatype argument: Datatype is MPI_TYPE_NULL
+4 Invalid datatype argument: Datatype argument is not a valid datatype\n\
+Special bit pattern %x in datatype is incorrect.  May indicate an \n\
+out-of-order argument or a deleted datatype
+5 Invalid datatype argument: Can not free permanent data type
 $set 4 MPI_ERR_TAG
 1 Invalid message tag %d
 $set 5 MPI_ERR_COMM
 1 Invalid communicator
-2 Null communicator
-3 Intercommunicator is not allowed
-4 Intracommunicator is not allowed
+2 Invalid communicator: Null communicator
+3 Invalid communicator: Intercommunicator is not allowed
+4 Invalid communicator: Intracommunicator is not allowed
+5 Communicator argument is not a valid communicator\n\
+Special bit pattern %x in communicator is incorrect.  May indicate an \n\
+out-of-order argument or a freed communicator
 $set 6 MPI_ERR_RANK
 1 Invalid rank %d
 $set 7 MPI_ERR_ROOT
 1 Invalid root %d
 $set 8 MPI_ERR_GROUP
 1 Invalid group passed to function 
+2 Invalid group passed to function: Null group
+3 Group argument is not a valid group\n\
+Special bit pattern %x in group is incorrect.  May indicate an \n\
+out-of-order argument or a freed group
 $set 9 MPI_ERR_OP
 1 Invalid operation
 2 Operation not defined for this datatype 
+3 Invalid operation: Null MPI_Op
 $set 10 MPI_ERR_TOPOLOGY
 1 Invalid topology
 $set 11 MPI_ERR_DIMS
@@ -40,9 +55,13 @@ $set 12 MPI_ERR_ARG
 2 Invalid error code
 3 Null parameter
 5 Can not free permanent attribute key
-6 Can not free permanent data type
 7 Can not free permanent MPI_Op
 8 Address of location given to MPI_ADDRESS (%lx) does not fit in Fortran integer
+9 Invalid keyval
+10 Null MPI_Errhandler
+11 MPI_Errhandler argument is not a valid errorhandler\n\
+Special bit pattern %x in errhandler is incorrect.  May indicate an \n\
+out-of-order argument or a deleted error handler
 $set 13 MPI_ERR_UNKNOWN
 1 Unknown error
 $set 14 MPI_ERR_TRUNCATE
@@ -76,3 +95,4 @@ $set 18 MPI_ERR_PENDING
 1 Pending request (no error)
 $set 19 MPI_ERR_REQUEST
 1 Illegal mpi_request handle
+2 Illegal mpi_request handle: Null request

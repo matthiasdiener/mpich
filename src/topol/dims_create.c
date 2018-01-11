@@ -1,5 +1,5 @@
 /*
- *  $Id: dims_create.c,v 1.14 1996/06/07 15:08:52 gropp Exp $
+ *  $Id: dims_create.c,v 1.17 1997/04/09 15:42:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -10,9 +10,9 @@
  * Date:     1/19/94
 */
 
+#include "mpiimpl.h"
 #include <stdio.h>
 #include <math.h>
-#include "mpiimpl.h"
 #ifdef MPI_ADI2
 #include "mpimem.h"
 #else
@@ -223,7 +223,7 @@ int *factors;
     if ((factorMe <= 0) || (factorMe >= (MAX_PRIME * MAX_PRIME)) || 
         (numFactors <= 0))
         {
-	return MPIR_ERROR((MPI_Comm)0,MPI_ERR_INTERN,
+	return MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_INTERN,
 			  "Invalid args to factorAndcombine");
         }
 
@@ -319,7 +319,7 @@ int *factors;
         if (searchTree == ((BranchInfo *)NULL))
 		  {
             FREE(primeFactors);
-			return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+			return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
 							  "Out of memory in MPI_DIMS_CREATE" );
 		  }
         remainingFactorMe = factorMe;
@@ -724,13 +724,13 @@ int *dims;
 
   /* Check for wacky input values. */
   if ((nnodes <= 0) || (ndims <= 0))
-	return MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_ARG,
+	return MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_ARG,
 			  "Invalid args to MPI_DIMS_CREATE");
 
   newNdims = 0;                        /* number of zero values in dims[] */
   for (i=0; i<ndims; i++) {
 	if (dims[i]<0)
-	  return MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_DIMS,
+	  return MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_DIMS,
 			    "Invalid args to MPI_DIMS_CREATE");
 	if (dims[i]==0)
 	  newNdims++;
@@ -744,7 +744,7 @@ int *dims;
 		testProduct *= dims[i];
 	  }
 	  if (testProduct != nnodes)
-		return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_DIMS, 
+		return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_DIMS, 
 				 "Tensor product size does not match nnodes");
 	  else
 		return(MPI_SUCCESS);
@@ -755,7 +755,7 @@ int *dims;
   for (i=0; i<ndims; i++) {
 	if (dims[i]>0) {
 	  if (nnodes%dims[i] != 0)
-		return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_DIMS,
+		return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_DIMS,
 				 "Can not partition nodes as requested");
 	  freeNodes /= dims[i];
 	}
@@ -764,7 +764,7 @@ int *dims;
   /* newDims will contain all dimensions not specified by the user. */
   newDims = (int *)CALLOC(newNdims, sizeof(int));
   if (newDims == ((int *)0))
-      return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_INTERN, 
+      return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_INTERN, 
 			       "Could not allocate space in MPI_DIMS_CREATE");
 
   /* Factor freeNodes into newDims */

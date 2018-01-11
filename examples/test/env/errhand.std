@@ -2,8 +2,8 @@
 *** Error Handling ***
     Three error messages (from two errors) are expected
 which should both show an error class of 8
-(first) 8 : Invalid group passed to function
-(errhandler) 8 : Invalid group passed to function
-(second) 8 : Invalid group passed to function
+(first) 8 : Invalid group passed to function: Null group
+(errhandler) 8 : Invalid group passed to function: Null group
+(second) 8 : Invalid group passed to function: Null group
 All processes completed test
 *** Tests of error handling ***

@@ -1,5 +1,5 @@
 /*
- *  $Id: barrier.c,v 1.20 1996/04/12 14:15:10 gropp Exp $
+ *  $Id: barrier.c,v 1.22 1997/01/07 01:47:46 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -36,16 +36,21 @@ int MPI_Barrier ( comm )
 MPI_Comm comm;
 {
   int        mpi_errno = MPI_SUCCESS;
+  struct MPIR_COMMUNICATOR *comm_ptr;
+  static char myname[] = "MPI_BARRIER";
   MPIR_ERROR_DECL;
 
-  /* Check for valid communicator before use */
-  if ( MPIR_TEST_COMM(comm,comm) )
-    return MPIR_ERROR(comm, mpi_errno, "Error in MPI_BARRIER");
+  TR_PUSH(myname);
 
-  MPIR_ERROR_PUSH(comm);
-  mpi_errno = comm->collops->Barrier(comm);
-  MPIR_ERROR_POP(comm);
-  MPIR_RETURN(comm,mpi_errno,"Error in MPI_BARRIER");
+  /* Check for valid communicator before use */
+  comm_ptr = MPIR_GET_COMM_PTR(comm);
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+
+  MPIR_ERROR_PUSH(comm_ptr);
+  mpi_errno = comm_ptr->collops->Barrier(comm_ptr);
+  MPIR_ERROR_POP(comm_ptr);
+  TR_POP;
+  MPIR_RETURN(comm_ptr,mpi_errno,myname);
 }
 
 

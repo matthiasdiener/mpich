@@ -1,5 +1,5 @@
 /*
- *  $Id: bufattach.c,v 1.9 1996/04/11 20:17:46 gropp Exp $
+ *  $Id: bufattach.c,v 1.10 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -41,6 +41,7 @@ is in 'mpi.h' (for C) and 'mpif.h' (for Fortran).
 
 .N Errors
 .N MPI_SUCCESS
+.N MPI_ERR_BUFFER
 .N MPI_ERR_INTERN
 
 .seealso: MPI_Buffer_detach, MPI_Bsend
@@ -50,15 +51,20 @@ void *buffer;
 int  size;
 {
     int mpi_errno;
+    static char myname[] = "MPI_BUFFER_ATTACH";
 
+    TR_PUSH(myname);
+    if (size < 0) {
+	MPIR_ERROR_PUSH_ARG(&size);
+	return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_BUFFER_SIZE, myname );
+    }
 #ifdef MPI_ADI2
     if ((mpi_errno = MPIR_BsendInitBuffer( buffer, size )))
-	return MPIR_ERROR( (MPI_Comm)0, mpi_errno, 
-			   "Error in MPI_BUFFER_ATTACH" );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 #else
     if ((mpi_errno = MPIR_SetBuffer( buffer, size )))
-	return MPIR_ERROR( (MPI_Comm)0, mpi_errno, 
-			   "Error in MPI_BUFFER_ATTACH" );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 #endif
+    TR_POP;
     return MPI_SUCCESS;
 }

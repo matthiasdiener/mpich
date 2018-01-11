@@ -1,4 +1,4 @@
-.TH MPI_Group_range_excl 3 "4/12/1996" " " "MPI"
+.TH MPI_Group_range_excl 3 "1/6/1997" " " "MPI"
 .SH NAME
 MPI_Group_range_excl \-  Produces a group by excluding ranges of processes from an existing group 
 .SH SYNOPSIS
@@ -107,6 +107,29 @@ an error.
 .B MPI_ERR_INTERN 
 - This error is returned when some part of the MPICH 
 implementation is unable to acquire memory.  
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_RANK 
+- Invalid source or destination rank.  Ranks must be between
+zero and the size of the communicator minus one; ranks in a receive
+(
+.I MPI_Recv
+, 
+.I MPI_Irecv
+, 
+.I MPI_Sendrecv
+, etc.) may also be 
+.I MPI_ANY_SOURCE
+.
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_ARG 
+- Invalid argument.  Some argument is invalid and is not
+identified by a specific error class (e.g., 
+.I MPI_ERR_RANK
+).
 .PD 1
 
 .SH SEE ALSO

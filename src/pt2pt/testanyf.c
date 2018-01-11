@@ -11,12 +11,6 @@
 #include "mpifort.h"
 #endif
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) a
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_testany_ PMPI_TESTANY
@@ -52,19 +46,16 @@ int *__ierr;
     MPI_Request *r;
 
     if (*count > 0) {
-	r = (MPI_Request*)MALLOC(sizeof(MPI_Request)* *count);
-	if (!r) { 
-	    MPIR_ERROR(MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-		       "Out of space in MPI_TESTANY" );
-	    *__ierr = MPI_ERR_EXHAUSTED;
-	    return;
-	}
+	MPIR_FALLOC(r,(MPI_Request*)MALLOC(sizeof(MPI_Request) * *count),
+		    MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+		    "Out of space in MPI_TESTANY" );
 	for (i=0; i<*count; i++) {
 	    r[i] = MPIR_ToPointer( *((int *)(array_of_requests)+i) );
 	}
     }
     else 
 	r = 0;
+
     *__ierr = MPI_Testany(*count,r,index,flag,status);
     if (*flag && !*__ierr) {
 	/* By checking for r[i] = 0, we handle persistant requests */

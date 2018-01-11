@@ -2,8 +2,15 @@
 #undef MPI_BUILD_PROFILING
 #endif
 #include <stdio.h>
+#include <stdlib.h>
 #include "mpi.h"
 #include "mpe.h"
+
+/* Enable memory tracing.  This requires MPICH's mpid/util/tr2.c codes */
+#if defined(MPIR_MEMDEBUG)
+#define malloc(a)    MPID_trmalloc((unsigned)(a),__LINE__,__FILE__)
+#define free(a)      MPID_trfree(a,__LINE__,__FILE__)
+#endif
 
 /* 
    This is a large file and may exceed some compilers ability to handle.
@@ -213,13 +220,23 @@ static int trace_on = 0;
 
 #include "requests.h"
 
-static request_list *requests_head_0, *requests_tail_0;
+static request_list *requests_head_0, *requests_tail_0, *requests_avail_0=0;
 static int procid_0;
 static char logFileName_0[256];
 
 /* This is used for the multiple-completion test/wait functions */
 #define MPE_MAX_REQUESTS 16
 static MPI_Request req[MPE_MAX_REQUESTS];
+
+/* Function prototypes */
+void MPE_Add_send_req ANSI_ARGS(( int, MPI_Datatype, int, int, 
+				  MPI_Request, int ));
+void MPE_Add_recv_req ANSI_ARGS(( int, MPI_Datatype, int, int, 
+				  MPI_Request, int ));
+void MPE_Cancel_req ANSI_ARGS(( MPI_Request ));
+void MPE_Remove_req ANSI_ARGS(( MPI_Request ));
+void MPE_Start_req ANSI_ARGS(( MPI_Request ));
+void MPE_ProcessWaitTest ANSI_ARGS(( MPI_Request, MPI_Status *, char * ));
 
 /*
    Temporary MPE log definitions (eventually will replace with more
@@ -253,28 +270,30 @@ static MPI_Request req[MPE_MAX_REQUESTS];
 /* If there are large numbers of requests, we should probably use a better
    search structure, such as a hash table or tree
  */
-void MPE_Add_send_req( count, datatype, dest, tag, request )
-int count, dest, tag;
+void MPE_Add_send_req( count, datatype, dest, tag, request, is_persistent )
+int count, dest, tag, is_persistent;
 MPI_Datatype datatype;
 MPI_Request request;
 {
   request_list *newrq;
   int typesize;
 
-  if ((newrq = (request_list*) malloc(sizeof( request_list )))) {
+  rq_alloc(requests_avail_0,newrq);
+  if (newrq) {
       PMPI_Type_size( datatype, &typesize );
-      newrq->request	= request;
-      newrq->status	= RQ_SEND;
-      newrq->size	= count * typesize;
-      newrq->tag	= tag;
-      newrq->otherParty	= dest;
-      newrq->next	= 0;
+      newrq->request	   = request;
+      newrq->status	   = RQ_SEND;
+      newrq->size	   = count * typesize;
+      newrq->tag	   = tag;
+      newrq->otherParty	   = dest;
+      newrq->next	   = 0;
+      newrq->is_persistent = is_persistent;
       rq_add( requests_head_0, requests_tail_0, newrq );
     }
 }
 
-void MPE_Add_recv_req( count, datatype, source, tag, request )
-int count, source, tag;
+void MPE_Add_recv_req( count, datatype, source, tag, request, is_persistent )
+int count, source, tag, is_persistent;
 MPI_Datatype datatype;
 MPI_Request request;
 {
@@ -282,10 +301,12 @@ MPI_Request request;
 
   /* We could pre-allocate request_list members, or allocate in
      blocks.  Do this is we see this is a bottleneck */
-  if ((newrq = (request_list*) malloc(sizeof( request_list )))) {
-      newrq->request = request;
-      newrq->status = RQ_RECV;
-      newrq->next = 0;
+  rq_alloc( requests_avail_0, newrq );
+  if (newrq) {
+      newrq->request	   = request;
+      newrq->status	   = RQ_RECV;
+      newrq->next	   = 0;
+      newrq->is_persistent = is_persistent;
       rq_add( requests_head_0, requests_tail_0, newrq );
     }
 }
@@ -301,7 +322,7 @@ MPI_Request request;
 void  MPE_Remove_req( request )
 MPI_Request request;
 {
-  rq_remove( requests_head_0, request );
+  rq_remove( requests_head_0, requests_tail_0, requests_avail_0, request );
 }
 
 /* Persistent sends and receives are handled with this routine (called by
@@ -309,13 +330,11 @@ MPI_Request request;
 void MPE_Start_req( request )
 MPI_Request request;
 {
-  request_list *rq, *last;
+  request_list *rq;
 
   /* look for request */
   rq = requests_head_0;
-  last = 0;
   while (rq && (rq->request != request)) {
-    last = rq;
     rq   = rq->next;
   }
 
@@ -326,7 +345,7 @@ MPI_Request request;
     return;		/* request not found */
   }
 
-  if (rq->status & RQ_SEND) {
+  if ((rq->status & RQ_SEND) && rq->otherParty != MPI_PROC_NULL) {
       MPE_Log_send( rq->otherParty, rq->tag, rq->size );
   }
 
@@ -355,7 +374,6 @@ char        *note;
     return;		/* request not found */
   }
 
-  
   if (status->MPI_TAG != MPI_ANY_TAG || (rq->status & RQ_SEND) ) {
     /* if the request was not invalid */
 
@@ -366,17 +384,18 @@ char        *note;
 
     /* Receives conclude at the END (wait/test); sends start at the
        beginning */    
-    if (rq->status & RQ_RECV) {
+    if ((rq->status & RQ_RECV) && (status->MPI_SOURCE != MPI_PROC_NULL)) {
       PMPI_Get_count( status, MPI_BYTE, &size );
       MPE_Log_receive( status->MPI_SOURCE, status->MPI_TAG, size );
     }
   }
-  if (!last) {
-    requests_head_0 = rq->next;
-  } else {
-    last->next = rq->next;
+
+  /* Since we already have found the request, removing it is relatively
+     easy */
+  if (!rq->is_persistent) {
+      rq_remove_at( requests_head_0, requests_tail_0, requests_avail_0, 
+		    rq, last );
   }
-  free( rq );
 }
 
 
@@ -1611,6 +1630,9 @@ int  MPI_Finalize(  )
   if (procid_0 == 0)
       fprintf( stderr, "Finished writing logfile.\n");
 
+  /* Recover all of the allocated requests */
+  rq_end( requests_avail_0 );
+
   returnVal = PMPI_Finalize(  );
 
   return returnVal;
@@ -2201,13 +2223,16 @@ char *** argv;
   state->name = "RECV_IDLE";
 
   /* Set default logfilename */  
-  sprintf( logFileName_0, "%s_profile.log", (*argv)[0] );
+/*  sprintf( logFileName_0, "%s_profile.log", (*argv)[0] ); */
+  sprintf( logFileName_0, "%s", (*argv)[0] );
 
   /* Enable the basic states */
   for (i=0; i<MPE_MAX_STATES; i++) {
   	if ((states[i].kind_mask & allow_mask) != 0) states[i].is_active = 1;
   }
-  
+
+  rq_init( requests_avail_0 );
+
   MPE_Start_log();
   trace_on = 1;
 
@@ -2348,7 +2373,7 @@ MPI_Request * request;
   returnVal = PMPI_Bsend_init( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-      MPE_Add_send_req( count, datatype, dest, tag, *request );
+      MPE_Add_send_req( count, datatype, dest, tag, *request, 1 );
       /* Note not started yet ... */
       }
 
@@ -2465,7 +2490,7 @@ MPI_Request * request;
   returnVal = PMPI_Recv_init( buf, count, datatype, source, tag, comm, request );
 
   if (returnVal == MPI_SUCCESS && source != MPI_PROC_NULL) {
-      MPE_Add_recv_req( count, datatype, source, tag, *request );
+      MPE_Add_recv_req( count, datatype, source, tag, *request, 1 );
       /* Not started yet ... */
       }
 
@@ -2496,7 +2521,7 @@ MPI_Request * request;
   returnVal = PMPI_Send_init( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-      MPE_Add_send_req( count, datatype, dest, tag, *request );
+      MPE_Add_send_req( count, datatype, dest, tag, *request, 1 );
       /* Note not started yet ... */
       }
 
@@ -2571,7 +2596,7 @@ MPI_Request * request;
   returnVal = PMPI_Ibsend( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-      MPE_Add_send_req( count, datatype, dest, tag, *request );
+      MPE_Add_send_req( count, datatype, dest, tag, *request, 0 );
       }
 
   MPE_LOG_STATE_END(comm);
@@ -2625,7 +2650,7 @@ MPI_Request * request;
   returnVal = PMPI_Irecv( buf, count, datatype, source, tag, comm, request );
 
   if (returnVal == MPI_SUCCESS && source != MPI_PROC_NULL) {
-      MPE_Add_recv_req( count, datatype, source, tag, *request );
+      MPE_Add_recv_req( count, datatype, source, tag, *request, 0 );
       }
 
   MPE_LOG_STATE_END(comm);
@@ -2655,7 +2680,7 @@ MPI_Request * request;
   returnVal = PMPI_Irsend( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-      MPE_Add_send_req( count, datatype, dest, tag, *request );
+      MPE_Add_send_req( count, datatype, dest, tag, *request, 0 );
       }
 
   MPE_LOG_STATE_END(comm);
@@ -2685,7 +2710,9 @@ MPI_Request * request;
   MPE_Log_send( dest, tag, size * count );
   returnVal = PMPI_Isend( buf, count, datatype, dest, tag, comm, request );
 
-  MPE_Add_send_req( count, datatype, dest, tag, *request );
+  if (dest != MPI_PROC_NULL) {
+      MPE_Add_send_req( count, datatype, dest, tag, *request, 0 );
+  }
 
   MPE_LOG_STATE_END(comm);
 
@@ -2717,7 +2744,7 @@ MPI_Request * request;
   returnVal = PMPI_Issend( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-      MPE_Add_send_req( count, datatype, dest, tag, *request );
+      MPE_Add_send_req( count, datatype, dest, tag, *request, 0 );
       }
 
   MPE_LOG_STATE_END(comm);
@@ -2879,7 +2906,7 @@ MPI_Request * request;
   returnVal = PMPI_Rsend_init( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-      MPE_Add_send_req( count, datatype, dest, tag, *request );
+      MPE_Add_send_req( count, datatype, dest, tag, *request, 1 );
       /* Note not started yet ... */
       }
 
@@ -2931,7 +2958,7 @@ MPI_Comm comm;
 MPI_Status * status;
 {
   int  returnVal;
-  int  acount;
+  int  acount, sendsize;
   register MPE_State *state;
 
 /*
@@ -2946,7 +2973,8 @@ MPI_Status * status;
 			     comm, status );
 
   if (returnVal == MPI_SUCCESS) {
-      MPE_Log_send( dest, sendtag, sendcount );
+      PMPI_Type_size( sendtype, &sendsize );
+      MPE_Log_send( dest, sendtag, sendcount * sendsize );
       PMPI_Get_count( status, MPI_BYTE, &acount );
       MPE_Log_receive( status->MPI_SOURCE, status->MPI_TAG, acount );
       }
@@ -2969,7 +2997,7 @@ MPI_Comm comm;
 MPI_Status * status;
 {
   int  returnVal;
-  int  acount;
+  int  acount, sendsize;
   register MPE_State *state;
 /*
     MPI_Sendrecv_replace - prototyping replacement for MPI_Sendrecv_replace
@@ -2982,7 +3010,8 @@ MPI_Status * status;
 				     sendtag, source, recvtag, comm, status );
 
   if (returnVal == MPI_SUCCESS) {
-      MPE_Log_send( dest, sendtag, count );
+      PMPI_Type_size( datatype, &sendsize );
+      MPE_Log_send( dest, sendtag, count * sendsize );
       PMPI_Get_count( status, MPI_BYTE, &acount );
       MPE_Log_receive( status->MPI_SOURCE, status->MPI_TAG, acount );
       }
@@ -3000,7 +3029,7 @@ int dest;
 int tag;
 MPI_Comm comm;
 {
-  int  returnVal;
+  int  returnVal, size;
   register MPE_State *state;
 
 /*
@@ -3012,8 +3041,10 @@ MPI_Comm comm;
   
   returnVal = PMPI_Ssend( buf, count, datatype, dest, tag, comm );
 
-  if (!returnVal)
-      MPE_Log_send(  dest, tag, count );
+  if (!returnVal){
+      PMPI_Type_size( datatype, &size );
+      MPE_Log_send(  dest, tag, count * size );
+  }
 
   MPE_LOG_STATE_END(comm);
 
@@ -3042,7 +3073,7 @@ MPI_Request * request;
   returnVal = PMPI_Ssend_init( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-      MPE_Add_send_req( count, datatype, dest, tag, *request );
+      MPE_Add_send_req( count, datatype, dest, tag, *request, 1 );
       /* Note not started yet ... */
       }
 
@@ -4046,8 +4077,13 @@ int * top_type;
   Still to do: in some cases, must log communicator operations even if
   logging is off.
  */
-#if defined(__STDC__) || defined(__cplusplus)
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES) || \
+    defined(PCONTROL_NEEDS_CONST)
+#ifdef HAVE_NO_C_CONST
+int MPI_Pcontrol( int level, ... )
+#else
 int MPI_Pcontrol( const int level, ... )
+#endif
 #else
 int MPI_Pcontrol( level )
 int level;

@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include "mpi.h"
 
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
+
 /*
  *	Trying to manipulate the extent of a datatype with succesive
  *	calls to MPI_Type_struct.  Tests that a MPI_UB buried within

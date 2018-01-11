@@ -137,6 +137,8 @@ char *str;
   MPE_Log_ADDHEADER(b,-10);
   MPE_Log_ZEROTIME(b);
   MPE_Log_ADDINTS(b,v,1,&event);
+
+  MPID_trvalid( "Log_def" );
 }
 
 

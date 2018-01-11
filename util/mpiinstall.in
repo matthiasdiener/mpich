@@ -46,8 +46,9 @@ for arg in "$@" ; do
 	-libonly) libonly=1 ;;
 	-t) Show=echo
 	    just_testing=1
+	    failmode="soft"
 	    ;;
-	-help|-u|-usage)
+	-help|-u|-usage|-h)
 	echo "Install MPICH into $PREFIX."
 	echo "-mode=nnnn   - mode for regular files.  Default is $MODE ."
 	echo "-xmode=nnnn  - mode for execuables and directories.  Default is $XMODE ."
@@ -74,6 +75,22 @@ for arg in "$@" ; do
 done
 if [ -z "$APREFIX" ] ; then
     APREFIX=$PREFIX
+fi
+#
+# If libonly, we need to get the correct default machine etc.  We could 
+# get this from the config.status for the device, but the problem is that
+# there are MANY items to restore.  A better approach is to use an install
+# script from the library directory itself.
+if [ -n "$libonly" ] ; then
+#   trialname=`sed -n -e "s/DEFAULT_MACHINE='\(.*\)'/\1/p" \
+#	lib/$ARCH/$COMM/config.status`
+#   if [ -n "$trialname" ] ; then 
+#	DEFAULT_MACHINE="$trialname"
+#   fi
+    if [ -x lib/$ARCH/$COMM/mpiinstall ] ; then
+        . lib/$ARCH/$COMM/mpiinstall "$@"
+        exit $?
+    fi
 fi
 #
 # Update some fields that contain the build root directory
@@ -271,6 +288,7 @@ else
         -e "s%[@]BITMAP_DIR[@]%$PREFIX/lib/bitmaps%g" \
 	-e "s%[@]CC[@]%@CC@%g" \
 	-e "s%[@]CCC[@]%@CCC@%g" \
+	-e "s%[@]CPP_COMPILER[@]%@CPP_COMPILER@%g" \
 	-e "s%[@]CFLAGS[@]%@CFLAGS@%g" \
 	-e "s%[@]CLINKER[@]%@CLINKER@%g" \
 	-e "s%[@]CCLINKER[@]%@CCLINKER@%g" \
@@ -431,7 +449,7 @@ if [ -z "$libonly" ] ; then
     CopyFile $PREFIX/bin/mpif77 $PREFIX/lib/$ARCH/$COMM $XMODE
     #
     # mpiCC, if C++ selected
-    if [ -n "@CCC@" ] ; then 
+    if [ -n "@CPP_COMPILER@" ] ; then 
 	FixupFileWithAt util/mpiCC.in $PREFIX/bin/mpiCC $XMODE
         CopyFile $PREFIX/bin/mpiCC $PREFIX/lib/$ARCH/$COMM $XMODE
     fi
@@ -450,7 +468,7 @@ else
         echo "/bin/rm -f $PREFIX/lib/$ARCH/$COMM/tarch" >> $UNINSTALLFILE
     fi
     FixupFileWithAt util/mpicc.in $PREFIX/lib/$ARCH/$COMM/mpicc $XMODE
-    if [ -n "@CCC@" ] ; then
+    if [ -n "@CPP_COMPILER@" ] ; then
         FixupFileWithAt util/mpiCC.in $PREFIX/lib/$ARCH/$COMM/mpiCC $XMODE
     fi
     FixupFileWithAt util/mpif77.in $PREFIX/lib/$ARCH/$COMM/mpif77 $XMODE
@@ -469,6 +487,21 @@ if [ "$DEVICE" = "ch_p4" ] ; then
     CopyFile $PREFIX/util/chp4_servs $PREFIX/lib/$ARCH/$COMM $XMODE
     CopyFile util/chkserv $PREFIX/util/chkserv $XMODE
     CopyFile $PREFIX/util/chkserv $PREFIX/lib/$ARCH/$COMM $XMODE
+fi
+#
+# P4 and nexus
+if [ "$DEVICE" = "ch_p4" -o "$DEVICE" = "ch_nexus" ] ; then
+    if [ -x mpid/server/server ] ; then 
+	$Show CopyFile mpid/server/server $PREFIX/bin $XMODE
+        $Show CopyFile mpid/server/server $PREFIX/lib/$ARCH/$COMM $XMODE
+	$Show /bin/rm -f util/chp4_servs
+	FixupFile util/chp4_servs.in $PREFIX/util/chp4_servs $XMODE
+	CopyFile $PREFIX/util/chp4_servs $PREFIX/lib/$ARCH/$COMM $XMODE
+	CopyFile util/chkserv $PREFIX/util/chkserv $XMODE
+	CopyFile $PREFIX/util/chkserv $PREFIX/lib/$ARCH/$COMM $XMODE
+    else
+        echo "Server not available"
+    fi
 fi
 #
 if [ -z "$libonly" ] ; then
@@ -491,6 +524,8 @@ if [ -z "$libonly" ] ; then
     CopyFile include/mpif.h $PREFIX/include
     CopyFile include/mpi_errno.h $PREFIX/include
     CopyFile include/binding.h $PREFIX/include
+    CopyFile include/protofix.h $PREFIX/include
+    CopyFile include/mpeexten.h $PREFIX/include
     CopyFile include/patchlevel.h $PREFIX/include
     CopyFile mpe/mpe.h $PREFIX/include
     CopyFile mpe/mpe_graphics.h $PREFIX/include
@@ -503,6 +538,34 @@ fi
 for file in lib/$ARCH/$COMM/*.a ; do
     $Show CopyFileP $file $PREFIX/lib/$ARCH/$COMM
 done
+#
+# Special programs (helper executeables)
+# So far we have
+#     spxcp - Executable copy program for IBM SP.
+for file in spxcp ; do
+    if [ -x lib/$ARCH/$COMM/$file ] ; then 
+        $Show CopyFileP lib/$ARCH/$COMM/$file $PREFIX/lib/$ARCH/$COMM
+    fi
+done
+#
+# Message files
+if [ -z "$libonly" ] ; then 
+    # Note that we need to get the mpich.*.m files for IRIX which has
+    # a message file directory as well as the message file.
+    for file in lib/$ARCH/mpich.* ; do
+        if [ $file = "mpich.cat" ] ; then
+	    # This is a link; it assumes that En_US is the default.
+            if [ -f lib/$ARCH/mpich.En_US.cat ] ; then 
+                $Show ln -s $PREFIX/lib/$ARCH/mpich.En_US.cat \
+	   		    $PREFIX/lib/$ARCH/mpich.cat
+            fi
+        elif [ -s $file ] ; then 
+	    # This will handle the case of no mpich.* matches
+            $Show CopyFile $file $PREFIX/lib/$ARCH
+        fi
+    done
+fi
+    
 # Other files in lib need to be updated...
 #
 # Documentation
@@ -515,7 +578,10 @@ if [ -z "$noman" -a -z "$libonly" ] ; then
     for dir in man1 man3 man4 man5 ; do
        MkDir $MPIMANPATH/$dir
         for file in man/$dir/* ; do 
-	    CopyFile $file $MPIMANPATH/$dir
+	    # man5 in particular might be empty; be careful
+            if [ -s "$file" ] ; then 
+  	        CopyFile $file $MPIMANPATH/$dir
+	    fi
         done
     done
 fi
@@ -598,7 +664,7 @@ $Show "(cd $PREFIX/examples ; $MAKE clean ; $MAKE alternate)"
 echo "/bin/rm -f $PREFIX/mpiuninstall" >> $UNINSTALLFILE
 # Add the directory removes to the UNINSTALL file
 for dir in $dirlist ; do
-    echo "rmdir $dir" >> $UNINSTALLFILE
+    echo "if [ -d $dir ] ; then rmdir $dir ; fi" >> $UNINSTALLFILE
 done
 #
 cp $UNINSTALLFILE $PREFIX/mpiuninstall

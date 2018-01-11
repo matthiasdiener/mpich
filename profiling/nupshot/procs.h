@@ -25,27 +25,29 @@ typedef struct processData {
 } processData;
 
 
-#ifdef __STDC__
-#define ARGS(x) x
+#ifndef ANSI_ARGS
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
+#define ANSI_ARGS(a) a
 #else
-#define ARGS(x) ()
+#define ANSI_ARGS(a) ()
+#endif
 #endif
 
 
   /* call before adding any process definitions */
-processData *Process_Create();
+processData *Process_Create ANSI_ARGS(( void ));
 
   /* call before adding any process definitions after # processes is known */
-int Process_DataInit ARGS(( processData *process_data, int np ));
+int Process_DataInit ANSI_ARGS(( processData *process_data, int np ));
 
   /* retrieve a process definition */
-int Process_GetDef ARGS(( processData *process_data, int n, char **name ));
+int Process_GetDef ANSI_ARGS(( processData *process_data, int n, char **name ));
 
   /* set a process definition */
-int Process_SetDef ARGS(( processData *process_data, int n, char *name ));
+int Process_SetDef ANSI_ARGS(( processData *process_data, int n, char *name ));
 
   /* release memory used by process data structures */
-int Process_Close ARGS(( processData * ));
+int Process_Close ANSI_ARGS(( processData * ));
 
 
 #endif

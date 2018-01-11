@@ -2,6 +2,10 @@
 #include "mpetools.h"
 #include "basex11.h"
 
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
+
 /* 
    This file contains routines to open an X window display and window
    This consists of a number of routines that set the various
@@ -618,9 +622,8 @@ void XBCaptureWindowToFile( XBWin, fname )
 XBWindow *XBWin;
 char     *fname;
 {
-    char cmdbuf[1024];
-
 #ifdef HAVE_SYSTEM
+    char cmdbuf[1024];
     sprintf( cmdbuf, "xwd -id %ld > %s\n", (long)XBWin->win, fname );
     system( cmdbuf );
 #else

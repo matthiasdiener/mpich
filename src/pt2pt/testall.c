@@ -1,5 +1,5 @@
 /*
- *  $Id: testall.c,v 1.24 1996/06/26 19:27:12 gropp Exp $
+ *  $Id: testall.c,v 1.27 1997/01/24 21:55:18 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -29,6 +29,8 @@ Notes:
   false and neither the 'array_of_requests' nor the 'array_of_statuses' is
   modified.
 
+.N waitstatus
+
 .N fortran
 
 .N Errors
@@ -45,7 +47,9 @@ MPI_Status *array_of_statuses;
     int i, mpi_errno = MPI_SUCCESS;
     MPI_Request request;
     int nready;
+    static char myname[] = "MPI_TESTALL";
 
+    TR_PUSH(myname);
 #ifdef MPI_ADI2
     MPID_DeviceCheck( MPID_NOTBLOCKING );
   /* It is a good thing that the receive requests contain the status object!
@@ -258,9 +262,11 @@ MPI_Status *array_of_statuses;
 	    }
 
 	if (!request->chandle.persistent) {
-	    if (--request->chandle.datatype->ref_count <= 0) {
+	    MPIR_Type_free( &request->chandle.datatype );
+/*	    if (--request->chandle.datatype->ref _count <= 0) {
 		MPIR_Type_free( &request->chandle.datatype );
 		}
+		*/
 	    MPI_Request_free( &array_of_requests[i] );
 	    /* Question: should we ALWAYS set to null? */
 	    array_of_requests[i]    = NULL;
@@ -271,8 +277,9 @@ MPI_Status *array_of_statuses;
 	}
 
     if (mpi_errno) {
-	return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, "Error in MPI_TESTALL");
+	return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, myname );
 	}
 #endif
+    TR_POP;
     return mpi_errno;
 }

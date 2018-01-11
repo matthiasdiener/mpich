@@ -1,97 +1,54 @@
-/**\ --MPE_Log--
-*  * mpe_log.c - the externally callable functions in MPE_Log
-*  *
-*  * MPE_Log currently represents some code written by Dr. William
-*  * Gropp, stolen from Chameleon's 'blog' logging package and
-*  * modified by Ed Karrels, as well as some fresh code written
-*  * by Ed Karrels.
-*  *
-*  * All work funded by Argonne National Laboratory
-\**/
+/* mpe_log.c - the externally callable functions in MPE_Log
 
-#include <stdio.h>
-#include "mpi.h"
-#include "mpe.h"
+   New version to use CLOG - Bill Gropp and Rusty Lusk
 
-#define DEBUG 0
-#define DEBUG_FORMATRECORD 0
-#define DEBUG_RELOAD 0
-#define DEBUG_LINKS 0
-
-/* 
-   Include a definition of MALLOC and FREE to allow the use of Chameleon
-   memory debug code 
 */
-#ifdef DEVICE_CHAMELEON
-#include "mpisys.h"
-#else
-#define MALLOC(a) malloc(a)
-#define FREE(a)   free(a)
-#ifdef HAVE_STDLIB_H
-#include <stdlib.h>
-#endif
-#endif
 
+#include "clog.h"
+#include "clog_merge.h"
+#include "mpi.h"		/* why? */
+#include "mpe.h"		/* why? */
+#include "mpe_log.h"
+
+
+/* why this? */
 #ifdef USE_PMPI
 #define MPI_BUILD_PROFILING
 #include "mpiprof.h"
 #endif
 
-/* 
- * Here are some prototypes for the functions declared in these files
- */
-#if DEBUG
-void PrintSomeInts ANSI_ARGS(( FILE *, int *, int ));
-void PrintBlockLinks ANSI_ARGS(( FILE * ));
-void PrintRecode ANSI_ARGS(( FILE *, MPE_Log_HEADER * ));
-void PrintBlockChain ANSI_ARGS(( FILE *, MPE_Log_BLOCK * ));
-#endif
-void MPE_Log_adjtime1 ANSI_ARGS(( void ));
-int MPE_Log_FindSkew ANSI_ARGS(( double *, double * ));
-void MPE_Log_ApplyTimeCorrection ANSI_ARGS(( double, double ));
-int MPE_Log_adjusttimes ANSI_ARGS(( void ));
-int MPE_Log_adjust_time_origin ANSI_ARGS(( void ));
-
-#include "mpe_log.h"
-#include "mpe_log_genproc.h"
-
-#include "mpe_log_genproc.c"
-#include "mpe_log_adjusttime.c"
-#include "mpe_log_merge.c"
+/* temporarily borrowed from mpe_log_genproc.h */ /* try to replace by CLOG */
+int    MPE_Log_hasBeenInit = 0;
+int    MPE_Log_hasBeenClosed = 0;
+int    MPE_Log_clockIsRunning = 0;
+int    MPE_Log_isLockedOut = 0;
+int    MPE_Log_AdjustedTimes = 0;
+#define MPE_HAS_PROCID
+static int    MPE_Log_procid;
+/* end of borrowing */
 
 /*@
-    MPE_Initlog - Initialize for logging
+    MPE_Init_log - Initialize for logging
+
+    Notes:
+    Initializes the MPE logging package.  This must be called before any of
+    the other MPE logging routines.
+
+.seealso: MPE_Finish_log
 @*/
 int MPE_Init_log()
 {
-#if DEBUG
-  char fn[40];
-#endif
+    if (!MPE_Log_hasBeenInit || MPE_Log_hasBeenClosed) {
+	MPI_Comm_rank( MPI_COMM_WORLD, &MPE_Log_procid ); /* get process ID */
+	CLOG_Init();
+	CLOG_LOGCOMM(INIT, -1, (int) MPI_COMM_WORLD);
 
-  if (!MPE_Log_hasBeenInit || MPE_Log_hasBeenClosed) {
-    MPI_Comm_rank( MPI_COMM_WORLD, &MPE_Log_procid ); /* get process ID */
-#if DEBUG
-    sprintf( fn, "mpe_log_debug%d.out", MPE_Log_procid );
-    debug_file = fopen( fn, "w" );
-#endif
-    if (!MPE_Log_Flush()) {	/* get the first block for data */
-      fprintf(stderr, "MPE_Log: **** trace buffer creation failure ****\n");
-      return MPE_Log_NO_MEMORY;
+	MPE_Log_hasBeenInit = 1;	/* set MPE_Log as being initialized */
+	MPE_Log_hasBeenClosed = 0;
+	MPE_Log_isLockedOut = 0;
     }
-    MPE_Log_hasBeenInit = 1;	/* set MPE_Log as being initialized */
-    MPE_Log_hasBeenClosed = 0;
-    MPE_Log_isLockedOut = 0;
-      /* set MPE_Log as not being not closed, Startlog is not required */
-    MPI_Barrier( MPI_COMM_WORLD );
-    MPE_Log_init_clock();
-    MPE_Log_event(MPE_Log_EVENT_SYNC,0,(char *)0);   /* log a 'sync' event */
-  }
-  return MPE_Log_OK;
+    return MPE_Log_OK;
 }
-
-
-
-
 
 /*@
     MPE_Start_log - Begin logging of events
@@ -99,11 +56,10 @@ int MPE_Init_log()
 int MPE_Start_log()
 {
   if (!MPE_Log_hasBeenInit) return MPE_Log_NOT_INITIALIZED;
+  CLOG_status = 0;
   MPE_Log_isLockedOut = 0;
   return MPE_Log_OK;
 }
-
-
 
 /*@
     MPE_Stop_log - Stop logging events
@@ -112,11 +68,9 @@ int MPE_Stop_log()
 {
   if (!MPE_Log_hasBeenInit) return MPE_Log_NOT_INITIALIZED;
   MPE_Log_isLockedOut = 1;
+  CLOG_status = 1;
   return MPE_Log_OK;
 }
-
-
-
 
 /*@
     MPE_Describe_state - Create log record describing a state
@@ -124,106 +78,60 @@ int MPE_Stop_log()
     Notes:
     Adds string containing a state def to the logfile.  The format of the
     def is (LOG_STATE_DEF) 0 sevent eevent 0 0 "color" "name".
+
+.seealso: MPE_Log_get_event_number 
 @*/
 int MPE_Describe_state( start, end, name, color )
 int start, end;
 char *name, *color;
 {
-  char buf[150];
-  MPE_Log_HEADER *b;
-  MPE_Log_VFIELD *v;
-  int         i[2];
-  
+    int stateid;
 
-  if (!MPE_Log_hasBeenInit) return MPE_Log_NOT_INITIALIZED;
-#if DEBUG
-  fprintf( debug_file, "State :%s: %d %d defined.\n", name, start, end );
-      fflush( debug_file );
-#endif
+    if (!MPE_Log_hasBeenInit) return MPE_Log_NOT_INITIALIZED;
 
-  strncpy( buf, color, 150 );
-  strncat( buf, " ", 150 );
-  strncat( buf, name, 150 );
-  if (MPE_Log_i + MPE_Log_HEADERSIZE + MPE_Log_VFIELDSIZE(2) + 
-      MPE_Log_VFIELDSIZE((strlen(buf)+sizeof(int)-1)/sizeof(int))>
-      MPE_Log_size)
-    if (!MPE_Log_Flush()) return MPE_Log_NO_MEMORY;
+    stateid = CLOG_get_new_state();
+    CLOG_LOGSTATE( stateid, start, end, color, name);
 
-  b = (MPE_Log_HEADER *)((int *)(MPE_Log_thisBlock+1) + MPE_Log_i);
-  MPE_Log_ADDHEADER(b,LOG_STATE_DEF);
-  i[0] = start;
-  i[1] = end;
-  MPE_Log_ADDINTS(b,v,2,i);
-  MPE_Log_ADDSTRING(b,v,buf);
-#if DEBUG
-  fprintf( debug_file, "add state %s, record length %d, buffer size %d\n",
-	   name, b->len, MPE_Log_i);
-#endif
-  
-  return MPE_Log_OK;
+    return MPE_Log_OK;
 }
-
-
 
 /*@
     MPE_Describe_event - Create log record describing an event type
+    
+    Input Parameters:
+.   event - Event number
+.   name  - String describing the event. 
+
+.seealso: MPE_Log_get_event_number 
 @*/
 int MPE_Describe_event( event, name )
 int event;
 char *name;
 {
-  if (!MPE_Log_hasBeenInit) return MPE_Log_NOT_INITIALIZED;
-#if DEBUG
-  fprintf( debug_file, "Event :%s: %d defined.\n", name, event );
-      fflush( debug_file );
-#endif
-  MPE_Log_def (event, name);
-  return MPE_Log_OK;
+    if (!MPE_Log_hasBeenInit) return MPE_Log_NOT_INITIALIZED;
+
+    CLOG_LOGEVENT( event, name);
+
+    return MPE_Log_OK;
 }
-
-
 
 /*@
-    MPE_Log_message - log the sending or receiving of a message
+  MPE_Log_get_event_number - Gets an unused event number
+
+  Returns:
+  A value that can be provided to MPE_Describe_event or MPE_Describe_state
+  which will define an event or state not used before.  
+
+  Notes: 
+  This routine is provided to allow packages to ensure that they are 
+  using unique event numbers.  It relies on all packages using this
+  routine.
 @*/
-static int MPE_Log_message( type, otherParty, tag, size )
-int type, otherParty, tag, size;
+int MPE_Log_get_event_number( )
+
 {
-  MPE_Log_HEADER *b;
-  MPE_Log_VFIELD *v;
-
-  if (!MPE_Log_hasBeenInit) return MPE_Log_NOT_INITIALIZED;
-  if (MPE_Log_isLockedOut) return MPE_Log_LOCKED_OUT;
-  
-#if DEBUG>1
-  fprintf( debug_file, "[%d] %s %d bytes with tag %d %s %d at %10.5lf\n",
-	  MPE_Log_procid, type==LOG_MESG_SEND?"send":"receive", size, tag,
-	  type==LOG_MESG_SEND?"to":"from", otherParty, MPI_Wtime() );
-  fflush( debug_file );
-#endif
-
-  /*              header (w/event)     data                 string */
-  if (MPE_Log_i + MPE_Log_HEADERSIZE + MPE_Log_VFIELDSIZE(1)*3 >
-      MPE_Log_size) {
-    /* fprintf(stderr,"allocate more memory\n"); */
-    if (!MPE_Log_Flush()) return MPE_Log_NO_MEMORY;
-      /* cannot allocate more memory */
-  }
-  
-  MPE_Log_ADDHEADER( b, type );
-  MPE_Log_ADDINTS (b, v, 1, &otherParty); /* store otherParty */
-  MPE_Log_ADDINTS (b, v, 1, &tag);	  /* store tag */
-  MPE_Log_ADDINTS (b, v, 1, &size);	  /* store size */
-
-#if DEBUG
-  fprintf( debug_file, "add event, record length %d, buffer size %d\n", b->len,
-	   MPE_Log_i);
-  fflush( debug_file );
-#endif
-
-  return MPE_Log_OK;
+    return CLOG_get_new_event();
 }
-
 
 /*@
     MPE_Log_send - Logs the sending of a message
@@ -231,11 +139,11 @@ int type, otherParty, tag, size;
 int MPE_Log_send( otherParty, tag, size )
 int otherParty, tag, size;
 {
-  MPE_Log_message( LOG_MESG_SEND, otherParty, tag, size );
-  return MPE_Log_OK;
+    char comment[20];
+    sprintf(comment, "%d %d", tag, size);
+    CLOG_LOGRAW( LOG_MESG_SEND, otherParty, comment );
+    return MPE_Log_OK;
 }
-
-
 
 /*@
     MPE_Log_receive - log the sending of a message
@@ -243,135 +151,48 @@ int otherParty, tag, size;
 int MPE_Log_receive( otherParty, tag, size )
 int otherParty, tag, size;
 {
-  MPE_Log_message( LOG_MESG_RECV, otherParty, tag, size );
-  return MPE_Log_OK;
+    char comment[20];
+    sprintf(comment, "%d %d", tag, size);
+    CLOG_LOGRAW( LOG_MESG_RECV, otherParty, comment );
+    return MPE_Log_OK;
 }
-
-
 
 /*@
     MPE_Log_event - Logs an event
+
+    Input Parameters:
+.   event - Event number
+.   data  - Integer data value
+.   string - Optional string describing event
 @*/
 int MPE_Log_event(event,data,string)
 int event, data;
 char *string;
 {
-  MPE_Log_HEADER *b;
-  MPE_Log_VFIELD *v;
-  int str_len,	    /* length of the string */
-      str_store;    /* # of ints needed to store the string */
-
-  if (!MPE_Log_hasBeenInit) return MPE_Log_NOT_INITIALIZED;
-  if (MPE_Log_isLockedOut) return MPE_Log_LOCKED_OUT;
-
-  if (!string) {
-    string	= "";
-    str_len	= 0;
-    str_store	= 0;
-  }
-  else {
-    str_len	= strlen(string);
-    str_store	= str_len / sizeof(int) + 1;
-  }
-
-#if DEBUG_LINKS
-PrintBlockLinks( debug_file );
-      fflush( debug_file );
-#endif
-
-#if DEBUG>1
-fprintf( debug_file, "[%d] event %d at %10.5lf\n", MPE_Log_procid, event,
-	 MPI_Wtime() );
-      fflush( debug_file );
-#endif
-  /*              header (w/event)     data                 string */
-  if (MPE_Log_i + MPE_Log_HEADERSIZE + MPE_Log_VFIELDSIZE(1) +
-      MPE_Log_VFIELDSIZE(str_store) > MPE_Log_size) {
-    /* fprintf(stderr,"allocate more memory\n"); */
-    if (!MPE_Log_Flush()) return MPE_Log_NO_MEMORY;
-      /* cannot allocate more memory */
-  }
-  
-  MPE_Log_ADDHEADER (b, event);
-  MPE_Log_ADDINTS (b, v, 1, &data);	/* add one int to the definition */
-  
-  if (MPE_Log_i + MPE_Log_VFIELDSIZE(str_store) > MPE_Log_size) {
-    
-
-    /* fprintf(stderr,"long string cut, %d %d %d ints used for headers\n", 
-       MPE_Log_HEADERSIZE, MPE_Log_VFIELDSIZE(1), MPE_Log_VFIELDSIZE(0)); */
-    
-    v           = (MPE_Log_VFIELD *)((int *)(MPE_Log_thisBlock+1) + MPE_Log_i);
-    str_store   = MPE_Log_size - MPE_Log_i - MPE_Log_VFIELDSIZE(0);
-    str_len     = str_store*sizeof( int )-1;
-    v->len      = MPE_Log_VFIELDSIZE(str_store);  /* size of 'v' in ints */
-    b->len      += v->len;
-    v->dtype    = MPE_Log_CHAR;
-    memcpy( v->other, string, str_len);
-    ((char *)(v->other))[str_len]=0;   /* terminate string */
-    MPE_Log_i   += v->len;
-  } else {
-    v           = (MPE_Log_VFIELD *)((int *)(MPE_Log_thisBlock+1) + MPE_Log_i);
-    v->len      = MPE_Log_VFIELDSIZE(str_store);
-    b->len      += v->len;
-    v->dtype    = MPE_Log_CHAR;
-    memcpy( v->other, string, str_len+1 );
-    MPE_Log_i   += v->len;
-  }
-#if DEBUG
-  fprintf( debug_file, "add event, record length %d, buffer size %d\n", b->len,
-	   MPE_Log_i);
-  fflush( debug_file );
-#endif
-  return MPE_Log_OK;
+    CLOG_LOGRAW( event, data, string );
+    return MPE_Log_OK;
 }
-
 
 /*@
     MPE_Finish_log - Send log to master, who writes it out
 
     Notes:
-    This routine dumps a logfile in alog format
+    This routine dumps a logfile in clog format
 @*/
 int MPE_Finish_log( filename )
 char *filename;
 {
-  int returnStatus;
-  int *is_globalp, flag;
+    int shift;
+    int *is_globalp, flag;
 
-  if (!MPE_Log_hasBeenInit) return MPE_Log_NOT_INITIALIZED;
-  if (!MPE_Log_hasBeenClosed) {
-    MPE_Log_isLockedOut = 1;
-    MPI_Barrier(MPI_COMM_WORLD );
-    MPE_Log_isLockedOut = 0;
-    MPE_Log_event(MPE_Log_EVENT_SYNC,0,(char *)0);  /* log a 'sync' event */
-    MPE_Log_isLockedOut = 1;
-    MPE_Log_thisBlock->size = MPE_Log_i;
-#if DEBUG
-    fprintf( debug_file, "adjusting times\n" );
-    PrintBlockChain( debug_file, MPE_Log_firstBlock );
-      fflush( debug_file );
-#endif
+    CLOG_Finalize();
+
     MPI_Attr_get( MPI_COMM_WORLD, MPI_WTIME_IS_GLOBAL, &is_globalp, &flag );
-    if (!flag || (is_globalp && !*is_globalp)) {
-	/* Adjust the times ONLY if the timer is not global */
-	MPE_Log_adjusttimes();
-	}
-    else {
-	MPE_Log_adjust_time_origin();
-	}
-#if DEBUG
-    fprintf( debug_file, "parallel merge\n" );
-      fflush( debug_file );
-#endif
-    if ((returnStatus=MPE_Log_ParallelMerge( filename ))) 
-      return returnStatus;
-    MPE_Log_hasBeenClosed = 1;
-  }
-  return MPE_Log_OK;
+    if (!flag || (is_globalp && !*is_globalp))
+	shift = CMERGE_SHIFT;
+    else
+        shift = CMERGE_NOSHIFT;
+    CLOG_mergelogs(shift, filename, ALOG_LOG ); /* for time being always alog*/
+    return MPE_Log_OK;
 }
 
-#undef DEBUG
-#undef DEBUG_FORMATRECORD
-#undef DEBUG_RELOAD
-#undef DEBUG_LINKS

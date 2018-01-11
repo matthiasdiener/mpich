@@ -5,8 +5,11 @@
 $debug = 0;
 $username = getlogin || (getpwuid($<))[0] ;
 # restart_serv = 1 DOES NOT WORK because of bugs in perl.
+# (I've worked around this bug below, but it is pretty hideous)
 $restart_serv = 0;
 $serv_p4 = "/home/MPI/mpich/lib/sun4/ch_p4/serv_p4";
+$server_name = "serv_p4";
+$run_dir = "$HOME";
 $kill_serv = 0;
 $rsh = "rsh";
 #
@@ -30,12 +33,20 @@ while ($_ = $ARGV[0]) {
 	$portnum = $ARGV[0];
 	shift;
         }
+    elsif ($_ eq "-startdir") {
+	$run_dir = $ARGV[0];
+        shift;
+        }
     elsif ($_ eq "-machinelist") {
 	$machinelist = $ARGV[0];
 	shift;
 	}
     elsif ($_ eq "-server") {
 	$serv_p4 = $ARGV[0];
+	shift;
+	}
+    elsif ($_ eq "-pgm") {
+	$serv_p4 = "/home/MPI/mpich/lib/sun4/ch_p4/$ARGV[0]";
 	shift;
 	}
     elsif ($_ eq "-restart") {
@@ -49,6 +60,9 @@ while ($_ = $ARGV[0]) {
 	$kill_serv = 1;
 	}
     else {
+	print "chkserv [ -port num ] [ -restart ] [ -machinelist file ]";
+        print "        [ -user name ] [ -server pgm ]";
+        if ($_ eq "-help") { exit 1; }
 	die "Unrecognized argument $_\n";
 	}
     }
@@ -57,18 +71,34 @@ if ($username eq "") {
     die "Could not get username!\n";
     }
 #
+# If the program name was just the name without the location, try a
+# default location.
+if (! -x $serv_p4 ) {
+    $serv_p4 = "/home/MPI/mpich/lib/sun4/ch_p4/$serv_p4";
+    }
+if (! -x $serv_p4 ) {
+    die "$serv_p4 is not executable!\n";
+    }
+#
 #
 open( FLIST, $machinelist ) || die "Could not open $machinelist" ;
 # Force output to be flushed
 $| = 1;
 #
 # See perlipc for an example of a tcp client
+# Because of bugs in perl, we should really read the file into a perl
+# variable (array?) and then operate on that array.
+#
+# We start in the indicated directory ($HOME by default)
+chdir $run_dir ;
+#
 while (<FLIST>) {
     # Skip comment lines
     if (/^#/) { next ; }
     # Setup socket
     $sockaddr = 'S n a4 x8';
-    chop($hostname = $_);
+    chop;
+    ($hostname,$clustersize) = split(/:/);
     print "Read $hostname from process $$\n" if $debug; 
     ($name,$aliases,$proto) = getprotobyname('tcp');
 #    ($name,$aliases,$port)  = getservbyname($portnum,'tcp') 

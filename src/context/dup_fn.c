@@ -1,5 +1,5 @@
 /*
- *  $Id: dup_fn.c,v 1.8 1996/01/08 19:48:40 gropp Exp $
+ *  $Id: dup_fn.c,v 1.9 1997/02/18 23:06:13 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,11 +7,11 @@
 
 #include "mpiimpl.h"
 
-/*@
+/*D
   
 MPI_DUP_FN - A function to simple-mindedly copy attributes  
 
-@*/
+D*/
 int MPIR_dup_fn ( comm, keyval, extra_state, attr_in, attr_out, flag )
 MPI_Comm  comm;
 int       keyval;

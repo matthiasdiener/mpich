@@ -24,7 +24,7 @@ int data_len, data_type;
     struct p4_msg *tmsg;
 
     status = send_message(type, p4_get_my_id(), 0xffff, data, data_len,
-		          data_type, FALSE, FALSE);
+		          data_type, P4_FALSE, P4_FALSE);
     req_type = type;
     req_from = p4_get_my_id();
     tmsg = recv_message(req_type,req_from); /* ncube broadcast comes back */
@@ -43,7 +43,7 @@ int data_len, data_type;
     {
 	/* send to node 0 for rest of tree */
 	status = send_message(type, p4_get_my_id(), 0, data, data_len,
-			      data_type, P4_BROADCAST_MASK, FALSE);
+			      data_type, P4_BROADCAST_MASK, P4_FALSE);
     }
     if (status && !(SOFTERR))
 	p4_error("p4_broadcast failed, type=", type);
@@ -78,7 +78,7 @@ int type, from, data_len, data_type;
 	if (nodes[i] > 0  &&  nodes[i] != from)
 	{
 	    if (send_message(type, from, nodes[i], data, data_len,
-			     data_type, P4_BROADCAST_MASK, FALSE))
+			     data_type, P4_BROADCAST_MASK, P4_FALSE))
 	    {
 		status = -1;
 		break;

@@ -8,7 +8,8 @@ print_error() {
     }
 print_usage() {
 cat <<.
-Usage: ${progname} [-tcldir=TCLDIR] [-tkdir=TKDIR] [-opt=OPTFLAGS]
+Usage: ${progname} [-tcldir=TCLDIR] [-tkdir=TKDIR] [-opt=OPTFLAGS] 
+                   [-cc=C_COMPILER] [-cflags=CFLAGS]
 
 where
    TCLDIR       = Directory containing tcl.  Must have lib/libtcl.a and
@@ -16,6 +17,8 @@ where
    TKDIR        = Directory containing tk 3.3 or later.  Must have lib/libtk.a
                   and include/tk.h .  May be the same as TCLDIR.
    OPTFLAGS     = Flags for compiling (e.g., -g or -O)
+   CFLAGS       = flags to give C compiler
+   C_COMPILER   = Name of C compiler
 .
 }
 
@@ -43,6 +46,17 @@ do
       set -x
       ;;
  
+    -cc=* | --cc=*)
+	CC=`echo $arg|sed 's/-*cc=//'`
+	USERCC=1
+	;;
+
+    -cflags=* | --cflags=*)
+       package="`echo $arg|sed 's/-*cflags=//'`"
+       USER_CFLAGS="$package"
+       CFLAGS="$CFLAGS $package" ;;
+
+
    *)
       echo "Unrecognized argument $arg"
       exit 1
@@ -264,7 +278,7 @@ AC_SUBST(XPMLIB)
 AC_SUBST(TCL_DIR)
 AC_SUBST(TK_DIR)
 
-
+AC_SUBST(USER_CFLAGS)
 AC_SUBST(OPTFLAGS)
 
 AC_OUTPUT(Makefile)

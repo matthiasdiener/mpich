@@ -1,5 +1,5 @@
 /*
- *  $Id: sendrecv.c,v 1.13 1996/06/07 15:07:30 gropp Exp $
+ *  $Id: sendrecv.c,v 1.15 1997/02/18 23:05:35 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -55,7 +55,8 @@ MPI_Status   *status;
     MPI_Status        status_array[2];
     MPI_Request       req[2];
     MPIR_ERROR_DECL;
-    static char myname[] = "Error in MPI_SENDRECV";
+    struct MPIR_COMMUNICATOR *comm_ptr;
+    static char myname[] = "MPI_SENDRECV";
 
     /* Let the Isend/Irecv check arguments */
     /* Comments on this:
@@ -75,17 +76,27 @@ MPI_Status   *status;
        Thus, this code need not call the error handler AGAIN.
      */
 
-    MPIR_ERROR_PUSH(comm);
+    comm_ptr = MPIR_GET_COMM_PTR(comm);
+    MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+
+    MPIR_ERROR_PUSH(comm_ptr);
     MPIR_CALL_POP(MPI_Irecv ( recvbuf, recvcount, recvtype,
-		    source, recvtag, comm, &req[1] ),comm,myname);
+		    source, recvtag, comm, &req[1] ),comm_ptr,myname);
     MPIR_CALL_POP(MPI_Isend ( sendbuf, sendcount, sendtype, dest,   
-			    sendtag, comm, &req[0] ),comm,myname);
+			    sendtag, comm, &req[0] ),comm_ptr,myname);
     /* FPRINTF( stderr, "[%d] Starting waitall\n", MPIR_tid );*/
-    MPIR_CALL_POP(MPI_Waitall ( 2, req, status_array ),comm,myname);
-    MPIR_ERROR_POP(comm);
+    mpi_errno = MPI_Waitall( 2, req, status_array );
+    /* We don't use MPIR_CALL_POP because we want to convert
+       error in status to the direct error */
+    /* MPIR_CALL_POP(MPI_Waitall ( 2, req, status_array ),comm_ptr,myname); */
+    MPIR_ERROR_POP(comm_ptr);
     /*FPRINTF( stderr, "[%d] Ending waitall\n", MPIR_tid );*/
 
+    if (mpi_errno == MPI_ERR_IN_STATUS) {
+	if (status_array[0].MPI_ERROR) mpi_errno = status_array[0].MPI_ERROR;
+	if (status_array[1].MPI_ERROR) mpi_errno = status_array[1].MPI_ERROR;
+    }
     (*status) = status_array[1];
-    return (mpi_errno);
+    MPIR_RETURN(comm_ptr,mpi_errno,myname);
 }
 

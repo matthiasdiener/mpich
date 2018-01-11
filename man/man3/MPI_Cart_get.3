@@ -1,4 +1,4 @@
-.TH MPI_Cart_get 3 "4/12/1996" " " "MPI"
+.TH MPI_Cart_get 3 "1/6/1997" " " "MPI"
 .SH NAME
 MPI_Cart_get \-  Retrieves Cartesian topology information associated with a  communicator 
 .SH SYNOPSIS
@@ -110,6 +110,14 @@ when expecting
 - Invalid communicator.  A common error is to use a null
 communicator in a call (not even allowed in 
 .I MPI_Comm_rank
+).
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_ARG 
+- Invalid argument.  Some argument is invalid and is not
+identified by a specific error class (e.g., 
+.I MPI_ERR_RANK
 ).
 .PD 1
 .SH LOCATION

@@ -1,0 +1,8 @@
+Makefile
+makefile_header
+stamp-h
+config.log
+config.status
+config.guess
+config.sub
+ports0_config.h

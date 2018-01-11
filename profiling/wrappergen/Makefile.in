@@ -3,7 +3,7 @@
 
 MPIR_HOME = @MPIR_HOME@
 OPTFLAGS  = @OPTFLAGS@
-CLINKER   = cc
+CLINKER   = $(CC)
 
 EXECS = wrappergen write_proto
 MPI_PROTO = '-DPROTO_FILE="$(MPIR_HOME)/profiling/wrappergen/mpi_proto"'

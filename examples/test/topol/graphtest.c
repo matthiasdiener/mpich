@@ -13,12 +13,12 @@
 
 #include "mpi.h"
 #include <stdio.h>
-#include <memory.h>
 /* stdlib.h Needed for malloc declaration */
 #include <stdlib.h>
+#include "test.h"
 
-void NumberEdges();
-void PrintGraph();
+void NumberEdges ANSI_ARGS(( int **, int **, int, int, int ));
+void PrintGraph ANSI_ARGS(( int, int *, int * ));
 
 int main( argc, argv )
 int  argc;

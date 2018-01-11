@@ -1,11 +1,8 @@
-#ifndef lint
-static char vcid[] = "$Id: sigchk.c,v 1.3 1995/07/26 16:58:38 gropp Exp $";
-#endif
-
 /* This file provides routines to check for the use of signals by software */
 
 #include <stdio.h>
 #include <signal.h>
+#include "test.h"
 
 int SYiCheckSig( fp, sig, signame )
 FILE *fp;

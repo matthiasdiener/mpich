@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_util.c,v 1.25 1996/06/07 15:08:25 gropp Exp $
+ *  $Id: attr_util.c,v 1.29 1997/01/07 01:47:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -35,7 +35,7 @@ MPIR_Attr_copy_node -
 
  */
 int MPIR_Attr_copy_node ( comm, comm_new, node )
-MPI_Comm comm, comm_new;
+struct MPIR_COMMUNICATOR *comm, *comm_new;
 MPIR_HBT_node *node;
 {
   void          *attr_val;
@@ -45,17 +45,13 @@ MPIR_HBT_node *node;
   int            attr_ival;
   int            mpi_errno = MPI_SUCCESS;
 
-#ifdef INT_LT_POINTER
-  attr_key = (MPIR_Attr_key *)MPIR_ToPointer( node->keyval );
-#else
-  attr_key = (MPIR_Attr_key *)(node->keyval);
-#endif
+  attr_key = node->keyval;
 
   if (!attr_key MPIR_TEST_COOKIE(attr_key,MPIR_ATTR_COOKIE)) {
       return MPIR_ERROR( comm, MPI_ERR_INTERN, "Corrupted attribute key" );
   }
 #ifdef FOO
-  attr_key->ref_count ++;
+  MPIR_REF_INCR(attr_key);
 #ifdef DEBUG_ATTR
   PRINTF( "incr attr_key ref to %d for %ld in %ld, copy to comm %ld\n", 
 	  attr_key->ref_count, (long)attr_key, (long)comm, (long)comm_new );
@@ -68,23 +64,24 @@ MPIR_HBT_node *node;
 	  /* We may also need to do something about the "comm" argument */
 	  MPI_Aint  invall = (MPI_Aint)node->value;
           int inval = (int)invall;
-          mpi_errno = (*(attr_key->copy_fn.f77_copy_fn))(comm, &node->keyval, 
+          (*(attr_key->copy_fn.f77_copy_fn))(comm->self, &node->keyval->self, 
                                              attr_key->extra_state,
                                              &inval, 
-                                             &attr_ival, &flag );
+                                             &attr_ival, &flag, &mpi_errno );
           attr_val = (void *)(MPI_Aint)attr_ival;
           flag = MPIR_FROM_FLOG(flag);
 	  }
       else {
-          mpi_errno = (*(attr_key->copy_fn.c_copy_fn))(comm, node->keyval, 
+          mpi_errno = (*(attr_key->copy_fn.c_copy_fn))(comm->self, 
+						       node->keyval->self, 
                                              attr_key->extra_state,
                                              node->value, &attr_val, &flag );
       }
-      if (flag) {
+      if (flag && !mpi_errno) {
 #ifdef DEBUG_ATTR
 	  PRINTF( ".. inserting attr into comm %ld\n", comm_new );
 #endif	  
-  attr_key->ref_count ++;
+  MPIR_REF_INCR(attr_key);
 #ifdef DEBUG_ATTR
   PRINTF( "incr attr_key ref to %d for %ld in %ld, copy to comm %ld\n", 
 	  attr_key->ref_count, (long)attr_key, (long)comm, (long)comm_new );
@@ -106,7 +103,7 @@ MPIR_Attr_copy_subtree -
 
 +*/
 int MPIR_Attr_copy_subtree ( comm, comm_new, tree, subtree )
-MPI_Comm comm, comm_new;
+struct MPIR_COMMUNICATOR *comm, *comm_new;
 MPIR_HBT tree;
 MPIR_HBT_node *subtree;
 {
@@ -131,7 +128,7 @@ MPIR_Attr_copy - copy a tree of attributes
 
 +*/
 int MPIR_Attr_copy ( comm, comm_new )
-MPI_Comm comm, comm_new;
+struct MPIR_COMMUNICATOR *comm, *comm_new;
 {
   int mpi_errno = MPI_SUCCESS;
 
@@ -162,23 +159,20 @@ MPIR_Attr_free_node -
 
 +*/
 int MPIR_Attr_free_node ( comm, node )
-MPI_Comm comm;
+struct MPIR_COMMUNICATOR *comm;
 MPIR_HBT_node *node;
 {
   MPIR_Attr_key *attr_key;
+  int           mpi_errno = MPI_SUCCESS;
 
-#ifdef INT_LT_POINTER
-  attr_key = (MPIR_Attr_key *)MPIR_ToPointer( node->keyval );
-#else
-  attr_key = (MPIR_Attr_key *)(node->keyval);
-#endif
+  attr_key = node->keyval;
 
   if (!attr_key MPIR_TEST_COOKIE(attr_key,MPIR_ATTR_COOKIE)) {
       return MPIR_ERROR( comm, MPI_ERR_INTERN, "Corrupted attribute key" );
   }
 
   if ( (node != (MPIR_HBT_node *)0) && (attr_key != 0) ) {
-      attr_key->ref_count --;
+      MPIR_REF_DECR(attr_key);
 #ifdef DEBUG_ATTR
   PRINTF( "decr attr_key ref to %d for attr %ld in comm %ld\n", 
 	  attr_key->ref_count, (long)attr_key, (long)comm );
@@ -188,26 +182,25 @@ MPIR_HBT_node *node;
 	    MPI_Aint  invall = (MPI_Aint)node->value;
 	    int inval = (int)invall;
 	    /* We may also need to do something about the "comm" argument */
-	    (void ) (*(attr_key->delete_fn.f77_delete_fn))(comm, 
-					     &node->keyval, 
+	    (void ) (*(attr_key->delete_fn.f77_delete_fn))(comm->self, 
+					     &node->keyval->self, 
 					     &inval, 
-					     attr_key->extra_state);
+					   attr_key->extra_state, &mpi_errno );
 	    node->value = (void *)(MPI_Aint)inval;
 	    }
 	else
-	    (void ) (*(attr_key->delete_fn.c_delete_fn))(comm, node->keyval, 
+	    mpi_errno = (*(attr_key->delete_fn.c_delete_fn))(comm->self, 
+					     node->keyval->self, 
 					     node->value, 
 					     attr_key->extra_state);
 	}
     if (attr_key->ref_count <= 0) {
-	MPIR_SET_COOKIE(attr_key,0);
+	MPIR_CLR_COOKIE(attr_key);
+	MPIR_RmPointer( node->keyval->self );
 	FREE( attr_key );
-#ifdef INT_LT_POINTER
-	MPIR_RmPointer( node->keyval );
-#endif
     }
-    }
-  return (MPI_SUCCESS);
+  }
+  return (mpi_errno);
 }
 
 /*+
@@ -216,15 +209,21 @@ MPIR_Attr_free_subtree -
 
 +*/
 int MPIR_Attr_free_subtree ( comm, subtree )
-MPI_Comm comm;
+struct MPIR_COMMUNICATOR *comm;
 MPIR_HBT_node *subtree;
 {
-  if(subtree != (MPIR_HBT_node *)0) {
-    (void) MPIR_Attr_free_subtree ( comm, subtree -> left );
-    (void) MPIR_Attr_free_subtree ( comm, subtree -> right );
-    (void) MPIR_Attr_free_node ( comm, subtree );
-  }
-  return (MPI_SUCCESS);
+    int mpi_errno, rc;
+
+    mpi_errno = MPI_SUCCESS;
+    if(subtree != (MPIR_HBT_node *)0) {
+	rc = MPIR_Attr_free_subtree ( comm, subtree -> left );
+	if (rc) mpi_errno = rc;
+	rc = MPIR_Attr_free_subtree ( comm, subtree -> right );
+	if (rc) mpi_errno = rc;
+	rc = MPIR_Attr_free_node ( comm, subtree );
+	if (rc) mpi_errno = rc;
+    }
+    return mpi_errno;
 }
 
 /*+
@@ -233,17 +232,22 @@ MPIR_Attr_free_tree -
 
 +*/
 int MPIR_Attr_free_tree ( comm )
-MPI_Comm comm;
+struct MPIR_COMMUNICATOR *comm;
 {
+    int mpi_errno = MPI_SUCCESS;
+    int rc;
 #ifdef DEBUG_ATTR
    PRINTF( "FreeTree:Freeing attr tree for %ld, attr cache %ld\n", (long) comm,
 	   (long)comm->attr_cache );
 #endif
   if ( ( comm != MPI_COMM_NULL ) && ( comm->attr_cache != (MPIR_HBT)0 ) ) {
     if (comm->attr_cache->ref_count <= 1) {
-      if ( comm->attr_cache->root != (MPIR_HBT_node *)0 )
-        (void) MPIR_Attr_free_subtree ( comm, comm->attr_cache->root );
-      (void) MPIR_HBT_free_tree ( comm->attr_cache );
+	if ( comm->attr_cache->root != (MPIR_HBT_node *)0 ) {
+	  rc = MPIR_Attr_free_subtree ( comm, comm->attr_cache->root );
+	  if (rc) mpi_errno = rc;
+	}
+      rc = MPIR_HBT_free_tree ( comm->attr_cache );
+      if (rc) mpi_errno = rc;
     }
     else {
 #ifdef DEBUG_ATTR
@@ -251,7 +255,7 @@ MPI_Comm comm;
 		(long)comm->attr_cache, 
 		(long)comm, comm->attr_cache->ref_count-1  );
 #endif	
-      comm->attr_cache->ref_count--;
+      MPIR_REF_DECR(comm->attr_cache);
     }
   }
 #ifdef DEBUG_ATTR
@@ -261,7 +265,7 @@ MPI_Comm comm;
       PRINTF( "No attr cache\n" );
   PRINTF( "FreeTree: done\n" );
 #endif
-  return (MPI_SUCCESS);
+  return mpi_errno;
 }
 
 /*+
@@ -274,11 +278,12 @@ implementation of the collective routines by point-to-point routines
 
 +*/
 int MPIR_Attr_dup_tree ( comm, new_comm )
-MPI_Comm comm, new_comm;
+struct MPIR_COMMUNICATOR *comm, *new_comm;
 {
-  if ( comm->attr_cache != (MPIR_HBT)0 )
-    comm->attr_cache->ref_count++;
-  new_comm->attr_cache = comm->attr_cache;
+    if ( comm->attr_cache != (MPIR_HBT)0 ) {
+	MPIR_REF_INCR(comm->attr_cache);
+    }
+    new_comm->attr_cache = comm->attr_cache;
 #ifdef DEBUG_ATTR
     PRINTF( "Incr attr_cache (%ld) ref count to %d in comm %ld for dup\n", 
 	    (long)comm->attr_cache, comm->attr_cache->ref_count, (long)comm );
@@ -292,7 +297,7 @@ MPIR_Attr_create_tree -
 
 +*/
 int MPIR_Attr_create_tree ( comm )
-MPI_Comm comm;
+struct MPIR_COMMUNICATOR *comm;
 {
   (void) MPIR_HBT_new_tree ( &(comm->attr_cache) );
 #ifdef DEBUG_ATTR
@@ -303,6 +308,10 @@ MPI_Comm comm;
   return (MPI_SUCCESS);
 }
 
+/* 
+ * Special feature - if *keyval is not 0, then use that value 
+ * as a predefined value.
+ */
 int MPIR_Keyval_create ( copy_fn, delete_fn, keyval, extra_state, is_fortran )
 MPI_Copy_function   *copy_fn;
 MPI_Delete_function *delete_fn;
@@ -312,24 +321,25 @@ int                 is_fortran;
 {
   MPIR_Attr_key *new_key;
 
-  MPIR_ALLOC(new_key,NEW(MPIR_Attr_key),MPI_COMM_WORLD,MPI_ERR_EXHAUSTED, 
+  MPIR_ALLOC(new_key,NEW(MPIR_Attr_key),MPIR_COMM_WORLD,MPI_ERR_EXHAUSTED, 
 				  "Out of space in MPI_KEYVAL_CREATE" );
-
   /* This still requires work in the Fortran interface, in case
      sizeof(int) == sizeof(double) = sizeof(void*) */
-#ifdef INT_LT_POINTER
-  (*keyval)		  = MPIR_FromPointer( (void *)new_key );
-#else  
-  (*keyval)		  = (int)new_key;
-#endif
+  if (*keyval)
+      MPIR_RegPointerIdx( *keyval, new_key );
+  else
+      (*keyval)		  = MPIR_FromPointer( (void *)new_key );
+  new_key->self = *keyval;
+
   /* SEE ALSO THE CODE IN ENV/INIT.C; IT RELIES ON USING KEY AS THE
      POINTER TO SET THE PERMANENT FIELD */
   if (is_fortran) {
       new_key->copy_fn.f77_copy_fn      = 
-	  (int (*)ANSI_ARGS(( MPI_Comm, int *, int *, int *, int *, 
-				   int * )))copy_fn;
+	  (void (*)ANSI_ARGS(( MPI_Comm, int *, int *, int *, int *, 
+				   int *, int * )))copy_fn;
       new_key->delete_fn.f77_delete_fn  = 
-	  (int (*)ANSI_ARGS(( MPI_Comm, int *, int *, void *)))delete_fn;
+	  (void (*)ANSI_ARGS(( MPI_Comm, int *, int *, void *, int*)))
+	  delete_fn;
   }
   else {
       new_key->copy_fn.c_copy_fn      = copy_fn;
@@ -351,10 +361,6 @@ int keyval;
 {
     MPIR_Attr_key *attr_key;
 
-#ifdef INT_LT_POINTER
-    attr_key = (MPIR_Attr_key *)MPIR_ToPointer( keyval );
-#else
-    attr_key = (MPIR_Attr_key *)keyval;
-#endif
+    attr_key = MPIR_GET_KEYVAL_PTR( keyval );
     attr_key->permanent = 1;
 }

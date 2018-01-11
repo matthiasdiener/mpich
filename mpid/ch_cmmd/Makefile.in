@@ -1,53 +1,93 @@
 #
-#  $Id: Makefile.in,v 1.3 1994/04/01 23:34:00 gropp Exp $
+#  $Id: Makefile.in,v 1.1 1997/01/20 21:17:44 gropp Exp $
 #
-#  (C) 1993 by Argonne National Laboratory and Mississipi State University.
+#  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
+#
+# Eventually, there will be two sets of routines
+#
 #
 ##### User configurable options #####
 
 ARCH        = @ARCH@
 COMM        = @COMM@
 DEVICE      = @DEVICE@
-BOPT        = @BOPT@
 MPIR_HOME   = @MPIR_HOME@
 INCLUDE_DIR = @INCLUDE_PATH@ -Impid/@DEVICE@ -Iinclude
 CC          = @CC@
 AR          = @AR@
 RANLIB      = @RANLIB@
 OPTFLAGS    = @OPTFLAGS@
-
+SHELL       = /bin/sh
+ASMFILES_O  = @ASMFILES_O@
 ### End User configurable options ###
 
-ALL: default
-default: ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
+#ALL: default
+ALL: libdev
 
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
-CFLAGS   = @CFLAGS@ $(OPTFLAGS) -I../.. -I../../include -I./ \
-	-DMPID_DEVICE_CODE @DEVCFLAGS@
-SOURCE   = cmmdevent.c cmmdrecv.c cmmdsend.c cmmdinit.c cmmdprobe.c \
-	   cmmdsync.c cmmddebug.c
+LIBDEV   = libmpid.a
+CFLAGS   = @CFLAGS@ $(OPTFLAGS) @OPTFLAGSC@ \
+	   	-I../.. -I../../include -I./ -I../ch2 \
+		-I../util \
+		-DMPID_DEVICE_CODE @GETNAME_DEFS@ @DEVCFLAGS@ @DEV_DEFS@
+# See mpid/ch_adi2/Makefile.in for a full list
+SOURCE   = adi2recv.c adi2send.c adi2init.c adi2probe.c adi2ssend.c \
+	   adi2hsend.c adi2hrecv.c adi2hssend.c adi2pack.c adi2mpack.c \
+	   adi2req.c adi2cancel.c \
+	   chbeager.c chneager.c chnrndv.c chdebug.c chchkdev.c chshort.c \
+	   chinit.c chnodename.c chtick.c mplpriv.c queue.c cmnargs.c \
+	   mprerr.c tr2.c sbcnst2.c @DEVCFILES@
 SOURCEC  = $(SOURCE)
 SOURCEF  =
-MPI_OBJECTS = cmmdevent.o cmmdrecv.o cmmdsend.o cmmdinit.o cmmdprobe.o \
-	      cmmdsync.o cmmddebug.o
+MPI_OBJECTS = adi2recv.o adi2send.o adi2init.o adi2probe.o adi2ssend.o \
+	      adi2hsend.o adi2hrecv.o adi2hssend.o adi2pack.o adi2mpack.o \
+	      adi2req.o adi2cancel.o \
+	      chbeager.o chneager.o chnrndv.o chdebug.o chchkdev.o chshort.o \
+	      chinit.o chnodename.o chtick.o mplpriv.o queue.o cmnargs.o \
+	      tr2.o sbcnst2.o \
+	      $(ASMFILES_O) @DEVOFILES@
+
+default: $(LIBNAME)
+libdev: $(LIBDEV)
+
+$(SOURCE): ../ch2/mpid.h chdef.h
 
 # default_all is the same as default, but without the RANLIB.  This
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
-default_all: $(MPI_OBJECTS)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $?
+default_all: setlinks default_files
+default_files: $(MPI_OBJECTS)
+	$(AR) $(LIBNAME) $?
 profile_all: 
 
 clean:
-	/bin/rm -f *~ $(MPI_OBJECTS) 
+	/bin/rm -f *~ $(MPI_OBJECTS) libmpid.a mprerr.o
 
+setlinks:
+	for file in $(SOURCE) ; do  \
+	    if [ ! -s $$file -a -s ../ch2/$$file ] ; then \
+	 	ln -s ../ch2/$$file $$file ; fi ; \
+	    if [ ! -s $$file -a -s ../util/$$file ] ; then \
+		ln -s ../util/$$file $$file ; fi ; \
+	done
 .c.o:
+	if [ ! -s $*.c ] ; then ln -s ../ch2/$*.c $*.c ; fi
 	$(CC) $(CFLAGS) $(BASEOPT) -c $*.c $(MPI_PROFILE)
+
+.c.s:
+	$(CC) $(CFLAGS) $(BASEOPT) -c -S $*.c $(MPI_PROFILE)
 
 ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
 	$(AR) $@ $?
 	$(RANLIB) $@
 
+libmpid.a: $(MPI_OBJECTS) mprerr.o
+	$(AR) $@ $?
+	$(RANLIB) $@
 
+lint:
+	lint -chvuz -I../.. -I../../include -I../ch2 \
+		-I./ \
+	-DMPID_DEVICE_CODE $(SOURCE) ../util/queue.c ../util/cmnargs.c
 

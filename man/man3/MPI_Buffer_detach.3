@@ -1,4 +1,4 @@
-.TH MPI_Buffer_detach 3 "4/11/1996" " " "MPI"
+.TH MPI_Buffer_detach 3 "1/6/1997" " " "MPI"
 .SH NAME
 MPI_Buffer_detach \-  Removes an existing buffer (for use in MPI_Bsend etc) 
 .SH SYNOPSIS
@@ -27,6 +27,7 @@ returns the address and size of the
 buffer being detached is to allow nested libraries to replace and restore
 the buffer.  For example, consider
 
+.nf
 int size, mysize, idummy;
 void *ptr, *myptr, *dummy;     
 MPI_Buffer_detach( &ptr, &size );
@@ -36,9 +37,27 @@ MPI_Buffer_attach( myptr, mysize );
 ...
 MPI_Buffer_detach( &dummy, &idummy );
 MPI_Buffer_attach( ptr, size );
+.fi
 
 This is much like the action of the Unix signal routine and has the same
 strengths (it is simple) and weaknesses (it only works for nested usages).
+
+Note that for this approach to work, MPI_Buffer_detach must return MPI_SUCCESS
+even when there is no buffer to detach.  In that case, it returns a size of
+zero.  The MPI 1.1 standard for 
+.I MPI_BUFFER_DETACH
+contains the text
+
+.nf
+The statements made in this section describe the behavior of MPI for
+buffered-mode sends. When no buffer is currently associated, MPI behaves 
+as if a zero-sized buffer is associated with the process.
+.fi
+
+This could be read as applying only to the various Bsend routines.  This
+implementation takes the position that this applies to 
+.I MPI_BUFFER_DETACH
+as well.
 
 .SH NOTES FOR FORTRAN
 All MPI routines in Fortran (except for 

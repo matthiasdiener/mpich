@@ -7,12 +7,6 @@
 #include "mpisys.h"
 #endif
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_waitany_ PMPI_WAITANY
@@ -48,26 +42,26 @@ int *__ierr;
     int i;
     MPI_Request *r;
 
-    r = (MPI_Request*)MALLOC(sizeof(MPI_Request)* *count);
-    if (!r) {
-	MPIR_ERROR(MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-		   "Out of space in MPI_WAITANY" );
-	*__ierr = MPI_ERR_EXHAUSTED;
-	return;
-    }
+    if (*count > 0) {
+	MPIR_FALLOC(r,(MPI_Request*)MALLOC(sizeof(MPI_Request) * *count),
+		    MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+		    "Out of space in MPI_WAITANY" );
 
-    for (i=0; i<*count; i++) {
-	r[i] = MPIR_ToPointer( *((int *)(array_of_requests)+i) );
-    }
-    *__ierr = MPI_Waitany(*count,r,index,status);
-    if (!*__ierr) {
-	/* By checking for r[i] = 0, we handle persistant requests */
-	if (r[*index] == MPI_REQUEST_NULL) {
-	    MPIR_RmPointer( *((int *)(array_of_requests) + *index) );
-	    *((int *)(array_of_requests)+*index) = 0;
+	for (i=0; i<*count; i++) {
+	    r[i] = MPIR_ToPointer( *((int *)(array_of_requests)+i) );
 	}
+	*__ierr = MPI_Waitany(*count,r,index,status);
+	if (!*__ierr) {
+	    /* By checking for r[i] = 0, we handle persistant requests */
+	    if (r[*index] == MPI_REQUEST_NULL) {
+		MPIR_RmPointer( *((int *)(array_of_requests) + *index) );
+		*((int *)(array_of_requests)+*index) = 0;
+	    }
+	}
+	FREE( r );
     }
-    FREE( r );
+    else
+	*__ierr = MPI_Waitany( *count, (MPI_Request *)0, index, status );
 
 #else
     *__ierr = MPI_Waitany(*count,array_of_requests,index,status);

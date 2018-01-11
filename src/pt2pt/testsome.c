@@ -1,5 +1,5 @@
 /*
- *  $Id: testsome.c,v 1.21 1996/06/26 19:27:12 gropp Exp $
+ *  $Id: testsome.c,v 1.25 1997/01/24 21:55:18 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -27,6 +27,8 @@ completed (array of integers)
 . array_of_statuses - array of status objects for 
     operations that completed (array of Status) 
 
+.N waitstatus
+
 .N fortran
 
 .N Errors
@@ -45,7 +47,9 @@ MPI_Status  array_of_statuses[];
     int nnull  = 0;
     int mpi_lerr;
     MPI_Request request;
+    static char myname[] = "MPI_TESTSOME";
 
+    TR_PUSH(myname);
 #ifdef MPI_ADI2
     /* NOTE:
        This implementation will not work correctly if the device requires
@@ -127,8 +131,9 @@ MPI_Status  array_of_statuses[];
     else
 	*outcount = nfound;
     if (mpi_errno) {
-	return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, "Error in MPI_TESTSOME");
+	return MPIR_ERROR(MPIR_COMM_WORLD, mpi_errno, myname );
 	}
+    TR_POP;
     return mpi_errno;
 #else
 
@@ -139,7 +144,7 @@ MPI_Status  array_of_statuses[];
        
        The same is true for testall.c .
      */
-    MPID_Check_device( MPI_COMM_WORLD->ADIctx, MPID_NOTBLOCKING );
+    MPID_Check_device( MPIR_COMM_WORLD->ADIctx, MPID_NOTBLOCKING );
     for (i = 0; i < incount; i++)
 	{
 	/* Skip over null handles.  We need this for handles generated
@@ -207,9 +212,10 @@ MPI_Status  array_of_statuses[];
 		}
 	    nfound++;
 	    if (!request->chandle.persistent) {
-		if (--request->chandle.datatype->ref_count <= 0) {
+		MPIR_Type_free( &request->chandle.datatype );
+/*		if (--request->chandle.datatype->ref _count <= 0) {
 		    MPIR_Type_free( &request->chandle.datatype );
-		    }
+		    }*/
 		MPI_Request_free( &array_of_requests[i] ); 
 		array_of_requests[i]    = NULL;
 		}
@@ -223,7 +229,7 @@ MPI_Status  array_of_statuses[];
     else
 	*outcount = nfound;
     if (mpi_errno) {
-	return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, "Error in MPI_TESTSOME");
+	return MPIR_ERROR(MPIR_COMM_WORLD, mpi_errno, myname );
 	}
     return mpi_errno;
 #endif

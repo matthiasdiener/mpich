@@ -25,6 +25,18 @@ static int dest = 1;
 /* Which tests to perform (not yet implemented) */
 /* static int Do_Buffer = 1; */
 /* static int Do_Standard = 1; */
+/* In order to quiet noisy C compilers, we provide ANSI-style prototypes
+   where possible */
+void Generate_Data ANSI_ARGS(( double *, int ));
+void Normal_Test_Send ANSI_ARGS(( double *, int ));
+void Normal_Test_Recv ANSI_ARGS(( double *, int ));
+void Buffered_Test_Send ANSI_ARGS(( double *, int ));
+void Buffered_Test_Recv ANSI_ARGS(( double *, int ));
+void Async_Test_Send ANSI_ARGS(( double *, int ));
+void Async_Test_Recv ANSI_ARGS(( double *, int ));
+int Check_Data ANSI_ARGS(( double *, int ));
+void Clear_Buffer ANSI_ARGS(( double *, int ));
+
 
 void Generate_Data(buffer, buff_size)
 double *buffer;
@@ -197,7 +209,6 @@ char **argv;
 	Async_Test_Send(buffer, SIZE);
 #endif
 	Test_Waitforall( );
-	MPI_Finalize();
 
     } else if (rank == dest) {
 	Test_Init("overtake", rank);
@@ -261,11 +272,11 @@ char **argv;
 #endif
 
 	Test_Waitforall( );
-	MPI_Finalize();
 	{
 	    int rval = Summarize_Test_Results(); /* Returns number of tests;
 						    that failed */
 	    Test_Finalize();
+	    MPI_Finalize();
 	    return rval;
 	}
     } else {
@@ -273,6 +284,7 @@ char **argv;
 	exit(-1);
     }
 
+    MPI_Finalize();
     return 0;
 }
 

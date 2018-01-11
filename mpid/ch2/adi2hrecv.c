@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2hrecv.c,v 1.3 1996/07/17 18:04:59 gropp Exp $
+ *  $Id: adi2hrecv.c,v 1.6 1997/01/07 01:49:41 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -17,12 +17,12 @@
  */
 /***************************************************************************/
 
-void MPID_RecvDatatype( comm, buf, count, datatype, src_lrank, tag, 
+void MPID_RecvDatatype( comm_ptr, buf, count, dtype_ptr, src_lrank, tag, 
 			context_id, status, error_code )
-MPI_Comm     comm;
+struct MPIR_COMMUNICATOR *    comm_ptr;
 void         *buf;
 int          count, src_lrank, tag, context_id, *error_code;
-MPI_Datatype datatype;
+struct MPIR_DATATYPE * dtype_ptr;
 MPI_Status   *status;
 {
     MPIR_RHANDLE rhandle;
@@ -31,25 +31,25 @@ MPI_Status   *status;
     DEBUG_INIT_STRUCT(request,sizeof(rhandle));
     /* rhandle.finish = 0; gets set in IrecvDatatype */
     *error_code = 0;
-    MPID_IrecvDatatype( comm, buf, count, datatype, src_lrank, tag, 
+    MPID_IrecvDatatype( comm_ptr, buf, count, dtype_ptr, src_lrank, tag, 
 			context_id, request, error_code );
     if (!*error_code) {
 	MPID_RecvComplete( request, status, error_code );
     }
 }
 
-void MPID_IrecvDatatype( comm, buf, count, datatype, src_lrank, tag, 
+void MPID_IrecvDatatype( comm_ptr, buf, count, dtype_ptr, src_lrank, tag, 
 			 context_id, request, error_code )
-MPI_Comm     comm;
+struct MPIR_COMMUNICATOR *    comm_ptr;
 void         *buf;
 int          count, src_lrank, tag, context_id, *error_code;
-MPI_Datatype datatype;
+struct MPIR_DATATYPE * dtype_ptr;
 MPI_Request  request;
 {
     MPIR_RHANDLE    *dmpi_unexpected, *rhandle = &request->rhandle;
     int             len;
     MPID_Msgrep_t   msgrep = MPID_MSGREP_RECEIVER;
-    MPID_Msg_pack_t msgact = MPID_MSG_OK;
+    MPID_DO_HETERO(MPID_Msg_pack_t msgact = MPID_MSG_OK;)
     void            *mybuf;
     int             contig_size;
     MPID_DO_HETERO(int             src_grank);
@@ -59,12 +59,12 @@ MPI_Request  request;
     /* Just in case; make sure that finish is 0 */
     rhandle->finish = 0;
 
-    MPIR_GET_REAL_DATATYPE(datatype);
     /* See if this is really contiguous */
-    MPIR_DATATYPE_GET_SIZE(datatype,contig_size);
+    contig_size = MPIR_GET_DTYPE_SIZE(datatype,dtype_ptr);
+
     MPID_DO_HETERO(src_grank = (src_lrank >= 0) ? 
-		   comm->lrank_to_grank[src_lrank] : src_lrank);
-    MPID_DO_HETERO(MPID_Msg_rep( comm, src_grank, datatype, 
+		   comm_ptr->lrank_to_grank[src_lrank] : src_lrank);
+    MPID_DO_HETERO(MPID_Msg_rep( comm_ptr, src_grank, dtype_ptr, 
 				 &msgrep, &msgact ));
     if (contig_size > 0
 	MPID_DO_HETERO(&& msgact == MPID_MSG_OK)) {
@@ -73,7 +73,7 @@ MPI_Request  request;
 	   communicator.
 	 */
 	len = contig_size * count;
-	MPID_IrecvContig( comm, buf, len, src_lrank, tag, context_id, 
+	MPID_IrecvContig( comm_ptr, buf, len, src_lrank, tag, context_id, 
 			  request, error_code );
 	return;
     }
@@ -83,7 +83,7 @@ MPI_Request  request;
        temporary buffer to hold the incoming data in.
        */
     
-    MPID_UnpackMessageSetup( count, datatype, comm, src_lrank, msgrep,
+    MPID_UnpackMessageSetup( count, dtype_ptr, comm_ptr, src_lrank, msgrep,
 			     (void **)&mybuf, &len, error_code );
     if (*error_code) return;
     /* setup the request */
@@ -103,8 +103,8 @@ MPI_Request  request;
     rhandle->buf	 = mybuf;
     rhandle->start       = buf;
     rhandle->count       = count;
-    rhandle->datatype    = datatype;
-    datatype->ref_count++;
+    rhandle->datatype    = dtype_ptr;
+    MPIR_REF_INCR(dtype_ptr);
     rhandle->is_complete = 0;
     rhandle->wait        = 0;
     rhandle->test        = 0;

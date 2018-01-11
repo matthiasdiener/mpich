@@ -19,7 +19,7 @@ c************************************************************************
       call MPI_COMM_SIZE( MPI_COMM_WORLD, numprocs, ierr )
       if (numprocs .lt. 2) then
          print *, "Must have at least 2 processes!"
-         call MPI_ABORT( MPI_COMM_WORLD, 1 )
+         call MPI_ABORT( MPI_COMM_WORLD, 1, ierr)
          stop
       endif
       print *, "Process ", myid, " of ", numprocs, " is alive"

@@ -12,10 +12,8 @@
 #include <stdio.h>
 #include <ctype.h>
 
-/* Sorry about this kludge, but our ANSI C compiler on our suns has broken
-   header files */
-#ifdef GCC_WALL
-int sscanf( char*, const char *, ... );
+#ifdef NEEDS_STDLIB_PROTOTYPES
+#include "protofix.h"
 #endif
 
 
@@ -43,13 +41,6 @@ int sscanf( char*, const char *, ... );
       100, we dont want to create a different state for every one, just
       do a 'mod' down to 5 unique task types. */
 #define PICL_MAX_TASK_NO 5
-
-#ifdef __STDC__
-#define ARGS(x) x
-#else
-#define ARGS(x) ()
-#endif
-
 
 typedef enum {
   min_recordType=0,
@@ -201,64 +192,64 @@ typedef struct piclLineData_ {
 } piclLineData;  
 
 /* Open up a picl instance */
-static piclData *Create ARGS(( logFile *log ));
+static piclData *Create ANSI_ARGS(( logFile *log ));
 
 /* go through the tracefile, getting the first&last timestamps,
    number of processes, and list of all the states that will be used */
-static int Preprocess ARGS(( piclData *picl ));
+static int Preprocess ANSI_ARGS(( piclData *picl ));
 
 /* load the tracefile into memory */
-static int Load ARGS(( piclData *picl ));
+static int Load ANSI_ARGS(( piclData *picl ));
 
 /* Close picl-specific tracefile info, but leave the main logfile
    information */
-static int Close ARGS(( piclData *picl ));
+static int Close ANSI_ARGS(( piclData *picl ));
 
 /* Get one word from the given stream, returning -1 if EOF reached, 0
    if end-of-line, or the length of the word read.  If EOL read, increment
    picl->line_no. */
-static int GetWord ARGS(( piclData *picl, FILE *fp, char *wordbuf,
+static int GetWord ANSI_ARGS(( piclData *picl, FILE *fp, char *wordbuf,
 			  int maxlen ));
 
 /* Given a record type and, if it is a block_begin or block_end,
    a block type, create a string that will define this state.
    'description' should point to at least PICL_TYPE_NAME_LEN bytes. */
 /*
-static int GetRecordTypeDesc ARGS(( piclData *picl, int recordType,
+static int GetRecordTypeDesc ANSI_ARGS(( piclData *picl, int recordType,
 				    int blockType, char *description ));
 */
 
 /* Given a record type description, return the record type number or
    -1 for an invalid type */
-static recordTypeEnum GetRecordTypeFromVerbose ARGS(( char *str ));
+static recordTypeEnum GetRecordTypeFromVerbose ANSI_ARGS(( char *str ));
 
 /* Get one line from the tracefile, parsing the data into 'line'.
    Return -1 on EOF, 0 on blank line, and the length of the line
    on success. */
-static int GetLine ARGS(( piclData *picl, FILE *fp, piclLineData *line ));
+static int GetLine ANSI_ARGS(( piclData *picl, FILE *fp, piclLineData *line ));
 
 /* Create a state definition, if one hasn't been created already, for
    the given record type of block type. */
-static int AddState ARGS(( piclData *picl,  int recordType, int blockType ));
+static int AddState ANSI_ARGS(( piclData *picl,  int recordType, int blockType ));
 
 
 /*
    Given a record type and, if needed, a block type, return the state
    definition number for the state represented.
 */
-static int GetStateNo ARGS(( piclData *picl, int recordType, int blockType ));
+static int GetStateNo ANSI_ARGS(( piclData *picl, int recordType, int blockType ));
 
 
 /*
    Mark the start of a state.
 */
-static int StartState ARGS(( piclData *picl, int node, double time,
+static int StartState ANSI_ARGS(( piclData *picl, int node, double time,
 			     int recordType, int blockType ));
 
 /*
    Mark the end of a state.
 */
-static int EndState ARGS(( piclData *picl, int node, double time,
+static int EndState ANSI_ARGS(( piclData *picl, int node, double time,
 			   int recordType, int blockType ));
 
 

@@ -10,6 +10,10 @@
 #include "expandingList.h"
 #include "str_dup.h"
 
+#ifndef MPI_PROC_NULL
+#define MPI_PROC_NULL (-1)
+#endif
+
 #define TESTING 1
 #define MALLOC_DEBUG 0
 
@@ -250,6 +254,9 @@ double time;
   newPosting.tag = tag;
   newPosting.time = time;
 
+  if (proc == MPI_PROC_NULL) {
+      return 0;
+  }
   if (proc < 0 || proc > msg_data->np) {
       fprintf( stderr, "Message to invalid partner (%d)\n", proc );
       return 0;
@@ -293,6 +300,10 @@ double *time;
   malloc_verify();
   fprintf( stderr, "entered MatchingMsgPosted\n" );
 #endif
+
+  if (proc == MPI_PROC_NULL) {
+      return 1;
+  }
 
   if (proc < 0 || proc > msg_data->np) {
       fprintf( stderr, "Matching message to invalid partner (%d)\n", proc );
@@ -495,13 +506,15 @@ msgData *msg_data;
   }
 
   msg = &ListItem( msg_data->list, msgInfo, 0 );
-  for (i=0; i<msg_data->list->nused; i++,msg++) {
-    ListAddItem( msg_data->idx_send, int, i );
-    ListAddItem( msg_data->idx_recv, int, i );
-    ListAddItem( msg_data->idx_proc_send[msg->sender], int, i );
-    ListAddItem( msg_data->idx_proc_recv[msg->recver], int, i );
+  /* Discard if the msg is to or from proc null */
+  if (! (msg->sender < 0 || msg->recver < 0) ) {
+      for (i=0; i<msg_data->list->nused; i++,msg++) {
+	  ListAddItem( msg_data->idx_send, int, i );
+	  ListAddItem( msg_data->idx_recv, int, i );
+	  ListAddItem( msg_data->idx_proc_send[msg->sender], int, i );
+	  ListAddItem( msg_data->idx_proc_recv[msg->recver], int, i );
+      }
   }
-
   for (proc=0; proc<msg_data->np; proc++) {
     ListShrinkToFit( msg_data->idx_proc_send[proc], int );
     ListShrinkToFit( msg_data->idx_proc_recv[proc], int );

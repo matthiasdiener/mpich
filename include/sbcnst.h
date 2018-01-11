@@ -1,5 +1,5 @@
 /*
- *  $Id: sbcnst.h,v 1.12 1996/04/12 16:15:22 gropp Exp $
+ *  $Id: sbcnst.h,v 1.13 1996/11/24 20:22:15 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -10,7 +10,7 @@
 #define _SBCNST
 
 #ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus)
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
 #define ANSI_ARGS(a) a
 #else
 #define ANSI_ARGS(a) ()

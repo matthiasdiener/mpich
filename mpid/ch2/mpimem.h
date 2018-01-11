@@ -18,7 +18,13 @@
 #define calloc $'Use mpimem.h'$
 #endif
 #else
+/* We'd like to have a definition for memset etc.  If we can find it ... */
+#if defined(HAVE_MEMORY_H)
 #include <memory.h>
+#elif defined(HAVE_STRING_H)
+#include <string.h>
+#endif
+
 /* Need to determine how to declare malloc for all systems, some of which
    may need/allow an explicit declaration */
 #include <stdlib.h>

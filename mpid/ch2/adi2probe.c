@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2probe.c,v 1.1 1996/04/12 20:16:50 gropp Exp $
+ *  $Id: adi2probe.c,v 1.2 1996/12/01 23:34:41 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -10,8 +10,9 @@
 #include "mpid_debug.h"
 #include "../util/queue.h"
 
-void MPID_Iprobe( comm, tag, context_id, src_lrank, found, error_code, status )
-MPI_Comm   comm;
+void MPID_Iprobe( comm_ptr, tag, context_id, src_lrank, found, error_code, 
+		  status )
+struct MPIR_COMMUNICATOR *comm_ptr;
 int        tag, context_id, src_lrank, *found, *error_code;
 MPI_Status *status;
 {
@@ -41,8 +42,8 @@ MPI_Status *status;
     DEBUG_PRINT_MSG("Exiting Iprobe");
 }
 
-void MPID_Probe( comm, tag, context_id, src_lrank, error_code, status )
-MPI_Comm   comm;
+void MPID_Probe( comm_ptr, tag, context_id, src_lrank, error_code, status )
+struct MPIR_COMMUNICATOR *comm_ptr;
 int        tag, src_lrank, context_id, *error_code;
 MPI_Status *status;
 {
@@ -51,7 +52,7 @@ MPI_Status *status;
     *error_code = 0;
     DEBUG_PRINT_MSG("Entering Probe");
     while (1) {
-	MPID_Iprobe( comm, tag, context_id, src_lrank, &found, error_code, 
+	MPID_Iprobe( comm_ptr, tag, context_id, src_lrank, &found, error_code, 
 		     status );
 	if (found || *error_code) break;
 	/* Wait for a message */

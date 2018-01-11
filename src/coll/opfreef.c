@@ -2,12 +2,6 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_op_free_ PMPI_OP_FREE
@@ -35,10 +29,5 @@ void mpi_op_free_( op, __ierr )
 MPI_Op  *op;
 int *__ierr;
 {
-    MPI_Op lop = (MPI_Op) MPIR_ToPointer( *(int*)op );
-    *__ierr = MPI_Op_free(&lop);
-    if (!lop) {
-	MPIR_RmPointer( *(int*)op );
-	*(int*)op = 0;
-    }
+    *__ierr = MPI_Op_free( op );
 }

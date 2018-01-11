@@ -75,12 +75,24 @@ extern MPID_PKT_T *MPID_SHMEM_GetSendPkt ANSI_ARGS((int));
 extern void *MPID_SetupGetAddress ANSI_ARGS(( void *, int *, int ));
 extern void MPID_FreeGetAddress ANSI_ARGS(( void * ));
 extern int MPID_PackMessageFree ANSI_ARGS((MPIR_SHANDLE *));
-extern void MPID_PackMessage ANSI_ARGS((void *, int, MPI_Datatype, 
-					MPI_Comm, int, MPID_Msgrep_t, 
-					MPID_Msg_pack_t, 
+extern void MPID_PackMessage ANSI_ARGS((void *, int, struct MPIR_DATATYPE *, 
+					struct MPIR_COMMUNICATOR *, int, 
+					MPID_Msgrep_t, MPID_Msg_pack_t, 
 					void **, int *, int *));
-extern void MPID_UnpackMessageSetup ANSI_ARGS(( int, MPI_Datatype, MPI_Comm,
+extern void MPID_UnpackMessageSetup ANSI_ARGS(( int, struct MPIR_DATATYPE *, 
+						struct MPIR_COMMUNICATOR *,
 						int, MPID_Msgrep_t, void **, 
 						int *, int * ));
 extern int MPID_UnpackMessageComplete ANSI_ARGS(( MPIR_RHANDLE * ));
+
+/* Internal device routines */
+extern int MPID_SHMEM_ReadControl ANSI_ARGS(( MPID_PKT_T **, int, int * ));
+extern int MPID_SHMEM_SendControl ANSI_ARGS(( MPID_PKT_T *, int, int ));
+extern void MPID_SHMEM_FreeRecvPkt ANSI_ARGS(( MPID_PKT_T * ));
+
+/* Internal debugging routines */
+extern int MPID_Print_packet ANSI_ARGS(( FILE *, MPID_PKT_T * ));
+extern void MPID_Print_rhandle ANSI_ARGS(( FILE *, MPIR_RHANDLE * ));
+extern void MPID_Print_shandle ANSI_ARGS(( FILE *, MPIR_SHANDLE * ));
+
 #endif

@@ -1,5 +1,5 @@
 /*
- *  $Id: chinit.c,v 1.2 1996/06/13 14:52:49 gropp Exp $
+ *  $Id: chinit.c,v 1.6 1997/01/24 21:57:06 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -9,6 +9,19 @@
     This file contains the routines that provide the basic information 
     on the device, and initialize it
  */
+
+/* We put these include FIRST incase we are building the memory debugging
+   version; since these includes may define malloc etc., we need to include 
+   them before mpid.h 
+ */
+#ifndef HAVE_STDLIB_H
+extern char *getenv();
+#else
+#include <stdlib.h>
+#endif
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 #include "mpid.h"
 #include "mpiddev.h"
@@ -25,7 +38,7 @@
 
 /* Forward refs */
 int MPID_CH_End ANSI_ARGS(( MPID_Device * ));
-int MPID_CH_Abort ANSI_ARGS(( MPI_Comm, int, char * ));
+int MPID_CH_Abort ANSI_ARGS(( struct MPIR_COMMUNICATOR *, int, char * ));
 void MPID_CH_Version_name ANSI_ARGS(( char * ));
 
 /* 
@@ -79,7 +92,16 @@ int  short_len, long_len;
     MPID_DO_HETERO(MPID_CH_Init_hetero( argc, argv ));
 
 #ifdef MPID_FLOW_CONTROL
-    MPID_FlowSetup();
+    /* Try to get values for thresholds.  Note that everyone MUST have
+     the same values for this to work */
+    {int buf_thresh = 0, mem_thresh = 0;
+     char *val;
+     val = getenv( "MPI_BUF_THRESH" );
+     if (val) buf_thresh = atoi(val);
+     val = getenv( "MPI_MEM_THRESH" );
+     if (val) mem_thresh = atoi(val);
+    MPID_FlowSetup( buf_thresh, mem_thresh );
+    }
 #endif
 
     DEBUG_PRINT_MSG("Leaving MPID_CH_InitMsgPass");
@@ -91,8 +113,8 @@ int  short_len, long_len;
    There should probably be a separate argument for whether it is a 
    user requested or internal abort.
  */
-int MPID_CH_Abort( comm, code, msg )
-MPI_Comm comm;
+int MPID_CH_Abort( comm_ptr, code, msg )
+struct MPIR_COMMUNICATOR *comm_ptr;
 int      code;
 char     *msg;
 {

@@ -1,5 +1,5 @@
 /*
- *  $Id: graph_get.c,v 1.8 1996/04/12 15:53:42 gropp Exp $
+ *  $Id: graph_get.c,v 1.11 1997/01/07 01:48:01 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -39,16 +39,21 @@ int *index, *edges;
   int *array;
   int mpi_errno = MPI_SUCCESS;
   MPIR_TOPOLOGY *topo;
+  struct MPIR_COMMUNICATOR *comm_ptr;
+  static char myname[] = "MPI_GRAPH_GET";
 
-  if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_ARG(index) ||
-      MPIR_TEST_ARG(edges) )
-      return MPIR_ERROR( comm, mpi_errno, "Error in MPI_GRAPH_GET" );
+  TR_PUSH(myname);
+  comm_ptr = MPIR_GET_COMM_PTR(comm);
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+
+  if (MPIR_TEST_ARG(index) || MPIR_TEST_ARG(edges) )
+      return MPIR_ERROR( comm_ptr, mpi_errno, myname );
 
   /* Get topology information from the communicator */
   MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );
   if ( ( (flag != 1)               && (mpi_errno = MPI_ERR_TOPOLOGY) ) ||
        ( (topo->type != MPI_GRAPH) && (mpi_errno = MPI_ERR_TOPOLOGY) )  )
-      return MPIR_ERROR( comm, mpi_errno, "Error in MPI_GRAPH_GET" );
+      return MPIR_ERROR( comm_ptr, mpi_errno, myname );
 
   /* Get index */
   num = topo->graph.nnodes;
@@ -64,5 +69,6 @@ int *index, *edges;
     for ( i=0; (i<maxedges) && (i<num); i++ )
       (*edges++) = (*array++);
 
+  TR_POP;
   return (mpi_errno);
 }

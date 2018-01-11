@@ -1,8 +1,13 @@
-/*  $Id: attach.h,v 1.1 1996/07/05 16:02:21 gropp Exp $
+/*  $Id: attach.h,v 1.2 1996/12/04 23:02:00 gropp Exp $
  */
 
 /* This file contains support for bringing processes up stopped, so that
  * a debugger can attach to them     (done for TotalView)
+ */
+
+/* Update log
+ *
+ * Nov 27 1996 jcownie@dolphinics.com: Added the executable_name to MPIR_PROCDESC
  */
 
 #ifndef _ATTACH_INCLUDE
@@ -29,8 +34,9 @@
  * them, and will be confused if you change them.
  */
 typedef struct {
-    char * host_name; 
-    int    pid;
+  char * host_name;           /* Something we can pass to inet_addr */
+  char * executable_name;     /* The name of the image */
+  int    pid;		      /* The pid of the process */
 } MPIR_PROCDESC;
 
 /* Array of procdescs for debugging purposes */

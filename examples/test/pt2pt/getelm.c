@@ -5,6 +5,10 @@
 #include "mpi.h"
 #include <stdio.h>
 
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
+
 typedef struct { 
     int len;
     double data[1000];

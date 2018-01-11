@@ -26,62 +26,53 @@
 #include "hist.h"
 
 
-#ifdef GCC_WALL
-int sscanf( char *, const char *, ... );
+#ifdef NEEDS_STDLIB_PROTOTYPES
+#include "protofix.h"
 #endif
 
-
-#ifdef __STDC__
-#define ARGS(x) x
-#else
-#define ARGS(x) ()
-#endif
-
-
-
-static int HistCmd ARGS(( ClientData data, Tcl_Interp *interp,
+static int HistCmd ANSI_ARGS(( ClientData data, Tcl_Interp *interp,
 			  int argc, char *argv[] ));
 
   /* Sort the state lengths, return pointer to hist info */
-static stateHist *State_HistInit ARGS(( stateData *state, int def_no,
+static stateHist *State_HistInit ANSI_ARGS(( stateData *state, int def_no,
 				       int *procs, int nprocs ));
 
   /* fill the given array with the number of states in each bin */
   /* return the number of states included in all the bins */
-static int State_HistBins ARGS(( stateHist *hist, double shortLen,
+static int State_HistBins ANSI_ARGS(( stateHist *hist, double shortLen,
 				 double longLen, int *bins, int nbins ));
 
-static int PointlistCmd ARGS(( Tcl_Interp *interp, stateHist *hist,
+static int PointlistCmd ANSI_ARGS(( Tcl_Interp *interp, stateHist *hist,
 			       int argc, char *argv[] ));
 
-static int Pointlist ARGS(( stateHist *hist, int *point_list ));
+static int Pointlist ANSI_ARGS(( stateHist *hist, int *point_list ));
 
-static int Draw ARGS(( Tcl_Interp *intepr, stateHist *hist,
+static int Draw ANSI_ARGS(( Tcl_Interp *intepr, stateHist *hist,
 		       int argc, char *argv[] ));
 
-static int ScrollCmd ARGS(( Tcl_Interp *interp, stateHist *hist,
+static int ScrollCmd ANSI_ARGS(( Tcl_Interp *interp, stateHist *hist,
 			    int argc, char *argv[] ));
 
-static int XviewCmd ARGS(( Tcl_Interp *interp, stateHist *hist,
+static int XviewCmd ANSI_ARGS(( Tcl_Interp *interp, stateHist *hist,
 			   int argc, char *argv[] ));
 
-static int BinsCmd ARGS(( Tcl_Interp *interp, stateHist *hist,
+static int BinsCmd ANSI_ARGS(( Tcl_Interp *interp, stateHist *hist,
 			       int argc, char *argv[] ));
 
-static int LinkVars ARGS(( Tcl_Interp *interp, stateHist *hist ));
+static int LinkVars ANSI_ARGS(( Tcl_Interp *interp, stateHist *hist ));
 
-static int UnlinkVars ARGS(( Tcl_Interp *interp, stateHist *hist ));
+static int UnlinkVars ANSI_ARGS(( Tcl_Interp *interp, stateHist *hist ));
 
   /* close this hist instance */
-static int State_HistClose ARGS(( stateHist *hist ));
+static int State_HistClose ANSI_ARGS(( stateHist *hist ));
 
-static stateHist *HistToken2Ptr ARGS(( Tcl_Interp *interp, char *token ));
-static int CompareLen ARGS(( const void *va, const void *vb ));
-static int Bsearch   ARGS(( stateHist *hist, double x, int top, int bottom ));
+static stateHist *HistToken2Ptr ANSI_ARGS(( Tcl_Interp *interp, char *token ));
+static int CompareLen ANSI_ARGS(( const void *va, const void *vb ));
+static int Bsearch   ANSI_ARGS(( stateHist *hist, double x, int top, int bottom ));
 /*
-static int BsearchLE ARGS(( stateHist *hist, double x, int top, int bottom ));
+static int BsearchLE ANSI_ARGS(( stateHist *hist, double x, int top, int bottom ));
 */
-static int BsearchGE ARGS(( stateHist *hist, double x, int top, int bottom ));
+static int BsearchGE ANSI_ARGS(( stateHist *hist, double x, int top, int bottom ));
 
 int Hist_Init( interp )
 Tcl_Interp *interp;

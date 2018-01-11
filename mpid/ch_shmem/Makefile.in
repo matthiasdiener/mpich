@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.6 1996/07/06 14:11:16 gropp Exp $
+#  $Id: Makefile.in,v 1.8 1997/01/07 01:49:51 gropp Exp $
 #
 #  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -46,7 +46,7 @@ SOURCE   = adi2recv.c adi2send.c adi2init.c adi2probe.c adi2ssend.c \
 	   shmemdebug.c shmemchkdev.c \
            shmemshort.c shmemneager.c shmemnrndv.c shmempriv.c p2p.c \
 	   shmeminit.c chnodename.c chtick.c queue.c cmnargs.c \
-	   mprerr.c tr2.c sbcnst2.c @DEVCFILES@
+	   mprerr.c tr2.c sbcnst2.c objtrace.c calltrace.c @DEVCFILES@
 SOURCEC  = $(SOURCE)
 SOURCEF  =
 # chbeager.o chbrndv.o 
@@ -57,13 +57,13 @@ MPI_OBJECTS = adi2recv.o adi2send.o adi2init.o adi2probe.o adi2ssend.o \
 	      shmemshort.o shmemneager.o shmemnrndv.o shmempriv.o p2p.o \
 	      shmeminit.o chnodename.o chtick.o queue.o cmnargs.o \
 	      tr2.o sbcnst2.o \
-	      $(ASMFILES_O) @DEVOFILES@
+	      objtrace.o calltrace.o $(ASMFILES_O) @DEVOFILES@
 
 default: $(LIBNAME)
 libdev: $(LIBDEV)
 
 $(MPI_OBJECTS): ../ch2/mpid.h mpiddev.h
-p2p.o: p2psemop.c p2p.c 
+p2p.o: p2psemop.c p2p.c p2pprocs.c
 
 #
 # shmempriv is sensitive to memory access ordering.  Despite the use

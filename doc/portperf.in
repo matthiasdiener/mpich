@@ -65,7 +65,7 @@ RefineGnuplotfile() {
         echo "Failed to run performance test!"
     else
 	echo "set terminal postscript eps" | cat - $1.gpl > .foo
-	echo "exit" | cat .foo - | sed /pause/d | \
+	echo "exit" | cat .foo - | sed -e '/pause/d' -e '/clear/d' | \
 		sed -e "s/mppout/$1-data/g" > $1.gpl
 	mv mppout.gpl $1-data.gpl 
     fi

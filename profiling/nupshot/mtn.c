@@ -50,14 +50,6 @@ Only in color or with a stipple pattern.
 
 
 
-#ifdef __STDC__
-#define ARGS(x) x
-#else
-#define ARGS(x) ()
-#endif
-
-
-
   /* length to use for temporary Tcl commands */
 #define TMP_CMD_LEN 200
 
@@ -76,25 +68,25 @@ Only in color or with a stipple pattern.
      mtn_c_init $mtn($w,cmd) $log mtn $w
         
 */
-static int Init ARGS(( ClientData, Tcl_Interp *,
+static int Init ANSI_ARGS(( ClientData, Tcl_Interp *,
 		       int argc, char **argv ));
 
 /*
    Close the mountain record.
 */
-static int Close ARGS(( mtnInfo* ));
+static int Close ANSI_ARGS(( mtnInfo* ));
 
 
 /*
    Used by min-heap routines to compare events and sort them.
 */
-static int Mtn_EvtCompare ARGS(( mtnEvt *evt_a, mtnEvt *evt_b ));
+static int Mtn_EvtCompare ANSI_ARGS(( mtnEvt *evt_a, mtnEvt *evt_b ));
 
 /*
    Called on each state.  data is mtnInfo*.
 */
 /*
-static int GrabState ARGS(( void *data, int idx, int type, int proc,
+static int GrabState ANSI_ARGS(( void *data, int idx, int type, int proc,
 			    double startTime, double endTime,
 			    int parent, int firstChild,
 			       int overlapLevel ));
@@ -103,50 +95,50 @@ static int GrabState ARGS(( void *data, int idx, int type, int proc,
 /*
    Called to draw the whole thing.
 */
-static int Draw ARGS(( mtnInfo* mtn ));
+static int Draw ANSI_ARGS(( mtnInfo* mtn ));
 
 /*
    Called to use 'xview' and 'yview' commands to simply slide the display
    into position when redrawing isn't necessary.
 */
-static int Slide ARGS(( mtnInfo* mtn ));
+static int Slide ANSI_ARGS(( mtnInfo* mtn ));
 
 
 /*
    Make sure the data in the minheap has been copied to
    a sorted array.
 */
-static int InitRead ARGS(( mtnInfo *mtn ));
+static int InitRead ANSI_ARGS(( mtnInfo *mtn ));
 
 /* 
    Used by Draw()
 */
-static int NextTimeStep ARGS(( mtnInfo *mtn, int *ht_diffs, int nstates,
+static int NextTimeStep ANSI_ARGS(( mtnInfo *mtn, int *ht_diffs, int nstates,
 			       double interval, int *idx_ptr,
 			       double *time_ptr ));
 
 /*
    The widget command that is created for each invocation.
 */
-static int Cmd ARGS(( ClientData, Tcl_Interp *, int argc, char **argv ));
+static int Cmd ANSI_ARGS(( ClientData, Tcl_Interp *, int argc, char **argv ));
 
 
 /*
    Copy existing log data into the minheap.
 */
-static int CopyLogData ARGS(( mtnInfo *mtn ));
+static int CopyLogData ANSI_ARGS(( mtnInfo *mtn ));
 
 
 /*
    Link my structure to Tcl array.
 */
-static int LinkVars ARGS(( mtnInfo *mtn ));
+static int LinkVars ANSI_ARGS(( mtnInfo *mtn ));
 
 
 /*
    Unlink my structure from Tcl array.
 */
-static int UnlinkVars ARGS(( mtnInfo *mtn ));
+static int UnlinkVars ANSI_ARGS(( mtnInfo *mtn ));
 
 
 
@@ -551,7 +543,7 @@ mtnInfo *mtn;
       /* draw background polygon */
 
         /* set tag to background color tag */
-      sprintf( tags, "color_bg", i );
+      sprintf( tags, "color_bg" /* , i */ );
         /* set fill to background color */
       argv[j+4] = mtn->bg;
         /* set stipple to none */

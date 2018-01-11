@@ -13,9 +13,9 @@ int main(argc,argv)
 int argc;
 char *argv[];
 {
-    int  n, myid, numprocs, i, j, rc, repeat;
+    int  n, myid, numprocs, i, j;
     double PI25DT = 3.141592653589793238462643;
-    double mypi, pi, h, sum, x, a;
+    double mypi, pi, h, sum, x;
     double startwtime, endwtime;
     int namelen;
     char processor_name[MPI_MAX_PROCESSOR_NAME];
@@ -68,8 +68,7 @@ char *argv[];
 	MPI_Reduce(&mypi, &pi, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 	MPE_Log_event(6, 0, "end reduce");
     }
-    MPE_Stop_log();
-    MPE_Finish_log("cpilog.log");
+    MPE_Finish_log("cpilog");
 
     if (myid == 0)
     {
@@ -79,4 +78,5 @@ char *argv[];
 	printf("wall clock time = %f\n", endwtime-startwtime);	       
     }
     MPI_Finalize();
+    return(0);
 }

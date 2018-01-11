@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_getval.c,v 1.17 1996/04/12 13:40:22 gropp Exp $
+ *  $Id: attr_getval.c,v 1.19 1997/01/07 01:47:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -50,12 +50,17 @@ int *flag;
 {
   MPIR_HBT_node *attr;
   int mpi_errno = MPI_SUCCESS;
+  struct MPIR_COMMUNICATOR *comm_ptr;
+  static char myname[] = "MPI_ATTR_GET";
 
-  if ( MPIR_TEST_COMM(comm,comm)||
-	   ( (keyval == MPI_KEYVAL_INVALID) && (mpi_errno = MPI_ERR_OTHER) ) )
-	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_ATTR_GET");
+  TR_PUSH(myname);
+  comm_ptr = MPIR_GET_COMM_PTR(comm);
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+
+  if ( ( (keyval == MPI_KEYVAL_INVALID) && (mpi_errno = MPI_ERR_OTHER) ) )
+	return MPIR_ERROR(comm_ptr, mpi_errno, myname);
 		  
-  MPIR_HBT_lookup(comm->attr_cache, keyval, &attr);
+  MPIR_HBT_lookup(comm_ptr->attr_cache, keyval, &attr);
   if ( attr == (MPIR_HBT_node *)0 ) {
 	(*flag) = 0;
 	(*(void **)attr_value) = (void *)0; 
@@ -64,6 +69,7 @@ int *flag;
 	(*flag) = 1;
 	(*(void **)attr_value) = attr->value;
   }
+  TR_POP;
   return(mpi_errno);
 }
 

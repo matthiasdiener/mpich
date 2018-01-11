@@ -67,6 +67,11 @@ if [ ! -f long.eps ] ; then
         fi
     done
 fi
-tar cf $tarfile $files
-mv $tarfile ..
+if tar cf $tarfile $files ; then
+    mv $tarfile ..
+else
+    echo "Creation of tar file `pwd`/$tarfile failed"
+    echo "Check that there is enough disk space"
+    df   .
+fi
 echo "The file $tarfile contains the files needed to create a report."

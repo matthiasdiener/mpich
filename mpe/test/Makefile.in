@@ -4,14 +4,14 @@
 LARCH       = @ARCH@
 COMM        = @COMM@
 INSTALL_DIR = @MPIR_HOME@
-CC          = @CC@
-F77         = @F77@
+CC          = @MPICC@
+F77         = @MPIF77@
 CLINKER     = @CLINKER@
 FLINKER     = @FLINKER@
 OPTFLAGS    = @OPTFLAGS@
 #
-LIB_PATH    = -L$(INSTALL_DIR)/lib/$(LARCH)/$(COMM)
-FLIB_PATH   = @FLIB_PATH_LEADER@$(INSTALL_DIR)/lib/$(LARCH)/$(COMM)
+LIB_PATH    = -L@LIB_DIR@
+FLIB_PATH   = @FLIB_PATH_LEADER@@LIB_DIR@
 LIB_LIST    = @LIB_LIST@
 MPE_LIBS    = @MPE_LIBS@
 #

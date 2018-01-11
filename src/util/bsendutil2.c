@@ -1,5 +1,5 @@
 /*
- *  $Id: bsendutil2.c,v 1.2 1996/06/07 15:12:34 gropp Exp $
+ *  $Id: bsendutil2.c,v 1.5 1997/03/29 16:07:32 gropp Exp $
  *
  *  (C) 1993, 1996 by Argonne National Laboratory and 
  *      Mississipi State University.
@@ -53,6 +53,8 @@
  * when the data has been moved.
  */
 
+#include "mpiimpl.h"
+
 #ifdef MPI_ADI2
 /* #define DEBUG_BSEND */
 
@@ -63,7 +65,6 @@ static int DebugBsend = 0;
 #define DEBUG_PRINT(str) 
 #endif                 /* #DEBUG_BSEND_END# */
 
-#include "mpiimpl.h"
 #include "reqalloc.h"
 #ifndef MEMCPY
 #define MEMCPY(a,b,n) memcpy(a,b,n)
@@ -175,7 +176,7 @@ int  size;
    When called, it returns the current buffer and size in its arguments
    (both are output).
  */
-void MPIR_BsendRelease( buf, size )
+int MPIR_BsendRelease( buf, size )
 void **buf;
 int  *size;
 {
@@ -187,7 +188,7 @@ int  *size;
     while (p) {
 	if (MPIR_TestBufferPtr(p)) {
 	    /* Error in pointer */
-	    MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
+	    return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_OTHER, 
 	       	"Error in BSEND data, corruption detected in FreeBuffer" );
 	}
 	if (p->req) {
@@ -201,11 +202,13 @@ int  *size;
 	    }
 	    p = p->next;
 	}
+    /* Note that this works even when the buffer does not exist */
     *buf	  = (void *)Bsend;
     *size	  = BsendSize;
     Bsend	  = 0;
     BsendSize = 0;
     DEBUG_PRINT("Exiting MPIR_BsendRelease");
+    return MPI_SUCCESS;
 }
 
 /* 
@@ -223,7 +226,7 @@ BSendData *b;
     tp    = b->prev;
     if (tp && MPIR_TestBufferPtr(tp)) {
 	/* Error in pointer */
-	MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
+	MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_OTHER, 
 		    "Error in BSEND data, corruption detected in MergeBlock" );
     }
 
@@ -243,7 +246,7 @@ BSendData *b;
     tp = b->next;
     if (tp && MPIR_TestBufferPtr(tp)) {
 	/* Error in pointer */
-	MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
+	MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_OTHER, 
 		    "Error in BSEND data, corruption detected in MergeBlock" );
     }
     if (tp && tp->req == MPI_REQUEST_NULL) {
@@ -289,7 +292,7 @@ void         **bufp;
 	while (b) {
 	    if (MPIR_TestBufferPtr(b)) {
 		/* Error in pointer */
-		return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
+		return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_OTHER, 
 				   "Error in BSEND data, corruption detected in BsendAlloc" );
 	    }
 	    /* Note that since the request in the bsend data is private, we can
@@ -387,13 +390,13 @@ void         **bufp;
    internal buffer.  A bsend area must already exist for it, and be
    marked by bine set in the rq->bsend field (see the MPIR_SHANDLE structure).
  */
-void MPIR_BsendCopyData( shandle, comm, buf, count, datatype, 
+void MPIR_BsendCopyData( shandle, comm_ptr, buf, count, dtype_ptr, 
 			 bsend_buf, bsend_len )
 MPIR_SHANDLE *shandle;
-MPI_Comm     comm;
+struct MPIR_COMMUNICATOR *comm_ptr;
 void         *buf;
 int          count;
-MPI_Datatype datatype;
+struct MPIR_DATATYPE *dtype_ptr;
 void         **bsend_buf;
 int          *bsend_len;
 {
@@ -404,25 +407,25 @@ int          *bsend_len;
     DEBUG_PRINT("Entering MPIR_BsendCopyData");
     b = (BSendData *)(shandle->bsend);
     if (!b) {
-	MPIR_ERROR( comm, MPI_ERR_OTHER, "Error in BSEND data" );
+	MPIR_ERROR( comm_ptr, MPI_ERR_OTHER, "Error in BSEND data" );
 	return;
     }
     if (MPIR_TestBufferPtr(b)) {
 	/* Error in pointer */
-	MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
+	MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_OTHER, 
 	        "Error in BSEND data, corruption detected in BsendCopyData" );
     }
 #ifdef FOO
 /* This really should be the same as rq now... */
     brq = (MPIR_SHANDLE *)b->req;
     if (shandle != brq) {
-	MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER,
+	MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_OTHER,
 		    "Error in BSEND data; requests do not match" );
     }
 #endif
     outcount   = b->len;
-    MPI_Pack( buf, count, datatype, b->buf, outcount, &position, 
-	      comm );
+    MPI_Pack( buf, count, dtype_ptr->self, b->buf, outcount, &position, 
+	      comm_ptr->self );
     *bsend_buf = b->buf;
 /* The number of bytes actually taken is returned in position */
     *bsend_len = position;
@@ -430,12 +433,12 @@ int          *bsend_len;
     /* Consistency tests */
     if (MPIR_TestBufferPtr(b)) {
 	/* Error in pointer after we've packed into it */
-	MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
+	MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_OTHER, 
 		    "Error in BSEND data, corruption detected at end of PrepareBuffer" );
     }
     if (b->next && MPIR_TestBufferPtr(b->next)) {
 	/* Error in pointer after we've packed into it */
-	MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
+	MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_OTHER, 
 		    "Error in BSEND data, corruption detected at data end of PrepareBuffer" );
     }
     DEBUG_PRINT("Exiting MPIR_PrepareBuffer");
@@ -483,7 +486,7 @@ MPIR_SHANDLE *rq;
     b      = (BSendData *)(rq->bsend);
     if (MPIR_TestBufferPtr(b)) {
 	/* Error in pointer */
-	MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
+	MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_OTHER, 
 		    "Error in BSEND data, corruption detected in FreeBuffer" );
     }
     b->req = MPI_REQUEST_NULL;
@@ -503,7 +506,7 @@ int MPIR_BsendBufferPrint( )
     while (b) {
 	if (MPIR_TestBufferPtr(b)) {
 	    /* Error in pointer */
-	    MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
+	    MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_OTHER, 
 		   "Error in BSEND data, corruption detected in PrintBuffer" );
 	}
 	FPRINTF( stdout, "%lx : len = %d, req = %lx\n", (long)b, b->len, 
@@ -518,10 +521,10 @@ int MPIR_BsendBufferPrint( )
 /* This routine is called by MPI_Start to start an persistent bsend.
    The incoming requests is the USERS request
  */
-void MPIR_IbsendDatatype( comm, buf, count, datatype, src_lrank, tag, 
+void MPIR_IbsendDatatype( comm_ptr, buf, count, dtype_ptr, src_lrank, tag, 
 			  context_id, dest_grank, request, error_code )
-MPI_Comm     comm;
-MPI_Datatype datatype;
+struct MPIR_COMMUNICATOR *comm_ptr;
+struct MPIR_DATATYPE     *dtype_ptr;
 void         *buf;
 int          count, src_lrank, tag, context_id, dest_grank, *error_code;
 MPI_Request  request;
@@ -529,7 +532,7 @@ MPI_Request  request;
     MPI_Request bsend_request;
     int         bsend_len;
     void        *bsend_buf;
-    int         mpi_errno;
+    int         mpi_errno = MPI_SUCCESS;
 
     /* Trivial case first */
     if (dest_grank == MPI_PROC_NULL) {
@@ -542,15 +545,15 @@ MPI_Request  request;
     bsend_request = ((BSendData *)(request->shandle.bsend))->req;
     MPID_Request_init( (&(bsend_request)->shandle), MPIR_SEND );
     /* Pack data as necessary into buffer */
-    MPIR_BsendCopyData( &request->shandle, comm, buf, count, datatype,
+    MPIR_BsendCopyData( &request->shandle, comm_ptr, buf, count, dtype_ptr,
 			&bsend_buf, &bsend_len );
 
     /* use ISendContig to send the message */
-    MPID_IsendDatatype( comm, bsend_buf, bsend_len, MPI_PACKED, 
+    MPID_IsendDatatype( comm_ptr, bsend_buf, bsend_len, MPIR_PACKED_PTR, 
 			src_lrank, tag, context_id, dest_grank, 
 			bsend_request, &mpi_errno );
     if (mpi_errno) {
-	*error_code = MPIR_ERROR( comm, mpi_errno, "Error in MPI_ISEND" );
+	*error_code = MPIR_ERROR( comm_ptr, mpi_errno, "MPIR_IBSENDDATATYPE" );
     }
     request->shandle.is_complete = 1;
 }

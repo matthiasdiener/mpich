@@ -7,16 +7,6 @@
 #include <stdarg.h>
 #endif
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_address_ PMPI_ADDRESS
@@ -39,7 +29,7 @@ extern void MPIR_RmPointer();
 
 /*
    This code is a little subtle.  By making all addresses relative 
-   to MPIR_F_MPI+ BOTTOM, we can all ways add a computed address to the Fortran
+   to MPIR_F_MPI_BOTTOM, we can all ways add a computed address to the Fortran
    MPI_BOTTOM to get the correct address.  In addition, this can fix 
    problems on systems where Fortran integers are too short for addresses,
    since often, addresses will be within 2 GB of each other, and making them
@@ -103,15 +93,16 @@ int      *address;
 int      *__ierr;
 {
     MPI_Aint a, b;
+
     *__ierr = MPI_Address( location, &a );
     if (*__ierr != MPI_SUCCESS) return;
 
     b = a - (MPI_Aint)MPIR_F_MPI_BOTTOM;
     *address = (int)( b );
     if (((MPI_Aint)*address) - b != 0) {
-	*__ierr = MPIR_ERROR( MPI_COMM_WORLD,     
+	*__ierr = MPIR_ERROR( MPIR_COMM_WORLD,     
 			      MPI_ERR_ARG | MPIR_ERR_FORTRAN_ADDRESS_RANGE, 
-			      "Error in MPI_ADDRESS" );
+			      "MPI_ADDRESS" );
     }
 }
 #endif

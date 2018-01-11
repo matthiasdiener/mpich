@@ -22,11 +22,79 @@ fi
 MPIRUN_DEVICE=$default_device
 export MPIRUN_DEVICE
 #
-if [ "$debugger" != "" ] ; then 
-      cat > $PWD_TRIAL/PId$$ <<.
-run -np $np $cmdLineArgs
-.
-      $Show $debugger $progname $commandfile $PWD_TRIAL/PId$$
-else
-      $Show $progname $cmdLineArgs -np $np
+#
+# Handle debuggers
+#
+#startpgm="eval"
+startpgm="$progname $cmdLineArgs -np $np"
+
+if [ "$debugger" != "" ] ; then
+    if [ "$debugger" = "totalview" ] ; then
+        if [ "$TOTALVIEW" = "" ] ; then
+	   TOTALVIEW="totalview"
+        fi
+        startpgm="$TOTALVIEW $progname -a $cmdLineArgs -np $np -mpichtv"
+    else
+	# There should be a way to specify a debugger startup method, for
+        # special vendor-specific debuggers (like SGI's cvd) etc.
+	# gdb or dbx-like debuggers
+        dbgfile=$PWD_TRIAL/PId$$
+        echo "Test" > $dbgfile
+        if [ -s $dbgfile ] ; then
+	    /bin/rm -f $dbgfile
+        else
+            dbgfile=$HOME/PId$$
+        fi
+        # If gdb has an equivalent, the documentation is well hidden.
+        #  - .gdbinit - and the documentation IS well hidden.  Fortunately,
+        # the .gbdinit file is read; gdb provides the -nx (instead of -x)
+        # command if you don't want to read the default init file.
+        if [ "$debugger" = "dbx" -a -r $HOME/.dbxinit ] ; then
+	    cat $HOME/.dbxinit > $dbgfile
+        fi
+        # Regretably, xxgdb does NOT provide this argument (even though it
+        # claims to).
+    #    if [ "$debugger" = "xxgdb" -a -r $HOME/.gdbinit ] ; then
+    #	cat $HOME/.gdbini > $dbgfile
+    #    fi
+        # handle USR1 pass for gdb; add an initial break 
+        if [ "$debugger" = "gdb" -o "$debugger" = "xxgdb" ] ; then
+	    echo "handle SIGUSR1 nostop pass" >> $dbgfile
+	    echo "br MPI_Init" >> $dbgfile
+	    echo "set args $cmdLineArgs -np $np" >> $dbgfile
+	    echo "run" >> $dbgfile
+        else 
+            echo "ignore USR1" >> $dbgfile
+            # This may not work, depending on when the symbol table is read.
+            # An alternative is to use the startup file to load the 
+            # program with "debug $progname" ,followed with this, followed
+	    # with run command args.
+	    echo "debug $progname" >> $dbgfile
+   	    echo "stop in MPI_Init" >> $dbgfile
+	    echo "run $cmdLineArgs -np $np" >> $dbgfile
+        fi
+    #	cat >> $dbgfile <<.
+    ## Use this command to start your programm:
+    #run  $cmdLineArgs -p4pg $p4pgfile
+    #.
+	    commandfile=`echo $commandfile | sed -e s@%f@$dbgfile@g`
+	    startpgm="$debugger $commandfile $progname"
+    fi
 fi
+
+#
+# Build a suitable command for the whole thing
+#
+if [ $just_testing = 1 ] ; then
+  doitall="echo"
+else
+  doitall=""
+fi
+#
+# Add rsh'ery if requested
+#
+if [ $nolocal = 1 ] ; then
+    doitall="$doitall $rshcmd $machinehead"
+fi
+
+$doitall $startpgm

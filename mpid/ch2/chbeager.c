@@ -1,5 +1,5 @@
 /*
- *  $Id: chbeager.c,v 1.4 1996/07/17 18:04:59 gropp Exp $
+ *  $Id: chbeager.c,v 1.6 1997/01/07 01:49:41 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -138,8 +138,9 @@ void         *in_runex;
     }
     MPID_FLOW_MEM_RECV(msglen,runex->from);
     MPID_DO_HETERO(rhandle->msgrep = runex->msgrep);
-    MPID_RecvFree( runex );
     rhandle->s		 = runex->s;
+    rhandle->s.count     = msglen;
+    MPID_RecvFree( runex );
     rhandle->wait	 = 0;
     rhandle->test	 = 0;
     rhandle->push	 = 0;

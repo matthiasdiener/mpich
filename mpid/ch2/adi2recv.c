@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2recv.c,v 1.2 1996/06/13 14:52:49 gropp Exp $
+ *  $Id: adi2recv.c,v 1.3 1996/12/01 23:34:41 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -25,9 +25,9 @@
 /***************************************************************************/
 /* Does this need to return msgrep if heterogeneous? */
 
-void MPID_RecvContig( comm, buf, maxlen, src_lrank, tag, context_id, 
+void MPID_RecvContig( comm_ptr, buf, maxlen, src_lrank, tag, context_id, 
 		      status, error_code )
-MPI_Comm   comm;
+struct MPIR_COMMUNICATOR *comm_ptr;
 void       *buf;
 int        maxlen, src_lrank, tag, context_id, *error_code;
 MPI_Status *status;
@@ -41,16 +41,16 @@ MPI_Status *status;
     rhandle.finish = 0;
 
     *error_code = 0;
-    MPID_IrecvContig( comm, buf, maxlen, src_lrank, tag, context_id, 
+    MPID_IrecvContig( comm_ptr, buf, maxlen, src_lrank, tag, context_id, 
 		      request, error_code );
     if (!*error_code) {
 	MPID_RecvComplete( request, status, error_code );
     }
 }
 
-void MPID_IrecvContig( comm, buf, maxlen, src_lrank, tag, context_id, 
+void MPID_IrecvContig( comm_ptr, buf, maxlen, src_lrank, tag, context_id, 
 		       request, error_code )
-MPI_Comm    comm;
+struct MPIR_COMMUNICATOR *comm_ptr;
 void        *buf;
 int         maxlen, src_lrank, tag, context_id, *error_code;
 MPI_Request request;

@@ -1,4 +1,4 @@
-.TH mpicc 1 "7/26/1996" " " "MPI Commands"
+.TH mpicc 1 "4/14/1997" " " "MPI Commands"
 .SH NAME
 mpicc \-  Compiles and links MPI programs written in C 
 .SH DESCRIPTION
@@ -75,12 +75,18 @@ executable given the name
 To compile a single file 
 .I foo.c
 , use
+.nf
 mpicc -c foo.c 
+.fi
 
 To link the output and make an executable, use
+.nf
 mpicc -o foo foo.o
+.fi
 Combining compilation and linking in a single command
+.nf
 mpicc -o foo foo.c
+.fi
 is a convenient way to build simple programs.
 
 .SH SEE ALSO

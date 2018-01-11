@@ -21,15 +21,19 @@ MPI_Comm      comm;
 MPI_Request   request;
 int           nonblocking;
 {
+    struct MPIR_DATATYPE *dtype_ptr;
+    int mpi_errno;
+
     request->type                 = MPIR_RECV;
     request->rhandle.source       = source;
     request->rhandle.tag          = tag;
     request->rhandle.errval       = MPI_SUCCESS;
     request->rhandle.contextid    = comm->recv_context;
     request->rhandle.comm         = comm;
-    MPIR_GET_REAL_DATATYPE(datatype)
     request->rhandle.datatype     = datatype;
-    datatype->ref_count++;
+    dtype_ptr   = MPIR_GET_DTYPE_PTR(datatype);
+    MPIR_TEST_DTYPE(datatype,dtype_ptr,MPI_COMM_WORLD,"MPI_RECV_INIT");
+    MPIR_REF_INCR(dtype_ptr);
     request->rhandle.bufadd       = buf;
     request->rhandle.count        = count;
     MPID_Clr_completed( comm->ADIctx, request );

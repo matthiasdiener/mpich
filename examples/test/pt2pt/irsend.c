@@ -1,7 +1,12 @@
 #include "mpi.h"
 #include <stdio.h>
-#include <memory.h>
+#include <stdlib.h>
 #include "dtypes.h"
+#include "gcomm.h"
+
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
 
 /* Nonblocking ready sends 
    

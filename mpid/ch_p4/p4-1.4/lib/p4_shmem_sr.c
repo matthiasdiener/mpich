@@ -59,7 +59,7 @@ struct p4_msg *tmsg;
 {
 
     struct p4_msg_queue *mq;
-    int from, to_qidx, from_qidx;
+    int to_qidx, from_qidx;
 
     p4_dprintfl(20, "sending msg of type %d from %d to %d via shmem\n",tmsg->type,tmsg->from,tmsg->to);
     to_qidx = tmsg->to - p4_global->low_cluster_id;

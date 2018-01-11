@@ -1,5 +1,5 @@
 /*
- *  $Id: waitsome.c,v 1.24 1996/06/26 19:27:12 gropp Exp $
+ *  $Id: waitsome.c,v 1.28 1997/01/24 21:55:18 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -34,6 +34,8 @@ in the range '1' to 'incount' for Fortran.
 Null requests are ignored; if all requests are null, then the routine
 returns with 'outcount' set to 'MPI_UNDEFINED'.
 
+.N waitstatus
+
 .N fortran
 
 .N Errors
@@ -51,7 +53,9 @@ MPI_Status  array_of_statuses[];
     MPI_Request request;
     int nnull, mpi_lerr;
     int nfound = 0;
+    static char myname[] = "MPI_WAITSOME";
 
+    TR_PUSH(myname);
 #ifdef MPI_ADI2
     /* NOTE:
        This implementation will not work correctly if the device requires
@@ -137,8 +141,9 @@ MPI_Status  array_of_statuses[];
     else
 	*outcount = nfound;
     if (mpi_errno) {
-	return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, "Error in MPI_TESTSOME");
+	return MPIR_ERROR(MPIR_COMM_WORLD, mpi_errno, myname);
 	}
+    TR_POP;
     return mpi_errno;
 #else
     /* Check for the trivial case of nothing to do. */
@@ -211,9 +216,10 @@ MPI_Status  array_of_statuses[];
 		nfound++;
 		/* Spec requires, but... */
 		if (!request->chandle.persistent) {
-		    if (--request->chandle.datatype->ref_count <= 0) {
+		    MPIR_Type_free( &request->chandle.datatype );
+/*		    if (--request->chandle.datatype->ref_ count <= 0) {
 			MPIR_Type_free( &request->chandle.datatype );
-			}
+			}*/
 		    MPI_Request_free( &array_of_requests[i] ); 
 		    /* array_of_requests[i]    = NULL; */
 		    }
@@ -226,14 +232,14 @@ MPI_Status  array_of_statuses[];
 	   a safe call */
 	/*
 	if (nfound == 0) 
-	    MPID_Check_device( MPI_COMM_WORLD->ADIctx, MPID_BLOCKING );
+	    MPID_Check_device( MPIR_COMM_WORLD->ADIctx, MPID_BLOCKING );
 	     */
-	    MPID_Check_device( MPI_COMM_WORLD->ADIctx, MPID_NOTBLOCKING );
+	    MPID_Check_device( MPIR_COMM_WORLD->ADIctx, MPID_NOTBLOCKING );
 
 	}
     *outcount = nfound;
     if (mpi_errno) {
-	return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, "Error in MPI_WAITSOME");
+	return MPIR_ERROR(MPIR_COMM_WORLD, mpi_errno, myname );
 	}
     return mpi_errno;
 #endif

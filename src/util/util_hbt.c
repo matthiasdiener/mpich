@@ -1,5 +1,5 @@
 /*
- *  $Id: util_hbt.c,v 1.6 1996/04/11 20:32:33 gropp Exp $
+ *  $Id: util_hbt.c,v 1.8 1997/01/07 01:47:07 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -100,11 +100,15 @@ int MPIR_HBT_new_tree ( tree_out )
 MPIR_HBT *tree_out;
 {
   MPIR_HBT new_tree;
+
+  TR_PUSH("MPIR_HBT_new_tree");
   new_tree = (*tree_out) = (MPIR_HBT) MPIR_SBalloc ( MPIR_hbts );
   if (!new_tree)
       return MPI_ERR_EXHAUSTED;
+  MPIR_SET_COOKIE(new_tree,MPIR_HBT_COOKIE);
   new_tree->root = (MPIR_HBT_node *)0;
   new_tree->height = 0;
+  TR_POP;
   return (MPI_SUCCESS);
 }
 
@@ -114,19 +118,22 @@ MPIR_HBT_new_node -
 
 +*/
 int MPIR_HBT_new_node ( keyval, value, node_out )
-int keyval;
+MPIR_Attr_key *keyval;
 void *value;
 MPIR_HBT_node **node_out;
 {
   MPIR_HBT_node *new_node;
 
+  TR_PUSH("MPIR_HBT_new_node");
   new_node = (*node_out) = (MPIR_HBT_node *) MPIR_SBalloc (MPIR_hbt_els);
   if (!new_node)
       return MPI_ERR_EXHAUSTED;
+  MPIR_SET_COOKIE(new_node,MPIR_HBT_NODE_COOKIE);
   new_node->keyval       = keyval;
   new_node->value        = value;
   new_node->balance      = MPIR_BALANCED;
   new_node->left         = new_node->right = (MPIR_HBT_node *)0;
+  TR_POP;
   return (MPI_SUCCESS);
 }
 
@@ -138,10 +145,13 @@ MPIR_HBT_free_node -
 int MPIR_HBT_free_node ( node )
 MPIR_HBT_node *node;
 {
-  if (node != (MPIR_HBT_node *)0)
-    /* Free memory used by node */
-    MPIR_SBfree( MPIR_hbt_els, node );
-  return (MPI_SUCCESS);
+    TR_PUSH("MPIR_HBT_free_node");
+    if (node != (MPIR_HBT_node *)0) {
+	/* Free memory used by node */
+	MPIR_SBfree( MPIR_hbt_els, node );
+    }
+    TR_POP;
+    return (MPI_SUCCESS);
 }
 
 /*+
@@ -152,12 +162,15 @@ MPIR_HBT_free_subtree -
 int MPIR_HBT_free_subtree ( subtree )
 MPIR_HBT_node *subtree;
 {
-  if(subtree != (MPIR_HBT_node *)0) {
-    (void) MPIR_HBT_free_subtree ( subtree -> left );
-    (void) MPIR_HBT_free_subtree ( subtree -> right );
-    (void) MPIR_HBT_free_node ( subtree );
-  }
-  return (MPI_SUCCESS);
+    TR_PUSH("MPIR_HBT_free_subtree");
+
+    if(subtree != (MPIR_HBT_node *)0) {
+	(void) MPIR_HBT_free_subtree ( subtree -> left );
+	(void) MPIR_HBT_free_subtree ( subtree -> right );
+	(void) MPIR_HBT_free_node ( subtree );
+    }
+    TR_POP;
+    return (MPI_SUCCESS);
 }
 
 /*+
@@ -168,12 +181,14 @@ MPIR_HBT_free_tree -
 int MPIR_HBT_free_tree ( tree )
 MPIR_HBT tree;
 {
-  if ( tree != (MPIR_HBT)0 ) {
-    if ( tree->root != (MPIR_HBT_node *)0 )
-      (void) MPIR_HBT_free_subtree ( tree->root );
-    MPIR_SBfree ( MPIR_hbts, tree );
-  }
-  return (MPI_SUCCESS);
+    TR_PUSH("MPIR_HBT_free_tree");
+    if ( tree != (MPIR_HBT)0 ) {
+	if ( tree->root != (MPIR_HBT_node *)0 )
+	    (void) MPIR_HBT_free_subtree ( tree->root );
+	MPIR_SBfree ( MPIR_hbts, tree );
+    }
+    TR_POP;
+    return (MPI_SUCCESS);
 }
 
 /*+
@@ -189,16 +204,19 @@ MPIR_HBT_node **node_out;
   int test;
   MPIR_HBT_node *temp = tree->root;
 
+  TR_PUSH("MPIR_HBT_lookup");
   while(temp)
-    if ( (test = MPIR_COMPARE( keyval, temp->keyval )) < 0 )
+    if ( (test = MPIR_COMPARE( keyval, temp->keyval->self )) < 0 )
       temp = LEFT(temp);
 	else if ( test > 0)
       temp = RIGHT(temp);
 	else {
       (*node_out) = temp;
+      TR_POP;
       return (MPI_SUCCESS);
     }
   (*node_out) = (MPIR_HBT_node *)0;
+  TR_POP;
   return (MPI_SUCCESS);
 }
 
@@ -215,10 +233,13 @@ MPIR_HBT_node *node;
   int done = 0;
   int test, test_rebalance, rebalance_B;
 
+  TR_PUSH("MPIR_HBT_insert");
+
   /* If tree is currently empty then just add new node. */
   if ( tree->root == (MPIR_HBT_node *)0 ) {
     tree->root = node;
     tree->height = 1;
+    TR_POP;
     return (MPI_SUCCESS);
   }
   
@@ -228,9 +249,10 @@ MPIR_HBT_node *node;
   
   /* Find the place where the new node should go. */
   while(!done) {
-    if( (test = MPIR_COMPARE( node->keyval , temp->keyval )) == 0) {
+    if( (test = MPIR_COMPARE( node->keyval->self, temp->keyval->self )) == 0) {
 	  /* The key already exists in the tree can't add. */
-	  return (MPI_SUCCESS);
+	TR_POP;
+	return (MPI_SUCCESS);
     }
     else if (test < 0) {
 	  /* Go left. */
@@ -270,13 +292,14 @@ MPIR_HBT_node *node;
     
   /* Adjust the balance factors along the path just traversed.  Only need to */
   /* do this on part of the path. */
-  if( (test_rebalance = MPIR_COMPARE(node->keyval, rebalance->keyval)) < 0 )
+  if( (test_rebalance = MPIR_COMPARE(node->keyval->self, 
+				     rebalance->keyval->self)) < 0 )
     rebalance_son = temp = LEFT(rebalance);
   else
     rebalance_son = temp = RIGHT(rebalance);
 
   while( temp != inserted) {
-    if ( (test = MPIR_COMPARE( node->keyval, temp->keyval )) < 0 ) {
+    if ( (test = MPIR_COMPARE( node->keyval->self, temp->keyval->self )) < 0 ) {
 	  B(temp) = MPIR_UNBALANCED_LEFT;
 	  temp = LEFT(temp);
 	}
@@ -357,6 +380,7 @@ MPIR_HBT_node *node;
         LEFT(rebalance_father) = temp;
     }
   }
+  TR_POP;
   return (MPI_SUCCESS);
 }
 
@@ -380,6 +404,7 @@ MPIR_HBT_node **node_out;
   MPIR_HBT_node  *del, *successor, *father, *current,*son, *grandson, *temp;
   int test, done,dir, top_of_stack;
   
+  TR_PUSH("MPIR_HBT_delete");
   /* Find the node to be deleted.  Keep track of path on the stack.        */
 
   /* put the tree as indicator on the top of the stack.  This simplifies   */
@@ -387,7 +412,7 @@ MPIR_HBT_node **node_out;
   element_stack[size++] = (MPIR_HBT_node *) tree;
   element_stack[size] = (del = tree -> root);
 
-  while( del && (test = MPIR_COMPARE(keyval, del->keyval)) ) {
+  while( del && (test = MPIR_COMPARE(keyval, del->keyval->self)) ) {
 	if(test < 0) {
       dir_stack[size] = MPIR_UNBALANCED_LEFT;
       del = LEFT(del);
@@ -400,8 +425,10 @@ MPIR_HBT_node **node_out;
   }
     
   /* Node was not found so can't delete it. */
-  if (del == NULL)
-    return (MPI_SUCCESS);
+  if (del == NULL) {
+      TR_POP;
+      return (MPI_SUCCESS);
+  }
   
   /* Set father to be the parent of the node to be deleted */
   father = element_stack[size-1];
@@ -639,6 +666,7 @@ MPIR_HBT_node **node_out;
     
   /* Delete the node */
   (*node_out) = del;
+  TR_POP;
   return (MPI_SUCCESS);
 }
 

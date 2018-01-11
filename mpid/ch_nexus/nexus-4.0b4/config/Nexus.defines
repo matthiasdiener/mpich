@@ -1,0 +1,93 @@
+name					  | configure? | done | person
+------------------------------------------------------------------------
+NEXUS_ACCEPT_NEW_CONNECTION_GETHOSTBYADDR |      ?     |  no  |
+NEXUS_ALIGN				  |     yes    |  no  |
+NEXUS_ARCH_AEROSPACE_CSRD                 |     yes    |  no  |
+NEXUS_ARCH_AIX                            |     yes    |  no  |
+NEXUS_ARCH_AIX4                           |     yes    |  no  |
+NEXUS_ARCH_AIX_DCE_THREADS                |     yes    |  no  |
+NEXUS_ARCH_ATM                            |     yes    |  no  |
+NEXUS_ARCH_AXP                            |     yes    |  no  |
+NEXUS_ARCH_AXPOSF                         |     yes    |  no  |
+NEXUS_ARCH_CRAYC90                        |     yes    |  no  |
+NEXUS_ARCH_DCE_THREADS                    |     yes    |  no  |
+NEXUS_ARCH_FREEBSD                        |     yes    |  no  |
+NEXUS_ARCH_FSU_PTHREADS                   |     yes    |  no  |
+NEXUS_ARCH_HPUX                           |     yes    |  no  |
+NEXUS_ARCH_LINUX                          |     yes    |  no  |
+NEXUS_ARCH_MIT_PTHREADS_1_51_2            |     yes    |  no  |
+NEXUS_ARCH_MPINX                          |     yes    |  no  |
+NEXUS_ARCH_NEXTSTEP                       |     yes    |  no  |
+NEXUS_ARCH_PARAGON                        |     yes    |  no  |
+NEXUS_ARCH_RS6000                         |     yes    |  no  |
+NEXUS_ARCH_SGI                            |     yes    |  no  |
+NEXUS_ARCH_SOLARIS                        |     yes    |  no  |
+NEXUS_ARCH_ST_NEXUS_SERVER                |     yes    |  yes | JMP
+NEXUS_ARCH_STARTUP_IBMDS                  |     yes    |  yes | JMP
+NEXUS_ARCH_SUNOS41                        |     yes    |  no  |
+NEXUS_ARCH_TCP                            |     yes    |  yes | JMP
+NEXUS_ARCH_TYPE                           |     yes    |  no  |
+NEXUS_ARCH_UDP                            |     yes    |  no  |
+NEXUS_ARCH_UNICOS                         |     yes    |  no  |
+NEXUS_ARGS                                |      ?     |  no  |
+NEXUS_CD_NOTIFIER                         |      no+   |  NA  |
+NEXUS_CLASS_TYPE                          |     yes    |  yes | JMP
+NEXUS_CRITICAL_PATH_TIMER                 |probably not|  yes | JMP
+NEXUS_DATABASE_FILE                       |     yes*   |  no  | JGG
+NEXUS_DATABASE_PREFIX                     |     yes*   |  no  | JGG
+NEXUS_DATABASE_PREFIX_SIZE                |     yes*   |  no  | JGG
+NEXUS_DEFAULT_LIBA_SIZE                   |     yes    |  no  |
+NEXUS_DEFAULT_STACK_SIZE                  |     yes    |  no  |
+NEXUS_DEFINE_GLOBALS                      |      ?     |  no  |
+NEXUS_DONT_CATCH_SIGSEGV                  |      ?     |  yes | JMP
+NEXUS_FAULT_ATTACHER_DIED                 |      no+   |  NA  |
+NEXUS_FAULT_BAD_PROTOCOL                  |      no+   |  NA  |
+NEXUS_FAULT_CONNECT_FAILED                |      no+   |  NA  |
+NEXUS_FAULT_NONE                          |      no+   |  NA  |
+NEXUS_FAULT_PROCESS_DIED                  |      no+   |  NA  |
+NEXUS_FAULT_PROCESS_SHUTDOWN_ABNORMALLY   |      no+   |  NA  |
+NEXUS_FAULT_PROCESS_SHUTDOWN_NORMALLY     |      no+   |  NA  |
+NEXUS_FD_SET_CAST                         |     yes    |  yes | JGG
+NEXUS_GLOBAL                              |     yes**  |  no  |
+NEXUS_HANDLER_HASH_TABLE_SIZE             |     yes*   |  no  |
+NEXUS_HAS_SIGBLOCK                        |     yes    |  yes | JMP
+NEXUS_HAS_SIGHOLD                         |     yes    |  yes | JMP
+NEXUS_HAS_UNION_WAIT                      |     yes    |  yes | JMP
+NEXUS_HAS_WAIT_STATUS_MACROS              |     yes    |  yes | JMP
+NEXUS_HAS_X_OK                            |     yes    |  yes | JMP
+NEXUS_HAVE_LOCK_METHOD                    |      ?     |  yes | JGG
+NEXUS_IGNORE_CHILDREN                     |      ?     |  no  |
+NEXUS_LIBA_SIZE                           |     yes    |  no  |
+NEXUS_MAX                                 |      no++  |  NA  |
+NEXUS_MAX_COMMAND_LENGTH                  |     yes*   |  no  |
+NEXUS_MAX_DEBUG_LEVELS                    |      no    |  NA  |
+NEXUS_MAX_EXECUTABLE_PATH_LENGTH          |     yes*   |  no  |
+NEXUS_MAX_HANDLER_NAME_LEN                |     yes*   |  no  |
+NEXUS_MIN                                 |      no++  |  NA  |
+NEXUS_NODE_NEW                            |      no+   |  NA  |
+NEXUS_NODE_OLD_DIFF_EXE                   |      no+   |  NA  |
+NEXUS_NODE_OLD_SAME_EXE                   |      no+   |  NA  |
+NEXUS_NO_NODE_NUM                         |      no+   |  NA  |
+NEXUS_NO_STRTOUL                          |     yes    |  yes | JMP
+NEXUS_PATH_MAXVAL                         |      ?     |  no  |
+NEXUS_POLL_RANGE_CHECK                    |      ?     |  yes |	JMP
+NEXUS_PROFILE_RSR_HASH_TABLE_SIZE         |     yes*   |  no  |
+NEXUS_SEGMENT_HEADER_SIZE                 |      ?     |  no  |
+NEXUS_SIGNAL_RETURN_T                     |     yes    |  yes | JGG
+NEXUS_SPOOF_COPY                          |      ?     |  yes | JMP
+NEXUS_THI_HEADER                          |     yes    |  no  |
+NEXUS_THREAD_SAFE_SELECT                  |  probably  |  yes | JMP
+NEXUS_THREAD_SAFE_STDIO                   |  probably  |  yes | JMP
+NEXUS_USE_ACK_PROTOCOL                    |      ?     |  yes | JMP
+NEXUS_USE_FCNTL_LOCK                      |  probably  |  yes | JGG
+NEXUS_USE_FLOCK                           |  probably  |  yes | JGG
+NEXUS_USE_LOCKF                           |  probably  |  yes | JGG
+NEXUS_USE_MACROS                          |     yes*   |  yes | JMP
+USE_POSIX_SIGNALS                         |     yes    |  yes | JGG
+
+key
+---
+*  - but do we want to?
+** - this is a typedef, so we may not want to
++  - this is a specific value
+++ - this is a macro

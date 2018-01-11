@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "test.h"
 
 #ifdef __STDC__
 #include <stdarg.h>

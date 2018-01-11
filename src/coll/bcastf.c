@@ -7,12 +7,6 @@
 #include <stdarg.h>
 #endif
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_bcast_ PMPI_BCAST
@@ -41,9 +35,9 @@
 {
 void             *buffer;
 int		*count;
-MPI_Datatype      datatype;
+MPI_Datatype    *datatype;
 int		*root;
-MPI_Comm          comm;
+MPI_Comm        *  comm;
 int 		*__ierr;
 int             buflen;
 va_list         ap;
@@ -54,14 +48,12 @@ if (_numargs() == NUMPARAMS+1) {
         buflen = va_arg(ap, int) /8;          /* This is in bits. */
 }
 count =     	va_arg (ap, int *);
-datatype =      va_arg(ap, MPI_Datatype);
+datatype =      va_arg(ap, MPI_Datatype *);
 root =		va_arg(ap, int *);
-comm =          va_arg(ap, MPI_Comm);
+comm =          va_arg(ap, MPI_Comm *);
 __ierr =        va_arg(ap, int *);
 
-*__ierr = MPI_Bcast(MPIR_F_PTR(buffer),*count,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),*root,
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
+*__ierr = MPI_Bcast(MPIR_F_PTR(buffer),*count,*datatype,*root,*comm );
 }
 
 #else
@@ -69,9 +61,9 @@ __ierr =        va_arg(ap, int *);
  void mpi_bcast_ ( buffer, count, datatype, root, comm, __ierr )
 void             *buffer;
 int*count;
-MPI_Datatype      datatype;
+MPI_Datatype     * datatype;
 int*root;
-MPI_Comm          comm;
+MPI_Comm         * comm;
 int *__ierr;
 {
 _fcd            temp;
@@ -80,29 +72,24 @@ if (_isfcd(buffer)) {
         buffer = (void *)temp;
 }
 
-*__ierr = MPI_Bcast(MPIR_F_PTR(buffer),*count,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),*root,
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
+*__ierr = MPI_Bcast(MPIR_F_PTR(buffer),*count,*datatype,*root,*comm);
 }
 
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
 
-void mpi_bcast_ ANSI_ARGS(( void *, int *, MPI_Datatype, int *, MPI_Comm,
+void mpi_bcast_ ANSI_ARGS(( void *, int *, MPI_Datatype *, int *, MPI_Comm *,
 			    int * ));
 
 void mpi_bcast_ ( buffer, count, datatype, root, comm, __ierr )
 void             *buffer;
 int*count;
-MPI_Datatype      datatype;
+MPI_Datatype      *datatype;
 int*root;
-MPI_Comm          comm;
+MPI_Comm          *comm;
 int *__ierr;
 {
-    *__ierr = MPI_Bcast(MPIR_F_PTR(buffer),*count,
-			(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),
-			*root,
-			(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
+    *__ierr = MPI_Bcast(MPIR_F_PTR(buffer),*count,*datatype,*root,*comm);
 }
 #endif

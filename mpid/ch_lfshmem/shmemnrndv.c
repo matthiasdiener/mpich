@@ -74,7 +74,7 @@ MPIR_SHANDLE *shandle;
     shandle->bytes_as_contig = len;
 #ifdef MPID_DEBUG_ALL
     { char sbuf[150];
-    sprintf( sbuf, "S Saving buf = %lx of %d bytes", (long)buf, len );
+    sprintf( sbuf, "S Saving buf = %lx of %d bytes", (MPI_Aint)buf, len );
     DEBUG_PRINT_MSG(sbuf);
     }
 #endif
@@ -145,7 +145,7 @@ int   from_grank;
 	MPID_AINT_GET(shandle,pkt->send_id);
 #ifdef MPIR_HAS_COOKIES
 	if (shandle->cookie != MPIR_REQUEST_COOKIE) {
-	    fprintf( stderr, "shandle is %lx\n", (long)shandle );
+	    fprintf( stderr, "shandle is %lx\n", (MPI_Aint)shandle );
 	    fprintf( stderr, "shandle cookie is %lx, should be %lx\n", 
 		     shandle->cookie, MPIR_REQUEST_COOKIE );
 	    MPID_Print_shandle( stderr, shandle );
@@ -203,7 +203,7 @@ int   from_grank;
 	MPID_AINT_GET(rhandle,pkt->recv_id);
 #ifdef MPIR_HAS_COOKIES
 	if (rhandle->cookie != MPIR_REQUEST_COOKIE) {
-	    fprintf( stderr, "rhandle is %lx\n", (long)rhandle );
+	    fprintf( stderr, "rhandle is %lx\n", (MPI_Aint)rhandle );
 	    fprintf( stderr, "rhandle cookie is %lx\n", rhandle->cookie );
 	    MPID_Print_rhandle( stderr, rhandle );
 	    MPID_Abort( (MPI_Comm)0, 1, "MPI internal", 

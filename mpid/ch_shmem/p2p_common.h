@@ -40,6 +40,11 @@ void   p2p_shfree      ANSI_ARGS((char *));
 void   p2p_cleanup     ANSI_ARGS((void));
 void   p2p_error       ANSI_ARGS((char *, int));
 void   p2p_setpgrp     ANSI_ARGS((void));
+void   p2p_yield       ANSI_ARGS((void));
+void   p2p_kill_procs  ANSI_ARGS((void)); 
+void   p2p_clear_signal ANSI_ARGS((void)); 
+void   p2p_cleanup     ANSI_ARGS((void)); 
+void p2p_create_procs  ANSI_ARGS((int,int,char **));
 
 #ifdef USE_DISTRIB_SHMALLOC
     void *p2p_shmalloc ANSI_ARGS((int, int));

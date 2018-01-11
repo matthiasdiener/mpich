@@ -2,6 +2,9 @@
    strings but not string) */
 #if defined(HAVE_STRINGS_H)
 #include <strings.h>
+#if defined(HAVE_STRING_H) && defined(BOTH_STRING_INCS)
+#include <string.h>
+#endif
 #else
 #if defined(HAVE_STRING_H)
 #include <string.h>
@@ -20,6 +23,8 @@
 
 #ifndef TRUE
 #define TRUE  1
+#endif
+#ifndef FALSE
 #define FALSE 0
 #endif
 
@@ -41,6 +46,10 @@ extern char *sys_errlist[];
 
 #include "p4_globals.h"
 
+/* This is sometimes found in sys/param.h.  We only need a long name */
+#ifndef MAXHOSTNAMELEN
+#define MAXHOSTNAMELEN 256
+#endif
 
 #define BEGIN_USER      101
 #define END_USER        102

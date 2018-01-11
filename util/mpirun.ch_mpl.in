@@ -33,18 +33,53 @@ fi
 # nodes.
 # Note that if the executable is not on a file system mounted 
 # on a node, you may get a strange error message.
+#
+# The MP_RMPOOL value may need to be changed or even unset, depending on your
+# environment.
+#
+# The IBM pedb debugger is also available (replace poe with pedb)
+#
 if [ -z "$MP_RETRY" ] ; then
     MP_RETRY=15
 fi
 if [ -z "$MP_RETRYCOUNT" ] ; then
     MP_RETRYCOUNT=40
 fi
+# Don't set a default for the RMPOOL
+#if [ -z "$MP_RMPOOL" ] ; then
+#    MP_RMPOOL=0
+#fi
+if [ -z "$MP_EUILIB" ] ; then
+    if [ -d /usr/lpp/ppe.poe/lib/ip -a ! -d /usr/lpp/ppe.poe/lib/us ] ; then
+        MP_EUILIB=ip
+    else
+        MP_EUILIB=us
+    fi
+fi
+
+# Handle Totalview debugging
+if [ "$debugger" = "totalview" ] ; then
+    if [ "$TOTALVIEW" = "" ] ; then
+        TOTALVIEW="totalview"
+    fi
+    startpgm="$TOTALVIEW poe -a"
+    debugargs="-mpichksq"
+elif [ "$debugger" = "pedb" ] ; then
+    startpgm="pedb"
+    debugargs=""
+else
+    startpgm="poe"
+    debugargs=""
+fi
+
 if [ $just_testing = 1 ] ; then
     echo "(sh/ksh style:)"
-    echo MP_EUILIB=us
+    echo MP_EUILIB=$MP_EUILIB
     echo export MP_EUILIB
-    echo MP_RMPOOL=0
-    echo export MP_RMPOOL
+    if [ -n "$MP_RMPOOL" ] ; then
+        echo MP_RMPOOL=$MP_RMPOOL
+        echo export MP_RMPOOL
+    fi
     echo MP_HOSTFILE=$machineFile
     echo export MP_HOSTFILE
     echo MP_PROCS=$np
@@ -61,12 +96,14 @@ if [ $just_testing = 1 ] ; then
         echo MP_CSS_INTERRUPT=yes
 	echo export MP_CSS_INTERRUPT
     fi
-    echo poe $progname $cmdLineArgs
+    echo $startpgm $progname $cmdLineArgs $debugargs
 else
-    MP_EUILIB=us
+    MP_EUILIB=$MP_EUILIB
     export MP_EUILIB
-    MP_RMPOOL=0
-    export MP_RMPOOL
+    if [ -n "$MP_RMPOOL" ] ; then 
+        MP_RMPOOL=$MP_RMPOOL
+        export MP_RMPOOL
+    fi
     MP_HOSTFILE=$machineFile
     export MP_HOSTFILE
     MP_PROCS=$np
@@ -83,5 +120,6 @@ else
         MP_CSS_INTERRUPT=yes
 	export MP_CSS_INTERRUPT
     fi
-    poe $progname $cmdLineArgs
+    $startpgm $progname $cmdLineArgs $debugargs
 fi
+

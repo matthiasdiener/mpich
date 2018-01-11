@@ -228,7 +228,7 @@ Flags *oldFlags;
 #if DEBUG
   fprintf( stderr, "%d exiting PAFF\n", myid );
 #endif
-return 0;
+return;
 }
 
 
@@ -293,7 +293,7 @@ Flags *flags;
 
     
   }
-  return 0;
+  return;
 }
 
 

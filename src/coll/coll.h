@@ -1,5 +1,6 @@
-/* 	$Id: coll.h,v 1.9 1996/04/12 15:37:06 gropp Exp $	 */
+/* 	$Id: coll.h,v 1.11 1997/01/17 22:59:35 gropp Exp $	 */
 
+#ifndef MPIR_MIN
 
 /*
 
@@ -40,7 +41,7 @@ mpi_errno = MPI_Sendrecv ( (void *)(src), count, datatype, rank, tag, \
 #else
 #define MPIR_COPYSELF( src, count, datatype, dest, tag, rank, comm ) \
 {int _outlen, _totlen; \
-mpi_errno = MPIR_Pack2( src, count, datatype, \
+mpi_errno = MPIR_Pack2( src, count, maxcount, datatype, \
 			(int (*) ANSI_ARGS((unsigned char *, unsigned char *, \
 					    MPI_Datatype, int, void *)))0, \
 			(void*)0, dest, &_outlen, &_totlen );}
@@ -66,6 +67,15 @@ mpi_errno = MPIR_Pack2( src, count, datatype, \
 #endif
 #endif
 
+/* 
+ * Unfortunately, the MPI_Op's are declared as returning void rather than
+ * an error code.  Thus, it isn't obvious how to return an error.  Our
+ * solution is to use an external int, MPIR_Op_errno.  This IS NOT 
+ * THREAD SAFE, so it will need to be setup as thread-private in a 
+ * multithreaded implementation.
+ */
+extern int MPIR_Op_errno;
+
 /* Tags for point to point operations which implement collective operations */
 #define MPIR_BARRIER_TAG               1
 #define MPIR_BCAST_TAG                 2
@@ -89,3 +99,5 @@ mpi_errno = MPIR_Pack2( src, count, datatype, \
 #define MPIR_SCAN_TAG                 20
 #define MPIR_USER_SCAN_TAG            21
 #define MPIR_USER_SCANA_TAG           22
+
+#endif

@@ -1,0 +1,14 @@
+This file contains any messages produced by compilers while
+running configure, to aid debugging if configure makes a mistake.
+
+configure:3355: gcc -c   conftest.c 1>&5
+configure:3393: gcc -o conftest      conftest.c  1>&5
+configure:3482: gcc -c    conftest.c 1>&5
+configure: In function `t':
+configure:3477: `bogus' undeclared (first use this function)
+configure:3477: (Each undeclared identifier is reported only once
+configure:3477: for each function it appears in.)
+configure:3477: parse error before `endian'
+configure:3528: gcc -o conftest      conftest.c  1>&5
+configure:3566: gcc -o conftest      conftest.c  1>&5
+configure:3600: gcc -o conftest      conftest.c  1>&5

@@ -1,6 +1,10 @@
 #include "mpi.h"
 #include <stdio.h>
 
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
+
 int main( argc, argv )
 int argc;
 char **argv;

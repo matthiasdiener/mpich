@@ -1,0 +1,10 @@
+.TH MPIR_Breakpoint 3 "12/4/1996" " " "MPI"
+.SH NAME
+MPIR_Breakpoint \-  Provide a routine that a debugger can intercept at interesting times. Note that before calling this you should set up MPIR_debug_state, so that the debugger can see what is going on. 
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+void MPIR_Breakpoint()
+.fi
+.SH LOCATION
+debugutil.c

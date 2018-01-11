@@ -1,0 +1,29 @@
+dnl
+dnl rcsid = $Header: /nfs/globus1/src/master/nexus_top/configure.in,v 1.13 1996/12/12 19:56:05 tuecke Exp $
+dnl
+litenl
+dnl rcsid = $Header: /nfs/globus1/src/master/nexus_top/configure.in,v 1.13 1996/12/12 19:56:05 tuecke Exp $
+dnl
+AC_REVISION($Revision: 1.13 $)dnl
+AC_INIT(nexus)
+AC_PREREQ(2.10)
+
+SUBDIRS="data_conversion ports0 rdb nexus ez test"
+dnl DOCDIRS="docs ports0/docs"
+DOCDIRS="ports0/docs"
+LAC_INIT
+LAC_NEXUS_INIT
+LAC_BUILD_LIBDIR
+LAC_PATH_THREADS
+
+AC_SUBST(SUBDIRS)
+AC_SUBST(DOCDIRS)
+AC_CONFIG_SUBDIRS($SUBDIRS)
+
+
+LAC_MAKEFILES(makefile_header, Makefile)
+
+AC_OUTPUT($lac_makefiles $lac_makefile_headers, 
+  LAC_INSERT_MAKEFILE_HEADERS echo timestamp > stamp-h,
+  [lac_makefiles="$lac_makefiles"]
+)

@@ -25,13 +25,14 @@ char ***argv;
 	if (p4_create_procgroup()) {
 	    /* Error creating procgroup.  Generate error message and
 	       return */
-	    MPID_Abort( (MPI_Comm)0, 1, (char *)0, 
+	    MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, (char *)0, 
 	    "! Could not create p4 procgroup.  Possible missing file\n\
 or program started without mpirun.\n" );
 	    return;
 	}
 	p4_set_hard_errors( 1 );
     }
+    p4_post_init();		/* do any special post_init stuff */
     MPID_MyWorldRank = p4_get_my_id();
     MPID_MyWorldSize = p4_num_total_slaves()+1;
     __P4GLOBALTYPE = 1010101010;
@@ -76,6 +77,7 @@ or program started without mpirun.\n" );
 	if (nlen > 0 && !*(argv)) { 
 	    p4_error( "Could not allocate memory for commandline argv",nlen);}
 	p = argstr;
+	(*(argv))[0] = argstr;
 	for (i=0; i<narg; i++) {
 	    (*(argv))[i] = p;
 	    p += arglen[i];
@@ -84,15 +86,18 @@ or program started without mpirun.\n" );
 	(*(argv))[narg] = 0;
 	P4Args = *argv;
     }
-    else
+    else {
 	FREE(argstr);
+    }
     FREE(arglen);
 }
 
 void MPID_P4_End()
 {
     if (P4Args) {
+	/* *P4Args should be the argstr that was allocated for the arguments */
 	FREE( *P4Args );
+	/* P4Args is the argv vector */
 	FREE( P4Args );
     }
     p4_wait_for_end();

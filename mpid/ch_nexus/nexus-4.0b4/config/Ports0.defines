@@ -1,0 +1,69 @@
+name                             | configure? | done | person
+------------------------------------------------------------------------
+PORTS0_ARCH_AIX4                 |     yes    |  no  |
+PORTS0_ARCH_AXP                  |     yes    |  no  |
+PORTS0_ARCH_CRAYC90              |     yes    |  no  |
+PORTS0_ARCH_DCE_THREADS          |     yes    |  no  |
+PORTS0_ARCH_FREEBSD              |     yes    |  no  |
+PORTS0_ARCH_FSU_PTHREADS         |     yes    |  no  |
+PORTS0_ARCH_HP9000S700           |     yes    |  no  |
+PORTS0_ARCH_HPUX                 |     yes    |  no  |
+PORTS0_ARCH_LINUX                |     yes    |  no  |
+PORTS0_ARCH_MIT_PTHREADS         |     yes    |  no  |
+PORTS0_ARCH_MIT_PTHREADS_1_51_2  |     yes    |  no  |
+PORTS0_ARCH_MPINX                |     yes    |  no  |
+PORTS0_ARCH_NEXTSTEP             |     yes    |  no  |
+PORTS0_ARCH_OSF1                 |     yes    |  no  |
+PORTS0_ARCH_PARAGON              |     yes    |  no  |
+PORTS0_ARCH_PTHREADS_DRAFT6      |     yes    |  no  |
+PORTS0_ARCH_RS6000               |     yes    |  no  |
+PORTS0_ARCH_SGI                  |     yes    |  no  |
+PORTS0_ARCH_SOLARIS              |     yes    |  no  |
+PORTS0_ARCH_SPARCSUNOS41         |     yes    |  no  |
+PORTS0_ARCH_SUNOS41              |     yes    |  no  |
+PORTS0_ARCH_SYMMETRY             |     yes    |  no  |
+PORTS0_ARCH_SYSV                 |     yes    |  no  |
+PORTS0_ARCH_UNICOS               |     yes    |  no  |
+PORTS0_ARGS                      |      ?     |  no  |
+PORTS0_CALL_PTHREAD_INIT         |      ?     |  no  |
+PORTS0_DATAKEYS_MAX              |      ?     |  no  |
+PORTS0_DEFAULT_CONCURRENCY_LEVEL |      ?     |  no  |
+PORTS0_DEFAULT_STACK_SIZE        |     yes    |  no  |
+PORTS0_DONT_FIX_PROTOTYPES       |     yes    |  no  |
+PORTS0_DONT_INCLUDE_ANSI         |     yes    |  no  |
+PORTS0_DONT_INCLUDE_STRING       |     yes    |  no  |
+PORTS0_FILEIO_NOT_REENTRANT      |     yes    |  no  |
+PORTS0_GETWD_TO_GETCWD           |     yes    |  yes | JMP
+PORTS0_GLOBAL                    |     yes**  |  no  |
+PORTS0_INCLUDE_STRINGS           |     yes    |  no  |
+PORTS0_INTERROGATE()             |      no++  |  NA  |
+PORTS0_KEY_TABLE_SIZE            |      ?     |  no  |
+PORTS0_MALLOC_DEBUG              |      ?     |  yes | JMP
+PORTS0_MALLOC_NOT_REENTRANT      |     yes    |  no  |
+PORTS0_MALLOC_PAD                |      ?     |  yes | JMP
+PORTS0_MAX()                     |      no++  |  NA  |
+PORTS0_MEMCPY_TO_BCOPY           |     yes    |  no  |
+PORTS0_MIN()                     |      no++  |  NA  |
+PORTS0_NO_MEMMOVE                |     yes    |  no  |
+PORTS0_N_MALLOC_RECS             |      ?     |  no  |
+PORTS0_QT                        |     yes    |  no  |
+PORTS0_RETURN_USES_ERRNO         |     yes    |  no  |
+PORTS0_SKIP_USE_MACROS           |      ?     |  yes | JMP
+PORTS0_STACK_MIN                 |      ?     |  no  |
+PORTS0_STDIO_NOT_REENTRANT       |     yes    |  no  |
+PORTS0_STRCHR_TO_INDEX           |     yes    |  no  |
+PORTS0_THI_HEADER                |     yes    |  no  |
+PORTS0_THREAD_ONCE_INIT          |      ?     |  no  |
+PORTS0_THREAD_SAFE_STDIO         |     yes    |  yes | JMP
+PORTS0_TH_HEADER                 |     yes    |  no  |
+PORTS0_USE_BZERO                 |     yes    |  no  |
+PORTS0_USE_HEADERS               |      ?     |  no  |
+PORTS0_USE_MACROS                |      ?     |  yes | JMP
+PORTS0_USING_THREADS             |     yes    |  no  |
+
+key
+---
+*  - but do we want to?
+** - this is a typedef, so we may not want to
++  - this is a specific value
+++ - this is a macro

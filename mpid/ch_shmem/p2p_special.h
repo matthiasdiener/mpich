@@ -15,8 +15,9 @@
 
 /* SGI machines and IRIX-based operating systems */
 
-/* MPI_IRIX64 chooses (for the most part) same options as MPI_IRIX */
-#ifdef MPI_IRIX64
+/* MPI_IRIX64, IRIXN32, and IRIX32 chooses (for the most part) same options as 
+   MPI_IRIX */
+#if defined(MPI_IRIX64) || defined(MPI_IRIXN32) || defined(MPI_IRIX32)
 #    define MPI_IRIX
 #endif
 

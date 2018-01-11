@@ -2,6 +2,58 @@
 
 		      Portable MPI Model Implementation
 
+                        Version 1.1 April, 1997
+
+Major Changes
+
+The biggest change is an update of the internals of MPICH.  A major part of
+this is a change to a new "abstract device (ADI-2)" that MPICH uses to achieve
+portability.  This change has allowed us to fix some long-standing bugs and 
+to offer a higher-performing interface.  However, some devices have not been
+updated to the new interface, and are not available.  In many cases, this
+is because we have no access to the machines (e.g., Ncube, CM5) or the
+previous devices where produced by vendors who have not updated them (Intel
+NX, Meiko).  Other devices, such as the t3d or ch_nexus devices, are not yet
+ready.  Rather than wait for all of the devices to be updated, we are
+releasing MPICH 1.1 know, and providing "unbundled" devices later.  See the
+MPICH web page (http://www.mcs.anl.gov/mpich/download.html) for details and
+for what is currently available.
+
+All of the MPI constants (except MPI_BOTTOM) are now constants in the
+language, not just unchanging between MPI_Init and MPI_Finalize as in MPI 1.0.
+This required a great many changes to the internals of MPICH; unfortunately
+there was no way to avoid this and comply with the most recent (1.1) version
+of the MPI standard.  All MPI programs must be recompiled.
+
+Minor Changes
+
+On IBM SPx systems, the program spxcp is provided to copy the exectuable
+using the high performance switch.  This can significantly shorten startup
+time when using large numbers of processes.  It may also eliminate "Cannot 
+configure system calls" errors that users quite properly are perplexed about
+(these come from the IBM runtime system, not MPICH).  Currently, only
+mpirun.anlspx makes use of this feature.  
+
+There are many bug fixes and enhancements to the code.  
+
+    Handling of MPI_UB and MPI_LB types has been corrected
+ 
+    Code is much cleaner - few warnings are generated even at paranoid
+    warning settings (any many of these come from system header files, 
+    such as X11R5 headers).
+
+    Executables built for the ch_p4 and ch_shmem devices can be run on 
+    a single processor without using mpirun - just run them like any
+    other program.
+
+Important Note
+
+If you have any problems installing or using MPICH, first check the
+installation and users manuals; both contain troubleshooting sections.
+If you don't find the answer there, send mail to mpi-bugs@mcs.anl.gov.
+Do NOT use the newsgroup comp.parallel.mpi ; this newsgroup is for discussions
+about MPI, not any particular implementation of MPI.
+
 			Version 1.0.13 (July 26, 1996)
 
 This is a joint-effort project between Argonne (Bill Gropp and Rusty Lusk) and
@@ -34,6 +86,10 @@ previous behavior with -nompe -nompedbg -devdebug .
 
 SGI users should check the installation manual.  There is new support for
 the various code modes (-64, -n32, and -32) and new architecture types.
+To get 64 bit libraries, one should pass the -64 flag to the compilers and
+linker with
+
+   configure -cc='cc -64' -fc='f77 -64' ....
 
 MPI_Cancel is now supported.
 
@@ -56,6 +112,9 @@ testing:
   )
 
   zcat mpich.tar.Z | tar xovf -
+
+(Some systems don't accept the o argument to tar - you can use just xvf, but
+you should upgrade to a better system)
 
 OR
 
@@ -83,7 +142,11 @@ THEN
 
   The installation and user's guides (in doc/install.ps.Z and guide.ps.Z) 
   contain helpful information on diagnosing problems; please check there 
-  before sending mail to mpi-bugs (see below on how to submit bug reports).
+  before sending mail to mpi-bugs@mcs.anl.gov (see below on how to
+  submit bug reports).
+
+  More information on special configurations, installing MPICH, and 
+  testing it are in the installation and users guides.
 
 			Changes since Version 1.0.12
 
@@ -122,6 +185,10 @@ THEN
     all of the processes that you will be communicating with before
     doing anything else.
 
+    Fortran LOGICAL data is not handled correctly on some HETEROGENEOUS
+    systems (basically, there is no XDR type for Fortran LOGICAL, and the
+    current code doesn't convert to/from a standard representation).
+
     Don't forget to check the on-line buglist at MPICH home page
     http://www.mcs.anl.gov/mpi/mpich/index.html 
     
@@ -143,7 +210,7 @@ mpich.tar.Z          - the implementation itself, sufficient to run on the
                        are the actual releases.
                        New releases are indicated by a change in the last 
                        number; the value when this readme was written
-                       was 13 (as in 1.0.13).
+                       was 0 (as in 1.1.0).
 
 You do not need anything else if you are using either the various MPP versions
 (Cray T3D, Intel Paragon, TMC CM5, IBM SP2) or the integrated version of p4
@@ -224,6 +291,28 @@ sockets to other machines, use
 If you need to generate a particular version that corresponds to the -32,
 -n32, or -64 compiler/linker options on SGI, use the architectures
 IRIX32, IRIXN32, or IRIX64 respectively instead of sgi.
+Specifically, use the following for an R10000 SGI:
+
+    configure -arch=IRIX64 \
+	-cc="cc -64 -mips4 -r10000" \
+	-fc="f77 -64 -mips4 -r10000" \
+	-opt="-O2" \
+	-device=ch_shmem
+
+    configure -arch=IRIXN32 \
+	-cc="cc -n32 -mips4 -r10000" \
+	-fc="f77 -n32 -mips4 -r10000" \
+	-opt="-O2" \
+	-device=ch_shmem
+
+    configure -arch=IRIX32 \
+	-cc="cc -32" \
+	-fc="f77 -32" \
+	-opt="-O2" \
+	-device=ch_shmem
+
+(The optimization level is optional; -O2 has worked for some users.  Be
+careful of aggressive optimization, particularly in the mpid/ch_shmem code.)
 
 For a Convex Exemplar, please get the official version from Convex/HP.
 This is based on MPICH, but has been tuned for better performance on the
@@ -243,13 +332,21 @@ To build for nX on an ipsc/2 or ipsc/860, use
     configure -arch=intelnx -device=ch_nx
     make
 
-To build for nX on a paragon, use
+To build for nX on an Intel Paragon, use
 
+    configure -arch=paragon -device=ch_nx
+    make
+    Fortran programs will need to use a ABSOLUTE path for the mpif.h
+    include file, due to a bug in the if77 compiler (it searches include
+    directories in the wrong order).
+
+To build for nX on a paragon, use
+    (Not currently supported)
     configure -arch=paragon -device=nx
     make
 
 To build for the Meiko CS-2, use
-
+    (Not currently supported)
     configure -arch=meiko -device=meiko
     make
 
@@ -260,7 +357,7 @@ To build for UNICOS on a CRAY C90, CRAY Y-MP, or CRAY J90
     make
 
 To build for the Ncube, use
-
+    (Not currently supported)
     configure -arch=ncube -device=ch_nc
     make
 
@@ -276,12 +373,14 @@ To build for the CM-5, use
 
 To build for SP1, SP2, or rs6000's using MPL (version 1), give the command
 
-    configure -device=ch_mpl -arch=rs6000 
+    configure -device=ch_mpl -arch=rs6000
     make
 
 If you have version 2 of MPL, IBM has included their own MPI with it.  We 
-recommend that you use that instead.  We have no access to an IBM SP with 
-MPL version 2, and have no way to test MPICH on one.
+recommend that you use that instead.  If you need to use ours, try
+
+    configure -device=ch_mpl -arch=rs6000 -mpilibname=mpich
+    make
 
 The Makefile contains some sample targets that run configure with the
 correct options for our installation; you may find these instructive.
@@ -345,7 +444,22 @@ will run a variety of test programs.
 
 If you have not setup mpirun, you can still use the test programs in these
 directories; you'll just have to write your own script to run them.  
-(And send mail to mpi-bugs describing what problems you had with mpirun.)
+(And send mail to mpi-bugs@mcs.anl.gov describing what problems you had with
+mpirun.)
+
+Reporting Bugs
+==============
+If you have trouble, first check the installation and user manuals (in 
+mpich/doc/{guide,user}.ps.Z) .  Next, check the on-line bug list at
+http://www.mcs.anl.gov/mpi/mpich .  Finally, if you are still having problems,
+send
+
+   The type of system (often, uname -a)
+   The output of configure
+   The output of make
+   Any same programs or tests
+
+to mpi-bugs@mcs.anl.gov .
 
 Running Programs
 ================
@@ -464,12 +578,12 @@ message queues.
 
 mpirun uses the value of the environment variable TOTALVIEW to determine the
 command to execute on the front of the ultimate command line when the -tv flag
-is present. If this envirable is not set then "totalview" is used. By setting
-this envirable you can invoke totalview with additional flags, or specify
-exactly where totalview is to be found. However to perform remote debugging
-you must ensure that the totalview server (tvdsvr) can be found on your path
-as it is immediately after you log in, since it will be executed via
-rsh. (Alternatively you should use the "Server Launch Window" to modify the
-command used by totalview to start its servers).
+is present. If this environment variable is not set then "totalview" is
+used. By setting this envirable you can invoke totalview with additional
+flags, or specify exactly where totalview is to be found. However to perform
+remote debugging you must ensure that the totalview server (tvdsvr) can be
+found on your path as it is immediately after you log in, since it will be
+executed via rsh. (Alternatively you should use the "Server Launch Window" to
+modify the command used by totalview to start its servers).
 
-Details of Totalview can be found at http://www.bbn.com/tv .
+Details of Totalview can be found at http://www.dolphinics.com/ .

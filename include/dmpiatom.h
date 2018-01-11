@@ -1,5 +1,5 @@
 /*
- *  $Id: dmpiatom.h,v 1.44 1996/07/05 15:36:32 gropp Exp $
+ *  $Id: dmpiatom.h,v 1.46 1996/12/03 02:52:08 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -61,7 +61,7 @@ typedef struct _MPIR_HBT {
  * for the different languages
  */
 #ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus)
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
 #define ANSI_ARGS(a) a
 #else
 #define ANSI_ARGS(a) ()
@@ -71,12 +71,12 @@ typedef struct _MPIR_HBT {
 typedef union {
     int (*c_copy_fn) ANSI_ARGS(( MPI_Comm, int, void *, void *, void *, 
 				 int * ));
-    int (*f77_copy_fn) ANSI_ARGS(( MPI_Comm, int *, int *, int *, int *, 
-				   int * ));
+    void (*f77_copy_fn) ANSI_ARGS(( MPI_Comm, int *, int *, int *, int *, 
+				   int *, int * ));
 } MPIR_Copy_fn;
 typedef union {
     int (*c_delete_fn) ANSI_ARGS(( MPI_Comm, int, void *, void * ));
-    int (*f77_delete_fn) ANSI_ARGS(( MPI_Comm, int *, int *, void * ));
+    void (*f77_delete_fn) ANSI_ARGS(( MPI_Comm, int *, int *, void *, int * ));
 } MPIR_Delete_fn;
 
 typedef struct  {
@@ -138,7 +138,7 @@ typedef enum { MPIR_INTRA=1, MPIR_INTER } MPIR_COMM_TYPE;
 #undef ANSI_ARGS
 #endif
 
-#if defined(__STDC__) || defined(__cplusplus)
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
 #define ANSI_ARGS(a) a
 #else
 #define ANSI_ARGS(a) ()
@@ -184,7 +184,11 @@ struct MPIR_COMMUNICATOR {
     int           use_return_handler;   /* Allows us to override error_handler
 					   when the MPI implementation
 					   calls MPI routines */
+#ifdef NEW_POINTERS
+    MPI_Errhandler error_handler; /* Error handler structure */
+#else
     struct MPIR_Errhandler *error_handler;  /* Error handler structure */
+#endif
     int            permanent;      /* Is this a permanent object? */
     void          *mutex;          /* Local for threaded versions */
 
@@ -239,6 +243,7 @@ typedef enum {
 } MPIR_BOOL;
 #endif
 
+#ifdef FOO
 /* 
    MPIR_FORT_INT is a special integer type for systems where sizeof(int) !=
    sizeof(Fortran REAL).  See the Fortran standard for why this is required.
@@ -255,6 +260,7 @@ typedef enum {
 	MPIR_UB, MPIR_LB, MPIR_LONGDOUBLE, MPIR_LONGLONGINT, 
     MPIR_LOGICAL, MPIR_FORT_INT 
 } MPIR_NODETYPE;
+#endif
 
 /* These are used by some of the datatype routines */
 #ifdef FOO

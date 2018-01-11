@@ -2,12 +2,6 @@
 /* Fortran interface file */
 #include "mpiimpl.h"
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_get_elements_ PMPI_GET_ELEMENTS
@@ -29,15 +23,13 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_get_elements_ ANSI_ARGS(( MPI_Status *, MPI_Datatype, int *, int * ));
+void mpi_get_elements_ ANSI_ARGS(( MPI_Status *, MPI_Datatype *, int *, int * ));
 
 void mpi_get_elements_ ( status, datatype, elements, __ierr )
 MPI_Status    *status;
-MPI_Datatype  datatype;
+MPI_Datatype  *datatype;
 int          *elements;
 int *__ierr;
 {
-    *__ierr = MPI_Get_elements(status,
-			     (MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),
-			       elements);
+    *__ierr = MPI_Get_elements(status,*datatype,elements);
 }

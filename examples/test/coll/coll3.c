@@ -1,5 +1,6 @@
 #include "mpi.h"
 #include <stdio.h>
+#include "test.h"
 
 #define MAX_PROCESSES 10
 

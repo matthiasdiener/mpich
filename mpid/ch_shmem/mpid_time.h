@@ -8,7 +8,7 @@
 #endif
 #endif
 
-extern double p2p_wtime();
+extern double p2p_wtime ANSI_ARGS((void));
 #define MPID_Wtime(a) (*(a)) = p2p_wtime();
 #define MPID_Wtick MPID_CH_Wtick
 

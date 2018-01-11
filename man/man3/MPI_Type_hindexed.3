@@ -1,4 +1,4 @@
-.TH MPI_Type_hindexed 3 "7/17/1996" " " "MPI"
+.TH MPI_Type_hindexed 3 "2/18/1997" " " "MPI"
 .SH NAME
 MPI_Type_hindexed \-  Creates an indexed datatype with offsets in bytes 
 .SH SYNOPSIS
@@ -111,6 +111,14 @@ non-negative; a count of zero is often valid.
 .B MPI_ERR_INTERN 
 - This error is returned when some part of the MPICH 
 implementation is unable to acquire memory.  
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_ARG 
+- Invalid argument.  Some argument is invalid and is not
+identified by a specific error class (e.g., 
+.I MPI_ERR_RANK
+).
 .PD 1
 .SH LOCATION
 type_hind.c

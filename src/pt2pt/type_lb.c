@@ -1,5 +1,5 @@
 /*
- *  $Id: type_lb.c,v 1.10 1996/04/11 20:25:40 gropp Exp $
+ *  $Id: type_lb.c,v 1.13 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -33,15 +33,20 @@ MPI_Datatype  datatype;
 MPI_Aint      *displacement;
 {
   int mpi_errno;
+  struct MPIR_DATATYPE *dtype_ptr;
+  static char myname[] = "MPI_TYPE_LB";
 
-  if (MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,datatype) || 
-      MPIR_TEST_ARG(displacement))
-	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-			   "Error in MPI_TYPE_LB" );
+  TR_PUSH(myname);
+
+  dtype_ptr   = MPIR_GET_DTYPE_PTR(datatype);
+  MPIR_TEST_DTYPE(datatype,dtype_ptr,MPIR_COMM_WORLD,myname);
+
+  if (MPIR_TEST_ARG(displacement))
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname);
 
   /* Assign the lb and return */
+  (*displacement) = dtype_ptr->lb;
 
-  MPIR_GET_REAL_DATATYPE(datatype)
-  (*displacement) = datatype->lb;
+  TR_POP;
   return (MPI_SUCCESS);
 }

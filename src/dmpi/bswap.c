@@ -47,7 +47,7 @@ int n, N;
 
 int MPIR_Type_swap_copy(d, s, t, N, ctx) 
 unsigned char *d, *s;
-MPI_Datatype  t;
+struct MPIR_DATATYPE  *t;
 int           N;
 void          *ctx;
 {
@@ -102,7 +102,7 @@ return len;
 
 void MPIR_Type_swap_inplace(b, t, N)
 unsigned char *b;
-MPI_Datatype t;
+struct MPIR_DATATYPE *t;
 int N;
 {
   switch (t->dte_type) {
@@ -152,12 +152,14 @@ int MPIR_Mem_convert_len( dest_type, datatype, count )
 int dest_type, count;
 MPI_Datatype datatype;
 {
+    struct MPIR_DATATYPE *dtype_ptr;
 #ifdef HAS_XDR
-if (dest_type == MPIR_MSGREP_XDR) 
-    return MPIR_Mem_XDR_Len( datatype, count );
+    if (dest_type == MPIR_MSGREP_XDR) 
+	return MPIR_Mem_XDR_Len( datatype, count );
 #endif
 /* This works for both no conversion and for byte-swap/extend */
-return datatype->size * count;
+    dtype_ptr   = MPIR_GET_DTYPE_PTR(datatype);
+    return dtype_ptr->size * count;
 }
 
 #ifdef HAS_XDR

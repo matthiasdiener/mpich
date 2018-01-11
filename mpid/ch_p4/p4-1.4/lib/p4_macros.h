@@ -31,6 +31,8 @@ typedef struct fd_set {
 
 #endif
 
+/* If strings.h is defined, we have index (I hope!) */
+#if !defined(HAVE_STRINGS_H)
 #if defined(P4SYSV)
 #    ifndef index
 #        define index(S,C)        strchr((S),(C))
@@ -38,6 +40,10 @@ typedef struct fd_set {
 #    ifndef rindex
 #        define rindex(S,C)       strrchr((S),(C))
 #    endif
+#endif
+#endif
+
+#if defined(P4SYSV)
 #    ifndef bcopy
 #        define bcopy(x,y,len)    memcpy((y),(x),(len))
 #        define bcmp(x,y,len)     memcmp((y),(x),(len))

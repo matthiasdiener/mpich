@@ -11,6 +11,7 @@
 
 #include "tcl.h"
 #include "tk.h"
+#include "bitmaps.h"
 
 static int bitmap_no = 0;
 static char *bitmap_list[] = {
@@ -35,6 +36,16 @@ char *Bitmap_Get() {
   return name;
 }
 
+/* Some versions (all?) of tk.h use char, not unsigned char, for the bit 
+   sources.  A compiler might complain about a mismatch 
+
+   Unfortunately, 0xff causes OTHER compilers to complain about the
+   value being out-of-range, since 0xff == 255 > mas value for a signed
+   char (this happened on solaris).
+
+   The only realistic fix is to define the data as unsigned, but cast the 
+   values to signed.  
+*/
 
 
 #define x2x2_width 4
@@ -193,55 +204,74 @@ static unsigned char zoom_out_vert_bits[] = {
    0xc0, 0xff, 0x00, 0x00, 0x1e, 0x00, 0x00, 0x1e, 0x00, 0x00, 0x1e, 0x00};
 
 
+/* Define UNSIGNED as <empty> or unsigned, depending on the prototype */
+#define UNSIGNED
 
 int Bitmap_Init( interp )
 Tcl_Interp *interp;
 {
-  Tk_DefineBitmap( interp, Tk_GetUid( "2x2" ), x2x2_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "2x2" ), (UNSIGNED char *)x2x2_bits,
 		   x2x2_width, x2x2_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "black" ), black_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "black" ), (UNSIGNED char *)black_bits,
 		   black_width, black_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "boxes" ), boxes_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "boxes" ), (UNSIGNED char *)boxes_bits,
 		   boxes_width, boxes_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "dimple3" ), dimple3_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "dimple3" ), 
+		   (UNSIGNED char *)dimple3_bits,
 		   dimple3_width, dimple3_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "dllines3" ), dllines3_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "dllines3" ), 
+		   (UNSIGNED char *)dllines3_bits,
 		   dllines3_width, dllines3_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "dllines4" ), dllines4_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "dllines4" ), 
+		   (UNSIGNED char *)dllines4_bits,
 		   dllines4_width, dllines4_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "dlines3" ), dlines3_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "dlines3" ), 
+		   (UNSIGNED char *)dlines3_bits,
 		   dlines3_width, dlines3_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "drlines4" ), drlines4_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "drlines4" ), 
+		   (UNSIGNED char *)drlines4_bits,
 		   drlines4_width, drlines4_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "drlines4" ), drlines4_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "drlines4" ), 
+		   (UNSIGNED char *)drlines4_bits,
 		   drlines4_width, drlines4_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "gray" ), gray_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "gray" ), (UNSIGNED char *)gray_bits,
 		   gray_width, gray_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "light_gray" ), light_gray_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "light_gray" ), 
+		   (UNSIGNED char *)light_gray_bits,
 		   light_gray_width, light_gray_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "gray3" ), gray3_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "gray3" ), (UNSIGNED char *)gray3_bits,
 		   gray3_width, gray3_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "hlines2" ), hlines2_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "hlines2" ), 
+		   (UNSIGNED char *)hlines2_bits,
 		   hlines2_width, hlines2_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "hlines3" ), hlines3_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "hlines3" ), 
+		   (UNSIGNED char *)hlines3_bits,
 		   hlines3_width, hlines3_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "hlines4" ), hlines4_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "hlines4" ), 
+		   (UNSIGNED char *)hlines4_bits,
 		   hlines4_width, hlines4_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "vlines2" ), vlines2_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "vlines2" ), 
+		   (UNSIGNED char *)vlines2_bits,
 		   vlines2_width, vlines2_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "vlines3" ), vlines3_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "vlines3" ), 
+		   (UNSIGNED char *)vlines3_bits,
 		   vlines3_width, vlines3_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "vlines4" ), vlines4_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "vlines4" ), 
+		   (UNSIGNED char *)vlines4_bits,
 		   vlines4_width, vlines4_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "white" ), white_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "white" ), (UNSIGNED char *)white_bits,
 		   white_width, white_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "zoom_in_horiz" ), zoom_in_horiz_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "zoom_in_horiz" ), 
+		   (UNSIGNED char *)zoom_in_horiz_bits,
 		   zoom_in_horiz_width, zoom_in_horiz_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "zoom_out_horiz" ), zoom_out_horiz_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "zoom_out_horiz" ), 
+		   (UNSIGNED char *)zoom_out_horiz_bits,
 		   zoom_out_horiz_width, zoom_out_horiz_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "zoom_in_vert" ), zoom_in_vert_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "zoom_in_vert" ), 
+		   (UNSIGNED char *)zoom_in_vert_bits,
 		   zoom_in_vert_width, zoom_in_vert_height );
-  Tk_DefineBitmap( interp, Tk_GetUid( "zoom_out_vert" ), zoom_out_vert_bits,
+  Tk_DefineBitmap( interp, Tk_GetUid( "zoom_out_vert" ), 
+		   (UNSIGNED char *)zoom_out_vert_bits,
 		   zoom_out_vert_width, zoom_out_vert_height );
 
   return 0;

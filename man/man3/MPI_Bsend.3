@@ -1,4 +1,4 @@
-.TH MPI_Bsend 3 "5/6/1996" " " "MPI"
+.TH MPI_Bsend 3 "1/6/1997" " " "MPI"
 .SH NAME
 MPI_Bsend \-  Basic send with user-specified buffering 
 .SH SYNOPSIS
@@ -58,10 +58,12 @@ s unless you are certain
 that the message
 has been received (not just that it should have been received).  For example,
 this code does not allocate enough buffer space
+.nf
 MPI_Buffer_attach( b, n*sizeof(double) + MPI_BSEND_OVERHEAD );
 for (i=0; i<m; i++) {
 MPI_Bsend( buf, n, MPI_DOUBLE, ... );
 }
+.fi
 because only enough buffer space is provided for a single send, and the
 loop may start a second 
 .I MPI_Bsend
@@ -70,8 +72,10 @@ buffer.
 
 In C, you can
 force the messages to be delivered by
+.nf
 MPI_Buffer_detach( &b, &n );
 MPI_Buffer_attach( b, n );
+.fi
 (The 
 .I MPI_Buffer_detach
 will not complete until all buffered messages are

@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_split.c,v 1.40 1996/06/26 19:27:26 gropp Exp $
+ *  $Id: comm_split.c,v 1.44 1997/01/07 01:47:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -71,44 +71,49 @@ MPI_Comm *comm_out;
   MPIR_CONTEXT  context;
   int          *group_list;
   MPI_Group     comm_group, group;
-  MPI_Comm      new_comm;
+  struct MPIR_COMMUNICATOR *comm_ptr, *new_comm;
+  struct MPIR_GROUP *group_ptr;
   int           mpi_errno = MPI_SUCCESS;
   MPIR_ERROR_DECL;
-  static char myname[] = "Error in MPI_COMM_SPLIT";
+  static char myname[] = "MPI_COMM_SPLIT";
+
+  TR_PUSH(myname);
+  comm_ptr = MPIR_GET_COMM_PTR(comm);
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
   /* If we don't have a communicator we don't have anything to do */
-  if ( MPIR_TEST_COMM(comm,comm) ||
-       ( (comm->comm_type == MPIR_INTER) && (mpi_errno = MPI_ERR_COMM) ) ) {
+  if ( ( (comm_ptr->comm_type == MPIR_INTER) && (mpi_errno = MPI_ERR_COMM) ) ) {
     (*comm_out) = MPI_COMM_NULL;
-    return MPIR_ERROR( comm, mpi_errno, myname );
+    return MPIR_ERROR( comm_ptr, mpi_errno, myname );
   }
 
   /* Create and initialize split table. */
-  (void) MPIR_Comm_size ( comm, &size );
-  (void) MPIR_Comm_rank ( comm, &rank );
+  (void) MPIR_Comm_size ( comm_ptr, &size );
+  (void) MPIR_Comm_rank ( comm_ptr, &rank );
   MPIR_ALLOC(table,(int *) CALLOC ( 2 * 3 * size, sizeof(int) ),
-	     comm,MPI_ERR_EXHAUSTED,"Out of space in MPI_COMM_SPLIT" );
+	     comm_ptr,MPI_ERR_EXHAUSTED,"Out of space in MPI_COMM_SPLIT" );
   
   table_in = table + (3 * size);
   MPIR_Table_color(table_in,rank) = color;
   MPIR_Table_key(table_in,rank)   = key;
 
-  MPIR_ERROR_PUSH(comm);
+  MPIR_ERROR_PUSH(comm_ptr);
 
   /* Combine the split table. I only have to combine the colors and keys */
   mpi_errno = MPI_Allreduce(table_in, table, size * 2, MPI_INT, MPI_SUM, comm);
 
   /* Allocate 2 contexts */
-  mpi_errno = MPIR_Context_alloc( comm, 2, &context );
+  mpi_errno = MPIR_Context_alloc( comm_ptr, 2, &context );
 
   /* If my color is MPI_UNDEFINED, then I'm not in a comm and can */
   /* stop here since there are no more communications with others */
   /* I'll even go ahead and free the 2 contexts I allocated above */
   if ( MPIR_Table_color(table,rank) == MPI_UNDEFINED ) {
-      MPIR_ERROR_POP(comm);
+      MPIR_ERROR_POP(comm_ptr);
       FREE(table);
-      (void) MPIR_Context_dealloc( comm, 2, context );
+      (void) MPIR_Context_dealloc( comm_ptr, 2, context );
       (*comm_out) = MPI_COMM_NULL;
+      TR_POP;
       return (mpi_errno);
   }
 
@@ -117,29 +122,32 @@ MPI_Comm *comm_out;
      
   /* Create group of processes that share my color */
   MPIR_ALLOC(group_list,(int *) MALLOC ( new_size * sizeof(int) ),
-	     comm,MPI_ERR_EXHAUSTED,myname);
+	     comm_ptr,MPI_ERR_EXHAUSTED,myname);
   for ( i=0; i<new_size; i++, head=MPIR_Table_next(table,head) )
     group_list[i] = head;
-  MPIR_CALL_POP(MPI_Comm_group ( comm, &comm_group ),comm, myname );
+  MPIR_CALL_POP(MPI_Comm_group ( comm, &comm_group ),comm_ptr, myname );
   MPIR_CALL_POP(MPI_Group_incl ( comm_group, new_size, group_list, &group ),
-		comm, myname );
-  MPIR_CALL_POP(MPI_Group_free ( &comm_group ),comm,myname);
+		comm_ptr, myname );
+  MPIR_CALL_POP(MPI_Group_free ( &comm_group ),comm_ptr,myname);
   FREE(table);
   FREE(group_list);
 
-  MPIR_ERROR_POP(comm);
+  MPIR_ERROR_POP(comm_ptr);
+
+  group_ptr = MPIR_GET_GROUP_PTR(group);
+  MPIR_TEST_MPI_GROUP(group,group_ptr,MPIR_COMM_WORLD,myname);
 
   /* Make communicator using contexts allocated */
-  MPIR_ALLOC(new_comm,NEW(struct MPIR_COMMUNICATOR),comm, MPI_ERR_EXHAUSTED, 
+  MPIR_ALLOC(new_comm,NEW(struct MPIR_COMMUNICATOR),comm_ptr, MPI_ERR_EXHAUSTED, 
 	     "Out of space in MPI_COMM_SPLIT" );
-  *comm_out = new_comm;
-  (void) MPIR_Comm_init( new_comm, comm, MPIR_INTRA );
+  MPIR_Comm_init( new_comm, comm_ptr, MPIR_INTRA );
+  *comm_out = new_comm->self;
 
-  new_comm->group         = group;
-  (void) MPIR_Group_dup ( group, &(new_comm->local_group) );
+  new_comm->group         = group_ptr;
+  MPIR_Group_dup ( group_ptr, &(new_comm->local_group) );
 #ifndef MPI_ADI2
   if ((mpi_errno = MPID_Comm_init( new_comm->ADIctx, comm, new_comm )) )
-      return mpi_errno;
+      return MPIR_ERROR(comm_ptr, mpi_errno, myname );
 #endif  
   new_comm->local_rank	   = new_comm->local_group->local_rank;
   new_comm->lrank_to_grank = new_comm->group->lrank_to_grank;
@@ -148,8 +156,8 @@ MPI_Comm *comm_out;
   new_comm->comm_name	   = 0;
 #ifdef MPI_ADI2
   /* CommInit may need lrank_to_grank, etc */
-  if ((mpi_errno = MPID_CommInit( comm, new_comm )) )
-      return mpi_errno;
+  if ((mpi_errno = MPID_CommInit( comm_ptr, new_comm )) )
+      return MPIR_ERROR(comm_ptr,mpi_errno,myname);
 #endif  
   (void) MPIR_Attr_create_tree ( new_comm );
   (void) MPIR_Comm_make_coll( new_comm, MPIR_INTRA );
@@ -157,6 +165,7 @@ MPI_Comm *comm_out;
   /* Remember it for the debugger */
   MPIR_Comm_remember ( new_comm );
 
+  TR_POP;
   return (mpi_errno);
 }
 

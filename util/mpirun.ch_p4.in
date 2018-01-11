@@ -45,6 +45,7 @@ fi
 . $MPIRUN_HOME/mpirun.pg
 # machinelist has the hosts
 # archuselist has the architectures
+# nprocuselist has the number of processors
 #
 # We use this form instead of "local 0" in-case the user is trying to
 # select a second network whose names are not those returned by
@@ -60,28 +61,44 @@ if [ -z "$p4pgfile"  ] ; then
     else
 	/bin/rm -rf $p4pgfile
     fi
+    # cnt is the "index" into the list of machines
     procNum=1
 #    archval=`echo $archuselist | cut -d' ' -f1`
+    nprocval=`echo $nprocuselist | cut -d' ' -f1`
+    # for the "local" entry, the number is the number of ADDITIONAL 
+    # processes.
+    if [ -z "$nprocval" ] ; then
+	# just in case...
+	nprocval=1
+    fi
+    nprocval=`expr $nprocval - 1`
     archval=$archlocal
     proginstance=`echo $progname | sed "s/%a/$archval/g"`
     prognamemain=$proginstance
     if [ $just_testing = 1 ] ; then
        echo "Procgroup file:"
        if [ $nolocal = 0 ] ; then
-	    echo "$MPI_HOST 0 $proginstance"
+	    nprocval=0
+	    echo "$MPI_HOST $nprocval $proginstance"
        else 
-	    echo "$machinehead 0 $proginstance"
+	    echo "$machinehead $nprocval $proginstance"
             procNum=2
        fi
     else
        if [ $nolocal = 0 ] ; then
 	    if [ -z "$MPI_HOST" ] ; then
 		echo "No value for MPI_HOST!"
+	        echo "MPI_HOST is set either from your environment or by"
+		echo "processing for an MPI machine type of ch_p4, ch_tcp, "
+		echo "ch_nexus, or sgi_mp.  The machine type you used was $machine ."
+		echo "Use the -machine <machinename> argument to select a "
+		echo "specific machine type."
 	        exit 1
 	    fi
-	    echo "$MPI_HOST 0 $proginstance" > $p4pgfile
+	    nprocval=0
+	    echo "$MPI_HOST $nprocval $proginstance" > $p4pgfile
        else
-	    echo "$machinehead 0 $proginstance" > $p4pgfile
+	    echo "$machinehead $nprocval $proginstance" > $p4pgfile
             procNum=2
        fi
     fi
@@ -91,9 +108,14 @@ if [ -z "$p4pgfile"  ] ; then
 	    procNum=1; cnt=`expr $cnt + 1`; continue ; 
 	fi
 	archval=`echo $archuselist | cut -d' ' -f$cnt`
+	nprocval=`echo $nprocuselist | cut -d' ' -f$cnt`
 	cnt=`expr $cnt + 1`
 	proginstance=`echo $progname | sed "s/%a/$archval/g"`
-        echo $machine 1 $proginstance >> $p4pgfile
+	if [ $just_testing = 1 ] ; then
+	    echo $machine $nprocval $proginstance
+	else
+	    echo $machine $nprocval $proginstance >> $p4pgfile
+	fi
     done
 
     # make sure the procgroup file was written
@@ -140,6 +162,9 @@ if [ "$debugger" != "" ] ; then
         # command if you don't want to read the default init file.
         if [ "$debugger" = "dbx" -a -r $HOME/.dbxinit ] ; then
 	    cat $HOME/.dbxinit > $dbgfile
+# DEC dbx requires
+#    set stopall_on_step = 1
+# for proper behavior
         fi
         # Regretably, xxgdb does NOT provide this argument (even though it
         # claims to).

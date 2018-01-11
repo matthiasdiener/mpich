@@ -1,5 +1,5 @@
 /*
- *  $Id: chshort.c,v 1.4 1996/07/17 18:04:59 gropp Exp $
+ *  $Id: chshort.c,v 1.5 1997/01/07 01:49:41 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -97,8 +97,9 @@ void         *in_pkt;
     rhandle->s.MPI_TAG	  = pkt->tag;
     rhandle->s.MPI_SOURCE = pkt->lrank;
     MPID_CHK_MSGLEN(rhandle,msglen,err);
-    if (msglen > 0) 
+    if (msglen > 0) {
 	MEMCPY( rhandle->buf, pkt->buffer, msglen ); 
+    }
     rhandle->s.count	  = msglen;
     rhandle->s.MPI_ERROR  = err;
     if (rhandle->finish) {
@@ -130,6 +131,7 @@ void         *in_runex;
     }
     MPID_DO_HETERO(rhandle->msgrep = runex->msgrep);
     rhandle->s		 = runex->s;
+    rhandle->s.count     = msglen;
     rhandle->s.MPI_ERROR = err;
     rhandle->wait	 = 0;
     rhandle->test	 = 0;

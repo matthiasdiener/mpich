@@ -1,5 +1,5 @@
 /*
- *  $Id: alltoallv.c,v 1.24 1996/04/12 14:15:04 gropp Exp $
+ *  $Id: alltoallv.c,v 1.26 1997/01/07 01:47:46 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -53,17 +53,28 @@ MPI_Datatype      recvtype;
 MPI_Comm          comm;
 {
   int        mpi_errno = MPI_SUCCESS;
+  struct MPIR_COMMUNICATOR *comm_ptr;
+  struct MPIR_DATATYPE     *stype_ptr, *rtype_ptr;
   MPIR_ERROR_DECL;
-  
-  /* Check for invalid arguments */
-  if ( MPIR_TEST_COMM(comm,comm) || MPIR_TEST_DATATYPE(comm,sendtype) ||
-       MPIR_TEST_DATATYPE(comm,recvtype))
-	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_ALLTOALLV" ); 
+  static char myname[] = "MPI_ALLTOALLV";
 
-  MPIR_ERROR_PUSH(comm);
-  mpi_errno = comm->collops->Alltoallv( sendbuf, sendcnts, sdispls, sendtype, 
-					recvbuf, recvcnts, rdispls, recvtype, 
-					comm );
-  MPIR_ERROR_POP(comm);
-  MPIR_RETURN(comm,mpi_errno,"Error in MPI_ALLTOALLV");
+  TR_PUSH(myname);
+  comm_ptr = MPIR_GET_COMM_PTR(comm);
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr, myname);
+
+  stype_ptr = MPIR_GET_DTYPE_PTR(sendtype);
+  MPIR_TEST_DTYPE(sendtype,stype_ptr,comm_ptr, myname );
+
+  rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
+  MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
+
+  /* Check for invalid arguments */
+  MPIR_ERROR_PUSH(comm_ptr);
+  mpi_errno = comm_ptr->collops->Alltoallv( sendbuf, sendcnts, sdispls, 
+					    stype_ptr, 
+					    recvbuf, recvcnts, rdispls, 
+					    rtype_ptr, comm_ptr );
+  MPIR_ERROR_POP(comm_ptr);
+  TR_POP;
+  MPIR_RETURN(comm_ptr,mpi_errno,myname);
 }

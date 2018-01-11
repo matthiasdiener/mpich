@@ -35,6 +35,9 @@
 
 #define HOSTNAME_LEN 64
 
+#define P4_TRUE 1
+#define P4_FALSE 0
+
 struct p4_procgroup_entry {
     char host_name[HOSTNAME_LEN];
     int numslaves_in_group;

@@ -3,12 +3,6 @@
 #include "mpiimpl.h"
 #include "mpifort.h"
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #undef MPI_DUP_FN
 
 #ifdef MPI_BUILD_PROFILING

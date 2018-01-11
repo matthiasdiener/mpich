@@ -1,8 +1,9 @@
 #include <mpi.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "test.h"
 
-void main(argc, argv)
+int main(argc, argv)
 int argc;
 char **argv;
 {
@@ -25,4 +26,6 @@ char **argv;
       }
    Test_Waitforall( );
    MPI_Finalize();
+
+   return 0;
 }

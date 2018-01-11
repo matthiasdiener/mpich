@@ -16,11 +16,10 @@
 #include "feather.h"
 
 
-/* Sorry about this kludge, but our ANSI C compiler on our suns has broken
-   header files */
-#ifdef GCC_WALL
-int sscanf( char *, const char *, ... );
+#ifdef NEEDS_STDLIB_PROTOTYPES
+#include "protofix.h"
 #endif
+
 
 #define DEBUG 0
 #define DEBUG_ZOOM 0
@@ -43,36 +42,29 @@ int sscanf( char *, const char *, ... );
 #define Pix2Proc( tl, pix )  ((pix)  * (tl)->np / (tl)->height)
 #define Proc2Pix( tl, proc ) ((proc) / (tl)->np * (tl)->height)
 
-#ifdef __STDC__
-#define ARGS(x) x
-#else
-#define ARGS(x) ()
-#endif
-
+/*
+   Link all the variable in the tl structure to Tcl variables.
+*/
+static int LinkVars ANSI_ARGS(( Tcl_Interp *interp, timeLineInfo *tl ));
 
 /*
    Link all the variable in the tl structure to Tcl variables.
 */
-static int LinkVars ARGS(( Tcl_Interp *interp, timeLineInfo *tl ));
-
-/*
-   Link all the variable in the tl structure to Tcl variables.
-*/
-static int UnlinkVars ARGS(( timeLineInfo *tl ));
+static int UnlinkVars ANSI_ARGS(( timeLineInfo *tl ));
 
 /*
    Grab the ClientData from a logfile command as a logFile*.
 */
-logFile *logCmd2Ptr ARGS(( Tcl_Interp *interp, char *logCmd ));
+logFile *logCmd2Ptr ANSI_ARGS(( Tcl_Interp *interp, char *logCmd ));
 
-static int SetOverlap ARGS(( xpandList /*int*/ *list2 ));
+static int SetOverlap ANSI_ARGS(( xpandList /*int*/ *list2 ));
 
 /*
    Draw one state.
    The void *data is a timeLineInfo*.
 */
 /*  Obsolete
-static int TimeLineDrawState ARGS(( void *data, int idx, int type, int proc,
+static int TimeLineDrawState ANSI_ARGS(( void *data, int idx, int type, int proc,
 				    double startTime, double endTime,
 				    int parent, int firstChild,
 				    int overlapLevel ));
@@ -82,54 +74,54 @@ static int TimeLineDrawState ARGS(( void *data, int idx, int type, int proc,
 /*
    Do the C side of a new timeline initialization.
 */
-static int Timeline_Open ARGS(( ClientData  clientData, Tcl_Interp *interp,
+static int Timeline_Open ANSI_ARGS(( ClientData  clientData, Tcl_Interp *interp,
 			  int argc, char *argv[] ));
 
 /*
    Tcl hook for calling C canvas commands.
 */
-static int Cmd ARGS(( ClientData clientData, Tcl_Interp *interp,
+static int Cmd ANSI_ARGS(( ClientData clientData, Tcl_Interp *interp,
 		      int argc, char *argv[] ));
 
 /*
    Allocate Feather_Color's and stuff.  Needed before any drawing
    is done.  Should only be called once.
 */
-static int AllocColors ARGS(( timeLineInfo* ));
+static int AllocColors ANSI_ARGS(( timeLineInfo* ));
 
 
 /*
    Free colors allocated by AllocColors.
 */
-static int FreeColors ARGS(( timeLineInfo* ));
+static int FreeColors ANSI_ARGS(( timeLineInfo* ));
 
 
 /*
    Draw all states/messages/etc. that have not been drawn yet.
 */
-static int Draw ARGS(( timeLineInfo* ));
+static int Draw ANSI_ARGS(( timeLineInfo* ));
 
 
 /*
    Draw background lines.
 */
-static int DrawBgLines ARGS(( timeLineInfo* ));
+static int DrawBgLines ANSI_ARGS(( timeLineInfo* ));
 
 
 /*
    Draw events.
 */
-static int DrawEvents ARGS(( timeLineInfo *tl, void *canvasPtr,
+static int DrawEvents ANSI_ARGS(( timeLineInfo *tl, void *canvasPtr,
 			     Tk_Window canvasWin ));
 /*
    Draw states.
 */
-static int DrawStates ARGS(( timeLineInfo *tl, void *canvasPtr,
+static int DrawStates ANSI_ARGS(( timeLineInfo *tl, void *canvasPtr,
 			     Tk_Window canvasWin ));
 /*
    Draw messages.
 */
-static int DrawMsgs ARGS(( timeLineInfo *tl, void *canvasPtr,
+static int DrawMsgs ANSI_ARGS(( timeLineInfo *tl, void *canvasPtr,
 			   Tk_Window canvasWin ));
 
 
@@ -138,24 +130,24 @@ static int DrawMsgs ARGS(( timeLineInfo *tl, void *canvasPtr,
    Get timeLineInfo* from a window name.  $timeline($win,tl)
 */
 /*
-static timeLineInfo *TlPtrFromWindow ARGS(( Tcl_Interp *interp,
+static timeLineInfo *TlPtrFromWindow ANSI_ARGS(( Tcl_Interp *interp,
 					    char *win ));
 */
 
 /*
    Return descripion of current item.
 */
-static int CurrentItem ARGS(( timeLineInfo *tl ));
+static int CurrentItem ANSI_ARGS(( timeLineInfo *tl ));
 
 
 /*
    Passed to Tk_EventuallyFree to close the widget record.
 */
-static int Destroy ARGS(( timeLineInfo *tl ));
+static int Destroy ANSI_ARGS(( timeLineInfo *tl ));
 
 
 #if DEBUG
-static int PrintStates ARGS(( timeLineInfo* ));
+static int PrintStates ANSI_ARGS(( timeLineInfo* ));
 #endif
 
 
@@ -983,6 +975,10 @@ Tk_Window canvasWin;
   for (i=0; i<n; i++) {
     Log_GetMsg( tl->log, i, &type, &sender, &receiver, &sendTime,
 	        &recvTime, &size );
+
+    /* This handles any sends/receives from MPI_PROC_NULL that we might
+       reach here */
+    if (sender < 0 || receiver < 0) continue;
 
     points[0] = Time2Pix( tl, sendTime );
     points[1] = Proc2Pix( tl, sender + .5 );

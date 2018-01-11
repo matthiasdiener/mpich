@@ -1,5 +1,5 @@
 /*
- *  $Id: commcompare.c,v 1.3 1996/04/12 14:07:27 gropp Exp $
+ *  $Id: commcompare.c,v 1.5 1997/01/07 01:47:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -33,11 +33,18 @@ int       *result;
 {
   int       mpi_errno = MPI_SUCCESS;
   MPI_Group group1, group2;
+  struct MPIR_COMMUNICATOR *comm1_ptr, *comm2_ptr;
+  static char myname[] = "MPI_COMM_COMPARE";
+
+  comm1_ptr = MPIR_GET_COMM_PTR(comm1);
+  MPIR_TEST_MPI_COMM(comm1,comm1_ptr,comm1_ptr,myname);
+  comm2_ptr = MPIR_GET_COMM_PTR(comm2);
+  MPIR_TEST_MPI_COMM(comm2,comm2_ptr,comm2_ptr,myname);
 
   /* Check for bad arguments */
   if ( ( (result == (int *)0)     && (mpi_errno = MPI_ERR_ARG) ) )
-    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-					  "Error in MPI_COMM_COMPARE" );
+    return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+
   if (!comm1 && !comm2) {
       *result = MPI_IDENT;
       return mpi_errno;
@@ -48,7 +55,7 @@ int       *result;
       }
       
   /* Are they the same kind of communicator */
-  if (comm1->comm_type != comm2->comm_type) {
+  if (comm1_ptr->comm_type != comm2_ptr->comm_type) {
 	(*result) = MPI_UNEQUAL;
 	return (mpi_errno);
   }
@@ -60,7 +67,7 @@ int       *result;
   }
 	
   /* Comparison for intra-communicators */
-  if (comm1->comm_type == MPIR_INTRA) {
+  if (comm1_ptr->comm_type == MPIR_INTRA) {
 
 	/* Get the groups and see what their relationship is */
 	MPI_Comm_group (comm1, &group1);

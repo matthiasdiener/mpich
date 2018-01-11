@@ -9,6 +9,10 @@
 #include <stdio.h>
 #include "mpi.h"
 
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
+
 #define DAR 32  /* ``Data: ARray''  */
 
 

@@ -46,14 +46,16 @@ int n, N;
 
 int MPID_Type_swap_copy(d, s, t, N, ctx) 
 unsigned char *d, *s;
-MPI_Datatype  t;
+struct MPIR_DATATYPE  *t;
 int           N;
 void          *ctx;
 {
-  int len = t->size * N;
+    int len;
 
-  /* There are some 0-sized basic types which we can just ignore */
-  if (len == 0) return MPI_SUCCESS;
+    len = t->size * N;
+
+    /* There are some 0-sized basic types which we can just ignore */
+    if (len == 0) return MPI_SUCCESS;
 
   /* Some compilers issue warnings for using sizeof(...) as an int (!) */
   switch (t->dte_type) {
@@ -94,20 +96,21 @@ void          *ctx;
 #endif
       /* Does not handle Fortran int/float/double */
       default:
-      MPIR_ERROR(MPI_COMM_WORLD, MPI_ERR_INTERN, 
+      MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_INTERN, 
 	       "Tried to swap unsupported type"); 
       memcpy(d, s, len);
       break;
       }
-return len;
+  return len;
 }
 
 void MPID_Type_swap_inplace(b, t, N)
 unsigned char *b;
-MPI_Datatype t;
+struct MPIR_DATATYPE *t;
 int N;
 {
-  switch (t->dte_type) {
+
+    switch (t->dte_type) {
       case MPIR_CHAR:
       case MPIR_UCHAR:
       case MPIR_BYTE:
@@ -144,23 +147,23 @@ int N;
 #endif
       /* Does not handle Fortran int/float/double */
       default:
-      MPIR_ERROR(MPI_COMM_WORLD, MPI_ERR_INTERN, 
+      MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_INTERN, 
 	       "Tried to convert unsupported type"); 
       break;
-      }
+    }
 }
 
-int MPID_Mem_convert_len( dest_type, datatype, count )
+int MPID_Mem_convert_len( dest_type, dtype_ptr, count )
 MPID_Msgrep_t dest_type;
 int           count;
-MPI_Datatype  datatype;
+struct MPIR_DATATYPE *dtype_ptr;
 {
 #ifdef HAS_XDR
-if (dest_type == MPID_MSGREP_XDR) 
-    return MPID_Mem_XDR_Len( datatype, count );
+    if (dest_type == MPID_MSGREP_XDR) 
+	return MPID_Mem_XDR_Len( dtype_ptr, count );
 #endif
 /* This works for both no conversion and for byte-swap/extend */
-return datatype->size * count;
+    return dtype_ptr->size * count;
 }
 
 #ifdef HAS_XDR
@@ -178,8 +181,8 @@ return datatype->size * count;
 #define XDR_DBL_LEN 8
 #define XDR_CHR_LEN 4
 
-int MPID_Mem_XDR_Len( datatype, count )
-MPI_Datatype datatype;
+int MPID_Mem_XDR_Len( dtype_ptr, count )
+struct MPIR_DATATYPE *dtype_ptr;
 int count;
 {
 /* XDR buffer must be a multiple of 4 in size! */
@@ -189,7 +192,7 @@ int count;
    datatype structure for heterogeneous systems).
    4 is basically the maximum expansion size...
  */
-return (4) * count * datatype->size;
+    return (4) * count * dtype_ptr->size;
 }
 
 /* initialize an xdr buffer */
@@ -346,7 +349,7 @@ XDR           *xdr_ctx;
 
 int MPID_Type_XDR_encode(d, s, t, N, ctx) 
 unsigned char *d, *s;
-MPI_Datatype  t;
+struct MPIR_DATATYPE  *t;
 int           N;
 void          *ctx;
 {
@@ -411,13 +414,13 @@ void          *ctx;
       break;
 #endif
       case MPIR_LONGDOUBLE:
-      MPIR_ERROR(MPI_COMM_WORLD, MPI_ERR_TYPE, 
+      MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_TYPE, 
           "Unfortuantely, XDR does not support the long double type. Sorry.");
       len = MPID_Mem_XDR_Encode(d, s, xdr_char, N, (int)sizeof(char), xdr_ctx);
       break;
       default:
 	  len = 0;
-      MPIR_ERROR(MPI_COMM_WORLD, MPI_ERR_INTERN, 
+      MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_INTERN, 
 		 "Tried to encode unsupported type");
       break;
     }
@@ -437,10 +440,10 @@ return len;
  */
 int MPID_Type_XDR_decode(s, N, t, elm_size, d, 
 			 srclen, srcreadlen, destlen, ctx )
-unsigned char *d, *s;
-MPI_Datatype  t;
-int           N, elm_size, srclen, *srcreadlen, *destlen;
-void          *ctx;
+unsigned char         *d, *s;
+struct MPIR_DATATYPE  *t;
+int                   N, elm_size, srclen, *srcreadlen, *destlen;
+void                  *ctx;
 {
   int act_size;
   int mpi_errno = MPI_SUCCESS;
@@ -523,7 +526,7 @@ void          *ctx;
 				    act_size, srcreadlen, destlen, xdr_ctx  );
       break;
       case MPIR_LONGDOUBLE:
-      MPIR_ERROR(MPI_COMM_WORLD, MPI_ERR_TYPE, 
+      MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_TYPE, 
           "Unfortuantely, XDR does not support the long double type. Sorry.");
       mpi_errno = MPID_Mem_XDR_Decode(d, s, xdr_char, N, (int)sizeof(char), 
 				      act_size, srcreadlen, 
@@ -532,12 +535,12 @@ void          *ctx;
       default:
       *srcreadlen = 0;
       *destlen	  = 0;
-      MPIR_ERROR(MPI_COMM_WORLD, MPI_ERR_INTERN, 
+      MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_INTERN, 
 		 "Tried to decode unsupported type");
       break;
       }
   if (mpi_errno && mpi_errno != MPI_ERR_BUFFER) {
-      MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_INTERN,
+      MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_INTERN,
 		 "Error converting data sent with XDR" );
       }
 return mpi_errno;

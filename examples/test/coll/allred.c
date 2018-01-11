@@ -3,6 +3,8 @@
 #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "test.h"
+#include "../pt2pt/gcomm.h"
 
 int main( argc, argv )
 int argc;

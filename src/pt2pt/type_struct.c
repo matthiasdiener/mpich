@@ -1,5 +1,5 @@
 /*
- *  $Id: type_struct.c,v 1.29 1996/06/07 15:07:30 gropp Exp $
+ *  $Id: type_struct.c,v 1.33 1997/02/18 23:05:35 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -64,7 +64,6 @@ for the structure foo
 .N MPI_ERR_TYPE
 .N MPI_ERR_COUNT
 .N MPI_ERR_EXHAUSTED
-.N MPI_ERR_OTHER
 @*/
 int MPI_Type_struct( count, blocklens, indices, old_types, newtype )
 int           count;
@@ -73,7 +72,7 @@ MPI_Aint      indices[];
 MPI_Datatype  old_types[];
 MPI_Datatype *newtype;
 {
-  MPI_Datatype    dteptr;
+  struct MPIR_DATATYPE* dteptr;
   MPI_Aint        ub, lb, high, low, real_ub, real_lb, real_init;
   int             high_init = 0, low_init = 0;
   int             i, mpi_errno = MPI_SUCCESS;
@@ -83,7 +82,7 @@ MPI_Datatype *newtype;
 
   /* Check for bad arguments */
   if ( count < 0 )
-	return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_COUNT,
+	return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_COUNT,
 			       	  "Negative count in MPI_TYPE_STRUCT" );
 
   if (count == 0) 
@@ -95,24 +94,21 @@ MPI_Datatype *newtype;
   for (i=0; i<count; i++) {
     total_count += blocklens[i];
     if ( blocklens[i] < 0)
-      return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER,
+      return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ARG,
                         "Negative block length in MPI_TYPE_STRUCT");
-    MPIR_GET_REAL_DATATYPE(old_types[i])
     if ( old_types[i] == MPI_DATATYPE_NULL )
-      return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_TYPE,
+      return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_TYPE,
                         "Null type in MPI_TYPE_STRUCT");
-    if (MPIR_TEST_IS_DATATYPE( MPI_COMM_WORLD, old_types[i] ))
-      return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_TYPE,
-			 "Invalid old datatype in MPI_TYPE_STRUCT" );
   }
   if (total_count == 0) {
       return MPI_Type_contiguous( 0, MPI_INT, newtype );
   }
-    
+
   /* Create and fill in the datatype */
-  MPIR_ALLOC(dteptr,(MPI_Datatype) MPIR_SBalloc( MPIR_dtes ),MPI_COMM_WORLD, 
+  MPIR_ALLOC(dteptr,(struct MPIR_DATATYPE *) MPIR_SBalloc( MPIR_dtes ),MPIR_COMM_WORLD, 
 	     MPI_ERR_EXHAUSTED, "Out of space in MPI_TYPE_STRUCT" );
-  *newtype = dteptr;
+  *newtype = (MPI_Datatype) MPIR_FromPointer( dteptr );
+  dteptr->self = *newtype;
   MPIR_SET_COOKIE(dteptr,MPIR_DATATYPE_COOKIE)
   dteptr->dte_type    = MPIR_STRUCT;
   dteptr->committed   = 0;
@@ -126,25 +122,31 @@ MPI_Datatype *newtype;
   dteptr->align       = 1;
   dteptr->has_ub      = 0;
   dteptr->has_lb      = 0;
+  dteptr->self        = *newtype;
 
   /* Create indices and blocklens arrays and fill them */
   dteptr->indices     = ( MPI_Aint * ) MALLOC( count * sizeof( MPI_Aint ) );
   dteptr->blocklens   = ( int * )      MALLOC( count * sizeof( int ) );
   dteptr->old_types   =
-	( MPI_Datatype * ) MALLOC(count*sizeof(MPI_Datatype));
+       ( struct MPIR_DATATYPE ** )MALLOC(count*sizeof(struct MPIR_DATATYPE *));
   if (!dteptr->indices || !dteptr->blocklens || !dteptr->old_types) 
-      return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+      return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
 			 "Out of space in MPI_TYPE_STRUCT" );
   high = low = ub = lb = 0;
   real_ub   = real_lb = 0;
   real_init = 0;
   for (i = 0; i < count; i++)  {
-      dteptr->old_types[i]  = (MPI_Datatype)MPIR_Type_dup (old_types[i]);
+      struct MPIR_DATATYPE *old_dtype_ptr;
+
+      old_dtype_ptr   = MPIR_GET_DTYPE_PTR(old_types[i]);
+      MPIR_TEST_DTYPE(old_types[i],old_dtype_ptr,MPIR_COMM_WORLD,
+		      "MPI_TYPE_STRUCT");
+      dteptr->old_types[i]  = MPIR_Type_dup (old_dtype_ptr);
       dteptr->indices[i]    = indices[i];
       dteptr->blocklens[i]  = blocklens[i];
-      if (dteptr->align < old_types[i]->align)
-	  dteptr->align       = old_types[i]->align;
-      if ( old_types[i]->dte_type == MPIR_UB ) {
+      if (dteptr->align < old_dtype_ptr->align)
+	  dteptr->align       = old_dtype_ptr->align;
+      if ( old_dtype_ptr->dte_type == MPIR_UB ) {
 	  if (ub_found) {
 	      if (indices[i] > ub_marker)
 		  ub_marker = indices[i];
@@ -154,7 +156,7 @@ MPI_Datatype *newtype;
 	      ub_found  = 1;
 	      }
 	  }
-      else if ( old_types[i]->dte_type == MPIR_LB ) {
+      else if ( old_dtype_ptr->dte_type == MPIR_LB ) {
 	  if (lb_found) {
 	      if ( indices[i] < lb_marker )
 		  lb_marker = indices[i];
@@ -168,28 +170,35 @@ MPI_Datatype *newtype;
 	  /* Since the datatype is NOT a UB or LB, save the real limits */
 	  if (!real_init) {
 	      real_init = 1;
-	      real_lb = old_types[i]->real_lb;
-	      real_ub = old_types[i]->real_ub;
+	      real_lb = old_dtype_ptr->real_lb;
+	      real_ub = old_dtype_ptr->real_ub;
 	      }
 	  else {
-	      if (old_types[i]->real_lb < real_lb) 
-		  real_lb = old_types[i]->real_lb;
-	      if (old_types[i]->real_ub > real_ub) 
-		  real_ub = old_types[i]->real_ub;
+	      if (old_dtype_ptr->real_lb < real_lb) 
+		  real_lb = old_dtype_ptr->real_lb;
+	      if (old_dtype_ptr->real_ub > real_ub) 
+		  real_ub = old_dtype_ptr->real_ub;
 	      }
 	  /* Next, check to see if datatype has an MPI_LB or MPI_UB
-	     within it... */
-	  if (old_types[i]->has_ub) {
-	      ub_found  = 1;
-	      ub_marker = old_types[i]->ub;
+	     within it... 
+	     Make sure to adjust the ub by the selected displacement
+	     and blocklens (blocklens is like Type_contiguous)
+	   */
+	  if (old_dtype_ptr->has_ub) {
+	      MPI_Aint ub_test;
+	      ub_test = old_dtype_ptr->ub + indices[i] + 
+		  (blocklens[i] - 1) * old_dtype_ptr->extent;
+	      if (ub_marker < ub_test || !ub_found) ub_marker = ub_test;
+	      ub_found = 1;
 	      }
-	  if (old_types[i]->has_lb) {
+	  if (old_dtype_ptr->has_lb) {
+	      if (!lb_found || lb_marker > old_dtype_ptr->lb) 
+		  lb_marker = old_dtype_ptr->lb;
 	      lb_found  = 1;
-	      lb_marker = old_types[i]->lb;
 	      }
 	  /* Get the ub/lb from the datatype (if a MPI_UB or MPI_LB was
 	     found, then these values will be ignored). */
-	  ub = indices[i] + (blocklens[i] * old_types[i]->extent) ;
+	  ub = indices[i] + (blocklens[i] * old_dtype_ptr->extent) ;
 	  lb = indices[i];
 	  if (!high_init) { high = ub; high_init = 1; }
 	  else if (ub > high) high = ub;
@@ -203,15 +212,16 @@ MPI_Datatype *newtype;
 	      if ( high < lb ) high = lb;
 	      if ( low  > ub ) low  = ub;
 	      }
-	  dteptr->elements += (blocklens[i] * old_types[i]->elements);
+	  dteptr->elements += (blocklens[i] * old_dtype_ptr->elements);
 	  }
+      if (i < count - 1) {
+	  size = old_dtype_ptr->size * blocklens[i];
+	  dteptr->size   += size; 
       }
-  
-  for (i=0; i<(count-1); i++) {
-      size = old_types[i]->size * blocklens[i];
-      dteptr->size   += size; 
+      else {
+	  dteptr->size     += (blocklens[i] * old_dtype_ptr->size);
       }
-  dteptr->size     += (blocklens[i] * old_types[i]->size);
+      }
   
   /* Set the upper/lower bounds and the extent and size */
   if (lb_found) {
@@ -228,7 +238,7 @@ MPI_Datatype *newtype;
       dteptr->ub = (high_init ? high: 0);
   dteptr->extent      = dteptr->ub - dteptr->lb ;
   dteptr->real_ub     = real_ub;
-  dteptr->real_ub     = real_lb;
+  dteptr->real_lb     = real_lb;
 
   /* Extent has NO padding */
 

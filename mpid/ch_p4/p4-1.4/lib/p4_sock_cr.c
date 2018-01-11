@@ -16,7 +16,7 @@ struct p4_procgroup *pg;
 	{
 	    rm_fd = net_accept(serv_fd);
 	    hs.pid = (int) htonl(getpid());
-	    net_send(rm_fd, &hs, sizeof(hs), FALSE);
+	    net_send(rm_fd, &hs, sizeof(hs), P4_FALSE);
 	    net_recv(rm_fd, &hs, sizeof(hs));
 	    rm_num = (int) ntohl(hs.rm_num);
 	    rm_fds[rm_num] = rm_fd;
@@ -39,6 +39,7 @@ struct p4_procgroup *pg;
 	}
     }
 
+    close( serv_fd );
     return (0);
 }
 
@@ -54,20 +55,27 @@ int rm_fd, rm_num;
 
     msg.type = p4_i_to_n(INITIAL_INFO);
     msg.numinproctab = p4_i_to_n(p4_global->num_in_proctable);
+    msg.rm_num = p4_i_to_n( rm_num );
     msg.numslaves = p4_i_to_n(pe->numslaves_in_group);
-    strcpy(msg.outfile, outfile);
-    msg.debug_level = p4_i_to_n(remote_debug_level);
+    if (strlen( outfile ) >= P4_MAX_PGM_LEN) {
+	p4_error( "Output filename must be less than ", P4_MAX_PGM_LEN );
+    }
+    strncpy(msg.outfile, outfile, P4_MAX_PGM_LEN);
+    msg.debug_level = p4_i_to_n(p4_remote_debug_level);
     msg.memsize = p4_i_to_n(globmemsize);
     msg.logging_flag = p4_i_to_n(logging_flag);
     strcpy(msg.application_id, p4_global->application_id);
     strcpy(msg.version, P4_PATCHLEVEL);
-    strcpy(msg.pgm, pe->slave_full_pathname);
+    if ( strlen( pe->slave_full_pathname ) >= P4_MAX_PGM_LEN ) {
+	p4_error( "Program names must be less than ", P4_MAX_PGM_LEN );
+    }
+    strncpy(msg.pgm, pe->slave_full_pathname, P4_MAX_PGM_LEN );
 
-    net_send(rm_fd, &msg, sizeof(msg), FALSE);
+    net_send(rm_fd, &msg, sizeof(msg), P4_FALSE);
 
     port = -1;
     pidx = -1;
-    for (done = FALSE; !done;)
+    for (done = P4_FALSE; !done;)
     {
 	status = net_recv(rm_fd, &msg, sizeof(msg));
 	if (status == PRECV_EOF)
@@ -87,9 +95,9 @@ int rm_fd, rm_num;
 	  case REMOTE_MASTER_INFO:
 	  case REMOTE_SLAVE_INFO:
 	    if (type == REMOTE_MASTER_INFO)
-	       rm_ind = TRUE;
+	       rm_ind = P4_TRUE;
 	    else
-	       rm_ind = FALSE;
+	       rm_ind = P4_FALSE;
 	    slave_idx = p4_n_to_i(msg.slave_idx);
 	    slave_pid = p4_n_to_i(msg.slave_pid);
 	    remote_switch_port = p4_n_to_i(msg.switch_port);
@@ -125,7 +133,7 @@ int rm_fd, rm_num;
 	    break;
 
 	  case REMOTE_SLAVE_INFO_END:
-	    done = TRUE;
+	    done = P4_TRUE;
 	    break;
 	}
     }
@@ -139,21 +147,30 @@ int rm_fd, rm_num;
 static char *curhostname = 0;
 static char errbuf[256];
 static int  child_pid = 0;
+/* active_fd is the fd that we're waiting on when the timeout happened */
+static int  active_fd = -1;
+P4VOID p4_accept_timeout ANSI_ARGS(( int ));
 P4VOID p4_accept_timeout(sigval)
 int sigval;
 {
-if (child_pid) {
-    kill( child_pid, SIGQUIT );
+    /* First, we should check that the timeout has actually be reached,
+       and this isn't some other alarm */
+    
+    if (child_pid) {
+	kill( child_pid, SIGQUIT );
     }
-if (curhostname) {
-    sprintf( errbuf, "Timeout in making connection to remote process on %s", 
-	    curhostname );
-    p4_error( errbuf, 0 );
+    if (curhostname) {
+	sprintf( errbuf, 
+		 "Timeout in making connection to remote process on %s", 
+		 curhostname );
+	p4_error( errbuf, 0 );
     }
-else {
-    p4_error( "Timeout in making connection to remote process", 0 );
+    else {
+	p4_error( "Timeout in making connection to remote process", 0 );
     }
-exit(1);
+    if (active_fd >= 0)
+	close( active_fd );
+    exit(1);
 }
 
 /*
@@ -168,11 +185,14 @@ char *username;
 {
     struct net_initial_handshake hs;
     char myhost[100];
-    struct net_message_t msg;
-    char remote_shell[128];
+    char remote_shell[P4_MAX_PGM_LEN];
     char serv_port_c[64];
-    int connection_fd, success, rc;
-    int slave_fd, master_pid;
+    int rc;
+#ifdef USE_OLD_SERVER
+    struct net_message_t msg;
+    int success, connection_fd;
+#endif
+    int slave_fd;
     int fcntl_flags;
 
 #   if defined(LINUX)
@@ -188,7 +208,7 @@ char *username;
     defined(CONVEX)   || defined(KSR)  || \
     defined(FX2800)   || defined(FX2800_SWITCH)  || \
     defined(SP1)
-    char *getpw_ss();
+/*     char *getpw_ss ANSI_ARGS((char *)); */
 #   endif
 
 #   if defined(SP1)
@@ -209,13 +229,7 @@ char *username;
     {
 	/* try to connect to (secure) server */
 
-#       if defined(SYMMETRY) || defined(SUN) || \
-           defined(DEC5000)  || defined(SGI) || \
-           defined(RS6000)   || defined(HP)  || \
-           defined(NEXT)     || defined(CRAY) || \
-           defined(CONVEX)   || defined(KSR)  || \
-           defined(FX2800)   || defined(FX2800_SWITCH)  || \
-           defined(SP1)
+#       if !defined(P4_DO_NOT_USE_SERVER)
 
 	/*****  secure server stuff  *******/
 	p4_dprintfl(20, "trying to create remote slave on %s via server\n",host);
@@ -258,7 +272,7 @@ char *username;
 	    strcpy(msg.host, myhost);
 	    strcpy(msg.am_slave, am_slave_c);
 	    msg.port = p4_i_to_n(serv_port);
-	    net_send(connection_fd, &msg, sizeof(msg), FALSE);
+	    net_send(connection_fd, &msg, sizeof(msg), P4_FALSE);
 	    net_recv(connection_fd, &msg, sizeof(msg));
 
 	    success = p4_n_to_i(msg.success);
@@ -274,7 +288,7 @@ char *username;
 #endif /* USE_OLD_SERVER */
 	{
 #if defined(HAS_RSHCOMMAND)
-	    strcpy( remote_shell, RSHCOMMAND )
+	    strcpy( remote_shell, RSHCOMMAND );
 #endif
 #if defined(DELTA)
 	    p4_dprintf("delta cannot create remote processes\n");
@@ -328,6 +342,7 @@ char *username;
        showing this exact problem. 
      */
     curhostname = host;
+    active_fd = serv_fd;
     SIGNAL_P4(SIGALRM,p4_accept_timeout);
     {
 #ifndef CRAY
@@ -376,12 +391,13 @@ char *username;
 #else
     alarm( 0 );
 #endif
+    active_fd             = -1;
     SIGNAL_P4(SIGALRM,SIG_DFL);
     }
 
     hs.pid = (int) htonl(getpid());
     hs.rm_num = 0;   /* To make Insight etc happy */
-    net_send(slave_fd, &hs, sizeof(hs), FALSE);
+    net_send(slave_fd, &hs, sizeof(hs), P4_FALSE);
     net_recv(slave_fd, &hs, sizeof(hs));
 
     return(slave_fd);

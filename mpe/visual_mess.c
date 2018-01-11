@@ -3,8 +3,12 @@
 #endif
 
 #include <stdio.h>
-
+#include <stdlib.h>
 #include <math.h>
+
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
 
 #ifdef __STDC__
 #include <stdarg.h>
@@ -16,23 +20,28 @@
 #include "mpe.h"
 #include "point.h"
 
-#ifdef __STDC__
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
 extern int prof_send( int sender, int receiver, int tag, int size,
 		       char *note );
 extern int prof_recv( int receiver, int sender, int tag, int size,
 			  char *note );
+/* static vector SubPoints_0( point, point ); */
+void DrawScreen_0( int, int );
+static void MPE_Prof_DrawArrow_0( int, int );
 #else
 extern int prof_send();
 extern int prof_recv();
+/* static vector SubPoints_0(); */
+void DrawScreen_0();
+static void MPE_Prof_DrawArrow_0();
 #endif
 
 #define DEBUG_0 0
 
 static int procid_0, np_0, readyToDraw_0=0;
-static int inProfile_0=0, xpos_0=-1, ypos_0=-1;
+static int xpos_0=-1, ypos_0=-1;
 static point *procCoords_0;
 static MPE_XGraph prof_graph_0;
-static MPE_Color drawColor_0;
 
 #define PROC_RADIUS_0     10
 #define PROC_SEPARATION_0 40
@@ -40,6 +49,7 @@ static MPE_Color drawColor_0;
 #define ARROW_WIDTH_0      5
 #define MARGIN_0           1.2
 
+/*
 static vector SubPoints_0(a, b)
 point a, b;
 {
@@ -48,7 +58,7 @@ point a, b;
   c.y = a.y - b.y;
   return c;
 }
-
+ */
 
 #define UnitFromEndpoints_0( unit, start, end ) { \
   register double x, y, mag; \
@@ -178,7 +188,7 @@ char *note;
 
 #include "requests.h"
 
-static request_list *requests_head_1, *requests_tail_1;
+static request_list *requests_head_1, *requests_tail_1, *requests_avail_1=0;
 static int procid_1;
 
 /* Message_prof keeps track of when sends and receives 'happen'.  The
@@ -276,43 +286,12 @@ char *note;
     }
   }
   if (last) {
-    requests_head_1 = rq->next;
-  } else {
     last->next = rq->next;
+  } else {
+    requests_head_1 = rq->next;
   }
   free( rq );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 int  MPI_Init( argc, argv )
@@ -320,13 +299,13 @@ int * argc;
 char *** argv;
 {
   int  returnVal;
-
-  
+ 
   
   returnVal = PMPI_Init( argc, argv );
 
   MPI_Comm_rank( MPI_COMM_WORLD, &procid_1 );
   requests_head_1 = requests_tail_1 = 0;
+  rq_init( requests_avail_1 );
 
   MPI_Comm_rank( MPI_COMM_WORLD, &procid_0 );
   MPI_Comm_size( MPI_COMM_WORLD, &np_0 );
@@ -335,6 +314,12 @@ char *** argv;
   DrawScreen_0( procid_0, np_0 );
 
   return returnVal;
+}
+
+int MPI_Finalize()
+{
+    rq_end( requests_avail_1 );
+    return PMPI_Finalize();
 }
 
 int  MPI_Bsend( buf, count, datatype, dest, tag, comm )
@@ -381,8 +366,9 @@ MPI_Request * request;
   returnVal = PMPI_Bsend_init( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-    if ((newrq = (request_list*) malloc(sizeof( request_list )))) {
-      MPI_Type_size( datatype, &typesize3 );
+      rq_alloc( requests_avail_1, newrq );
+    if (newrq) {
+      PMPI_Type_size( datatype, &typesize3 );
       newrq->request = *request;
       newrq->status = RQ_SEND;
       newrq->size = count * typesize3;
@@ -420,7 +406,7 @@ MPI_Request * request;
 
   /* The request may have completed, may have not.  */
   /* We'll assume it didn't. */
-  rq_remove( requests_head_1, *request );
+  rq_remove( requests_head_1, requests_tail_1, requests_avail_1, *request );
   
   returnVal = PMPI_Request_free( request );
 
@@ -476,8 +462,9 @@ MPI_Request * request;
   returnVal = PMPI_Send_init( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-    if ((newrq = (request_list*) malloc(sizeof( request_list )))) {
-      MPI_Type_size( datatype, &typesize3 );
+      rq_alloc( requests_avail_1, newrq );
+      if (newrq) {
+      PMPI_Type_size( datatype, &typesize3 );
       newrq->request = *request;
       newrq->status = RQ_SEND;
       newrq->size = count * typesize3;
@@ -511,8 +498,9 @@ MPI_Request * request;
   returnVal = PMPI_Ibsend( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-    if ((newrq = (request_list*) malloc(sizeof( request_list )))) {
-      MPI_Type_size( datatype, &typesize3 );
+      rq_alloc( requests_avail_1, newrq );
+    if (newrq) {
+      PMPI_Type_size( datatype, &typesize3 );
       newrq->request = *request;
       newrq->status = RQ_SEND;
       newrq->size = count * typesize3;
@@ -543,7 +531,8 @@ MPI_Request * request;
   returnVal = PMPI_Irecv( buf, count, datatype, source, tag, comm, request );
 
   if (source != MPI_PROC_NULL && returnVal == MPI_SUCCESS) {
-    if ((newrq1 = (request_list*) malloc(sizeof( request_list )))) {
+      rq_alloc( requests_avail_1, newrq1 );
+    if (newrq1) {
       newrq1->request = *request;
       newrq1->status = RQ_RECV;
       newrq1->next = 0;
@@ -574,8 +563,9 @@ MPI_Request * request;
   returnVal = PMPI_Irsend( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-    if ((newrq = (request_list*) malloc(sizeof( request_list )))) {
-      MPI_Type_size( datatype, &typesize3 );
+      rq_alloc( requests_avail_1, newrq );
+    if (newrq) {
+      PMPI_Type_size( datatype, &typesize3 );
       newrq->request = *request;
       newrq->status = RQ_SEND;
       newrq->size = count * typesize3;
@@ -609,8 +599,9 @@ MPI_Request * request;
   returnVal = PMPI_Isend( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-    if ((newrq = (request_list*) malloc(sizeof( request_list )))) {
-      MPI_Type_size( datatype, &typesize3 );
+      rq_alloc( requests_avail_1, newrq );
+    if (newrq) {
+      PMPI_Type_size( datatype, &typesize3 );
       newrq->request = *request;
       newrq->status = RQ_SEND;
       newrq->size = count * typesize3;
@@ -644,8 +635,9 @@ MPI_Request * request;
   returnVal = PMPI_Issend( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-    if ((newrq = (request_list*) malloc(sizeof( request_list )))) {
-      MPI_Type_size( datatype, &typesize3 );
+      rq_alloc( requests_avail_1, newrq );
+    if (newrq) {
+      PMPI_Type_size( datatype, &typesize3 );
       newrq->request = *request;
       newrq->status = RQ_SEND;
       newrq->size = count * typesize3;
@@ -728,8 +720,9 @@ MPI_Request * request;
   returnVal = PMPI_Rsend_init( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-    if ((newrq = (request_list*) malloc(sizeof( request_list )))) {
-      MPI_Type_size( datatype, &typesize3 );
+      rq_alloc( requests_avail_1, newrq );
+    if (newrq) {
+      PMPI_Type_size( datatype, &typesize3 );
       newrq->request = *request;
       newrq->status = RQ_SEND;
       newrq->size = count * typesize3;
@@ -876,8 +869,9 @@ MPI_Request * request;
   returnVal = PMPI_Ssend_init( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-    if ((newrq = (request_list*) malloc(sizeof( request_list )))) {
-      MPI_Type_size( datatype, &typesize3 );
+      rq_alloc( requests_avail_1, newrq );
+    if (newrq) {
+      PMPI_Type_size( datatype, &typesize3 );
       newrq->request = *request;
       newrq->status = RQ_SEND;
       newrq->size = count * typesize3;

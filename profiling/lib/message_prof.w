@@ -80,6 +80,7 @@ static int procid_{{fileno}};
   requests_head_{{fileno}} = requests_tail_{{fileno}} = 0;
 {{endfn}}
 
+
 {{fn fn_name MPI_Send MPI_Bsend MPI_Ssend MPI_Rsend}}
   {{vardecl int typesize}}
   {{callfn}}
@@ -218,9 +219,9 @@ char *note;
     }
   }
   if (last) {
-    requests_head_{{fileno}} = rq->next;
-  } else {
     last->next = rq->next;
+  } else {
+    requests_head_{{fileno}} = rq->next;
   }
   free( rq );
 }
@@ -236,8 +237,8 @@ char *note;
 {{fn fn_name MPI_Waitany}}
 
   {{callfn}}
-  ProcessWaitTest_{{fileno}}( {{array_of_requests}}[*{{index}}], {{status}},
-			      "{{fn_name}}" );
+  ProcessWaitTest_{{fileno}}( &({{array_of_requests}}[*{{index}}]),
+			{{status}}, "{{fn_name}}" );
 {{endfn}}
 
 
@@ -247,10 +248,10 @@ char *note;
 
   {{callfn}}
   for ({{i}}=0; {{i}} < *{{outcount}}; {{i}}++) {
-    ProcessWaitTest_{{fileno}}( {{array_of_requests}}
-			          [{{array_of_indices}}[{{i}}]],
-			        {{array_of_statuses}}
-			          [{{array_of_indices}}[{{i}}]],
+    ProcessWaitTest_{{fileno}}( &({{array_of_requests}}
+			          [{{array_of_indices}}[{{i}}]]),
+			        &({{array_of_statuses}}
+			          [{{array_of_indices}}[{{i}}]]),
 			        "{{fn_name}}" );
   }
 {{endfn}}
@@ -261,8 +262,8 @@ char *note;
 /* fprintf( stderr, "{{fn_name}} call on %d\n", procid_{{fileno}} ); */
   {{callfn}}
   for ({{i}}=0; {{i}} < {{count}}; {{i}}++) {
-    ProcessWaitTest_{{fileno}}( {{array_of_requests}}[{{i}}],
-			        {{array_of_statuses}}[{{i}}],
+    ProcessWaitTest_{{fileno}}( &({{array_of_requests}}[{{i}}]),
+			        &({{array_of_statuses}}[{{i}}]),
 			        "{{fn_name}}" );
   }
 {{endfn}}
@@ -277,7 +278,7 @@ char *note;
 {{fn fn_name MPI_Testany}}
   {{callfn}}
   if (*{{flag}}) 
-    ProcessWaitTest_{{fileno}}( {{array_of_requests}}[*{{index}}],
+    ProcessWaitTest_{{fileno}}( &({{array_of_requests}}[*{{index}}]),
 			        {{status}}, "{{fn_name}}" );
 {{endfn}}
 
@@ -285,10 +286,10 @@ char *note;
   {{vardecl int i}}
   {{callfn}}
   for ({{i}}=0; {{i}} < *{{outcount}}; {{i}}++) {
-    ProcessWaitTest_{{fileno}}( {{array_of_requests}}
-			          [{{array_of_indices}}[{{i}}]],
-			        {{array_of_statuses}}
-			          [{{array_of_indices}}[{{i}}]],
+    ProcessWaitTest_{{fileno}}( &({{array_of_requests}}
+			          [{{array_of_indices}}[{{i}}]]),
+			        &({{array_of_statuses}}
+			          [{{array_of_indices}}[{{i}}]]),
 			        "{{fn_name}}" );
   }
 {{endfn}}
@@ -299,8 +300,8 @@ char *note;
   {{callfn}}
   if (*{{flag}}) {
     for ({{i}}=0; {{i}} < {{count}}; {{i}}++) {
-      ProcessWaitTest_{{fileno}}( {{array_of_requests}}[{{i}}],
-				  {{array_of_statuses}}[{{i}}],
+      ProcessWaitTest_{{fileno}}( &({{array_of_requests}}[{{i}}]),
+				  &({{array_of_statuses}}[{{i}}]),
 				  "{{fn_name}}" );
     }
   }

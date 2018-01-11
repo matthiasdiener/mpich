@@ -1,5 +1,5 @@
 /*
- *  $Id: init.c,v 1.86 1996/04/11 20:29:58 gropp Exp $
+ *  $Id: init.c,v 1.87 1997/01/07 01:46:11 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -67,6 +67,22 @@
 .  -mpichmsg - Print out the number of messages 
             received, by category, when the program exits.
 
+.  -mpidb options - Activate various debugging options.  Some require
+   that MPICH have been built with special options.  These are intended 
+   for debugging MPICH, not for debugging user programs.  The available 
+   options include:
+.vb     
+        mem     - Enable dynamic memory tracing of internal MPI objects
+	memall  - Generate output of all memory allocation/deallocation
+        ptr     - Enable tracing of internal MPI pointer conversions
+	rank n  - Limit subsequent -mpidb options to on the process with
+	          the specified rank in MPI_COMM_WORLD.  A rank of -1
+		  selects all of MPI_COMM_WORLD.
+        ref     - Trace use of internal MPI objects
+        reffile filename - Trace use of internal MPI objects with output
+	          to the indicated file
+	trace   - Trace routine calls
+.ve
 
    Notes:
    Note that the Fortran binding for this routine has only the error return

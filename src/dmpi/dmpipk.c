@@ -1,5 +1,5 @@
 /*
- *  $Id: dmpipk.c,v 1.24 1996/06/07 15:12:29 gropp Exp $
+ *  $Id: dmpipk.c,v 1.27 1997/01/07 01:46:59 gropp Exp $
  *
  *  (C) 1994 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -22,11 +22,11 @@
 
 /* Pack for a send.  Eventually, this will need to handle the Heterogeneous 
    case - XXXX.  */
-void MPIR_Pack_Hvector( comm, buf, count, datatype, dest, outbuf )
-MPI_Comm    comm;
+void MPIR_Pack_Hvector( comm_ptr, buf, count, datatype, dest, outbuf )
+struct MPIR_COMMUNICATOR *comm_ptr;
 char        *buf;
 int         count, dest;
-MPI_Datatype datatype;
+struct MPIR_DATATYPE *datatype;
 char        *outbuf;
 {
 int count1 = datatype->count,           /* Number of blocks */
@@ -89,7 +89,7 @@ else {
 void MPIR_UnPack_Hvector( inbuf, count, datatype, source, outbuf )
 char        *inbuf;
 int         count, source;
-MPI_Datatype datatype;
+struct MPIR_DATATYPE *datatype;
 char        *outbuf;
 {
 int count1 = datatype->count,            /* Number of blocks */
@@ -148,9 +148,9 @@ else {
 /* Get the length needed for the Hvector as a contiguous lump */
 int MPIR_HvectorLen( count, datatype )
 int count;
-MPI_Datatype datatype;
+struct MPIR_DATATYPE *datatype;
 {
-return datatype->size * count;
+    return datatype->size * count;
 }
 
 #ifndef MPI_ADI2
@@ -161,16 +161,16 @@ return datatype->size * count;
     
     dest_type is the format to use (XDR/Swap/Unchanged)
  */
-int MPIR_PackMessage( buf, count, datatype, dest, dest_type, request )
+int MPIR_PackMessage( buf, count, dtype_ptr, dest, dest_type, request )
 char         *buf;
 int          count, dest, dest_type;
-MPI_Datatype datatype;
+struct MPIR_DATATYPE *dtype_ptr;
 MPI_Request  request;
 {
   int size;
   int mpi_errno = MPI_SUCCESS;
   
-  if (!datatype->committed) 
+  if (!dtype_ptr->committed) 
     return MPI_ERR_TYPE | MPIR_ERR_UNCOMMITTED;
 
   if (count == 0) {
@@ -179,7 +179,7 @@ MPI_Request  request;
       return MPI_SUCCESS;
       }
 
-  if (datatype->dte_type == MPIR_PACKED) {
+  if (dtype_ptr->dte_type == MPIR_PACKED) {
       /* Data requires no further modification */
       /* PRINTF( "Packing packed data!\n" ); */
       /* Mark this data appropriately and indicate that it is packed in the 
@@ -220,7 +220,11 @@ MPI_Request  request;
       request->chandle.msgrep = MPIR_MSGREP_XDR; 
  */
 #endif
-  MPI_PACKED->ref_count ++;
+  {struct MPIR_DATATYPE *packed_ptr;
+    packed_ptr   = MPIR_GET_DTYPE_PTR(MPI_PACKED);
+    MPIR_REF_INCR(packed_ptr);
+  }
+/*  MPI_PACKED->ref_count ++; */
   if (!request->shandle.persistent) 
       MPIR_Type_free( &request->shandle.datatype );
   request->shandle.datatype			 = MPI_PACKED;
@@ -237,15 +241,15 @@ FREE( request->chandle.bufpos );
 return MPI_SUCCESS;
 }
 
-int MPIR_SetupUnPackMessage( buf, count, datatype, source, request )
+int MPIR_SetupUnPackMessage( buf, count, dtype_ptr, source, request )
 char         *buf;
 int          count, source;
-MPI_Datatype datatype;
+struct MPIR_DATATYPE *dtype_ptr;
 MPI_Request  request;
 {
 int len;
 
-if (!datatype->committed) 
+if (!dtype_ptr->committed) 
     return MPI_ERR_TYPE | MPIR_ERR_UNCOMMITTED;
 
 /* We can't use datatype->size * count, since the actual code may require 
@@ -271,10 +275,10 @@ return MPI_SUCCESS;
    On output, it should be the number of bytes in OUTPUT (placed into
    status.count field).
 */
-int MPIR_UnPackMessage( buf, count, datatype, source, request, act_count )
+int MPIR_UnPackMessage( buf, count, dtype_ptr, source, request, act_count )
 char         *buf;
 int          count, source;
-MPI_Datatype datatype;
+struct MPIR_DATATYPE *dtype_ptr;
 MPI_Request  request;
 int          *act_count;
 {
@@ -284,7 +288,7 @@ int dest_len;
 /* Use generic unpack */
 /* PRINTF( "Using generic unpack\n" ); */
 /* Need to update act_count to bytes WRITTEN */
-if (datatype->dte_type == MPIR_PACKED) {
+if (dtype_ptr->dte_type == MPIR_PACKED) {
     /* Data requires no further modification */
     memcpy( buf, request->chandle.bufpos, *act_count );
     }

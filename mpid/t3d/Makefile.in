@@ -1,57 +1,124 @@
 #
-#  $Id: Makefile.in,v 1.5 1995/06/16 19:51:14 bright Exp $
+#  $Id: Makefile.in,v 1.2 1996/06/13 14:52:49 gropp Exp $
 #
-#  (C) 1993 by Argonne National Laboratory and Mississipi State University.
+#  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
+#
+# Eventually, there will be two sets of routines
+#
 #
 ##### User configurable options #####
 
 ARCH        = @ARCH@
 COMM        = @COMM@
 DEVICE      = @DEVICE@
-BOPT        = @BOPT@
-P4_DIR      = @P4_DIR@
-TOOLS_DIR   = @TOOLS_DIR@
 MPIR_HOME   = @MPIR_HOME@
-INCLUDE_DIR = @INCLUDE_PATH@ -Impid/@DEVICE@ -Iinclude -I.
+INCLUDE_DIR = @INCLUDE_PATH@ -Impid/@DEVICE@ -Iinclude
+CC          = @CC@
 AR          = @AR@
 RANLIB      = @RANLIB@
-LINTFLAGS   = -v -u
-CC          = @CC@
+OPTFLAGS    = @OPTFLAGS@
+SHELL       = /bin/sh
+ASMFILES_O  = @ASMFILES_O@
 ASM         = @ASM@
-
 ### End User configurable options ###
-
-SHELL = /bin/sh
-
-LIBNAME     = ../../lib/$(ARCH)/$(COMM)/libmpi.a
-CFLAGS      = @CFLAGS@ @OPTFLAGS@ $(COPT) $(OPT) -I../.. -I../../include -I. \
-              -DMPID_DEVICE_CODE @DEVCFLAGS@
-SOURCES     = t3dcoll.c   t3dinit.c   t3drecv.c   t3dsync.c  \
-              t3devent.c  t3dprobe.c  t3dsend.c   t3ddebug.c
-ASMFILES_O  = shmem_stack.o get_stack.o set_stack.o
-OBJECTS     = $(SOURCES:.c=.o) $(ASMFILES_O)
 
 ALL: default
 
-default: $(LIBNAME) 
+LIBNAME  = ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
+CFLAGS   = @CFLAGS@ $(OPTFLAGS) -I../.. -I../../include -I./  \
+		-DMPI_$(ARCH) -DMPID_DEVICE_CODE @GETNAME_DEFS@ @DEVCFLAGS@ @DEV_DEFS@
 
-$(LIBNAME): $(OBJECTS) 
-	$(AR) $@ $?
-	$(RANLIB) $@
+ASMFILES_O	=	shmem_stack.o get_stack.o set_stack.o
 
-default_all: $(OBJECTS)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $?
+# See mpid/ch_adi2/Makefile.in for a full list
+#SOURCE   = adi2recv.c adi2send.c adi2init.c \
+#	   chbeager.c chbrndv.c chdebug.c chrecv.c chshort.c \
+#	   @DEVCFILES@
+SOURCE    = 	adi2recv.c			\
+		adi2send.c 			\
+		adi2ssend.c 			\
+		adi2hssend.c 			\
+		adi2req.c 			\
+		adi2cancel.c 			\
+		adi2init.c			\
+		chinit.c			\
+		t3dshort.c 			\
+		t3dlong.c			\
+		chtime.c			\
+		chtick.c 			\
+		t3dinit.c			\
+		chchkdev.c			\
+		cmnargs.c			\
+		queue.c				\
+		chdebug.c			\
+		adi2hrecv.c			\
+		adi2hsend.c			\
+		adi2pack.c                      \
+		adi2mpack.c			\
+		adi2probe.c			\
+		sbcnst2.c
+
+SOURCEC  = $(SOURCE)
+SOURCEF  =
+#MPI_OBJECTS = adi2recv.o adi2send.o adi2init.o \
+#	   chbeager.o chbrndv.o chdebug.o chrecv.o chshort.o \
+#         $(ASMFILES_O) @DEVOFILES@
+MPI_OBJECTS  = 	adi2recv.o			\
+		adi2send.o 			\
+		adi2ssend.o 			\
+		adi2hssend.o 			\
+		adi2req.o			\
+		adi2cancel.o 			\
+		adi2init.o			\
+		chinit.o			\
+		t3dshort.o 			\
+		t3dlong.o			\
+		chtime.o			\
+		chtick.o 			\
+		t3dinit.o			\
+		chchkdev.o			\
+		cmnargs.o			\
+		queue.o				\
+		chdebug.o			\
+		adi2hrecv.o			\
+		adi2hsend.o			\
+		adi2pack.o			\
+		adi2mpack.o			\
+		adi2probe.o			\
+		sbcnst2.o			\
+		$(ASMFILES_O)
+
+
+default: $(LIBNAME)
+local: libmpid.a
+
+# default_all is the same as default, but without the RANLIB.  This
+# can speed up the build (ranlibs can take a LONG time).  profile_all 
+# is the same, but for the profile library
+default_all: $(MPI_OBJECTS)
+	$(AR) $(LIBNAME) $?
+profile_all: 
+
+$(MPI_OBJECTS): dev.h req.h mpid.h
+
+clean:
+	/bin/rm -f *~ $(MPI_OBJECTS) 
 
 .c.o:
 	$(CC) $(CFLAGS) $(BASEOPT) -c $*.c $(MPI_PROFILE)
 
+.o.s:
+	$(CC) $(CFLAGS) $(BASEOPT) -c -S $*.c $(MPI_PROFILE)
+
 .s.o:
 	$(ASM) -I/usr/include/mpp $*.s
 
-lint:
-	lint $(LINTFLAGS) $(CFLAGS) $(SOURCES)
+../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
+	$(AR) $@ $?
+	$(RANLIB) $@
 
-clean:
-	/bin/rm -f *~ $(OBJECTS) 
+libmpid.a: $(MPI_OBJECTS) 
+	$(AR) $@ $?
+	$(RANLIB) $@
 

@@ -1,5 +1,5 @@
 /*
- *  $Id: keyval_free.c,v 1.14 1996/06/07 15:08:25 gropp Exp $
+ *  $Id: keyval_free.c,v 1.19 1997/02/18 23:06:13 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -37,37 +37,36 @@ int *keyval;
 {
   int mpi_errno;
   MPIR_Attr_key *attr_key;
+  static char myname[] = "MPI_KEYVAL_FREE";
 
   if ( MPIR_TEST_ARG(keyval) )
-	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-			   "Error in MPI_KEYVAL_FREE");
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 
-#ifdef INT_LT_POINTER
-  attr_key = (MPIR_Attr_key *)MPIR_ToPointer( *keyval );
-#else
-  attr_key = (MPIR_Attr_key *)*keyval;
-#endif
-  if ( (*keyval) != MPI_KEYVAL_INVALID ) {
-	if ( (attr_key->permanent == 1) && (MPIR_Has_been_initialized == 1) ){
-	  return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_PERM_KEY, 
-		"Can't free permanent attribute key in MPI_KEYVAL_FREE" );
-	}
-	if (attr_key->ref_count <= 1) {
-	    MPIR_SET_COOKIE(attr_key,0);
-	    FREE ( attr_key );
-#ifdef INT_LT_POINTER
-	    MPIR_RmPointer( *keyval );
-#endif
-	  }
-	else {
-	  attr_key->ref_count--;
-#ifdef FOO
-	  /* Debugging only */
-	  if (MPIR_Has_been_initialized != 1) 
-	      PRINTF( "attr_key count is %d\n", attr_key->ref_count );
-#endif
-	}
-	(*keyval) = MPI_KEYVAL_INVALID;
+  if (*keyval == MPI_KEYVAL_INVALID) {
+      /* Can't free an invalid keyval */
+      return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ARG, myname );
   }
+  attr_key = MPIR_GET_KEYVAL_PTR( *keyval );
+  MPIR_TEST_MPI_KEYVAL(*keyval,attr_key,MPIR_COMM_WORLD,myname);
+
+  if ( (attr_key->permanent == 1) && (MPIR_Has_been_initialized == 1) ){
+      return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_PERM_KEY, 
+	 "Can't free permanent attribute key in MPI_KEYVAL_FREE" );
+  }
+  if (attr_key->ref_count <= 1) {
+      MPIR_CLR_COOKIE(attr_key);
+      FREE ( attr_key );
+      MPIR_RmPointer( *keyval );
+  }
+  else {
+      MPIR_REF_DECR(attr_key);
+#ifdef FOO
+      /* Debugging only */
+      if (MPIR_Has_been_initialized != 1) 
+	  PRINTF( "attr_key count is %d\n", attr_key->ref_count );
+#endif
+  }
+  (*keyval) = MPI_KEYVAL_INVALID;
+  
   return (MPI_SUCCESS);
 }

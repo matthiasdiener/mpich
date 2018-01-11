@@ -9,7 +9,8 @@ linkargs=
 linkobjs=
 gettinglinkarg=0
 HasDashC=0
-if [ -z "@CCC@" -o -z "@CCLINKER@" ] ; then
+UsesPmpi=0
+if [ -z "@CPP_COMPILE@" -o -z "@CCLINKER@" ] ; then
     echo "No C++ compiler and linker specified when MPICH configured."
     exit 1
 fi
@@ -44,7 +45,18 @@ for arg in "$@" ; do
 	    DoLink=1
         fi
 	;;
+	-l*)
+	# This SHOULD be the -l<lib> argument.  Only for the linker
+	linkargs="$linkargs $arg"
+	allargs="$allargs $arg"
+	;;
 	-mpilog)
+	if [ $UsesPmpi = 1 ] ; then
+	    echo "Only one of -mpilog, -mpitrace, or -mpianim may be used."
+	    exit 1
+	else
+	    UsesPmpi=1
+        fi
 	if [ -n "@MPE_LIBS@" ] ; then
 		MPILOG=-llmpi
 	else
@@ -52,6 +64,12 @@ for arg in "$@" ; do
 	fi
 	;;
 	-mpitrace)
+	if [ $UsesPmpi = 1 ] ; then
+	    echo "Only one of -mpilog, -mpitrace, or -mpianim may be used."
+	    exit 1
+	else
+	    UsesPmpi=1
+        fi
 	if [ -n "@MPE_LIBS@" ] ; then
    	    MPILOG=-ltmpi
 	else
@@ -59,6 +77,12 @@ for arg in "$@" ; do
 	fi
 	;;
 	-mpianim)
+	if [ $UsesPmpi = 1 ] ; then
+	    echo "Only one of -mpilog, -mpitrace, or -mpianim may be used."
+	    exit 1
+	else
+	    UsesPmpi=1
+        fi
 	if [ -n "@MPE_LIBS@" ] ; then
 	    MPILOG="-lampi @MPE_LIBS@ @X_LIB@"
 	else
@@ -130,7 +154,7 @@ if [ $DoCompile = 1 ] ; then
     if [ $HasDashC != 1 ] ; then
         compileargs="-c $compileargs"
     fi
-    $Show @CCC@ @CCFLAGS@ @OPTFLAGS@ -DMPI_@ARCH@ -I@MPIR_HOME@/include \
+    $Show @CPP_COMPILER@ @CCFLAGS@ -DMPI_@ARCH@ -I@MPIR_HOME@/include \
 	$compileargs
     status=$?
     if [ $status != 0 ] ; then 
@@ -139,9 +163,9 @@ if [ $DoCompile = 1 ] ; then
 fi
 if [ $DoLink = 1 ] ; then
     if [ -n "$MPILOG" ] ; then
-        $Show @CCLINKER@ $linkobjs @LIB_PATH@ -l@MPILIBNAME@++ $MPILOG $linkargs -lp@MPILIBNAME@ @LIB_LIST@
+        $Show @CCLINKER@ @LIB_PATH@ $linkobjs -l@MPILIBNAME@++ $MPILOG $linkargs -lp@MPILIBNAME@ @LIB_LIST@
     else
-        $Show @CCLINKER@ $linkobjs $linkargs @LIB_PATH@ -l@MPILIBNAME@++ @LIB_LIST@
+        $Show @CCLINKER@ @LIB_PATH@ $linkobjs $linkargs -l@MPILIBNAME@++ @LIB_LIST@
     fi
     status=$?
 fi

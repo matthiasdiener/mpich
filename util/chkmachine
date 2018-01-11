@@ -48,8 +48,10 @@ $| = 1;
 while (<FLIST>) {
     # Skip comment lines
     if (/^#/) { next ; }
-    # Setup socket
-    chop($hostname = $_);
+    # remove end-of-line
+    chop;
+    # Remove cluster size (optional)
+    ($hostname,$clustersize) = split(/:/);
     print "Read $hostname from process $$\n" if $debug; 
 
     system("rup $hostname");

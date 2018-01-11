@@ -1,0 +1,3 @@
+gcc -munaligned-doubles -DFORTRANUNDERSCORE  -DMPE_USE_EXTENSIONS=1 -DHAVE_PROTOTYPES=1  -DHAVE_STDLIB_H=1 -DHAVE_UNISTD_H=1 -DHAVE_STDARG_H=1 -DUSE_STDARG=1 -DMALLOC_RET_VOID=1 -DHAVE_SYSTEM=1 -DHAVE_NICE=1 -DHAVE_MEMORY_H=1 -DHAVE_STRING_H=1 -DHAVE_LONG_DOUBLE=1 -DHAVE_LONG_LONG_INT=1 -DMPI_ADI2 -I../../mpid/ch2   -Inexus/include  -I../../mpid/ch_nexus -I../../include  -DMPI_sun4  -c pkutil.c
+ar crl ../../lib/sun4/ch_nexus/libmpi.a dmpi.o dmpipk.o bswap.o pkutil.o
+ranlib ../../lib/sun4/ch_nexus/libmpi.a

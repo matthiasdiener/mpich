@@ -1,11 +1,23 @@
+#include "mpid.h"
+
 #include <stdio.h>
 #include "cmnargs.h"
-#include "mpid.h"
 #ifdef MPIR_MEMDEBUG
 #include "tr2.h"
 #endif
 #ifdef MPID_FLOW_CONTROL
 void MPID_FlowDebug ANSI_ARGS(( int ));
+#endif
+#ifdef HAVE_UNISTD_H
+/* 
+   Need to undefine SEEK_SET, SEEK_CUR, and SEEK_END on some Paragon
+   platforms 
+ */
+/* prototype for nice */
+#include <unistd.h>
+#endif
+#ifdef NEEDS_STDLIB_PROTOTYPES
+#include "protofix.h"
 #endif
 
 /*
@@ -40,6 +52,7 @@ int *argc;
 char ***argv;
 {
 int i;
+int active_rank = -1;
 
 char **str;
 
@@ -115,8 +128,106 @@ if (argv && *argv) {
 #ifdef MPIR_MEMDEBUG
 	    else if (strcmp(*str,"-mpimem" ) == 0) {
 		MPID_trDebugLevel( 1 );
+		*str = 0;
 	    }
 #endif
+	    else if (strcmp(*str, "-mpidb") == 0) { 
+		*str = 0;
+		i++;
+		str = *argv + i;
+		if (i < *argc) {
+		    if (strcmp( *str, "mem" ) == 0) {
+#ifdef MPIR_MEMDEBUG
+			if (active_rank == -1 ||
+			    active_rank == MPID_MyWorldRank) 
+			    MPID_trDebugLevel( 1 );
+			*str = 0;
+#else
+			printf( "-mpidb mem not available\n" );
+#endif
+		    }
+		    else if (strcmp( *str, "memdump" ) == 0) {
+#ifdef MPIR_MEMDEBUG
+			extern int MPIR_Dump_Mem;
+			MPIR_Dump_Mem = 1;
+#else
+			printf( "-mpidb memdump not available\n" );
+#endif
+		    }
+		    else if (strcmp( *str, "-memdump" ) == 0) {
+#ifdef MPIR_MEMDEBUG
+			extern int MPIR_Dump_Mem;
+			MPIR_Dump_Mem = 0;
+#endif
+		    }
+		    else if (strcmp( *str, "memall" ) == 0) {
+#ifdef MPIR_MEMDEBUG
+			if (active_rank == -1 ||
+			    active_rank == MPID_MyWorldRank) 
+			    MPID_trlevel( 3 );
+			*str = 0;
+#else
+			printf( "-mpidb mem not available\n" );
+#endif
+		    }
+		    else if (strcmp( *str, "queue" ) == 0) {
+			extern int MPID_Print_queues;
+			MPID_Print_queues = 1;
+		    }
+		    else if (strcmp( *str, "ref" ) == 0) {
+#ifdef MPIR_OBJDEBUG
+			if (active_rank == -1 ||
+			    active_rank == MPID_MyWorldRank) 
+			    MPIR_Ref_init( 1, (char *)0 );
+			*str = 0;
+#else
+			printf( "-mpidb ref not available\n" );
+#endif
+		    }
+		    else if (strcmp( *str, "reffile" ) == 0) {
+#ifdef MPIR_OBJDEBUG
+			*str = 0;
+			i++;
+			str = *argv + i;
+			if (active_rank == -1 ||
+			    active_rank == MPID_MyWorldRank) 
+			    MPIR_Ref_init( 1, *str );
+			*str = 0;
+#else
+			printf( "-mpidb ref not available\n" );
+#endif
+		    }
+		    else if (strcmp( *str, "ptr" ) == 0) {
+			if (active_rank == -1 ||
+			    active_rank == MPID_MyWorldRank) 
+			    MPIR_PointerOpts( 1 );
+			*str = 0;
+		    }
+		    else if (strcmp( *str, "rank" ) == 0) {
+			*str = 0;
+			i++;
+			str = *argv + i;
+			active_rank = atoi( *str );
+			*str = 0;
+		    }
+		    else if (strcmp( *str, "trace" ) == 0) {
+			*str = 0;
+#ifdef DEBUG_TRACE
+			if (active_rank == -1 ||
+			    active_rank == MPID_MyWorldRank) 
+			    TR_stack_init( 1 );
+#else
+			printf( "Trace debugging is not enabled\n" );
+#endif
+		    }
+		    else {
+			printf( "%s is unknown -mpidb option\n", *str );
+		    }
+		}
+		else {
+		    printf( "Missing argument for -mpidb\n" );
+		}
+	    }
 #ifdef MPID_FLOW_CONTROL
 	    else if (strcmp( *str, "-mpidbflow" ) == 0) {
 		MPID_FlowDebug( 1 );

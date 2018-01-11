@@ -1,0 +1,52 @@
+*** /tmp/T0a10817	Wed Feb  5 15:23:31 1997
+--- clog.h	Wed Feb  5 14:27:25 1997
+***************
+*** 36,41 ****
+--- 36,42 ----
+      int rectype;
+      int length;			/* in doubles */
+      int procid;			/* currently rank in COMM_WORLD */
++     int pad;			/* keep length a multiple of sizeof(dbl) */
+      double rest[1];
+  } CLOG_HEADER;
+  
+***************
+*** 55,60 ****
+--- 56,62 ----
+      int comm;			/* communicator */
+      int size;			/* length in bytes */
+      int srcloc;			/* id of source location */
++     int pad;
+      double end[1];
+  } CLOG_COLL;
+  
+***************
+*** 72,77 ****
+--- 74,80 ----
+      int stateid;		/* integer identifier for state */
+      int startetype;		/* starting event for state */
+      int endetype;		/* ending event for state */
++     int pad;
+      CLOG_CNAME color;		/* string for color */
+      CLOG_DESC description;	/* string describing state */
+      double end[1];
+***************
+*** 79,84 ****
+--- 82,88 ----
+  
+  typedef struct {
+      int etype;			/* event */
++     int pad;
+      CLOG_DESC description;	/* string describing event */
+      double end[1];
+  } CLOG_EVENT;
+***************
+*** 100,105 ****
+--- 104,110 ----
+      int etype;			/* raw event */
+      int data;			/* uninterpreted data */
+      int srcloc;			/* id of source location */
++     int pad;
+      CLOG_DESC string;   	/* uninterpreted string */
+      double end[1];
+  } CLOG_RAW;

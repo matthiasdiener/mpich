@@ -15,15 +15,15 @@ OPTFLAGS    = @OPTFLAGS@
 SHELL = /bin/sh
 
 PROFLIB =
-CFLAGS  = $(OPTFLAGS) 
+CFLAGS  = @MPE_CFLAGS@ $(OPTFLAGS) 
 CCFLAGS = $(CFLAGS)
 FFLAGS = $(OPTFLAGS)
 # Use LIBS to add any special libraries for C programs
 LIBS = 
 # Use FLIBS to add any special libraries for Fortran programs
 FLIBS = 
-EXECS = timers baseattr errhand sigchk timertest init
-
+EXECS = timers baseattr errhand sigchk timertest init 
+OTHEREXECS = baseattrf errstringsf
 default: $(EXECS)
 
 #
@@ -45,13 +45,15 @@ baseattr: baseattr.o test.o
 	$(CLINKER) $(OPTFLAGS) -o baseattr baseattr.o test.o $(LIBS)
 baseattrf: baseattrf.o
 	$(FLINKER) $(OPTFLAGS) -o baseattrf baseattrf.o $(LIBS)
+errstringsf: errstringsf.o
+	$(FLINKER) $(OPTFLAGS) -o errstringsf errstringsf.o $(LIBS)
 errhand: errhand.o test.o
 	$(CLINKER) $(OPTFLAGS) -o errhand errhand.o test.o $(LIBS)
 sigchk: sigchk.o test.o
 	$(CLINKER) $(OPTFLAGS) -o sigchk sigchk.o test.o $(LIBS)
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) baseattrf core *.out *.orig env.diff \
-	argstest
+	/bin/rm -f *.o *~ PI* $(EXECS) core *.out *.orig env.diff \
+	argstest $(OTHEREXECS)
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

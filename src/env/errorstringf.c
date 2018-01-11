@@ -5,12 +5,6 @@
 #include "fortran.h"
 #endif
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_error_string_ PMPI_ERROR_STRING
@@ -31,15 +25,21 @@
 #endif
 #endif
 
+#define LOCAL_MIN(a,b) ((a) < (b) ? (a) : (b))
+
 #ifdef _CRAY
- void mpi_error_string_( errorcode, string_fcd, resultlen, __ierr )
+void mpi_error_string_( errorcode, string_fcd, resultlen, __ierr )
 int*errorcode, *resultlen;
 _fcd string_fcd;
 int *__ierr;
 {
-char *string;
-string = _fcdtocp(string_fcd);
-*__ierr = MPI_Error_string(*errorcode,string,resultlen);
+  char cres[MPI_MAX_ERROR_STRING];
+  *__ierr = MPI_Error_string(*errorcode,cres,resultlen);
+ 
+  /* Assign the result to the Fortran string doing blank padding as required */
+  MPIR_cstr2fstr(_fcdtocp(string_fcd), _fcdlen(string_fcd), cres);
+  
+  *resultlen = LOCAL_MIN(_fcdlen(string_fcd), *resultlen);
 }
 #else
 
@@ -51,6 +51,13 @@ char *string;
 int *__ierr;
 int d;
 {
-    *__ierr = MPI_Error_string(*errorcode,string,resultlen);
+  char cres[MPI_MAX_ERROR_STRING];
+
+  *__ierr = MPI_Error_string(*errorcode,cres,resultlen);
+
+  /* Assign the result to the Fortran string doing blank padding as required */
+  MPIR_cstr2fstr(string,d,cres);
+
+  *resultlen = LOCAL_MIN(*resultlen, d);
 }
 #endif

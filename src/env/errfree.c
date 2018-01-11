@@ -1,5 +1,5 @@
 /*
- *  $Id: errfree.c,v 1.8 1996/04/11 20:28:04 gropp Exp $
+ *  $Id: errfree.c,v 1.12 1997/01/07 01:46:11 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -29,17 +29,22 @@ exit.
 int MPI_Errhandler_free( errhandler )
 MPI_Errhandler *errhandler;
 {
-    int mpi_errno = MPI_SUCCESS;
-    /* Check that value is correct */
-    if (MPIR_TEST_ERRHANDLER(MPI_COMM_WORLD,*errhandler))
-	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-			   "Error in MPI_ERRHANDLER_FREE" );
+    struct MPIR_Errhandler *old;
+    static char myname[] = "MPI_ERRHANDLER_FREE";
 
-    (*errhandler)->ref_count --;
-    if ((*errhandler)->ref_count <= 0) {
-	MPIR_SET_COOKIE((*errhandler),0);
-	MPIR_SBfree ( MPIR_errhandlers, (*errhandler) );
+    TR_PUSH(myname);
+
+    old = MPIR_GET_ERRHANDLER_PTR(*errhandler);
+    MPIR_TEST_MPI_ERRHANDLER(*errhandler,old,MPIR_COMM_WORLD,myname);
+
+    MPIR_REF_DECR(old);
+    if (old->ref_count <= 0) {
+	MPIR_CLR_COOKIE(old);
+	MPIR_SBfree ( MPIR_errhandlers, old );
+	MPIR_RmPointer( *errhandler );
 	}
+
     *errhandler = MPI_ERRHANDLER_NULL;
+    TR_POP;
     return MPI_SUCCESS;
 }

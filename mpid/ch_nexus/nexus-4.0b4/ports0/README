@@ -1,0 +1,49 @@
+		POrtable RunTime System (PORTS)
+
+The PORTS group was established to address the problems of
+constructing a common runtime system to be used as a compiler target
+for various task and data parallel languages.  Towards this end, a
+charter for the group has been established, with to goals of
+  * identify opportunities for code sharing among projects, 
+  * focusing on task and data parallel languages, and 
+  * designing and implementing a common runtme system which
+    supports task and data parallel languages and interoperability.
+
+More information about the PORTS effort and its participants can be
+found on the World Wide Web at:
+
+	http://www.cs.uoregon.edu/paracomp/ports
+
+The latest version of this software can be obtained by anonymous ftp from:
+	ftp.mcs.anl.gov
+	/pub/ports
+
+
+Argonne/Caltech PORTS0 Implementation
+-------------------------------------
+
+This is the Argonne/Caltech implementation of the PORTS level 0
+interface.  It currently supports the following systems:
+
+  * IBM RS/6000 AIX 3.2.5 with DCE threads
+  * HP/UX 9.x with DCE threads
+  * SunOS 4.1.3 using FSU pthreads and GNU compiler
+  * Sun Solaris 2.3
+  * NEXTSTEP 3.x
+
+If you have problems with or questions about this implementation, 
+please send email to:
+
+	ports-support@mcs.anl.gov
+
+
+Building PORTS0
+---------------
+
+To build the PORTS0 library, for example, for the IBM do:
+	ln -s makefile.ibm makefile
+	make
+
+There is a simple test program in test.c.  To build it, run:
+	make test
+

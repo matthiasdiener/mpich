@@ -70,7 +70,7 @@ main() {
   fprintf( f, "%d\n", sizeof($1));
   exit(0);
 }],Pac_CV_NAME=`cat conftestval`,Pac_CV_NAME="")
-if test -n "$Pac_CV_NAME" ; then
+if test -n "$Pac_CV_NAME" -a "$Pac_CV_NAME" != 0 ; then
     AC_MSG_RESULT($Pac_CV_NAME)
 else
     AC_MSG_RESULT(unavailable)
@@ -196,6 +196,12 @@ for dir in $PATH ; do
     if test -x $dir/wish ; then
 	wishloc=$dir/wish
         break
+    elif test -x $dir/tcl7.3-tk3.6/bin/wish ; then
+	wishloc=$dir/tcl7.3-tk3.6/bin/wish
+	break
+    elif test -x $dir/tcl7.4-tk4.0/bin/wish ; then
+        wishloc=$dir/tcl7.4-tk4.0/bin/wish
+	break
     fi
 done
 IFS="$saveifs"
@@ -220,6 +226,7 @@ for dir in \
     /usr/unsupported/bin \
     /usr/bin \
     /bin \
+    /usr/sgitcl \
     /local/encap/tcl-7.1/bin ; do
     if test -x $dir/wish ; then
 	wishloc=$dir/wish
@@ -232,17 +239,40 @@ if test -n "$wishloc" ; then
 else
   AC_MSG_RESULT(no)
 fi])dnl
+dnl
+dnl We can use wish to find tcl and tk libraries with
+dnl puts stdout $tk_library
+dnl tclsh can be used with 
+dnl puts stdout $tcl_library
+dnl
+dnl
 define(PAC_FIND_TCL,[
 # Look for Tcl
 if test -z "$TCL_DIR" ; then
+PAC_PROGRAM_CHECK(TCLSH,tclsh,1,,tclshloc)
 AC_MSG_CHECKING([for Tcl])
-for dir in \
+# See if tclsh is in the path
+if test -n "$tclshloc" ; then
+    cat >conftest <<EOF
+puts stdout [\$]tcl_library
+EOF
+    tcllibloc=`$tclshloc conftest`
+    # The tcllibloc is the directory containing the .tcl files.  
+    # The .a files may be one directory up
+    tcllibloc=`dirname $tcllibloc`
+    # and the lib directory one above that
+    tcllibs="$tcllibloc `dirname $tcllibloc`"
+    /bin/rm -f conftest   
+fi
+for dir in $tcllibs \
     /usr \
     /usr/local \
+    /usr/local/tcl7.5 \
     /usr/local/tcl7.3 \
     /usr/local/tcl7.3-tk3.6 \
     /usr/local/tcl7.0 \
     /usr/local/tcl7.0-tk3.3 \
+    /usr/local/tcl7.* \
     /usr/contrib \
     /usr/contrib/tk3.6 \
     /usr/contrib/tcl7.3-tk3.6 \
@@ -250,26 +280,54 @@ for dir in \
     /usr/contrib/tcl7.0-tk3.3 \
     $HOME/tcl \
     $HOME/tcl7.3 \
+    $HOME/tcl7.5 \
     /opt/Tcl \
     /opt/local \
-    /opt/local/tcl7.0 \
+    /opt/local/tcl7.5 \
+    /opt/local/tcl7.* \
+    /usr/bin \
     /Tools/tcl \
+    /usr/sgitcl \
     /local/encap/tcl-7.1 ; do
-    if test -r $dir/include/tcl.h -a -r $dir/lib/libtcl.a ; then
-	TCL_DIR=$dir
-	break
+    if test -r $dir/include/tcl.h ; then 
+        if test -r $dir/lib/libtcl.a -o -r $dir/lib/libtcl.so ; then
+ 	    TCL_DIR=$dir
+	    break
+        fi
+	for file in $dir/lib/libtcl*.a ; do
+	    if test -r $file ; then 
+                TCL_DIR_W="$TCL_DIR_W $file"
+	    fi
+	done
     fi
 done
 fi
 if test -n "$TCL_DIR" ; then 
-  AC_MSG_RESULT(found $TCL_DIR/include/tcl.h and $TCL_DIR/lib/libtcl.a)
+  AC_MSG_RESULT(found $TCL_DIR/include/tcl.h and $TCL_DIR/lib/libtcl)
 else
-  AC_MSG_RESULT(no)
+  if test -n "$TCL_DIR_W" ; then
+    AC_MSG_RESULT(found $TCL_DIR_W but need libtcl.a)
+  else
+    AC_MSG_RESULT(no)
+  fi
 fi
 # Look for Tk (look in tcl dir if the code is nowhere else)
 if test -z "$TK_DIR" ; then
 AC_MSG_CHECKING([for Tk])
-for dir in \
+if test -n "$wishloc" ; then
+    cat >conftest <<EOF
+puts stdout [\$]tk_library
+exit
+EOF
+    tklibloc=`$wishloc -file conftest`
+    # The tklibloc is the directory containing the .k files.  
+    # The .a files may be one directory up
+    tklibloc=`dirname $tklibloc`
+    # and the lib directory one above that
+    tklibs="$tklibloc `dirname $tklibloc`"
+    /bin/rm -f conftest   
+fi
+for dir in $tklibs \
     /usr \
     /usr/local \
     /usr/local/tk3.6 \
@@ -286,23 +344,37 @@ for dir in \
     /opt/Tcl \
     /opt/local \
     /opt/local/tk3.6 \
+    /usr/bin \
     /Tools/tk \
+    /usr/sgitcl \
     /local/encap/tk-3.4 $TCL_DIR ; do
-    if test -r $dir/include/tk.h -a -r $dir/lib/libtk.a ; then
-	TK_DIR=$dir
-	break
+    if test -r $dir/include/tk.h ; then 
+        if test -r $dir/lib/libtk.a -o -r $dir/lib/libtk.so ; then
+	    TK_DIR=$dir
+	    break
+	fi
+	for file in $dir/lib/libtk*.a ; do
+	    if test -r $file ; then 
+                TK_DIR_W="$TK_DIR_W $file"
+	    fi
+	done
     fi
 done
 fi
 if test -n "$TK_DIR" ; then 
-  AC_MSG_RESULT(found $TK_DIR/include/tk.h and $TK_DIR/lib/libtk.a)
+  AC_MSG_RESULT(found $TK_DIR/include/tk.h and $TK_DIR/lib/libtk)
 else
+  if test -n "$TK_DIR_W" ; then
+    AC_MSG_RESULT(found $TK_DIR_W but need libtk.a (and version 3.6) )
+  else
+    AC_MSG_RESULT(no)
+  fi
   AC_MSG_RESULT(no)
 fi
 ])dnl
 dnl
 dnl Look for a non-standard library by looking in some named places.
-dnl Check for both foo.a and libfoo.a
+dnl Check for both foo.a and libfoo.a (and .so)
 dnl 
 dnl PAC_FIND_USER_LIB(LIB-NAME[,LIB-LIST,ACTION-IF-FOUND,ACTION-IF-NOT-FOUND])
 dnl (use foo to check for foo.a and libfoo.a)
@@ -326,26 +398,29 @@ for dir in $2 \
     /opt/local \
     /opt/local/$1 \
     /local/encap/$1 ; do
-    if test -r $dir/$1.a ; then
-	pac_lib_file=$dir/$1.a
-        pac_lib_dir=$dir
-	break
-    fi
-    if test -r $dir/lib$1.a ; then
-	pac_lib_file=$dir/lib$1.a
-        pac_lib_dir=$dir
-	break
-    fi
-    if test -r $dir/lib/$1.a ; then
-	pac_lib_file=$dir/lib/$1.a
-        pac_lib_dir=$dir/lib
-	break
-    fi
-    if test -r $dir/lib/lib$1.a ; then
-	pac_lib_file=$dir/lib/lib$1.a
-        pac_lib_dir=$dir/lib
-	break
-    fi
+    for suffix in a so ; do
+        if test -n "$pac_lib_dir" ; then break ; fi
+        if test -r $dir/$1.$suffix ; then
+	    pac_lib_file=$dir/$1.$suffix
+            pac_lib_dir=$dir
+	    break
+        fi
+        if test -r $dir/lib$1.$suffix ; then
+	    pac_lib_file=$dir/lib$1.$suffix
+            pac_lib_dir=$dir
+	    break
+        fi
+        if test -r $dir/lib/$1.$suffix ; then
+	    pac_lib_file=$dir/lib/$1.$suffix
+            pac_lib_dir=$dir/lib
+	    break
+        fi
+        if test -r $dir/lib/lib$1.$suffix ; then
+	    pac_lib_file=$dir/lib/lib$1.$suffix
+            pac_lib_dir=$dir/lib
+	    break
+        fi
+    done
 done
 if test -n "$pac_lib_file" ; then 
   AC_MSG_RESULT(found $pac_lib_file)
@@ -389,6 +464,10 @@ for dir in $2 \
     fi
     if test -r $dir/lib/lib$1.a ; then
 	pac_lib_file=$dir/lib/lib$1.a
+	break
+    fi
+    if test -r $dir/lib/lib$1.so ; then
+	pac_lib_file=$dir/lib/lib$1.so
 	break
     fi
 done
@@ -534,6 +613,7 @@ dnl second if false
 dnl PAC_CHECK_COMPILER_OK(true-action, false-action)
 dnl
 define(PAC_CHECK_COMPILER_OK,[
+AC_REQUIRE([AC_CROSS_CHECK])
 AC_MSG_CHECKING(that the compiler $CC runs)
 AC_COMPILE_CHECK(,,return 0;,eval "ac_cv_ccworks=yes",eval "ac_cv_ccworks=no")
 AC_MSG_RESULT($ac_cv_ccworks)
@@ -572,6 +652,21 @@ else
 fi
 ])dnl
 dnl
+dnl Check that the compile accepts ANSI const type.  Perform first arg if yes,
+dnl second if false
+dnl PAC_CHECK_CC_CONST(true-action, false-action)
+dnl
+define(PAC_CHECK_CC_CONST,[
+AC_MSG_CHECKING(that the compiler $CC accepts const modifier)
+AC_COMPILE_CHECK(,[int f(const int a){return a;}],,eval "ac_cv_ccworks=yes",eval "ac_cv_ccworks=no")
+AC_MSG_RESULT($ac_cv_ccworks)
+if test $ac_cv_ccworks = "yes" ; then
+    ifelse([$1],,:,[$1])
+else
+    ifelse([$2],,:,[$2])
+fi
+])dnl
+dnl
 dnl Test the compiler to see if it actually works.  First, check to see
 dnl if the compiler works at all
 dnl Uses TESTCC, not CC
@@ -580,6 +675,7 @@ dnl The test directory is ccbugs by default, but can be overridded with
 dnl CCBUGS
 dnl
 define(PAC_CORRECT_COMPILER,[
+AC_REQUIRE([AC_CROSS_CHECK])
 if test -z "$CCBUGS" ; then CCBUGS=ccbugs ; fi
 if test -d $CCBUGS ; then 
     # Use "LTESTCC" as "local Test CC"
@@ -943,23 +1039,42 @@ dnl
 define(PAC_GET_CC,[
 if test -z "$USERCC" ; then
 case $1 in 
-   cenju3) CC=/usr/necccs/bin/cc
-           F77=/usr/necccs/bin/f77
-           ASM=/usr/necccs/bin/as
-           if test ! -x $CC ; then
+   cenju3) if test $ARCH = abi
+           then
+              CCC=CC
+              CCLINKER=cjCC
               CC=cc
               F77=f77
               ASM=as
+              if test -z "$USERFLINKER" ; then
+                  FLINKER=cjabif77
+              fi
+              if test -z "$USERFLINKER" ; then
+                  CLINKER=cjabicc
+              fi
+           else
+              CCC=CC
+              CCLINKER=cjCC
+              CC=/usr/necccs/bin/cc
+              F77=/usr/necccs/bin/f77
+              ASM=/usr/necccs/bin/as
+              if test ! -x $CC ; then
+                 CC=cc
+                 F77=f77
+                 ASM=as
+              fi
+#
+              if test -z "$USERFLINKER" ; then
+                  FLINKER=cjf77
+              fi
+              if test -z "$USERFLINKER" ; then
+                  CLINKER=cjcc
+              fi
            fi
+#
            DEVCFLAGS="$DEVCFLAGS -O -Kmips2"
            MPILIBNAME=mpich
            ASMFILES_O=get_stack.o
-           if test -z "$USERFLINKER" ; then
-               FLINKER=cjf77
-           fi
-           if test -z "$USERFLINKER" ; then
-               CLINKER=cjcc
-           fi
           ;;
    intelnx|paragon) CC=icc ; GCC="" 
 	  # If this version of the intel compiler accepts the -nx flag, use it.
@@ -976,13 +1091,26 @@ case $1 in
    cray_t3d)        
 	# Some Cray's require -Ccray-t3d instead of -Tcray-t3d.  
         # We have no diagnostic for this behavior yet.
-                    CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3d" ; GCC="" 
+                    CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3d -DT3D" ; GCC="" 
                     if test -z "$USERCLINKER" ; then 
 	            CLINKER="$CC -Tcray-t3d" ; fi ;;
    hpux) if test "`which ${CC-cc}`" = "/usr/convex/bin/cc" ; then 
         CFLAGS="$CFLAGS -or none -U_REENTRANT -D_POSIX_SOURCE -D_HPUX_SOURCE -DMPI_cspp"
          elif test "$CC" != "gcc" ; then
-            CFLAGS="$CFLAGS -Aa -D_POSIX_SOURCE -D_HPUX_SOURCE"
+	    # If cflags includes -Ae or -Aa, we don't need to add -Aa
+            # In a perfect world, we might want to try -Ae
+	    hasarg=`echo A$CFLAGS | sed -n -e '/-Aa/p' -e '/-Ae/p'`
+	    if test -z "$hasarg" ; then
+                CFLAGS="$CFLAGS -Aa"
+	    fi
+            # We need these flags to get the correct system include
+            # files.
+            CFLAGS="$CFLAGS -D_POSIX_SOURCE -D_HPUX_SOURCE"
+	    # P4 needs these to get the correct system includes
+            P4_CFLAGS="-D_POSIX_SOURCE -D_HPUX_SOURCE"
+	    # We MUST have an ANSI compiler for HPUX, even for USER code
+	    # If the regular cpp worked, we would not need to do this.
+	    USER_CFLAGS="$USER_CFLAGS -Aa"
 	    # Alternate...
 	    # -Ae is extended -Aa (only on some PA RISC systems)
 	    #CFLAGS="$CFLAGS -Ae +Olibcalls"
@@ -1154,20 +1282,21 @@ case $1 in
 #                   FORTRAN: sizeof (INTEGER) = 8; sizeof (REAL)  = 8
 #
    SX_4_float0 | SX_4_float1 | SX_4_float2 | SX_4_float2_int64)
-         float=`expr $CARCH : 'SX_4_\(float.\).*'`
-         if test "$CARCH" = "SX_4_$float" ; then
-             sx4int=int32
-         else
-             sx4int=int64
-         fi
-#
          arch_SX_4=1
+#
+         float=`expr $CARCH : 'SX_4_\(float.\).*'`
+         w8=`expr $CARCH : "SX_4_float._\(ew\).*" \| "dw"`
+         sx4int=`expr $CARCH : ".*_\(int64\).*" \| "int32"`
+#
          echo "Generating MPICH for floating point format \`\`$float''"
 #
-         if test "$sx4int" = "int64" ; then
-            echo "                 and sizeof (int) = 64"
-         elif test "$float" = "float2" ; then
-            cat << EOF
+         if test "$w8" = "ew" ; then
+            echo "                 and extended numeric storage \`\`$w8''"
+         else
+            if test "$sx4int" = "int64" ; then
+               echo "                 and sizeof (int) = 64"
+            elif test "$float" = "float2" ; then
+               cat << EOF
 ***********************************************************************
 *
 *   WARNING:
@@ -1178,25 +1307,38 @@ case $1 in
 *
 ***********************************************************************
 EOF
+            fi
          fi
 #
-         CC="cc"; ASM="as -h $float"
-         OPTFLAGSC="-h2 -pvctl,nomsg"
+         CCC="CC"
+         CC="cc"; ASM="as -m -h $float"
+         OPTFLAGSC="-h2 -hsetmain -hnoflunf -pvctl,nomsg"
          CFLAGS="-h$float -DCHAR_PTR_IS_ADDRESS"
          FFLAGS="-$float"
+         LIB_LIST="$LIB_LIST -li77sx"
 #
          if test -z "$USERCLINKER" ; then
-            CLINKER="f77 -$float"; fi
+            CLINKER="cc -h$float"; fi
+         if test -z "$USERCCLINKER" ; then
+            CCLINKER="CC -h$float"; fi
          if test -z "$USERFLINKER" ; then
             FLINKER="f77 -$float"; fi
 #
+         if test "$w8" = "ew" ; then
+            FLINKER="$FLINKER -ew"
+            CFLAGS="$CFLAGS -D_W8"
+            FFLAGS="$FFLAGS -ew"
+         fi
+#
          if test "$sx4int" = "int64" ; then
             CFLAGS="$CFLAGS -hint64"
-            CLINKER="$CLINKER -Wl'-int64'"
+            CLINKER="$CLINKER -hint64"
             FLINKER="$FLINKER -Wl'-int64'"
          fi
+#
+         CCFLAGS="$CFLAGS"
     ;;
-
+#
    hpux) 
     # This may eliminate the need for +U77 ....
     if test "`which $F77`" != "/usr/convex/bin/fc" ; then 
@@ -1209,6 +1351,7 @@ EOF
         # The Convex compiler needs to have optimization messages suppressed
         FFLAGS="$FFLAGS -or none"
     fi
+    # There are reports that version 10 Fortran requires +U77
     ;;
     convex_spp)  F77="/usr/convex/bin/fc" ;;
     ibmpoe)
@@ -1234,7 +1377,12 @@ fi
 # Check that the Fortran compiler is actually available:
 HAS_F77=
 if test -n "$F77" ; then
-    PAC_PROGRAM_CHECK(HAS_F77,$F77,1,0)
+    PAC_PROGRAM_CHECK(HAS_F77,$F77,1,0,F77FULL)
+    # if test -n "$F77FULL" ; then
+	# Really should replace with full path....
+        # but would need to capture arguments as well...
+	dnl F77=$F77FULL
+    # fi
 fi
 ])dnl
 dnl
@@ -1275,9 +1423,7 @@ EOF
         print_error "object file)."
 	NOF77=1
         HAS_FORTRAN=0
-   elif test -n "$FORTRANNAMES" ; then
-	WDEF="-D$FORTRANNAMES"
-   else
+   elif test -z "$FORTRANNAMES" ; then
     # We have to be careful here, since the name may occur in several
     # forms.  We try to handle this by testing for several forms
     # directly.
@@ -1296,17 +1442,17 @@ EOF
     /bin/rm -f confftest.f confftest.o
     if test -n "$nameform4" ; then
 	echo "Fortran externals are lower case and have 1 or 2 trailing underscores"
-	WDEF=-DFORTRANDOUBLEUNDERSCORE
+	FORTRANNAMES="FORTRANDOUBLEUNDERSCORE"
     elif test -n "$nameform1" ; then
         # We don't set this in CFLAGS; it is a default case
         echo "Fortran externals have a trailing underscore and are lowercase"
-	WDEF=-DFORTRANUNDERSCORE
+	FORTRANNAMES="FORTRANUNDERSCORE"
     elif test -n "$nameform2" ; then
 	echo "Fortran externals are uppercase"     
-	WDEF=-DFORTRANCAPS 
+	FORTRANNAMES="FORTRANCAPS" 
     elif test -n "$nameform3" ; then
 	echo "Fortran externals are lower case"
-	WDEF=-DFORTRANNOUNDERSCORE 
+	FORTRANNAMES="FORTRANNOUNDERSCORE"
     else
 	print_error "Unable to determine the form of Fortran external names"
 	print_error "Make sure that the compiler $F77 can be run on this system"
@@ -1347,7 +1493,11 @@ EOF
 #        HAS_FORTRAN=0
 #	;;
 #   esac
-    fi])dnl
+    fi
+    if test -n "$FORTRANNAMES" ; then
+        WDEF="-D$FORTRANNAMES"
+    fi
+    ])dnl
 dnl
 dnl ------------------------------------------------------------------------
 dnl
@@ -1601,11 +1751,29 @@ dnl
 dnl
 dnl checks for compiler characteristics
 dnl
-dnl
+dnl AC_CROSS_CHECK is used to determine if we can run programs to 
+dnl determine system characteristics.  The basic GNU autoconf test
+dnl makes the assumption that return codes are properly handled.  In 
+dnl some cases, the system will pretend to run a program and return a 
+dnl 0 return code, but actually will fail.  In others, it can run the
+dnl program, but because it doesn't properly handle return codes, might
+dnl as well not.  
 define([AC_CROSS_CHECK],
 [AC_PROVIDE([$0])AC_MSG_CHECKING(whether cross-compiling)
 # If we cannot run a trivial program, we must be cross compiling.
-AC_TEST_PROGRAM([main(){exit(0);}], AC_MSG_RESULT(no), cross_compiling=1;AC_MSG_RESULT(yes))
+AC_TEST_PROGRAM([main(){exit(0);}], pac_ok=1, pac_ok=0)
+if test $pac_ok = 1 ; then
+    AC_TEST_PROGRAM([main(){exit(1);}], pac_ok=0 )
+    if test $pac_ok = 1 ; then
+        AC_MSG_RESULT(no)
+    else
+        cross_compiling=1
+        AC_MSG_RESULT(yes, because return codes handled incorrectly)
+    fi
+else
+    cross_compiling=1
+    AC_MSG_RESULT(yes)
+fi
 ])dnl
 dnl
 dnl Append SH style definitions to a file
@@ -1645,6 +1813,7 @@ dnl
 dnl Check that signal semantics work correctly
 dnl
 define(PAC_SIGNALS_WORK,[
+AC_REQUIRE([AC_CROSS_CHECK])
 AC_MSG_CHECKING([that signals work correctly])
 cat >conftest.c <<EOF
 #include <signal.h>
@@ -1896,17 +2065,20 @@ dnl
 dnl Check that ranlib works, and is not just a noisy stub
 dnl We do this by creating a small object file
 dnl and a trial library, and then ranlib the result.
+dnl Finally, we try to link with the library (the IRIX Ranlib exists, but
+dnl destroys the archive.  User-friendly, it isn't).
 dnl
 dnl Requires that CC, AR, and RANLIB already be defined.
 dnl
 define(PAC_RANLIB_WORKS,[
 AC_MSG_CHECKING(that ranlib works)
+broken=0
 cat <<EOF >conftest.c
 int a(){return 1;}
 EOF
 compileonly='$CC -c $CFLAGS conftest.c >/dev/null 2>&1'
 if eval $compileonly ; then 
-    broken=0;
+    :
 else
     broken=1;
 fi
@@ -1918,11 +2090,32 @@ else
     eval $arcmd
     ranlibtest='$RANLIB foo.a >/dev/null 2>&1'
     if eval $ranlibtest ; then
-        broken=0;
-	AC_MSG_RESULT(yes)
+        : 
     else
-        broken=1;
-	AC_MSG_RESULT(no)
+        broken=1
+    fi
+    cat <<EOF >conftest.c
+int a(); int main(argc,argv)int argc; char **argv;{ return a();}
+EOF
+    compileonly='$CC -c $CFLAGS conftest.c >/dev/null 2>&1'
+    if eval $compileonly ; then 
+        : 
+    else
+        broken=1
+    fi
+    if test $broken = 1 ; then
+        AC_MSG_RESULT(no)
+        print_error "Error in creating test program for ranlib test!"
+    else
+	# Check that we can link the program
+        if eval $CLINKER $CFLAGS $LDFLAGS conftest.o -o conftest foo.a $LIBS \
+		>/dev/null 2>&1 ; then
+	    AC_MSG_RESULT(yes)
+	else
+	    AC_MSG_RESULT(no)
+	    print_error "Error linking with ranlibed library"
+	    broken=1
+        fi
     fi
     /bin/rm -f foo.a
     if test $broken = 1 ; then
@@ -1988,7 +2181,8 @@ case $1 in
     solaris)
 	# /opt/SUNWspro/SC*/lib/name
 	for file in libF77.a libM77.a libsunmath.a ; do
-	    for dir in /opt/SUNWspro/SC3.* /opt/SUNWspro/SC3* \
+	    for dir in /opt/SUNWspro/SC4.*/lib /opt/SUNWspro/SC4*/lib \
+		       /opt/SUNWspro/SC3.* /opt/SUNWspro/SC3* \
 		       /opt/SUNWspro/SC2.* /opt/SUNWspro/SC2* ; do
   	        if test -d $dir ; then
 		    if test -s $dir/$file ; then
@@ -2076,9 +2270,14 @@ dnl else
 dnl   exec AC_FD_MSG>&1
 dnl fi
 dnl exec AC_FD_CC>./config.log
+dnl
+dnl
 dnl AC_TRY_LINK(INCLUDES, FUNCTION-BODY,
 dnl             ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND])
 define(AC_TRY_LINK,
+if test -z "$ac_ext" ; then 
+    ac_ext=c
+fi
 [cat > conftest.$ac_ext <<EOF
 dnl This sometimes fails to find confdefs.h, for some reason.
 dnl [#]line __oline__ "[$]0"
@@ -2090,6 +2289,9 @@ int t() {
 [$2]
 ; return 0; }
 EOF
+if test -z "$ac_link" ; then
+ac_link='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&AC_FD_CC'
+fi
 if eval $ac_link; then
   ifelse([$3], , :, [rm -rf conftest*
   $3])
@@ -2200,3 +2402,83 @@ else
 fi
 rm -f conftest* 
 ])dnl
+dnl
+dnl There is a bug in AC_PREPARE that sets the srcdir incorrectly (it
+dnl is correct in configure, but it puts an absolute path into config.status,
+dnl which is a big problem for scripts like mpireconfig that are wrappers
+dnl around config.status).  The bug is in not recognizing that ./ and .//
+dnl are the same  directory as . (in fact, ./[/]* is the same).
+dnl
+define(PAC_FIXUP_SRCDIR,[
+# Find the source files, if location was not specified.
+if test "$srcdirdefaulted" = "yes" ; then
+  srcdir=""
+  # Try the directory containing this script, then `..'.
+  prog=[$]0
+changequote(,)dnl
+  confdir=`echo $prog|sed 's%/[^/][^/]*$%%'`
+  # Remove all trailing /'s 
+  confdir=`echo $confdir|sed 's%[/*]$%%'`
+changequote([,])dnl
+  test "X$confdir" = "X$prog" && confdir=.
+  srcdir=$confdir
+  if test ! -r $srcdir/$unique_file; then
+    srcdir=..
+  fi
+fi
+if test ! -r $srcdir/$unique_file; then
+  if test x$srcdirdefaulted = xyes; then
+    echo "configure: Can not find sources in \`${confdir}' or \`..'." 1>&2
+  else
+    echo "configure: Can not find sources in \`${srcdir}'." 1>&2
+  fi
+  exit 1
+fi
+# Preserve a srcdir of `.' to avoid automounter screwups with pwd.
+# (and preserve ./ and .//)
+# But we can't avoid them for `..', to make subdirectories work.
+case $srcdir in
+  .|./|.//|/*|~*) ;;
+  *) srcdir=`cd $srcdir; pwd` ;; # Make relative path absolute.
+esac
+])
+dnl
+dnl Solaris blew the declarations for gettimeofday...
+dnl
+dnl PAC_IS_GETTIMEOFDAY_OK(ok_action,failure_action)
+dnl
+define(PAC_IS_GETTIMEOFDAY_OK,[
+AC_MSG_CHECKING(for how many arguments gettimeofday takes)
+# Test sets "wierd" only for FAILURE to accept 2
+AC_TEST_PROGRAM([#include <sys/time.h>
+main() {struct timeval tp;
+gettimeofday(&tp,(void*)0);return 0;}],AC_MSG_RESULT(two - whew)
+$1,
+AC_MSG_RESULT(one!)
+$2)
+])
+dnl
+dnl Set USE_STDARG if stdargs work correctly.  Sets var to 1 if it is, 
+dnl 0 otherwise
+dnl
+dnl PAC_STDARG_CORRECT(var)
+define([PAC_STDARG_CORRECT],[
+PAC_COMPILE_CHECK_FUNC(stdarg is correct,[
+/* DEC Alpha compiler by default does NOT define __STDC__ but DOES
+   accept prototypes */
+#if !defined(__STDC__)
+'bad text'
+#endif
+#include <stdio.h>
+#include <stdarg.h>
+int func( int a, ... ){
+int b;
+va_list ap;
+va_start( ap, a );
+b = va_arg(ap, int);
+printf( "%d-%d\n", a, b );
+va_end(ap);
+fflush(stdout);
+return 0;
+}
+int main() { func( 1, 2 ); return 0;}],$1=1,$1=0)])

@@ -1,5 +1,5 @@
 /*
- *  $Id: chhetero.c,v 1.4 1996/07/23 20:20:49 gropp Exp $
+ *  $Id: chhetero.c,v 1.5 1996/12/01 23:34:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -18,7 +18,9 @@
 
 MPID_INFO *MPID_procinfo = 0;
 MPID_H_TYPE MPID_byte_order;
+#ifdef FOO
 static char *(ByteOrderName[]) = { "None", "LSB", "MSB", "XDR" };
+#endif
 int MPID_IS_HETERO = 0;
 
 /* Local definitions */
@@ -217,8 +219,8 @@ else
  * This routine takes a communicator and determines the message representation
  * field for it
  */
-int MPID_CH_Comm_msgrep( comm )
-MPI_Comm comm;
+int MPID_CH_Comm_msgrep( comm_ptr )
+struct MPIR_COMMUNICATOR *comm_ptr;
 {
     MPID_H_TYPE my_byte_order;
     int i;
@@ -232,29 +234,29 @@ MPI_Comm comm;
    that the sender is a potential receiver, so it can't use receiver order.
 */
     if (!MPID_IS_HETERO) {
-	comm->msgform = MPID_MSG_OK;
+	comm_ptr->msgform = MPID_MSG_OK;
     }
     
     my_byte_order = MPID_procinfo[MPID_MyWorldRank].byte_order;
 
     if (my_byte_order == MPID_H_XDR) {
-	comm->msgform = MPID_MSG_XDR;
+	comm_ptr->msgform = MPID_MSG_XDR;
 	return MPI_SUCCESS;
     }
   
     /* This uses the "cached" attributes; this also allows an 
        implementation to use a simplified communicator */
-    for (i = 0; i < comm->np; i++) {
-	if (MPID_procinfo[comm->lrank_to_grank[i]].byte_order !=
+    for (i = 0; i < comm_ptr->np; i++) {
+	if (MPID_procinfo[comm_ptr->lrank_to_grank[i]].byte_order !=
 	    my_byte_order) {
-	    comm->msgform = MPID_MSG_XDR;
+	    comm_ptr->msgform = MPID_MSG_XDR;
 	    return MPI_SUCCESS;
 	}
     }
     
 /* receiver is == 0, so this says "no change" (sender and receiver have
    same format).  This needs to change... */
-    comm->msgform = MPID_MSG_OK;
+    comm_ptr->msgform = MPID_MSG_OK;
     return MPI_SUCCESS;
 }
 

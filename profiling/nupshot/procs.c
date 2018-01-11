@@ -64,7 +64,7 @@ int n;
 char *name;
 {
   char ** namePtr;
-  int namelength, oldnamelength;
+  /* int namelength, oldnamelength; */
 
     /* quick-access temp var. */
   namePtr = &ListItem( process_data->defs.list, processDefInfo, n ).name;

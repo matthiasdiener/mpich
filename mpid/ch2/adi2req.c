@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2req.c,v 1.2 1996/06/26 19:27:47 gropp Exp $
+ *  $Id: adi2req.c,v 1.4 1997/02/18 23:09:04 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -40,10 +40,12 @@ MPI_Request request;
 	    }
 	    break;
 	case MPIR_PERSISTENT_SEND:
-	    printf( "Not done - persistent_send_free\n" );
+	    MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPI internal", 
+			"Unimplemented operation - persistent send free" );
 	    break;
 	case MPIR_PERSISTENT_RECV:
-	    printf( "Not done - persistent_send_free\n" );
+	    MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPI internal", 
+			"Unimplemented operation - persistent recv free" );
 	    break;
 	}
 	MPID_DeviceCheck( MPID_NOTBLOCKING );

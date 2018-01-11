@@ -7,6 +7,58 @@
    Nonblocking, eager shared-memory send/recv.
  */
 
+/*
+ * Hubert Ritzdorf has reported the following bug:
+
+    As I have already reported at July 18th, there is a bug in
+    ''shmemneager.c''.
+
+    If an eager send has to be performed,
+
+    MPID_SetupGetAddress( buf, &len, dest );
+
+    is called to get an address in the shared memory. This works as long as
+    ``p2p_shmalloc'' can allocate a shared memory region of size ``len''.
+    If this is not possible, it allocates a smaller size. This size is
+    returned in ``len''. But routine ''MPID_SHMEM_Eagern_isend''
+    doesn't control this length and copies only the corresponding number
+    number of bytes into the shared memory. And ``MPID_SHMEM_Eagerb_recv''
+    tries to copy out the original length out of the shared memory.
+
+  Hubert provided a fix, but I prefer to use one that synchronizes with
+  ch_shmem (which also probably has this bug).  His fix is 
+
+    a) I added a file ``flow.h'' in the directory ``mpid/ch_lfshmem''.
+----------------- flow.h -------------------------------------
+/ * Allocate shared memory if possible; otherwise use rendezvous * /
+
+extern void  *MPID_Eager_address;
+
+#define MPID_FLOW_MEM_OK(size,partner) \
+(MPID_Eager_address = p2p_shmalloc (size))
+------------------ end of flow.h -----------------------------
+
+    b) I added the following 2 lines in ``lfshmempriv.c''
+
+/ * Pointer used to store the address for eager sends * /
+void               *MPID_Eager_address;
+
+    c) In file ``shmemneager.c'', I add the statement
+
+.    #include "flow.h"
+
+    and replaced the statement
+
+    pkt->address = MPID_SetupGetAddress( buf, &len, dest );
+
+    by
+
+    pkt->address = MPID_Eager_address;
+
+ He also reports the problem with p2p.c not having MPID_myid == 0 be the 
+ father process.  I believe that this is fixed now.
+
+ */
 /* Prototype definitions */
 int MPID_SHMEM_Eagern_send ANSI_ARGS(( void *, int, int, int, int, int, 
 				       MPID_Msgrep_t ));
@@ -210,8 +262,8 @@ void         *in_runex;
 	MEMCPY( rhandle->buf, runex->start, msglen );
 	MPID_FreeGetAddress( runex->start );
     }
-    MPID_RecvFree( runex );
     rhandle->s		 = runex->s;
+    MPID_RecvFree( runex );
     rhandle->wait	 = 0;
     rhandle->test	 = 0;
     rhandle->push	 = 0;

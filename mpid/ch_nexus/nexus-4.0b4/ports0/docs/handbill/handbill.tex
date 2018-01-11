@@ -1,0 +1,409 @@
+\documentstyle[11pt,epsf,handpage]{article}
+\pagestyle{empty}
+\begin{document}
+\pagestyle{empty}
+\title{PORTS: POrtable RunTime Systems Consortium}
+
+\date{}
+\maketitle
+
+\section*{Description}
+
+PORTS is a consortium of research universities, national laboratories,
+and computer vendors interested in developing standard runtime support
+for heterogeneous, multithreaded language compilers.  Specific goals
+of the group are to:
+
+\begin{enumerate}
+\item
+Share experience in the development of runtime support for task-
+and data-parallel languages.
+\item
+Identify opportunities for code sharing among various groups
+working in this area.
+\item
+Design and implement a common runtme system, with the goal of
+enhancing code reuse and interoperability. 
+\end{enumerate}
+
+The PORTS group has met four times since Supercomputing 94.  A first
+product of the consortium was the definition of PORTS0, a standard
+lightweight thread and reentrant function interface.  An
+implementation of this interface has been constructed at Argonne
+National Laboratory and the California Institute of Technology,
+building on software developed in the Nexus project.
+
+
+\section*{Documentation}
+
+Information about PORTS is available at the following URL:
+\begin{center}
+{\tt http://www.cs.uoregon.edu:80/paracomp/ports/}
+\end{center}
+A portable implementation of the PORTS0 library is available via
+ftp:
+\begin{center}
+{\tt ftp://www.mcs.anl.gov/pub/ports/}
+\end{center}
+Additional information about the PORTS0 interface (and Nexus) is available
+at the URL:
+\begin{center}
+{\tt http://www.mcs.anl.gov/nexus/}
+\end{center}
+
+\contact{Ian Foster}
+\email{foster@mcs.anl.gov}
+\phone{(708) 252-4619}
+\makeinfo
+
+\end{document}
+
+
+The first action of the group was to propose a charter for PORTS.
+The following three items summarizes the goal of the endeavor
+\begin{itemize}
+
+\item To design and build inter-operable task parallel programming systems.
+Initially, this effort will be organized as a study group that
+will focus on the specification of a common runtime system
+for task parallelism.  Such a runtime system would be at the level
+of a compiler target.
+
+\item The direction of this effort 
+includes the integration of task and data parallel programming. It is
+not the intention of this group to focus on real-time, embedded systems
+or fault tolerance.
+
+\item To Identify opportunities for code sharing among projects.
+
+\end{itemize}
+The construction of a common runtime system to be used as a compiler
+target for task parallel programming is one example of code sharing.
+However, it was observed that the full runtime environment of
+any programming language consists of several levels. The lowest
+of these provides the basic mechasims in which programs interact
+with the hardware and operating system.  Higher levels of the
+runtime system implement increasingly higher levels of the programming language
+semantics.  It may be the case that languages that share
+certain semantic ideas will be able to exploit common runtime structures at 
+higher levels.  While there was some feeling that the a full
+multi-layered approach to the runtime system design was desirable,
+it was decided that the group should focus first on the foundation
+layer for task parallel computation.
+
+The remainder of the meeting focused on three major items.
+First was a discussion of the status of several current projects.
+That was followed by a lengthy discussions of the desired attributes
+of the basic runtime layer.  The end of the day was left to formulate
+action items.
+
+\section{Project Reports}
+
+Dennis Gannon gave a brief report on the pC++ project.  This
+system currently generates SPMD code for the Intel Paragon, CM-5,
+BBN TC2000, KSR-1, Sequent and SP-1 and PVM networks of workstations.
+The current runtime system is single threaded in each CPU, but it now supports
+remote service requests.  A new version of the language and compiler
+is under design that will be based on active (threaded) global objects.
+Compatibility with CC++, Fortran-M, HPF and
+(the new) multi-threaded Vienna Fortran is considered a major
+goal.  Consequently, the outcome of the Ports project is very
+important to this group.
+
+Carl Kesselman reported that Nexus, the runtime system for both
+CC++ and Fortran-M is now working in a number of environments.
+These include Solaris threads linking sparc-10 systems over tcp/ip,
+Sun-OS, IBM RS6000 systems and DCE, Paragon OSF/1 pthreads.
+All of these systems work in a fully pre-emptive environment.
+Communication is over local memory and tcp/ip.  Carl also reported
+that IBM is considering modifications to the SP-2 threads system
+to allow remote service requests.  Initial timing results show
+that Nexus, running in this pre-emptive mode, can outperform
+a popular message passing library.
+Carl also reported that the alpha release of CC++ is now
+available and Fortran-M will soon be ported to Nexus.
+
+Mathew Haines described Chant, a runtime layer being built at
+ICASE to support research with a task parallel HPF and Vienna
+Fortran.  Chant is designed for machines with fast communication.
+The goal is to have threads do message passing rather than processors
+and to do this without excessive buffer copy operations.
+The approach is to extend the pthreads interface to support MPI.
+Viewed as layers, the foundation of Chant is light weight thread
+system and a communications library.  The next layer is
+a point-to-point message service between threads.  Built on
+top of this is a remote service request layers and global thread
+operations.  
+
+Another ICASE project, Macrame, defines an architectural model and
+an object semantics for threads. Macrame defines a semantic
+layer between Chant and the programming language.
+It contains the concept of a Ropes, which represents
+a set of threads with enough common identity that they can carry
+out collective operations.
+
+Rajive Bagrodia described the discrete event simulation work
+being done at UCLA.  This project will also be based on Nexus.
+Rajive brings lots of experience in the areas of scheduling 
+(such as termination detection) and
+dynamic load balancing to the PORTS group. 
+One of the areas he has worked on is a dynamic system to explore
+task suspend-and-wake-up behaviors.  In addition, he has worked
+on the parallel language UC which started as a data parallel system
+but which has also integrated task parallelism.
+        
+\section{Requirements}
+
+The next task of the group was to discuss a set of requirements
+for the Ports project.  Fourteen different topics were covered
+in the discussion and are summarized below.
+
+\begin{enumerate}
+\item
+{\em Target Machines}.  It is the desire of the group to target environments
+where a task parallel model of computation makes sense.  This
+includes large MIMD multiprocessors  with either shared or distributed
+memory semantics and networks of servers and workstations.
+This does not include single SIMD systems, but it is important
+to note that a SIMD task may be an important component of a task
+parallel computation distributed over a network which includes
+such a machine.
+
+\item
+{\em Heterogeneity.}  The demand for programming system that exploit
+heterogeneous networked computing environments is growing.  In particular,
+applications that will run across the NII must incorporate support
+for heterogeneity.  It was noted that this issues
+is distinct from that of portability and it has strong implications
+for topics like thread migration.
+The questions to be considered are:
+\begin{itemize}
+\item How much do we need to give up in performance?
+\item How much are we prepared to give up?
+\item When can the compiler do optimization for a special features
+of given hardware platform.
+\end{itemize}
+It was noted that compiler options may be used to build a version
+of a program that assumes the code will be run on a homogeneous 
+multicomputer or network.  In this case, a leaner, more specialized
+runtime library
+is possible.  The disadvantage with this solution is that one
+must maintain multiple runtime libraries and objects linked against
+them will not be able to interact.
+
+\item
+{\em Inter-operability.}  Modern programming systems must allow
+applications to be built from a mix of programming styles and languages.
+This means a program written in one language should be able to invoke 
+functions written in another language.  If two languages have a 
+way to describe the same object, then there should be some way for
+them to share it. 
+For traditional sequential machines it was sufficient to make sure
+that simple subroutine calling and stack handling conventions were
+observed. More complex problems arise when languages need to share
+heap space or garbage collection facilities.  In the case of parallel
+and distributed systems, the runtime layer described here becomes
+the critical link.  As described above, the runtime may be partitioned
+into layers.  Clearly a minimum requirement for inter-operability
+between two languages is the basic thread and communication mechanisms
+that are fundamental to the Ports model.  However, an open
+question for the PORTS group is how many of the higher level semantic
+layers of the runtime system may be shared.
+
+An alternative is to follow the lead of the OMG and define a interface
+definition language and some form of object broker mechanism that
+will allow system to interact.
+
+\item
+{\em Performance Analysis and Monitoring.}
+It is essential to incorporate some interface to performance analysis
+and measurement within the design of the runtime system.  The
+basic requirements include common library timers and event logging
+mechanism.  Clearly, it would be advantageous to have a mechanism
+to measure the life time and activities of a thread, but in a preemptive
+environment this is very difficult without adding  additional
+state and increased context switching time to the thread.
+
+In addition to thread life time measurement, another important
+performance evaluation hook is memory hierarchy and message
+traffic behavior.  For example, if the runtime system provides
+a virtual shared memory or global name space, it is important to
+be able to record the cost of remote references versus local
+ones.
+
+
+\item
+{\em Debugging.} No programming system is complete with out
+a debugging tools.  The Ports group feels strongly that vendor
+supported tools must be used whenever possible.  In general
+the Ports group found the state-of-the-art in parallel debugging
+to be very depressing.  The group will support any and all
+efforts to build good extensible parallel debuggers.
+
+\item
+{\em Scheduling.}  The issue of scheduling is critical to
+the design of a thread based or task parallel runtime system.
+In the case of priority based scheduling it is important to
+be able to handle very high priority operations like
+remote service requests.  We also we may need ways
+to write custom schedulers.  For example, the a scheduler
+that can evaluate conditional expressions that determine
+the need to schedule another task without requiring a context
+switch to that task.  ``Gang scheduling'' is important for 
+parallel execution of ropes of threads (see collective operations
+below).  It is imperativeimperative that the runtime system avoid 
+busy-waiting.  One of the important uses of threads in
+a task parallel programming system is to hide message latency.
+Consequently, efficient scheduling is critical to overall performance.
+ without requiring a context
+switch to that task.  ``Gang scheduling'' is important for 
+parallel execution of ropes of threads (see collective operations
+below).  It is imperative that the runtime system avoid 
+busy-waiting.  One of the important uses of threads in
+a task parallel programming system is to hide message latency.
+Consequently, efficient scheduling is critical to overall performance.
+
+\item
+{\em Thread Functionality.}  The general opinion of the Ports group
+is that the thread functionality in the base runtime system layer
+should be a major subset of  posix threads.  In particular, 
+key attributes of threads include:stack size, scheduling policy, 
+and scheduling policy parameters, management of threads 
+should support  operators like crate, join, delete, equal.
+Threads should be able to have local data supported by operators
+like key-create, etc.  Synchronization should be supported with
+at least mutex and condition variables.
+
+
+\item
+{\em Collective Operations.}  For large scale parallelism, it is
+impractical to schedule threads sequentially for the concurrent
+evaluation of some part of a program.  Consequently, Ports will
+need some form of thread collective.  A rope is a set of threads
+that can be created and each assigned a task (such as a loop iterate)
+with minimal overhead.  Threads within a rope should be able
+to identify the other threads in the rope and there should be
+synchronization mechanisms that allow collective operations like
+barriers, scans, broadcasts and reductions.  
+It is important that the runtime system
+level rope structure provide mechanism and not policy.  Different
+language may use ropes in very different ways.
+
+\item
+{\em Node Abstractions.} In order to facilitate any discussion
+of remote versus local computation on parallel or distributed
+systems, it is very helpful to have a common language to describe
+the attributes of the hardware and OS of these machines.
+The following terms will be used in Ports documents.
+\begin{itemize} 
+\item A {\em context} is an address space in which a computation
+may operate. 
+\item A {\em node} is the smallest unit of hardware upon which a context can
+be assigned. A node consists of a computing engine (one or more CPUs)
+and a shared memory system.  Multiple contexts may be assigned
+to a given node and CPUs may be shared between the contexts on a given
+node.
+\item A {\em thread} is an abstraction for a virtual program counter,
+register set, execution stack and private data that is following some
+control path (i.e. executing some program code) within an address space.
+Threads are assigned to and always live within a context.  There
+may be many threads assigned to a single context.
+\end{itemize}
+While the entire Ports group agrees on these terms, some feel that
+this is not a complete model.  In particular, most massively parallel
+machines support architectural features that make them more than
+a set of nodes and a communication layer.  However, there was no
+agreement on how to extend the definition set above without providing
+undue complication in discussion of the topics that follow.
+
+\item
+{\em Communication.}  There are three important models of communication
+that are used in current parallel programming paradigms.
+
+\begin{itemize}
+
+   \item Point-to-point communication between threads 
+   in different contexts based on
+   a message passing layer like MPI.
+
+   \item Remote Service Requests (RSRs), where a message is sent to
+   an address within a context in the same or another node  
+    to invoke a function. The function is executed by a remote
+   service request thread within that node.
+   
+
+   \item Hardware based "get" and "put" operations that allow
+   a thread in one context to directly see or modify a "global address"
+   which may lie in another context in the same or another node.
+
+\end{itemize} 
+Note that the last case is easily represented as a special, hardware
+supported instance of a remote service request.  The Ports group could
+not agree on whether it was better to focus on Point-to-point or
+remote service request styles of communication.  However, it was
+agreed that both were universal in that each could emulate the other.
+It was also noted that most vendor supplied point-to-point systems were 
+based on low level, specialized RSR mechanisms.  However,
+it was also observed that a compiler could often generate point
+to point communication patters that would contain less explicit
+global synchronization  than a RSR scheme.  Of great
+concern to the group was which scheme would provide the most
+efficient communications. It was decided to wait until more experimental
+data was made available.
+
+
+\item
+{\em Resources Management and Allocation.}  Being able to allocate
+a new context and acquire new nodes is important for many applications.
+Conversely, it is also important to be able to release resources.
+Another important feature is to be able to connect to an existing
+running computation.
+
+\item
+{\em Task Migration.} Despite the potential implementation
+conflicts with heterogeneity, task/thread migration may be very
+important for many applications.  In particular, load balancing
+across nodes cannot be easily accomplished without this feature.
+The discussion focused on the level of migration that would be 
+allowed.  A running thread cannot migrate from one context to another
+if it is referencing data that is not thread private: when moved,
+the data (or even its address) may not exist the new context.
+For example, if a thread allocates memory objects in the context heap
+that is used for the lifetime of the thread, then the heap object
+would need to be moved with the tread.
+It was suggested that one possible mechanism would be to allow
+threads that were ``pure'', in the sense that they made no reference
+to context addresses other than thread local data, to be moved
+if they were in some special state.  This is an area where
+much more study is needed.
+
+\item
+{\em I/O } The ports group did not spend a long time on I/O
+discussions but it was clear that much more remains to be
+accomplished here.  In particular, there should be mechanism
+for collective I/O operations from ropes of threads, atomicity
+of I/O operations from individual threads and support for
+parallel file systems.  This issue will be revisited in greater
+detail in a future meeting.
+
+\end{enumerate}
+
+\section{Action Items}
+
+There were three action items discussed.
+\begin{itemize}
+\item This Report would be circulated.
+
+\item The Nexus and Chant groups would get together and discuss
+the subset of pthreads that were considered essential to support.
+
+\item Initial implementations of Nexus and Chant would be distributed
+to interested parties as soon as possible.
+
+\end{itemize}
+The next meeting of the Ports group is scheduled for Aug. 16.
+
+\end{document}
+
+
+

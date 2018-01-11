@@ -27,22 +27,22 @@ fileroot="doc1"
 for arg in "$@" ; do
     case $arg in 
 	-author=* )
-	author="`echo $arg|sed -e 's/-author=//' -e 's/_/ /'`"
+	author="`echo A$arg|sed -e 's/A-author=//' -e 's/_/ /'`"
 	;;
 
 	-file=* )
-	filebase=`echo $arg|sed 's/-file=//'`
+	filebase=`echo A$arg|sed 's/A-file=//'`
         filename="$filebase.tex"
 	fileroot="`basename $filebase`"
 	;;
 
 
 	-config=* )
-	configlog=`echo $arg|sed 's/-config=//'`
+	configlog=`echo A$arg|sed 's/A-config=//'`
 	;;
 
 	-sysname=* )
-	systemname="`echo $arg|sed 's/-sysname=//'`"
+	systemname="`echo A$arg|sed 's/A-sysname=//'`"
 	;;
 
  	-nomake )
@@ -267,9 +267,9 @@ MPICH uses a portable, flexible, and powerful {\em abstract device interface}
 or ADI to 
 perform the actual transmission of messages between processes.  Currently,
 there is one base version of this device in the directory 
-{\tt mpid/chameleon}; versions
-customized to specific message-passing systems are derived from these with
-special text-transformation programs.  There are a number of configure options
+{\tt mpid/ch2}; versions
+customized to specific message-passing systems are derived from these 
+by defining a small number of macros. There are a number of configure options
 that apply to all of the current versions.
 .
 

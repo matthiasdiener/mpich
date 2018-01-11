@@ -1,5 +1,5 @@
 /*
- *  $Id: topo_util.c,v 1.6 1996/04/12 15:56:50 gropp Exp $
+ *  $Id: topo_util.c,v 1.7 1996/12/09 20:44:15 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -102,10 +102,14 @@ void     *attr_val, *extra;
   MPIR_TOPOLOGY *topo = (MPIR_TOPOLOGY *)attr_val;
 
   /* Free topology specific data */
-  if ( topo->type == MPI_CART ) 
-	  FREE( topo->cart.dims );
-  else if ( topo->type == MPI_GRAPH )
-	  FREE( topo->graph.index );
+  if ( topo->type == MPI_CART ) {
+      MPIR_CLR_COOKIE( &topo->cart );
+      FREE( topo->cart.dims );
+  }
+  else if ( topo->type == MPI_GRAPH ) {
+      MPIR_CLR_COOKIE( &topo->graph );
+      FREE( topo->graph.index );
+  }
   
   /* Free topology structure */
   MPIR_SBfree ( MPIR_topo_els, topo );

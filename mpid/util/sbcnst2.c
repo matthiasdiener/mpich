@@ -5,11 +5,32 @@
  *      See COPYRIGHT in top-level directory.
  */
 
+#if defined(HAVE_CONFIG_H) && !defined(MPICHCONF_INC)
+/* This includes the definitions found by configure, and can be found in
+   the library directory (lib/$ARCH/$COMM) corresponding to this configuration
+ */
+#define MPICHCONF_INC
+#include "mpichconf.h"
+#endif
+
 #include <stdio.h>
 #define _SBCNSTDEF
 #include "sbcnst2.h"
 
-/* #define DEBUG */
+#ifdef NEEDS_STDLIB_PROTOTYPES
+#include "protofix.h"
+#endif
+
+#define DEBUG
+#define DEBUG1
+
+/* Needed for MPI_Aint (int that is the size of void *) */
+#include "mpi.h"
+
+#ifdef DEBUG
+/* Needed for MPI_COMM_WORLD and MPI_ERR_xxx */
+#define MPID_ERROR(comm,err,str) fprintf(stderr,str);exit(err)
+#endif
 
 /*
    This file contains routines for allocating a number of fixed-sized blocks.
@@ -25,6 +46,11 @@
   MPID_SBfree( sb, ptr );
   ...
   MPID_SBdestroy( sb );
+
+  Still needed is an interface that helps track down blocks allocated
+  but not freed.  Code like in tr2.c for keeping track of allocation
+  lines and files, or special routine entrance exit code ala PETSc 
+  could be used.
  */
 
 #if defined(MPIR_DEBUG_MEM) || defined(MPIR_MEMDEBUG)
@@ -113,12 +139,21 @@ return head;
 
 /* 
     MPID_SBfree - return a fixed-sized block to the allocator
+
+    This just adds to the headers free list.
  */    
 void MPID_SBfree( sb, ptr )
 MPID_SBHeader sb;
 void          *ptr;
 {
     MPID_THREAD_DS_LOCK(sb)
+#ifdef DEBUG1
+    if ((MPI_Aint)ptr < 1024) {
+	printf( "Suspicious pointer %lx in MPID_SBfree\n", (MPI_Aint)ptr );
+	/* MPID_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER,  
+		    "suspicious pointer in MPID_SBfree" ); */
+    }
+#endif
     ((MPID_SBblock *)ptr)->next = (char *)(sb->avail);
     sb->avail              = (MPID_SBblock *)ptr;
 #ifdef DEBUG
@@ -324,7 +359,7 @@ MPID_SBiAlloc *b = sb->blocks;
 
 while (b) {
     fprintf( fp, "Block %lx of %d bytes and %d chuncks in use\n", 
-	     (long)(char *)b, b->nbytes, b->nbinuse );
+	     (MPI_Aint)(char *)b, b->nbytes, b->nbinuse );
     b = b->next;
     }
 }
@@ -361,7 +396,7 @@ while (p) {
     if (p->sentinal_2 != 0xbeeffeed) {
 	MPID_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, "Corrupted memory (4)!" );
 	}
-    p     = p->next;
+    p     = (MPID_SBblock *)(p->next);
     }
 }
 #endif

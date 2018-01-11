@@ -1,0 +1,55 @@
+/*
+ * used to hold defines that we do not yet have feature tests for
+ *
+ */
+#ifdef TARGET_ARCH_AIX4
+#ifdef HAVE_PTHREAD
+#define HAVE_PTHREAD_PRIO_MINMAX
+#ifndef BUILD_LITE
+#define USE_GETHOSTBY_STRUCT_HOSTENT_DATA
+#endif /* !BUILD_LITE */
+#endif /* HAVE_PTHREAD */
+#endif /* TARGET_ARCH_AIX4 */
+
+#ifdef TARGET_ARCH_SOLARIS
+#ifdef HAVE_SOLARISTHREADS
+#ifndef BUILD_LITE
+#define USE_GETHOSTBY_CHAR_BUFFER
+#endif /* !BUILD_LITE */
+#endif /* HAVE_SOLARISTHREADS */
+#endif /* TARGET_ARCH_SOLARIS */
+#ifdef TARGET_ARCH_SUNOS41
+#endif /* TARGET_ARCH_SUNOS41 */
+#ifdef TARGET_ARCH_AIX
+#ifdef HAVE_PTHREAD
+#ifndef BUILD_LITE
+#define USE_GETHOSTBY_STRUCT_HOSTENT_DATA
+#endif /* !BUILD_LITE */
+#endif /* HAVE_PTHREAD */
+#endif /* TARGET_ARCH_AIX */
+#ifdef TARGET_ARCH_MPL
+#endif /* TARGET_ARCH_MPL */
+#ifdef TARGET_ARCH_HPUX
+#endif /* TARGET_ARCH_HPUX */
+
+#ifdef TARGET_ARCH_PARAGON
+#define HAVE_NO_PTHREAD_SETKIND
+#endif /* TARGET_ARCH_PARAGON */
+
+#ifdef TARGET_ARCH_SGI
+#endif /* TARGET_ARCH_SGI */
+#ifdef TARGET_ARCH_AXP
+#endif /* TARGET_ARCH_AXP */
+#ifdef TARGET_ARCH_OSF1
+#endif /* TARGET_ARCH_OSF1 */
+#ifdef TARGET_ARCH_CRAYC90
+#endif /* TARGET_ARCH_CRAYC90 */
+#ifdef TARGET_ARCH_UNICOS
+#endif /* TARGET_ARCH_UNICOS */
+#ifdef TARGET_ARCH_FREEBSD
+#endif /* TARGET_ARCH_FREEBSD */
+#ifdef TARGET_ARCH_NEXTSTEP
+#endif /* TARGET_ARCH_NEXTSTEP */
+#ifdef TARGET_ARCH_MPINX
+#define HAVE_NO_CONDATTR_DEFAULT
+#endif /* TARGET_ARCH_MPINX */

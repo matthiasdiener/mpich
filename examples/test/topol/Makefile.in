@@ -9,13 +9,14 @@ CCLINKER    = $(CCC)
 F77         = @MPIF77@
 FLINKER     = @MPIF77@
 OPTFLAGS    = @OPTFLAGS@
+MPIFDEP     = @MPIFDEP@
 
 ### End User configurable options ###
 
 SHELL = /bin/sh
 
 PROFLIB =
-CFLAGS  = $(OPTFLAGS) 
+CFLAGS  = @MPE_CFLAGS@ $(OPTFLAGS) 
 CCFLAGS = $(CFLAGS)
 FFLAGS = $(OPTFLAGS)
 # Use LIBS to add any special libraries for C programs
@@ -52,16 +53,16 @@ cart2: cart2.o test.o
 graphtest: graphtest.o
 	$(CLINKER) $(OPTFLAGS) -o graphtest graphtest.o $(LIBS)
 
-cartf: mpif.h cartf.o
+cartf: $(MPIFDEP) cartf.o
 	$(FLINKER) $(OPTFLAGS) -o cartf cartf.o $(FLIBS)
 
-cart1f: mpif.h cart1f.o
+cart1f: $(MPIFDEP) cart1f.o
 	$(FLINKER) $(OPTFLAGS) -o cart1f cart1f.o $(FLIBS)
 
-cart2f: mpif.h cart2f.o
+cart2f: $(MPIFDEP) cart2f.o
 	$(FLINKER) $(OPTFLAGS) -o cart2f cart2f.o $(FLIBS)
 
-twod: mpif.h twod.o
+twod: $(MPIFDEP) twod.o
 	$(FLINKER) $(OPTFLAGS) -o twod twod.o $(FLIBS)
 
 #
@@ -73,7 +74,8 @@ mpif.h: $(MPIR_HOME)/include/mpif.h
 	    ln -s $(MPIR_HOME)/include/mpif.h . ; \
 	fi
 clean:
-	/bin/rm -f *.o *~ core PI* $(EXECS) cartf twod cart1f cart2f topol.diff
+	/bin/rm -f *.o *~ core PI* $(EXECS) cartf twod cart1f cart2f \
+	*.out topol.diff *.trace
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

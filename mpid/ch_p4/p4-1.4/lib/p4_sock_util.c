@@ -7,6 +7,11 @@ extern int errno;
 extern char *sys_errlist[];
 */
 
+/* getenv is part of stdlib.h */
+#ifndef HAVE_STDLIB_H
+extern char *getenv();
+#endif
+
 /*
  *    Utility routines for socket hacking in p4:
  *        P4VOID net_set_sockbuf_size(size, skt)
@@ -34,16 +39,17 @@ extern char *sys_errlist[];
  *    forking off the listener.
  */
 
+
 P4VOID net_set_sockbuf_size(size, skt)	/* 7/12/95, bri@sgi.com */
 int size;
 int skt;
 {
     int rc;
     char *env_value;
-    int sockbufsize,rsz,ssz,status,dummy;
-    extern char *getenv();
+    int rsz,ssz,dummy;
+#ifdef TCP_WINSHIFT
     int shft; /* Window shift; helpful on CRAY */
-
+#endif
     /*
      * Need big honking socket buffers for fast honking networks.  It
      * would be nice if these would "autotune" for the underlying network,
@@ -59,10 +65,17 @@ int skt;
 
        Rumor has it that 0x40000 is a good size for AIX 4.x
      */
+    /* 
+     * Take the size either from the environment variable or from the
+     * default set in p4_sock_util.h .
+     */
     if (size <= 0)
     {
 	    env_value = getenv("P4_SOCKBUFSIZE");
-	    if (env_value) size = atoi(env_value);
+	    if (env_value) 
+		size = atoi(env_value);
+	    else 
+		size = SOCK_BUFF_SIZE;
 #ifdef TCP_WINSHIFT
 	    shft = 0;
             env_value = getenv("P4_WINSHIFT");
@@ -75,6 +88,8 @@ int skt;
 	    	/* Set Send & Receive Socket Buffers */
 
 	    SYSCALL_P4(rc, setsockopt(skt,SOL_SOCKET,SO_SNDBUF,(char *)&size,sizeof(size)));
+	    /* These should only generate informational messages ..., 
+	       particularly for something like ENOBUFS */
 	    if (rc < 0) {
 		perror( "Set SO_SNDBUF" );
 		p4_error("net_set_sockbuf_size socket", skt);
@@ -115,7 +130,7 @@ int skt;
     if ( shft > 0)
     {
     int wsarray[3];
-    char hostname[256];
+    char hostname[MAXHOSTNAMELEN];
 
                 /* Set socket WINSHIFT */
         dummy = sizeof(wsarray);
@@ -153,7 +168,7 @@ int port;
 int *skt;
 {
     struct sockaddr_in sin;
-    int rc, optval = TRUE;
+    int rc, optval = P4_TRUE;
 
     SYSCALL_P4(*skt, socket(AF_INET, SOCK_STREAM, 0));
     if (*skt < 0)
@@ -187,7 +202,7 @@ int *skt;
 {
     int rc, sinlen;
     struct sockaddr_in sin;
-    int optval = TRUE;
+    int optval = P4_TRUE;
 
     SYSCALL_P4(*skt, socket(AF_INET, SOCK_STREAM, 0));
     if (*skt < 0)
@@ -227,7 +242,7 @@ int skt;
 {
     struct sockaddr_in from;
     int rc, flags, fromlen, skt2, gotit, sockbuffsize;
-    int optval = TRUE;
+    int optval = P4_TRUE;
 
     /* dump_sockinfo("net_accept call of dumpsockinfo \n",skt); */
     fromlen = sizeof(from);
@@ -329,9 +344,9 @@ int port, num_tries;
     struct sockaddr_in listener;
 */
     struct sockaddr_in *sockinfo;
-    struct hostent *hp;
-    P4BOOL optval = TRUE;
-    P4BOOL connected = FALSE;
+/*    struct hostent *hp; */
+    P4BOOL optval = P4_TRUE;
+    P4BOOL connected = P4_FALSE;
 
     p4_dprintfl(80, "net_conn_to_listener: host=%s port=%d\n", hostname, port);
     /* gethostchange -RL */
@@ -346,7 +361,7 @@ int port, num_tries;
 #if !defined(CRAY)
     dump_sockaddr("sockinfo",sockinfo);
 #endif
-    connected = FALSE;
+    connected = P4_FALSE;
     while (!connected && num_tries)
     {
 	SYSCALL_P4(s, socket(AF_INET, SOCK_STREAM, 0));
@@ -377,7 +392,7 @@ int port, num_tries;
 	}
 	else
 	{
-	    connected = TRUE;
+	    connected = P4_TRUE;
 	    p4_dprintfl(70,"net_conn_to_listener: connected to %s\n",hostname);
 	}
     }
@@ -556,7 +571,7 @@ int flag;
 			/* Someone may be writing to us ... */
 			if (socket_msgs_available())
 			    {
-			    dmsg = socket_recv( FALSE );
+			    dmsg = socket_recv( P4_FALSE );
 			    /* close of a connection may return a null msg */
 			    if (dmsg) 
 				queue_p4_message(dmsg, 
@@ -583,11 +598,21 @@ int flag;
     return (sent);
 }
 
+/* This can FAIL if the host name is invalid.  For that reason, there is
+   a timeout in the test, with a failure return if the entry cannot be found 
+ */
+#include <sys/time.h>
+#ifndef TIMEOUT_VALUE 
+#define TIMEOUT_VALUE 60
+#endif
 struct hostent *gethostbyname_p4(hostname)
 char *hostname;
 {
     struct hostent *hp;
     int i = 100;
+    time_t start_time, cur_time;
+
+    start_time = time( (time_t) 0 );
 
     while ((hp = gethostbyname(hostname)) == NULL)
     {
@@ -596,6 +621,16 @@ char *hostname;
 	    i = 100;
 	    p4_dprintfl(00,"gethostbyname failed 100 times for host %s\n",
 			hostname);
+	    cur_time = time( (time_t) 0 );
+	    if (cur_time - start_time > TIMEOUT_VALUE) {
+		/* Dump out current procgroup */
+		if (p4_local && p4_local->procgroup) 
+		    dump_procgroup(p4_local->procgroup,00);
+
+		p4_error("Could not gethostbyname; may be invalid name\n",
+			 cur_time - start_time);
+		return 0;
+	    }
 	}
     }
     return(hp);

@@ -9,13 +9,14 @@ CCLINKER    = $(CCC)
 F77         = @MPIF77@
 FLINKER     = @MPIF77@
 OPTFLAGS    = @OPTFLAGS@
+MPIFDEP     = @MPIFDEP@
 
 ### End User configurable options ###
 
 SHELL = /bin/sh
 
 PROFLIB =
-CFLAGS  = $(OPTFLAGS)
+CFLAGS  = @MPE_CFLAGS@ $(OPTFLAGS)
 CCFLAGS = $(CFLAGS)
 FFLAGS = $(OPTFLAGS)
 # Use LIBS to add any special libraries for C programs
@@ -24,7 +25,8 @@ LIBS =
 FLIBS = 
 EXECS = coll1 coll2 coll3 coll4 coll5 coll6 coll7 coll8 coll9 \
 	coll10 coll11 coll12 coll13 bcastbug bcastbug2 grouptest redtst \
-	barrier bcast allred scatterv allredf redscat alltoallv assocf
+	barrier bcast allred scatterv allredf redscat alltoallv assocf \
+	allredmany longuser
 
 default: $(EXECS)
 
@@ -65,11 +67,13 @@ coll12: coll12.o test.o
 	$(CLINKER) $(OPTFLAGS) -o coll12 coll12.o test.o $(LIBS)
 coll13: coll13.o 
 	$(CLINKER) $(OPTFLAGS) -o coll13 coll13.o $(LIBS)
+allredmany: allredmany.o 
+	$(CLINKER) $(OPTFLAGS) -o allredmany allredmany.o $(LIBS)
 bcastbug2: bcastbug2.o test.o 
 	$(CLINKER) $(OPTFLAGS) -o bcastbug2 bcastbug2.o test.o $(LIBS)
 bcastbug: bcastbug.o test.o
 	$(CLINKER) $(OPTFLAGS) -o bcastbug bcastbug.o test.o $(LIBS)
-grouptest: grouptest.o
+grouptest: grouptest.o test.o
 	$(CLINKER) $(OPTFLAGS) -o grouptest grouptest.o test.o $(LIBS)
 redtst: redtst.o test.o
 	$(CLINKER) $(OPTFLAGS) -o redtst redtst.o test.o $(LIBS)
@@ -86,10 +90,14 @@ redscat: redscat.o
 alltoallv: alltoallv.o
 	$(CLINKER) $(OPTFLAGS) -o alltoallv alltoallv.o $(LIBS) -lm
 
-allredf: mpif.h allredf.o
+allredf: $(MPIFDEP) allredf.o
 	$(FLINKER) $(OPTFLAGS) -o allredf allredf.o $(FLIBS)
-assocf: mpif.h assocf.o 
+assocf: $(MPIFDEP) assocf.o 
 	$(FLINKER) $(OPTFLAGS) -o assocf assocf.o $(FLIBS)
+allgatherf: $(MPIFDEP) allgatherf.o
+	$(FLINKER) $(OPTFLAGS) -o allgatherf allgatherf.o $(FLIBS)
+longuser: longuser.o
+	$(CLINKER) $(OPTFLAGS) -o longuser longuser.o $(LIBS)
 
 ../pt2pt/gcomm.o:
 	(cd ../pt2pt ; make gcomm.o )
@@ -102,7 +110,7 @@ mpif.h: $(MPIR_HOME)/include/mpif.h
 	    ln -s $(MPIR_HOME)/include/mpif.h . ; \
 	fi
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) core *.out coll.diff
+	/bin/rm -f *.o *~ PI* $(EXECS) core *.out coll.diff *.trace
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

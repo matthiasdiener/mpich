@@ -7,12 +7,6 @@
 #include <stdarg.h>
 #endif
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_unpack_ PMPI_UNPACK
@@ -44,8 +38,8 @@ int		*insize;
 int          	*position;
 void         	*outbuf;
 int		*outcount;
-MPI_Datatype  	datatype;
-MPI_Comm      	comm;
+MPI_Datatype  	*datatype;
+MPI_Comm      	*comm;
 int 		*__ierr;
 int		buflen;
 va_list         ap;
@@ -53,8 +47,9 @@ va_list         ap;
 va_start(ap, unknown);
 inbuf = unknown;
 if (_numargs() == NUMPARAMS+1) {
-    *__ierr = MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_ONE_CHAR, 
-			  "Error in MPI_UNPACK" );
+    /* We can't get at the last variable, since there is a fatal 
+       error in passing the wrong number of arguments. */
+    MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ONE_CHAR, "MPI_UNPACK" );
     return;
 }
 if (_numargs() == NUMPARAMS+2) {
@@ -67,14 +62,13 @@ if (_numargs() == NUMPARAMS+2) {
         buflen = va_arg(ap, int) / 8;           /* The length is in bits. */
 }
 outcount =      va_arg(ap, int *);
-datatype =      va_arg(ap, MPI_Datatype);
-comm =          va_arg(ap, MPI_Comm);
+datatype =      va_arg(ap, MPI_Datatype*);
+comm =          va_arg(ap, MPI_Comm *);
 __ierr =        va_arg(ap, int *);
 
 
 *__ierr = MPI_Unpack(inbuf,*insize,position,MPIR_F_PTR(outbuf),*outcount,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
+	*datatype,*comm );
 }
 
 #else
@@ -85,8 +79,8 @@ int*insize;
 int          *position;
 void         *outbuf;
 int*outcount;
-MPI_Datatype  type;
-MPI_Comm      comm;
+MPI_Datatype  *type;
+MPI_Comm      *comm;
 int *__ierr;
 {
 _fcd temp;
@@ -99,15 +93,14 @@ if (_isfcd(outbuf)) {
 	outbuf = (void *) temp;
 }
 *__ierr = MPI_Unpack(inbuf,*insize,position,MPIR_F_PTR(outbuf),*outcount,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(type) ),
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
+	*type, *comm );
 }
 
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_unpack_ ANSI_ARGS(( void *, int *, int *, void *, int *, MPI_Datatype,
-			     MPI_Comm, int * ));
+void mpi_unpack_ ANSI_ARGS(( void *, int *, int *, void *, int *, 
+			     MPI_Datatype *, MPI_Comm *, int * ));
 
 void mpi_unpack_ ( inbuf, insize, position, outbuf, outcount, type, comm, 
 		   __ierr )
@@ -116,12 +109,11 @@ int*insize;
 int          *position;
 void         *outbuf;
 int*outcount;
-MPI_Datatype  type;
-MPI_Comm      comm;
+MPI_Datatype  *type;
+MPI_Comm      *comm;
 int *__ierr;
 {
     *__ierr = MPI_Unpack(inbuf,*insize,position,MPIR_F_PTR(outbuf),*outcount,
-			 (MPI_Datatype)MPIR_ToPointer( *(int*)(type) ),
-			 (MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
+			 *type, *comm );
 }
 #endif

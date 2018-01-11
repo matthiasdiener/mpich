@@ -19,11 +19,12 @@ case "$ARCH" in
        fi
        ;;
    rs6000)
-       if test -f /usr/lpp/poe/bin/mpcc ; then
-           DEVICE=ch_eui
-       else
+	# Now that IBM has an MPI, make that the default.
+#       if test -f /usr/lpp/poe/bin/mpcc ; then
+#           DEVICE="ch_mpl"
+#       else
            DEVICE="ch_p4"
-       fi
+#       fi
        ;;
    paragon) DEVICE=nx ;;
    intelnx) DEVICE=ch_nx ;;

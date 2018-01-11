@@ -1,5 +1,5 @@
 /*
- *  $Id: graphdimsget.c,v 1.3 1996/04/12 15:56:28 gropp Exp $
+ *  $Id: graphdimsget.c,v 1.5 1997/01/07 01:48:01 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -35,14 +35,24 @@ int              *nedges;
 {
   int mpi_errno, flag;
   MPIR_TOPOLOGY *topo;
+  struct MPIR_COMMUNICATOR *comm_ptr;
+  static char myname[] = "MPI_GRAPHDIMS_GET";
 
-  if ( MPIR_TEST_COMM(comm,comm) || MPIR_TEST_ARG(nnodes) || 
-       MPIR_TEST_ARG(nedges) )
-    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-		       "Error in MPI_GRAPHDIMS_GET" );
+  TR_PUSH(myname);
+
+  comm_ptr = MPIR_GET_COMM_PTR(comm);
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+
+  if ( MPIR_TEST_ARG(nnodes) || MPIR_TEST_ARG(nedges) )
+    return MPIR_ERROR( comm_ptr, mpi_errno, myname );
 
   /* Get topology information from the communicator */
-  MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );
+  mpi_errno = 
+      MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );
+
+  if (mpi_errno) {
+      return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+  }
 
   /* Set nnodes */
   if ( nnodes != (int *)0 )
@@ -58,5 +68,6 @@ int              *nedges;
     else
       (*nedges) = MPI_UNDEFINED;
 
+  TR_POP;
   return (MPI_SUCCESS);
 }

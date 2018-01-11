@@ -1,4 +1,4 @@
-.TH MPI_Comm_split 3 "6/26/1996" " " "MPI"
+.TH MPI_Comm_split 3 "1/6/1997" " " "MPI"
 .SH NAME
 MPI_Comm_split \-  Creates new communicators based on colors and keys 
 .SH SYNOPSIS
@@ -68,6 +68,7 @@ in Fortran.
 The current algorithm used has quite a few (read: a lot of) inefficiencies
 that can be removed.  Here is what we do for now
 
+.nf
 1) A table is built of colors, and keys (has a next field also).
 2) The tables of all processes are merged using 
 .I MPI_Allreduce
@@ -85,6 +86,7 @@ comm.
 by key/rank. 
 6) A group is created from the sorted list and a communicator is created
 with this group and the previously allocated contexts.
+.fi
 
 .SH ERRORS
 

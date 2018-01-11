@@ -1,5 +1,5 @@
 /*
- *  $Id: global.C,v 1.1 1994/05/12 07:17:42 doss Exp gropp $
+ *  $Id: global.C,v 1.2 1997/02/28 20:43:37 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.

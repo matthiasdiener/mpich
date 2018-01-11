@@ -1,5 +1,5 @@
 /*
- *  $Id: inter_fns.c,v 1.2 1996/04/12 15:39:27 gropp Exp $
+ *  $Id: inter_fns.c,v 1.4 1997/01/07 01:47:46 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -19,33 +19,33 @@
  */
 
 /* Forward declarations */
-static int inter_Barrier ANSI_ARGS((MPI_Comm));
-static int inter_Bcast ANSI_ARGS((void*, int, MPI_Datatype, int, MPI_Comm));
-static int inter_Gather ANSI_ARGS((void*, int, MPI_Datatype, void*, 
-				   int, MPI_Datatype, int, MPI_Comm));
-static int inter_Gatherv ANSI_ARGS((void*, int, MPI_Datatype, void*, int *, 
-				    int *, MPI_Datatype, int, MPI_Comm)); 
-static int inter_Scatter ANSI_ARGS((void*, int, MPI_Datatype, void*, int, 
-				    MPI_Datatype, int, MPI_Comm));
-static int inter_Scatterv ANSI_ARGS((void*, int *, int *, MPI_Datatype, 
-				     void*, int, MPI_Datatype, int, MPI_Comm));
-static int inter_Allgather ANSI_ARGS((void*, int, MPI_Datatype, void*, int, 
-				      MPI_Datatype, MPI_Comm));
-static int inter_Allgatherv ANSI_ARGS((void*, int, MPI_Datatype, void*, int *,
-				       int *, MPI_Datatype, MPI_Comm));
-static int inter_Alltoall ANSI_ARGS((void*, int, MPI_Datatype, 
-				     void*, int, MPI_Datatype, MPI_Comm));
+static int inter_Barrier ANSI_ARGS((struct MPIR_COMMUNICATOR *));
+static int inter_Bcast ANSI_ARGS((void*, int, struct MPIR_DATATYPE *, int, struct MPIR_COMMUNICATOR *));
+static int inter_Gather ANSI_ARGS((void*, int, struct MPIR_DATATYPE *, void*, 
+				   int, struct MPIR_DATATYPE *, int, struct MPIR_COMMUNICATOR *));
+static int inter_Gatherv ANSI_ARGS((void*, int, struct MPIR_DATATYPE *, void*, int *, 
+				    int *, struct MPIR_DATATYPE *, int, struct MPIR_COMMUNICATOR *)); 
+static int inter_Scatter ANSI_ARGS((void*, int, struct MPIR_DATATYPE *, void*, int, 
+				    struct MPIR_DATATYPE *, int, struct MPIR_COMMUNICATOR *));
+static int inter_Scatterv ANSI_ARGS((void*, int *, int *, struct MPIR_DATATYPE *, 
+				     void*, int, struct MPIR_DATATYPE *, int, struct MPIR_COMMUNICATOR *));
+static int inter_Allgather ANSI_ARGS((void*, int, struct MPIR_DATATYPE *, void*, int, 
+				      struct MPIR_DATATYPE *, struct MPIR_COMMUNICATOR *));
+static int inter_Allgatherv ANSI_ARGS((void*, int, struct MPIR_DATATYPE *, void*, int *,
+				       int *, struct MPIR_DATATYPE *, struct MPIR_COMMUNICATOR *));
+static int inter_Alltoall ANSI_ARGS((void*, int, struct MPIR_DATATYPE *, 
+				     void*, int, struct MPIR_DATATYPE *, struct MPIR_COMMUNICATOR *));
 static int inter_Alltoallv ANSI_ARGS((void*, int *, int *, 
-				      MPI_Datatype, void*, int *, 
-				      int *, MPI_Datatype, MPI_Comm));
+				      struct MPIR_DATATYPE *, void*, int *, 
+				      int *, struct MPIR_DATATYPE *, struct MPIR_COMMUNICATOR *));
 static int inter_Reduce ANSI_ARGS((void*, void*, int, 
-				   MPI_Datatype, MPI_Op, int, MPI_Comm));
+				   struct MPIR_DATATYPE *, MPI_Op, int, struct MPIR_COMMUNICATOR *));
 static int inter_Allreduce ANSI_ARGS((void*, void*, int, 
-				      MPI_Datatype, MPI_Op, MPI_Comm));
+				      struct MPIR_DATATYPE *, MPI_Op, struct MPIR_COMMUNICATOR *));
 static int inter_Reduce_scatter ANSI_ARGS((void*, void*, int *, 
-					   MPI_Datatype, MPI_Op, MPI_Comm));
-static int inter_Scan ANSI_ARGS((void*, void*, int, MPI_Datatype, 
-				 MPI_Op, MPI_Comm ));
+					   struct MPIR_DATATYPE *, MPI_Op, struct MPIR_COMMUNICATOR *));
+static int inter_Scan ANSI_ARGS((void*, void*, int, struct MPIR_DATATYPE *, 
+				 MPI_Op, struct MPIR_COMMUNICATOR * ));
 
 static struct _MPIR_COLLOPS inter_collops = {
     inter_Barrier,
@@ -71,36 +71,36 @@ MPIR_COLLOPS MPIR_inter_collops = &inter_collops;
 
 /* Now the functions, each one simply raises an error */
 static int inter_Barrier( comm )
-MPI_Comm comm;
+struct MPIR_COMMUNICATOR * comm;
 {
-    return MPIR_ERROR(comm, MPI_ERR_COMM,
-		      "Inter-communicator invalid in MPI_BARRIER");
+    return MPIR_ERROR(comm, MPI_ERR_COMM_INTER,
+		      "MPI_BARRIER");
 }
 
 static int inter_Bcast ( buffer, count, datatype, root, comm )
 void             *buffer;
 int               count;
-MPI_Datatype      datatype;
+struct MPIR_DATATYPE *      datatype;
 int               root;
-MPI_Comm          comm;
+struct MPIR_COMMUNICATOR *          comm;
 {
-    return MPIR_ERROR(comm, MPI_ERR_COMM,
-		      "Inter-communicator invalid in MPI_BCAST");
+    return MPIR_ERROR(comm, MPI_ERR_COMM_INTER,
+		      "MPI_BCAST");
 }
 
 static int inter_Gather ( sendbuf, sendcnt, sendtype, recvbuf, recvcount, recvtype, 
 		 root, comm )
 void             *sendbuf;
 int               sendcnt;
-MPI_Datatype      sendtype;
+struct MPIR_DATATYPE *      sendtype;
 void             *recvbuf;
 int               recvcount;
-MPI_Datatype      recvtype;
+struct MPIR_DATATYPE *      recvtype;
 int               root;
-MPI_Comm          comm;
+struct MPIR_COMMUNICATOR *          comm;
 {
-    return MPIR_ERROR(comm, MPI_ERR_COMM,
-		      "Inter-communicator invalid in MPI_GATHER");
+    return MPIR_ERROR(comm, MPI_ERR_COMM_INTER,
+		      "MPI_GATHER");
 }
 
 static int inter_Gatherv ( sendbuf, sendcnt,  sendtype, 
@@ -108,16 +108,16 @@ static int inter_Gatherv ( sendbuf, sendcnt,  sendtype,
                   root, comm )
 void             *sendbuf;
 int               sendcnt;
-MPI_Datatype      sendtype;
+struct MPIR_DATATYPE *      sendtype;
 void             *recvbuf;
 int              *recvcnts;
 int              *displs;
-MPI_Datatype      recvtype;
+struct MPIR_DATATYPE *      recvtype;
 int               root;
-MPI_Comm          comm;
+struct MPIR_COMMUNICATOR *          comm;
 {
-    return MPIR_ERROR(comm, MPI_ERR_COMM,
-		      "Inter-communicator invalid in MPI_GATHERV");
+    return MPIR_ERROR(comm, MPI_ERR_COMM_INTER,
+		      "MPI_GATHERV");
 }
 
 static int inter_Scatter ( sendbuf, sendcnt, sendtype, 
@@ -125,15 +125,15 @@ static int inter_Scatter ( sendbuf, sendcnt, sendtype,
 		  root, comm )
 void             *sendbuf;
 int               sendcnt;
-MPI_Datatype      sendtype;
+struct MPIR_DATATYPE *      sendtype;
 void             *recvbuf;
 int               recvcnt;
-MPI_Datatype      recvtype;
+struct MPIR_DATATYPE *      recvtype;
 int               root;
-MPI_Comm          comm;
+struct MPIR_COMMUNICATOR *          comm;
 {
-    return MPIR_ERROR(comm, MPI_ERR_COMM,
-		      "Inter-communicator invalid in MPI_SCATTER");
+    return MPIR_ERROR(comm, MPI_ERR_COMM_INTER,
+		      "MPI_SCATTER");
 }
 
 static int inter_Scatterv ( sendbuf, sendcnts, displs, sendtype, 
@@ -142,58 +142,58 @@ static int inter_Scatterv ( sendbuf, sendcnts, displs, sendtype,
 void             *sendbuf;
 int              *sendcnts;
 int              *displs;
-MPI_Datatype      sendtype;
+struct MPIR_DATATYPE *      sendtype;
 void             *recvbuf;
 int               recvcnt;
-MPI_Datatype      recvtype;
+struct MPIR_DATATYPE *      recvtype;
 int               root;
-MPI_Comm          comm;
+struct MPIR_COMMUNICATOR *          comm;
 {
-    return MPIR_ERROR(comm, MPI_ERR_COMM,
-		      "Inter-communicator invalid in MPI_SCATTERV");
+    return MPIR_ERROR(comm, MPI_ERR_COMM_INTER,
+		      "MPI_SCATTERV");
 }
 
 static int inter_Allgather ( sendbuf, sendcount, sendtype,
                     recvbuf, recvcount, recvtype, comm )
 void             *sendbuf;
 int               sendcount;
-MPI_Datatype      sendtype;
+struct MPIR_DATATYPE *      sendtype;
 void             *recvbuf;
 int               recvcount;
-MPI_Datatype      recvtype;
-MPI_Comm          comm;
+struct MPIR_DATATYPE *      recvtype;
+struct MPIR_COMMUNICATOR *          comm;
 {
-    return MPIR_ERROR(comm, MPI_ERR_COMM,
-		      "Inter-communicator invalid in MPI_ALLGATHER");
+    return MPIR_ERROR(comm, MPI_ERR_COMM_INTER,
+		      "MPI_ALLGATHER");
 }
 
 static int inter_Allgatherv ( sendbuf, sendcount,  sendtype, 
                      recvbuf, recvcounts, displs,   recvtype, comm )
 void             *sendbuf;
 int               sendcount;
-MPI_Datatype      sendtype;
+struct MPIR_DATATYPE *      sendtype;
 void             *recvbuf;
 int              *recvcounts;
 int              *displs;
-MPI_Datatype      recvtype;
-MPI_Comm          comm;
+struct MPIR_DATATYPE *      recvtype;
+struct MPIR_COMMUNICATOR *          comm;
 {
-    return MPIR_ERROR(comm, MPI_ERR_COMM,
-		      "Inter-communicator invalid in MPI_ALLGATHERV");
+    return MPIR_ERROR(comm, MPI_ERR_COMM_INTER,
+		      "MPI_ALLGATHERV");
 }
 
 static int inter_Alltoall( sendbuf, sendcount, sendtype, 
                   recvbuf, recvcnt, recvtype, comm )
 void             *sendbuf;
 int               sendcount;
-MPI_Datatype      sendtype;
+struct MPIR_DATATYPE *      sendtype;
 void             *recvbuf;
 int               recvcnt;
-MPI_Datatype      recvtype;
-MPI_Comm          comm;
+struct MPIR_DATATYPE *      recvtype;
+struct MPIR_COMMUNICATOR *          comm;
 {
-    return MPIR_ERROR(comm, MPI_ERR_COMM,
-		      "Inter-communicator invalid in MPI_GATHERV");
+    return MPIR_ERROR(comm, MPI_ERR_COMM_INTER,
+		      "MPI_GATHERV");
 }
 
 static int inter_Alltoallv ( sendbuf, sendcnts, sdispls, sendtype, 
@@ -201,63 +201,63 @@ static int inter_Alltoallv ( sendbuf, sendcnts, sdispls, sendtype,
 void             *sendbuf;
 int              *sendcnts;
 int              *sdispls;
-MPI_Datatype      sendtype;
+struct MPIR_DATATYPE *      sendtype;
 void             *recvbuf;
 int              *recvcnts;
 int              *rdispls; 
-MPI_Datatype      recvtype;
-MPI_Comm          comm;
+struct MPIR_DATATYPE *      recvtype;
+struct MPIR_COMMUNICATOR *          comm;
 {
-    return MPIR_ERROR(comm, MPI_ERR_COMM,
-		      "Inter-communicator invalid in MPI_ALLTOALLV");
+    return MPIR_ERROR(comm, MPI_ERR_COMM_INTER,
+		      "MPI_ALLTOALLV");
 }
 
 static int inter_Reduce ( sendbuf, recvbuf, count, datatype, op, root, comm )
 void             *sendbuf;
 void             *recvbuf;
 int               count;
-MPI_Datatype      datatype;
+struct MPIR_DATATYPE *      datatype;
 MPI_Op            op;
 int               root;
-MPI_Comm          comm;
+struct MPIR_COMMUNICATOR *          comm;
 {
-    return MPIR_ERROR(comm, MPI_ERR_COMM,
-		      "Inter-communicator invalid in MPI_REDUCE");
+    return MPIR_ERROR(comm, MPI_ERR_COMM_INTER,
+		      "MPI_REDUCE");
 }
 
 static int inter_Allreduce ( sendbuf, recvbuf, count, datatype, op, comm )
 void             *sendbuf;
 void             *recvbuf;
 int               count;
-MPI_Datatype      datatype;
+struct MPIR_DATATYPE *      datatype;
 MPI_Op            op;
-MPI_Comm          comm;
+struct MPIR_COMMUNICATOR *          comm;
 {
-    return MPIR_ERROR(comm, MPI_ERR_COMM,
-		      "Inter-communicator invalid in MPI_ALLREDUCE");
+    return MPIR_ERROR(comm, MPI_ERR_COMM_INTER,
+		      "MPI_ALLREDUCE");
 }
 
 static int inter_Reduce_scatter ( sendbuf, recvbuf, recvcnts, datatype, op, comm )
 void             *sendbuf;
 void             *recvbuf;
 int              *recvcnts;
-MPI_Datatype      datatype;
+struct MPIR_DATATYPE *      datatype;
 MPI_Op            op;
-MPI_Comm          comm;
+struct MPIR_COMMUNICATOR *          comm;
 {
-    return MPIR_ERROR(comm, MPI_ERR_COMM,
-		      "Inter-communicator invalid in MPI_REDUCE_SCATTER");
+    return MPIR_ERROR(comm, MPI_ERR_COMM_INTER,
+		      "MPI_REDUCE_SCATTER");
 }
 
 static int inter_Scan ( sendbuf, recvbuf, count, datatype, op, comm )
 void             *sendbuf;
 void             *recvbuf;
 int               count;
-MPI_Datatype      datatype;
+struct MPIR_DATATYPE *      datatype;
 MPI_Op            op;
-MPI_Comm          comm;
+struct MPIR_COMMUNICATOR *          comm;
 {
-    return MPIR_ERROR(comm, MPI_ERR_COMM,
-		      "Inter-communicator invalid in MPI_SCAN");
+    return MPIR_ERROR(comm, MPI_ERR_COMM_INTER,
+		      "MPI_SCAN");
 }
 

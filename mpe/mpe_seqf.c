@@ -3,16 +3,6 @@
 #include <stdio.h>
 #include "mpe.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpe_seq_begin_ PMPE_SEQ_BEGIN
@@ -33,13 +23,14 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
+void mpe_seq_begin_ ANSI_ARGS(( MPI_Comm *, int *, int * ));
+
  void  mpe_seq_begin_( comm, ng, __ierr )
-MPI_Comm comm;
+MPI_Comm *comm;
 int*ng;
 int *__ierr;
 {
-MPE_Seq_begin(
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),*ng);
+    MPE_Seq_begin(*comm, *ng);
 }
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
@@ -61,11 +52,11 @@ MPE_Seq_begin(
 #endif
 #endif
 
+void mpe_seq_end_ ANSI_ARGS(( MPI_Comm *, int *, int * ));
  void  mpe_seq_end_( comm, ng, __ierr )
-MPI_Comm comm;
+MPI_Comm *comm;
 int*ng;
 int *__ierr;
 {
-MPE_Seq_end(
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),*ng);
+    MPE_Seq_end(*comm, *ng);
 }

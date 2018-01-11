@@ -44,39 +44,22 @@ Testing type Index type MPI_FLOAT
 Testing type Index type MPI_DOUBLE
 Testing type Index type MPI_BYTE
 Testing type Struct type char-double
-... skipping (appears to have explicit MPI_UB
 Testing type Struct type double-char
-... skipping (appears to have explicit MPI_UB
 Testing type Struct type unsigned-double
-... skipping (appears to have explicit MPI_UB
 Testing type Struct type float-long
-... skipping (appears to have explicit MPI_UB
 Testing type Struct type unsigned char-char
-... skipping (appears to have explicit MPI_UB
 Testing type Struct type unsigned short-double
-... skipping (appears to have explicit MPI_UB
 Testing type Struct (MPI_UB) type MPI_CHAR
-... skipping (appears to have explicit MPI_UB
 Testing type Struct (MPI_UB) type MPI_SHORT
-... skipping (appears to have explicit MPI_UB
 Testing type Struct (MPI_UB) type MPI_INT
-... skipping (appears to have explicit MPI_UB
 Testing type Struct (MPI_UB) type MPI_LONG
-... skipping (appears to have explicit MPI_UB
 Testing type Struct (MPI_UB) type MPI_UNSIGNED_CHAR
-... skipping (appears to have explicit MPI_UB
 Testing type Struct (MPI_UB) type MPI_UNSIGNED_SHORT
-... skipping (appears to have explicit MPI_UB
 Testing type Struct (MPI_UB) type MPI_UNSIGNED
-... skipping (appears to have explicit MPI_UB
 Testing type Struct (MPI_UB) type MPI_UNSIGNED_LONG
-... skipping (appears to have explicit MPI_UB
 Testing type Struct (MPI_UB) type MPI_FLOAT
-... skipping (appears to have explicit MPI_UB
 Testing type Struct (MPI_UB) type MPI_DOUBLE
-... skipping (appears to have explicit MPI_UB
 Testing type Struct (MPI_UB) type MPI_BYTE
-... skipping (appears to have explicit MPI_UB
 Testing type Basic type MPI_CHAR
 Testing type Basic type MPI_SHORT
 Testing type Basic type MPI_INT

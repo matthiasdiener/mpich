@@ -33,9 +33,11 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
+void mpe_decomp1d_ ANSI_ARGS(( int*, int *, int *, int *, int *, int * ));
+
  void mpe_decomp1d_( n, size, rank, s, e, __ierr )
 int*n,*size,*rank, *s, *e;
 int *__ierr;
 {
-*__ierr = MPE_Decomp1d(*n,*size,*rank,s,e);
+    *__ierr = MPE_Decomp1d(*n,*size,*rank,s,e);
 }

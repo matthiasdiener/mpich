@@ -1,0 +1,124 @@
+#
+# rcsid = "$Header: /nfs/globus1/src/master/rdb/Makefile.in,v 1.12 1997/01/21 23:00:35 tuecke Exp $"
+#
+
+# This is inserted by configure
+@makefile_header@
+
+RDB_INCLUDES= -I. -I$(srcdir) \
+    -I$(srcdir)/../nexus -I$(srcdir)/../ports0 -I$(srcdir)/../data_conversion \
+    -I../nexus -I../ports0 -I../data_conversion
+
+RDB_CFLAGS= $(RDB_INCLUDES) $(ALL_CFLAGS) 
+
+SHARED_LIB=$(build_dir_lib)/libnexus@nexus_flavor@.@SOEXT@
+STATIC_LIB=$(build_dir_lib)/libnexus@nexus_flavor@.a
+
+OBJS = \
+        rdb_iface.@OFILE@ \
+        rdb_file.@OFILE@
+
+HDRS = \
+	$(srcdir)/rdb.h \
+	$(srcdir)/rdb_internal.h
+
+INSTALL_HDRS = \
+	$(srcdir)/rdb.h
+
+rel_to_build_dir=../rdb
+
+all: $(OBJS) build_dir_headers
+
+lib: @lib_target@
+
+force:
+
+static_lib: $(STATIC_LIB)
+
+shared_lib: $(SHARED_LIB)
+
+build_dir: build_dir_lib build_dir_inc
+
+build_dir_lib: force
+	@if  test ! -d "${build_dir_lib}"; then \
+	   mkdir ${build_dir_lib}; \
+	fi
+
+build_dir_inc: force
+	@if  test ! -d "${build_dir_inc}"; then \
+	   mkdir ${build_dir_inc}; \
+	fi
+
+$(STATIC_LIB): build_dir_lib $(OBJS)
+	$(RM) -f $(LIB)
+	$(AR) $(ARFLAGS) $(LIB) $(OBJECTS)
+	$(RANLIB) $(LIB)
+
+@link_makefile@
+
+print-shared-objs: force
+	@ for obj in $(OBJS) ; do \
+	    relobjs="$(rel_to_build_dir)/$$obj $$relobjs"; \
+          done; \
+          echo $$relobjs
+
+print-static-objs:
+	@ echo ""
+
+install:
+
+#install: install_lib install_headers
+
+install_headers: force
+	for hdr in $(INSTALL_HDRS) ; do \
+	  if [ -f $${hdr} ] ; then \
+	    cp $${hdr} $(INSTALL_INC_DIR)/. ; \
+	  fi \
+	done
+
+rel_to_build_include=../rdb
+build_dir_headers: build_dir_inc
+	@ for hdr in $(INSTALL_HDRS) ; do \
+	  if [ -f $${hdr} ] ; then \
+	    lnk_file=$(build_dir_inc)/`echo $${hdr} | ${SED} -e 's|.*/||'`; \
+             if test ! \( -f $$lnk_file \) ; then \
+                case "$${hdr}" in \
+                   /* ) $(LN_S) $${hdr} $$lnk_file ;; \
+                   ../* ) $(LN_S) $${hdr} $$lnk_file ;; \
+                   * ) $(LN_S) $(rel_to_build_include)/$${hdr} $$lnk_file ;; \
+                esac ; \
+	     fi; \
+	  fi \
+	done
+
+distclean: clean
+	rm -f Makefile config.cache config.log config.status
+
+clean:	force
+	$(RM) -rf *.@OFILE@ *.a *.@SOEXT@
+
+objs:		$(OBJS)
+
+rdb_iface.@OFILE@: $(srcdir)/rdb_iface.c $(srcdir)/rdb_file_parser.c $(HDRS) 
+	$(CC) $(CPPFLAGS) $(RDB_CFLAGS) -c $(srcdir)/rdb_iface.c
+
+rdb_file.@OFILE@: $(srcdir)/rdb_file.c $(srcdir)/rdb_file_parser.c $(HDRS)
+	$(CC) $(CPPFLAGS) $(RDB_CFLAGS) -c $(srcdir)/rdb_file.c
+
+rdb.tar: force
+	tar cf rdb.tar *.c *.h makefile.bas
+
+rdb.tar.Z: force
+	tar cf - *.c *.h makefile.bas | compress > rdb.tar.Z
+
+
+rdb_test:	build_$(DEBUG_FLAVOR) rdb_test.$(G_OFILE)
+	$(G_RM) -f rdb_test
+	$(G_CC) $(G_DEBUG_CFLAGS) $(G_LDFLAGS) \
+		-o rdb_test rdb_test.$(G_OFILE) \
+		$(LIBBASE)_$(DEBUG_FLAVOR).$(G_LIBFILE) $(G_CLIBS)
+
+rdb_test.@OFILE@: $(srcdir)/rdb_test.c $(srcdir)/rdb.h
+	$(G_CC) $(MY_CFLAGS) $(G_DEBUG_CFLAGS) \
+		-c $(srcdir)/rdb_test.c
+

@@ -12,7 +12,7 @@ struct local_data *alloc_local_bm()
 	return (l);
     }
 
-    l->am_bm = TRUE;
+    l->am_bm = P4_TRUE;
     l->listener_fd = -1;
     l->my_id = -1;
     l->procgroup = NULL;
@@ -20,6 +20,7 @@ struct local_data *alloc_local_bm()
 	p4_malloc(sizeof(struct p4_msg_queue));
     initialize_msg_queue(l->queued_messages);
     l->soft_errors = 0;
+    l->conntab = 0;
 
 #   ifdef CAN_DO_XDR
     if ((l->xdr_buff = (char *) p4_malloc(XDR_BUFF_LEN)) == NULL)
@@ -44,7 +45,7 @@ struct local_data *alloc_local_rm()
 	return (l);
     }
 
-    l->am_bm = FALSE;
+    l->am_bm = P4_FALSE;
     l->listener_fd = -1;
     l->my_id = -1;
     l->procgroup = NULL;
@@ -52,6 +53,7 @@ struct local_data *alloc_local_rm()
 	p4_malloc(sizeof(struct p4_msg_queue));
     initialize_msg_queue(l->queued_messages);
     l->soft_errors = 0;
+    l->conntab = 0;
 
 #   ifdef CAN_DO_XDR
     if ((l->xdr_buff = (char *) p4_malloc(XDR_BUFF_LEN)) == NULL)
@@ -71,13 +73,14 @@ struct local_data *alloc_local_listener()
 
     l = (struct local_data *) p4_malloc(sizeof(struct local_data));
 
-    l->am_bm = FALSE;
+    l->am_bm = P4_FALSE;
     l->listener_fd = -1;
     l->my_id = LISTENER_ID;
     l->procgroup = NULL;
     l->queued_messages = NULL;
     l->xdr_buff = NULL;
     l->soft_errors = 0;
+    l->conntab = 0;
     return (l);
 }				/* alloc_local_listener */
 
@@ -87,7 +90,7 @@ struct local_data *alloc_local_slave()
 
     l = (struct local_data *) p4_malloc(sizeof(struct local_data));
 
-    l->am_bm = FALSE;
+    l->am_bm = P4_FALSE;
     l->listener_fd = -1;
     l->my_id = -1;
     l->procgroup = NULL;
@@ -95,6 +98,7 @@ struct local_data *alloc_local_slave()
 	p4_malloc(sizeof(struct p4_msg_queue));
     initialize_msg_queue(l->queued_messages);
     l->soft_errors = 0;
+    l->conntab = 0;
 
 #   ifdef CAN_DO_XDR
     if (!(p4_global->local_communication_only))
@@ -199,18 +203,18 @@ int msglen;
 	    struct p4_msg **trailer;
 	    rmsg = p4_global->avail_buffs[i].buff;
 	    trailer = &(p4_global->avail_buffs[i].buff);
-	    found = FALSE;
+	    found = P4_FALSE;
 	    while (!found && (rmsg != NULL))
 	    {
 		if (rmsg->msg_id == -1)
 		{
-		    found = TRUE;
+		    found = P4_TRUE;
 		}
 		else if (msgdone((long) rmsg->msg_id))
 		{
 		    rmsg->msg_id = -1;	
 		    (p4_global->cube_msgs_out)--;
-		    found = TRUE;
+		    found = P4_TRUE;
 		}
 		else
 		{
@@ -226,7 +230,7 @@ int msglen;
 		    msgwait((long) rmsg->msg_id);
 		    rmsg->msg_id = -1;	
 		    (p4_global->cube_msgs_out)--;
-		    found = TRUE;
+		    found = P4_TRUE;
 		}
 	    }
 	    if (!found)
@@ -295,9 +299,9 @@ struct p4_msg *tmsg;
     if (i == NUMAVAILS)
     {
 	/* buffer being freed is not a kept size */
-	p4_shfree(tmsg);
 	p4_dprintfl(40, "freeing a buffer at %d with bufflen=%d msglen=%d\n", 
 		    tmsg,tmsg->orig_len,tmsg->len);
+	p4_shfree(tmsg);
     }
     else
     {
@@ -368,7 +372,7 @@ P4VOID alloc_global()
     g->cube_msgs_out = 0;
 
     g->local_slave_count = 0;
-    g->local_communication_only = TRUE;
+    g->local_communication_only = P4_TRUE;
     g->n_forked_pids = 0;
 
     for (i = 0; i < P4_MAX_MSG_QUEUES; i++)

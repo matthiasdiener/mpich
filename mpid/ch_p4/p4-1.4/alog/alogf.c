@@ -1,6 +1,21 @@
 #define ALOG_TRACE
 #include "alog.h"
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
 
+/* We've added prototypes for the Fortran interfaces just to suppress
+   warning messages */
+
+void alogfmaster_ ANSI_ARGS(( int*, int * ));
+void alogfsetup_ ANSI_ARGS(( int *, int * ));
+void alogfdefine_ ANSI_ARGS(( int *, char *, char * ));
+void alogflog_ ANSI_ARGS(( int *, int *, int *, char * ));
+void alogfoutput_ ANSI_ARGS(( void ));
+void alogfstatus_ ANSI_ARGS(( int * ));
+void alogfsetdir_ ANSI_ARGS(( char * ));
+void alogfenable_ ANSI_ARGS(( void ));
+void alogfdisable_ ANSI_ARGS(( void ));
 
 void alogfmaster_(id,opt)		/* ALOG_MASTER */
 int *id, *opt;

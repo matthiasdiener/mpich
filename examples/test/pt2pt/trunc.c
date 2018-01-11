@@ -5,8 +5,11 @@
 
 #include "mpi.h"
 #include <stdio.h>
-#include <memory.h>
-
+#include <stdlib.h>
+#include "test.h"
+/* Prototypes for picky compilers */
+int SetupRecvBuf ANSI_ARGS(( int * ));
+int CheckRecvErr ANSI_ARGS(( int, MPI_Status *, int *, char * ));
 
 int main( argc, argv )
 int  argc;

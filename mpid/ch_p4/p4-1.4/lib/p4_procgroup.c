@@ -43,6 +43,17 @@ struct p4_procgroup *read_procgroup()
 #   endif
 
     if ((fp = fopen(procgroup_file, "r")) == NULL) {
+	/* Thanks to Tony Kimball <alk@think.com> for this suggestion */
+#define P4_ALLOW_NP_1_DEFAULT
+#ifdef P4_ALLOW_NP_1_DEFAULT
+	pg->num_entries = 1;
+	pe = pg->entries;
+	strcpy( pe->host_name, "localhost" );
+	pe->numslaves_in_group = 0;
+	pe->slave_full_pathname[0] = 0;
+	pe->username[0] = 0;
+	return pg;
+#else
 	if (p4_hard_errors) {
 	    char tmp[1300];
 	    sprintf( tmp, 
@@ -51,11 +62,12 @@ struct p4_procgroup *read_procgroup()
 	}
 	/* In case p4_error doesn't return or p4_hard_errors not set */
 	return 0;
+#endif
     }
 
     pe = pg->entries;
 
-    while (fgets(buf, sizeof(buf), fp) != NULL)
+    while (fp != NULL && fgets(buf, sizeof(buf), fp) != NULL)
     {
 	for (s = buf; isspace(*s); s++)
 	    ;
@@ -96,6 +108,7 @@ struct p4_procgroup *read_procgroup()
 		     P4_MAX_PROCGROUP_ENTRIES);
     }
 
+    fclose( fp );
     dump_procgroup(pg,50);
     return (pg);
 }				/* read_procgroup */

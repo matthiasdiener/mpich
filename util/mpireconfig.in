@@ -14,8 +14,18 @@ PREFIX="#PREFIX#"
 # 
 # First, try the device/architecture specific config.status
 if [ -s #MPIR_HOME#/lib/#ARCH#/#COMM#/config.status ] ; then 
+    # Export the location of mpichconf.h.in
+    #CONFIG_HEADERS="#MPIR_HOME#/lib/#ARCH#/#COMM#/mpichconf.h"
+    # In fact, we DO NOT want to recreate mpichconf.h  We must
+    # suppress it by defineing CONFIG_HEADERS as empty
+    CONFIG_HEADERS=""
+    export CONFIG_HEADERS
     #MPIR_HOME#/lib/#ARCH#/#COMM#/config.status
 elif [ -s #MPIR_HOME#/config.status ] ; then
+    # Export the location of mpichconf.h.in
+    #CONFIG_HEADERS="#MPIR_HOME#/mpichconf.h"
+    CONFIG_HEADERS=""
+    export CONFIG_HEADERS
     #MPIR_HOME#/config.status
 else
     echo "A config.status file is needed to perform a reconfig of a file"

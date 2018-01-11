@@ -1,0 +1,40 @@
+# This file is a shell script that caches the results of configure
+# tests run on this system so they can be shared between configure
+# scripts and configure runs.  It is not useful on other systems.
+# If it contains results you don't want to keep, you may remove or edit it.
+#
+# By default, configure uses ./config.cache as the cache file,
+# creating it if it does not exist already.  You can give configure
+# the --cache-file=FILE option to use a different cache file; that is
+# what configure does when it calls configure scripts in
+# subdirectories, so they share the cache.
+# Giving --cache-file=/dev/null disables caching, for debugging configure.
+# config.status only pays attention to the cache file if you give it the
+# --recheck option to rerun configure.
+#
+: ${ac_cv_check_posix_signal='yes'}
+: ${ac_cv_func_getopt='yes'}
+: ${ac_cv_func_index='yes'}
+: ${ac_cv_func_rindex='yes'}
+: ${ac_cv_func_setpgrp='yes'}
+: ${ac_cv_func_setresuid='no'}
+: ${ac_cv_func_sigaction='yes'}
+: ${ac_cv_func_sigaddset='yes'}
+: ${ac_cv_func_sigemptyset='yes'}
+: ${ac_cv_func_sigprocmask='yes'}
+: ${ac_cv_func_strerror='no'}
+: ${ac_cv_func_waitpid='yes'}
+: ${ac_cv_header_fcntl_h='yes'}
+: ${ac_cv_header_string_h='yes'}
+: ${ac_cv_header_strings_h='yes'}
+: ${ac_cv_header_sys_select_h='no'}
+: ${ac_cv_header_termios_h='yes'}
+: ${ac_cv_header_unistd_h='yes'}
+: ${ac_cv_prog_CC='gcc'}
+: ${ac_cv_prog_CPP='gcc -E'}
+: ${ac_cv_prog_RANLIB='ranlib'}
+: ${ac_cv_prog_gcc='yes'}
+: ${ac_cv_prog_gcc_g='yes'}
+: ${ac_cv_sys_afs='yes'}
+: ${ac_cv_sys_kerberos='no'}
+: ${ac_cv_sys_ssl='no'}

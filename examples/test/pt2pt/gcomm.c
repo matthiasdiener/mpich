@@ -6,6 +6,8 @@
 
 #include "mpi.h"
 
+#include "gcomm.h"
+
 void MakeComms( comms, maxn, n, make_intercomm )
 MPI_Comm *comms;
 int      *n, maxn, make_intercomm;

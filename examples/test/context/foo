@@ -1,0 +1,2 @@
+#! /bin/sh
+/home/MPI/mpich/lib/sun4/ch_p4/mpirun -np 4 grouptest

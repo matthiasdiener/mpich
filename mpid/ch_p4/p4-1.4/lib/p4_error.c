@@ -9,6 +9,13 @@ typedef long P4_Aint;
 extern P4VOID exit ANSI_ARGS((int));
 #endif
 
+/*
+ * Some systems provide prototypes for the definitions SIG_IGN and SIG_DFL
+ * only if some additional defs (like -D_ANSI_SOURCE under FreeBSD) are
+ * supplied.  If you really need a completely clean compile, consider
+ * adding these defs to the user cflags.
+ */
+
 static int interrupt_caught = 0; /* True if an interrupt was caught */
 
 int p4_hard_errors = 1;
@@ -61,7 +68,16 @@ char *string;
 int value;
 {
     char job_filename[64];
+    static int in_p4_error = 0;
 
+    if (in_p4_error) {
+	/* Recursive call - emergency stop */
+	exit(1);
+    }
+    in_p4_error = 1;
+
+    /* If the following line generates a warning about prototypes,
+       see the comment at the head of the file */
     SIGNAL_P4(SIGINT,SIG_IGN);
     fflush(stdout);
     printf("%s:  p4_error: %s: %d\n",whoami_p4,string,value);
@@ -106,7 +122,7 @@ int value;
 	    prev_err_handler = prev_sigfpe_handler;
 	    break;
 	  default:
-	    printf("p4_error: unidentified err handler\n");
+	    printf("p4_error: unidentified err handler (signal %d)\n", value );
 	    prev_err_handler = NULL;
 	    break;
 	}
@@ -117,6 +133,9 @@ int value;
 #           if defined(NEXT)  ||  defined(KSR)
             kill(getpid(),value);
 #           endif
+	    /* This is really a fatal error, so ensure that we don't get 
+	       any farther */
+	    exit( 1 );
 	    return;
 	}
 	else
@@ -157,17 +176,19 @@ int sig;
     err_scp = scp;
     err_addr = addr;
 #endif
-    if (sig == 11)
+    if (sig == SIGSEGV)
 	p4_error("interrupt SIGSEGV", sig);
-    else if (sig == 10)
+    else if (sig == SIGBUS)
 	p4_error("interrupt SIGBUS", sig);
-    else if (sig == 8)
+    else if (sig == SIGFPE)
 	p4_error("interrupt SIGFPE", sig);
-    else if (sig == 2)
+    else if (sig == SIGINT)
 	p4_error("interrupt SIGINT", sig);
     else
 	p4_error("interrupt SIGx", sig);
     /* return( (P4_HANDLER_TYPE) NULL); */
+
+    interrupt_caught = 0;
 }
 
 

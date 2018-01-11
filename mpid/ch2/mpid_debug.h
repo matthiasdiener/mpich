@@ -1,13 +1,9 @@
-#ifdef MPID_DEBUG_ALL  
-/***************************************************************************/
-/* This variable controls debugging output                                 */
-/***************************************************************************/
+#ifndef _MPID_DEBUG_H
+#define _MPID_DEBUG_H
 #include <stdio.h>
-extern int MPID_DebugFlag;
-extern FILE *MPID_DEBUG_FILE;
 
 #ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus)
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
 #define ANSI_ARGS(a) a
 #else
 #define ANSI_ARGS(a) ()
@@ -22,6 +18,13 @@ int  MPID_GetMsgDebugFlag ANSI_ARGS((void));
 void MPID_PrintMsgDebug   ANSI_ARGS((void));
 void MPID_Print_rhandle   ANSI_ARGS(( FILE *, MPIR_RHANDLE * ));
 void MPID_Print_shandle   ANSI_ARGS(( FILE *, MPIR_SHANDLE * ));
+
+#ifdef MPID_DEBUG_ALL  
+/***************************************************************************/
+/* This variable controls debugging output                                 */
+/***************************************************************************/
+extern int MPID_DebugFlag;
+extern FILE *MPID_DEBUG_FILE;
 
 /* Use these instead of printf to simplify finding stray error messages */
 #ifndef FPRINTF
@@ -146,7 +149,7 @@ if (MPID_DebugFlag) {\
     if (!fcn) {\
       FPRINTF( stderr, "Bad function pointer (%s) in %s at %d\n",\
 	       msg, __FILE__, __LINE__);\
-      MPID_Abort( (MPI_Comm)0, 1, "MPI internal", "Bad function pointer" );\
+      MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPI internal", "Bad function pointer" );\
       }}
 /* This is pretty expensive.  It should be an option ... */
 #ifdef DEBUG_INIT_MEM
@@ -171,3 +174,4 @@ if (MPID_DebugFlag) {\
 #endif
 
 
+#endif

@@ -200,6 +200,8 @@ int sig;
 static int MPID_child_pid[MPID_MAX_PROCS];
 static int MPID_numprocs = 0;
 
+
+
 #include <sys/types.h>
 #include <signal.h>
 #include <sys/wait.h>
@@ -212,6 +214,31 @@ static int MPID_child_status = 0;
 #if !defined(SIGCHLD) && defined(SIGCLD)
 #define SIGCHLD SIGCLD
 #endif
+
+/* 
+   We add useful handlers that will allow us to catch MOST BUT NOT ALL
+   problems (jobs killed with uncatchable signals may still run away) 
+ */
+SIGNAL_HAND_DECL(MPID_handle_abort)
+{
+  /* fprintf( stderr, "[%d] Got Signal to abort .. MPID_numprocs = %d\n", MPID_myid, MPID_numprocs); */
+
+  /* Really need to block further signals until done ... */
+  p2p_clear_signal();
+  p2p_kill_procs();
+}
+
+SIGNAL_HAND_DECL(MPID_handle_exit)
+{
+  fprintf( stderr, "[%d] Got Signal to exit .. \n", MPID_myid);
+
+  /* Really need to block further signals until done ... */
+  p2p_clear_signal();
+  /* p2p_cleanup(); is done by p2p_kill_procs() */
+  p2p_kill_procs();
+
+  exit ((int) 1);
+}
 
 SIGNAL_HAND_DECL(MPID_handle_child)
 {
@@ -258,6 +285,69 @@ SIGNAL_HAND_CLEANUP(SIGCHLD,MPID_handle_child);
 void p2p_clear_signal()
 {
   SIGNAL_HAND_SET( SIGCHLD, SIG_IGN );
+#if PROCESS_FORK == FORK && defined(MPID_SETUP_SIGNALS)
+  SIGNAL_HAND_SET( SIGHUP,  SIG_DFL );
+  SIGNAL_HAND_SET( SIGINT,  SIG_DFL );
+  SIGNAL_HAND_SET( SIGQUIT, SIG_DFL );
+  SIGNAL_HAND_SET( SIGILL,  SIG_DFL );
+  SIGNAL_HAND_SET( SIGTRAP, SIG_DFL );
+  SIGNAL_HAND_SET( SIGABRT, SIG_DFL );
+  SIGNAL_HAND_SET( SIGEMT,  SIG_DFL );
+  SIGNAL_HAND_SET( SIGFPE,  SIG_DFL );
+  SIGNAL_HAND_SET( SIGBUS,  SIG_DFL );
+  SIGNAL_HAND_SET( SIGSEGV, SIG_DFL );
+  SIGNAL_HAND_SET( SIGSYS,  SIG_DFL );
+  SIGNAL_HAND_SET( SIGPIPE, SIG_DFL );
+  SIGNAL_HAND_SET( SIGALRM, SIG_DFL );
+  SIGNAL_HAND_SET( SIGTERM, SIG_DFL );
+  SIGNAL_HAND_SET( SIGXCPU, SIG_DFL );
+  SIGNAL_HAND_SET( SIGXFSZ, SIG_DFL );
+
+#ifdef SIGDEAD
+  SIGNAL_HAND_SET( SIGDEAD, SIG_DFL );
+#endif
+
+#ifdef SIGXMEM
+  SIGNAL_HAND_SET( SIGXMEM, SIG_DFL );
+#endif
+
+#ifdef SIGXDSZ
+  SIGNAL_HAND_SET( SIGXDSZ, SIG_DFL );
+#endif
+
+#ifdef SIGMEM32
+  SIGNAL_HAND_SET( SIGMEM32, SIG_DFL );
+#endif
+
+#ifdef SIGNMEM
+  SIGNAL_HAND_SET( SIGNMEM, SIG_DFL );
+#endif
+
+#ifdef SIGXXMU
+  SIGNAL_HAND_SET( SIGXXMU, SIG_DFL );
+#endif
+
+#ifdef SIGXRLG0
+  SIGNAL_HAND_SET( SIGXRLG0, SIG_DFL );
+#endif
+
+#ifdef SIGXRLG1
+  SIGNAL_HAND_SET( SIGXRLG1, SIG_DFL );
+#endif
+
+#ifdef SIGXRLG2
+  SIGNAL_HAND_SET( SIGXRLG2, SIG_DFL );
+#endif
+
+#ifdef SIGXRLG3
+  SIGNAL_HAND_SET( SIGXRLG3, SIG_DFL );
+#endif
+
+#ifdef SIGXMERR
+  SIGNAL_HAND_SET( SIGXMERR, SIG_DFL );
+#endif
+
+#endif
 }
 
 #if PROCESS_FORK == FORK
@@ -267,10 +357,94 @@ int argc;
 char **argv;
 {
     int i, rc;
+     
+    /* set signal handler */
+#if defined(MPID_SETUP_SIGNALS)
+    SIGNAL_HAND_SET( SIGCHLD, MPID_handle_child );
+
+    SIGNAL_HAND_SET( SIGABRT, MPID_handle_abort );
+    SIGNAL_HAND_SET( SIGINT,  MPID_handle_exit );
+    SIGNAL_HAND_SET( SIGHUP,  MPID_handle_exit );
+    SIGNAL_HAND_SET( SIGINT,  MPID_handle_exit );
+    SIGNAL_HAND_SET( SIGQUIT, MPID_handle_abort );
+    SIGNAL_HAND_SET( SIGILL,  MPID_handle_abort );
+    SIGNAL_HAND_SET( SIGTRAP, MPID_handle_abort );
+    SIGNAL_HAND_SET( SIGABRT, MPID_handle_abort );
+    SIGNAL_HAND_SET( SIGEMT,  MPID_handle_abort );
+    SIGNAL_HAND_SET( SIGFPE,  MPID_handle_abort );
+    SIGNAL_HAND_SET( SIGBUS,  MPID_handle_abort );
+    SIGNAL_HAND_SET( SIGBUS,  MPID_handle_abort );
+    SIGNAL_HAND_SET( SIGSEGV, MPID_handle_abort );
+    SIGNAL_HAND_SET( SIGSYS,  MPID_handle_abort );
+    SIGNAL_HAND_SET( SIGPIPE, MPID_handle_exit );
+    SIGNAL_HAND_SET( SIGALRM, MPID_handle_exit );
+    SIGNAL_HAND_SET( SIGTERM, MPID_handle_exit );
+    SIGNAL_HAND_SET( SIGXCPU, MPID_handle_abort );
+    SIGNAL_HAND_SET( SIGXFSZ, MPID_handle_abort );
+  
+#ifdef SIGDEAD
+    SIGNAL_HAND_SET( SIGDEAD, MPID_handle_abort );
+#endif
+
+#ifdef SIGXMEM
+    SIGNAL_HAND_SET( SIGXMEM, MPID_handle_abort );
+#endif
+
+#ifdef SIGXDSZ
+    SIGNAL_HAND_SET( SIGXDSZ, MPID_handle_abort );
+#endif
+
+#ifdef SIGMEM32
+    SIGNAL_HAND_SET( SIGMEM32, MPID_handle_abort );
+#endif
+
+#ifdef SIGNMEM
+    SIGNAL_HAND_SET( SIGNMEM, MPID_handle_abort );
+#endif
+
+#ifdef SIGXXMU
+    SIGNAL_HAND_SET( SIGXXMU, MPID_handle_abort );
+#endif
+
+#ifdef SIGXRLG0
+    SIGNAL_HAND_SET( SIGXRLG0, MPID_handle_abort );
+#endif
+
+#ifdef SIGXRLG1
+    SIGNAL_HAND_SET( SIGXRLG1, MPID_handle_abort );
+#endif
+
+#ifdef SIGXRLG2
+    SIGNAL_HAND_SET( SIGXRLG2, MPID_handle_abort );
+#endif
+
+#ifdef SIGXRLG3
+    SIGNAL_HAND_SET( SIGXRLG3, MPID_handle_abort );
+#endif
+
+#ifdef SIGXMERR
+    SIGNAL_HAND_SET( SIGXMERR, MPID_handle_abort );
+#endif
+
+#endif /* Setup signal handlers */
+
+    /* Make sure that the master process is process zero */
+    p2p_lock( &MPID_shmem->globlock );
+    MPID_myid = MPID_shmem->globid++;
 
     SIGNAL_HAND_SET( SIGCHLD, MPID_handle_child );
+
+#if NOT_YET_TESTED
+    /* Make sure the children don't receive the SIGTRAPs which are going to 
+     * the master because he's being debugged...
+     */
+    SIGNAL_HAND_SET( SIGTRAP, SIG_IGN );
+#endif
     for (i = 0; i < numprocs; i++)
     {
+	/* Do this in the master to avoid race conditions */
+	int nextId = MPID_shmem->globid++;
+
         /* Clear in case something happens ... */
         MPID_child_pid[i] = 0;
 	rc = fork();
@@ -280,6 +454,7 @@ char **argv;
 	  }
 	else if (rc == 0)
 	  {
+ 	    MPID_myid = nextId;
 	    /* Should we close stdin (fd==0)? */
 	    return;
 	  }
@@ -289,8 +464,16 @@ char **argv;
 	  MPID_numprocs     = i+1;
 	}
     }
+    /* This prevents any of the newly created processes decrementing
+     * the global ID before everyone has started
+     */
+    p2p_unlock( &MPID_shmem->globlock );
 }
 #elif PROCESS_FORK == CNXFORK
+/* BEWARE, the assignment of ids may be WRONG here...
+ * I don't have a machine to test it on. -- Jim
+ */
+
 void p2p_create_procs(numprocs, argc, argv)
 int numprocs;
 int argc;
@@ -298,9 +481,15 @@ char **argv;
 {
     int i, rc;
 
+    /* Make sure that the master process is process zero */
+    p2p_lock( &MPID_shmem->globlock );
+
     SIGNAL_HAND_SET( SIGCHLD, MPID_handle_child );
     for (i = 0; i < numprocs; i++)
     {
+	/* Do this in the master to avoid race conditions */
+	int nextId = MPID_shmem->globid++;
+
         /* Clear in case something happens ... */
         MPID_child_pid[i] = 0;
 	/*
@@ -308,14 +497,16 @@ char **argv;
 	 */
 	rc = (i == masterid) ?
 	  getpid() : cnx_sc_fork(CNX_INHERIT_SC, procNode[i]);
+
 	if (rc == -1)
 	  {
 	    p2p_error("p2p_init: fork failed\n",(-1));
 	  }
 	else if (rc == 0)
-	  {
+	  { /* I'm the child */
 	    masterid = -1;
-	    
+	    MPID_myid = nextId;
+
 	    if (cnx_exec == 0) {
 	      if(setpgid(0,MPID_SHMEM_ppid)) {
 		p2p_error("p2p_init: failure in setpgid\n",(-1));
@@ -327,8 +518,14 @@ char **argv;
 	  /* Save pid of child so that we can detect child exit */
 	  MPID_child_pid[i] = rc;
 	  MPID_numprocs     = i+1;
+	  if (i == masterid)
+	    MPID_myid = nextId;
 	}
     }
+    /* This prevents any of the newly created processes decrementing
+     * the global ID before everyone has started
+     */
+    p2p_unlock( &MPID_shmem->globlock );
 }
 #else
 'No fork defined!'
@@ -415,6 +612,29 @@ void p2p_kill_procs()
     if (MPID_SHMEM_ppid && (cnx_exec == 0))
 	kill( -MPID_SHMEM_ppid, SIGKILL );
 #endif
+}
+
+/* Return the pid of the process id of the id corresponding to 
+   MPI_COMM_WORLD */
+/* host_name is used to get IP address for some network address valid for the
+   processor running the process.
+   image_name is the name of the executable image being run.
+ */
+int p2p_proc_info( id, host_name, image_name )
+int id;
+char **host_name;
+char **image_name;
+{
+  *host_name = 0;	  /* TV assumes "the same as parent" if it sees 0 */
+  *image_name= 0;         /*  ditto */
+
+  /* We know that this array *is* now ordered with respect to COMM_WORLD
+   * and that COMM_WORLD[0] is the parent who *isn't* in this array.
+   */
+  if (id == 0)
+    return getpid();
+  else
+    return MPID_child_pid[id-1];
 }
 
 #endif /* PROCESS_CREATE_METH == FORK */
@@ -504,4 +724,5 @@ void p2p_kill_procs()
   }
 }
 #endif /* PROCESS_CREATE_METH == PTHREAD_SX4 */
+
 

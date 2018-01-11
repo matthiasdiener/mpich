@@ -1,5 +1,5 @@
 /*
- *  $Id: irecv.c,v 1.18 1996/06/07 15:07:30 gropp Exp $
+ *  $Id: irecv.c,v 1.21 1997/02/18 23:05:35 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -35,18 +35,26 @@ int              tag;
 MPI_Comm         comm;
 MPI_Request      *request;
 {
+    struct MPIR_COMMUNICATOR *comm_ptr;
+    struct MPIR_DATATYPE *dtype_ptr;
+    static char myname[] = "MPI_IRECV";
 #ifdef MPI_ADI2
     int mpi_errno = MPI_SUCCESS;
 
-    if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,count) ||
-	MPIR_TEST_DATATYPE(comm,datatype) || MPIR_TEST_RECV_TAG(comm,tag) ||
-	MPIR_TEST_RECV_RANK(comm,source)) 
-	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_IRECV" );
+    comm_ptr = MPIR_GET_COMM_PTR(comm);
+    MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
-    MPIR_ALLOC(*request, (MPI_Request) MPID_RecvAlloc(),comm,
-	       MPI_ERR_EXHAUSTED,"Error in MPI_IRECV");
+    dtype_ptr = MPIR_GET_DTYPE_PTR(datatype);
+    MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
+
+    if (MPIR_TEST_COUNT(comm,count) || MPIR_TEST_RECV_TAG(comm,tag) ||
+	MPIR_TEST_RECV_RANK(comm_ptr,source)) 
+	return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+
+    MPIR_ALLOC(*request, (MPI_Request) MPID_RecvAlloc(),comm_ptr,
+	       MPI_ERR_EXHAUSTED,myname);
     MPID_Request_init( (&(*request)->rhandle), MPIR_RECV );
-    
+
     if (source == MPI_PROC_NULL) {
 	(*request)->rhandle.s.MPI_TAG	 = MPI_ANY_TAG;
 	(*request)->rhandle.s.MPI_SOURCE = MPI_PROC_NULL;
@@ -54,9 +62,9 @@ MPI_Request      *request;
 	(*request)->rhandle.is_complete	 = 1;
 	return MPI_SUCCESS;
     }
-    MPID_IrecvDatatype( comm, buf, count, datatype, source, tag, 
-			comm->recv_context, *request, &mpi_errno );
-    if (mpi_errno) return MPIR_ERROR( comm, mpi_errno, "Error in MPI_IRECV" );
+    MPID_IrecvDatatype( comm_ptr, buf, count, dtype_ptr, source, tag, 
+			comm_ptr->recv_context, *request, &mpi_errno );
+    if (mpi_errno) return MPIR_ERROR( comm_ptr, mpi_errno, myname );
     return MPI_SUCCESS;
 #else
     int err;
@@ -74,9 +82,12 @@ MPI_Request      *request;
 	if ((err = 
 	    MPI_Recv_init( buf, count, datatype, source, tag, comm, request )))
 	    return err;
-	MPID_Set_completed( comm->ADIctx, *request );
+	MPID_Set_completed( comm_ptr->ADIctx, *request );
 	(*request)->rhandle.persistent = 0;
 	(*request)->rhandle.active     = 1;
+	(*request)->rhandle.source     = MPI_PROC_NULL;
+	(*request)->rhandle.tag        = MPI_ANY_TAG;
+	(*request)->rhandle.totallen   = 0;
 	}
     return MPI_SUCCESS;
 #endif

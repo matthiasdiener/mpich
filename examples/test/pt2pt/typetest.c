@@ -5,13 +5,14 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "test.h"
 #include "mpi.h"
 #include <string.h>
 /* CM5 users need to comment out the next include (memory.h) because 
    of an error in the CM5 include file (memory.h is inconsistent with
    string.h) */
-#include <memory.h>
+/* #include <memory.h> */
 
 struct struct1 {
     double d1;
@@ -196,9 +197,9 @@ char **argv;
 	    Test_Failed("Complex Type Round Trip Test");
 #ifdef MPE_USE_EXTENSIONS
 	    printf( "Pack action is\n" );
-	    MPIR_PrintDatatypePack( stdout, 1, struct2_t, &dummy2, 0 );
+	    MPIR_PrintDatatypePack( stdout, 1, struct2_t, (long)&dummy2, 0 );
 	    printf( "Unpack action is\n" );
-	    MPIR_PrintDatatypeUnpack( stdout, 1, struct2_t, 0, &dummy2 );
+	    MPIR_PrintDatatypeUnpack( stdout, 1, struct2_t, 0, (long)&dummy2 );
 #endif
 	} else {
 	    Test_Passed("Complex Type Round Trip Test");

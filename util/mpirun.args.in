@@ -48,6 +48,8 @@ stdinfile=
 stdoutfile=
 stderrfile=
 batch=
+easy_jid=
+keepsendQ=
 Show=eval
 # Kind of paragon submisstion (default/mkpart/nqs)
 paragon_type="default"
@@ -109,7 +111,11 @@ cat <<EOF
     -xxgdb  Start the first process under xxgdb where possible (-xdbx
             does not work)
     -tv     Start under totalview
-	          
+    -ksq    Keep the send queue. This is useful if you expect later
+            to attach totalview to the running (or deadlocked) job, and
+	    want to see the send queues. (Normally they are not maintained 
+            in a way which is visible to the debugger).
+
       Special Options for NEC - CENJU-3:
 
     -batch  Excecute program as a batch job (using cjbr)
@@ -118,6 +124,17 @@ cat <<EOF
             Use filename as the standard output for the program.
     -stderr filename
             Use filename as the standard error  for the program.
+
+    -jid    Jobid from Job-Scheduler EASY.
+            If this option is specified, mpirun directly executes
+            the parallel program using this jobid.
+            Otherwise, mpirun requests np nodes from the Job-Scheduler
+                       in interactive or batch mode.
+                       In interactive mode (i.e. option -batch is not
+                       specified), mpirun waits until the processors are
+                       allocated, executes the parallel program and
+                       releases the processors.
+	          
 	          
       Special Options for Nexus device:
   
@@ -169,7 +186,7 @@ cat <<EOF
 
     -cpu time
 	   This is the the hard cpu limit used for some CM-5s in
-	   minutes. (Default $maxtime minutes.)
+	   minutes. (Default $max_time minutes.)
 
     Special Options for IBM SP2:
 
@@ -294,6 +311,10 @@ while [ 1 -le $# ] ; do
     -batch)
         batch=1
         ;;
+    -jid)
+        easy_jid="$1"
+        shift
+        ;;
     -nexuspg)
 	if [ $np -gt 1 ] ; then
 	    echo "-nexuspg and -np are mutally exlusive; -np $np being ignored."
@@ -355,6 +376,9 @@ while [ 1 -le $# ] ; do
     -tv|-totalview)
         debugger="totalview"
 	;;
+    -ksq)
+        cmdLineArgs="$cmdLineArgs -mpichksq"
+        ;;
     -dbx)
       	debugger="dbx"
  	commandfile="-sr %f"
@@ -369,10 +393,15 @@ while [ 1 -le $# ] ; do
       	debugger="xxgdb"
       	commandfile="--command=%f"
 	;;
+    -pedb)
+	# For IBM SP
+	debugger="pedb"
+	commandfile=""
+	;;
     -nopoll)
 	polling_mode=0
 	;;
-    -maxtime|=cpu)
+    -maxtime|-cpu)
         max_time="$1"
 	shift
 	;;
@@ -466,9 +495,12 @@ fi
 # -c here (and that does not implement the remove part of the -sr).
 #
 # Turns out that this doesn't matter so much, because the dbx is terribly,
-# terribly crippled.  
+# terribly crippled (on Alpha).  
 #
-if [ "$debugger" = "dbx" -a "$arch" = "alpha" ] ; then
+larch=$arch
+if [ -z "$larch" ] ; then larch=$default_arch ; fi
+if [ "$debugger" = "dbx" -a \( "$larch" = "alpha" -o "$larch" = "IRIX" \
+	-o "$larch" = "SGI" -o "$larch" = "IRIX64" \) ] ; then
     commandfile="-c"
     rmcommandfile="/bin/rm -f"
 fi
@@ -502,17 +534,20 @@ if [ -n "#AUTOMOUNTFIX#" ] ; then
     fi
     if [ -n "$PWD" ] ; then
 	# Use a process-specific filename
-        /bin/rm -f $PWDtest/.mpirtmp$$ $PWD/.mpirtmp$$
-        if `eval "echo test > $PWD/.mpirtmp$$" 2>/dev/null` ; then
+	PWDtest2=`echo $PWD | #AUTOMOUNTFIX#`
+        /bin/rm -f $PWDtest/.mpirtmp$$ $PWDtest2/.mpirtmp$$
+        if `eval "echo test > $PWDtest2/.mpirtmp$$" 2>/dev/null` ; then
             if [ ! -s $PWDtest/.mpirtmp$$ ] ; then
-	        /bin/rm -f $PWD/.mpirtmp$$
+	        /bin/rm -f $PWDtest2/.mpirtmp$$
                 PWD=$PWDtest
+	    else
+		PWD=$PWDtest2
 	    fi
 	else
 	    # Current directory is not writable.  Hope for the best
             PWD=$PWDtest        
         fi
-        /bin/rm -f $PWDtest/.mpirtmp$$ $PWD/.mpirtmp$$
+        /bin/rm -f $PWDtest/.mpirtmp$$ $PWDtest2/.mpirtmp$$
     else 
         PWD=$PWDtest
     fi

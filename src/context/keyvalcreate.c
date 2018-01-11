@@ -1,5 +1,5 @@
 /*
- *  $Id: keyvalcreate.c,v 1.3 1996/04/12 16:55:17 gropp Exp $
+ *  $Id: keyvalcreate.c,v 1.4 1996/12/03 02:50:05 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -41,6 +41,7 @@ MPI_Delete_function *delete_fn;
 int                 *keyval;
 void                *extra_state;
 {
+    *keyval = 0;
     return MPIR_Keyval_create( copy_fn, delete_fn, keyval, extra_state, 0 );
 }
 

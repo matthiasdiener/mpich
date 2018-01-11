@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2hsend.c,v 1.4 1996/07/17 18:04:59 gropp Exp $
+ *  $Id: adi2hsend.c,v 1.6 1996/12/01 23:34:41 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -17,10 +17,10 @@
  */
 /***************************************************************************/
 
-void MPID_SendDatatype( comm, buf, count, datatype, src_lrank, tag, 
+void MPID_SendDatatype( comm_ptr, buf, count, dtype_ptr, src_lrank, tag, 
 			context_id, dest_grank, error_code )
-MPI_Comm     comm;
-MPI_Datatype datatype;
+struct MPIR_COMMUNICATOR *comm_ptr;
+struct MPIR_DATATYPE     *dtype_ptr;
 void         *buf;
 int          count, src_lrank, tag, context_id, dest_grank, *error_code;
 {
@@ -37,10 +37,9 @@ int          count, src_lrank, tag, context_id, dest_grank, *error_code;
      * Create a local buffer, use SendContig, and then free the buffer.
      */
 
-    /* Must put get_size first, incase the datatype is not "real" datatype
-       (needed by MPID_Msg_rep, which needs real datatype) */
-    MPIR_DATATYPE_GET_SIZE(datatype,contig_size);
-    MPID_DO_HETERO(MPID_Msg_rep( comm, dest_grank, datatype, 
+    contig_size = MPIR_GET_DTYPE_SIZE(datatype,dtype_ptr);
+
+    MPID_DO_HETERO(MPID_Msg_rep( comm_ptr, dest_grank, dtype_ptr, 
 				 &msgrep, &msgact ));
     
     if (contig_size > 0
@@ -50,17 +49,17 @@ int          count, src_lrank, tag, context_id, dest_grank, *error_code;
 	   communicator.
 	 */
 	len = contig_size * count;
-	MPID_SendContig( comm, buf, len, src_lrank, tag, context_id, 
-		 dest_grank, msgrep, error_code );
+	MPID_SendContig( comm_ptr, buf, len, src_lrank, tag, context_id, 
+			 dest_grank, msgrep, error_code );
 	return;
     }
 
     mybuf = 0;
-    MPID_PackMessage( buf, count, datatype, comm, dest_grank, msgrep, msgact,
+    MPID_PackMessage( buf, count, dtype_ptr, comm_ptr, dest_grank, msgrep, msgact,
 		      (void **)&mybuf, &len, error_code );
     if (*error_code) return;
 
-    MPID_SendContig( comm, mybuf, len, src_lrank, tag, context_id, 
+    MPID_SendContig( comm_ptr, mybuf, len, src_lrank, tag, context_id, 
 		     dest_grank, msgrep, error_code );
     if (mybuf) {
 	FREE( mybuf );
@@ -74,10 +73,10 @@ int          count, src_lrank, tag, context_id, dest_grank, *error_code;
  * implement this, the individual "send" routines would have to know how to
  * handle general datatypes.  We'll leave that for later.
  */
-void MPID_IsendDatatype( comm, buf, count, datatype, src_lrank, tag, 
+void MPID_IsendDatatype( comm_ptr, buf, count, dtype_ptr, src_lrank, tag, 
 			 context_id, dest_grank, request, error_code )
-MPI_Comm     comm;
-MPI_Datatype datatype;
+struct MPIR_COMMUNICATOR *comm_ptr;
+struct MPIR_DATATYPE     *dtype_ptr;
 void         *buf;
 int          count, src_lrank, tag, context_id, dest_grank, *error_code;
 MPI_Request  request;
@@ -98,8 +97,8 @@ MPI_Request  request;
     /* Just in case; make sure that finish is 0 */
     request->shandle.finish = 0;
 
-    MPIR_DATATYPE_GET_SIZE(datatype,contig_size);
-    MPID_DO_HETERO(MPID_Msg_rep( comm, dest_grank, datatype, 
+    contig_size = MPIR_GET_DTYPE_SIZE(datatype,dtype_ptr);
+    MPID_DO_HETERO(MPID_Msg_rep( comm_ptr, dest_grank, dtype_ptr, 
 				 &msgrep, &msgact ));
     if (contig_size > 0 
 	MPID_DO_HETERO(&& msgact == MPID_MSG_OK)) {
@@ -108,17 +107,18 @@ MPI_Request  request;
 	   communicator.
 	 */
 	len = contig_size * count;
-	MPID_IsendContig( comm, buf, len, src_lrank, tag, context_id, 
+	MPID_IsendContig( comm_ptr, buf, len, src_lrank, tag, context_id, 
 			  dest_grank, msgrep, request, error_code );
 	return;
     }
 
     mybuf = 0;
-    MPID_PackMessage( buf, count, datatype, comm, dest_grank, msgrep, msgact,
+    MPID_PackMessage( buf, count, dtype_ptr, comm_ptr, dest_grank, 
+		      msgrep, msgact,
 		      (void **)&mybuf, &len, error_code );
     if (*error_code) return;
 
-    MPID_IsendContig( comm, mybuf, len, src_lrank, tag, context_id, 
+    MPID_IsendContig( comm_ptr, mybuf, len, src_lrank, tag, context_id, 
 		      dest_grank, msgrep, request, error_code );
     if (request->shandle.is_complete) {
 	if (mybuf) { FREE( mybuf ); }

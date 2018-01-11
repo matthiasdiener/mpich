@@ -24,6 +24,7 @@ fi
 #
 runtests=1
 makeeach=0
+quiet=0
 MAKE="make"
 for arg in "$@" ; do
     case $arg in 
@@ -36,6 +37,10 @@ for arg in "$@" ; do
 	;;
 	-small)
 	makeeach=1
+	;;
+	-quiet)
+	shift
+	quiet=1
 	;;
 	-help|-u)
 	echo "runtests [-checkonly] [-margs='...']"
@@ -57,11 +62,25 @@ done
 MakeExe() {
     if [ ! -x $1 ] ; then
 	$MAKE $1
+        if [ ! -x $1 ] ; then 
+	    echo "Could not build executable $1; aborting tests"
+	    exit 1
+        fi
     fi
 }
 CleanExe() {
     if [ $makeeach = 1 ] ; then
 	/bin/rm -f $1 $1.o
+    fi
+}
+# Output marker
+OutTime() {
+    if [ $quiet = 0 ] ; then
+	if [ -z "$hostname" ] ; then
+	    hostname=`hostname`
+	fi
+	d=`date`
+	echo "$hostname : $d"
     fi
 }
 
@@ -74,6 +93,7 @@ testfiles=""
 if [ $runtests = 1 ] ; then
 echo '**** Testing MPI Collective routines ****'
 
+OutTime
 testfiles="$testfiles barrier.out"
 /bin/rm -f barrier.out barrier-0.out
 MakeExe barrier
@@ -85,6 +105,7 @@ cat barrier-0.out >> barrier.out
 echo '*** Barrier Test ***' >> barrier.out
 CleanExe barrier
 
+OutTime
 testfiles="$testfiles bcast.out"
 /bin/rm -f bcast.out bcast-[0-3].out
 MakeExe bcast
@@ -98,6 +119,7 @@ cat bcast-[0123].out >> bcast.out
 echo '*** Broadcast Test ***' >> bcast.out
 CleanExe bcast
 
+OutTime
 testfiles="$testfiles coll1.out"
 /bin/rm -f coll1.out
 MakeExe coll1
@@ -107,6 +129,7 @@ $mpirun $args -np 4 coll1 $* >> coll1.out 2>&1
 echo '*** coll1 ***' >> coll1.out
 CleanExe coll1
 
+OutTime
 testfiles="$testfiles coll2.out"
 /bin/rm -f coll2.out
 MakeExe coll2
@@ -116,6 +139,7 @@ $mpirun $args -np 5 coll2 $* >> coll2.out 2>&1
 echo '*** coll2 ***' >> coll2.out
 CleanExe coll2
 
+OutTime
 testfiles="$testfiles coll3.out"
 /bin/rm -f coll3.out
 MakeExe coll3
@@ -125,6 +149,7 @@ $mpirun $args -np 5 coll3 $* >> coll3.out 2>&1
 echo '*** coll3 ***' >> coll3.out
 CleanExe coll3
 
+OutTime
 testfiles="$testfiles coll4.out"
 /bin/rm -f coll4.out
 MakeExe coll4
@@ -134,6 +159,7 @@ $mpirun $args -np 4 coll4 $* >> coll4.out 2>&1
 echo '*** coll4 ***' >> coll4.out
 CleanExe coll4
 
+OutTime
 testfiles="$testfiles coll5.out"
 /bin/rm -f coll5.out
 MakeExe coll5
@@ -143,6 +169,7 @@ $mpirun $args -np 4 coll5 $* >> coll5.out 2>&1
 echo '*** coll5 ***' >> coll5.out
 CleanExe coll5
 
+OutTime
 testfiles="$testfiles coll6.out"
 /bin/rm -f coll6.out
 MakeExe coll6
@@ -152,6 +179,7 @@ $mpirun $args -np 5 coll6 $* >> coll6.out 2>&1
 echo '*** coll6 ***' >> coll6.out
 CleanExe coll6
 
+OutTime
 testfiles="$testfiles coll7.out"
 /bin/rm -f coll7.out
 MakeExe coll7
@@ -161,6 +189,7 @@ $mpirun $args -np 5 coll7 $* >> coll7.out 2>&1
 echo '*** coll7 ***' >> coll7.out
 CleanExe coll7
 
+OutTime
 testfiles="$testfiles coll8.out"
 /bin/rm -f coll8.out
 MakeExe coll8
@@ -170,6 +199,7 @@ $mpirun $args -np 4 coll8 $* >> coll8.out 2>&1
 echo '*** coll8 ***' >> coll8.out
 CleanExe coll8
 
+OutTime
 testfiles="$testfiles coll9.out"
 /bin/rm -f coll9.out
 MakeExe coll9
@@ -179,6 +209,7 @@ $mpirun $args -np 4 coll9 $* >>  coll9.out 2>&1
 echo '*** coll9 ***' >> coll9.out
 CleanExe coll9
 
+OutTime
 testfiles="$testfiles coll10.out"
 /bin/rm -f coll10.out
 MakeExe coll10
@@ -188,6 +219,7 @@ $mpirun -np 4 $args coll10 $* >> coll10.out 2>&1
 echo '*** coll10 ***' >> coll10.out
 CleanExe coll10
 
+OutTime
 testfiles="$testfiles coll11.out"
 /bin/rm -f coll11.out
 MakeExe coll11
@@ -197,6 +229,7 @@ $mpirun -np 4 $args coll11 $* >> coll11.out 2>&1
 echo '*** coll11 ***' >> coll11.out
 CleanExe coll11
 
+OutTime
 testfiles="$testfiles coll12.out"
 /bin/rm -f coll12.out
 MakeExe coll12
@@ -206,6 +239,7 @@ $mpirun -np 4 $args coll12 $* >> coll12.out 2>&1
 echo '*** coll12 ***' >> coll12.out
 CleanExe coll12
 
+OutTime
 testfiles="$testfiles coll13.out"
 /bin/rm -f coll13.out
 MakeExe coll13
@@ -216,6 +250,45 @@ $mpirun -np 4 $args coll13 >> coll13.out 2>&1
 echo '*** coll13 ***' >> coll13.out
 CleanExe coll13
 
+OutTime
+testfiles="$testfiles longuser.out"
+/bin/rm -f longuser.out
+MakeExe longuser
+echo '**** longuser ****'
+echo '*** longuser ***' >> longuser.out
+$mpirun -np 4 $args longuser >> longuser.out 2>&1
+echo '*** longuser ***' >> longuser.out
+CleanExe longuser
+
+OutTime
+# Some implementations (e.g., IBM's) forget to handle the np = 1 case.
+testfiles="$testfiles longuser1.out"
+/bin/rm -f longuser1.out
+MakeExe longuser
+echo '**** longuser (np == 1) ****'
+echo '*** longuser (np == 1) ***' >> longuser1.out
+$mpirun -np 1 $args longuser >> longuser1.out 2>&1
+echo '*** longuser (np == 1) ***' >> longuser1.out
+CleanExe longuser
+
+#OutTime
+#testfiles="$testfiles allredmany.out"
+#/bin/rm -f allredmany.out
+#MakeExe allredmany
+#echo '**** allredmany ****'
+#echo '*** allredmany ***' >> allredmany.out
+#cnt=0
+## Run several times to try and catch timing/race conditions in managing
+## the flood of one-way messages.
+#while [ $cnt -lt 20 ] ; do
+#    echo "*** allredmany run $cnt ***" >> allredmany.out
+#    $mpirun -np 2 $args allredmany >> allredmany.out 2>&1
+#    cnt=`expr $cnt + 1`
+#done
+#echo '*** allredmany ***' >> allredmany.out
+#CleanExe allredmany
+
+OutTime
 testfiles="$testfiles grouptest.out"
 /bin/rm -f grouptest.out
 MakeExe grouptest
@@ -225,6 +298,7 @@ $mpirun $args -np 4 grouptest  $* >> grouptest.out 2>&1
 echo '*** grouptest ***' >> grouptest.out
 CleanExe grouptest
 
+OutTime
 testfiles="$testfiles allred.out"
 /bin/rm -f allred.out
 MakeExe allred
@@ -234,6 +308,7 @@ $mpirun $args -np 4 allred  $* >> allred.out 2>&1
 echo '*** Allred ***' >> allred.out
 CleanExe allred
 
+OutTime
 testfiles="$testfiles scatterv.out"
 /bin/rm -f scatterv.out
 MakeExe scatterv
@@ -243,6 +318,7 @@ $mpirun $args -np 4 scatterv  $* >> scatterv.out 2>&1
 echo '*** Scatterv ***' >> scatterv.out
 CleanExe scatterv
 
+OutTime
 testfiles="$testfiles redscat.out"
 /bin/rm -f redscat.out
 MakeExe redscat
@@ -252,6 +328,7 @@ $mpirun $args -np 4 redscat  $* >> redscat.out 2>&1
 echo '*** Reduce_scatter ***' >> redscat.out
 CleanExe redscat
 
+OutTime
 testfiles="$testfiles alltoallv.out"
 /bin/rm -f alltoallv.out
 MakeExe alltoallv
@@ -266,6 +343,7 @@ CleanExe alltoallv
 if [ 1 = 1 ] ; then 
     echo "FORTRAN TESTS"
     #
+    OutTime
     testfiles="$testfiles allredf.out"
     /bin/rm -f allredf.out
     MakeExe allredf
@@ -275,6 +353,7 @@ if [ 1 = 1 ] ; then
     echo '*** Testing allreduce from Fortran ***' >> allredf.out
     CleanExe allredf
     #
+    OutTime
     testfiles="$testfiles assocf.out"
     /bin/rm -f assocf.out
     MakeExe assocf

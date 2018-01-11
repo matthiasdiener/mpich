@@ -29,16 +29,19 @@ char **argv;
     struct net_initial_handshake hs;
 /*     struct slave_listener_msg lmsg; */
     struct bm_rm_msg msg;
-    int type, rc, i, numslaves;
+    int type, rc, numslaves;
 #if defined(SP1_EUIH)
     int len;
 #endif
 #if defined(NCUBE)
     int unused_flag;
 #endif
+#if defined(IPSC860)  ||  defined(CM5)  ||  defined(NCUBE)  ||  defined(SP1_EUI) || defined(SP1_EUIH)
+    int i;
+#endif
     int conn_retries;
     struct p4_global_data *g;
-    char outfile[128];
+    char outfile[P4_MAX_PGM_LEN];
 
     trap_sig_errs(); 		/* Errors can happen any time */
 
@@ -73,7 +76,7 @@ char **argv;
     net_recv(bm_fd, &hs, sizeof(hs));
     hs.pid = (int) htonl(getpid());
     hs.rm_num = (int) htonl(execer_mynodenum);  /* only used with dqs */
-    net_send(bm_fd, &hs, sizeof(hs), FALSE);
+    net_send(bm_fd, &hs, sizeof(hs), P4_FALSE);
 
 #   ifdef SYSV_IPC
     sysv_num_shmids = 0;
@@ -92,7 +95,8 @@ char **argv;
 	p4_error("rm_start: unknown type, expecting INITIAL_INFO, type=", type);
     if (strcmp(msg.version,P4_PATCHLEVEL) != 0)
     {
-	p4_dprintf("my version is %s\n",P4_PATCHLEVEL);
+	p4_dprintf("my version is %s, received %s as version\n",
+		   P4_PATCHLEVEL,msg.version);
 	p4_error("version does not match master \n",0);
     }
 
@@ -113,15 +117,16 @@ char **argv;
     alloc_global();  /* sets p4_global */
     g = p4_global;
     p4_local = alloc_local_rm();
-    g->local_communication_only = FALSE;
+    g->local_communication_only = P4_FALSE;
     g->num_in_proctable = p4_n_to_i(msg.numinproctab);
     numslaves = p4_n_to_i(msg.numslaves);
     rm_num = p4_n_to_i(msg.rm_num);
-    debug_level = p4_n_to_i(msg.debug_level);
-    strcpy(outfile, msg.outfile);
+    p4_debug_level = p4_n_to_i(msg.debug_level);
+    strncpy(outfile, msg.outfile, P4_MAX_PGM_LEN);
+    outfile[P4_MAX_PGM_LEN-1] = 0;
     strcpy(p4_global->application_id, msg.application_id);
     p4_dprintfl(90, "got numslaves=%d outfile=%s rm_num=%d dbglvl=%d appid=%s\n",
-		numslaves, outfile, rm_num, debug_level, msg.application_id);
+		numslaves, outfile, rm_num, p4_debug_level, msg.application_id);
 
     MD_initenv();
     usc_init();
@@ -219,7 +224,7 @@ char **argv;
     p4_barrier(&(p4_global->cluster_barrier),p4_num_cluster_ids());
     
     msg.type = p4_i_to_n(SYNC_MSG);
-    net_send(bm_fd, &msg, sizeof(msg), FALSE);
+    net_send(bm_fd, &msg, sizeof(msg), P4_FALSE);
     msg.type = -1;  /* reset to verify type received next */
     rc = net_recv(bm_fd, &msg, sizeof(msg));
     type = p4_n_to_i(msg.type);
@@ -241,8 +246,11 @@ int bm_fd;
     int end_1, end_2, slave_pid, listener_pid;
     int slave_idx, listener_port, listener_fd;
     char rm_host[100];
-    int i, rm_switch_port, from, type, len, unused_flag;
+    int rm_switch_port;
     struct bm_rm_msg bm_msg;
+#   if defined(IPSC860)  ||  defined(CM5)  ||  defined(NCUBE)  ||  defined(SP1_EUI) || defined(SP1_EUIH)
+    int i, from, type, len, unused_flag;
+#endif
 
 #   if !defined(IPSC860)  &&  !defined(CM5)  &&  !defined(NCUBE)  &&  !defined(SP1_EUI) && !defined(SP1_EUIH)
     if (nslaves > P4_MAX_MSG_QUEUES)
@@ -265,7 +273,7 @@ int bm_fd;
     /* Send off the listener info to the bm */
     bm_msg.type = p4_i_to_n(REMOTE_LISTENER_INFO);
     bm_msg.port = p4_i_to_n(listener_port);
-    net_send(bm_fd, &bm_msg, sizeof(struct bm_rm_msg), FALSE);
+    net_send(bm_fd, &bm_msg, sizeof(struct bm_rm_msg), P4_FALSE);
 
     rm_host[0] = '\0';
     get_qualified_hostname(rm_host);
@@ -278,7 +286,7 @@ int bm_fd;
     bm_msg.switch_port = p4_i_to_n(rm_switch_port);
     strcpy(bm_msg.host_name,rm_host);
     strcpy(bm_msg.machine_type,P4_MACHINE_TYPE);
-    net_send(bm_fd, &bm_msg, sizeof(struct bm_rm_msg), FALSE);
+    net_send(bm_fd, &bm_msg, sizeof(struct bm_rm_msg), P4_FALSE);
 
     g->local_slave_count = 0;
 
@@ -312,7 +320,7 @@ int bm_fd;
 	len  = sizeof(struct bm_rm_msg);
         mpc_brecv(&bm_msg, &len, &from,  &type, &unused_flag);
 #       endif
-	net_send(bm_fd, &bm_msg, sizeof(struct bm_rm_msg), FALSE);
+	net_send(bm_fd, &bm_msg, sizeof(struct bm_rm_msg), P4_FALSE);
 	g->local_slave_count++;
     }
 #   else
@@ -371,7 +379,7 @@ int bm_fd;
 	bm_msg.slave_pid = p4_i_to_n(slave_pid);
 	bm_msg.switch_port = p4_i_to_n(rm_switch_port);
 	strcpy(bm_msg.machine_type,P4_MACHINE_TYPE);
-	net_send(bm_fd, &bm_msg, sizeof(struct bm_rm_msg), FALSE);
+	net_send(bm_fd, &bm_msg, sizeof(struct bm_rm_msg), P4_FALSE);
 
 	g->local_slave_count++;
     }
@@ -379,7 +387,7 @@ int bm_fd;
 
     /* Send the end message to the bm */
     bm_msg.type = p4_i_to_n(REMOTE_SLAVE_INFO_END);
-    net_send(bm_fd, &bm_msg, sizeof(struct bm_rm_msg), FALSE);
+    net_send(bm_fd, &bm_msg, sizeof(struct bm_rm_msg), P4_FALSE);
 
     /*
      * Done creating slaves. Now fork off the listener .. we've already
@@ -408,7 +416,7 @@ int bm_fd;
 	    {
 		char dbg_c[10], max_c[10], lfd_c[10], sfd_c[10];
 
-		sprintf(dbg_c, "%d", debug_level);
+		sprintf(dbg_c, "%d", p4_debug_level);
 		sprintf(max_c, "%d", p4_global->max_connections);
 		sprintf(lfd_c, "%d", l->listening_fd);
 		sprintf(sfd_c, "%d", l->slave_fd);
@@ -446,7 +454,7 @@ int bm_fd;
     int switch_port;
 
     p4_dprintfl(90, "receive_proc_table\n");
-    for (done = FALSE; !done;)
+    for (done = P4_FALSE; !done;)
     {
 	if (net_recv(bm_fd, &msg, sizeof(msg)) == PRECV_EOF)
 	    p4_error("recv_proc_table: got net_send_eof", bm_fd);
@@ -468,7 +476,7 @@ int bm_fd;
 	    break;
 
 	  case PROC_TABLE_END:
-	    done = TRUE;
+	    done = P4_TRUE;
 	    break;
 
 	  default:

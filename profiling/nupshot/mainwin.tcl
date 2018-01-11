@@ -50,9 +50,9 @@ proc NewWin {win is_root_win {logfile {}}} {
    set mainwin($win,is_root_win) $is_root_win
 
    if {$logfile == ""} {
-      set title "Upshot"
+      set title "Nupshot"
    } else {
-      set title "Upshot - $logfile"
+      set title "Nupshot - $logfile"
    }
 
    if !$is_root_win {
@@ -242,6 +242,7 @@ proc OpenFile {w logfile format displays} {
       destroy $w.displays
       destroy $w.controls
       destroy $w.legend
+      destroy $w.titlelegend
       destroy $w.bottom
       update idletasks
    }
@@ -304,7 +305,16 @@ proc OpenFile {w logfile format displays} {
    # you change these.
 
    Legend_Create $w.legend $mainwin($w,log) $widget_width
-
+   set labeltitle [ $log creator ]
+   #puts stdout "$labeltitle"
+#   frame $w.titlelegend
+   canvas $w.titlelegend 
+   label $w.titlelegend.label -text "Logfile title:"
+#   label $w.titlelegend.val -text "$labeltitle"
+   text $w.titlelegend.val -height 1
+   $w.titlelegend.val insert 1.0 "$labeltitle"
+   
+   pack $w.titlelegend.label $w.titlelegend.val -fill x -side left
 
    frame $w.bottom
 
@@ -336,6 +346,7 @@ proc OpenFile {w logfile format displays} {
    pack $w.controls -fill x
    # pack $w.sep -fill x -padx 15 -pady 4
    pack $w.legend -fill x
+   pack $w.titlelegend -fill x
    pack $w.bottom -side bottom -fill x
 
       # why did I put this here?  Ah, so the reqheight's and stuff
@@ -346,6 +357,7 @@ proc OpenFile {w logfile format displays} {
 	 [winfo reqheight $w.menu] - \
 	 [winfo reqheight $w.controls] - \
 	 [winfo reqheight $w.legend] - \
+         [winfo reqheight $w.titlelegend] - \
 	 [winfo reqheight $w.bottom] - 40) / [llength $displays]]
    # fudge factor of 40 for the window manager's border
    # What to do if this is really small?
@@ -397,6 +409,7 @@ proc OpenFile {w logfile format displays} {
          [expr [winfo reqheight $w.menu] + \
 	       [winfo reqheight $w.controls] + \
 	       [winfo reqheight $w.legend] + \
+	       [winfo reqheight $w.titlelegend] + \
 	       [winfo reqheight $w.bottom]]
 
    set mainwin($w,totalTime) [expr [$log endtime] - [$log starttime]]

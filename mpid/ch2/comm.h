@@ -1,7 +1,7 @@
 #ifndef MPIR_GROUP_COOKIE
 
 #ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus)
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
 #define ANSI_ARGS(a) a
 #else
 #define ANSI_ARGS(a) ()
@@ -22,6 +22,7 @@ struct MPIR_GROUP {
     int permanent;          /* Permanent group */
     int *lrank_to_grank;    /* Mapping from local to "global" ranks */
     int *set_mark;          /* Used for set marking/manipulation on groups */
+    int self;               /* Index to MPI_Group for this item */
 };
 
 /*
@@ -82,17 +83,18 @@ struct MPIR_COMMUNICATOR {
     /* This stuff is needed for the communicator implemenation, but less
        often than the above items */
     MPIR_COMM_TYPE comm_type;	  /* inter or intra */
-    MPI_Group     group;	  /* group associated with communicator */
-    MPI_Group     local_group;    /* local group */
-    MPI_Comm      comm_coll;      /* communicator for collective ops */
-
+    struct MPIR_GROUP *group;	  /* group associated with communicator */
+    struct MPIR_GROUP *local_group;    /* local group */
+    struct MPIR_COMMUNICATOR *comm_coll; 
+                                  /* communicator for collective ops */
+    int           self;           /* Index for external (MPI_Comm) value */
     int            ref_count;     /* number of references to communicator */
     void          *comm_cache;	  /* Hook for communicator cache */
     MPIR_HBT      attr_cache;     /* Hook for attribute cache */
     int           use_return_handler;   /* Allows us to override error_handler
 					   when the MPI implementation
 					   calls MPI routines */
-    struct MPIR_Errhandler *error_handler;  /* Error handler structure */
+    MPI_Errhandler error_handler;  /* Error handler */
     int            permanent;      /* Is this a permanent object? */
     void          *mutex;          /* Local for threaded versions */
 
@@ -128,4 +130,34 @@ typedef struct _MPIR_Comm_list {
 
 extern MPIR_Comm_list MPIR_All_communicators;
 
+/* Note that MPIR_ToPointer checks indices against limits */
+#define MPIR_GET_COMM_PTR(idx) \
+    (struct MPIR_COMMUNICATOR *)MPIR_ToPointer( idx )
+#define MPIR_TEST_COMM_NOTOK(idx,ptr) \
+   (!(ptr) || ((ptr)->cookie != MPIR_COMM_COOKIE))
+#define MPIR_TEST_MPI_COMM(idx,ptr,comm,routine_name) \
+{if (!(ptr)) {RETURNV(MPIR_ERROR(comm,MPI_ERR_COMM_NULL,routine_name));}\
+   if ((ptr)->cookie != MPIR_COMM_COOKIE){\
+    MPIR_ERROR_PUSH_ARG(&(ptr)->cookie);\
+   RETURNV(MPIR_ERROR(comm,MPI_ERR_COMM_CORRUPT,routine_name));}}
+
+#define MPIR_GET_GROUP_PTR(idx) \
+    (struct MPIR_GROUP *)MPIR_ToPointer( idx )
+#define MPIR_TEST_GROUP_NOTOK(idx,ptr) \
+   (!(ptr) || ((ptr)->cookie != MPIR_GROUP_COOKIE))
+#define MPIR_TEST_MPI_GROUP(idx,ptr,comm,routine_name) \
+{if (!(ptr)) {RETURNV(MPIR_ERROR(comm,MPI_ERR_GROUP_NULL,routine_name));}\
+   if ((ptr)->cookie != MPIR_GROUP_COOKIE){\
+    MPIR_ERROR_PUSH_ARG(&(ptr)->cookie);\
+   RETURNV(MPIR_ERROR(comm,MPI_ERR_GROUP_CORRUPT,routine_name));}}
+
+#define MPIR_GET_ERRHANDLER_PTR(idx) \
+    (struct MPIR_Errhandler *)MPIR_ToPointer( idx )
+#define MPIR_TEST_ERRHANDLER_NOTOK(idx,ptr) \
+   (!(ptr) || ((ptr)->cookie != MPIR_ERRHANDLER_COOKIE))
+#define MPIR_TEST_MPI_ERRHANDLER(idx,ptr,comm,routine_name) \
+{if (!(ptr)) {RETURNV(MPIR_ERROR(comm,MPI_ERR_ERRHANDLER_NULL,routine_name));}\
+   if ((ptr)->cookie != MPIR_ERRHANDLER_COOKIE){\
+    MPIR_ERROR_PUSH_ARG(&(ptr)->cookie);\
+   RETURNV(MPIR_ERROR(comm,MPI_ERR_ERRHANDLER_CORRUPT,routine_name));}}
 #endif

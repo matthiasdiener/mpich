@@ -80,7 +80,7 @@ extern MPID_QHDR MPID_recvs;
 typedef struct _MPIR_SQEL MPIR_SQEL;
 struct _MPIR_SQEL {
   MPIR_SHANDLE * db_shandle;		/* The real shandle */
-  MPI_Comm       db_comm;               /* The communicator */
+  struct MPIR_COMMUNICATOR *db_comm;    /* The communicator */
   int		 db_target;		/* Who is it to     */
   int		 db_tag;		/* What tag was it sent with */
   void *	 db_data;		/* Where it came from */

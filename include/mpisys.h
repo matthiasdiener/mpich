@@ -1,3 +1,4 @@
+#define MPIR_MEMDEBUG
 /*
  *  $Id: mpisys.h.in,v 1.1 1994/11/29 20:32:27 gropp Exp $
  *

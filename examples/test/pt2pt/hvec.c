@@ -1,10 +1,18 @@
 #include "mpi.h"
+#include "test.h"
 #include <stdio.h>
 
 /* The original version of this was sent by  
    empierce@tribble.llnl.gov (Elsie M. Pierce) 
    I've modified it to fit the automated tests requirements
  */
+/* Prototypes for picky compilers */
+int iinit ANSI_ARGS(( int *, int, int ));
+int ilist1 ANSI_ARGS(( int *, int, int, int ));
+void Build_vect ANSI_ARGS(( MPI_Datatype * ));
+void Build_ctg ANSI_ARGS(( int, MPI_Datatype *, MPI_Datatype * ));
+void Get_d5 ANSI_ARGS(( int ));
+
 int iinit(a, value, l)
 int *a, value, l;
 {

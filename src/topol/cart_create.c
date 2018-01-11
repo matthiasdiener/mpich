@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_create.c,v 1.18 1996/04/12 15:42:24 gropp Exp $
+ *  $Id: cart_create.c,v 1.20 1997/01/07 01:48:01 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -52,40 +52,43 @@ int      *periods;
 int       reorder;
 MPI_Comm *comm_cart;
 {
-
   int range[1][3];
   MPI_Group group_old, group;
   int i, rank, num_ranks = 1;
   int mpi_errno = MPI_SUCCESS;
   int flag, size;
   MPIR_TOPOLOGY *topo;
+  struct MPIR_COMMUNICATOR *comm_old_ptr;
+  static char myname[] = "MPI_CART_CREATE";
+
+  TR_PUSH(myname);
+  comm_old_ptr = MPIR_GET_COMM_PTR(comm_old);
+  MPIR_TEST_MPI_COMM(comm_old,comm_old_ptr,comm_old_ptr,myname);
 
   /* Check validity of arguments */
-  if (MPIR_TEST_COMM(comm_old,comm_old) || MPIR_TEST_ARG(comm_cart) ||
+  if (MPIR_TEST_ARG(comm_cart) ||
       MPIR_TEST_ARG(periods)  ||
       ((ndims     <  1)             && (mpi_errno = MPI_ERR_DIMS)) ||
       ((dims      == (int *)0)      && (mpi_errno = MPI_ERR_DIMS)))
-    return MPIR_ERROR( comm_old, mpi_errno, "Error in MPI_CART_CREATE" );
+    return MPIR_ERROR( comm_old_ptr, mpi_errno, myname );
 
   /* Check for Intra-communicator */
   MPI_Comm_test_inter ( comm_old, &flag );
   if (flag)
-    return MPIR_ERROR(comm_old, MPI_ERR_COMM,
-                      "Inter-communicator invalid in MPI_CART_CREATE");
+    return MPIR_ERROR(comm_old_ptr, MPI_ERR_COMM_INTER, myname );
 
   /* Determine number of ranks in topology */
   for ( i=0; i<ndims; i++ )
     num_ranks    *= (dims[i]>0)?dims[i]:-dims[i];
   if ( num_ranks < 1 ) {
     (*comm_cart)  = MPI_COMM_NULL;
-    return MPIR_ERROR( comm_old, MPI_ERR_TOPOLOGY, 
-		      "Error in MPI_CART_CREATE" );
+    return MPIR_ERROR( comm_old_ptr, MPI_ERR_TOPOLOGY, myname );
   }
 
   /* Is the old communicator big enough? */
-  MPIR_Comm_size (comm_old, &size);
+  MPIR_Comm_size (comm_old_ptr, &size);
   if (num_ranks > size) 
-	return MPIR_ERROR(comm_old, MPI_ERR_ARG, 
+	return MPIR_ERROR(comm_old_ptr, MPI_ERR_ARG, 
 				  "Topology size too big in MPI_CART_CREATE");
 	
   /* Make new comm */
@@ -99,13 +102,13 @@ MPI_Comm *comm_cart;
   /* Store topology information in new communicator */
   if ( (*comm_cart) != MPI_COMM_NULL ) {
       MPIR_ALLOC(topo,(MPIR_TOPOLOGY *) MPIR_SBalloc ( MPIR_topo_els ),
-		 comm_old,MPI_ERR_EXHAUSTED,"Error in MPI_CART_CREATE");
+		 comm_old_ptr,MPI_ERR_EXHAUSTED,myname);
       MPIR_SET_COOKIE(&topo->cart,MPIR_CART_TOPOL_COOKIE)
 	  topo->cart.type         = MPI_CART;
       topo->cart.nnodes       = num_ranks;
       topo->cart.ndims        = ndims;
       MPIR_ALLOC(topo->cart.dims,(int *)MALLOC( sizeof(int) * 3 * ndims ),
-		 comm_old,MPI_ERR_EXHAUSTED,"Error in MPI_CART_CREATE");
+		 comm_old_ptr,MPI_ERR_EXHAUSTED,myname);
       topo->cart.periods      = topo->cart.dims + ndims;
       topo->cart.position     = topo->cart.periods + ndims;
       for ( i=0; i<ndims; i++ ) {
@@ -114,7 +117,7 @@ MPI_Comm *comm_cart;
       }
 
     /* Compute my position */
-    MPIR_Comm_rank ( (*comm_cart), &rank );
+    MPI_Comm_rank ( (*comm_cart), &rank );
     for ( i=0; i < ndims; i++ ) {
       num_ranks = num_ranks / dims[i];
       topo->cart.position[i]  = rank / num_ranks;
@@ -124,5 +127,6 @@ MPI_Comm *comm_cart;
     /* cache topology information */
     MPI_Attr_put ( (*comm_cart), MPIR_TOPOLOGY_KEYVAL, (void *)topo );
   }
+  TR_POP;
   return (mpi_errno);
 }

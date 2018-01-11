@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_create.c,v 1.21 1996/06/26 19:27:26 gropp Exp $
+ *  $Id: comm_create.c,v 1.25 1997/01/07 01:47:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -39,41 +39,49 @@ MPI_Group group;
 MPI_Comm *comm_out;
 {
   int mpi_errno = MPI_SUCCESS;
+  struct MPIR_COMMUNICATOR *comm_ptr, *new_comm;
+  struct MPIR_GROUP *group_ptr;
+  static char myname[] = "MPI_COMM_CREATE";
 
+  TR_PUSH(myname);
+
+  comm_ptr = MPIR_GET_COMM_PTR(comm);
   /* Check for invalid arguments */
-  if ( MPIR_TEST_COMM(comm,comm)) {
+  if ( MPIR_TEST_COMM_NOTOK(comm,comm_ptr)) {
       (*comm_out) = MPI_COMM_NULL;
-    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, "Error in MPI_COMM_CREATE" );
+      return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_COMM, myname );
       }
-  if (MPIR_TEST_GROUP(comm,group) ||
-	   ((comm->comm_type == MPIR_INTER) && (mpi_errno = MPI_ERR_COMM))  ) {
-    (*comm_out) = MPI_COMM_NULL;
-    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_COMM_CREATE" );
+
+  group_ptr = MPIR_GET_GROUP_PTR(group);
+  MPIR_TEST_MPI_GROUP(group,group_ptr,comm_ptr,myname);
+
+  if ( (MPIR_TEST_GROUP_NOTOK(group,group_ptr) && (mpi_errno = MPI_ERR_COMM))||
+      ((comm_ptr->comm_type == MPIR_INTER) && (mpi_errno = MPI_ERR_COMM))  ) {
+      (*comm_out) = MPI_COMM_NULL;
+      return MPIR_ERROR( comm_ptr, mpi_errno, myname );
   }
 
   /* Create the communicator */
-  if (group->local_rank == MPI_UNDEFINED) {
+  if (group_ptr->local_rank == MPI_UNDEFINED) {
     MPIR_CONTEXT tmp_context;
     /* I'm not in the new communciator but I'll participate in the */
     /* context creation anyway, then deallocate the context that was */
     /* allocated.  I may not need do this, but until I think about */
     /* the consequences a bit more ... */
-    (void) MPIR_Context_alloc  ( comm, 2, &tmp_context ); 
-    (void) MPIR_Context_dealloc( comm, 2, tmp_context );
+    (void) MPIR_Context_alloc  ( comm_ptr, 2, &tmp_context ); 
+    (void) MPIR_Context_dealloc( comm_ptr, 2, tmp_context );
     (*comm_out) = MPI_COMM_NULL;
   }
   else {
-    MPI_Comm new_comm;
-    
-    MPIR_ALLOC(new_comm,NEW(struct MPIR_COMMUNICATOR),comm, MPI_ERR_EXHAUSTED,
+    MPIR_ALLOC(new_comm,NEW(struct MPIR_COMMUNICATOR),comm_ptr, MPI_ERR_EXHAUSTED,
 					"Out of space in MPI_COMM_CREATE" );
-    *comm_out = new_comm;
-    (void) MPIR_Comm_init( new_comm, comm, MPIR_INTRA );
-    (void) MPIR_Group_dup( group, &(new_comm->group) );
-    (void) MPIR_Group_dup( group, &(new_comm->local_group) );
+    (void) MPIR_Comm_init( new_comm, comm_ptr, MPIR_INTRA );
+    *comm_out = new_comm->self;
+    MPIR_Group_dup( group_ptr, &(new_comm->group) );
+    MPIR_Group_dup( group_ptr, &(new_comm->local_group) );
     /* Initialize the communicator with the device */
 #ifndef MPI_ADI2
-    if ((mpi_errno = MPID_Comm_init( new_comm->ADIctx, comm, new_comm )))
+    if ((mpi_errno = MPID_Comm_init( new_comm->ADIctx, comm_ptr, new_comm )))
 	return mpi_errno;
 #endif
     new_comm->local_rank     = new_comm->local_group->local_rank;
@@ -86,7 +94,7 @@ MPI_Comm *comm_out;
 	return mpi_errno;
 #endif
 
-    (void) MPIR_Context_alloc( comm, 2, &(new_comm->send_context) );
+    (void) MPIR_Context_alloc( comm_ptr, 2, &(new_comm->send_context) );
     new_comm->recv_context = new_comm->send_context;
     (void) MPIR_Attr_create_tree ( new_comm );
     (void) MPIR_Comm_make_coll( new_comm, MPIR_INTRA );
@@ -94,5 +102,7 @@ MPI_Comm *comm_out;
     /* Remember it for the debugger */
     MPIR_Comm_remember ( new_comm );
   }
+  
+  TR_POP;
   return(mpi_errno);
 }

@@ -1,3 +1,7 @@
+/*
+ * This code was generated from an older version by an automatic tool;
+ * it still needs to be cleaned up.
+ */
 int __NUMNODES, __MYPROCID  ;
 
 
@@ -5,12 +9,14 @@ int __NUMNODES, __MYPROCID  ;
 
 #include <stdio.h>
 /* #undef LOGCOMMDISABLE */
+#include <time.h>
 #include <sys/types.h>       
 #include <sys/time.h>        
 #include <stdio.h>
 
 #include "mpi.h"
-extern int __NUMNODES, __MYPROCID;static MPI_Status _mpi_status;static int _n, _MPILEN;
+extern int __NUMNODES, __MYPROCID;
+static MPI_Status _mpi_status;static int _n, _MPILEN;
 
 
 
@@ -33,7 +39,18 @@ static long Patterns[12] = {
     0x00000000, 0x55555555, 0x77777777, 0x7f7f7f7f, 0x7fff7fff, 0x7fffffff };
 static double bytes_sent;
 
+/* Set needs_newline to 1 if flushes without newlines don't work (IBM SP) */
+static int needs_newline = 0;
+
 typedef enum { Blocking, NonBlocking } Protocol;
+
+void BigFlush( fp, lastnl )
+int  lastnl;
+FILE *fp;
+{
+   if (needs_newline && !lastnl) fputs( "\n", fp );
+   fflush( fp );
+}
 
 int main(argc,argv)
 int argc;
@@ -51,12 +68,11 @@ struct timeval endtime, currenttime, nextprint, starttime;
 char     ttime[50];
 int      BeVerbose = 0;
 int      loopcount;
-double   bytes_so_far, dwork;
+double   bytes_so_far;
 
 MPI_Init( &argc, &argv );
 MPI_Comm_size( MPI_COMM_WORLD, &__NUMNODES );
 MPI_Comm_rank( MPI_COMM_WORLD, &__MYPROCID );
-;
 
 if (SYArgHasName( &argc, argv, 1, "-help" )) {
   if (__MYPROCID != 0) return 0;
@@ -85,6 +101,10 @@ isphased = SYArgHasName( &argc, argv, 1, "-phased" );
 if (SYArgGetString( &argc, argv, 1, "-ttime", ttime, 50 )) {
     endtime.tv_sec = SYhhmmtoSec( ttime ) + currenttime.tv_sec;
     }
+
+if (SYArgHasName( &argc, argv, 1, "-needsnewline" ))
+    needs_newline = 1;
+BeVerbose = SYArgHasName( &argc, argv, 1, "-verbose" );
 
 #if defined(PRGS) && !defined(TOOLSNOX11)
 /* This enables a running display of the progress of the test */
@@ -136,18 +156,18 @@ MPI_Bcast(&endtime.tv_sec, sizeof(int), MPI_BYTE, 0, MPI_COMM_WORLD );
 err       = 0;
 loopcount = 0;
 bytes_sent= 0.0;
-fflush( stdout );
+BigFlush( stdout, 1 );
 do {
     for (pattern=0; pattern<=NPATTERNS; pattern++) {
         for (size=first; size<=last; size+=incr) {
 	    if (__MYPROCID == 0) {
-		fprintf( fp, "." ); fflush( fp );
+		fprintf( fp, "." ); BigFlush( fp, 0 );
                 }
             if (__MYPROCID == 0 && BeVerbose) {
                 fprintf( fp, "Running size = %d longs with pattern %x\n", 
 			 size, (pattern < NPATTERNS) ? Patterns[pattern] : 
 			 pattern );
-                fflush( fp );
+                BigFlush( fp, 1 );
                 }
             curerr = (*f)( pattern, size );
             err += curerr;
@@ -156,34 +176,37 @@ do {
 		       "[%d] Error running size = %d longs with pattern %x\n", 
 		       __MYPROCID, size, 
 		       (pattern < NPATTERNS) ? Patterns[pattern] : pattern );
-                fflush( fp );
+                BigFlush( fp, 1 );
 		}
             }
 	if (__MYPROCID == 0) {
 	    fprintf( fp, "+\n" ); 
-	    fflush( fp );
+	    BigFlush( fp, 1 );
 	    }
         }
     loopcount++;
     /* Make sure that everyone will do the same test */
     MPI_Allreduce(&err, &size, 1, MPI_INT,MPI_SUM,MPI_COMM_WORLD );
-memcpy(&err,&size,(1)*sizeof(int));;
+    err = size;
     SYGetDayTime( &currenttime );
     MPI_Bcast(&currenttime.tv_sec, sizeof(int), MPI_BYTE, 0, MPI_COMM_WORLD );
-    bytes_so_far = bytes_sent;
-    MPI_Allreduce(&bytes_so_far, &dwork, 1, MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD );
-memcpy(&bytes_so_far,&dwork,(1)*sizeof(double));;
+    MPI_Allreduce(&bytes_sent, &bytes_so_far, 1, MPI_DOUBLE, MPI_SUM,
+		  MPI_COMM_WORLD );
     if (__MYPROCID == 0 && nextprint.tv_sec <= currenttime.tv_sec) {
-	char   str[100];
+	char   *str, *p;
+	char   timebuf[100];
 	double rate;
 	rate             = bytes_so_far / 
 	                   (1.0e6 * (currenttime.tv_sec -  starttime.tv_sec) );
 	nextprint.tv_sec = currenttime.tv_sec + STRESS_PRINT_INTERVAL;
-	strcpy(str , "Not available" );
+	str = ctime(&currenttime.tv_sec);
+	/* Copy str into a buffer, deleting the trailing newline */
+	p = timebuf;
+	while (*str && *str != '\n') *p++ = *str++;
 	fprintf( stdout, "stress runs to %s (%d) [%f MB/s aggregate]\n", 
-		 str, loopcount, rate );
+		 timebuf, loopcount, rate );
 	  
-	fflush( stdout );
+	BigFlush( stdout, 1 );
 	}
     } while (err == 0 && currenttime.tv_sec <= endtime.tv_sec );
 
@@ -326,6 +349,7 @@ if (!rc)exit(1);;
 
 buffer  = (char *)malloc((unsigned)(__NUMNODES * size * sizeof(long) ));  if (!buffer)return 0;;
 bufsize = size * sizeof(long);
+bufmsize = bufsize;
 for (sender = 0; sender < __NUMNODES; sender++) {
     if (sender != __MYPROCID) {
 	tag = sender;
@@ -354,7 +378,8 @@ return err;
 }
 
 /* This version alternates sends and recieves depending on the mask value 
-   
+
+   If the number of processes is odd, we don't use the last process.
  */
 int AllToAllPhased( pattern, size )
 int pattern;
@@ -365,8 +390,13 @@ char *buffer;
 
 np      = __NUMNODES;
 mytid   = __MYPROCID;
+/* Only use an even number of nodes */
+if (np & 0x1) np--;
+if (mytid >= np) return 0;
+
 buffer  = (char *)malloc((unsigned)(size * sizeof(long) ));  if (!buffer)return 0;;
 bufsize = size * sizeof(long);
+
 
 for (d=1; d<=np/2; d++) {
     idx  = mytid / d;
@@ -488,7 +518,7 @@ combinations of\n\
   Protocol: \n\
   -sync        Blocking sends/receives    (default)\n\
   -async       NonBlocking sends/receives\n\
-  -all         AllToAll instead of EachToAll\n\
+  -all         AllToAll instead of EachToAll (requires significant buffering)\n\
   -phased      Use ordered sends/receives for systems will little buffering\n\
 \n" );
   fprintf( stderr, 

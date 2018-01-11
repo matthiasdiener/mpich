@@ -10,6 +10,9 @@
 *  * All work funded by Argonne National Laboratory
 \**/
 
+/* Forward refs for this file */
+void MPE_Log_adjtime2 _ANSI_ARGS_ ((void));
+
 /* Convert the times to an offset from the starting time */
 void MPE_Log_adjtime1()
 {

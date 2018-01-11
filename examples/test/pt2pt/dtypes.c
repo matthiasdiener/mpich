@@ -23,6 +23,10 @@
 #include <stdio.h>
 #include "dtypes.h"
 
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
+
 /* 
    Arrays types, inbufs, outbufs, and counts are allocated by the
    CALLER.  n on input is the maximum number; on output, it is the

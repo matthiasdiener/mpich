@@ -520,6 +520,8 @@ Tk_GetBitmapFromData(interp, tkwin, source, width, height)
  *
  *----------------------------------------------------------------------
  */
+/* Define UNSIGNED as <empty> or unsigned, depending on the prototype */
+#define UNSIGNED
 
 static void
 BitmapInit()
@@ -541,21 +543,24 @@ BitmapInit()
     Tcl_InitHashTable(&idTable, (sizeof(Display *) + sizeof(Pixmap))
 	    /sizeof(int));
 
-    Tk_DefineBitmap(dummy, Tk_GetUid("error"), error_bits,
+    Tk_DefineBitmap(dummy, Tk_GetUid("error"), (UNSIGNED char *)error_bits,
 	    error_width, error_height);
-    Tk_DefineBitmap(dummy, Tk_GetUid("gray50"), gray50_bits,
+    Tk_DefineBitmap(dummy, Tk_GetUid("gray50"), (UNSIGNED char *)gray50_bits,
 	    gray50_width, gray50_height);
-    Tk_DefineBitmap(dummy, Tk_GetUid("gray25"), gray25_bits,
+    Tk_DefineBitmap(dummy, Tk_GetUid("gray25"), (UNSIGNED char *)gray25_bits,
 	    gray25_width, gray25_height);
-    Tk_DefineBitmap(dummy, Tk_GetUid("hourglass"), hourglass_bits,
+    Tk_DefineBitmap(dummy, Tk_GetUid("hourglass"), 
+		    (UNSIGNED char *)hourglass_bits,
 	    hourglass_width, hourglass_height);
-    Tk_DefineBitmap(dummy, Tk_GetUid("info"), info_bits,
+    Tk_DefineBitmap(dummy, Tk_GetUid("info"), (UNSIGNED char *)info_bits,
 	    info_width, info_height);
-    Tk_DefineBitmap(dummy, Tk_GetUid("questhead"), questhead_bits,
+    Tk_DefineBitmap(dummy, Tk_GetUid("questhead"), 
+		    (UNSIGNED char *)questhead_bits,
 	    questhead_width, questhead_height);
-    Tk_DefineBitmap(dummy, Tk_GetUid("question"), question_bits,
+    Tk_DefineBitmap(dummy, Tk_GetUid("question"), 
+		    (UNSIGNED char *)question_bits,
 	    question_width, question_height);
-    Tk_DefineBitmap(dummy, Tk_GetUid("warning"), warning_bits,
+    Tk_DefineBitmap(dummy, Tk_GetUid("warning"), (UNSIGNED char *)warning_bits,
 	    warning_width, warning_height);
     Tcl_DeleteInterp(dummy);
 }

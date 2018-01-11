@@ -1,0 +1,5 @@
+dnl
+dnl rcsid = $Header: /nfs/globus1/src/master/ports0/docs/spec/configure.in,v 1.1 1996/02/06 21:45:19 geisler Exp $
+dnl
+AC_INIT(ports0.tex)
+AC_OUTPUT(Makefile)

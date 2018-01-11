@@ -6,7 +6,7 @@
 #include "aditest.h"
 
 /* Define this global symbol */
-MPI_Comm MPI_COMM_WORLD;
+struct MPIR_COMMUNICATOR *MPIR_COMM_WORLD;
 
 /* 
  * Simple ADI test.  
@@ -20,7 +20,7 @@ char **argv;
     char         *sbuf, *rbuf;
     int          ntest, i, len = 256, err, msgrep = 0;
     int          master = 1, slave = 0;
-    MPI_Comm     comm = (MPI_Comm)0;
+    struct MPIR_COMMUNICATOR *comm = 0;
     MPI_Status   status;
     MPIR_RHANDLE rhandle;
     MPI_Request  request = (MPI_Request)&rhandle;

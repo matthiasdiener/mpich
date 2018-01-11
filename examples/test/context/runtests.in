@@ -26,7 +26,9 @@ if [ -z "$mpirun" ] ; then
 fi
 #
 #
+test_mpi2=@HAS_MPI2@
 runtests=1
+quiet=0
 makeeach=0
 MAKE="@MAKE@"
 for arg in "$@" ; do
@@ -40,6 +42,10 @@ for arg in "$@" ; do
 	;;
 	-small)
 	makeeach=1
+	;;
+	-quiet)
+	shift
+	quiet=1
 	;;
 	-help|-u)
 	echo "runtests [-checkonly] [-margs='...']"
@@ -61,11 +67,25 @@ done
 MakeExe() {
     if [ ! -x $1 ] ; then
 	$MAKE $1
+        if [ ! -x $1 ] ; then 
+	    echo "Could not build executable $1; aborting tests"
+	    exit 1
+        fi
     fi
 }
 CleanExe() {
     if [ $makeeach = 1 ] ; then
 	/bin/rm $1 $1.o
+    fi
+}
+# Output marker
+OutTime() {
+    if [ $quiet = 0 ] ; then
+	if [ -z "$hostname" ] ; then
+	    hostname=`hostname`
+	fi
+	d=`date`
+	echo "$hostname : $d"
     fi
 }
 
@@ -80,6 +100,7 @@ if [ $runtests = 1 ] ; then
 #
 # Run Fortran tests ONLY if Fortran available
 if [ @HAS_FORTRAN@ = 1 ] ; then 
+    OutTime
     testfiles="$testfiles attrf.out"
     /bin/rm -f attrf.out
     MakeExe attrtest
@@ -88,8 +109,23 @@ if [ @HAS_FORTRAN@ = 1 ] ; then
     $mpirun $args -np 2 attrtest $* >> attr.out 2>&1
     echo '*** Testing attributes from Fortran ***' >> attrf.out
     CleanExe attrtest
+
+    if [ $test_mpi2 = 1 ] ; then
+
+    OutTime
+    testfiles="$testfiles commnamesf.out"
+    /bin/rm -f commnamesf.out
+    MakeExe commnamesf
+    echo '*** Testing Communicator Names from Fortran ***'
+    echo '*** Testing Communicator Names from Fortran ***' >> commnamesf.out
+    $mpirun $args -np 1 commnamesf $* >> commnamesf.out 2>&1
+    echo '*** Testing Communicator Names from Fortran ***' >> commnamesf.out
+    CleanExe commnamesf
+
+    fi
 fi
 
+OutTime
 testfiles="$testfiles attr.out"
 /bin/rm -f attr.out
 MakeExe attrt
@@ -99,6 +135,17 @@ $mpirun $args -np 2 attrt $* >> attr.out 2>&1
 echo '*** Testing attributes ***' >> attr.out
 CleanExe attrt
 
+OutTime
+testfiles="$testfiles attrerr.out"
+/bin/rm -f attrerr.out
+MakeExe attrerr
+echo '*** Testing attributes (2) ***'
+echo '*** Testing attributes (2) ***' >> attrerr.out
+$mpirun $args -np 1 attrerr $* >> attrerr.out 2>&1
+echo '*** Testing attributes (2) ***' >> attrerr.out
+CleanExe attrerr
+
+OutTime
 testfiles="$testfiles grouptest.out"
 /bin/rm -f grouptest.out
 MakeExe grouptest
@@ -108,6 +155,17 @@ $mpirun $args -np 4 grouptest $* >> grouptest.out 2>&1
 echo '*** Testing Groups ***' >> grouptest.out
 CleanExe grouptest
 
+OutTime
+testfiles="$testfiles groupcreate.out"
+/bin/rm -f groupcreate.out
+MakeExe groupcreate
+echo '*** Testing Group creation ***'
+echo '*** Testing Group creation ***' >> groupcreate.out
+$mpirun $args -np 4 groupcreate $* >> groupcreate.out 2>&1
+echo '*** Testing Group creation ***' >> groupcreate.out
+CleanExe groupcreate
+
+OutTime
 testfiles="$testfiles ictest.out"
 /bin/rm -f ictest.out
 MakeExe ictest
@@ -134,6 +192,7 @@ CleanExe ictest
 #echo '*** Testing Intercommunicators (2) ***' >> ictest2.out
 #CleanExe ictest2
 
+OutTime
 testfiles="$testfiles ictest3.out"
 /bin/rm -f ictest3.out
 MakeExe ictest3
@@ -143,6 +202,19 @@ $mpirun $args -np 4 ictest3 $* >> ictest3.out 2>&1
 echo '*** Testing Intercommunicators (3) ***' >> ictest3.out
 CleanExe ictest3
 
+if [ $test_mpi2 = 1 ] ; then
+
+    OutTime
+    testfiles="$testfiles commnames.out"
+    /bin/rm -f commnames.out
+    MakeExe commnames
+    echo '*** Testing Communicator Names ***'
+    echo '*** Testing Communicator Names ***' >> commnames.out
+    $mpirun $args -np 2 commnames $* >> commnames.out 2>&1
+    echo '*** Testing Communicator Names ***' >> commnames.out
+    CleanExe commnames
+
+fi
 else
     # Just run checks
     testfiles=`echo *.out`

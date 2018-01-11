@@ -1,5 +1,5 @@
 /*
- *  $Id: type_util.c,v 1.15 1996/04/11 20:26:11 gropp Exp $
+ *  $Id: type_util.c,v 1.20 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -30,24 +30,24 @@
   is not used to determine whether or not the type is freed
   during normal program execution.
 +*/
-MPI_Datatype MPIR_Type_dup ( datatype )
-MPI_Datatype datatype;
+struct MPIR_DATATYPE * MPIR_Type_dup ( dtype_ptr )
+struct MPIR_DATATYPE *dtype_ptr;
 {
   /* We increment the reference count even for the permanent types, so that 
      an eventual free (in MPI_Finalize) will correctly free these types */
-  datatype->ref_count++;
-  return (datatype);
+    MPIR_REF_INCR(dtype_ptr);
+  return (dtype_ptr);
 }
 
 
 /*+
   MPIR_Type_permanent - Utility function to mark a type as permanent
 +*/
-int MPIR_Type_permanent ( datatype )
-MPI_Datatype datatype;
+int MPIR_Type_permanent ( dtype_ptr )
+struct MPIR_DATATYPE *dtype_ptr;
 {
-  if (datatype)
-    datatype->permanent = 1;
+  if (dtype_ptr)
+    dtype_ptr->permanent = 1;
   return (MPI_SUCCESS);
 }
 
@@ -59,106 +59,107 @@ MPI_Datatype datatype;
    that is used to define another datatype); but to free it, we must not
    require that it have been committed.
  */
-int MPIR_Type_free ( datatype )
-MPI_Datatype *datatype;
+int MPIR_Type_free ( dtype_ptr2 )
+struct MPIR_DATATYPE **dtype_ptr2;
 {
   int mpi_errno = MPI_SUCCESS;
-  MPI_Datatype dtype = *datatype;
+  struct MPIR_DATATYPE *dtype_ptr;
 
   /* Check for bad arguments */
-  if (MPIR_TEST_ARG(datatype) || 
-      MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,dtype))
-	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-			   "Error in MPI_TYPE_FREE" );
+  if (MPIR_TEST_ARG(dtype_ptr2))
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, "MPI_TYPE_FREE" );
 
   /* Freeing null datatypes succeeds silently */
-  if ( dtype == MPI_DATATYPE_NULL )
+  if ( *dtype_ptr2 == MPI_DATATYPE_NULL )
 	return (MPI_SUCCESS);
 
+  dtype_ptr   = *dtype_ptr2;
+  MPIR_TEST_DTYPE(dtype_ptr->self,dtype_ptr,MPIR_COMM_WORLD,"MPI_TYPE_FREE");
+
   /* We can't free permanent objects unless finalize has been called */
-  if  ( ( dtype->permanent ) && MPIR_Has_been_initialized == 1) {
-      if (dtype->ref_count > 1) 
-	  dtype->ref_count--;
+  if  ( ( dtype_ptr->permanent ) && MPIR_Has_been_initialized == 1) {
+      if (dtype_ptr->ref_count > 1) {
+	  MPIR_REF_DECR(dtype_ptr);
+      }
       return MPI_SUCCESS;
       }
 
   /* Free datatype */
-  if ( dtype->ref_count <= 1 ) {
+  if ( dtype_ptr->ref_count <= 1 ) {
 
-	/* Free malloc'd memory for various datatypes */
-	if ( (dtype->dte_type == MPIR_INDEXED)  ||
-		 (dtype->dte_type == MPIR_HINDEXED) || 
-		 (dtype->dte_type == MPIR_STRUCT)   ) {
-	  FREE ( dtype->indices );
-	  FREE ( dtype->blocklens );
-	}
-
-	/* Free the old_type if not a struct */
-	if ( (dtype->dte_type != MPIR_STRUCT) && (!dtype->basic) )
-	  MPIR_Type_free ( &(dtype->old_type) );
-	
-	/* Free the old_types of a struct */
-	if (dtype->dte_type == MPIR_STRUCT) {
-	  int i;
-
-	  /* Decrease the reference count */
-	  for (i=0; i<dtype->count; i++)
-		MPIR_Type_free ( &(dtype->old_types[i]) );
-
-	  /* Free the malloc'd memory */
-	  FREE ( dtype->old_types );
-	}
+      /* It would be better if each type new how to free itself */
+      switch (dtype_ptr->dte_type) {
+      case MPIR_INDEXED:
+      case MPIR_HINDEXED:
+	  FREE( dtype_ptr->indices );
+	  FREE( dtype_ptr->blocklens );
+	  if (!dtype_ptr->basic)
+	      MPIR_Type_free( &dtype_ptr->old_type );
+	  break;
+      case MPIR_STRUCT:
+	  MPIR_Free_struct_internals( dtype_ptr );
+	  break;
+      default:
+	  if (!dtype_ptr->basic)
+	      MPIR_Type_free( &dtype_ptr->old_type );
+      }
 
 	/* Free the datatype structure */
-	MPIR_SET_COOKIE(dtype,0);
+	MPIR_CLR_COOKIE(dtype_ptr);
 	/* If the type is permanent and in static storage, we can't
-	   free it here... Until all permanent datatypes are placed
-	   into static storage, this will leave some storage leaks.
-	   */
-	if  ( !dtype->permanent ) {
-	    MPIR_SBfree ( MPIR_dtes, dtype );
+	   free it here */
+	if  ( !dtype_ptr->permanent ) {
+	    MPIR_RmPointer( dtype_ptr->self );
+	    MPIR_SBfree ( MPIR_dtes, dtype_ptr );
 	    }
+	else if (MPIR_Has_been_initialized == 2) {
+	    /* We're in finalize, so delete the pointer mapping */
+	    MPIR_RmPointer( dtype_ptr->self );
+	}
   }
-  else 
-	dtype->ref_count--;
+  else {
+	MPIR_REF_DECR(dtype_ptr);
+  }
 
   /* We have to do this because the permanent types are constants */
-  if ( !dtype->permanent )
-      (*datatype) = MPI_DATATYPE_NULL;
+  if ( !dtype_ptr->permanent )
+      (*dtype_ptr2) = 0;
   return (mpi_errno);
 }
 
+#ifdef FOO
 /* Free the parts of a structure datatype */
 void MPIR_Type_free_struct( dtype )
-MPI_Datatype dtype;
+struct MPIR_DATATYPE *dtype;
 {
 /* Free malloc'd memory for various datatypes */
-if ( (dtype->dte_type == MPIR_INDEXED)  ||
-    (dtype->dte_type == MPIR_HINDEXED) || 
-    (dtype->dte_type == MPIR_STRUCT)   ) {
-    FREE ( dtype->indices );
-    FREE ( dtype->blocklens );
+    if ( (dtype->dte_type == MPIR_INDEXED)  ||
+	 (dtype->dte_type == MPIR_HINDEXED) || 
+	 (dtype->dte_type == MPIR_STRUCT)   ) {
+	FREE ( dtype->indices );
+	FREE ( dtype->blocklens );
     }
 
 /* Free the old_type if not a struct */
-if ( (dtype->dte_type != MPIR_STRUCT) && (!dtype->basic) )
-    MPIR_Type_free ( &(dtype->old_type) );
+    if ( (dtype->dte_type != MPIR_STRUCT) && (!dtype->basic) )
+	MPIR_Type_free ( &(dtype->old_type) );
 
 /* Free the old_types of a struct */
-if (dtype->dte_type == MPIR_STRUCT) {
-    int i;
+    if (dtype->dte_type == MPIR_STRUCT) {
+	int i;
 
-    /* Decrease the reference count */
-    for (i=0; i<dtype->count; i++)
-	MPIR_Type_free ( &(dtype->old_types[i]) );
+	/* Decrease the reference count */
+	for (i=0; i<dtype->count; i++)
+	    MPIR_Type_free ( &(dtype->old_types[i]) );
     
-    /* Free the malloc'd memory */
-    FREE ( dtype->old_types );
+	/* Free the malloc'd memory */
+	FREE ( dtype->old_types );
     }
 
 /* Free the datatype structure */
-MPIR_SET_COOKIE(dtype,0);
+    MPIR_CLR_COOKIE(dtype);
 }
+#endif
 
 /*
    This routine returns the "real" lb and ub, ignoring any explicitly set 
@@ -169,26 +170,61 @@ MPIR_SET_COOKIE(dtype,0);
 
    STILL NEEDS TO BE IMPLEMENTED IN THE TYPE ROUTINES
  */
-void MPIR_Type_get_limits( dtype, lb, ub )
-MPI_Datatype dtype;
+void MPIR_Type_get_limits( dtype_ptr, lb, ub )
+struct MPIR_DATATYPE *dtype_ptr;
 MPI_Aint *lb, *ub;
 {
 /*
     *lb = dtype->real_lb;
     *ub = dtype->real_ub;
  */
-    MPIR_GET_REAL_DATATYPE(dtype)
-    *lb = dtype->lb;
-    *ub = dtype->ub;
+    *lb = dtype_ptr->lb;
+    *ub = dtype_ptr->ub;
 }
 
 /* 
  * Routine to free a datatype
  */
-void MPIR_Free_perm_type( type )
-MPI_Datatype *type;
+void MPIR_Free_perm_type( datatype )
+MPI_Datatype datatype;
 {
-if (!type || !(*type)) return;
-(*type)->permanent = 0;
-MPI_Type_free( type );
+    struct MPIR_DATATYPE *dtype_ptr;
+
+    dtype_ptr = MPIR_ToPointer( datatype );
+    /* We can't set the type to not permanent, because the datatypes structures
+       are in static storage, and permanent is how we know this */
+       /* dtype_ptr->permanent = 0;*/
+    /* Basic is used to determine what types don't have subtypes.
+       If the actual type is MPIR_STRUCT, we can set this to 0 */
+    if (dtype_ptr->dte_type == MPIR_STRUCT)
+	dtype_ptr->basic = 0;
+    /* We use dtype instead of dtype_ptr->self directly since
+       if we DON'T free the type (ref count > 0), we will still need
+       the self value.
+
+       Alternately, we could simply delete the permtypes without paying
+       any attention to the reference counts or the associated types.
+     */
+
+    MPIR_Type_free( &dtype_ptr );
+}
+
+/*
+ * Routine to free INTERNALS of type struct, including the locally referenced
+ * datatypes.
+ */
+void MPIR_Free_struct_internals( dtype_ptr )
+struct MPIR_DATATYPE *dtype_ptr;
+{
+    int i;
+
+    FREE ( dtype_ptr->indices );
+    FREE ( dtype_ptr->blocklens );
+    
+    /* Decrease the reference count */
+    for (i=0; i<dtype_ptr->count; i++)
+	MPIR_Type_free ( &(dtype_ptr->old_types[i]) );
+    
+    /* Free the malloc'd memory */
+    FREE ( dtype_ptr->old_types );
 }

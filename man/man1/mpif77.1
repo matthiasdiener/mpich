@@ -1,6 +1,8 @@
-.TH mpif77 1 "7/26/1996" " " "MPI Commands"
+.TH mpif77 1 "4/14/1997" " " "MPI Commands"
 .SH NAME
-mpif77 \-  Compiles and links MPI programs written in Fortran 77 This command can be used to compile and link MPI programs written in
+mpif77 \-  Compiles and links MPI programs written in Fortran 77 
+.SH DESCRIPTION
+This command can be used to compile and link MPI programs written in
 Fortran 77.  It provides the options and any special libraries that are
 needed to compile and link MPI programs.
 
@@ -74,12 +76,18 @@ executable given the name
 To compile a single file 
 .I foo.f
 , use
+.nf
 mpif77 -c foo.f
+.fi
 
 To link the output and make an executable, use
+.nf
 mpif77 -o foo foo.o
+.fi
 Combining compilation and linking in a single command
+.nf
 mpif77 -o foo foo.f
+.fi
 is a convenient way to build simple programs.
 
 .SH SEE ALSO

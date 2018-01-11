@@ -7,6 +7,11 @@
  */
 #include <stdio.h>
 #include "mpi.h"
+#include "test.h"
+
+int test_communicators ANSI_ARGS(( void ));
+int copy_fn ANSI_ARGS(( MPI_Comm, int, void *, void *, void *, int * ));
+int delete_fn ANSI_ARGS(( MPI_Comm, int, void *, void * ));
 
 int main(argc, argv)
 int argc;

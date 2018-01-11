@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2pack.c,v 1.3 1996/07/17 18:04:59 gropp Exp $
+ *  $Id: adi2pack.c,v 1.9 1997/01/17 23:00:04 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -22,10 +22,10 @@
  * partner.  The partner is the GLOBAL RANK in COMM_WORLD, not the relative
  * rank in the communicator.
  */
-void MPID_Msg_rep( comm, partner, datatype, msgrep, msgact )
-MPI_Comm        comm;
+void MPID_Msg_rep( comm_ptr, partner, dtype_ptr, msgrep, msgact )
+struct MPIR_COMMUNICATOR *comm_ptr;
 int             partner;
-MPI_Datatype    datatype;
+struct MPIR_DATATYPE *dtype_ptr;
 MPID_Msgrep_t   *msgrep;
 MPID_Msg_pack_t *msgact;
 {
@@ -34,15 +34,15 @@ MPID_Msg_pack_t *msgact;
 	*msgact = MPID_MSG_OK;
 #else
     /* Check for homogeneous communicator */
-    if (comm->msgform == MPID_MSG_OK) {
+    if (comm_ptr->msgform == MPID_MSG_OK) {
 	*msgrep = MPID_MSGREP_RECEIVER;
 	*msgact = MPID_MSG_OK;
 	return;
     }
 
     /* Packed data is a special case (data already in correct form) */
-    if (datatype->dte_type == MPIR_PACKED) {
-	switch (comm->msgform) {
+    if (dtype_ptr->dte_type == MPIR_PACKED) {
+	switch (comm_ptr->msgform) {
 	case MPID_MSG_OK: *msgrep = MPID_MSGREP_RECEIVER; break;
 	case MPID_MSG_SWAP: *msgrep = MPID_MSGREP_SENDER; break;
 	case MPID_MSG_XDR: *msgrep = MPID_MSGREP_XDR; break;
@@ -69,21 +69,21 @@ MPID_Msg_pack_t *msgact;
 	}
     }
     else {
-	switch (comm->msgform) {
+	switch (comm_ptr->msgform) {
 	case MPID_MSG_OK: *msgrep = MPID_MSGREP_RECEIVER; break;
 	case MPID_MSG_SWAP: *msgrep = MPID_MSGREP_SENDER; break;
 	case MPID_MSG_XDR: *msgrep = MPID_MSGREP_XDR; break;
 	}
-	*msgact = (MPID_Msg_pack_t)((comm->msgform != MPID_MSG_OK) ? 
+	*msgact = (MPID_Msg_pack_t)((comm_ptr->msgform != MPID_MSG_OK) ? 
 	    MPID_MSG_XDR : MPID_MSG_OK);
     }
 #endif
 }
 
-void MPID_Msg_act( comm, partner, datatype, msgrep, msgact )
-MPI_Comm        comm;
+void MPID_Msg_act( comm_ptr, partner, dtype_ptr, msgrep, msgact )
+struct MPIR_COMMUNICATOR *comm_ptr;
 int             partner;
-MPI_Datatype    datatype;
+struct MPIR_DATATYPE *dtype_ptr;
 MPID_Msgrep_t   msgrep;
 MPID_Msg_pack_t *msgact;
 {
@@ -96,62 +96,61 @@ MPID_Msg_pack_t *msgact;
        break;
     case MPID_MSGREP_SENDER:
 	/* Could check here for byte swap */
-	(void) MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_MSGREP_SENDER,
+	(void) MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_MSGREP_SENDER,
 			  "Error in packing data" );
 	fprintf( stderr, "WARNING - sender format not ready!\n" );
 	*msgact = MPID_MSG_OK;
 	break;	
     default:
 	MPIR_ERROR_PUSH_ARG(&msgrep);
-	(void) MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_MSGREP_UNKNOWN,
+	(void) MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_MSGREP_UNKNOWN,
 			  "Error in packing data" );
     }
 }
 
-void MPID_Pack_size( count, datatype, msgact, size )
+void MPID_Pack_size( count, dtype_ptr, msgact, size )
 int             count, *size;
-MPI_Datatype    datatype;
+struct MPIR_DATATYPE *dtype_ptr;
 MPID_Msg_pack_t msgact;
 {
     int contig_size;
+
 #if defined(MPID_HAS_HETERO) && defined(HAS_XDR)
     /* Only XDR has a different length */
     if (msgact == MPID_MSG_XDR) {
-	MPIR_GET_REAL_DATATYPE(datatype);
-	*size = MPID_Mem_XDR_Len( datatype, count );
+	*size = MPID_Mem_XDR_Len( dtype_ptr, count );
     }
     else
 #endif
     {
-	MPIR_DATATYPE_GET_SIZE(datatype,contig_size);
+	contig_size = MPIR_GET_DTYPE_SIZE(datatype,dtype_ptr);
 	if (contig_size > 0) 
 	    *size = contig_size * count;
 	else {
 	    /* Our pack routine is "tight" */
-	    MPIR_GET_REAL_DATATYPE(datatype);
-	    *size = datatype->size * count;
+	    *size = dtype_ptr->size * count;
 	}
     }
 }
 
-void MPID_Pack( src, count, datatype, dest, maxcount, position, 
-           comm, partner, msgrep, msgact, error_code )
+void MPID_Pack( src, count, dtype_ptr, dest, maxcount, position, 
+           comm_ptr, partner, msgrep, msgact, error_code )
 void            *src, *dest;
 int             count, maxcount, *position, partner, *error_code;
 MPID_Msgrep_t   msgrep;
-MPI_Datatype    datatype;
-MPI_Comm        comm;
+struct MPIR_DATATYPE *dtype_ptr;
+struct MPIR_COMMUNICATOR *comm_ptr;
 MPID_Msg_pack_t msgact;
 {
-int (*packcontig) ANSI_ARGS((unsigned char *, unsigned char *, MPI_Datatype, 
-			     int, void * )) = 0;
-void *packctx = 0;
-int  outlen;
+    int (*packcontig) ANSI_ARGS((unsigned char *, unsigned char *, 
+				 struct MPIR_DATATYPE *, 
+				 int, void * )) = 0;
+    void *packctx = 0;
+    int  outlen;
+    int  err;
 #ifdef HAS_XDR
-XDR xdr_ctx;    
+    XDR xdr_ctx;    
 #endif
-
-MPIR_GET_REAL_DATATYPE(datatype);
 
 #ifdef MPID_HAS_HETERO
     switch (msgact) {
@@ -171,8 +170,12 @@ MPIR_GET_REAL_DATATYPE(datatype);
     }
 #endif
     outlen = 0;
-    *error_code = MPIR_Pack2( src, count, datatype, packcontig, packctx, dest, 
-			      &outlen, position );
+    err = MPIR_Pack2( src, count, maxcount, dtype_ptr, packcontig, packctx, 
+			      dest, &outlen, position );
+    if (err) *error_code = err;
+
+    /* If the CHANGE IN position is > maxcount, then an error has occurred.
+       We need to include maxcount in the call to MPIR_Pack2. */
 #if HAS_XDR
     if (packcontig == MPID_Type_XDR_encode)
 	MPID_Mem_XDR_Free( &xdr_ctx );
@@ -180,22 +183,24 @@ MPIR_GET_REAL_DATATYPE(datatype);
 }
 
 void MPID_Unpack( src, maxcount, msgrep, in_position, 
-		  dest, count, datatype, out_position,
-		  comm, partner, error_code )
+		  dest, count, dtype_ptr, out_position,
+		  comm_ptr, partner, error_code )
 void          *src, *dest;
 int           maxcount, *in_position, count, *out_position, partner, 
               *error_code;
-MPI_Datatype  datatype;
-MPI_Comm      comm;
+struct MPIR_DATATYPE     *dtype_ptr;
+struct MPIR_COMMUNICATOR *comm_ptr;
 MPID_Msgrep_t msgrep;
 {
     int act_len = 0;
     int dest_len = 0;
+    int err;
 
-    MPIR_GET_REAL_DATATYPE(datatype);
-    *error_code = MPIR_Unpack( comm, (char *)src + *in_position, 
-			       maxcount - *in_position, count,  datatype, 
-			       msgrep, dest, &act_len, &dest_len );
+    err = MPIR_Unpack( comm_ptr, (char *)src + *in_position, 
+		       maxcount - *in_position, count,  dtype_ptr, 
+		       msgrep, dest, &act_len, &dest_len );
+    /* Be careful not to set MPI_SUCCESS over another error code */
+    if (err) *error_code = err;
     *in_position += act_len;
     *out_position += dest_len;
 }

@@ -1,5 +1,5 @@
 /*
- *  $Id: dmpi.c,v 1.36 1996/07/17 18:04:13 gropp Exp $
+ *  $Id: dmpi.c,v 1.37 1996/11/24 20:19:11 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -175,6 +175,7 @@ MPI_Request *request;
   register MPIR_SHANDLE *shandle;
   register int mpi_errno = MPI_SUCCESS;
   int dest_type = 0;
+  struct MPIR_DATATYPE *dtype_ptr;
 
   shandle = &(*request)->shandle;
   if (shandle->dest == MPI_PROC_NULL) return mpi_errno;
@@ -188,10 +189,12 @@ MPI_Request *request;
 
 /* First, packed data.  This is a spacial case, because the data format is
    that set in comm->msgrep */
-if (shandle->datatype->dte_type == MPIR_PACKED) {
+
+dtype_ptr   = MPIR_GET_DTYPE_PTR(shandle->datatype);
+if (dtype_ptr->dte_type == MPIR_PACKED) {
     shandle->msgrep = shandle->comm->msgrep;
     shandle->dev_shandle.bytes_as_contig =
-	shandle->count * shandle->datatype->size;
+	shandle->count * dtype_ptr->size;
     if (shandle->dev_shandle.bytes_as_contig > 0 && shandle->bufadd == 0)
 	mpi_errno = MPI_ERR_BUFFER;
     shandle->dev_shandle.start = shandle->bufadd;
@@ -207,7 +210,7 @@ if (shandle->datatype->dte_type == MPIR_PACKED) {
   if (MPID_IS_HETERO == 1)
       dest_type = MPIR_Dest_needs_conversion(shandle->comm,shandle->dest);
   
-  if (dest_type || !shandle->datatype->is_contig) {
+  if (dest_type || !dtype_ptr->is_contig) {
       /* We need to do some conversion.  In both the contiguous and
 	 non-contiguous cases, we need to allocate space and call
 	 the packing routines.  
@@ -224,7 +227,7 @@ if (shandle->datatype->dte_type == MPIR_PACKED) {
       /* Contiguous and homogeneous */
       shandle->msgrep = MPIR_MSGREP_RECEIVER; 
       shandle->dev_shandle.bytes_as_contig =
-	  shandle->count * shandle->datatype->size;
+	  shandle->count * dtype_ptr->size;
       if (shandle->dev_shandle.bytes_as_contig > 0 && shandle->bufadd == 0)
 	  mpi_errno = MPI_ERR_BUFFER;
       shandle->dev_shandle.start = shandle->bufadd;
@@ -232,12 +235,12 @@ if (shandle->datatype->dte_type == MPIR_PACKED) {
       }
 #else
   /* NOT heterogeneous */
-  if (shandle->datatype->is_contig) {
+  if (dtype_ptr->is_contig) {
       /* Contiguous, no conversion form */
       /* This SHOULD have been handled in the macro that expands into
 	 a call to this routine */
       shandle->dev_shandle.bytes_as_contig =
-	shandle->count * shandle->datatype->size;
+	shandle->count * dtype_ptr->size;
       if (shandle->dev_shandle.bytes_as_contig > 0 && shandle->bufadd == 0)
 	  mpi_errno = MPI_ERR_BUFFER;
       shandle->dev_shandle.start = shandle->bufadd;
@@ -281,6 +284,7 @@ int
 MPIR_Receive_setup(request)
 MPI_Request *request;
 {
+  struct MPIR_DATATYPE *dtype_ptr;
   MPIR_RHANDLE *rhandle;
   int mpi_errno = MPI_SUCCESS;
   int dest_type = 0;
@@ -296,10 +300,12 @@ MPI_Request *request;
   /* Even for contiguous data, if heterogeneous, we may need to 
      allocate a larger buffer ... */
 
+  dtype_ptr   = MPIR_GET_DTYPE_PTR(rhandle->datatype);
+
 #if defined(MPID_HAS_HETERO)
   if (MPID_IS_HETERO == 1)
       dest_type = MPIR_Dest_needs_conversion(rhandle->comm,rhandle->source);
-  if (dest_type || !rhandle->datatype->is_contig) {
+  if (dest_type || !dtype_ptr->is_contig) {
       /* This is OK but not optimal, as this will use MPI_Pack_size
 	 to allocate the buffer; pack_size will use the most
 	 pessimistic value */
@@ -315,17 +321,17 @@ MPI_Request *request;
       /* Contiguous and homogeneous */
       rhandle->dev_rhandle.start = rhandle->bufadd;
       rhandle->dev_rhandle.bytes_as_contig =
-	  rhandle->count * rhandle->datatype->extent;
+	  rhandle->count * dtype_ptr->extent;
       if (rhandle->dev_rhandle.bytes_as_contig > 0 && 
 	  rhandle->bufadd == 0) 
 	  mpi_errno = MPI_ERR_BUFFER;
       rhandle->bufpos                      = 0;
       }
 #else
-  if (rhandle->datatype->is_contig) {
+  if (dtype_ptr->is_contig) {
       rhandle->dev_rhandle.start = rhandle->bufadd;
       rhandle->dev_rhandle.bytes_as_contig =
-	  rhandle->count * rhandle->datatype->extent;
+	  rhandle->count * dtype_ptr->extent;
       if (rhandle->dev_rhandle.bytes_as_contig > 0 && 
 	  rhandle->bufadd == 0) 
 	  mpi_errno = MPI_ERR_BUFFER;
@@ -344,7 +350,7 @@ MPI_Request *request;
 #endif
 
 #ifdef FOO
-  if (rhandle->datatype->is_contig) {
+  if (dtype_ptr->is_contig) {
 #if defined(MPID_HAS_HETERO)
     if (MPID_IS_HETERO == 1 && 
      (dest_type = MPIR_Dest_needs_conversion(rhandle->comm,rhandle->source))) {

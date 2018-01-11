@@ -18,6 +18,8 @@ int MPID_SHMEM_Eagern_test_send ANSI_ARGS(( MPIR_SHANDLE * ));
 int MPID_SHMEM_Eagern_save ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
 int MPID_SHMEM_Eagern_unxrecv_start ANSI_ARGS(( MPIR_RHANDLE *, void * ));
 void MPID_SHMEM_Eagern_delete ANSI_ARGS(( MPID_Protocol * ));
+int MPID_SHMEM_Eagern_recv ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
+int MPID_SHMEM_Eagern_irecv ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
 
 /* 
  * Blocking operations come from chbeager.c
@@ -40,7 +42,6 @@ int           len, tag, context_id, src_lrank, dest;
 MPID_Msgrep_t msgrep;
 MPIR_SHANDLE *shandle;
 {
-    int                       pkt_len;
     MPID_PKT_SEND_ADDRESS_T   *pkt;
     
     pkt = (MPID_PKT_SEND_ADDRESS_T *)MPID_SHMEM_GetSendPkt(0);
@@ -59,7 +60,8 @@ MPIR_SHANDLE *shandle;
     MEMCPY( pkt->address, buf, len );
 
     /* Send as packet only */
-    MPID_SHMEM_SendControl( pkt, sizeof(MPID_PKT_SEND_ADDRESS_T), dest );
+    MPID_SHMEM_SendControl( (MPID_PKT_T *)pkt, 
+			    sizeof(MPID_PKT_SEND_ADDRESS_T), dest );
 
     shandle->wait	 = 0;
     shandle->test	 = 0;
@@ -211,12 +213,12 @@ void         *in_runex;
 	MEMCPY( rhandle->buf, runex->start, msglen );
 	MPID_FreeGetAddress( runex->start );
     }
-    MPID_RecvFree( runex );
     rhandle->s		 = runex->s;
     rhandle->wait	 = 0;
     rhandle->test	 = 0;
     rhandle->push	 = 0;
     rhandle->is_complete = 1;
+    MPID_RecvFree( runex );
     if (rhandle->finish) 
 	(rhandle->finish)( rhandle );
 

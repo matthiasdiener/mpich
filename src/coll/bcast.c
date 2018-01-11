@@ -1,5 +1,5 @@
 /*
- *  $Id: bcast.c,v 1.29 1996/06/07 15:08:09 gropp Exp $
+ *  $Id: bcast.c,v 1.31 1997/01/07 01:47:46 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -49,19 +49,30 @@ int               root;
 MPI_Comm          comm;
 {
     int mpi_errno = MPI_SUCCESS;
+    struct MPIR_COMMUNICATOR *comm_ptr;
+    struct MPIR_DATATYPE     *dtype_ptr;
+    static char myname[] = "MPI_BCAST";
     MPIR_ERROR_DECL;
 
+    TR_PUSH(myname)
+    comm_ptr = MPIR_GET_COMM_PTR(comm);
+    MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+
+    dtype_ptr = MPIR_GET_DTYPE_PTR(datatype);
+    MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
+
     /* Check for invalid arguments */
-    if ( MPIR_TEST_COMM(comm,comm) ||
-	 ( (root            <  0)          &&
+    if ( ( (root            <  0)          &&
 	     (MPIR_ERROR_PUSH_ARG(&root),mpi_errno = MPI_ERR_ROOT) )) 
-	return MPIR_ERROR( comm, mpi_errno, "Error in MPI_BCAST" );
+	return MPIR_ERROR( comm_ptr, mpi_errno, myname);
 
     /* See the overview in Collection Operations for why this is ok */
     if (count == 0) return MPI_SUCCESS;
     
-    MPIR_ERROR_PUSH(comm);
-    mpi_errno = comm->collops->Bcast(buffer, count, datatype, root, comm);
-    MPIR_ERROR_POP(comm);
-    MPIR_RETURN(comm,mpi_errno,"Error in MPI_BCAST");
+    MPIR_ERROR_PUSH(comm_ptr);
+    mpi_errno = comm_ptr->collops->Bcast(buffer, count, dtype_ptr, root, 
+					 comm_ptr);
+    MPIR_ERROR_POP(comm_ptr);
+    TR_POP;
+    MPIR_RETURN(comm_ptr,mpi_errno,myname);
 }

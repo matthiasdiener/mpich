@@ -31,6 +31,10 @@ extern char			*cnx_exec;
 void				MPID_SHMEM_lbarrier  ANSI_ARGS((void));
 void                            MPID_SHMEM_FreeSetup ANSI_ARGS((void));
 
+void MPID_SHMEM_FlushPkts ANSI_ARGS((void));
+
+int MPID_GetIntParameter ANSI_ARGS(( char *, int ));
+
 /*
    Get an integer from the environment; otherwise, return defval.
  */
@@ -240,9 +244,14 @@ char **argv;
 #else
     p2p_create_procs( numprocs - 1, *argc, argv );
 
+#if 0
+    /* This is now done inside p2p_create_procs so that
+     * the ids can be kept ordered 
+     */
     p2p_lock( &MPID_shmem->globlock );
     MPID_myid = MPID_shmem->globid++;
     p2p_unlock( &MPID_shmem->globlock );
+#endif
 #endif
 
     MPID_MyWorldRank = MPID_myid;
@@ -280,6 +289,7 @@ void MPID_SHMEM_lbarrier()
 /* If process 0, change phase. Reset the OTHER counter*/
     if (MPID_myid == 0) {
 	MPID_shmem->barrier.phase = ! MPID_shmem->barrier.phase;
+	p2p_write_sync();
 	*cntother = MPID_shmem->barrier.size;
     }
     else 
@@ -347,6 +357,7 @@ int        size, *from;
 {
     MPID_PKT_T *inpkt;
     int        backoff, cnt;
+    VOLATILE   MPID_PKT_T **ready;
 
     if (MPID_local) {
 	inpkt      = (MPID_PKT_T *)MPID_local;
@@ -371,12 +382,18 @@ int        size, *from;
 	    if (cnx_yield) {
 #endif
 		backoff = 1;
-		while (!MPID_lshmem.incomingPtr[MPID_myid]->head) {
+/* 		ready = &MPID_lshmem.incomingPtr[MPID_myid]->head; */
+/*		while (!*ready) { */
+		while (!MPID_lshmem.incomingPtr[MPID_myid]->head) { 
 		    cnt	    = backoff;
 		    while (cnt--) ;
 		    backoff = 2 * backoff;
 		    if (backoff > BACKOFF_LMT) backoff = BACKOFF_LMT;
+		    /* if (*ready) break;*/
 		    if (MPID_lshmem.incomingPtr[MPID_myid]->head) break;
+		    /* Return the packets that we have before doing a
+		       yield */
+		    MPID_SHMEM_FlushPkts();
 		    p2p_yield();
 		}
 #if defined(MPI_cspp)
@@ -424,6 +441,28 @@ void MPID_SHMEM_FreeSetup()
     int i;
     for (i=0; i<MPID_numids; i++) FreePkts[i] = 0;
 }
+
+void MPID_SHMEM_FlushPkts()
+{
+    int i;
+    MPID_PKT_T *pkt;
+    MPID_PKT_T *tail;
+
+    if (to_free == 0) return;
+    for (i=0; i<MPID_numids; i++) {
+	if ((pkt = FreePkts[i])) {
+	    tail			  = FreePktsTail[i];
+	    p2p_lock( MPID_lshmem.availlockPtr[i] );
+	    tail->head.next		  = 
+		(MPID_PKT_T *)MPID_lshmem.availPtr[i]->head;
+	    MPID_lshmem.availPtr[i]->head = pkt;
+	    p2p_unlock( MPID_lshmem.availlockPtr[i] );
+	    FreePkts[i] = 0;
+	}
+    }
+    to_free = 0;
+}
+
 void MPID_SHMEM_FreeRecvPkt( pkt )
 MPID_PKT_T *pkt;
 {
@@ -448,18 +487,7 @@ MPID_PKT_T *pkt;
     to_free++;
 
     if (to_free >= MPID_pktflush) {
-	for (i=0; i<MPID_numids; i++) {
-	    if ((pkt = FreePkts[i])) {
-		tail			  = FreePktsTail[i];
-		p2p_lock( MPID_lshmem.availlockPtr[i] );
-		tail->head.next		  = 
-		    (MPID_PKT_T *)MPID_lshmem.availPtr[i]->head;
-		MPID_lshmem.availPtr[i]->head = pkt;
-		p2p_unlock( MPID_lshmem.availlockPtr[i] );
-		FreePkts[i] = 0;
-	    }
-	}
-	to_free = 0;
+	MPID_SHMEM_FlushPkts();
     }
 }
 
@@ -516,6 +544,8 @@ int nonblock;
 	    p2p_yield();
 	    if ((freecnt % 8) == 0) {
 		MPID_DeviceCheck( MPID_NOTBLOCKING );
+		/* Return the packets that we have */
+		MPID_SHMEM_FlushPkts();
 	    }
 
         }
@@ -553,74 +583,6 @@ int        size, dest;
     return MPI_SUCCESS;
 }
 
-#if 0 && defined(MPI_cspp)
-#include <sys/cnx_sysinfo.h>
-#include <sys/cnx_pattr.h>
-void SY_GetHostName( name, nlen )
-int  nlen;
-char *name;
-{
-    cnx_is_target_t target;
-    char  p[1024], *addr = p;
-    struct pattributes pattrib;
-
-/* This sets the target to get process info for my process */
-    cnx_sysinfo_target_process( &target, getpid() );
-
-/* An id of CNX_IS_PROCESS_BASIC_INFO gets information on the process, but 
-   not the location of the process */
-    cnx_sysinfo( id, target, addr, nel, lel, elavail );
-
-/* Get the subcomplex id into pattrib.pattr_scid */
-    cnx_getpattr( getpid(), CNX_PATTR_SCID, &pattrib );
-
-/* Now that we have the subcomplex id, we use sysinfo to get more info about 
-   it (but can we get the information about a SINGLE node, or does this
-   tell us about the whole subcomplex? 
-   */
-    cnx_sysinfo_target_( &target, pattrib.pattr_scid );
-    cnx_sysinfo( CNS_IS_SCNODE_BASIC_INFO, &scnode_info, .... );
-    scnode_info.node , .physical_node, cpus[CNX_MAX_CPUS_PER_NODE]
-	}
-#else
-
-#ifdef HAVE_UNAME
-#include <sys/utsname.h>
-#endif
-#ifdef HAVE_SYSINFO
-#include <sys/systeminfo.h>
-#endif
-void SY_GetHostName( name, nlen )
-int  nlen;
-char *name;
-{
-#if defined(HAVE_GETHOSTNAME)
-  gethostname(name, nlen);
-#elif defined(solaris) || defined(HAVE_UNAME)
-  struct utsname utname;
-  uname(&utname);
-  strncpy(name,utname.nodename,nlen);
-#else 
-  sprintf( name, "%d", MPID_MyWorldRank );
-#endif
-/* See if this name includes the domain */
-  if (!strchr(name,'.')) {
-    int  l, rc;
-    l = strlen(name);
-    name[l++] = '.';
-    name[l] = 0;  /* In case we have neither SYSINFO or GETDOMAINNAME */
-    /* Note that IRIX does not support SI_SRPC_DOMAIN */
-    rc = -1;
-#if defined(solaris) || defined(HAVE_SYSINFO)
-    rc = sysinfo( SI_SRPC_DOMAIN,name+l,nlen-l);
-#endif
-#if defined(HAVE_GETDOMAINNAME)
-    if (rc == -1) 
-	getdomainname( name+l, nlen - l );
-#endif
-  }
-}
-#endif
 /* 
    Return the address the destination (dest) should use for getting the 
    data at in_addr.  len is INOUT; it starts as the length of the data

@@ -10,7 +10,7 @@ PUBLIC char procgroup_file[256];
 PUBLIC char bm_outfile[100];
 PUBLIC char rm_outfile_head[100];
 PUBLIC char whoami_p4[100];
-PUBLIC int  debug_level, remote_debug_level;
+PUBLIC int  p4_debug_level, p4_remote_debug_level;
 PUBLIC int  logging_flag;
 PUBLIC int  execer_mynodenum;
 PUBLIC char execer_id[132];

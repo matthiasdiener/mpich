@@ -38,6 +38,7 @@ typedef struct {
     /* Information about the graph */
     int wxi, wxn, wyi, wyn, is_lastwindow;
     int givedy;
+    int do_rate;
     OutputForm output_type;
     } GraphData;
 
@@ -50,6 +51,7 @@ Output\n\
   -gnuploteps  Generate data for GNUPLOT in Encapsulated Postscript\n\
   -gnuplotps   Generate data for GNUPLOT in Postscript\n\
   -givedy      Give the range of data measurements\n\
+  -rate        Generate rate instead of time\n\
   -fname filename             (default is stdout)\n\
                (opened for append, not truncated)\n\
   -noinfo      Do not generate plotter command lines or rate estimate\n\
@@ -72,9 +74,17 @@ if (ctx->wxn > 1 || ctx->wyn > 1)
 	     ctx->wxi, ctx->wxn, ctx->wyi, ctx->wyn );
 if (ctx->givedy) 
     fprintf( ctx->fp, "set order d d d x y d d d\n" );
+else {
+    if (ctx->do_rate) 
+	fputs( "set order d d d x d y\n", ctx->fp );
+    else
+	fprintf( ctx->fp, "set order d d d x y d\n" );
+}
+if (ctx->do_rate) 
+    fprintf( ctx->fp, "title left 'Rate (MB/sec)', bottom 'Size %s',\n", 
+	     units );
 else
-    fprintf( ctx->fp, "set order d d d x y d\n" );
-fprintf( ctx->fp, "title left 'time (us)', bottom 'Size %s',\n", units );
+    fprintf( ctx->fp, "title left 'time (us)', bottom 'Size %s',\n", units );
 strcpy(archname,"MPI" );
 MPI_Get_processor_name(hostname,&_n);
 /* Must remove ' from hostname */
@@ -215,14 +225,17 @@ GraphData *ctx;
 int     first, last;
 double  s, r;
 {
-
 /* Convert to one-way performance */
-fprintf( ctx->fp, "plot square\njoin\n" );
+    if (ctx->do_rate) 
+	fputs( "set change y 'x * 1.0e-6'\n", ctx->fp );
+    fprintf( ctx->fp, "plot square\njoin\n" );
 /* fit some times fails in Gnuplot; use the s and r parmeters instead */
 /* fit '1'+'x'\njoin dots\n   */
-fprintf( ctx->fp, "set function x %d %d '%f+%f*x'\n", 
-	 first, last, s*1.0e6, r*1.0e6 );
-fprintf( ctx->fp, "join dots\n" );
+    if (!ctx->do_rate) {
+	fprintf( ctx->fp, "set function x %d %d '%f+%f*x'\n", 
+		 first, last, s*1.0e6, r*1.0e6 );
+	fprintf( ctx->fp, "join dots\n" );
+    }
 }
 
 void DrawGopCIt( ctx, first, last, s, r, nsizes, sizelist )
@@ -465,6 +478,8 @@ if (SYArgGetString( argc, argv, 1, "-fname", filename, 1024 ) &&
 else 
     new->fp = stdout;
 givedy = SYArgHasName( argc, argv, 1, "-givedy" );
+
+new->do_rate = SYArgHasName( argc, argv, 1, "-rate" );
 
 /* Graphics layout */
 new->wxi    = 1;

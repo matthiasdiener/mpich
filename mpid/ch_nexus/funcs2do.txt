@@ -1,0 +1,51 @@
+MPID_RecvDatatype()             coded
+MPID_IrecvDatatype()            coded
+MPID_UnpackMessageSetup()
+
+MPID_SendDatatype()             coded
+MPID_IsendDatatype()            coded           tested
+
+MPID_SsendDatatype()
+MPID_IssendDatatype()
+
+MPID_Init()                     coded
+MPID_Abort()                    coded           tested
+MPID_End()                      coded
+MPID_DeviceCheck()              coded
+MPID_Complete_pending()         coded           tested
+MPID_SetPktSize()
+MPID_WaitForCompleteSend()      preliminary
+MPID_WaitForCompleteRecv()      preliminary
+MPID_Version_name()             coded           tested
+
+MPID_Msg_rep()                  coded           tested
+MPID_Msg_act()                  coded
+MPID_Pack_size()                preliminary
+MPID_Pack()                     preliminary
+MPID_Unpack()                   preliminary
+
+MPID_Iprobe()
+MPID_Probe()                    preliminary
+
+MPID_RecvContig()               preliminary
+MPID_IrecvContig()
+MPID_RecvIcomplete()            coded
+MPID_RecvComplete()             coded
+
+MPID_Request_free()
+
+MPID_SendContig()               preliminary
+MPID_IsendContig()              coded           tested
+MPID_BsendContig()              #define'd       tested
+MPID_SendIcomplete()            preliminary
+MPID_SendComplete()
+
+MPID_SsendContig()
+MPID_IssendContig()
+
+MPID_CH_DeviceCheckMsgPass()    ???
+
+MPID_PackMessage()              ???
+MPID_PackMessageFree()          ???
+MPID_UnpackMessageSetup()       ???
+MPID_UnpackMessageComplete()    ???

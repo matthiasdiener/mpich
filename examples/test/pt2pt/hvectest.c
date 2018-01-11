@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include "mpi.h"
+#include "test.h"
 /* #define SHOWMSG */
 
 int main( argc, argv )

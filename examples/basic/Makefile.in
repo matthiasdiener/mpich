@@ -14,7 +14,7 @@ CCLINKER    = $(CCC)
 AR          = @AR@
 RANLIB      = @RANLIB@
 PROFILING   = $(PMPILIB)
-OPTFLAGS    = 
+OPTFLAGS    = @OPTFLAGS@
 MPE_LIBS    = @MPE_LIBS@
 MPE_DIR     = @MPE_DIR@
 MPE_GRAPH   = @MPE_GRAPHICS@
@@ -40,7 +40,7 @@ cpi: cpi.o $(MPIR_HOME)/include/mpir.h
 	$(CLINKER) $(OPTFLAGS) -o cpi cpi.o -lm
 
 cpilog: cpilog.o $(MPIR_HOME)/include/mpir.h
-	$(CLINKER) $(OPTFLAGS) -o cpilog cpilog.o -lmpe -lm
+	$(CLINKER) $(OPTFLAGS) -o cpilog cpilog.o -lmpe -lpmpi -lm
 
 srtest: srtest.o $(MPIR_HOME)/include/mpir.h
 	$(CLINKER) $(OPTFLAGS) -o srtest srtest.o -lm
@@ -49,7 +49,7 @@ systest: systest.o $(MPIR_HOME)/include/mpir.h
 	$(CLINKER) $(OPTFLAGS) -o systest systest.o -lm
 
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS)
+	/bin/rm -f *.o *~ PI* $(EXECS) rdb.* startup.*
 
 cpilog.o: cpilog.c
 	@if test -z "$(MPE_DIR)" ; then \

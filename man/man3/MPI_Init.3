@@ -1,4 +1,4 @@
-.TH MPI_Init 3 "4/11/1996" " " "MPI"
+.TH MPI_Init 3 "1/6/1997" " " "MPI"
 .SH NAME
 MPI_Init \-  Initialize the MPI execution environment 
 .SH SYNOPSIS
@@ -99,7 +99,9 @@ the filename is replaced with the rank in
 .I MPI_COMM_WORLD
 .  For example,
 .PD 1
+.nf
 -mpidbfile log.%d 
+.fi
 writes to 
 .I log.0
 , 
@@ -132,6 +134,26 @@ to the memory allocation areas.
 received, by category, when the program exits.
 .PD 1
 
+.PD 0
+.TP
+.B -mpidb options 
+- Activate various debugging options.  Some require
+that MPICH have been built with special options.  These are intended 
+for debugging MPICH, not for debugging user programs.  The available 
+options include:
+.PD 1
+.nf
+mem     - Enable dynamic memory tracing of internal MPI objects
+memall  - Generate output of all memory allocation/deallocation
+ptr     - Enable tracing of internal MPI pointer conversions
+rank n  - Limit subsequent -mpidb options to on the process with
+the specified rank in MPI_COMM_WORLD.  A rank of -1
+selects all of MPI_COMM_WORLD.
+ref     - Trace use of internal MPI objects
+reffile filename - Trace use of internal MPI objects with output
+to the indicated file
+trace   - Trace routine calls
+.fi
 
 .SH NOTES
 Note that the Fortran binding for this routine has only the error return

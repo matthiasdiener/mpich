@@ -26,14 +26,20 @@ implementation of MPI.
 .SH GETTING STARTED
 
 .SH ADD MPI TO YOUR PATH
+.nf
 % set path = ( $path /usr/local/mpi/bin )
+.fi
 .SH COMPUTE PI TO A GIVEN RESOLUTION ON 8 PROCESSORS OR THREADS
+.nf
 % mpirun -np 8 /usr/local/mpi/examples/basic/fpi
+.fi
 Try 10000 intervals at the prompt.  Fortran source is available
 in this directory, along with a similar C program (cpi.c).
 
 .SH A COARSE TIMING PROGRAM IS ALSO AVAILABLE HERE
+.nf
 % mpirun -np 8 /usr/local/mpi/examples/basic/systest
+.fi
 More sophisticated timing programs may be found in the source for the MPICH
 implementation of MPI (/home/MPI/mpich/examples/perftest).
 
@@ -42,8 +48,10 @@ You can compile and link your own MPI programs with the commands
 and
 .I mpif77
 .
+.nf
 % mpicc -o cpi cpi.c
 % mpif77 -o fpi fpi.f
+.fi
 
 .SH DOCUMENTATION
 
@@ -77,6 +85,7 @@ by anonymous ftp from info.mcs.anl.gov in pub/mpi/mpich.tar.Z .
 
 .SH FILES
 
+.nf
 /usr/local/mpi/                 MPI software directory
 /usr/local/mpi/COPYRIGHT        Copyright notice
 /usr/local/mpi/README           various notes and instructions
@@ -85,6 +94,7 @@ by anonymous ftp from info.mcs.anl.gov in pub/mpi/mpich.tar.Z .
 /usr/local/mpi/doc/             documentation
 /usr/local/mpi/include/         include files
 /usr/local/mpi/lib/             library files
+.fi
 
 .SH CONTACT
 

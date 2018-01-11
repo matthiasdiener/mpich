@@ -27,7 +27,6 @@ static MPE_Log_BLOCK *readBlock;
 #endif
 /* merge buffer size should be bigger */
 
-
 /* Here is a structure to hold the original header and the source procid */
 typedef struct {
   MPE_Log_HEADER header;
@@ -60,7 +59,25 @@ FILE *fp;
     /* get max. end time */
 
   if (MPE_Log_procid == 0) {
-    fprintf( fp, "-1 0 0 0 0 0 Me\n" );
+      char title[101];
+#ifdef FULL_TITLE
+      struct passwd *pw;
+      int    ln;
+      time_t tloc;
+      pw = getpwuid( getuid() );
+      if (pw) {
+	  sprintf( title, "Created by %s at ", pw->pw_name );
+      }
+      time( &tloc );
+      strcat( title, ctime( &tloc ) );
+      /* Must remove trailing newline */
+      ln = strlen( title );
+      if (title[ln-1] == '\n') title[ln-1] = 0;
+#else
+      strcpy( title, "Me" );
+#endif
+
+    fprintf( fp, "-1 0 0 0 0 0 %s\n", title );
     fprintf( fp, "-2 0 0 %d 0 0\n", totalnevents );
     fprintf( fp, "-3 0 0 %d 0 0\n", numProcs );
     fprintf( fp, "-4 0 0 1 0 0\n" );
@@ -206,7 +223,7 @@ int procid, *rec;
 	intsToCopy = (int)fld->len - MPE_Log_VFIELDSIZE(0); 
 
 	  /* if intsToCopy>space left, just copy what we can */
-	for (j=0; intsToCopy; j++,iused++,intsToCopy-- && iused<NUMINTS)
+	for (j=0; intsToCopy > 0 && iused<NUMINTS; j++,iused++,intsToCopy--)
 	    /* copy the integers */
 	  i[iused]=fld->other[j];
 
@@ -433,7 +450,7 @@ static int MPE_Log_ParallelMerge( filename )
   int      srcs, lchild, rchild, parent, np, mtype, am_left;
   MPE_Log_MBuf *ba, *bb, *bc, *bout;
   FILE *fp;
-  void MPE_Log_FlushOutput();
+/*   void MPE_Log_FlushOutput(); */
 
 
   MPI_Comm_size(MPI_COMM_WORLD,&np);

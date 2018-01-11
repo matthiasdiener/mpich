@@ -24,38 +24,30 @@ int sscanf( char *, const char *, ... );
 #include "alog_int.h"
 #include "str_dup.h"
 
+#ifdef NEEDS_STDLIB_PROTOTYPES
+#include "protofix.h"
+#endif
 
 
 #define DEBUG 0
 
 #define MAX_LINE_LEN 1024
 
-#ifdef __STDC__
-static int Alog_Load( logFile *log, alogData *alog );
-static int Alog_Close( logFile *log, alogData *alog );
-static int GetAlogLine( FILE *inf, alogLineData *lineData );
-static int StateDef( stateData *state_data, alogData *alog,
-		     alogLineData *line_data );
-static int AlogStateDef( alogData *alog_data,
-		         int startEvent, int endEvent );
-static int EventDef( eventData *event_data, alogData *alog_data,
-		     int eventNum, char *eventName );
-static int AlogMsg( logFile *log, alogData *alog,
-                    alogLineData *line_data, int type );
-static int IsStateEvent( alogData *alog_data, int eventType,
-                         int *stateType, int *isStartEvent );
-static int AlogEventNum( logFile *log_data, alogData *alog_data, int type );
-#else
-static int Alog_Load( );
-static int Alog_Close( );
-static int GetAlogLine();
-static int StateDef();
-static int AlogStateDef();
-static int EventDef();
-static int AlogMsg();
-static int IsStateEvent();
-static int AlogEventNum();
-#endif
+static alogData *Create ANSI_ARGS(( logFile * ));
+static int Alog_Load ANSI_ARGS(( logFile *log, alogData *alog ));
+static int Alog_Close ANSI_ARGS(( logFile *log, alogData *alog ));
+static int GetAlogLine ANSI_ARGS(( FILE *inf, alogLineData *lineData ));
+static int StateDef ANSI_ARGS(( stateData *state_data, alogData *alog,
+		     alogLineData *line_data ));
+static int AlogStateDef ANSI_ARGS(( alogData *alog_data,
+		         int startEvent, int endEvent ));
+static int EventDef ANSI_ARGS(( eventData *event_data, alogData *alog_data,
+		     int eventNum, char *eventName ));
+static int AlogMsg ANSI_ARGS(( logFile *log, alogData *alog,
+                    alogLineData *line_data, int type ));
+static int IsStateEvent ANSI_ARGS(( alogData *alog_data, int eventType,
+                         int *stateType, int *isStartEvent ));
+static int AlogEventNum ANSI_ARGS(( logFile *log_data, alogData *alog_data, int type ));
 
 
 
@@ -69,10 +61,23 @@ FILE *inf;
 alogLineData *lineData;
 {
   static char line[MAX_LINE_LEN], comment[MAX_LINE_LEN];
+  char *p;
 
   comment[0] = 0;
-  if (!fgets( line, MAX_LINE_LEN, inf )) {
-    return -1;  /* EOF */
+
+  /* Skip blank lines (not strictly alog, but allows comments and accidental
+     additional newlines */
+  while (1) {
+      if (!fgets( line, MAX_LINE_LEN, inf )) {
+	  return -1; /* EOF */
+      }
+      p = line;
+      /* Skip leading blanks */
+      while (*p == ' ') p++;
+      /* If not at newline or comment, we're ready */
+      if (*p != '\n' && *p != '#') {
+	  break;
+      }
   }
 
   if (sscanf( line, "%d %d %d %d %d %lf %[^\n]",
@@ -92,7 +97,7 @@ alogLineData *lineData;
 
 
 
-alogData *Create( log )
+static alogData *Create( log )
 logFile *log;
 {
   alogData *alog;
@@ -101,8 +106,8 @@ logFile *log;
   if (!alog) goto oom;
 
   alog->lastLine = 0;
-  alog->interp = log->interp;
-  alog->log = log;
+  alog->interp	 = log->interp;
+  alog->log	 = log;
 
   /* create lists for alog state definitions */
   ListCreate( alog->stateDefs.list, alogStateDefInfo, 5 );
@@ -134,7 +139,7 @@ logFile *log;
   FILE *fp;
   alogData *alog;
   alogLineData lineData;
-  int readStatus, allDone;
+  int readStatus, allDone, readError = 0;
 
   alog = Create( log );
   if (!alog) return TCL_ERROR;
@@ -175,11 +180,16 @@ logFile *log;
 	alog->rolloverPt = lineData.timestamp;
 	break;
       case ALOG_STATE_DEF:
-	StateDef( log->states, alog, &lineData );
+	  if (StateDef( log->states, alog, &lineData )) {
+	      readError = 1;
+	  }
 	break;
       case ALOG_PROCESS_DEF:
  	Process_SetDef( log->processes, lineData.process, lineData.comment );
   	break;
+      case ALOG_CREATOR:
+	log->creator = (char *) malloc( strlen( lineData.comment ) + 1 );
+	strcpy( log->creator, lineData.comment );
         }  
     }
   }
@@ -189,7 +199,7 @@ logFile *log;
   State_PrintDefs( log_data->states );
 #endif
 
-  if (readStatus == -2) {
+  if (readStatus == -2 || readError) {
     char tmp[50];
     sprintf( tmp, "%d", alog->lineNo );
     Tcl_AppendResult( log->interp, "alog format error in ", log->filename,
@@ -300,7 +310,9 @@ alogData *alog;
   return 0;
 }
 
-
+/*
+ * Colors must be a single word if no colon found
+ */
 
 static int StateDef( state_data, alog, lineData )
 stateData *state_data;
@@ -322,7 +334,17 @@ alogLineData *lineData;
   while (*bitmap && *bitmap!=':') bitmap++;
   /* look for separating colon */
 
-  if (*bitmap) {
+  if (*bitmap == 0) {
+      bitmap = "gray";
+      /* Move bitmap back to first blank after color */
+      name   = color;
+      while (*name && isspace(*name)) name++;
+      while (*name && !isspace(*name)) name++;
+      if (*name) 
+	  *name++ = 0;
+      while (*name && isspace(*name)) name++;
+  }
+  else {
     *bitmap = '\0';
     name = ++bitmap;
     while (*name && !isspace(*name)) name++;
@@ -335,18 +357,20 @@ alogLineData *lineData;
         /* if there is no name */
       char tmp[50];
       sprintf( tmp, "%d", alog->lineNo );
-      Tcl_AppendResult( alog->interp, "Alog format error in ",
+      Tcl_AppendResult( alog->log->interp, "Alog format error in ",
 		        alog->log->filename,
 		        ", line ", tmp, ".  No state name found.  Format: ",
 		        "-13 0 <start event> <end event> 0 0 ",
 		        "<color>:<bitmap> <state name>", (char*)0 );
       return TCL_ERROR;
     }
+  }
+#ifdef FOO
   } else {
       /* no colon separator */
       char tmp[50];
       sprintf( tmp, "%d", alog->lineNo );
-      Tcl_AppendResult( alog->interp, "Alog format error in ",
+      Tcl_AppendResult( alog->log->interp, "Alog format error in ",
 		        alog->log->filename,
 		        ", line ", tmp, ".  No color-bitmap separator ",
 		        "found.  Format: ",
@@ -354,11 +378,12 @@ alogLineData *lineData;
 		        "<color>:<bitmap> <state name>", (char*)0 );
       return TCL_ERROR;
   }
+#endif
   if (!(color && bitmap && name)) {
       /* imcomplete state info */
       char tmp[50];
       sprintf( tmp, "%d", alog->lineNo );
-      Tcl_AppendResult( alog->interp, "Alog format error in ",
+      Tcl_AppendResult( alog->log->interp, "Alog format error in ",
 		        alog->log->filename,
 		        ", line ", tmp, ".  Incomplete state description.",
 		        "  Format: ",

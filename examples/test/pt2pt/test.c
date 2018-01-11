@@ -4,7 +4,7 @@
 #include <string.h>
 #include "test.h"
 
-#ifdef __STDC__
+#if defined(USE_STDARG)
 #include <stdarg.h>
 #else
 #include <varargs.h>
@@ -25,9 +25,11 @@ int rank;
     sprintf(filename, "%s-%d.out", suite, rank);
     strncpy(suite_name, suite, 255);
     fileout = fopen(filename, "w");
+
+    MPI_Errhandler_create( Test_Errors_warn, &TEST_ERRORS_WARN );
 }
 
-#if defined(__STDC__)
+#if defined(USE_STDARG)
 void Test_Printf(char *format, ...)
 {
     va_list arglist;
@@ -116,4 +118,51 @@ if (m != n) {
     }
 if (myrank == 0) 
     printf( "All processes completed test\n" );
+}
+
+/*
+   Handler prints warning messsage and returns.  Internal.  Not
+   a part of the standard.
+ */
+MPI_Errhandler TEST_ERRORS_WARN;
+
+#ifdef USE_STDARG
+void Test_Errors_warn(  MPI_Comm *comm, int *code, ... )
+{  
+  char buf[MPI_MAX_ERROR_STRING];
+  int  myid, result_len; 
+  char *string, *file;
+  int  *line;
+  static int in_handler = 0;
+  va_list Argp;
+
+  va_start( Argp, code );
+  string = va_arg(Argp,char *);
+  file   = va_arg(Argp,char *);
+  line   = va_arg(Argp,int *);
+  va_end( Argp );
+#else
+void Test_Errors_warn(  comm, code, string, file, line )
+MPI_Comm *comm;
+int      *code, *line;
+char     *string, *file;
+{
+  char buf[MPI_MAX_ERROR_STRING];
+  int  myid, result_len; 
+  static int in_handler = 0;
+#endif
+
+  if (in_handler) return;
+  in_handler = 1;
+
+  MPI_Comm_rank( MPI_COMM_WORLD, &myid );
+  MPI_Error_string( *code, buf, &result_len );
+#ifdef MPIR_DEBUG
+  /* Generate this information ONLY when debugging MPIR */
+  fprintf( stderr, "%d -  File: %s   Line: %d\n", myid, 
+		   file, *line );
+#endif
+  fprintf( stderr, "%d - %s : %s\n", myid, 
+          string ? string : "<NO ERROR MESSAGE>", buf );
+  in_handler = 0;
 }

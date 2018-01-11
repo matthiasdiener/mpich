@@ -1,5 +1,5 @@
 /*
- *  $Id: group_util.c,v 1.21 1996/04/12 14:11:58 gropp Exp $
+ *  $Id: group_util.c,v 1.27 1997/02/18 23:06:13 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -13,11 +13,13 @@
 #endif
 
 
-MPI_Group MPIR_CreateGroup( np )
+struct MPIR_GROUP *MPIR_CreateGroup( np )
 int np;
 {
-    MPI_Group  new;
+    struct MPIR_GROUP *new;
     int        i;
+
+    TR_PUSH("MPIR_CreateGroup");
 
     new = NEW(struct MPIR_GROUP);
     if (!new) return 0;
@@ -38,26 +40,33 @@ int np;
     for (i=0; i<np; i++) 
 	new->lrank_to_grank[i] = -1;
 
+    TR_POP;
     return new;
 }
 
 void MPIR_FreeGroup( group )
-MPI_Group group;
+struct MPIR_GROUP *group;
 {
-  if (group->lrank_to_grank) {
-      FREE( group->lrank_to_grank );
-      }
-  if ( group->set_mark ) {
-      FREE( group->set_mark );
-      }
-  FREE( group );
+    TR_PUSH("MPIR_FreeGroup");
+
+    if (group->lrank_to_grank) {
+	FREE( group->lrank_to_grank );
+    }
+    if ( group->set_mark ) {
+	FREE( group->set_mark );
+    }
+    MPIR_CLR_COOKIE( group );
+    MPIR_RmPointer( group->self );
+    FREE( group );
+    TR_POP;
 }
 
 void MPIR_SetToIdentity( g )
-MPI_Group g;
+struct MPIR_GROUP *g;
 {
   int np, i;
 
+  TR_PUSH("MPIR_SetToIdentity");
   np = g->np;
   for (i=0; i<np; i++) 
     g->lrank_to_grank[i] = i;
@@ -65,10 +74,11 @@ MPI_Group g;
 #ifdef MPI_ADI2
   g->local_rank = MPID_MyWorldRank;
 #else
-  MPID_Myrank(MPI_COMM_WORLD->ADIctx,&(g->local_rank));
+  MPID_Myrank(MPIR_COMM_WORLD->ADIctx,&(g->local_rank));
 #endif
   if (g->local_rank >= np)
     g->local_rank = MPI_UNDEFINED;
+  TR_POP;
 }
 
 #ifndef MPIR_Group_dup
@@ -77,13 +87,13 @@ MPI_Group g;
 MPIR_Group_dup -
 
 +*/
-int MPIR_Group_dup( group, new_group )
-MPI_Group group, *new_group;
+void MPIR_Group_dup( group, new_group )
+struct MPIR_GROUP *group, **new_group;
 {
   (*new_group) = group;
-  if ( group != MPI_GROUP_NULL )
-    group->ref_count++;
-  return(MPI_SUCCESS);
+  if ( group != MPI_GROUP_NULL ) {
+      MPIR_REF_INCR(group);
+  }
 }
 #endif
 
@@ -93,18 +103,18 @@ MPIR_Dump_group - dump group information
 
 +*/
 int MPIR_Dump_group ( group )
-MPI_Group group;
+struct MPIR_GROUP *group;
 {
   int i, rank;
-  (void)MPIR_Comm_rank ( MPI_COMM_WORLD, &rank );
+  (void)MPIR_Comm_rank ( MPIR_COMM_WORLD, &rank );
 
-  printf ( "\t[%d] group       = %ld\n", rank, (long)group );
+  PRINTF ( "\t[%d] group       = %ld\n", rank, (MPI_Aint)group );
   if (group != NULL) {
-    printf ( "\t[%d] np          = %d\n", rank, group->np );
-    printf ( "\t[%d] local rank  = %d\n", rank, group->local_rank );
-    printf ( "\t[%d] local rank -> global rank mapping\n", rank );
+    PRINTF ( "\t[%d] np          = %d\n", rank, group->np );
+    PRINTF ( "\t[%d] local rank  = %d\n", rank, group->local_rank );
+    PRINTF ( "\t[%d] local rank -> global rank mapping\n", rank );
     for ( i=0; i<group->np; i++ )
-      printf ( "\t [%d]   %d             %d\n", rank, i, group->lrank_to_grank[i] );
+      PRINTF ( "\t [%d]   %d             %d\n", rank, i, group->lrank_to_grank[i] );
   }
   return MPI_SUCCESS;
 }
@@ -119,10 +129,10 @@ int n, *ranks;
 {
   int i;
 
-  printf ( "\tnumber of ranks = %d\n", n );
-  printf ( "\t n     rank\n" );
+  PRINTF ( "\tnumber of ranks = %d\n", n );
+  PRINTF ( "\t n     rank\n" );
   for ( i=0; i<n; i++ )
-    printf ( "\t %d      %d\n", i, ranks[i] );
+    PRINTF ( "\t %d      %d\n", i, ranks[i] );
   return MPI_SUCCESS;
 }
 
@@ -136,10 +146,10 @@ int n, *ranges;
 {
   int i;
 
-  printf ( "\tnumber of ranges = %d\n", n );
-  printf ( "\t first    last    stride\n" );
+  PRINTF ( "\tnumber of ranges = %d\n", n );
+  PRINTF ( "\t first    last    stride\n" );
   for ( i=0; i<n; i++ )
-  printf ( "\t %d      %d        %d       %d\n", i, ranges[i*3],
+  PRINTF ( "\t %d      %d        %d       %d\n", i, ranges[i*3],
           ranges[(i*3)+1], ranges[(i*3)+2] );
   return MPI_SUCCESS;
 }
@@ -157,6 +167,8 @@ int *N2_next, *N2_prev;
 {
   int high     = 131072;
   int low      = 1;
+
+  TR_PUSH("MPIR_Powers_of_2");
 
   while( (high > N) && (low < N) ) {
     high >>= 1; low  <<= 1;
@@ -180,6 +192,7 @@ int *N2_next, *N2_prev;
   else
 	(*N2_prev) = (*N2_next) >> 1;
 
+  TR_POP;
   return (MPI_SUCCESS);
 }
 
@@ -189,7 +202,7 @@ MPIR_Group_N2_prev - retrieve greatest power of two < size of group.
 
 +*/
 int MPIR_Group_N2_prev ( group, N2_prev )
-MPI_Group  group;
+struct MPIR_GROUP *group;
 int       *N2_prev;
 {
   (*N2_prev) = group->N2_prev;

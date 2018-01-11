@@ -1,5 +1,5 @@
 /*
- *  $Id: rsend.c,v 1.16 1996/06/07 15:07:30 gropp Exp $
+ *  $Id: rsend.c,v 1.19 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -37,27 +37,33 @@ MPI_Datatype     datatype;
 MPI_Comm         comm;
 {
     int          mpi_errno = MPI_SUCCESS;
+    struct MPIR_COMMUNICATOR *comm_ptr;
+    struct MPIR_DATATYPE     *dtype_ptr;
+    static char myname[] = "MPI_RSEND";
 #ifndef MPI_ADI2    
     MPIR_SHANDLE shandle;
     MPI_Request  request;
 #endif
 
-    if (MPIR_TEST_COMM(comm,comm) || 
-	MPIR_TEST_COUNT(comm,count) ||
-	MPIR_TEST_DATATYPE(comm,datatype) || 
-	MPIR_TEST_SEND_TAG(comm,tag) ||
-	MPIR_TEST_SEND_RANK(comm,dest)) 
-	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_RSEND" );
+    TR_PUSH(myname);
+    comm_ptr = MPIR_GET_COMM_PTR(comm);
+    MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
+    dtype_ptr = MPIR_GET_DTYPE_PTR(datatype);
+    MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
+
+    if (MPIR_TEST_COUNT(comm,count) ||MPIR_TEST_SEND_TAG(comm,tag) ||
+	MPIR_TEST_SEND_RANK(comm_ptr,dest)) 
+	return MPIR_ERROR(comm_ptr, mpi_errno, myname );
 
 #ifdef MPI_ADI2
     if (dest == MPI_PROC_NULL) return MPI_SUCCESS;
 
     /* This COULD test for the contiguous homogeneous case first .... */
-    MPID_RsendDatatype( comm, buf, count, datatype, comm->local_rank, tag, 
-			comm->send_context, comm->lrank_to_grank[dest], 
-			&mpi_errno );
-    MPIR_RETURN(comm, mpi_errno, "Error in MPI_RSEND" );
+    MPID_RsendDatatype( comm_ptr, buf, count, dtype_ptr, comm_ptr->local_rank,
+			tag, comm_ptr->send_context, 
+			comm_ptr->lrank_to_grank[dest], &mpi_errno );
+    MPIR_RETURN(comm_ptr, mpi_errno, myname );
 #else
     /* See send.c (MPI_Send) for a discussion of this routine. */
     if (dest != MPI_PROC_NULL)
@@ -70,7 +76,7 @@ MPI_Comm         comm;
 	MPIR_SEND_SETUP_BUFFER( &request, shandle );
 	if (mpi_errno) 
 	    return mpi_errno;
-	MPID_Blocking_send_ready( comm->ADIctx, &shandle );
+	MPID_Blocking_send_ready( comm_ptr->ADIctx, &shandle );
 #if defined(MPID_PACK_IN_ADVANCE) || defined(MPID_HAS_HETERO)
 	/* If this request had to allocate a buffer to send from,
 	   free it */
@@ -79,7 +85,8 @@ MPI_Comm         comm;
 		       "Could not free allocated send buffer in MPI_RSEND" );
 	    }
 #endif
-    shandle.datatype->ref_count--;
+    MPIR_Type_free( &shandle.datatype );
+    /* shandle.datatype->ref_count --; */
     }
     return mpi_errno;
 #endif

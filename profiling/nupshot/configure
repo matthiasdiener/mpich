@@ -1,11 +1,15 @@
 
+
+
+
 progname="`echo $0 | sed 's:^\./\./:\./:'`"
 print_error() {
     echo "*# $*" 2>&1 ;
     }
 print_usage() {
 cat <<.
-Usage: ${progname} -tcldir=TCLDIR -tkdir=TKDIR -opt=OPTFLAGS
+Usage: ${progname} -tcldir=TCLDIR -tkdir=TKDIR -opt=OPTFLAGS 
+                   -cc=C_COMPILER -cflags=CFLAGS
 
 where
    TCLDIR       = Directory containing tcl.  Must have lib/libtcl.a and
@@ -13,6 +17,8 @@ where
    TKDIR        = Directory containing tk 3.3 or later.  Must have lib/libtk.a
                   and include/tk.h .  May be the same as TCLDIR.
    OPTFLAGS     = Flags for compiling (e.g., -g or -O)
+   CFLAGS       = flags to give C compiler
+   C_COMPILER   = Name of C compiler
 .
 }
 
@@ -40,6 +46,17 @@ do
       set -x
       ;;
  
+    -cc=* | --cc=*)
+	CC=`echo $arg|sed 's/-*cc=//'`
+	USERCC=1
+	;;
+
+    -cflags=* | --cflags=*)
+       package="`echo $arg|sed 's/-*cflags=//'`"
+       USER_CFLAGS="$package"
+       CFLAGS="$CFLAGS $package" ;;
+
+
    *)
       echo "Unrecognized argument $arg"
       exit 1
@@ -1067,6 +1084,70 @@ if test -z "$TCL_DIR" ; then
    
 # Look for Tcl
 if test -z "$TCL_DIR" ; then
+# Extract the first word of "tclsh", so it can be a program name with args.
+set dummy tclsh; ac_word=$2
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for $ac_word""... $ac_c"
+else
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
+fi
+ac_prog_where=""
+if test -n "$TCLSH"; then
+  ac_pg_TCLSH="$TCLSH" # Let the user override the test.
+else
+  ac_first_char=`expr "tclsh" : "\(.\)"`
+  if test "$ac_first_char" = "/" -a -x "tclsh" ; then
+       ac_pg_TCLSH="1"
+       ac_prog_where=tclsh
+  else
+      IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
+      for ac_dir in $PATH; do
+        test -z "$ac_dir" && ac_dir=.
+        if test -f $ac_dir/$ac_word; then
+          ac_pg_TCLSH="1"
+          ac_prog_where=$ac_dir/$ac_word
+          break
+        fi
+      done
+      IFS="$ac_save_ifs"
+  fi
+fi;TCLSH="$ac_pg_TCLSH"
+if test -n "$ac_prog_where" ; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""found $ac_prog_where ($TCLSH)"
+else
+echo "$ac_t""found $ac_prog_where ($TCLSH)" 1>&1
+fi
+   tclshloc=$ac_prog_where  
+else
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+
 if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
@@ -1093,13 +1174,28 @@ echo $ac_n "checking for Tcl""... $ac_c"
 else
 echo $ac_n "checking for Tcl""... $ac_c" 1>&1
 fi
-for dir in \
+# See if tclsh is in the path
+if test -n "$tclshloc" ; then
+    cat >conftest <<EOF
+puts stdout \$tcl_library
+EOF
+    tcllibloc=`$tclshloc conftest`
+    # The tcllibloc is the directory containing the .tcl files.  
+    # The .a files may be one directory up
+    tcllibloc=`dirname $tcllibloc`
+    # and the lib directory one above that
+    tcllibs="$tcllibloc `dirname $tcllibloc`"
+    /bin/rm -f conftest   
+fi
+for dir in $tcllibs \
     /usr \
     /usr/local \
+    /usr/local/tcl7.5 \
     /usr/local/tcl7.3 \
     /usr/local/tcl7.3-tk3.6 \
     /usr/local/tcl7.0 \
     /usr/local/tcl7.0-tk3.3 \
+    /usr/local/tcl7.* \
     /usr/contrib \
     /usr/contrib/tk3.6 \
     /usr/contrib/tcl7.3-tk3.6 \
@@ -1107,29 +1203,48 @@ for dir in \
     /usr/contrib/tcl7.0-tk3.3 \
     $HOME/tcl \
     $HOME/tcl7.3 \
+    $HOME/tcl7.5 \
     /opt/Tcl \
     /opt/local \
-    /opt/local/tcl7.0 \
+    /opt/local/tcl7.5 \
+    /opt/local/tcl7.* \
+    /usr/bin \
     /Tools/tcl \
+    /usr/sgitcl \
     /local/encap/tcl-7.1 ; do
-    if test -r $dir/include/tcl.h -a -r $dir/lib/libtcl.a ; then
-	TCL_DIR=$dir
-	break
+    if test -r $dir/include/tcl.h ; then 
+        if test -r $dir/lib/libtcl.a -o -r $dir/lib/libtcl.so ; then
+ 	    TCL_DIR=$dir
+	    break
+        fi
+	for file in $dir/lib/libtcl*.a ; do
+	    if test -r $file ; then 
+                TCL_DIR_W="$TCL_DIR_W $file"
+	    fi
+	done
     fi
 done
 fi
 if test -n "$TCL_DIR" ; then 
   if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""found $TCL_DIR/include/tcl.h and $TCL_DIR/lib/libtcl.a"
+echo "$ac_t""found $TCL_DIR/include/tcl.h and $TCL_DIR/lib/libtcl"
 else
-echo "$ac_t""found $TCL_DIR/include/tcl.h and $TCL_DIR/lib/libtcl.a" 1>&1
+echo "$ac_t""found $TCL_DIR/include/tcl.h and $TCL_DIR/lib/libtcl" 1>&1
 fi
 else
-  if test -z "$ac_echo_test" -a 1 = 1 ; then
+  if test -n "$TCL_DIR_W" ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""found $TCL_DIR_W but need libtcl.a"
+else
+echo "$ac_t""found $TCL_DIR_W but need libtcl.a" 1>&1
+fi
+  else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+  fi
 fi
 # Look for Tk (look in tcl dir if the code is nowhere else)
 if test -z "$TK_DIR" ; then
@@ -1159,7 +1274,20 @@ echo $ac_n "checking for Tk""... $ac_c"
 else
 echo $ac_n "checking for Tk""... $ac_c" 1>&1
 fi
-for dir in \
+if test -n "$wishloc" ; then
+    cat >conftest <<EOF
+puts stdout \$tk_library
+exit
+EOF
+    tklibloc=`$wishloc -file conftest`
+    # The tklibloc is the directory containing the .k files.  
+    # The .a files may be one directory up
+    tklibloc=`dirname $tklibloc`
+    # and the lib directory one above that
+    tklibs="$tklibloc `dirname $tklibloc`"
+    /bin/rm -f conftest   
+fi
+for dir in $tklibs \
     /usr \
     /usr/local \
     /usr/local/tk3.6 \
@@ -1176,21 +1304,43 @@ for dir in \
     /opt/Tcl \
     /opt/local \
     /opt/local/tk3.6 \
+    /usr/bin \
     /Tools/tk \
+    /usr/sgitcl \
     /local/encap/tk-3.4 $TCL_DIR ; do
-    if test -r $dir/include/tk.h -a -r $dir/lib/libtk.a ; then
-	TK_DIR=$dir
-	break
+    if test -r $dir/include/tk.h ; then 
+        if test -r $dir/lib/libtk.a -o -r $dir/lib/libtk.so ; then
+	    TK_DIR=$dir
+	    break
+	fi
+	for file in $dir/lib/libtk*.a ; do
+	    if test -r $file ; then 
+                TK_DIR_W="$TK_DIR_W $file"
+	    fi
+	done
     fi
 done
 fi
 if test -n "$TK_DIR" ; then 
   if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""found $TK_DIR/include/tk.h and $TK_DIR/lib/libtk.a"
+echo "$ac_t""found $TK_DIR/include/tk.h and $TK_DIR/lib/libtk"
 else
-echo "$ac_t""found $TK_DIR/include/tk.h and $TK_DIR/lib/libtk.a" 1>&1
+echo "$ac_t""found $TK_DIR/include/tk.h and $TK_DIR/lib/libtk" 1>&1
 fi
 else
+  if test -n "$TK_DIR_W" ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""found $TK_DIR_W but need libtk.a (and version 3.6) "
+else
+echo "$ac_t""found $TK_DIR_W but need libtk.a (and version 3.6) " 1>&1
+fi
+  else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+  fi
   if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
@@ -1279,20 +1429,45 @@ main(){exit(0);}
 EOF
 eval $compile
 if test -s conftest && (./conftest; exit) 2>/dev/null; then
-  if test -z "$ac_echo_test" -a 1 = 1 ; then
+  pac_ok=1
+
+else
+  pac_ok=0
+fi
+rm -fr conftest*
+if test $pac_ok = 1 ; then
+    cat > conftest.c <<EOF
+#include "confdefs.h"
+main(){exit(1);}
+EOF
+eval $compile
+if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  pac_ok=0 
+
+fi
+rm -fr conftest*
+    if test $pac_ok = 1 ; then
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-
+    else
+        cross_compiling=1
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
 else
-  cross_compiling=1;if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes" 1>&1
+fi
+    fi
+else
+    cross_compiling=1
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
 fi
-rm -fr conftest*
 
 
 if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
@@ -1496,6 +1671,7 @@ XLIBSW='$XLIBSW'
 XPMLIB='$XPMLIB'
 TCL_DIR='$TCL_DIR'
 TK_DIR='$TK_DIR'
+USER_CFLAGS='$USER_CFLAGS'
 OPTFLAGS='$OPTFLAGS'
 LIBS='$LIBS'
 srcdir='$srcdir'
@@ -1533,6 +1709,7 @@ s%@XLIBSW@%$XLIBSW%g
 s%@XPMLIB@%$XPMLIB%g
 s%@TCL_DIR@%$TCL_DIR%g
 s%@TK_DIR@%$TK_DIR%g
+s%@USER_CFLAGS@%$USER_CFLAGS%g
 s%@OPTFLAGS@%$OPTFLAGS%g
 s%@LIBS@%$LIBS%g
 s%@srcdir@%$srcdir%g

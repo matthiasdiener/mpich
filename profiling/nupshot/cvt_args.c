@@ -7,12 +7,13 @@
 
 #include "tcl.h"
 #include <ctype.h>
+#include "cvt_args.h"
 
 #define DEBUG 0
 
 
-#ifdef GCC_WALL
-int sscanf( char *, const char *, ... );
+#ifdef NEEDS_STDLIB_PROTOTYPES
+#include "protofix.h"
 #endif
 
 

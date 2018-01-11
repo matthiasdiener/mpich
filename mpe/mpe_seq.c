@@ -3,7 +3,11 @@
 #ifndef NULL
 #define NULL (void *)0
 #endif
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#else
 extern void *malloc();
+#endif
 
 static int MPE_Seq_keyval = MPI_KEYVAL_INVALID;
 
@@ -50,7 +54,7 @@ MPI_Attr_get( comm, MPE_Seq_keyval, (void *)&local_comm, &flag );
 if (!flag) {
     /* This expects a communicator to be a pointer */
     MPI_Comm_dup( comm, &local_comm );
-    MPI_Attr_put( comm, MPE_Seq_keyval, (void *)local_comm );
+    MPI_Attr_put( comm, MPE_Seq_keyval, (void *)&local_comm );
     }
 MPI_Comm_rank( comm, &lidx );
 MPI_Comm_size( comm, &np );

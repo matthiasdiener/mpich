@@ -6,12 +6,6 @@
 #include "mpifort.h"
 #endif
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) a
-#define MPIR_FromPointer(a) (int)a
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_cart_map_ PMPI_CART_MAP
@@ -33,24 +27,26 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_cart_map_ ANSI_ARGS(( MPI_Comm, int *, int *, int *, int *, int * ));
+void mpi_cart_map_ ANSI_ARGS(( MPI_Comm *, int *, int *, int *, int *, int * ));
 
 void mpi_cart_map_ ( comm_old, ndims, dims, periods, newrank, __ierr )
-MPI_Comm comm_old;
-int*ndims;
+MPI_Comm *comm_old;
+int     *ndims;
 int     *dims;
 int     *periods;
 int     *newrank;
-int *__ierr;
+int     *__ierr;
 {
     int lperiods[20], i;
     if (*ndims > 20) {
-	*__ierr = MPIR_ERROR( comm_old, MPI_ERR_LIMIT, "Too many dimensions" );
+	struct MPIR_COMMUNICATOR *comm_old_ptr;
+	comm_old_ptr = MPIR_GET_COMM_PTR(*comm_old);
+	*__ierr = MPIR_ERROR( comm_old_ptr, MPI_ERR_LIMIT, 
+			      "Too many dimensions" );
 	return;
 	}
     for (i=0; i<*ndims; i++) 
 	lperiods[i] = MPIR_FROM_FLOG(periods[i]);
-    *__ierr = MPI_Cart_map(
-	(MPI_Comm)MPIR_ToPointer(*((int*)comm_old)),*ndims,dims,
+    *__ierr = MPI_Cart_map( *comm_old, *ndims,dims,
 			   lperiods,newrank);
 }

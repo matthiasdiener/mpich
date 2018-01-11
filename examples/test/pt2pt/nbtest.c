@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include "mpi.h"
 
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
+
 /*
    Test to make sure that nonblocking routines actually work
    In this example, we assume that we do not know the message

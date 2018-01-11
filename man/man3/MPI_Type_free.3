@@ -1,4 +1,4 @@
-.TH MPI_Type_free 3 "4/11/1996" " " "MPI"
+.TH MPI_Type_free 3 "1/6/1997" " " "MPI"
 .SH NAME
 MPI_Type_free \-  Frees the datatype 
 .SH SYNOPSIS
@@ -13,6 +13,17 @@ MPI_Datatype *datatype;
 .B datatype 
 - datatype that is freed (handle) 
 .PD 1
+
+.SH PREDEFINED TYPES
+
+The MPI standard states that (in Opaque Objects)
+.nf
+MPI provides certain predefined opaque objects and predefined, static handles
+to these objects. Such objects may not be destroyed.
+.fi
+
+Thus, it is an error to free a predefined datatype.  The same section makes
+it clear that it is an error to free a null datatype.
 
 .SH NOTES FOR FORTRAN
 All MPI routines in Fortran (except for 

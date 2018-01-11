@@ -1,0 +1,24 @@
+$(LIB): $(OBJS) ibm_entrypt ibm_entrypt.exp
+	$(G_RM) -f $(LIB)
+	$(G_RM) -f nexus.exp
+	/usr/bin/nm -eC $(OBJS) $(PORTS0_OBJS) \
+		| /bin/awk -F'|' -f $(SRC_PATH)/ibm_exportlist.awk > nexus.exp
+	$(G_MKSHR) -o $(LIBBASE)$(FLAVOR_SUFFIX).$(G_OFILE) \
+		$(BASE_OBJS) $(G_NEXUS_OTHER_OBJS) $(PORTS0_OBJS) \
+		-bE:nexus.exp -bM:SRE -T512 -H512 -e _nostart \
+		-L/usr/lib/dce -lpthreads -lc_r \
+		-bI:$(SRC_PATH)/ibm_commonsyscalls.exp
+	$(G_AR) qv $(LIB) $(STATIC_OBJS) \
+		$(LIBBASE)$(FLAVOR_SUFFIX).$(G_OFILE)
+
+$(LIB_LITE): $(OBJS_LITE)
+	$(G_RM) -f $(LIB_LITE)
+	$(G_RM) -f nexus.exp
+	/usr/bin/nm -eC $(OBJS_LITE) $(PORTS0_OBJS) \
+		| /bin/awk -F'|' -f $(SRC_PATH)/ibm_exportlist.awk > nexus.exp
+	$(G_MKSHR) -o $(LIBBASE_LITE)$(FLAVOR_SUFFIX).$(G_OFILE) \
+		$(BASE_OBJS_LITE) $(G_NEXUS_OTHER_OBJS_LITE) $(PORTS0_OBJS) \
+		-bE:nexus.exp -bM:SRE -T512 -H512 -e _nostart \
+		-bI:$(SRC_PATH)/ibm_commonsyscalls.exp
+	$(G_AR) qv $(LIB_LITE) $(STATIC_OBJS_LITE) \
+		$(LIBBASE_LITE)$(FLAVOR_SUFFIX).$(G_OFILE)

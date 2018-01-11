@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_free.c,v 1.43 1996/06/26 19:27:26 gropp Exp $
+ *  $Id: comm_free.c,v 1.47 1997/01/07 01:47:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -25,6 +25,18 @@ MPI_Comm_free - Marks the communicator object for deallocation
 Input Parameter:
 . comm - communicator to be destroyed (handle) 
 
+Null Handles:
+The MPI 1.1 specification, in the section on opaque objects, explicitly
+disallows freeing a null communicator.  The text from the standard is:
+.vb
+ A null handle argument is an erroneous IN argument in MPI calls, unless an
+ exception is explicitly stated in the text that defines the function. Such
+ exception is allowed for handles to request objects in Wait and Test calls
+ (sections Communication Completion and Multiple Completions ). Otherwise, a
+ null handle can only be passed to a function that allocates a new object and
+ returns a reference to it in the handle.
+.ve
+
 .N fortran
 
 .N Errors
@@ -36,31 +48,47 @@ int MPI_Comm_free ( commp )
 MPI_Comm *commp;
 {
   int mpi_errno = MPI_SUCCESS;
-  MPI_Comm comm = *commp;
+  int attr_free_err = 0;
+  struct MPIR_COMMUNICATOR *comm;
+  static char myname[] = "MPI_COMM_FREE";
 
+  TR_PUSH(myname);
   DBG(FPRINTF(OUTFILE, "Freeing communicator %ld\n", (long)comm );)
   DBG(FPRINTF(OUTFILE,"About to check for null comm\n");fflush(OUTFILE);)
-  /* Check for null communicator */
-  if (comm == MPI_COMM_NULL)
-    return (mpi_errno);
 
+  /* Check for null communicator */
+  /* The actual effect of freeing a null communicator is not defined
+     by the standard.  For now, I'll leave it as ok */
+  if (*commp == MPI_COMM_NULL) {
+      TR_POP;
+      mpi_errno = MPI_ERR_COMM_NULL;
+      return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+  }
+
+  comm = MPIR_GET_COMM_PTR(*commp);
+  MPIR_TEST_MPI_COMM(*commp,comm,comm,myname);
+      
   DBG(FPRINTF(OUTFILE,"About to check args\n");fflush(OUTFILE);)
-  /* Check for bad arguments */
-  if ( MPIR_TEST_COMM(comm,comm) )
-	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno,
-					  "Error in MPI_COMM_FREE" );
+
+#ifdef MPIR_MEMDEBUG
+  if (commp == &comm->self) {
+      fprintf( stderr, 
+	       "Cannot pass address of self pointer to MPI_Comm_free\n" );
+      MPI_Abort( (MPI_Comm)0, 2 );
+  }
+#endif
 
   DBG(FPRINTF(OUTFILE,"About to free group\n");fflush(OUTFILE);)
 
-  if ( --(comm->ref_count) <= 0 ) {
+  MPIR_REF_DECR(comm);
+  if ( comm->ref_count <= 0 ) {
 
       DBG(FPRINTF(OUTFILE,"About to check for perm comm\n");fflush(OUTFILE);)
       /* We can't free permanent objects unless finalize has been called */
       if  ( ( comm->permanent == 1 ) && (MPIR_Has_been_initialized == 1) )
-	  return MPIR_ERROR( comm, MPI_ERR_PERM_KEY,
-			     "Error in MPI_COMM_FREE" );
+	  return MPIR_ERROR( comm, MPI_ERR_PERM_KEY, myname );
 
-      /* Remove it form the debuggers list of active communicators */
+      /* Remove it from the debuggers list of active communicators */
       MPIR_Comm_forget( comm );
 
 #ifdef MPI_ADI2
@@ -74,8 +102,12 @@ MPI_Comm *commp;
 	 * set up have the ref count boosted beforehand, so they're
 	 * never freed !
 	 */
-	if (comm->collops && --(comm->collops->ref_count) == 0)
-	    FREE(comm->collops);
+	if (comm->collops) {
+	    MPIR_REF_DECR(comm->collops);
+	    if (comm->collops->ref_count == 0) {
+		FREE(comm->collops);
+	    }
+	}
 	comm->collops = NULL;
 
         DBG(FPRINTF(OUTFILE,"About to free context\n");fflush(OUTFILE);)
@@ -90,20 +122,30 @@ MPI_Comm *commp;
 
         DBG(FPRINTF(OUTFILE,"About to free coll comm\n");fflush(OUTFILE);)
 	/* Free collective communicator (unless it refers back to myself) */
-	if ( comm->comm_coll != comm )
-	  MPI_Comm_free ( &(comm->comm_coll) );
+	if ( comm->comm_coll != comm ) {
+	    MPI_Comm ctmp = comm->comm_coll->self;
+	    MPI_Comm_free ( &ctmp );
+	}
 
 	/* Put this after freeing the collective comm because it may have
-	   incremented the ref count of the attribute tree */
+	   incremented the ref count of the attribute tree.
+	   Grumble.  If we want an error return from the delete-attribute
+           to prevent freeing a communicator, we'd need to do this FIRST 
+         */
         DBG(FPRINTF(OUTFILE,"About to free cache info\n");fflush(OUTFILE);)
 	/* Free cache information */
-	MPIR_Attr_free_tree ( comm );
+	attr_free_err = MPIR_Attr_free_tree ( comm );
 	
         DBG(FPRINTF(OUTFILE,"About to free groups\n");fflush(OUTFILE);)
 	/* Free groups */
-	MPI_Group_free ( &(comm->group) );
-	MPI_Group_free ( &(comm->local_group) );
-
+	    /* Note that since group and local group might be the same
+	       value, we can't pass the self entries directly (if we
+	       did, the first group_free would cause the second to
+	       use (MPI_Group)0) */
+	    {MPI_Group tmp;
+	tmp = comm->group->self; MPI_Group_free ( &tmp );
+	tmp = comm->local_group->self; MPI_Group_free ( &tmp );
+	    }
 	MPI_Errhandler_free( &(comm->error_handler) );
 
         /* Free off any name string that may be present */
@@ -115,14 +157,23 @@ MPI_Comm *commp;
 
         DBG(FPRINTF(OUTFILE,"About to free comm structure\n");fflush(OUTFILE);)
 	/* Free comm structure */
-	MPIR_SET_COOKIE(comm,0);
+	MPIR_CLR_COOKIE(comm);
+	MPIR_RmPointer( *commp );
 	FREE( comm );
   }
 
   DBG(FPRINTF(OUTFILE,"About to set comm to comm_null\n");fflush(OUTFILE);)
   /* Set comm to null */
   *commp = MPI_COMM_NULL;
-	
+
+  /* If the attribute delete routine returned an error, then
+     invoke the error handler with that */
+  if (mpi_errno == MPI_SUCCESS && attr_free_err) {
+      mpi_errno = attr_free_err;
+      return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+  }
+  TR_POP;
   return (mpi_errno);
 }
+
 

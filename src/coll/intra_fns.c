@@ -1,5 +1,5 @@
 /*
- *  $Id: intra_fns.c,v 1.3 1996/06/07 15:08:09 gropp Exp $
+ *  $Id: intra_fns.c,v 1.7 1997/02/18 23:06:32 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -29,51 +29,57 @@
  */
 
 /* Forward declarations */
-static int intra_Barrier ANSI_ARGS((MPI_Comm comm ));
+static int intra_Barrier ANSI_ARGS((struct MPIR_COMMUNICATOR *comm ));
 static int intra_Bcast ANSI_ARGS((void* buffer, int count, 
-				  MPI_Datatype datatype, int root, 
-				  MPI_Comm comm ));
-static int intra_Gather ANSI_ARGS((void* sendbuf, int sendcount, 
-				   MPI_Datatype sendtype, void* recvbuf, 
-				   int recvcount, MPI_Datatype recvtype, 
-				   int root, MPI_Comm comm)); 
-static int intra_Gatherv ANSI_ARGS((void* sendbuf, int sendcount, 
-				    MPI_Datatype sendtype, 
-				    void* recvbuf, int *recvcounts, 
-				    int *displs, MPI_Datatype recvtype, 
-				    int root, MPI_Comm comm)); 
+				  struct MPIR_DATATYPE * datatype, int root, 
+				  struct MPIR_COMMUNICATOR *comm ));
+static int intra_Gather ANSI_ARGS((void*, int, 
+				   struct MPIR_DATATYPE *, void*, 
+				   int, struct MPIR_DATATYPE *, 
+				   int, struct MPIR_COMMUNICATOR *)); 
+static int intra_Gatherv ANSI_ARGS((void*, int, 
+				    struct MPIR_DATATYPE *, 
+				    void*, int *, 
+				    int *, struct MPIR_DATATYPE *, 
+				    int, struct MPIR_COMMUNICATOR *)); 
 static int intra_Scatter ANSI_ARGS((void* sendbuf, int sendcount, 
-				    MPI_Datatype sendtype, 
+				    struct MPIR_DATATYPE * sendtype, 
 				    void* recvbuf, int recvcount, 
-				    MPI_Datatype recvtype, 
-				    int root, MPI_Comm comm));
-static int intra_Scatterv ANSI_ARGS((void* sendbuf, int *sendcounts, 
-				     int *displs, MPI_Datatype sendtype, 
-				     void* recvbuf, int recvcount, 
-				     MPI_Datatype recvtype, int root, 
-				     MPI_Comm comm));
-static int intra_Allgather ANSI_ARGS((void* sendbuf, int sendcount, 
-				      MPI_Datatype sendtype, 
-				      void* recvbuf, int recvcount, 
-				      MPI_Datatype recvtype, MPI_Comm comm));
-static int intra_Allgatherv ANSI_ARGS((void* sendbuf, int sendcount, MPI_Datatype sendtype, 
-				       void* recvbuf, int *recvcounts, int *displs, 
-				       MPI_Datatype recvtype, MPI_Comm comm));
-static int intra_Alltoall ANSI_ARGS((void* sendbuf, int sendcount, MPI_Datatype sendtype, 
-				     void* recvbuf, int recvcount, MPI_Datatype recvtype, 
-				     MPI_Comm comm));
-static int intra_Alltoallv ANSI_ARGS((void* sendbuf, int *sendcounts, int *sdispls, 
-				      MPI_Datatype sendtype, void* recvbuf, int *recvcounts, 
-				      int *rdispls, MPI_Datatype recvtype, MPI_Comm comm));
-static int intra_Reduce ANSI_ARGS((void* sendbuf, void* recvbuf, int count, 
-				   MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm));
+				    struct MPIR_DATATYPE * recvtype, 
+				    int root, struct MPIR_COMMUNICATOR *comm));
+static int intra_Scatterv ANSI_ARGS((void*, int *, 
+				     int *, struct MPIR_DATATYPE *, 
+				     void*, int, 
+				     struct MPIR_DATATYPE *, int, 
+				     struct MPIR_COMMUNICATOR *));
+static int intra_Allgather ANSI_ARGS((void*, int, 
+				      struct MPIR_DATATYPE *, 
+				      void*, int, 
+				      struct MPIR_DATATYPE *, 
+				      struct MPIR_COMMUNICATOR *comm));
+static int intra_Allgatherv ANSI_ARGS((void*, int, struct MPIR_DATATYPE *, 
+				       void*, int *, int *, 
+				       struct MPIR_DATATYPE *, 
+				       struct MPIR_COMMUNICATOR *));
+static int intra_Alltoall ANSI_ARGS((void*, int, struct MPIR_DATATYPE *, 
+				     void*, int, struct MPIR_DATATYPE *, 
+				     struct MPIR_COMMUNICATOR *));
+static int intra_Alltoallv ANSI_ARGS((void*, int *, int *, 
+				      struct MPIR_DATATYPE *, void*, int *, 
+				      int *, struct MPIR_DATATYPE *, 
+				      struct MPIR_COMMUNICATOR *));
+static int intra_Reduce ANSI_ARGS((void*, void*, int, struct MPIR_DATATYPE *, 
+				   MPI_Op, 
+				   int, struct MPIR_COMMUNICATOR *));
 static int intra_Allreduce ANSI_ARGS((void*, void*, int, 
-				      MPI_Datatype, MPI_Op, MPI_Comm));
+				      struct MPIR_DATATYPE *, MPI_Op, 
+				      struct MPIR_COMMUNICATOR *));
 static int intra_Reduce_scatter ANSI_ARGS((void*, void*, int *, 
-					   MPI_Datatype, MPI_Op, MPI_Comm));
+					   struct MPIR_DATATYPE *, MPI_Op, 
+					   struct MPIR_COMMUNICATOR *));
 static int intra_Scan ANSI_ARGS((void* sendbuf, void* recvbuf, int count, 
-				 MPI_Datatype datatype, 
-				 MPI_Op op, MPI_Comm comm ));
+				 struct MPIR_DATATYPE * datatype, 
+				 MPI_Op op, struct MPIR_COMMUNICATOR *comm ));
 
 /* I don't really want to to this this way, but for now... */
 static struct _MPIR_COLLOPS intra_collops =  {
@@ -135,7 +141,7 @@ MPIR_COLLOPS MPIR_intra_collops = &intra_collops;
 
 /* Now the functions */
 static int intra_Barrier ( comm )
-MPI_Comm comm;
+struct MPIR_COMMUNICATOR *comm;
 {
   int        rank, size, N2_prev, surfeit;
   int        d, dst, src;
@@ -169,7 +175,7 @@ MPI_Comm comm;
         /* get the fanin letter from the upper "half" process: */
         dst = N2_prev + rank;
 
-        MPI_Recv((void *)0,0,MPI_INT,dst,MPIR_BARRIER_TAG, comm, &status);
+        MPI_Recv((void *)0,0,MPI_INT,dst,MPIR_BARRIER_TAG, comm->self, &status);
       }
 
       /* combine on embedded N2_prev power-of-two processes */
@@ -178,13 +184,13 @@ MPI_Comm comm;
 
         MPI_Sendrecv( (void *)0,0,MPI_INT,dst, MPIR_BARRIER_TAG,
                      (void *)0,0,MPI_INT,dst, MPIR_BARRIER_TAG, 
-                     comm, &status);
+                     comm->self, &status);
       }
 
       /* fanout data to nodes above N2_prev... */
       if ( rank < surfeit ) {
         dst = N2_prev + rank;
-        MPI_Send( (void *)0, 0, MPI_INT, dst, MPIR_BARRIER_TAG, comm);
+        MPI_Send( (void *)0, 0, MPI_INT, dst, MPIR_BARRIER_TAG, comm->self);
       }
     } 
     else {
@@ -192,7 +198,7 @@ MPI_Comm comm;
       src = rank - N2_prev;
       MPI_Sendrecv( (void *)0, 0, MPI_INT, src, MPIR_BARRIER_TAG,
                    (void *)0, 0, MPI_INT, src, MPIR_BARRIER_TAG, 
-                   comm, &status);
+                   comm->self, &status);
     }
 
     /* Unlock for collective operation */
@@ -205,9 +211,9 @@ MPI_Comm comm;
 static int intra_Bcast ( buffer, count, datatype, root, comm )
 void             *buffer;
 int               count;
-MPI_Datatype      datatype;
+struct MPIR_DATATYPE *      datatype;
 int               root;
-MPI_Comm          comm;
+struct MPIR_COMMUNICATOR *         comm;
 {
   MPI_Status status;
   int        rank, size, src, dst;
@@ -223,7 +229,7 @@ MPI_Comm          comm;
   /* Is root within the comm and more than 1 processes involved? */
   MPIR_Comm_size ( comm, &size );
   if ( (root >= size)  && (MPIR_ERROR_PUSH_ARG(&root),mpi_errno = MPI_ERR_ROOT) )
-    return MPIR_ERROR( comm, mpi_errno, "Invalid root in MPI_BCAST" );
+    return MPIR_ERROR( comm, mpi_errno, "MPI_BCAST" );
   
   /* If there is only one process */
   if (size == 1)
@@ -291,16 +297,16 @@ MPI_Comm          comm;
 		/* If I'm the "root" of some processes, then send */
 		if ( int_n == 0 ) {
 		  dst = (rank + N_rank) % size;
-		  mpi_errno = MPI_Send (buffer,count,datatype,dst,
-					MPIR_BCAST_TAG,comm);
+		  mpi_errno = MPI_Send (buffer,count,datatype->self,dst,
+					MPIR_BCAST_TAG,comm->self);
 		  if (mpi_errno) return mpi_errno;
 		}
 		/* If a root is sending me a message, then recv and become a 
 		   "root" */
 		else if ( int_n == N_rank ) {
 		  src = (rank - N_rank + size) % size;
-		  mpi_errno = MPI_Recv(buffer,count,datatype,src,
-				       MPIR_BCAST_TAG,comm,&status);
+		  mpi_errno = MPI_Recv(buffer,count,datatype->self,src,
+				       MPIR_BCAST_TAG,comm->self,&status);
 		  if (mpi_errno) return mpi_errno;
 		  int_n   = 0;
 		}
@@ -316,8 +322,8 @@ MPI_Comm          comm;
       if (num_in_block > 1) {
 	  for ( i = 1; i < num_in_block; i++ ) {
 	      dst = (rank + i) % size;
-	      mpi_errno = MPI_Isend(buffer,count,datatype,dst,
-				    MPIR_BCAST_TAG,comm, &hd[i]);
+	      mpi_errno = MPI_Isend(buffer,count,datatype->self,dst,
+				    MPIR_BCAST_TAG,comm->self, &hd[i]);
 	      if (mpi_errno) return mpi_errno;
 	      }
 	  mpi_errno = MPI_Waitall(num_in_block-1, &hd[1], &statuses[1]);
@@ -328,24 +334,24 @@ MPI_Comm          comm;
     /* node in my block */
     else {
       src = (rank + size - my_offset) % size;
-      mpi_errno = MPI_Recv(buffer,count,datatype,src,
-			   MPIR_BCAST_TAG,comm,&status);
+      mpi_errno = MPI_Recv(buffer,count,datatype->self,src,
+			   MPIR_BCAST_TAG,comm->self,&status);
       if (mpi_errno) return mpi_errno;
     }
 	
     /* Now send to any "extra" nodes */
     if ( n < surfeit ) {
       dst = ( rank + participants ) % size;
-      mpi_errno = MPI_Send( buffer, count, datatype, dst, 
-			   MPIR_BCAST_TAG, comm );
+      mpi_errno = MPI_Send( buffer, count, datatype->self, dst, 
+			   MPIR_BCAST_TAG, comm->self );
       if (mpi_errno) return mpi_errno;
     }
   }
   /* else I'm not in a participating block, I'm an "extra" node */
   else {
     src = ( root + n - participants ) % size;
-    mpi_errno = MPI_Recv ( buffer, count, datatype, src, 
-			  MPIR_BCAST_TAG, comm, &status );
+    mpi_errno = MPI_Recv ( buffer, count, datatype->self, src, 
+			  MPIR_BCAST_TAG, comm->self, &status );
   }
 
   /* Unlock for collective operation */
@@ -358,12 +364,12 @@ static int intra_Gather ( sendbuf, sendcnt, sendtype, recvbuf, recvcount, recvty
 		 root, comm )
 void             *sendbuf;
 int               sendcnt;
-MPI_Datatype      sendtype;
+struct MPIR_DATATYPE *      sendtype;
 void             *recvbuf;
 int               recvcount;
-MPI_Datatype      recvtype;
+struct MPIR_DATATYPE *      recvtype;
 int               root;
-MPI_Comm          comm;
+struct MPIR_COMMUNICATOR *         comm;
 {
   int        size, rank;
   int        mpi_errno = MPI_SUCCESS;
@@ -373,7 +379,7 @@ MPI_Comm          comm;
   MPIR_Comm_size ( comm, &size );
   if ( (root >= size || root < 0) && 
        (MPIR_ERROR_PUSH_ARG(&root),mpi_errno = MPI_ERR_ROOT) )
-    return MPIR_ERROR( comm, mpi_errno, "Invalid root in MPI_GATHER" );
+    return MPIR_ERROR( comm, mpi_errno, "MPI_GATHER" );
 
   /* Get my rank and switch communicators to the hidden collective */
   MPIR_Comm_rank ( comm, &rank );
@@ -393,21 +399,21 @@ MPI_Comm          comm;
 
     /* This should really be COPYSELF.... , with the for look skipping
        root. */
-    mpi_errno = MPI_Isend(sendbuf, sendcnt, sendtype, root, 
-			  MPIR_GATHER_TAG, comm, &req);
+    mpi_errno = MPI_Isend(sendbuf, sendcnt, sendtype->self, root, 
+			  MPIR_GATHER_TAG, comm->self, &req);
     if (mpi_errno) return mpi_errno;
-    MPI_Type_extent(recvtype, &extent);
+    MPI_Type_extent(recvtype->self, &extent);
     for ( i=0; i<size; i++ ) {
 	mpi_errno = MPI_Recv( (void *)(((char*)recvbuf)+i*extent*recvcount), 
-			     recvcount, recvtype, i, 
-			     MPIR_GATHER_TAG, comm, &status);
+			     recvcount, recvtype->self, i, 
+			     MPIR_GATHER_TAG, comm->self, &status);
 	if (mpi_errno) return mpi_errno;
     }
     mpi_errno = MPI_Wait(&req, &status);
   }
   else 
-      mpi_errno = MPI_Send(sendbuf, sendcnt, sendtype, root, 
-			   MPIR_GATHER_TAG, comm);
+      mpi_errno = MPI_Send(sendbuf, sendcnt, sendtype->self, root, 
+			   MPIR_GATHER_TAG, comm->self);
 
   /* Unlock for collective operation */
   MPID_THREAD_UNLOCK(comm->ADIctx,comm);
@@ -420,13 +426,13 @@ static int intra_Gatherv ( sendbuf, sendcnt,  sendtype,
                   root, comm )
 void             *sendbuf;
 int               sendcnt;
-MPI_Datatype      sendtype;
+struct MPIR_DATATYPE *      sendtype;
 void             *recvbuf;
 int              *recvcnts;
 int              *displs;
-MPI_Datatype      recvtype;
+struct MPIR_DATATYPE *      recvtype;
 int               root;
-MPI_Comm          comm;
+struct MPIR_COMMUNICATOR *         comm;
 {
   int        size, rank;
   int        mpi_errno = MPI_SUCCESS;
@@ -435,7 +441,7 @@ MPI_Comm          comm;
   MPIR_Comm_size ( comm, &size );
   if ( (root >= size) || (root < 0) ) {
       MPIR_ERROR_PUSH_ARG(&root);
-      return MPIR_ERROR( comm, MPI_ERR_ROOT, "Invalid root in MPI_GATHERV" );
+      return MPIR_ERROR( comm, MPI_ERR_ROOT, "MPI_GATHERV" );
   }
 
   /* Get my rank and switch communicators to the hidden collective */
@@ -452,21 +458,21 @@ MPI_Comm          comm;
 	MPI_Request req;
 	MPI_Status       status;
 
-    mpi_errno = MPI_Isend(sendbuf, sendcnt, sendtype, root, 
-			  MPIR_GATHERV_TAG, comm, &req);
+    mpi_errno = MPI_Isend(sendbuf, sendcnt, sendtype->self, root, 
+			  MPIR_GATHERV_TAG, comm->self, &req);
       if (mpi_errno) return mpi_errno;
-    MPI_Type_extent(recvtype, &extent);
+    MPI_Type_extent(recvtype->self, &extent);
     for ( i=0; i<size; i++ ) {
 	mpi_errno = MPI_Recv( (void *)((char *)recvbuf+displs[i]*extent), 
-			     recvcnts[i], recvtype, i,
-			     MPIR_GATHERV_TAG, comm, &status );
+			     recvcnts[i], recvtype->self, i,
+			     MPIR_GATHERV_TAG, comm->self, &status );
 	if (mpi_errno) return mpi_errno;
     }
       mpi_errno = MPI_Wait(&req, &status);
   }
   else 
-      mpi_errno = MPI_Send( sendbuf, sendcnt, sendtype, root, 
-			   MPIR_GATHERV_TAG, comm );
+      mpi_errno = MPI_Send( sendbuf, sendcnt, sendtype->self, root, 
+			   MPIR_GATHERV_TAG, comm->self );
 
   /* Unlock for collective operation */
   MPID_THREAD_UNLOCK(comm->ADIctx,comm);
@@ -479,12 +485,12 @@ static int intra_Scatter ( sendbuf, sendcnt, sendtype,
 		  root, comm )
 void             *sendbuf;
 int               sendcnt;
-MPI_Datatype      sendtype;
+struct MPIR_DATATYPE *      sendtype;
 void             *recvbuf;
 int               recvcnt;
-MPI_Datatype      recvtype;
+struct MPIR_DATATYPE *      recvtype;
 int               root;
-MPI_Comm          comm;
+struct MPIR_COMMUNICATOR *         comm;
 {
   MPI_Status status;
   MPI_Aint   extent;
@@ -500,14 +506,14 @@ MPI_Comm          comm;
   if ( ( (root            <  0)           && (mpi_errno = MPI_ERR_ROOT) )   || 
        ( (root            >= size)        && (mpi_errno = MPI_ERR_ROOT) )) {
       MPIR_ERROR_PUSH_ARG(&root);
-      return MPIR_ERROR( comm, mpi_errno, "Error in MPI_SCATTER" ); 
+      return MPIR_ERROR( comm, mpi_errno, "MPI_SCATTER" ); 
   }
  
   /* Switch communicators to the hidden collective */
   comm = comm->comm_coll;
 
   /* Get the size of the send type */
-  MPI_Type_extent ( sendtype, &extent );
+  MPI_Type_extent ( sendtype->self, &extent );
 
   /* Lock for collective operation */
   MPID_THREAD_LOCK(comm->ADIctx,comm);
@@ -516,25 +522,27 @@ MPI_Comm          comm;
   if ( rank == root ) {
     for ( i=0; i<root; i++ ) {
 	mpi_errno = MPI_Send( (void *)((char *)sendbuf+i*sendcnt*extent), 
-			     sendcnt, sendtype, i, MPIR_SCATTER_TAG, comm);
+			     sendcnt, sendtype->self, i, MPIR_SCATTER_TAG, comm->self);
 	if (mpi_errno) return mpi_errno;
 	}
 
     mpi_errno = MPI_Sendrecv ( (void *)((char *)sendbuf+rank*sendcnt*extent),
-			      sendcnt,sendtype, rank, MPIR_SCATTER_TAG,
-			  recvbuf, recvcnt, recvtype, rank, MPIR_SCATTER_TAG, 
-			      comm, &status );
+			      sendcnt,sendtype->self, rank, MPIR_SCATTER_TAG,
+			       recvbuf, recvcnt, recvtype->self, rank, 
+			       MPIR_SCATTER_TAG, 
+			      comm->self, &status );
     if (mpi_errno) return mpi_errno;
 
     for ( i=root+1; i<size; i++ ) {
 	mpi_errno = MPI_Send( (void *)((char *)sendbuf+i*sendcnt*extent), 
-			      sendcnt, sendtype, i, MPIR_SCATTER_TAG, comm);
+			      sendcnt, sendtype->self, i, 
+			      MPIR_SCATTER_TAG, comm->self);
 	if (mpi_errno) return mpi_errno;
 	}
   }
   else 
-      mpi_errno = MPI_Recv(recvbuf,recvcnt,recvtype,root,
-			   MPIR_SCATTER_TAG,comm,&status);
+      mpi_errno = MPI_Recv(recvbuf,recvcnt,recvtype->self,root,
+			   MPIR_SCATTER_TAG,comm->self,&status);
   
   /* Unlock for collective operation */
   MPID_THREAD_UNLOCK(comm->ADIctx,comm);
@@ -548,12 +556,12 @@ static int intra_Scatterv ( sendbuf, sendcnts, displs, sendtype,
 void             *sendbuf;
 int              *sendcnts;
 int              *displs;
-MPI_Datatype      sendtype;
+struct MPIR_DATATYPE *      sendtype;
 void             *recvbuf;
 int               recvcnt;
-MPI_Datatype      recvtype;
+struct MPIR_DATATYPE *      recvtype;
 int               root;
-MPI_Comm          comm;
+struct MPIR_COMMUNICATOR *         comm;
 {
   MPI_Status status;
   int        rank, size;
@@ -567,7 +575,7 @@ MPI_Comm          comm;
   if ( ( (root            <  0)           && (mpi_errno = MPI_ERR_ROOT) )  || 
        ( (root            >= size)        && (mpi_errno = MPI_ERR_ROOT) )) {
       MPIR_ERROR_PUSH_ARG(&root);
-      return MPIR_ERROR( comm, mpi_errno, "Error in MPI_SCATTERV" );
+      return MPIR_ERROR( comm, mpi_errno, "MPI_SCATTERV" );
   }
 
   /* Switch communicators to the hidden collective */
@@ -581,30 +589,32 @@ MPI_Comm          comm;
     MPI_Aint extent;
     int      i;
 
-    MPI_Type_extent(sendtype, &extent);
+    MPI_Type_extent(sendtype->self, &extent);
     /* We could use Isend here, but since the receivers need to execute
        a simple Recv, it may not make much difference in performance, 
        and using the blocking version is simpler */
     for ( i=0; i<root; i++ ) {
       mpi_errno = MPI_Send( (void *)((char *)sendbuf+displs[i]*extent), 
-			   sendcnts[i], sendtype, i, MPIR_SCATTERV_TAG, comm);
+			   sendcnts[i], sendtype->self, i, MPIR_SCATTERV_TAG, comm->self);
       if (mpi_errno) return mpi_errno;
       }
     mpi_errno = MPI_Sendrecv((void *)((char *)sendbuf+displs[rank]*extent), 
 		 sendcnts[rank], 
-                 sendtype, rank, MPIR_SCATTERV_TAG, recvbuf, recvcnt, recvtype, 
-                 rank, MPIR_SCATTERV_TAG, comm, &status);
+                 sendtype->self, rank, MPIR_SCATTERV_TAG, 
+			     recvbuf, recvcnt, recvtype->self, 
+                 rank, MPIR_SCATTERV_TAG, comm->self, &status);
     if (mpi_errno) return mpi_errno;
 
     for ( i=root+1; i<size; i++ ) {
       mpi_errno = MPI_Send( (void *)((char *)sendbuf+displs[i]*extent), 
-			   sendcnts[i], sendtype, i, MPIR_SCATTERV_TAG, comm);
+			   sendcnts[i], sendtype->self, i, 
+			    MPIR_SCATTERV_TAG, comm->self);
       if (mpi_errno) return mpi_errno;
       }
   }
   else
-      mpi_errno = MPI_Recv(recvbuf,recvcnt,recvtype,root,
-			   MPIR_SCATTERV_TAG,comm,&status);
+      mpi_errno = MPI_Recv(recvbuf,recvcnt,recvtype->self,root,
+			   MPIR_SCATTERV_TAG,comm->self,&status);
 
   /* Unlock for collective operation */
   MPID_THREAD_UNLOCK(comm->ADIctx,comm);
@@ -617,11 +627,11 @@ static int intra_Allgather ( sendbuf, sendcount, sendtype,
                     recvbuf, recvcount, recvtype, comm )
 void             *sendbuf;
 int               sendcount;
-MPI_Datatype      sendtype;
+struct MPIR_DATATYPE *      sendtype;
 void             *recvbuf;
 int               recvcount;
-MPI_Datatype      recvtype;
-MPI_Comm          comm;
+struct MPIR_DATATYPE *      recvtype;
+struct MPIR_COMMUNICATOR *         comm;
 {
   int        size, rank;
   int        mpi_errno = MPI_SUCCESS;
@@ -639,13 +649,18 @@ MPI_Comm          comm;
      doing size Gathers.
    */
 
-  MPI_Type_extent ( recvtype, &recv_extent );
+  MPI_Type_extent ( recvtype->self, &recv_extent );
 
+  /* Switch communicators to the hidden collective */
+  comm = comm->comm_coll;
+ 
   /* First, load the "local" version in the recvbuf. */
   mpi_errno = 
-      MPI_Sendrecv( sendbuf, sendcount, sendtype, rank, MPIR_ALLGATHER_TAG,
+      MPI_Sendrecv( sendbuf, sendcount, sendtype->self, rank, 
+		    MPIR_ALLGATHER_TAG,
                     (void *)((char *)recvbuf + rank*recvcount*recv_extent),
-		    recvcount, recvtype, rank, MPIR_ALLGATHER_TAG, comm,
+		    recvcount, recvtype->self, rank, MPIR_ALLGATHER_TAG, 
+		    comm->self,
 		    &status );
   if (mpi_errno) return mpi_errno;
 
@@ -661,9 +676,10 @@ MPI_Comm          comm;
   for (i=1; i<size; i++) {
       mpi_errno = 
 	  MPI_Sendrecv( (void *)((char *)recvbuf+j*recvcount*recv_extent),
-		    recvcount, recvtype, right, MPIR_ALLGATHER_TAG,
+		    recvcount, recvtype->self, right, MPIR_ALLGATHER_TAG,
                     (void *)((char *)recvbuf + jnext*recvcount*recv_extent),
-		    recvcount, recvtype, left, MPIR_ALLGATHER_TAG, comm,
+		    recvcount, recvtype->self, left, 
+			MPIR_ALLGATHER_TAG, comm->self,
 		    &status );
       if (mpi_errno) break;
       j	    = jnext;
@@ -677,12 +693,12 @@ static int intra_Allgatherv ( sendbuf, sendcount,  sendtype,
                      recvbuf, recvcounts, displs,   recvtype, comm )
 void             *sendbuf;
 int               sendcount;
-MPI_Datatype      sendtype;
+struct MPIR_DATATYPE *      sendtype;
 void             *recvbuf;
 int              *recvcounts;
 int              *displs;
-MPI_Datatype      recvtype;
-MPI_Comm          comm;
+struct MPIR_DATATYPE *      recvtype;
+struct MPIR_COMMUNICATOR *         comm;
 {
   int        size, rank;
   int        mpi_errno = MPI_SUCCESS;
@@ -694,21 +710,28 @@ MPI_Comm          comm;
   MPIR_Comm_size ( comm, &size );
   MPIR_Comm_rank ( comm, &rank );
 
+  /* Switch communicators to the hidden collective */
+  comm = comm->comm_coll;
+
   /* Do a gather for each process in the communicator
      This is the "circular" algorithm for allgatherv - each process sends to
      its right and receives from its left.  This is faster than simply
      doing size Gathervs.
    */
 
-  MPI_Type_extent ( recvtype, &recv_extent );
+  MPI_Type_extent ( recvtype->self, &recv_extent );
 
   /* First, load the "local" version in the recvbuf. */
   mpi_errno = 
-      MPI_Sendrecv( sendbuf, sendcount, sendtype, rank, MPIR_ALLGATHERV_TAG,
+      MPI_Sendrecv( sendbuf, sendcount, sendtype->self, rank, 
+		    MPIR_ALLGATHERV_TAG,
                     (void *)((char *)recvbuf + displs[rank]*recv_extent),
-		    recvcounts[rank], recvtype, rank, MPIR_ALLGATHERV_TAG, 
-		    comm, &status );
-  if (mpi_errno) return mpi_errno;
+		    recvcounts[rank], recvtype->self, rank, 
+		    MPIR_ALLGATHERV_TAG, 
+		    comm->self, &status );
+  if (mpi_errno) {
+      return mpi_errno;
+  }
 
   left  = (size + rank - 1) % size;
   right = (rank + 1) % size;
@@ -718,10 +741,10 @@ MPI_Comm          comm;
   for (i=1; i<size; i++) {
       mpi_errno = 
 	  MPI_Sendrecv( (void *)((char *)recvbuf+displs[j]*recv_extent),
-		    recvcounts[j], recvtype, right, MPIR_ALLGATHERV_TAG,
+		    recvcounts[j], recvtype->self, right, MPIR_ALLGATHERV_TAG,
                     (void *)((char *)recvbuf + displs[jnext]*recv_extent),
-		    recvcounts[jnext], recvtype, left, 
-		       MPIR_ALLGATHERV_TAG, comm,
+		    recvcounts[jnext], recvtype->self, left, 
+		       MPIR_ALLGATHERV_TAG, comm->self,
 		    &status );
       if (mpi_errno) break;
       j	    = jnext;
@@ -734,11 +757,11 @@ static int intra_Alltoall( sendbuf, sendcount, sendtype,
                   recvbuf, recvcnt, recvtype, comm )
 void             *sendbuf;
 int               sendcount;
-MPI_Datatype      sendtype;
+struct MPIR_DATATYPE *      sendtype;
 void             *recvbuf;
 int               recvcnt;
-MPI_Datatype      recvtype;
-MPI_Comm          comm;
+struct MPIR_DATATYPE *      recvtype;
+struct MPIR_COMMUNICATOR *         comm;
 {
   int          size, rank, i;
   MPI_Aint     send_extent, recv_extent;
@@ -752,8 +775,8 @@ MPI_Comm          comm;
   comm = comm->comm_coll;
   
   /* Get extent of send and recv types */
-  MPI_Type_extent ( sendtype, &send_extent );
-  MPI_Type_extent ( recvtype, &recv_extent );
+  MPI_Type_extent ( sendtype->self, &send_extent );
+  MPI_Type_extent ( recvtype->self, &recv_extent );
 
   /* Lock for collective operation */
   MPID_THREAD_LOCK(comm->ADIctx, comm);
@@ -762,10 +785,10 @@ MPI_Comm          comm;
  */
   /* 1st, get some storage from the heap to hold handles, etc. */
   MPIR_ALLOC(starray,(MPI_Status *)MALLOC(2*size*sizeof(MPI_Status)),
-	     comm, MPI_ERR_EXHAUSTED, "Error in MPI_ALLTOALL" );
+	     comm, MPI_ERR_EXHAUSTED, "MPI_ALLTOALL" );
 
   MPIR_ALLOC(reqarray, (MPI_Request *)MALLOC(2*size*sizeof(MPI_Request)),
-	     comm, MPI_ERR_EXHAUSTED, "Error in MPI_ALLTOALL" );
+	     comm, MPI_ERR_EXHAUSTED, "MPI_ALLTOALL" );
 
   /* do the communication -- post *all* sends and receives: */
   for ( i=0; i<size; i++ ) { 
@@ -775,20 +798,20 @@ MPI_Comm          comm;
       if ( (mpi_errno=MPI_Irecv(
 	  (void *)((char *)recvbuf + i*recvcnt*recv_extent),
                            recvcnt,
-                           recvtype,
+                           recvtype->self,
                            i,
                            MPIR_ALLTOALL_TAG,
-                           comm,
+                           comm->self,
                            &reqarray[2*i+1]))
           )
           break;
       if ((mpi_errno=MPI_Isend(
 	  (void *)((char *)sendbuf+i*sendcount*send_extent),
                            sendcount,
-                           sendtype,
+                           sendtype->self,
                            i,
                            MPIR_ALLTOALL_TAG,
-                           comm,
+                           comm->self,
                            &reqarray[2*i]))
           )
           break;
@@ -814,14 +837,14 @@ static int intra_Alltoallv ( sendbuf, sendcnts, sdispls, sendtype,
 void             *sendbuf;
 int              *sendcnts;
 int              *sdispls;
-MPI_Datatype      sendtype;
+struct MPIR_DATATYPE *      sendtype;
 void             *recvbuf;
 int              *recvcnts;
 int              *rdispls; 
-MPI_Datatype      recvtype;
-MPI_Comm          comm;
+struct MPIR_DATATYPE *      recvtype;
+struct MPIR_COMMUNICATOR *         comm;
 {
-  int        size, rank, i;
+  int        size, rank, i, j, rcnt;
   MPI_Aint   send_extent, recv_extent;
   int        mpi_errno = MPI_SUCCESS;
   MPI_Status  *starray;
@@ -833,45 +856,57 @@ MPI_Comm          comm;
   comm = comm->comm_coll;
 
   /* Get extent of send and recv types */
-  MPI_Type_extent(sendtype, &send_extent);
-  MPI_Type_extent(recvtype, &recv_extent);
+  MPI_Type_extent(sendtype->self, &send_extent);
+  MPI_Type_extent(recvtype->self, &recv_extent);
 
   /* Lock for collective operation */
   MPID_THREAD_LOCK(comm->ADIctx,comm);
 
   /* 1st, get some storage from the heap to hold handles, etc. */
   MPIR_ALLOC(starray,(MPI_Status *)MALLOC(2*size*sizeof(MPI_Status)),
-	     comm, MPI_ERR_EXHAUSTED, "Error in MPI_ALLTOALL" );
+	     comm, MPI_ERR_EXHAUSTED, "MPI_ALLTOALL" );
 
   MPIR_ALLOC(reqarray,(MPI_Request *)MALLOC(2*size*sizeof(MPI_Request)),
-	     comm, MPI_ERR_EXHAUSTED, "Error in MPI_ALLTOALL" );
+	     comm, MPI_ERR_EXHAUSTED, "MPI_ALLTOALL" );
 
   /* do the communication -- post *all* sends and receives: */
+  rcnt = 0;
   for ( i=0; i<size; i++ ) { 
+      reqarray[2*i] = MPI_REQUEST_NULL;
       if (( mpi_errno=MPI_Irecv(
 	                  (void *)((char *)recvbuf+rdispls[i]*recv_extent), 
                            recvcnts[i], 
-                           recvtype,
+                           recvtype->self,
                            i,
                            MPIR_ALLTOALL_TAG,
-                           comm,
+                           comm->self,
                            &reqarray[2*i+1]))
           )
           break;
+      rcnt++;
       if (( mpi_errno=MPI_Isend(
 	                   (void *)((char *)sendbuf+sdispls[i]*send_extent), 
                            sendcnts[i], 
-                           sendtype,
+                           sendtype->self,
                            i,
                            MPIR_ALLTOALL_TAG,
-                           comm,
+                           comm->self,
                            &reqarray[2*i]))
           )
           break;
+      rcnt++;
   }
   
   /* ... then wait for *all* of them to finish: */
-  mpi_errno = MPI_Waitall(2*size,reqarray,starray);
+  if (mpi_errno) {
+      /* We should really cancel all of the active requests */
+      for (j=0; j<rcnt; j++) {
+	  MPI_Cancel( &reqarray[j] );
+      }
+  }
+  else {
+      mpi_errno = MPI_Waitall(2*size,reqarray,starray);
+  }
   
   /* clean up */
   FREE(reqarray);
@@ -887,10 +922,10 @@ static int intra_Reduce ( sendbuf, recvbuf, count, datatype, op, root, comm )
 void             *sendbuf;
 void             *recvbuf;
 int               count;
-MPI_Datatype      datatype;
+struct MPIR_DATATYPE *datatype;
 MPI_Op            op;
 int               root;
-MPI_Comm          comm;
+struct MPIR_COMMUNICATOR *         comm;
 {
   MPI_Status status;
   int        size, rank;
@@ -899,6 +934,8 @@ MPI_Comm          comm;
   MPI_User_function *uop;
   MPI_Aint   lb, ub, m_extent;  /* Extent in memory */
   void       *buffer;
+  struct MPIR_OP *op_ptr;
+  static char myname[] = "MPI_REDUCE";
   MPIR_ERROR_DECL;
   mpi_comm_err_ret = 0;
 
@@ -906,13 +943,15 @@ MPI_Comm          comm;
   MPIR_Comm_size ( comm, &size );
   if ( ((root >= size) || (root < 0)) ) {
       MPIR_ERROR_PUSH_ARG(&root);
-      return MPIR_ERROR(comm, MPI_ERR_ROOT, 
-					  "Invalid root in MPI_REDUCE" );
+      return MPIR_ERROR(comm, MPI_ERR_ROOT, myname );
   }
 
   /* See the overview in Collection Operations for why this is ok */
   if (count == 0) return MPI_SUCCESS;
 
+  /* If the operation is predefined, we could check that the datatype's
+     type signature is compatible with the operation.  
+   */
 #ifdef MPID_Reduce
   /* Eventually, this could apply the MPID_Reduce routine in a loop for
      counts > 1 */
@@ -921,7 +960,7 @@ MPI_Comm          comm;
 	 This allows us to provide partial support (e.g., only SUM_DOUBLE)
        */
       if (MPIR_ADIReduce( comm->ADIctx, comm, sendbuf, recvbuf, count, 
-                      datatype, op, root ) == MPI_SUCCESS)
+                      datatype->self, op, root ) == MPI_SUCCESS)
 	  return MPI_SUCCESS;
       }
 #endif
@@ -929,7 +968,10 @@ MPI_Comm          comm;
   /* Get my rank and switch communicators to the hidden collective */
   MPIR_Comm_rank ( comm, &rank );
   comm = comm->comm_coll;
-  uop  = op->op;
+  op_ptr = MPIR_GET_OP_PTR(op);
+  MPIR_TEST_MPI_OP(op,op_ptr,comm,myname);
+  uop  = op_ptr->op;
+
 
   /* Here's the algorithm.  Relative to the root, look at the bit pattern in 
      my rank.  Starting from the right (lsb), if the bit is 1, send to 
@@ -980,67 +1022,76 @@ MPI_Comm          comm;
   /* This code isn't correct if the source is a more complex datatype */
   memcpy( recvbuf, sendbuf, m_extent*count );
   mask    = 0x1;
-  if (op->commute) lroot   = root;
-  else             lroot   = 0;
+  if (op_ptr->commute) lroot   = root;
+  else                 lroot   = 0;
   relrank = (rank - lroot + size) % size;
 
   /* Lock for collective operation */
   MPID_THREAD_LOCK(comm->ADIctx,comm);
   
+  MPIR_Op_errno = MPI_SUCCESS;
   while (/*(mask & relrank) == 0 && */mask < size) {
 	/* Receive */
 	if ((mask & relrank) == 0) {
 	    source = (relrank | mask);
 	    if (source < size) {
 		source = (source + lroot) % size;
-		mpi_errno = MPI_Recv (buffer, count, datatype, source, 
-				      MPIR_REDUCE_TAG, comm, &status);
-		if (mpi_errno) return MPIR_ERROR( comm, mpi_errno, 
-					    "Error receiving in MPI_REDUCE" );
+		mpi_errno = MPI_Recv (buffer, count, datatype->self, source, 
+				      MPIR_REDUCE_TAG, comm->self, &status);
+		if (mpi_errno) return MPIR_ERROR( comm, mpi_errno, myname ); 
 		/* The sender is above us, so the received buffer must be
 		   the second argument (in the noncommutitive case). */
 		/* error pop/push allows errors found by predefined routines
 		   to be visible.  We need a better way to do this */
-		MPIR_ERROR_POP(comm);
-		if (op->commute)
-		    (*uop)(buffer, recvbuf, &count, &datatype);
+		/* MPIR_ERROR_POP(comm); */
+		if (op_ptr->commute)
+		    (*uop)(buffer, recvbuf, &count, &datatype->self);
 		else {
-		    (*uop)(recvbuf, buffer, &count, &datatype);
+		    (*uop)(recvbuf, buffer, &count, &datatype->self);
 		    /* short term hack to keep recvbuf up-to-date */
 		    memcpy( recvbuf, buffer, m_extent*count );
 		    }
-		MPIR_ERROR_PUSH(comm);
+		/* MPIR_ERROR_PUSH(comm); */
 		}
 	    }
 	else {
 	    /* I've received all that I'm going to.  Send my result to 
 	       my parent */
 	    source = ((relrank & (~ mask)) + lroot) % size;
-	    mpi_errno  = MPI_Send( recvbuf, count, datatype, 
+	    mpi_errno  = MPI_Send( recvbuf, count, datatype->self, 
 				  source, 
 				  MPIR_REDUCE_TAG, 
-				  comm );
-	    if (mpi_errno) return MPIR_ERROR( comm, mpi_errno, 
-					     "Error sending in MPI_REDUCE" );
+				  comm->self );
+	    if (mpi_errno) return MPIR_ERROR( comm, mpi_errno, myname );
 	    break;
 	    }
 	mask <<= 1;
 	}
   FREE( (char *)buffer + lb );
-  if (!op->commute && root != 0) {
+  if (!op_ptr->commute && root != 0) {
       if (rank == 0) {
-	  mpi_errno  = MPI_Send( recvbuf, count, datatype, root, 
-				MPIR_REDUCE_TAG, comm );
+	  mpi_errno  = MPI_Send( recvbuf, count, datatype->self, root, 
+				MPIR_REDUCE_TAG, comm->self );
 	  }
       else if (rank == root) {
-	  mpi_errno = MPI_Recv ( recvbuf, count, datatype, 0, /*size-1, */
-				MPIR_REDUCE_TAG, comm, &status);
+	  mpi_errno = MPI_Recv ( recvbuf, count, datatype->self, 0, /*size-1, */
+				MPIR_REDUCE_TAG, comm->self, &status);
 	  }
       }
 
   /* Free the temporarily allocated recvbuf */
   if (rank != root)
     FREE( (char *)recvbuf + lb );
+
+  /* If the predefined operation detected an error, report it here */
+  /* Note that only the root gets this result, so this can cause
+     programs to hang, particularly if this is used to implement 
+     MPI_Allreduce.  Use care with this.
+   */
+  if (mpi_errno == MPI_SUCCESS && MPIR_Op_errno) {
+      /* printf( "Error in performing MPI_Op in reduce\n" ); */
+      mpi_errno = MPIR_Op_errno;
+  }
 
   /* Unlock for collective operation */
   MPID_THREAD_UNLOCK(comm->ADIctx,comm);
@@ -1052,16 +1103,19 @@ static int intra_Allreduce ( sendbuf, recvbuf, count, datatype, op, comm )
 void             *sendbuf;
 void             *recvbuf;
 int               count;
-MPI_Datatype      datatype;
+struct MPIR_DATATYPE *      datatype;
 MPI_Op            op;
-MPI_Comm          comm;
+struct MPIR_COMMUNICATOR *         comm;
 {
-  int mpi_errno = MPI_SUCCESS;
+  int mpi_errno, rc;
 
   /* Reduce to 0, then bcast */
-  mpi_errno = MPI_Reduce ( sendbuf, recvbuf, count, datatype, op, 0, comm );
-  if (mpi_errno) return mpi_errno;
-  mpi_errno = MPI_Bcast  ( recvbuf, count, datatype, 0, comm );
+  mpi_errno = MPI_Reduce ( sendbuf, recvbuf, count, datatype->self, op, 0, 
+			   comm->self );
+  if (mpi_errno == MPI_ERR_OP_NOT_DEFINED || mpi_errno == MPI_SUCCESS) {
+      rc = MPI_Bcast  ( recvbuf, count, datatype->self, 0, comm->self );
+      if (rc) mpi_errno = rc;
+  }
 
   return (mpi_errno);
 }
@@ -1070,15 +1124,15 @@ static int intra_Reduce_scatter ( sendbuf, recvbuf, recvcnts, datatype, op, comm
 void             *sendbuf;
 void             *recvbuf;
 int              *recvcnts;
-MPI_Datatype      datatype;
+struct MPIR_DATATYPE *      datatype;
 MPI_Op            op;
-MPI_Comm          comm;
+struct MPIR_COMMUNICATOR *         comm;
 {
   int   rank, size, i, count=0;
   MPI_Aint   lb, ub, m_extent;  /* Extent in memory */
   int  *displs;
   void *buffer;
-  int   mpi_errno = MPI_SUCCESS;
+  int   mpi_errno = MPI_SUCCESS, rc;
 
   /* Determine the "count" of items to reduce and set the displacements*/
   MPIR_Type_get_limits( datatype, &lb, &ub );
@@ -1093,6 +1147,12 @@ MPI_Comm          comm;
   for (i=0;i<size;i++) {
     displs[i] = count;
     count += recvcnts[i];
+    if (recvcnts[i] < 0) {
+	FREE( displs );
+	MPIR_ERROR_PUSH_ARG(&i);
+	MPIR_ERROR_PUSH_ARG(&recvcnts[i]);
+	return MPI_ERR_COUNT_ARRAY_NEG;
+    }
   }
 
   /* Allocate a temporary buffer */
@@ -1106,11 +1166,14 @@ MPI_Comm          comm;
   buffer = (void *)((char*)buffer - lb);
 
   /* Reduce to 0, then scatter */
-  mpi_errno = MPI_Reduce   ( sendbuf, buffer, count, datatype, op, 0, comm);
-  if (mpi_errno) return mpi_errno;
-  mpi_errno = MPI_Scatterv ( buffer, recvcnts, displs, datatype, recvbuf, 
-			     recvcnts[rank], datatype, 0, comm );
-  
+  mpi_errno = MPI_Reduce   ( sendbuf, buffer, count, datatype->self, op, 0, 
+			     comm->self);
+  if (mpi_errno == MPI_SUCCESS || mpi_errno == MPI_ERR_OP_NOT_DEFINED) {
+      rc = MPI_Scatterv ( buffer, recvcnts, displs, datatype->self,
+			  recvbuf, recvcnts[rank], datatype->self, 0,
+			  comm->self );
+      if (rc) mpi_errno = rc;
+  }
   /* Free the temporary buffers */
   FREE((char *)buffer+lb); FREE(displs);
   return (mpi_errno);
@@ -1120,15 +1183,16 @@ static int intra_Scan ( sendbuf, recvbuf, count, datatype, op, comm )
 void             *sendbuf;
 void             *recvbuf;
 int               count;
-MPI_Datatype      datatype;
+struct MPIR_DATATYPE *      datatype;
 MPI_Op            op;
-MPI_Comm          comm;
+struct MPIR_COMMUNICATOR *         comm;
 {
   MPI_Status status;
   int        rank, size;
   int        mpi_errno = MPI_SUCCESS;
   MPI_Aint   lb, ub, m_extent;  /* Extent in memory */
   MPI_User_function   *uop;
+  struct MPIR_OP *op_ptr;
   MPIR_ERROR_DECL;
   mpi_comm_err_ret = 0;
 
@@ -1141,7 +1205,9 @@ MPI_Comm          comm;
   MPIR_Type_get_limits( datatype, &lb, &ub );
   m_extent = ub - lb;
   comm	   = comm->comm_coll;
-  uop	   = op->op;
+  op_ptr = MPIR_GET_OP_PTR(op);
+  MPIR_TEST_MPI_OP(op,op_ptr,comm,"MPI_SCAN");
+  uop	   = op_ptr->op;
 
   /* Lock for collective operation */
   MPID_THREAD_LOCK(comm->ADIctx,comm);
@@ -1151,20 +1217,21 @@ MPI_Comm          comm;
      reduce.c can be used to make this O(log(size)) 
    */
   /* commutative case requires no extra buffering */
-  if (op->commute) {
+  MPIR_Op_errno = MPI_SUCCESS;
+  if (op_ptr->commute) {
       /* Do the scan operation */
       if (rank > 0) {
-          mpi_errno = MPI_Recv(recvbuf,count,datatype,rank-1,
-			       MPIR_SCAN_TAG,comm,&status);
+          mpi_errno = MPI_Recv(recvbuf,count,datatype->self,rank-1,
+			       MPIR_SCAN_TAG,comm->self,&status);
 	  if (mpi_errno) return mpi_errno;
 	  /* See reduce for why pop/push */
 	  MPIR_ERROR_POP(comm);
-          (*uop)(sendbuf, recvbuf, &count, &datatype); 
+          (*uop)(sendbuf, recvbuf, &count, &datatype->self); 
 	  MPIR_ERROR_PUSH(comm);
       }
       else {
-	  MPIR_COPYSELF( sendbuf, count, datatype, recvbuf, 
-			 MPIR_SCAN_TAG, rank, comm );
+	  MPIR_COPYSELF( sendbuf, count, datatype->self, recvbuf, 
+			 MPIR_SCAN_TAG, rank, comm->self );
 	  if (mpi_errno) return mpi_errno;
       }
   }
@@ -1176,25 +1243,30 @@ MPI_Comm          comm;
           MPIR_ALLOC(tmpbuf,(void *)MALLOC(m_extent * count),
 		     comm, MPI_ERR_EXHAUSTED, "Out of space in MPI_SCAN" );
 	  tmpbuf = (void *)((char*)tmpbuf-lb);
-	  MPIR_COPYSELF( sendbuf, count, datatype, recvbuf, 
-			 MPIR_SCAN_TAG, rank, comm );
+	  MPIR_COPYSELF( sendbuf, count, datatype->self, recvbuf, 
+			 MPIR_SCAN_TAG, rank, comm->self );
 	  if (mpi_errno) return mpi_errno;
-          mpi_errno = MPI_Recv(tmpbuf,count,datatype,rank-1,
-			       MPIR_SCAN_TAG,comm,&status);
+          mpi_errno = MPI_Recv(tmpbuf,count,datatype->self,rank-1,
+			       MPIR_SCAN_TAG,comm->self,&status);
 	  if (mpi_errno) return mpi_errno;
-          (*uop)(tmpbuf, recvbuf, &count, &datatype); 
+          (*uop)(tmpbuf, recvbuf, &count, &datatype->self); 
           FREE((char*)tmpbuf+lb);
       }
       else {
-	  MPIR_COPYSELF( sendbuf, count, datatype, recvbuf, 
-			 MPIR_SCAN_TAG, rank, comm );
+	  MPIR_COPYSELF( sendbuf, count, datatype->self, recvbuf, 
+			 MPIR_SCAN_TAG, rank, comm->self );
 	  if (mpi_errno) return mpi_errno;
 	  }
   }
 
   /* send the letter to destination */
   if (rank < (size-1)) 
-      mpi_errno = MPI_Send(recvbuf,count,datatype,rank+1,MPIR_SCAN_TAG,comm);
+      mpi_errno = MPI_Send(recvbuf,count,datatype->self,rank+1,MPIR_SCAN_TAG,
+			   comm->self);
+
+  /* If the predefined operation detected an error, report it here */
+  if (mpi_errno == MPI_SUCCESS && MPIR_Op_errno)
+      mpi_errno = MPIR_Op_errno;
 
   /* Unlock for collective operation */
   MPID_THREAD_UNLOCK(comm->ADIctx,comm);

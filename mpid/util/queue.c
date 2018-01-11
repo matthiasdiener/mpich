@@ -14,9 +14,9 @@
  * Some devices provide their own queue management routines, and
  * do not need these.
  */
-#include <stdio.h>
 
 #include "mpid.h"
+#include <stdio.h>
 #include "sbcnst2.h"
 /* Needed to allocate MPI_Requests */
 #include "reqalloc.h"
@@ -72,6 +72,7 @@ void MPID_Dump_queues()
 {
     MPID_Dump_queue( &MPID_recvs );
 }
+static int DebugFlag = 0;
 void MPID_Dump_queue(header)
 MPID_QHDR *header;
 {
@@ -86,10 +87,18 @@ MPID_QHDR *header;
 		 MPID_MyWorldRank );
     }
     while (p) {
-	fprintf( stdout, 
+	if (DebugFlag) {
+	    fprintf( stdout, 
 		 "[%d] %lx context_id = %d, tag = %d(%x), src = %d(%x)\n",
-		 MPID_MyWorldRank, (long)p, 
+		 MPID_MyWorldRank, (MPI_Aint)p, 
 		 p->context_id, p->tag, p->tagmask, p->lsrc, p->srcmask );
+	}
+	else {
+	    /* This is a "users" form of the output */
+	    fprintf( stdout, 
+		 "[%d] context_id = %d, tag = %d, src = %d\n",
+		 MPID_MyWorldRank, p->context_id, p->tag, p->lsrc );
+	}
 	p = p->next;
 	}
     p = header->posted.first;
@@ -97,10 +106,22 @@ MPID_QHDR *header;
 	fprintf( stdout, "[%d] Posted receive queue:\n", MPID_MyWorldRank );
     }
     while (p) {
-	fprintf( stdout, 
+	if (DebugFlag) {
+	    fprintf( stdout, 
 		 "[%d] %lx context_id = %d, tag = %d(%x), src = %d(%x)\n",
-		 MPID_MyWorldRank, (long)p,
+		 MPID_MyWorldRank, (MPI_Aint)p,
 		 p->context_id, p->tag, p->tagmask, p->lsrc, p->srcmask );
+	}
+	else {
+	    fprintf( stdout, 
+		 "[%d] context_id = %d, tag = ", MPID_MyWorldRank,
+		 p->context_id );
+	    if (p->tagmask == -1) fprintf( stdout, "%d", p->tag );
+	    else                  fprintf( stdout, "MPI_ANY_TAG" );
+	    fprintf( stdout, ", src = " );
+	    if (p->srcmask == -1) fprintf( stdout, "%d\n", p->lsrc );
+	    else                  fprintf( stdout, "MPI_ANY_SOURCE\n" );
+	}
 	p = p->next;
 	}
     MPID_THREAD_DS_UNLOCK(p)
@@ -140,7 +161,7 @@ MPIR_RHANDLE  *rhandle;
     printf( "[%d] Enqueing msg with (%d,%d,%d) in elm at %lx\n", 
 	    MPID_MyWorldRank, 
 	    p->context_id, (p->tag & p->tagmask), (p->lsrc & p->srcmask), 
-	    (long)p ));
+	    (MPI_Aint)p ));
 
     /* Insert at the tail of the queue, nice and simple ! */
     *(header->lastp)= p;
@@ -341,7 +362,7 @@ MPIR_RHANDLE **handleptr;
       DEBUG(printf("[%d] in unexpected list, looking at (%d,%d,%d) at %lx\n",
 		   MPID_MyWorldRank, 
 		   p->context_id, (p->tag & tagmask), (p->lsrc & srcmask), 
-		   (long)p ));
+		   (MPI_Aint)p ));
       if (context_id ==  p->context_id      &&
 	  (((tag ^ p->tag)  & tagmask) == 0) &&
 	  (((src ^ p->lsrc) & srcmask) == 0) )
@@ -391,18 +412,26 @@ MPIR_RHANDLE **dmpi_recv_handle;
     {
 	/* allocate handle and put in unexpected queue */
 	*dmpi_recv_handle       = MPID_RecvAlloc();
+	/* Note that we don't initialize the request here, because 
+	   we're storing just the basic information on the request,
+	   and all other fields will be set when the message is found.
+	   However, for debugging purposes, we can initialize with 
+	   non-zero values */
 	handleptr         	= *dmpi_recv_handle;
 	if (!handleptr) {
-	    MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_INTERN,
+	    MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_INTERN,
 		        "Could not dynamically allocate internal handle" );
 	    }
+#ifdef MPID_DEBUG_ALL
+	memset( handleptr,0xfa, sizeof(MPIR_RHANDLE) );
+#endif
 	handleptr->s.MPI_SOURCE	= src;
 	handleptr->s.MPI_TAG  	= tag;
 	/* Note that we don't save the context id or set a datatype */
 	handleptr->is_complete  = 0;
 	
 	MPID_Enqueue( &MPID_recvs.unexpected, src, tag, context_id, 
-		     (void * ) *dmpi_recv_handle );
+		      *dmpi_recv_handle );
 	*foundflag = 0;
 	MPID_THREAD_DS_UNLOCK(MPID_recvs)
     }

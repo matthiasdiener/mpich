@@ -1,5 +1,5 @@
 /*
- *  $Id: type_vec.c,v 1.13 1996/07/17 18:04:00 gropp Exp $
+ *  $Id: type_vec.c,v 1.16 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -33,31 +33,34 @@ MPI_Datatype old_type;
 MPI_Datatype *newtype;
 {
   int           mpi_errno = MPI_SUCCESS;
+  struct MPIR_DATATYPE *old_dtype_ptr;
+  static char myname[] = "MPI_TYPE_VECTOR";
   MPIR_ERROR_DECL;
 
+  TR_PUSH(myname);
   /* Check for bad arguments */
-  MPIR_GET_REAL_DATATYPE(old_type)
-  if ( MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,old_type) ||
+  old_dtype_ptr   = MPIR_GET_DTYPE_PTR(old_type);
+  MPIR_TEST_DTYPE(old_type,old_dtype_ptr,MPIR_COMM_WORLD,myname);
+  if ( 
    ( (count   <  0)                  && (mpi_errno = MPI_ERR_COUNT) ) ||
    ( (blocklen <  0)                 && (mpi_errno = MPI_ERR_ARG) )   ||
-   ( (old_type->dte_type == MPIR_UB) && (mpi_errno = MPI_ERR_TYPE) )  ||
-   ( (old_type->dte_type == MPIR_LB) && (mpi_errno = MPI_ERR_TYPE) ) )
-	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno,
-					  "Error in MPI_TYPE_VECTOR" );
+   ( (old_dtype_ptr->dte_type == MPIR_UB) && (mpi_errno = MPI_ERR_TYPE) )  ||
+   ( (old_dtype_ptr->dte_type == MPIR_LB) && (mpi_errno = MPI_ERR_TYPE) ) )
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 	
   /* Handle the case where blocklen & stride make a contiguous type */
-  MPIR_ERROR_PUSH(MPI_COMM_WORLD);
+  MPIR_ERROR_PUSH(MPIR_COMM_WORLD);
 
   if ( (blocklen == stride) || (count    == 1) ) {
 	MPIR_CALL_POP(MPI_Type_contiguous ( 
-	    count * blocklen, old_type, newtype ),MPI_COMM_WORLD,
-		      "Error in MPI_TYPE_VECTOR");
+	    count * blocklen, old_type, newtype ),MPIR_COMM_WORLD,myname);
   }
   /* Reduce this to the hvector case */
   
   mpi_errno = MPI_Type_hvector ( count, blocklen, 
-				 (MPI_Aint)stride * old_type->extent,
+				 (MPI_Aint)stride * old_dtype_ptr->extent,
 						    old_type, newtype );
-  MPIR_ERROR_POP(MPI_COMM_WORLD);
-  MPIR_RETURN(MPI_COMM_WORLD,mpi_errno,"Error in MPI_TYPE_VECTOR");
+  MPIR_ERROR_POP(MPIR_COMM_WORLD);
+  TR_POP;
+  MPIR_RETURN(MPIR_COMM_WORLD,mpi_errno,myname);
 }

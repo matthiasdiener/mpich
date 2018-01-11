@@ -1,5 +1,5 @@
 /*
- *  $Id: allgatherv.c,v 1.19 1996/06/07 15:08:09 gropp Exp $
+ *  $Id: allgatherv.c,v 1.22 1997/02/18 23:06:32 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -60,17 +60,34 @@ MPI_Datatype      recvtype;
 MPI_Comm          comm;
 {
   int mpi_errno = MPI_SUCCESS;
+  struct MPIR_COMMUNICATOR *comm_ptr;
+  struct MPIR_DATATYPE     *stype_ptr, *rtype_ptr;
   MPIR_ERROR_DECL;
+  static char myname[] = "MPI_ALLGATHERV";
+
+  TR_PUSH(myname);
+
+  comm_ptr = MPIR_GET_COMM_PTR(comm);
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr, myname );
+
+  stype_ptr = MPIR_GET_DTYPE_PTR(sendtype);
+  MPIR_TEST_DTYPE(sendtype,stype_ptr,comm_ptr, myname );
+
+  rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
+  MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
 
   /* Check for invalid arguments */
-  if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,sendcount) ||
-      MPIR_TEST_DATATYPE(comm,sendtype) || MPIR_TEST_DATATYPE(comm,recvtype))
-      return MPIR_ERROR(comm, mpi_errno, "Error in MPI_ALLGATHERV" ); 
+  if (MPIR_TEST_COUNT(comm,sendcount))
+      return MPIR_ERROR(comm_ptr, mpi_errno, myname ); 
+  /* We should really check for recvcounts[i] as well */
+  /* also alltoallv, bcast, gather, gatherv, red_scat, reduce, 
+     scan, scatter, scatterv */
 
-  MPIR_ERROR_PUSH(comm)
-  mpi_errno = comm->collops->Allgatherv( sendbuf, sendcount,  sendtype, 
-					 recvbuf,  recvcounts, displs,   
-					 recvtype, comm );
-  MPIR_ERROR_POP(comm);
-  MPIR_RETURN(comm,mpi_errno,"Error in MPI_ALLGATHERV");
+  MPIR_ERROR_PUSH(comm_ptr)
+  mpi_errno = comm_ptr->collops->Allgatherv( sendbuf, sendcount,  stype_ptr, 
+					     recvbuf,  recvcounts, displs,   
+					     rtype_ptr, comm_ptr );
+  MPIR_ERROR_POP(comm_ptr);
+  TR_POP;
+  MPIR_RETURN(comm_ptr,mpi_errno,myname);
 }

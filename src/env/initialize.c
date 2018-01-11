@@ -1,13 +1,11 @@
 /*
- *  $Id: initialize.c,v 1.7 1996/04/11 20:30:33 gropp Exp $
+ *  $Id: initialize.c,v 1.8 1997/01/17 22:59:21 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-
-int MPIR_Has_been_initialized = 0;
 
 /*@
    MPI_Initialized - Indicates whether 'MPI_Init' has been called.

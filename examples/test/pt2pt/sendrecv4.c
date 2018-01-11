@@ -1,6 +1,11 @@
 #include <mpi.h>
 #include <stdio.h>
 #include "dtypes.h"
+#include "gcomm.h"
+
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
 
 /*
    This program is from mpich/tsuite/pt2pt and should be changed there only.

@@ -9,24 +9,27 @@ CCLINKER    = $(CCC)
 F77         = @MPIF77@
 FLINKER     = @MPIF77@
 OPTFLAGS    = @OPTFLAGS@
+MPIFDEP     = @MPIFDEP@
 
 ### End User configurable options ###
 
 SHELL = /bin/sh
 
 PROFLIB =
-CFLAGS  = $(OPTFLAGS) 
+CFLAGS  = @MPE_CFLAGS@ $(OPTFLAGS) 
 CCFLAGS = $(CFLAGS)
 FFLAGS = $(OPTFLAGS)
 # Use LIBS to add any special libraries for C programs
 LIBS = 
 # Use FLIBS to add any special libraries for Fortran programs
 FLIBS = 
-EXECS = attrtest attrt ictest ictest2 ictest3 grouptest
-
+EXECS = attrtest attrt ictest ictest2 ictest3 grouptest groupcreate \
+	attrerr
+OTHEREXECS = attrtest
+MPI2EXECS = commnames commnamesf
 default: $(EXECS)
 
-fortran_tests: attrtest
+fortran_tests: attrtest commnamesf
 
 #
 # Note that runtests builds the executables as required
@@ -37,12 +40,20 @@ linktest: default clean
 
 all: testing
 
-attrtest: mpif.h attrtest.o
+attrtest: $(MPIFDEP) attrtest.o
 	$(FLINKER) $(OPTFLAGS) -o attrtest attrtest.o $(FLIBS)
+
+commnamesf: $(MPIFDEP) commnamesf.o
+	$(FLINKER) $(OPTFLAGS) -o commnamesf commnamesf.o $(FLIBS)
 
 attrt: attrt.o test.o
 	$(CLINKER) $(OPTFLAGS) -o attrt attrt.o test.o $(LIBS)
 
+attrerr: attrerr.o test.o
+	$(CLINKER) $(OPTFLAGS) -o attrerr attrerr.o test.o $(LIBS)
+
+commnames: commnames.o
+	$(CLINKER) $(OPTFLAGS) -o commnames commnames.o $(LIBS)
 ictest: ictest.o
 	$(CLINKER) $(OPTFLAGS) -o ictest ictest.o $(LIBS)
 ictest2: ictest2.o
@@ -51,6 +62,8 @@ ictest3: ictest3.o
 	$(CLINKER) $(OPTFLAGS) -o ictest3 ictest3.o $(LIBS)
 grouptest: grouptest.o
 	$(CLINKER) $(OPTFLAGS) -o grouptest grouptest.o $(LIBS)
+groupcreate: groupcreate.o
+	$(CLINKER) $(OPTFLAGS) -o groupcreate groupcreate.o $(LIBS)
 
 mpif.h: $(MPIR_HOME)/include/mpif.h
 	if test \! -f mpif.h ; then \
@@ -59,7 +72,8 @@ mpif.h: $(MPIR_HOME)/include/mpif.h
 	fi
 
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) core *.out context.diff
+	/bin/rm -f *.o *~ PI* $(EXECS) $(OTHEREXECS) $(MPI2EXECS) \
+		core *.out *.diff *.trace
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

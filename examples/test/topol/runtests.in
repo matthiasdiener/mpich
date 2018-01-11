@@ -29,6 +29,7 @@ fi
 #
 runtests=1
 makeeach=0
+quiet=0
 MAKE="@MAKE@"
 for arg in "$@" ; do
     case $arg in 
@@ -41,6 +42,10 @@ for arg in "$@" ; do
 	;;
 	-small)
 	makeeach=1
+	;;
+	-quiet)
+	shift
+	quiet=1
 	;;
 	-help|-u)
 	echo "runtests [-checkonly] [-margs='...'] [-small]"
@@ -62,11 +67,25 @@ done
 MakeExe() {
     if [ ! -x $1 ] ; then
 	$MAKE $1
+        if [ ! -x $1 ] ; then 
+	    echo "Could not build executable $1; aborting tests"
+	    exit 1
+        fi
     fi
 }
 CleanExe() {
     if [ $makeeach = 1 ] ; then
 	/bin/rm -f $1 $1.o
+    fi
+}
+# Output marker
+OutTime() {
+    if [ $quiet = 0 ] ; then
+	if [ -z "$hostname" ] ; then
+	    hostname=`hostname`
+	fi
+	d=`date`
+	echo "$hostname : $d"
     fi
 }
 
@@ -77,6 +96,7 @@ fi
 testfiles=""
 if [ $runtests = 1 ] ; then
 
+OutTime
 testfiles="$testfiles cart.out"
 /bin/rm -f cart.out
 MakeExe cart
@@ -86,6 +106,7 @@ $mpirun $args -np 4 cart $* >> cart.out 2>&1
 echo '**** Testing MPI_Cart_create etc ****' >> cart.out
 CleanExe cart
 #
+OutTime
 testfiles="$testfiles cart2.out"
 /bin/rm -f cart2.out
 MakeExe cart2
@@ -95,6 +116,7 @@ $mpirun $args -np 4 cart2 $* >> cart2.out 2>&1
 echo '**** Testing MPI_Cart_coords etc ****' >> cart2.out
 CleanExe cart2
 #
+OutTime
 testfiles="$testfiles cartmap.out"
 /bin/rm -f cartmap.out
 MakeExe cartmap
@@ -104,6 +126,7 @@ $mpirun $args -np 4 cartmap $* >> cartmap.out 2>&1
 echo '**** Testing MPI_Cart_map etc ****' >> cartmap.out
 CleanExe cartmap
 #
+OutTime
 testfiles="$testfiles cartorder.out"
 /bin/rm -f cartorder.out
 MakeExe cartorder
@@ -113,6 +136,7 @@ $mpirun $args -np 4 cartorder $* >> cartorder.out 2>&1
 echo '**** Testing MPI_Cart_create etc (2) ****' >> cartorder.out
 CleanExe cartorder
 #
+OutTime
 testfiles="$testfiles graphtest.out"
 /bin/rm -f graphtest.out
 MakeExe graphtest
@@ -127,39 +151,43 @@ if [ @HAS_FORTRAN@ = 1 ] ; then
     echo "FORTRAN TESTS"
     #
     #
+    OutTime
     testfiles="$testfiles cartf.out"
     /bin/rm -f cartf.out
     MakeExe cartf
     echo '*** Testing cart from Fortran ***'
     echo '*** Testing cart from Fortran ***' >> cartf.out
-    $mpirun $args -np 4 cartf "$@" >> cartf.out
+    $mpirun $args -np 4 cartf "$@" >> cartf.out 2>&1
     echo '*** Testing cart from Fortran ***' >> cartf.out
     CleanExe
     #
+    OutTime
     testfiles="$testfiles cart1f.out"
     /bin/rm -f cart1f.out
     MakeExe cart1f
     echo '*** Testing cart1 from Fortran ***'
     echo '*** Testing cart1 from Fortran ***' >> cart1f.out
-    $mpirun $args -np 4 cart1f "$@" >> cart1f.out
+    $mpirun $args -np 4 cart1f "$@" >> cart1f.out 2>&1
     echo '*** Testing cart1 from Fortran ***' >> cart1f.out
     CleanExe
     #
+    OutTime
     testfiles="$testfiles cart2f.out"
     /bin/rm -f cart2f.out
     MakeExe cart2f
     echo '*** Testing cart2 from Fortran ***'
     echo '*** Testing cart2 from Fortran ***' >> cart2f.out
-    $mpirun $args -np 4 cart2f "$@" >> cart2f.out
+    $mpirun $args -np 4 cart2f "$@" >> cart2f.out 2>&1
     echo '*** Testing cart2 from Fortran ***' >> cart2f.out
     CleanExe
     #
+    OutTime
     testfiles="$testfiles twod.out"
     /bin/rm -f twod.out
     MakeExe twod
     echo '*** Testing twod from Fortran ***'
     echo '*** Testing twod from Fortran ***' >> twod.out
-    $mpirun $args -np 2 twod "$@" >> twod.out
+    $mpirun $args -np 2 twod "$@" >> twod.out 2>&1
     echo '*** Testing twod from Fortran ***' >> twod.out
     CleanExe
 fi

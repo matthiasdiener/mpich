@@ -1,5 +1,5 @@
 /*
- *  $Id: getelements.c,v 1.7 1996/04/11 20:18:42 gropp Exp $
+ *  $Id: getelements.c,v 1.10 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -34,64 +34,64 @@ MPI_Status    *status;
 MPI_Datatype  datatype;
 int          *elements;
 {
-  int count, mpi_errno;
+    int count;
+    struct MPIR_DATATYPE *dtype_ptr;
+    static char myname[] = "MPI_GET_ELEMENTS";
 
-  if (MPIR_TEST_DATATYPE(MPI_COMM_WORLD,datatype))
-	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-			   "Error in MPI_GET_ELEMENTS" );
+    dtype_ptr   = MPIR_GET_DTYPE_PTR(datatype);
+    MPIR_TEST_DTYPE(datatype,dtype_ptr,MPIR_COMM_WORLD,myname);
 
-  MPIR_GET_REAL_DATATYPE(datatype)
-  /* Find the number of elements */
-  MPI_Get_count (status, datatype, &count);
-  if (count == MPI_UNDEFINED) {
-      /* To do this correctly, we need to run through the datatype,
-	 processing basic types until we run out of data.  
-	 We can do this in part by computing how many full versions
-	 of datatype will fit, and make use of the datatype->elements
-	 field.  If there isn't an EXACT fit, we need to look into
-	 the datatype for more details about the exact mapping to
-	 elements.  We might be able to do this with a version of
-	 MPIR_Unpack2.
+    /* Find the number of elements */
+    MPI_Get_count (status, datatype, &count);
+    if (count == MPI_UNDEFINED) {
+	/* To do this correctly, we need to run through the datatype,
+	   processing basic types until we run out of data.  
+	   We can do this in part by computing how many full versions
+	   of datatype will fit, and make use of the datatype->elements
+	   field.  If there isn't an EXACT fit, we need to look into
+	   the datatype for more details about the exact mapping to
+	   elements.  We might be able to do this with a version of
+	   MPIR_Unpack2.
        */
 #ifdef FOO
-      *elements = count;
+	*elements = count;
 	/* HACK ALERT -- the code in this if is not correct */
 	/*               but for now ... */
 	double cnt = 
-	  (double) status->count / (double) datatype->size;
-	(*elements) = (int) ( cnt * (double) datatype->elements );
+	    (double) status->count / (double) dtype_ptr->size;
+	(*elements) = (int) ( cnt * (double) dtype_ptr->elements );
 #endif
-      {
-      int srclen, destlen, used_len;
-      int i_dummy;
+	{
+	    int srclen, destlen, used_len;
+	    int i_dummy;
       
-      srclen   = status->count;
-      /* Need to set count so that we'll exit when we run out of 
-	 items.  It could be ceil(status->count/datatype->size) .
-	 Alternately, we could check that used_len >= srclen - epsilon
-	 (in case there isn't enough for the last item).
+	    srclen   = status->count;
+	    /* Need to set count so that we'll exit when we run out of 
+	       items.  It could be ceil(status->count/dtype_ptr->size) .
+	       Alternately, we could check that used_len >= srclen - epsilon
+	       (in case there isn't enough for the last item).
 
-	 Why isn't this correct?
-       */
-      if (datatype->size > 0)
-	  count = 1 + (srclen / datatype->size);
-      else {
-	  *elements = srclen ? MPI_UNDEFINED : 0;
-	  return MPI_SUCCESS;
-      }
-      *elements = 0;
-      used_len  = 0;
-      MPIR_Unpack2( (char *)&i_dummy, count, datatype, 
-		    MPIR_Elementcnt, (void *)elements, (char *)&i_dummy,
-		    srclen, &destlen, &used_len );
-      /* If anything is left, return undefined */
-      if (used_len != srclen)
-	  *elements = MPI_UNDEFINED;
-      }
-  }
-  else
-	(*elements) = count * datatype->elements;
+	       Why isn't this correct?
+	       */
+	    if (dtype_ptr->size > 0)
+		count = 1 + (srclen / dtype_ptr->size);
+	    else {
+		*elements = srclen ? MPI_UNDEFINED : 0;
+		return MPI_SUCCESS;
+	    }
+	    *elements = 0;
+	    used_len  = 0;
+	    MPIR_Unpack2( (char *)&i_dummy, count, dtype_ptr, 
+			  MPIR_Elementcnt, (void *)elements, (char *)&i_dummy,
+			  srclen, &destlen, &used_len );
+	    /* If anything is left, return undefined */
+	    if (used_len != srclen)
+		*elements = MPI_UNDEFINED;
+	}
+    }
+    else
+	(*elements) = count * dtype_ptr->elements;
 
-  return (MPI_SUCCESS);
+    return (MPI_SUCCESS);
 }
 

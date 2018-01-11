@@ -7,22 +7,28 @@
 #include "p4.h"
 #include "p4_sys.h"
 
+/* Choose vprintf if available and we haven't decided to force _doprnt */
+#if defined(HAVE_VPRINTF) && !defined(USE__DOPRNT) && !defined(VPRINTF)
+#define VPRINTF
+#endif
+
 #if defined(p4_dprintfl)
 #undef p4_dprintfl
 #endif
 
 int p4_get_dbg_level()
 {
-    return(debug_level);
+    return(p4_debug_level);
 }
 
 P4VOID p4_set_dbg_level(level)
 int level;
 {
-    debug_level = level;
+    p4_debug_level = level;
 }
 
-#if defined(DELTA)  ||  defined(NCUBE) || defined(LINUX)
+/* LINUX now (?) support stdarg */
+#if defined(DELTA)  ||  defined(NCUBE) 
 
 P4VOID p4_dprintf(fmt, a, b, c, d, e, f, g, h, i)
 {
@@ -75,11 +81,12 @@ va_dcl
 #endif
 #endif
 
-#if defined(DELTA)  ||  defined(NCUBE)  ||  defined(LINUX)
+#if defined(DELTA)  ||  defined(NCUBE) 
+/* LINUX now (?) supports stdarg */
 
 P4VOID p4_dprintfl(level, fmt, a, b, c, d, e, f, g, h, i)
 {
-    if (level > debug_level)
+    if (level > p4_debug_level)
         return;
     printf("%s: ",whoami_p4);
     printf(fmt,a,b,c,d,e,f,g,h,i);
@@ -93,7 +100,7 @@ P4VOID p4_dprintfl(int level, char *fmt, ...)
     va_list ap;
 
     va_start( ap, fmt );
-    if (level > debug_level)
+    if (level > p4_debug_level)
 	return;
     printf("%d: %s: ", level, whoami_p4);
     if (p4_global)
@@ -116,7 +123,7 @@ va_dcl
 {
     va_list ap;
 
-    if (level > debug_level)
+    if (level > p4_debug_level)
 	return;
     printf("%d: %s: ", level, whoami_p4);
     if (p4_global)
@@ -142,7 +149,7 @@ int level;
     struct p4_global_data *g = p4_global;
     struct proc_info *p;
 
-    if (level > debug_level)
+    if (level > p4_debug_level)
 	return;
 
     p4_dprintf("Dumping global data for process %d at %x\n", getpid(), g);
@@ -168,7 +175,7 @@ int level;
     struct local_data *l = p4_local;
     int i;
 
-    if (level > debug_level)
+    if (level > p4_debug_level)
 	return;
 
     p4_dprintf("Dumping local data for process %d at %x\n", getpid(), l);
@@ -218,7 +225,7 @@ int level;
 {
     struct listener_data *l = listener_info;
 
-    if (level > debug_level)
+    if (level > p4_debug_level)
 	return;
 
     p4_dprintf("Dumping listener data for process %d at %x\n", getpid(), l);
@@ -232,7 +239,7 @@ int level;
     struct p4_procgroup_entry *pe;
     int i;
 
-    if (level > debug_level)
+    if (level > p4_debug_level)
 	return;
 
     p4_dprintf("Procgroup:\n");
@@ -260,7 +267,7 @@ int level;
 {
     int i;
 
-    if (level > debug_level)
+    if (level > p4_debug_level)
 	return;
 
     for (i = 0; i < p4_global->num_in_proctable; i++)

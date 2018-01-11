@@ -1,5 +1,5 @@
 /*
- *  $Id: issend.c,v 1.9 1996/06/26 19:27:12 gropp Exp $
+ *  $Id: issend.c,v 1.12 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -45,29 +45,44 @@ int              tag;
 MPI_Comm         comm;
 MPI_Request      *request;
 {
+    struct MPIR_COMMUNICATOR *comm_ptr;
+    struct MPIR_DATATYPE     *dtype_ptr;
+    static char myname[] = "MPI_ISSEND";
 #ifdef MPI_ADI2
-    int mpi_errno;
+    int mpi_errno = MPI_SUCCESS;
 
-    if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,count) ||
-	MPIR_TEST_DATATYPE(comm,datatype) || MPIR_TEST_SEND_TAG(comm,tag) ||
-	MPIR_TEST_SEND_RANK(comm,dest)) 
-	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_ISSEND" );
+    TR_PUSH(myname);
+
+    comm_ptr = MPIR_GET_COMM_PTR(comm);
+    MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+
+    dtype_ptr = MPIR_GET_DTYPE_PTR(datatype);
+    MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
+
+    if (MPIR_TEST_COUNT(comm,count) ||
+	MPIR_TEST_SEND_TAG(comm,tag) ||
+	MPIR_TEST_SEND_RANK(comm_ptr,dest)) 
+	return MPIR_ERROR(comm_ptr, mpi_errno, myname );
 
     MPIR_ALLOC(*request,(MPI_Request) MPID_SendAlloc(),
-	       comm,MPI_ERR_EXHAUSTED,"Error in MPI_ISSEND" );
+	       comm_ptr,MPI_ERR_EXHAUSTED,myname );
     MPID_Request_init( (&(*request)->shandle), MPIR_SEND );
 
-    MPIR_REMEMBER_SEND((&(*request)->shandle), buf, count, datatype, dest, tag, comm);
+    MPIR_REMEMBER_SEND((&(*request)->shandle), buf, count, datatype, dest, tag,
+		       comm_ptr);
 
     if (dest == MPI_PROC_NULL) {
 	(*request)->shandle.is_complete = 1;
 	return MPI_SUCCESS;
     }
     /* This COULD test for the contiguous homogeneous case first .... */
-    MPID_IssendDatatype( comm, buf, count, datatype, comm->local_rank, tag, 
-			 comm->send_context, comm->lrank_to_grank[dest], 
+    MPID_IssendDatatype( comm_ptr, buf, count, dtype_ptr, 
+			 comm_ptr->local_rank, tag, 
+			 comm_ptr->send_context, 
+			 comm_ptr->lrank_to_grank[dest], 
 			 *request, &mpi_errno );
-    if (mpi_errno) return MPIR_ERROR( comm, mpi_errno, "Error in MPI_ISSEND" );
+    if (mpi_errno) return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+    TR_POP;
     return MPI_SUCCESS;
 #else
     int err;
@@ -87,7 +102,7 @@ MPI_Request      *request;
 	if ((err = 
 	    MPI_Send_init( buf, count, datatype, dest, tag, comm, request )))
 	    return err;
-	MPID_Set_completed( comm->ADIctx, *request );
+	MPID_Set_completed( comm_ptr->ADIctx, *request );
 	(*request)->shandle.persistent = 0;
 	(*request)->shandle.active     = 1;
 	}

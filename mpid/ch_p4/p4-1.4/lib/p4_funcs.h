@@ -12,6 +12,7 @@ extern "C" {
 #endif
 
 double p4_usclock ANSI_ARGS((void));
+P4VOID init_usclock ANSI_ARGS((void));
 char *p4_shmalloc ANSI_ARGS((int));
 P4VOID p4_set_avail_buff ANSI_ARGS((int,int));
 P4BOOL p4_am_i_cluster_master ANSI_ARGS((void));
@@ -25,7 +26,7 @@ int p4_clock ANSI_ARGS(( void ));
 int p4_create ANSI_ARGS(( int (*)(void) ));
 int p4_create_procgroup ANSI_ARGS((void));
 int p4_startup ANSI_ARGS((struct p4_procgroup *));
-#if defined(DELTA)  ||  defined(NCUBE) || defined(LINUX)
+#if defined(DELTA)  ||  defined(NCUBE)
 P4VOID p4_dprintf ANSI_ARGS((int,int,int,int,int,int,int,int,int,int));
 #if defined(P4_DPRINTFL)
 P4VOID p4_dprintfl ANSI_ARGS((int,int,int,int,int,int,int,int,int,int,int));
@@ -56,6 +57,7 @@ P4VOID p4_getsubs ANSI_ARGS((p4_getsub_monitor_t *, int *, int, int, int));
 int p4_global_op ANSI_ARGS((int, void *, int, int, 
 			    P4VOID (*)(char *, char *,int), int));
 int p4_initenv ANSI_ARGS((int *, char **));
+P4VOID p4_post_init ANSI_ARGS(( void ));
 P4VOID p4_int_absmax_op ANSI_ARGS((char *, char *, int));
 P4VOID p4_int_absmin_op ANSI_ARGS((char *, char *, int));
 P4VOID p4_int_max_op ANSI_ARGS((char *, char *, int));
@@ -99,6 +101,7 @@ P4VOID p4_update ANSI_ARGS((p4_askfor_monitor_t *, int (*)(void *),
 char *p4_version ANSI_ARGS((void));
 char *p4_machine_type ANSI_ARGS((void));
 int p4_wait_for_end ANSI_ARGS((void));
+int p4_proc_info ANSI_ARGS(( int, char **, char ** ));
 P4VOID p4_print_avail_buffs ANSI_ARGS((void));
 struct p4_procgroup *p4_alloc_procgroup ANSI_ARGS((void));
 /* The p4 send routines are actually macros that use this routine */

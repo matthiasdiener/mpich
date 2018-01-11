@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_sub.c,v 1.20 1996/04/12 15:53:03 gropp Exp $
+ *  $Id: cart_sub.c,v 1.22 1997/01/07 01:48:01 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -50,12 +50,17 @@ MPI_Comm *comm_new;
   int key = 0;
   int mpi_errno = MPI_SUCCESS;
   MPIR_TOPOLOGY *topo, *new_topo;
-  static char myname[] = "Error in MPI_CART_SUB";
+  static char myname[] = "MPI_CART_SUB";
+  struct MPIR_COMMUNICATOR *comm_ptr;
+
+  TR_PUSH(myname);
+
+  comm_ptr = MPIR_GET_COMM_PTR(comm);
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
   /* Check for valid arguments */
-  if ( MPIR_TEST_COMM(comm,comm)  ||
-       MPIR_TEST_ARG(remain_dims) || MPIR_TEST_ARG(comm_new))
-    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_CART_SUB" );
+  if ( MPIR_TEST_ARG(remain_dims) || MPIR_TEST_ARG(comm_new))
+    return MPIR_ERROR( comm_ptr, mpi_errno, myname );
 
   /* Get topology information from the communicator */
   MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );
@@ -63,7 +68,7 @@ MPI_Comm *comm_new;
   /* Check for valid topology */
   if ( ( (flag != 1)                      && (mpi_errno = MPI_ERR_TOPOLOGY)) ||
        ( (topo->type != MPI_CART)         && (mpi_errno = MPI_ERR_TOPOLOGY)) )
-    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_CART_SUB" );
+    return MPIR_ERROR( comm_ptr, mpi_errno, myname );
   
   /* Determine the remaining dimension total */
   ndims = topo->cart.ndims;
@@ -97,14 +102,14 @@ MPI_Comm *comm_new;
   /* Store topology information in new communicator */
   if ( (*comm_new) != MPI_COMM_NULL ) {
       MPIR_ALLOC(new_topo,(MPIR_TOPOLOGY *) MPIR_SBalloc ( MPIR_topo_els ),
-		 comm,MPI_ERR_EXHAUSTED,myname);
+		 comm_ptr,MPI_ERR_EXHAUSTED,myname);
     MPIR_SET_COOKIE(&new_topo->cart,MPIR_CART_TOPOL_COOKIE)
     new_topo->cart.type           = MPI_CART;
     new_topo->cart.nnodes         = remain_total;
     new_topo->cart.ndims          = num_remain_dims;
     MPIR_ALLOC(new_topo->cart.dims,
 	(int *)MALLOC(sizeof(int)*3*num_remain_dims),
-	       comm,MPI_ERR_EXHAUSTED,myname);
+	       comm_ptr,MPI_ERR_EXHAUSTED,myname);
     new_topo->cart.periods        = new_topo->cart.dims + num_remain_dims;
     new_topo->cart.position       = new_topo->cart.periods + num_remain_dims;
     for ( i=j=0; i<ndims; i++ )
@@ -115,7 +120,7 @@ MPI_Comm *comm_new;
       }
   
     /* Compute my position */
-    MPIR_Comm_rank ( (*comm_new), &rank );
+    MPI_Comm_rank ( (*comm_new), &rank );
     for ( i=0; i < num_remain_dims; i++ ) {
       remain_total = remain_total / new_topo->cart.dims[i];
       new_topo->cart.position[i]  = rank / remain_total;
@@ -125,6 +130,7 @@ MPI_Comm *comm_new;
     /* cache topology information */
     MPI_Attr_put ( (*comm_new), MPIR_TOPOLOGY_KEYVAL, (void *)new_topo );
   }
+  TR_POP;
   return (mpi_errno);
 }
 

@@ -2,12 +2,6 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_cartdim_get_ PMPI_CARTDIM_GET
@@ -29,13 +23,12 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_cartdim_get_ ANSI_ARGS(( MPI_Comm, int *, int * ));
+void mpi_cartdim_get_ ANSI_ARGS(( MPI_Comm *, int *, int * ));
 
 void mpi_cartdim_get_ ( comm, ndims, __ierr )
-MPI_Comm  comm;
+MPI_Comm  *comm;
 int      *ndims;
 int *__ierr;
 {
-    *__ierr = MPI_Cartdim_get(
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),ndims);
+    *__ierr = MPI_Cartdim_get( *comm, ndims );
 }

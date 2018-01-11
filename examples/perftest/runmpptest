@@ -19,12 +19,13 @@ set GIVEDY  = ""
 set MPIRUNOPT = ""
 set BLOCKING = 1
 set NONBLOCKING = 1
+set mpirun = "mpirun"
 if ($#argv > 0) then
     if ("$1" == "-help") then 
         echo "Run mpptest for round-trip messages from 0 to 1 MByte."
 	echo "Output goes to stdout"
 	echo " "
-	echo "mpptest [ -help ] [ -short ] [ -long ] [ -fname file ] [-gnuplot]"
+	echo "runmpptest [ -help ] [ -short ] [ -long ] [ -fname file ] [-gnuplot]"
 	echo " [ -pair ] [ -gop ] [ -overlap ] [ -bisect ]"
 	echo " [ -blocking ] [ -nonblocking ]"
 	echo " [ -givedy ] "
@@ -120,6 +121,12 @@ if ($#argv > 0) then
 	set MPIRUNOPT = "$1"
 	shift
 	breaksw
+
+        case -mpirunpgm:
+	shift
+	set mpirun = "$1"
+	shift
+	breaksw
 	
 	default:
 	echo "Unknown option $1"
@@ -146,7 +153,7 @@ else
 endif
 #
 # Choose the system to run with ...
-set MPPTEST = "mpirun $MPIRUNOPT -np $NP mpptest"
+set MPPTEST = "$mpirun $MPIRUNOPT -np $NP mpptest"
 #
 #
 # Begin the tests

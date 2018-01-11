@@ -1,5 +1,5 @@
 /*
- *  $Id: rsend_init.c,v 1.21 1996/06/07 15:07:30 gropp Exp $
+ *  $Id: rsend_init.c,v 1.24 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -50,35 +50,44 @@ MPI_Comm      comm;
 MPI_Request   *request;
 {
     int mpi_errno;
+    struct MPIR_DATATYPE *dtype_ptr;
+    struct MPIR_COMMUNICATOR *comm_ptr;
+    static char myname[] = "MPI_RSEND_INIT";
 #ifdef MPI_ADI2
     MPIR_PSHANDLE *shandle;
 #else
     MPI_Request handleptr;
 #endif
 
-    if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,count) ||
-	MPIR_TEST_DATATYPE(comm,datatype) || MPIR_TEST_SEND_TAG(comm,tag) ||
-	MPIR_TEST_SEND_RANK(comm,dest)) 
-	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_RSEND_INIT" );
+    TR_PUSH(myname);
+
+    comm_ptr = MPIR_GET_COMM_PTR(comm);
+    MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+
+    if (MPIR_TEST_COUNT(comm,count) ||
+	MPIR_TEST_SEND_TAG(comm,tag) ||
+	MPIR_TEST_SEND_RANK(comm_ptr,dest)) 
+	return MPIR_ERROR(comm_ptr, mpi_errno, myname );
 
 #ifdef MPI_ADI2
     /* This is IDENTICAL to the create_send code except for the send
        function */
     MPIR_ALLOC(*request,(MPI_Request)MPID_PSendAlloc(),
-	       comm,MPI_ERR_EXHAUSTED, "Error in MPI_RSEND_INIT" );
+	       comm_ptr,MPI_ERR_EXHAUSTED, "Error in MPI_RSEND_INIT" );
     shandle = &(*request)->persistent_shandle;
     MPID_Request_init( &(shandle->shandle), MPIR_PERSISTENT_SEND );
     /* Save the information about the operation, being careful with
        ref-counted items */
-    MPIR_GET_REAL_DATATYPE(datatype)
-    datatype->ref_count++;
-    shandle->perm_datatype = datatype;
+    dtype_ptr   = MPIR_GET_DTYPE_PTR(datatype);
+    MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
+    MPIR_REF_INCR(dtype_ptr);
+    shandle->perm_datatype = dtype_ptr;
     shandle->perm_tag	   = tag;
     shandle->perm_dest	   = dest;
     shandle->perm_count	   = count;
     shandle->perm_buf	   = buf;
-    comm->ref_count++;
-    shandle->perm_comm	   = comm;
+    MPIR_REF_INCR(comm_ptr);
+    shandle->perm_comm	   = comm_ptr;
     shandle->active	   = 0;
     shandle->send          = MPID_IrsendDatatype;
     /* dest of MPI_PROC_NULL handled in start */
@@ -86,26 +95,27 @@ MPI_Request   *request;
     /* See MPI_TYPE_FREE.  A free can not happen while the datatype may
        be in use.  Thus, a nonblocking operation increments the
        reference count */
-    MPIR_GET_REAL_DATATYPE(datatype)
-    datatype->ref_count++;
+    dtype_ptr   = MPIR_GET_DTYPE_PTR(datatype);
+    MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
+    MPIR_REF_INCR(dtype_ptr);
     MPIR_ALLOC(handleptr,(MPI_Request) MPIR_SBalloc( MPIR_shandles ),
-	       comm, MPI_ERR_EXHAUSTED,"Error in MPI_RSEND_INIT");
+	       comm_ptr, MPI_ERR_EXHAUSTED,"Error in MPI_RSEND_INIT");
     *request = handleptr;
     MPIR_SET_COOKIE(&handleptr->shandle,MPIR_REQUEST_COOKIE)
     handleptr->type                 = MPIR_SEND;
     if (dest == MPI_PROC_NULL) {
 	handleptr->shandle.dest	  = dest;
-	MPID_Set_completed( comm->ADIctx, handleptr );
+	MPID_Set_completed( comm_ptr->ADIctx, handleptr );
 	handleptr->shandle.bufpos = 0;
 	}
     else {
-	handleptr->shandle.dest     = comm->lrank_to_grank[dest];
-	MPID_Clr_completed( comm->ADIctx, handleptr );
+	handleptr->shandle.dest     = comm_ptr->lrank_to_grank[dest];
+	MPID_Clr_completed( comm_ptr->ADIctx, handleptr );
 	}
     handleptr->shandle.tag          = tag;
-    handleptr->shandle.contextid    = comm->send_context;
-    handleptr->shandle.comm         = comm;
-    handleptr->shandle.lrank        = comm->local_rank;
+    handleptr->shandle.contextid    = comm_ptr->send_context;
+    handleptr->shandle.comm         = comm_ptr;
+    handleptr->shandle.lrank        = comm_ptr->local_rank;
     handleptr->shandle.mode         = MPIR_MODE_READY;
     handleptr->shandle.datatype     = datatype;
     handleptr->shandle.bufadd       = buf;
@@ -115,10 +125,11 @@ MPI_Request   *request;
 #ifdef MPID_HAS_HETERO
     handleptr->shandle.msgrep	    = MPIR_MSGREP_SENDER;
 #endif
-    MPID_Alloc_send_handle( comm->ADIctx,
+    MPID_Alloc_send_handle( comm_ptr->ADIctx,
 			    &((handleptr)->shandle.dev_shandle));
-    MPID_Set_send_is_nonblocking( comm->ADIctx, 
+    MPID_Set_send_is_nonblocking( comm_ptr->ADIctx, 
 				 &((handleptr)->shandle.dev_shandle), 1 );
 #endif
+    TR_POP;
     return MPI_SUCCESS;
 }

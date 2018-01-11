@@ -5,6 +5,9 @@ int debug_level;
 char whoami[100];
 char local_domain[100];
 
+/* Forward decls */
+VOID kill_server ANSI_ARGS(( char * ));
+
 main(argc,argv)
 int argc;
 char **argv;
@@ -36,7 +39,7 @@ char *host;
     struct net_message_t msg;
     int fd;
     
-    fd = net_conn_to_listener(host, UNRESERVED_PORT);
+    fd = net_conn_to_listener(host, UNRESERVED_PORT,1);
     if (fd == -1)
     {
 	printf("couldn't connect to server on %s\n", host);

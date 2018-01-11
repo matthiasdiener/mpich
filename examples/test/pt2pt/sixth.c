@@ -1,5 +1,5 @@
 #include "mpi.h"
-#ifdef __STDC__
+#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #else
 extern char *malloc();
@@ -11,6 +11,11 @@ typedef struct _table {
   int length;
   int *value;
 } Table;
+
+/* Prototypes for picky compilers */
+int copy_table ANSI_ARGS(( MPI_Comm, int, void *, void *, void *, int * ));
+void create_table ANSI_ARGS(( int, int *, Table ** ));
+int delete_table ANSI_ARGS(( MPI_Comm, int, void *, void * ));
 
 /* These are incorrect...*/
 int copy_table (oldcomm, keyval, extra_state, attr_in, attr_out, flag)

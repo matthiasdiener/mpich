@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "mpi.h"
+#include "test.h"
 
 int main(argc, argv)
 int argc;

@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include "mpi.h"
+#include "test.h"
 
 #define TABLE_SIZE 2
 
@@ -11,7 +12,7 @@ char **argv;
   int    rank, size;
   double a[TABLE_SIZE];
   struct { double a; int b; } in[TABLE_SIZE], out[TABLE_SIZE];
-  int    i, ranks[TABLE_SIZE];
+  int    i;
   int    errors = 0;
 
   /* Initialize the environment and some variables */

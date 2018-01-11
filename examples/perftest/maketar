@@ -1,0 +1,33 @@
+#! /bin/sh
+#
+# Make a tar file of the MPE code, removing the RCS files etc.
+#
+set -x
+#
+# Use tar to copy to /tmp
+if [ ! -d /tmp/perfcopy ] ; then
+    mkdir /tmp/perfcopy
+fi
+cd /tmp/perfcopy
+tar cf - -C /home/MPI/mpich/examples perftest | tar xf -
+#
+# Update a few files
+# The next copy pulls in versions of mpicc and mpirun that may
+# be useful.
+cp -rp /home/MPI/class/mpiexmpl/maint/envs /tmp/perfcopy/perftest/bin
+cp /home/MPI/mpich/util/tarch /tmp/perfcopy/perftest
+chmod a+x /tmp/perfcopy/perftest/tarch
+#
+# Remove the RCS files, old executables, and debris
+cd /tmp/perfcopy/perftest
+/bin/rm -rf /tmp/perfcopy/perftest/save
+find . \( -name 'RCS' -o -name '*.o' -o -name '#*#' -o \
+              -name '*~' -o -name 'mputil.mp*' -o -name Makefile -o \
+	      -name makefile -o -name 'PI*' -o -name '*.cit' \) -print | \
+	sed 's%^%/bin/rm -rf %g' | sh
+#
+# rebuild the tar file
+cd /tmp/perfcopy
+tar cf - perftest | gzip > /tmp/perftest.tar.gz
+/bin/rm -rf /tmp/perfcopy &
+echo "tar file in /tmp/perftest.tar.gz"

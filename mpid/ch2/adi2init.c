@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2init.c,v 1.2 1996/06/13 14:52:49 gropp Exp $
+ *  $Id: adi2init.c,v 1.6 1997/03/08 22:04:20 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -15,6 +15,7 @@
 
 /* Home for these globals */
 int MPID_MyWorldSize, MPID_MyWorldRank;
+int MPID_Print_queues = 0;
 MPID_SBHeader MPIR_rhandles;
 MPID_SBHeader MPIR_shandles;
 
@@ -150,8 +151,8 @@ char ***argv;
    There should probably be a separate argument for whether it is a 
    user requested or internal abort.
  */
-void MPID_Abort( comm, code, user, str )
-MPI_Comm comm;
+void MPID_Abort( comm_ptr, code, user, str )
+struct MPIR_COMMUNICATOR *comm_ptr;
 int      code;
 char     *user, *str;
 {
@@ -180,7 +181,7 @@ char     *user, *str;
 	dev = MPID_devset->dev_list;
 	while (dev) {
 	    found_dev = 1;
-	    (*dev->abort)( comm, code, str );
+	    (*dev->abort)( comm_ptr, code, str );
 	    dev = dev->next;
 	}
 	if (!found_dev) 
@@ -195,7 +196,7 @@ void MPID_End()
 {
     MPID_Device *dev, *ndev;
 
-    DEBUG_PRINT_MSG("Entering MPID_End" );
+    DEBUG_PRINT_MSG("Entering MPID_End" )
 
     /* Finish off any pending transactions */
     /* Should this be part of the device terminate routines instead ? 
@@ -207,7 +208,9 @@ void MPID_End()
     }
 
     /* Eventually make this optional */
-    MPID_Dump_queues();
+    
+    if (MPID_Print_queues)
+	MPID_Dump_queues();
 
 /* We should really generate an error or warning message if there 
    are uncompleted operations... */
@@ -218,10 +221,16 @@ void MPID_End()
 	(*dev->terminate)( dev );
 	dev = ndev;
     }
+
+    /* Clean up request handles */
+    MPID_SBdestroy( MPIR_shandles );
+    MPID_SBdestroy( MPIR_rhandles );
+
 /* Free remaining storage */
     FREE( MPID_devset->dev );
     FREE( MPID_devset );
-#ifdef MPIR_MEMDEBUG
+#if defined(MPIR_MEMDEBUG) && defined(MPID_ONLY)
+    /* MPI_Finalize also does this */
     MPID_trdump( stdout );
 #endif
 }
@@ -235,7 +244,7 @@ MPID_BLOCKING_TYPE is_blocking;
     int found = 0;
     int lerr;
 
-    DEBUG_PRINT_MSG( "Starting DeviceCheck");
+    DEBUG_PRINT_MSG( "Starting DeviceCheck")
     if (MPID_devset->ndev_list == 1) {
 	dev = MPID_devset->dev_list;
 	lerr = (*dev->check_device)( dev, is_blocking );
@@ -254,7 +263,7 @@ MPID_BLOCKING_TYPE is_blocking;
 	    }
 	}
     }
-    DEBUG_PRINT_MSG( "Exiting DeviceCheck");
+    DEBUG_PRINT_MSG( "Exiting DeviceCheck")
     return (found) ? found : -1;
 }
 

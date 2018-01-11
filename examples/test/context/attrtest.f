@@ -57,22 +57,24 @@ C. Clean up MPI
       call MPI_FINALIZE (PM_GLOBAL_ERROR)
 
       end
-
-
-      INTEGER FUNCTION FazCreate (comm, keyval, fuzzy, 
-     &                    attr_in, attr_out, flag)
+C
+C MPI 1.1 changed these from functions to subroutines.
+C
+      SUBROUTINE FazCreate (comm, keyval, fuzzy, 
+     &                    attr_in, attr_out, flag, ierr )
       INTEGER comm, keyval, fuzzy, attr_in, attr_out
       LOGICAL flag
+      include 'mpif.h'
       attr_out = attr_in + 1
       flag = .true.
-      FazCreate = 0
+      ierr = MPI_SUCCESS
       END
 
-      INTEGER FUNCTION FazDelete (comm, keyval, attr, extra)
-      INTEGER comm, keyval, attr, extra
+      SUBROUTINE FazDelete (comm, keyval, attr, extra, ierr )
+      INTEGER comm, keyval, attr, extra, ierr
       include 'mpif.h'
+      ierr = MPI_SUCCESS
       if (keyval .ne. MPI_KEYVAL_INVALID)then
          attr = attr -  1
       end if 
-      FazDelete = 0
       END

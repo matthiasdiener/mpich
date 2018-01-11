@@ -8,6 +8,13 @@
 #endif
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
+
 #include "alog.h"
 
 int xx_alog_status = 0x3;	/* Logging turned ON (default) */
@@ -248,9 +255,10 @@ int id;
 VOID xx_alog_setup(pid,flag)
 int pid, flag;
 {
+/*
 	register int i;
 	char c[MAX_LOG_STRING_LEN], cd[MAX_LOG_STRING_LEN];
-
+ */
 	usc_init(); 
 	xx_alog_status &= 0x1;    /* set initialized flag */
 	xx_buf_head = (struct head_trace_buf *)

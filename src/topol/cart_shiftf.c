@@ -8,12 +8,6 @@
 
 #include "mpiimpl.h"
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_cart_shift_ PMPI_CART_SHIFT
@@ -35,15 +29,14 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_cart_shift_ ANSI_ARGS(( MPI_Comm, int *, int *, int *, 
+void mpi_cart_shift_ ANSI_ARGS(( MPI_Comm *, int *, int *, int *, 
 				 int *, int * ));
 
 void mpi_cart_shift_( comm, direction, shift, source, dest, ierr )
-MPI_Comm         comm;
+MPI_Comm         *comm;
 int              *direction; 
 int              *shift;
 int              *source, *dest, *ierr;
 {
-    *ierr =     MPI_Cart_shift( (MPI_Comm)MPIR_ToPointer(*(int*)comm), 
-				*direction, *shift, source, dest );
+    *ierr =     MPI_Cart_shift( *comm, *direction, *shift, source, dest );
 }

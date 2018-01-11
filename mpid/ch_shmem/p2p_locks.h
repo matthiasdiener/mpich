@@ -121,10 +121,12 @@
 #        define p2p_lock_init(l)   (*(l)) = usnewlock(p2p_sgi_usptr)
 #        define p2p_lock(l)     ussetlock(*(l))
 #        define p2p_unlock(l)   usunsetlock(*(l))
+#        define p2p_lock_name   "uslocks - spinlocks"
 #    elif defined(PREFER_SEMAPHORES)
 #        define p2p_lock_init(l)   (*(l)) = usnewsema(p2p_sgi_usptr,1)  
 #        define p2p_lock(l)     uspsema(*(l))
 #        define p2p_unlock(l)   usvsema(*(l))
+#        define p2p_lock_name   "uslocks - semaphores"
 #    else
          'Oops - no uslocks'
 #    endif
@@ -137,6 +139,7 @@
 #    define p2p_lock_init(l)   { *((int*)(l)) = 1; }
 #    define p2p_lock(l)        MPID_SHMEM__acquire_lock(l)
 #    define p2p_unlock(l)      MPID_SHMEM__release_lock(l)
+#    define p2p_lock_name      "HPUX assembly language locks"
 #endif
 
 #if defined(USE_TSLOCKS)
@@ -145,9 +148,11 @@
 #    define p2p_lock_init(l)   tslock_init(l)
 #    define p2p_lock(l)        tslock(l)
 #    define p2p_unlock(l)      tsunlock(l)
+#    define p2p_lock_name      "tslocks"
 #endif
 
 #if defined(USE_MSEM)
+#include <sys/mman.h>
     /* Problem - some systems (e.g., HP) use struct msemaphore, others use just
                  msemaphore */
 #    if defined(MSEMAPHORE_IS_STRUCT)   /* HP-style */
@@ -167,6 +172,7 @@
 #    define p2p_lock_init(l)   msem_init(&(l)->lock, MSEM_UNLOCKED)
 #    define p2p_lock(l)        msem_lock(&(l)->lock, 0)
 #    define p2p_unlock(l )     msem_unlock(&(l)->lock, 0)
+#    define p2p_lock_name      "msem_lock"
 
     /* Non-cache-line-separated locks:
     typedef msemaphore         p2p_lock_t;
@@ -187,6 +193,7 @@
 #    define p2p_lock_init(l)   mutex_init(l,USYNC_PROCESS,(void *)NULL)
 #    define p2p_lock(l)        mutex_lock(l)
 #    define p2p_unlock(l)      mutex_unlock(l)
+#    define p2p_lock_name      "mutex_lock"
 #endif
 
 #if defined(USE_SEMOP)
@@ -195,11 +202,12 @@
 #    include <sys/sem.h>
 #    define INCLUDED_SYS_SEM
      typedef struct { int semid;  int semnum; }   p2p_lock_t;
-     static struct sembuf sem_lock[1]   = { 0, -1, 0 };
-     static struct sembuf sem_unlock[1] = { 0, 1, 0 };
+     static struct sembuf sem_lock[1]   = { { 0, -1, 0 } };
+     static struct sembuf sem_unlock[1] = { { 0, 1, 0 } };
 #    define p2p_lock_init(l)  semop_init(l)
 #    define p2p_lock(l)       semop_lock(l)
 #    define p2p_unlock(l)     semop_unlock(l)
+#    define p2p_lock_name     "semop_lock"
 void semop_init ANSI_ARGS((p2p_lock_t *));
 void semop_lock ANSI_ARGS((p2p_lock_t *));
 void semop_unlock ANSI_ARGS((p2p_lock_t *));
@@ -226,3 +234,17 @@ void semop_unlock ANSI_ARGS((p2p_lock_t *));
 #    define MD_unlock(l)       usunsetlock((l))
 #  endif
 #endif
+
+/* 
+ * p2p_write_sync forces writes to be written to cache-coherent memory.
+ * Some processors have special, assembly-language instructions for this.
+ * Otherwise, you can usually do a lock/unlock.
+ *
+ * This has been made specific to MPID; this should really use
+ * a lock initialized in p2p_init, with a p2p_write_sync_init()
+ * macro used to do the lock initialization.
+ */
+#define p2p_write_sync() {\
+     p2p_lock( &MPID_shmem->globlock );\
+     p2p_unlock( &MPID_shmem->globlock );\
+     }

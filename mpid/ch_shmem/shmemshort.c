@@ -57,7 +57,8 @@ MPID_Msgrep_t msgrep;
     /* In case the message is marked as non-blocking, indicate that we don't
        need to wait on it.  We may also want to use nonblocking operations
        to send the envelopes.... */
-    MPID_SHMEM_SendControl( pkt, len + sizeof(MPID_PKT_HEAD_T), dest );
+    MPID_SHMEM_SendControl( (MPID_PKT_T*)pkt, 
+			    len + sizeof(MPID_PKT_HEAD_T), dest );
     DEBUG_PRINT_MSG("S Sent message in a single packet");
 
     return MPI_SUCCESS;

@@ -1,3 +1,6 @@
+
+
+
 #!/bin/sh
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf.
@@ -703,23 +706,42 @@ CARCH=$ARCH
 
 if test -z "$USERCC" ; then
 case $CARCH in 
-   cenju3) CC=/usr/necccs/bin/cc
-           F77=/usr/necccs/bin/f77
-           ASM=/usr/necccs/bin/as
-           if test ! -x $CC ; then
+   cenju3) if test $ARCH = abi
+           then
+              CCC=CC
+              CCLINKER=cjCC
               CC=cc
               F77=f77
               ASM=as
+              if test -z "$USERFLINKER" ; then
+                  FLINKER=cjabif77
+              fi
+              if test -z "$USERFLINKER" ; then
+                  CLINKER=cjabicc
+              fi
+           else
+              CCC=CC
+              CCLINKER=cjCC
+              CC=/usr/necccs/bin/cc
+              F77=/usr/necccs/bin/f77
+              ASM=/usr/necccs/bin/as
+              if test ! -x $CC ; then
+                 CC=cc
+                 F77=f77
+                 ASM=as
+              fi
+#
+              if test -z "$USERFLINKER" ; then
+                  FLINKER=cjf77
+              fi
+              if test -z "$USERFLINKER" ; then
+                  CLINKER=cjcc
+              fi
            fi
+#
            DEVCFLAGS="$DEVCFLAGS -O -Kmips2"
            MPILIBNAME=mpich
            ASMFILES_O=get_stack.o
-           if test -z "$USERFLINKER" ; then
-               FLINKER=cjf77
-           fi
-           if test -z "$USERFLINKER" ; then
-               CLINKER=cjcc
-           fi
           ;;
    intelnx|paragon) CC=icc ; GCC="" 
 	  # If this version of the intel compiler accepts the -nx flag, use it.
@@ -736,13 +758,26 @@ case $CARCH in
    cray_t3d)        
 	# Some Cray's require -Ccray-t3d instead of -Tcray-t3d.  
         # We have no diagnostic for this behavior yet.
-                    CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3d" ; GCC="" 
+                    CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3d -DT3D" ; GCC="" 
                     if test -z "$USERCLINKER" ; then 
 	            CLINKER="$CC -Tcray-t3d" ; fi ;;
    hpux) if test "`which ${CC-cc}`" = "/usr/convex/bin/cc" ; then 
         CFLAGS="$CFLAGS -or none -U_REENTRANT -D_POSIX_SOURCE -D_HPUX_SOURCE -DMPI_cspp"
          elif test "$CC" != "gcc" ; then
-            CFLAGS="$CFLAGS -Aa -D_POSIX_SOURCE -D_HPUX_SOURCE"
+	    # If cflags includes -Ae or -Aa, we don't need to add -Aa
+            # In a perfect world, we might want to try -Ae
+	    hasarg=`echo A$CFLAGS | sed -n -e '/-Aa/p' -e '/-Ae/p'`
+	    if test -z "$hasarg" ; then
+                CFLAGS="$CFLAGS -Aa"
+	    fi
+            # We need these flags to get the correct system include
+            # files.
+            CFLAGS="$CFLAGS -D_POSIX_SOURCE -D_HPUX_SOURCE"
+	    # P4 needs these to get the correct system includes
+            P4_CFLAGS="-D_POSIX_SOURCE -D_HPUX_SOURCE"
+	    # We MUST have an ANSI compiler for HPUX, even for USER code
+	    # If the regular cpp worked, we would not need to do this.
+	    USER_CFLAGS="$USER_CFLAGS -Aa"
 	    # Alternate...
 	    # -Ae is extended -Aa (only on some PA RISC systems)
 	    #CFLAGS="$CFLAGS -Ae +Olibcalls"
@@ -1368,6 +1403,80 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking whether cross-compiling""... $ac_c"
+else
+echo $ac_n "checking whether cross-compiling""... $ac_c" 1>&1
+fi
+# If we cannot run a trivial program, we must be cross compiling.
+cat > conftest.c <<EOF
+#include "confdefs.h"
+main(){exit(0);}
+EOF
+eval $compile
+if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  pac_ok=1
+
+else
+  pac_ok=0
+fi
+rm -fr conftest*
+if test $pac_ok = 1 ; then
+    cat > conftest.c <<EOF
+#include "confdefs.h"
+main(){exit(1);}
+EOF
+eval $compile
+if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  pac_ok=0 
+
+fi
+rm -fr conftest*
+    if test $pac_ok = 1 ; then
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    else
+        cross_compiling=1
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+    fi
+else
+    cross_compiling=1
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+fi
+
+
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo $ac_n "checking that the compiler $CC runs""... $ac_c"
 else
 echo $ac_n "checking that the compiler $CC runs""... $ac_c" 1>&1
@@ -1801,20 +1910,45 @@ main(){exit(0);}
 EOF
 eval $compile
 if test -s conftest && (./conftest; exit) 2>/dev/null; then
-  if test -z "$ac_echo_test" -a 1 = 1 ; then
+  pac_ok=1
+
+else
+  pac_ok=0
+fi
+rm -fr conftest*
+if test $pac_ok = 1 ; then
+    cat > conftest.c <<EOF
+#include "confdefs.h"
+main(){exit(1);}
+EOF
+eval $compile
+if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  pac_ok=0 
+
+fi
+rm -fr conftest*
+    if test $pac_ok = 1 ; then
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-
+    else
+        cross_compiling=1
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
 else
-  cross_compiling=1;if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes" 1>&1
+fi
+    fi
+else
+    cross_compiling=1
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
 fi
-rm -fr conftest*
 
 if test $cross_compiling != 0 ; then
     echo "Cross-compiling; many tests may not work..."

@@ -87,13 +87,13 @@ int setnum;
 
     if ((semid = semget(getpid()+setnum,10,IPC_CREAT|0600)) < 0)
     {
-	p2p_error("semget failed for setnum=%d\n",setnum);
+	p2p_error("semget failed for setnum = ",setnum);
     }
     for (i=0; i < 10; i++)
     {
 	if (semctl(semid,i,SETVAL,arg) == -1)
 	{
-	    p2p_error("semctl setval failed\n",-1);
+	    p2p_error("semctl setval failed",-1);
 	}
     }
     return(semid);

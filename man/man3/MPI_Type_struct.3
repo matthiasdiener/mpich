@@ -1,4 +1,4 @@
-.TH MPI_Type_struct 3 "7/17/1996" " " "MPI"
+.TH MPI_Type_struct 3 "2/18/1997" " " "MPI"
 .SH NAME
 MPI_Type_struct \-  Creates a struct datatype 
 .SH SYNOPSIS
@@ -52,7 +52,9 @@ corresponding index must be positive.
 The MPI standard originally made vague statements about padding and alignment;
 this was intended to allow the simple definition of structures that could
 be sent with a count greater than one.  For example,
+.nf
 struct { int a; char b; } foo;
+.fi
 may have 
 .I sizeof(foo) > sizeof(int) + sizeof(char)
 ; for example,
@@ -72,10 +74,12 @@ multiple items, you should explicitly include an
 entry as the
 last member of the structure.  For example, the following code can be used
 for the structure foo
+.nf
 blen[0] = 1; indices[0] = 0; oldtypes[0] = MPI_INT;
 blen[1] = 1; indices[1] = &foo.b - &foo; oldtypes[1] = MPI_CHAR;
 blen[2] = 1; indices[2] = sizeof(foo); oldtypes[2] = MPI_UB;
 MPI_Type_struct( 3, blen, indices, oldtypes, &newtype );
+.fi
 
 .SH NOTES FOR FORTRAN
 All MPI routines in Fortran (except for 
@@ -144,14 +148,6 @@ non-negative; a count of zero is often valid.
 .B MPI_ERR_INTERN 
 - This error is returned when some part of the MPICH 
 implementation is unable to acquire memory.  
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_OTHER 
-- Other error; use 
-.I MPI_Error_string
-to get more information
-about this error code. 
 .PD 1
 .SH LOCATION
 type_struct.c

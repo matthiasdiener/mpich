@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include "mpi.h"
 
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
 
 /*
    This was originally built with wrappergen, then modified to 
@@ -1471,6 +1474,8 @@ int * flag;
   return returnVal;
 }
 
+#ifdef FOO
+/* Don't trace the timer calls */
 double  MPI_Wtick(  )
 {
   double  returnVal;
@@ -1514,6 +1519,7 @@ double  MPI_Wtime(  )
 
   return returnVal;
 }
+#endif
 
 int  MPI_Address( location, address )
 void * location;

@@ -1,6 +1,9 @@
 #include "mpi.h"
 #include <stdio.h>
+#include "test.h"
 #define BAD_ANSWER 100000
+
+int assoc ANSI_ARGS(( int *, int *, int *, MPI_Datatype * ));
 
 /*
     The operation is inoutvec[i] = invec[i] op inoutvec[i] 

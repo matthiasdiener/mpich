@@ -12,6 +12,14 @@
 #define MSG_SEND 1
 #define MSG_RECV 2
 
+#ifndef ANSI_ARGS
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
+#define ANSI_ARGS(a) a
+#else
+#define ANSI_ARGS(a) ()
+#endif
+#endif
+
 typedef struct msgDefInfo_ {
   int tag;
   char *name;
@@ -62,62 +70,54 @@ typedef struct msgsVisible_ {
 } msgsVisible;
 
 
-#ifdef __STDC__
-#define ARGS(x) x
-#else
-#define ARGS(x) ()
-#endif
-
-
-
   /* allocate memory for message data structure */
-msgData *Msg_Create();
+msgData *Msg_Create ANSI_ARGS(( void ));
 
   /* describe a message */
-int Msg_Def ARGS(( msgData *, int tag, char *name, char *color ));
+int Msg_Def ANSI_ARGS(( msgData *, int tag, char *name, char *color ));
 
   /* return the # of message descriptions */
-int Msg_Ndefs ARGS(( msgData * ));
+int Msg_Ndefs ANSI_ARGS(( msgData * ));
 
   /* get a message description */
-int Msg_GetDef ARGS(( msgData *, int def_num, char **name, int *tag,
+int Msg_GetDef ANSI_ARGS(( msgData *, int def_num, char **name, int *tag,
 		      char **color ));
 
   /* set a message description */
-int Msg_SetDef ARGS(( msgData *, int def_num, char *name, int tag,
+int Msg_SetDef ANSI_ARGS(( msgData *, int def_num, char *name, int tag,
 		      char *color ));
 
   /* allocate memory for message data */
-int Msg_DataInit ARGS(( msgData *msg_data, int np ));
+int Msg_DataInit ANSI_ARGS(( msgData *msg_data, int np ));
 
   /* store the 'send' side of a message */
   /* return 1 if the message was a tachyon */
-int Msg_Send ARGS(( msgData *msg_data, int sender, int recver,
+int Msg_Send ANSI_ARGS(( msgData *msg_data, int sender, int recver,
 	      double time, int tag, int size ));
 
-int Msg_Recv ARGS(( msgData *msg_data, int recver, int sender,
+int Msg_Recv ANSI_ARGS(( msgData *msg_data, int recver, int sender,
 	      double time, int tag, int size ));
   /* store the 'recv' side of a message */
   /* return 1 if the message was a tachyon */
 
-int Msg_DoneAdding ARGS(( msgData *msg_data ));
+int Msg_DoneAdding ANSI_ARGS(( msgData *msg_data ));
   /* Shrinkwrap memory used by message data.  Sort messages.
      Might want to use an insertion
      sort since the data might already be well sorted. */
 
   /* Return the number of messages logged */
-int Msg_N ARGS(( msgData *msg_data ));
+int Msg_N ANSI_ARGS(( msgData *msg_data ));
 
-int Msg_Get ARGS(( msgData *msg_data, int n, int *type,
+int Msg_Get ANSI_ARGS(( msgData *msg_data, int n, int *type,
 		   int *sender, int *recver, double *sendTime,
 		   double *recvTime, int *size ));
 
 #if TESTING
   /* Prints a list of all messages read into memory. */
-int Msg_PrintAll ARGS(( msgData *msg_data ));
+int Msg_PrintAll ANSI_ARGS(( msgData *msg_data ));
 #endif
 
-int Msg_Close ARGS(( msgData * ));
+int Msg_Close ANSI_ARGS(( msgData * ));
   /* free all memory associated with messages */
 
 

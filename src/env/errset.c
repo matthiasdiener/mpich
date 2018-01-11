@@ -1,5 +1,5 @@
 /*
- *  $Id: errset.c,v 1.8 1996/04/11 20:28:39 gropp Exp $
+ *  $Id: errset.c,v 1.11 1997/01/07 01:46:11 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -25,16 +25,24 @@ int MPI_Errhandler_set( comm, errhandler )
 MPI_Comm       comm;
 MPI_Errhandler errhandler;
 {
-    int mpi_errno;
-    if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_ERRHANDLER(comm,errhandler)) {
-	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-			   "Error in MPI_ERRHANDLER_SET" );
-    }
-    else {
-	if (comm->error_handler) 
-	    MPI_Errhandler_free( &comm->error_handler );
-	comm->error_handler = errhandler;
-	errhandler->ref_count ++;
-    }
+    struct MPIR_COMMUNICATOR *comm_ptr;
+    struct MPIR_Errhandler *old;
+    static char myname[] = "MPI_ERRHANDLER_SET";
+
+    TR_PUSH(myname);
+
+    comm_ptr = MPIR_GET_COMM_PTR(comm);
+    MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+
+    old = MPIR_GET_ERRHANDLER_PTR( errhandler );
+    MPIR_TEST_MPI_ERRHANDLER(errhandler,old,comm_ptr,myname);
+    
+    MPIR_REF_INCR(old);
+
+    if (comm_ptr->error_handler) 
+	MPI_Errhandler_free( &comm_ptr->error_handler );
+    comm_ptr->error_handler = errhandler;
+
+    TR_POP;
     return MPI_SUCCESS;
 }

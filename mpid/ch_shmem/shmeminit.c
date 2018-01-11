@@ -1,5 +1,5 @@
 /*
- *  $Id: shmeminit.c,v 1.1 1996/07/22 21:17:22 gropp Exp $
+ *  $Id: shmeminit.c,v 1.4 1997/03/29 16:08:28 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -24,7 +24,7 @@
 
 /* Forward refs */
 int MPID_SHMEM_End ANSI_ARGS(( MPID_Device * ));
-int MPID_SHMEM_Abort ANSI_ARGS(( MPI_Comm, int, char * ));
+int MPID_SHMEM_Abort ANSI_ARGS(( struct MPIR_COMMUNICATOR *, int, char * ));
 
 /* 
     In addition, Chameleon processes many command-line arguments 
@@ -78,8 +78,8 @@ int  short_len, long_len;
    There should probably be a separate argument for whether it is a 
    user requested or internal abort.
  */
-int MPID_SHMEM_Abort( comm, code, msg )
-MPI_Comm comm;
+int MPID_SHMEM_Abort( comm_ptr, code, msg )
+struct MPIR_COMMUNICATOR *comm_ptr;
 int      code;
 char     *msg;
 {
@@ -89,8 +89,7 @@ char     *msg;
     else {
 	fprintf( stderr, "[%d] Aborting program!\n", MPID_MyWorldRank );
     }
-    fflush( stderr );
-    fflush( stdout );
+
     /* This needs to try and kill any generated processes */
     p2p_kill_procs();
     /* Cleanup any "arenas/ipcs/etc" */
@@ -120,10 +119,13 @@ MPID_Device *dev;
     return 0;
 }
 
+/*
+ * Currently, this is inactive because adi2init contains MPID_Version_name .
+ */
 void MPID_SHMEM_Version_name( name )
 char *name;
 {
-    sprintf( name, "ADI version %4.2f - transport %s", MPIDPATCHLEVEL, 
-	     MPIDTRANSPORT );
+    sprintf( name, "ADI version %4.2f - transport %s, locks %s", 
+	     MPIDPATCHLEVEL, MPIDTRANSPORT, p2p_lock_name );
 }
 

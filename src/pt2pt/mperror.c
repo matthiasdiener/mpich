@@ -1,5 +1,5 @@
 /*
- *  $Id: mperror.c,v 1.24 1996/06/07 15:07:30 gropp Exp $
+ *  $Id: mperror.c,v 1.28 1997/02/18 23:05:35 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -11,7 +11,12 @@
 #include "mpipt2pt.h"
 #endif
 
-#if (defined(__STDC__) || defined(__cpluscplus))
+/* Note that some systems define all of these, but because of problems 
+   in the header files, don't actually support them.  We've had this
+   problem with Solaris systems
+ */
+#if defined(USE_STDARG) && \
+    (defined(__STDC__) || defined(__cpluscplus) || defined(HAVE_PROTOTYPES))
 #if !defined(MPIR_USE_STDARG)
 #define MPIR_USE_STDARG
 #endif
@@ -44,6 +49,7 @@ void MPIR_Errors_are_fatal(  MPI_Comm *comm, int * code, ... )
   char *string, *file;
   int  *line;
   va_list Argp;
+  struct MPIR_COMMUNICATOR *comm_ptr;
 
   va_start( Argp, code );
   string = va_arg(Argp,char *);
@@ -58,20 +64,30 @@ char     *string, *file;
 {
   char buf[MPI_MAX_ERROR_STRING];
   int  result_len; 
+  struct MPIR_COMMUNICATOR *comm_ptr;
 #endif
 
 #ifdef MPI_ADI2
   MPI_Error_string( *code, (char *)buf, &result_len );
-  fprintf( stderr, "%d - %s : %s\n", MPID_MyWorldRank,
+  FPRINTF( stderr, "%d - %s : %s\n", MPID_MyWorldRank,
           string ? string : "<NO ERROR MESSAGE>", buf );
-  /* Comm might be null... */
-  MPID_Abort( (comm) ? *comm : (MPI_Comm)0, *code, (char *)0, (char *)0 );
+
+#ifdef DEBUG_TRACE
+  /* Print internal trace from top down */
+  TR_stack_print( stderr, -1 );
+#endif
+
+  /* Comm might be null; must NOT invoke error handler from 
+     within error handler */
+  comm_ptr = MPIR_GET_COMM_PTR(*comm);
+
+  MPID_Abort( comm_ptr, *code, (char *)0, (char *)0 );
 #else
   {
   int myid;
   MPID_Myrank( MPI_COMM_WORLD->ADIctx, &myid );
   MPI_Error_string( *code, (char *)buf, &result_len );
-  fprintf( stderr, "%d - %s : %s\n", myid, 
+  FPRINTF( stderr, "%d - %s : %s\n", myid, 
           string ? string : "<NO ERROR MESSAGE>", buf );
   }
   /* Comm might be null... */
@@ -132,10 +148,10 @@ char     *string, *file;
   MPI_Error_string( *code, buf, &result_len );
 #ifdef MPIR_DEBUG
   /* Generate this information ONLY when debugging MPIR */
-  fprintf( stderr, "%d -  File: %s   Line: %d\n", myid, 
+  FPRINTF( stderr, "%d -  File: %s   Line: %d\n", myid, 
 		   file, *line );
 #endif
-  fprintf( stderr, "%d - %s : %s\n", myid, 
+  FPRINTF( stderr, "%d - %s : %s\n", myid, 
           string ? string : "<NO ERROR MESSAGE>", buf );
 }
 
@@ -145,15 +161,19 @@ char     *string, *file;
    we return the error code 
  */
 int MPIR_Error( comm, code, string, file, line )
-MPI_Comm  comm;
+struct MPIR_COMMUNICATOR *comm;
 int       code, line;
 char     *string, *file;
 {
   MPI_Errhandler handler;
+  static int InHandler = 0;
+
+  if (InHandler) return code;
+  InHandler = 1;
 
   /* Check for bad conditions */
-  if (comm == MPI_COMM_NULL) 
-    comm = MPI_COMM_WORLD;
+  if (!comm)
+    comm = MPIR_COMM_WORLD;
   /* This can happen if MPI_COMM_WORLD is not initialized */
   if (!comm || (handler = comm->error_handler) == MPI_ERRHANDLER_NULL) 
     handler = MPI_ERRORS_ARE_FATAL;
@@ -162,15 +182,30 @@ char     *string, *file;
       fprintf( stderr, "Fatal error; unknown error handler\n\
 May be MPI call before MPI_INIT.  Error message is %s and code is %d\n", 
 	      string, code );
+      InHandler = 0;
       return code;
       }
 
   /* If we're calling MPI routines from within an MPI routine, we 
    (probably) just want to return.  If so, we set "use_return_handler" */
-  if (comm && comm->use_return_handler) return code;
+  if (comm && comm->use_return_handler) {
+      InHandler = 0;
+      return code;
+  }
 
   /* Call handler routine */
-  (*handler->routine)( &comm, &code, string, file, &line );
+  {struct MPIR_Errhandler *errhand = MPIR_ToPointer( handler );
+  if (!errhand || !errhand->routine) {
+      fprintf( stderr, "Fatal error; unknown error handler\n\
+May be MPI call before MPI_INIT.  Error message is %s and code is %d\n", 
+	      string, code );
+      InHandler = 0;
+      return code;
+  }
+  (*errhand->routine)( &comm->self, &code, string, file, &line );
+  }
+
+  InHandler = 0;
   return (code);
 }
 

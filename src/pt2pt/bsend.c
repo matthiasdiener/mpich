@@ -1,5 +1,5 @@
 /*
- *  $Id: bsend.c,v 1.14 1996/05/06 15:09:09 gropp Exp $
+ *  $Id: bsend.c,v 1.16 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -72,8 +72,11 @@ MPI_Comm         comm;
     MPI_Request handle;
     MPI_Status  status;
     int         mpi_errno = MPI_SUCCESS;
+    struct MPIR_COMMUNICATOR *comm_ptr;
     MPIR_ERROR_DECL;
-    static char myname[] = "Error in MPI_Bsend";
+    static char myname[] = "MPI_BSEND";
+
+    TR_PUSH(myname);
 
     if (dest != MPI_PROC_NULL)
     {
@@ -81,10 +84,13 @@ MPI_Comm         comm;
 	   we will soon add a special case for faster Bsend and we'll
 	   need these tests then 
 	 */
-        if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,count) ||
-	    MPIR_TEST_DATATYPE(comm,datatype) || 
-	    MPIR_TEST_SEND_RANK(comm,dest) || MPIR_TEST_SEND_TAG(comm,tag))
-	    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_Bsend" );
+
+	comm_ptr = MPIR_GET_COMM_PTR(comm);
+	MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+
+        if (MPIR_TEST_COUNT(comm,count) ||
+	    MPIR_TEST_SEND_RANK(comm_ptr,dest) || MPIR_TEST_SEND_TAG(comm,tag))
+	    return MPIR_ERROR( comm_ptr, mpi_errno, myname );
 
 #ifdef MPI_ADI2
 	/* 
@@ -93,26 +99,27 @@ MPI_Comm         comm;
 	   dest_grank, msgrep, &mpi_errno );
 	   if (!mpi_errno) return MPI_SUCCESS;
 	   if (mpi_errno != MPIR_ERR_MAY_BLOCK) 
-	   return MPIR_ERROR( comm, mpi_errno, "Error in MPI_Bsend" );
+	   return MPIR_ERROR( comm, mpi_errno, myname );
 	 */
 #endif
-	MPIR_ERROR_PUSH(comm);
+	MPIR_ERROR_PUSH(comm_ptr);
 	/* We don't use MPIR_CALL_POP so that we can free the handle */
 	if ((mpi_errno = MPI_Ibsend( buf, count, datatype, dest, tag, comm, 
 				  &handle ))) {
-	    MPIR_ERROR_POP(comm);
+	    MPIR_ERROR_POP(comm_ptr);
 #ifdef MPI_ADI2
 	    MPID_SendFree( handle );
 #endif
-	    return MPIR_ERROR(comm,mpi_errno,myname);
+	    return MPIR_ERROR(comm_ptr,mpi_errno,myname);
 	}
 
 	/* This Wait only completes the transfer of data into the 
 	   buffer area.  The test/wait in util/bsendutil.c completes
 	   the actual transfer 
 	 */
-	MPIR_CALL_POP(MPI_Wait( &handle, &status ),comm,myname);
-	MPIR_ERROR_POP(comm);
+	MPIR_CALL_POP(MPI_Wait( &handle, &status ),comm_ptr,myname);
+	MPIR_ERROR_POP(comm_ptr);
     }
+    TR_POP;
     return mpi_errno;
 }

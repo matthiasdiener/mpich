@@ -1,6 +1,10 @@
 #include "mpi.h"
 #include <stdio.h>
 
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
+
 /* 
    This is a very simple MPI program which can be used to check things
    like the behavior of the ADI or heterogeneous code

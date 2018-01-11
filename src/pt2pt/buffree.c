@@ -1,5 +1,5 @@
 /*
- *  $Id: buffree.c,v 1.10 1996/04/11 20:17:52 gropp Exp $
+ *  $Id: buffree.c,v 1.11 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -35,6 +35,20 @@ the buffer.  For example, consider
 This is much like the action of the Unix signal routine and has the same
 strengths (it is simple) and weaknesses (it only works for nested usages).
 
+Note that for this approach to work, MPI_Buffer_detach must return MPI_SUCCESS
+even when there is no buffer to detach.  In that case, it returns a size of
+zero.  The MPI 1.1 standard for 'MPI_BUFFER_DETACH' contains the text
+
+.vb
+   The statements made in this section describe the behavior of MPI for
+   buffered-mode sends. When no buffer is currently associated, MPI behaves 
+   as if a zero-sized buffer is associated with the process.
+.ve
+
+This could be read as applying only to the various Bsend routines.  This 
+implementation takes the position that this applies to 'MPI_BUFFER_DETACH'
+as well.
+
 .N fortran
 
     The Fortran binding for this routine is different.  Because Fortran 
@@ -52,10 +66,10 @@ void *bufferptr;
 int  *size;
 {
 #ifdef MPI_ADI2
-    MPIR_BsendRelease( (void **)bufferptr, size );
+    return MPIR_BsendRelease( (void **)bufferptr, size );
 #else
     MPIR_FreeBuffer( (void **)bufferptr, size );
-#endif
     return MPI_SUCCESS;
+#endif
 }
 

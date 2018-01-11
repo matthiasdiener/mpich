@@ -2,16 +2,6 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_errhandler_free_ PMPI_ERRHANDLER_FREE
@@ -32,15 +22,12 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_errhandler_free_ ANSI_ARGS(( MPI_Errhandler *, int * ));
+
 void mpi_errhandler_free_( errhandler, __ierr )
 MPI_Errhandler *errhandler;
 int *__ierr;
 {
-    MPI_Errhandler old;
-    old = (MPI_Errhandler)MPIR_ToPointer( *(int*)errhandler );
-    *__ierr = MPI_Errhandler_free( &old );
-    if (!old) {
-	MPIR_RmPointer( *(int*)errhandler );
-    }
-    *(int *)errhandler = MPI_ERRHANDLER_NULL;
+    *__ierr = MPI_Errhandler_free( errhandler );
 }

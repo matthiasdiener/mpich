@@ -1,5 +1,5 @@
 /*
- *  $Id: shmeminit.c,v 1.1 1996/04/12 20:17:38 gropp Exp $
+ *  $Id: shmeminit.c,v 1.2 1997/02/18 23:09:04 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -83,6 +83,11 @@ MPI_Comm comm;
 int      code;
 char     *msg;
 {
+    static int in_abort = 0;
+
+    if (in_abort) exit(code);
+    in_abort = 1;
+
     if (msg) {
 	fprintf( stderr, "[%d] %s\n", MPID_MyWorldRank, msg );
     }
@@ -91,6 +96,11 @@ char     *msg;
     }
     fflush( stderr );
     fflush( stdout );
+
+    /* This needs to try and kill any generated processes */
+    p2p_kill_procs();
+    /* Cleanup any "arenas/ipcs/etc" */
+    p2p_cleanup();
     exit(code);
     return 0;
 }

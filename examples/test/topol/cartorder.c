@@ -1,5 +1,6 @@
 #include "mpi.h"
 #include <stdio.h>
+#include "test.h"
 
 /* This test makes sure that the ordering if reorder is FALSE is
    as specified in 6.2, virtual topologies 

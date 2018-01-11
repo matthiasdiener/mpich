@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_rgroup.c,v 1.7 1996/04/12 14:04:49 gropp Exp $
+ *  $Id: comm_rgroup.c,v 1.13 1997/01/24 21:55:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -13,7 +13,7 @@ MPI_Comm_remote_group - Accesses the remote group associated with
                         the given inter-communicator
 
 Input Parameter:
-. comm - Communicator
+. comm - Communicator (must be intercommunicator)
 
 Output Parameter:
 . group - remote group of communicator
@@ -28,14 +28,22 @@ int MPI_Comm_remote_group ( comm, group )
 MPI_Comm comm;
 MPI_Group *group;
 {
-    int mpi_errno;
-    if (MPIR_TEST_COMM(comm,comm)) {
-	(*group) = MPI_GROUP_NULL;
-	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-			   "Error in MPI_COMM_REMOTE_GROUP" );
-    }
-    else {
-	(void)MPIR_Group_dup( comm->group, group );
-	return (MPI_SUCCESS);
-    }
+    struct MPIR_COMMUNICATOR *comm_ptr;
+    struct MPIR_GROUP *group_ptr;
+    int flag;
+    static char myname[] = "MPI_COMM_REMOTE_GROUP";
+
+    TR_PUSH(myname);
+    comm_ptr = MPIR_GET_COMM_PTR(comm);
+    MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname );
+
+    /* Check for intra-communicator */
+    MPI_Comm_test_inter ( comm, &flag );
+    if (!flag) return MPIR_ERROR(comm_ptr,MPI_ERR_COMM,
+		       "Intra-communicator invalid in MPI_COMM_REMOTE_GROUP");
+
+    MPIR_Group_dup( comm_ptr->group, &group_ptr );
+    *group = group_ptr->self;
+    TR_POP;
+    return (MPI_SUCCESS);
 }

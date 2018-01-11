@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2ssend.c,v 1.2 1996/07/17 18:04:59 gropp Exp $
+ *  $Id: adi2ssend.c,v 1.3 1996/12/01 23:34:41 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -19,9 +19,9 @@
  */
 /***************************************************************************/
 
-void MPID_SsendContig( comm, buf, len, src_lrank, tag, context_id, 
+void MPID_SsendContig( comm_ptr, buf, len, src_lrank, tag, context_id, 
 			      dest_grank, msgrep, error_code )
-MPI_Comm      comm;
+struct MPIR_COMMUNICATOR *     comm_ptr;
 void          *buf;
 int           len, src_lrank, tag, context_id, dest_grank, *error_code;
 MPID_Msgrep_t msgrep;
@@ -36,9 +36,9 @@ MPID_Msgrep_t msgrep;
     *error_code = (*(dev->rndv->send))( buf, len, src_lrank, tag, context_id, 
 					dest_grank, msgrep );
 }
-void MPID_IssendContig( comm, buf, len, src_lrank, tag, context_id, 
+void MPID_IssendContig( comm_ptr, buf, len, src_lrank, tag, context_id, 
 			      dest_grank, msgrep, request, error_code )
-MPI_Comm      comm;
+struct MPIR_COMMUNICATOR *     comm_ptr;
 void          *buf;
 int           len, src_lrank, tag, context_id, dest_grank, *error_code;
 MPID_Msgrep_t msgrep;

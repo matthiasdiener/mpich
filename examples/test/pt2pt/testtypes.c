@@ -24,7 +24,7 @@ main(argc, argv)
   MPI_Type_size(MPI_UNSIGNED, &i_size);
   printf("MPI_Type_size (MPI_UNSIGNED) = %d\n", i_size);
 
-#if defined(__STDC__) && !defined(MPI_rs6000)
+#if defined(HAVE_LONG_DOUBLE)
   MPI_Type_extent(MPI_LONG_DOUBLE, &i_extent);
   printf("MPI_Type_extent (MPI_LONG_DOUBLE) = %d\n", i_extent);
 

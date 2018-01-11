@@ -15,3 +15,7 @@ overlap. For eg: the event nos used in -lmpi start from 1
 and a mpiuser (who might add his own events might unknowingly
 start from 1) For petsc, i plan to use event nos starting from 1000,
 hoping it dosn't clash with other profiling libs.
+
+
+Nupshot now reads the -1 record (creator info).  The print output needs
+to be sensitive to the font sizes, which it isn't right now.

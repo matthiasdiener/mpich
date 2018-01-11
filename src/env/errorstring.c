@@ -1,5 +1,5 @@
 /*
- *  $Id: errorstring.c,v 1.10 1996/06/07 15:12:21 gropp Exp $
+ *  $Id: errorstring.c,v 1.13 1997/01/07 01:46:11 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -15,7 +15,7 @@
 /*
  *                ************ IMPORTANT NOTE *************
  * The messages in this file are synchronized with the ones in
- * mpich.en_US (English/United States) and need to be changed together.
+ * mpich.En_US (English/United States) and need to be changed together.
  * Also note that the numbering of messages is CRITICAL to the messages in
  * the file.  
  *                *****************************************
@@ -40,9 +40,9 @@ int MPI_Error_string( errorcode, string, resultlen )
 int  errorcode, *resultlen;
 char *string;
 {
-int error_case = errorcode & ~MPIR_ERR_CLASS_MASK;
-int mpi_errno = MPI_SUCCESS;
-char *newmsg;
+    int error_case = errorcode & ~MPIR_ERR_CLASS_MASK;
+    int mpi_errno = MPI_SUCCESS;
+    char *newmsg;
 
 /* 
    error_case contains any additional details on the cause of the error.
@@ -63,8 +63,8 @@ switch (errorcode & MPIR_ERR_CLASS_MASK) {
 	    error_case = 0;
 	    }
 	else if (error_case == MPIR_ERR_USER_BUFFER_EXHAUSTED) {
-	    strcat( string, 
-		   ": Insufficent space available in user-defined buffer" );
+	    strcpy( string, 
+		   "Insufficent space available in user-defined buffer" );
 	    error_case = 0;
 	    }
 	else if (error_case == MPIR_ERR_BUFFER_ALIAS) {
@@ -72,9 +72,18 @@ switch (errorcode & MPIR_ERR_CLASS_MASK) {
                  ": Arguments must specify different buffers (no aliasing)" );
 	    error_case = 0;
 	    }
+	else if (error_case == MPIR_ERR_BUFFER_SIZE) {
+	    strcpy( string, 
+                 "Buffer size (%d) is illegal" );
+	    error_case = 0;
+	    }
 	break;
     case MPI_ERR_COUNT:
         strcpy( string, "Invalid count argument" );
+	if (error_case == MPIR_ERR_COUNT_ARRAY_NEG) {
+	    strcat( string, ": count[%d] is %d" );
+	    error_case = 0;
+	}
 	break;
     case MPI_ERR_TYPE:
         strcpy( string, "Invalid datatype argument" );
@@ -82,6 +91,26 @@ switch (errorcode & MPIR_ERR_CLASS_MASK) {
 	    strcat( string, ": datatype has not been committed" );
 	    error_case = 0;
 	    }
+	else if (error_case == MPIR_ERR_TYPE_NULL) {
+	    strcat( string, ": Datatype is MPI_TYPE_NULL" );
+	    error_case = 0;
+	}
+	else if (error_case == MPIR_ERR_TYPE_CORRUPT) {
+	    strcat( string, ": datatype argument is not a valid datatype\n\
+Special bit pattern %x in datatype is incorrect.  May indicate an \n\
+out-of-order argument or a deleted datatype" );
+	    error_case = 0;
+	}
+	else if (error_case == MPIR_ERR_PERM_TYPE) {
+	    strcat( string, ": Can not free permanent data type" );
+	    error_case = 0;
+	    }
+/*
+	else if (error_case == MPIR_ERR_TYPE_PREDEFINED) {
+	    strcat( string, ": Datatype is predefined and may not be freed" );
+	    error_case = 0;
+	}
+ */
 	break;
     case MPI_ERR_TAG:
 	strcpy( string, "Invalid message tag %d" );
@@ -100,6 +129,13 @@ switch (errorcode & MPIR_ERR_CLASS_MASK) {
 	    strcat( string, ": Intracommunicator is not allowed" );
 	    error_case = 0;
 	    }
+	else if (error_case == MPIR_ERR_COMM_CORRUPT) {
+	    strcat( string,
+": communicator argument is not a valid communicator\n\
+Special bit pattern %x in communicator is incorrect.  May indicate an \n\
+out-of-order argument or a freed communicator" );
+	    error_case = 0;
+	}
 	break;
     case MPI_ERR_RANK:
         strcpy( string, "Invalid rank %d" );
@@ -109,6 +145,17 @@ switch (errorcode & MPIR_ERR_CLASS_MASK) {
 	break;
     case MPI_ERR_GROUP:
 	strcpy( string, "Invalid group passed to function" );
+	if (error_case == MPIR_ERR_GROUP_NULL) {
+	    strcat( string, ": Null group" );
+	    error_case = 0;
+	}
+	else if (error_case == MPIR_ERR_GROUP_CORRUPT) {
+	    error_case = 0;
+	    strcat( string, 
+": group argument is not a valid group\n\
+Special bit pattern %x in group is incorrect.  May indicate an \n\
+out-of-order argument or a freed group" );
+	}
 	break;
     case MPI_ERR_OP:
 	strcpy( string, "Invalid operation" );
@@ -116,6 +163,10 @@ switch (errorcode & MPIR_ERR_CLASS_MASK) {
 	    strcat( string, ": not defined for this datatype" );
 	    error_case = 0;
 	    }
+	else if (error_case == MPIR_ERR_OP_NULL) {
+	    strcat( string, ": Null MPI_Op" );
+	    error_case = 0;
+	}
 	break;
     case MPI_ERR_TOPOLOGY:
 	strcpy( string, "Invalid topology" );
@@ -137,10 +188,6 @@ switch (errorcode & MPIR_ERR_CLASS_MASK) {
 	    strcat( string, ": Can not free permanent attribute key" );
 	    error_case = 0;
 	    }
-	else if (error_case == MPIR_ERR_PERM_TYPE) {
-	    strcat( string, ": Can not free permanent data type" );
-	    error_case = 0;
-	    }
 	else if (error_case == MPIR_ERR_PERM_OP) {
 	    strcat( string, ": Can not free permanent MPI_Op" );
 	    error_case = 0;
@@ -154,6 +201,21 @@ switch (errorcode & MPIR_ERR_CLASS_MASK) {
 ": Address of location given to MPI_ADDRESS does not fit in Fortran integer" );
 	    error_case = 0;
 	    }
+	else if (error_case == MPIR_ERR_KEYVAL) {
+	    strcat( string, ": Invalid keyval" );
+	    error_case = 0;
+	}
+	else if (error_case == MPIR_ERR_ERRHANDLER_NULL) {
+	    strcat( string, ": Null MPI_Errhandler" );
+	    error_case = 0;
+	}
+	else if (error_case == MPIR_ERR_ERRHANDLER_CORRUPT) {
+	    strcat( string, 
+": MPI_Errhandler argument is not a valid errorhandler\n\
+Special bit pattern %x in errhandler is incorrect.  May indicate an \n\
+out-of-order argument or a deleted error handler" );
+	    error_case = 0;
+	}
 	break;
 
 /* 
@@ -194,8 +256,8 @@ switch (errorcode & MPIR_ERR_CLASS_MASK) {
 	    error_case = 0;
 	}
 	else if (error_case == MPIR_ERR_BAD_INDEX) {
-	    strcpy( string, "Could not convert index %d into a pointer\n\
-The index may be an incorrect argument.\n\
+	    strcpy( string, "Could not convert index %d(%x) into\n\
+a pointer.  The index may be an incorrect argument.\n\
 Possible sources of this problem are a missing \"include 'mpif.h'\",\n\
 a misspelled MPI object (e.g., MPI_COM_WORLD instead of MPI_COMM_WORLD)\n\
 or a misspelled user variable for an MPI object (e.g., \n\
@@ -251,19 +313,23 @@ without being freed" );
 
     case MPI_ERR_REQUEST:
 	strcpy( string, "Illegal mpi_request handle" );
+	if (error_case == MPIR_ERR_REQUEST_NULL) {
+	    strcat( string, ": Null request" );
+	    error_case = 0;
+	}
 	break;
 
     default:
 	strcpy( string, "Unexpected error value!" );
 	*resultlen = strlen( string );
 	mpi_errno = MPI_ERR_ARG;
-	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-			   "Error in MPI_ERROR_STRING" );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, "MPI_ERROR_STRING" );
     }
 
 if (error_case != 0) {
     /* Unrecognized error case */
-    strcat( string, ": unrecognized error code in error class" );
+    MPIR_ERROR_PUSH_ARG(&error_case);
+    strcat( string, ": unrecognized error code in error class %d" );
     mpi_errno = MPI_ERR_ARG;
     }
 

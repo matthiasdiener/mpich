@@ -53,20 +53,20 @@ struct p4_msg_queue {
 /* send_message(type,from,to,msg,len,data_type,ack_req,p4_buff_ind) */
 
 #define  p4_send(TYPE,TO,MSG,LEN)  \
-    send_message(TYPE,p4_get_my_id(),TO,MSG,LEN,P4NOX,FALSE,FALSE)
+    send_message(TYPE,p4_get_my_id(),TO,MSG,LEN,P4NOX,P4_FALSE,P4_FALSE)
 #define  p4_sendr(TYPE,TO,MSG,LEN)  \
-    send_message(TYPE,p4_get_my_id(),TO,MSG,LEN,P4NOX,TRUE,FALSE)
+    send_message(TYPE,p4_get_my_id(),TO,MSG,LEN,P4NOX,P4_TRUE,P4_FALSE)
 #define  p4_sendx(TYPE,TO,MSG,LEN,DATATYPE)  \
-    send_message(TYPE,p4_get_my_id(),TO,MSG,LEN,DATATYPE,FALSE,FALSE)
+    send_message(TYPE,p4_get_my_id(),TO,MSG,LEN,DATATYPE,P4_FALSE,P4_FALSE)
 #define  p4_sendrx(TYPE,TO,MSG,LEN,DATATYPE)  \
-    send_message(TYPE,p4_get_my_id(),TO,MSG,LEN,DATATYPE,TRUE,FALSE)
+    send_message(TYPE,p4_get_my_id(),TO,MSG,LEN,DATATYPE,P4_TRUE,P4_FALSE)
 #define  p4_sendb(TYPE,TO,MSG,LEN)  \
-    send_message(TYPE,p4_get_my_id(),TO,MSG,LEN,P4NOX,FALSE,TRUE)
+    send_message(TYPE,p4_get_my_id(),TO,MSG,LEN,P4NOX,P4_FALSE,P4_TRUE)
 #define  p4_sendbr(TYPE,TO,MSG,LEN)  \
-    send_message(TYPE,p4_get_my_id(),TO,MSG,LEN,P4NOX,TRUE,TRUE)
+    send_message(TYPE,p4_get_my_id(),TO,MSG,LEN,P4NOX,P4_TRUE,P4_TRUE)
 #define  p4_sendbx(TYPE,TO,MSG,LEN,DATATYPE)  \
-    send_message(TYPE,p4_get_my_id(),TO,MSG,LEN,DATATYPE,FALSE,TRUE)
+    send_message(TYPE,p4_get_my_id(),TO,MSG,LEN,DATATYPE,P4_FALSE,P4_TRUE)
 #define  p4_sendbrx(TYPE,TO,MSG,LEN,DATATYPE)  \
-    send_message(TYPE,p4_get_my_id(),TO,MSG,LEN,DATATYPE,TRUE,TRUE)
+    send_message(TYPE,p4_get_my_id(),TO,MSG,LEN,DATATYPE,P4_TRUE,P4_TRUE)
 
 #define  p4_broadcast(TYPE,MSG,LEN)  p4_broadcastx(TYPE,MSG,LEN,P4NOX)

@@ -1,0 +1,47 @@
+dnl
+dnl rcsid = $Header: /nfs/globus1/src/master/nexus_test/configure.in,v 1.5 1996/12/12 12:04:52 tuecke Exp $
+dnl
+AC_REVISION($Revision: 1.5 $)dnl
+AC_INIT(test_nx.c)
+AC_PREREQ(2.10)
+
+LAC_INIT
+LAC_NEXUS_INIT
+LAC_BUILD_LIBDIR
+
+LAC_PATH_THREADS
+LAC_PROG_CC
+AC_C_CROSS
+AC_PROG_CPP
+
+dnl AC_PROG_MAKE_SET
+dnl AC_PROG_LN_S
+
+dnl AC_PATH_PROG(MKDIR, "mkdir")
+dnl AC_PATH_PROG(CP, "cp")
+AC_PATH_PROG(RM, "rm")
+dnl AC_SUBST(MKDIR)
+dnl AC_SUBST(CP)
+AC_SUBST(RM)
+
+POST_PROCESSOR=""
+AC_SUBST(POST_PROCESSOR)
+
+if test "$GCC" = yes -a "$ac_cv_prog_gcc_shared" = no; then
+  lac_build_shared="no"
+fi
+if test "$lac_build_shared" = yes; then
+  LAC_SHARED_LIB
+  LIBEXT=$SOEXT
+else
+  LIBEXT=a
+fi
+AC_SUBST(LIBEXT)
+
+LAC_MAKEFILES(makefile_header, Makefile)
+
+AC_OUTPUT($lac_makefiles $lac_makefile_headers,
+  LAC_INSERT_MAKEFILE_HEADERS echo timestamp > stamp-h,
+  [lac_makefiles="$lac_makefiles"]
+)
+

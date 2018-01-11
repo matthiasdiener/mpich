@@ -14,10 +14,12 @@
 */
 
 
-#ifdef __STDC__
-#define ARGS(x) x
+#ifndef ANSI_ARGS
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
+#define ANSI_ARGS(a) a
 #else
-#define ARGS(x) ()
+#define ANSI_ARGS(a) ()
+#endif
 #endif
 
 
@@ -26,15 +28,14 @@
 #include "tcl.h"
 #include "str_dup.h"
 
-/* Sorry about this kludge, but our ANSI C compiler on our suns has broken
-   header files */
-#ifdef GCC_WALL
-int fprintf( FILE *, const char *, ... );
+#ifdef NEEDS_STDLIB_PROTOTYPES
+#include "protofix.h"
 #endif
 
 
-static int Call ARGS(( ClientData, Tcl_Interp*, int, char ** ));
-static int Command ARGS(( ClientData, Tcl_Interp*, int, char ** ));
+
+static int Call ANSI_ARGS(( ClientData, Tcl_Interp*, int, char ** ));
+static int Command ANSI_ARGS(( ClientData, Tcl_Interp*, int, char ** ));
 
 
 int Proc_VarArgsInit( interp )

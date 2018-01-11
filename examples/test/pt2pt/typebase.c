@@ -2,6 +2,7 @@
  */
 #include "mpi.h"
 #include <stdio.h>
+#include "test.h"
 
 /* 
  * This program checks that the type inquiry routines work with the 
@@ -17,6 +18,9 @@ static int ntypes = 11;
 static MPI_Datatype BasicTypes[MAX_TYPES];
 static char         *(BasicTypesName[MAX_TYPES]);
 static int          BasicSizes[MAX_TYPES];
+
+/* Prototypes for picky compilers */
+void SetupBasicTypes ANSI_ARGS((void));
 
 void 
 SetupBasicTypes()

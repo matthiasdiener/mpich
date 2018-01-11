@@ -1,0 +1,103 @@
+#
+# rcsid = $Header: /nfs/globus1/src/master/nexus_ez/Makefile.in,v 1.5 1997/01/21 23:00:16 tuecke Exp $
+#
+# This is inserted by configure
+@makefile_header@
+
+#FLAVOR=
+FLAVOR=@nexus_flavor@
+
+LIB=-L$(build_dir_lib) -lnexus$(FLAVOR)
+
+EZ_CFLAGS=$(ALL_CFLAGS) -I. -I$(srcdir) -I$(build_dir_inc)
+
+EZ_LDFLAGS=$(LIB) $(ALL_LIBS)
+EZ_POSTPROCESSOR=@POST_PROCESSOR@
+
+SHARED_LIB=$(build_dir_lib)/libnexusez@nexus_flavor@.@SOEXT@
+STATIC_LIB=$(build_dir_lib)/libnexusez@nexus_flavor@.a
+
+OBJS = \
+        nexus_ez.@OFILE@
+
+HDRS = \
+	$(srcdir)/nexus_ez.h
+
+INSTALL_HDRS= \
+	$(srcdir)/nexus_ez.h
+
+INSTALL_OBJS= \
+        nexus_ez.@OFILE@
+
+all: objs build_dir_headers build_dir_objs
+
+force:
+
+rel_to_build_dir=../ez
+
+build_dir_headers:	force
+	@ if  test ! -d "${build_dir_inc}"; then \
+	   mkdir ${build_dir_inc}; \
+	fi ; \
+	for hdr in $(INSTALL_HDRS) ; do \
+           if [ -f $${hdr} ] ; then \
+	     lnk_file=$(build_dir_inc)/`echo $${hdr} | ${SED} -e 's|.*/||'`; \
+             if test ! \( -f $$lnk_file \) ; then \
+                case "$${hdr}" in \
+                   /* ) $(LN_S) $${hdr} $$lnk_file ;; \
+                   ../* ) $(LN_S) $${hdr} $$lnk_file ;; \
+                   * ) $(LN_S) $(rel_to_build_dir)/$${hdr} $$lnk_file ;; \
+                esac ; \
+	     fi; \
+	  fi \
+	done
+
+build_dir_objs:	force
+	@ if  test ! -d "${build_dir_lib}"; then \
+	   mkdir ${build_dir_lib}; \
+	fi ; \
+	for obj in $(INSTALL_OBJS) ; do \
+           if [ -f $${obj} ] ; then \
+	     lnk_file=$(build_dir_lib)/`echo $${obj} | ${SED} -e 's|.*/||'`; \
+             if test ! \( -f $$lnk_file \) ; then \
+                case "$${obj}" in \
+                   /* ) $(LN_S) $${obj} $$lnk_file ;; \
+                   ../* ) $(LN_S) $${obj} $$lnk_file ;; \
+                   * ) $(LN_S) $(rel_to_build_dir)/$${obj} $$lnk_file ;; \
+                esac ; \
+	     fi; \
+	  fi \
+	done
+
+objs:	$(OBJS)
+
+nexus_ez.@OFILE@: $(srcdir)/nexus_ez.c $(HDRS) 
+	$(CC) $(EZ_CFLAGS) -c $(srcdir)/nexus_ez.c
+
+test_ez: $(srcdir)/test_ez.c
+	$(CC) -O -o test_ez $(srcdir)/test_ez.c
+
+
+install:
+
+#install: install_lib install_headers
+
+install_lib: force
+	$(CP) nexus_ez.@OFILE@ $(INSTALL_LIB_DIR)/.
+	$(CHMOD) $(FILE_MODE) $(INSTALL_LIB_DIR)/nexus_ez.@OFILE@
+#	$(CP) $(INST_LIB) $(INSTALL_LIB_DIR)/$(INST_LIB)
+#	$(CHMOD) $(FILE_MODE) $(INSTALL_LIB_DIR)/$(INST_LIB)
+#	$(RANLIB) $(INSTALL_LIB_DIR)/$(INST_LIB)
+
+install_headers: $(INSTALL_HDRS)
+	for i in $(INSTALL_HDRS); do \
+		$(INSTALL_DATA) $$i $(prefix)/include/nexus/$$i; \
+	done
+
+
+clean:
+	rm -f test_ez *.o
+
+distclean: clean
+	rm -f config.* Makefile makefile_header stamp-h
+

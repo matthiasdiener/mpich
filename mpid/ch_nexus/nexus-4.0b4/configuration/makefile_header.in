@@ -1,0 +1,71 @@
+#### Header file is inserted by configure.
+
+# Standard configuration variables 
+prefix 		= @prefix@
+exec_prefix	= @exec_prefix@
+bindir 		= @bindir@
+datadir		= @datadir@
+includedir 	= @includedir@
+infodir 	= @infodir@
+libdir 		= @libdir@
+libexecdir 	= @libexecdir@
+localstatedir 	= @localstatedir@
+mandir 		= @mandir@
+oldincludedir 	= @oldincludedir@
+sbindir 	= @sbindir@
+sharedstatedir 	= @sharedstatedir@
+srcdir 		= @srcdir@
+sysconfdir 	= @sysconfdir@
+top_srcdir 	= @top_srcdir@
+
+build_dir_lib=@build_dir_lib@
+build_dir_inc=@build_dir_inc@
+configuration_dir=${srcdir}/@configuration_dir@
+
+nexus_flavor=@nexus_flavor@
+
+# Program variables
+@SET_MAKE@
+RECURSE_MAKEFLAGS= CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)"
+
+CC = 	 	  @CC@
+CXX = 		  @CXX@
+RANLIB = 	  @RANLIB@
+YACC = 		  @YACC@			  
+LEX = 		  @LEX@
+SHELL = 	  @SH@
+RM = 		  @RM@
+AR = 		  @AR@
+RANLIB =	  @RANLIB@
+SED = 		  @SED@
+LN_S = 		  @LN_S@
+ 
+INSTALL = 	  @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = 	  @INSTALL_DATA@
+
+# Misc variables
+#VPATH = 	  @srcdir@
+CFLAGS=
+CONFIG_CFLAGS =	  @CFLAGS@
+CONFIG_CPPFLAGS = @CPPFLAGS@
+CONFIG_CXXFLAGS = @CXXFLAGS@
+CONFIG_DEFS =	  @DEFS@
+CONFIG_LDFLAGS =  @LDFLAGS@
+CONFIG_LIBS =     @LIBS@
+
+SHARED_LDFLAGS = @SHARED_LDFLAGS@
+SHARED_CFLAGS = @SHARED_CFLAGS@
+
+THREADSAFE_LDFLAGS = @THREADSAFE_LDFLAGS@
+THREADSAFE_CFLAGS = @THREADSAFE_CFLAGS@
+
+ALL_CFLAGS= $(CFLAGS) $(CONFIG_CFLAGS) $(CPPFLAGS) $(CONFIG_CPPFLAGS) $(SHARED_CFLAGS)
+ALL_CXXFLAGS= $(CCFLAGS) $(CXXFLAGS) $(CONFIG_CXXFLAGS) $(CPPFLAGS) $(CONFIG_CPPFLAGS)
+ALL_LDFLAGS= $(CONFIG_LDFLAGS) $(LDFLAGS)
+ALL_LIBS= $(CONFIG_LIBS) $(LIBS)
+
+CONFIG_FILES= @configuration_files@
+
+
+

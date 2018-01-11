@@ -28,10 +28,10 @@ extern int MPID_IS_HETERO;
 
 #ifndef MPID_HAS_HETERO
 /* Msgrep is simply OK for Homogeneous systems */
-#define MPID_CH_Comm_msgrep( comm ) (comm)->msgform = MPID_MSG_OK;
+#define MPID_CH_Comm_msgrep( comm ) ((comm)->msgform = MPID_MSG_OK,MPI_SUCCESS)
 #define MPID_Msgrep_from_comm( comm ) MPID_MSGREP_RECEIVER
 #else
-extern int MPID_CH_Comm_msgrep ANSI_ARGS(( MPI_Comm ));
+extern int MPID_CH_Comm_msgrep ANSI_ARGS(( struct MPIR_COMMUNICATOR * ));
 /* The value of the ? operation is an INT, even though both members come from
    the SAME enumerated type.  At least on SGI... */
 #define MPID_Msgrep_from_comm( comm ) \
@@ -47,7 +47,7 @@ extern int MPID_CH_Hetero_free ANSI_ARGS((void));
 #define INCLUDED_RPC_RPC_H
 #endif
 void MPID_Mem_XDR_Init ANSI_ARGS(( char *, int, enum xdr_op, XDR * ));
-int MPID_Mem_XDR_len  ANSI_ARGS(( MPI_Datatype, int ));
+int MPID_Mem_XDR_len  ANSI_ARGS(( struct MPIR_DATATYPE *, int ));
 void MPID_Mem_XDR_Free ANSI_ARGS(( XDR * ));
 int MPID_Mem_XDR_Encode ANSI_ARGS(( unsigned char *, unsigned char *,
 				    xdrproc_t, int, int, XDR * ));
@@ -60,8 +60,8 @@ int MPID_Mem_XDR_ByteDecode ANSI_ARGS(( unsigned char *, unsigned char *,
 					int, int, int *, int *, XDR * ));
 #endif
 int MPID_Type_XDR_encode ANSI_ARGS((unsigned char *, unsigned char *, 
-				    MPI_Datatype, int, void * ));
+				    struct MPIR_DATATYPE*, int, void * ));
 int MPID_Type_swap_copy ANSI_ARGS((unsigned char *, unsigned char *, 
-				    MPI_Datatype, int, void * ));
+				    struct MPIR_DATATYPE*, int, void * ));
 #endif /* MPID_DEVICE_CODE */
 #endif

@@ -25,7 +25,7 @@ EXECS =  life_g
 
 default: $(EXECS)
 
-life_g:	life_g.o $(MPIR_HOME)/include/mpi.h $(MPE_DIR)/mpe.h
+life_g:	life_g.o $(MPE_DIR)/mpe.h
 	$(CLINKER) $(OPTFLAGS)  -o life_g life_g.o \
 	$(LIB_PATH)  $(MPE_LIBS) $(LIB_LIST) -lm
 

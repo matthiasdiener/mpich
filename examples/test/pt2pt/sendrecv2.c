@@ -1,6 +1,8 @@
 #include <mpi.h>
 #include <stdio.h>
 #include "dtypes.h"
+#include "gcomm.h"
+#include "test.h"
 
 /*
    This program is from mpich/tsuite/pt2pt and should be changed there only.

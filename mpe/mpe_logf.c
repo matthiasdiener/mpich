@@ -6,7 +6,18 @@
 #endif
 #include <stdio.h>
 #include "mpe.h"
+
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#else
 extern char *malloc();
+extern void free();
+#endif
+
+/* This is needed to process Cray - style character data */
+#ifdef _CRAY
+#include <fortran.h>
+#endif
 
 #ifdef POINTER_64_BITS
 extern void *MPIR_ToPointer();
@@ -45,81 +56,156 @@ extern void MPIR_RmPointer();
 #endif
 
 /* 
+ * In order to suppress warnings about missing prototypes, we've added
+ * them to this file.
+ */
+
+/* 
    This function makes a copy of a Fortran string into a C string.  Some
    Unix Fortran compilers add nulls at the ends of string CONSTANTS, but
    (a) not for substring expressions and (b) not all compilers do so (e.g.,
    RS6000)
  */
+static char *mpe_tmp_cpy ANSI_ARGS(( char *, int ));
+int mpe_init_log_ ANSI_ARGS(( void ));
+int mpe_start_log_ ANSI_ARGS(( void ));
+int mpe_stop_log_ ANSI_ARGS(( void ));
+
 static char *mpe_tmp_cpy( s, d )
 char *s;
 int  d;
 {
-char *p;
-p = (char *)malloc( d + 1 );
-if (!p) ;
-strncpy( p, s, d );
-p[d] = 0;
-return p;
+    char *p;
+    p = (char *)malloc( d + 1 );
+    if (!p) ;
+    strncpy( p, s, d );
+    p[d] = 0;
+    return p;
 }
 
- int  mpe_init_log_()
+int  mpe_init_log_()
 {
-return MPE_Init_log();
+    return MPE_Init_log();
 }
- int  mpe_start_log_()
+int  mpe_start_log_()
 {
-return MPE_Start_log();
+    return MPE_Start_log();
 }
- int  mpe_stop_log_()
+int  mpe_stop_log_()
 {
-return MPE_Stop_log();
+    return MPE_Stop_log();
 }
- int  mpe_describe_state_( start, end, name, color, d1, d2 )
+
+#ifdef _CRAY
+int  mpe_describe_state_( start, end, name, color )
+int *start, *end;
+_fcd name, color;
+{
+    char *c1, *c2;
+    int  err;
+    c1 = mpe_tmp_cpy( _fcdtocp( name ), _fcdlen( name ) );
+    c2 = mpe_tmp_cpy( _fcdtocp( color ), _fcdlen( color ) );
+    err = MPE_Describe_state(*start,*end,c1, c2);
+    free( c1 );
+    free( c2 );
+    return err;
+}
+#else
+int mpe_describe_state_ ANSI_ARGS(( int *, int *, char *, char *, int, int ));
+int  mpe_describe_state_( start, end, name, color, d1, d2 )
 int *start, *end;
 char *name, *color;
 int  d1, d2;
 {
-char *c1, *c2;
-int  err;
-c1 = mpe_tmp_cpy( name, d1 );
-c2 = mpe_tmp_cpy( color, d2 );
-err = MPE_Describe_state(*start,*end,c1, c2);
-free( c1 );
-free( c2 );
-return err;
+    char *c1, *c2;
+    int  err;
+    c1 = mpe_tmp_cpy( name, d1 );
+    c2 = mpe_tmp_cpy( color, d2 );
+    err = MPE_Describe_state(*start,*end,c1, c2);
+    free( c1 );
+    free( c2 );
+    return err;
 }
- int  mpe_describe_event_( event, name, d1)
+#endif
+
+#ifdef _CRAY
+int mpe_describe_event_( event, name )
+int *event;
+_fcd name;
+{
+    char *c1;
+    int  err;
+    c1 = mpe_tmp_cpy( _fcdtocp( name ), _fcdlen( name ) );
+    err = MPE_Describe_event(*event,c1);
+    free( c1 );
+    return err;
+}
+#else
+int mpe_describe_event_ ANSI_ARGS(( int *, char *, int ));
+int  mpe_describe_event_( event, name, d1)
 int *event;
 char *name;
 int  d1;
 {
-char *c1;
-int  err;
-c1 = mpe_tmp_cpy( name, d1 );
-err = MPE_Describe_event(*event,c1);
-free( c1 );
-return err;
+    char *c1;
+    int  err;
+    c1 = mpe_tmp_cpy( name, d1 );
+    err = MPE_Describe_event(*event,c1);
+    free( c1 );
+    return err;
 }
- int  mpe_log_event_(event,data,string, d1)
+#endif
+
+#ifdef _CRAY
+int  mpe_log_event_(event,data,string)
+int *event, *data;
+_fcd string;
+{
+    char *c1;
+    int  err;
+    c1 = mpe_tmp_cpy( _fcdtocp( string ), _fcdtocp( string ) );
+    err = MPE_Log_event(*event,*data,c1);
+    free( c1 );
+    return err;
+}
+#else
+int mpe_log_event_ ANSI_ARGS(( int *, int *, char *, int ));
+int  mpe_log_event_(event,data,string, d1)
 int *event, *data;
 char *string;
 int  d1;
 {
-char *c1;
-int  err;
-c1 = mpe_tmp_cpy( string, d1 );
-err = MPE_Log_event(*event,*data,c1);
-free( c1 );
-return err;
+    char *c1;
+    int  err;
+    c1 = mpe_tmp_cpy( string, d1 );
+    err = MPE_Log_event(*event,*data,c1);
+    free( c1 );
+    return err;
 }
- int  mpe_finish_log_( filename, d1)
+#endif
+
+#ifdef _CRAY
+int  mpe_finish_log_( filename)
+_fcd filename;
+{
+    char *c1;
+    int  err;
+    c1 = mpe_tmp_cpy( _fcdtocp( filename ), _fcdtocp( filename ) );
+    err =  MPE_Finish_log(c1);
+    free( c1 );
+    return err;
+}
+#else
+int mpe_finish_log_ ANSI_ARGS(( char *, int ));
+int  mpe_finish_log_( filename, d1)
 char *filename;
 int  d1;
 {
-char *c1;
-int  err;
-c1 = mpe_tmp_cpy( filename, d1 );
-err =  MPE_Finish_log(c1);
-free( c1 );
-return err;
+    char *c1;
+    int  err;
+    c1 = mpe_tmp_cpy( filename, d1 );
+    err =  MPE_Finish_log(c1);
+    free( c1 );
+    return err;
 }
+#endif

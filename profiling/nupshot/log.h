@@ -151,6 +151,7 @@ typedef struct logFile {
   stateData *states;		/* info about states */
   eventData *events;		/* info about standalone events */
   msgData *msgs;		/* info about messages */
+  char *creator;                /* info about the creator */
   processData *processes;	/* info about processes */
   char *pct_done;		/* percent-done widget name */
 				/* The percent-done widget will be set */

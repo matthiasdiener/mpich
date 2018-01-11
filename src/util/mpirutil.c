@@ -1,5 +1,5 @@
 /*
- *  $Id: mpirutil.c,v 1.21 1996/06/07 15:12:34 gropp Exp $
+ *  $Id: mpirutil.c,v 1.23 1997/01/07 01:47:07 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -21,22 +21,22 @@ int MPIR_Tab ANSI_ARGS(( int ));
 void MPIR_dump_rhandle(handle)
 MPIR_RHANDLE handle;
 {
-    printf("  handle type = %d\n", handle.handle_type);
-    printf("  source      = %d\n", handle.source);
-    printf("  tag         = %d\n", handle.tag);
-    printf("  completed   = %d\n", handle.completer);
-    printf("  datatype    = "); MPIR_dump_dte(handle.datatype,0);
+    PRINTF("  handle type = %d\n", handle.handle_type);
+    PRINTF("  source      = %d\n", handle.source);
+    PRINTF("  tag         = %d\n", handle.tag);
+    PRINTF("  completed   = %d\n", handle.completer);
+    PRINTF("  datatype    = "); MPIR_dump_dte(handle.datatype,0);
 }
 
 void MPIR_dump_shandle(handle)
 MPIR_SHANDLE handle;
 {
-    printf("  handle type = %d\n", handle.handle_type);
-    printf("  dest =        %d\n", handle.dest);
-    printf("  tag =         %d\n", handle.tag);
-    printf("  mode =        %d\n", handle.mode);
-    printf("  completed   = %d\n", handle.completer);
-    printf("  datatype    = "); MPIR_dump_dte(handle.datatype,0);
+    PRINTF("  handle type = %d\n", handle.handle_type);
+    PRINTF("  dest =        %d\n", handle.dest);
+    PRINTF("  tag =         %d\n", handle.tag);
+    PRINTF("  mode =        %d\n", handle.mode);
+    PRINTF("  completed   = %d\n", handle.completer);
+    PRINTF("  datatype    = "); MPIR_dump_dte(handle.datatype,0);
 }
 #endif
 
@@ -82,7 +82,7 @@ MPIR_QHDR *header;
     MPIR_QEL *p;
 
     if (!header) return;
-    printf("first = 0x%x, last = 0x%x, maxlen = %d, currlen = %d\n",
+    PRINTF("first = 0x%x, last = 0x%x, maxlen = %d, currlen = %d\n",
 	   (long)header->first, (long)header->last, 
 	   header->maxlen, header->currlen );
     p = header->first;
@@ -91,11 +91,11 @@ MPIR_QHDR *header;
 	switch ( p->qel_type )
 	{
 	  case MPIR_QSHANDLE:
-	    printf("queued send handle:\n");
+	    PRINTF("queued send handle:\n");
 	    MPIR_dump_shandle( *((MPIR_SHANDLE *) p->ptr) );
 	    break;
 	  case MPIR_QRHANDLE:
-	    printf("queued recv handle:\n");
+	    PRINTF("queued recv handle:\n");
 	    MPIR_dump_rhandle( *((MPIR_RHANDLE *) p->ptr) );
 	    break;
 	}
@@ -326,138 +326,141 @@ MPI_Datatype  dte;
 int           indent;
 {
     int i;
+    struct MPIR_DATATYPE *dtype_ptr;
 
-    switch (dte->dte_type)
+    dtype_ptr   = MPIR_GET_DTYPE_PTR(dte);
+
+    switch (dtype_ptr->dte_type)
     {
     case MPIR_INT:
 	MPIR_Tab( indent );
-	printf( "int\n" );
+	PRINTF( "int\n" );
 	break;
     case MPIR_UINT:
 	MPIR_Tab( indent );
-	printf( "unsigned\n" );
+	PRINTF( "unsigned\n" );
 	break;
     case MPIR_FLOAT:
 	MPIR_Tab( indent );
-	printf( "float\n" );
+	PRINTF( "float\n" );
 	break;
     case MPIR_DOUBLE:
 	MPIR_Tab( indent );
-	printf( "double\n" );
+	PRINTF( "double\n" );
 	break;
     case MPIR_BYTE:
 	MPIR_Tab( indent );
-	printf( "byte\n" );
+	PRINTF( "byte\n" );
 	break;
     case MPIR_PACKED:
 	MPIR_Tab( indent );
-	printf( "packed\n" );
+	PRINTF( "packed\n" );
 	break;
     case MPIR_CHAR:
 	MPIR_Tab( indent );
-	printf( "char\n" );
+	PRINTF( "char\n" );
 	break;
     case MPIR_UCHAR:
 	MPIR_Tab( indent );
-	printf( "unsigned char\n" );
+	PRINTF( "unsigned char\n" );
 	break;
     case MPIR_ULONG:
 	MPIR_Tab( indent );
-	printf( "unsigned long\n" );
+	PRINTF( "unsigned long\n" );
 	break;
     case MPIR_LONG:
 	MPIR_Tab( indent );
-	printf( "long\n" );
+	PRINTF( "long\n" );
 	break;
     case MPIR_SHORT:
 	MPIR_Tab( indent );
-	printf( "short\n" );
+	PRINTF( "short\n" );
 	break;
     case MPIR_USHORT:
 	MPIR_Tab( indent );
-	printf( "unsigned short\n" );
+	PRINTF( "unsigned short\n" );
 	break;
     case MPIR_CONTIG:
 	MPIR_Tab( indent );
-	printf( "contig, count = %d\n", dte->count );
-	MPIR_dump_dte( dte->old_type, indent + 2 );
+	PRINTF( "contig, count = %d\n", dtype_ptr->count );
+	MPIR_dump_dte( dtype_ptr->old_type->self, indent + 2 );
 	break;
     case MPIR_VECTOR:
 	MPIR_Tab( indent );
-	printf( "vector, count = %d, stride = %ld, blocklen = %d\n",
-	       dte->count, (long)dte->stride, dte->blocklen );
-	MPIR_dump_dte( dte->old_type, indent + 2 );
+	PRINTF( "vector, count = %d, stride = %ld, blocklen = %d\n",
+	       dtype_ptr->count, (long)dtype_ptr->stride, dtype_ptr->blocklen );
+	MPIR_dump_dte( dtype_ptr->old_type->self, indent + 2 );
 	break;
     case MPIR_HVECTOR:
 	MPIR_Tab( indent );
-	printf( "hvector, count = %d, stride = %ld, blocklen = %d\n",
-	       dte->count, (long)dte->stride, dte->blocklen );
-	MPIR_dump_dte( dte->old_type, indent + 2 );
+	PRINTF( "hvector, count = %d, stride = %ld, blocklen = %d\n",
+	       dtype_ptr->count, (long)dtype_ptr->stride, dtype_ptr->blocklen );
+	MPIR_dump_dte( dtype_ptr->old_type->self, indent + 2 );
 	break;
     case MPIR_INDEXED:
 	MPIR_Tab( indent );
-	printf( "indexed, count = %d\n", dte->count );
-	MPIR_dump_dte( dte->old_type, indent + 2 );
-	for ( i = 0; i < dte->count; i++)
+	PRINTF( "indexed, count = %d\n", dtype_ptr->count );
+	MPIR_dump_dte( dtype_ptr->old_type->self, indent + 2 );
+	for ( i = 0; i < dtype_ptr->count; i++)
 	{
 	    MPIR_Tab( indent + 4 );
-	    printf("index = %ld, blocklen = %d\n",
-		   dte->indices[i], dte->blocklens[i] );
+	    PRINTF("index = %ld, blocklen = %d\n",
+		   dtype_ptr->indices[i], dtype_ptr->blocklens[i] );
 	}
 	break;
     case MPIR_HINDEXED:
 	MPIR_Tab( indent );
-	printf( "hindexed, count = %d\n", dte->count );
-	MPIR_dump_dte( dte->old_type, indent + 2 );
-	for ( i = 0; i < dte->count; i++)
+	PRINTF( "hindexed, count = %d\n", dtype_ptr->count );
+	MPIR_dump_dte( dtype_ptr->old_type->self, indent + 2 );
+	for ( i = 0; i < dtype_ptr->count; i++)
 	{
 	    MPIR_Tab( indent + 4 );
-	    printf("index = %ld, blocklen = %d\n",
-		   dte->indices[i], dte->blocklens[i] );
+	    PRINTF("index = %ld, blocklen = %d\n",
+		   dtype_ptr->indices[i], dtype_ptr->blocklens[i] );
 	}
 	break;
     case MPIR_STRUCT:
 	MPIR_Tab( indent );
-	printf( "struct, count = %d\n", dte->count );
-	for ( i = 0; i < dte->count; i++)
+	PRINTF( "struct, count = %d\n", dtype_ptr->count );
+	for ( i = 0; i < dtype_ptr->count; i++)
 	{
 	    MPIR_Tab( indent + 2 );
-	    printf("index = %ld, blocklen = %d\n",
-		   dte->indices[i], dte->blocklens[i] );
-	    MPIR_dump_dte( dte->old_types[i], indent + 2 );
+	    PRINTF("index = %ld, blocklen = %d\n",
+		   dtype_ptr->indices[i], dtype_ptr->blocklens[i] );
+	    MPIR_dump_dte( dtype_ptr->old_types[i]->self, indent + 2 );
 	}
 	break;
     case MPIR_COMPLEX:
 	MPIR_Tab( indent );
-	printf( "complex\n" );
+	PRINTF( "complex\n" );
 	break;
     case MPIR_DOUBLE_COMPLEX:
 	MPIR_Tab( indent );
-	printf( "double complex\n" );
+	PRINTF( "double complex\n" );
 	break;
     case MPIR_LONGDOUBLE:
 	MPIR_Tab( indent );
-	printf( "long double\n" );
+	PRINTF( "long double\n" );
 	break;
     case MPIR_LONGLONGINT:
 	MPIR_Tab( indent );
-	printf( "long long int\n" );
+	PRINTF( "long long int\n" );
 	break;
     case MPIR_LOGICAL:
 	MPIR_Tab( indent );
-	printf( "logical (Fortran)\n" );
+	PRINTF( "logical (Fortran)\n" );
 	break;
     case MPIR_FORT_INT:
 	MPIR_Tab( indent );
-	printf( "INTEGER (Fortran)\n" );
+	PRINTF( "INTEGER (Fortran)\n" );
 	break;
     case MPIR_UB:
 	MPIR_Tab( indent );
-	printf( "UB\n" );
+	PRINTF( "UB\n" );
 	break;
     case MPIR_LB:
 	MPIR_Tab( indent );
-	printf( "LB\n" );
+	PRINTF( "LB\n" );
 	break;
     }
 return MPI_SUCCESS;
@@ -518,7 +521,7 @@ int           *disp;
 	*tailptr = r;
 	break;
       default:
-	printf("mpir_flatten not implemented yet for type %d\n",dte->dte_type);
+	PRINTF("mpir_flatten not implemented yet for type %d\n",dte->dte_type);
     }
     return MPI_SUCCESS;
 }
@@ -531,10 +534,10 @@ MPIR_FDTEL *fdte;
     p = fdte;
     while ( p )
     {
-	printf("(%d,%d),", p->type, p->disp );
+	PRINTF("(%d,%d),", p->type, p->disp );
 	p = p->next;
     }
-    printf("\n");
+    PRINTF("\n");
     return MPI_SUCCESS;
 }
 

@@ -1,6 +1,10 @@
 #include <stdio.h>
-
 #include "mpi.h"
+
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
+
 
 /*
    This is a simple test that can be used on heterogeneous systems that

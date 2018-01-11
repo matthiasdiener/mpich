@@ -1,5 +1,5 @@
 /*
- *  $Id: getcount.c,v 1.12 1996/04/11 20:18:35 gropp Exp $
+ *  $Id: getcount.c,v 1.15 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -34,15 +34,16 @@ MPI_Status   *status;
 MPI_Datatype datatype;
 int          *count;
 {
-  int mpi_errno;
-  if (MPIR_TEST_DATATYPE(MPI_COMM_WORLD,datatype))
-	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-			   "Error in MPI_GET_COUNT" );
+  struct MPIR_DATATYPE *dtype_ptr;
+  static char myname[] = "MPI_GET_COUNT";
 
-  MPIR_GET_REAL_DATATYPE(datatype)
+  TR_PUSH(myname);
+
+  dtype_ptr   = MPIR_GET_DTYPE_PTR(datatype);
+  MPIR_TEST_DTYPE(datatype,dtype_ptr,MPIR_COMM_WORLD,myname);
 
   /* Check for correct number of bytes */
-  if (datatype->size == 0) {
+  if (dtype_ptr->size == 0) {
       if (status->count > 0)
 	  (*count) = MPI_UNDEFINED;
       else
@@ -50,11 +51,14 @@ int          *count;
 	  (*count) = 0;
       }
   else {
-      if ((status->count % (datatype->size)) != 0)
+      if ((status->count % (dtype_ptr->size)) != 0)
 	  (*count) = MPI_UNDEFINED;
       else
-	  (*count) = status->count / (datatype->size);
+	  (*count) = status->count / (dtype_ptr->size);
       }
 
+  TR_POP;
   return (MPI_SUCCESS);
 }
+
+

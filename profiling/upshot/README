@@ -1,6 +1,9 @@
 Upshot
 Parallel Program Visualization Tool
-Written by Ed Karrels, karrels@mcs.anl.gov
+
+Upshot was written by Ed Karrels while a student at Argonne National
+Laboratory, under the direction of Ewing Lusk.  Additional direction and
+development were performed by William Gropp.
 
 Upshot is a Tcl/Tk program written for visualizing Alog, and PICL
 format logfiles.
@@ -9,7 +12,8 @@ SETUP
   1.  Build Tcl/Tk, including the 'wish' executable.  Upshot requires
       Tk version 3.3 or above.  Tcl and Tk can be acquired via anonymous
       ftp from harbor.ecn.purdue.edu in /pub/tcl/sprite-mirror as
-      tk3.6.tar.Z and tcl7.3.tar.Z.
+      tk3.6.tar.Z and tcl7.3.tar.Z.  Tk version 4 (incompatible with 
+      version 3) can be used.
 
   2.  Modify the first line in profiling/upshot/bin/upshot to point to the
       wish executable:
@@ -95,5 +99,5 @@ TODO
   This distribution histograms are pretty slow, rewrite this in C.
 
 SUGGESTIONS, QUESTIONS
-  Please send to Ed Karrels, karrels@mcs.anl.gov.
+  Please send to mpi-bugs@mcs.anl.gov .
 

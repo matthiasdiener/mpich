@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <string.h>
 #include "mpiimpl.h"
-#include "mpisys.h"
 
 #ifndef MPI_ADI2
+#include "mpisys.h"
 /* ADI2 version in mpid/util/tr2.c */
 
 #if HAVE_STDLIB_H || STDC_HEADERS
@@ -153,7 +153,7 @@ if (allocated > TRMaxMem) {
 frags     ++;
 
 if (TRlevel & TR_MALLOC) 
-    fprintf( stderr, "Allocating %d bytes at %lx\n", a, new );
+    FPRINTF( stderr, "Allocating %d bytes at %lx\n", a, new );
 return (void *)new;
 }
 
@@ -187,33 +187,33 @@ a     = a - sizeof(TrSPACE);
 head  = (TRSPACE *)a;
 if (head->cookie != COOKIE_VALUE) {
     /* Damaged header */
-    fprintf( stderr, "[%d] Block at address %lx is corrupted; cannot free;\n\
+    FPRINTF( stderr, "[%d] Block at address %lx is corrupted; cannot free;\n\
 may be block not allocated with MPIR_trmalloc or MALLOC\n", world_rank, a );
     return;
     }
 nend = (unsigned long *)(ahead + head->size);
 if (*nend != COOKIE_VALUE) {
     if (*nend == ALREADY_FREED) {
-	fprintf( stderr, 
+	FPRINTF( stderr, 
   "[%d] Block [id=%d(%lu)] at address %lx was already freed\n", 
 		world_rank, head->id, head->size, a + sizeof(TrSPACE) );
 	head->fname[TR_FNAME_LEN-1]	  = 0;  /* Just in case */
 	head->freed_fname[TR_FNAME_LEN-1] = 0;  /* Just in case */
-	fprintf( stderr, 
+	FPRINTF( stderr, 
 		"[%d] Block freed in %s[%d]\n", world_rank, head->freed_fname, 
 		 head->freed_lineno );
-	fprintf( stderr, 
+	FPRINTF( stderr, 
 	         "[%d] Block allocated at %s[%d]\n", 
                  world_rank, head->fname, head->lineno );
 	return;
 	}
     else {
 	/* Damaged tail */
-	fprintf( stderr, 
+	FPRINTF( stderr, 
 "[%d] Block [id=%d(%lu)] at address %lx is corrupted (probably write past end)\n", 
 		world_rank, head->id, head->size, a );
 	head->fname[TR_FNAME_LEN-1]= 0;  /* Just in case */
-	fprintf( stderr, 
+	FPRINTF( stderr, 
 		"[%d] Block allocated in %s[%d]\n", world_rank, 
                 head->fname, head->lineno );
 	}
@@ -234,7 +234,7 @@ else
 if (head->next)
     head->next->prev = head->prev;
 if (TRlevel & TR_FREE)
-    fprintf( stderr, "Freeing %lu bytes at %lx\n", 
+    FPRINTF( stderr, "Freeing %lu bytes at %lx\n", 
 	             head->size, a + sizeof(TrSPACE) );
 free( a );
 }
@@ -277,9 +277,9 @@ int     errs = 0;
 head = TRhead;
 while (head) {
     if (head->cookie != COOKIE_VALUE) {
-	if (!errs) fprintf( stderr, "%s\n", str );
+	if (!errs) FPRINTF( stderr, "%s\n", str );
 	errs++;
-	fprintf( stderr, "[%d] Block at address %lx is corrupted\n", 
+	FPRINTF( stderr, "[%d] Block at address %lx is corrupted\n", 
                  world_rank, head );
 	/* Must stop because if head is invalid, then the data in the
 	   head is probably also invalid, and using could lead to SEGV or BUS
@@ -289,13 +289,13 @@ while (head) {
     a    = (char *)(((TrSPACE*)head) + 1);
     nend = (unsigned long *)(a + head->size);
     if (nend[0] != COOKIE_VALUE) {
-	if (!errs) fprintf( stderr, "%s\n", str );
+	if (!errs) FPRINTF( stderr, "%s\n", str );
 	errs++;
 	head->fname[TR_FNAME_LEN-1]= 0;  /* Just in case */
-	fprintf( stderr, 
+	FPRINTF( stderr, 
 "[%d] Block [id=%d(%lu)] at address %lx is corrupted (probably write past end)\n", 
 	     world_rank, head->id, head->size, a );
-	fprintf( stderr, 
+	FPRINTF( stderr, 
 		"[%d] Block allocated in %s[%d]\n", 
                 world_rank, head->fname, head->lineno );
 	}
@@ -333,21 +333,21 @@ int     id;
 if (fp == 0) fp = stderr;
 head = TRhead;
 while (head) {
-    fprintf( fp, "%lu at [%lx], id = ", 
+    FPRINTF( fp, "%lu at [%lx], id = ", 
 	     head->size, head + sizeof(TrSPACE) );
     if (head->id >= 0) {
 	head->fname[TR_FNAME_LEN-1] = 0;
-	fprintf( fp, "%d %s[%d]\n", head->id, head->fname, head->lineno );
+	FPRINTF( fp, "%d %s[%d]\n", head->id, head->fname, head->lineno );
 	}
     else {
 	/* Decode the package values */
 	head->fname[TR_FNAME_LEN-1] = 0;
 	id = head->id;
-	fprintf( fp, "%d %s[%d]\n", id, head->fname, head->lineno );
+	FPRINTF( fp, "%d %s[%d]\n", id, head->fname, head->lineno );
 	}
     head = head->next;
     }
-fprintf( fp, "# The maximum space allocated was %d bytes [%d]\n", 
+FPRINTF( fp, "# The maximum space allocated was %d bytes [%d]\n", 
 	 TRMaxMem, TRMaxMemId );
 }
 
@@ -387,7 +387,7 @@ VISIT  order;
 int    level;
 { 
 if (order == postorder || order == leaf) 
-    fprintf( TRFP, "[%d]%s[%d] has %d\n", 
+    FPRINTF( TRFP, "[%d]%s[%d] has %d\n", 
 	     (*a)->id, (*a)->fname, (*a)->lineno, (*a)->size );
 }
 
@@ -433,14 +433,14 @@ while (head) {
 /* Print the data */
 TRFP = fp;
 twalk( (char *)root, (void (*)())PrintSum );
-fprintf( fp, "# The maximum space allocated was %d bytes [%d]\n", 
+FPRINTF( fp, "# The maximum space allocated was %d bytes [%d]\n", 
 	 TRMaxMem, TRMaxMemId );
 }
 #else
 void MPIR_trSummary( fp )
 FILE *fp;
 {
-fprintf( fp, "# The maximum space allocated was %ld bytes [%ld]\n", 
+FPRINTF( fp, "# The maximum space allocated was %ld bytes [%ld]\n", 
 	 TRMaxMem, TRMaxMemId );
 }	
 #endif
@@ -567,7 +567,7 @@ pa   = (char *)p;
 head = (TRSPACE *)(pa - sizeof(TrSPACE));
 if (head->cookie != COOKIE_VALUE) {
     /* Damaged header */
-    fprintf( stderr, "Block at address %lx is corrupted; cannot realloc;\n\
+    FPRINTF( stderr, "Block at address %lx is corrupted; cannot realloc;\n\
 may be block not allocated with MPIR_trmalloc or MALLOC\n", (long)pa );
     return 0;
     }
@@ -687,7 +687,7 @@ while (head) {
 	nbytes += cur->size;
 	cur    = cur->next;
 	}
-    fprintf( fp, "File %13s line %5d: %d bytes in %d allocation%c\n", 
+    FPRINTF( fp, "File %13s line %5d: %d bytes in %d allocation%c\n", 
 	     head->fname, head->lineno, nbytes, nblocks, 
 	     (nblocks > 1) ? 's' : ' ' );
     head = cur;

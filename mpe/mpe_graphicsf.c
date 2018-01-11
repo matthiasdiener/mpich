@@ -3,16 +3,6 @@
 #include <stdio.h>
 #include "mpe.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #include "mpetools.h"
 #include "basex11.h"
 #include "mpe.h"
@@ -36,9 +26,45 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpe_open_graphics_( handle, comm, display, x, y, w, h, is_collective, __ierr )
+#ifdef POINTER_64_BITS
+extern void *MPIR_ToPointer();
+extern int MPIR_FromPointer();
+extern void MPIR_RmPointer();
+#else
+#define MPIR_ToPointer(a) (a)
+#define MPIR_FromPointer(a) (int)(a)
+#define MPIR_RmPointer(a)
+#endif
+
+/* In order to suppress warnings about prototypes, each routine is prototyped 
+   here */
+void mpe_open_graphics_ ANSI_ARGS(( MPE_XGraph *, MPI_Comm *, char *, int *, 
+				    int *, int *, int *, int *, int * ));
+void mpe_capturefile_ ANSI_ARGS(( MPE_XGraph *, char *, int *, int * ));
+void mpe_draw_point_ ANSI_ARGS(( MPE_XGraph *, int *, int *, MPE_Color *, 
+				 int * ));
+void mpe_draw_points_ ANSI_ARGS(( MPE_XGraph *, MPE_Point *, int *, int * ));
+void mpe_draw_line_ ANSI_ARGS(( MPE_XGraph *, int *, int *, int *, int *, 
+				MPE_Color *, int * ));
+void mpe_fill_rectangle_ ANSI_ARGS(( MPE_XGraph *, int *, int *, int *, int *,
+				     MPE_Color *, int * ));
+void mpe_update_ ANSI_ARGS(( MPE_XGraph *, int * ));
+void mpe_close_graphics_ ANSI_ARGS(( MPE_XGraph *, int * ));
+void mpe_make_color_array_ ANSI_ARGS(( MPE_XGraph *, int *, MPE_Color [], 
+				       int * ));
+void mpe_num_colors_ ANSI_ARGS(( MPE_XGraph *, int *, int * ));
+void mpe_draw_circle_ ANSI_ARGS(( MPE_XGraph *, int *, int *, int *, 
+				  MPE_Color *, int * ));
+void mpe_fill_circle_ ANSI_ARGS(( MPE_XGraph *, int *, int *, int *, 
+				  MPE_Color *, int * ));
+void mpe_draw_logic_ ANSI_ARGS(( MPE_XGraph *, int *, int * ));
+void mpe_line_thickness_ ANSI_ARGS(( MPE_XGraph *, int *, int * ));
+void mpe_add_rgb_color_ ANSI_ARGS(( MPE_XGraph *, int *, int *, int *, 
+				    MPE_Color *, int * ));
+
+void mpe_open_graphics_( handle, comm, display, x, y, w, h, is_collective, __ierr )
 MPE_XGraph *handle;
-MPI_Comm   comm;
+MPI_Comm   *comm;
 char       display[];
 int*x,*y;
 int*w,*h;
@@ -46,8 +72,7 @@ int*is_collective;
 int *__ierr;
 {
 MPE_XGraph lhandle;
-*__ierr = MPE_Open_graphics( &lhandle, 
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),display,*x,*y,*w,*h,
+*__ierr = MPE_Open_graphics( &lhandle,*comm, display,*x,*y,*w,*h,
 			    *is_collective);
 *(int*)handle = MPIR_FromPointer(lhandle);
 }

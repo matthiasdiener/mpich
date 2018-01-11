@@ -86,7 +86,7 @@ MPIR_SHANDLE *shandle;
        when the request is created */
     DEBUG_PRINT_BASIC_SEND_PKT("S Sending rndv-get message",pkt)
     MPID_n_pending++;
-    MPID_SHMEM_SendControl( pkt, sizeof(MPID_PKT_GET_T), dest );
+    MPID_SHMEM_SendControl( (MPID_PKT_T *)pkt, sizeof(MPID_PKT_GET_T), dest );
 
     return MPI_SUCCESS;
 }
@@ -183,7 +183,8 @@ int   from_grank;
 		    len );
 	}
 	DEBUG_PRINT_BASIC_SEND_PKT("S Sending cont-get message",pkt)
-	MPID_SHMEM_SendControl( pkt, sizeof(MPID_PKT_GET_T), from_grank );
+	MPID_SHMEM_SendControl( (MPID_PKT_T *)pkt, 
+				sizeof(MPID_PKT_GET_T), from_grank );
 	if (is_done) {
 	    MPID_n_pending--;
 	    pkt->len_avail	 = len;
@@ -220,7 +221,8 @@ int   from_grank;
 	else {
 	    pkt->mode = MPID_PKT_OK_TO_SEND_GET;
 	    DEBUG_PRINT_BASIC_SEND_PKT("R Sending ok-to-send message",pkt)
-	    MPID_SHMEM_SendControl( pkt, sizeof(MPID_PKT_GET_T), from_grank );
+	    MPID_SHMEM_SendControl( (MPID_PKT_T *)pkt, 
+				    sizeof(MPID_PKT_GET_T), from_grank );
 	}
     }
     return MPI_SUCCESS;
@@ -265,7 +267,8 @@ void         *in_pkt;
     MPID_AINT_SET(pkt->recv_id,rhandle);
     
     DEBUG_PRINT_BASIC_SEND_PKT("R Sending ok-to-send message",pkt)
-    MPID_SHMEM_SendControl( pkt, sizeof(MPID_PKT_GET_T), from_grank );
+    MPID_SHMEM_SendControl( (MPID_PKT_T *)pkt, 
+			    sizeof(MPID_PKT_GET_T), from_grank );
 
     /* Note that since we are returning the control packet, we don't
        delete it */
@@ -352,7 +355,8 @@ void         *in_runex;
     MPID_AINT_SET(pkt->recv_id,rhandle);
     
     DEBUG_PRINT_BASIC_SEND_PKT("R Sending ok-to-send message",pkt)
-    MPID_SHMEM_SendControl( pkt, sizeof(MPID_PKT_GET_T), runex->from );
+    MPID_SHMEM_SendControl( (MPID_PKT_T *)pkt, 
+			    sizeof(MPID_PKT_GET_T), runex->from );
 
     MPID_RecvFree( runex );
 

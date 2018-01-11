@@ -2,6 +2,10 @@
 #include "basex11.h"
 #include "baseclr.h"
 
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
+
 /*
     This file contains routines to provide color support where available.
     This is made difficult by the wide variety of color implementations

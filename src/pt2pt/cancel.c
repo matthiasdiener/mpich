@@ -1,5 +1,5 @@
 /*
- *  $Id: cancel.c,v 1.15 1996/06/13 14:33:20 gropp Exp $
+ *  $Id: cancel.c,v 1.19 1997/01/17 22:59:08 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -31,12 +31,35 @@ advised that cancelling a send, while a local operation, is likely to
 be expensive (usually generating one or more internal messages).
 
 .N fortran
+
+.N NULL
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_REQUEST
+.N MPI_ERR_ARG
 @*/
 int MPI_Cancel( request )
 MPI_Request *request;
 {
+    static char myname[] = "MPI_CANCEL";
 #ifdef MPI_ADI2
-    int mpi_errno;
+    int mpi_errno = MPI_SUCCESS;
+
+    TR_PUSH(myname);
+
+    if (MPIR_TEST_ARG(request))
+	return MPIR_ERROR(MPIR_COMM_WORLD,mpi_errno,myname );
+    
+    /* A null request requires no effort to cancel.  However, it
+       is an error. */
+    if (*request == MPI_REQUEST_NULL) 
+	return MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_REQUEST_NULL,myname);
+
+    /* Check that the request is actually a request */
+    if (MPIR_TEST_REQUEST(MPI_COMM_WORLD,*request))
+	return MPIR_ERROR(MPIR_COMM_WORLD,mpi_errno,myname);
+    
     switch ((*request)->handle_type) {
     case MPIR_SEND:
 	MPID_SendCancel( *request, &mpi_errno );
@@ -45,21 +68,30 @@ MPI_Request *request;
 	MPID_RecvCancel( *request, &mpi_errno );
 	break;
     case MPIR_PERSISTENT_SEND:
+	/* Only active persistent operations can be cancelled */
+	if (!(*request)->persistent_shandle.active)
+	    return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ARG, myname );
 	MPID_SendCancel( *request, &mpi_errno );
 	break;
     case MPIR_PERSISTENT_RECV:
+	/* Only active persistent operations can be cancelled */
+	if (!(*request)->persistent_rhandle.active)
+	    return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ARG, myname );
 	MPID_RecvCancel( *request, &mpi_errno );
 	break;
     /* For user request, cast and call user cancel function */
     }
 
-    return MPI_SUCCESS;
+    TR_POP;
+    /* Note that we should really use the communicator in the request,
+       if available! */
+    MPIR_RETURN( MPIR_COMM_WORLD, mpi_errno, myname );
 #else
     /* Note that cancel doesn't have to actually DO anything... */
     /* Needs an ADI hook to insure that there are no race conditions in
        the access of the device or queue structures */
     MPID_CANCEL( (*request)->chandle.comm->ADIctx, &(*request)->chandle );
-    MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_INTERN, 
+    MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_INTERN, 
 	       "MPI_Cancel not yet implemented");
    
     /* 

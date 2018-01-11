@@ -38,12 +38,12 @@ C
 C
       call SetupBasicTypes( basictypes, basicnames )
 C
-      errcnt = 0;
+      errcnt = 0
       do 10 i=1,8 
-         call MPI_Type_size( BasicTypes(i), size, ierr );
-         call MPI_Type_extent( BasicTypes(i), extent, ierr );
-         call MPI_Type_lb( BasicTypes(i), lb, ierr );
-         call MPI_Type_ub( BasicTypes(i), ub, ierr );
+         call MPI_Type_size( BasicTypes(i), size, ierr )
+         call MPI_Type_extent( BasicTypes(i), extent, ierr )
+         call MPI_Type_lb( BasicTypes(i), lb, ierr )
+         call MPI_Type_ub( BasicTypes(i), ub, ierr )
          if (size .ne. extent) then
 	    errcnt = errcnt + 1
             print *, "size (", size, ") != extent (", extent, 

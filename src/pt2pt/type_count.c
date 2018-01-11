@@ -1,12 +1,12 @@
 /*
- *  $Id: type_count.c,v 1.7 1995/05/09 19:00:28 gropp Exp $
+ *  $Id: type_count.c,v 1.8 1997/01/07 01:45:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_count.c,v 1.7 1995/05/09 19:00:28 gropp Exp $";
+static char vcid[] = "$Id: type_count.c,v 1.8 1997/01/07 01:45:29 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -31,13 +31,16 @@ MPI_Datatype  datatype;
 int          *count;
 {
   int mpi_errno;
+  static char myname[] = "MPI_TYPE_COUNT";
+
+  TR_PUSH(myname);
   /* Check for bad datatype */
   if (MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,datatype))
-	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-			  "Error in MPI_TYPE_COUNT" );
+	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, myname );
 
   /* Assign the count and return */
   (*count) = datatype->count;
+  TR_POP;
   return (MPI_SUCCESS);
 }
 

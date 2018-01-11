@@ -36,6 +36,11 @@ Received 274878008072
 #include <stdio.h>
 #include "mpi.h"
 
+
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
+
 #define SIZE 10
 
 static int src  = 0;

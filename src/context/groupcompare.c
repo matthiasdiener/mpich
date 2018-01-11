@@ -1,5 +1,5 @@
 /*
- *  $Id: groupcompare.c,v 1.3 1996/04/12 14:12:08 gropp Exp $
+ *  $Id: groupcompare.c,v 1.6 1997/01/07 01:47:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -34,21 +34,29 @@ int       *result;
 {
   int       mpi_errno = MPI_SUCCESS;
   int       size1, size2;
+  struct MPIR_GROUP *group1_ptr, *group2_ptr;
   MPI_Group group_int;
   int       size_int, i;
+  static char myname[] = "MPI_GROUP_COMPARE";
 
-  if ( MPIR_TEST_GROUP(MPI_COMM_WORLD,group1) ||
-       MPIR_TEST_GROUP(MPI_COMM_WORLD,group2) ||
-       MPIR_TEST_ARG(result))
-    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-		       "Error in MPI_GROUP_COMPARE" );
+  TR_PUSH(myname);
+
+  group1_ptr = MPIR_GET_GROUP_PTR(group1);
+  MPIR_TEST_MPI_GROUP(group1,group1_ptr,MPIR_COMM_WORLD,myname);
+
+  group2_ptr = MPIR_GET_GROUP_PTR(group2);
+  MPIR_TEST_MPI_GROUP(grou2p,group2_ptr,MPIR_COMM_WORLD,myname);
+
+  if ( MPIR_TEST_ARG(result))
+    return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 
   /* See if their sizes are equal */
   MPI_Group_size ( group1, &size1 );
   MPI_Group_size ( group2, &size2 );
   if ( size1 != size2 ) {
 	(*result) = MPI_UNEQUAL;
-	return (mpi_errno);
+	TR_POP;
+	return MPI_SUCCESS;
   }
 
   /* Is their intersection the same size as the original group */
@@ -57,14 +65,19 @@ int       *result;
   MPI_Group_free ( &group_int );
   if ( size_int != size1 ) {
 	(*result) = MPI_UNEQUAL;
-	return (mpi_errno);
+	TR_POP;
+	return MPI_SUCCESS;
   }
 
   /* Do a 1-1 comparison */
   (*result) = MPI_SIMILAR;
   for ( i=0; i<size1; i++ )
-	if ( group1->lrank_to_grank[i] != group2->lrank_to_grank[i] ) 
-	  return (mpi_errno);
+      if ( group1_ptr->lrank_to_grank[i] != group2_ptr->lrank_to_grank[i] ) {
+	  TR_POP;
+	  return MPI_SUCCESS;
+      }
   (*result) = MPI_IDENT;
-  return (mpi_errno);
+
+  TR_POP;
+  return MPI_SUCCESS;
 }

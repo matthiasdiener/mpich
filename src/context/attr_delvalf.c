@@ -2,12 +2,6 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_attr_delete_ PMPI_ATTR_DELETE
@@ -29,13 +23,12 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_attr_delete_ ANSI_ARGS(( MPI_Comm, int *, int * ));
+void mpi_attr_delete_ ANSI_ARGS(( MPI_Comm *, int *, int * ));
 
 void mpi_attr_delete_ ( comm, keyval, __ierr )
-MPI_Comm comm;
+MPI_Comm *comm;
 int*keyval;
 int *__ierr;
 {
-    *__ierr = MPI_Attr_delete(
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),*keyval);
+    *__ierr = MPI_Attr_delete( *comm, *keyval);
 }

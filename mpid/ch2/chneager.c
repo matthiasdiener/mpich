@@ -15,7 +15,8 @@
  */
 
 /* Prototype definitions */
-int MPID_CH_Eagern_isend ANSI_ARGS(( void *, int, int, int, int, int, int,
+int MPID_CH_Eagern_isend ANSI_ARGS(( void *, int, int, int, int, int, 
+				     MPID_Msgrep_t,
 				     MPIR_SHANDLE * ));
 int MPID_CH_Eagern_cancel_send ANSI_ARGS(( MPIR_SHANDLE * ));
 int MPID_CH_Eagern_wait_send ANSI_ARGS(( MPIR_SHANDLE * ));
@@ -26,7 +27,7 @@ void MPID_CH_Eagern_delete ANSI_ARGS(( MPID_Protocol * ));
  * Blocking operations come from chbeager.c
  */
 extern int MPID_CH_Eagerb_send ANSI_ARGS(( void *, int, int, int, int, 
-					   int, int ));
+					   int, MPID_Msgrep_t ));
 extern int MPID_CH_Eagerb_recv ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
 extern int MPID_CH_Eagerb_irecv ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
 extern int MPID_CH_Eagerb_save ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));

@@ -87,6 +87,7 @@
 #define ALLIANT
 #endif
 
+/* Rumor has it LINUX support VPRINTF */
 #if defined(FX2800)  || defined(FX2800_SWITCH) || defined(FREEBSD)
 #define VPRINTF
 #endif
@@ -396,6 +397,7 @@ typedef int MD_lock_t;
 #include <sys/processor.h>
 #include <sys/procset.h>
 #include <synch.h>
+#define P4_PRECONNECT 1
 #endif 
 
 #if    defined(SUN)     || defined(SGI)  \
@@ -460,11 +462,11 @@ typedef int MD_lock_t;
 
 #define CAN_DO_SOCKET_MSGS
 #define CAN_DO_XDR
-#define P4_MAX_MSG_QUEUES 20
+#define P4_MAX_MSG_QUEUES 32
 #    include <ulocks.h>
 #    include <malloc.h>
 #    define CAN_DO_SHMEM_MSGS
-#    define GLOBMEMSIZE  (8*1024*1024)
+#    define GLOBMEMSIZE  (16*1024*1024)
      typedef usema_t *MD_lock_t;
 /*   MD_lock_init must be defined in p4_MD.c */
 /*   spinlock method */

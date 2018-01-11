@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_util.c,v 1.40 1996/07/17 18:04:19 gropp Exp $
+ *  $Id: comm_util.c,v 1.45 1997/02/20 20:43:51 lusk Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -25,29 +25,28 @@ MPIR_Comm_make_coll - make a hidden collective communicator
 See comm_create.c for code that creates a visible communicator.
 */
 int MPIR_Comm_make_coll ( comm, comm_type )
-MPI_Comm       comm;
+struct MPIR_COMMUNICATOR *comm;
 MPIR_COMM_TYPE comm_type;
 {
-  MPI_Comm new_comm;
+  struct MPIR_COMMUNICATOR *new_comm;
   int      mpi_errno;
 
   MPIR_ALLOC(new_comm,NEW(struct MPIR_COMMUNICATOR),comm,MPI_ERR_EXHAUSTED,
 			"Error creating new communicator" );
-
-  (void) MPIR_Comm_init( new_comm, comm, comm_type );
+  MPIR_Comm_init( new_comm, comm, comm_type );
   MPIR_Attr_dup_tree ( comm, new_comm );
 
   if (comm_type == MPIR_INTRA) {
     new_comm->recv_context    = comm->recv_context + 1;
     new_comm->send_context    = new_comm->recv_context;
-    (void) MPIR_Group_dup ( comm->local_group, &(new_comm->group) );
-    (void) MPIR_Group_dup ( comm->local_group, &(new_comm->local_group) );
+    MPIR_Group_dup ( comm->local_group, &(new_comm->group) );
+    MPIR_Group_dup ( comm->local_group, &(new_comm->local_group) );
   }
   else {
     new_comm->recv_context    = comm->recv_context + 1;
     new_comm->send_context    = comm->send_context + 1;
-    (void) MPIR_Group_dup ( comm->group, &(new_comm->group) );
-    (void) MPIR_Group_dup ( comm->local_group, &(new_comm->local_group) );
+    MPIR_Group_dup ( comm->group, &(new_comm->group) );
+    MPIR_Group_dup ( comm->local_group, &(new_comm->local_group) );
   }
   new_comm->local_rank     = new_comm->local_group->local_rank;
   new_comm->lrank_to_grank = new_comm->group->lrank_to_grank;
@@ -62,13 +61,17 @@ MPIR_COMM_TYPE comm_type;
   MPIR_Comm_collops_init( new_comm, comm_type);
   MPIR_Comm_collops_init( comm, comm_type);
 
+  /* The error handler for the collective communicator is ALWAYS
+     errors return */
+  MPI_Errhandler_set( new_comm->self, MPI_ERRORS_RETURN );
+
   /* The MPID_Comm_init routine needs the size of the local group, and
      reads it from the new_comm structure */
 #ifdef MPI_ADI2
   if ((mpi_errno = MPID_CommInit( comm, new_comm ))) 
       return mpi_errno;
-  /* Is that a storage leak ??? Shouldn't we free new_comm if the init
-   * fails ? (Or will it get freed higher up ???)
+  /* Is that a storage leak ? Shouldn't we free new_comm if the init
+   * fails ? (Or will it get freed higher up ??)
    */
 #else
   if ((mpi_errno = MPID_Comm_init( new_comm->ADIctx, comm, new_comm ))) 
@@ -91,7 +94,7 @@ MPIR_Comm_N2_prev - retrieve greatest power of two < size of Comm.
 
 +*/
 int MPIR_Comm_N2_prev ( comm, N2_prev )
-MPI_Comm comm;
+struct MPIR_COMMUNICATOR *comm;
 int              *N2_prev;
 {
   (*N2_prev) = comm->group->N2_prev;
@@ -103,30 +106,30 @@ int              *N2_prev;
   MPIR_Dump_comm - utility function to dump a communicator 
 +*/
 int MPIR_Dump_comm ( comm )
-MPI_Comm comm;
+struct MPIR_COMMUNICATOR * comm;
 {
   int  rank;
 
-  MPIR_Comm_rank ( MPI_COMM_WORLD, &rank );
+  MPIR_Comm_rank ( MPIR_COMM_WORLD, &rank );
 
-  printf("[%d] ----- Dumping communicator -----\n", rank );
+  PRINTF("[%d] ----- Dumping communicator -----\n", rank );
   if (comm->comm_type == MPIR_INTRA) {
-    printf("[%d] Intra-communicator\n",rank);
-    printf("[%d] Group\n",rank);
+    PRINTF("[%d] Intra-communicator\n",rank);
+    PRINTF("[%d] Group\n",rank);
     MPIR_Dump_group ( comm->group );
   }
   else {
-    printf("[%d]\tInter-communicator\n",rank);
-    printf("[%d] Local group\n",rank);
+    PRINTF("[%d]\tInter-communicator\n",rank);
+    PRINTF("[%d] Local group\n",rank);
     MPIR_Dump_group ( comm->local_group );
-    printf("[%d] Remote group\n",rank);
+    PRINTF("[%d] Remote group\n",rank);
     MPIR_Dump_group ( comm->group );
   }
-  printf ("[%d] Ref count = %d\n",rank,comm->ref_count);
+  PRINTF ("[%d] Ref count = %d\n",rank,comm->ref_count);
   /* Assumes context stored as a unsigned long (?) */
-  printf ("[%d] Send = %u   Recv =%u\n",
+  PRINTF ("[%d] Send = %u   Recv =%u\n",
           rank,comm->send_context,comm->recv_context);
-  printf ("[%d] permanent = %d\n",rank,comm->permanent);
+  PRINTF ("[%d] permanent = %d\n",rank,comm->permanent);
   return (MPI_SUCCESS);
 }
 
@@ -135,12 +138,12 @@ MPI_Comm comm;
                         inter-communicator
 +*/
 int MPIR_Intercomm_high ( comm, high )
-MPI_Comm  comm;
+struct MPIR_COMMUNICATOR *  comm;
 int      *high;
 {
   MPI_Status status;
-  MPI_Comm   inter = comm->comm_coll;
-  MPI_Comm   intra = inter->comm_coll;
+  struct MPIR_COMMUNICATOR *   inter = comm->comm_coll;
+  struct MPIR_COMMUNICATOR *   intra = inter->comm_coll;
   int        rank, rhigh;
 
   MPIR_Comm_rank ( comm, &rank );
@@ -157,7 +160,7 @@ int      *high;
     /* Get the remote high value from remote node 0 and determine */
     /* appropriate high */
     MPI_Sendrecv(  high, 1, MPI_INT, 0, 0, 
-                 &rhigh, 1, MPI_INT, 0, 0, inter, &status);
+                 &rhigh, 1, MPI_INT, 0, 0, inter->self, &status);
     if ( (*high) == rhigh ) {
       if ( comm->group->lrank_to_grank[0] < 
            comm->local_group->lrank_to_grank[0] )
@@ -168,7 +171,7 @@ int      *high;
   }
 
   /* Broadcast high value to all */
-  MPI_Bcast ( high, 1, MPI_INT, 0, intra );
+  MPI_Bcast ( high, 1, MPI_INT, 0, intra->self );
   return (MPI_SUCCESS);
 }
 
@@ -177,78 +180,27 @@ int      *high;
 
 MPIR_Comm_init  - Initialize some of the elements of a communicator from 
                   an existing one.
+
+		  This can't return anything but success, so I've changed it
+		  to void.  gcc in check mode complains about not using the
+		  result, even when cast to void!
 */
-int MPIR_Comm_init ( new_comm, comm, comm_type )
-MPI_Comm       new_comm, comm;
+void MPIR_Comm_init ( new_comm, comm, comm_type )
+struct MPIR_COMMUNICATOR *new_comm, *comm;
 MPIR_COMM_TYPE comm_type;
 {
   MPIR_SET_COOKIE(new_comm,MPIR_COMM_COOKIE);
+  new_comm->self = (MPI_Comm) MPIR_FromPointer(new_comm);
   new_comm->ADIctx	       = comm->ADIctx;
   new_comm->comm_type	       = comm_type;
   new_comm->comm_cache	       = 0;
   new_comm->error_handler      = 0;
   new_comm->use_return_handler = 0;
-  MPI_Errhandler_set( new_comm, comm->error_handler );
+  MPI_Errhandler_set( new_comm->self, comm->error_handler );
   new_comm->ref_count	       = 1;
   new_comm->permanent	       = 0;
   new_comm->collops	       = 0;
   new_comm->attr_cache	       = 0;
-  return(MPI_SUCCESS);
-}
-
-/*+
-
-MPIR_Comm_get_name - return the print name from the communicator
-
-+*/
-int MPIR_Comm_get_name( comm, namep )
-MPI_Comm comm;
-char **namep;
-{
-  if (comm->comm_name)
-    {
-      *namep =  comm->comm_name;
-      return  MPI_SUCCESS;
-    }
-  else
-    {
-      *namep = "+++unnamed+++";
-      return MPI_SUCCESS;	/* We really want to return something else
-				 * MPI_ERR_UNNAMED ?
-				 */
-    }
-}
-
-/*+
-
-MPIR_Comm_set_name - give a print name to the communicator
-
-+*/
-int MPIR_Comm_set_name( comm, name )
-MPI_Comm comm;
-char *    name;
-{
-  int      mpi_errno = MPI_SUCCESS;
-
-  /* Release any previous name */
-  if (comm->comm_name)
-    {
-      FREE(comm->comm_name);
-      comm->comm_name = 0;
-    }
-
-  /* Assign a new name */
-  if (name)
-    {
-      char * new_string;
-
-      MPIR_ALLOC(new_string,(char *)MALLOC(strlen(name)+1),comm,MPI_ERR_EXHAUSTED,
-		 "Error setting communicator name" );
-      strcpy(new_string, name);
-      comm->comm_name = new_string;
-    }
-
-  return mpi_errno;
 }
 
 /*+
@@ -261,7 +213,7 @@ MPIR_Comm_remember - remember the communicator on the list of
 
 +*/
 void MPIR_Comm_remember( new_comm )
-MPI_Comm new_comm;
+struct MPIR_COMMUNICATOR * new_comm;
 {
   /* What about thread locking ? */
   new_comm->comm_next = MPIR_All_communicators.comm_first;
@@ -280,9 +232,9 @@ MPIR_Comm_forget - forget a communicator which is going away
 
 +*/
 void MPIR_Comm_forget( old_comm )
-MPI_Comm old_comm;
+struct MPIR_COMMUNICATOR *old_comm;
 {
-  MPI_Comm *p;
+  struct MPIR_COMMUNICATOR * *p;
 
   for (p = &MPIR_All_communicators.comm_first; 
        *p;
@@ -301,7 +253,7 @@ MPI_Comm old_comm;
  */
 
 void MPIR_Comm_collops_init( comm, comm_type )
-MPI_Comm comm;
+struct MPIR_COMMUNICATOR * comm;
 MPIR_COMM_TYPE comm_type;
 {  
     comm->collops = (comm_type == MPIR_INTRA) ? MPIR_intra_collops :
@@ -310,7 +262,7 @@ MPIR_COMM_TYPE comm_type;
      * useful to keep the ref count, because it avoids explicit checks
      * when we free them 
      */
-    comm->collops->ref_count++;
+    MPIR_REF_INCR(comm->collops);
 }
 
 /* Also used in comm_split.c */

@@ -1,370 +1,159 @@
-/*
- *  $Id: t3dinit.c,v 1.6 1995/06/07 06:34:26 bright Exp $
- *
- *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
- *      All rights reserved.  See COPYRIGHT in top-level directory.
- */
-
-#ifndef lint
-static char vcid[] = "$Id: t3dinit.c,v 1.6 1995/06/07 06:34:26 bright Exp $";
-#endif
-
-#include "mpid.h"
-
-
-/* 
- * ADI Initialization
- *
- *
- * Interface Description
- * ---------------------
- *
- * This file contains the routines that provide the basic information
- * on the device, and initialize it.  
- *
- * Currently, the following ADI functions are provided to the API:
- *
- *   void T3D_Set_space_debug_flag( int flag )
- *      Sets the debug flag for runtime memory debugging information.
- *
- *   void T3D_Mysize( int *size )
- *      Sets "size" to the number of processes in the world.
- *
- *   void T3D_Myrank( int *rank )
- *      Sets "rank" to my rank the in the world.
- *
- *   void *T3D_Init( int *argc, char ***argv )
- *      Initializes the device.  Returns an ADI context if the device
- *      uses them (for multiprotocol versions).
- *
- *   void T3D_Abort( int code )
- *      Prints abort message and causes code to quit/exit
- *
- *   void T3D_End()
- *      Frees device resources.  Called when MPI environment is being
- *      destroyed.
- *
- *   void T3D_Node_name( char *name, int len )
- *      Returns the name of the current processor in "name".
- *
- *   void T3D_Version_name( char *name )
- *      Returns version information about the device in "name".
- *
- *   double T3D_Wtime()
- *   double T3D_Wtick()
- *      Clock routines that mirror the functionality prescribed
- *      in the MPI document.
- * 
-
-/****************************************************************************
-  Include files
- ***************************************************************************/
 #include <stdlib.h>
 #include <time.h>
-#include <string.h>
 #include <unistd.h>
 #include <signal.h>
+#include <string.h>
 
-/****************************************************************************
-  Global variables
- ***************************************************************************/
-#pragma _CRI cache_align t3d_hostname, t3d_myid, t3d_num_pes, t3d_heap_limit 
-char  t3d_hostname[T3D_HOSTNAME_LEN];
-int   t3d_myid;
-int   t3d_num_pes;
-char *t3d_heap_limit;
-int   modified_stack;
-char *save_stack;
-MPIR_QHDR T3D_long_sends;
+#include "mpid.h"
+#include "packets.h"
+#include "t3dpriv.h"
 
-/****************************************************************************
-  Local variables
- ***************************************************************************/
-static double t3d_reference_time = T3D_UNDEFINED;
+volatile T3D_PKT_T          *t3d_recv_bufs;
+volatile T3D_Buf_Status     *t3d_dest_flags;
+volatile T3D_Long_Send_Info *t3d_lsi;
+volatile T3D_Long_Send_Info *blocking_lsi;
+int                          t3d_lsi_window_head = 0;
+int                          t3d_lsi_window_tail = 0;
+int                          t3d_num_lsi = T3D_DEFAULT_NUM_ENVELOPES;
 
+extern  int MPID_MyWorldRank;
+extern  int MPID_MyWorldSize;
+double  t3d_reference_time;
+char   *t3d_heap_limit;
 
-/***************************************************************************
-   T3D_Set_init_debug_flag
- ***************************************************************************/
-static int DebugFlag = 0;
-void T3D_Set_init_debug_flag( flag )
-int flag;
+void T3D_Init(argc,argv)
+int argc;
+char *argv[];
 {
-    DebugFlag = flag;
-}
-
-/***************************************************************************
-   T3D_Set_space_debug_flag
- ***************************************************************************/
-static int DebugSpace = 0;
-void T3D_Set_space_debug_flag( flag )
-int flag;
-{
-    DebugSpace = flag;
-}
-
-
-/***************************************************************************
-   T3D_Myrank
- ***************************************************************************/
-void T3D_Myrank( rank )
-int *rank;
-{
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_INIT) 
-    if (DebugFlag) {
-      T3D_Printf("T3D_Myrank\n");
-    }
-#   endif
-
-    /* Set the value of the current processes rank in the world of
-       processes. */
-    (*rank) = T3D_MY_PE;
-}
-
-
-/***************************************************************************
-   T3D_Mysize
- ***************************************************************************/
-void T3D_Mysize( size )
-int *size;
-{
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_INIT) 
-    if (DebugFlag) {
-      T3D_Printf("T3D_Mysize\n");
-    }
-#   endif
-
-    /* Set the size of the world; i.e., how many processes exist */
-    (*size) = T3D_NUM_PES;
-}
-
-
-/***************************************************************************
-  T3D_Wtime
-
-  Description:
-     Return a time in "seconds"
- ***************************************************************************/
-double T3D_Wtime()
-{
-    double current_time;
-    double wtime;
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_INIT) 
-    if (DebugFlag) {
-      T3D_Printf("T3D_Wtime\n");
-    }
-#   endif
-
-
-    current_time = (double)rtclock();
-
-    wtime = (current_time - t3d_reference_time) * 6.6e-3 * 0.000001 ;
-
-    return wtime;
-}
-
-
-/***************************************************************************
-  T3D_Wtick
- ***************************************************************************/
-double T3D_Wtick()
-{
-
-   static double tickval = -1.0;
-   double t1, t2;
-   int    cnt;
-   int    icnt;
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_INIT)
-    if (DebugFlag) {
-      T3D_Printf("T3D_Wtick\n");
-    }
-#   endif
-
-   if (tickval < 0.0) {
-     tickval = 1.0e6;
-     for (icnt=0; icnt<10; icnt++) {
-       cnt = 1000;
-       t1  = T3D_Wtime();
-       while (cnt-- && (t2 = T3D_Wtime()) <= t1) ;
-         if (cnt && t2 - t1 < tickval)
-           tickval = t2 - t1;
-       }
-   }
-
-   return tickval;
-}
-
-
-/***************************************************************************
-   T3D_Initenv
-
-   Initialize global variables.
- ***************************************************************************/
-void T3D_Initenv(argc,argv)
-int   *argc;
-char **argv;
-{
-    char temp_t3d_lcp[100];
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_INIT) 
-    if (DebugFlag) {
-      T3D_Printf("T3D_Initenv\n");
-    }
-#   endif
-
-    /* Get the host name */
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_INIT)
-    if (gethostname(t3d_hostname, T3D_HOSTNAME_LEN) != 0) {
-        T3D_Error(T3D_ERR_UNKNOWN, "unable to get host name\n");
-        t3d_hostname[0] = '\0';
-        return;
-    }
-#   else
-    (void)gethostname(t3d_hostname, T3D_HOSTNAME_LEN);
-#   endif
-
-}
-
-
-/***************************************************************************
-   T3D_Init
- ***************************************************************************/
-void *T3D_Init( argc, argv )
-int  *argc;
-char ***argv;
-{
-    int        i,numprocs;
-    int        size;
-    T3D_PKT_T *pkt;
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_INIT) 
-    if (DebugFlag) {
-      T3D_Printf("T3D_Init\n");
-    }
-#   endif
-
-    /* Set the clocks initial time */
-    t3d_myid           = _my_pe();
-    t3d_num_pes        = _num_pes();
-    t3d_reference_time = (double)rtclock();
-    t3d_heap_limit     = sbrk( 0 ); 
-    
-    /* Look for a subset number */
-    numprocs = t3d_num_pes;
-
-    for (i=1; i<*argc; i++) {
-      if (strcmp( (*argv)[i], "-np" ) == 0) {
-	/* Need to remove both args and check for missing value for -np */
-	if (i + 1 == *argc) {
-	  fprintf( stderr, 
-		  "Missing argument to -np for number of processes\n" );
-	  exit( 1 );
-	}
-	numprocs = atoi( (*argv)[i+1] );
-	(*argv)[i] = 0;
-	(*argv)[i+1] = 0;
-	MPIR_ArgSqueeze( argc, *argv );
-	break;
+  int i,j,numprocs;
+  int size;
+  T3D_PKT_T *pkt;
+  
+  MPID_MyWorldRank       = _my_pe();
+  MPID_MyWorldSize       = _num_pes();
+  t3d_reference_time = (double)rtclock();
+  t3d_heap_limit     = sbrk(0);
+  
+  numprocs = MPID_MyWorldSize;
+  for (i=1; i < argc; i++)
+  {
+    if (strcmp(argv[i],"-np") == 0)
+    {
+      if ( (i+1) == argc )
+      {
+	fprintf(stderr,
+		"Missing argument to -np for number of processes\n");
+	exit(1);
       }
+      numprocs = atoi(argv[i+1]);
+      argv[i] = NULL;
+      argv[i+1] = NULL;
+      i++;
+      continue;
     }
-
-    if (numprocs <= 0 || numprocs > t3d_num_pes) {
-      fprintf( stderr, 
-	      "Invalid number of processes (%d) invalid\n", numprocs );
-      exit( 1 );
+    else if (strcmp(argv[i],"-envelope") == 0)
+    {
+      if ( (i+1) == argc )
+      {
+	fprintf(stderr,
+		"Missing argument to -envelope for number of envelopes\n");
+	exit(1);
+      }
+      t3d_num_lsi = atoi(argv[i+1]);
+      if (1 > t3d_num_lsi)
+	t3d_num_lsi = T3D_DEFAULT_NUM_ENVELOPES;
+      argv[i] = NULL;
+      argv[i+1] = NULL;
+      i++;
+      continue;
     }
+  }
+  if ((numprocs <= 0) || (numprocs > MPID_MyWorldSize))
+  {
+    fprintf(stderr,
+	    "Invalid number of processes (%d)\n",numprocs);
+    exit(1);
+  }
+  MPID_MyWorldSize = numprocs;
 
-    t3d_num_pes = numprocs;
+  shmem_set_cache_inv();
 
-    shmem_set_cache_inv(); 
-
-    size = sizeof( T3D_PKT_T ) * t3d_num_pes;
-
-    t3d_recv_bufs = (T3D_PKT_T *)shmalloc( size );
-
-    size = sizeof( T3D_Buf_Status ) * t3d_num_pes;
-
-    t3d_dest_bufs = (T3D_Buf_Status *)shmalloc( size );
-
-    for ( i=0; i<t3d_num_pes; i++ ) 
-      t3d_dest_bufs[i] = t3d_recv_bufs[i].head.status = T3D_BUF_AVAIL;
-
-    T3D_long_sends.first  = T3D_long_sends.last    = NULL;
-    T3D_long_sends.maxlen = T3D_long_sends.currlen = 0;
-
-    barrier();
-
-    if (t3d_myid >= numprocs) {
-      /* Turn off these processes */
-      T3D_End();
-      exit(0);
-    }
-
-
-    return ((void *)0);
-}
-
-
-/***************************************************************************
-  T3D_Abort
- ***************************************************************************/
-void T3D_Abort( code )
-int code;
-{
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_INIT) 
-    if (DebugFlag) {
-      T3D_Printf("T3D_Abort\n");
-    }
-#   endif
-
-    /* Print abort message */
-    /* Clean up device if possible and abort */
-    (void) T3D_Printf("Aborting with error code = %d\n",code);
-    /* See MPIBUGS #1010 */
+  size = sizeof(T3D_PKT_T) * MPID_MyWorldSize;
+  t3d_recv_bufs = (T3D_PKT_T*)shmalloc(size);
+  if (t3d_recv_bufs == NULL)
+  {
+    fprintf(stderr,
+	    "[%d] Unable to allocate shared memory recv packets!\n",MPID_MyWorldRank);
+    fflush(stderr);
     globalexit(1);
-    /* Just in case ... */
     abort();
+  }
 
-}
+  size = sizeof(T3D_Buf_Status) * MPID_MyWorldSize;
+  t3d_dest_flags = (T3D_Buf_Status*)shmalloc(size);
+  if (t3d_recv_bufs == NULL)
+  {
+    fprintf(stderr,
+	    "[%d] Unable to allocate shared memory flags!\n",MPID_MyWorldRank);
+    fflush(stderr);
+    globalexit(1);
+    abort();
+  }
 
-/***************************************************************************
-  T3D_End
- ***************************************************************************/
-void T3D_End()
-{
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_INIT) 
-    if (DebugFlag) {
-      T3D_Printf("T3D_End\n");
-    }
-#   endif
+  size = sizeof(T3D_Long_Send_Info) * t3d_num_lsi;
+  t3d_lsi = (T3D_Long_Send_Info*)shmalloc(size);
+  if (t3d_lsi == NULL)
+  {
+    fprintf(stderr,
+	    "[%d] Unable to allocate shared memory envelopes!\n",MPID_MyWorldRank);
+    fflush(stderr);
+    globalexit(1);
+    abort();
+  }
+  memset(t3d_lsi,0,size);
 
-    /* Free resources used by the device. This function is called when the
-       MPI environment is being destroyed.  */
+  size = sizeof(T3D_Long_Send_Info);
+  blocking_lsi = (T3D_Long_Send_Info*)shmalloc(size);
+  if (blocking_lsi == NULL)
+  {
+    fprintf(stderr,
+	    "[%d] Unable to allocate shared memory blocking envelope!\n",MPID_MyWorldRank);
+    fflush(stderr);
+    globalexit(1);
+    abort();    
+  }
+  memset(blocking_lsi,0,size);
 
-    /* For debugging/profiling versions, this is where calls to dump
-       statistics might be placed */
+  for (i=0; i < MPID_MyWorldSize; i++)
+  {
+    t3d_dest_flags[i] = T3D_BUF_AVAIL;
+    t3d_recv_bufs[i].head.status = T3D_BUF_AVAIL;
+  }
 
-    shfree( (void *)t3d_recv_bufs );
+  barrier();
 
-    shfree( (void *)t3d_dest_bufs );
-
+  if (MPID_MyWorldRank >= MPID_MyWorldSize)
+  {
+    shfree( (void*) t3d_recv_bufs );
+    shfree( (void*) t3d_dest_flags );
+    shfree( (void*) t3d_lsi );
+    shfree( (void*) blocking_lsi );
     shmem_clear_cache_inv();
+
+    exit(0);
+  }
 }
 
-
 /***************************************************************************
-  T3D_Node_name
+  Node_name
  ***************************************************************************/
-void T3D_Node_name( name, len )
+void MPID_Node_name( name, len )
 char *name;
 int   len;
 {
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_INIT) 
-    if (DebugFlag) {
-      T3D_Printf("T3D_Node_name\n");
-    }
+    if (DebugFlag)
+      DEBUG_PRINT_MSG("T3D_Node_name\n");
 #   endif
 
     /* Get the host name */
@@ -377,22 +166,4 @@ int   len;
 #   else
     (void)gethostname(name, len);
 #   endif
-}
-
-
-/***************************************************************************
-  T3D_Version_name
- ***************************************************************************/
-void T3D_Version_name( name )
-    char *name;
-{
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_INIT) 
-    if (DebugFlag) {
-      T3D_Printf("T3D_Version_name\n");
-    }
-#   endif
-
-    /* Insert appropriate information into "name".  "name" is currently
-       defined in mpich/src/init.c to be 128 characters long */
-    (void)sprintf( name, "T3D Device Driver, Version 0.0" );
 }
