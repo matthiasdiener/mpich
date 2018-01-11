@@ -1,4 +1,4 @@
-.TH MPI_Waitsome 3 "7/24/1995" " " "MPI"
+.TH MPI_Waitsome 3 "1/11/1996" " " "MPI"
 .SH NAME
 MPI_Waitsome \- Waits for some given communications to complete
 
@@ -34,8 +34,39 @@ operations that completed (array of Status)
 .PD 1
 
 .SH NOTES
-The array of indicies are in the range 0 to incount - 1 for C and
-in the range 1 to incount for Fortran.
+The array of indicies are in the range 
+.I 0
+to 
+.I incount - 1
+for C and
+in the range 
+.I 1
+to 
+.I incount
+for Fortran.
+
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

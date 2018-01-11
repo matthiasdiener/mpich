@@ -139,7 +139,8 @@ int rm_fd, rm_num;
 static char *curhostname = 0;
 static char errbuf[256];
 static int  child_pid = 0;
-P4VOID p4_accept_timeout()
+P4VOID p4_accept_timeout(sigval)
+int sigval;
 {
 if (child_pid) {
     kill( child_pid, SIGQUIT );
@@ -314,6 +315,7 @@ char *username;
     curhostname = host;
     SIGNAL_P4(SIGALRM,p4_accept_timeout);
     {
+#ifndef CRAY
     struct itimerval timelimit;
     struct timeval tval;
     struct timeval tzero;
@@ -324,12 +326,19 @@ char *username;
     timelimit.it_interval = tzero;       /* Only one alarm */
     timelimit.it_value	  = tval;
     setitimer( ITIMER_REAL, &timelimit, 0 );
+#else
+    alarm( TIMEOUT_VALUE );
+#endif
     slave_fd		  = net_accept(serv_fd);
     /* Go back to default handling of alarms */
     curhostname		  = 0;
     child_pid		  = 0;
+#ifndef CRAY
     timelimit.it_value	  = tzero;   /* Turn off timer */
     setitimer( ITIMER_REAL, &timelimit, 0 );
+#else
+    alarm( 0 );
+#endif
     SIGNAL_P4(SIGALRM,SIG_DFL);
     }
 
@@ -340,3 +349,5 @@ char *username;
 
     return(slave_fd);
 }
+
+

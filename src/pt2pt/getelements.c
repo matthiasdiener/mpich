@@ -1,38 +1,16 @@
 /*
- *  $Id: getelements.c,v 1.4 1995/09/18 15:39:26 gropp Exp $
+ *  $Id: getelements.c,v 1.6 1996/01/11 18:30:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: getelements.c,v 1.4 1995/09/18 15:39:26 gropp Exp $";
+static char vcid[] = "$Id: getelements.c,v 1.6 1996/01/11 18:30:29 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
 #include "mpisys.h"
-
-/*
-   This routine is passed to MPIR_Unpack2 to compute the number of
-   elements and to return the number of bytes processed in the input.
-   See src/dmpi/pkutil.c (routine MPIR_PrintDatatypeUnpack) for an 
-   example of its use.
-
-   This assumes that this is called only for primitive datatypes.
- */
-int MPIR_Elementcount( src, num, datatype, inbytes, dest, ctx )
-char         *dest, *src;
-MPI_Datatype datatype;
-int          num, inbytes;
-void         *ctx;
-{
-int len = datatype->size * num;
-int *elementcnt = (int *)ctx;
-
-*elementcnt = *elementcnt + num;
-return len;
-}
-
 
 /*@
   MPI_Get_elements - Returns the number of basic elements
@@ -44,6 +22,8 @@ Input Parameters:
 
 Output Parameter:
 . count - number of received basic elements (integer) 
+
+.N fortran
 @*/
 int MPI_Get_elements ( status, datatype, elements )
 MPI_Status    *status;
@@ -55,11 +35,11 @@ int          *elements;
   if (MPIR_TEST_DATATYPE(MPI_COMM_WORLD,datatype))
 	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
 			   "Error in MPI_GET_ELEMENTS" );
-  
+
+  MPIR_GET_REAL_DATATYPE(datatype)
   /* Find the number of elements */
   MPI_Get_count (status, datatype, &count);
   if (count == MPI_UNDEFINED) {
-      *elements = count;
       /* To do this correctly, we need to run through the datatype,
 	 processing basic types until we run out of data.  
 	 We can do this in part by computing how many full versions
@@ -70,15 +50,16 @@ int          *elements;
 	 MPIR_Unpack2.
        */
 #ifdef FOO
+      *elements = count;
 	/* HACK ALERT -- the code in this if is not correct */
 	/*               but for now ... */
 	double cnt = 
 	  (double) status->count / (double) datatype->size;
 	(*elements) = (int) ( cnt * (double) datatype->elements );
-
+#endif
       {
       int srclen, destlen, used_len;
-      i_dummy;
+      int i_dummy;
       
       srclen   = status->count;
       /* Need to set count so that we'll exit when we run out of 
@@ -88,11 +69,12 @@ int          *elements;
 
 	 Why isn't this correct?
        */
+      count = 1 + (datatype->size / srclen);
+      *elements = 0;
       MPIR_Unpack2( (char *)&i_dummy, count, datatype, 
 		    MPIR_Elementcnt, (void *)elements, (char *)&i_dummy,
 		    srclen, &destlen, &used_len );
       }
-#endif
   }
   else
 	(*elements) = count * datatype->elements;

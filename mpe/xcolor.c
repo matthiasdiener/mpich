@@ -1,8 +1,8 @@
 #ifndef lint
-static char vcid[] = "$Id: xcolor.c,v 1.4 1994/07/25 20:47:25 karrels Exp $";
+static char vcid[] = "$Id: xcolor.c,v 1.6 1996/01/16 18:25:44 gropp Exp $";
 #endif
 
-#include "tools.h"
+#include "mpetools.h"
 #include "basex11.h"
 #include "baseclr.h"
 
@@ -58,7 +58,7 @@ else {
 /*
     Set the initial color map
  */
-XBInitCmap( XBWin )
+int XBInitCmap( XBWin )
 XBWindow *XBWin;
 {
 XColor  colordef;
@@ -77,6 +77,8 @@ for (i=2; i<16; i++) {
     XBWin->cmapping[i]   = colordef.pixel;
     }
 XBWin->maxcolors = 15;
+
+return 0;
 }
 
 /*
@@ -199,24 +201,26 @@ return err;
 	GrayScale
 	StaticGray
  */
-XBSetVisualClass( XBWin )
+int XBSetVisualClass( XBWin )
 XBWindow *XBWin;
 {
 XVisualInfo vinfo;
 if (XMatchVisualInfo( XBWin->disp, XBWin->screen, 24, DirectColor, &vinfo)) {
     XBWin->vis    = vinfo.visual;
-    return;
+    return 0;
     }
 if (XMatchVisualInfo( XBWin->disp, XBWin->screen, 8, PseudoColor, &vinfo)) {
     XBWin->vis    = vinfo.visual;
-    return;
+    return 0;
     }
 if (XMatchVisualInfo( XBWin->disp, XBWin->screen,
     DefaultDepth(XBWin->disp,XBWin->screen), PseudoColor, &vinfo)) {
     XBWin->vis    = vinfo.visual;
-    return;
+    return 0;
     }
 XBWin->vis    = DefaultVisual( XBWin->disp, XBWin->screen );
+
+return 0;
 }
 
 int XBGetVisualClass( XBWin )
@@ -242,14 +246,15 @@ return Cmap;
 }
 
 
-XBSetColormap( XBWin )
+int XBSetColormap( XBWin )
 XBWindow *XBWin;
 {
 XSetWindowColormap( XBWin->disp, XBWin->win, XBWin->cmap );
+return 0;
 }
 
 
-XBAllocBW( XBWin, white, black )
+int XBAllocBW( XBWin, white, black )
 XBWindow *XBWin;
 PixVal   *white, *black;
 {
@@ -266,15 +271,19 @@ else {
     }
 *black = bcolor.pixel;
 *white = wcolor.pixel;
+
+return 0;
 }
 
 
-XBGetBaseColor( XBWin, white_pix, black_pix )
+int XBGetBaseColor( XBWin, white_pix, black_pix )
 XBWindow *XBWin;
 PixVal   *white_pix, *black_pix;
 {
 *white_pix  = XBWin->cmapping[WHITE];
 *black_pix  = XBWin->cmapping[BLACK];
+
+return 0;
 }
 
 /*
@@ -290,13 +299,15 @@ PixVal   *white_pix, *black_pix;
 static double Gamma = 2.0;
 #include <math.h>
 
-XBSetGamma( g )
+int XBSetGamma( g )
 double g;
 {
 Gamma = g;
+
+return 0;
 }
 
-XBSetCmapHue( red, green, blue, mapsize )
+int XBSetCmapHue( red, green, blue, mapsize )
 int             mapsize;
 unsigned char   *red, *green, *blue;
 {
@@ -319,6 +330,8 @@ for (i = 1; i < mapsize-1; i++) {
 red  [mapsize-1]    = 255;
 green[mapsize-1]    = 255;
 blue [mapsize-1]    = 255;
+
+return 0;
 }
 
 /*
@@ -330,7 +343,7 @@ blue [mapsize-1]    = 255;
  *   (0:255, 0:255, 0:255)
  *      r       g      b
  */
-XBHlsHelper( h, n1, n2 )
+int XBHlsHelper( h, n1, n2 )
 int     h, n1, n2;
 {
 while (h > 360) h = h - 360;
@@ -341,7 +354,7 @@ if (h < 240) return n1 + (n2-n1)*(240-h)/60;
 return n1;
 }
 
-XBHlsToRgb( h, l, s, r, g, b )
+int XBHlsToRgb( h, l, s, r, g, b )
 int             h, l, s;
 unsigned char   *r, *g, *b;
 {
@@ -361,6 +374,7 @@ else {
     *g  = (255 * XBHlsHelper( h, m1, m2 ) )     / 100;
     *b  = (255 * XBHlsHelper( h-120, m1, m2 ) ) / 100;
     }
+return 0;
 }
 
 

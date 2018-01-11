@@ -1,4 +1,4 @@
-.TH MPI_Type_size 3 "7/26/1995" " " "MPI"
+.TH MPI_Type_size 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Type_size \- Return the number of bytes occupied by entries
 in the datatype
@@ -16,12 +16,35 @@ in the datatype
 .B size 
 - datatype size (integer) 
 .PD 1
+
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
 int MPI_Type_size ( datatype, size )
 MPI_Datatype  datatype;
-MPI_Aint      *size;
+int           *size;
 
 .fi
 

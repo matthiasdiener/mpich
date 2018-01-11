@@ -1,5 +1,5 @@
 /*
- *  $Id: errclass.c,v 1.3 1994/07/13 15:49:48 lusk Exp $
+ *  $Id: errclass.c,v 1.4 1995/12/21 21:56:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: errclass.c,v 1.3 1994/07/13 15:49:48 lusk Exp $";
+static char vcid[] = "$Id: errclass.c,v 1.4 1995/12/21 21:56:41 gropp Exp $";
 #endif /* lint */
 #include "mpiimpl.h"
 #include "mpisys.h"
@@ -19,8 +19,9 @@ Input Parameter:
 . errorcode - Error code returned by an MPI routine 
 
 Output Parameter:
-. errorclass - Error class associated with errorcode 
+. errorclass - Error class associated with 'errorcode'
 
+.N fortran
 @*/
 int MPI_Error_class( errorcode, errorclass )
 int errorcode, *errorclass;

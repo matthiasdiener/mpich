@@ -42,6 +42,7 @@ int skt;
     char *env_value;
     int sockbufsize,rsz,ssz,status,dummy;
     extern char *getenv();
+    int shft; /* Window shift; helpful on CRAY */
 
     /*
      * Need big honking socket buffers for fast honking networks.  It
@@ -52,33 +53,94 @@ int skt;
      */
 
 #ifdef CAN_DO_SETSOCKOPT
-
+    /* For the environment variables to work, the user really needs to
+       set them in their .cshrc file (otherwise, the spawned processes
+       may not get the correct values).
+     */
     if (size <= 0)
     {
 	    env_value = getenv("P4_SOCKBUFSIZE");
 	    if (env_value) size = atoi(env_value);
+#ifdef TCP_WINSHIFT
+	    shft = 0;
+            env_value = getenv("P4_WINSHIFT");
+            if (env_value) shft = atoi(env_value);
+#endif
     }
 
     if (size > 0)
     {
 	    	/* Set Send & Receive Socket Buffers */
 
-	    SYSCALL_P4(rc, setsockopt(skt,SOL_SOCKET,SO_SNDBUF,&size,sizeof(size)));
-	    if (rc < 0) p4_error("net_set_sockbuf_size socket", skt);
-	    SYSCALL_P4(rc, setsockopt(skt,SOL_SOCKET,SO_RCVBUF,&size,sizeof(size)));
-	    if (rc < 0) p4_error("net_set_sockbuf_size socket", skt);
+	    SYSCALL_P4(rc, setsockopt(skt,SOL_SOCKET,SO_SNDBUF,(char *)&size,sizeof(size)));
+	    if (rc < 0) {
+		perror( "Set SO_SNDBUF" );
+		p4_error("net_set_sockbuf_size socket", skt);
+		}
+	    SYSCALL_P4(rc, setsockopt(skt,SOL_SOCKET,SO_RCVBUF,(char *)&size,sizeof(size)));
+	    if (rc < 0) {
+		perror( "Set SO_RCVBUF" );
+		p4_error("net_set_sockbuf_size socket", skt);
+		}
 
 	    	/* Fetch Back the Newly Set Sizes */
 
             dummy = sizeof(ssz);
-            rc = getsockopt(skt,SOL_SOCKET,SO_SNDBUF,&ssz,&dummy);
+            rc = getsockopt(skt,SOL_SOCKET,SO_SNDBUF,(char *)&ssz,&dummy);
             dummy = sizeof(rsz);
-            rc = getsockopt(skt,SOL_SOCKET,SO_RCVBUF,&rsz,&dummy);
+            rc = getsockopt(skt,SOL_SOCKET,SO_RCVBUF,(char *)&rsz,&dummy);
 
 	    p4_dprintfl(80,
 			"net_set_sockbuf_size: skt %d, new sizes = [%d,%d]\n",
 			skt,ssz,rsz);
     }
+
+#ifdef TCP_WINSHIFT
+    /* 
+       This code came from Dan Anderson (anderson@ncar.ucar.edu) for the
+       CRAYs.  This is for systems that don't handle buffer sizes greater
+       than 16 bits by default. An alternate mechanism is to do something
+       like this:
+
+	winshift = 0;
+	bufsiz = SOCK_BUFF_SIZE; (use the actual size)
+	while (bufsiz > 0XFFFF) {
+		bufsiz >>= 1;
+		++winshift;
+	}
+
+     */
+    if ( shft > 0)
+    {
+    int wsarray[3];
+    char hostname[256];
+
+                /* Set socket WINSHIFT */
+        dummy = sizeof(wsarray);
+        getsockopt(skt,IPPROTO_TCP,TCP_WINSHIFT,&wsarray,&dummy);
+        if(wsarray[1] != shft){
+
+                dummy = sizeof(shft);
+
+            SYSCALL_P4(rc, setsockopt(skt,IPPROTO_TCP,TCP_WINSHIFT,&shft,dummy));
+            if (rc < 0) {gethostname(hostname,255);
+			 fprintf(stdout,
+                        "ERROR_WINSHIFT in %s rc=%d, shft=%d, size_shft=%d \n",
+                        hostname, rc,shft,dummy);
+                         p4_error("net_set_WINSHIFT socket", skt);}
+
+                /* Fetch Back the Newly Set Sizes */
+
+            dummy = sizeof(wsarray);
+            rc = getsockopt(skt,IPPROTO_TCP,TCP_WINSHIFT,&wsarray,&dummy);
+
+            p4_dprintfl(80,
+                "net_set_sockbuf_WINSHIFT: skt %d, new values = [%x,%d,%d]\n",
+                        skt,wsarray[0],wsarray[1],wsarray[2]);
+        }
+      }
+
+#endif
 
 #endif
 }
@@ -95,7 +157,7 @@ int *skt;
     if (*skt < 0)
 	p4_error("net_setup_listener socket", *skt);
 
-#ifdef SGI_TEST
+#ifdef CAN_DO_SETSOCKOPT
     net_set_sockbuf_size(-1,*skt);     /* 7/12/95, bri@sgi.com */
 #endif
 
@@ -103,9 +165,9 @@ int *skt;
     SYSCALL_P4(rc,setsockopt(*skt, IPPROTO_TCP, TCP_NODELAY, (char *) &optval, sizeof(optval)));
 #endif
 
-    sin.sin_family = AF_INET;
-    sin.sin_addr.s_addr = INADDR_ANY;
-    sin.sin_port = htons(port);
+    sin.sin_family	= AF_INET;
+    sin.sin_addr.s_addr	= INADDR_ANY;
+    sin.sin_port	= htons(port);
 
     SYSCALL_P4(rc, bind(*skt, (struct sockaddr *) & sin, sizeof(sin)));
     if (rc < 0)
@@ -129,7 +191,7 @@ int *skt;
     if (*skt < 0)
 	p4_error("net_setup_anon_listener socket", *skt);
 
-#ifdef SGI_TEST
+#ifdef CAN_DO_SETSOCKOPT
     net_set_sockbuf_size(-1,*skt);	/* 7/12/95, bri@sgi.com */
 #endif
 
@@ -179,7 +241,7 @@ int skt;
 	p4_dprintfl(60, "net_accept - got accept\n");
     }
 
-#ifdef SGI_TEST
+#if defined(CAN_DO_SETSOCKOPT) && !defined(SET_SOCK_BUF_SIZE)
     net_set_sockbuf_size(-1,skt2);     /* 7/12/95, bri@sgi.com */
 #endif
 
@@ -289,7 +351,7 @@ int port, num_tries;
 	if (s < 0)
 	    p4_error("net_conn_to_listener socket", s);
 
-#ifdef SGI_TEST
+#ifdef CAN_DO_SETSOCKOPT
         net_set_sockbuf_size(-1,s);    /* 7/12/95, bri@sgi.com */
 #endif
 
@@ -398,11 +460,15 @@ int size;
 #endif
 	if (n < 0)
 	{
-#           if defined(HP)
-	    if (errno == EAGAIN)
-#           else
-	    if (errno == EWOULDBLOCK)
-#           endif
+	    /* EAGAIN is really POSIX, so we check for either EAGAIN 
+	       or EWOULDBLOCK.  Note some systems set EAGAIN == EWOULDBLOCK
+	     */
+	    /* Solaris 2.5 occasionally sets n == -1 and errno == 0 (!!).
+	       since n == -1 and errno == 0 is invalid (i.e., a bug in read),
+	       it should be safe to treat it as EAGAIN and to try the
+	       read once more 
+	     */
+	    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == 0)
 	    {
 		block_counter++;
 		/* Consider doing a select here to wait for more data
@@ -424,7 +490,9 @@ int size;
 	}
 	recvd += n;
     }
-    p4_dprintfl( 99, "Ending net_recv of %d on fd %d\n", size, fd );
+    p4_dprintfl( 99, 
+		"Ending net_recv of %d on fd %d (eof_c = %d, block = %d)\n", 
+		 size, fd, eof_counter, block_counter );
     return (recvd);
 }
 
@@ -458,19 +526,23 @@ int flag;
 	SYSCALL_P4(n, write(fd, buf + sent, trial_size));
 	if (n < 0)
 	{
-#           if defined(HP)
-	    if (errno == EAGAIN)
-#           else
-	    if (errno == EWOULDBLOCK)
-#           endif
+	    /* See net_read; these are often the same and EAGAIN is POSIX */
+	    if (errno == EAGAIN || errno == EWOULDBLOCK)
 	    {
+/*	        
+                p4_dprintfl( 90, "write net_send in EAGAIN with %d left", 
+			     size ); 
+*/
 		block_counter++;
 		if (flag)
 		{
 		    /* First, try sending the message in shorter bursts */
+#ifdef FOO
 		    if (trial_size > 16 * SOCK_BUFF_SIZE) 
 			trial_size = trial_size / 2;
-		    else {
+		    else 
+#endif
+			{
 			/* Someone may be writing to us ... */
 			if (socket_msgs_available())
 			    {
@@ -493,8 +565,11 @@ int flag;
 	    }
 	}
 	sent += n;
+	/* Go back to full size */
+	trial_size = size - sent;
     }
-    p4_dprintfl( 99, "Ending net_send of %d on fd %d\n", size, fd );
+    p4_dprintfl( 99, "Ending net_send of %d on fd %d (blocked %d times)\n", 
+		 size, fd, block_counter );
     return (sent);
 }
 

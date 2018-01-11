@@ -93,6 +93,30 @@ struct p4_procgroup *pg;
     if (p4_global == NULL)
 	p4_error("p4 not initialized; perhaps p4_initenv not called",0);
 
+/* On some systems (SGI IRIX 6), process exit sometimes kills all processes
+   in the process GROUP.  This code attempts to fix that.  
+   We DON'T do it if stdin (0) is connected to a terminal, because that
+   disconnects the process from the terminal.
+ */
+#if defined(HAVE_SETSID) && defined(HAVE_ISATTY) && defined(SET_NEW_PGRP)
+if (!isatty(0)) {
+    pid_t rc;
+    rc = setsid();
+    if (rc < 0) {
+	p4_dprintfl( 90, "Could not create new process group\n" );
+	}
+    else {
+	p4_dprintfl( 80, "Created new process group %d\n", rc );
+	}
+    }
+else {
+	p4_dprintfl( 80, 
+         "Did not created new process group because isatty returned true\n" );
+    }
+#endif
+
+
+
     procgroup_to_proctable(pg);
     if (pg->num_entries > 1)
 	p4_global->local_communication_only = FALSE;
@@ -107,16 +131,6 @@ struct p4_procgroup *pg;
 		    listener_port, listener_fd);
 	p4_global->proctable[0].port = listener_port;
 	SIGNAL_P4(LISTENER_ATTN_SIGNAL, handle_connection_interrupt);
-#ifdef NEED_SIGACTION
-#ifdef SA_RESETHAND
-{
-struct sigaction oldact;
-sigaction( LISTENER_ATTN_SIGNAL, (struct sigaction *)0, &oldact );
-oldact.sa_flags = oldact.sa_flags & ~(SA_RESETHAND);
-sigaction( LISTENER_ATTN_SIGNAL, &oldact, (struct sigaction *)0 );
-}
-#endif
-#endif
     }
 #   endif
 
@@ -327,16 +341,6 @@ struct p4_procgroup *pg;
 		close(listener_fd);
 	    }
 	    SIGNAL_P4(LISTENER_ATTN_SIGNAL, handle_connection_interrupt);
-#ifdef NEED_SIGACTION
-#ifdef SA_RESETHAND
-	    {
-	    struct sigaction oldact;
-	    sigaction( LISTENER_ATTN_SIGNAL, (struct sigaction *)0, &oldact );
-	    oldact.sa_flags = oldact.sa_flags & ~(SA_RESETHAND);
-	    sigaction( LISTENER_ATTN_SIGNAL, &oldact, (struct sigaction *)0 );
-	    }
-#endif
-#endif
 #           endif
 
 	    /* hang for a valid proctable */

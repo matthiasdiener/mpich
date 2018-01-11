@@ -1,5 +1,5 @@
 /*
- *  $Id: irecv.c,v 1.15 1995/03/05 20:16:06 gropp Exp $
+ *  $Id: irecv.c,v 1.16 1995/12/21 21:12:47 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: irecv.c,v 1.15 1995/03/05 20:16:06 gropp Exp $";
+static char vcid[] = "$Id: irecv.c,v 1.16 1995/12/21 21:12:47 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -25,6 +25,8 @@ Input Parameters:
 
 Output Parameter:
 . request - communication request (handle) 
+
+.N fortran
 @*/
 int MPI_Irecv( buf, count, datatype, source, tag, comm, request )
 void             *buf;

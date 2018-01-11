@@ -1,5 +1,5 @@
 /*
- *  $Id: abort.c,v 1.7 1994/09/29 21:51:11 gropp Exp $
+ *  $Id: abort.c,v 1.8 1995/12/21 21:56:37 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -15,9 +15,10 @@ Input Parameters:
 . errorcode - error code to return to invoking environment 
 
 Notes:
-Terminates all MPI processes associated with the communicator comm; in
-most systems (all to date), terminates ALL processes.
+Terminates all MPI processes associated with the communicator 'comm'; in
+most systems (all to date), terminates `all` processes.
 
+.N fortran
 @*/
 int MPI_Abort( comm, errorcode )
 MPI_Comm         comm;

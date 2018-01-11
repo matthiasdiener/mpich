@@ -1,12 +1,12 @@
 /*
- *  $Id: start.c,v 1.18 1995/09/13 21:47:17 gropp Exp $
+ *  $Id: start.c,v 1.20 1996/01/08 19:47:30 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: start.c,v 1.18 1995/09/13 21:47:17 gropp Exp $";
+static char vcid[] = "$Id: start.c,v 1.20 1996/01/08 19:47:30 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -24,6 +24,7 @@ static char vcid[] = "$Id: start.c,v 1.18 1995/09/13 21:47:17 gropp Exp $";
 Input Parameter:
 . request - communication request (handle) 
 
+.N fortran
 @*/
 int MPI_Start( request )
 MPI_Request *request;
@@ -45,19 +46,26 @@ MPI_Request *request;
 	/* device will post the send */
 	switch (shandle->mode) {
 	    case MPIR_MODE_STANDARD:
-	    if (mpi_errno = MPIR_Send_setup(request)) return mpi_errno;
-	    MPID_Post_send( shandle->comm->ADIctx, shandle );
+	    MPIR_CALL(MPIR_Send_setup(request),MPI_COMM_WORLD,
+		      "Error in MPI_START" );
+	    MPIR_CALL(MPID_Post_send( shandle->comm->ADIctx, shandle ),
+		      MPI_COMM_WORLD, "Error in MPI_START" );
 	    break;
 	    case MPIR_MODE_SYNCHRONOUS:
-	    if (mpi_errno = MPIR_Send_setup(request)) return mpi_errno;
-	    MPID_Post_send_sync( shandle->comm->ADIctx, shandle );
+	    MPIR_CALL(MPIR_Send_setup(request),MPI_COMM_WORLD, 
+				  "Error in MPI_START" );
+	    MPIR_CALL(MPID_Post_send_sync( shandle->comm->ADIctx, shandle ),
+		      MPI_COMM_WORLD,"Error in MPI_START" );
 	    break;
 	    case MPIR_MODE_READY:
-	    if (mpi_errno = MPIR_Send_setup(request)) return mpi_errno;
-	    MPID_Post_send_ready( shandle->comm->ADIctx, shandle );
+	    MPIR_CALL(MPIR_Send_setup(request),MPI_COMM_WORLD,
+		      "Error in MPI_START");
+	    MPIR_CALL(MPID_Post_send_ready( shandle->comm->ADIctx, shandle ),
+		      MPI_COMM_WORLD,"Error in MPI_START");
 	    break;
 	    case MPIR_MODE_BUFFERED:
-	    if (mpi_errno = MPIR_DoBufferSend( shandle )) return mpi_errno;
+	    MPIR_CALL(MPIR_DoBufferSend( shandle ),MPI_COMM_WORLD,
+		      "Error in MPI_START");
 	    break;
 	    default:
 	    return 
@@ -66,14 +74,16 @@ MPI_Request *request;
 	}
     else if (req_type == MPIR_RECV) {
 	/* I really should allow MPIR_RECV_SETUP_BUFFER here ... */
-	if (mpi_errno = MPIR_Receive_setup(request)) return mpi_errno;
+	MPIR_CALL(MPIR_Receive_setup(request),MPI_COMM_WORLD,
+		  "Error in MPI_START");
 	/* device will handle queueing of MPIR recv handle in posted-recv 
 	   queue         
 	   */
 	rhandle = &(*request)->rhandle;
 	MPID_Set_recv_is_nonblocking( rhandle->comm->ADIctx, 
 				     &(rhandle->dev_rhandle), 1 );
-	MPID_Post_recv( rhandle->comm->ADIctx, rhandle ); 
+	MPIR_CALL(MPID_Post_recv( rhandle->comm->ADIctx, rhandle ),
+		  MPI_COMM_WORLD,"Error in MPI_START"); 
 	}
     else
 	mpi_errno = MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_INTERN,

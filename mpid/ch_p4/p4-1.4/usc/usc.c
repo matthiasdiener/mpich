@@ -91,7 +91,7 @@ VOID usc_init()
 	struct timezone tzp;
 	unsigned long roll;
 
-#if defined(SUN_SOLARIS)
+#if defined(SUN_SOLARIS) && defined(USE_WIERDGETTIMEOFDAY)
 	gettimeofday(&tp);
 #else
 	gettimeofday(&tp,&tzp);
@@ -189,7 +189,7 @@ usc_time_t usc_MD_clock()
 	struct timeval tp;
 	struct timezone tzp;
 
-#if defined(SUN_SOLARIS)
+#if defined(SUN_SOLARIS) && defined(USE_WIERDGETTIMEOFDAY)
 	gettimeofday(&tp);
 #else
 	gettimeofday(&tp,&tzp);

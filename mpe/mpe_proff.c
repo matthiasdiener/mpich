@@ -86,14 +86,14 @@ char **ArgvSave;
 ArgcSave = Argc = mpir_iargc_() + 1;
 ArgvSave = Argv = (char **)MALLOC( Argc * sizeof(char *) );    
 if (!Argv) {
-    *ierr = MPIR_ERROR( (MPI_Comm)0, MPI_ERR_EXHAUSTED, 
+    *ierr = MPIR_ERROR( (MPI_Comm)0, MPI_ERR_OTHER,
                        "Out of space in MPI_INIT" );
     return;
     }
 for (i=0; i<Argc; i++) {
     ArgvSave[i] = Argv[i] = (char *)MALLOC( argsize + 1 );
     if (!Argv[i]) {
-        *ierr = MPIR_ERROR( (MPI_Comm)0, MPI_ERR_EXHAUSTED, 
+        *ierr = MPIR_ERROR( (MPI_Comm)0, MPI_ERR_OTHER,
                            "Out of space in MPI_INIT" );
         return;
         }

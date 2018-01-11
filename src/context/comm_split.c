@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_split.c,v 1.36 1995/06/21 03:05:47 gropp Exp $
+ *  $Id: comm_split.c,v 1.37 1995/12/21 22:06:50 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -27,19 +27,22 @@ Output Parameter:
 
 Notes:
   The 'color' must be non-negative or 'MPI_UNDEFINED'.
+
+.N fortran
+
 Algorithm:
 
 The current algorithm used has quite a few (read: a lot of) inefficiencies 
-that can be removed.  Here's what we do for now
+that can be removed.  Here is what we do for now
 
 .vb
  1) A table is built of colors, and keys (has a next field also).
- 2) The tables of all processes are merged using MPI_Allreduce
+ 2) The tables of all processes are merged using 'MPI_Allreduce'.
  3) Two contexts are allocated for all the comms to be created.  These
      same two contexts can be used for all created communicators since
      the communicators will not overlap.
- 4) If the local process has a color of MPI_UNDEFINED, it can return
-     a NULL comm. 
+ 4) If the local process has a color of 'MPI_UNDEFINED', it can return
+     a 'NULL' comm. 
  5) The table entries that match the local process color are sorted 
      by key/rank. 
  6) A group is created from the sorted list and a communicator is created

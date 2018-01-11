@@ -1,5 +1,5 @@
 /*
- *  $Id: iprobe.c,v 1.9 1995/05/16 18:10:46 gropp Exp $
+ *  $Id: iprobe.c,v 1.10 1995/12/21 21:12:42 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -17,14 +17,15 @@ static char vcid[] = "$Id: ";
     MPI_Iprobe - Nonblocking test for a message
 
 Input Parameters:
-. source - source rank, or  MPI_ANY_SOURCE (integer) 
-. tag - tag value or  MPI_ANY_TAG (integer) 
+. source - source rank, or  'MPI_ANY_SOURCE' (integer) 
+. tag - tag value or  'MPI_ANY_TAG' (integer) 
 . comm - communicator (handle) 
 
 Output Parameter:
 . flag - (logical) 
 . status - status object (Status) 
 
+.N fortran
 @*/
 int MPI_Iprobe( source, tag, comm, flag, status )
 int         source;
@@ -36,7 +37,7 @@ MPI_Status  *status;
     int mpi_errno;
     if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_RECV_TAG(comm,tag) ||
 	MPIR_TEST_RECV_RANK(comm,source))
-	return MPIR_ERROR( comm, mpi_errno, "Error in MPI_PROBE" );
+	return MPIR_ERROR( comm, mpi_errno, "Error in MPI_IPROBE" );
 
     if (source == MPI_PROC_NULL) {
 	status->MPI_SOURCE = MPI_PROC_NULL;

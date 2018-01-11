@@ -1,12 +1,12 @@
 /*
- *  $Id: allgatherv.c,v 1.16 1995/06/21 03:08:59 gropp Exp $
+ *  $Id: allgatherv.c,v 1.17 1995/12/21 22:16:27 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: allgatherv.c,v 1.16 1995/06/21 03:08:59 gropp Exp $";
+static char vcid[] = "$Id: allgatherv.c,v 1.17 1995/12/21 22:16:27 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -23,13 +23,15 @@ Input Parameters:
 . recvcounts - integer array (of length group size) 
 containing the number of elements that are received from each process 
 . displs - integer array (of length group size). Entry 
- i  specifies the displacement (relative to recvbuf ) at
-which to place the incoming data from process  i  
+ 'i'  specifies the displacement (relative to recvbuf ) at
+which to place the incoming data from process  'i'  
 . recvtype - data type of receive buffer elements (handle) 
 . comm - communicator (handle) 
 
 Output Parameter:
 . recvbuf - address of receive buffer (choice) 
+
+.N fortran
 @*/
 int MPI_Allgatherv ( sendbuf, sendcount,  sendtype, 
                      recvbuf, recvcounts, displs,   recvtype, comm )

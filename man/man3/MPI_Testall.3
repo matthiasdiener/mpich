@@ -1,4 +1,4 @@
-.TH MPI_Testall 3 "5/16/1995" " " "MPI"
+.TH MPI_Testall 3 "1/29/1996" " " "MPI"
 .SH NAME
 MPI_Testall \- Tests for the completion of all previously initiated
 communications
@@ -26,6 +26,39 @@ communications
 .B array_of_statuses 
 - array of status objects (array of Status) 
 .PD 1
+
+.SH NOTES
+.I flag
+is true only if all requests ave completed.  Otherwise, flag is
+false and neither the 
+.I array_of_requests
+nor the 
+.I array_of_statuses
+is
+modified.
+
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

@@ -1,12 +1,12 @@
 /*
- *  $Id: type_commit.c,v 1.17 1995/05/16 18:11:22 gropp Exp $
+ *  $Id: type_commit.c,v 1.18 1995/12/21 21:35:57 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_commit.c,v 1.17 1995/05/16 18:11:22 gropp Exp $";
+static char vcid[] = "$Id: type_commit.c,v 1.18 1995/12/21 21:35:57 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -18,6 +18,7 @@ static char vcid[] = "$Id: type_commit.c,v 1.17 1995/05/16 18:11:22 gropp Exp $"
 Input Parameter:
 . datatype - datatype (handle) 
 
+.N fortran
 @*/
 int MPI_Type_commit ( datatype )
 MPI_Datatype *datatype;

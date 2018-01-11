@@ -1,6 +1,6 @@
 #! /bin/sh
 if [ "$MPIR_HOME" = "" ] ; then 
-    MPIR_HOME=/home/MPI/mpich
+    MPIR_HOME=/home/gropp/mpich
 fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
@@ -10,13 +10,17 @@ if [ "$argsset" = "" ] ; then
    . $MPIRUN_HOME/mpirun.args
    argsset=1
 fi
+
+if [ -z "$stdinfile" ] ; then
+   stdinfile=/dev/null
+fi
 # Handle NQS, no default partition, and default partition Paragons
 case $paragon_type in
     mkpart)
     # 2 = SIGINT and 3 = SIGQUIT, we hope
     trap "rmpart ${LOGNAME}$$" 2 3
     $Show mkpart -sz $np ${LOGNAME}$$
-    $Show $progname -pn ${LOGNAME}$$ $cmdLineArgs
+    $Show $progname -pn ${LOGNAME}$$ $cmdLineArgs < $stdinfile
     $Show rmpart ${LOGNAME}$$
     trap 2 3
     ;;
@@ -25,7 +29,7 @@ case $paragon_type in
     cat >>NQS$$ <<.
 #! /bin/sh
 mkpart -sz $np ${LOGNAME}$$
-$progname -pn ${LOGNAME}$$
+$progname -pn ${LOGNAME}$$ < $stdinfile
 rmpart ${LOGNAME}$$
 /bin/rm -f `pwd`/NQS$$
 .
@@ -36,11 +40,11 @@ rmpart ${LOGNAME}$$
     ;;
 
     crossrun)
-    $Show rsh $pgonname '"'"( cd $PWD_TRIAL ; $progname -sz $np $cmdLineArgs )"'"'
+    $Show rsh $pgonname '"'"( cd $PWD_TRIAL ; $progname -sz $np $paragon_pn $cmdLineArgs < $stdinfile )"'"'
     ;;
 
     default)
-    $Show $progname -sz $np $cmdLineArgs
+    $Show $progname -sz $np $paragon_pn $cmdLineArgs
     ;;
 
     *)

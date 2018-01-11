@@ -31,14 +31,16 @@ SHELL = /bin/sh
 
 EXECS = dbxtest dbxtest2
 
-CFLAGS = @CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) $(MPIPROFILE) -DMPI_$(ARCH) \
-	 $(MPE_GRAPH)
+# GETNAME_DEFS are needed by mpehname.c
+CFLAGS = @CFLAGS@ @MPE_CFLAGS@ @GETNAME_DEFS@ \
+	$(OPTFLAGS) $(INCLUDE_DIR) $(MPIPROFILE) \
+	-DMPI_$(ARCH) $(MPE_GRAPH)
 
 MPE_CSOURCES = timers.c  $(MPEGRAPHICS_SOURCE) mpe_log.c decomp.c \
-	       mpe_seq.c examine.c privtags.c getgrank.c
+	       mpe_seq.c examine.c privtags.c getgrank.c mpehname.c mpe_io.c
 MPE_TSOURCES = decomp.c mpe_seq.c dbxerr.c getgrank.c
 MPE_COBJECTS = timers.o  $(MPEGRAPHICS_OBJS) mpe_log.o decomp.o mpe_seq.o \
-		dbxerr.o examine.o privtags.o getgrank.o
+		dbxerr.o examine.o privtags.o getgrank.o mpehname.o mpe_io.o
 MPE_WSOURCES = $(MPEGRAPHICS_FSOURCE) mpe_logf.c decompf.c mpe_seqf.c \
 	       getgrankf.c
 MPE_WOBJECTS = timersf.o $(MPEGRAPHICS_FOBJS) mpe_logf.o decompf.o mpe_seqf.o \
@@ -80,6 +82,7 @@ $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpe.a: $(MPE_OBJECTS)
 
 $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpe_nompi.a:  $(MPEGRAPHICS_SOURCE)
 	@if [ "$(MPEGRAPHICS_SOURCE)" != "" ] ; then \
+	    $(MAKE) clean ; \
 	    $(MAKE) -f Makefile_nompi $@ ; \
 	fi
 manpages:

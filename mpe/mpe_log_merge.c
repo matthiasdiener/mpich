@@ -67,6 +67,10 @@ FILE *fp;
     fprintf( fp, "-4 0 0 1 0 0\n" );
     fprintf( fp, "-5 0 0 %d 0 0\n", totalneventTypes );
 
+    /* There have been some problems with bogus minimum and maximum times */
+    /* These need to be integers (for upshot) and made smaller */
+    /* ALL processors should perform a uniform shift to make the mintime
+       0 */
     fprintf( fp, "-6 0 0 0 0 %.0lf\n", minimumTime*1000000 );
     fprintf( fp, "-7 0 0 0 0 %.0lf\n", maximumTime*1000000 );
     fprintf( fp, "-8 0 0 1 0 0\n" );  /* timer cycles */
@@ -76,7 +80,7 @@ FILE *fp;
 
 
 /* Output from the buffer */    
-static MPE_Log_Output( inBuffer, outBuffer, mesgtag, srcs, fp, parent )
+static void MPE_Log_Output( inBuffer, outBuffer, mesgtag, srcs, fp, parent )
      MPE_Log_MBuf *inBuffer, *outBuffer;
      int      mesgtag, *srcs;
      FILE     *fp;
@@ -159,7 +163,7 @@ static MPE_Log_Output( inBuffer, outBuffer, mesgtag, srcs, fp, parent )
 #define NUMINTS 4
 
 
-static MPE_Log_FormatRecord (fp, procid, rec)
+static void MPE_Log_FormatRecord (fp, procid, rec)
 FILE *fp;
 int procid, *rec;
 {
@@ -408,7 +412,7 @@ MPE_Log_BLOCK *readBlock;
 }
 
 
-static MPE_Log_SetTreeNodes( procid, np, lchild, rchild, parent, am_left )
+static void MPE_Log_SetTreeNodes( procid, np, lchild, rchild, parent, am_left )
 int procid, np, *lchild, *rchild, *parent, *am_left;
 {
   *parent = (procid) ? ((procid - 1) >> 1) : -1;
@@ -573,7 +577,7 @@ return 0;
 }
 
 
-static MPE_Log_GetStatistics( nevents, ne_types, startTime, endTime )
+static void MPE_Log_GetStatistics( nevents, ne_types, startTime, endTime )
 int           *nevents, *ne_types;
 double *startTime, *endTime;
 {

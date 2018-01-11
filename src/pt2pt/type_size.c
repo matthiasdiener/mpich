@@ -1,12 +1,12 @@
 /*
- *  $Id: type_size.c,v 1.7 1995/07/26 16:55:07 gropp Exp $
+ *  $Id: type_size.c,v 1.8 1995/12/21 21:36:39 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_size.c,v 1.7 1995/07/26 16:55:07 gropp Exp $";
+static char vcid[] = "$Id: type_size.c,v 1.8 1995/12/21 21:36:39 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -22,10 +22,12 @@ Input Parameters:
 
 Output Parameter:
 . size - datatype size (integer) 
+
+.N fortran
 @*/
 int MPI_Type_size ( datatype, size )
 MPI_Datatype  datatype;
-MPI_Aint      *size;
+int           *size;
 {
   int mpi_errno;
   if (MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,datatype) || MPIR_TEST_ARG(size))
@@ -33,6 +35,8 @@ MPI_Aint      *size;
 			   "Error in MPI_TYPE_SIZE" );
 
   /* Assign the size and return */
-  (*size) = datatype->size;
+  /* For SOME versions, could use just MPIR_DATATYPE_SIZE */
+  MPIR_GET_REAL_DATATYPE(datatype)
+  (*size) = (int)(datatype->size);
   return (MPI_SUCCESS);
 }

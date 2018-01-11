@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_create.c,v 1.17 1995/05/09 18:51:19 gropp Exp $
+ *  $Id: comm_create.c,v 1.18 1995/12/21 22:02:57 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -14,11 +14,13 @@ MPI_Comm_create - Creates a new communicator
 
 Input Parameters:
 . comm - communicator (handle) 
-. group - Group, which is a subset of the group of comm  (handle) 
+. group - group, which is a subset of the group of 'comm'  (handle) 
 
 Output Parameter:
 . comm_out - new communicator (handle) 
 
+
+.N fortran
 @*/
 int MPI_Comm_create ( comm, group, comm_out )
 MPI_Comm  comm;

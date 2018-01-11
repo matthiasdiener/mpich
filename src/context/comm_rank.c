@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_rank.c,v 1.13 1994/12/15 16:26:19 gropp Exp $
+ *  $Id: comm_rank.c,v 1.14 1995/12/21 22:03:21 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: comm_rank.c,v 1.13 1994/12/15 16:26:19 gropp Exp $";
+static char vcid[] = "$Id: comm_rank.c,v 1.14 1995/12/21 22:03:21 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -18,9 +18,11 @@ MPI_Comm_rank - Determines the rank of the calling process in the communicator
 
 Input Parameters:
 . comm - communicator (handle) 
-Output Parameter:
-. rank - rank of the calling process in group of  comm  (integer) 
 
+Output Parameter:
+. rank - rank of the calling process in group of  'comm'  (integer) 
+
+.N fortran
 @*/
 int MPI_Comm_rank ( comm, rank )
 MPI_Comm  comm;

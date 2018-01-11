@@ -65,7 +65,7 @@ testing: $(MPIR_HOME)/util/mpirun
 		do \
 			echo " " ;\
 			echo Making testing in directory $$dir ;\
-			(cd $$dir; $(MAKE) testing TESTARGS=$(TESTARGS) ; \
+			(cd $$dir; $(MAKE) testing TESTARGS="$(TESTARGS)" ; \
 	                 $(MAKE) clean ) ;\
 		done
 
@@ -77,12 +77,16 @@ testing_save: $(MPIR_HOME)/util/mpirun
 		do \
 			echo " " ;\
 			echo Making testing in directory $$dir ;\
-			(cd $$dir; $(MAKE) testing TESTARGS=$(TESTARGS) ; \
-	                 cp $$dir.diff .. ; $(MAKE) clean ) ;\
+			(cd $$dir; $(MAKE) testing TESTARGS="$(TESTARGS)" ; \
+	                 if [ -s $$dir.diff ] ; then cp $$dir.diff .. ; fi ; \
+	    		 $(MAKE) clean ) ;\
 		done
 
 clean:
-	/bin/rm -f test.log *.diff
+	/bin/rm -f test.log *.diff sendchar.sun4 sendchar.freebsd \
+		sendshort.sun4 sendshort.freebsd *.o \
+		sendvector.sun4 sendvector.freebsd \
+	        sendchar sendshort sendvector
 	@for dir in $(SUBDIRS) ;\
 		do \
 			echo " " ;\

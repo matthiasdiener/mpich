@@ -1,12 +1,12 @@
 /*
- *  $Id: dmpipk.c,v 1.21 1995/09/18 15:40:22 gropp Exp $
+ *  $Id: dmpipk.c,v 1.22 1995/12/21 22:02:09 gropp Exp $
  *
  *  (C) 1994 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: dmpipk.c,v 1.21 1995/09/18 15:40:22 gropp Exp $";
+static char vcid[] = "$Id: dmpipk.c,v 1.22 1995/12/21 22:02:09 gropp Exp $";
 #endif
 
 #include "mpiimpl.h"
@@ -157,12 +157,14 @@ return datatype->size * count;
     These routines pack/unpack data for messages.  They KNOW how the 
     message request areas are arranged, and how the send/receive routines
     known when to use these routines.
+    
+    dest_type is the format to use (XDR/Swap/Unchanged)
  */
-int MPIR_PackMessage( buf, count, datatype, dest, request )
-char *buf;
-int  count, dest;
+int MPIR_PackMessage( buf, count, datatype, dest, dest_type, request )
+char         *buf;
+int          count, dest, dest_type;
 MPI_Datatype datatype;
-MPI_Request request;
+MPI_Request  request;
 {
   int size;
   int mpi_errno = MPI_SUCCESS;
@@ -183,11 +185,12 @@ MPI_Request request;
          request 
        */
 #ifdef MPID_HAS_HETERO
-      /* Hetero buffers should have a 4 byte, network byte order, header
+      /* Hetero buffers have a 4 byte, network byte order, header
 	 indicating type of representation */
-      if ((MPID_IS_HETERO == 1) &&
-	  MPIR_Comm_needs_conversion(request->chandle.comm))
+      if (dest_type == MPIR_MSGFORM_XDR)
 	  request->chandle.msgrep = MPIR_MSGREP_XDR;
+      /* Otherwise in receivers order (may change when senders order 
+	 supported) */
 #endif
       request->chandle.bufpos			   = 0;
       request->shandle.dev_shandle.start           = buf;
@@ -195,7 +198,7 @@ MPI_Request request;
       return MPI_SUCCESS;
       }
   /* Use the generic pack routine */
-  MPIR_Pack_size( count, datatype, MPI_COMM_WORLD, &size );
+  MPIR_Pack_size( count, datatype, request->chandle.comm, dest_type, &size );
   if (size == 0) {
       request->chandle.bufpos			   = 0;
       request->shandle.dev_shandle.bytes_as_contig = 0;
@@ -205,12 +208,16 @@ MPI_Request request;
   if (!request->chandle.bufpos) {
       return MPI_ERR_EXHAUSTED;
       }
-  mpi_errno = MPIR_Pack( request->chandle.comm, buf, count, datatype, 
+  mpi_errno = MPIR_Pack( request->chandle.comm, dest_type, 
+			   buf, count, datatype, 
 			   request->chandle.bufpos, size, &size );
 #ifdef MPID_HAS_HETERO
-  if ((MPID_IS_HETERO == 1) &&
-      MPIR_Comm_needs_conversion(request->chandle.comm))
+  if (dest_type == MPIR_MSGFORM_XDR)
       request->chandle.msgrep = MPIR_MSGREP_XDR;
+/*  if ((MPID_IS_HETERO == 1) &&
+      MPIR_Comm_needs_conversion(request->chandle.comm))
+      request->chandle.msgrep = MPIR_MSGREP_XDR; 
+ */
 #endif
   MPI_PACKED->ref_count ++;
   if (!request->shandle.persistent) 

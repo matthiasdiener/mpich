@@ -128,16 +128,6 @@ char **argv;
     }
 
     SIGNAL_P4(LISTENER_ATTN_SIGNAL, handle_connection_interrupt);
-#ifdef NEED_SIGACTION
-#ifdef SA_RESETHAND
-    {
-    struct sigaction oldact;
-    sigaction( LISTENER_ATTN_SIGNAL, (struct sigaction *)0, &oldact );
-    oldact.sa_flags = oldact.sa_flags & ~(SA_RESETHAND);
-    sigaction( LISTENER_ATTN_SIGNAL, &oldact, (struct sigaction *)0 );
-    }
-#endif
-#endif
     p4_lock(&g->slave_lock);
     create_rm_processes(numslaves, bm_fd);
     if (!rm_flag) /* I am not rm; was forked in create_rm_processes */
@@ -341,17 +331,6 @@ int bm_fd;
 	    close(end_2);
 
             SIGNAL_P4(LISTENER_ATTN_SIGNAL, handle_connection_interrupt);
-#ifdef NEED_SIGACTION
-#ifdef SA_RESETHAND
-	    {
-	    struct sigaction oldact;
-	    sigaction( LISTENER_ATTN_SIGNAL, (struct sigaction *)0, &oldact );
-	    oldact.sa_flags = oldact.sa_flags & ~(SA_RESETHAND);
-	    sigaction( LISTENER_ATTN_SIGNAL, &oldact, (struct sigaction *)0 );
-	    }
-#endif
-#endif
-
 
 	    /* hang for a valid proctable */
 	    p4_lock(&g->slave_lock);

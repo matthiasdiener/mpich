@@ -370,6 +370,13 @@ D*/
     This routine must be called at the end of the parallel part of a program.
     Normally, this is just before the program exits.  Once 'MPID_End' 
     is called, no other MPID routines, including 'MPID_Init', may be called.
+    Note that by the time this routine is called, much of the MPI environment
+    may already have been dismantled.  For example, the communicators
+    and datatypes may have been freed before this routine is called.
+
+    If the macro 'MPID_END_NEEDS_BARRIER' is defined, the code that calls
+    'MPID_End' must call 'MPI_BARRIER( MPI_COMM_WORLD )' before calling 
+    'MPID_End'.  This helps 
 D*/
 
 /*D

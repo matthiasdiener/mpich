@@ -1,12 +1,12 @@
 /*
- *  $Id$
+ *  $Id: chhetero.c,v 1.1 1996/01/11 18:57:14 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id$";
+static char vcid[] = "$Id: chhetero.c,v 1.1 1996/01/11 18:57:14 gropp Exp $";
 #endif
 
 #include "mpid.h"
@@ -171,6 +171,10 @@ if (MPID_IS_HETERO && MPID_MyWorldRank == 0) {
 return MPI_SUCCESS;
 }
 
+/* 
+ * Note that this requires an ABSOLUTE destination; ANY or RELATIVE 
+ * are not valid.
+ */
 int MPID_CH_Dest_byte_order( dest )
 int dest;
 {
@@ -180,6 +184,46 @@ else
     return MPID_H_NONE;
 }
 
+
+/*
+ * This routine takes a communicator and determines the message representation
+ * field for it
+ */
+int MPID_CH_Comm_msgrep( comm )
+MPI_Comm comm;
+{
+int my_byte_order;
+int i;
+
+/* We must compare the rep of the rank in the local group to
+   the members of the remote group.  This works for both intra and inter 
+   communicators. 
+   
+   Note that in the intracommunicator case, we COULD use a receiver rep, if
+   all receivers had the same representation.  The current code assumes
+   that the sender is a potential receiver, so it can't use receiver order.
+*/
+my_byte_order = MPID_Dest_byte_order(MPIR_tid);  
+
+if (my_byte_order == MPID_H_XDR) {
+    comm->msgrep = MPIR_MSGREP_XDR;
+    return MPI_SUCCESS;
+    }
+  
+/* "group" is the remote_group; comm->local_group is the other group */
+for (i = 0; i < comm->group->np; i++) {
+    if (MPID_Dest_byte_order(comm->group->lrank_to_grank[i]) !=
+	my_byte_order) {
+	comm->msgrep = MPIR_MSGREP_XDR;
+	return MPI_SUCCESS;
+	}
+    }
+
+/* receiver is == 0, so this says "no change" (sender and receiver have
+   same format).  This needs to change... */
+comm->msgrep = MPIR_MSGREP_RECEIVER;
+return MPI_SUCCESS;
+}
 
 /* This routine is ensure that the elements in the packet HEADER can
    be read by the receiver without further processing (unless XDR is
@@ -201,7 +245,8 @@ int        size, dest;
 int i;
 unsigned int *d;
 if (MPID_IS_HETERO &&
-    MPID_procinfo[dest].byte_order != MPID_byte_order) {
+    (MPID_procinfo[dest].byte_order != MPID_byte_order ||
+     MPID_byte_order == MPID_H_XDR)) {
     
     if (MPID_procinfo[dest].byte_order == MPID_H_XDR ||
 	MPID_byte_order == MPID_H_XDR) {
@@ -229,7 +274,8 @@ int        size, from;
 int i;
 unsigned int *d;
 if (MPID_IS_HETERO &&
-    MPID_procinfo[from].byte_order != MPID_byte_order) {
+    (MPID_procinfo[from].byte_order != MPID_byte_order ||
+     MPID_byte_order == MPID_H_XDR)) {
     
     if (MPID_procinfo[from].byte_order == MPID_H_XDR ||
 	MPID_byte_order == MPID_H_XDR) {
@@ -358,7 +404,9 @@ int       from;
 {
 MPID_PKT_SEND_DECL(MPID_PKT_SYNC_ACK_T,pkt);
 
-MPID_PKT_SEND_ALLOC(MPID_PKT_SYNC_ACK_T,pkt);
+MPID_PKT_SEND_ALLOC(MPID_PKT_SYNC_ACK_T,pkt,0);
+/* Need to generate an error return here !!! */
+MPID_PKT_SEND_ALLOC_TEST(pkt,return)
 MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_SYNC_ACK);
 MPID_PKT_SEND_SET(pkt,sync_id,sync_id);
 

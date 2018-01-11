@@ -1,5 +1,5 @@
 /*
- *  $Id: wtick.c,v 1.4 1994/09/21 15:27:26 gropp Exp $
+ *  $Id: wtick.c,v 1.5 1995/12/21 21:58:07 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: wtick.c,v 1.4 1994/09/21 15:27:26 gropp Exp $";
+static char vcid[] = "$Id: wtick.c,v 1.5 1995/12/21 21:58:07 gropp Exp $";
 #endif /* lint */
 #include "mpiimpl.h"
 
@@ -16,6 +16,10 @@ static char vcid[] = "$Id: wtick.c,v 1.4 1994/09/21 15:27:26 gropp Exp $";
 
   Return value:
   Time in seconds of resolution of MPI_Wtime
+
+  Notes for Fortran:
+  This is a function, declared as 'DOUBLE PRECISION MPI_WTICK()' in Fortran.
+  
 @*/
 double MPI_Wtick()
 {

@@ -1,4 +1,4 @@
-.TH MPI_Init 3 "9/29/1995" " " "MPI"
+.TH MPI_Init 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Init \- Initialize the MPI execution environment
 
@@ -21,21 +21,32 @@ implementation to make use of them.
 .PD 0
 .TP
 .B -mpiqueue 
-- print out the state of the message queues when MPI_FINALIZE
+- print out the state of the message queues when 
+.I MPI_FINALIZE
 is called.  All processors print; the output may be hard to decipher.  This
 is intended as a debugging aid.
 .PD 1
+
 .PD 0
 .TP
 .B -mpiversion 
-- print out the version of the implementation (NOT of MPI),
+- print out the version of the implementation (
+.B not
+of MPI),
 including the arguments that were used with configure.
 .PD 1
+
 .PD 0
 .TP
 .B -mpinice 
-nn - Increments the nice value by nn (lowering the priority 
-of the program by nn).  nn must be positive (except for root).  Not
+nn - Increments the nice value by 
+.I nn
+(lowering the priority 
+of the program by 
+.I nn
+).  
+.I nn
+must be positive (except for root).  Not
 all systems support this argument; those that do not will ignore it.
 .PD 1
 
@@ -44,15 +55,21 @@ all systems support this argument; those that do not will ignore it.
 .B -mpedbg 
 - Start a debugger in an xterm window if there is an error (either
 detected by MPI or a normally fatal signal).  This works only if MPICH
-was configured with -mpedbg.
+was configured with 
+.I -mpedbg
+.
 .PD 1
 
 .PD 0
 .TP
 .B -mpipktsize 
 nn - Set the message length where the ADI changed to 
-the long message protocol to nn.  This only works if MPICH was 
-configured with -var_pkt.
+the long message protocol to 
+.I nn
+.  This only works if MPICH was 
+configured with 
+.I -var_pkt
+.
 .PD 1
 
 The following options are available only on the Chameleon device and
@@ -64,32 +81,47 @@ by MPICH implementors when debugging new ports.
 .B -mpichdebug 
 - Print out the Chameleon device operations
 .PD 1
+
 .PD 0
 .TP
 .B -mpidbfile 
 filename - Like mpichdebug, but sends the output to the
-specified file.  If the filename contains a '%d', then that part of
-the filename is replaced with the rank in 'MPI_COMM_WORLD'.  For example,
+specified file.  If the filename contains a 
+.I %d
+, then that part of
+the filename is replaced with the rank in 
+.I MPI_COMM_WORLD
+.  For example,
 .PD 1
 .nf
    -mpidbfile log.%d 
 .fi
 
-writes to 'log.0', 'log.1', etc.
+writes to 
+.I log.0
+, 
+.I log.1
+, etc.
+
 .PD 0
 .TP
 .B -mpichmemdebug 
 - (Chameleon device only) Print out a list of unreclaimed
-memory.  This requires that MPI be built with the -DMPIR_DEBUG_MEM
+memory.  This requires that MPI be built with the 
+.I -DMPIR_DEBUG_MEM
 switch.  This is intended for debugging the MPI implementation itself.
 .PD 1
+
 .PD 0
 .TP
 .B -mpimem 
-- If MPICH was built with -DMPIR_DEBUG_MEM, this checks all
+- If MPICH was built with 
+.I -DMPIR_DEBUG_MEM
+, this checks all
 malloc and free operations (internal to MPICH) for signs of injury 
 to the memory allocation areas.
 .PD 1
+
 .PD 0
 .TP
 .B -mpichmsg 
@@ -100,16 +132,26 @@ received, by category, when the program exits.
 
 .SH NOTES
 Note that the Fortran binding for this routine has only the error return
-argument (MPI_INIT(ierror))
+argument (
+.I MPI_INIT(ierror)
+)
 
-Because the Fortran and C versions of MPI_Init are different, there is
-a restriction on who can call MPI_Init.  The version (Fortran or C) must
+Because the Fortran and C versions of 
+.I MPI_Init
+are different, there is
+a restriction on who can call 
+.I MPI_Init
+.  The version (Fortran or C) must
 match the main program.  That is, if the main program is in C, then
-the C version of MPI_Init must be called.  If the main program is in
+the C version of 
+.I MPI_Init
+must be called.  If the main program is in
 Fortran, the Fortran version must be called.
 
 On exit from this routine, all processes will have a copy of the argument
-list.  This is NOT REQUIRED by the MPI standard, and truely portable codes
+list.  This is 
+.B not required
+by the MPI standard, and truely portable codes
 should not rely on it.  This is provided as a service by this
 implementation (an MPI implementation is allowed to distribute the
 command line arguments but is not required to).
@@ -118,15 +160,19 @@ Command line arguments are not provided to Fortran programs.  More
 precisely, non-standard Fortran routines such as getarg and iargc
 have undefined behavior in MPI and in this implementation.
 
-The MPI standard does not say what a program can do before an MPI_INIT or
-after an MPI_FINALIZE.  In the MPICH implementation, you should do
+The MPI standard does not say what a program can do before an 
+.I MPI_INIT
+or
+after an 
+.I MPI_FINALIZE
+.  In the MPICH implementation, you should do
 as little as possible.  In particular, avoid anything that changes the
 external state of the program, such as opening files, reading standard
 input or writing to standard output.
 
 .SH SIGNALS USED
 The MPI standard requires that all signals used be documented.  The MPICH
-implementation itself uses no signals, but some of the softare that MPICH
+implementation itself uses no signals, but some of the software that MPICH
 relies on may use some signals.  The list below is partial and should
 be independantly checked if you (and any package that you use) depend
 on particular signals.
@@ -144,7 +190,7 @@ SIGUSR2
 .SH CH_P4 DEVICE
 SIGUSR1
 
-.SH INTEL PARAGON (CH_NX DEVICE)
+.SH INTEL PARAGON (CH_NX AND NX DEVICE)
 SIGUSR2
 
 .SH SHARED MEMORY (CH_SHMEM DEVICE)
@@ -153,8 +199,16 @@ SIGCHLD
 Note that if you are using software that needs the same signals, you may
 find that there is no way to use that software with the MPI implementation.
 The signals that cause the most trouble for applications include
-SIGIO, SIGALRM, and SIGPIPE.  For example, using SIGIO and SIGPIPE may
-prevent X11 routines from working.
+.I SIGIO
+, 
+.I SIGALRM
+, and 
+.I SIGPIPE
+.  For example, using 
+.I SIGIO
+and
+.I SIGPIPE
+may prevent X11 routines from working.
 
 .SH SYNOPSIS
 .nf

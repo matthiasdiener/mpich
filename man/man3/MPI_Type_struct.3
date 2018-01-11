@@ -1,4 +1,4 @@
-.TH MPI_Type_struct 3 "9/13/1995" " " "MPI"
+.TH MPI_Type_struct 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Type_struct \- Creates a struct datatype
 
@@ -35,7 +35,9 @@ of handles to datatype objects)
 .PD 1
 
 .SH NOTES
-If an upperbound is set explicitly by using the MPI datatype 'MPI_UB', the
+If an upperbound is set explicitly by using the MPI datatype 
+.I MPI_UB
+, the
 corresponding index must be positive.
 
 The MPI standard originally made vague statements about padding and alignment;
@@ -45,14 +47,23 @@ be sent with a count greater than one.  For example,
     struct { int a; char b; } foo;
 .fi
 
-may have 'sizeof(foo) > sizeof(int) + sizeof(char)'; for example,
-'sizeof(foo) == 2*sizeof(int)'.  The initial version of the MPI standard
-defined the extent of a datatype as including an `epsilon` that would have
+may have 
+.I sizeof(foo) > sizeof(int) + sizeof(char)
+; for example,
+.I sizeof(foo) == 2*sizeof(int)
+.  The initial version of the MPI standard
+defined the extent of a datatype as including an 
+.B epsilon
+that would have
 allowed an implementation to make the extent an MPI datatype
-for this structure equal to '2*sizeof(int)'.  However, since different systems
+for this structure equal to 
+.I 2*sizeof(int)
+.  However, since different systems
 might define different paddings, a clarification to the standard made epsilon
 zero.  Thus, if you define a structure datatype and wish to send or receive
-multiple items, you should explicitly include an 'MPI_UB' entry as the
+multiple items, you should explicitly include an 
+.I MPI_UB
+entry as the
 last member of the structure.  For example, the following code can be used
 for the structure foo
 .nf
@@ -62,6 +73,29 @@ for the structure foo
     MPI_Type_struct( 3, blen, indices, oldtypes, &newtype );
 .fi
 
+
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

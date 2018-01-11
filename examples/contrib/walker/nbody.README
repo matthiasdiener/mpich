@@ -1,0 +1,57 @@
+Program Documentation for N-body Force Calculation 
+===================================================
+
+This set of programs calculates the force between N particles according to
+Newton's Law of Gravitation. This calculation is the kernel of particle
+simulation codes.
+
+Given N particles, P1 ... PN with positions X1 ... XN in 3-D space, the force
+on particle Pi due to particle Pj is:
+
+     Fij = G * Mi * Mj * ((Xj - Xi)/Rij^3).
+
+
+where G is the gravitational constant, Mi is the mass of particle Pi, and Rij
+is the Euclidean distance between particles Pi and Pj. This program calculates
+the force on Pi due to all other particles, which is the sum of the forces of
+all other particles. Note that this law is symmetrical in Pi and Pj except for
+sign, i.e.
+
+     Fij = - Fji
+
+so that the number of force calculations per pair of particles is
+(N squared - N)/2.
+
+The particles are represented by a 7 x NN array, p, with initial masses and
+positions and space for calculating the force.
+
+p          1        Particle number i -->       NN
+           +-------------------------------------+
+ p(MM,:)   |                                     |  mass
+ p(PX,:)   |                                     |  x dim of position
+ p(PY,:)   |                                     |  y dim of position
+ p(PZ,:)   |                                     |  z dim of position
+ p(FX,:)   |                                     |  x dim of force
+ p(FY,:)   |                                     |  y dim of force
+ p(FZ,:)   |                                     |  z dim of force
+           +-------------------------------------+
+
+All particle arrays are allocated up to NN, the variable npts is the actual
+number of particles used.  Other arrays:
+
+ q (0:6,0:NN-1) - holds a copy of particle information to assist in
+        calculating symmetric forces
+
+ dx,dy,dz (0:NN-1) - difference between positions of two particles
+
+ dist,sq,fac (0:NN-1) - distance,distance squared between 2 particles,
+                and the factor of multiplication
+
+ tx,ty,tz (0:NN-1) - force calculated between 2 particles
+        
+The programs initialize p with the mass and positions of npts particles
+and result in forces calculated in p.
+
+
+
+This documentation prepared by Nancy McCracken, njm@npac.syr.edu. 

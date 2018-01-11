@@ -1,12 +1,12 @@
 /*
- *  $Id: errset.c,v 1.6 1994/12/15 16:43:01 gropp Exp $
+ *  $Id: errset.c,v 1.7 1995/12/21 21:57:04 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: errset.c,v 1.6 1994/12/15 16:43:01 gropp Exp $";
+static char vcid[] = "$Id: errset.c,v 1.7 1995/12/21 21:57:04 gropp Exp $";
 #endif
 
 #include "mpiimpl.h"
@@ -18,6 +18,7 @@ Input Parameters:
 . comm - communicator to set the error handler for (handle) 
 . errhandler - new MPI error handler for communicator (handle) 
 
+.N fortran
 @*/
 int MPI_Errhandler_set( comm, errhandler )
 MPI_Comm       comm;

@@ -5,7 +5,7 @@
 #
 # Create the report with
 # configure ... >& config.log 
-# doc/port -author="My Name" -dotest -config=config.log
+# doc/port -nobanner -author="My Name" -dotest -config=config.log
 # unless you can't run on this system, when you might do 
 # -noperf 
 # instead of -dotest.
@@ -19,10 +19,33 @@
 #
 # make testing TESTARGS='-margs="-paragonname raptor"'
 # for example
+tarfile=doc.tar
+for arg in "$@" ; do
+    case $arg in 
+	-file=*)
+	tarfile=`echo A$arg | sed 's/A-file=//g'`
+	;;
+	-echo)
+	set -x
+	;;
+	-help|-u|-usage)
+	echo "docgather [ -file=name ] "
+	echo "Gather up the files used to create a document about porting."
+	echo "A tar file, with name given by -file, is created in the top"
+	echo "directory.  The default name is $tarfile ."
+	exit 1
+	;;
+	*)
+	echo "Unrecognized argument $arg"
+	exit 1
+	;;
+    esac
+done
+#
 cd doc
 files=
 for file in doc.tar doc1.tex doc1perf.tex doc1make.tex doc1make.log \
-	doc1test.tex long.eps short.eps ; do
+	doc1test.tex long.eps short.eps docmake portperf ; do
     if [ -f $file ] ; then
 	files="$files $file"
     fi
@@ -37,13 +60,13 @@ done
 if [ ! -f long.eps ] ; then 
     # Gather the source files for the plots
     for file in short-data.gpl short.gpl long-data.gpl long.gpl maketst.log \
-	short.err long.err docmake portperf ; do
+	short.err long.err ; do
 	if [ -f ../examples/perftest/$file ] ; then
 	     cp ../examples/perftest/$file .
 	     files="$files $file"
         fi
     done
 fi
-tar cf doc.tar $files
-mv doc.tar ..
-echo "The file doc.tar contains the files needed to create a report."
+tar cf $tarfile $files
+mv $tarfile ..
+echo "The file $tarfile contains the files needed to create a report."

@@ -1,5 +1,5 @@
 /* group_free.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
 #ifdef POINTER_64_BITS
@@ -36,5 +36,12 @@ extern void MPIR_RmPointer();
 MPI_Group *group;
 int *__ierr;
 {
-*__ierr = MPI_Group_free(group);
+MPI_Group lgroup = (MPI_Group)MPIR_ToPointer( *(int*)group );
+*__ierr = MPI_Group_free(&lgroup);
+*(int*)group = 0;
 }
+
+/* 
+   We actually need to remove the pointer from the mapping if the ref
+   count is zero... 
+ */

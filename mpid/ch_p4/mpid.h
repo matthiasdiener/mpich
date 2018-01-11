@@ -16,5 +16,5 @@
 #endif
 
 #include "mpid_bind.h"
-
+#define MPID_END_NEEDS_BARRIER
 #endif

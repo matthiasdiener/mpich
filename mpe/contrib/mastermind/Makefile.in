@@ -39,6 +39,10 @@ gmm.o:	gmm.c
 mm.o:	gmm.c
 	$(CC) $(CFLAGS) -c -o mm.o gmm.c
 
+vb:	vb.o $(MPIR_HOME)/include/mpi.h $(MPE_DIR)/mpe.h
+	$(CLINKER) $(OPTFLAGS)  -o vb vb.o \
+	$(LIB_PATH)  $(MPE_LIBS) $(LIB_LIST) -lm
+
 clean:
 	/bin/rm -f *.o *~ PI* $(EXECS) gmmlog
 

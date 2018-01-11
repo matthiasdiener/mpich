@@ -151,8 +151,15 @@ P4VOID trap_sig_errs()
 {
     P4_HANDLER_TYPE (*rc) ();
 
-    rc = (P4_HANDLER_TYPE (*) ()) SIGNAL_P4(SIGINT, sig_err_handler);
-    if (rc == (P4_HANDLER_TYPE (*) ()) -1)
+#if defined(__STDC__) 
+#define HANDLER_ARG int
+#else
+#define HANDLER_ARG
+#endif
+/*     rc = (P4_HANDLER_TYPE (*) (HANDLER_ARG))  */
+	SIGNAL_WITH_OLD_P4(SIGINT, sig_err_handler,
+                           rc= (P4_HANDLER_TYPE (*) (HANDLER_ARG)));
+    if (rc == (P4_HANDLER_TYPE (*) (HANDLER_ARG)) -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGINT);
     if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
 	prev_sigint_handler = rc;
@@ -161,19 +168,25 @@ P4VOID trap_sig_errs()
  * it for shmem stuff 
 */
 #ifdef CAN_HANDLE_SIGSEGV
-    rc = (P4_HANDLER_TYPE (*) ()) SIGNAL_P4(SIGSEGV, sig_err_handler);
+/*     rc = (P4_HANDLER_TYPE (*) (HANDLER_ARG))  */
+	SIGNAL_WITH_OLD_P4(SIGSEGV, sig_err_handler, 
+                           rc= (P4_HANDLER_TYPE (*) (HANDLER_ARG)));
     if ((P4_Aint) rc == -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGSEGV);
     if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
 	prev_sigsegv_handler = rc;
 #endif
 
-    rc = (P4_HANDLER_TYPE (*) ()) SIGNAL_P4(SIGBUS, sig_err_handler);
+/*    rc = (P4_HANDLER_TYPE (*) (HANDLER_ARG))  */
+	SIGNAL_WITH_OLD_P4(SIGBUS, sig_err_handler,
+                 rc= (P4_HANDLER_TYPE (*) (HANDLER_ARG)));
     if ((P4_Aint) rc == -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGBUS);
     if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
 	prev_sigbus_handler = rc;
-    rc = (P4_HANDLER_TYPE (*) ()) SIGNAL_P4(SIGFPE, sig_err_handler);
+/*    rc = (P4_HANDLER_TYPE (*) (HANDLER_ARG)) */
+	SIGNAL_WITH_OLD_P4(SIGFPE, sig_err_handler,
+                           rc= (P4_HANDLER_TYPE (*) (HANDLER_ARG)));
     if ((P4_Aint) rc == -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGFPE);
     if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))

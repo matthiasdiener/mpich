@@ -1,6 +1,47 @@
-
-
 	  Information from previous README's, of historical interest
+
+
+			Changes since Version 1.0.10
+
+1.  Fixes for the installation process (now uses the program util/mpiinstall).
+
+2.  Access to the global clock provided on IBM SP2.
+
+3.  mpirun now handles heterogeneous systems.
+
+4.  A number of problems with MPI_Pack and MPI_Unpack have been fixed.
+
+5.  Fixes for the CM-5.
+
+6.  Some performance improvements to the ch_shmem device.
+
+7.  A native NX version that works for all but synchronous sends is included
+    as -device=nx.
+
+8.  mpicc and mpif77 have been improved.  
+
+9.  For workstation networks, the script 'tstmachines' provides a more 
+    comprehensive test.
+
+10. Many new comments in the installation and users guides.
+
+11. The ch_p4 device is more robust in the presence of network failures;
+    now it will terminate with an error message instead of hanging.
+
+                               Known problems
+
+    On Cray PVP (XMP,YMP,C90) and Cray T3D, character data is not supported
+    from Fortran.  This causes  examples/test/pt2pt/structf to fail; we
+    hope to have a fix in the next release.
+
+For other systems, or to run on top of PVM 2.4 or 3.x, you also need:
+
+chameleon-1.2.tar.Z  - the chameleon system, necessary to build and run the
+                       versions of the implementation that run on top of PVM.
+                       This is in pub/pdetools.  
+
+
+
 
 			Changes since Version 1.0.9 
 

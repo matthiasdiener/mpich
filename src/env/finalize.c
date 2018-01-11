@@ -1,5 +1,5 @@
 /*
- *  $Id: finalize.c,v 1.29 1995/09/29 22:35:13 gropp Exp $
+ *  $Id: finalize.c,v 1.31 1996/01/03 19:04:05 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -16,6 +16,18 @@ extern int MPIR_Print_queues;
  */
 extern void MPIR_Topology_finalize();
 
+/* 
+ * Routine to free a datatype
+ */
+void MPIR_Free_perm_type( type )
+MPI_Datatype *type;
+{
+if (!type || !(*type)) return;
+(*type)->permanent = MPIR_NO;
+MPI_Type_free( type );
+}
+
+
 /*@
    MPI_Finalize - Terminates MPI execution environment
 
@@ -24,6 +36,8 @@ extern void MPIR_Topology_finalize();
    processes running `after` this routine is called is undefined; 
    it is best not to perform much more than a 'return rc' after calling
    'MPI_Finalize'.
+
+.N fortran
 @*/
 int MPI_Finalize()
 {
@@ -59,6 +73,10 @@ int MPI_Finalize()
 	    }
 	}
 
+#ifdef MPID_END_NEEDS_BARRIER
+    MPI_Barrier( MPI_COMM_WORLD );
+#endif    
+
     /* Mark the MPI environment as having been destroyed.
        Note that the definition of MPI_Initialized returns only whether
        MPI_Init has been called; not if MPI_Finalize has also been called */
@@ -69,6 +87,9 @@ int MPI_Finalize()
 
     ADIctx = MPI_COMM_WORLD->ADIctx;
 
+    /* Like the basic datatypes, the predefined operators are in 
+       permanent storage */
+#ifdef FOO
     DBG(fprintf( stderr, "About to free operators\n" ); fflush( stderr );)
     MPI_Op_free( &MPI_MAX );
     MPI_Op_free( &MPI_MIN );
@@ -82,15 +103,14 @@ int MPI_Finalize()
     MPI_Op_free( &MPI_BXOR );
     MPI_Op_free( &MPI_MAXLOC );
     MPI_Op_free( &MPI_MINLOC );
+#endif
 
     /* Free allocated space */
     /* Note that permanent datatypes are now stored in static storage
        so that we can not free them. */
     DBG(fprintf( stderr, "About to free dtes\n" ); fflush( stderr );)
-    MPI_REAL->permanent = MPIR_NO;
-    MPI_Type_free( &MPI_REAL );
-    MPI_DOUBLE_PRECISION->permanent = MPIR_NO;
-    MPI_Type_free( &MPI_DOUBLE_PRECISION );
+    MPIR_Free_perm_type( &MPI_REAL );
+    MPIR_Free_perm_type( &MPI_DOUBLE_PRECISION );
 /*     MPI_Type_free( &MPIR_complex_dte );
     MPI_Type_free( &MPIR_dcomplex_dte ); 
     MPI_Type_free( &MPIR_logical_dte ); */
@@ -114,22 +134,19 @@ int MPI_Finalize()
     MPIR_Type_free_struct( MPI_2INT );
     
     if (MPI_2INT != MPI_2INTEGER)
-	MPI_Type_free( &MPI_2INTEGER );
-    MPIR_2real_dte->permanent = MPIR_NO;
-    MPI_Type_free( &MPIR_2real_dte );
-    MPIR_2double_dte->permanent = MPIR_NO;
-    MPI_Type_free( &MPIR_2double_dte );
-    MPIR_2complex_dte->permanent = MPIR_NO;
-    MPI_Type_free( &MPIR_2complex_dte );
-    MPIR_2dcomplex_dte->permanent = MPIR_NO;
-    MPI_Type_free( &MPIR_2dcomplex_dte );
+	MPIR_Free_perm_type( &MPI_2INTEGER );
+    MPIR_Free_perm_type( &MPIR_2real_dte );
+    MPIR_Free_perm_type( &MPIR_2double_dte );
+    MPIR_Free_perm_type( &MPIR_2complex_dte );
+    MPIR_Free_perm_type( &MPIR_2dcomplex_dte );
 
 #if defined(HAVE_LONG_DOUBLE)
-    MPI_Type_free( &MPI_LONG_DOUBLE );
-    MPI_Type_free( &MPI_LONG_DOUBLE_INT );
+    {MPI_Datatype t = MPI_LONG_DOUBLE_INT;
+    MPI_Type_free( &t );}
+/*     MPI_Type_free( &MPI_LONG_DOUBLE ); */
 #endif
 #if defined(HAVE_LONG_LONG_INT)
-    MPI_Type_free( &MPI_LONG_LONG_INT );
+  /*  MPI_Type_free( &MPI_LONG_LONG_INT ); */
 #endif
 
     DBG(fprintf( stderr, "About to free COMM_WORLD\n" ); fflush( stderr );)

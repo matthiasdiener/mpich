@@ -7,16 +7,16 @@
 #
 ##### User configurable options #####
 
-ARCH        = rs6000
+ARCH        = IRIX
 COMM        = ch_shmem
 DEVICE      = ch_shmem
 BOPT        = 
 MPIR_HOME   = /home/gropp/mpich
 INCLUDE_DIR =  -Impid/ch_shmem -Iinclude
-CC          = xlC
+CC          = cc
 AR          = ar crl
 RANLIB      = ranlib
-OPTFLAGS    = -O
+OPTFLAGS    = 
 SHELL       = /bin/sh
 ASMFILES_O  = 
 ### End User configurable options ###
@@ -24,9 +24,9 @@ ASMFILES_O  =
 ALL: default
 
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
-CFLAGS   =  -DFORTRANNOUNDERSCORE  -D_ALL_SOURCE=1 -DSTDC_HEADERS=1  -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -DHAVE_SYSTEM=1 -DHAVE_NICE=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
-		-DMPI_$(ARCH) -DMPID_DEVICE_CODE  -DHAVE_GETDOMAINNAME=1 -DHAVE_GETHOSTNAME=1 -DHAVE_UNAME=1  -DMPID_PKT_COMPRESSED -DMPID_DEBUG_NONE -DMPID_STAT_NONE \
-	         -DHAVE_MMAP=1 -DHAVE_MSEM_INIT=1 -DHAVE_SHMAT=1 -DHAVE_SEMOP=1 -DRETSIGTYPE=void -DHAS_VOLATILE=1 -DHAVE_UNISTD_H=1 -DHAVE_GETTIMEOFDAY=1
+CFLAGS   =  -woff 728 -DFORTRANUNDERSCORE  -DSTDC_HEADERS=1  -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -DHAVE_SYSTEM=1 -DHAVE_NICE=1 -DHAVE_LONG_DOUBLE=1 -DHAVE_LONG_LONG_INT=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
+		-DMPI_$(ARCH) -DMPID_DEVICE_CODE  -DHAVE_GETDOMAINNAME=1 -DHAVE_GETHOSTNAME=1 -DHAVE_SYSINFO=1 -DHAVE_UNAME=1  \
+	         -DHAVE_MMAP=1 -DHAVE_SHMAT=1 -DHAVE_SEMOP=1 -DRETSIGTYPE=void -DHAS_VOLATILE=1 -DHAVE_UNISTD_H=1
 SOURCE   = shmemevent.c shmemrecv.c shmemsend.c shmeminit.c shmemprobe.c \
 	   shmemsync.c p2p.c shmempriv.c shmemcoll.c shmemget.c \
 	   shmemdebug.c 

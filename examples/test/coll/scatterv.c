@@ -13,7 +13,7 @@
 
  */
 
-int SetData( sendbuf, recvbuf, nx, ny, myrow, mycol, nrow, ncol )
+void SetData( sendbuf, recvbuf, nx, ny, myrow, mycol, nrow, ncol )
 double *sendbuf, *recvbuf;
 int    nx, ny, myrow, mycol, nrow, ncol;
 {

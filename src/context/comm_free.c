@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_free.c,v 1.39 1995/06/21 03:04:42 gropp Exp $
+ *  $Id: comm_free.c,v 1.40 1995/12/21 22:03:08 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -17,6 +17,7 @@ MPI_Comm_free - Marks the communicator object for deallocation
 Input Parameter:
 . comm - communicator to be destroyed (handle) 
 
+.N fortran
 @*/
 int MPI_Comm_free ( commp )
 MPI_Comm *commp;

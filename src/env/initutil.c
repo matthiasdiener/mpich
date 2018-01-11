@@ -1,5 +1,5 @@
 /*
- *  $Id: initutil.c,v 1.1 1995/09/27 14:42:03 gropp Exp $
+ *  $Id: initutil.c,v 1.3 1996/01/19 16:21:30 lusk Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: initutil.c,v 1.1 1995/09/27 14:42:03 gropp Exp $";
+static char vcid[] = "$Id: initutil.c,v 1.3 1996/01/19 16:21:30 lusk Exp $";
 #endif /* lint */
 
 /* 
@@ -23,6 +23,16 @@ static char vcid[] = "$Id: initutil.c,v 1.1 1995/09/27 14:42:03 gropp Exp $";
 
 /* #define DEBUG(a) {a}  */
 #define DEBUG(a)
+
+#if defined(POINTER_64_BITS)
+extern void *MPIR_ToPointer();
+extern int MPIR_FromPointer();
+extern void MPIR_RmPointer();
+#else
+#define MPIR_ToPointer(a) a
+#define MPIR_FromPointer(a) (int)a
+#define MPIR_RmPointer(a) 
+#endif
 
 #ifdef FORTRANCAPS
 #define mpir_init_fdtes_ MPIR_INIT_FDTES
@@ -68,29 +78,39 @@ void *MPIR_topo_els;/* sbcnst topology elements */
 MPIR_QHDR MPIR_posted_recvs;
 MPIR_QHDR MPIR_unexpected_recvs;
 
-/* Static space for datatypes */
+/* Predefined datatypes are mapped into an array; this allows the datatypes
+   themselves to be fixed integers (possibly encoding their length) */
+MPI_Datatype MPIR_datatypes[MPIR_MAX_DATATYPE_ARRAY];
+
+/* Static space for predefined datatypes */
 struct MPIR_DATATYPE MPIR_I_CHAR, MPIR_I_SHORT, MPIR_I_INT, MPIR_I_LONG,
                             MPIR_I_UCHAR, MPIR_I_USHORT, MPIR_I_UINT, 
                             MPIR_I_ULONG, MPIR_I_FLOAT, MPIR_I_DOUBLE, 
-                            MPIR_I_LONG_DOUBLE, MPIR_I_LONG_DOUBLE_INT,
-                            MPIR_I_BYTE, MPIR_I_PACKED, MPIR_I_UB, MPIR_I_LB,
-                            MPIR_I_LONG_LONG_INT, MPIR_I_2INTEGER, 
+                            MPIR_I_LONG_DOUBLE, MPIR_I_LONG_LONG_INT, 
+                            MPIR_I_BYTE;
+/* Derived and special types */
+struct MPIR_DATATYPE MPIR_I_PACKED, MPIR_I_LONG_DOUBLE_INT,
+                            MPIR_I_UB, MPIR_I_LB,
+                            MPIR_I_2INTEGER, 
                             MPIR_I_FLOAT_INT, MPIR_I_DOUBLE_INT, 
                             MPIR_I_LONG_INT, MPIR_I_SHORT_INT, MPIR_I_2INT,
-                            MPIR_I_REAL, MPIR_I_DOUBLE_PRECISION,
+                            MPIR_I_REAL, MPIR_I_DOUBLE_PRECISION, 
                             MPIR_I_COMPLEX, MPIR_I_DCOMPLEX, 
-                            MPIR_I_LONG_DOUBLE, MPIR_I_LONG_LONG_INT, 
+                            MPIR_I_LONG_DOUBLE_INT, 
                             MPIR_I_LOGICAL;
 
 /* Global pre-assigned datatypes */
-MPI_Datatype MPI_LONG_DOUBLE;
-MPI_Datatype MPI_LONG_LONG_INT;
 
 MPI_Datatype MPIR_Init_basic_datatype( );
 void MPIR_Setup_datatype( );
+void MPIR_Setup_base_datatype( );
 void MPIR_Setup_complex_datatype( );
 
-/* C Datatypes for MINLOC and MAXLOC functions */
+/* C Datatypes for MINLOC and MAXLOC functions. 
+   These allow us to construct the structures to match the compiler that
+   is used to build MPICH, and, if the user uses the recommended compile
+   scripts or makefiles, they will match the compiler that they use.
+ */
 typedef struct {
   float  var;
   int    loc;
@@ -115,7 +135,6 @@ typedef struct {
 } MPI_SHORT_INT_struct;
 MPI_SHORT_INT_struct MPI_SHORT_INT_var;
 
-MPI_Datatype MPI_LONG_DOUBLE_INT;
 #if defined(HAVE_LONG_DOUBLE)
 typedef struct {
   long double   var;
@@ -148,9 +167,11 @@ MPI_Group MPI_GROUP_EMPTY = 0;
 /* Global MPIR process id (from device) */
 int MPIR_tid;
 
-/* Predefined combination functions */
-MPI_Op MPI_MAX, MPI_MIN, MPI_SUM, MPI_PROD, MPI_LAND, MPI_BAND, 
-               MPI_LOR, MPI_BOR, MPI_LXOR, MPI_BXOR, MPI_MAXLOC, MPI_MINLOC;
+void MPIR_Op_setup( );
+/* static space for predefined combination functions */
+struct MPIR_OP MPIR_I_MAX, MPIR_I_MIN, MPIR_I_SUM, MPIR_I_PROD, 
+              MPIR_I_LAND, MPIR_I_BAND, MPIR_I_LOR, MPIR_I_BOR, MPIR_I_LXOR, 
+              MPIR_I_BXOR, MPIR_I_MINLOC, MPIR_I_MAXLOC;
 
 /* Permanent attributes */
 int MPI_TAG_UB, MPI_HOST, MPI_IO, MPI_WTIME_IS_GLOBAL;
@@ -244,6 +265,7 @@ char ***argv;
     MPI_Aint       disp[3];
     int            blln[3];
     void           *ADIctx;
+    int            i;
 
     if (MPIR_Has_been_initialized) 
     return 
@@ -271,7 +293,13 @@ char ***argv;
     /* set up pre-defined data types */
     DEBUG(printf("[%d] About to create datatypes\n", MPIR_tid);)
 
-    MPIR_Setup_datatype( MPI_INT, MPIR_INT, sizeof(int) );
+    /* Setup the array of predefined datatypes.
+       Currently, this will include only the basic language types
+     */
+    for (i=0; i<MPIR_MAX_DATATYPE_ARRAY; i++) {
+	MPIR_datatypes[i] = 0;
+	}
+    MPIR_Setup_base_datatype( MPI_INT, &MPIR_I_INT, MPIR_INT, sizeof(int) );
 
     /* 
        Fortran requires that integers be the same size as 
@@ -298,7 +326,8 @@ char ***argv;
 	MPI_INTEGER          = MPIR_Init_basic_datatype( MPIR_FORT_INT, 
 							 MPIR_FSIZE_R );
 	}
-    MPIR_Setup_datatype( MPI_DOUBLE, MPIR_DOUBLE, sizeof(double) );
+    MPIR_Setup_base_datatype( MPI_DOUBLE, &MPIR_I_DOUBLE, 
+			      MPIR_DOUBLE, sizeof(double) );
 #if !defined(MPID_NO_FORTRAN)
     /* 
        Check for consistent definition of ints in the interfaces.
@@ -311,7 +340,8 @@ char ***argv;
 	}
 #endif
     MPIR_Setup_datatype( &MPIR_I_LOGICAL, MPIR_LOGICAL, MPIR_FSIZE_R );
-    MPIR_Setup_datatype( MPI_FLOAT, MPIR_FLOAT, sizeof(float) );
+    MPIR_Setup_base_datatype( MPI_FLOAT, &MPIR_I_FLOAT, 
+			      MPIR_FLOAT, sizeof(float) );
     /* Hunt for Fortran real size */
     if (sizeof(float) == MPIR_FSIZE_R) {
 	MPI_REAL		     = MPIR_Init_basic_datatype( MPIR_FLOAT, 
@@ -386,15 +416,22 @@ char ***argv;
 	MPIR_Type_permanent ( MPIR_2double_dte );
 	}
 
-    MPIR_Setup_datatype( MPI_LONG, MPIR_LONG, sizeof(long) );
-    MPIR_Setup_datatype( MPI_SHORT, MPIR_SHORT, sizeof(short) );
-    MPIR_Setup_datatype( MPI_CHAR, MPIR_CHAR, sizeof(char) );
-    MPIR_Setup_datatype( MPI_BYTE, MPIR_BYTE, sizeof(char) );
-    MPIR_Setup_datatype( MPI_UNSIGNED_CHAR, MPIR_UCHAR, sizeof(char) );
-    MPIR_Setup_datatype( MPI_UNSIGNED_SHORT, MPIR_USHORT, sizeof(short) );
-    MPIR_Setup_datatype( MPI_UNSIGNED_LONG, MPIR_ULONG, 
-			 sizeof(unsigned long) );
-    MPIR_Setup_datatype( MPI_UNSIGNED, MPIR_UINT, sizeof(unsigned int) );
+    MPIR_Setup_base_datatype( MPI_LONG, &MPIR_I_LONG, 
+			      MPIR_LONG, sizeof(long) );
+    MPIR_Setup_base_datatype( MPI_SHORT, &MPIR_I_SHORT, 
+			      MPIR_SHORT, sizeof(short) );
+    MPIR_Setup_base_datatype( MPI_CHAR, &MPIR_I_CHAR, 
+			      MPIR_CHAR, sizeof(char) );
+    MPIR_Setup_base_datatype( MPI_BYTE, &MPIR_I_BYTE, 
+			      MPIR_BYTE, sizeof(char) );
+    MPIR_Setup_base_datatype( MPI_UNSIGNED_CHAR, &MPIR_I_UCHAR, 
+			      MPIR_UCHAR, sizeof(char) );
+    MPIR_Setup_base_datatype( MPI_UNSIGNED_SHORT, &MPIR_I_USHORT, 
+			      MPIR_USHORT, sizeof(short) );
+    MPIR_Setup_base_datatype( MPI_UNSIGNED_LONG, &MPIR_I_ULONG, 
+			      MPIR_ULONG, sizeof(unsigned long) );
+    MPIR_Setup_base_datatype( MPI_UNSIGNED, &MPIR_I_UINT, 
+			      MPIR_UINT, sizeof(unsigned int) );
     MPIR_Setup_datatype( MPI_PACKED, MPIR_PACKED, 1 );
     MPIR_Setup_datatype( MPI_UB, MPIR_UB, 0 );
     MPI_UB->align	     = 1;
@@ -408,11 +445,11 @@ char ***argv;
 
 
 #if defined(HAVE_LONG_DOUBLE)
-    MPI_LONG_DOUBLE	= MPIR_Init_basic_datatype( MPIR_LONGDOUBLE, 
-						    sizeof ( long double ) );
+    MPIR_Setup_base_datatype( MPI_LONG_DOUBLE, &MPIR_I_LONG_DOUBLE, 
+			      MPIR_LONGDOUBLE, sizeof(long double) );
 #else
-    /* Unsupported are null */
-    MPI_LONG_DOUBLE = 0;
+    MPIR_Setup_base_datatype( MPI_LONG_DOUBLE, &MPIR_I_LONG_DOUBLE, 
+			      MPIR_LONGDOUBLE, 2*sizeof(double) );
 #endif
 
     /* Initialize C and FORTRAN types for MINLOC and MAXLOC */
@@ -477,19 +514,19 @@ char ***argv;
     disp[1] = (char *)&MPI_LONG_DOUBLE_INT_var.loc - 
       (char *)&MPI_LONG_DOUBLE_INT_var;
     disp[2] = sizeof(MPI_LONG_DOUBLE_INT_struct);
-    MPI_Type_struct ( 3, blln, disp, type, &MPI_LONG_DOUBLE_INT );
-    MPIR_Type_permanent ( MPI_LONG_DOUBLE_INT );
-    MPI_Type_commit ( &MPI_LONG_DOUBLE_INT );
+    MPI_Type_struct ( 3, blln, disp, type, &temptype );
+    MPIR_Setup_complex_datatype( temptype, MPI_LONG_DOUBLE_INT );
 #else
-    MPI_LONG_DOUBLE_INT = 0;
+    /* use just double if long double not available */
+    memcpy( MPI_LONG_DOUBLE_INT, MPI_DOUBLE_INT, sizeof(struct MPIR_DATATYPE));
 #endif
 
 #if defined(HAVE_LONG_LONG_INT)
-    MPI_LONG_LONG_INT	= MPIR_Init_basic_datatype( MPIR_LONGLONGINT, 
-						    sizeof ( long long int ) );
+    MPIR_Setup_base_datatype( MPI_LONG_LONG_INT, &MPIR_I_LONG_LONG_INT,
+			      MPIR_LONGLONGINT, sizeof(long long int) );
 #else
-    /* Unsupported are null */
-    MPI_LONG_LONG_INT = 0;
+    MPIR_Setup_base_datatype( MPI_LONG_LONG_INT, &MPIR_I_LONG_LONG_INT,
+			      MPIR_LONGLONGINT, 2*sizeof(long) );
 #endif
 
     /* Set the values of the Fortran versions */
@@ -592,8 +629,14 @@ char ***argv;
     MPID_Mysize( ADIctx, &size );
     MPID_Myrank( ADIctx, &MPIR_tid );
     MPI_COMM_WORLD->group	   = MPIR_CreateGroup( size );
+#if defined(MPID_DEVICE_SETS_LRANKS)
+    MPID_Set_lranks ( MPI_COMM_WORLD->group );
+#else
     MPIR_SetToIdentity( MPI_COMM_WORLD->group );
+#endif
     MPIR_Group_dup ( MPI_COMM_WORLD->group, &(MPI_COMM_WORLD->local_group) );
+    MPID_Comm_init( ADIctx, (MPI_Comm)0, MPI_COMM_WORLD );
+
     MPI_COMM_WORLD->local_rank	   = MPI_COMM_WORLD->local_group->local_rank;
     MPI_COMM_WORLD->lrank_to_grank = MPI_COMM_WORLD->group->lrank_to_grank;
     MPI_COMM_WORLD->np		   = MPI_COMM_WORLD->group->np;
@@ -685,6 +728,7 @@ char ***argv;
     MPI_COMM_SELF->group->local_rank	    = 0;
     MPI_COMM_SELF->group->lrank_to_grank[0] = MPIR_tid;
     MPIR_Group_dup ( MPI_COMM_SELF->group, &(MPI_COMM_SELF->local_group) );
+    MPID_Comm_init( ADIctx, (MPI_Comm)0, MPI_COMM_SELF );
     MPI_COMM_SELF->local_rank		    = 
 	MPI_COMM_SELF->local_group->local_rank;
     MPI_COMM_SELF->lrank_to_grank	    = 
@@ -702,35 +746,22 @@ char ***argv;
 
     /* Predefined combination functions */
     DEBUG(printf("[%d] About to create combination functions\n", MPIR_tid);)
-    MPI_Op_create( MPIR_MAXF,   1, &MPI_MAX );
-	MPI_MAX->permanent = 1;
-    MPI_Op_create( MPIR_MINF,   1, &MPI_MIN );
-	MPI_MIN->permanent = 1;
-    MPI_Op_create( MPIR_SUM,    1, &MPI_SUM );
-	MPI_SUM->permanent = 1;
-    MPI_Op_create( MPIR_PROD,   1, &MPI_PROD );
-	MPI_PROD->permanent = 1;
-    MPI_Op_create( MPIR_LAND,   1, &MPI_LAND );
-	MPI_LAND->permanent = 1;
-    MPI_Op_create( MPIR_BAND,   1, &MPI_BAND );
-	MPI_BAND->permanent = 1;
-    MPI_Op_create( MPIR_LOR,    1, &MPI_LOR );
-	MPI_LOR->permanent = 1;
-    MPI_Op_create( MPIR_BOR,    1, &MPI_BOR );
-	MPI_BOR->permanent = 1;
-    MPI_Op_create( MPIR_LXOR,   1, &MPI_LXOR );
-	MPI_LXOR->permanent = 1;
-    MPI_Op_create( MPIR_BXOR,   1, &MPI_BXOR );
-	MPI_BXOR->permanent = 1;
-    MPI_Op_create( MPIR_MAXLOC, 1, &MPI_MAXLOC );
-	MPI_MAXLOC->permanent = 1;
-    MPI_Op_create( MPIR_MINLOC, 1, &MPI_MINLOC );
-	MPI_MINLOC->permanent = 1;
+
+    MPIR_Op_setup( MPIR_MAXF,   1, 1, MPI_MAX );
+    MPIR_Op_setup( MPIR_MINF,   1, 1, MPI_MIN );
+    MPIR_Op_setup( MPIR_SUM,    1, 1, MPI_SUM );
+    MPIR_Op_setup( MPIR_PROD,   1, 1, MPI_PROD );
+    MPIR_Op_setup( MPIR_LAND,   1, 1, MPI_LAND );
+    MPIR_Op_setup( MPIR_BAND,   1, 1, MPI_BAND );
+    MPIR_Op_setup( MPIR_LOR,    1, 1, MPI_LOR );
+    MPIR_Op_setup( MPIR_BOR,    1, 1, MPI_BOR );
+    MPIR_Op_setup( MPIR_LXOR,   1, 1, MPI_LXOR );
+    MPIR_Op_setup( MPIR_BXOR,   1, 1, MPI_BXOR );
+    MPIR_Op_setup( MPIR_MAXLOC, 1, 1, MPI_MAXLOC );
+    MPIR_Op_setup( MPIR_MINLOC, 1, 1, MPI_MINLOC );
 #ifndef MPID_NO_FORTRAN
     DEBUG(printf("[%d] About to setup Fortran functions\n", MPIR_tid);)
-#ifdef POINTER_64_BITS
-	{ extern int MPIR_FromPointer();
-
+	{ 
 	int i_max = MPIR_FromPointer(MPI_MAX),
 	    i_min = MPIR_FromPointer(MPI_MIN),
 	    i_sum = MPIR_FromPointer(MPI_SUM),
@@ -750,13 +781,6 @@ char ***argv;
                     &i_lor, &i_bor, &i_lxor, &i_bxor, 
                     &i_maxloc, &i_minloc, &i_err_fatal, &i_err_ret );
 	}
-#else
-    mpir_init_fop_( &MPI_MAX, &MPI_MIN, &MPI_SUM, &MPI_PROD, 
-                    &MPI_LAND, &MPI_BAND,
-                    &MPI_LOR, &MPI_BOR, &MPI_LXOR, &MPI_BXOR, 
-                    &MPI_MAXLOC, &MPI_MINLOC, &MPI_ERRORS_ARE_FATAL,
-		    &MPI_ERRORS_RETURN );
-#endif
 #endif
 
 #ifndef MPID_NO_FORTRAN
@@ -910,6 +934,21 @@ int           size;
   new->ref_count      = 1;
 }
 
+/* This routine sets up a datatype that is specified as a small integer (val)
+   and has a local reference
+ */
+static int base_size_miss = 0;
+void MPIR_Setup_base_datatype( val, lval, type, size )
+MPI_Datatype  val, lval;
+MPIR_NODETYPE type;
+int           size;
+{
+MPIR_Setup_datatype( lval, type, size );
+/* Debugging test for sizes correct if encoded size implemented */
+if (size != MPIR_DATATYPE_SIZE(val)) base_size_miss++;
+MPIR_datatypes[(MPI_Aint)val] = lval;
+}
+
 /* This takes a datatype created with the datatype routines, copies the
    data into the "newtype" structure, and frees the old datatype storage 
  */
@@ -944,6 +983,21 @@ int           size;
 #endif
   MPIR_Setup_datatype( new, type, size );
   return new;
+}
+
+/* 
+   This function is used to initialize the MPI_Op's; it can be used
+   for the predefined operations as well 
+ */
+void MPIR_Op_setup( function, commute, is_perm, newop )
+MPI_Op            newop;
+MPI_User_function *function;
+int               commute, is_perm;
+{
+  MPIR_SET_COOKIE(newop,MPIR_OP_COOKIE)
+  newop->commute   = commute;
+  newop->op        = function;
+  newop->permanent = is_perm;
 }
 
 #ifndef MPID_NO_FORTRAN

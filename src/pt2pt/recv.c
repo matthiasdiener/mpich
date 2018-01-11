@@ -1,5 +1,5 @@
 /*
- *  $Id: recv.c,v 1.32 1995/09/18 15:29:37 gropp Exp $
+ *  $Id: recv.c,v 1.35 1996/01/11 18:30:42 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: recv.c,v 1.32 1995/09/18 15:29:37 gropp Exp $";
+static char vcid[] = "$Id: recv.c,v 1.35 1996/01/11 18:30:42 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -27,8 +27,9 @@ Input Parameters:
 
 Notes:
 The 'count' argument indicates the maximum length of a message; the actual 
-number can be determined with MPI_Get_count.  
+number can be determined with 'MPI_Get_count'.  
 
+.N fortran
 @*/
 int MPI_Recv( buf, count, datatype, source, tag, comm, status )
 void             *buf;
@@ -65,7 +66,9 @@ MPI_Status       *status;
 #endif
 	rhandle.tag	   = tag;
 	rhandle.contextid  = comm->recv_context;
+	rhandle.errval     = MPI_SUCCESS;
 	rhandle.comm	   = comm;
+	MPIR_GET_REAL_DATATYPE(datatype)
 	rhandle.datatype   = datatype;
 	datatype->ref_count ++;
 	rhandle.bufadd	   = buf;
@@ -82,7 +85,8 @@ MPI_Status       *status;
 	if (mpi_errno) 
 	    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_RECV" );
 
-	mpi_errno = MPID_Blocking_recv( rhandle.comm->ADIctx, &rhandle );
+	MPIR_CALL(MPID_Blocking_recv( rhandle.comm->ADIctx, &rhandle ),
+		   comm, "Error in MPI_RECV");
 
 	status->count	       = rhandle.totallen;
 	status->MPI_SOURCE     = rhandle.source;
@@ -90,9 +94,11 @@ MPI_Status       *status;
 
 #ifdef MPID_RETURN_PACKED
 	/* Count may change if size-changing conversion */
-	if (!mpi_errno && rhandle.bufpos) 
-	    mpi_errno = MPIR_UnPackMessage( buf, count, datatype, 
-				        source, request, &status->count );
+	if (!mpi_errno && rhandle.bufpos) {
+	    MPIR_CALL(MPIR_UnPackMessage( buf, count, datatype, 
+				        source, request, &status->count ),
+	    comm, "Error in MPI_RECV");
+	    }
 #endif
 	rhandle.datatype->ref_count--;
     }

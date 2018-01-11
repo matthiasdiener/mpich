@@ -1,12 +1,12 @@
 /*
- *  $Id: scan.c,v 1.29 1995/06/21 03:11:38 gropp Exp $
+ *  $Id: scan.c,v 1.30 1995/12/21 22:17:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: scan.c,v 1.29 1995/06/21 03:11:38 gropp Exp $";
+static char vcid[] = "$Id: scan.c,v 1.30 1995/12/21 22:17:29 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -27,6 +27,8 @@ Input Parameters:
 
 Output Parameter:
 . recvbuf - starting address of receive buffer (choice) 
+
+.N fortran
 @*/
 int MPI_Scan ( sendbuf, recvbuf, count, datatype, op, comm )
 void             *sendbuf;

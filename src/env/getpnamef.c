@@ -1,15 +1,18 @@
 /*
- *  $Id: getpnamef.c,v 1.10 1995/05/09 18:57:53 gropp Exp $
+ *  $Id: getpnamef.c,v 1.12 1996/01/29 17:52:02 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: getpnamef.c,v 1.10 1995/05/09 18:57:53 gropp Exp $";
+static char vcid[] = "$Id: getpnamef.c,v 1.12 1996/01/29 17:52:02 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
+#ifdef _CRAY
+#include <fortran.h>
+#endif
 
 #ifdef POINTER_64_BITS
 extern void *MPIR_ToPointer();
@@ -45,6 +48,20 @@ extern void MPIR_RmPointer();
   MPI_GET_PROCESSOR_NAME - Gets the name of the processor for Fortran
 
 */
+#ifdef _CRAY
+void mpi_get_processor_name_( name_fcd, len, ierr )
+int *len, *ierr;
+_fcd name_fcd;
+{
+char *name;
+name = _fcdtocp(name_fcd);
+*len = _fcdlen(name_fcd);
+MPID_NODE_NAME( MPI_COMM_WORLD->ADIctx, name, *len );
+*len  = strlen( name );
+*ierr = MPI_SUCCESS;
+}
+
+#else
 void mpi_get_processor_name_( name, len, ierr, d )
 int *len, *ierr, d;
 char *name;
@@ -53,3 +70,4 @@ MPID_NODE_NAME( MPI_COMM_WORLD->ADIctx, name, d );
 *len  = strlen( name );
 *ierr = MPI_SUCCESS;
 }
+#endif

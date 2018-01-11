@@ -36,7 +36,7 @@ MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
 LIBS = $(LIB_PATH) $(LIB_LIST)
 FLIBS = $(FLIB_PATH) $(LIB_LIST)
 LIBSPP = $(MPIPPLIB) $(LIBS)
-EXECS = cart cart2
+EXECS = cart cart2 graphtest
 
 default: $(EXECS)
 
@@ -56,6 +56,9 @@ cart: cart.o test.o $(MPILIB)
 
 cart2: cart2.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o cart2 cart2.o test.o $(LIBS)
+
+graphtest: graphtest.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o graphtest graphtest.o $(LIBS)
 
 cartf: mpif.h cartf.o $(MPILIB)
 	$(FLINKER) $(OPTFLAGS) -o cartf cartf.o $(FLIBS)

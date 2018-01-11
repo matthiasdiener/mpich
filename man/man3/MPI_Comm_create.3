@@ -1,4 +1,4 @@
-.TH MPI_Comm_create 3 "5/9/1995" " " "MPI"
+.TH MPI_Comm_create 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Comm_create \- Creates a new communicator
 
@@ -11,7 +11,9 @@ MPI_Comm_create \- Creates a new communicator
 .PD 0
 .TP
 .B group 
-- Group, which is a subset of the group of comm  (handle) 
+- group, which is a subset of the group of 
+.I comm
+(handle) 
 .PD 1
 
 .SH OUTPUT PARAMETER
@@ -21,6 +23,29 @@ MPI_Comm_create \- Creates a new communicator
 - new communicator (handle) 
 .PD 1
 
+
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

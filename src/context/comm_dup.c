@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_dup.c,v 1.28 1995/06/21 03:04:29 gropp Exp $
+ *  $Id: comm_dup.c,v 1.29 1995/12/21 22:03:02 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -16,9 +16,11 @@ MPI_Comm_dup - Duplicates an existing communicator with all its cached
 
 Input Parameter:
 . comm - communicator (handle) 
-Output Parameter:
-. newcomm - copy of comm (handle) 
 
+Output Parameter:
+. newcomm - copy of 'comm' (handle) 
+
+.N fortran
 @*/
 int MPI_Comm_dup ( comm, comm_out )
 MPI_Comm comm, *comm_out;

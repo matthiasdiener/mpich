@@ -1,12 +1,12 @@
 /*
- *  $Id: type_contig.c,v 1.17 1995/07/25 02:59:43 gropp Exp $
+ *  $Id: type_contig.c,v 1.19 1996/01/03 19:03:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_contig.c,v 1.17 1995/07/25 02:59:43 gropp Exp $";
+static char vcid[] = "$Id: type_contig.c,v 1.19 1996/01/03 19:03:16 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -23,6 +23,7 @@ Input Parameters:
 Output Parameter:
 . newtype - new datatype (handle) 
 
+.N fortran
 @*/
 int MPI_Type_contiguous( count, old_type, newtype )
 int          count;
@@ -33,13 +34,14 @@ MPI_Datatype *newtype;
   int mpi_errno = MPI_SUCCESS;
 
   /* Check for bad arguments */
+  MPIR_GET_REAL_DATATYPE(old_type)
   if ( MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,old_type) ||
    ( (count   <  0)                  && (mpi_errno = MPI_ERR_COUNT) ) ||
    ( (old_type->dte_type == MPIR_UB) && (mpi_errno = MPI_ERR_TYPE) )  ||
    ( (old_type->dte_type == MPIR_LB) && (mpi_errno = MPI_ERR_TYPE) ) )
 	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno,
 					  "Error in MPI_TYPE_CONTIGUOUS" );
-	
+
   /* Are we making a null datatype? */
   if (count == 0) {
       /* (*newtype) = MPI_DATATYPE_NULL; */
@@ -113,8 +115,10 @@ MPI_Datatype *newtype;
   dteptr->size        = (dteptr->count * dteptr->old_type->size);
   dteptr->real_lb     = dteptr->old_type->real_lb;
   /* The value for real_ub here is an overestimate, but getting the
-     "best" value is a bit complicated */
+     "best" value is a bit complicated.  Note that for count == 1,
+      this formula gives old_type->real_ub, independent of real_lb. */
   dteptr->real_ub     = dteptr->count * 
-      (dteptr->old_type->real_ub - dteptr->old_type->real_lb);
+      (dteptr->old_type->real_ub - dteptr->old_type->real_lb) + 
+	  dteptr->old_type->real_lb;
   return (mpi_errno);
 }

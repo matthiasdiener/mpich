@@ -39,9 +39,9 @@ default: $(ICCLIB) ../../lib/$(ARCH)/$(COMM)/libmpi.a
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
 default_all: $(MPI_OBJECTS) $(ICCLIB)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $?
+	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $(MPI_OBJECTS)
 profile_all: $(MPI_OBJECTS) $(ICCLIB)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libpmpi.a $?
+	$(AR) ../../lib/$(ARCH)/$(COMM)/libpmpi.a $(MPI_OBJECTS)
 	@ if test -d iCClib; \
 	then cd iCClib ;\
 		$(AR) ../../../lib/$(ARCH)/$(COMM)/libpmpi.a *.o ; \
@@ -59,7 +59,7 @@ clean:
 
 iCClib:
 	-if test -n "@ICCLIB@" ; then \
-		if test ! -d iCClib ; then 
+		if test ! -d iCClib ; then \
 		mkdir iCClib ; fi ; \
 		cd iCClib ;\
 		ar x /usr/lib/libjmc.a ;\

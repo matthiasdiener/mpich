@@ -1,5 +1,5 @@
 /*
- *  $Id: group_rank.c,v 1.10 1994/12/15 16:33:47 gropp Exp $
+ *  $Id: group_rank.c,v 1.11 1995/12/21 22:07:30 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -15,9 +15,10 @@ Input Parameters:
 . group - group (handle) 
 
 Output Parameter:
-. rank - rank of the calling process in group, or   MPI_UNDEFINED  if the 
+. rank - rank of the calling process in group, or   'MPI_UNDEFINED'  if the 
 process is not a member (integer) 
 
+.N fortran
 @*/
 int MPI_Group_rank ( group, rank )
 MPI_Group group;

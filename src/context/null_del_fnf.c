@@ -35,10 +35,10 @@ extern void MPIR_RmPointer();
 #endif
 
 void mpi_null_delete_fn_ ( comm, keyval, attr, extra_state )
-MPI_Comm  *comm;
+MPI_Comm  comm;
 int       *keyval;
 void      *attr;
 void      *extra_state;
 {
-MPIR_null_delete_fn(comm,keyval,attr,extra_state);
+MPIR_null_delete_fn(comm,*keyval,attr,extra_state);
 }

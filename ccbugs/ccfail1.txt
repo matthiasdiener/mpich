@@ -32,6 +32,7 @@
     * To determine your version, try the command                     *
     * lslpp -p 'xlccmp.*'                                            *
     * (The exact format of this command depends on what version of   *
-    * AIX you are running; this worked for us.)                      *
+    * AIX you are running; this worked for us.  If this fails, try   *
+    * lslpp -p 'xlC*.*')                                             *
     *                                                                *
     ******************************************************************

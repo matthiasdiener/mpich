@@ -6,14 +6,14 @@
 
 
 /*
- *  $Id: chsend.c,v 1.36 1995/09/18 21:12:01 gropp Exp gropp $
+ *  $Id: chsend.c,v 1.40 1996/01/08 19:51:50 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chsend.c,v 1.36 1995/09/18 21:12:01 gropp Exp gropp $";
+static char vcid[] = "$Id: chsend.c,v 1.40 1996/01/08 19:51:50 gropp Exp $";
 #endif
 
 #include "mpid.h"
@@ -77,7 +77,10 @@ int  len, tag, context_id, lrank_sender, dest, msgrep;
 {
 MPID_PKT_SEND_DECL(MPID_PKT_SHORT_T,pkt);
 
-MPID_PKT_SEND_ALLOC(MPID_PKT_SHORT_T,pkt);
+MPID_PKT_SEND_ALLOC(MPID_PKT_SHORT_T,pkt,0);
+/* If pkt is dynamically allocated, we need to check it here */
+MPID_PKT_SEND_ALLOC_TEST(pkt,return MPI_ERR_EXHAUSTED)
+
 /* These references are ordered to match the order they appear in the 
    structure */
 MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_SHORT);
@@ -120,7 +123,12 @@ int len;
 MPID_PKT_SEND_DECL(MPID_PKT_SHORT_T,pkt);
 int              dest;
 
-MPID_PKT_SEND_ALLOC(MPID_PKT_SHORT_T,pkt);
+MPID_PKT_SEND_ALLOC(MPID_PKT_SHORT_T,pkt,0);
+/* We depend on getting a packet */
+/* 			dmpi_send_handle->dev_shandle.is_non_blocking); */
+/* If pkt is dynamically allocated, we need to check it here */
+MPID_PKT_SEND_ALLOC_TEST(pkt,return MPI_ERR_EXHAUSTED)
+
 /* These references are ordered to match the order they appear in the 
    structure */
 dest             = dmpi_send_handle->dest;
@@ -175,7 +183,12 @@ int              pkt_len;
 MPID_PKT_SEND_DECL(MPID_PKT_LONG_T,pkt);
 int              dest;
 
-MPID_PKT_SEND_ALLOC(MPID_PKT_LONG_T,pkt);
+MPID_PKT_SEND_ALLOC(MPID_PKT_LONG_T,pkt,0);
+/* We depend on getting a packet */
+/* 			dmpi_send_handle->dev_shandle.is_non_blocking); */
+/* If pkt is dynamically allocated, we need to check it here */
+MPID_PKT_SEND_ALLOC_TEST(pkt,return MPI_ERR_EXHAUSTED)
+
 MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_LONG);
 pkt_len = sizeof(MPID_PKT_LONG_T); 
 MPID_PKT_SEND_SET(pkt,context_id,dmpi_send_handle->contextid);
@@ -241,7 +254,11 @@ int len;
 MPID_PKT_SEND_DECL(MPID_PKT_SHORT_SYNC_T,pkt);
 int                   dest;
 
-MPID_PKT_SEND_ALLOC(MPID_PKT_SHORT_SYNC_T,pkt);
+MPID_PKT_SEND_ALLOC(MPID_PKT_SHORT_SYNC_T,pkt,0);
+/* We depend on getting a packet */
+/* 			dmpi_send_handle->dev_shandle.is_non_blocking); */
+/* If pkt is dynamically allocated, we need to check it here */
+MPID_PKT_SEND_ALLOC_TEST(pkt,return MPI_ERR_EXHAUSTED)
 
 /* These references are ordered to match the order they appear in the 
    structure */
@@ -355,7 +372,7 @@ MPIR_SHANDLE *dmpi_send_handle;
 MPID_SHANDLE *mpid_send_handle;
 int len;
 {
-MPID_NX_post_send_long_rndv( dmpi_send_handle, mpid_send_handle, len );
+return MPID_NX_post_send_long_rndv( dmpi_send_handle, mpid_send_handle, len );
 }
                                            /*#NONGET_END#*/
 int MPID_NX_post_send_sync_short( dmpi_send_handle, mpid_send_handle, len ) 
@@ -363,7 +380,7 @@ MPIR_SHANDLE *dmpi_send_handle;
 MPID_SHANDLE *mpid_send_handle;
 int len;
 {
-MPID_NX_post_send_long_rndv( dmpi_send_handle, mpid_send_handle, len );
+return MPID_NX_post_send_long_rndv( dmpi_send_handle, mpid_send_handle, len );
 }
 #endif  /* else of non-rndv sync send */
 
@@ -586,20 +603,22 @@ return rc;
 int MPID_NX_Blocking_send( dmpi_send_handle )
 MPIR_SHANDLE *dmpi_send_handle;
 {
+int err = MPI_SUCCESS;
+
 DEBUG_PRINT_MSG("S Entering blocking send")
 #ifdef MPID_LIMITED_BUFFERS
 /* Force the use of non-blocking operations so that head-to-head operations
    can complete when there is an IRECV posted */
 dmpi_send_handle->dev_shandle.is_non_blocking = 1;
-MPID_NX_post_send( dmpi_send_handle );
-MPID_NX_complete_send( dmpi_send_handle );
+err = MPID_NX_post_send( dmpi_send_handle );
+if (!err) MPID_NX_complete_send( dmpi_send_handle );
 dmpi_send_handle->dev_shandle.is_non_blocking = 0;
 #else
-MPID_NX_post_send( dmpi_send_handle );
-MPID_NX_complete_send( dmpi_send_handle );
+err = MPID_NX_post_send( dmpi_send_handle );
+if (!err) MPID_NX_complete_send( dmpi_send_handle );
 #endif
 DEBUG_PRINT_MSG("S Exiting blocking send")
-return MPI_SUCCESS;
+return err;
 }
 
 /*#NONGET_START#*/
@@ -663,6 +682,8 @@ return MPI_SUCCESS;
 int MPID_NX_complete_send( dmpi_send_handle ) 
 MPIR_SHANDLE *dmpi_send_handle;
 {
+int err = MPI_SUCCESS;
+
 /* Check to see if we need to complete the send. */
 DEBUG_PRINT_MSG("S Entering complete send")
 
@@ -694,11 +715,28 @@ switch (dmpi_send_handle->completer) {
     default:
 	 fprintf( stdout, "[%d]* Unexpected send completion mode %d\n", 
 	          MPID_MyWorldRank, dmpi_send_handle->completer );
+	 MPID_NX_Print_Send_Handle( dmpi_send_handle );
+	 fprintf( stdout, "[%d]* dmpi_send_contents:\n\
+* dest	      = %d\n\
+* tag	      = %d\n\
+* contextid   = %d\n\
+* buflen      = %d\n\
+* count	      = %d\n\
+* totallen    = %d\n\
+* mode	      = %d\n\
+* lrank	      = %d\n\
+* recv_handle = %x\n", MPID_MyWorldRank, dmpi_send_handle->dest, 
+		 dmpi_send_handle->tag, dmpi_send_handle->contextid, 
+		 dmpi_send_handle->buflen, dmpi_send_handle->count,
+		 dmpi_send_handle->totallen, dmpi_send_handle->mode, 
+		 dmpi_send_handle->lrank, 
+		 dmpi_send_handle->dev_shandle.recv_handle );
+	 err = MPI_ERR_INTERN;
 	 break;
     }
 DEBUG_PRINT_MSG("S Exiting complete send")
 
-return MPI_SUCCESS;
+return err;
 }
 
 

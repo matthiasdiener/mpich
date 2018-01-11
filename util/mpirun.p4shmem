@@ -1,6 +1,6 @@
 #! /bin/sh
 if [ "$MPIR_HOME" = "" ] ; then 
-    MPIR_HOME=/home/MPI/mpich
+    MPIR_HOME=/home/gropp/mpich
 fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..

@@ -1,4 +1,4 @@
-.TH MPI_Reduce 3 "6/20/1995" " " "MPI"
+.TH MPI_Reduce 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Reduce \- Reduces values on all processes to a single value
 
@@ -39,12 +39,36 @@ MPI_Reduce \- Reduces values on all processes to a single value
 .TP
 .B recvbuf 
 - address of receive buffer (choice, 
-significant only at root) 
+significant only at 
+.I root
+) 
 .PD 1
 
 .SH ALGORITHM
 This implementation currently uses a simple tree algorithm.
 
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

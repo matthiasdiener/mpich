@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi++P.h,v 1.7 1995/08/03 13:58:48 gropp Exp $
+ *  $Id: mpi++P.h,v 1.8 1996/01/20 21:45:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -113,7 +113,7 @@ public:
   Extent ( MPI_Aint& extent ) {
 	return (MPI_Type_extent ( type, &extent ));
   }
-  Size ( MPI_Aint& size ) {
+  Size ( int & size ) {
 	return (MPI_Type_size ( type, &size ));
   }
   Lb ( MPI_Aint& lb ) {

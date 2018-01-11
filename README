@@ -2,7 +2,7 @@
 
 		      Portable MPI Model Implementation
 
-			Version 1.0.11 (September 29, 1995)
+			Version 1.0.12 (February 1, 1996)
 
 
 This is a joint-effort project between Argonne (Bill Gropp and Rusty Lusk) and
@@ -50,43 +50,40 @@ the following steps for installation and minimal testing:
   contain helpful information on diagnosing problems; please check there 
   before sending mail to mpi-bugs (see below on how to submit bug reports).
 
+			Changes since Version 1.0.11
 
-			Changes since Version 1.0.10
+1.  Collective routines have been improved, particularly Allgather and
+    Allgatherv.
 
-1.  Fixes for the installation process (now uses the program util/mpiinstall).
+2.  Many fixes to the handling of heterogeneous systems.  
 
-2.  Access to the global clock provided on IBM SP2.
+3.  The MPI Forum changed (!!) some of the bindings of the routines between
+    version 1.0 and 1.1 of the standard.  In particular, the definition of
+    the attribute copy and delete functions has been changed.  MPICH version
+    1.0.12 conforms to the 1.1 bindings.
 
-3.  mpirun now handles heterogeneous systems.
+4.  Fixed some bugs in the ch_shmem device, particularly in error handling.
 
-4.  A number of problems with MPI_Pack and MPI_Unpack have been fixed.
+5.  The test suite is more extensive.
 
-5.  Fixes for the CM-5.
+6.  Various and sundrey bugs have been fixed.
 
-6.  Some performance improvements to the ch_shmem device.
+                            Known Problems
 
-7.  A native NX version that works for all but synchronous sends is included
-    as -device=nx.
+    On Cray PVP (XMP,YMP,C90) and Cray T3D, some operations withh 
+    character data are not supported
+    from Fortran.  This causes  examples/test/pt2pt/structf to fail.
+    The 1.0.11 release contains code from Laurie Costella of CRAY that
+    should fix some of the problems.
 
-8.  mpicc and mpif77 have been improved.  
+    The Cray T3D device can lose messages if several processes write to
+    the same process at nearly the same time.
 
-9.  For workstation networks, the script 'tstmachines' provides a more 
-    comprehensive test.
-
-10. Many new comments in the installation and users guides.
-
-11. The ch_p4 device is more robust in the presence of network failures;
-    now it will terminate with an error message instead of hanging.
-
-                               Known problems
-
-    On Cray PVP (XMP,YMP,C90) and Cray T3D, character data is not supported
-    from Fortran.  This causes  examples/test/pt2pt/structf to fail; we
-    hope to have a fix in the next release.
+    MPI_Cancel is still not supported.
 
     Don't forget to check the on-line buglist at MPICH home page
     http://www.mcs.anl.gov/mpi/mpich/index.html 
-
+    
 What is here
 ============
 
@@ -105,13 +102,7 @@ mpich.tar.Z          - the implementation itself, sufficient to run on the
                        are the actual releases.
                        New releases are indicated by a change in the last 
                        number; the value when this readme was written
-                       was 10 (as in 1.0.10).
-
-For other systems, or to run on top of PVM 2.4 or 3.x, you also need:
-
-chameleon-1.2.tar.Z  - the chameleon system, necessary to build and run the
-                       versions of the implementation that run on top of PVM.
-                       This is in pub/pdetools.  
+                       was 12 (as in 1.0.12).
 
 You do not need anything else if you are using either the various MPP versions
 (Intel Paragon, TMC CM5, IBM SP2) or the integrated version of p4
@@ -177,9 +168,14 @@ For an SGI Challenge or Power Challenge, using shared-memory for messages, use
     configure -arch=sgi -device=ch_shmem
     make
 
+For an SGI Challenge or Power Challenge, using shared-memory for messages and
+sockets to other machines, use
+
+    configure -arch=sgi -device=ch_p4 -comm=shared
+
 For a Convex Exemplar, use
 
-    configure -arch=hpux -device=ch_spp
+    configure -arch=hpux -device=ch_shmem
     make
 
 For a Sun multiprocessor (Solaris), use
@@ -194,7 +190,7 @@ To build for nX on an ipsc/2 or ipsc/860, use
 
 To build for nX on a paragon, use
 
-    configure -arch=paragon -device=ch_nx
+    configure -arch=paragon -device=nx
     make
 
 To build for the Meiko CS-2, use
@@ -328,7 +324,7 @@ on. The current valid values for mr_machine include:
 
               chameleon (including chameleon/pvm, chameleon/p4, etc...)
               meiko     (the ch_meiko device on the meiko)
-              paragon   (the ch_nx device on a paragon not running NQS)
+              paragon   (the nx or ch_nx device on a paragon not running NQS)
               p4        (the ch_p4 device on a workstation cluster)
               sp1       (ch_eui on ANL's sp2)
 	      execer    (a custom script for starting ch_p4 programs
@@ -389,7 +385,7 @@ for details.  Running on parallel machines often requires a procgroup file
 containing "local 15" (for 16 = 15 - 1 processes).  The job also will need
 to be started with the appropriate method for a parallel job on that system.
 
-*** device=ch_nx: ***
+*** device=nx or device=ch_nx ***
 Just start the job like any Intel NX program
 
 *** device=ch_eui ***
@@ -496,7 +492,7 @@ use "COMM=pvm3"
 
 Please send problem reports to mpi-bugs@mcs.anl.gov.  Please include:
 
-     The version of MPICH (e.g., 1.0.10)
+     The version of MPICH (e.g., 1.0.12)
 
      The output of running your program with the -mpiversion argument
      (e.g., mpirun -np 1 a.out -mpiversion)

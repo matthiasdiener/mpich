@@ -1,5 +1,5 @@
 /*
- *  $Id: type_util.c,v 1.13 1995/09/18 15:36:54 gropp Exp $
+ *  $Id: type_util.c,v 1.14 1995/12/21 21:41:28 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -170,6 +170,7 @@ MPI_Aint *lb, *ub;
     *lb = dtype->real_lb;
     *ub = dtype->real_ub;
  */
+    MPIR_GET_REAL_DATATYPE(dtype)
     *lb = dtype->lb;
     *ub = dtype->ub;
 }

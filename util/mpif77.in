@@ -6,6 +6,7 @@ Show=eval
 allargs=
 compileargs=
 linkargs=
+linkobjs=
 gettinglinkarg=0
 HasDashC=0
 for arg in "$@" ; do
@@ -34,13 +35,25 @@ for arg in "$@" ; do
 	DoLink=1
 	;;
 	-mpilog)
-	MPILOG="-lfmpi -llmpi"
+	if [ -n "@MPE_LIBS@" ] ; then
+		MPILOG="-lfmpi -llmpi"
+	else
+	    echo "-mpilog requires the MPE libraries"
+	fi
 	;;
 	-mpitrace)
-	MPILOG="-lfmpi -ltmpi"
+	if [ -n "@MPE_LIBS@" ] ; then
+   	    MPILOG="-lfmpi -ltmpi"
+	else
+	    echo "-mpitrace requires the MPE libraries"
+	fi
 	;;
 	-mpianim)
-	MPILOG="-lfmpi -lampi @MPE_LIBS@ @X_LIB@"
+	if [ -n "@MPE_LIBS@" ] ; then
+	    MPILOG="-lfmpi -lampi @MPE_LIBS@ @X_LIB@"
+	else
+	    echo "-mpianim requires the MPE libraries"
+	fi
 	;;
 	-echo)
 	set -x
@@ -82,10 +95,10 @@ for arg in "$@" ; do
 	        DoCompile=1
 	        compileargs="$compileargs $arg"
 	        fname=`basename $arg .f`
-	        linkargs="$linkargs $fname.o"
+	        linkobjs="$linkobjs $fname.o"
 	    elif [ "$ext" = ".o" ] ; then
 	        DoLink=1
-	        linkargs="$linkargs $arg"
+	        linkobjs="$linkobjs $arg"
 	    else
 	        compileargs="$compileargs $arg"
 	        linkargs="$linkargs $arg"
@@ -119,9 +132,9 @@ if [ $DoCompile = 1 ] ; then
 fi
 if [ $DoLink = 1 ] ; then
     if [ -n "$MPILOG" ] ; then
-        $Show @FLINKER@ $linkargs @FLIB_PATH@ $MPILOG -lpmpi @LIB_LIST@
+        $Show @FLINKER@ $linkobjs @FLIB_PATH@ $MPILOG $linkargs -lpmpi @LIB_LIST@
     else
-        $Show @FLINKER@ $linkargs @FLIB_PATH@ @LIB_LIST@
+        $Show @FLINKER@ $linkobjs $linkargs @FLIB_PATH@ @LIB_LIST@
     fi
     status=$?
 fi

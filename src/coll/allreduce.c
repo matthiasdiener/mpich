@@ -1,12 +1,12 @@
 /*
- *  $Id: allreduce.c,v 1.18 1995/06/21 03:09:16 gropp Exp $
+ *  $Id: allreduce.c,v 1.19 1995/12/21 22:16:31 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: allreduce.c,v 1.18 1995/06/21 03:09:16 gropp Exp $";
+static char vcid[] = "$Id: allreduce.c,v 1.19 1995/12/21 22:16:31 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -26,6 +26,8 @@ Input Parameters:
 
 Output Parameter:
 . recvbuf - starting address of receive buffer (choice) 
+
+.N fortran
 @*/
 int MPI_Allreduce ( sendbuf, recvbuf, count, datatype, op, comm )
 void             *sendbuf;

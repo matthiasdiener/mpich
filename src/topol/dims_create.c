@@ -1,5 +1,5 @@
 /*
- *  $Id: dims_create.c,v 1.9 1995/07/25 02:44:35 gropp Exp $
+ *  $Id: dims_create.c,v 1.11 1996/01/03 19:06:24 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -700,9 +700,10 @@ Input Parameters:
 . ndims - number of cartesian dimensions (integer) 
 
 In/Out Parameter:   
-. dims - integer array of size  ndims specifying the number of nodes in each 
+. dims - integer array of size  'ndims' specifying the number of nodes in each 
 dimension  
 
+.N fortran
 @*/
 int MPI_Dims_create(nnodes, ndims, dims)
 int  nnodes;
@@ -715,7 +716,7 @@ int *dims;
 
   /* Check for wacky input values. */
   if ((nnodes <= 0) || (ndims <= 0))
-	return MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_BAD_ARGS,
+	return MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_ARG,
 			  "Invalid args to MPI_DIMS_CREATE");
 
   newNdims = 0;                        /* number of zero values in dims[] */

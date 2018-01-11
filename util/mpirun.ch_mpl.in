@@ -25,8 +25,16 @@ fi
 # MP_PULSE must be 0 to get performance (some problem with defaults
 # in GA code)
 # setenv MP_PULSE 0
+# The retry/retrycount tries every 15 seconds for 10 minutes to get some
+# nodes.
 # Note that if the executable is not on a file system mounted 
 # on a node, you may get a strange error message.
+if [ -z "$MP_RETRY" ] ; then
+    MP_RETRY=15
+fi
+if [ -z "$MP_RETRYCOUNT" ] ; then
+    MP_RETRYCOUNT=40
+fi
 if [ $just_testing = 1 ] ; then
     echo "(sh/ksh style:)"
     echo MP_EUILIB=us
@@ -41,6 +49,10 @@ if [ $just_testing = 1 ] ; then
     echo export MP_INFOLEVEL
     echo MP_PULSE=0
     echo export MP_PULSE
+    echo MP_RETRY=$MP_RETRY
+    echo export MP_RETRY
+    echo MP_RETRYCOUNT=$MP_RETRYCOUNT
+    echo export MP_RETRYCOUNT
     if [ $polling_mode = 0 ] ; then
         echo MP_CSS_INTERRUPT=yes
 	echo export MP_CSS_INTERRUPT
@@ -59,6 +71,10 @@ else
     export MP_INFOLEVEL
     MP_PULSE=0
     export MP_PULSE
+    MP_RETRY=$MP_RETRY
+    export MP_RETRY
+    MP_RETRYCOUNT=$MP_RETRYCOUNT
+    export MP_RETRYCOUNT
     if [ $polling_mode = 0 ] ; then
         MP_CSS_INTERRUPT=yes
 	export MP_CSS_INTERRUPT

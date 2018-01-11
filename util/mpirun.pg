@@ -83,7 +83,7 @@ while [ $curarch -le $narch ] ; do
 		sed -e '/^#/d' -e 's/#.*^//g' | head -${np} | \
 		tr '\012' ' '`
     else
-        if [ $np -gt 1 ] ; then
+        if [ $np -gt 1 -o $nolocal = 1 ] ; then
             # Remove host from the list of available machines....
 	    # Thanks to Bjarne Herland for modification to 
 	    # remove EXACTLY the host machine (eg., bar and not bark)

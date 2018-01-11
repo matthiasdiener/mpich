@@ -1,5 +1,5 @@
 /*
- *  $Id: graphcreate.c,v 1.1 1995/04/23 18:11:31 gropp Exp $
+ *  $Id: graphcreate.c,v 1.2 1995/12/21 22:19:04 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -18,14 +18,15 @@ Input Parameters:
 . nnodes - number of nodes in graph (integer) 
 . index - array of integers describing node degrees (see below) 
 . edges - array of integers describing graph edges (see below) 
-. reorder - ranking may be reordered (true ) or not (false ) (logical) 
+. reorder - ranking may be reordered (true) or not (false) (logical) 
 
 Output Parameter:
 . comm_graph - communicator with graph topology added (handle) 
 
 Algorithm:
-We ignore the periods and reorder info currently.
+We ignore the 'reorder' info currently.
 
+.N fortran
 @*/
 int MPI_Graph_create ( comm_old, nnodes, index, edges, reorder, comm_graph )
 MPI_Comm  comm_old;

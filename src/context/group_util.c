@@ -1,5 +1,5 @@
 /*
- *  $Id: group_util.c,v 1.19 1995/06/21 03:06:46 gropp Exp $
+ *  $Id: group_util.c,v 1.20 1996/01/18 20:15:02 lusk Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -59,7 +59,7 @@ MPI_Group g;
     g->lrank_to_grank[i] = i;
 
   MPID_Myrank(MPI_COMM_WORLD->ADIctx,&(g->local_rank));
-  if (g->local_rank > np)
+  if (g->local_rank >= np)
     g->local_rank = MPI_UNDEFINED;
 }
 

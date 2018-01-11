@@ -1,5 +1,5 @@
 /*
- *  $Id: topo_test.c,v 1.7 1994/12/15 17:38:00 gropp Exp $
+ *  $Id: topo_test.c,v 1.8 1995/12/21 22:19:25 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -16,8 +16,9 @@ Input Parameter:
 . comm - communicator (handle) 
 
 Output Parameter:
-. top_type - topology type of communicator  comm (choice) 
+. top_type - topology type of communicator 'comm' (choice) 
 
+.N fortran
 @*/
 int MPI_Topo_test ( comm, top_type )
 MPI_Comm  comm;

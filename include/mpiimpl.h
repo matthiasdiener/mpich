@@ -1,5 +1,5 @@
 /*
- *  $Id: mpiimpl.h,v 1.20 1995/09/18 21:09:17 gropp Exp $
+ *  $Id: mpiimpl.h,v 1.24 1996/01/11 18:35:24 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -36,6 +36,11 @@ extern void MPIR_RmPointer();
    routines to build the profiling interface
  */
 #include "mpiprof.h"
+
+/* These are special macros for interfacing with Fortran */
+#ifdef _CRAY
+#include <fortran.h>
+#endif
 
 /* 
    The wrapper generator now makes "universal" wrappers.
@@ -115,11 +120,11 @@ int MPIR_Group_N2_prev( MPI_Group, int * );
 int MPIR_Sort_split_table( int, int, int *, int *, int * );
 int MPIR_Context_alloc( MPI_Comm, int, MPIR_CONTEXT * );
 int MPIR_Context_dealloc( MPI_Comm, int, MPIR_CONTEXT );
-int MPIR_dup_fn ( MPI_Comm *, int *, void *, void *, void *, int * );
+int MPIR_dup_fn ( MPI_Comm, int, void *, void *, void *, int * );
 
 /* pt2pt */
-int MPIR_Pack ( MPI_Comm, void *, int, MPI_Datatype, void *, int, int *);
-int MPIR_Pack_size ( int, MPI_Datatype, MPI_Comm, int *);
+int MPIR_Pack ( MPI_Comm, int, void *, int, MPI_Datatype, void *, int, int *);
+int MPIR_Pack_size ( int, MPI_Datatype, MPI_Comm, int, int *);
 int MPIR_Unpack( MPI_Comm, void *, int, int, MPI_Datatype, int, 
 		 void *, int *, int * );
 int MPIR_UnPackMessage( char *, int, MPI_Datatype, int, MPI_Request, int * );
@@ -153,7 +158,7 @@ void MPIR_Type_swap_inplace( unsigned char *, MPI_Datatype, int );
 int MPIR_Type_XDR_encode( unsigned char *, unsigned char *, MPI_Datatype, 
 			  int, void * );
 int MPIR_Type_XDR_decode( unsigned char *, int, MPI_Datatype, int, 
-			  unsigned char *, int *, int *, void * );
+			  unsigned char *, int, int *, int *, void * );
 int MPIR_Type_convert_copy( MPI_Comm, void *, int, void *, MPI_Datatype, 
 			   int, int, int * );
 int MPIR_Comm_needs_conversion( MPI_Comm );
@@ -161,22 +166,25 @@ int MPIR_Dest_needs_converstion( int );
 void MPIR_Pack_Hvector( MPI_Comm, char *, int, MPI_Datatype, int, char * );
 void MPIR_UnPack_Hvector( char *, int, MPI_Datatype, int, char * );
 int MPIR_HvectorLen( int, MPI_Datatype );
-int MPIR_PackMessage( char *, int, MPI_Datatype, int, MPI_Request );
+int MPIR_PackMessage( char *, int, MPI_Datatype, int, int, MPI_Request );
 int MPIR_EndPackMessage( MPI_Request );
 int MPIR_SetupUnPackMessage( char *, int, MPI_Datatype, int, MPI_Request );
 int MPIR_Receive_setup( MPI_Request * );
 int MPIR_Send_setup( MPI_Request * );
 int MPIR_SendBufferFree( MPI_Request );
 
+int MPIR_Elementcnt( char *, int, MPI_Datatype, int, char *, int, 
+		     int *, int *, void * );
 void DMPI_msg_arrived( int, int, MPIR_CONTEXT, MPIR_RHANDLE **, int * );
 void DMPI_free_unexpected( MPIR_RHANDLE      * );
 
 /* env */
 MPI_Datatype MPIR_Init_basic_datatype( MPIR_NODETYPE, int );
+void MPIR_Op_setup( MPI_User_function, int, int, MPI_Op );
 
 /* topol */
-int MPIR_Topology_copy_fn( MPI_Comm *, int *, void *, void *, void *, int * );
-int MPIR_Topology_delete_fn( MPI_Comm *, int *, void *, void * );
+int MPIR_Topology_copy_fn( MPI_Comm, int, void *, void *, void *, int * );
+int MPIR_Topology_delete_fn( MPI_Comm, int, void *, void * );
 
 /* util */
 /*
@@ -196,6 +204,7 @@ int MPIR_dump_dte( MPI_Datatype, int );
 int MPIR_flatten_dte( MPI_Datatype, MPIR_FDTEL **, MPIR_FDTEL ***, int * );
 int MPIR_dump_flat_dte( MPIR_FDTEL * );
 int MPIR_Tab( int );
+void MPIR_ArgSqueeze( int *, char ** );
 
 int  MPIR_SetBuffer( void *, int );
 void MPIR_FreeBuffer( void **, int *);
@@ -203,9 +212,11 @@ void MPIR_PrepareBuffer( MPIR_SHANDLE * );
 int MPIR_GetBuffer( int, MPI_Request, void *, int, MPI_Datatype, void ** );
 void MPIR_BufferFreeReq( MPIR_SHANDLE * );
 
+
 #else
 extern MPI_Group MPIR_CreateGroup();
 extern MPI_Datatype MPIR_Type_dup();
+int MPIR_Elementcnt();
 #endif
 
 #endif

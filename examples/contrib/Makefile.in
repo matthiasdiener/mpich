@@ -35,8 +35,8 @@ MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a
 MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
 LIBS = $(LIB_PATH) $(LIB_LIST)
 LIBSPP = $(MPIPPLIB) $(LIBS)
-EXECS  = dcmplx isendtst structtest dbltest
-OBJS   = dcmplx.o isendtst.o structtest.o
+EXECS  = dcmplx isendtst structtest dbltest names particles topologies
+OBJS   = dcmplx.o isendtst.o structtest.o  names.o particles.o topologies.o
 
 dcmplx: dcmplx.o $(MPILIB)
 	$(FLINKER) $(OPTFLAGS) -o dcmplx dcmplx.o $(LIBS)
@@ -49,6 +49,15 @@ isendtst: isendtst.o $(MPILIB)
 
 structtest: structtest.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o structtest structtest.o $(LIBS)
+
+names: names.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o names names.o $(LIBS)
+
+particles: particles.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o particles particles.o $(LIBS) -lm
+
+topologies: topologies.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o topologies topologies.o $(LIBS)
 
 clean:
 	/bin/rm -f $(EXECS) $(OBJS)

@@ -59,7 +59,7 @@ MPE_Log_BLOCK *MPE_Log_Flush ()
 }
 
 
-MPE_Log_FreeLogMem (headBlk)
+int MPE_Log_FreeLogMem (headBlk)
 MPE_Log_BLOCK *headBlk;
 {
   MPE_Log_BLOCK *tmpBlk;
@@ -68,6 +68,7 @@ MPE_Log_BLOCK *headBlk;
     FREE (headBlk);
     headBlk = tmpBlk;
   }
+return 0;
 }
 
 
@@ -100,13 +101,14 @@ MPE_Log_PrintTimes()
 
 /* This routine is called by the MPE_Log initialization routine to
    set the 0-point for the clocks */		    
-MPE_Log_init_clock()
+int MPE_Log_init_clock()
 {
   if (!MPE_Log_clockIsRunning) {
     MPE_Log_tinit = MPI_Wtime();
       /* _tinit is a varible static to this module, defined in this file */
     MPE_Log_clockIsRunning = 1;
   }
+return 0;
 }
 
 

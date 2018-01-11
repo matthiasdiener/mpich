@@ -15,16 +15,19 @@ static int MPE_Seq_keyval = MPI_KEYVAL_INVALID;
    at the same time.  Usually one.  
 
    Notes:
-   MPE_Seq_begin and MPE_Seq_end provide a way to force a section of code to
+   'MPE_Seq_begin' and 'MPE_Seq_end' provide a way to force a section of code 
+   to
    be executed by the processes in rank order.  Typically, this is done 
    with
-$  MPE_Seq_begin( comm, 1 );
-$  <code to be executed sequentially>
-$  MPE_Seq_end( comm, 1 );
-$
-   Often, the sequential code contains output statements (e.g., printf) to
+.vb
+  MPE_Seq_begin( comm, 1 );
+  <code to be executed sequentially>
+  MPE_Seq_end( comm, 1 );
+.ve$
+   Often, the sequential code contains output statements (e.g., 'printf') to
    be executed.  Note that you may need to flush the I/O buffers before
-   calling MPE_Seq_end; also note that some systems do not propagate I/O in any
+   calling 'MPE_Seq_end'; also note that some systems do not propagate I/O in 
+   any
    order to the controling terminal (in other words, even if you flush the
    output, you may not get the data in the order that you want).
 @*/
@@ -69,7 +72,7 @@ if ( (lidx % ng) < ng - 1 && lidx != np - 1) {
    at the same time.  Usually one.  
 
    Notes:
-   See MPE_Seq_begin for more details.
+   See 'MPE_Seq_begin' for more details.
 @*/
 void MPE_Seq_end( comm, ng )
 MPI_Comm comm;

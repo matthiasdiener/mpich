@@ -1,0 +1,123 @@
+#! /bin/sh
+#
+# Run some of the tests.  If any arguments are provided, pass them to the
+# test programs.
+#
+# -mvhome is needed for the ANL SP, and is ignored by others
+args="-pg -mvhome"
+#
+runtests=1
+makeeach=0
+MAKE="@MAKE@"
+for arg in "$@" ; do
+    case $arg in 
+	-checkonly )
+	runtests=0
+	;;
+        -margs=*)
+	margs=`echo $arg | sed 's/-margs=//'`
+	args="$args $margs"
+	;;
+	-small)
+	makeeach=1
+	;;
+	-help|-u)
+	echo "runtests [-checkonly] [-margs='...']"
+	echo "run tests in this directory.  If -checkonly set, just run"
+	echo "the differences check (do NO rerun the test programs)."
+	echo "If -margs is used, these options are passed to mpirun."
+	echo "If -small is used, the examples are built, run, and deleted."
+	exit 1
+	;;
+	*)
+	if test -n "$arg" ; then
+   	    echo "runtests: Unknown argument ($arg)"
+	    exit 1
+        fi
+	;;
+    esac
+done
+
+MakeExe() {
+    if [ ! -x $1 ] ; then
+	$MAKE $1
+    fi
+}
+CleanExe() {
+    if [ $makeeach = 1 ] ; then
+	/bin/rm -f $1 $1.o
+    fi
+}
+# If the programs are not available, run make.
+if [ ! -x sigchk -a $makeeach = 0 ] ; then
+    $MAKE default
+fi
+#
+testfiles=""
+if [ $runtests = 1 ] ; then
+
+testfiles="$testfiles timers.out"
+/bin/rm -f timers.out
+MakeExe timers
+echo "*** Timer tests ***"
+echo "*** Timer tests ***" >> timers.out
+mpirun $args -np 1 timers $* >> timers.out
+echo "*** Timer tests ***" >> timers.out
+CleanExe timers
+
+testfiles="$testfiles baseattr.out"
+/bin/rm -f baseattr.out
+MakeExe baseattr
+echo "*** Basic attributes ***"
+echo "*** Basic attributes ***" >> baseattr.out
+mpirun $args -np 1 baseattr $* >> baseattr.out
+echo "*** Basic attributes ***" >> baseattr.out
+CleanExe baseattr
+
+testfiles="$testfiles errhand.out"
+/bin/rm -f errhand.out
+MakeExe errhand
+echo "*** Tests of error handling ***" 
+echo "*** Tests of error handling ***" >>errhand.out
+mpirun $args -np 1 errhand $* >> errhand.out
+echo "*** Tests of error handling ***" >>errhand.out
+CleanExe errhand
+
+testfiles="$testfiles sigchk.out"
+/bin/rm -f sigchk.out
+MakeExe sigchk
+echo "*** Tests of signals used ***"
+echo "*** Tests of signals used ***" >> sigchk.out
+mpirun $args -np 1 sigchk $* >> sigchk.out
+echo "*** Tests of signals used ***" >> sigchk.out
+CleanExe sigchk
+
+else
+    # Just run checks
+    testfiles=*.out
+    if test "$testfiles" eq "*.out" ; then
+	echo "No output files remain from previous test!"
+	exit 1
+    fi
+fi
+
+#
+echo '*** Differences from expected output ***'
+/bin/rm -f env.diff
+for file in $testfiles ; do
+    stdfile=`basename $file .out`.std
+    if [ -s $stdfile ] ; then
+        if diff -b $file `basename $file .out`.std > /dev/null ; then
+	    true
+        else
+	    echo "Differences in `basename $file .out`" >> env.diff
+	    diff -b $file `basename $file .out`.std >> env.diff
+	fi
+    else
+        echo "Can not find file $stdfile to compare against for test `basename $file .out`"
+    fi
+done
+if [ -s env.diff ] ; then
+   cat env.diff
+fi
+exit 0

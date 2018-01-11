@@ -153,7 +153,7 @@ MPI_Request *request;
   int typesize;
 
   if (newrq = (request_list*) malloc(sizeof( request_list ))) {
-      MPI_Type_size( datatype, (MPI_Aint *)&typesize );
+      MPI_Type_size( datatype, &typesize );
       newrq->request	= request;
       newrq->status	= RQ_SEND;
       newrq->size	= count * typesize;
@@ -3191,8 +3191,8 @@ MPI_Status * array_of_statuses;
 
   if (*flag) {
     for (i=0; i < count; i++) {
-      ProcessWaitTest_0( array_of_requests[i],
-				  array_of_statuses[i],
+      ProcessWaitTest_0( &array_of_requests[i],
+				  &array_of_statuses[i],
 				  "MPI_Testall" );
     }
   }
@@ -3225,7 +3225,7 @@ MPI_Status * status;
   returnVal = PMPI_Testany( count, array_of_requests, index, flag, status );
 
   if (*flag) 
-      ProcessWaitTest_0( array_of_requests[*index], status, "MPI_Testany" );
+      ProcessWaitTest_0( &array_of_requests[*index], status, "MPI_Testany" );
 
   MPE_Log_event( MPI_Testany_stateid_0*2+1,
 	         MPI_Testany_ncalls_0, (char *)0 );
@@ -3280,8 +3280,8 @@ MPI_Status * array_of_statuses;
   returnVal = PMPI_Testsome( incount, array_of_requests, outcount, array_of_indices, array_of_statuses );
 
   for (i=0; i < *outcount; i++) {
-    ProcessWaitTest_0( array_of_requests[array_of_indices[i]], 
-	       array_of_statuses[array_of_indices[i]], "MPI_Testsome" );
+    ProcessWaitTest_0( &array_of_requests[array_of_indices[i]], 
+	       &array_of_statuses[array_of_indices[i]], "MPI_Testsome" );
   }
 
   MPE_Log_event( MPI_Testsome_stateid_0*2+1,
@@ -3493,7 +3493,7 @@ MPI_Aint * displacement;
 
 int   MPI_Type_size( datatype, size )
 MPI_Datatype datatype;
-MPI_Aint * size;
+int          * size;
 {
   int   returnVal;
 
@@ -3668,8 +3668,8 @@ MPI_Status * array_of_statuses;
   returnVal = PMPI_Waitall( count, array_of_requests, array_of_statuses );
 
   for (i=0; i < count; i++) {
-    ProcessWaitTest_0( array_of_requests[i],
-			        array_of_statuses[i],
+    ProcessWaitTest_0( &array_of_requests[i],
+			        &array_of_statuses[i],
 			        "MPI_Waitall" );
     }
 
@@ -3699,7 +3699,7 @@ MPI_Status * status;
   
   returnVal = PMPI_Waitany( count, array_of_requests, index, status );
 
-  ProcessWaitTest_0( array_of_requests[*index], status, "MPI_Waitany" );
+  ProcessWaitTest_0( &array_of_requests[*index], status, "MPI_Waitany" );
 
   MPE_Log_event( MPI_Waitany_stateid_0*2+1,
 	         MPI_Waitany_ncalls_0, (char *)0 );
@@ -3730,8 +3730,8 @@ MPI_Status * array_of_statuses;
   returnVal = PMPI_Waitsome( incount, array_of_requests, outcount, array_of_indices, array_of_statuses );
 
   for (i=0; i < *outcount; i++) {
-    ProcessWaitTest_0( array_of_requests[array_of_indices[i]],
-			        array_of_statuses[array_of_indices[i]],
+    ProcessWaitTest_0( &array_of_requests[array_of_indices[i]],
+			        &array_of_statuses[array_of_indices[i]],
 			        "MPI_Waitsome" );
   }
 

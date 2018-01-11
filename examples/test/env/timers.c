@@ -25,11 +25,16 @@ for (i = 0; i<10; i++) {
     sleep(1);
     t2 = MPI_Wtime();
     if (t2 - t1 >= 1.0 && t2 - t1 <= 5.0) break;
-    if (t2 - t2 > 5.0) i = 9;
+    if (t2 - t1 > 5.0) i = 9;
     }
 if (i == 10) {
     fprintf( stderr, "Timer around sleep(1) did not give 1 second; gave %f\n",
              t2 - t1 );
+    fprintf( stderr, "If the sigchk check shows that SIGALRM is in use, \n\
+this indicates only that user programs must NOT use any system call or\n\
+library that uses SIGALRM.  SIGALRM is not used by MPICH but may be used\n\
+by the software the MPICH uses to implement communication to other \n\
+processes\n" );
     err++;
     } 
 tick = MPI_Wtick();

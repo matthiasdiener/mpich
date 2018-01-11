@@ -127,8 +127,8 @@ char **msg;
 	ALOG_LOG(p4_local->my_id,BEGIN_RECV,0,"");
 	if (tmsg == NULL)
 	{
-	    p4_dprintf("p4_recv: could not receive a message\n");
-	    return (-1);
+	    p4_dprintfl(70,"p4_recv: got NULL back from recv_message\n");
+	    continue;
 	}
 	if (((tmsg->type == *req_type) || (*req_type == -1)) &&
 	    ((tmsg->from == *req_from) || (*req_from == -1)))
@@ -462,7 +462,7 @@ P4BOOL ack_req, p4_buff_ind;
       case CONN_REMOTE_EST:
 	if (data_type == P4NOX || p4_local->conntab[to].same_data_rep)
 	{
-	    socket_send(type, from, to, msg, len, P4NOX, ack_req);
+	    socket_send(type, from, to, msg, len, data_type, ack_req);
 	}
 	else
 	{

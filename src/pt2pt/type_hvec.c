@@ -1,12 +1,12 @@
 /*
- *  $Id: type_hvec.c,v 1.18 1995/07/25 02:49:16 gropp Exp $
+ *  $Id: type_hvec.c,v 1.19 1995/12/21 21:36:20 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_hvec.c,v 1.18 1995/07/25 02:49:16 gropp Exp $";
+static char vcid[] = "$Id: type_hvec.c,v 1.19 1995/12/21 21:36:20 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -24,6 +24,8 @@ Input Parameters:
 
 Output Parameter:
 . newtype - new datatype (handle) 
+
+.N fortran
 @*/
 int MPI_Type_hvector( count, blocklen, stride, old_type, newtype )
 int          count;
@@ -36,6 +38,7 @@ MPI_Datatype *newtype;
   int           mpi_errno = MPI_SUCCESS;
 
   /* Check for bad arguments */
+  MPIR_GET_REAL_DATATYPE(old_type)
   if ( MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,old_type) ||
    ( (count   <  0)                  && (mpi_errno = MPI_ERR_COUNT) ) ||
    ( (blocklen <  0)                 && (mpi_errno = MPI_ERR_ARG) )   ||

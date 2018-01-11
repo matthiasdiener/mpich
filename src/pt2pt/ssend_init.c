@@ -1,5 +1,5 @@
 /*
- *  $Id: ssend_init.c,v 1.16 1995/05/09 18:59:10 gropp Exp $
+ *  $Id: ssend_init.c,v 1.17 1995/12/21 21:35:25 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -43,6 +43,7 @@ MPI_Request   *request;
     /* See MPI_TYPE_FREE.  A free can not happen while the datatype may
        be in use.  Thus, a nonblocking operation increments the
        reference count */
+    MPIR_GET_REAL_DATATYPE(datatype)
     datatype->ref_count++;
     *request                        = 
 	(MPI_Request) MPIR_SBalloc( MPIR_shandles );

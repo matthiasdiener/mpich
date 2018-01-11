@@ -4,7 +4,7 @@
 
 
 /*
- *  $Id: chdebug.c,v 1.3 1995/09/18 21:11:31 gropp Exp $
+ *  $Id: chdebug.c,v 1.5 1996/01/08 19:51:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -12,7 +12,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: chdebug.c,v 1.3 1995/09/18 21:11:31 gropp Exp $";
+static char vcid[] = "$Id: chdebug.c,v 1.5 1996/01/08 19:51:41 gropp Exp $";
 #endif /* lint */
 
 #include "mpid.h"
@@ -146,7 +146,7 @@ switch (pkt->short_pkt.mode) {
     fputs( "complete send", fp );
     break;
     case MPID_PKT_COMPLETE_RECV:
-    fputs( "complete recv", fp );
+      fputs( "complete recv", fp );
     break;
     case MPID_PKT_REQUEST_SEND:
     fputs( "request send", fp );
@@ -190,12 +190,32 @@ int  len;
 int i; char *aa = (char *)address;
 
 if (msg)
-    printf( "[%d]%s\n", MPID_MyWorldRank, msg );
+    fprintf( MPID_DEBUG_FILE, "[%d]%s\n", MPID_MyWorldRank, msg );
 if (len < 78 && address) {
     for (i=0; i<len; i++) {
-	printf( "%x", aa[i] );
+	fprintf( MPID_DEBUG_FILE, "%x", aa[i] );
 	}
-    printf( "\n" );
+    fprintf( MPID_DEBUG_FILE, "\n" );
     }
-fflush( stdout );
+fflush( MPID_DEBUG_FILE );
+}
+
+void MPID_P4_Print_Send_Handle( dmpi_send_handle )
+MPIR_SHANDLE *dmpi_send_handle;
+{
+fprintf( stdout, "[%d]* dmpi_send_contents:\n\
+* dest	      = %d\n\
+* tag	      = %d\n\
+* contextid   = %d\n\
+* buflen      = %d\n\
+* count	      = %d\n\
+* totallen    = %d\n\
+* mode	      = %d\n\
+* lrank	      = %d\n\
+* recv_handle = %x\n", MPID_MyWorldRank, dmpi_send_handle->dest, 
+		 dmpi_send_handle->tag, dmpi_send_handle->contextid, 
+		 dmpi_send_handle->buflen, dmpi_send_handle->count,
+		 dmpi_send_handle->totallen, dmpi_send_handle->mode, 
+		 dmpi_send_handle->lrank, 
+		 dmpi_send_handle->dev_shandle.recv_handle );
 }

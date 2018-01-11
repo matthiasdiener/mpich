@@ -1,4 +1,4 @@
-.TH MPI_Group_translate_ranks 3 "12/15/1994" " " "MPI"
+.TH MPI_Group_translate_ranks 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Group_translate_ranks \- Translates the ranks of processes in one group to
 those in another group
@@ -12,12 +12,17 @@ those in another group
 .PD 0
 .TP
 .B n 
-- number of ranks in  ranks1 and ranks2  arrays (integer) 
+- number of ranks in  
+.I ranks1
+and 
+.I ranks2
+arrays (integer) 
 .PD 1
 .PD 0
 .TP
 .B ranks1 
-- array of zero or more valid ranks in group1 
+- array of zero or more valid ranks in 
+.I group1
 .PD 1
 .PD 0
 .TP
@@ -29,10 +34,34 @@ those in another group
 .PD 0
 .TP
 .B ranks2 
-- array of corresponding ranks in group2,  MPI_UNDEFINED  when no 
+- array of corresponding ranks in group2,  
+.I MPI_UNDEFINED
+when no 
 correspondence exists. 
 .PD 1
 
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

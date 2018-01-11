@@ -1,12 +1,12 @@
 /*
- *  $Id: alltoallv.c,v 1.22 1995/06/21 03:09:32 gropp Exp $
+ *  $Id: alltoallv.c,v 1.23 1995/12/21 22:16:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: alltoallv.c,v 1.22 1995/06/21 03:09:32 gropp Exp $";
+static char vcid[] = "$Id: alltoallv.c,v 1.23 1995/12/21 22:16:41 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -22,20 +22,22 @@ Input Parameters:
 . sendcounts - integer array equal to the group size 
 specifying the number of elements to send to each processor 
 . sdispls - integer array (of length group size). Entry 
- j  specifies the displacement (relative to sendbuf  from
-which to take the outgoing data destined for process  j  
+ 'j'  specifies the displacement (relative to sendbuf  from
+which to take the outgoing data destined for process  'j'  
 . sendtype - data type of send buffer elements (handle) 
 . recvcounts - integer array equal to the group size 
 specifying the maximum number of elements that can be received from
 each processor 
 . rdispls - integer array (of length group size). Entry 
- i  specifies the displacement (relative to recvbuf  at
-which to place the incoming data from process  i  
+ 'i'  specifies the displacement (relative to recvbuf  at
+which to place the incoming data from process  'i'  
 . recvtype - data type of receive buffer elements (handle) 
 . comm - communicator (handle) 
 
 Output Parameter:
 . recvbuf - address of receive buffer (choice) 
+
+.N fortran
 @*/
 int MPI_Alltoallv ( sendbuf, sendcnts, sdispls, sendtype, 
                     recvbuf, recvcnts, rdispls, recvtype, comm )

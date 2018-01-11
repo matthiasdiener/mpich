@@ -102,15 +102,17 @@ P4VOID send_proc_table();
 P4VOID setup_conntab();
 int shmem_send();
 P4VOID shutdown_p4_socks();
+#if defined(GP_1000) || defined(TC_2000)
 int simple_lock();
 int simple_unlock();
+P4VOID waitspin();
+#endif
 P4BOOL sock_msg_avail_on_fd();
 int socket_send();
 int start_slave();
 int subtree_broadcast_p4();
 P4VOID trap_sig_errs();
 P4VOID wait_for_ack()	;
-P4VOID waitspin();
 int xdr_recv();
 int xdr_send();
 int data_representation();

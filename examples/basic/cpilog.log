@@ -1,0 +1,43 @@
+-1 0 0 0 0 0 Me
+-2 0 0 30 0 0
+-3 0 0 3 0 0
+-4 0 0 1 0 0
+-5 0 0 0 0 0
+-6 0 0 0 0 75
+-7 0 0 0 0 37160305
+-8 0 0 1 0 0
+-11 0 0 0 0 0
+-13 0 1 2 0 0 red:vlines3 Broadcast
+-13 0 3 4 0 0 blue:gray3 Compute
+-13 0 5 6 0 0 green:light_gray Reduce
+-13 0 7 8 0 0 yellow:gray Sync
+1 1 0 0 0 32116333 start broadcast
+1 0 0 0 0 32143214 start broadcast
+2 1 0 0 0 32145591 end broadcast
+7 1 0 0 0 32145644 Start Sync
+2 0 0 0 0 32145705 end broadcast
+7 0 0 0 0 32145794 Start Sync
+1 2 0 0 0 32157714 start broadcast
+2 2 0 0 0 32159153 end broadcast
+7 2 0 0 0 32159210 Start Sync
+8 1 0 0 0 32162773 End Sync
+3 1 0 0 0 32162828 start compute
+8 0 0 0 0 32162862 End Sync
+8 2 0 0 0 32162870 End Sync
+3 2 0 0 0 32162931 start compute
+3 0 0 0 0 32162951 start compute
+4 1 0 0 0 32163344 end compute
+5 1 0 0 0 32163385 start reduce
+4 2 0 0 0 32163452 end compute
+5 2 0 0 0 32163496 start reduce
+4 0 0 0 0 32163973 end compute
+5 0 0 0 0 32164046 start reduce
+6 1 0 0 0 32165167 end reduce
+6 2 0 0 0 32165237 end reduce
+6 0 0 0 0 32168483 end reduce
+1 1 0 0 0 37158103 start broadcast
+1 0 0 0 0 37158285 start broadcast
+1 2 0 0 0 37158307 start broadcast
+2 1 0 0 0 37159531 end broadcast
+2 0 0 0 0 37159643 end broadcast
+2 2 0 0 0 37160305 end broadcast

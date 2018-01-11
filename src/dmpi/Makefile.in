@@ -55,15 +55,19 @@ wrappers:
 manpages:
 	../../util/doctext -mpath ../../man/man3 -ext 3 -I pubinc \
 	   -index ../../www.index -jumpfile ../../jumpfile.list \
-	   -indexdir "http:/www.mcs.anl.gov/mpi/man" -heading MPI \
-		$(MPI_CSOURCES)
+	   -indexdir "http:/www.mcs.anl.gov/mpi/www/www3" -heading MPI \
+		-quotefmt ../../util/fortnotes $(MPI_CSOURCES)
 	../../util/doc2lt $(MPI_CSOURCES) >> ../../rsum.tmp
 
 wwwpages:
 	../../util/doctext -html -mpath ../../www/www3 -ext 3 -I pubinc \
 	   -index ../../www.index -jumpfile ../../jumpfile.list \
-	   -indexdir "http:/www.mcs.anl.gov/mpi/man" -heading MPI \
-		$(MPI_CSOURCES)
+	   -indexdir "http:/www.mcs.anl.gov/mpi/www/www3" -heading MPI \
+		-quotefmt ../../util/fortnotes $(MPI_CSOURCES)
+
+source_names:
+	@echo $(MPI_CSOURCES)
+
 wrapperlib: $(MPI_WOBJECTS)
 	if [ "$(MPI_WOBJECTS)" != "" ] ; then \
 	$(AR) ../../lib/$(ARCH)/$(COMM)/libfmpi.a $?	; fi

@@ -1,6 +1,6 @@
 #include <math.h>
-#include "tools.h"      /*I "tools.h" I*/
-#include "basex11.h"    /*I "basex11.h" I*/
+#include "mpetools.h" 
+#include "basex11.h"  
 
 #define MPE_INTERNAL
 #include "mpe.h"   /*I "mpe.h" I*/
@@ -11,10 +11,7 @@
 /* this shouldn't be in mpe_graphics.h because the user shouldn't use it */
 
 /*@
-  MPE_Get_mouse_press - Waits for mouse button press, blocking
-  until the mouse button is pressed inside this MPE window.
-  When pressed, returns the coordinate relative to the upper right of
-  this MPE window and the button that was pressed.
+  MPE_Get_mouse_press - Waits for mouse button press
 
   Input Parameter:
 . graph - MPE graphics handle
@@ -22,10 +19,15 @@
   Output Parameters:
 . x - horizontal coordinate of the point where the mouse button was pressed
 . y - vertical coordinate of the point where the mouse button was pressed
-. button - which button was pressed: MPE_BUTTON[1-5]
+. button - which button was pressed: 'MPE_BUTTON[1-5]'
+
+  Notes:
+  This routine waits for mouse button press, blocking
+  until the mouse button is pressed inside this MPE window.
+  When pressed, returns the coordinate relative to the upper right of
+  this MPE window and the button that was pressed.
 
 @*/
-
 MPE_Get_mouse_press( graph, x, y, button )
 MPE_XGraph graph;
 int *x, *y, *button;
@@ -277,7 +279,7 @@ int *pressx, *pressy, *releasex, *releasey, button, dragVisual;
 
   XSelectInput( graph->xwin->disp, graph->xwin->win, MPE_XEVT_IDLE_MASK |
 	        ButtonPressMask | ButtonReleaseMask |
-	        motionMask );
+	        motionMask | graph->input_mask );
   /* add button presses, releases, and motion to the mask of events to
      be monitored */
   
@@ -287,7 +289,8 @@ int *pressx, *pressy, *releasex, *releasey, button, dragVisual;
   while (!isreleased) {
     while (XCheckWindowEvent( graph->xwin->disp, graph->xwin->win,
 			      ButtonPressMask | ButtonReleaseMask |
-			      motionMask, &event ) == False) {
+			      motionMask | graph->input_mask, 
+			      &event ) == False) {
       
 	if (!firstMotion) {
 	  DrawDragVisual( dragVisual, graph, *pressx, *pressy,
@@ -340,7 +343,14 @@ int *pressx, *pressy, *releasex, *releasey, button, dragVisual;
 	*releasey = event.xbutton.y;
 	isreleased = 1;
       }
+      else if (graph->event_routine) {
+          /* Process unexpected events */
+	  (*graph->event_routine)( graph, &event );
+          }
     }
+      else if (graph->event_routine) {
+          /* Process unexpected events */
+	  (*graph->event_routine)( graph, &event );    }
   }
 
   ConvertCoords( dragVisual, *pressx, *pressy, *releasex, *releasey,

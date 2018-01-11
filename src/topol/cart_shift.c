@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_shift.c,v 1.15 1995/06/21 03:18:00 gropp Exp $
+ *  $Id: cart_shift.c,v 1.16 1995/12/21 22:18:28 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -15,16 +15,17 @@ MPI_Cart_shift - Returns the shifted source and destination ranks, given a
 Input Parameters:
 . comm - communicator with cartesian structure (handle) 
 . direction - coordinate dimension of shift (integer) 
-. disp - displacement ($> 0$: upwards shift, $< 0$: downwards shift) (integer) 
+. disp - displacement (> 0: upwards shift, < 0: downwards shift) (integer) 
 
 Output Parameters:
 . rank_source - rank of source process (integer) 
 . rank_dest - rank of destination process (integer) 
 
 Notes:
-The 'direction' argument is in the range [0,n-1] for an n-dimensional 
+The 'direction' argument is in the range '[0,n-1]' for an n-dimensional 
 Cartesian mesh.
 
+.N fortran
 @*/
 int MPI_Cart_shift ( comm, direction, displ, source, dest )
 MPI_Comm  comm;

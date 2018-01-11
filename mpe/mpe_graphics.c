@@ -1,6 +1,6 @@
 #include <math.h>
-#include "tools.h"      /*I "tools.h" I*/
-#include "basex11.h"    /*I "basex11.h" I*/
+#include "mpetools.h" 
+#include "basex11.h"  
 
 #ifdef MPE_NOMPI
 #define MPI_MAX_PROCESSOR_NAME 256
@@ -83,10 +83,10 @@ void SetBackingStoreBitGrav ANSI_ARGS((MPE_XGraph));
     Input Parameters:
 .   comm - Communicator of participating processes
 .   display - Name of X window display.  If null, display will be taken from
-    the DISPLAY variable on the process with rank 0 in comm.  If that is
+    the DISPLAY variable on the process with rank 0 in 'comm'.  If that is
     either undefined, or starts with w ":", then the value of display is
-    `hostname`:0
-.   x,y - position of the window.  If (-1,-1), then the user should be
+    ``hostname``:0
+.   x,y - position of the window.  If '(-1,-1)', then the user should be
     asked to position the window (this is a window manager issue).
 .   w,h - width and height of the window, in pixels.
 .   is_collective - true if the graphics operations are collective; this
@@ -100,7 +100,7 @@ void SetBackingStoreBitGrav ANSI_ARGS((MPE_XGraph));
 
     Notes:
     This is a collective routine.  All processes in the given communicator
-    must call it, and it has the same semantics as MPI_Barrier (that is,
+    must call it, and it has the same semantics as 'MPI_Barrier' (that is,
     other collective operations can not cross this routine).
 @*/
 int MPE_Open_graphics( handle, comm, display, x, y, w, h, is_collective )
@@ -130,6 +130,8 @@ int        is_collective;
   new->capture_freq  = 1;
   new->capture_num   = 0;
   new->capture_cnt   = 0;
+  new->input_mask    = 0;
+  new->event_routine = 0;
 
 #ifndef MPE_NOMPI
   if (is_collective) {
@@ -164,8 +166,10 @@ int        is_collective;
 
 #ifdef MPE_NOMPI
 	display = (char *)malloc( 100 );
-	gethostname( display, 100 );
+	MPE_GetHostName( display, 100 );
 #else
+	/* This is not correct, since there is no guarentee that this
+	   is the "correct" network name */
 	display = (char *)malloc( MPI_MAX_PROCESSOR_NAME );
 	MPI_Get_processor_name( display, &namelen );
 #endif
@@ -300,7 +304,7 @@ MPE_XGraph graph;
 . freq   - Frequency of updates
 
   Notes:
-  The output is written in xwd format to fname%d, where %d is the number
+  The output is written in xwd format to 'fname%d', where '%d' is the number
   of the file (starting from zero).
 @*/
 int MPE_CaptureFile( handle, fname, freq )
@@ -334,11 +338,12 @@ int        freq;
 .   handle - MPE graphics handle 
 .   x,y - pixel position to draw.  Coordinates are upper-left origin (standard
     X11)
-.   color - Color INDEX value.  See MPE_Make_color_array.  By default,
-            the colors MPE_WHITE, MPE_BLACK, MPE_RED, MPE_YELLOW,
-	    MPE_GREEN, MPE_CYAN, MPE_BLUE, MPE_MAGENTA, MPE_AQUAMARINE, 
-            MPE_FORESTGREEN, MPE_ORANGE, MPE_VIOLET, MPE_BROWN, MPE_PINK, 
-            MPE_CORAL and MPE_GRAY  are defined.
+.   color - Color `index` value.  See 'MPE_MakeColorArray'.  
+    By default, the colors
+    'MPE_WHITE', 'MPE_BLACK', 'MPE_RED', 'MPE_YELLOW', 'MPE_GREEN', 'MPE_CYAN',
+    'MPE_BLUE',  'MPE_MAGENTA', 'MPE_AQUAMARINE', 
+            'MPE_FORESTGREEN', 'MPE_ORANGE', 'MPE_VIOLET', 'MPE_BROWN', 
+            'MPE_PINK', 'MPE_CORAL' and 'MPE_GRAY' are defined.
 @*/
 int MPE_Draw_point( handle, x, y, color )
 MPE_XGraph handle;
@@ -542,9 +547,12 @@ int a, **boundaryPoints, *ncolors;
             upper-left origin (standard X11)
 .   x2,y2 - pixel position of the other end of the line to draw.  Coordinates 
             are upper-left origin (standard X11)
-.   color - Color INDEX value.  See MPE_MakeColorArray.  By default, the colors
-    MPE_WHITE, MPE_BLACK, MPE_RED, MPE_YELLOW, MPE_GREEN, MPE_CYAN, and 
-    MPE_BLUE are defined.
+.   color - Color `index` value.  See 'MPE_MakeColorArray'.  
+    By default, the colors
+    'MPE_WHITE', 'MPE_BLACK', 'MPE_RED', 'MPE_YELLOW', 'MPE_GREEN', 'MPE_CYAN',
+    'MPE_BLUE',  'MPE_MAGENTA', 'MPE_AQUAMARINE', 
+            'MPE_FORESTGREEN', 'MPE_ORANGE', 'MPE_VIOLET', 'MPE_BROWN', 
+            'MPE_PINK', 'MPE_CORAL' and 'MPE_GRAY' are defined.
 @*/
 int MPE_Draw_line( handle, x1, y1, x2, y2, color )
 MPE_XGraph handle;
@@ -577,9 +585,12 @@ MPE_Color  color;
 .   x,y - pixel position of the upper left (low coordinate) corner of the 
             rectangle to draw.
 .   w,h - width and height of the rectangle
-.   color - Color INDEX value.  See MPE_MakeColorArray.  By default, the colors
-    MPE_WHITE, MPE_BLACK, MPE_RED, MPE_YELLOW, MPE_GREEN, MPE_CYAN, and 
-    MPE_BLUE are defined.
+.   color - Color `index` value.  See 'MPE_MakeColorArray'.  
+    By default, the colors
+    'MPE_WHITE', 'MPE_BLACK', 'MPE_RED', 'MPE_YELLOW', 'MPE_GREEN', 'MPE_CYAN',
+    'MPE_BLUE',  'MPE_MAGENTA', 'MPE_AQUAMARINE', 
+            'MPE_FORESTGREEN', 'MPE_ORANGE', 'MPE_VIOLET', 'MPE_BROWN', 
+            'MPE_PINK', 'MPE_CORAL' and 'MPE_GRAY' are defined.
 
     Notes:
     This uses the X11 definition of width and height, so you may want to 
@@ -617,7 +628,7 @@ MPE_Color  color;
 .   handle - MPE graphics handle.
 
     Note:
-    Only after an MPE_Update can you count on seeing the results of MPE 
+    Only after an 'MPE_Update' can you count on seeing the results of MPE 
     drawing routines.  This is caused by the buffering of graphics requests
     for improved performance.
 @*/
@@ -704,15 +715,15 @@ MPE_XGraph *handle;
 
     Notes:
     The new colors for a uniform distribution in hue space and replace the
-    existing colors EXCEPT for MPE_WHITE and MPE_BLACK.
+    existing colors `except` for 'MPE_WHITE' and 'MPE_BLACK'.
 @*/
 int MPE_Make_color_array( handle, ncolors, array )
 MPE_XGraph handle;
 int        ncolors;
 MPE_Color  array[];
 {
-  int i;
-  MPE_Color white;
+  int    i;
+  PixVal white;
   
   if (handle->Cookie != MPE_G_COOKIE) {
     fprintf( stderr, "Handle argument is incorrect or corrupted\n" );
@@ -737,7 +748,7 @@ MPE_Color  array[];
   /* here's something that works: */
   white = handle->xwin->cmapping[ncolors+1];
   for (i=0; i<ncolors; i++) {
-    array[i] = i+2;
+    array[i] = (MPE_Color)(i+2);
     handle->xwin->cmapping[ncolors+1-i] = handle->xwin->cmapping[ncolors-i];
   }
   handle->xwin->cmapping[MPE_BLACK] = handle->xwin->cmapping[0];
@@ -867,9 +878,9 @@ char *string;
   Input Parameters:
 . graph - MPE graphics handle
 . function - integer specifying one of the following:
-             MPE_LOGIC_COPY - no logic, just copy the pixel
-	     MPE_LOGIC_XOR - xor the new pixel with the existing one
-	     and many more... see mpe_graphics.h
+$             'MPE_LOGIC_COPY' - no logic, just copy the pixel
+$	     'MPE_LOGIC_XOR' - xor the new pixel with the existing one
+	     and many more... see 'mpe_graphics.h'
 
 @*/
 int MPE_Draw_logic( graph, function )
@@ -890,7 +901,7 @@ int function;
 
 
 /*@
-   MPE_Line_thickness - set thickness of lines
+   MPE_Line_thickness - Sets thickness of lines
 
   Input Parameters:
 . graph - MPE graphics handle
@@ -982,7 +993,7 @@ MPE_Color *mapping;
   if (!XAllocColor( graph->xwin->disp, graph->xwin->cmap, &colordef ))
     return -1;
   graph->xwin->cmapping[graph->xwin->maxcolors] = colordef.pixel;
-  *mapping = graph->xwin->maxcolors++;
+  *mapping = (MPE_Color) (graph->xwin->maxcolors++);
   if (graph->xwin->maxcolors == 256)
     graph->xwin->maxcolors = 255;
   return MPE_SUCCESS;

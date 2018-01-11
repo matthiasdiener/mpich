@@ -59,7 +59,6 @@ MPI_WSOURCES = keyval_freef.c \
 # MUST make group_rinclf.c and group_rexclf.c by hand
 MPI_TSOURCES = keyval_free.c \
 		attr_delval.c \
-		group_free.c \
 		group_rank.c group_size.c groupcompare.c \
 		comm_size.c group_tranks.c \
 		comm_testic.c comm_rank.c commcompare.c \
@@ -118,15 +117,18 @@ wrappers:
 manpages:
 	../../util/doctext -mpath ../../man/man3 -ext 3 -I pubinc \
 	   -index ../../www.index -jumpfile ../../jumpfile.list \
-	   -indexdir "http:/www.mcs.anl.gov/mpi/man" -heading MPI \
-		$(MPI_CSOURCES)
+	   -indexdir "http:/www.mcs.anl.gov/mpi/www/www3" -heading MPI \
+		-quotefmt ../../util/fortnotes $(MPI_CSOURCES)
 	../../util/doc2lt $(MPI_CSOURCES) >> ../../rsum.tmp
 
 wwwpages:
 	../../util/doctext -html -mpath ../../www/www3 -ext 3 -I pubinc \
 	   -index ../../www.index -jumpfile ../../jumpfile.list \
-	   -indexdir "http:/www.mcs.anl.gov/mpi/man" -heading MPI \
-		$(MPI_CSOURCES)
+	   -indexdir "http:/www.mcs.anl.gov/mpi/www/www3" -heading MPI \
+		-quotefmt ../../util/fortnotes $(MPI_CSOURCES)
+
+source_names:
+	@echo $(MPI_CSOURCES)
 
 $(MPI_OBJECTS) :  $(MPI_INCLUDE)
 

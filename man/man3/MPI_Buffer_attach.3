@@ -1,4 +1,4 @@
-.TH MPI_Buffer_attach 3 "5/9/1995" " " "MPI"
+.TH MPI_Buffer_attach 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Buffer_attach \- Attaches a user-defined buffer for sending
 
@@ -17,7 +17,9 @@ MPI_Buffer_attach \- Attaches a user-defined buffer for sending
 .SH NOTES
 The size given should be the sum of the sizes of all outstanding Bsends that
 you intend to have, plus a few hundred bytes for each Bsend that you do.
-For the purposes of calculating size, you should use MPI_Pack_size.
+For the purposes of calculating size, you should use 
+.I MPI_Pack_size
+.
 In other words, in the code
 .nf
      MPI_Buffer_attach( buffer, size );
@@ -26,7 +28,9 @@ In other words, in the code
      MPI_Bsend( ..., count=40, datatype=type2, ... );
 .fi
 
-the value of 'size' in the MPI_Buffer_attach call should be greater than
+the value of 
+.I size
+in the MPI_Buffer_attach call should be greater than
 the value computed by
 .nf
      MPI_Pack_size( 20, type1, comm, &s1 );
@@ -34,10 +38,38 @@ the value computed by
      size = s1 + s2 + 2 * MPI_BSEND_OVERHEAD;
 .fi
 
-The MPI_BSEND_OVERHEAD gives the maximum amount of space that may be used in
+The 
+.I MPI_BSEND_OVERHEAD
+gives the maximum amount of space that may be used in
 the buffer for use by the BSEND routines in using the buffer.  This value
-is in 'mpi.h' (for C) and 'mpif.h' (for Fortran).
+is in 
+.I mpi.h
+(for C) and 
+.I mpif.h
+(for Fortran).
 
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

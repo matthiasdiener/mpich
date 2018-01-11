@@ -45,20 +45,20 @@ char *argv[];
 			default:
 				fprintf(stderr,"Unrecognized argument %s\n",
 					argv[i]);
-				exit(EXIT_FAILURE);
+				MPI_Abort(MPI_COMM_WORLD,EXIT_FAILURE);
 		}
 	}
 
 	sb = (char *)malloc(size*chunk*sizeof(int));
 	if ( !sb ) {
 		fprintf(stderr,"can't allocate send buffer: %s\n",WHY);
-		exit(EXIT_FAILURE);
+		MPI_Abort(MPI_COMM_WORLD,EXIT_FAILURE);
 	}
 	rb = (char *)malloc(size*chunk*sizeof(int));
 	if ( !rb ) {
 		free(sb);
 		fprintf(stderr,"can't allocate recv buffer: %s\n",WHY);
-		exit(EXIT_FAILURE);
+		MPI_Abort(MPI_COMM_WORLD,EXIT_FAILURE);
 	}
 	for ( i=0 ; i < size*chunk ; ++i ) {
 		sb[i] = rank + 1;

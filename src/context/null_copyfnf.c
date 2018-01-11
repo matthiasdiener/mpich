@@ -35,13 +35,15 @@ extern void MPIR_RmPointer();
 #endif
 
 void mpi_null_copy_fn_ ( comm, keyval, extra_state, attr_in, attr_out, flag )
-MPI_Comm  *comm;
+MPI_Comm  comm;
 int       *keyval;
 void      *extra_state;
 void      *attr_in;
 void      *attr_out;
 int       *flag;
 {
-MPIR_null_copy_fn(comm,keyval,extra_state,attr_in,attr_out,flag);
+/* Note the we actually need to fix the comm argument, except that the
+   null function doesn't use it */
+MPIR_null_copy_fn(comm,*keyval,extra_state,attr_in,attr_out,flag);
 *flag = MPIR_TO_FLOG(*flag);
 }

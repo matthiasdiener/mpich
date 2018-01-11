@@ -1,5 +1,5 @@
 /*
- *  $Id: testall.c,v 1.17 1995/05/16 18:11:00 gropp Exp $
+ *  $Id: testall.c,v 1.20 1996/01/29 21:21:19 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -19,6 +19,13 @@ Input Parameters:
 Output Parameters:
 . flag - (logical) 
 . array_of_statuses - array of status objects (array of Status) 
+
+Notes:
+  'flag' is true only if all requests ave completed.  Otherwise, flag is
+  false and neither the 'array_of_requests' nor the 'array_of_statuses' is
+  modified.
+
+.N fortran
 @*/
 int MPI_Testall( count, array_of_requests, flag, array_of_statuses )
 int        count;
@@ -26,83 +33,130 @@ MPI_Request array_of_requests[];
 int        *flag;
 MPI_Status *array_of_statuses;
 {
-    int i, found, mpi_errno;
+    int i, mpi_errno = MPI_SUCCESS, mpi_lerr;
     MPI_Request request;
 
     MPID_Check_device( MPI_COMM_WORLD->ADIctx, 0 );
-    found = 1;
-    for (i = 0; i < count; i++)
-	{
+
+    /* This test must go in two phases: First, see if all are ready.
+       If not, then exit with flag false.  Otherwise, process them
+       ALL and return with flag true. 
+     */
+    for (i = 0; i < count; i++)	{
+	request = array_of_requests[i];
+
+	if ( !request || !request->chandle.active) {
+	    continue;
+	    }
+	if (!MPID_Test_request( MPID_Ctx( request ), request)) {
+	    /* Try to complete the send or receive */
+	    if (request->type == MPIR_SEND) {
+		if (!MPID_Test_send( request->shandle.comm->ADIctx, 
+				   &request->shandle )) 
+		    break;
+		}
+	    else {
+		if (!MPID_Test_recv( request->rhandle.comm->ADIctx, 
+				    &request->rhandle )) 
+		    break;
+		}
+	    }
+	}
+    
+    /* If we exited early, then we're done (false return) */
+    if (i != count) {
+	*flag = 0;
+	return MPI_SUCCESS;
+	}
+
+    *flag = 1;
+
+    /* Now gather information on the completed requests */
+    for (i = 0; i < count; i++)	{
 	request = array_of_requests[i];
 
 	if ( !request || !request->chandle.active) {
 	    /* See MPI Standard, 3.7 */
 	    array_of_statuses[i].MPI_TAG    = MPI_ANY_TAG;
 	    array_of_statuses[i].MPI_SOURCE = MPI_ANY_SOURCE;
+	    array_of_statuses[i].MPI_ERROR  = MPI_SUCCESS;
 	    array_of_statuses[i].count	    = 0;
 	    continue;
 	    }
-	else {
-	    if (!MPID_Test_request( MPID_Ctx( request ), request)) {
-		/* Try to complete the send or receive */
-		if (request->type == MPIR_SEND) {
-		    if (MPID_Test_send( request->shandle.comm->ADIctx, 
-				        &request->shandle )) {
-			MPID_Complete_send( request->shandle.comm->ADIctx, 
-					    &request->shandle );
-			}
+	/* We know that we can complete the operation. 
+           We don't need to use the Test_send/recv, but it doesn't hurt. */
+	if (!MPID_Test_request( MPID_Ctx( request ), request)) {
+	    /* Try to complete the send or receive */
+	    if (request->type == MPIR_SEND) {
+		if (MPID_Test_send( request->shandle.comm->ADIctx, 
+				   &request->shandle )) {
+		    MPID_Complete_send( request->shandle.comm->ADIctx, 
+				       &request->shandle );
 		    }
-		else {
-		    if (MPID_Test_recv( request->rhandle.comm->ADIctx, 
-				        &request->rhandle )) {
-			MPID_Complete_recv( request->rhandle.comm->ADIctx, 
+		}
+	    else {
+		if (MPID_Test_recv( request->rhandle.comm->ADIctx, 
+				   &request->rhandle )) {
+		    mpi_lerr = MPID_Complete_recv( 
+					    request->rhandle.comm->ADIctx, 
 					    &request->rhandle );
+		    if (mpi_lerr) {
+			mpi_errno = MPI_ERR_IN_STATUS;
+			array_of_statuses[i].MPI_ERROR = mpi_lerr;
 			}
 		    }
 		}
-	    if ( MPID_Test_request( MPID_Ctx( request ), request) ) {
-		if ( request->type == MPIR_RECV ) {
-		    array_of_statuses[i].MPI_SOURCE = request->rhandle.source;
-		    array_of_statuses[i].MPI_TAG    = request->rhandle.tag;
-		    array_of_statuses[i].count      = 
-			request->rhandle.totallen;
+	    }
+	/* At this point, the request is complete */
+	if ( request->type == MPIR_RECV ) {
+	    if (request->rhandle.errval) {
+		array_of_statuses[i].MPI_ERROR  = 
+		    request->rhandle.errval;
+		mpi_errno = MPI_ERR_IN_STATUS;
+		}
+	    array_of_statuses[i].MPI_SOURCE = request->rhandle.source;
+	    array_of_statuses[i].MPI_TAG    = request->rhandle.tag;
+	    array_of_statuses[i].count      = 
+		request->rhandle.totallen;
 #ifdef MPID_RETURN_PACKED
-		    if (request->rhandle.bufpos) 
-			if (mpi_errno = MPIR_UnPackMessage( 
-					       request->rhandle.bufadd, 
-					       request->rhandle.count, 
-					       request->rhandle.datatype, 
-					       request->rhandle.source,
-					       request, 
-   					       &array_of_statuses[i].count )) 
-			    return mpi_errno;
-#endif
+	    if (request->rhandle.bufpos) 
+		if (mpi_lerr = MPIR_UnPackMessage( 
+						  request->rhandle.bufadd, 
+						  request->rhandle.count, 
+						  request->rhandle.datatype, 
+						  request->rhandle.source,
+						  request, 
+					      &array_of_statuses[i].count )) {
+		    array_of_statuses[i].MPI_ERROR = mpi_lerr;
+		    mpi_errno = MPI_ERR_IN_STATUS;
 		    }
-		else {
+#endif
+	    }
+	else {
 #if defined(MPID_PACK_IN_ADVANCE) || defined(MPID_HAS_HETERO)
-		    if (request->shandle.bufpos && 
-			(mpi_errno = MPIR_SendBufferFree( request ))){
-			MPIR_ERROR( MPI_COMM_NULL, mpi_errno, 
+	    if (request->shandle.bufpos && 
+		(mpi_errno = MPIR_SendBufferFree( request ))){
+		MPIR_ERROR( MPI_COMM_NULL, mpi_errno, 
 		       "Could not free allocated send buffer in MPI_TESTALL" );
-			}
-#endif
-		    }
-		if (!request->chandle.persistent) {
-		    if (--request->chandle.datatype->ref_count <= 0) {
-			MPIR_Type_free( &request->chandle.datatype );
-			}
-		    MPI_Request_free( &array_of_requests[i] );
-		    /* Question: should we ALWAYS set to null? */
-		    array_of_requests[i]    = NULL;
-		    }
-		else {
-		    MPIR_RESET_PERSISTENT(request)
-		    }
 		}
-	    else 
-		found = 0;
+#endif
+	    }
+
+	if (!request->chandle.persistent) {
+	    if (--request->chandle.datatype->ref_count <= 0) {
+		MPIR_Type_free( &request->chandle.datatype );
+		}
+	    MPI_Request_free( &array_of_requests[i] );
+	    /* Question: should we ALWAYS set to null? */
+	    array_of_requests[i]    = NULL;
+	    }
+	else {
+	    MPIR_RESET_PERSISTENT(request)
 	    }
 	}
-    *flag = found;	
-    return MPI_SUCCESS;
-}    
+
+    if (mpi_errno) {
+	return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, "Error in MPI_TESTALL");
+	}
+    return mpi_errno;
+}

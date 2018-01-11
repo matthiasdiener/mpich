@@ -1,5 +1,5 @@
 /*
- *  $Id: ssend.c,v 1.5 1994/12/21 14:31:08 gropp Exp $
+ *  $Id: ssend.c,v 1.6 1995/12/21 21:26:45 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: ssend.c,v 1.5 1994/12/21 14:31:08 gropp Exp $";
+static char vcid[] = "$Id: ssend.c,v 1.6 1995/12/21 21:26:45 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -23,6 +23,7 @@ Input Parameters:
 . tag - message tag (integer) 
 . comm - communicator (handle) 
 
+.N fortran
 @*/
 int MPI_Ssend( buf, count, datatype, dest, tag, comm )
 void             *buf;

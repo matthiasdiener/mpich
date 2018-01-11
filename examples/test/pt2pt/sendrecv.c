@@ -26,11 +26,10 @@ static int do_test3 = 1;
 #define MAX_TYPES 12
 #if defined(__STDC__) 
 static int ntypes = 12;
-static MPI_Datatype BasicTypes[12];
 #else
 static int ntypes = 11;
-static MPI_Datatype BasicTypes[11];
 #endif
+static MPI_Datatype BasicTypes[MAX_TYPES];
 
 static int maxbufferlen = 10000;
 
@@ -214,19 +213,17 @@ SetupBasicTypes()
     BasicTypes[7] = MPI_UNSIGNED_LONG;
     BasicTypes[8] = MPI_FLOAT;
     BasicTypes[9] = MPI_DOUBLE;
+    BasicTypes[10] = MPI_BYTE;
+    /* By making the BYTE type LAST, we make it easier to handle heterogeneous
+       systems that may not support all of the types */
 #if defined (__STDC__)
     if (MPI_LONG_DOUBLE) {
-	BasicTypes[10] = MPI_LONG_DOUBLE;
-	BasicTypes[11] = MPI_BYTE;
+	BasicTypes[11] = MPI_LONG_DOUBLE;
 	}
     else {
 	ntypes = 11;
-	BasicTypes[10] = MPI_BYTE;
 	}
-#else
-    BasicTypes[10] = MPI_BYTE;
 #endif
-
 
 }
 
@@ -294,8 +291,8 @@ ReceiverTest1()
 	    } else if (MPI_Get_count(&Stat, BasicTypes[i], &dummy) ||
 		       dummy != j) {
 		fprintf(stderr, 
-			"*** Incorrect Count returned, Count = %d. ***\n", 
-			dummy);
+	    "*** Incorrect Count returned, Count = %d (should be %d). ***\n", 
+			dummy, j);
 		Test_Failed(message);
 		passed = 0;
 	    } else if(CheckBuffer(bufferspace[i], BasicTypes[i], j)) {
@@ -497,7 +494,7 @@ main(argc, argv)
     char **argv;
 {
     int myrank, mysize;
-    int rc;
+    int rc, itemp;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
@@ -510,6 +507,10 @@ main(argc, argv)
 		"*** This test program requires exactly 2 processes.\n");
 	exit(-1);
     }
+
+    /* Get the min of the basic types */
+    itemp = ntypes;
+    MPI_Allreduce( &itemp, &ntypes, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD );
 
     /* dest writes out the received stats; for the output to be
        consistant (with the final check), it should be procees 0 */

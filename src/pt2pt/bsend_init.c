@@ -1,5 +1,5 @@
 /*
- *  $Id: bsend_init.c,v 1.22 1995/09/13 21:46:53 gropp Exp $
+ *  $Id: bsend_init.c,v 1.23 1995/12/21 21:10:55 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -22,6 +22,8 @@ Input Parameters:
 
 Output Parameter:
 . request - communication request (handle) 
+
+.N fortran
 @*/
 int MPI_Bsend_init( buf, count, datatype, dest, tag, comm, request )
 void          *buf;
@@ -45,6 +47,7 @@ MPI_Request   *request;
     /* See MPI_TYPE_FREE.  A free can not happen while the datatype may
        be in use.  Thus, a nonblocking operation increments the
        reference count */
+    MPIR_GET_REAL_DATATYPE(datatype)
     datatype->ref_count++;
     *request                        = 
 	(MPI_Request) MPIR_SBalloc( MPIR_shandles );

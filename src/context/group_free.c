@@ -1,5 +1,5 @@
 /*
- *  $Id: group_free.c,v 1.13 1994/12/15 16:33:00 gropp Exp $
+ *  $Id: group_free.c,v 1.14 1995/12/21 22:07:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -16,8 +16,10 @@ Input Parameter
 . group - group (handle) 
 
 Notes:
-On output, group is set to MPI_GROUP_NULL.
+On output, group is set to 'MPI_GROUP_NULL'.
 
+
+.N fortran
 @*/
 int MPI_Group_free ( group )
 MPI_Group *group;

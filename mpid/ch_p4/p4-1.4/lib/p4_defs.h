@@ -93,7 +93,6 @@ struct listener_data {
 struct p4_msg {
     struct p4_msg *link;
     int orig_len;
-    int pad;
     int type;                
     int to;
     int from;
@@ -101,6 +100,7 @@ struct p4_msg {
     int len;
     int msg_id;		        /* for i860 messages */
     int data_type;		/* for use by xdr */
+    int pad;
     char *msg;	/* variable length array of characters */
 };
 
@@ -112,7 +112,8 @@ struct p4_net_msg_hdr {
     int msg_len:32;
     int msg_id:32;		/* for i860 messages */
     int data_type:32;		/* for use by xdr */
-    int pad:32;                 /* pad field to word boundary */
+    int imm_from:32;            /* may differ from "from" in brdcst */
+    /*  int pad:32;  */                 /* pad field to word boundary */
 };
 
 struct net_initial_handshake {

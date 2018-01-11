@@ -1,5 +1,5 @@
 /*
- *  $Id: reduce.c,v 1.33 1995/06/21 03:11:32 gropp Exp $
+ *  $Id: reduce.c,v 1.34 1995/12/21 22:17:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: reduce.c,v 1.33 1995/06/21 03:11:32 gropp Exp $";
+static char vcid[] = "$Id: reduce.c,v 1.34 1995/12/21 22:17:26 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -28,11 +28,12 @@ Input Parameters:
 
 Output Parameter:
 . recvbuf - address of receive buffer (choice, 
-significant only at root) 
+significant only at 'root') 
 
 Algorithm:
 This implementation currently uses a simple tree algorithm.
 
+.N fortran
 @*/
 int MPI_Reduce ( sendbuf, recvbuf, count, datatype, op, root, comm )
 void             *sendbuf;

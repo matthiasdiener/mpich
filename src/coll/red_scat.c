@@ -1,12 +1,12 @@
 /*
- *  $Id: red_scat.c,v 1.21 1995/06/21 03:11:20 gropp Exp $
+ *  $Id: red_scat.c,v 1.22 1995/12/21 22:17:21 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: red_scat.c,v 1.21 1995/06/21 03:11:20 gropp Exp $";
+static char vcid[] = "$Id: red_scat.c,v 1.22 1995/12/21 22:17:21 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -28,6 +28,8 @@ Array must be identical on all calling processes.
 
 Output Parameter:
 . recvbuf - starting address of receive buffer (choice) 
+
+.N fortran
 @*/
 int MPI_Reduce_scatter ( sendbuf, recvbuf, recvcnts, datatype, op, comm )
 void             *sendbuf;

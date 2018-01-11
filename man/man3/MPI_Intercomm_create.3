@@ -1,4 +1,4 @@
-.TH MPI_Intercomm_create 3 "6/20/1995" " " "MPI"
+.TH MPI_Intercomm_create 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Intercomm_create \- Creates an intercommuncator from two intracommunicators
 
@@ -27,10 +27,13 @@ MPI_Intercomm_create \- Creates an intercommuncator from two intracommunicators
 .TP
 .B tag 
 - Message tag to use in constructing intercommunicator; if multiple
-.PD 1
-MPI_Intercomm_creates are being made, they should use different tags (more
+.I MPI_Intercomm_creates
+are being made, they should use different tags (more
 precisely, ensure that the local and remote leaders are using different
-tags for each MPI_intercomm_create).
+tags for each 
+.I MPI_intercomm_create
+).
+.PD 1
 
 .SH OUTPUT PARAMETER
 .PD 0
@@ -39,8 +42,28 @@ tags for each MPI_intercomm_create).
 - Created intercommunicator
 .PD 1
 
-int MPI_Intercomm_create ( local_comm, local_leader, peer_comm,
-remote_leader, tag, comm_out )
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 
 .SH ALGORITHM
 .PD 0
@@ -52,12 +75,16 @@ Allocate a send context, an inter-coll context, and an intra-coll context
 .TP
 .B 2) 
 Send "send_context" and lrank_to_grank list from local comm group 
-if I'm the local_leader.
+if I
+.I 
+m the local_leader.
 .PD 1
 .PD 0
 .TP
 .B 3) 
-If I'm the local leader, then wait on the posted sends and receives
+If I
+.I 
+m the local leader, then wait on the posted sends and receives
 to complete.  Post the receive for the remote group information and
 wait for it to complete.
 .PD 1
@@ -81,11 +108,14 @@ local & remote groups, and a collective intra-communicator that can
 be used to allocate new contexts during the merge and dup operations.
 .PD 1
 
-For the resulting inter-communicator, comm_out
+For the resulting inter-communicator, 
+.I comm_out
 
-comm_out                       = inter-communicator
-comm_out->comm_coll            = "collective" inter-communicator
-comm_out->comm_coll->comm_coll = safe collective intra-communicator
+.nf
+       comm_out                       = inter-communicator
+       comm_out->comm_coll            = "collective" inter-communicator
+       comm_out->comm_coll->comm_coll = safe collective intra-communicator
+.fi
 
 .SH SYNOPSIS
 .nf

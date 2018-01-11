@@ -1,5 +1,5 @@
 /*
- *  $Id: mpid.h,v 1.6 1995/08/11 00:21:56 gropp Exp $
+ *  $Id: mpid.h,v 1.7 1996/01/03 19:07:39 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -16,5 +16,8 @@
 #endif
 
 #include "mpid_bind.h"
-
+/* 
+   Define MPID_END_NEEDS_BARRIER for finalize to call MPI_BARRIER
+   before MPID_END
+  */
 #endif

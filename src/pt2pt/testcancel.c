@@ -1,12 +1,12 @@
 /*
- *  $Id: testcancel.c,v 1.6 1994/07/13 15:51:10 lusk Exp $
+ *  $Id: testcancel.c,v 1.7 1995/12/21 21:35:49 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: testcancel.c,v 1.6 1994/07/13 15:51:10 lusk Exp $";
+static char vcid[] = "$Id: testcancel.c,v 1.7 1995/12/21 21:35:49 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -20,6 +20,8 @@ Input Parameter:
 
 Output Parameter:
 . flag - (logical) 
+
+.N fortran
 @*/
 int MPI_Test_cancelled( status, flag )
 MPI_Status *status;

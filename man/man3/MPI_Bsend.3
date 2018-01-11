@@ -1,4 +1,4 @@
-.TH MPI_Bsend 3 "9/13/1995" " " "MPI"
+.TH MPI_Bsend 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Bsend \- Basic send with user-specified buffering
 
@@ -37,18 +37,47 @@ MPI_Bsend \- Basic send with user-specified buffering
 .SH NOTES
 This send is provided as a convenience function; it allows the user to
 send messages without worring about where they are buffered (because the
-user `must` have provided buffer space with MPI_Buffer_attach).
+user 
+.B must
+have provided buffer space with 
+.I MPI_Buffer_attach
+).
 
 The buffer space can not be reused unless you are certain that the message
 has been received (not just that it should have been received).  In C, you can
-force the messages to be deliverd by
+force the messages to be delivered by
 .nf
     MPI_Buffer_detach( &b, &n );
     MPI_Buffer_attach( b, n );
 .fi
 
-(The 'MPI_Buffer_detach' will not complete until all buffered messages are
+(The 
+.I MPI_Buffer_detach
+will not complete until all buffered messages are
 delivered.)
+
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 
 .SH SEE ALSO
  MPI_Buffer_attach, MPI_Ibsend, MPI_Bsend_init

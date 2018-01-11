@@ -1,4 +1,4 @@
-.TH MPI_Attr_put 3 "6/2/1995" " " "MPI"
+.TH MPI_Attr_put 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Attr_put \- Stores attribute value associated with a key
 
@@ -11,7 +11,9 @@ MPI_Attr_put \- Stores attribute value associated with a key
 .PD 0
 .TP
 .B keyval 
-- key value, as returned by  MPI_KEYVAL_CREATE (integer) 
+- key value, as returned by  
+.I MPI_KEYVAL_CREATE
+(integer) 
 .PD 1
 .PD 0
 .TP
@@ -20,17 +22,53 @@ MPI_Attr_put \- Stores attribute value associated with a key
 .PD 1
 
 .SH NOTES
-Values of the permanent attributes MPI_TAG_UB, MPI_HOST, and MPI_IO may not
-be changed.
+Values of the permanent attributes 
+.I MPI_TAG_UB
+, 
+.I MPI_HOST
+, 
+.I MPI_IO
+, and
+.I MPI_WTIME_IS_GLOBAL
+may not be changed.
 
 The type of the attribute value depends on whether C or Fortran is being used.
-In C, an attribute value is a pointer (void *); in Fortran, it is a single
-integer (NOT a pointer, since Fortran has no pointers and their are systems
+In C, an attribute value is a pointer (
+.I void *
+); in Fortran, it is a single
+integer (
+.B not
+a pointer, since Fortran has no pointers and there are systems
 for which a pointer does not fit in an integer (e.g., any > 32 bit address
-system that uses 64 bits for Fortran DOUBLE PRECISION).
+system that uses 64 bits for Fortran 
+.I DOUBLE PRECISION
+).
 
 If an attribute is already present, the delete function (specified when the
 corresponding keyval was created) will be called.
+
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 
 .SH SEE ALSO
  MPI_Attr_get, MPI_Keyval_create, MPI_Attr_delete

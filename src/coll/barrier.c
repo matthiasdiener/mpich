@@ -1,12 +1,12 @@
 /*
- *  $Id: barrier.c,v 1.18 1995/06/21 03:09:46 gropp Exp $
+ *  $Id: barrier.c,v 1.19 1995/12/21 22:16:47 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: barrier.c,v 1.18 1995/06/21 03:09:46 gropp Exp $";
+static char vcid[] = "$Id: barrier.c,v 1.19 1995/12/21 22:16:47 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -28,8 +28,9 @@ Algorithm:
 If the underlying device cannot do better, a tree-like or combine
 algorithm is used to broadcast a message wto all members of the
 communicator.  We can modifiy this to use "blocks" at a later time
-(see MPI_Bcast).
+(see 'MPI_Bcast').
 
+.N fortran
 @*/
 int MPI_Barrier ( comm )
 MPI_Comm comm;

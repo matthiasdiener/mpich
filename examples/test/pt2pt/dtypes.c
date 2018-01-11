@@ -257,6 +257,34 @@ for (i=0; i<size_bytes; i++) {
 return 0;
 }
 
+/* 
+ * This is a version of CheckData that prints error messages
+ */
+int CheckDataAndPrint( inbuf, outbuf, size_bytes, typename, typenum )
+void *inbuf, *outbuf;
+int  size_bytes, typenum;
+char *typename;
+{
+int errloc, world_rank;
+
+if (errloc = CheckData( inbuf, outbuf, size_bytes )) {
+    char *p1, *p2;
+    MPI_Comm_rank( MPI_COMM_WORLD, &world_rank );
+    fprintf( stderr, 
+	    "Error in data with type %s (type %d on %d) at byte %d\n", 
+	    typename, typenum, world_rank, errloc - 1 );
+    p1 = (char *)inbuf;
+    p2 = (char *)outbuf;
+    fprintf( stderr, 
+	    "Got %x expected %x\n", p1[errloc-1], p2[errloc-1] );
+#if 0
+    MPIR_PrintDatatypeUnpack( stderr, counts[j], types[j], 
+			     0, 0 );
+#endif
+    }
+return errloc;
+}
+
 void FreeDatatypes( types, inbufs, outbufs, counts, bytesize, names, n )
 MPI_Datatype *types;
 void **inbufs;

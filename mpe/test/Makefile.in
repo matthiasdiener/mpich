@@ -1,8 +1,7 @@
 ##### User configurable options #####
 # This is an example Makefile.in (or Makefile configured with mpireconfig)
-# for the programs cpi, pi3, and cpilog.  
 
-ARCH        = @ARCH@
+LARCH       = @ARCH@
 COMM        = @COMM@
 INSTALL_DIR = @MPIR_HOME@
 CC          = @CC@
@@ -11,19 +10,20 @@ CLINKER     = @CLINKER@
 FLINKER     = @FLINKER@
 OPTFLAGS    = @OPTFLAGS@
 #
-LIB_PATH    = -L$(INSTALL_DIR)/lib/$(ARCH)/$(COMM)
-FLIB_PATH   = @FLIB_PATH_LEADER@$(INSTALL_DIR)/lib/$(ARCH)/$(COMM)
+LIB_PATH    = -L$(INSTALL_DIR)/lib/$(LARCH)/$(COMM)
+FLIB_PATH   = @FLIB_PATH_LEADER@$(INSTALL_DIR)/lib/$(LARCH)/$(COMM)
 LIB_LIST    = @LIB_LIST@
+MPE_LIBS    = @MPE_LIBS@
 #
 INCLUDE_DIR = @INCLUDE_PATH@ -I$(INSTALL_DIR)/include
 
 ### End User configurable options ###
 
-CFLAGS  = @CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
+CFLAGS  = @CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(LARCH)
 FFLAGS = @FFLAGS@ $(INCLUDE_DIR) $(OPTFLAGS)
 LIBS = $(LIB_PATH) -lmpe $(LIB_LIST)
 FLIBS = $(FLIB_PATH) $(LIB_LIST)
-EXECS = pttest
+EXECS = pttest fpilog
 
 default: pttest
 
@@ -33,6 +33,9 @@ pttest: pttest.o
 	$(CLINKER) $(OPTFLAGS) -o pttest pttest.o \
 	$(LIB_PATH) -lmpe $(LIB_LIST) -lm
 
+fpilog: fpi.o 
+	$(FLINKER) $(OPTFLAGS) -o fpilog fpi.o $(FLIB_PATH) \
+	-lfmpi -llmpi -lpmpi -lm $(MPE_LIBS) $(LIB_LIST)
 clean:
 	/bin/rm -f *.o *~ PI* $(EXECS)
 

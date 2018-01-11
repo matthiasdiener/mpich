@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_util.c,v 1.20 1995/09/18 15:41:17 gropp Exp $
+ *  $Id: attr_util.c,v 1.22 1996/01/08 19:48:34 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -35,9 +35,10 @@ MPIR_HBT_node *node;
       if (attr_key->FortranCalling) {
 	  /* The following code attempts to suppress warnings about 
 	     converting an int, stored in a void *, back to an int. */
+	  /* We may also need to do something about the "comm" argument */
 	  MPI_Aint  invall = (MPI_Aint)node->value;
           int inval = (int)invall;
-          mpi_errno = (*(attr_key->copy_fn))(&comm, &node->keyval, 
+          mpi_errno = (*(attr_key->copy_fn))(comm, &node->keyval, 
                                              attr_key->extra_state,
                                              &inval, 
                                              &attr_ival, &flag );
@@ -45,7 +46,7 @@ MPIR_HBT_node *node;
           flag = MPIR_FROM_FLOG(flag);
 	  }
       else {
-          mpi_errno = (*(attr_key->copy_fn))(&comm, &node->keyval, 
+          mpi_errno = (*(attr_key->copy_fn))(comm, node->keyval, 
                                              attr_key->extra_state,
                                              node->value, &attr_val, &flag );
       }
@@ -129,13 +130,14 @@ MPIR_HBT_node *node;
 	if (attr_key->FortranCalling) {
 	    MPI_Aint  invall = (MPI_Aint)node->value;
 	    int inval = (int)invall;
-	    (void ) (*(attr_key->delete_fn))(&comm, &node->keyval, 
+	    /* We may also need to do something about the "comm" argument */
+	    (void ) (*(attr_key->delete_fn))(comm, &node->keyval, 
 					     &inval, 
 					     attr_key->extra_state);
 	    node->value = (void *)inval;
 	    }
 	else
-	    (void ) (*(attr_key->delete_fn))(&comm, &node->keyval, 
+	    (void ) (*(attr_key->delete_fn))(comm, node->keyval, 
 					     node->value, 
 					     attr_key->extra_state);
 	}

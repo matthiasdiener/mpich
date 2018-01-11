@@ -1,5 +1,5 @@
 /*
- *  $Id: test.c,v 1.12 1995/05/09 18:59:17 gropp Exp $
+ *  $Id: test.c,v 1.13 1995/12/21 21:35:38 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -16,6 +16,8 @@ Input Parameter:
 Output Parameter:
 . flag - true if operation completed (logical) 
 . status - status object (Status) 
+
+.N fortran
 @*/
 int MPI_Test ( request, flag, status )
 MPI_Request  *request;

@@ -156,6 +156,16 @@ else \
 
    Note that the message-passing version of this uses the 'ready-receiver'
    version of the operations.
+
+   There is a problem with the receive transfer definition.  The simplest
+   form would be MPID_TestRecvTransfer( dmpi_recv_handle->dev_rhandle.rid )
+   However, it might be that that test only indicates whether the transfer
+   if READY for completion, not that it HAS been completed.  It may require
+   an additional step to actually complete the transfer, using more 
+   information than just the rid.  For this reason, there is an additional
+   MPID_CompleteRecvTransfer( ... ) called only when a test succeeds.
+   Some implementations may leave this empty
+   
  */
 #define MPID_CreateSendTransfer( buf, size, partner, id ) {*(id) = 0;}
 #define MPID_CreateRecvTransfer( buf, size, partner, id ) \
@@ -173,6 +183,8 @@ else \
      if (--TagsInUse == 0) CurTag = 1024; else if (id == CurTag-1) CurTag--;}
 #define MPID_TestRecvTransfer( rid ) \
     1
+#define MPID_CompleteRecvTransfer( buf, size, partner, id, rid )
+
 #else
 /* Put the tag value into rid so that we can probe it ... */
 #define MPID_StartRecvTransfer( buf, size, partner, id, rid ) \
@@ -186,6 +198,8 @@ else \
      if (--TagsInUse == 0) CurTag = 1024; else if (id == CurTag-1) CurTag--;}
 #define MPID_TestRecvTransfer( rid ) \
     (__P4TYPE=rid ,__P4FROM= -1,p4_messages_available(&__P4TYPE,&__P4FROM))
+#define MPID_CompleteRecvTransfer( buf, size, partner, id, rid ) \
+        MPID_EndRecvTransfer( buf, size, partner, id, rid )
 #endif
 
 #ifdef PI_NO_NSEND

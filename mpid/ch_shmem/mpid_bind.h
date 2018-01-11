@@ -55,6 +55,8 @@ extern void MPID_Sync_discard ANSI_ARGS(( MPIR_SHANDLE * ));
 extern void MPID_SHMEM_Pkt_pack ANSI_ARGS(( MPID_PKT_T *, int, int ));
 extern void MPID_SHMEM_Pkt_unpack ANSI_ARGS(( MPID_PKT_T *, int, int ));
 
+extern void MPID_SHMEM_Print_Send_Handle ANSI_ARGS(( MPIR_SHANDLE *));
+
 /*
 These are now static ...
 extern int MPID_SHMEM_Copy_body_short 

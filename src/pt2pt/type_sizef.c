@@ -37,7 +37,8 @@ MPI_Datatype  datatype;
 int           *size;
 int           *__ierr;
 {
-MPI_Aint c_size;
+/* MPI_Aint c_size;*/
+int c_size;
 *__ierr = MPI_Type_size(
 	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ), &c_size);
 *size = (int)c_size;

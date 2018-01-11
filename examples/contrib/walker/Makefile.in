@@ -1,0 +1,50 @@
+
+# Here is what we need to run programs in this directory
+
+ARCH        = @ARCH@
+COMM        = @COMM@
+BOPT        = @BOPT@
+P4_DIR      = @P4_DIR@
+TOOLS_DIR   = @TOOLS_DIR@
+MPIR_HOME   = @MPIR_HOME@
+CC          = @CC@
+CLINKER     = $(CC)
+CCC         = @CPP_COMPILER@
+CCLINKER    = $(CCC)
+F77         = @F77@
+FLINKER     = $(F77)
+AR          = @AR@
+RANLIB      = @RANLIB@
+PROFILING   = $(PMPILIB)
+OPTFLAGS    = @OPTFLAGS@
+LIB_PATH    = @LIB_PATH@
+LIB_LIST    = @LIB_LIST@
+#
+INCLUDE_DIR = @USER_INCLUDE_PATH@ -I$(MPIR_HOME)/include 
+DEVICE      = @DEVICE@
+
+### End User configurable options ###
+
+SHELL	= /bin/sh
+CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
+CCFLAGS = $(CFLAGS)
+FFLAGS = @FFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR)
+MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a 
+MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
+LIBS = $(LIB_PATH) $(LIB_LIST)
+LIBSPP = $(MPIPPLIB) $(LIBS)
+EXECS  = nbody sor
+OBJS   = nbody.o sor.o
+
+nbody: nbody.o $(MPILIB)
+	$(FLINKER) $(OPTFLAGS) -o nbody nbody.o $(LIBS) -lm
+
+sor: sor.o $(MPILIB)
+	$(FLINKER) $(OPTFLAGS) -o sor sor.o $(LIBS) -lm
+
+clean:
+	/bin/rm -f $(EXECS) $(OBJS) nbody.output sor.output
+
+# No DIRS defined.
+#	for dir in $(DIRS) ; do \
+#	if [ -s $$dir ] ; then ( cd $$dir ; $(MAKE) clean ) ; fi ; done

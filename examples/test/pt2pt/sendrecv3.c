@@ -23,6 +23,7 @@ int          *counts, *bytesize, ntype;
 MPI_Comm     comms[20];
 int          ncomm = 20, rank, np, partner, tag, count, source, size;
 int          i, j, k, err, world_rank;
+int          errloc;
 MPI_Status   status;
 char         *obuf;
 
@@ -41,6 +42,9 @@ for (i=0; i<ncomm; i++) {
     MPI_Comm_rank( comms[i], &rank );
     MPI_Comm_size( comms[i], &np );
     if (np < 2) continue;
+    if (world_rank == 0) {
+	fprintf( stdout, "Testing with communicator with %d members\n", np );
+	}
     tag = i;
     for (j=0; j<ntype; j++) {
 	if (world_rank == 0) 
@@ -81,10 +85,10 @@ for (i=0; i<ncomm; i++) {
 			 status.MPI_SOURCE, partner, names[j] );
                 err++;
                 }
-            if (CheckData( inbufs[j], outbufs[j], bytesize[j] )) {
+            if (errloc = CheckData( inbufs[j], outbufs[j], bytesize[j] )) {
 		fprintf( stderr, 
-                         "Error in data with type %s (type %d on %d)\n", 
-			 names[j], j, world_rank );
+                    "Error in data at byte %d with type %s (type %d on %d)\n", 
+			 errloc - 1, names[j], j, world_rank );
                 err++;
                 }
 	    /* Receive packed, then unpack */
@@ -98,27 +102,32 @@ for (i=0; i<ncomm; i++) {
 	    for (k=0; k<bytesize[j]; k++) 
 		obuf[k] = 0;
 	    position = 0;
+            MPI_Get_count( &status, MPI_PACKED, &unpacksize );
 	    MPI_Unpack( unpackbuf, unpacksize, &position, 
 		        outbufs[j], counts[j], types[j], comms[i] );
 	    free( unpackbuf );
             /* Test correct */
-            MPI_Get_count( &status, types[j], &count );
+#ifdef FOO
+	    /* Length is tricky; a correct code will have signaled an error 
+	       in MPI_Unpack */
+	    count = position;
             if (count != counts[j]) {
 		fprintf( stderr, 
 		"Error in counts (got %d expected %d) with type %s (Unpack)\n",
 			 count, counts[j], names[j] );
                 err++;
                 }
+#endif
             if (status.MPI_SOURCE != partner) {
 		fprintf( stderr, 
 		"Error in source (got %d expected %d) with type %s (Unpack)\n",
 			 status.MPI_SOURCE, partner, names[j] );
                 err++;
                 }
-            if (CheckData( inbufs[j], outbufs[j], bytesize[j] )) {
+            if (errloc = CheckData( inbufs[j], outbufs[j], bytesize[j] )) {
 		fprintf( stderr, 
-                      "Error in data with type %s (type %d on %d, Unpack)\n", 
-			names[j], j, world_rank );
+            "Error in data at byte %d with type %s (type %d on %d, Unpack)\n", 
+			errloc - 1, names[j], j, world_rank );
                 err++;
                 }
             }
@@ -129,6 +138,7 @@ if (err > 0) {
     }
 FreeDatatypes( types, inbufs, outbufs, counts, bytesize, names, ntype );
 FreeComms( comms, ncomm );
+MPI_Barrier( MPI_COMM_WORLD );
 MPI_Finalize();
 return err;
 }

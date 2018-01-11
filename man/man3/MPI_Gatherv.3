@@ -1,4 +1,4 @@
-.TH MPI_Gatherv 3 "6/20/1995" " " "MPI"
+.TH MPI_Gatherv 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Gatherv \- Gathers into specified locations from all processes in a group
 
@@ -23,21 +23,28 @@ MPI_Gatherv \- Gathers into specified locations from all processes in a group
 .B recvcounts 
 - integer array (of length group size) 
 containing the number of elements that are received from each process
-(significant only at root) 
+(significant only at 
+.I root
+) 
 .PD 1
 .PD 0
 .TP
 .B displs 
 - integer array (of length group size). Entry 
-i  specifies the displacement relative to recvbuf  at
-which to place the incoming data from process  i  (significant only
+.I i
+specifies the displacement relative to recvbuf  at
+which to place the incoming data from process  
+.I i
+(significant only
 at root) 
 .PD 1
 .PD 0
 .TP
 .B recvtype 
 - data type of recv buffer elements 
-(significant only at root) (handle) 
+(significant only at 
+.I root
+) (handle) 
 .PD 1
 .PD 0
 .TP
@@ -54,9 +61,33 @@ at root)
 .PD 0
 .TP
 .B recvbuf 
-- address of receive buffer (choice, significant only at root) 
+- address of receive buffer (choice, significant only at 
+.I root
+) 
 .PD 1
 
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

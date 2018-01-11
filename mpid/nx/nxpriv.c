@@ -239,6 +239,7 @@ MPI_ICC_Bcast(void *buffer, int count, MPI_Datatype datatype,
 	if ((icc_comm = (iCC_g_Comm)mpi_comm->adiCollCtx) == (iCC_g_Comm) 0) {
 		return(MPIR_ERROR(mpi_comm,MPI_ERR_INTERN,"Error in Bcast"));
 	}
+	MPIR_GET_REAL_DATATYPE(datatype)
 	if ((datatype->dte_type > MPIR_FORT_INT) ||
 	    (MPI2ICC_Datatype[datatype->dte_type] == (iCC_g_Datatype) -1)) {
 		return(Save_MPIR_collops.Bcast(buffer, count, datatype,
@@ -268,6 +269,8 @@ MPI_ICC_Gather(void* sendbuf, int sendcount,MPI_Datatype sendtype,
 		return(MPIR_ERROR(mpi_comm,MPI_ERR_INTERN,"Error in Gather"));
 	}
 	/* Collect extent of send buffers from all processes, error check it*/
+	MPIR_GET_REAL_DATATYPE(sendtype)
+	MPIR_GET_REAL_DATATYPE(recvtype)
 	if ((sendtype->dte_type > MPIR_FORT_INT) ||
 	    (MPI2ICC_Datatype[sendtype->dte_type] == (iCC_g_Datatype) -1) ||
 	    (recvtype->dte_type > MPIR_FORT_INT) ||
@@ -343,6 +346,8 @@ MPI_ICC_Scatter(void* sendbuf, int sendcount, MPI_Datatype sendtype,
 		return(MPIR_ERROR(mpi_comm,MPI_ERR_INTERN,"Error in Scatter"));
 	}
 	/* Collect extent of send buffers from all processes, error check it*/
+	MPIR_GET_REAL_DATATYPE(sendtype)
+	MPIR_GET_REAL_DATATYPE(recvtype)
 	if ((sendtype->dte_type > MPIR_FORT_INT) ||
 	    (MPI2ICC_Datatype[sendtype->dte_type] == (iCC_g_Datatype) -1) ||
 	    (recvtype->dte_type > MPIR_FORT_INT) ||
@@ -417,6 +422,8 @@ MPI_ICC_Allgather(void *sendbuf, int sendcount,MPI_Datatype sendtype,
 	       return(MPIR_ERROR(mpi_comm,MPI_ERR_INTERN,"Error in Allgather"));
 	}
 	/* Collect extent of send buffers from all processes, error check it*/
+	MPIR_GET_REAL_DATATYPE(sendtype)
+	MPIR_GET_REAL_DATATYPE(recvtype)
 	if ((sendtype->dte_type > MPIR_FORT_INT) ||
 	    (MPI2ICC_Datatype[sendtype->dte_type] == (iCC_g_Datatype) -1) ||
 	    (recvtype->dte_type > MPIR_FORT_INT) ||
@@ -501,6 +508,7 @@ MPI_ICC_Allreduce(void *sbuf, void *rbuf,int count, MPI_Datatype datatype,
 	if ((icc_comm = (iCC_g_Comm)mpi_comm->adiCollCtx) == (iCC_g_Comm) 0) {
 	       return(MPIR_ERROR(mpi_comm,MPI_ERR_INTERN,"Error in Allreduce"));
 	}
+	MPIR_GET_REAL_DATATYPE(datatype)
 	if ((datatype->dte_type > MPIR_FORT_INT) ||
 	    (MPI2ICC_Datatype[datatype->dte_type] == (iCC_g_Datatype) -1) ||
 	    ((icc_op = MPI2ICC_OP(MPI2ICC_Datatype[datatype->dte_type],op)) ==
@@ -528,6 +536,7 @@ MPI_ICC_Reduce(void *sbuf, void *rbuf,int count, MPI_Datatype datatype,
 	if ((icc_comm = (iCC_g_Comm)mpi_comm->adiCollCtx) == (iCC_g_Comm) 0) {
 	       return(MPIR_ERROR(mpi_comm,MPI_ERR_INTERN,"Error in Reduce"));
 	}
+	MPIR_GET_REAL_DATATYPE(datatype)
 	if ((datatype->dte_type > MPIR_FORT_INT) ||
 	    (MPI2ICC_Datatype[datatype->dte_type] == (iCC_g_Datatype) -1) ||
 	    ((icc_op = MPI2ICC_OP(MPI2ICC_Datatype[datatype->dte_type],op)) ==
@@ -555,6 +564,7 @@ MPI_ICC_Reduce_scatter(void *sbuf, void *rbuf,int *cnts, MPI_Datatype datatype,
 	if ((icc_comm = (iCC_g_Comm)mpi_comm->adiCollCtx) == (iCC_g_Comm) 0) {
 	       return(MPIR_ERROR(mpi_comm,MPI_ERR_INTERN,"Error in Reduce_scatter"));
 	}
+	MPIR_GET_REAL_DATATYPE(datatype)
 	if ((datatype->dte_type > MPIR_FORT_INT) ||
 	    (MPI2ICC_Datatype[datatype->dte_type] == (iCC_g_Datatype) -1) ||
 	    ((icc_op = MPI2ICC_OP(MPI2ICC_Datatype[datatype->dte_type],op)) ==
@@ -1610,18 +1620,20 @@ MPID_NX_Comm_init(MPI_Comm mpi_comm,MPI_Comm newcomm)
 
 #endif
 
-/* Add IPD comm_list */
-
 #ifdef ICCLIB
 /* if iCC_comm is not yet cached in mpi_comm, create & cache it */
 	if (mpi_comm == MPI_COMM_WORLD) {
 		MPI_COMM_WORLD->adiCollCtx = (void *)iCC_g_COMM_WORLD;
+		return (MPI_SUCCESS);
 	} 
 	if (mpi_comm == MPI_COMM_SELF) {
 		MPI_COMM_SELF->adiCollCtx = (void *)iCC_g_COMM_SELF;
+		return (MPI_SUCCESS);
 	}
+	if (mpi_comm = (MPI_Comm)0) {
+                return(MPIR_ERROR(mpi_comm,MPI_ERR_COMM,"Error in Comm_init"));
+        }
 	if (newcomm == MPI_COMM_WORLD || newcomm == MPI_COMM_SELF) {
-printf("MPID_NX_Comm_init, newcomm == MPI_COMM_WORLD\n");
 		return(MPI_SUCCESS);
 	}
 	icc_comm = iCC_g_COMM_WORLD;

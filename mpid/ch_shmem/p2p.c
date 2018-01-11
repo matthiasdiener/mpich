@@ -1,4 +1,6 @@
 #define P2P_EXTERN
+#include "mpid.h"
+#include "mpiddebug.h"
 #include "p2p.h"
 #include <stdio.h>
 
@@ -18,6 +20,18 @@ void *MD_init_shmem();
 
 #endif
 
+#if defined (MPI_cspp)
+extern char		*cnx_exec;
+extern int		cnx_debug;
+extern int		cnx_touch;
+extern int		masterid;
+extern unsigned int	procNode[];
+extern unsigned int	numCPUs[];
+extern unsigned int	numNodes;
+static char		*myshmem;
+static int		myshmemsize;
+#endif
+
 /* This is a process group, used to help clean things up when a process dies 
    It turns out that this causes strange failures when running a program
    under another program, like a debugger or mpirun.  Until this is
@@ -34,12 +48,24 @@ p2p_setpgrp()
        exit(-1);
    }
 #endif
+
+#if defined(MPI_cpss)
+   if (cnx_exec == 0) {
+	MPID_SHMEM_ppid = getpid();
+	if(setpgid(MPID_SHMEM_ppid,MPID_SHMEM_ppid)) {
+		perror("failure in p2p_setpgrp");
+		exit(-1);
+	}
+   }
+#endif
 }
 
 void p2p_init(maxprocs,memsize)
 int maxprocs;
 int memsize;
 {
+	int		mynode;
+	int		i, j, k, n;
 
 #if defined(MPI_IRIX)
        
@@ -56,7 +82,6 @@ int memsize;
     p2p_sgi_usptr = usinit(p2p_sgi_shared_arena_filename);
     if (p2p_sgi_usptr == NULL)
 	p2p_error("p2p_init: usinit failed: can't map shared arena\n",memsize);
-
 #endif
 
 #if defined(USE_XX_SHMALLOC)
@@ -71,6 +96,7 @@ int memsize;
 			p2p_shared_map_fd, (off_t) 0);
 
 #elif defined(HAVE_MMAP)
+
     p2p_start_shared_area = (char *) mmap((caddr_t) 0, memsize,
 			PROT_READ|PROT_WRITE|PROT_EXEC,
 			MAP_SHARED|MAP_ANONYMOUS|MAP_VARIABLE, 
@@ -78,7 +104,6 @@ int memsize;
 
     /* fprintf(stderr,"memsize = %d, address = 0x%x\n",
 	    memsize,p2p_start_shared_area); */
-
 #elif defined(HAVE_SHMAT)
     p2p_start_shared_area = MD_init_shmem(&memsize);
 #endif
@@ -90,6 +115,17 @@ int memsize;
 		  memsize);
     }
     xx_init_shmalloc(p2p_start_shared_area,memsize);
+
+#if defined(MPI_cspp)
+	mynode = MPID_SHMEM_getNodeId();
+	for (i = k = 0; i < numNodes; ++i) {
+		if ((n = numCPUs[i]) == 0) continue;
+		for (j = 0; j < n; ++j) {
+			if ((i == mynode) && (j == (n - 1))) masterid = k;
+			++k;
+		}
+	}
+#endif
 #endif /* USE_XX_SHMALLOC */
 }
 
@@ -175,36 +211,53 @@ void p2p_clear_signal()
 (void)signal( SIGCHLD, SIG_IGN );
 }
 
+
 void p2p_create_procs(numprocs)
 int numprocs;
 {
+    extern char *getenv();
+    char *buf;
+    int size, junk;
     int i, rc;
 
     (void) signal( SIGCHLD, MPID_handle_child );
     for (i = 0; i < numprocs; i++)
     {
-	if ((rc = fork()) == -1)
-	{
-	    p2p_error("p2p_init: fork failed\n",(-1));
-	}
-	else if (rc == 0) {
-#ifdef FOO
-	    if(setpgid(0,MPID_SHMEM_ppid)) {
-		p2p_error("p2p_init: failure in setpgid\n",(-1));
-		exit(-1);
-		}	    
+        /* Clear in case something happens ... */
+        MPID_child_pid[i] = 0;
+#if defined (MPI_cspp)
+/*
+ * Skip the master process.
+ */
+    rc = (i == masterid) ?
+		getpid() : cnx_sc_fork(CNX_INHERIT_SC, procNode[i]);
+#else
+    rc = fork();
 #endif
-	    return;
-	    }
-	else {
-	    /* Save pid of child so that we can detect child exit */
-	    MPID_child_pid[i] = rc;
-	    MPID_numprocs     = i+1;
-	    }
-	    
+    if (rc == -1)
+    {
+	p2p_error("p2p_init: fork failed\n",(-1));
+    }
+    else if (rc == 0)
+    {
+#if defined(MPI_cspp)
+	masterid = -1;
+
+	if (cnx_exec == 0) {
+		if(setpgid(0,MPID_SHMEM_ppid)) {
+			p2p_error("p2p_init: failure in setpgid\n",(-1));
+		}
+	}
+#endif
+      return;
+    }
+    else {
+	/* Save pid of child so that we can detect child exit */
+	MPID_child_pid[i] = rc;
+	MPID_numprocs     = i+1;
+	}
     }
 }
-
 
 
 void *p2p_shmalloc(size)
@@ -466,11 +519,31 @@ int value;
     printf("%s %d\n",string, value);
     /* printf("p2p_error is not fully cleaning up at present\n"); */
     p2p_cleanup();
-    /* We need to do an abort to make sure that the children get killed */
+
+#if !defined(MPI_cspp)
+    /* Manually kill all processes */
+    if (MPID_myid == 0) {
+	int i;
+	/* We are no longer interested in signals from the children */
+	p2p_clear_signal();
+	/* numprocs - 1 because the parent is not in the list */
+	for (i=0; i<MPID_numprocs-1; i++) {
+	    if (MPID_child_pid[i] > 0) 
+		kill( MPID_child_pid[i], SIGINT );
+	    }
+	}
+#endif
 #ifdef FOO
     if (MPID_SHMEM_ppid) 
 	kill( -MPID_SHMEM_ppid, SIGKILL );
 #endif
+
+#if defined(MPI_cspp)
+    if (MPID_SHMEM_ppid && (cnx_exec == 0))
+	kill( -MPID_SHMEM_ppid, SIGKILL );
+#endif
+
+    /* We need to do an abort to make sure that the children get killed */
     abort();
     /* exit(99); */
 }
@@ -482,6 +555,23 @@ void p2p_wtime_init()
 
 double p2p_wtime()
 {
+
+#if defined(MPI_cspp) && defined(__USE_LONG_LONG)
+#include <sys/cnx_ail.h>
+return (toc_read() * ((double) 0.000001));
+#elif defined(MPI_cspp)
+/*
+ * This is needed for SPP when HP compiler is used (i.e. no long long).
+ */
+	cnx_toc_t	toc;
+	unsigned int	*ptoc;
+
+	ptoc = (unsigned int *) &toc;
+	toc = toc_read();
+	return((ptoc[0] * ((double) 4294.967296)) +
+			(ptoc[1] * ((double) 0.000001)));
+#else
+
     double timeval;
     struct timeval tp;
 
@@ -495,20 +585,23 @@ double p2p_wtime()
 
 #if defined(MPI_IRIX) || defined(USE_BSDGETTIMEOFDAY)
     BSDgettimeofday(&tp,&tzp);
-#endif
 
-#if defined(MPI_hpux) || defined(HAVE_GETTIMEOFDAY)
+#elif defined(MPI_hpux) || defined(HAVE_GETTIMEOFDAY)
     gettimeofday(&tp,&tzp);
+
+#elif defined(USE_WIERDGETTIMEOFDAY)
+    gettimeofday(&tp);
+
 #endif
 
-#if defined(MPI_solaris) || defined(USE_WIERDGETTIMEOFDAY)
-    gettimeofday(&tp);
-#endif
+/* Some versions of Solaris need 1 argument, some need 2.  See the configure
+   for the test for "Wierd" */
 
     timeval = (double) tp.tv_sec;
     timeval = timeval + (double) ((double) .000001 * (double) tp.tv_usec);
 
     return(timeval);
+#endif
 }
 
 /*
@@ -582,6 +675,11 @@ unsigned nbytes;
 {
     int nunits = nbytes >> LOG_ALIGN;
     Header *region = (Header *) memory;
+
+#if defined(MPI_cspp)
+    myshmem = memory;
+    myshmemsize = nbytes;
+#endif
 
     /* Quick check that things are OK */
 
@@ -709,10 +807,21 @@ char *ap;
     /* End critical region */
     (void) p2p_unlock(p2p_shmem_lock);
 }
-#endif
 
-#if defined(MPI_hpux)
-/* interface to hpux locks by Dan Golan of Convex Computer 
-   (Putting this here is easier than editing the Makefile) */
-#include "mem.c"
+#if defined(MPI_cspp)
+
+int
+p2p_shnode(ptr)
+
+void			*ptr;
+
+{
+	char		*p;
+
+	p = ptr;
+	return(((p >= myshmem) && (p < (myshmem + myshmemsize))) ? 0 : -1);
+}
+
+#endif	/* MPI_cspp */
+
 #endif

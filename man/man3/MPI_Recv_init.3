@@ -1,4 +1,4 @@
-.TH MPI_Recv_init 3 "5/16/1995" " " "MPI"
+.TH MPI_Recv_init 3 "1/11/1996" " " "MPI"
 .SH NAME
 MPI_Recv_init \- Builds a handle for a receive
 
@@ -21,12 +21,16 @@ MPI_Recv_init \- Builds a handle for a receive
 .PD 0
 .TP
 .B source 
-- rank of source or MPI_ANY_SOURCE (integer) 
+- rank of source or 
+.I MPI_ANY_SOURCE
+(integer) 
 .PD 1
 .PD 0
 .TP
 .B tag 
-- message tag or MPI_ANY_TAG (integer) 
+- message tag or 
+.I MPI_ANY_TAG
+(integer) 
 .PD 1
 .PD 0
 .TP
@@ -40,6 +44,29 @@ MPI_Recv_init \- Builds a handle for a receive
 .B request 
 - communication request (handle) 
 .PD 1
+
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

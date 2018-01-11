@@ -10,6 +10,9 @@
 # -file=name            Output LaTeX file (default is doc/doc1.tex)
 # -plotonly             Run gnuplot only to create output files
 # -testdir=dir          Location of output files from mpptest runs
+# -destdir=dir          Location of generated files (by default, uses doc dir)
+#                       Should be either relative to testdir or (better)
+#                       absolute.
 author="$LOGNAME"
 nomake=0
 noperf=0
@@ -17,6 +20,8 @@ plotonly=0
 filename="doc/doc1perf.tex"
 fileroot="doc1"
 testdir=examples/perftest
+destdir=../../doc
+MAKE="@MAKE@"
 for arg in "$@" ; do
     case $arg in 
 	-author=* )
@@ -38,6 +43,9 @@ for arg in "$@" ; do
 	;;
 	-testdir=* )
 	testdir="`echo a$arg|sed -e 's/a-testdir=//'`"
+	;;
+	-destdir=* )
+	destdir="`echo a$arg|sed -e 's/a-destdir=//'`"
 	;;
 	-echo)
 	set -x
@@ -75,9 +83,10 @@ cat >>$1 <<.
 }
 
 # Remove the old filename
-/bin/rm -f $filename
-if test -z "@MPE_DIR@" ; then 
-    cat >> $filename <<.
+if [ $plotonly = 0 ] ; then
+    /bin/rm -f $filename
+    if test -z "@MPE_DIR@" ; then 
+        cat >> $filename <<.
 \section{Performance}
 The performance test programs require the MPE library.  Reconfigure MPICH
 with {\tt -mpe} and rebuild MPICH (you should be able to just run make in the
@@ -85,6 +94,7 @@ with {\tt -mpe} and rebuild MPICH (you should be able to just run make in the
 option).
 .
     exit 0
+    fi
 fi
 #
 ############################################################################
@@ -98,28 +108,43 @@ fi
 ############################################################################
 #
 # Put the header in in case there were problems.
-cat >> $filename <<.
+if [ $plotonly = 0 ] ; then 
+    cat >> $filename <<.
 \section{Performance}
 The performance of a message passing system is often measured in terms of the
 bandwidth and latency for a point-to-point message.  This section reports the
 performance of the MPICH version of MPI for a simple ping-pong test between
 two nodes.  The time reported is one-half the round-trip time.  
 .
-
+fi
 ############################################################################
 # Run the performance tests
 ############################################################################
 #
 # i860's don't have which...
+# AIX seems to mishandle which.  So, instead of using which to find gnuplot,
+# we use the usual "search in user path code"
 if test $noperf = 0 ; then
-    gnuplotloc=`which gnuplot`
+    # Try to find gnuplot.
+    IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
+    for dir in $PATH; do
+      test -z "$dir" && dir=.
+      if test -f $dir/gnuplot; then
+        gnuplotloc=$dir/gnuplot
+        break
+      fi
+    done
+    IFS="$saveifs"
+    # End of code to find executable gnuplot
+#    
+#    gnuplotloc=`which gnuplot`
 
     # We can generate the output graphs...
    if test "$plotonly" = 0 ; then
 	curdir=`pwd`
 	cd $testdir
 	/bin/rm -f maketst.log 
- 	make mpptest goptest > maketst.log 2>&1
+ 	$MAKE mpptest goptest > maketst.log 2>&1
 	
  	if test ! -x mpptest ; then 
 	    echo " " >> $filename
@@ -222,10 +247,10 @@ if test $noperf = 0 ; then
     elif test -f "$gnuplotloc" ; then
         (cd $testdir ; \
 	/bin/rm -f short.eps long.eps ; \
+        /bin/rm -f $destdir/short.eps $destdir/long.eps ; \
         gnuplot short.gpl > short.eps ; \
         gnuplot long.gpl > long.eps ; \
-        /bin/rm -f ../../doc/short.eps ../../doc/long.eps ; \
-        mv short.eps ../../doc ; mv long.eps ../../doc ; )
+        mv short.eps $destdir ; mv long.eps $destdir ; )
     fi
 fi
 if test "$plotonly" = 1 ; then
@@ -255,11 +280,16 @@ transfer rate).  The coefficients for this model are shown in the upper
 right-hand corner.  $latency
 .
 
-if test -f "$gnuplotloc" ; then
-    cat >> $filename <<.
-
+cat >> $filename <<.
 \begin{figure}
+\newread\graphfilein
+\openin\graphfilein=short.eps
+\ifeof\graphfilein
+\centerline{No graph available}
+\else
+\closein\graphfilein
 \centerline{\epsfbox{short.eps}}
+\fi
 \caption{Time for short messages}\label{fig-short}
 \end{figure}
 
@@ -272,10 +302,15 @@ messages are used.
 In addition, these results measure only the performance of the MPICH
 implementation of MPI, not the achievable performance of the MPI standard.
 
-
 \begin{figure}
+\newread\graphfilein
+\openin\graphfilein=long.eps
+\ifeof\graphfilein
+\centerline{No graph available}
+\else
+\closein\graphfilein
 \centerline{\epsfbox{long.eps}}
+\fi
 \caption{Time for long messages}\label{fig-long}
 \end{figure}
 .
-fi

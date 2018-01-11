@@ -81,7 +81,7 @@ int dest_id;
     /* Have we already connected?? */
     if (p4_local->conntab[dest_id].type == CONN_REMOTE_EST)
     {
-	p4_dprintf("request_connection %d: already connected\n", dest_id);
+	p4_dprintfl(70,"request_connection %d: already connected\n", dest_id);
 #       ifdef P4SYSV
         sigrelse(LISTENER_ATTN_SIGNAL);
 #       else
@@ -235,14 +235,4 @@ P4VOID handle_connection_interrupt()
     
     /* If the return from this is SIG_DFL, then there is a problem ... */
     SIGNAL_P4(LISTENER_ATTN_SIGNAL, handle_connection_interrupt);
-#ifdef NEED_SIGACTION
-#ifdef SA_RESETHAND
-    {
-    struct sigaction oldact;
-    sigaction( LISTENER_ATTN_SIGNAL, (struct sigaction *)0, &oldact );
-    oldact.sa_flags = oldact.sa_flags & ~(SA_RESETHAND);
-    sigaction( LISTENER_ATTN_SIGNAL, &oldact, (struct sigaction *)0 );
-    }
-#endif
-#endif
 }

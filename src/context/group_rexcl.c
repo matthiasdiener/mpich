@@ -1,5 +1,5 @@
 /*
- *  $Id: group_rexcl.c,v 1.15 1994/12/15 16:34:13 gropp Exp $
+ *  $Id: group_rexcl.c,v 1.16 1995/12/21 22:07:35 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -14,21 +14,23 @@ MPI_Group_range_excl - Produces a group by excluding ranges of processes from
 
 Input Parameters:
 . group - group (handle) 
-. n - number of elements in array ranks (integer) 
+. n - number of elements in array 'ranks' (integer) 
 . ranges - a one-dimensional 
 array of integer triplets of the
 form (first rank, last rank, stride), indicating the ranks in
-group  of processes to be excluded
-from the output group newgroup .  
+'group'  of processes to be excluded
+from the output group 'newgroup' .  
 
 Output Parameter:
 . newgroup - new group derived from above, preserving the 
-order in group  (handle) 
+order in 'group'  (handle) 
 
 Note:  
 Currently, each of the ranks to exclude must be
 a valid rank in the group and all elements must be distinct or the
 function is erroneous.  This restriction is per the draft.
+
+.N fortran
 @*/
 int MPI_Group_range_excl ( group, n, ranges, newgroup )
 MPI_Group group, *newgroup;

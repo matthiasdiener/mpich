@@ -1,5 +1,5 @@
 /*
- *  $Id: global.C,v 1.1 1994/05/12 07:17:42 doss Exp $
+ *  $Id: global.C,v 1.1 1994/05/12 07:17:42 doss Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -47,7 +47,7 @@ MPIX_Comm_world::Init(int& argc, char **argv)
 {
   // Have we been initialized before? 
   if (init)
-	return (MPI_ERR_INIT);
+	return (MPI_ERR_OTHER);
 
   // Initialize stuff
   int error = MPI_Init (&argc, &argv); 

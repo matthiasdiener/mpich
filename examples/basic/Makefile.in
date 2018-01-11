@@ -40,7 +40,7 @@ MPIPPLIB  = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
 LIBS	  = $(LIB_PATH) $(LIB_LIST)
 FLIBS	  = $(FLIB_PATH) $(LIB_LIST)
 LIBSPP	  = $(MPIPPLIB) $(LIBS)
-EXECS	  = cpi systest fpi cpilog
+EXECS	  = cpi systest fpi cpilog srtest
 
 default: $(EXECS)
 
@@ -56,6 +56,10 @@ cpi: cpi.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
 cpilog: cpilog.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o cpilog cpilog.o \
 	$(LIB_PATH) ${MPE_LIBS} $(LIB_LIST) -lm
+
+srtest: srtest.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o srtest srtest.o \
+	$(LIB_PATH) $(LIB_LIST) -lm
 
 systest: systest.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o systest systest.o \

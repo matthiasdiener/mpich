@@ -1,5 +1,5 @@
 /*
- *  $Id: cartdim_get.c,v 1.6 1994/12/15 17:36:14 gropp Exp $
+ *  $Id: cartdim_get.c,v 1.7 1995/12/21 22:18:39 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -18,6 +18,7 @@ Input Parameter:
 Output Parameter:
 . ndims - number of dimensions of the cartesian structure (integer) 
 
+.N fortran
 @*/
 int MPI_Cartdim_get ( comm, ndims )
 MPI_Comm  comm;

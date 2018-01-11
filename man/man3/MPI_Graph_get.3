@@ -1,4 +1,4 @@
-.TH MPI_Graph_get 3 "12/15/1994" " " "MPI"
+.TH MPI_Graph_get 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Graph_get \- Retrieves graph topology information associated with a
 communicator
@@ -12,19 +12,25 @@ communicator
 .PD 0
 .TP
 .B maxindex 
-- length of vector index in the calling program  (integer) 
+- length of vector 
+.I index
+in the calling program  (integer) 
 .PD 1
 .PD 0
 .TP
 .B maxedges 
-- length of vector edges in the calling program  (integer) 
+- length of vector 
+.I edges
+in the calling program  (integer) 
 .PD 1
 
 .SH OUTPUT PARAMETER
 .PD 0
 .TP
 .B index 
-- array of integers containing the graph structure (for details see the definition of MPI_GRAPH_CREATE ) 
+- array of integers containing the graph structure (for details see the definition of 
+.I MPI_GRAPH_CREATE
+) 
 .PD 1
 .PD 0
 .TP
@@ -32,6 +38,28 @@ communicator
 - array of integers containing the graph structure 
 .PD 1
 
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

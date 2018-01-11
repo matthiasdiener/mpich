@@ -7,14 +7,14 @@ int __NUMNODES, __MYPROCID  ;extern double MPID_get_nsec_clock();
 
 
 /*
- *  $Id: chinit.c,v 1.37 1995/09/18 21:11:44 gropp Exp $
+ *  $Id: chinit.c,v 1.38 1995/12/21 22:24:16 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chinit.c,v 1.37 1995/09/18 21:11:44 gropp Exp $";
+static char vcid[] = "$Id: chinit.c,v 1.38 1995/12/21 22:24:16 gropp Exp gropp $";
 #endif
 
 /* 
@@ -243,14 +243,21 @@ sprintf( name, "ADI version %4.2f - transport %s", MPIDPATCHLEVEL,
 }
 
 #ifndef MPID_MEIKO_Wtime
-#if defined(HAVE_GETTIMEOFDAY)
+#if defined(HAVE_GETTIMEOFDAY) || defined(HAVE_WIERDGETTIMEOFDAY)
 #include <sys/types.h>
 #include <sys/time.h>
 #endif
 /* I don't know what the correct includes are for the other versions... */
 double MPID_MEIKO_Wtime()
 {
-#ifdef HAVE_GETTIMEOFDAY
+#if defined(USE_WIERDGETTIMEOFDAY)
+    /* This is for Solaris, where they decided to change the CALLING
+       SEQUENCE OF gettimeofday! */
+    struct timeval tp;
+
+    gettimeofday(&tp);
+    return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
+#elif defined(HAVE_GETTIMEOFDAY)
     struct timeval tp;
     struct timezone tzp;
 
@@ -261,13 +268,6 @@ double MPID_MEIKO_Wtime()
     struct timezone tzp;
 
     BSDgettimeofday(&tp,&tzp);
-    return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
-#elif defined(USE_WIERDGETTIMEOFDAY)
-    /* This is for Solaris, where they decided to change the CALLING
-       SEQUENCE OF gettimeofday! */
-    struct timeval tp;
-
-    gettimeofday(&tp);
     return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
 #else
     return MPID_get_nsec_clock();
@@ -308,6 +308,8 @@ else
     MPID_ErrorHandler = MPID_DefaultErrorHandler;
 }
 
+/* This is the "panic" handler.  Correctable errors should be passed on
+   to the user (see MPID_MEIKOK_MSGLEN) */
 void MPID_DefaultErrorHandler( code, str )
 int  code;
 char *str;

@@ -1,5 +1,5 @@
 /*
- *  $Id: dmpiatom.h,v 1.39 1995/06/30 17:34:13 gropp Exp $
+ *  $Id: dmpiatom.h,v 1.40 1995/12/21 22:25:06 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -230,9 +230,18 @@ struct MPIR_COMMUNICATOR {
     int            permanent;      /* Is this a permanent object? */
     void          *mutex;          /* Local for threaded versions */
 
+    /*** BEGIN HETEROGENEOUS ONLY ***/
     int           is_homogeneous; /* True if communicator's members
 				     are homogeneous in data representation
 				     (not used yet) */
+    int           msgrep;         /* Message representation form for 
+				     this communicator.  This is either
+				     0 == MPIR_MSGREP_RECEIVER (all the same)
+				     or != 0 (sender or XDR) */
+    /* Note that point-to-point information on message representations
+       is managed directly by the device and is not duplicated in the
+       communicator */
+    /*** END HETEROGENEOUS ONLY ***/
 
     /* This would be a good place to cache data that is often needed, 
        such as the rank of the process that holds this communicator in

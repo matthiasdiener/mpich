@@ -1,12 +1,12 @@
 /*
- *  $Id: gather.c,v 1.23 1995/06/21 03:10:13 gropp Exp $
+ *  $Id: gather.c,v 1.24 1995/12/21 22:16:55 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: gather.c,v 1.23 1995/06/21 03:10:13 gropp Exp $";
+static char vcid[] = "$Id: gather.c,v 1.24 1995/12/21 22:16:55 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -28,8 +28,9 @@ significant only at root)
 . comm - communicator (handle) 
 
 Output Parameter:
-. recvbuf - address of receive buffer (choice, significant only at root) 
+. recvbuf - address of receive buffer (choice, significant only at 'root') 
 
+.N fortran
 @*/
 int MPI_Gather ( sendbuf, sendcnt, sendtype, recvbuf, recvcount, recvtype, 
 		 root, comm )

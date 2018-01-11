@@ -1,5 +1,5 @@
 /*
- *  $Id: keyval_free.c,v 1.11 1994/12/15 16:42:05 gropp Exp $
+ *  $Id: keyval_free.c,v 1.12 1995/12/21 22:11:24 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -17,6 +17,8 @@ Input Parameter:
 
 Note:
 Key values are global (they can be used with any and all communicators)
+
+.N fortran
 @*/
 int MPI_Keyval_free ( keyval )
 int *keyval;

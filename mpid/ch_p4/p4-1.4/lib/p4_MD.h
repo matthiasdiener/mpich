@@ -43,6 +43,11 @@
 #define P4_MACHINE_TYPE "SGI"
 #endif
 
+#if defined(SGI_CH64)
+/* Create a new session to work around kills that kill the process group */
+#define SET_NEW_PGRP
+#endif
+
 #if defined(PARAGON)
 #define IPSC860
 #undef P4_MACHINE_TYPE
@@ -146,18 +151,52 @@
 
 #endif
 
+/* 
+   sigaction is more reliable than signal, particularly on POSIX
+   systems, where the semantics of signal have CHANGED (to reset to
+   the default handler!) 
 
+   Note that the SIGNAL_WITH_OLD_P4 version allows you to get the
+   previous handler.  You must supply the equals; this lets
+   you do
+   SIGNAL_WITH_OLD_P4(SIGFOO,newfcn,oldfcn=(cast))
+ */
+#if defined(HAVE_SIGACTION) && defined(SA_RESETHAND)
+#define SIGNAL_WITH_OLD_P4(signame,sigf,oldsigf) {\
+struct sigaction oldact;\
+sigaction( signame, (struct sigaction *)0, &oldact );\
+oldsigf oldact.sa_handler;\
+oldact.sa_handler = sigf;\
+oldact.sa_flags   = oldact.sa_flags & ~(SA_RESETHAND);\
+sigaddset( &oldact.sa_mask, signame );\
+sigaction( signame, &oldact, (struct sigaction *)0 );}
+
+#define SIGNAL_P4(signame,sigf) {\
+struct sigaction oldact;\
+sigaction( signame, (struct sigaction *)0, &oldact );\
+oldact.sa_handler = sigf;\
+oldact.sa_flags   = oldact.sa_flags & ~(SA_RESETHAND);\
+sigaddset( &oldact.sa_mask, signame );\
+sigaction( signame, &oldact, (struct sigaction *)0 );}
+
+#else
 #ifdef P4SYSV
 #   ifdef NCUBE
-#   define SIGNAL_P4 signal
+#   define SIGNAL_WITH_OLD_P4(signame,sigf,oldsigf) \
+            oldsigf signal(signame,sigf)
+#   define SIGNAL_P4(signame,sigf) signal(signame,sigf)
 #   else
-#   define SIGNAL_P4 sigset
+#   define SIGNAL_WITH_OLD_P4(signame,sigf,oldsigf) \
+           oldsigf sigset(signame,sigf)
+#   define SIGNAL_P4(signame,sigf) sigset(signame,sigf)
 #   endif
 #else
-#define SIGNAL_P4 signal
+#define SIGNAL_WITH_OLD_P4(signame,sigf,oldsigf) oldsigf signal(signame,sigf)
+#define SIGNAL_P4(signame,sigf) signal(signame,sigf)
+#endif
 #endif
 
-#if defined(LINUX) || defined(RS6000) 
+#if defined(LINUX) || defined(RS6000) || defined(CRAY) || defined(SUN_SOLARIS)
 /* These should actually use sigaction INSTEAD of signal; that's for later.
    This is for systems that make the signals "one-shot", so you can have
    race conditions if you expect your handler to always handle the signals.

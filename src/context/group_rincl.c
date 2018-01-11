@@ -1,5 +1,5 @@
 /*
- *  $Id: group_rincl.c,v 1.15 1994/12/15 19:28:57 gropp Exp $
+ *  $Id: group_rincl.c,v 1.16 1995/12/21 22:07:39 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -15,19 +15,20 @@ MPI_Group_range_incl - Creates a new group from ranges of ranks in an
 
 Input Parameters:
 . group - group (handle) 
-. n - number of triplets in array  ranges (integer) 
+. n - number of triplets in array  'ranges' (integer) 
 . ranges - a one-dimensional array of integer triplets, of the 
 form (first rank, last rank, stride) indicating ranks in
-group  or processes to be included in newgroup  
+'group'  or processes to be included in 'newgroup'  
 
 Output Parameter:
 . newgroup - new group derived from above, in the 
-order defined by  ranges  (handle)  
+order defined by  'ranges' (handle)  
 
 Note:
 This implementation does not currently check to see that the list of
 ranges to include are valid ranks in the group.
 
+.N fortran
 @*/
 int MPI_Group_range_incl ( group, n, ranges, newgroup )
 MPI_Group group, *newgroup;

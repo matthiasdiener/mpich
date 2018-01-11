@@ -54,7 +54,7 @@ static char *debugger=0;
 static char **baseargs=0;
 static int  nbaseargs=0;
 
-MPE_Start_debugger( )
+void MPE_Start_debugger( )
 {
 int child, i;
 
@@ -168,15 +168,15 @@ char     *string, *file;
 .  pgm - Name of the program.
 .  dbg - Name of the debugger.  If null, use a default (usually dbx)
 .  args - arguments to use in generating the debugger.
-   This allows things like "xterm -e dbx pgm pid", or 
-   "xdbx -geometry +%d+%d pgm pid".  The list should be null terminated.
-   (The %d %d format is not yet supported).
+   This allows things like "'xterm -e dbx pgm pid'", or 
+   "'xdbx -geometry +%d+%d pgm pid'".  The list should be null terminated.
+   (The '%d %d' format is not yet supported).
 
     Notes:
     You may need to ignore some signals, depending on the signals that
     the MPICH and underlying communications code is using.  You can
     do this in dbx by adding "ignore signal-name" to your .dbxinit file.
-    For example, to ignore SIGUSR1, use "ignore USR1".
+    For example, to ignore 'SIGUSR1', use "'ignore USR1'".
 
     Currently, there is no Fortran interface for this routine.
 @*/
@@ -231,9 +231,8 @@ if (!display) {
     extern char *getenv();
     display = getenv( "DISPLAY" );
     if (!display || display[0] == ':') {
-	/* Replace display with hostname:0 */
 	display = (char *)malloc( 100 );
-	gethostname( display, 100 );
+	MPE_GetHostName( display, 100 );
 	strcat( display, ":0" );
 	}
     }
@@ -262,9 +261,8 @@ if (!display) {
 	extern char *getenv();
 	display = getenv( "DISPLAY" );
 	if (!display || display[0] == ':') {
-	    /* Replace display with hostname:0 */
-	    display = (char *)malloc( 100 );
-	    gethostname( display, 100 );
+	    display = (char *)malloc( 100);
+	    MPE_GetHostName( display, 100 );
 	    strcat( display, ":0" );
 	    }
 	str_len = strlen( display ) + 1;
@@ -342,12 +340,12 @@ MPE_Start_debugger( );
 
     You may need to ignore some signals, depending on the signals that
     the MPICH and underlying communications code is using.  You can
-    do this in dbx by adding "ignore signal-name" to your .dbxinit file.
-    For example, to ignore SIGUSR1, use "ignore USR1".
+    do this in dbx by adding "'ignore signal-name'" to your .dbxinit file.
+    For example, to ignore 'SIGUSR1', use "'ignore USR1'".
 
     Currently, there is no Fortran interface for this routine.
 @*/
-MPE_Signals_call_debugger()
+void MPE_Signals_call_debugger()
 {
 signal( SIGQUIT, (void (*)())MPE_DefaultHandler );
 signal( SIGILL,  (void (*)())MPE_DefaultHandler );

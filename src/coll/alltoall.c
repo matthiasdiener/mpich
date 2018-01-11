@@ -1,12 +1,12 @@
 /*
- *  $Id: alltoall.c,v 1.25 1995/06/21 03:09:26 gropp Exp $
+ *  $Id: alltoall.c,v 1.26 1995/12/21 22:16:35 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: alltoall.c,v 1.25 1995/06/21 03:09:26 gropp Exp $";
+static char vcid[] = "$Id: alltoall.c,v 1.26 1995/12/21 22:16:35 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -28,6 +28,7 @@ Input Parameters:
 Output Parameter:
 . recvbuf - address of receive buffer (choice) 
 
+.N fortran
 @*/
 int MPI_Alltoall( sendbuf, sendcount, sendtype, 
                   recvbuf, recvcnt, recvtype, comm )

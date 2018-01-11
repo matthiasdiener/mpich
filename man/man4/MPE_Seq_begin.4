@@ -1,4 +1,4 @@
-.TH MPE_Seq_begin 4 "8/2/1994" " " "MPE"
+.TH MPE_Seq_begin 4 "12/20/1995" " " "MPE"
 .SH NAME
 MPE_Seq_begin \- Begins a sequential section of code.
 
@@ -16,19 +16,20 @@ at the same time.  Usually one.
 .PD 1
 
 .SH NOTES
-MPE_Seq_begin and MPE_Seq_end provide a way to force a section of code to
+'MPE_Seq_begin' and 'MPE_Seq_end' provide a way to force a section of code
+to
 be executed by the processes in rank order.  Typically, this is done
 with
-.br
- MPE_Seq_begin( comm, 1 );
-.br
- <code to be executed sequentially>
-.br
- MPE_Seq_end( comm, 1 );
-.br
-Often, the sequential code contains output statements (e.g., printf) to
+.nf
+  MPE_Seq_begin( comm, 1 );
+  <code to be executed sequentially>
+  MPE_Seq_end( comm, 1 );
+.fi
+
+Often, the sequential code contains output statements (e.g., 'printf') to
 be executed.  Note that you may need to flush the I/O buffers before
-calling MPE_Seq_end; also note that some systems do not propagate I/O in any
+calling 'MPE_Seq_end'; also note that some systems do not propagate I/O in
+any
 order to the controling terminal (in other words, even if you flush the
 output, you may not get the data in the order that you want).
 .SH SYNOPSIS

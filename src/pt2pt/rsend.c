@@ -1,5 +1,5 @@
 /*
- *  $Id: rsend.c,v 1.13 1995/05/09 18:10:38 gropp Exp $
+ *  $Id: rsend.c,v 1.14 1995/12/21 21:15:23 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: rsend.c,v 1.13 1995/05/09 18:10:38 gropp Exp $";
+static char vcid[] = "$Id: rsend.c,v 1.14 1995/12/21 21:15:23 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -23,6 +23,7 @@ Input Parameters:
 . tag - message tag (integer) 
 . comm - communicator (handle) 
 
+.N fortran
 @*/
 int MPI_Rsend( buf, count, datatype, dest, tag, comm )
 void             *buf;
@@ -54,7 +55,7 @@ MPI_Comm         comm;
 		       "Could not free allocated send buffer in MPI_RSEND" );
 	    }
 #endif
-
+    shandle.datatype->ref_count--;
     }
     return mpi_errno;
 }

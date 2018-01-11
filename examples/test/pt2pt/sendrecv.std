@@ -264,21 +264,21 @@ Message of count 9000, type 11 received correctly.
 Message of count 9500, type 11 received correctly.
 There should be eight error messages about invalid communicator
 count argument, datatype argument, tag, rank, buffer send and buffer recv
-0 -  File: send.c   Line: 56
+0 -  File: send.c   Line: 58
 0 - Error in MPI_SEND : Invalid communicator
-0 -  File: send.c   Line: 56
+0 -  File: send.c   Line: 58
 0 - Error in MPI_SEND : Invalid count argument
-0 -  File: send.c   Line: 56
+0 -  File: send.c   Line: 58
 0 - Error in MPI_SEND : Invalid datatype argument
-0 -  File: send.c   Line: 56
+0 -  File: send.c   Line: 58
 0 - Error in MPI_SEND : Invalid message tag
-0 -  File: send.c   Line: 56
+0 -  File: send.c   Line: 58
 0 - Error in MPI_SEND : Invalid message tag
-0 -  File: send.c   Line: 56
+0 -  File: send.c   Line: 58
 0 - Error in MPI_SEND : Invalid rank
-0 -  File: send.c   Line: 94
+0 -  File: send.c   Line: 97
 0 - Error in MPI_SEND : Invalid buffer pointer
-0 -  File: recv.c   Line: 83
+0 -  File: recv.c   Line: 86
 0 - Error in MPI_RECV : Invalid buffer pointer
 All processes completed test
 **** Testing MPI_Send and MPI_Recv ****

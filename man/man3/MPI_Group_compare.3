@@ -1,4 +1,4 @@
-.TH MPI_Group_compare 3 "4/23/1995" " " "MPI"
+.TH MPI_Group_compare 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Group_compare \- Compares two groups
 
@@ -18,11 +18,39 @@ MPI_Group_compare \- Compares two groups
 .PD 0
 .TP
 .B result 
-- integer which is MPI_IDENT if the order and members of
-the two groups are the same, MPI_SIMILAR if only the members are the same,
-and MPI_UNEQUAL otherwise
+- integer which is 
+.I MPI_IDENT
+if the order and members of
+the two groups are the same, 
+.I MPI_SIMILAR
+if only the members are the same,
+and 
+.I MPI_UNEQUAL
+otherwise
 .PD 1
 
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

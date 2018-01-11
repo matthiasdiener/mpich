@@ -222,6 +222,13 @@ extern int MPID_PKT_DATA_SIZE;
 #endif
 
 #define MPID_PKT_IS_MSG(mode) ((mode) <= 9)
+
+#ifdef MPID_HAS_HETERO
+#define DECL_SYNC_ID    int       sync_id:32
+#else
+#define DECL_SYNC_ID    MPID_Aint sync_id
+#endif
+
 /* 
    One unanswered question is whether it is better to send the length of
    a short message in the short packet types, or to compute it from the
@@ -259,17 +266,17 @@ typedef struct {
 
 typedef struct {
     MPID_PKT_BASIC
-    MPID_Aint sync_id;
+    DECL_SYNC_ID;
     char      buffer[MPID_PKT_MAX_DATA_SIZE];
     } MPID_PKT_SHORT_SYNC_T;
 typedef struct {
     MPID_PKT_BASIC
-    MPID_Aint sync_id;
+    DECL_SYNC_ID;
     } MPID_PKT_LONG_SYNC_T;
 
 typedef struct {
     MPID_PKT_MODE
-    MPID_Aint sync_id;
+    DECL_SYNC_ID;
     } MPID_PKT_SYNC_ACK_T;
 
 typedef struct {
@@ -312,7 +319,7 @@ typedef struct {
     int          len_avail;     /* Actual length available */
     int          cur_offset;    /* Offset (for sender to use) */
     /* The following supports synchronous sends */
-    MPID_Aint    sync_id;       /* Sync id; we should use send_id instead.
+    DECL_SYNC_ID;               /* Sync id; we should use send_id instead.
 				   This is just to get started */
     } MPID_PKT_GET_T;
 /* Get done is the same type with a different mode */
@@ -542,13 +549,23 @@ fprintf( MPID_TRACE_FILE,"[%d] %20s on %4d (type %d) at %s:%d\n", \
 #endif
 
 /* These macros allow SEND packets to be allocated dynamically or statically */
+/* ********* CHANGE **********
+ * SEND_ALLOC now has a third argument that indicates whether it is ok
+ * to block waiting for a packet to be available.  A value of 0 indicates
+ * a BLOCKING wait, 1 indicates that the operation requesting the packet
+ * is nonblocking.  Note that the allocation MUST complete before the
+ * MPID_PKT_SEND_ALLOC returns.
+ */
 #ifdef MPID_PKT_DYNAMIC_SEND
 #define MPID_PKT_SEND_DECL(type,pkt) type *pkt
 #define MPID_PKT_SEND_SET(pkt,field,val) (pkt)->field = val
 #define MPID_PKT_SEND_GET(pkt,field) (pkt)->field
 #define MPID_PKT_SEND_ADDR(pkt) (pkt)
 #ifndef MPID_PKT_SEND_ALLOC
-#define MPID_PKT_SEND_ALLOC(type,pkt) ???
+#define MPID_PKT_SEND_ALLOC(type,pkt,nblk) ???
+#endif
+#ifndef MPID_PKT_SEND_ALLOC_TEST
+#define MPID_PKT_SEND_ALLOC_TEST(pkt,action) if (!pkt) { action ; }
 #endif
 #define MPID_PKT_SEND_FREE(pkt)
 
@@ -558,7 +575,8 @@ fprintf( MPID_TRACE_FILE,"[%d] %20s on %4d (type %d) at %s:%d\n", \
 #define MPID_PKT_SEND_SET(pkt,field,val) (pkt).field = val
 #define MPID_PKT_SEND_GET(pkt,field) (pkt).field
 #define MPID_PKT_SEND_ADDR(pkt) &(pkt)
-#define MPID_PKT_SEND_ALLOC(type,pkt)
+#define MPID_PKT_SEND_ALLOC(type,pkt,nblk)
+#define MPID_PKT_SEND_ALLOC_TEST(pkt,action)
 #define MPID_PKT_SEND_FREE(pkt)
 #endif
 

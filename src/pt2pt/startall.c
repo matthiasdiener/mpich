@@ -1,12 +1,12 @@
 /*
- *  $Id: startall.c,v 1.5 1994/12/15 17:23:31 gropp Exp $
+ *  $Id: startall.c,v 1.6 1995/12/21 21:35:35 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: startall.c,v 1.5 1994/12/15 17:23:31 gropp Exp $";
+static char vcid[] = "$Id: startall.c,v 1.6 1995/12/21 21:35:35 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -18,6 +18,8 @@ static char vcid[] = "$Id: startall.c,v 1.5 1994/12/15 17:23:31 gropp Exp $";
 Input Parameters:
 . count - list length (integer) 
 . array_of_requests - array of requests (array of handle) 
+
+.N fortran
 @*/
 int MPI_Startall( count, array_of_requests )
 int count;

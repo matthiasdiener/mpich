@@ -1,12 +1,12 @@
 /*
- *  $Id: attr_getval.c,v 1.15 1995/05/09 18:50:16 gropp Exp $
+ *  $Id: attr_getval.c,v 1.16 1995/12/21 22:02:45 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: attr_getval.c,v 1.15 1995/05/09 18:50:16 gropp Exp $";
+static char vcid[] = "$Id: attr_getval.c,v 1.16 1995/12/21 22:02:45 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -20,8 +20,9 @@ Input Parameters:
 . keyval - key value (integer) 
 
 Output Parameters:
-. attr_value - attribute value, unless flag = false 
-. flag -  true if an attribute value was extracted;  false if no attribute is associated with the key 
+. attr_value - attribute value, unless 'flag' = false 
+. flag -  true if an attribute value was extracted;  false if no attribute is
+  associated with the key 
 
 Notes:
     Attributes must be extracted from the same language as they were inserted  
@@ -32,7 +33,8 @@ Notes for C:
     really the address of a void pointer.  See the rationale in the 
     standard for more details. 
 
-Notes for Fortran:
+.N fortran
+
     The 'attr_value' in Fortran is a pointer to a Fortran integer, not
     a pointer to a 'void *'.  
 @*/

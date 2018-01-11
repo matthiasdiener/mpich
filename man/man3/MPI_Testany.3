@@ -1,4 +1,4 @@
-.TH MPI_Testany 3 "5/16/1995" " " "MPI"
+.TH MPI_Testany 3 "1/11/1996" " " "MPI"
 .SH NAME
 MPI_Testany \- Tests for completion of any previdously initiated
 communication
@@ -19,7 +19,9 @@ communication
 .PD 0
 .TP
 .B index 
-- index of operation that completed, or MPI_UNDEFINED  if none 
+- index of operation that completed, or 
+.I MPI_UNDEFINED
+if none 
 completed (integer) 
 .PD 1
 .PD 0
@@ -32,6 +34,29 @@ completed (integer)
 .B status 
 - status object (Status) 
 .PD 1
+
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

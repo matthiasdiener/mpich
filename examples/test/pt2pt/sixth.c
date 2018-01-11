@@ -13,8 +13,8 @@ typedef struct _table {
 
 /* These are incorrect...*/
 int copy_table (oldcomm, keyval, extra_state, attr_in, attr_out, flag)
-MPI_Comm *oldcomm;
-int      *keyval;
+MPI_Comm oldcomm;
+int      keyval;
 void     *extra_state;
 void     *attr_in;
 void     *attr_out;
@@ -44,8 +44,8 @@ Table **table_out;
 }
 
 int delete_table (comm, keyval, attr_val, extra_state)
-MPI_Comm *comm;
-int      *keyval;
+MPI_Comm comm;
+int      keyval;
 void     *attr_val;
 void     *extra_state;
 {

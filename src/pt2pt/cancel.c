@@ -1,12 +1,12 @@
 /*
- *  $Id: cancel.c,v 1.11 1995/05/09 18:58:29 gropp Exp $
+ *  $Id: cancel.c,v 1.12 1995/12/21 21:11:48 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: cancel.c,v 1.11 1995/05/09 18:58:29 gropp Exp $";
+static char vcid[] = "$Id: cancel.c,v 1.12 1995/12/21 21:11:48 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -20,6 +20,8 @@ Input Parameter:
 
 Note:
 Cancel has not been implemented yet.
+
+.N fortran
 @*/
 int MPI_Cancel( request )
 MPI_Request *request;

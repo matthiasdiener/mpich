@@ -1,5 +1,5 @@
 /*
- *  $Id: initialize.c,v 1.5 1994/09/29 21:51:16 gropp Exp $
+ *  $Id: initialize.c,v 1.6 1995/12/21 21:57:37 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,18 +7,19 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: initialize.c,v 1.5 1994/09/29 21:51:16 gropp Exp $";
+static char vcid[] = "$Id: initialize.c,v 1.6 1995/12/21 21:57:37 gropp Exp $";
 #endif /* lint */
 #include "mpiimpl.h"
 
 int MPIR_Has_been_initialized = 0;
 
 /*@
-   MPI_Initialized - Indicates whether MPI_Init has been called.
+   MPI_Initialized - Indicates whether 'MPI_Init' has been called.
 
 Output Parameter:
-. flag - Flag is true if MPI_INIT has been called and false otherwise. 
+. flag - Flag is true if 'MPI_Init' has been called and false otherwise. 
 
+.N fortran
 @*/
 int MPI_Initialized( flag )
 int  *flag;

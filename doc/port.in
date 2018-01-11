@@ -16,6 +16,7 @@
 # Some systems don't have whoami.  Use $LOGNAME instead
 #author="`whoami`"
 author="$LOGNAME"
+MAKE="@MAKE@"
 nomake=0
 noperf=0
 dotest=0
@@ -47,6 +48,7 @@ for arg in "$@" ; do
  	-nomake )
 	nomake=1
 	;;
+
 
  	-noperf )
 	noperf=1
@@ -118,7 +120,7 @@ cat >> $filename <<.
 This document describes the porting of the Argonne National 
 Laboratory/Mississippi State University portable implementation of MPI
 to the $systemname system.  The MPI standard is given in
-\cite{mpi-forum:final}; a introduction to using MPI may be found in
+\cite{mpi-forum:final}; an introduction to using MPI may be found in
 \cite{usingmpi}. 
 
 The MPICH implementation relies on a abstract device interface (ADI) for its
@@ -470,7 +472,7 @@ There are a large number of configure variables.  This table sumarizes the
 variables not described elsewhere and their values.
 
 \begin{description}
-\item[MPIR_HOME]@MPIR_HOME@\\\\
+\item[MPIR_HOME]\file{@MPIR_HOME@}\\\\
 Location of MPICH
 \item[AUTOMOUNTFIX]\code{@AUTOMOUNTFIX@}\\\\
 Fix for automounters
@@ -510,6 +512,11 @@ echo "\\end{description}" >> $filename
 # should read locally)
 if test $nomake = 0 ; then
     @MPIR_HOME@/doc/portbuild -file=$filebase
+    if test $? != 0 ; then 
+	# The make failed; don't generate any data!
+	dotest=0
+	noperf=1
+    fi
 fi
 cat >> $filename <<.
 \readfile{${fileroot}make.tex}
@@ -517,17 +524,29 @@ cat >> $filename <<.
 #
 # Special case for p4: see if we can build the server
 if test "@DEVICE@" = "ch_p4" ; then
-    make serv_p4  > serv_p4.log 2>&1
+    $MAKE serv_p4  > serv_p4.log 2>&1
     if [ $? != 0 ] ; then 
 	cat >> $filename <<EOF
 \subsection{P4 startup server}
-The make of the P4 server, used to speed job startup, failed.  The make output
+The make of the P4 server, used to speed job startup, failed.  
+EOF
+    if [ -s serv_p4.log ] ; then 
+        cat >> $filename <<EOF
+The make output
 was
 \begin{verbatim}
 EOF
 	cat serv_p4.log >> $filename
 	cat >> $filename <<EOF
 \end{verbatim}
+EOF
+    else
+	cat >> $filename <<EOF
+There was no output from make, but the make returned a non-zero status.
+
+EOF
+    fi
+	cat >> $filename <<EOF
 This may not be a serious problem; some systems do not support the P4 server.
 On these systems, MPICH will use the remote shell command \code{@RSH_COMMAND@}
 to start remote jobs.
@@ -548,7 +567,7 @@ if test $noperf = 0 -o $dotest = 1 ; then
     if test "@DEVICE@" = "ch_p4" ; then
 	if test -x @MPIR_HOME@/lib/@ARCH@/ch_p4/tstmachines ; then 
 	    /bin/rm -f .tmp
-	    if @MPIR_HOME@/lib/@ARCH@/ch_p4/tstmachines > .tmp 2>&1 ; then
+	    if @MPIR_HOME@/lib/@ARCH@/ch_p4/tstmachines @ARCH@ > .tmp 2>&1 ; then
 		true
 	    else 
 		cat >>$filename <<EOF

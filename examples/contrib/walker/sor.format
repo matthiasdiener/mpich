@@ -1,0 +1,60 @@
+Replied: Wed, 13 Dec 1995 13:32:23 -0600
+Replied: "David Walker <walker@xanadu.EPM.ORNL.GOV> "
+Received: from xanadu.EPM.ORNL.GOV (xanadu.epm.ornl.gov [128.219.8.67]) by antares.mcs.anl.gov (8.6.10/8.6.10)  with ESMTP
+	id NAA28040 for <lusk@mcs.anl.gov>; Wed, 13 Dec 1995 13:29:47 -0600
+Received: from xanadu (localhost [127.0.0.1]) by xanadu.EPM.ORNL.GOV (8.6.10/8.6.10) with ESMTP id OAA02100 for <lusk@mcs.anl.gov>; Wed, 13 Dec 1995 14:29:15 -0500
+Message-Id: <199512131929.OAA02100@xanadu.EPM.ORNL.GOV>
+X-Mailer: exmh version 1.6.5 12/11/95
+To: Rusty Lusk <lusk@mcs.anl.gov>
+Subject: Re: MPI examples from tutorial 
+In-reply-to: Your message of "Wed, 13 Dec 1995 13:13:43 CST."
+             <199512131913.NAA27695@antares.mcs.anl.gov> 
+X-URL: http://www.epm.ornl.gov/~walker/
+X-Face: #*F`meb<FAdF^BxUf'1T)@#3`+@Caj\l!F`$=*U=c56;UP.G=$jLK/1vYvL?M4"V,|G)W6_
+ K?^<i_(DC6gf##@v6zv6Mc`$<0P}7#84FnZ\_$NHYG*K@3BG,w&fJOc6,$Uns^1A9KnrSj~0|#u%b:
+ {/[If-3,Bv-]]lb`f^phiP!1I\KsssbP:.U,?Ip{/\-Ew`DIP@G3BGgPocx2$lC7"_g1SX8=bwn\|F
+ lwN~`Qv"3Q]*a\*k(CfoTQ14oGWeEXX5sQz|']q}ui_k`xOFevVw0Zo9:T9hynr~x8(
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Date: Wed, 13 Dec 1995 14:29:15 -0500
+From: David Walker <walker@xanadu.EPM.ORNL.GOV>
+
+Rusty, 
+Here's a sample sor.input, followed by an explanation of each line. The 
+solution
+is set to zero on the boundary, and to prescribed values at a set of interior
+points.
+
+4
+3
+20
+20
+1.25
+1
+20
+40
+1.0
+
+Line 1: number of processes in x direction
+Line 2: number of processes in y direction
+Line 3: number of points per process in x direction (must be even)
+Line 4: number of points per process in y direction (must be even)
+Line 5: SOR parameter, omega
+Line 6: number of fixed interior points
+Line 7: x index of fixed interior point
+Line 8: y index of fixed interior point
+Line 9: value at fixed interior point
+Then repeat lines 7-9 for the rest of the interior points.
+
+Here the Matlab macro I use to visually check the output. You must first set
+m and n to the total number of rows and columns in the grid.
+
+% set m and n to number of rows and columns first
+fid = fopen('sor.output','r');
+[a,count] = fscanf(fid,'%e',[m,n]);
+pcolor(a)
+
+Regards,
+David
+
+

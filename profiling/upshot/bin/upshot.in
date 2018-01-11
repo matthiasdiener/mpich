@@ -10,7 +10,11 @@ set bitmaplist {gray gray3 gray2 vlines3 dllines4 drlines4 hlines3 2x2 boxes \
 set colorlist {red blue green cyan yellow magenta orange3 maroon \
        gray25 gray75 purple4 darkgreen white black}
 set defaultFile ~/.upshot.defaults
-
+#
+# Get the version.  If you KNOW the version, you can just do, e.g., 
+#    set tk_version 4.1
+set err [ catch { expr { #TK_VERSION# + 0 } } tk_version ]
+if { $err != 0 } { set tk_version 3.6 } 
 
 proc SetGlobalVars {} {
    global reqWidth procWidth incDraw numDHashMarks numSHashMarks
@@ -462,12 +466,17 @@ proc SelectLogfile {file format} {
 }
 
 proc OpenWin(options) {w} {
-   global reqWidth blackWhite pageWidth pageHeight incDraw
+   global reqWidth blackWhite pageWidth pageHeight incDraw tk_version
    toplevel $w
    wm title $w "Options"
 
    frame $w.labels
    frame $w.entries
+
+   if { $tk_version >= 4.0 } { set selectname "-selectcolor"
+	} else {
+	set selectname "-selector"
+	}
 
    button $w.ok -text "OK" -command "CloseOption $w"
    label  $w.labels.width -text "Initial screen width: " -relief raised
@@ -479,7 +488,7 @@ proc OpenWin(options) {w} {
    set selectColor [expr "$blackWhite ? \"black\" : \"red\""]
    checkbutton $w.incDraw -text "Incremental time bar drawing" \
 	 -variable incDraw \
-	 -relief raised -selector $selectColor
+	 -relief raised $selectname $selectColor
 
    $w.entries.width insert 0 $reqWidth
    $w.entries.pageWidth insert 0 $pageWidth
@@ -518,6 +527,7 @@ proc OpenWin(timeline) {w logfilename logfileformat} {
    global blackWhite reqWidth
    global procWidth
    global timelinebg setting
+   global tk_version
 
    set timeLineCanvas $w.c
    set setting($w,tlc) $timeLineCanvas
@@ -531,6 +541,14 @@ proc OpenWin(timeline) {w logfilename logfileformat} {
    set setting($w,logfilename) $logfilename
 
    # make sure the logfile is readable
+   if {![file readable $logfilename]} {
+        # First, try the file with the default directory
+	set filetest [ GetDefault logfiledirectory "." ] 
+        if { [file readable $filetest/$logfilename]} {
+	    cd $filetest
+            }
+	}
+
    if {![file readable $logfilename]} {
       toplevel $w
       wm title $w "Filename"
@@ -576,9 +594,15 @@ proc OpenWin(timeline) {w logfilename logfileformat} {
 
    set procLabelsWidth [TimeLineProcNums $w $procNums]
 
-   scrollbar $w.canvasFrame.vscroll \
-	 -orient vertical -relief sunken -command "Yscroll $timeLineCanvas \
+   if { $tk_version >= 4.0 } { 
+       scrollbar $w.canvasFrame.vscroll \
+	 -orient vertical -relief sunken -command "Yscroll4 $timeLineCanvas \
 	       $procNums"
+	} else {
+       scrollbar $w.canvasFrame.vscroll \
+	 -orient vertical -relief sunken -command "Yscroll3 $timeLineCanvas \
+	       $procNums"
+	}
 
    canvas $timeLineCanvas -scrollregion [list 0 0 $canvasWidth \
 	 [expr $setting($w,numProcs)*$procWidth]] -width $canvasWidth \
@@ -616,9 +640,13 @@ proc OpenWin(timeline) {w logfilename logfileformat} {
 
 
    # attach scroll bars to canvas
-   $timeLineCanvas config -xscroll "UpdateHScale $w $w.hscroll" \
-	 -yscroll "UpdateVScale $w.canvasFrame.vscroll $procNums"
-
+   if { $tk_version >= 4.0 } { 
+       $timeLineCanvas config -xscrollcommand "UpdateHScale4 $w $w.hscroll" \
+	 -yscrollcommand "UpdateVScale4 $w.canvasFrame.vscroll $procNums"
+	} else {
+       $timeLineCanvas config -xscroll "UpdateHScale3 $w $w.hscroll" \
+	 -yscroll "UpdateVScale3 $w.canvasFrame.vscroll $procNums"
+       }
    # need update or the 'winfo' command will not return correct information
    ResizeLegend $w $legend $canvasWidth
    update
@@ -827,8 +855,14 @@ proc PreprocessLog(alog) {id logfilename} {
 
    set setting($id,rolloverPt) 0
    set nbytes [gets $logFileHandle string]
+   # it is better to do an update of the display every 10 lines read
+   set updatecnt 0
    while {$nbytes>=0} {
-      AddPctDone $id [expr $nbytes+1]
+      incr updatecnt
+      if { $updatecnt > 10 } { 
+          AddPctDone $id [expr $nbytes+1]
+          set updatecnt 0
+          }
       incr lineNo
       if {[scan $string "%d %d %d %d %d %lf" type proc task data cycle \
 	    timestamp]!=6} {
@@ -2121,7 +2155,11 @@ proc scaleLabelList n {
    return $l
 }
 
-proc UpdateHScale {id scrollbar totalUnits \
+#
+# tk4.0 provides ONLY two args to -xscrollcommand value: the first and last to 
+# give to the scrollbar set command.
+#
+proc UpdateHScale3 {id scrollbar totalUnits \
       scrollUnits startUnit endUnit} {
    global numDHashMarks ndigitsPrecD setting
 
@@ -2143,9 +2181,42 @@ proc UpdateHScale {id scrollbar totalUnits \
    $scrollbar set $totalUnits $scrollUnits $startUnit $endUnit
 }
 
-proc UpdateVScale {scrollbar procNumsCanvas totalUnits \
+proc UpdateHScale4 {id scrollbar firstFrac lastFrac } {
+   global numDHashMarks ndigitsPrecD setting
+
+#
+# Use the scrollbar information to recompute the scaling of the hashmarks
+#
+   set totalUnits [ $id.c cget -width ]
+   # puts stdout $totalUnits
+   set scrollUnits [ expr { ( $lastFrac - $firstFrac ) * $totalUnits } ]
+   set startUnit [ expr { $firstFrac * $totalUnits } ]
+   set endUnit [ expr { $lastFrac * $totalUnits } ]
+   set factor1 [expr ($scrollUnits+0.0)/$numDHashMarks]
+   set factor2 [expr {($setting($id,lastTime)-$setting($id,firstTime)+0.0)/ \
+	 ($totalUnits-2)/1000000}]
+
+   # set the # of sig. digits
+   set ndigits [expr {int($ndigitsPrecD-\
+	 log10($numDHashMarks*$factor1*$factor2))}]
+   if {$ndigits < 0} {set ndigits 0}
+
+   # set the variables that the dynamic scale markings represent
+   set formatString [format "%%.%df" $ndigits]
+   for {set i 0} {$i<$numDHashMarks} {incr i} {
+      set setting($id,scaleLabel$i) [format $formatString \
+	    [expr ($factor1*($i+0.5)+$startUnit)*$factor2]]
+   }
+   $scrollbar set $firstFrac $lastFrac
+}
+
+proc UpdateVScale3 {scrollbar procNumsCanvas totalUnits \
       scrollUnits startUnit endUnit} {
    $scrollbar set $totalUnits $scrollUnits $startUnit $endUnit
+}
+
+proc UpdateVScale4 {scrollbar procNumsCanvas firstFrac lastFrac } {
+   $scrollbar set $firstFrac $lastFrac
 }
 
 
@@ -2340,7 +2411,7 @@ proc AdjustBinEnd {id w canvas stateName startScale endScale endVal} {
 }
 
 proc HistogramWindow {id w stateName} {
-   global histWin lenList bg fg printOpts setting activebg
+   global histWin lenList bg fg printOpts setting activebg tk_version
 
    set controls $w.controls
    set totalTimeLbl $controls.ttlbl
@@ -2412,12 +2483,17 @@ proc HistogramWindow {id w stateName} {
    label $totalTimeLbl -anchor w -fg $fg -text "Total time: \
 	 [format "%.5f" [expr $totalTime/1000000.0]] sec."
    frame $scaleF -borderwidth 10
+   if { $tk_version >= 4.0 } { 
+	set scalecmd "-activebackground"
+	} else { 
+	set scalecmd "-activeforeground"
+	}
    scale $start -orient horiz -label "Start state length" \
 	 -from [expr int([lindex $lenList($w) 0])-1 ] \
 	 -to [expr int([lindex $lenList($w) \
 	    [expr [llength $lenList($w)]-1]])+1 ] \
 	 -command "AdjustBinStart $id $w $binCanvas {$stateName} $start $end" \
-	 -sliderlength 30 -showvalue 0 -activeforeground $activebg
+	 -sliderlength 30 -showvalue 0 $scalecmd $activebg
    label $startLbl -anchor e -fg $fg -textvariable histWin($w,start)
    $start set [expr int($histWin($w,start)*1000000)]
    scale $end   -orient horiz -label "End state length" \
@@ -2425,7 +2501,7 @@ proc HistogramWindow {id w stateName} {
 	 -to [expr int([lindex $lenList($w) \
 	    [expr [llength $lenList($w)]-1]])+1] \
 	 -command "AdjustBinEnd $id $w $binCanvas {$stateName} $start $end" \
-	 -sliderlength 30 -showvalue 0 -activeforeground $activebg
+	 -sliderlength 30 -showvalue 0 $scalecmd $activebg
    label $endLbl   -anchor e -fg $fg -textvariable histWin($w,end)
    $end   set [expr int($histWin($w,end)*1000000)]
 
@@ -2436,7 +2512,7 @@ proc HistogramWindow {id w stateName} {
 
    scale $bins  -orient horiz -label "Number of bins" -from 1 -to 50 \
 	 -command "AdjustNumBins $id $w $binCanvas {$stateName}" \
-	 -activeforeground $activebg
+	 $scalecmd $activebg
 
    set histWin($w,dontRefresh) 1
    $start config -to [$end get]
@@ -2772,15 +2848,37 @@ proc DrawArrow {id sender receiver sendTime recvTime tag} {
 }
 
 
-proc Yscroll {canvas procNums scrollval} {
+proc Yscroll3 {canvas procNums scrollval} {
    $canvas yview $scrollval
    $procNums yview $scrollval
 }
 
+proc Yscroll4 {canvas procNums scrollcmd scrollval} {
+#   case $scrollcmd in {
+#   {moveto} { 
+#	    set totalunits [ $canvas cget -height ] 
+#	    set scrollval [ expr { $scrollval * $totalunits } ]
+#            }
+#   {scroll} { }
+#   }
+   $canvas yview $scrollcmd $scrollval
+   $procNums yview $scrollcmd $scrollval
+}
+
 
 proc Resize {id legend} {
+   global tk_version
    update
-   ResizeLegend $id $legend [winfo width $legend]
+   # It may be that tk_version < 4 should be using reqwidth as well.
+   # Without this, the resize is called continuously, as each call adds 4 
+   # pixels to the width of the window (probably the BORDER width, which
+   # is 2 in most places).
+   #
+   if { $tk_version >= 4.0 } { 
+        ResizeLegend $id $legend [winfo reqwidth $legend]
+	} else {
+        ResizeLegend $id $legend [winfo width $legend]
+	}
 }
 
 
@@ -3223,9 +3321,13 @@ proc LegendButton {id canvas x y} {
    $id config -cursor top_left_arrow
 }
    
-
+set InResizeLegend 0
 proc ResizeLegend {id canvas givenWidth} {
-   global fg bg blackWhite setting
+   global fg bg blackWhite setting InResizeLegend
+
+   if { $InResizeLegend != 0 } { return }
+   set InResizeLegend 1
+
    set nstates [llength $setting($id,states,list)]
 
    # these are all repeated in CreateLegend
@@ -3289,6 +3391,8 @@ proc ResizeLegend {id canvas givenWidth} {
 
    set height [expr $vert+$marginVert+$maxHeight]
    $canvas configure -width $givenWidth -height $height
+
+   set InResizeLegend 0
    return $vert
 }
 
@@ -3365,6 +3469,7 @@ proc fileselect {
     {purpose "Open file:"} 
     {w .fileSelectWindow} 
     {errorHandler fileselect.default.errorHandler}} {
+    global tk_version
 
     catch {destroy $w}
 
@@ -3399,6 +3504,9 @@ proc fileselect {
 	$w.file.sframe {top fill expand} \
 	$w.file.dirlabel {top frame w fillx}
 
+    set err [ catch { GetDefault logfiledirectory "." } curdir ]
+    #puts stdout "directory is $curdir"
+    if { $err == 0 } { cd $curdir }
 
     label $w.file.eframe.pattern_lbl -anchor w -width 24 -text "Pattern:"
     entry $w.file.eframe.pattern_entry -relief sunken 
@@ -3407,6 +3515,7 @@ proc fileselect {
 
     label $w.file.eframe.label -anchor w -width 24 -text $purpose
     entry $w.file.eframe.entry -relief sunken 
+    $w.file.eframe.entry insert 0 [ GetDefault logfile "" ]
 
     pack append $w.file.eframe \
 		$w.file.eframe.pattern_lbl {top expand frame w} \
@@ -3482,8 +3591,45 @@ proc fileselect {
     bind $w <Return> {eval $fileselect(ok) invoke}
 
 
-    tk_listboxSingleSelect $fileselect(list)
+    if { $tk_version >= 4.0} {
+	$fileselect(list) config -selectmode single
+        set selectstring "select set"
+	} else {
+        tk_listboxSingleSelect $fileselect(list)
+        set selectstring "select from"
+        }
 
+    if { $tk_version >= 4.0 } { 
+
+    bind $fileselect(list) <Button-1> [format {
+       # puts stderr "button 1 release"
+       %%W select set [%%W nearest %%y]
+       $fileselect(entry) delete 0 end
+       $fileselect(entry) insert 0 [lindex [%%W get [%%W nearest %%y]] 0]
+       set select_format(%s) [GuessFormat [$fileselect(entry) get] ]
+    } $w]
+
+    bind $fileselect(list) <Key> {
+       %W select set from [%W nearest %y]
+       $fileselect(entry) delete 0 end
+       $fileselect(entry) insert 0 [lindex [%W get [%W nearest %y]] 0]
+    }
+
+    bind $fileselect(list) <Double-ButtonPress-1> {
+       # puts stderr "double button 1"
+       %W select set [%W nearest %y]
+       $fileselect(entry) delete 0 end
+       $fileselect(entry) insert 0 [lindex [%W get [%W nearest %y]] 0]
+       $fileselect(ok) invoke
+    }
+
+    bind $fileselect(list) <Return> {
+       %W select set [%W nearest %y]
+       $fileselect(entry) delete 0 end
+       $fileselect(entry) insert 0 [lindex [%W get [%W nearest %y]] 0]
+       $fileselect(ok) invoke
+    }
+        } else {
 
     bind $fileselect(list) <Button-1> [format {
        # puts stderr "button 1 release"
@@ -3494,7 +3640,7 @@ proc fileselect {
     } $w]
 
     bind $fileselect(list) <Key> {
-       %W select from [%W nearest %y]
+       %W select from from [%W nearest %y]
        $fileselect(entry) delete 0 end
        $fileselect(entry) insert 0 [lindex [%W get [%W nearest %y]] 0]
     }
@@ -3512,6 +3658,7 @@ proc fileselect {
        $fileselect(entry) delete 0 end
        $fileselect(entry) insert 0 [lindex [%W get [%W nearest %y]] 0]
        $fileselect(ok) invoke
+    }
     }
 
     # set kbd focus to entry widget
@@ -3555,6 +3702,8 @@ proc fileselect.ok.cmd {w cmd errorHandler} {
 
 
     if {[string length $selected] && [file isdirectory $selected] != 0} {
+       # Note that this cd means that the "default" file won't have the
+       # directory in it.
        cd $selected
        set dir [pwd]
        $fileselect(dirlabel) configure -text $dir
@@ -3575,7 +3724,7 @@ proc fileselect.ok.cmd {w cmd errorHandler} {
 
     UpdateDefaults [list logfile_name_glob_pattern \
 	  [$w.file.eframe.pattern_entry get] logfileformat $select_format($w) \
-	  logfile $selected ]
+	  logfile $selected logfiledirectory [ pwd ] ]
 
     destroy $w
     $cmd $selected $select_format($w)
@@ -3587,6 +3736,7 @@ proc StartPctDone {id total} {
    global pctDone pctDonefg pctDonebg setting
 
    wm title $id "Reading $setting($id,logfilename)"
+   wm transient $id .
 
    canvas $id.pctDone -height 50 -width 300 -relief raised
    pack append $id $id.pctDone {fill expand}

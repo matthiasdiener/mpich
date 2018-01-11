@@ -27,6 +27,7 @@ mpirun_verbose=0
 nolocal=0
 leavePGFile=0
 p4pgfile=
+tcppgfile=
 p4ssport=
 just_testing=0
 machineFile=
@@ -37,9 +38,12 @@ rshcmd=#RSH_COMMAND#
 mvhome=0
 mvback=
 narch=0
+stdinfile=
 Show=eval
 # Kind of paragon submisstion (default/mkpart/nqs)
 paragon_type="default"
+# paragon partition name, if any
+paragon_pn=""
 Machines="chameleon meiko paragon p4 sp1 ibmspx anlspx ksr sgi_mp ipsc860 inteldelta cray_t3d execer smp symm_ptx"
 # Usage limits
 max_time=15
@@ -51,6 +55,10 @@ max_mem=32
 polling_mode=1
 #
 PrintHelp() {
+#
+# If you change this, make the corresponding changes in README so that
+# the man pages are updated.
+#
 cat <<EOF
 mpirun [mpirun_options...] <progname> [options...]
 
@@ -76,6 +84,21 @@ cat <<EOF
     -nolocal
             don't run on the local machine (only works for 
             p4 and ch_p4 jobs)
+    -stdin filename
+            Use filename as the standard input for the program.  This
+            is needed for programs that must be run as batch jobs, such
+            as some IBM SP systems and Intel Paragons using NQS (see 
+            -paragontype below).
+    -t      Testing - do not actually run, just print what would be
+            executed
+    -v      Verbose - throw in some comments
+    -dbx    Start the first process under dbx where possible
+    -gdb    Start the first process under gdb where possible
+             (on the Meiko, selecting either -dbx or -gdb starts prun
+             under totalview instead)
+
+    Special Options for Workstation Clusters:
+
     -e      Use execer to start the program on workstation
             clusters
     -pg     Use a procgroup file to start the p4 programs, not execer
@@ -85,6 +108,9 @@ cat <<EOF
     -p4pg filename
             Use the given p4 procgroup file instead of creating one.
             Overrides -np and -nolocal, selects -leave_pg.
+    -tcppg filename
+            Use the given tcp procgroup file instead of creating one.
+            Overrides -np and -nolocal, selects -leave_pg.
     -p4ssport num
             Use the p4 secure server with port number num to start the
             programs.  If num is 0, use the value of the 
@@ -92,15 +118,9 @@ cat <<EOF
             speed up process startup.  If MPI_USEP4SSPORT as well as
             MPI_P4SSPORT are set, then that has the effect of giving
             mpirun the -p4ssport 0 parameters.
-    -t      Testing - do not actually run, just print what would be
-            executed
-    -v      Verbose - throw in some comments
-    -dbx    Start the first process under dbx where possible
-    -gdb    Start the first process under gdb where possible
-             (on the Meiko, selecting either -dbx or -gdb starts prun
-             under totalview instead)
-    -nopoll Do not use a polling-mode communication.
-            Available only on IBM SPx.
+
+    Special Options for Batch Environments:
+
     -mvhome Move the executable to the home directory.  This 
             is needed when all file systems are not cross-mounted
             Currently only used by anlspx
@@ -110,10 +130,8 @@ cat <<EOF
     -maxtime min
             Maximum job run time in minutes.  Currently used only
             by anlspx.  Default value is $max_time minutes.
-    -cac name
-            CAC for ANL scheduler.  Currently used only by anlspx.
-            If not provided will choose some valid CAC.
-
+    -nopoll Do not use a polling-mode communication.
+            Available only on IBM SPx.
     -mem value
 	   This is the per node memory request (in Mbytes).  Needed for some
            CM-5s. ( Default $max_mem. )
@@ -122,6 +140,14 @@ cat <<EOF
 	   This is the the hard cpu limit used for some CM-5s in
 	   minutes. (Default $maxtime minutes.)
 
+    Special Options for IBM SP2:
+
+    -cac name
+            CAC for ANL scheduler.  Currently used only by anlspx.
+            If not provided will choose some valid CAC.
+
+    Special Options for Intel Paragon:
+
     -paragontype name
            Selects one of default, mkpart, NQS, depending on how you want
            to submit jobs to a Paragon.
@@ -129,6 +155,10 @@ cat <<EOF
     -paragonname name 
            Remote shells to name to run the job (using the -sz method) on 
            a Paragon.
+
+    -paragonpn name
+           Name of partition to run on in a Paragon (using the -pn name 
+           command-line argument)
 
 On exit, mpirun returns a status of zero unless mpirun detected a problem, in
 which case it returns a non-zero status (currently, all are one, but this 
@@ -157,8 +187,6 @@ the number of processors.  Also, the FIRST -arch command must refer to the
 processor on which the job will be started.  Specifically, if -nolocal is 
 NOT specified, then the first -arch must refer to the processor from which
 mpirun is running.
-
-This is incompletely implemented currently.
 
 EOF
 }
@@ -199,6 +227,11 @@ while [ 1 -le $# ] ; do
  	default_device="$1"
 	shift
 	;;
+    -stdin)
+	# Name of a file to use for standard input.
+	stdinfile="$1"
+	shift
+	;;
     -nolocal)
         nolocal=1
 	;;	
@@ -226,10 +259,19 @@ while [ 1 -le $# ] ; do
 	shift
       	leavePGFile=1
 	;;
+    -tcppg)
+      	if [ $np -gt  1 ] ; then
+	    echo "-tcppg and -np are mutually exclusive; -np $np being ignored."
+            np=1
+	fi
+	tcppgfile="$1"
+	shift
+      	leavePGFile=1
+	;;
     -p4ssport)
       	p4ssport="$1"
 	shift
-        if [ $p4ssport = "0" && "$MPI_P4SSPORT" != "" ] ; then
+        if [ $p4ssport = "0" -a "$MPI_P4SSPORT" != "" ] ; then
 	    p4ssport=$MPI_P4SSPORT
       	fi
 	;;
@@ -240,6 +282,10 @@ while [ 1 -le $# ] ; do
     -paragonname)
 	paragon_type=crossrun
 	pgonname="$1"
+	shift
+	;;
+    -paragonpn)
+	paragon_pn="-pn $1"
 	shift
 	;;
     -v)
@@ -320,11 +366,10 @@ echo "mem: Memory requested ($mem MB/node) greater than maximum available ($max_
             done
          else
 	    echo "Warning: Command line arguments for program should be given"
-            echo "after the program name.  Assuming that $1 is a"
+            echo "after the program name.  Assuming that $arg is a"
             echo "command line argument for the program."
-            cmdLineArgsExecer="$cmdLineArgsExecer -arg=$1"
-            cmdLineArgs="$cmdLineArgs $1"
-	    shift
+            cmdLineArgsExecer="$cmdLineArgsExecer -arg=$arg"
+            cmdLineArgs="$cmdLineArgs $arg"
          fi
       ;;
   esac
@@ -386,12 +431,14 @@ if [ -n "#AUTOMOUNTFIX#" ] ; then
         PWDtest=`pwd`
     fi
     if [ -n "$PWD" ] ; then
-        /bin/rm -f $PWDtest/.mpirtmp $PWD/.mpirtmp
-        echo "test" > $PWD/.mpirtmp
-        if [ ! -s $PWDtest/.mpirtmp ] ; then
+	# Use a process-specific filename
+        /bin/rm -f $PWDtest/.mpirtmp$$ $PWD/.mpirtmp$$
+        echo "test" > $PWD/.mpirtmp$$
+        if [ ! -s $PWDtest/.mpirtmp$$ ] ; then
+	    /bin/rm -f $PWD/.mpirtmp$$
             PWD=$PWDtest
         fi
-        /bin/rm -f $PWDtest/.mpirtmp $PWD/.mpirtmp
+        /bin/rm -f $PWDtest/.mpirtmp$$ $PWD/.mpirtmp$$
     else 
         PWD=$PWDtest
     fi
@@ -465,6 +512,10 @@ if [ "$machine" = "" ] ; then
 	machine="chameleon"
       elif [ "$default_device" = "ch_p4" -a $use_execer = 0 ] ; then
 	machine="p4"
+      elif [ "$default_device" = "ch_tcp" -a $use_execer = 0 ] ; then
+	machine="ch_tcp"
+      elif [ "$default_device" = "ch_nexus" ] ; then
+	machine="nexus"
       else
         machine="execer"
       fi
@@ -477,6 +528,11 @@ if [ "$machine" = "" ] ; then
       if [ $? = 0 ] ; then
         # This is the correct version to use once we're on a node
 	machine="ibmspx"
+      elif [ "$default_device" = "ch_nexus" ] ; then
+        # We need this before the anlspx check, because the Nexus device
+        # can be used on the ANL SP, as well, but the mpirun script for
+        # it does not use Nexus by default.
+	machine="nexus"
       elif [ -d /etc/FRAMES -a -d /mcs ] ; then
         machine="anlspx"
       elif [ "$default_device" = "chameleon" ] ; then
@@ -485,6 +541,8 @@ if [ "$machine" = "" ] ; then
 	machine="p4"
       elif [ "$default_device" = "ch_p4" -a $use_execer = 1 ] ; then
 	machine="execer"
+      elif [ "$default_device" = "ch_tcp" -a $use_execer = 0 ] ; then
+	machine="ch_tcp"
       elif [ -d /usr/lpp/euih ] ; then
         machine="sp1"
       elif [ -x /usr/bin/poe -o -x /usr/lpp/poe/bin/poe ] ; then
@@ -506,6 +564,10 @@ if [ "$machine" = "" ] ; then
 	machine="chameleon"
       elif [ "$default_device" = "ch_p4" -a $use_execer = 0 ] ; then
 	machine="p4"
+      elif [ "$default_device" = "ch_tcp" -a $use_execer = 0 ] ; then
+	machine="ch_tcp"
+      elif [ "$default_device" = "ch_nexus" ] ; then
+	machine="nexus"
       else
         machine="execer"
       fi
@@ -516,7 +578,7 @@ if [ "$machine" = "" ] ; then
 fi
 
 # Get value of host if necessary
-if [ "$machine" = p4 -o "$machine" = execer -o "$machine" = tcp -o \
+if [ "$machine" = p4 -o "$machine" = execer -o "$machine" = ch_tcp -o \
 	"$machine" = sgi_mp -o "$machine" = ch_p4 ] ; then
   if [ "$HOST" = "" ] ;  then
     HOST=""

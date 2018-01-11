@@ -1,5 +1,5 @@
 /*
- *  $Id: group_excl.c,v 1.14 1994/12/15 16:32:33 gropp Exp $
+ *  $Id: group_excl.c,v 1.15 1995/12/21 22:07:13 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -15,16 +15,19 @@ MPI_Group_excl - Produces a group by reordering an existing group and taking
 
 Input Parameters:
 . group - group (handle) 
-. n - number of elements in array ranks (integer) 
-. ranks - array of integer ranks in group not to appear in newgroup 
+. n - number of elements in array 'ranks' (integer) 
+. ranks - array of integer ranks in 'group' not to appear in 'newgroup' 
 
 Output Parameter:
-. newgroup - new group derived from above, preserving the order defined by  group (handle) 
+. newgroup - new group derived from above, preserving the order defined by 
+ 'group' (handle) 
 
 Note:  
 Currently, each of the ranks to exclude must be
 a valid rank in the group and all elements must be distinct or the
 function is erroneous.  This restriction is per the draft.
+
+.N fortran
 @*/
 int MPI_Group_excl ( group, n, ranks, newgroup )
 MPI_Group group, *newgroup;

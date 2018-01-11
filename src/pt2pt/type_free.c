@@ -1,12 +1,12 @@
 /*
- *  $Id: type_free.c,v 1.14 1994/12/15 17:06:13 gropp Exp $
+ *  $Id: type_free.c,v 1.15 1995/12/21 21:36:09 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_free.c,v 1.14 1994/12/15 17:06:13 gropp Exp $";
+static char vcid[] = "$Id: type_free.c,v 1.15 1995/12/21 21:36:09 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -22,6 +22,8 @@ static char vcid[] = "$Id: type_free.c,v 1.14 1994/12/15 17:06:13 gropp Exp $";
 
 Input Parameter:
 . datatype - datatype that is freed (handle) 
+
+.N fortran
 @*/
 int MPI_Type_free ( datatype )
 MPI_Datatype *datatype;

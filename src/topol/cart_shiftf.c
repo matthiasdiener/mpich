@@ -38,12 +38,12 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
-void mpi_cart_shift_( comm, direction, shift, source, dest )
+void mpi_cart_shift_( comm, direction, shift, source, dest, ierr )
 MPI_Comm         comm;
 int              *direction; 
 int              *shift;
-int              *source, *dest;
+int              *source, *dest, *ierr;
 {
-    MPI_Cart_shift( (MPI_Comm)MPIR_ToPointer(*(int*)comm), 
+*ierr =     MPI_Cart_shift( (MPI_Comm)MPIR_ToPointer(*(int*)comm), 
 		    *direction, *shift, source, dest );
 }

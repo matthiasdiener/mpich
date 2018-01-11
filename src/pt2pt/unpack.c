@@ -1,12 +1,12 @@
 /*
- *  $Id: unpack.c,v 1.16 1995/09/18 15:39:44 gropp Exp $
+ *  $Id: unpack.c,v 1.18 1996/01/03 19:03:38 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: unpack.c,v 1.16 1995/09/18 15:39:44 gropp Exp $";
+static char vcid[] = "$Id: unpack.c,v 1.18 1996/01/03 19:03:38 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -25,6 +25,8 @@ Input Parameters:
 
 Output Parameter:
 . outbuf - output buffer start (choice) 
+
+.N fortran
 
 .seealso: MPI_Pack, MPI_Pack_size
 @*/
@@ -50,20 +52,17 @@ MPI_Comm      comm;
   /* 
     We can't use this test because Pack_size is not exact but is rather
     an upper bound.
-  MPIR_Pack_size ( outcount, type, comm, &size );
+  MPIR_Pack_size ( outcount, type, comm, comm->msgrep, &size );
   if (((*position) + size) > insize)
 	return MPIR_ERROR(comm, MPI_ERR_LIMIT, 
 				       "Input buffer too small in MPI_UNPACK");
    */
-#ifdef MPID_HAS_HETERO
-  /* Does this buffer require special handling? */
-  if (MPID_IS_HETERO == 1 && MPIR_Comm_needs_conversion(comm)) {
-      msgrep = MPIR_MSGREP_XDR;
-      }
-#endif  
+  /* Note that for pack/unpack, the data representation is stored in the 
+     communicator */
   mpi_errno = MPIR_Unpack( comm, 
 			  (char *)inbuf + (*position), insize - *position, 
-			  outcount, type, msgrep, outbuf, &actlen, &dest_len );
+			  outcount, type, comm->msgrep, outbuf, &actlen, 
+			  &dest_len );
   if (mpi_errno) MPIR_ERROR(comm,mpi_errno,"Error in MPI_UNPACK" );
   (*position) += actlen;
   return (mpi_errno);

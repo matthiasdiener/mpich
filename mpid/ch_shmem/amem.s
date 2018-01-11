@@ -1,4 +1,4 @@
-; $CHeader: amem.s 1.1 94/02/21 08:45:17 $
+; $CHeader: amem.s 1.2 1995/11/08 15:08:10 $
 ; Copyright 1992 Convex Computer Corp.
 ;	int MPID_SHMEM__ldcws(void *addr)
 ;	int MPID_SHMEM__read32(void *addr)
@@ -73,4 +73,16 @@ MPID_SHMEM_post0
         .exit
         stws    %r31,0(%r26)    ;offset 0x8
         .procend
-        .end
+
+	.space	$TEXT$
+	.subspa	$CODE$
+	.export __getspace,entry,priv_lev=3,argw0=gr,rtnval=gr
+__getspace
+	.proc
+	.callinfo caller,frame=0
+	.entry
+	bv	%r0(%rp)
+	.exit
+	mfsp	%sr4,%ret0
+	.procend
+	.end

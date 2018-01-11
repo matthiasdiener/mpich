@@ -22,9 +22,20 @@
  */
 /* Do we need stdio here, or has it already been included? */
 
+#if defined(MPI_cspp)
+#include <sys/cnx_types.h>
+#define MPID_MAX_NODES CNX_MAX_NODES
+#define MPID_MAX_PROCS_PER_NODE CNX_MAX_CPUS_PER_NODE
+#define MPID_MAX_PROCS MPID_MAX_NODES*MPID_MAX_PROCS_PER_NODE
+#define MPID_MAX_SHMEM 16777216
+#else
 #define MPID_MAX_PROCS 32
 #define MPID_MAX_SHMEM 4194304
+#endif
+
+
 #define MPID_SHMEM_MAX_PKTS (4*MPID_MAX_PROCS)
+
 #if HAS_VOLATILE || defined(__STDC__)
 #define VOLATILE volatile
 #else
@@ -107,6 +118,7 @@ typedef struct {
 				    barrier; only process 0 can change */
     VOLATILE int cnt1, cnt2;     /* Used to perform counts */
     } MPID_SHMEM_Barrier_t;
+
 /*
    This is the global area of memory; when this structure is allocated,
    we have the initial shared memory
@@ -124,7 +136,12 @@ typedef struct {
 
     /* We put globid last because it may otherwise upset the cache alignment
        of the arrays */
+#if defined(MPI_cspp)
+    p2p_lock_t globid_lock[MPID_MAX_NODES];
+    VOLATILE int globid[MPID_MAX_NODES];	/* Used for world id */
+#else
     VOLATILE int        globid;           /* Used to get my id in the world */
+#endif
     MPID_SHMEM_Barrier_t barrier;         /* Used for barriers */
     } MPID_SHMEM_globmem;	
 

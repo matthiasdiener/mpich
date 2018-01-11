@@ -1,4 +1,4 @@
-.TH MPI_Error_string 3 "9/13/1995" " " "MPI"
+.TH MPI_Error_string 3 "1/29/1996" " " "MPI"
 .SH NAME
 MPI_Error_string \- Return a string for a given error code
 
@@ -22,8 +22,34 @@ MPI_Error_string \- Return a string for a given error code
 .PD 1
 
 Notes:  Error codes are the values return by MPI routines (in C) or in the
-'ierr' argument (in Fortran).  These can be converted into error classes
-with the routine 'MPI_Error_class'.
+.I ierr
+argument (in Fortran).  These can be converted into error classes
+with the routine 
+.I MPI_Error_class
+.
+
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

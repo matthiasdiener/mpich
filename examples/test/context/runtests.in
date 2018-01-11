@@ -9,6 +9,7 @@ args="-pg -mvhome"
 #
 runtests=1
 makeeach=0
+MAKE="@MAKE@"
 for arg in "$@" ; do
     case $arg in 
 	-checkonly )
@@ -40,7 +41,7 @@ done
 
 MakeExe() {
     if [ ! -x $1 ] ; then
-	make $1
+	$MAKE $1
     fi
 }
 CleanExe() {
@@ -51,7 +52,7 @@ CleanExe() {
 
 # If the programs are not available, run make.
 if [ ! -x attrt -a $makeeach = 0 ] ; then
-    make default
+    $MAKE default
 fi
 
 testfiles=""
@@ -79,6 +80,15 @@ mpirun $args -np 2 attrt $* >> attr.out 2>&1
 echo '*** Testing attributes ***' >> attr.out
 CleanExe attrt
 
+testfiles="$testfiles grouptest.out"
+/bin/rm -f grouptest.out
+MakeExe grouptest
+echo '*** Testing Groups ***'
+echo '*** Testing Groups ***' >> grouptest.out
+mpirun $args -np 4 grouptest $* >> grouptest.out 2>&1
+echo '*** Testing Groups ***' >> grouptest.out
+CleanExe grouptest
+
 testfiles="$testfiles ictest.out"
 /bin/rm -f ictest.out
 MakeExe ictest
@@ -87,6 +97,32 @@ echo '*** Testing Intercommunicators ***' >> ictest.out
 mpirun $args -np 4 ictest $* >> ictest.out 2>&1
 echo '*** Testing Intercommunicators ***' >> ictest.out
 CleanExe ictest
+
+#
+# ictest2 relies on a inconsistency in the standard, to wit, that the
+# leader in both groups can be the same process.  This seems to be
+# essential in a dynamic setting, since the only process both groups can
+# access may be the single parent process (other than using client/server
+# intercommunicator creating routines, with the parent providing the common
+# information).
+#
+#testfiles="$testfiles ictest2.out"
+#/bin/rm -f ictest2.out
+#MakeExe ictest2
+#echo '*** Testing Intercommunicators (2) ***'
+#echo '*** Testing Intercommunicators (2) ***' >> ictest2.out
+#mpirun $args -np 4 ictest2 $* >> ictest2.out 2>&1
+#echo '*** Testing Intercommunicators (2) ***' >> ictest2.out
+#CleanExe ictest2
+
+testfiles="$testfiles ictest3.out"
+/bin/rm -f ictest3.out
+MakeExe ictest3
+echo '*** Testing Intercommunicators (3) ***'
+echo '*** Testing Intercommunicators (3) ***' >> ictest3.out
+mpirun $args -np 4 ictest3 $* >> ictest3.out 2>&1
+echo '*** Testing Intercommunicators (3) ***' >> ictest3.out
+CleanExe ictest3
 
 else
     # Just run checks

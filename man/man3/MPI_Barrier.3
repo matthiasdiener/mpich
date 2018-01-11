@@ -1,4 +1,4 @@
-.TH MPI_Barrier 3 "6/20/1995" " " "MPI"
+.TH MPI_Barrier 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Barrier \- Blocks until all process have reached this routine.
 
@@ -18,8 +18,32 @@ have entered the call.
 If the underlying device cannot do better, a tree-like or combine
 algorithm is used to broadcast a message wto all members of the
 communicator.  We can modifiy this to use "blocks" at a later time
-(see MPI_Bcast).
+(see 
+.I MPI_Bcast
+).
 
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

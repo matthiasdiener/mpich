@@ -1,12 +1,12 @@
 /*
- *  $Id: address.c,v 1.9 1994/09/29 21:51:01 gropp Exp $
+ *  $Id: address.c,v 1.10 1995/12/21 21:10:28 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: address.c,v 1.9 1994/09/29 21:51:01 gropp Exp $";
+static char vcid[] = "$Id: address.c,v 1.10 1995/12/21 21:10:28 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -27,6 +27,8 @@ Output Parameter:
     as produced by the C '&' operator, but this is not required in C and
     may not be true of systems with word- rather than byte-oriented 
     instructions or systems with segmented address spaces.  
+
+.N fortran
 @*/
 int MPI_Address( location, address)
 void     *location;

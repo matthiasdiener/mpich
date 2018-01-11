@@ -1,0 +1,160 @@
+#! /bin/sh
+
+#
+# Based largely on the mpirun.ch_p4.in file.
+#
+#
+# The following makes a statement that is true of ALL versions of MPIRUN, 
+# and hence is redundent.
+#
+#echo "Notice:  This is not the using the full features of the Nexus" 2>&1
+#echo "Notice:  runtime.   To do so, you should try to run the program" 2>&1
+#echo "Notice:  directly instead." 2>&1
+
+#
+# If this program was started up without the arguments being passed, we
+# must first set up the arguments
+#
+if [ -z "$MPIR_HOME" ] ; then
+  MPIR_HOME=/home/gropp/mpich
+fi
+if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
+  MPIR_HOME=`pwd`/..
+fi
+MPIRUN_HOME=$MPIR_HOME/bin
+if [ -z "$argsset" ] ; then
+  . $MPIRUN_HOME/mpirun.args
+  argsset=1
+fi
+
+#
+# Make sure that the application is in the .server_apps file.
+# This is really only necessary if the secure server is running, but
+# it doesn't hurt too badly.
+#
+if [ -z "$HOME" ] ; then
+  echo "Cannot determine location of home directory (in HOME)"
+  exit 1
+fi
+if [ -r $HOME/.server_apps ] ; then
+  grep $progname $HOME/.server_apps > /dev/null 2>&1
+  if [ $? != 0 ] ; then
+    echo "$progname" >> $HOME/.server_apps
+    chmod 600 $HOME/.server_apps
+  fi
+else # $HOME/.server_apps
+  echo "$progname" >> $HOME/.server_apps
+  chmod 600 $HOME/.server_apps
+fi
+
+#
+# Construct a startup file
+#
+. $MPIRUN_HOME/mpirun.pg
+prognamemain=$progname
+startupfile="$PWD_TRIAL/startup.$$"
+archval=$archlocal
+proginstance=`echo $progname | sed "s/%a/$archval/g"`
+prognamemain=$proginstance
+if [ $just_testing = 1 ] ; then
+  echo "Startup file:"
+  echo "$HOST startup_exe=$proginstance"
+else
+  echo "$HOST startup_exe=$proginstance" > $startupfile
+fi
+cnt=1
+for machine in $machinelist ; do
+  archval=`echo $archuselist | cut -d' ' -f$cnt`
+  cnt=`expr $cnt + 1`
+  proginstance=`echo $progname | sed "s/%a/$archval/g"`
+  if [ $just_testing = 1 ] ; then
+    echo "$machine startup_exe=$proginstance"
+  else
+    echo "$machine startup_exe=$proginstance" >> $startupfile
+  fi
+done
+#
+# Make sure the startup file was written
+#
+if [ $just_testing = 0 -a \! -r "$startupfile" ] ; then
+  echo "Failed to write $startupfile.  Exiting."
+  exit 1
+fi
+cmdLineArgs="-mpi -s $startupfile -mpi_end $cmdLineArgs"
+
+#
+# Somehow get the right options to Nexus without munching the options to
+# the program.  If the user typed something like
+#
+#    mpirun -np 2 a.out foo -mpi -stack 50000
+#
+# the $cmdLineArgs becomes "foo -mpi -stack 50000", so the easiest way
+# to add arguments is at the beginning surrounded by a -mpi/-mpi_end
+# pair.  This makes the current $cmdLineArgs equal to
+# "-mpi -s startupfile -mpi_end foo -mpi -stack 5000", because we always
+# use a startup file.
+#
+if [ "$debugger" = "dbx" ] ; then
+  cmdLineArgs="-mpi -debug_command $MPIRUN_HOME/rundbx -debug_display $DISPLAY -mpi_end $cmdLineArgs"
+fi
+if [ "$debugger" = "gdb" ] ; then
+  cmdLineArgs="-mpi -debug_command $MPIRUN_HOME/rungdb -debug_display $DISPLAY -mpi_end $cmdLineArgs"
+fi
+#
+# Note that -mvhome is STILL needed under Nexus, as Nexus assumes that the
+# executable is where an SP node can see it.
+#
+#if [ "$mvhome" != "0" ] ; then
+#    echo "Notice:  -mvhome $mvhome" 1>&2
+#    if [ "$mvback" != "" ] ; then
+#      echo "Notice:  -mvback $mvback" 1>&2
+#    fi
+#    echo "Notice:  This feature is not needed because of the resource database" 1>&2
+#    echo "that can be accessed by the startup node." 1>&2
+#    echo "For more information on its format, see ???." 1>&2
+##    exit
+#fi
+
+#
+# Check for non-supported options:
+#    nolocal
+#    e
+#    nopoll
+#    maxtime
+#    cac
+#    ? on pg, leave_pg, p4pg p4ssport
+#
+
+#
+# Set up the debugger (if necessary)
+#
+if [ "$debugger" != "" ] ; then
+  debuggerfile="$PWD_TRIAL/debugger.$$"
+  # If gdb has an equivalent, the documentation is well hidden.
+  if [ "$debugger" = "dbx" -a -r $HOME/.dbxinit ] ; then
+    cat $HOME/.dbxinit > $debuggerfile
+  fi
+  cat >> $debuggerfile <<EOF
+# ignore USR1
+# Use this command to start your program:
+run $cmdLineArgs 
+EOF
+  startpgm="$debugger $progname $commandfile $debuggerfile"
+else # debugger
+  startpgm="$progname $cmdLineArgs"
+fi # debugger
+
+#
+# Start program (if necessary)
+#
+if [ $just_testing = 1 ] ; then
+  echo ""
+  echo $startpgm
+else # just_testing
+  $startpgm
+#  if [ $leaveStartupFile = 1 ] ; then
+#    echo "Startup file is $startupfile."
+#  else
+    /bin/rm "$startupfile"
+#  fi
+fi # just_testing

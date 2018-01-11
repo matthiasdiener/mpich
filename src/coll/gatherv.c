@@ -1,12 +1,12 @@
 /*
- *  $Id: gatherv.c,v 1.22 1995/06/21 03:10:29 gropp Exp $
+ *  $Id: gatherv.c,v 1.23 1995/12/21 22:17:00 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: gatherv.c,v 1.22 1995/06/21 03:10:29 gropp Exp $";
+static char vcid[] = "$Id: gatherv.c,v 1.23 1995/12/21 22:17:00 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -22,19 +22,20 @@ Input Parameters:
 . sendtype - data type of send buffer elements (handle) 
 . recvcounts - integer array (of length group size) 
 containing the number of elements that are received from each process
-(significant only at root) 
+(significant only at 'root') 
 . displs - integer array (of length group size). Entry 
- i  specifies the displacement relative to recvbuf  at
-which to place the incoming data from process  i  (significant only
+ 'i'  specifies the displacement relative to recvbuf  at
+which to place the incoming data from process  'i'  (significant only
 at root) 
 . recvtype - data type of recv buffer elements 
-(significant only at root) (handle) 
+(significant only at 'root') (handle) 
 . root - rank of receiving process (integer) 
 . comm - communicator (handle) 
 
 Output Parameter:
-. recvbuf - address of receive buffer (choice, significant only at root) 
+. recvbuf - address of receive buffer (choice, significant only at 'root') 
 
+.N fortran
 @*/
 int MPI_Gatherv ( sendbuf, sendcnt,  sendtype, 
                   recvbuf, recvcnts, displs, recvtype, 

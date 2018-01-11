@@ -84,8 +84,11 @@ case $machine in
     ksr|symm_ptx)
 	mpirun_version=$MPIRUN_HOME/mpirun.p4shmem
 	;;
-    ch_tcp)
-	mpirun_version=$MPIRUN_HOME/mpirun.execer
+    ch_tcp|tcp)
+	mpirun_version=$MPIRUN_HOME/mpirun.ch_tcp
+	;;
+    ch_nexus|nexus)
+	mpirun_version=$MPIRUN_HOME/mpirun.nexus
 	;;
     chameleon)
 	mpirun_version=$MPIRUN_HOME/mpirun.ch

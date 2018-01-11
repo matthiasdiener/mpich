@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_size.c,v 1.13 1995/04/23 18:40:40 gropp Exp $
+ *  $Id: comm_size.c,v 1.14 1995/12/21 22:06:44 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -16,10 +16,12 @@ Input Parameter:
 . comm - communicator (handle) 
 
 Output Parameter:
-. size - number of processes in the group of comm  (integer) 
+. size - number of processes in the group of 'comm'  (integer) 
 
 Notes:
-   MPI_COMM_NULL is `not` considered a valid argument to this function.
+   'MPI_COMM_NULL' is `not` considered a valid argument to this function.
+
+.N fortran
 @*/
 int MPI_Comm_size ( comm, size )
 MPI_Comm comm;

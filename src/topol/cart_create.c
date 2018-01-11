@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_create.c,v 1.16 1995/07/25 02:43:56 gropp Exp $
+ *  $Id: cart_create.c,v 1.17 1995/12/21 22:18:08 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -22,14 +22,15 @@ Input Parameters:
   each dimension 
 . periods - logical array of size ndims specifying whether the grid is 
   periodic (true) or not (false) in each dimension 
-. reorder - ranking may be reordered (true ) or not (false ) (logical) 
+. reorder - ranking may be reordered (true) or not (false ) (logical) 
 
 Output Parameter:
 . comm_cart - communicator with new cartesian topology (handle) 
 
 Algorithm:
-We ignore the periods and reorder info currently.
+We ignore 'reorder' info currently.
 
+.N fortran
 @*/
 int MPI_Cart_create ( comm_old, ndims, dims, periods, reorder, comm_cart )
 MPI_Comm  comm_old;

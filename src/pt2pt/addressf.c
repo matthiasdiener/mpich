@@ -2,6 +2,11 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
+#ifdef _CRAY
+#include <fortran.h>
+#include <stdarg.h>
+#endif
+
 #ifdef POINTER_64_BITS
 extern void *MPIR_ToPointer();
 extern int MPIR_FromPointer();
@@ -44,12 +49,66 @@ extern void MPIR_RmPointer();
    (Note that ALL addresses in MPI are relative; an absolute address is
    just one that is relative to MPI_BOTTOM.)
  */
+
+#ifdef _CRAY
+#ifdef _TWO_WORD_FCD
+#define NUMPARAMS  3
+
+ void mpi_address_( void *unknown, ...)
+{
+void *location;
+int*address;
+int *__ierr;
+int buflen;
+va_list ap;
+MPI_Aint a;
+
+va_start(ap, unknown);
+location = unknown;
+if (_numargs() == NUMPARAMS+1) {
+        buflen = va_arg(ap, int) /8;          /* This is in bits. */
+}
+address         = va_arg(ap, int *);
+__ierr          = va_arg(ap, int *);
+
+*__ierr = MPI_Address(location,&a);
+*address = (int)( a - (MPI_Aint)MPIR_F_MPI_BOTTOM);
+}
+
+#else
+
 void mpi_address_( location, address, __ierr )
 void     *location;
 int      *address;
 int      *__ierr;
 {
+_fcd temp;
 MPI_Aint a;
+if (_isfcd(location)) {
+	temp = _fcdtocp(location);
+	location = (void *) temp;
+}
 *__ierr = MPI_Address( location, &a );
 *address = (int)( a - (MPI_Aint)MPIR_F_MPI_BOTTOM);
 }
+#endif
+#else
+
+void mpi_address_( location, address, __ierr )
+void     *location;
+int      *address;
+int      *__ierr;
+{
+MPI_Aint a, b;
+*__ierr = MPI_Address( location, &a );
+if (*__ierr != MPI_SUCCESS) return;
+
+b = a - (MPI_Aint)MPIR_F_MPI_BOTTOM;
+*address = (int)( b );
+if ((MPI_Aint)*address - b != 0) {
+    *__ierr = MPIR_ERROR( MPI_COMM_WORLD,     
+			  MPI_ERR_ARG | MPIR_ERR_FORTRAN_ADDRESS_RANGE, 
+			 "Error in MPI_ADDRESS" );
+    }
+}
+#endif

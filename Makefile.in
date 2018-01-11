@@ -1,7 +1,7 @@
 # create Makefile from this file with configure script
 ##### User configurable options #####
 ALL: mpi
-ARCH        = @ARCH@
+LARCH       = @ARCH@
 COMM        = @COMM@
 DEVICE      = @DEVICE@
 BOPT        = @BOPT@
@@ -30,11 +30,10 @@ DIRS     = $(MPIDIRS) mpid/$(DEVICE) @CPP_DIR@ @MPE_DIR@ \
 # This is a list of the devices that are available
 DEVICES  = mpid/chameleon mpid/ch_nx mpid/ch_p4 mpid/ch_nc mpid/ch_cmmd \
 	   mpid/ch_eui mpid/meiko mpid/t3d mpid/ch_meiko mpid_ch_shmem \
-	   mpid/ch_tcp mpid/ch_spp mpid/sgi mpid/nx
+	   mpid/ch_tcp mpid/sgi mpid/nx
 OTHERDEVICES  = mpid/ch_nx mpid/ch_p4 mpid/ch_nc mpid/ch_cmmd mpid/ch_eui \
 		mpid/ch_meiko mpid/ch_shmem mpid/t3d \
-		mpid/ch_spp mpid/sgi mpid/nx
-# mpid/ch_tcp 
+		mpid/sgi mpid/nx
 # 
 # Build the device FIRST in case the device include, used in mpiimpl.h, 
 # needs to be built (e.g., ch_p4 device)
@@ -57,8 +56,14 @@ mpi:
 	$(MAKE) clean
 	$(MAKE) profile
 	$(MAKE) clean
+	@if [ $(COMM) = "ch_p4" ] ; then \
+	    echo "You may want to do" ; \
+	    echo "    $(MAKE) serv_p4" ; \
+	    echo "as well." ; \
+	fi
 	/bin/rm -f util/mpirun
 	$(MAKE) mpirun
+	/bin/rm -f util/mpireconfig
 	$(MAKE) mpireconfig
 	$(MAKE) mpiman
 	$(MAKE) upshot
@@ -66,12 +71,12 @@ mpi:
 	@echo "Also try executing 'make testing' in examples/test"
 	@echo "(This relies on mpirun, which currently works for many"
 	@echo "but not all systems.  mpirun requires that you first"
-	@echo "setup the util/machines/machines.$(ARCH) file for the"
+	@echo "setup the util/machines/machines.$(LARCH) file for the"
 	@echo "ch_p4 device.  Other devices do not need that file)."
 	@echo " "
 	@echo "Send bugs and comments to mpi-bugs@mcs.anl.gov"
 	@echo "With any bug report, please send"
-	@echo "     The version of MPICH (e.g., 1.0.10)"
+	@echo "     The version of MPICH (e.g., 1.0.12)"
 	@echo " "
 	@echo "The output of running your program with the -mpiversion argument"
 	@echo "(e.g., mpirun -np 1 a.out -mpiversion)"
@@ -95,23 +100,44 @@ examples: util/mpirun
 linktest:
 	( cd examples/test/pt2pt; $(MAKE) linktest )
 
+#
+# This is the target for the report function.  The optional lines on the make
+# are
+#   AUTHOR=string
+#   CONFIGLOG=file
+#
+report:
+	( if [ -n "$(AUTHOR)" ] ; then auth=-author="$(AUTHOR)" ; fi ; \
+	  if [ -n "$(CONFIGLOG)" ] ; then conf=-config=$(CONFIGLOG) ; fi ; \
+	doc/port -dotest $$auth $$conf ; )
+	doc/docgather
+	mv doc.tar doc$(ARCH)$(DEVICE).tar
+	@echo "Final location of tar file is doc$(DEVICE).tar"
+	@echo "util/insttest -prefix=install_directory"
+	@echo "may be run to complete the testing.  This must be run"
+	@echo "in the foreground.  It will try to start Upshot and Nupshot."
+	@echo "It also does an installation into 'install_directory'"
+	
 
-
+#
+# Make sure that a failure during the make causes the make to stop at 
+# that point.
 mpilib: Makefile.in
 	@for dir in $(CODEDIRS) ;\
 	  do \
 	  echo " " ;\
 	  echo making mpir in directory $$dir ;\
 	  (cd $$dir; \
-	  $(MAKE) default_all ;) ;\
+	  $(MAKE) default_all ; if [ $$? != 0 ] ; then \
+		echo "Exit status from make was $$?" ; exit 1 ; fi ;) ;\
 	  done
-	@RANLIB@ lib/$(ARCH)/$(COMM)/libmpi.a
-	@if test -w lib/$(ARCH)/$(COMM)/libmpi++.a ; then \
-		@RANLIB@ lib/$(ARCH)/$(COMM)/libmpi++.a ; fi
-	@if test -w lib/$(ARCH)/$(COMM)/libmpe.a ; then \
-		@RANLIB@ lib/$(ARCH)/$(COMM)/libmpe.a ; fi
-	@if test -w lib/$(ARCH)/$(COMM)/libmpe_nompi.a ; then \
-		@RANLIB@ lib/$(ARCH)/$(COMM)/libmpe_nompi.a ; fi
+	@RANLIB@ lib/$(LARCH)/$(COMM)/libmpi.a
+	@if test -w lib/$(LARCH)/$(COMM)/libmpi++.a ; then \
+		@RANLIB@ lib/$(LARCH)/$(COMM)/libmpi++.a ; fi
+	@if test -w lib/$(LARCH)/$(COMM)/libmpe.a ; then \
+		@RANLIB@ lib/$(LARCH)/$(COMM)/libmpe.a ; fi
+	@if test -w lib/$(LARCH)/$(COMM)/libmpe_nompi.a ; then \
+		@RANLIB@ lib/$(LARCH)/$(COMM)/libmpe_nompi.a ; fi
 
 mpiflib: Makefile.in
 	@for dir in $(MPIDIRS) ;\
@@ -121,13 +147,13 @@ mpiflib: Makefile.in
 	  (cd $$dir; \
 	  $(MAKE) wrapperlib ) ;\
 	  done
-	@RANLIB@ lib/$(ARCH)/$(COMM)/libfmpi.a
+	@RANLIB@ lib/$(LARCH)/$(COMM)/libfmpi.a
 	
 #
 # This target is used to remove the libraries for this configuration; this
 # can lead to better performance when rebuilding.
 rmlib:
-	/bin/rm -f lib/$(ARCH)/$(COMM)/lib*.a
+	/bin/rm -f lib/$(LARCH)/$(COMM)/lib*.a
 #
 # This is a special target for just the device part of the transport
 # (used to speed builds for multiple Chameleon transport layers)
@@ -162,14 +188,14 @@ mpilibdebug:
 	  (cd $$dir ; $(MAKE) clean ; \
 	  $(MAKE) profile_all MPIPROFILE="-DMPIR_DEBUG_MEM -DMPI_BUILD_PROFILING");\
 	  done 
-	@RANLIB@ lib/$(ARCH)/$(COMM)/libmpi.a
-	@RANLIB@ lib/$(ARCH)/$(COMM)/libpmpi.a
-	@if test -w lib/$(ARCH)/$(COMM)/libmpi++.a ; then \
-		@RANLIB@ lib/$(ARCH)/$(COMM)/libmpi++.a ; fi
-	@if test -w lib/$(ARCH)/$(COMM)/libmpe.a ; then \
-		@RANLIB@ lib/$(ARCH)/$(COMM)/libmpe.a ; fi
-	@if test -w lib/$(ARCH)/$(COMM)/libmpe_nompi.a ; then \
-		@RANLIB@ lib/$(ARCH)/$(COMM)/libmpe_nompi.a ; fi
+	@RANLIB@ lib/$(LARCH)/$(COMM)/libmpi.a
+	@RANLIB@ lib/$(LARCH)/$(COMM)/libpmpi.a
+	@if test -w lib/$(LARCH)/$(COMM)/libmpi++.a ; then \
+		@RANLIB@ lib/$(LARCH)/$(COMM)/libmpi++.a ; fi
+	@if test -w lib/$(LARCH)/$(COMM)/libmpe.a ; then \
+		@RANLIB@ lib/$(LARCH)/$(COMM)/libmpe.a ; fi
+	@if test -w lib/$(LARCH)/$(COMM)/libmpe_nompi.a ; then \
+		@RANLIB@ lib/$(LARCH)/$(COMM)/libmpe_nompi.a ; fi
 	
 
 profile:
@@ -180,7 +206,7 @@ profile:
 	  (cd $$dir; \
 	  $(MAKE) profile_all MPIPROFILE="-DMPI_BUILD_PROFILING" ) ;\
 	  done
-	@RANLIB@ lib/$(ARCH)/$(COMM)/libpmpi.a
+	@RANLIB@ lib/$(LARCH)/$(COMM)/libpmpi.a
 
 #
 # Make mpirun from mpirun.*.in
@@ -190,7 +216,7 @@ mpirun: util/mpirun
 #
 # If you change this, ALSO change it in the install target!
 # Note that the csh version is no longer built
-util/mpirun: util/mpirun.sh.in
+util/mpirun: util/mpirun.sh.in util/mpirun.pg.in util/mpirun.ch_p4.in
 	-(cd util ; for file in mpirun.*.in tstmachines.in ; do \
 	bfile=`basename $$file .in` ; \
 	/bin/rm -f $$bfile ; \
@@ -203,24 +229,25 @@ util/mpirun: util/mpirun.sh.in
 		-e "s%\#CC\#%@CC@%g" \
 		-e "s%\#CLINKER\#%@CLINKER@%g" \
 		-e "s%\#DEFAULT_MACHINE\#%$(DEFAULT_MACHINE)%g" \
-		-e "s%\#DEFAULT_ARCH\#%$(ARCH)%g" > $$bfile ; \
+		-e "s%\#DEFAULT_ARCH\#%$(LARCH)%g" > $$bfile ; \
 	chmod 775 $$bfile ; \
-	/bin/rm -f ../lib/$(ARCH)/$(COMM)/$$bfile ; \
-	cp $$bfile ../lib/$(ARCH)/$(COMM) ; done ; \
+	/bin/rm -f ../lib/$(LARCH)/$(COMM)/$$bfile ; \
+	cp $$bfile ../lib/$(LARCH)/$(COMM) ; done ; \
+        mv ../lib/$(LARCH)/$(COMM)/mpirun.sh ../lib/$(LARCH)/$(COMM)/mpirun ; \
 	mv mpirun.sh mpirun )
 #
 # If you change this, ALSO change it in the install target!
 mpireconfig: util/mpireconfig
 util/mpireconfig: util/mpireconfig.in
 	cat util/mpireconfig.in | sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
-			    -e "s%\#ARCH\#%$(ARCH)%g" \
+			    -e "s%\#ARCH\#%$(LARCH)%g" \
 			    -e "s%\#PREFIX\#%$(PREFIX)%g" \
 			    -e "s%\#COMM\#%$(COMM)%g" > \
 		    util/mpireconfig ;\
 	chmod 775 util/mpireconfig
-	-/bin/rm -f lib/$(ARCH)/$(COMM)/mpireconfig \
-		lib/$(ARCH)/$(COMM)/config.status 
-	-cp util/mpireconfig config.status lib/$(ARCH)/$(COMM)
+	-/bin/rm -f lib/$(LARCH)/$(COMM)/mpireconfig \
+		lib/$(LARCH)/$(COMM)/config.status 
+	-cp util/mpireconfig config.status lib/$(LARCH)/$(COMM)
 
 #
 # Make mpiman from mpiman.in
@@ -249,6 +276,7 @@ profiling/upshot/bin/upshot: profiling/upshot/bin/upshot.in
 	/bin/rm -f profiling/upshot/bin/upshot ; \
 	cat profiling/upshot/bin/upshot.in | sed \
 	  -e "s%\#wishloc\#%@wishloc@%g" \
+	  -e "s%\#TK_VERSION\#%@TK_VERSION@%g" \
 	  -e "s%\#BITMAP_DIR\#%$(MPIR_HOME)/profiling/upshot/bitmaps%g" > \
 	    profiling/upshot/bin/upshot;\
 	chmod 775 profiling/upshot/bin/upshot ; \
@@ -263,17 +291,17 @@ nupshot:
 #
 # If you change this, ALSO change it in the install target!
 serv_p4:
-	( cd mpid/ch_p4/p4-1.4/servers ; make serv_p4 ; \
-	  cp ../bin/serv_p4 ../../../../lib/$(ARCH)/ch_p4 )
+	( cd mpid/ch_p4/p4-1.4/servers ; $(MAKE) serv_p4 ; \
+	  cp ../bin/serv_p4 ../../../../lib/$(LARCH)/ch_p4 )
 	/bin/rm -f util/chp4_servs
 	cat util/chp4_servs.in | sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
  		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
 		-e "s%\#RSH_COMMAND\#%$(RSH_COMMAND)%g" \
 		-e "s%\#DEFAULT_MACHINE\#%$(DEFAULT_MACHINE)%g" \
-		-e "s%\#DEFAULT_ARCH\#%$(ARCH)%g" > \
+		-e "s%\#DEFAULT_ARCH\#%$(LARCH)%g" > \
 		    util/chp4_servs ;\
 	chmod 775 util/chp4_servs
-	-cp util/chp4_servs lib/$(ARCH)/$(COMM)
+	-cp util/chp4_servs lib/$(LARCH)/$(COMM)
 
 #
 # Changed clean to not remove the library, only the object files
@@ -307,7 +335,7 @@ clean:
 # Realclean removes mpirun etc as well as the libraries.
 realclean: clean
 	@/bin/rm -f *~ *.ln util/mpirun util/mpireconfig util/tstmachines \
-			    util/mpicc util/mpif77 util/mpiinstall \
+			    util/mpicc util/mpiCC util/mpif77 util/mpiinstall \
 			    installtest/Makefile \
 	  		    profiling/upshot/bin/upshot
 	-/bin/rm -f lib/*/*/*.[oa]
@@ -318,7 +346,7 @@ realclean: clean
 	@-for dir in $(OTHERDEVICES) ; do echo cleaning $$dir ; \
 	     (cd $$dir ; if [ -s Makefile ] ; then $(MAKE) clean ; fi ) ; done
 	if [ -s mpid/ch_p4/p4-1.4/Makefile ] ; then \
-	    (cd  mpid/ch_p4/p4-1.4 ; make realclean ) ; fi
+	    (cd  mpid/ch_p4/p4-1.4 ; $(MAKE) realclean ) ; fi
 	@for dir in $(DIRS) ;\
 	  do \
 	  echo removing Makefile in $$dir ;\
@@ -349,10 +377,18 @@ anltcp: configure
 	configure -arch=sun4 -device=ch_tcp -mpe -var_pkt -mpedbg -opt="-g"
 	-cp config.status lib/sun4/ch_tcp
 	@-chmod g+ws lib lib/sun4 lib/sun4/ch_tcp >/dev/null 2>&1
+anlnexus: configure 
+	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
+	configure -arch=sun4 -device=ch_nexus -mpe -mpedbg -opt="-g" -cc=gcc
+	-cp config.status lib/sun4/ch_tcp
+	@-chmod g+ws lib lib/sun4 lib/sun4/ch_tcp >/dev/null 2>&1
+#
+# Start using rendevous for ch_p4.
 anlchp4mem: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=sun4 -device=ch_p4 -mpe -var_pkt -mpedbg -memdebug \
-		-opt="-g"
+		-opt="-g" 
+	# -use_rndv
 	-cp config.status lib/sun4/ch_p4
 	@-chmod g+ws lib lib/sun4 lib/sun4/ch_p4 >/dev/null 2>&1
 anlchp4rndv: configure
@@ -382,6 +418,12 @@ anlchp4alphamem: configure
 	configure -arch=alpha -comm=ch_p4 -device=ch_p4 -mpe \
 		-make=/usr/bin/make -no_short_longs -memdebug -mpedbg
 	@-chmod g+ws lib lib/alpha lib/alpha/ch_p4 >/dev/null 2>&1
+anlchp4fbsd: configure
+	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
+	configure -arch=freebsd -device=ch_p4 -mpe -var_pkt -mpedbg -memdebug \
+		-opt="-g" 
+	-cp config.status lib/freebsd/ch_p4
+	@-chmod g+ws lib lib/freebsd lib/freebsd/ch_p4 >/dev/null 2>&1
 # RS6000 sh umask returns 3 digits, not four!
 anlp4ibm: configure
 	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
@@ -481,11 +523,11 @@ install-all: install
 	-$(CPRP) -r examples $(PREFIX)
 	# Update the makefiles
 	(cd $(PREFIX)/examples ; \
-		$(PREFIX)/lib/$(ARCH)/$(COMM)/mpireconfig Makefile ; \
+		$(PREFIX)/lib/$(LARCH)/$(COMM)/mpireconfig Makefile ; \
 		for dir in `find -type d -print` ; do \
 			(cd $$dir ; \
 			if [ -s Makefile.in ] ; then \
-			$(PREFIX)/lib/$(ARCH)/$(COMM)/mpireconfig Makefile ; \
+			$(PREFIX)/lib/$(LARCH)/$(COMM)/mpireconfig Makefile ; \
 			fi ) ; \
 		done \
 	)

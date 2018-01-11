@@ -30,6 +30,8 @@ int type, from, to, len, data_type, ack_req;
     nmsg.msg_type = p4_i_to_n(type);
     nmsg.to = p4_i_to_n(to);
     nmsg.from = p4_i_to_n(from);
+    nmsg.imm_from = p4_i_to_n(p4_local->my_id);
+    p4_dprintfl(30,"setting imm_from: to = %d, from = %d, imm_from = %d, p4_i_to_n(imm_from) =%d in xdr_send\n", to, from, p4_local->my_id, p4_i_to_n(p4_local->my_id));
     switch (data_type)
     {
       case P4INT:
@@ -120,14 +122,16 @@ char *msg;
     nmsg.msg_type = p4_i_to_n(type);
     nmsg.to = p4_i_to_n(to);
     nmsg.from = p4_i_to_n(from);
+    nmsg.imm_from = p4_i_to_n(p4_local->my_id);
     nmsg.msg_len = p4_i_to_n(len);
     nmsg.ack_req = p4_i_to_n(ack_req);
     nmsg.data_type = p4_i_to_n(data_type);
-
+    p4_dprintfl(30,"setting imm_from: to = %d, from = %d, imm_from = %d, p4_i_to_n(imm_from) =%d in socket_send\n", to, from, p4_local->my_id, p4_i_to_n(p4_local->my_id));
     flag = (from < to) ? TRUE : FALSE;
     net_send(fd, &nmsg, sizeof(struct p4_net_msg_hdr), flag);
     p4_dprintfl(20, "sent hdr for type %d from %d to %d via socket\n",type,from,to);
 
+#ifdef OLD_SEND_CODE
     while (sent < len)
     {
 	if ((len - sent) > SOCK_BUFF_SIZE)
@@ -137,7 +141,13 @@ char *msg;
 	n = net_send(fd, ((char *) msg) + sent, nleft, flag);
 	sent += n;
     }
-
+#else
+        /* Net_send now has backoff code for sending smaller blocks;
+	   this puts the "SOCK_BUFF_SIZE" dependencies into the net_send
+	   code, where they belong - WDG */
+	n = net_send(fd, (char *) msg, len, flag);
+        sent += n;
+#endif
     if (ack_req & P4_ACK_REQ_MASK)
     {
 	wait_for_ack(fd);
@@ -153,11 +163,14 @@ int fd;
     struct p4_net_msg_hdr nmsg;
 
     /* Most of this is ignored */
-    nmsg.msg_type = p4_i_to_n(0);
-    nmsg.to = p4_i_to_n(0);
-    nmsg.from = p4_i_to_n(0);
-    nmsg.msg_len = p4_i_to_n(0);
-    nmsg.ack_req = p4_i_to_n(P4_CLOSE_MASK);
+    nmsg.msg_type  = p4_i_to_n(0);
+    nmsg.to	   = p4_i_to_n(0);
+    /* The from fields may be tested, and it is useful to have them 
+       anyway */
+    nmsg.from	   = p4_i_to_n(p4_local->my_id);
+    nmsg.imm_from  = p4_i_to_n(p4_local->my_id);
+    nmsg.msg_len   = p4_i_to_n(0);
+    nmsg.ack_req   = p4_i_to_n(P4_CLOSE_MASK);
     nmsg.data_type = p4_i_to_n(0);
 
     net_send(fd, &nmsg, sizeof(struct p4_net_msg_hdr), FALSE );
@@ -298,12 +311,16 @@ int fd;
 
     tmsg = alloc_p4_msg(msg_len);
     tmsg->type = p4_n_to_i(nmsg.msg_type);
-    tmsg->from = p4_n_to_i(nmsg.from);
     tmsg->to = p4_n_to_i(nmsg.to);
+    tmsg->from = p4_n_to_i(nmsg.from);
     tmsg->len = p4_n_to_i(nmsg.msg_len);	/* chgd by xdr_recv below */
     tmsg->data_type = p4_n_to_i(nmsg.data_type);
     tmsg->ack_req = p4_n_to_i(nmsg.ack_req);
-    if (tmsg->data_type == P4NOX || p4_local->conntab[tmsg->from].same_data_rep)
+    p4_dprintfl(30,"recving imm_from: to = %d, from = %d, imm_from = %d, p4_n_to_i(imm_from) =%d in sock_recv_of_fd\n", tmsg->to, tmsg->from, nmsg.imm_from, p4_n_to_i(nmsg.imm_from));
+    p4_dprintfl(30,"data_type = %d, same_rep = %d\n", tmsg->data_type,
+		p4_local->conntab[p4_n_to_i(nmsg.imm_from)].same_data_rep);
+    if (tmsg->data_type == P4NOX || 
+	p4_local->conntab[p4_n_to_i(nmsg.imm_from)].same_data_rep)
     {
 	n = net_recv(fd, (char *) &(tmsg->msg), tmsg->len);
     }

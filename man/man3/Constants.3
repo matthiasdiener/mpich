@@ -1,12 +1,19 @@
 .TH Constants 3 "9/8/1995" " " "MPI"
 .SH NAME
-Constants \- Meaning of MPI's defined constants
+Constants \- Meaning of MPI
+.I s defined constants
 
 .SH DATA TYPES
 Note that the Fortran types should only be used in Fortran programs,
 and the C types should only be used in C programs.  For example,
-it is in error to use 'MPI_INT' for a Fortran INTEGER.
-Datatypes are of type 'MPI_Datatype' in C and of tyep 'INTEGER' in Fortran.
+it is in error to use 
+MPI_INT
+.I  for a Fortran INTEGER.
+Datatypes are of type 
+MPI_Datatype
+.I  in C and of tyep 
+INTEGER
+.I  in Fortran.
 
 .SH C DATATYPES
 .PD 0
@@ -70,37 +77,52 @@ Datatypes are of type 'MPI_Datatype' in C and of tyep 'INTEGER' in Fortran.
 - long double (some systems may not implement)
 .PD 1
 
-The following are datatypes for the MPI functions 'MPI_MAXLOC' and
-'MPI_MINLOC'.
+The following are datatypes for the MPI functions 
+MPI_MAXLOC
+.I  and
+
+MPI_MINLOC
+.I .
 .PD 0
 .TP
 .B MPI_FLOAT_INT 
-- 'struct { float, int }'
+- 
+struct { float, int }
+.I 
 .PD 1
 .PD 0
 .TP
 .B MPI_LONG_INT 
-- 'struct { long, int }'
+- 
+struct { long, int }
+.I 
 .PD 1
 .PD 0
 .TP
 .B MPI_DOUBLE_INT 
-- 'struct { double, int }'
+- 
+struct { double, int }
+.I 
 .PD 1
 .PD 0
 .TP
 .B MPI_SHORT_INT 
-- 'struct { short, int }'
+- 
+struct { short, int }
+.I 
 .PD 1
 .PD 0
 .TP
 .B MPI_2INT 
-- 'struct { int, int }'
+- 
+struct { int, int }
+.I 
 .PD 1
 .PD 0
 .TP
 .B MPI_LONG_DOUBLE_INT 
-- 'struct { long double, int }; this 
+- 
+struct { long double, int }; this 
 is an OPTIONAL type, and may be set to NULL 
 .PD 1
 .PD 0
@@ -114,109 +136,147 @@ Special datatypes for C and Fortran
 .PD 0
 .TP
 .B MPI_PACKED 
-- For 'MPI_Pack' and 'MPI_Unpack'
+- For 
+.I MPI_Pack
+and 
+.I MPI_Unpack
 .PD 1
 .PD 0
 .TP
 .B MPI_UB 
-- For 'MPI_Type_struct'; an upper-bound indicator 
+- For 
+.I MPI_Type_struct
+; an upper-bound indicator 
 .PD 1
 .PD 0
 .TP
 .B MPI_LB 
-- For 'MPI_Type_struct'; a lower-bound indicator 
+- For 
+.I MPI_Type_struct
+; a lower-bound indicator 
 .PD 1
 
 .SH FORTRAN DATATYPES
 .PD 0
 .TP
 .B MPI_REAL 
-- 'REAL'
+- 
+.I REAL
 .PD 1
 .PD 0
 .TP
 .B MPI_INTEGER 
-- 'INTEGER'
+- 
+.I INTEGER
 .PD 1
 .PD 0
 .TP
 .B MPI_LOGICAL 
-- 'LOGICAL'
+- 
+.I LOGICAL
 .PD 1
 .PD 0
 .TP
 .B MPI_DOUBLE_PRECISION 
-- 'DOUBLE PRECISION'
+- 
+.I DOUBLE PRECISION
 .PD 1
 .PD 0
 .TP
 .B MPI_COMPLEX 
-- 'COMPLEX'
+- 
+.I COMPLEX
 .PD 1
 .PD 0
 .TP
 .B MPI_DOUBLE_COMPLEX 
-- 'complex*16' (or 'complex*32') where supported.
+- 
+.I complex*16
+(or 
+.I complex*32
+) where supported.
 .PD 1
 
 The following datatypes are optional
 .PD 0
 .TP
 .B MPI_INTEGER1 
-- 'integer*1' if supported
+- 
+.I integer*1
+if supported
 .PD 1
 .PD 0
 .TP
 .B MPI_INTEGER2 
-- 'integer*2' if supported
+- 
+.I integer*2
+if supported
 .PD 1
 .PD 0
 .TP
 .B MPI_INTEGER4 
-- 'integer*4' if supported
+- 
+.I integer*4
+if supported
 .PD 1
 .PD 0
 .TP
 .B MPI_REAL4 
-- 'real*4' if supported
+- 
+.I real*4
+if supported
 .PD 1
 .PD 0
 .TP
 .B MPI_REAL8 
-- 'real*8' if supported
+- 
+.I real*8
+if supported
 .PD 1
 
-The following are datatypes for the MPI functions 'MPI_MAXLOC' and
-'MPI_MINLOC'.  In Fortran, these datatype always consist of
+The following are datatypes for the MPI functions 
+.I MPI_MAXLOC
+and
+.I MPI_MINLOC
+.  In Fortran, these datatype always consist of
 two elements of the same Fortran type.
 .PD 0
 .TP
 .B MPI_2INTEGER 
-- 'INTEGER,INTEGER'
+- 
+.I INTEGER,INTEGER
 .PD 1
 .PD 0
 .TP
 .B MPI_2REAL 
-- 'REAL, REAL'
+- 
+.I REAL, REAL
 .PD 1
 .PD 0
 .TP
 .B MPI_2DOUBLE_PRECISION 
-- 'DOUBLE PRECISION, DOUBLE PRECISION'
+- 
+.I DOUBLE PRECISION, DOUBLE PRECISION
 .PD 1
 .PD 0
 .TP
 .B MPI_2COMPLEX 
-- 'COMPLEX, COMPLEX'
+- 
+.I COMPLEX, COMPLEX
 .PD 1
 .PD 0
 .TP
 .B MPI_2DOUBLE_COMPLEX 
-- 'complex*16, complex*16'
+- 
+.I complex*16, complex*16
 .PD 1
 
 .SH COMMUNICATORS
-Communicators are of type 'MPI_Comm' in C and 'INTEGER' in Fortran
+Communicators are of type 
+.I MPI_Comm
+in C and 
+.I INTEGER
+in Fortran
 .PD 0
 .TP
 .B MPI_COMM_WORLD 
@@ -229,7 +289,11 @@ Communicators are of type 'MPI_Comm' in C and 'INTEGER' in Fortran
 .PD 1
 
 .SH GROUPS
-Groups are of type 'MPI_Group' in C and 'INTEGER' in Fortran
+Groups are of type 
+.I MPI_Group
+in C and 
+.I INTEGER
+in Fortran
 
 .PD 0
 .TP
@@ -246,7 +310,9 @@ Groups are of type 'MPI_Group' in C and 'INTEGER' in Fortran
 .PD 0
 .TP
 .B MPI_CONGRUENT 
-- (only for 'MPI_COMM_COMPARE') The groups are identical
+- (only for 
+.I MPI_COMM_COMPARE
+) The groups are identical
 .PD 1
 .PD 0
 .TP
@@ -261,9 +327,20 @@ Groups are of type 'MPI_Group' in C and 'INTEGER' in Fortran
 
 
 .SH COLLECTIVE OPERATIONS
-The collective combination operations ('MPI_REDUCE', 'MPI_ALLREDUCE',
-'MPI_REDUCE_SCATTER', and 'MPI_SCAN') take a combination operation.
-This operation is of type 'MPI_Op' in C and of type 'INTEGER' in Fortran.
+The collective combination operations (
+.I MPI_REDUCE
+, 
+.I MPI_ALLREDUCE
+,
+.I MPI_REDUCE_SCATTER
+, and 
+.I MPI_SCAN
+) take a combination operation.
+This operation is of type 
+.I MPI_Op
+in C and of type 
+.I INTEGER
+in Fortran.
 The predefined operations are
 
 .PD 0
@@ -350,7 +427,9 @@ These are the same in C and Fortran
 .PD 0
 .TP
 .B MPI_WTIME_IS_GLOBAL 
-- Has value 1 if 'MPI_WTIME' is globally synchronized.
+- Has value 1 if 
+.I MPI_WTIME
+is globally synchronized.
 .PD 1
 
 .SH NULL OBJECTS
@@ -390,13 +469,13 @@ These are the same in C and Fortran
 .TP
 .B MPI_MAX_PROCESSOR_NAME 
 - Maximum length of name returned by
-'MPI_GET_PROCESSOR_NAME'  
+.I MPI_GET_PROCESSOR_NAME
 .PD 1
 .PD 0
 .TP
 .B MPI_MAX_ERROR_STRING 
 - Maximum length of string return by
-'MPI_ERROR_STRING' 
+.I MPI_ERROR_STRING
 .PD 1
 .PD 0
 .TP
@@ -418,7 +497,9 @@ keyvals.
 .PD 0
 .TP
 .B MPI_BSEND_OVERHEAD 
-- Add this to the size of a 'MPI_BSEND' buffer for each
+- Add this to the size of a 
+.I MPI_BSEND
+buffer for each
 outstanding message
 .PD 1
 .PD 0
@@ -456,7 +537,9 @@ outstanding message
 
 
 .SH MPI STATUS
-The 'MPI_Status' datatype is a structure.  The three elements for use
+The 
+.I MPI_Status
+datatype is a structure.  The three elements for use
 by programmers are
 .PD 0
 .TP
@@ -485,18 +568,23 @@ by programmers are
 .TP
 .B MPI_Handler_function 
 - C function for handling errors (see
-'MPI_Errhandler_create') .
+.I MPI_Errhandler_create
+) .
 .PD 1
 .PD 0
 .TP
 .B MPI_User_function 
 - C function to combine values (see collective operations
-and 'MPI_Op_create')
+and 
+.I MPI_Op_create
+)
 .PD 1
 .PD 0
 .TP
 .B MPI_Copy_function 
-- Function to copy attributes (see 'MPI_Keyval_create')
+- Function to copy attributes (see 
+.I MPI_Keyval_create
+)
 .PD 1
 .PD 0
 .TP
@@ -506,7 +594,9 @@ and 'MPI_Op_create')
 .PD 0
 .TP
 .B MPI_Delete_function 
-- Function to delete attributes (see 'MPI_Keyval_create')
+- Function to delete attributes (see 
+.I MPI_Keyval_create
+)
 .PD 1
 .PD 0
 .TP
@@ -667,7 +757,8 @@ in function
 .PD 0
 .TP
 .B MPI_ERR_PERM_KEY 
-- Can't free a perm key 
+- Can
+.I t free a perm key 
 .PD 1
 .PD 0
 .TP
@@ -682,12 +773,14 @@ in function
 .PD 0
 .TP
 .B MPI_ERR_PERM_TYPE 
-- Can't free a perm type 
+- Can
+t free a perm type 
 .PD 1
 .PD 0
 .TP
 .B MPI_ERR_PERM_OP 
-- Can't free a permanent operator 
+- Can
+.I t free a permanent operator 
 .PD 1
 .PD 0
 .TP

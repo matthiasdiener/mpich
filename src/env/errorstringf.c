@@ -1,6 +1,9 @@
 /* error_string.c */
 /* Fortran interface file */
 #include "mpiimpl.h"
+#ifdef _CRAY
+#include "fortran.h"
+#endif
 
 #ifdef POINTER_64_BITS
 extern void *MPIR_ToPointer();
@@ -32,10 +35,22 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_error_string_( errorcode, string, resultlen, __ierr )
+#ifdef _CRAY
+ void mpi_error_string_( errorcode, string_fcd, resultlen, __ierr )
+int*errorcode, *resultlen;
+_fcd string_fcd;
+int *__ierr;
+{
+char *string;
+string = _fcdtocp(string_fcd);
+*__ierr = MPI_Error_string(*errorcode,string,resultlen);
+}
+#else
+void mpi_error_string_( errorcode, string, resultlen, __ierr )
 int*errorcode, *resultlen;
 char *string;
 int *__ierr;
 {
 *__ierr = MPI_Error_string(*errorcode,string,resultlen);
 }
+#endif

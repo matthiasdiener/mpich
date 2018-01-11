@@ -1,0 +1,52 @@
+#! /bin/sh
+#
+# This is a simple install test for MPICH.  This assumes that a successful
+# build of MPICH has taken place
+#
+installloc=$HOME/mpitmp
+for arg in "$@" ; do
+    case $arg in 
+	-echo) set -x ;;
+	
+	-prefix=*)
+	installloc=`echo A$arg | sed -e 's/A-prefix=//g'`
+	;;
+
+	-help|-u|-usage)
+	echo "insttest [ -prefix=directory ]"
+	echo "Install and perform basic test on MPICH installation"
+	echo "Note: this must not run as batch, as it tries to start up"
+	echo "the nupshot and upshot programs."
+	exit 1
+	;;
+
+	*)
+	echo "Unknown argument ($arg)"
+	exit 1
+	;;
+    esac
+done
+#
+make install PREFIX=$installloc
+if [ $? != 0 ] ; then
+    echo "Error in installation"
+    exit 1
+fi
+cd $installloc
+cd examples
+make cpi
+mpirun -np 2 cpi
+../bin/mpicc -mpilog -o cpilog cpi.c -lm
+mpirun -np 4 cpilog
+if [ -x ../bin/nupshot ] ; then 
+    ../bin/nupshot cpilog_profile.log
+else
+    echo "Nupshot not available!"
+fi
+if [ -x ../bin/upshot ] ; then
+    ../bin/upshot  cpilog_profile.log
+else 
+    echo "Upshot not available!"
+fi
+make clean
+exit 0

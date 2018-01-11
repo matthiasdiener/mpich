@@ -1,5 +1,5 @@
 /*
- *  $Id: dmch.h,v 1.40 1995/09/29 22:34:04 gropp Exp $
+ *  $Id: dmch.h,v 1.43 1996/01/11 18:35:15 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -248,8 +248,9 @@ typedef struct {
     MPID_CH_Blocking_send(dmpi_send_handle)
 #else
 #define MPID_Blocking_send(ctx, dmpi_send_handle) \
-MPID_Post_send( ctx, dmpi_send_handle );\
-MPID_Complete_send( ctx, dmpi_send_handle );
+{int _err;\
+_err = MPID_Post_send( ctx, dmpi_send_handle );\
+if (!_err) MPID_Complete_send( ctx, dmpi_send_handle );}
 #endif
 
 #define MPID_Blocking_send_ready(ctx, dmpi_send_handle) \
@@ -363,7 +364,13 @@ MPID_Complete_send( ctx, dmpi_send_handle );
       MPID_CH_Reduce_sum_double(send,recv,comm)
 /* Others as they are determined */
 #else
+#ifdef MPID_HAS_HETERO
+/* Comm_msgrep determines the common representation format for 
+   members of the new communicator */
+#define MPID_Comm_init(ctx,comm,newcomm) MPID_CH_Comm_msgrep( newcomm )
+#else
 #define MPID_Comm_init(ctx,comm,newcomm) MPI_SUCCESS
+#endif
 #define MPID_Comm_free(ctx,comm)         MPI_SUCCESS
 #endif /* MPID_USE_ADI_COLLECTIVE */
 
@@ -390,12 +397,15 @@ extern FILE *MPID_DEBUG_FILE;
    Resets msglen if it is too long; also sets err to MPI_ERR_TRUNCATE.
    This will set the error field to be added to a handle "soon" 
    (Check for truncation)
+
+   This does NOT call the MPID_ErrorHandler because that is for panic
+   situations.
  */
 #define MPID_CHK_MSGLEN(dmpi_recv_handle,msglen,err) \
 if ((dmpi_recv_handle)->dev_rhandle.bytes_as_contig < (msglen)) {\
     err = MPI_ERR_TRUNCATE;\
     dmpi_recv_handle->errval = MPI_ERR_TRUNCATE;\
-    (*MPID_ErrorHandler)( 1, "Truncated message (in CHK_MSGLEN)"  );\
+    fprintf( stderr, "Truncated message (in CHK_MSGLEN)\n"  );\
     msglen = (dmpi_recv_handle)->dev_rhandle.bytes_as_contig;\
     }
 

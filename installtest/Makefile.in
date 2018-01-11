@@ -46,8 +46,8 @@ alternate:
 	@echo "commands; this allows multiple versions/devices to"
 	@echo "coexist."
 	$(INSTALL_DIR)/lib/$(ARCH)/$(COMM)/mpif77 -o pi3 pi3.f
-	$(INSTALL_DIR)/lib/$(ARCH)/$(COMM)/mpicc -o cpi cpi.c
-	$(INSTALL_DIR)/lib/$(ARCH)/$(COMM)/mpicc -o cpilog2 -mpitrace cpi.c
+	$(INSTALL_DIR)/lib/$(ARCH)/$(COMM)/mpicc -o cpi cpi.c -lm 
+	$(INSTALL_DIR)/lib/$(ARCH)/$(COMM)/mpicc -o cpilog2 -mpitrace cpi.c -lm
 
 
 clean:

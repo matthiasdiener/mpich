@@ -28,7 +28,7 @@ static char *(colornames[]) = { "white", "black", "red", "yellow", "green",
 
 /*I "xtools/baseclr.h" I*/
 
-/*M
+/*
       XBPixFromInteger - Looks up an entry in the win->cmapping
 
     Input Parameters:
@@ -38,7 +38,7 @@ static char *(colornames[]) = { "white", "black", "red", "yellow", "green",
     PixVal XBPixFromInteger(win,color)
     XBWindow *win;
     int      color; 
-M*/
+ */
 #define XBPixFromInteger(win,color) (win)->cmapping[color]
 
 #endif

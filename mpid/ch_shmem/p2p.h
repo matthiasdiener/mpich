@@ -5,6 +5,14 @@
 #define P2P_EXTERN extern
 #endif
 
+#if defined (MPI_cspp)
+#include <sys/cnx_mman.h>
+#include <sys/cnx_types.h>
+#include <sys/mman.h>
+#define USE_XX_SHMALLOC
+#endif
+
+
 /* 
    We choose special options for SGI based on MPI_IRIX; we want to use
    these same options for MPI_IRIX64
@@ -50,6 +58,7 @@
 #if defined(MPI_cspp)
 #define MPID_FLUSH_CACHE(addr,size) dcache_flush_region(addr, size);
 #endif
+
 /* Choose shared memory scheme; prefer mmap to shmat */
 #if defined(MPI_IRIX)
 #    include <ulocks.h>
@@ -61,24 +70,31 @@ P2P_EXTERN char p2p_sgi_shared_arena_filename[64];
 #    include <sys/types.h>
 #    include <sys/mman.h>
 #    define USE_XX_SHMALLOC
-#    define GLOBMEMSIZE  (8*1024*1024)
 
 #elif defined(HAVE_SHMAT)
 #        include <sys/shm.h>
 #    define USE_XX_SHMALLOC
 
 #else
-    Choke - no shared memory !
+/*    Choke - no shared memory ! */
 #endif 
+
+# if defined (MPI_cspp)
+#    define GLOBMEMSIZE  (16*1024*1024)
+#elif defined(HAVE_MMAP) && !defined(MPI_cspp)
+#    define GLOBMEMSIZE  (8*1024*1024)
+#endif
 
 /*
  * We may want to use a distributed shmalloc instead of a single
  * area malloc.
  */
 #ifdef USE_DISTRIB_SHMALLOC
-#define SHMALLOC(size,region) p2p_shmalloc(size,region)
+#define SHMALLOC(size, region) p2p_shmalloc(size, region)
+#define INITSHMALLOC(region,size,nnodes) xx_init_shmalloc(size,region,nnodes)
 #else
 #define SHMALLOC(size,region) p2p_shmalloc(size)
+#define INITSHMALLOC(region,size,nnodes) xx_init_shmalloc(size,region)
 #endif
 
 /* It is often advisable to flush cache of shared memory objects when
@@ -108,6 +124,7 @@ P2P_EXTERN char p2p_sgi_shared_arena_filename[64];
 #    define MD_lock(l) ussetlock((l))
 #    define MD_unlock(l) usunsetlock((l))
 #else
+     /* usema_t is defined as "void" in /usr/include/ulocks.h */
      typedef usema_t *MD_lock_t;
 
      typedef MD_lock_t p2p_lock_t;
@@ -209,7 +226,7 @@ typedef mutex_t MPID_msemaphore;
 #endif
 
 #ifdef USE_DISTRIB_SHMALLOC
-void *p2p_shmalloc ANSI_ARGS((int,int));
+void *p2p_shmalloc ANSI_ARGS((int, int));
 #else
 void *p2p_shmalloc ANSI_ARGS((int));
 #endif
@@ -219,5 +236,7 @@ void p2p_shfree ANSI_ARGS((char *));
 void p2p_cleanup ANSI_ARGS((void));
 void p2p_error  ANSI_ARGS((char *, int));
 void p2p_setpgrp ANSI_ARGS((void));
+
+
 #endif
 

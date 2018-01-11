@@ -36,13 +36,13 @@ extern void MPIR_RmPointer();
 
 /* Fortran functions aren't quite the same */
 void mpi_dup_fn_ ( comm, keyval, extra_state, attr_in, attr_out, flag )
-MPI_Comm  *comm;
+MPI_Comm  comm;
 int       *keyval;
 void      *extra_state;
 void     **attr_in;
 void     **attr_out;
 int       *flag;
 {
-MPIR_dup_fn(comm,keyval,extra_state,*attr_in,attr_out,flag);
+MPIR_dup_fn(comm,*keyval,extra_state,*attr_in,attr_out,flag);
 *flag = MPIR_TO_FLOG(*flag);
 }

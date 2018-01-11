@@ -1,0 +1,33 @@
+.TH mpireconfig 1 "1/3/1996" " " "MPI Comman"
+.SH NAME
+mpireconfig \- Constucts makefiles from template files
+
+.SH DESCRIPTION
+The 
+mpireconfig
+.I  command takes a template file and creates a
+file that may be given to the 
+make
+.I  command by replacing variable
+with values appropriate for a particular MPICH configuration.
+
+.SH SYNTAX
+
+mpireconfig filename
+
+.SH COMMAND LINE ARGUMENTS
+.PD 0
+.TP
+.B filename 
+- Name of file to be generated.  The file 
+filename.in
+.I 
+must exist.
+.PD 1
+
+.SH SEE ALSO
+ mpicc, mpif77  
+.br
+
+.SH LOCATION
+ util/README

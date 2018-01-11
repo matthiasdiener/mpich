@@ -27,7 +27,7 @@ int          count;
 MPI_Datatype type;
 int          in_offset, out_offset;
 {
-return MPIR_PrintDatatype ( fp, count, type, in_offset, out_offset );
+return MPIR_PrintDatatypeUnpack( fp, count, type, in_offset, out_offset );
 }
 
 /*@

@@ -1,6 +1,10 @@
 /* bufattach.c */
 /* Fortran interface file */
 #include "mpiimpl.h"
+#ifdef _CRAY
+#include <fortran.h>
+#include <stdarg.h>
+#endif
 
 #ifdef POINTER_64_BITS
 extern void *MPIR_ToPointer();
@@ -32,6 +36,45 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
+#ifdef _CRAY
+#ifdef _TWO_WORD_FCD
+#define NUMPARAMS  3
+
+ void mpi_buffer_attach_( void *unknown, ...)
+{
+void *buffer;
+int*size;
+int *__ierr;
+int buflen;
+va_list	ap;
+
+va_start(ap, unknown);
+buffer = unknown;
+if (_numargs() == NUMPARAMS+1) {
+        buflen = va_arg(ap, int) /8;          /* This is in bits. */
+}
+size		= va_arg(ap, int *);
+__ierr		= va_arg(ap, int *);	
+
+*__ierr = MPI_Buffer_attach(buffer,*size);
+}
+
+#else
+ void mpi_buffer_attach_( buffer, size, __ierr )
+void *buffer;
+int*size;
+int *__ierr;
+{
+_fcd temp;
+if (_isfcd(buffer)) {
+	temp = _fcdtocp(buffer);
+	buffer = (void *) temp;
+}
+*__ierr = MPI_Buffer_attach(buffer,*size);
+}
+
+#endif
+#else
  void mpi_buffer_attach_( buffer, size, __ierr )
 void *buffer;
 int*size;
@@ -39,3 +82,4 @@ int *__ierr;
 {
 *__ierr = MPI_Buffer_attach(buffer,*size);
 }
+#endif

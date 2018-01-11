@@ -1,5 +1,5 @@
 /*
- *  $Id: group_size.c,v 1.10 1994/12/15 19:30:27 gropp Exp $
+ *  $Id: group_size.c,v 1.11 1995/12/21 22:07:43 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -16,6 +16,7 @@ Input Parameters:
 Output Parameter:
 . size - number of processes in the group (integer) 
 
+.N fortran
 @*/
 int MPI_Group_size ( group, size )
 MPI_Group group;

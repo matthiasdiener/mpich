@@ -1,12 +1,12 @@
 /*
- *  $Id: sendrecv.c,v 1.9 1995/05/09 18:59:04 gropp Exp $
+ *  $Id: sendrecv.c,v 1.11 1996/01/12 22:24:40 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: sendrecv.c,v 1.9 1995/05/09 18:59:04 gropp Exp $";
+static char vcid[] = "$Id: sendrecv.c,v 1.11 1996/01/12 22:24:40 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -31,6 +31,7 @@ Output Parameters:
 . status - status object (Status).  This refers to the receive operation.
   
 
+.N fortran
 @*/
 int MPI_Sendrecv( sendbuf, sendcount, sendtype, dest, sendtag, 
                   recvbuf, recvcount, recvtype, source, recvtag, 
@@ -62,6 +63,11 @@ MPI_Status   *status;
        only mp_bsendrecv be used.  
 
        Should there be a send/recv bit in the send mode? 
+
+       Note that in this implementation, if the error handler is "return",
+       these will return the error to the caller.  If the handler causes
+       an abort or message, then that will occur in the called routine.
+       Thus, this code need not call the error handler AGAIN.
      */
     if (mpi_errno = MPI_Irecv ( recvbuf, recvcount, recvtype,
 			    source, recvtag, comm, &req[1] )) return mpi_errno;

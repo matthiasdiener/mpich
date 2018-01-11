@@ -1,5 +1,5 @@
 #ifndef LINT
-static char vcid[] = "$Id: pkutil.c,v 1.6 1995/09/18 21:08:53 gropp Exp $";
+static char vcid[] = "$Id: pkutil.c,v 1.9 1996/01/20 15:38:47 gropp Exp $";
 #endif
 
 /* 
@@ -27,22 +27,25 @@ static char vcid[] = "$Id: pkutil.c,v 1.6 1995/09/18 21:08:53 gropp Exp $";
 
    The contiguous unpack routine is
 
-   int unpackcontig( dest, src, datatype, num, inbytes, srclen, destlen, 
-                     unpackctx )
-   num items of MPI type datatype are unpacked from src into dest, with the
-   number of bytes consumed from dest being set in destlen.  inbytes is the 
+   int unpackcontig( src, count, type, typesize, dest, 
+                     srclen, srcreadlen, destlen,  unpackctx )
+   count items of MPI type datatype are unpacked from src into dest, with the
+   number of bytes consumed from dest being set in destlen.  
+   inbytes is the 
    number of bytes available in dest, and is used for detecting buffer 
-   overruns.  srclen is the number of bytes consumed from src.  The return
+   overruns.  
+   srclen is the number of bytes available in src.
+   srcreadlen is the number of bytes consumed from src.  The return
    value is the MPI error code
  */
 
 #include "mpiimpl.h"
+#ifdef MPID_HAS_HETERO
 #ifdef HAS_XDR
 #include "rpc/rpc.h"
 int MPIR_Type_XDR_encode();
 int MPIR_Type_XDR_decode();
 #endif
-#ifdef MPID_HAS_HETERO
 int MPIR_Type_swap_copy();
 #endif
 
@@ -64,11 +67,14 @@ int MPIR_Type_swap_copy();
     A point-to-point version can also use the general pack2 by also detecting
 
 	packcontig = MPIR_Type_swap_copy;
+
+    dest_type is REPRESENTATION type for the destination (i.e., XDR, 
+    Byte swapped) 
  */
-int MPIR_Pack ( comm, buf, count, type, dest, destsize, totlen )
+int MPIR_Pack( comm, dest_type, buf, count, type, dest, destsize, totlen )
 MPI_Comm comm;
 void *buf;
-int count, destsize;
+int dest_type, count, destsize;
 MPI_Datatype type;
 void *dest;
 int  *totlen;
@@ -81,9 +87,10 @@ int outlen;
 XDR xdr_ctx;
 #endif
 
+MPIR_GET_REAL_DATATYPE(type)
 #ifdef MPID_HAS_HETERO
-    if (MPID_IS_HETERO == 1 &&
-	MPIR_Comm_needs_conversion(comm)) {
+    switch (dest_type) {
+	case MPIR_MSGFORM_XDR:
 #if HAS_XDR
 	/* Need to initialize xdr buffer */
 	MPIR_Mem_XDR_Init( dest, destsize, XDR_ENCODE, &xdr_ctx );
@@ -91,10 +98,19 @@ XDR xdr_ctx;
 	packcontig = MPIR_Type_XDR_encode;
 	/* Could set a free function ... */
 #else
-    return MPIR_ERROR( comm, MPI_ERR_TYPE, 
-"Conversion requires XDR which is not available" );
+	return MPIR_ERROR( comm, MPI_ERR_TYPE, 
+		      "Conversion requires XDR which is not available" );
 #endif
-    }
+	break;
+
+	case MPIR_MSGFORM_SWAP:
+	packcontig = MPIR_Type_swap_copy;
+	break;
+
+	case MPIR_MSGFORM_OK:
+	/* Use default routines */
+	break;
+	}
 #endif
 outlen = 0;
 *totlen = 0;
@@ -134,9 +150,12 @@ int err, used_len;
 XDR xdr_ctx;
 #endif
 
+MPIR_GET_REAL_DATATYPE(type)
 #ifdef MPID_HAS_HETERO
-    if (msgrep == MPIR_MSGREP_XDR || (MPID_IS_HETERO == 1 &&
-	MPIR_Comm_needs_conversion(comm))) {
+    if (msgrep == MPIR_MSGREP_XDR
+/* || (MPID_IS_HETERO == 1 &&
+	MPIR_Comm_needs_conversion(comm))*/
+) {
 #if HAS_XDR
 	/* MPIR_Mem_XDR_Init( src, ?, XDR_DECODE, &xdr_ctx ); */
 	MPIR_Mem_XDR_Init( src, srcsize, XDR_DECODE, &xdr_ctx );
@@ -160,6 +179,7 @@ if (unpackcontig == MPIR_Type_XDR_decode)
 return err;
 }
 
+#ifdef FOO
 #ifdef MPID_HAS_HETERO
 int 
 MPIR_Type_convert_copy2(comm, dbuf, sbuf, type, count, dest, decode)
@@ -190,29 +210,30 @@ int          count, dest, *decode;
 return MPIR_Pack2( sbuf, count, type, packcontig, packctx, dbuf, &outlen, &totlen );
 }
 #endif
+#endif
 
 /*+
     MPIR_Pack_size - Returns the exact amount of space needed to 
 	                 pack a message (well, almost; returns
 			 the space the will be enough)
+
+			 dest_type gives the format to use.  0 is unconverted
 +*/
-int MPIR_Pack_size ( incount, type, comm, size )
-int           incount;
+int MPIR_Pack_size ( incount, type, comm, dest_type, size )
+int           incount, dest_type;
 MPI_Datatype  type;
 MPI_Comm      comm;
 int          *size;
 {
-int desttype = 0;
-  /* Figure out size needed to pack type.  This uses the same logic as
-     MPIR_Pack */
+
+MPIR_GET_REAL_DATATYPE(type)
+  /* 
+     Figure out size needed to pack type.  This uses the same logic as
+     MPIR_Pack, except that it can handle, through dest_type, 
+     specific formats for specific destinations. 
+   */
 #ifdef MPID_HAS_HETERO
-    if (MPID_IS_HETERO == 1 &&
-	MPIR_Comm_needs_conversion(comm)) {
-#if HAS_XDR
-	desttype = 2;
-#endif
-    }
-  (*size) = MPIR_Mem_convert_len( desttype, type, incount );
+  (*size) = MPIR_Mem_convert_len( dest_type, type, incount );
 #else
   (*size) = type->size * incount;
 #endif
@@ -240,7 +261,7 @@ return MPI_SUCCESS;
    destination.  This is incompatible with XDR encoding, and isn't really 
    necessary.
  */
-int MPIR_Pack2 ( buf, count, type, packcontig, packctx, dest, outlen, totlen )
+int MPIR_Pack2( buf, count, type, packcontig, packctx, dest, outlen, totlen )
 char         *buf;
 int          count;
 MPI_Datatype type;
@@ -429,7 +450,8 @@ int          *used_len;
 	  /* This requires a basic type so that the size is correct */
 	  /* Need to check the element size argument... */
 	  mpi_errno = (*unpackcontig)( src, count, type, type->size, dest, 
-				     &srcreadlen, &destlen, unpackctx );
+				       srclen, 
+				       &srcreadlen, &destlen, unpackctx );
 	  *dest_len += destlen;
 	  *used_len  = srcreadlen;
 	  return MPI_SUCCESS;
@@ -533,6 +555,42 @@ int          *used_len;
   return mpi_errno;
 }
 
+/* 
+   This is a special unpack function that gives us the number of
+   basic elements in a datatype.  If we have received only part of
+   a datatype, this gives the correct value.
+ */
+int MPIR_Elementcnt( src, num, datatype, inbytes, dest, srclen, srcreadlen, 
+		     destlen, ctx )
+char         *dest, *src;
+MPI_Datatype datatype;
+int          num, inbytes, srclen, *srcreadlen, *destlen;
+void         *ctx;
+{
+int len = datatype->size * num;
+int *totelm = (int *)ctx;
+
+if (*totelm >= 0) {
+    /* Once we decide on undefined, don't change it */
+    if (len > srclen) {
+	if (datatype->size > 0) {
+	    num = srclen / datatype->size;
+	    len = datatype->size * num;
+	    *totelm	 = *totelm + num;
+	    }
+	else {
+	    *totelm = MPI_UNDEFINED;
+	    }
+	}
+    else {
+	*totelm	 = *totelm + num;
+	}
+    }
+*srcreadlen = len;
+*destlen    = len;
+return MPI_SUCCESS;
+}
+
 /*
    These routines allow a single thread to writeout the memory move operations
    that will be performed with a given MPI datatype.
@@ -569,19 +627,19 @@ fprintf( datatype_fp, "Copy %x <- %x for %d bytes\n",
 return len;
 }
 
-int MPIR_Printcontig2a( src, num, datatype, inbytes, dest, srclen, destlen,
-		       ctx )
+int MPIR_Printcontig2a( src, num, datatype, inbytes, dest, srclen, 
+		       srcreadlen, destlen, ctx )
 char         *dest, *src;
 MPI_Datatype datatype;
-int          num, inbytes, *srclen, *destlen;
+int          num, inbytes, srclen, *srcreadlen, *destlen;
 void         *ctx;
 {
 int len = datatype->size * num;
 
 fprintf( datatype_fp, "Copy %x <- %x for %d bytes\n", 
 	 dest-o_offset, src-i_offset, len );
-*srclen = len;
-*destlen = len;
+*srcreadlen = len;
+*destlen    = len;
 return MPI_SUCCESS;
 }
 
@@ -620,7 +678,7 @@ int          in_offset, out_offset;
 {
 int      srclen, destlen, used_len;
 char     *src, *dest;
-MPI_Aint size;
+int      size;
 
 datatype_fp = fp ? fp : stdout;
 i_offset = (char *)0;

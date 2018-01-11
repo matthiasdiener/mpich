@@ -103,6 +103,14 @@ int fd;
 	 */
 	p4_dprintfl(70, "waiting for slave to handle interrupt\n");
 	net_recv(slave_fd, &msg, sizeof(msg));
+	/* Check that we get a valid message; for now (see p4_sock_conn/
+	   handle_connection_interrupt) this is just IGNORE_THIS */
+	if (p4_i_to_n(msg.type) != IGNORE_THIS) {
+	    p4_dprintf("received incorrect handshake message type=%d\n", 
+		       p4_i_to_n(msg.type) );
+	    p4_error("slave_listener_msg: broken handshake", 
+		     p4_i_to_n(msg.type));
+	    }
 	p4_dprintfl(70, "back from slave handling interrupt\n");
 	break;
 

@@ -1541,7 +1541,7 @@ MPI_Type_size
 MPI_Datatype
 datatype
 
-MPI_Aint *
+int *
 size
 
 int 

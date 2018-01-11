@@ -75,7 +75,25 @@ int memsize;
     }
     if ((mem = (char *)shmat(sysv_shmid[0],NULL,0)) == (char *)-1)
     {
-	p4_error("OOPS: shmat failed\n",mem);
+    switch (errno) {
+	case EACCES: 
+	fprintf( stderr, 
+"shmat called failed:\n\
+This process is not allowed to create shared memory.n\
+See your system administrator\n" );
+	break;
+	
+	case EMFILE:
+	fprintf( stderr, 
+"shmat called failed:\n\
+This process is not allowed to create any more shared memory regions\n\
+See your system administrator\n");
+	break;
+	default:
+	perror( "Reason " );
+	break;
+	}
+	p4_error("OOPS: shmat failed ",mem);
     }
     sysv_num_shmids++;
     nsegs--;
@@ -90,7 +108,25 @@ int memsize;
         {
             if ((tmem = (char *)shmat(sysv_shmid[i],pmem-segsize,0)) == (char *)-1)
             {
-                p4_error("OOPS: shmat failed\n",tmem);
+		switch (errno) {
+		    case EACCES: 
+		    fprintf( stderr, 
+"shmat called failed:\n\
+This process is not allowed to create shared memory.n\
+See your system administrator\n" );
+		    break;
+		    
+		    case EMFILE:
+		    fprintf( stderr, 
+"shmat called failed:\n\
+This process is not allowed to create any more shared memory regions\n\
+See your system administrator\n");
+		    break;
+		    default:
+		    perror( "Reason " );
+		    break;
+		    }
+                p4_error("OOPS: shmat failed for segment ", i);
             }
 	    else
 	    {
@@ -130,21 +166,22 @@ int memsize;
 #endif
 
 #if defined(USE_XX_SHMALLOC) && defined(SUN_SOLARIS)
-       
-    caddr_t p4_start_shared_area;
-    static int p4_shared_map_fd;
-    
-    p4_shared_map_fd = open("/dev/zero", O_RDWR);
-
-    p4_start_shared_area = (char *) mmap((caddr_t) 0, memsize,
-			PROT_READ|PROT_WRITE|PROT_EXEC,
-			MAP_SHARED, 
-			p4_shared_map_fd, (off_t) 0);
-    if (p4_start_shared_area == (caddr_t)-1)
     {
-	p4_error("OOPS: mmap failed: cannot map shared memory\n",memsize);
+	caddr_t p4_start_shared_area;
+	static int p4_shared_map_fd;
+    
+	p4_shared_map_fd = open("/dev/zero", O_RDWR);
+
+	p4_start_shared_area = (char *) mmap((caddr_t) 0, memsize,
+					     PROT_READ|PROT_WRITE|PROT_EXEC,
+					     MAP_SHARED, 
+					     p4_shared_map_fd, (off_t) 0);
+	if (p4_start_shared_area == (caddr_t)-1)
+	{
+	    p4_error("OOPS: mmap failed: cannot map shared memory\n",memsize);
+	}
+	xx_init_shmalloc(p4_start_shared_area,memsize);
     }
-    xx_init_shmalloc(p4_start_shared_area,memsize);
 #endif
 
 #if defined(MULTIMAX)
@@ -1263,9 +1300,15 @@ MD_set_reference_time()
 #endif
 
 #if defined(SUN_SOLARIS)
+#if defined(USE_WIERDGETTIMEOFDAY)
     struct timeval tp;
 
     gettimeofday(&tp);
+#else
+    struct timeval tp;
+
+    gettimeofday(&tp,(void *)0);
+#endif
     p4_global->reference_time = tp.tv_sec;
 #endif
 
@@ -1309,8 +1352,11 @@ int MD_clock()
 
 #if defined(SUN_SOLARIS)
     struct timeval tp;
-
+#if defined(USE_WIERDGETTIMEOFDAY)
     gettimeofday(&tp);
+#else
+    gettimeofday(&tp,(void *)0);
+#endif
     i = (int) (tp.tv_sec - p4_global->reference_time);
     i *= 1000;
     i += (int) (tp.tv_usec / 1000);

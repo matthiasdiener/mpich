@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_get.c,v 1.7 1994/12/15 17:35:35 gropp Exp $
+ *  $Id: cart_get.c,v 1.8 1995/12/21 22:18:12 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -14,13 +14,17 @@ MPI_Cart_get - Retrieves Cartesian topology information associated with a
 
 Input Parameters:
 . comm - communicator with cartesian structure (handle) 
-. maxdims - length of vectors  dims, periods , and  coords in the calling program (integer) 
+. maxdims - length of vectors  'dims', 'periods', and 'coords'
+in the calling program (integer) 
 
 Output Parameters:
 . dims - number of processes for each cartesian dimension (array of integer) 
-. periods - periodicity (true /false ) for each cartesian dimension (array of logical) 
-. coords - coordinates of calling process in cartesian structure (array of integer) 
+. periods - periodicity (true/false) for each cartesian dimension 
+(array of logical) 
+. coords - coordinates of calling process in cartesian structure 
+(array of integer) 
 
+.N fortran
 @*/
 int MPI_Cart_get ( comm, maxdims, dims, periods, coords )
 MPI_Comm comm;

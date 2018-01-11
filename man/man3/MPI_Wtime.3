@@ -1,4 +1,4 @@
-.TH MPI_Wtime 3 "9/21/1994" " " "MPI"
+.TH MPI_Wtime 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Wtime \- Returns an elapsed time on the calling processor
 
@@ -7,7 +7,16 @@ Time in seconds since an arbitrary time in the past.
 
 .SH NOTES
 This is intended to be a high-resolution, elapsed (or wall) clock.
-See MPI_WTICK to determine the resolution of MPI_WTIME.
+See 
+.I MPI_WTICK
+to determine the resolution of 
+.I MPI_WTIME
+.
+
+.SH NOTES FOR FORTRAN
+This is a function, declared as 
+.I DOUBLE PRECISION MPI_WTIME()
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

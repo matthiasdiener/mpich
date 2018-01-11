@@ -1,5 +1,5 @@
 /*
- *  $Id: chrecv.c,v 1.44 1995/09/18 21:11:55 gropp Exp $
+ *  $Id: chrecv.c,v 1.45 1995/12/21 22:24:25 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: chrecv.c,v 1.44 1995/09/18 21:11:55 gropp Exp $";
+static char vcid[] = "$Id: chrecv.c,v 1.45 1995/12/21 22:24:25 gropp Exp gropp $";
 #endif /* lint */
 
 #include "mpid.h"
@@ -430,6 +430,13 @@ if (is_blocking == MPID_NOTBLOCKING) {
 DEBUG_PRINT_MSG("Waiting for message to arrive")
 MPID_PKT_WAIT();
 #endif
+/* 
+   This unpacks ONLY the head of the message.
+   Note that the payload is handled separately (MPIR_Unpack etc) and
+   most of the other data can be considered just bits to return uninterpreted. 
+
+   There are exceptions (see rendevous code); 
+ */
 MPID_PKT_UNPACK( MPID_PKT_RECV_ADDR(pkt), sizeof(MPID_PKT_HEAD_T), from );
 
 DEBUG_PRINT_PKT("R received message",pkt)

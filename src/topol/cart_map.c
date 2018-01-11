@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_map.c,v 1.6 1995/06/21 03:17:51 gropp Exp $
+ *  $Id: cart_map.c,v 1.7 1995/12/21 22:18:17 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -14,12 +14,13 @@ MPI_Cart_map - Maps process to Cartesian topology information
 Input Parameters:
 . comm - input communicator (handle) 
 . ndims - number of dimensions of cartesian structure (integer) 
-. dims - integer array of size  ndims specifying the number of processes in each coordinate direction 
-. periods - logical array of size  ndims specifying the periodicity specification in each coordinate direction 
+. dims - integer array of size 'ndims' specifying the number of processes in each coordinate direction 
+. periods - logical array of size 'ndims' specifying the periodicity specification in each coordinate direction 
 
 Output Parameter:
-. newrank - reordered rank of the calling process; MPI_UNDEFINED if calling process does not belong to grid (integer) 
+. newrank - reordered rank of the calling process; 'MPI_UNDEFINED' if calling process does not belong to grid (integer) 
 
+.N fortran
 @*/
 int MPI_Cart_map ( comm_old, ndims, dims, periods, newrank )
 MPI_Comm comm_old;

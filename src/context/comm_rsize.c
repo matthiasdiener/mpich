@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_rsize.c,v 1.5 1994/12/15 16:38:11 gropp Exp $
+ *  $Id: comm_rsize.c,v 1.6 1995/12/21 22:06:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -17,8 +17,9 @@ Input Parameter:
 . comm - communicator (handle) 
 
 Output Parameter:
-. size - number of processes in the group of comm  (integer) 
+. size - number of processes in the group of 'comm'  (integer) 
 
+.N fortran
 @*/
 int MPI_Comm_remote_size ( comm, size )
 MPI_Comm  comm;

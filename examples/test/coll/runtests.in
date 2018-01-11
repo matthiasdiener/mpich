@@ -5,6 +5,7 @@ args="-pg -mvhome"
 #
 runtests=1
 makeeach=0
+MAKE="@MAKE@"
 for arg in "$@" ; do
     case $arg in 
 	-checkonly )
@@ -36,7 +37,7 @@ done
 
 MakeExe() {
     if [ ! -x $1 ] ; then
-	make $1
+	$MAKE $1
     fi
 }
 CleanExe() {
@@ -47,7 +48,7 @@ CleanExe() {
 
 # If the programs are not available, run make.
 if [ ! -x coll1 -a $makeeach = 0 ] ; then
-    make default
+    $MAKE default
 fi
 
 testfiles=""
@@ -191,7 +192,8 @@ testfiles="$testfiles coll13.out"
 MakeExe coll13
 echo '**** coll13 ****'
 echo '*** coll13 ***' >> coll13.out
-mpirun -np 4 $args coll13 $* >> coll13.out
+# coll13 is very picky about arguments
+mpirun -np 4 $args coll13 >> coll13.out
 echo '*** coll13 ***' >> coll13.out
 CleanExe coll13
 
@@ -221,6 +223,15 @@ echo '*** Scatterv ***' >> scatterv.out
 mpirun $args -np 4 scatterv  $* >> scatterv.out
 echo '*** Scatterv ***' >> scatterv.out
 CleanExe scatterv
+
+testfiles="$testfiles redscat.out"
+/bin/rm -f redscat.out
+MakeExe redscat
+echo '*** Reduce_scatter ***'
+echo '*** Reduce_scatter ***' >> redscat.out
+mpirun $args -np 4 redscat  $* >> redscat.out
+echo '*** Reduce_scatter ***' >> redscat.out
+CleanExe redscat
 
 #
 # Run Fortran tests ONLY if Fortran available

@@ -1,14 +1,40 @@
-.TH MPI_Initialized 3 "9/29/1994" " " "MPI"
+.TH MPI_Initialized 3 "12/21/1995" " " "MPI"
 .SH NAME
-MPI_Initialized \- Indicates whether MPI_Init has been called.
+MPI_Initialized \- Indicates whether 
+.I MPI_Init
+has been called.
 
 .SH OUTPUT PARAMETER
 .PD 0
 .TP
 .B flag 
-- Flag is true if MPI_INIT has been called and false otherwise. 
+- Flag is true if 
+.I MPI_Init
+has been called and false otherwise. 
 .PD 1
 
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

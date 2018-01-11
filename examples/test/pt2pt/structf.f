@@ -2,7 +2,7 @@ C Thanks to
 C William R. Magro
 C for this test
 C
-C It has been modifiedly slightly to work with the automative MPI
+C It has been modifiedly slightly to work with the automated MPI
 C tests.
 C  WDG.
 C
@@ -27,10 +27,10 @@ C
       integer*4 i
       real*8 x
 
-      ! Enroll in MPI
+C     Enroll in MPI
       call mpi_init(ierr)
 
-      ! get my rank
+C     get my rank
       call mpi_comm_rank(MPI_COMM_WORLD, me, ierr)
 
       comm = MPI_COMM_WORLD

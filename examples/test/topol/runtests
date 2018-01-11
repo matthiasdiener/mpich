@@ -10,6 +10,7 @@ args="-pg -mvhome"
 #
 runtests=1
 makeeach=0
+MAKE="make"
 for arg in "$@" ; do
     case $arg in 
 	-checkonly )
@@ -41,7 +42,7 @@ done
 
 MakeExe() {
     if [ ! -x $1 ] ; then
-	make $1
+	$MAKE $1
     fi
 }
 CleanExe() {
@@ -51,7 +52,7 @@ CleanExe() {
 }
 
 if [ ! -x cart -a $makeeach = 0 ] ; then
-    make default
+    $MAKE default
 fi
 
 testfiles=""
@@ -74,6 +75,15 @@ echo '**** Testing MPI_Cart_coords etc ****'
 mpirun $args -np 4 cart2 $* >> cart2.out 2>&1
 echo '**** Testing MPI_Cart_coords etc ****' >> cart2.out
 CleanExe cart2
+#
+testfiles="$testfiles graphtest.out"
+/bin/rm -f graphtest.out
+MakeExe graphtest
+echo '**** Testing MPI_Graph_create etc ****' >> graphtest.out
+echo '**** Testing MPI_Graph_create etc ****' 
+mpirun $args -np 4 graphtest $* >> graphtest.out 2>&1
+echo '**** Testing MPI_Graph_create etc ****' >> graphtest.out
+CleanExe graphtest
 #
 # Run Fortran tests ONLY if Fortran available
 if [ 1 = 1 ] ; then 

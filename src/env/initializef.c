@@ -36,5 +36,7 @@ extern void MPIR_RmPointer();
 int  *flag;
 int *__ierr;
 {
-*__ierr = MPI_Initialized(flag);
+int lflag;
+*__ierr = MPI_Initialized(&lflag);
+*flag = MPIR_TO_FLOG(lflag);
 }

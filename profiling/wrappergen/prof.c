@@ -1449,7 +1449,7 @@ MPI_Comm comm ;
   returnVal = PMPI_Bsend( buf, count, datatype, dest, tag, comm );
 
 
-  MPI_Type_size( datatype, (MPI_Aint *)&typesize );
+  MPI_Type_size( datatype, &typesize );
   MPE_Log_send( dest, tag, typesize*count );
   printf( "first argument is buf and i1 went unused (%lf)\n", i1 );
   MPI_Bsend_nsends_0++;
@@ -1780,7 +1780,7 @@ MPI_Request * request ;
   returnVal = PMPI_Isend( buf, count, datatype, dest, tag, comm, request );
 
 
-  MPI_Type_size( datatype, (MPI_Aint *)&typesize );
+  MPI_Type_size( datatype, &typesize );
   MPE_Log_send( dest, tag, typesize*count );
   printf( "first argument is buf and i1 went unused (%lf)\n", i1 );
   MPI_Isend_nsends_0++;
@@ -1985,7 +1985,7 @@ MPI_Comm comm ;
   returnVal = PMPI_Send( buf, count, datatype, dest, tag, comm );
 
 
-  MPI_Type_size( datatype, (MPI_Aint *)&typesize );
+  MPI_Type_size( datatype, &typesize );
   MPE_Log_send( dest, tag, typesize*count );
   printf( "first argument is buf and i1 went unused (%lf)\n", i1 );
   MPI_Send_nsends_0++;
@@ -2442,7 +2442,7 @@ MPI_Aint * displacement ;
 
 int MPI_Type_size( datatype, size )
 MPI_Datatype datatype ;
-MPI_Aint * size ;
+int  * size ;
 {
   int returnVal;
   int i;

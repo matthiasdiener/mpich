@@ -1,4 +1,4 @@
-.TH MPI_Group_range_incl 3 "12/15/1994" " " "MPI"
+.TH MPI_Group_range_incl 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Group_range_incl \- Creates a new group from ranges of ranks in an
 existing group
@@ -12,14 +12,18 @@ existing group
 .PD 0
 .TP
 .B n 
-- number of triplets in array  ranges (integer) 
+- number of triplets in array  
+.I ranges
+(integer) 
 .PD 1
 .PD 0
 .TP
 .B ranges 
 - a one-dimensional array of integer triplets, of the 
 form (first rank, last rank, stride) indicating ranks in
-group  or processes to be included in newgroup  
+.I group
+or processes to be included in 
+.I newgroup
 .PD 1
 
 .SH OUTPUT PARAMETER
@@ -27,13 +31,37 @@ group  or processes to be included in newgroup
 .TP
 .B newgroup 
 - new group derived from above, in the 
-order defined by  ranges  (handle)  
+order defined by  
+.I ranges
+(handle)  
 .PD 1
 
 .SH NOTE
 This implementation does not currently check to see that the list of
 ranges to include are valid ranks in the group.
 
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

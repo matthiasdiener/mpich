@@ -1,6 +1,6 @@
 #! /bin/sh
 if [ "$MPIR_HOME" = "" ] ; then 
-    MPIR_HOME=/home/MPI/mpich
+    MPIR_HOME=/home/gropp/mpich
 fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
@@ -16,4 +16,4 @@ npes=1
 while [ $npes -lt $np ] ; do
     npes=`expr $npes \* 2`
 done
-$Show $progname -npes $np -np $np $cmdLineArgs
+$Show $progname -npes $npes -np $np $cmdLineArgs

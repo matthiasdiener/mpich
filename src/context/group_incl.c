@@ -1,5 +1,5 @@
 /*
- *  $Id: group_incl.c,v 1.14 1994/12/15 16:33:15 gropp Exp $
+ *  $Id: group_incl.c,v 1.15 1995/12/21 22:07:22 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -15,18 +15,19 @@ MPI_Group_incl - Produces a group by reordering an existing group and taking
 
 Input Parameters:
 . group - group (handle) 
-. n - number of elements in array ranks (and size of newgroup ) (integer) 
-. ranks - ranks of processes in group to appear in newgroup (array of 
+. n - number of elements in array 'ranks' (and size of newgroup ) (integer) 
+. ranks - ranks of processes in 'group' to appear in 'newgroup' (array of 
 integers) 
 
 Output Parameter:
-. newgroup - new group derived from above, in the order defined by ranks 
+. newgroup - new group derived from above, in the order defined by 'ranks' 
 (handle) 
 
 Note:
 This implementation does not currently check to see that the list of
-ranks to include are valid ranks in the group.
+ranks to ensure that there are no duplicates.
 
+.N fortran
 @*/
 int MPI_Group_incl ( group, n, ranks, group_out )
 MPI_Group group, *group_out;
@@ -46,7 +47,20 @@ int       n, *ranks;
     MPIR_Group_dup ( MPI_GROUP_EMPTY, group_out );
     return (mpi_errno);
   }
-  
+
+  /* Check that the ranks are in range, at least (still need to check for
+     duplicates) */
+  for (i=0; i<n; i++) {
+      if (ranks[i] < 0) {
+	  return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_ARG, 
+			    "Invalid rank (< 0) in MPI_GROUP_INCL" );
+	  }
+      if (ranks[i] >= group->np) {
+	  return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_ARG, 
+		    "Invalid rank (>= size of group) in MPI_GROUP_INCL" );
+	  }
+      }
+
   /* Create the new group */
   new_group = (*group_out)  = NEW(struct MPIR_GROUP);
   if (!new_group) 

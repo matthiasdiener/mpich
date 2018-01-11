@@ -8,6 +8,7 @@ args="-pg -mvhome"
 #
 runtests=1
 makeeach=0
+MAKE="make"
 for arg in "$@" ; do
     case $arg in 
 	-checkonly )
@@ -39,7 +40,7 @@ done
 
 MakeExe() {
     if [ ! -x $1 ] ; then
-	make $1
+	$MAKE $1
     fi
 }
 CleanExe() {
@@ -49,7 +50,7 @@ CleanExe() {
 }
 # If the programs are not available, run make.
 if [ ! -x sigchk -a $makeeach = 0 ] ; then
-    make default
+    $MAKE default
 fi
 #
 testfiles=""
@@ -75,12 +76,12 @@ CleanExe baseattr
 
 testfiles="$testfiles errhand.out"
 /bin/rm -f errhand.out
-MakeExe baseattr
+MakeExe errhand
 echo "*** Tests of error handling ***" 
 echo "*** Tests of error handling ***" >>errhand.out
 mpirun $args -np 1 errhand $* >> errhand.out
 echo "*** Tests of error handling ***" >>errhand.out
-CleanExe baseattr
+CleanExe errhand
 
 testfiles="$testfiles sigchk.out"
 /bin/rm -f sigchk.out

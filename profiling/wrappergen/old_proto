@@ -617,7 +617,7 @@ int   MPI_Type_lb
 int   MPI_Type_size
 2
   ,MPI_Datatype,datatype, ,
-  ,MPI_Aint *,size, ,
+  ,int *,size, ,
 int  MPI_Type_struct
 5
   ,int,count, ,

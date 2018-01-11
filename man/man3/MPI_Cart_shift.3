@@ -1,4 +1,4 @@
-.TH MPI_Cart_shift 3 "6/20/1995" " " "MPI"
+.TH MPI_Cart_shift 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Cart_shift \- Returns the shifted source and destination ranks, given a
 shift direction and amount
@@ -17,7 +17,7 @@ shift direction and amount
 .PD 0
 .TP
 .B disp 
-- displacement ($> 0$: upwards shift, $< 0$: downwards shift) (integer) 
+- displacement (> 0: upwards shift, < 0: downwards shift) (integer) 
 .PD 1
 
 .SH OUTPUT PARAMETERS
@@ -33,9 +33,35 @@ shift direction and amount
 .PD 1
 
 .SH NOTES
-The 'direction' argument is in the range [0,n-1] for an n-dimensional
+The 
+.I direction
+argument is in the range 
+.I [0,n-1]
+for an n-dimensional
 Cartesian mesh.
 
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

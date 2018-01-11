@@ -1,5 +1,5 @@
 /*
- *  $Id: graph_nbr.c,v 1.14 1994/12/15 17:34:40 gropp Exp $
+ *  $Id: graph_nbr.c,v 1.15 1995/12/21 22:18:59 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -22,8 +22,10 @@ Input Parameters:
 . maxneighbors - size of array neighbors (integer) 
 
 Output Parameters:
-. neighbors - ranks of processes that are neighbors to specified process (array of integer) 
+. neighbors - ranks of processes that are neighbors to specified process
+ (array of integer) 
 
+.N fortran
 @*/
 int MPI_Graph_neighbors ( comm, rank, maxneighbors, neighbors )
 MPI_Comm  comm;

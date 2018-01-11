@@ -22,7 +22,7 @@ static int {{fn_name}}_nsends_{{fileno}}; {{endforeachfn}}
 
   {{callfn}}
 
-  MPI_Type_size( {{datatype}}, (MPI_Aint *)&{{typesize}} );
+  MPI_Type_size( {{datatype}}, &{{typesize}} );
   MPE_Log_send( {{dest}}, {{tag}}, {{typesize}}*{{count}} );
   printf( "first argument is {{0}} and {{i}} went unused (%lf)\n", {{i}} );
   {{fn_name}}_nsends_{{fileno}}++;

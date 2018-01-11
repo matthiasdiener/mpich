@@ -81,10 +81,12 @@ int MPI_Type_struct(int count, int *array_of_blocklengths,
 		    MPI_Datatype *array_of_types, MPI_Datatype *newtype);
 int MPI_Address(void* location, MPI_Aint *address);
 int MPI_Type_extent(MPI_Datatype datatype, MPI_Aint *extent);
+
 /* See the 1.1 version of the Standard; I think that the standard is in 
-   error, and I've left the MPI_Aint in here. */
-int MPI_Type_size(MPI_Datatype datatype, MPI_Aint *size);
-/* int MPI_Type_count(MPI_Datatype datatype, int *count); */
+   error; however, it is the standard */
+/* int MPI_Type_size(MPI_Datatype datatype, MPI_Aint *size); */
+int MPI_Type_size(MPI_Datatype datatype, int *size);
+int MPI_Type_count(MPI_Datatype datatype, int *count);
 int MPI_Type_lb(MPI_Datatype datatype, MPI_Aint* displacement);
 int MPI_Type_ub(MPI_Datatype datatype, MPI_Aint* displacement);
 int MPI_Type_commit(MPI_Datatype *datatype);
@@ -125,8 +127,8 @@ int MPI_Alltoallv(void* sendbuf, int *sendcounts, int *sdispls,
 		  int *rdispls, MPI_Datatype recvtype, MPI_Comm comm);
 int MPI_Reduce(void* sendbuf, void* recvbuf, int count, 
 	       MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm);
-int MPI_Op_create(MPI_User_function *function, int commute, MPI_Op *op);
-int MPI_Op_free( MPI_Op *op);
+int MPI_Op_create(MPI_User_function *, int, MPI_Op *);
+int MPI_Op_free( MPI_Op *);
 int MPI_Allreduce(void* sendbuf, void* recvbuf, int count, 
 		  MPI_Datatype datatype, MPI_Op op, MPI_Comm comm);
 int MPI_Reduce_scatter(void* sendbuf, void* recvbuf, int *recvcounts, 
@@ -213,18 +215,18 @@ int MPI_Initialized(int *flag);
 int MPI_Abort(MPI_Comm comm, int errorcode);
 int MPI_Pcontrol(const int level, ...);
 
-int MPI_NULL_COPY_FN ( MPI_Comm *oldcomm, int *keyval, void *extra_state, 
+int MPI_NULL_COPY_FN ( MPI_Comm oldcomm, int keyval, void *extra_state, 
 		       void *attr_in, void *attr_out, int *flag );
-int MPI_NULL_DELETE_FN ( MPI_Comm *comm, int *keyval, void *attr, 
+int MPI_NULL_DELETE_FN ( MPI_Comm comm, int keyval, void *attr, 
 			 void *extra_state );
-int MPI_DUP_FN ( MPI_Comm *comm, int *keyval, void *extra_state, void *attr_in,
+int MPI_DUP_FN ( MPI_Comm comm, int keyval, void *extra_state, void *attr_in,
 		 void *attr_out, int *flag );
 #else 
 extern double MPI_Wtime();
 extern double MPI_Wtick();
 #ifndef MPI_Wtime
-double PMPI_Wtime();
-double PMPI_Wtick();
+extern double PMPI_Wtime();
+extern double PMPI_Wtick();
 #endif
 
 extern int MPI_NULL_COPY_FN(), MPI_NULL_DELETE_FN();

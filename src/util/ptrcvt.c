@@ -1,5 +1,5 @@
 /*
- *  $Id: ptrcvt.c,v 1.8 1995/09/13 21:44:25 gropp Exp $
+ *  $Id: ptrcvt.c,v 1.10 1995/12/21 22:02:29 gropp Exp $
  *
  *  (C) 1994 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -58,8 +58,13 @@ if (DoInit) {
     }
 if (idx < 0 || idx >= MAX_PTRS) {
     fprintf( stderr, "Could not convert index %d into a pointer\n", idx );
-    fprintf( stderr, "The index may be an incorrect argument\n" );
-    exit(1);
+    fprintf( stderr, "The index may be an incorrect argument.\n\
+Possible sources of this problem are a missing \"include 'mpif.h'\",\n\
+a misspelled MPI object (e.g., MPI_COM_WORLD instead of MPI_COMM_WORLD)\n\
+or a misspelled user variable for an MPI object (e.g., \n\
+com instead of comm).\n" );
+    MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_ARG, "Error in MPI object" );
+    return (void *)0;
     }
 if (idx == 0) return (void *)0;
 return PtrArray[idx].ptr;
@@ -87,7 +92,8 @@ if (avail) {
 fprintf( stderr, "Pointer conversions exhausted\n" );
 fprintf( stderr, "Too many MPI objects may have been passed to/from Fortran\n\
 without being freed\n" );
-exit(1);
+(void)MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_ARG, "Error in MPI object" );
+
 /* Some systems may complain here about the lack of a return.  */
 return 0;
 }
@@ -102,8 +108,13 @@ if (DoInit) {
     }
 if (idx < 0 || idx >= MAX_PTRS) {
     fprintf( stderr, "Could not convert index %d into a pointer\n", idx );
-    fprintf( stderr, "The index may be an incorrect argument\n" );
-    exit(1);
+    fprintf( stderr, "The index may be an incorrect argument.\n\
+Possible sources of this problem are a missing \"include 'mpif.h'\",\n\
+a misspelled MPI object (e.g., MPI_COM_WORLD instead of MPI_COMM_WORLD)\n\
+or a misspelled user variable for an MPI object (e.g., \n\
+com instead of comm).\n" );
+    (void)MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_ARG, "Error in MPI object" );
+    return;
     }
 if (idx == 0) return;
 if (PtrArray[idx].next) {
@@ -112,6 +123,7 @@ if (PtrArray[idx].next) {
     fprintf( stderr, 
 	    "[%d] Error in recovering Fortran pointer; already freed\n", 
 	    myrank );
+    MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_ARG, "Error in MPI object" );
     return;
     }
 PtrArray[idx].next = avail;

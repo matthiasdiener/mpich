@@ -78,7 +78,7 @@ are given below.
 # Run the tests if necessary.
 ############################################################################
 if test -z "$testfile" ; then
-    (cd examples/test ; make testing_save > test.log 2>&1 ) 
+    (cd examples/test ; make testing_save TESTARGS=-small > test.log 2>&1 ) 
 fi
 if test ! -s examples/test/test.log ; then
     echo "No testing file!  Tests must not have run." >>$filename

@@ -1,5 +1,5 @@
 /*
- *  $Id: groupcompare.c,v 1.1 1995/04/23 18:00:58 gropp Exp $
+ *  $Id: groupcompare.c,v 1.2 1995/12/21 22:11:08 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -16,10 +16,11 @@ Input Parameters:
 . group2 - group2 (handle) 
 
 Output Parameter:
-. result - integer which is MPI_IDENT if the order and members of
-the two groups are the same, MPI_SIMILAR if only the members are the same,
-and MPI_UNEQUAL otherwise
+. result - integer which is 'MPI_IDENT' if the order and members of
+the two groups are the same, 'MPI_SIMILAR' if only the members are the same,
+and 'MPI_UNEQUAL' otherwise
 
+.N fortran
 @*/
 int MPI_Group_compare ( group1, group2, result )
 MPI_Group  group1;

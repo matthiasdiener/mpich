@@ -1,5 +1,5 @@
 /*
- *  $Id: waitany.c,v 1.18 1995/07/25 02:48:30 gropp Exp $
+ *  $Id: waitany.c,v 1.20 1996/01/11 18:31:15 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: waitany.c,v 1.18 1995/07/25 02:48:30 gropp Exp $";
+static char vcid[] = "$Id: waitany.c,v 1.20 1996/01/11 18:31:15 gropp Exp $";
 #endif /* lint */
 #include "mpiimpl.h"
 #include "mpisys.h"
@@ -21,8 +21,10 @@ Input Parameters:
 
 Output Parameters:
 . index - index of handle for operation that completed (integer).  In the
-range 0 to count-1.  In Fortran, the range is 1 to count.
+range '0' to 'count-1'.  In Fortran, the range is '1' to 'count'.
 . status - status object (Status) 
+
+.N fortran
 @*/
 int MPI_Waitany(count, array_of_requests, index, status )
 int         count;
@@ -40,7 +42,14 @@ MPI_Status  *status;
 	if (array_of_requests[i] && array_of_requests[i]->chandle.active) 
 	    break;
 	}
-    if (i == count) return mpi_errno;
+    if (i == count) {
+	/* MPI Standard 1.1 requires an empty status in this case */
+	status->MPI_TAG	   = MPI_ANY_TAG;
+	status->MPI_SOURCE = MPI_ANY_SOURCE;
+	status->MPI_ERROR  = MPI_SUCCESS;
+	status->count	   = 0;
+	return mpi_errno;
+	}
 
     while (1) {
 	for (i = 0; i < count; i++)
@@ -56,7 +65,9 @@ MPI_Status  *status;
 		if ( request->type == MPIR_RECV ) {
 		    MPID_Complete_recv( request->rhandle.comm->ADIctx,
 				        &request->rhandle );
-		    
+		    if (request->rhandle.errval) {
+			mpi_errno = request->rhandle.errval;
+			}
 		    status->MPI_SOURCE	   = request->rhandle.source;
 		    status->MPI_TAG	   = request->rhandle.tag;
 		    status->count	   = request->rhandle.totallen;
@@ -94,7 +105,11 @@ MPI_Status  *status;
 		else {
 		    MPIR_RESET_PERSISTENT(request)
 		    }
-		return MPI_SUCCESS;
+		if (mpi_errno) {
+		    return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, 
+				      "Error in MPI_WAITANY");
+		    }
+		return mpi_errno;
 		}
 	    }
 	/* If nothing was ready, do a blocking wait on the device for 
@@ -114,4 +129,6 @@ MPI_Status  *status;
 	MPID_Check_device( MPI_COMM_WORLD->ADIctx, MPID_NOTBLOCKING );
 	}
 }
+
+
 

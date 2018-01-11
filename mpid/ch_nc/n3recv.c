@@ -3,7 +3,7 @@
 
 
 /*
- *  $Id: chrecv.c,v 1.44 1995/09/18 21:11:55 gropp Exp $
+ *  $Id: chrecv.c,v 1.45 1995/12/21 22:24:25 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -11,7 +11,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: chrecv.c,v 1.44 1995/09/18 21:11:55 gropp Exp $";
+static char vcid[] = "$Id: chrecv.c,v 1.45 1995/12/21 22:24:25 gropp Exp gropp $";
 #endif /* lint */
 
 #include "mpid.h"
@@ -255,7 +255,8 @@ if (mpid_recv_handle->bytes_as_contig < dmpi_recv_handle->totallen) {
     dmpi_recv_handle->totallen = mpid_recv_handle->bytes_as_contig;
     err = MPI_ERR_TRUNCATE;
     dmpi_recv_handle->errval = MPI_ERR_TRUNCATE;
-    (*MPID_ErrorHandler)( 1, "Truncated message (in processing unexpected)"  );
+    /* This is a non-fatal error */
+    fprintf( stderr, "Truncated message (in processing unexpected)\n"  );
     }
 
 /* 
@@ -455,11 +456,13 @@ switch (pkt->head.mode) {
     DMPI_mark_recv_completed(dmpi_recv_handle);
     break;
 
+#ifndef MPID_USE_RNDV
     case MPID_PKT_LONG_SYNC:
     /* sync_id  = pkt.long_sync_pkt.sync_id; */
     err = MPID_N3_Copy_body_sync_long( dmpi_recv_handle, pkt, from );
     DMPI_mark_recv_completed(dmpi_recv_handle);
     break;
+#endif
                                              /*#NONGET_END#*/
 #endif                                       /*#GET_START#*/
                                              /*#GET_END#*/
@@ -683,6 +686,13 @@ else {
     }
 }       /* #PVM3_END# */
 #endif
+/* 
+   This unpacks ONLY the head of the message.
+   Note that the payload is handled separately (MPIR_Unpack etc) and
+   most of the other data can be considered just bits to return uninterpreted. 
+
+   There are exceptions (see rendevous code); 
+ */
 MPID_PKT_UNPACK( MPID_PKT_RECV_ADDR(pkt), sizeof(MPID_PKT_HEAD_T), from );
 
 DEBUG_PRINT_PKT("R received message",pkt)
@@ -738,11 +748,13 @@ if (MPID_PKT_IS_MSG(MPID_PKT_RECV_GET(pkt,head.mode))) {
 #endif                                 
 
 	    break;
+#ifndef MPID_USE_RNDV
 	case MPID_PKT_LONG_SYNC:
 	    err = MPID_N3_Copy_body_sync_long( dmpi_recv_handle, 
 					       MPID_PKT_RECV_ADDR(pkt), 
 					       from );
 	    break;
+#endif
 	                                      /*#NONGET_END#*/
 	case MPID_PKT_SHORT_SYNC:
 	    err = MPID_N3_Copy_body_sync_short( dmpi_recv_handle, 
@@ -789,6 +801,7 @@ else {
 #ifdef MPID_USE_RNDV                           /*#NONGET_START#*/
 	case MPID_PKT_OK_TO_SEND:
 	DEBUG_PRINT_MSG("Responding to Ack for request to send")
+	MPID_PKT_UNPACK( &(MPID_PKT_RECV_GET(ptk,sendok_pkt.send_id), 8, from);
 	MPID_N3_Do_Request( MPID_PKT_RECV_GET(pkt,sendok_pkt.recv_handle), 
 			    from, MPID_PKT_RECV_GET(pkt,sendok_pkt.send_id) );
 	break;

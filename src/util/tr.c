@@ -1,5 +1,5 @@
 #ifndef lint
-static char vcid[] = "$Id$";
+static char vcid[] = "$Id: tr.c,v 1.1 1996/01/11 19:13:09 gropp Exp $";
 #endif
 
 #include <stdio.h>
@@ -89,7 +89,7 @@ static int     TRdebugLevel = 0;
 static long    TRMaxMem = 0;
 static long    TRMaxMemId = 0;
 
-/*@C
+/*+C
     MPIR_trmalloc - Malloc with tracing
 
     Input Parameters:
@@ -100,7 +100,7 @@ static long    TRMaxMemId = 0;
     Returns:
     double aligned pointer to requested storage, or null if not
     available.
- @*/
+ +*/
 void *MPIR_trmalloc( a, lineno, fname )
 unsigned int a;
 int      lineno;
@@ -159,14 +159,14 @@ if (TRlevel & TR_MALLOC)
 return (void *)new;
 }
 
-/*@C
+/*+C
    MPIR_trfree - Free with tracing
 
    Input Parameters:
 .  a    - pointer to a block allocated with trmalloc
 .  line - line in file where called
 .  file - Name of file where called
- @*/
+ +*/
 void MPIR_trfree( a, line, file )
 char *a;
 int  line;
@@ -241,7 +241,7 @@ if (TRlevel & TR_FREE)
 free( a );
 }
 
-/*@C
+/*+C
    MPIR_trvalid - test the allocated blocks for validity.  This can be used to
    check for memory overwrites.
 
@@ -267,7 +267,7 @@ $   Block at address %lx is corrupted
    value of TRID.
 
    No output is generated if there are no problems detected.
-@*/
++*/
 int MPIR_trvalid( str )
 char *str;
 {
@@ -306,13 +306,13 @@ while (head) {
 return errs;
 }
 
-/*@C
+/*+C
    MPIR_trspace - Return space statistics
    
    Output parameters:
 .   space - number of bytes currently allocated
 .   frags - number of blocks currently allocated
- @*/
+ +*/
 void MPIR_trspace( space, fr )
 int *space, *fr;
 {
@@ -320,12 +320,12 @@ int *space, *fr;
 *fr    = frags;
 }
 
-/*@C
+/*+C
   MPIR_trdump - Dump the allocated memory blocks to a file
 
   Input Parameter:
 .  fp  - file pointer.  If fp is NULL, stderr is assumed.
- @*/
+ +*/
 void MPIR_trdump( fp )
 FILE *fp;
 {
@@ -393,7 +393,7 @@ if (order == postorder || order == leaf)
 	     (*a)->id, (*a)->fname, (*a)->lineno, (*a)->size );
 }
 
-/*@C
+/*+C
   MPIR_trSummary - Summarize the allocate memory blocks by id
 
   Input Parameter:
@@ -402,7 +402,7 @@ if (order == postorder || order == leaf)
   Note:
   This routine is the same as MPIR_trDump on those systems that do not include
   /usr/include/search.h .
- @*/
+ +*/
 void MPIR_trSummary( fp )
 FILE *fp;
 {
@@ -447,16 +447,16 @@ fprintf( fp, "# The maximum space allocated was %ld bytes [%ld]\n",
 }	
 #endif
 
-/* @
+/*+
   MPIR_trid - set an "id" field to be used with each fragment
- @ */
+ +*/
 void MPIR_trid( id )
 int id;
 {
 TRid = id;
 }
 
-/*@C
+/*+C
   MPIR_trlevel - Set the level of output to be used by the tracing routines
  
   Input Parameters:
@@ -466,19 +466,19 @@ TRid = id;
 
   Note:
   You can add levels together to get combined tracing.
- @*/
+ +*/
 void MPIR_trlevel( level )
 int level;
 {
 TRlevel = level;
 }
 
-/*@C
+/*+C
    MPIR_trpush - Push an "id" value for the tracing space routines
 
    Input Parameters:
 .  a      - value to push
-@*/
++*/
 void MPIR_trpush( a )
 int a;
 {
@@ -487,9 +487,9 @@ if (TRstackp < MAX_TR_STACK - 1)
 TRid = a;
 }
 
-/*@C
+/*+C
   MPIR_trpop - Pop an "id" value for the tracing space routines
-@*/
++*/
 void MPIR_trpop()
 {
 if (TRstackp > 1) {
@@ -500,20 +500,20 @@ else
     TRid = 0;
 }
 
-/*@C
+/*+C
     MPIR_trDebugLevel - set the level of debugging for the space management routines
 
     Input Parameter:
 .   level - level of debugging.  Currently, either 0 (no checking) or 1
     (use MPIR_trvalid at each MPIR_trmalloc or MPIR_trfree).
-@*/
++*/
 void MPIR_trDebugLevel( level )
 int level;
 {
 TRdebugLevel = level;
 }
 
-/*@C
+/*+C
     MPIR_trcalloc - Calloc with tracing
 
     Input Parameters:
@@ -525,7 +525,7 @@ TRdebugLevel = level;
     Returns:
     Double aligned pointer to requested storage, or null if not
     available.
- @*/
+ +*/
 void *MPIR_trcalloc( nelem, elsize, lineno, fname )
 unsigned nelem, elsize;
 int      lineno;
@@ -534,13 +534,13 @@ char     *fname;
 void *p;
 
 p = MPIR_trmalloc( (unsigned)(nelem*elsize), lineno, fname );
-if (!p) {
+if (p) {
     memset(p,0,nelem*elsize);
     }
 return p;
 }
 
-/*@C
+/*+C
     MPIR_trrealloc - Realloc with tracing
 
     Input Parameters:
@@ -553,7 +553,7 @@ return p;
     Double aligned pointer to requested storage, or null if not
     available.  This implementation ALWAYS allocates new space and copies 
     the contents into the new space.
- @*/
+ +*/
 void *MPIR_trrealloc( p, size, lineno, fname )
 void *p;
 int  size, lineno;

@@ -1,5 +1,5 @@
 /*
- *  $Id: graph_map.c,v 1.6 1995/06/21 03:18:19 gropp Exp $
+ *  $Id: graph_map.c,v 1.7 1995/12/21 22:18:54 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -14,14 +14,14 @@ MPI_Graph_map - Maps process to graph topology information
 Input Parameters:
 . comm - input communicator (handle) 
 . nnodes - number of graph nodes (integer) 
-. index - integer array specifying the graph structure, see  MPI_GRAPH_CREATE 
+. index - integer array specifying the graph structure, see 'MPI_GRAPH_CREATE' 
 . edges - integer array specifying the graph structure 
 
 Output Parameter:
-. newrank - reordered rank of the calling process; MPI_UNDEFINED if the 
+. newrank - reordered rank of the calling process; 'MPI_UNDEFINED' if the 
 calling process does not belong to graph (integer) 
  
-
+.N fortran
 @*/
 int MPI_Graph_map ( comm_old, nnodes, index, edges, newrank )
 MPI_Comm comm_old;

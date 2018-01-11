@@ -1,5 +1,5 @@
 /*
- *  $Id: testsome.c,v 1.17 1995/05/16 18:11:08 gropp Exp $
+ *  $Id: testsome.c,v 1.19 1996/01/11 18:30:57 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: testsome.c,v 1.17 1995/05/16 18:11:08 gropp Exp $";
+static char vcid[] = "$Id: testsome.c,v 1.19 1996/01/11 18:30:57 gropp Exp $";
 #endif /* lint */
 #include "mpiimpl.h"
 #include "mpisys.h"
@@ -25,6 +25,8 @@ Output Parameters:
 completed (array of integers) 
 . array_of_statuses - array of status objects for 
     operations that completed (array of Status) 
+
+.N fortran
 @*/
 int MPI_Testsome( incount, array_of_requests, outcount, array_of_indices, 
 		  array_of_statuses )
@@ -32,7 +34,7 @@ int         incount, *outcount, array_of_indices[];
 MPI_Request array_of_requests[];
 MPI_Status  array_of_statuses[];
 {
-    int i, mpi_errno;
+    int i, mpi_errno = MPI_SUCCESS;
     int nfound = 0;
     int nnull  = 0;
     MPI_Request request;
@@ -79,6 +81,11 @@ MPI_Status  array_of_statuses[];
 	    array_of_indices[nfound] = i;
 	    if ( request->type == MPIR_RECV )
 		{
+		if (request->rhandle.errval) {
+		    array_of_statuses[nfound].MPI_ERROR  = 
+			                              request->rhandle.errval;
+		    mpi_errno = MPI_ERR_IN_STATUS;
+		    }
 		array_of_statuses[nfound].MPI_SOURCE = 
 		    request->rhandle.source;
 		array_of_statuses[nfound].MPI_TAG    = 
@@ -122,5 +129,8 @@ MPI_Status  array_of_statuses[];
 	*outcount = MPI_UNDEFINED;
     else
 	*outcount = nfound;
-    return MPI_SUCCESS;
+    if (mpi_errno) {
+	return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, "Error in MPI_TESTSOME");
+	}
+    return mpi_errno;
 }

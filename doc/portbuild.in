@@ -8,6 +8,8 @@
 # -nomake               Do not run make
 # -noperf               Do not run performance tests
 # -file=name            Output LaTeX file (default is doc/doc1.tex)
+#
+# If the make fails, exits with status 1; else exits with zero.
 author="$LOGNAME"
 nomake=0
 noperf=0
@@ -111,12 +113,15 @@ It took $hours $mins to build the MPI libraries.
 \begin{verbatim}
 .
         cat doc/doc1make.log >> $filename
-        echo "\\end{verbatim}"   >> $filename
+        cat >> $filename <<.
+\end{verbatim}
+.
     else
         echo "Make detected no errors during the build." >> $filename
     fi
     if test $makefailed = 1 ; then
         echo "The make failed to complete." >> $filename
+	exit 1
     fi
 else
     cat >>$filename <<.
@@ -124,3 +129,4 @@ else
 MPICH was not built using the the automated build and document program.
 .
 fi
+exit 0

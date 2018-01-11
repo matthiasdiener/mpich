@@ -163,12 +163,14 @@ if test "$XINCLUDE_DIR" != ""; then
     x_includes="$XINCLUDE_DIR"
 fi
 if test "$x_includes" = /usr/include; then
-    XINCLUDES="# no special path needed"
+    # no special path needed
+    XINCLUDES=""
 elif test "$x_includes" != ""; then
     XINCLUDES=" -I$x_includes"
 else
     echo checking for X11 header files
-    XINCLUDES="# no special path needed"
+    # no special path needed
+    XINCLUDES=""
     AC_TEST_CPP([#include <X11/Intrinsic.h>], , XINCLUDES="nope")
     if test "$XINCLUDES" = nope; then
         dirs="/usr/unsupported/include /usr/local/include /usr/X386/include /usr/include/X11R4 /usr/X11R5/include /usr/include/X11R5 /usr/openwin/include /usr/X11/include"
@@ -181,7 +183,8 @@ else
 fi
 if test "$XINCLUDES" = nope; then
   echo "Warning:  couldn't find any X11 include files."
-  XINCLUDES="# no include files found"
+  # no include files found
+  XINCLUDES=""
 fi
 AC_SUBST(XINCLUDES)
 

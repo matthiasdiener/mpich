@@ -1,5 +1,5 @@
 /*
- *  $Id: waitsome.c,v 1.20 1995/07/25 02:48:22 gropp Exp $
+ *  $Id: waitsome.c,v 1.22 1996/01/11 18:31:20 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: waitsome.c,v 1.20 1995/07/25 02:48:22 gropp Exp $";
+static char vcid[] = "$Id: waitsome.c,v 1.22 1996/01/11 18:31:20 gropp Exp $";
 #endif /* lint */
 #include "mpiimpl.h"
 #include "mpisys.h"
@@ -27,8 +27,10 @@ completed (array of integers)
     operations that completed (array of Status) 
 
 Notes:
-  The array of indicies are in the range 0 to incount - 1 for C and 
-in the range 1 to incount for Fortran.  
+  The array of indicies are in the range '0' to 'incount - 1' for C and 
+in the range '1' to 'incount' for Fortran.  
+
+.N fortran
 @*/
 int MPI_Waitsome( incount, array_of_requests, outcount, array_of_indices, 
 		  array_of_statuses )
@@ -36,7 +38,7 @@ int         incount, *outcount, array_of_indices[];
 MPI_Request array_of_requests[];
 MPI_Status  array_of_statuses[];
 {
-    int i, mpi_errno;
+    int i, mpi_errno = MPI_SUCCESS;
     MPI_Request request;
     int nfound = 0;
 
@@ -73,6 +75,11 @@ MPI_Status  array_of_statuses[];
 		    {
 		    MPID_Complete_recv( request->rhandle.comm->ADIctx, 
 				        &request->rhandle );
+		    if (request->rhandle.errval) {
+			array_of_statuses[nfound].MPI_ERROR  = 
+			    request->rhandle.errval;
+			mpi_errno = MPI_ERR_IN_STATUS;
+			}
 		    array_of_statuses[nfound].MPI_SOURCE = 
 			request->rhandle.source;
 		    array_of_statuses[nfound].MPI_TAG    = 
@@ -126,5 +133,8 @@ MPI_Status  array_of_statuses[];
 
 	}
     *outcount = nfound;
-    return MPI_SUCCESS;
+    if (mpi_errno) {
+	return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, "Error in MPI_WAITSOME");
+	}
+    return mpi_errno;
 }

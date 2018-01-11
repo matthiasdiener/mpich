@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_sub.c,v 1.18 1995/07/25 02:44:25 gropp Exp $
+ *  $Id: cart_sub.c,v 1.19 1995/12/21 22:18:33 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -15,14 +15,15 @@ MPI_Cart_sub - Partitions a communicator into subgroups which
 
 Input Parameters:
 . comm - communicator with cartesian structure (handle) 
-. remain_dims - the  i th entry of remain_dims specifies whether the i th 
-dimension is kept in the subgrid ( true ) or is dropped ( false ) (logical 
+. remain_dims - the  'i'th entry of remain_dims specifies whether the 'i'th 
+dimension is kept in the subgrid (true) or is dropped (false) (logical 
 vector) 
 
 Output Parameter:
 . newcomm - communicator containing the subgrid that includes the calling 
 process (handle) 
 
+.N fortran
 @*/
 int MPI_Cart_sub ( comm, remain_dims, comm_new )
 MPI_Comm  comm;

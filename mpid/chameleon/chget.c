@@ -1,5 +1,5 @@
 /*
- *  $Id: chget.c,v 1.6 1995/09/29 22:34:07 gropp Exp $
+ *  $Id: chget.c,v 1.9 1996/01/08 19:51:45 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: chget.c,v 1.6 1995/09/29 22:34:07 gropp Exp $";
+static char vcid[] = "$Id: chget.c,v 1.9 1996/01/08 19:51:45 gropp Exp $";
 #endif /* lint */
 
 #include "mpid.h"
@@ -296,7 +296,8 @@ pkt->cur_offset += pkt->len_avail;
 if (pkt->len - pkt->cur_offset > 0) {
 #endif
 
-MPID_PKT_SEND_ALLOC(MPID_PKT_GET_T,tpkt);
+MPID_PKT_SEND_ALLOC(MPID_PKT_GET_T,tpkt,0);
+MPID_PKT_SEND_ALLOC_TEST(tpkt,return MPI_ERR_EXHAUSTED)
 MEMCPY( MPID_PKT_SEND_ADDR(tpkt), pkt, sizeof(MPID_PKT_GET_T) );
 MPID_PKT_SEND_SET(tpkt,mode,MPID_PKT_DONE_GET);
 MPID_SendControl( MPID_PKT_SEND_ADDR(tpkt), sizeof(MPID_PKT_GET_T), from );
@@ -398,7 +399,8 @@ int  len, tag, context_id, lrank_sender, grank_dest, msgrep;
 int len_actual;
 MPID_PKT_SEND_DECL(MPID_PKT_GET_T,pkt);
 
-MPID_PKT_SEND_ALLOC(MPID_PKT_GET_T,pkt);
+MPID_PKT_SEND_ALLOC(MPID_PKT_GET_T,pkt,0);
+MPID_PKT_SEND_ALLOC_TEST(pkt,return MPI_ERR_EXHAUSTED)
 MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_DO_GET);
 /* ????? what to use for send_id ???. */
 MPID_PKT_SEND_SET(pkt,send_id,(MPID_Aint) dmpi_send_handle);
@@ -441,7 +443,11 @@ int              dest;
 int              len_actual;
 
 dest           = dmpi_send_handle->dest;
-MPID_PKT_SEND_ALLOC(MPID_PKT_GET_T,pkt);
+MPID_PKT_SEND_ALLOC(MPID_PKT_GET_T,pkt,0);
+/* We depend on getting a packet */
+/* 			dmpi_send_handle->dev_shandle.is_non_blocking); */
+MPID_PKT_SEND_ALLOC_TEST(pkt,return MPI_ERR_EXHAUSTED)
+
 MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_DO_GET);
 MPID_PKT_SEND_SET(pkt,send_id,(MPID_Aint) dmpi_send_handle);
 MPID_PKT_SEND_SET(pkt,recv_id,0);
@@ -480,7 +486,11 @@ int              dest;
 int              len_actual;
 
 dest           = dmpi_send_handle->dest;
-MPID_PKT_SEND_ALLOC(MPID_PKT_GET_T,pkt);
+MPID_PKT_SEND_ALLOC(MPID_PKT_GET_T,pkt,0);
+/* We depend on getting a packet */
+/*			dmpi_send_handle->dev_shandle.is_non_blocking); */
+MPID_PKT_SEND_ALLOC_TEST(pkt,return MPI_ERR_EXHAUSTED)
+
 MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_DO_GET_SYNC);
 MPID_PKT_SEND_SET(pkt,send_id,(MPID_Aint) dmpi_send_handle);
 MPID_PKT_SEND_SET(pkt,recv_id,0);
@@ -552,7 +562,8 @@ if (pkt->cur_offset < pkt->len) {
 
     /* Now, get a new packet and send it back */
     /* SHOULD JUST RETURN THE PACKET THAT WE HAVE! */
-    MPID_PKT_SEND_ALLOC(MPID_PKT_GET_T,tpkt);
+    MPID_PKT_SEND_ALLOC(MPID_PKT_GET_T,tpkt,0);
+    MPID_PKT_SEND_ALLOC_TEST(tpkt,return MPI_ERR_EXHAUSTED)
     MEMCPY( MPID_PKT_SEND_ADDR(tpkt), pkt, sizeof(MPID_PKT_GET_T) );
     MPID_PKT_SEND_SET(tpkt,len_avail,m);
     MPID_PKT_SEND_SET(tpkt,mode,MPID_PKT_CONT_GET);

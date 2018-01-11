@@ -3,14 +3,14 @@
 
 
 /*
- *  $Id: chsync.c,v 1.17 1995/08/11 00:23:57 gropp Exp $
+ *  $Id: chsync.c,v 1.19 1996/01/03 19:07:33 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vc[] = "$Id: chsync.c,v 1.17 1995/08/11 00:23:57 gropp Exp $";
+static char vc[] = "$Id: chsync.c,v 1.19 1996/01/03 19:07:33 gropp Exp $";
 #endif
 
 #include "mpid.h"
@@ -82,7 +82,9 @@ int       from;
 {
 MPID_PKT_SEND_DECL(MPID_PKT_SYNC_ACK_T,pkt);
 
-MPID_PKT_SEND_ALLOC(MPID_PKT_SYNC_ACK_T,pkt);
+MPID_PKT_SEND_ALLOC(MPID_PKT_SYNC_ACK_T,pkt,0);
+/* Need to generate an error return !!!! */
+MPID_PKT_SEND_ALLOC_TEST(pkt,return)
 
 MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_SYNC_ACK);
 MPID_PKT_SEND_SET(pkt,sync_id,sync_id);

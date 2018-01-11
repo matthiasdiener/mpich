@@ -1,12 +1,12 @@
 /*
- *  $Id: type_lb.c,v 1.7 1994/12/15 17:08:01 gropp Exp $
+ *  $Id: type_lb.c,v 1.9 1996/01/03 19:03:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_lb.c,v 1.7 1994/12/15 17:08:01 gropp Exp $";
+static char vcid[] = "$Id: type_lb.c,v 1.9 1996/01/03 19:03:26 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -22,6 +22,8 @@ Input Parameters:
 Output Parameter:
 . displacement - displacement of lower bound from origin, 
                              in bytes (integer) 
+
+.N fortran
 @*/
 int MPI_Type_lb ( datatype, displacement )
 MPI_Datatype  datatype;
@@ -35,6 +37,8 @@ MPI_Aint      *displacement;
 			   "Error in MPI_TYPE_LB" );
 
   /* Assign the lb and return */
+
+  MPIR_GET_REAL_DATATYPE(datatype)
   (*displacement) = datatype->lb;
   return (MPI_SUCCESS);
 }

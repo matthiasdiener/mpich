@@ -1,110 +1,97 @@
-#! /bin/csh -f
-#set echo
+#! /bin/sh
+# set -x
 #
 #  Returns the arch of the machine
 #
-set LARCH = ""
+# First, try some special cases:
+if [ -d "/dev/elan" ] ; then
+  FARCH="meiko"
+elif [ -s /usr/bin/uxpm ] ; then
+  FARCH="UXPM"
+fi
+if [ -n "$FARCH" ] ; then
+    echo $FARCH
+    exit 0
+fi
 #
-# For some reason, AIX 4.x sets ARCH to blank in some cases.
-if ($?ARCH) then
-    if ("$ARCH" != "") set LARCH = $ARCH
-endif
-if ("$LARCH" == "") then
-    if (-e /bin/arch) then
-    set LARCH = `/bin/arch`
-    else if (-e /bin/uname) then
-        set LARCH = `/bin/uname -s`
-        if ("$LARCH" == "AIX") then
-            set LARCH = "rs6000"
-        else if ("$LARCH" == "ULTRIX") then
-            set LARCH = `/bin/uname -m`
-            if ("$LARCH" == "RISC") then
-                set LARCH = "dec5000"
-            endif
-        else if ("$LARCH" == "HP-UX") then
-	    set LARCH = "hpux"
-        else if ("$LARCH" == "IRIX64") then
-	    set LARCH = "IRIX64"
-        else if ("$LARCH" == "Linux") then
-            true
-        else if ("$LARCH" != "IRIX") then 
-            set LARCH = `/bin/uname -m`
-        endif
-    else if (-e /usr/local/bin/arch) then
-        set LARCH = `/usr/local/bin/arch`
-    else
-        set LARCH = "unknown"
-    endif
-endif
-if ("$LARCH" == "i586" || "$LARCH" == "i486") then
-    # Arch is telling us the HARDWARE architecture when we want the SYSTEM
-    # architecture
-    if (-e /bin/uname) then
-	set TA = `/bin/uname -s`
-        if ("$TA" == "Linux") then
-	    set LARCH = "LINUX"
-        endif
-    endif
-endif
+# Try to find uname
+for dir in /bin /usr/bin /usr/local/bin ; do
+    if [ -x $dir/uname ] ; then
+	UNAME="$dir/uname"
+        break
+    fi
+done
 #
-# Remove blanks from the value of LARCH (another fix for AIX 4.x)
-# Note that this means that the tests below must have no blanks in them
-# (this affects CRAY xxx)
+# Get uname -s, uname -m, and arch values
 #
-set LARCH = `echo $LARCH | sed 's/ //g'`
-set SunOSTest = `expr "$LARCH" : "\(....\)"`
-if ("$SunOSTest" == "sun4") then
-  set LARCH = sun4
-  set Version = `/bin/uname -r`
-  # In "improving" SunOS, the useful feature of "substr" was withdrawn 
-  # from expr.  Can't let the users have life too easy, can we?  This 
-  # means that we can't just use 
-  #   set MajorVersion = `expr substr $Version 1 1`
-  # because it won't work on Solaris systems.  The following should work on
-  # both:
-  set MajorVersion = `expr "$Version" : "\(.\)"`
-  if ("$MajorVersion" ==  5) then
-    set LARCH = "solaris"
-  endif
-else if ("$LARCH" == "AIX") then
-   set LARCH = "rs6000"
-else if ("$LARCH" == "RIOS") then
-   set LARCH = "rs6000"
-else if ("$LARCH" == "mips") then
-   set LARCH = "dec5000"
-else if ("$LARCH" == "dec-5000") then
-   set LARCH = "dec5000"
-else if ("$LARCH" == "IP12") then
-  set LARCH = "IRIX"
-else if ("$LARCH" == "i386") then
-  set LARCH = "ipsc2"
-else if ("$LARCH" == "cray") then
-  set LARCH = "CRAY"
-else if ("$LARCH" == "CRAYY-MP") then
-  set LARCH = "CRAY"
-else if ("$LARCH" == "CRAYC90") then
-  set LARCH = "CRAY"
-else if ("$LARCH" == "CRAYJ90") then
-  set LARCH = "CRAY"
-else if ("$LARCH" == "CRAYT90") then
-  set LARCH = "CRAY"
-else if ("$LARCH" == "CRAYTS") then
-  set LARCH = "CRAY"
-else if ("$LARCH" == "CRAY-2") then
-  set LARCH = "CRAY"
-else if ("$LARCH" == "sun4m") then
-  set LARCH = "sun4"
-else if ("$LARCH" == "iris4d") then
-  set LARCH = "IRIX"
-else if ("$LARCH" == "next") then
-  set LARCH = "NeXT"
-else if ("$LARCH" == "KSR1") then
-  set LARCH = "ksr"
-else if (-e "/dev/elan") then
-  set LARCH = "meiko"
-else if (-f /usr/bin/uxpm) then
-  set LARCH = "UXPM"
-endif
+if [ -n "$UNAME" ] ; then
+    ARCHLIST="`uname -s`"
+    ARCHLIST="$ARCHLIST `uname -m`"
+fi
 #
-echo $LARCH
+# Get ARCH variable name
+if [ -n "$ARCH" ] ; then
+    ARCHLIST="$ARCHLIST $ARCH"
+fi
+#
+# Get arch command
+if [ -x /bin/arch ] ; then
+    ARCHLIST="$ARCHLIST `/bin/arch`"
+elif [ -x /usr/local/bin/arch ] ; then
+    ARCHLIST="$ARCHLIST `/usr/local/bin/arch`"
+fi
+#
+# GARCH is a guess if we don't find something better
+GARCH=
+# Now, weed through all of these values until we find something useful.
+for LARCH in $ARCHLIST ; do
+   # Remove blanks
+   LARCH=`echo $LARCH | sed 's/ //g'`
+   # Get the first 4 characters (you'd be surprised)
+   #   LARCH4=`expr "$LARCH" : "\(....\)"`
+   #   LARCH6=`expr "$LARCH" : "\(......\)"`
+   case $LARCH in
+	AIX|RIOS) FARCH=rs6000; break ;;
+	HP-UX) FARCH=hpux ; break ;;
+	IRIX64|IRIX) FARCH=$LARCH ; break ;;
+	Linux)  FARCH=LINUX ; break ;;
+	i586|i486|i86pc)
+	    GARCH=$LARCH ;;
+	sun4*)
+	Version=`$UNAME -r`
+        # In "improving" SunOS, the useful feature of "substr" was withdrawn 
+        # from expr.  Can't let the users have life too easy, can we?  This 
+        # means that we can't just use 
+        #   set MajorVersion = `expr substr $Version 1 1`
+        # because it won't work on Solaris systems.  The following should work
+        # on both:
+        MajorVersion=`expr "$Version" : "\(.\)"`
+        if [ "$MajorVersion" -ge 5 ] ; then
+            FARCH=solaris
+	else
+	    FARCH=sun4
+	fi
+	break ;;
+	hp9000*|hp7000*) FARCH=hpux ; break ;;
+	mips|dec-5000)   FARCH=dec5000 ; break ;;
+        IP12|iris-4d)    GARCH=IRIX ;;
+        cray|CRAY*)      GARCH=CRAY ;;
+        next)            FARCH=NeXT ; break ;;	
+	KSR1|KSR2)       FARCH=ksr ; break ;;	
+        FreeBSD)         FARCH=freebsd ; break ;;
+	i386)            GARCH=ipsc2 ;;
+	ULTRIX|RISC)     GARCH=dec5000 ;;
+   esac
+   LLARCH=$LARCH
+done
+if [ -z "$FARCH" ] ; then
+    FARCH=$GARCH
+    if [ -z "$FARCH" ] ; then
+	FARCH=$LLARCH
+    fi
+    if [ -z "$FARCH" ] ; then
+	FARCH=unknown
+    fi
+fi
+echo $FARCH
 exit 0

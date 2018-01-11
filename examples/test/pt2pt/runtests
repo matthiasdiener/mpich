@@ -9,6 +9,7 @@ args="-pg -mvhome"
 # If the programs are not available, run make.
 runtests=1
 makeeach=0
+MAKE="make"
 for arg in "$@" ; do
     case $arg in 
 	-checkonly)
@@ -44,7 +45,7 @@ done
 # MakeExe program-name
 MakeExe() {
     if [ ! -x $1 ] ; then
-	make $1
+	$MAKE $1
     fi
 }
 # CleanExe program-name
@@ -67,7 +68,7 @@ CleanExe() {
 
 # If the programs are not available, run make.
 if [ ! -x sendrecv -a $makeeach = 0 ] ; then
-    make default
+    $MAKE default
 fi
 
 testfiles=""
@@ -134,6 +135,42 @@ cat isndrcv-[012].out >> isndrcv.out
 echo '**** Testing MPI_Isend and MPI_Irecv ****' >> isndrcv.out
 CleanExe isndrcv
 #
+testfiles="$testfiles irsend.out"
+/bin/rm -f irsend.out
+MakeExe irsend
+echo '**** Testing MPI_Irsend ****' >> irsend.out
+echo '**** Testing MPI_Irsend ****' 
+mpirun $args -np 2 irsend "$@" >> irsend.out 2>&1
+echo '**** Testing MPI_Irsend ****' >> irsend.out
+CleanExe irsend
+#
+testfiles="$testfiles testsome.out"
+/bin/rm -f testsome.out
+MakeExe testsome
+echo '**** Testing MPI_Testsome/Testany/Waitsome ****' >> testsome.out
+echo '**** Testing MPI_Testsome/Testany/Waitsome ****' 
+mpirun $args -np 2 testsome "$@" >> testsome.out 2>&1
+echo '**** Testing MPI_Testsome/Testany/Waitsome ****' >> testsome.out
+CleanExe testsome
+#
+testfiles="$testfiles testall.out"
+/bin/rm -f testall.out
+MakeExe testall
+echo '**** Testing MPI_Testall ****' >> testall.out
+echo '**** Testing MPI_Testall ****' 
+mpirun $args -np 2 testall "$@" >> testall.out 2>&1
+echo '**** Testing MPI_Testall ****' >> testall.out
+CleanExe testall
+#
+testfiles="$testfiles getelm.out"
+/bin/rm -f getelm.out
+MakeExe getelm
+echo '**** Testing MPI_Get_elements ****' >> getelm.out
+echo '**** Testing MPI_Get_elements ****' 
+mpirun $args -np 2 getelm "$@" >> getelm.out 2>&1
+echo '**** Testing MPI_Get_elements ****' >> getelm.out
+CleanExe getelm
+#
 testfiles="$testfiles overtake.out"
 /bin/rm -f overtake.out
 MakeExe overtake
@@ -155,13 +192,22 @@ mpirun $args -np 2 -mvback "ssendtest-1.out" ssendtest "$@" >> ssendtest.out 2>&
 echo '**** Verifying ssend ****' >> ssendtest.out
 CleanExe ssendtest
 #
+testfiles="$testfiles typebase.out"
+/bin/rm -f typebase.out
+MakeExe typebase
+echo '**** Checking the type (sizes) routines ****'
+echo '**** Checking the type (sizes) routines ****' >> typebase.out
+mpirun $args -np 1 typebase "$@" >> typebase.out 2>&1
+echo '**** Checking the type (sizes) routines ****' >> typebase.out
+CleanExe typebase
+#
 testfiles="$testfiles typetest.out"
 /bin/rm -f typetest.out
 MakeExe typetest
 echo '**** Checking the type routines ****'
 echo '**** Checking the type routines ****' >> typetest.out
 /bin/rm -f typetest-[01].out
-mpirun $args -np 2 -mvback typetest-0.out typetest "$@" >> typetest.out 2>&1
+mpirun $args -np 2 -mvback "typetest-0.out typetest-1.out" typetest "$@" >> typetest.out 2>&1
 if [ -s typetest-0.out ] ; then
     cat typetest-0.out >> typetest.out
 fi
@@ -326,7 +372,16 @@ if [ 1 = 1 ] ; then
     MakeExe structf
     echo '*** Testing Type_struct from Fortran ***'
     echo '*** Testing Type_struct from Fortran ***' >> structf.out
-    mpirun $args -np 2 structf "$@" >> structf.out 2>&1
+    # This is tricky.  Because of a bug in IRIX64, we need to direct 
+    # input from /dev/null (so that we can know that we need a new process
+    # group).  This should be ok for everyone, but SunOS 4.1.4 tends to
+    # panic (!!) in this case.  Since both behaviors represent broken
+    # operating systems, we test for ARCH=IRIX64 
+    if [ "sun4" = "IRIX64" ] ; then 
+      mpirun $args -np 2 structf "$@" >> structf.out 2>&1 < /dev/null
+    else
+      mpirun $args -np 2 structf "$@" >> structf.out 2>&1
+    fi
     echo '*** Testing Type_struct from Fortran ***' >> structf.out
     CleanExe structf
     #

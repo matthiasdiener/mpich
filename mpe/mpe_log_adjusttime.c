@@ -159,14 +159,16 @@ void MPE_Log_adjtime2()
 }
 
 
-MPE_Log_adjusttimes()
+int MPE_Log_adjusttimes()
 {
   int xx_save;
 
-  if (MPE_Log_AdjustedTimes) return;
+  if (MPE_Log_AdjustedTimes) return 0;
 
   MPE_Log_adjtime1();
   MPE_Log_adjtime2();
   MPE_Log_AdjustedTimes = 1;
+
+  return 0;
 }
 

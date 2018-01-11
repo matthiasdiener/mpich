@@ -1,5 +1,5 @@
 /*
- *  $Id: commreq_free.c,v 1.15 1995/09/13 21:47:01 gropp Exp $
+ *  $Id: commreq_free.c,v 1.16 1995/12/21 21:11:56 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -13,6 +13,8 @@
 
 Input Parameter:
 . request - communication request (handle) 
+
+.N fortran
 @*/
 int MPI_Request_free( request )
 MPI_Request *request;

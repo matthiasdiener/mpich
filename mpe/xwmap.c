@@ -1,9 +1,9 @@
 #ifndef lint
-static char vcid[] = "$Id: xwmap.c,v 1.1 1994/06/29 20:50:14 karrels Exp $";
+static char vcid[] = "$Id: xwmap.c,v 1.2 1995/12/21 22:21:32 gropp Exp $";
 #endif
 
 
-#include "tools.h"
+#include "mpetools.h"
 #include "basex11.h"
 
 /*

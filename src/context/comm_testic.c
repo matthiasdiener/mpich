@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_testic.c,v 1.2 1995/06/21 03:05:58 gropp Exp $
+ *  $Id: comm_testic.c,v 1.3 1995/12/21 22:06:55 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -13,9 +13,11 @@ MPI_Comm_test_inter - Tests to see if a comm is an inter-communicator
 
 Input Parameter:
 . comm - communicator (handle) 
+
 Output Parameter:
 . flag - (logical) 
 
+.N fortran
 @*/
 int MPI_Comm_test_inter ( comm, flag )
 MPI_Comm  comm;

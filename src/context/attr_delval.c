@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_delval.c,v 1.17 1995/07/25 02:45:55 gropp Exp $
+ *  $Id: attr_delval.c,v 1.18 1995/12/21 22:02:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -15,6 +15,7 @@ Input Parameters:
 . comm - communicator to which attribute is attached (handle) 
 . keyval - The key value of the deleted attribute (integer) 
 
+.N fortran
 @*/
 int MPI_Attr_delete ( comm, keyval )
 MPI_Comm comm;

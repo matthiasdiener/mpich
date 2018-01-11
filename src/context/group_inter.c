@@ -1,5 +1,5 @@
 /*
- *  $Id: group_inter.c,v 1.16 1994/12/15 16:33:32 gropp Exp $
+ *  $Id: group_inter.c,v 1.17 1995/12/21 22:07:25 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -20,6 +20,7 @@ Input Parameters:
 Output Parameter:
 . newgroup - intersection group (handle) 
 
+.N fortran
 @*/
 int MPI_Group_intersection ( group1, group2, group_out )
 MPI_Group group1, group2, *group_out;

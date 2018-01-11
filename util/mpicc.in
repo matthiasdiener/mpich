@@ -6,6 +6,7 @@ Show=eval
 allargs=
 compileargs=
 linkargs=
+linkobjs=
 gettinglinkarg=0
 HasDashC=0
 for arg in "$@" ; do
@@ -34,13 +35,25 @@ for arg in "$@" ; do
 	DoLink=1
 	;;
 	-mpilog)
-	MPILOG=-llmpi
+	if [ -n "@MPE_LIBS@" ] ; then
+		MPILOG=-llmpi
+	else
+	    echo "-mpilog requires the MPE libraries"
+	fi
 	;;
 	-mpitrace)
-	MPILOG=-ltmpi
+	if [ -n "@MPE_LIBS@" ] ; then
+   	    MPILOG=-ltmpi
+	else
+	    echo "-mpitrace requires the MPE libraries"
+	fi
 	;;
 	-mpianim)
-	MPILOG="-lampi @MPE_LIBS@ @X_LIB@"
+	if [ -n "@MPE_LIBS@" ] ; then
+	    MPILOG="-lampi @MPE_LIBS@ @X_LIB@"
+	else
+	    echo "-mpianim requires the MPE libraries"
+	fi
 	;;
 	-echo)
 	set -x
@@ -49,7 +62,7 @@ for arg in "$@" ; do
 	Show=echo
 	;;
 	-help)
-	echo "This is a program to compile or link MPI programs"
+	echo "This is a program to compile or link C++ MPI programs"
 	echo "In addition, the following special options are supported"
 	echo "    -mpilog    - Build version that generate MPE log files"
 	echo "    -mpitrace  - Build version that generates traces"
@@ -60,13 +73,13 @@ for arg in "$@" ; do
 	echo "    -help      - Give this help"
 	echo "    -echo      - Show exactly what this program is doing."
 	echo "                 This option should normally not be used."
-	echo "This should be used just like the usual C compiler"
+	echo "This should be used just like the usual C++ compiler"
 	echo "For example,"
-	echo "   $0 -c foo.c "
+	echo "   $0 -c foo.C "
 	echo "and"
 	echo "   $0 -o foo foo.o"
 	echo "Combining compilation and linking in a single command"
-	echo "   $0 -o foo foo.c"
+	echo "   $0 -o foo foo.C"
 	echo "may not work on some systems, and is not recommended."
 	exit 1
 	;;
@@ -78,14 +91,14 @@ for arg in "$@" ; do
         *) allargs="$allargs $arg"
 	if [ -s "$arg" ] ; then
 	    ext=`expr "$arg" : '.*\(\..*\)`
-	    if [ "$ext" = ".c" ] ; then
+	    if [ "$ext" = ".C" ] ; then
 	        DoCompile=1
 	        compileargs="$compileargs $arg"
-	        fname=`basename $arg .c`
-	        linkargs="$linkargs $fname.o"
+	        fname=`basename $arg .C`
+	        linkobjs="$linkobjs $fname.o"
 	    elif [ "$ext" = ".o" ] ; then
 	        DoLink=1
-	        linkargs="$linkargs $arg"
+	        linkobjs="$linkobjs $arg"
 	    else
 	        compileargs="$compileargs $arg"
 	        linkargs="$linkargs $arg"
@@ -103,7 +116,7 @@ if [ $DoCompile = 1 ] ; then
     if [ $HasDashC != 1 ] ; then
         compileargs="-c $compileargs"
     fi
-    $Show @CC@ @CFLAGS@ @OPTFLAGS@ -DMPI_@ARCH@ -I@MPIR_HOME@/include \
+    $Show @CCC@ @CCFLAGS@ @OPTFLAGS@ -DMPI_@ARCH@ -I@MPIR_HOME@/include \
 	$compileargs
     status=$?
     if [ $status != 0 ] ; then 
@@ -112,9 +125,9 @@ if [ $DoCompile = 1 ] ; then
 fi
 if [ $DoLink = 1 ] ; then
     if [ -n "$MPILOG" ] ; then
-        $Show @CLINKER@ $linkargs @LIB_PATH@ $MPILOG -lpmpi @LIB_LIST@
+        $Show @CCLINKER@ $linkobjs @LIB_PATH@ -lmpi++ $MPILOG $linkargs -lpmpi @LIB_LIST@
     else
-        $Show @CLINKER@ $linkargs @LIB_PATH@ @LIB_LIST@
+        $Show @CCLINKER@ $linkobjs $linkargs @LIB_PATH@ -lmpi++ @LIB_LIST@
     fi
     status=$?
 fi

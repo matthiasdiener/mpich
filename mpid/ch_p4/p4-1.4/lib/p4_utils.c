@@ -112,6 +112,7 @@ char **argv;
     }
     else
     {
+        /* Master */
 	rc = bm_start(argc, argv);
         ALOG_MASTER(0,ALOG_TRUNCATE);
         ALOG_DEFINE(BEGIN_USER,"beg_user","");
@@ -633,6 +634,9 @@ int p4_wait_for_end()
 	msg.type = p4_i_to_n(DIE);
 	msg.from = p4_i_to_n(p4_get_my_id());
 	net_send(p4_local->listener_fd, &msg, sizeof(msg), FALSE);
+	/* Make sure that no further reads are possible for the LISTENER
+	   on this FD */
+	close( p4_local->listener_fd );
 	pid = wait(&status);
 	p4_dprintfl(90, "detected that proc %d died \n", pid);
     }
@@ -757,9 +761,13 @@ char *str;
     strcpy(str,"cube_node");
 #   else
 #       if defined(SUN_SOLARIS)
-        if (*str == '\0')
-            if (sysinfo(SI_HOSTNAME, str, HOSTNAME_LEN) == -1)
-	        p4_error("could not get qualified hostname", getpid());
+        if (*str == '\0') {
+            if (p4_global)
+		strcpy(str,p4_global->my_host_name);
+	    else
+		if (sysinfo(SI_HOSTNAME, str, HOSTNAME_LEN) == -1)
+		    p4_error("could not get qualified hostname", getpid());
+	    }
 #       else
         if (*str == '\0')
             if (p4_global)

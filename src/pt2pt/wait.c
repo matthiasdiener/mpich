@@ -1,5 +1,5 @@
 /*
- *  $Id: wait.c,v 1.11 1994/12/15 16:48:41 gropp Exp $
+ *  $Id: wait.c,v 1.12 1995/12/21 21:41:40 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: wait.c,v 1.11 1994/12/15 16:48:41 gropp Exp $";
+static char vcid[] = "$Id: wait.c,v 1.12 1995/12/21 21:41:40 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -20,6 +20,8 @@ Input Parameter:
 
 Output Parameter:
 . status - status object (Status) 
+
+.N fortran
 @*/
 int MPI_Wait ( request, status )
 MPI_Request  *request;

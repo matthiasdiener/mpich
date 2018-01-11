@@ -1,5 +1,5 @@
 /*
- *  $Id: waitall.c,v 1.29 1995/05/16 18:11:27 gropp Exp $
+ *  $Id: waitall.c,v 1.32 1996/01/11 18:31:03 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: waitall.c,v 1.29 1995/05/16 18:11:27 gropp Exp $";
+static char vcid[] = "$Id: waitall.c,v 1.32 1996/01/11 18:31:03 gropp Exp $";
 #endif /* lint */
 #include "mpiimpl.h"
 #include "mpisys.h"
@@ -21,6 +21,8 @@ Input Parameters:
 
 Output Parameter:
 . array_of_statuses - array of status objects (array of Status) 
+
+.N fortran
 @*/
 int MPI_Waitall(count, array_of_requests, array_of_statuses )
 int         count;
@@ -29,7 +31,7 @@ MPI_Status  array_of_statuses[];
 {
     int i;
     MPI_Request request;
-    int mpi_errno;
+    int mpi_errno = MPI_SUCCESS, mpi_lerr;
     
     /* NOTE:
        This implementation will not work correctly if the device requires
@@ -52,13 +54,15 @@ MPI_Status  array_of_statuses[];
 	    /* See MPI Standard, 3.7 */
 	    array_of_statuses[i].MPI_TAG    = MPI_ANY_TAG;
 	    array_of_statuses[i].MPI_SOURCE = MPI_ANY_SOURCE;
+	    array_of_statuses[i].MPI_ERROR  = MPI_SUCCESS;
 	    array_of_statuses[i].count	    = 0;
 	    continue;
 	    }
 
 	if ( request->type == MPIR_SEND ) {
-	  MPID_Complete_send( request->shandle.comm->ADIctx, 
-			      &request->shandle );
+	    MPIR_CALL(MPID_Complete_send( request->shandle.comm->ADIctx, 
+					  &request->shandle ),
+		      MPI_COMM_WORLD,"Could not complete send in MPI_WAITALL");
 #if defined(MPID_PACK_IN_ADVANCE) || defined(MPID_HAS_HETERO)
 	  if (request->shandle.bufpos && 
 	      (mpi_errno = MPIR_SendBufferFree( request ))){
@@ -93,9 +97,19 @@ MPI_Status  array_of_statuses[];
 	if ( request->type == MPIR_RECV ) {
 	    /*fprintf( stderr, "[%d] receive request %d\n", MPIR_tid, i );*/
 	    if (! MPID_Test_request( MPID_Ctx( request ), request )) {
-		MPID_Complete_recv( request->rhandle.comm->ADIctx, 
-				    &request->rhandle );
+		/* Need to trap error messages, particularly truncated 
+		   data */
+		mpi_lerr = MPID_Complete_recv( request->rhandle.comm->ADIctx, 
+					        &request->rhandle );
+		if (mpi_lerr) {
+		    array_of_statuses[i].MPI_ERROR = mpi_lerr;
+		    mpi_errno = MPI_ERR_IN_STATUS;
+		    }
 		/*fprintf( stderr, "[%d] did complete receive\n", MPIR_tid );*/
+		}
+	    if (request->rhandle.errval) {
+		array_of_statuses[i].MPI_ERROR  = request->rhandle.errval;
+		mpi_errno = MPI_ERR_IN_STATUS;
 		}
 	    array_of_statuses[i].MPI_SOURCE	= request->rhandle.source;
 	    array_of_statuses[i].MPI_TAG	= request->rhandle.tag;
@@ -104,12 +118,16 @@ MPI_Status  array_of_statuses[];
 	    if (request->rhandle.bufpos) {
 		/*fprintf( stderr, "[%d] doing unpack from %d\n", 
 			 MPIR_tid, array_of_statuses[i].MPI_SOURCE );*/
-		mpi_errno = MPIR_UnPackMessage( request->rhandle.bufadd, 
+		mpi_lerr = MPIR_UnPackMessage( request->rhandle.bufadd, 
 					       request->rhandle.count, 
 					       request->rhandle.datatype, 
 					       request->rhandle.source,
 					       request, 
    					       &array_of_statuses[i].count );
+		if (mpi_lerr) {
+		    array_of_statuses[i].MPI_ERROR = mpi_lerr;
+		    mpi_errno = MPI_ERR_IN_STATUS;
+		    }
 		}
 #endif
 	    if (!request->chandle.persistent) {
@@ -125,7 +143,10 @@ MPI_Status  array_of_statuses[];
 		}
 	    }
     }
-    return MPI_SUCCESS;
+    if (mpi_errno) {
+	return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, "Error in MPI_WAITALL");
+	}
+    return mpi_errno;
 }
 
 

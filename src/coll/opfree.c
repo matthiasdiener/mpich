@@ -1,12 +1,12 @@
 /*
- *  $Id: opfree.c,v 1.10 1995/07/25 02:45:26 gropp Exp $
+ *  $Id: opfree.c,v 1.11 1995/12/21 22:17:17 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: opfree.c,v 1.10 1995/07/25 02:45:26 gropp Exp $";
+static char vcid[] = "$Id: opfree.c,v 1.11 1995/12/21 22:17:17 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -20,7 +20,9 @@ Input Parameter:
 . op - operation (handle) 
 
 Notes:
-op is set to MPI_OP_NULL on exit.
+'op' is set to 'MPI_OP_NULL' on exit.
+
+.N fortran
 @*/
 int MPI_Op_free( op )
 MPI_Op  *op;
@@ -38,6 +40,7 @@ MPI_Op  *op;
 					  "Error in MPI_OP_FREE" );
 
   /* Free the op */
+  MPIR_SET_COOKIE( *op, 0 )
   FREE( (*op) );
   (*op) = MPI_OP_NULL;
 

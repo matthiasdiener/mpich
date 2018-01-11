@@ -1,4 +1,5 @@
 **** Testing MPI_Send and MPI_Recv (3) ****
+Testing with communicator with 2 members
 Testing type Basic type MPI_CHAR
 Testing type Basic type MPI_SHORT
 Testing type Basic type MPI_INT
@@ -60,6 +61,7 @@ Testing type Struct (MPI_UB) type MPI_UNSIGNED_LONG
 Testing type Struct (MPI_UB) type MPI_FLOAT
 Testing type Struct (MPI_UB) type MPI_DOUBLE
 Testing type Struct (MPI_UB) type MPI_BYTE
+Testing with communicator with 2 members
 Testing type Basic type MPI_CHAR
 Testing type Basic type MPI_SHORT
 Testing type Basic type MPI_INT

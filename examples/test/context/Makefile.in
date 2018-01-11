@@ -36,7 +36,7 @@ MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
 LIBS = $(LIB_PATH) $(LIB_LIST)
 FLIBS = $(FLIB_PATH) $(LIB_LIST)
 LIBSPP = $(MPIPPLIB) $(LIBS)
-EXECS = attrtest attrt ictest
+EXECS = attrtest attrt ictest ictest2 ictest3 grouptest
 
 default: $(EXECS)
 
@@ -59,6 +59,12 @@ attrt: attrt.o test.o $(MPILIB)
 
 ictest: ictest.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o ictest ictest.o $(LIBS)
+ictest2: ictest2.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o ictest2 ictest2.o $(LIBS)
+ictest3: ictest3.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o ictest3 ictest3.o $(LIBS)
+grouptest: grouptest.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o grouptest grouptest.o $(LIBS)
 
 mpif.h: $(MPIR_HOME)/include/mpif.h
 	if test \! -f mpif.h ; then \

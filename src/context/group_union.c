@@ -1,5 +1,5 @@
 /*
- *  $Id: group_union.c,v 1.16 1994/12/15 16:35:50 gropp Exp $
+ *  $Id: group_union.c,v 1.17 1995/12/21 22:11:03 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -19,6 +19,7 @@ Input Parameters:
 Output Parameter:
 . newgroup - union group (handle) 
 
+.N fortran
 @*/
 int MPI_Group_union ( group1, group2, group_out )
 MPI_Group group1, group2, *group_out;

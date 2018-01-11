@@ -1,12 +1,12 @@
 /*
- *  $Id: errcreate.c,v 1.6 1994/12/11 16:50:21 gropp Exp $
+ *  $Id: errcreate.c,v 1.7 1995/12/21 21:56:46 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: errcreate.c,v 1.6 1994/12/11 16:50:21 gropp Exp $";
+static char vcid[] = "$Id: errcreate.c,v 1.7 1995/12/21 21:56:46 gropp Exp $";
 #endif
 
 #include "mpiimpl.h"
@@ -24,10 +24,12 @@ Output Parameter:
 Notes:
 The MPI Standard states that an implementation may make the output value 
 (errhandler) simply the address of the function.  However, the action of 
-MPI_Errhandler_free makes this impossible, since it is required to set the
-value of the argument to MPI_ERRHANDLER_NULL.  In addition, the actual
+'MPI_Errhandler_free' makes this impossible, since it is required to set the
+value of the argument to 'MPI_ERRHANDLER_NULL'.  In addition, the actual
 error handler must remain until all communicators that use it are 
 freed.
+
+.N fortran
 @*/
 int MPI_Errhandler_create( function, errhandler )
 MPI_Handler_function *function;

@@ -21,10 +21,10 @@ return 0;
 
 int copy_fn(oldcomm, keyval, extra_state,
                       attribute_val_in, attribute_val_out, flag)
-MPI_Comm *oldcomm;
-int *keyval;
-void *extra_state, *attribute_val_in, *attribute_val_out;
-int *flag;
+MPI_Comm oldcomm;
+int      keyval;
+void     *extra_state, *attribute_val_in, *attribute_val_out;
+int      *flag;
 {
 /* Note that if (sizeof(int) < sizeof(void *), just setting the int
    part of attribute_val_out may leave some dirty bits
@@ -35,9 +35,9 @@ return MPI_SUCCESS;
 }
 
 int delete_fn(comm, keyval, attribute_val, extra_state)
-MPI_Comm *comm;
-int *keyval;
-void *attribute_val, *extra_state;
+MPI_Comm comm;
+int      keyval;
+void     *attribute_val, *extra_state;
 {
 int world_rank;
 MPI_Comm_rank( MPI_COMM_WORLD, &world_rank );

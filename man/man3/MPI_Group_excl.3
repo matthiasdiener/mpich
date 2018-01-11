@@ -1,4 +1,4 @@
-.TH MPI_Group_excl 3 "12/15/1994" " " "MPI"
+.TH MPI_Group_excl 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Group_excl \- Produces a group by reordering an existing group and taking
 only unlisted members
@@ -12,25 +12,55 @@ only unlisted members
 .PD 0
 .TP
 .B n 
-- number of elements in array ranks (integer) 
+- number of elements in array 
+.I ranks
+(integer) 
 .PD 1
 .PD 0
 .TP
 .B ranks 
-- array of integer ranks in group not to appear in newgroup 
+- array of integer ranks in 
+.I group
+not to appear in 
+.I newgroup
 .PD 1
 
 .SH OUTPUT PARAMETER
 .PD 0
 .TP
 .B newgroup 
-- new group derived from above, preserving the order defined by  group (handle) 
+- new group derived from above, preserving the order defined by 
+.I group
+(handle) 
 .PD 1
 
 .SH NOTE
 Currently, each of the ranks to exclude must be
 a valid rank in the group and all elements must be distinct or the
 function is erroneous.  This restriction is per the draft.
+
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

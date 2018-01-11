@@ -1,5 +1,5 @@
 /*
- *  $Id: ibsend.c,v 1.10 1995/09/13 21:47:09 gropp Exp $
+ *  $Id: ibsend.c,v 1.11 1995/12/21 21:12:25 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: ibsend.c,v 1.10 1995/09/13 21:47:09 gropp Exp $";
+static char vcid[] = "$Id: ibsend.c,v 1.11 1995/12/21 21:12:25 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -25,6 +25,8 @@ Input Parameters:
 
 Output Parameter:
 . request - communication request (handle) 
+
+.N fortran
 @*/
 int MPI_Ibsend( buf, count, datatype, dest, tag, comm, request )
 void             *buf;

@@ -39,7 +39,7 @@ FLIBS = $(FLIB_PATH) $(LIB_LIST)
 LIBSPP = $(MPIPPLIB) $(LIBS)
 EXECS = coll1 coll2 coll3 coll4 coll5 coll6 coll7 coll8 coll9 \
 	coll10 coll11 coll12 coll13 bcastbug bcastbug2 grouptest redtst \
-	barrier bcast allred scatterv allredf
+	barrier bcast allred scatterv allredf redscat
 
 default: $(EXECS)
 
@@ -96,6 +96,8 @@ allred: allred.o $(MPILIB) ../pt2pt/gcomm.o
 	$(CLINKER) $(OPTFLAGS) -o allred allred.o ../pt2pt/gcomm.o -lm $(LIBS)
 scatterv: scatterv.o $(MPILIB) 
 	$(CLINKER) $(OPTFLAGS) -o scatterv scatterv.o -lm $(LIBS)
+redscat: redscat.o $(MPILIB) 
+	$(CLINKER) $(OPTFLAGS) -o redscat redscat.o -lm $(LIBS)
 
 allredf: mpif.h allredf.o $(MPILIB)
 	$(FLINKER) $(OPTFLAGS) -o allredf allredf.o $(FLIBS)

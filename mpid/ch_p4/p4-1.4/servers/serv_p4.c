@@ -98,7 +98,8 @@ char *timestamp();
 char *save_string();
 static int connect_to_listener();
 
-void reaper()
+void reaper(sigval)
+int sigval;
 {
     int i;
     wait(&i);

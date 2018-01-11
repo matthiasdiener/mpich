@@ -1,12 +1,12 @@
 /*
- *  $Id$
+ *  $Id: inter_fns.c,v 1.1 1996/01/11 19:13:04 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: allgatherv.c,v 1.1.1.2 1995/05/18 11:23:22 jim Exp $";
+static char vcid[] = "$Id: inter_fns.c,v 1.1 1996/01/11 19:13:04 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"

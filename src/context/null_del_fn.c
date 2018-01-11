@@ -1,5 +1,5 @@
 /*
- *  $Id: null_del_fn.c,v 1.6 1994/09/11 15:24:59 gropp Exp $
+ *  $Id: null_del_fn.c,v 1.8 1996/01/08 19:49:07 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -22,8 +22,8 @@ See discussion of MPI_Keyval_create for the use of this function.
 
 D*/
 int MPIR_null_delete_fn ( comm, keyval, attr, extra_state )
-MPI_Comm  *comm;
-int       *keyval;
+MPI_Comm  comm;
+int       keyval;
 void      *attr;
 void      *extra_state;
 {

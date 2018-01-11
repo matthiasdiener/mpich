@@ -1,12 +1,12 @@
 /*
- *  $Id: allgather.c,v 1.19 1995/06/21 03:08:25 gropp Exp $
+ *  $Id: allgather.c,v 1.20 1995/12/21 22:16:21 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: allgather.c,v 1.19 1995/06/21 03:08:25 gropp Exp $";
+static char vcid[] = "$Id: allgather.c,v 1.20 1995/12/21 22:16:21 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -26,6 +26,8 @@ Input Parameters:
 
 Output Parameter:
 . recvbuf - address of receive buffer (choice) 
+
+.N fortran
 @*/
 int MPI_Allgather ( sendbuf, sendcount, sendtype,
                     recvbuf, recvcount, recvtype, comm )

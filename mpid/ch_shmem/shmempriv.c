@@ -5,7 +5,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: shmempriv.c,v 1.11 1995/09/29 22:34:39 gropp Exp $";
+static char vcid[] = "$Id: shmempriv.c,v 1.4 1995/11/13 10:15:14 raja Exp $";
 #endif
 
 #include "mpid.h"
@@ -18,6 +18,21 @@ int                 MPID_myid = -1;
 int                 MPID_numids = 0;
 MPID_PKT_T          *MPID_local = 0;
 VOLATILE MPID_PKT_T **MPID_incoming = 0;
+static int	    MPID_pktflush;
+
+#if defined (MPI_cspp)
+/* These are special fields for the Convex SPP NUMA */
+unsigned int			procNode[MPID_MAX_PROCS];
+unsigned int			numCPUs[MPID_MAX_NODES];
+unsigned int			numNodes;
+int				MPID_myNode;
+int                 		masterid;
+extern int			cnx_yield;
+extern int			cnx_debug;
+extern char			*cnx_exec;
+#endif
+
+void				MPID_SHMEM_lbarrier();
 
 /*
    Get an integer from the environment; otherwise, return defval.
@@ -42,7 +57,30 @@ int numprocs, i;
 int cnt, j, pkts_per_proc;
 int memsize;
 
+#if defined (MPI_cspp)
+
+  extern char *getenv();
+  char *envVarBuf;
+  unsigned int mmapRound;
+  cnx_node_t myNode;
+  unsigned int totalCPUs;
+  unsigned int curNode, numCurNode;
+
+  MPID_SHMEM_setflags();
+
+  MPID_SHMEM_getSCTopology(&myNode, &numNodes, &totalCPUs, numCPUs);
+  if (cnx_debug) {
+	printf("CNXDB: %d nodes, %d CPUs\n", numNodes, totalCPUs);
+	printf("CNXDB: root node = %d\n", myNode);
+	for (i = 0; i < numNodes; ++i) {
+		printf("CNXDB: node %d -> %d CPUs\n", i, numCPUs[i]);
+	}
+  }
+
+#endif
+
 /* Make one process the default */
+
 numprocs = 1;
 for (i=1; i<*argc; i++) {
     if (strcmp( argv[i], "-np" ) == 0) {
@@ -59,29 +97,52 @@ for (i=1; i<*argc; i++) {
 	break;
 	}
     }
+
+#if defined (MPI_cspp)
+
+  envVarBuf = getenv("MPI_TOPOLOGY");
+  MPID_SHMEM_processTopologyInfo(envVarBuf, myNode,
+			&numprocs, numNodes, numCPUs, 1);
+
+  if (numprocs == 0) {
+	fprintf(stderr, "no processes specified\n");
+	exit(1);
+  }
+
+/* The environment variable MPI_GLOBMEMSIZE may be used to select memsize */
+memsize = MPID_GetIntParameter( "MPI_GLOBMEMSIZE", MPID_MAX_SHMEM );
+
+if (memsize < (sizeof(MPID_SHMEM_globmem) + numprocs * 65536))
+    memsize = sizeof(MPID_SHMEM_globmem) + numprocs * 65536;
+mmapRound = sysconf(_SC_PAGE_SIZE) * numNodes;
+memsize = ((memsize + mmapRound - 1) / mmapRound) * mmapRound;
+
+#else
+
 if (numprocs <= 0 || numprocs > MPID_MAX_PROCS) {
     fprintf( stderr, "Invalid number of processes (%d) invalid\n", numprocs );
     exit( 1 );
     }
+
 /* The environment variable MPI_GLOBMEMSIZE may be used to select memsize */
 memsize = MPID_GetIntParameter( "MPI_GLOBMEMSIZE", MPID_MAX_SHMEM );
-/*
-if (memsize < sizeof(MPID_SHMEM_globmem) + numprocs * 65536)
-    memsize = sizeof(MPID_SHMEM_globmem) + numprocs * 65536;
- */
+
 if (memsize < sizeof(MPID_SHMEM_globmem) + numprocs * 128)
     memsize = sizeof(MPID_SHMEM_globmem) + numprocs * 128;
+
+#endif
+
 p2p_init( numprocs, memsize );
 
-MPID_shmem = p2p_shmalloc( sizeof( MPID_SHMEM_globmem ) );
+MPID_shmem = p2p_shmalloc(sizeof(MPID_SHMEM_globmem));
+
 if (!MPID_shmem) {
-    fprintf( stderr, "Could not allocated shared memory (%d bytes)!\n",
+    fprintf( stderr, "Could not allocate shared memory (%d bytes)!\n",
 	     sizeof( MPID_SHMEM_globmem ) );
     exit(1);
     }
 
 /* Initialize the shared memory */
-MPID_shmem->globid = 0;
 
 MPID_shmem->barrier.phase = 1;
 MPID_shmem->barrier.cnt1  = numprocs;
@@ -90,8 +151,28 @@ MPID_shmem->barrier.size  = numprocs;
 
 p2p_lock_init( &MPID_shmem->globlock );
 cnt	      = 0;    /* allocated packets */
+
+#if defined (MPI_cspp)
+for (i = j = 0; i < numNodes; ++i) {
+	MPID_shmem->globid[i] = j;
+	j += numCPUs[i];
+	p2p_lock_init(&(MPID_shmem->globid_lock[i]));
+}
+#else
+MPID_shmem->globid = 0;
+#endif
+
 /* The following is rough if numprocs doesn't divide the MAX_PKTS */
 pkts_per_proc = MPID_SHMEM_MAX_PKTS / numprocs;
+/*
+ * Determine the packet flush count at runtime.
+ * (delay the harsh reality of resource management :-) )
+ */
+MPID_pktflush = (pkts_per_proc > numprocs) ? pkts_per_proc / numprocs : 1;
+
+#if defined (MPI_cspp)
+if (cnx_debug) printf("CNXDB: packet flush count = %d\n", MPID_pktflush);
+#endif
 
 for (i=0; i<numprocs; i++) {
     /* setup the local copy of the addresses of objects in MPID_shmem */
@@ -119,19 +200,58 @@ for (i=0; i<numprocs; i++) {
     p2p_lock_init( MPID_shmem->incominglock + i );
     }
 
+#if defined (MPI_cspp)
+/*
+ * Place processes on nodes.
+ */
+    for (i = 0, curNode = numCurNode = 0; i < numprocs; ++i) {
+
+	while (numCurNode >= numCPUs[curNode]) {
+		if (++curNode == numNodes) {
+			fprintf(stderr,
+				"Cannot place proc %d (out of %) on a node!\n",
+				i, numprocs);
+			exit(1);
+		}
+		numCurNode = 0;
+	}
+
+	procNode[i] = curNode;
+	if (cnx_debug) printf("CNXDB: rank %d -> node %d\n", i, curNode);
+	++numCurNode;
+    }
+
+#endif
+
 MPID_numids = numprocs;
 
 /* Above this point, there was a single process.  After the p2p_create_procs
    call, there are more */
 p2p_setpgrp();
+
+#if defined (MPI_cspp)
+p2p_create_procs( numprocs );
+
+MPID_myNode = myNode = (int) MPID_SHMEM_getNodeId();
+p2p_lock(&(MPID_shmem->globid_lock[myNode]));
+MPID_myid = (MPID_shmem->globid[myNode])++;
+p2p_unlock(&(MPID_shmem->globid_lock[myNode]));
+
+#else
 p2p_create_procs( numprocs - 1 );
 
 p2p_lock( &MPID_shmem->globlock );
 MPID_myid = MPID_shmem->globid++;
 p2p_unlock( &MPID_shmem->globlock );
+#endif
+
 MPID_SHMEM_FreeSetup();
 
 MPID_incoming = &MPID_shmem->incoming[MPID_myid].head;
+
+#if defined (MPI_cspp)
+if (cnx_exec) cnx_start_tool(cnx_exec, argv[0]);
+#endif
 }
 
 void MPID_SHMEM_lbarrier()
@@ -246,16 +366,24 @@ else {
 	   This code should be tuned with vendor help, since it depends
 	   on fine details of the hardware and system.
 	   */
-	backoff = 1;
-	while (!MPID_lshmem.incomingPtr[MPID_myid]->head) {
-	    cnt	    = backoff;
-	    while (cnt--) ;
-	    backoff = 2 * backoff;
-	    if (backoff > BACKOFF_LMT) backoff = BACKOFF_LMT;
-	    if (MPID_lshmem.incomingPtr[MPID_myid]->head) break;
-	    p2p_yield();
-	    }
+#if defined(MPI_cspp)
+	if (cnx_yield) {
+#endif
+		backoff = 1;
+		while (!MPID_lshmem.incomingPtr[MPID_myid]->head) {
+		    cnt	    = backoff;
+		    while (cnt--) ;
+		    backoff = 2 * backoff;
+		    if (backoff > BACKOFF_LMT) backoff = BACKOFF_LMT;
+		    if (MPID_lshmem.incomingPtr[MPID_myid]->head) break;
+		    p2p_yield();
+		    }
+#if defined(MPI_cspp)
+	} else {
+		while (!MPID_lshmem.incomingPtr[MPID_myid]->head);
 	}
+#endif
+    }
     /* This code drains the ENTIRE list into a local list */
     p2p_lock( MPID_lshmem.incominglockPtr[MPID_myid] );
     inpkt          = (MPID_PKT_T *) *MPID_incoming;
@@ -284,9 +412,8 @@ return MPI_SUCCESS;
    destination.
    
    This keeps a list for each possible processor, and returns them
-   all when MAX_PKTS_FREE are available FROM ANY SOURCE.
+   all when MPID_pktflush are available FROM ANY SOURCE.
  */
-#define MAX_PKTS_FREE 10
 static MPID_PKT_T *FreePkts[MPID_MAX_PROCS];
 static MPID_PKT_T *FreePktsTail[MPID_MAX_PROCS];
 static int to_free = 0;
@@ -312,7 +439,7 @@ if (!FreePkts[src])
 FreePkts[src]  = pkt;
 to_free++;
 
-if (to_free >= MAX_PKTS_FREE) {
+if (to_free >= MPID_pktflush) {
     for (i=0; i<MPID_numids; i++) {
 	if (pkt = FreePkts[i]) {
 	    tail			  = FreePktsTail[i];
@@ -344,7 +471,8 @@ if (to_free >= MAX_PKTS_FREE) {
    MPID_localavail=inpkt->head.next;}else inpkt = routine();\
    inpkt->head.next = 0;}
  */
-MPID_PKT_T *MPID_SHMEM_GetSendPkt()
+MPID_PKT_T *MPID_SHMEM_GetSendPkt(nonblock)
+int nonblock;
 {
 MPID_PKT_T *inpkt;
 static MPID_PKT_T *localavail = 0;
@@ -364,6 +492,8 @@ else {
 	if (!inpkt)
 	    MPID_TRACE_CODE("No freePkt",-1);
 #endif
+	if ((!inpkt) && nonblock) return(inpkt);
+
         } while (!inpkt && (p2p_yield(),1));
     }
 localavail	 = inpkt->head.next;

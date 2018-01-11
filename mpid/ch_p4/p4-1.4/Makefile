@@ -171,8 +171,9 @@ realclean:
 	$(RM) -f *~ *.o *.bak Makefile mdepcflags
 	@for dir in $(DIRS) ;\
 	  do \
+	  if test -s $$dir/Makefile ; then \
 	  echo cleaning $$dir ;\
-	  (cd $$dir; $(MAKE) realclean) ;\
+	  (cd $$dir; $(MAKE) realclean) ; fi ;\
 	  done
 
 Makefiles: makefiles

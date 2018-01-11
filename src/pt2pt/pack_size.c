@@ -1,5 +1,5 @@
 /*
- *  $Id: pack_size.c,v 1.7 1995/05/09 18:58:56 gropp Exp $
+ *  $Id: pack_size.c,v 1.8 1995/12/21 21:15:10 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: pack_size.c,v 1.7 1995/05/09 18:58:56 gropp Exp $";
+static char vcid[] = "$Id: pack_size.c,v 1.8 1995/12/21 21:15:10 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -24,6 +24,8 @@ Input Parameters:
 
 Output Parameter:
 . size - upper bound on size of packed message, in bytes (integer) 
+
+.N fortran
 @*/
 int MPI_Pack_size ( incount, datatype, comm, size )
 int           incount;
@@ -40,7 +42,7 @@ int          *size;
 
   /* Figure out size needed to pack type and add the biggest size
 	 of other types to give an upper bound */
-  MPIR_Pack_size( incount, datatype, comm, size );
+  MPIR_Pack_size( incount, datatype, comm, comm->msgrep, size );
   (*size) += MPIR_I_DCOMPLEX.size;
 
 return MPI_SUCCESS;

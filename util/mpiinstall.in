@@ -3,6 +3,9 @@
 # This is a script to install mpi.  It can be called from the top-level 
 # Makefile or directly.  Note that this script needs to be built by configure.
 #
+# As the install takes place, it keeps a list of files that were installed
+# in a form that allows their easy removal
+#
 ARCH=@ARCH@
 COMM=@COMM@
 PREFIX=@PREFIX@
@@ -14,6 +17,15 @@ DEFAULT_MACHINE=@DEFAULT_MACHINE@
 # File access mode
 MODE=0664
 XMODE=0775
+# Uninstall filename
+UNINSTALLFILE="util/mpiuninstall"
+# dirlist is used to uninstall empty directories at the end
+dirlist=""
+#
+errs=0
+#
+# set failmode to soft to let failures accumulate
+failmode="hard"
 Show=eval
 just_testing=0
 for arg in "$@" ; do
@@ -79,10 +91,26 @@ if [ -f $dest ] ; then
     echo "$dest exists; not changed"
 elif [ -d $1 ] ; then
     echo ">>> $1 is a directory; not copied <<<"
+    errs=`expr $errs + 1`
+    if [ $failmode = "hard" ] ; then exit 1 ; fi
 else
     echo "Copying $1 to $dest"
     $Show $CP $1 $dest
+    rc=$?
+    if [ $rc != 0 ] ; then
+	echo "**Error copying file $1 to $dest **"
+        errs=`expr $errs + 1`
+        if [ $failmode = "hard" ] ; then exit $rc ; fi
+    else
+	echo "/bin/rm -f $dest" >> $UNINSTALLFILE
+    fi
     $Show chmod $mode $dest
+    rc=$?
+    if [ $rc != 0 ] ; then
+	echo "**Error setting mode on file $dest**"
+        errs=`expr $errs + 1`
+        if [ $failmode = "hard" ] ; then exit $rc ; fi
+    fi
 fi
 }
 
@@ -98,7 +126,22 @@ MkDir() {
 if [ ! -d $1 ] ; then
     echo "Creating directory $1"
     $Show mkdir $1
+    rc=$?
+    if [ $rc != 0 ] ; then
+	echo "**Error making directory $1**"
+        errs=`expr $errs + 1`
+        if [ $failmode = "hard" ] ; then exit $rc ; fi
+    else
+	# Note that we store in inverse order
+	dirlist="$1 $dirlist"
+    fi
     $Show chmod $XMODE $1
+    rc=$?
+    if [ $rc != 0 ] ; then
+	echo "**Error setting mode on directory $dest**"
+        errs=`expr $errs + 1`
+        if [ $failmode = "hard" ] ; then exit $rc ; fi
+    fi
 fi
 }
 #
@@ -142,6 +185,14 @@ else
 	-e "s%\#SYNCLOC\#%@SYNCLOC@%g" \
 	-e "s%\#wishloc\#%@wishloc@%g" \
 	$1 > $dest
+        rc=$?
+        if [ $rc != 0 ] ; then
+	    echo "**Error fixing up file $dest**"
+            errs=`expr $errs + 1`
+            if [ $failmode = "hard" ] ; then exit $rc ; fi
+        else
+	    echo "/bin/rm -f $dest" >> $UNINSTALLFILE
+        fi
     else
 	echo "Fixup $1.in and copy to $dest"
     fi
@@ -152,6 +203,12 @@ else
     mode=$3
 fi
 $Show chmod $mode $2
+rc=$?
+if [ $rc != 0 ] ; then
+    echo "**Error setting mode on file $2**"
+    errs=`expr $errs + 1`
+    if [ $failmode = "hard" ] ; then exit $rc ; fi
+fi
 }
 
 #
@@ -181,8 +238,10 @@ else
 	-e "s%[@]FINC[@]%@FINC@%g" \
         -e "s%[@]BITMAP_DIR[@]%$PREFIX/lib/bitmaps%g" \
 	-e "s%[@]CC[@]%@CC@%g" \
+	-e "s%[@]CCC[@]%@CCC@%g" \
 	-e "s%[@]CFLAGS[@]%@CFLAGS@%g" \
 	-e "s%[@]CLINKER[@]%@CLINKER@%g" \
+	-e "s%[@]CCLINKER[@]%@CCLINKER@%g" \
 	-e "s%[@]COMM[@]%$COMM%g" \
 	-e "s%[@]DEFAULT_ARCH[@]%$ARCH%g" \
 	-e "s%[@]DEFAULT_DEVICE[@]%$DEVICE%g" \
@@ -206,6 +265,14 @@ else
 	-e "s%[@]wishloc[@]%@wishloc@%g" \
 	-e "s%[@]X_LIB[@]%@X_LIB@%g" \
 	$1 > $dest
+        rc=$?
+        if [ $rc != 0 ] ; then
+	    echo "**Error fixing up file $dest**"
+            errs=`expr $errs + 1`
+            if [ $failmode = "hard" ] ; then exit $rc ; fi
+        else
+	    echo "/bin/rm -f $dest" >> $UNINSTALLFILE
+        fi
     else
 	echo "Fixup $1.in and copy to $dest"
     fi
@@ -216,6 +283,12 @@ else
     mode=$3
 fi
 $Show chmod $mode $2
+rc=$?
+if [ $rc != 0 ] ; then
+    echo "**Error setting mode on file $2**"
+    errs=`expr $errs + 1`
+    if [ $failmode = "hard" ] ; then exit $rc ; fi
+fi
 }
 
 ##############################################################################
@@ -311,6 +384,12 @@ if [ -z "$libonly" ] ; then
     CopyFile $PREFIX/bin/mpicc $PREFIX/lib/$ARCH/$COMM $XMODE
     FixupFileWithAt util/mpif77.in $PREFIX/bin/mpif77 $XMODE
     CopyFile $PREFIX/bin/mpif77 $PREFIX/lib/$ARCH/$COMM $XMODE
+    #
+    # mpiCC, if C++ selected
+    if [ -n "@CCC@" ] ; then 
+	FixupFileWithAt util/mpiCC.in $PREFIX/bin/mpiCC $XMODE
+        CopyFile $PREFIX/bin/mpiCC $PREFIX/lib/$ARCH/$COMM $XMODE
+    fi
 else
     # libonly
     #
@@ -322,6 +401,9 @@ else
     done
     $Show mv $PREFIX/lib/$ARCH/$COMM/mpirun.sh $PREFIX/lib/$ARCH/$COMM/mpirun
     FixupFileWithAt util/mpicc.in $PREFIX/lib/$ARCH/$COMM/mpicc $XMODE
+    if [ -n "@CCC@" ] ; then
+        FixupFileWithAt util/mpiCC.in $PREFIX/lib/$ARCH/$COMM/mpiCC $XMODE
+    fi
     FixupFileWithAt util/mpif7.in $PREFIX/lib/$ARCH/$COMM/mpif77 $XMODE
     FixupFile util/mpireconfig.in $PREFIX/lib/$ARCH/$COMM/mpireconfig $XMODE
 fi
@@ -361,6 +443,7 @@ if [ -z "$libonly" ] ; then
     CopyFile mpe/mpe.h $PREFIX/include
     CopyFile mpe/mpe_graphics.h $PREFIX/include
     CopyFile mpe/mpe_log.h $PREFIX/include
+    CopyFile mpe/mpetools.h $PREFIX/include
     CopyFile mpe/basex11.h $PREFIX/include
 fi
 #
@@ -384,8 +467,7 @@ if [ -z "$noman" -a -z "$libonly" ] ; then
     done
 fi
 if [ -z "$libonly" ] ; then
-    for file in adiman.ps.Z functions.ps.Z guide.ps.Z install.ps.Z \
-	mpiman.ps.Z  ; do
+    for file in functions.ps.Z guide.ps.Z install.ps.Z ; do
         CopyFile doc/$file $PREFIX/doc
     done
     #$Show $CPRP -r doc $PREFIX
@@ -402,6 +484,7 @@ if [ $just_testing = 0 ] ; then
     -e "s%^FLIB_PATH=\([^/]*\)/.*\$%FLIB_PATH=\1$PREFIX/lib/$ARCH/$COMM'%g" \
 		-e "s%MPE_DIR=.*\$%MPE_DIR='$PREFIX/mpe'%g" \
 		        > $PREFIX/lib/$ARCH/$COMM/config.status 
+    echo "/bin/rm -f $PREFIX/lib/$ARCH/$COMM/config.status" >> $UNINSTALLFILE
     chmod $XMODE $PREFIX/lib/$ARCH/$COMM/config.status 
 else 
 cat <<.
@@ -444,5 +527,17 @@ $Show "(cd $PREFIX/examples; $MAKE)"
 #
 # Use the alternate method, using mpif77 and mpicc
 $Show "(cd $PREFIX/examples ; $MAKE clean ; $MAKE alternate)"
-
+#
+# Add the directory removes to the UNINSTALL file
+for dir in $dirlist ; do
+    echo "rmdir $dir" >> $UNINSTALLFILE
+done
+#
 echo installed $ARCH/$COMM/$DEVICE MPI in $PREFIX
+
+if [ $errs -gt 0 ] ; then
+    rc=1
+else
+    rc=0
+fi
+exit $rc

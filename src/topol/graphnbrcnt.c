@@ -1,5 +1,5 @@
 /*
- *  $Id: graphnbrcnt.c,v 1.1 1995/04/23 18:11:32 gropp Exp $
+ *  $Id: graphnbrcnt.c,v 1.2 1995/12/21 22:19:18 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -14,11 +14,12 @@ MPI_Graph_neighbors_count - Returns the number of neighbors of a node
 
 Input Parameters:
 . comm - communicator with graph topology (handle) 
-. rank - rank of process in group of comm (integer) 
+. rank - rank of process in group of 'comm' (integer) 
 
 Output Parameter:
 . nneighbors - number of neighbors of specified process (integer) 
 
+.N fortran
 @*/
 int MPI_Graph_neighbors_count ( comm, rank, nneighbors )
 MPI_Comm  comm;

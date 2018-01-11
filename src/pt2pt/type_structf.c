@@ -4,7 +4,6 @@
 #include "mpisys.h"
 
 #ifdef POINTER_64_BITS
-#include "mpisys.h"
 extern void *MPIR_ToPointer();
 extern int MPIR_FromPointer();
 extern void MPIR_RmPointer();

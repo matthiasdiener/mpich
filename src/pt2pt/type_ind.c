@@ -1,12 +1,12 @@
 /*
- *  $Id: type_ind.c,v 1.18 1995/07/25 02:49:07 gropp Exp $
+ *  $Id: type_ind.c,v 1.19 1995/12/21 21:36:25 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_ind.c,v 1.18 1995/07/25 02:49:07 gropp Exp $";
+static char vcid[] = "$Id: type_ind.c,v 1.19 1995/12/21 21:36:25 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -16,16 +16,39 @@ static char vcid[] = "$Id: type_ind.c,v 1.18 1995/07/25 02:49:07 gropp Exp $";
     MPI_Type_indexed - Creates an indexed datatype
 
 Input Parameters:
-. count - number of blocks -- also number of entries in 
-array_of_displacements  and array_of_blocklengths  (nonnegative integer) 
-. array_of_blocklengths - number of elements per block 
-(array of nonnegative integers) 
-. array_of_displacements - displacement for each block, 
-in multiples of old_type  extent (array of integer) 
+. count - number of blocks -- also number of entries in indices and blocklens
+. blocklens - number of elements in each block (array of nonnegative integers) 
+. indices - displacement of each block in multiples of old_type (array of 
+  integers)
 . old_type - old datatype (handle) 
 
 Output Parameter:
 . newtype - new datatype (handle) 
+
+.N fortran
+
+The indices are displacements, and are based on a zero origin.  A common error
+is to do something like to following
+.vb
+    integer a(100)
+    integer blens(10), indices(10)
+    do i=1,10
+         blens(i)   = 1
+10       indices(i) = 1 + (i-1)*10
+    call MPI_TYPE_INDEXED(10,blens,indices,MPI_INTEGER,newtype,ierr)
+    call MPI_TYPE_COMMIT(newtype,ierr)
+    call MPI_SEND(a,1,newtype,...)
+.ve
+expecting this to send 'a(1),a(11),...' because the indices have values 
+'1,11,...'.   Because these are `displacements` from the beginning of 'a',
+it actually sends 'a(1+1),a(1+11),...'.
+
+If you wish to consider the displacements as indices into a Fortran array,
+consider declaring the Fortran array with a zero origin
+.vb
+    integer a(0:99)
+.ve
+
 @*/
 int MPI_Type_indexed( count, blocklens, indices, old_type, newtype )
 int           count;
@@ -40,6 +63,7 @@ MPI_Datatype *newtype;
   int           total_count;
 
   /* Check for bad arguments */
+  MPIR_GET_REAL_DATATYPE(old_type)
   if ( MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,old_type) ||
    ( (count    <  0)                 && (mpi_errno = MPI_ERR_COUNT) ) ||
    ( (old_type->dte_type == MPIR_UB) && (mpi_errno = MPI_ERR_TYPE) )  ||
@@ -104,7 +128,6 @@ MPI_Datatype *newtype;
   }
 
   /* Set the upper/lower bounds and the extent and size */
-  /* Set the upper/lower bounds and the extent and size */
   if (old_type->has_lb) 
       dteptr->lb = old_type->lb;
   else
@@ -121,7 +144,8 @@ MPI_Datatype *newtype;
 	type.  to get the total elements, we multiply by the number of elements
 	in the old type.
   */
-  dteptr->elements   *= old_type->elements;
+  /* Using *= on hpux with -O optimization causes this routine to fail (!) */
+  dteptr->elements   = dteptr->elements * old_type->elements;
 
   return (mpi_errno);
 }

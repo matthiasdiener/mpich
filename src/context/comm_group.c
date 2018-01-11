@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_group.c,v 1.10 1994/12/15 16:25:35 gropp Exp $
+ *  $Id: comm_group.c,v 1.11 1995/12/21 22:03:14 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -17,6 +17,7 @@ Input Parameter:
 Output Parameter:
 . group - Group in communicator
 
+.N fortran
 @*/
 int MPI_Comm_group ( comm, group )
 MPI_Comm comm;

@@ -1,12 +1,12 @@
 /*
- *  $Id: getcount.c,v 1.10 1995/07/25 02:54:17 gropp Exp $
+ *  $Id: getcount.c,v 1.11 1995/12/21 21:12:12 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: getcount.c,v 1.10 1995/07/25 02:54:17 gropp Exp $";
+static char vcid[] = "$Id: getcount.c,v 1.11 1995/12/21 21:12:12 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -24,6 +24,8 @@ Output Parameter:
 Notes:
 If the size of the datatype is zero, this routine will return a count of
 zero.  
+
+.N fortran
 @*/
 int MPI_Get_count( status, datatype, count )
 MPI_Status   *status;
@@ -34,6 +36,8 @@ int          *count;
   if (MPIR_TEST_DATATYPE(MPI_COMM_WORLD,datatype))
 	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
 			   "Error in MPI_GET_COUNT" );
+
+  MPIR_GET_REAL_DATATYPE(datatype)
 
   /* Check for correct number of bytes */
   if (datatype->size == 0) {

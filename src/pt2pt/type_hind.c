@@ -1,12 +1,12 @@
 /*
- *  $Id: type_hind.c,v 1.17 1995/07/25 02:51:59 gropp Exp $
+ *  $Id: type_hind.c,v 1.18 1995/12/21 21:36:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_hind.c,v 1.17 1995/07/25 02:51:59 gropp Exp $";
+static char vcid[] = "$Id: type_hind.c,v 1.18 1995/12/21 21:36:16 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -16,17 +16,18 @@ static char vcid[] = "$Id: type_hind.c,v 1.17 1995/07/25 02:51:59 gropp Exp $";
     MPI_Type_hindexed - Creates an indexed datatype with offsets in bytes
 
 Input Parameters:
-. count - number of blocks -- also number of entries in 
-array_of_displacements  and
-array_of_blocklengths  (integer) 
-. array_of_blocklengths - number of elements in each block 
-(array of nonnegative integers) 
-. array_of_displacements - byte displacement of each block 
-(array of integer) 
+. count - number of blocks -- also number of entries in indices and blocklens
+. blocklens - number of elements in each block (array of nonnegative integers) 
+. indices - byte displacement of each block (array of MPI_Aint) 
 . old_type - old datatype (handle) 
 
 Output Parameter:
 . newtype - new datatype (handle) 
+
+.N fortran
+
+Also see the discussion for MPI_Type_indexed about the 'indices' in Fortran.
+
 @*/
 int MPI_Type_hindexed( count, blocklens, indices, old_type, newtype )
 int           count;
@@ -41,6 +42,7 @@ MPI_Datatype *newtype;
   int           total_count;
   
   /* Check for bad arguments */
+  MPIR_GET_REAL_DATATYPE(old_type)
   if ( MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,old_type) ||
    ( (count    <  0)                 && (mpi_errno = MPI_ERR_COUNT) ) ||
    ( (old_type->dte_type == MPIR_UB) && (mpi_errno = MPI_ERR_TYPE) )  ||

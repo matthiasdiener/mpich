@@ -63,7 +63,7 @@ void HeaderCIt( ctx, protocol_name, title_string, units )
 GraphData *ctx;
 char *protocol_name, *title_string, *units;
 {
-char archname[20], hostname[256], date[30];
+char archname[20], hostname[256], date[30], *p;
 
 fprintf( ctx->fp, "set default\nset font variable\n" );
 fprintf( ctx->fp, "set curve window y 0.15 0.90\n" );
@@ -77,6 +77,12 @@ else
 fprintf( ctx->fp, "title left 'time (us)', bottom 'Size %s',\n", units );
 strcpy(archname,"MPI" );
 MPI_Get_processor_name(hostname,&_n);
+/* Must remove ' from hostname */
+p = hostname;
+while (*p) {
+    if (*p == '\'') *p = ' ';
+    p++;
+    }
 strcpy(date , "Not available" );
 /* For systems without a date routine, just leave off the data */
 if (!date[0] || strcmp( "Not available", date ) == 0) {
@@ -97,7 +103,7 @@ void HeaderForGopCIt( ctx, test_name, title_string, units )
 GraphData *ctx;
 char *test_name, *title_string, *units;
 {
-char archname[20], hostname[256], date[30];
+char archname[20], hostname[256], date[30], *p;
 
 fprintf( ctx->fp, "set default\nset font variable\n" );
 fprintf( ctx->fp, "set curve window y 0.15 0.90\n" );
@@ -107,6 +113,12 @@ if (ctx->wxn > 1 || ctx->wyn > 1)
 fprintf( ctx->fp, "title left 'time (us)', bottom 'Processes',\n" );
 strcpy(archname,"MPI" );
 MPI_Get_processor_name(hostname,&_n);
+/* Must remove ' from hostname */
+p = hostname;
+while (*p) {
+    if (*p == '\'') *p = ' ';
+    p++;
+    }
 strcpy(date , "Not available" );
 /* For systems without a date routine, just leave off the data */
 if (!date[0] || strcmp( "Not available", date ) == 0) {
@@ -259,7 +271,7 @@ void HeaderGnuplot( ctx, protocol_name, title_string, units )
 GraphData *ctx;
 char *protocol_name, *title_string, *units;
 {
-char archname[20], hostname[256], date[30];
+char archname[20], hostname[256], date[30], *p;
 
 switch (ctx->output_type) {
     case GRF_EPS:
@@ -273,6 +285,12 @@ fprintf( ctx->fp, "set xlabel \"Size %s\"\n", units );
 fprintf( ctx->fp, "set ylabel \"time (us)\"\n" );
 strcpy(archname,"MPI" );
 MPI_Get_processor_name(hostname,&_n);
+/* Must remove ' from hostname */
+p = hostname;
+while (*p) {
+    if (*p == '\'') *p = ' ';
+    p++;
+    }
 strcpy(date , "Not available" );
 if (!date[0] || strcmp( "Not available", date ) == 0) {
     fprintf( ctx->fp, "set title \"Comm Perf for %s (%s) type %s\"\n", 
@@ -290,12 +308,18 @@ void HeaderForGopGnuplot( ctx, protocol_name, title_string, units )
 GraphData *ctx;
 char *protocol_name, *title_string, *units;
 {
-char archname[20], hostname[256], date[30];
+char archname[20], hostname[256], date[30], *p;
 
 fprintf( ctx->fp, "set xlabel \"Processes\"\n" );
 fprintf( ctx->fp, "set ylabel \"time (us)\"\n" );
 strcpy(archname,"MPI" );
 MPI_Get_processor_name(hostname,&_n);
+/* Must remove ' from hostname */
+p = hostname;
+while (*p) {
+    if (*p == '\'') *p = ' ';
+    p++;
+    }
 strcpy(date , "Not available" );
 if (!date[0] || strcmp( "Not available", date ) == 0) {
     fprintf( ctx->fp, "set title \"Comm Perf for %s (%s) type %s\"\n", 

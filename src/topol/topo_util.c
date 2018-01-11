@@ -1,5 +1,5 @@
 /*
- *  $Id: topo_util.c,v 1.3 1995/05/10 15:31:59 gropp Exp $
+ *  $Id: topo_util.c,v 1.5 1996/01/08 19:49:53 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -17,8 +17,8 @@ int MPIR_TOPOLOGY_KEYVAL = MPI_KEYVAL_INVALID;
   MPIR_Topology_copy_fn - copies topology information.
  */
 int MPIR_Topology_copy_fn(old_comm, keyval, extra, attr_in, attr_out, flag)
-MPI_Comm *old_comm;
-int      *keyval;
+MPI_Comm old_comm;
+int      keyval;
 void     *extra;
 void     *attr_in, *attr_out;
 int      *flag;
@@ -70,8 +70,8 @@ int      *flag;
   MPIR_Topology_delete_fn - deletes topology information.
  */
 int MPIR_Topology_delete_fn(comm, keyval, attr_val, extra)
-MPI_Comm *comm;
-int      *keyval;
+MPI_Comm comm;
+int      keyval;
 void     *attr_val, *extra;
 {
   MPIR_TOPOLOGY *topo = (MPIR_TOPOLOGY *)attr_val;

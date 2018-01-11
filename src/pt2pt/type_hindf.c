@@ -1,6 +1,7 @@
 /* type_hind.c */
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
+#include "mpisys.h"
 
 #ifdef POINTER_64_BITS
 extern void *MPIR_ToPointer();

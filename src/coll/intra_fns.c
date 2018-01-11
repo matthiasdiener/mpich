@@ -1,12 +1,12 @@
 /*
- *  $Id$
+ *  $Id: intra_fns.c,v 1.1 1996/01/11 19:13:02 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: allgatherv.c,v 1.1.1.2 1995/05/18 11:23:22 jim Exp $";
+static char vcid[] = "$Id: intra_fns.c,v 1.1 1996/01/11 19:13:02 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -384,75 +384,7 @@ MPI_Comm          comm;
   /* If rank == root, then I recv lots, otherwise I send */
   /* This should use the same mechanism used in reduce; the intermediate nodes
      will need to allocate space. 
-
-     Here's the algorithm (we'll use it soon).  
-     Relative to the root, look at the bit pattern in 
-     my rank.  Starting from the right (lsb), if the bit is 1, send to 
-     the node with that bit zero and exit; if the bit is 0, receive from the
-     node with that bit set and combine (as long as that node is within the
-     group)
-
-     Note that by receiveing with source selection, we guarentee that we get
-     each contribution to the buffer in turn.  The size that is sent doubles
-     at each step (if there are a power of two number of processors).
-     Because of the way in which these are ordered, the low processor always
-     gets some data to add to the end of its buffer; it never has to worry 
-     about interleaving the data or copying the data from a temporary
-     buffer into a final buffer.
-
-     To see this, note that the ordering is
-     (ab)(cd)(ef)(gh)        -> a c e g
-     ((ab)(cd))((ef)(gh))    -> a   e
-     (((ab)(cd))((ef)(gh)))  -> a
    */
-#ifdef FOO
-	 /* Problems with this:
-	    recvcount/recvtype known only at root!
-	    Internal receives should use a contiguous version of the 
-	    datatype.
-          */
-  MPI_Type_extent ( recvtype, &extent );
-  /* we can actually use less space; we'll never need more than half of
-     this and if we are low in the chain (for example, our relative rank
-     is odd), we may not need any buffer at all. */
-  buffer = (char *)MALLOC( extent * recvcount * size );
-  if (!buffer) {
-      return MPIR_ERROR(comm, MPI_ERR_EXHAUSTED, 
-			"Out of space in MPI_GATHER" );
-      }
-  mask    = 0x1;
-
-  offset = extent*count;
-  memcpy( buffer, sendbuf, offset );
-
-  relrank = (rank - root + size) % size;
-  totalcnt = count;
-  while ((mask & relrank) == 0 && mask < size) {
-      /* Receive */
-      source = ((relrank | mask) + root) % size;
-      if (source < size) {
-	  mpi_errno = MPI_Recv (buffer+offset, count*size-totalcnt, 
-			    recvtype, source, 
-			    MPIR_GATHER_TAG, comm, &status);
-	  if (mpi_errno) return MPIR_ERROR( comm, mpi_errno, 
-				       "Error receiving in MPI_REDUCE" );
-	  MPI_Get_count( &status, recvtype, &len );
-	  offset   += len * extent;
-	  totalcnt += len;
-	  }
-      mask <<= 1;
-      }
-  if (mask < size) {
-      source = ((relrank & (~ mask)) + root) % size;
-      mpi_errno  = MPI_Send( buffer, totalcnt, sendtype, source, 
-			     MPIR_GATHER_TAG, 
-			 comm );
-      if (mpi_errno) return MPIR_ERROR( comm, mpi_errno, 
-				   "Error sending in MPI_REDUCE" );
-      }
-  FREE( buffer );
-  
-#else
   if ( rank == root ) {
     int         i;
     MPI_Request req;
@@ -475,7 +407,6 @@ MPI_Comm          comm;
   else 
       mpi_errno = MPI_Send(sendbuf, sendcnt, sendtype, root, 
 			   MPIR_GATHER_TAG, comm);
-#endif  
 
   /* Unlock for collective operation */
   MPID_THREAD_UNLOCK(comm->ADIctx,comm);
@@ -645,6 +576,9 @@ MPI_Comm          comm;
     int      i;
 
     MPI_Type_extent(sendtype, &extent);
+    /* We could use Isend here, but since the receivers need to execute
+       a simple Recv, it may not make much difference in performance, 
+       and using the blocking version is simpler */
     for ( i=0; i<root; i++ ) {
       mpi_errno = MPI_Send( (void *)((char *)sendbuf+displs[i]*extent), 
 			   sendcnts[i], sendtype, i, MPIR_SCATTERV_TAG, comm);
@@ -683,20 +617,52 @@ int               recvcount;
 MPI_Datatype      recvtype;
 MPI_Comm          comm;
 {
-  int size, rank, root;
-  int mpi_errno = MPI_SUCCESS;
+  int        size, rank, root;
+  int        mpi_errno = MPI_SUCCESS;
+  MPI_Status status;
+  MPI_Aint   recv_extent;
+  int        j, jnext, i, right, left;
 
   /* Get the size of the communicator */
   MPIR_Comm_size ( comm, &size );
+  MPIR_Comm_rank ( comm, &rank );
 
-  /* Do a gather for each process in the communicator */
-  /* This is a sorry way to do this, but for now ... */
-  for (root=0; root<size; root++) {
-    mpi_errno = MPI_Gather(sendbuf,sendcount,sendtype,
-			   recvbuf,recvcount,recvtype,root,comm);
-    if (mpi_errno) break;
-    }
+  /* Do a gather for each process in the communicator
+     This is the "circular" algorithm for allgather - each process sends to
+     its right and receives from its left.  This is faster than simply
+     doing size Gathers.
+   */
 
+  MPI_Type_extent ( recvtype, &recv_extent );
+
+  /* First, load the "local" version in the recvbuf. */
+  mpi_errno = 
+      MPI_Sendrecv( sendbuf, sendcount, sendtype, rank, MPIR_ALLGATHER_TAG,
+                    (void *)((char *)recvbuf + rank*recvcount*recv_extent),
+		    recvcount, recvtype, rank, MPIR_ALLGATHER_TAG, comm,
+		    &status );
+  if (mpi_errno) return mpi_errno;
+
+  /* 
+     Now, send left to right.  This fills in the receive area in 
+     reverse order.
+   */
+  left  = (size + rank - 1) % size;
+  right = (rank + 1) % size;
+  
+  j     = rank;
+  jnext = left;
+  for (i=1; i<size; i++) {
+      mpi_errno = 
+	  MPI_Sendrecv( (void *)((char *)recvbuf+j*recvcount*recv_extent),
+		    recvcount, recvtype, right, MPIR_ALLGATHER_TAG,
+                    (void *)((char *)recvbuf + jnext*recvcount*recv_extent),
+		    recvcount, recvtype, left, MPIR_ALLGATHER_TAG, comm,
+		    &status );
+      if (mpi_errno) break;
+      j	    = jnext;
+      jnext = (size + jnext - 1) % size;
+      }
   return (mpi_errno);
 }
 
@@ -712,20 +678,49 @@ int              *displs;
 MPI_Datatype      recvtype;
 MPI_Comm          comm;
 {
-  int size, rank, root;
-  int mpi_errno = MPI_SUCCESS;
+  int        size, rank, root;
+  int        mpi_errno = MPI_SUCCESS;
+  MPI_Status status;
+  MPI_Aint   recv_extent;
+  int        j, jnext, i, right, left;
 
   /* Get the size of the communicator */
   MPIR_Comm_size ( comm, &size );
+  MPIR_Comm_rank ( comm, &rank );
 
-  /* Do a gather for each process in the communicator */
-  /* This is a sorry way to do this, but for now ... */
-  for (root=0; root<size; root++) {
-    mpi_errno = MPI_Gatherv(sendbuf,sendcount,sendtype,
-			    recvbuf,recvcounts,displs,recvtype,root,comm);
-    if (mpi_errno) break;
-    }
+  /* Do a gather for each process in the communicator
+     This is the "circular" algorithm for allgatherv - each process sends to
+     its right and receives from its left.  This is faster than simply
+     doing size Gathervs.
+   */
 
+  MPI_Type_extent ( recvtype, &recv_extent );
+
+  /* First, load the "local" version in the recvbuf. */
+  mpi_errno = 
+      MPI_Sendrecv( sendbuf, sendcount, sendtype, rank, MPIR_ALLGATHERV_TAG,
+                    (void *)((char *)recvbuf + displs[rank]*recv_extent),
+		    recvcounts[rank], recvtype, rank, MPIR_ALLGATHERV_TAG, 
+		    comm, &status );
+  if (mpi_errno) return mpi_errno;
+
+  left  = (size + rank - 1) % size;
+  right = (rank + 1) % size;
+  
+  j     = rank;
+  jnext = left;
+  for (i=1; i<size; i++) {
+      mpi_errno = 
+	  MPI_Sendrecv( (void *)((char *)recvbuf+displs[j]*recv_extent),
+		    recvcounts[j], recvtype, right, MPIR_ALLGATHERV_TAG,
+                    (void *)((char *)recvbuf + displs[jnext]*recv_extent),
+		    recvcounts[jnext], recvtype, left, 
+		       MPIR_ALLGATHERV_TAG, comm,
+		    &status );
+      if (mpi_errno) break;
+      j	    = jnext;
+      jnext = (size + jnext - 1) % size;
+      }
   return (mpi_errno);
 }
 
@@ -758,6 +753,8 @@ MPI_Comm          comm;
   /* Lock for collective operation */
   MPID_THREAD_LOCK(comm->ADIctx, comm);
 
+/* 
+ */
   /* 1st, get some storage from the heap to hold handles, etc. */
   if (starray = (MPI_Status *)MALLOC(2*size*sizeof(MPI_Status)));
   if (!starray) {
@@ -802,8 +799,8 @@ MPI_Comm          comm;
   mpi_errno = MPI_Waitall(2*size,reqarray,starray);
   
   /* clean up */
-  FREE(reqarray);
   FREE(starray);
+  FREE(reqarray);
 
   /* Unlock for collective operation */
   MPID_THREAD_UNLOCK(comm->ADIctx,comm);
@@ -1146,10 +1143,11 @@ MPI_Comm          comm;
   /* Get my rank & size and switch communicators to the hidden collective */
   MPIR_Comm_size ( comm, &size );
   MPIR_Comm_rank ( comm, &rank );
+  MPIR_GET_REAL_DATATYPE(datatype)
   MPIR_Type_get_limits( datatype, &lb, &ub );
   m_extent = ub - lb;
-  comm = comm->comm_coll;
-  uop = op->op;
+  comm	   = comm->comm_coll;
+  uop	   = op->op;
 
   /* Lock for collective operation */
   MPID_THREAD_LOCK(comm->ADIctx,comm);

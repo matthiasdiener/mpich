@@ -21,6 +21,21 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 progname="`echo $0 | sed 's:^\./\./:\./:'`"
 print_error() {
     echo "*# $*" 2>&1 ;
@@ -329,11 +344,25 @@ if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
 else
   ac_n= ac_c='\c' ac_t=
 fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
 
 fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for fd_set""... $ac_c"
+else
 echo $ac_n "checking for fd_set""... $ac_c" 1>&1
+fi
 if test ! -f confdefs.h ; then
-    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
     echo "The file confdefs.h created by configure has been removed"
     echo "This may be a problem with your shell; some versions of LINUX"
     echo "have this problem.  See the Installation guide for more"
@@ -347,7 +376,11 @@ int main() { exit(0); }
 int t() { fd_set readMask, writeMask; }
 EOF
 if eval $compile; then
-  echo "$ac_t""yes" 1>&1
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
   :
 else
   rm -rf conftest*
@@ -378,7 +411,11 @@ DEFS="$DEFS -DNO_FD_SET=1"
 fi
 rm -f conftest*
 
-    echo "$ac_t""no" 1>&1
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
 fi
 rm -f conftest*
 
@@ -551,11 +588,25 @@ if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
 else
   ac_n= ac_c='\c' ac_t=
 fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
 
 fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for -lXt""... $ac_c"
+else
 echo $ac_n "checking for -lXt""... $ac_c" 1>&1
+fi
 if test ! -f confdefs.h ; then
-    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
     echo "The file confdefs.h created by configure has been removed"
     echo "This may be a problem with your shell; some versions of LINUX"
     echo "have this problem.  See the Installation guide for more"
@@ -569,11 +620,19 @@ int main() { exit(0); }
 int t() { main(); }
 EOF
 if eval $compile; then
-  echo "$ac_t""yes" 1>&1
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
   rm -rf conftest*
   have_lib="1"
 
-   else echo "$ac_t""no" 1>&1
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -612,12 +671,14 @@ if test "$XINCLUDE_DIR" != ""; then
     x_includes="$XINCLUDE_DIR"
 fi
 if test "$x_includes" = /usr/include; then
-    XINCLUDES="# no special path needed"
+    # no special path needed
+    XINCLUDES=""
 elif test "$x_includes" != ""; then
     XINCLUDES=" -I$x_includes"
 else
     echo checking for X11 header files
-    XINCLUDES="# no special path needed"
+    # no special path needed
+    XINCLUDES=""
     cat > conftest.c <<EOF
 #include "confdefs.h"
 #include <X11/Intrinsic.h>
@@ -641,7 +702,8 @@ rm -f conftest*
 fi
 if test "$XINCLUDES" = nope; then
   echo "Warning:  couldn't find any X11 include files."
-  XINCLUDES="# no include files found"
+  # no include files found
+  XINCLUDES=""
 fi
 
 
@@ -670,11 +732,25 @@ if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
 else
   ac_n= ac_c='\c' ac_t=
 fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
 
 fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for -lX11""... $ac_c"
+else
 echo $ac_n "checking for -lX11""... $ac_c" 1>&1
+fi
 if test ! -f confdefs.h ; then
-    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
     echo "The file confdefs.h created by configure has been removed"
     echo "This may be a problem with your shell; some versions of LINUX"
     echo "have this problem.  See the Installation guide for more"
@@ -688,11 +764,19 @@ int main() { exit(0); }
 int t() { main(); }
 EOF
 if eval $compile; then
-  echo "$ac_t""yes" 1>&1
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
   rm -rf conftest*
   have_lib="1"
 
-   else echo "$ac_t""no" 1>&1
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -728,11 +812,25 @@ if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
 else
   ac_n= ac_c='\c' ac_t=
 fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
 
 fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for -lXwindow""... $ac_c"
+else
 echo $ac_n "checking for -lXwindow""... $ac_c" 1>&1
+fi
 if test ! -f confdefs.h ; then
-    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
     echo "The file confdefs.h created by configure has been removed"
     echo "This may be a problem with your shell; some versions of LINUX"
     echo "have this problem.  See the Installation guide for more"
@@ -746,11 +844,19 @@ int main() { exit(0); }
 int t() { main(); }
 EOF
 if eval $compile; then
-  echo "$ac_t""yes" 1>&1
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
   rm -rf conftest*
   have_lib="1"
 
-   else echo "$ac_t""no" 1>&1
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -789,11 +895,25 @@ if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
 else
   ac_n= ac_c='\c' ac_t=
 fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
 
 fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for -lXbsd""... $ac_c"
+else
 echo $ac_n "checking for -lXbsd""... $ac_c" 1>&1
+fi
 if test ! -f confdefs.h ; then
-    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
     echo "The file confdefs.h created by configure has been removed"
     echo "This may be a problem with your shell; some versions of LINUX"
     echo "have this problem.  See the Installation guide for more"
@@ -807,11 +927,19 @@ int main() { exit(0); }
 int t() { main(); }
 EOF
 if eval $compile; then
-  echo "$ac_t""yes" 1>&1
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
   rm -rf conftest*
   have_lib="1"
 
-   else echo "$ac_t""no" 1>&1
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -837,11 +965,25 @@ if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
 else
   ac_n= ac_c='\c' ac_t=
 fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
 
 fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for -lsocket""... $ac_c"
+else
 echo $ac_n "checking for -lsocket""... $ac_c" 1>&1
+fi
 if test ! -f confdefs.h ; then
-    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
     echo "The file confdefs.h created by configure has been removed"
     echo "This may be a problem with your shell; some versions of LINUX"
     echo "have this problem.  See the Installation guide for more"
@@ -855,11 +997,19 @@ int main() { exit(0); }
 int t() { main(); }
 EOF
 if eval $compile; then
-  echo "$ac_t""yes" 1>&1
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
   rm -rf conftest*
   have_lib="1"
 
-   else echo "$ac_t""no" 1>&1
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -885,11 +1035,25 @@ if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
 else
   ac_n= ac_c='\c' ac_t=
 fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
 
 fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for -lnsl""... $ac_c"
+else
 echo $ac_n "checking for -lnsl""... $ac_c" 1>&1
+fi
 if test ! -f confdefs.h ; then
-    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
     echo "The file confdefs.h created by configure has been removed"
     echo "This may be a problem with your shell; some versions of LINUX"
     echo "have this problem.  See the Installation guide for more"
@@ -903,11 +1067,19 @@ int main() { exit(0); }
 int t() { main(); }
 EOF
 if eval $compile; then
-  echo "$ac_t""yes" 1>&1
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
   rm -rf conftest*
   have_lib="1"
 
-   else echo "$ac_t""no" 1>&1
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -936,9 +1108,19 @@ if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
 else
   ac_n= ac_c='\c' ac_t=
 fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
 
 fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for Tcl""... $ac_c"
+else
 echo $ac_n "checking for Tcl""... $ac_c" 1>&1
+fi
 for dir in \
     /usr \
     /usr/local \
@@ -964,9 +1146,17 @@ for dir in \
 done
 fi
 if test -n "$TCL_DIR" ; then 
-  echo "$ac_t""found $TCL_DIR/include/tcl.h and $TCL_DIR/lib/libtcl.a" 1>&1
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""found $TCL_DIR/include/tcl.h and $TCL_DIR/lib/libtcl.a"
 else
-  echo "$ac_t""no" 1>&1
+echo "$ac_t""found $TCL_DIR/include/tcl.h and $TCL_DIR/lib/libtcl.a" 1>&1
+fi
+else
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
 fi
 # Look for Tk (look in tcl dir if the code is nowhere else)
 if test -z "$TK_DIR" ; then
@@ -983,9 +1173,19 @@ if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
 else
   ac_n= ac_c='\c' ac_t=
 fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
 
 fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for Tk""... $ac_c"
+else
 echo $ac_n "checking for Tk""... $ac_c" 1>&1
+fi
 for dir in \
     /usr \
     /usr/local \
@@ -1011,9 +1211,17 @@ for dir in \
 done
 fi
 if test -n "$TK_DIR" ; then 
-  echo "$ac_t""found $TK_DIR/include/tk.h and $TK_DIR/lib/libtk.a" 1>&1
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""found $TK_DIR/include/tk.h and $TK_DIR/lib/libtk.a"
 else
-  echo "$ac_t""no" 1>&1
+echo "$ac_t""found $TK_DIR/include/tk.h and $TK_DIR/lib/libtk.a" 1>&1
+fi
+else
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
 fi
 
 fi
@@ -1029,6 +1237,7 @@ if test -z "$TK_DIR" ; then
     print_error "Aborting build of nupshot"
     exit 1
 fi
+
 if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
@@ -1042,9 +1251,19 @@ if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
 else
   ac_n= ac_c='\c' ac_t=
 fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
 
 fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for version of TK""... $ac_c"
+else
 echo $ac_n "checking for version of TK""... $ac_c" 1>&1
+fi
 /bin/rm -f conftestval
 CFLAGSsave="$CFLAGS"
 CFLAGS="$CFLAGS -I$TK_DIR/include $XINCLUDES"
@@ -1064,7 +1283,11 @@ else
 fi
 rm -fr conftest*
 CFLAGS="$CFLAGSsave"
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""$TK_VERSION"
+else
 echo "$ac_t""$TK_VERSION" 1>&1
+fi
 
 if test "$TK_VERSION" != 3.6 ; then
     print_error "This version of nupshot requires tk 3.6  The version in"

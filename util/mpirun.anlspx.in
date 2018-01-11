@@ -28,30 +28,33 @@ if [ $mvhome = 0 -a "$firschar" != "/" ] ; then
     fi
 fi
 #
-# Create a new file
+# Create a new file.  Also, make sure that 
+# path is absolute; users can be surprised by things in their path.
+#
 if [ $mvhome = 1 ] ; then
     localpgm=`basename $progname`
     # if mvhome set, and the executable does NOT exist, then
     # remove it when we exit
-    if [ -x /sphome/$LOGNAME/$localpgm ] ; then
+    localpgm=/sphome/$LOGNAME/$localpgm	
+    if [ -x $localpgm ] ; then
 	rmhome=0
     else
 	rmhome=1
     fi
     if [ $just_testing = 1 ] ; then
-	echo cp $progname /sphome/$LOGNAME/$localpgm
+	echo cp $progname $localpgm
     else
 	# If you don't remove the file first, sometimes the 
 	# WRONG FILE (the OLD ONE) is found by the system.
-	/bin/rm -f /sphome/$LOGNAME/$localpgm
-	if [ -s /sphome/$LOGNAME/$localpgm ] ; then
+	/bin/rm -f $localpgm
+	if [ -s $localpgm ] ; then
 	    echo "Could not move $progname to /sphome/$LOGNAME/$localpgm"
-	    if [ -d /sphome/$LOGNAME/$localpgm ] ; then
+	    if [ -d $localpgm ] ; then
 		echo "Destination is a directory!"
 	    fi
 	    exit 1
 	fi
-        cp $progname /sphome/$LOGNAME/$localpgm
+        cp $progname $localpgm
     fi
     PWD_LOCAL=/sphome/$LOGNAME
 else
@@ -61,6 +64,9 @@ else
 fi
 /bin/rm -f $PWD_LOCAL/PIrun.$$
 /bin/rm -f /sphome/$LOGNAME/job.output.$$
+if [ -z "$stdinfile" ] ; then
+   stdinfile=/dev/null
+fi
 cat >$PWD_LOCAL/PIrun.$$ <<.
 #! /bin/sh
 JID=\`/usr/local/bin/getjid\`
@@ -88,7 +94,7 @@ fi
 if [ $mpirun_verbose = 1 ] ; then
     echo "About to run poe ... " >> /sphome/$LOGNAME/job.output.$$
 fi
-poe $localpgm $cmdLineArgs >> /sphome/$LOGNAME/job.output.$$ 2>&1
+poe $localpgm $cmdLineArgs < $stdinfile >> /sphome/$LOGNAME/job.output.$$ 2>&1
 if [ $mpirun_verbose = 1 ] ; then
     echo "Poe exited ..." >> /sphome/$LOGNAME/job.output.$$
 fi
@@ -120,7 +126,7 @@ if [ $just_testing = 1 ] ; then
     echo JID=\`/usr/local/bin/getjid\`
     echo spwait \$JID
     if [ $rmhome = 1 ] ; then
-	echo "/bin/rm /sphome/$LOGNAME/$localpgm"
+	echo "/bin/rm $localpgm"
     fi
     if [ "$mvback" != "" ] ; then
 	echo "(cd $PWD_LOCAL ; cp $mvback $PWD_TRIAL ; /bin/rm $mvback )"
@@ -168,7 +174,7 @@ else
     # (sleeps removed now that spwait works!)
     #SYNCLOC# > /dev/null 2>&1
     if [ $rmhome = 1 ] ; then
-	/bin/rm /sphome/$LOGNAME/$localpgm
+	/bin/rm $localpgm
     fi
     /bin/rm -f /sphome/$LOGNAME/SPnodes.$JID /sphome/$LOGNAME/PIrun.$$ 
     if [ "$mvback" != "" ] ; then

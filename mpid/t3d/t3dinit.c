@@ -261,7 +261,7 @@ char ***argv;
 	    numprocs = atoi( (*argv)[i+1] );
 	    (*argv)[i] = 0;
 	    (*argv)[i+1] = 0;
-	    MPIR_ArgSqueeze( argc, argv );
+	    MPIR_ArgSqueeze( argc, *argv );
 	    break;
 	    }
 	}

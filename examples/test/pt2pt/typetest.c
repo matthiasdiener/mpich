@@ -230,18 +230,19 @@ char **argv;
 	else
 	    Test_Passed("Compatible Complex Type Round Trip Test");
 
-	/* Expect ints to be at least 4 bytes */
+	/* Expect ints to be at least 4 bytes.  Make sure that the MSbit is
+	   0 so that there are no sign-extension suprises. */
 	dummy4.a1 = 0x17faec2b;
 	dummy4.c1 = 'c';
 	dummy4.c2 = 'F';
-	dummy4.a2 = 0xe1fb8354;
+	dummy4.a2 = 0x91fb8354;
 	MPI_Send( &dummy4, 1, struct4_t, slave_rank, 2004, MPI_COMM_WORLD );
 	memset( &dummy4, 0, sizeof(dummy4) );
 	MPI_Recv( &dummy4, 1, struct4a_t, slave_rank, 2004, MPI_COMM_WORLD, 
 		  &Status );
 	/* Check for correct data */
 	if (dummy4.a1 != 0x17faec2b || dummy4.c1 != 'c' ||
-	    dummy4.c2 != 'F' || dummy4.a2 != 0xe1fb8354) {
+	    dummy4.c2 != 'F' || dummy4.a2 != 0x91fb8354) {
 	    Test_Failed( "Padded Structure Type Round Trip Test" );
 	    }
 	else {

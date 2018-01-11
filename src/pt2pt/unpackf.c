@@ -2,6 +2,11 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
+#ifdef _CRAY
+#include <fortran.h>
+#include <stdarg.h>
+#endif
+
 #ifdef POINTER_64_BITS
 extern void *MPIR_ToPointer();
 extern int MPIR_FromPointer();
@@ -32,6 +37,76 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
+#ifdef _CRAY
+#ifdef _TWO_WORD_FCD
+#define NUMPARAMS 8
+
+ void mpi_unpack_ ( void *unknown, ...)
+{
+void         	*inbuf;
+int		*insize;
+int          	*position;
+void         	*outbuf;
+int		*outcount;
+MPI_Datatype  	datatype;
+MPI_Comm      	comm;
+int 		*__ierr;
+int		buflen;
+va_list         ap;
+
+va_start(ap, unknown);
+inbuf = unknown;
+if (_numargs() == NUMPARAMS+1) {
+	printf("Either both or neither buffers must be of type character.\n");
+}
+if (_numargs() == NUMPARAMS+2) {
+        buflen = va_arg(ap, int) / 8;           /* The length is in bits. */
+}
+insize =        va_arg(ap, int *);
+position =      va_arg(ap, int *);
+outbuf =	va_arg(ap, void *);
+if (_numargs() == NUMPARAMS+2) {
+        buflen = va_arg(ap, int) / 8;           /* The length is in bits. */
+}
+outcount =      va_arg(ap, int *);
+datatype =      va_arg(ap, MPI_Datatype);
+comm =          va_arg(ap, MPI_Comm);
+__ierr =        va_arg(ap, int *);
+
+
+*__ierr = MPI_Unpack(inbuf,*insize,position,MPIR_F_PTR(outbuf),*outcount,
+	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),
+	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
+}
+
+#else
+
+ void mpi_unpack_ ( inbuf, insize, position, outbuf, outcount, type, comm, __ierr )
+void         *inbuf;
+int*insize;
+int          *position;
+void         *outbuf;
+int*outcount;
+MPI_Datatype  type;
+MPI_Comm      comm;
+int *__ierr;
+{
+_fcd temp;
+if (_isfcd(inbuf)) {
+	temp = _fcdtocp(inbuf);
+	inbuf = (void *) temp;
+}
+if (_isfcd(outbuf)) {
+	temp = _fcdtocp(outbuf);
+	outbuf = (void *) temp;
+}
+*__ierr = MPI_Unpack(inbuf,*insize,position,MPIR_F_PTR(outbuf),*outcount,
+	(MPI_Datatype)MPIR_ToPointer( *(int*)(type) ),
+	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
+}
+
+#endif
+#else
  void mpi_unpack_ ( inbuf, insize, position, outbuf, outcount, type, comm, __ierr )
 void         *inbuf;
 int*insize;
@@ -46,3 +121,4 @@ int *__ierr;
 	(MPI_Datatype)MPIR_ToPointer( *(int*)(type) ),
 	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
 }
+#endif

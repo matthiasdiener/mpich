@@ -2682,7 +2682,7 @@ MPI_Aint * displacement;
 
 int   MPI_Type_size( datatype, size )
 MPI_Datatype datatype;
-MPI_Aint * size;
+int          * size;
 {
   int   returnVal;
   int llrank;

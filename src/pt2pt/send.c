@@ -1,5 +1,5 @@
 /*
- *  $Id: send.c,v 1.21 1995/05/09 18:59:01 gropp Exp $
+ *  $Id: send.c,v 1.22 1995/12/21 21:26:25 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: send.c,v 1.21 1995/05/09 18:59:01 gropp Exp $";
+static char vcid[] = "$Id: send.c,v 1.22 1995/12/21 21:26:25 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -32,6 +32,8 @@ Input Parameters:
 
 Notes:
 This routine may block until the message is received.
+
+.N fortran
 
 .seealso: MPI_Isend, MPI_Bsend
 @*/
@@ -63,7 +65,8 @@ MPI_Comm         comm;
     shandle.tag        = tag;
     
     MPID_Clr_completed(comm->ADIctx, request);
-    
+
+    MPIR_GET_REAL_DATATYPE(datatype)
     shandle.datatype   = datatype;
     datatype->ref_count++;
     shandle.comm       = comm;

@@ -3,7 +3,7 @@
 
 #define PI_NO_MSG_SEMANTICS
 /*
- *  $Id: chrndv.c,v 1.3 1995/09/18 21:13:02 gropp Exp $
+ *  $Id: chrndv.c,v 1.6 1996/01/03 19:07:22 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -11,7 +11,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: chrndv.c,v 1.3 1995/09/18 21:13:02 gropp Exp $";
+static char vcid[] = "$Id: chrndv.c,v 1.6 1996/01/03 19:07:22 gropp Exp gropp $";
 #endif /* lint */
 
 #include "mpid.h"
@@ -136,7 +136,8 @@ if (mpid_recv_handle->bytes_as_contig < dmpi_recv_handle->totallen) {
     dmpi_recv_handle->totallen		   = mpid_recv_handle->bytes_as_contig;
     err					   = MPI_ERR_TRUNCATE;
     dmpi_recv_handle->errval               = MPI_ERR_TRUNCATE;
-    (*MPID_ErrorHandler)( 1, "Truncated message"  );
+    /* Not a panic message */
+    fprintf( stderr, "Truncated message"  );
     }
 
     /* We need to see if the message has already been delivered or not.
@@ -267,7 +268,8 @@ int          err;
 MPID_CHK_MSGLEN(dmpi_recv_handle,msglen,err)
 dmpi_recv_handle->totallen = msglen;
 
-MPID_PKT_SEND_ALLOC(MPID_PKT_OK_TO_SEND,pkt);
+MPID_PKT_SEND_ALLOC(MPID_PKT_OK_TO_SEND,pkt,0);
+MPID_PKT_SEND_ALLOC_TEST(pkt,return MPI_ERR_EXHAUSTED)
 /* Generate a tag */
 MPID_CreateRecvTransfer( mpid_recv_handle->start, msglen, from, &recv_handle );
 mpid_recv_handle->recv_handle = recv_handle;
@@ -279,6 +281,8 @@ MPID_StartRecvTransfer( mpid_recv_handle->start, msglen, from, recv_handle,
 MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_OK_TO_SEND);
 MPID_PKT_SEND_SET(pkt,send_id,send_id);
 MPID_PKT_SEND_SET(pkt,recv_handle,recv_handle);
+
+MPID_PKT_PACK( MPID_PKT_SEND_ADDR(pkt), sizeof(MPID_PKT_OK_TO_SEND_T), from );
 
 /* Send a message back with the tag in it */
 MPID_SendControl( MPID_PKT_SEND_ADDR(pkt), 
@@ -293,11 +297,13 @@ return MPI_SUCCESS;
 MPID_EUI_Complete_Rndv( mpid_recv_handle )
 MPID_RHANDLE *mpid_recv_handle;
 {
+DEBUG_PRINT_MSG("Starting completion of rndv by completing recv")
 MPID_EndRecvTransfer( mpid_recv_handle->start, 
 		      mpid_recv_handle->bytes_as_contig, 
 		      mpid_recv_handle->from, mpid_recv_handle->recv_handle,
  		      mpid_recv_handle->rid );
 mpid_recv_handle->rid = 0;
+DEBUG_PRINT_MSG("Done receive rndv message data")
 }
 
 /* This is a test for received.  It must look to see if the transaction 
@@ -305,9 +311,20 @@ mpid_recv_handle->rid = 0;
 int MPID_EUI_Test_recv_rndv( dmpi_recv_handle )
 MPIR_RHANDLE *dmpi_recv_handle;
 {
+int rcvready;
+MPID_RHANDLE *mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
+
 if (dmpi_recv_handle->completer == 0) return 1;
 if (dmpi_recv_handle->completer == MPID_CMPL_RECV_RNDV) {
-    return MPID_TestRecvTransfer( dmpi_recv_handle->dev_rhandle.rid );
+    rcvready = MPID_TestRecvTransfer( mpid_recv_handle->rid );
+    if (rcvready) {
+	MPID_CompleteRecvTransfer( 
+		      mpid_recv_handle->start, 
+		      mpid_recv_handle->bytes_as_contig, 
+		      mpid_recv_handle->from, mpid_recv_handle->recv_handle,
+ 		      mpid_recv_handle->rid );
+	}
+    return rcvready;
     }
 return 0;
 }
@@ -368,7 +385,8 @@ int              pkt_len;
 MPID_PKT_SEND_DECL(MPID_PKT_REQUEST_SEND_T,pkt);
 int              dest;
 
-MPID_PKT_SEND_ALLOC(MPID_PKT_LONG_T,pkt);
+MPID_PKT_SEND_ALLOC(MPID_PKT_LONG_T,pkt,0);
+MPID_PKT_SEND_ALLOC_TEST(pkt,return MPI_ERR_EXHAUSTED)
 MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_REQUEST_SEND);
 MPID_PKT_SEND_SET(pkt,send_id,(MPID_Aint) dmpi_send_handle);
 pkt_len = sizeof(MPID_PKT_REQUEST_SEND_T);
@@ -380,20 +398,20 @@ MPID_PKT_SEND_SET(pkt,len,len);
 MPID_PKT_SEND_SET_HETERO(pkt,dmpi_send_handle->msgrep)
 dest           = dmpi_send_handle->dest;
 
-DEBUG_PRINT_SEND_PKT("S Starting a send",ptk)
+DEBUG_PRINT_SEND_PKT("S Starting a send",pkt)
 
 MPID_PKT_PACK( MPID_PKT_SEND_ADDR(pkt), sizeof(MPID_PKT_HEAD_T), dest );
 
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
 if (MPID_DebugFlag) {
-    printf( 
+    fprintf( MPID_DEBUG_FILE, 
 	   "[%d]S Getting data from mpid->start, first int is %d (%s:%d)\n",
 	   MPID_MyWorldRank, *(int *)mpid_send_handle->start, 
 	   __FILE__, __LINE__ );
-    printf( "[%d]S Sending extra-long message (%s:%d)...\n", 
+    fprintf( MPID_DEBUG_FILE, "[%d]S Sending extra-long message (%s:%d)...\n", 
 	    MPID_MyWorldRank, __FILE__, __LINE__ );
-    MPID_Print_packet( stdout, (MPID_PKT_T*)MPID_PKT_SEND_ADDR(pkt) );
-    fflush( stdout );
+    MPID_Print_packet( MPID_DEBUG_FILE, (MPID_PKT_T*)MPID_PKT_SEND_ADDR(pkt) );
+    fflush( MPID_DEBUG_FILE );
     }
 #endif                  /* #DEBUG_END# */
 

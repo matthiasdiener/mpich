@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_rgroup.c,v 1.5 1994/12/15 16:37:56 gropp Exp $
+ *  $Id: comm_rgroup.c,v 1.6 1995/12/21 22:03:28 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -17,6 +17,8 @@ Input Parameter:
 
 Output Parameter:
 . group - remote group of communicator
+
+.N fortran
 @*/
 int MPI_Comm_remote_group ( comm, group )
 MPI_Comm comm;

@@ -21,8 +21,8 @@ static int MPE_Tag_keyval = MPI_KEYVAL_INVALID;
    Private routine to delete internal storage when a communicator is freed.
  */
 int MPE_DelTag( comm, keyval, attr_val, extra_state )
-MPI_Comm *comm;
-int      *keyval;
+MPI_Comm comm;
+int      keyval;
 void     *attr_val, *extra_state;
 {
 /* The attribute value is malloc'ed on creation; this prevents a
@@ -78,7 +78,7 @@ if (!flag) {
     comm_in = *comm_out;
     MPI_Attr_get( MPI_COMM_WORLD, MPI_TAG_UB, &maxval, &flag );
     tagvalp = (int *)malloc( 2 * sizeof(int) );
-    if (!tagvalp) return MPI_ERR_EXHAUSTED;
+    if (!tagvalp) return MPI_ERR_OTHER;
     *tagvalp   = *maxval;
     *first_tag = *tagvalp - ntags;
     *tagvalp   = *first_tag;

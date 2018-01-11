@@ -1,4 +1,4 @@
-.TH MPI_Comm_split 3 "6/20/1995" " " "MPI"
+.TH MPI_Comm_split 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Comm_split \- Creates new communicators based on colors and keys
 
@@ -27,20 +27,48 @@ MPI_Comm_split \- Creates new communicators based on colors and keys
 .PD 1
 
 .SH NOTES
-The 'color' must be non-negative or 'MPI_UNDEFINED'.
+The 
+.I color
+must be non-negative or 
+.I MPI_UNDEFINED
+.
+
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
+
 .SH ALGORITHM
 
 The current algorithm used has quite a few (read: a lot of) inefficiencies
-that can be removed.  Here's what we do for now
+that can be removed.  Here is what we do for now
 
 .nf
  1) A table is built of colors, and keys (has a next field also).
- 2) The tables of all processes are merged using MPI_Allreduce
+ 2) The tables of all processes are merged using 'MPI_Allreduce'.
  3) Two contexts are allocated for all the comms to be created.  These
      same two contexts can be used for all created communicators since
      the communicators will not overlap.
- 4) If the local process has a color of MPI_UNDEFINED, it can return
-     a NULL comm. 
+ 4) If the local process has a color of 'MPI_UNDEFINED', it can return
+     a 'NULL' comm. 
  5) The table entries that match the local process color are sorted 
      by key/rank. 
  6) A group is created from the sorted list and a communicator is created

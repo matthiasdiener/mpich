@@ -1,25 +1,25 @@
 # Generated automatically from Makefile.in by configure.
 
-DEFS =  -D_ALL_SOURCE=1 -DSTDC_HEADERS=1  -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -DHAVE_SYSTEM=1 -DHAVE_NICE=1
+DEFS =  -DSTDC_HEADERS=1  -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -DHAVE_SYSTEM=1 -DHAVE_NICE=1 -DHAVE_LONG_DOUBLE=1 -DHAVE_LONG_LONG_INT=1
 
 ##### User configurable options #####
 
-ARCH        = rs6000
+ARCH        = IRIX
 COMM        = ch_shmem
 BOPT        = 
 P4_DIR      = 
 TOOLS_DIR   = 
 MPIR_HOME   = /home/gropp/mpich
-CC          = xlC
-F77         = xlf
+CC          = cc
+F77         = f77
 AR          = ar crl
 RANLIB      = ranlib
 INCLUDE_DIR =  -I../../mpid/ch_shmem -I../../include
 DEVICE      = ch_shmem
-OPTFLAGS    = -O
-LIB_PATH    = -L/home/gropp/mpich/lib/rs6000/ch_shmem 
-FLIB_PATH   = -L/home/gropp/mpich/lib/rs6000/ch_shmem 
-LIB_LIST    = -lmpi
+OPTFLAGS    = 
+LIB_PATH    = -L/home/gropp/mpich/lib/IRIX/ch_shmem 
+FLIB_PATH   = -L/home/gropp/mpich/lib/IRIX/ch_shmem 
+LIB_LIST    = -lmpi 
 
 ### End User configurable options ###
 

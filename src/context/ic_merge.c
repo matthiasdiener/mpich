@@ -1,5 +1,5 @@
 /*
- *  $Id: ic_merge.c,v 1.12 1995/07/25 02:46:32 gropp Exp $
+ *  $Id: ic_merge.c,v 1.13 1995/12/21 22:11:17 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -21,12 +21,13 @@ Input Parameters:
 Output Parameter:
 . comm_out - Created intracommunicator
 
+.N fortran
+
 Algorithm:
 . 1) Allocate two contexts 
 . 2) Local and remote group leaders swap high values
 . 3) Determine the high value.
 . 4) Merge the two groups and make the intra-communicator
-
 @*/
 int MPI_Intercomm_merge ( comm, high, comm_out )
 MPI_Comm  comm;

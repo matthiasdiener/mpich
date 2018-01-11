@@ -1,5 +1,5 @@
 /*
- *  $Id: create_send.c,v 1.17 1995/05/09 18:58:43 gropp Exp $
+ *  $Id: create_send.c,v 1.18 1995/12/21 21:12:07 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -20,6 +20,8 @@ Input Parameters:
 . comm - communicator (handle) 
 Output Parameter:
 . request - communication request (handle) 
+
+.N fortran
 @*/
 int MPI_Send_init( buf, count, datatype, dest, tag, comm, request )
 void          *buf;
@@ -41,6 +43,7 @@ MPI_Request   *request;
     /* See MPI_TYPE_FREE.  A free can not happen while the datatype may
        be in use.  Thus, a nonblocking operation increments the
        reference count */
+    MPIR_GET_REAL_DATATYPE(datatype)
     datatype->ref_count++;
     *request                        = 
 	(MPI_Request) MPIR_SBalloc( MPIR_shandles );

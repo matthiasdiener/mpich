@@ -1,5 +1,5 @@
 #ifndef lint
-static char vcid[]    = "$Id: xframe.c,v 1.3 1994/09/05 15:41:35 gropp Exp $";
+static char vcid[]    = "$Id: xframe.c,v 1.5 1996/01/16 18:25:51 gropp Exp $";
 #endif
 
 /*
@@ -10,7 +10,7 @@ static char vcid[]    = "$Id: xframe.c,v 1.3 1994/09/05 15:41:35 gropp Exp $";
    The region has 6 parameters.  These are the dimensions of the actual frame.
  */
 
-#include "tools.h"
+#include "mpetools.h"
 #include "basex11.h"
 
 
@@ -25,7 +25,7 @@ static PixVal HiPix=0, LoPix=0;
 /* 
    Set the colors for the highlights by name 
  */
-XBFrameColors( XBWin, Rgn, Hi, Lo )
+int XBFrameColors( XBWin, Rgn, Hi, Lo )
 XBWindow     *XBWin;
 XBDecoration *Rgn;
 char         *Hi, *Lo;
@@ -33,9 +33,11 @@ char         *Hi, *Lo;
 Rgn->Hi = XBGetColor( XBWin, Hi, 1 );
 Rgn->Lo = XBGetColor( XBWin, Lo, 1 );
 Rgn->HasColor = Rgn->Hi != Rgn->Lo;
+
+return 0;
 }
 
-XBDrawFrame( XBWin, Rgn )
+int XBDrawFrame( XBWin, Rgn )
 XBWindow *XBWin;
 XBDecoration *Rgn;
 {
@@ -99,6 +101,7 @@ else {
 		 low, 7, Nonconvex, CoordModeOrigin);
     XSetFillStyle( XBWin->disp, XBWin->gc.set, FillSolid );
     }
+return 0;
 }
 
 /*

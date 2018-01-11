@@ -116,7 +116,7 @@ int T3D_Recv_packet ( pkt )
 T3D_PKT_T **pkt;
 {
     int         i;
-    static int  start;
+    static int  start = 0;
     int         end;
     int         twice;
 

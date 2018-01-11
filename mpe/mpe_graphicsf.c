@@ -13,7 +13,7 @@ extern void MPIR_RmPointer();
 #define MPIR_RmPointer(a)
 #endif
 
-#include "tools.h"
+#include "mpetools.h"
 #include "basex11.h"
 #include "mpe.h"
 #ifdef MPI_BUILD_PROFILING

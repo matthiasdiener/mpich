@@ -1,12 +1,12 @@
 /*
- *  $Id: type_struct.c,v 1.25 1995/09/13 21:47:29 gropp Exp $
+ *  $Id: type_struct.c,v 1.26 1995/12/21 21:41:19 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_struct.c,v 1.25 1995/09/13 21:47:29 gropp Exp $";
+static char vcid[] = "$Id: type_struct.c,v 1.26 1995/12/21 21:41:19 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -53,6 +53,8 @@ for the structure foo
     blen[2] = 1; indices[2] = sizeof(foo); oldtypes[2] = MPI_UB;
     MPI_Type_struct( 3, blen, indices, oldtypes, &newtype );
 .ve
+
+.N fortran
 @*/
 int MPI_Type_struct( count, blocklens, indices, old_types, newtype )
 int           count;
@@ -85,6 +87,7 @@ MPI_Datatype *newtype;
     if ( blocklens[i] < 0)
       return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER,
                         "Negative block length in MPI_TYPE_STRUCT");
+    MPIR_GET_REAL_DATATYPE(old_types[i])
     if ( old_types[i] == MPI_DATATYPE_NULL )
       return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_TYPE,
                         "Null type in MPI_TYPE_STRUCT");

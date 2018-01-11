@@ -1,5 +1,5 @@
 /*
- *  $Id: graphdimsget.c,v 1.1 1995/04/23 18:11:33 gropp Exp $
+ *  $Id: graphdimsget.c,v 1.2 1995/12/21 22:19:13 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -19,6 +19,7 @@ Output Parameter:
 . nnodes - number of nodes in graph (integer) 
 . nedges - number of edges in graph (integer) 
 
+.N fortran
 @*/
 int MPI_Graphdims_get ( comm, nnodes, nedges )
 MPI_Comm  comm;

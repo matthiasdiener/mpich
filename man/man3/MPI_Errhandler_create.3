@@ -1,4 +1,4 @@
-.TH MPI_Errhandler_create 3 "12/11/1994" " " "MPI"
+.TH MPI_Errhandler_create 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Errhandler_create \- Creates an MPI-style errorhandler
 
@@ -19,10 +19,36 @@ MPI_Errhandler_create \- Creates an MPI-style errorhandler
 .SH NOTES
 The MPI Standard states that an implementation may make the output value
 (errhandler) simply the address of the function.  However, the action of
-MPI_Errhandler_free makes this impossible, since it is required to set the
-value of the argument to MPI_ERRHANDLER_NULL.  In addition, the actual
+.I MPI_Errhandler_free
+makes this impossible, since it is required to set the
+value of the argument to 
+.I MPI_ERRHANDLER_NULL
+.  In addition, the actual
 error handler must remain until all communicators that use it are
 freed.
+
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

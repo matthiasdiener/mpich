@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi_bc.h,v 1.24 1995/06/30 17:34:26 gropp Exp $
+ *  $Id: mpi_bc.h,v 1.26 1996/01/03 19:08:18 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -11,8 +11,10 @@
 #define _MPI_INCLUDE_BC
 
 /* assorted defined constants */
-/* #include "mpi_errno.h"   */           /* Error codes */
+/* Error codes */
+#include "mpi_error.h"            
 
+#ifdef FOO
 /* Generic error handling code.  This handles inserting the file and line
    number (in MPI) where the error occured.  In addition, it
    checks the error handler and calls the appropriate one.  Finally, 
@@ -36,6 +38,11 @@
 
            /* User has aliased an argument */
 #define MPIR_ERR_BUFFER_ALIAS (2 << MPIR_ERR_CLASS_BITS)
+
+           /* Address of location given to MPI_ADDRESS does fit in 
+	      Fortran int */
+#define MPIR_ERR_FORTRAN_ADDRESS_RANGE (4 << MPIR_ERR_CLASS_BITS)
+#endif
 
 /* communication modes */
 typedef enum { 

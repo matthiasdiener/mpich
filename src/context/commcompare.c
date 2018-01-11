@@ -1,5 +1,5 @@
 /*
- *  $Id: commcompare.c,v 1.1 1995/04/23 18:00:57 gropp Exp $
+ *  $Id: commcompare.c,v 1.2 1995/12/21 22:07:00 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -14,10 +14,13 @@ MPI_Comm_compare - Compares two communicators
 Input Parameters:
 . comm1 - comm1 (handle) 
 . comm2 - comm2 (handle) 
+
 Output Parameter:
-. result - integer which is MPI_IDENT if the contexts and groups are the
-same, MPI_CONGRUENT if different contexts but identical groups, MPI_SIMILAR
-if different contexts but similar groups, and MPI_UNEQUAL otherwise
+. result - integer which is 'MPI_IDENT' if the contexts and groups are the
+same, 'MPI_CONGRUENT' if different contexts but identical groups, 'MPI_SIMILAR'
+if different contexts but similar groups, and 'MPI_UNEQUAL' otherwise
+
+.N fortran
 
 @*/
 int MPI_Comm_compare ( comm1, comm2, result )

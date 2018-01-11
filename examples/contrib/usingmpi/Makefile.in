@@ -4,8 +4,6 @@ ALL: default
 ARCH        = @ARCH@
 COMM        = @COMM@
 BOPT        = @BOPT@
-P4_DIR      = @P4_DIR@
-TOOLS_DIR   = @TOOLS_DIR@
 MPIR_HOME   = @MPIR_HOME@
 CC          = @CC@
 CLINKER     = $(CC)
@@ -32,14 +30,13 @@ DEVICE      = @DEVICE@
 CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH) 
 CFLAGSMPE  = $(CFLAGS) -I$(MPE_DIR) $(MPE_GRAPH)
 CCFLAGS = $(CFLAGS)
-#FFLAGS = '-qdpc=e' 
 FFLAGS = @FFLAGS@ $(OPTFLAGS)
 MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a 
 MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
 LIBS = $(LIB_PATH) $(LIB_LIST)
 FLIBS = $(FLIB_PATH) $(LIB_LIST)
 LIBSPP = $(MPIPPLIB) $(LIBS)
-EXECS = pi pi2 pi3 cpilog cpi matmult monte
+EXECS = pi pi2 pi3 cpilog cpi matmult monte nbody
 default: $(EXECS)
 
 all: default
@@ -67,6 +64,10 @@ pi3: pi3.o $(MPIR_HOME)/include/mpif.h
 
 matmult: matmult.o $(MPIR_HOME)/include/mpif.h
 	$(FLINKER) $(OPTFLAGS) -o matmult matmult.o $(FLIBS)
+
+nbody: nbody.o pipe.o
+	$(CLINKER) $(OPTFLAGS) -o nbody nbody.o pipe.o \
+		$(LIB_PATH) $(LIB_LIST) -lm
 
 clean:
 	/bin/rm -f *.o *~ PI* $(EXECS)

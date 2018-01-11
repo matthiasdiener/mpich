@@ -1,5 +1,5 @@
 /*
- *  $Id: mpir.h,v 1.48 1995/08/11 00:22:24 gropp Exp $
+ *  $Id: mpir.h,v 1.50 1996/01/03 19:08:34 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -16,12 +16,15 @@
 #include "mpi_bc.h"
 #include "dmpi.h"
 #include "dm.h"
-/* #include "mpid.h" */
 
 /*****************************************************************************
 *                           MPIR DATA STRUCTURES                             *
 *****************************************************************************/
 
+/*****************************************************************************/
+/* Datatypes.  The contiguous, predefined datatypes are handled separately   */
+/* to demonstrate that the added functionality has low cost                  */
+/*****************************************************************************/
 
 #define MPIR_DATATYPE_COOKIE 0xea31beaf
 struct MPIR_DATATYPE {
@@ -47,11 +50,36 @@ struct MPIR_DATATYPE {
     int         *blocklens; /* array of blocklens for (H)INDEXED, STRUCT */
     MPI_Datatype old_type;  /* type this type is built of, if 1 */
     MPI_Datatype *old_types;/* array of types, for STRUCT */
+    MPI_Datatype flattened; /* Flattened version, if available */
 };
+
+/* Holds translation from integer to MPI_Datatype */
+#define MPIR_MAX_DATATYPE_ARRAY 256
+/* defined in src/env/initutil.c */
+/* MPIR_datatypes[0] is always 0, so null->null requires no special test */
+extern MPI_Datatype MPIR_datatypes[MPIR_MAX_DATATYPE_ARRAY];
+
+/* Translate between index and datatype pointer */
+#define MPIR_GET_REAL_DATATYPE(a) \
+  {if(MPIR_TEST_PREDEF_DATATYPE(a)) a = MPIR_datatypes[(MPI_Aint)(a)];}
+#define MPIR_TEST_PREDEF_DATATYPE(a) \
+    ((MPI_Aint)(a)<MPIR_MAX_DATATYPE_ARRAY && (MPI_Aint)(a) >0)
+#define MPIR_DATATYPE_CONTIG(a) \
+    (MPIR_TEST_PREDEF_DATATYPE(a) || (a)->is_contig)
+/* For ONLY the predefined datatypes, the size MAY be encoded in the 
+   value of the datatype */
+#define MPIR_DATATYPE_SIZE(a) (1 + ( (MPI_Aint)(a)&0xf ) )
+
+/*****************************************************************************/
+/* Requests come in many flavors                                             */
+/*****************************************************************************/
 
 typedef enum {
     MPIR_SEND,
-    MPIR_RECV
+    MPIR_RECV,
+    MPIR_PERSISTENT_SEND,
+    MPIR_PERSISTENT_RECV,
+    MPIR_USER
 } MPIR_OPTYPE;
 
 /* MPIR_COMMON is a subset of the handle structures that contain common
@@ -85,13 +113,12 @@ typedef struct {
     int count;          /* requested count */
 
     char *bufpos;       /* position of next byte to be transferred */
-    int  transfer_count;    /* count of bytes transferred to/from device */
     int  totallen;      /* length in local bytes of message */
 
     } MPIR_COMMON;
 
 typedef struct {
-    MPIR_OPTYPE handle_type;    /* send or receive */
+    MPIR_OPTYPE handle_type;    
     MPIR_COOKIE             /* Cookie to help detect valid item */
     int         contextid;  /* context id */
     int         dest;       /* destination process for message */
@@ -114,7 +141,6 @@ typedef struct {
 			   to send out of. The buffer pointed to by this
 			   is freed at the end of blocking sends and 
 			   waits on non-blocking sends */
-    int  transfer_count;    /* count of bytes transferred to/from device */
     int  totallen;      /* length in local bytes of message */
 
     MPIR_Mode mode;     /* mode: STANDARD, READY, SYNC, BUFFERED */
@@ -125,7 +151,7 @@ typedef struct {
 } MPIR_SHANDLE;
 
 typedef struct {
-    MPIR_OPTYPE handle_type;    /* send or receive */
+    MPIR_OPTYPE handle_type;    
     MPIR_COOKIE             /* Cookie to help detect valid item */
     int         contextid;  /* context id */
     int         source;     /* source process message */
@@ -144,7 +170,6 @@ typedef struct {
     int buflen;         /* length of buffer at bufadd */
     int count;          /* requested count */
     char *bufpos;       /* position of next byte to be transferred */
-    int  transfer_count;    /* count of bytes transferred to/from device */
     int  totallen;          /* length in local bytes of message */
 
     void *p;            /* Pointer to unexpected data */
@@ -167,8 +192,8 @@ typedef struct {
    MPIR_COMMON.
  */
 typedef struct {
-    MPIR_OPTYPE handle_type;    /* send or receive */
-    MPIR_COOKIE             /* Cookie to help detect valid item */
+    MPIR_OPTYPE handle_type;    
+    MPIR_COOKIE                 /* Cookie to help detect valid item */
     int         completer;      /* index of routine to complete, 
 				   or 0 if done */
     int         active;
@@ -188,6 +213,8 @@ union MPIR_HANDLE {
     MPIR_COMMON  chandle;       /* common fields */
     MPIR_SHANDLE shandle;
     MPIR_RHANDLE rhandle;
+    MPIR_SHANDLE persistent_shandle;
+    MPIR_RHANDLE persistent_rhandle;
     MPIR_UHANDLE uhandle;
 };
 
@@ -357,6 +384,15 @@ typedef char *MPID_FCHAR_T;
 /* Encoded in the sender's native format */
 #define MPIR_MSGREP_SENDER	2
 
+/* Formats to use.  This is a little different from the above; these
+   specify the actual conversion to perform 
+
+   These are not the final forms, since we'll eventually want to allow
+   forms that do swap-and-extend etc., but for now, these are ok.
+ */
+#define MPIR_MSGFORM_XDR 2
+#define MPIR_MSGFORM_SWAP 1
+#define MPIR_MSGFORM_OK 0
 
 /*
    These macros allow inlining of some common cases
@@ -423,6 +459,9 @@ typedef char *MPID_FCHAR_T;
 	      MPID_Clr_completed( MPID_Ctx(request), request );\
 	      MPID_Reuse_send_handle( (request)->shandle.comm->ADIctx, \
 				      &(request)->shandle.dev_shandle );}
+
+#ifdef FOO
+
 /* 
    Standardized error testing
 
@@ -468,6 +507,7 @@ typedef char *MPID_FCHAR_T;
 #define MPIR_TEST_COOKIE(val,value) 
 #endif
 
+
 #define MPIR_TEST_SEND_TAG(comm,tag) \
     ( ((tag) < 0 ) && (mpi_errno = MPI_ERR_TAG ))
     /* This requires MPI_ANY_TAG == -1 */
@@ -494,14 +534,22 @@ typedef char *MPID_FCHAR_T;
 #define MPIR_TEST_REQUEST(comm,request) \
  ( (!(request) MPIR_TEST_COOKIE(&((request)->chandle),MPIR_REQUEST_COOKIE)) \
      && (mpi_errno = MPI_ERR_REQUEST))
+
+#ifdef MPIR_HAS_COOKIES
 #define MPIR_TEST_IS_DATATYPE(comm,datatype) \
-    ( (!(datatype) MPIR_TEST_COOKIE(datatype,MPIR_DATATYPE_COOKIE)) \
+    ( (!(datatype) || \
+       (!MPIR_TEST_PREDEF_DATATYPE(datatype) && \
+	((datatype)->cookie!=MPIR_DATATYPE_COOKIE))) \
      && (mpi_errno = MPI_ERR_TYPE ))
+#else
+#define MPIR_TEST_IS_DATATYPE(comm,datatype) \
+    ( (!(datatype) ) && (mpi_errno = MPI_ERR_TYPE ))
+#endif
 #define MPIR_TEST_DATATYPE(comm,datatype) \
-    ( ( (!(datatype) MPIR_TEST_COOKIE(datatype,MPIR_DATATYPE_COOKIE)) \
-    && (mpi_errno = MPI_ERR_TYPE )) || \
-  (!(datatype)->committed && \
+    (MPIR_TEST_IS_DATATYPE(comm,datatype) || \
+  (!MPIR_TEST_PREDEF_DATATYPE(datatype) && !(datatype)->committed && \
    (mpi_errno = (MPI_ERR_TYPE | MPIR_ERR_UNCOMMITTED))))
+
 #define MPIR_TEST_ERRHANDLER(comm,errhandler) \
     ( ( (!(errhandler) MPIR_TEST_COOKIE(errhandler,MPIR_ERRHANDLER_COOKIE)) \
        && (mpi_errno = MPI_ERR_ARG )))
@@ -513,8 +561,10 @@ typedef char *MPID_FCHAR_T;
       && (mpi_errno = MPI_ERR_INTERN))
 
 #define MPIR_TEST_ALIAS(b1,b2)      \
-    ( ((b1)==(b2)) && (mpi_errno = (MPI_ERR_BUFFER | MPIR_ERR_BUFFER_ALIAS) ))
+    ( ((b1)==(b2)) && (mpi_errno = MPI_ERR_BUFFER_ALIAS ))
 #define MPIR_TEST_ARG(arg)  (!(arg) && (mpi_errno = MPI_ERR_ARG) )
 #endif 
+
+#endif
 
 #endif

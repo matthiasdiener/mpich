@@ -1,5 +1,5 @@
 /*
- *  $Id: wtime.c,v 1.4 1994/09/21 15:27:28 gropp Exp $
+ *  $Id: wtime.c,v 1.5 1995/12/21 21:58:11 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: wtime.c,v 1.4 1994/09/21 15:27:28 gropp Exp $";
+static char vcid[] = "$Id: wtime.c,v 1.5 1995/12/21 21:58:11 gropp Exp $";
 #endif /* lint */
 #include "mpiimpl.h"
 #include "mpisys.h"
@@ -20,7 +20,10 @@ static char vcid[] = "$Id: wtime.c,v 1.4 1994/09/21 15:27:28 gropp Exp $";
 
   Notes:
   This is intended to be a high-resolution, elapsed (or wall) clock.
-  See MPI_WTICK to determine the resolution of MPI_WTIME.
+  See 'MPI_WTICK' to determine the resolution of 'MPI_WTIME'.
+
+  Notes for Fortran:
+  This is a function, declared as 'DOUBLE PRECISION MPI_WTIME()' in Fortran.
 @*/
 double MPI_Wtime()
 {

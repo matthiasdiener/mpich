@@ -1,4 +1,4 @@
-.TH MPI_Scatterv 3 "6/30/1995" " " "MPI"
+.TH MPI_Scatterv 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Scatterv \- Scatters a buffer in parts to all tasks in a group
 
@@ -6,7 +6,9 @@ MPI_Scatterv \- Scatters a buffer in parts to all tasks in a group
 .PD 0
 .TP
 .B sendbuf 
-- address of send buffer (choice, significant only at root) 
+- address of send buffer (choice, significant only at 
+.I root
+) 
 .PD 1
 .PD 0
 .TP
@@ -18,8 +20,10 @@ specifying the number of elements to send to each processor
 .TP
 .B displs 
 - integer array (of length group size). Entry 
-i  specifies the displacement (relative to sendbuf  from
-which to take the outgoing data to process  i  
+.I i
+specifies the displacement (relative to sendbuf  from
+which to take the outgoing data to process  
+.I i
 .PD 1
 .PD 0
 .TP
@@ -54,6 +58,28 @@ which to take the outgoing data to process  i
 - address of receive buffer (choice) 
 .PD 1
 
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

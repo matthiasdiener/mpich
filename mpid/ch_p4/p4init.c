@@ -7,14 +7,14 @@ int __NUMNODES, __MYPROCID ,__P4LEN,__P4TYPE,__P4FROM,__P4GLOBALTYPE ;extern voi
 
 
 /*
- *  $Id: chinit.c,v 1.37 1995/09/18 21:11:44 gropp Exp $
+ *  $Id: chinit.c,v 1.38 1995/12/21 22:24:16 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chinit.c,v 1.37 1995/09/18 21:11:44 gropp Exp $";
+static char vcid[] = "$Id: chinit.c,v 1.38 1995/12/21 22:24:16 gropp Exp gropp $";
 #endif
 
 /* 
@@ -171,6 +171,8 @@ if (__MYPROCID==0){p4_broadcastx(__P4GLOBALTYPE,argc,sizeof(int),P4INT);}
 else {{char *__p4lbuf=0;__P4LEN=sizeof(int);__P4FROM= -1;__P4TYPE=__P4GLOBALTYPE;p4_recv(&__P4TYPE,&__P4FROM,&__p4lbuf,&__P4LEN);memcpy(argc,__p4lbuf,__P4LEN);p4_msg_free(__p4lbuf);};};
 _narg   = *(argc);
 _arglen = (int *)malloc( _narg * sizeof(int) );
+if (_narg>0 && !_arglen) { 
+    p4_error( "Could not allocate memory for commandline arglen",_narg);}
 if (__MYPROCID==0) {
     for (_i=0; _i<_narg; _i++) 
 	_arglen[_i] = strlen((*(argv ))[_i]) + 1;
@@ -181,6 +183,8 @@ _nlen = 0;
 for (_i=0; _i<_narg; _i++) 
     _nlen += _arglen[_i];
 _argstr = (char *)malloc( _nlen );
+if (_nlen>0 && !_argstr) { 
+    p4_error( "Could not allocate memory for commandline args",_nlen);}
 if (__MYPROCID==0) {
     _p = _argstr;
     for (_i=0; _i<_narg; _i++) {
@@ -192,6 +196,8 @@ if (__MYPROCID==0){p4_broadcastx(__P4GLOBALTYPE,_argstr,_nlen,P4NOX);}
 else {{char *__p4lbuf=0;__P4LEN=_nlen;__P4FROM= -1;__P4TYPE=__P4GLOBALTYPE;p4_recv(&__P4TYPE,&__P4FROM,&__p4lbuf,&__P4LEN);memcpy(_argstr,__p4lbuf,__P4LEN);p4_msg_free(__p4lbuf);};};
 if (__MYPROCID!=0) {
     *(argv ) = (char **) malloc(_nlen * sizeof(char *) );
+    if (_nlen > 0 && !*(argv )) { 
+    p4_error( "Could not allocate memory for commandline argv",_nlen);}
     _p = _argstr;
     for (_i=0; _i<_narg; _i++) {
 	(*(argv ))[_i] = _p;
@@ -279,14 +285,21 @@ sprintf( name, "ADI version %4.2f - transport %s", MPIDPATCHLEVEL,
 }
 
 #ifndef MPID_P4_Wtime
-#if defined(HAVE_GETTIMEOFDAY)
+#if defined(HAVE_GETTIMEOFDAY) || defined(HAVE_WIERDGETTIMEOFDAY)
 #include <sys/types.h>
 #include <sys/time.h>
 #endif
 /* I don't know what the correct includes are for the other versions... */
 double MPID_P4_Wtime()
 {
-#ifdef HAVE_GETTIMEOFDAY
+#if defined(USE_WIERDGETTIMEOFDAY)
+    /* This is for Solaris, where they decided to change the CALLING
+       SEQUENCE OF gettimeofday! */
+    struct timeval tp;
+
+    gettimeofday(&tp);
+    return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
+#elif defined(HAVE_GETTIMEOFDAY)
     struct timeval tp;
     struct timezone tzp;
 
@@ -297,13 +310,6 @@ double MPID_P4_Wtime()
     struct timezone tzp;
 
     BSDgettimeofday(&tp,&tzp);
-    return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
-#elif defined(USE_WIERDGETTIMEOFDAY)
-    /* This is for Solaris, where they decided to change the CALLING
-       SEQUENCE OF gettimeofday! */
-    struct timeval tp;
-
-    gettimeofday(&tp);
     return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
 #else
     return (double)p4_usclock();
@@ -344,6 +350,8 @@ else
     MPID_ErrorHandler = MPID_DefaultErrorHandler;
 }
 
+/* This is the "panic" handler.  Correctable errors should be passed on
+   to the user (see MPID_CHK_MSGLEN) */
 void MPID_DefaultErrorHandler( code, str )
 int  code;
 char *str;
@@ -381,7 +389,13 @@ fprintf( stdout, "[%d] short = %d, long = %d, unexpected = %d, ack = %d\n",
 #include <sys/utsname.h>
 #endif
 #if defined(solaris) || defined(HAVE_SYSINFO)
+#if defined(HAVE_SYSTEMINFO_H)
 #include <sys/systeminfo.h>
+#else
+#ifdef HAVE_SYSINFO
+#undef HAVE_SYSINFO
+#endif
+#endif
 #endif
 
 void SY_GetHostName( name, nlen )

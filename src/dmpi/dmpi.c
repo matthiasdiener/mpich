@@ -1,12 +1,12 @@
 /*
- *  $Id: dmpi.c,v 1.31 1995/09/13 21:44:42 gropp Exp $
+ *  $Id: dmpi.c,v 1.33 1996/01/03 19:04:40 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: dmpi.c,v 1.31 1995/09/13 21:44:42 gropp Exp $";
+static char vcid[] = "$Id: dmpi.c,v 1.33 1996/01/03 19:04:40 gropp Exp $";
 #endif /* lint */
 
 /*  dmpi.c - routines in mpir that are called by the device */
@@ -75,32 +75,45 @@ MPIR_RHANDLE      **dmpi_recv_handle;
 }
 
 
-
-
 #ifdef MPID_HAS_HETERO
-/* Returns 2 if the data needs XDR conversion,
-           1 if the data needs byteswapping,
-	   0 if none of the above... 
+/* Returns MPIR_MSGFORM_XDR if the data needs XDR conversion,
+           MPIR_MSGFORM_SWAP if the data needs byteswapping,
+	   MPIR_MSGFORM_OK if none of the above... 
    This is also used for receives, where "dest" is source, and may 
-   be MPI_ANY_SOURCE, in which case the "worst-case" is chosen 
-   (XDR).
+   be MPI_ANY_SOURCE, in which case the "worst-case" for the communicator
+   is chosen (XDR if there is any heterogeneity in the communicator).
 
-   Eventually, there should be a comm argument to this (for PACK) 
-   and a separate Source_needs_conversion (with comm) so that
-   each communicator can store heterogeneity information.
+   dest is the RELATIVE source (i.e., the normal part of the
+   (comm,dest) pair)
 */
-int 
-MPIR_Dest_needs_conversion(dest)
-int dest;
+int MPIR_Dest_needs_conversion(comm,dest)
+MPI_Comm comm;
+int      dest;
 {
-  if (dest < 0) return 2;
+  /* Use the form that matches the communicator (this allows homogenous
+     communicators in an inhomogenous MPI_COMM_WORLD).
+     In this case (sending to an unknown destination, including possibly
+     ourselves), we must use a "sender-side" or "cannonical-form" 
+     representations.  Since we don't yet have "sender-side", choose the
+     cannonical form, which is XDR.
+   */
+  if (dest < 0) {
+      if (comm->msgrep != 0) 
+	  return MPIR_MSGFORM_XDR;
+      return MPIR_MSGFORM_OK;
+      }
+
+  /* We must convert dest to the GLOBAL id */
+  dest = comm->group->lrank_to_grank[dest];
+  /* Now, test the byte ordering */
   if ( (MPID_Dest_byte_order(MPIR_tid) == MPID_H_XDR) ||
        (MPID_Dest_byte_order(dest) == MPID_H_XDR))
-    return 2;
+      return MPIR_MSGFORM_XDR;
   else if (MPID_Dest_byte_order(MPIR_tid) != MPID_Dest_byte_order(dest))
-    return 1;
+      /* Sender will swap in this case */
+      return MPIR_MSGFORM_SWAP;
   else
-    return 0;
+      return MPIR_MSGFORM_OK;
 }
 
 
@@ -109,10 +122,14 @@ MPIR_Comm_needs_conversion(comm)
 MPI_Comm comm;
 {
   int i;
+
+  if (comm->msgrep) return 2;
+#ifdef FOO
   for (i = 0; i < comm->local_group->np; i++) {
-    if (MPIR_Dest_needs_conversion(comm->local_group->lrank_to_grank[i]))
+    if (MPIR_Dest_needs_conversion(comm,comm->local_group->lrank_to_grank[i]))
       return 2;
   }
+#endif
   return 0;
 }
 #endif
@@ -158,53 +175,68 @@ MPI_Request *request;
 {
   register MPIR_SHANDLE *shandle;
   register int mpi_errno = MPI_SUCCESS;
-  int dest_type;
+  int dest_type = 0;
 
   shandle = &(*request)->shandle;
   if (shandle->dest == MPI_PROC_NULL) return mpi_errno;
 
   shandle->active       = 1;
 
-  if (shandle->datatype->is_contig)
-#ifdef MPID_HAS_HETERO
-    if ((MPID_IS_HETERO == 1) &&
-	(dest_type = MPIR_Dest_needs_conversion(shandle->dest))) {
-      /* This is a heterogeneous case - can't send from the user's
-	 buffer because we have to swap or xdr encoded. 
-	 This would be faster if the 
-	 device swapped as it copied, but this is a MPIR level 
-	 heterogeneous implementation. 
-       */
-#ifdef FOO	
-      if (shandle->count > 0 && shandle->bufadd == 0) {
-	  return MPI_ERR_BUFFER;
-	  }
-      shandle->dev_shandle.bytes_as_contig =
-	  MPIR_Mem_convert_len( dest_type, shandle->datatype, shandle->count );
-      shandle->bufpos = (char *)MALLOC(shandle->dev_shandle.bytes_as_contig);
+/* 
+  Even though there is some overlap in the code, it is clearer to have 
+  separate heterogeneous and uniform sections.
+ */
 
-      shandle->dev_shandle.start = shandle->bufpos;
-      /* Should check that the result len is not larger than allocated! */
-      shandle->dev_shandle.bytes_as_contig = 
-	  MPIR_Type_convert_copy( shandle->comm, shandle->dev_shandle.start,
-				 shandle->dev_shandle.bytes_as_contig,
-			     shandle->bufadd, shandle->datatype, 
-			     shandle->count, shandle->dest,
-			     &shandle->msgrep);
-#endif
-    /* Heterogeneous case handled in MPIR_Pack and MPIR_Pack_Hvector */
-    if (mpi_errno = 
-	MPIR_PackMessage(shandle->bufadd, shandle->count, 
-			 shandle->datatype, shandle->dest, *request )) {
-      MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-		 "Could not pack message in MPIR_Send_setup" );
+/* First, packed data.  This is a spacial case, because the data format is
+   that set in comm->msgrep */
+if (shandle->datatype->dte_type == MPIR_PACKED) {
+    shandle->msgrep = shandle->comm->msgrep;
+    shandle->dev_shandle.bytes_as_contig =
+	shandle->count * shandle->datatype->size;
+    if (shandle->dev_shandle.bytes_as_contig > 0 && shandle->bufadd == 0)
+	mpi_errno = MPI_ERR_BUFFER;
+    shandle->dev_shandle.start = shandle->bufadd;
+    shandle->bufpos		 = 0;
+    return mpi_errno;
     }
-    } else 
-#endif
-    {
+
+/*
+ * Handle all of the other datatypes here.
+ */
 #ifdef MPID_HAS_HETERO
-      shandle->msgrep = MPIR_MSGREP_RECEIVER;
-#endif
+  /* Get the dest type if we might be heterogeneous */
+  if (MPID_IS_HETERO == 1)
+      dest_type = MPIR_Dest_needs_conversion(shandle->comm,shandle->dest);
+  
+  if (dest_type || !shandle->datatype->is_contig) {
+      /* We need to do some conversion.  In both the contiguous and
+	 non-contiguous cases, we need to allocate space and call
+	 the packing routines.  
+       */
+      if (mpi_errno = 
+	  MPIR_PackMessage(shandle->bufadd, shandle->count, 
+			   shandle->datatype, shandle->dest, dest_type, 
+			   *request )) {
+	  MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+		     "Could not pack message in MPIR_Send_setup" );
+	  }
+      }
+  else {
+      /* Contiguous and homogeneous */
+      shandle->msgrep = MPIR_MSGREP_RECEIVER; 
+      shandle->dev_shandle.bytes_as_contig =
+	  shandle->count * shandle->datatype->size;
+      if (shandle->dev_shandle.bytes_as_contig > 0 && shandle->bufadd == 0)
+	  mpi_errno = MPI_ERR_BUFFER;
+      shandle->dev_shandle.start = shandle->bufadd;
+      shandle->bufpos		 = 0;
+      }
+#else
+  /* NOT heterogeneous */
+  if (shandle->datatype->is_contig) {
+      /* Contiguous, no conversion form */
+      /* This SHOULD have been handled in the macro that expands into
+	 a call to this routine */
       shandle->dev_shandle.bytes_as_contig =
 	shandle->count * shandle->datatype->size;
       if (shandle->dev_shandle.bytes_as_contig > 0 && shandle->bufadd == 0)
@@ -212,28 +244,20 @@ MPI_Request *request;
       shandle->dev_shandle.start = shandle->bufadd;
       shandle->bufpos		 = 0;
     }
-  else
-#ifdef MPID_PACK_IN_ADVANCE
-  {
-    /* Heterogeneous case handled in MPIR_Pack and MPIR_Pack_Hvector */
-    if (mpi_errno = 
-	MPIR_PackMessage(shandle->bufadd, shandle->count, 
-			 shandle->datatype, shandle->dest, *request )) {
-      MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-		 "Could not pack message in MPIR_Send_setup" );
-    }
-  }
-#else
-  {
-    shandle->dev_shandle.start = 0; /* Heterogeneous case handled in 
-				       get_into_contig for short messages.
-				       This breaks on long messages because
-				       the p4 device passes a -1 for maxlen
-				       to get_from_contig XXX...*/
-  }
-#endif
-  return mpi_errno;
+  else {
+      /* non-contiguous message */
+      /* This used to be conditional on MPID_PACK_IN_ADVANCE */
+      if (mpi_errno = 
+	  MPIR_PackMessage(shandle->bufadd, shandle->count, 
+			   shandle->datatype, shandle->dest, dest_type, 
+			   *request )) {
+	  MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+		     "Could not pack message in MPIR_Send_setup" );
+	  }
+      }
 
+#endif /* MPID_HAS_HETERO */
+  return mpi_errno;
 }
 
 
@@ -260,19 +284,71 @@ MPI_Request *request;
 {
   MPIR_RHANDLE *rhandle;
   int mpi_errno = MPI_SUCCESS;
-  int dest_type;
+  int dest_type = 0;
 
   rhandle = &(*request)->rhandle;
   if (rhandle->source == MPI_PROC_NULL) return mpi_errno;
   rhandle->active       = 1;
 
+  /* Just as for the send setup, we separate the heterogeneous and 
+     homogeneous cases for simplicity.  
+   */
+
   /* Even for contiguous data, if heterogeneous, we may need to 
      allocate a larger buffer ... */
 
+#if defined(MPID_HAS_HETERO)
+  if (MPID_IS_HETERO == 1)
+      dest_type = MPIR_Dest_needs_conversion(rhandle->comm,rhandle->source);
+  if (dest_type || !rhandle->datatype->is_contig) {
+      /* This is OK but not optimal, as this will use MPI_Pack_size
+	 to allocate the buffer; pack_size will use the most
+	 pessimistic value */
+      if (mpi_errno = 
+	  MPIR_SetupUnPackMessage( rhandle->bufadd, rhandle->count, 
+				   rhandle->datatype, rhandle->source, 
+				   *request )) {
+	  MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+	     "Could not setup unpack area for message in MPIR_Receive_setup" );
+	  }
+      }
+  else {
+      /* Contiguous and homogeneous */
+      rhandle->dev_rhandle.start = rhandle->bufadd;
+      rhandle->dev_rhandle.bytes_as_contig =
+	  rhandle->count * rhandle->datatype->extent;
+      if (rhandle->dev_rhandle.bytes_as_contig > 0 && 
+	  rhandle->bufadd == 0) 
+	  mpi_errno = MPI_ERR_BUFFER;
+      rhandle->bufpos                      = 0;
+      }
+#else
+  if (rhandle->datatype->is_contig) {
+      rhandle->dev_rhandle.start = rhandle->bufadd;
+      rhandle->dev_rhandle.bytes_as_contig =
+	  rhandle->count * rhandle->datatype->extent;
+      if (rhandle->dev_rhandle.bytes_as_contig > 0 && 
+	  rhandle->bufadd == 0) 
+	  mpi_errno = MPI_ERR_BUFFER;
+      rhandle->bufpos                      = 0;
+      }
+  else {
+      /* This used to test for MPID_RETURN_PACKED */
+      if (mpi_errno = 
+	  MPIR_SetupUnPackMessage( rhandle->bufadd, rhandle->count, 
+				   rhandle->datatype, rhandle->source, 
+				   *request )) {
+	  MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+             "Could not setup unpack area for message in MPIR_Receive_setup" );
+	  }
+      }
+#endif
+
+#ifdef FOO
   if (rhandle->datatype->is_contig) {
 #if defined(MPID_HAS_HETERO)
     if (MPID_IS_HETERO == 1 && 
-	(dest_type = MPIR_Dest_needs_conversion(rhandle->source))) {
+     (dest_type = MPIR_Dest_needs_conversion(rhandle->comm,rhandle->source))) {
       /* This is a heterogeneous case - we MAY need a longer buffer, 
 	 depending on whether XDR may be used in this communicator 
 	 and whether the source is known... */
@@ -295,261 +371,7 @@ MPI_Request *request;
 	         rhandle->dev_rhandle.bytes_as_contig, rhandle->count ); */
     } else 
 #endif
-    {
-    rhandle->dev_rhandle.start = rhandle->bufadd;
-    rhandle->dev_rhandle.bytes_as_contig =
-      rhandle->count * rhandle->datatype->extent;
-    if (rhandle->dev_rhandle.bytes_as_contig > 0 && 
-	rhandle->bufadd == 0) 
-	mpi_errno = MPI_ERR_BUFFER;
-    rhandle->bufpos                      = 0;
-    }
-    }
-#ifdef MPID_RETURN_PACKED
-    /* This will also need to know how to handle heterogeneous 
-       communications */
-  else {
-    if (mpi_errno = 
-	MPIR_SetupUnPackMessage( rhandle->bufadd, rhandle->count, 
-				rhandle->datatype, rhandle->source, 
-				*request )) {
-      MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-		 "Could not pack message in MPIR_Receive_setup" );
-    }
-  }
-#else
-  else 
-    rhandle->dev_rhandle.start = 0;
 #endif
 
   return mpi_errno;
 }
-
-#if 0
-/*
-   This is drawn directly from the code in src/pt2pt/unpack; both should be
-   modified together.
- */
-int MPIR_PrintDatatype ( fp, count, type, in_offset, out_offset )
-FILE         *fp;
-int          count;
-MPI_Datatype type;
-int          in_offset, out_offset;
-{
-  int i,j,k;
-  int pad = 0;
-  int mpi_errno = MPI_SUCCESS;
-  int tmp_offset;
-
-  if (in_offset == 0 && out_offset == 0) 
-      fprintf( fp, "Commands to unpack datatype:\n" );
-  /* Unpack contiguous data */
-  if (type->is_contig) {
-      fprintf( fp, "Contiguous type:" );
-      fprintf( fp, " Copy %d <- %d for %d bytes\n", out_offset, in_offset,
-	       type->size * count );
-      return mpi_errno;
-      }
-
-  /* For each of the count arguments, unpack data */
-  switch (type->dte_type) {
-
-  /* Contiguous types */
-  case MPIR_CONTIG:
-        fprintf( fp, "MPIR_CONTIG:\n" );
-	mpi_errno = MPIR_PrintDatatype ( fp, count * type->count, 
-					 type->old_type, 
-					 in_offset, out_offset );
-	break;
-
-  /* Vector types */
-  case MPIR_VECTOR:
-  case MPIR_HVECTOR:
-	fprintf( fp, "MPIR_(H)VECTOR:\n" );
-	if (count > 1)
-	  pad = (type->align - (type->size % type->align)) % type->align;
-	tmp_offset = out_offset;
-	for (i=0; i<count; i++) {
-	  out_offset = tmp_offset;
-	  for (j=0; j<type->count; j++) {
-		if (mpi_errno = MPIR_PrintDatatype ( fp, type->blocklen, 
-					 type->old_type, 
-				       in_offset, out_offset )) 
-		    return mpi_errno;
-		out_offset  += (type->stride);
-		if ((j+1) != type->count)
-		  in_offset += 
-		      ((type->blocklen * type->old_type->size) + type->pad);
-	  }
-	  in_offset += ((type->blocklen * type->old_type->size) + pad);
-	  tmp_offset += type->extent;
-	}
-	break;
-
-  /* Indexed types */
-  case MPIR_INDEXED:
-  case MPIR_HINDEXED:
-	fprintf( fp, "MPIR_(H)INDEXED:\n" );
-	if (count > 1)
-	  pad = (type->align - (type->size % type->align)) % type->align;
-	for (i=0; i<count; i++) {
-	  for (j=0;j<type->count; j++) {
-		tmp_offset  = out_offset + type->indices[j];
-		if (mpi_errno = MPIR_PrintDatatype (fp, type->blocklens[j], 
-					 type->old_type, 
-					 in_offset, tmp_offset)) 
-		    return mpi_errno;
-		if ((j+1) != type->count)
-		  in_offset += 
-		    ((type->blocklens[j]*type->old_type->size)+type->pad);
-	  }
-	  in_offset += ((type->blocklens[j]*type->old_type->size) + pad);
-	  out_offset += type->extent;
-	}
-	break;
-
-  /* Struct type */
-  case MPIR_STRUCT:
-	fprintf( fp, "MPIR_(H)STRUCT:\n" );
-	if (count > 1)
-	  pad = (type->align - (type->size % type->align)) % type->align;
-	for (i=0; i<count; i++) {
-	  for (j=0;j<type->count; j++) {
-		tmp_offset  = out_offset + type->indices[j];
-		if (mpi_errno = MPIR_PrintDatatype( fp, type->blocklens[j],
-					type->old_types[j], 
-				       in_offset, tmp_offset)) 
-		    return mpi_errno;
-		if ((j+1) != type->count)
-		  in_offset += 
-		      ((type->blocklens[j] * type->old_types[j]->size) +
-						 type->pads[j]);
-	  }
-	  in_offset+=((type->blocklens[type->count-1]*
-				   type->old_types[type->count-1]->size)+pad);
-	  out_offset +=type->extent;
-	}
-	break;
-
-  default:
-	mpi_errno = MPI_ERR_TYPE;
-	break;
-  }
-
-  /* Everything fell through, must have been successful */
-  return mpi_errno;
-}
-
-int MPIR_PrintDatatypePack ( fp, count, type, in_offset, out_offset )
-FILE *fp;
-int count;
-MPI_Datatype type;
-int  in_offset, out_offset;
-{
-  int i,j,k;
-  int pad = 0;
-  int mpi_errno = MPI_SUCCESS;
-  int tmp_offset;
-
-  if (in_offset == 0 && out_offset == 0) 
-      fprintf( fp, "Commands to pack datatype:\n" );
-  /* Pack contiguous data */
-
-  /* At this point, if the type is contiguous, it should be
-	 a basic type, so we could pack it with something other
-	 than memcpy */
-	    
-  if (type->is_contig) {
-      fprintf( fp, "Contiguous type:" );
-      fprintf( fp, " Copy %d <- %d for %d bytes\n", out_offset, in_offset,
-	       type->size * count );
-      return mpi_errno;
-  }
-
-
-  /* For each of the count arguments, pack data */
-  switch (type->dte_type) {
-
-  /* Contiguous types */
-  case MPIR_CONTIG:
-        fprintf( fp, "MPIR_CONTIG:\n" );
-	mpi_errno = MPIR_PrintDatatypePack ( fp, count * type->count, 
-					     type->old_type, 
-					     in_offset, out_offset );
-	break;
-
-  /* Vector types */
-  case MPIR_VECTOR:
-  case MPIR_HVECTOR:
-	fprintf( fp, "MPIR_(H)VECTOR:\n" );
-	if (count > 1)
-	  pad = (type->align - (type->size % type->align)) % type->align;
-	tmp_offset = in_offset;
-	for (i=0; i<count; i++) {
-	  in_offset = tmp_offset;
-	  for (j=0; j<type->count; j++) {
-		if (mpi_errno = MPIR_PrintDatatypePack ( fp, type->blocklen, 
-							type->old_type, 
-					       in_offset, out_offset)) break;
-		in_offset  += (type->stride);
-		if ((j+1) != type->count)
-		  out_offset += 
-		      ((type->blocklen * type->old_type->size) + type->pad);
-	  }
-	  out_offset += ((type->blocklen * type->old_type->size) + pad);
-	  tmp_offset += type->extent;
-	}
-	break;
-
-  /* Indexed types */
-  case MPIR_INDEXED:
-  case MPIR_HINDEXED:
-	fprintf( fp, "MPIR_(H)INDEXED:\n" );
-	if (count > 1)
-	  pad = (type->align - (type->size % type->align)) % type->align;
-	for (i=0; i<count; i++) {
-	  for (j=0;j<type->count; j++) {
-		tmp_offset  = in_offset + type->indices[j];
-		if (mpi_errno = MPIR_PrintDatatypePack (fp, 
-							type->blocklens[j], 
-				       type->old_type, 
-						in_offset, out_offset)) break;
-		out_offset += (type->blocklens[j]*type->old_type->size);
-		if ((j+1) != type->count)
-		  in_offset += type->pad;
-	  }
-	  out_offset += pad;
-	  in_offset += type->extent;
-	}
-	break;
-
-  /* Struct type */
-  case MPIR_STRUCT:
-	fprintf( fp, "MPIR_(H)STRUCT:\n" );
-	if (count > 1)
-	  pad = (type->align - (type->size % type->align)) % type->align;
-	for (i=0; i<count; i++) {
-	  for (j=0;j<type->count; j++) {
-		tmp_offset  = in_offset + type->indices[j];
-		if (mpi_errno = MPIR_PrintDatatypePack(fp,type->blocklens[j],
-		      type->old_types[j], in_offset, tmp_offset)) break;
-		if ((j+1) != type->count)
-		  out_offset += ((type->blocklens[j] * 
-				 type->old_types[j]->size) +
-						 type->pads[j]);
-	  }
-	  out_offset+=((type->blocklens[type->count-1]*
-				   type->old_types[type->count-1]->size)+pad);
-	  in_offset +=type->extent;
-	}
-	break;
-
-  default:
-	mpi_errno = MPI_ERR_TYPE;
-	break;
-  }
-
-  /* Everything fell through, must have been successful */
-  return mpi_errno;
-}
-#endif

@@ -58,7 +58,7 @@ extern int MPE_logicArray[];
 
 
 #ifdef MPE_INTERNAL
-#include "tools.h"
+#include "mpetools.h"
 #include "basex11.h"
 
 struct MPE_XGraph_s {
@@ -72,6 +72,18 @@ struct MPE_XGraph_s {
   int      capture_num, 
            capture_cnt, 
            capture_freq;
+  /* 
+     The following are for event-driven input.
+     This simple interface allows an advanced user to always watch for
+     certain events (like keypress) without requiring all code 
+     We also need to define a wait-for-user-event routine 
+
+     The alternative is to have a chain of event handlers; adding one
+     creates a new entry in the chain.  For this, there needs to be
+     an event_routine structure, that has (user routine) and (next).
+   */
+  long     input_mask;          /* Input mask of enabled events */
+  int      (*event_routine)();  /* Routine to call for events */
 };
 typedef struct MPE_XGraph_s *MPE_XGraph;
 #define MPE_G_COOKIE 0xfeeddada

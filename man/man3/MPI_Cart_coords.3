@@ -1,4 +1,4 @@
-.TH MPI_Cart_coords 3 "2/3/1995" " " "MPI"
+.TH MPI_Cart_coords 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Cart_coords \- Determines process coords in cartesian topology given
 rank in group
@@ -12,21 +12,49 @@ rank in group
 .PD 0
 .TP
 .B rank 
-- rank of a process within group of comm (integer) 
+- rank of a process within group of 
+.I comm
+(integer) 
 .PD 1
 .PD 0
 .TP
 .B maxdims 
-- length of vector  coord in the calling program (integer) 
+- length of vector 
+.I coords
+in the calling program (integer) 
 .PD 1
 
 .SH OUTPUT PARAMETER
 .PD 0
 .TP
 .B coords 
-- integer array (of size  ndims ) containing the cartesian coordinates of specified process (integer) 
+- integer array (of size 
+.I ndims
+) containing the cartesian coordinates of specified process (integer) 
 .PD 1
 
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

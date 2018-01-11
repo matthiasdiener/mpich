@@ -1,12 +1,12 @@
 /*
- *  $Id: errfree.c,v 1.6 1994/12/15 16:43:33 gropp Exp $
+ *  $Id: errfree.c,v 1.7 1995/12/21 21:56:51 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: errfree.c,v 1.6 1994/12/15 16:43:33 gropp Exp $";
+static char vcid[] = "$Id: errfree.c,v 1.7 1995/12/21 21:56:51 gropp Exp $";
 #endif
 
 #include "mpiimpl.h"
@@ -16,10 +16,10 @@ static char vcid[] = "$Id: errfree.c,v 1.6 1994/12/15 16:43:33 gropp Exp $";
   MPI_Errhandler_free - Frees an MPI-style errorhandler
 
 Input Parameter:
-. errhandler - MPI error handler (handle).  Set to MPI_ERRHANDLER_NULL on 
+. errhandler - MPI error handler (handle).  Set to 'MPI_ERRHANDLER_NULL' on 
 exit.
 
-
+.N fortran
 @*/
 int MPI_Errhandler_free( errhandler )
 MPI_Errhandler *errhandler;

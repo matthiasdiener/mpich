@@ -1,4 +1,4 @@
-.TH MPI_Graph_neighbors_count 3 "4/23/1995" " " "MPI"
+.TH MPI_Graph_neighbors_count 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Graph_neighbors_count \- Returns the number of neighbors of a node
 associated with a graph topology
@@ -12,7 +12,9 @@ associated with a graph topology
 .PD 0
 .TP
 .B rank 
-- rank of process in group of comm (integer) 
+- rank of process in group of 
+.I comm
+(integer) 
 .PD 1
 
 .SH OUTPUT PARAMETER
@@ -22,6 +24,28 @@ associated with a graph topology
 - number of neighbors of specified process (integer) 
 .PD 1
 
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

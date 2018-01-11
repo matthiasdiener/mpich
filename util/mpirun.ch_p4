@@ -1,7 +1,7 @@
 #! /bin/sh
 #
 if [ -z "$MPIR_HOME" ] ; then 
-    MPIR_HOME=/home/MPI/mpich
+    MPIR_HOME=/home/gropp/mpich
 fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
@@ -49,6 +49,13 @@ fi
 prognamemain=$progname
 if [ -z "$p4pgfile"  ] ; then
     p4pgfile="$PWD_TRIAL/PI$$"
+    echo "Test" > $p4pgfile
+    if [ ! -s $p4pgfile ] ; then
+	# May not be able to write there.  Try the user's home directory
+	p4pgfile=$HOME/PI$$
+    else
+	/bin/rm -rf $p4pgfile
+    fi
     procNum=1
 #    archval=`echo $archuselist | cut -d' ' -f1`
     archval=$archlocal
@@ -97,20 +104,37 @@ fi
 # to start a job.  As a partial fix for this, we do a sync.  It would help,
 # of course, if NFS worked correctly.
 #
-/usr/sbin/sync > /dev/null 2>&1
+/bin/sync > /dev/null 2>&1
 #
 startpgm="eval"
 if [ "$debugger" != "" ] ; then
-    # If gdb has an equivalent, the documentation is well hidden.
-    if [ "$debugger" = "dbx" -a -r $HOME/.dbxinit ] ; then
-	cat $HOME/.dbxinit > $PWD_TRIAL/PId$$
+    dbgfile=$PWD_TRIAL/PId$$
+    echo "Test" > $dbgfile
+    if [ -s $dbgfile ] ; then
+	/bin/rm -f $dbgfile
+    else
+        dbgfile=$HOME/PId$$
     fi
-	cat >> $PWD_TRIAL/PId$$ <<.
-ignore USR1
+    # If gdb has an equivalent, the documentation is well hidden.
+    #  - .gdbinit - and the documentation IS well hidden.  Fortunately,
+    # the .gbdinit file is read; gdb provides the -nx (instead of -x)
+    # command if you don't want to read the default init file.
+    if [ "$debugger" = "dbx" -a -r $HOME/.dbxinit ] ; then
+	cat $HOME/.dbxinit > $dbgfile
+    fi
+# handle USR1 pass for gdb; add an initial break 
+    if [ "$debugger" = "gdb" ] ; then
+	echo "handle USR1 nostop pass" >> $dbgfile
+	eco "br MPI_Init" >> $dbgfile
+    else 
+        echo "ignore USR1" >> $dbgfile
+	echo "stop in MPI_Init" >> $dbgfile
+    fi
+	cat >> $dbgfile <<.
 # Use this command to start your programm:
 run  $cmdLineArgs -p4pg $p4pgfile
 .
-	startpgm="$debugger $progname $commandfile $PWD_TRIAL/PId$$"
+	startpgm="$debugger $progname $commandfile $dbgfile"
 fi
 #
 if [ $just_testing = 1 ] ; then
@@ -123,13 +147,13 @@ if [ $just_testing = 1 ] ; then
 else
   if [ $nolocal = 1 ] ; then
     if [ "$debugger" != "" ] ; then
-	  $rshcmd $machinehead $debugger $commandfile $PWD_TRIAL/PId$$ $prognamemain
+	  $rshcmd $machinehead $debugger $commandfile $dbgfile $prognamemain
     else
 	  $rshcmd $machinehead $prognamemain $cmdLineArgs -p4pg "$p4pgfile"
     fi
   else
     if [ "$debugger" != "" ] ; then
-	    $debugger $commandfile $PWD_TRIAL/PId$$ $prognamemain
+	    $debugger $commandfile $dbgfile $prognamemain
     else
 	    $prognamemain $cmdLineArgs -p4pg "$p4pgfile"
     fi

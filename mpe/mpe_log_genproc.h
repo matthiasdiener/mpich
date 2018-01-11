@@ -159,10 +159,11 @@ typedef struct {
 #endif
 
 static MPE_Log_GenerateHeader _ANSI_ARGS_(( FILE *fp ));
-static MPE_Log_Output _ANSI_ARGS_(( MPE_Log_MBuf *inBuffer, MPE_Log_MBuf
+static void MPE_Log_Output _ANSI_ARGS_(( MPE_Log_MBuf *inBuffer, MPE_Log_MBuf
 				    *outBuffer, int mesgtag, int *srcs,
 				    FILE *fp, int parent ));
-static MPE_Log_FormatRecord _ANSI_ARGS_(( FILE *fp, int procid, int *rec ));
+static void MPE_Log_FormatRecord _ANSI_ARGS_(( FILE *fp, int procid, 
+					       int *rec ));
 static int MPE_Log_ReloadFromData _ANSI_ARGS_(( MPE_Log_MBuf *destBuffer,
 					        int *srcs ));
 static int MPE_Log_ReloadFromChild _ANSI_ARGS_(( MPE_Log_MBuf *destBuffer,
@@ -172,10 +173,10 @@ static int MPE_Log_ReloadFromChildL _ANSI_ARGS_(( MPE_Log_MBuf *b,
 static int MPE_Log_ReloadFromChildR _ANSI_ARGS_(( MPE_Log_MBuf *b,
 						  int *srcs ));
 static MPE_Log_BLOCK *MPE_Log_Sort _ANSI_ARGS_(( MPE_Log_BLOCK *readBlock ));
-static MPE_Log_SetTreeNodes _ANSI_ARGS_(( int procid, int np, int *lchild,
+static void MPE_Log_SetTreeNodes _ANSI_ARGS_(( int procid, int np, int *lchild,
 					  int *rchild, int *parent,
 					  int *am_left ));
 static MPE_Log_ParallelMerge _ANSI_ARGS_(( char *filename ));
-static MPE_Log_GetStatistics _ANSI_ARGS_(( int *nevents, int *ne_types,
+static void MPE_Log_GetStatistics _ANSI_ARGS_(( int *nevents, int *ne_types,
 					   double *startTime,
 					   double *endTime ));

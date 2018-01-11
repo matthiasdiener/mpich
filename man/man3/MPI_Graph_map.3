@@ -1,4 +1,4 @@
-.TH MPI_Graph_map 3 "6/20/1995" " " "MPI"
+.TH MPI_Graph_map 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Graph_map \- Maps process to graph topology information
 
@@ -16,7 +16,8 @@ MPI_Graph_map \- Maps process to graph topology information
 .PD 0
 .TP
 .B index 
-- integer array specifying the graph structure, see  MPI_GRAPH_CREATE 
+- integer array specifying the graph structure, see 
+.I MPI_GRAPH_CREATE
 .PD 1
 .PD 0
 .TP
@@ -28,11 +29,34 @@ MPI_Graph_map \- Maps process to graph topology information
 .PD 0
 .TP
 .B newrank 
-- reordered rank of the calling process; MPI_UNDEFINED if the 
+- reordered rank of the calling process; 
+.I MPI_UNDEFINED
+if the 
 calling process does not belong to graph (integer) 
 .PD 1
 
+.SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
 
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

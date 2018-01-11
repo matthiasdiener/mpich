@@ -1,5 +1,5 @@
 /*
- *  $Id: bsendutil.c,v 1.5 1995/09/13 21:44:04 gropp Exp $
+ *  $Id: bsendutil.c,v 1.6 1996/01/03 19:04:52 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -54,7 +54,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: bsendutil.c,v 1.5 1995/09/13 21:44:04 gropp Exp $";
+static char vcid[] = "$Id: bsendutil.c,v 1.6 1996/01/03 19:04:52 gropp Exp $";
 #endif /* lint */
 
 /* #define DEBUG_BSEND */
@@ -366,7 +366,7 @@ fprintf( stdout, "Could not find %d bytes in buffer\n", size );
 MPIR_BufferPrint();
 #endif                 /* #DEBUG_BSEND_END# */
 DEBUG_PRINT("Exiting MPIR_GetBuffer")
-return MPI_ERR_BUFFER | MPIR_ERR_USER_BUFFER_EXHAUSTED;
+return MPI_ERR_USER_BUFFER_EXHAUSTED;
 }
 
 /* 

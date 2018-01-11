@@ -1,12 +1,12 @@
 /*
- *  $Id: scatterv.c,v 1.24 1995/06/30 13:49:36 gropp Exp $
+ *  $Id: scatterv.c,v 1.25 1995/12/21 22:17:44 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: scatterv.c,v 1.24 1995/06/30 13:49:36 gropp Exp $";
+static char vcid[] = "$Id: scatterv.c,v 1.25 1995/12/21 22:17:44 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -17,12 +17,12 @@ static char vcid[] = "$Id: scatterv.c,v 1.24 1995/06/30 13:49:36 gropp Exp $";
 MPI_Scatterv - Scatters a buffer in parts to all tasks in a group
 
 Input Parameters:
-. sendbuf - address of send buffer (choice, significant only at root) 
+. sendbuf - address of send buffer (choice, significant only at 'root') 
 . sendcounts - integer array (of length group size) 
 specifying the number of elements to send to each processor  
 . displs - integer array (of length group size). Entry 
- i  specifies the displacement (relative to sendbuf  from
-which to take the outgoing data to process  i  
+ 'i'  specifies the displacement (relative to sendbuf  from
+which to take the outgoing data to process  'i' 
 . sendtype - data type of send buffer elements (handle) 
 . recvcount - number of elements in receive buffer (integer) 
 . recvtype - data type of receive buffer elements (handle) 
@@ -32,6 +32,7 @@ which to take the outgoing data to process  i
 Output Parameter:
 . recvbuf - address of receive buffer (choice) 
 
+.N fortran
 @*/
 int MPI_Scatterv ( sendbuf, sendcnts, displs, sendtype, 
                    recvbuf, recvcnt,  recvtype, 

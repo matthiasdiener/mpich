@@ -3,9 +3,6 @@ ALL: default
 
 ARCH        = @ARCH@
 COMM        = @COMM@
-BOPT        = @BOPT@
-P4_DIR      = @P4_DIR@
-TOOLS_DIR   = @TOOLS_DIR@
 MPIR_HOME   = @MPIR_HOME@
 CC          = @CC@
 CLINKER     = @CLINKER@
@@ -38,10 +35,13 @@ LIBS = $(LIB_PATH) $(PROFLIB) $(LIB_LIST)
 FLIBS = $(FLIB_PATH) $(LIB_LIST)
 LIBSPP = $(MPIPPLIB) $(LIBS)
 EXECS = overtake sendrecv isndrcv third fourth fifth sixth hvectest \
-	hvectest2 probe probe1 testtest1 testtypes ssendtest typetest\
+	hvectest2 probe probe1 testtest1 ssendtest typetest\
 	dtypelife issendtest relrank inull typeub irecvtest htmsg \
 	isendtest self sendrecv2 sendrecv3 sendrecv4 persistent waitall \
-	pack bsendtest
+	pack bsendtest typebase irsend testsome getelm testall
+OTHEREXECS = testtypes secondf allpair systest \
+		systest1 allpair2 bsendtest nbtest nblock \
+	        structf typebasef
 default: $(EXECS)
 
 #
@@ -53,7 +53,7 @@ linktest: overtake secondf clean
 
 all: testing
 
-fortran_tests: secondf allpair allpair2 structf
+fortran_tests: secondf allpair allpair2 structf typebasef
 
 overtake: overtake.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o overtake overtake.o test.o $(LIBS)
@@ -82,6 +82,21 @@ sendrecv4: sendrecv4.o dtypes.o gcomm.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o sendrecv4 sendrecv4.o dtypes.o gcomm.o \
 		 $(LIBS)
 
+irsend: irsend.o dtypes.o gcomm.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o irsend irsend.o dtypes.o gcomm.o \
+		 $(LIBS)
+
+testsome: testsome.o dtypes.o gcomm.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o testsome testsome.o dtypes.o gcomm.o \
+		 $(LIBS)
+
+testall: testall.o dtypes.o gcomm.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o testall testall.o dtypes.o gcomm.o \
+		 $(LIBS)
+
+getelm: getelm.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o getelm getelm.o $(LIBS)
+
 self: self.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o self self.o test.o $(LIBS)
 
@@ -96,6 +111,9 @@ inull: inull.o test.o $(MPILIB)
 
 typetest: typetest.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o typetest typetest.o test.o $(LIBS)
+
+typebase: typebase.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o typebase typebase.o $(LIBS)
 
 ssendtest: ssendtest.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o ssendtest ssendtest.o test.o $(LIBS)
@@ -165,6 +183,8 @@ allpair2: mpif.h allpair2.o
 	$(FLINKER) $(OPTFLAGS) -o allpair2 allpair2.o $(FLIBS)
 structf: mpif.h structf.o
 	$(FLINKER) $(OPTFLAGS) -o structf structf.o $(FLIBS)
+typebasef: mpif.h typebasef.o
+	$(FLINKER) $(OPTFLAGS) -o typebasef typebasef.o $(FLIBS)
 
 #
 # Some systems have no test for a symbolic link and return false for
@@ -178,9 +198,7 @@ mpif.h: $(MPIR_HOME)/include/mpif.h
 #
 # Make sure that we remove executables for specific architectures
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) *.out secondf allpair core systest \
-		systest1 allpair2 bsendtest pt2pt.diff nbtest nblock \
-	        structf
+	/bin/rm -f *.o *~ PI* $(EXECS) *.out core pt2pt.diff $(OTHEREXECS)
 	for file in $(EXECS) Makefile ; do \
 	   /bin/rm -f $$file.sun4 $$file.alpha $$file.IRIX $$file.freebsd ;\
 	done

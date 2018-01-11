@@ -1,5 +1,5 @@
 /*
- *  $Id: global_ops.c,v 1.32 1995/08/11 00:20:08 gropp Exp $
+ *  $Id: global_ops.c,v 1.33 1995/12/21 22:17:08 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: global_ops.c,v 1.32 1995/08/11 00:20:08 gropp Exp $";
+static char vcid[] = "$Id: global_ops.c,v 1.33 1995/12/21 22:17:08 gropp Exp $";
 #endif /* lint */
 
 
@@ -37,8 +37,10 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
+  MPI_Datatype dtype = *type;
+  MPIR_GET_REAL_DATATYPE(dtype)
 
-  switch ((*type)->dte_type) {
+  switch ((dtype)->dte_type) {
   case MPIR_INT: {
     int *a = (int *)inoutvec; int *b = (int *)invec;
     for ( i=0; i<len; i++ )
@@ -113,8 +115,10 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
+  MPI_Datatype dtype = *type;
+  MPIR_GET_REAL_DATATYPE(dtype)
 
-  switch ((*type)->dte_type) {
+  switch ((dtype)->dte_type) {
   case MPIR_INT: {
     int *a = (int *)inoutvec; int *b = (int *)invec;
     for ( i=0; i<len; i++ )
@@ -191,8 +195,10 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
+  MPI_Datatype dtype = *type;
+  MPIR_GET_REAL_DATATYPE(dtype)
 
-  switch ((*type)->dte_type) {
+  switch ((dtype)->dte_type) {
   case MPIR_INT: {
     int *a = (int *)inoutvec; int *b = (int *)invec;
     for ( i=0; i<len; i++ )
@@ -284,8 +290,10 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
+  MPI_Datatype dtype = *type;
+  MPIR_GET_REAL_DATATYPE(dtype)
 
-  switch ((*type)->dte_type) {
+  switch ((dtype)->dte_type) {
   case MPIR_INT: {
     int *a = (int *)inoutvec; int *b = (int *)invec;
     for ( i=0; i<len; i++ )
@@ -383,8 +391,10 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
+  MPI_Datatype dtype = *type;
+  MPIR_GET_REAL_DATATYPE(dtype)
 
-  switch ((*type)->dte_type) {
+  switch ((dtype)->dte_type) {
   case MPIR_INT: {
     int *a = (int *)inoutvec; int *b = (int *)invec;
     for ( i=0; i<len; i++ )
@@ -471,8 +481,10 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
+  MPI_Datatype dtype = *type;
+  MPIR_GET_REAL_DATATYPE(dtype)
 
-  switch ((*type)->dte_type) {
+  switch ((dtype)->dte_type) {
   case MPIR_LOGICAL: {
     MPIR_FORT_INT_T *a = (MPIR_FORT_INT_T *)inoutvec; 
     MPIR_FORT_INT_T *b = (MPIR_FORT_INT_T *)invec;
@@ -543,8 +555,10 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
+  MPI_Datatype dtype = *type;
+  MPIR_GET_REAL_DATATYPE(dtype)
 
-  switch ((*type)->dte_type) {
+  switch ((dtype)->dte_type) {
   case MPIR_INT: {
     int *a = (int *)inoutvec; int *b = (int *)invec;
     for ( i=0; i<len; i++ )
@@ -630,8 +644,10 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
+  MPI_Datatype dtype = *type;
+  MPIR_GET_REAL_DATATYPE(dtype)
 
-  switch ((*type)->dte_type) {
+  switch ((dtype)->dte_type) {
   case MPIR_LOGICAL: {
     MPIR_FORT_INT_T *a = (MPIR_FORT_INT_T *)inoutvec; 
     MPIR_FORT_INT_T *b = (MPIR_FORT_INT_T *)invec;
@@ -702,8 +718,10 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
+  MPI_Datatype dtype = *type;
+  MPIR_GET_REAL_DATATYPE(dtype)
 
-  switch ((*type)->dte_type) {
+  switch ((dtype)->dte_type) {
   case MPIR_INT: {
     int *a = (int *)inoutvec; int *b = (int *)invec;
     for ( i=0; i<len; i++ )
@@ -790,8 +808,10 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
+  MPI_Datatype dtype = *type;
+  MPIR_GET_REAL_DATATYPE(dtype)
 
-  switch ((*type)->dte_type) {
+  switch ((dtype)->dte_type) {
   case MPIR_LOGICAL: {
     MPIR_FORT_INT_T *a = (MPIR_FORT_INT_T *)inoutvec; 
     MPIR_FORT_INT_T *b = (MPIR_FORT_INT_T *)invec;
@@ -894,11 +914,13 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
+  MPI_Datatype dtype = *type;
+  MPIR_GET_REAL_DATATYPE(dtype)
 
   if ((*type)->dte_type == MPIR_STRUCT) {
     /* Perform the operation based on the type of the first type in */
     /* struct */
-    switch ((*type)->old_types[0]->dte_type) {
+    switch ((dtype)->old_types[0]->dte_type) {
     case MPIR_INT: {
       MPIR_2int_loctype *a = (MPIR_2int_loctype *)inoutvec;
       MPIR_2int_loctype *b = (MPIR_2int_loctype *)invec;
@@ -987,15 +1009,15 @@ MPI_Datatype *type;
   }
 
   /* Some types are defined as contiguous with 2 elements */
-  else if ((*type)->dte_type == MPIR_CONTIG && ((*type)->count == 2)) {
+  else if ((dtype)->dte_type == MPIR_CONTIG && ((dtype)->count == 2)) {
       
-    MPI_Datatype dtype = (*type)->old_type;
+    MPI_Datatype oldtype = (dtype)->old_type;
 
     /* Set the actual length */
-    len = len * (*type)->count;
+    len = len * (dtype)->count;
 
     /* Perform the operation */
-    switch (dtype->dte_type) {
+    switch (oldtype->dte_type) {
     case MPIR_INT: {
       int *a = (int *)inoutvec; int *b = (int *)invec;
       for ( i=0; i<len; i+=2 ) {
@@ -1090,11 +1112,13 @@ int  *Len;
 MPI_Datatype *type;
 {
   int i, len = *Len;
+  MPI_Datatype dtype = *type;
+  MPIR_GET_REAL_DATATYPE(dtype)
 
-  if ((*type)->dte_type == MPIR_STRUCT) {
+  if ((dtype)->dte_type == MPIR_STRUCT) {
     /* Perform the operation based on the type of the first type in */
     /* struct */
-    switch ((*type)->old_types[0]->dte_type) {
+    switch ((dtype)->old_types[0]->dte_type) {
     case MPIR_INT: {
       MPIR_2int_loctype *a = (MPIR_2int_loctype *)inoutvec;
       MPIR_2int_loctype *b = (MPIR_2int_loctype *)invec;
@@ -1181,15 +1205,15 @@ MPI_Datatype *type;
                  "MINLOC operation not supported on type");
     }
   }
-  else if ((*type)->dte_type == MPIR_CONTIG && ((*type)->count == 2)) {
+  else if ((dtype)->dte_type == MPIR_CONTIG && ((dtype)->count == 2)) {
 
-    MPI_Datatype dtype = (*type)->old_type;
+    MPI_Datatype oldtype = (dtype)->old_type;
 
     /* Set the actual length */
-    len = len * (*type)->count;
+    len = len * (dtype)->count;
 
     /* Perform the operation */
-    switch (dtype->dte_type) {
+    switch (oldtype->dte_type) {
     case MPIR_INT: {
       int *a = (int *)inoutvec; int *b = (int *)invec;
       for ( i=0; i<len; i+=2 ) {

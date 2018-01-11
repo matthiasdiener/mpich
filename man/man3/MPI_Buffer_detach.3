@@ -1,4 +1,4 @@
-.TH MPI_Buffer_detach 3 "5/9/1995" " " "MPI"
+.TH MPI_Buffer_detach 3 "12/21/1995" " " "MPI"
 .SH NAME
 MPI_Buffer_detach \- Removes an existing buffer (for use in MPI_Bsend etc)
 
@@ -15,40 +15,62 @@ MPI_Buffer_detach \- Removes an existing buffer (for use in MPI_Bsend etc)
 .PD 1
 
 .SH NOTES
-The reason that MPI_Buffer_detach returns the address and size of the
+The reason that 
+.I MPI_Buffer_detach
+returns the address and size of the
 buffer being detached is to allow nested libraries to replace and restore
 the buffer.  For example, consider
 
-.br
-   int size, mysize, idummy;
-.br
-   void *ptr, *myptr, *dummy;     
-.br
-   MPI_Buffer_detach( &ptr, &size );
-.br
-   MPI_Buffer_attach( myptr, mysize );
-.br
-   ...
-.br
-   ... library code ...
-.br
-   ...
-.br
-   MPI_Buffer_detach( &dummy, &idummy );
-.br
-   MPI_Buffer_attach( ptr, size );
-.br
+.nf
+    int size, mysize, idummy;
+    void *ptr, *myptr, *dummy;     
+    MPI_Buffer_detach( &ptr, &size );
+    MPI_Buffer_attach( myptr, mysize );
+    ...
+    ... library code ...
+    ...
+    MPI_Buffer_detach( &dummy, &idummy );
+    MPI_Buffer_attach( ptr, size );
+.fi
+
+
 This is much like the action of the Unix signal routine and has the same
-strengths (its simple) and weaknesses (it only works for nested usages).
+strengths (it is simple) and weaknesses (it only works for nested usages).
 
 .SH NOTES FOR FORTRAN
+All MPI routines in Fortran (except for 
+.I MPI_WTIME
+and 
+.I MPI_WTICK
+) have
+an additional argument 
+.I ierr
+at the end of the argument list.  
+.I ierr
+is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+.I call
+statement.
+
+All MPI objects (e.g., 
+.I MPI_Datatype
+, 
+.I MPI_Comm
+) are of type 
+.I INTEGER
+in Fortran.
+
 The Fortran binding for this routine is different.  Because Fortran
 does not have pointers, it is impossible to provide a way to use the
 output of this routine to exchange buffers.  In this case, only the
 size field is set.
 
 .SH NOTES FOR C
-Even though the 'bufferptr' arguement is declared as 'void *', it is
+Even though the 
+.I bufferptr
+argument is declared as 
+.I void *
+, it is
 really the address of a void pointer.  See the rationale in the
 standard for more details.
 .SH SYNOPSIS

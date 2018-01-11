@@ -1,12 +1,12 @@
 /*
- *  $Id: pcontrol.c,v 1.5 1994/07/13 15:51:04 lusk Exp $
+ *  $Id: pcontrol.c,v 1.6 1995/12/21 22:19:43 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: pcontrol.c,v 1.5 1994/07/13 15:51:04 lusk Exp $";
+static char vcid[] = "$Id: pcontrol.c,v 1.6 1995/12/21 22:19:43 gropp Exp $";
 #endif
 
 #include "mpiimpl.h"
@@ -25,8 +25,10 @@ return MPI_SUCCESS;
 
   Notes:
   This routine provides a common interface for profiling control.  The
-  interpretation of "level" and any other arguments is left to the
+  interpretation of 'level' and any other arguments is left to the
   profiling library.
+
+.N fortran
 @*/
 int MPI_Pcontrol( level )
 int level;
