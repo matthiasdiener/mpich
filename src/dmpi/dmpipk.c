@@ -1,12 +1,12 @@
 /*
- *  $Id: dmpipk.c,v 1.13 1994/12/11 16:52:34 gropp Exp $
+ *  $Id: dmpipk.c,v 1.14 1994/12/15 17:26:35 gropp Exp $
  *
  *  (C) 1994 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: dmpipk.c,v 1.13 1994/12/11 16:52:34 gropp Exp $";
+static char vcid[] = "$Id: dmpipk.c,v 1.14 1994/12/15 17:26:35 gropp Exp $";
 #endif
 
 #include "mpiimpl.h"
@@ -129,7 +129,7 @@ MPI_Datatype datatype;
 MPI_Request request;
 {
   int size;
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
   
   if (!datatype->committed) 
     return MPI_ERR_TYPE | MPIR_ERR_UNCOMMITTED;
@@ -157,21 +157,21 @@ MPI_Request request;
     request->shandle.dev_shandle.start		 = request->chandle.bufpos;
     request->shandle.dev_shandle.bytes_as_contig = count * datatype->size;
     if (request->shandle.dev_shandle.bytes_as_contig > 0 && 
-	request->chandle.bufpos == 0) errno = MPI_ERR_BUFFER;
-    return errno;
+	request->chandle.bufpos == 0) mpi_errno = MPI_ERR_BUFFER;
+    return mpi_errno;
     }
   else {
     /* Use the generic pack routine */
     MPIR_Pack_size( count, datatype, MPI_COMM_WORLD, &size );
     if (size == 0) {
 	request->chandle.bufpos = 0;
-	return errno;
+	return mpi_errno;
 	}
     request->chandle.bufpos = (char *)MALLOC( size );
     if (!request->chandle.bufpos) {
 	return MPI_ERR_EXHAUSTED;
 	}
-    errno = MPIR_Pack( request->chandle.comm, buf, count, datatype, 
+    mpi_errno = MPIR_Pack( request->chandle.comm, buf, count, datatype, 
 	      request->chandle.bufpos );
 #ifdef MPID_HAS_HETERO
     if ((MPID_IS_HETERO == 1) &&
@@ -184,7 +184,7 @@ MPI_Request request;
     request->shandle.datatype			 = MPI_PACKED;
     request->shandle.dev_shandle.start		 = request->chandle.bufpos;
     request->shandle.dev_shandle.bytes_as_contig = size;
-    return errno;
+    return mpi_errno;
   }
 /* return MPI_ERR_INTERN; */
 }
@@ -226,17 +226,18 @@ int  count, source;
 MPI_Datatype datatype;
 MPI_Request request;
 {
-int errno = MPI_SUCCESS;
+int mpi_errno = MPI_SUCCESS;
 if (datatype->dte_type == MPIR_HVECTOR && datatype->old_type->is_contig) {
     MPIR_UnPack_Hvector( request->chandle.bufpos, count, datatype, 
 			 source, buf );
     FREE( request->chandle.bufpos );
-    return errno;
+    return mpi_errno;
     }
 else {
     /* Use generic unpack */
-    if (errno = MPIR_Unpack( buf, count, datatype, request->chandle.bufpos ))
-	return errno;
+    if (mpi_errno = MPIR_Unpack( buf, count, datatype, 
+				 request->chandle.bufpos ))
+	return mpi_errno;
     FREE( request->chandle.bufpos );
     return MPI_SUCCESS;
     }

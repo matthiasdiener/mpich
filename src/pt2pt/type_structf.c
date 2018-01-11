@@ -41,7 +41,7 @@ MPI_Datatype  old_types[];
 MPI_Datatype *newtype;
 int *__ierr;
 {
-MPI_Datatype lnewtype;
+MPI_Datatype lnewtype = 0;
 #ifdef POINTER_64_BITS
 MPI_Datatype  *old;
 int           i;

@@ -19,6 +19,8 @@ else if (-e /bin/uname) then
 	set LARCH = "hpux"
     else if ("$LARCH" == "IRIX64") then
 	set LARCH = "IRIX"
+    else if ("$LARCH" == "Linux") then
+        true
     else if ("$LARCH" != "IRIX") then 
         set LARCH = `/bin/uname -m`
     endif
@@ -27,7 +29,9 @@ else if (-e /usr/local/bin/arch) then
 else
     set LARCH = "unknown"
 endif
-if ("$LARCH" == "sun4") then
+set SunOSTest = `expr "$LARCH" : "\(....\)"`
+if ("$SunOSTest" == "sun4") then
+  set LARCH = sun4
   set Version = `/bin/uname -r`
   # In "improving" SunOS, the useful feature of "substr" was withdrawn 
   # from expr.  Can't let the users have life too easy, can we?  This 

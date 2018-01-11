@@ -183,12 +183,17 @@ eventData *data;
   int proc, def;
 
   ListDestroy( data->list, eventInfo );
-  ListDestroy( data->idx, int );
-  for (proc=0; proc < data->np; proc++) {
-    ListDestroy( data->idx_proc[proc], int );
-  }
-  free( data->idx_proc );
 
+    /* if we were done adding, free the indices */
+  if (data->idx) {
+    ListDestroy( data->idx, int );
+    for (proc=0; proc < data->np; proc++) {
+      ListDestroy( data->idx_proc[proc], int );
+    }
+    free( data->idx_proc );
+  }
+
+    /* free event definitions */
   for (def = 0; def < ListSize( data->defs.list, eventDefInfo ); def++) {
     free( ListItem( data->defs.list, eventDefInfo, def ).name );
   }
@@ -220,7 +225,7 @@ eventData *event_data;
 }
 
 static int Compare( a, b )
-#if !defined(sparc) || defined(__STDC__)
+#if !(defined(sparc) || defined(hpux)) || defined(__STDC__)
 const
 #endif
 void *a, *b;

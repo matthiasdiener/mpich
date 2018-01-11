@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_delval.c,v 1.15 1994/08/12 20:39:31 gropp Exp $
+ *  $Id: attr_delval.c,v 1.16 1994/12/15 16:20:25 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -22,7 +22,7 @@ int      keyval;
 {
   MPIR_HBT_node *attr;
   MPIR_Attr_key *attr_key;
-  int            errno    = MPI_SUCCESS;
+  int            mpi_errno    = MPI_SUCCESS;
 
 #ifdef INT_LT_POINTER
   attr_key = (MPIR_Attr_key *)MPIR_ToPointer( keyval );
@@ -31,8 +31,8 @@ int      keyval;
 #endif
   
   if ( MPIR_TEST_COMM(comm,comm) ||
-	   ( (keyval == MPI_KEYVAL_INVALID) && (errno = MPI_ERR_OTHER) ) )
-	return MPIR_ERROR(comm, errno, "Error in MPI_ATTR_DELETE");
+	   ( (keyval == MPI_KEYVAL_INVALID) && (mpi_errno = MPI_ERR_OTHER) ) )
+	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_ATTR_DELETE");
 
   if (comm == MPI_COMM_WORLD && attr_key->permanent) 
 	return MPIR_ERROR( comm, MPI_ERR_PERM_KEY, 
@@ -42,10 +42,10 @@ int      keyval;
   if (attr != (MPIR_HBT_node *)0) {
 	if ( attr_key->delete_fn != (int(*)())0 ) {
 	    if (attr_key->FortranCalling) 
-		errno = attr_key->delete_fn(comm, keyval, &attr->value,
+		mpi_errno = attr_key->delete_fn(comm, keyval, &attr->value,
 					    attr_key->extra_state );
 	    else
-		errno = attr_key->delete_fn(comm, keyval, attr->value,
+		mpi_errno = attr_key->delete_fn(comm, keyval, attr->value,
 					    attr_key->extra_state );
 	    }
 	MPIR_HBT_delete(comm->attr_cache, keyval, &attr);
@@ -53,5 +53,5 @@ int      keyval;
 	  (void) MPIR_HBT_free_node ( attr );
   }
 
-  return(errno);
+  return(mpi_errno);
 }

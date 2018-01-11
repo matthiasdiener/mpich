@@ -1,12 +1,12 @@
 /*
- *  $Id: getcount.c,v 1.7 1994/10/24 22:02:45 gropp Exp $
+ *  $Id: getcount.c,v 1.8 1994/12/15 17:10:49 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: getcount.c,v 1.7 1994/10/24 22:02:45 gropp Exp $";
+static char vcid[] = "$Id: getcount.c,v 1.8 1994/12/15 17:10:49 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -27,9 +27,10 @@ MPI_Status   *status;
 MPI_Datatype datatype;
 int          *count;
 {
-  int errno;
+  int mpi_errno;
   if (MPIR_TEST_DATATYPE(MPI_COMM_WORLD,datatype))
-	return MPIR_ERROR( MPI_COMM_WORLD, errno, "Error in MPI_GET_COUNT" );
+	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+			   "Error in MPI_GET_COUNT" );
 
   /* Check for correct number of bytes */
   if ((status->count % (datatype->size)) != 0)

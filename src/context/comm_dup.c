@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_dup.c,v 1.25 1994/10/24 22:03:08 gropp Exp $
+ *  $Id: comm_dup.c,v 1.26 1994/12/15 16:23:43 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -24,12 +24,12 @@ int MPI_Comm_dup ( comm, comm_out )
 MPI_Comm comm, *comm_out;
 {
   MPI_Comm new_comm;
-  int errno;
+  int mpi_errno;
 
   /* Check for non-null communicator */
   if ( MPIR_TEST_COMM(comm,comm) ) {
     (*comm_out) = MPI_COMM_NULL;
-	return MPIR_ERROR( comm, errno, "Error in MPI_COMM_DUP" );
+	return MPIR_ERROR( comm, mpi_errno, "Error in MPI_COMM_DUP" );
   }
 
   /* Duplicate the communicator */

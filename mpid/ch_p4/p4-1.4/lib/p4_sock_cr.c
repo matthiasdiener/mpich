@@ -249,6 +249,9 @@ char *username;
 	    strcpy(remote_shell, "rsh");
 #endif
 
+/* RL - added || defined(RS6000) to get around afs problems.  In earlier
+   versions of AIX we could not use rsh since rsh was the restricted
+   shell, which has been renamed Rsh  */
 #ifdef P4SYSV
 #    if defined(TITAN) || defined(SGI) || defined(SUN_SOLARIS) || defined(RS6000)
 	    strcpy(remote_shell, "rsh");

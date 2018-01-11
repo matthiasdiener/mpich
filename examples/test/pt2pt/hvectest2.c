@@ -1,7 +1,7 @@
 /*
-    hvectest - test program that sends an array of floats from the first 
-             process of a group to the last, using send and recv and the
-	     vector datatype.
+    hvectest2 - test program that sends an array of floats from the first 
+                process of a group to the last, using send and recv and the
+	        struct datatype for variable length vectors
 */
 
 #include "mpi.h"
@@ -51,8 +51,7 @@ char **argv;
 	to     = dest;
 	count  = 10;
 	tag    = 2001;
-	for (i = 0; i < 100; i++)
-	    data[i] = i;
+	SetArray( data, 100 );
 	/* Send a row */
 	MPI_Send( data, count, rowtype, to, tag, MPI_COMM_WORLD );
 #ifdef SHOWMSG
@@ -66,6 +65,8 @@ char **argv;
 	tag   = MPI_ANY_TAG;
 	count = 10;		
 	from  = MPI_ANY_SOURCE;
+	
+	ClearArray( data, 100, -1.0 );
 	MPI_Recv(data, count, MPI_DOUBLE, from, tag, MPI_COMM_WORLD,
 		 &status ); 
 
@@ -93,9 +94,10 @@ char **argv;
 	to     = dest;
 	count  = 10;
 	tag    = 2001;
-	for (i = 0; i < 100; i++)
-	    data[i] = i;
+	SetArray( data, 100 );
 	/* Send a row */
+	/* MPE_Print_datatype_pack_action( stdout, count, 
+	                                   MPI_DOUBLE, 0, 0 ); */
 	MPI_Send( data, count, MPI_DOUBLE, to, tag, MPI_COMM_WORLD );
 #ifdef SHOWMSG
 	printf("%d sent", rank );
@@ -107,8 +109,10 @@ char **argv;
 	tag   = MPI_ANY_TAG;
 	count = 10;		
 	from  = MPI_ANY_SOURCE;
+	ClearArray( data, 100, -1.0 );
 	MPI_Recv(data, count, rowtype, from, tag, MPI_COMM_WORLD,
 		 &status ); 
+	/* MPE_Print_datatype_unpack_action( stdout, count, rowtype, 0, 0 ); */
 
 	st_source = status.MPI_SOURCE;
 	st_tag    = status.MPI_TAG;
@@ -134,8 +138,7 @@ char **argv;
 	to     = dest;
 	count  = 10;
 	tag    = 2001;
-	for (i = 0; i < 100; i++)
-	    data[i] = i;
+	SetArray( data, 100 );
 	/* Send a row */
 	MPI_Send( data, count, rowtype, to, tag, MPI_COMM_WORLD );
 #ifdef SHOWMSG
@@ -148,6 +151,7 @@ char **argv;
 	tag   = MPI_ANY_TAG;
 	count = 10;		
 	from  = MPI_ANY_SOURCE;
+	ClearArray( data, 100, -1.0 );
 	MPI_Recv(data, count, rowtype, from, tag, MPI_COMM_WORLD,
 		 &status ); 
 
@@ -176,8 +180,7 @@ char **argv;
 	to     = dest;
 	count  = 10;
 	tag    = 2001;
-	for (i = 0; i < 100; i++)
-	    data[i] = i;
+	SetArray( data, 100 );
 	/* Send a row */
 	MPI_Isend( data, count, rowtype, to, tag, MPI_COMM_WORLD, &handle );
 	MPI_Wait( &handle, &status );
@@ -192,6 +195,7 @@ char **argv;
 	tag   = MPI_ANY_TAG;
 	count = 10;		
 	from  = MPI_ANY_SOURCE;
+	ClearArray( data, 100, -1.0 );
 	MPI_Irecv(data, count, MPI_DOUBLE, from, tag, MPI_COMM_WORLD,
 		 &handle ); 
 	MPI_Wait( &handle, &status );
@@ -220,8 +224,7 @@ char **argv;
 	to     = dest;
 	count  = 10;
 	tag    = 2001;
-	for (i = 0; i < 100; i++)
-	    data[i] = i;
+	SetArray( data, 100 );
 	/* Send a row */
 	MPI_Isend( data, count, MPI_DOUBLE, to, tag, MPI_COMM_WORLD, 
 		   &handle );
@@ -236,6 +239,7 @@ char **argv;
 	tag   = MPI_ANY_TAG;
 	count = 10;		
 	from  = MPI_ANY_SOURCE;
+	ClearArray( data, 100, -1.0 );
 	MPI_Irecv(data, count, rowtype, from, tag, MPI_COMM_WORLD,
 		 &handle ); 
 	MPI_Wait( &handle, &status );
@@ -264,8 +268,7 @@ char **argv;
 	to     = dest;
 	count  = 10;
 	tag    = 2001;
-	for (i = 0; i < 100; i++)
-	    data[i] = i;
+	SetArray( data, 100 );
 	/* Send a row */
 	MPI_Isend( data, count, rowtype, to, tag, MPI_COMM_WORLD, &handle );
 	MPI_Wait( &handle, &status );
@@ -279,6 +282,7 @@ char **argv;
 	tag   = MPI_ANY_TAG;
 	count = 10;		
 	from  = MPI_ANY_SOURCE;
+	ClearArray( data, 100, -1.0 );
 	MPI_Irecv(data, count, rowtype, from, tag, MPI_COMM_WORLD,
 		 &handle ); 
 	MPI_Wait( &handle, &status );
@@ -309,3 +313,20 @@ char **argv;
     MPI_Type_free( &rowtype );
     MPI_Finalize();
 }
+
+int ClearArray( a, n, v )
+double *a, v;
+int    n;
+{
+int i;
+for (i=0; i<n; i++) a[i] = v;
+}
+
+int SetArray( a, n )
+double *a;
+int    n;
+{
+int i;
+for (i=0; i<n; i++) a[i] = (double)i;
+}
+

@@ -3,7 +3,7 @@
 
 
 /*
- *  $Id: dmch.h,v 1.29 1994/11/08 16:01:02 gropp Exp gropp $
+ *  $Id: dmch.h,v 1.31 1995/01/03 19:41:22 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -43,17 +43,6 @@
    device
  */
 #define MPID_HAS_DEBUG
-#ifdef FOO
-/* 
-   Redefine the names of the async communication types (typedefed in 
-   comm$(COMM).h) so that a Chameleon program can include commmpi.h which
-   includes this file (through the mpi.h file)  
-
-   I'm not sure that this does what I need, but it doesn't hurt.
- */
-#define ASYNCRecvId_t MPIDCH_ASYNCRecvId_t
-#define ASYNCSendId_t MPIDCH_ASYNCSendId_t
-#endif
 
 /* 
    When we compile the device, we want to include all of the device code,
@@ -316,6 +305,7 @@ typedef struct {
 #define MEMCPY(d,s,n) memcpy(d,s,n)
 #endif
 
+extern FILE *MPID_DEBUG_FILE;
 /* End of code included only when building the ADI routines */
 #endif
 

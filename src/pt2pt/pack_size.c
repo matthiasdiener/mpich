@@ -1,5 +1,5 @@
 /*
- *  $Id: pack_size.c,v 1.5 1994/09/21 15:27:01 gropp Exp $
+ *  $Id: pack_size.c,v 1.6 1994/12/15 17:24:33 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: pack_size.c,v 1.5 1994/09/21 15:27:01 gropp Exp $";
+static char vcid[] = "$Id: pack_size.c,v 1.6 1994/12/15 17:24:33 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -32,11 +32,11 @@ MPI_Comm      comm;
 int          *size;
 {
   int pad = 0;
-  int errno;
+  int mpi_errno;
 
   if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_DATATYPE(comm,datatype) || 
       MPIR_TEST_ARG(size))
-      return MPIR_ERROR(comm, errno, "Error in MPI_PACK_SIZE" );
+      return MPIR_ERROR(comm, mpi_errno, "Error in MPI_PACK_SIZE" );
 
 
   /* Figure out size needed to pack type and add the biggest size

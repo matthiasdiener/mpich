@@ -12,6 +12,7 @@ sed -e '/#define DEVICE_CHAMELEON/d' \
 #include <signal.h>%g' ../chameleon/dmch.h > dmmeiko.h
 sed -e 's/MPID_CH/MPID_MEIKO/g' ../chameleon/mpid_bind.h > mpid_bind.h
 sed -e 's/MPID_CH/MPID_MEIKO/g' ../chameleon/packets.h > packets.h
+sed -e 's/MPID_CH/MPID_MEIKO/g' ../chameleon/channel.h > channel.h
 ../chameleon/rmhetero ../chameleon/chevent.c > meikoevent.c
 ../chameleon/rmhetero ../chameleon/chrecv.c  > meikorecv.c
 ../chameleon/rmhetero ../chameleon/chsend.c  > meikosend.c
@@ -21,7 +22,7 @@ sed -e 's/MPID_CH/MPID_MEIKO/g' ../chameleon/packets.h > packets.h
 chmod ug+w *.[ch]
 /home/gropp/tools.n/bin/inlinecomm -main -quiet -meiko meikoinit.c
 for file in meikoevent.c meikorecv.c meikosend.c meikoprobe.c meikosync.c dmmeiko.h \
-	packets.h ; do
+	packets.h channel.h ; do
     /home/gropp/tools.n/bin/inlinecomm -quiet -meiko $file
 done
 #

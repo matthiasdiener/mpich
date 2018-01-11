@@ -207,6 +207,7 @@ SenderTest1()
     AllocateBuffers(bufferspace, BasicTypes, ntypes, maxbufferlen);
     FillBuffers(bufferspace, BasicTypes, ntypes, maxbufferlen);
     for (i = 0; i < ntypes; i++) {
+	MPI_Send( (void *)0, 0, BasicTypes[i], dest, 2000, MPI_COMM_WORLD );
 	for (j = 0; j < maxbufferlen; j += 500)
 	    MPI_Send(bufferspace[i], j, BasicTypes[i], dest, 
 		     2000, MPI_COMM_WORLD);
@@ -226,7 +227,24 @@ ReceiverTest1()
     AllocateBuffers(bufferspace, BasicTypes, ntypes, maxbufferlen);
     for (i = 0; i < ntypes; i++) {
 	passed = 1;
-
+	MPI_Recv( (void *)0, 0, BasicTypes[i], src, 
+		     2000, MPI_COMM_WORLD, &Stat);
+	if (Stat.MPI_SOURCE != src) {
+	    fprintf(stderr, "*** Incorrect Source returned. ***\n");
+	    Test_Failed(message);
+	    passed = 0;
+	} else if (Stat.MPI_TAG != 2000) {	
+	    fprintf(stderr, "*** Incorrect Tag returned. ***\n");	    
+	    Test_Failed(message);
+	    passed = 0;
+	} else if (MPI_Get_count(&Stat, BasicTypes[i], &dummy) ||
+		   dummy != 0) {
+	    fprintf(stderr, 
+		    "*** Incorrect Count returned, Count = %d. ***\n", 
+		    dummy);
+	    Test_Failed(message);
+	    passed = 0;
+	    }
 	/* Try different sized messages */
 	for (j = 0; j < maxbufferlen; j += 500) {
 	    MPI_Recv(bufferspace[i], j, BasicTypes[i], src, 
@@ -346,6 +364,8 @@ ReceiverTest3()
     MPI_Datatype bogus_type = NULL;
     MPI_Status status;
     int myrank;
+    int *tag_ubp;
+    int large_tag, flag, small_tag;
 
     MPI_Errhandler_set(MPI_COMM_WORLD, MPIR_ERRORS_WARN);
 
@@ -377,12 +397,27 @@ count argument, datatype argument, tag, rank, buffer send and buffer recv\n" );
     else
 	Test_Passed("Invalid Type Test");
 
+    small_tag = -1;
+    if (small_tag == MPI_ANY_TAG) small_tag = -2;
     if (MPI_Send(buffer, 20, MPI_INT, dest, 
-		 -1, MPI_COMM_WORLD) == MPI_SUCCESS) {
+		 small_tag, MPI_COMM_WORLD) == MPI_SUCCESS) {
         Test_Failed("Invalid Tag Test");
     }
     else
 	Test_Passed("Invalid Tag Test");
+
+    /* Form a tag that is too large */
+    MPI_Attr_get( MPI_COMM_WORLD, MPI_TAG_UB, (void **)&tag_ubp, &flag );
+    if (!flag) Test_Failed("Could not get tag ub!" );
+    large_tag = *tag_ubp + 1;
+    if (large_tag > *tag_ubp) {
+	if (MPI_Send(buffer, 20, MPI_INT, dest, 
+		     -1, MPI_COMM_WORLD) == MPI_SUCCESS) {
+	    Test_Failed("Invalid Tag Test");
+	    }
+	else
+	    Test_Passed("Invalid Tag Test");
+	}
 
     if (MPI_Send(buffer, 20, MPI_INT, 300,
 		 1, MPI_COMM_WORLD) == MPI_SUCCESS) {

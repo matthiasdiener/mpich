@@ -70,7 +70,7 @@ char *argv[];
 	      {
 		printf("pi is approximately %.16f, Error is %.16f\n",
 		       pi, fabs(pi - PI25DT));
-		endwtime = MPE_Wtime();
+		endwtime = MPI_Wtime();
 		printf("wall clock time = %f\n", endwtime-startwtime);	       
 	      }
 	  }

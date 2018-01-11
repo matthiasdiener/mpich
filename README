@@ -41,6 +41,40 @@ the following steps for installation and minimal testing:
 Much of the following information now appears in the User's Guide.
 
 Status of the model implementation:
+Jan 16, 1995
+1.  Configure now checks for C compilers that can't properly evaluate
+    (a) && (b).  At least our IBM RS6000 xlc compiler can't get this correct,
+    and the internal implementation depends on it.  Unfortunately, as a 
+    result, possibly many sites (including our own!) can no longer build
+    MPICH for the IBM SP1/SP2.  Of course, with the C compiler generating 
+    incorrect code, why you'd want to run on them is an interesting question.
+
+    A second test has been added; IBM compilers with the fix for the first
+    may fail with the second.  (This has prevented us from testing this
+    release on any IBM platform).
+
+2.  Many small fixes to memory usage and the MPI datatype reference counts 
+    (used to know when to recover the space associated with a datatype).
+
+3.  There are routines to print out the action of an MPI datatype in
+    mpe/examine.c .  These are preliminary; comments are welcome.
+
+4.  In mpirun, solaris is now a different architecture from sun4.  Make
+    sure that you have a machines.solaris file (previously, you needed
+    a machines.sun4 file).
+
+Dec 23, 1994
+1.  -p4pg can be supplied to mpirun to override mpirun's construction of 
+    a p4 procgroup file.
+
+2.  See http://www.mcs.anl.gov/home/lusk/mpich/index.html for current status
+    and additional devices.
+
+3.  A preliminary Parix implementation for Parsytec-PowerPC based machines 
+    (Parix 1.3) has been done by another group.  Contact Lutz Laemmer 
+    (laemmer@iib.bauwesen.th-darmstadt.de) for more information.  Currently,
+    this implementation is NOT included with MPICH.
+
 Dec 10
 1.  The -mpedbg and -memdebug options have been added to configure; 
     these can aid in debugging MPI and MPI applications.  -mpedbg works

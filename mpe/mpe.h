@@ -31,12 +31,16 @@ extern "C" {
 
 #endif
 
-#ifdef __STDC__
+#if defined(__STDC__) || defined(__cplusplus)
 void MPE_Seq_begin( MPI_Comm, int );
 void MPE_Seq_end( MPI_Comm, int );
+double MPE_Wtime( void );
+double MPE_Ptime( void );
 #else
 void MPE_Seq_begin( );
 void MPE_Seq_end( );
+double MPE_Wtime( );
+double MPE_Ptime( );
 #endif
 
 #if defined(__cplusplus)

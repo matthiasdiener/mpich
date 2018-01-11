@@ -197,10 +197,10 @@ typedef enum widgCmd {
 
 #ifdef __STDC__
 static int LogOpen( Tcl_Interp*, int argc, char *argv[] );
-#define HELPER_ARGS ( Tcl_Interp *interp, logDataAndFile *log, \
-		      int argc, char *argv[] );
+#define HELPER_ARGS ( Tcl_Interp *interp, logWidget *log, \
+		      int argc, char *argv[] )
 static widgCmd GetCommand( Tcl_Interp*, int argc, char *argv[] );
-static int SimpleInfo ( Tcl_Interp *interp, logDataAndFile *log, \
+static int SimpleInfo ( Tcl_Interp *interp, logWidget *log, \
 		        int argc, char *argv[], widgCmd command );
 #else
 static int LogOpen();
@@ -235,11 +235,11 @@ Tcl_Interp *interp;
 
 
 /* convert string of the form "log%d" to logDataAndFile * */
-logDataAndFile *LogToken2Ptr( interp, str )
+logWidget *LogToken2Ptr( interp, str )
 Tcl_Interp *interp;
 char *str;
 {
-  logDataAndFile *log=0;
+  logWidget *log=0;
 
   if (strncmp( str, "log", 3 ) ||
       !(log = GetTclPtr( atoi( str+3 ) ))) {
@@ -256,7 +256,7 @@ Tcl_Interp *interp;
 int argc;
 char *argv[];
 {
-  logDataAndFile *log;
+  logWidget *log;
   widgCmd command;
 
   if (argc >= 2) {
@@ -395,7 +395,7 @@ int argc;
 char *argv[];
 {
   FILE *fp;
-  logDataAndFile *log;
+  logWidget *log;
   int ptrIdx;
   char ptrStr[30];
 
@@ -416,22 +416,23 @@ char *argv[];
   }
 
     /* allocate space for log data structure */
-  log = (logDataAndFile*) malloc( sizeof *log );
-
-    /* get the format */
-  log->file.format = !strcmp( argv[3], "alog" )
-                           ? alog_format
-                           : unknown_format;
+  if (!(log = (logWidget*) malloc( sizeof( logWidget ) )) ||
+      !(log->data = Log_OpenData()) ||
+      !(log->file = Log_OpenFile( argv[3] ))) {
+    Tcl_SetResult( interp, "Out of memory", TCL_STATIC );
+    return TCL_ERROR;
+  }
 
   ptrIdx = AllocTclPtr( (void *)log );
   sprintf( ptrStr, "log%d", ptrIdx );
 
-  switch (PreProcessLog( argv[2], &log->data, &log->file ) == 0) {
-  case -1:
-    free( log );  /* count on PreProcessLog to free its stuff if it dies */
-    Tcl_AppendResult( interp, argv[2], ": unknown format", (char*)0 );
+  if (-1 == PreProcessLog( argv[2], log->data, log->file )) {
+      /* count on PreProcessLog to free its stuff if it dies */
+    Log_Close( log->data, log->file );
+    free( (void*)log );
+    Tcl_AppendResult( interp, argv[3], ": unknown format", (char*)0 );
     return TCL_ERROR;
-  default:
+  } else {
       /* return string in th form log%d, %d being an index into
          the tclptr array */
     Tcl_SetResult( interp, ptrStr, TCL_VOLATILE );
@@ -442,7 +443,7 @@ char *argv[];
 
 static int LogWrite( interp, log, argc, argv )
 Tcl_Interp *interp;
-logDataAndFile *log;
+logWidget *log;
 int argc;
 char *argv[];
 {
@@ -452,11 +453,11 @@ char *argv[];
 
 static int LogClose( interp, log, argc, argv )
 Tcl_Interp *interp;
-logDataAndFile *log;
+logWidget *log;
 int argc;
 char *argv[];
 {
-  switch (CloseLog( &log->data, &log->file )) {
+  switch (Log_Close( log->data, log->file )) {
   case 0:
     return TCL_OK;
   default:
@@ -469,11 +470,11 @@ char *argv[];
 
 static int LogLoad( interp, log, argc, argv )
 Tcl_Interp *interp;
-logDataAndFile *log;
+logWidget *log;
 int argc;
 char *argv[];
 {
-  switch (ProcessLog( &log->data, &log->file )) {
+  switch (ProcessLog( log->data, log->file )) {
   case 0:
     return TCL_OK;
   default:
@@ -485,7 +486,7 @@ char *argv[];
 
 static int SimpleInfo( interp, log, argc, argv, command )
 Tcl_Interp *interp;
-logDataAndFile *log;
+logWidget *log;
 int argc;
 char *argv[];
 widgCmd command;
@@ -496,7 +497,7 @@ widgCmd command;
 
   if (command==NEVENTS || command==NSTATES || command==NMSGS) {
     /* make sure the logfile has been loaded */
-    if (Log_Loaded( &log->data )) {
+    if (!Log_Loaded( log->data )) {
       Tcl_SetResult( interp, "logfile has not yet been loaded",
 		     TCL_STATIC );
       return TCL_ERROR;
@@ -506,23 +507,24 @@ widgCmd command;
   /* get the integer or double we want, set to 0 if the command is not
      recognized--shouldnt happen */
   if (command == STARTTIME || command == ENDTIME) {
-    time = (command == STARTTIME) ? log->data.starttime : log->data.endtime;
+    time = (command == STARTTIME) ? Log_StartTime( log->data )
+                                  : Log_EndTime( log->data );
     sprintf( buf, "%.6f", time );
   } else {
     num = (command == NP) ?
-            Log_Np( &log->data ) :
+            Log_Np( log->data ) :
 	  (command == NEVENTDEFS) ?
-	    Log_NeventDefs( &log->data ) :
+	    Log_NeventDefs( log->data ) :
           (command == NSTATEDEFS) ?
-	    Log_NstateDefs( &log->data ) :
+	    Log_NstateDefs( log->data ) :
           (command == NMSGDEFS) ?
-	    Log_NmsgDefs( &log->data ) :
+	    Log_NmsgDefs( log->data ) :
 	  (command == NEVENTS) ?
-	    Log_Nevents( &log->data ) :
+	    Log_Nevents( log->data ) :
 	  (command == NSTATES) ?
-	    Log_Nstates( &log->data ) :
+	    Log_Nstates( log->data ) :
           (command == NMSGS) ?
-	    Log_Nmsgs( &log->data ) : -1;
+	    Log_Nmsgs( log->data ) : -1;
     sprintf( buf, "%d", num );
   }
 
@@ -533,7 +535,7 @@ widgCmd command;
 
 static int Get_EventDef( interp, log, argc, argv )
 Tcl_Interp *interp;
-logDataAndFile *log;
+logWidget *log;
 int argc;
 char *argv[];
 {
@@ -542,7 +544,7 @@ char *argv[];
 
 static int Set_EventDef( interp, log, argc, argv )
 Tcl_Interp *interp;
-logDataAndFile *log;
+logWidget *log;
 int argc;
 char *argv[];
 {
@@ -552,7 +554,7 @@ char *argv[];
   /* return a state definition as a list of <name> <color> <bitmap> */
 static int Get_StateDef( interp, log, argc, argv )
 Tcl_Interp *interp;
-logDataAndFile *log;
+logWidget *log;
 int argc;
 char *argv[];
 {
@@ -568,13 +570,13 @@ char *argv[];
 
     /* convert the index given into a string and check the range */
   i = atoi( argv[3] );
-  if (i<0 || i>=Log_NstateDefs( &log->data )) {
+  if (i<0 || i>=Log_NstateDefs( log->data )) {
     Tcl_SetResult( interp, "out of range index to logfile statedef",
 		  TCL_STATIC );
     return TCL_ERROR;
   }
 
-  Log_GetStateDef( &log->data, i, &name, &color, &bitmap );
+  Log_GetStateDef( log->data, i, &name, &color, &bitmap );
   Tcl_AppendElement( interp, name );
   Tcl_AppendElement( interp, color );
   Tcl_AppendElement( interp, bitmap );
@@ -584,7 +586,7 @@ char *argv[];
 
 static int Set_StateDef( interp, log, argc, argv )
 Tcl_Interp *interp;
-logDataAndFile *log;
+logWidget *log;
 int argc;
 char *argv[];
 {
@@ -593,7 +595,7 @@ char *argv[];
 
 static int Get_MsgDef( interp, log, argc, argv )
 Tcl_Interp *interp;
-logDataAndFile *log;
+logWidget *log;
 int argc;
 char *argv[];
 {
@@ -602,7 +604,7 @@ char *argv[];
 
 static int Set_MsgDef( interp, log, argc, argv )
 Tcl_Interp *interp;
-logDataAndFile *log;
+logWidget *log;
 int argc;
 char *argv[];
 {
@@ -611,7 +613,7 @@ char *argv[];
 
 static int Get_Event( interp, log, argc, argv )
 Tcl_Interp *interp;
-logDataAndFile *log;
+logWidget *log;
 int argc;
 char *argv[];
 {
@@ -620,7 +622,7 @@ char *argv[];
 
 static int Get_State( interp, log, argc, argv )
 Tcl_Interp *interp;
-logDataAndFile *log;
+logWidget *log;
 int argc;
 char *argv[];
 {
@@ -635,13 +637,13 @@ char *argv[];
   }
 
   i = atoi( argv[3] );
-  if (i<0 || i>=Log_Nstates( &log->data )) {
+  if (i<0 || i>=Log_Nstates( log->data )) {
     Tcl_SetResult( interp, "out of range index to logfile state",
 		  TCL_STATIC );
     return TCL_ERROR;
   }
 
-  Log_GetState( &log->data, i, &type, &proc, &startTime, &endTime,
+  Log_GetState( log->data, i, &type, &proc, &startTime, &endTime,
 	        &parent, &firstChild, &overlapLevel );
 
   sprintf( interp->result, "%d %d %.17g %.17g %d %d %d",
@@ -652,7 +654,7 @@ char *argv[];
 
 static int Get_Msg( interp, log, argc, argv )
 Tcl_Interp *interp;
-logDataAndFile *log;
+logWidget *log;
 int argc;
 char *argv[];
 {
@@ -661,7 +663,7 @@ char *argv[];
 
 static int Offset( interp, log, argc, argv )
 Tcl_Interp *interp;
-logDataAndFile *log;
+logWidget *log;
 int argc;
 char *argv[];
 {
@@ -670,7 +672,7 @@ char *argv[];
 
 static int Skew( interp, log, argc, argv )
 Tcl_Interp *interp;
-logDataAndFile *log;
+logWidget *log;
 int argc;
 char *argv[];
 {

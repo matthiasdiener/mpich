@@ -9,16 +9,40 @@
 
 #define DEBUG 0
 
+logFile *Log_OpenFile( format )
+char *format;
+{
+  logFile *file;
+
+  file = (logFile*)malloc( sizeof( logFile ) );
+  if (!file) {
+    fprintf( stderr, "Out of memory opening logfile\n" );
+  }
+
+  file->format = !strcmp( format, "alog" )
+    ? alog_format
+    : unknown_format;
+
+  return file;
+}
+
 
 int PreProcessLog( filename, log_data, log_file )
 char *filename;
 logData *log_data;
 logFile *log_file;
 {
-  log_data->loaded = 0;
+  int status;
+
   switch (log_file->format) {
+
   case alog_format:
-    return AlogPreProcessLog( filename, log_data, (alogData *)log_file );
+
+    log_data->is_reading = 1;
+    status = AlogPreProcessLog( filename, log_data, (alogData *)log_file );
+    log_data->is_reading = 0;
+    return status;
+
   case blog_format:
   case old_picl_format:
   case new_picl_format:
@@ -41,11 +65,19 @@ logFile *log_file;
 #if DEBUG
   fprintf( stderr, "Loading file.\n" );
 #endif
-  log_data->loaded = 1;
+
+  int status;
+
 
   switch (log_file->format) {
+
   case alog_format:
-    return AlogProcessLog( log_data, (alogData *)log_file );
+    log_data->is_reading = 1;
+    status = AlogProcessLog( log_data, (alogData *)log_file );
+    log_data->is_reading = 0;
+    log_data->loaded = 1;
+    return status;
+
   case blog_format:
   case old_picl_format:
   case new_picl_format:
@@ -61,13 +93,23 @@ logFile *log_file;
 
 
 
-int CloseLog( log_data, log_file )
+int Log_Close( log_data, log_file )
 logData *log_data;
 logFile *log_file;
 {
+
+    /* if the logfile is in use being read, mark it for deletion. */
+    /* the reading thread should delete it (Log_CloseData()) when it notices */
+  if (log_data->is_reading) {
+    log_data->halt_reading = 1;
+    return 0;
+  }
+
+  Log_CloseData( log_data );
+
   switch (log_file->format) {
   case alog_format:
-    return AlogCloseLog( log_data, (alogData *)log_file );
+    return AlogCloseLog( (alogData *)log_file );
   case blog_format:
   case old_picl_format:
   case new_picl_format:

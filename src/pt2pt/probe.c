@@ -1,5 +1,5 @@
 /*
- *  $Id: probe.c,v 1.12 1994/09/21 15:27:02 gropp Exp $
+ *  $Id: probe.c,v 1.13 1994/12/21 14:30:39 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: probe.c,v 1.12 1994/09/21 15:27:02 gropp Exp $";
+static char vcid[] = "$Id: probe.c,v 1.13 1994/12/21 14:30:39 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -30,10 +30,10 @@ int         tag;
 MPI_Comm    comm;
 MPI_Status  *status;
 {
-    int errno;
+    int mpi_errno;
     if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_RECV_TAG(comm,tag) ||
 	MPIR_TEST_RECV_RANK(comm,source))
-	return MPIR_ERROR( comm, errno, "Error in MPI_PROBE" );
+	return MPIR_ERROR( comm, mpi_errno, "Error in MPI_PROBE" );
 
     MPID_Probe( comm->ADIctx, tag, source, comm->recv_context, status );
     return MPI_SUCCESS;

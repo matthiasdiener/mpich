@@ -37,7 +37,7 @@ MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
 FLIBS = $(FLIB_PATH) $(LIB_LIST)
 LIBS = $(LIB_PATH) $(LIB_LIST) -lm
 LIBSPP = $(MPIPPLIB) $(LIBS)
-EXECS = mpptest goptest
+EXECS = mpptest goptest vectest
 
 default: $(EXECS)
 
@@ -53,8 +53,12 @@ goptest: goptest.o $(OBJS) $(MPILIB) $(MPELIB)
 tunepkt: tunepkt.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o tunepkt tunepkt.o $(LIBS)
 
+vectest: vectest.o
+	$(FLINKER) $(OPTFLAGS) -o vectest vectest.o $(FLIBS)
+
 clean:
-	/bin/rm -f *.o *~ $(EXECS) tunepkt core TAGS
+	/bin/rm -f *.o *~ $(EXECS) tunepkt core TAGS .foo *.gpl \
+	           *.log gop.ps 
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

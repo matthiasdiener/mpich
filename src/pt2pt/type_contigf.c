@@ -38,7 +38,7 @@ MPI_Datatype old_type;
 MPI_Datatype *newtype;
 int *__ierr;
 {
-MPI_Datatype lnewtype;
+MPI_Datatype lnewtype = 0;
 *__ierr = MPI_Type_contiguous(*count,
 	(MPI_Datatype)MPIR_ToPointer( *(int*)(old_type) ),&lnewtype);
 *(int*)newtype = MPIR_FromPointer(lnewtype);

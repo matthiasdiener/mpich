@@ -1,5 +1,5 @@
 /*
- *  $Id: graphdims_get.c,v 1.6 1994/08/10 18:52:29 doss Exp $
+ *  $Id: graphdims_get.c,v 1.7 1994/12/15 17:37:42 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -25,11 +25,12 @@ MPI_Comm  comm;
 int              *nnodes;
 int              *nedges;
 {
-  int errno, flag;
+  int mpi_errno, flag;
   MPIR_TOPOLOGY *topo;
 
   if ( MPIR_TEST_COMM(comm,comm) )
-    return MPIR_ERROR( MPI_COMM_WORLD, errno, "Error in MPI_GRAPHDIMS_GET" );
+    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+		       "Error in MPI_GRAPHDIMS_GET" );
 
   /* Get topology information from the communicator */
   MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );

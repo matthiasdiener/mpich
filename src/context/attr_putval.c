@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_putval.c,v 1.16 1994/08/12 20:39:33 gropp Exp $
+ *  $Id: attr_putval.c,v 1.17 1994/12/21 14:42:31 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -33,7 +33,7 @@ void     *attr_value;
 {
   MPIR_HBT_node *attr;
   MPIR_Attr_key *attr_key;
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
 
 #ifdef INT_LT_POINTER
   attr_key = (MPIR_Attr_key *)MPIR_ToPointer( keyval );
@@ -43,8 +43,8 @@ void     *attr_value;
 
   /* Check for valid arguments */
   if ( MPIR_TEST_COMM(comm,comm) ||
-	   ( (keyval == MPI_KEYVAL_INVALID) && (errno = MPI_ERR_OTHER) ) )
-	return MPIR_ERROR( comm, errno, "Error in MPI_ATTR_PUT" );
+	   ( (keyval == MPI_KEYVAL_INVALID) && (mpi_errno = MPI_ERR_OTHER) ) )
+	return MPIR_ERROR( comm, mpi_errno, "Error in MPI_ATTR_PUT" );
 
   if (comm == MPI_COMM_WORLD && attr_key->permanent) 
 	return MPIR_ERROR( comm, MPI_ERR_PERM_KEY, 
@@ -66,5 +66,5 @@ void     *attr_value;
 	    }
 	attr->value = attr_value;
   }
-  return (errno);
+  return (mpi_errno);
 }

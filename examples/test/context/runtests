@@ -19,5 +19,9 @@ if [ 1 = 1 ] ; then
     echo "END OF FORTRAN TESTS" >> context.out
 fi
 echo '*** Differences from expected output ***'
-diff -b context.out context.std
+/bin/rm -f context.diff
+diff -b context.out context.std >> context.diff
+if [ -s context.diff ] ; then
+    cat context.diff
+fi
 exit 0

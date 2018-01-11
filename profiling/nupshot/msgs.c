@@ -1,4 +1,11 @@
+#if !defined(HAVE_STDLIB_H)
 #include <stdlib.h>
+#else
+#if HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+#endif
+#include <stdio.h>
 #include "msgs.h"
 #include "expandingList.h"
 #include "str_dup.h"
@@ -577,18 +584,28 @@ msgData *data;
 
   ListDestroy( data->defs, msgDefInfo );
   ListDestroy( data->list, msgInfo );
-  for (proc=0; proc < data->np; proc++) {
-    ListDestroy( data->sendq[proc], msgPost );
-    ListDestroy( data->recvq[proc], msgPost );
-    ListDestroy( data->idx_proc_send[proc], int );
-    ListDestroy( data->idx_proc_recv[proc], int );
+
+    /* if data has begun to be added */
+  if (data->sendq) {
+    for (proc=0; proc < data->np; proc++) {
+      ListDestroy( data->sendq[proc], msgPost );
+      ListDestroy( data->recvq[proc], msgPost );
+    }
+    free( data->sendq );
+    free( data->recvq );
   }
-  free( data->sendq );
-  free( data->recvq );
-  free( data->idx_proc_send );
-  free( data->idx_proc_recv );
-  ListDestroy( data->idx_send, int );
-  ListDestroy( data->idx_recv, int );
+
+    /* if the indices ahve been created */
+  if (data->idx_send) {
+    for (proc=0; proc < data->np; proc++) {
+      ListDestroy( data->idx_proc_send[proc], int );
+      ListDestroy( data->idx_proc_recv[proc], int );
+    }
+    free( data->idx_proc_send );
+    free( data->idx_proc_recv );
+    ListDestroy( data->idx_send, int );
+    ListDestroy( data->idx_recv, int );
+  }
 
   free( data );
 

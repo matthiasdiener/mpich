@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_rsize.c,v 1.4 1994/07/13 15:45:57 lusk Exp $
+ *  $Id: comm_rsize.c,v 1.5 1994/12/15 16:38:11 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -24,10 +24,10 @@ int MPI_Comm_remote_size ( comm, size )
 MPI_Comm  comm;
 int      *size;
 {
-  int errno;
+  int mpi_errno;
   if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_ARG(size)) {
     if (size) (*size) = MPI_UNDEFINED;
-    return MPIR_ERROR( MPI_COMM_WORLD, errno, 
+    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
 		      "Error in MPI_COMM_REMOTE_SIZE" );
   }
   else 

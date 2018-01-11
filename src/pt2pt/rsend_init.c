@@ -1,5 +1,5 @@
 /*
- *  $Id: rsend_init.c,v 1.14 1994/09/30 22:11:22 gropp Exp $
+ *  $Id: rsend_init.c,v 1.16 1995/01/03 19:43:32 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -32,13 +32,13 @@ int           tag;
 MPI_Comm      comm;
 MPI_Request   *request;
 {
-    int errno;
+    int mpi_errno;
     MPI_Request handleptr;
 
     if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,count) ||
 	MPIR_TEST_DATATYPE(comm,datatype) || MPIR_TEST_SEND_TAG(comm,tag) ||
 	MPIR_TEST_SEND_RANK(comm,dest)) 
-	return MPIR_ERROR(comm, errno, "Error in MPI_RSEND_INIT" );
+	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_RSEND_INIT" );
 
     /* See MPI_TYPE_FREE.  A free can not happen while the datatype may
        be in use.  Thus, a nonblocking operation increments the
@@ -56,8 +56,7 @@ MPI_Request   *request;
     handleptr->shandle.tag          = tag;
     handleptr->shandle.contextid    = comm->send_context;
     handleptr->shandle.comm         = comm;
-    handleptr->shandle.lrank        = 
-	comm->local_group->lrank_to_grank[comm->local_group->local_rank];
+    handleptr->shandle.lrank        = comm->local_group->local_rank;
     handleptr->shandle.mode         = MPIR_MODE_READY;
     handleptr->shandle.datatype     = datatype;
     handleptr->shandle.bufadd       = buf;

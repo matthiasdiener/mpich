@@ -1,0 +1,73 @@
+Diffenences in allpair
+2,3d1
+< 88 at [7fbe0], id = 0 init.c[339]
+< The maximum space allocated was 40160 bytes [0]
+15,16d12
+< 88 at [8cee8], id = 0 init.c[339]
+< The maximum space allocated was 88908 bytes [0]
+Diffenences in fifth
+2,5d1
+< The maximum space allocated was 36316 bytes [0]
+< The maximum space allocated was 36328 bytes [0]
+< The maximum space allocated was 36288 bytes [0]
+< The maximum space allocated was 82464 bytes [0]
+Diffenences in fourth
+2,5d1
+< The maximum space allocated was 35956 bytes [0]
+< The maximum space allocated was 36108 bytes [0]
+< The maximum space allocated was 36116 bytes [0]
+< The maximum space allocated was 82152 bytes [0]
+Diffenences in hvectest
+2d1
+< The maximum space allocated was 36032 bytes [0]
+9d7
+< The maximum space allocated was 82904 bytes [0]
+Diffenences in hvectest2
+8,9d7
+< The maximum space allocated was 36544 bytes [0]
+< The maximum space allocated was 82144 bytes [0]
+Diffenences in isndrcv
+21d20
+< The maximum space allocated was 57764 bytes [0]
+32d30
+< The maximum space allocated was 464488 bytes [0]
+Diffenences in overtake
+2,4d1
+< The maximum space allocated was 111012 bytes [0]
+< 88 at [5e0f8], id = 0 init.c[341]
+< The maximum space allocated was 84048 bytes [0]
+Diffenences in probe
+3d2
+< The maximum space allocated was 35984 bytes [0]
+5d3
+< The maximum space allocated was 82100 bytes [0]
+Diffenences in probe1
+4d3
+< The maximum space allocated was 35984 bytes [0]
+7d5
+< The maximum space allocated was 82100 bytes [0]
+Diffenences in sendrecv
+244d243
+< The maximum space allocated was 35764 bytes [0]
+263,264d261
+< 88 at [601a8], id = 0 init.c[319]
+< The maximum space allocated was 432600 bytes [0]
+Diffenences in sixth
+3d2
+< The maximum space allocated was 36016 bytes [0]
+5d3
+< The maximum space allocated was 82100 bytes [0]
+Diffenences in testtest1
+3d2
+< The maximum space allocated was 36188 bytes [0]
+6d4
+< The maximum space allocated was 82100 bytes [0]
+Diffenences in third
+4d3
+< The maximum space allocated was 35764 bytes [0]
+10d8
+< The maximum space allocated was 82000 bytes [0]
+Diffenences in typetest
+2,3d1
+< The maximum space allocated was 36664 bytes [0]
+< The maximum space allocated was 82756 bytes [0]

@@ -20,6 +20,11 @@ echo "Error handling test" >>env.out
 mpirun $args -np 1 errhand $* >> env.out
 echo "Signal test" >>env.out
 mpirun $args -np 1 sigchk $* >> env.out
+
 echo '*** Differences from expected output ***'
-diff -b env.out env.std
+/bin/rm -f env.diff
+diff -b env.out env.std >> env.diff
+if [ -s env.diff ] ; then
+    cat env.diff
+fi
 exit 0

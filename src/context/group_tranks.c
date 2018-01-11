@@ -1,5 +1,5 @@
 /*
- *  $Id: group_tranks.c,v 1.10 1994/07/13 15:47:58 lusk Exp $
+ *  $Id: group_tranks.c,v 1.11 1994/12/15 16:35:34 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -32,14 +32,14 @@ int       *ranks_b;
 {
   int i, j;
   int pid_a, rank_a;
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
 
   /* Check for bad arguments */
   if ( MPIR_TEST_GROUP(MPI_COMM_WORLD,group_a) ||
        MPIR_TEST_GROUP(MPI_COMM_WORLD,group_b) || 
-	   ( (n       <= 0)              && (errno = MPI_ERR_ARG) )   ||
+	   ( (n       <= 0)              && (mpi_errno = MPI_ERR_ARG) )   ||
        MPIR_TEST_ARG(ranks_a) || MPIR_TEST_ARG(ranks_b))
-    return MPIR_ERROR( MPI_COMM_WORLD, errno, 
+    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
 				  "Error in MPI_GROUP_TRANSLATE_RANKS" );
 
   /* Set ranks_b array to MPI_UNDEFINED */
@@ -57,5 +57,5 @@ int       *ranks_b;
         break;
       }
   }
-  return (errno);
+  return (mpi_errno);
 }

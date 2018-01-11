@@ -1,12 +1,12 @@
 /*
- *  $Id: dmpi.c,v 1.21 1994/11/23 16:25:53 gropp Exp $
+ *  $Id: dmpi.c,v 1.24 1995/01/04 22:14:36 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: dmpi.c,v 1.21 1994/11/23 16:25:53 gropp Exp $";
+static char vcid[] = "$Id: dmpi.c,v 1.24 1995/01/04 22:14:36 gropp Exp $";
 #endif /* lint */
 
 /*  dmpi.c - routines in mpir that are called by the device */
@@ -264,11 +264,11 @@ MPIR_Send_setup(request)
 MPI_Request *request;
 {
   register MPIR_SHANDLE *shandle;
-  register int errno = MPI_SUCCESS;
+  register int mpi_errno = MPI_SUCCESS;
   int dest_type;
 
   shandle = &(*request)->shandle;
-  if (shandle->dest == MPI_PROC_NULL) return errno;
+  if (shandle->dest == MPI_PROC_NULL) return mpi_errno;
 
   shandle->active       = 1;
 
@@ -306,7 +306,7 @@ MPI_Request *request;
       shandle->dev_shandle.bytes_as_contig =
 	shandle->count * shandle->datatype->extent;
       if (shandle->dev_shandle.bytes_as_contig > 0 && shandle->bufadd == 0)
-	  errno = MPI_ERR_BUFFER;
+	  mpi_errno = MPI_ERR_BUFFER;
       shandle->dev_shandle.start = shandle->bufadd;
       shandle->bufpos		 = 0;
     }
@@ -314,10 +314,10 @@ MPI_Request *request;
 #ifdef MPID_PACK_IN_ADVANCE
   {
     /* Heterogeneous case handled in MPIR_Pack and MPIR_Pack_Hvector */
-    if (errno = 
+    if (mpi_errno = 
 	MPIR_PackMessage(shandle->bufadd, shandle->count, 
 			 shandle->datatype, shandle->dest, *request )) {
-      MPIR_ERROR( MPI_COMM_WORLD, errno, 
+      MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
 		 "Could not pack message in MPIR_Send_setup" );
     }
   }
@@ -330,7 +330,7 @@ MPI_Request *request;
 				       to get_from_contig XXX...*/
   }
 #endif
-  return errno;
+  return mpi_errno;
 
 }
 
@@ -349,11 +349,11 @@ MPIR_Receive_setup(request)
 MPI_Request *request;
 {
   MPIR_RHANDLE *rhandle;
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
 
 
   rhandle = &(*request)->rhandle;
-  if (rhandle->source == MPI_PROC_NULL) return errno;
+  if (rhandle->source == MPI_PROC_NULL) return mpi_errno;
   rhandle->active       = 1;
   
   if (rhandle->datatype->is_contig) {
@@ -362,16 +362,17 @@ MPI_Request *request;
       rhandle->count * rhandle->datatype->extent;
     if (rhandle->dev_rhandle.bytes_as_contig > 0 && 
 	rhandle->bufadd == 0) 
-	errno = MPI_ERR_BUFFER;
+	mpi_errno = MPI_ERR_BUFFER;
     rhandle->bufpos                      = 0;
   }
 #ifdef MPID_RETURN_PACKED
   else {
-    if (errno = 
+    if (mpi_errno = 
 	MPIR_SetupUnPackMessage( rhandle->bufadd, rhandle->count, 
-				rhandle->datatype, rhandle->source, *request )) {
-      MPIR_ERROR( MPI_COMM_WORLD, errno, 
-		 "Could not pack message in MPI_Receive_setup" );
+				rhandle->datatype, rhandle->source, 
+				*request )) {
+      MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+		 "Could not pack message in MPIR_Receive_setup" );
     }
   }
 #else
@@ -379,7 +380,7 @@ MPI_Request *request;
     rhandle->dev_rhandle.start = 0;
 #endif
 
-  return errno;
+  return mpi_errno;
 }
 
 /*
@@ -394,9 +395,8 @@ int          in_offset, out_offset;
 {
   int i,j,k;
   int pad = 0;
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
   int tmp_offset;
-/*   char *lbuf = (char *)buf, *lin = (char *)in; */
 
   if (in_offset == 0 && out_offset == 0) 
       fprintf( fp, "Commands to unpack datatype:\n" );
@@ -405,7 +405,7 @@ int          in_offset, out_offset;
       fprintf( fp, "Contiguous type:" );
       fprintf( fp, " Copy %d <- %d for %d bytes\n", out_offset, in_offset,
 	       type->size * count );
-      return errno;
+      return mpi_errno;
       }
 
   /* For each of the count arguments, unpack data */
@@ -414,8 +414,9 @@ int          in_offset, out_offset;
   /* Contiguous types */
   case MPIR_CONTIG:
         fprintf( fp, "MPIR_CONTIG:\n" );
-	errno = MPIR_PrintDatatype ( fp, count * type->count, type->old_type, 
-				     in_offset, out_offset );
+	mpi_errno = MPIR_PrintDatatype ( fp, count * type->count, 
+					 type->old_type, 
+					 in_offset, out_offset );
 	break;
 
   /* Vector types */
@@ -428,9 +429,10 @@ int          in_offset, out_offset;
 	for (i=0; i<count; i++) {
 	  out_offset = tmp_offset;
 	  for (j=0; j<type->count; j++) {
-		if (errno = MPIR_PrintDatatype ( fp, type->blocklen, 
+		if (mpi_errno = MPIR_PrintDatatype ( fp, type->blocklen, 
 					 type->old_type, 
-				       in_offset, out_offset )) return errno;
+				       in_offset, out_offset )) 
+		    return mpi_errno;
 		out_offset  += (type->stride);
 		if ((j+1) != type->count)
 		  in_offset += 
@@ -450,9 +452,10 @@ int          in_offset, out_offset;
 	for (i=0; i<count; i++) {
 	  for (j=0;j<type->count; j++) {
 		tmp_offset  = out_offset + type->indices[j];
-		if (errno = MPIR_PrintDatatype (fp, type->blocklens[j], 
+		if (mpi_errno = MPIR_PrintDatatype (fp, type->blocklens[j], 
 					 type->old_type, 
-					 in_offset, tmp_offset)) return errno;
+					 in_offset, tmp_offset)) 
+		    return mpi_errno;
 		if ((j+1) != type->count)
 		  in_offset += 
 		    ((type->blocklens[j]*type->old_type->size)+type->pad);
@@ -470,9 +473,10 @@ int          in_offset, out_offset;
 	for (i=0; i<count; i++) {
 	  for (j=0;j<type->count; j++) {
 		tmp_offset  = out_offset + type->indices[j];
-		if (errno = MPIR_PrintDatatype( fp, type->blocklens[j],
+		if (mpi_errno = MPIR_PrintDatatype( fp, type->blocklens[j],
 					type->old_types[j], 
-				       in_offset, tmp_offset)) return errno;
+				       in_offset, tmp_offset)) 
+		    return mpi_errno;
 		if ((j+1) != type->count)
 		  in_offset += 
 		      ((type->blocklens[j] * type->old_types[j]->size) +
@@ -485,10 +489,123 @@ int          in_offset, out_offset;
 	break;
 
   default:
-	errno = MPI_ERR_TYPE;
+	mpi_errno = MPI_ERR_TYPE;
 	break;
   }
 
   /* Everything fell through, must have been successful */
-  return errno;
+  return mpi_errno;
+}
+
+int MPIR_PrintDatatypePack ( fp, count, type, in_offset, out_offset )
+FILE *fp;
+int count;
+MPI_Datatype type;
+int  in_offset, out_offset;
+{
+  int i,j,k;
+  int pad = 0;
+  int mpi_errno = MPI_SUCCESS;
+  int tmp_offset;
+
+  if (in_offset == 0 && out_offset == 0) 
+      fprintf( fp, "Commands to pack datatype:\n" );
+  /* Pack contiguous data */
+
+  /* At this point, if the type is contiguous, it should be
+	 a basic type, so we could pack it with something other
+	 than memcpy */
+	    
+  if (type->is_contig) {
+      fprintf( fp, "Contiguous type:" );
+      fprintf( fp, " Copy %d <- %d for %d bytes\n", out_offset, in_offset,
+	       type->size * count );
+      return mpi_errno;
+  }
+
+
+  /* For each of the count arguments, pack data */
+  switch (type->dte_type) {
+
+  /* Contiguous types */
+  case MPIR_CONTIG:
+        fprintf( fp, "MPIR_CONTIG:\n" );
+	mpi_errno = MPIR_PrintDatatypePack ( fp, count * type->count, 
+					     type->old_type, 
+					     in_offset, out_offset );
+	break;
+
+  /* Vector types */
+  case MPIR_VECTOR:
+  case MPIR_HVECTOR:
+	fprintf( fp, "MPIR_(H)VECTOR:\n" );
+	if (count > 1)
+	  pad = (type->align - (type->size % type->align)) % type->align;
+	tmp_offset = in_offset;
+	for (i=0; i<count; i++) {
+	  in_offset = tmp_offset;
+	  for (j=0; j<type->count; j++) {
+		if (mpi_errno = MPIR_PrintDatatypePack ( fp, type->blocklen, 
+							type->old_type, 
+					       in_offset, out_offset)) break;
+		in_offset  += (type->stride);
+		if ((j+1) != type->count)
+		  out_offset += 
+		      ((type->blocklen * type->old_type->size) + type->pad);
+	  }
+	  out_offset += ((type->blocklen * type->old_type->size) + pad);
+	  tmp_offset += type->extent;
+	}
+	break;
+
+  /* Indexed types */
+  case MPIR_INDEXED:
+  case MPIR_HINDEXED:
+	fprintf( fp, "MPIR_(H)INDEXED:\n" );
+	if (count > 1)
+	  pad = (type->align - (type->size % type->align)) % type->align;
+	for (i=0; i<count; i++) {
+	  for (j=0;j<type->count; j++) {
+		tmp_offset  = in_offset + type->indices[j];
+		if (mpi_errno = MPIR_PrintDatatypePack (fp, 
+							type->blocklens[j], 
+				       type->old_type, 
+						in_offset, out_offset)) break;
+		out_offset += (type->blocklens[j]*type->old_type->size);
+		if ((j+1) != type->count)
+		  in_offset += type->pad;
+	  }
+	  out_offset += pad;
+	  in_offset += type->extent;
+	}
+	break;
+
+  /* Struct type */
+  case MPIR_STRUCT:
+	fprintf( fp, "MPIR_(H)STRUCT:\n" );
+	if (count > 1)
+	  pad = (type->align - (type->size % type->align)) % type->align;
+	for (i=0; i<count; i++) {
+	  for (j=0;j<type->count; j++) {
+		tmp_offset  = in_offset + type->indices[j];
+		if (mpi_errno = MPIR_PrintDatatypePack(fp,type->blocklens[j],
+		      type->old_types[j], in_offset, tmp_offset)) break;
+		if ((j+1) != type->count)
+		  out_offset += ((type->blocklens[j] * 
+				 type->old_types[j]->size) +
+						 type->pads[j]);
+	  }
+	  out_offset+=((type->blocklens[type->count-1]*
+				   type->old_types[type->count-1]->size)+pad);
+	  in_offset +=type->extent;
+	}
+	break;
+
+  default:
+	mpi_errno = MPI_ERR_TYPE;
+	break;
+  }
+
+  /* Everything fell through, must have been successful */
+  return mpi_errno;
 }

@@ -1,12 +1,12 @@
 /*
- *  $Id: type_struct.c,v 1.15 1994/11/01 15:57:16 gropp Exp $
+ *  $Id: type_struct.c,v 1.17 1994/12/21 14:33:27 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_struct.c,v 1.15 1994/11/01 15:57:16 gropp Exp $";
+static char vcid[] = "$Id: type_struct.c,v 1.17 1994/12/21 14:33:27 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -37,7 +37,7 @@ MPI_Datatype *newtype;
   MPI_Datatype    dteptr;
   MPI_Aint        ub, lb, high, low;
   MPIR_BOOL       high_init = MPIR_NO, low_init = MPIR_NO;
-  int             i, errno = MPI_SUCCESS;
+  int             i, mpi_errno = MPI_SUCCESS;
   int             ub_marker, lb_marker;
   MPIR_BOOL       ub_found = MPIR_NO, lb_found = MPIR_NO;
   int pad, size;
@@ -45,7 +45,7 @@ MPI_Datatype *newtype;
   /* Check for bad arguments */
   if ( count < 0 )
 	return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_COUNT,
-					  "Negative count in MPI_TYPE_STRUCT" );
+			       	  "Negative count in MPI_TYPE_STRUCT" );
     
   /* Check blocklens and old_types arrays and find number of bound */
   /* markers */
@@ -65,7 +65,7 @@ MPI_Datatype *newtype;
   dteptr = (*newtype) = (MPI_Datatype) MPIR_SBalloc( MPIR_dtes );
   if (!dteptr) 
       return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-			 "Out of space in MPI_TYPE_HVECTOR" );
+			 "Out of space in MPI_TYPE_STRUCT" );
   MPIR_SET_COOKIE(dteptr,MPIR_DATATYPE_COOKIE)
   dteptr->dte_type    = MPIR_STRUCT;
   dteptr->committed   = MPIR_NO;
@@ -90,7 +90,7 @@ MPI_Datatype *newtype;
   if (!dteptr->indices || !dteptr->blocklens || 
       (count > 1 && ! dteptr->pads) || !dteptr->old_types) 
       return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-			 "Out of space in MPI_TYPE_HINDEXED" );
+			 "Out of space in MPI_TYPE_STRUCT" );
   high = low = ub = lb = 0;
   for (i = 0; i < count; i++)  {
 	dteptr->old_types[i]  = (MPI_Datatype)MPIR_Type_dup (old_types[i]);
@@ -162,5 +162,5 @@ MPI_Datatype *newtype;
   dteptr->extent += ((dteptr->align - (dteptr->extent % dteptr->align))
     % dteptr->align);
 
-  return (errno);
+  return (mpi_errno);
 }

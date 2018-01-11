@@ -1,5 +1,5 @@
 /*
- *  $Id: group_rincl.c,v 1.14 1994/09/30 22:11:48 gropp Exp $
+ *  $Id: group_rincl.c,v 1.15 1994/12/15 19:28:57 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -36,16 +36,16 @@ int       n, ranges[][3];
   int i, j, k, ranks, first, last, stride;
   int np = 0;
   MPI_Group new_group;
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
 
   if ( MPIR_TEST_GROUP(MPI_COMM_WORLD,group) )
-    return MPIR_ERROR( MPI_COMM_WORLD, errno, 
+    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
 					  "Error in MPI_GROUP_RANGE_INCL" );
 
   /* Check for a EMPTY input group or EMPTY sized new group */
   if ( (group == MPI_GROUP_EMPTY) || (n <= 0) ) {
     MPIR_Group_dup ( MPI_GROUP_EMPTY, newgroup );
-    return (errno);
+    return (mpi_errno);
   }
   
   /* Determine the number of ranks that will be included */
@@ -57,7 +57,7 @@ int       n, ranges[][3];
   /* Check for np == 0 ranks to include */
   if ( np <=0 ) {
     MPIR_Group_dup ( MPI_GROUP_EMPTY, newgroup );
-    return (errno);
+    return (mpi_errno);
   }
 
   /* Create the new group */
@@ -97,6 +97,6 @@ int       n, ranges[][3];
   MPIR_Powers_of_2 ( new_group->np, &(new_group->N2_next), 
 		     &(new_group->N2_prev) );
 
-  return (errno);
+  return (mpi_errno);
 }
 

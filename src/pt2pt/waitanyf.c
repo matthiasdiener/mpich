@@ -1,6 +1,7 @@
 /* waitany.c */
 /* CUSTOM Fortran interface file */
 #include "mpiimpl.h"
+#include "mpisys.h"
 
 #ifdef POINTER_64_BITS
 extern void *MPIR_ToPointer();
@@ -41,21 +42,21 @@ int *__ierr;
 {
 #ifdef POINTER_64_BITS
 int i;
-MPI_Request *r = (MPI_Request*)malloc(sizeof(MPI_Request)**count);
+MPI_Request *r = (MPI_Request*)MALLOC(sizeof(MPI_Request)* *count);
 for (i=0; i<*count; i++) {
     r[i] = MPIR_ToPointer( *((int *)(array_of_requests)+i) );
     }
 *__ierr = MPI_Waitany(*count,r,index,status);
 if (!*__ierr) {
     /* Must not do this if request is persistant.  Check to see if 
-       Waitany set the request to NULL 
+       Waitany set the request to NULL FIX ME
      */
     if (r[*index] == MPI_REQUEST_NULL) {
 	MPIR_RmPointer( *((int *)(array_of_requests) + *index) );
 	*((int *)(array_of_requests)+*index) = 0;
 	}
     }
-free( r );
+FREE( r );
 
 #else
 *__ierr = MPI_Waitany(*count,array_of_requests,index,status);

@@ -1,0 +1,13 @@
+.SUFFIXES:	.o .c .f .h
+
+.c.o:$(P)
+	$(CC) $(CFLAGS) -c $*.c 
+
+.f.o:$(P)
+	$(FC) $(FFLAGS) -c $*.f 
+
+dummy:	default
+
+clean:
+	$(RM) -f *~ *.o *.bak tags TAGS core
+

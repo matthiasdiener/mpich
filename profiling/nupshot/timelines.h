@@ -115,9 +115,18 @@ Operations that will be allowed:
 #ifndef _TIMELINES_H_
 #define _TIMELINES_H_
 
+#include "tcl.h"
+#include "tk.h"
 #include "log.h"
 #include "vis.h"
 #include "expandingList.h"
+
+
+#ifdef __STDC__
+int timelineAppInit( Tcl_Interp *interp );
+#else
+int timelineAppInit();
+#endif
 
 #define TL_STATE_NOT_VISIBLE -1
 
@@ -154,56 +163,36 @@ typedef struct timeLineInfo_ {
   Tcl_Interp *interp;		/* Tcl interpreter */
   logData *log;			/* the log its attached to */
   char *windowName;		/* the window for this widget, and its */
-				/* widget command */
-  Tk_Window win;		/* the real window definition */
+				/* widget command.  This is actually an */
+				/* overloaded frame widget */
+
   char *canvasName;		/* the display canvas's name */
-  int width, height;		/* total width & height */
 
-  int farLeft, farRight;	/* scroll region */
-  int farTop, farBottom;
+  double width,			/* scrollregion */
+         height;
 
-  double visTime;		/* total amount time that is visible in one */
-				/* screen width; default is all */
+  int totalUnits,		/* scrollbar-like region */
+      windowUnits,
+      firstUnit,
+      lastUnit;
 
-  double visProcs;		/* total number of process visible at a */
-				/* time; default is all */
+  double starttime, endtime;	/* cached from the logfile's data */
 
-  int visWidth, visHeight;	/* visible width & height */
-  int visLeft, visTop;		/* left and right visible coordinate */
-
-  double topProc, leftTime;	/* uppermost visible process and leftmost
-                                   visible time--shows scroll position */
-  double bottomProc, rightTime;	/* other end of the visible range */
-				/* these four fields provide a quick */
-				/* method of checking if an object is */
-				/* visible and are computed from */
-				/* far{Top,Bottom,Left,Right} and */
-				/* vis{Top,Left,Width,Height} */
+  double pix2time,		/* convert pixel values to times or */
+         pix2proc;		/* process numbers */
 
   Vis *procVis;			/* visible processes */
   Vis *eventVis;		/* visible events */
   Vis *stateVis;		/* visible states */
   Vis *msgVis;			/* visible messages */
-  timeLineConvert cvt_time;	/* convert time to horiz */
-  timeLineConvert cvt_proc;	/* convert process # to vert */
-				/* (center of timeline is .5) */
+
   timeLineOverlap overlap;	/* overlap info */
+
   char *outlineColor;		/* color of outlines for state bars */
-  char *lineColor;		/* timeline color */
   char *msgColor;		/* color of message arrows */
   char *bg;			/* canvas background color */
-  char *bitmapdir;		/* directory of bitmaps */
-  char *xscrollCommand;		/* copy to canvas -xscrollcommand */
-  char *yscrollCommand;		/* copy to canvas -yscrollcommand */
+
   int bw;			/* in black&white */
-  int is_bw;			/* for switch "-bw" */
-  int is_color;			/* for switch "-color" */
-
-  double xresizeFactor;		/* factor by which the canvas needs to */
-  double yresizeFactor;		/* be resized (at the next update) */
-
-  int whenIdle;			/* bit mask of what needs to be done */
-				/* in the next TimeLineWhenIdle() */
 
   void *drawStateToken;		/* token returned by Log_AddDrawState(), */
 				/* must be returned to Log_RmDrawState() */

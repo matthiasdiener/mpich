@@ -1,5 +1,5 @@
 /*
- *  $Id: graph_map.c,v 1.4 1994/07/13 15:54:58 lusk Exp $
+ *  $Id: graph_map.c,v 1.5 1994/12/15 17:37:21 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -33,13 +33,13 @@ int     *newrank;
   int i;
   int nranks;
   int rank;
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
 
   if (MPIR_TEST_COMM(comm_old,comm_old) ||
-      ((nnodes   <  1)             && (errno = MPI_ERR_ARG))  ||
+      ((nnodes   <  1)             && (mpi_errno = MPI_ERR_ARG))  ||
       MPIR_TEST_ARG(newrank) || MPIR_TEST_ARG(index) ||
       MPIR_TEST_ARG(edges))
-    return MPIR_ERROR( comm_old, errno, "Error in MPI_GRAPH_MAP" );
+    return MPIR_ERROR( comm_old, mpi_errno, "Error in MPI_GRAPH_MAP" );
   
   /* Am I in this topology? */
   MPI_Comm_rank ( comm_old, &rank );
@@ -48,5 +48,5 @@ int     *newrank;
   else
     (*newrank) = MPI_UNDEFINED;
 
-  return (errno);
+  return (mpi_errno);
 }

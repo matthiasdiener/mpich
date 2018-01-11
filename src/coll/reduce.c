@@ -1,5 +1,5 @@
 /*
- *  $Id: reduce.c,v 1.27 1994/12/09 17:40:15 doss Exp $
+ *  $Id: reduce.c,v 1.29 1994/12/15 20:00:09 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: reduce.c,v 1.27 1994/12/09 17:40:15 doss Exp $";
+static char vcid[] = "$Id: reduce.c,v 1.29 1994/12/15 20:00:09 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -46,7 +46,7 @@ MPI_Comm          comm;
   MPI_Status status;
   int        size, rank;
   int        mask, relrank, source, lroot;
-  int        errno = MPI_SUCCESS;
+  int        mpi_errno = MPI_SUCCESS;
   MPI_User_function *uop;
   int        flag;
   MPI_Aint   extent;
@@ -55,7 +55,7 @@ MPI_Comm          comm;
   /* Check for invalid arguments */
   if ( MPIR_TEST_COMM(comm,comm) || MPIR_TEST_OP(comm,op) ||
        MPIR_TEST_ALIAS(sendbuf,recvbuf) )
-    return MPIR_ERROR(comm, errno, "Error in MPI_REDUCE" );
+    return MPIR_ERROR(comm, mpi_errno, "Error in MPI_REDUCE" );
 
   /* Check for intra-communicator */
   MPI_Comm_test_inter ( comm, &flag );
@@ -68,6 +68,9 @@ MPI_Comm          comm;
   if ( ((root >= size) || (root < 0)) )
     return MPIR_ERROR(comm, MPI_ERR_ROOT, 
 					  "Invalid root in MPI_REDUCE" );
+
+  /* See the overview in Collection Operations for why this is ok */
+  if (count == 0) return MPI_SUCCESS;
 
 #ifdef MPID_Reduce
   /* Eventually, this could apply the MPID_Reduce routine in a loop for
@@ -145,9 +148,9 @@ MPI_Comm          comm;
 	source = (relrank | mask);
 	if (source < size) {
 	  source = (source + lroot) % size;
-	  errno = MPI_Recv (buffer, count, datatype, size-source-1, MPIR_REDUCE_TAG, 
-						comm, &status);
-	  if (errno) return MPIR_ERROR( comm, errno, 
+	  mpi_errno = MPI_Recv (buffer, count, datatype, size-source-1, 
+				MPIR_REDUCE_TAG, comm, &status);
+	  if (mpi_errno) return MPIR_ERROR( comm, mpi_errno, 
 					   "Error receiving in MPI_REDUCE" );
 	  (*uop)(buffer, recvbuf, &count, &datatype);
 	}
@@ -155,20 +158,21 @@ MPI_Comm          comm;
   }
   if (mask < size) {
 	source = ((relrank & (~ mask)) + lroot) % size;
-	errno  = MPI_Send( recvbuf, count, datatype, size-source-1, MPIR_REDUCE_TAG, 
+	mpi_errno  = MPI_Send( recvbuf, count, datatype, size-source-1, 
+			       MPIR_REDUCE_TAG, 
 					  comm );
-	if (errno) return MPIR_ERROR( comm, errno, 
+	if (mpi_errno) return MPIR_ERROR( comm, mpi_errno, 
 					 "Error sending in MPI_REDUCE" );
   }
   FREE( buffer );
   if (!op->commute && root != 0) {
 	if (rank == 0) {
-	  errno  = MPI_Send( recvbuf, count, datatype, size-root-1, 
+	  mpi_errno  = MPI_Send( recvbuf, count, datatype, size-root-1, 
 						MPIR_REDUCE_TAG, comm );
 	}
 	else if (rank == root) {
-	  errno = MPI_Recv ( recvbuf, count, datatype, size-1, MPIR_REDUCE_TAG, 
-						comm, &status);
+	  mpi_errno = MPI_Recv ( recvbuf, count, datatype, size-1, 
+				 MPIR_REDUCE_TAG, comm, &status);
 	}
   }
 
@@ -179,7 +183,7 @@ MPI_Comm          comm;
   /* Unlock for collective operation */
   MPID_THREAD_UNLOCK(comm->ADIctx,comm);
   
-  return (errno);
+  return (mpi_errno);
 }
 
 

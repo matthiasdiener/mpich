@@ -7,27 +7,57 @@
 # -nomake               Do not run make
 # -noperf               Do not run performance tests
 # -file=name            Output LaTeX file (default is doc/doc1.tex)
+#                       Exercise care with the file name.  In general, it
+#                       should be doc/xxx.tex .  Using a different directory
+#                       could cause problems
+# -config=filename      File containing the output of configure
+# -sysname=name         Use instead of @ARCH@
 author="`whoami`"
 nomake=0
 noperf=0
+dotest=0
+systemname="@ARCH@"
 filename="doc/doc1.tex"
-for arg in $* ; do
+filebase="doc/doc1"
+fileroot="doc1"
+for arg in "$@" ; do
     case $arg in 
 	-author=* )
 	author="`echo $arg|sed 's/-author=//'`"
 	;;
+
 	-file=* )
-	filename=`echo $arg|sed 's/-file=//'`
+	filebase=`echo $arg|sed 's/-file=//'`
+        filename="$filebase.tex"
+	fileroot="`basename $filebase`"
 	;;
+
+
+	-config=* )
+	configlog=`echo $arg|sed 's/-config=//'`
+	;;
+
+	-sysname=* )
+	systemname="`echo $arg|sed 's/-sysname=//'`"
+	;;
+
  	-nomake )
 	nomake=1
 	;;
+
  	-noperf )
 	noperf=1
 	;;
+
+ 	-dotest )
+	dotest=1
+	;;
+
 	*)
-	echo "Unknown argument $arg"
-	exit 1
+	if test -n "$arg" ; then
+   	    echo "port: Unknown argument ($arg)"
+	    exit 1
+        fi
 	;;
     esac
 done
@@ -45,14 +75,37 @@ done
 ############################################################################
 cat >> $filename <<.
 \documentstyle[latexinfo,epsf]{article}
+\c
+\c Run latex on this from the mpich directory, not the doc directory
+\c
+\c
+\c readfile reads a file only if it exists.
+\c
+\newread\availtest
+\def\readfile#1{
+\openin\availtest #1
+\ifeof\availtest
+\message{Could not open file #1}\else
+\input{#1}
+\fi\closein\availtest}
+
+\textheight=9in
+\textwidth=6.5in
+\oddsidemargin=.2in
+\topmargin=-0.5in
+\hsize=6.5in
+
 \begin{document}
-\title{Porting the MPICH MPI implementation to the @ARCH@ system}
+\bibliographystyle{plain}
+\title{Porting the MPICH MPI implementation to the $systemname system}
 \author{$author}
 \maketitle
 \section{Introduction}
 This document describes the porting of the Argonne National 
 Laboratory/Mississippi State University portable implementation of MPI
-to the @ARCH@ system.  
+to the $systemname system.  The MPI standard is given in
+\cite{mpi-forum:final}; a introduction to using MPI may be found in
+\cite{usingmpi}. 
 
 The MPICH implementation relies on a abstract device interface (ADI) for its
 portability.  There are many possible implementation of this device; the one
@@ -66,7 +119,7 @@ choices are described below.
 ############################################################################
 # C Compiler options
 ############################################################################
-cflags=" with flags {\tt @CFLAGS@}"
+cflags=" with flags {\\tt @CFLAGS@}"
 if test -z "@CFLAGS@" -o "@CFLAGS@" = " " ; then
    cflags=""
 fi
@@ -102,7 +155,7 @@ fi
 # Fortran Compiler options
 ############################################################################
 if test "@HAS_FORTRAN@" = 1 ; then
-   fflags=" with flags {\tt @FFLAGS@}"
+   fflags=" with flags {\\tt @FFLAGS@}"
    if test -z "@FFLAGS@" ; then
       fflags=""
    fi
@@ -158,6 +211,16 @@ Fortran programs are linked by using the arguments
 {\tt @FLIB_PATH@ @LIB_LIST@} with the Fortran linker {\tt @FLINKER@}.   
 .
 fi
+if test -n "$configlog" ; then
+    cat >> $filename <<.
+The output of configure was 
+\begin{example}
+.
+    cat $configlog >> $filename
+    cat >> $filename <<.
+\end{example}
+.
+fi
 ############################################################################
 # Device - specific information
 ############################################################################
@@ -166,7 +229,8 @@ cat >> $filename <<.
 MPICH uses a portable, flexible, and powerful {\em abstract device interface}
 or ADI to 
 perform the actual transmission of messages between processes.  Currently,
-there is one base version of this device in {\tt mpid/chameleon}; versions
+there is one base version of this device in the directory 
+{\tt mpid/chameleon}; versions
 customized to specific message-passing systems are derived from these with
 special text-transformation programs.  There are a number of configure options
 that apply to all of the current versions.
@@ -176,7 +240,7 @@ if test "@NODEVDEBUG@" = 1 ; then
     cat >> $filename <<.
 
 This version of the ADI was compiled without the ability to generate debugging
-output when the command-line option -mpichdebug is used.
+output when the command-line option {\tt -mpichdebug} is used.
 .
 fi
 
@@ -228,11 +292,35 @@ networks.
 .
 fi
 
+if test "@LIMITEDBUFFERS@" = 1 ; then
+    cat >> $filename <<.
+
+This version of the ADI uses special code to compensate for limited buffer
+space in the underlying message-passing system.
+.
+fi
+
+if test "@TINYBUFFERS@" = 1 ; then
+    cat >> $filename <<.
+
+This version of the ADI uses special code to compensate for very small buffer
+space in the underlying message-passing system.
+.
+fi
+
 if test -n "@PKTSIZE@" ; then
     cat >> $filename <<.
 
 This version of the ADI has set the cross-over point from short to long
 message protocols at $PKTSIZE.
+.
+fi
+
+if test -n "@MEMDEBUG@" ; then
+    cat >> $filename <<.
+
+This version of the ADI has been built with special code to help in memory 
+debugging.
 .
 
 fi
@@ -240,11 +328,13 @@ fi
 # Information on specific devices
 ############################################################################
 if test "@DEVICE@" = "ch_p4" ; then 
-    cat >> $filename <<.
-
-This version of the ADI uses p4 \cite{p4} with CFLAGS = {\tt @P4_MDEPCFLAGS@}.
-To p4, the name of the architecture of this system is {\tt @P4_ARCH@}. 
-.
+    echo " " >> $filename
+    echo "This version of the ADI uses p4 \cite{p4-paper}." >> $filename
+    if test -n "@P4_MDEPCFLAGS@" ; then
+        echo "with CFLAGS = {\\tt @P4_MDEPCFLAGS@}." >> $filename
+    fi
+    echo "To p4, the name of the architecture of this system is" >> $filename
+    echo "{\\tt @P4_ARCH@}." >> $filename
 fi
 #
 #
@@ -252,7 +342,8 @@ chameleon_text1() {
 cat >> $filename <<.
 
 This version of the ADI uses the Chameleon device.  This device supports
-many types of parallel environments.  
+many types of parallel environments.  Documentation on Chameleon is available
+in \cite{chameleon-user-ref}.
 
 Chameleon is available in debugging (BOPT=g), production (BOPT=O) and 
 profiling versions (BOPT=Opg).  The version used here is BOPT=@BOPT@.
@@ -307,11 +398,16 @@ linked with {\tt @MPE_LIBS@} in addition to the MPI libraries.
 .
 #
     if test -n "@MPE_GRAPHICS@" ; then
-        cat >> $filename <<.
-
-The MPE libraries used {\tt @X_INC@} for the X11 includes and {\tt @X_LIB@}
-for the X11 libraries.
-.
+        if test -n "@X_INC@" -o -n "@X_LIB@" ; then
+	    echo " " >> $filename
+	    echo "The MPE libraries" >> $filename
+	    if test -n "@X_INC@" ; then 
+	        echo "used {\tt @X_INC@} for the X11 includes" >> $filename
+	    fi
+            if test -n "@X_LIB@" ; then
+	        echo "and {\tt @X_LIB@} for the X11 libraries." >> $filename
+	    fi
+	fi        
     else
         cat >> $filename <<.
 
@@ -328,87 +424,45 @@ cat >> $filename <<.
 There are a large number of configure variables.  This table sumarizes the
 variables not described elsewhere and their values.
 
-\begin{center}
-\begin{tabular}{ll}
-MPIR_HOME & @MPIR_HOME@ \\\\
-PREFIX & @PREFIX@ \\\\
-CPP_DIR & @CPP_DIR@ \\\\
-CPP_COMPILER & @CPP_COMPILER@ \\\\
-\end{tabular}
-\end{center}
+\begin{description}
+\item[MPIR_HOME]@MPIR_HOME@\\\\
+Location of MPICH
 .
+#
+if test -n "@PREFIX@" ; then
+    cat >> $filename <<.
+\item[PREFIX]@PREFIX@\\\\
+Directory to install MPICH into
+.
+fi
+#
+if test -n "@CPP_DIR@" ; then
+    cat >> $filename <<.
+\item[CPP_DIR]
+@CPP_DIR@\\\\
+Location of C++
+.
+fi
+if test -n "@CPP_COMPILER@" ; then
+    cat >> $filename <<.
+\item[CPP_COMPILER]
+@CPP_COMPILER@\\\\
+C++ compiler
+.
+fi
+echo "\\end{description}" >> $filename
 ############################################################################
 # Do the build and comment on it...
 ############################################################################
 # Next, we run the make and time used to do the port
-starthour=`date +%H`
-startmin=`date +%M`
-makefailed=0
+# Note that the readfile needs to strip the doc/ from the directory (it 
+# should read locally)
 if test $nomake = 0 ; then
-    make >make.log 2>&1
-    if [ $? != 0 ] ; then
-	makefailed=1
-    fi
+    @MPIR_HOME@/doc/portbuild -file=$filebase
 fi
-endhour=`date +%H`
-endmin=`date +%M`
-if test $endhour -lt $starthour ; then
-    endhour=`expr $endhour + 24`
-fi
-totaltime=`expr $endhour \* 60 + $endmin - $starthour \* 60 - $startmin`
-hours=`expr $totaltime / 60`
-mins=`expr $totaltime - $hours \* 60`
-if test $mins -lt 10 ; then
-    mins="0$mins"
-fi
-if test $hours -lt 2 ; then
-    if test $hours -lt 1 ; then
-        hours=""
-    else
-        hours="one hour"
-    fi
-else
-    hours="$hours hours"
-fi
-if test $mins -lt 2 ; then
-    if test $mins -lt 1 ; then
-        mins=""
-    else
-        mins="one minute"
-    fi
-else
-    mins="$mins minutes"
-fi
-if test -n "$hours" ; then
-    mins="and $mins"
-fi
-if test $nomake = 0 ; then 
-    cat >>$filename <<.
-\section{Building MPICH}
-MPICH was built using the @MAKE@ program.
-It took $hours $mins to run make to build the MPI libraries.
+cat >> $filename <<.
+\readfile{${fileroot}make.tex}
 .
-    #
-    # Extract the error messages from the make.log file
-    /bin/rm -rf doc/doc1make.log
-    util/finderrors make.log > doc/doc1make.log
-    if test -s doc/doc1make.log ; then
-        echo "\\par Error messages from make" >> $filename
-        echo '\begin{verbatim}' >> $filename
-        cat doc/doc1make.log >> $filename
-        echo '\end{verbatim}'   >> $filename
-    else
-        echo "\\par Make detected no errors during the build." >> $filename
-    fi
-    if test $makefailed = 1 ; then
-        echo "The make failed to complete." >> $filename
-    fi
-else
-    cat >>$filename <<.
-\section{Building MPICH}
-MPICH was not built using the the automated build and document program.
-.
-fi
 #
 ############################################################################
 # Performance of the system
@@ -417,97 +471,29 @@ fi
 ############################################################################
 # Run the performance tests
 ############################################################################
-#
-# i860's don't have which...
-if test $noperf = 0 -a $makefailed = 0 ; then
-gnuplotloc=`which gnuplot`
-
-# We can generate the output graphs...
-( cd examples/perftest ; /bin/rm -f maketst.log ; \
-  make mpptest > maketst.log 2>&1 ; \
-mpirun -mr_np 2 mpptest -gnuplot -tgoal 0.1 -auto > short.gpl ; \
-echo "set terminal postscript eps" | cat - short.gpl > .foo ; \
-echo "exit" | cat .foo - | sed /pause/d | \
-sed -e 's/mppout/short-data/g' > short.gpl ; \
-mv mppout.gpl short-data.gpl ; \
-mpirun -mr_np 2 mpptest -gnuplot -tgoal 0.2 -auto -reps 100 \
-    -size 16384 65536 1024 > long.gpl ; \
-echo "set terminal postscript eps" | cat - long.gpl > .foo ; \
-echo "exit" | cat .foo - | sed /pause/d | \
-sed -e 's/mppout/long-data/g' > long.gpl ; \
-mv mppout.gpl long-data.gpl ; \
-)
-    if test -f "$gnuplotloc" ; then
-        (cd examples/perftest ; \
-	/bin/rm -f short.eps long.eps ; \
-        gnuplot short.gpl > short.eps ; \
-        gnuplot long.gpl > long.eps ; \
-        mv short.eps ../../doc ; mv long.eps ../../doc ; )
-    fi
+if test $noperf = 0 ; then
+    @MPIR_HOME@/doc/portperf -file=$filebase
 fi
-if test $makefailed = 0 ; then
-#
-# Extract the performance numbers
-if test -s examples/perftest/short.gpl ; then
-    latency="`grep 'startup' examples/perftest/short.gpl | cut -d' ' -f 4,5`"
-    latency="For short messages, the latency is $latency."
-else
-    latency=""
-fi
-if test -s examples/perftest/long.gpl ; then
-    rate="`grep 'startup' examples/perftest/long.gpl | cut -d' ' -f 10,11`"
-    rate="For long messages, the transfer rate is $rate."
-else
-    rate=""
-fi
-
 cat >> $filename <<.
-\section{Performance}
-The performance of a message passing system is often measured in terms of the
-bandwidth and latency for a point-to-point message.  This section reports the
-performance of the MPICH version of MPI for a simple ping-pong test between
-two nodes.  The time reported is one-half the round-trip time.  
-Figure \ref{fig-short} shows the performance for short messages.  The dashed
-line represents a least-squares (or linear regression) fit to the data with
-model \(s + r x\), where \(x\) is the length of the message in bytes, \(s\)
-is the latency, and \(r\) is the time to transfer a byte (the inverse of the
-transfer rate).  The coefficients for this model are shown in the upper
-right-hand corner.  $latency
+\readfile{${fileroot}perf.tex}
 .
-
-if test -f "$gnuplotloc" ; then
-    cat >> $filename <<.
-
-\begin{figure}
-\centerline{\epsfbox{short.eps}}
-\caption{Time for short messages}\label{fig-short}
-\end{figure}
-
-In Figure \ref{fig-long} we show the time taken by messages of intermediate
-length.  These results give a better idea of the effective bandwidth for many
-applications.  $rate
-Care should, however, be taken when using these results, since
-some systems do not reach there full (asymptotic) bandwidth until very large
-messages are used. 
-In addition, these results measure only the performance of the MPICH
-implementation of MPI, not the achievable performance of the MPI standard.
-
-
-\begin{figure}
-\centerline{\epsfbox{long.eps}}
-\caption{Time for long messages}\label{fig-long}
-\end{figure}
+############################################################################
+# Run the correctness
+############################################################################
+if test $dotest = 1 ; then
+    @MPIR_HOME@/doc/porttest -file=$filebase
+fi
+cat >> $filename <<.
+\readfile{${fileroot}test.tex}
 .
-fi
-fi
-#
-#
-# We should also run and digest the correctness tests....
-#
 # 
 ############################################################################
 # Finish the document off
 ############################################################################
 cat >> $filename <<.
+
+\begin{tex}
+\bibliography{doc}
+\end{tex}
 \end{document}
 .

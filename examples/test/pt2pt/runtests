@@ -2,86 +2,175 @@
 #
 # Run some of the tests.  If any arguments are provided, pass them to the
 # test programs.
-if [ -f pt2pt.out ] ; then
-	mv pt2pt.out pt2pt.out.orig
-fi
-
+#
 # -mvhome is needed for the ANL SP, and is ignored by others
 args="-pg -mvhome"
+#
+# If the programs are not available, run make.
+if [ ! -x sendrecv ] ; then
+    make 
+fi
+#
+runtests=1
+for arg in "$@" ; do
+    case $arg in 
+	-checkonly )
+	runtests=0
+	;;
+	*)
+	if test -n "$arg" ; then
+   	    echo "runtests: Unknown argument ($arg)"
+	    exit 1
+        fi
+	;;
+    esac
+done
 
-#
-echo '**** Testing MPI_Send and MPI_Recv ****'
+testfiles=""
+if [ $runtests = 1 ] ; then
+echo '**** Testing MPI Point-to-point routines ****'
+
+testfiles="$testfiles sendrecv.out"
+/bin/rm -f sendrecv.out
+echo '**** Testing MPI_Send and MPI_Recv ****' >> sendrecv.out
+echo '**** Testing MPI_Send and MPI_Recv ****' 
 /bin/rm -f sendrecv-[012].out
-mpirun $args -np 2 sendrecv $* > sendrecv-2.out 2>&1
-echo "*** sendrecv ***" > pt2pt.out 
-cat sendrecv-[012].out >> pt2pt.out 
+mpirun $args -np 2 -mvback "sendrecv-0.out sendrecv-1.out" sendrecv $* >> sendrecv-2.out 2>&1
+cat sendrecv-[012].out >> sendrecv.out
+/bin/rm -f sendrecv-[012].out
+echo '**** Testing MPI_Send and MPI_Recv ****' >> sendrecv.out
 #
+testfiles="$testfiles isndrcv.out"
+/bin/rm -f isndrcv.out
 echo '**** Testing MPI_Isend and MPI_Irecv ****'
+echo '**** Testing MPI_Isend and MPI_Irecv ****' >> isndrcv.out
 /bin/rm -f isndrcv-[012].out
-mpirun $args -np 2 isndrcv $* > isndrcv-2.out 2>&1 
-echo "*** isndrcv ***" >> pt2pt.out 
-cat isndrcv-[012].out >> pt2pt.out 
+mpirun $args -np 2 -mvback "isndrcv-0.out isndrcv-1.out" isndrcv $* > isndrcv-2.out 2>&1 
+cat isndrcv-[012].out >> isndrcv.out
+/bin/rm -f isndrcv-[012].out
+echo '**** Testing MPI_Isend and MPI_Irecv ****' >> isndrcv.out
 #
+testfiles="$testfiles overtake.out"
+/bin/rm -f overtake.out
 echo '**** Verifying that messages are non-overtaking ****'
-mpirun $args -np 2 overtake $*
-echo "*** overtake ***" >> pt2pt.out
-cat overtake-[01].out >> pt2pt.out
+echo '**** Verifying that messages are non-overtaking ****' >> overtake.out
+/bin/rm -f overtake-[01].out
+mpirun $args -np 2 -mvback "overtake-0.out overtake-1.out" overtake $* >> overtake.out
+cat overtake-[01].out >> overtake.out
+/bin/rm -f overtake-[01].out
+echo '**** Verifying that messages are non-overtaking ****' >> overtake.out
 #
+testfiles="$testfiles typetest.out"
+/bin/rm -f typetest.out
 echo '**** Checking the type routines ****'
-mpirun $args -np 2 typetest $*
-echo "*** typetest ***" >> pt2pt.out
-cat typetest-0.out >> pt2pt.out
+echo '**** Checking the type routines ****' >> typetest.out
+/bin/rm -f typetest-[01].out
+mpirun $args -np 2 -mvback typetest-0.out typetest $* >> typetest.out
+cat typetest-0.out >> typetest.out
+/bin/rm -f typetest-[01].out
+echo '**** Checking the type routines ****' >> typetest.out
 #
-echo '**** Running other various tests ****'
+testfiles="$testfiles third.out"
+/bin/rm -f third.out
 echo '*** Testing Unexpected messages ***'
-echo "*** third ***" >> pt2pt.out
-mpirun $args -np 2 third $* >> pt2pt.out
+echo '*** Testing Unexpected messages ***' >> third.out
+mpirun $args -np 2 third $* >> pt2pt.out >> third.out
+echo '*** Testing Unexpected messages ***' >> third.out
 #
+testfiles="$testfiles fourth.out"
+/bin/rm -f fourth.out
 echo '*** Testing Irecv/Isend/Wait ***'
-echo "*** fourth ***" >> pt2pt.out
-mpirun $args -np 4 fourth $* >> pt2pt.out
+echo '*** Testing Irecv/Isend/Wait ***' >> fourth.out
+mpirun $args -np 4 fourth $* >> fourth.out
+echo '*** Testing Irecv/Isend/Wait ***' >> fourth.out
 #
+testfiles="$testfiles fifth.out"
+/bin/rm -f fifth.out
 echo '*** Testing Irecv/Isend/Waitall ***'
-echo "*** fifth ***" >> pt2pt.out
-mpirun $args -np 4 fifth $* >> pt2pt.out
+echo '*** Testing Irecv/Isend/Waitall ***' >> fifth.out
+mpirun $args -np 4 fifth $* >> fifth.out
+echo '*** Testing Irecv/Isend/Waitall ***' >> fifth.out
 #
+testfiles="$testfiles sixth.out"
+/bin/rm -f sixth.out
 echo '*** Testing attribute manipulation ***'
-echo "*** sixth ***" >> pt2pt.out
-mpirun $args -np 2 sixth $* >> pt2pt.out
+echo '*** Testing attribute manipulation ***' >> sixth.out
+mpirun $args -np 2 sixth $* >> sixth.out
+echo '*** Testing attribute manipulation ***' >> sixth.out
 #
+testfiles="$testfiles hvectest.out"
+/bin/rm -f hvectest.out
 echo '*** Testing Vector type ***'
-echo "*** hvectest ***" >> pt2pt.out
-mpirun $args -np 2 hvectest $* >> pt2pt.out
+echo '*** Testing Vector type ***' >> hvectest.out
+mpirun $args -np 2 hvectest $* >> hvectest.out
+echo '*** Testing Vector type ***' >> hvectest.out
 #
+testfiles="$testfiles hvectest2.out"
+/bin/rm -f hvectest2.out
 echo '*** Testing struct type for vectors (MPI_UB) ***'
-echo "*** hvectest2 ***" >> pt2pt.out
-mpirun $args -np 2 hvectest2 $* >> pt2pt.out
+echo '*** Testing struct type for vectors (MPI_UB) ***' >> hvectest2.out
+mpirun $args -np 2 hvectest2 $* >> hvectest2.out
+echo '*** Testing struct type for vectors (MPI_UB) ***' >> hvectest2.out
 #
+testfiles="$testfiles probe.out"
+/bin/rm -f probe.out
 echo '*** Testing Probe and Get_count ***'
-echo "*** probe ***" >> pt2pt.out
-mpirun $args -np 2 probe $* >> pt2pt.out
+echo '*** Testing Probe and Get_count ***' >> probe.out
+mpirun $args -np 2 probe $* >> probe.out
+echo '*** Testing Probe and Get_count ***' >> probe.out
 #
+testfiles="$testfiles probe1.out"
+/bin/rm -f probe1.out
 echo '*** Testing Iprobe and Get_count ***'
-echo "*** probe1 ***" >> pt2pt.out
-mpirun $args -np 2 probe1 $* >> pt2pt.out
+echo '*** Testing Iprobe and Get_count ***' >> probe1.out
+mpirun $args -np 2 probe1 $* >> probe1.out
+echo '*** Testing Iprobe and Get_count ***' >> probe1.out
 #
-echo '*** Testing MPI_Test ***'
-echo "*** testtest1 ***" >> pt2pt.out
-mpirun $args -np 2 testtest1 $* >> pt2pt.out
+testfiles="$testfiles testtest1.out"
+/bin/rm -f testtest1.out
+echo '*** Testing MPI_Test ***' 
+echo '*** Testing MPI_Test ***' >> testtest1.out
+mpirun $args -np 2 testtest1 $* >> testtest1.out
+echo '*** Testing MPI_Test ***' >> testtest1.out
 #
 # Run Fortran tests ONLY if Fortran available
 if [ 1 = 1 ] ; then 
-    echo "FORTRAN TESTS" >> pt2pt.out
+    echo "FORTRAN TESTS"
     make fortran_tests
     #
     #echo "*** secondf ***" >> pt2pt.out
     #mpirun $args -np 2 secondf $* >> pt2pt.out 
     #
+    testfiles="$testfiles allpair.out"
+    /bin/rm -f allpair.out
     echo '*** Testing pt-2-pt from Fortran ***'
-    echo "*** allpair ***" >> pt2pt.out
-    mpirun $args -np 2 allpair $* >> pt2pt.out 
-    echo "END OF FORTRAN TESTS" >> pt2pt.out
+    echo '*** Testing pt-2-pt from Fortran ***' >> allpair.out
+    mpirun $args -np 2 allpair $* >> allpair.out
+    echo '*** Testing pt-2-pt from Fortran ***' >> allpair.out
+    echo "END OF FORTRAN TESTS"
 fi
+#
+else
+    # Just run checks
+    testfiles=*.out
+fi
+#
 echo '*** Differences from expected output ***'
-diff -b pt2pt.out pt2pt.std
+/bin/rm -f pt2pt.diff
+for file in $testfiles ; do
+    stdfile=`basename $file .out`.std
+    if [ -s $stdfile ] ; then
+        if diff -b $file `basename $file .out`.std > /dev/null ; then
+	    true
+        else
+	    echo "Diffenences in `basename $file .out`" >> pt2pt.diff
+	    diff -b $file `basename $file .out`.std >> pt2pt.diff
+	fi
+    else
+        echo "Can not find file $stdfile to compare against for test `basename $file .out`"
+    fi
+done
+if [ -s pt2pt.diff ] ; then
+   cat pt2pt.diff
+fi
 exit 0

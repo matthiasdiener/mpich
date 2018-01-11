@@ -9,10 +9,10 @@ BOPT        = @BOPT@
 MPIR_HOME   = @MPIR_HOME@
 CC          = @CC@
 CLINKER     = @CLINKER@
-INCLUDE_DIR = @INCLUDE_PATH@ @X_INC@ $(TCLTK_INC)
+INCLUDE_DIR = @INCLUDE_PATH@ $(TCLTK_INC)
 OPTFLAGS    = @OPTFLAGS@
 LIB_PATH    = $(TCLTK_LIB) @X_LIB@
-LIB_LIST    = -lX11 -lm
+LIB_LIST    = -ltk -ltcl -lX11 -lm
 
 # It is easier if the tcl and tcl stuff is in the same directory,
 # but if your installation has them in separate directories, so be it.
@@ -21,20 +21,14 @@ LIB_LIST    = -lX11 -lm
 # for configure, so we'll make do with what we can.
 
 TCL_DIR     = @TCL_DIR@
-#TCL_DIR     = /usr/local/tcl
-
 TK_DIR      = @TK_DIR@
-#TK_DIR      = /usr/local/tcl
 
-TCL_LIB     = -L$(TCL_DIR)/lib -ltcl
-#TCL_LIB      = -L@TCLLIB@ -ltcl
-TK_LIB      = -L$(TK_DIR)/lib -ltk
-#TK_LIB      = -ltk
+TCL_LIB     = -L$(TCL_DIR)/lib
+TK_LIB      = -L$(TK_DIR)/lib
 TCLTK_LIB   = $(TCL_LIB) $(TK_LIB)
 
 TCL_INC     = -I$(TCL_DIR)/include
 TK_INC      = -I$(TK_DIR)/include
-
 TCLTK_INC   = $(TCL_INC) $(TK_INC)
 
 
@@ -44,27 +38,40 @@ SHELL = /bin/sh
 EXECS = nupshot
 
 CFLAGS = @CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPE_GRAPH) \
-	 "-DNUPSHOT_TCL_CODE=\"$(MPIR_HOME)/profiling/nupshot/nupshot.tcl\""
+	 "-DNUPSHOT_SOURCE=\"$(MPIR_HOME)/profiling/nupshot\""
 
-CSOURCES = alog.c bitmaps.c cvt_args.c events.c log.c log_common.c \
-	   log_widget.c msgs.c states.c str_dup.c tclptr.c time_lbl.c \
-	   timelines.c tkAppInit.c vis.c nupshot.c
+COBJECTS = timelines.o msgs.o states.o events.o \
+	   alog.o log.o log_widget.o time_lbl.o hist.o cvt_args.o \
+	   tclptr.o tkAppInit.o log_common.o vis.o str_dup.o bitmaps.o \
+	   colors.o proc_varargs.o stats.o nupshot.o
 
-COBJECTS = alog.o bitmaps.o cvt_args.o events.o log.o log_common.o \
-	   log_widget.o msgs.o states.o str_dup.o tclptr.o time_lbl.o \
-	   timelines.o tkAppInit.o vis.o nupshot.o
+CSOURCES = timelines.c msgs.c states.c events.c alog.c log.c log_widget.c \
+	   time_lbl.c hist.c cvt_args.c tclptr.c tkAppInit.c log_common.c \
+	   vis.c str_dup.c bitmaps.c colors.c proc_varargs.c stats.c \
+	   nupshot.c
 
-default: nupshot
+CHEADERS = timelines.h msgs.h states.h events.h alog.h log.h log_widget.h \
+	   time_lbl.h hist.h cvt_args.h tclptr.h log_common.h \
+	   vis.h str_dup.h bitmaps.h colors.h proc_varargs.h stats.h \
+	   expandingList.h tcl_callargv.h
 
-.c.o:
-	$(CC) $(CFLAGS) -c $*.c
-
-.c.a:
-	$(CC) $(CFLAGS) -c $*.c
+TCL_SOURCES = nupshot.tcl common.tcl entries.tcl fileselect.tcl zoom.tcl \
+	      mainwin.tcl timelines.tcl legend.tcl procnums.tcl hist.tcl \
+	      print.tcl print_mainwin.tcl print_hist.tcl copy_canvas.tcl \
+	      trim_canvas.tcl
 
 nupshot: $(COBJECTS)
 	$(CLINKER) -o nupshot $(COBJECTS) \
 	$(LIB_PATH) $(LIB_LIST)
+
+EXPORT_DIR = /home/MPI/mpich/profiling/nupshot
+
+export:
+	cp Makefile.in $(CSOURCES) $(CHEADERS) $(TCL_SOURCES) $(EXPORT_DIR)
+
+.c.o:
+	$(CC) $(CFLAGS) -c $*.c
+
 clean:
 	/bin/rm -f *.o *~ $(EXECS)
 

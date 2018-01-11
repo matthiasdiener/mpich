@@ -3,9 +3,9 @@
 /* p4_net_utils.h generally would suffice here */
 
 extern int errno;
-/* 
+/*  removed 11/27/94 by RL.  Causes problems in FreeBSD and is not used.
 extern char *sys_errlist[];
- */
+*/
 
 /*
  *    Utility routines for socket hacking in p4:

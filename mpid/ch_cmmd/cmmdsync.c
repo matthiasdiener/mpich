@@ -7,14 +7,14 @@
 
 
 /*
- *  $Id: chsync.c,v 1.11 1994/11/23 16:04:25 gropp Exp $
+ *  $Id: chsync.c,v 1.13 1995/01/07 20:03:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vc[] = "$Id: chsync.c,v 1.11 1994/11/23 16:04:25 gropp Exp $";
+static char vc[] = "$Id: chsync.c,v 1.13 1995/01/07 20:03:41 gropp Exp $";
 #endif
 
 #include "mpid.h"
@@ -122,7 +122,7 @@ MPID_SHANDLE *mpid_send_handle;
 if (DebugFlag) {
     printf( 
     "[%d]SYNC received sync ack message for mode=%x from %d (%s:%d)\n",  
-	   __MYPROCID, sync_id, from, __FILE__, __LINE__ );
+	   MPID_MyWorldRank, sync_id, from, __FILE__, __LINE__ );
     fflush( stdout );
     }
 #endif                  /* #DEBUG_END# */
@@ -156,14 +156,14 @@ pkt.sync_id    = sync_id;
 if (DebugFlag) {
     printf( 
    "[%d]SYNC Starting a send of tag = %d, dest = %d, mode=",
-	    __MYPROCID, MPID_PT2PT_TAG, from );
+	    MPID_MyWorldRank, MPID_PT2PT_TAG, from );
     MPID_Print_mode( stdout, (MPID_PKT_T *)&pkt );
     fprintf( stdout, "(%s:%d)\n", __FILE__, __LINE__ );
     MPID_Print_packet( stdout, (MPID_PKT_T *)&pkt );
     fflush( stdout );
     }
 #endif                  /* #DEBUG_END# */
-CMMD_send_noblock(from,MPID_PT2PT_TAG,(char*)(&pkt),sizeof(MPID_PKT_SYNC_ACK_T));
+MPID_SendControl( &pkt, sizeof(MPID_PKT_SYNC_ACK_T), from );
 }
 
 /* Look through entire list for this API handle */
@@ -219,7 +219,7 @@ MPID_SHANDLE *mpid_send_handle;
 if (DebugFlag) {
     printf( 
     "[%d]SYNC received sync ack message for mode=%x from %d (%s:%d)\n",  
-	   __MYPROCID, sync_id, from, __FILE__, __LINE__ );
+	   MPID_MyWorldRank, sync_id, from, __FILE__, __LINE__ );
     fflush( stdout );
     }
 #endif                  /* #DEBUG_END# */
@@ -247,14 +247,14 @@ pkt.sync_id    = sync_id;
 if (DebugFlag) {
     printf( 
    "[%d]SYNC Starting a send of tag = %d, dest = %d, mode=",
-	    __MYPROCID, MPID_PT2PT_TAG, from );
+	    MPID_MyWorldRank, MPID_PT2PT_TAG, from );
     MPID_Print_mode( stdout, &pkt );
     fprintf( stdout, "(%s:%d)\n", __FILE__, __LINE__ );
     MPID_Print_packet( stdout, &pkt );
     fflush( stdout );
     }
 #endif                  /* #DEBUG_END# */
-CMMD_send_noblock(from,MPID_PT2PT_TAG,(char*)(&pkt),sizeof(MPID_PKT_SYNC_ACK_T));
+MPID_SendControl( &pkt, sizeof(MPID_PKT_SYNC_ACK_T), from );
 }
 
 /* Look through entire list for this API handle */

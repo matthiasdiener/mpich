@@ -1,0 +1,92 @@
+About to run poe ... 
+Status info: source = 0, tag = 2001, count = 10
+Commands to pack datatype:
+MPIR_(H)STRUCT:
+Commands to pack datatype:
+Contiguous type: Copy 0 <- 0 for 8 bytes
+Commands to unpack datatype:
+Contiguous type: Copy 80 <- 0 for 0 bytes
+MPIR_(H)STRUCT:
+Contiguous type: Copy 80 <- 80 for 8 bytes
+Commands to unpack datatype:
+Contiguous type: Copy 160 <- 80 for 0 bytes
+Contiguous type: Copy 0 <- 0 for 8 bytes
+Contiguous type: Copy 160 <- 160 for 8 bytes
+Contiguous type: Copy 80 <- 8 for 0 bytes
+Contiguous type: Copy 240 <- 160 for 0 bytes
+Contiguous type: Copy 80 <- 8 for 8 bytes
+Contiguous type: Copy 240 <- 240 for 8 bytes
+Contiguous type: Copy 160 <- 16 for 0 bytes
+Contiguous type: Copy 320 <- 240 for 0 bytes
+Contiguous type: Copy 320 <- 320 for 8 bytes
+Contiguous type: Copy 400 <- 320 for 0 bytes
+Contiguous type: Copy 400 <- 400 for 8 bytes
+Contiguous type: Copy 480 <- 400 for 0 bytes
+Contiguous type: Copy 480 <- 480 for 8 bytes
+Contiguous type: Copy 560 <- 480 for 0 bytes
+Contiguous type: Copy 560 <- 560 for 8 bytes
+Contiguous type: Copy 640 <- 560 for 0 bytes
+Contiguous type: Copy 640 <- 640 for 8 bytes
+Contiguous type: Copy 720 <- 640 for 0 bytes
+Contiguous type: Copy 720 <- 720 for 8 bytes
+Contiguous type: Copy 800 <- 720 for 0 bytes
+Contiguous type: Copy 160 <- 16 for 8 bytes
+Contiguous type: Copy 240 <- 24 for 0 bytes
+Contiguous type: Copy 240 <- 24 for 8 bytes
+Contiguous type: Copy 320 <- 32 for 0 bytes
+Contiguous type: Copy 320 <- 32 for 8 bytes
+Contiguous type: Copy 400 <- 40 for 0 bytes
+Contiguous type: Copy 400 <- 40 for 8 bytes
+Contiguous type: Copy 480 <- 48 for 0 bytes
+Contiguous type: Copy 480 <- 48 for 8 bytes
+Contiguous type: Copy 560 <- 56 for 0 bytes
+Contiguous type: Copy 560 <- 56 for 8 bytes
+Contiguous type: Copy 640 <- 64 for 0 bytes
+Contiguous type: Copy 640 <- 64 for 8 bytes
+Contiguous type: Copy 720 <- 72 for 0 bytes
+Contiguous type: Copy 720 <- 72 for 8 bytes
+Contiguous type: Copy 800 <- 80 for 0 bytes
+Status info: source = 0, tag = 2001, count = 10
+[1](rcv row) 1'th element = 0.000000, should be 1.000000
+[1](rcv row) 2'th element = 0.000000, should be 2.000000
+[1](rcv row) 3'th element = 0.000000, should be 3.000000
+[1](rcv row) 4'th element = 0.000000, should be 4.000000
+[1](rcv row) 5'th element = 0.000000, should be 5.000000
+[1](rcv row) 6'th element = 0.000000, should be 6.000000
+[1](rcv row) 7'th element = 0.000000, should be 7.000000
+[1](rcv row) 8'th element = -403597369917750790000000000000000000000000000000000000000000000000000000000000.000000, should be 8.000000
+Found 36 errors in the run 
+[1](rcv row) 9'th element = -447758828878348360000000000000000000000000000000000000000000000000000000000000.000000, should be 9.000000
+Status info: source = 0, tag = 2001, count = 10
+[1](rcv row-row) 1'th element = 0.000000, should be 10.000000
+[1](rcv row-row) 2'th element = 0.000000, should be 20.000000
+[1](rcv row-row) 3'th element = 0.000000, should be 30.000000
+[1](rcv row-row) 4'th element = 0.000000, should be 40.000000
+[1](rcv row-row) 5'th element = 0.000000, should be 50.000000
+[1](rcv row-row) 6'th element = 0.000000, should be 60.000000
+[1](rcv row-row) 7'th element = 0.000000, should be 70.000000
+[1](rcv row-row) 8'th element = -403597369917750790000000000000000000000000000000000000000000000000000000000000.000000, should be 80.000000
+[1](rcv row-row) 9'th element = -447758828878348360000000000000000000000000000000000000000000000000000000000000.000000, should be 90.000000
+Status info: source = 0, tag = 2001, count = 10
+Status info: source = 0, tag = 2001, count = 10
+[1](ircv row) 1'th element = 0.000000, should be 1.000000
+[1](ircv row) 2'th element = 0.000000, should be 2.000000
+[1](ircv row) 3'th element = 0.000000, should be 3.000000
+[1](ircv row) 4'th element = 0.000000, should be 4.000000
+[1](ircv row) 5'th element = 0.000000, should be 5.000000
+[1](ircv row) 6'th element = 0.000000, should be 6.000000
+[1](ircv row) 7'th element = 0.000000, should be 7.000000
+[1](ircv row) 8'th element = -403597369917750790000000000000000000000000000000000000000000000000000000000000.000000, should be 8.000000
+[1](ircv row) 9'th element = -447758828878348360000000000000000000000000000000000000000000000000000000000000.000000, should be 9.000000
+Status info: source = 0, tag = 2001, count = 10
+[1](ircv row-row) 1'th element = 0.000000, should be 10.000000
+[1](ircv row-row) 2'th element = 0.000000, should be 20.000000
+[1](ircv row-row) 3'th element = 0.000000, should be 30.000000
+[1](ircv row-row) 4'th element = 0.000000, should be 40.000000
+[1](ircv row-row) 5'th element = 0.000000, should be 50.000000
+[1](ircv row-row) 6'th element = 0.000000, should be 60.000000
+[1](ircv row-row) 7'th element = 0.000000, should be 70.000000
+[1](ircv row-row) 8'th element = -403597369917750790000000000000000000000000000000000000000000000000000000000000.000000, should be 80.000000
+[1](ircv row-row) 9'th element = -447758828878348360000000000000000000000000000000000000000000000000000000000000.000000, should be 90.000000
+Found 36 errors in the run 
+Poe exited ...

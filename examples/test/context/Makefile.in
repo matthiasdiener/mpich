@@ -57,7 +57,7 @@ attrt: attrt.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o attrt $(DEVICE_MAIN) attrt.o $(LIBS)
 
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) core
+	/bin/rm -f *.o *~ PI* $(EXECS) core *.out
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

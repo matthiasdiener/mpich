@@ -5,11 +5,15 @@
    The intent is to make this available on general systems that 
    have shared memory or global address spaces.
 
-  (note that one the Cray T3D, since the shmem_put and shmem_get operations
-  are NOT cache-coherent, these may not work well on that system)
+  (note that on the Cray T3D, since the shmem_put and shmem_get operations
+  are NOT cache-coherent, these may not work well on that system.
 
   This version is designed for use with P4.
 
+  Systems with special support for shared memory can almost certainly do
+  better than these by making use of system-specific information about 
+  how memory is accessed (with particular reference to avoiding spin loops
+  that block or impeed other processes from accessing memory.
  */
 
 #include "p4.h"
@@ -32,6 +36,7 @@ typedef struct {
   int np, mypid;
   volatile int    *phase, *myphase, *p1,*p2,*p3,*p4,*p5;
   volatile double *value, *myvalue, *v1,*v2,*v3,*v4,*v5;
+  volatile long   *lvalue, *mylvalue, *l1, *l2, *l3, *l4, *l5;
 } MPID_Fastbar;
 
 /*
@@ -40,14 +45,17 @@ typedef struct {
     broadcast it or not.  flag = 1 -> get the memory
 */
 
-void *MPID_EUI_init_barrier(npf,flag)
-int *npf, flag;
+void *MPID_EUI_Init_barrier(npf,flag)
+int npf, flag;
 {
     int i;
     MPID_Fastbar *bar;
 
+    /* Check for too many processes */
+    if (npf > 32) return 0;
+
     bar   = (MPID_Fastbar *) p4_malloc(sizeof (MPID_Fastbar));
-    bar->np = *npf;
+    bar->np = npf;
     if (flag)
     {
         /* 
@@ -56,21 +64,33 @@ int *npf, flag;
          */
 	bar->phase = (int *)    p4_shmalloc(NPMAX*ILINESIZE*sizeof(int));
 	bar->value = (double *) p4_shmalloc(NPMAX*DLINESIZE*sizeof(double));
+	bar->lvalue = (long *)  p4_shmalloc(NPMAX*DLINESIZE*sizeof(long));
 	for (i = 0;  i < bar->np;  i++)
 	  bar->phase[i] = 0;
     }
     return (void *) bar;
 }
 
+void MPID_EUI_Free_barrier(vbar)
+void *vbar;
+{
+    MPID_Fastbar *bar = (MPID_Fastbar *)vbar;
+
+    p4_shfree( bar->phase );
+    p4_shfree( bar->value );
+    p4_shfree( bar->lvalue );
+    p4_free( bar );
+}
+
 MPID_EUI_Setup_barrier(bar,mypidf)
 MPID_Fastbar *bar;
-int *mypidf;
+int mypidf;
 {
     int mypid,np;
     volatile int *phase;
     volatile double *value;
 
-    mypid = bar->mypid = *mypidf;
+    mypid = bar->mypid = mypidf;
     np    = bar->np;
     phase = bar->phase;
     value = bar->value;
@@ -97,6 +117,18 @@ int *mypidf;
 	&value[DOFFSET(mypid+8)] : NULL;
     bar->v5 = (mypid%32== 0  &&  mypid+16< np) ?  
 	&value[DOFFSET(mypid+16)]: NULL;
+
+    bar->mylvalue = &lvalue[DOFFSET(mypid)];
+    bar->l1 = (mypid%2 == 0  &&  mypid+1 < np) ?  
+	&lvalue[DOFFSET(mypid+1)] : NULL;
+    bar->l2 = (mypid%4 == 0  &&  mypid+2 < np) ?  
+	&lvalue[DOFFSET(mypid+2)] : NULL;
+    bar->l3 = (mypid%8 == 0  &&  mypid+4 < np) ?  
+	&lvalue[DOFFSET(mypid+4)] : NULL;
+    bar->l4 = (mypid%16== 0  &&  mypid+8 < np) ?  
+	&lvalue[DOFFSET(mypid+8)] : NULL;
+    bar->l5 = (mypid%32== 0  &&  mypid+16< np) ?  
+	&lvalue[DOFFSET(mypid+16)]: NULL;
 }
 
 MPID_EUI_Wait_barrier(bar)
@@ -178,6 +210,29 @@ double *x;
     return (*(bar->value));
 }
 
+/* Broadcast a long from the root = 0 */
+long MPID_EUI_Bcast_long(bar, x)
+MPID_Fastbar *bar;
+long         *x;
+{
+    register int oldphase;
+    register long data;
+
+    oldphase = *(bar->myphase);             *(bar->mylvalue) = *x;
+    /* At the first possition, wait for the parent to place the data into
+       my local location, then read it and propogate it down */
+    if (bar->p1)  {while (*(bar->p1) == oldphase) ; 
+		   data = *mylvalue; *(bar->l1) = data;
+    if (bar->p2)  {while (*(bar->p2) == oldphase) ; *(bar->l2) = data;
+    if (bar->p3)  {while (*(bar->p3) == oldphase) ; *(bar->l3) = data;
+    if (bar->p4)  {while (*(bar->p4) == oldphase) ; *(bar->l4) = data;
+    if (bar->p5)  {while (*(bar->p5) == oldphase) ; *(bar->l5) = data; }}}}}
+    ++*(bar->myphase);
+    while (*(bar->phase) == oldphase) ;
+    return (*(bar->mylvalue));
+}
+
+
 
 /* Example usage */
 #ifdef BUILD_MAIN
@@ -198,14 +253,15 @@ char **argv;
     else
         n = atoi(argv[1]);
 
-    /* Create the initial area BEFORE spawning the processes */
-    bar = MPID_EUI_init_barrier(&n);
 
     p4_create_procgroup();
     myid = p4_get_my_id();
     x = (double) myid;
+
     /* Initialize the barriers */
-    MPID_EUI_Setup_barrier(bar,&myid);
+    bar = MPID_EUI_Init_barrier(n,1);
+    MPID_EUI_Setup_barrier(bar,myid);
+
     if (n != p4_num_cluster_ids())
         p4_error("number of procs mismatch",(-1));
 
@@ -224,6 +280,7 @@ char **argv;
     endtime = p4_ustimer();
     sumtime = endtime - starttime;
 
+    MPID_EUI_Free_barrier( bar );
     p4_wait_for_end();
 
     if (myid == 0)

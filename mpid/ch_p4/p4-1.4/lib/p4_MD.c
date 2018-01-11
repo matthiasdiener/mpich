@@ -281,7 +281,7 @@ char *ptr;
     xx_shfree(ptr);
 #else
 
-#if defined(SGI)  &&  defined(VENDOR_IPC)
+#if defined(SGI)  && defined(VENDOR_IPC)
     usfree(ptr,p4_sgi_usptr);
 
 #else

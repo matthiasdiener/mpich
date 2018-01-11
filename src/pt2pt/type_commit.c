@@ -1,12 +1,12 @@
 /*
- *  $Id: type_commit.c,v 1.12 1994/09/29 21:51:04 gropp Exp $
+ *  $Id: type_commit.c,v 1.14 1994/12/21 14:32:01 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_commit.c,v 1.12 1994/09/29 21:51:04 gropp Exp $";
+static char vcid[] = "$Id: type_commit.c,v 1.14 1994/12/21 14:32:01 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -22,9 +22,10 @@ Input Parameter:
 int MPI_Type_commit ( datatype )
 MPI_Datatype *datatype;
 {
-    int errno;
+    int mpi_errno;
     if (MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,*datatype))
-	return MPIR_ERROR(MPI_COMM_WORLD,errno,"Error in MPI_TYPE_COMMIT" );
+	return MPIR_ERROR(MPI_COMM_WORLD,mpi_errno,
+			  "Error in MPI_TYPE_COMMIT" );
     /* We could also complain about committing twice, but we chose not to, 
        based on the view that it isn't obviously an error.
        */
@@ -51,6 +52,8 @@ MPI_Datatype *datatype;
 	    if (!type->old_types[type->count-1]->is_contig) is_contig = 0;
 	    if (is_contig) {
 		type->is_contig = 1;
+		type->old_type  = type->old_types[0];
+		/* Should free all old structure members ... */
 		}
 	    break;
 	    }

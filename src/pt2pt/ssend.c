@@ -1,5 +1,5 @@
 /*
- *  $Id: ssend.c,v 1.4 1994/07/13 04:04:14 lusk Exp $
+ *  $Id: ssend.c,v 1.5 1994/12/21 14:31:08 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: ssend.c,v 1.4 1994/07/13 04:04:14 lusk Exp $";
+static char vcid[] = "$Id: ssend.c,v 1.5 1994/12/21 14:31:08 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -30,16 +30,17 @@ int              count, dest, tag;
 MPI_Datatype     datatype;
 MPI_Comm         comm;
 {
-    int         errno = MPI_SUCCESS;
+    int         mpi_errno = MPI_SUCCESS;
     MPI_Request handle;
     MPI_Status  status;
 
     if (dest != MPI_PROC_NULL)
     {
         
-	errno = MPI_Issend( buf, count, datatype, dest, tag, comm, &handle );
-	if (!errno)
-	    errno = MPI_Wait( &handle, &status );
+	mpi_errno = MPI_Issend( buf, count, datatype, dest, tag, comm, 
+			        &handle );
+	if (!mpi_errno)
+	    mpi_errno = MPI_Wait( &handle, &status );
     }
-    return errno;
+    return mpi_errno;
 }

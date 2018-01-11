@@ -1,12 +1,12 @@
 /*
- *  $Id: scan.c,v 1.24 1994/11/23 16:25:21 gropp Exp doss $
+ *  $Id: scan.c,v 1.26 1994/12/15 20:00:15 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: scan.c,v 1.24 1994/11/23 16:25:21 gropp Exp doss $";
+static char vcid[] = "$Id: scan.c,v 1.26 1994/12/15 20:00:15 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -38,17 +38,17 @@ MPI_Comm          comm;
 {
   MPI_Status status;
   int        rank, size;
-  int        errno = MPI_SUCCESS;
+  int        mpi_errno = MPI_SUCCESS;
   MPI_Aint   extent;
   MPI_User_function   *uop;
   int        flag; 
 
   /* Check for invalid arguments */
   if ( MPIR_TEST_COMM(comm,comm) || MPIR_TEST_OP(comm,op) ||
-       ( ((count>0)&&(sendbuf==(void *)0))  && (errno = MPI_ERR_BUFFER) ) ||
-       ( ((count>0)&&(recvbuf==(void *)0))  && (errno = MPI_ERR_BUFFER) ) ||
+       ( ((count>0)&&(sendbuf==(void *)0))  && (mpi_errno = MPI_ERR_BUFFER) ) ||
+       ( ((count>0)&&(recvbuf==(void *)0))  && (mpi_errno = MPI_ERR_BUFFER) ) ||
        MPIR_TEST_ALIAS(sendbuf,recvbuf))
-    return MPIR_ERROR( comm, errno, "Error in MPI_SCAN" );
+    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_SCAN" );
   /* We also need to check that the datatype is a basic type? */
 
   /* Check for intra-communicator */
@@ -56,6 +56,9 @@ MPI_Comm          comm;
   if (flag) 
     return MPIR_ERROR(comm, MPI_ERR_COMM,
 					  "Inter-communicator invalid in MPI_SCAN");
+
+  /* See the overview in Collection Operations for why this is ok */
+  if (count == 0) return MPI_SUCCESS;
 
   /* Get my rank & size and switch communicators to the hidden collective */
   MPI_Comm_size ( comm, &size );
@@ -112,5 +115,5 @@ MPI_Comm          comm;
   /* Unlock for collective operation */
   MPID_THREAD_UNLOCK(comm->ADIctx,comm);
 
-  return(errno);
+  return(mpi_errno);
 }

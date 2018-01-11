@@ -1,12 +1,12 @@
 /*
- *  $Id: allgatherv.c,v 1.13 1994/07/13 15:29:46 lusk Exp $
+ *  $Id: allgatherv.c,v 1.14 1994/12/15 17:27:15 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: allgatherv.c,v 1.13 1994/07/13 15:29:46 lusk Exp $";
+static char vcid[] = "$Id: allgatherv.c,v 1.14 1994/12/15 17:27:15 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -43,13 +43,13 @@ MPI_Datatype      recvtype;
 MPI_Comm          comm;
 {
   int size, rank, root;
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
   int flag;
 
   /* Check for invalid arguments */
   if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,sendcount) ||
       MPIR_TEST_DATATYPE(comm,sendtype) || MPIR_TEST_DATATYPE(comm,recvtype))
-      return MPIR_ERROR(comm, errno, "Error in MPI_ALLGATHERV" ); 
+      return MPIR_ERROR(comm, mpi_errno, "Error in MPI_ALLGATHERV" ); 
 
   /* Check for intra-communicator */
   MPI_Comm_test_inter ( comm, &flag );
@@ -66,5 +66,5 @@ MPI_Comm          comm;
     MPI_Gatherv(sendbuf,sendcount,sendtype,
 		recvbuf,recvcounts,displs,recvtype,root,comm);
 
-  return (errno);
+  return (mpi_errno);
 }

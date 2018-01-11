@@ -53,6 +53,14 @@ extern long mypart(long *, long *);
 #define Prism_STR_MACHINE "SUN"
 #endif
 
+#if defined(PRISM_IRIX) || defined(MPI_IRIX)
+#define Prism_STR_MACHINE "IRIX"
+#endif
+
+#if !define(Prism_STR_MACHINE)
+#define Prism_STR_MACHINE "Unknown"
+#endif
+
 /* this is a hack.  make my_argc, my_argv global so it can get to
    prism_v_init_var for call to MPI_Init */
 

@@ -1,5 +1,5 @@
 /*
- *  $Id: keyval_free.c,v 1.10 1994/12/11 16:54:55 gropp Exp $
+ *  $Id: keyval_free.c,v 1.11 1994/12/15 16:42:05 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -21,11 +21,12 @@ Key values are global (they can be used with any and all communicators)
 int MPI_Keyval_free ( keyval )
 int *keyval;
 {
-  int errno;
+  int mpi_errno;
   MPIR_Attr_key *attr_key;
 
   if ( MPIR_TEST_ARG(keyval))
-	return MPIR_ERROR( MPI_COMM_WORLD, errno, "Error in MPI_KEYVAL_FREE");
+	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+			   "Error in MPI_KEYVAL_FREE");
 
 #ifdef INT_LT_POINTER
   attr_key = (MPIR_Attr_key *)MPIR_ToPointer( *keyval );

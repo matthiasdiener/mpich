@@ -1,5 +1,12 @@
-#include <stdio.h>
+#if !defined(HAVE_STDLIB_H)
+#include <stdlib.h>
+#else
+#if HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+#endif
 
+#include <stdio.h>
 
 /*
  * The basic idea is to create an array that you can
@@ -46,8 +53,8 @@ int fprintf( FILE *, const char *, ... );
 #endif
 
 
-#ifndef _EXPANDINGLIST_H_
-#define _EXPANDINGLIST_H_
+#ifndef EXPANDINGLIST_H
+#define EXPANDINGLIST_H
 
 /* Array implementation of exapanding lists */
 /* written by Ed Karrels */
@@ -73,7 +80,7 @@ int fprintf( FILE *, const char *, ... );
    ListCreate( listVar, type, initialSize )
      creates a list in listVar (an xpandList variable)
    ListAddItem( listVar, type, newItem )
-     add newItem to the list
+     add newItem to the list (newItem will have only 1 instance)
    ListSize( listVar, type )
      returns the size of listVar
    ListItem( listVar, type, index )
@@ -186,6 +193,6 @@ typedef struct xpandList_ *xpandList;
 }
 
 #define ListDestroy( listVar, type ) \
-  {free( (listVar)->list ); free( (listVar) );}
+  {free( (listVar)->list ); free( (listVar) ); (listVar) = 0;}
 
 #endif

@@ -1,5 +1,5 @@
 /*
- *  $Id: type_util.c,v 1.7 1994/12/11 16:49:35 gropp Exp $
+ *  $Id: type_util.c,v 1.9 1994/12/21 14:33:54 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -47,15 +47,21 @@ MPI_Datatype datatype;
 /* 
    This version is used to free types that may include permanent types
    (as part of a derived datatype)
+
+   Note that it is not necessary to commit a datatype (for example, one 
+   that is used to define another datatype); but to free it, we must not
+   require that it have been committed.
  */
 int MPIR_Type_free ( datatype )
 MPI_Datatype *datatype;
 {
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
 
   /* Check for bad arguments */
-  if (MPIR_TEST_ARG(datatype) || MPIR_TEST_DATATYPE(MPI_COMM_WORLD,*datatype))
-	return MPIR_ERROR( MPI_COMM_WORLD, errno, "Error in MPI_TYPE_FREE" );
+  if (MPIR_TEST_ARG(datatype) || 
+      MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,*datatype))
+	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+			   "Error in MPI_TYPE_FREE" );
 
   /* Freeing null datatypes succeeds silently */
   if ( (*datatype) == MPI_DATATYPE_NULL )
@@ -108,5 +114,5 @@ MPI_Datatype *datatype;
 	(*datatype)->ref_count--;
 
   (*datatype) = MPI_DATATYPE_NULL;
-  return (errno);
+  return (mpi_errno);
 }

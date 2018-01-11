@@ -7,24 +7,24 @@
 #
 ##### User configurable options #####
 
-ARCH        = sun4
-COMM        = ch_p4
-DEVICE      = ch_p4
+ARCH        = intelnx
+COMM        = nx
+DEVICE      = ch_nx
 BOPT        = 
-MPIR_HOME   = /home/gropp/mpich
-INCLUDE_DIR =  -Impid/ch_p4 -Iinclude
-CC          = cc
-AR          = ar clr
+MPIR_HOME   = /tmp_mnt/Net/alriga/alriga9/MPI/mpich
+INCLUDE_DIR =  -Impid/ch_nx -Iinclude
+CC          = icc
+AR          = ar860 crl
 RANLIB      = ranlib
-OPTFLAGS    = -g
+OPTFLAGS    = -O
 
 ### End User configurable options ###
 
 ALL: default
 
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
-CFLAGS   =   -DMPE_USE_EXTENSIONS=1 -DHAS_XDR=1 -DHAVE_STDLIB_H=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
-		-DMPID_DEVICE_CODE  -DMPID_PKT_VAR_SIZE
+CFLAGS   =  -nx  -DHAVE_STDLIB_H=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
+		-DMPID_DEVICE_CODE  -DMPID_DEBUG_NONE -DMPID_STAT_NONE -Dinteldelta
 SOURCE   = nxevent.c nxrecv.c nxsend.c nxinit.c nxprobe.c nxsync.c
 SOURCEC  = $(SOURCE)
 SOURCEF  =

@@ -302,8 +302,6 @@ alogData *alog_data;
 }
 
 
-
-
 int AlogProcessLog( log_data, alog_data )
 logData *log_data;
 alogData *alog_data;
@@ -325,8 +323,9 @@ alogData *alog_data;
     /* copy stream pointer */
   inf = alog_data->leftOver_fp;
 
-  while ( firstLine ||
-	  !(readStatus = GetAlogLine( inf, &lineData ))) {
+  while ( !Log_Halted( log_data ) &&
+	  (firstLine ||
+	  !(readStatus = GetAlogLine( inf, &lineData ))) ) {
     firstLine = 0;
 
 #if DEBUG >1
@@ -348,7 +347,7 @@ alogData *alog_data;
 		       lineData.timestamp );
 	} else {
 	  State_End( log_data->states, stateType, lineData.process,
-		     lineData.timestamp );
+			      lineData.timestamp );
 	}
 
       } else {
@@ -359,28 +358,29 @@ alogData *alog_data;
     }
   }
 
-  State_DoneAdding( log_data->states );
-  Event_DoneAdding( log_data->events );
-  Msg_DoneAdding  ( log_data->msgs );
+  if (Log_Halted( log_data )) {
+    Log_CloseData( log_data );
+    AlogCloseLog( alog_data );
+  } else {
+    State_DoneAdding( log_data->states );
+    Event_DoneAdding( log_data->events );
+    Msg_DoneAdding  ( log_data->msgs );
 
 #if TESTING
   State_PrintAll( log_data->states );
   Msg_PrintAll( log_data->msgs );
 #endif
 
+  }
+
   return 0;
 }
 
 
 
-int AlogCloseLog( log_data, alog_data )
-logData *log_data;
+int AlogCloseLog( alog_data )
 alogData *alog_data;
 {
-  Event_Close( log_data->events );
-  State_Close( log_data->states );
-  Msg_Close  ( log_data->msgs );
-
   ListDestroy( alog_data->stateDefs.list, alogStateDefInfo* );
   ListDestroy( alog_data->stateDefs.startEvents, int );
   ListDestroy( alog_data->stateDefs.endEvents, int );
@@ -398,8 +398,14 @@ alogData *alog_data;
 alogLineData *lineData;
 {
   char *color=0, *bitmap=0, *name=0;
+  int stateType, isStartEvent;
 
   /* break the line_data->comment string up into bitmap:color name */
+
+  if (IsStateEvent( alog_data, lineData->task, &stateType, &isStartEvent )) {
+      /* if the state being defined is already defined, skip it */
+    return 0;
+  }
 
   bitmap = color = lineData->comment;
 

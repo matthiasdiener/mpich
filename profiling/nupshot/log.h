@@ -32,6 +32,8 @@ typedef union anyLogData_ {
 #endif
 
 
+logFile *Log_OpenFile ARGS(( char *format ));
+
 int PreProcessLog ARGS(( char *filename,
 		         logData *log_data, logFile *log_file ));
   /* call the appropriate processor to open the logfile */
@@ -39,7 +41,7 @@ int PreProcessLog ARGS(( char *filename,
 int ProcessLog ARGS(( logData *log_data, logFile *log_file ));
   /* call the appropriate processor to load the logfile */
 
-int CloseLog ARGS(( logData *log_data, logFile *log_file ));
+int Log_Close ARGS(( logData *log_data, logFile *log_file ));
   /* close the logfile, free memory, etc. */
 
 int LogFormatError ARGS(( char *filename, int line ));

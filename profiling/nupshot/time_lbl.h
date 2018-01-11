@@ -52,30 +52,34 @@ typedef struct timelbl_ {
   Tcl_Interp *interp;
   Tk_Window win;
   char *windowName, *canvasName;
-    /* fg - color for the text and hashes
-       bg - background color 
-       font - font for the text */
   logData *log;
-  char *fg, *bg, *font;
-    /* sprintf format string used to print all labels */
-  char *format_str;
-    /* pulled from the logfile */
-  double starttime, endtime;
-    /* window width, from the latest resize event */
-  double visWidth;
-    /* total width, from the latest resize event combined with */
-    /* latest 'scroll set' */
-  double width;
-    /* total height of the widget, based on text size */
-  double height;
-    /* how much space between label centers */
-  double lbl_width;
-    /* x-coordinate of leftmost label */
-  double lbl_startx;
+  char *fg;			/* color for the text and hashes */
+  char *bg;			/* color for the background */
+  char *font;			/* font for the text */
+  char *format_str;		/* sprintf format string used to print */
+				/* all labels */
+  double starttime, endtime;	/* pulled from the logfile */
+
+  int visWidth;			/* window width, from the latest resize evt */
+
+  double width;			/* total width, from the latest resize */
+				/* event combined with latest 'scroll set' */
+
+  int height;			/* total height of the widget, based on */
+				/* text size */
+
+  double lbl_width;		/* how much space between label centers */
+
+  double lbl_startx;		/* x-coordinate of leftmost label */
+
+  int xview;			/* leftmost coord - argument to xview comma */
+
     /* the settings from the latest 'scroll set' command */
     /* certain recalculations and redraws will only be necessary if these
        numbers change */
-  int scroll_total, scroll_visible;
+  double scroll_total, scroll_visible, scroll_first, scroll_last;
+
+  int is_sized;			/* nonzero after the first configure event */
 
   double firstHashTime;		/* value for leftmost hash mark */
   double hashIncrement;		/* increment between hash marks */

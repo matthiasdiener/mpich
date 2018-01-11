@@ -1,5 +1,5 @@
 /*
- *  $Id: group_rank.c,v 1.9 1994/07/13 15:47:29 lusk Exp $
+ *  $Id: group_rank.c,v 1.10 1994/12/15 16:33:47 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -23,15 +23,15 @@ int MPI_Group_rank ( group, rank )
 MPI_Group group;
 int *rank;
 {
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
 
   /* Check for invalid arguments */
   if ( MPIR_TEST_GROUP(MPI_COMM_WORLD,group) ||
        MPIR_TEST_ARG(rank) )
-	return MPIR_ERROR(MPI_COMM_WORLD,errno,"Error in MPI_GROUP_RANK");
+	return MPIR_ERROR(MPI_COMM_WORLD,mpi_errno,"Error in MPI_GROUP_RANK");
 
   /* Get the rank of the group */
   (*rank) = group->local_rank;
 
-  return (errno);
+  return (mpi_errno);
 }

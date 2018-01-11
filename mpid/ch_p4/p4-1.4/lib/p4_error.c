@@ -1,6 +1,8 @@
 #include "p4.h"
 #include "p4_sys.h"
 
+typedef long P4_Aint;
+
 extern P4VOID exit();
 
 static int interrupt_caught = 0; /* True if an interrupt was caught */
@@ -143,7 +145,6 @@ char *addr;
   Trap signals so that we can propagate error conditions and tidy up 
   shared system resources in a manner not possible just by killing procs
 */
-typedef long P4_Aint;
 P4VOID trap_sig_errs()
 {
     P4_HANDLER_TYPE (*rc) ();

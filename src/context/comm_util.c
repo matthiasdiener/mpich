@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_util.c,v 1.28 1994/12/11 17:00:28 gropp Exp $
+ *  $Id: comm_util.c,v 1.30 1994/12/19 14:16:48 doss Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -22,7 +22,7 @@ MPI_Comm       comm;
 MPIR_COMM_TYPE comm_type;
 {
   MPI_Comm new_comm         = NEW(struct MPIR_COMMUNICATOR);
-  int      errno;
+  int      mpi_errno;
 
   if (!new_comm) 
       return MPIR_ERROR(comm, MPI_ERR_EXHAUSTED,
@@ -37,7 +37,8 @@ MPIR_COMM_TYPE comm_type;
   MPI_Errhandler_set( new_comm, comm->error_handler );
   new_comm->ref_count       = 1;
   new_comm->permanent       = 0;
-  if (errno = MPID_Comm_init( new_comm->ADIctx, comm, new_comm )) return errno;
+  if (mpi_errno = MPID_Comm_init( new_comm->ADIctx, comm, new_comm )) 
+      return mpi_errno;
 
   if (comm_type == MPIR_INTRA) {
     new_comm->recv_context    = comm->recv_context + 1;
@@ -156,18 +157,18 @@ int MPIR_Comm_init ( new_comm, comm, comm_type )
 MPI_Comm       new_comm, comm;
 MPIR_COMM_TYPE comm_type;
 {
-  int      errno;
+  int      mpi_errno;
 
   MPIR_SET_COOKIE(new_comm,MPIR_COMM_COOKIE);
   new_comm->ADIctx      = comm->ADIctx;
   new_comm->comm_type   = comm_type;
-  MPIR_Attr_dup_tree ( comm, new_comm );
   new_comm->comm_cache      = 0;
   new_comm->error_handler   = 0;
   MPI_Errhandler_set( new_comm, comm->error_handler );
   new_comm->ref_count       = 1;
   new_comm->permanent       = 0;
-  if (errno = MPID_Comm_init( new_comm->ADIctx, comm, new_comm )) return errno;
+  if (mpi_errno = MPID_Comm_init( new_comm->ADIctx, comm, new_comm )) 
+      return mpi_errno;
 
   return(MPI_SUCCESS);
 }

@@ -1,35 +1,23 @@
-# P4 makefile for Sun
+# Generated automatically from Makefile.in by configure.
 P4ARCH = SUN
-AR = ar lruv
+MAKE = make
+CC = cc
 FC = f77
-CLINKER = cc 
-FLINKER = f77 
+CLINKER = cc
+FLINKER = f77
 RANLIB = ranlib
+AR = ar lruv
+RM = /bin/rm
 MDEP_LIBS = 
 MDEP_CFLAGS = 
 MDEP_FFLAGS = 
+MDEP_LFLAGS = 
 P4_OBJ = $(P4_COMM_OBJ) $(P4_SOCK_OBJ) $(P4_SHMEM_OBJ)
 
-RM = /bin/rm
-
-# Added -I for MPI includes
 CFLAGS = -g -I$(INCLUDEDIR) -I../../../../include $(MDEP_CFLAGS) $(USER_CFLAGS)
-#CFLAGS = -O -I$(INCLUDEDIR) $(MDEP_CFLAGS) $(USER_CFLAGS)
+#CFLAGS = -O -I$(INCLUDEDIR) -I../../../../include $(MDEP_CFLAGS) $(USER_CFLAGS)
 
 FFLAGS = -g -I$(FORTLIBDIR) $(MDEP_FFLAGS)
-
-.SUFFIXES:	.o .c .f .h
-
-.c.o:$(P)
-	$(CC) $(CFLAGS) -c $*.c 
-
-.f.o:$(P)
-	$(FC) $(FFLAGS) -c $*.f 
-
-dummy:	default
-
-clean:
-	$(RM) -f *~ *.o *.bak tags TAGS core
 
 P4_HOME_DIR = ..
 INCLUDEDIR = $(P4_HOME_DIR)/include
@@ -59,15 +47,28 @@ P4_SHMEM_OBJ	=	p4_shmem_sr.o
 
 LIBS = $(LIBDIR)/libp4.a $(MDEP_LIBS) 
 
+.SUFFIXES:	.o .c .f .h
+
+.c.o:$(P)
+	$(CC) $(CFLAGS) -c $*.c 
+
+.f.o:$(P)
+	$(FC) $(FFLAGS) -c $*.f 
+
+dummy:	default
+
+clean:
+	$(RM) -f *~ *.o *.bak tags TAGS core
+
 $(P4_OBJ): $(P4_HDRS)
 
 listener_p4.o: $(P4_HDRS)
 
 default:$(P) 
-	make $(MFLAGS) libp4.a
+	$(MAKE) $(MFLAGS) libp4.a
 
 all:$(P) 
-	make $(MFLAGS) libp4.a listener_p4
+	$(MAKE) $(MFLAGS) libp4.a listener_p4
 
 libp4.a:$(P) $(P4_OBJ)
 	$(AR) $@ $?
@@ -106,3 +107,4 @@ realclean: clean
 #		echo lint $(LINTFLAGS) -Cp4 lint_p4.c ;\
 #		lint $(LINTFLAGS) -Cp4 lint_p4.c ;\
 #	fi
+

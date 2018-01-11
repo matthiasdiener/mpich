@@ -6,7 +6,7 @@
  */
 
 #ifndef lint
-static char vcid[] = "$Id: initrecv.c,v 1.7 1994/12/11 16:46:16 gropp Exp $";
+static char vcid[] = "$Id: initrecv.c,v 1.8 1995/01/03 19:43:15 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -26,10 +26,7 @@ MPI_Request   request;
 int           nonblocking;
 {
     request->type                 = MPIR_RECV;
-    if (source == MPI_ANY_SOURCE)
-	request->rhandle.source   = source;
-    else
-	request->rhandle.source   = comm->group->lrank_to_grank[source];
+    request->rhandle.source       = source;
     request->rhandle.tag          = tag;
     request->rhandle.contextid    = comm->recv_context;
     request->rhandle.comm         = comm;

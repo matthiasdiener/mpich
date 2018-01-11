@@ -13,6 +13,7 @@ sed -e '/#define DEVICE_CHAMELEON/d' \
 
 sed -e 's/MPID_CH/MPID_CMMD/g' ../chameleon/mpid_bind.h > mpid_bind.h
 sed -e 's/MPID_CH/MPID_CMMD/g' ../chameleon/packets.h > packets.h
+sed -e 's/MPID_CH/MPID_CMMD/g' ../chameleon/channel.h > channel.h
 ../chameleon/rmhetero ../chameleon/chevent.c > cmmdevent.c
 ../chameleon/rmhetero ../chameleon/chrecv.c  > cmmdrecv.c
 ../chameleon/rmhetero ../chameleon/chsend.c  > cmmdsend.c
@@ -23,7 +24,7 @@ sed -e 's/MPID_CH/MPID_CMMD/g' ../chameleon/packets.h > packets.h
 chmod ug+w *.[ch]
 /home/gropp/tools.n/bin/inlinecomm -main -quiet -cm5 cmmdinit.c
 for file in cmmdevent.c cmmdrecv.c cmmdsend.c cmmdprobe.c cmmdsync.c \
-	dmcmmd.h packets.h ; do
+	dmcmmd.h packets.h channel.h ; do
     /home/gropp/tools.n/bin/inlinecomm -quiet -cm5 $file
 done
 #

@@ -1,5 +1,5 @@
 /*
- *  $Id: ic_merge.c,v 1.7 1994/10/24 22:03:12 gropp Exp $
+ *  $Id: ic_merge.c,v 1.8 1994/12/15 16:42:42 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -33,7 +33,7 @@ MPI_Comm  comm;
 int       high;
 MPI_Comm *comm_out;
 {
-  int              rank, errno = MPI_SUCCESS;
+  int              rank, mpi_errno = MPI_SUCCESS;
   MPIR_CONTEXT     context;
   MPI_Comm         new_comm;
   int              flag;
@@ -79,5 +79,5 @@ MPI_Comm *comm_out;
   
   (*comm_out) = new_comm;
 
-  return (errno);
+  return (mpi_errno);
 }

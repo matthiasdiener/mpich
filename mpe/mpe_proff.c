@@ -55,7 +55,7 @@ extern void MPIR_RmPointer();
 #define mpi_ssend_ mpi_ssend__
 #define mpi_finalize_ mpi_finalize__
 #define mpi_allreduce_ mpi_allreduce__
-#elif !defined(FORTRANUNDERSCORE)
+#elif defined(FORTRANNOUNDERSCORE)
 #define mpi_init_ mpi_init
 #define mpi_send_ mpi_send
 #define mpi_recv_ mpi_recv
@@ -127,8 +127,8 @@ MPI_Comm         comm;
 int *__ierr;
 {
 *__ierr = MPI_Send(buf,*count,
-	(MPI_Datatype)*((int*)datatype),*dest,*tag,
-	(MPI_Comm)*((int*)comm));
+	(MPI_Datatype)MPIR_ToPointer(*((int*)datatype)),*dest,*tag,
+	(MPI_Comm)MPIR_ToPointer(*((int*)comm)));
 }
 
  void mpi_recv_( buf, count, datatype, source, tag, comm, status, __ierr )

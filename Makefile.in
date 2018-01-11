@@ -12,6 +12,8 @@ INCLUDE_DIR = @INCLUDE_PATH@ -Impid/@DEVICE@ -Iinclude
 PREFIX	    = @PREFIX@
 MAKE        = @MAKE@
 CPRP        = @CPRP@
+RSH_COMMAND = @RSH_COMMAND@
+DEFAULT_MACHINE = @DEFAULT_MACHINE@
 ### End User configurable options ###
 
 SHELL = /bin/sh
@@ -25,7 +27,7 @@ DIRS     = $(MPIDIRS) mpid/$(DEVICE) @CPP_DIR@ @MPE_DIR@ \
 # 
 # This is a list of the devices that are available
 DEVICES  = mpid/chameleon mpid/ch_nx mpid/ch_p4 mpid/ch_nc mpid/ch_cmmd \
-	   mpid/ch_eui mpid/ch_meiko
+	   mpid/ch_eui mpid/ch_meiko mpid/ch_tcp
 OTHERDEVICES  = mpid/ch_nx mpid/ch_p4 mpid/ch_nc mpid/ch_cmmd mpid/ch_eui \
 		mpid/ch_meiko
 # 
@@ -83,6 +85,11 @@ mpilib: Makefile.in
 	@if test -w lib/$(ARCH)/$(COMM)/libmpe_nompi.a ; then \
 		@RANLIB@ lib/$(ARCH)/$(COMM)/libmpe_nompi.a ; fi
 	
+#
+# This target is used to remove the libraries for this configuration; this
+# can lead to better performance when rebuilding.
+rmlib:
+	/bin/rm -f lib/$(ARCH)/$(COMM)/lib*.a
 #
 # This is a special target for just the device part of the transport
 # (used to speed builds for multiple Chameleon transport layers)
@@ -146,6 +153,8 @@ util/mpirun: util/mpirun.in
 	cat util/mpirun.in | sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
 		-e "s%\#EXECER_DIR\#%$(MPIR_HOME)/util%g" \
  		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
+		-e "s%\#RSH_COMMAND\#%$(RSH_COMMAND)%g" \
+		-e "s%\#DEFAULT_MACHINE\#%$(DEFAULT_MACHINE)%g" \
 		-e "s%\#DEFAULT_ARCH\#%$(ARCH)%g" > \
 		    util/mpirun;\
 	chmod 775 util/mpirun
@@ -161,6 +170,9 @@ profiling/upshot/bin/upshot: profiling/upshot/bin/upshot.in
 	  -e "s%\#BITMAP_DIR\#%$(MPIR_HOME)/profiling/upshot/bitmaps%g" > \
 	    profiling/upshot/bin/upshot;\
 	chmod 775 profiling/upshot/bin/upshot
+
+nupshot:
+	(cd profiling/nupshot; make )
 
 #
 # Changed clean to not remove the library, only the object files
@@ -183,8 +195,8 @@ clean:
 	if [ -n "$(TOOLS_DIR)" ] ; then  \
 	    echo "cleaning mpid/chameleon" ; \
 	    (cd mpid/chameleon ; $(MAKE) clean )  ; fi
-	@for dir in $(OTHERDEVICES) ; do echo cleaning $$dir ; \
-		(cd $$dir ; $(MAKE) clean ) ; done
+#	@for dir in $(OTHERDEVICES) ; do echo cleaning $$dir ; \
+#		(cd $$dir ; $(MAKE) clean ) ; done
 	if [ -d mpid/chameleon ] ; then \
 	    /bin/rm -f mpid/chameleon/*.o ; fi
 
@@ -214,6 +226,10 @@ anlchp4: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=sun4 -device=ch_p4 -mpe -var_pkt -mpedbg
 	@-chmod g+ws lib lib/sun4 lib/sun4/ch_p4 >/dev/null 2>&1
+anltcp: configure 
+	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
+	configure -arch=sun4 -device=ch_tcp -mpe -var_pkt -mpedbg
+	@-chmod g+ws lib lib/sun4 lib/sun4/ch_tcp >/dev/null 2>&1
 anlchp4mem: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=sun4 -device=ch_p4 -mpe -var_pkt -mpedbg -memdebug
@@ -308,11 +324,10 @@ anlnx: configure
 	@-chmod g+ws lib lib/intelnx lib/intelnx/nx >/dev/null 2>&1
 #
 # This version allows us to build a version for profiling
-anlp4pg: configure
+anlchp4pg: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=sun4 -comm=p4 -bopt=Opg -device=chameleon \
-	-devicedir=/home/gropp/tools.n -transportdir=/usr/local/p4-1.3c -mpe \
-	-opt="-pg -O" -nodevdebug
+	configure -arch=sun4 -device=ch_p4 \
+	-mpe -opt="-pg -O" -nodevdebug -var_pkt -mpedbg
 	-@chmod g+ws lib lib/sun4 lib/sun4/p4 >/dev/null 2>&1
 
 INSTALLDIR = /usr/local/mpi

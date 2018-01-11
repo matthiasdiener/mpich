@@ -1,12 +1,12 @@
 /*
- *  $Id: startall.c,v 1.4 1994/07/13 04:04:29 lusk Exp $
+ *  $Id: startall.c,v 1.5 1994/12/15 17:23:31 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: startall.c,v 1.4 1994/07/13 04:04:29 lusk Exp $";
+static char vcid[] = "$Id: startall.c,v 1.5 1994/12/15 17:23:31 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -24,9 +24,9 @@ int count;
 MPI_Request array_of_requests[];
 {
 int i;
-int errno;
+int mpi_errno;
 for (i=0; i<count; i++)
-    if (errno = MPI_Start( array_of_requests + i )) return errno;
+    if (mpi_errno = MPI_Start( array_of_requests + i )) return mpi_errno;
 
 return MPI_SUCCESS;
 }

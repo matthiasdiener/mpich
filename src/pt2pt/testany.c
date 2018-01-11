@@ -1,5 +1,5 @@
 /*
- *  $Id: testany.c,v 1.19 1994/10/24 22:02:50 gropp Exp $
+ *  $Id: testany.c,v 1.22 1995/01/14 18:13:13 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -28,16 +28,24 @@ MPI_Request array_of_requests[];
 int         *index, *flag;
 MPI_Status  *status;
 {
-    int i, found, errno;
+    int i, found, mpi_errno;
     MPI_Request request;
     *index = MPI_UNDEFINED;
 
-    /* Check for the trivial case of nothing to do. */
+    /* Check for the trivial case of nothing to do; check requests for
+       validity */
+    found = 0;
+    *flag  = 0;
     for (i=0; i<count; i++) {
-	if (array_of_requests[i] && array_of_requests[i]->chandle.active) 
-	    break;
+	if (array_of_requests[i]) {
+	    if (MPIR_TEST_REQUEST(MPI_COMM_WORLD,array_of_requests[i]))
+		return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, 
+				  "Error in MPI_TESTANY" );
+	    if (array_of_requests[i]->chandle.active) found = 1;
+	    }
 	}
-    if (i == count) return MPI_SUCCESS;
+    
+    if (!found) return MPI_SUCCESS;
 
     MPID_Check_device( MPI_COMM_WORLD->ADIctx, 0 );
     found = 0;
@@ -52,6 +60,13 @@ MPI_Status  *status;
 	    if ( request->type == MPIR_SEND ) {
 		MPID_Complete_send( request->shandle.comm->ADIctx, 
 				    &request->shandle );
+#if defined(MPID_PACK_IN_ADVANCE) || defined(MPID_HAS_HETERO)
+		if (request->shandle.bufpos && 
+		      (mpi_errno = MPIR_SendBufferFree( request ))){
+		    MPIR_ERROR( MPI_COMM_NULL, mpi_errno, 
+		      "Could not free allocated send buffer in MPI_TESTANY" );
+		  }
+#endif
 	        }
 	    else {
 		MPID_Complete_recv( request->rhandle.comm->ADIctx, 
@@ -60,14 +75,26 @@ MPI_Status  *status;
 		status->MPI_SOURCE     = request->rhandle.source;
 		status->MPI_TAG	       = request->rhandle.tag;
 		status->count	       = request->rhandle.totallen;
+#ifdef MPID_RETURN_PACKED
+		if (request->rhandle.bufpos) 
+		    mpi_errno = MPIR_UnPackMessage( 
+						   request->rhandle.bufadd, 
+						   request->rhandle.count, 
+						   request->rhandle.datatype, 
+						   request->rhandle.source,
+						   request );
+#endif
 	    }
 	    if (!request->chandle.persistent) {
+		if (--request->chandle.datatype->ref_count <= 0) {
+		    MPIR_Type_free( &request->chandle.datatype );
+		    }
 		MPI_Request_free( &array_of_requests[i] );
 		array_of_requests[i]    = NULL;
 		}
 	    else {
-		request->chandle.active	        = 0;
-		request->chandle.completed	= MPIR_NO;
+		request->chandle.active	   = 0;
+		request->chandle.completed = MPIR_NO;
 		if (request->type == MPIR_RECV) {
 		    MPID_Reuse_recv_handle( request->rhandle.comm->ADIctx,
 					    &request->rhandle.dev_rhandle );

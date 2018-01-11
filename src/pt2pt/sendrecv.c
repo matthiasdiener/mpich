@@ -1,12 +1,12 @@
 /*
- *  $Id: sendrecv.c,v 1.7 1994/08/10 14:06:30 gropp Exp $
+ *  $Id: sendrecv.c,v 1.8 1994/12/15 16:59:20 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: sendrecv.c,v 1.7 1994/08/10 14:06:30 gropp Exp $";
+static char vcid[] = "$Id: sendrecv.c,v 1.8 1994/12/15 16:59:20 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -46,7 +46,7 @@ int           source, recvtag;
 MPI_Comm      comm;
 MPI_Status   *status;
 {
-    int               errno = MPI_SUCCESS;
+    int               mpi_errno = MPI_SUCCESS;
     MPI_Status        status_array[2];
     MPI_Request       req[2];
 
@@ -63,12 +63,12 @@ MPI_Status   *status;
 
        Should there be a send/recv bit in the send mode? 
      */
-    if (errno = MPI_Irecv ( recvbuf, recvcount, recvtype,
-			    source, recvtag, comm, &req[1] )) return errno;
-    if (errno = MPI_Isend ( sendbuf, sendcount, sendtype, dest,   
-			    sendtag, comm, &req[0] )) return errno;
-    errno = MPI_Waitall ( 2, req, status_array );
+    if (mpi_errno = MPI_Irecv ( recvbuf, recvcount, recvtype,
+			    source, recvtag, comm, &req[1] )) return mpi_errno;
+    if (mpi_errno = MPI_Isend ( sendbuf, sendcount, sendtype, dest,   
+			    sendtag, comm, &req[0] )) return mpi_errno;
+    mpi_errno = MPI_Waitall ( 2, req, status_array );
 
     (*status) = status_array[1];
-    return (errno);
+    return (mpi_errno);
 }

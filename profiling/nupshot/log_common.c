@@ -20,6 +20,23 @@ int line;
 }
 
 
+logData *Log_OpenData()
+{
+  logData *log;
+
+  log = (logData*) malloc( sizeof( logData ) );
+  if (!log) {
+    fprintf( stderr, "Out of memory opening log.\n" );
+  }
+
+  log->is_reading = 0;
+  log->halt_reading = 0;
+  log->loaded = 0;
+
+  return log;
+}
+
+
 double Log_StartTime( log )
 logData *log;
 {
@@ -42,5 +59,30 @@ int Log_Loaded( log )
 logData *log;
 {
   return log->loaded;
+}
+
+int Log_Halt( log )
+logData *log;
+{
+  log->halt_reading = 1;
+  return 0;
+}
+
+int Log_Halted( log )
+logData *log;
+{
+  return log->halt_reading;
+}
+
+
+int Log_CloseData( log )
+logData *log;
+{
+  Event_Close( log->events );
+  State_Close( log->states );
+  Msg_Close( log->msgs );
+
+  free( (void*)log );
+  return 0;
 }
 

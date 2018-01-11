@@ -1,12 +1,12 @@
 /*
- *  $Id: allgather.c,v 1.14 1994/07/13 15:28:27 lusk Exp $
+ *  $Id: allgather.c,v 1.16 1994/12/22 07:36:48 doss Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: allgather.c,v 1.14 1994/07/13 15:28:27 lusk Exp $";
+static char vcid[] = "$Id: allgather.c,v 1.16 1994/12/22 07:36:48 doss Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -37,8 +37,8 @@ int               recvcount;
 MPI_Datatype      recvtype;
 MPI_Comm          comm;
 {
-  int size, rank, root;
-  int errno = MPI_SUCCESS;
+  int size, rank;
+  int mpi_errno = MPI_SUCCESS;
   int flag;
 
   /* Check for invalid arguments */
@@ -46,7 +46,7 @@ MPI_Comm          comm;
        MPIR_TEST_COUNT(comm,recvcount) || 
        MPIR_TEST_DATATYPE(comm,sendtype) || 
        MPIR_TEST_DATATYPE(comm,recvtype)) 
-      return MPIR_ERROR( comm, errno, "Error in MPI_ALLGATHER" ); 
+      return MPIR_ERROR( comm, mpi_errno, "Error in MPI_ALLGATHER" ); 
   
   /* Check for intra-communicator */
   MPI_Comm_test_inter ( comm, &flag );
@@ -59,11 +59,11 @@ MPI_Comm          comm;
 
   /* Do a gather for each process in the communicator */
   /* This is a sorry way to do this, but for now ... */
-  for (root=0; root<size; root++)
-    MPI_Gather(sendbuf,sendcount,sendtype,
-	       recvbuf,recvcount,recvtype,root,comm);
+  MPI_Gather(sendbuf,sendcount,sendtype,
+	       recvbuf,recvcount,recvtype,0,comm);
+  MPI_Bcast(recvbuf,recvcount*size,recvtype,0,comm);
 
-  return (errno);
+  return (mpi_errno);
 }
 
 

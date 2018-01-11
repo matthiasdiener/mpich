@@ -41,7 +41,7 @@ visual_mess.c: visual_mess.w
 	../wrappergen/wrappergen -w visual_mess.w -w message_prof.w \
 	-o visual_mess.c 
 
-.c.o
+.c.o:
 	$(CC) $(CFLAGS) -c $*.c
 
 clean:

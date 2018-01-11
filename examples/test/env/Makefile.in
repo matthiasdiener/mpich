@@ -59,7 +59,7 @@ errhand: errhand.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
 sigchk: sigchk.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o sigchk $(DEVICE_MAIN) sigchk.o $(LIBS)
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) baseattrf core
+	/bin/rm -f *.o *~ PI* $(EXECS) baseattrf core *.out *.orig
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

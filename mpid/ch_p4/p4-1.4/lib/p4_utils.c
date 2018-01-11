@@ -611,6 +611,9 @@ int p4_wait_for_end()
 	pid = wait(&status);
 	p4_dprintfl(90, "detected that proc %d died \n", pid);
     }
+    /* free listener data structures */
+    
+
 #   endif
 
 #   if defined(SYSV_IPC)
@@ -631,6 +634,23 @@ int p4_wait_for_end()
     if (p4_get_my_id())
         p4_dprintfl(20,"process exiting\n");
     p4_dprintfl(90, "exit wait_for_end \n");
+
+    /* free assorted data structures */
+    p4_free(listener_info);
+    if (p4_local->procgroup) 
+	p4_free(p4_local->procgroup);
+    p4_free(p4_local->conntab);
+    p4_shfree(p4_local->queued_messages->m.qs);
+    p4_free(p4_local->queued_messages);
+    p4_free(p4_local->xdr_buff);
+    p4_free(p4_local);
+    free_avail_quels();		/* (in p4_global)  */
+
+    for (i = 0; i < P4_MAX_MSG_QUEUES; i++) 
+	p4_shfree(p4_global->shmem_msg_queues[i].m.qs);
+    p4_shfree(p4_global->cluster_barrier.m.qs);
+    p4_shfree(p4_global);
+
     return (0);
 }
 
@@ -662,7 +682,7 @@ int fork_p4()
 	/* Parent process */
 	pid_list[n_pids++] = pid;
 #if defined(SUN_SOLARIS)
-/*	{ processorid_t proc = 0;
+/*****	{ processorid_t proc = 0;
 	  if(p_online(proc,P_STATUS) != P_ONLINE)
 	    printf("Could not bind parent to processor 0\n");
 	  else
@@ -672,7 +692,7 @@ int fork_p4()
 		     proc);
 	    }
 	}
-*/
+*****/
 #endif
     }
     else if (pid == 0)
@@ -836,25 +856,36 @@ char *master_hostname;
 
 /* high-resolution clock, made out of p4_clock and p4_ustimer */
 
-static int usclock_start;
+static int clock_start_ms;
 static usc_time_t ustimer_start;
 static usc_time_t usrollover;
 
 P4VOID init_usclock()
 {
-    usclock_start = p4_clock();
-    ustimer_start = p4_ustimer();
-    usrollover	  = usc_rollover_val();
+    clock_start_ms = p4_clock();
+    ustimer_start  = p4_ustimer();
+    usrollover     = usc_rollover_val();
 }
 
 double p4_usclock()
 {
-    int now, q, r;
-    double roll, elapsed;
+    int elapsed_ms, q, r;
+    double rc, roll, beginning, end;
 
-    now = p4_clock()-usclock_start;                    /* milleseconds */
-    q =  now / (usrollover/1000);                      /* num rollovers */
-    elapsed = (p4_ustimer()-ustimer_start) * .000001;  /* seconds */
-    roll = usrollover * 000001;	                       /* seconds */
-    return ( (q * roll) + elapsed );
+    if (usrollover == 0)
+	return( .001*p4_clock() );
+
+    elapsed_ms = p4_clock() - clock_start_ms; /* milliseconds */
+    q  =  elapsed_ms / (int)(usrollover/1000);/* num rollover-sized intervals*/
+    beginning = (double)(usrollover - ustimer_start); /* initial segment */
+    end = p4_ustimer();                               /* terminal segment */
+    roll = (double)(usrollover * 0.000001);           /* rollover in seconds */
+    if (q == 0)
+        if (ustimer_start < end)
+            rc = (double) ((end - (double)ustimer_start) * 0.000001);
+        else
+            rc = (double) (beginning + end);
+    else
+        rc = (double) (((beginning + end ) * 0.000001) + (q * roll));
+    return(rc);
 }

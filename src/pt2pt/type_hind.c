@@ -1,12 +1,12 @@
 /*
- *  $Id: type_hind.c,v 1.11 1994/10/24 22:02:53 gropp Exp $
+ *  $Id: type_hind.c,v 1.13 1994/12/30 17:20:35 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_hind.c,v 1.11 1994/10/24 22:02:53 gropp Exp $";
+static char vcid[] = "$Id: type_hind.c,v 1.13 1994/12/30 17:20:35 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -37,15 +37,14 @@ MPI_Datatype *newtype;
 {
   MPI_Datatype  dteptr;
   MPI_Aint      ub, lb, high, low;
-  int           i, errno = MPI_SUCCESS;
+  int           i, mpi_errno = MPI_SUCCESS;
 
   /* Check for bad arguments */
   if ( MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,old_type) ||
-   ( (old_type == (*newtype))        && (errno = MPI_ERR_TYPE) )  ||
-   ( (count    <= 0)                 && (errno = MPI_ERR_COUNT) ) ||
-   ( (old_type->dte_type == MPIR_UB) && (errno = MPI_ERR_TYPE) )  ||
-   ( (old_type->dte_type == MPIR_LB) && (errno = MPI_ERR_TYPE) ) )
-	return MPIR_ERROR( MPI_COMM_WORLD, errno,
+   ( (count    <= 0)                 && (mpi_errno = MPI_ERR_COUNT) ) ||
+   ( (old_type->dte_type == MPIR_UB) && (mpi_errno = MPI_ERR_TYPE) )  ||
+   ( (old_type->dte_type == MPIR_LB) && (mpi_errno = MPI_ERR_TYPE) ) )
+	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno,
 					  "Error in MPI_TYPE_INDEXED" );
 	
   /* Create and fill in the datatype */
@@ -105,5 +104,5 @@ MPI_Datatype *newtype;
   */
   dteptr->elements   *= old_type->elements;
   
-  return (errno);
+  return (mpi_errno);
 }

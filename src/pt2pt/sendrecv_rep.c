@@ -1,12 +1,12 @@
 /*
- *  $Id: sendrecv_rep.c,v 1.6 1994/07/13 04:04:08 lusk Exp $
+ *  $Id: sendrecv_rep.c,v 1.7 1994/12/15 17:07:18 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: sendrecv_rep.c,v 1.6 1994/07/13 04:04:08 lusk Exp $";
+static char vcid[] = "$Id: sendrecv_rep.c,v 1.7 1994/12/15 17:07:18 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -36,7 +36,7 @@ MPI_Datatype  datatype;
 MPI_Comm      comm;
 MPI_Status   *status;
 {
-    int          errno = MPI_SUCCESS;
+    int          mpi_errno = MPI_SUCCESS;
     int          buflen;
     void         *rbuf;
     MPI_Status   status_array[2];
@@ -45,7 +45,7 @@ MPI_Status   *status;
     /* Check for invalid arguments */
     if ( MPIR_TEST_COMM(comm,comm) || MPIR_TEST_DATATYPE(comm,datatype) ||
 	 MPIR_TEST_COUNT(comm,count) )
-      return MPIR_ERROR( comm, errno, "Error in MPI_SENDRECV_REPL" );
+      return MPIR_ERROR( comm, mpi_errno, "Error in MPI_SENDRECV_REPL" );
     /* Let the other send/recv routines find the remaining errors. */
 
     /* Allocate a temporary buffer that is long enough to receive the 
@@ -55,8 +55,8 @@ MPI_Status   *status;
      */
     if (count == 0 || datatype->is_contig) {
 	buflen = datatype->extent * count;
-	if (errno = MPI_Isend ( buf,  count, datatype, dest,   
-			       sendtag, comm, &req[0] )) return errno;
+	if (mpi_errno = MPI_Isend ( buf,  count, datatype, dest,   
+			       sendtag, comm, &req[0] )) return mpi_errno;
 	if (buflen > 0) {
 	    rbuf = (void *)MALLOC( buflen );
 	    if (!rbuf) {
@@ -67,9 +67,9 @@ MPI_Status   *status;
 	else
 	    rbuf = (void *)0;
 	
-	if (errno = MPI_Irecv ( rbuf, count, datatype, source, 
-			    recvtag, comm, &req[1] )) return errno;
-	errno = MPI_Waitall ( 2, req, status_array );
+	if (mpi_errno = MPI_Irecv ( rbuf, count, datatype, source, 
+			    recvtag, comm, &req[1] )) return mpi_errno;
+	mpi_errno = MPI_Waitall ( 2, req, status_array );
 	if (rbuf) {
 	    memcpy( buf, rbuf, buflen );
 	    FREE( rbuf );
@@ -92,11 +92,12 @@ MPI_Status   *status;
 
 	position = 0;
 	MPI_Pack( buf, count, datatype, rbuf, buflen, &position, comm );
-	errno = MPI_Sendrecv_replace( rbuf, buflen, MPI_PACKED, dest, sendtag, 
-			  source, recvtag, comm, status );
-	if (errno) {
+	mpi_errno = MPI_Sendrecv_replace( rbuf, buflen, MPI_PACKED, dest, 
+					  sendtag, source, recvtag, comm, 
+					  status );
+	if (mpi_errno) {
 	    if (rbuf) FREE( rbuf );
-	    return errno;
+	    return mpi_errno;
 	    }
 	position = 0;
 	MPI_Unpack( rbuf, buflen, &position, buf, count, datatype, comm );
@@ -105,5 +106,5 @@ MPI_Status   *status;
 	    }
 	/* Still need to update status value? */
 	}
-    return errno;
+    return mpi_errno;
 }

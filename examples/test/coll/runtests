@@ -114,13 +114,21 @@ echo '*** grouptest ***' >> grouptest.out
 
 
 echo '*** Differences from expected output ***'
+/bin/rm -f coll.diff
 for file in $testfiles ; do
     stdfile=`basename $file .out`.std
     if [ -s $stdfile ] ; then
-        diff -b $file `basename $file .out`.std
+        if diff -b $file `basename $file .out`.std > /dev/null ; then
+	    true
+  	else
+	    echo "Diffenences in `basename $file .out`" >> coll.diff
+	    diff -b $file `basename $file .out`.std >> coll.diff
+	fi
     else
-        echo "Can not find file $stdfile to compare against for test"
-        echo `basename $file .out`
+        echo "Can not find file $stdfile to compare against for test `basename $file .out`"
     fi
 done
+if [ -s coll.diff ] ; then
+   cat coll.diff
+fi
 exit 0

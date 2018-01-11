@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_rgroup.c,v 1.4 1994/07/13 15:45:51 lusk Exp $
+ *  $Id: comm_rgroup.c,v 1.5 1994/12/15 16:37:56 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -22,10 +22,10 @@ int MPI_Comm_remote_group ( comm, group )
 MPI_Comm comm;
 MPI_Group *group;
 {
-  int errno;
+  int mpi_errno;
   if (MPIR_TEST_COMM(comm,comm)) {
     (*group) = MPI_GROUP_NULL;
-    return MPIR_ERROR( MPI_COMM_WORLD, errno, 
+    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
 		       "Error in MPI_COMM_REMOTE_GROUP" );
   }
   else {

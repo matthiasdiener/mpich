@@ -17,16 +17,22 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 progname="`echo $0 | sed 's:^\./\./:\./:'`"
-usage_msg="
+print_error() {
+    echo "* $*" 2>&1 ;
+    }
+print_usage() {
+cat <<.
 Usage: ${progname} -arch=ARCH_TYPE -comm=COMM_TYPE -device=DEVICE
 		   [-devicedir=DEVICE_DIR] [-transportdir=TRANSPORT_DIR]
                    [-prefix=INSTALL_DIR]  [-c++=C++_COMPILER]
                    [-mpe] [-nof77] [-opt=OPTFLAGS] [-make=MAKEPGM]
                    [-no_mpegraphics] [-no_short_longs] [-memdebug]
+                   [-x11_lib=X11LIB] [-x11_inc=X11INC]
                    [-mpedbg] 
                    [-nodevdebug] [-use_rndv] [-pre_post] [-pre_alloc]
 		   [-var_pkt] [-pkt_size=LENGTH] [-compressed_pkt]
                    [-limited_buffers] [-tiny_buffers] [-adi_collective]
+                   [-adi_coll_world]
                    [-wish=WISH] [-tcldir=TCLDIR] [-tkdir=TKDIR]
                    [-fortnames=FORTRANNAMES]
 where
@@ -51,6 +57,8 @@ where
                   and include/tk.h .  Used only for nupshot.  May be
                   the same as TCLDIR.
    FORTRANNAMES = Form of the Fortran names.  See below.
+   X11LIB       = Full path name for libX11.a
+   X11INC       = Full path name for X11.h
 
 One and only one 'arch', 'comm', and 'prefix' argument should be
 provided.  'arch' MUST be specified before 'comm'.
@@ -153,7 +161,10 @@ to override the choice for those systems that need them.
 The option '-adi_collective' allows the ADI to provide some collective
 operations in addition to the basic point-to-point operations.
 Currently, most systems do not support this option (it is ignored) and
-on the others it has not been extensively tested.
+on the others it has not been extensively tested.  The option 
+'-adi_coll_world' asks the ADI to try and use any collective operations that
+are supported only on the MPI_COMM_WORLD communicator (and any communicator
+with a similiar group).  This is also untested.
 
 
 Sample Configure Usage:
@@ -195,7 +206,9 @@ For -arch=IRIX -device=ch_p4, setting -comm=shared will enable the shared
 memory implementation of the p4 code in the low-level device.
 
 Others may be recognized.
-"
+.
+}
+
 ARCH=""
 CPP_DIR=""
 LIB_PATH=""
@@ -213,6 +226,7 @@ P4_MDEPCFLAGS=""
 PREFIX=""
 DEVCFLAGS=""
 CONFIGURE_ARGS="$*"
+DEFAULT_MACHINE=''
 # This next variable is a version without quotes.
 # We could also consider `echo $a | sed -e 's/"/\\"/g'`
 CONFIGURE_ARGS_CLEAN=`echo $* | tr '"' ' '`
@@ -255,7 +269,7 @@ do
        package=`echo $arg|sed 's/-*arch=//'`
        # Delete all the valid chars; see if any are left.
        if test -n "`echo $package|sed 's/[-a-zA-Z0-9_]*//g'`"; then
-         echo "configure: $package: invalid architecture name" >&2; exit 1
+         print_error "configure: $package: invalid architecture name"; exit 1
        fi
        ARCH=`echo $package|sed s/-/_/g`
        eval "arch_`echo $package|sed s/-/_/g`=1"
@@ -265,7 +279,7 @@ do
        package=`echo $arg|sed 's/-*bopt=//'`
        # Delete all the valid chars; see if any are left.
        if test -n "`echo $package|sed 's/[-a-zA-Z0-9_]*//g'`"; then
-         echo "configure: $package: invalid bopt value" >&2; exit 1
+         print_error "configure: $package: invalid bopt value" ; exit 1
        fi
        BOPT=`echo $package|sed s/-/_/g`
        eval "bopt_`echo $package|sed s/-/_/g`=1" ;;
@@ -274,7 +288,8 @@ do
        package=`echo $arg|sed 's/-*comm=//'`
        # Delete all the valid chars; see if any are left.
        if test -n "`echo $package|sed 's/[-a-zA-Z0-9_]*//g'`"; then
-         echo "configure: $package: invalid communications layer name" >&2; exit 1
+         print_error "configure: $package: invalid communications layer name";
+	  exit 1
        fi
        COMM=`echo $package|sed s/-/_/g`	
        eval "comm_`echo $package|sed s/-/_/g`=1" 
@@ -284,7 +299,7 @@ do
        package=`echo $arg|sed 's/-*device=//'`
        # Delete all the valid chars; see if any are left.
        if test -n "`echo $package|sed 's/[-a-zA-Z0-9_]*//g'`"; then
-         echo "configure: $package: invalid device name" >&2; exit 1
+         print_error "configure: $package: invalid device name" ; exit 1
        fi
        DEVICE=$package    #|sed s/-/_/g`	
        eval "device_$package=1" ;;
@@ -376,6 +391,11 @@ do
         DEVCFLAGS="$DEVCFLAGS -DMPID_USE_ADI_COLLECTIVE"
 	;;
 
+     -adi_coll_world | --adi_coll_world)
+	ADI_COLL_WORLD=1
+        DEVCFLAGS="$DEVCFLAGS -DMPID_COLL_WORLD"
+	;;
+
      -c++ | --c++)
        CPP_DIR="src/c++"
        CPP_COMPILER="g++"
@@ -385,7 +405,7 @@ do
        package=`echo $arg|sed 's/-*c\+\+=//'`
        # Delete all the valid chars; see if any are left.
        if test -n "`echo $package|sed 's/[-a-zA-Z0-9_+]*//g'`"; then
-         echo "configure: $package: invalid c++ compiler name" >&2; exit 1
+         print_error "configure: $package: invalid c++ compiler name"; exit 1
        fi
        CPP_DIR="src/c++"
        CPP_COMPILER=`echo $package`		
@@ -403,6 +423,14 @@ do
      -no_mpegraphics | --no_mpegraphics)
        MPE_GRAPHICS=""
        echo "Make will not build MPE graphics routines" ;;
+
+     -x11_lib=* | --x11_lib=* )
+       X11LIB="`echo $arg|sed 's/-*x11_lib=//'`"
+       ;;
+
+     -x11_inc=* | --x11_inc=* )
+       X11INC="`echo $arg|sed 's/-*x11_inc=//'`"
+       ;;
 
      -make=* | --make=*)
        package=`echo $arg|sed 's/-*make=//'`
@@ -429,14 +457,14 @@ do
        ;;
 
      -u | -usage | --usage | --usag | --usa | --us | --u)
-       (echo "${usage_msg}") >& 2
+	print_usage >& 2
        exit 1 ;;
 
      -v | -verbose | --verbose | --verbos | --verbo | --verb | --ver | --ve | --v)
        verbose=yes ;;
 
      *) 
-	echo "Unrecognized configure option $arg"
+	print_error "Unrecognized configure option $arg" 
 	;;
     esac
   fi
@@ -507,15 +535,15 @@ if test ! -r $MPIR_TRIAL/src/pt2pt/Makefile.in ; then
     # PWD must be messed up
     MPIR_TRIAL=`pwd`
     if test ! -r $MPIR_TRIAL/src/pt2pt/Makefile.in ; then
-	echo "Cannot determine the root directory!"
+	print_error "Cannot determine the root directory!" 
         exit 1
     fi
 fi
 if test -z "$MPIR_TRIAL" ; then
     MPIR_TRIAL=`pwd | sed -e 's%/tmp_mnt/%/%g'`
     if test ! -d $MPIR_TRIAL ; then 
-        echo "Warning: your default path uses the automounter; this may"
-        echo "cause some problems if you use other NFS-connected systems."
+        print_error "Warning: your default path uses the automounter; this may"
+        print_error "cause some problems if you use other NFS-connected systems."
         MPIR_TRIAL=`pwd`
     fi
 fi
@@ -529,9 +557,9 @@ if test ! -n "$ARCH" -a -x util/tarch ; then
 		echo "Trying to guess architecture ..."
     ARCH=`util/tarch`
     if test ! -n "$ARCH" ; then
-       echo "Error: Couldn't guess target architecture, you must"
-       echo "       set an architecture type with -arch=<value>"
-       exit
+       print_error "Error: Couldn't guess target architecture, you must"
+       print_error"       set an architecture type with -arch=<value>"
+       exit 1
     fi
     eval "arch_$ARCH=1"
     echo "  configuring for \"$ARCH\" target architecture"
@@ -548,14 +576,22 @@ if test ! -n "$DEVICE" -a -x util/tdevice ; then
 		echo "Trying to guess device ..."
     DEVICE=`util/tdevice $ARCH`
     if test ! -n "$DEVICE" ; then
-       echo "Error: Couldn't guess device, you must"
-       echo "       set a device with -device=<value>"
-       exit
+       print_error "Error: Couldn't guess device, you must" 
+       print_error "       set a device with -device=<value>" 
+       exit 1
     fi
     eval "device_$DEVICE=1" 
     echo "  configuring for \"$DEVICE\" device"
 fi
-
+#
+# Check for a VALID device
+if test ! -d mpid/$DEVICE ; then
+    print_error "$DEVICE is not a valid device!" 
+    exit 1
+fi
+#
+#
+# Set Default values of variables
 CC=${CC:-cc}
 F77=${FC:-f77}
 FLINKER=$F77
@@ -631,6 +667,12 @@ test -n "$verbose" && echo "	setting INSTALL_PROGRAM to $INSTALL_PROGRAM"
 INSTALL_DATA=${INSTALL_DATA-'$(INSTALL)'}
 test -n "$verbose" && echo "	setting INSTALL_DATA to $INSTALL_DATA"
 
+#
+# Using this autoconf macro for ranlib doesn't handle the problem 
+# of 'helpful' ranlib's that issue error messages (!).  Once
+# we've identified the proper compiler etc, we'll try this 
+# ranlib below; if it fails, we'll replace it with ':'
+#
 if test -z "$RANLIB"; then
   # Extract the first word of `ranlib', so it can be a program name with args.
   set dummy ranlib; word=$2
@@ -660,17 +702,21 @@ LIB_LIST="-lmpi"
 MPE_LIBS=""
 #
 # Check that a DEVICE was set
-if test ! -n "$DEVICE" ; then
-    echo "You must set a device type with -device=<value>"
-    exit
+if test -z "$DEVICE" ; then
+    print_error "You must set a device type with -device=<value>" 
+    exit 1
 fi
 #
 # Check that an ARCH was set
-if test ! -n "$ARCH" ; then
-    echo "You must set an architecture type with -arch=<value>"
-    exit
+if test -z "$ARCH" ; then
+    print_error "You must set an architecture type with -arch=<value>"
+    exit 1
 fi
-
+#
+# Set comm from device?
+if test -z "$COMM" ; then
+    COMM=$DEVICE
+fi
 # If some extensions are set, mark the defs
 if test -n "$MPE_MPI_EXT_C" ; then
    
@@ -693,21 +739,21 @@ if test -n "$arch_IRIX"; then
    osversion=`uname -r | sed 's/\..*//'`
    cputype=`hinv -t cpu | cut -f 3 -d' '`
    if test -z "$cputype" ; then
-	echo "Could not get cputype from hinv -t cpu command."
-	echo "Please send "
-	hinv -t cpu
-	hinv -t cpu | cut -f 3 -d' '
-	echo "to mpi-bugs@mcs.anl.gov"
+	print_error "Could not get cputype from hinv -t cpu command."
+	print_error "Please send "
+	hinv -t cpu 2>&1
+	hinv -t cpu | cut -f 3 -d' ' 2>&1
+	print_error "to mpi-bugs@mcs.anl.gov" 
 	exit 1
    fi
-   echo "osversion and cputype"
+   echo "checking for osversion and cputype"
    # cputype may contain R4400, R2000A/R3000, or something else.  
    # We may eventually need to look at it.
    if test -z "$osversion" ; then
-	echo "Could not determine OS version.  Please send"
-        echo " "
+	print_error "Could not determine OS version.  Please send" 
+        print_error " " 
 	uname -a
-	echo "to mpi-bugs@mcs.anl.gov"
+	print_error "to mpi-bugs@mcs.anl.gov" 
         exit 1
    elif test $osversion = 4 ; then
 	# Nathan told us that things worked for IRIX 4 as well; 
@@ -719,13 +765,13 @@ if test -n "$arch_IRIX"; then
    elif test $osversion = 6 ; then
 	true
    else 
-       echo "Could not recognize the version of IRIX (got $osversion)"
-       echo "MPICH knows about versions 4, 5 and 6; the version being"
-       echo "returned from uname -r is $osversion."
-       echo "Please send"
-       uname -a
-       hinv
-       echo "to mpi-bugs@mcs.anl.gov"
+       print_error "Could not recognize the version of IRIX (got $osversion)"
+       print_error "MPICH knows about versions 4, 5 and 6; the version being"
+       print_error "returned from uname -r is $osversion."
+       print_error "Please send"
+       uname -a 2>&1
+       hinv 2>&1
+       print_error "to mpi-bugs@mcs.anl.gov"
        exit 1
    fi
    echo "getting cputype..."
@@ -740,12 +786,12 @@ if test -n "$arch_IRIX"; then
 	4600) ;;
 	8000) ;;
         *)
-	echo "Unexpected IRIX/MIPS chipset $cputype.  Please send the output"
-	echo " "
-        uname -a
-        hinv
-	echo " "
-        echo "to mpi-bugs@mcs.anl.gov"
+	print_error "Unexpected IRIX/MIPS chipset $cputype.  Please send the output"
+	print_error " "
+        uname -a 2>&1
+        hinv 2>&1 
+	print_error " " 
+        print_error "to mpi-bugs@mcs.anl.gov" 
 	exit 1
 	;;
    esac
@@ -780,13 +826,14 @@ if test -n "$device_chameleon"; then
   TOOLS_LIB_DIR="$path/libs/libs/$ARCH"
   LIB_PATH="$LIB_PATH -L$TOOLS_LIB_DIR"
   if test -s $TOOLS_LIB_DIR/tools$COMM.a ; then
-      echo "Please update to the most recent (1.2) release.  Previous"
-      echo "versions are incompatible with MPICH"
+      print_error "Please update to the most recent (1.2) release.  Previous"
+      print_error "versions are incompatible with MPICH"
       exit 1
   elif test -s $TOOLS_LIB_DIR/libpecomm$COMM.a ; then
       LIB_LIST="$LIB_LIST -lpecomm$(COMM) -lpetsc -lpecore"
   else 
-      echo "Could not find Chameleon libraries in $path"
+      print_error "Could not find Chameleon libraries in $path"
+      exit 1
   fi
   INCLUDE_PATH="-I$TOOLS_DIR"
   #
@@ -946,17 +993,17 @@ if test -n "$device_ch_cmmd"; then
 fi
 
 if test -n "$device_ch_meiko"; then
-  CC=cc
-  F77=f77
+  CC=pgcc
+  F77=pgf77
   GCC=""
-  CLINKER=cc
-  FLINKER=f77
+  CLINKER=pgcc
+  FLINKER=pgf77
   # Jim Cownie claims that -laio is no longer needed ...
   if test -s /opt/MEIKOcs2/lib/libmpsc.a ; then
       LIB_LIST="$LIB_LIST -L/opt/MEIKOcs2/lib -lmpsc -lew -lelan"
   else
-      echo "Could not find the library /opt/MEIKOcs2/lib/libmpsc.a"
-      echo "Can not build MEIKO version"
+      print_error "Could not find the library /opt/MEIKOcs2/lib/libmpsc.a"
+      print_error "Can not build MEIKO version"
       exit 1
   fi
   #CFLAGS="$CFLAGS"
@@ -994,10 +1041,10 @@ if test -n "$device_ch_eui"; then
      if test -s /usr/lpp/euih/eui/eui.exp ; then
          LIB_LIST="$LIB_LIST -bimport:/usr/lpp/euih/eui/eui.exp"
      else
-         echo "You do not have the file /usr/lpp/euih/eui/eui.exp that"
-         echo "is required to use the -comm=ch_euih version of the"
-         echo "ADI device.  This is for use with the tb0 version of the"
-         echo "IBM-Yorktown EUI-H message-passing library."
+         print_error "You do not have the file /usr/lpp/euih/eui/eui.exp that"
+         print_error "is required to use the -comm=ch_euih version of the"
+         print_error "ADI device.  This is for use with the tb0 version of the"
+         print_error "IBM-Yorktown EUI-H message-passing library."
          exit 1
      fi
   else
@@ -1041,11 +1088,13 @@ if test -n "$device_ch_p4"; then
  	P4_ARCH=SGI_CH
 	if test $cputype = 8000 ; then
 	    P4_ARCH=SGI_CH64
+	    DEFAULT_MACHINE="sgi_mp"
 	fi
     elif test $osversion = 5 ; then 
         P4_ARCH=SGI
         if test "$COMM" = "shared" ; then
 	    P4_ARCH=SGI_MP
+	    DEFAULT_MACHINE="sgi_mp"
 	fi
     fi  
   else
@@ -1063,8 +1112,9 @@ if test -n "$device_ch_p4"; then
   fi
 echo "Done setting p4arch..."
 #
+echo "Configuring p4 subsystem..."
 # Make sure that the lib Makefile gets remade
-  (cd mpid/ch_p4/p4-1.4 ; rm -f lib/Makefile util/defs.MD ; $MAKE p4makefiles P4ARCH=$P4_ARCH )
+  (cd mpid/ch_p4/p4-1.4 ; configure -p4arch=$P4_ARCH )
   P4_MDEPLIBS=`$MAKE -f mpid/ch_p4/p4-1.4/lib/Makefile p4mdeplibs | grep -v make`
   LIB_LIST="$LIB_LIST $P4_MDEPLIBS"
   #
@@ -1141,6 +1191,10 @@ if test -n "$arch_intelnx"; then
   #RANLIB=true
   # inteldelta is used to select the appropriate args to killproc...
   DEVCFLAGS="$DEVCFLAGS -Dinteldelta"
+  #
+  # X11 includes are in /usr/ipsc/XDEV/i860/include-ipsc/X11
+  # X11 libs are in /usr/ipsc/XDEV/i860/lib-coff
+  # at least on one system
 fi
 
 # check whether --arch=paragon was given
@@ -1185,13 +1239,13 @@ fi
 # be SILENTLY skipped.  
 if test -n "$arch_hpux" ; then
     CFLAGS="$CFLAGS -Aa -D_POSIX_SOURCE -D_HPUX_SOURCE"
-    echo "HPUX C compiler is being forced into ANSI mode so that"
-    echo "severe bugs in HPUX CPP do not cause problems"
+    print_error "HPUX C compiler is being forced into ANSI mode so that"
+    print_error "severe bugs in HPUX CPP do not cause problems"
     FFLAGS="$FFLAGS +U77"
-    echo "Some (?) HPUX Fortran compilers require the switch +U77"
-    echo "in order to correctly generate calls to getarg (used to get"
-    echo "command line arguments).  This is a bug in the HPUX f77 (since"
-    echo "calls to iargc ARE handled without this flag)."
+    print_error "Some (?) HPUX Fortran compilers require the switch +U77"
+    print_error "in order to correctly generate calls to getarg (used to get"
+    print_error "command line arguments).  This is a bug in the HPUX f77 (since"
+    print_error "calls to iargc ARE handled without this flag)."
     #RANLIB="true"
 fi
 
@@ -1224,8 +1278,8 @@ if test -n "$comm_p4"; then
       LIB_PATH="$LIB_PATH -L$P4_DIR/$P4_ARCH/lib";
       LIB_LIST="$LIB_LIST -lp4";
   else
-      echo "Could not find the library $P4_DIR/$P4_ARCH/lib/libp4.a"
-      echo "Please check the value of -transport_dir (=$TRANSPORT_DIR)."
+      print_error "Could not find the library $P4_DIR/$P4_ARCH/lib/libp4.a"
+      print_error "Please check the value of -transport_dir (=$TRANSPORT_DIR)."
       exit 1
   fi
 fi
@@ -1274,9 +1328,9 @@ if test -n "$comm_pvm"; then
       LIB_PATH="$LIB_PATH -L$path/src/$PVM_ARCH";
       LIB_LIST="$LIB_LIST -lpvm";
   else
-      echo "Could not find the PVM library $path/src/$PVM_ARCH/libpvm.a"
-      echo "Make sure that you have specified the correct transport"
-      echo "directory and version of PVM (this entry is for PVM 2.4.x)."
+      print_error "Could not find the PVM library $path/src/$PVM_ARCH/libpvm.a"
+      print_error "Make sure that you have specified the correct transport"
+      print_error "directory and version of PVM (this entry is for PVM 2.4.x)."
       exit 1
   fi
 fi
@@ -1285,10 +1339,10 @@ if test -n "$comm_euih" -a -z "$device_ch_eui" ; then
   if test -s /usr/lpp/euih/eui/eui.exp ; then
       LIB_LIST="$LIB_LIST -bimport:/usr/lpp/euih/eui/eui.exp";
   else
-     echo "You do not have the file /usr/lpp/euih/eui/eui.exp that"
-     echo "is required to use the -comm=ch_euih version of the"
-     echo "ADI device.  This is for use with the tb0 version of the"
-     echo "IBM-Yorktown EUI-H message-passing library."
+     print_error "You do not have the file /usr/lpp/euih/eui/eui.exp that"
+     print_error "is required to use the -comm=ch_euih version of the"
+     print_error "ADI device.  This is for use with the tb0 version of the"
+     print_error "IBM-Yorktown EUI-H message-passing library."
      exit 1
   fi
 fi
@@ -1460,7 +1514,7 @@ if test -n "$verbose"; then
   test -n "$x_libraries" && echo "	found X11 libraries in $x_libraries"
 fi
        if test -n "$no_x" ; then
-	  echo "Did not find X11 libraries and/or include files"
+	  print_error "Did not find X11 libraries and/or include files"
        fi
     else
        # Try to compile a program with an include file.
@@ -1503,15 +1557,15 @@ LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
    :; no_x=""
 else
-   :; no_x=""
+   :; no_x="true"
 fi
 
        fi
        if test -n "$no_x" ; then
-         echo " "
-         echo "X11 is not used when cross compiling (because of the"
-         echo "difficulties in finding the correct libraries)"
-         echo " "
+         print_error  " " 
+         print_error "X11 is not used when cross compiling (because of the"
+         print_error "difficulties in finding the correct libraries)"
+         print_error " "
        fi
      fi
   fi
@@ -1544,7 +1598,32 @@ fi
 else
   MPE_GRAPHICS=""
 fi
+#
+# Check for remote shell program
+#
+for p in remsh rsh
+do
+if test -z "$RSH_COMMAND"; then
+  # Extract the first word of `$p', so it can be a program name with args.
+  set dummy $p; word=$2
+  echo checking for $word
+  IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
+  for dir in $PATH; do
+    test -z "$dir" && dir=.
+    if test -f $dir/$word; then
+      RSH_COMMAND="$p"
+      break
+    fi
+  done
+  IFS="$saveifs"
+fi
 
+test -n "$RSH_COMMAND" && test -n "$verbose" && echo "	setting RSH_COMMAND to $RSH_COMMAND"
+
+test -n "$RSH_COMMAND" && break
+done
+
+#
 # Check that the Fortran compiler is actually available:
 if test -z "$HAS_F77"; then
   # Extract the first word of `$F77', so it can be a program name with args.
@@ -1606,9 +1685,9 @@ else
         CFLAGS="$CFLAGS $WDEF"
         ;;
        *)
-	echo "Unable to determine the form of Fortran external names"
-	echo "If you have problems linking, try using the -nof77 option"
-        echo "to configure and rebuild MPICH."
+	print_error "Unable to determine the form of Fortran external names"
+	print_error "If you have problems linking, try using the -nof77 option"
+        print_error "to configure and rebuild MPICH."
 	NOF77=1
         HAS_FORTRAN=0
         CFLAGS="$CFLAGS -DMPID_NO_FORTRAN"
@@ -1656,7 +1735,7 @@ DEFS="$DEFS -DHAS_XDR=1"
 }
 
     else 
-        echo "*XDR not available on this system*"
+        print_error  "XDR not available on this system" 
     fi
 fi
 # Check for the functions that may be needed by the ADI to implement
@@ -1774,6 +1853,42 @@ rm -f conftest*
 done
 
 #
+# System is used only in MPE; i860's do not support it.
+for func in system
+do
+trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
+echo checking for ${func}
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_${func}) || defined (__stub___${func})
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char ${func}(); ${func}();
+#endif
+ }
+EOF
+if eval $compile; then
+  rm -rf conftest*
+  {
+test -n "$verbose" && \
+echo "	defining ${trfunc}"
+echo "#define" ${trfunc} 1 >> confdefs.h
+DEFS="$DEFS -D${trfunc}=1"
+}
+
+
+fi
+rm -f conftest*
+done
+
+#
 # Turn off F77
 # One problem with this is that some part of the ar will fail.  Lets hope
 # it isn't fatal.  We've tried to fix this by defining MPI_FOBJECTS
@@ -1782,6 +1897,185 @@ if test $NOF77 = 1 ; then
   F77=true
   FLINKER=true
 fi
+broken=0
+if test $cross_compiling = 0 ; then
+    echo "Testing for correct handling of conditionals..."
+    cat > conftest.c <<EOF
+#include "confdefs.h"
+main(){exit(recur(0,1));}recur(a,b)int a,b;{int c;
+    c = 0; if ((b!=1)&&(c=1)) return c; return c;}
+EOF
+eval $compile
+if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  broken=0
+
+else
+  broken=1
+fi
+rm -fr conftest*
+else
+    # we can test for rs6000 (which is the case that failed...)
+    if test $CC = mpcc ; then
+        echo "Testing for correct handling of conditionals..."
+	CC=xlc
+        cat > conftest.c <<EOF
+#include "confdefs.h"
+main(){exit(recur(0,1));}recur(a,b)int a,b;{int c=0;
+	    if ((b!=1)&&(c=1)) return c; return c;}
+EOF
+eval $compile
+if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  broken=0
+
+else
+  broken=1
+fi
+rm -fr conftest*
+	CC=mpcc
+    fi
+fi
+if test $broken = 1 ; then
+    print_error "******************************************************************"
+    print_error "*             YOUR C COMPILER IS FATALLY BROKEN!!!!!!            *"
+    print_error "*                                                                *"
+    print_error "* The C language requires that in the condition                  *"
+    print_error "* (a) && (b)                                                     *"
+    print_error "* if the condition (a) is false, the condition (b) is NOT        *"
+    print_error "* evaluated.  Your compiler is evaluating (b) when (a) is false  *"
+    print_error "* The test program is                                            *"
+    print_error "* main()                                                         *"
+    print_error "* {exit(recur(0,1));}                                            *"
+    print_error "* recur(a,b)                                                     *"
+    print_error "* int a,b;                                                       *"
+    print_error "* {int c=0;                                                      *"
+    print_error "* if ((b!=1)&&(c=1)) return c; return c;                         *"
+    print_error "* }                                                              *"
+    print_error "*                                                                *"
+    print_error "* Notes:  The second test is an assignment (=) not an equality   *"
+    print_error "* (==) test.  This construction is used in MPICH's error testing *"
+    print_error "* code to simplify and standardize MPICHs own error testing.     *"
+    print_error "*                                                                *"
+    print_error "* Please file a bug report with your vendor.  You may use the    *"
+    print_error "* program above (or this entire note) in your report             *"
+    print_error "*                                                                *"
+    print_error "* Because MPICH's internal error testing depends on this         *"
+    print_error "* construction being handled correctly, it is not possible to    *"
+    print_error "* complete the configuration of MPICH for this machine.          *"
+    print_error "*                                                                *"
+    if test "$ARCH" = "rs6000" ; then
+    print_error "* If you are using xlc 01.03.00.00, you should update to at      *"
+    print_error "* least 01.03.00.02, which is rumored to correct this problem    *"
+    print_error "* (we have not confirmed this and are still awaiting our update).*"
+    print_error "* To determine your version, try the command                     *"
+    print_error "* lslpp -p 'xlccmp.*'                                            *"
+    print_error "* (The exact format of this command depends on what version of   *"
+    print_error "* AIX you are running; this worked for us.)                      *"
+    print_error "*                                                                *"
+    fi 
+    print_error "******************************************************************"
+    exit 1
+fi
+#
+# Later versions of xlc fix the above problem but introduce another.  Test for
+# IT 
+#
+echo "Testing for correct handling of conditionals part 2 ..."
+cat > conftest.c <<EOF
+typedef struct M { 
+    int c;
+    };
+
+int Msize ( d, size )
+struct M  *d;
+long  *size;
+{
+int m;
+if (( ( d->c != 1 ) && (m = 2 )) || (!(size) && (m = 6))) 
+    return m; 
+return 0; 
+}
+EOF
+compileonly='${CC-cc} -c $CFLAGS conftest.c >/dev/null 2>&1'
+if eval $compileonly ; then
+    broken=0
+else
+    broken=1;
+fi
+if test $broken = 1 ; then
+    print_error "******************************************************************"
+    print_error "*             YOUR C COMPILER IS FATALLY BROKEN!!!!!!            *"
+    print_error "*                                                                *"
+    print_error "* We have detected that your compiler can not properly process   *"
+    print_error "* certain conditional statements.  The test program is           *"
+    print_error "* typedef struct M {                                             *"
+    print_error "* int c;                                                         *"
+    print_error "* };                                                             *"
+    print_error "* int Msize ( d, size )                                          *"
+    print_error "* struct M  *d;                                                  *"
+    print_error "* long  *size;                                                   *"
+    print_error "* {                                                              *"
+    print_error "* int m;                                                         *"
+    print_error "* if (( ( d->c != 1 ) && (m = 2 )) || (!(size) && (m = 6)))      *"
+    print_error "*  return m;                                                     *"
+    print_error "* return 0;                                                      *"
+    print_error "* }                                                              *"
+    print_error "* Notes:  The second test is an assignment (=) not an equality   *"
+    print_error "* (==) test.  This construction is used in MPICH's error testing *"
+    print_error "* code to simplify and standardize MPICHs own error testing.     *"
+    print_error "*                                                                *"
+    print_error "* Please file a bug report with your vendor.  You may use the    *"
+    print_error "* program above (or this entire note) in your report             *"
+    print_error "*                                                                *"
+    print_error "* Because MPICH's internal error testing depends on this         *"
+    print_error "* construction being handled correctly, it is not possible to    *"
+    print_error "* complete the configuration of MPICH for this machine.          *"
+    if test "$ARCH" = "rs6000" ; then
+    print_error "* If you are using xlc 01.03.00.02, you should update to at      *"
+    print_error "* least 01.03.00.06, which is rumored to correct this problem    *"
+    print_error "* (we have not confirmed this and are still awaiting our update).*"
+    print_error "* To determine your version, try the command                     *"
+    print_error "* lslpp -p 'xlccmp.*'                                            *"
+    print_error "* (The exact format of this command depends on what version of   *"
+    print_error "* AIX you are running; this worked for us.)                      *"
+    print_error "*                                                                *"
+    fi
+    print_error "******************************************************************"
+    exit 1
+fi
+rm -f conftest*
+#
+# See if ranlib really works.  We do this by creating a small object file
+# and a trial library, and then ranlib the result.
+echo "checking that ranlib works"
+cat <<EOF >conftest.c
+int a(){return 1;}
+EOF
+compileonly='${CC-cc} -c $CFLAGS conftest.c >/dev/null 2>&1'
+if eval $compileonly ; then 
+    broken=0;
+else
+    broken=1;
+fi
+if test $broken = 1 ; then
+    print_error "Error in creating test object for ranlib!"
+else
+    arcmd='$AR foo.a conftest.o >/dev/null 2>&1'
+    eval $arcmd
+    ranlibtest='$RANLIB foo.a >/dev/null 2>&1'
+    if eval $ranlibtest ; then
+        broken=0;
+    else
+        broken=1;
+    fi
+    if test $broken = 1 ; then
+        print_error "RANLIB ($RANLIB) failed!"
+        print_error "Assuming that ranlib is a stub returning non-zero"
+        print_error "condition code"
+        RANLIB=':'
+    fi
+fi
+rm -f conftest.o conftest.c
+#
 echo checking for pointers greater than 32 bits
 cat > conftest.c <<EOF
 #include "confdefs.h"
@@ -1902,9 +2196,9 @@ for dir in \
 done
 fi
 fi
-
-CFLAGS="$CFLAGS $DEFS"
+#
 USER_CFLAGS="$CFLAGS $USER_DEFS"
+CFLAGS="$CFLAGS $DEFS"
 LIB_PATH="-L$MPIR_HOME/lib/$ARCH/$COMM $LIB_PATH"
 #
 # hpux's Fortran compiler f77 (but not the POSIX version fort77) does
@@ -1957,13 +2251,14 @@ do
   esac
 done
 
-trap 'rm -f Makefile examples/Makefile examples/test/Makefile examples/test/pt2pt/Makefile examples/test/pt2pt/runtests examples/test/coll/Makefile examples/test/topol/Makefile examples/test/context/Makefile examples/test/context/runtests examples/test/env/Makefile examples/test/lederman/Makefile examples/contrib/usingmpi/Makefile examples/contrib/life/Makefile examples/contrib/nuclei/Makefile examples/contrib/C++/Makefile examples/perftest/Makefile mpid/chameleon/Makefile mpid/ch_cmmd/Makefile mpid/ch_nc/Makefile mpid/ch_nx/Makefile mpid/ch_eui/Makefile mpid/ch_p4/Makefile mpid/ch_meiko/Makefile src/pt2pt/Makefile src/coll/Makefile src/context/Makefile src/dmpi/Makefile src/env/Makefile src/topol/Makefile src/profile/Makefile src/util/Makefile src/c++/Makefile mpe/Makefile mpe/Makefile_nompi examples/contrib/Makefile examples/basic/Makefile profiling/wrappergen/Makefile profiling/examples/Makefile profiling/nupshot/Makefile mpe/contrib/mandel/Makefile; exit 1' 1 3 15
+trap 'rm -f Makefile examples/Makefile examples/test/Makefile examples/test/pt2pt/Makefile examples/test/pt2pt/runtests examples/test/coll/Makefile examples/test/topol/Makefile examples/test/context/Makefile examples/test/context/runtests examples/test/env/Makefile examples/test/lederman/Makefile examples/contrib/usingmpi/Makefile examples/contrib/life/Makefile examples/contrib/nuclei/Makefile examples/contrib/C++/Makefile examples/perftest/Makefile src/pt2pt/Makefile src/coll/Makefile src/context/Makefile src/dmpi/Makefile src/env/Makefile src/topol/Makefile src/profile/Makefile src/util/Makefile src/c++/Makefile mpe/Makefile mpe/Makefile_nompi examples/contrib/Makefile examples/basic/Makefile profiling/wrappergen/Makefile profiling/examples/Makefile profiling/nupshot/Makefile profiling/lib/Makefile mpe/contrib/mandel/Makefile; exit 1' 1 3 15
 CC='$CC'
 INSTALL='$INSTALL'
 INSTALL_PROGRAM='$INSTALL_PROGRAM'
 INSTALL_DATA='$INSTALL_DATA'
 RANLIB='$RANLIB'
 CPP='$CPP'
+RSH_COMMAND='$RSH_COMMAND'
 HAS_F77='$HAS_F77'
 wishloc='$wishloc'
 TK_DIR='$TK_DIR'
@@ -1990,6 +2285,7 @@ COMM='$COMM'
 CPP_COMPILER='$CPP_COMPILER'
 CPP_DIR='$CPP_DIR'
 CPRP='$CPRP'
+DEFAULT_MACHINE='$DEFAULT_MACHINE'
 DEVCFLAGS='$DEVCFLAGS'
 DEVICE='$DEVICE'
 DEVICE_MAKE_INCLUDE='$DEVICE_MAKE_INCLUDE'
@@ -2019,6 +2315,7 @@ MEMDEBUG='$MEMDEBUG'
 OPTFLAGS='$OPTFLAGS'
 P4_ARCH='$P4_ARCH'
 P4_DIR='$P4_DIR'
+RHS_COMMAND='$RHS_COMMAND'
 P4_MDEPCFLAGS='$P4_MDEPCFLAGS'
 PREFIX='$PREFIX'
 TOOLS_DIR='$TOOLS_DIR'
@@ -2038,7 +2335,7 @@ cat >> config.status <<\EOF
 
 top_srcdir=$srcdir
 
-CONFIG_FILES=${CONFIG_FILES-"Makefile examples/Makefile examples/test/Makefile examples/test/pt2pt/Makefile examples/test/pt2pt/runtests examples/test/coll/Makefile examples/test/topol/Makefile examples/test/context/Makefile examples/test/context/runtests examples/test/env/Makefile examples/test/lederman/Makefile examples/contrib/usingmpi/Makefile examples/contrib/life/Makefile examples/contrib/nuclei/Makefile examples/contrib/C++/Makefile examples/perftest/Makefile mpid/chameleon/Makefile mpid/ch_cmmd/Makefile mpid/ch_nc/Makefile mpid/ch_nx/Makefile mpid/ch_eui/Makefile mpid/ch_p4/Makefile mpid/ch_meiko/Makefile src/pt2pt/Makefile src/coll/Makefile src/context/Makefile src/dmpi/Makefile src/env/Makefile src/topol/Makefile src/profile/Makefile src/util/Makefile src/c++/Makefile mpe/Makefile mpe/Makefile_nompi examples/contrib/Makefile examples/basic/Makefile profiling/wrappergen/Makefile profiling/examples/Makefile profiling/nupshot/Makefile mpe/contrib/mandel/Makefile"}
+CONFIG_FILES=${CONFIG_FILES-"Makefile examples/Makefile examples/test/Makefile examples/test/pt2pt/Makefile examples/test/pt2pt/runtests examples/test/coll/Makefile examples/test/topol/Makefile examples/test/context/Makefile examples/test/context/runtests examples/test/env/Makefile examples/test/lederman/Makefile examples/contrib/usingmpi/Makefile examples/contrib/life/Makefile examples/contrib/nuclei/Makefile examples/contrib/C++/Makefile examples/perftest/Makefile src/pt2pt/Makefile src/coll/Makefile src/context/Makefile src/dmpi/Makefile src/env/Makefile src/topol/Makefile src/profile/Makefile src/util/Makefile src/c++/Makefile mpe/Makefile mpe/Makefile_nompi examples/contrib/Makefile examples/basic/Makefile profiling/wrappergen/Makefile profiling/examples/Makefile profiling/nupshot/Makefile profiling/lib/Makefile mpe/contrib/mandel/Makefile"}
 for file in .. ${CONFIG_FILES}; do if test "x$file" != x..; then
   srcdir=$top_srcdir
   # Remove last slash and all that follows it.  Not all systems have dirname.
@@ -2059,6 +2356,7 @@ s%@INSTALL_PROGRAM@%$INSTALL_PROGRAM%g
 s%@INSTALL_DATA@%$INSTALL_DATA%g
 s%@RANLIB@%$RANLIB%g
 s%@CPP@%$CPP%g
+s%@RSH_COMMAND@%$RSH_COMMAND%g
 s%@HAS_F77@%$HAS_F77%g
 s%@wishloc@%$wishloc%g
 s%@TK_DIR@%$TK_DIR%g
@@ -2085,6 +2383,7 @@ s%@COMM@%$COMM%g
 s%@CPP_COMPILER@%$CPP_COMPILER%g
 s%@CPP_DIR@%$CPP_DIR%g
 s%@CPRP@%$CPRP%g
+s%@DEFAULT_MACHINE@%$DEFAULT_MACHINE%g
 s%@DEVCFLAGS@%$DEVCFLAGS%g
 s%@DEVICE@%$DEVICE%g
 s%@DEVICE_MAKE_INCLUDE@%$DEVICE_MAKE_INCLUDE%g
@@ -2114,6 +2413,7 @@ s%@MEMDEBUG@%$MEMDEBUG%g
 s%@OPTFLAGS@%$OPTFLAGS%g
 s%@P4_ARCH@%$P4_ARCH%g
 s%@P4_DIR@%$P4_DIR%g
+s%@RHS_COMMAND@%$RHS_COMMAND%g
 s%@P4_MDEPCFLAGS@%$P4_MDEPCFLAGS%g
 s%@PREFIX@%$PREFIX%g
 s%@TOOLS_DIR@%$TOOLS_DIR%g
@@ -2133,6 +2433,12 @@ EOF
 chmod +x config.status
 ${CONFIG_SHELL-/bin/sh} config.status
 
+#
+# Configure JUST the correct device file
+CONFIG_FILES=mpid/$DEVICE/Makefile
+export CONFIG_FILES
+./config.status
+CONFIG_FILES=
 #
 # Configure insists on adding a line to the TOP of the file, making it 
 # unsuited to modifying shell scripts.  Here we strip the first line from
@@ -2175,11 +2481,18 @@ fi
 #
 # If the doc/port.in file is available, generate it
 if test -f doc/port.in ; then
-    CONFIG_FILES="doc/port"
+    CONFIG_FILES="doc/port doc/portbuild doc/portperf doc/porttest"
     export CONFIG_FILES
     ./config.status
     (cd doc ; /bin/rm -f .run1 ; sed -e '1d' port > .run1 ; \
-    /bin/rm -f port ; /bin/mv .run1 port ; chmod a+x port )
+    /bin/rm -f port ; /bin/mv .run1 port ; chmod a+x port ; \
+    /bin/rm -f .run1 ; sed -e '1d' portbuild > .run1 ; \
+    /bin/rm -f portbuild ; /bin/mv .run1 portbuild ; chmod a+x portbuild ; \
+    /bin/rm -f .run1 ; sed -e '1d' portperf > .run1 ; \
+    /bin/rm -f portperf ; /bin/mv .run1 portperf ; chmod a+x portperf ; \
+    /bin/rm -f .run1 ; sed -e '1d' porttest > .run1 ; \
+    /bin/rm -f porttest ; /bin/mv .run1 porttest ; chmod a+x porttest ; \
+)
 fi
 #
 # If the experimental devices are available, generate their makefiles
@@ -2198,3 +2511,4 @@ fi
 #	sed -e '1d' upshot > .run1 ; \
 #    /bin/rm -f upshot ; /bin/mv .run1 upshot ; chmod a+x upshot )
 #fi
+exit 0

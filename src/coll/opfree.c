@@ -1,12 +1,12 @@
 /*
- *  $Id: opfree.c,v 1.8 1994/07/13 15:32:27 lusk Exp $
+ *  $Id: opfree.c,v 1.9 1994/12/15 17:32:13 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: opfree.c,v 1.8 1994/07/13 15:32:27 lusk Exp $";
+static char vcid[] = "$Id: opfree.c,v 1.9 1994/12/15 17:32:13 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -25,10 +25,10 @@ op is set to MPI_OP_NULL on exit.
 int MPI_Op_free( op )
 MPI_Op  *op;
 {
-  int errno;
+  int mpi_errno;
   /* Freeing a NULL op returns successfully */
   if (MPIR_TEST_ARG(op))
-      return MPIR_ERROR(MPI_COMM_WORLD,errno,"Error in MPI_OP_FREE" );
+      return MPIR_ERROR(MPI_COMM_WORLD,mpi_errno,"Error in MPI_OP_FREE" );
   if ( (*op) == MPI_OP_NULL )
 	return (MPI_SUCCESS);
 

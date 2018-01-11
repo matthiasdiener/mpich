@@ -1,6 +1,7 @@
 /* waitsome.c */
 /* CUSTOM Fortran interface file */
 #include "mpiimpl.h"
+#include "mpisys.h"
 
 #ifdef POINTER_64_BITS
 extern void *MPIR_ToPointer();
@@ -41,12 +42,12 @@ int *__ierr;
 {
 int i;
 #ifdef POINTER_64_BITS
-MPI_Request *r = (MPI_Request*)malloc(sizeof(MPI_Request)**incount);
+MPI_Request *r = (MPI_Request*)MALLOC(sizeof(MPI_Request)* *incount);
 for (i=0; i<*incount; i++) {
     r[i] = MPIR_ToPointer( *((int *)(array_of_requests)+i) );
     }
 *__ierr = MPI_Waitsome(*incount,r,outcount,array_of_indices,array_of_statuses);
-/* Must not do this if request is persistant */
+/* Must not do this if request is persistant FIX ME */
 /*
 for (i=0; i<*outcount; i++) {
     if (array_of_indices[i] >= 0) 
@@ -54,7 +55,7 @@ for (i=0; i<*outcount; i++) {
     *((int *)(array_of_requests)+array_of_indices[i]) = 0;
     }
  */
-free( r );
+FREE( r );
 
 #else
 *__ierr = MPI_Waitsome(*incount,array_of_requests,outcount,

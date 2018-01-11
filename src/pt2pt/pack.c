@@ -1,12 +1,12 @@
 /*
- *  $Id: pack.c,v 1.8 1994/12/02 20:13:17 doss Exp $
+ *  $Id: pack.c,v 1.9 1994/12/15 17:24:20 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: pack.c,v 1.8 1994/12/02 20:13:17 doss Exp $";
+static char vcid[] = "$Id: pack.c,v 1.9 1994/12/15 17:24:20 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -42,13 +42,13 @@ int           outcount;
 int          *position;
 MPI_Comm      comm;
 {
-  int size, pad, errno = MPI_SUCCESS;
+  int size, pad, mpi_errno = MPI_SUCCESS;
 
   /* NOT ENOUGH ERROR CHECKING AT PRESENT */
   if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_DATATYPE(comm,type) ||
       MPIR_TEST_COUNT(comm,incount) || MPIR_TEST_ARG(position) ||
-      ( (*position < 0 ) && (errno = MPI_ERR_ARG) ) ) 
-      return MPIR_ERROR(comm,errno,"Error in MPI_PACK" );
+      ( (*position < 0 ) && (mpi_errno = MPI_ERR_ARG) ) ) 
+      return MPIR_ERROR(comm,mpi_errno,"Error in MPI_PACK" );
   
   /* What kind of padding is necessary? */
   pad = (type->align - ((*position) % type->align)) % type->align;
@@ -60,10 +60,11 @@ MPI_Comm      comm;
 
   /* Figure the pad and adjust position */
   (*position) += pad;
-  errno = MPIR_Pack(comm, inbuf, incount, type, (char *)outbuf + (*position));
-  if (errno) MPIR_ERROR(comm,errno,"Error in MPI_PACK" );
+  mpi_errno = MPIR_Pack(comm, inbuf, incount, type, 
+			(char *)outbuf + (*position));
+  if (mpi_errno) MPIR_ERROR(comm,mpi_errno,"Error in MPI_PACK" );
   (*position) += size;
-  return (errno);
+  return (mpi_errno);
 }
 
 
@@ -85,7 +86,7 @@ void *dest;
 {
   int i,j,k;
   int pad = 0;
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
   char *tmp_buf;
   char *lbuf = (char *)buf, *ldest = (char *)dest;
 
@@ -104,7 +105,7 @@ void *dest;
     MPIR_ERROR( comm, MPI_ERR_TYPE, 
 "Conversion requires XDR which is not available" );
 #endif
-      return errno;
+      return mpi_errno;
     }
     else
 #endif
@@ -112,7 +113,7 @@ void *dest;
       if (type->size * count > 0 && buf == 0)
 	  return MPI_ERR_BUFFER;
       memcpy ( dest, buf, type->size * count );
-      return errno;
+      return mpi_errno;
     }
   }
 
@@ -122,7 +123,7 @@ void *dest;
 
   /* Contiguous types */
   case MPIR_CONTIG:
-	errno = 
+	mpi_errno = 
 	    MPIR_Pack ( comm, buf, count * type->count, type->old_type, dest );
 	break;
 
@@ -135,7 +136,7 @@ void *dest;
 	for (i=0; i<count; i++) {
 	  lbuf = tmp_buf;
 	  for (j=0; j<type->count; j++) {
-		if (errno = MPIR_Pack (comm, lbuf, type->blocklen, 
+		if (mpi_errno = MPIR_Pack (comm, lbuf, type->blocklen, 
 			       type->old_type, ldest)) break;
 		lbuf  += (type->stride);
 		if ((j+1) != type->count)
@@ -155,7 +156,7 @@ void *dest;
 	for (i=0; i<count; i++) {
 	  for (j=0;j<type->count; j++) {
 		tmp_buf  = lbuf + type->indices[j];
-		if (errno = MPIR_Pack (comm, tmp_buf, type->blocklens[j], 
+		if (mpi_errno = MPIR_Pack (comm, tmp_buf, type->blocklens[j], 
 				       type->old_type, ldest)) break;
 		ldest += (type->blocklens[j]*type->old_type->size);
 		if ((j+1) != type->count)
@@ -173,7 +174,7 @@ void *dest;
 	for (i=0; i<count; i++) {
 	  for (j=0;j<type->count; j++) {
 		tmp_buf  = lbuf + type->indices[j];
-		if (errno = MPIR_Pack(comm, tmp_buf,type->blocklens[j],
+		if (mpi_errno = MPIR_Pack(comm, tmp_buf,type->blocklens[j],
 				      type->old_types[j], ldest)) break;
 		if ((j+1) != type->count)
 		  ldest += ((type->blocklens[j] * type->old_types[j]->size) +
@@ -186,10 +187,10 @@ void *dest;
 	break;
 
   default:
-	errno = MPI_ERR_TYPE;
+	mpi_errno = MPI_ERR_TYPE;
 	break;
   }
 
   /* Everything fell through, must have been successful */
-  return errno;
+  return mpi_errno;
 }

@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_sub.c,v 1.15 1994/09/30 22:11:58 gropp Exp $
+ *  $Id: cart_sub.c,v 1.16 1994/12/15 17:34:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -35,21 +35,21 @@ MPI_Comm *comm_new;
   int rank;
   int color = 0;
   int key = 0;
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
   MPIR_TOPOLOGY *topo, *new_topo;
 
   /* Check for valid arguments */
   if ( MPIR_TEST_COMM(comm,comm)  ||
        MPIR_TEST_ARG(remain_dims) || MPIR_TEST_ARG(comm_new))
-    return MPIR_ERROR( comm, errno, "Error in MPI_CART_SUB" );
+    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_CART_SUB" );
 
   /* Get topology information from the communicator */
   MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );
 
   /* Check for valid topology */
-  if ( ( (flag != 1)                      && (errno = MPI_ERR_TOPOLOGY)) ||
-       ( (topo->type != MPI_CART)         && (errno = MPI_ERR_TOPOLOGY)) )
-    return MPIR_ERROR( comm, errno, "Error in MPI_CART_SUB" );
+  if ( ( (flag != 1)                      && (mpi_errno = MPI_ERR_TOPOLOGY)) ||
+       ( (topo->type != MPI_CART)         && (mpi_errno = MPI_ERR_TOPOLOGY)) )
+    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_CART_SUB" );
   
   /* Determine the remaining dimension total */
   ndims = topo->cart.ndims;
@@ -62,7 +62,7 @@ MPI_Comm *comm_new;
   /* Check for special case */
   if ( num_remain_dims == 0 ) {
     (*comm_new) = MPI_COMM_NULL;
-    return (errno);
+    return (mpi_errno);
   }
 
   /* Split the old communicator */
@@ -103,6 +103,6 @@ MPI_Comm *comm_new;
     /* cache topology information */
     MPI_Attr_put ( (*comm_new), MPIR_TOPOLOGY_KEYVAL, (void *)new_topo );
   }
-  return (errno);
+  return (mpi_errno);
 }
 

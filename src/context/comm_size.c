@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_size.c,v 1.11 1994/07/13 15:46:04 lusk Exp $
+ *  $Id: comm_size.c,v 1.12 1994/12/15 16:29:03 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -23,10 +23,10 @@ int MPI_Comm_size ( comm, size )
 MPI_Comm comm;
 int *size;
 {
-  int errno;
+  int mpi_errno;
   if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_ARG(size) ) {
     if (size) (*size) = MPI_UNDEFINED;
-    return MPIR_ERROR( MPI_COMM_WORLD, errno, "Error in MPI_COMM_SIZE" );
+    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, "Error in MPI_COMM_SIZE" );
   }
   else 
     (*size) = comm->local_group->np;

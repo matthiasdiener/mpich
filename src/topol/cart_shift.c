@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_shift.c,v 1.12 1994/08/10 18:52:29 doss Exp $
+ *  $Id: cart_shift.c,v 1.13 1994/12/15 17:33:55 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -31,30 +31,30 @@ int      *dest;
 {
   int i, rank, size, flag;
   int source_position, dest_position, save_position, periodic;
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
   MPIR_TOPOLOGY *topo;
 
 
   /* Check for valid arguments */
   if ( MPIR_TEST_COMM(comm,comm)                     ||
-       ((direction <  0) && (errno = MPI_ERR_ARG))   ||
+       ((direction <  0) && (mpi_errno = MPI_ERR_ARG))   ||
        MPIR_TEST_ARG(dest) || MPIR_TEST_ARG(source)) 
-    return MPIR_ERROR( comm, errno, "Error in MPI_CART_SHIFT" );
+    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_CART_SHIFT" );
 
   /* Get topology information from the communicator */
   MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );
 
   /* Check for valid topology */
-  if ( ( (flag != 1)                      && (errno = MPI_ERR_TOPOLOGY)) ||
-       ( (topo->type != MPI_CART)         && (errno = MPI_ERR_TOPOLOGY)) ||
-       ( (direction  >= topo->cart.ndims) && (errno=MPI_ERR_ARG))        )
-    return MPIR_ERROR( comm, errno, "Error in MPI_CART_SHIFT" );
+  if ( ( (flag != 1)                      && (mpi_errno = MPI_ERR_TOPOLOGY)) ||
+       ( (topo->type != MPI_CART)         && (mpi_errno = MPI_ERR_TOPOLOGY)) ||
+       ( (direction  >= topo->cart.ndims) && (mpi_errno=MPI_ERR_ARG))        )
+    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_CART_SHIFT" );
   
   /* Check the case for a 0 displacement */
   MPI_Comm_rank (comm, &rank);
   if (displ == 0) {
     (*source) = (*dest) = rank;
-    return (errno);
+    return (mpi_errno);
   }
 
   /* Get ready for shifting */
@@ -100,7 +100,7 @@ int      *dest;
   /* Restore my position */
   topo->cart.position[direction] = save_position;
 
-  return (errno);
+  return (mpi_errno);
 }
 
 

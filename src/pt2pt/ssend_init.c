@@ -1,5 +1,5 @@
 /*
- *  $Id: ssend_init.c,v 1.11 1994/09/30 22:11:24 gropp Exp $
+ *  $Id: ssend_init.c,v 1.14 1995/01/03 22:15:14 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -32,14 +32,18 @@ int           tag;
 MPI_Comm      comm;
 MPI_Request   *request;
 {
-    int         errno;
+    int         mpi_errno;
     MPI_Request handleptr;
 
     if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,count) ||
 	MPIR_TEST_DATATYPE(comm,datatype) || MPIR_TEST_SEND_TAG(comm,tag) ||
 	MPIR_TEST_SEND_RANK(comm,dest)) 
-	return MPIR_ERROR(comm, errno, "Error in MPI_SSEND_INIT" );
+	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_SSEND_INIT" );
 
+    /* See MPI_TYPE_FREE.  A free can not happen while the datatype may
+       be in use.  Thus, a nonblocking operation increments the
+       reference count */
+    datatype->ref_count++;
     *request                        = 
 	(MPI_Request) MPIR_SBalloc( MPIR_shandles );
     handleptr                       = *request;
@@ -52,13 +56,14 @@ MPI_Request   *request;
     handleptr->shandle.tag          = tag;
     handleptr->shandle.contextid    = comm->send_context;
     handleptr->shandle.comm         = comm;
-    handleptr->shandle.lrank        = 
-	comm->local_group->lrank_to_grank[comm->local_group->local_rank];
+    handleptr->shandle.lrank        = comm->local_group->local_rank;
     handleptr->shandle.mode         = MPIR_MODE_SYNCHRONOUS;
     handleptr->shandle.datatype     = datatype;
     handleptr->shandle.bufadd       = buf;
     handleptr->shandle.count        = count;
     handleptr->shandle.completed    = MPIR_NO;
+    handleptr->rhandle.persistent  = 1;
+    handleptr->rhandle.active      = 0;
 #ifdef MPID_HAS_HETERO
     handleptr->shandle.msgrep	    = MPIR_MSGREP_SENDER;
 #endif

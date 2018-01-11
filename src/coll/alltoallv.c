@@ -1,12 +1,12 @@
 /*
- *  $Id: alltoallv.c,v 1.19 1994/11/03 21:11:52 doss Exp $
+ *  $Id: alltoallv.c,v 1.20 1994/12/15 17:28:11 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: alltoallv.c,v 1.19 1994/11/03 21:11:52 doss Exp $";
+static char vcid[] = "$Id: alltoallv.c,v 1.20 1994/12/15 17:28:11 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -51,7 +51,7 @@ MPI_Comm          comm;
 {
   int        size, rank, i;
   MPI_Aint   extent;
-  int        errno = MPI_SUCCESS;
+  int        mpi_errno = MPI_SUCCESS;
   MPI_Status status;
   int        flag;
   MPI_Status  *starray;
@@ -60,7 +60,7 @@ MPI_Comm          comm;
   /* Check for invalid arguments */
   if ( MPIR_TEST_COMM(comm,comm) || MPIR_TEST_DATATYPE(comm,sendtype) ||
        MPIR_TEST_DATATYPE(comm,recvtype))
-	return MPIR_ERROR(comm, errno, "Error in MPI_ALLTOALLV" ); 
+	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_ALLTOALLV" ); 
 
   /* Check for intra-communicator */
   MPI_Comm_test_inter ( comm, &flag );
@@ -94,7 +94,7 @@ MPI_Comm          comm;
 
   /* do the communication -- post *all* sends and receives: */
   for ( i=0; i<size; i++ ) { 
-      if ( errno=MPI_Irecv((void *)((char *)recvbuf+rdispls[i]*extent), 
+      if ( mpi_errno=MPI_Irecv((void *)((char *)recvbuf+rdispls[i]*extent), 
                            recvcnts[i], 
                            recvtype,
                            i,
@@ -103,7 +103,7 @@ MPI_Comm          comm;
                            &reqarray[2*i+1])
           )
           break;
-      if ( errno=MPI_Isend((void *)((char *)sendbuf+sdispls[i]*extent), 
+      if ( mpi_errno=MPI_Isend((void *)((char *)sendbuf+sdispls[i]*extent), 
                            sendcnts[i], 
                            sendtype,
                            i,
@@ -115,7 +115,7 @@ MPI_Comm          comm;
   }
   
   /* ... then wait for *all* of them to finish: */
-  errno = MPI_Waitall(2*size,reqarray,starray);
+  mpi_errno = MPI_Waitall(2*size,reqarray,starray);
   
   /* clean up */
   FREE(reqarray);
@@ -124,5 +124,5 @@ MPI_Comm          comm;
   /* Unlock for collective operation */
   MPID_THREAD_UNLOCK(comm->ADIctx,comm);
 
-  return (errno);
+  return (mpi_errno);
 }

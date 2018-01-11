@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_split.c,v 1.33 1994/10/24 22:03:10 gropp Exp $
+ *  $Id: comm_split.c,v 1.34 1994/12/15 16:29:23 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -52,13 +52,13 @@ MPI_Comm *comm_out;
   int          *group_list;
   MPI_Group     comm_group, group;
   MPI_Comm      new_comm;
-  int           errno = MPI_SUCCESS;
+  int           mpi_errno = MPI_SUCCESS;
 
   /* If we don't have a communicator we don't have anything to do */
   if ( MPIR_TEST_COMM(comm,comm) ||
-       ( (comm->comm_type == MPIR_INTER) && (errno = MPI_ERR_COMM) ) ) {
+       ( (comm->comm_type == MPIR_INTER) && (mpi_errno = MPI_ERR_COMM) ) ) {
     (*comm_out) = MPI_COMM_NULL;
-    return MPIR_ERROR( comm, errno, "Error in MPI_COMM_SPLIT" );
+    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_COMM_SPLIT" );
   }
 
   /* Create and initialize split table. */
@@ -85,7 +85,7 @@ MPI_Comm *comm_out;
     FREE(table);
     (void) MPIR_Context_dealloc( comm, 2, context );
     (*comm_out) = MPI_COMM_NULL;
-    return (errno);
+    return (mpi_errno);
   }
 
   /* Sort the table */
@@ -114,7 +114,7 @@ MPI_Comm *comm_out;
   (void) MPIR_Attr_create_tree ( new_comm );
   (void) MPIR_Comm_make_coll( new_comm, MPIR_INTRA );
 
-  return (errno);
+  return (mpi_errno);
 }
 
 

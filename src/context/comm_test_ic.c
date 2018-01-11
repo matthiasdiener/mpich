@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_test_ic.c,v 1.7 1994/07/13 15:46:17 lusk Exp $
+ *  $Id: comm_test_ic.c,v 1.8 1994/12/15 16:40:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -21,10 +21,10 @@ int MPI_Comm_test_inter ( comm, flag )
 MPI_Comm  comm;
 int      *flag;
 {
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
 
   if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_ARG(flag) )
-	return MPIR_ERROR( comm, errno, "Error in MPI_COMM_TEST_INTER" );
+	return MPIR_ERROR( comm, mpi_errno, "Error in MPI_COMM_TEST_INTER" );
   
   /* Set the flag */
   if (comm->comm_type == MPIR_INTER)
@@ -32,5 +32,5 @@ int      *flag;
   else
 	(*flag) = 0; 
 
-  return (errno);
+  return (mpi_errno);
 }

@@ -196,6 +196,7 @@ SenderTest1()
 {
     void *bufferspace[ntypes];
     int Curr_Type, i, j;
+    int act_send;
     MPI_Request *requests = 
 	(MPI_Request *)malloc(sizeof(MPI_Request) * ntypes * 
 			      maxbufferlen/500);
@@ -205,13 +206,16 @@ SenderTest1()
 
     AllocateBuffers(bufferspace, BasicTypes, ntypes, maxbufferlen);
     FillBuffers(bufferspace, BasicTypes, ntypes, maxbufferlen);
+    act_send = 0;
     for (i = 0; i < ntypes; i++) {
-	for (j = 0; j < maxbufferlen; j += 500)
+	for (j = 0; j < maxbufferlen; j += 500) {
+	    if (!BasicTypes[i]) continue;
 	    MPI_Isend(bufferspace[i], j, BasicTypes[i], dest, 
-		     2000, MPI_COMM_WORLD, 
-		     &(requests[i*maxbufferlen/500 + j/500]));
+		      2000, MPI_COMM_WORLD, 
+		      &(requests[act_send++]));
+	    }
     }
-    MPI_Waitall(ntypes * maxbufferlen/500, requests, statuses);
+    MPI_Waitall( act_send, requests, statuses);
     free(requests);
     free(statuses);
     FreeBuffers(bufferspace, ntypes);

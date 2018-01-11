@@ -9,6 +9,9 @@
 #include "vis.h"
 #include "states.h"
 #include "str_dup.h"
+#include "bitmaps.h"
+#include "colors.h"
+
 
 #define DEBUG 0
 #define TESTING 0
@@ -34,19 +37,6 @@ static int ClosePost ARGS(( stateData*, int proc, int slot_no,
 static int CreateStateIndices ARGS(( stateData *state_data ));
 static int SortStart ARGS(( stateData *state_data, int *a, int n ));
 static int SortEnd ARGS(( stateData *state_data, int *a, int n ));
-static char *GetNewColor ();
-static char *GetNewBitmap ();
-
-
-
-static char *colorList[] = {"red", "blue", "green", "cyan", "yellow",
-  "magenta", "orange3", "maroon", "gray25", "gray75", "purple4",
-  "darkgreen", "white", "black", (char *)0 };
-
-static char *bitmapList[] = {"gray", "gray3", "gray2", "vlines3", "dllines4",
-  "drlines4", "hlines3", "2x2", "boxes", "dimple3", "black", "white",
-  (char*)0};
-
 
 
 stateData *State_Create()
@@ -97,9 +87,24 @@ int State_AddDef( state_data, color, bitmap, name )
 stateData *state_data;
 char *color, *bitmap, *name;
 {
-  stateDefInfo stateDef, *defptr;
-  int i, n;
+  stateDefInfo stateDef;
 
+  /* don't do this.  you'll just have to live with multiple states with
+     the same name.  The logfile reader should take care of anything
+     that truly is duplicated.  BTW, this causes problems with logfiles
+     like:
+
+     -13 0 5 6 0 0 yellow: look
+     -13 0 7 8 0 0 orange: look
+
+     while it tries to fix logfiles like:
+
+     -13 0 1 100 0 0 : state_1
+     -13 0 1 100 0 0 : state_1
+
+  */
+
+#if 0
     /* go through the list of state definitions already present */
   defptr = ListHeadPtr( state_data->defs.list, stateDefInfo );
   n = ListSize( state_data->defs.list, stateDefInfo );
@@ -108,6 +113,7 @@ char *color, *bitmap, *name;
          ignore this definition */
     if (!strcmp( name, defptr->name )) return 1;
   }
+#endif
 
     /* copy the name of the state */
   stateDef.name = STRDUP( name );
@@ -115,14 +121,14 @@ char *color, *bitmap, *name;
     /* if the color is null or a zero-length string,
        pick a color */
   if (!color || !*color) {
-    stateDef.color = GetNewColor();
+    stateDef.color = STRDUP( Color_Get() );
   } else {
     stateDef.color = STRDUP( color );
   }
 
     /* same deal for the bitmap */
   if (!bitmap || !*bitmap) {
-    stateDef.bitmap = GetNewBitmap();
+    stateDef.bitmap = STRDUP( Bitmap_Get() );
   } else {
     stateDef.bitmap = STRDUP( bitmap );
   }
@@ -266,6 +272,8 @@ stateData *state_data;
 
   ListShrinkToFit( state_data->list, stateInfo );
 
+  State_Draw( state_data, -1 );
+
   /* create various indices */
   CreateStateIndices( state_data );
 
@@ -311,15 +319,19 @@ stateData *data;
   drawStateFnList *node, *last;
   
   ListDestroy( data->list, stateInfo );
-  for (proc=0; proc < data->np; proc++) {
-    ListDestroy( data->idx_proc_start[proc], int );
-    ListDestroy( data->idx_proc_end[proc], int );
-  }
-  free( data->idx_proc_start );
-  free( data->idx_proc_end );
 
-  ListDestroy( data->idx_start, int );
-  ListDestroy( data->idx_end, int );
+    /* if indices have already been create, remove them */
+  if (data->idx_start) {
+    for (proc=0; proc < data->np; proc++) {
+      ListDestroy( data->idx_proc_start[proc], int );
+      ListDestroy( data->idx_proc_end[proc], int );
+    }
+    free( data->idx_proc_start );
+    free( data->idx_proc_end );
+    
+    ListDestroy( data->idx_start, int );
+    ListDestroy( data->idx_end, int );
+  }
 
     /* free linked list of draw function pointers */
   node = data->draw.fn_list;
@@ -329,12 +341,14 @@ stateData *data;
     free( last );
   }
 
+    /* free state definitions */
   for (def=0; def < ListSize( data->defs.list, stateDefInfo ); def++) {
     free( ListItem( data->defs.list, stateDefInfo, def ).name );
     free( ListItem( data->defs.list, stateDefInfo, def ).color );
     free( ListItem( data->defs.list, stateDefInfo, def ).bitmap );
   }
   ListDestroy( data->defs.list, stateDefInfo );
+
   free( data );
 
   return 0;
@@ -522,7 +536,7 @@ stateData *state_data;
 
 static int CompareStartTimes( a, b )
   /* all right, who at Sun made this brilliant decision? */
-#if !defined(sparc) || defined(__STDC__)
+#if !(defined(sparc) || defined(hpux)) || defined(__STDC__)
 const
 #endif
 void *a, *b;
@@ -537,7 +551,7 @@ void *a, *b;
 
 
 static int CompareEndTimes( a, b )
-#if !defined(sparc) || defined(__STDC__)
+#if !(defined(sparc) || defined(hpux)) || defined(__STDC__)
 const
 #endif
 void *a, *b;
@@ -950,18 +964,30 @@ int idx;
 	   (void *)node->fn );
 #endif
 
-  info = ListHeadPtr( state_data->list, stateInfo ) + idx;
-  type = info->type;
-  proc = info->proc;
-  startTime = info->startTime;
-  endTime = info->endTime;
-  parent = info->parent;
-  firstChild = info->firstChild;
-  overlapLevel = info->overlapLevel;
-  def = ListHeadPtr( state_data->defs.list, stateDefInfo ) + info->type;
+  if (idx != -1) {
+    info = ListHeadPtr( state_data->list, stateInfo ) + idx;
+    type = info->type;
+    proc = info->proc;
+    startTime = info->startTime;
+    endTime = info->endTime;
+    parent = info->parent;
+    firstChild = info->firstChild;
+    overlapLevel = info->overlapLevel;
+    def = ListHeadPtr( state_data->defs.list, stateDefInfo ) + info->type;
+  } else {
+      /* index -1 signifies that the last of the state events has
+	 been sent */
+    info = 0;
+    type = startTime = endTime = 0;
+    def = 0;
+    proc = parent = firstChild = overlapLevel = -1;
+  }
   do {
-    (*node->fn)( node->data, idx, type, proc,
- 		 startTime, endTime, parent, firstChild, overlapLevel );
+      /* nonzero return value means to halt immediately */
+    if ((*node->fn)( node->data, idx, type, proc,
+		     startTime, endTime, parent, firstChild, overlapLevel )) {
+      break;
+    }
     node = node->next;
   } while (node);
   return 0;
@@ -1053,28 +1079,3 @@ Vis *vis;			/* list of visible states */
 }
 
 #endif
-
-
-
-static char *GetNewColor()
-{
-  static int i = 0;
-
-  if (!colorList[i]) {
-    i = 0;
-  }
-
-  return STRDUP( colorList[i++] );
-}
-
-static char *GetNewBitmap()
-{
-  static int i = 0;
-
-  if (!bitmapList[i]) {
-    i = 0;
-  }
-
-  return STRDUP( bitmapList[i++] );
-}
-

@@ -1,5 +1,5 @@
 /*
- *  $Id: scatter.c,v 1.19 1994/09/29 21:51:26 gropp Exp $
+ *  $Id: scatter.c,v 1.20 1994/12/15 17:31:24 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: scatter.c,v 1.19 1994/09/29 21:51:26 gropp Exp $";
+static char vcid[] = "$Id: scatter.c,v 1.20 1994/12/15 17:31:24 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -48,22 +48,23 @@ MPI_Comm          comm;
   MPI_Status status;
   MPI_Aint   extent;
   int        rank, size, i;
-  int        errno = MPI_SUCCESS;
+  int        mpi_errno = MPI_SUCCESS;
   int        flag;
   
 
   if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_DATATYPE(comm,sendtype)) 
-      return MPIR_ERROR(comm,errno,"Error in MPI_SCATTER" );
+      return MPIR_ERROR(comm,mpi_errno,"Error in MPI_SCATTER" );
 
   /* Get size and rank */
   MPI_Comm_size ( comm, &size );
   MPI_Comm_rank ( comm, &rank );
 
   /* Check for invalid arguments */
-  if ( ( (root            <  0)              && (errno = MPI_ERR_ROOT) )   || 
-       ( (root            >= size)           && (errno = MPI_ERR_ROOT) )   || 
-       ( ((recvcnt>0)&&(recvbuf==(void *)0)) && (errno = MPI_ERR_BUFFER) ) )
-      return MPIR_ERROR( comm, errno, "Error in MPI_SCATTER" ); 
+  if ( ( (root            <  0)           && (mpi_errno = MPI_ERR_ROOT) )   || 
+       ( (root            >= size)        && (mpi_errno = MPI_ERR_ROOT) )   || 
+       ( ((recvcnt>0)&&(recvbuf==(void *)0)) && 
+	(mpi_errno = MPI_ERR_BUFFER) ) )
+      return MPIR_ERROR( comm, mpi_errno, "Error in MPI_SCATTER" ); 
   
   /* Check for intra-communicator */
   MPI_Comm_test_inter ( comm, &flag );
@@ -101,5 +102,5 @@ MPI_Comm          comm;
   /* Unlock for collective operation */
   MPID_THREAD_UNLOCK(comm->ADIctx,comm);
   
-  return (errno);
+  return (mpi_errno);
 }

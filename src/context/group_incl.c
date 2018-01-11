@@ -1,5 +1,5 @@
 /*
- *  $Id: group_incl.c,v 1.13 1994/09/30 22:11:43 gropp Exp $
+ *  $Id: group_incl.c,v 1.14 1994/12/15 16:33:15 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -34,17 +34,17 @@ int       n, *ranks;
 {
   int       i, rank;
   MPI_Group new_group;
-  int       errno = MPI_SUCCESS;
+  int       mpi_errno = MPI_SUCCESS;
 
   /* Check for bad arguments */
   if ( MPIR_TEST_GROUP(MPI_COMM_WORLD,group) ||
  	   ( ((n>0)&&MPIR_TEST_ARG(ranks)) )   )
-    return MPIR_ERROR( MPI_COMM_WORLD, errno, "Error in MPI_GROUP_INCL" );
+    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, "Error in MPI_GROUP_INCL" );
 
   /* Check for a EMPTY input group or EMPTY sized new group */
   if ( (group == MPI_GROUP_EMPTY) || (n <= 0) ) {
     MPIR_Group_dup ( MPI_GROUP_EMPTY, group_out );
-    return (errno);
+    return (mpi_errno);
   }
   
   /* Create the new group */
@@ -78,7 +78,7 @@ int       n, *ranks;
   MPIR_Powers_of_2 ( new_group->np, &(new_group->N2_next), 
 		     &(new_group->N2_prev) );
 
-  return (errno);
+  return (mpi_errno);
 }
 
 

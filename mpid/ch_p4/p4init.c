@@ -7,7 +7,7 @@ int __NUMNODES, __MYPROCID ,__P4LEN,__P4TYPE,__P4FROM,__P4GLOBALTYPE ;extern voi
 
 
 /*
- *  $Id: chinit.c,v 1.24 1994/10/24 22:03:23 gropp Exp $
+ *  $Id: chinit.c,v 1.27 1995/01/07 20:03:34 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -30,6 +30,12 @@ MPID_INFO *MPID_procinfo = 0;
 MPID_H_TYPE MPID_byte_order;
 int MPID_IS_HETERO = 0;
 void (*MPID_ErrorHandler)() = MPID_DefaultErrorHandler;
+
+/* For tracing channel operations by ADI underlayer */
+FILE *MPID_TRACE_FILE = 0;
+
+/* For debugging statements */
+FILE *MPID_DEBUG_FILE = stdout;
 
 #ifdef MPID_PKT_VAR_SIZE
 int MPID_PKT_DATA_SIZE = MPID_PKT_MAX_DATA_SIZE;
@@ -67,16 +73,33 @@ if (flag) {
 #endif                  /* #CHAMELEON_END# */
 }
 
+void MPID_Set_tracefile( name )
+char *name;
+{
+char filename[1024];
+
+if (strchr( name, '%' )) {
+    sprintf( filename, name, MPID_MyWorldRank );
+    MPID_TRACE_FILE = fopen( filename, "w" );
+    }
+else
+    MPID_TRACE_FILE = fopen( name, "w" );
+
+/* Is this the correct thing to do? */
+if (!MPID_TRACE_FILE)
+    MPID_TRACE_FILE = stdout;
+}
+
 void MPID_P4_Myrank( rank )
 int *rank;
 {
-*rank = __MYPROCID;
+*rank = MPID_MyWorldRank;
 }
 
 void MPID_P4_Mysize( size )
 int *size;
 {
-*size = __NUMNODES;
+*size = MPID_WorldSize;
 }
 
 /* 
@@ -137,12 +160,12 @@ free(_arglen);
 }
 ;
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-DEBUG(printf("[%d] Finished init\n", __MYPROCID );)
+DEBUG(fprintf(MPID_DEBUG_FILE,"[%d] Finished init\n", MPID_MyWorldRank );)
 #endif                  /* #DEBUG_END# */
 
 /* Turn off the resource monitors */
-#if !defined(euih)
-/* If we are euih, we can't use SIGALRM; this call sets SIGALRM to 
+#if !defined(euih) && !defined(eui)
+/* If we are euih or SP2 eui, we can't use SIGALRM; this call sets SIGALRM to 
    SIG_IGN */
 ;
 #endif
@@ -151,37 +174,39 @@ DEBUG(printf("[%d] Finished init\n", __MYPROCID );)
 /* Eventually, this will also need to check for word sizes, so that systems
    with 32 bit ints can interoperate with 64 bit ints, etc. */
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-DEBUG(printf("[%d] Checking for heterogeneous systems...\n", __MYPROCID );)
+DEBUG(fprintf(MPID_DEBUG_FILE,
+              "[%d] Checking for heterogeneous systems...\n", 
+	      MPID_MyWorldRank );)
 #endif                  /* #DEBUG_END# */
-MPID_procinfo = (MPID_INFO *)malloc(__NUMNODES * sizeof(MPID_INFO) );
+MPID_procinfo = (MPID_INFO *)malloc(MPID_WorldSize * sizeof(MPID_INFO) );
 if (!(MPID_procinfo))exit(1);;
-for (i=0; i<__NUMNODES; i++) {
+for (i=0; i<MPID_WorldSize; i++) {
     MPID_procinfo[i].byte_order = MPID_H_NONE;
     }
 /* Set my byte ordering and convert if necessary.  Eventually, this
    should use xdr */
 i = SY_GetByteOrder();
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-DEBUG(printf("[%d] Byte order is %d\n", __MYPROCID, i );)
+DEBUG(fprintf(MPID_DEBUG_FILE,"[%d] Byte order is %d\n",MPID_MyWorldRank, i );)
 #endif                  /* #DEBUG_END# */
 if (i == 1)      MPID_byte_order = MPID_H_LSB;
 else if (i == 2) MPID_byte_order = MPID_H_MSB;
 else             MPID_byte_order = MPID_H_XDR;
-MPID_procinfo[__MYPROCID].byte_order = MPID_byte_order;
+MPID_procinfo[MPID_MyWorldRank].byte_order = MPID_byte_order;
 /* Everyone uses the same format (MSB) */
 if (i == 1) 
-    SY_ByteSwapInt((int*)&MPID_procinfo[__MYPROCID].byte_order,1 );
+    SY_ByteSwapInt((int*)&MPID_procinfo[MPID_MyWorldRank].byte_order,1 );
 
 /* Get everyone else's */
-work = (char *)malloc(__NUMNODES * sizeof(MPID_INFO) );
+work = (char *)malloc(MPID_WorldSize * sizeof(MPID_INFO) );
 if (!(work ))exit(1);;
 /* ASSUMES MPID_INFO is ints */
-p4_global_op(__P4GLOBALTYPE,MPID_procinfo,__NUMNODES,sizeof(int),p4_int_max_op,P4NOX);
+p4_global_op(__P4GLOBALTYPE,MPID_procinfo,MPID_WorldSize,sizeof(int),p4_int_max_op,P4NOX);
 free(work );
 
 /* See if they are all the same */
 MPID_IS_HETERO = 0;
-for (i=1; i<__NUMNODES; i++) {
+for (i=1; i<MPID_WorldSize; i++) {
     if (MPID_procinfo[0].byte_order != MPID_procinfo[i].byte_order) {
     	MPID_IS_HETERO = 1;
     	break;
@@ -194,7 +219,7 @@ MPID_P4_Init_recv_code();
 MPID_P4_Init_send_code();
 
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-DEBUG(printf("[%d] leaving chinit\n", __MYPROCID );)
+DEBUG(fprintf(MPID_DEBUG_FILE,"[%d] leaving chinit\n", MPID_MyWorldRank );)
 #endif                  /* #DEBUG_END# */
 
 return (void *)0;
@@ -241,9 +266,7 @@ sprintf( name, "ADI version %4.2f - transport %s", MPIDPATCHLEVEL,
 
 double MPID_P4_Wtime()
 {
-double p4_usclock();
-
-return p4_usclock();
+return p4_clock()*0.001;
 }
 
 /* This returns a value that is correct but not the best value that
@@ -299,7 +322,7 @@ int  len;
 int i; char *aa = (char *)address;
 
 if (msg)
-    printf( "[%d]%s\n", __MYPROCID, msg );
+    printf( "[%d]%s\n", MPID_MyWorldRank, msg );
 if (len < 78 && address) {
     for (i=0; i<len; i++) {
 	printf( "%x", aa[i] );

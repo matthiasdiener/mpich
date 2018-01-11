@@ -1,12 +1,12 @@
 /*
- *  $Id: barrier.c,v 1.16 1994/10/24 22:03:15 gropp Exp $
+ *  $Id: barrier.c,v 1.17 1994/12/15 17:28:35 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: barrier.c,v 1.16 1994/10/24 22:03:15 gropp Exp $";
+static char vcid[] = "$Id: barrier.c,v 1.17 1994/12/15 17:28:35 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -36,12 +36,12 @@ MPI_Comm comm;
   int        rank, size, N2_prev, surfeit;
   int        d, dst, src;
   int        flag;
-  int        errno = MPI_SUCCESS;
+  int        mpi_errno = MPI_SUCCESS;
   MPI_Status status;
 
   /* Check for valid communicator */
   if ( MPIR_TEST_COMM(comm,comm) )
-    return MPIR_ERROR(comm, errno, "Error in MPI_BARRIER");
+    return MPIR_ERROR(comm, mpi_errno, "Error in MPI_BARRIER");
 
   /* Check for intra-communicator */
   MPI_Comm_test_inter ( comm, &flag );

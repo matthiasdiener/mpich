@@ -20,7 +20,7 @@ set fake_progname=''
 set np=1
 set arch=''
 set default_arch='#DEFAULT_ARCH#'
-set machine = ''
+set machine = '#DEFAULT_MACHINE#'
 set default_device='#DEFAULT_DEVICE#'
 set execer_machine=1
 set cmdLineArgs=''
@@ -29,11 +29,15 @@ set use_execer = 0
 set mpirun_verbose = 0
 set nolocal = 0
 set leavePGFile = 0
+set p4pgfile = ''
 set just_testing = 0
 set machineFile = ''
 set debugger=""
 set commandfile=""
+set rmcommandfile=""
+set rshcmd=#RSH_COMMAND#
 set mvhome=0
+set mvback=''
 set Machines = "chameleon meiko paragon p4 sp1 ibmspx anlspx ksr sgi_mp ipsc860 inteldelta cray_t3d execer"
 set max_time = 15
 #
@@ -104,6 +108,11 @@ while ("$j" <= "$#argv")
     case -keep_pg:
       set leavePGFile = 1
       breaksw
+    case -p4pg:
+      @ j++
+      set p4pgfile = "$argv[$j]"
+      set leavePGFile = 1
+      breaksw
     case -mr_v:
     case -v:
       set mpirun_verbose = 1
@@ -139,6 +148,10 @@ while ("$j" <= "$#argv")
     case -mvhome:
         set mvhome = 1
         breaksw
+    case -mvback:
+	@ j++
+	set mvback = "$argv[$j]"
+	breaksw
     case -usage:
     case -help:
     case -?:
@@ -199,8 +212,21 @@ if ("$arch" == "") then
       set ARCH=`/usr/ucb/arch` 
   else
       set ARCH=`uname -s`
-      if ("$ARCH" != "AIX") then
-          set ARCH="`uname -m`"
+      if ("$ARCH" == "AIX") then
+        set ARCH = "AIX"
+      else if ("$ARCH" == "ULTRIX") then
+        set ARCH = `/bin/uname -m`
+        if ("$ARCH" == "RISC") then
+            set ARCH = "dec5000"
+        endif
+      else if ("$ARCH" == "HP-UX") then
+	set ARCH = "HP-UX"
+      else if ("$ARCH" == "IRIX64") then
+	set ARCH = "IRIX"
+      else if ("$ARCH" == "Linux") then
+        true
+      else if ("$ARCH" != "IRIX") then 
+        set ARCH = `/bin/uname -m`
       endif
   endif
 
@@ -219,7 +245,7 @@ if ("$arch" == "") then
       set MajorVersion = `expr "$Version" : "\(.\)"`
       if ("$MajorVersion" ==  5) then
 	# It really is solaris, but we don't care
-        set arch="sun4"
+        set arch="solaris"
       else
         set arch="sun4"
       endif
@@ -266,11 +292,27 @@ if ("$arch" == "") then
       breaksw
   endsw
 endif
-
+#
+# Some last-minute fixups
+#
+# 
+# Warning: Some systems (OSF 1 at least) have a command called dbx
+# with different command-line arguments.  In particular, it needs
+# -c here (and that does not implement the remove part of the -sr).
+#
+# Turns out that this doesn't matter so much, because the dbx is terribly,
+# terribly crippled.  
+#
+if ("$debugger" == "dbx" && "$arch" == "alpha") then
+    set commandfile = "-c"
+    set rmcommandfile = "/bin/rm -f"
+endif
+#
 # Try to find the machine
 if ("$machine" == "") then 
   switch ($arch)
     case sun4:
+    case solaris:
       # This device should only exits on sun4s that are actually
       # MEIKO machines.
       if ( -e /dev/elan ) then
@@ -462,59 +504,60 @@ endif
 
 switch ($machine)
   case meiko:
-    @ np--
     if ($just_testing) then
-      echo "local $np $progname"
-    else
-      echo "local $np $progname" >  "$PWD_TRIAL/PI$$"
-    endif
-    @ np++
-    if ($just_testing) then
-      echo ${MEIKO_RUN} -n $np $progname $cmdLineArgs -p4pg $PWD_TRIAL/PI$$ 
-    else
-      ${MEIKO_RUN} -n $np $progname $cmdLineArgs -p4pg $PWD_TRIAL/PI$$
-      if ($leavePGFile) then
-        echo "P4 procgroup file is $PWD_TRIAL/PI$$."
+      if ("$debugger" != "") then
+          echo "totalview prun -a -n$np $progname $cmdLineArgs"
       else
-        /bin/rm "$PWD_TRIAL/PI$$"
+          echo ${MEIKO_RUN} -n $np $progname $cmdLineArgs  
+      endif
+    else
+      if ("$debugger" != "") then
+          totalview prun -a -n$np $progname $cmdLineArgs
+      else
+          ${MEIKO_RUN} -n $np $progname $cmdLineArgs 
       endif
     endif
     breaksw
   case ksr:
-    @ np--
+    if ("$p4pgfile" == "") then
+        @ np--
+        set p4pgfile = "$PWD_TRIAL/PI$$"
+        if ($just_testing) then
+          echo "local $np $progname"
+        else
+          echo "local $np $progname" >  "$p4pgfile"
+        endif
+        @ np++
     if ($just_testing) then
-      echo "local $np $progname"
+      echo $progname $cmdLineArgs -p4pg "$p4pgfile"
     else
-      echo "local $np $progname" >  "$PWD_TRIAL/PI$$"
-    endif
-    @ np++
-    if ($just_testing) then
-      echo $progname $cmdLineArgs -p4pg "$PWD_TRIAL/PI$$"
-    else
-      $progname $cmdLineArgs -p4pg "$PWD_TRIAL/PI$$"
+      $progname $cmdLineArgs -p4pg "$p4pgfile"
       if ($leavePGFile) then
-        echo "P4 procgroup file is $PWD_TRIAL/PI$$."
+        echo "P4 procgroup file is $p4pgfile"
       else
-        /bin/rm "$PWD_TRIAL/PI$$"
+        /bin/rm "$p4pgfile"
       endif
     endif
     breaksw
   case sgi_mp:
-    @ np--
-    if ($just_testing) then
-      echo "local $np $progname"
-    else
-      echo "local $np $progname" >  "$PWD_TRIAL/PI$$"
+    if ("$p4pgfile" == "") then
+	set p4pgfile = "$PWD_TRIAL/PI$$"
+        @ np--
+        if ($just_testing) then
+            echo "local $np $progname"
+        else
+            echo "local $np $progname" >  "$p4pgfile"
+        endif
+        @ np++
     endif
-    @ np++
     if ($just_testing) then
-      echo $progname -p4pg "$PWD_TRIAL/PI$$"
+      echo $progname -p4pg "$p4pgfile"
     else
-      $progname -p4pg "$PWD_TRIAL/PI$$"
+      $progname -p4pg "$p4pgfile"
       if ($leavePGFile) then
-        echo "P4 procgroup file is $PWD_TRIAL/PI$$."
+        echo "P4 procgroup file is $p4pgfile."
       else
-        /bin/rm "$PWD_TRIAL/PI$$"
+        /bin/rm "$p4pgfile"
       endif
     endif
     breaksw
@@ -594,7 +637,6 @@ switch ($machine)
     /bin/rm -f /sphome/$LOGNAME/job.output
     cat >$PWD_LOCAL/PIrun <<.
 #! /bin/sh
-set -x
 JID=\`/usr/local/bin/getjid\`
 trap "sprelease \$JID"
 cd $PWD_LOCAL
@@ -639,10 +681,13 @@ exit 0
 	echo C
 	echo .
         echo spwait
+	if ("$mvback" != "") then
+	    echo "(cd $PWD_LOCAL ; cp $mvback $PWD_TRIAL )"
+        endif
     else
         # Send output to /dev/null in case we're trying to 
         # use this to match up output
-	spsubmit <<. > /dev/null 2>&1
+	spsubmit <<. >& /dev/null 
 $CAC
 $max_time
 $np
@@ -654,7 +699,14 @@ $PWD_LOCAL/PIrun
 C
 .
 	spwait
-	cat /sphome/$LOGNAME/job.output
+	if ("$mvback" != "") then
+	    (cd $PWD_LOCAL ; cp $mvback $PWD_TRIAL )
+        endif
+	if (-e /sphome/$LOGNAME/job.output) then 
+	    cat /sphome/$LOGNAME/job.output
+	else
+	    echo "No output file!  Job did not run!"
+	endif
     endif
     breaksw
   case paragon:
@@ -671,9 +723,9 @@ C
     # A similiar script could be used on Intel i860 systems
     # UNTESTED
     if ($just_testing) then
-      echo 'rsh delta1 mexec -t"'"$np"'" -f ' $progname $cmdLineArgs
+      echo '$rshcmd delta1 mexec -t"'"$np"'" -f ' $progname $cmdLineArgs
     else
-      rsh delta1 mexec -t"$np" -f $progname $cmdLineArgs
+      $rshcmd delta1 mexec -t"$np" -f $progname $cmdLineArgs
     endif
     breaksw
   case i860:
@@ -714,52 +766,55 @@ C
     # select a second network whose names are not those returned by
     # "hostname".  For example, a system with a DEC Gigiswitch, Myricom 
     # network, or IP over the IBM SP2 switch (HPS).
-    if ($just_testing) then
-      echo "Procgroup file:"
-      if ($nolocal) then
-	echo "$machinelist[1] 0 $progname"
-      else 
-	echo "$HOST 0 $progname"
-      endif
-    else
-      if ($nolocal) then
-	echo "$machinelist[1] 0 $progname" > "$PWD_TRIAL/PI$$"
-      else 
-	echo "$HOST 0 $progname" > "$PWD_TRIAL/PI$$"
-      endif
-    endif
+    if ("$p4pgfile" == "") then
+	set p4pgfile = "$PWD_TRIAL/PI$$"
+        if ($just_testing) then
+           echo "Procgroup file:"
+           if ($nolocal) then
+	      echo "$machinelist[1] 0 $progname"
+           else 
+	      echo "$HOST 0 $progname"
+           endif
+        else
+           if ($nolocal) then
+	       echo "$machinelist[1] 0 $progname" > "$p4pgfile"
+           else 
+	       echo "$HOST 0 $progname" > "$p4pgfile"
+           endif
+        endif
 
-    if ($nolocal) then
-      set procNum = 2
-    else
-      set procNum = 1
-    endif
+        if ($nolocal) then
+           set procNum = 2
+        else
+           set procNum = 1
+        endif
 
-    while ($procNum <= ${#machinelist})
-      if ($just_testing) then
-	echo "${machinelist[$procNum]} 1 $progname"
-      else
-	echo "${machinelist[$procNum]} 1 $progname" >> "$PWD_TRIAL/PI$$"
-      endif
-      @ procNum++
-    end
+        while ($procNum <= ${#machinelist})
+           if ($just_testing) then
+	       echo "${machinelist[$procNum]} 1 $progname"
+           else
+	       echo "${machinelist[$procNum]} 1 $progname" >> "$p4pgfile"
+           endif
+           @ procNum++
+        end
 
-    # make sure the procgroup file was written
-    if (!($just_testing) && \
-	!(-e "$PWD_TRIAL/PI$$" && -r "$PWD_TRIAL/PI$$")) then
-      echo Failed to write "$PWD_TRIAL/PI$$".  Exiting.
-      exit
-    endif
+        # make sure the procgroup file was written
+        if (!($just_testing) && \
+	    !(-e "$p4pgfile" && -r "$p4pgfile")) then
+            echo Failed to write "$p4pgfile".  Exiting.
+            exit
+        endif
 
-    if (!($just_testing) && $mpirun_verbose) then
-      echo Created "$PWD_TRIAL/PI$$"
+        if (!($just_testing) && $mpirun_verbose) then
+          echo Created "$p4pgfile"
+        endif
     endif
 
     set startpgm = "eval"
     if ("$debugger" != "") then
 	cat > $PWD_TRIAL/PId$$ <<.
 # Use this command to start your programm:
-run  $cmdLineArgs -p4pg $PWD_TRIAL/PI$$
+run  $cmdLineArgs -p4pg $p4pgfile
 .
 	set startpgm = "$debugger $progname $commandfile $PWD_TRIAL/PId$$"
     endif
@@ -767,28 +822,28 @@ run  $cmdLineArgs -p4pg $PWD_TRIAL/PI$$
     if ($just_testing) then
       echo ""
       if ($nolocal) then
-	echo rsh ${machinelist[1]} $progname  $cmdLineArgs -p4pg "$PWD_TRIAL/PI$$"
+	echo $rshcmd ${machinelist[1]} $progname  $cmdLineArgs -p4pg "$p4pgfile"
       else
-	echo $progname  $cmdLineArgs -p4pg "$PWD_TRIAL/PI$$"
+	echo $progname  $cmdLineArgs -p4pg "$p4pgfile"
       endif
     else
       if ($nolocal) then
         if ("$debugger" != "") then
-	  rsh ${machinelist[1]} $debugger $commandfile $PWD_TRIAL/PId$$ $progname 
+	  $rshcmd ${machinelist[1]} $debugger $commandfile $PWD_TRIAL/PId$$ $progname 
         else
-	  rsh ${machinelist[1]} $progname $cmdLineArgs -p4pg "$PWD_TRIAL/PI$$"
+	  $rshcmd ${machinelist[1]} $progname $cmdLineArgs -p4pg "$p4pgfile"
 	endif
       else
         if ("$debugger" != "") then
 	    $debugger $commandfile $PWD_TRIAL/PId$$ $progname
 	else
-	    $progname  $cmdLineArgs -p4pg "$PWD_TRIAL/PI$$"
+	    $progname  $cmdLineArgs -p4pg "$p4pgfile"
 	endif
       endif # nolocal
       if ($leavePGFile) then
-	echo "P4 procgroup file is $PWD_TRIAL/PI$$."
+	echo "P4 procgroup file is $p4pgfile."
       else
-        /bin/rm "$PWD_TRIAL/PI$$"
+        /bin/rm "$p4pgfile"
       endif
     endif #just testing
     breaksw
@@ -830,17 +885,25 @@ echo "    -pg     Use a procgroup file to start the p4 programs, not execer"
 echo "            (default)"
 echo "    -leave_pg"
 echo "            Don't delete the P4 procgroup file after running"
+echo "    -p4pg filename"
+echo "            Use the given p4 procgroup file instead of creating one."
+echo "            Overrides -np and -nolocal, selects -leave_pg."
 echo "    -t      Testing - do not actually run, just print what would be"
 echo "            executed"
 echo "    -v      Verbose - thrown in some comments"
 echo "    -dbx    Start the first process under dbx where possible"
 echo "    -gdb    Start the first process under gdb where possible"
+echo "             (on the Meiko, selecting either of these starts prun"
+echo "             under totalview instead)"
 #echo "    -xdbx   Start the first process under xdbx where possible"
 echo "    -nopoll Do not use a polling-mode communication."
 echo "            Available only on IBM SPx."
 echo "    -mvhome Move the executable to the home directory.  This "
 echo "            is needed when all file systems are not cross-mounted"
 echo "            Currently only used by anlspx"
+echo "    -mvback files"
+echo "            Move the indicated files back to the current directory."
+echo "            Needed only when using -mvhome; has no effect otherwise."
 echo "    -maxtime min"
 echo "            Maximum job run time in minutes.  Currently used only"
 echo "            by anlspx.  Default value is $max_time"

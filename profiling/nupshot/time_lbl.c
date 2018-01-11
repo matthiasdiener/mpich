@@ -7,6 +7,13 @@
 
 
 
+#if !defined(HAVE_STDLIB_H)
+#include <stdlib.h>
+#else
+#if HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+#endif
 #include <math.h>
 #include <string.h>
 #include "tcl.h"
@@ -82,12 +89,14 @@ static int TimeLbl_create ARGS((ClientData  clientData, Tcl_Interp *interp,
 			  int argc, char *argv[]));
 static int CalcLblSize ARGS(( timelbl* ));
 static int Set ARGS(( timelbl*, int argc, char *argv[] ));
+static int Copy ARGS(( Tcl_Interp*, timelbl*, int argc, char *argv[] ));
 static int CreateHash ARGS(( timelbl*, int hashNo, timelbl_hashmark * ));
 static int UpdateHash ARGS(( timelbl*, int hashNo, timelbl_hashmark * ));
 static int DeleteHash ARGS(( timelbl*, timelbl_hashmark * ));
 static int Configure ARGS(( timelbl *lbl, int argc, char **argv ));
 static int EraseAllHashes ARGS(( timelbl* ));
 static int Recalc ARGS(( timelbl*, int totalUnits, int windowUnits ));
+static int Resize ARGS(( timelbl*, int width, int height ));
 static int HashesWillFit ARGS(( timelbl *lbl ));
 static int FiggerHashDrawingInfo ARGS(( timelbl *lbl, int ndec ));
 static double LblHashNo2X ARGS(( timelbl*, int hashNo ));
@@ -123,9 +132,7 @@ int argc;
 char *argv[];
 {
   timelbl *lbl;
-  char *logfile_token;
   char cmd[TMP_CMD_LEN];
-  logDataAndFile *log_ptr;
 
   lbl = (timelbl*) malloc( sizeof *lbl );
   if (!lbl) {
@@ -136,24 +143,26 @@ char *argv[];
 
     /* convert the arguments from strings, put them in the widget record */
   if (TCL_OK != ConvertArgs( interp,
-		 "time_lbl <window name> <logfile token>",
-			     "1 ss", argc, argv, &lbl->windowName,
-			     &logfile_token )) {
+		 "time_lbl <window name> <from time> <to time>",
+			     "1 sff", argc, argv, &lbl->windowName,
+			     &lbl->starttime, &lbl->endtime )) {
     goto failed_1;
   }
+
+  if (lbl->starttime >= lbl->endtime) {
+    Tcl_AppendResult( interp, "start time must be less than end time",
+		      (char*)0 );
+    goto failed_1;
+  }
+
+    /* set to NULL so nobody tries to free() */
+  lbl->format_str = 0;
 
     /* grab pointer to interpreter */
   lbl->interp = interp;
 
     /* this string won't last, better make a copy */
   lbl->windowName = STRDUP( lbl->windowName );
-
-    /* get logfile token */
-  log_ptr = LogToken2Ptr( interp, logfile_token );
-  if (!log_ptr) {
-    return TCL_ERROR;
-  }
-  lbl->log = &log_ptr->data;
 
     /* build canvas name */
   lbl->canvasName = (char*)malloc( strlen(lbl->windowName)+3 );
@@ -171,7 +180,7 @@ char *argv[];
   Tk_SetClass( lbl->win, "time_lbl" );
 
     /* set default colors and font */
-  Configure( lbl, argc-5, argv+5 );
+  Configure( lbl, argc-4, argv+4 );
 
 /*
   lbl->fg = "white";
@@ -179,12 +188,9 @@ char *argv[];
   lbl->font = "7x13";
 */
 
-    /* get the start and end times from the logfile data */
-  lbl->starttime = Log_StartTime( lbl->log );
-  lbl->endtime = Log_EndTime( lbl->log );
-
     /* call Tcl to create the canvas */
-  sprintf( cmd, "canvas %s -bg %s", lbl->canvasName, lbl->bg );
+  sprintf( cmd, "canvas %s -bg %s -relief sunken -scrollincrement 1",
+	   lbl->canvasName, lbl->bg );
     /* and return any error code */
   if (TCL_OK != Tcl_Eval( interp, cmd )) goto failed_3;
 
@@ -198,11 +204,11 @@ char *argv[];
   CalcLblSize( lbl );
 
     /* request the neccessary height, but dunno about width */
-  Tk_GeometryRequest( lbl->win, 1, (int)lbl->height );
+  Tk_GeometryRequest( lbl->win, 1, lbl->height );
 
     /* tell Tcl the size the widget wants */
   sprintf( cmd, "%s config -height %d",
-	   lbl->canvasName, (int)lbl->height );
+	   lbl->canvasName, lbl->height );
     /* and return any error code */
   if (TCL_OK != Tcl_Eval( interp, cmd )) goto failed_3;
 
@@ -210,9 +216,13 @@ char *argv[];
        the values will definitely change */
   lbl->scroll_total = -1;
   lbl->scroll_visible = -1;
-    
+
     /* cannot be computed until both a resize and a set command */
   lbl->width = 0;
+    /* mark as invalid so set() won't die if it is called
+       before the first resize */
+  lbl->visWidth = -1;
+  lbl->xview = 0;
 
     /* clear the linked list of hash marks */
   lbl->head = lbl->tail = 0;
@@ -230,10 +240,10 @@ char *argv[];
  failed_3:
   Tk_DestroyWindow( lbl->win );
  failed_2:
-  free( lbl->windowName );
-  free( lbl->canvasName );
+  free( (char*)lbl->windowName );
+  free( (char*)lbl->canvasName );
  failed_1:
-  free( lbl );
+  free( (char*)lbl );
   return TCL_ERROR;
 }
 
@@ -271,6 +281,8 @@ int argc;
 char **argv;
 {
   timelbl *lbl;
+  Tcl_DString cmd;
+  int i, returnVal;
 
   lbl = (timelbl*)clientData;
 
@@ -278,9 +290,20 @@ char **argv;
     return Set( lbl, argc, argv );
   }
 
-  Tcl_AppendResult( interp, "\"", argv[1], "\" - unrecognized command.  ",
-		    "should be set", (char*)0 );
-  return TCL_ERROR;
+  if (!strcmp( argv[1], "copy" )) {
+    return Copy( interp, lbl, argc, argv );
+  }
+
+  Tcl_DStringInit( &cmd );
+  Tcl_DStringAppendElement( &cmd, lbl->canvasName );
+  for (i=1; i<argc; i++) {
+    Tcl_DStringAppendElement( &cmd, argv[i] );
+  }
+  returnVal = Tcl_Eval( interp, Tcl_DStringValue( &cmd ) );
+
+  Tcl_DStringFree( &cmd );
+  
+  return returnVal;
 }
 
 
@@ -295,20 +318,25 @@ XEvent *event;
 
   switch (event->type) {
   case ConfigureNotify:
-
-#if DEBUG_RESIZE
-    fprintf( stderr, "Resize to %d x %d\n", event->xconfigure.width,
-	     event->xconfigure.height );
-#endif
-    lbl->visWidth = event->xconfigure.width;
-      /* mark as invalid so a recalc will definitely be done */
-    lbl->scroll_total = lbl->scroll_visible = -1;
-
-      /* this assumes that a Set() will always follow a resize */
-      /*         *cross fingers*   *check reference documentation*      */
-
+    Resize( lbl, event->xconfigure.width, event->xconfigure.height );
     break;
   }
+}
+
+
+
+static int Resize( lbl, width, height )
+timelbl *lbl;
+int width, height;
+{
+  lbl->visWidth = width;
+    /* mark as invalid so a recalc will definitely be done */
+  lbl->scroll_total = lbl->scroll_visible = -1;
+
+  /* this assumes that a Set() will always follow a resize */
+  /*         *cross fingers*   *check reference documentation*      */
+
+  return 0;
 }
 
 
@@ -318,22 +346,7 @@ timelbl *lbl;
 int argc;
 char **argv;
 {
-#if DEBUG_NO_CONFIG
-  /* just in case my configuration is messing things up, try removing it */
-  lbl->fg = "snow";
-  lbl->bg = "SteelBlue";
-
-  return 0;
-#else
-
   lbl->fg = lbl->bg = lbl->font = 0;
-
-  /*
-  fprintf( stderr, "structure members: fg: %p %p, bg: %p %p, font: %p %p\n",
-	   (void *)&lbl->fg, (void *)lbl->fg,
-	   (void *)&lbl->bg, (void *)lbl->bg,
-	   (void *)&lbl->font, (void *)lbl->font );
-  */
 
   if (TCL_OK != Tk_ConfigureWidget( lbl->interp, lbl->win, configSpecs,
 				    argc, argv, (void*)lbl, 0 )) {
@@ -341,45 +354,68 @@ char **argv;
 	     lbl->interp->result );
   }
 
-#if DEBUG
-  fprintf( stderr, "fg: %s, bg: %s, font: %s\n",
-	   lbl->fg, lbl->bg, lbl->font );
-#endif
-
   return 0;
-#endif
 }
+
+
+
+
+static int GetFont( interp, canvas )
+Tcl_Interp *interp;
+char *canvas;
+{
+  if (TCL_OK != Tcl_VarEval( interp, "option get ", canvas,
+			     " font Font", (char*)0 )) {
+    fprintf( stderr, "%s\n", interp->result );
+    return TCL_ERROR;
+  } else {
+    return TCL_OK;
+  }
+}
+
+
 
 
 static int CalcLblSize( lbl )
 timelbl *lbl;
 {
-  char cmd[TMP_CMD_LEN];
+  char cmd[TMP_CMD_LEN], *font;
   int tmp_text_id, top, bottom, height;
 
-    /* create temporary object on the canvas */
-  sprintf( cmd, "%s create text 0 0 -text 8", lbl->canvasName );
+  if (TCL_OK != GetFont( lbl->interp, lbl->canvasName )) {
+    goto err;
+  }
 
-  if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
-    fprintf( stderr, "%s\n", lbl->interp->result );
+  font = STRDUP( lbl->interp->result );
+
+    /* create temporary object on the canvas */
+  if (TCL_OK != Tcl_VarEval( lbl->interp, lbl->canvasName,
+			     " create text 0 0 -text 8 -font ", font,
+			     (char*)0 )) {
+    goto err;
+  }
+
+  free( font );
 
     /* grab the id of the text created */
   tmp_text_id = atoi( lbl->interp->result );
 
     /* get the size of the text created */
   sprintf( cmd, "%s bbox %d", lbl->canvasName, tmp_text_id );
-  if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
-    fprintf( stderr, "%s", lbl->interp->result );
+  if (TCL_OK != Tcl_Eval( lbl->interp, cmd )) goto err;
   sscanf( lbl->interp->result, "%*d %d %*d %d", &top, &bottom );
 
   sprintf( cmd, "%s delete %d", lbl->canvasName, tmp_text_id );
-  if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
-    fprintf( stderr, "%s", lbl->interp->result );
+  if (TCL_OK != Tcl_Eval( lbl->interp, cmd )) goto err;
 
   height = bottom - top;
   lbl->height = HASH_LEN + SPACE_HASH_LBL + height + SPACE_LBL_BOTTOM;
 
-  return 0;
+  return TCL_OK;
+
+ err:
+  fprintf( stderr, "%s\n", lbl->interp->result );
+  return TCL_ERROR;
 }
 
 
@@ -409,25 +445,13 @@ char **argv;
 			     &firstUnit, &lastUnit ))
     return TCL_ERROR;
 
-#if DEBUG>2
-  {
-    timelbl_hashmark *node;
-    fprintf( stderr, "*Call to Set(), node list:\n" );
-    node = lbl->head;
-    while (node) {
-      fprintf( stderr, "hash idx: %d, canvas idxs: %d %d\n",
-	       node->lbl_idx, node->hashMark_canvas_idx,
-	       node->text_canvas_idx );
-      node = node->next;
-    }
+    /* What's up with widowUnits? */
+  windowUnits = lastUnit - firstUnit + 1;
+
+  if (lbl->visWidth == -1) {
+      /* configure event hasn't been sent yet, so don't do anything */
+    return TCL_OK;
   }
-#endif
-
-#if DEBUG
-    fprintf( stderr, "args: %d %d %d %d\n", totalUnits, windowUnits,
-	     firstUnit, lastUnit );
-#endif
-
 
   if (totalUnits != lbl->scroll_total ||
       windowUnits != lbl->scroll_visible) {
@@ -436,24 +460,32 @@ char **argv;
 	 sizing stuff */
       /* recalculate the width of the canvas */
       /* will be something like 'width = 140 / 70 * 700' */
-    lbl->width = (totalUnits-1) * lbl->visWidth / (windowUnits+1);
+    lbl->width = (double)totalUnits * lbl->visWidth / windowUnits;
 
     Recalc( lbl, totalUnits, windowUnits );
     EraseAllHashes( lbl );
     lbl->scroll_total = totalUnits;
     lbl->scroll_visible = windowUnits;
   }
+
     /* move the display over so the existing correct elements
        can be in place quickly */
-  sprintf( cmd, "%s xview %d", lbl->canvasName, firstUnit );
+
+  lbl->xview = lbl->width * firstUnit / totalUnits;
+  sprintf( cmd, "%s xview %d", lbl->canvasName, lbl->xview );
   if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
     fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
 
     /* recalc the times at the far left and far right edges of the display */
   leftEdgeTime = firstUnit * (lbl->endtime - lbl->starttime) /
     (totalUnits-1) + lbl->starttime;
-  rightEdgeTime = lastUnit * (lbl->endtime - lbl->starttime) /
+  rightEdgeTime = (lastUnit+1) * (lbl->endtime - lbl->starttime) /
     (totalUnits-1) + lbl->starttime;
+
+/*
+  fprintf( stderr, "time_lbl: left %f, right %f\n",
+	   leftEdgeTime, rightEdgeTime );
+*/
 
     /* figure out the indices of the hashes at the far left and right
        edges */
@@ -690,7 +722,7 @@ timelbl_hashmark *node;
   node->lbl_idx = hashNo;
 
     /* create the hash line */
-  sprintf( cmd, "%s create line %.17g 0 %.17g %d -fill %s",
+  sprintf( cmd, "%s create line %.17g 0 %.17g %d -fill %s -tags color_fg",
 	   lbl->canvasName, xpos, xpos, HASH_LEN, lbl->fg );
   if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
     fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
@@ -699,7 +731,7 @@ timelbl_hashmark *node;
     /* create the text label */
   sprintf( lbl_str, lbl->format_str, lbl->firstHashTime +
 	   lbl->hashIncrement * hashNo );
-  sprintf( cmd, "%s create text %.17g %d -anchor n -text %s -font %s -fill %s",
+  sprintf( cmd, "%s create text %.17g %d -anchor n -text %s -font %s -fill %s -tags color_fg",
 	   lbl->canvasName, xpos, HASH_LEN+SPACE_HASH_LBL, lbl_str,
 	   lbl->font, lbl->fg );
 #if DEBUG>2
@@ -801,7 +833,7 @@ timelbl *lbl;
 
       /* delete each one from the linked list */
     next = node->next;
-    free( node );
+    free( (char*)node );
     node = next;
   }
 
@@ -833,7 +865,7 @@ int totalUnits, windowUnits;
 
     /* minimum magnitude of the difference between hash marks */
   diffMag = log10( lbl->endtime - lbl->starttime );
-
+  
     /* estimate 5 pixels as the narrowest a label could get */
     /* set how many labels can be displayed */
   max_nlbls = lbl->width / (5 + SPACE_LBL_LBL);
@@ -852,7 +884,8 @@ int totalUnits, windowUnits;
 
       /* calculate lbl->firstHashTime, and lbl->format_str */
     FiggerHashDrawingInfo( lbl, ndec );
-      /* if the hashes won't fit, try again */
+      /* if the hashes won't fit, spread them out by a factor of
+	 10 and try again */
     if (!HashesWillFit( lbl )) {
       lbl->hashIncrement *= 10.0;
       try_again = 1;
@@ -869,19 +902,11 @@ int totalUnits, windowUnits;
          (lbl->hashIncrement >= 10.0) ? 1 : 2;
   FiggerHashDrawingInfo( lbl, ndec );
 
-#if DEBUG>2
-  fprintf( stderr, "try increment of %f, ndec %d\n", lbl->hashIncrement,
-	   ndec );
-#endif
   if (!HashesWillFit( lbl )) {
       /* if 4 won't fit, try 2 */
     lbl->hashIncrement *= 2.0;
     ndec -= (ndec) ? 1 : 0;
     FiggerHashDrawingInfo( lbl, ndec );
-#if DEBUG>2
-    fprintf( stderr, "try increment of %f, ndec %d\n", lbl->hashIncrement,
-	     ndec );
-#endif
     if (!HashesWillFit( lbl )) {
         /* if 2 won't fit, just go back to what it was */
       lbl->hashIncrement *= 2.0;
@@ -900,6 +925,10 @@ int totalUnits, windowUnits;
   return 0;
 }
 
+
+/*
+   Calculate lbl->firstHashTime and lbl->format_str
+*/
 static int FiggerHashDrawingInfo( lbl, ndec )
 timelbl *lbl;
 int ndec;
@@ -925,12 +954,13 @@ timelbl *lbl;
   char cmd[TMP_CMD_LEN], sample_num[100];
   int test_item_index, left, right, text_width;
   
-    /* create sample string of the first hash */
-  sprintf( sample_num, lbl->format_str, lbl->firstHashTime );
+    /* the endtime is goint to be the longest possible number displayed */
+    /* for example, over the range 1.0 to 100.0 */
+  sprintf( sample_num, lbl->format_str, lbl->endtime );
 
     /* create the text item */
-  sprintf( cmd, "%s create text 0 0 -text %s", lbl->canvasName,
-	   sample_num );
+  sprintf( cmd, "%s create text 0 0 -text %s -font %s", lbl->canvasName,
+	   sample_num, lbl->font );
   if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
     fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
   sscanf( lbl->interp->result, "%d", &test_item_index );
@@ -944,7 +974,7 @@ timelbl *lbl;
   
     /* figger the width of the box */
   text_width = right - left;
-  
+
     /* remove the item */
   sprintf( cmd, "%s delete %d", lbl->canvasName, test_item_index );
   if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
@@ -985,3 +1015,47 @@ double time;
   return (time - lbl->starttime) / (lbl->endtime - lbl->starttime) *
     lbl->width;
 }
+
+
+
+static int Copy( interp, lbl, argc, argv )
+Tcl_Interp *interp;
+timelbl *lbl;
+int argc;
+char **argv;
+{
+  char *dest_canvas;
+  int x, y, first_idx, last_idx, left_chop, right_chop;
+  double x0, x1;
+  char bbox[100];
+  char dest_coords[100];
+
+  if (TCL_OK != ConvertArgs( interp,
+			     "<window> copy <dest_canvas> <x> <y>",
+			     "2 sdd", argc, argv, &dest_canvas, &x, &y )) {
+    return TCL_ERROR;
+  }
+
+  first_idx = lbl->head->lbl_idx;
+  x0 = LblHashNo2X( lbl, first_idx );
+  x1 = LblHashNo2X( lbl, first_idx+1 );
+  
+    /* If the hash mark of the first label is visible, grab the whole
+       label (set left chop point to halfway between lbl(0) and lbl(-1)).
+       If it is not visible, chop it out of view entirely */
+  left_chop = (x0 < lbl->xview) ? (int)((x0 + x1)/2) : (int)(x0 - (x1 - x0)/2);
+
+  last_idx = lbl->tail->lbl_idx;
+  x0 = LblHashNo2X( lbl, last_idx-1 );
+  x1 = LblHashNo2X( lbl, last_idx );
+
+    /* similar deal with chopping off the last label */
+  right_chop = (x1 > lbl->xview + lbl->visWidth) ?
+    (int)((x0 + x1)/2) : (int)(x1 + (x1 - x0)/2);
+
+  sprintf( bbox, "%d %d %d %d", left_chop, 0, right_chop, lbl->height );
+  sprintf( dest_coords, "%d %d", x - lbl->xview + left_chop, y );
+  return Tcl_VarEval( interp, "CopyCanvas ", lbl->canvasName, " {", bbox,
+		      "} ", dest_canvas, " {", dest_coords, "}", (char*)0 );
+}
+

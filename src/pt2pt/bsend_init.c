@@ -1,5 +1,5 @@
 /*
- *  $Id: bsend_init.c,v 1.15 1994/10/27 17:43:58 gropp Exp $
+ *  $Id: bsend_init.c,v 1.17 1995/01/03 19:42:57 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -32,7 +32,7 @@ int           tag;
 MPI_Comm      comm;
 MPI_Request   *request;
 {
-    int         errno;
+    int         mpi_errno;
     MPI_Request handleptr;
     int         psize;
     void        *bufp;
@@ -40,7 +40,7 @@ MPI_Request   *request;
     if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,count) ||
 	MPIR_TEST_DATATYPE(comm,datatype) || 
 	MPIR_TEST_SEND_RANK(comm,dest) || MPIR_TEST_SEND_TAG(comm,tag))
-	MPIR_ERROR( comm, errno, "Error in MPI_Bsend_init" );
+	MPIR_ERROR( comm, mpi_errno, "Error in MPI_Bsend_init" );
     
     /* See MPI_TYPE_FREE.  A free can not happen while the datatype may
        be in use.  Thus, a nonblocking operation increments the
@@ -58,16 +58,15 @@ MPI_Request   *request;
     handleptr->shandle.tag          = tag;
     handleptr->shandle.contextid    = comm->send_context;
     handleptr->shandle.comm         = comm;
-    handleptr->shandle.lrank        = 
-	comm->local_group->lrank_to_grank[comm->local_group->local_rank];
+    handleptr->shandle.lrank        = comm->local_group->local_rank;
     handleptr->shandle.mode         = MPIR_MODE_BUFFERED;
     handleptr->shandle.datatype     = datatype;
 
     /* Using pack size should guarentee us enough space */
     MPI_Pack_size( count, datatype, comm, &psize );
-    if (errno = 
+    if (mpi_errno = 
 	MPIR_GetBuffer( psize, handleptr, buf, count, datatype, &bufp )) 
-	MPIR_ERROR( comm, errno, "Error in MPI_Bsend_init" );
+	MPIR_ERROR( comm, mpi_errno, "Error in MPI_Bsend_init" );
 
     handleptr->shandle.bufadd       = bufp;
     handleptr->shandle.count        = count;

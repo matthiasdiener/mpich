@@ -1,5 +1,5 @@
 /*
- *  $Id: ic_create.c,v 1.15 1994/10/24 22:03:11 gropp Exp $
+ *  $Id: ic_create.c,v 1.16 1994/12/15 16:39:51 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -61,7 +61,7 @@ MPI_Comm *comm_out;
 {
   int              local_size, local_rank, peer_size, peer_rank;
   int              remote_size;
-  int              errno = MPI_SUCCESS;
+  int              mpi_errno = MPI_SUCCESS;
   MPIR_CONTEXT     context, send_context;
   MPI_Group        remote_group;
   MPI_Comm         new_comm;
@@ -73,14 +73,15 @@ MPI_Comm *comm_out;
   (void) MPI_Comm_rank ( local_comm, &local_rank );
   (void) MPI_Comm_size ( peer_comm,  &peer_size  );
   (void) MPI_Comm_rank ( peer_comm,  &peer_rank  );
-  if (((local_comm    == MPI_COMM_NULL) && (errno = MPI_ERR_COMM)) ||
-      ((peer_comm     == MPI_COMM_NULL) && (errno = MPI_ERR_COMM)) ||
-      ((local_leader  >= local_size)    && (errno = MPI_ERR_RANK)) || 
-      ((local_leader  <  0)             && (errno = MPI_ERR_RANK)) ||
-      ((remote_leader >= peer_size)     && (errno = MPI_ERR_RANK)) || 
-      ((remote_leader <  0)             && (errno = MPI_ERR_RANK)) ||
-      ((peer_rank     == MPI_UNDEFINED) && (errno = MPI_ERR_RANK)))
-    return MPIR_ERROR( local_comm, errno, "Error in MPI_INTERCOMM_CREATE" );
+  if (((local_comm    == MPI_COMM_NULL) && (mpi_errno = MPI_ERR_COMM)) ||
+      ((peer_comm     == MPI_COMM_NULL) && (mpi_errno = MPI_ERR_COMM)) ||
+      ((local_leader  >= local_size)    && (mpi_errno = MPI_ERR_RANK)) || 
+      ((local_leader  <  0)             && (mpi_errno = MPI_ERR_RANK)) ||
+      ((remote_leader >= peer_size)     && (mpi_errno = MPI_ERR_RANK)) || 
+      ((remote_leader <  0)             && (mpi_errno = MPI_ERR_RANK)) ||
+      ((peer_rank     == MPI_UNDEFINED) && (mpi_errno = MPI_ERR_RANK)))
+    return MPIR_ERROR( local_comm, mpi_errno, 
+		       "Error in MPI_INTERCOMM_CREATE" );
 
   /* Allocate send context, inter-coll context and intra-coll context */
   MPIR_Context_alloc ( local_comm, 3, &context );
@@ -162,5 +163,5 @@ MPI_Comm *comm_out;
   /* Build the collective intra-communicator */
   MPIR_Comm_make_coll ( new_comm->comm_coll, MPIR_INTRA );
   
-  return (errno);
+  return (mpi_errno);
 }

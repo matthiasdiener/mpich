@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi.h,v 1.40 1994/12/11 16:57:57 gropp Exp $
+ *  $Id: mpi.h,v 1.41 1995/01/14 19:41:11 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -104,9 +104,7 @@ typedef struct {
 typedef long MPI_Aint;
 
 
-/* The ... is correct, but the current implementation of these routines
-   is not.  */
-#if defined(__STDC__) && 0
+#if (defined(__STDC__) || defined(__cpluscplus))
 typedef void (MPI_Handler_function)( MPI_Comm comm, int *code, ...);
 #else
 typedef void (MPI_Handler_function)();

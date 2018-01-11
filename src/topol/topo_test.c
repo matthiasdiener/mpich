@@ -1,5 +1,5 @@
 /*
- *  $Id: topo_test.c,v 1.6 1994/08/10 18:52:29 doss Exp $
+ *  $Id: topo_test.c,v 1.7 1994/12/15 17:38:00 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -23,11 +23,11 @@ int MPI_Topo_test ( comm, top_type )
 MPI_Comm  comm;
 int      *top_type; 
 {
-  int errno, flag;
+  int mpi_errno, flag;
   MPIR_TOPOLOGY *topo;
 
   if ( MPIR_TEST_COMM(comm,comm) || MPIR_TEST_ARG(top_type) )
-    return MPIR_ERROR( MPI_COMM_WORLD, errno, "Error in MPI_TOPO_TEST" );
+    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, "Error in MPI_TOPO_TEST" );
   
   /* Set the top_type */
   /* Get topology information from the communicator */

@@ -1,12 +1,12 @@
 /*
- *  $Id: red_scat.c,v 1.17 1994/09/13 21:48:29 gropp Exp $
+ *  $Id: red_scat.c,v 1.19 1994/12/15 20:00:01 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: red_scat.c,v 1.17 1994/09/13 21:48:29 gropp Exp $";
+static char vcid[] = "$Id: red_scat.c,v 1.19 1994/12/15 20:00:01 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -41,13 +41,13 @@ MPI_Comm          comm;
   MPI_Aint extent;
   int  *displs;
   void *buffer;
-  int   errno = MPI_SUCCESS;
+  int   mpi_errno = MPI_SUCCESS;
   int   flag;
 
   /* Check for invalid arguments */
   if ( MPIR_TEST_COMM(comm,comm) || MPIR_TEST_OP(comm,op) ||
        MPIR_TEST_ALIAS(recvbuf,sendbuf) || MPIR_TEST_DATATYPE(comm,datatype))
-    return MPIR_ERROR(comm, errno, "Error in MPI_REDUCE_SCATTER" );
+    return MPIR_ERROR(comm, mpi_errno, "Error in MPI_REDUCE_SCATTER" );
 
   /* Check for intra-communicator */
   MPI_Comm_test_inter ( comm, &flag );
@@ -71,6 +71,11 @@ MPI_Comm          comm;
   }
 
   /* Allocate a temporary buffer */
+  if (count == 0) {
+      FREE( displs );
+      return MPI_SUCCESS;
+      }
+
   buffer = (void *)MALLOC(extent*count);
   if (!buffer) 
       return MPIR_ERROR( comm, MPI_ERR_EXHAUSTED, 
@@ -83,5 +88,5 @@ MPI_Comm          comm;
   
   /* Free the temporary buffers */
   FREE(buffer); FREE(displs);
-  return (errno);
+  return (mpi_errno);
 }

@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_compare.c,v 1.7 1994/09/13 21:48:18 gropp Exp $
+ *  $Id: comm_compare.c,v 1.8 1994/12/15 16:36:11 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -25,33 +25,33 @@ MPI_Comm  comm1;
 MPI_Comm  comm2;
 int       *result;
 {
-  int       errno = MPI_SUCCESS;
+  int       mpi_errno = MPI_SUCCESS;
   int       size1, size2;
   MPI_Group group1, group2;
 
   /* Check for bad arguments */
-  if ( ( (result == (int *)0)     && (errno = MPI_ERR_ARG) ) )
-    return MPIR_ERROR( MPI_COMM_WORLD, errno, 
+  if ( ( (result == (int *)0)     && (mpi_errno = MPI_ERR_ARG) ) )
+    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
 					  "Error in MPI_COMM_COMPARE" );
   if (!comm1 && !comm2) {
       *result = MPI_IDENT;
-      return errno;
+      return mpi_errno;
       }
   if ((!comm1 && comm2) || (!comm2 && comm1)) {
       *result = MPI_UNEQUAL;
-      return errno;
+      return mpi_errno;
       }
       
   /* Are they the same kind of communicator */
   if (comm1->comm_type != comm2->comm_type) {
 	(*result) = MPI_UNEQUAL;
-	return (errno);
+	return (mpi_errno);
   }
 
   /* See if they are identical */
   if (comm1 == comm2) {
 	(*result) = MPI_IDENT;
-	return (errno);
+	return (mpi_errno);
   }
 	
   /* Comparison for intra-communicators */
@@ -102,5 +102,5 @@ int       *result;
 	MPI_Group_free (&rgroup2);
   }
 
-  return (errno);
+  return (mpi_errno);
 }

@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_map.c,v 1.4 1994/07/13 15:54:05 lusk Exp $
+ *  $Id: cart_map.c,v 1.5 1994/12/15 17:35:51 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -31,14 +31,14 @@ int     *newrank;
   int i;
   int nranks = 1;
   int rank;
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
 
   /* Check for valid arguments */
   if (MPIR_TEST_COMM(comm_old,comm_old) ||
-      ((ndims < 1)                 && (errno = MPI_ERR_DIMS))      ||
-      ((newrank == (int *)0)       && (errno = MPI_ERR_ARG))      ||
-      ((dims == (int *)0)          && (errno = MPI_ERR_ARG))       )
-    return MPIR_ERROR( comm_old, errno, "Error in MPI_CART_MAP" );
+      ((ndims < 1)                 && (mpi_errno = MPI_ERR_DIMS))      ||
+      ((newrank == (int *)0)       && (mpi_errno = MPI_ERR_ARG))      ||
+      ((dims == (int *)0)          && (mpi_errno = MPI_ERR_ARG))       )
+    return MPIR_ERROR( comm_old, mpi_errno, "Error in MPI_CART_MAP" );
   
   /* Determine number of processes needed for topology */
   for ( i=0; i<ndims; i++ )
@@ -51,5 +51,5 @@ int     *newrank;
   else
     (*newrank) = MPI_UNDEFINED;
 
-  return (errno);
+  return (mpi_errno);
 }

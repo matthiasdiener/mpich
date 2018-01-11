@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_rank.c,v 1.13 1994/08/10 18:52:29 doss Exp $
+ *  $Id: cart_rank.c,v 1.14 1994/12/15 17:33:37 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -25,23 +25,23 @@ int *coords;
 int *rank;
 {
   int i, ndims, multiplier = 1;
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
   int coord, flag;
   MPIR_TOPOLOGY *topo;
 
   /* Check for valid arguments */
   if (MPIR_TEST_COMM(comm,comm) ||
-      ((rank == (int *)0) &&(errno = MPI_ERR_BUFFER))) 
-      return MPIR_ERROR( comm, errno, "Error in MPI_CART_RANK" );
+      ((rank == (int *)0) &&(mpi_errno = MPI_ERR_BUFFER))) 
+      return MPIR_ERROR( comm, mpi_errno, "Error in MPI_CART_RANK" );
 
   /* Get topology information from the communicator */
   MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );
 
   /* Check for valid topology */
-  if ( ( (flag != 1)               && (errno = MPI_ERR_TOPOLOGY))  ||
-       ( (topo->type != MPI_CART)  && (errno = MPI_ERR_TOPOLOGY))  ||
-       ( (topo->cart.ndims < 1)    && (errno = MPI_ERR_RANK))      )
-    return MPIR_ERROR( comm, errno, "Error in MPI_CART_RANK" );
+  if ( ( (flag != 1)               && (mpi_errno = MPI_ERR_TOPOLOGY))  ||
+       ( (topo->type != MPI_CART)  && (mpi_errno = MPI_ERR_TOPOLOGY))  ||
+       ( (topo->cart.ndims < 1)    && (mpi_errno = MPI_ERR_RANK))      )
+    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_CART_RANK" );
 
   /* Compute rank */
   ndims = topo->cart.ndims;
@@ -51,13 +51,13 @@ int *rank;
          ((*rank) >= topo->cart.dims[ndims-1]) ||
          ((*rank) <  0) ) {
       (*rank) = MPI_PROC_NULL;
-      return (errno);
+      return (mpi_errno);
     }
   }
   else {
     if ( (*rank) == MPI_PROC_NULL ) {
         (*rank) = MPI_PROC_NULL;
-        return (errno);
+        return (mpi_errno);
     }
     if ( ( (*rank) >= topo->cart.dims[ndims-1] ) ||
          ( (*rank) <  0 ) ) {
@@ -69,13 +69,13 @@ int *rank;
     coord = coords[i];
     if ( coord == MPI_PROC_NULL ) {
       (*rank) = MPI_PROC_NULL;
-      return (errno);
+      return (mpi_errno);
     }
     if ( !(topo->cart.periods[i]) ) {
       if ( (coord >= topo->cart.dims[i]) ||
            (coord <  0) ) {
         (*rank) = MPI_PROC_NULL;
-        return (errno);
+        return (mpi_errno);
       }
     }
     else {
@@ -87,5 +87,5 @@ int *rank;
     (*rank) += multiplier * coord;
   }
   
-  return (errno);
+  return (mpi_errno);
 }

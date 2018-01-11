@@ -10,6 +10,7 @@ sed -e '/#define DEVICE_CHAMELEON/d' \
     -e 's%"Chameleon"%"IBM EUI/EUIH"%g' ../chameleon/dmch.h > dmeui.h
 sed -e 's/MPID_CH/MPID_EUI/g' ../chameleon/mpid_bind.h > mpid_bind.h
 sed -e 's/MPID_CH/MPID_EUI/g' ../chameleon/packets.h > packets.h
+sed -e 's/MPID_CH/MPID_EUI/g' ../chameleon/channel.h > channel.h
 mv chevent.c euievent.c
 mv chrecv.c  euirecv.c
 mv chsend.c  euisend.c
@@ -19,7 +20,7 @@ mv chsync.c  euisync.c
 chmod ug+w *.[ch]
 /home/gropp/tools.n/bin/inlinecomm -main -quiet -euih euiinit.c
 for file in euievent.c euirecv.c euisend.c euiprobe.c euisync.c dmeui.h \
-	packets.h ; do
+	packets.h channel.h ; do
     /home/gropp/tools.n/bin/inlinecomm -quiet -euih $file
 done
 #

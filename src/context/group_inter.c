@@ -1,5 +1,5 @@
 /*
- *  $Id: group_inter.c,v 1.15 1994/09/30 22:11:44 gropp Exp $
+ *  $Id: group_inter.c,v 1.16 1994/12/15 16:33:32 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -27,18 +27,18 @@ MPI_Group group1, group2, *group_out;
   int        i, j, global_rank;
   MPI_Group  new_group;
   int        n;
-  int        errno = MPI_SUCCESS;
+  int        mpi_errno = MPI_SUCCESS;
 
   /* Check for bad arguments */
   if ( MPIR_TEST_GROUP(MPI_COMM_WORLD,group1) ||
        MPIR_TEST_GROUP(MPI_COMM_WORLD,group2) )
-    return MPIR_ERROR( MPI_COMM_WORLD, errno, 
+    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
 					  "Error in MPI_GROUP_INTERSECTION" );
 
   /* Check for EMPTY groups */
   if ( (group1 == MPI_GROUP_EMPTY) || (group2 == MPI_GROUP_EMPTY) ) {
     MPIR_Group_dup ( MPI_GROUP_EMPTY, group_out );
-    return (errno);
+    return (mpi_errno);
   }
   
   /* Create the new group */
@@ -78,7 +78,7 @@ MPI_Group group1, group2, *group_out;
   if ( n <= 0 ) {
 	FREE( new_group );
 	MPIR_Group_dup ( MPI_GROUP_EMPTY, group_out );
-	return (errno);
+	return (mpi_errno);
   }
 
   /* Alloc memory for lrank_to_grank array */
@@ -106,7 +106,7 @@ MPI_Group group1, group2, *group_out;
   MPIR_Powers_of_2 ( new_group->np, &(new_group->N2_next),
 		     &(new_group->N2_prev) );
 
-  return (errno);
+  return (mpi_errno);
 }
 
 

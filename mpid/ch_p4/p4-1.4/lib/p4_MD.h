@@ -295,87 +295,78 @@ typedef int MD_lock_t;
 #define MD_unlock(l)
 #endif
 
-#if (defined(SUN)  &&  !defined(SUN_SOLARIS))  \
-    || defined(DEC5000) || defined(LINUX) \
-    || defined(RS6000)  || defined(IBM3090) || defined(FREEBSD) \
-    || defined(TITAN)  \
-    || defined(HP)
-
-#define P4_SYSV_SHM_SEGSIZE (1*1024*1024)
-
-#    if defined(SYSV_IPC)
-#    define GLOBMEMSIZE  (4*1024*1024)
-#    define CAN_DO_SOCKET_MSGS
-#    define CAN_DO_XDR
-#    define CAN_DO_SHMEM_MSGS
-#    define USE_XX_SHMALLOC
-#    define P4_MAX_MSG_QUEUES 4
-#    define P4_MAX_SYSV_SHMIDS  8
-#    define P4_MAX_SYSV_SEMIDS  8
-
-     typedef struct { int semid;  int semnum; }   MD_lock_t;
-
-#    include <sys/ipc.h>
-#    include <sys/shm.h>
-#    include <sys/sem.h>
-
-     static struct sembuf sem_lock[1] = {
-         0, -1, 0
-     };
-     static struct sembuf sem_unlock[1] = {
-         0, 1, 0
-     };
-
-
-#    else
-
-#    define GLOBMEMSIZE  (4*1024*1024)
-#    define CAN_DO_SOCKET_MSGS
-#    define CAN_DO_XDR
-#    define P4_MAX_MSG_QUEUES 1
-     typedef int MD_lock_t;
-#    define MD_lock_init(l)
-#    define MD_lock(l)
-#    define MD_unlock(l)
-
-#    endif
-#endif
-
 
 #if defined(SUN_SOLARIS)
-
 #include <sys/mman.h>
 #include <sys/systeminfo.h>
 #include <sys/processor.h>
 #include <sys/procset.h>
 #include <synch.h>
+#endif 
+
+#if    defined(SUN)     || defined(SGI)  \
+    || defined(DEC5000) || defined(LINUX) \
+    || defined(RS6000)  || defined(IBM3090) || defined(FREEBSD) \
+    || defined(TITAN)  \
+    || defined(HP)
+
+#    define P4_SYSV_SHM_SEGSIZE (1*1024*1024)
+
+#    if defined(SYSV_IPC)
+#        define GLOBMEMSIZE  (4*1024*1024)
+#        define CAN_DO_SOCKET_MSGS
+#        define CAN_DO_XDR
+#        define CAN_DO_SHMEM_MSGS
+#        define USE_XX_SHMALLOC
+#        define P4_MAX_MSG_QUEUES 4
+#        define P4_MAX_SYSV_SHMIDS  8
+#        define P4_MAX_SYSV_SEMIDS  8
+	 typedef struct { int semid;  int semnum; }   MD_lock_t;
+#        include <sys/ipc.h>
+#        include <sys/shm.h>
+#        include <sys/sem.h>
+
+         static struct sembuf sem_lock[1] = {
+             0, -1, 0
+         };
+         static struct sembuf sem_unlock[1] = {
+             0, 1, 0
+         };
+#    endif
+
+#    if !defined(SYSV_IPC)  &&  !defined(VENDOR_IPC)
+#        define GLOBMEMSIZE  (4*1024*1024)
+#        define CAN_DO_SOCKET_MSGS
+#        define CAN_DO_XDR
+#        define P4_MAX_MSG_QUEUES 1
+	 typedef int MD_lock_t;
+#        define MD_lock_init(l)
+#        define MD_lock(l)
+#        define MD_unlock(l)
+#    endif
+#endif
+
+
+#if defined(SUN_SOLARIS)  &&  defined(VENDOR_IPC)
+
 #define CAN_DO_SOCKET_MSGS
 #define CAN_DO_XDR
 #define P4_MAX_MSG_QUEUES 8
-#ifdef  VENDOR_IPC
 #    define CAN_DO_SHMEM_MSGS
 #    define USE_XX_SHMALLOC
-#    define GLOBMEMSIZE  (4*1024*1024)
+#    define GLOBMEMSIZE  (16*1024*1024)
      typedef mutex_t MD_lock_t;
 #    define MD_lock_init(l) mutex_init(l,USYNC_PROCESS,(P4VOID *)NULL)
 #    define MD_lock(l)      mutex_lock(l)
 #    define MD_unlock(l)    mutex_unlock(l)
-#else
-#    define GLOBMEMSIZE  (1*1024*1024)
-     typedef int MD_lock_t;
-#    define MD_lock_init(l)
-#    define MD_lock(l)
-#    define MD_unlock(l)
-#endif
 #endif
 
 
-#if defined(SGI)
+#if defined(SGI)  &&  defined(VENDOR_IPC)
 
 #define CAN_DO_SOCKET_MSGS
 #define CAN_DO_XDR
 #define P4_MAX_MSG_QUEUES 20
-#ifdef  VENDOR_IPC
 #    include <ulocks.h>
 #    include <malloc.h>
 #    define CAN_DO_SHMEM_MSGS
@@ -390,13 +381,6 @@ typedef int MD_lock_t;
 #    define MD_lock(l)      uspsema(*l)
 #    define MD_unlock(l)    usvsema(*l)
 *****/
-#else
-#    define GLOBMEMSIZE  (1*1024*1024)
-     typedef int MD_lock_t;
-#    define MD_lock_init(l)
-#    define MD_lock(l)
-#    define MD_unlock(l)
-#endif
 #endif
 
 
@@ -597,8 +581,20 @@ static unsigned int allocated = 0;
 
 typedef unsigned long p4_usc_time_t;
 
+/* Bill says take this out, 12/22/94
+extern P4VOID exit();
+*/
 
 #define P4_MAXPROCS 256
+
+/* For sysinfo */
+#if defined(SUN_SOLARIS) || defined(MEIKO_CS2)
+#include <sys/systeminfo.h>
+#endif
+
+#define MEMDEBUG
+
+#if defined(MEMDEBUG)
 
 #ifndef LINT
 #define  P4_INCLUDED
@@ -608,7 +604,12 @@ typedef unsigned long p4_usc_time_t;
 #define p4_clock MD_clock
 #endif
 
-/* For sysinfo */
-#if defined(SUN_SOLARIS) || defined(MEIKO_CS2)
-#include <sys/systeminfo.h>
+#else
+
+#ifndef LINT
+#define p4_malloc malloc
+#define p4_free free
+#define p4_clock MD_clock
+#endif
+
 #endif

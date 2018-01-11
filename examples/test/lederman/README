@@ -1,0 +1,2 @@
+This directory contains the PRISM test codes.  These require special Makefile
+arguments and should be read before being used.

@@ -606,6 +606,7 @@ MPE_XGraph handle;
   }
 
   if (handle->capture_file) {
+#ifdef HAVE_SYSTEM
       /* Place into a file */
       char cmdbuf[1024];
       if ((handle->capture_num % handle->capture_freq) == 0) {
@@ -618,6 +619,9 @@ MPE_XGraph handle;
 	  system( cmdbuf );
 	  }
       handle->capture_num++;
+#else
+      fprintf( stderr, "Could not call system routine for file capture\n" );
+#endif
       }
   return MPE_SUCCESS;
 }

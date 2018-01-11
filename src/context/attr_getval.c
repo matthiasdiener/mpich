@@ -1,12 +1,12 @@
 /*
- *  $Id: attr_getval.c,v 1.13 1994/07/13 15:44:23 lusk Exp $
+ *  $Id: attr_getval.c,v 1.14 1994/12/15 16:21:44 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: attr_getval.c,v 1.13 1994/07/13 15:44:23 lusk Exp $";
+static char vcid[] = "$Id: attr_getval.c,v 1.14 1994/12/15 16:21:44 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -31,11 +31,11 @@ void **attr_value;
 int *flag;
 {
   MPIR_HBT_node *attr;
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
 
   if ( MPIR_TEST_COMM(comm,comm)||
-	   ( (keyval == MPI_KEYVAL_INVALID) && (errno = MPI_ERR_OTHER) ) )
-	return MPIR_ERROR(comm, errno, "Error in MPI_ATTR_GET");
+	   ( (keyval == MPI_KEYVAL_INVALID) && (mpi_errno = MPI_ERR_OTHER) ) )
+	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_ATTR_GET");
 		  
   MPIR_HBT_lookup(comm->attr_cache, keyval, &attr);
   if ( attr == (MPIR_HBT_node *)0 ) {
@@ -46,7 +46,7 @@ int *flag;
 	(*flag) = MPIR_TRUE;
 	(*attr_value) = attr->value;
   }
-  return(errno);
+  return(mpi_errno);
 }
 
 

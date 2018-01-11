@@ -1,5 +1,5 @@
 /*
- *  $Id: create_send.c,v 1.12 1994/09/30 22:11:18 gropp Exp $
+ *  $Id: create_send.c,v 1.15 1995/01/03 22:15:01 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -30,13 +30,13 @@ int           tag;
 MPI_Comm      comm;
 MPI_Request   *request;
 {
-    int         errno;
+    int         mpi_errno;
     MPI_Request handleptr;
 
     if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,count) ||
 	MPIR_TEST_DATATYPE(comm,datatype) || MPIR_TEST_SEND_TAG(comm,tag) ||
 	MPIR_TEST_SEND_RANK(comm,dest)) 
-	return MPIR_ERROR(comm, errno, "Error in MPI_SEND_INIT" );
+	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_SEND_INIT" );
 
     /* See MPI_TYPE_FREE.  A free can not happen while the datatype may
        be in use.  Thus, a nonblocking operation increments the
@@ -53,8 +53,8 @@ MPI_Request   *request;
 	handleptr->shandle.dest     = comm->group->lrank_to_grank[dest];
     handleptr->shandle.tag          = tag;
     handleptr->shandle.contextid    = comm->send_context;
-    handleptr->shandle.lrank        = 
-	comm->local_group->lrank_to_grank[comm->local_group->local_rank];
+    handleptr->shandle.comm         = comm;
+    handleptr->shandle.lrank        = comm->local_group->local_rank;
     handleptr->shandle.mode         = MPIR_MODE_STANDARD;
     handleptr->shandle.datatype     = datatype;
     handleptr->shandle.bufadd       = buf;
@@ -62,10 +62,13 @@ MPI_Request   *request;
     handleptr->shandle.completed    = MPIR_NO;
     handleptr->shandle.persistent   = 1;
     handleptr->shandle.active       = 0;
-    
+#ifdef MPID_HAS_HETERO
+    handleptr->shandle.msgrep	    = MPIR_MSGREP_SENDER;
+#endif
     MPID_Alloc_send_handle(comm->ADIctx, &((handleptr)->shandle.dev_shandle));
     MPID_Set_send_is_nonblocking( comm->ADIctx, 
 				 &((handleptr)->shandle.dev_shandle), 1 );
 
     return MPI_SUCCESS;
 }
+

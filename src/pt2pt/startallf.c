@@ -1,6 +1,7 @@
 /* startall.c */
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
+#include "mpisys.h"
 
 #ifdef POINTER_64_BITS
 extern void *MPIR_ToPointer();
@@ -39,12 +40,12 @@ int *__ierr;
 {
 #ifdef POINTER_64_BITS
 int i;
-MPI_Request *r = (MPI_Request*)malloc(sizeof(MPI_Request)**count);
+MPI_Request *r = (MPI_Request*)MALLOC(sizeof(MPI_Request)* *count);
 for (i=0; i<*count; i++) {
     r[i] = MPIR_ToPointer( *((int *)(array_of_requests)+i) );
     }
 *__ierr = MPI_Startall(*count,r);
-free( r );
+FREE( r );
 #else
 *__ierr = MPI_Startall(*count,array_of_requests);
 #endif

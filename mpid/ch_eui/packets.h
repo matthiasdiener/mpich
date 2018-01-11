@@ -88,120 +88,6 @@
 #define MPIR_MODE_IS_SYNC(mpid) ((mpid)->mode & (int)MPIR_MODE_SYNCHRONOUS)
 #define MPIR_MODE_SYNC_ID(mpid) ((mpid)->mode >> MPID_MODE_BITS)
 
-#ifdef FOO
-/* 
-   Here are definitions from mpi_bc.h ...
-typedef enum { 
-    MPIR_MODE_STANDARD = 0, 
-    MPIR_MODE_READY = 1, 
-    MPIR_MODE_SYNCHRONOUS = 2, 
-    MPIR_MODE_RECV = 3,
-    MPIR_MODE_SYNC_ACK = 4
- */
-
-
-/* Mode bits are:
-   0x1 - Ready
-   0x2 - Synchronous
-   0x4 - XDR (two-ended transmission protocol)
-   0x8 - Long message (not yet used)
-   0x10 - Sync Ack
-
-   THESE MUST BE THE SAME AS THE API USES! (see include/mpi_bc.h)
-   Note that the API just uses the first two modes; XDR is indicated
-   in a separate word.  Also node that the the API stores the mode and the
-   sync_id in a single word; see MPIR_MODE_xxxx below.
- */
-#define MPID_MODE_READY 0x1
-#define MPID_MODE_SYNC  0x2
-#define MPID_MODE_LONG  0x8
-#define MPID_MODE_SYNC_ACK 0x10
-
-/* 
-   The compressed packet format trades a slightly smaller packet for 
-   more complicated code to access the entries.  In addition, it 
-   does not send the id of the synchronous message unless the message type
-   is indeed synchronous.
- */
-#ifdef USE_COMPRESSED_PACKET
-/* 
-   Long messages have no local data; we let them include the sync_id 
-   as the last field (which need not be sent!)
- */
-typedef struct {
-    int len;                    /* TOTAL length of message in BYTES */
-    int sync_id;                /* Id of a synchronous message */
-    } MPID_PACKET_LONG;
-typedef struct {
-    int sync_id;                /* Id of a synchronous message */
-	char buffer[MPID_PACKET_SIZE];
-				/* Maximum message size for short messages */
-    } MPID_PACKET_SYNC;
-typedef struct {
-    unsigned mode:5;            /* Mode */
-    unsigned context_id:16;     /* Context_id */
-    unsigned lrank:11;          /* Local rank in sending context */
-    int tag;                    /* Tag is a full 32 bits */
-    union {
-	char buffer[MPID_PACKET_SIZE];
-				/* Maximum message size for short messages */
-	MPID_PACKET_SYNC s_short;  /* Short, synchronous message */
-	MPID_PACKET_LONG s_long;   /* Long message, may be synchronous */
-	};
-    } MPID_PACKET;
-
-/* Header_Len is just the length of the envelope of MPID_PACKET */
-#define MPID_HEADER_LEN (sizeof(MPID_PACKET)-MPID_PACKET_SYNC)
-
-#define MPID_HEADER_INTS (MPID_HEADER_LEN/sizeof(int))  
-                           /* Number of ints in the header */
-#define MPID_SYNC_GET_ID(pkt)    ((pkt)->sync_id)
-#define MPID_SYNC_SET_ID(pkt,id) (pkt)->sync_id = id
-#define MPID_MODE_GET_SYNC_WITH_ID(pkt) \
-    (((pkt)->sync_id << MPID_MODE_BITS) | (pkt)->mode )
-#define MPID_MODE_IS_SYNC(pkt)   ((pkt)->mode & MPID_MODE_SYNC)
-#define MPID_MODE_IS_READY(pkt)  ((pkt)->mode & MPID_MODE_READY)
-#define MPID_MODE_IS_SYNCACK(pkt) \
-    ((pkt)->mode == MPID_MODE_SYNC_ACK)
-#define MPID_MODE_HAS_XDR(pkt)   ((pkt)->mode & MPID_MODE_XDR)
-
-#define MPID_MSG_LEN(pkt) \
-    ((pkt)->mode & MPID_MODE_LONG ? (ptk)->len : __EUILEN - MPID_HEADER_LEN)
-#define MPID_MSG_SET_LEN(pkt,s) \
-    ((pkt)->mode & MPID_MODE_LONG ? (ptk)->len = s : 0)
-#else
-typedef struct {
-    int len,			/* TOTAL length of message in BYTES */
-        tag,			/* Message tag */
-        context_id,		/* Internal communicator ID */
-        mode,                   /* mode (standard, ready, synchronous,
-				   sync_ack) */
-        lrank;                  /* rank in sending context */
-    char buffer[MPID_PACKET_SIZE];
-				/* Maximum message size for short messages */
-    } MPID_PACKET;
-
-/* HeaderLen is just the length of the envelope of MPID_PACKET */
-#define MPID_HEADER_LEN (sizeof(MPID_PACKET)-MPID_PACKET_SIZE)
-
-/* Number of ints in the header */
-#define MPID_HEADER_INTS 5    
-#define MPID_SYNC_GET_ID(pkt)    ((pkt)->mode >> MPID_MODE_BITS)
-#define MPID_SYNC_SET_ID(pkt,id) ((pkt)->mode |= ((id) << MPID_MODE_BITS))
-#define MPID_MODE_GET_SYNC_WITH_ID(pkt) (pkt)->mode
-#define MPID_MODE_IS_SYNC(pkt)   \
-         (((pkt)->mode & MPID_MODE_MASK) == MPIR_MODE_SYNCHRONOUS)
-#define MPID_MODE_IS_READY(pkt)  ((pkt)->mode & MPID_MODE_READY)
-#define MPID_MODE_IS_SYNCACK(pkt) \
-    (((pkt)->mode & MPID_MODE_MASK) == MPID_MODE_SYNC_ACK)
-#define MPID_MODE_HAS_XDR(pkt)   ((pkt)->mode & MPID_MODE_XDR)
-
-#define MPID_MSG_LEN(pkt) (pkt)->len
-#define MPID_MSG_SET_LEN(pkt,s) (pkt)->len = s
-#endif
-
-#endif
-
 #define MPID_MIN(a,b) ((a) < (b) ? (a) : (b))
 
 
@@ -465,6 +351,19 @@ typedef union {
    available.  A blocking receive in both cases
 
  */
+
+extern FILE *MPID_TRACE_FILE;
+
+#ifdef MPID_DEBUG_ALL
+#define MPID_TRACE_CODE(name,channel) {if (MPID_TRACE_FILE){\
+fprintf( MPID_TRACE_FILE,"[%d] %20s on %4d at %s:%d\n", MPID_MyWorldRank, \
+         name, channel, __FILE__, __LINE__ ); fflush( MPID_TRACE_FILE );}}
+#else
+#define MPID_TRACE_CODE(name,channel)
+#endif
+
+#include "channel.h"
+
 #if defined(MPID_PKT_PRE_POST)
 /* Single buffer for now. Note that this alloc must EITHER be in the
    same routine as all of the calls OR in the same file .
@@ -474,6 +373,8 @@ typedef union {
    Note that because this file is fed into m4 to generate the native versions
    for non-Chameleon systems, it is REQUIRED that the Chameleon calls
    be on different lines from the #define's.  
+
+   Eventually, these will use only the Channel operations
  */
 #define MPID_PKT_GALLOC \
     static MPID_PKT_T     pkt; \
@@ -481,13 +382,13 @@ typedef union {
 #define MPID_PKT_LALLOC 
 #define MPID_PKT_INIT() MPID_PKT_POST()
 #define MPID_PKT_CHECK()  \
-    (mp_status(&(&pktid)) > -1 )
+    MPID_RecvStatus( pktid )
 #define MPID_PKT_WAIT() \
-    mp_wait(&(&pktid),&__EUILEN);
+    {mp_wait(&(&pktid),&__EUILEN);; from = __EUIFROM;}
 #define MPID_PKT_POST() \
     {__EUIFROM=-1;__EUITYPE=MPID_PT2PT_TAG;mpc_recv(&pkt,sizeof(MPID_PKT_T),&__EUIFROM,&__EUITYPE,&(&pktid));}
 #define MPID_PKT_POST_AND_WAIT() \
-    {__EUIFROM=-1;__EUITYPE=MPID_PT2PT_TAG;mpc_brecv(&pkt,sizeof(MPID_PKT_T),&__EUIFROM,&__EUITYPE,&__EUILEN);}
+    MPID_RecvAnyControl( &pkt, sizeof(MPID_PKT_T), &from )
 #define MPID_PKT_FREE()
 #define MPID_PKT (pkt)
 
@@ -503,11 +404,12 @@ typedef union {
 #define MPID_PKT_INIT() \
     pkt = (MPID_PKT_T *)malloc(sizeof(MPID_PKT_T));
 #define MPID_PKT_CHECK()  \
-    (__EUIFROM=-1,__EUITYPE=MPID_PT2PT_TAG,mp_probe(&__EUIFROM,&__EUITYPE,&__EUILEN),(__EUILEN>=0))
+    MPID_ControlMsgAvail()
 #define MPID_PKT_WAIT() MPID_PKT_POST_AND_WAIT()
 #define MPID_PKT_POST() 
 #define MPID_PKT_POST_AND_WAIT() \
-    {__EUIFROM=-1;__EUITYPE=MPID_PT2PT_TAG;mpc_brecv(pkt,sizeof(MPID_PKT_T),&__EUIFROM,&__EUITYPE,&__EUILEN);}
+    {{__EUIFROM=-1;__EUITYPE=MPID_PT2PT_TAG;mpc_brecv(pkt,sizeof(MPID_PKT_T),&__EUIFROM,&__EUITYPE,&__EUILEN);}; \
+	 from = __EUIFROM ; }
 #define MPID_PKT_FREE() \
     free(pkt)
 #define MPID_PKT (*pkt)
@@ -518,11 +420,11 @@ typedef union {
 #define MPID_PKT_GALLOC 
 #define MPID_PKT_INIT()
 #define MPID_PKT_CHECK()  \
-    (__EUIFROM=-1,__EUITYPE=MPID_PT2PT_TAG,mp_probe(&__EUIFROM,&__EUITYPE,&__EUILEN),(__EUILEN>=0))
+    MPID_ControlMsgAvail()
 #define MPID_PKT_WAIT() MPID_PKT_POST_AND_WAIT()
 #define MPID_PKT_POST() 
 #define MPID_PKT_POST_AND_WAIT() \
-    {__EUIFROM=-1;__EUITYPE=MPID_PT2PT_TAG;mpc_brecv(&pkt,sizeof(MPID_PKT_T),&__EUIFROM,&__EUITYPE,&__EUILEN);}
+    MPID_RecvAnyControl( &pkt, sizeof(MPID_PKT_T), &from )
 #define MPID_PKT_FREE()
 #define MPID_PKT (pkt)
 #endif

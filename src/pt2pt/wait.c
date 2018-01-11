@@ -1,5 +1,5 @@
 /*
- *  $Id: wait.c,v 1.10 1994/07/13 15:53:21 lusk Exp $
+ *  $Id: wait.c,v 1.11 1994/12/15 16:48:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: wait.c,v 1.10 1994/07/13 15:53:21 lusk Exp $";
+static char vcid[] = "$Id: wait.c,v 1.11 1994/12/15 16:48:41 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -25,8 +25,8 @@ int MPI_Wait ( request, status )
 MPI_Request  *request;
 MPI_Status   *status;
 {
-    int errno;
+    int mpi_errno;
     /* We'll let MPI_Waitall catch the errors */
-    errno = MPI_Waitall( 1, request, status );
-    return errno;
+    mpi_errno = MPI_Waitall( 1, request, status );
+    return mpi_errno;
 }

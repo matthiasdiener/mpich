@@ -71,7 +71,7 @@ typedef struct alogData_ {
 int AlogPreProcessLog( char *filename, logData *log_data,
 			    alogData *alog_data );
 int AlogProcessLog( logData *log_data, alogData *alog_data );
-int AlogCloseLog( logData *log_data, alogData *alog_data );
+int AlogCloseLog( alogData *alog_data );
 #else
 
 int AlogPreProcessLog();

@@ -1,0 +1,7 @@
+**** Checking the type routines ****
+[typetest]: Test 'Complex Type Round Trip Test' Passed.
+[typetest]: Test 'Compatible Complex Type Round Trip Test' Passed.
+[typetest]: Test 'Type Free test' Passed.
+For test suite 'typetest':
+Of 3 attempted tests, 3 passed, 0 failed.
+**** Checking the type routines ****

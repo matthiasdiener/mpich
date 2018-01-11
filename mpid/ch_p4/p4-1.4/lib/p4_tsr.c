@@ -578,11 +578,13 @@ struct p4_queued_msg *alloc_quel()
 	if (!q)
 	    p4_error("alloc_quel:  could not allocate queue element",
 		     sizeof(struct p4_queued_msg));
+	 p4_dprintfl(50,"malloc'ed new quel at 0x%x\n",q);
     }
     else
     {
 	q = p4_global->avail_quel;
 	p4_global->avail_quel = q->next;
+	p4_dprintfl(50,"reused quel at 0x%x\n",q);
     }
     p4_unlock(&p4_global->avail_quel_lock);
     return (q);
@@ -595,4 +597,22 @@ struct p4_queued_msg *q;
     q->next = p4_global->avail_quel;
     p4_global->avail_quel = q;
     p4_unlock(&p4_global->avail_quel_lock);
+    p4_dprintfl(50,"freed quel at 0x%x to avail\n",q);
 }
+
+P4VOID free_avail_quels()
+{
+    struct p4_queued_msg *p,*q;
+
+    p4_lock(&p4_global->avail_quel_lock);
+    p = p4_global->avail_quel;
+    while (p)
+    {
+	q = p->next;
+	p4_dprintfl(50,"really freed quel at 0x%x\n",p);
+	p4_shfree(p);
+	p = q;
+    }
+    p4_unlock(&p4_global->avail_quel_lock);
+}
+

@@ -28,7 +28,7 @@ ALL: default
 
 P4_HOME  = ./p4-1.4
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
-CFLAGS   =   -DMPE_USE_EXTENSIONS=1 -DHAS_XDR=1 -DHAVE_STDLIB_H=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
+CFLAGS   =   -DMPE_USE_EXTENSIONS=1 -DHAS_XDR=1 -DHAVE_STDLIB_H=1 -DHAVE_SYSTEM=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
 	   -DMPID_DEVICE_CODE  -DHAVE_GETDOMAINNAME=1 -DHAVE_GETHOSTNAME=1 -DHAVE_UNAME=1  -DMPID_PKT_VAR_SIZE
 SOURCE   = p4event.c p4recv.c p4send.c p4init.c p4probe.c p4sync.c p4coll.c
 SOURCEC  = $(SOURCE)
@@ -52,8 +52,8 @@ profile_all:
 clean:
 	/bin/rm -f *~ $(MPI_OBJECTS)
 	(cd $(P4_HOME); if [ -s Makefile ] ; then $(MAKE) clean; \
-	/bin/rm -f util/defs.MD lib/p4_config.h lib/libp4.a ; fi ;)
-
+	/bin/rm -f lib/libp4.a ; fi ;)
+#	/bin/rm -f Makefile lib/p4_config.h lib/libp4.a ; fi ;)
 .c.o:
 	$(CC) $(CFLAGS) $(OPTFLAGS) $(INCLUDE_DIR) -c $*.c $(MPI_PROFILE)
 
@@ -64,10 +64,10 @@ clean:
 chlib: $(MPI_OBJECTS)
 	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $(MPI_OBJECTS)
 	$(RANLIB) ../../lib/$(ARCH)/$(COMM)/libmpi.a
+
 p4inmpi:
 	(cd $(P4_HOME); \
-	$(MAKE) p4inmpi P4ARCH=$(P4_ARCH) MPIARCH=$(ARCH); cd ..)
-
+	$(MAKE) p4inmpi MPIARCH=$(ARCH); cd ..)
 
 
 

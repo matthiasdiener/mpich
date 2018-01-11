@@ -8,7 +8,7 @@ int __NUMNODES, __MYPROCID  ;
 
 
 /*
- *  $Id: chinit.c,v 1.24 1994/10/24 22:03:23 gropp Exp $
+ *  $Id: chinit.c,v 1.27 1995/01/07 20:03:34 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -31,6 +31,12 @@ MPID_INFO *MPID_procinfo = 0;
 MPID_H_TYPE MPID_byte_order;
 int MPID_IS_HETERO = 0;
 void (*MPID_ErrorHandler)() = MPID_DefaultErrorHandler;
+
+/* For tracing channel operations by ADI underlayer */
+FILE *MPID_TRACE_FILE = 0;
+
+/* For debugging statements */
+FILE *MPID_DEBUG_FILE = stdout;
 
 #ifdef MPID_PKT_VAR_SIZE
 int MPID_PKT_DATA_SIZE = MPID_PKT_MAX_DATA_SIZE;
@@ -68,16 +74,33 @@ if (flag) {
 #endif                  /* #CHAMELEON_END# */
 }
 
+void MPID_Set_tracefile( name )
+char *name;
+{
+char filename[1024];
+
+if (strchr( name, '%' )) {
+    sprintf( filename, name, MPID_MyWorldRank );
+    MPID_TRACE_FILE = fopen( filename, "w" );
+    }
+else
+    MPID_TRACE_FILE = fopen( name, "w" );
+
+/* Is this the correct thing to do? */
+if (!MPID_TRACE_FILE)
+    MPID_TRACE_FILE = stdout;
+}
+
 void MPID_CMMD_Myrank( rank )
 int *rank;
 {
-*rank = __MYPROCID;
+*rank = MPID_MyWorldRank;
 }
 
 void MPID_CMMD_Mysize( size )
 int *size;
 {
-*size = __NUMNODES;
+*size = MPID_WorldSize;
 }
 
 /* 
@@ -99,16 +122,17 @@ char *work;
 __NUMNODES = CMMD_partition_size();
 __MYPROCID = CMMD_self_address();
 CMMD_fset_io_mode( stdout, CMMD_independent );
+CMMD_fset_io_mode( stdin, CMMD_independent );
 fcntl( fileno(stdout), F_SETFL, O_APPEND );
 CMMD_fset_io_mode( stderr, CMMD_independent );
 fcntl( fileno(stderr), F_SETFL, O_APPEND );;
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-DEBUG(printf("[%d] Finished init\n", __MYPROCID );)
+DEBUG(fprintf(MPID_DEBUG_FILE,"[%d] Finished init\n", MPID_MyWorldRank );)
 #endif                  /* #DEBUG_END# */
 
 /* Turn off the resource monitors */
-#if !defined(euih)
-/* If we are euih, we can't use SIGALRM; this call sets SIGALRM to 
+#if !defined(euih) && !defined(eui)
+/* If we are euih or SP2 eui, we can't use SIGALRM; this call sets SIGALRM to 
    SIG_IGN */
 ;
 #endif
@@ -119,7 +143,7 @@ MPID_CMMD_Init_recv_code();
 MPID_CMMD_Init_send_code();
 
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-DEBUG(printf("[%d] leaving chinit\n", __MYPROCID );)
+DEBUG(fprintf(MPID_DEBUG_FILE,"[%d] leaving chinit\n", MPID_MyWorldRank );)
 #endif                  /* #DEBUG_END# */
 
 return (void *)0;
@@ -225,7 +249,7 @@ int  len;
 int i; char *aa = (char *)address;
 
 if (msg)
-    printf( "[%d]%s\n", __MYPROCID, msg );
+    printf( "[%d]%s\n", MPID_MyWorldRank, msg );
 if (len < 78 && address) {
     for (i=0; i<len; i++) {
 	printf( "%x", aa[i] );

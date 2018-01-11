@@ -1,5 +1,5 @@
 /*
- *  $Id: testall.c,v 1.10 1994/10/24 22:02:50 gropp Exp $
+ *  $Id: testall.c,v 1.11 1995/01/03 19:43:42 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -26,7 +26,7 @@ MPI_Request array_of_requests[];
 int        *flag;
 MPI_Status *array_of_statuses;
 {
-    int i, found;
+    int i, found, mpi_errno;
     MPI_Status status;
     MPI_Request request;
 
@@ -61,8 +61,20 @@ MPI_Status *array_of_statuses;
 		    array_of_statuses[i].MPI_TAG    = request->rhandle.tag;
 		    array_of_statuses[i].count      = 
 			request->rhandle.totallen;
+#ifdef MPID_RETURN_PACKED
+		    if (request->rhandle.bufpos) 
+			mpi_errno = MPIR_UnPackMessage( 
+					       request->rhandle.bufadd, 
+					       request->rhandle.count, 
+					       request->rhandle.datatype, 
+					       request->rhandle.source,
+					       request );
+#endif
 		    }
 		if (!request->chandle.persistent) {
+		    if (--request->chandle.datatype->ref_count <= 0) {
+			MPIR_Type_free( &request->chandle.datatype );
+			}
 		    MPI_Request_free( &array_of_requests[i] );
 		    /* Question: should we ALWAYS set to null? */
 		    array_of_requests[i]    = NULL;

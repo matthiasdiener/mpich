@@ -1,12 +1,12 @@
 /*
- *  $Id: gatherv.c,v 1.19 1994/09/29 21:51:25 gropp Exp $
+ *  $Id: gatherv.c,v 1.20 1994/12/15 17:29:28 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: gatherv.c,v 1.19 1994/09/29 21:51:25 gropp Exp $";
+static char vcid[] = "$Id: gatherv.c,v 1.20 1994/12/15 17:29:28 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -51,12 +51,12 @@ MPI_Comm          comm;
 {
   MPI_Status status;
   int        size, rank;
-  int        errno = MPI_SUCCESS;
+  int        mpi_errno = MPI_SUCCESS;
   int        flag;
 
   if ( MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,sendcnt) ||
        MPIR_TEST_DATATYPE(comm,sendtype)) 
-    return MPIR_ERROR(comm, errno, "Error in MPI_GATHERV" );
+    return MPIR_ERROR(comm, mpi_errno, "Error in MPI_GATHERV" );
 
   /* Check for intra-communicator */
   MPI_Comm_test_inter ( comm, &flag );
@@ -98,6 +98,6 @@ MPI_Comm          comm;
   /* Unlock for collective operation */
   MPID_THREAD_UNLOCK(comm->ADIctx,comm);
 
-  return (errno);
+  return (mpi_errno);
 }
 

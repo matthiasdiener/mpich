@@ -1,12 +1,12 @@
 /*
- *  $Id: gather.c,v 1.20 1994/09/29 21:51:25 gropp Exp $
+ *  $Id: gather.c,v 1.21 1994/12/15 17:29:10 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: gather.c,v 1.20 1994/09/29 21:51:25 gropp Exp $";
+static char vcid[] = "$Id: gather.c,v 1.21 1994/12/15 17:29:10 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -44,7 +44,7 @@ MPI_Comm          comm;
 {
   MPI_Status status;
   int        size, rank;
-  int        errno = MPI_SUCCESS;
+  int        mpi_errno = MPI_SUCCESS;
   int        flag;
   int        mask, relrank, source, len, offset, totalcnt, count;
   char       *buffer;
@@ -52,7 +52,7 @@ MPI_Comm          comm;
 
   if ( MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,sendcnt) ||
        MPIR_TEST_DATATYPE(comm,sendtype) ) 
-    return MPIR_ERROR(comm, errno, "Error in MPI_GATHER" );
+    return MPIR_ERROR(comm, mpi_errno, "Error in MPI_GATHER" );
 
   /* Check for Intra-communicator */
   MPI_Comm_test_inter ( comm, &flag );
@@ -62,8 +62,8 @@ MPI_Comm          comm;
   
   /* Is root within the communicator? */
   MPI_Comm_size ( comm, &size );
-  if ( (root >= size || root < 0) && (errno = MPI_ERR_ROOT) )
-    return MPIR_ERROR( comm, errno, "Invalid root in MPI_GATHER" );
+  if ( (root >= size || root < 0) && (mpi_errno = MPI_ERR_ROOT) )
+    return MPIR_ERROR( comm, mpi_errno, "Invalid root in MPI_GATHER" );
 
   /* Get my rank and switch communicators to the hidden collective */
   MPI_Comm_rank ( comm, &rank );
@@ -122,10 +122,10 @@ MPI_Comm          comm;
       /* Receive */
       source = ((relrank | mask) + root) % size;
       if (source < size) {
-	  errno = MPI_Recv (buffer+offset, count*size-totalcnt, 
+	  mpi_errno = MPI_Recv (buffer+offset, count*size-totalcnt, 
 			    recvtype, source, 
 			    MPIR_GATHER_TAG, comm, &status);
-	  if (errno) return MPIR_ERROR( comm, errno, 
+	  if (mpi_errno) return MPIR_ERROR( comm, mpi_errno, 
 				       "Error receiving in MPI_REDUCE" );
 	  MPI_Get_count( &status, recvtype, &len );
 	  offset   += len * extent;
@@ -135,9 +135,10 @@ MPI_Comm          comm;
       }
   if (mask < size) {
       source = ((relrank & (~ mask)) + root) % size;
-      errno  = MPI_Send( buffer, totalcnt, sendtype, source, MPIR_GATHER_TAG, 
+      mpi_errno  = MPI_Send( buffer, totalcnt, sendtype, source, 
+			     MPIR_GATHER_TAG, 
 			 comm );
-      if (errno) return MPIR_ERROR( comm, errno, 
+      if (mpi_errno) return MPIR_ERROR( comm, mpi_errno, 
 				   "Error sending in MPI_REDUCE" );
       }
   FREE( buffer );
@@ -164,6 +165,6 @@ MPI_Comm          comm;
   /* Unlock for collective operation */
   MPID_THREAD_UNLOCK(comm->ADIctx,comm);
 
-  return (errno);
+  return (mpi_errno);
 }
 

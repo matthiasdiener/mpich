@@ -1,7 +1,7 @@
-/* 	$Id: grouptest.c,v 1.7 1994/12/11 17:00:49 gropp Exp $	 */
+/* 	$Id: grouptest.c,v 1.9 1995/01/08 17:09:20 gropp Exp $	 */
 
 #ifndef lint
-static char vcid[] = "$Id: grouptest.c,v 1.7 1994/12/11 17:00:49 gropp Exp $";
+static char vcid[] = "$Id: grouptest.c,v 1.9 1995/01/08 17:09:20 gropp Exp $";
 #endif /* lint */
 #include "mpi.h"
 
@@ -13,7 +13,8 @@ int argc;
 char **argv;
 {
     int rank, size, i;
-    MPI_Group group1, group2, group3, groupall, groupunion, groupintersection, newgroup;
+    MPI_Group group1, group2, group3, groupall, groupunion, groupintersection,
+              newgroup;
     MPI_Comm newcomm;
     int ranks1[100], ranks2[100], ranks3[100];
     int nranks1=0, nranks2=0, nranks3=0;
@@ -41,6 +42,7 @@ char **argv;
     MPI_Group_difference ( groupall, group2, &groupunion );
 
     MPI_Comm_create ( MPI_COMM_WORLD, group3, &newcomm );
+    newgroup = MPI_GROUP_NULL;
     if (newcomm != MPI_COMM_NULL)
     {
 	/* If we don't belong to group3, this would fail */
@@ -53,6 +55,10 @@ char **argv;
     MPI_Group_free( &group2 );
     MPI_Group_free( &group3 );
     MPI_Group_free( &groupunion );
+    if (newgroup != MPI_GROUP_NULL)
+    {
+	MPI_Group_free( &newgroup );
+    }
 
     /* Free the communicator */
     if (newcomm != MPI_COMM_NULL)

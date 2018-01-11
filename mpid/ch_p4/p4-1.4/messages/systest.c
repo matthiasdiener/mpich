@@ -95,10 +95,13 @@ static void Hello()
   int me = p4_get_my_id();
   int type = 1;
   int buffer[2], node, *input, length;
+  double startusclock;
+  double stamp1,stamp2,stamp3;
 
   if (me == 0) {
     (void) printf("\nHello test ... show network integrity\n----------\n\n");
     (void) fflush(stdout);
+    startusclock = p4_usclock();
   }
 
   for (node = 0; node<nproc; node++) {
@@ -118,6 +121,14 @@ static void Hello()
       (void) p4_dprintfl(00,"Hello from %d to %d\n", me, node);
       (void) fflush(stdout);
     }
+  }
+  if (me == 0)
+    printf("elapsed time = %f seconds\n",p4_usclock()-startusclock);
+  if (me == 0) {
+    stamp1 = p4_usclock();
+    stamp2 = p4_usclock();
+    stamp3 = p4_usclock();
+    printf("Three quick timestamps: %f %f %f\n", stamp1, stamp2, stamp3);
   }
 }
 
@@ -167,7 +178,8 @@ static void Ring()
       (void) p4_send(type, left, msg, msg_len);
       p4_msg_free((char *) msg); 
     }
-    used_ustime = p4_ustimer() - start_ustime;
+    end_ustime = p4_ustimer();
+    used_ustime = end_ustime - start_ustime;
     used = p4_clock() - start;
 
     if (used > 0)
@@ -179,15 +191,15 @@ static void Ring()
     else
       us_rate = 0.0;
     if (me == 0)
-      (void) printf("len=%d bytes, used=%d ms, %d us, rate=%f us_rate=%f Mbytes/sec\n",
+      (void) printf("len=%d bytes, used=%d ms, %u us, rate=%f us_rate=%f Mbytes/sec\n",
 		    lenbuf, used, used_ustime, rate, us_rate);
     
     lenbuf *= 2;
   }
 
-  if (me == 0)
+  if (me == 0) {
     (void) p4_shfree(buffer);
-
+  }
 }
 
 double ranf()

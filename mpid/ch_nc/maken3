@@ -10,6 +10,7 @@ sed -e '/#define DEVICE_CHAMELEON/d' \
     -e 's/"Chameleon"/"Ncube"/g' ../chameleon/dmch.h > dmn3.h
 sed -e 's/MPID_CH/MPID_N3/g' ../chameleon/mpid_bind.h > mpid_bind.h
 sed -e 's/MPID_CH/MPID_N3/g' ../chameleon/packets.h > packets.h
+sed -e 's/MPID_CH/MPID_N3/g' ../chameleon/channel.h > channel.h
 mv chevent.c n3event.c
 mv chrecv.c  n3recv.c
 mv chsend.c  n3send.c
@@ -19,7 +20,7 @@ mv chsync.c  n3sync.c
 chmod ug+w *.[ch]
 /home/gropp/tools.n/bin/inlinecomm -main -quiet -ncube n3init.c
 for file in n3event.c n3recv.c n3send.c n3probe.c n3sync.c \
-	dmn3.h packets.h ; do
+	dmn3.h packets.h channel.h ; do
     /home/gropp/tools.n/bin/inlinecomm -quiet -ncube $file
 done
 #

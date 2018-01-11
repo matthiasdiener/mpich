@@ -1,5 +1,5 @@
 /*
- *  $Id: mpir.h,v 1.37 1994/12/11 16:59:17 gropp Exp $
+ *  $Id: mpir.h,v 1.38 1994/12/21 14:40:15 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -285,7 +285,7 @@ extern void *MPIR_F_MPI_BOTTOM;
    The intent is to use them in this manner:
 
    if (MPIR_TEST_...() || MPIR_TEST_... || ... ) 
-        return MPIR_ERROR( comm, errno, "Error in MPI_routine" );
+        return MPIR_ERROR( comm, mpi_errno, "Error in MPI_routine" );
 
    The hope is, that in the NO_ERROR_CHECKING case, the optimizer will
    be smart enough to remove the code.
@@ -314,49 +314,52 @@ extern void *MPIR_F_MPI_BOTTOM;
 #endif
 
 #define MPIR_TEST_SEND_TAG(comm,tag) \
-    ( ((tag) < 0 ) && (errno = MPI_ERR_TAG ))
+    ( ((tag) < 0 ) && (mpi_errno = MPI_ERR_TAG ))
     /* This requires MPI_ANY_TAG == -1 */
 #define MPIR_TEST_RECV_TAG(comm,tag) \
-    ( ((tag) < MPI_ANY_TAG) &&  (errno = MPI_ERR_TAG ))
+    ( ((tag) < MPI_ANY_TAG) &&  (mpi_errno = MPI_ERR_TAG ))
     /* This exploits MPI_ANY_SOURCE==-2, MPI_PROC_NULL==-1 */
 #define MPIR_TEST_SEND_RANK(comm,rank) \
     ( ((rank) < MPI_PROC_NULL || (rank) >= (comm)->group->np)\
-           && (errno = MPI_ERR_RANK))
+           && (mpi_errno = MPI_ERR_RANK))
     /* This requires min(MPI_PROC_NULL,MPI_ANY_SOURCE)=-2 */
 #define MPIR_TEST_RECV_RANK(comm,rank) \
-    (((rank) < -2 || (rank) >= (comm)->group->np) &&  (errno = MPI_ERR_RANK))
-#define MPIR_TEST_COUNT(comm,count) ( ((count) < 0) && (errno = MPI_ERR_COUNT))
+    (((rank) < -2 || (rank) >= (comm)->group->np) && \
+     (mpi_errno = MPI_ERR_RANK))
+#define MPIR_TEST_COUNT(comm,count) ( ((count) < 0) && \
+				     (mpi_errno = MPI_ERR_COUNT))
 #define MPIR_TEST_OP(comm,op)       \
-    ( (!(op) MPIR_TEST_COOKIE(op,MPIR_OP_COOKIE)) && (errno = MPI_ERR_OP ))
+    ( (!(op) MPIR_TEST_COOKIE(op,MPIR_OP_COOKIE)) && (mpi_errno = MPI_ERR_OP ))
 #define MPIR_TEST_GROUP(comm,group) \
     ( (!(group) MPIR_TEST_COOKIE(group,MPIR_GROUP_COOKIE)) && \
-       (errno = MPI_ERR_GROUP ))
+       (mpi_errno = MPI_ERR_GROUP ))
 #define MPIR_TEST_COMM(comm,comm1)  \
     ( (!(comm1) MPIR_TEST_COOKIE(comm1,MPIR_COMM_COOKIE)) \
-     && (errno = MPI_ERR_COMM ))
+     && (mpi_errno = MPI_ERR_COMM ))
 #define MPIR_TEST_REQUEST(comm,request) \
  ( (!(request) MPIR_TEST_COOKIE(&((request)->chandle),MPIR_REQUEST_COOKIE)) \
-     && (errno = MPI_ERR_REQUEST))
+     && (mpi_errno = MPI_ERR_REQUEST))
 #define MPIR_TEST_IS_DATATYPE(comm,datatype) \
     ( (!(datatype) MPIR_TEST_COOKIE(datatype,MPIR_DATATYPE_COOKIE)) \
-     && (errno = MPI_ERR_TYPE ))
+     && (mpi_errno = MPI_ERR_TYPE ))
 #define MPIR_TEST_DATATYPE(comm,datatype) \
     ( ( (!(datatype) MPIR_TEST_COOKIE(datatype,MPIR_DATATYPE_COOKIE)) \
-    && (errno = MPI_ERR_TYPE )) || \
-  (!(datatype)->committed && (errno = (MPI_ERR_TYPE | MPIR_ERR_UNCOMMITTED))))
+    && (mpi_errno = MPI_ERR_TYPE )) || \
+  (!(datatype)->committed && \
+   (mpi_errno = (MPI_ERR_TYPE | MPIR_ERR_UNCOMMITTED))))
 #define MPIR_TEST_ERRHANDLER(comm,errhandler) \
     ( ( (!(errhandler) MPIR_TEST_COOKIE(errhandler,MPIR_ERRHANDLER_COOKIE)) \
-       && (errno = MPI_ERR_ARG )))
+       && (mpi_errno = MPI_ERR_ARG )))
 #define MPIR_TEST_HBT_NODE(comm,node) \
     ( ( !(node) MPIR_TEST_COOKIE(node,MPIR_HBT_NODE_COOKIE)) \
-      && (errno = MPI_ERR_INTERN))
+      && (mpi_errno = MPI_ERR_INTERN))
 #define MPIR_TEST_HBT(comm,hbt) \
     ( ( !(hbt) MPIR_TEST_COOKIE(hbt,MPIR_HBT_COOKIE)) \
-      && (errno = MPI_ERR_INTERN))
+      && (mpi_errno = MPI_ERR_INTERN))
 
 #define MPIR_TEST_ALIAS(b1,b2)      \
-    ( ((b1)==(b2)) && (errno = (MPI_ERR_BUFFER | MPIR_ERR_BUFFER_ALIAS) ))
-#define MPIR_TEST_ARG(arg)  (!(arg) && (errno = MPI_ERR_ARG) )
+    ( ((b1)==(b2)) && (mpi_errno = (MPI_ERR_BUFFER | MPIR_ERR_BUFFER_ALIAS) ))
+#define MPIR_TEST_ARG(arg)  (!(arg) && (mpi_errno = MPI_ERR_ARG) )
 #endif 
 
 #endif

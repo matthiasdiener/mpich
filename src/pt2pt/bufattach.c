@@ -1,5 +1,5 @@
 /*
- *  $Id: bufattach.c,v 1.5 1994/11/03 22:38:09 gropp Exp $
+ *  $Id: bufattach.c,v 1.6 1994/12/15 17:20:34 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: bufattach.c,v 1.5 1994/11/03 22:38:09 gropp Exp $";
+static char vcid[] = "$Id: bufattach.c,v 1.6 1994/12/15 17:20:34 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -43,10 +43,10 @@ int MPI_Buffer_attach( buffer, size )
 void *buffer;
 int  size;
 {
-int errno;
+int mpi_errno;
 
-if (errno = MPIR_SetBuffer( buffer, size ))
-    return MPIR_ERROR( (MPI_Comm)0, errno, "Error in MPI_BUFFER_ATTACH" );
+if (mpi_errno = MPIR_SetBuffer( buffer, size ))
+    return MPIR_ERROR( (MPI_Comm)0, mpi_errno, "Error in MPI_BUFFER_ATTACH" );
 
 return MPI_SUCCESS;
 }

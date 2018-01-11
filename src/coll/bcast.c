@@ -1,12 +1,12 @@
 /*
- *  $Id: bcast.c,v 1.21 1994/09/21 15:27:41 gropp Exp $
+ *  $Id: bcast.c,v 1.23 1994/12/15 20:00:39 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: bcast.c,v 1.21 1994/09/21 15:27:41 gropp Exp $";
+static char vcid[] = "$Id: bcast.c,v 1.23 1994/12/15 20:00:39 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -48,16 +48,16 @@ MPI_Comm          comm;
   int        rank, size, src, dst;
   int        n, N, surfeit, N2_prev, N2_next, N_rank;
   int        participants, my_block, my_offset;
-  int        errno = MPI_SUCCESS;
+  int        mpi_errno = MPI_SUCCESS;
   int        bsize;
   int        int_n;
   int        flag;
 
   /* Check for invalid arguments */
   if ( MPIR_TEST_COMM(comm,comm) ||
-   ( (root            <  0)          && (errno = MPI_ERR_ROOT) )  || 
-   ( ((count > 0) && (buffer == (void *)0)) && (errno = MPI_ERR_BUFFER) ) )
-    return MPIR_ERROR( comm, errno, "Error in MPI_BCAST" );
+   ( (root            <  0)          && (mpi_errno = MPI_ERR_ROOT) )  || 
+   ( ((count > 0) && (buffer == (void *)0)) && (mpi_errno = MPI_ERR_BUFFER) ) )
+    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_BCAST" );
 
   /* Check for Intra-communicator */
   MPI_Comm_test_inter ( comm, &flag );
@@ -65,14 +65,17 @@ MPI_Comm          comm;
     return MPIR_ERROR(comm, MPI_ERR_COMM,
                       "Inter-communicator invalid in MPI_BCAST");
 
+  /* See the overview in Collection Operations for why this is ok */
+  if (count == 0) return MPI_SUCCESS;
+
   /* Is root within the comm and more than 1 processes involved? */
   MPI_Comm_size ( comm, &size );
-  if ( (root >= size)  && (errno = MPI_ERR_ROOT) )
-    return MPIR_ERROR( comm, errno, "Invalid root in MPI_BCAST" );
+  if ( (root >= size)  && (mpi_errno = MPI_ERR_ROOT) )
+    return MPIR_ERROR( comm, mpi_errno, "Invalid root in MPI_BCAST" );
   
   /* If there is only one process */
   if (size == 1)
-	return (errno);
+	return (mpi_errno);
 
   /* Get my rank and switch communicators to the hidden collective */
   MPI_Comm_rank ( comm, &rank );
@@ -177,5 +180,5 @@ MPI_Comm          comm;
   /* Unlock for collective operation */
   MPID_THREAD_UNLOCK(comm->ADIctx,comm);
 
-  return (errno);
+  return (mpi_errno);
 }

@@ -256,9 +256,9 @@ static P4VOID usage()
 static P4VOID print_version_info()
 {
         printf("\n");
-        printf("p4 version number:  %s\n",P4_PATCHLEVEL);
-        printf("p4  date compiled:  %s\n",P4_COMPILED_TIME);
-        printf("p4   machine type:  %s\n",P4_MACHINE_TYPE);
+        printf("p4  version number: %s\n",P4_PATCHLEVEL);
+        printf("p4 date configured: %s\n",P4_CONFIGURED_TIME);
+        printf("p4    machine type: %s\n",P4_MACHINE_TYPE);
 #ifdef P4_DPRINTFL
         printf("   P4_DPRINTFL is:  on\n");
 #else
@@ -273,6 +273,11 @@ static P4VOID print_version_info()
         printf("      SYSV IPC is:  on\n");
 #else
         printf("      SYSV IPC is:  off\n");
+#endif
+#if defined(VENDOR_IPC)
+        printf("      VENDOR IPC is:  on\n");
+#else
+        printf("      VENDOR IPC is:  off\n");
 #endif
         printf("\n");
 }

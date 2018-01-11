@@ -34,6 +34,8 @@ typedef struct logData_ {
   int np;			/* number of processors */
 /*  pctDone *pct_done; */
   int loaded;			/* whether the logfile has been loaded yet */
+  int is_reading;
+  int halt_reading;
 } logData;
 
 
@@ -48,9 +50,19 @@ int LogFormatError ARGS(( char *filename, int line ));
   /* Tell the user about a log format error--possibly the wrong
      log format. */
 
+logData *Log_OpenData();
 double Log_StartTime ARGS(( logData * ));
 double Log_EndTime ARGS(( logData * ));
 int Log_Np ARGS(( logData * ));
 int Log_Loaded ARGS(( logData * ));
-
+  /* mark the logfile reading to be halted; don't access anything
+     more, it might have been free()d */
+int Log_Halt ARGS(( logData* ));
+  /* Has the logfile reading been halted? */
+int Log_Halted ARGS(( logData* ));
+int Log_CloseData ARGS(( logData* ));
 #endif
+
+
+
+

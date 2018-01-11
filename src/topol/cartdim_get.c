@@ -1,5 +1,5 @@
 /*
- *  $Id: cartdim_get.c,v 1.5 1994/08/10 18:52:29 doss Exp $
+ *  $Id: cartdim_get.c,v 1.6 1994/12/15 17:36:14 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -23,7 +23,7 @@ int MPI_Cartdim_get ( comm, ndims )
 MPI_Comm  comm;
 int      *ndims;
 {
-  int errno, flag;
+  int mpi_errno, flag;
   MPIR_TOPOLOGY *topo;
 
   /* Check for valid arguments */

@@ -7,24 +7,24 @@
 #
 ##### User configurable options #####
 
-ARCH        = sun4
-COMM        = ch_p4
-DEVICE      = ch_p4
+ARCH        = rs6000
+COMM        = ch_eui
+DEVICE      = ch_eui
 BOPT        = 
-MPIR_HOME   = /home/gropp/mpich
-INCLUDE_DIR =  -Impid/ch_p4 -Iinclude
-CC          = cc
-AR          = ar clr
+MPIR_HOME   = /home/MPI/mpich
+INCLUDE_DIR =  -Impid/ch_eui -Iinclude
+CC          = mpcc
+AR          = ar crl
 RANLIB      = ranlib
-OPTFLAGS    = -g
+OPTFLAGS    = -O
 
 ### End User configurable options ###
 
 ALL: default
 
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
-CFLAGS   =   -DMPE_USE_EXTENSIONS=1 -DHAS_XDR=1 -DHAVE_STDLIB_H=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
-		-DMPID_DEVICE_CODE  -DMPID_PKT_VAR_SIZE
+CFLAGS   =  -DFORTRANNOUNDERSCORE  -D_ALL_SOURCE=1 -DHAVE_STDLIB_H=1 -DHAVE_SYSTEM=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
+		-DMPID_DEVICE_CODE  -DMPID_LIMITED_BUFFERS -DMPID_DEBUG_NONE -DMPID_STAT_NONE
 SOURCE   = euievent.c euirecv.c euisend.c euiinit.c euiprobe.c euisync.c
 SOURCEC  = $(SOURCE)
 SOURCEF  =

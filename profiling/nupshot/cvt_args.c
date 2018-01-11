@@ -91,6 +91,8 @@ va_dcl
 
     /* if there were more arguments left to convert, complain */
   if (*readPt) {
+fprintf( stderr, "Not enough arguments for procedure.  Syntax: %s.\n",
+	 command );
     Tcl_AppendResult( interp, "Not enough arguments for procedure.  ",
 		      "Syntax: ", command, (char*)0 );
     va_end( args );
@@ -105,7 +107,8 @@ va_dcl
     char numStr[20];
     va_end( args );
     sprintf( numStr, "%d", argNum+1 );
-    Tcl_AppendResult( interp, "Failed to convert arg ", numStr, "to a",
+    Tcl_AppendResult( interp, "Failed to convert arg ", numStr, " (",
+		      argv[argNum], ") to a",
 		      (*readPt=='d') ? "n integer" :
 		      (*readPt=='f') ? " double" : " string",
 		      ".  Syntax: ", command, (char *)0 );

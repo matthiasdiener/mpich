@@ -3,6 +3,7 @@
  *
  * Written by:  Arun Nanda    (07/17/91)
  * Modified by R. Butler
+ * High-resolution clock added by Rusty Lusk
  */
 
 #include "usc_sys.h"
@@ -78,6 +79,7 @@ VOID usc_init()
 
 
 #if defined(SUN) || defined(HP) || defined(DEC5000) || \
+    defined(SUN_SOLARIS) || \
     defined(BALANCE) || \
     defined(RS6000)  ||  defined(IBM3090) || \
     defined(NEXT) || defined(TITAN) || defined(GP_1000) || \
@@ -172,6 +174,7 @@ usc_time_t usc_MD_clock()
 
 
 #if defined(SUN) || defined(HP) || \
+    defined(SUN_SOLARIS) || \
     defined(BALANCE) || \
     defined(RS6000) || defined(IBM3090) || \
     defined(NEXT) || defined(TITAN) || defined(TC1000) || \

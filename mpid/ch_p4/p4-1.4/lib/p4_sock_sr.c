@@ -14,7 +14,12 @@ int type, from, to, len, data_type, ack_req;
     xdrproc_t xdr_proc;
     char *xdr_buff;
     int xdr_elsize, els_per_buf, xdr_numels;
-    int xdr_len, xdr_len1, len_bytes;
+    int xdr_len1, len_bytes;
+#if defined(SUN_SOLARIS)
+    u_int xdr_len;
+#else
+    int xdr_len;
+#endif
 
     p4_dprintfl(20, "sending msg of type %d from %d to %d via xdr\n",
 		type,from,to);
@@ -316,7 +321,12 @@ struct p4_msg *rmsg;
     int i, n;
     int msg_len = 0, nbytes_read = 0;
     int xdr_elsize, els_per_buf, xdr_numels;
-    int xdr_len, xdr_len1, len_bytes;
+    int xdr_len1, len_bytes;
+#if defined(SUN_SOLARIS)
+    u_int xdr_len;
+#else
+    int xdr_len;
+#endif
 
     msg = (char *) &(rmsg->msg);
 

@@ -6,6 +6,11 @@
 
 /*@
     MPE_Ptime - Returns process time stamp
+
+    Notes:
+    This routine returns the CPU time charged to the process only if the
+    PETSC package is available (it uses the PETSc routine SYGetCPUTime).
+    Otherwise, it returns MPI_Wtime (wall-clock time).
 @*/
 double MPE_Ptime()
 {

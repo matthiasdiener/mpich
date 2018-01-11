@@ -280,6 +280,7 @@ struct p4_procgroup *pg;
     }
 #   else
 #if defined(SUN_SOLARIS)
+/*****  Shyam code, removed by RL
     { processorid_t proc = 0;
       if(p_online(proc,P_STATUS) != P_ONLINE)
 	printf("Could not bind parent to processor 0\n");
@@ -290,6 +291,7 @@ struct p4_procgroup *pg;
 		 proc);
 	}
     }
+*****/
 #endif
     for (slave_idx = 1; slave_idx <= nslaves; slave_idx++)
     {
@@ -323,6 +325,7 @@ struct p4_procgroup *pg;
 
 	    p4_local->my_id = p4_get_my_id_from_proc();
 #if defined(SUN_SOLARIS)
+/*****  Shyam code, removed by RL
 	    {
 	      int no_processors;
 	      processorid_t bindproc;
@@ -330,17 +333,18 @@ struct p4_procgroup *pg;
 	      bindproc = (p4_local->my_id) % no_processors;
 	      if(p_online(bindproc,P_STATUS) != P_ONLINE)
 		 {
-		   printf("could not bind slave %d to processor %d",p4_local->my_id,
-			bindproc);
+		   printf("could not bind slave %d to processor %d",
+		            p4_local->my_id, bindproc);
 		 }
 	      else
 		 {
-		   printf("bound slave %d to processor %d\n",
+		   printf("Bound slave %d to processor %d\n",
 			  p4_local->my_id,bindproc);
 		   processor_bind(P_PID,P_MYID,bindproc, &bindproc);
                    printf("previous binding was %d\n",bindproc);
 		 }
 	    }
+*****/
 #endif
 	    setup_conntab();
 	    sprintf(whoami_p4, "p%d_%d", p4_local->my_id, getpid());

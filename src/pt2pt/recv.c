@@ -1,5 +1,5 @@
 /*
- *  $Id: recv.c,v 1.22 1994/12/11 16:47:53 gropp Exp $
+ *  $Id: recv.c,v 1.24 1995/01/03 19:43:25 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: recv.c,v 1.22 1994/12/11 16:47:53 gropp Exp $";
+static char vcid[] = "$Id: recv.c,v 1.24 1995/01/03 19:43:25 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -35,7 +35,7 @@ MPI_Status       *status;
 {
     MPI_Request request;
     MPIR_RHANDLE rhandle;
-    int         errno, is_available;
+    int         mpi_errno, is_available;
 
     /* 
        Because this is a very common routine, we show how it can be
@@ -49,30 +49,27 @@ MPI_Status       *status;
 	    MPIR_TEST_DATATYPE(comm,datatype) || 
 	    MPIR_TEST_RECV_TAG(comm,tag) ||
 	    MPIR_TEST_RECV_RANK(comm,source)) 
-	    return MPIR_ERROR(comm, errno, "Error in MPI_RECV" );
+	    return MPIR_ERROR(comm, mpi_errno, "Error in MPI_RECV" );
 
         request = (MPI_Request)&rhandle;
-	request->type	    = MPIR_RECV;
-	if (source == MPI_ANY_SOURCE)
-	    rhandle.source  = source;
-	else
-	    rhandle.source  = comm->group->lrank_to_grank[source];
-	rhandle.tag	    = tag;
-	rhandle.contextid   = comm->recv_context;
-	rhandle.comm        = comm;
-	rhandle.datatype    = datatype;
+	request->type	   = MPIR_RECV;
+	rhandle.source	   = source;
+	rhandle.tag	   = tag;
+	rhandle.contextid  = comm->recv_context;
+	rhandle.comm	   = comm;
+	rhandle.datatype   = datatype;
 	datatype->ref_count ++;
-	rhandle.bufadd	    = buf;
-	rhandle.count	    = count;
-	rhandle.completed   = MPIR_NO;
-	rhandle.persistent  = 0;
+	rhandle.bufadd	   = buf;
+	rhandle.count	   = count;
+	rhandle.completed  = MPIR_NO;
+	rhandle.persistent = 0;
 #ifdef MPID_HAS_HETERO
-	rhandle.msgrep      = MPIR_MSGREP_UNKNOWN;
+	rhandle.msgrep     = MPIR_MSGREP_UNKNOWN;
 #endif
 	MPID_Alloc_recv_handle(rhandle.comm->ADIctx, &(rhandle.dev_rhandle));
 
-	if (errno = MPIR_Receive_setup(&request)) 
-	    return MPIR_ERROR( comm, errno, "Error in MPI_RECV" );
+	if (mpi_errno = MPIR_Receive_setup(&request)) 
+	    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_RECV" );
 
 	MPID_Blocking_recv( rhandle.comm->ADIctx, &rhandle );
 
@@ -82,7 +79,7 @@ MPI_Status       *status;
 
 #ifdef MPID_RETURN_PACKED
 	if (rhandle.bufpos) 
-	    errno = MPIR_UnPackMessage( buf, count, datatype, 
+	    mpi_errno = MPIR_UnPackMessage( buf, count, datatype, 
 				        source, request );
 #endif
 	rhandle.datatype->ref_count--;

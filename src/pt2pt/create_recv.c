@@ -1,5 +1,5 @@
 /*
- *  $Id: create_recv.c,v 1.9 1994/09/30 22:11:17 gropp Exp $
+ *  $Id: create_recv.c,v 1.11 1995/01/03 19:43:04 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -31,13 +31,13 @@ int          source;
 int          tag;
 MPI_Comm     comm;
 {
-    int         errno;
+    int         mpi_errno;
     MPI_Request handleptr;
 
     if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,count) ||
 	MPIR_TEST_DATATYPE(comm,datatype) || MPIR_TEST_RECV_TAG(comm,tag) ||
 	MPIR_TEST_RECV_RANK(comm,source)) 
-	return MPIR_ERROR(comm, errno, "Error in MPI_RECV_INIT" );
+	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_RECV_INIT" );
 
     /* See MPI_TYPE_FREE.  A free can not happen while the datatype may
        be in use.  Thus, a nonblocking operation increments the
@@ -48,10 +48,7 @@ MPI_Comm     comm;
     handleptr			   = *request;
     MPIR_SET_COOKIE(&handleptr->rhandle,MPIR_REQUEST_COOKIE)
     handleptr->type		   = MPIR_RECV;
-    if (source == MPI_ANY_SOURCE)
-	handleptr->rhandle.source  = source;
-    else
-	handleptr->rhandle.source  = comm->group->lrank_to_grank[source];
+    handleptr->rhandle.source      = source;
     handleptr->rhandle.tag	   = tag;
     handleptr->rhandle.contextid   = comm->recv_context;
     handleptr->rhandle.datatype	   = datatype;

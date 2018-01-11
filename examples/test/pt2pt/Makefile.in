@@ -39,7 +39,7 @@ FLIBS = $(FLIB_PATH) $(LIB_LIST)
 LIBSPP = $(MPIPPLIB) $(LIBS)
 EXECS = overtake sendrecv isndrcv third fourth fifth sixth hvectest \
 	hvectest2 probe probe1 testtest1 testtypes ssendtest typetest\
-	secondf dtypelife issendtest
+	secondf dtypelife issendtest relrank
 
 default: $(EXECS)
 
@@ -54,6 +54,9 @@ fortran_tests: secondf allpair
 
 overtake: overtake.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o overtake overtake.o test.o $(LIBS)
+
+relrank: relrank.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o relrank relrank.o test.o $(LIBS)
 
 sendrecv: sendrecv.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o sendrecv sendrecv.o test.o $(LIBS)
@@ -107,15 +110,13 @@ allpair: allpair.o mpif.h
 
 mpif.h: $(MPIR_HOME)/include/mpif.h
 	if test \! -f mpif.h ; then \
-	    ln -s $(MPIR_HOME)/include/mpif.h . \
+	    ln -s $(MPIR_HOME)/include/mpif.h . ; \
 	fi
 
 #
 # Make sure that we remove executables for specific architectures
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) pt2pt.out pt2pt.out.orig secondf \
-		allpair sendrecv-[012].out isndrcv-[012].out typetest-?.out \
-		overtake-?.out ssendtest-?.out core
+	/bin/rm -f *.o *~ PI* $(EXECS) *.out secondf allpair core
 	for file in $(EXECS) Makefile ; do \
 	   /bin/rm -f $$file.sun4 $$file.alpha $$file.IRIX $$file.freebsd ;\
 	done

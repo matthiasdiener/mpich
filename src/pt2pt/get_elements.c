@@ -1,12 +1,12 @@
 /*
- *  $Id: get_elements.c,v 1.6 1994/10/24 22:02:45 gropp Exp $
+ *  $Id: get_elements.c,v 1.7 1994/12/15 17:10:32 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: get_elements.c,v 1.6 1994/10/24 22:02:45 gropp Exp $";
+static char vcid[] = "$Id: get_elements.c,v 1.7 1994/12/15 17:10:32 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -29,10 +29,10 @@ MPI_Status    *status;
 MPI_Datatype  datatype;
 int          *elements;
 {
-  int count, errno;
+  int count, mpi_errno;
 
   if (MPIR_TEST_DATATYPE(MPI_COMM_WORLD,datatype))
-	return MPIR_ERROR( MPI_COMM_WORLD, errno, 
+	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
 			   "Error in MPI_GET_ELEMENTS" );
   
   /* Find the number of elements */

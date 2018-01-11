@@ -1,187 +1,194 @@
-
+#!/usr/local/tcl/bin/wish -f
 #
-#  Nupshot - a new Upshot (pre-release); faster, less features
+# Upshot - parallel program performance analysis tool
 #
-#  No, this is not a final product.  Nupshot is the current state of
-#  development in a new Upshot.  It is at a useable point, and is much
-#  faster, so we thought some people might want to use it.  All the
-#  features of the all-Tcl Upshot and more will be added.
-#
-#  Ed Karrels
-#  Argonne National Laboratory
+# Ed Karrels
+# Argonne National Laboratory
+# karrels@mcs.anl.gov
 #
 
+set defaultFile ~/.upshotrc
 
-set tcl_precision 17
 
-proc ZoomIn {logfile timeline} {
-   ZoomCenter $logfile $timeline 2
-}
-proc ZoomOut {logfile timeline} {
-   ZoomCenter $logfile $timeline .5
-}
+proc SetGlobalVars {} {
+   global tcl_precision programName progName
 
-proc ZoomCenter {logfile timeline factor} {
-   # puts "Canvas is [$timeline canvas]"
-   global width
-
-   set width [expr $width * $factor]
-   set left_coord [$timeline canvasx 0]
-   set right_coord [$timeline canvasx [winfo width $timeline]]
-
-   set center_coord [expr ($right_coord + $left_coord)/2.0]
-   set center_time [$timeline pix2time $center_coord]
-
-   $timeline zoom_time $center_time $factor
-   # puts "zooming in on $center_time"
+   set programName "Nupshot"
+   set progName nupshot
+   set tcl_precision 17
 }
 
 
-proc SetScrolls {scrollbars a b c d} {
-   foreach scrollbar $scrollbars {
-      $scrollbar set $a $b $c $d
-   }
-   # puts "scroll $a $b $c $d"
+proc SetDefaults {} {
+   option add *Entry.Relief sunken
+   option add *Scrollbar.Relief sunken
+   option add *Menubutton.Relief raised
+   option add *Canvas.Font [option get . font Font] 30
 }
 
+proc SetColors {} {
+   global color bw
 
+   # if no one else cares, set #colors automatically
+   if {![info exists bw]} {set bw [expr \
+	 "[winfo depth .] < 4"]}
 
-set bw [expr [winfo depth .] == 1]
-if !$bw {
-   . config -bg SteelBlue
-   option add *foreground Snow
-   option add *background SteelBlue
-   option add *activeForeground snow
-   option add *activeBackground steelblue2
-}
+   set color(bw_fg)        [GetDefault bw_fg black]
+   set color(bw_bg)        [GetDefault bw_bg white]
+   set color(bw_activefg)  [GetDefault bw_activefg white]
+   set color(bw_activebg)  [GetDefault bw_activebg black]
+   set color(bw_arrowfg)   [GetDefault bw_arrowfg black]
+   set color(bw_menubar)   [GetDefault bw_menubar white]
+   set color(bw_disp_bg)   [GetDefault bw_disp_bg white]
+   set color(bw_timelinefg) [GetDefault bw_timelinefg black]
 
-proc PrintUsage {} {
-   puts "\n   nupshot <filename>\n"
-}
+   set color(color_fg)        [GetDefault color_fg white]
+   set color(color_bg)        [GetDefault color_bg SteelBlue]
+   set color(color_activefg)  [GetDefault color_activefg white]
+   set color(color_activebg)  [GetDefault color_activebg SteelBlue2]
+   set color(color_arrowfg)   [GetDefault color_arrowfg black]
+   set color(color_menubar)   [GetDefault color_menubar SteelBlue4]
+   set color(color_disp_bg) [GetDefault bw_disp_bg black]
+   set color(color_timelinefg) [GetDefault bw_timelinefg red]
 
+   if {$bw} {
+      set color(fg)         $color(bw_fg)
+      set color(bg)         $color(bw_bg)
+      set color(activefg)   $color(bw_activefg)
+      set color(activebg)   $color(bw_activebg)
+      set color(arrowfg)    $color(bw_arrowfg)
+      set color(menubar)    $color(bw_menubar)
+      set color(disp_bg)    $color(bw_disp_bg)
+      set color(timelinefg) $color(bw_timelinefg)
 
-if {$argv==""} {
-   puts "Please specify logfile filename:"
-   PrintUsage
-   exit
-}
+      option add *foreground $color(fg) 30
+      option add *background $color(bg) 30
+      option add *selectForeground white 30
+      option add *selectBackground black 30
+      option add *activeForeground white 30
+      option add *activeBackground $color(activebg) 30
 
-if ![file readable $argv] {
-   puts "Could not open \"$argv\"."
-   PrintUsage
-   exit
-}
-
-
-proc SetTimeMark {tl mark} {
-   global time_mark
-
-   # puts "mark: $mark, canvasx: [$tl canvasx $mark], time:\
-	 [$tl pix2time [$tl canvasx $mark]]"
-
-   set time_mark "time: [format %.6f [$tl pix2time [$tl canvasx $mark]]] sec."
-}
-
-proc CheckStateInfoPost {tl log x y screen_x screen_y} {
-   global tl_post
-   # puts "Clicked at $x $y"
-   set tl_post($tl) "0"
-   set item [$tl currentitem]
-   if {$item == ""} return
-
-   # puts $item
-   if {[lindex $item 0] == "state" } {
-      # puts [logfile $log state [lindex $item 1]]
-      # puts "item = $item, index = [lindex $item 1]"
-      set stateInfo [logfile $log get_state [lindex $item 1]]
-         # info: type, proc, startTime, endTime, parent, firstChild,
-         # overlapLevel
-      set stateName [lindex [logfile $log get_statedef \
-	    [lindex $stateInfo 0]] 0]
-         # def: name, color, bitmap
-      set startTime [format "%.6f" [lindex $stateInfo 2]]
-      set endTime [format "%.6f" [lindex $stateInfo 3]]
-      set len [format "%.6f" [expr $endTime - $startTime]]
-      PostStateInfo $tl $x $y $stateName $startTime $endTime $len \
-	    $screen_x $screen_y
    } else {
-      puts "Wierd. $tag is not a state."
+      set color(fg)         $color(color_fg)
+      set color(bg)         $color(color_bg)
+      set color(activefg)   $color(color_activefg)
+      set color(activebg)   $color(color_activebg)
+      set color(arrowfg)    $color(color_arrowfg)
+      set color(menubar)    $color(color_menubar)
+      set color(disp_bg)    $color(color_disp_bg)
+      set color(timelinefg) $color(color_timelinefg)
+
+      # Why doesn't GhostView like 'White' ?
+
+      option add *foreground $color(fg) 30
+      option add *background $color(bg) 30
+      option add *activeForeground $color(activefg) 30
+      option add *activeBackground $color(activebg) 30
    }
-}
- 
-proc PostStateInfo {tl x y name start end len screen_x screen_y} {
-   global tl_post
-   toplevel $tl.infowin
-   label $tl.infowin.l1 \
-	 -text "State: $name, from $start to $end" \
-	 -borderwidth 3 -relief raised
-   label $tl.infowin.l2 \
-	 -text "Length: $len sec."
-   pack $tl.infowin.l1 $tl.infowin.l2
-   # puts [wm overrideredirect $tl.infowin 1]
-   wm transient $tl.infowin $tl
-   set x_cor [expr $screen_x - [winfo reqwidth $tl.infowin.l1] / 2 + \
-	 [winfo vrootx $tl]]
-   set y_cor [expr $screen_y - [winfo reqheight $tl.infowin.l1] - \
-	 [winfo reqheight $tl.infowin.l2] + \
-	 [winfo vrooty $tl] - 10]
-      # move it up by, oh, 10 pixels to account for a border
-   wm geometry $tl.infowin +$x_cor+$y_cor
-   set tl_post($tl) 1
+
 }
 
 
-proc CloseIt_Note {tl} {
-   global tl_post
-   if {[info exists tl_post($tl)]} {
-      if {$tl_post($tl)} {
-	 destroy $tl.infowin
+proc ProcessCmdLineArgs {} {
+   global argv bw logFileName
+
+   foreach parameter $argv {
+      if {$parameter == "-bw" } {
+	 #black and white screen
+	 set bw 1
+      } elseif {$parameter == "-c" } {
+	 #color screen
+	 set bw 0
+      } else {
+	 if [file exists $parameter] {
+	    set logFileName $parameter
+	 }
       }
    }
-   set tl_post($tl) 0
 }
 
 
 
 
-# wm minsize . 50 50
-set width 500
-set l [logfile open $argv alog]
-timeline .t $l -width $width -height [expr [logfile $l np]*25] \
-      -bg black -xscrollcommand {SetScrolls {.s .tlbl}}
+proc SigDigits {num start end ninterest {factor 1}} {
+   # ninterest is the number of interesting digits to leave
+   if {!($end-$start)} {
+      set ndigits 0
+   } else {
+      set ndigits [expr int($ninterest-log10($end*$factor-$start*$factor))]
+   }
+   if {$ndigits<0} {set ndigits 0}
+   return [format [format "%%.%df" $ndigits] [expr $num*$factor]]
+}
 
 
-time_lbl .tlbl $l
 
-scrollbar .s -orient h -command {.t xview} -relief sunken
-
-set time_mark "time:"
-label .time_mark -textvariable time_mark
-bind .t.c <Motion> "SetTimeMark .t %x"
+proc LogFormatError {filename line lineNo} {
+   puts "Logfile format error in line $lineNo of $filename:\n$line\n\n"
+}
 
 
-button .zoomin -text "Zoom in" -command "ZoomIn $l .t"
-button .zoomout -text "Zoom out" -command "ZoomOut $l .t"
-button .printstates -text "Print states" -command ".t printstates"
-button .close -text Close -command exit
+proc GuessFormat {filename} {
 
-entry .xview_point -textvariable xview_point -relief sunken
-button .xview -text "Xview" -command {.t xview $xview_point}
-set xview_point 0
-# pack .xview .xview_point -side bottom
-
-pack .close -pady 10 -side bottom
-pack .zoomout .zoomin .time_mark -side bottom
-pack .s .tlbl -fill x -side bottom
-pack .t -fill both -expand 1 -side top
-
-bind .t.c <1> "CheckStateInfoPost .t $l %x %y %X %Y"
-bind .t.c <ButtonRelease-1> "CloseIt_Note .t"
+   if [regexp {.log$} $filename] {
+      return alog
+   } elseif [regexp {.trf$} $filename] {
+      return picl
+   } else {
+      return [GetDefault logfileformat alog]
+   }
+}
 
 
-wm minsize . [winfo reqwidth .zoomout] [expr [winfo reqheight .zoomin] + \
-      [winfo reqheight .zoomout] + [winfo reqheight .printstates] + \
-      [winfo reqheight .close]]
+# progdir should have been defined by nupshot.c
 
-logfile $l load
+source $progdir/common.tcl
+source $progdir/entries.tcl
+source $progdir/fileselect.tcl
+source $progdir/zoom.tcl
+source $progdir/mainwin.tcl
+source $progdir/timelines.tcl
+# source $progdir/mtn.tcl
+source $progdir/legend.tcl
+source $progdir/procnums.tcl
+source $progdir/hist.tcl
+source $progdir/print.tcl
+source $progdir/print_mainwin.tcl
+source $progdir/print_hist.tcl
+source $progdir/copy_canvas.tcl
+source $progdir/trim_canvas.tcl
+
+if 0 {
+source optionswin.tcl
+source timelinewin.tcl
+source lists.tcl
+source readaloglog.tcl
+source readpicllog.tcl
+source gatherevt.tcl
+source scales.tcl
+source pctdone.tcl
+}
+
+
+SetDefaults
+SetGlobalVars
+ProcessCmdLineArgs
+SetColors
+EntryBindings
+
+
+   # Creating windows within the main window is always a pain because
+   # the main window is just ".", so you can't add windows named ".x",
+   # ".y" to it, unlike any other window.  So, how's this for a fix:
+
+frame .f
+pack .f -expand 1 -fill both
+
+
+   # open main window
+if [info exists logFileName] {
+   NewWin .f 1 $logFileName
+} else {
+   NewWin .f 1
+}
 

@@ -6,7 +6,7 @@
  */
 
 #ifndef lint
-static char vcid[] = "$Id: initsend.c,v 1.10 1994/12/11 16:46:29 gropp Exp $";
+static char vcid[] = "$Id: initsend.c,v 1.11 1995/01/03 19:43:21 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -49,8 +49,7 @@ int           nonblocking;
     request->shandle.count        = count;
 
     request->shandle.mode         = mode;
-    request->shandle.lrank        = 
-	comm->local_group->lrank_to_grank[comm->local_group->local_rank];
+    request->shandle.lrank        = comm->local_group->local_rank;
 
     MPID_Alloc_send_handle( comm->ADIctx, &((request)->shandle.dev_shandle));
     MPID_Set_send_is_nonblocking( comm->ADIctx, 

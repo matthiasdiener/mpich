@@ -1,5 +1,5 @@
 /*
- *  $Id: commreq_free.c,v 1.12 1994/12/11 16:45:31 gropp Exp $
+ *  $Id: commreq_free.c,v 1.13 1994/12/15 16:49:02 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -17,10 +17,11 @@ Input Parameter:
 int MPI_Request_free( request )
 MPI_Request *request;
 {
-    int errno = MPI_SUCCESS;
+    int mpi_errno = MPI_SUCCESS;
 
     if (MPIR_TEST_ARG(request) || MPIR_TEST_REQUEST(MPI_COMM_WORLD,*request))
-	return MPIR_ERROR(MPI_COMM_WORLD,errno,"Error in MPI_REQUEST_FREE" );
+	return MPIR_ERROR(MPI_COMM_WORLD,mpi_errno,
+			  "Error in MPI_REQUEST_FREE" );
 
     if ((*request)->chandle.persistent) {
 	if (--(*request)->chandle.datatype->ref_count <= 1) {
@@ -48,10 +49,10 @@ MPI_Request *request;
 	MPIR_SBfree( MPIR_rhandles, *request );
     }
     else
-	errno = MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_INTERN, 
+	mpi_errno = MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_INTERN, 
 			    "MPI_Request_free:  bad request type" );
 
     *request = MPI_REQUEST_NULL;
-    return errno;
+    return mpi_errno;
 }
 

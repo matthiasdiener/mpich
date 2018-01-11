@@ -1,4 +1,4 @@
-/* $Id: tools.h,v 1.6 1994/10/15 18:11:12 gropp Exp $ */
+/* $Id: tools.h,v 1.7 1994/12/31 16:28:12 gropp Exp $ */
 
 /*
     This file contains some basic definitions that the tools routines
@@ -25,6 +25,8 @@ typedef char *caddr_t;
  */
 #include "petsccfg.h"
 
+/* These should use the MPI definitions instead... */
+#ifdef FOO
 /*
    Definitions used for the Fortran interface.
    FORTRANCAPS:       Names are uppercase, no trailing underscore
@@ -36,6 +38,7 @@ typedef char *caddr_t;
 #elif !(defined(rs6000) || defined(MPI_rs6000)) && !(defined(NeXT) || defined(MPI_NeXT)) && \
       !(defined(HPUX) || defined(MPI_HPUX))
 #define FORTRANUNDERSCORE
+#endif
 #endif
 
 /*

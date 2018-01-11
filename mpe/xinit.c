@@ -1,5 +1,5 @@
 #ifndef lint
-static char vcid[] = "$Id: xinit.c,v 1.4 1994/07/25 20:38:34 karrels Exp $";
+static char vcid[] = "$Id: xinit.c,v 1.5 1994/12/26 17:16:30 gropp Exp $";
 #endif
 
 #include <stdio.h>
@@ -605,8 +605,13 @@ char     *fname;
 {
 char cmdbuf[1024];
 
+#ifdef HAVE_SYSTEM
 sprintf( cmdbuf, "xwd -id %d > %s\n", XBWin->win, fname );
 system( cmdbuf );
+#else
+fprintf( stderr, "This machine does not support the system call\n\
+which is needed by XBCaptureWindowToFile\n" );
+#endif
 }
 
 

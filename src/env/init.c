@@ -1,5 +1,5 @@
 /*
- *  $Id: init.c,v 1.64 1994/12/11 16:52:02 gropp Exp $
+ *  $Id: init.c,v 1.66 1995/01/03 19:44:03 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: init.c,v 1.64 1994/12/11 16:52:02 gropp Exp $";
+static char vcid[] = "$Id: init.c,v 1.66 1995/01/03 19:44:03 gropp Exp $";
 #endif /* lint */
 
 /* 
@@ -137,9 +137,9 @@ MPI_Datatype MPIR_2double_dte;
 MPI_Datatype MPIR_2complex_dte;
 MPI_Datatype MPIR_2dcomplex_dte;
 
-/* Global communicators */
-MPI_Comm MPI_COMM_SELF, MPI_COMM_WORLD;
-MPI_Group MPI_GROUP_EMPTY;
+/* Global communicators.  Initialize as null in case we fail during startup */
+MPI_Comm MPI_COMM_SELF = 0, MPI_COMM_WORLD = 0;
+MPI_Group MPI_GROUP_EMPTY = 0;
 
 /* Global MPIR process id (from device) */
 int MPIR_tid;
@@ -764,6 +764,15 @@ char ***argv;
 		    }
 		else if (strcmp((*argv)[i],"-mpichmsg" ) == 0) {
 		    MPID_SetMsgDebugFlag( ADIctx, 1 );
+		    }
+		else if (strcmp((*argv)[i],"-mpitrace" ) == 0) {
+		    i++;
+		    if (i <*argc) {
+			MPID_Set_tracefile( (*argv)[i] );
+			}
+		    else {
+			printf( "Missing filename for -mpitrace\n" );
+			}
 		    }
 #endif
 		}

@@ -1,5 +1,5 @@
 /*
- *  $Id: waitsome.c,v 1.13 1994/10/24 22:02:59 gropp Exp $
+ *  $Id: waitsome.c,v 1.14 1994/12/15 17:21:25 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: waitsome.c,v 1.13 1994/10/24 22:02:59 gropp Exp $";
+static char vcid[] = "$Id: waitsome.c,v 1.14 1994/12/15 17:21:25 gropp Exp $";
 #endif /* lint */
 #include "mpiimpl.h"
 #include "mpisys.h"
@@ -36,7 +36,7 @@ int         incount, *outcount, array_of_indices[];
 MPI_Request array_of_requests[];
 MPI_Status  array_of_statuses[];
 {
-    int i, errno;
+    int i, mpi_errno;
     MPIR_BOOL completed;
     MPI_Request request;
     int nfound = 0;
@@ -84,7 +84,8 @@ MPI_Status  array_of_statuses[];
 		    
 #ifdef MPID_RETURN_PACKED
 		    if (request->rhandle.bufpos) 
-			errno = MPIR_UnPackMessage( request->rhandle.bufadd, 
+			mpi_errno = MPIR_UnPackMessage( 
+						   request->rhandle.bufadd, 
 						   request->rhandle.count, 
 						   request->rhandle.datatype, 
 						   request->rhandle.source,
@@ -96,8 +97,8 @@ MPI_Status  array_of_statuses[];
 				      &request->shandle );
 #if defined(MPID_PACK_IN_ADVANCE) || defined(MPID_HAS_HETERO)
 		  if (request->shandle.bufpos && 
-		      (errno = MPIR_SendBufferFree( request ))){
-		    MPIR_ERROR( MPI_COMM_NULL, errno, 
+		      (mpi_errno = MPIR_SendBufferFree( request ))){
+		    MPIR_ERROR( MPI_COMM_NULL, mpi_errno, 
 			       "Could not free allocated send buffer in MPI_WAITSOME" );
 		    }
 #endif

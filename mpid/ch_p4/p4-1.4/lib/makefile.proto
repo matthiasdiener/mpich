@@ -40,16 +40,6 @@ libp4.a:$(P) $(P4_OBJ)
 	$(AR) $@ $?
 	$(RANLIB) $@
 
-p4inmpi:$(P) $(P4_OBJ)
-	$(AR) ../../../../lib/$(MPIARCH)/ch_p4/libmpi.a $?
-	$(RANLIB) ../../../../lib/$(MPIARCH)/ch_p4/libmpi.a
-
-p4mdeplibs:
-	@echo $(MDEP_LIBS)
-
-p4mdepcflags:
-	@echo $(MDEP_CFLAGS)
-
 listener_p4:$(P) listener_p4.o $(P4_OBJ)
 	$(CC) $(CFLAGS) -o listener_p4 listener_p4.o $(LIBS)
 	/bin/mv listener_p4 ../bin

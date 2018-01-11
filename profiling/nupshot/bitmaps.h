@@ -8,9 +8,21 @@
 
 */
 
+#ifndef BITMAPS_H
+#define BITMAPS_H
+
+#include "tcl.h"
+
+
 #ifdef __STDC__
-int RegisterBitmaps( Tcl_Interp *interp );
+#define ARGS(x) x
 #else
-int RegisterBitmaps();
+#define ARGS(x) ()
 #endif
 
+int Bitmap_Register ARGS(( Tcl_Interp *interp ));
+int Bitmap_Reset();
+char *Bitmap_Get();
+
+
+#endif

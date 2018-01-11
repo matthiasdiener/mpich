@@ -10,6 +10,7 @@ sed -e '/#define DEVICE_CHAMELEON/d' \
     -e 's/"Chameleon"/"Intel NX"/g' ../chameleon/dmch.h > dmnx.h
 sed -e 's/MPID_CH/MPID_NX/g' ../chameleon/mpid_bind.h > mpid_bind.h
 sed -e 's/MPID_CH/MPID_NX/g' ../chameleon/packets.h > packets.h
+sed -e 's/MPID_CH/MPID_NX/g' ../chameleon/channel.h > channel.h
 ../chameleon/rmhetero ../chameleon/chevent.c > nxevent.c
 ../chameleon/rmhetero ../chameleon/chrecv.c  > nxrecv.c
 ../chameleon/rmhetero ../chameleon/chsend.c  > nxsend.c
@@ -19,7 +20,7 @@ sed -e 's/MPID_CH/MPID_NX/g' ../chameleon/packets.h > packets.h
 chmod ug+w *.[ch]
 /home/gropp/tools.n/bin/inlinecomm -main -quiet -nx nxinit.c
 for file in nxevent.c nxrecv.c nxsend.c nxprobe.c nxsync.c dmnx.h \
-	packets.h ; do
+	packets.h channel.h ; do
     /home/gropp/tools.n/bin/inlinecomm -quiet -nx $file
 done
 #

@@ -1,5 +1,5 @@
 /*
- *  $Id: group_rexcl.c,v 1.14 1994/09/30 22:11:46 gropp Exp $
+ *  $Id: group_rexcl.c,v 1.15 1994/12/15 16:34:13 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -37,23 +37,23 @@ int       n, ranges[][3];
   int i, j, first, last, stride;
   int np;
   MPI_Group new_group;
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
 
   /* Check for bad arguments */
   if ( MPIR_TEST_GROUP(MPI_COMM_WORLD,group) ) 
-    return MPIR_ERROR( MPI_COMM_WORLD, errno, 
+    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
 					  "Error in MPI_GROUP_RANGE_EXCL" );
 
   /* Check for a EMPTY input group */
   if ( (group == MPI_GROUP_EMPTY) ) {
     MPIR_Group_dup ( MPI_GROUP_EMPTY, newgroup );
-    return (errno);
+    return (mpi_errno);
   }
 
   /* Check for no range ranks to exclude */
   if ( n <= 0 ) {
     (void) MPIR_Group_dup ( group, newgroup );
-    return (errno);
+    return (mpi_errno);
   }
 
   /* Allocate set marking space for group if necessary */
@@ -81,11 +81,11 @@ int       n, ranges[][3];
   /* Check np to see if we have original group or if we have null group */
   if (np == 0) {
     MPIR_Group_dup ( MPI_GROUP_EMPTY, newgroup );
-    return (errno);
+    return (mpi_errno);
   }
   if (np == group->np) {
     (void) MPIR_Group_dup ( group, newgroup );
-    return (errno);
+    return (mpi_errno);
   }
 
   /* Create the new group */
@@ -117,6 +117,6 @@ int       n, ranges[][3];
   MPIR_Powers_of_2 ( new_group->np, &(new_group->N2_next), 
 		     &(new_group->N2_prev) );
 
-  return (errno);
+  return (mpi_errno);
 }
 

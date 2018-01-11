@@ -1,17 +1,21 @@
+#if !defined(HAVE_STDLIB_H)
 #include <stdlib.h>
+#else
+#if HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+#endif
 #include "log_widget.h"
-/*
-#include "timeline_widget.h"
-*/
+#include "timelines.h"
 #include "time_lbl.h"
 #include "bitmaps.h"
+#include "proc_varargs.h"
+#include "hist.h"
 
 
-#ifndef NUPSHOT_TCL_CODE
-/* #error "Set NUPSHOT_TCL_CODE to the location of the Tcl code for Nupshot" */
-#endif
-
-
+/*
+#define NUPSHOT_SOURCE "/home/karrels/upshot/new/nupshot.tcl"
+*/
 
 
 #define DEBUG_MALLOC 0
@@ -243,7 +247,9 @@ main(argc, argv)
     logfileAppInit( interp );
     timelineAppInit( interp );
     time_lblAppInit( interp );
-    RegisterBitmaps( interp );
+    Bitmap_Register( interp );
+    Proc_VarArgsInit( interp );
+    HistAppInit( interp );
 
     /*
      * Set the geometry of the main window, if requested.
@@ -258,6 +264,12 @@ main(argc, argv)
 
 
     /*
+     * Let the script know where its buddies are.
+     */
+    Tcl_SetVar2( interp, "progdir", (char*)0, NUPSHOT_SOURCE,
+		 TCL_GLOBAL_ONLY );
+
+    /*
      * Invoke the script specified on the command line, if any.
      */
 
@@ -267,7 +279,8 @@ main(argc, argv)
 	    goto error;
 	}
     } else {
-      code = Tcl_VarEval( interp, "source ", NUPSHOT_TCL_CODE, (char*)0 );
+      code = Tcl_VarEval( interp, "source ", NUPSHOT_SOURCE,
+			  "/nupshot.tcl", (char*)0 );
       if (code != TCL_OK) {
         goto error;
       }

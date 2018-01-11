@@ -1,5 +1,5 @@
 /*
- *  $Id: group_free.c,v 1.12 1994/09/13 21:48:24 gropp Exp $
+ *  $Id: group_free.c,v 1.13 1994/12/15 16:33:00 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -22,11 +22,12 @@ On output, group is set to MPI_GROUP_NULL.
 int MPI_Group_free ( group )
 MPI_Group *group;
 {
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
 
   /* Check for bad arguments */
   if ( MPIR_TEST_ARG(group) )
-	return MPIR_ERROR( MPI_COMM_WORLD, errno, "Error in MPI_GROUP_FREE" );
+	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+			   "Error in MPI_GROUP_FREE" );
 
   /* Free null groups succeeds silently */
   if ( (*group) == MPI_GROUP_NULL )
@@ -47,5 +48,5 @@ MPI_Group *group;
      a copy of it.... */
   (*group) = MPI_GROUP_NULL;
 
-  return (errno);
+  return (mpi_errno);
 }

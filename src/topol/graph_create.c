@@ -1,5 +1,5 @@
 /*
- *  $Id: graph_create.c,v 1.11 1994/09/30 22:11:59 gropp Exp $
+ *  $Id: graph_create.c,v 1.12 1994/12/15 17:36:51 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -38,7 +38,7 @@ MPI_Comm *comm_graph;
   int range[1][3];
   MPI_Group group_old, group;
   int i, rank, num_ranks = 1;
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
   int flag, size;
   MPIR_TOPOLOGY *topo;
 
@@ -46,8 +46,8 @@ MPI_Comm *comm_graph;
   if (MPIR_TEST_COMM(comm_old,comm_old) || 
       MPIR_TEST_ARG(comm_graph) || MPIR_TEST_ARG(index) || 
       MPIR_TEST_ARG(edges) || 
-      ((nnodes     <  1)             && (errno = MPI_ERR_ARG))   )
-    return MPIR_ERROR( comm_old, errno, "Error in MPI_GRAPH_CREATE" );
+      ((nnodes     <  1)             && (mpi_errno = MPI_ERR_ARG))   )
+    return MPIR_ERROR( comm_old, mpi_errno, "Error in MPI_GRAPH_CREATE" );
 
   /* Check for Intra-communicator */
   MPI_Comm_test_inter ( comm_old, &flag );
@@ -92,5 +92,5 @@ MPI_Comm *comm_graph;
     /* cache topology information */
     MPI_Attr_put ( (*comm_graph), MPIR_TOPOLOGY_KEYVAL, (void *)topo );
   }
-  return (errno);
+  return (mpi_errno);
 }

@@ -1,77 +1,69 @@
 #ifndef _MPID_BIND
 #define _MPID_BIND
 /* Bindings for the Device routines */
-#ifdef __STDC__
-extern void MPID_CMMD_Abort( );
-extern void MPID_CMMD_Myrank( int * ), MPID_CMMD_Mysize( int * ), 
-            MPID_CMMD_End(void);
-extern void *MPID_CMMD_Init( int *, char *** );
 
-extern int MPID_CMMD_post_send( MPIR_SHANDLE * ), 
-           MPID_CMMD_post_send_sync( MPIR_SHANDLE *),
-           MPID_CMMD_complete_send( MPIR_SHANDLE *),
-           MPID_CMMD_Blocking_send( MPIR_SHANDLE *),
-           MPID_CMMD_post_recv( MPIR_RHANDLE *, int *),
-           MPID_CMMD_blocking_recv( MPIR_RHANDLE *), 
-           MPID_CMMD_complete_recv( MPIR_RHANDLE *);
-
-extern int MPID_CMMD_check_device( int ), 
-   MPID_CMMD_Iprobe( int, int, int, int *, MPI_Status * ),
-   MPID_CMMD_Probe( int, int, int, MPI_Status * );
-extern double MPID_CMMD_Wtime(void);
-extern double MPID_CMMD_Wtick(void);
-#else
-extern void MPID_CMMD_Abort();
-extern void MPID_CMMD_Myrank(), MPID_CMMD_Mysize(), MPID_CMMD_End();
-extern void *MPID_CMMD_Init();
-extern double MPID_CMMD_Wtime();
-extern double MPID_CMMD_Wtick();
+#ifdef ANSI_ARGS
+#undef ANSI_ARGS
 #endif
+#if defined(__STDC__)
+#define ANSI_ARGS(a) a
+#else
+#define ANSI_ARGS(a) ()
+#endif
+
+extern void MPID_CMMD_Abort ANSI_ARGS(( ));
+extern void MPID_CMMD_Myrank ANSI_ARGS(( int * )), 
+            MPID_CMMD_Mysize ANSI_ARGS(( int * )), 
+            MPID_CMMD_End ANSI_ARGS((void));
+extern void *MPID_CMMD_Init ANSI_ARGS(( int *, char *** ));
+
+extern int MPID_CMMD_post_send ANSI_ARGS(( MPIR_SHANDLE * )), 
+           MPID_CMMD_post_send_sync ANSI_ARGS(( MPIR_SHANDLE *)),
+           MPID_CMMD_complete_send ANSI_ARGS(( MPIR_SHANDLE *)),
+           MPID_CMMD_Blocking_send ANSI_ARGS(( MPIR_SHANDLE *)),
+           MPID_CMMD_post_recv ANSI_ARGS(( MPIR_RHANDLE *, int *)),
+           MPID_CMMD_blocking_recv ANSI_ARGS(( MPIR_RHANDLE *)), 
+           MPID_CMMD_complete_recv ANSI_ARGS(( MPIR_RHANDLE *));
+
+extern int MPID_CMMD_check_device ANSI_ARGS(( int )), 
+   MPID_CMMD_Iprobe ANSI_ARGS(( int, int, int, int *, MPI_Status * )),
+   MPID_CMMD_Probe ANSI_ARGS(( int, int, int, MPI_Status * ));
+extern double MPID_CMMD_Wtime ANSI_ARGS((void));
+extern double MPID_CMMD_Wtick ANSI_ARGS((void));
 
 #ifdef MPID_DEVICE_CODE
-#ifdef __STDC__
-extern MPID_Aint MPID_CMMD_Get_Sync_Id( MPIR_SHANDLE *, MPID_SHANDLE * );
-extern int MPID_CMMD_Lookup_SyncAck( MPID_Aint, MPIR_SHANDLE **,MPID_SHANDLE **);
-extern int MPID_SyncAck( MPID_Aint, int );
-extern void MPID_SyncReturnAck( MPID_Aint, int );
-extern void MPID_Sync_discard( MPIR_SHANDLE * );
-extern int MPID_CMMD_Copy_body_short( MPIR_RHANDLE *, MPID_PKT_T *, void * );
-extern int MPID_CMMD_Copy_body_sync_short( MPIR_RHANDLE *, MPID_PKT_T *, int );
-extern int MPID_CMMD_Copy_body_long( MPIR_RHANDLE *, MPID_PKT_T *, int );
-extern int MPID_CMMD_Copy_body_sync_long( MPIR_RHANDLE *, MPID_PKT_T *pkt, int );
-extern int MPID_CMMD_Process_unexpected( MPIR_RHANDLE *, MPIR_RHANDLE *);
-extern int MPID_CMMD_Copy_body( MPIR_RHANDLE *, MPID_PKT_T *, int);
-extern int MPID_CMMD_Copy_body_unex( MPIR_RHANDLE *, MPID_PKT_T *, int);
-extern int MPID_CMMD_Ack_Request( MPID_RHANDLE *, int, MPID_Aint );
-extern int MPID_CMMD_Complete_Rndv( MPID_RHANDLE * );
-extern int MPID_CMMD_Do_Request( int, int, MPID_Aint );
-extern void MPID_CMMD_Init_recv_code(void);
-extern void MPID_CMMD_Init_send_code(void);
-extern void MPID_PrintMsgDebug(void);
-extern void MPID_SetSyncDebugFlag( void *, int );
 
-#else
-extern MPID_Aint MPID_CMMD_Get_Sync_Id();
-extern int MPID_CMMD_Lookup_SyncAck();
-extern int MPID_SyncAck( );
-extern void MPID_SyncReturnAck( );
-extern void MPID_Sync_discard( );
-extern int MPID_CMMD_Copy_body_short();
-extern int MPID_CMMD_Copy_body_sync_short();
-extern int MPID_CMMD_Copy_body_long();
-extern int MPID_CMMD_Copy_body_sync_long( );
-extern int MPID_CMMD_Process_unexpected();
-extern int MPID_CMMD_Copy_body( );
-extern int MPID_CMMD_Copy_body_unex( );
-extern int MPID_CMMD_Ack_Request( );
-extern int MPID_CMMD_Complete_Rndv( );
-extern int MPID_CMMD_Do_Request( );
-extern void MPID_CMMD_Init_recv_code();
-extern void MPID_CMMD_Init_send_code();
-extern void MPID_PrintMsgDebug();
-extern void MPID_SetSyncDebugFlag( );
-#endif
-#endif
 
-#endif
+extern MPID_Aint MPID_CMMD_Get_Sync_Id 
+    ANSI_ARGS(( MPIR_SHANDLE *, MPID_SHANDLE * ));
+extern int MPID_CMMD_Lookup_SyncAck 
+    ANSI_ARGS(( MPID_Aint, MPIR_SHANDLE **,MPID_SHANDLE **));
+extern int MPID_SyncAck ANSI_ARGS(( MPID_Aint, int ));
+extern void MPID_SyncReturnAck ANSI_ARGS(( MPID_Aint, int ));
+extern void MPID_Sync_discard ANSI_ARGS(( MPIR_SHANDLE * ));
+extern int MPID_CMMD_Copy_body_short 
+    ANSI_ARGS(( MPIR_RHANDLE *, MPID_PKT_T *, void * ));
+extern int MPID_CMMD_Copy_body_sync_short 
+    ANSI_ARGS(( MPIR_RHANDLE *, MPID_PKT_T *, int ));
+extern int MPID_CMMD_Copy_body_long 
+    ANSI_ARGS(( MPIR_RHANDLE *, MPID_PKT_T *, int ));
+extern int MPID_CMMD_Copy_body_sync_long
+    ANSI_ARGS(( MPIR_RHANDLE *, MPID_PKT_T *pkt, int ));
+extern int MPID_CMMD_Process_unexpected 
+    ANSI_ARGS(( MPIR_RHANDLE *, MPIR_RHANDLE *));
+extern int MPID_CMMD_Copy_body 
+    ANSI_ARGS(( MPIR_RHANDLE *, MPID_PKT_T *, int));
+extern int MPID_CMMD_Copy_body_unex
+    ANSI_ARGS(( MPIR_RHANDLE *, MPID_PKT_T *, int));
+extern int MPID_CMMD_Ack_Request 
+    ANSI_ARGS(( MPID_RHANDLE *, int, MPID_Aint ));
+extern int MPID_CMMD_Complete_Rndv ANSI_ARGS(( MPID_RHANDLE * ));
+extern int MPID_CMMD_Do_Request ANSI_ARGS(( int, int, MPID_Aint ));
+extern void MPID_CMMD_Init_recv_code ANSI_ARGS((void));
+extern void MPID_CMMD_Init_send_code  ANSI_ARGS((void));
+extern void MPID_PrintMsgDebug  ANSI_ARGS((void));
+extern void MPID_SetSyncDebugFlag  ANSI_ARGS(( void *, int ));
+
+#endif /* MPID_DEVICE_CODE */
+#endif /* _MPID_BIND */
 

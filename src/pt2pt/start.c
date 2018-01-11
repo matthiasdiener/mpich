@@ -1,12 +1,12 @@
 /*
- *  $Id: start.c,v 1.15 1994/10/24 22:02:49 gropp Exp $
+ *  $Id: start.c,v 1.16 1994/12/15 16:44:55 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: start.c,v 1.15 1994/10/24 22:02:49 gropp Exp $";
+static char vcid[] = "$Id: start.c,v 1.16 1994/12/15 16:44:55 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -29,17 +29,17 @@ int MPI_Start( request )
 MPI_Request *request;
 {
     int is_available;
-    int errno = MPI_SUCCESS;
+    int mpi_errno = MPI_SUCCESS;
     MPIR_SHANDLE *shandle;
     MPIR_RHANDLE *rhandle;
 
     if (MPIR_TEST_REQUEST(MPI_COMM_WORLD,*request))
-	return MPIR_ERROR(MPI_COMM_WORLD, errno, "Error in MPI_START" );
+	return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, "Error in MPI_START" );
 
     /* See also send.c */
     if ((*request)->type == MPIR_SEND)
     {
-      if (errno = MPIR_Send_setup(request)) return errno;
+      if (mpi_errno = MPIR_Send_setup(request)) return mpi_errno;
       shandle = &(*request)->shandle;
       /* device will post the send */
       if ((*request)->shandle.mode == MPIR_MODE_SYNCHRONOUS)
@@ -56,7 +56,7 @@ MPI_Request *request;
     }
     else if ((*request)->type == MPIR_RECV)
     {
-      if (errno = MPIR_Receive_setup(request)) return errno;
+      if (mpi_errno = MPIR_Receive_setup(request)) return mpi_errno;
       /* device will handle queueing of MPIR recv handle in posted-recv 
 	 queue         
        */
@@ -66,9 +66,9 @@ MPI_Request *request;
       MPID_Post_recv( rhandle->comm->ADIctx, rhandle, &(is_available) ); 
     }
     else
-	errno = MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_INTERN,
+	mpi_errno = MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_INTERN,
 		   "Bad request type in MPI_START");
-    return errno;
+    return mpi_errno;
 }
 
 

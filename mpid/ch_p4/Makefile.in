@@ -51,8 +51,8 @@ profile_all:
 clean:
 	/bin/rm -f *~ $(MPI_OBJECTS)
 	(cd $(P4_HOME); if [ -s Makefile ] ; then $(MAKE) clean; \
-	/bin/rm -f util/defs.MD lib/p4_config.h lib/libp4.a ; fi ;)
-
+	/bin/rm -f lib/libp4.a ; fi ;)
+#	/bin/rm -f Makefile lib/p4_config.h lib/libp4.a ; fi ;)
 .c.o:
 	$(CC) $(CFLAGS) $(OPTFLAGS) $(INCLUDE_DIR) -c $*.c $(MPI_PROFILE)
 
@@ -63,10 +63,10 @@ clean:
 chlib: $(MPI_OBJECTS)
 	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $(MPI_OBJECTS)
 	$(RANLIB) ../../lib/$(ARCH)/$(COMM)/libmpi.a
+
 p4inmpi:
 	(cd $(P4_HOME); \
-	$(MAKE) p4inmpi P4ARCH=$(P4_ARCH) MPIARCH=$(ARCH); cd ..)
-
+	$(MAKE) p4inmpi MPIARCH=$(ARCH); cd ..)
 
 
 

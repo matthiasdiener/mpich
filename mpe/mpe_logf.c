@@ -34,7 +34,7 @@ extern void MPIR_RmPointer();
 #define mpe_describe_event_ mpe_describe_event__
 #define mpe_log_event_ mpe_log_event__
 #define mpe_finish_log mpe_finish_log__
-#elif !defined(FORTRANUNDERSCORE)
+#elif defined(FORTRANNOUNDERSCORE)
 #define mpe_init_log_ mpe_init_log
 #define mpe_start_log_ mpe_start_log
 #define mpe_stop_log_ mpe_stop_log

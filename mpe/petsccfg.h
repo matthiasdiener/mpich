@@ -1,12 +1,7 @@
-/* $Id: petsccfg.h,v 1.2 1994/06/29 21:28:11 karrels Exp $ */
+/* $Id: petsccfg.h,v 1.3 1994/12/19 21:02:16 gropp Exp $ */
 /* Configuration file for PETSc */
 /* The generic version is empty, except for indicating that X is not supported
    (some intel systems have X11, but many do not) */
-#if (defined(intelnx) && !defined(paragon)) || (defined(MPI_intelnx) && !defined(MPI_paragon))
-#if !defined(TOOLSNOX11)
-#define TOOLSNOX11
-#endif
-#endif
 
 #if defined(cray) || defined(MPI_cray)
 /* cc on Crays does not accept valid C programs.  The valid identifier 

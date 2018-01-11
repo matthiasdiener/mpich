@@ -1,5 +1,5 @@
 /*
- *  $Id: rsend.c,v 1.10 1994/10/24 22:02:47 gropp Exp $
+ *  $Id: rsend.c,v 1.11 1994/12/15 17:10:05 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: rsend.c,v 1.10 1994/10/24 22:02:47 gropp Exp $";
+static char vcid[] = "$Id: rsend.c,v 1.11 1994/12/15 17:10:05 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -30,7 +30,7 @@ int              count, dest, tag;
 MPI_Datatype     datatype;
 MPI_Comm         comm;
 {
-    int          errno = MPI_SUCCESS;
+    int          mpi_errno = MPI_SUCCESS;
     MPIR_SHANDLE shandle;
     MPI_Request  request;
     MPI_Status   status;
@@ -42,18 +42,18 @@ MPI_Comm         comm;
         MPIR_Send_init( buf, count, datatype, dest, tag, comm, request, 
 		        MPIR_MODE_READY, 0 );
 	/* It is only at this point that we can detect a null input buffer */
-	if (errno = MPIR_Send_setup(&request)) return errno;
+	if (mpi_errno = MPIR_Send_setup(&request)) return mpi_errno;
 	MPID_Blocking_send_ready( comm->ADIctx, &shandle );
 #if defined(MPID_PACK_IN_ADVANCE) || defined(MPID_HAS_HETERO)
 	/* If this request had to allocate a buffer to send from,
 	   free it */
-	if (shandle.bufpos && (errno = MPIR_SendBufferFree( request ))){
-	    MPIR_ERROR( comm, errno, 
+	if (shandle.bufpos && (mpi_errno = MPIR_SendBufferFree( request ))){
+	    MPIR_ERROR( comm, mpi_errno, 
 		       "Could not free allocated send buffer in MPI_RSEND" );
 	    }
 #endif
 
     }
-    return errno;
+    return mpi_errno;
 }
 

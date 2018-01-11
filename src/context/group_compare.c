@@ -1,5 +1,5 @@
 /*
- *  $Id: group_compare.c,v 1.6 1994/07/13 15:46:38 lusk Exp $
+ *  $Id: group_compare.c,v 1.7 1994/12/15 16:38:36 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -26,7 +26,7 @@ MPI_Group  group1;
 MPI_Group  group2;
 int       *result;
 {
-  int       errno = MPI_SUCCESS;
+  int       mpi_errno = MPI_SUCCESS;
   int       size1, size2;
   MPI_Group group_int;
   int       size_int, i;
@@ -34,14 +34,15 @@ int       *result;
   if ( MPIR_TEST_GROUP(MPI_COMM_WORLD,group1) ||
        MPIR_TEST_GROUP(MPI_COMM_WORLD,group2) ||
        MPIR_TEST_ARG(result))
-    return MPIR_ERROR( MPI_COMM_WORLD, errno, "Error in MPI_GROUP_COMPARE" );
+    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+		       "Error in MPI_GROUP_COMPARE" );
 
   /* See if their sizes are equal */
   MPI_Group_size ( group1, &size1 );
   MPI_Group_size ( group2, &size2 );
   if ( size1 != size2 ) {
 	(*result) = MPI_UNEQUAL;
-	return (errno);
+	return (mpi_errno);
   }
 
   /* Is their intersection the same size as the original group */
@@ -50,14 +51,14 @@ int       *result;
   MPI_Group_free ( &group_int );
   if ( size_int != size1 ) {
 	(*result) = MPI_UNEQUAL;
-	return (errno);
+	return (mpi_errno);
   }
 
   /* Do a 1-1 comparison */
   (*result) = MPI_SIMILAR;
   for ( i=0; i<size1; i++ )
 	if ( group1->lrank_to_grank[i] != group2->lrank_to_grank[i] ) 
-	  return (errno);
+	  return (mpi_errno);
   (*result) = MPI_IDENT;
-  return (errno);
+  return (mpi_errno);
 }

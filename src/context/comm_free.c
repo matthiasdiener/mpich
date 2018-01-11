@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_free.c,v 1.33 1994/12/11 16:54:24 gropp Exp $
+ *  $Id: comm_free.c,v 1.36 1995/01/06 14:59:03 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -21,18 +21,18 @@ Input Parameter:
 int MPI_Comm_free ( comm )
 MPI_Comm *comm;
 {
-  int errno = MPI_SUCCESS;
-
-  DBG(fprintf(stderr,"About to check args\n");fflush(stderr);)
-  /* Check for bad arguments */
-  if ( MPIR_TEST_COMM(*comm,*comm) )
-	return MPIR_ERROR( MPI_COMM_WORLD, errno,
-					  "Error in MPI_COMM_FREE" );
+  int mpi_errno = MPI_SUCCESS;
 
   DBG(fprintf(stderr,"About to check for null comm\n");fflush(stderr);)
   /* Check for null communicator */
   if ((*comm) == MPI_COMM_NULL)
-    return (errno);
+    return (mpi_errno);
+
+  DBG(fprintf(stderr,"About to check args\n");fflush(stderr);)
+  /* Check for bad arguments */
+  if ( MPIR_TEST_COMM(*comm,*comm) )
+	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno,
+					  "Error in MPI_COMM_FREE" );
 
   DBG(fprintf(stderr,"About to check for perm comm\n");fflush(stderr);)
   /* We can't free permanent objects unless finalize has been called */
@@ -69,6 +69,8 @@ MPI_Comm *comm;
 	MPI_Group_free ( &((*comm)->group) );
 	MPI_Group_free ( &((*comm)->local_group) );
 
+	MPI_Errhandler_free( &((*comm)->error_handler) );
+
         DBG(fprintf(stderr,"About to free comm structure\n");fflush(stderr);)
 	/* Free comm structure */
 	MPIR_SET_COOKIE((*comm),0);
@@ -77,11 +79,9 @@ MPI_Comm *comm;
   else 
 	(*comm)->ref_count--;
 
-  MPI_Errhandler_free( &((*comm)->error_handler) );
-
   DBG(fprintf(stderr,"About to set comm to comm_null\n");fflush(stderr);)
   /* Set comm to null */
   (*comm) = MPI_COMM_NULL;
 	
-  return (errno);
+  return (mpi_errno);
 }

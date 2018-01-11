@@ -1,0 +1,12 @@
+cc = cc
+clinker = cc
+cflags = -g -check -std1
+tcl_dir = /usr/local/tcl
+tk_dir = /usr/local/tcl
+x_lib = -L/usr/lib/X11
+arch=alpha
+bopt = g
+mpir_home=/home/MPI/mpich
+optflags=
+include_path=
+x_inc=

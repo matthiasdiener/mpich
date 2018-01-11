@@ -31,14 +31,14 @@ SHELL = /bin/sh
 
 EXECS = dbxtest
 
-CFLAGS =   -DMPE_USE_EXTENSIONS=1 -DHAS_XDR=1 -DHAVE_STDLIB_H=1 $(OPTFLAGS) $(INCLUDE_DIR) $(MPIPROFILE) -DMPI_$(ARCH) \
+CFLAGS =   -DMPE_USE_EXTENSIONS=1 -DHAS_XDR=1 -DHAVE_STDLIB_H=1 -DHAVE_SYSTEM=1 $(OPTFLAGS) $(INCLUDE_DIR) $(MPIPROFILE) -DMPI_$(ARCH) \
 	 $(MPE_GRAPH)
 
 MPE_CSOURCES = timers.c  $(MPEGRAPHICS_SOURCE) mpe_log.c decomp.c \
-	       mpe_seq.c
+	       mpe_seq.c examine.c
 MPE_TSOURCES = $(MPEGRAPHICS_SOURCE) decomp.c mpe_seq.c dbxerr.c
 MPE_COBJECTS = timers.o  $(MPEGRAPHICS_OBJS) mpe_log.o decomp.o mpe_seq.o \
-		dbxerr.o
+		dbxerr.o examine.o 
 MPE_WSOURCES = $(MPEGRAPHICS_FSOURCE) mpe_logf.c decompf.c mpe_seqf.c
 MPE_WOBJECTS = timersf.o $(MPEGRAPHICS_FOBJS) mpe_logf.o decompf.o mpe_seqf.o
 

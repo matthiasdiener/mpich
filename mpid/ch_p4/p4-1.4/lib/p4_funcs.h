@@ -5,6 +5,7 @@
 #    define DOTS
 #endif
 
+double p4_usclock(DOTS);
 char *p4_shmalloc(DOTS);
 P4BOOL p4_am_i_cluster_master(DOTS);
 int p4_askfor(DOTS);

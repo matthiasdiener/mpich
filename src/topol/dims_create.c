@@ -1,5 +1,5 @@
 /*
- *  $Id: dims_create.c,v 1.7 1994/07/13 15:54:40 lusk Exp $
+ *  $Id: dims_create.c,v 1.8 1994/12/15 17:36:34 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -711,7 +711,7 @@ int *dims;
 {
   int i, *newDims, newNdims;
   int testProduct, freeNodes, stat, ii;
-  int errno = MPI_SUCCESS;
+  int mpi_errno = MPI_SUCCESS;
 
   /* Check for wacky input values. */
   if ((nnodes <= 0) || (ndims <= 0))

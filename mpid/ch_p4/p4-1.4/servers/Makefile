@@ -1,36 +1,23 @@
-# P4 makefile for Sun
+# Generated automatically from Makefile.in by configure.
 P4ARCH = SUN
-AR = ar lruv
+MAKE = make
+CC = cc
 FC = f77
-CLINKER = cc 
-FLINKER = f77 
+CLINKER = cc
+FLINKER = f77
 RANLIB = ranlib
+AR = ar lruv
+RM = /bin/rm
 MDEP_LIBS = 
 MDEP_CFLAGS = 
 MDEP_FFLAGS = 
+MDEP_LFLAGS = 
 P4_OBJ = $(P4_COMM_OBJ) $(P4_SOCK_OBJ) $(P4_SHMEM_OBJ)
 
-RM = /bin/rm
-
-# Added -I for MPI includes
-CFLAGS = -g -I$(INCLUDEDIR) -I../../../../include $(MDEP_CFLAGS) $(USER_CFLAGS)
+CFLAGS = -g -I$(INCLUDEDIR) $(MDEP_CFLAGS) $(USER_CFLAGS)
 #CFLAGS = -O -I$(INCLUDEDIR) $(MDEP_CFLAGS) $(USER_CFLAGS)
 
 FFLAGS = -g -I$(FORTLIBDIR) $(MDEP_FFLAGS)
-
-.SUFFIXES:	.o .c .f .h
-
-.c.o:$(P)
-	$(CC) $(CFLAGS) -c $*.c 
-
-.f.o:$(P)
-	$(FC) $(FFLAGS) -c $*.f 
-
-dummy:	default
-
-clean:
-	$(RM) -f *~ *.o *.bak tags TAGS core
-
 SERVER_HOME = /etc
 
 P4_PORT = 753
@@ -44,6 +31,19 @@ SED   = sed
 P4_HOME_DIR = ..
 INCLUDEDIR = $(P4_HOME_DIR)/include
 LIBDIR = $(P4_HOME_DIR)/lib
+
+.SUFFIXES:	.o .c .f .h
+
+.c.o:$(P)
+	$(CC) $(CFLAGS) -c $*.c 
+
+.f.o:$(P)
+	$(FC) $(FFLAGS) -c $*.f 
+
+dummy:	default
+
+clean:
+	$(RM) -f *~ *.o *.bak tags TAGS core
 
 default:
 	echo not making server on $(P4ARCH)
