@@ -1,5 +1,5 @@
 /* 
- *   $Id: rd_atallb.c,v 1.4 1999/08/27 20:53:11 thakur Exp $    
+ *   $Id: rd_atallb.c,v 1.6 2000/02/09 21:30:16 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +19,7 @@
 #endif
 
 /* Include mapping from MPI->PMPI */
-#define __MPIO_BUILD_PROFILING
+#define MPIO_BUILD_PROFILING
 #include "mpioprof.h"
 #endif
 
@@ -41,44 +41,87 @@ int MPI_File_read_at_all_begin(MPI_File fh, MPI_Offset offset, void *buf,
                          int count, MPI_Datatype datatype)
 {
     int error_code, datatype_size;
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "MPI_FILE_READ_AT_ALL_BEGIN";
+#endif
     MPI_Status status;
 
+#ifdef PRINT_ERR_MSG
     if ((fh <= (MPI_File) 0) || (fh->cookie != ADIOI_FILE_COOKIE)) {
-	printf("MPI_File_read_at_all_begin: Invalid file handle\n");
+	FPRINTF(stderr, "MPI_File_read_at_all_begin: Invalid file handle\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
+#else
+    ADIOI_TEST_FILE_HANDLE(fh, myname);
+#endif
 
     if (offset < 0) {
-	printf("MPI_File_read_at_all_begin: Invalid offset argument\n");
+#ifdef PRINT_ERR_MSG
+	FPRINTF(stderr, "MPI_File_read_at_all_begin: Invalid offset argument\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
+#else
+	error_code = MPIR_Err_setmsg(MPI_ERR_ARG, MPIR_ERR_OFFSET_ARG,
+				     myname, (char *) 0, (char *) 0);
+	return ADIOI_Error(fh, error_code, myname);	    
+#endif
     }
 
     if (count < 0) {
-	printf("MPI_File_read_at_all_begin: Invalid count argument\n");
+#ifdef PRINT_ERR_MSG
+	FPRINTF(stderr, "MPI_File_read_at_all_begin: Invalid count argument\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
+#else
+	error_code = MPIR_Err_setmsg(MPI_ERR_ARG, MPIR_ERR_COUNT_ARG,
+				     myname, (char *) 0, (char *) 0);
+	return ADIOI_Error(fh, error_code, myname);
+#endif
     }
 
     if (datatype == MPI_DATATYPE_NULL) {
-        printf("MPI_File_read_at_all_begin: Invalid datatype\n");
+#ifdef PRINT_ERR_MSG
+        FPRINTF(stderr, "MPI_File_read_at_all_begin: Invalid datatype\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
+#else
+	error_code = MPIR_Err_setmsg(MPI_ERR_TYPE, MPIR_ERR_TYPE_NULL,
+				     myname, (char *) 0, (char *) 0);
+	return ADIOI_Error(fh, error_code, myname);	    
+#endif
     }
 
     if (fh->access_mode & MPI_MODE_SEQUENTIAL) {
-        printf("MPI_File_read_at_all_begin: Can't use this function because file was opened with MPI_MODE_SEQUENTIAL\n");
+#ifdef PRINT_ERR_MSG
+        FPRINTF(stderr, "MPI_File_read_at_all_begin: Can't use this function because file was opened with MPI_MODE_SEQUENTIAL\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
+#else
+	error_code = MPIR_Err_setmsg(MPI_ERR_UNSUPPORTED_OPERATION, 
+                        MPIR_ERR_AMODE_SEQ, myname, (char *) 0, (char *) 0);
+	return ADIOI_Error(fh, error_code, myname);
+#endif
     }
 
     if (fh->split_coll_count) {
-        printf("MPI_File_read_at_all_begin: Only one active split collective I/O operation allowed per file handle\n");
+#ifdef PRINT_ERR_MSG
+        FPRINTF(stderr, "MPI_File_read_at_all_begin: Only one active split collective I/O operation allowed per file handle\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
+#else
+	error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ERR_MULTIPLE_SPLIT_COLL,
+                              myname, (char *) 0, (char *) 0);
+	return ADIOI_Error(fh, error_code, myname);
+#endif
     }
 
     fh->split_coll_count = 1;
 
     MPI_Type_size(datatype, &datatype_size);
     if ((count*datatype_size) % fh->etype_size != 0) {
-        printf("MPI_File_read_at_all_begin: Only an integral number of etypes can be accessed\n");
+#ifdef PRINT_ERR_MSG
+        FPRINTF(stderr, "MPI_File_read_at_all_begin: Only an integral number of etypes can be accessed\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
+#else
+	error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ERR_ETYPE_FRACTIONAL,
+				     myname, (char *) 0, (char *) 0);
+	return ADIOI_Error(fh, error_code, myname);	    
+#endif
     }
 
     ADIO_ReadStridedColl(fh, buf, count, datatype, ADIO_EXPLICIT_OFFSET,

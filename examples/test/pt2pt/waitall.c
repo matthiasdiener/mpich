@@ -10,6 +10,11 @@
 #include "protofix.h"
 #endif
 
+#ifdef HAVE_UNISTD_H
+/* For sleep */
+#include <unistd.h>
+#endif
+
 #define MAX_REQ 32
 
 int main( int argc, char **argv )

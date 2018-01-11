@@ -1,5 +1,5 @@
 dnl
-dnl rcsid = $Header: /home/MPI/cvsMaster/mpich/mpid/server/configure.in,v 1.10 1999/11/25 02:56:39 gropp Exp $
+dnl rcsid = $Header: /home/MPI/cvsMaster/mpich/mpid/server/configure.in,v 1.13 2000/08/24 16:19:06 gropp Exp $
 dnl
 dnl Caching is usually WRONG for systems with cross-mounted file systems
 dnl (the cache file may correspond to a different system).  Since configure
@@ -8,6 +8,7 @@ dnl
 define([AC_CACHE_LOAD], )dnl
 define([AC_CACHE_SAVE], )dnl
 AC_INIT(serv_p4.c)
+AC_PREREQ(2.13) dnl for SHELL and AC_SEARCH_LIBS
 AC_CONFIG_HEADER(server.h)
 # Ensure that we don't pickup the wrong version of server.h in the VPATH case
 # (ac_confdir will have to do for top_srcdir)
@@ -21,9 +22,17 @@ PAC_MAKE_VPATH
 # Note that the Configure version 2 macro REQUIRES that you provide a 
 # function to check with.  This would be ok if the function didn't
 # require TWO libraries on some systems!
-AC_CHECK_LIB(nsl,xdr_array)
-AC_CHECK_LIB(socket,socket)
-AC_CHECK_LIB(crypt,crypt,CRYPT_LIBS=-lcrypt)
+AC_SEARCH_LIBS(xdr_array,nsl)
+AC_SEARCH_LIBS(socket,socket)
+
+dnl Do not add -lcrypt to libs by default
+save_LIBS="$LIBS"
+AC_SEARCH_LIBS(crypt,crypt)
+LIBS="$save_LIBS"
+if test "$ac_cv_search_crypt" = "-lcrypt" ; then
+	CRYPT_LIBS="-lcrypt"
+fi
+
 AC_CHECK_HEADERS(termios.h)
 AC_CHECK_HEADERS(fcntl.h)
 AC_CHECK_HEADERS(unistd.h)
@@ -82,6 +91,22 @@ if test $found_sockopt_type = 1 ; then
     AC_DEFINE(USE_SOCKLEN_T)
 else
     AC_MSG_RESULT(no)
+    # This case is harder.  size_t is a valid type, but it may not be the 
+    # one that getsockopt etc wants.
+    AC_MSG_CHECKING([if getsockopt wants size_t])
+    PAC_C_TRY_COMPILE_CLEAN([#include <sys/types.h>
+#include <sys/socket.h>],[int try(void){size_t dummy; int rc, skt; void *ssz;
+rc = getsockopt(skt,SOL_SOCKET,SO_SNDBUF,ssz,&dummy);
+return rc;}],found_sockopt_type)
+    case $found_sockopt_type in 
+	0) AC_MSG_RESULT(yes)
+	   AC_DEFINE(USE_SIZE_T_FOR_SOCKLEN_T)
+	;;
+	1) AC_MSG_RESULT([no (warnings from compiler)])
+	;;
+	2) AC_MSG_RESULT(no)
+	;;
+    esac
 fi
 # 
 # In the case of size_t, the problem is that the compiler might accept size_t,

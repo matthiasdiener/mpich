@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2send.c,v 1.1.1.1 1997/09/17 20:39:22 gropp Exp $
+ *  $Id: adi2send.c,v 1.3 2000/07/17 20:44:39 swider Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -27,7 +27,7 @@ int      len, src_lrank, tag, context_id, dest_grank, *error_code;
 MPID_Msgrep_t msgrep;
 {
     MPID_Device *dev = MPID_devset->dev[dest_grank];
-    int (*fcn) ANSI_ARGS(( void *, int, int, int, int, int, MPID_Msgrep_t ));
+    int (*fcn) ( void *, int, int, int, int, int, MPID_Msgrep_t );
 
     /* The one error test that makes sense here */
     if (buf == 0 && len > 0) {
@@ -55,8 +55,8 @@ MPID_Msgrep_t msgrep;
 MPI_Request request;
 {
     MPID_Device *dev = MPID_devset->dev[dest_grank];
-    int (*fcn) ANSI_ARGS(( void *, int, int, int, int, int, MPID_Msgrep_t, 
-			   MPIR_SHANDLE * ));
+    int (*fcn) ( void *, int, int, int, int, int, MPID_Msgrep_t, 
+		 MPIR_SHANDLE * );
 
     /* The one error test that makes sense here */
     if (buf == 0 && len > 0) {
@@ -144,6 +144,7 @@ int         *error_code;
     /* The 'while' is at the top in case the 'wait' routine is changed
        by one of the steps.  This happens, for example, in the Rendezvous
        Protocol */
+    DEBUG_PRINT_MSG( "Entering while !shandle->is_complete" );
     while (!shandle->is_complete) {
 	if (shandle->wait) 
 	    *error_code = 
@@ -178,6 +179,7 @@ int         *error_code;
 	    }
 	}
     }
+    DEBUG_PRINT_MSG( "Leaving while !shandle->is_complete" );
     if (shandle->finish) 
 	(shandle->finish)( shandle );
 }

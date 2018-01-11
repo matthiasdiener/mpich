@@ -181,16 +181,13 @@ oldsigf = sigset(signame,sigf);
 /* Signal handler declarations */
 #if defined(HAVE_SIGHAND3)
 #define SIGNAL_HAND_DECL(sigf) \
-RETSIGTYPE sigf( sig, code, scp )\
-int sig, code; struct sigcontext *scp;
+RETSIGTYPE sigf( int sig, int code, struct sigcontext *scp )
 #elif defined(HAVE_SIGHAND4)
 #define SIGNAL_HAND_DECL(sigf) \
-RETSIGTYPE sigf( sig, code, scp, addr )\
-int sig, code; struct sigcontext *scp;char *addr;
+RETSIGTYPE sigf( int sig, int code, struct sigcontext *scp, char *addr )
 #else
 #define SIGNAL_HAND_DECL(sigf) \
-RETSIGTYPE sigf( sig )\
-int sig;
+RETSIGTYPE sigf( int sig )
 #endif
 
 #if defined(HAVE_SIGPROCMASK)
@@ -231,7 +228,9 @@ static int MPID_numprocs = 0;   /* Number of CHILDREN processes */
 #include <signal.h>
 #include <sys/wait.h>
 /* Set SIGCHLD handler */
+#ifdef DYNAMIC_CHILDREM
 static int MPID_child_status = 0;
+#endif
 #ifndef RETSIGTYPE
 #define RETSIGTYPE void
 #endif
@@ -239,6 +238,12 @@ static int MPID_child_status = 0;
 #if !defined(SIGCHLD) && defined(SIGCLD)
 #define SIGCHLD SIGCLD
 #endif
+
+/* Function prototype declarations */
+SIGNAL_HAND_DECL(MPID_handle_abort);
+SIGNAL_HAND_DECL(MPID_dump_internals);
+SIGNAL_HAND_DECL(MPID_handle_exit);
+SIGNAL_HAND_DECL(MPID_handle_child);
 
 /* 
    We add useful handlers that will allow us to catch MOST BUT NOT ALL
@@ -255,7 +260,7 @@ SIGNAL_HAND_DECL(MPID_handle_abort)
 
 SIGNAL_HAND_DECL(MPID_dump_internals)
 {
-  extern void MPID_SHMEM_Print_internals ANSI_ARGS(( FILE * ));
+  extern void MPID_SHMEM_Print_internals ( FILE * );
   fprintf( stderr, "[%d] Got Signal to exit .. \n", MPID_myid);
   MPID_SHMEM_Print_internals( stderr );
   
@@ -286,7 +291,7 @@ SIGNAL_HAND_DECL(MPID_handle_exit)
 SIGNAL_HAND_DECL(MPID_handle_child)
 {
   int prog_stat, pid;
-  int i, j;
+  int i;
 
   /* Really need to block further signals until done ... */
   /* fprintf( stderr, "Got SIGCHLD...\n" ); */
@@ -675,10 +680,7 @@ void p2p_kill_procs()
    processor running the process.
    image_name is the name of the executable image being run.
  */
-int p2p_proc_info( id, host_name, image_name )
-int id;
-char **host_name;
-char **image_name;
+int p2p_proc_info( int id, char **host_name, char **image_name )
 {
   *host_name = 0;	  /* TV assumes "the same as parent" if it sees 0 */
   *image_name= 0;         /*  ditto */

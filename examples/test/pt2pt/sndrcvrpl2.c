@@ -53,7 +53,7 @@ int main( int argc, char **argv )
     MPI_Allreduce( &err, &toterr, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
     if (rank == 0) {
 	if (toterr == 0) 
-	    printf( "Test completed\n" );
+	    printf( " No Errors\n" );
 	else
 	    printf( "Test failed with %d errors!\n", toterr );
     }

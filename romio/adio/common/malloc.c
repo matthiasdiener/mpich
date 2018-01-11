@@ -1,5 +1,5 @@
 /* 
- *   $Id: malloc.c,v 1.4 1999/08/16 17:36:46 thakur Exp $    
+ *   $Id: malloc.c,v 1.6 2000/02/09 21:30:08 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -21,17 +21,23 @@
 #include <stdio.h>
 #include "mpipr.h"
 
+#define FPRINTF fprintf
+void *ADIOI_Malloc(size_t size, int lineno, char *fname);
+void *ADIOI_Calloc(size_t nelem, size_t elsize, int lineno, char *fname);
+void *ADIOI_Realloc(void *ptr, size_t size, int lineno, char *fname);
+void ADIOI_Free(void *ptr, int lineno, char *fname);
+
 void *ADIOI_Malloc(size_t size, int lineno, char *fname)
 {
     void *new;
 
-#ifdef __XFS
-    new = (void *) memalign(__XFS_MEMALIGN, size);
+#ifdef XFS
+    new = (void *) memalign(XFS_MEMALIGN, size);
 #else
     new = (void *) malloc(size);
 #endif
     if (!new) {
-	printf("Out of memory in file %s, line %d\n", fname, lineno);
+	FPRINTF(stderr, "Out of memory in file %s, line %d\n", fname, lineno);
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
@@ -45,7 +51,7 @@ void *ADIOI_Calloc(size_t nelem, size_t elsize, int lineno, char *fname)
 
     new = (void *) calloc(nelem, elsize);
     if (!new) {
-	printf("Out of memory in file %s, line %d\n", fname, lineno);
+	FPRINTF(stderr, "Out of memory in file %s, line %d\n", fname, lineno);
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
@@ -59,7 +65,7 @@ void *ADIOI_Realloc(void *ptr, size_t size, int lineno, char *fname)
 
     new = (void *) realloc(ptr, size);
     if (!new) {
-	printf("realloc failed in file %s, line %d\n", fname, lineno);
+	FPRINTF(stderr, "realloc failed in file %s, line %d\n", fname, lineno);
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
     return new;
@@ -69,7 +75,7 @@ void *ADIOI_Realloc(void *ptr, size_t size, int lineno, char *fname)
 void ADIOI_Free(void *ptr, int lineno, char *fname)
 {
     if (!ptr) {
-	printf("Attempt to free null pointer in file %s, line %d\n", fname, lineno);
+	FPRINTF(stderr, "Attempt to free null pointer in file %s, line %d\n", fname, lineno);
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
 

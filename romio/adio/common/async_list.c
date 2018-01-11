@@ -1,5 +1,5 @@
 /* 
- *   $Id: async_list.c,v 1.2 1998/06/02 18:56:59 thakur Exp $    
+ *   $Id: async_list.c,v 1.3 2000/01/21 20:55:39 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -124,7 +124,7 @@ void ADIOI_Complete_async(int *error_code)
 	    ADIO_WriteComplete(request, &status, error_code);
 	    break;
 	default:
-	    printf("Error in ADIOI_Complete_Async\n");
+	    FPRINTF(stderr, "Error in ADIOI_Complete_Async\n");
 	    break;
 	}
 	(*request)->queued = 0;  /* dequeued, but request object not

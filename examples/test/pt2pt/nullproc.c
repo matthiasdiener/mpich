@@ -43,6 +43,8 @@ int main( int argc, char *argv[] )
    MPI_Isend(&a[2], 1, MPI_INT, right,  1, MPI_COMM_WORLD, &req[2]);
 
    for (it=0; it<4; it++) {
+       status.MPI_SOURCE = nproc;
+       status.MPI_TAG = nproc;
        MPI_Waitany( 4, req, &index, &status );
        if (index == 0 && left == MPI_PROC_NULL) {
 	   if (status.MPI_TAG != MPI_ANY_TAG ||

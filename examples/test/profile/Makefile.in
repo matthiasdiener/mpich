@@ -26,7 +26,7 @@ FFLAGS = $(OPTFLAGS)
 LIBS = @LIB_PATH@ @LIB_LIST@
 # Use FLIBS to add any special libraries for Fortran programs
 FLIBS = @FLIB_PATH@ @LIB_LIST@
-EXECS = ptest
+EXECS = ptest colluses
 OTHEREXECS = 
 default: $(EXECS)
 
@@ -42,11 +42,14 @@ fortran_tests:
 ptest: ptest.o 
 	$(CLINKER) $(OPTFLAGS) -o ptest ptest.o $(LIBS)
 
+colluses: colluses.o
+	$(CLINKER) $(OPTFLAGS) -o colluses colluses.o $(LIBS)
+
 #
 # Make sure that we remove executables for specific architectures
 clean:
 	@-/bin/rm -f *.o *~ PI* $(EXECS) *.out core profile.diff \
-		$(OTHEREXECS) mpif.h ${srcdir}/*.o
+		$(OTHEREXECS) mpif.h ${srcdir}/*.o *.stdo
 	@-for file in $(EXECS) Makefile ; do \
 	   /bin/rm -f $$file.sun4 $$file.alpha $$file.IRIX $$file.freebsd ;\
 	done

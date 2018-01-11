@@ -8,7 +8,7 @@ extern int    debug;
 int setup_unix_socket( pathname )	
 char *pathname;
 {
-    int backlog = 5;
+    int backlog = 15;
     int rc;
     int skt_fd;
     struct sockaddr_un sa;
@@ -18,16 +18,19 @@ char *pathname;
     strncpy( sa.sun_path, pathname, sizeof( sa.sun_path ) - 1 );
 
     skt_fd = socket( AF_UNIX, SOCK_STREAM, 0 );
-    error_check( skt_fd, "setup_unix_socket: socket" );
+    if ( skt_fd < 0 )
+        return( skt_fd );
 
     rc = bind( skt_fd, ( struct sockaddr * )&sa, sizeof( sa ) );
-    error_check( rc, "setup_unix_socket: bind" );
+    if ( skt_fd < 0 )
+        return( skt_fd );
 
     rc = listen( skt_fd, backlog );
-    error_check( rc, "setup_unix_socket: listen" );
+    if ( rc < 0 )
+        return( rc );
     
     mpdprintf( debug, "listening on local socket %d\n", skt_fd );
-    return skt_fd;
+    return( skt_fd );
 }
 
 int network_connect( hostname, port )
@@ -38,7 +41,8 @@ int  port;
     struct sockaddr_in sa;
     struct hostent *hp;
     int optval = 1;
-    int rc;
+    int rc, numtriesleft, connected;
+#define NUMTOTRY 100
 
     hp = gethostbyname( hostname );
     if (hp == NULL)
@@ -57,17 +61,33 @@ int  port;
     sa.sin_family = hp->h_addrtype;
     sa.sin_port	  = htons(port);
 
-    s = socket( AF_INET, SOCK_STREAM, 0 );
-    error_check( s, "network_connect, socket" );
+    connected = 0;
+    numtriesleft  = NUMTOTRY; 
 
-    rc = setsockopt( s, IPPROTO_TCP, TCP_NODELAY, (char *) &optval, sizeof( optval ) );
-    error_check( rc, "network_connect, setsockopt" );
+    while ( !connected && numtriesleft > 0 ) {
+	s = socket( AF_INET, SOCK_STREAM, 0 );
+	error_check( s, "network_connect, socket" );
 
-    rc = connect( s, (struct sockaddr *) &sa, sizeof(sa) );
+	rc = setsockopt( s, IPPROTO_TCP, TCP_NODELAY, (char *) &optval, sizeof( optval ) );
+	error_check( rc, "network_connect, setsockopt" );
+
+	rc = connect( s, (struct sockaddr *) &sa, sizeof(sa) );
+	if ( rc == 0 )
+	    connected = 1;
+	else {
+	    numtriesleft--;
+	    dclose( s );
+	}
+    }
+    if ( !connected ) 
+	mpdprintf( 1, "failed to connect after %d tries\n", NUMTOTRY );
+
     error_check( rc, "network_connect, connect");
 
-    mpdprintf( debug, "network_connect, connected on fd %d\n", s );
-
+    if ( numtriesleft < NUMTOTRY )
+	mpdprintf( 1, "network_connect, connected on fd %d after %d %s\n", s,
+		   NUMTOTRY + 1 - numtriesleft,
+		   NUMTOTRY + 1 - numtriesleft > 1 ? "tries" : "try" );
     return s;
 }
 
@@ -75,7 +95,8 @@ int accept_connection( skt )
 int skt;
 {
     struct sockaddr_in from;
-    int fromlen, new_skt, gotit, rc;
+    int new_skt, gotit, rc;
+    mpd_sockopt_len_t fromlen;
     int optval = 1;
 
     mpdprintf( 0, "accepting connection on %d\n", skt );
@@ -107,7 +128,8 @@ int accept_unix_connection( skt )
 int skt;
 {
     struct sockaddr_in from;
-    int fromlen, new_skt, gotit;
+    int new_skt, gotit;
+    mpd_sockopt_len_t fromlen;
 
     mpdprintf( 0, "accepting unix connection on %d\n", skt );
     fromlen = sizeof( from );

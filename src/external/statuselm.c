@@ -40,8 +40,14 @@ EXPORT_MPI_API int MPI_Status_set_elements( MPI_Status *status, MPI_Datatype dat
     MPID_STATUS_SET_ELEMENTS( status, datatype, count );
 #else
     /* This isn't quite correct, but it is a start */
-    MPI_Type_size( datatype, &size );
-    status->count = count * size;
+    if (count >= 0) {
+	MPI_Type_size( datatype, &size );
+	status->count = count * size;
+    }
+    else {
+	/* Allow undefined to be passed */
+	status->count = MPI_UNDEFINED;
+    }
 #endif
     return 0;
 }

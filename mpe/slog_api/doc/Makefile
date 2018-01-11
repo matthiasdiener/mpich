@@ -41,4 +41,4 @@ html:	FORCE
 FORCE:
 
 clean:
-	rm -f $(MAN_DIR)/* $(HTML_DIR)/*
+	rm -f $(MAN_DIR)/*.3 $(HTML_DIR)/*.html $(HTML_DIR)/*.cit

@@ -5,17 +5,15 @@
 
 #define MAX2(a,b) (((a)>(b)) ? (a) : (b))
 
-int  GlobalReadInteger();
-void Hello();
-void Ring();
+int  GlobalReadInteger( void );
+void Hello( void );
+void Ring( void );
 /*
-void Stress();
-void Globals();
+void Stress( void );
+void Globals( void );
 */
 
-int main(argc,argv)
-int argc;
-char **argv;
+int main(int argc, char *argv[])
 {
 
     int me, option, namelen, size;
@@ -71,13 +69,13 @@ char **argv;
     }
 }
 
-int GlobalReadInteger()
+int GlobalReadInteger( void )
 /*
   Process zero reads an integer from stdin and broadcasts
   to everyone else
 */
 {
-    int me, value, *msg, msg_len, type=999 ,zero=0;
+    int me, value;
 
     MPI_Comm_rank(MPI_COMM_WORLD, &me);
     if (me == 0) {
@@ -88,7 +86,7 @@ int GlobalReadInteger()
     return value;
 }
 
-void Hello()
+void Hello( void )
 /*
   Everyone exchanges a hello message with everyone else.
   The hello message just comprises the sending and target nodes.
@@ -96,7 +94,7 @@ void Hello()
 {
     int nproc, me;
     int type = 1;
-    int buffer[2], node, length;
+    int buffer[2], node;
     MPI_Status status;
 
     MPI_Comm_rank(MPI_COMM_WORLD, &me);
@@ -126,16 +124,16 @@ void Hello()
     }
 }
 
-void Ring()       /* Time passing a message round a ring */
+void Ring( void )       /* Time passing a message round a ring */
 {
     int nproc, me;
     MPI_Status status;
     int type = 4;
     int left, right;
-    char *buffer, *msg;
-    int start, lenbuf, max_len,  msg_len;
+    char *buffer;
+    int lenbuf, max_len;
     double us_rate;
-    double start_ustime, end_ustime, used_ustime;
+    double start_ustime, used_ustime;
 
     MPI_Comm_rank(MPI_COMM_WORLD, &me);
     MPI_Comm_size(MPI_COMM_WORLD, &nproc);

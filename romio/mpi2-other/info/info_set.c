@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_set.c,v 1.4 1999/08/27 20:53:46 thakur Exp $    
+ *   $Id: info_set.c,v 1.6 2000/02/09 21:30:36 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +19,7 @@
 #endif
 
 /* Include mapping from MPI->PMPI */
-#define __MPIO_BUILD_PROFILING
+#define MPIO_BUILD_PROFILING
 #include "mpioprof.h"
 #endif
 
@@ -38,37 +38,37 @@ int MPI_Info_set(MPI_Info info, char *key, char *value)
     MPI_Info prev, curr;
 
     if ((info <= (MPI_Info) 0) || (info->cookie != MPIR_INFO_COOKIE)) {
-        printf("MPI_Info_set: Invalid info object\n");
+        FPRINTF(stderr, "MPI_Info_set: Invalid info object\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
     if (key <= (char *) 0) {
-	printf("MPI_Info_set: key is an invalid address\n");
+	FPRINTF(stderr, "MPI_Info_set: key is an invalid address\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
     if (value <= (char *) 0) {
-	printf("MPI_Info_set: value is an invalid address\n");
+	FPRINTF(stderr, "MPI_Info_set: value is an invalid address\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
     if (strlen(key) > MPI_MAX_INFO_KEY) {
-	printf("MPI_Info_set: key is longer than MPI_MAX_INFO_KEY\n");
+	FPRINTF(stderr, "MPI_Info_set: key is longer than MPI_MAX_INFO_KEY\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
     if (strlen(value) > MPI_MAX_INFO_VAL) {
-	printf("MPI_Info_set: value is longer than MPI_MAX_INFO_VAL\n");
+	FPRINTF(stderr, "MPI_Info_set: value is longer than MPI_MAX_INFO_VAL\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
     if (!strlen(key)) {
-	printf("MPI_Info_set: key is a null string\n");
+	FPRINTF(stderr, "MPI_Info_set: key is a null string\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
     if (!strlen(value)) {
-	printf("MPI_Info_set: value is a null string\n");
+	FPRINTF(stderr, "MPI_Info_set: value is a null string\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 

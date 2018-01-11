@@ -1,0 +1,31 @@
+MAKE=@MAKE@
+SHELL=/bin/sh
+RM=/bin/rm
+
+all:	
+	cd src; $(MAKE)
+
+install:
+	@if [ -n "$(PREFIX)" ] ; then \
+	     ./sbin/install-viewer -prefix=$(PREFIX) ; \
+	 else \
+	     ./sbin/install-viewer ; \
+	 fi
+
+uninstall:
+	@-./sbin/uninstall-viewer
+
+clean:
+	cd src; $(MAKE) clean
+
+rmprog:
+	@-$(RM) -f bin/jumpshot
+
+rmlib:
+	cd src; $(MAKE) rmlib
+
+distclean: rmprog
+	cd src; $(MAKE) distclean
+	cd doc/tex; $(MAKE) distclean
+	@-$(RM) -f sbin/install-viewer sbin/uninstall-viewer
+	@-$(RM) -f Makefile config.log config.status

@@ -1,5 +1,5 @@
 /*
- *  $Id: chhetero.c,v 1.4 1999/04/21 18:55:16 gropp Exp $
+ *  $Id: chhetero.c,v 1.6 2000/08/11 22:31:46 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -24,8 +24,8 @@ static char *(ByteOrderName[]) = { "None", "LSB", "MSB", "XDR" };
 int MPID_IS_HETERO = 0;
 
 /* Local definitions */
-int MPID_GetByteOrder ANSI_ARGS((void));
-void MPID_ByteSwapInt ANSI_ARGS(( int*, int ));
+int MPID_GetByteOrder (void);
+void MPID_ByteSwapInt ( int*, int );
 
 /* 
  * This routine is called to initialize the information about datatype
@@ -237,11 +237,16 @@ else
  * This routine takes a communicator and determines the message representation
  * field for it
  */
-int MPID_CH_Comm_msgrep( comm_ptr )
-struct MPIR_COMMUNICATOR *comm_ptr;
+int MPID_CH_Comm_msgrep( struct MPIR_COMMUNICATOR *comm_ptr )
 {
     MPID_H_TYPE my_byte_order;
     int i;
+
+    /* If a null communicator, just return success.  This is needed in 
+       case MPID_CommInit simply calls this routine; since MPID_CommInit
+       is collective over the *old* communicator (is it?), it may be invoked 
+       with a null new communicator */
+    if (!comm_ptr) return MPI_SUCCESS;
 
 /* We must compare the rep of the rank in the local group to
    the members of the remote group.  This works for both intra and inter 

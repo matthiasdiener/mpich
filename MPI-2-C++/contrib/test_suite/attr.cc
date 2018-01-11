@@ -1,26 +1,28 @@
-// Copyright 1997-1999, University of Notre Dame.
-// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
-//           Andrew Lumsdaine
-//
-// This file is part of the Notre Dame C++ bindings for MPI
-//
-// You should have received a copy of the License Agreement for the
-// Notre Dame C++ bindings for MPI along with the software;  see the
-// file LICENSE.  If not, contact Office of Research, University of Notre
-// Dame, Notre Dame, IN  46556.
-//
+// Copyright 1997-2000, University of Notre Dame.
+// Authors: Jeremy G. Siek, Jeffery M. Squyres, Michael P. McNally, and
+//          Andrew Lumsdaine
+// 
+// This file is part of the Notre Dame C++ bindings for MPI.
+// 
+// You should have received a copy of the License Agreement for the Notre
+// Dame C++ bindings for MPI along with the software; see the file
+// LICENSE.  If not, contact Office of Research, University of Notre
+// Dame, Notre Dame, IN 46556.
+// 
 // Permission to modify the code and to distribute modified code is
 // granted, provided the text of this NOTICE is retained, a notice that
 // the code was modified is included with the above COPYRIGHT NOTICE and
 // with the COPYRIGHT NOTICE in the LICENSE file, and that the LICENSE
 // file is distributed with the modified code.
-//
+// 
 // LICENSOR MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
 // By way of example, but not limitation, Licensor MAKES NO
 // REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY
 // PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE COMPONENTS
 // OR DOCUMENTATION WILL NOT INFRINGE ANY PATENTS, COPYRIGHTS, TRADEMARKS
 // OR OTHER RIGHTS.
+// 
+// Additional copyrights may follow.
 /****************************************************************************
 
  MESSAGE PASSING INTERFACE TEST CASE SUITE
@@ -62,19 +64,21 @@
 void
 attr()
 {
-  char msg[150];
+#if _MPIPP_USEEXCEPTIONS_
   int class1;
+#endif
+  char msg[150];
   int flag;
   int pflag;
   int pkey;
-  ATTR pkeyval;
-  ATTR pval;
-  ATTR val;
+  MPI2CPP_ATTR pkeyval;
+  MPI2CPP_ATTR pval;
+  MPI2CPP_ATTR val;
   MPI::Intracomm pcomm;
   
-  Testing( (char *)"Get_attr");
+  Testing("Get_attr");
 
-  Testing( (char *)"MPI::TAG_UB");
+  Testing("MPI::TAG_UB");
 
   flag = 0;
   val = 0;
@@ -99,7 +103,7 @@ attr()
 
   Pass(); // MPI::TAG_UB
 
-  Testing( (char *)"MPI::HOST");
+  Testing("MPI::HOST");
 
   flag = 0;
   val = 0;
@@ -124,7 +128,7 @@ attr()
 
   Pass(); // MPI::HOST
 
-  Testing( (char *)"MPI::IO");
+  Testing("MPI::IO");
 
   flag = 0;
   val = 0;
@@ -148,7 +152,7 @@ attr()
 
   Pass(); // MPI::IO
 
-  Testing( (char *)"MPI::WTIME_IS_GLOBAL");
+  Testing("MPI::WTIME_IS_GLOBAL");
 
   flag = 0;
   val = 0;
@@ -174,7 +178,7 @@ attr()
 
   Pass(); // Get_attr
 
-  Testing( (char *)"Comm::Create_keyval");
+  Testing("Comm::Create_keyval");
 
   pkey = 0;
 
@@ -187,7 +191,7 @@ attr()
   
   Pass(); // Create_keyval
 
-  Testing( (char *)"Attr_put / Set_attr");
+  Testing("Attr_put / Set_attr");
 
   pcomm = MPI::COMM_WORLD.Dup();
 
@@ -210,8 +214,9 @@ attr()
 
   Pass(); // Attr_put / Set_attr
 
-  Testing( (char *)"Delete_attr");
+  Testing("Delete_attr");
 
+#if _MPIPP_USEEXCEPTIONS_
   pcomm.Set_errhandler(MPI::ERRORS_THROW_EXCEPTIONS);
  
   class1 = MPI::SUCCESS;
@@ -230,10 +235,16 @@ attr()
   pcomm.Set_errhandler(MPI::ERRORS_RETURN);
 
   Pass(); // Delete_attr
+#else
+  // It is erroneous not to delete the attribute, so we have to hope
+  // that it doesn't fail!
+  pcomm.Delete_attr(pkey);
+  Done("Compiler does not have exceptions");
+#endif
 
-  Testing( (char *)"MPI::COMM_WORLD.Free_keyval");
+  Testing("MPI::COMM_WORLD.Free_keyval");
 
-  MPI::COMM_WORLD.Free_keyval(pkey);
+  MPI::Comm::Free_keyval(pkey);
   if(pkey != MPI::KEYVAL_INVALID) {
     sprintf(msg, "NODE %d - 17) ERROR in MPI::COMM_WORLD.Free_keyval: key not set to INVALID", my_rank);
     Fail(msg);
@@ -241,6 +252,7 @@ attr()
 
   Pass(); // MPI::COMM_WORLD.Free_keyval
 
-  if(pcomm != MPI::COMM_NULL && pcomm != MPI::COMM_WORLD)
+  if (pcomm != MPI::COMM_NULL && pcomm != MPI::COMM_WORLD) {
     pcomm.Free();
+  }
 }

@@ -37,7 +37,7 @@ P4VOID p4_dprintf(fmt, a, b, c, d, e, f, g, h, i)
 }
 
 #else
-#if defined(USE_STDARG)
+#if defined(USE_STDARG) && !defined(USE_OLDSTYLE_STDARG)
 P4VOID p4_dprintf( char *fmt, ... )
 {
     va_list ap;
@@ -57,6 +57,10 @@ P4VOID p4_dprintf( char *fmt, ... )
     fflush(stdout);
 }
 #else
+/* Assumes old-style stdard */
+#if !defined(USE_OLDSTYLE_STDARG)
+#error 'unknown standard arg method'
+#endif
 P4VOID p4_dprintf(fmt, va_alist)
 char *fmt;
 va_dcl
@@ -138,7 +142,7 @@ P4VOID p4_dprintfl(level, fmt, a, b, c, d, e, f, g, h, i)
 }
 
 #else
-#if defined(USE_STDARG)
+#if defined(USE_STDARG) && !defined(USE_OLDSTYLE_STDARG)
 P4VOID p4_dprintfl(int level, char *fmt, ...)
 {
     va_list ap;
@@ -194,6 +198,9 @@ P4VOID p4_dprintfl(int level, char *fmt, ...)
     fflush(stdout);
 }
 #else
+#if !defined(USE_OLDSTYLE_STDARG)
+#error 'unknown standard arg method'
+#endif
 P4VOID p4_dprintfl(level, fmt, va_alist)
 int level;
 char *fmt;

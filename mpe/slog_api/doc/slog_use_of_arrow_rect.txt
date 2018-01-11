@@ -1,0 +1,87 @@
+I modified the following code segment from our MPE to illustrate 
+the way to pass an arrow interval record to the SLOG_API.  The only 
+difference in passing an arrow or a rectangle is in the use of 
+SLOG_Irec_SetMinRec().  For an arrow, there are 3 more arguments needed 
+in SLOG_Irec_SetMinRec(),
+( irec_dest_node_id, irec_dest_cpu_idx, irec_dest_thread_id )
+They correspond to the Y axis location of the arrow's head.
+
+---------------------------------------------------------------------------
+In clog2slog.h
+/* clog2slog constants */
+#define MSG_STATE      9999     /* for state_info list - not for SLOG */
+#define MSG_RECORD     SLOG_RECTYPE_STATIC_OFFDIAG
+#define NON_MSG_RECORD SLOG_RECTYPE_STATIC_DIAG
+
+/*
+   Where SLOG_RECTYPE_STATIC_OFFDIAG and SLOG_RECTYPE_STATIC_DIAG are
+   predefined constants in slog.h
+*/
+
+--------------------------------------------------------------------------
+Here is the code to call slog_api,
+
+  irec = SLOG_Irec_Create();
+ 
+  if(irec == NULL) {
+    fprintf(stderr, __FILE__":%d: SLOG_Irec_Create returned null - "
+            "system might be low on memory.\n",__LINE__);
+    return C2S_ERROR;
+  }
+
+  /*
+      irec_rectype has to be used in a way consistent with what slog.h
+      said.  Unlike irec_intvltype which user of slog_api have complete
+      control over it, irec_rectype has to be used in according with
+      what slog_api wants.
+
+      MSG_STATE is a const defined in our MPE to represent an arrow object.
+  */
+  if(one.state_id != MSG_STATE)
+    /*  
+        for a rectangle in jumpshot-3
+    */
+    error = SLOG_Irec_SetMinRec( irec, irec_rectype, irec_intvltype,
+                                 irec_bebit_0, irec_bebit_1,
+                                 irec_starttime, irec_duration,
+                                 irec_node_id, irec_cpu_id, irec_thread_id,
+                                 irec_where );
+  else {
+    irec_rectype = MSG_RECORD;
+    if(event_ptr->etype == LOG_MESG_RECV)
+      irec_intvltype = FORWARD_MSG;
+    else
+      irec_intvltype = BACKWARD_MSG;
+
+    irec_node_id = one.process_id;
+    irec_destination_id = one.data;
+    /*  
+        for an arrow in jumpshot-3
+    */
+    error = SLOG_Irec_SetMinRec( irec, irec_rectype, irec_intvltype,
+                                 irec_bebit_0, irec_bebit_1,
+                                 irec_starttime, irec_duration,
+                                 irec_node_id, irec_cpu_id,
+                                 irec_thread_id, irec_where,
+                                 irec_dest_node_id, irec_dest_cpu_id,
+                                 irec_dest_thread_id );
+  }     
+
+  if(error == SLOG_FAIL) {
+    SLOG_Irec_Free(irec);
+    fprintf(stderr, __FILE__":%d: SLOG_Irec_SetMinRec returns failure - "
+            "check SLOG documentation for more information.\n",__LINE__);
+    return C2S_ERROR;
+  }
+
+  error = SLOG_Irec_ToOutputStream( slog, irec );
+  SLOG_Irec_Free(irec);
+
+
+---------------------------------------------------------------------------
+
+There is a more complete example in 
+slog_jumpshot3/slog_api/src/ts_incrEQendtime_resfnEQyes.c, 
+except you are NOT calling SLOG_Irec_ReserveSpace().
+
+A.Chan

@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_nfs_write.c,v 1.5 1999/10/26 22:57:18 thakur Exp $    
+ *   $Id: ad_nfs_write.c,v 1.8 2000/07/19 22:37:26 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -8,35 +8,52 @@
 #include "ad_nfs.h"
 #include "adio_extern.h"
 
-void ADIOI_NFS_WriteContig(ADIO_File fd, void *buf, int len, int file_ptr_type,
+void ADIOI_NFS_WriteContig(ADIO_File fd, void *buf, int count, 
+                     MPI_Datatype datatype, int file_ptr_type,
 		     ADIO_Offset offset, ADIO_Status *status, int *error_code)
 {
-    int err=-1;
+    int err=-1, datatype_size, len;
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "ADIOI_NFS_WRITECONTIG";
+#endif
 
-    if ((fd->iomode == M_ASYNC) || (fd->iomode == M_UNIX)) {
-	if (file_ptr_type == ADIO_EXPLICIT_OFFSET) {
-            if (fd->fp_sys_posn != offset)
-		lseek(fd->fd_sys, offset, SEEK_SET);
-	    ADIOI_WRITE_LOCK(fd, offset, SEEK_SET, len);
-	    err = write(fd->fd_sys, buf, len);
-            ADIOI_UNLOCK(fd, offset, SEEK_SET, len);
-            fd->fp_sys_posn = offset + err;
-         /* individual file pointer not updated */        
-        }
-	else { /* write from curr. location of ind. file pointer */
-	    offset = fd->fp_ind;
-            if (fd->fp_sys_posn != fd->fp_ind)
-		lseek(fd->fd_sys, fd->fp_ind, SEEK_SET);
-	    ADIOI_WRITE_LOCK(fd, offset, SEEK_SET, len);
-	    err = write(fd->fd_sys, buf, len);
-	    ADIOI_UNLOCK(fd, offset, SEEK_SET, len);
-            fd->fp_ind += err;
-            fd->fp_sys_posn = fd->fp_ind;
-        }
+    MPI_Type_size(datatype, &datatype_size);
+    len = datatype_size * count;
+
+    if (file_ptr_type == ADIO_EXPLICIT_OFFSET) {
+	if (fd->fp_sys_posn != offset)
+	    lseek(fd->fd_sys, offset, SEEK_SET);
+	ADIOI_WRITE_LOCK(fd, offset, SEEK_SET, len);
+	err = write(fd->fd_sys, buf, len);
+	ADIOI_UNLOCK(fd, offset, SEEK_SET, len);
+	fd->fp_sys_posn = offset + err;
+	/* individual file pointer not updated */        
     }
-    else fd->fp_sys_posn = -1;    /* set it to null */
+    else { /* write from curr. location of ind. file pointer */
+	offset = fd->fp_ind;
+	if (fd->fp_sys_posn != fd->fp_ind)
+	    lseek(fd->fd_sys, fd->fp_ind, SEEK_SET);
+	ADIOI_WRITE_LOCK(fd, offset, SEEK_SET, len);
+	err = write(fd->fd_sys, buf, len);
+	ADIOI_UNLOCK(fd, offset, SEEK_SET, len);
+	fd->fp_ind += err;
+	fd->fp_sys_posn = fd->fp_ind;
+    }
 
+#ifdef HAVE_STATUS_SET_BYTES
+    if (err != -1) MPIR_Status_set_bytes(status, datatype, err);
+#endif
+
+#ifdef PRINT_ERR_MSG
     *error_code = (err == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
+#else
+    if (err == -1) {
+	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
+			      myname, "I/O Error", "%s", strerror(errno));
+	ADIOI_Error(fd, *error_code, myname);
+    }
+    else *error_code = MPI_SUCCESS;
+#endif
 }
 
 
@@ -55,7 +72,7 @@ void ADIOI_NFS_WriteContig(ADIO_File fd, void *buf, int len, int file_ptr_type,
 	lseek(fd->fd_sys, writebuf_off, SEEK_SET); \
 	err = read(fd->fd_sys, writebuf, writebuf_len); \
         if (err == -1) { \
-            printf("ADIOI_NFS_WriteStrided: ROMIO tries to optimize this access by doing a read-modify-write, but is unable to read the file. Please give the file read permission and open it with MPI_MODE_RDWR.\n"); \
+            FPRINTF(stderr, "ADIOI_NFS_WriteStrided: ROMIO tries to optimize this access by doing a read-modify-write, but is unable to read the file. Please give the file read permission and open it with MPI_MODE_RDWR.\n"); \
             MPI_Abort(MPI_COMM_WORLD, 1); \
         } \
     } \
@@ -74,7 +91,7 @@ void ADIOI_NFS_WriteContig(ADIO_File fd, void *buf, int len, int file_ptr_type,
 	lseek(fd->fd_sys, writebuf_off, SEEK_SET); \
 	err = read(fd->fd_sys, writebuf, writebuf_len); \
         if (err == -1) { \
-            printf("ADIOI_NFS_WriteStrided: ROMIO tries to optimize this access by doing a read-modify-write, but is unable to read the file. Please give the file read permission and open it with MPI_MODE_RDWR.\n"); \
+            FPRINTF(stderr, "ADIOI_NFS_WriteStrided: ROMIO tries to optimize this access by doing a read-modify-write, but is unable to read the file. Please give the file read permission and open it with MPI_MODE_RDWR.\n"); \
             MPI_Abort(MPI_COMM_WORLD, 1); \
         } \
         write_sz = ADIOI_MIN(req_len, writebuf_len); \
@@ -135,21 +152,19 @@ void ADIOI_NFS_WriteStrided(ADIO_File fd, void *buf, int count,
     char *writebuf, *value;
     int flag, st_fwr_size, st_n_filetypes, writebuf_len, write_sz;
     int new_bwr_size, new_fwr_size, err_flag=0, info_flag, max_bufsize;
-
-/* PFS file pointer modes are not relevant here, because PFS does
-   not support strided accesses. */
-
-/*    printf("hi\n");*/
-
-    if ((fd->iomode != M_ASYNC) && (fd->iomode != M_UNIX)) {
-	printf("ADIOI_NFS_WriteStrided: only M_ASYNC and M_UNIX iomodes are valid\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-    }
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "ADIOI_NFS_WRITESTRIDED";
+#endif
 
     ADIOI_Datatype_iscontig(datatype, &buftype_is_contig);
     ADIOI_Datatype_iscontig(fd->filetype, &filetype_is_contig);
 
     MPI_Type_size(fd->filetype, &filetype_size);
+    if ( ! filetype_size ) {
+	*error_code = MPI_SUCCESS; 
+	return;
+    }
+
     MPI_Type_extent(fd->filetype, &filetype_extent);
     MPI_Type_size(datatype, &buftype_size);
     MPI_Type_extent(datatype, &buftype_extent);
@@ -208,7 +223,16 @@ void ADIOI_NFS_WriteStrided(ADIO_File fd, void *buf, int count,
 	ADIOI_Free(writebuf); /* malloced in the buffered_write macro */
 
         if (file_ptr_type == ADIO_INDIVIDUAL) fd->fp_ind = off;
+#ifdef PRINT_ERR_MSG
         *error_code = (err_flag) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
+#else
+	if (err_flag) {
+	    *error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
+			      myname, "I/O Error", "%s", strerror(errno));
+	    ADIOI_Error(fd, *error_code, myname);
+	}
+	else *error_code = MPI_SUCCESS;
+#endif
     }
 
     else {  /* noncontiguous in file */
@@ -297,7 +321,7 @@ void ADIOI_NFS_WriteStrided(ADIO_File fd, void *buf, int count,
 	lseek(fd->fd_sys, writebuf_off, SEEK_SET); 
 	err = read(fd->fd_sys, writebuf, writebuf_len); 
         if (err == -1) {
-            printf("ADIOI_NFS_WriteStrided: ROMIO tries to optimize this access by doing a read-modify-write, but is unable to read the file. Please give the file read permission and open it with MPI_MODE_RDWR.\n"); 
+            FPRINTF(stderr, "ADIOI_NFS_WriteStrided: ROMIO tries to optimize this access by doing a read-modify-write, but is unable to read the file. Please give the file read permission and open it with MPI_MODE_RDWR.\n"); 
             MPI_Abort(MPI_COMM_WORLD, 1); 
         } 
 
@@ -381,7 +405,7 @@ void ADIOI_NFS_WriteStrided(ADIO_File fd, void *buf, int count,
 		    }
 
 		    off = disp + flat_file->indices[j] + 
-                                              (ADIO_Offset) n_filetypes*filetype_extent;
+                                  (ADIO_Offset) n_filetypes*filetype_extent;
 
 		    new_fwr_size = flat_file->blocklens[j];
 		    if (size != bwr_size) {
@@ -423,12 +447,25 @@ void ADIOI_NFS_WriteStrided(ADIO_File fd, void *buf, int count,
 	ADIOI_Free(writebuf); /* malloced in the buffered_write macro */
 
 	if (file_ptr_type == ADIO_INDIVIDUAL) fd->fp_ind = off;
+#ifdef PRINT_ERR_MSG
 	*error_code = (err_flag) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
+#else
+	if (err_flag) {
+	    *error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
+			      myname, "I/O Error", "%s", strerror(errno));
+	    ADIOI_Error(fd, *error_code, myname);
+	}
+	else *error_code = MPI_SUCCESS;
+#endif
     }
 
     fd->fp_sys_posn = -1;   /* set it to null. */
 
+#ifdef HAVE_STATUS_SET_BYTES
+    MPIR_Status_set_bytes(status, datatype, bufsize);
+/* This is a temporary way of filling in status. The right way is to 
+   keep track of how much data was actually written by ADIOI_BUFFERED_WRITE. */
+#endif
+
     if (!buftype_is_contig) ADIOI_Delete_flattened(datatype);
 }
-
-

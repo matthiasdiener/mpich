@@ -4,7 +4,6 @@
 #
 
 CC          = @CC@
-F77         = @F77@
 AR          = @AR@
 RANLIB      = @RANLIB@
 OPTFLAGS    = @OPTFLAGS@
@@ -22,17 +21,18 @@ SHELL       = /bin/sh
 @VPATH@
 
 .SUFFIXES:
-.SUFFIXES: .o .c .f
+.SUFFIXES: .o .c
 
 LIBS = ${libbuild_dir}/lib@MPILIBNAME@.a
 
 MPI_SOURCES = dmpipk.c pkutil.c
 MPI_OBJECTS = dmpipk.o pkutil.o
-MPI_WOBJECTS =
 
 default: ${libbuild_dir}/lib@MPILIBNAME@.a
 
 profile: ${libbuild_dir}/libp@MPILIBNAME@.a
+
+default_conly: default_all
 
 # default_all is the same as default, but without the RANLIB.  This
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
@@ -44,10 +44,6 @@ profile_all: ${MPI_OBJECTS}
 
 source_names:
 	@echo ${MPI_CSOURCES}
-
-wrapperlib: ${MPI_WOBJECTS}
-	if [ "${MPI_WOBJECTS}" != "" ] ; then \
-	${AR} ${libbuild_dir}/libf@MPILIBNAME@.a $?	; fi
 
 .c.o:
 	${CC} ${DEFS} ${INCLUDES} ${CFLAGS} ${OPTFLAGSC} ${OPTFLAGS} -c $<

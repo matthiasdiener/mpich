@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.24 1999/11/29 18:34:40 gropp Exp $
+#  $Id: Makefile.in,v 1.26 2000/08/16 19:22:39 gropp Exp $
 #
 #  {C} 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -40,7 +40,7 @@ SOURCE   = adi2recv.c adi2send.c adi2init.c adi2probe.c adi2ssend.c \
 	   chbeager.c chbrndv.c chdebug.c chchkdev.c chshort.c chflow.c \
 	   chinit.c chnodename.c chhetero.c chtick.c p4priv.c \
 	   queue.c cmnargs.c mprerr.c tr2.c sbcnst2.c objtrace.c \
-	   chpackflow.c calltrace.c chcancel.c @DEVCFILES@
+	   chpackflow.c calltrace.c chcancel.c ch_ldebug.c @DEVCFILES@
 SOURCEC  = ${SOURCE}
 SOURCEF  =
 MPI_OBJECTS = adi2recv.o adi2send.o adi2init.o adi2probe.o adi2ssend.o \
@@ -49,7 +49,8 @@ MPI_OBJECTS = adi2recv.o adi2send.o adi2init.o adi2probe.o adi2ssend.o \
 	      chbeager.o chbrndv.o chdebug.o chchkdev.o chshort.o chflow.o \
 	      chinit.o chnodename.o chhetero.o chtick.o p4priv.o \
 	      ${ASMFILES_O} queue.o cmnargs.o tr2.o sbcnst2.o \
-	      chpackflow.o objtrace.o calltrace.o chcancel.o @DEVOFILES@
+	      chpackflow.o objtrace.o calltrace.o chcancel.o \
+              ch_ldebug.o @DEVOFILES@
 
 default: ${LIBNAME}
 libdev: ${LIBDEV}
@@ -92,7 +93,10 @@ distclean:
 	    /bin/rm -f mpiddev.h ; fi 
 	@if [ -h sbcnst2.h ] ; then \
 	    /bin/rm -f sbcnst2.h ; fi
-	/bin/rm -f Makefile
+	if [ -s p4/Makefile ] ; then \
+	    (cd p4 ; ${MAKE} realclean ) ; fi
+	-@rm -f localdefs mpich-mpid.h
+	-@rm -f Makefile config.status config.system config.log 
 
 MPIDHEADERS = mpid.h req.h comm.h datatype.h chhetero.h attach.h objtrace.h \
 	      calltrace.h cookie.h mpid_bind.h reqalloc.h tr2.h mpimem.h \

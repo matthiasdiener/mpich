@@ -19,7 +19,8 @@ int type, from, to, len, data_type, ack_req;
     int elsize; 
 /* End   bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
     int xdr_len1, len_bytes;
-#if defined(SUN_SOLARIS) || defined(CRAY) || defined(SGI)
+#if defined(SUN_SOLARIS) || defined(CRAY) || defined(SGI) || \
+    defined(USE_U_INT_FOR_XDR)
     u_int xdr_len;
 #else
     int xdr_len;
@@ -39,28 +40,28 @@ int type, from, to, len, data_type, ack_req;
     switch (data_type)
     {
       case P4INT:
-	xdr_proc = xdr_int;
+	xdr_proc = (xdrproc_t) xdr_int;
 	xdr_elsize = XDR_INT_LEN;
 /* Begin bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
         elsize = sizeof(int);
 /* End   bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
 	break;
       case P4LNG:
-	xdr_proc = xdr_long;
+	xdr_proc = (xdrproc_t) xdr_long;
 	xdr_elsize = XDR_LNG_LEN;
 /* Begin bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
         elsize = sizeof(long);
 /* End   bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
 	break;
       case P4FLT:
-	xdr_proc = xdr_float;
+	xdr_proc = (xdrproc_t) xdr_float;
 	xdr_elsize = XDR_FLT_LEN;
 /* Begin bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
         elsize = sizeof(float);
 /* End   bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
 	break;
       case P4DBL:
-	xdr_proc = xdr_double;
+	xdr_proc = (xdrproc_t) xdr_double;
 	xdr_elsize = XDR_DBL_LEN;
 /* Begin bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
         elsize = sizeof(double);
@@ -135,6 +136,8 @@ char *msg;
 		 to * 10000 + from);
 
     fd = p4_local->conntab[to].port;
+    p4_dprintfl( 20, "p4's socket_send: sending msg of type %d from %d to %d via fd %d\n",
+	       type,from,to,fd);
 
     nmsg.msg_type = p4_i_to_n(type);
     nmsg.to = p4_i_to_n(to);
@@ -147,6 +150,8 @@ char *msg;
     flag = (from < to) ? P4_TRUE : P4_FALSE;
     net_send(fd, &nmsg, sizeof(struct p4_net_msg_hdr), flag);
     p4_dprintfl(20, "sent hdr for type %d from %d to %d via socket\n",type,from,to);
+    p4_dprintfl( 20, "p4's socket_send: sent hdr for type %d from %d to %d via fd %d\n",
+	       type,from,to,fd);
 
 #ifdef OLD_SEND_CODE
     while (sent < len)
@@ -225,21 +230,24 @@ int is_blocking;
 	tv.tv_usec = 0;  /* RMB */
 	FD_ZERO(&read_fds);
 #ifdef THREAD_LISTENER
-	p4_dprintfl(70,"socket_recv: p4_local->listener_fd is %d\n",
+	p4_dprintfl(20,"socket_recv: p4_local->listener_fd is %d\n",
 		    p4_local->listener_fd);
 	FD_SET(p4_local->listener_fd, &read_fds);
 #endif
 	nactive = 0;
+	p4_dprintfl( 20, "p4's socket_recv: numinproctbl=%d\n",p4_global->num_in_proctable);
 	for (i = 0; !tmsg && i < p4_global->num_in_proctable; i++)
 	{
 	    if (p4_local->conntab[i].type == CONN_REMOTE_EST)
 	    {
 		p4_dprintfl(50, "socket_recv: setting fd for process %d\n",i);
 		fd = p4_local->conntab[i].port;
+		p4_dprintfl( 20, "p4's socket_recv: setting readfd=%d\n",fd);
 		FD_SET(fd, &read_fds);
 		nactive++;
 	    }
 	}
+	p4_dprintfl(077, "p4's socket_recv: nactive=%d\n",nactive);
 	/* If there is only one process, there will NEVER be any active
 	   connections.  
 	   Question: does this cover the case of multiple processes but
@@ -273,6 +281,7 @@ int is_blocking;
 	    continue;
 	}
 
+	p4_dprintfl(077, "p4's socket_recv: nfds=%d\n",nfds);
 	if (nfds)
 	{
 #ifdef THREAD_LISTENER
@@ -289,10 +298,13 @@ int is_blocking;
 		if (p4_local->conntab[i].type == CONN_REMOTE_EST)
 		{
 		    fd = p4_local->conntab[i].port;
+		    p4_dprintfl( 20, "p4's socket_recv: checking fd=%d\n",fd);
 		    if (FD_ISSET(fd,&read_fds)  &&  sock_msg_avail_on_fd(fd))
 		    {
+			p4_dprintfl( 20, "p4's socket_recv: calling socket_recv_on_fd\n");
 			tmsg = socket_recv_on_fd(fd);
 			found = P4_TRUE;
+			p4_dprintfl( 20, "p4's socket_recv: found=%d\n",found);
 			if (tmsg->ack_req & P4_ACK_REQ_MASK)
 			{
 			    send_ack(fd, tmsg->from);
@@ -330,7 +342,7 @@ int is_blocking;
 struct p4_msg *socket_recv_on_fd(fd)
 int fd;
 {
-    int n, data_type, msg_len;
+    int n, data_type, msg_len = 0;
     struct p4_msg *tmsg;
     struct p4_net_msg_hdr nmsg;
 
@@ -373,8 +385,8 @@ int fd;
     tmsg->len = p4_n_to_i(nmsg.msg_len);	/* chgd by xdr_recv below */
     tmsg->data_type = p4_n_to_i(nmsg.data_type);
     tmsg->ack_req = p4_n_to_i(nmsg.ack_req);
-    p4_dprintfl(30,"recving imm_from: to = %d, from = %d, imm_from = %d, p4_n_to_i(imm_from) =%d in sock_recv_of_fd\n", tmsg->to, tmsg->from, nmsg.imm_from, p4_n_to_i(nmsg.imm_from));
-    p4_dprintfl(30,"data_type = %d, same_rep = %d\n", tmsg->data_type,
+    p4_dprintfl(20,"recving imm_from: to = %d, from = %d, imm_from = %d, p4_n_to_i(imm_from) =%d in sock_recv_of_fd\n", tmsg->to, tmsg->from, nmsg.imm_from, p4_n_to_i(nmsg.imm_from));
+    p4_dprintfl(20,"data_type = %d, same_rep = %d\n", tmsg->data_type,
 		p4_local->conntab[p4_n_to_i(nmsg.imm_from)].same_data_rep);
     if (tmsg->data_type == P4NOX || 
 	p4_local->conntab[p4_n_to_i(nmsg.imm_from)].same_data_rep)
@@ -476,7 +488,8 @@ struct p4_msg *rmsg;
     int elsize; 
 /* End   bugfix, compute msg_len correct, Rolf Rabenseifner,04SEP97*/
     int xdr_len1, len_bytes;
-#if defined(SUN_SOLARIS) || defined(CRAY) || defined(SGI)
+#if defined(SUN_SOLARIS) || defined(CRAY) || defined(SGI) || \
+    defined(USE_U_INT_FOR_XDR)
     u_int xdr_len;
 #else
     int xdr_len;
@@ -489,28 +502,28 @@ struct p4_msg *rmsg;
     switch (rmsg->data_type)
     {
       case P4INT:
-	xdr_proc = xdr_int;
+	xdr_proc = (xdrproc_t) xdr_int;
 	xdr_elsize = XDR_INT_LEN;
 /* Begin bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
         elsize = sizeof(int);
 /* End   bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
 	break;
       case P4LNG:
-	xdr_proc = xdr_long;
+	xdr_proc = (xdrproc_t) xdr_long;
 	xdr_elsize = XDR_LNG_LEN;
 /* Begin bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
         elsize = sizeof(long);
 /* End   bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
 	break;
       case P4FLT:
-	xdr_proc = xdr_float;
+	xdr_proc = (xdrproc_t) xdr_float;
 	xdr_elsize = XDR_FLT_LEN;
 /* Begin bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
         elsize = sizeof(float);
 /* End   bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
 	break;
       case P4DBL:
-	xdr_proc = xdr_double;
+	xdr_proc = (xdrproc_t) xdr_double;
 	xdr_elsize = XDR_DBL_LEN;
 /* Begin bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
         elsize = sizeof(double);

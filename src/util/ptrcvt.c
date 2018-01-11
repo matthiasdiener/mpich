@@ -1,5 +1,5 @@
 /*
- *  $Id: ptrcvt.c,v 1.8 1999/08/20 02:28:07 ashton Exp $
+ *  $Id: ptrcvt.c,v 1.9 2000/06/30 17:55:36 gropp Exp $
  *
  *  (C) 1994 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -314,7 +314,7 @@ void MPIR_RmPointer( int idx )
 int MPIR_UsePointer( 
 	FILE *fp)
 {
-    int      count, perm_in_use;
+    int      count;
     int      in_use, allocated_blocks;
     PtrToIdx *p;
     
@@ -327,7 +327,6 @@ int MPIR_UsePointer(
    
    /* Find out how many are not in use */
     count	= 0;
-    perm_in_use	= 0;
     p		= avail;
     while (p) {
 	count++;

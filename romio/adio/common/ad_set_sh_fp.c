@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_set_sh_fp.c,v 1.2 1999/08/16 20:47:35 thakur Exp $    
+ *   $Id: ad_set_sh_fp.c,v 1.3 2000/02/09 21:30:06 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -15,7 +15,7 @@ void ADIO_Set_shared_fp(ADIO_File fd, ADIO_Offset offset, int *error_code)
     ADIO_Status status;
     MPI_Comm dupcommself;
 
-#ifdef __NFS
+#ifdef NFS
     if (fd->file_system == ADIO_NFS) {
 	ADIOI_NFS_Set_shared_fp(fd, offset, error_code);
 	return;
@@ -34,7 +34,7 @@ void ADIO_Set_shared_fp(ADIO_File fd, ADIO_Offset offset, int *error_code)
 
     ADIOI_WRITE_LOCK(fd->shared_fp_fd, 0, SEEK_SET, sizeof(ADIO_Offset));
     ADIO_WriteContig(fd->shared_fp_fd, &offset, sizeof(ADIO_Offset), 
-		     ADIO_EXPLICIT_OFFSET, 0, &status, error_code);
+		     MPI_BYTE, ADIO_EXPLICIT_OFFSET, 0, &status, error_code);
     ADIOI_UNLOCK(fd->shared_fp_fd, 0, SEEK_SET, sizeof(ADIO_Offset));
 }
 

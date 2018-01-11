@@ -1,5 +1,17 @@
 #include <stdio.h>
+
+#ifdef HAVE_SLOGCONF_H
+#include "slog_config.h"
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
 #include <stdlib.h>
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STRING_H )
+#include <string.h>
+#endif
+#if defined( HAVE_UNISTD_H )
+#include <unistd.h>
+#endif
 
 #include "fbuf.h"
 #include "bswp_fileio.h"
@@ -79,7 +91,7 @@ void SLOG_InitGlobalData( void )
                               + SLOG_typesz[ cpuID_t ]
 #endif
                               + SLOG_typesz[ thID_t ];
-    SLOG_typesz[ where_t    ] = sizeof( SLOG_where_t );
+    SLOG_typesz[ iaddr_t    ] = sizeof( SLOG_iaddr_t );
     SLOG_typesz[ Nassocs_t  ] = sizeof( SLOG_N_assocs_t );
     SLOG_typesz[ assoc_t    ] = sizeof( SLOG_assoc_t );
     SLOG_typesz[ Nargs_t    ] = sizeof( SLOG_N_args_t );
@@ -102,8 +114,8 @@ void SLOG_InitGlobalData( void )
                                  + SLOG_typesz[ stime_t ]
                                  + SLOG_typesz[ dura_t ]
                                  + SLOG_typesz[ taskID_t ]
-#if ! defined( NOWHERE )
-                                 + SLOG_typesz[ where_t ]
+#if ! defined( NOINSTRUCTION )
+                                 + SLOG_typesz[ iaddr_t ]
 #endif
                                  ;
     /*
@@ -205,7 +217,9 @@ SLOG_STREAM *SLOG_OpenStream( const char *path, const char *mode )
 */
 int SLOG_CloseStream( SLOG_STREAM *slog )
 {
+#if defined( DEBUG )
     int ierr;                   /* error return code */
+#endif
 
     if ( ( slog->frame_dir ).entries != NULL ) {
        free( ( slog->frame_dir ).entries );
@@ -226,20 +240,22 @@ int SLOG_CloseStream( SLOG_STREAM *slog )
     SLOG_PSTAT_Free( slog->pstat );
     SLOG_HDR_Free( slog->hdr );
 
-    ierr = fclose( slog->fd );
-    if ( slog != NULL ) {
-       free( slog );
-       slog = NULL;
-    }
-
 #if defined( DEBUG )
+    ierr = fclose( slog->fd );
     if ( ierr ) {
         fprintf( errfile, __FILE__":SLOG_CloseStream() - fclose() "
                           "fails with ierr = %d\n", ierr );
         fflush( errfile );
         return SLOG_FAIL;
     } 
+#else
+    fclose( slog->fd );
 #endif
+
+    if ( slog != NULL ) {
+       free( slog );
+       slog = NULL;
+    }
 
     return SLOG_SUCCESS;
 }
@@ -1296,11 +1312,14 @@ int SLOG_STM_WithdrawBBuf(       SLOG_intvlrec_blist_t *Bbuf,
 {
     SLOG_intvlrec_t  *irec;
     SLOG_uint32       Nrec_expected;
-    SLOG_uint32       Nbytes_expected;
     int               ierr;
     int               ii;
 
+#if defined( DEBUG )
+    SLOG_uint32       Nbytes_expected;
     Nbytes_expected = Bbuf->Nbytes_in_file;
+#endif
+
     Nrec_expected   = Bbuf->count_irec;
     Bbuf->Nbytes_in_file = 0;
     Bbuf->count_irec     = 0;
@@ -1538,14 +1557,14 @@ int SLOG_STM_UpdateFRAME_Backward( SLOG_STREAM *slog )
           SLOG_intvlrec_lptr_t  *lptr;
           SLOG_intvlrec_t       *irec;
           SLOG_time              frame_starttime;
-          SLOG_time              frame_endtime;
+    /*    SLOG_time              frame_endtime;  */
           SLOG_time              irec_starttime;
           SLOG_uint32            Nbytes_changed;
           int                    ierr;
 
 
     frame_starttime = ( slog->frame_dir_entry ).starttime;
-    frame_endtime   = ( slog->frame_dir_entry ).endtime;
+    /*  frame_endtime   = ( slog->frame_dir_entry ).endtime;  */
     Nbytes_changed  = 0;
 
     /*
@@ -1792,23 +1811,6 @@ int SLOG_STM_WriteFRAME( SLOG_STREAM *slog )
         return SLOG_FAIL;
     }
     fflush( slog->fd );
-
-#if defined( ___DEBUG )
-        fprintf( errfile, __FILE__":SLOG_STM_WriteFRAME() - B\n" );
-        slogfile_loc_cur = slog_ftell( slog->fd );
-        if ( slogfile_loc_cur - slog->file_loc != fbuf_bufsz( slog->fbuf ) ) {
-            fprintf( errfile, __FILE__":SLOG_STM_WriteFRAME() - "
-                              "Inconsistency in File Pointers AFTER calling "
-                              "fbuf_empty( frame buffer ) at line %d\n",
-                              __LINE__ );
-            fprintf( errfile, "       ""- slog->file_loc = "fmt_fptr", and "
-                              "slogfile_loc_cur = "fmt_fptr", but "
-                              "( slog->frame_dir_entry ).fptr2framehdr = "
-                              fmt_fptr"\n", slog->file_loc, slogfile_loc_cur,
-                              ( slog->frame_dir_entry ).fptr2framehdr );
-            fflush( errfile );
-        }
-#endif
 
   /*
       Update the SLOG_STREAM's current slog file location
@@ -2153,4 +2155,121 @@ void SLOG_STM_PrintFrameDirEntries( const SLOG_STREAM *slog, FILE *outfd )
                             ( (slog->frame_dir).entries[ ii ] ).endtime );
             fflush( outfd );
         }
+}
+
+
+
+int SLOG_STM_IsPROFConsistentWithRDEF( const SLOG_prof_t          *profile,
+                                       const SLOG_recdefs_table_t *recdefs )
+{
+    SLOG_intvlinfo_t  *intvlinfo;
+    SLOG_recdef_t     *recdef;
+    int                ii;
+
+#if defined( DEBUG )
+    if ( profile == NULL ) {
+        fprintf( errfile, __FILE__":SLOG_STM_IsPROFConsistentWithRDEF() - "
+                          "the input SLOG_prof_t pointer is NULL\n" );
+        fflush( errfile );
+        return SLOG_FALSE;
+    }
+
+    if ( recdefs == NULL ) {
+        fprintf( errfile, __FILE__":SLOG_STM_IsPROFConsistentWithRDEF() - "
+                          "the input SLOG_recdefs_table_t pointer is NULL\n" );
+        fflush( errfile );
+        return SLOG_FALSE;
+    }
+#endif
+
+    if ( profile->Nentries != recdefs->Nentries ) {
+        fprintf( errfile, __FILE__":SLOG_STM_IsPROFConsistentWithRDEF() - "
+                          "Inconistency detected!\n"
+                          "\t""Nentries in Display Profile is different from "
+                          "that in Record Definition Table\n" );
+        fprintf( errfile, "\t""The Display Profile ( Nentries = "
+                          fmt_ui32" ) :\n", profile->Nentries );
+        SLOG_PROF_Print( errfile, profile );
+        fprintf( errfile, "\n" );
+        fprintf( errfile, "\t""The Interval Record Definition Table "
+                          "( Nentries = "fmt_ui32" ) :\n", recdefs->Nentries );
+        SLOG_RDEF_Print( errfile, recdefs );
+        fflush( errfile );
+        return SLOG_FALSE;
+    }
+
+    for ( ii = 0; ii < profile->Nentries; ii++ ) {
+        intvlinfo = &( profile->entries[ ii ] );
+        recdef    = SLOG_RDEF_GetRecDef( recdefs,
+                                         intvlinfo->intvltype,
+                                         intvlinfo->bebits[0],
+                                         intvlinfo->bebits[1] );
+        if ( recdef == NULL ) {
+            fprintf( errfile, __FILE__":SLOG_STM_IsPROFConsistentWithRDEF() - "
+                              "Inconistency detected!\n"
+                              "\t""The key [ intvltype = "fmt_itype_t", ("
+                              fmt_bebit_t", "fmt_bebit_t") ] "
+                              "is found in Display Profile\n",
+                              intvlinfo->intvltype, intvlinfo->bebits[0],
+                              intvlinfo->bebits[1] );
+            fprintf( errfile, "\t""The Display Profile ( Nentries = "
+                              fmt_ui32" ) :\n", profile->Nentries );
+            SLOG_PROF_Print( errfile, profile );
+            fprintf( errfile, "\n" );
+            fprintf( errfile, "\t""The Interval Record Definition Table "
+                              "( Nentries = "fmt_ui32" ) :\n",
+                              recdefs->Nentries );
+            SLOG_RDEF_Print( errfile, recdefs );
+            fflush( errfile );
+            return SLOG_FALSE;
+        }
+        if ( intvlinfo->arg_labels == NULL ) {
+            if ( recdef->Nargs != 0 ) {
+                fprintf( errfile, __FILE__
+                                  ":SLOG_STM_IsPROFConsistentWithRDEF() - "
+                                  "Inconistency detected!\n"
+                                  "\t""For [ intvltype = "fmt_itype_t", ("
+                                  fmt_bebit_t", "fmt_bebit_t") ], the number "
+                                  "of labels, "fmt_ui32" is NOT equal to the "
+                                  "number of arguments, "fmt_Nargs_t"\n",
+                                  intvlinfo->intvltype,
+                                  intvlinfo->bebits[0],
+                                  intvlinfo->bebits[1],
+                                  0, recdef->Nargs );
+                fprintf( errfile, "\t""intvlinfo = " );
+                SLOG_IntvlInfo_Print( intvlinfo, errfile );
+                fprintf( errfile, "\n" );
+                fprintf( errfile, "\t""recdef = " );
+                SLOG_RecDef_Print( recdef, errfile );
+                fprintf( errfile, "\n" );
+                fflush( errfile );
+                return SLOG_FALSE;
+            }
+        }
+        else {
+            if ( recdef->Nargs != intvlinfo->arg_labels->Nstrs ) {
+                fprintf( errfile, __FILE__
+                                  ":SLOG_STM_IsPROFConsistentWithRDEF() - "
+                                  "Inconistency detected!\n"
+                                  "\t""For [ intvltype = "fmt_itype_t", ("
+                                  fmt_bebit_t", "fmt_bebit_t") ], the number "
+                                  "of labels, "fmt_ui32" is NOT equal to the "
+                                  "number of arguments, "fmt_Nargs_t"\n",
+                                  intvlinfo->intvltype,
+                                  intvlinfo->bebits[0],
+                                  intvlinfo->bebits[1],
+                                  intvlinfo->arg_labels->Nstrs, recdef->Nargs );
+                fprintf( errfile, "\t""intvlinfo = " );
+                SLOG_IntvlInfo_Print( intvlinfo, errfile );
+                fprintf( errfile, "\n" );
+                fprintf( errfile, "\t""recdef = " );
+                SLOG_RecDef_Print( recdef, errfile );
+                fprintf( errfile, "\n" );
+                fflush( errfile );
+                return SLOG_FALSE;
+            }
+        }
+    }
+
+    return SLOG_TRUE;
 }

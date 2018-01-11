@@ -1,201 +1,42 @@
 #include "p4.h"
 #include "p4_sys.h"
-#include "mpd.h"
+#include "bnr.h"
 
-extern struct fdentry fdtable[MAXFDENTRIES];
+/* extern struct fdentry fdtable[MAXFDENTRIES]; */
+
+void peer_msg_handler(char *);
 
 int bm_start(argc, argv)
 int *argc;
 char **argv;
 {
     int bm_switch_port;
-    char *p, *s,pgmname[P4_MAX_PGM_LEN];
-    char buf[MAXLINE], client_listener_name[256], cmd[80];
-    int listener_port, listener_fd, listener_pid, status;
-    int parent_idx, myjob, myjsize, myrank, end_1, end_2;
-    struct listener_data *l;
+    char *s, pgmname[P4_MAX_PGM_LEN];
+    int rc, mygroupid, myjsize, myrank;
 
     setbuf( stdout, NULL );  /* turn off buffering for clients */
 
-    if ( ( p = getenv( "MPD_JID" ) ) )
-	myjob = atoi( p );
-    else
-	myjob = -1;
-    if ( ( p = getenv( "MPD_JSIZE" ) ) )
-	myjsize = atoi( p );
-    else
-	myjsize = -1;
-    if ( ( p = getenv( "MPD_JRANK" ) ) )
-	myrank = atoi( p );
-    else
-	myrank = -1;
-    sprintf(whoami_p4, "p%d_%d", myrank, (int)getpid());
-    p4_dprintfl(70, "bm_start: retrieved from environment: jobsize = %d, rank = %d\n",
-		myjsize, myrank );
-
-    /* get fd for talking to the manager from the environment, where he put it after
-       acquiring it. */
-    parent_idx			= allocate_fdentry();
-    if ( ( p = getenv( "MAN_MSGS_FD" ) ) )
-	fdtable[parent_idx].fd = atoi( p );
-    else
-	fdtable[parent_idx].fd = -1;
-    fdtable[parent_idx].read	= 1;
-    fdtable[parent_idx].write	= 0;
-    fdtable[parent_idx].portnum	= -1;
-    fdtable[parent_idx].handler	= MPD;
-    strcpy(fdtable[parent_idx].name, "local_manager" );
-
-    /* get fd for talking to our listener, which was also acquired for us by the
-       manager */
-    if ( ( p = getenv( "CLIENT_LISTENER_FD" ) ) )
-	listener_fd = atoi( p );
-    else
-	listener_fd = -1;
-    p4_dprintfl(70, "listener fd from environment = %d\n", listener_fd); 
-    
-    /* trap_sig_errs(); */ /* mpd debugging */ /* Errors can happen any time */
-
     alloc_global();  /* sets p4_global */
-    p4_global->num_in_proctable = myjsize; /* there really isn't any proctable  */
-
-    p4_dprintfl(90,"past trap and global alloc\n");
-
+    p4_global->local_communication_only = P4_FALSE;  /* hard code for mpd */
     p4_local = alloc_local_bm();
     if (p4_local == NULL)
 	p4_error("p4_initenv: alloc_local_bm failed\n", 0);
-    p4_local->my_id	    = myrank;
-    p4_local->my_job	    = myjob;
-    p4_local->parent_mpd_fd = fdtable[parent_idx].fd;
-
-    p4_global->local_communication_only = P4_FALSE;  /* hard code for mpd */
-#   ifdef CAN_DO_SOCKET_MSGS
-    if (!p4_global->local_communication_only)
-    {
-	p4_global->listener_fd = listener_fd;
-	p4_dprintfl(90, "setup listener on fd %d\n", listener_fd);
-#ifndef THREAD_LISTENER
-	SIGNAL_P4(LISTENER_ATTN_SIGNAL, handle_connection_interrupt);
-#endif
-    }
-    else
-	p4_global->listener_fd = -1;
-#   endif
-
-    /* this has already been done in the client but before the client pgm is exec'd
-    sprintf( buf, "cmd=alive port=%d\n", listener_port);
-    send_msg( fdtable[parent_idx].fd, buf, strlen( buf ) );
-    */
-
     setup_conntab();
-    dump_conntab(70);
 
-    /* Now fork off the listener */
-/* alloc listener local data since this proc will eventually become listener */
-#   if defined(CAN_DO_SOCKET_MSGS)  &&  !defined(NO_LISTENER)
-    if (!(p4_global->local_communication_only))
-    {
-	listener_fd = p4_global->listener_fd;
-	listener_info = alloc_listener_info();
-	l = listener_info;
-	get_pipe(&end_1, &end_2); /* used even by thread listener */
-	l->slave_fd = end_2;
-	p4_local->listener_fd = end_1;
-    }
-#   endif
-
-#   if defined(CAN_DO_SOCKET_MSGS)  &&  !defined(NO_LISTENER) && !defined(THREAD_LISTENER)
-    if (!(p4_global->local_communication_only))
-    {
-	listener_pid = fork_p4();
-	if (listener_pid < 0)
-	    p4_error("create_bm_processes listener fork", listener_pid);
-	if (listener_pid == 0)
-	{
-	    sprintf(whoami_p4, "bm_list_%d", (int)getpid());
-	    /* Inside listener */
-	    p4_local = alloc_local_listener();
-	    l->listening_fd = listener_fd;
-	    l->slave_fd = end_2;
-	    close(end_1);
-	    {
-		/* exec external listener process */
-
-		char *listener_prg = LISTENER_PATHNAME;
-
-		if (*listener_prg)
-		{
-		    char dbg_c[10], max_c[10], lfd_c[10], sfd_c[10];
-
-		    sprintf(dbg_c, "%d", p4_debug_level);
-		    sprintf(max_c, "%d", p4_global->max_connections);
-		    sprintf(lfd_c, "%d", l->listening_fd);
-		    sprintf(sfd_c, "%d", l->slave_fd);
-		    p4_dprintfl(70, "exec %s %s %s %s %s\n",
-				listener_prg, dbg_c, max_c, lfd_c, sfd_c);
-		    execlp(listener_prg, listener_prg,
-			   dbg_c, max_c, lfd_c, sfd_c, NULL);
-		    p4_dprintfl(70, "exec failed (errno= %d), using buildin\n",
-				errno);
-		}
-	    }
-	    listener();
-	    exit(0);
-	}
-    }
-#   endif
-
-#   if defined(THREAD_LISTENER)
-    /* 
-       If there is only one process, then we will not have created a 
-       listener port or corresponding fd.  In that case, we don't need
-       the listener (it just does an while(1) {accept(listener_fd);...},
-       so there isn't anything to do if only a single process is running).
-     */
-    if (p4_global->listener_fd >= 0) {
-	p4_dprintfl(50,"creating listener thread\n");
-	/* pthread_mutex_init( &p4_local->conntab_lock, 0 ); */
-	p4_create_thread( trc, thread_listener, 66 );
-	p4_dprintfl(50,"created listener thread\n");
-    }
-    /* else
-	trc = 0; */
-    /* NT version put the last arg of CreateThread into listener_pid */
-#   endif
-
-    /* We need to close the fds from the listener setup */
-#   if defined(CAN_DO_SOCKET_MSGS)  &&  !defined(NO_LISTENER) 
-    if (!(p4_global->local_communication_only))
-    {
-#       if !defined(THREAD_LISTENER)
-	close(listener_fd);
-	close(end_2);
-#       endif
-	p4_global->listener_pid = listener_pid;
-    }
-#   endif
-
-    /* wait for go message from parent mpd */
+    rc = BNR_Pre_init( peer_msg_handler );  /* specific to mpich-1 */
+    rc = BNR_Init( &mygroupid );
+    rc = BNR_Rank( mygroupid, &myrank );
+    rc = BNR_Size( mygroupid, &myjsize );
     
-    /* this has already been done for us before the exec 
-    p4_dprintfl( 30, "waiting for the go\n");
-    status = read_line( p4_local->parent_mpd_fd, buf, 256 );
-    p4_dprintfl( 30, "Reply from parent mpd=:%s:, status=%d\n", buf, status );
-    if (status <= 0)
-    {
-	p4_dprintf( "invalid status from parent; status=%d \n", status );
-	p4_error( "invalid status from read_file for msg from mpd", -1 );
-    }
-    parse_keyvals( buf );
-    getval( "cmd", cmd );
-    if ( strcmp( cmd, "go" ) != 0 )
-    {
-	p4_dprintf("recvd %s when expecting go\n",cmd);
-	p4_error( "invalid msg from mpd", -1 );
-    }
+    sprintf(whoami_p4, "p%d_%d", myrank, (int)getpid());
+    p4_global->num_in_proctable = myjsize; /* there really isn't any proctable  */
 
-    p4_dprintfl(30, "go cmd received from my parent mpd\n");
-    */
+    p4_local->my_id	    = myrank;
+    p4_local->my_job	    = mygroupid;    /* default jobid for now */
+
+    /* get fd for talking to the manager from the environment, where he put it after
+       acquiring it. */
+    rc = BNR_Man_msgs_fd( &(p4_local->parent_man_fd) );
 
     /* choose a working directory */
     if (strlen(p4_wd) && !chdir(p4_wd))
@@ -236,8 +77,90 @@ char **argv;
     /* big master installing himself */
     install_in_proctable(0, (-1), getpid(), p4_global->my_host_name, 
 			 0, P4_MACHINE_TYPE, bm_switch_port);
+
     return (0);
 }
+
+void peer_msg_handler( msg )
+char *msg;
+{
+    char cmd[32] /*, tohostname[MAXLINE]*/;
+    char c_torank[32],c_toport[32],c_toipaddr[32];
+    int torank,toport,connection_fd,num_tries,rc,connected,optval;
+    int myid = p4_get_my_id();
+    unsigned int toipaddr;
+    struct sockaddr_in sa;
+
+    p4_dprintfl(077,"peer_msg_handler entered with msg :%s:\n",msg );
+    if (strncmp(msg,"connect_to_me-",14) != 0)
+    {
+	p4_dprintfl(077,"invalid msg in peer_msg_handler :%s:\n",msg);
+	return;
+    }
+    sscanf(msg,"%[^-]-%[^-]-%[^-]-%s",cmd,c_torank,c_toipaddr,c_toport);
+    torank = atoi(c_torank);
+    toport = atoi(c_toport);
+    toipaddr = inet_addr(c_toipaddr);
+    bzero((void *)&sa, sizeof(struct sockaddr_in));
+    bcopy((void *)&toipaddr, (void *)&sa.sin_addr, sizeof(unsigned int));
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons(toport);
+
+    if (p4_local->conntab[torank].type == CONN_REMOTE_EST)
+    {
+	p4_dprintfl(077, "peer_msg_handler: already conn'd to %d\n", torank);
+	return;
+    }
+    if (p4_global->dest_id[myid] == torank)  /* already connecting */
+    {
+	if (myid > torank)
+	{
+	    p4_dprintfl(077, "peer_msg_handler: already making conn to %d\n", torank);
+	    return;
+	}
+    }
+
+    SYSCALL_P4(connection_fd, socket(AF_INET, SOCK_STREAM, 0));
+    if (connection_fd < 0)
+	p4_error("peer_msg_handler socket", connection_fd);
+    optval = 1;
+    SYSCALL_P4(rc, setsockopt(connection_fd,IPPROTO_TCP,TCP_NODELAY,(char *) &optval,sizeof(optval)));
+    connected = 0;
+    num_tries = 3;
+    while (!connected && num_tries) {
+	SYSCALL_P4(rc, connect(connection_fd, (struct sockaddr *) &sa,
+			       sizeof(struct sockaddr_in)));
+	if (rc < 0)
+	{
+	    p4_dprintfl( 077, "Connect failed; closed socket %d\n", connection_fd );
+	    if (--num_tries)
+	    {
+		p4_dprintfl(077,"peer_msg_handler: connect to %s failed; will try %d more times \n",c_toipaddr,num_tries);
+		sleep(1);
+	    }
+	}
+	else
+	{
+	    connected = 1;
+	    p4_dprintfl(077,"peer_msg_handler: connected to %s\n",c_toipaddr);
+	}
+
+    }
+
+    p4_local->conntab[torank].type = CONN_REMOTE_EST;
+    p4_local->conntab[torank].port = connection_fd;
+    p4_local->conntab[torank].same_data_rep = P4_TRUE;
+/*    p4_dprintfl(077, "peer_msg_handler: connected after %d tries, connection_fd=%d host = %s\n",
+      num_tries, connection_fd, tohostname); */
+    p4_dprintfl(077, "peer_msg_handler: connected after %d tries, connection_fd=%d\n",
+		num_tries, connection_fd);
+
+    /* We're connected, so we can add this connection to the table */
+    p4_dprintfl(077, "marked as established fd=%d torank=%d\n",
+		connection_fd, torank);
+    p4_dprintfl(077,"peer_msg_handler done\n" );
+}
+
 
 int p4_startup(pg)
 struct p4_procgroup *pg;
@@ -401,10 +324,10 @@ int create_bm_processes(pg)
 struct p4_procgroup *pg;
 {
     struct p4_procgroup_entry *local_pg;
-    struct listener_data *l;
+    struct listener_data *l = NULL;
     int nslaves, end_1, end_2;
-    int slave_pid, listener_pid;
-    int slave_idx, listener_fd;
+    int slave_pid, listener_pid = -1;
+    int slave_idx, listener_fd = -1;
 #   if defined(IPSC860)  ||  defined(CM5)  ||  defined(NCUBE)  ||  defined(SP1_EUI) || defined(SP1_EUIH)
     /* Message passing systems require additional information */
     struct bm_rm_msg bm_msg;

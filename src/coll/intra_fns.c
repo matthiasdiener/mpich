@@ -1,5 +1,5 @@
 /*
- *  $Id: intra_fns.c,v 1.11 1999/11/23 03:15:09 gropp Exp $
+ *  $Id: intra_fns.c,v 1.15 2000/08/23 17:52:30 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -13,6 +13,21 @@
 #include "mpiops.h"
 
 #define MPIR_ERR_OP_NOT_DEFINED MPIR_ERRCLASS_TO_CODE(MPI_ERR_OP,MPIR_ERR_NOT_DEFINED)
+
+/* These should *always* use the PMPI versions of the functions to ensure that
+   only any user code to catch an MPI function only uses the PMPI functions.
+
+   Here is a partial solution.  In the weak symbol case, we simply change all 
+   of the routines to their PMPI versions. 
+ */
+#ifdef HAVE_WEAK_SYMBOLS
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*
  * Provide the collective ops structure for intra communicators.
@@ -74,9 +89,11 @@ static int intra_Allreduce (void*, void*, int,
 static int intra_Reduce_scatter (void*, void*, int *, 
 				 struct MPIR_DATATYPE *, MPI_Op, 
 				 struct MPIR_COMMUNICATOR *);
+#ifdef MPIR_USE_BASIC_COLL
 static int intra_Scan (void* sendbuf, void* recvbuf, int count, 
 		       struct MPIR_DATATYPE * datatype, 
 		       MPI_Op op, struct MPIR_COMMUNICATOR *comm );
+#endif
 
 /* I don't really want to to this this way, but for now... */
 static struct _MPIR_COLLOPS intra_collops =  {
@@ -106,6 +123,7 @@ static struct _MPIR_COLLOPS intra_collops =  {
 #endif
     intra_Alltoall,
     intra_Alltoallv,
+    0, /* Fix me! a dummy for alltoallw */
 #ifdef MPID_Reduce
     MPID_FN_Reduce,
 #else
@@ -962,8 +980,6 @@ static int intra_Reduce (
   void       *buffer;
   struct MPIR_OP *op_ptr;
   static char myname[] = "MPI_REDUCE";
-  MPIR_ERROR_DECL;
-  mpi_comm_err_ret = 0;
 
   /* Is root within the communicator? */
   MPIR_Comm_size ( comm, &size );

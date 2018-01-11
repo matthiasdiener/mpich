@@ -1,6 +1,14 @@
 #include <stdio.h>
-#include <stdarg.h>
+
+#ifdef HAVE_SLOGCONF_H
+#include "slog_config.h"
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
 #include <stdlib.h>
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STDARG_H )
+#include <stdarg.h>
+#endif
 
 #include "slog_bebits.h"
 #include "slog_tasklabel.h"
@@ -81,27 +89,27 @@ void SLOG_Irec_Free( SLOG_intvlrec_t *irec )
 
 void SLOG_Irec_CopyVal( const SLOG_intvlrec_t *src, SLOG_intvlrec_t *dest )
 {
-    dest->bytesize  = src->bytesize;
-    dest->rectype   = src->rectype;
-    dest->intvltype = src->intvltype;
-    dest->bebits[0] = src->bebits[0];
-    dest->bebits[1] = src->bebits[1];
-    dest->starttime = src->starttime;
-    dest->duration  = src->duration;
+    dest->bytesize    = src->bytesize;
+    dest->rectype     = src->rectype;
+    dest->intvltype   = src->intvltype;
+    dest->bebits[0]   = src->bebits[0];
+    dest->bebits[1]   = src->bebits[1];
+    dest->starttime   = src->starttime;
+    dest->duration    = src->duration;
     SLOG_TaskID_Copy( &( dest->origID ), &( src->origID ) );
     if ( SLOG_global_IsOffDiagRec( src->rectype ) )
         SLOG_TaskID_Copy( &( dest->destID ), &( src->destID ) );
-    dest->where     = src->where;
+    dest->instr_addr  = src->instr_addr;
 
     /*
         Here assume memory for the src->args[] has been allocated
         All the function does is copying the pointer
     */
-    dest->N_assocs  = src->N_assocs;
-    dest->assocs    = src->assocs;
-    dest->vhead     = src->vhead;
-    dest->vtail     = src->vtail;
-    dest->vptr      = src->vptr;
+    dest->N_assocs    = src->N_assocs;
+    dest->assocs      = src->assocs;
+    dest->vhead       = src->vhead;
+    dest->vtail       = src->vtail;
+    dest->vptr        = src->vptr;
 }
 
 
@@ -140,18 +148,18 @@ SLOG_intvlrec_t *SLOG_Irec_Copy( const SLOG_intvlrec_t *src )
         return NULL;
     }
 
-    dest->bytesize  = src->bytesize;
-    dest->rectype   = src->rectype;
-    dest->intvltype = src->intvltype;
-    dest->bebits[0] = src->bebits[0];
-    dest->bebits[1] = src->bebits[1];
-    dest->starttime = src->starttime;
-    dest->duration  = src->duration;
+    dest->bytesize    = src->bytesize;
+    dest->rectype     = src->rectype;
+    dest->intvltype   = src->intvltype;
+    dest->bebits[0]   = src->bebits[0];
+    dest->bebits[1]   = src->bebits[1];
+    dest->starttime   = src->starttime;
+    dest->duration    = src->duration;
     SLOG_TaskID_Copy( &( dest->origID ), &( src->origID ) );
     if ( SLOG_global_IsOffDiagRec( src->rectype ) )
         SLOG_TaskID_Copy( &( dest->destID ), &( src->destID ) );
-    dest->where     = src->where;
-    dest->N_assocs  = src->N_assocs;
+    dest->instr_addr  = src->instr_addr;
+    dest->N_assocs    = src->N_assocs;
 
     if ( dest->N_assocs == 0 )
         dest->assocs = NULL;
@@ -229,8 +237,8 @@ int SLOG_Irec_Print( const SLOG_intvlrec_t *irec, FILE *outfd )
     SLOG_TaskID_Print( &( irec->origID ), outfd ); fprintf( outfd, " " );
     if ( SLOG_global_IsOffDiagRec( irec->rectype ) )
         SLOG_TaskID_Print( &( irec->destID ), outfd ); fprintf( outfd, " " );
-#if ! defined( NOWHERE )
-    fprintf( outfd, fmt_where_t" ",  irec->where );
+#if ! defined( NOINSTRUCTION )
+    fprintf( outfd, fmt_iaddr_t" ",  irec->instr_addr );
 #endif
 
     fprintf( outfd, "{ " );
@@ -342,18 +350,18 @@ int SLOG_Irec_IsConsistent( const SLOG_intvlrec_t *irec )
 int SLOG_Irec_IsEqualTo( const SLOG_intvlrec_t *irec1, 
                          const SLOG_intvlrec_t *irec2 )
 {
-    return (    ( irec1->bytesize  == irec2->bytesize  )
-             && ( irec1->rectype   == irec2->rectype   )
-             && ( irec1->intvltype == irec2->intvltype )
-             && ( irec1->bebits[0] == irec2->bebits[0] )
-             && ( irec1->bebits[1] == irec2->bebits[1] )
-             && ( irec1->starttime == irec2->starttime )
-             && ( irec1->duration  == irec2->duration  )
+    return (    ( irec1->bytesize   == irec2->bytesize   )
+             && ( irec1->rectype    == irec2->rectype    )
+             && ( irec1->intvltype  == irec2->intvltype  )
+             && ( irec1->bebits[0]  == irec2->bebits[0]  )
+             && ( irec1->bebits[1]  == irec2->bebits[1]  )
+             && ( irec1->starttime  == irec2->starttime  )
+             && ( irec1->duration   == irec2->duration   )
              && SLOG_TaskID_IsEqualTo( &(irec1->origID), &(irec2->origID) )
              && ( SLOG_global_IsOffDiagRec( irec1->rectype )                      ?
                   SLOG_TaskID_IsEqualTo( &(irec1->destID), &(irec2->destID) ) :
                   1 )
-             && ( irec1->where     == irec2->where     )
+             && ( irec1->instr_addr == irec2->instr_addr )
              && SLOG_Assoc_IsEqualTo( irec1->N_assocs, irec1->assocs, 
                                       irec2->N_assocs, irec2->assocs ) 
              && SLOG_Vargs_AreEqualTo( irec1->vhead, irec2->vhead ) );
@@ -477,18 +485,20 @@ int SLOG_Irec_DepositToFbuf( const SLOG_intvlrec_t *irec,
         Nbytes_written += ierr;
     }
 
-#if ! defined( NOWHERE )
-    ierr = fbuf_deposit( &( irec->where ), SLOG_typesz[ where_t ], 1, fbuf );
+#if ! defined( NOINSTRUCTION )
+    ierr = fbuf_deposit( &( irec->instr_addr ),
+		         SLOG_typesz[ iaddr_t ], 1, fbuf );
     if ( ierr < 1 ) {
         fprintf( errfile, __FILE__":SLOG_Irec_DepositToFbuf() - Cannot "
-                          "deposit the WHERE to the SLOG filebuffer, "
-                          fmt_ui32" bytes written so far\n", Nbytes_written );
+                          "deposit the Instruction Address to the SLOG "
+			  "filebuffer, " fmt_ui32" bytes written so far\n",
+			  Nbytes_written );
         fprintf( errfile, "      ""irec = " );
         SLOG_Irec_Print( irec, errfile ); fprintf( errfile, "\n" );
         fflush( errfile );
         return SLOG_FAIL;
     }
-    Nbytes_written += ierr * SLOG_typesz[ where_t ];
+    Nbytes_written += ierr * SLOG_typesz[ iaddr_t ];
 #endif
 
     ierr = fbuf_deposit( irec->assocs, 
@@ -730,21 +740,23 @@ SLOG_Irec_WithdrawFromFbuf( const SLOG_recdefs_table_t  *slog_recdefs,
         Nbytes_read += ierr;
     }
 
-#if ! defined( NOWHERE )
-    ierr = fbuf_withdraw( &( irec->where ), SLOG_typesz[ where_t ], 1, fbuf );
+#if ! defined( NOINSTRUCTION )
+    ierr = fbuf_withdraw( &( irec->instr_addr ),
+		          SLOG_typesz[ iaddr_t ], 1, fbuf );
     if ( ierr < 1 ) {
         fprintf( errfile, __FILE__":SLOG_Irec_WithdrawFromFbuf() - Cannot "
-                          "withdraw the WHERE from the SLOG filebuffer, "
-                          fmt_ui32" bytes read so far\n", Nbytes_read );
+                          "withdraw the Instruction Address from the SLOG "
+			  "filebuffer, " fmt_ui32" bytes read so far\n",
+			  Nbytes_read );
         fprintf( errfile, "      ""irec = " );
         SLOG_Irec_Print( irec, errfile ); fprintf( errfile, "\n" );
         fflush( errfile );
         free( irec );
         return NULL;
     }
-    Nbytes_read += ierr * SLOG_typesz[ where_t ];
+    Nbytes_read += ierr * SLOG_typesz[ iaddr_t ];
 #else
-    irec->where = 0;
+    irec->instr_addr = SLOG_iaddr_NULL;
 #endif
 
     ierr = SLOG_RecDef_NumOfAssocs( slog_recdefs, irec->intvltype,

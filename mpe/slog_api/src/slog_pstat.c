@@ -1,10 +1,20 @@
-#include <stdlib.h>
 #include <stdio.h>
+
+#ifdef HAVE_SLOGCONF_H
+#include "slog_config.h"
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
+#include <stdlib.h>
+#endif
+#if defined( HAVE_UNISTD_H )
+#include <unistd.h>
+#endif
 
 #include "str_util.h"
 #include "bswp_fileio.h"
 #include "slog_fileio.h"
 #include "slog_header.h"
+#include "slog_profile.h"
 #include "slog_pstat.h"
 
 
@@ -218,7 +228,7 @@ int SLOG_PSTAT_Init( SLOG_STREAM  *slog )
     SLOG_prof_t    *profile;
     SLOG_uint32     pstat_Nset;
     SLOG_uint32     pstat_Nbin;
-    int             idx;
+    int             idx, count;
     int             ierr;
 
     if ( slog == NULL ) {
@@ -265,8 +275,20 @@ int SLOG_PSTAT_Init( SLOG_STREAM  *slog )
         return SLOG_FAIL;
     }
 
+    /*  count the WHOLE states in display profile  */
+    profile  = slog->prof;
+    pstat_Nset = 0;
+    for ( idx = 0; idx < profile->Nentries; idx++ ) {
+        if ( SLOG_IntvlInfo_IsKeyWholeIntvl( &( profile->entries[ idx ] ) ) )
+            pstat_Nset++;
+    }
+
+    /*  
+        Set the number of the WHOLE states in display profile as 
+        the size of the SLOG_pstat_t
+    */
     slog->pstat = SLOG_PSTAT_CreateContent( slog->pstat,
-                                            slog->prof->Nentries );
+                                            pstat_Nset );
     if ( slog->pstat == NULL ) {
         fprintf( errfile, __FILE__":SLOG_PSTAT_Init() - "
                           "SLOG_PSTAT_CreateContent( Nset="fmt_ui32" ) "
@@ -304,7 +326,7 @@ int SLOG_PSTAT_Init( SLOG_STREAM  *slog )
     ierr = bswp_fwrite( &( pstat_Nbin ),
                         sizeof( SLOG_uint32 ), 1, slog->fd );
     if ( ierr < 1 ) {
-        fprintf( errfile, __FILE__":SLOG_PSTAT_Open() - \n"
+        fprintf( errfile, __FILE__":SLOG_PSTAT_Init() - \n"
                           "\t""Fails at writing the bin size "
                           "of each Preview Statistics Array\n" );
         fflush( errfile );
@@ -312,24 +334,18 @@ int SLOG_PSTAT_Init( SLOG_STREAM  *slog )
     }
 
     /*  Set the properties of SLOG_pstat_t  */
-    profile  = slog->prof;
     pstat    = slog->pstat;
 
-    if ( profile->Nentries != pstat->Nset ) {
-        fprintf( errfile, __FILE__":SLOG_PSTAT_Init() - "
-                          "Display Profile's Nentries("fmt_ui32") != "
-                          "Preview Statistics's Nset("fmt_ui32") !!!!!\n",
-                          profile->Nentries, pstat->Nset );
-        fflush( errfile );
-        return SLOG_FAIL;
-    }
-
-    for ( idx = 0; idx < pstat->Nset; idx++ ) {
-        SLOG_StatSet_SetIntvltype( pstat->sets[ idx ],
-                                   ( profile->entries[ idx ] ).intvltype );
-        SLOG_StatSet_SetLabel( pstat->sets[ idx ],
-                               ( profile->entries[ idx ] ).label );
-        pstat->seq_idx_vals[ idx ] = pstat->sets[ idx ]->intvltype;
+    count = 0;
+    for ( idx = 0; idx < profile->Nentries; idx++ ) {
+        if ( SLOG_IntvlInfo_IsKeyWholeIntvl( &( profile->entries[ idx ] ) ) ) {
+            SLOG_StatSet_SetIntvltype( pstat->sets[ count ],
+                                       ( profile->entries[ idx ] ).intvltype );
+            SLOG_StatSet_SetLabel( pstat->sets[ count ],
+                                   ( profile->entries[ idx ] ).label );
+            pstat->seq_idx_vals[ count ] = pstat->sets[ count ]->intvltype;
+            count++;
+        }
     }
 
     return SLOG_SUCCESS;
@@ -1141,7 +1157,7 @@ int SLOG_StatSet_DepositToFbuf( const SLOG_statset_t   *statset,
     }
     Nbytes_written += ierr * sizeof( SLOG_uint16 );
 
-    ierr = fbuf_deposit( &( statset->label ), sizeof( char ),
+    ierr = fbuf_deposit( statset->label, sizeof( char ),
                          SLOG_STRING_LEN-1, fbuf );
     if ( ierr < SLOG_STRING_LEN-1 ) {
         fprintf( errfile, __FILE__":SLOG_StatSet_DepositToFbuf() - Cannot "
@@ -1231,7 +1247,7 @@ int SLOG_StatSet_WithdrawFromFbuf( SLOG_statset_t   *statset,
     }
     Nbytes_read += ierr * sizeof( SLOG_uint16 );
 
-    ierr = fbuf_withdraw( &( statset->label ), sizeof( char ),
+    ierr = fbuf_withdraw( statset->label, sizeof( char ),
                           label_size, fbuf );
     if ( ierr < label_size ) {
         fprintf( errfile, __FILE__":SLOG_StatSet_WithdrawFromFbuf() - Cannot "

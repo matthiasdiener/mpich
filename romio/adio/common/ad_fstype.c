@@ -1,32 +1,32 @@
 /* 
- *   $Id: ad_fstype.c,v 1.8 1999/09/15 14:38:49 thakur Exp $    
+ *   $Id: ad_fstype.c,v 1.11 2000/07/19 22:38:31 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "adio.h"
-#if (defined(__HPUX) || defined(__SPPUX) || defined(__IRIX) || defined(__SOLARIS) || defined(__AIX) || defined(__DEC) || defined(__CRAY))
+#if (defined(HPUX) || defined(SPPUX) || defined(IRIX) || defined(SOLARIS) || defined(AIX) || defined(DEC) || defined(CRAY))
 #include <sys/statvfs.h>
 #endif
-#ifdef __LINUX
+#ifdef LINUX
 #include <sys/vfs.h>
 /* #include <linux/nfs_fs.h> this file is broken in newer versions of linux */
 #define NFS_SUPER_MAGIC 0x6969
 #endif
-#ifdef __FREEBSD
+#ifdef FREEBSD
 #include <sys/param.h>
 #include <sys/mount.h>
 #endif
-#ifdef __PARAGON
+#ifdef PARAGON
 #include <nx.h>
 #include <pfs/pfs.h>
 #include <sys/mount.h>
 #endif
-#ifdef __SX4
+#ifdef SX4
 #include <sys/stat.h>
 #endif
-#ifdef __PVFS
+#ifdef PVFS
 #include "pvfs_config.h"
 #endif
 
@@ -34,16 +34,16 @@ void ADIO_FileSysType(char *filename, int *fstype, int *error_code)
 {
     char *dir, *slash;
     int err;
-#if (defined(__HPUX) || defined(__SPPUX) || defined(__IRIX) || defined(__SOLARIS) || defined(__AIX) || defined(__DEC) || defined(__CRAY))
+#if (defined(HPUX) || defined(SPPUX) || defined(IRIX) || defined(SOLARIS) || defined(AIX) || defined(DEC) || defined(CRAY))
     struct statvfs vfsbuf;
 #endif
-#if (defined(__LINUX) || defined(__FREEBSD))
+#if (defined(LINUX) || defined(FREEBSD))
     struct statfs fsbuf;
 #endif
-#ifdef __PARAGON
+#ifdef PARAGON
     struct estatfs ebuf;
 #endif
-#ifdef __SX4
+#ifdef SX4
     struct stat sbuf;
 #endif
 
@@ -55,18 +55,18 @@ void ADIO_FileSysType(char *filename, int *fstype, int *error_code)
 	else *slash = '\0';
     }
 
-#if (defined(__HPUX) || defined(__SPPUX) || defined(__IRIX) || defined(__SOLARIS) || defined(__AIX) || defined(__DEC) || defined(__CRAY))
+#if (defined(HPUX) || defined(SPPUX) || defined(IRIX) || defined(SOLARIS) || defined(AIX) || defined(DEC) || defined(CRAY))
     err = statvfs(filename, &vfsbuf);
     if (err && (errno == ENOENT)) err = statvfs(dir, &vfsbuf);
     free(dir);
 
     if (err) *error_code = MPI_ERR_UNKNOWN;
     else {
-	/* printf("%s\n", vfsbuf.f_basetype); */
+	/* FPRINTF(stderr, "%s\n", vfsbuf.f_basetype); */
 	if (!strncmp(vfsbuf.f_basetype, "nfs", 3)) *fstype = ADIO_NFS;
 	else {
-# if (defined(__HPUX) || defined(__SPPUX))
-#    ifdef __HFS
+# if (defined(HPUX) || defined(SPPUX))
+#    ifdef HFS
 	    *fstype = ADIO_HFS;
 #    else
             *fstype = ADIO_UFS;
@@ -79,33 +79,37 @@ void ADIO_FileSysType(char *filename, int *fstype, int *error_code)
 	}
 	*error_code = MPI_SUCCESS;
     }
-#elif defined(__LINUX)
+#elif defined(LINUX)
     err = statfs(filename, &fsbuf);
     if (err && (errno == ENOENT)) err = statfs(dir, &fsbuf);
     free(dir);
 
     if (err) *error_code = MPI_ERR_UNKNOWN;
     else {
-	/* printf("%d\n", fsbuf.f_type);*/
+	/* FPRINTF(stderr, "%d\n", fsbuf.f_type);*/
 	if (fsbuf.f_type == NFS_SUPER_MAGIC) *fstype = ADIO_NFS;
-#ifdef __PVFS
+#ifdef PVFS
 	else if (fsbuf.f_type == PVFS_SUPER_MAGIC) *fstype = ADIO_PVFS;
 #endif
 	else *fstype = ADIO_UFS;
 	*error_code = MPI_SUCCESS;
     }
-#elif (defined(__FREEBSD) && defined(__HAVE_MOUNT_NFS))
+#elif (defined(FREEBSD) && defined(HAVE_MOUNT_NFS))
     err = statfs(filename, &fsbuf);
     if (err && (errno == ENOENT)) err = statfs(dir, &fsbuf);
     free(dir);
 
     if (err) *error_code = MPI_ERR_UNKNOWN;
     else {
+#if (__FreeBSD_version>300004)
+	if ( !strncmp("nfs",fsbuf.f_fstypename,3) ) *fstype = ADIO_NFS;
+#else
 	if (fsbuf.f_type == MOUNT_NFS) *fstype = ADIO_NFS;
+#endif
 	else *fstype = ADIO_UFS;
 	*error_code = MPI_SUCCESS;
     }
-#elif defined(__PARAGON)
+#elif defined(PARAGON)
     err = statpfs(filename, &ebuf, 0, 0);
     if (err && (errno == ENOENT)) err = statpfs(dir, &ebuf, 0, 0);
     free(dir);
@@ -117,7 +121,19 @@ void ADIO_FileSysType(char *filename, int *fstype, int *error_code)
 	else *fstype = ADIO_UFS;
 	*error_code = MPI_SUCCESS;
     }
-#elif defined(__SX4)
+#elif defined(tflops)
+    err = statfs(filename, &fsbuf);
+    if (err && (errno == ENOENT)) err = statfs(dir, &fsbuf);
+    free(dir);
+
+    if (err) *error_code = MPI_ERR_UNKNOWN;
+    else {
+	if (fsbuf.f_type == MOUNT_NFS) *fstype = ADIO_NFS;
+	else if (fsbuf.f_type == MOUNT_PFS) *fstype = ADIO_PFS;
+	else *fstype = ADIO_UFS;
+	*error_code = MPI_SUCCESS;
+    }
+#elif defined(SX4)
      err = stat (filename, &sbuf);
      if (err && (errno == ENOENT)) err = stat (dir, &sbuf);
      free(dir);
@@ -134,4 +150,5 @@ void ADIO_FileSysType(char *filename, int *fstype, int *error_code)
     *fstype = ADIO_NFS;   
     *error_code = MPI_SUCCESS;
 #endif
+
 }

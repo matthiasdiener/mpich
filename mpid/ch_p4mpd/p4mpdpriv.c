@@ -20,9 +20,10 @@ void MPID_P4_Init( argc, argv )
 int *argc;
 char ***argv;
 {
+#ifdef FOO    
     int narg,nlen,i,*arglen;
     char *p,*argstr;
-
+#endif
     p4_initenv(argc,*argv);
     p4_post_init();		/* do any special post_init stuff */
     MPID_MyWorldRank = p4_get_my_id();

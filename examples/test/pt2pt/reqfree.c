@@ -104,7 +104,7 @@ int main( int argc, char **argv )
 
     MPI_Allreduce( &errs, &toterrs, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
     if (rank == 0) {
-	if (toterrs == 0) printf( "No errors\n" );
+	if (toterrs == 0) printf( " No Errors\n" );
 	else              printf( "Found %d errors\n", toterrs );
     }
 

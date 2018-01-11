@@ -9,6 +9,9 @@ int SLOG_SetPreviewName( SLOG_STREAM *slog, const char *pview_filename )
 </CODE></PRE>
 <H2>Unmodified Input parameter</H2>
 <DL><DT><B>pview_filename </B> - pointer to the characters of the Preview's filename.
+If no file is supplied, "/dev/null" should be
+supplied to avoid checking of file SLOG_Preview.txt
+in working directory.
 </DL>
 <P>
 <H2>Modified Input parameter </H2>

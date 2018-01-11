@@ -153,7 +153,11 @@ c	call Test_Waitforall_( )
 	call MPI_ALLREDUCE( errors, toterrors, 1, MPI_INTEGER,
      1                      MPI_SUM, MPI_COMM_WORLD, ierr )
 	if (rank .eq. 0) then
-	   print *, ' Done with ', toterrors, ' ERRORS!'
+	   if (toterrors .eq. 0) then
+	      print *, ' No Errors'
+	   else
+	      print *, ' Done with ', toterrors, ' ERRORS!'
+	   endif
 	endif
 	call MPI_FINALIZE(ierr)
 c	   print *, '[', rank, '] done with ', errors, ' ERRORS!'

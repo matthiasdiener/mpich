@@ -1,4 +1,4 @@
-.TH SLOG_Irec_GetMinRec 3 "8/11/1999" " " "SLOG_API"
+.TH SLOG_Irec_GetMinRec 3 "4/24/2000" " " "SLOG_API"
 .SH NAME
 SLOG_Irec_GetMinRec \-  Retrieve the fields for a bare minimal Interval Record 
 .SH SYNOPSIS
@@ -13,7 +13,7 @@ int SLOG_Irec_GetMinRec( const SLOG_intvlrec_t   *intvlrec,
                                SLOG_nodeID_t     *orig_node_id,
                                SLOG_cpuID_t      *orig_cpu_id,
                                SLOG_threadID_t   *orig_thread_id,
-                               SLOG_where_t      *where,
+                               SLOG_iaddr_t      *instr_addr,
                          ... )
 .fi
 .SH UNMODIFIED INPUT VARIABLES 
@@ -74,8 +74,8 @@ sets of MPI call arguments.
 .PD 1
 .PD 0
 .TP
-.B orig_where 
-- pointer to interval record's where integer pointer.
+.B orig_instr_addr 
+- pointer to interval record's instr_addr integer pointer.
 .PD 1
 .PD 0
 .TP

@@ -11,7 +11,6 @@ X_INC	    = @XINCLUDES@
 INCLUDE_DIR = $(X_INC) $(TCLTK_INC) -I${srcdir}
 # Duplicate libs in case XPMLIB adds refs
 LIBS        = $(TCLTK_LIB) @XPMLIB@ $(TCLTK_LIB) @XLIBSW@ @LIBS@ -lm
-OPTFLAGS    = @OPTFLAGS@
 
 @VPATH@
 # Installation directories
@@ -51,7 +50,7 @@ SHELL = /bin/sh
 
 EXECS = nupshot
 
-CFLAGS = $(OPTFLAGS) $(INCLUDE_DIR) $(AC_FLAGS)\
+CFLAGS = $(INCLUDE_DIR) $(AC_FLAGS)\
 	 "-DNUPSHOT_SOURCE=\"$(SRC_DIR)\""
 
 COBJECTS = timelines.o mtn.o msgs.o states.o events.o procs.o \
@@ -86,5 +85,7 @@ nupshot: $(COBJECTS)
 	$(CC) $(CFLAGS) -c $<
 
 clean:
-	-/bin/rm -f *.o *~ $(EXECS) ${srcdir}/*.o
+	-/bin/rm -f *.o *~ ${srcdir}/*.o
 
+distclean: clean
+	-/bin/rm -f $(EXECS)

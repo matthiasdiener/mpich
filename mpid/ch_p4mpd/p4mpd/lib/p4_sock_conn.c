@@ -1,6 +1,7 @@
 #include "p4.h"
 #include "p4_sys.h"
-#include "mpd.h"
+#include "bnr.h"
+#include "mpduser.h"
 
 /* This routine gies us a way to timeout a loop */
 #include <sys/time.h>
@@ -48,28 +49,96 @@ int establish_connection(dest_id)
 int dest_id;
 {
     int myid = p4_get_my_id();
+    int new_listener_port, new_listener_fd, connection_fd;
+    char buf[1024];
+    struct timeval tv;
+    fd_set readfds;
+    int numfds, rc;
+    struct hostent *hp;
+    struct in_addr in;
+    char *c_inetaddr;
 
-    p4_dprintfl( 50, "inside estab_conn: dest_id=%d my_id=%d\n", dest_id, myid);
-    p4_global->dest_id[myid] = dest_id;
-    request_connection(dest_id);
-    p4_global->dest_id[myid] = (-1);
+    p4_dprintfl(077, "p4's estab_connection: trying dest_id=%d my_id=%d\n", dest_id, myid);
 
-    if (myid > dest_id)
+    p4_global->dest_id[myid] = dest_id;  /* block interrupt handler */
+    /* if already done by interrupt handler */
+    if (p4_local->conntab[dest_id].type == CONN_REMOTE_EST)
     {
-	/* following should not spin long */
-        p4_has_timedout( 0 );
-	/* If threaded, we should wait for the message from the thread,
-	   rather than spin here */
-	p4_dprintfl(70, "waiting for interrupt handler to do its job\n");
-	while (p4_local->conntab[dest_id].type != CONN_REMOTE_EST) {
-	    p4_dprintfl(111, "waiting in loop for interrupt handler to do its job\n");
-	    if (p4_has_timedout( 1 )) {
-		p4_error( "Timeout in establishing connection to remote process", 0 );
-		}
-	    }
-	p4_dprintfl(70, "interrupt handler succeeded\n");
+	p4_global->dest_id[myid] = (-1);
+	return(P4_TRUE);
     }
-    return (P4_TRUE);
+
+    net_setup_anon_listener(1, &new_listener_port, &new_listener_fd);
+    hp = gethostbyname(p4_global->my_host_name);
+    if (hp == NULL)
+    {
+	/* printf("connect_to_server: gethostbyname %s: %s -- exiting\n",
+	   p4_global->my_host_name, sys_errlist[errno]); */
+	exit(99);
+    }
+    
+    memcpy( &in.s_addr, hp->h_addr, sizeof(in.s_addr) );
+    c_inetaddr = (char *)inet_ntoa( in );
+    /* c_inetaddr = (char *)inet_ntoa( (int) *((int*)(hp->h_addr)) ); */
+
+    /* mpdman adds a newline to this msg before passing it down; id is rank */ 
+    sprintf(buf,"connect_to_me-%d-%s-%d",p4_local->my_id,c_inetaddr,new_listener_port);
+
+    p4_dprintfl(077, "calling mpd_poke_client; destid=%d\n",dest_id);
+    rc = BNR_Poke_peer( p4_local->my_job,dest_id,buf );  /* job is groupid for now */
+    while (1)
+    {
+        FD_ZERO( &readfds );
+        FD_SET( new_listener_fd, &readfds );
+        numfds = new_listener_fd + 1;
+	if (p4_local->conntab[dest_id].type == CONN_REMOTE_EST)
+	{
+	    p4_dprintfl(077,"p4's estab_conn: return pt 1; already conn'd\n");
+	    p4_global->dest_id[myid] = (-1);
+	    return(P4_TRUE);
+	}
+        tv.tv_sec = 0;
+        tv.tv_usec = 10000;
+	p4_dprintfl(077,"p4's estab_conn: trying select\n");
+        rc = select( numfds, &readfds, NULL, NULL, &tv );
+	p4_dprintfl(077,"p4's estab_conn: past select rc=%d\n",rc);
+        if ( ( rc == -1 ) && ( errno == EINTR ) )
+	{
+            continue;
+	}
+        else if ( rc < 0 )
+	{
+            error_check( rc, "main loop: select" );
+	}
+        else if ( rc == 0 )    /* if timed out */
+	{
+	    p4_dprintfl(077, "select timed out after %ld useconds\n", tv.tv_usec );
+	    /* if already done by interrupt handler */
+	    if (p4_local->conntab[dest_id].type == CONN_REMOTE_EST)
+	    {
+		p4_dprintfl(077,"p4's estab_conn: return pt 2; already conn'd\n");
+		p4_global->dest_id[myid] = (-1);
+		return(P4_TRUE);
+	    }
+	    else
+	    {
+		continue;
+	    }
+	}
+        else if ( FD_ISSET( new_listener_fd, &readfds ) )
+        {
+	    connection_fd = net_accept(new_listener_fd);
+	    break;
+        }
+    }
+
+    p4_local->conntab[dest_id].type = CONN_REMOTE_EST;
+    p4_local->conntab[dest_id].port = connection_fd;
+    p4_local->conntab[dest_id].same_data_rep = P4_TRUE;
+    p4_global->dest_id[myid] = (-1);
+    p4_dprintfl(077, "p4's estab_connection: got  dest_id=%d my_id=%d port=%d\n",
+		 dest_id, myid, p4_local->conntab[dest_id].port);
+    return(P4_TRUE);
 }
 
 /*
@@ -80,12 +149,10 @@ int dest_id;
 P4VOID request_connection(dest_id)
 int dest_id;
 {
-    char *my_host, *dest_host;
     int my_id;
     struct slave_listener_msg msg;
     int connection_fd;
     int dest_listener_con_fd;
-    int my_listener, dest_listener;
     int new_listener_port, new_listener_fd;
 #   if (defined(HAVE_SIGBLOCK) && defined(HAVE_SIGSETMASK))
     int oldmask;
@@ -117,28 +184,28 @@ int dest_id;
 	return;
     }
 
-    /* find destination listener from our parent mpd */
+    /* find destination listener from our parent mpdman */
 
     for (i=0; i < 5; i++) {
         p4_dprintfl( 70, "%d: Tell parent I need to talk to %d\n", my_id, dest_id );
 	sprintf( buf, "cmd=findclient job=%d rank=%d\n",
 		 p4_local->my_job, dest_id );
-	send_msg( p4_local->parent_mpd_fd, buf, strlen(buf) );
-	status = read_line( p4_local->parent_mpd_fd, buf, 256 ); /* Note client hanging */
+	send_msg( p4_local->parent_man_fd, buf, strlen(buf) );
+	status = read_line( p4_local->parent_man_fd, buf, 256 ); /* Note client hanging */
 
-	p4_dprintfl( 70, "%d: Reply from parent mpd, buf=:%s:, status=%d\n",
+	p4_dprintfl( 70, "%d: Reply from parent mpdman, buf=:%s:, status=%d\n",
 		     my_id, buf, status );
 	if (status <= 0)
 	{
 	    p4_dprintf( "request_conn: invalid status from parent; status=%d \n", status );
-	    p4_error( "request_conn: invalid status from read_file for msg from mpd", -1 );
+	    p4_error( "request_conn: invalid status from read_file for msg from mpdman", -1 );
 	}
 	parse_keyvals( buf );
 	getval( "cmd", cmd );
         if ( strcmp( cmd, "foundclient" ) != 0 )
 	{
 	    p4_dprintf("recvd :%s: when expecting foundclient\n",cmd);
-	    p4_error( "invalid msg from mpd", -1 );
+	    p4_error( "invalid msg from mpdman", -1 );
 	}
 	getval( "host", host );
 	getval( "port", charport );
@@ -236,7 +303,6 @@ int sig;
     int listener_fd;
     int to, to_pid, from, lport;
     int connection_fd;
-    struct proc_info *from_pi;
     int myid = p4_get_my_id();
     int num_tries;
 

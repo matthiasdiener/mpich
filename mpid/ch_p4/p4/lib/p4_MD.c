@@ -1482,7 +1482,7 @@ P4VOID MD_unlock(MD_lock_t *L)
     sem_unlock[0].sem_num = L->semnum;
     if (semop(L->semid,&sem_unlock[0],1) < 0)
     {
-        p4_error("OOPS: semop unlock failed\n",(int)L);
+        p4_error("OOPS: semop unlock failed\n",(int)L->semid);
     }
 }
 #endif

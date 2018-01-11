@@ -1,37 +1,38 @@
 // -*- c++ -*-
 //
-//
-// Copyright 1997-1999, University of Notre Dame.
-// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
-//           Andrew Lumsdaine
-//
-// This file is part of the Notre Dame C++ bindings for MPI
-//
-// You should have received a copy of the License Agreement for the
-// Notre Dame C++ bindings for MPI along with the software;  see the
-// file LICENSE.  If not, contact Office of Research, University of Notre
-// Dame, Notre Dame, IN  46556.
-//
+// Copyright 1997-2000, University of Notre Dame.
+// Authors: Jeremy G. Siek, Jeffery M. Squyres, Michael P. McNally, and
+//          Andrew Lumsdaine
+// 
+// This file is part of the Notre Dame C++ bindings for MPI.
+// 
+// You should have received a copy of the License Agreement for the Notre
+// Dame C++ bindings for MPI along with the software; see the file
+// LICENSE.  If not, contact Office of Research, University of Notre
+// Dame, Notre Dame, IN 46556.
+// 
 // Permission to modify the code and to distribute modified code is
 // granted, provided the text of this NOTICE is retained, a notice that
 // the code was modified is included with the above COPYRIGHT NOTICE and
 // with the COPYRIGHT NOTICE in the LICENSE file, and that the LICENSE
 // file is distributed with the modified code.
-//
+// 
 // LICENSOR MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
 // By way of example, but not limitation, Licensor MAKES NO
 // REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY
 // PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE COMPONENTS
 // OR DOCUMENTATION WILL NOT INFRINGE ANY PATENTS, COPYRIGHTS, TRADEMARKS
 // OR OTHER RIGHTS.
+// 
+// Additional copyrights may follow.
 //
 
 #include <iostream.h> 
 #include <mpi++.h>
 #include <assert.h>
 
-void cartesian(void);
-void graph(void);
+void cartesian();
+void graph();
 
 int my_rank;
 
@@ -42,14 +43,20 @@ main(int argc, char *argv[])
   MPI::Init(argc, argv);
   my_rank = MPI::COMM_WORLD.Get_rank();
 
-  cartesian();
-  graph();
+  if (MPI::COMM_WORLD.Get_size() != 4) {
+    if (my_rank == 0)
+      cerr << "This program must be invoked with 4 ranks." << endl;
+  } else {
+    cartesian();
+    graph();
+  }
 
   MPI::Finalize();
+  return 0;
 }
   
 void 
-cartesian(void)
+cartesian()
 {
   if (my_rank == 0)
     cout << endl << "CARTESIAN TOPOLOGY" << endl << endl;
@@ -62,15 +69,16 @@ cartesian(void)
   //  dimensions have the same periodicity, then a single boolean can be
   //  used.
 
-  int size = MPI::COMM_WORLD.Get_size();
   int dims[2] = {0,0};
 
   MPI::Compute_dims(4, 2, dims);
-  MPI2CPP_BOOL_T periods[2] = { true, true };
-  MPI::Cartcomm cart = MPI::COMM_WORLD.Create_cart(2, dims, periods, false);
+  MPI2CPP_BOOL_T periods[2] = { MPI2CPP_TRUE, MPI2CPP_TRUE };
+  MPI::Cartcomm cart = MPI::COMM_WORLD.Create_cart(2, dims, periods, 
+						   MPI2CPP_FALSE);
 
   //  OOMPI_Cart_comm cart(OOMPI_COMM_WORLD, 2, 
-  //		       OOMPI_COMM_WORLD.Dims_create(2,dims), true, false);
+  //		       OOMPI_COMM_WORLD.Dims_create(2,dims), MPI2CPP_TRUE, 
+  //                   MPI2CPP_TRUE);
 
   cout << "cart is a " << dims[0] << "x" << dims[1] << " 2D mesh" << endl;
 
@@ -88,7 +96,7 @@ cartesian(void)
 }
 
 void
-graph(void)
+graph()
 {
   int size = MPI::COMM_WORLD.Get_size();
 
@@ -110,7 +118,8 @@ graph(void)
   int edges[] = {1,3,0,3,0,2};
   int index[] = {2,3,4,6};
 
-  MPI::Graphcomm graph = MPI::COMM_WORLD.Create_graph(4, index, edges, false);
+  MPI::Graphcomm graph = MPI::COMM_WORLD.Create_graph(4, index, edges, 
+						      MPI2CPP_FALSE);
 
   for (int i=0; i<graph.Get_size(); i++) {
     int neighbors[2]; 

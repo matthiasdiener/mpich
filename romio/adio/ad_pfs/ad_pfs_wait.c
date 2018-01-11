@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_pfs_wait.c,v 1.2 1998/06/02 18:43:41 thakur Exp $    
+ *   $Id: ad_pfs_wait.c,v 1.4 2000/02/09 21:29:52 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -10,27 +10,33 @@
 void ADIOI_PFS_ReadComplete(ADIO_Request *request, ADIO_Status *status, int *error_code)  
 {
     int err=0;
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "ADIOI_PFS_READCOMPLETE";
+#endif
 
     if (*request == ADIO_REQUEST_NULL) {
         *error_code = MPI_SUCCESS;
         return;
     }
 
-    if (((*request)->next != ADIO_REQUEST_NULL) && ((*request)->queued != -1))
-        /* the second condition is to take care of the ugly hack in
-            ADIOI_Complete_async */
-
-        ADIOI_PFS_ReadComplete(&((*request)->next), status, error_code);
-
-    /* currently passing status and error_code here, but something else
-       needs to be done to get the status and error info correctly */
-
-
     if ((*request)->queued) {
 	err = _iowait(*((long *) (*request)->handle));
+#ifdef PRINT_ERR_MSG
 	*error_code = (err == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
+#else
+	if (err == -1) {
+	    *error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
+			  myname, "I/O Error", "%s", strerror(errno));
+	    ADIOI_Error((*request)->fd, *error_code, myname);	    
+	}
+	else *error_code = MPI_SUCCESS;
+#endif
     }
     else *error_code = MPI_SUCCESS;
+#ifdef HAVE_STATUS_SET_BYTES
+    if ((*request)->nbytes != -1)
+	MPIR_Status_set_bytes(status, (*request)->datatype, (*request)->nbytes);
+#endif
 
     if ((*request)->queued != -1) {
 
@@ -51,9 +57,8 @@ void ADIOI_PFS_ReadComplete(ADIO_Request *request, ADIO_Status *status, int *err
         ADIOI_Free_request((ADIOI_Req_node *) (*request));
         *request = ADIO_REQUEST_NULL;
     }
-
-/* status to be filled */
 }
+
 
 void ADIOI_PFS_WriteComplete(ADIO_Request *request, ADIO_Status *status, int *error_code)  
 {

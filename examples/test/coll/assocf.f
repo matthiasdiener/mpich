@@ -63,7 +63,7 @@ C         print *, "recvbuf(",i,") = ", recvbuf(i), " on ", me
          if (toterr .gt. 0) then
             print *, " FAILED with ", toterr, " errors."
          else
-            print *, " Test passed."
+            print *, " No Errors"
          endif
       endif
 C      print *," The value of the sum on node ",me,"is",sum

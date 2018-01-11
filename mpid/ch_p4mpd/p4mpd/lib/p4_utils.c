@@ -160,7 +160,7 @@ int *end;
 int p4_get_my_id_from_proc()
 {
     int i, my_unix_id;
-    int n_match, match_id;
+    int n_match, match_id = -1;
     struct proc_info *pi;
     struct hostent *myhp, *pghp;
     struct in_addr myaddr;       /* 8/14/96, llewins@msmail4.hac.com */
@@ -695,7 +695,7 @@ int p4_wait_for_end()
 #ifndef THREAD_LISTENER
     if (p4_local->listener_fd != (-1))
     {
-	p4_dprintfl(90, "tell listener to die listpid=%d fd=%d\n",
+	p4_dprintfl(00, "tell listener to die listpid=%d fd=%d\n",
 		    p4_global->listener_pid, p4_local->listener_fd);
 	msg.type = p4_i_to_n(DIE);
 	msg.from = p4_i_to_n(p4_get_my_id());
@@ -899,10 +899,12 @@ char *str;
 	    }
 #       else
         if (*str == '\0')
+	{
             if (p4_global)
                 strcpy(str,p4_global->my_host_name);
             else
                 gethostname(str, 100);
+	}
 #       endif
     if (*local_domain != '\0'  &&  !index(str,'.'))
     {

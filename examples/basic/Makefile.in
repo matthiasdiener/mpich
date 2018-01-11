@@ -18,36 +18,49 @@ LOG_LIB     = -mpilog -lm
 PROF_LIB    = -lmpe -lm
 OPTFLAGS    = @OPTFLAGS@
 MPE_DIR     = @MPE_DIR@
-F77_OPTFLAGS = @F77_EXTRA_FLAG@
+MAKE        = @MAKE@
 #
 srcdir=@srcdir@
 
 @VPATH@
 ### End User configurable options ###
+.SUFFIXES:	.cc .C .f90
 
 CFLAGS	  = $(OPTFLAGS) 
-CFLAGSMPE = $(CFLAGS) -I$(MPE_DIR) 
+CFLAGSMPE = $(CFLAGS) -I$(MPE_DIR)/include 
 CCFLAGS	  = $(CFLAGS)
 #FFLAGS	  = '-qdpc=e' 
 FFLAGS	  = $(OPTFLAGS)
 EXECS	  = cpi systest srtest 
+ALL_EXECS = ${EXECS} fpi cpilog cpi_autolog hello++ iotest pi3f90 
 
-all: cpi systest srtest fpi cpilog hello++ iotest fibon 
+all: cpi systest srtest fpi cpilog hello++ iotest pi3f90 
 
+#
+# The cp for pi3f90 is needed because different Fortran 90 compilers
+# accept *different* suffixes.
+# pi3f90 also wants an MPI module.  If modules not supported, don't
+# try to build pi3f90
 default: $(EXECS)
-	if [ "@ROMIO@" = 1 -a -s iotest.c ] ; then $(MAKE) iotest ; fi
-	if [ "@buildcpp@" = 1 ] ; then $(MAKE) hello++ ; fi
-	if [ "@NOF77@" = 0 ] ; then $(MAKE) fpi ; fi
-	if [ "@NOMPE@" = 0 ] ; then $(MAKE) cpilog ; fi
-	if [ "@NOMPE@" = 0 ] ; then $(MAKE) cpi_autolog ; fi
-	if [ -n "@F90@" -o "@f90nag@" = 1 ] ; then $(MAKE) fibon ; fi
+	@if [ "@ROMIO@" = 1 -a -s iotest.c ] ; then $(MAKE) iotest ; fi
+	@if [ "@buildcpp@" = 1 ] ; then $(MAKE) hello++ ; fi
+	@if [ "@NOF77@" = 0 ] ; then $(MAKE) fpi ; fi
+	@if [ "@NOMPE@" = 0 ] ; then $(MAKE) cpilog ; fi
+	@if [ "@NOMPE@" = 0 ] ; then $(MAKE) cpi_autolog ; fi
+	@if [ -n "@F90_MODINCFLAG@" ] ; then \
+	    if [ ! -s pi3f90.@F90_SUFFIX@ ] ; then \
+		cp ${srcdir}/pi3f90.f90 pi3f90.@F90_SUFFIX@ ; fi ; \
+	    $(MAKE) pi3f90 ; fi
 
 
 fpi: fpi.o 
 	$(FLINKER) $(OPTFLAGS) -o fpi fpi.o
 
-fibon: fibon.o 
-	$(F90LINKER) $(OPTFLAGS) -o fibon fibon.o
+# Some Fortran 90 compilers do not accept a .f90 suffix (xlf90 for one)
+pi3f90.o: pi3f90.@F90_SUFFIX@
+	$(F90) $(FFLAGS) -c pi3f90.@F90_SUFFIX@
+pi3f90: pi3f90.o
+	$(F90LINKER) $(OPTFLAGS) -o pi3f90 pi3f90.o
 
 cpi: cpi.o
 	$(CLINKER) $(OPTFLAGS) -o cpi cpi.o -lm
@@ -73,7 +86,7 @@ hello++: hello++.o
 unsafe: unsafe.o
 	$(CLINKER) $(OPTFLAGS) -o unsafe unsafe.o 
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) fpi cpilog cpi_autolog hello++ iotest fibon upshot rdb.* startup.* 
+	/bin/rm -f *.o *~ PI* $(ALL_EXECS) upshot rdb.* startup.* core
 
 cpilog.o: cpilog.c
 	@if test -z "$(MPE_DIR)" ; then \
@@ -85,14 +98,10 @@ cpilog.o: cpilog.c
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 .f.o:
-	$(F77) $(F77_OPTFLAGS) $(FFLAGS) -c $<
+	$(F77) $(FFLAGS) -c $<
 .cc.o:
 	$(CCC) -c $<
 .C.o:
 	$(CCC) -c $<
-.SUFFIXES:	\
-	.cc .C
 .f90.o:
 	$(F90) -c $<
-.SUFFIXES:	\
-	.f90

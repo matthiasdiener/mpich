@@ -32,7 +32,7 @@ P4VOID p4_dprintf ANSI_ARGS((int,int,int,int,int,int,int,int,int,int));
 P4VOID p4_dprintfl ANSI_ARGS((int,int,int,int,int,int,int,int,int,int,int));
 #endif
 #else
-#if defined(USE_STDARG)
+#if defined(USE_STDARG) && !defined(USE_OLDSTYLE_STDARG)
 P4VOID p4_dprintf ANSI_ARGS((char *, ...));
 #if defined(P4_DPRINTFL)
 P4VOID p4_dprintfl ANSI_ARGS((int, char *, ... ));

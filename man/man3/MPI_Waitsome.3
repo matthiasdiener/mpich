@@ -59,7 +59,8 @@ returns with
 .I outcount
 set to 
 .I MPI_UNDEFINED
-.
+\&.
+
 
 .SH NOTE ON STATUS FOR SEND OPERATIONS
 For send operations, the only use of status is for MPI_Test_cancelled or
@@ -119,7 +120,8 @@ an error.
 .B MPI_ERR_REQUEST 
 - Invalid 
 .I MPI_Request
-.  Either null or, in the case of a
+\&.
+Either null or, in the case of a
 .I MPI_Start
 or 
 .I MPI_Startall
@@ -179,6 +181,7 @@ that tests multiple requests.  The requests that have not been processed
 .I MPI_ERROR
 field marked with 
 .I MPI_ERR_PENDING
-.
+\&.
+
 .SH LOCATION
 waitsome.c

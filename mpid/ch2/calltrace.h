@@ -26,14 +26,6 @@
 /* needed for FILE below */
 #include <stdio.h>
 
-#ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
-#define ANSI_ARGS(a) a
-#else
-#define ANSI_ARGS(a) ()
-#endif
-#endif
-
 #ifdef DEBUG_TRACE
 /* Should just put on a call stack */
 #define TR_MAX_STACK 128
@@ -46,8 +38,7 @@ extern int  TR_stack_sp, TR_stack_debug;
                  if (TR_stack_sp > 0) TR_stack_sp--;}
 #define RETURN { TR_POP; return ; }
 #define RETURNV(val) { TR_POP; return val ; }
-void TR_stack_init ANSI_ARGS(( int ));
-void TR_stack_print ANSI_ARGS(( FILE *, int ));
+void TR_stack_print ( FILE *, int );
 
 #else
 #define TR_PUSH(a)
@@ -55,5 +46,6 @@ void TR_stack_print ANSI_ARGS(( FILE *, int ));
 #define RETURN return
 #define RETURNV(val) return val
 #endif
+void TR_stack_init ( int );
 #endif
 

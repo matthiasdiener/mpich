@@ -1,16 +1,12 @@
 #ifndef _MPPTEST
 #define _MPPTEST
 
-/* Definitions for pair-wise communication testing */
-typedef struct {
-    int  proc1, proc2;
-    int  source, destination,    /* Source and destination.  May be the
-				    same as partner (for pair) or different
-				    (for ring) */
-         partner;                /* = source = destination if same */
-    int  is_master, is_slave;
-    } PairData;
+#include "mpptestconf.h"
 
+/* Definitions for pair-wise communication testing */
+typedef double (*TimeFunction)( int, int, void * );
+
+typedef struct _PairData *PairData;
 /* Structure for the collective communication testing */
 typedef struct {
     MPI_Comm pset;       /* Procset to test over */
@@ -23,37 +19,95 @@ typedef struct {
 extern int __NUMNODES, __MYPROCID;
 
 /* Function prototypes */
-void *PairInit( int, int );
-void *BisectInit( int );
-void PairChange( int, PairData * );
-void BisectChange( int, PairData * );
+PairData PairInit( int, int );
+PairData BisectInit( int );
+void PrintPairInfo( PairData );
+void PairChange( int, PairData );
+void BisectChange( int, PairData );
+int set_vector_stride( int );
+
 void *GOPInit( int *, char ** );
-void RunATest( int, int*, int*, double *, double *, int *, double (*)(), 
+void RunATest( int, int*, int*, double *, double *, int *, 
+	       double (*)(int,int, void *),  
 	       int, int, int, int, void *, void *);
 void CheckTimeLimit( void );
-void *OverlapInit();
 
-double (*GetPairFunction())(int, int, PairData *);
-double (*GetGOPFunction( int*, char **, char *, char *))( int, int, GOPctx *);
-double memcpy_rate( int, int, PairData *);
+
+double (*GetPairFunction( int *, char *[], char * ))(int, int, void *);
+double (*GetGOPFunction( int*, char *[], char *, char *))(int, int, void *);
+double (*GetHaloFunction( int *, char *[], void *, char * ))(int, int, void *);
+int GetHaloPartners( void * );
+void PrintHaloHelp( void );
+double memcpy_rate( int, int, void *);
 
 /* Overlap testing */
-double round_trip_nb_overlap();
-double round_trip_b_overlap();
+typedef struct {
+    int    proc1, proc2;
+    int    MsgSize;                 /* Size of message in bytes */
+    int    OverlapSize,             /* */
+           OverlapLen,              /* */
+           OverlapPos;              /* Location in buffers */
+    double *Overlap1, *Overlap2;    /* Buffers */
+    } OverlapData;
 
+double round_trip_nb_overlap( int, int, void *);
+double round_trip_b_overlap( int, int, void *);
+void *OverlapInit( int, int, int );
+void OverlapSizes( int, int [3], void *);
+
+/* Graphics routines */
+typedef struct _GraphData *GraphData;
 /* Routine to generate graphics context */
-void *SetupGraph( int *, char *[] );
+GraphData SetupGraph( int *, char *[] );
+void PrintGraphHelp( void );
+void HeaderGraph( GraphData ctx, char *protocol_name, char *title_string, 
+		  char *units );
+void DrawGraph( GraphData ctx, int first, int last, double s, double r );
+void RateoutputGraph( GraphData ctx, double sumlen, double sumtime, 
+		      double sumlentime, double sumlen2, double sumtime2, 
+		      int ntest, double *S, double *R );
+void EndPageGraph( GraphData ctx );
+void DataoutGraph( GraphData ctx, int proc1, int proc2, int distance, 
+		   int len, double t, double mean_time, double rate,
+		   double tmean, double tmax );
+void DataScale( GraphData, int );
+void DrawGraphGop( GraphData ctx, int first, int last, double s, double r, 
+		   int nsizes, int *sizelist );
+void HeaderForGopGraph( GraphData ctx, char *protocol_name, 
+			char *title_string, char *units );
+void DataoutGraphForGop( GraphData ctx, int len, double t, double mean_time, 
+			 double rate, double tmean, double tmax );
+void DataendForGop( GraphData ctx );
+void DatabeginForGop( GraphData ctx, int np );
 
 /* Global operations */
 void PrintGOPHelp( void );
 
 /* Patterns */
 void PrintPatternHelp( void );
+int GetNeighbor( int, int, int );
+void SetPattern( int *, char *[] );
+int GetMaxIndex( void );
+int GetDestination( int, int, int );
+int GetSource( int, int, int );
 
 /* Prototypes */
-double RunSingleTest();
-void time_function();
+double RunSingleTest( double (*)(int,int,void *), int, int, void *,
+		      double *, double * );
+void time_function( int, int, int, int, int, int, 
+		    double (*)( int, int, void * ), void *,
+		    int, int, double, void *);
 void ClearTimes(void);
 
+/* Rate */
+void PIComputeRate( double sumlen, double sumtime, double sumlentime, 
+		    double sumlen2, int ntest, double *s, double *r );
+
+/* MPE Seq */
+void MPE_Seq_begin( MPI_Comm, int );
+void MPE_Seq_end( MPI_Comm, int );
+
+/* gopf.c (goptest) */
+void *GOPInit( int *, char ** );
 
 #endif

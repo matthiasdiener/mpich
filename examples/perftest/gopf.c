@@ -34,114 +34,111 @@
 				  if (!p)return 0;;}
 #define SETMEM(nitem,p) {int _i; for (_i=0; _i<nitem; _i++) p[_i] = 0; }
 
-void *GOPInit( argc, argv )
-int  *argc;
-char **argv;
+void *GOPInit( int *argc, char **argv )
 {
-GOPctx *new;
-char   psetname[50];
-int    psetlen = 50;
+    GOPctx *new;
 
-new = (GOPctx  *)malloc(sizeof(GOPctx ));   if (!new)return 0;;
-new->pset = 0;
-new->src  = 0;
+    new = (GOPctx  *)malloc(sizeof(GOPctx ));   if (!new)return 0;;
+    new->pset = 0;
+    new->src  = 0;
 
 #ifdef CHAMELEON_COMM
-if (SYArgGetString( &argc, argv, 1, "-pset", psetname, 50 )) {
-    int n1, m1, i;
-    new->pset = PSCreate( 1 );
-    sscanf( psetname, "%d-%d", &n1, &m1 );
-    for (i=n1; i<=m1; i++) {
-	PSAddMember( new->pset, &i, 1 );
+    if (SYArgGetString( &argc, argv, 1, "-pset", psetname, 50 )) {
+	int n1, m1, i;
+	new->pset = PSCreate( 1 );
+	sscanf( psetname, "%d-%d", &n1, &m1 );
+	for (i=n1; i<=m1; i++) {
+	    PSAddMember( new->pset, &i, 1 );
 	}
-    PSCompile( new->pset );
+	PSCompile( new->pset );
     }
 #else
-new->pset = 0;
+    new->pset = 0;
 #endif 
-return new;
+    return new;
 }
 
 typedef enum { GDOUBLE, GFLOAT, GINT, GCHAR } GDatatype;
 typedef enum { 
     GOPSUM, GOPMIN, GOPMAX, GOPSYNC, GOPBCAST, GOPCOL, GOPCOLX } GOperation;
 
-double TestGDSum(), TestGISum(), TestGCol(), TestGColx(), TestGScat(), 
-       TestGSync();
-double TestGDSumGlob(), TestGISumGlob(), TestGColGlob(), TestGColxGlob(),
-       TestGScatGlob(), TestGSyncGlob();
+double TestGDSum( int, int, GOPctx * ), 
+       TestGISum( int, int, GOPctx * ), 
+       TestGCol( int, int, GOPctx * ), 
+       TestGColx( int, int, GOPctx * ), 
+       TestGScat( int, int, GOPctx * ), 
+       TestGSync( int, int, GOPctx * );
+double TestGDSumGlob( int, int, GOPctx * ), 
+       TestGISumGlob( int, int, GOPctx * ), 
+       TestGColGlob( int, int, GOPctx * ), 
+       TestGColxGlob( int, int, GOPctx * ),
+       TestGScatGlob( int, int, GOPctx * ), 
+       TestGSyncGlob( int, int, GOPctx * );
+
+#include "getopts.h"
 
 /* Determine the function from the arguments */
-double ((*GetGOPFunction( argc, argv, test_name, units )) (int,int,GOPctx*))
-int *argc;
-char **argv;
-char *test_name;
-char *units;
+double ((*GetGOPFunction( int *argc, char *argv[], char *test_name, char *units )) (int,int,void*))
 {
-GOperation op    = GOPSYNC;
-GDatatype  dtype = GDOUBLE;
-int        use_native = 0;
-double     (*f)();
-int        rrsize;
-extern void gsetopL(), gsetopT(), gsetopTP();
-extern void gscattersetR();
+    GOperation op    = GOPSYNC;
+    GDatatype  dtype = GDOUBLE;
+    int        use_native = 0;
+    double     (*f)(int,int,GOPctx *);
 
 /* Default choice */
-strcpy( test_name, "sync" );
+    strcpy( test_name, "sync" );
 
 /* Get information on the actual problem to run */
 
 /* Choose the operations */
-if (SYArgHasName( argc, argv, 1, "-dsum" )) {
-    op    = GOPSUM;
-    dtype = GDOUBLE;
-    strcpy( test_name, "dsum" );
-    strcpy( units, "(doubles)" );
+    if (SYArgHasName( argc, argv, 1, "-dsum" )) {
+	op    = GOPSUM;
+	dtype = GDOUBLE;
+	strcpy( test_name, "dsum" );
+	strcpy( units, "(doubles)" );
     }
-if (SYArgHasName( argc, argv, 1, "-isum" )) {
-    op    = GOPSUM;
-    dtype = GINT;
-    strcpy( test_name, "isum" );
-    strcpy( units, "(ints)" );
+    if (SYArgHasName( argc, argv, 1, "-isum" )) {
+	op    = GOPSUM;
+	dtype = GINT;
+	strcpy( test_name, "isum" );
+	strcpy( units, "(ints)" );
     }
-if (SYArgHasName( argc, argv, 1, "-sync" )) {
-    op    = GOPSYNC;
-    strcpy( test_name, "sync" );
+    if (SYArgHasName( argc, argv, 1, "-sync" )) {
+	op    = GOPSYNC;
+	strcpy( test_name, "sync" );
     }
-if (SYArgHasName( argc, argv, 1, "-scatter" ) ||
-    SYArgHasName( argc, argv, 1, "-bcast" )) {
-    op    = GOPBCAST;
-    dtype = GINT;
-    strcpy( test_name, "scatter" );
-    strcpy( units, "(ints)" );
+    if (SYArgHasName( argc, argv, 1, "-scatter" ) ||
+	SYArgHasName( argc, argv, 1, "-bcast" )) {
+	op    = GOPBCAST;
+	dtype = GINT;
+	strcpy( test_name, "scatter" );
+	strcpy( units, "(ints)" );
     }
-if (SYArgHasName( argc, argv, 1, "-col" )) {
-    op    = GOPCOL;
-    dtype = GINT;
-    strcpy( test_name, "col" );
-    strcpy( units, "(ints)" );
+    if (SYArgHasName( argc, argv, 1, "-col" )) {
+	op    = GOPCOL;
+	dtype = GINT;
+	strcpy( test_name, "col" );
+	strcpy( units, "(ints)" );
     }
-if (SYArgHasName( argc, argv, 1, "-colx" )) {
-    op    = GOPCOLX;
-    dtype = GINT;
-    strcpy( test_name, "colx" );
-    strcpy( units, "(ints)" );
+    if (SYArgHasName( argc, argv, 1, "-colx" )) {
+	op    = GOPCOLX;
+	dtype = GINT;
+	strcpy( test_name, "colx" );
+	strcpy( units, "(ints)" );
     }
-if (SYArgHasName( argc, argv, 1, "-colxex" )) {
-    extern void gcolxsetEX();
-    op    = GOPCOLX;
-    dtype = GINT;
-    ;
-    strcpy( test_name, "colxex" );
-    strcpy( units, "(ints)" );
+    if (SYArgHasName( argc, argv, 1, "-colxex" )) {
+	op    = GOPCOLX;
+	dtype = GINT;
+	strcpy( test_name, "colxex" );
+	strcpy( units, "(ints)" );
     }
 
 /* Convert operation and dtype to routine */
-f = 0;
-switch (op) {
+    f = 0;
+    switch (op) {
     case GOPSUM:
         switch (dtype) {
-	    case GDOUBLE: 
+	case GDOUBLE: 
 	    f = TestGDSum;
 #if defined(GDSUMGLOB)
 	    if (use_native) f = TestGDSumGlob;
@@ -149,7 +146,7 @@ switch (op) {
 	    if (use_native) f = 0;
 #endif
 	    break;
-	    case GINT:
+	case GINT:
 	    f = TestGISum;
 #if defined(GISUMGLOB)
 	    if (use_native) f = TestGISumGlob;
@@ -157,7 +154,9 @@ switch (op) {
 	    if (use_native) f = 0;
 #endif
 	    break;
-	    }
+	default:
+	    break;
+	}
 	break;
     case GOPMIN:
     case GOPMAX:
@@ -196,7 +195,7 @@ switch (op) {
 #endif
 	break;
     }
-return f;
+    return  (double (*)(int,int,void *)) f;
 }
 
 void PrintGOPHelp( void )
@@ -221,87 +220,78 @@ void PrintGOPHelp( void )
  Here are the actual routines
  *****************************************************************************/
 /* First are the Chameleon versions */
-double TestGDSum( reps, len, ctx )
-int    reps, len;
-GOPctx *ctx;
+double TestGDSum( int reps, int len, GOPctx *ctx )
 {
-int    i;
-MPI_Comm pset = ctx->pset;
-double *lval, *work, time;
-double t0, t1;
+    int    i;
+    double *lval, *work, time;
+    double t0, t1;
 
-GETMEM(double,len,lval);
-GETMEM(double,len,work);
-SETMEM(len,lval);
+    GETMEM(double,len,lval);
+    GETMEM(double,len,work);
+    SETMEM(len,lval);
 
-MPI_Barrier(MPI_COMM_WORLD );
-*(&t0)=MPI_Wtime();
-for (i=0; i<reps; i++) {
-    MPI_Allreduce(lval, work, len, MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD );
-memcpy(lval,work,(len)*sizeof(double));;
+    MPI_Barrier(MPI_COMM_WORLD );
+    *(&t0)=MPI_Wtime();
+    for (i=0; i<reps; i++) {
+	MPI_Allreduce(lval, work, len, MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD );
+	memcpy(lval,work,(len)*sizeof(double));;
     }
-*(&t1)=MPI_Wtime();
-MPI_Barrier(MPI_COMM_WORLD );
-time = *(&t1 )-*(&t0);
-MPI_Bcast(&time, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
-free(lval );
-free(work );
-return time;
+    *(&t1)=MPI_Wtime();
+    MPI_Barrier(MPI_COMM_WORLD );
+    time = *(&t1 )-*(&t0);
+    MPI_Bcast(&time, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
+    free(lval );
+    free(work );
+    return time;
 }
 
-double TestGISum( reps, len, ctx )
-int    reps, len;
-GOPctx *ctx;
+double TestGISum( int reps, int len, GOPctx *ctx )
 {
-int     i;
-MPI_Comm pset = ctx->pset;
-int     *lval, *work;
-double  time;
-double t0, t1;
+    int     i;
+    int     *lval, *work;
+    double  time;
+    double t0, t1;
 
-GETMEM(int,len,lval);
-GETMEM(int,len,work);
-SETMEM(len,lval);
+    GETMEM(int,len,lval);
+    GETMEM(int,len,work);
+    SETMEM(len,lval);
 
-MPI_Barrier(MPI_COMM_WORLD );
-*(&t0)=MPI_Wtime();
-for (i=0; i<reps; i++) {
-    MPI_Allreduce(lval, work, len, MPI_INT,MPI_SUM,MPI_COMM_WORLD );
-memcpy(lval,work,(len)*sizeof(int));;
+    MPI_Barrier(MPI_COMM_WORLD );
+    *(&t0)=MPI_Wtime();
+    for (i=0; i<reps; i++) {
+	MPI_Allreduce(lval, work, len, MPI_INT,MPI_SUM,MPI_COMM_WORLD );
+	memcpy(lval,work,(len)*sizeof(int));;
     }
-*(&t1)=MPI_Wtime();
-MPI_Barrier(MPI_COMM_WORLD );
-time = *(&t1 )-*(&t0);
-MPI_Bcast(&time, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
-free(lval );
-free(work );
-return time;
+    *(&t1)=MPI_Wtime();
+    MPI_Barrier(MPI_COMM_WORLD );
+    time = *(&t1 )-*(&t0);
+    MPI_Bcast(&time, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
+    free(lval );
+    free(work );
+    return time;
 }
 
-double TestGScat( reps, len, ctx )
-int    reps, len;
-GOPctx *ctx;
+double TestGScat( int reps, int len, GOPctx *ctx )
 {
-int     i;
-MPI_Comm pset = ctx->pset;
-int     *lval;
-double  time;
-double t0, t1;
+    int     i;
+    int     *lval;
+    double  time;
+    double t0, t1;
 
-GETMEM(int,len,lval);
-SETMEM(len,lval);
+    GETMEM(int,len,lval);
+    SETMEM(len,lval);
 
-MPI_Barrier(MPI_COMM_WORLD );
-*(&t0)=MPI_Wtime();
-for (i=0; i<reps; i++) {
-    MPI_Bcast(lval, len, MPI_BYTE, 0, MPI_COMM_WORLD );
+    MPI_Barrier(MPI_COMM_WORLD );
+    *(&t0)=MPI_Wtime();
+    for (i=0; i<reps; i++) {
+	MPI_Bcast(lval, len, MPI_BYTE, 0, MPI_COMM_WORLD );
     }
-*(&t1)=MPI_Wtime();
-MPI_Barrier(MPI_COMM_WORLD );
-time = *(&t1 )-*(&t0);
-MPI_Bcast(&time, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
-free(lval );
-return time;
+    *(&t1)=MPI_Wtime();
+    MPI_Barrier(MPI_COMM_WORLD );
+    time = *(&t1 )-*(&t0);
+    MPI_Bcast(&time, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
+    free(lval );
+    return time;
 }
 
 #ifdef CHAMELEON_COMM
@@ -399,7 +389,6 @@ int    reps, len;
 GOPctx *ctx;
 {
 int     i;
-MPI_Comm pset = ctx->pset;
 double  time;
 double t0, t1;
 
@@ -422,7 +411,6 @@ int    reps, len;
 GOPctx *ctx;
 {
 int    i;
-MPI_Comm pset = ctx->pset;
 double *lval, *work, time;
 double t0, t1;
 
@@ -451,7 +439,6 @@ int    reps, len;
 GOPctx *ctx;
 {
 int     i;
-MPI_Comm pset = ctx->pset;
 int     *lval, *work;
 double  time;
 double t0, t1;
@@ -540,7 +527,6 @@ int    reps, len;
 GOPctx *ctx;
 {
 int     i;
-MPI_Comm pset = ctx->pset;
 double  time;
 double t0, t1;
 

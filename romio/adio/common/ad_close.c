@@ -1,22 +1,32 @@
 /* 
- *   $Id: ad_close.c,v 1.2 1998/06/02 18:55:54 thakur Exp $    
+ *   $Id: ad_close.c,v 1.4 2000/02/09 21:30:04 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "adio.h"
-#ifdef __MPISGI
+#ifdef MPISGI
 #include "mpisgi2.h"
 #endif
 
 void ADIO_Close(ADIO_File fd, int *error_code)
 {
     int i, j, k, combiner, myrank, err, is_contig;
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "ADIO_CLOSE";
+#endif
 
     if (fd->async_count) {
-	printf("ADIO_Close: Error! There are outstanding nonblocking I/O operations on this file.\n");
+#ifdef PRINT_ERR_MSG
+	FPRINTF(stderr, "ADIO_Close: Error! There are outstanding nonblocking I/O operations on this file.\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
+#else
+	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ERR_ASYNC_OUTSTANDING,
+				     myname, (char *) 0, (char *) 0);
+	ADIOI_Error(fd, *error_code, myname);
+        return;
+#endif
     }
 
     (*(fd->fns->ADIOI_xxx_Close))(fd, error_code);

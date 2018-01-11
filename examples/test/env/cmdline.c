@@ -46,7 +46,7 @@ int main( int argc, char *argv[] )
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );
     if (rank == 0) {
 	if (toterr) printf( "Found %d errors\n", toterr );
-	else        printf( "No errors\n" );
+	else        printf( " No Errors\n" );
     }
     
     MPI_Finalize();

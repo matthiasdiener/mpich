@@ -67,6 +67,8 @@ if ((actlen) < (msglen)) {\
     }
 
 /* Function prototypes for routines known only to the device */
+extern void MPID_SHMEM_init( int *argc, char **argv );
+extern void MPID_SHMEM_finalize( void );
 extern MPID_Device *MPID_SHMEM_InitMsgPass ( int *, char ***, int, int );
 extern MPID_Protocol *MPID_SHMEM_Short_setup (void);
 extern MPID_Protocol *MPID_SHMEM_Eagerb_setup (void);
@@ -105,6 +107,7 @@ extern void MPID_SendCancelOkPacket ( void *, int );
 extern void MPID_RecvCancelOkPacket ( void *, int );
 extern void MPID_FinishCancelPackets ( MPID_Device * );
 
+extern void MPID_SHMEM_Print_internals( FILE *fp );
 
 /* 
  * We can communicate some information to the device by way of attributes 

@@ -1,5 +1,5 @@
 /* 
- *   $Id: preallocf.c,v 1.6 1999/08/27 20:53:30 thakur Exp $    
+ *   $Id: preallocf.c,v 1.8 2000/08/24 16:18:25 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,18 +9,18 @@
 #include "adio.h"
 
 
-#if defined(__MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+#if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
 #ifdef FORTRANCAPS
 #define mpi_file_preallocate_ PMPI_FILE_PREALLOCATE
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_file_preallocate_ pmpi_file_preallocate__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_file_preallocate pmpi_file_preallocate_
 #endif
 #define mpi_file_preallocate_ pmpi_file_preallocate
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_file_preallocate_ pmpi_file_preallocate
 #endif
 #define mpi_file_preallocate_ pmpi_file_preallocate_
@@ -73,22 +73,25 @@
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_file_preallocate_ mpi_file_preallocate__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_file_preallocate mpi_file_preallocate_
 #endif
 #define mpi_file_preallocate_ mpi_file_preallocate
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_file_preallocate_ mpi_file_preallocate
 #endif
 #endif
 #endif
 
-void mpi_file_preallocate_(MPI_Fint *fh,MPI_Offset *size, int *__ierr )
+/* Prototype to keep compiler happy */
+void mpi_file_preallocate_(MPI_Fint *fh,MPI_Offset *size, int *ierr );
+
+void mpi_file_preallocate_(MPI_Fint *fh,MPI_Offset *size, int *ierr )
 {
     MPI_File fh_c;
     
     fh_c = MPI_File_f2c(*fh);
-    *__ierr = MPI_File_preallocate(fh_c,*size);
+    *ierr = MPI_File_preallocate(fh_c,*size);
 }
 

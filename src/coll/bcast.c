@@ -1,5 +1,5 @@
 /*
- *  $Id: bcast.c,v 1.7 1999/08/30 15:41:39 swider Exp $
+ *  $Id: bcast.c,v 1.8 2000/02/26 14:58:52 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -78,7 +78,9 @@ EXPORT_MPI_API int MPI_Bcast ( void *buffer, int count, MPI_Datatype datatype, i
 #ifndef MPIR_NO_ERROR_CHECKING
     MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
     MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
-    if (root < 0 || root >= comm_ptr->np) {
+    /* If an intercomm broadcast, the root can also be MPI_ROOT or 
+       MPI_PROC_NULL */
+    if (root < MPI_ROOT || root >= comm_ptr->np) {
 	mpi_errno = MPIR_Err_setmsg( MPI_ERR_ROOT, MPIR_ERR_DEFAULT, myname, 
 				     (char *)0, (char *)0, root );
     }

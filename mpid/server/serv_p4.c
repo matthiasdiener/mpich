@@ -241,8 +241,8 @@ FILE *stdout_fp	= 0; /* stdout; */
 int stderr_fd	= 2;
 FILE *stderr_fp	= 0; /* stderr; */
 
-void reaper(sigval)
-int sigval;
+/* This should check that the pid received was the one expected... */
+void reaper(int sigval)
 {
     int pid;
 #ifdef HAVE_UNION_WAIT
@@ -1369,7 +1369,6 @@ int skt;
 void net_setup_listener(backlog, port, skt)
 int backlog, port, *skt;
 {
-int sinlen;
 struct sockaddr_in sin;
 
     *skt = socket(AF_INET, SOCK_STREAM, 0);
@@ -1379,8 +1378,6 @@ struct sockaddr_in sin;
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = INADDR_ANY;
     sin.sin_port = htons(port);
-
-    sinlen = sizeof(sin);
 
     error_check(bind(*skt,(struct sockaddr *) &sin,sizeof(sin)),
 		   "net_setup_listener bind");
@@ -1453,7 +1450,10 @@ char *str;
 
 char *timestamp()
 {
-    long clock;
+    /* This used to be long.  If this causes a problem, create a
+       test for time_t vs long for the result from time and the
+       input to localtime */
+    time_t clock;
     struct tm *tmp;
 
     clock = time((time_t *)NULL);

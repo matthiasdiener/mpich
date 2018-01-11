@@ -50,7 +50,9 @@ else {
 	    MPI_Iprobe( from, tag, MPI_COMM_WORLD, &flag, &status );
 	    } while (!flag);
 	if (status.MPI_TAG == 2001) {
+#ifdef VERBOSE
 	    printf( "Received terminate message\n" );
+#endif
 	    /* Actually need to receive it ... */
 	    MPI_Recv( &data, 1, MPI_INT, status.MPI_SOURCE, 
 		      status.MPI_TAG, MPI_COMM_WORLD, &status1 );
@@ -60,7 +62,9 @@ else {
 	    MPI_Get_count( &status, MPI_INT, &maxlen );
 	    if (maxlen > 1)
 		printf( "Error; size = %d\n", maxlen );
+#ifdef VERBOSE
 	    printf( "About to receive\n" );
+#endif
 	    MPI_Recv( &data, 1, MPI_INT, status.MPI_SOURCE, 
 		      status.MPI_TAG, MPI_COMM_WORLD, &status1 );
 	    }

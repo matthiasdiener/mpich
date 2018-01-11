@@ -1,0 +1,289 @@
+#  (C) 1993 by Argonne National Laboratory and Mississipi State University.
+#      All rights reserved.  See COPYRIGHT in top-level directory.
+#
+
+##### User configurable options #####
+
+top_srcdir     = @top_srcdir@
+
+CC             = @CC@
+CLINKER        = $(CC)
+MPI_CC         = @MPI_CC@
+MPI_CLINKER    = $(MPI_CC)
+AR             = @AR@
+ARFLAGS        = cr
+RANLIB         = @RANLIB@
+MAKE           = @MAKE@
+DEBUG_LIBS     = @DEBUG_LIBS@
+SLOG_HOME      = @SLOG_HOME@
+MPI_INC        = @MPI_INC@
+MPI_LIBS       = @MPI_LIBS@
+INCLUDE_DIR    = -I.. -I${top_srcdir}/include \
+                 -I../slog_api -I$(SLOG_HOME)/include \
+                 @X_INC@ $(MPI_INC)
+PROF_LIBNAME   = @PROF_LIBNAME@
+LOG_LIBNAME    = @LOG_LIBNAME@
+TRACE_LIBNAME  = @TRACE_LIBNAME@
+ANIM_LIBNAME   = @ANIM_LIBNAME@
+MPE_CFLAGS     = @MPE_CFLAGS@
+MPE_GRAPHICS   = @MPE_GRAPHICS@
+MPE_LIBDIR     = @libbuild_dir@
+LIB_PATH       = @X_LIB@ $(MPI_LIBS)
+LOG_LIBS       = -L$(MPE_LIBDIR) @LOG_LIBS@ $(MPI_LIBS)
+PROF_LIBS      = -L$(MPE_LIBDIR) @PROF_LIBS@ $(MPI_LIBS)
+LDFLAGS        = @LDFLAGS@
+MPICH          = @MPICH@
+F2CMPI_LIBNAME = @F2CMPI_LIBNAME@
+F2CMPI_LIBS    = @F2CMPI_LIBS@
+MPEDBG         = @MPEDBG@
+
+MPEGRAPHICS_SOURCE  = @MPEGRAPHICS_SOURCE@
+MPEGRAPHICS_FSOURCE = @MPEGRAPHICS_FSOURCE@
+### End User configurable options ###
+SHELL = /bin/sh
+RM    = /bin/rm
+
+@VPATH@
+
+# Installation directories
+prefix       = @prefix@
+exec_prefix  = @exec_prefix@
+bindir       = @bindir@
+includedir   = @includedir@
+libdir       = @libdir@
+# Build directories
+libbuild_dir = @libbuild_dir@
+binbuild_dir = @binbuild_dir@
+srcdir       = @srcdir@
+
+EXECS        = dbxtest dbxtest2 testlog clog_print clog2alog clog2slog
+
+# GETNAME_DEFS are needed by mpehname.c
+CFLAGS       = $(MPE_CFLAGS) $(MPE_GRAPHICS) $(INCLUDE_DIR) 
+CC_LDFLAGS   = $(LDFLAGS) $(MPE_CFLAGS)
+
+MPE_CSOURCES = $(MPEGRAPHICS_SOURCE) clog_sysio.c mpe_log.c clog.c \
+               clog_merge.c clog_time.c clog_util.c clog2alog.c decomp.c \
+               mpe_seq.c dbxerr.c examine.c privtags.c getgrank.c mpehname.c \
+               mpe_io.c c2s_util.c	
+MPE_TSOURCES = decomp.c mpe_seq.c dbxerr.c getgrank.c
+MPE_COBJECTS = $(MPE_CSOURCES:.c=.o)
+
+MPE_WSOURCES = $(MPEGRAPHICS_FSOURCE) mpe_logf.c decompf.c mpe_seqf.c \
+               getgrankf.c
+MPE_WOBJECTS = $(MPE_WSOURCES:.c=.o)
+
+MPE_SOURCES = $(MPE_CSOURCES) $(MPE_WSOURCES)
+MPE_OBJECTS = $(MPE_COBJECTS) $(MPE_WOBJECTS)
+
+C2S_CSOURCES = clog2slog.c c2s_util.c c2s_assist.c
+C2S_OBJECTS  = $(C2S_CSOURCES:.c=.o)
+
+.c.o:
+	$(MPI_CC) $(CFLAGS) -c $<
+
+.c.a:
+	$(MPI_CC) $(CFLAGS) -c $<
+
+# default_all is the same as default, but without the RANLIB.  This
+# can speed up the build (ranlibs can take a LONG time).  profile_all 
+# is the same, but for the profile library
+# **** Currently the same as default for simplicity ****
+default_all: default
+profile_all: 
+
+#
+# libmpe_nompi must be last because some make's "optimize" by computing
+# all dependencies at the beginning, rather than when each target is
+# evaluated.  Since libmpe_nompi cleans the object files (to force a rebuild
+# with the NO_MPI switch), this can cause problems.
+default: clean rmprog rmlib 
+	 $(MAKE) mpe_debug_objs 
+	 $(MAKE) libslog.a 
+	 $(MAKE) ${libbuild_dir}/lib$(PROF_LIBNAME).a 
+	 $(MAKE) ${libbuild_dir}/lib$(TRACE_LIBNAME).a 
+	 $(MAKE) ${libbuild_dir}/lib$(LOG_LIBNAME).a 
+	@if [ -n "$(MPE_GRAPHICS)" ] ; then \
+	 $(MAKE) ${libbuild_dir}/lib$(ANIM_LIBNAME).a ; \
+	fi
+	 $(MAKE) ${libbuild_dir}/lib$(PROF_LIBNAME)_nompi.a 
+	 $(MAKE) ${libbuild_dir}/mpe_prof.o 
+	@if [ "$(F2CMPI_LIBS)" = "-l$(F2CMPI_LIBNAME)" ] ;  then \
+	     $(MAKE) ${libbuild_dir}/lib$(F2CMPI_LIBNAME).a ; \
+	 fi
+	 $(MAKE) clog_print
+	 $(MAKE) clog2alog
+	 $(MAKE) slog_print
+	 $(MAKE) clog2slog
+
+#
+# This target will get compiled if the user specified --with-mpedbg option
+mpe_debug_objs:
+	@-if [ "$(MPEDBG)" = "1" -a "$(MPICH)" = "1" ] ; then \
+	    echo "making MPICH's mpedbg" ;  \
+	    ( cd ${top_srcdir}/../../src/env ; $(MAKE) mpe_debug_objs ) ; \
+	fi
+
+#
+# This must refer to a relative directory incase we are in a VPATH build.
+# Because VPATH searches are applied to targets as well as sources, we
+# set this up to a dummy directory.
+libslog.a:
+	@if [ "$(SLOG_HOME)" != "" -a -d $(SLOG_HOME) ]; then \
+	    ( cd ../slog_api ; \
+	      $(MAKE) "SLOG_DESTLIB=${libbuild_dir}/lib$(PROF_LIBNAME).a" )   \
+	fi
+#
+#
+# It is tempting here to use ... libmpe.a($(MPE_OBJECTS)) as the dependency,
+# but this would require that all makes properly handle library dependencies.
+# Since makes that DO are the exception rather than the rule, we don't
+# use this form
+#
+# We've also had trouble with this.  Sometimes, under Solaris, the 
+# first file in the dependency is built but not included with $? 
+# This is clearly a bug in the make, since the determination of dependencies
+# is done once (e.g., a blip in the filesystem time can't be 
+# responsible if make works as Sun documents it).  To fix this, we
+# add all the objects to the library, not just the "recent" ones.
+${libbuild_dir}/lib$(PROF_LIBNAME).a: $(MPE_OBJECTS)
+	$(AR) $(ARFLAGS) $@ ${MPE_OBJECTS}
+	$(RANLIB) $@
+#	-$(RM) -f $?
+
+${libbuild_dir}/lib$(PROF_LIBNAME)_nompi.a:  $(MPEGRAPHICS_SOURCE)
+	@if [ "$(MPEGRAPHICS_SOURCE)" != "" ] ; then \
+	    $(MAKE) -f Makefile_nompi clean ; \
+	    $(MAKE) -f Makefile_nompi $@ ; \
+	    $(MAKE) -f Makefile_nompi clean ; \
+	fi
+
+# mpe_plog.o: mpe_log.c mpe_log_genproc.c mpe_log_merge.c mpe_log_adjusttime.c
+mpe_plog.o: mpe_log.c
+	$(MPI_CC) $(CFLAGS) -c -DUSE_PMPI $?
+	@/bin/mv mpe_log.o mpe_plog.o
+
+${libbuild_dir}/lib$(TRACE_LIBNAME).a: trc_wrappers.o
+	$(AR) $(ARFLAGS) $@ $?
+	$(RANLIB) $@
+#	-$(RM) -f $?
+
+${libbuild_dir}/lib$(LOG_LIBNAME).a: log_wrap.o mpe_plog.o clog.o clog_util.o \
+                                     clog_merge.o clog2alog.o clog_time.o
+	$(AR) $(ARFLAGS) $@ $?
+	$(RANLIB) $@
+#	-$(RM) -f $?
+
+${libbuild_dir}/lib$(ANIM_LIBNAME).a: visual_mess.o
+	$(AR) $(ARFLAGS) $@ $?
+	$(RANLIB) $@
+#	-$(RM) -f $?
+
+${libbuild_dir}/mpe_prof.o: mpe_prof.o
+	@-if [ ${libbuild_dir} != "." ] ; then \
+	      /bin/cp $? ${libbuild_dir} ; \
+	  fi
+
+${libbuild_dir}/lib$(F2CMPI_LIBNAME).a: mpe_proff.o
+	$(AR) $(ARFLAGS) $@ $?
+	$(RANLIB) $@
+
+# The old dependency and rule involes too many unnecessary code.  A.Chan
+# clog_print: printlog.o clog.o clog_time.o clog_util.o clog_merge.o
+#	$(CLINKER) $(CC_LDFLAGS) -o $@ printlog.o $(PROF_LIBS) 
+clog_print: printlog.o clog_util.o clog_sysio.o
+	$(CLINKER) $(CC_LDFLAGS) -o $@ $?
+	@if [ -n "$(binbuild_dir)" -a -d $(binbuild_dir) ] ; then \
+	     mv $@ $(binbuild_dir) ; \
+	 fi
+	 $(RM) -f $?
+
+# The old dependency and rule involes too many unnecessary code.  A.Chan
+# $(PROF_LIBS) is needed on Linux but on IRIX/AIX/Solaris
+# clog2alog: ctoalog.o clog2alog.o clog.o clog_time.o clog_merge.o
+#	$(CLINKER) $(CC_LDFLAGS) -o $@ ctoalog.o clog2alog.o $(PROF_LIBS)
+clog2alog: ctoalog.o clog2alog.o clog_util.o clog_sysio.o
+	$(CLINKER) $(CC_LDFLAGS) -o $@ $?
+	@if [ -n "$(binbuild_dir)" -a -d $(binbuild_dir) ] ; then \
+	     mv $@ $(binbuild_dir) ; \
+	 fi
+
+slog_print: libslog.a
+	@if [ ! -x ../slog_api/bin/slog_printbbufs ] ; then \
+	     ( cd ../slog_api ; $(MAKE) ) ; \
+	 fi
+	@if [ -x ../slog_api/bin/slog_printbbufs ] ; then \
+	     cp -p ../slog_api/bin/slog_printbbufs $(binbuild_dir)/$@ ; \
+	 else \
+	     echo "Error in the generation of $@" ; \
+	 fi
+
+#  -DSTANDALONE turns on the byteswapping code
+#
+#  Compilation and Linkage need to be done separately because of AIX's
+#  requirements of different compilers for parallel and serial executable.
+#  Also cannot put ${libbuild_dir}/libslog.a as prerequisite
+clog2slog: $(C2S_CSOURCES)
+	@if [ ! -s ../slog_api/lib/libslog.a ] ; then \
+	    $(MAKE) libslog.a ; \
+	fi
+	@for srcfile in $? ; do \
+	    echo "$(MPI_CC) -DSTANDALONE $(CFLAGS) -c $${srcfile}"; \
+	    $(MPI_CC) -DSTANDALONE $(CFLAGS) -c $${srcfile} ; \
+	done
+	$(CLINKER) $(CC_LDFLAGS) -o $@ $(C2S_OBJECTS) -L../slog_api/lib -lslog $(DEBUG_LIBS)
+	@if [ $(binbuild_dir) != "" -a -d $(binbuild_dir) ] ; then \
+	     mv $@ $(binbuild_dir) ; \
+	 fi
+	 $(RM) -f $(C2S_OBJECTS)
+
+
+# ********
+
+dbxtest: dbxtest.o ${libbuild_dir}/lib$(PROF_LIBNAME).a
+	$(MPI_CLINKER) $(CC_LDFLAGS) -o dbxtest dbxtest.o \
+		-L${libbuild_dir} -l$(PROF_LIBNAME) \
+		$(MPI_LIBS) 
+dbxtest2: dbxtest2.o 
+	$(MPI_CLINKER) $(CC_LDFLAGS) -o dbxtest2 dbxtest2.o \
+		$(LIB_PATH) 
+testlog: testlog.o clog.o clog_time.o clog_merge.o clog_util.o
+	$(MPI_CLINKER) $(CC_LDFLAGS) -o testlog testlog.o \
+		$(LOG_LIBS) 
+
+#
+# Remove the old libraries before rebuilding (in case they came from another
+# architecture or are otherwise damaged)
+rmlib:
+	@-if [ "$(SLOG_HOME)" != "" -a -d "$(SLOG_HOME)" ]; then \
+	    ( cd ../slog_api ; $(MAKE) rmlib ) \
+	fi
+	$(RM) -f ${libbuild_dir}/lib$(PROF_LIBNAME).a 
+	$(RM) -f ${libbuild_dir}/lib$(TRACE_LIBNAME).a 
+	$(RM) -f ${libbuild_dir}/lib$(LOG_LIBNAME).a 
+	$(RM) -f ${libbuild_dir}/lib$(ANIM_LIBNAME).a 
+	$(RM) -f ${libbuild_dir}/lib$(PROF_LIBNAME)_nompi.a
+	$(RM) -f ${libbuild_dir}/lib$(F2CMPI_LIBNAME).a
+	$(RM) -f ${libbuild_dir}/mpe_prof.o
+
+rmprog:
+	@-if [ "$(SLOG_HOME)" != "" -a -d "$(SLOG_HOME)" ]; then \
+	    ( cd ../slog_api ; $(MAKE) rmprog ) \
+	fi
+	$(RM) -f dbxtest dbxtest2 testlog clog_print clog2alog clog2slog
+	$(RM) -f $(binbuild_dir)/clog_print 
+	$(RM) -f $(binbuild_dir)/clog2alog 
+	$(RM) -f $(binbuild_dir)/slog_print 
+	$(RM) -f $(binbuild_dir)/clog2slog 
+
+clean:
+	@-if [ "$(SLOG_HOME)" != "" -a -d "$(SLOG_HOME)" ]; then \
+	    ( cd ../slog_api ; $(MAKE) clean ) \
+	fi
+	-@$(RM) -f *.o *~ $(EXECS) PI*
+
+distclean: clean rmprog rmlib
+	@-if [ "$(SLOG_HOME)" != "" -a -d "$(SLOG_HOME)" ]; then \
+	    ( cd ../slog_api ; $(MAKE) distclean ) \
+	fi
+	-@$(RM) -f Makefile Makefile_nompi dbxerr.c

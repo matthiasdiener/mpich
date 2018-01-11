@@ -95,7 +95,9 @@ struct p4_procgroup *read_procgroup( void )
 
     while (fp != NULL && fgets(buf, sizeof(buf), fp) != NULL)
     {
-	for (s = buf; isspace(*s); s++)
+	/* Some compilers complain about *s being a subscript 
+	   of type char (!) */
+	for (s = buf; isspace((int)(*s)); s++)
 	    ;
 
 	if (*s == '#' || *s == '\0')	/* Ignore comments & blanks */

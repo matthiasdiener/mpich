@@ -140,6 +140,7 @@ man:+MPI_File_sync++MPI_File_sync++++man+http://www-unix.mcs.anl.gov/mpi/www/www
 man:+MPI_File_get_amode++MPI_File_get_amode++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_File_get_amode.html#MPI_File_get_amode
 man:+MPI_File_get_atomicity++MPI_File_get_atomicity++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_File_get_atomicity.html#MPI_File_get_atomicity
 man:+MPI_File_get_byte_offset++MPI_File_get_byte_offset++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_File_get_byte_offset.html#MPI_File_get_byte_offset
+man:+MPI_File_get_errhandler++MPI_File_get_errhandler++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_File_get_errhandler.html#MPI_File_get_errhandler
 man:+MPI_File_get_type_extent++MPI_File_get_type_extent++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_File_get_type_extent.html#MPI_File_get_type_extent
 man:+MPI_File_get_group++MPI_File_get_group++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_File_get_group.html#MPI_File_get_group
 man:+MPI_File_get_info++MPI_File_get_info++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_File_get_info.html#MPI_File_get_info
@@ -174,6 +175,7 @@ man:+MPI_File_read_shared++MPI_File_read_shared++++man+http://www-unix.mcs.anl.g
 man:+MPI_File_seek++MPI_File_seek++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_File_seek.html#MPI_File_seek
 man:+MPI_File_seek_shared++MPI_File_seek_shared++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_File_seek_shared.html#MPI_File_seek_shared
 man:+MPI_File_set_atomicity++MPI_File_set_atomicity++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_File_set_atomicity.html#MPI_File_set_atomicity
+man:+MPI_File_set_errhandler++MPI_File_set_errhandler++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_File_set_errhandler.html#MPI_File_set_errhandler
 man:+MPI_File_set_info++MPI_File_set_info++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_File_set_info.html#MPI_File_set_info
 man:+MPI_File_set_size++MPI_File_set_size++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_File_set_size.html#MPI_File_set_size
 man:+MPI_File_set_view++MPI_File_set_view++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_File_set_view.html#MPI_File_set_view
@@ -217,7 +219,6 @@ man:+MPI_Info_get_valuelen++MPI_Info_get_valuelen++++man+http://www-unix.mcs.anl
 man:+MPI_Info_set++MPI_Info_set++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_Info_set.html#MPI_Info_set
 man:+MPI_Request_c2f++MPI_Request_c2f++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_Request_c2f.html#MPI_Request_c2f
 man:+MPI_Status_c2f++MPI_Status_c2f++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_Status_c2f.html#MPI_Status_c2f
-man:+MPI_Status_f2c++MPI_Status_f2c++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_Status_f2c.html#MPI_Status_f2c
 man:+MPI_Type_create_subarray++MPI_Type_create_subarray++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_Type_create_subarray.html#MPI_Type_create_subarray
 man:+MPI_Type_create_indexed_block++MPI_Type_create_indexed_block++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_Type_create_indexed_block.html#MPI_Type_create_indexed_block
 man:+MPI_Status_set_cancelled++MPI_Status_set_cancelled++++man+http://www-unix.mcs.anl.gov/mpi/www/www3/MPI_Status_set_cancelled.html#MPI_Status_set_cancelled
@@ -228,8 +229,7 @@ man:+CLOG_Init++CLOG_Init++++man+http://www-unix.mcs.anl.gov/mpi/www/www4/CLOG_I
 man:+CLOG_init_buffers++CLOG_init_buffers++++man+http://www-unix.mcs.anl.gov/mpi/www/www4/CLOG_init_buffers.html#CLOG_init_buffers
 man:+CLOG_Finalize++CLOG_Finalize++++man+http://www-unix.mcs.anl.gov/mpi/www/www4/CLOG_Finalize.html#CLOG_Finalize
 man:+CLOG_newbuff++CLOG_newbuff++++man+http://www-unix.mcs.anl.gov/mpi/www/www4/CLOG_newbuff.html#CLOG_newbuff
-man:+CLOG_temp_log++CLOG_temp_log++++man+http://www-unix.mcs.anl.gov/mpi/www/www4/CLOG_temp_log.html#CLOG_temp_log
-man:+CLOG_init_tmpfilename++CLOG_init_tmpfilename++++man+http://www-unix.mcs.anl.gov/mpi/www/www4/CLOG_init_tmpfilename.html#CLOG_init_tmpfilename
+man:+CLOG_nodebuffer2disk++CLOG_nodebuffer2disk++++man+http://www-unix.mcs.anl.gov/mpi/www/www4/CLOG_nodebuffer2disk.html#CLOG_nodebuffer2disk
 man:+CLOG_get_new_event++CLOG_get_new_event++++man+http://www-unix.mcs.anl.gov/mpi/www/www4/CLOG_get_new_event.html#CLOG_get_new_event
 man:+CLOG_get_new_state++CLOG_get_new_state++++man+http://www-unix.mcs.anl.gov/mpi/www/www4/CLOG_get_new_state.html#CLOG_get_new_state
 man:+CLOG_mergelogs++CLOG_mergelogs++++man+http://www-unix.mcs.anl.gov/mpi/www/www4/CLOG_mergelogs.html#CLOG_mergelogs
@@ -297,5 +297,5 @@ man:+chp4_servs++chp4_servs++++man+http://www-unix.mcs.anl.gov/mpi/www/www1/chp4
 man:+mpiman++mpiman++++man+http://www-unix.mcs.anl.gov/mpi/www/www1/mpiman.html#mpiman
 man:+cleanipcs++cleanipcs++++man+http://www-unix.mcs.anl.gov/mpi/www/www1/cleanipcs.html#cleanipcs
 man:+MPI++MPI++++man+http://www-unix.mcs.anl.gov/mpi/www/www1/MPI.html#MPI
-man:+Jumpshot++Jumpshot++++man+http://www-unix.mcs.anl.gov/mpi/www/www1/Jumpshot.html#Jumpshot
+man:+Jumpshots++Jumpshots++++man+http://www-unix.mcs.anl.gov/mpi/www/www1/Jumpshots.html#Jumpshots
 man:+MPE++MPE++++man+http://www-unix.mcs.anl.gov/mpi/www/www4/MPE.html#MPE

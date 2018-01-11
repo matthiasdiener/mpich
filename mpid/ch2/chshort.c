@@ -1,5 +1,5 @@
 /*
- *  $Id: chshort.c,v 1.6 1999/11/05 19:25:46 swider Exp $
+ *  $Id: chshort.c,v 1.8 2000/08/09 22:29:37 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -13,14 +13,14 @@
 #include "chpackflow.h"
 
 /* Prototype definitions */
-int MPID_CH_Eagerb_send_short ANSI_ARGS(( void *, int, int, int, int, int, 
-					  MPID_Msgrep_t ));
-int MPID_CH_Eagerb_isend_short ANSI_ARGS(( void *, int, int, int, int, int, 
-					   MPID_Msgrep_t, MPIR_SHANDLE * ));
-int MPID_CH_Eagerb_recv_short ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
-int MPID_CH_Eagerb_save_short ANSI_ARGS(( MPIR_RHANDLE *, int, void *));
-int MPID_CH_Eagerb_unxrecv_start_short ANSI_ARGS(( MPIR_RHANDLE *, void * ));
-void MPID_CH_Eagerb_short_delete ANSI_ARGS(( MPID_Protocol * ));
+int MPID_CH_Eagerb_send_short ( void *, int, int, int, int, int, 
+					  MPID_Msgrep_t );
+int MPID_CH_Eagerb_isend_short ( void *, int, int, int, int, int, 
+					   MPID_Msgrep_t, MPIR_SHANDLE * );
+int MPID_CH_Eagerb_recv_short ( MPIR_RHANDLE *, int, void * );
+int MPID_CH_Eagerb_save_short ( MPIR_RHANDLE *, int, void *);
+int MPID_CH_Eagerb_unxrecv_start_short ( MPIR_RHANDLE *, void * );
+void MPID_CH_Eagerb_short_delete ( MPID_Protocol * );
 /*
  * Definitions of the actual functions
  */
@@ -36,6 +36,7 @@ MPID_Msgrep_t msgrep;
 
     DEBUG_PRINT_MSG("S Starting Eagerb_send_short");
 #ifdef MPID_PACK_CONTROL
+    DEBUG_PRINT_MSG("Entering while !MPID_PACKET_CHECK_OK"); 
     while (!MPID_PACKET_CHECK_OK(dest)) {  /* begin while !ok loop */
 	/* Wait for a protocol ACK packet */
 #ifdef MPID_DEBUG_ALL
@@ -47,7 +48,7 @@ MPID_Msgrep_t msgrep;
 #endif
 	MPID_DeviceCheck( MPID_BLOCKING );
     }  /* end while !ok loop */
-
+    DEBUG_PRINT_MSG("Leaving while !MPID_PACKET_CHECK_OK"); 
     MPID_PACKET_ADD_SENT(MPID_MyWorldRank, dest)
 #endif
 
@@ -99,6 +100,7 @@ MPIR_SHANDLE *shandle;
 
     DEBUG_PRINT_MSG("S Starting Eagerb_isend_short");
 #ifdef MPID_PACK_CONTROL
+    DEBUG_PRINT_MSG("Entering while !MPID_PACKET_CHECK_OK"); 
     while (!MPID_PACKET_CHECK_OK(dest)) {  /* begin while !ok loop */
 	/* Wait for a protocol ACK packet */
 #ifdef MPID_DEBUG_ALL
@@ -110,7 +112,7 @@ MPIR_SHANDLE *shandle;
 #endif
 	MPID_DeviceCheck( MPID_BLOCKING );
     }  /* end while !ok loop */
-
+    DEBUG_PRINT_MSG("Leaving while !MPID_PACKET_CHECK_OK"); 
     MPID_PACKET_ADD_SENT(MPID_MyWorldRank, dest)
 #endif
 

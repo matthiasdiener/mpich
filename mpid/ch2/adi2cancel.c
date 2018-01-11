@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2cancel.c,v 1.4 1999/10/18 21:20:05 swider Exp $
+ *  $Id: adi2cancel.c,v 1.5 2000/07/17 20:42:41 swider Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -34,9 +34,11 @@ int         *error_code;
     MPID_SendCancelPacket(&request, error_code); 
 
     if (*error_code == MPI_SUCCESS) {   /* begin if !fail */
+	DEBUG_PRINT_MSG("Entering while !shandle->cancel_complete");
 	while (!shandle->cancel_complete) {  /* begin while */
 	    MPID_DeviceCheck( MPID_BLOCKING );
 	}
+	DEBUG_PRINT_MSG("Leaving while !shandle->cancel_complete");
 
 	if (shandle->is_cancelled) { 
 	    if (shandle->finish)

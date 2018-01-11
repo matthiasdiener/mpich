@@ -140,6 +140,7 @@ static char *(kind12[]) = {
     "",
     "",
    "Invalid keyval",
+    "",
    "Null MPI_Errhandler",
     "",
    "MPI_Errhandler argument is not a valid errorhandler\nSpecial bit pattern %x in errhandler is incorrect.  May indicate an \nout-of-order argument or a deleted error handler",
@@ -149,6 +150,7 @@ static char *(kind12[]) = {
    "Range does not terminate",
    "Range (%d,%d,%d) does not terminate",
    "Zero stride is incorrect",
+    "",
    "Invalid value in array",
    "Invalid value in %s[%d] = %d",
    "Invalid argument",
@@ -158,6 +160,7 @@ static char *(kind12[]) = {
    "For MPI_DISTRIBUTE_NONE, the number of processes in that dimension of the grid must be 1",
    "For MPI_DISTRIBUTE_NONE, the number of processes in that dimension of the grid must be 1 (array_of_psizes[%d] = %d)",
    "Unknown distribution type",
+    "",
    "Value of position must be nonnegative",
    "Value of position must be nonnegative (is %d)",
    "Null Keyval",
@@ -179,6 +182,34 @@ static char *(kind12[]) = {
    "n is an invalid number",
    "n = %d is an invalid number",
    "Value is an invalid address",
+   "Value is an invalid address",
+    "",
+    "",
+   "Invalid offset argument",
+    "",
+   "Null datarep argument",
+    "",
+   "Invalid count argument",
+    "",
+   "Invalid size argument",
+    "",
+   "Invalid whence argument",
+    "",
+   "flag argument must be the same on all processes",
+    "",
+   "Invalid displacement argument",
+    "",
+   "Invalid etype argument",
+    "",
+   "Invalid filetype argument",
+    "",
+   "size argument must be the same on all processes",
+    "",
+   "offset points to a negative location in the file",
+    "",
+   "whence argument must be the same on all processes",
+    "",
+   "offset argument must be the same on all processes",
     (char *)0};
 /* MPI_ERR_UNKNOWN */
 static char *(kind13[]) = {
@@ -257,7 +288,15 @@ static char *(kind20[]) = {
    "???",
     (char *)0};
 /* MPI_ERR_AMODE */
-static char *(kind21[]) = {(char *)0};
+static char *(kind21[]) = {
+   "Invalid amode",
+    "",
+   "Exactly one of MPI_MODE_RDONLY, MPI_MODE_WRONLY, or MPI_MODE_RDWR must be specified",
+    "",
+   "Cannot use MPI_MODE_CREATE or MPI_MODE_EXCL with MPI_MODE_RDONLY",
+    "",
+   "Cannot specify MPI_MODE_SEQUENTIAL with MPI_MODE_RDWR",
+    (char *)0};
 /* MPI_ERR_BAD_FILE */
 static char *(kind22[]) = {(char *)0};
 /* MPI_ERR_CONVERSION */
@@ -270,7 +309,11 @@ static char *(kind25[]) = {(char *)0};
 static char *(kind26[]) = {(char *)0};
 /* MPI_ERR_FILE */
 static char *(kind27[]) = {
-   "Invalid MPI_File",
+   "Invalid file handle",
+    "",
+   "Null file handle",
+    "",
+   "Corrupted file handle",
     (char *)0};
 /* MPI_ERR_INFO */
 static char *(kind28[]) = {
@@ -296,7 +339,42 @@ static char *(kind31[]) = {
    "MPI_Info key %s is not defined",
     (char *)0};
 /* MPI_ERR_IO */
-static char *(kind32[]) = {(char *)0};
+/* MPI_ERR_IO */
+static char *(kind32[]) = {
+   "I/O Error",
+   "%s",
+   "Only an integral number of etypes can be accessed",
+    "",
+   "Can't determine the file-system type. Check the filename/path you provided and try again. Otherwise, prefix the filename with a string to indicate the type of file sytem (piofs:, pfs:, nfs:, ufs:, hfs:, xfs:, sfs:, pvfs:)",
+    "",
+   "ROMIO has not been configured to use the PFS file system",
+    "",
+   "ROMIO has not been configured to use the PIOFS file system",
+    "",
+   "ROMIO has not been configured to use the UFS file system",
+    "",
+   "ROMIO has not been configured to use the NFS file system",
+    "",
+   "ROMIO has not been configured to use the HFS file system",
+    "",
+   "ROMIO has not been configured to use the XFS file system",
+    "",
+   "ROMIO has not been configured to use the SFS file system",
+    "",
+   "ROMIO has not been configured to use the PVFS file system",
+    "",
+   "Only one active split collective I/O operation allowed per file handle",
+    "",
+   "No previous split collective begin",
+    "",
+   "There are outstanding nonblocking I/O operations on this file",
+    "",
+   "ROMIO tries to optimize this access by doing a read-modify-write, but is unable to read the file. Please give the file read permission and open it with MPI_MODE_RDWR.",
+    "",
+   "To preallocate disk space, ROMIO needs to read the file and write it back, but is unable to read the file. Please give the file read permission and open it with MPI_MODE_RDWR.",
+    "",
+   "Filetype must be constructed out of one or more etypes",
+    (char *)0};
 /* MPI_ERR_NAME */
 static char *(kind33[]) = {(char *)0};
 /* MPI_ERR_NOMEM */
@@ -318,9 +396,23 @@ static char *(kind41[]) = {(char *)0};
 /* MPI_ERR_SPAWN */
 static char *(kind42[]) = {(char *)0};
 /* MPI_ERR_UNSUPPORTED_DATAREP */
-static char *(kind43[]) = {(char *)0};
+static char *(kind43[]) = {
+   "Unsupported data representation",
+    "",
+   "Only native data representation currently supported",
+    (char *)0};
 /* MPI_ERR_UNSUPPORTED_OPERATION */
-static char *(kind44[]) = {(char *)0};
+static char *(kind44[]) = {
+   "Unsupported operation",
+    "",
+   "Shared file pointer not supported on PIOFS and PVFS",
+    "",
+   "Cannot use this function when file is opened with amode MPI_MODE_SEQUENTIAL",
+    "",
+   "Cannot read from a file opened with amode MPI_MODE_WRONLY",
+    "",
+   "MPI_MODE_SEQUENTIAL not supported on PIOFS and PVFS",
+};
 /* MPI_ERR_WIN */
 static char *(kind45[]) = {
    "Invalid MPI_Win",

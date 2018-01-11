@@ -23,12 +23,15 @@ The size given should be the sum of the sizes of all outstanding Bsends that
 you intend to have, plus a few hundred bytes for each Bsend that you do.
 For the purposes of calculating size, you should use 
 .I MPI_Pack_size
-.
+\&.
+
 In other words, in the code
 .nf
 MPI_Buffer_attach( buffer, size );
 MPI_Bsend( ..., count=20, datatype=type1,  ... );
-...
+\&.
+\&.
+\&.
 MPI_Bsend( ..., count=40, datatype=type2, ... );
 .fi
 
@@ -112,7 +115,8 @@ one is not valid.
 - An internal error has been detected.  This is fatal.
 Please send a bug report to 
 .I mpi-bugs@mcs.anl.gov
-.
+\&.
+
 .PD 1
 
 .SH SEE ALSO

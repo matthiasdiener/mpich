@@ -1,6 +1,14 @@
 #include <stdio.h>
-#include <stdarg.h>
+
+#ifdef HAVE_SLOGCONF_H
+#include "slog_config.h"
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
 #include <stdlib.h>
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STDARG_H )
+#include <stdarg.h>
+#endif
 
 #include "slog_fileio.h"
 #include "slog_bbuf.h"
@@ -89,7 +97,9 @@ int SLOG_Irec_ToOutputStream(       SLOG_STREAM      *slog,
 
     SLOG_uint32     actual_Nbytes_irec_reserved;
     SLOG_uint32     Nbytes_in_bbufs_patched;
+#if 0
     SLOG_uint32     Nbytes_written;
+#endif
     SLOG_int32      irec_bytesize_estimate;
     int             IsLastFrame = SLOG_FALSE;
     int             ierr;
@@ -100,9 +110,6 @@ int SLOG_Irec_ToOutputStream(       SLOG_STREAM      *slog,
 #if defined( COMPRESSION )
     SLOG_recdef_t      *recdef;
     SLOG_intvlinfo_t   *intvlinfo;
-#endif
-#if defined( DEBUG )
-    long slogfile_loc_cur;
 #endif
 
     if ( slog->HasIrec2IOStreamBeenUsed == SLOG_FALSE ) {
@@ -135,6 +142,17 @@ int SLOG_Irec_ToOutputStream(       SLOG_STREAM      *slog,
         ierr = SLOG_WriteInitFrameDir( slog );
         if ( ierr != SLOG_SUCCESS )
             return ierr;
+
+#if defined( CHECKPROFILE ) && defined( CHECKRECDEFS ) && defined( DEBUG )
+        ierr = SLOG_STM_IsPROFConsistentWithRDEF( slog->prof, slog->rec_defs );
+        if ( ierr != SLOG_TRUE ) {
+            fprintf( errfile, __FILE__":SLOG_Irec_ToOutputStream() - \n"
+                              "\t""The Display Profile is Inconsistent with "
+                              "the Record Definition Table\n" );
+            fflush( errfile );
+            return SLOG_FAIL;
+        }
+#endif
 
 #if defined( CHECKTIMEORDER )
         /*
@@ -237,7 +255,7 @@ int SLOG_Irec_ToOutputStream(       SLOG_STREAM      *slog,
             So, SLOG_STM_UpdateFrameDirEntry_Forward() HAS To Be Called
             BEFORE any operations on the various sectors of the frame,
             i.e. xxx_bbuf.  Because the starttime and endtime of the
-            frame determines where where each interval record should go.
+            frame determines where each interval record should go.
         */
         ierr = SLOG_STM_UpdateFrameDirEntry_Forward( slog, IsLastFrame );
         if ( ierr != SLOG_SUCCESS ) {
@@ -264,7 +282,9 @@ int SLOG_Irec_ToOutputStream(       SLOG_STREAM      *slog,
             fflush( errfile );
             return SLOG_FAIL;
         }
+#if 0
         Nbytes_written = ierr;
+#endif
 
         ierr = SLOG_STM_UpdateWriteFRAMEDIR( slog );
         if ( ierr != SLOG_SUCCESS ) {
@@ -390,12 +410,14 @@ int SLOG_Irec_ToOutputStream(       SLOG_STREAM      *slog,
     }
     SLOG_RecDef_SetUsed( recdef, SLOG_TRUE );
 
-    intvlinfo = SLOG_PROF_GetIntvlInfo( slog->prof, irec->intvltype );
+    intvlinfo = SLOG_PROF_GetIntvlInfo( slog->prof, irec->intvltype,
+                                        irec->bebits[0], irec->bebits[1] );
     if ( intvlinfo == NULL ) {
         fprintf( errfile, __FILE__":SLOG_Irec_ToOutputStream() - Warning !!!\n"
-                          "\t""SLOG_IntvlInfo_SetUsed ("fmt_itype_t") fails!\n"
-                          "\t""Program continues!",
-                          irec->intvltype );
+                          "\t""SLOG_IntvlInfo_SetUsed ("fmt_itype_t","
+                          fmt_bebit_t","fmt_bebit_t") fails!  "
+                          "Program Continues!\n",
+                          irec->intvltype, irec->bebits[0], irec->bebits[1] );
         fflush( errfile );
         /*  return SLOG_FAIL;  */
     }
@@ -408,7 +430,7 @@ int SLOG_Irec_ToOutputStream(       SLOG_STREAM      *slog,
     if ( slog->reserve != NULL ) {
         slog->reserve->Nrec_eff --;
         if ( slog->reserve->Nrec_eff < 0 ) {
-            fprintf( errfile, __FILE__"SLOG_Irec_ToOutputStream() - \n"
+            fprintf( errfile, __FILE__":SLOG_Irec_ToOutputStream() - \n"
                               "\t""Number of outstanding interval records = "
                               fmt_i32"\n", slog->reserve->Nrec_eff );
             fflush( errfile );
@@ -419,7 +441,7 @@ int SLOG_Irec_ToOutputStream(       SLOG_STREAM      *slog,
                                              irec->rectype, irec->intvltype,
                                              irec->bebits[0], irec->bebits[1] );
         if ( ierr == SLOG_FAIL ) {
-            fprintf( errfile, __FILE__"SLOG_Irec_ToOutputStream() - \n"
+            fprintf( errfile, __FILE__":SLOG_Irec_ToOutputStream() - \n"
                               "\t""SLOG_Irec_SizeOf("fmt_rtype_t","fmt_itype_t
                               ","fmt_bebit_t","fmt_bebit_t") fails!\n",
                               irec->rectype, irec->intvltype,
@@ -430,7 +452,7 @@ int SLOG_Irec_ToOutputStream(       SLOG_STREAM      *slog,
         irec_bytesize_estimate = ierr;
 
         if ( irec_bytesize_estimate < irec->bytesize ) {
-            fprintf( errfile, __FILE__"SLOG_Irec_ToOutputStream() - \n"
+            fprintf( errfile, __FILE__":SLOG_Irec_ToOutputStream() - \n"
                               "\t""SLOG_Irec_SizeOf("fmt_rtype_t","fmt_itype_t
                               ","fmt_bebit_t","fmt_bebit_t") returns %d bytes "
                               "< the actual irec->bytesize, "fmt_sz_t" bytes\n",
@@ -445,7 +467,7 @@ int SLOG_Irec_ToOutputStream(       SLOG_STREAM      *slog,
         slog->reserve->Nbytes_eff -= irec_bytesize_estimate;
 
         if ( slog->reserve->Nbytes_eff < 0 ) {
-            fprintf( errfile, __FILE__"SLOG_Irec_ToOutputStream() - \n"
+            fprintf( errfile, __FILE__":SLOG_Irec_ToOutputStream() - \n"
                               "\t""Byte size of all outstanding intervals, "
                               "slog->reserve->Nbytes_eff = "fmt_i32"\n",
                               slog->reserve->Nbytes_eff );
@@ -477,7 +499,7 @@ int SLOG_Irec_ToOutputStream(       SLOG_STREAM      *slog,
 @*/
 int SLOG_CloseOutputStream( SLOG_STREAM *slog )
 {
-    SLOG_uint32 Nbytes_written;
+    /*  SLOG_uint32 Nbytes_written;  */
     SLOG_uint32 count_irec_in_bbufs;
     int         IsLastFrame = SLOG_TRUE;
     int         ierr;
@@ -566,7 +588,7 @@ int SLOG_CloseOutputStream( SLOG_STREAM *slog )
                 fflush( errfile );
                 return SLOG_FAIL;
             }
-            Nbytes_written = ierr;
+            /*  Nbytes_written = ierr;  */
         
             ierr = SLOG_STM_UpdateWriteFRAMEDIR( slog );
             if ( ierr != SLOG_SUCCESS ) {
@@ -578,6 +600,28 @@ int SLOG_CloseOutputStream( SLOG_STREAM *slog )
 
             /*  SLOG_STM_InitAgainBeforeAddRec( slog );  */
         }   /*  Endof    if ( count_irec_in_bbufs > 0 )  */
+
+#if defined( CHECKRECDEFS )
+        ierr = SLOG_RDEF_IsBebitIntvlsConsistent( slog->rec_defs );
+        if ( ierr != SLOG_TRUE ) {
+            fprintf( errfile, __FILE__":SLOG_CloseOutputStream() - Warning!\n"
+                              "\t""SLOG_RDEF_IsBebitIntvlsConsistent() "
+                              "fails, program continues.\n" );
+            fflush( errfile );
+            /* return SLOG_FAIL; */
+        }
+#endif
+
+#if defined( CHECKPROFILE )
+        ierr = SLOG_PROF_IsBebitIntvlsConsistent( slog->prof );
+        if ( ierr != SLOG_TRUE ) {
+            fprintf( errfile, __FILE__":SLOG_CloseOutputStream() - Warning!\n"
+                              "\t""SLOG_PROF_IsBebitIntvlsConsistent() "
+                              "fails, program contines.\n" );
+            fflush( errfile );
+            /* return SLOG_FAIL; */
+        }
+#endif
 
         /*
             Compress the various file headers
@@ -609,6 +653,17 @@ int SLOG_CloseOutputStream( SLOG_STREAM *slog )
         if ( ierr != SLOG_SUCCESS ) {
             fprintf( errfile, __FILE__":SLOG_CloseOutputStream() - "
                               "SLOG_PROF_CompressdTableToFile() fails\n" );
+            fflush( errfile );
+            return SLOG_FAIL;
+        }
+#endif
+
+#if defined( CHECKPROFILE ) && defined( CHECKRECDEFS )
+        ierr = SLOG_STM_IsPROFConsistentWithRDEF( slog->prof, slog->rec_defs );
+        if ( ierr != SLOG_TRUE ) {
+            fprintf( errfile, __FILE__":SLOG_CloseOutputStream() - \n"
+                              "\t""The Display Profile is Inconsistent with "
+                              "the Record Definition Table\n" );
             fflush( errfile );
             return SLOG_FAIL;
         }
@@ -653,14 +708,14 @@ int SLOG_CloseOutputStream( SLOG_STREAM *slog )
         */
         if ( slog->reserve != NULL ) {
             if ( slog->reserve->Nrec_eff != 0 ) {
-                fprintf( errfile, __FILE__"SLOG_CloseOutputStream() - "
+                fprintf( errfile, __FILE__":SLOG_CloseOutputStream() - "
                                   "Warning !!!!\n"
                                   "\t""Number of outstanding intervals  = "
                                   fmt_i32"\n", slog->reserve->Nrec_eff );
                 fflush( errfile );
             }
             if ( slog->reserve->Nbytes_eff != 0 ) {
-                fprintf( errfile, __FILE__"SLOG_CloseOutputStream() - "
+                fprintf( errfile, __FILE__":SLOG_CloseOutputStream() - "
                                   "Warning !!!!\n"
                                   "\t""Bytesize of all outstanding intervals, "
                                   "slog->reserve->Nbytes_eff = "
@@ -704,7 +759,7 @@ int SLOG_STM_2ndPass( SLOG_STREAM *slog )
     const SLOG_uint32 zero        = (SLOG_uint32) 0;
           SLOG_uint32 Nbytes_read;
           SLOG_uint32 Nbytes_changed;
-          SLOG_uint32 Nbytes_written;
+    /*      SLOG_uint32 Nbytes_written;  */
           int         idx;
           int         ierr;
     
@@ -795,7 +850,7 @@ int SLOG_STM_2ndPass( SLOG_STREAM *slog )
             fflush( errfile );
             return SLOG_FAIL;
         }
-        Nbytes_written = ierr;
+        /*  Nbytes_written = ierr;  */
 
 
         /*
@@ -913,7 +968,7 @@ int SLOG_Irec_ReserveSpace(       SLOG_STREAM      *slog,
 
     if ( slog->reserve == NULL ) {
         if ( slog->hdr->IsIncreasingEndtime != SLOG_TRUE ) {
-            fprintf( errfile, __FILE__"SLOG_Irec_ReserveSpace() - \n"
+            fprintf( errfile, __FILE__":SLOG_Irec_ReserveSpace() - \n"
                               "SLOG_SetIncreasingEndtimeOrder() has NOT been "
                               "called!\n" );
             fflush( errfile );
@@ -972,7 +1027,7 @@ int SLOG_Irec_ReserveSpace(       SLOG_STREAM      *slog,
                                          rectype, intvltype,
                                          bebit_0, bebit_1 );
     if ( ierr == SLOG_FAIL ) {
-        fprintf( errfile, __FILE__"SLOG_Irec_ReserveSpace() - \n"
+        fprintf( errfile, __FILE__":SLOG_Irec_ReserveSpace() - \n"
                           "\t""SLOG_Irec_SizeOf("fmt_rtype_t","fmt_itype_t
                           ","fmt_bebit_t","fmt_bebit_t") fails!\n",
                           rectype, intvltype, bebit_0, bebit_1 );
@@ -993,7 +1048,7 @@ int SLOG_Irec_ReserveSpace(       SLOG_STREAM      *slog,
                                + slog->hdr->frame_reserved_size
                                + slog->reserve->Nbytes_tot;
         if ( old_buf_Nbytes_in_file > fbuf_bufsz( slog->fbuf ) ) {
-            fprintf( errfile, __FILE__"SLOG_Irec_ReserveSpace() - Warning!!!\n"
+            fprintf( errfile, __FILE__":SLOG_Irec_ReserveSpace() - Warning!!!\n"
                               "\t""When SLOG_Irec_ToOutputStream( "
                               fmt_rtype_t", " fmt_itype_t", "fmt_bebit_t", "
                               fmt_bebit_t", " fmt_stime_t" ) \n"
@@ -1018,7 +1073,7 @@ int SLOG_Irec_ReserveSpace(       SLOG_STREAM      *slog,
         increasing starttime order of the previous call.
     */
     if ( starttime < slog->prev_starttime ) {
-        fprintf( errfile, __FILE__"SLOG_Irec_ReserveSpace() - Warning!!!\n"
+        fprintf( errfile, __FILE__":SLOG_Irec_ReserveSpace() - Warning!!!\n"
                           "\t""Current starttime("fmt_time") is earlier "
                           "than previous starttime("fmt_time")\n",
                           starttime, slog->prev_starttime );
@@ -1051,7 +1106,7 @@ int SLOG_Irec_ReserveSpace(       SLOG_STREAM      *slog,
 . orig_node_id - interval record's origin node ID.
 . orig_cpu_id - interval record's origin cpu ID.
 . orig_thread_id - interval record's origin thread ID.
-. where - interval record's where integer pointer.
+. instr_addr - interval record's instr_addr integer pointer.
 . ...   - destination task labels for Message Record ( optional ) :
   dest_node_id - interval record's destination node ID.
   dest_cpu_id - interval record's destination cpu ID.
@@ -1082,7 +1137,7 @@ int SLOG_Irec_SetMinRec(       SLOG_intvlrec_t  *intvlrec,
                          const SLOG_nodeID_t     orig_node_id,
                          const SLOG_cpuID_t      orig_cpu_id,
                          const SLOG_threadID_t   orig_thread_id,
-                         const SLOG_where_t      where,
+                         const SLOG_iaddr_t      instr_addr,
                          ... )
 {
     /*  Local Variables  */
@@ -1099,23 +1154,23 @@ int SLOG_Irec_SetMinRec(       SLOG_intvlrec_t  *intvlrec,
     }
 
     /*  Assemble all the input arguments as a SLOG_intvlrec_t, intvlrec  */
-    intvlrec->rectype   = rectype  ;
-    intvlrec->intvltype = intvltype;
-    intvlrec->bebits[0] = bebit_0  ;
-    intvlrec->bebits[1] = bebit_1  ;
-    intvlrec->starttime = starttime;
-    intvlrec->duration  = duration ;
+    intvlrec->rectype     = rectype  ;
+    intvlrec->intvltype   = intvltype;
+    intvlrec->bebits[0]   = bebit_0  ;
+    intvlrec->bebits[1]   = bebit_1  ;
+    intvlrec->starttime   = starttime;
+    intvlrec->duration    = duration ;
     SLOG_TaskID_Assign( &( intvlrec->origID ),
                         orig_node_id, orig_cpu_id, orig_thread_id );
-    intvlrec->where     = where    ;
+    intvlrec->instr_addr  = instr_addr    ;
 
-    intvlrec->bytesize  = SLOG_typesz[ min_IntvlRec ];
+    intvlrec->bytesize    = SLOG_typesz[ min_IntvlRec ];
 
     if ( SLOG_global_IsOffDiagRec( intvlrec->rectype ) ) {
-        va_start( ap, where );
-        dest_node_id   = va_arg( ap, SLOG_nodeID_t );
-        dest_cpu_id    = va_arg( ap, SLOG_cpuID_t );
-        dest_thread_id = va_arg( ap, SLOG_threadID_t );
+        va_start( ap, instr_addr );
+        dest_node_id      = va_arg( ap, SLOG_nodeID_t );
+        dest_cpu_id       = va_arg( ap, SLOG_cpuID_t );
+        dest_thread_id    = va_arg( ap, SLOG_threadID_t );
         va_end( ap );
         SLOG_TaskID_Assign( &( intvlrec->destID ),
                             dest_node_id, dest_cpu_id, dest_thread_id );

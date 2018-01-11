@@ -1,5 +1,5 @@
 /*
- *  $Id: chprobe.c,v 1.1.1.1 1997/09/17 20:39:20 gropp Exp $
+ *  $Id: chprobe.c,v 1.2 2000/07/17 20:50:43 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -55,11 +55,13 @@ MPI_Status *status;
 int found;
 
 DEBUG_PRINT_MSG("Entering Probe")
+    DEBUG_PRINT_MSG("Entering while(1)");    
 while (1) {
     MPID_CH_Iprobe( tag, source, context_id, &found, status );
     if (found) break;
     /* Wait for a message */
     MPID_CH_check_incoming( MPID_BLOCKING );
     }
+ DEBUG_PRINT_MSG("Leaving while(1)");    
 DEBUG_PRINT_MSG("Exiting Probe")
 }

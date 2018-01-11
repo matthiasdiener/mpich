@@ -1,15 +1,14 @@
 #include <stdio.h>
-#if !defined(SYMMETRY_PTX)  &&  !defined(NCUBE)  &&  !defined(HP)
-#    if defined(MEIKO_CS2)  ||  defined(SUN_SOLARIS)
-#        include <string.h>
-#    else
-#        include <strings.h>
-#    endif
-#endif
+#include <strings.h>
+#include <string.h>
+#include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
+#endif
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
 #endif
 #if defined(NEEDS_STDLIB_PROTOTYPES)
 #include "protofix.h"

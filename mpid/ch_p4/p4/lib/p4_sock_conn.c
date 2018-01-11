@@ -86,15 +86,17 @@ int dest_id;
     int dest_listener_con_fd;
     int my_listener, dest_listener;
     int new_listener_port, new_listener_fd;
+    int num_tries;
+#   if defined(HAVE_SIGHOLD)
+    /* Prefer this over sigblock */
+    sighold(LISTENER_ATTN_SIGNAL);
+#   else
 #   if (defined(HAVE_SIGBLOCK) && defined(HAVE_SIGSETMASK))
     int oldmask;
-#   endif
-    int num_tries;
-
-#   if (defined(HAVE_SIGBLOCK) && defined(HAVE_SIGSETMASK))
     oldmask = sigblock(sigmask(LISTENER_ATTN_SIGNAL));
 #   else
-    sighold(LISTENER_ATTN_SIGNAL);
+#   error 'Unknown signal handling'
+#   endif
 #   endif
 
     /* Get some initial information */
@@ -114,11 +116,15 @@ int dest_id;
     if (p4_local->conntab[dest_id].type == CONN_REMOTE_EST)
     {
 	p4_dprintfl(70,"request_connection %d: already connected\n", dest_id);
+#   if defined(HAVE_SIGHOLD)
+        sigrelse(LISTENER_ATTN_SIGNAL);
+#   else
 #   if (defined(HAVE_SIGBLOCK) && defined(HAVE_SIGSETMASK))
 	sigsetmask(oldmask);
 #       else
-        sigrelse(LISTENER_ATTN_SIGNAL);
+#error 'Unknown signal handling'
 #       endif
+#   endif
 	return;
     }
 
@@ -173,10 +179,14 @@ int dest_id;
     /* Now release the listener connections */
     close(new_listener_fd);
 
+#   if defined(HAVE_SIGHOLD)
+    sigrelse(LISTENER_ATTN_SIGNAL);
+#   else
 #   if (defined(HAVE_SIGBLOCK) && defined(HAVE_SIGSETMASK))
     sigsetmask(oldmask);
 #   else
-    sigrelse(LISTENER_ATTN_SIGNAL);
+#   error 'Unknown signal handling'
+#   endif
 #   endif
 
     p4_dprintfl(70, "request_connection: finished connecting\n");

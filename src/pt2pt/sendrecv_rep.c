@@ -1,5 +1,5 @@
 /*
- *  $Id: sendrecv_rep.c,v 1.12 1999/08/30 15:49:23 swider Exp $
+ *  $Id: sendrecv_rep.c,v 1.14 2000/08/23 17:49:23 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -89,6 +89,12 @@ EXPORT_MPI_API int MPI_Sendrecv_replace( void *buf, int count, MPI_Datatype data
        message even if it has holes in it.  Perhaps a better way to 
        do this is if contiguous, then as here, else use pack/unpack
        to send contiguous data... 
+
+       BUG:
+       This code isn't correct, since one process could use a 
+       contiguous datatype while another uses a non-contiguous type.
+       If PACKED type is handled differently, this code will not
+       work correctly.
      */
     MPIR_ERROR_PUSH(comm_ptr);
 
@@ -123,7 +129,7 @@ EXPORT_MPI_API int MPI_Sendrecv_replace( void *buf, int count, MPI_Datatype data
 	(*status) = status_array[1];
     }
     else {
-	int dest_len, act_len, position;
+	int dest_len, position, packed_count;
 	/* non-contiguous data will be packed and unpacked */
 	MPIR_CALL_POP(MPI_Pack_size( count, datatype, comm, &buflen ),
 		      comm_ptr,myname);
@@ -149,20 +155,28 @@ EXPORT_MPI_API int MPI_Sendrecv_replace( void *buf, int count, MPI_Datatype data
 	    }
 	/* We need to use MPIR_Unpack because we need the DESTINATION 
 	   length */
-	act_len	 = 0;
 	dest_len = 0;
 	position = 0;
-	/* BUG: This isn't correct for devices that manage status->count */
-        MPID_Unpack( rbuf, status->count, MPID_Msgrep_from_comm(comm_ptr),
+	MPI_Get_count( status, MPI_PACKED, &packed_count );
+        MPID_Unpack( rbuf, packed_count, MPID_Msgrep_from_comm(comm_ptr),
                      &position, buf, count, dtype_ptr, &dest_len,
                      comm_ptr, MPI_ANY_SOURCE, &mpi_errno);
 	if (rbuf) {
 	    FREE( rbuf );
 	    }
-	/* Need to update the count field to reflect the number of UNPACKED
-	   bytes */
-	status->count = dest_len;
+	{
+	    int act_size, final_len;
+	    /* Need to update the count field to reflect the number of UNPACKED
+	       bytes */
+	    MPI_Type_size( datatype, &act_size );
+	    if (act_size > 0) 
+		final_len = dest_len / act_size;
+	    else
+		final_len = MPI_UNDEFINED;
+	    MPI_Status_set_elements( status, datatype, final_len );
+	    /* status->count = dest_len; */
 	}
+    }
     TR_POP;
     MPIR_RETURN( comm_ptr, mpi_errno, myname );
 }

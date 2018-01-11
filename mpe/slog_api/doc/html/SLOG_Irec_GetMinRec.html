@@ -15,7 +15,7 @@ int SLOG_Irec_GetMinRec( const SLOG_intvlrec_t   *intvlrec,
                                SLOG_nodeID_t     *orig_node_id,
                                SLOG_cpuID_t      *orig_cpu_id,
                                SLOG_threadID_t   *orig_thread_id,
-                               SLOG_where_t      *where,
+                               SLOG_iaddr_t      *instr_addr,
                          ... )
 </CODE></PRE>
 <H2>Unmodified Input Variables </H2>
@@ -44,7 +44,7 @@ sets of MPI call arguments.
 </DL>
 <DL><DT><B>orig_thread_id </B> - pointer to interval record's origin thread ID.
 </DL>
-<DL><DT><B>orig_where </B> - pointer to interval record's where integer pointer.
+<DL><DT><B>orig_instr_addr </B> - pointer to interval record's instr_addr integer pointer.
 </DL>
 <DL><DT><B>...   </B> - pointers to destination task labels for Message Record ( optional ) :
 dest_node_id - pointer to interval record's destination node ID.

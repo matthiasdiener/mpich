@@ -1,12 +1,12 @@
 /* 
- *   $Id: ad_piofs_open.c,v 1.3 1999/08/06 18:32:31 thakur Exp $    
+ *   $Id: ad_piofs_open.c,v 1.5 2000/02/09 21:29:54 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "ad_piofs.h"
-#ifdef __PROFILE
+#ifdef PROFILE
 #include "mpe.h"
 #endif
 
@@ -15,6 +15,9 @@ void ADIOI_PIOFS_Open(ADIO_File fd, int *error_code)
     int amode, perm, old_mask, err;
     piofs_fstat_t piofs_fstat;
     char *value;
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "ADIOI_PIOFS_OPEN";
+#endif
 
     if (fd->perm == ADIO_PERM_NULL) {
 	old_mask = umask(022);
@@ -35,11 +38,11 @@ void ADIOI_PIOFS_Open(ADIO_File fd, int *error_code)
     if (fd->access_mode & ADIO_EXCL)
 	amode = amode | O_EXCL;
 
-#ifdef __PROFILE
+#ifdef PROFILE
     MPE_Log_event(1, 0, "start open");
 #endif
     fd->fd_sys = open(fd->filename, amode, perm);
-#ifdef __PROFILE
+#ifdef PROFILE
     MPE_Log_event(2, 0, "end open");
 #endif
 
@@ -68,5 +71,14 @@ void ADIOI_PIOFS_Open(ADIO_File fd, int *error_code)
 	    fd->fp_ind = fd->fp_sys_posn = llseek(fd->fd_sys, 0, SEEK_END);
     }
 
+#ifdef PRINT_ERR_MSG
     *error_code = (fd->fd_sys == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
+#else
+    if (fd->fd_sys == -1) {
+	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
+			      myname, "I/O Error", "%s", strerror(errno));
+	ADIOI_Error(ADIO_FILE_NULL, *error_code, myname);	    
+    }
+    else *error_code = MPI_SUCCESS;
+#endif
 }

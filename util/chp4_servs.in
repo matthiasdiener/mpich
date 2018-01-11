@@ -5,11 +5,14 @@
 defport=1234
 MPIR_HOME=#MPIR_HOME#
 LARCH=#DEFAULT_ARCH#
-machineDir=#datadir#
+datadir=#datadir#
+machineDir=$datadir
 bindir=#bindir#
 do_script=/bin/sh
 run_dir=$HOME
 server_name=serv_p4
+RSHCOMMAND=#RSHCOMMAND#
+
 for arg in "$@" ; do
     case $arg in 
 	-help)

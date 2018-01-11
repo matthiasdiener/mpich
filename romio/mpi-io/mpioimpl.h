@@ -1,5 +1,5 @@
 /* 
- *   $Id: mpioimpl.h,v 1.3 1999/08/06 18:33:34 thakur Exp $    
+ *   $Id: mpioimpl.h,v 1.4 2000/02/09 21:30:15 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,8 +9,8 @@
 /* header file for MPI-IO implementation. not intended to be
    user-visible */ 
 
-#ifndef __MPIOIMPL_INCLUDE
-#define __MPIOIMPL_INCLUDE
+#ifndef MPIOIMPL_INCLUDE
+#define MPIOIMPL_INCLUDE
 
 #include "mpio.h"
 #include "adio.h"

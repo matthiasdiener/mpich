@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_xfs_open.c,v 1.3 1999/08/06 18:32:48 thakur Exp $    
+ *   $Id: ad_xfs_open.c,v 1.5 2000/02/09 21:30:03 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -11,6 +11,9 @@ void ADIOI_XFS_Open(ADIO_File fd, int *error_code)
 {
     int perm, old_mask, amode, amode_direct;
     struct dioattr st;
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "ADIOI_XFS_OPEN";
+#endif
 
     if (fd->perm == ADIO_PERM_NULL) {
 	old_mask = umask(022);
@@ -49,6 +52,15 @@ void ADIOI_XFS_Open(ADIO_File fd, int *error_code)
 
     fd->fp_sys_posn = -1; /* set it to null because we use pread/pwrite */
 
+#ifdef PRINT_ERR_MSG
     *error_code = ((fd->fd_sys == -1) || (fd->fd_direct == -1)) ? 
 	             MPI_ERR_UNKNOWN : MPI_SUCCESS;
+#else
+    if ((fd->fd_sys == -1) || (fd->fd_direct == -1)) {
+	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
+			      myname, "I/O Error", "%s", strerror(errno));
+	ADIOI_Error(ADIO_FILE_NULL, *error_code, myname);	    
+    }
+    else *error_code = MPI_SUCCESS;
+#endif
 }

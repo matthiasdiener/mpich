@@ -17,21 +17,28 @@
 # This will allow users to add there own debuggers 
 # (with -debug=<debugger_name>)
 #
+# Set default variables
+AUTOMOUNTFIX="@AUTOMOUNTFIX@"
+DEFAULT_DEVICE=@DEVICE@
+RSHCOMMAND="@RSHCOMMAND@"
+SYNCLOC=@SYNCLOC@
+CC="@CC@"
+COMM=@COMM@
+GLOBUSDIR=@GLOBUSDIR@
+CLINKER="@CLINKER@"
+prefix=@MPIR_HOME@
+bindir=@binbuild_dir@
+# This value for datadir is the default value setup by configure
+datadir=@builddir@/util/machines
+DEFAULT_MACHINE=@DEFAULT_MACHINE@
+DEFAULT_ARCH=@ARCH@
+
+# Derived variables
+MPIRUN_BIN=$bindir
+MPIRUN_HOME=$MPIRUN_BIN
+MPIVERSION="@MPIVERSION@"
 
 #set verbose
-MPIR_HOME=#MPIR_HOME#
-if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
-    MPIR_HOME=`pwd`/..
-fi
-#
-# This is complicated by the fact that we want to use EITHER bin (for 
-# single device installations) or lib/#LARCH#/#DEVICE# for multiple
-# device installations.
-if [ "#MPIRUN_BIN#" = "#""MPIRUN_BIN""#" ] ; then 
-    MPIRUN_HOME=$MPIR_HOME/bin
-else
-    MPIRUN_HOME=#MPIRUN_BIN#
-fi
 #
 # Local routines
 #
@@ -107,9 +114,6 @@ case $machine in
 	;;
     globus)
 	mpirun_version=$MPIRUN_HOME/mpirun.globus
-	;;
-    chameleon)
-	mpirun_version=$MPIRUN_HOME/mpirun.ch
 	;;
     *)    
 	#

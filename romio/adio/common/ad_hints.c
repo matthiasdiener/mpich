@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_hints.c,v 1.3 1999/08/06 18:32:52 thakur Exp $    
+ *   $Id: ad_hints.c,v 1.5 2000/03/27 23:02:26 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -46,7 +46,7 @@ void ADIOI_GEN_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code)
 	    tmp_val = intval;
 	    MPI_Bcast(&tmp_val, 1, MPI_INT, 0, fd->comm);
 	    if (tmp_val != intval) {
-		printf("ADIOI_GEN_SetInfo: the value for key \"cb_buffer_size\" must be the same on all processes\n");
+		FPRINTF(stderr, "ADIOI_GEN_SetInfo: the value for key \"cb_buffer_size\" must be the same on all processes\n");
 		MPI_Abort(MPI_COMM_WORLD, 1);
 	    }
 	    else MPI_Info_set(info, "cb_buffer_size", value);
@@ -58,7 +58,7 @@ void ADIOI_GEN_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code)
 	    tmp_val = intval;
 	    MPI_Bcast(&tmp_val, 1, MPI_INT, 0, fd->comm);
 	    if (tmp_val != intval) {
-		printf("ADIOI_GEN_SetInfo: the value for key \"cb_nodes\" must be the same on all processes\n");
+		FPRINTF(stderr, "ADIOI_GEN_SetInfo: the value for key \"cb_nodes\" must be the same on all processes\n");
 		MPI_Abort(MPI_COMM_WORLD, 1);
 	    }
 	    else {
@@ -80,7 +80,7 @@ void ADIOI_GEN_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code)
 
     ADIOI_Free(value);
 
-    if ((fd->file_system == ADIO_PIOFS) && (fd->file_system == ADIO_PVFS))
+    if ((fd->file_system == ADIO_PIOFS) || (fd->file_system == ADIO_PVFS))
 	MPI_Info_delete(info, "ind_wr_buffer_size");
     /* no data sieving for writes in PIOFS and PVFS, because it doesn't
        support file locking */

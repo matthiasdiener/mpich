@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2recv.c,v 1.3 1998/02/17 20:44:15 gropp Exp $
+ *  $Id: adi2recv.c,v 1.5 2000/07/17 20:44:01 swider Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -162,6 +162,7 @@ int         *error_code;
     /* The 'while' is at the top in case the 'wait' routine is changed
        by one of the steps.  This happens, for example, in the Rendezvous
        Protocol */
+    DEBUG_PRINT_MSG( "Entering while !rhandle->is_complete" );
     while (!rhandle->is_complete) {
 	if (rhandle->wait) {
 	    *error_code = 
@@ -204,10 +205,26 @@ int         *error_code;
 	    }
 	}
     }
+    DEBUG_PRINT_MSG( "Leaving while !rhandle->is_complete" );
     if (rhandle->finish) 
 	(rhandle->finish)( rhandle );
     if (status) *status = rhandle->s;
     *error_code = rhandle->s.MPI_ERROR;
 }
 
+#ifdef LAPI
+/*\ JN: added to suck incoming messages when waiting for send to complete
+\*/
+int MPID_Check_Receives_While_Waiting()
+{
+int     lerr=0;
+MPID_Device *dev = MPID_devset->dev_list;
 
+      while (dev) {
+           lerr = (*dev->check_device)( dev, MPID_NOTBLOCKING );
+           if (lerr > 0) break;
+           dev = dev->next;
+      }
+      return(lerr);
+}
+#endif

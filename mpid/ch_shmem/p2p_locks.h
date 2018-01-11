@@ -95,7 +95,7 @@
 #endif
 
 /* Default: SysV semaphores, unfortunately */
-#if !defined(LOCKS_PICKED) && defined(HAVE_SEMOP)
+#if !defined(LOCKS_PICKED) && defined(HAVE_SEMOP) && defined(HAVE_SEMGET)
 #    define USE_SEMOP
 #    define LOCKS_PICKED
 #endif
@@ -202,15 +202,16 @@
 #    include <sys/sem.h>
 #    define INCLUDED_SYS_SEM
      typedef struct { int semid;  int semnum; }   p2p_lock_t;
-     static struct sembuf sem_lock[1]   = { { 0, -1, 0 } };
-     static struct sembuf sem_unlock[1] = { { 0, 1, 0 } };
 #    define p2p_lock_init(l)  semop_init(l)
 #    define p2p_lock(l)       semop_lock(l)
 #    define p2p_unlock(l)     semop_unlock(l)
 #    define p2p_lock_name     "semop_lock"
-void semop_init ANSI_ARGS((p2p_lock_t *));
-void semop_lock ANSI_ARGS((p2p_lock_t *));
-void semop_unlock ANSI_ARGS((p2p_lock_t *));
+void semop_init (p2p_lock_t *);
+void semop_lock (p2p_lock_t *);
+void semop_unlock (p2p_lock_t *);
+int MD_init_semop( void );
+int MD_init_sysv_semop(void);
+void MD_remove_sysv_sipc( void );
 #endif
 
 

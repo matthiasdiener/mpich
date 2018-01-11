@@ -50,6 +50,9 @@
 #ifdef HAVE_NO_C_CONST
 #define const
 #endif
+#ifdef STDC_HEADERS
+#include <string.h>
+#endif
 
 /* 
    End of inclusion
@@ -253,8 +256,8 @@ static group_t * find_or_create_group (mqs_process *proc,
 				       mqs_taddr_t table)
 {
   mpich_process_info *p_info = (mpich_process_info *)mqs_get_process_info (proc);
-  mqs_image * image          = mqs_get_image (proc);
-  mpich_image_info *i_info   = (mpich_image_info *)mqs_get_image_info (image);
+/*  mqs_image * image          = mqs_get_image (proc); */
+/*  mpich_image_info *i_info   = (mpich_image_info *)mqs_get_image_info (image); */
   int intsize = p_info->sizes.int_size;
   communicator_t *comm  = p_info->communicator_list;
   int *tr;
@@ -1177,3 +1180,8 @@ char * mqs_dll_error_string (int errcode)
     }
 } /* mqs_dll_error_string */
 
+/* So the debugger can tell what interface width the library was compiled with */
+int mqs_dll_taddr_width ()
+{
+  return sizeof (mqs_taddr_t);
+} /* mqs_dll_taddr_width */

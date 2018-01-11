@@ -1,12 +1,12 @@
 /* 
- *   $Id: ad_nfs_seek.c,v 1.3 1999/08/06 18:32:21 thakur Exp $    
+ *   $Id: ad_nfs_seek.c,v 1.4 2000/02/09 21:29:50 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "ad_nfs.h"
-#ifdef __PROFILE
+#ifdef PROFILE
 #include "mpe.h"
 #endif
 

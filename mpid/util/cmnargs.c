@@ -44,9 +44,7 @@ extern char *getenv();
 /*
    Get an integer from the environment; otherwise, return defval.
  */
-int MPID_GetIntParameter( name, defval )
-char *name;
-int  defval;
+int MPID_GetIntParameter(char * name, int defval )
 {
     char *p = getenv( name );
 
@@ -59,9 +57,7 @@ int  defval;
    MPID_ArgSqueeze - Remove all null arguments from an arg vector; 
    update the number of arguments.
  */
-void MPID_ArgSqueeze( Argc, argv )
-int  *Argc;
-char **argv;
+void MPID_ArgSqueeze( int *Argc, char **argv )
 {
     int argc, i, j;
 
@@ -78,9 +74,7 @@ char **argv;
     *Argc = i;
 }
 
-void MPID_ProcessArgs( argc, argv )
-int *argc;
-char ***argv;
+void MPID_ProcessArgs( int *argc, char ***argv )
 {
 int i;
 int active_rank = -1;

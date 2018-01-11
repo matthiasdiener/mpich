@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_delete.c,v 1.9 1999/08/30 15:47:32 swider Exp $    
+ *   $Id: info_delete.c,v 1.10 2000/07/20 16:14:07 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -74,15 +74,8 @@ EXPORT_MPI_API int MPI_Info_delete(MPI_Info info, char *key)
 
     while (curr) {
 	if (!strcmp(curr->key, key)) {
-#ifdef free
-/* By default, we define free as an illegal expression when doing memory
-   checking; we need to undefine it to handle the fact that strdup does
-   a naked malloc.
- */
-#undef free
-#endif
-	    free(curr->key);   /* not ADIOI_Free, because it was strdup'ed */
-	    free(curr->value);
+	    FREE(curr->key);   
+	    FREE(curr->value);
 	    prev->next = curr->next;
 	    FREE(curr);
 	    done = 1;

@@ -1,136 +1,65 @@
-/* MPE/acconfig.h */
-/* These are copied from mpich/acconfig.h */
-/* The PRIMARY source of this file is MPICH/acconfig.h */
-/* These are needed for ANY declaration that may be made by an AC_DEFINE */
-
-/* Define if Fortran functions are pointers to pointers */
-#undef FORTRAN_SPECIAL_FUNCTION_PTR
-
-/* Define is C supports volatile declaration */
-#undef HAS_VOLATILE
-
-/* Define if XDR libraries available */
-#undef HAS_XDR
-
-/* Define if message catalog programs available */
-#undef HAVE_GENCAT
-
-/* Define if getdomainname function available */
-#undef HAVE_GETDOMAINNAME
-
-/* Define in gethostbyname function available */
-#undef HAVE_GETHOSTBYNAME
-
-/* Define if C has long long int */
-#undef HAVE_LONG_LONG_INT
-
-/* Define if C supports long doubles */
-#undef HAVE_LONG_DOUBLE 
-
-/* Define if msem_init function available */
-#undef HAVE_MSEM_INIT
-
-/* Define if C does NOT support const */
-#undef HAVE_NO_C_CONST
-
-/* Define if C supports prototypes (but isn't ANSI C) */
-#undef HAVE_PROTOTYPES
+/* Define if void * is 8 bytes */
+#undef POINTER_64_BITS
 
 /* Define if uname function available */
 #undef HAVE_UNAME
 
-/* Define if an int is smaller than void * */
-#undef INT_LT_POINTER
+/* Define in gethostbyname function available */
+#undef HAVE_GETHOSTBYNAME
 
-/* Define if malloc returns void * (and is an error to return char *) */
-#undef MALLOC_RET_VOID
-
-/* Define if MPE extensions are included in MPI libraries */
-#undef MPE_USE_EXTENSIONS
-
-/* Define if MPID contains special case code for collective over world */
-#undef MPID_COLL_WORLD
-
-/* Define if MPID supports ADI collective */
-#undef MPID_USE_ADI_COLLECTIVE
-
-/* Define is ADI should maintain a send queue for debugging */
-#undef MPI_KEEP_SEND_QUEUE
-
-/* Define if mpe debug features should NOT be included */
-#undef MPI_NO_MPEDBG
-
-/* Define if struct msemaphore rather than msemaphore required */
-#undef MSEMAPHORE_IS_STRUCT
-
-/* Define if void * is 8 bytes */
-#undef POINTER_64_BITS
+/* define is stdarg.h is available */
+#undef HAVE_STDARG_H
 
 /* Define if stdarg can be used */
 #undef USE_STDARG
 
-/* For Cray, define two word character descriptors in use */
-#undef _TWO_WORD_FCD
+/* Define if C supports prototypes (but isn't ANSI C) */
+#undef HAVE_PROTOTYPES
 
-/* Define if extra traceback information should be kept */
-#undef DEBUG_TRACE
+/* Define if Fortran uses lowercase name mangling */
+#undef F77_NAME_LOWER
 
-/* Define if Fortran is NOT available */
-#undef MPID_NO_FORTRAN
+/* Define if Fortran use lowercase followed by an underscore */
+#undef F77_NAME_LOWER_USCORE
 
-/* Define if memory debugging should be enabled */
-#undef MPIR_MEMDEBUG
+/* Define if Fortran uses uppercase */
+#undef F77_NAME_UPPER
 
-/* Define if object debugging should be enabled */
-#undef MPIR_OBJDEBUG
+/* Define if Fortran uses two underscores for names with an underscore 
+   (and one for names without an underscore) */
+#undef F77_NAME_LOWER_2USCORE
 
-/* Define if ptr conversion debugging should be enabled */
-#undef MPIR_PTRDEBUG
+/* Define if Fortran leaves case unchanged */
+#undef F77_NAME_MIXED
 
-/* Define if ADI is ADI-2 (required!) */
-#undef MPI_ADI2
+/* Define if Fortran leaves case unchanged, followed by an underscore */
+#undef F77_NAME_MIXED_USCORE
 
-/* Define if mmap does not work correctly for anonymous memory */
-#undef HAVE_NO_ANON_MMAP
+/* Define Fortran logical values used in MPI C program  */
+#undef MPE_F77_TRUE_VALUE
+#undef MPE_F77_FALSE_VALUE
 
-/* Define if signals reset to the default when used (SYSV vs BSD semantics).
-   Such signals are essentially un-usable, because of the resulting race
-   condition.  The fix is to use the sigaction etc. routines instead (they're
-   usually available, since without them signals are entirely useless) */
-#undef SIGNALS_RESET_WHEN_USED
+/* Define if MPI_Wtime is there  */
+#undef HAVE_MPI_WTIME
 
-/* Define if MPI Structs should align on the largest basic element */
-#undef USE_BASIC_ALIGNMENT
+/* Define if MPI_Fint if necessary */
+#undef MPI_Fint
 
-/* The number of processors expected on an SMP.  Usually undefined */
-#undef PROCESSOR_COUNT
+/* Define MPI_STATUS_SIZE */
+#undef MPI_STATUS_SIZE
 
-/* Define this to force a choice of shared memory allocator */
-#undef SHMEM_PICKED
+/*  define MPI Fortran logical  */
+#undef MPIR_F_TRUE
+#undef MPIR_F_FALSE
 
-/* Define this to force SysV shmat for shared memory allocator */
-#undef USE_SHMAT
+/* Define if MPI_xxx_f2c and c2f routines defined */
+#undef HAVE_MPI_XXXX_F2C
 
-/* Define this to force a choice for memory locking */
-#undef LOCKS_PICKED
+/* Define if MPI_Status_f2c and c2f rotines defined */
+#undef HAVE_MPI_STATUS_C2F
 
-/* Define this to force SysV semop for locks */
-#undef USE_SEMOP
+/* Define in MPI_RECV etc. does not set status on MPI_PROC_NULL */
+#undef HAVE_BROKEN_STATUS_ON_PROC_NULL
 
-/* End of MPICH acconfig.h */
-
-/* MPE/acconfig.h specific entries */
-/* define is stdargs.h is available */
-#undef HAVE_STDARG_H
-
-/* define for MPICH name */
-#undef MPICH_NAME
-
-/* define if Cray MPI version is 1.1.0.4 */
-#undef CRAY1104
-
-/* define if Cray MPI version is unknown */
-#undef CRAYUNKNOWN
-
-/* define if IBM version is unknown */
-#undef IBMUNKNOWN
+/* Define if sighandler_t defined in signal.h */
+#undef HAVE_SIGHANDLER_T

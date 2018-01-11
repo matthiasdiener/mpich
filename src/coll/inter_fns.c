@@ -1,5 +1,5 @@
 /*
- *  $Id: inter_fns.c,v 1.4 1999/08/20 02:25:59 ashton Exp $
+ *  $Id: inter_fns.c,v 1.5 2000/07/12 17:18:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -20,33 +20,36 @@
  */
 
 /* Forward declarations */
-static int inter_Barrier ANSI_ARGS((struct MPIR_COMMUNICATOR *));
-static int inter_Bcast ANSI_ARGS((void*, int, struct MPIR_DATATYPE *, int, struct MPIR_COMMUNICATOR *));
-static int inter_Gather ANSI_ARGS((void*, int, struct MPIR_DATATYPE *, void*, 
-				   int, struct MPIR_DATATYPE *, int, struct MPIR_COMMUNICATOR *));
-static int inter_Gatherv ANSI_ARGS((void*, int, struct MPIR_DATATYPE *, void*, int *, 
-				    int *, struct MPIR_DATATYPE *, int, struct MPIR_COMMUNICATOR *)); 
-static int inter_Scatter ANSI_ARGS((void*, int, struct MPIR_DATATYPE *, void*, int, 
-				    struct MPIR_DATATYPE *, int, struct MPIR_COMMUNICATOR *));
-static int inter_Scatterv ANSI_ARGS((void*, int *, int *, struct MPIR_DATATYPE *, 
-				     void*, int, struct MPIR_DATATYPE *, int, struct MPIR_COMMUNICATOR *));
-static int inter_Allgather ANSI_ARGS((void*, int, struct MPIR_DATATYPE *, void*, int, 
-				      struct MPIR_DATATYPE *, struct MPIR_COMMUNICATOR *));
-static int inter_Allgatherv ANSI_ARGS((void*, int, struct MPIR_DATATYPE *, void*, int *,
-				       int *, struct MPIR_DATATYPE *, struct MPIR_COMMUNICATOR *));
-static int inter_Alltoall ANSI_ARGS((void*, int, struct MPIR_DATATYPE *, 
-				     void*, int, struct MPIR_DATATYPE *, struct MPIR_COMMUNICATOR *));
-static int inter_Alltoallv ANSI_ARGS((void*, int *, int *, 
+static int inter_Barrier (struct MPIR_COMMUNICATOR *);
+static int inter_Bcast (void*, int, struct MPIR_DATATYPE *, int, struct MPIR_COMMUNICATOR *);
+static int inter_Gather (void*, int, struct MPIR_DATATYPE *, void*, 
+				   int, struct MPIR_DATATYPE *, int, struct MPIR_COMMUNICATOR *);
+static int inter_Gatherv (void*, int, struct MPIR_DATATYPE *, void*, int *, 
+				    int *, struct MPIR_DATATYPE *, int, struct MPIR_COMMUNICATOR *); 
+static int inter_Scatter (void*, int, struct MPIR_DATATYPE *, void*, int, 
+				    struct MPIR_DATATYPE *, int, struct MPIR_COMMUNICATOR *);
+static int inter_Scatterv (void*, int *, int *, struct MPIR_DATATYPE *, 
+				     void*, int, struct MPIR_DATATYPE *, int, struct MPIR_COMMUNICATOR *);
+static int inter_Allgather (void*, int, struct MPIR_DATATYPE *, void*, int, 
+				      struct MPIR_DATATYPE *, struct MPIR_COMMUNICATOR *);
+static int inter_Allgatherv (void*, int, struct MPIR_DATATYPE *, void*, int *,
+				       int *, struct MPIR_DATATYPE *, struct MPIR_COMMUNICATOR *);
+static int inter_Alltoall (void*, int, struct MPIR_DATATYPE *, 
+				     void*, int, struct MPIR_DATATYPE *, struct MPIR_COMMUNICATOR *);
+static int inter_Alltoallv (void*, int *, int *, 
 				      struct MPIR_DATATYPE *, void*, int *, 
-				      int *, struct MPIR_DATATYPE *, struct MPIR_COMMUNICATOR *));
-static int inter_Reduce ANSI_ARGS((void*, void*, int, 
-				   struct MPIR_DATATYPE *, MPI_Op, int, struct MPIR_COMMUNICATOR *));
-static int inter_Allreduce ANSI_ARGS((void*, void*, int, 
-				      struct MPIR_DATATYPE *, MPI_Op, struct MPIR_COMMUNICATOR *));
-static int inter_Reduce_scatter ANSI_ARGS((void*, void*, int *, 
-					   struct MPIR_DATATYPE *, MPI_Op, struct MPIR_COMMUNICATOR *));
-static int inter_Scan ANSI_ARGS((void*, void*, int, struct MPIR_DATATYPE *, 
-				 MPI_Op, struct MPIR_COMMUNICATOR * ));
+				      int *, struct MPIR_DATATYPE *, struct MPIR_COMMUNICATOR *);
+static int inter_Alltoallw (void*, int *, int *, 
+				      struct MPIR_DATATYPE *, void*, int *, 
+				      int *, struct MPIR_DATATYPE *, struct MPIR_COMMUNICATOR *); 
+static int inter_Reduce (void*, void*, int, 
+				   struct MPIR_DATATYPE *, MPI_Op, int, struct MPIR_COMMUNICATOR *);
+static int inter_Allreduce (void*, void*, int, 
+				      struct MPIR_DATATYPE *, MPI_Op, struct MPIR_COMMUNICATOR *);
+static int inter_Reduce_scatter (void*, void*, int *, 
+					   struct MPIR_DATATYPE *, MPI_Op, struct MPIR_COMMUNICATOR *);
+static int inter_Scan (void*, void*, int, struct MPIR_DATATYPE *, 
+				 MPI_Op, struct MPIR_COMMUNICATOR * );
 
 static struct _MPIR_COLLOPS inter_collops = {
     inter_Barrier,
@@ -59,6 +62,7 @@ static struct _MPIR_COLLOPS inter_collops = {
     inter_Allgatherv,
     inter_Alltoall,
     inter_Alltoallv,
+    inter_Alltoallw,
     inter_Reduce,
     inter_Allreduce,
     inter_Reduce_scatter,
@@ -199,6 +203,21 @@ static int inter_Alltoallv (
 {
     return MPIR_ERROR(comm, MPI_ERR_COMM_INTER,
 		      "MPI_ALLTOALLV");
+}
+
+static int inter_Alltoallw ( 
+	void *sendbuf, 
+	int *sendcnts, 
+	int *sdispls, 
+	struct MPIR_DATATYPE *sendtype, 
+	void *recvbuf, 
+	int *recvcnts, 
+	int *rdispls, 
+	struct MPIR_DATATYPE *recvtype, 
+	struct MPIR_COMMUNICATOR *comm )
+{
+    return MPIR_ERROR(comm, MPI_ERR_COMM_INTER,
+		      "MPI_ALLTOALLW");
 }
 
 static int inter_Reduce ( 

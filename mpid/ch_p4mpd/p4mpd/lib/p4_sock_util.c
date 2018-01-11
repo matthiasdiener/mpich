@@ -2,8 +2,17 @@
 #include "p4_sys.h"
 /* p4_net_utils.h generally would suffice here */
 
-extern int errno;
+/* Type for get/setsockopt calls */
+#ifdef USE_SOCKLEN_T
+typedef socklen_t p4_sockopt_len_t;
+#elif defined(USE_SIZE_T_FOR_SOCKLEN_T)
+typedef size_t p4_sockopt_len_t;
+#else
+typedef int p4_sockopt_len_t;
+#endif
+
 /*  removed 11/27/94 by RL.  Causes problems in FreeBSD and is not used.
+extern int errno;
 extern char *sys_errlist[];
 */
 
@@ -59,7 +68,8 @@ int skt;
 {
     int rc;
     char *env_value;
-    int rsz,ssz,dummy;
+    int rsz,ssz;
+    p4_sockopt_len_t dummy;
 #ifdef TCP_WINSHIFT
     int shft; /* Window shift; helpful on CRAY */
 #endif
@@ -228,7 +238,8 @@ int backlog;
 int *port;
 int *skt;
 {
-    int rc, sinlen;
+    int rc;
+    p4_sockopt_len_t sinlen;
     struct sockaddr_in sin;
     int optval = P4_TRUE;
 
@@ -272,7 +283,8 @@ int net_accept(skt)
 int skt;
 {
     struct sockaddr_in from;
-    int rc, flags, fromlen, skt2, gotit, sockbuffsize;
+    int rc, flags, skt2, gotit, sockbuffsize;
+    p4_sockopt_len_t fromlen;
     int optval = P4_TRUE;
 
     /* dump_sockinfo("net_accept call of dumpsockinfo \n",skt); */
@@ -330,8 +342,6 @@ void get_sock_info_by_hostname(hostname,sockinfo)
 char *hostname;
 struct sockaddr_in **sockinfo;
 {
-    int i;
-
     /***** commented out for mpd 
     p4_dprintfl( 91, "Starting get_sock_info_by_hostname\n");
     if (p4_global) {
@@ -404,7 +414,7 @@ int port, num_tries;
 	if (s < 0)
 	    p4_error("net_conn_to_listener socket", s);
 
-	p4_dprintfl(80,"net_conn_to_listener socket fd=%d\n", s );
+	p4_dprintfl(077,"net_conn_to_listener socket fd=%d\n", s );
 #ifdef CAN_DO_SETSOCKOPT
         net_set_sockbuf_size(-1,s);    /* 7/12/95, bri@sgi.com */
 #endif
@@ -422,19 +432,19 @@ int port, num_tries;
 			       sizeof(struct sockaddr_in)));
 	if (rc < 0)
 	{
-	    p4_dprintfl( 70, "Connect failed; closed socket %d\n", s );
+	    p4_dprintfl( 077, "Connect failed; closed socket %d\n", s );
 	    close(s);
 	    s = -1;
 	    if (--num_tries)
 	    {
-		p4_dprintfl(60,"net_conn_to_listener: connect to %s failed; will try %d more times \n",hostname,num_tries);
+		p4_dprintfl(077,"net_conn_to_listener: connect to %s failed; will try %d more times \n",hostname,num_tries);
 		sleep(2);
 	    }
 	}
 	else
 	{
 	    connected = P4_TRUE;
-	    p4_dprintfl(70,"net_conn_to_listener: connected to %s\n",hostname);
+	    p4_dprintfl(077,"net_conn_to_listener: connected to %s\n",hostname);
 	}
     }
     if (!connected)
@@ -717,8 +727,10 @@ char *str;
  */
 void p4_print_sock_params( int skt )
 {
-    int rc, ival, ivallen;
-
+    int rc, ival;
+#ifdef CAN_DO_SETSOCKOPT
+    p4_sockopt_len_t ivallen;
+#endif
     if (1)  return;  /* mpd debugging */
 
 #ifdef CAN_DO_SETSOCKOPT
@@ -797,7 +809,7 @@ P4VOID dump_sockinfo(msg, fd)
 char *msg;
 int fd;
 {
-    int nl;
+    p4_sockopt_len_t nl;
     struct sockaddr_in peer, me;
 
     p4_dprintfl(00, "Dumping sockinfo for fd=%d: %s\n", fd, msg);

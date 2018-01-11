@@ -58,10 +58,14 @@ union semun {
 union semun { int val; };
 #endif
 #endif
+
+int MD_init_sysv_semset(int);
+int MD_init_sysv_semset(int);
+
 /*
   This must be called BEFORE using the shared memory allocator
  */
-int MD_init_semop()
+int MD_init_semop(void)
 {
     sysv_semid0 = MD_init_sysv_semset(0);
     return 0;
@@ -71,7 +75,7 @@ int MD_init_semop()
    fork!)  Before MPI_initmem is called, we must initialize the sysv_semid0
    (used for shmat allocation).
  */
-int MD_init_sysv_semop()
+int MD_init_sysv_semop(void)
 {
     /* Get shared memory.  Since this is called BEFORE any fork,
        we don't need to do any locks but we DO need to get the memory
@@ -91,8 +95,7 @@ int MD_init_sysv_semop()
     return 0;
 }
 
-int MD_init_sysv_semset(setnum)
-int setnum;
+int MD_init_sysv_semset(int setnum)
 {
     int i, semid;
 #   if defined(SEMCTL_ARG_UNION)
@@ -116,8 +119,7 @@ int setnum;
     return(semid);
 }
 
-void p2p_lock_init(L)
-p2p_lock_t *L;
+void p2p_lock_init(p2p_lock_t *L)
 {
     int setnum;
 
@@ -154,8 +156,11 @@ p2p_lock_t *L;
     p2p_unlock(&(p2_global->slave_lock));
 }
 
-void p2p_lock(L)
-p2p_lock_t *L;
+/* Lock and unlock use the following structures */
+static struct sembuf sem_lock[1]   = { { 0, -1, 0 } };
+static struct sembuf sem_unlock[1] = { { 0, 1, 0 } };
+
+void p2p_lock(p2p_lock_t *L)
 {
     sem_lock[0].sem_num = L->semnum;
     if (semop(L->semid,&sem_lock[0],1) < 0)
@@ -164,8 +169,7 @@ p2p_lock_t *L;
     }
 }
 
-void p2p_unlock(L)
-p2p_lock_t *L;
+void p2p_unlock( p2p_lock_t *L)
 {
     sem_unlock[0].sem_num = L->semnum;
     if (semop(L->semid,&sem_unlock[0],1) < 0)
@@ -174,7 +178,7 @@ p2p_lock_t *L;
     }
 }
 
-void MD_remove_sysv_sipc()
+void MD_remove_sysv_sipc( void )
 {
     int i;
     struct p2_global_data *g = p2_global;

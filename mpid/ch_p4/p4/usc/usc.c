@@ -4,6 +4,8 @@
  * Written by:  Arun Nanda    (07/17/91)
  * Modified by R. Butler
  * High-resolution clock added by Rusty Lusk
+ * Tests for timer found at compile time (via TIMER_FOUND and TIMER_USED) 
+ * added by Bill Gropp (1/21/00)
  */
 
 #include "usc_sys.h"
@@ -16,6 +18,7 @@ VOID usc_init()
 
 	usc_multimax_timer = timer_init();
 	usc_MD_rollover_val = (usc_time_t) ((1<<usc_MD_timer_size)-1);
+#define TIMER_FOUND "multimax"
 
 #endif
 
@@ -29,6 +32,7 @@ VOID usc_init()
 	roll = 1 << (usc_MD_timer_size-1);
 	usc_MD_rollover_val = (usc_time_t) (roll + roll - 1);
 
+#define TIMER_FOUND "symmetry"
 #endif
 
 
@@ -39,6 +43,7 @@ VOID usc_init()
 	roll = 1 << (usc_MD_timer_size-1);
 	usc_MD_rollover_val = (usc_time_t) (roll + roll - 1);
 
+#define TIMER_FOUND "tc2000 butterfly"
 #endif
 
 
@@ -54,6 +59,7 @@ VOID usc_init()
         ustime = (unsigned long)hwtime.slow * 0.8;
 	usc_MD_rollover_val = (usc_time_t) ustime; 
 
+#define TIMER_FOUND "ipsc"
 #endif
 
 #if defined(NCUBE)
@@ -63,6 +69,7 @@ VOID usc_init()
         roll = 1 << (usc_MD_timer_size-1);
         usc_MD_rollover_val = (usc_time_t) (roll + roll - 1);
 
+#define TIMER_FOUND "ncube"
 #endif
 
 
@@ -75,6 +82,7 @@ VOID usc_init()
     roll = 1 << ((sizeof(usc_time_t) * 8) - 1);
     usc_MD_rollover_val = (usc_time_t) (roll + roll - 1);
 
+#define TIMER_FOUND "Alliant fx2800"
 #endif
 
 
@@ -100,9 +108,12 @@ VOID usc_init()
 	roll = (usc_time_t) ((usc_time_t) 1 << ((sizeof(usc_time_t)*8)-1));
 	roll = roll + roll - 1;
 	usc_MD_rollover_val = (usc_time_t) (roll / 1000000);
-
+#define TIMER_FOUND "gettimeofday"
 #endif
 
+#ifndef TIMER_FOUND
+   'Error - no timer defined.  Please file a bug report'
+#endif
 }
 
 
@@ -111,6 +122,8 @@ usc_time_t usc_MD_clock()
 {
 
 #if defined(TC_2000) || defined(TC_2000_TCMP)
+
+#define TIMER_USED "tc2000 butterfly"
 
     struct 
     {
@@ -126,6 +139,8 @@ usc_time_t usc_MD_clock()
 
 #if defined(IPSC860)
 
+#define TIMER_USED "ipsc"
+
 	esize_t hwtime;
 	unsigned long ustime;
 
@@ -140,6 +155,7 @@ usc_time_t usc_MD_clock()
 
 #if defined(MEIKO_CS2)
 
+#define TIMER_USED "meiko cs2"
 /* making it look like a SUN temporarily (see *.h files also) - RMB */
 
 /****
@@ -158,6 +174,8 @@ usc_time_t usc_MD_clock()
 
 
 #if defined(NCUBE)
+#define TIMER_USED "ncube"
+
    unsigned long ustime;
    double amicclk();
 
@@ -169,6 +187,7 @@ usc_time_t usc_MD_clock()
 
 #if defined(FX2800)  ||  defined(FX2800_SWITCH)
 
+#define TIMER_USED "Alliant fx2800"
     struct hrcval temptime;
 
     hrcstamp(&temptime);
@@ -179,12 +198,15 @@ usc_time_t usc_MD_clock()
 
 #if defined(SUN) || defined(HP) || \
     defined(SUN_SOLARIS) || defined(FREEBSD) || defined(LINUX) || \
+    defined(I86_SOLARIS) || \
     defined(BALANCE) || \
     defined(RS6000) || defined(IBM3090) || \
     defined(NEXT) || defined(TITAN) || defined(TC1000) || \
     defined(KSR)  || \
     defined(MEIKO_CS2)  || \
     defined(SGI) || defined(FX8)
+
+#define TIMER_USED "gettimeofday"
 
 	unsigned long ustime;
 	struct timeval tp;
@@ -211,6 +233,9 @@ usc_time_t usc_MD_clock()
  *    clock resolution is 3906 us        
  *    we can do about 120 calls in 3906 us == 32 us per call        
  */        
+
+#define TIMER_USED "dec5000"
+
         unsigned long ustime;        
         struct timeval tp;        
         struct timezone tzp;        
@@ -236,4 +261,7 @@ usc_time_t usc_MD_clock()
 
 #endif
 
+#ifndef TIMER_USED
+    'Error - no timer code used.  Please file a bug report'
+#endif
 }

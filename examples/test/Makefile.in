@@ -23,8 +23,8 @@ FFLAGS = $(OPTFLAGS)
 LIBS = 
 # Use FLIBS to add any special libraries for Fortran programs
 FLIBS = 
-TESTDIRS = pt2pt coll topol env context profile 
-SUBDIRS = pt2pt coll topol env context profile 
+TESTDIRS = pt2pt coll topol env context profile @IO@
+SUBDIRS = pt2pt coll topol env context profile  @IO@
 
 default: subdirs
 	@echo "Type \"make testing\" to compile and run tests"
@@ -75,6 +75,11 @@ testing: runtest
 	                 $(MAKE) clean > /dev/null 2>&1 ) ;\
 			echo End of testing in directory $$dir ;\
 		done
+	@-if [ "@MPI_VERSION@" = "MPICH" ] ; then \
+	    echo "Running tests in directory command" ; \
+	    (cd command ; ./runtests ) ;\
+	    echo "End of testing in directory command" ; \
+	fi
 
 #
 # This is a version of testing, but it saves the "diff" files in the top 
@@ -106,6 +111,12 @@ clean:
 			echo Making clean in directory $$dir ;\
 			(cd $$dir; $(MAKE) clean) ;\
 		done
+
+distclean:
+	@-for dir in ${SUBDIRS} command ; do \
+	    (rm -f $$dir/Makefile $$dir/runtests ) ; \
+	done
+	-rm -f Makefile config.log
 
 # MPICH specific
 #$(MPIR_HOME)/util/mpirun:

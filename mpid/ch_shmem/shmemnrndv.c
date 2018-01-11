@@ -21,22 +21,22 @@
    
 
 /* Prototype definitions */
-int MPID_SHMEM_Rndvn_send ANSI_ARGS(( void *, int, int, int, int, int, 
-					  MPID_Msgrep_t ));
-int MPID_SHMEM_Rndvn_isend ANSI_ARGS(( void *, int, int, int, int, int, 
-				       MPID_Msgrep_t, MPIR_SHANDLE * ));
-int MPID_SHMEM_Rndvn_irecv ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
-int MPID_SHMEM_Rndvn_save ANSI_ARGS(( MPIR_RHANDLE *, int, void *));
+int MPID_SHMEM_Rndvn_send ( void *, int, int, int, int, int, 
+					  MPID_Msgrep_t );
+int MPID_SHMEM_Rndvn_isend ( void *, int, int, int, int, int, 
+				       MPID_Msgrep_t, MPIR_SHANDLE * );
+int MPID_SHMEM_Rndvn_irecv ( MPIR_RHANDLE *, int, void * );
+int MPID_SHMEM_Rndvn_save ( MPIR_RHANDLE *, int, void *);
 
-int MPID_SHMEM_Rndvn_unxrecv_start ANSI_ARGS(( MPIR_RHANDLE *, void * ));
-int MPID_SHMEM_Rndvn_unxrecv_end ANSI_ARGS(( MPIR_RHANDLE * ));
-int MPID_SHMEM_Rndvn_unxrecv_test_end ANSI_ARGS(( MPIR_RHANDLE * ));
-int MPID_SHMEM_Rndvn_ok_to_send  ANSI_ARGS(( MPID_Aint, MPID_RNDV_T, int ));
-int MPID_SHMEM_Rndvn_ack ANSI_ARGS(( void *, int ));
-int MPID_SHMEM_Rndvn_send_wait ANSI_ARGS(( MPIR_SHANDLE * ));
-int MPID_SHMEM_Rndvn_send_test_ack ANSI_ARGS(( MPIR_SHANDLE * ));
-int MPID_SHMEM_Rndvn_send_wait_ack ANSI_ARGS(( MPIR_SHANDLE * ));
-void MPID_SHMEM_Rndvn_delete ANSI_ARGS(( MPID_Protocol * ));
+int MPID_SHMEM_Rndvn_unxrecv_start ( MPIR_RHANDLE *, void * );
+int MPID_SHMEM_Rndvn_unxrecv_end ( MPIR_RHANDLE * );
+int MPID_SHMEM_Rndvn_unxrecv_test_end ( MPIR_RHANDLE * );
+int MPID_SHMEM_Rndvn_ok_to_send  ( MPID_Aint, MPID_RNDV_T, int );
+int MPID_SHMEM_Rndvn_ack ( void *, int );
+int MPID_SHMEM_Rndvn_send_wait ( MPIR_SHANDLE * );
+int MPID_SHMEM_Rndvn_send_test_ack ( MPIR_SHANDLE * );
+int MPID_SHMEM_Rndvn_send_wait_ack ( MPIR_SHANDLE * );
+void MPID_SHMEM_Rndvn_delete ( MPID_Protocol * );
 
 /* Globals for this protocol */
 

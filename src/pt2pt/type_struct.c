@@ -1,5 +1,5 @@
 /*
- *  $Id: type_struct.c,v 1.14 1999/08/31 19:59:59 swider Exp $
+ *  $Id: type_struct.c,v 1.17 2000/08/10 22:15:36 toonen Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -29,6 +29,18 @@
 #define MPIR_SBalloc MPID_SBalloc
 /* pt2pt for MPIR_Type_dup */
 #include "mpipt2pt.h"
+
+/* These values are determined during configure using 
+   the util/structlayout.c program */
+#ifdef USE_BASIC_TWO_ALIGNMENT
+#define ALIGNMENT_VALUE 2
+#elif defined(USE_BASIC_FOUR_ALIGNMENT)
+#define ALIGNMENT_VALUE 4
+#elif defined(USE_BASIC_EIGHT_ALIGNMENT)
+#define ALIGNMENT_VALUE 8
+#else
+#define ALIGNMENT_VALUE 0
+#endif
 
 /*@
     MPI_Type_struct - Creates a struct datatype
@@ -102,7 +114,7 @@ EXPORT_MPI_API int MPI_Type_struct(
   MPI_Aint        ub, lb, high, low, real_ub, real_lb, real_init;
   int             high_init = 0, low_init = 0;
   int             i, mpi_errno = MPI_SUCCESS;
-  MPI_Aint        ub_marker, lb_marker;
+  MPI_Aint        ub_marker = 0, lb_marker = 0; /* to suppress warnings */
   MPI_Aint        ub_found = 0, lb_found = 0;
   int             size, total_count;
   static char myname[] = "MPI_TYPE_STRUCT";
@@ -170,6 +182,13 @@ EXPORT_MPI_API int MPI_Type_struct(
   high = low = ub = lb = 0;
   real_ub   = real_lb = 0;
   real_init = 0;
+
+/* If data alignment is 2, 4, or 8, then assign dteptr->align to that
+   value.  If 0, then assign dteptr->align to the maximal alignment 
+   requirement. (done below) */
+  if (ALIGNMENT_VALUE > 0)
+      dteptr->align = ALIGNMENT_VALUE;
+
   for (i = 0; i < count; i++)  {
       struct MPIR_DATATYPE *old_dtype_ptr;
 
@@ -181,8 +200,10 @@ EXPORT_MPI_API int MPI_Type_struct(
       dteptr->blocklens[i]  = blocklens[i];
 
       /* Keep track of maximal alignment requirement */
-      if (dteptr->align < old_dtype_ptr->align)
-	  dteptr->align       = old_dtype_ptr->align;
+      if (ALIGNMENT_VALUE == 0) {
+	  if (dteptr->align < old_dtype_ptr->align)
+	      dteptr->align       = old_dtype_ptr->align; 
+      }
       if ( old_dtype_ptr->dte_type == MPIR_UB ) {
 	  if (ub_found) {
 	      if (indices[i] > ub_marker)
@@ -281,7 +302,7 @@ EXPORT_MPI_API int MPI_Type_struct(
   /* If there is no explicit ub/lb marker, make the extent/ub fit the
      alignment of the largest basic item, if that structure alignment is
      chosen */
-#if defined(USE_BASIC_ALIGNMENT)
+
   if (!lb_found && !ub_found) {
       MPI_Aint eps_offset;
       /* Since data is always offset by the extent, is the extent that
@@ -292,8 +313,16 @@ EXPORT_MPI_API int MPI_Type_struct(
 	  dteptr->extent = dteptr->ub - dteptr->lb;
       }
   }
-#endif
-  
+
+# if defined(MPID_HAS_TYPE_STRUCT)
+  {
+      mpi_errno = MPID_Type_struct(count,
+				   blocklens,
+				   indices,
+				   old_types,
+				   *newtype);
+  }
+# endif      
 
   return (mpi_errno);
 }

@@ -252,13 +252,22 @@ if test -n "$p4arch_NETBSD"; then
       DEFINE_SYSV_IPC="#define SYSV_IPC"
     fi
 fi
-#						486 running Linux
+#						x86 running Linux
 if test -n "$p4arch_LINUX"; then
     P4ARCH=LINUX
     if test -n "$p4comm_shared"; then
       DEFINE_SYSV_IPC="#define SYSV_IPC"
     fi
 fi
+
+#                                                Alpha running Linux
+if test -n "$p4arch_LINUX_ALPHA"; then
+    P4ARCH=LINUX
+    if test -n "$p4comm_shared"; then
+      DEFINE_SYSV_IPC="#define SYSV_IPC"
+    fi
+fi
+
 #                                             KSR
 if test -n "$p4arch_KSR"; then
     P4ARCH=KSR
@@ -740,6 +749,58 @@ if test -n "$RSHNOL" ; then
     AC_DEFINE(RSH_HAS_NO_L)
 fi
 #
+#
+#
+# The following are necessary for AIX in particular because in 64 bit mode,
+# some of the socket functions use size_t (unsigned long, 64 bits) instead of
+# int (signed int, 32 bits) as a return value.  Getting the wrong type
+# causes all sorts of chaos.  Unfortunately, there isn't any consensus on what
+# the arguments *should* be.
+found_sockopt_type=0
+AC_COMPILE_CHECK([if getsockopt wants socklen_t],[#include <sys/types.h>
+#include <sys/socket.h>],[socklen_t dummy; int rc, skt; void *ssz;
+rc = getsockopt(skt,SOL_SOCKET,SO_SNDBUF,ssz,&dummy);],found_sockopt_type=1)
+if test $found_sockopt_type = 1 ; then
+    MDEP_CFLAGS="$MDEP_CFLAGS -DUSE_SOCKLEN_T"
+fi
+if test $found_sockopt_type = 0 ; then
+    # This case is harder.  size_t is a valid type, but it may not be the 
+    # one that getsockopt etc wants.
+    AC_MSG_CHECKING([if getsockopt wants size_t])
+    PAC_TRY_COMPILE_CLEAN([#include <sys/types.h>
+#include <sys/socket.h>],[int try(void){size_t dummy; int rc, skt; void *ssz;
+rc = getsockopt(skt,SOL_SOCKET,SO_SNDBUF,ssz,&dummy);
+return rc;}],found_sockopt_type)
+    case $found_sockopt_type in 
+	0) AC_MSG_RESULT(yes)
+           MDEP_CFLAGS="$MDEP_CFLAGS -DUSE_SIZE_T_FOR_SOCKLEN_T"
+	;;
+	1) AC_MSG_RESULT([no (warnings from compiler)])
+	;;
+	2) AC_MSG_RESULT(no)
+	;;
+    esac
+fi
+#
+# Check whether u_int should be used for xdr_array 
+use_u_int=0
+AC_MSG_CHECKING([if xdr_array wants u_int])
+PAC_TRY_COMPILE_CLEAN([#include <rpc/xdr.h>
+],[int try(void){
+u_int l, ms, el; xdrproc_t elproc; XDR *xdrs; int rc; char **arrp;
+rc = xdr_array(xdrs,arrp,&l,ms,el,elproc);
+return rc;}],use_u_int)
+case $use_u_int in 
+    0) AC_MSG_RESULT(yes)
+       MDEP_CFLAGS="$MDEP_CFLAGS -DUSE_U_INT_FOR_XDR"
+       ;;
+    1) AC_MSG_RESULT([no (compiler warnings)])
+       ;;
+    2) AC_MSG_RESULT(no)
+       ;;
+esac
+
+
 if test $threaded_listener = 1 ; then
     # Try to find a thread package
     has_pthread=0

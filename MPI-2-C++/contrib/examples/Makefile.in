@@ -1,97 +1,299 @@
+# Makefile.in generated automatically by automake 1.2 from Makefile.am
+
+# Copyright (C) 1994, 1995, 1996, 1997 Free Software Foundation, Inc.
+# This Makefile.in is free software; the Free Software Foundation
+# gives unlimited permission to copy, distribute and modify it.
+
 # -*- makefile -*-
-#
-# Copyright 1997-1999, University of Notre Dame.
-# Authors: Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres,
-#          Andrew Lumsdaine
 
-# This file is part of the Notre Dame C++ bindings for MPI
 
-# You should have received a copy of the License Agreement for the
-# Notre Dame C++ bindings for MPI along with the software;  see the
-# file LICENSE.  If not, contact Office of Research, University of Notre
-# Dame, Notre Dame, IN  46556.
+SHELL = /bin/sh
 
-# Permission to modify the code and to distribute modified code is
-# granted, provided the text of this NOTICE is retained, a notice that
-# the code was modified is included with the above COPYRIGHT NOTICE and
-# with the COPYRIGHT NOTICE in the LICENSE file, and that the LICENSE
-# file is distributed with the modified code.
+srcdir = @srcdir@
+top_srcdir = @top_srcdir@
+VPATH = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
 
-# LICENSOR MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
-# By way of example, but not limitation, Licensor MAKES NO
-# REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY
-# PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE COMPONENTS
-# OR DOCUMENTATION WILL NOT INFRINGE ANY PATENTS, COPYRIGHTS, TRADEMARKS
-# OR OTHER RIGHTS.
-#
-# test examples for mpi++
+bindir = @bindir@
+sbindir = @sbindir@
+libexecdir = @libexecdir@
+datadir = @datadir@
+sysconfdir = @sysconfdir@
+sharedstatedir = @sharedstatedir@
+localstatedir = @localstatedir@
+libdir = @libdir@
+infodir = @infodir@
+mandir = @mandir@
+includedir = @includedir@
+oldincludedir = /usr/include
 
-#
-#
+pkgdatadir = $(datadir)/@PACKAGE@
+pkglibdir = $(libdir)/@PACKAGE@
+pkgincludedir = $(includedir)/@PACKAGE@
 
-SHELL		= @BINSH@
-CXX		= @MPI_CXX@
-TEMPLATE_REP	= @TEMPLATE_REP@
+top_builddir = ../..
 
-# The ../.. includes the configuration file for VPATH builds
-# When the C++ interface is installed, this path should be not be necessary.
-CXXFLAGS	= @TEST_OPTFLAGS@ -I../..
-LDFLAGS		= @EXAM_OPTFLAGS@
+ACLOCAL = @ACLOCAL@
+AUTOCONF = @AUTOCONF@
+AUTOMAKE = @AUTOMAKE@
+AUTOHEADER = @AUTOHEADER@
 
-srcdir=@srcdir@
-top_srcdir=@top_srcdir@
-@VPATH@
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_SCRIPT = @INSTALL_SCRIPT@
+transform = @program_transform_name@
 
-#
-# General compilation rule
-#
+NORMAL_INSTALL = true
+PRE_INSTALL = true
+POST_INSTALL = true
+NORMAL_UNINSTALL = true
+PRE_UNINSTALL = true
+POST_UNINSTALL = true
+host_alias = @host_alias@
+host_triplet = @host@
+AR = @AR@
+AWK = @AWK@
+BALKY_CXX = @BALKY_CXX@
+BALKY_CXXFLAGS = @BALKY_CXXFLAGS@
+BALKY_LDFLAGS = @BALKY_LDFLAGS@
+BINSH = @BINSH@
+CLEANFILES = @CLEANFILES@
+DEFS = @DEFS@
+DEPFLAGS = @DEPFLAGS@
+EXAM_OPTFLAGS = @EXAM_OPTFLAGS@
+GREP = @GREP@
+INSTALL = @INSTALL@
+INSTALLDIR = @INSTALLDIR@
+IV_DESTRUCTORS = @IV_DESTRUCTORS@
+LN_S = @LN_S@
+LSC_EXCEPTION_CXXFLAGS = @LSC_EXCEPTION_CXXFLAGS@
+LSC_EXCEPTION_LDFLAGS = @LSC_EXCEPTION_LDFLAGS@
+MAKEINFO = @MAKEINFO@
+MINI_BALKY_CXXFLAGS = @MINI_BALKY_CXXFLAGS@
+MINI_BALKY_LDFLAGS = @MINI_BALKY_LDFLAGS@
+MPI2CPP_LIBRARY = @MPI2CPP_LIBRARY@
+MPILIB_DIR = @MPILIB_DIR@
+MPI_CXX = @MPI_CXX@
+OPTFLAGS = @OPTFLAGS@
+PACKAGE = @PACKAGE@
+RANLIB = @RANLIB@
+TEMPLATE_REP = @TEMPLATE_REP@
+TEST_OPTFLAGS = @TEST_OPTFLAGS@
+TOPDIR = @TOPDIR@
+VERSION = @VERSION@
+WANT_PROFILE = @WANT_PROFILE@
+WC = @WC@
 
-.SUFFIXES: .cc .o
+AUTOMAKE_OPTIONS	= foreign dist-tarZ no-dependencies
 
+CXX			= $(bindir)/balky
+INCLUDES		= $(EXAM_OPTFLAGS)
+EXTRA_DIST		= README
+
+noinst_PROGRAMS		= chapter_10_mpi2 hello_world pi ring topology user_bcast
+
+chapter_10_mpi2_SOURCES	= chapter_10_mpi2.cc
+hello_world_SOURCES	= hello_world.cc
+pi_SOURCES		= pi.cc
+pi_LDADD		= -lm
+ring_SOURCES		= ring.cc
+topology_SOURCES	= topology.cc
+user_bcast_SOURCES	= user_bcast.cc
+mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+CONFIG_HEADER = ../../src/mpi2c++/mpi2c++_config.h
+CONFIG_CLEAN_FILES = 
+PROGRAMS =  $(noinst_PROGRAMS)
+
+CPPFLAGS = @CPPFLAGS@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
+chapter_10_mpi2_OBJECTS =  chapter_10_mpi2.o
+chapter_10_mpi2_LDADD = $(LDADD)
+chapter_10_mpi2_LDFLAGS = 
+hello_world_OBJECTS =  hello_world.o
+hello_world_LDADD = $(LDADD)
+hello_world_LDFLAGS = 
+pi_OBJECTS =  pi.o
+pi_DEPENDENCIES = 
+pi_LDFLAGS = 
+ring_OBJECTS =  ring.o
+ring_LDADD = $(LDADD)
+ring_LDFLAGS = 
+topology_OBJECTS =  topology.o
+topology_LDADD = $(LDADD)
+topology_LDFLAGS = 
+user_bcast_OBJECTS =  user_bcast.o
+user_bcast_LDADD = $(LDADD)
+user_bcast_LDFLAGS = 
+CXXFLAGS = @CXXFLAGS@
+CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CXXFLAGS)
+CXXLINK = $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@
+DIST_COMMON =  README Makefile.am Makefile.in
+
+
+DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
+
+TAR = gnutar
+GZIP = --best
+SOURCES = $(chapter_10_mpi2_SOURCES) $(hello_world_SOURCES) $(pi_SOURCES) $(ring_SOURCES) $(topology_SOURCES) $(user_bcast_SOURCES)
+OBJECTS = $(chapter_10_mpi2_OBJECTS) $(hello_world_OBJECTS) $(pi_OBJECTS) $(ring_OBJECTS) $(topology_OBJECTS) $(user_bcast_OBJECTS)
+
+default: all
+
+.SUFFIXES:
+.SUFFIXES: .c .cc .o
+$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
+	cd $(top_srcdir) && $(AUTOMAKE) --foreign contrib/examples/Makefile
+
+Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+	cd $(top_builddir) \
+	  && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
+
+
+mostlyclean-noinstPROGRAMS:
+
+clean-noinstPROGRAMS:
+	test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
+
+distclean-noinstPROGRAMS:
+
+maintainer-clean-noinstPROGRAMS:
+
+.c.o:
+	$(COMPILE) -c $<
+
+mostlyclean-compile:
+	rm -f *.o core
+
+clean-compile:
+
+distclean-compile:
+	rm -f *.tab.c
+
+maintainer-clean-compile:
+
+chapter_10_mpi2: $(chapter_10_mpi2_OBJECTS) $(chapter_10_mpi2_DEPENDENCIES)
+	@rm -f chapter_10_mpi2
+	$(CXXLINK) $(chapter_10_mpi2_LDFLAGS) $(chapter_10_mpi2_OBJECTS) $(chapter_10_mpi2_LDADD) $(LIBS)
+
+hello_world: $(hello_world_OBJECTS) $(hello_world_DEPENDENCIES)
+	@rm -f hello_world
+	$(CXXLINK) $(hello_world_LDFLAGS) $(hello_world_OBJECTS) $(hello_world_LDADD) $(LIBS)
+
+pi: $(pi_OBJECTS) $(pi_DEPENDENCIES)
+	@rm -f pi
+	$(CXXLINK) $(pi_LDFLAGS) $(pi_OBJECTS) $(pi_LDADD) $(LIBS)
+
+ring: $(ring_OBJECTS) $(ring_DEPENDENCIES)
+	@rm -f ring
+	$(CXXLINK) $(ring_LDFLAGS) $(ring_OBJECTS) $(ring_LDADD) $(LIBS)
+
+topology: $(topology_OBJECTS) $(topology_DEPENDENCIES)
+	@rm -f topology
+	$(CXXLINK) $(topology_LDFLAGS) $(topology_OBJECTS) $(topology_LDADD) $(LIBS)
+
+user_bcast: $(user_bcast_OBJECTS) $(user_bcast_DEPENDENCIES)
+	@rm -f user_bcast
+	$(CXXLINK) $(user_bcast_LDFLAGS) $(user_bcast_OBJECTS) $(user_bcast_LDADD) $(LIBS)
 .cc.o:
-	$(CXX) -c $(CXXFLAGS) $<
+	$(CXXCOMPILE) -c $<
 
-#
-# Build rules
-#
+tags: TAGS
 
-PROGS		= hello_world ring topology user_bcast chapter_10_mpi2 pi
+ID: $(HEADERS) $(SOURCES)
+	here=`pwd` && cd $(srcdir) && mkid -f$$here/ID $(SOURCES) $(HEADERS)
 
-all: $(PROGS)
+TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES)
+	tags=; \
+	here=`pwd`; \
+	test -z "$(ETAGS_ARGS)$(SOURCES)$(HEADERS)$$tags" \
+	  || (cd $(srcdir) && etags $(ETAGS_ARGS) $$tags  $(SOURCES) $(HEADERS) -o $$here/TAGS)
 
-hello_world:  hello_world.o
-	$(CXX) hello_world.o -o hello_world $(LDFLAGS)
+mostlyclean-tags:
 
-pi: pi.o
-	$(CXX) pi.o -o pi $(LDFLAGS) -lm
+clean-tags:
 
-ring:  ring.o
-	$(CXX) ring.o -o ring $(LDFLAGS)
+distclean-tags:
+	rm -f TAGS ID
 
-topology:  topology.o
-	$(CXX) topology.o  -o topology $(LDFLAGS)
+maintainer-clean-tags:
 
-user_bcast:  user_bcast.o
-	$(CXX) user_bcast.o  -o user_bcast $(LDFLAGS)
+distdir = $(top_builddir)/$(PACKAGE)-$(VERSION)/$(subdir)
 
-chapter_10_mpi2:  chapter_10_mpi2.o
-	$(CXX) chapter_10_mpi2.o  -o chapter_10_mpi2 $(LDFLAGS)
+subdir = contrib/examples
 
-#
-# clean
-# On some weird Unix's, rm -f will complain if there are no files to 
-# delete...
-#
+distdir: $(DISTFILES)
+	@for file in $(DISTFILES); do \
+	  d=$(srcdir); \
+	  test -f $(distdir)/$$file \
+	  || ln $$d/$$file $(distdir)/$$file 2> /dev/null \
+	  || cp -p $$d/$$file $(distdir)/$$file; \
+	done
+info:
+dvi:
+check: all
+	$(MAKE)
+installcheck:
+install-exec: 
+	@$(NORMAL_INSTALL)
 
-#
-# The Solaris C++ compiler creates a directory containing miscellaneous
-# data.  The action is not documented in the Solaris CC man pages
-clean:
-	@ touch bogus
-	rm -rf *.o *~ *% core $(PROGS) bogus $(TEMPLATE_REP) SunWS_cache
+install-data: 
+	@$(NORMAL_INSTALL)
 
-distclean: clean
-	@ touch bogus
-	rm -f Makefile bogus
+install: install-exec install-data all
+	@:
+
+uninstall: 
+
+all: Makefile $(PROGRAMS)
+
+install-strip:
+	$(MAKE) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' INSTALL_SCRIPT='$(INSTALL_PROGRAM)' install
+installdirs:
 
 
+mostlyclean-generic:
+	test -z "$(MOSTLYCLEANFILES)" || rm -f $(MOSTLYCLEANFILES)
+
+clean-generic:
+	test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
+
+distclean-generic:
+	rm -f Makefile $(DISTCLEANFILES)
+	rm -f config.cache config.log stamp-h stamp-h[0-9]*
+	test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
+
+maintainer-clean-generic:
+	test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
+	test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
+mostlyclean:  mostlyclean-noinstPROGRAMS mostlyclean-compile \
+		mostlyclean-tags mostlyclean-generic
+
+clean:  clean-noinstPROGRAMS clean-compile clean-tags clean-generic \
+		mostlyclean
+
+distclean:  distclean-noinstPROGRAMS distclean-compile distclean-tags \
+		distclean-generic clean
+	rm -f config.status
+
+maintainer-clean:  maintainer-clean-noinstPROGRAMS \
+		maintainer-clean-compile maintainer-clean-tags \
+		maintainer-clean-generic distclean
+	@echo "This command is intended for maintainers to use;"
+	@echo "it deletes files that may require special tools to rebuild."
+
+.PHONY: default mostlyclean-noinstPROGRAMS distclean-noinstPROGRAMS \
+clean-noinstPROGRAMS maintainer-clean-noinstPROGRAMS \
+mostlyclean-compile distclean-compile clean-compile \
+maintainer-clean-compile tags mostlyclean-tags distclean-tags \
+clean-tags maintainer-clean-tags distdir info dvi installcheck \
+install-exec install-data install uninstall all installdirs \
+mostlyclean-generic distclean-generic clean-generic \
+maintainer-clean-generic clean mostlyclean distclean maintainer-clean
+
+
+# Tell versions [3.59,3.63) of GNU make to not export all variables.
+# Otherwise a system limit (for SysV at least) may be exceeded.
+.NOEXPORT:

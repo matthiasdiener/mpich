@@ -1,5 +1,5 @@
 /*
- *  $Id: chchkdev.c,v 1.3 1999/09/29 18:55:49 swider Exp $
+ *  $Id: chchkdev.c,v 1.6 2000/08/10 22:04:44 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -90,10 +90,15 @@ MPID_BLOCKING_TYPE is_blocking;
 
 	MPID_DO_HETERO(rhandle->msgrep = (MPID_Msgrep_t)pkt.head.msgrep );
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-	if (MPID_DebugFlag) {
-	    FPRINTF( MPID_DEBUG_FILE, "[%d]R msg was %s (%s:%d)\n", 
+	if ( MPID_DebugFlag ) {
+	    SPRINTF( ch_debug_buf, "[%d]R msg was %s (%s:%d)\n", 
 		     MPID_MyWorldRank, 
 		     is_posted ? "posted" : "unexpected", __FILE__, __LINE__ );
+            if ( MPID_UseDebugFile ) {
+		fputs( ch_debug_buf, MPID_DEBUG_FILE );
+		fflush( MPID_DEBUG_FILE );
+	    }
+	    MPID_SAVE_MSG;
 	}
 #endif                  /* #DEBUG_END# */
 	if (is_posted) {

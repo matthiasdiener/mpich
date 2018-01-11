@@ -14,15 +14,13 @@
 #include <sys/time.h>
 #endif
 
-void MPID_CH_Wtime( seconds )
-double *seconds;
+void MPID_CH_Wtime( double *seconds )
 {
 
 #if defined(USE_ALPHA_CYCLE_COUNTER)
 /* Code from LinuxJournal #42 (Oct-97), p50; 
    thanks to Dave Covey dnc@gi.alaska.edu
    Untested; we don't have a Linux alpha
-   Also 
  */
     unsigned long cc
     asm volatile( "rpcc %0" : "=r"(cc) : : "memory" );
@@ -49,6 +47,9 @@ double *seconds;
     gettimeofday(&tp,&tzp);
     *seconds = ((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
 #else
+    /* Other timers to consider are clock_gettime (Solaris -lrt), 
+       gethrtime (Solaris), 
+     */
     *seconds = 0;
 #endif
 }

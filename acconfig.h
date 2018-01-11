@@ -29,6 +29,9 @@
 /* Define if msem_init function available */
 #undef HAVE_MSEM_INIT
 
+/* Define if semget works properly */
+#undef HAVE_SEMGET
+
 /* Define if C does NOT support const */
 #undef HAVE_NO_C_CONST
 
@@ -74,6 +77,9 @@
 /* Define if oldstyle stdarg (one arg va_start) can be used */
 #undef USE_OLDSTYLE_STDARG
 
+/* Define if stdarg.h exists */
+#undef HAVE_STDARG_H
+
 /* For Cray, define two word character descriptors in use */
 #undef _TWO_WORD_FCD
 
@@ -103,6 +109,15 @@
    condition.  The fix is to use the sigaction etc. routines instead (they're
    usually available, since without them signals are entirely useless) */
 #undef SIGNALS_RESET_WHEN_USED
+
+/* Define if MPI Structs should align on 2 bytes */
+#undef USE_BASIC_TWO_ALIGNMENT
+
+/* Define if MPI Structs should align on 4 bytes */
+#undef USE_BASIC_FOUR_ALIGNMENT
+
+/* Define if MPI Structs should align on 8 bytes */
+#undef USE_BASIC_EIGHT_ALIGNMENT
 
 /* Define if MPI Structs should align on the largest basic element */
 #undef USE_BASIC_ALIGNMENT
@@ -157,3 +172,9 @@
 #undef CONFIGURE_ARGS_CLEAN
 #undef MPIRUN_MACHINE
 #undef MPIRUN_DEVICE
+
+/* These enable tracking and output of debugging messages while a program is 
+   running */
+#undef USE_HOLD_LAST_DEBUG
+#undef USE_PRINT_LAST_ON_ERROR
+

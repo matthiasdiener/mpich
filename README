@@ -1,7 +1,7 @@
 
 		      Portable MPI Model Implementation
 
-        		  Version 1.2.0, December 1999
+			 Version 1.2.1, September, 2000
 
                                  David Ashton
                                  Anthony Chan
@@ -9,47 +9,63 @@
 				  Rusty Lusk
                                  Debbie Swider
                                  Rajeev Thakur
+
+		  Mathematics and Computer Science Division
 			 Argonne National Laboratory
 
 
-Major Changes
+MPICH is an open-source, portable implementation of the Message-Passing
+Interface Standard.  It contains a complete implementation of version 1.2 of
+the MPI Standard and also significant parts of MPI-2, particularly in the
+area of parallel I/O.
 
-This release provides full MPI 1.2 compliance, including cancel of sends.
-It also contains many bug fixes, particularly for LINUX systems.
-Other major changes include:
+The installation and user's manuals may be found in doc/install.ps.gz and
+doc/guide.ps.gz respectively.  Man pages for each MPI routine, along with
+commands for compiling and running MPI programs, are provided in the
+directories man (Unix man format) and www (HTML).
 
-o IMPI (Interoperable MPI) style flow control.
-o A Windows NT version is now available as open source.  
-o Support for SMP-clusters in mpirun.
-o A Fortran 90 MPI module (actually two modules)
-o Support for the routine MPI_INIT_THREAD (but only for MPI_THREAD_SINGLE) 
-o Support for VPATH-style installations, along with a installation
-  process and choice of directory names that is closer to the
-  GNU-recommended approach
-o A new, scalable log file format, SLOG, for use with the MPE
-  logging tools.  SLOG files can be read by a new version of Jumpshot
-  which is included with this release.
-o A new version of ROMIO
-o A new device for networked clusters, similar to the p4 device but based
-  on daemons and thus supporting a number of new convenience features,
-  including fast startup. 
+Version 1.2.1 is primarily a bug-fix and improved-portability release,
+particularly in the area of Fortran support.  A single version of MPICH can
+now be built to use several different Fortran compilers; see the installation
+manual (in doc/install.ps.gz) for details.  Using a C compiler for MPI programs
+that use MPICH that is different from the one that MPICH was built with is
+also easier now; see the installation manual.
 
-There have been a number of changes to the configure, build, and installation
-process, particularly when building for multiple devices and/or
-architectures.  Please read the installation manual in mpich/doc/install.ps.gz
-for details.  
+Significant upgrades have been made to the MPD system of daemons that provide
+fast startup of MPICH jobs, management of stdio, and a crude parallel debugger
+based on gdb.  To use the MPD system, do
+
+   configure --with-device=ch_p4mpd  <other configure arguments>
+
+See the README file in the mpich/mpid/mpd directory and the MPICH User's Guide
+for information on how to use the MPD system with MPICH.
+
+The NT version of MPICH has been further enhanced and is
+available separately; see the MPICH download page
+http://www.mcs.anl/gov/mpi/mpich/download.html 
+
+The MPE library for logging and program visualization has been much
+improved.  See the file mpe/README for more details.
+
+A new version of ROMIO, 1.0.3, is included. See romio/README for details.
+
+A new version of the C++ interface from the University of Notre Dame is also
+included.  
 
 Known problems and bugs with this release are documented in the file
-mpich/KnownBugs .  
+mpich/KnownBugs .
 
 There is an FAQ at http://www.mcs.anl.gov/mpi/mpich/faq.html .  See this if
-you get "permission denied" when trying to run MPICH.
+you get "permission denied", "connection reset by peer", or "poll: protocol
+failure in circuit setup" when trying to run MPICH. 
 
 A change log for all changes from the previous release is available from
-http://www.mcs.anl.gov/mpi/mpich/r1_2_0changes.html .
+http://www.mcs.anl.gov/mpi/mpich/r1_2_1changes.html .  
 
 There is a paper on jumpshot available at
 ftp://ftp.mcs.anl.gov/pub/mpi/jumpshot.ps.gz .
+A paper on MPD is available at ftp://ftp.mcs.anl.gov/pub/mpd.ps.gz.
+
 
 What's next:
 
@@ -61,9 +77,8 @@ and new network approaches will be introduced.  One area where we'd like
 contributions is better implementations of the collective routines.  Please
 contact us if you'd like to contribute (send mail to gropp@mcs.anl.gov).
 
+Reporting Bugs:
 
-Reporting Bugs
-==============
 If you have trouble, first check the installation and user manuals (in 
 mpich/doc/{guide,user}.ps.Z) .  Next, check the on-line bug list at
 http://www.mcs.anl.gov/mpi/mpich .  Finally, if you are still having problems,
@@ -74,7 +89,7 @@ send
    The output of make
    Any simple programs or tests
 
-to mpi-bugs@mcs.anl.gov .  Do NOT use the newsgroup comp.parallel.mpi ; this
-newsgroup is for discussions about MPI, not any particular implementation of
-MPI.
+to mpi-bugs@mcs.anl.gov .  Please don't use the newsgroup comp.parallel.mpi ;
+this newsgroup is for discussions about MPI, not any particular implementation
+of MPI.
 

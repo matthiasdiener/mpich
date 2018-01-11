@@ -181,8 +181,8 @@ LISTENER_PATHNAME=""
 ]
 
 # It is important to remove the p4_config.h file if we are performing
-# a VPATH build
-rm -f config.log p4_config.h
+# a VPATH build (the include target is a link)
+rm -f config.log p4_config.h include/p4_config.h
 AC_PREPARE()
 
 # Standard directories
@@ -190,7 +190,8 @@ if test -z "$top_srcdir" -o "$top_srcdir" = "." ; then
     top_srcdir=$srcdir
 fi
 # Remove the config file from the srcdir if this is a VPATH build.
-rm -f $top_srcdir/p4_config.h
+# (the include target is a link)
+rm -f $top_srcdir/p4_config.h $top_srcdir/include/p4_config.h
 
 AC_SUBST(top_srcdir)
 if test -z "$exec_prefix" ; then 
@@ -645,8 +646,6 @@ PAC_CHECK_HEADERS(arpa/inet.h)
 PAC_CHECK_HEADERS(sys/socketvar.h)
 PAC_CHECK_HEADERS(stdlib.h)
 PAC_CHECK_HEADERS(unistd.h)
-PAC_CHECK_HEADER(stdarg.h,[AC_DEFINE(HAVE_STDARG_H)
-havestdarg=1])
 PAC_CHECK_HEADERS(string.h)
 PAC_CHECK_HEADERS(strings.h)
 PAC_CHECK_HEADERS(termio.h termios.h)
@@ -701,23 +700,12 @@ fi
 # on some systems, the gcc version of stdio.h loads stdarg.h WITH THE WRONG
 # OPTIONS (causing it to choose the OLD STYLE va_start etc).
 #
-if test -n "$havestdarg" ; then
-    PAC_COMPILE_CHECK_FUNC(stdarg is correct,[
-#include <stdio.h>
-#include <stdarg.h>
-int func( int a, ... ){
-int b;
-va_list ap;
-va_start( ap, a );
-b = va_arg(ap, int);
-printf( "%d-%d\n", a, b );
-va_end(ap);
-fflush(stdout);
-return 0;
-}
-int main() { func( 1, 2 ); return 0;}],AC_DEFINE(USE_STDARG))
-fi
+PAC_STDARG(AC_DEFINE(USE_STDARG),AC_DEFINE(USE_OLDSTYLE_STDARG))
 #
+# We need to check that these functions are also available to 
+# the other compilers (C++ and Fortran).  For Solaris /usr/ucb/cc, these
+# are found but not for the stock C++ and Fortran compilers.
+AC_HAVE_FUNCS(sighold)
 AC_HAVE_FUNCS(sigsetmask)
 AC_HAVE_FUNCS(sigblock)
 # Look for sigaction routine (instead of signal)
@@ -871,6 +859,8 @@ if test -n "$listener_sig" ; then
     LISTENER_ATTN_SIGNAL="$listener_sig"
     AC_DEFINE_UNQUOTED(LISTENER_ATTN_SIGNAL,$listener_sig)
 fi
+dnl # Check for byte ordering
+dnl PAC_WORDS_BIGENDIAN
 #
 # Variables used by Makefile.in's:
 MDEP_LIBS="$LIBS"

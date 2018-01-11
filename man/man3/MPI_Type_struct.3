@@ -1,4 +1,4 @@
-.TH MPI_Type_struct 3 "8/31/1999" " " "MPI"
+.TH MPI_Type_struct 3 "8/10/2000" " " "MPI"
 .SH NAME
 MPI_Type_struct \-  Creates a struct datatype 
 .SH SYNOPSIS
@@ -60,14 +60,16 @@ may have
 .I sizeof(foo) > sizeof(int) + sizeof(char)
 ; for example,
 .I sizeof(foo) == 2*sizeof(int)
-.  The initial version of the MPI standard
+\&.
+The initial version of the MPI standard
 defined the extent of a datatype as including an 
 .B epsilon
 that would have
 allowed an implementation to make the extent an MPI datatype
 for this structure equal to 
 .I 2*sizeof(int)
-.
+\&.
+
 However, since different systems might define different paddings, there was
 much discussion by the MPI Forum about what was the correct value of
 epsilon, and one suggestion was to define epsilon as zero.

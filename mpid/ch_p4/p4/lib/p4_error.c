@@ -65,6 +65,9 @@ int p4_soft_errors( int onoff )
 P4VOID p4_error( char *string, int value)
 {
     char job_filename[64];
+#ifdef USE_PRINT_LAST_ON_ERROR
+    char ch_debug_string[128];
+#endif
     static int in_p4_error = 0;
 
     if (in_p4_error) {
@@ -88,22 +91,23 @@ P4VOID p4_error( char *string, int value)
     fflush(stdout);
 
 #ifdef USE_PRINT_LAST_ON_ERROR
-	p4_dprint_last( stderr );
+    sprintf(ch_debug_string, "%s: channel device received p4_error: %s: %d\n",
+	    whoami_p4, string, value );
+    MPID_Ch_send_last_p4error( ch_debug_string );
+
+    p4_dprint_last( stderr );
 #endif
 
     /* Send interrupt to all known processes */
-    zap_p4_processes();
+	zap_p4_processes(); 
 
     /* Send kill-clients message to all known listeners */
 
-#ifdef FOOGLE
-    /* Still being debugged */
     if (p4_local->my_id != -99)   /* if I am not the listener */
     {
         p4_dprintfl(99, "about to zap remote processes, value=%d\n", value);
 	zap_remote_p4_processes();
     }
-#endif
 
     /* shutdown(sock,2), close(sock) all sockets */
 #   ifdef CAN_DO_SOCKET_MSGS
@@ -182,8 +186,7 @@ int sig, code;
 struct sigcontext *scp;
 char *addr;
 #else
-static P4VOID sig_err_handler(sig)
-int sig;
+static P4VOID sig_err_handler(int sig)
 #endif
 {
     interrupt_caught = 1;

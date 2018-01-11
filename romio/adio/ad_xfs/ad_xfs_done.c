@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_xfs_done.c,v 1.2 1998/06/02 18:54:28 thakur Exp $    
+ *   $Id: ad_xfs_done.c,v 1.4 2000/02/09 21:30:02 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,42 +9,48 @@
 
 int ADIOI_XFS_ReadDone(ADIO_Request *request, ADIO_Status *status, int *error_code)  
 {
-    int err, nbytes, done=0;
+    int err, done=0;
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "ADIOI_XFS_READDONE";
+#endif
 
     if (*request == ADIO_REQUEST_NULL) {
 	*error_code = MPI_SUCCESS;
 	return 1;
     }
 
-    if ((*request)->next != ADIO_REQUEST_NULL) {
-	done = ADIOI_XFS_ReadDone(&((*request)->next), status, error_code);
-    /* currently passing status and error_code here, but something else
-       needs to be done to get the status and error info correctly */
-	if (!done) {
-	   *error_code = MPI_SUCCESS;
-	   return done;
-	}
-    }
-
     if ((*request)->queued) {
-	err = aio_error64((const aiocb64_t *) (*request)->handle);
-	if (err == EINPROGRESS) {
+	errno = aio_error64((const aiocb64_t *) (*request)->handle);
+	if (errno == EINPROGRESS) {
 	    done = 0;
 	    *error_code = MPI_SUCCESS;
 	}
 	else {
-	    nbytes = aio_return64((aiocb64_t *) (*request)->handle); 
-	    /* also dequeues the request*/ 
-	    /*  if (err) printf("error in testing completion of nonblocking I/O\n");*/
+	    err = aio_return64((aiocb64_t *) (*request)->handle); 
+	    (*request)->nbytes = err;
+	    errno = aio_error64((const aiocb64_t *) (*request)->handle);
+
 	    done = 1;
+#ifdef PRINT_ERR_MSG
 	    *error_code = (err == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
-	    /* status to be filled */
+#else
+	    if (err == -1) {
+		*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
+			      myname, "I/O Error", "%s", strerror(errno));
+		ADIOI_Error((*request)->fd, *error_code, myname);	    
+	    }
+	    else *error_code = MPI_SUCCESS;
+#endif
 	}
     }
     else {
 	done = 1;
 	*error_code = MPI_SUCCESS;
     }
+#ifdef HAVE_STATUS_SET_BYTES
+    if (done && ((*request)->nbytes != -1))
+	MPIR_Status_set_bytes(status, (*request)->datatype, (*request)->nbytes);
+#endif
 
     if (done) {
 	/* if request is still queued in the system, it is also there

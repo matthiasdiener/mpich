@@ -76,7 +76,7 @@ extern int    MPIR_errargcnt;
 /* Here is the new format:
 
    fields:   0 + <user?> + <ringid> + <kind> + <class>
-   bits:     1     1         18          6       6
+   bits:     1     1         17          7       6
 
    This is for a 32 bit int; for a 64 bit int, zero extend.  <user?> is 
    0 for system message and 1 for user-defined error classes and codes.
@@ -93,8 +93,8 @@ extern int    MPIR_errargcnt;
    remaining 18 bits to indicate special error handling, for example,
    to indicate that runtime data for the message is available
  */
-#define MPIR_ERR_CODE_BITS 12
-#define MPIR_ERR_CODE_MASK 0xfc0
+#define MPIR_ERR_CODE_BITS 13
+#define MPIR_ERR_CODE_MASK 0x1fc0
 
 /* To form a code from a class and kind, ALWAYS use the following */
 

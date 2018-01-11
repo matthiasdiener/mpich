@@ -1,7 +1,5 @@
-#ifndef lint
-static char vcid[] = "$Id: rate.c,v 1.4 1999/04/18 13:45:14 gropp Exp $";
-#endif
-
+void PIComputeRate( double sumlen, double sumtime, double sumlentime, 
+		    double sumlen2, int ntest, double *s, double *r );
 /*
     This file contains very simple code for estimating the parameters in the
     simple (s + rn) model of communication.  It does this using the NORMAL
@@ -44,10 +42,8 @@ static char vcid[] = "$Id: rate.c,v 1.4 1999/04/18 13:45:14 gropp Exp $";
     The length sums are doubles rather than ints to provide a "long long"
     type (think of them as 53 bit integers).
  */
-void PIComputeRate( sumlen, sumtime, sumlentime, sumlen2, ntest, s, r )
-int    ntest;
-double sumlen, sumlen2, sumtime, sumlentime;
-double *s, *r;
+void PIComputeRate( double sumlen, double sumtime, double sumlentime, 
+		    double sumlen2, int ntest, double *s, double *r )
 {
     double R, S;
 

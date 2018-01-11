@@ -28,8 +28,8 @@
 #define FALSE 0
 #endif
 
-extern int errno;
 /*****
+extern int errno;
 extern char *sys_errlist[];
 *****/
 
@@ -47,6 +47,8 @@ extern char *sys_errlist[];
 #include "p4_macros.h"
 
 #include "p4_globals.h"
+
+#include "bnr.h"    /* BNR interface to mpd */
 
 /* This is sometimes found in sys/param.h.  We only need a long name */
 #ifndef MAXHOSTNAMELEN

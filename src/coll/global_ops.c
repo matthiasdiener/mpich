@@ -1,5 +1,5 @@
 /*
- *  $Id: global_ops.c,v 1.8 1999/08/20 02:25:59 ashton Exp $
+ *  $Id: global_ops.c,v 1.10 2000/06/10 15:39:32 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -16,7 +16,12 @@ the datatype in most cases.
 
 #include "mpiimpl.h"
 #include "coll.h"
+#ifndef MPID_NO_FORTRAN
+/* Eventually, this should include only the FLOG routines.  In fact,
+   the Fortran part of this should be provided by routines in src/fortran
+   instead of here */
 #include "mpifort.h"
+#endif
 int MPIR_Op_errno;
 
 typedef struct { 
@@ -563,15 +568,16 @@ void MPIR_LAND (
     break;
   }
 #endif
+#ifndef MPID_NO_FORTRAN
   case MPIR_LOGICAL: {
-      /* Assume that C int == Fortran int for now */
-      MPIR_FORT_INT_T *a = (MPIR_FORT_INT_T *)inoutvec; 
-      MPIR_FORT_INT_T *b = (MPIR_FORT_INT_T *)invec;
+      MPI_Fint *a = (MPI_Fint *)inoutvec; 
+      MPI_Fint *b = (MPI_Fint *)invec;
       for (i=0; i<len; i++) 
 	  a[i] = MPIR_TO_FLOG(MPIR_LLAND(MPIR_FROM_FLOG(a[i]),
 					 MPIR_FROM_FLOG(b[i])));
       break;
       }
+#endif
   default:
       MPIR_Op_errno = MPIR_ERR_OP_NOT_DEFINED;
     MPIR_ERROR(MPIR_COMM_WORLD,MPIR_ERR_OP_NOT_DEFINED, "MPI_LAND" );
@@ -595,8 +601,8 @@ void MPIR_BAND (
 
   switch ((dtype)->dte_type) {
   case MPIR_LOGICAL: {
-    MPIR_FORT_INT_T *a = (MPIR_FORT_INT_T *)inoutvec; 
-    MPIR_FORT_INT_T *b = (MPIR_FORT_INT_T *)invec;
+    MPI_Fint *a = (MPI_Fint *)inoutvec; 
+    MPI_Fint *b = (MPI_Fint *)invec;
     for ( i=0; i<len; i++ )
       a[i] = MPIR_LBAND(a[i],b[i]);
     break;
@@ -769,15 +775,16 @@ void MPIR_LOR (
     break;
   }
 #endif
+#ifndef MPID_NO_FORTRAN
   case MPIR_LOGICAL: {
-      MPIR_FORT_INT_T *a = (MPIR_FORT_INT_T *)inoutvec; 
-      MPIR_FORT_INT_T *b = (MPIR_FORT_INT_T *)invec;
+      MPI_Fint *a = (MPI_Fint *)inoutvec; 
+      MPI_Fint *b = (MPI_Fint *)invec;
       for (i=0; i<len; i++) 
 	  a[i] = MPIR_TO_FLOG(MPIR_LLOR(MPIR_FROM_FLOG(a[i]),
 					MPIR_FROM_FLOG(b[i])));
       break;
       }
-
+#endif
   default:
       MPIR_Op_errno = MPIR_ERR_OP_NOT_DEFINED;
     MPIR_ERROR(MPIR_COMM_WORLD,MPIR_ERR_OP_NOT_DEFINED, "MPI_LOR" );
@@ -800,8 +807,8 @@ void MPIR_BOR (
 
   switch ((dtype)->dte_type) {
   case MPIR_LOGICAL: {
-    MPIR_FORT_INT_T *a = (MPIR_FORT_INT_T *)inoutvec; 
-    MPIR_FORT_INT_T *b = (MPIR_FORT_INT_T *)invec;
+    MPI_Fint *a = (MPI_Fint *)inoutvec; 
+    MPI_Fint *b = (MPI_Fint *)invec;
     for ( i=0; i<len; i++ )
       a[i] = MPIR_LBOR(a[i],b[i]);
     break;
@@ -974,15 +981,16 @@ void MPIR_LXOR (
     break;
   }
 #endif
+#ifndef MPID_NO_FORTRAN
   case MPIR_LOGICAL: {
-      /* Assume that C int == Fortran int for now */
-      MPIR_FORT_INT_T *a = (MPIR_FORT_INT_T *)inoutvec; 
-      MPIR_FORT_INT_T *b = (MPIR_FORT_INT_T *)invec;
+      MPI_Fint *a = (MPI_Fint *)inoutvec; 
+      MPI_Fint *b = (MPI_Fint *)invec;
       for (i=0; i<len; i++) 
 	  a[i] = MPIR_TO_FLOG(MPIR_LLXOR(MPIR_FROM_FLOG(a[i]),
 					 MPIR_FROM_FLOG(b[i])));
       break;
       }
+#endif
   default:
       MPIR_Op_errno = MPIR_ERR_OP_NOT_DEFINED;
     MPIR_ERROR(MPIR_COMM_WORLD,MPIR_ERR_OP_NOT_DEFINED, "MPI_LXOR" );
@@ -1006,8 +1014,8 @@ void MPIR_BXOR (
 
   switch ((dtype)->dte_type) {
   case MPIR_LOGICAL: {
-    MPIR_FORT_INT_T *a = (MPIR_FORT_INT_T *)inoutvec; 
-    MPIR_FORT_INT_T *b = (MPIR_FORT_INT_T *)invec;
+    MPI_Fint *a = (MPI_Fint *)inoutvec; 
+    MPI_Fint *b = (MPI_Fint *)invec;
     for ( i=0; i<len; i++ )
       a[i] = MPIR_LBXOR(a[i],b[i]);
     break;

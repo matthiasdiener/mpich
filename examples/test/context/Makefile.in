@@ -10,7 +10,6 @@ F77          = @MPIF77@
 FLINKER      = @MPIF77@
 OPTFLAGS     = @OPTFLAGS@
 MPIFDEP      = @MPIFDEP@
-F77_OPTFLAGS = @F77_EXTRA_FLAG@
 ### End User configurable options ###
 
 SHELL = /bin/sh
@@ -71,9 +70,9 @@ groupcreate: groupcreate.o
 
 clean:
 	@-/bin/rm -f *.o *~ PI* $(EXECS) $(OTHEREXECS) $(MPI2EXECS) \
-		core *.out *.diff *.trace mpif.h ${srcdir}/*.o
+		core *.out *.diff *.trace mpif.h ${srcdir}/*.o *.stdo
 
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 .f.o:
-	$(F77) $(FFLAGS) $(F77_OPTFLAGS) -c $<
+	$(F77) $(FFLAGS) -c $<

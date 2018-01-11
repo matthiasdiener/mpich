@@ -1,5 +1,10 @@
 #! /bin/sh
 #
+# Change to the naming convention
+# To make life easier on systems with short variable names, we make the
+# file names use just the first two characters of the type, e.g., 
+# re (real), lo (logical), in (integer), co (complex)
+#
 choicetype="traditional"
 F90SUFFIX=f90
 for arg in "$@" ; do
@@ -56,11 +61,12 @@ if [ -z "$types" ] ; then
 fi
 rm -f mpi.add
 if [ -z "$types" ] ; then
-    echo "Could not determine types!"
+    echo "Could not determine types for type $choicetype!"
     if [ -s kinderr.log ] ; then
         echo "Log of make attempts to build test programs follows"
 	cat kinderr.log
     fi
+    exit 1
 fi
 echo "Types are $types"
 for type in $types ; do
@@ -70,35 +76,38 @@ for type in $types ; do
       f90typestring=`echo $type | \
          sed -e 's/\([a-z]*\)\([0-9][0-9]*\)/\1 (KIND=\2)/'`
     fi
-    rm -f mpi1__${type}_v.${F90SUFFIX} mpi1__${type}_s.${F90SUFFIX} mpi1__${type}_sv.${F90SUFFIX} \
-	mpi1__${type}_vs.${F90SUFFIX}
-    rm -f mpi2__${type}_v.${F90SUFFIX} mpi2__${type}_s.${F90SUFFIX} mpi2__${type}_sv.${F90SUFFIX} \
-	mpi2__${type}_vs.${F90SUFFIX}
+    # Convert type name to ccnnn
+    typename=`echo A$type | sed 's/^A\(..\)[^0-9]*\([0-9]*\)/\1\2/'`
+    #
+    rm -f mpi1__${typename}_v.${F90SUFFIX} mpi1__${typename}_s.${F90SUFFIX} mpi1__${typename}_sv.${F90SUFFIX} \
+	mpi1__${typename}_vs.${F90SUFFIX}
+    rm -f mpi2__${typename}_v.${F90SUFFIX} mpi2__${typename}_s.${F90SUFFIX} mpi2__${typename}_sv.${F90SUFFIX} \
+	mpi2__${typename}_vs.${F90SUFFIX}
     TYPEUC=`echo $type | tr '[a-z]' '[A-Z]'`
     # Create the files
     sed -e "s/MODULE MPI1__<type>_v/MODULE MPI1__${TYPEUC}_V/g" \
-        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi1__type_v.f90 > mpi1__${type}_v.${F90SUFFIX}
+        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi1__type_v.f90 > mpi1__${typename}_v.${F90SUFFIX}
     sed -e "s/MODULE MPI1__<type>_s/MODULE MPI1__${TYPEUC}_S/g" \
-        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi1__type_s.f90 > mpi1__${type}_s.${F90SUFFIX}
+        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi1__type_s.f90 > mpi1__${typename}_s.${F90SUFFIX}
     sed -e "s/MODULE MPI1__<type>_vs/MODULE MPI1__${TYPEUC}_VS/g" \
-        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi1__type_vs.f90 > mpi1__${type}_vs.${F90SUFFIX}
+        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi1__type_vs.f90 > mpi1__${typename}_vs.${F90SUFFIX}
     sed -e "s/MODULE MPI1__<type>_sv/MODULE MPI1__${TYPEUC}_SV/g" \
-        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi1__type_sv.f90 > mpi1__${type}_sv.${F90SUFFIX}
+        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi1__type_sv.f90 > mpi1__${typename}_sv.${F90SUFFIX}
     sed -e "s/MODULE MPI1__<type>_v2/MODULE MPI1__${TYPEUC}_V2/g" \
-        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi1__type_v2.f90 > mpi1__${type}_v2.${F90SUFFIX}
+        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi1__type_v2.f90 > mpi1__${typename}_v2.${F90SUFFIX}
 
     sed -e "s/MODULE MPI2__<type>_v/MODULE MPI2__${TYPEUC}_V/g" \
-        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi2__type_v.f90 > mpi2__${type}_v.${F90SUFFIX}
+        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi2__type_v.f90 > mpi2__${typename}_v.${F90SUFFIX}
     sed -e "s/MODULE MPI2__<type>_s/MODULE MPI2__${TYPEUC}_S/g" \
-        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi2__type_s.f90 > mpi2__${type}_s.${F90SUFFIX}
+        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi2__type_s.f90 > mpi2__${typename}_s.${F90SUFFIX}
 # Until we change the exclude file, these two modules are empty.  Some
 # compilers will complain about the empty modules
 #    sed -e "s/MODULE MPI2__<type>_vs/MODULE MPI2__${TYPEUC}_VS/g" \
-#        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi2__type_vs.f90 > mpi2__${type}_vs.${F90SUFFIX}
+#        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi2__type_vs.f90 > mpi2__${typename}_vs.${F90SUFFIX}
 #    sed -e "s/MODULE MPI2__<type>_sv/MODULE MPI2__${TYPEUC}_SV/g" \
-#        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi2__type_sv.f90 > mpi2__${type}_sv.${F90SUFFIX}
+#        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi2__type_sv.f90 > mpi2__${typename}_sv.${F90SUFFIX}
     sed -e "s/MODULE MPI2__<type>_v2/MODULE MPI2__${TYPEUC}_V2/g" \
-        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi2__type_v2.f90 > mpi2__${type}_v2.${F90SUFFIX}
+        -e "s/<type>/$f90typestring/g" ${srcdir}/mpi2__type_v2.f90 > mpi2__${typename}_v2.${F90SUFFIX}
     # Add them to the mpi.f90 file
     echo "        USE MPI1__${TYPEUC}_V"  >>mpi.add
     echo "        USE MPI1__${TYPEUC}_VS" >>mpi.add

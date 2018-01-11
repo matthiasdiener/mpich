@@ -1,3 +1,5 @@
+#include <strings.h>
+#include <string.h>
 #define ALOG_TRACE
 #include "alog.h"
 #if defined(NEEDS_STDLIB_PROTOTYPES)

@@ -9,15 +9,14 @@
 #include <string.h>
 #include <stdarg.h>
 
-struct fileentry filetable[MAXFILES];
 struct procentry proctable[MAXPROCS];
 struct jobentry jobtable[MAXJOBS];
 
 extern struct fdentry fdtable[MAXFDENTRIES];
+int fdtable_high_water_mark = -1;
 
 extern int  debug;
 extern char myid[IDSIZE];
-extern char mylongid[IDSIZE];
 
 struct keyval_pairs keyval_tab[64];
 int keyval_tab_idx;
@@ -40,16 +39,23 @@ int allocate_fdentry()
     for ( i = 0; i < MAXFDENTRIES; i++ )
 	if ( fdtable[i].active == 0 )
 	    break;
-     fdtable[i].active	= 1;
-     fdtable[i].fd	= -1;
-     fdtable[i].read	= 0;
-     fdtable[i].write	= 0;
-     fdtable[i].portnum	= -1;
-     fdtable[i].file	= NULL;
-     fdtable[i].handler	= NOTSET;
-     strcpy( fdtable[i].name, "" );
-     mpdprintf( 0, "allocated fdtable entry %d\n", i );
-     return i;
+    if ( i >= MAXFDENTRIES )
+    {
+	mpdprintf( 1, "*** WARNING: mpd's fdtable size exceeded\n" );
+        return( -1 );
+    }
+    if ( i > fdtable_high_water_mark )
+        fdtable_high_water_mark = i;
+    fdtable[i].active	= 1;
+    fdtable[i].fd	= -1;
+    fdtable[i].read	= 0;
+    fdtable[i].write	= 0;
+    fdtable[i].portnum	= -1;
+    fdtable[i].file	= NULL;
+    fdtable[i].handler	= NOTSET;
+    strcpy( fdtable[i].name, "" );
+    mpdprintf( 0, "allocated fdtable entry %d\n", i );
+    return( i );
 }
 
 void deallocate_fdentry( idx )
@@ -74,44 +80,6 @@ char *identifier;
     }
 }
 
-
-/*---------------------------------------------------------*/
-/*
- *    File table management
- */
-void init_fileent()
-{
-    int i;
-
-    for ( i = 0; i < MAXFILES; i++ ) {
-	    filetable[i].active = 0;
-    }
-}
-/*
- *	allocate_filenet
- *	find a new file slot and init
- */
-int allocate_fileent()
-{
-    int i;
-
-    for ( i = 0; i < MAXFILES; i++ )
-	if ( filetable[i].active == 0 )
-	    break;
-
-     filetable[i].active  = 1;
-     filetable[i].fd	  = -1;
-     filetable[i].conn_id = 1;	  
-     strcpy( filetable[i].name, "" );
-     return i;
-}
-
-void  deallocate_fileent( idx )
-int idx;
-{
-    filetable[idx].active = 0;
-}
-
 void init_jobtable()
 {
     int i;
@@ -125,9 +93,10 @@ int allocate_jobent()
     for ( i = 0; i < MAXJOBS; i++ )
 	if ( jobtable[i].active == 0 )
 	    break;
-    if (i >= MAXJOBS)
+    if (i >= MAXJOBS) {
+	mpdprintf( 1, "could not allocate job table entry; MAXJOBS = %d\n", MAXJOBS );
 	return(-1);
-
+    }
     jobtable[i].active = 1;
     jobtable[i].jobid = -1;
     jobtable[i].jobsize = -1;
@@ -173,7 +142,7 @@ int flag;
 {
     int i;
 
-    for ( i = 0; i < MAXPROCS; i++ ) {
+    for ( i = 0; i < MAXJOBS; i++ ) {
 	if ( jobtable[i].active )
 	    mpdprintf( flag,
 	       "job[%d]: jobid=%d jobsize=%d jobsync_is_here=%d\n"
@@ -193,20 +162,29 @@ void init_proctable()
 
 int allocate_procent()
 {
-    int i;
-    for ( i = 0; i < MAXPROCS; i++ )
-	if ( proctable[i].active == 0 )
-	    break;
+    int i, found;
 
-    proctable[i].active   = 1;
-    proctable[i].pid	  = -1;
-    proctable[i].jobid	  = -1;
-    proctable[i].jobrank  = -1;
-    proctable[i].clientfd = -1;
-    proctable[i].lport    = -1;
-    proctable[i].state    = CLNONE;
-    strcpy( proctable[i].name, "none" );
-    return i;
+    found = 0;
+    for ( i = 0; i < MAXPROCS; i++ )
+	if ( proctable[i].active == 0 ) {
+	    found = 1;
+	    break;
+	}
+    if (found) {
+	proctable[i].active   =  1;
+	proctable[i].pid      = -1;
+	proctable[i].jobid    = -1;
+	proctable[i].jobrank  = -1;
+	proctable[i].clientfd = -1;
+	proctable[i].lport    = -1;
+	proctable[i].state    = CLNOTSET;
+	strcpy( proctable[i].name, "none" );
+	return i;
+    }
+    else {
+	mpdprintf( 1, "unable to allocate proctable entry, MAXPROCS = %d\n", MAXPROCS );
+	return -1;
+    }
 }
 
 void deallocate_procent( idx )
@@ -266,10 +244,7 @@ int pid;
     }
 }
 
-void kill_rank(job,rank,signum)
-int job;
-int rank;
-int signum;
+void kill_rank( int job, int rank, int signum )
 {
     int  i;
 
@@ -280,26 +255,24 @@ int signum;
 	    kill(proctable[i].pid,signum);
 }
 
-void kill_job( job, signum )
-int job;
-int signum;
+void kill_job( int jobid, int signum )
 {
     int  i;
 
-    for ( i = 0; i < MAXPROCS;i++ )
-	if ( (proctable[i].active)&&(job==proctable[i].jobid)) {
-	    mpdprintf( 1, "killing job %d\n", job );
-	    kill(proctable[i].pid,signum);
+    for ( i=0; i < MAXPROCS; i++ )
+	if ( proctable[i].active  &&  jobid == proctable[i].jobid ) {
+	    mpdprintf( debug, "kill_job: killing jobid=%d pid=%d\n",
+		       jobid, proctable[i].pid );
+	    kill( proctable[i].pid, signum );
 	}
 }
 
-void kill_allproc( signum )
-int signum;
+void kill_allproc( int signum )
 {
     int i, stat;
  
     for ( i = 0; i < MAXPROCS; i++ ) {
-        if ( proctable[i].active ) {
+        if ( proctable[i].active && proctable[i].pid > 0 ) {
 	    mpdprintf( 1, "killing process %d at entry %d\n", proctable[i].pid, i);
 	    kill( proctable[i].pid, signum );
 	    waitpid( proctable[i].pid, &stat, 0 );
@@ -307,18 +280,35 @@ int signum;
     }
 }
 
-void dump_proctable( flag )
-int flag;
+void dump_proctable( char *identifier )
 {
     int i;
 
+    mpdprintf( 1, "proctable( %s )\n", identifier );
     for ( i = 0; i < MAXPROCS; i++ ) {
 	if ( proctable[i].active == 1 )
-	    mpdprintf( flag,
-	       "proc[%d]: pid=%d, jid=%d, jrank=%d, jfd=%d, lport=%d, name=%s\n",
+	    mpdprintf( 1,
+	       "proc[%d]: pid=%d, jid=%d, jrank=%d, jfd=%d, lport=%d, name=%s, state=%s\n",
 		i, proctable[i].pid, proctable[i].jobid, proctable[i].jobrank,
-		   proctable[i].clientfd, proctable[i].lport, proctable[i].name );
+  	        proctable[i].clientfd, proctable[i].lport, proctable[i].name,
+		pstate( proctable[i].state ) );
     }
+}
+
+char *pstate( int state )
+{
+    if ( state == CLNOTSET )
+	return( "NOTSET" );
+    else if ( state == CLSTART )
+	return( "START" );
+    else if ( state == CLALIVE )
+	return( "ALIVE" );
+    else if ( state == CLRUNNING )
+	return( "RUNNING" );
+    else if ( state == CLDEAD )
+	return( "DEAD" );	      
+    else
+	return( "UNKNOWN" );
 }
 
 char *phandler( handler )
@@ -326,26 +316,48 @@ int handler;
 {
     if ( handler == NOTSET )
 	return "NOTSET";
-    else if ( handler == CONSOLE )
-	return "CONSOLE";
-    else if ( handler == CLIENT )
-	return "CLIENT";
-    else if ( handler == MANAGER )
-	return "MANAGER";
-    else if ( handler == LHS )
-	return "LHS";
-    else if ( handler == LISTEN )
-	return "LISTEN";
     else if ( handler == CONSOLE_LISTEN )
 	return "CONSOLE_LISTEN";
-    else if ( handler == RHS )
-	return "RHS";
+    else if ( handler == CONSOLE )
+	return "CONSOLE";
     else if ( handler == PARENT )
 	return "PARENT";
+    else if ( handler == LHS )
+	return "LHS";
+    else if ( handler == RHS )
+	return "RHS";
+    else if ( handler == CLIENT_LISTEN )
+	return "CLIENT_LISTEN";
+    else if ( handler == CLIENT )
+	return "CLIENT";
     else if ( handler == MPD )
 	return "MPD";
+    else if ( handler == LISTEN )
+	return "LISTEN";
     else if ( handler == STDIN )
 	return "STDIN";
+    else if ( handler == CONTROL )
+	return "CONTROL";
+    else if ( handler == DATA )
+	return "DATA";
+    else if ( handler == MANAGER_LISTEN )
+	return "MANAGER_LISTEN";
+    else if ( handler == MANAGER )
+	return "MANAGER";
+    else if ( handler == MAN_LISTEN )
+	return "MAN_LISTEN";
+    else if ( handler == LHS_MSGS )
+	return "LHS_MSGS";
+    else if ( handler == RHS_MSGS )
+	return "RHS_MSGS";
+    else if ( handler == PARENT_MPD_MSGS )
+	return "PARENT_MPD_MSGS";
+    else if ( handler == CON_STDIN )
+	return "CON_STDIN";
+    else if ( handler == CON_CNTL )
+	return "CON_CNTL";
+    else if ( handler == MAN_CLIENT )
+	return "MAN_CLIENT";
     else if ( handler == CLIENT_STDOUT )
 	return "CLIENT_STDOUT";
     else if ( handler == CLIENT_STDERR )
@@ -354,6 +366,8 @@ int handler;
 	return "TREE_STDOUT";
     else if ( handler == TREE_STDERR )
 	return "TREE_STDERR";
+    else if ( handler == LOGFILE_OUTPUT )
+	return "LOGFILE_OUTPUT";
     else
 	return "UNKNOWN";
 }
@@ -418,25 +432,26 @@ char *buf;
 	    if ( n < size)
 		mpdprintf( 1, "write_line did not write whole message\n" );
 	    if ( n < 0 )
-		mpdprintf( 1, "write_line error; buf=:%s:\n", buf );
+		mpdprintf( 1, "write_line error; fd=%d buf=:%s:\n", fdtable[idx].fd, buf );
 	    error_check( n, "write_line write" );
 	}
 	else
-	    mpdprintf( 1, "write_line attempted write to idx -1\n" );
+	    mpdprintf( debug, "write_line attempted write to idx -1\n" );
     }
 }
 
 int setup_network_socket( port ) /* returns fd */
 int *port;
 {
-    int backlog = 5;
-    int rc, sinlen;
+    int backlog = 15;
+    int rc;
+    mpd_sockopt_len_t sinlen;
     int skt_fd;
     struct sockaddr_in sin;
 
     sin.sin_family	= AF_INET;
     sin.sin_addr.s_addr	= INADDR_ANY;
-    sin.sin_port	= htons( 0 );
+    sin.sin_port	= htons( *port );
     sinlen              = sizeof( sin );
 
     skt_fd = socket( AF_INET, SOCK_STREAM, 0 );
@@ -484,6 +499,10 @@ char *buf;
     return( n );
 }
 
+/* This function reads until it finds a newline character.  It returns the number of
+   characters read, including the newline character.  The newline character is stored
+   in buf, as in fgets.  It does not supply a string-terminating null character.
+*/
 int read_line( fd, buf, maxlen )
 int fd, maxlen;
 char *buf;
@@ -543,7 +562,54 @@ Sigfunc *func;
     return( oact.sa_handler );
 }
 
+
+int parse_keyvals( char *st )
+{
+    char *p, *keystart, *valstart;
+
+    if ( !st )
+	return( -1 );
+
+    keyval_tab_idx = 0;          
+    p = st;
+    while ( 1 ) {
+	while ( *p == ' ' )
+	    p++;
+	/* got non-blank */
+	if ( *p == '=' ) {
+	    mpdprintf( 1, "parse_keyvals:  unexpected = at character %d in %s\n",
+		       p - st, st );
+	    return( -1 );
+	}
+	if ( *p == '\n' || *p == '\0' )
+	    return( 0 );	/* normal exit */
+	/* got normal character */
+	keystart = p;		/* remember where key started */
+	while ( *p != ' ' && *p != '=' && *p != '\n' && *p != '\0' )
+	    p++;
+	if ( *p == ' ' || *p == '\n' || *p == '\0' ) {
+	    mpdprintf( 1,
+		       "parse_keyvals: unexpected key delimiter at character %d in %s\n",
+		       p - st, st );
+	    return( -1 );
+	}
+        strncpy( keyval_tab[keyval_tab_idx].key, keystart, p - keystart );
+	keyval_tab[keyval_tab_idx].key[p - keystart] = '\0'; /* store key */
+
+	valstart = ++p;			/* start of value */
+	while ( *p != ' ' && *p != '\n' && *p != '\0' )
+	    p++;
+        strncpy( keyval_tab[keyval_tab_idx].value, valstart, p - valstart );
+	keyval_tab[keyval_tab_idx].value[p - valstart] = '\0'; /* store value */
+	keyval_tab_idx++;
+	if ( *p == ' ' )
+	    continue;
+	if ( *p == '\n' || *p == '\0' )
+	    return( 0 );	/* value has been set to empty */
+    }
+}
  
+#if 0
 void parse_keyvals( st )
 char *st;
 {
@@ -561,6 +627,7 @@ char *st;
 	strcpy(keyval_tab[keyval_tab_idx++].value,strtok(NULL," \n"));
     }
 }
+#endif
 
 void dump_keyvals()
 {
@@ -611,11 +678,9 @@ char *buf;
     strcat( buf, "\n" );
 }
 
-void error_check( val, str )	
-int val;
-char *str;
+void error_check( int val, char *str )	
 {
-    extern void fatal_error();
+    extern void fatal_error( int, char * );
 
     if ( val < 0 ) {
 	char errmsg[80];
@@ -628,58 +693,59 @@ char *str;
 /*
  *	Default Fatal exit handling routine 
  */
-void def_fatalerror(val,st)
-int val;
-char *st;
+void def_fatalerror( int val, char *st )
 {
     mpdprintf( debug, "error code=%d msg=%s\n",val,st);
     exit(val);
 }
 
-void (* _fatal_err)()=def_fatalerror;
+void (* _fatal_err)( int, char* ) = def_fatalerror;
 /*
  *	invoke fatal error routine 
  */
-void fatal_error( val, str )
-int val;
-char *str;
+void fatal_error( int val, char *str )
 {
     (* _fatal_err)(val,str);
 }
-void set_fatalerr_handler(func)
-void (*func)();
+void set_fatalerr_handler( void (*func)(int,char *) ); /* had to prototype this first */
+void set_fatalerr_handler( void (*func)(int,char *) )
 {
     _fatal_err = func;
 }
 
-void usage(st)
+void usage( st )
 char *st;
 {
     fprintf( stderr, "Usage: %s  <options>\n", st );
     fprintf( stderr, "Options are:\n" );
     fprintf( stderr, "-h <host to connect to>\n" );
     fprintf( stderr, "-p <port to connect to>\n" );
-    fprintf( stderr, "-c (allow console)\n" );
+    fprintf( stderr, "-c (allow console, the default)\n" );
+    fprintf( stderr, "-n (don't allow console)\n" );
     fprintf( stderr, "-d <debug (0 or 1)>\n" );
     fprintf( stderr, "-w <working directory>\n" );
+    fprintf( stderr, "-l <listener port>\n" );
+    fprintf( stderr, "-b (background; daemonize)\n" );
     exit( 1 );
 }
 
 void mpd_cleanup()
 {
     int i;
-    int rc;
 
     if ( debug )
 	dump_fdtable( "in mpd_cleanup" );
     for ( i = 0; i < MAXFDENTRIES; i++ ) {
         if ( fdtable[i].active )  {
-	    mpdprintf( debug, "port[%d] name-> %s\n", i, fdtable[i].name );
-            if ( ( fdtable[i].handler == CONSOLE_LISTEN ) )  {
-                mpdprintf( 0, "unlinking  %s\n", fdtable[i].name );
-                rc = unlink( fdtable[i].name );
-		if ( rc == -1 )
-		    fprintf(stderr,"mpd_cleanup: unlink failed for %s\n",fdtable[i].name);
+	    mpdprintf( debug, "i=%d name=%s handler=%s\n",
+	               i, fdtable[i].name, phandler(fdtable[i].handler) );
+	    if ( ( fdtable[i].handler == CONSOLE_LISTEN ) )  {
+                mpdprintf( debug, "unlinking  %s\n", fdtable[i].name );
+                unlink( fdtable[i].name );
+            }
+	    else if ( ( fdtable[i].handler == LOGFILE_OUTPUT ) )  {
+                mpdprintf( debug, "unlinking  %s\n", fdtable[i].name );
+                unlink( fdtable[i].name );
             }
         }
     }
@@ -772,6 +838,7 @@ int dclose( int fd )		/* version of close for debugging */
     mpdprintf( debug, "closing fd %d\n", fd );
     if ( ( rc = close( fd ) ) < 0 )
 	mpdprintf( 1, "failed to close fd %d\n", fd );
+    return rc;
 }
 
 

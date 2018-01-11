@@ -11,8 +11,8 @@ typedef size_t p4_sockopt_len_t;
 typedef int p4_sockopt_len_t;
 #endif
 
-extern int errno;
 /*  removed 11/27/94 by RL.  Causes problems in FreeBSD and is not used.
+extern int errno;
 extern char *sys_errlist[];
 */
 

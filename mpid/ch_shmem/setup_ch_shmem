@@ -42,3 +42,7 @@ rm -f ${top_srcdir}/mpid/ch_shmem/mpich-mpid.h
 # Variable assignments from configure are in localdefs
 . mpid/ch_shmem/localdefs
 LIB_LIST="$LIB_LIST $CHSHMEM_LIBS"
+# Look for SIGACTION used
+if grep HAVE_SIGACTION mpid/ch_shmem/Makefile >/dev/null 2>&1 ; then
+    device_functions="sigaction"
+fi

@@ -3,7 +3,6 @@
 #
 
 CC          = @CC@
-F77         = @F77@
 AR          = @AR@
 RANLIB      = @RANLIB@
 OPTFLAGS    = @OPTFLAGS@
@@ -21,18 +20,16 @@ SHELL       = /bin/sh
 @VPATH@
 
 .SUFFIXES:
-.SUFFIXES: .o .c .f
+.SUFFIXES: .o .c
 
 LIBS = ${libbuild_dir}/lib@MPILIBNAME@.a
 
 MPI_COBJECTS = pcontrol.o
 MPI_CSOURCES = pcontrol.c
 MPI_TSOURCES = 
-MPI_WSOURCES = pcontrolf.c
-MPI_WOBJECTS = pcontrolf.o
 
-MPI_SOURCES = ${MPI_CSOURCES} ${MPI_WSOURCES}
-MPI_OBJECTS = ${MPI_COBJECTS} ${MPI_WOBJECTS}
+MPI_SOURCES = ${MPI_CSOURCES} 
+MPI_OBJECTS = ${MPI_COBJECTS}
 
 default: ${libbuild_dir}/lib@MPILIBNAME@.a
 
@@ -45,8 +42,9 @@ default_all: ${MPI_OBJECTS}
 	${AR} ${libbuild_dir}/lib@MPILIBNAME@.a $?
 profile_all: ${MPI_OBJECTS}
 	${AR} ${libbuild_dir}/libp@MPILIBNAME@.a $?
-wrapperlib: ${MPI_WOBJECTS}
-	${AR} ${libbuild_dir}/libf@MPILIBNAME@.a $?	
+default_conly: ${MPI_COBJECTS}
+	${AR} ${libbuild_dir}/lib@MPILIBNAME@.a $?
+	${RANLIB} ${libbuild_dir}/lib@MPILIBNAME@.a
 
 source_names:
 	@echo ${MPI_CSOURCES}

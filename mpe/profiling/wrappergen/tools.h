@@ -1,4 +1,4 @@
-/* $Id: tools.h,v 1.1.1.1 1997/09/17 20:38:46 gropp Exp $ */
+/* $Id: tools.h,v 1.2 2000/07/11 22:03:35 gropp Exp $ */
 
 /*
     This file contains some basic definitions that the tools routines
@@ -25,13 +25,11 @@ typedef char *caddr_t;
 
 /*
    Definitions used for the Fortran interface.
-   FORTRANCAPS:       Names are uppercase, no trailing underscore
-   FORTRANUNDERSCORE: Names are lowercase, trailing underscore
  */    
 #if defined(titan) || defined(cray) || defined(ncube)
-#define FORTRANCAPS
+#define F77_NAME_UPPER
 #elif !defined(rs6000) && !defined(NeXT) && !defined(HPUX)
-#define FORTRANUNDERSCORE
+#define F77_NAME_LOWER_USCORE
 #endif
 
 /*
@@ -242,7 +240,7 @@ typedef struct {
 
 /* Finally, should add the code for FORTRANCAPS and FORTRANUNDERSCORE for the
    LAPACK routines */
-#if defined(FORTRANCAPS)
+#if defined(F77_NAME_UPPER)
 #define dgemv_  DGEMV
 #define dgetrf_ DGETRF
 #define dgetrs_ DGETRS
@@ -261,7 +259,7 @@ typedef struct {
 #define cgemv_  CGEMV
 #define ctrmv_  CTRMV
 #define ctrsl_  CTRSL
-#elif !defined(FORTRANUNDERSCORE)
+#elif !defined(F77_NAME_LOWER_USCORE)
 #define dgemv_  dgemv
 #define dgetrf_ dgetrf
 #define dgetrs_ dgetrs

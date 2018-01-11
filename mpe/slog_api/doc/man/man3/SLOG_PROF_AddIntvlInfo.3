@@ -1,13 +1,17 @@
-.TH SLOG_PROF_AddIntvlInfo 3 "8/7/1999" " " "SLOG_API"
+.TH SLOG_PROF_AddIntvlInfo 3 "4/24/2000" " " "SLOG_API"
 .SH NAME
-SLOG_PROF_AddIntvlInfo \-  Add one display description of an interval to  the SLOG Display Profile table. 
+SLOG_PROF_AddIntvlInfo \-  Add one display description of an  interval to the SLOG Display Profile table. 
 .SH SYNOPSIS
 .nf
-int SLOG_PROF_AddIntvlInfo(       SLOG_STREAM      *slog,
-                            const SLOG_intvltype_t  intvltype,
-                            const char *            classtype,
-                            const char *            label,
-                            const char *            color )
+int SLOG_PROF_AddIntvlInfo(       SLOG_STREAM       *slog,
+                            const SLOG_intvltype_t   intvltype,
+                            const SLOG_bebit_t       bebit_0,
+                            const SLOG_bebit_t       bebit_1,
+                            const char *             classtype,
+                            const char *             label,
+                            const char *             color,
+                            const SLOG_N_args_t      Nargs,
+                                  ... )
 .fi
 .SH MODIFIED INPUT VARIABLES 
 .PD 0
@@ -25,6 +29,16 @@ located.
 .PD 1
 .PD 0
 .TP
+.B bebit_0   
+- the 1st bebit.
+.PD 1
+.PD 0
+.TP
+.B bebit_1   
+- the 2nd bebit.
+.PD 1
+.PD 0
+.TP
 .B classtype 
 - character string for the classtype of the interval
 .PD 1
@@ -38,6 +52,18 @@ located.
 .B color     
 - character string for the color of the interval
 .PD 1
+.PD 0
+.TP
+.B Nargs     
+- Number of MPI call argument for this interval record type.
+.PD 1
+.PD 0
+.TP
+.B ...       
+- optional set of string argument description labels whose total 
+number should match Nargs supplied, otherwise, unpredicted 
+behaviour will occur.
+.PD 1
 
 .SH MODIFIED OUTPUT VARIABLES 
 .PD 0
@@ -47,10 +73,13 @@ located.
 .PD 1
 
 .SH USAGE NOTES ON THIS SUBROUTINE 
-all the input characters strings, classtype, label and color are
-allowed to contain alphanumeric, underscore, blank and tab characters.
+all the input characters strings, classtype, label, color and the
+optional string argument description label are NOT allowed to be
+longer than SLOG_STRING_LEN - 1, including trailing null character.
+( SLOG_STRING_LEN is defined in slog.h ).  They are also allowed
+to contain alphanumeric, underscore, blank and tab characters.
 But tab characters, if exist, in the string are all converted to
-blanks for ease of management.
+blanks.
 
 
 Notes on the Addition of Extra Interval Description.

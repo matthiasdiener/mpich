@@ -338,9 +338,11 @@ if test -n "$arch_rs6000" ; then
       FLINKER="xlf -bnso"
   fi
 fi
-cross_compiling=0
+# Some autoconf tests check for cross_compiling being empty, rather than
+# having a value of 0 or 1 (or no or yes).
+cross_compiling=""
 AC_CROSS_CHECK()
-if test $cross_compiling != 0 ; then
+if test "$cross_compiling" != 0 ; then
     echo "Cross-compiling; many tests may not work..."
 fi
 # 

@@ -1,5 +1,5 @@
 
-/* MPD-MAN Client Library */
+/* MPD Client Library */
 
 #include "mpd.h"
 #include "mpdlib.h"
@@ -7,193 +7,178 @@
 #define MAN_INPUT       1
 #define PEER_LISTEN     2
 
-struct fdentry fdtable[MAXFDENTRIES];
+/* definitions used by utils */
+char myid[IDSIZE];              /* descriptive character string, like man_2, cli_3 */
+int  debug = 0;
+struct fdentry fdtable[MAXFDENTRIES]; 
 
-char myid[IDSIZE];              /* myid is hostname_listener-portnum */
-char mylongid[IDSIZE];
+/* mpdlib global variables */
+int  mpdlib_myjob, mpdlib_myrank, mpdlib_myjobsize;
+int  mpdlib_man_msgs_fd, mpdlib_peer_listen_fd;
+void (*MPD_user_peer_msg_handler)(char *) = NULL;  /* default */
 
-int debug = 0;
-
-int myjob, myrank, myjobsize;
-int man_msgs_fd, client_listener_fd;
-
-int *peer_socket_table;
-
-int MPD_Init()
+int MPD_Init( void (*peer_msg_handler)(char *) )
 {
-    int i;
     char *p;
+    char buf[MAXLINE];
+    static int firstcall = 1;
+    
+    if ( firstcall )
+	firstcall = 0;
+    else
+	return( 0 );
 
     setbuf(stdout,NULL);  /* turn off buffering for clients */
 
+    MPD_user_peer_msg_handler = peer_msg_handler;
     if ( ( p = getenv( "MPD_JID" ) ) )
-	myjob = atoi( p );
+        mpdlib_myjob = atoi( p );
     else
-	myjob = -1;
+        mpdlib_myjob = -1;
     if ( ( p = getenv( "MPD_JSIZE" ) ) )
-	myjobsize = atoi( p );
+        mpdlib_myjobsize = atoi( p );
     else
-	myjobsize = -1;
+        mpdlib_myjobsize = -1;
     if ( ( p = getenv( "MPD_JRANK" ) ) )
-	myrank = atoi( p );
+        mpdlib_myrank = atoi( p );
     else
-	myrank = -1;
-    sprintf( myid, "cli_%d", myrank );
+        mpdlib_myrank = -1;
+    sprintf( myid, "cli_%d", mpdlib_myrank );
     if ( ( p = getenv( "MAN_MSGS_FD" ) ) )
-	man_msgs_fd = atoi( p );
+        mpdlib_man_msgs_fd = atoi( p );
     else
-	man_msgs_fd = -1;
+        mpdlib_man_msgs_fd = -1;
     if ( ( p = getenv( "CLIENT_LISTENER_FD" ) ) )
-	client_listener_fd = atoi( p );
+        mpdlib_peer_listen_fd = atoi( p );
     else
-	client_listener_fd = -1;
+        mpdlib_peer_listen_fd = -1;
     mpdprintf( debug, "MPD_Init: retrieved from env rank=%d manfd=%d clifd=%d\n",
-	       myrank,man_msgs_fd,client_listener_fd );
-
-    peer_socket_table = malloc(myjobsize * sizeof(int));
-    for (i=0; i < myjobsize; i++)
-    {
-	peer_socket_table[i] = -1;
-    }
+               mpdlib_myrank,mpdlib_man_msgs_fd,mpdlib_peer_listen_fd );
 
     Signal( SIGUSR1, sigusr1_handler ); /* when poked by manager */
+    sprintf( buf, "cmd=accepting_signals pid=%d\n",getpid() );
+    write( mpdlib_man_msgs_fd, buf, strlen(buf) );
+    mpdprintf( debug, "MPD_Init: sent accepting_signals to man\n");
 
     return(0);
 }
 
-int MPD_Finalize()
+int MPD_Finalize( void )
 {
     if (debug==1)
-        fprintf(stderr,"MPI Finalize job=%d rank=%d\n", myjob, myrank);
+        fprintf(stderr,"MPI Finalize job=%d rank=%d\n", mpdlib_myjob, mpdlib_myrank);
+    close( mpdlib_man_msgs_fd );
     /* may need to clean up */
     return(0);
 }
 
-int MPD_Job()
+int MPD_Job( void )
 {
-    return(myjob);
+    return(mpdlib_myjob);
 }
 
-int MPD_Size()
+int MPD_Size( void )
 {
-    return(myjobsize);
+    return(mpdlib_myjobsize);
 }
 
-int MPD_Rank()
+int MPD_Rank( void )
 {
-    return(myrank);
+    return(mpdlib_myrank);
 }
 
-int MPD_Connect_to_peer(jobid,rank)
-int jobid,rank;
+int MPD_Peer_listen_fd( void )
 {
-    char buf[256];
-
-    if (peer_socket_table[rank] >= 0)
-	return(peer_socket_table[rank]);
-    sprintf( buf, "cmd=request_peer_connection job=%d rank=%d\n", jobid, rank );
-    write( man_msgs_fd, buf, strlen(buf)+1 );
-    peer_socket_table[rank] = accept_connection( client_listener_fd );
-    return(peer_socket_table[rank]);
+    return(mpdlib_peer_listen_fd);
 }
 
-int MPD_Get_ready_peer_info(peer_rank,peer_socket)
-int *peer_rank, *peer_socket;
+int MPD_Man_msgs_fd( void )
 {
-    int i, rc, num_fds;
-    struct timeval tv;
-    fd_set readfds, writefds;
-
-    rc = -1;  /* in case interrupted in select */
-    while (rc < 0)
-    {
-	FD_ZERO( &readfds );
-	FD_ZERO( &writefds );
-
-	for (i=0; i < myjobsize; i++)
-	    if (peer_socket_table[i] != -1) 
-		FD_SET(peer_socket_table[i],&readfds);
-	
-	num_fds = FD_SETSIZE;
-	tv.tv_sec = 0;  /* setup for zero time (null would be indefinite) */
-	tv.tv_usec = 0;
-
-	rc = select( num_fds, &readfds, &writefds, NULL, &tv );
-
-	if (rc == 0)
-	    break;
-	if (rc < 0)
-	{
-	    if (errno == EINTR)
-	    {
-		mpdprintf( debug, "select interrupted; continuing\n" );
-		continue;
-	    }
-	    else
-		break;
-	}
-
-	for (i=0; i < myjobsize; i++)
-	{
-	    if (peer_socket_table[i] != -1) 
-	    {
-		if (FD_ISSET(peer_socket_table[i],&readfds))
-		{
-		    rc = i + 1;  /* make rc > 0 */
-		    *peer_rank = i;
-		    *peer_socket = peer_socket_table[i];
-		    break;
-		}
-	    }
-	}
-    }
-    return(rc);
+    return(mpdlib_man_msgs_fd);
 }
 
-int MPD_Get_peer_host_and_port(job,rank,peerhost,peerport)
-int job, rank, *peerport;
-char *peerhost;
+int MPD_Poke_peer( int jobid, int rank, char *msg )
+{
+    char buf[MAXLINE];
+
+    sprintf( buf, "cmd=interrupt_peer_with_msg job=%d torank=%d fromrank=%d msg=%s\n",
+             jobid, rank, mpdlib_myrank, msg );
+    write( mpdlib_man_msgs_fd, buf, strlen(buf) );
+    return(0);
+}
+
+void MPD_Abort( int code )
+{
+    int rank, jobid;
+    char buf[MAXLINE];
+    
+    rank   = MPD_Rank();
+    jobid  = MPD_Job();
+    mpdprintf( 0, "MPD_Abort: process %d aborting with code %d\n", rank, code );
+
+    sprintf( buf, "cmd=abort_job job=%d rank=%d abort_code=%d\n", jobid, rank, code );
+    write( mpdlib_man_msgs_fd, buf, strlen(buf) );
+
+    sleep( 20 );
+    mpdprintf( 1, "MPD_Abort:  exiting after 20 seconds\n" );  fflush( stderr );
+    exit( -1 );
+}
+
+int MPD_Get_peer_host_and_port( int job, int rank, char *peerhost, int *peerport )
 {
     int i;
-    char buf[256];
-	
+    char buf[MAXLINE];
+        
     sprintf( buf, "cmd=findclient job=%d rank=%d\n", job, rank );
-    write( man_msgs_fd, buf, strlen(buf)+1 );
-    i = read_line( man_msgs_fd, buf, 256 );  
-    mpdprintf(1,"MPDLIB rc=%d reply=>:%s:\n",i,buf);
+    write( mpdlib_man_msgs_fd, buf, strlen(buf) );
+    i = read_line( mpdlib_man_msgs_fd, buf, MAXLINE );  
+    mpdprintf( debug ,"MPDLIB rc=%d reply=>:%s:\n", i, buf );
     parse_keyvals( buf );
     getval( "cmd", buf );
     if ( strcmp( "foundclient", buf ) != 0 ) {
-	mpdprintf( 1, "expecting foundclient, got :%s:\n", buf );
-	return(-1);
+        mpdprintf( 1, "expecting foundclient, got :%s:\n", buf );
+        return(-1);
     }
     getval( "host", peerhost );
     getval( "port", buf );
     *peerport = atoi( buf );
     if ( *peerport < 0 ) {
-	mpdprintf( 1, "MPD_Get_peer_host_and_port: failed to find client :%d %d:\n", job,rank );
-	return(-1);
+        mpdprintf( 1, "MPD_Get_peer_host_and_port: failed to find client :%d %d:\n", job,rank );
+        return(-1);
     }
     mpdprintf( 1, "LOCATED job=%d rank=%d at peerhost=%s peerport=%d\n",
-	       job, rank, peerhost, *peerport);
-    return(0);	
+               job, rank, peerhost, *peerport);
+    return(0);        
 }
 
 void sigusr1_handler( signo )
 int signo;
 {
-    int rc, peer_port, peer_rank;
-    char buf[MAXLINE], peer_hostname[MAXLINE];
+    int rc, numfds, done;
+    char buf[MAXLINE];
+    struct timeval tv;
+    fd_set readfds;
 
-    mpdprintf( 1, "cli got SIGUSR1\n" );
-    rc = read_line(man_msgs_fd,buf,MAXLINE);
-    mpdprintf( 1, "sigusr1_handler got buf=:%s:\n",buf );
-    parse_keyvals( buf );
-    getval("requesting_host",peer_hostname);
-    getval("requesting_port",buf);
-    peer_port = atoi(buf);
-    getval("rank",buf);
-    peer_rank = atoi(buf);
-    peer_socket_table[peer_rank] = network_connect(peer_hostname,peer_port);
+    done = 0;
+    while (!done)
+    {
+        FD_ZERO( &readfds );
+        FD_SET( mpdlib_man_msgs_fd, &readfds );
+        numfds = mpdlib_man_msgs_fd + 1;
+        tv.tv_sec = 0;
+        tv.tv_usec = 0;
+        rc = select( numfds, &readfds, NULL, NULL, &tv );
+        if ( ( rc == -1 ) && ( errno == EINTR ) )
+            continue;
+        if ( rc < 0 )
+            error_check( rc, "signal handler: select" );
+        if ( FD_ISSET( mpdlib_man_msgs_fd, &readfds ) )
+        {
+            rc = read_line(mpdlib_man_msgs_fd,buf,MAXLINE);
+            mpdprintf( debug, "sigusr1_handler got buf=:%s:\n",buf );
+            (*MPD_user_peer_msg_handler)(buf);
+        }
+        else
+            done = 1;
+    }
 }
-

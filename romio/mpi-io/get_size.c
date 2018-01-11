@@ -1,5 +1,5 @@
 /* 
- *   $Id: get_size.c,v 1.5 1999/08/27 20:53:06 thakur Exp $    
+ *   $Id: get_size.c,v 1.7 2000/02/09 21:30:13 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +19,7 @@
 #endif
 
 /* Include mapping from MPI->PMPI */
-#define __MPIO_BUILD_PROFILING
+#define MPIO_BUILD_PROFILING
 #include "mpioprof.h"
 #endif
 
@@ -38,6 +38,9 @@ int MPI_File_get_size(MPI_File fh, MPI_Offset *size)
 {
     ADIO_Fcntl_t *fcntl_struct;
     int error_code;
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "MPI_FILE_GET_SIZE";
+#endif
 #ifdef MPI_hpux
     int fl_xmpi;
 
@@ -45,10 +48,14 @@ int MPI_File_get_size(MPI_File fh, MPI_Offset *size)
 		  MPI_DATATYPE_NULL, -1);
 #endif /* MPI_hpux */
 
+#ifdef PRINT_ERR_MSG
     if ((fh <= (MPI_File) 0) || (fh->cookie != ADIOI_FILE_COOKIE)) {
-	printf("MPI_File_get_size: Invalid file handle\n");
+	FPRINTF(stderr, "MPI_File_get_size: Invalid file handle\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
+#else
+    ADIOI_TEST_FILE_HANDLE(fh, myname);
+#endif
 
     fcntl_struct = (ADIO_Fcntl_t *) ADIOI_Malloc(sizeof(ADIO_Fcntl_t));
     ADIO_Fcntl(fh, ADIO_FCNTL_GET_FSIZE, fcntl_struct, &error_code);

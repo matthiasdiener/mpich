@@ -1,5 +1,5 @@
 /*
- *  $Id: initdte.c,v 1.9 1999/10/18 22:18:29 gropp Exp $
+ *  $Id: initdte.c,v 1.11 2000/08/10 22:15:34 toonen Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -19,23 +19,6 @@
 #define DEBUG(a)
 
 
-#ifdef FORTRANCAPS
-#define mpir_init_fdtes_ MPIR_INIT_FDTES
-#define mpir_init_fsize_  MPIR_INIT_FSIZE
-#define mpir_get_fsize_   MPIR_GET_FSIZE
-#elif defined(FORTRANDOUBLEUNDERSCORE)
-#define mpir_init_fdtes_ mpir_init_fdtes__
-#define mpir_init_fsize_  mpir_init_fsize__
-#define mpir_get_fsize_   mpir_get_fsize__
-#elif !defined(FORTRANUNDERSCORE)
-#define mpir_init_fdtes_ mpir_init_fdtes
-#define mpir_init_fsize_  mpir_init_fsize
-#define mpir_get_fsize_   mpir_get_fsize
-#endif
-
-void mpir_get_fsize_ ANSI_ARGS(( void ));
-void mpir_init_fsize_ ANSI_ARGS(( float *, float *, double *, double * ));
-
 /* Global memory management variables for fixed-size blocks */
 void *MPIR_dtes;      /* sbcnst datatype elements */
 
@@ -48,25 +31,22 @@ struct MPIR_DATATYPE MPIR_I_CHAR, MPIR_I_SHORT, MPIR_I_INT, MPIR_I_LONG,
 /* Derived and special types */
 struct MPIR_DATATYPE MPIR_I_PACKED, MPIR_I_LONG_DOUBLE_INT,
                             MPIR_I_UB, MPIR_I_LB,
-                            MPIR_I_2INTEGER, 
                             MPIR_I_FLOAT_INT, MPIR_I_DOUBLE_INT, 
                             MPIR_I_LONG_INT, MPIR_I_SHORT_INT, MPIR_I_2INT,
-                            MPIR_I_REAL, MPIR_I_DOUBLE_PRECISION, 
-                            MPIR_I_COMPLEX, MPIR_I_DCOMPLEX, 
                             MPIR_I_LONG_DOUBLE_INT, 
-                            MPIR_I_LOGICAL, MPIR_I_INTEGER, MPIR_I_2FLOAT,
-                            MPIR_I_2DOUBLE;
+                            MPIR_I_2FLOAT, MPIR_I_2DOUBLE;
+
 
 /* Definition for pointer to packed datatype */
 struct MPIR_DATATYPE *MPIR_PACKED_PTR = 0;
 
 /* Global pre-assigned datatypes */
-void MPIR_Setup_base_datatype ANSI_ARGS((MPI_Datatype, struct MPIR_DATATYPE *, 
-					 MPIR_NODETYPE, int));
-void MPIR_Setup_complex_datatype ANSI_ARGS((MPI_Datatype, MPI_Datatype, 
-					    struct MPIR_DATATYPE * ));
-void MPIR_Type_contiguous ANSI_ARGS(( int, MPI_Datatype, 
-				      struct MPIR_DATATYPE *, MPI_Datatype ));
+void MPIR_Setup_base_datatype (MPI_Datatype, struct MPIR_DATATYPE *, 
+					 MPIR_NODETYPE, int);
+void MPIR_Setup_complex_datatype (MPI_Datatype, MPI_Datatype, 
+					    struct MPIR_DATATYPE * );
+void MPIR_Type_contiguous ( int, MPI_Datatype, 
+				      struct MPIR_DATATYPE *, MPI_Datatype );
 
 /* C Datatypes for MINLOC and MAXLOC functions. 
    These allow us to construct the structures to match the compiler that
@@ -105,25 +85,11 @@ typedef struct {
 MPI_LONG_DOUBLE_INT_struct MPI_LONG_DOUBLE_INT_var;
 #endif
 
-/* Fortran datatypes */
-/* MPI_Datatype MPIR_logical_dte; */
-struct MPIR_DATATYPE MPIR_int1_dte, MPIR_int2_dte, MPIR_int4_dte, 
-		MPIR_real4_dte, MPIR_real8_dte;
-/* FORTRAN Datatypes for MINLOC and MAXLOC functions */
-struct MPIR_DATATYPE MPIR_I_2REAL, MPIR_I_2DOUBLE_PRECISION, 
-                     MPIR_I_2COMPLEX, MPIR_I_2DCOMPLEX;
-
-/* Sizes of Fortran types; computed when initialized. */
-static int MPIR_FSIZE_C = 0;  /* Characters */
-static int MPIR_FSIZE_R = 0;  /* Reals */
-static int MPIR_FSIZE_D = 0;  /* Doubles */
-
 void MPIR_Init_dtes()
 {
     MPI_Datatype   type[3], temptype;
     MPI_Aint       disp[3];
     int            blln[3];
-    MPIR_NODETYPE  nodetype;
 
     /* set up pre-defined data types */
     DEBUG(PRINTF("[%d] About to create datatypes\n", MPIR_tid);)
@@ -132,117 +98,10 @@ void MPIR_Init_dtes()
 
     MPIR_Setup_base_datatype( MPI_INT, &MPIR_I_INT, MPIR_INT, sizeof(int) );
 
-    /* 
-       Fortran requires that integers be the same size as 
-       REALs, which are half the size of doubles.  Note that
-       logicals must be the same size as integers.  Note that
-       much of the code does not know about MPIR_LOGICAL or MPIR_FORT_INT
-       yet. 
-
-       We still need a FORT_REAL and FORT_DOUBLE type for some systems
-     */
-#ifdef MPID_NO_FORTRAN
-    MPIR_FSIZE_R = sizeof(float);
-    MPIR_FSIZE_D = sizeof(double);
-#else
-    mpir_get_fsize_();
-#endif
-    /* Rather than try to duplicate the Fortran types (e.g., 
-       MPI_INTEGER = MPI_INT), we just generate new types
-     */
-    nodetype = MPIR_FORT_INT;
-    if (sizeof(int) == MPIR_FSIZE_R) nodetype = MPIR_INT;
-    else if (sizeof(long) == MPIR_FSIZE_R) nodetype = MPIR_LONG;
-    MPIR_Setup_base_datatype( MPI_INTEGER, &MPIR_I_INTEGER, nodetype, 
-			      MPIR_FSIZE_R );
-    MPIR_Setup_base_datatype( MPI_DOUBLE, &MPIR_I_DOUBLE, 
-			      MPIR_DOUBLE, sizeof(double) );
-#if !defined(MPID_NO_FORTRAN)
-    /* 
-       Check for consistent definition of ints in the interfaces.
-       If we get this message, we need to make changes in all of the 
-       Fortran wrappers (replacing int types and adding casts)
-
-       This is nearly out-of-date.  Most of the wrappers now correctly
-       use MPI_Fint instead of int.
-     */
-    if (sizeof(int) != MPIR_FSIZE_R) {
-	FPRINTF( stderr, 
-	    "WARNING: Fortran integers are different in size from C ints\n" );
-	}
-#endif
-    MPIR_Setup_base_datatype( MPI_LOGICAL, &MPIR_I_LOGICAL, MPIR_LOGICAL, 
-			      MPIR_FSIZE_R );
     MPIR_Setup_base_datatype( MPI_FLOAT, &MPIR_I_FLOAT, 
 			      MPIR_FLOAT, sizeof(float) );
-    MPIR_Setup_base_datatype( MPI_COMPLEX, &MPIR_I_COMPLEX, 
-			      MPIR_COMPLEX, 2 * MPIR_FSIZE_R );
-    MPIR_I_COMPLEX.align  = MPIR_FSIZE_R;
-    /* Hunt for Fortran real size */
-    /* The original code here depended on Fortran being correctly 
-       implemented.  Unfortunately, some vendors (e.g., Cray for the T3x)
-       choose to have REAL = 8 bytes but don't want to have DOUBLE PRECISION
-       = 16 bytes.  This is SPECIFICALLY prohibited by the Fortran standard
-       (which requires that double precision be exactly twice the size of
-       real).  
-     */
-    if (sizeof(float) == MPIR_FSIZE_R) {
-	MPIR_Setup_base_datatype( MPI_REAL, &MPIR_I_REAL, MPIR_FLOAT,
-				  MPIR_FSIZE_R );
-	MPIR_Type_contiguous( 2, MPI_FLOAT, &MPIR_I_2FLOAT, MPI_2REAL );
-	}
-    else if (sizeof(double) == MPIR_FSIZE_R) {
-	MPIR_Setup_base_datatype( MPI_REAL, &MPIR_I_REAL, MPIR_DOUBLE,
-				  MPIR_FSIZE_R );
-	MPIR_Type_contiguous( 2, MPI_DOUBLE, &MPIR_I_2DOUBLE, MPI_2REAL );
-	}
-    else {
-	/* This won't be right */
-	MPIR_Setup_base_datatype( MPI_REAL, &MPIR_I_REAL, MPIR_FLOAT,
-				  MPIR_FSIZE_R );
-	MPIR_Type_contiguous( 2, MPI_FLOAT, &MPIR_I_2FLOAT, MPI_2REAL );
-	}
-
-    /* Note that dcomplex is needed for src/pt2pt/pack_size.c */
-    if (sizeof(double) == MPIR_FSIZE_D) {
-	MPIR_Setup_base_datatype( MPI_DOUBLE_PRECISION, 
-				  &MPIR_I_DOUBLE_PRECISION, MPIR_DOUBLE,
-				  MPIR_FSIZE_D );
-	MPIR_Setup_base_datatype( MPI_DOUBLE_COMPLEX, &MPIR_I_DCOMPLEX, 
-				  MPIR_DOUBLE_COMPLEX, 2 * MPIR_FSIZE_D );
-	MPIR_I_DCOMPLEX.align = MPIR_FSIZE_D;
-
-	MPIR_Type_contiguous( 2, MPI_DOUBLE, &MPIR_I_2DOUBLE, 
-			      MPI_2DOUBLE_PRECISION );
-	}
-#if defined(HAVE_LONG_DOUBLE)
-    else if (sizeof(long double) == MPIR_FSIZE_D) {
-	MPIR_Setup_base_datatype( MPI_DOUBLE_PRECISION, 
-				  &MPIR_I_DOUBLE_PRECISION, MPIR_LONGDOUBLE, 
-				  MPIR_FSIZE_D );
-	/* These aren't correct (we need a ldcomplex datatype in 
-	   global_ops.c */
-	MPIR_Setup_base_datatype( MPI_DOUBLE_COMPLEX, &MPIR_I_DCOMPLEX, 
-				  MPIR_DOUBLE_COMPLEX, 2 * MPIR_FSIZE_D );
-	MPIR_I_DCOMPLEX.align = MPIR_FSIZE_D;
-
-	MPIR_Type_contiguous( 2, MPI_DOUBLE_PRECISION, &MPIR_I_2DOUBLE, 
-			      MPI_2DOUBLE_PRECISION );
-	}
-#endif
-    else {
-	/* we'll have a problem with the reduce/scan ops */
-	MPIR_Setup_base_datatype( MPI_DOUBLE_PRECISION, 
-				  &MPIR_I_DOUBLE_PRECISION, MPIR_DOUBLE, 
-				  MPIR_FSIZE_D );
-	MPIR_Setup_base_datatype( MPI_DOUBLE_COMPLEX, &MPIR_I_DCOMPLEX, 
-				  MPIR_DOUBLE_COMPLEX, 2 * MPIR_FSIZE_D );
-	MPIR_I_DCOMPLEX.align = MPIR_FSIZE_D;
-
-	MPIR_Type_contiguous( 2, MPI_DOUBLE, &MPIR_I_2FLOAT, 
-			      MPI_2DOUBLE_PRECISION );
-	}
-
+    MPIR_Setup_base_datatype( MPI_DOUBLE, &MPIR_I_DOUBLE, 
+			      MPIR_DOUBLE, sizeof(double) );
     MPIR_Setup_base_datatype( MPI_LONG, &MPIR_I_LONG, 
 			      MPIR_LONG, sizeof(long) );
     MPIR_Setup_base_datatype( MPI_SHORT, &MPIR_I_SHORT, 
@@ -280,16 +139,8 @@ void MPIR_Init_dtes()
 			      MPIR_LONGDOUBLE, 2*sizeof(double) );
 #endif
 
-    /* Initialize C and FORTRAN types for MINLOC and MAXLOC */
-    MPIR_Type_contiguous( 2, MPI_COMPLEX, &MPIR_I_2COMPLEX, MPI_2COMPLEX );
-    MPIR_Type_contiguous( 2, MPI_DOUBLE_COMPLEX, &MPIR_I_2DCOMPLEX, 
-			  MPI_2DOUBLE_COMPLEX );
-
-    /* Initialize C & FORTRAN 2int type for MINLOC and MAXLOC */
+    /* Initialize C 2int type for MINLOC and MAXLOC */
     MPIR_Type_contiguous( 2, MPI_INT, &MPIR_I_2INT, MPI_2INT );
-
-    /* Note Fortran requires sizeof(INTEGER) == sizeof(REAL) */
-    MPIR_Type_contiguous( 2, MPI_INTEGER, &MPIR_I_2INTEGER, MPI_2INTEGER );
 
     /* Initialize C types for MINLOC and MAXLOC */
     /* I'm not sure that this is 100% portable */
@@ -354,29 +205,6 @@ void MPIR_Init_dtes()
 			      MPIR_LONGLONGINT, 2*sizeof(long) );
 #endif
 
-    /* Set the values of the Fortran versions */
-    /* Logical and character aren't portable in the code below */
-#ifndef MPID_NO_FORTRAN
-    DEBUG(PRINTF("[%d] About to setup Fortran datatypes\n", MPIR_tid);)
-    /* Try to generate int1, int2, int4, real4, and real8 datatypes */
-#ifdef FOO
-    MPIR_int1_dte  = 0;
-    MPIR_int2_dte  = 0;
-    MPIR_int4_dte  = 0;
-    MPIR_real4_dte = 0;
-    MPIR_real8_dte = 0;
-    /* If these are changed to create new types, change the code in
-       finalize.c to free the created types */
-    if (sizeof(char) == 1)   MPIR_int1_dte = MPI_CHAR;
-    if (sizeof(short) == 2)  MPIR_int2_dte = MPI_SHORT;
-    if (sizeof(int) == 4)    MPIR_int4_dte = MPI_INT;
-    if (sizeof(float) == 4)  MPIR_real4_dte = MPI_FLOAT;
-    if (sizeof(double) == 8) MPIR_real8_dte = MPI_DOUBLE;
-#endif
-    /* These need to be converted into legal integer values for systems
-       with 64 bit pointers */
-/* values are all PARAMETER in the Fortran. */
-#endif
 }
 
 /*
@@ -387,16 +215,8 @@ void MPIR_Free_dtes()
     /* We can't use MPI_Type_free, because it checks for predefined
        types. */
        MPIR_Free_perm_type( MPI_INT );
-       MPIR_Free_perm_type( MPI_INTEGER );
        MPIR_Free_perm_type( MPI_DOUBLE );
-       MPIR_Free_perm_type( MPI_LOGICAL );
        MPIR_Free_perm_type( MPI_FLOAT );
-       MPIR_Free_perm_type( MPI_COMPLEX );
-       MPIR_Free_perm_type( MPI_REAL );
-       MPIR_Free_perm_type( MPI_2REAL );
-       MPIR_Free_perm_type( MPI_DOUBLE_PRECISION );
-       MPIR_Free_perm_type( MPI_DOUBLE_COMPLEX );
-       MPIR_Free_perm_type( MPI_2DOUBLE_PRECISION );
        MPIR_Free_perm_type( MPI_LONG );
        MPIR_Free_perm_type( MPI_SHORT );
        MPIR_Free_perm_type( MPI_CHAR );
@@ -409,10 +229,7 @@ void MPIR_Free_dtes()
        MPIR_Free_perm_type( MPI_UB );
        MPIR_Free_perm_type( MPI_LB );
        MPIR_Free_perm_type( MPI_LONG_DOUBLE );
-       MPIR_Free_perm_type( MPI_2COMPLEX );
-       MPIR_Free_perm_type( MPI_2DOUBLE_COMPLEX );
        MPIR_Free_perm_type( MPI_2INT );
-       MPIR_Free_perm_type( MPI_2INTEGER );
        MPIR_Free_perm_type( MPI_FLOAT_INT );
        MPIR_Free_perm_type( MPI_DOUBLE_INT );
        MPIR_Free_perm_type( MPI_LONG_INT );
@@ -459,6 +276,11 @@ void MPIR_Setup_base_datatype(
     lval->ref_count      = 1;
     MPIR_RegPointerIdx( val, lval );
     lval->self           = val;
+#   if defined(MPID_HAS_TYPE_PERMANENT_SETUP)
+    {
+	MPID_Type_permanent_setup(val);
+    }
+#   endif
 }
 
 /* 
@@ -479,6 +301,11 @@ void MPIR_Setup_complex_datatype(
     MPIR_Type_permanent ( newtype_ptr );
     MPIR_RegPointerIdx( newtype, newtype_ptr );
     newtype_ptr->self = newtype;
+#   if defined(MPID_HAS_TYPE_PERMANENT_SETUP)
+    {
+	MPID_Type_permanent_setup(newtype);
+    }
+#   endif
     MPI_Type_commit( &newtype );
 }
 
@@ -495,24 +322,3 @@ void MPIR_Type_contiguous(
 }
 
 
-#ifndef MPID_NO_FORTRAN
-/* 
-   This routine computes the sizes of the Fortran data types.  It is 
-   called from a Fortran routine that passes consequtive elements of 
-   an array of the three Fortran types (character, real, double).
-   Note that Fortran REQUIRES that integers have the same size as reals.
- */
-void mpir_init_fsize_( 
-	float *r1, 
-	float *r2, 
-	double *d1, 
-	double *d2 )
-{
-/* MPIR_FSIZE_C = (int)(c2 - c1); */
-/* Because of problems in passing characters, we pick the most likely size
-   for now */
-MPIR_FSIZE_C = sizeof(char);
-MPIR_FSIZE_R = (int)( (char*)r2 - (char*)r1 );
-MPIR_FSIZE_D = (int)( (char*)d2 - (char*)d1 );
-}
-#endif /* MPID_NO_FORTRAN */

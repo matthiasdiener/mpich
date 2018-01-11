@@ -1,6 +1,19 @@
-#include <ctype.h>
-#include <stdlib.h>
 #include <stdio.h>
+
+#ifdef HAVE_SLOGCONF_H
+#include "slog_config.h"
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
+#include <stdlib.h>
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_CTYPE_H )
+#include <ctype.h>
+#endif
+#if defined(HAVE_STRING_H)
+/* For strcpy */
+#include <string.h>
+#endif
+
 #include "slog_recdefs.h"
 
 #if 0
@@ -15,7 +28,7 @@ SLOG_intvltype_t GetIntvlType( const SLOG_uint32 IdxType,
                                const SLOG_uint32 IdxAssocs,
                                const SLOG_uint32 IdxArgs );
 
-main( int argc, char **argv )
+int main( int argc, char **argv )
 {
           char                  filename[80] = "SLOG_RecDefs.dat";
 
@@ -42,10 +55,10 @@ main( int argc, char **argv )
             strcpy( filename, argv[1] );
     }
 
-    printf( "sizeof( SLOG_recdef_t ) = %d\n", sizeof( SLOG_recdef_t ) );
+    printf( "sizeof( SLOG_recdef_t ) = %d\n", (int)sizeof( SLOG_recdef_t ) );
     printf( "component sum of SLOG_recdef_t = %d\n",
-               sizeof( SLOG_intvltype_t ) + sizeof( SLOG_bebits_t )
-             + sizeof( SLOG_N_assocs_t ) + sizeof( SLOG_N_args_t ) );
+           (int)(sizeof( SLOG_intvltype_t ) + sizeof( SLOG_bebits_t )
+             + sizeof( SLOG_N_assocs_t ) + sizeof( SLOG_N_args_t )) );
 
 /*  First write the RecDefs table to the disk */
 
@@ -150,6 +163,8 @@ main( int argc, char **argv )
     free( slog->rec_defs->entries );
     free( slog->rec_defs );
     free( slog );
+
+    return 0;
 }
 
 

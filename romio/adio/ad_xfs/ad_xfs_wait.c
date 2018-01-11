@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_xfs_wait.c,v 1.2 1998/06/02 18:55:22 thakur Exp $    
+ *   $Id: ad_xfs_wait.c,v 1.4 2000/02/09 21:30:03 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,30 +9,45 @@
 
 void ADIOI_XFS_ReadComplete(ADIO_Request *request, ADIO_Status *status, int *error_code)  
 {
-    int err, nbytes;
+    int err;
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "ADIOI_XFS_READCOMPLETE";
+#endif
 
     if (*request == ADIO_REQUEST_NULL) {
 	*error_code = MPI_SUCCESS;
 	return;
     }
 
-    if (((*request)->next != ADIO_REQUEST_NULL) && ((*request)->queued != -1))
-	/* the second condition is to take care of the ugly hack in
-            ADIOI_Complete_async */
-	ADIOI_XFS_ReadComplete(&((*request)->next), status, error_code);
-    /* currently passing status and error_code here, but something else
-       needs to be done to get the status and error info correctly */
-
     if ((*request)->queued) {
 	do {
 	    err = aio_suspend64((const aiocb64_t **) &((*request)->handle), 1, 0);
-	} while ((err < 0) && (errno == EINTR));
-	if (!err) nbytes = aio_return64((aiocb64_t *) (*request)->handle); 
-	else nbytes = 0;
-	/* also dequeues the request, at least on DEC */ 
+	} while ((err == -1) && (errno == EINTR));
+
+	if (err != -1) {
+	    err = aio_return64((aiocb64_t *) (*request)->handle); 
+	    (*request)->nbytes = err;
+	    errno = aio_error64((aiocb64_t *) (*request)->handle);
+	}
+	else (*request)->nbytes = -1;
+
+#ifdef PRINT_ERR_MSG
 	*error_code = (err == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
+#else
+	if (err == -1) {
+	    *error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
+			  myname, "I/O Error", "%s", strerror(errno));
+	    ADIOI_Error((*request)->fd, *error_code, myname);	    
+	}
+	else *error_code = MPI_SUCCESS;
+#endif
     }
     else *error_code = MPI_SUCCESS;
+
+#ifdef HAVE_STATUS_SET_BYTES
+    if ((*request)->nbytes != -1)
+	MPIR_Status_set_bytes(status, (*request)->datatype, (*request)->nbytes);
+#endif
 
     if ((*request)->queued != -1) {
 
@@ -53,8 +68,6 @@ void ADIOI_XFS_ReadComplete(ADIO_Request *request, ADIO_Status *status, int *err
 	ADIOI_Free_request((ADIOI_Req_node *) (*request));
 	*request = ADIO_REQUEST_NULL;
     }
-
-/* status to be filled */
 }
 
 

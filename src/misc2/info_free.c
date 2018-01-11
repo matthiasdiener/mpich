@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_free.c,v 1.8 1999/08/30 15:47:37 swider Exp $    
+ *   $Id: info_free.c,v 1.9 2000/07/20 16:14:07 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -53,15 +53,8 @@ EXPORT_MPI_API int MPI_Info_free(MPI_Info *info)
 
     while (curr) {
 	next = curr->next;
-#ifdef free
-/* By default, we define free as an illegal expression when doing memory
-   checking; we need to undefine it to handle the fact that strdup does
-   a naked malloc.
- */
-#undef free
-#endif
-	free(curr->key);
-	free(curr->value);
+	FREE(curr->key);
+	FREE(curr->value);
 	FREE(curr);
 	curr = next;
     }

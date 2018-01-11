@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi.h,v 1.26 1999/10/16 22:06:07 gropp Exp $
+ *  $Id: mpi.h,v 1.30 2000/08/28 19:02:39 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -27,10 +27,7 @@
 extern "C" {
 #endif
 
-/* We require that the C compiler support prototypes */
-#define MPIR_ARGS(a) a
-
- /* Results of the compare operations */
+/* Results of the compare operations */
 /* These should stay ordered */
 #define MPI_IDENT     0
 #define MPI_CONGRUENT 1
@@ -164,31 +161,8 @@ typedef int MPI_Op;
 
 #define MPI_PROC_NULL   (-1)
 #define MPI_ANY_SOURCE 	(-2)
-#define MPI_ANY_TAG	    (-1)
-
-/* 
-   Status object.  It is the only user-visible MPI data-structure 
-   The "count" field is PRIVATE; use MPI_Get_count to access it. 
- */
-typedef struct { 
-    int count;
-    int MPI_SOURCE;
-    int MPI_TAG;
-    int MPI_ERROR;
-    int private_count;
-} MPI_Status;
-/* MPI_STATUS_SIZE is not strictly required in C; however, it should match
-   the value for Fortran */
-#define MPI_STATUS_SIZE 5
-
-/* Must be able to hold any valid address.  64 bit machines may need
-   to change this */
-/* #if (defined(_SX) && !defined(_LONG64)) */
-/* NEC SX-4 in some modes needs this */
-/* typedef long long MPI_Aint; */
-/* #else */
-/* typedef long MPI_Aint; */
-/* #endif */
+#define MPI_ROOT        (-3)
+#define MPI_ANY_TAG     (-1)
 
 /* MPI Error handlers.  Systems that don't support stdargs can't use
    this definition
@@ -206,9 +180,14 @@ typedef int MPI_Errhandler;
 /* Make the C names for the null functions all upper-case.  Note that 
    this is required for systems that use all uppercase names for Fortran 
    externals.  */
+/* MPI 1 names */
 #define MPI_NULL_COPY_FN   MPIR_null_copy_fn
 #define MPI_NULL_DELETE_FN MPIR_null_delete_fn
 #define MPI_DUP_FN         MPIR_dup_fn
+/* MPI 2 names */
+#define MPI_COMM_NULL_COPY_FN MPI_NULL_COPY_FN
+#define MPI_COMM_NULL_DELETE_FN MPI_NULL_DELETE_FN
+#define MPI_COMM_DUP_FN MPI_DUP_FN
 
 /* MPI request opjects */
 typedef union MPIR_HANDLE *MPI_Request;
@@ -251,7 +230,8 @@ typedef struct MPIR_Info *MPI_Info;
 #define MPI_DISTRIBUTE_DFLT_DARG -49767
 
 /* mpidefs.h includes configuration-specific information, such as the 
-   type of MPI_Aint or MPI_Fint, also mpio.h, if it was built */
+   type of MPI_Aint or MPI_Fint, also mpio.h, if it was built.  
+   It now includes the definition of MPI_Status */
 #include "mpidefs.h"
 
 /* Handle conversion types/functions */

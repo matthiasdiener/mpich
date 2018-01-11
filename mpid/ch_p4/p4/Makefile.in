@@ -184,7 +184,8 @@ realclean:
 	  echo cleaning $$dir ;\
 	  (cd $$dir; $(MAKE) realclean) ; fi ;\
 	  done
-	$(RM) -f *~ *.o *.bak Makefile mdepcflags
+	@-$(RM) -f *~ *.o *.bak Makefile mdepcflags config.log config.status \
+	p4_config.h
 
 Makefiles: makefiles
 

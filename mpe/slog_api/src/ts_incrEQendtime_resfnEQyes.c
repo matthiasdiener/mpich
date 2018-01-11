@@ -1,10 +1,22 @@
-#include <ctype.h>
-#include <stdlib.h>
 #include <stdio.h>
+
+#ifdef HAVE_SLOGCONF_H
+#include "slog_config.h"
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
+#include <stdlib.h>
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STRING_H )
+#include <string.h>
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_CTYPE_H )
+#include <ctype.h>
+#endif
+
 #include "slog.h"
 
 #define  MaxNdirFrames    64
-#define  FrameByteSize    256
+#define  FrameByteSize    320
 #define  SLOG_PREVIEWNAME  "SLOG_Preview.txt"
 #define  SLOG_PROFILENAME  "SLOG_Profile.txt"    /*  Not used  */
 #define  USER_MARKER 
@@ -17,7 +29,7 @@
 #define  MaxArgs    10
 #else
 #define  MaxAssocs  0
-#define  MaxArgs    0
+#define  MaxArgs    2
 #endif
 
 typedef struct {
@@ -39,22 +51,24 @@ int main( int argc, char **argv )
 {
     const char slog_name[] = "slogfile.data";
 
-    const SLOG_intvltype_t     VarIrec_MinIdx = 0;
-    const SLOG_intvltype_t     FixIrec_MinIdx = 1;
-    const SLOG_intvltype_t     FixIrec_MaxIdx = 5;
-    const SLOG_intvltype_t     MaxIdxType     = FixIrec_MaxIdx
-                                              - FixIrec_MinIdx + 1;
-    const SLOG_intvltype_t     VarIrec_MaxAssocs = 2 * MaxIdx4VarIrec;
+    const SLOG_intvltype_t     VarIrec_MinIdx    = 0;
+    const SLOG_intvltype_t     FixIrec_MinIdx    = 1;
+    const SLOG_intvltype_t     FixIrec_MaxIdx    = 5;
+    const SLOG_intvltype_t     FixIrecIdxRange   = FixIrec_MaxIdx
+                                                 - FixIrec_MinIdx + 1;
+    /*  const SLOG_intvltype_t     VarIrec_MaxAssocs = 2 * MaxIdx4VarIrec;  */
     const SLOG_rectype_t       SLOG_RecType4OffDiagRec
                                = SLOG_RECTYPE_STATIC_OFFDIAG;
-    const SLOG_intvltype_t     SLOG_IntvlType4OffDiagRec = 999;
-    const SLOG_bebit_t         SLOG_Bebit4OffDiagRec     = 0;
+    const SLOG_intvltype_t     SLOG_IntvlType4ForwardArrow   = 998;
+    const SLOG_intvltype_t     SLOG_IntvlType4BackwardArrow  = 999;
+    const SLOG_bebit_t         SLOG_Bebit4OffDiagRec     = 1;
           SLOG                 slog;
           SLOG_Irec            irec;
           SLOG_Irec            prev_irec;
 
           int                  MaxIrec = 8;
           int                  ii, jj, idx2state, count, idx_type, ierr;
+          char                 IsForwardArrow;
 
           /*  Variables for SLOG Thread Table  */
           SLOG_nodeID_t        node_id;
@@ -64,21 +78,28 @@ int main( int argc, char **argv )
           SLOG_appID_t         app_id;
 
           /*  Variables for SLOG Display Profile  */
-    const char                 fix_classtype[10] = "state";
-    const char                 fix_label[10]     = "label";
-    const char                 fix_color[10]     = "color";
-          char                 classtype[10]     = "state";
-          char                 label[10]         = "label";
-          char                 color[10]         = "color";
-          char                *color_strs[10]    = { "red", "green",
+    /*  const char                 fix_classtype[20] = "state";  */
+    const char                 fix_label[20]     = "label";
+    /*  const char                 fix_color[20]     = "color";  */
+          char                 classtype[20]     = "state";
+          char                 label[20]         = "label";
+          char                 color[20]         = "color";
+          char                *color_strs[20]    = { "red", "green",
                                                      "blue", "yellow",
                                                      "orange", "gold",
                                                      "RoyalBlue", "navy",
-                                                     "pink", "grey" };
+                                                     "pink", "grey",
+                                                     "purple", "LimeGreen",
+                                                     "brown", "NavyBlue",
+                                                     "ivory", "AliceBlue",
+                                                     "MistyRose", "linen",
+                                                     "PeachPuff", "azure" };
+          char                *arg_labels[20]    = { "arg_0", "arg_1",
+                                                     "arg_2" };
 
           /*  Variables for SLOG Record Definition Table  */
           SLOG_intvltype_t     intvltype;
-          SLOG_bebit_t         bebit_0 = 0;
+          SLOG_bebit_t         bebit_0 = 1;
           SLOG_bebit_t         bebit_1 = 1;
           SLOG_N_assocs_t      Nassocs;
           SLOG_N_args_t        Nargs;
@@ -93,7 +114,7 @@ int main( int argc, char **argv )
           SLOG_nodeID_t        irec_orig_node;
           SLOG_cpuID_t         irec_orig_cpu;
           SLOG_threadID_t      irec_orig_thread;
-          SLOG_where_t         irec_where;
+          SLOG_iaddr_t         irec_instr_addr;
           SLOG_nodeID_t        irec_dest_node;
           SLOG_cpuID_t         irec_dest_cpu;
           SLOG_threadID_t      irec_dest_thread;
@@ -102,7 +123,7 @@ int main( int argc, char **argv )
           SLOG_assoc_t         irec_assocs[ 100 ];
           SLOG_N_args_t        irec_Nargs;
           SLOG_arg_t           irec_args[ 100 ];
-          SLOG_uint32          irec_Nvtrargs = 2;
+          /*  SLOG_uint32          irec_Nvtrargs = 2;  */
 
 
           /*
@@ -227,14 +248,26 @@ int main( int argc, char **argv )
     }
 
     /*  Create the Indexes for Message Record's display profile  */
-    ierr = SLOG_PROF_AddIntvlInfo( slog, SLOG_IntvlType4OffDiagRec,
-                                   "Forward Arrow", "Message", "white" );
+    ierr = SLOG_PROF_AddIntvlInfo( slog, SLOG_IntvlType4ForwardArrow,
+                                   SLOG_Bebit4OffDiagRec, SLOG_Bebit4OffDiagRec,
+                                   "Message", "Forward Arrow", "white", 0 );
     if ( ierr != SLOG_SUCCESS ) {
         fprintf( errfile, __FILE__":Main() - "
-                          "SLOG_PROF_AddIntvlInfo( Message ) fails!\n" );
+                          "SLOG_PROF_AddIntvlInfo( ForwardArrow ) fails!\n" );
         fflush( errfile );
         exit( 1 );
     }
+
+    ierr = SLOG_PROF_AddIntvlInfo( slog, SLOG_IntvlType4BackwardArrow,
+                                   SLOG_Bebit4OffDiagRec, SLOG_Bebit4OffDiagRec,
+                                   "Message", "Backward Arrow", "grey", 0 );
+    if ( ierr != SLOG_SUCCESS ) {
+        fprintf( errfile, __FILE__":Main() - "
+                          "SLOG_PROF_AddIntvlInfo( BackwardArrow ) fails!\n" );
+        fflush( errfile );
+        exit( 1 );
+    }
+
 
     count = -1;
     /*  Create the Indexes for Variable Interval's display profile  */
@@ -245,8 +278,8 @@ int main( int argc, char **argv )
         str_add_num_label( label, fix_label, count );
         /*  str_add_num_label( color, fix_color, count );  */
         strcpy( color, color_strs[ count ] );
-        ierr = SLOG_PROF_AddIntvlInfo( slog, intvltype,
-                                       classtype, label, color );
+        ierr = SLOG_PROF_AddIntvlInfo( slog, intvltype, bebit_0, bebit_1,
+                                       classtype, label, color, 0 );
         if ( ierr != SLOG_SUCCESS ) {
             fprintf( errfile, __FILE__":Main() - "
                               "SLOG_PROF_AddIntvlInfo( Variable ) fails!\n" );
@@ -256,25 +289,59 @@ int main( int argc, char **argv )
     }
 
     /*  Create the Indexes for Fixed Interval Record's display profile  */
-    for ( idx_type  = FixIrec_MinIdx;
-          idx_type  < FixIrec_MaxIdx;
+    for ( idx_type   = FixIrec_MinIdx;
+          idx_type  <= FixIrec_MaxIdx;
           idx_type++ ) {
         for ( Nassocs = 0; Nassocs <= MaxAssocs; Nassocs++ ) {
             for ( Nargs = 0; Nargs <= MaxArgs; Nargs++ ) {
                 count++;
                 intvltype = GetIntvlType( idx_type, Nassocs, Nargs );
+                /*
+                printf( "PROF : idx_type = %d, Nargs = %d, intvltype = %d \n",
+                        idx_type, Nargs, intvltype );
+                */
                 str_add_num_label( label, fix_label, count );
                 /*  str_add_num_label( color, fix_color, count );  */
                 strcpy( color, color_strs[ count ] );
-                ierr = SLOG_PROF_AddIntvlInfo( slog, intvltype,
-                                               classtype, label, color );
+#if 0
+                switch ( Nargs ) {
+                case 1 :
+                    ierr = SLOG_PROF_AddIntvlInfo( slog,
+                                                   intvltype, bebit_0, bebit_1,
+                                                   classtype, label, color, 1,
+                                                   "arg0" );
+                    break;
+                case 2 :
+                    ierr = SLOG_PROF_AddIntvlInfo( slog,
+                                                   intvltype, bebit_0, bebit_1,
+                                                   classtype, label, color, 2,
+                                                   "arg0", "arg1" );
+                    break;
+                default :
+                    ierr = SLOG_PROF_AddIntvlInfo( slog,
+                                                   intvltype, bebit_0, bebit_1,
+                                                   classtype, label, color, 0 );
+                }
                 if ( ierr != SLOG_SUCCESS ) {
                     fprintf( errfile, __FILE__":Main() - "
-                                      "SLOG_PROF_AddIntvlInfo( Fixed ) fails!"
-                                      "\n" );
+                                      "SLOG_PROF_AddIntvlInfo( Fixed ) "
+                                      "fails!\n" );
                     fflush( errfile );
                     exit( 1 );
                 }
+#else
+                ierr = SLOG_PROF_AddIntvlInfoWithArray( slog, intvltype,
+                                                        bebit_0, bebit_1,
+                                                        classtype, label, color,
+                                                        Nargs, arg_labels );
+                if ( ierr != SLOG_SUCCESS ) {
+                    fprintf( errfile, __FILE__":Main() - "
+                                      "SLOG_PROF_AddIntvlInfoWithArray() "
+                                      "fails!\n" );
+                    fflush( errfile );
+                    exit( 1 );
+                }
+#endif
             }
         }
     }
@@ -308,12 +375,22 @@ int main( int argc, char **argv )
     }
 
     /*  Create the Indexes for Message Record's Definition  */
-    ierr = SLOG_RDEF_AddRecDef( slog, SLOG_IntvlType4OffDiagRec,
+    ierr = SLOG_RDEF_AddRecDef( slog, SLOG_IntvlType4ForwardArrow,
                                 SLOG_Bebit4OffDiagRec, SLOG_Bebit4OffDiagRec,
                                 0, 0 );
     if ( ierr != SLOG_SUCCESS ) {
         fprintf( errfile, __FILE__":Main() - "
-                          "SLOG_RDEF_AddRecDef( Message ) fails!\n" ); 
+                          "SLOG_RDEF_AddRecDef( ForwardArrow ) fails!\n" ); 
+        fflush( errfile );
+        exit( 1 );
+    }
+
+    ierr = SLOG_RDEF_AddRecDef( slog, SLOG_IntvlType4BackwardArrow,
+                                SLOG_Bebit4OffDiagRec, SLOG_Bebit4OffDiagRec,
+                                0, 0 );
+    if ( ierr != SLOG_SUCCESS ) {
+        fprintf( errfile, __FILE__":Main() - "
+                          "SLOG_RDEF_AddRecDef( BackwardArrow ) fails!\n" ); 
         fflush( errfile );
         exit( 1 );
     }
@@ -334,8 +411,8 @@ int main( int argc, char **argv )
     }
 
     /*  Create the Indexes for Fixed Interval Record Definition  */
-    for ( idx_type  = FixIrec_MinIdx;
-          idx_type  < FixIrec_MaxIdx;
+    for ( idx_type   = FixIrec_MinIdx;
+          idx_type  <= FixIrec_MaxIdx;
           idx_type++ ) {
         for ( Nassocs = 0; Nassocs <= MaxAssocs; Nassocs++ ) {
             for ( Nargs = 0; Nargs <= MaxArgs; Nargs++ ) {
@@ -380,27 +457,27 @@ int main( int argc, char **argv )
 /*
     printf( "\t""Append variable records:\n" );
     for ( ii = 0; ii <= VarIrec_MaxAssocs; ii++ ) {
-        irec_rectype   = ( SLOG_rectype_t ) SLOG_RECTYPE_DYNAMIC_DIAG;
-        irec_bebits[0] = ( SLOG_bebit_t ) 0;
-        irec_bebits[1] = ( SLOG_bebit_t ) 1;
-        irec_starttime = ( SLOG_starttime_t ) ii*0.1;
-        irec_duration  = ( SLOG_duration_t ) 0.1;
+        irec_rectype     = ( SLOG_rectype_t ) SLOG_RECTYPE_DYNAMIC_DIAG;
+        irec_bebits[0]   = ( SLOG_bebit_t ) 1;
+        irec_bebits[1]   = ( SLOG_bebit_t ) 1;
+        irec_starttime   = ( SLOG_starttime_t ) ii*0.1;
+        irec_duration    = ( SLOG_duration_t ) 0.1;
         irec_orig_node   = ( SLOG_nodeID_t ) ii % MaxNumOfProc;
         irec_orig_cpu    = ( SLOG_cpuID_t ) 1;
         irec_orig_thread = ( SLOG_threadID_t ) ii / MaxNumOfProc;
-        irec_where     = ( SLOG_where_t ) 8888;
+        irec_instr_addr  = ( SLOG_iaddr_t ) 8888;
 
-        irec_Nassocs   = ii % ( MaxIdx4VarIrec + 1 );
-        irec_Nargs     = 2;
-        irec_intvltype = GetIntvlType( VarIrec_MinIdx,
-                                       irec_Nassocs, irec_Nargs );
+        irec_Nassocs     = ii % ( MaxIdx4VarIrec + 1 );
+        irec_Nargs       = 2;
+        irec_intvltype   = GetIntvlType( VarIrec_MinIdx,
+                                         irec_Nassocs, irec_Nargs );
 
         irec = SLOG_Irec_Create();
         SLOG_Irec_SetMinRec( irec, irec_rectype, irec_intvltype, 
                              irec_bebits[0], irec_bebits[1],
                              irec_starttime, irec_duration,
                              irec_orig_node, irec_orig_cpu, irec_orig_thread,
-                             irec_where );
+                             irec_instr_addr );
         if ( irec_Nassocs > 0 )
             SLOG_Irec_SetAssocs( irec, slog, irec_Nassocs, irec_assocs );
         for ( jj = 0; jj < irec_Nvtrargs; jj++ ) {
@@ -427,6 +504,7 @@ int main( int argc, char **argv )
 
     idx2state = 0;
     ii        = 0;
+    IsForwardArrow = 1;
 
     while ( ii < MaxIrec ) {
 
@@ -434,7 +512,7 @@ int main( int argc, char **argv )
             Set up the default value of the irec's components
         */
         irec_rectype     = (SLOG_rectype_t) SLOG_RECTYPE_STATIC_DIAG;
-        irec_bebits[0]   = (SLOG_bebit_t) 0;
+        irec_bebits[0]   = (SLOG_bebit_t) 1;
         irec_bebits[1]   = (SLOG_bebit_t) 1;
         irec_endtime     = (SLOG_time) ( idx2state + 1 ) * 0.1;
         irec_duration    = (SLOG_duration_t) 0.08;
@@ -442,7 +520,7 @@ int main( int argc, char **argv )
         irec_orig_node   = (SLOG_nodeID_t) idx2state % MaxNumOfProc;
         irec_orig_cpu    = (SLOG_cpuID_t) 1;
         irec_orig_thread = (SLOG_threadID_t) idx2state / MaxNumOfProc;
-        irec_where       = (SLOG_where_t) 8888;
+        irec_instr_addr  = (SLOG_iaddr_t) 8888;
 
         /*
             Make up some starttime and endtime stamps of interval records
@@ -475,7 +553,7 @@ int main( int argc, char **argv )
         switch ( 0 ) {
         case 0 : 
             irec_Nassocs  = 0;
-            irec_Nargs    = 0;
+            irec_Nargs    = idx2state % ( MaxArgs + 1 );
             break;
         case 1 :
             irec_Nassocs  = 0;
@@ -494,12 +572,12 @@ int main( int argc, char **argv )
         }
 
         /*  Set the default idx_type  */
-        idx_type      = idx2state % MaxIdxType;
+        idx_type      = idx2state % FixIrecIdxRange + FixIrec_MinIdx;
 
         for ( jj = 0; jj < Nentries_extra_recdefs; jj++ ) {
             /*  Make up some extra idx_type, hence extra irec_intvltype  */
             if ( idx2state == (jj+1)*3 ) {
-                idx_type = MaxIdxType + jj;
+                idx_type = FixIrecIdxRange + jj + 1;
                 break;
             }
         }
@@ -509,9 +587,9 @@ int main( int argc, char **argv )
 
         /*
             Create an record definition which is NOT in 
-            Record Definition Table at the moment
+            Record Definition Table at the moment.
             Create an interval descriptor which is NOT in 
-            Display Profile Table at the moment
+            Display Profile Table at the moment.
         */
         for ( jj = 0; jj < Nentries_extra_recdefs; jj++ ) {
             /*  Only one of the jj's is true in the if statement  */
@@ -525,6 +603,7 @@ int main( int argc, char **argv )
                 strcpy( color, color_strs[ count ] );
                 SLOG_IntvlInfo_Assign( &(intvlinfos_reserved[jj]),
                                        irec_intvltype,
+                                       irec_bebits[0], irec_bebits[1], 
                                        classtype, label, color );
                 break;
             }
@@ -536,7 +615,7 @@ int main( int argc, char **argv )
                              irec_bebits[0], irec_bebits[1],
                              irec_starttime, irec_duration,
                              irec_orig_node, irec_orig_cpu, irec_orig_thread,
-                             irec_where );
+                             irec_instr_addr );
         if ( irec_Nassocs > 0 )
             SLOG_Irec_SetAssocs( irec, slog, irec_Nassocs, irec_assocs );
         if ( irec_Nargs > 0 )
@@ -556,10 +635,18 @@ int main( int argc, char **argv )
         
 
         /*  Insert some Message( Arrow ) Record if it is necessary  */
-        if ( idx2state % 4 == 0 && idx2state != 0 && ii < MaxIrec ) {
+        if (    idx2state % FixIrec_MaxIdx == 0
+             && idx2state != 0 && ii < MaxIrec ) {
             prev_irec        = events[ 2*(ii-2) ].irec;
             irec_rectype     = SLOG_RecType4OffDiagRec;
-            irec_intvltype   = SLOG_IntvlType4OffDiagRec;
+            if ( IsForwardArrow ) {
+                irec_intvltype   = SLOG_IntvlType4ForwardArrow;
+                IsForwardArrow   = 0;
+            }
+            else {
+                irec_intvltype   = SLOG_IntvlType4BackwardArrow;
+                IsForwardArrow   = 1;
+            }
             irec_bebits[0]   = SLOG_Bebit4OffDiagRec;
             irec_bebits[1]   = SLOG_Bebit4OffDiagRec;
             irec_endtime     = irec->starttime + irec->duration;
@@ -571,14 +658,14 @@ int main( int argc, char **argv )
             irec_dest_node   = (irec->origID).node;
             irec_dest_cpu    = (irec->origID).cpu;
             irec_dest_thread = (irec->origID).thread;
-            irec_where       = prev_irec->where;
+            irec_instr_addr  = prev_irec->instr_addr;
 
             irec = SLOG_Irec_Create();
             SLOG_Irec_SetMinRec( irec, irec_rectype, irec_intvltype, 
                                  irec_bebits[0], irec_bebits[1],
                                  irec_starttime, irec_duration,
                                  irec_orig_node, irec_orig_cpu,
-                                 irec_orig_thread, irec_where,
+                                 irec_orig_thread, irec_instr_addr,
                                  irec_dest_node, irec_dest_cpu,
                                  irec_dest_thread );
 
@@ -642,6 +729,8 @@ int main( int argc, char **argv )
                 fprintf( stdout, ") before %d-th event\n", ii );
 
                 ierr = SLOG_PROF_AddExtraIntvlInfo( slog, intvlinfo->intvltype,
+                                                    intvlinfo->bebits[0],
+                                                    intvlinfo->bebits[1],
                                                     intvlinfo->classtype,
                                                     intvlinfo->label,
                                                     intvlinfo->color );
@@ -754,5 +843,6 @@ int str_add_num_label( char *str, const char *fix_str, int num )
 
     sprintf( num_str, "\t %u", num );
     strcpy( str, fix_str );
-    return ( (int)strcat( str, num_str ) );
+    if (strcat( str, num_str )) return 1; 
+    else return 0;
 }

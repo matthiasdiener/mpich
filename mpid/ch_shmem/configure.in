@@ -6,10 +6,7 @@ dnl
 define([AC_CACHE_LOAD], )dnl
 define([AC_CACHE_SAVE], )dnl
 AC_INIT()
-print_error() {
-    echo "*# $*" 2>&1 ;
-    }
-
+AC_PREREQ(2.13)  dnl For search_libs
 AC_CONFIG_HEADER(mpich-mpid.h)
 
 AC_CROSS_CHECK()
@@ -45,9 +42,10 @@ AC_DEFINE(PREFER_TSLOCKS))
 # the C compiler might include this for us, but the Fortran compiler
 # does not
 
-# We need to test for particular routinens
-AC_CHECK_LIB(nsl,main)
-AC_CHECK_LIB(rpc,main)
+# We need to test for particular routines
+AC_SEARCH_LIBS(gethostbyname,nsl)
+# I can't find a system that even *has* librpc .
+dnl AC_SEARCH_LIBS(,rpc)
 
 # Shared-memory (processes) device.  Only need to set mpirun default machine.
 AC_CHECK_FUNCS(msem_init,have_msem_init=1)
@@ -174,20 +172,25 @@ if test -s mconftest1.out ; then
     echo "Reason: "
     cat mconftest1.out
 fi
-print_error "mmap does not work with MAP_SHARED and MAP_ANONYMOUS"
-print_error "Some systems (e.g., LINUX) only allow MAP_PRIVATE"
-print_error "and MAP_ANONYMOUS.  MPICH requires MAP_SHARED when"
-print_error "using MAP_ANONYMOUS."
-print_error "MPICH will attempt to use SYSV shared memory instead of mmap"
+AC_MSG_WARN([mmap does not work with MAP_SHARED and MAP_ANONYMOUS
+Some systems (e.g., LINUX) only allow MAP_PRIVATE
+and MAP_ANONYMOUS.  MPICH requires MAP_SHARED when
+using MAP_ANONYMOUS.
+MPICH will attempt to use SYSV shared memory instead of mmap.])
+
 AC_DEFINE(HAVE_NO_ANON_MMAP),true)
 rm -f mconftest1.out
 
 # We need to check that semctl is ok.
-PAC_SEMGET_WORKS(SEMGET=1,SEMGET=0,print_error)
+PAC_SEMGET_WORKS(SEMGET=1,SEMGET=0,[AC_MSG_WARN])
 
 if test $MMAP = 0 -a "$SEMGET" = 0; then
-    print_error "Configure detected that both anonymous mmap and semget fail."
-    print_error "Configuring MPICH for shared memory may cause problems!"
+    AC_MSG_WARN([Configure detected that both anonymous mmap and semget fail.
+Configuring MPICH for shared memory may cause problems!])
+fi
+
+if test "$SEMGET" = "1" ; then
+    AC_DEFINE(HAVE_SEMGET)
 fi
 
 # XOPEN mandates that union semun NOT be defined(!)

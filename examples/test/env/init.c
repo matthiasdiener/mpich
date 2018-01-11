@@ -24,7 +24,7 @@ int main( int argc, char **argv )
     MPI_Sendrecv( MPI_BOTTOM, 0, MPI_INT, partner, 0,
 		  MPI_BOTTOM, 0, MPI_INT, partner, 0, 
 		  MPI_COMM_WORLD, &status );
-    if (rank == 0) printf( "Test completed\n" );
+    if (rank == 0) printf( " No Errors\n" );
     MPI_Finalize();
     return 0;
 }

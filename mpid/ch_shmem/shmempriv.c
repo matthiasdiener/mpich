@@ -5,6 +5,10 @@
 
 #include "mpid.h"
 #include "mpiddev.h"
+#include "cmnargs.h"
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
 
 /* MPID_shmem is not volatile but its contents are */
 MPID_SHMEM_globmem *MPID_shmem = 0;
@@ -13,7 +17,8 @@ MPID_SHMEM_lglobmem MPID_lshmem;
 int                 MPID_myid = -1;
 int                 MPID_numids = 0;
 MPID_PKT_T          *MPID_local = 0;
-VOLATILE MPID_PKT_T **MPID_incoming = 0;
+/* MPID_incoming is not volatile, but what it points to is */
+MPID_PKT_T * VOLATILE * MPID_incoming = 0;
 static int	    MPID_pktflush;
 
 static int          MPID_op = 0;
@@ -32,14 +37,12 @@ extern int			cnx_debug;
 extern char			*cnx_exec;
 #endif
 
-void				MPID_SHMEM_lbarrier  ANSI_ARGS((void));
-void                            MPID_SHMEM_FreeSetup ANSI_ARGS((void));
+void				MPID_SHMEM_lbarrier  (void);
+void                            MPID_SHMEM_FreeSetup (void);
 
-void MPID_SHMEM_FlushPkts ANSI_ARGS((void));
+void MPID_SHMEM_FlushPkts (void);
 
-void MPID_SHMEM_init( argc, argv )
-int  *argc;
-char **argv;
+void MPID_SHMEM_init( int *argc, char **argv )
 {
     int numprocs, i;
     int cnt, j, pkts_per_proc;
@@ -301,10 +304,11 @@ void MPID_SHMEM_lbarrier()
 	while (! *cntother) p2p_yield();
 }
 
-void MPID_SHMEM_finalize()
+void MPID_SHMEM_finalize( void )
 {
+#ifdef FOO    
     VOLATILE int *globid;
-
+#endif
     fflush(stdout);
     fflush(stderr);
 
@@ -359,13 +363,11 @@ void MPID_SHMEM_finalize()
 
    NOTE THE DIFFERENCES IN BINDINGS from the usual versions.
  */
-int MPID_SHMEM_ReadControl( pkt, size, from )
-MPID_PKT_T **pkt;
-int        size, *from;
+int MPID_SHMEM_ReadControl( MPID_PKT_T **pkt, int size, int *from )
 {
     MPID_PKT_T *inpkt;
     int        backoff, cnt;
-    VOLATILE   MPID_PKT_T **ready;
+/*    VOLATILE   MPID_PKT_T **ready; */
 
 #ifdef MPID_DEBUG_SPECIAL
     MPID_op = 1;
@@ -488,11 +490,9 @@ void MPID_SHMEM_FlushPkts()
     to_free = 0;
 }
 
-void MPID_SHMEM_FreeRecvPkt( pkt )
-MPID_PKT_T *pkt;
+void MPID_SHMEM_FreeRecvPkt( MPID_PKT_T *pkt )
 {
-    int        src, i;
-    MPID_PKT_T *tail;
+    int        src;
 
     MPID_TRACE_CODE_PKT("Freepkt",pkt->head.owner,(pkt->head.mode));
 
@@ -532,10 +532,9 @@ MPID_PKT_T *pkt;
    MPID_localavail=inpkt->head.next;}else inpkt = routine();\
    inpkt->head.next = 0;}
  */
-MPID_PKT_T *MPID_SHMEM_GetSendPkt(nonblock)
-int nonblock;
+MPID_PKT_T *MPID_SHMEM_GetSendPkt( int nonblock )
 {
-    MPID_PKT_T *inpkt;
+    MPID_PKT_T *inpkt=0;
     static MPID_PKT_T *localavail = 0;
     int   freecnt=0;
 
@@ -595,9 +594,7 @@ int nonblock;
     return inpkt;
 }
 
-int MPID_SHMEM_SendControl( pkt, size, dest )
-MPID_PKT_T *pkt;
-int        size, dest;
+int MPID_SHMEM_SendControl( MPID_PKT_T *pkt, int size, int dest )
 {
     MPID_PKT_T *tail;
 
@@ -633,9 +630,7 @@ int        size, dest;
    but is returned as the length available, incase all of the data can 
    not be transfered 
  */
-void * MPID_SetupGetAddress( in_addr, len, dest )
-void *in_addr;
-int  *len, dest;
+void * MPID_SetupGetAddress( void *in_addr, int *len, int dest )
 {
     void *new;
     int  tlen = *len;
@@ -690,8 +685,7 @@ if (MPID_DEBUG_FILE) {
     return new;
 }
 
-void MPID_FreeGetAddress( addr )
-void *addr;
+void MPID_FreeGetAddress( void *addr )
 {
     MPID_TRACE_CODE_X("Freeing space at",(long)addr );
     p2p_shfree( addr );
@@ -701,8 +695,7 @@ void *addr;
 /*
  * Debugging support
  */
-void MPID_SHMEM_Print_internals( fp )
-FILE *fp;
+void MPID_SHMEM_Print_internals( FILE *fp )
 {
     int i;
     char *state;
@@ -718,33 +711,34 @@ FILE *fp;
     }
     fprintf( fp, "[%d] State is %s\n", MPID_myid, state );
 
-    /* Print the MPID_lshmem */
+    /* Print the MPID_lshmem.  All pointers cast to long to match the format */
     for (i=0; i<MPID_numids; i++) {
 	fprintf( fp, "[%d] Availlock ptr[%d] = %lx\n", MPID_myid, i, 
-		 MPID_lshmem.availlockPtr[i] );
+		 (long)MPID_lshmem.availlockPtr[i] );
 	fprintf( fp, "[%d] Incominglock ptr[%d] = %lx\n", MPID_myid, i, 
-		 MPID_lshmem.incominglockPtr[i] );
+		 (long)MPID_lshmem.incominglockPtr[i] );
 	fprintf( fp, "[%d] Incomingpointer contents[%d] = %lx\n", 
 		 MPID_myid, i, 
-		 MPID_lshmem.incomingPtr[i]->head );
+		 (long)MPID_lshmem.incomingPtr[i]->head );
 	fprintf( fp, "[%d] Incoming packet ptr[%d] = %lx\n", MPID_myid, i, 
-		 MPID_lshmem.incomingPtr[i] );
+		 (long)MPID_lshmem.incomingPtr[i] );
 	fprintf( fp, "[%d] Avail packet ptr[%d] = %lx\n", MPID_myid, i, 
-		 MPID_lshmem.availPtr[i] );
+		 (long)MPID_lshmem.availPtr[i] );
 	fprintf( fp, "[%d] Avail packet ptr head[%d] = %lx\n", MPID_myid, i, 
-		 MPID_lshmem.availPtr[i]->head );
+		 (long)MPID_lshmem.availPtr[i]->head );
 	fprintf( fp, "[%d] Free packets ptr[%d] = %lx\n", MPID_myid, i, 
-		 FreePkts[i] );
+		 (long)FreePkts[i] );
 	fprintf( fp, "[%d] Free packets tail[%d] = %lx\n", MPID_myid, i, 
-		 FreePktsTail[i] );
+		 (long)FreePktsTail[i] );
 	
     }
     fprintf( fp, "[%d] Read %d packets\n", MPID_myid, MPID_readcnt );
     fprintf( fp, "[%d] to free = %d\n", MPID_myid, to_free );
     fprintf( fp, "[%d] loopcnt in GetSendPkt = %d\n", MPID_myid, 
 	     MPID_freecnt );
-    fprintf( fp, "[%d] MPID_Local = %lx\n", MPID_myid, MPID_local );
-    fprintf( fp, "[%d] *MPID_incoming = %lx\n", MPID_myid, *MPID_incoming );
+    fprintf( fp, "[%d] MPID_Local = %lx\n", MPID_myid, (long)MPID_local );
+    fprintf( fp, "[%d] *MPID_incoming = %lx\n", MPID_myid, 
+	     (long)*MPID_incoming );
 
     pkt = (MPID_PKT_T *) MPID_lshmem.availPtr[MPID_myid]->head;
     i   = 0;

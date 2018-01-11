@@ -1,0 +1,59 @@
+
+# End User configurable options ###
+SHELL = /bin/sh
+
+@VPATH@
+# Installation directories
+prefix       = @prefix@
+exec_prefix  = @exec_prefix@
+bindir       = @bindir@
+includedir   = @includedir@
+libdir       = @libdir@
+# Build directories
+libbuild_dir = @libbuild_dir@
+binbuild_dir = @binbuild_dir@
+top_srcdir   = @top_srcdir@
+srcdir       = @srcdir@
+
+JC         = @JC@
+JAR        = @JAR@
+JAVA_LIBS  = @JAVA_LIBS@
+SWING_LIBS = @SWING_LIBS@
+
+GUI_HOME   = ../..
+GUI_LIBDIR = $(GUI_HOME)/lib
+
+PVIEW_LIB = preview.jar
+
+SRC = Graph.java Graph_Pane.java Graph_Title.java Graph_data.java \
+      TimeInterface.java ColorChooser.java PreviewPanel.java \
+      ScrollBarBorder.java XAxisEndPanel.java YAxisPanel.java
+
+OBJ = $(SRC:.java=.class)
+
+.SUFFIXES:	.java .class
+
+STATS_LIB  = $(GUI_HOME)/lib/statsviewer.jar
+
+CLASSPATH = $(JAVA_LIBS):$(SWING_LIBS):$(STATS_LIB):.
+
+JFLAGS = -classpath $(CLASSPATH) -d . @JFLAGS@
+
+ALL:	CLASSFILES $(PVIEW_LIB)
+
+CLASSFILES: $(SRC)
+	$(JC) $(JFLAGS) $?
+
+$(PVIEW_LIB): $(OBJ)
+	$(JAR) cvf $@ *.class
+	mv -f $@ $(GUI_LIBDIR)
+
+clean:
+	rm -f $(OBJ) $(PVIEW_LIB) *.class core
+
+rmlib:
+	rm -f $(GUI_LIBDIR)/$(PVIEW_LIB)
+
+distclean: clean rmlib
+	rm -f *.java.*
+	-rm -f Makefile

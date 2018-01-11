@@ -1,5 +1,5 @@
 /* 
- *   $Id: setfn.c,v 1.3 1999/08/06 18:32:57 thakur Exp $    
+ *   $Id: setfn.c,v 1.5 2000/02/09 21:30:08 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -12,7 +12,7 @@ void ADIOI_SetFunctions(ADIO_File fd)
     fd->fns = (ADIOI_Fns *) ADIOI_Malloc(sizeof(ADIOI_Fns));
     switch(fd->file_system) {
     case ADIO_PFS:
-#ifdef __PFS	
+#ifdef PFS	
 	fd->fns->ADIOI_xxx_Open = ADIOI_PFS_Open;
 	fd->fns->ADIOI_xxx_ReadContig = ADIOI_PFS_ReadContig;
 	fd->fns->ADIOI_xxx_WriteContig = ADIOI_PFS_WriteContig;
@@ -35,13 +35,13 @@ void ADIOI_SetFunctions(ADIO_File fd)
 	fd->fns->ADIOI_xxx_Flush = ADIOI_PFS_Flush;
 	fd->fns->ADIOI_xxx_Resize = ADIOI_PFS_Resize;
 #else
-	printf("ADIOI_SetFunctions: ROMIO has not been configured to use the PFS file system\n");
+	FPRINTF(stderr, "ADIOI_SetFunctions: ROMIO has not been configured to use the PFS file system\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
 #endif
 	break;
 
     case ADIO_PIOFS:
-#ifdef __PIOFS	
+#ifdef PIOFS	
 	fd->fns->ADIOI_xxx_Open = ADIOI_PIOFS_Open;
 	fd->fns->ADIOI_xxx_ReadContig = ADIOI_PIOFS_ReadContig;
 	fd->fns->ADIOI_xxx_WriteContig = ADIOI_PIOFS_WriteContig;
@@ -64,13 +64,13 @@ void ADIOI_SetFunctions(ADIO_File fd)
 	fd->fns->ADIOI_xxx_Flush = ADIOI_PIOFS_Flush;
 	fd->fns->ADIOI_xxx_Resize = ADIOI_PIOFS_Resize;
 #else
-	printf("ADIOI_SetFunctions: ROMIO has not been configured to use the PIOFS file system\n");
+	FPRINTF(stderr, "ADIOI_SetFunctions: ROMIO has not been configured to use the PIOFS file system\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
 #endif
 	break;
 
     case ADIO_UFS:
-#ifdef __UFS	
+#ifdef UFS	
 	fd->fns->ADIOI_xxx_Open = ADIOI_UFS_Open;
 	fd->fns->ADIOI_xxx_ReadContig = ADIOI_UFS_ReadContig;
 	fd->fns->ADIOI_xxx_WriteContig = ADIOI_UFS_WriteContig;
@@ -93,13 +93,13 @@ void ADIOI_SetFunctions(ADIO_File fd)
 	fd->fns->ADIOI_xxx_Flush = ADIOI_UFS_Flush;
 	fd->fns->ADIOI_xxx_Resize = ADIOI_UFS_Resize;
 #else
-	printf("ADIOI_SetFunctions: ROMIO has not been configured to use the UFS file system\n");
+	FPRINTF(stderr, "ADIOI_SetFunctions: ROMIO has not been configured to use the UFS file system\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
 #endif
 	break;
 
     case ADIO_NFS:
-#ifdef __NFS	
+#ifdef NFS	
 	fd->fns->ADIOI_xxx_Open = ADIOI_NFS_Open;
 	fd->fns->ADIOI_xxx_ReadContig = ADIOI_NFS_ReadContig;
 	fd->fns->ADIOI_xxx_WriteContig = ADIOI_NFS_WriteContig;
@@ -122,13 +122,13 @@ void ADIOI_SetFunctions(ADIO_File fd)
 	fd->fns->ADIOI_xxx_Flush = ADIOI_NFS_Flush;
 	fd->fns->ADIOI_xxx_Resize = ADIOI_NFS_Resize;
 #else
-	printf("ADIOI_SetFunctions: ROMIO has not been configured to use the NFS file system\n");
+	FPRINTF(stderr, "ADIOI_SetFunctions: ROMIO has not been configured to use the NFS file system\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
 #endif
 	break;
 
     case ADIO_HFS:
-#ifdef __HFS	
+#ifdef HFS	
 	fd->fns->ADIOI_xxx_Open = ADIOI_HFS_Open;
 	fd->fns->ADIOI_xxx_ReadContig = ADIOI_HFS_ReadContig;
 	fd->fns->ADIOI_xxx_WriteContig = ADIOI_HFS_WriteContig;
@@ -151,13 +151,13 @@ void ADIOI_SetFunctions(ADIO_File fd)
 	fd->fns->ADIOI_xxx_Flush = ADIOI_HFS_Flush;
 	fd->fns->ADIOI_xxx_Resize = ADIOI_HFS_Resize;
 #else
-	printf("ADIOI_SetFunctions: ROMIO has not been configured to use the HFS file system\n");
+	FPRINTF(stderr, "ADIOI_SetFunctions: ROMIO has not been configured to use the HFS file system\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
 #endif
 	break;
 
     case ADIO_XFS:
-#ifdef __XFS	
+#ifdef XFS	
 	fd->fns->ADIOI_xxx_Open = ADIOI_XFS_Open;
 	fd->fns->ADIOI_xxx_ReadContig = ADIOI_XFS_ReadContig;
 	fd->fns->ADIOI_xxx_WriteContig = ADIOI_XFS_WriteContig;
@@ -180,13 +180,13 @@ void ADIOI_SetFunctions(ADIO_File fd)
 	fd->fns->ADIOI_xxx_Flush = ADIOI_XFS_Flush;
 	fd->fns->ADIOI_xxx_Resize = ADIOI_XFS_Resize;
 #else
-	printf("ADIOI_SetFunctions: ROMIO has not been configured to use the XFS file system\n");
+	FPRINTF(stderr, "ADIOI_SetFunctions: ROMIO has not been configured to use the XFS file system\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
 #endif
 	break;
 
     case ADIO_SFS:
-#ifdef __SFS	
+#ifdef SFS	
 	fd->fns->ADIOI_xxx_Open = ADIOI_SFS_Open;
 	fd->fns->ADIOI_xxx_ReadContig = ADIOI_SFS_ReadContig;
 	fd->fns->ADIOI_xxx_WriteContig = ADIOI_SFS_WriteContig;
@@ -209,13 +209,13 @@ void ADIOI_SetFunctions(ADIO_File fd)
 	fd->fns->ADIOI_xxx_Flush = ADIOI_SFS_Flush;
 	fd->fns->ADIOI_xxx_Resize = ADIOI_SFS_Resize;
 #else
-	printf("ADIOI_SetFunctions: ROMIO has not been configured to use the SFS file system\n");
+	FPRINTF(stderr, "ADIOI_SetFunctions: ROMIO has not been configured to use the SFS file system\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
 #endif
 	break;
 
     case ADIO_PVFS:
-#ifdef __PVFS	
+#ifdef PVFS	
 	fd->fns->ADIOI_xxx_Open = ADIOI_PVFS_Open;
 	fd->fns->ADIOI_xxx_ReadContig = ADIOI_PVFS_ReadContig;
 	fd->fns->ADIOI_xxx_WriteContig = ADIOI_PVFS_WriteContig;
@@ -238,13 +238,13 @@ void ADIOI_SetFunctions(ADIO_File fd)
 	fd->fns->ADIOI_xxx_Flush = ADIOI_PVFS_Flush;
 	fd->fns->ADIOI_xxx_Resize = ADIOI_PVFS_Resize;
 #else
-	printf("ADIOI_SetFunctions: ROMIO has not been configured to use the PVFS file system\n");
+	FPRINTF(stderr, "ADIOI_SetFunctions: ROMIO has not been configured to use the PVFS file system\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
 #endif
 	break;
 
     default:
-	printf("ADIOI_SetFunctions: Unsupported file system type\n");
+	FPRINTF(stderr, "ADIOI_SetFunctions: Unsupported file system type\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
 	break;
     }

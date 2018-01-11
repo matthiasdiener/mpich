@@ -1,12 +1,13 @@
 /* 
- *   $Id: ad_open.c,v 1.3 1999/08/06 18:32:54 thakur Exp $    
+ *   $Id: ad_open.c,v 1.5 2000/02/09 21:30:05 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "adio.h"
-#ifdef __MPISGI
+#include "adio_extern.h"
+#ifdef MPISGI
 #include "mpisgi2.h"
 #endif
 
@@ -39,6 +40,8 @@ ADIO_File ADIO_Open(MPI_Comm comm, char *filename, int file_system,
 
     fd->iomode = iomode;
     fd->async_count = 0;
+
+    fd->err_handler = ADIOI_DFLT_ERR_HANDLER;
 
 /* set I/O function pointers */
     ADIOI_SetFunctions(fd);

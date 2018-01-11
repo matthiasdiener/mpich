@@ -3,7 +3,7 @@
 
 int p4_get_conntype( int );
 int p4_get_fd( int );
-int p4_get_num_in_proctable();
+int p4_get_num_in_proctable( void );
 
 int p4_get_conntype(dest)
 int dest;

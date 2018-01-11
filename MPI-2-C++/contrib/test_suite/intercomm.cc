@@ -1,26 +1,28 @@
-// Copyright 1997-1999, University of Notre Dame.
-// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
-//           Andrew Lumsdaine
-//
-// This file is part of the Notre Dame C++ bindings for MPI
-//
-// You should have received a copy of the License Agreement for the
-// Notre Dame C++ bindings for MPI along with the software;  see the
-// file LICENSE.  If not, contact Office of Research, University of Notre
-// Dame, Notre Dame, IN  46556.
-//
+// Copyright 1997-2000, University of Notre Dame.
+// Authors: Jeremy G. Siek, Jeffery M. Squyres, Michael P. McNally, and
+//          Andrew Lumsdaine
+// 
+// This file is part of the Notre Dame C++ bindings for MPI.
+// 
+// You should have received a copy of the License Agreement for the Notre
+// Dame C++ bindings for MPI along with the software; see the file
+// LICENSE.  If not, contact Office of Research, University of Notre
+// Dame, Notre Dame, IN 46556.
+// 
 // Permission to modify the code and to distribute modified code is
 // granted, provided the text of this NOTICE is retained, a notice that
 // the code was modified is included with the above COPYRIGHT NOTICE and
 // with the COPYRIGHT NOTICE in the LICENSE file, and that the LICENSE
 // file is distributed with the modified code.
-//
+// 
 // LICENSOR MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
 // By way of example, but not limitation, Licensor MAKES NO
 // REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY
 // PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE COMPONENTS
 // OR DOCUMENTATION WILL NOT INFRINGE ANY PATENTS, COPYRIGHTS, TRADEMARKS
 // OR OTHER RIGHTS.
+// 
+// Additional copyrights may follow.
 /****************************************************************************
 
  MESSAGE PASSING INTERFACE TEST CASE SUITE
@@ -61,7 +63,7 @@
  
 static int pass1;
 
-void inter_tests1(MPI::Intercomm&, int, int, int);
+void inter_tests1(MPI::Intercomm&, int, int);
 
 void
 intercomm1()
@@ -71,7 +73,6 @@ intercomm1()
   int key;
   int color;
   int local_lead;
-  int newme;
   int remote_lead;
   int sum;
   MPI::Intracomm comm;
@@ -102,9 +103,8 @@ intercomm1()
     Fail(msg);
   }
 
-  Testing( (char *)"Create_intercomm");
+  Testing("Create_intercomm");
 
-  newme = comm.Get_rank();
   comm.Allreduce(&my_rank, &sum, 1, MPI::INT, MPI::SUM);
   
   local_lead = 0;
@@ -116,24 +116,24 @@ intercomm1()
     Fail(msg);
   }
   
-  inter_tests1(intercomm, newme, color, sum);
+  inter_tests1(intercomm, color, sum);
   
   Pass(); // Create_intercomm
   
   pass1 = 0;
   
-  Testing( (char *)"Intercomm::Dup");
+  Testing("Intercomm::Dup");
   
   if(flags[SKIP_IBM21014])
-    Done( (char *)"Skipped (IBM 2.1.0.14)");
+    Done("Skipped (IBM 2.1.0.14)");
   else if(flags[SKIP_IBM21015])
-    Done( (char *)"Skipped (IBM 2.1.0.15)");
+    Done("Skipped (IBM 2.1.0.15)");
   else if(flags[SKIP_IBM21016])
-    Done( (char *)"Skipped (IBM 2.1.0.16)");
+    Done("Skipped (IBM 2.1.0.16)");
   else if(flags[SKIP_IBM21017])
-    Done( (char *)"Skipped (IBM 2.1.0.17)");
+    Done("Skipped (IBM 2.1.0.17)");
   else if(flags[SKIP_IBM21018])
-    Done( (char *)"Skipped (IBM 2.1.0.18)");
+    Done("Skipped (IBM 2.1.0.18)");
   else {
     intercomm2 = intercomm.Dup();
     if (intercomm2 == MPI::COMM_NULL) {
@@ -141,7 +141,7 @@ intercomm1()
       Fail(msg);
     }
     
-    inter_tests1(intercomm2, newme, color, sum);
+    inter_tests1(intercomm2, color, sum);
     
     Pass(); // Intercomm::Dup
   }
@@ -157,7 +157,7 @@ intercomm1()
 }
 
 void 
-inter_tests1(MPI::Intercomm& intercomm, int newme, int color, int sum)
+inter_tests1(MPI::Intercomm& intercomm, int color, int sum)
 {
   char msg[150];
   int flag;
@@ -179,7 +179,7 @@ inter_tests1(MPI::Intercomm& intercomm, int newme, int color, int sum)
   newto = (rank + 1)  % size;
   newfrom = (rank + size - 1) % size;
 
-  Testing( (char *)"Is_inter");
+  Testing("Is_inter");
 
   flag = -1;
 
@@ -192,7 +192,7 @@ inter_tests1(MPI::Intercomm& intercomm, int newme, int color, int sum)
 
   Pass(); // Is_inter
 
-  Testing( (char *)"Get_remote_size");
+  Testing("Get_remote_size");
   
   newsize = -1;
   newsize = intercomm.Get_remote_size();
@@ -202,7 +202,7 @@ inter_tests1(MPI::Intercomm& intercomm, int newme, int color, int sum)
   }
   Pass(); // Get_remote_size
 
-  Testing( (char *)"Get_remote_group");
+  Testing("Get_remote_group");
 
   newgid = intercomm.Get_remote_group();
   if (newgid == MPI::GROUP_NULL) {
@@ -234,7 +234,7 @@ inter_tests1(MPI::Intercomm& intercomm, int newme, int color, int sum)
     Fail(msg);
   }
 
-  Testing( (char *)"Merge");
+  Testing("Merge");
   
   mergecomm = intercomm.Merge((MPI2CPP_BOOL_T) color);
   mergecomm.Allreduce(&my_rank, &newsum, 1, MPI::INT, MPI::SUM);

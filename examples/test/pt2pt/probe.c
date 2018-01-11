@@ -42,7 +42,9 @@ else {
     /* Here I'd normally allocate space; I'll just check that it is ok */
     if (maxlen > 1)
 	printf( "Error; size = %d\n", maxlen );
+#ifdef VERBOSE
     printf( "About to receive\n" );
+#endif
     MPI_Recv( &data, 1, MPI_INT, status.MPI_SOURCE, status.MPI_TAG, 
 	      MPI_COMM_WORLD, &status );
     }

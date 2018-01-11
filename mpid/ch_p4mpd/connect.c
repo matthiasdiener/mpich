@@ -3,9 +3,13 @@
 #include "flow.h"
 #include "../util/queue.h"
 
-void MPID_Close_sockets();
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
 
-void MPID_Close_sockets()
+void MPID_Close_sockets(void);
+
+void MPID_Close_sockets(void)
 
 {  /* begin MPID_Close_sockets */
 
@@ -13,7 +17,6 @@ void MPID_Close_sockets()
     int conntype;
     int fd;
     int num_procs;
-    int num_closed = 0;
     int *closed_array;
 
     num_procs = p4_get_num_in_proctable();

@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_set.c,v 1.9 1999/08/30 15:47:48 swider Exp $    
+ *   $Id: info_set.c,v 1.10 2000/07/20 16:14:07 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -100,15 +100,8 @@ EXPORT_MPI_API int MPI_Info_set(MPI_Info info, char *key, char *value)
 
     while (curr) {
 	if (!strcmp(curr->key, key)) {
-#ifdef free
-/* By default, we define free as an illegal expression when doing memory
-   checking; we need to undefine it to handle the fact that strdup does
-   a naked malloc.
- */
-#undef free
-#endif
-	    free(curr->value);  /* not ADIOI_Free, because it was strdup'ed */
-	    curr->value = strdup(value);
+	    FREE(curr->value);  
+	    curr->value = STRDUP(value);
 	    break;
 	}
 	prev = curr;
@@ -116,12 +109,12 @@ EXPORT_MPI_API int MPI_Info_set(MPI_Info info, char *key, char *value)
     }
 
     if (!curr) {
-	prev->next = (MPI_Info) MALLOC(sizeof(struct MPIR_Info));
-	curr = prev->next;
+	prev->next   = (MPI_Info) MALLOC(sizeof(struct MPIR_Info));
+	curr	     = prev->next;
 	curr->cookie = 0;  /* cookie not set on purpose */
-	curr->key = strdup(key);
-	curr->value = strdup(value);
-	curr->next = 0;
+	curr->key    = STRDUP(key);
+	curr->value  = STRDUP(value);
+	curr->next   = 0;
     }
 
     return MPI_SUCCESS;

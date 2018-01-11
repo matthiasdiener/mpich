@@ -14,6 +14,14 @@
 
    This version sends and receives EVERYTHING from MPI_BOTTOM, by putting
    the data into a structure.
+
+   This code isn't quite correct, since the MPI_Type_struct that is 
+   created for the type may not have the correct extent.  
+   One possible change is to make the struct type include the count, and
+   send/receive one instance of the data item.  
+
+   The GenerateData call should return extents; when the extent of the 
+   created structure doesn't match, we can at least issue an error message.
  */
 int main( int argc, char **argv )
 {
@@ -28,7 +36,7 @@ MPI_Status   status;
 char         *obuf;
 MPI_Datatype offsettype;
 int          blen;
-MPI_Aint     displ, extent;
+MPI_Aint     displ, extent, natural_extent;
 
 MPI_Init( &argc, &argv );
 
@@ -66,6 +74,11 @@ for (i=0; i<ncomm; i++) {
 		MPI_Type_free( &offsettype );
 		continue;
 		}
+	    MPI_Type_extent( types[j], &natural_extent );
+	    if (natural_extent != extent) {
+		MPI_Type_free( &offsettype );
+		continue;
+	    }
 	    partner = np - 1;
 #if 0
 		MPIR_PrintDatatypePack( stdout, counts[j], offsettype, 
@@ -93,6 +106,11 @@ for (i=0; i<ncomm; i++) {
 		MPI_Type_free( &offsettype );
 		continue;
 		}
+	    MPI_Type_extent( types[j], &natural_extent );
+	    if (natural_extent != extent) {
+		MPI_Type_free( &offsettype );
+		continue;
+	    }
             MPI_Recv( MPI_BOTTOM, counts[j], offsettype, 
 		     partner, tag, comms[i], &status );
             /* Test correct */

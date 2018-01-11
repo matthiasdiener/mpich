@@ -85,6 +85,7 @@
 #    include <sys/shm.h>
 #    define USE_XX_SHMALLOC
 #    define p2p_shmem_name "SYS V shared memory"
+void MD_remove_sysv_mipc( void );
 #endif
 
 /* A few special cases */

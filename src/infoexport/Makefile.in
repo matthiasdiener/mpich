@@ -58,7 +58,6 @@ all update:	${LIB}
 #
 ${libbuild_dir}/${LIB}: ${LIB}
 	@-if test -f ${LIB} ; then cp ${LIB} ${libbuild_dir}/${LIB} ; fi
-	 -if test -f ${LIB} ; then cp libtvmpich.so* ${libbuild_dir} ; fi
 
 # Because this is an optional library, we don't stop if there is an error
 # The following works for Solaris and some other systems
@@ -71,7 +70,7 @@ libtvmpich.so: dll_mpich.o
 	${REMOVER} ${LIB}; \
 	( CC="${CC}" ; export CC ; CLINKER="@CLINKER@" ; export CLINKER ; \
 	${top_srcdir}/util/makesharedlib -lib=libtvmpich.a -obj="${OBJS}" \
-		 -kind=@SHAREDKIND_FOR_TV@ -local ; ) fi
+		 -kind=@SHAREDKIND_FOR_TV@ -local -suffix=so ; ) fi
 
 compile: ${OBJS}
 

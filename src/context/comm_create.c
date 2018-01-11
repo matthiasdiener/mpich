@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_create.c,v 1.9 1999/08/30 15:42:45 swider Exp $
+ *  $Id: comm_create.c,v 1.10 2000/08/10 22:15:34 toonen Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -85,6 +85,7 @@ EXPORT_MPI_API int MPI_Comm_create ( MPI_Comm comm, MPI_Group group, MPI_Comm *c
     /* context creation anyway, then deallocate the context that was */
     /* allocated.  I may not need do this, but until I think about */
     /* the consequences a bit more ... */
+    mpi_errno = MPID_CommInit( comm_ptr, NULL );
     (void) MPIR_Context_alloc  ( comm_ptr, 2, &tmp_context ); 
     (void) MPIR_Context_dealloc( comm_ptr, 2, tmp_context );
     (*comm_out) = MPI_COMM_NULL;
@@ -102,7 +103,7 @@ EXPORT_MPI_API int MPI_Comm_create ( MPI_Comm comm, MPI_Group group, MPI_Comm *c
     new_comm->np             = new_comm->group->np;
     new_comm->comm_name      = 0;
 
-    if ((mpi_errno = MPID_CommInit( comm, new_comm )))
+    if ((mpi_errno = MPID_CommInit( comm_ptr, new_comm )))
 	return mpi_errno;
 
     (void) MPIR_Context_alloc( comm_ptr, 2, &(new_comm->send_context) );

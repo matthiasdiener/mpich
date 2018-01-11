@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_create.c,v 1.4 1999/08/27 20:53:43 thakur Exp $    
+ *   $Id: info_create.c,v 1.6 2000/02/09 21:30:35 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +19,7 @@
 #endif
 
 /* Include mapping from MPI->PMPI */
-#define __MPIO_BUILD_PROFILING
+#define MPIO_BUILD_PROFILING
 #include "mpioprof.h"
 #endif
 
@@ -44,7 +44,7 @@ int MPI_Info_create(MPI_Info *info)
    Can't initialize it here, because don't know argc, argv */
         MPI_Initialized(&flag);
         if (!flag) {
-            printf("Error: MPI_Init() must be called before using MPI_Info_create\n");
+            FPRINTF(stderr, "Error: MPI_Init() must be called before using MPI_Info_create\n");
             MPI_Abort(MPI_COMM_WORLD, 1);
         }
 

@@ -138,6 +138,7 @@ Special datatypes for C and Fortran
 .I MPI_Pack
 and 
 .I MPI_Unpack
+
 .PD 1
 .PD 0
 .TP
@@ -160,30 +161,35 @@ and
 .B MPI_REAL 
 - 
 .I REAL
+
 .PD 1
 .PD 0
 .TP
 .B MPI_INTEGER 
 - 
 .I INTEGER
+
 .PD 1
 .PD 0
 .TP
 .B MPI_LOGICAL 
 - 
 .I LOGICAL
+
 .PD 1
 .PD 0
 .TP
 .B MPI_DOUBLE_PRECISION 
 - 
 .I DOUBLE PRECISION
+
 .PD 1
 .PD 0
 .TP
 .B MPI_COMPLEX 
 - 
 .I COMPLEX
+
 .PD 1
 .PD 0
 .TP
@@ -236,37 +242,43 @@ The following are datatypes for the MPI functions
 .I MPI_MAXLOC
 and
 .I MPI_MINLOC
-.  In Fortran, these datatype always consist of
+\&.
+In Fortran, these datatype always consist of
 two elements of the same Fortran type.
 .PD 0
 .TP
 .B MPI_2INTEGER 
 - 
 .I INTEGER,INTEGER
+
 .PD 1
 .PD 0
 .TP
 .B MPI_2REAL    
 - 
 .I REAL, REAL
+
 .PD 1
 .PD 0
 .TP
 .B MPI_2DOUBLE_PRECISION 
 - 
 .I DOUBLE PRECISION, DOUBLE PRECISION
+
 .PD 1
 .PD 0
 .TP
 .B MPI_2COMPLEX 
 - 
 .I COMPLEX, COMPLEX
+
 .PD 1
 .PD 0
 .TP
 .B MPI_2DOUBLE_COMPLEX 
 - 
 .I complex*16, complex*16
+
 .PD 1
 
 .SH COMMUNICATORS
@@ -427,14 +439,16 @@ is not valid for
 .I MPI_MAX
 and 
 .I MPI_MIN
-.  In addition, the MPI
+\&.
+In addition, the MPI
 1.1 standard did not include the C types 
 .I MPI_CHAR
 and 
 .I MPI_UNSIGNED_CHAR
 among the lists of arithmetic types for operations like 
 .I MPI_SUM
-.  However,
+\&.
+However,
 since the C type 
 .I char
 is an integer type (like 
@@ -520,12 +534,14 @@ is globally synchronized.
 .B MPI_MAX_PROCESSOR_NAME 
 - Maximum length of name returned by
 .I MPI_GET_PROCESSOR_NAME
+
 .PD 1
 .PD 0
 .TP
 .B MPI_MAX_ERROR_STRING   
 - Maximum length of string return by
 .I MPI_ERROR_STRING
+
 .PD 1
 .PD 0
 .TP

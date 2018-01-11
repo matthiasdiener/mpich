@@ -1,4 +1,20 @@
 #include <stdio.h>
+
+#ifdef HAVE_SLOGCONF_H
+#include "slog_config.h"
+#endif
+#if defined( HAVE_ALLOCA_H )
+#include <alloca.h>
+#else
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
+#include <stdlib.h>
+#endif
+#endif
+#if defined(HAVE_STRING_H)
+/* For memcpy */
+#include <string.h>
+#endif
+
 #include "bswp_fileio.h"
 
 /*  On 1/4/99, byte2char is used in memcpy  */

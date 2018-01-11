@@ -52,7 +52,7 @@ int main( int argc, char **argv )
   MPI_Allreduce( &errs, &toterrs, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
   if (my_rank == 0) {
       if (toterrs > 0) printf( "Found %d errors\n", toterrs );
-      else             printf( "No errors\n" );
+      else             printf( " No Errors\n" );
   }
 
   MPI_Finalize();

@@ -1,5 +1,5 @@
 /* 
- *   $Id: write_ordef.c,v 1.5 1999/08/27 20:53:40 thakur Exp $    
+ *   $Id: write_ordef.c,v 1.7 2000/08/24 16:18:28 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,18 +9,18 @@
 #include "adio.h"
 
 
-#if defined(__MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+#if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
 #ifdef FORTRANCAPS
 #define mpi_file_write_ordered_end_ PMPI_FILE_WRITE_ORDERED_END
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_file_write_ordered_end_ pmpi_file_write_ordered_end__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_file_write_ordered_end pmpi_file_write_ordered_end_
 #endif
 #define mpi_file_write_ordered_end_ pmpi_file_write_ordered_end
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_file_write_ordered_end_ pmpi_file_write_ordered_end
 #endif
 #define mpi_file_write_ordered_end_ pmpi_file_write_ordered_end_
@@ -73,21 +73,25 @@
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_file_write_ordered_end_ mpi_file_write_ordered_end__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_file_write_ordered_end mpi_file_write_ordered_end_
 #endif
 #define mpi_file_write_ordered_end_ mpi_file_write_ordered_end
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_file_write_ordered_end_ mpi_file_write_ordered_end
 #endif
 #endif
 #endif
 
-void mpi_file_write_ordered_end_(MPI_Fint *fh,void *buf,MPI_Status *status, int *__ierr ){
+/* Prototype to keep compiler happy */
+void mpi_file_write_ordered_end_(MPI_Fint *fh,void *buf,MPI_Status *status, 
+				 int *ierr );
+
+void mpi_file_write_ordered_end_(MPI_Fint *fh,void *buf,MPI_Status *status, int *ierr ){
     MPI_File fh_c;
     
     fh_c = MPI_File_f2c(*fh);
 
-    *__ierr = MPI_File_write_ordered_end(fh_c,buf,status);
+    *ierr = MPI_File_write_ordered_end(fh_c,buf,status);
 }

@@ -3,12 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "test.h"
-
-#if defined(USE_STDARG)
-#include <stdarg.h>
-#else
-#include <varargs.h>
-#endif
+#include "mpi.h"
 
 static int tests_passed = 0;
 static int tests_failed = 0;
@@ -25,31 +20,11 @@ int rank;
     sprintf(filename, "%s-%d.out", suite, rank);
     strncpy(suite_name, suite, 255);
     fileout = fopen(filename, "w");
+    if (!fileout) {
+	fprintf( stderr, "Could not open %s on node %d\n", filename, rank );
+	MPI_Abort( MPI_COMM_WORLD, 1 );
+    }
 }
-
-#if defined(__STDC__)
-void Test_Printf(char *format, ...)
-{
-    va_list arglist;
-
-    va_start(arglist, format);
-    (void)vfprintf(fileout, format, arglist);
-    va_end(arglist);
-}
-#else
-void Test_Printf(va_alist)
-va_dcl
-{
-    char *format;
-    va_list arglist;
-
-    va_start(arglist);
-    format = va_arg(arglist, char *);
-    (void)vfprintf(fileout, format, arglist);
-    fflush(fileout);
-    va_end(arglist);
-}
-#endif
 
 void Test_Message(mess)
 char *mess;
@@ -70,16 +45,24 @@ char *test;
 void Test_Passed(test)
 char *test;
 {
+#ifdef VERBOSE    
     fprintf(fileout, "[%s]: Test '%s' Passed.\n", suite_name, test);
     fflush(fileout);
+#endif
     tests_passed++;
 }
 
 int Summarize_Test_Results()
 {
+#ifdef VERBOSE
     fprintf(fileout, "For test suite '%s':\n", suite_name);
-    fprintf(fileout, "Of %d attempted tests, %d passed, %d failed.\n", 
-	    tests_passed + tests_failed, tests_passed, tests_failed);
+#else
+    if (tests_failed > 0)
+#endif
+    {
+	fprintf(fileout, "Of %d attempted tests, %d passed, %d failed.\n", 
+		tests_passed + tests_failed, tests_passed, tests_failed);
+    }
     if (tests_failed > 0) {
 	int i;
 
@@ -115,5 +98,5 @@ if (m != n) {
 	    n, m );
     }
 if (myrank == 0) 
-    printf( "All processes completed test\n" );
+    printf( " No Errors\n" );
 }

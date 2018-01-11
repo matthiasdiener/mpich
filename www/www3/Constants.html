@@ -41,15 +41,20 @@ Datatypes are of type </TT>MPI_Datatype<TT> in C and of tyep </TT>INTEGER<TT> in
 <P>
 The following are datatypes for the MPI functions </TT>MPI_MAXLOC<TT> and
 </TT>MPI_MINLOC<TT>.
-<DL><DT><B>MPI_FLOAT_INT </B> <DD> </TT>struct { float, int }<TT>
+<DL><DT><B>MPI_FLOAT_INT </B> <DD> </TT>struct { float, int }
+<TT>
 </DL>
-<DL><DT><B>MPI_LONG_INT  </B> <DD> </TT>struct { long, int }<TT>
+<DL><DT><B>MPI_LONG_INT  </B> <DD> </TT>struct { long, int }
+<TT>
 </DL>
-<DL><DT><B>MPI_DOUBLE_INT </B> <DD> </TT>struct { double, int }<TT>
+<DL><DT><B>MPI_DOUBLE_INT </B> <DD> </TT>struct { double, int }
+<TT>
 </DL>
-<DL><DT><B>MPI_SHORT_INT  </B> <DD> </TT>struct { short, int }<TT>
+<DL><DT><B>MPI_SHORT_INT  </B> <DD> </TT>struct { short, int }
+<TT>
 </DL>
-<DL><DT><B>MPI_2INT       </B> <DD> </TT>struct { int, int }<TT>
+<DL><DT><B>MPI_2INT       </B> <DD> </TT>struct { int, int }
+<TT>
 </DL>
 <DL><DT><B>MPI_LONG_DOUBLE_INT </B> <DD> </TT>struct { long double, int }; this 
 is an OPTIONAL type, and may be set to NULL 
@@ -59,7 +64,8 @@ and may be set to NULL.
 </DL>
 <P>
 Special datatypes for C and Fortran
-<DL><DT><B>MPI_PACKED </B> <DD> For <TT>MPI_Pack</TT> and <TT>MPI_Unpack</TT>
+<DL><DT><B>MPI_PACKED </B> <DD> For <TT>MPI_Pack</TT> and <TT>MPI_Unpack
+</TT>
 </DL>
 <DL><DT><B>MPI_UB </B> <DD> For <TT>MPI_Type_struct</TT>; an upper-bound indicator 
 </DL>
@@ -67,15 +73,20 @@ Special datatypes for C and Fortran
 </DL>
 <P>
 <H2>Fortran datatypes</H2>
-<DL><DT><B>MPI_REAL </B> <DD> <TT>REAL</TT>
+<DL><DT><B>MPI_REAL </B> <DD> <TT>REAL
+</TT>
 </DL>
-<DL><DT><B>MPI_INTEGER </B> <DD> <TT>INTEGER</TT>
+<DL><DT><B>MPI_INTEGER </B> <DD> <TT>INTEGER
+</TT>
 </DL>
-<DL><DT><B>MPI_LOGICAL </B> <DD> <TT>LOGICAL</TT>
+<DL><DT><B>MPI_LOGICAL </B> <DD> <TT>LOGICAL
+</TT>
 </DL>
-<DL><DT><B>MPI_DOUBLE_PRECISION </B> <DD> <TT>DOUBLE PRECISION</TT>
+<DL><DT><B>MPI_DOUBLE_PRECISION </B> <DD> <TT>DOUBLE PRECISION
+</TT>
 </DL>
-<DL><DT><B>MPI_COMPLEX </B> <DD> <TT>COMPLEX</TT>
+<DL><DT><B>MPI_COMPLEX </B> <DD> <TT>COMPLEX
+</TT>
 </DL>
 <DL><DT><B>MPI_DOUBLE_COMPLEX </B> <DD> <TT>complex*16</TT> (or <TT>complex*32</TT>) where supported.
 </DL>
@@ -95,15 +106,20 @@ The following datatypes are optional
 The following are datatypes for the MPI functions <TT>MPI_MAXLOC</TT> and
 <TT>MPI_MINLOC</TT>.  In Fortran, these datatype always consist of
 two elements of the same Fortran type.
-<DL><DT><B>MPI_2INTEGER </B> <DD> <TT>INTEGER,INTEGER</TT>
+<DL><DT><B>MPI_2INTEGER </B> <DD> <TT>INTEGER,INTEGER
+</TT>
 </DL>
-<DL><DT><B>MPI_2REAL    </B> <DD> <TT>REAL, REAL</TT>
+<DL><DT><B>MPI_2REAL    </B> <DD> <TT>REAL, REAL
+</TT>
 </DL>
-<DL><DT><B>MPI_2DOUBLE_PRECISION </B> <DD> <TT>DOUBLE PRECISION, DOUBLE PRECISION</TT>
+<DL><DT><B>MPI_2DOUBLE_PRECISION </B> <DD> <TT>DOUBLE PRECISION, DOUBLE PRECISION
+</TT>
 </DL>
-<DL><DT><B>MPI_2COMPLEX </B> <DD> <TT>COMPLEX, COMPLEX</TT>
+<DL><DT><B>MPI_2COMPLEX </B> <DD> <TT>COMPLEX, COMPLEX
+</TT>
 </DL>
-<DL><DT><B>MPI_2DOUBLE_COMPLEX </B> <DD> <TT>complex*16, complex*16</TT>
+<DL><DT><B>MPI_2DOUBLE_COMPLEX </B> <DD> <TT>complex*16, complex*16
+</TT>
 </DL>
 <P>
 <H2>Communicators</H2>

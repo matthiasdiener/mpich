@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_getf.c,v 1.4 1999/08/27 20:53:48 thakur Exp $    
+ *   $Id: info_getf.c,v 1.6 2000/02/09 21:30:37 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,18 +9,18 @@
 #include "adio.h"
 
 
-#if defined(__MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+#if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
 #ifdef FORTRANCAPS
 #define mpi_info_get_ PMPI_INFO_GET
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_info_get_ pmpi_info_get__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_info_get pmpi_info_get_
 #endif
 #define mpi_info_get_ pmpi_info_get
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_info_get_ pmpi_info_get
 #endif
 #define mpi_info_get_ pmpi_info_get_
@@ -73,26 +73,26 @@
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_info_get_ mpi_info_get__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_info_get mpi_info_get_
 #endif
 #define mpi_info_get_ mpi_info_get
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_info_get_ mpi_info_get
 #endif
 #endif
 #endif
 
 void mpi_info_get_(MPI_Fint *info, char *key, int *valuelen, char *value, 
-        int *flag, int *__ierr, int keylen, int valspace)
+        int *flag, int *ierr, int keylen, int valspace)
 {
     MPI_Info info_c;
     char *newkey, *tmpvalue;
     int new_keylen, lead_blanks, i, tmpvaluelen;
 
     if (key <= (char *) 0) {
-        printf("MPI_Info_get: key is an invalid address\n");
+        FPRINTF(stderr, "MPI_Info_get: key is an invalid address\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
@@ -104,7 +104,7 @@ void mpi_info_get_(MPI_Fint *info, char *key, int *valuelen, char *value,
 
     for (i=keylen-1; i>=0; i--) if (key[i] != ' ') break;
     if (i < 0) {
-        printf("MPI_Info_get: key is a blank string\n");
+        FPRINTF(stderr, "MPI_Info_get: key is a blank string\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
     new_keylen = i + 1 - lead_blanks;
@@ -115,22 +115,22 @@ void mpi_info_get_(MPI_Fint *info, char *key, int *valuelen, char *value,
     newkey[new_keylen] = '\0';
 
     if (value <= (char *) 0) {
-        printf("MPI_Info_get: value is an invalid address\n");
+        FPRINTF(stderr, "MPI_Info_get: value is an invalid address\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
     if (*valuelen <= 0) {
-        printf("MPI_Info_get: Invalid valuelen argument\n");
+        FPRINTF(stderr, "MPI_Info_get: Invalid valuelen argument\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
     if (*valuelen > valspace) {
-        printf("MPI_Info_get: valuelen is greater than the amount of memory available in value\n");
+        FPRINTF(stderr, "MPI_Info_get: valuelen is greater than the amount of memory available in value\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
     
     tmpvalue = (char *) ADIOI_Malloc((*valuelen + 1)*sizeof(char));
 
     info_c = MPI_Info_f2c(*info);
-    *__ierr = MPI_Info_get(info_c, newkey, *valuelen, tmpvalue, flag);
+    *ierr = MPI_Info_get(info_c, newkey, *valuelen, tmpvalue, flag);
 
     if (*flag) {
 	tmpvaluelen = strlen(tmpvalue);

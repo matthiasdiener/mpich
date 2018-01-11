@@ -23,6 +23,10 @@ int rank;
     sprintf(filename, "%s-%d.out", suite, rank);
     strncpy(suite_name, suite, 255);
     fileout = fopen(filename, "w");
+    if (!fileout) {
+	fprintf( stderr, "Could not open %s on node %d\n", filename, rank );
+	MPI_Abort( MPI_COMM_WORLD, 1 );
+    }
 
     MPI_Errhandler_create( Test_Errors_warn, &TEST_ERRORS_WARN );
 }
@@ -46,16 +50,24 @@ char *test;
 void Test_Passed(test)
 char *test;
 {
+#ifdef VERBOSE
     fprintf(fileout, "[%s]: Test '%s' Passed.\n", suite_name, test);
     fflush(fileout);
+#endif
     tests_passed++;
 }
 
 int Summarize_Test_Results()
 {
+#ifdef VERBOSE
     fprintf(fileout, "For test suite '%s':\n", suite_name);
-    fprintf(fileout, "Of %d attempted tests, %d passed, %d failed.\n", 
-	    tests_passed + tests_failed, tests_passed, tests_failed);
+#else
+    if (tests_failed > 0)
+#endif
+    {
+	fprintf(fileout, "Of %d attempted tests, %d passed, %d failed.\n", 
+		tests_passed + tests_failed, tests_passed, tests_failed);
+    }
     if (tests_failed > 0) {
 	int i;
 
@@ -79,19 +91,19 @@ void Test_Finalize()
  */
 void Test_Waitforall( )
 {
-int m, one, myrank, n;
+    int m, one, myrank, n;
 
-MPI_Comm_rank( MPI_COMM_WORLD, &myrank );
-MPI_Comm_size( MPI_COMM_WORLD, &n );
-one = 1;
-MPI_Allreduce( &one, &m, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
+    MPI_Comm_rank( MPI_COMM_WORLD, &myrank );
+    MPI_Comm_size( MPI_COMM_WORLD, &n );
+    one = 1;
+    MPI_Allreduce( &one, &m, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
 
-if (m != n) {
-    printf( "[%d] Expected %d processes to wait at end, got %d\n", myrank, 
-	    n, m );
+    if (m != n) {
+	printf( "[%d] Expected %d processes to wait at end, got %d\n", myrank, 
+		n, m );
     }
-if (myrank == 0) 
-    printf( "All processes completed test\n" );
+    if (myrank == 0) 
+	printf( " No Errors\n" );
 }
 
 /*

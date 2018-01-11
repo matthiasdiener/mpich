@@ -1,5 +1,5 @@
 /* 
- *   $Id: set_info.c,v 1.5 1999/08/27 20:53:17 thakur Exp $    
+ *   $Id: set_info.c,v 1.7 2000/02/09 21:30:19 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +19,7 @@
 #endif
 
 /* Include mapping from MPI->PMPI */
-#define __MPIO_BUILD_PROFILING
+#define MPIO_BUILD_PROFILING
 #include "mpioprof.h"
 #endif
 
@@ -35,11 +35,18 @@ Input Parameters:
 int MPI_File_set_info(MPI_File fh, MPI_Info info)
 {
     int error_code;
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "MPI_FILE_SET_INFO";
+#endif
 
+#ifdef PRINT_ERR_MSG
     if ((fh <= (MPI_File) 0) || (fh->cookie != ADIOI_FILE_COOKIE)) {
-	printf("MPI_File_set_info: Invalid file handle\n");
+	FPRINTF(stderr, "MPI_File_set_info: Invalid file handle\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
+#else
+    ADIOI_TEST_FILE_HANDLE(fh, myname);
+#endif
 
     /* set new info */
     ADIO_SetInfo(fh, info, &error_code);

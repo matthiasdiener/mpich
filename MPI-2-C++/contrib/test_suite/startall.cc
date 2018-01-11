@@ -1,26 +1,28 @@
-// Copyright 1997-1999, University of Notre Dame.
-// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
-//           Andrew Lumsdaine
-//
-// This file is part of the Notre Dame C++ bindings for MPI
-//
-// You should have received a copy of the License Agreement for the
-// Notre Dame C++ bindings for MPI along with the software;  see the
-// file LICENSE.  If not, contact Office of Research, University of Notre
-// Dame, Notre Dame, IN  46556.
-//
+// Copyright 1997-2000, University of Notre Dame.
+// Authors: Jeremy G. Siek, Jeffery M. Squyres, Michael P. McNally, and
+//          Andrew Lumsdaine
+// 
+// This file is part of the Notre Dame C++ bindings for MPI.
+// 
+// You should have received a copy of the License Agreement for the Notre
+// Dame C++ bindings for MPI along with the software; see the file
+// LICENSE.  If not, contact Office of Research, University of Notre
+// Dame, Notre Dame, IN 46556.
+// 
 // Permission to modify the code and to distribute modified code is
 // granted, provided the text of this NOTICE is retained, a notice that
 // the code was modified is included with the above COPYRIGHT NOTICE and
 // with the COPYRIGHT NOTICE in the LICENSE file, and that the LICENSE
 // file is distributed with the modified code.
-//
+// 
 // LICENSOR MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
 // By way of example, but not limitation, Licensor MAKES NO
 // REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY
 // PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE COMPONENTS
 // OR DOCUMENTATION WILL NOT INFRINGE ANY PATENTS, COPYRIGHTS, TRADEMARKS
 // OR OTHER RIGHTS.
+// 
+// Additional copyrights may follow.
 /****************************************************************************
 
  MESSAGE PASSING INTERFACE TEST CASE SUITE
@@ -74,9 +76,9 @@ startall()
   int size;
   void* oldbuf;
 
-  Testing( (char *)"Startall");
+  Testing("Startall");
  
-  Testing( (char *)"Send_init");
+  Testing("Send_init");
 
   request_start1 = MPI::REQUEST_NULL;
   non_blocker1 = MPI::REQUEST_NULL;
@@ -88,7 +90,7 @@ startall()
 
   Pass(); // Send_init
   
-  Testing( (char *)"Ssend_init");
+  Testing("Ssend_init");
   
   if(request_start1 != MPI::REQUEST_NULL)
     request_start1.Free();
@@ -102,16 +104,16 @@ startall()
 
   Pass(); // Ssend_init
 
-  Testing( (char *)"Bsend_init");
+  Testing("Bsend_init");
   
   if (flags[SKIP_IBM21014])
-    Done( (char *)"Skipped (IBM 2.1.0.14)");
+    Done("Skipped (IBM 2.1.0.14)");
   else if (flags[SKIP_IBM21015])
-    Done( (char *)"Skipped (IBM 2.1.0.15)");
+    Done("Skipped (IBM 2.1.0.15)");
   else if (flags[SKIP_IBM21016])
-    Done( (char *)"Skipped (IBM 2.1.0.16)");
+    Done("Skipped (IBM 2.1.0.16)");
   else if (flags[SKIP_IBM21017])
-    Done( (char *)"Skipped (IBM 2.1.0.17)");
+    Done("Skipped (IBM 2.1.0.17)");
   else {
     MPI::Attach_buffer(buf,sizeof(buf));
 
@@ -133,7 +135,7 @@ startall()
     Pass(); // Bsend_init
   }
 
-  Testing( (char *)"Rsend_init");
+  Testing("Rsend_init");
   
   if(request_start1 != MPI::REQUEST_NULL)
     request_start1.Free();
@@ -147,7 +149,7 @@ startall()
   
   Pass(); // Rsend_init
 
-  Testing( (char *)"Recv_init");
+  Testing("Recv_init");
   
   if(request_start1 != MPI::REQUEST_NULL)
     request_start1.Free();

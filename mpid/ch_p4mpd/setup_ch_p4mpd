@@ -223,6 +223,10 @@ fi
 #   LIB_PATH="$LIB_PATH -L$libdir"
 #   LIB_LIST="$LIB_LIST -lp4";
 IS_HETERO=1
+# Look for SIGBLOCK used
+if grep HAVE_SIGBLOCK mpid/ch_p4mpd/p4mpd/lib/Makefile >/dev/null 2>&1 ; then
+    device_functions="sigblock"
+fi
 # Make sure mpd directory exists
 if [ ! -d mpid/mpd ] ; then 
     mkdir mpid/mpd
@@ -235,6 +239,8 @@ export VPATH
                 --with-opt="$OPTFLAGS" \
                 --with-top_srcdir=$top_srcdir \
                 -srcdir=$top_srcdir/mpid/mpd \
+		-prefix=$prefix \
+		-exec-prefix=$exec_prefix \
                 -libdir=$top_srcdir/lib )
 if test $? != 0 ; then
     print_error "Configure of the mpd sub-system may have failed!"

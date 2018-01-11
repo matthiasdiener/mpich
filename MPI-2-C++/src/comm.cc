@@ -1,28 +1,30 @@
 // -*- c++ -*-
 //
-// Copyright 1997-1999, University of Notre Dame.
-// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
-//           Andrew Lumsdaine
-//
-// This file is part of the Notre Dame C++ bindings for MPI
-//
-// You should have received a copy of the License Agreement for the
-// Notre Dame C++ bindings for MPI along with the software;  see the
-// file LICENSE.  If not, contact Office of Research, University of Notre
-// Dame, Notre Dame, IN  46556.
-//
+// Copyright 1997-2000, University of Notre Dame.
+// Authors: Jeremy G. Siek, Jeffery M. Squyres, Michael P. McNally, and
+//          Andrew Lumsdaine
+// 
+// This file is part of the Notre Dame C++ bindings for MPI.
+// 
+// You should have received a copy of the License Agreement for the Notre
+// Dame C++ bindings for MPI along with the software; see the file
+// LICENSE.  If not, contact Office of Research, University of Notre
+// Dame, Notre Dame, IN 46556.
+// 
 // Permission to modify the code and to distribute modified code is
 // granted, provided the text of this NOTICE is retained, a notice that
 // the code was modified is included with the above COPYRIGHT NOTICE and
 // with the COPYRIGHT NOTICE in the LICENSE file, and that the LICENSE
 // file is distributed with the modified code.
-//
+// 
 // LICENSOR MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
 // By way of example, but not limitation, Licensor MAKES NO
 // REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY
 // PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE COMPONENTS
 // OR DOCUMENTATION WILL NOT INFRINGE ANY PATENTS, COPYRIGHTS, TRADEMARKS
 // OR OTHER RIGHTS.
+// 
+// Additional copyrights may follow.
 //
 
 #include "mpi++.h"
@@ -258,7 +260,7 @@ MPI::Comm::Get_errhandler() const
 MPI::Errhandler
 MPI::Comm::Create_errhandler(MPI::Comm::Errhandler_fn* function)
 {
-  return PMPI::Comm::Create_errhandler((PMPI::Comm::ERRHANDLERFN*)function);
+  return PMPI::Comm::Create_errhandler((PMPI::Comm::_MPI2CPP_ERRHANDLERFN_*)function);
 }
 
 
@@ -268,8 +270,8 @@ MPI::Comm::Create_keyval(MPI::Comm::Copy_attr_function* comm_copy_attr_fn,
 			 MPI::Comm::Delete_attr_function* comm_delete_attr_fn,
 			 void* extra_state)
 {
-  return PMPI::Comm::Create_keyval((PMPI::Comm::COPYATTRFN*)comm_copy_attr_fn, 
-				   (PMPI::Comm::DELETEATTRFN*)comm_delete_attr_fn, extra_state);
+  return PMPI::Comm::Create_keyval((PMPI::Comm::_MPI2CPP_COPYATTRFN_*)comm_copy_attr_fn, 
+				   (PMPI::Comm::_MPI2CPP_DELETEATTRFN_*)comm_delete_attr_fn, extra_state);
   
 }
 
@@ -302,8 +304,12 @@ MPI::Comm::NULL_COPY_FN(const MPI::Comm& oldcomm, int comm_keyval,
 			       void* extra_state, void* attribute_val_in,
 			       void* attribute_val_out, MPI2CPP_BOOL_T& flag)
 { 
-  return PMPI::Comm::NULL_COPY_FN(oldcomm.pmpi_comm, comm_keyval, extra_state, attribute_val_in,
-				  attribute_val_out, flag);
+  if (PMPI::Comm::NULL_COPY_FN != 0)
+    return PMPI::Comm::NULL_COPY_FN(oldcomm.pmpi_comm, comm_keyval, 
+				    extra_state, attribute_val_in,
+				    attribute_val_out, flag);
+  else
+    return MPI_SUCCESS;
 }
 
 int
@@ -319,7 +325,11 @@ int
 MPI::Comm::NULL_DELETE_FN(MPI::Comm& comm, int comm_keyval, void* attribute_val,
 				 void* extra_state)
 {
-  return PMPI::Comm::NULL_DELETE_FN(comm.pmpi_comm, comm_keyval, attribute_val, extra_state);
+  if (PMPI::Comm::NULL_DELETE_FN != 0)
+    return PMPI::Comm::NULL_DELETE_FN(comm.pmpi_comm, comm_keyval, 
+				      attribute_val, extra_state);
+  else
+    return MPI_SUCCESS;
 }
 
 

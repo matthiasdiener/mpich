@@ -17,7 +17,7 @@
 
 int main( int argc, char **argv )
 {
-  int size, rank, key, lrank, rsize, result, remLeader;
+  int size, rank, key, lrank, rsize, result, remLeader = 0;
   MPI_Comm myComm;
   MPI_Comm myFirstComm;
   MPI_Comm mySecondComm;

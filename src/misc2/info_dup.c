@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_dup.c,v 1.8 1999/08/30 15:47:34 swider Exp $    
+ *   $Id: info_dup.c,v 1.9 2000/07/20 16:14:07 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -71,13 +71,13 @@ EXPORT_MPI_API int MPI_Info_dup(MPI_Info info, MPI_Info *newinfo)
 	if (!curr_new->next) {
 	    return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, myname );
 	}
-	curr_new = curr_new->next;
+	curr_new	 = curr_new->next;
 	curr_new->cookie = 0;  /* cookie not set on purpose */
-	curr_new->key = strdup(curr_old->key);
-	curr_new->value = strdup(curr_old->value);
-	curr_new->next = 0;
+	curr_new->key	 = STRDUP(curr_old->key);
+	curr_new->value	 = STRDUP(curr_old->value);
+	curr_new->next	 = 0;
 	
-	curr_old = curr_old->next;
+	curr_old	 = curr_old->next;
     }
 
     return MPI_SUCCESS;

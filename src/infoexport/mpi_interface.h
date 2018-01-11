@@ -1,4 +1,4 @@
-/* $Header: /home/MPI/cvsMaster/mpich/src/infoexport/mpi_interface.h,v 1.5 1999/09/20 21:36:13 gropp Exp $ */
+/* $Header: /home/MPI/cvsMaster/mpich/src/infoexport/mpi_interface.h,v 1.6 2000/05/26 21:29:45 gropp Exp $ */
 /* $Locker:  $ */
 
 /**********************************************************************
@@ -482,6 +482,8 @@ extern int mqs_setup_operation_iterator (mqs_process *, int);
  * the current communicator, mqs_false when we've seen them all.
  */
 extern int mqs_next_operation (mqs_process *, mqs_pending_operation *);
+
+extern int mqs_dll_taddr_width( void );
 
 #ifdef	__cplusplus
 }

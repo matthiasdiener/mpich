@@ -1,5 +1,19 @@
-#include <stdlib.h>
 #include <stdio.h>
+
+#ifdef HAVE_SLOGCONF_H
+#include "slog_config.h"
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
+#include <stdlib.h>
+#endif
+#if defined( HAVE_UNISTD_H )
+#include <unistd.h>
+#endif
+#if defined(HAVE_STRING_H)
+/* For strlen and strcpy */
+#include <string.h>
+#endif
+
 #include "bswp_fileio.h"
 #include "slog_fileio.h"
 #include "slog_header.h"
@@ -28,6 +42,9 @@ static int filecopy( FILE *infd, FILE *outfd )
 
   Unmodified Input parameter:
 . pview_filename - pointer to the characters of the Preview's filename.
+                   If no file is supplied, "/dev/null" should be
+                   supplied to avoid checking of file SLOG_Preview.txt
+                   in working directory.
 
   Modified Input parameter :
 . slog - pointer to the SLOG_STREAM where interval records are stored.

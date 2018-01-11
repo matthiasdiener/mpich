@@ -70,8 +70,11 @@ int main( int argc, char *argv[] )
 		   MPI_COMM_WORLD );
 
     /* fputs("After MPI_Allreduce\n",stdout); */
-    if (rank == 0)
-	printf("all_to_all returned %d\n",gstatus);
+    if (rank == 0) {
+	if (gstatus == 0) printf( " No Errors\n" );
+	else 
+	    printf("all_to_all returned %d\n",gstatus);
+    }
 
     free(sb);
     free(rb);

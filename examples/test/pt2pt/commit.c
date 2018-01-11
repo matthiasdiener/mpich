@@ -77,7 +77,7 @@ int main( int argc, char **argv )
 	printf( "Found %d errors\n", err );
     }
     else {
-	printf( "No errors\n" );
+	printf( " No Errors\n" );
     }
     MPI_Type_free( &ntype );
     MPI_Type_free( &n2type );

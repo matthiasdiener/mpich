@@ -101,10 +101,14 @@ FLIB_PATH=""
 OPTFLAGS=""
 OPTFLAGSF=""
 NOF77=0
+HAS_CXX=no
 F77_EXTRA_FLAG=""
 HAS_FORTRAN=1
 MPILIBNAME=
 CFLAGS=""
+NOSHORTLONGS=no
+NO_LONG_LONG=no
+NO_LONG_DOUBLE=no
 # Change MPIFDEP to make Fortran builds depend on an mpif link.
 MPIFDEP=""
 #
@@ -117,7 +121,10 @@ CONFIGURE_ARGS="$*"
 DEFAULT_MACHINE=''
 DEVICE_KIND=MPP
 HAS_MPI2=0
-cross_compiling=0
+IO=""
+# Some autoconf tests check for cross_compiling being empty, rather than
+# having a value of 0 or 1 (or no or yes).
+cross_compiling=""
 # 
 BASECC=0
 BASEF77=0
@@ -280,6 +287,8 @@ do
 
      -mpi2)
 	HAS_MPI2=1
+	# add I/O test
+	IO="io"
 	;;
 
      -nof77 | --nof77)
@@ -289,6 +298,13 @@ do
        FC=true
        ;;
 	
+     -no-io | -disable-io | --disable-io)
+       IO=""
+       ;;
+     -enable-io | --enable-io | --enable-romio | -enable-romio)
+       IO="io"
+       ;;
+
      -nobanner)
 	nobanner=1
 	;;
@@ -297,6 +313,42 @@ do
 	set -x 
         configure_echo=1
 	;;
+
+     -no_short_longs | --no_short_longs | --disable-short-longs | -disable-short-longs)
+	NOSHORTLONGS=yes
+	NO_LONG_LONG="yes"
+	NO_LONG_DOUBLE="yes"
+	;;
+
+     --enable-short-longs | -enable-short-longs)
+	NOSHORTLONGS=no
+	NO_LONG_LONG="no"
+	NO_LONG_DOUBLE="no"
+	;;
+
+     --disable-long-long | -disable-long-long)
+	NO_LONG_LONG="yes"
+	enable_args="$enable_args --disable-long-long"
+	;;
+
+     --enable-long-long | --enable-long-long)
+	NO_LONG_LONG="no"
+	enable_args="$enable_args --enable-long-long"
+	;;
+
+     --disable-long-double | -disable-long-double)
+	NO_LONG_DOUBLE="yes"
+	enable_args="$enable_args --disable-long-double"
+	;;
+
+     --enable-long-double | --enable-long-double)
+	NO_LONG_DOUBLE="no"
+	enable_args="$enable_args --enable-long-double"
+	;;
+
+     --enable-c++ | -enable-c++)
+        HAS_CXX=yes
+        ;;
 
      -u | -usage | --usage | --usag | --usa | --us | --u | -help | --help )
 	print_usage >& 2
@@ -386,6 +438,7 @@ if test -n "$mpichpath" ; then
     if test -z "$MPICH_VERSION" ; then 
 	MPICH_VERSION="MPICH"
     fi
+    if test -z "$MPI_VERSION" ; then MPI_VERSION="MPICH" ; fi
 fi
 #
 if test $BASECC = 0 ; then
@@ -454,7 +507,13 @@ if test -z "$CC" ; then
     exit 1
 fi
 
-if test -z "$ac_echo_n" ; then
+
+if test -n "$pac_cv_cross_compiling" ; then
+    if test "$pac_cv_cross_compiling" = "yes" ; then
+	cross_compiling=1
+    fi
+else
+    if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -480,8 +539,8 @@ echo $ac_n "checking whether cross-compiling""... $ac_c"
 else
 echo $ac_n "checking whether cross-compiling""... $ac_c" 1>&1
 fi
-# If we cannot run a trivial program, we must be cross compiling.
-cat > conftest.c <<EOF
+    # If we cannot run a trivial program, we must be cross compiling.
+    cat > conftest.c <<EOF
 #include "confdefs.h"
 main(){exit(0);}
 EOF
@@ -493,8 +552,8 @@ else
   pac_ok=0
 fi
 rm -fr conftest*
-if test $pac_ok = 1 ; then
-    cat > conftest.c <<EOF
+    if test $pac_ok = 1 ; then
+         cat > conftest.c <<EOF
 #include "confdefs.h"
 main(){exit(1);}
 EOF
@@ -504,27 +563,31 @@ if test -s conftest && (./conftest; exit) 2>/dev/null; then
 
 fi
 rm -fr conftest*
-    if test $pac_ok = 1 ; then
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
+        if test $pac_ok = 1 ; then
+	    pac_cv_cross_compiling="no"
+            if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+        else
+            cross_compiling=1
+	    pac_cv_cross_compiling="yes"
+            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+        fi
     else
         cross_compiling=1
+        pac_cv_cross_compiling="yes"
         if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
     fi
-else
-    cross_compiling=1
-    if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""yes"
-else
-echo "$ac_t""yes" 1>&1
-fi
 fi
 
 
@@ -1127,8 +1190,12 @@ DEFS="$DEFS -DUSE_STDARG=1"
 
 fi
 #
-# Check for special types
-if test -z "$CC"; then
+# Check for special types.  Note that some systems cannot support long double,
+# even though the compiler can.  For example, there is no standard XDR form
+# for long double, so heterogeneous builds may need to ignore it.
+# 
+if test "$NOSHORTLONGS" = "no" -a "$NO_LONG_DOUBLE" = "no" ; then
+    if test -z "$CC"; then
   # Extract the first word of `gcc', so it can be a program name with args.
   set dummy gcc; word=$2
   echo checking for $word
@@ -1233,6 +1300,32 @@ fi
 rm -f conftest*
 
 if test $ldok = 1 ; then
+    if test -n "$cross_compiling"
+then
+  if test -n "$CROSS_HAS_LONG_DOUBLE" ; then 
+    if test "$CROSS_HAS_LONG_DOUBLE" = "yes" ; then 
+	
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LONG_DOUBLE"
+echo "#define" HAVE_LONG_DOUBLE 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LONG_DOUBLE=1"
+}
+
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+    else 
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    fi
+fi
+else
 cat > conftest.c <<EOF
 #include "confdefs.h"
 int main() {
@@ -1261,17 +1354,20 @@ else
 echo "$ac_t""no" 1>&1
 fi
 fi
+fi
 rm -fr conftest*
 else
-if test -z "$ac_echo_test" -a 1 = 1 ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
 fi
-fi
+fi #GCC
 
-if test -z "$ac_echo_n" ; then
+fi
+if test "$NOSHORTLONGS" = "no" -a "$NO_LONG_LONG" = "no" ; then
+    if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -1297,6 +1393,10 @@ echo $ac_n "checking for long long""... $ac_c"
 else
 echo $ac_n "checking for long long""... $ac_c" 1>&1
 fi
+if test -n "$cross_compiling"
+then
+  has_long_long=${CROSS_HAS_LONG_LONG:-0};
+else
 cat > conftest.c <<EOF
 #include "confdefs.h"
 int main() {
@@ -1306,20 +1406,26 @@ exit(sizeof(long long) < sizeof(long)); }
 EOF
 eval $compile
 if test -s conftest && (./conftest; exit) 2>/dev/null; then
-  if test -z "$ac_echo_test" -a 1 = 1 ; then
+  has_long_long=1
+
+else
+  has_long_long=0
+fi
+fi
+rm -fr conftest*
+if test "$has_long_long" = 1 ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
-fi;has_long_long=1
-
+fi
 else
-  if test -z "$ac_echo_test" -a 1 = 1 ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
-fi;has_long_long=0
 fi
-rm -fr conftest*
+fi
 if test "$has_long_long" = 1 ; then
    if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
@@ -1386,6 +1492,8 @@ echo "	defining HAVE_LONG_LONG_INT"
 echo "#define" HAVE_LONG_LONG_INT 1 >> confdefs.h
 DEFS="$DEFS -DHAVE_LONG_LONG_INT=1"
 }
+
+fi
 
 fi
 
@@ -1722,6 +1830,11 @@ EOF
     fi
     rm -f conftest*
 fi
+#
+# Eventually add C++
+# For now, just test mpiCC
+
+#
 
 # Substitute variables
 # Variables used in scripts only
@@ -1770,11 +1883,13 @@ do
   esac
 done
 
-trap 'rm -f Makefile pt2pt/Makefile coll/Makefile topol/Makefile context/Makefile env/Makefile profile/Makefile ; exit 1' 1 3 15
+trap 'rm -f Makefile pt2pt/Makefile coll/Makefile topol/Makefile \
+	context/Makefile env/Makefile profile/Makefile ; exit 1' 1 3 15
 prefix='$prefix'
 top_srcdir='$top_srcdir'
 VPATH='$VPATH'
 CC='$CC'
+HAS_CXX='$HAS_CXX'
 MPIRUNARGS='$MPIRUNARGS'
 FINC='$FINC'
 ARCH='$ARCH'
@@ -1790,6 +1905,7 @@ FLINKER='$FLINKER'
 HAS_FORTRAN='$HAS_FORTRAN'
 F77_EXTRA_FLAG='$F77_EXTRA_FLAG'
 INCLUDE_PATH='$INCLUDE_PATH'
+IO='$IO'
 LIB_LIST='$LIB_LIST'
 LIB_PATH='$LIB_PATH'
 LIB_DIR='$LIB_DIR'
@@ -1805,6 +1921,7 @@ MPIF77='$MPIF77'
 MPICPLUSPLUS='$MPICPLUSPLUS'
 MPIRUN='$MPIRUN'
 MPIRUNMVBACK='$MPIRUNMVBACK'
+MPI_VERSION='$MPI_VERSION'
 OPTFLAGS='$OPTFLAGS'
 OPTFLAGSC='$OPTFLAGSC'
 OPTFLAGSF='$OPTFLAGSF'
@@ -1821,7 +1938,8 @@ cat >> config.status <<\EOF
 
 top_srcdir=$srcdir
 
-CONFIG_FILES=${CONFIG_FILES-"Makefile pt2pt/Makefile coll/Makefile topol/Makefile context/Makefile env/Makefile profile/Makefile "}
+CONFIG_FILES=${CONFIG_FILES-"Makefile pt2pt/Makefile coll/Makefile topol/Makefile \
+	context/Makefile env/Makefile profile/Makefile "}
 for file in .. ${CONFIG_FILES}; do if test "x$file" != x..; then
   srcdir=$top_srcdir
   # Remove last slash and all that follows it.  Not all systems have dirname.
@@ -1840,6 +1958,7 @@ s%@prefix@%$prefix%g
 s%@top_srcdir@%$top_srcdir%g
 s%@VPATH@%$VPATH%g
 s%@CC@%$CC%g
+s%@HAS_CXX@%$HAS_CXX%g
 s%@MPIRUNARGS@%$MPIRUNARGS%g
 s%@FINC@%$FINC%g
 s%@ARCH@%$ARCH%g
@@ -1855,6 +1974,7 @@ s%@FLINKER@%$FLINKER%g
 s%@HAS_FORTRAN@%$HAS_FORTRAN%g
 s%@F77_EXTRA_FLAG@%$F77_EXTRA_FLAG%g
 s%@INCLUDE_PATH@%$INCLUDE_PATH%g
+s%@IO@%$IO%g
 s%@LIB_LIST@%$LIB_LIST%g
 s%@LIB_PATH@%$LIB_PATH%g
 s%@LIB_DIR@%$LIB_DIR%g
@@ -1870,12 +1990,13 @@ s%@MPIF77@%$MPIF77%g
 s%@MPICPLUSPLUS@%$MPICPLUSPLUS%g
 s%@MPIRUN@%$MPIRUN%g
 s%@MPIRUNMVBACK@%$MPIRUNMVBACK%g
+s%@MPI_VERSION@%$MPI_VERSION%g
 s%@OPTFLAGS@%$OPTFLAGS%g
 s%@OPTFLAGSC@%$OPTFLAGSC%g
-s%@OPTFLAGSF@%$OPTFLAGSF%g
+s%@OPTFLAGSF@%$OPTFLAGSF%g" | sed -e "
 s%@HAS_MPI2@%$HAS_MPI2%g
 s%@LIBS@%$LIBS%g
-s%@srcdir@%$srcdir%g" | sed -e "
+s%@srcdir@%$srcdir%g
 s%@DEFS@%$DEFS%
 " >> $file
 fi; done
@@ -1887,11 +2008,13 @@ chmod +x config.status
 ${CONFIG_SHELL-/bin/sh} ./config.status
 
 
-CONFIG_FILES="pt2pt/runtests coll/runtests topol/runtests context/runtests env/runtests profile/runtests"
+CONFIG_FILES="pt2pt/runtests coll/runtests topol/runtests context/runtests \
+	command/runtests env/runtests profile/runtests"
 export CONFIG_FILES
 ./config.status
 CONFIG_FILES=""
-for pac_file in pt2pt/runtests coll/runtests topol/runtests context/runtests env/runtests profile/runtests ; do 
+for pac_file in pt2pt/runtests coll/runtests topol/runtests context/runtests \
+	command/runtests env/runtests profile/runtests ; do 
     /bin/rm -f .pactmp
     sed -e '1d' $pac_file > .pactmp
     /bin/rm -f $pac_file

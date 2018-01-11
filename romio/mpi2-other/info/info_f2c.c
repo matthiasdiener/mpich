@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_f2c.c,v 1.4 1999/08/27 20:53:44 thakur Exp $    
+ *   $Id: info_f2c.c,v 1.6 2000/02/09 21:30:35 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +19,7 @@
 #endif
 
 /* Include mapping from MPI->PMPI */
-#define __MPIO_BUILD_PROFILING
+#define MPIO_BUILD_PROFILING
 #include "mpioprof.h"
 #endif
 #include "adio_extern.h"
@@ -36,12 +36,12 @@ Return Value:
 MPI_Info MPI_Info_f2c(MPI_Fint info)
 {
 
-#ifndef __INT_LT_POINTER
+#ifndef INT_LT_POINTER
     return (MPI_Info) info;
 #else
     if (!info) return MPI_INFO_NULL;
     if ((info < 0) || (info > MPIR_Infotable_ptr)) {
-	printf("MPI_Info_f2c: Invalid info handle\n");
+	FPRINTF(stderr, "MPI_Info_f2c: Invalid info handle\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
     return MPIR_Infotable[info];

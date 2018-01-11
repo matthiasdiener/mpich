@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_init.c,v 1.3 1999/08/06 18:32:53 thakur Exp $    
+ *   $Id: ad_init.c,v 1.6 2000/02/10 21:54:55 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -25,20 +25,22 @@ ADIO_File *ADIOI_Ftable;
 int ADIOI_Ftable_ptr, ADIOI_Ftable_max;
 ADIO_Request *ADIOI_Reqtable;
 int ADIOI_Reqtable_ptr, ADIOI_Reqtable_max;
-#ifndef __HAS_MPI_INFO
+#ifndef HAVE_MPI_INFO
 MPI_Info *MPIR_Infotable;
 int MPIR_Infotable_ptr, MPIR_Infotable_max;
 #endif
 
-#ifdef __XFS
+#ifdef XFS
 int ADIOI_Direct_read, ADIOI_Direct_write;
 #endif
 
 int ADIO_Init_keyval=MPI_KEYVAL_INVALID;
 
+MPI_Errhandler ADIOI_DFLT_ERR_HANDLER = MPI_ERRORS_RETURN;
+
 void ADIO_Init(int *argc, char ***argv, int *error_code)
 {
-#ifdef __XFS
+#ifdef XFS
     char *c;
 #endif
 
@@ -62,12 +64,12 @@ void ADIO_Init(int *argc, char ***argv, int *error_code)
     ADIOI_Reqtable = NULL;
     ADIOI_Reqtable_ptr = ADIOI_Reqtable_max = 0;
 
-#ifndef __HAS_MPI_INFO
+#ifndef HAVE_MPI_INFO
     MPIR_Infotable = NULL;
     MPIR_Infotable_ptr = MPIR_Infotable_max = 0;
 #endif
 
-#ifdef __XFS
+#ifdef XFS
     c = getenv("MPIO_DIRECT_READ");
     if (c && (!strcmp(c, "true") || !strcmp(c, "TRUE"))) 
 	ADIOI_Direct_read = 1;

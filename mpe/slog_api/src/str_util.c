@@ -1,6 +1,15 @@
-#include <ctype.h>
 #include <stdio.h>
+
+#ifdef HAVE_SLOGCONF_H
+#include "slog_config.h"
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_CTYPE_H )
+#include <ctype.h>
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STRING_H )
 #include <string.h>
+#endif
+
 #include "str_util.h"
 
 
@@ -29,7 +38,7 @@ char *SLOG_str_trim( char *str )
     static char  *valid_chars = "abcdefghijklmnopqrstvvwxyz"
                                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                 "0123456789_";
-           char  *str_beg, *str_end;
+           char  *str_beg, *str_end=0;
            int    str_lgth;
 
     /*  Locate the 1st valid char  */

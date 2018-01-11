@@ -20,11 +20,21 @@
  #include <stdio.h>
 **********************************/
 
+/* Type for get/setsockopt calls */
+#ifdef USE_SOCKLEN_T
+typedef socklen_t p4_sockopt_len_t;
+#elif defined(USE_SIZE_T_FOR_SOCKLEN_T)
+typedef size_t p4_sockopt_len_t;
+#else
+typedef int p4_sockopt_len_t;
+#endif
+
+
 /* #define DEBUG */
 
 char *start_prog_error;
 
-extern int errno;
+/* extern int errno; */
 
 /* 
    The strerror function may be defined in string.h .  If you get warnings 
@@ -58,7 +68,8 @@ char *(*pw_hook) ANSI_ARGS(( char *, char *));
     int new_port, new_fd, stdout_fd;
     char msg[500];
     struct sockaddr_in temp;
-    int rc, templen;
+    int rc;
+    p4_sockopt_len_t templen;
     int pid;
     struct timeval tv;
     fd_set rcv_fds;
@@ -323,9 +334,11 @@ char *buf;
     *bptr = 0;
 }
 
+/***** RMB now handled by autoconf
 #if defined(LINUX)
 #define NO_ECHO
 #endif
+*****/
 
 #if defined(P4BSD) && !defined(NO_ECHO)
 

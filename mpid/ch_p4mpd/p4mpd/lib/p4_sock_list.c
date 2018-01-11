@@ -38,7 +38,7 @@ P4VOID listener()
 		fd++;
 	    }
 
-	    p4_dprintfl(70, "got fd=%d listening_fd=%d slave_fd=%d\n",
+	    p4_dprintfl(00, "got fd=%d listening_fd=%d slave_fd=%d\n",
 			fd, l->listening_fd, l->slave_fd);
 
 	    /* We use |= to insure that after the loop, we haven't lost
@@ -120,7 +120,7 @@ int fd;
 	 * completed this one, i.e. do not want to interrupt it until it has
 	 * handled this interrupt
 	 */
-	p4_dprintfl(70, "waiting for slave to handle interrupt\n");
+	p4_dprintfl(00, "waiting for slave to handle interrupt\n");
 	net_recv(slave_fd, &msg, sizeof(msg));
 	/* Check that we get a valid message; for now (see p4_sock_conn/
 	   handle_connection_interrupt) this is just IGNORE_THIS */
@@ -130,7 +130,7 @@ int fd;
 	    p4_error("slave_listener_msg: broken handshake", 
 		     p4_i_to_n(msg.type));
 	    }
-	p4_dprintfl(70, "back from slave handling interrupt\n");
+	p4_dprintfl(00, "back from slave handling interrupt\n");
 	break;
 
       default:
@@ -161,7 +161,7 @@ int fd;
     switch (type)
     {
       case DIE:
-	p4_dprintfl(70, "received die msg from %d\n", from);
+	p4_dprintfl(00, "received die msg from %d\n", from);
 	rc = P4_TRUE;
 	break;
 
@@ -538,6 +538,9 @@ int size, secs;
 	}
 
 	if (n == 0)		/* maybe EOF, maybe not */
+/* this if test should be 
+   if defined(P4SYSV) && !defined(NONBLOCKING_READ_WORKS)      --RL2000
+*/ 
 #if defined(P4SYSV)
 	{
 	    eof_counter++;
@@ -546,6 +549,7 @@ int size, secs;
 	    tv.tv_usec = 0;
 	    FD_ZERO(&read_fds);
 	    FD_SET(fd, &read_fds);
+	    p4_dprintfl( 000, "selecting for 5 secs in net_recv_timeout\n" );
 	    SYSCALL_P4(n1, select(fd+1, &read_fds, 0, 0, &tv));
 	    if (n1 == 1  &&  FD_ISSET(fd, &read_fds))
 	    {
@@ -563,6 +567,7 @@ int size, secs;
 		else
 		    continue;
 	    }
+	    p4_dprintfl( 000, "sleeping for 1 sec in net_recv_timeout\n" );
 	    sleep(1);
 	    if (eof_counter < 5)
 		continue;

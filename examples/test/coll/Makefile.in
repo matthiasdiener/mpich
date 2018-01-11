@@ -11,7 +11,6 @@ FLINKER      = @MPIF77@
 OPTFLAGS     = @OPTFLAGS@
 MPIFDEP      = @MPIFDEP@
 MAKE         = @MAKE@
-F77_OPTFLAGS = @F77_EXTRA_FLAG@
 ### End User configurable options ###
 
 SHELL = /bin/sh
@@ -44,7 +43,7 @@ linktest: default clean
 
 all: testing
 
-fortran_tests: allredf assocf
+fortran_tests: allredf assocf bcastlog
 
 coll1: coll1.o test.o
 	$(CLINKER) $(OPTFLAGS) -o coll1 coll1.o test.o $(LIBS)
@@ -80,6 +79,8 @@ bcastbug: bcastbug.o test.o
 	$(CLINKER) $(OPTFLAGS) -o bcastbug bcastbug.o test.o $(LIBS)
 bcastvec: bcastvec.o test.o 
 	$(CLINKER) $(OPTFLAGS) -o bcastvec bcastvec.o test.o $(LIBS)
+bcastlog: $(MPIFDEP) bcastlog.o
+	$(FLINKER) $(OPTFLAGS) -o ./bcastlog bcastlog.o $(FLIBS)
 grouptest: grouptest.o test.o
 	$(CLINKER) $(OPTFLAGS) -o grouptest grouptest.o test.o $(LIBS)
 redtst: redtst.o test.o
@@ -125,9 +126,9 @@ longuser: longuser.o
 #	fi
 clean:
 	@-/bin/rm -f *.o *~ PI* $(EXECS) core *.out coll.diff *.trace mpif.h \
-		${srcdir}/*.o
+		${srcdir}/*.o *.stdo
 
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 .f.o:
-	$(F77) $(FFLAGS) $(F77_OPTFLAGS) -c $<
+	$(F77) $(FFLAGS) -c $<

@@ -1,26 +1,28 @@
-// Copyright 1997-1999, University of Notre Dame.
-// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
-//           Andrew Lumsdaine
-//
-// This file is part of the Notre Dame C++ bindings for MPI
-//
-// You should have received a copy of the License Agreement for the
-// Notre Dame C++ bindings for MPI along with the software;  see the
-// file LICENSE.  If not, contact Office of Research, University of Notre
-// Dame, Notre Dame, IN  46556.
-//
+// Copyright 1997-2000, University of Notre Dame.
+// Authors: Jeremy G. Siek, Jeffery M. Squyres, Michael P. McNally, and
+//          Andrew Lumsdaine
+// 
+// This file is part of the Notre Dame C++ bindings for MPI.
+// 
+// You should have received a copy of the License Agreement for the Notre
+// Dame C++ bindings for MPI along with the software; see the file
+// LICENSE.  If not, contact Office of Research, University of Notre
+// Dame, Notre Dame, IN 46556.
+// 
 // Permission to modify the code and to distribute modified code is
 // granted, provided the text of this NOTICE is retained, a notice that
 // the code was modified is included with the above COPYRIGHT NOTICE and
 // with the COPYRIGHT NOTICE in the LICENSE file, and that the LICENSE
 // file is distributed with the modified code.
-//
+// 
 // LICENSOR MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
 // By way of example, but not limitation, Licensor MAKES NO
 // REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY
 // PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE COMPONENTS
 // OR DOCUMENTATION WILL NOT INFRINGE ANY PATENTS, COPYRIGHTS, TRADEMARKS
 // OR OTHER RIGHTS.
+// 
+// Additional copyrights may follow.
 /****************************************************************************
 
  MESSAGE PASSING INTERFACE TEST CASE SUITE
@@ -58,6 +60,7 @@
 ****************************************************************************
 */
 #include "mpi2c++_test.h"
+#include <unistd.h>
 
 void
 rsend()
@@ -65,18 +68,20 @@ rsend()
   char *buf;
   char msg[150];
   int flag;
-  int i;
   MPI::Status status;
 
   buf = new char[10];
   flag = 0; 
 
-  Testing( (char *)"Rsend");
+  Testing("Rsend");
 
   if((my_rank % 2)== 1) {
     strcpy(buf, "NULL");
-    
-    MPI::COMM_WORLD.Recv(buf, 10 * sizeof(char), MPI::CHAR, my_rank - 1, 1);
+
+    MPI::Request req = MPI::COMM_WORLD.Irecv(buf, 10 * sizeof(char), 
+					     MPI::CHAR, my_rank - 1, 1);
+    MPI::COMM_WORLD.Barrier();
+    req.Wait();
     
     flag = strcmp(buf, "Mad Dog");
     if(flag) {
@@ -84,8 +89,8 @@ rsend()
       Fail(msg);
     }
   } else if((my_rank % 2) == 0) {
-    for(i = 0; i < 100000; i++) ; // Do work so recv can be posted.
     strcpy(buf, "Mad Dog");
+    MPI::COMM_WORLD.Barrier();
     MPI::COMM_WORLD.Rsend(buf, 10 * sizeof(char), MPI::CHAR, my_rank + 1, 1); 
   }
 

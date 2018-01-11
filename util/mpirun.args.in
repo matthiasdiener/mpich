@@ -1,16 +1,5 @@
 #! /bin/sh
-if [ "$MPIR_HOME" = "" ] ; then 
-    MPIR_HOME=#MPIR_HOME#
-fi
-if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
-    MPIR_HOME=`pwd`/..
-fi
-EXECER=#EXECER_DIR#/execer
-if [ "#MPIRUN_BIN#" = "#""MPIRUN_BIN""#" ] ; then 
-    MPIRUN_HOME=$MPIR_HOME/bin
-else
-    MPIRUN_HOME=#MPIRUN_BIN#
-fi
+EXECER=$EXECER_DIR/execer
 MEIKO_RUN=prun
 SP1_RUN=/usr/lpp/euih/eui/cotb0
 jobid=$$
@@ -18,11 +7,11 @@ progname=
 fake_progname=
 np=1
 arch=
-default_arch='#DEFAULT_ARCH#'
-machine='#DEFAULT_MACHINE#'
-default_device='#DEFAULT_DEVICE#'
+default_arch="$DEFAULT_ARCH"
+machine=$DEFAULT_MACHINE
+default_device=$DEFAULT_DEVICE
 execer_machine=1
-cmdLineArgs=
+cmdLineArgs=""
 cmdLineArgsExecer=
 cmdline=
 CAC=
@@ -38,9 +27,7 @@ globusargs=
 just_testing=0
 machineFile=
 debugger=""
-commandfile=""
-rmcommandfile=""
-rshcmd=#RSHCOMMAND#
+rshcmd="$RSHCOMMAND"
 mvhome=0
 mvback=
 narch=0
@@ -123,14 +110,18 @@ cat <<EOF
     -t      Testing - do not actually run, just print what would be
             executed
     -v      Verbose - throw in some comments
-    -dbx    Start the first process under dbx where possible
-    -gdb    Start the first process under gdb where possible
-             (on the Meiko, selecting either -dbx or -gdb starts prun
-             under totalview instead)
-    -ddd    Start the first process under the ddd debugger (untested)
-    -xxgdb  Start the first process under xxgdb where possible (-xdbx
-            does not work)
-    -tv     Start under totalview
+    -dbg    The option '-dbg' may be used to select a debugger.  For example,
+            -dbg=gdb invokes the mpirun_dbg.gdb script located in the 
+	    'mpich/bin' directory.  This script captures the correct arguments,
+            invokes the gdb debugger, and starts the first process under gdb 
+            where possible.  There are 4 debugger scripts; gdb, xxgdb, ddd, 
+	    totalview.  These may need to be edited depending on your system.
+            There is another debugger script for dbx, but this one will always
+            need to be edited as the debugger commands for dbx varies between 
+            versions.  You can also use this option to call another debugger; 
+            for example, -dbg=mydebug.  All you need to do is write a script 
+            file, 'mpirun_dbg.mydebug', which follows the format of the 
+            included debugger scripts, and place it in the mpich/bin directory.
     -ksq    Keep the send queue. This is useful if you expect later
             to attach totalview to the running (or deadlocked) job, and
 	    want to see the send queues. (Normally they are not maintained 
@@ -155,18 +146,6 @@ cat <<EOF
                        releases the processors.
 	          
 	          
-      Special Options for Globus device:
-  
-    -globusrsl filename
-	    Use the given Globus startup file instead of creating one.
-	    Overrides -np and -nolocal, selects -leave_pg.
-    
-    -globusdb filename
-	    Use the given Globus resource database.
-
-    -globusargs args
-            Special arguments for Globus
-
     Special Options for Batch Environments:
 
     -mvhome Move the executable to the home directory.  This 
@@ -272,6 +251,10 @@ while [ 1 -le $# ] ; do
 	eval machineFile$narch="$1"
 	shift
 	;;
+    -randommachines)
+        MPIRUN_RANDOM="yes"
+	export MPIRUN_RANDOM
+        ;;
     -device)
  	default_device="$1"
 	shift
@@ -316,23 +299,6 @@ while [ 1 -le $# ] ; do
         easy_jid="$1"
         shift
         ;;
-    -globusrsl)
-	if [ $np -gt 1 ] ; then
-	    echo "-globusrsl and -np are mutally exlusive; -np $np being ignored."
-	    np=1
-	fi
-	globuspgfile="$1"
-	shift
-	leavePGFile=1
-	;;
-    -globusdb)
-	globusdbfile="$1"
-	shift
-	;;
-    -globusargs)
-	globusargs="$1"
-	shift
-	;;
 #    -p4pg)
 #      	if [ $np -gt  1 ] ; then
 #	    echo "-p4pg and -np are mutually exclusive; -np $np being ignored."
@@ -360,30 +326,33 @@ while [ 1 -le $# ] ; do
       	just_testing=1
 	Show=echo
 	;;
+#   This option is deprecated
     -tv|-totalview)
         debugger="totalview"
 	;;
     -ksq)
         cmdLineArgs="$cmdLineArgs -mpichksq"
         ;;
+    -dbg=* | --dbg=*)
+        debugger=`echo $arg|sed 's/-*dbg=//'`
+	;;
+#   This option is deprecated
     -dbx)
       	debugger="dbx"
- 	commandfile="-sr %f"
-	# For some systems, commandfile="-c %f" will ALMOST work (it
-        # will leave the file behind)
       	;;
+#   This option is deprecated
     -gdb)
       	debugger="gdb"
-      	commandfile="-x %f"
 	;;
+#   This option is deprecated
     -xxgdb)
       	debugger="xxgdb"
-      	commandfile="--command=%f"
 	;;
+#   This option is deprecated
     -ddd)
 	debugger="ddd"
-        commandfile="--command=%f"
 	;;
+#   This option is deprecated
     -pedb)
 	# For IBM SP
 	debugger="pedb"
@@ -498,15 +467,6 @@ echo "mem: Memory requested ($mem MB/node) greater than maximum available ($max_
       ;;
   esac
 done
-if [ "$machine" = "#""DEFAULT_MACHINE""#" ] ; then
-    machine=""
-fi
-if [ "$default_arch" = "#""DEFAULT_ARCH""#" ] ; then
-    default_arch=sun4
-fi
-if [ "$default_device" = "#""DEFAULT_DEVICE""#" ] ; then
-    default_device=ch_p4
-fi
 
 # We need at least the program name
 
@@ -534,11 +494,6 @@ fi
 #
 larch=$arch
 if [ -z "$larch" ] ; then larch=$default_arch ; fi
-if [ "$debugger" = "dbx" -a \( "$larch" = "alpha" -o "$larch" = "IRIX" \
-	-o "$larch" = "SGI" -o "$larch" = "IRIX64" \) ] ; then
-    commandfile="-c"
-    rmcommandfile="/bin/rm -f"
-fi
 #
 # Fill out relative program pathnames
 #
@@ -562,14 +517,14 @@ fi
 # particular filename, since this will fail if the directory is not
 # writable by the user.
 # 
-if [ -n "#AUTOMOUNTFIX#" ] ; then
-    PWDtest=`pwd | #AUTOMOUNTFIX#`
+if [ -n "$AUTOMOUNTFIX" ] ; then
+    PWDtest=`pwd | $AUTOMOUNTFIX`
     if [ ! -d $PWDtest ] ; then
         PWDtest=`pwd`
     fi
     if [ -n "$PWD" ] ; then
 	# Use a process-specific filename
-	PWDtest2=`echo $PWD | #AUTOMOUNTFIX#`
+	PWDtest2=`echo $PWD | $AUTOMOUNTFIX`
         /bin/rm -f $PWDtest/.mpirtmp$$ $PWDtest2/.mpirtmp$$
         if `eval "echo test > $PWDtest2/.mpirtmp$$" 2>/dev/null` ; then
             if [ ! -s $PWDtest/.mpirtmp$$ ] ; then
@@ -612,8 +567,14 @@ fi
 # Note that some architecture/device combinations have their own, private
 # devices
 #
-if [ "$arch" = "" ] ; then
-  arch=`$MPIR_HOME/bin/tarch`
+if [ "$arch" = "" -a -x $bindir/tarch ] ; then
+  # This would be ok for systems that had a unique architecture.
+  # For IRIX, this isn't good enough
+  arch=`$bindir/tarch`
+  if [ "$arch" = "IRIX64" -a \( "$default_arch" = "IRIX" -o \
+			       "$default_arch" = "IRIXN32" \) ] ; then
+      arch=$default_arch			       
+  fi
 fi
 
 archlist="$arch"

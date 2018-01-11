@@ -1,11 +1,6 @@
 #! /bin/sh
 #
-# MPI-1.2 C++ bindings
-#
-# Copyright (C) 1997  Jeremy G. Siek, Michael P. McNally
-#                     Jeffrey M. Squyres, Andrew Lumsdaine
-# 
-# INSERT LICENSE HERE
+# $COPYRIGHT$
 #
 # The purpose of this script is to make compiling and linking MPI C++ programs
 # easier by automatically putting in many of the right compiler options.

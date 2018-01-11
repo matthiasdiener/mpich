@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <math.h>
 
+double f( double );
+
 double f( double a )
 {
     return (4.0 / (1.0 + a*a));
@@ -12,7 +14,7 @@ int main( int argc, char *argv[])
     int done = 0, n, myid, numprocs, i;
     double PI25DT = 3.141592653589793238462643;
     double mypi, pi, h, sum, x;
-    double startwtime, endwtime;
+    double startwtime = 0.0, endwtime;
     int  namelen;
     char processor_name[MPI_MAX_PROCESSOR_NAME];
 

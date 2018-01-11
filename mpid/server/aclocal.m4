@@ -291,3 +291,49 @@ EOF
 fi
 rm -rf conftest*
 ])dnl
+dnl
+dnl from sowing/confdb/aclocal_cc.m4.  Change that copy if you fix a bug int
+dnl the below macro.
+AC_DEFUN(PAC_C_TRY_COMPILE_CLEAN,[
+$3=2
+dnl Get the compiler output to test against
+if test -z "$pac_TRY_COMPLILE_CLEAN" ; then
+    rm -f conftest*
+    echo 'int try(void);int try(void){return 0;}' > conftest.c
+    if ${CC-cc} $CFLAGS -c conftest.c >conftest.bas 2>&1 ; then
+	if test -s conftest.bas ; then 
+	    pac_TRY_COMPILE_CLEAN_OUT=`cat conftest.bas`
+        fi
+        pac_TRY_COMPILE_CLEAN=1
+    else
+	AC_MSG_WARN([Could not compile simple test program!])
+	if test -s conftest.bas ; then 	cat conftest.bas >> config.log ; fi
+    fi
+fi
+dnl
+dnl Create the program that we need to test with
+rm -f conftest*
+cat >conftest.c <<EOF
+#include "confdefs.h"
+[$1]
+[$2]
+EOF
+dnl
+dnl Compile it and test
+if ${CC-cc} $CFLAGS -c conftest.c >conftest.bas 2>&1 ; then
+    dnl Success.  Is the output the same?
+    if test "$pac_TRY_COMPILE_CLEAN_OUT" = "`cat conftest.bas`" ; then
+	$3=0
+    else
+        cat conftest.c >>config.log
+	if test -s conftest.bas ; then 	cat conftest.bas >> config.log ; fi
+        $3=1
+    fi
+else
+    dnl Failure.  Set flag to 2
+    cat conftest.c >>config.log
+    if test -s conftest.bas ; then cat conftest.bas >> config.log ; fi
+    $3=2
+fi
+rm -f conftest*
+])

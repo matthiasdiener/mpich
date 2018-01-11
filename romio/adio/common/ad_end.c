@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_end.c,v 1.2 1998/06/02 18:56:02 thakur Exp $    
+ *   $Id: ad_end.c,v 1.5 2000/02/10 21:54:54 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -14,7 +14,7 @@ void ADIO_End(int *error_code)
     ADIOI_Malloc_async *tmp;
     ADIOI_Malloc_req *tmp1;
     
-/*    printf("reached end\n"); */
+/*    FPRINTF(stderr, "reached end\n"); */
 
 /* delete the flattened datatype list */
     curr = ADIOI_Flatlist;
@@ -28,7 +28,7 @@ void ADIO_End(int *error_code)
     ADIOI_Flatlist = NULL;
 
     if (ADIOI_Async_list_head) {
-	printf("ADIO_End: Error! There are outstanding nonblocking I/O operations!\n");
+	FPRINTF(stderr, "ADIO_End: Error! There are outstanding nonblocking I/O operations!\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
@@ -54,7 +54,7 @@ void ADIO_End(int *error_code)
 /* free file, request, and info tables used for Fortran interface */
     if (ADIOI_Ftable) ADIOI_Free(ADIOI_Ftable);
     if (ADIOI_Reqtable) ADIOI_Free(ADIOI_Reqtable);
-#ifndef __HAS_MPI_INFO
+#ifndef HAVE_MPI_INFO
     if (MPIR_Infotable) ADIOI_Free(MPIR_Infotable);
 #endif
 

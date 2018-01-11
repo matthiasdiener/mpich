@@ -1,26 +1,28 @@
-// Copyright 1997-1999, University of Notre Dame.
-// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
-//           Andrew Lumsdaine
-//
-// This file is part of the Notre Dame C++ bindings for MPI
-//
-// You should have received a copy of the License Agreement for the
-// Notre Dame C++ bindings for MPI along with the software;  see the
-// file LICENSE.  If not, contact Office of Research, University of Notre
-// Dame, Notre Dame, IN  46556.
-//
+// Copyright 1997-2000, University of Notre Dame.
+// Authors: Jeremy G. Siek, Jeffery M. Squyres, Michael P. McNally, and
+//          Andrew Lumsdaine
+// 
+// This file is part of the Notre Dame C++ bindings for MPI.
+// 
+// You should have received a copy of the License Agreement for the Notre
+// Dame C++ bindings for MPI along with the software; see the file
+// LICENSE.  If not, contact Office of Research, University of Notre
+// Dame, Notre Dame, IN 46556.
+// 
 // Permission to modify the code and to distribute modified code is
 // granted, provided the text of this NOTICE is retained, a notice that
 // the code was modified is included with the above COPYRIGHT NOTICE and
 // with the COPYRIGHT NOTICE in the LICENSE file, and that the LICENSE
 // file is distributed with the modified code.
-//
+// 
 // LICENSOR MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
 // By way of example, but not limitation, Licensor MAKES NO
 // REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY
 // PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE COMPONENTS
 // OR DOCUMENTATION WILL NOT INFRINGE ANY PATENTS, COPYRIGHTS, TRADEMARKS
 // OR OTHER RIGHTS.
+// 
+// Additional copyrights may follow.
 /****************************************************************************
 
  MESSAGE PASSING INTERFACE TEST CASE SUITE
@@ -77,28 +79,28 @@ cancel()
   data = 13;
   request = MPI::REQUEST_NULL;
 
-  Testing( (char *)"Cancel");
+  Testing("Cancel");
 
-  if (flags[SKIP_MPICH1013])
-    Done( (char *)"Skipped (MPICH 1.0.13)");
-  else if (flags[SKIP_MPICH110])
-    Done( (char *)"Skipped (MPICH 1.1.0)");
-  else if (flags[SKIP_MPICH111])
-    Done( (char *)"Skipped (MPICH 1.1.1)");
-  else if (flags[SKIP_MPICH112])
-    Done( (char *)"Skipped (MPICH 1.1.2)");
-  else if (flags[SKIP_SGI20])
-    Done( (char *)"Skipped (SGI 2.0)");
+  if (flags[SKIP_SGI20])
+    Done("Skipped (SGI 2.0)");
   else if (flags[SKIP_SGI30])
-    Done( (char *)"Skipped (SGI 3.0)");
-  else if (flags[SKIP_LAM61])
-    Done( (char *)"Skipped (LAM 6.1)");
+    Done("Skipped (SGI 3.0)");
+  else if (flags[SKIP_SGI31])
+    Done("Skipped (SGI 3.1)");
+  else if (flags[SKIP_SGI32])
+    Done("Skipped (SGI 3.2)");
+  else if (flags[SKIP_LAM63])
+    Done("Skipped (LAM 6.3.x)");
+  else if (flags[SKIP_LAM64])
+    Done("Skipped (LAM 6.4.x)");
   else if (flags[SKIP_CRAY1104])
-    Done( (char *)"Skipped (CRAY 1.1.0.4)");
+    Done("Skipped (CRAY 1.1.0.4)");
   else if (flags[SKIP_HPUX0102])
-    Done( (char *)"Skipped (HPUX 01.02)");
+    Done("Skipped (HPUX 01.02)");
+  else if (flags[SKIP_IBM2_3_0_0])
+    Done("Skipped (IBM POE 2.3.0.0)");
   else { 
-#if (HPUX0103 || HPUX0105)
+#if (MPI2CPP_HPUX0103 || MPI2CPP_HPUX0105)
     if (getenv("MPI_FLAGS") == 0) {
       if (my_rank == 0) {
 	cout << endl << endl 
@@ -115,14 +117,12 @@ cancel()
       Fail("MPI_FLAGS not set");   
     }
 #endif
-    if((my_rank % 2) == 0)  {
+    if ((my_rank % 2) == 0)  {
       data = 5;
 
       request = MPI::COMM_WORLD.Isend(&data, 1, MPI::INT, my_rank + 1, 5);
       request.Cancel();
-      MPI::COMM_WORLD.Barrier();
       request.Wait(status);
-      
 
       flag = status.Is_cancelled();
       if(!flag) {
@@ -131,22 +131,20 @@ cancel()
 	Fail(msg);
       }
       
+      MPI::COMM_WORLD.Barrier();
       data = 6;
       MPI::COMM_WORLD.Send(&data, 1, MPI::INT, my_rank + 1, 5);
-    } else if((my_rank % 2) == 1) {
+    } else if ((my_rank % 2) == 1) {
       MPI::COMM_WORLD.Barrier();
 
       data = 0;
       
       MPI::COMM_WORLD.Recv(&data, 1, MPI::INT, my_rank - 1, 5, status);
-      if(data != 6) {
+      if (data != 6) {
 	sprintf(msg, "NODE %d - 4) ERROR: Isend request not cancelled! Data = %d, should be 6", my_rank, data);
 	Fail(msg);
       }
     }
     Pass(); // Cancel
   }
-
-  if(request != MPI::REQUEST_NULL)
-    request.Free();
 }

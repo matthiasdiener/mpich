@@ -1,5 +1,5 @@
 /*
- *  $Id: chpackflow.c,v 1.5 1999/08/05 20:59:08 swider Exp $
+ *  $Id: chpackflow.c,v 1.8 2000/07/17 20:49:56 swider Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -20,16 +20,12 @@ MPID_Packets MPID_pack_info;
 /* Initialize packet flow struct and arrays */
 void MPID_PacketFlowSetup( ) 
 {  /* begin MPID_PacketFlowSetup */
-
     int i;
 
-    for (i=0; i<MPID_MyWorldSize; i++) {  /* begin for i loop */
-	MPID_pack_info.pack_sent = (int *)MALLOC(MPID_MyWorldSize * 
-						 sizeof(int));
-	MPID_pack_info.pack_rcvd = (int *)MALLOC(MPID_MyWorldSize * 
-						 sizeof(int));
-    }  /* end for i loop */
-
+    MPID_pack_info.pack_sent = (int *)MALLOC(MPID_MyWorldSize * 
+					     sizeof(int));
+    MPID_pack_info.pack_rcvd = (int *)MALLOC(MPID_MyWorldSize * 
+					     sizeof(int));
     for (i=0; i<MPID_MyWorldSize; i++) {  /* begin for i loop */
 	MPID_pack_info.pack_sent[i] = 0;
 	MPID_pack_info.pack_rcvd[i] = 0;
@@ -40,7 +36,6 @@ void MPID_PacketFlowSetup( )
     expect_ack = 0;
 #endif
 }  /* end MPID_PacketFlowSetup */
-
 
 /* Send Protocol ACK packet */
 void MPID_SendProtoAck( me, partner )
@@ -156,20 +151,21 @@ int        partner;
 #ifdef MPID_GET_LAST_PKT
 /* Make sure you receive all unacked packets.  If this is not called,
    MPID_CH_End will hang */
-void MPID_FinishRecvPackets( dev )
-MPID_Device *dev;
-
+void MPID_FinishRecvPackets( MPID_Device *dev )
 {  /* begin MPID_FinishRecvPackets */
 
 
     DEBUG_PRINT_MSG("Entering MPID_FinishRecvPackets");
-    
+    DEBUG_PRINT_MSG("Entering while expect_ack > 0");    
     while (expect_ack > 0) 
 	MPID_DeviceCheck( MPID_BLOCKING );
+    DEBUG_PRINT_MSG("Leaving while expect_ack > 0");    
 
+    DEBUG_PRINT_MSG("Entering while total_pack_unacked > 0");    
     while (total_pack_unacked > 0) 
 	MPID_DeviceCheck( MPID_BLOCKING );
-    
+    DEBUG_PRINT_MSG("Leaving while total_pack_unacked > 0");    
+
     DEBUG_PRINT_MSG("Leaving MPID_FinishRecvPackets");
 
 }  /* end MPID_FinishRecvPackets */

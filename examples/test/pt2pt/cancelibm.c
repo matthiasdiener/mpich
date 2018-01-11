@@ -34,6 +34,7 @@
 				  
   ****************************************************************************
 */
+#include <stdio.h>
 #include "mpi.h"
 
 int main(int argc, char *argv[])
@@ -41,6 +42,7 @@ int main(int argc, char *argv[])
 	int me, tasks, data, flag;
 	int err0 = 0;
 	int err1 = 0;
+	int errs, toterrs;
 	MPI_Request request;
 	MPI_Status status;
 
@@ -55,7 +57,7 @@ int main(int argc, char *argv[])
 	
 	{ int data[100000]; if (me == 0)  
 	{
-		MPI_Irecv(&data, 1, MPI_INT, 1, 1, MPI_COMM_WORLD,&request);
+		MPI_Irecv(data, 1, MPI_INT, 1, 1, MPI_COMM_WORLD,&request);
 		MPI_Cancel(&request);
 		MPI_Wait(&request,&status);
 		MPI_Test_cancelled(&status,&flag);
@@ -64,7 +66,7 @@ int main(int argc, char *argv[])
 		    printf("task %d ERROR: Receive request not cancelled!\n", me);
 		}
 
-		MPI_Issend(&data, 100000, MPI_INT, 1, 1, MPI_COMM_WORLD,&request);
+		MPI_Issend(data, 100000, MPI_INT, 1, 1, MPI_COMM_WORLD,&request);
 		MPI_Cancel(&request);
 		MPI_Wait(&request, &status);
 		
@@ -124,12 +126,15 @@ int main(int argc, char *argv[])
 	    }
 	    MPI_Barrier(MPI_COMM_WORLD);
 	}
-
-	if ( (err0) || (err1) ) {
-	    printf( "Test failed with %d errors.\n", err0 + err1 );
+	
+	errs = err0 + err1;
+	MPI_Reduce( &errs, &toterrs, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD );
+	    
+	if ( errs ) {
+	    printf( "Test failed with %d errors.\n", errs );
 	}
-	else {
-	    printf( "Test passed\n" );
+	if (me == 0 && toterrs == 0) {
+	    printf( " No Errors\n" );
 	}
 	      
 	MPI_Finalize();

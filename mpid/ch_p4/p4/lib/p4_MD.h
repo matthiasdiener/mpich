@@ -423,10 +423,18 @@ typedef int MD_lock_t;
     || defined(TITAN)   || defined(NETBSD) \
     || defined(HP)
 
+/* Increase P4_SYSV_SHM_SEGSIZE if you need more memory per segment.  
+   Not all (few?) systems may support larger segments */
+#ifndef P4_SYSV_SHM_SEGSIZE
 #    define P4_SYSV_SHM_SEGSIZE (1*1024*1024)
+#endif
 
 #    if defined(SYSV_IPC)
+/* Increase GLOBMEMSIZE to allow more memory.  Not all systems will be 
+   able to allocate large amounts of shared memory */
+#ifndef GLOBMEMSIZE
 #        define GLOBMEMSIZE  (4*1024*1024)
+#endif
 #        define CAN_DO_SOCKET_MSGS
 #        define CAN_DO_XDR
 #        define CAN_DO_SHMEM_MSGS
@@ -448,7 +456,11 @@ typedef int MD_lock_t;
 #    endif
 
 #    if !defined(SYSV_IPC)  &&  !defined(VENDOR_IPC)
+/* Increase GLOBMEMSIZE to allow more memory.  Not all systems will be 
+   able to allocate large amounts of shared memory */
+#ifndef GLOBMEMSIZE
 #        define GLOBMEMSIZE  (4*1024*1024)
+#endif
 #        define CAN_DO_SOCKET_MSGS
 #        define CAN_DO_XDR
 #        define P4_MAX_MSG_QUEUES 1
@@ -467,7 +479,11 @@ typedef int MD_lock_t;
 #define P4_MAX_MSG_QUEUES 8
 #    define CAN_DO_SHMEM_MSGS
 #    define USE_XX_SHMALLOC
+/* Increase GLOBMEMSIZE to allow more memory.  Not all systems will be 
+   able to allocate large amounts of shared memory */
+#ifndef GLOBMEMSIZE
 #    define GLOBMEMSIZE  (16*1024*1024)
+#endif
      typedef mutex_t MD_lock_t;
 #    define MD_lock_init(l) mutex_init(l,USYNC_PROCESS,(P4VOID *)NULL)
 #    define MD_lock(l)      mutex_lock(l)
@@ -483,7 +499,11 @@ typedef int MD_lock_t;
 #    include <ulocks.h>
 #    include <malloc.h>
 #    define CAN_DO_SHMEM_MSGS
+/* Increase GLOBMEMSIZE to allow more memory.  Not all systems will be 
+   able to allocate large amounts of shared memory */
+#ifndef GLOBMEMSIZE
 #    define GLOBMEMSIZE  (16*1024*1024)
+#endif
      typedef usema_t *MD_lock_t;
 /*   MD_lock_init must be defined in p4_MD.c */
 /*   spinlock method */
@@ -498,7 +518,8 @@ typedef int MD_lock_t;
 
 
 /* following is for POSIX std versions of Unix */
-#if defined(SGI)  ||  defined(RS6000)  ||  defined(HP)
+/*  if defined(SGI)  ||  defined(RS6000)  ||  defined(HP) ||  */
+#if defined(HAVE_UNISTD_H)
 #include <unistd.h>
 #endif
 
@@ -535,7 +556,11 @@ typedef int MD_lock_t;
 #define MD_unlock(l)
 #endif
 
+/* Increase GLOBMEMSIZE to allow more memory.  Not all systems will be 
+   able to allocate large amounts of shared memory */
+#ifndef GLOBMEMSIZE
 #define GLOBMEMSIZE  (1*1024*1024)
+#endif
 #define CAN_DO_CUBE_MSGS
 #define P4_MAX_MSG_QUEUES 1
 
@@ -584,7 +609,11 @@ typedef int MD_lock_t;
 #define MD_unlock(l)
 #endif
 
+/* Increase GLOBMEMSIZE to allow more memory.  Not all systems will be 
+   able to allocate large amounts of shared memory */
+#ifndef GLOBMEMSIZE
 #define GLOBMEMSIZE  (1*1024*1024)
+#endif
 #define CAN_DO_CUBE_MSGS
 #define P4_MAX_MSG_QUEUES 1
 
@@ -616,7 +645,11 @@ typedef int MD_lock_t;
 #define MD_unlock(l)
 #endif
 
+/* Increase GLOBMEMSIZE to allow more memory.  Not all systems will be 
+   able to allocate large amounts of shared memory */
+#ifndef GLOBMEMSIZE
 #define GLOBMEMSIZE  (1*1024*1024)
+#endif
 #define CAN_DO_CUBE_MSGS
 #define P4_MAX_MSG_QUEUES 1
 
@@ -640,7 +673,11 @@ typedef int MD_lock_t;
 #include <pthread.h>
 
 #define USE_XX_SHMALLOC
+/* Increase GLOBMEMSIZE to allow more memory.  Not all systems will be 
+   able to allocate large amounts of shared memory */
+#ifndef GLOBMEMSIZE
 #define GLOBMEMSIZE  (16*1024*1024)
+#endif
 #define P4_MAX_MSG_QUEUES 64
 #define CAN_DO_SOCKET_MSGS
 #define CAN_DO_XDR
@@ -676,7 +713,11 @@ static unsigned int allocated = 0;
 #define MD_unlock(l)    simple_unlock(l)
 #endif
 
+/* Increase GLOBMEMSIZE to allow more memory.  Not all systems will be 
+   able to allocate large amounts of shared memory */
+#ifndef GLOBMEMSIZE
 #define GLOBMEMSIZE  (8*1024*1024)
+#endif
 #define CAN_DO_SOCKET_MSGS
 #define CAN_DO_XDR
 #define CAN_DO_SHMEM_MSGS

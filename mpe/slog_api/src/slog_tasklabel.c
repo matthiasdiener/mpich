@@ -1,4 +1,7 @@
 #include <stdio.h>
+#ifdef HAVE_SLOGCONF_H
+#include "slog_config.h"
+#endif
 #include "slog_tasklabel.h"
 
 

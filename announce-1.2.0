@@ -1,0 +1,87 @@
+
+
+			     MPICH, release 1.2.0
+
+
+This is to announce the release of version 1.2.0 of MPICH, a portable
+implementation of the Message-Passing Interface standard.  The new release can
+be downloaded from http://www.mcs.anl.gov/mpi/mpich or (Unix versions only) by
+anonymous ftp from ftp://ftp.mcs.anl.gov/pub/mpi/mpich.tar.gz.
+
+			      What's New in 1.2?
+
+Version 1.2.0 is primarily a bug fix and increased portability release,
+especially for LINUX-based clusters.  The Abstract Device Interface is
+essentially unchanged.  The structure and basic capabilities of MPICH are the
+same as in version 1.1.2.  However, there are a number of interesting new
+features.
+
+   Full compliance with the 1.2 version of the MPI Standard, including
+   implementation of MPI_Cancel for sends.
+
+   Flow control for all of the channel-based devices.  We have adopted the
+   flow-control style defined by the IMPI (Interoperable MPI) group.
+
+   A Windows NT version of MPICH is now available as open source.  Above the
+   device level, this implementation shares source code with the Unix version
+   of MPICH.  A new device has been implemented for NT using sockets and/or
+   shared memory for communication among MPI processes.  
+
+   A new device (ch_p4mpd) for TCP networks, similar to the ch_p4 device but
+   based on daemons and thus supporting a number of new convenience features,
+   including fast startup.  See the User's Guide for details.
+   
+   A new, scalable log file format, SLOG, for use with the new MPE
+   logging tools.  
+
+   A new version of the Jumpshot performance visualization tool (Jumpshot-3)
+   that can read large SLOG files.  The combination of SLOG and Jumpshot-3
+   allows one to do performance analysis on large runs.
+
+   A Fortran 90 MPI module (See the User's Guide for details.)
+
+   Support for VPATH-style installations, useful when keeping source files
+   on shared file systems but building on local disks for speed.
+
+   Support for shared libraries (see the Installation Guide and User's Guide)
+
+   An installation process and choice of directory names that is closer to the
+   GNU-recommended approach
+
+   Release of version 1.0.2 of ROMIO, the portable implementation of the I/0
+   part of MPI-2.  New in this version are shared file pointers, support for
+   the PVFS file system for Linux clusters, and other features described in
+   the README file in the romio directory.
+
+   Support for SMP-clusters in mpirun.  This can be done in several ways,
+   described in the User's Guide.
+
+   Support for MPI-2's function MPI_INIT_THREAD (but only for
+   MPI_THREAD_SINGLE)
+
+To try the Unix version of MPICH, download the compressed tar file and
+uncompress and untar it.  Then you can do:
+
+   cd mpich-1.2.0
+   configure >& configure.log
+   make >& make.log
+   cd examples/basic
+   make cpi
+   ../../bin/mpirun -np 4 cpi
+
+to run your first MPI program.  If anything goes wrong, please consult the
+trouble-shooting section of the User's Guide, found in the doc subdirectory.
+
+To try the NT version of MPICH, follow the instructions on the download page.
+
+The MPICH team:
+
+   Bill Gropp
+   Rusty Lusk
+   Rajeev Thakur
+   Debbie Swider
+   Anthony Chan
+   David Ashton
+
+   Argonne National Laboratory
+

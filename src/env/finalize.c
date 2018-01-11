@@ -1,5 +1,5 @@
 /*
- *  $Id: finalize.c,v 1.11 1999/10/18 22:18:09 gropp Exp $
+ *  $Id: finalize.c,v 1.14 2000/07/05 20:21:25 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -35,7 +35,11 @@ extern int MPIR_Print_queues;
 /*
   Function to un-initialize topology code 
  */
-extern void MPIR_Topology_finalize ANSI_ARGS((void));
+extern void MPIR_Topology_finalize (void);
+
+#ifndef MPID_NO_FORTRAN
+#include "mpi_fortran.h"
+#endif
 
 /*@
    MPI_Finalize - Terminates MPI execution environment
@@ -111,46 +115,27 @@ EXPORT_MPI_API int MPI_Finalize()
        so that we can not free them. */
     DBG(FPRINTF( stderr, "About to free dtes\n" ); fflush( stderr ););
     MPIR_Free_dtes();
-#ifdef FOOBAR
-    MPIR_Free_perm_type( &MPI_REAL );
-    MPIR_Free_perm_type( &MPI_DOUBLE_PRECISION );
-/*     MPI_Type_free( &MPIR_complex_dte );
-    MPI_Type_free( &MPIR_dcomplex_dte ); 
-    MPI_Type_free( &MPIR_logical_dte ); */
+#ifndef MPID_NO_FORTRAN
+    MPIR_Free_Fortran_dtes();
+#endif
 #ifndef MPID_NO_FORTRAN
 #ifdef FOO
-    /* Note that currently (see init.c), these are all copies of the
-       existing C types, and so must not be freed (that will
-       cause them to be freed twice) */
-    if (MPIR_int1_dte)  MPI_Type_free( &MPIR_int1_dte );
-    if (MPIR_int2_dte)  MPI_Type_free( &MPIR_int2_dte );
-    if (MPIR_int4_dte)  MPI_Type_free( &MPIR_int4_dte );
-    if (MPIR_real4_dte) MPI_Type_free( &MPIR_real4_dte );
-    if (MPIR_real8_dte) MPI_Type_free( &MPIR_real8_dte );
-#endif
-#endif
     /* Free the parts of the structure types */
     MPIR_Type_free_struct( MPI_FLOAT_INT );
     MPIR_Type_free_struct( MPI_DOUBLE_INT );
     MPIR_Type_free_struct( MPI_LONG_INT );
     MPIR_Type_free_struct( MPI_SHORT_INT );
     MPIR_Type_free_struct( MPI_2INT );
-    
+#endif
+#ifdef FOO    
     if (MPI_2INT != MPI_2INTEGER)
 	MPIR_Free_perm_type( &MPI_2INTEGER );
     MPIR_Free_perm_type( &MPIR_2real_dte );
     MPIR_Free_perm_type( &MPIR_2double_dte );
     MPIR_Free_perm_type( &MPIR_2complex_dte );
     MPIR_Free_perm_type( &MPIR_2dcomplex_dte );
+#endif
 
-#if defined(HAVE_LONG_DOUBLE)
-    {MPI_Datatype t = MPI_LONG_DOUBLE_INT;
-    MPI_Type_free( &t );}
-/*     MPI_Type_free( &MPI_LONG_DOUBLE ); */
-#endif
-#if defined(HAVE_LONG_LONG_INT)
-  /*  MPI_Type_free( &MPI_LONG_LONG_INT ); */
-#endif
 #endif
     DBG(FPRINTF( stderr, "About to free COMM_WORLD\n" ); fflush( stderr );)
 
@@ -181,15 +166,11 @@ EXPORT_MPI_API int MPI_Finalize()
 	MPI_Keyval_free( &tmp );
 	tmp = MPI_WTIME_IS_GLOBAL;
 	MPI_Keyval_free( &tmp );
-	tmp = MPIR_TAG_UB;
-	MPI_Keyval_free( &tmp );
-	tmp = MPIR_HOST;
-	MPI_Keyval_free( &tmp );
-	tmp = MPIR_IO;
-	MPI_Keyval_free( &tmp );
-	tmp = MPIR_WTIME_IS_GLOBAL;
-	MPI_Keyval_free( &tmp );
-	} 
+	}
+#ifndef MPID_NO_FORTRAN
+    MPIR_Free_Fortran_keyvals();
+#endif
+
     {MPI_Errhandler tmp;
     tmp = MPI_ERRORS_RETURN;
     MPI_Errhandler_free( &tmp );

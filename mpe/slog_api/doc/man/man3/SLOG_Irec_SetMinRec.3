@@ -1,4 +1,4 @@
-.TH SLOG_Irec_SetMinRec 3 "8/12/1999" " " "SLOG_API"
+.TH SLOG_Irec_SetMinRec 3 "4/24/2000" " " "SLOG_API"
 .SH NAME
 SLOG_Irec_SetMinRec \-  Set the fields for a bare minimal Interval Record 
 .SH SYNOPSIS
@@ -13,7 +13,7 @@ int SLOG_Irec_SetMinRec(       SLOG_intvlrec_t  *intvlrec,
                          const SLOG_nodeID_t     orig_node_id,
                          const SLOG_cpuID_t      orig_cpu_id,
                          const SLOG_threadID_t   orig_thread_id,
-                         const SLOG_where_t      where,
+                         const SLOG_iaddr_t      instr_addr,
                          ... )
 .fi
 .SH MODIFIED INPUT VARIABLES 
@@ -74,8 +74,8 @@ sets of MPI call arguments.
 .PD 1
 .PD 0
 .TP
-.B where 
-- interval record's where integer pointer.
+.B instr_addr 
+- interval record's instr_addr integer pointer.
 .PD 1
 .PD 0
 .TP

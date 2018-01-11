@@ -5,5 +5,5 @@ which should both show an error class of 8
 (first) 8 : Invalid group: Null group
 (errhandler) 8 : Invalid group: Null group
 (second) 8 : Invalid group: Null group
-All processes completed test
+ No Errors
 *** Tests of error handling ***

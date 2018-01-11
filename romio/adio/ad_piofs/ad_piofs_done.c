@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_piofs_done.c,v 1.2 1998/06/02 18:44:44 thakur Exp $    
+ *   $Id: ad_piofs_done.c,v 1.3 2000/02/09 21:29:53 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,8 +9,10 @@
 
 int ADIOI_PIOFS_ReadDone(ADIO_Request *request, ADIO_Status *status, int *error_code)  
 {
-
     if (*request != ADIO_REQUEST_NULL) {
+#ifdef HAVE_STATUS_SET_BYTES
+	MPIR_Status_set_bytes(status, (*request)->datatype, (*request)->nbytes);
+#endif
 	(*request)->fd->async_count--;
 	ADIOI_Free_request((ADIOI_Req_node *) (*request));
 	*request = ADIO_REQUEST_NULL;
@@ -18,9 +20,6 @@ int ADIOI_PIOFS_ReadDone(ADIO_Request *request, ADIO_Status *status, int *error_
 
     *error_code = MPI_SUCCESS;
     return 1;
-
-/* status to be filled */
-
 }
 
 

@@ -1,5 +1,5 @@
 /*
- *  $Id: type_util.c,v 1.6 1999/08/20 02:27:50 ashton Exp $
+ *  $Id: type_util.c,v 1.7 2000/08/10 22:15:36 toonen Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -97,6 +97,15 @@ int MPIR_Type_free ( struct MPIR_DATATYPE **dtype_ptr2 )
       default:
 	  if (!dtype_ptr->basic)
 	      MPIR_Type_free( &dtype_ptr->old_type );
+
+#     if defined(MPID_HAS_TYPE_FREE)
+      {
+	  /* Give the device a chance to free up any resources it may have
+	     associated with this type */
+	  mpi_errno = MPID_Type_free(dtype_ptr->self);
+      }
+#     endif    
+
       }
 
 	/* Free the datatype structure */
@@ -199,7 +208,6 @@ void MPIR_Free_perm_type( MPI_Datatype datatype )
        Alternately, we could simply delete the permtypes without paying
        any attention to the reference counts or the associated types.
      */
-
     MPIR_Type_free( &dtype_ptr );
 }
 

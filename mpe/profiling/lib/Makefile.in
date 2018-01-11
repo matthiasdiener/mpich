@@ -10,14 +10,13 @@ MAKE        = @MAKE@
 AR          = @AR@ -r
 RANLIB      = @RANLIB@
 INCLUDE_DIR = @INCLUDEDIR@ -I$(MPE_DIR)
-OPTFLAGS    = @OPTFLAGS@
 LIB_PATH    = -L@MPE_LIBPATH@ -lmpe @X_LIB@ @MPI_LIBS@
 LOG_LIB     = -L@MPE_LIBPATH@ @LOGLIB@ @X_LIB@
 PROF_LIB    = -L@MPE_LIBPATH@ @PROFLIB@ @X_LIB@
 
 ### End User configurable options ###
 
-CFLAGS = @MPE_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) 
+CFLAGS = @MPE_CFLAGS@ $(INCLUDE_DIR) 
 
 default: ../wrappergen/wrappergen log_wrappers.c time_wrappers.c visual_mess.c
 

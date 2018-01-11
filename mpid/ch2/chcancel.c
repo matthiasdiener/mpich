@@ -1,5 +1,5 @@
 /*
- *  $Id: chcancel.c,v 1.3 1999/11/22 22:42:03 gropp Exp $
+ *  $Id: chcancel.c,v 1.4 2000/07/17 20:46:26 swider Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -206,10 +206,10 @@ MPID_Device *dev;
 {  /* begin MPID_FinishCancelPackets */
 
     DEBUG_PRINT_MSG("Entering MPID_FinishCancelPackets");
-    
+    DEBUG_PRINT_MSG("Entering while expect_cancel_ack > 0");
     while (expect_cancel_ack > 0) {
 	MPID_DeviceCheck( MPID_BLOCKING ); } 
-
+    DEBUG_PRINT_MSG("Leaving while expect_cancel_ack > 0");
     DEBUG_PRINT_MSG("Leaving MPID_FinishCancelPackets");
 
 }  /* end MPID_FinishCancelPackets */

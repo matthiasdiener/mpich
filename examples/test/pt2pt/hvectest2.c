@@ -13,6 +13,12 @@
 void ClearArray ( double *, int, double );
 void SetArray ( double *, int );
 
+#ifdef VERBOSE
+static int verbose = 1;
+#else
+static int verbose = 0;
+#endif
+
 void ClearArray( a, n, v )
 double *a, v;
 int    n;
@@ -102,8 +108,10 @@ int main( int argc, char **argv )
 	st_tag    = status.MPI_TAG;
 	MPI_Get_count( &status, MPI_DOUBLE, &st_count );
 
-	printf( "Status info: source = %d, tag = %d, count = %d\n",
-	        st_source, st_tag, st_count );
+	if (st_source != src || st_tag != 2001 || st_count != 10 || verbose) {
+	    printf( "Status info: source = %d, tag = %d, count = %d\n",
+		    st_source, st_tag, st_count );
+	}
 #ifdef SHOWMSG
 	printf( "%d received", rank);
 	for (i = 0; i < 10; i++) printf(" %f",data[i]);	printf("\n");
@@ -146,8 +154,10 @@ int main( int argc, char **argv )
 	st_tag    = status.MPI_TAG;
 	MPI_Get_count( &status, MPI_DOUBLE, &st_count );
 
-	printf( "Status info: source = %d, tag = %d, count = %d\n",
+	if (st_source != src || st_tag != 2001 || st_count != 10 || verbose) {
+	    printf( "Status info: source = %d, tag = %d, count = %d\n",
 	        st_source, st_tag, st_count );
+	}
 #ifdef SHOWMSG
 	printf( "%d received", rank);
 	for (i = 0; i < 10; i++) printf(" %f",data[i*10]);printf("\n");
@@ -187,8 +197,10 @@ int main( int argc, char **argv )
 	st_tag    = status.MPI_TAG;
 	MPI_Get_count( &status, MPI_DOUBLE, &st_count );
 
-	printf( "Status info: source = %d, tag = %d, count = %d\n",
-	        st_source, st_tag, st_count );
+	if (st_source != src || st_tag != 2001 || st_count != 10 || verbose) {
+	    printf( "Status info: source = %d, tag = %d, count = %d\n",
+		    st_source, st_tag, st_count );
+	}
 #ifdef SHOWMSG
 	printf( "%d received", rank);
 	for (i = 0; i < 10; i++) printf(" %f",data[i*10]);printf("\n");
@@ -232,8 +244,10 @@ int main( int argc, char **argv )
 	st_tag    = status.MPI_TAG;
 	MPI_Get_count( &status, MPI_DOUBLE, &st_count );
 
-	printf( "Status info: source = %d, tag = %d, count = %d\n",
-	        st_source, st_tag, st_count );
+	if (st_source != src || st_tag != 2001 || st_count != 10 || verbose) {
+	    printf( "Status info: source = %d, tag = %d, count = %d\n",
+		    st_source, st_tag, st_count );
+	}
 #ifdef SHOWMSG
 	printf( "%d received", rank);
 	for (i = 0; i < 10; i++) printf(" %f",data[i]);	printf("\n");
@@ -276,8 +290,10 @@ int main( int argc, char **argv )
 	st_tag    = status.MPI_TAG;
 	MPI_Get_count( &status, MPI_DOUBLE, &st_count );
 
-	printf( "Status info: source = %d, tag = %d, count = %d\n",
-	        st_source, st_tag, st_count );
+	if (st_source != src || st_tag != 2001 || st_count != 10 || verbose) {
+	    printf( "Status info: source = %d, tag = %d, count = %d\n",
+		    st_source, st_tag, st_count );
+	}
 #ifdef SHOWMSG
 	printf( "%d received", rank);
 	for (i = 0; i < 10; i++) printf(" %f",data[i*10]);printf("\n");
@@ -319,8 +335,10 @@ int main( int argc, char **argv )
 	st_tag    = status.MPI_TAG;
 	MPI_Get_count( &status, MPI_DOUBLE, &st_count );
 
-	printf( "Status info: source = %d, tag = %d, count = %d\n",
-	        st_source, st_tag, st_count );
+	if (st_source != src || st_tag != 2001 || st_count != 10 || verbose) {
+	    printf( "Status info: source = %d, tag = %d, count = %d\n",
+		    st_source, st_tag, st_count );
+	}
 #ifdef SHOWMSG
 	printf( "%d received", rank);
 	for (i = 0; i < 10; i++) printf(" %f",data[i*10]);printf("\n");

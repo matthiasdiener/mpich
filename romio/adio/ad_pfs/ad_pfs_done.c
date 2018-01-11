@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_pfs_done.c,v 1.2 1998/06/02 18:41:23 thakur Exp $    
+ *   $Id: ad_pfs_done.c,v 1.4 2000/02/09 21:29:51 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -10,26 +10,24 @@
 int ADIOI_PFS_ReadDone(ADIO_Request *request, ADIO_Status *status, int *error_code)  
 {
     int done=0;
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "ADIOI_PFS_READDONE";
+#endif
 
     if (*request == ADIO_REQUEST_NULL) {
         *error_code = MPI_SUCCESS;
         return 1;
     }
 
-    if ((*request)->next != ADIO_REQUEST_NULL) {
-        done = ADIOI_PFS_ReadDone(&((*request)->next), status, error_code);
-    /* currently passing status and error_code here, but something else
-       needs to be done to get the status and error info correctly */
-        if (!done) {
-           *error_code = MPI_SUCCESS;
-           return done;
-        }
-    }
-    
     if ((*request)->queued)
 	done = _iodone(*((long *) (*request)->handle));
     else done = 1; /* ADIOI_Complete_Async completed this request, 
                       but request object was not freed. */
+
+#ifdef HAVE_STATUS_SET_BYTES
+    if ((done == 1) && ((*request)->nbytes != -1))
+	MPIR_Status_set_bytes(status, (*request)->datatype, (*request)->nbytes);
+#endif
 
     if (done == 1) {
         /* if request is still queued in the system, it is also there
@@ -40,10 +38,18 @@ int ADIOI_PFS_ReadDone(ADIO_Request *request, ADIO_Status *status, int *error_co
         if ((*request)->handle) ADIOI_Free((*request)->handle);
         ADIOI_Free_request((ADIOI_Req_node *) (*request));
         *request = ADIO_REQUEST_NULL;
-        /* status to be filled */
     }
     
+#ifdef PRINT_ERR_MSG
     *error_code = (done == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
+#else
+    if (err == -1) {
+	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
+			      myname, "I/O Error", "%s", strerror(errno));
+	ADIOI_Error((*request)->fd, *error_code, myname);	    
+    }
+    else *error_code = MPI_SUCCESS;
+#endif
     return done;
 }
 

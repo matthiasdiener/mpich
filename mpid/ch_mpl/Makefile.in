@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.16 1999/11/24 15:18:13 swider Exp $
+#  $Id: Makefile.in,v 1.17 2000/02/07 14:48:35 gropp Exp $
 #
 #  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -118,8 +118,8 @@ setlinks:
 #	$(CC) $(CFLAGS) $(BASEOPT) -c -S $< $(MPI_PROFILE)
 
 configure: configure.in
-	autoheader --localdir=../..
-	autoconf   --localdir=../..
+	autoheader-2.13 --localdir=/home/gropp/sowing-proj/sowing/confdb
+	autoconf-2.13   --localdir=/home/gropp/sowing-proj/sowing/confdb
 
 ${libbuild_dir}/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
 	$(AR) $@ $?

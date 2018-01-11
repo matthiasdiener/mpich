@@ -1,5 +1,5 @@
 /* 
- *   $Id: set_atomf.c,v 1.6 1999/08/27 20:53:36 thakur Exp $    
+ *   $Id: set_atomf.c,v 1.8 2000/08/22 21:19:38 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,18 +9,18 @@
 #include "adio.h"
 
 
-#if defined(__MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+#if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
 #ifdef FORTRANCAPS
 #define mpi_file_set_atomicity_ PMPI_FILE_SET_ATOMICITY
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_file_set_atomicity_ pmpi_file_set_atomicity__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_file_set_atomicity pmpi_file_set_atomicity_
 #endif
 #define mpi_file_set_atomicity_ pmpi_file_set_atomicity
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_file_set_atomicity_ pmpi_file_set_atomicity
 #endif
 #define mpi_file_set_atomicity_ pmpi_file_set_atomicity_
@@ -73,22 +73,25 @@
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_file_set_atomicity_ mpi_file_set_atomicity__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_file_set_atomicity mpi_file_set_atomicity_
 #endif
 #define mpi_file_set_atomicity_ mpi_file_set_atomicity
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_file_set_atomicity_ mpi_file_set_atomicity
 #endif
 #endif
 #endif
 
-void mpi_file_set_atomicity_(MPI_Fint *fh,int *flag, int *__ierr )
+/* Prototype to keep compiler happy */
+void mpi_file_set_atomicity_(MPI_Fint *fh,int *flag, int *ierr );
+
+void mpi_file_set_atomicity_(MPI_Fint *fh,int *flag, int *ierr )
 {
     MPI_File fh_c;
     
     fh_c = MPI_File_f2c(*fh);
-    *__ierr = MPI_File_set_atomicity(fh_c,*flag);
+    *ierr = MPI_File_set_atomicity(fh_c,*flag);
 }
 

@@ -4,16 +4,31 @@ the -gnuplot option will generate data for Gnuplot.  Because of limitations
 of Gnuplot, the full generality of these commands is not supported when
 gnuplot output is selected.
 
-To build the programs, use configure.  Supply the names of the compilers
-that you use to compile and link programs that use MPI.  For MPICH, you
-can use:
+To build the programs, use configure.  In many cases, all you need to do is
+invoke configure.  If that doesn't work, use the following:
 
-    ./configure -cc=mpicc -fc=mpif77
+MPICH:
 
-(if mpicc and mpif77 are in your PATH; otherwise, give the exact path names)
-For the IBM SP and IBM's MPI, use
+	./configure --with-mpich
 
-    ./configure -cc=mpcc -fc=mpxlf
+SGI MPI:
+
+	./configure --with-sgimpi
+
+IBM MPI
+
+	./configure --with-ibmmpi
+
+Others (assuming that your shell is csh or tcsh):
+	setenv CC name-of-C-compiler for MPI programs
+	setenv F77 name-of-Fortran-compiler for MPI programs
+	setenv MPILIB name-of-mpi-library 
+	./configure
+
+If you are cross-compiling, but you can run programs locally using a different
+compiler, add the following environment variables
+	setenv TESTCC name-of-C-compiler-for-local-programs
+	setenv TESTF77 name-of-Fortran-compiler-for-local-programs
 
 The programs that you want to run are mpptest and goptest.  You can run
 these as you would any MPI program, or you can use the following scripts 
@@ -21,6 +36,13 @@ that will generate data automatically.  To use these, you will also need
 to create a script that runs an MPI program with some arguments;
 samples are provided for IBM's MPI in mpirun.ibm .  For MPICH, you may use
 the mpirun provided by MPICH.
+
+For a quick overview of the performance of your system, try
+
+   mpirun -np 2 -logscale
+   mpirun -np 16 -bisect -logscale
+
+(the latter assumes that you have 16 processors).
 
 Several scripts have been provided to generate data.  The following two 
 run mpptest and goptest with common options.

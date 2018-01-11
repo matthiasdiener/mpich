@@ -44,7 +44,7 @@ int main( int argc, char **argv )
 
     MPI_Allreduce( &err, &toterr, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
     if (rank == 0 && toterr == 0) {
-	printf( "No errors found in MPI_Reduce_scatter\n" );
+	printf( " No Errors\n" );
     }
     MPI_Finalize( );
 

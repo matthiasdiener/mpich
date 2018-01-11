@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_c2f.c,v 1.4 1999/08/27 20:53:43 thakur Exp $    
+ *   $Id: info_c2f.c,v 1.5 2000/02/09 21:30:34 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +19,7 @@
 #endif
 
 /* Include mapping from MPI->PMPI */
-#define __MPIO_BUILD_PROFILING
+#define MPIO_BUILD_PROFILING
 #include "mpioprof.h"
 #endif
 #include "adio_extern.h"
@@ -35,7 +35,7 @@ Return Value:
 @*/
 MPI_Fint MPI_Info_c2f(MPI_Info info)
 {
-#ifndef __INT_LT_POINTER
+#ifndef INT_LT_POINTER
     return (MPI_Fint) info;
 #else
     int i;

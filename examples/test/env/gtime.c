@@ -120,7 +120,7 @@ int main( int argc, char **argv )
 	    printf( "Errors in MPI_WTIME_IS_GLOBAL\n" );
 	}
 	else {
-	    printf( "No errors detected in MPI_WTIME_IS_GLOBAL\n" );
+	    printf( " No Errors\n" );
 	}
     }
     /* The SGI implementation of MPI sometimes fails to flush stdout 

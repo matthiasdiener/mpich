@@ -3,11 +3,10 @@
 #include <stdio.h>
 #include <string.h>
 #include "test.h"
+#include "mpi.h"
 
-#ifdef __STDC__
+#if defined(USE_STDARG)
 #include <stdarg.h>
-#else
-#include <varargs.h>
 #endif
 
 static int tests_passed = 0;
@@ -25,9 +24,13 @@ int rank;
     sprintf(filename, "%s-%d.out", suite, rank);
     strncpy(suite_name, suite, 255);
     fileout = fopen(filename, "w");
+    if (!fileout) {
+	fprintf( stderr, "Could not open %s on node %d\n", filename, rank );
+	MPI_Abort( MPI_COMM_WORLD, 1 );
+    }
 }
 
-#if defined(__STDC__)
+#ifdef USE_STDARG
 void Test_Printf(char *format, ...)
 {
     va_list arglist;
@@ -70,16 +73,24 @@ char *test;
 void Test_Passed(test)
 char *test;
 {
+#ifdef VERBOSE
     fprintf(fileout, "[%s]: Test '%s' Passed.\n", suite_name, test);
     fflush(fileout);
+#endif
     tests_passed++;
 }
 
 int Summarize_Test_Results()
 {
+#ifdef VERBOSE
     fprintf(fileout, "For test suite '%s':\n", suite_name);
-    fprintf(fileout, "Of %d attempted tests, %d passed, %d failed.\n", 
-	    tests_passed + tests_failed, tests_passed, tests_failed);
+#else
+    if (tests_failed > 0)
+#endif
+    {
+	fprintf(fileout, "Of %d attempted tests, %d passed, %d failed.\n", 
+		tests_passed + tests_failed, tests_passed, tests_failed);
+    }
     if (tests_failed > 0) {
 	int i;
 
@@ -115,5 +126,5 @@ if (m != n) {
 	    n, m );
     }
 if (myrank == 0) 
-    printf( "All processes completed test\n" );
+    printf( " No Errors\n" );
 }

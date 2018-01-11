@@ -79,7 +79,7 @@ struct local_data {		/* local to each process */
     int listener_fd;
     int my_id;
     int my_job;			/* specific to mpd */
-    int parent_mpd_fd;		/* specific to mpd */
+    int parent_man_fd;		/* specific to mpd */
 #ifdef THREAD_LISTENER
     /* This lock is used to coordinate access to the conntab between the
        main and listener threads in a process */

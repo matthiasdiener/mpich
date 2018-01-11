@@ -1,5 +1,5 @@
 /*
- *  $Id: chinit.c,v 1.7 1999/11/23 22:27:30 gropp Exp $
+ *  $Id: chinit.c,v 1.14 2000/07/28 17:34:07 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -10,26 +10,26 @@
     on the device, and initialize it
  */
 
-/* We put these include FIRST incase we are building the memory debugging
+#include "mpid.h"
+#include "mpiddev.h"
+/* We put stdlib ahead of mpimem.h in case we are building the memory debugging
    version; since these includes may define malloc etc., we need to include 
-   them before mpid.h 
+   them before mpimem.h 
  */
 #ifndef HAVE_STDLIB_H
 extern char *getenv();
 #else
 #include <stdlib.h>
 #endif
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-
-#include "mpid.h"
-#include "mpiddev.h"
 #include "mpimem.h"
 #include "flow.h"
 #include "chpackflow.h"
 #include "packets.h"
 #include <stdio.h>
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 /* #define DEBUG(a) {a} */
 #define DEBUG(a)
@@ -39,9 +39,9 @@ extern char *getenv();
  *****************************************************************************/
 
 /* Forward refs */
-int MPID_CH_End ANSI_ARGS(( MPID_Device * ));
-int MPID_CH_Abort ANSI_ARGS(( struct MPIR_COMMUNICATOR *, int, char * ));
-void MPID_CH_Version_name ANSI_ARGS(( char * ));
+int MPID_CH_End ( MPID_Device * );
+int MPID_CH_Abort ( struct MPIR_COMMUNICATOR *, int, char * );
+void MPID_CH_Version_name ( char * );
 
 /* 
     In addition, Chameleon processes many command-line arguments 
@@ -73,7 +73,11 @@ int  short_len, long_len;
     dev->vlong_msg    = MPID_CH_Rndvb_setup();
 #else
     dev->long_msg     = MPID_CH_Eagern_setup();
+#ifdef LAPI
+    dev->vlong_msg    = MPID_CH_Rndvb_setup();
+#else
     dev->vlong_msg    = MPID_CH_Rndvn_setup();
+#endif
 #endif
     dev->eager        = dev->long_msg;
     dev->rndv         = dev->vlong_msg;
@@ -131,6 +135,11 @@ char     *msg;
     }
     fflush( stderr );
     fflush( stdout );
+
+#ifdef USE_PRINT_LAST_ON_ERROR
+    MPID_Ch_dprint_last();
+#endif
+
     /* Some systems (e.g., p4) can't accept a (char *)0 message argument. */
     SYexitall( "", code );
     return 0;

@@ -3,49 +3,19 @@
 # -mvhome is needed for the ANL SP, and is ignored by others
 args=@MPIRUNARGS@
 device=@DEVICE@
-if [ "$device" = "ch_p4mpd" ] ; then
-    args=""
-fi
+top_srcdir=@top_srcdir@
+srcdir=@srcdir@
+MPICH_VERSION=@MPICH_VERSION@
 STOPFILE=$HOME/.stopmpichtests
-#
-# Some people don't include "." in their path (! in case an ls trojan horse,
-# I guess - if someone does that to you, you have bigger problems).  This
-# code tests to see if you have a path to mpirun; if not, it tries ./mpirun.
-#
-# One particular problem is having multiple mpiruns in the path.  An
-# absolute path for mpirun will fix many problems
 mpirun="@MPIRUN@"
-if [ -z "$MPICH_USE_LIB_MPIRUN" -a ! -x "$mpirun" ] ; then
-    IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
-    for dir in $PATH ; do 
-        if [ -x $dir/mpirun ] ; then
-	    if [ -n "@MPICH_VERSION@" ] ; then
-		# Test that we've found the correct mpirun
-		if strings $dir/mpirun | grep "MPIRUN for MPICH" > /dev/null ; then
-		    :
-		else
-		    # echo "$dir/mpirun isn't for MPICH"
-		    continue
-		fi
-	    fi
-            mpirun="mpirun"
-            break
-        fi
-    done
-    IFS="$saveifs"
-fi
-if [ -z "$mpirun" -a -x "./mpirun" ] ; then
-    mpirun=./mpirun
-fi
+MAKE="@MAKE@"
+MPIRUNMVBACK='@MPIRUNMVBACK@'
 #
-# Here is the location of the MPICH version of mpirun
-if [ -z "$mpirun" -a -x @LIB_DIR@/bin/mpirun ] ; then 
-    mpirun="@LIB_DIR@/bin/mpirun"
-fi
-if [ -z "$mpirun" ] ; then
-    echo "No mpirun in path.  Testing can not proceed."
-    exit 1
-fi
+# Load basic procedures
+. ${top_srcdir}/runbase
+#
+# Set mpirun to the name/path of the mpirun program
+FindMPIRUN
 #
 runtests=1
 makeeach=0
@@ -85,59 +55,6 @@ for arg in "$@" ; do
     esac
 done
 
-MakeExe() {
-    if [ -s $STOPFILE ] ; then 
-        echo "Found stopfile; exiting"
-	exit 0
-    fi
-    if [ ! -x $1 ] ; then
-	$MAKE $1
-        if [ ! -x $1 ] ; then 
-	    echo "Could not build executable $1; aborting tests"
-	    exit 1
-        fi
-    fi
-}
-CleanExe() {
-    if [ $makeeach = 1 ] ; then
-	/bin/rm -f $1 $1.o
-    fi
-}
-# Output marker
-OutTime() {
-    if [ $quiet = 0 ] ; then
-	if [ -z "$hostname" ] ; then
-	    hostname=`hostname`
-	fi
-	d=`date`
-	echo "$hostname : $d"
-    fi
-}
-
-# Runtest pgm-name np marker-test args outfiles
-RunTest() {
-    OutTime
-    testfiles="$testfiles $1.out"
-    /bin/rm -f $1.out
-    MakeExe $1
-    mname=$3
-    if [ -z "$mname" ] ; then mname="*** $1 ***" ; fi
-    echo "$mname" >> $1.out
-    echo "$mname"
-    mvarg=""
-    if [ -n "$5" ] ; then rm -f $5 ; 
-	if [ "$device" != "ch_p4mpd" ] ; then
-             if [ -n "@MPIRUNMVBACK@" ] ; then mvarg="@MPIRUNMVBACK@ \"$5\"" ;
-fi 
-	fi
-    fi
-    eval $mpirun $args -np $2 $mvarg $1 $4 </dev/null >> $1.out 2>&1
-    if [ -n "$5" ] ; then cat $5 >> $1.out ; rm -f $5 ; fi
-    echo "$mname" >> $1.out
-    #CheckOutput $1
-    CleanExe $1
-}
-
 # If the programs are not available, run make.
 if [ ! -x coll1 -a $makeeach = 0 -a $runtests = 1 ] ; then
     $MAKE default
@@ -149,13 +66,9 @@ echo '**** Testing MPI Collective routines ****'
 
 RunTest barrier 4 "*** Barrier Test ***" "" "barrier-0.out"
 
-if [ "$device" != "ch_p4mpd" ] ; then
 RunTest bcast 4 "*** Broadcast Test ***" "" "bcast-0.out bcast-1.out bcast-2.out bcast-3.out"
-fi
 
-if [ "$device" != "ch_p4mpd" ] ; then
 RunTest bcastvec 4 "*** Broadcast Datatype Test ***" "" "bcastvec-0.out bcastvec-1.out bcastvec-2.out bcastvec-3.out"
-fi
 
 RunTest coll1 4
 
@@ -190,15 +103,10 @@ RunTest longuser 4
 
 # Some implementations (e.g., IBM's) forget to handle the np = 1 case.
 #RunTest longuser 1 "*** longuser (np == 1) ***"
-OutTime
-testfiles="$testfiles longuser1.out"
-/bin/rm -f longuser1.out
 MakeExe longuser
-echo '**** longuser (np == 1) ****'
-echo '*** longuser (np == 1) ***' >> longuser1.out
-$mpirun -np 1 $args longuser < /dev/null >> longuser1.out 2>&1
-echo '*** longuser (np == 1) ***' >> longuser1.out
-CleanExe longuser
+cp longuser longuser1
+RunTest longuser1 1 '*** longuser (np == 1) ***'
+rm -f longuser1
 
 #OutTime
 #testfiles="$testfiles allredmany.out"
@@ -237,6 +145,8 @@ if [ @HAS_FORTRAN@ = 1 ] ; then
     RunTest allredf 4 "*** Testing allreduce from Fortran ***"
 
     RunTest assocf 4 "*** Testing allreduce from Fortran (2) ***"
+
+    RunTest bcastlog 4 "*** Testing logical datatype in BCAST ***"
     echo "END OF FORTRAN TESTS"
 fi
 
@@ -250,29 +160,5 @@ else
 fi
 
 echo '*** Checking for differences from expected output ***'
-/bin/rm -f coll.diff
-nodiff=1
-srcdir=@srcdir@
-for file in $testfiles ; do
-    stdfile=$srcdir/`basename $file .out`.std
-    if [ -s $stdfile ] ; then
-        if diff -b $file $stdfile > /dev/null ; then
-	    true
-  	else
-	    echo "Differences in `basename $file .out`" >> coll.diff
-	    diff -b $file $stdfile >> coll.diff
-	    nodiff=0
-	fi
-    else
-        echo "Cannot find file $stdfile to compare against for test `basename $file .out`"
-    fi
-done
-if [ -s coll.diff ] ; then
-   cat coll.diff
-elif [ $nodiff = 1 ] ; then
-   echo "-- No differences found; test successful"
-fi
+CheckAllOutput coll.diff
 exit 0
-
-
-

@@ -24,21 +24,24 @@
 
 /* function declarations for p2p */
 
-double p2p_wtime       (void);
-void   p2p_init        (int,int);
-void   p2p_shfree      (char *);
-void   p2p_cleanup     (void);
-void   p2p_error       (char *, int);
-void   p2p_syserror    (char *, int);
-void   p2p_setpgrp     (void);
-void   p2p_yield       (void);
-void   p2p_kill_procs  (void); 
+double p2p_wtime        (void);
+void   p2p_wtime_init   (void);
+void   p2p_init         (int,int);
+void   p2p_shfree       (char *);
+void   p2p_cleanup      (void);
+void   p2p_error        (char *, int);
+void   p2p_syserror     (char *, int);
+void   p2p_setpgrp      (void);
+void   p2p_yield        (void);
+void   p2p_kill_procs   (void); 
 void   p2p_clear_signal (void); 
-void   p2p_cleanup     (void); 
-void p2p_create_procs  (int,int,char **);
+void   p2p_cleanup      (void); 
+void   p2p_makesession  (void);
+void   p2p_create_procs (int,int,char **);
+int    p2p_proc_info    ( int, char **, char ** );
 
 #ifdef USE_DISTRIB_SHMALLOC
-    void *p2p_shmalloc (int, int);
+    void *p2p_shmalloc  (int, int);
 #else
-    void *p2p_shmalloc (int);
+    void *p2p_shmalloc  (int);
 #endif

@@ -1,5 +1,5 @@
 /* 
- *   $Id: set_sizef.c,v 1.6 1999/08/27 20:53:36 thakur Exp $    
+ *   $Id: set_sizef.c,v 1.8 2000/08/22 21:19:38 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,18 +9,18 @@
 #include "adio.h"
 
 
-#if defined(__MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+#if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
 #ifdef FORTRANCAPS
 #define mpi_file_set_size_ PMPI_FILE_SET_SIZE
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_file_set_size_ pmpi_file_set_size__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_file_set_size pmpi_file_set_size_
 #endif
 #define mpi_file_set_size_ pmpi_file_set_size
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_file_set_size_ pmpi_file_set_size
 #endif
 #define mpi_file_set_size_ pmpi_file_set_size_
@@ -73,22 +73,25 @@
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_file_set_size_ mpi_file_set_size__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_file_set_size mpi_file_set_size_
 #endif
 #define mpi_file_set_size_ mpi_file_set_size
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_file_set_size_ mpi_file_set_size
 #endif
 #endif
 #endif
 
-void mpi_file_set_size_(MPI_Fint *fh,MPI_Offset *size, int *__ierr )
+/* Prototype to keep compiler happy */
+void mpi_file_set_size_(MPI_Fint *fh,MPI_Offset *size, int *ierr );
+
+void mpi_file_set_size_(MPI_Fint *fh,MPI_Offset *size, int *ierr )
 {
     MPI_File fh_c;
     
     fh_c = MPI_File_f2c(*fh);
-    *__ierr = MPI_File_set_size(fh_c,*size);
+    *ierr = MPI_File_set_size(fh_c,*size);
 }
 

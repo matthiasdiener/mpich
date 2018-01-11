@@ -1,5 +1,5 @@
 /*
- *  $Id: graphdimsget.c,v 1.7 1999/08/30 15:51:11 swider Exp $
+ *  $Id: graphdimsget.c,v 1.8 2000/06/30 17:55:36 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -77,18 +77,20 @@ EXPORT_MPI_API int MPI_Graphdims_get ( MPI_Comm comm, int *nnodes, int *nedges )
   }
 
   /* Set nnodes */
-  if ( nnodes != (int *)0 )
+  if ( nnodes != (int *)0 ) {
     if ( (flag == 1) && (topo->type == MPI_GRAPH) )
       (*nnodes) = topo->graph.nnodes;
     else
       (*nnodes) = MPI_UNDEFINED;
+  }
 
   /* Set nedges */
-  if ( nedges != (int *)0 ) 
+  if ( nedges != (int *)0 ) {
     if ( (flag == 1) && (topo->type == MPI_GRAPH) )
       (*nedges) = topo->graph.nedges;
     else
       (*nedges) = MPI_UNDEFINED;
+  }
 
   TR_POP;
   return (MPI_SUCCESS);

@@ -1,5 +1,5 @@
 /*
- *  $Id: errorstring.c,v 1.11 1999/08/30 15:45:35 swider Exp $
+ *  $Id: errorstring.c,v 1.12 2000/06/30 17:55:34 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -57,7 +57,9 @@ with the routine 'MPI_Error_class'.
 @*/
 EXPORT_MPI_API int MPI_Error_string( int errorcode, char *string, int *resultlen )
 {
+#ifdef OLD_ERRMSG
     int error_case = errorcode & ~MPIR_ERR_CLASS_MASK;
+#endif
     int mpi_errno = MPI_SUCCESS;
     const char *newmsg;
 

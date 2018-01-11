@@ -8,10 +8,15 @@
 # in the remote shell commands
 #
 verbose=0
-rsh="#RSHCOMMAND#"
-machineDir=#datadir#
-# Could use #DEFAULT_ARCH#
-# and #DEFAULT_DEVICE# to see if we should check....
+rsh="@RSHCOMMAND@"
+prefix=@prefix@
+bindir=@binbuild_dir@
+# Use the same definition as in mpirun.in
+datadir=@builddir@/util/machines
+machineDir=$datadir
+CC="@CC@"
+CLINKER="@CLINKER@"
+
 for arg in "$@" ; do
     case $arg in 
         -echo) set -x ;;
@@ -36,9 +41,13 @@ output.  The option -v may be used to see what tests are being run.
     esac
 done
 #
-MPIR_HOME="#MPIR_HOME#"
 if [ -z "$arch" ] ; then
-    arch=`$MPIR_HOME/bin/tarch`
+    if [ -x $bindir/tarch ] ; then
+        arch=`$bindir/tarch` 
+    else 
+        echo "Could not determine architecture - provide as argument"
+	exit 1
+    fi
 fi
 #
 if [ -z "$machineFile" ] ; then
@@ -52,8 +61,8 @@ list=`cat $machineFile | sed -e '/\#/d' | tr -s '\012' ' '`
 /bin/rm -f mpichfoo
 echo "A test" > mpichfoo
 # Use same mechanism as in mpirun to get the value of pwd...
-if [ -n "#AUTOMOUNTFIX#" ] ; then
-    PWDtest=`pwd | #AUTOMOUNTFIX#`
+if [ -n "@AUTOMOUNTFIX@" ] ; then
+    PWDtest=`pwd | @AUTOMOUNTFIX@`
     if [ ! -d $PWDtest ] ; then
         PWDtest=`pwd`
     fi
@@ -105,7 +114,7 @@ for machine in $list ; do
     output=`$rsh $machine -n true 2>&1`
     if [ -n "$output" ] ; then
 	if [ -z "$printedheader" ] ; then
-	    echo "Errors while trying to run true"
+	    echo "Errors while trying to run $rsh $machine -n true"
 	    printedheader=1
 	fi
 	echo "Unexpected response from $machine:"
@@ -180,7 +189,7 @@ for machine in $list ; do
     output=`$rsh $machine -n /bin/ls $myprog 2>&1`
     if [ "$output" != "$tstout" ] ; then
 	if [ -z "$printedheader" ] ; then
-	    echo "Errors while trying to run ls $myprog"
+	    echo "Errors while trying to run $rsh $machine -n /bin/ls $myprog"
 	    printedheader=1
 	fi
 	echo "Unexpected response from $machine:"
@@ -214,10 +223,10 @@ fi
 cat >tstfoo.c <<.
 main(){return 0;}
 .
-#CC# -c tstfoo.c
-#CLINKER# -o tstfoo tstfoo.o
+$CC -c tstfoo.c
+$CLINKER -o tstfoo tstfoo.o
 if [ ! -x tstfoo ] ; then
-    echo "Could not build a sample program using #CC# and #CLINKER#!"
+    echo "Could not build a sample program using $CC and $CLINKER!"
     /bin/rm -f tstfoo.c
     exit 1
 fi
@@ -233,7 +242,7 @@ for machine in $list ; do
     output=`$rsh $machine -n $myprog 2>&1`
     if [ "$output" != "" ] ; then
 	if [ -z "$printedheader" ] ; then
-	    echo "Errors while trying to run a simple C program"
+	    echo "Errors while trying to run a simple C program with $rsh $machine -n"
 	    printedheader=1
 	fi
 	echo "Unexpected response from $machine:"

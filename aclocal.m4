@@ -9,6 +9,7 @@ dnl
 dnl PAC_TEST_PROGRAM is like AC_TEST_PROGRAM, except that it makes it easier
 dnl to find out what failed.
 dnl
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 define(PAC_TEST_PROGRAM,
 [AC_PROVIDE([$0])
 AC_REQUIRE([AC_CROSS_CHECK])
@@ -68,10 +69,17 @@ dnl sets var_for_size to the size.  Ignores if the size cannot be determined
 dnl Also sets typename_len to the size; if that is already set, just uses
 dnl that
 dnl
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 define(PAC_GET_TYPE_SIZE,
 [Pac_name="$1"
  Pac_varname=`echo "$Pac_name" | sed -e 's/ /_/g' -e 's/\*/star/g'`
 eval Pac_testval=\$"${Pac_varname}_len"
+if test -z "$Pac_testval" ; then
+   changequote(<<,>>)
+   define(<<AC_TYPE_NAME>>,translit(CROSS_SIZEOF_$1,[a-z *],[A-Z_P]))dnl
+   changequote([,])
+   eval Pac_testval=\$"AC_TYPE_NAME"
+fi
 if test -n "$Pac_testval" ; then
     Pac_CV_NAME=$Pac_testval
 else
@@ -97,6 +105,7 @@ dnl
 dnl
 dnl Define test for 64-bit pointers
 dnl
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 define(PAC_POINTER_64_BITS,
 [
 pointersize=""
@@ -112,6 +121,7 @@ else
 fi
 ])dnl
 dnl
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 define(PAC_INT_LT_POINTER,[
 intsize=""
 PAC_GET_TYPE_SIZE(int,intsize)
@@ -134,6 +144,7 @@ dnl
 dnl Define the test for the long long type
 dnl This is made more interesting because some compilers implement it, 
 dnl but not correctly.  If they can't do it right, turn it off.
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 define(PAC_LONG_LONG_INT,
 [AC_REQUIRE([AC_PROG_CC])dnl
 AC_MSG_CHECKING([for long long])
@@ -141,7 +152,12 @@ AC_TEST_PROGRAM([int main() {
 /* See long double test; this handles the possibility that long long
    has the same problem on some systems */
 exit(sizeof(long long) < sizeof(long)); }],
-AC_MSG_RESULT(yes);has_long_long=1,AC_MSG_RESULT(no);has_long_long=0)
+has_long_long=1,has_long_long=0,[has_long_long=${CROSS_HAS_LONG_LONG:-0};])
+if test "$has_long_long" = 1 ; then
+    AC_MSG_RESULT(yes)
+else
+    AC_MSG_RESULT(no)
+fi
 if test "$has_long_long" = 1 ; then
    AC_MSG_CHECKING(that compiler can handle loops with long long)
    dnl We'd like to use AC_COMPILE_CHECK, but this example dies only when
@@ -187,20 +203,30 @@ AC_MSG_RESULT(yes)
 else
 AC_COMPILE_CHECK(,,long double a;return 0;,ldok=1,ldok=0)
 if test $ldok = 1 ; then
-AC_TEST_PROGRAM([int main() {
+    AC_TEST_PROGRAM([int main() {
 /* On Ultrix 4.3 cc, long double is 4 and double is 8.  */
 exit(sizeof(long double) < sizeof(double)); }],
-AC_DEFINE(HAVE_LONG_DOUBLE)AC_MSG_RESULT(yes),AC_MSG_RESULT(no))
+AC_DEFINE(HAVE_LONG_DOUBLE)AC_MSG_RESULT(yes),
+AC_MSG_RESULT(no),
+[if test -n "$CROSS_HAS_LONG_DOUBLE" ; then 
+    if test "$CROSS_HAS_LONG_DOUBLE" = "yes" ; then 
+	AC_DEFINE(HAVE_LONG_DOUBLE)
+        AC_MSG_RESULT(yes)
+    else 
+        AC_MSG_RESULT(no)
+    fi
+fi])
 else
-AC_MSG_RESULT(no)
+    AC_MSG_RESULT(no)
 fi
-fi
+fi #GCC
 ])dnl
 dnl
 dnl PAC_HAVE_VOLATILE
 dnl 
 dnl Defines HAS_VOLATILE if the C compiler accepts "volatile" 
 dnl
+dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define(PAC_HAVE_VOLATILE,
 [AC_MSG_CHECKING([for volatile])
 AC_COMPILE_CHECK(,[volatile int a;],main();,
@@ -209,6 +235,7 @@ AC_DEFINE(HAS_VOLATILE)AC_MSG_RESULT(yes),AC_MSG_RESULT(no))
 dnl
 dnl
 dnl
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 define(PAC_WORDS_BIGENDIAN,
 [AC_MSG_CHECKING([byte ordering])
 AC_TEST_PROGRAM([main () {
@@ -346,6 +373,7 @@ dnl
 dnl Check whether to use -n, \c, or newline-tab to separate
 dnl checking messages from result messages.
 dnl Idea borrowed from dist 3.0.
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 dnl Internal use only.
 define(AC_PROG_ECHO_N,
 ac_echo_n=yes
@@ -369,6 +397,7 @@ fi
 define(pac_set_echo_n,1)dnl
 ])dnl
 dnl AC_MSG_CHECKING(FEATURE-DESCRIPTION)
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 define(AC_FD_MSG,1)dnl
 define(AC_MSG_CHECKING,[dnl
 dnl ifdef(pac_set_echo_n,,[
@@ -396,10 +425,12 @@ echo $ac_n "$1""... $ac_c" 1>&AC_FD_MSG
 fi])dnl
 dnl
 dnl AC_CHECKING(FEATURE-DESCRIPTION)
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 define(AC_CHECKING,dnl
 [echo "checking $1" 1>&AC_FD_MSG])dnl
 dnl
 dnl AC_MSG_RESULT(RESULT-DESCRIPTION)
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 define(AC_MSG_RESULT,dnl
 if test -z "$ac_echo_test" -a AC_FD_MSG = 1 ; then
 [echo "$ac_t""$1"]
@@ -407,7 +438,8 @@ else
 [echo "$ac_t""$1" 1>&AC_FD_MSG]
 fi)dnl
 dnl AC_MSG_WARN(msg)
-define(AC_MSG_WARN,[AC_MSG(Warning: $1)])
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
+define(AC_MSG_WARN,[AC_MSG_RESULT([Warning: $1])])
 dnl
 dnl PAC_CHECK_HEADER(HEADER-FILE, ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND],
 dnl PRE-REQ-HEADERS )
@@ -504,6 +536,7 @@ dnl second if false.  Only test if it hasn't been tested for this compiler
 dnl (and flags) before
 dnl PAC_CHECK_CC_PROTOTYPES(true-action, false-action)
 dnl
+dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define(PAC_CHECK_CC_PROTOTYPES,[
 if test "$ac_cv_ccansi" != "$CC $CFLAGS" ; then
 AC_MSG_CHECKING(that the compiler $CC accepts ANSI prototypes)
@@ -521,6 +554,7 @@ dnl
 dnl Check that the compile accepts ANSI const type.  Perform first arg if yes,
 dnl second if false
 dnl PAC_CHECK_CC_CONST(true-action, false-action)
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 dnl
 define(PAC_CHECK_CC_CONST,[
 AC_MSG_CHECKING(that the compiler $CC accepts const modifier)
@@ -537,6 +571,7 @@ dnl Check that the compile accepts ANSI CPP concatenation.  Perform first
 dnl arg if yes, second if false
 dnl PAC_CHECK_CPP_CONCAT(true-action, false-action)
 dnl
+dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define(PAC_CHECK_CPP_CONCAT,[
 ac_pound="#"
 AC_MSG_CHECKING([that the compiler $CC accepts $ac_pound$ac_pound for concatenation in cpp])
@@ -550,7 +585,7 @@ else
     ifelse([$2],,:,[$2])
 fi
 ])dnl
-
+dnl
 dnl
 dnl Test the compiler to see if it actually works.  First, check to see
 dnl if the compiler works at all
@@ -718,6 +753,15 @@ $F90 $F90FLAGS -c conftest.f > conftest.out 2>&1
 if test $? != 0 ; then
     AC_MSG_RESULT(no)
     echo "Fortran 90 compiler returned non-zero return code"
+    echo "******If Fortran 77 compiler is being used, make sure you configure"
+    echo        "with the correct options for folding external names to"
+    echo        "either all upper- or lower-case.   The failure of this test"
+    echo        "could mean that your Fortran 90 compiler could not accept"
+    echo        "a compile flag chosen for your F77 compiler."
+    echo        "The configuration process for the Fortran 90 compiler will"
+    echo        "NOT continue.******"
+    do_f90modules="no"
+    NO_f90=1
     if test -s conftest.out ; then
 	echo "Output from test was"
         cat conftest.out
@@ -766,6 +810,7 @@ dnl to get added to the SUBST list automatically.  I've disabled this
 dnl by NOT using ac_cv_prog_$1 which the configure code seems to use to
 dnl do this.
 dnl 
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO *** (sort of)
 define(PAC_PROGRAM_CHECK,
 [# Extract the first word of "$2", so it can be a program name with args.
 set dummy $2; ac_word=[$]2
@@ -808,6 +853,7 @@ dnl
 dnl PAC_PROGRAMS_CHECK is like PAC_PROGRAM_CHECK, but with
 dnl a list of programs.
 dnl
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 define(PAC_PROGRAMS_CHECK,
 [for p in $2
 do
@@ -824,6 +870,7 @@ fi
 ifelse([$3],,, [test -n "[$]$1" || $1="$3"
 ])])dnl
 dnl
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 dnl PAC_CHECK_SIZEOF(TYPE)
 define(PAC_CHECK_SIZEOF,
 [changequote(<<, >>)dnl
@@ -834,8 +881,15 @@ define(<<AC_CV_NAME>>, translit(ac_cv_sizeof_$1, [ *], [_p]))dnl
 changequote([, ])dnl
 dnl Can only do this test if not cross-compiling (and TESTCC not defined)
 if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
-    echo "Cannot check for size of $1 when cross-compiling"
-    AC_CV_NAME=0
+    # Check for preset size
+    ac_name="AC_TYPE_NAME"
+    eval testsize=\$"CROSS_SIZEOF_$ac_name"
+    if test -z "$testsize" ; then
+        echo "Cannot check for size of $1 when cross-compiling"
+        AC_CV_NAME=0
+    else
+        AC_CV_NAME=$testsize
+    fi
 else
 AC_MSG_CHECKING(size of $1)
 if test -n "$TESTCC" ; then
@@ -884,6 +938,7 @@ dnl
 dnl This assumes that "MAKE" holds the name of the make program.  If it
 dnl determines that it is an improperly built gnumake, it adds
 dnl --no-print-directorytries to the symbol MAKE.
+dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define(PAC_MAKE_IS_GNUMAKE,[
 AC_MSG_CHECKING(gnumake)
 /bin/rm -f conftest
@@ -913,6 +968,7 @@ dnl
 dnl This make does not support "include filename"
 dnl PAC_MAKE_IS_BSD44([true text])
 dnl
+dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define(PAC_MAKE_IS_BSD44,[
 AC_MSG_CHECKING(whether make supports include)
 /bin/rm -f conftest
@@ -939,6 +995,7 @@ str=""
 dnl
 dnl PAC_MAKE_IS_OSF([true text])
 dnl
+dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define(PAC_MAKE_IS_OSF,[
 AC_MSG_CHECKING(OSF V3 make)
 /bin/rm -f conftest
@@ -970,6 +1027,7 @@ dnl Defines VPATH or .PATH with . $(srcdir)
 dnl Requires that vpath work with implicit targets
 dnl NEED TO DO: Check that $< works on explicit targets.
 dnl
+dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define(PAC_MAKE_VPATH,[
 AC_SUBST(VPATH)
 AC_MSG_CHECKING(for virtual path format)
@@ -1025,6 +1083,7 @@ dnl compile flags.  Clears GCC if it sets CC.  Calls "print_error" for
 dnl error messages
 dnl
 define(PAC_GET_CC,[
+AC_PROVIDE([AC_PROG_CC])
 if test -z "$USERCC" ; then
 case $1 in 
    cenju3) if test $ARCH = abi
@@ -1244,6 +1303,8 @@ if test -n "$noproto" ; then
     else
 	CC=""
         CLINKER=""
+	print_error "Could not find a working C compiler!"
+	exit 1
     fi
 fi
 ])dnl
@@ -1382,7 +1443,17 @@ EOF
     convex_spp)  F77="/usr/convex/bin/fc" ;;
     ibmpoe)
          dnl This is intended for the Standard POE/MPL version
+	 dnl We may want to use the _r versions 
 	 F77=mpxlf
+	 TESTF77=xlf
+	 dnl This is needed for the parts of the configure that
+	 dnl try to find Fortran 90
+         if test -z "$F90" ; then 
+	     F90="mpxlf -qlanglvl=90ext -qfree=f90"
+         fi
+	 if test -z "$TESTF90" ; then
+   	     TESTF90=xlf90
+         fi
     ;;
     meiko) 
       PAC_PROGRAMS_CHECK(FCval,f77 apf77 pgf77)
@@ -1431,6 +1502,8 @@ if test -n "$F77" ; then
         # but would need to capture arguments as well...
 	dnl F77=$F77FULL
     # fi
+else
+    HAS_F77=0
 fi
 ])dnl
 dnl
@@ -1447,6 +1520,7 @@ dnl
 dnl Get the format of Fortran names.  Uses F77, FFLAGS, and sets WDEF.
 dnl If the test fails, sets NOF77 to 1, HAS_FORTRAN to 0
 dnl
+dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define(PAC_GET_FORTNAMES,[
    # Check for strange behavior of Fortran.  For example, some FreeBSD
    # systems use f2c to implement f77, and the version of f2c that they 
@@ -1782,6 +1856,8 @@ dnl things like varargs done correctly
 dnl
 dnl PAC_COMPILE_CHECK_FUNC(msg,function,if_true,if_false)
 dnl
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
+dnl (put function definition in the "header" slot)
 define(PAC_COMPILE_CHECK_FUNC,
 [AC_PROVIDE([$0])dnl
 ifelse([$1], , , [AC_MSG_CHECKING(for $1)]
@@ -1828,20 +1904,30 @@ dnl 0 return code, but actually will fail.  In others, it can run the
 dnl program, but because it doesn't properly handle return codes, might
 dnl as well not.  
 define([AC_CROSS_CHECK],
-[AC_PROVIDE([$0])AC_MSG_CHECKING(whether cross-compiling)
-# If we cannot run a trivial program, we must be cross compiling.
-AC_TEST_PROGRAM([main(){exit(0);}], pac_ok=1, pac_ok=0)
-if test $pac_ok = 1 ; then
-    AC_TEST_PROGRAM([main(){exit(1);}], pac_ok=0 )
-    if test $pac_ok = 1 ; then
-        AC_MSG_RESULT(no)
-    else
-        cross_compiling=1
-        AC_MSG_RESULT(yes, because return codes handled incorrectly)
+[AC_PROVIDE([$0])
+if test -n "$pac_cv_cross_compiling" ; then
+    if test "$pac_cv_cross_compiling" = "yes" ; then
+	cross_compiling=1
     fi
 else
-    cross_compiling=1
-    AC_MSG_RESULT(yes)
+    AC_MSG_CHECKING(whether cross-compiling)
+    # If we cannot run a trivial program, we must be cross compiling.
+    AC_TEST_PROGRAM([main(){exit(0);}], pac_ok=1, pac_ok=0)
+    if test $pac_ok = 1 ; then
+         AC_TEST_PROGRAM([main(){exit(1);}], pac_ok=0 )
+        if test $pac_ok = 1 ; then
+	    pac_cv_cross_compiling="no"
+            AC_MSG_RESULT(no)
+        else
+            cross_compiling=1
+	    pac_cv_cross_compiling="yes"
+            AC_MSG_RESULT(yes, because return codes handled incorrectly)
+        fi
+    else
+        cross_compiling=1
+        pac_cv_cross_compiling="yes"
+        AC_MSG_RESULT(yes)
+    fi
 fi
 ])dnl
 dnl
@@ -1962,6 +2048,8 @@ dnl PAC_FORTRAN_GET_REAL_SIZE(var_for_size)
 dnl
 dnl sets var_for_size to the size.  Ignores if the size cannot be determined
 dnl
+dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
+dnl *** (new is PAC_PROG_F77_CHECK_SIZEOF)
 define(PAC_FORTRAN_GET_REAL_SIZE,
 [AC_MSG_CHECKING([for size of Fortran REAL])
 /bin/rm -f conftestval
@@ -2015,6 +2103,8 @@ dnl See if Fortran accepts ! for comments
 dnl
 dnl PAC_FORTRAN_HAS_EXCLAM_COMMENTS(action-if-true,action-if-false)
 dnl
+dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
+dnl *** (new is PAC_PROG_F77_EXCLAIM_COMMENTS)
 define(PAC_FORTRAN_HAS_EXCLAM_COMMENTS,[
 AC_MSG_CHECKING([for Fortran accepts ! for comments])
 cat > conftest.f <<EOF
@@ -2040,6 +2130,7 @@ dnl 16 to 18 for int*8.  If not set, it assumes 16.
 dnl PAC_FORTRAN_INT_KIND([variable to set to kind value],[decimal digits])
 dnl The value is -1 if it is not available
 dnl The second arg is the number of BYTES
+dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define(PAC_FORTRAN_INT_KIND,[
 AC_MSG_CHECKING([for Fortran 90 KIND parameter for ifelse($2,,8-byte,$2-byte) integers])
 # We need to evaluate the second arg, which may be a runtime value
@@ -2232,6 +2323,7 @@ AC_MSG_RESULT(${$1})
 dnl
 dnl
 dnl 
+dnl This is *VERY* out of date.
 define(PAC_GET_SPECIAL_SYSTEM_INFO,[
 #
 # We should provide a way to specify a particular IRIX version, rather 
@@ -2356,6 +2448,8 @@ if test -n "$arch_IRIX" ; then
 	5000) ;;
 	8000) ;;
 	10000);;
+	12000);;
+	14000);;
         *)
 	print_error "Unexpected IRIX/MIPS chipset $cputype.  Please send the output"
 	print_error " "
@@ -2457,6 +2551,8 @@ dnl Must be used ONLY after AC_OUTPUT (it needs config.status, which
 dnl AC_OUTPUT creates).
 dnl Optionally, set the mode (+x, a+x, etc)
 dnl
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
+dnl (acoutput allows this now)
 define(PAC_OUTPUT_EXEC,[
 CONFIG_FILES="$1"
 export CONFIG_FILES
@@ -2477,6 +2573,8 @@ dnl Find the libraries needed to link Fortran routines with C main programs
 dnl This is ONLY an approximation but DOES handle some simple cases.
 dnl Sets FCLIB if it can.  Fortran compiler FULL PATH would help.
 dnl
+dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
+dnl *** (superceeded by autoconf-2 AC_F77_LIBRARY_LDFLAGS)
 define(PAC_FIND_FCLIB,[
 if test -n "$F77" ; then
 PAC_PROGRAM_CHECK(FCVal,$F77,,,FCFULLPATH)
@@ -2583,6 +2681,7 @@ fi
 ])dnl
 dnl
 dnl This is drawn from version 2; it understands g++ as well as gcc
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 dnl define(AC_FD_CC, 5)dnl
 define(AC_FD_CC, 2)dnl
 dnl [#] AC_FD_CC compiler messages saved in config.log
@@ -2596,11 +2695,12 @@ dnl
 dnl
 dnl AC_TRY_LINK(INCLUDES, FUNCTION-BODY,
 dnl             ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND])
-define(AC_TRY_LINK,
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
+define(AC_TRY_LINK,[
 if test -z "$ac_ext" ; then 
     ac_ext=c
 fi
-[cat > conftest.$ac_ext <<EOF
+cat > conftest.$ac_ext <<EOF
 dnl This sometimes fails to find confdefs.h, for some reason.
 dnl [#]line __oline__ "[$]0"
 dnl [#]line __oline__ "configure"
@@ -2619,6 +2719,9 @@ if eval $ac_link; then
   ifelse([$3], , :, [rm -rf conftest*
   $3])
 else
+  echo "$ac_link" >>config.log
+  echo "Failed program was" >>config.log
+  cat conftest.$ac_ext >>config.log
   if test -s conftest.out ; then cat conftest.out >> config.log ; fi
 ifelse([$4], , , [rm -rf conftest*
   $4
@@ -2627,6 +2730,7 @@ fi
 rm -f conftest*]
 )dnl
 dnl
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 define([AC_CHECK_FUNC],
 [AC_MSG_CHECKING([for $1])
 dnl AC_CACHE_VAL(ac_cv_func_$1,[
@@ -2658,6 +2762,7 @@ ifelse([$3], , , [$3
 fi
 ])dnl
 dnl PAC_LANG_C()
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 define(PAC_LANG_C,
 [define([AC_LANG], [C])dnl
 ac_ext=c
@@ -2668,6 +2773,7 @@ ac_link='${CC-cc} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext -o conftest $LIBS 
 ])dnl
 dnl
 dnl PAC_LANG_CPLUSPLUS()
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 define(PAC_LANG_CPLUSPLUS,
 [define([AC_LANG], [CPLUSPLUS])dnl
 ac_ext=C
@@ -2677,6 +2783,7 @@ ac_compile='${CXX-gcc} $CXXFLAGS $CPPFLAGS conftest.$ac_ext -c 1>&AC_FD_CC 2>&AC
 ac_link='${CXX-gcc} $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext -o conftest $LIBS 1>&AC_FD_CC 2>&AC_FD_CC'
 ])dnl
 dnl
+dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 dnl Fortran extensions
 dnl
 dnl PAC_FORTRAN_HAS_POINTER(action-if-true,action-if-false)
@@ -2690,6 +2797,7 @@ dnl
 dnl if F77_VERBOSE defined, prints why it failed to find
 dnl pointer
 dnl
+dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define(PAC_FORTRAN_HAS_POINTER,[
 AC_MSG_CHECKING(Fortran has pointer declaration)
 cat > conftest.f <<EOF
@@ -2772,6 +2880,7 @@ dnl Solaris blew the declarations for gettimeofday...
 dnl
 dnl PAC_IS_GETTIMEOFDAY_OK(ok_action,failure_action)
 dnl
+dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define(PAC_IS_GETTIMEOFDAY_OK,[
 AC_MSG_CHECKING(for how many arguments gettimeofday takes)
 # Test sets "wierd" only for FAILURE to accept 2
@@ -2809,6 +2918,7 @@ dnl
 dnl PAC_TEST_FORTTYPES tests to see if the following fortran datatypes are
 dnl supported: INTEGER1, INTEGER2, INTEGER4, REAL4, REAL8, DOUBLE_COMPLEX
 dnl
+dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define(PAC_TEST_FORTTYPES,dnl
    [
 FIX_FILE=0
@@ -3060,6 +3170,7 @@ dnl that complain about poor code are in effect
 dnl
 dnl Side effect: If compiler option works, it is added to CFLAGS
 dnl
+dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define([PAC_CHECK_COMPILER_OPTION],[
 AC_MSG_CHECKING([that C compiler accepts option $1])
 CFLAGSSAV="$CFLAGS"
@@ -3140,6 +3251,7 @@ dnl noisy.
 dnl
 dnl Side effect: If compiler option works, it is added to FFLAGS
 dnl
+dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define([PAC_CHECK_FC_COMPILER_OPTION],[
 AC_MSG_CHECKING([that Fortran compiler accepts option $1])
 FFLAGSSAV="$FFLAGS"
@@ -3249,7 +3361,9 @@ EOF
 	      if ./conftest >conftest.out 2>&1 ; then
 		  AC_MSG_RESULT(yes)
 	      else
+		  echo "Could not run program built with shared libs" >>../config.log
 		  if test -s conftest.out ; then 
+			echo "Error message was" >> ../config.log
 			cat conftest.out >>../config.log
 		  fi
 		  # Try with LD_LIBRARY_PATH
@@ -3257,11 +3371,16 @@ EOF
 		  if test -z "$LD_LIBRARY_PATH" ; then LD_LIBRARY_PATH="." ; fi
 	          LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:`pwd`/.."
 		  export LD_LIBRARY_PATH
-		  if ./conftest >>conftest.out 2>&1 ; then
+		  rm -f conftest.out
+		  if ./conftest >conftest.out 2>&1 ; then
 		      AC_MSG_RESULT(no: needs path in LD_LIBRARY_PATH!)
 		      SHARED_LIB_NEEDS_PATH="yes"
 		  else
 		      AC_MSG_RESULT(no: LD_LIBRARY_PATH does not work!)
+		      if test -s conftest.out ; then
+			echo "Error messages when running program build with shared libs" >> ../config.log
+			cat conftest.out >>../config.log
+		      fi
 		  fi
 		  LD_LIBRARY_PATH="$saveLD"
 	      fi
@@ -3504,6 +3623,161 @@ fi
 rm -f conftest*
 ])
 dnl
+dnl
+dnl PAC_STDARG(action if works, action if oldstyle, action if fails)
+dnl
+dnl defines have_stdarg_h if the header exists
+dnl defines 
+define([PAC_STDARG],[
+dnl First, check for stdarg header
+PAC_CHECK_HEADER(stdarg.h,[AC_DEFINE(HAVE_STDARG_H)
+havestdarg=1])
+#
+# It isn't enough to check for stdarg.  Even gcc doesn't get it right;
+# on some systems, the gcc version of stdio.h loads stdarg.h WITH THE WRONG
+# OPTIONS (causing it to choose the OLD STYLE va_start etc).
+#
+# The original test tried the two-arg version first; the old-style
+# va_start took only a single arg.
+# This turns out to be VERY tricky, because some compilers (e.g., Solaris) 
+# are quite happy to accept the *wrong* number of arguments to a macro!
+# Instead, we try to find a clean compile version, using our special
+# TRY_COMPILE_CLEAN command
+#
+USE_STDARG=0
+AC_SUBST(USE_STDARG)
+#
+AC_MSG_CHECKING([that stdarg is oldstyle])
+PAC_TRY_COMPILE_CLEAN([#include <stdio.h>
+#include <stdarg.h>],
+[int func( int a, ... ){
+int b;
+va_list ap;
+va_start( ap );
+b = va_arg(ap, int);
+printf( "%d-%d\n", a, b );
+va_end(ap);
+fflush(stdout);
+return 0;
+}
+int main() { func( 1, 2 ); return 0;}],check_compile)
+pac_old_warning=no
+case $check_compile in 
+    0)  AC_MSG_RESULT(yes)
+        AC_DEFINE(USE_STDARG)
+	AC_DEFINE(USE_OLDSTYLE_STDARG)
+	ifelse([$2],,,[$2])
+	USE_STDARG=1
+	;;
+    1)  AC_MSG_RESULT([hmm, warnings from compiler.  Trying newstyle])
+	pac_old_warning=yes
+	;;
+    2)  AC_MSG_RESULT(no)
+	;;
+esac
+
+if test -n "$havestdarg" -a "$USE_STDARG" != 1 ; then
+    AC_MSG_CHECKING([stdarg is correct])
+    PAC_TRY_COMPILE_CLEAN([
+#include <stdio.h>
+#include <stdarg.h>],[
+int func( int a, ... ){
+int b;
+va_list ap;
+va_start( ap, a );
+b = va_arg(ap, int);
+printf( "%d-%d\n", a, b );
+va_end(ap);
+fflush(stdout);
+return 0;
+}
+int main() { func( 1, 2 ); return 0;}],check_compile)
+case $check_compile in 
+    0)  AC_MSG_RESULT(yes)
+        AC_DEFINE(USE_STDARG)
+        USE_STDARG=1
+	ifelse([$1],,,[$1])
+	;;
+    1)  AC_MSG_RESULT([yes with warnings])
+        AC_DEFINE(USE_STDARG)
+        USE_STDARG=1
+	if test $pac_old_warning = "yes" ; then
+	    # A Risky move: if both gave warnings, choose old-style
+    	    ifelse([$2],,:,[$2])
+	else
+	    ifelse([$1],,:,[$1])
+        fi
+	;;
+    2)  AC_MSG_RESULT(no)
+	ifelse([$3],,,[$3])
+	;;
+esac
+fi])
+dnl
+dnl Check that the Fortran and C++ compilers can link the
+dnl specified functions
+dnl
+dnl PAC_FUNC_INTER_LANG( functions, [ fortworks ], [ c++works] )
+dnl the second and third args are set to yes/no depending
+dnl
+dnl F77_LIBS and CXX_LIBS can be defined
+dnl
+define([PAC_FUNC_INTER_LANG],[
+ifelse([$2],,,[$2=no])
+ifelse([$3],,,[$3=no])
+rm -f conftest*
+cat >> conftest1.c <<EOF
+#include "confdefs.h"
+void f()
+{
+EOF
+for func in $1 ; do
+    echo "$func();" >>conftest1.c
+done
+echo '}' >>conftest1.c
+if ${CC-cc} -c $CFLAGS conftest1.c >>config.log 2>&1 ; then
+    if test -n "$F77" ; then
+	AC_MSG_CHECKING([that Fortran programs can link with needed C functions])
+        cat > conftest.f <<EOF
+	program main
+	end
+EOF
+	if $F77 -o conftest conftest.f conftest1.o $LIBS $F77_LIBS >>config.log 2>&1 ; then
+	    AC_MSG_RESULT(yes)
+	    ifelse([$2],,,[$2=yes])
+	else
+	    AC_MSG_RESULT(no)
+	    ifelse([$2],,,[$2=no])
+	    echo "$F77 -o conftest conftest.f conftest1.o $LIBS $F77_LIBS" >>config.log
+	    echo "Error linking" >>config.log
+	    cat conftest.f >>config.log
+	fi
+	rm -f conftest.f conftest conftest.o
+    fi
+    if test -n "$CCC" -a -z "$CXX" ; then CXX="$CCC" ; fi
+    if test -z "$CXX" -a -n "$CPP_COMPILER" ; then CXX="$CPP_COMPILER" ; fi
+    if test -n "$CXX" ; then
+	AC_MSG_CHECKING([that C++ programs can link with needed C functions])
+	cat > conftest.cc <<EOF
+	int main() { return 0; }
+EOF
+	if $CXX -o conftest conftest.cc conftest1.o $LIBS $CXX_LIBS >>config.log 2>&1 ; then
+	    AC_MSG_RESULT(yes)
+	    ifelse([$3],,,[$3=yes])
+	else
+	    AC_MSG_RESULT(no)
+	    ifelse([$3],,,[$3=no])
+	    echo "$CXX -o conftest conftest.cc conftest1.o $LIBS $CXX_LIBS" >>config.log 
+	    echo "Error linking" >>config.log
+	    cat conftest.cc >>config.log
+	fi
+    fi
+else
+    echo "Could not compile " >> config.log
+    cat conftest.c >>config.log
+fi
+rm -f conftest*
+])
 dnl
 dnl Include other definitions
 builtin(include,aclocal_tcl.m4)

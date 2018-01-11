@@ -28,6 +28,7 @@ D*/
 
 #include "mpi.h"
 #include "mpptest.h"
+#include "getopts.h"
 int __NUMNODES, __MYPROCID;
 
 #if HAVE_STDLIB_H
@@ -37,6 +38,10 @@ int __NUMNODES, __MYPROCID;
 #ifndef DEFAULT_REPS
 #define DEFAULT_REPS 50
 #endif
+
+/* Forward declarations */
+void PrintHelp( char *[] );
+int ComputeGoodReps( double, int, double, int, int );
 
 /*
     This is a simple program to test the communications performance of
@@ -64,9 +69,7 @@ static double RateScale = 1.0;
    achieve timing.  This uses an adaptive approach that also stops when
    minThreshTest values are within a few percent of the current minimum */
 static int    minreps       = 30;
-static int    minThreshTest = 3;
 static double repsThresh    = 0.05;
-static int    NatThresh     = 3;
 char   protocol_name[256];
 
 /* 
@@ -88,7 +91,6 @@ char   protocol_name[256];
 static double Tgoal = 1.0;
 /* If less than Tgoalmin is spent, increase the number of repititions */
 static double TgoalMin = 0.5;
-static int    AutoReps = 0;
 
 /* This structure allows a collection of arbitray sizes to be specified */
 #define MAX_SIZE_LIST 256
@@ -122,104 +124,37 @@ TwinResults *AllocResultsArray( int );
 void SetResultsForStrided( int first, int last, int incr, TwinResults *twin );
 void SetResultsForList( int sizelist[], int nsizes, TwinResults *twin );
 void SetRepsForList( TwinResults *, int );
-int RunTest( TwinResults *, double (*)(int,int,PairData *), PairData *,
-	     double );
-void RunTestList( TwinResults *, double (*)(int,int,PairData *), PairData * );
-int SmoothList( TwinResults *, double (*)(int,int,PairData *), PairData * );
-int RefineTestList( TwinResults *, double (*)(int,int,PairData *),PairData *,
+int RunTest( TwinResults *, double (*)(int,int,void *), void *, double );
+void RunTestList( TwinResults *, double (*)(int,int,void*), void* );
+int SmoothList( TwinResults *, double (*)(int,int,void *), void * );
+int RefineTestList( TwinResults *, double (*)(int,int,void *),void *,
 		    int, double );
 void OutputTestList( TwinResults *, void *, int, int, int );
+double LinearTimeEst( TwinResults *, double );
+TwinResults *InsertElm( TwinResults *, TwinResults * );
 
 /* Initialize the results array of a given list of data */
 
 /* This structure is used to provice information for the automatic 
    message-length routines */
 typedef struct {
-    double (*f)( int, int, PairData *);
+    double (*f)( int, int, void * );
     int    reps, proc1, proc2;
-    void   *msgctx;
+    void *msgctx;
     /* Here is where we should put "recent" timing data used to estimate
        the values of reps */
     double t1, t2;
     int    len1, len2;
     } TwinTest;
 
-/* 
-   This function manages running a test and putting the data into the 
-   accumulators.  The information is placed in result.  
-
-   This function is intended for use by TSTAuto1d.  That routine controls
-   the parameters passed to this routine (the value of x) and accumulates
-   the results based on parameters (for accuracy, completeness, and 
-   "smoothness") passed to the TST routine.
- */
-#ifdef FOO
-double GeneralF( x, result, ctx )
-double      x;
-TwinResults *result;
-TwinTest    *ctx;
-{
-    double t, mean_time;
-    int    len = (int)x, k;
-    int    reps = ctx->reps;
-    int    flag, iwork;
-    double tmax, tmean;
-    int    rank;
-
-    if (AutoReps) {
-	reps = GetRepititions( ctx->t1, ctx->t2, ctx->len1, ctx->len2, 
-			       len, reps );
-    }
-
-    t = RunSingleTest( ctx->f, reps, len, ctx->msgctx, &tmax, &tmean );
-
-    mean_time	   = t / reps;              /* take average over trials */
-    result->t	   = t;
-    result->len	   = x;
-    result->reps	   = reps;
-    result->mean_time  = mean_time;
-    result->smean_time = tmean;
-    result->max_time   = tmax;
-    if (mean_time > 0.0) 
-	result->rate      = ((double)len) / mean_time;
-    else
-	result->rate      = 0.0;
-
-    /* Save the most recent timing data */
-    ctx->t1     = ctx->t2;
-    ctx->len1   = ctx->len2;
-    ctx->t2     = mean_time;
-    ctx->len2   = len;
- 
-    sumlen     += len;
-    sumtime    += mean_time;
-    sumlen2    += ((double)len) * ((double)len);
-    sumlentime += mean_time * len;
-    sumtime2   += mean_time * mean_time;
-    ntest      ++;
-
-    /* We need to insure that everyone gets the same result */
-    MPI_Bcast(&result->rate, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
-
-    /* Check for max time exceeded */
-    MPI_Comm_rank( MPI_COMM_WORLD, &rank );
-    if (rank == 0 && MPI_Wtime() - start_time > max_run_time) {
-	fprintf( stderr, "Exceeded %f seconds, aborting\n", max_run_time );
-	MPI_Abort( MPI_COMM_WORLD, 1 );
-    }
-    return result->rate;
-}
-#endif
-
-int main( int argc, char *argv[])
+int main( int argc, char *argv[] )
 {
     int    dist;
-    double (* BasicCommTest)( int, int, PairData * );
+    double (* BasicCommTest)( int, int, void * );
     void *MsgCtx = 0; /* This is the context of the message-passing operation */
     void *outctx;
-    void (*ChangeDist)() = 0;
-    int  reps,proc1,proc2,len,error_flag,distance_flag,distance;
-    double t;
+    void (*ChangeDist)( int, PairData ) = 0;
+    int  reps,proc1,proc2, distance_flag,distance;
     int  first,last,incr, svals[3];
     int      autosize = 0, autodx;
     double   autorel;
@@ -250,28 +185,53 @@ int main( int argc, char *argv[])
     reps          = DEFAULT_REPS;
     proc1         = 0;
     proc2         = __NUMNODES-1;
-    error_flag    = 0;
     distance_flag = 0;
-    svals[0]      = 0;
-    svals[1]      = 1024;
-    svals[2]      = 32;
-
+    if (SYArgHasName( &argc, argv, 0, "-logscale" )) {
+	svals[0]      = sizeof(int);
+	svals[1]      = 131072;   /* 128k */
+	svals[2]      = 32;
+    }
+    else {
+	svals[0]      = 0;
+	svals[1]      = 1024;
+	svals[2]      = 32;
+    }
     if (SYArgHasName( &argc, argv, 1, "-distance" ))  distance_flag++;
     SYArgGetIntVec( &argc, argv, 1, "-size", 3, svals );
     nsizes = SYArgGetIntList( &argc, argv, 1, "-sizelist", MAX_SIZE_LIST, 
 			      sizelist );
 
-    SYArgGetInt(    &argc, argv, 1, "-reps", &reps );
-    if (SYArgHasName( &argc, argv, 1, "-autoreps" ))  AutoReps  = 1;
+    if (SYArgHasName( &argc, argv, 1, "-logscale" )) {
+	/* Use the sizelist field to specify a collection of power of
+	   two sizes.  This is a temporary hack until we have something
+	   better.  You can use the -size argument to set min and max values
+	   (the stride is ignored) */
+	int k;
+	nsizes = 0;
+	if (svals[0] == 0) {
+	    sizelist[nsizes++] = 0;
+	    k = 4;
+	}
+	else {
+	    k = svals[0];
+	}
+	while( k <= svals[1] && nsizes < MAX_SIZE_LIST ) {
+	    sizelist[nsizes++] = k;
+	    k *= 2;
+	}
+	/* Need to tell graphics package to use log/log scale */
+	DataScale( outctx, 1 );
+    }
+
+    SYArgGetInt( &argc, argv, 1, "-reps", &reps );
     if (SYArgGetDouble( &argc, argv, 1, "-tgoal", &Tgoal )) {
-	AutoReps = 1;
 	if (TgoalMin > 0.1 * Tgoal) TgoalMin = 0.1 * Tgoal;
     }
     SYArgGetDouble( &argc, argv, 1, "-rthresh", &repsThresh );
 
     SYArgGetInt( &argc, argv, 1, "-sample_reps", &minreps );
 
-    SYArgGetInt( &argc, argv, 1, "-max_run_time", &max_run_time );
+    SYArgGetDouble( &argc, argv, 1, "-max_run_time", &max_run_time );
 
     autosize = SYArgHasName( &argc, argv, 1, "-auto" );
     if (autosize) {
@@ -286,9 +246,19 @@ int main( int argc, char *argv[])
     SetPattern( &argc, argv );
     if (SYArgHasName( &argc, argv, 1, "-gop")) {
 	/* we need to fix this cast eventually */
-	BasicCommTest = (double (*)(int,int,PairData*))
+	BasicCommTest = (double (*)(int,int,void*))
 			 GetGOPFunction( &argc, argv, protocol_name, units );
 	MsgCtx = GOPInit( &argc, argv );
+    }
+    else if (SYArgHasName( &argc, argv, 1, "-halo" )) {
+	int local_partners, max_partners;
+        BasicCommTest = GetHaloFunction( &argc, argv, &MsgCtx, protocol_name );
+	TimeScale = 1.0;  /* Halo time, not half round trip */
+	local_partners = GetHaloPartners( MsgCtx );
+	MPI_Allreduce( &local_partners, &max_partners, 1, MPI_INT, MPI_MAX,
+		       MPI_COMM_WORLD );
+	RateScale = (double) max_partners;  /* Since each sends len data */
+	/* I.e., gives total rate per byte */
     }
     else if (SYArgHasName( &argc, argv, 1, "-bisect" )) {
 	BasicCommTest = GetPairFunction( &argc, argv, protocol_name );
@@ -434,15 +404,12 @@ void time_function(reps,first,last,incr,proc1,proc2,CommTest,outctx,
 		   autosize,autodx,autorel,msgctx)
 int    reps,first,last,incr,proc1,proc2,autosize,autodx;
 double autorel;
-double (* CommTest)();
+double (* CommTest)( int, int, void *);
 void      *outctx;
-PairData  *msgctx;
+void *msgctx;
 {
-    int    len,distance,myproc;
-    double mean_time;
+    int    distance,myproc;
     double s, r;
-    double T1, T2;
-    int    Len1, Len2;
 
     myproc   = __MYPROCID;
     distance = ((proc1)<(proc2)?(proc2)-(proc1):(proc1)-(proc2));
@@ -451,52 +418,6 @@ PairData  *msgctx;
      test */
     ntest = 0;
     if (autosize) {
-#ifdef FOO
-	int    maxvals = 256, nvals, i;
-	int    dxmax;
-	TwinTest ctx;
-	TwinResults *results;
-      
-	/* We should really set maxvals as 2+(last-first)/autodx */
-	results	 = (TwinResults *)malloc((unsigned)
-					 (maxvals * sizeof(TwinResults) ));
-	if (!results) MPI_Abort( MPI_COMM_WORLD, 1 );
-	ctx.reps	 = reps;
-	ctx.f	 = CommTest;
-	ctx.msgctx = msgctx;
-	ctx.proc1	 = proc1;
-	ctx.proc2	 = proc2;
-	ctx.t1	 = 0.0;
-	ctx.t2	 = 0.0;
-	ctx.len1	 = 0;
-	ctx.len2	 = 0;
-
-	/* We need to pick a better minimum resolution */
-	dxmax = (last - first) / 16;
-	/* make dxmax a multiple of 4 */
-	dxmax = (dxmax & ~0x3);
-	if (dxmax < 4) dxmax = 4;
-      
-	nvals = TSTAuto1d( (double)first, (double)last, (double)autodx,
-			   (double)dxmax, autorel, 1.0e-10, 
-			   results, sizeof(TwinResults),
-			   maxvals, GeneralF, &ctx );
-	if (myproc == 0) {
-	    TSTRSort( results, sizeof(TwinResults), nvals );
-	    /* This would be a good place to rerun each of the 
-	       nvals results */
-	    
-	    for (i = 0; i < nvals; i++) {
-		DataoutGraph( outctx, proc1, proc2, distance, 
-			      (int)results[i].len, results[i].t * TimeScale,
-			      results[i].mean_time * TimeScale, 
-			      results[i].rate * RateScale, 
-			      results[i].smean_time * TimeScale, 
-			      results[i].max_time * TimeScale );
-	    }
-	}
-	free(results );
-#else
 	TwinResults *twin;
 	int k;
 
@@ -510,8 +431,6 @@ PairData  *msgctx;
 	    for (kk=0; kk<5; kk++)
 		RunTestList( twin, CommTest, msgctx );
 	    RefineTestList( twin, CommTest, msgctx, autodx, autorel );
-/*	    if (myproc == 0) 
-		OutputTestList( twin, outctx, proc1, proc2, distance ); */
 	}
 	for (k=1; k<5; k++) {
 	    if (!SmoothList( twin, CommTest, msgctx )) break;
@@ -519,9 +438,7 @@ PairData  *msgctx;
 	/* Final output */
 	if (myproc == 0) 
 	    OutputTestList( twin, outctx, proc1, proc2, distance );
-#endif
     }
-#ifndef FOO
     else {
 	TwinResults *twin;
 	int k;
@@ -547,28 +464,7 @@ PairData  *msgctx;
 	if (myproc == 0) 
 	    OutputTestList( twin, outctx, proc1, proc2, distance );
     }
-#else
-    else {
-	T1 = 0;
-	T2 = 0;
-	if (nsizes) {
-	    int i;
-	    for (i=0; i<nsizes; i++) {
-		len = sizelist[i];
-		RunATest( len, &Len1, &Len2, &T1, &T2, &reps, CommTest, 
-			  myproc, proc1, proc2, distance, outctx, msgctx );
-	    }
-	}
-	else {
-	    for(len=first;len<=last;len+=incr){
-		RunATest( len, &Len1, &Len2, &T1, &T2, &reps, CommTest, 
-			  myproc, proc1, proc2, distance, outctx, msgctx );
-	      
-	    }
-	}
-    }
-#endif
-/* Generate C.It output */
+/* Generate output to be used as input to a graphics program */
     if (doinfo && myproc == 0) {
 	RateoutputGraph( outctx, 
 			 sumlen, sumtime, sumlentime, sumlen2, sumtime2, 
@@ -584,48 +480,11 @@ PairData  *msgctx;
    Utility routines
  *****************************************************************************/
 
-#ifdef FOO
-/* This runs a test for a given length */
-void RunATest( len, Len1, Len2, T1, T2, reps, CommTest, 
-	      myproc, proc1, proc2, distance, outctx, msgctx ) 
-int len, *Len1, *Len2, *reps, myproc, proc1, proc2, distance;
-double *T1, *T2;
-double (*CommTest)( );
-void   *outctx, *msgctx;
-{
-    double mean_time, t, rate;
-    double tmax, tmean;
-
-    if (AutoReps) {
-	*reps = GetRepititions( *T1, *T2, *Len1, *Len2, len, *reps );
-    }
-    t = RunSingleTest( CommTest, *reps, len, msgctx, &tmax, &tmean );
-    mean_time = t;
-    mean_time = mean_time / *reps;  /* take average over trials */
-    if (mean_time > 0.0) 
-	rate      = ((double)len)/mean_time;
-    else 
-	rate      = 0.0;
-    if(myproc == 0) {
-	DataoutGraph( outctx, proc1, proc2, distance, len, 
-		      t * TimeScale, mean_time * TimeScale, 
-		      rate * RateScale, tmean * TimeScale, tmax * TimeScale );
-    }
-
-    *T1   = *T2;
-    *Len1 = *Len2;
-    *T2   = mean_time;
-    *Len2 = len;
-}
-#endif
-
 /*
    This routine computes a good number of repititions to use based on 
    previous computations
  */
-int ComputeGoodReps( t1, len1, t2, len2, len )
-double t1, t2;
-int    len1, len2, len;
+int ComputeGoodReps( double t1, int len1, double t2, int len2, int len )
 {
     double s, r;
     int    reps;
@@ -680,68 +539,11 @@ printf( "Reps = %d (%d,%d,%d)\n", reps, len1, len2, len ); fflush( stdout );
   tmax = max time observed
   tmean = mean time observed
  */
-double RunSingleTest( CommTest, reps, len, msgctx, tmaxtime, tmean )
-double   (*CommTest)(int,int,PairData*);
-int      reps;
-PairData *msgctx;
-double   *tmaxtime, *tmean;
-{
-    int    flag, k, iwork, natmin;
-    double t, tmin, mean_time, tmax, tsum;
-    int    rank;
-
-    flag   = 0;
-    tmin   = 1.0e+38;
-    tmax   = tsum = 0.0;
-    natmin = 0;
-
-    for (k=0; k<minreps && flag == 0; k++) {
-	t = (* CommTest) (reps,len,msgctx);
-	if (__MYPROCID == 0) {
-	    tsum += t;
-	    if (t > tmax) tmax = t;
-	    if (t < tmin) {
-		tmin   = t;
-		natmin = 0;
-	    }
-	    else if (minThreshTest < k && tmin * (1.0 + repsThresh) > t) {
-		/* This time is close to the minimum; use this to decide
-		   that we've gotten close enough */
-		natmin++;
-		if (natmin >= NatThresh) 
-		    flag = 1;
-	    }
-	}
-	MPI_Allreduce(&flag, &iwork, 1, MPI_INT,MPI_SUM,MPI_COMM_WORLD );
-	flag = iwork;
-
-	/* Check for max time exceeded */
-	MPI_Comm_rank( MPI_COMM_WORLD, &rank );
-	if (rank == 0 && MPI_Wtime() - start_time > max_run_time) {
-	    fprintf( stderr, "Exceeded %f seconds, aborting\n", max_run_time );
-	    MPI_Abort( MPI_COMM_WORLD, 1 );
-	}
-    }
-
-    mean_time  = tmin / reps;
-    sumlen     += len;
-    sumtime    += mean_time;
-    sumlen2    += ((double)len)*((double)len);
-    sumlentime += mean_time * len;
-    sumtime2   += mean_time * mean_time;
-    ntest      ++;
-
-    if (tmaxtime) *tmaxtime = tmax / reps;
-    if (tmean)    *tmean    = (tsum / reps ) / k;
-    return tmin;
-}
-
 #endif 
 
-int PrintHelp( argv ) 
-char **argv;
+void PrintHelp( char *argv[] ) 
 {
-  if (__MYPROCID != 0) return 0;
+  if (__MYPROCID != 0) return;
   fprintf( stderr, "%s - test individual communication speeds\n", argv[0] );
   fprintf( stderr, 
 "Test a single communication link by various methods.  The tests are \n\
@@ -762,6 +564,7 @@ combinations of\n\
   Message pattern:\n\
   -roundtrip   Roundtrip messages         (default)\n\
   -head        Head-to-head messages\n\
+  -halo        Halo Exchange (multiple head-to-head; limited options)\n\
     \n" );
   fprintf( stderr, 
 "  Message test type:\n\
@@ -780,6 +583,9 @@ combinations of\n\
   -sizelist n1,n2,...\n\
                Messages of length n1, n2, etc are used.  This overrides \n\
                -size\n\
+  -logscale    Messages of length 2**i are used.  The -size argument\n\
+               may be used to set the limits.  If -logscale is given,\n\
+               the default limits are from sizeof(int) to 128 k.\n\
   -auto        Compute message sizes automatically (to create a smooth\n\
                graph.  Use -size values for lower and upper range\n\
   -autodx n    Minimum number of bytes between samples when using -auto\n\
@@ -802,7 +608,7 @@ fprintf( stderr, "  -gop [ options ]:\n" );
 PrintGOPHelp();
 PrintGraphHelp();
 PrintPatternHelp(); 
-return 0;
+PrintHaloHelp();
 }
 
 /* 
@@ -882,8 +688,8 @@ void SetResultsForList( int sizelist[], int nsizes, TwinResults *twin )
 
 /* Run a test for a single entry in the list. Return 1 if the test
    was accepted, 0 otherwise */
-int RunTest( TwinResults *twin_p, double (*CommTest)(int,int,PairData *),
-		  PairData *msgctx, double wtick )
+int RunTest( TwinResults *twin_p, double (*CommTest)(int,int,void *),
+		  void *msgctx, double wtick )
 {
     double t;
 
@@ -906,8 +712,8 @@ int RunTest( TwinResults *twin_p, double (*CommTest)(int,int,PairData *),
 }
 
 /* For each message length in the list, run the experiement CommTest */
-void RunTestList( TwinResults *twin, double (*CommTest)(int,int,PairData *),
-		  PairData *msgctx )
+void RunTestList( TwinResults *twin, double (*CommTest)(int,int,void *),
+		  void *msgctx )
 {
     double wtick;
     TwinResults *twin_p = twin;
@@ -945,7 +751,7 @@ double LinearTimeEst( TwinResults *twin_p, double min_dx )
     }
     /* Compute linear estimate, adjusting for the possibly unequal
        interval sizes, at twin_p->len. */
-    t_est = t_prev + (dn_next/(dn_next + dn_prev))*(t_next-t_prev);
+    t_est = t_prev + (dn_prev/(dn_next + dn_prev))*(t_next-t_prev);
 
     return t_est;
 }
@@ -957,6 +763,14 @@ TwinResults *InsertElm( TwinResults *prev, TwinResults *next )
 
     tnew = twin_avail;
     twin_avail = twin_avail->next;
+    if (!twin_avail) {
+	/* Now we have a problem.  I'm going to generate an error message and
+	   exit */
+	fprintf( stderr, 
+"Exhausted memory for results while refining test interval\n\
+Rerun with a smaller interval or without the -auto option\n" );
+	MPI_Abort( MPI_COMM_WORLD, 1 );
+    }
     twin_avail->prev = 0;
     
     tnew->next = next;
@@ -975,12 +789,12 @@ TwinResults *InsertElm( TwinResults *prev, TwinResults *next )
 
 /* This is a breadth-first refinement approach.  Each call to this routine
    adds one level of refinement */
-int RefineTestList( TwinResults *twin, double (*CommTest)(int,int,PairData *),
-		    PairData *msgctx, int min_dx, double autorel )
+int RefineTestList( TwinResults *twin, double (*CommTest)(int,int,void*),
+		    void *msgctx, int min_dx, double autorel )
 {
     double t_offset, t_center, wtick;
     double abstol = 1.0e-10;
-    int do_refine, n_refined = 0, i;
+    int do_refine, n_refined = 0;
     TwinResults *twin_p = twin, *tnew;
 
     /* There is a dummy empty entry at the end of the list */
@@ -1032,8 +846,8 @@ void SetRepsForList( TwinResults *twin, int reps )
 
 /* Smooth the entries in the list by looking for anomolous results and 
    rerunning those tests */
-int SmoothList( TwinResults *twin, double (*CommTest)(int,int,PairData *),
-		PairData *msgctx )
+int SmoothList( TwinResults *twin, double (*CommTest)(int,int,void*),
+		void *msgctx )
 {
     double wtick, t_est;
     int do_test;
@@ -1044,8 +858,10 @@ int SmoothList( TwinResults *twin, double (*CommTest)(int,int,PairData *),
 
     while (twin_p) {
 	/* Look at adjacent times */
-	t_est = LinearTimeEst( twin_p, 4.0 );
-	do_test = (twin_p->t > 1.1 * t_est);
+	if (__MYPROCID == 0) {
+	    t_est = LinearTimeEst( twin_p, 4.0 );
+	    do_test = (twin_p->t > 1.1 * t_est);
+	}
 	MPI_Bcast( &do_test, 1, MPI_INT, 0, MPI_COMM_WORLD );
 	if (do_test) {
 	    n_smoothed += RunTest( twin_p, CommTest, msgctx, wtick );

@@ -1,7 +1,7 @@
 This is a partial list of the known problems in MPICH. 
 
 
-Current as of Release 1.2.0
+Current as of Release 1.2.1
 
 General:
 ========
@@ -19,32 +19,42 @@ recognize the same flags, and generate an "unrecognized argument" warning.
 preliminary testing but due to bureaucratic snafus haven't been able to fully
 test this.
 
-4. Debugger switches to mpirun (e.g., -dbx, -gdb) may not work.  This is
-caused by differences in the command line syntax for the debuggers; even for a
-single vendor, the command line syntax for the debugger may change from month
-to month.  We plan to offer a more generalized configuration method for this
-in the future.
+4. Debugger switches to mpirun (e.g., -dbx, -gdb) may require site-specific
+customization.  This is caused by differences in the command line syntax for
+the debuggers; even for a single vendor, the command line syntax for the
+debugger may change from month to month.
 
-5. MPICH is not thread-safe.  A thread-safe version is in our plans.
+To customize mpirun to support the debuggers at your site, look at the files
+mpirun_dbg.<debuggername>, for example, mpirun_dbg.dbx or mpirun_dbx.gdb .
+You may need to edit these files to fit the behavior of your debugger
+(particularly mpirun_dbg.dbx).
+
+5. MPICH is not thread-safe.  A thread-safe version is in our plans.  More
+precisely, MPICH supports the MPI_THREAD_FUNNELED level of thread support.
 
 6. The choice of default struct alignment is fixed and may not match your
 compiler.  The best fix is to use an MPI_UB when using MPI_Type_struct to
 define the end of the structure.  A subsequent version of MPICH will provide
-more flexibility on structure alignment (requires changes to MPI_Type_struct).
+more flexibility on structure alignment (this requires changes to the
+implementation of MPI_Type_struct).
 
 7. Shared libraries for MPI.  We're still working on this; the lack of a
 common method for compiling/creating/using them is a burden.  Still, there are
 some steps in this direction; see mpich/util/makesharedlib.  If you can help
 us add to systems for which we can generate shared libraries, please send mail
-to mpi-bugs@mcs.anl.gov .
+to mpi-bugs@mcs.anl.gov .  The configure switch --enable-sharedlib will build
+shared libraries for a few systems.  We know about libtool, but have decided
+not to use it directly (it is a great source of information).
 
-8. If your Fortran and Fortran90 compilers use different name mappings (e.g.,
-one uses a single trailing underscore and the other uses two), you won't be
-able to use one of them.  Instead, you'll need to build two separate MPICH
-versions, one for each name mapping.  We hoped to use weak symbols support 
-for this, but it turns out that only one weak symbol is supported, not many,
-and we already use weak symbols to efficiently implement the profiling
-interface. 
+8. If your Fortran 77 and Fortran90 compilers use different name mappings
+(e.g., one uses a single trailing underscore and the other uses two), you
+won't be able to use one of them.  Instead, you'll need to build two separate
+MPICH versions, one for each name mapping.  We hoped to use weak symbols
+support for this, but it turns out that only one weak symbol is supported, not
+many, and we already use weak symbols to efficiently implement the profiling
+interface.  In general, if your Fortran 77 and Fortran 90 compilers are
+different (e.g., different command-line forms, different libraries), you'll
+need to build separate Fortran versions for each.  
 
 9. Performance of collective routines is inadequate.  Many of these are
 simple functional implementations.  If you would like to contribute better
@@ -52,15 +62,12 @@ versions, please contact us at mpi-bugs@mcs.anl.gov .  One project to
 provide better collective operations is known to us: MagPIe at
 http://www.cs.vu.nl/albatross/ .
 
-10. The installation process doesn't install the HTML versions of the
-documentation. 
-
-11.  When configuring with the -f95nag switch or the -fc=f95 switch, the 
+10.  When configuring with the -f95nag switch or the -fc=f95 switch, the 
 variable F77 is assigned the value of f95 and is substituted in the mpif77 
 script.  Thus, the mpif77 script is used to run f95 programs.  This can be
 very misleading.
 
-12. Systems with a Unix System V heritage may show performance problems when
+11. Systems with a Unix System V heritage may show performance problems when
 using the ch_p4 device.  This is due to the P4 code working around limitations
 in the SysV/R2 interface.  Later versions don't have the limitation that P4 is
 catering to.  We have added some code to bypass this old code (the P4
@@ -69,22 +76,22 @@ to use with the MPICH configure is -p4_opts=--enable-nonblockread .  We have
 *not* tested this option much yet, and if something goes wrong, you may see
 error messages from MPICH/P4 about "Unexpected EOF on socket".  
 
-13. Error reporting does not always go to the correct error handler.  In some
+12. Error reporting does not always go to the correct error handler.  In some
 cases, MPICH looses track of which communicator's error handler should be
 called.  In that case, it uses the error handler on MPI_COMM_WORLD.
 
-14. The Fortran 90 module build can fail on systems (like SunOS 4.x) whose
+13. The Fortran 90 module build can fail on systems (like SunOS 4.x) whose
 ar commands support only short (e.g., 15 character) file names.  We do not
 plan to fix this, since all new operating systems support longer names.
 
-15. On Cray PVP (XMP,YMP,C90) and Cray T3D, some operations with character
-    data are not supported from Fortran.  This causes 
-    examples/test/pt2pt/structf to fail.  The 1.0.12 release contains code
-    from Laurie Costella of CRAY that should fix some of the problems.
+14. On Cray PVP (XMP,YMP,C90) and Cray T3D, some operations with character
+data are not supported from Fortran.  This causes examples/test/pt2pt/structf
+to fail.  The 1.0.12 release contains code from Laurie Costella of CRAY that
+should fix some of the problems.
 
-16. Fortran LOGICAL data is not handled correctly on some HETEROGENEOUS
-    systems (basically, there is no XDR type for Fortran LOGICAL, and the
-    current code doesn't convert to/from a standard representation).
+15. Fortran LOGICAL data is not handled correctly on some HETEROGENEOUS
+systems (basically, there is no XDR type for Fortran LOGICAL, and the current
+code doesn't convert to/from a standard representation).
 
 
 MPE:
@@ -131,7 +138,7 @@ ROMIO:
 C++ Bindings:
 =============
 
-1. The coinfigure that is part of the Notre Dame C++ bindings package (which
+1. The configure that is part of the Notre Dame C++ bindings package (which
    is what MPICH uses) assigns compiler options for the C++ compiler based
    on the system type.  This will cause errors if you don't use the compiler
    that the C++ package expects.  For example, you cannot use g++ on HPUX 
@@ -139,11 +146,9 @@ C++ Bindings:
 
 Fortran 90 Modules
 ==================
-1. On some systems (e.g., IRIX and AIX), if you do not build ROMIO, the
-   Fortran 90 module will not work properly (it will complain about missing
-   symbols for the I/O routines that are part of ROMIO).  This is a feature;
-   use --disable-f90modules when configuring to turn off the Fortran 90 
-   modules if you turn off ROMIO.
+1. Because the Fortran module defines an interface for the MPI I/O routines 
+that are provided by ROMIO, you cannot build the MPI module if ROMIO is not
+built.  
 
 Device Specific:
 ===============
@@ -192,6 +197,10 @@ or operations; this usually requires either adding assembly language
 instructions (e.g., a write sync) or special compiler options.  You can't just
 configure/make this device, alas.
 
+globus2:
+1.  See the web page http://www.cs/niu/edu/~karonis/g2.html for information
+about known problems with the globus2 device.
+
 System Specific:
 ================
 
@@ -236,11 +245,13 @@ something other than AIX.  One serious consequence of this bug is that we have
 not been able to test MPICH with LINUX as throughly as we would like, because
 our only shared file system is provided by an AIX server.
 
-2. This is also not an MPICH bug.  The Absoft Fortran compiler has a serious
-bug: it only allows one -I option, and if there are several -I options on the
-command line, it ignores all but one.  In this case, you must either copy the
-include files to the current directory, or setup links to the necessary
-files.  For more information, see the MPICH installation manual.
+2. This is also not an MPICH bug.  Some versions of the Absoft Fortran
+compiler has a serious bug: it only allows one -I option, and if there are
+several -I options on the command line, it ignores all but one.  In this case,
+you must either copy the include files to the current directory, or setup
+links to the necessary files.  More recent versions do not have this problem;
+you should update your compiler to fix this. For more information, see the
+MPICH installation manual.
 
 3. Viewing the manuals with Pageview (Solaris).  pageview has trouble with the
 Postcript files for the installation and user guides.  To work around this,
@@ -249,5 +260,7 @@ choose the option, "Ignore PostScript Structuring Comments", under
 
 Also, some programs apparently don't do a good job of displaying these files.
 If you are having this problem, you should try ghostscript instead (there is
-nothing wrong with the Postscript).
+nothing wrong with the Postscript).  For example, Adobe tools that convert
+Postscript files into PDF do a remarkably poor job; we recommend that you view
+the Postscript files rather than converting them into PDF.
 

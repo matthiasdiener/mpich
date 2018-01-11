@@ -1,6 +1,8 @@
 #include <stdio.h>
 
 #include "mpi.h"
+#include "mpptest.h"
+
 extern int __NUMNODES, __MYPROCID;
 
 
@@ -38,70 +40,60 @@ extern int __NUMNODES, __MYPROCID;
 
  *****************************************************************************/
 
-void SetupOverlap(), OverlapComputation();
+void SetupOverlap( int, OverlapData *),
+     OverlapComputation( int, OverlapData *);
 
-typedef struct {
-    int    proc1, proc2;
-    int    MsgSize;                 /* Size of message in bytes */
-    int    OverlapSize,             /* */
-           OverlapLen,              /* */
-           OverlapPos;              /* Location in buffers */
-    double *Overlap1, *Overlap2;    /* Buffers */
-    } OverlapData;
-
-void *OverlapInit( proc1, proc2, size )
-int proc1, proc2, size;
+void *OverlapInit( int proc1, int proc2, int size )
 {
-OverlapData *new;
+    OverlapData *new;
 
-new		 = (OverlapData *)malloc(sizeof(OverlapData));   if (!new)return 0;;
-new->proc1	 = proc1;
-new->proc2	 = proc2;
-new->MsgSize	 = size;
-new->Overlap1	 = 0;
-new->Overlap2	 = 0;
-new->OverlapSize = 0;
-new->OverlapLen	 = 0;
-new->OverlapPos	 = 0;
+    new		 = (OverlapData *)malloc(sizeof(OverlapData));   
+    if (!new) return 0;;
+    new->proc1	 = proc1;
+    new->proc2	 = proc2;
+    new->MsgSize	 = size;
+    new->Overlap1	 = 0;
+    new->Overlap2	 = 0;
+    new->OverlapSize = 0;
+    new->OverlapLen	 = 0;
+    new->OverlapPos	 = 0;
 
-return new;
+    return new;
 }
 
 /* Compute floating point lengths adaptively */
-void OverlapSizes( msgsize, svals, ctx )
-int msgsize, svals[3];
-OverlapData *ctx;
+void OverlapSizes( int msgsize, int svals[3], void *vctx )
 {
-double time_msg, time_float, tmp;
-extern double round_trip_b_overlap();
-int    float_len;
-int    saved_msgsize;
+    double time_msg, time_float, tmp;
+    int    float_len;
+    int    saved_msgsize;
+    OverlapData *ctx = (OverlapData *)vctx;
 
-if (msgsize < 0) {
-    return;
+    if (msgsize < 0) {
+	return;
     }
 
-saved_msgsize = ctx->MsgSize;
-ctx->MsgSize  = msgsize;
+    saved_msgsize = ctx->MsgSize;
+    ctx->MsgSize  = msgsize;
     
 /* First, estimate the time to send a message */
-time_msg = round_trip_b_overlap(100,0,ctx) / 100.0;
-MPI_Allreduce(&time_msg, &tmp, 1, MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD );
-memcpy(&time_msg,&tmp,(1)*sizeof(double));;
+    time_msg = round_trip_b_overlap(100,0,ctx) / 100.0;
+    MPI_Allreduce(&time_msg, &tmp, 1, MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD );
+    memcpy(&time_msg,&tmp,(1)*sizeof(double));;
 /* printf( "Time_msg is %f\n", time_msg );  */
-float_len = msgsize;
-if (float_len <= 0) float_len = 32;
+    float_len = msgsize;
+    if (float_len <= 0) float_len = 32;
 /* Include the time of the message in the test... */
-do {
-    float_len *= 2;
-    time_float = round_trip_b_overlap(100,float_len,ctx) / 100.0;
-    MPI_Allreduce(&time_float, &tmp, 1, MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD );
-memcpy(&time_float,&tmp,(1)*sizeof(double));;
-    /* printf( "Time_float(%d) is %f\n", float_len, time_float );  */
+    do {
+	float_len *= 2;
+	time_float = round_trip_b_overlap(100,float_len,ctx) / 100.0;
+	MPI_Allreduce(&time_float, &tmp, 1, MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD );
+	memcpy(&time_float,&tmp,(1)*sizeof(double));;
+	/* printf( "Time_float(%d) is %f\n", float_len, time_float );  */
     } while (time_float < 2 * time_msg);
-svals[1]     = float_len;
-svals[2]     = (float_len - svals[0]) / 64;
-ctx->MsgSize = saved_msgsize;
+    svals[1]     = float_len;
+    svals[2]     = (float_len - svals[0]) / 64;
+    ctx->MsgSize = saved_msgsize;
 }
 
 /* 
@@ -110,72 +102,70 @@ ctx->MsgSize = saved_msgsize;
    Note: unlike the round_trip routines, the "length" in this routine 
    is the number of floating point operations.
  */
-double round_trip_nb_overlap(reps,len,ctx)
-int         reps,len;
-OverlapData *ctx;
+double round_trip_nb_overlap( int reps, int len, void *vctx)
 {
-  double elapsed_time;
-  double mean_time;
-  int  i,pid,myproc,
-       proc1=ctx->proc1,proc2=ctx->proc2,MsgSize=ctx->MsgSize;
-  char *rbuffer,*sbuffer;
-  double t0, t1;
-  MPI_Request rid, sid;
-  MPI_Status  status;
+    double elapsed_time;
+    OverlapData *ctx = (OverlapData *)vctx;
+    int  i,myproc,
+	proc1=ctx->proc1,proc2=ctx->proc2,MsgSize=ctx->MsgSize;
+    char *rbuffer,*sbuffer;
+    double t0, t1;
+    MPI_Request rid, sid;
+    MPI_Status  status;
 
-  /* If the MsgSize is negative, just do the floating point computation.
-     This allows us to test for cache effects independant of the message
-     passing code.  */
-  if (MsgSize < 0) {
-      SetupOverlap(len,ctx);
-      elapsed_time = 0;
-      t0=MPI_Wtime();
-      for(i=0;i<reps;i++){
-	  OverlapComputation(len,ctx);
-	  }
-      t1=MPI_Wtime();
-      elapsed_time = t1 -t0;
-      return elapsed_time;
-      }
-
-  myproc = __MYPROCID;
-  sbuffer = (char *)malloc(MsgSize);
-  rbuffer = (char *)malloc(MsgSize);
-  SetupOverlap(len,ctx);
-  elapsed_time = 0;
-  if(myproc==proc1){
-    MPI_Recv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&status);
-    t0=MPI_Wtime();
-    for(i=0;i<reps;i++){
-      MPI_Irecv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,1,MPI_COMM_WORLD,&(rid));
-      MPI_Isend(sbuffer,MsgSize,MPI_BYTE,proc2,1,MPI_COMM_WORLD,&(sid));
-      OverlapComputation(len,ctx);
-      MPI_Wait(&(rid),&status);
-      MPI_Wait(&(sid),&status);
+    /* If the MsgSize is negative, just do the floating point computation.
+       This allows us to test for cache effects independant of the message
+       passing code.  */
+    if (MsgSize < 0) {
+	SetupOverlap(len,ctx);
+	elapsed_time = 0;
+	t0=MPI_Wtime();
+	for(i=0;i<reps;i++){
+	    OverlapComputation(len,ctx);
+	}
+	t1=MPI_Wtime();
+	elapsed_time = t1 -t0;
+	return elapsed_time;
     }
-    t1=MPI_Wtime();
-    elapsed_time = t1 -t0;
-  }
 
-  if(myproc==proc2){
-    MPI_Irecv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,1,MPI_COMM_WORLD,&(rid));
-    MPI_Isend(sbuffer,MsgSize,MPI_BYTE,proc1,0,MPI_COMM_WORLD,&(sid));
-    for(i=0;i<reps-1;i++){
-      OverlapComputation(len,ctx);
-      MPI_Wait(&(rid),&status);
-      MPI_Wait(&(sid),&status);
-      MPI_Irecv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,1,MPI_COMM_WORLD,&(rid));
-      MPI_Isend(sbuffer,MsgSize,MPI_BYTE,proc1,1,MPI_COMM_WORLD,&(sid));
+    myproc = __MYPROCID;
+    sbuffer = (char *)malloc(MsgSize);
+    rbuffer = (char *)malloc(MsgSize);
+    SetupOverlap(len,ctx);
+    elapsed_time = 0;
+    if(myproc==proc1){
+	MPI_Recv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&status);
+	t0=MPI_Wtime();
+	for(i=0;i<reps;i++){
+	    MPI_Irecv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,1,MPI_COMM_WORLD,&(rid));
+	    MPI_Isend(sbuffer,MsgSize,MPI_BYTE,proc2,1,MPI_COMM_WORLD,&(sid));
+	    OverlapComputation(len,ctx);
+	    MPI_Wait(&(rid),&status);
+	    MPI_Wait(&(sid),&status);
+	}
+	t1=MPI_Wtime();
+	elapsed_time = t1 -t0;
     }
-    OverlapComputation(len,ctx);
-    MPI_Wait(&(rid),&status);
-    MPI_Wait(&(sid),&status);
-    MPI_Send(sbuffer,MsgSize,MPI_BYTE,proc1,1,MPI_COMM_WORLD);
-  }
 
-  free(sbuffer);
-  free(rbuffer);
-  return(elapsed_time);
+    if(myproc==proc2){
+	MPI_Irecv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,1,MPI_COMM_WORLD,&(rid));
+	MPI_Isend(sbuffer,MsgSize,MPI_BYTE,proc1,0,MPI_COMM_WORLD,&(sid));
+	for(i=0;i<reps-1;i++){
+	    OverlapComputation(len,ctx);
+	    MPI_Wait(&(rid),&status);
+	    MPI_Wait(&(sid),&status);
+	    MPI_Irecv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,1,MPI_COMM_WORLD,&(rid));
+	    MPI_Isend(sbuffer,MsgSize,MPI_BYTE,proc1,1,MPI_COMM_WORLD,&(sid));
+	}
+	OverlapComputation(len,ctx);
+	MPI_Wait(&(rid),&status);
+	MPI_Wait(&(sid),&status);
+	MPI_Send(sbuffer,MsgSize,MPI_BYTE,proc1,1,MPI_COMM_WORLD);
+    }
+
+    free(sbuffer);
+    free(rbuffer);
+    return(elapsed_time);
 }
 
 /* 
@@ -184,62 +174,60 @@ OverlapData *ctx;
    Note: unlike the round_trip routines, the "length" in this routine 
    is the number of floating point operations.
  */
-double round_trip_b_overlap(reps,len,ctx)
-int         reps,len;
-OverlapData *ctx;
+double round_trip_b_overlap(int reps, int len, void *vctx)
 {
-  double elapsed_time;
-  double mean_time;
-  int  i,pid,myproc,
-       proc1=ctx->proc1,proc2=ctx->proc2,MsgSize=ctx->MsgSize;
-  char *rbuffer,*sbuffer;
-  MPI_Status status;
-  double t0, t1;
+    double elapsed_time;
+    OverlapData *ctx = (OverlapData *)vctx;
+    int  i,myproc,
+	proc1=ctx->proc1,proc2=ctx->proc2,MsgSize=ctx->MsgSize;
+    char *rbuffer,*sbuffer;
+    MPI_Status status;
+    double t0, t1;
 
-  /* If the MsgSize is negative, just do the floating point computation.
-     This allows us to test for cache effects independant of the message
-     passing code.  */
-  if (MsgSize < 0) {
-      SetupOverlap(len,ctx);
-      elapsed_time = 0;
-      t0=MPI_Wtime();
-      for(i=0;i<reps;i++){
-	  OverlapComputation(len,ctx);
-	  }
-      t1=MPI_Wtime();
-      elapsed_time = t1 -t0;
-      return elapsed_time;
-      }
-
-  myproc = __MYPROCID;
-  sbuffer = (char *)malloc(MsgSize);
-  rbuffer = (char *)malloc(MsgSize);
-  SetupOverlap(len,ctx);
-  elapsed_time = 0;
-  if(myproc==proc1){
-    MPI_Recv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&status);
-    t0=MPI_Wtime();
-    for(i=0;i<reps;i++){
-      MPI_Send(sbuffer,MsgSize,MPI_BYTE,proc2,1,MPI_COMM_WORLD);
-      OverlapComputation(len,ctx);
-      MPI_Recv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,1,MPI_COMM_WORLD,&status);
+    /* If the MsgSize is negative, just do the floating point computation.
+       This allows us to test for cache effects independant of the message
+       passing code.  */
+    if (MsgSize < 0) {
+	SetupOverlap(len,ctx);
+	elapsed_time = 0;
+	t0=MPI_Wtime();
+	for(i=0;i<reps;i++){
+	    OverlapComputation(len,ctx);
+	}
+	t1=MPI_Wtime();
+	elapsed_time = t1 -t0;
+	return elapsed_time;
     }
-    t1=MPI_Wtime();
-    elapsed_time = t1 -t0;
-  }
 
-  if(myproc==proc2){
-    MPI_Send(sbuffer,MsgSize,MPI_BYTE,proc1,0,MPI_COMM_WORLD);
-    for(i=0;i<reps;i++){
-      OverlapComputation(len,ctx);
-      MPI_Recv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,1,MPI_COMM_WORLD,&status);
-      MPI_Send(sbuffer,MsgSize,MPI_BYTE,proc1,1,MPI_COMM_WORLD);
+    myproc = __MYPROCID;
+    sbuffer = (char *)malloc(MsgSize);
+    rbuffer = (char *)malloc(MsgSize);
+    SetupOverlap(len,ctx);
+    elapsed_time = 0;
+    if(myproc==proc1){
+	MPI_Recv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&status);
+	t0=MPI_Wtime();
+	for(i=0;i<reps;i++){
+	    MPI_Send(sbuffer,MsgSize,MPI_BYTE,proc2,1,MPI_COMM_WORLD);
+	    OverlapComputation(len,ctx);
+	    MPI_Recv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,1,MPI_COMM_WORLD,&status);
+	}
+	t1=MPI_Wtime();
+	elapsed_time = t1 -t0;
     }
-  }
 
-  free(sbuffer);
-  free(rbuffer);
-  return(elapsed_time);
+    if(myproc==proc2){
+	MPI_Send(sbuffer,MsgSize,MPI_BYTE,proc1,0,MPI_COMM_WORLD);
+	for(i=0;i<reps;i++){
+	    OverlapComputation(len,ctx);
+	    MPI_Recv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,1,MPI_COMM_WORLD,&status);
+	    MPI_Send(sbuffer,MsgSize,MPI_BYTE,proc1,1,MPI_COMM_WORLD);
+	}
+    }
+
+    free(sbuffer);
+    free(rbuffer);
+    return(elapsed_time);
 }
 
 /* 
@@ -254,78 +242,71 @@ OverlapData *ctx;
 
    We make some attempt to minimize cache effects by 
  */
-void SetupOverlap( len, ctx )
-int         len;
-OverlapData *ctx;
+void SetupOverlap( int len, OverlapData *ctx )
 {
-int i;
-double *p1, *p2;
+    int i;
+    double *p1, *p2;
 
-if (ctx->Overlap1) {
-    free(ctx->Overlap1);
-    free(ctx->Overlap2);
-    ctx->Overlap1 = 0;
-    ctx->Overlap2 = 0;
+    if (ctx->Overlap1) {
+	free(ctx->Overlap1);
+	free(ctx->Overlap2);
+	ctx->Overlap1 = 0;
+	ctx->Overlap2 = 0;
     }
 
 /* Convert len to words */
-ctx->OverlapSize = len / sizeof(double);
-if (ctx->OverlapSize > 0) {
-    /* Set len to exceed most cache sizes */
-    ctx->OverlapLen = ctx->OverlapSize;
-    if (ctx->OverlapLen < 65536) ctx->OverlapLen = 65536;
-    ctx->Overlap1 = (double *)malloc((unsigned)(ctx->OverlapLen * sizeof(double) ));
-    ctx->Overlap2 = (double *)malloc((unsigned)(ctx->OverlapLen * sizeof(double) ));
-    if (!ctx->Overlap1 || !ctx->Overlap2) {
-	ctx->Overlap1 = 0;
-	ctx->Overlap2 = 0;
-	fprintf( stderr, 
-		"Error allocating space in SetupOverlap (2x%d bytes)\n",
-		(int)(ctx->OverlapLen * sizeof(double)) );
-	MPI_Abort( MPI_COMM_WORLD, 1 );
+    ctx->OverlapSize = len / sizeof(double);
+    if (ctx->OverlapSize > 0) {
+	/* Set len to exceed most cache sizes */
+	ctx->OverlapLen = ctx->OverlapSize;
+	if (ctx->OverlapLen < 65536) ctx->OverlapLen = 65536;
+	ctx->Overlap1 = (double *)malloc((unsigned)(ctx->OverlapLen * sizeof(double) ));
+	ctx->Overlap2 = (double *)malloc((unsigned)(ctx->OverlapLen * sizeof(double) ));
+	if (!ctx->Overlap1 || !ctx->Overlap2) {
+	    ctx->Overlap1 = 0;
+	    ctx->Overlap2 = 0;
+	    fprintf( stderr, 
+		     "Error allocating space in SetupOverlap (2x%d bytes)\n",
+		     (int)(ctx->OverlapLen * sizeof(double)) );
+	    MPI_Abort( MPI_COMM_WORLD, 1 );
 	}
     }
-else 
-    ctx->OverlapLen = 0;
+    else 
+	ctx->OverlapLen = 0;
 
-p1 = ctx->Overlap1;
-p2 = ctx->Overlap2;
-for (i=0; i<ctx->OverlapLen; i++) {
-    p1[i] = 1.0;
-    p2[i] = 1.0;
+    p1 = ctx->Overlap1;
+    p2 = ctx->Overlap2;
+    for (i=0; i<ctx->OverlapLen; i++) {
+	p1[i] = 1.0;
+	p2[i] = 1.0;
     }
-ctx->OverlapPos = 0;
+    ctx->OverlapPos = 0;
 }
 
-void OverlapComputation( len, ctx )
-int         len;
-OverlapData *ctx;
+void OverlapComputation( int len, OverlapData *ctx )
 {
-int i, n;
-double temp, *p1 = ctx->Overlap1, *p2 = ctx->Overlap2;
+    int i, n;
+    double temp, *p1 = ctx->Overlap1, *p2 = ctx->Overlap2;
 
-n = ctx->OverlapSize;
-if (n == 0) return;
-ctx->Overlap1[0] = 0.0;
-temp             = 0.0;
+    n = ctx->OverlapSize;
+    if (n == 0) return;
+    ctx->Overlap1[0] = 0.0;
+    temp             = 0.0;
 
 /* Cycle through the memory to reduce cache effects */
-if (n + ctx->OverlapPos >= ctx->OverlapLen) 
-    ctx->OverlapPos = 0;
-p1		+= ctx->OverlapPos;
-p2		+= ctx->OverlapPos;
-ctx->OverlapPos	+= ctx->OverlapSize;
+    if (n + ctx->OverlapPos >= ctx->OverlapLen) 
+	ctx->OverlapPos = 0;
+    p1		+= ctx->OverlapPos;
+    p2		+= ctx->OverlapPos;
+    ctx->OverlapPos	+= ctx->OverlapSize;
 
-for (i=0;i<n;i++) {
-    temp += p1[i] * p2[i];
+    for (i=0;i<n;i++) {
+	temp += p1[i] * p2[i];
     }
 
 /* Defeat most optimizers from eliminating loop */
-ctx->Overlap1[0] = temp;
+    ctx->Overlap1[0] = temp;
 }
-
-
-
 
 
 

@@ -1,17 +1,6 @@
 #! /bin/sh
 exitstatus=1
 #
-if [ -z "$MPIR_HOME" ] ; then 
-    MPIR_HOME=#MPIR_HOME#
-fi
-if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
-    MPIR_HOME=`pwd`/..
-fi
-if [ "#MPIRUN_BIN#" = "#""MPIRUN_BIN""#" ] ; then 
-    MPIRUN_HOME=$MPIR_HOME/bin
-else
-    MPIRUN_HOME=#MPIRUN_BIN#
-fi
 if [ -z "$argsset" ] ; then
    . $MPIRUN_HOME/mpirun.args
    argsset=1
@@ -60,7 +49,7 @@ fi
 # Construct the procgroup file.
 # If p4 was built with comm=shared, set MPI_MAX_CLUSTER_SIZE to 16 unless
 # it has already been set.
-if [ "#COMM#" = "shared" ] ; then
+if [ "$COMM" = "shared" ] ; then
     if [ -z "$MPI_MAX_CLUSTER_SIZE" ] ; then
         MPI_MAX_CLUSTER_SIZE=16
     fi
@@ -79,7 +68,12 @@ fi
 prognamemain=$progname
 if [ -z "$p4pgfile"  ] ; then
     p4pgfile="$PWD_TRIAL/PI$$"
-    echo "Test" > $p4pgfile
+    # We need to explicitly redirect stderr.
+    # Under Solaris, an echo that fails aborts the script (!)  There is
+    # no way around this using echo, so we use cat instead.
+    cat <<EOF 2>/dev/null > $p4pgfile
+Test
+EOF
     if [ ! -s $p4pgfile ] ; then
 	# May not be able to write there.  Try the user's home directory
 	p4pgfile=$HOME/PI$$
@@ -167,7 +161,7 @@ fi
 # to start a job.  As a partial fix for this, we do a sync.  It would help,
 # of course, if NFS worked correctly.
 #
-#SYNCLOC# > /dev/null 2>&1
+$SYNCLOC > /dev/null 2>&1
 #
 #
 # get current directory (where mpirun is being executed) as proposed 
@@ -177,118 +171,58 @@ fi
 if [ "$p4workdir" = "" ] ; then
     p4workdir=$PWD_TRIAL
 fi
-#
-#
-# Handle debuggers
-#
-#startpgm="eval"
 startpgm="$prognamemain $cmdLineArgs -p4pg $p4pgfile -p4wd $p4workdir"
 # The following could use the -stdin filename from mpirun, though
 # it doesn't handle the problem of the created jobs.
 #if [ -n "$stdinfile" ] ; then
 # startpgm="$startpgm < $stdinfile"
 #fi
+#
+# Handle debuggers
+#
 if [ "$debugger" != "" ] ; then
-    if [ "$debugger" = "totalview" ] ; then
-        if [ "$TOTALVIEW" = "" ] ; then
-	   TOTALVIEW="totalview"
-        fi
-        startpgm="$TOTALVIEW $prognamemain -a $cmdLineArgs -p4pg $p4pgfile -p4wd $p4workdir -mpichtv"	        
+    if [ -x "$MPIRUN_HOME/mpirun_dbg.$debugger" ] ; then
+        $MPIRUN_HOME/mpirun_dbg.$debugger -progname $prognamemain -p4pg $p4pgfile -p4wd $p4workdir -cmdlineargs "$cmdLineArgs"
     else
-        dbgfile=$PWD_TRIAL/PId$$
-        echo "Test" > $dbgfile
-        if [ -s $dbgfile ] ; then
-	    /bin/rm -f $dbgfile
-        else
-            dbgfile=$HOME/PId$$
-        fi
-        # If gdb has an equivalent, the documentation is well hidden.
-        #  - .gdbinit - and the documentation IS well hidden.  Fortunately,
-        # the .gbdinit file is read; gdb provides the -nx (instead of -x)
-        # command if you don't want to read the default init file.
-        if [ "$debugger" = "dbx" -a -r $HOME/.dbxinit ] ; then
-	    cat $HOME/.dbxinit > $dbgfile
-# DEC dbx requires
-#    set stopall_on_step = 1
-# for proper behavior
-        fi
-        # Regretably, xxgdb does NOT provide this argument (even though it
-        # claims to).
-    #    if [ "$debugger" = "xxgdb" -a -r $HOME/.gdbinit ] ; then
-    #	cat $HOME/.gdbini > $dbgfile
-    #    fi
-        # handle USR1 pass for gdb; add an initial break 
-        if [ "$debugger" = "gdb" -o "$debugger" = "xxgdb" -o \
-	     "$debugger" = "ddd" ] ; then
-	    echo "handle SIGUSR1 nostop pass" >> $dbgfile
-	    echo "br MPI_Init" >> $dbgfile
-	    echo "set args $cmdLineArgs -p4pg $p4pgfile -p4wd $p4workdir" >> $dbgfile
-	    echo "run" >> $dbgfile
-        else 
-            echo "ignore USR1" >> $dbgfile
-            # This may not work, depending on when the symbol table is read.
-            # An alternative is to use the startup file to load the 
-            # program with "debug $prognamemain" ,followed with this, followed
-	    # with run command args.
-	    echo "debug $prognamemain" >> $dbgfile
-   	    echo "stop in MPI_Init" >> $dbgfile
-	    echo "run $cmdLineArgs -p4pg $p4pgfile -p4wd $p4workdir" >> $dbgfile
-        fi
-    #	cat >> $dbgfile <<.
-    ## Use this command to start your programm:
-    #run  $cmdLineArgs -p4pg $p4pgfile -p4wd $p4workdir
-    #.
-	    commandfile=`echo $commandfile | sed -e s@%f@$dbgfile@g`
-	    startpgm="$debugger $commandfile $prognamemain"
+        echo "CANNOT RUN DEBUGGER - NO DEBUGGER SCRIPT" 
+	exit 1
     fi
-fi
-#
-# Pass to the program that the device is ch_p4
-#
-MPIRUN_DEVICE="ch_p4"
-export MPIRUN_DEVICE
-#
-# Build a suitable command for the whole thing
-#
-if [ $just_testing = 1 ] ; then
-  doitall="echo"
 else
-  # We need the eval to handle arguments containing blanks.
-  doitall="eval"
-fi
-#
-# Add rsh'ery if requested
-#
-if [ $nolocal = 1 ] ; then
-    if [ "$stdinfile" = "/dev/null" ] ; then
-        doitall="$doitall $rshcmd $machinehead"
+    # Pass to the program that the device is ch_p4
+    #
+    MPIRUN_DEVICE="ch_p4"
+    export MPIRUN_DEVICE
+    #
+    # Build a suitable command for the whole thing
+    #
+    if [ $just_testing = 1 ] ; then
+        doitall="echo"
     else
-        doitall="$doitall $rshcmd -n $machinehead"
+        # We need the eval to handle arguments containing blanks.
+        doitall="eval"
+    fi
+    #
+    # Add rsh'ery if requested
+    #
+    if [ $nolocal = 1 ] ; then
+        if [ "$stdinfile" = "/dev/null" ] ; then
+            doitall="$doitall $rshcmd $machinehead"
+        else
+            doitall="$doitall $rshcmd -n $machinehead"
+        fi
+    fi
+
+    $doitall $startpgm
+    exitstatus=$?
+fi
+if [ $just_testing != 1 ] ; then
+    if [ $leavePGFile = 1 ] ; then
+        echo "P4 procgroup file is $p4pgfile."
+    else
+        /bin/rm "$p4pgfile"
+    fi
+    if [ "$MPIRUN_RANDOM" = "yes" ] ; then
+        /bin/rm -f "$TEMPDIR/mpirand-$LOGNAME"*
     fi
 fi
-
-$doitall $startpgm
-exitstatus=$?
-
-#else
-#  if [ $nolocal = 1 ] ; then
-#    if [ "$debugger" != "" ] ; then
-#	  $rshcmd $machinehead $debugger $commandfile $prognamemain
-#    else
-#	  $rshcmd $machinehead $prognamemain $cmdLineArgs -p4pg "$p4pgfile"
-#    fi
-#  else
-#   if [ "$debugger" != "" ] ; then
-#	    $debugger $commandfile $prognamemain
-#    else
-#	    $prognamemain $cmdLineArgs -p4pg "$p4pgfile"
-#    fi
-#  fi # nolocal
-if [ $just_testing != 1 ] ; then
-  if [ $leavePGFile = 1 ] ; then
-	echo "P4 procgroup file is $p4pgfile."
-  else
-    /bin/rm "$p4pgfile"
-  fi
-fi #just testing
 exit $exitstatus

@@ -1,5 +1,12 @@
-#include <stdlib.h>
 #include <stdio.h>
+
+#ifdef HAVE_SLOGCONF_H
+#include "slog_config.h"
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
+#include <stdlib.h>
+#endif
+
 #include "slog_bbuf.h"                 /*I  "slog_bbuf.h"  I*/
 
 /*

@@ -1,157 +1,350 @@
+# Makefile.in generated automatically by automake 1.2 from Makefile.am
+
+# Copyright (C) 1994, 1995, 1996, 1997 Free Software Foundation, Inc.
+# This Makefile.in is free software; the Free Software Foundation
+# gives unlimited permission to copy, distribute and modify it.
+
+# -*- makefile -*-
 
 
-SHELL		= @BINSH@
-CXX		= @MPI_CXX@
-TEMPLATE_REP	= @TEMPLATE_REP@
+SHELL = /bin/sh
 
-# The ../.. includes the configuration file for VPATH builds
-CXXFLAGS	= @TEST_OPTFLAGS@ -I../..
-LDFLAGS		= @TEST_OPTFLAGS@
+srcdir = @srcdir@
+top_srcdir = @top_srcdir@
+VPATH = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
 
-srcdir=@srcdir@
-top_srcdir=@top_srcdir@
-@VPATH@
+bindir = @bindir@
+sbindir = @sbindir@
+libexecdir = @libexecdir@
+datadir = @datadir@
+sysconfdir = @sysconfdir@
+sharedstatedir = @sharedstatedir@
+localstatedir = @localstatedir@
+libdir = @libdir@
+infodir = @infodir@
+mandir = @mandir@
+includedir = @includedir@
+oldincludedir = /usr/include
 
-#
-# MPI2C++ Test suite
-#
-# 	
+pkgdatadir = $(datadir)/@PACKAGE@
+pkglibdir = $(libdir)/@PACKAGE@
+pkgincludedir = $(includedir)/@PACKAGE@
 
-TEST_SRC	= mpi2c++_test.cc \
-		messages.cc \
-		stack.cc \
-		signal.cc \
-		allgather.cc \
-		allreduce.cc \
-		alltoall.cc \
-		attr.cc \
-		badbuf.cc \
-		bcast.cc \
-		bcast_struct.cc \
-		bottom.cc \
-		bsend.cc \
-		buffer.cc \
-		cancel.cc \
-		cartcomm.cc \
-		commdup.cc \
-		commfree.cc \
-		compare.cc \
-		dims.cc \
-		dup_test.cc \
-		errhandler.cc \
-		gather.cc \
-		getcount.cc \
-		getel.cc \
-		graphcomm.cc \
-		group.cc \
-		groupfree.cc \
-		initialized1.cc \
-		initialized2.cc \
-		intercomm.cc \
-		interf.cc \
-		iprobe.cc \
-		isend.cc \
-		op_test.cc \
-		pack_test.cc \
-		pcontrol.cc \
-		probe.cc \
-		procname.cc \
-		rank_size.cc \
-		reduce.cc \
-		reduce_scatter.cc \
-		request1.cc \
-		rsend.cc \
-		scan.cc \
-		scatter.cc \
-		send.cc \
-		sendrecv.cc \
-		sendrecv_rep.cc \
-		split.cc \
-		ssend.cc \
-		start.cc \
-		startall.cc \
-		status_test.cc \
-		struct_gatherv.cc \
-		test1.cc \
-		test3.cc \
-		testall.cc \
-		testany.cc \
-		testsome.cc \
-		topo.cc \
-		waitall.cc \
-		waitany.cc \
-		waitsome.cc \
-		wtime.cc
+top_builddir = ../..
 
-TEST_OBJ	= $(TEST_SRC:.cc=.o)
-TEST_BIN	= mpi2c++_test
+ACLOCAL = @ACLOCAL@
+AUTOCONF = @AUTOCONF@
+AUTOMAKE = @AUTOMAKE@
+AUTOHEADER = @AUTOHEADER@
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_SCRIPT = @INSTALL_SCRIPT@
+transform = @program_transform_name@
+
+NORMAL_INSTALL = true
+PRE_INSTALL = true
+POST_INSTALL = true
+NORMAL_UNINSTALL = true
+PRE_UNINSTALL = true
+POST_UNINSTALL = true
+host_alias = @host_alias@
+host_triplet = @host@
+AR = @AR@
+AWK = @AWK@
+BALKY_CXX = @BALKY_CXX@
+BALKY_CXXFLAGS = @BALKY_CXXFLAGS@
+BALKY_LDFLAGS = @BALKY_LDFLAGS@
+BINSH = @BINSH@
+CLEANFILES = @CLEANFILES@
+DEFS = @DEFS@
+DEPFLAGS = @DEPFLAGS@
+EXAM_OPTFLAGS = @EXAM_OPTFLAGS@
+GREP = @GREP@
+INSTALL = @INSTALL@
+INSTALLDIR = @INSTALLDIR@
+IV_DESTRUCTORS = @IV_DESTRUCTORS@
+LN_S = @LN_S@
+LSC_EXCEPTION_CXXFLAGS = @LSC_EXCEPTION_CXXFLAGS@
+LSC_EXCEPTION_LDFLAGS = @LSC_EXCEPTION_LDFLAGS@
+MAKEINFO = @MAKEINFO@
+MINI_BALKY_CXXFLAGS = @MINI_BALKY_CXXFLAGS@
+MINI_BALKY_LDFLAGS = @MINI_BALKY_LDFLAGS@
+MPI2CPP_LIBRARY = @MPI2CPP_LIBRARY@
+MPILIB_DIR = @MPILIB_DIR@
+MPI_CXX = @MPI_CXX@
+OPTFLAGS = @OPTFLAGS@
+PACKAGE = @PACKAGE@
+RANLIB = @RANLIB@
+TEMPLATE_REP = @TEMPLATE_REP@
+TEST_OPTFLAGS = @TEST_OPTFLAGS@
+TOPDIR = @TOPDIR@
+VERSION = @VERSION@
+WANT_PROFILE = @WANT_PROFILE@
+WC = @WC@
+
+AUTOMAKE_OPTIONS	= foreign dist-tarZ no-dependencies
+
+CXX			= $(bindir)/balky
+INCLUDES		= $(TEST_OPTFLAGS)
+
+bin_PROGRAMS		= mpi2c++_test
+
+mpi2c___test_SOURCES	= \
+			mpi2c++_test.cc \
+			mpi2c++_test.h \
+			messages.cc \
+			stack.cc \
+			signal.cc \
+			allgather.cc \
+			allreduce.cc \
+			alltoall.cc \
+			attr.cc \
+			badbuf.cc \
+			bcast.cc \
+			bcast_struct.cc \
+			bottom.cc \
+			bsend.cc \
+			buffer.cc \
+			cancel.cc \
+			cartcomm.cc \
+			commdup.cc \
+			commfree.cc \
+			compare.cc \
+			dims.cc \
+			dup_test.cc \
+			errhandler.cc \
+			gather.cc \
+			getcount.cc \
+			getel.cc \
+			graphcomm.cc \
+			group.cc \
+			groupfree.cc \
+			initialized1.cc \
+			initialized2.cc \
+			intercomm.cc \
+			interf.cc \
+			iprobe.cc \
+			isend.cc \
+			op_test.cc \
+			pack_test.cc \
+			pcontrol.cc \
+			probe.cc \
+			procname.cc \
+			rank_size.cc \
+			reduce.cc \
+			reduce_scatter.cc \
+			request1.cc \
+			rsend.cc \
+			scan.cc \
+			scatter.cc \
+			send.cc \
+			sendrecv.cc \
+			sendrecv_rep.cc \
+			split.cc \
+			ssend.cc \
+			start.cc \
+			startall.cc \
+			status_test.cc \
+			struct_gatherv.cc \
+			test1.cc \
+			test3.cc \
+			testall.cc \
+			testany.cc \
+			testsome.cc \
+			topo.cc \
+			waitall.cc \
+			waitany.cc \
+			waitsome.cc \
+			wtime.cc
+mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+CONFIG_HEADER = ../../src/mpi2c++/mpi2c++_config.h
+CONFIG_CLEAN_FILES = 
+PROGRAMS =  $(bin_PROGRAMS)
+
+CPPFLAGS = @CPPFLAGS@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
+mpi2c___test_OBJECTS =  mpi2c++_test.o messages.o stack.o signal.o \
+allgather.o allreduce.o alltoall.o attr.o badbuf.o bcast.o \
+bcast_struct.o bottom.o bsend.o buffer.o cancel.o cartcomm.o commdup.o \
+commfree.o compare.o dims.o dup_test.o errhandler.o gather.o getcount.o \
+getel.o graphcomm.o group.o groupfree.o initialized1.o initialized2.o \
+intercomm.o interf.o iprobe.o isend.o op_test.o pack_test.o pcontrol.o \
+probe.o procname.o rank_size.o reduce.o reduce_scatter.o request1.o \
+rsend.o scan.o scatter.o send.o sendrecv.o sendrecv_rep.o split.o \
+ssend.o start.o startall.o status_test.o struct_gatherv.o test1.o \
+test3.o testall.o testany.o testsome.o topo.o waitall.o waitany.o \
+waitsome.o wtime.o
+mpi2c___test_LDADD = $(LDADD)
+mpi2c___test_LDFLAGS = 
+CXXFLAGS = @CXXFLAGS@
+CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CXXFLAGS)
+CXXLINK = $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@
+DIST_COMMON =  Makefile.am Makefile.in
 
 
-######################################################################
+DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
-#
-# General rules
-#
+TAR = gnutar
+GZIP = --best
+SOURCES = $(mpi2c___test_SOURCES)
+OBJECTS = $(mpi2c___test_OBJECTS)
 
-.SUFFIXES: .cc .o
+default: all
 
+.SUFFIXES:
+.SUFFIXES: .c .cc .o
+$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
+	cd $(top_srcdir) && $(AUTOMAKE) --foreign contrib/test_suite/Makefile
+
+Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+	cd $(top_builddir) \
+	  && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
+
+
+mostlyclean-binPROGRAMS:
+
+clean-binPROGRAMS:
+	test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
+
+distclean-binPROGRAMS:
+
+maintainer-clean-binPROGRAMS:
+
+install-binPROGRAMS: $(bin_PROGRAMS)
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(bindir)
+	@list='$(bin_PROGRAMS)'; for p in $$list; do \
+	  if test -f $$p; then \
+	    echo "  $(INSTALL_PROGRAM) $$p $(bindir)/`echo $$p|sed '$(transform)'`"; \
+	     $(INSTALL_PROGRAM) $$p $(bindir)/`echo $$p|sed '$(transform)'`; \
+	  else :; fi; \
+	done
+
+uninstall-binPROGRAMS:
+	$(NORMAL_UNINSTALL)
+	list='$(bin_PROGRAMS)'; for p in $$list; do \
+	  rm -f $(bindir)/`echo $$p|sed '$(transform)'`; \
+	done
+
+.c.o:
+	$(COMPILE) -c $<
+
+mostlyclean-compile:
+	rm -f *.o core
+
+clean-compile:
+
+distclean-compile:
+	rm -f *.tab.c
+
+maintainer-clean-compile:
+
+mpi2c++_test: $(mpi2c___test_OBJECTS) $(mpi2c___test_DEPENDENCIES)
+	@rm -f mpi2c++_test
+	$(CXXLINK) $(mpi2c___test_LDFLAGS) $(mpi2c___test_OBJECTS) $(mpi2c___test_LDADD) $(LIBS)
 .cc.o:
-	$(CXX) -c $(CXXFLAGS) $<
+	$(CXXCOMPILE) -c $<
 
-######################################################################
+tags: TAGS
 
-#
-# Rules
-#
+ID: $(HEADERS) $(SOURCES)
+	here=`pwd` && cd $(srcdir) && mkid -f$$here/ID $(SOURCES) $(HEADERS)
 
-all: $(TEST_BIN)
+TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES)
+	tags=; \
+	here=`pwd`; \
+	test -z "$(ETAGS_ARGS)$(SOURCES)$(HEADERS)$$tags" \
+	  || (cd $(srcdir) && etags $(ETAGS_ARGS) $$tags  $(SOURCES) $(HEADERS) -o $$here/TAGS)
 
-#
-# The actual test binary
-#
+mostlyclean-tags:
 
-$(TEST_BIN): $(TEST_OBJ)
-	$(CXX) $(TEST_OBJ) -o $(TEST_BIN) $(LDFLAGS)
+clean-tags:
+
+distclean-tags:
+	rm -f TAGS ID
+
+maintainer-clean-tags:
+
+distdir = $(top_builddir)/$(PACKAGE)-$(VERSION)/$(subdir)
+
+subdir = contrib/test_suite
+
+distdir: $(DISTFILES)
+	@for file in $(DISTFILES); do \
+	  d=$(srcdir); \
+	  test -f $(distdir)/$$file \
+	  || ln $$d/$$file $(distdir)/$$file 2> /dev/null \
+	  || cp -p $$d/$$file $(distdir)/$$file; \
+	done
+info:
+dvi:
+check: all
+	$(MAKE)
+installcheck:
+install-exec: install-binPROGRAMS
+	@$(NORMAL_INSTALL)
+
+install-data: 
+	@$(NORMAL_INSTALL)
+
+install: install-exec install-data all
+	@:
+
+uninstall: uninstall-binPROGRAMS
+
+all: Makefile $(PROGRAMS)
+
+install-strip:
+	$(MAKE) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' INSTALL_SCRIPT='$(INSTALL_PROGRAM)' install
+installdirs:
+	$(mkinstalldirs)  $(bindir)
 
 
-#
-# clean
-# On some weird Unix's, rm -f will complain if there are no files to 
-# delete...
-#
+mostlyclean-generic:
+	test -z "$(MOSTLYCLEANFILES)" || rm -f $(MOSTLYCLEANFILES)
 
-ALL_SRC		= $(TEST_SRC)
-ALL_BIN		= $(TEST_BIN)
+clean-generic:
+	test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
-clean:
-	@ touch bogus.o
-	rm -rf *.o *~ *% core $(ALL_BIN) bogus $(TEMPLATE_REP)
+distclean-generic:
+	rm -f Makefile $(DISTCLEANFILES)
+	rm -f config.cache config.log stamp-h stamp-h[0-9]*
+	test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 
-distclean: clean
-	@ touch bogus.o
-	rm -rf Makefile
+maintainer-clean-generic:
+	test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
+	test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
+mostlyclean:  mostlyclean-binPROGRAMS mostlyclean-compile \
+		mostlyclean-tags mostlyclean-generic
 
-#
-# depend
-#
+clean:  clean-binPROGRAMS clean-compile clean-tags clean-generic \
+		mostlyclean
 
-depend: $(ALL_SRC)
-	$(CXX) -M $(DEPFLAGS) $(ALL_SRC) > makedep
-	@ echo '/^# DO NOT DELETE THIS LINE/+2,$$d' >eddep
-	@ echo '$$r makedep' >>eddep
-	@ echo 'w' >>eddep
-	@ cp Makefile Makefile.bak
-	@ ed - Makefile < eddep
-	@ /bin/rm eddep makedep
-	@ echo '# DEPENDENCIES MUST END AT END OF FILE' >> Makefile
-	@ echo '# IF YOU PUT STUFF HERE IT WILL GO AWAY' >> Makefile
-	@ echo '# see make depend above' >> Makefile
+distclean:  distclean-binPROGRAMS distclean-compile distclean-tags \
+		distclean-generic clean
+	rm -f config.status
 
-# The following 4 (yes 4) lines must be in all the subdirectory makefiles
-#-----------------------------------------------------------------
-# DO NOT DELETE THIS LINE -- make depend uses it
-# DEPENDENCIES MUST END AT END OF FILE
+maintainer-clean:  maintainer-clean-binPROGRAMS maintainer-clean-compile \
+		maintainer-clean-tags maintainer-clean-generic \
+		distclean
+	@echo "This command is intended for maintainers to use;"
+	@echo "it deletes files that may require special tools to rebuild."
 
-# DEPENDENCIES MUST END AT END OF FILE
-# IF YOU PUT STUFF HERE IT WILL GO AWAY
-# see make depend above
+.PHONY: default mostlyclean-binPROGRAMS distclean-binPROGRAMS \
+clean-binPROGRAMS maintainer-clean-binPROGRAMS uninstall-binPROGRAMS \
+install-binPROGRAMS mostlyclean-compile distclean-compile clean-compile \
+maintainer-clean-compile tags mostlyclean-tags distclean-tags \
+clean-tags maintainer-clean-tags distdir info dvi installcheck \
+install-exec install-data install uninstall all installdirs \
+mostlyclean-generic distclean-generic clean-generic \
+maintainer-clean-generic clean mostlyclean distclean maintainer-clean
+
+
+# Tell versions [3.59,3.63) of GNU make to not export all variables.
+# Otherwise a system limit (for SysV at least) may be exceeded.
+.NOEXPORT:

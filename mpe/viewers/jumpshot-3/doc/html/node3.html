@@ -1,0 +1,264 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 99.2beta6 (1.42)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>Statistical Preview</TITLE>
+<META NAME="description" CONTENT="Statistical Preview">
+<META NAME="keywords" CONTENT="TourStepByStep">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Generator" CONTENT="LaTeX2HTML v99.2beta6">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="TourStepByStep.css">
+
+<LINK REL="next" HREF="node4.html">
+<LINK REL="previous" HREF="node2.html">
+<LINK REL="up" HREF="TourStepByStep.html">
+<LINK REL="next" HREF="node4.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html53"
+  HREF="node4.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html51"
+  HREF="TourStepByStep.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html45"
+  HREF="node2.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A>   
+<BR>
+<B> Next:</B> <A NAME="tex2html54"
+  HREF="node4.html">Statistics Viewer</A>
+<B> Up:</B> <A NAME="tex2html52"
+  HREF="TourStepByStep.html">A Tour of Jumpshot-3</A>
+<B> Previous:</B> <A NAME="tex2html46"
+  HREF="node2.html">Main Control Window</A>
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H1><A NAME="SECTION00030000000000000000">
+Statistical Preview</A>
+</H1>
+
+<P>
+<BR>
+<BR>
+
+<P></P>
+<DIV ALIGN="CENTER"><A NAME="fig:_preview"></A><A NAME="180"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 2:</STRONG>
+The Preview : View &amp; Frame Selector Window.</CAPTION>
+<TR><TD>
+<DIV ALIGN="CENTER"><!-- MATH
+ $\resizebox*{0.9\textwidth}{!}{\includegraphics{pic/preview.ps}}$
+ -->
+<IMG
+ WIDTH="500" HEIGHT="420" ALIGN="BOTTOM" BORDER="0"
+ SRC="img2.gif"
+ ALT="\resizebox*{0.9\textwidth}{!}{\includegraphics{pic/preview.ps}}"> </DIV>
+<P>
+<DIV ALIGN="CENTER"></DIV>
+
+<P></TD></TR>
+</TABLE>
+</DIV><P></P>
+
+<P>
+
+<BR>
+<BR>
+
+<P>
+The goal of the Statistical Preview is to help a user select a frame for viewing
+prupose. It consists of two windows. The major window is titled ``View &amp; Frame
+Selector'' window, which is usually called ``Preview'' contains a graphical
+representation of all the activities going on during the run of the program
+sppm. It is shown in Figure <A HREF="node3.html#fig:_preview">2</A>. Activities in ``Preview''
+are computed in the following way: the whole duration of the job sppm is divided
+into 512 time bins. For each time bin, there are counters for each states and
+arrows occured in the time bin. The counter of each state/arrow will be incremented
+by the statistical weight which equals to the ratio of the duration of state/arrow
+to the width of time bin that the state/arrow is in. Because of this definition
+of the statistical weight for each state/arrow, very short duration states or
+arrows become statistically insignificant and will not contribute much to the
+accumulative activities of all the states and arrows. The visual consequence
+is that states/arrows with very short duration are not noticeable in the ``Preview''.
+The graphical representation of the activities of the logfiles is, by default,
+in accumulative histogram mode which can be turned on/off through the button
+selection sequence, <I>Graph-&gt;Type-&gt;Bar</I>. The other mode is the non-accumulative
+curve mode which can be enabled by the button selection sequence, <I>Graph-&gt;Type-&gt;Line</I>.
+It is shown in the Figure <A HREF="node3.html#fig:_preview_mode_line">3</A>. Since it is non-accumulative
+as in histogram mode, it distinguishes the relative importance of various states.
+<P></P>
+<DIV ALIGN="CENTER"><A NAME="fig:_preview_mode_line"></A><A NAME="182"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 3:</STRONG>
+Preview in non-accumulative curve mode.</CAPTION>
+<TR><TD>
+<DIV ALIGN="CENTER"><!-- MATH
+ $\resizebox*{0.9\textwidth}{!}{\includegraphics{pic/preview_line.ps}}$
+ -->
+<IMG
+ WIDTH="500" HEIGHT="420" ALIGN="BOTTOM" BORDER="0"
+ SRC="img3.gif"
+ ALT="\resizebox*{0.9\textwidth}{!}{\includegraphics{pic/preview_line.ps}}"> </DIV>
+<P>
+<DIV ALIGN="CENTER"></DIV>
+
+<P></TD></TR>
+</TABLE>
+</DIV><P></P>
+In the lower left hand corner of the ``Preview'', there is a ``Frame Information''
+panel which lists the number of frames in the logfile, <I>N</I>. In this case,
+there are only 3 frames in the file. One may wonder how big is each frame and
+how it is determined? The frame size is determined by the program that generates
+the slog files<A NAME="tex2html7"
+  HREF="footnode.html#foot64"><SUP>4</SUP></A>. In generally, the smaller the frame, the better the performance of Jumpshot-3
+will be in refreshing the screen. But if an overly small frame size is used,
+it will be increasingly difficult to navigate to the frame that is being selected.
+And each frame will contain too little data for user to form a coherent overall
+picture of the code. Next to the label <I>Current Frame</I>, there is a dialog
+box which shows the current frame index which starts from <I>0</I> to the last
+frame of the file, <I>N-1</I>, and is initialized to <I>0</I> when the GUI starts.
+User can change the frame index by typing in the dialog box or through buttons
+in the ``Frame Operations'', where <I>Previous</I> and <I>Next</I> buttons
+decrements and increments the frame index respectively. But user is also allowed
+to click on the graphical display to select a frame of interest. A red line
+will then show up in the graph to highlight the frame selected. Currently the
+red line is located in the middle of the frame, so the red line is moved non-uniformly
+along the X-axis. The redundancy in frame selection operations allows the end
+user to fine tune which frame to view when the logfile contains a lot of frames.
+For MPI program running in a multihreaded environment as in AIX SMP box, the
+logfile may contain various threads information. In that case, the ``Connectivity
+Options'' and ``View Options'' panels become very useful. User is allowed
+to choose different combinations of these options to see how threads are dispatched
+and used in a MPI Program. More details will be in the next section.
+
+<P>
+
+<P></P>
+<DIV ALIGN="CENTER"><A NAME="fig:_preview_s_legends"></A><A NAME="184"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 4:</STRONG>
+The Legends of the Preview</CAPTION>
+<TR><TD>
+<DIV ALIGN="CENTER"><!-- MATH
+ $\resizebox*{0.3\textwidth}{!}{\includegraphics{pic/preview_legends.ps}}$
+ -->
+<IMG
+ WIDTH="167" HEIGHT="284" ALIGN="BOTTOM" BORDER="0"
+ SRC="img4.gif"
+ ALT="\resizebox*{0.3\textwidth}{!}{\includegraphics{pic/preview_legends.ps}}"> </DIV>
+<P>
+<DIV ALIGN="CENTER"></DIV>
+
+<P></TD></TR>
+</TABLE>
+</DIV><P></P>
+Next to the ``Preview'', there is a smaller window titled ``Legend'' which
+contains a set of radio buttons with different colors. They are tagged with
+the names of the MPI and user defined calls made in the code sppm. An illustration
+of ``Legend'' is shown in the Figure <A HREF="node3.html#fig:_preview_s_legends">4</A>. Below
+the list of radio buttons, there are <I>Select/Deselect</I>, <I>All</I>, <I>None</I>
+and <I>Change Color</I> buttons. 
+
+<P>
+``Preview'' together with its corresponding ``Legend'' windows are meant
+to be used side by side to help the end users to select frames which are of
+interest to them. If some of the states displayed in the ``Preview'' seems
+useless and confusing, like operating system generated state ``Running''.
+In this case, the ``Running'' state is the one that messes up the overall
+picture of the code, it can be easily removed by first highlight the state through
+clicking on the name ``Running'' in the ``Legend''. Then click on <I>Select/Deselect</I>
+button will remove ``Running'' from the ``Preview''. In Figure <A HREF="node3.html#fig:_preview_deselected_few_states">5</A>,
+all MPI and system related states are deselected in the ``Preview'' to highlight
+the user defined states ``layout'', ``setup'', ``bdrys'' and ``glbl''.
+It becomes apparent that all the communications between the user MPI Processes
+are done in regular interval. Also all communications, i.e. arrows, are within
+the user defined state ``bdrys''. Assume one is interested in the behaviour
+of the program between the last two instances of MPI_Allreduce, one can simply
+click on <I>None</I> to deselect all the states and arrows, highlight MPI_Allreduce,
+then click <I>Select/Deselect</I> to display only MPI_Allreduce in the ``Preview''.
+Now click on any region between the last two MPI_Allreduce's in the ``Preview''.
+Then the frame index is changed from 0 to 2, and a red line is positioned in
+the middle of the frame 2 and is also in between the last two instances of MPI_Allreduce.
+Now it is time to select the properties of the frame to be viewed. Most end
+users who are interested in the performance of the code sppm should select <I>Connected
+States</I> option with either <I>MPI-Process</I> or <I>Thread</I> view. If you
+are intereted in how the operating system dispatches threads among CPUs allocated
+for the job, you may want to select <I>Disconnected States</I> in <I>Processor</I>
+view.
+<P></P>
+<DIV ALIGN="CENTER"><A NAME="fig:_preview_deselected_few_states"></A><A NAME="187"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 5:</STRONG>
+All MPI and OS related states are
+deselected in the ``Preview'' and ``Legend'' to highlight the user defined
+states and the communication among the processes.</CAPTION>
+<TR><TD>
+<DIV ALIGN="CENTER"><!-- MATH
+ $\resizebox*{0.9\textwidth}{!}{\includegraphics{pic/preview_few.ps}}$
+ -->
+<IMG
+ WIDTH="500" HEIGHT="420" ALIGN="BOTTOM" BORDER="0"
+ SRC="img5.gif"
+ ALT="\resizebox*{0.9\textwidth}{!}{\includegraphics{pic/preview_few.ps}}"> </DIV>
+<P>
+<DIV ALIGN="CENTER"></DIV>
+
+<P>
+
+
+<P>
+
+
+<P>
+<DIV ALIGN="CENTER"><!-- MATH
+ $\resizebox*{0.3\textwidth}{!}{\includegraphics{pic/preview_legends_few.ps}}$
+ -->
+<IMG
+ WIDTH="167" HEIGHT="317" ALIGN="BOTTOM" BORDER="0"
+ SRC="img6.gif"
+ ALT="\resizebox*{0.3\textwidth}{!}{\includegraphics{pic/preview_legends_few.ps}}"> </DIV>
+<P>
+<DIV ALIGN="CENTER"></DIV>
+
+<P></TD></TR>
+</TABLE>
+</DIV><P></P>
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html53"
+  HREF="node4.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html51"
+  HREF="TourStepByStep.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html45"
+  HREF="node2.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A>   
+<BR>
+<B> Next:</B> <A NAME="tex2html54"
+  HREF="node4.html">Statistics Viewer</A>
+<B> Up:</B> <A NAME="tex2html52"
+  HREF="TourStepByStep.html">A Tour of Jumpshot-3</A>
+<B> Previous:</B> <A NAME="tex2html46"
+  HREF="node2.html">Main Control Window</A>
+<!--End of Navigation Panel-->
+
+</BODY>
+</HTML>

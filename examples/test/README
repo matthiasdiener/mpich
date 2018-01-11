@@ -49,11 +49,10 @@ To run the test, but not leave the executables around, do (in this directory)
 
   make TESTARGS=-small testing >& testing.out
 
-If you are NOT using the MPICH implementation, see the script "setuptests" in
-this directory.  Change the definitions near the top of this script to 
-conform to your MPI system and then execute it; it will create Makefile's and
-scripts (called runtests).  Then use "make testing" to run the tests.
-Alternately, you can try the configure script here.
+If you are NOT using the MPICH implementation, then you can run the configure
+script in this directory.  If you need to view the configure options, then type
+       configure -help
+and a list of configure options will be provided.
 
 You will probably also have to provide an "mpirun" program or script.
 This has roughly the form

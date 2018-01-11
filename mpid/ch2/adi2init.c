@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2init.c,v 1.1.1.1 1997/09/17 20:39:25 gropp Exp $
+ *  $Id: adi2init.c,v 1.5 2000/08/10 22:04:43 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -19,8 +19,12 @@ int MPID_Print_queues = 0;
 MPID_SBHeader MPIR_rhandles;
 MPID_SBHeader MPIR_shandles;
 
+#if defined(USE_HOLD_LAST_DEBUG) || defined(MPID_DEBUG_ALL)
+char ch_debug_buf[CH_MAX_DEBUG_LINE];
+#endif
+
 /* This is a prototype for this function used to provide a debugger hook */
-void MPIR_Breakpoint ANSI_ARGS((void));
+void MPIR_Breakpoint (void);
 
 /***************************************************************************/
 /* Some operations are completed in several stages.  To ensure that a      */
@@ -37,10 +41,9 @@ int MPID_n_pending = 0;
    for shared-memory versions (hot-spot-references).  */
 MPID_DevSet *MPID_devset = 0;
 
-extern MPID_Device *MPID_CH_InitMsgPass 
-       ANSI_ARGS(( int *, char ***, int, int ));
+extern MPID_Device *MPID_CH_InitMsgPass( int *, char ***, int, int );
 
-int MPID_Complete_pending ANSI_ARGS((void));
+int MPID_Complete_pending (void);
 
 static int MPID_Short_len = -1;
 
@@ -164,6 +167,10 @@ char     *user, *str;
     fflush( stderr );
     fflush( stdout );
 
+#ifdef USE_PRINT_LAST_ON_ERROR
+    MPID_Ch_dprint_last();
+#endif
+
     /* Also flag a debugger that an abort has happened so that it can take
      * control while there's still useful state to be examined.
      * Remember, MPIR_Breakpoint is a complete no-op unless the debugger
@@ -251,6 +258,7 @@ MPID_BLOCKING_TYPE is_blocking;
 	return (lerr == 0) ? 1 : lerr;
     }
     else {
+	DEBUG_PRINT_MSG( "Entering while !found" );
 	while (!found) {
 	    dev = MPID_devset->dev_list;
 	    while (dev) {
@@ -262,6 +270,7 @@ MPID_BLOCKING_TYPE is_blocking;
 		break;
 	    }
 	}
+	DEBUG_PRINT_MSG( "Leaving while !found" );
     }
     DEBUG_PRINT_MSG( "Exiting DeviceCheck")
     return (found) ? found : -1;

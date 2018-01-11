@@ -11,9 +11,7 @@
 #include "protofix.h"
 #endif
 
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char *argv[] )
 {
 
     double       sbuf[20000], rbuf[20000];
@@ -36,7 +34,7 @@ char **argv;
     n = 200;
 
     if (rank == 1) { /* begin if rank = 1 */
-	MPI_Isend( &sbuf, n, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, &req );
+	MPI_Isend( sbuf, n, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, &req );
 	MPI_Cancel(&req); 
 	MPI_Wait(&req, &status);
 	MPI_Test_cancelled(&status, &flag);
@@ -50,10 +48,10 @@ char **argv;
     MPI_Barrier(MPI_COMM_WORLD); 
 
     if (rank == 0) {  /* begin if rank == 0 */
-	MPI_Recv( &rbuf, n, MPI_DOUBLE, 1, 1, MPI_COMM_WORLD, &status);
+	MPI_Recv( rbuf, n, MPI_DOUBLE, 1, 1, MPI_COMM_WORLD, &status);
     }  /* end if rank = 0 */
     else if (rank == 1) { /* begin if rank = 1 */
-	MPI_Isend( &sbuf, n, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, &req );
+	MPI_Isend( sbuf, n, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, &req );
 	MPI_Cancel(&req); 
 	MPI_Wait(&req, &status);
 	MPI_Test_cancelled(&status, &flag);
@@ -72,7 +70,7 @@ char **argv;
     n = 3000;
 
     if (rank == 1) { /* begin if rank = 1 */
-	MPI_Isend( &sbuf, n, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, &req );
+	MPI_Isend( sbuf, n, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, &req );
 	MPI_Cancel(&req);
 	MPI_Wait(&req, &status);
 	MPI_Test_cancelled(&status, &flag);
@@ -86,11 +84,11 @@ char **argv;
     MPI_Barrier(MPI_COMM_WORLD); 
 
     if (rank == 0) {  /* begin if rank == 0 */
-	MPI_Irecv(&rbuf, n, MPI_DOUBLE, 1, 1, MPI_COMM_WORLD, &req );
+	MPI_Irecv(rbuf, n, MPI_DOUBLE, 1, 1, MPI_COMM_WORLD, &req );
 	MPI_Wait( &req, &status);
     }  /* end if rank = 0 */
     else if (rank == 1) { /* begin if rank = 1 */
-	MPI_Isend( &sbuf, n, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, &req );
+	MPI_Isend( sbuf, n, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, &req );
 	MPI_Cancel(&req);
 	MPI_Wait(&req, &status);
 	MPI_Test_cancelled(&status, &flag);
@@ -109,7 +107,7 @@ char **argv;
     n = 20000;
 
     if (rank == 1) { /* begin if rank = 1 */
-	MPI_Isend( &sbuf, n, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, &req );
+	MPI_Isend( sbuf, n, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, &req );
 	MPI_Cancel(&req);
 	MPI_Wait(&req, &status);
 	MPI_Test_cancelled(&status, &flag);
@@ -147,7 +145,7 @@ char **argv;
 	    printf( "Test failed with %d errors.\n", err );
 	}
 	else {
-	    printf( "Test passed\n" );
+	    printf( " No Errors\n" );
 	}
     }
 

@@ -1,8 +1,25 @@
-AC_INIT(src/comm.h)
-#
-# This file was in src, but needs to to bee in a place where it cannot be 
-# confused with a VPATH version.  For example, in the root directory.
-AC_CONFIG_HEADER(mpi2c++_config.h)
+# -*- shell-script -*-
+
+# This file is part of the University of Notre Dame implementation of
+# the MPI 2 C++ bindings package.  See the LICENSE file in the top
+# level directory for license and copyright information.
+
+# Disable caching.
+define([AC_CACHE_LOAD], )
+define([AC_CACHE_SAVE], )
+
+AC_INIT(src/mpi2c++/comm.h)
+
+VERSION=`cat $srcdir/VERSION | cut -f5 -d\ `
+echo "Configuring MPI-2 C++ bindings, version $VERSION"
+AC_SUBST(VERSION)
+
+
+# The third argument to AM_INIT_AUTOMAKE surpresses the PACKAGE and
+# VERSION macors
+
+AM_INIT_AUTOMAKE(mpi2c++, $VERSION, 'no')
+AM_CONFIG_HEADER(src/mpi2c++/mpi2c++_config.h)
 
 #
 # Configure script for MPI C++ Bindings.
@@ -33,17 +50,13 @@ MPI_CXXFLAGS=
 MPI_LDFLAGS=
 MPI_LIBS=
 
-MPI_CONSTANTS_BAD=0
-
 
 #
 # Balky flags
 #
 
 BALKY_CXX=
-BALKY_INCDIR=
 BALKY_CXXFLAGS=
-BALKY_LIBDIR=
 BALKY_LIBS=
 BALKY_LDFLAGS=
 
@@ -63,17 +76,40 @@ TEST_OPTFLAGS=$OPTFLAGS
 #
 
 MPICH_DEV=
+LAM_CXXFLAGS=
 EXTRA_CXXFLAGS=
 EXCPTN_CXXFLAGS=
 EXCPTN_LDFLAGS=
-IV_DESTRUCTORS=1
 WANT_SOCKET_LIBS=
 WANT_THREAD_LIBS=
 ARCH=
 EXFLAGS=
 FORCE_EXFLAGS=
 
-# WDG: VPATH is used, but we allow it to be imported from the environment
+#
+HAVE_BROKEN_NAMESPACES=0
+UNDERLYING_CXX=
+USING_MPICH=0
+MPI_MIDDLE_NAME=
+MINI_BALKY_CXXFLAGS=
+BALKY_CXXFLAGS=
+
+
+#
+# Ensure not to get a user aliased grep
+#
+
+if test -x /bin/grep; then
+    GREP=/bin/grep
+elif test -x /usr/bin/grep; then
+    GREP=/usr/bin/grep
+elif test -x /sbin/grep; then
+    GREP=/sbin/grep
+elif test -x /usr/sbin/grep; then
+    GREP=/usr/sbin/grep
+else
+    AC_PATH_PROG(GREP, grep, grep)
+fi
 
 #
 # Get our system type
@@ -95,19 +131,20 @@ case "$host" in
         # The following flags for are the aCC compiler.  
         # Unfortunately, the compiler isn't available yet, so I can't
 	# add the appropriate tests.  Errg.  
-        
-        EXTRA_CXXFLAGS="+W829"
-        CXXFLAGS="$CXXFLAGS $EXTRA_CXXFLAGS"
-	EXFLAGS="+eh"
+	if test "$GXX" = ""; then
+	    EXTRA_CXXFLAGS="+W829,736"
+	    CXXFLAGS="$CXXFLAGS $EXTRA_CXXFLAGS"
+	    EXFLAGS="+eh"
 
-        NOOPT="-Wl,+vnocompatwarnings"
-        OPTFLAGS="+O1 -Wl,+vnocompatwarnings"
-        EXAM_OPTFLAGS=$OPTFLAGS
-        TEST_OPTFLAGS=$OPTFLAGS
-
-	MPI_CXX_SAVE=$MPI_CXX
-
-	ARCH=HPUX
+	    NOOPT="-Wl,+vnocompatwarnings"
+	    OPTFLAGS="+O1 -Wl,+vnocompatwarnings"
+	    EXAM_OPTFLAGS=$OPTFLAGS
+	    TEST_OPTFLAGS=$OPTFLAGS
+	    
+	    MPI_CXX_SAVE=$MPI_CXX
+	    
+	    ARCH=HPUX
+	fi
         ;;
 
     mips-sgi-irix*)
@@ -178,105 +215,155 @@ fi
 AC_PATH_PROG(AWK, awk)
 AC_PATH_PROG(WC, wc)
 
-# From MPICH configure:
-# Look for a style of VPATH.  Known forms are
-# VPATH = .:dir
-# .PATH: . dir
-#
-# Defines VPATH or .PATH with . $(srcdir)
-# Requires that vpath work with implicit targets
-# NEED TO DO: Check that $< works on explicit targets.
-#
-AC_SUBST(VPATH)
-AC_MSG_CHECKING(for virtual path format)
-rm -rf conftest*
-mkdir conftestdir
-cat >conftestdir/a.c <<EOF
-A sample file
-EOF
-cat > conftest <<EOF
-all: a.o
-VPATH=.:conftestdir
-.c.o:
-	@echo \$<
-EOF
-ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
-if test -n "$ac_out" ; then 
-    AC_MSG_RESULT(VPATH)
-    VPATH='VPATH=.:$(srcdir)'
-else
-    rm -f conftest
-    cat > conftest <<EOF
-all: a.o
-.PATH: . conftestdir
-.c.o:
-	@echo \$<
-EOF
-    ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
-    if test -n "$ac_out" ; then 
-        AC_MSG_RESULT(.PATH)
-        VPATH='.PATH: . $(srcdir)'
-    else
-	AC_MSG_RESULT(neither VPATH nor .PATH works)
-    fi
-fi
-rm -rf conftest*
 
 #
 # Check --with values for specific MPI implementations.  Check for:
 #  - wrapper compilers that come with some implementations
 #  - specific options necessary for some MPI implementations
 #
-# LAM 6.0/6.1
+# LAM 6.3/6.4
 #
 
-AC_ARG_WITH(lam,	[--with-lam=MPI_DIR	Top-level install directory for LAM/MPI], MPI_IMP="lam" WITHDIR=$withval)
+AC_ARG_WITH(lam,	 [--with-lam=MPI_DIR	Top-level install directory for LAM/MPI], MPI_IMP="lam" WITHDIR=$withval)
 
 if test "$MPI_IMP" = "lam"; then
-    if test "$LAMHCP" = ""; then
-        AC_MSG_ERROR([LAMHCP environment variable not set])
-        exit
+
+    # Run lamboot with a dummy hostfile to find out what version it is
+
+    MPI_CXX=no
+    if test "$WITHDIR" != "" -a -x "$WITHDIR/bin/hcp"; then
+	AC_MSG_CHECKING([for hcp])
+	MPI_CXX=$WITHDIR/bin/hcp
+	LAMBOOT=$WITHDIR/bin/lamboot
+	LAMWIPE=$WITHDIR/bin/wipe
+	AC_MSG_RESULT([$MPI_CXX])
+    elif test "$WITHDIR" != "" -a -x "$WITHDIR/hcp"; then
+	AC_MSG_CHECKING([for hcp])
+	MPI_CXX=$WITHDIR/hcp
+	LAMBOOT=$WITHDIR/lamboot
+	LAMWIPE=$WITHDIR/wipe
+	AC_MSG_RESULT([$MPI_CXX])
+    else
+	AC_PATH_PROG(MPI_CXX, hcp, no)
     fi
 
-    AC_PATH_PROG(MPI_CXX, hcp, no)
     if test "$MPI_CXX" = "no"; then
-        AC_MSG_CHECKING([for hcp (elsewhere)])
-        if test -x $WITHDIR/bin/hcp; then
-            MPI_CXX=$WITHDIR/bin/hcp
-            AC_MSG_RESULT($MPI_CXX)
-        elif test -x $WITHDIR/hcp; then
-            MPI_CXX=$WITHDIR/hcp
-            AC_MSG_RESULT($MPI_CXX)
-        else
-            AC_MSG_ERROR([cannot continue -- put hcp in your path])
-        fi
+        AC_MSG_ERROR([cannot continue -- put hcp in your path])
+    else
+	LAMBOOT=`dirname $MPI_CXX`/lamboot
+	LAMWIPE=`dirname $MPI_CXX`/wipe
     fi
     CXX=$MPI_CXX
 
-    MPI_LIBS="-lmpi"
+    MPI_LIBS=" "
 
-    if test "$ARCH" = "IRIX"; then
-	AC_DEFINE(LAMIRIX, 1)
+    AC_MSG_CHECKING([for LAM/MPI version])
+    VER=`$LAMBOOT -V | $GREP LAM`
+    if test "`echo $VER | $GREP 6.1`" != ""; then
+	AC_MSG_RESULT([$LAMVER (you should upgrade)])
+	AC_MSG_WARN([*** LAM/MPI 6.1 is no longer supported.])
+	WANT_UPGRADE=1
+
+    elif test "`echo $VER | $GREP 6.2`" != ""; then
+	AC_MSG_RESULT([$LAMVER (you should upgrade)])
+	AC_MSG_WARN([*** LAM/MPI 6.2 is no longer supported.])
+	WANT_UPGRADE=1
+
+    elif test "`echo $VER | $GREP 6.3.1`" != ""; then
+	AC_DEFINE(MPI2CPP_LAM631, 1)
+	AC_MSG_RESULT([$LAMVER (you should upgrade)])
+	AC_MSG_WARN([*** LAM/MPI 6.3.1 is no longer supported.])
+	WANT_UPGRADE=1
+
+    elif test "`echo $VER | $GREP 6.3.2`" != ""; then
+	AC_DEFINE(MPI2CPP_LAM632, 1)
+	AC_MSG_RESULT([$LAMVER (you should upgrade)])
+	AC_MSG_WARN([*** LAM/MPI 6.3.2 is no longer supported.])
+	WANT_UPGRADE=1
+
+    elif test "`echo $VER | $GREP 6.3.3`" != ""; then
+	LAMVER=6.3.3
+	LAMCXXFLAGS="-DLAM_BUILDING=1"
+	AC_DEFINE(MPI2CPP_LAM633, 1)
+	AC_MSG_RESULT([$LAMVER (good)])
+	WANT_UPGRADE=0
+
+    elif test "`echo $VER | $GREP 6.3`" != ""; then
+	LAMVER=6.3
+	AC_MSG_RESULT([$LAMVER (you should upgrade)])
+	AC_MSG_WARN([*** LAM/MPI 6.3 is no longer supported.])
+	WANT_UPGRADE=1
+
+    elif test "`echo $VER | $GREP 6.4`" != ""; then
+	LAMVER=6.4
+	AC_DEFINE(MPI2CPP_LAM64, 1)
+	AC_MSG_RESULT([$LAMVER (good)])
+	WANT_UPGRADE=0
+    else
+	LAMVER=no
+	AC_DEFINE(MPI2CPP_LAMUNKNOWN, 1)
+	AC_MSG_RESULT([cannot determine LAM version -- good luck])
+    fi
+    if test "$WANT_UPGRADE" = "1"; then
+	AC_MSG_WARN([*** WARNING: You are using an old version of LAM/MPI.])
+	AC_MSG_WARN([*** You should upgrade to the latest version.])
+	AC_MSG_WARN([*** See http://www.mpi.nd.edu/lam/])
+	AC_MSG_ERROR([*** Cannot continue])
+    fi
+    MPI_MIDDLE_NAME="lam"
+
+    # Get the underlying compiler name so that we can check for
+    # exception flags properly
+
+    AC_MSG_CHECKING([for LAM's underlying C++ compiler])
+    full="`hcp -showme`"
+    first="`echo $full | awk '{ print $1 }'`"
+    UNDERLYING_CXX="`basename $first`"
+    if test "$UNDERLYING_CXX" = "libtool"; then
+	first=1
+	done=0
+	for word in $full ; do
+	    if test "$done" = "0"; then
+		name="`basename $word`"
+		if test "$first" != "1" -a \
+			"`echo $word | cut -c1-2`" != "--"; then
+		    UNDERLYING_CXX="$word"
+		    done=1
+		fi
+		first=0
+	    fi
+	done
+	AC_MSG_RESULT([$UNDERLYING_CXX (via libtool)])
+    else
+	AC_MSG_RESULT([$UNDERLYING_CXX])
     fi
 
-    AC_DEFINE(LAM61, 1)
+    # If we're building LAM (and we should be -- we shouldn't be
+    # compiling this from outside of LAM anymore!), set some flags
+
+    AC_ARG_WITH(lam-building, [--with-lam-building   Only used internally to LAM/MPI], MINI_BALKY_CXXFLAGS="-lam-building")
 fi
 
 #
-# MPICH 1.0.13 (or higher)
+# MPICH 1.2.0 (or higher)
 #
 
-AC_ARG_WITH(mpich,	[--with-mpich=MPI_DIR	Top-level install directory for MPICH/MPI], MPI_IMP="mpich" WITHDIR=$withval)
-AC_ARG_WITH(mpichdev,	[--with-mpichdev=LIBDIR	Library subdirectory for MPICH/MPI], MPI_IMP="mpich" MPICH_DEV=$withval)
-AC_ARG_WITH(mpichbin,   [--with-mpichbin=BINDIR bin subdirectory for MPICH/MPI], MPI_IMP="mpich" MPICH_BIN=$withval)
-AC_ARG_WITH(mpichsrc,   [--with-mpichsrc=SRCDIR source home for MPICH/MPI], MPI_IMP="mpich" MPICH_SRC=$withval)
-AC_ARG_WITH(mpichlib,   [--with-mpichlib=LIBDIR Library directory for MPICH/MPI], MPI_IMP="mpich" MPILIB_DIR=$withval)
+MPICH_BIN=
+MPICH_SRC=
+MPILIB_DIR=
+
+AC_ARG_WITH(mpich,	[--with-mpich=MPI_DIR    Top-level install directory for MPICH/MPI], MPI_IMP="mpich" WITHDIR=$withval)
+AC_ARG_WITH(mpichdev,	[--with-mpichdev=LIBDIR  Library subdirectory for MPICH/MPI], MPI_IMP="mpich" MPICH_DEV=$withval)
+AC_ARG_WITH(mpichbin,   [--with-mpichbin=BINDIR  bin subdirectory for MPICH/MPI], MPI_IMP="mpich" MPICH_BIN=$withval)
+AC_ARG_WITH(mpichsrc,   [--with-mpichsrc=SRCDIR  source home for MPICH/MPI], MPI_IMP="mpich" MPICH_SRC=$withval)
+AC_ARG_WITH(mpichlib,   [--with-mpichlib=LIBDIR  Library directory for MPICH/MPI], MPI_IMP="mpich" MPILIB_DIR=$withval)
 
 if test "$MPI_IMP" = "mpich"; then
 
     if test "$WITHDIR" = "yes"; then
         AC_MSG_ERROR([supplied --with-mpich without a directory])
     fi
+    USING_MPICH=1
 
     AC_MSG_CHECKING([MPICH version])
     patchfile=$WITHDIR/include/patchlevel.h
@@ -286,52 +373,81 @@ if test "$MPI_IMP" = "mpich"; then
 	    patchfile=$MPICH_SRC/include/patchlevel.h
 	fi
     fi
-    MPICH_VERSION=`cat $patchfile | awk '{print $3}' | sed -e 's/\.[0-9]//' | tr '\012' '.'`
-    if test "$MPICH_VERSION" = "1.0.0.13."; then
-        MPI_CONSTANTS_BAD=1
-        AC_DEFINE(MPICH1013)
-        AC_MSG_RESULT([1.0.13 (you should upgrade)])
-    elif test "$MPICH_VERSION" = "1.1.0."; then
-        AC_DEFINE(MPICH110)
-        AC_MSG_RESULT([1.1.0 (you should upgrade)])
+
+    if test ! -s $patchfile; then
+	AC_MSG_WARN([Cannot find the patchfile.  Hence, cannot determine])
+	AC_MSG_WARN([MPICH's version.  Perhaps you need to])
+	AC_MSG_WARN([specify where the MPICH source tree is with the])
+	AC_MSG_WARN([--with-mpich-srcdir flag...?])
+	AC_MSG_WARN([Going to make a best guess... (good luck!)])
+	# Stoopid emacs mode: '
+	AC_DEFINE(MPI2CPP_MPICHUNKNOWN, 1)
     else
-
-	#
-	# Argh!  MPICH changed the format of their patchlevel file
-	# as of version 1.1.1.
-	#
-
-	MPICH_VERSION=`grep 'PATCHLEVEL ' $patchfile | awk '{print $3}'`
-	mv1=`grep 'PATCHLEVEL_SUBMINOR' $patchfile | awk '{print $3}'`
-	MPICH_VERSION="$MPICH_VERSION.$mv1."
-
-	if test -z "$MPILIB_DIR" ; then
-  	    MPILIB_DIR=$WITHDIR/$MPICH_DEV
-        fi
-	if test "$MPICH_VERSION" = "1.1.1."; then
-	    AC_DEFINE(MPICH111)
-	    AC_MSG_RESULT([1.1.1 (you should upgrade)])
-	elif test "$MPICH_VERSION" = "1.1.2."; then
-	    AC_DEFINE(MPICH112)
-	    AC_MSG_RESULT([1.1.2 (good)])
-	elif test "$MPICH_VERSION" = "1.1.3."; then
-            # Need to make this MPICH113 eventually
-	    AC_DEFINE(MPICH112)
-	    AC_MSG_RESULT([1.1.3 (good)])
-	elif test "$MPICH_VERSION" = "1.2.0."; then
-            # Need to make this MPICH120 eventually
-	    AC_DEFINE(MPICH112)
-	    AC_MSG_RESULT([1.2.0 (good)])
+	MPICH_VERSION=`cat $patchfile | awk '{print $3}' | sed -e 's/\.[0-9]//' | tr '\012' '.'`
+	if test "$MPICH_VERSION" = "1.0.0.13."; then
+	    AC_MSG_RESULT([1.0.13 (you should upgrade)])
+	    WANT_UPGRADE=1
+	elif test "$MPICH_VERSION" = "1.1.0."; then
+	    AC_MSG_RESULT([1.1.0 (you should upgrade)])
+	    WANT_UPGRADE=1
 	else
-	    AC_DEFINE(MPICH)
-	    AC_MSG_RESULT([unrecognized MPICH level -- good luck!])
+	
+	    #
+	    # Argh!  MPICH changed the format of their patchlevel file
+	    # as of version 1.1.1.
+	    #
+
+	    MPICH_VERSION=`grep 'PATCHLEVEL ' $patchfile | awk '{print $3}'`
+	    mv1=`grep 'PATCHLEVEL_SUBMINOR' $patchfile | awk '{print $3}'`
+	    MPICH_VERSION="$MPICH_VERSION.$mv1."
+	    
+	    if test -z "$MPILIB_DIR" ; then
+		MPILIB_DIR=$WITHDIR/$MPICH_DEV
+	    fi
+	    if test "$MPICH_VERSION" = "1.1.1."; then
+		AC_MSG_RESULT([1.1.1 (you should upgrade)])
+		WANT_UPGRADE=1
+	    elif test "$MPICH_VERSION" = "1.1.2."; then
+		AC_MSG_RESULT([1.1.2 (you should upgrade)])
+		WANT_UPGRADE=1
+	    elif test "$MPICH_VERSION" = "1.1.3."; then
+		# Need to make this MPICH113 eventually
+		AC_MSG_RESULT([1.1.3 (you should upgrade)])
+		WANT_UPGRADE=1
+	    elif test "$MPICH_VERSION" = "1.2.0."; then
+		AC_DEFINE(MPI2CPP_MPICH120)
+		AC_MSG_RESULT([1.2.0 (good)])
+		WANT_UPGRADE=0
+		if test -z "$MPICH_BIN"; then
+		    AC_MSG_ERROR([when configuring for 1.2.0, --with-mpichbin must be specified])
+		fi
+	    elif test "$MPICH_VERSION" = "1.2.1."; then
+		AC_DEFINE(MPI2CPP_MPICH121)
+		AC_MSG_RESULT([1.2.1 (good)])
+		WANT_UPGRADE=0
+		if test -z "$MPICH_BIN"; then
+		    AC_MSG_ERROR([when configuring for 1.2.1, --with-mpichbin must be specified])
+		fi
+	    else
+		AC_DEFINE(MPI2CPP_MPICHUNKNOWN, 1)
+		AC_MSG_RESULT([unrecognized MPICH level -- good luck!])
+	    fi
+	    
 	fi
+    fi
+    
+    if test "$WANT_UPGRADE" = "1"; then
+	AC_MSG_WARN([*** WARNING: It looks like you are using an old])
+	AC_MSG_WARN([*** version of MPICH.])
+	AC_MSG_WARN([*** You need to upgrade to the latest version.])
+	AC_MSG_WARN([*** See http://www.mcs.anl.gov/mpi/mpich/])
+	AC_MSG_ERROR([*** Cannot continue.])
     fi
 
     if test -z "$MPILIB_DIR" ; then
         MPILIB_DIR=$WITHDIR/$MPICH_DEV
     fi
-    
+
     OLD_ARCH=$ARCH
     if test -x $WITHDIR/util/tarch; then 
 	ARCH=`$WITHDIR/util/tarch | sed s/-/_/g`
@@ -340,21 +456,23 @@ if test "$MPI_IMP" = "mpich"; then
     fi
 
     if test -d "$WITHDIR/lib"; then
-      MPICHLIBDIR=lib
+      MPICHLIBDIR=$WITHDIR/lib/$ARCH
     elif test -d "$WITHDIR/build"; then
-      MPICHLIBDIR=build
+      MPICHLIBDIR=$WITHDIR/build/$ARCH
+    elif test ! -z "$MPILIB_DIR"; then
+      MPICHLIBDIR="$MPILIB_DIR"
     else
 	AC_MSG_ERROR([could not find MPICH support for $ARCH])
     fi
 
     if test ! "$MPICH_DEV" = ""; then
 	DEVICE=$MPICH_DEV
-    elif test -d "$WITHDIR/$MPICHLIBDIR/$ARCH"; then
+    elif test -d "$MPICHLIBDIR"; then
 	echo "no MPICH device specified"
 	AC_MSG_CHECKING([for existing MPICH devices])
 	devices=""
-	for device in `/bin/ls $WITHDIR/$MPICHLIBDIR/$ARCH`; do
-	    if test -d $WITHDIR/$MPICHLIBDIR/$ARCH/$device; then
+	for device in `/bin/ls $MPICHLIBDIR`; do
+	    if test -d $MPICHLIBDIR/$device; then
 		devices="$device $devices"
 	    fi
 	done
@@ -380,13 +498,13 @@ if test "$MPI_IMP" = "mpich"; then
 		read DEVICE
 		DEVICE=`echo "$DEVICE" | sed -e 's/^[	]*//' -e 's/[	]*$//'`
 
-		if test ! -d "$WITHDIR/$MPICHLIBDIR/$ARCH/$DEVICE"; then
+		if test ! -d "$MPICHLIBDIR/$DEVICE"; then
 		    echo "$DEVICE MPICH device not found"
 		    DEVICE=0
 		fi
 	    done
 	fi
-	MPICH_DEV=$MPICHLIBDIR/$ARCH/$DEVICE
+	MPICH_DEV=$MPICHLIBDIR/$DEVICE
 
 	# #$%^$#%^$@%@#%@#$!!!!!!!
 	# Don't ask.  Trust us.
@@ -404,35 +522,56 @@ if test "$MPI_IMP" = "mpich"; then
     if test -x $MPICH_BIN/mpiCC ; then
         # MPICH 1.2.0 and later
         MPI_CXX=$MPICH_BIN/mpiCC
-	# Tell mpiCC to not load mpi++.h when reading mpi.h
-        CXXFLAGS="$CXXFLAGS -DMPICH_SKIP_MPICXX"
-        CXX=$MPI_CXX
-        MPI_LIBS="-lmpich"
-    elif test -x $WITHDIR/$MPICH_DEV/../bin/mpiCC ; then 
-        # MPICH 1.1.2 and later
-        MPI_CXX=$WITHDIR/$MPICH_DEV/../bin/mpiCC
-        CXX=$MPI_CXX
-        MPI_LIBS="-lmpich"
-        # We should NOT be using this, since the MPICH library name is
-	# a configure-time parameter
-    elif test -x $WITHDIR/$MPICH_DEV/mpiCC ; then
-	# MPICH 1.1.1
-        MPI_CXX=$WITHDIR/$MPICH_DEV/mpiCC
-        CXX=$MPI_CXX
-        MPI_LIBS="-lmpich"
     else
-	# MPICH 1.1.0 and earlier
-        MPI_LIBS="-lmpi"
+	MPI_CXX=mpiCC
     fi
+    CXX=$MPI_CXX
+    # Tell mpiCC to not load mpi++.h when reading mpi.h
+    CXXFLAGS="$CXXFLAGS -DMPICH_SKIP_MPICXX"
+    MPI_LIBS="-lmpich"
+
     # JGS not sure were these should go
-    MPI_CXXFLAGS="-I$WITHDIR/include"
+    MPI_CXXFLAGS="-I$WITHDIR/include -I$WITHDIR"
     MPI_LDFLAGS="-L$WITHDIR/$MPICH_DEV"
 
+    # Get the underlying compiler name so that we can check for
+    # exception flags properly
+
+    AC_MSG_CHECKING([for MPICH's underlying C++ compiler])
+    full="`$MPI_CXX -show`"
+    first="`echo $full | awk '{ print $1 }'`"
+    UNDERLYING_CXX="`basename $first`"
+    if test "$UNDERLYING_CXX" = "libtool"; then
+	first=1
+	done=0
+	for word in $full ; do
+	    if test "$done" = "0"; then
+		name="`basename $word`"
+		if test "$first" != "1" -a \
+			"`echo $word | cut -c1-2`" != "--"; then
+		    UNDERLYING_CXX="$word"
+		    done=1
+		fi
+		first=0
+	    fi
+	done
+	AC_MSG_RESULT([$UNDERLYING_CXX (via libtool)])
+    else
+	AC_MSG_RESULT([$UNDERLYING_CXX])
+    fi
+
+
     if test "$ARCH" != "IRIX"; then
-      WANT_SOCKET_LIBS=1
+	WANT_SOCKET_LIBS=1
+    else
+	#MPI_CXXFLAGS="$MPI_CXXFLAGS -64"
+	#MPI_LDFLAGS="$MPI_LDFLAGS -64"
+
+	#CXXFLAGS="$CXXFLAGS -64"
+	#LDFLAGS="$LDFLAGS -64"
+        :
     fi
     WANT_THREAD_LIBS=1
-
 fi
 
 
@@ -441,6 +580,8 @@ fi
 #
 
 AC_ARG_WITH(sp,	[--with-sp		Use IBM's SP/MPI], MPI_IMP="ibm-sp" CXX=mpCC)
+
+# Stoopid emacs mode: '
 
 if test "$MPI_IMP" = "ibm-sp"; then
     AC_PATH_PROG(MPI_CXX, mpCC, doh)
@@ -464,24 +605,30 @@ if test "$MPI_IMP" = "ibm-sp"; then
     EXAM_OPTFLAGS=$OPTFLAGS
 
     AC_MSG_CHECKING([POE version])
-    POE_VERSION=`lslpp -L ppe.poe | grep poe | awk '{ print $2 }'`
+    POE_VERSION=`lslpp -L ppe.poe | $GREP poe | awk '{ print $2 }'`
     if test "$POE_VERSION" = "2.1.0.14"; then
-        AC_DEFINE(IBM21014)
+        AC_DEFINE(MPI2CPP_IBM21014)
         AC_MSG_RESULT([2.1.0.14 (you should upgrade)])
     elif test "$POE_VERSION" = "2.1.0.15"; then
-        AC_DEFINE(IBM21015)
+        AC_DEFINE(MPI2CPP_IBM21015)
         AC_MSG_RESULT([2.1.0.15 (you should upgrade)])
     elif test "$POE_VERSION" = "2.1.0.16"; then
-        AC_DEFINE(IBM21016)
+        AC_DEFINE(MPI2CPP_IBM21016)
         AC_MSG_RESULT([2.1.0.16 (you should upgrade)])
     elif test "$POE_VERSION" = "2.1.0.17"; then
-        AC_DEFINE(IBM21017)
+        AC_DEFINE(MPI2CPP_IBM21017)
         AC_MSG_RESULT([2.1.0.17 (you should upgrade)])
     elif test "$POE_VERSION" = "2.1.0.18"; then
-        AC_DEFINE(IBM21018)
-        AC_MSG_RESULT([2.1.0.18 (good)])
+        AC_DEFINE(MPI2CPP_IBM21018)
+        AC_MSG_RESULT([2.1.0.18 (you should upgrade)])
+    elif test "$POE_VERSION" = "2.3.0.0"; then
+        AC_DEFINE(MPI2CPP_IBM2_3_0_0)
+        AC_MSG_RESULT([2.3.0.0 (you should upgrade)])
+    elif test "$POE_VERSION" = "2.4.0.0"; then
+        AC_DEFINE(MPI2CPP_IBM2_4_0_0)
+        AC_MSG_RESULT([2.4.0.0 (good)])
     else
-        AC_DEFINE(IBMUNKNOWN)
+        AC_DEFINE(MPI2CPP_IBMUNKNOWN)
         AC_MSG_RESULT([Unknown version -- $POE_VERSION (good luck)])
     fi
 fi
@@ -497,69 +644,141 @@ AC_ARG_WITH(sgi64,	[--with-sgi64		Use SGI's IRIX/64 MPI (force 64 bit mode)], MP
 if test "$MPI_IMP" = "sgi" -o "$MPI_IMP" = "sgi64"; then
     MPI_LIBS="-lmpi"
 
-    IV_DESTRUCTORS=0
+    # Strategy: build up a list of all the libdirs.  Then search for
+    # the appropriate libmpi.so or libmpi.a.  
+
+    libpaths=/tmp
+    if test "?$LD_LIBRARY64_PATH" != "0"; then
+	libpaths="$LD_LIBRARY64_PATH"
+    fi
+    if test "?$LD_LIBRARYN32_PATH" != "0"; then
+	libpaths="$LD_LIBRARYN32_PATH:$libpaths"
+    fi
+    if test "?$LD_LIBRARY_PATH" != "0"; then
+	libpaths="$LD_LIBRARY_PATH:$libpaths"
+    fi
 
     # If they just said "--with-sgi", go find the libmpi.so
 
+    LIBDIR=
     if test "$MPI_IMP" = "sgi"; then
-        if test -f /usr/lib32/libmpi.so; then
-            LIBDIR=/usr/lib32
+	num=1
+	dir="`echo $libpaths | cut -d: -f$num`"
+
+	# Iterate through the dirs, look for a libmpi.a or libmpi.so
+
+	while test "$dir" != ""; do
+	    if test -f $dir/libmpi.so -o -f $dir/libmpi.a; then
+		LIBDIR="$dir"
+		dir=""
+	    else
+		num="`expr $num + 1`"
+		dir="`echo $libpaths | cut -d: -f$num`"
+	    fi
+	done
+	if test "$LIBDIR" = ""; then
+	    AC_MSG_WARN([Cannot find libmpi.(a|so)])
+	    AC_MSG_ERROR([Cannot continue])
+	fi
+	isn32="`echo $LIBDIR | $GREP /libn32/`"
+	is64="`echo $LIBDIR | $GREP /lib64/`"
+        if test "$isn32" != ""; then
             SGIFLAGS="-n32"
             SGIBIT="n32"
-        elif test -f /usr/lib64/libmpi.so; then
-            LIBDIR=/usr/lib64
+        elif test "$is64" != ""; then
             SGIFLAGS="-64"
             SGIBIT="64"
-        else
-            AC_MSG_ERROR([cannot find libmpi.so in /usr/lib32 or /usr/lib64])
+	else
+	    SGIFLAGS=""
+	    SGIBIT="32"
         fi
     elif test "$MPI_IMP" = "sgi64"; then
-        if test -f /usr/lib64/libmpi.so; then
-	    AC_DEFINE(POINTER, long)
-            LIBDIR=/usr/lib64
-            SGIFLAGS="-64"
-            SGIBIT="64"
-        else
-            AC_MSG_ERROR([cannot find libmpi.so in /usr/lib64])
-        fi
+	num=1
+	dir="`echo $libpaths | cut -d: -f$num`"
+
+	# Iterate through the dirs, look for libmpi.a or libmpi.so,
+	# but it must have /lib64/ in the directory name.
+
+	while test "$dir" != ""; do
+	    if test \( -f $dir/libmpi.so -o -f $dir/libmpi.a \) -a \
+	      "`echo $dir | $GREP /lib64/`" != ""; then
+		LIBDIR="$dir"
+		dir=""
+	    else
+		num="`expr $num + 1`"
+		dir="`echo $libpaths | cut -d: -f$num`"
+	    fi
+	done
+	if test "$LIBDIR" = ""; then
+	    AC_MSG_WARN([Cannot find 64 bit libmpi.(a|so)])
+	    AC_MSG_ERROR([Cannot continue])
+	fi
+        SGIFLAGS="-64"
+        SGIBIT="64"
     fi
 
+    # Now that we found it, find the version number
+
     AC_MSG_CHECKING([SGI MPI version])
-    IS20=`strings $LIBDIR/libmpi.so | grep "SGI MPI 2.0"`
+    WANT_UPGRADE=
+    IS20=`strings $LIBDIR/libmpi.so | $GREP "SGI MPI 2.0"`
     if test "$IS20" != ""; then    
-        AC_DEFINE(SGI20)
-        AC_MSG_RESULT([2.0 ($SGIBIT) (you should upgrade)])
-        AC_MSG_WARN([*** You are advised to get the latest version of SGI's MPI])
-        AC_MSG_WARN([*** See http://www.sgi.com/Products/Evaluation/evaluation.html])
+        AC_MSG_RESULT([2.0 ($SGIBIT) -- you should upgrade])
+	WANT_UPGRADE=1
     else
 
-      IS20=`strings $LIBDIR/libmpi.so | grep "SGI MPI 2.0"`
+      IS20=`strings $LIBDIR/libmpi.so | $GREP "SGI MPI 2.0"`
       if test "$IS20" != ""; then    
-        AC_DEFINE(SGI20)
-        AC_MSG_RESULT([2.0 ($SGIBIT) (you should upgrade)])
-        AC_MSG_WARN([*** You are advised to get the latest version of SGI's MPI])
-        AC_MSG_WARN([*** See http://www.sgi.com/Products/Evaluation/evaluation.html])
+        AC_MSG_RESULT([2.0 ($SGIBIT) -- you should upgrade])
+	WANT_UPGRADE=1
       else
 
-        IS30=`strings $LIBDIR/libmpi.so | grep "SGI MPI 3.0"`
+        IS30=`strings $LIBDIR/libmpi.so | $GREP "SGI MPI 3.0"`
         if test "$IS30" != ""; then
-            AC_DEFINE(SGI30)
-            AC_MSG_RESULT([3.0 ($SGIBIT -- you should upgrade)])
+            AC_DEFINE(MPI2CPP_SGI30)
+            AC_MSG_RESULT([3.0 ($SGIBIT) -- you should upgrade])
+	    WANT_UPGRADE=1
         else
 
-          IS31=`strings $LIBDIR/libmpi.so | grep "SGI MPI 3.1"`
+          IS31=`strings $LIBDIR/libmpi.so | $GREP "SGI MPI 3.1"`
           if test "$IS31" != ""; then
-              AC_DEFINE(SGI30)
-              AC_MSG_RESULT([3.1 ($SGIBIT -- good)])
+              AC_DEFINE(MPI2CPP_SGI31)
+              AC_MSG_RESULT([3.1 ($SGIBIT) -- you should upgrade])
+	      WANT_UPGRADE=1
           else
-              VER=`strings $LIBDIR/libmpi.so | grep "SGI MPI"`
-              AC_DEFINE(SGIUNKNOWN)
+
+	    IS32=`strings $LIBDIR/libmpi.so | $GREP "SGI MPI 3.2.0.0"`
+	    if test "$IS32" != ""; then
+		AC_DEFINE(MPI2CPP_SGI32)
+		AC_MSG_RESULT([3.2 ($SGIBIT) -- you should upgrade])
+
+		# We'll let this one go, 'cause it's the last one that
+		# real users can use this package with -- SGI already
+		# includes this package in every version after this.
+
+	    else
+              VER=`strings $LIBDIR/libmpi.so | $GREP "SGI MPI"`
+              AC_DEFINE(MPI2CPP_SGIUNKNOWN)
               
               AC_MSG_RESULT([Unknown version ($SGIBIT) -- $VER (good luck)])
+	      AC_MSG_WARN([*** WARNING: It is likely that you are using a version])
+	      AC_MSG_WARN([*** later than SGI MPI 3.2.0.0 (or later than the])
+	      AC_MSG_WARN([*** Message Passing Toolkit 1.3).  SGI started including])
+	      AC_MSG_WARN([*** this package in their MPI starting with MPT 1.4.])
+	      AC_MSG_WARN([*** As such, you probably do not need this package, and])
+	      AC_MSG_WARN([*** it is likely that this compilation will fail.])
+	    fi
           fi
         fi
       fi
     fi
+
+    if test "$WANT_UPGRADE" = "1"; then
+        AC_MSG_WARN([*** You are advised to get the latest version of SGI's MPI])
+        AC_MSG_WARN([*** See http://www.sgi.com/Products/Evaluation/evaluation.html])
+	AC_MSG_ERROR([*** Cannot continue.])
+    fi
+
     MPI_CXXFLAGS="$SGIFLAGS"
     MPI_LDFLAGS="$SGIFLAGS"
 fi
@@ -569,25 +788,31 @@ fi
 # Cray
 #
 
-AC_ARG_WITH(cray,       [--with-cray            Use Cray's native MPI], MPI_IMP="cray")
+AC_ARG_WITH(cray,       [--with-cray             Use Cray's native MPI], MPI_IMP="cray")
 
 if test "$MPI_IMP" = "cray"; then
     MPI_LIBS="-lmpi"
-    CXX=CC
-    MPI_CXX=CC
+# Per jitterbug PR#59, assuming the native compiler is not necessarily
+# a good thing
+    if test "$?CXX" = "0"; then
+	CXX=CC
+    fi
+    MPI_CXX="$CXX"
 
-    AC_DEFINE(CRAY)
+    AC_DEFINE(MPI2CPP_CRAY)
     AC_MSG_CHECKING([Cray MPI version])
     CRAYVER=`ls -ld /opt/ctl/mpt/mpt | awk '{ print $11 }' | cut -d/ -f5`
     if test "$CRAYVER" = "1.1.0.4"; then
-        AC_DEFINE(CRAY1104)
+        AC_DEFINE(MPI2CPP_CRAY1104)
 	AC_MSG_RESULT([1.1.0.4 (good)])
     else
-	AC_DEFINE(CRAYUNKNOWN)
+	AC_DEFINE(MPI2CPP_CRAYUNKNOWN)
 	AC_MSG_RESULT([unknown Cray MPI version -- good luck!])
     fi
 
-    MPI_CXXFLAGS="-hnomessage=427"
+# It seems that this flag is way outdated (per C++ jitterbut PR#59)
+#    MPI_CXXFLAGS="-hnomessage=427"
+    MPI_CXXFLAGS=
     MPI_LDFLAGS=""
 fi
 
@@ -618,21 +843,21 @@ if test "$MPI_IMP" = "hp"; then
                 AC_MSG_ERROR([Is \$MPI_ROOT set properly?])
         fi
 
-        HPSTR=`what $MPI_ROOT/lib/pa1.1/libmpi.a | grep "HP MPI"`
+        HPSTR=`what $MPI_ROOT/lib/pa1.1/libmpi.a | $GREP "HP MPI"`
 	HPVER=`echo $HPSTR | cut -d. -f2-3`
         if test "$HPVER" = "01.02"; then
-                AC_DEFINE(HPUX0102)
+                AC_DEFINE(MPI2CPP_HPUX0102)
                 AC_MSG_RESULT([1.2 (you should upgrade)])
 	else
 		HPVER=`echo "$HPSTR" | sed -e "s/[[^0-9\.]]*//" | cut -c1-5`
                	if test "$HPVER" = "01.03"; then
-			AC_DEFINE(HPUX0103)
+			AC_DEFINE(MPI2CPP_HPUX0103)
 			AC_MSG_RESULT([1.3 (good )])
                 elif test "$HPVER" = "01.05"; then
-                        AC_DEFINE(HPUX0105)
+                        AC_DEFINE(MPI2CPP_HPUX0105)
                         AC_MSG_RESULT([1.5 (good)])
 		else
-                	AC_DEFINE(HPUNKNOWN)
+                	AC_DEFINE(MPI2CPP_HPUXUNKNOWN)
                 	AC_MSG_RESULT([Unknown version -- $HPVER (good luck)])
         	fi
 	fi
@@ -646,6 +871,7 @@ if test "$MPI_IMP" = "hp"; then
                 AC_MSG_ERROR([ensure that mpiCC is in \$MPI_ROOT/bin])
         fi
 fi
+
 
 #
 # Generic MPI: Top-level dir
@@ -697,7 +923,32 @@ fi
 # Profilable option for MPI C++ Bindings
 #
 
-AC_ARG_WITH(profiling,	[--with-profiling	Make the profilable C++ bindings], AC_DEFINE(_MPIPP_PROFILING_,1) NOPRO_OR_PRO="profile", NOPRO_OR_PRO="noprofile")
+AC_ARG_WITH(profiling,	[--with-profiling	Make the profilable C++ bindings], WANT_PROFILE=$withval, WANT_PROFILE="no")
+AC_MSG_CHECKING([if want profiling support])
+if test "$WANT_PROFILE" = "yes"; then 
+    AC_DEFINE(_MPIPP_PROFILING_,1) 
+    MPI2CPP_LIBRARY="libpmpi++.a"
+    MPI2CPP_LIB="-lpmpi++"
+    MPI2CPP_INSTALLED_LIB="-l${MPI_MIDDLE_NAME}pmpi++"
+else
+    AC_DEFINE(_MPIPP_PROFILING_, 0) 
+    MPI2CPP_LIBRARY="libmpi++.a"
+    MPI2CPP_LIB="-lmpi++"
+    MPI2CPP_INSTALLED_LIB="-l${MPI_MIDDLE_NAME}mpi++"
+fi
+AC_SUBST(WANT_PROFILE)
+AC_SUBST(MPI2CPP_LIBRARY)
+AM_CONDITIONAL(WANT_PROFILING, test "$WANT_PROFILE" = "yes")
+AC_MSG_RESULT([$WANT_PROFILE])
+
+#
+# We need to do a bunch of tests with <mpi.h> and "-lmpi", so
+# temporarily change the CXXFLGAS.  Restore them later before they get
+# substituted into various Makefiles.
+#
+
+CXXFLAGS_SAVE="$CXXFLAGS"
+CXXFLAGS="$CXXFLAGS $MINI_BALKY_CXXFLAGS"
 
 #
 # Setup C++ compiler
@@ -707,64 +958,54 @@ if test "$CXX" = "" -a "$MPI_CXX" != ""; then
     CXX=$MPI_CXX
 fi
 
+#
+# $%@#!@#% AC_PROG_CXX changes CXXFLAGS...
+#
+
+LOCAL_CXXFLAGS_SAVE=$CXXFLAGS
+CXXFLAGS="$CXXFLAGS"
 AC_PROG_CXX
 AC_PROG_CXXCPP
+CXXFLAGS="$LOCAL_CXXFLAGS_SAVE"
 AC_AIX
+AC_PROG_LN_S
 
 BALKY_CXX=$CXX
+AC_SUBST(BALKY_CXX)
 
 
 #
-# Some compilers are brain dead and complain about inline
-# virtual destructors
+# See if the compiler makes template repository directories
 #
 
-AC_DEFINE_UNQUOTED(IV_DESTRUCTORS, $IV_DESTRUCTORS)
+LSC_CXX_TEMPLATE_REPOSITORY
+
 
 #
-# Get the version number
+# Force automake to delete emacs ~ files at "make clean"
 #
 
-VERSION=`cat $ac_confdir/VERSION | cut -f5 -d\ `
+CLEANFILES='-r *~ $(TEMPLATE_REP)'
+AC_SUBST(CLEANFILES)
 
 
 #
 # Exception handling flags
 #
 
-AC_ARG_WITH(exflags,   [--with-exflags          Specify flags necessary to enable exceptions], FORCE_EXFLAGS=$withval)
-
-AC_MSG_CHECKING([for compiler exception flags])
-if test "$FORCE_EXFLAGS" != ""; then
-    EXFLAGS=$FORCE_EXFLAGS
-elif test "$GXX" = "yes"; then
-    CXXFLAGS_SAVE=$CXXFLAGS
-    CXXFLAGS="$CXXFLAGS -fexceptions"
-    AC_TRY_COMPILE(, [try { int i = 0; } catch(...) { int j = 2; }], HAPPY=1, HAPPY=0)
-
-    if test "$HAPPY" = "1"; then
-	EXFLAGS="-fexceptions";
-    else
-	CXXFLAGS="$CXXFLAGS_SAVE -fhandle-exceptions"
-	AC_TRY_COMPILE(, [try { int i = 0; } catch(...) { int j = 2; }], HAPPY=1, HAPPY=0)
-	if test "$HAPPY" = "1"; then
-	    EXFLAGS="-fhandle-exceptions";
-	fi
-    fi
-    AC_DEFINE(G_PLUS_PLUS, 1)
-elif test "$CXX" = "KCC" -o "$LAMHCP" = "KCC"; then
-    EXFLAGS="-x"
-    CXXFLAGS=$CXXFLAGS_SAVE
+if test "$UNDERLYING_CXX" != ""; then
+    CXX_save="$CXX"
+    CXX="$UNDERLYING_CXX";
+fi
+LSC_CHECK_CXX_EXCEPTION_FLAGS
+if test "$UNDERLYING_CXX" != ""; then
+    CXX="$CXX_save";
 fi
 
-EXCPTN_CXXFLAGS=$EXFLAGS
-CXXFLAGS="$EXFLAGS $CXXFLAGS"
-EXCPTN_LDFLAGS="$EXFLAGS"
-if test "$EXFLAGS" = ""; then
-    AC_MSG_RESULT([none necessary])
-else
-    AC_MSG_RESULT([$EXFLAGS])
-fi
+
+EXCPTN_CXXFLAGS=$LSC_EXCEPTION_CXXFLAGS
+CXXFLAGS="$EXCPTN_CXXFLAGS $CXXFLAGS"
+EXCPTN_LDFLAGS="$LSC_EXCEPTION_LDFLAGS"
 
 
 #
@@ -777,6 +1018,8 @@ fi
 #
 # This needs to test for the problem, so that when g++/egcs is fixed, this
 # will still work! - WDG
+#
+# I Agree! - PWR
 
 AC_MSG_CHECKING([for throw/catch])
 AC_TRY_COMPILE(, int i=1; throw(i);, have_excep=yes, have_excep=no)
@@ -796,24 +1039,23 @@ fi
 # Set final compiler flags
 #
 
-MINI_BALKY_CXXFLAGS="$EXCPTN_CXXFLAGS $EXTRA_CXXFLAGS $MPI_CXXFLAGS -I`pwd`/src"
-BALKY_CXXFLAGS="$EXCPTN_CXXFLAGS $EXTRA_CXXFLAGS $MPI_CXXFLAGS -I$INSTALLDIR/include -I$INSTALLDIR/include/mpi2c++-$VERSION"
+MINI_BALKY_CXXFLAGS="$EXCPTN_CXXFLAGS $EXTRA_CXXFLAGS $MPI_CXXFLAGS -I`pwd`/src $MINI_BALKY_CXXFLAGS"
+BALKY_CXXFLAGS="$EXCPTN_CXXFLAGS $EXTRA_CXXFLAGS $MPI_CXXFLAGS -I$INSTALLDIR/include $CXXFLAGS_SAVE $BALKY_CXXFLAGS"
+
+CXXFLAGS_SAVE="$CXXFLAGS_SAVE $MPI_CXXFLAGS"
 CXXFLAGS="$CXXFLAGS $MPI_CXXFLAGS"
+DEPFLAGS="$CXXFLAGS_SAVE"
+
+AC_SUBST(MINI_BALKY_CXXFLAGS)
+AC_SUBST(BALKY_CXXFLAGS)
+AC_SUBST(DEPFLAGS)
 
 
 #
 # Try to compile with the Balky flags, see if we can find <mpi.h>
 #
 
-AC_MSG_CHECKING([for mpi.h])
-AC_TRY_COMPILE(#include <mpi.h>
-, int i = 0;, mpih_found=yes, mpih_found=no)
-if test "$mpih_found" = "yes"; then
-    AC_MSG_RESULT([yes])
-else
-    AC_MSG_RESULT([no])
-    AC_MSG_ERROR([cannot continue -- cannot find <mpi.h>])
-fi
+LSC_CHECK_MPI_H
 
 
 #
@@ -837,9 +1079,11 @@ EXTRA_LIBS="$socket_lib $nsl_lib $thread_lib"
 LDFLAGS="$LDFLAGS $MPI_LDFLAGS"
 LIBS="$MPI_LIBS $EXTRA_LIBS"
 
-MINI_BALKY_LDFLAGS="$EXCPTN_LDFLAGS $EXTRA_LDFLAGS $MPI_LDFLAGS -L`pwd`/src -lmpi++ $MPI_LIBS $EXTRA_LIBS"
-BALKY_LDFLAGS="$EXCPTN_LDFLAGS $EXTRA_LDFLAGS $MPI_LDFLAGS -L$INSTALLDIR/lib -lmpi++ $MPI_LIBS $EXTRA_LIBS"
+MINI_BALKY_LDFLAGS="$EXCPTN_LDFLAGS $EXTRA_LDFLAGS $MPI_LDFLAGS -L`pwd`/src $MPI2CPP_LIB $MPI_LIBS $EXTRA_LIBS $LDFLAGS"
+BALKY_LDFLAGS="$EXCPTN_LDFLAGS $EXTRA_LDFLAGS $MPI_LDFLAGS -L$INSTALLDIR/lib $MPI2CPP_INSTALLED_LIB $MPI_LIBS $EXTRA_LIBS $LDFLAGS"
 
+AC_SUBST(MINI_BALKY_LDFLAGS)
+AC_SUBST(BALKY_LDFLAGS)
 
 #
 # Try to link with the Balky flags, see if we can find libmpi.*
@@ -847,15 +1091,7 @@ BALKY_LDFLAGS="$EXCPTN_LDFLAGS $EXTRA_LDFLAGS $MPI_LDFLAGS -L$INSTALLDIR/lib -lm
 #
 
 if test "$MPI_LIBS" != ""; then
-    AC_MSG_CHECKING([for MPI_Initialized in $MPI_LIBS])
-    AC_TRY_LINK(#include <mpi.h>
-, int i; MPI_Initialized(&i);, libmpi_found=yes, libmpi_found=no)
-    if test "$libmpi_found" = "yes"; then
-        AC_MSG_RESULT([yes])
-    else
-        AC_MSG_RESULT([no])
-        AC_MSG_ERROR([cannot continue -- cannot link to -lmpi])
-    fi
+    LSC_CHECK_LMPI
 fi
 
 
@@ -863,36 +1099,89 @@ fi
 # Override optimization flags, if supplied
 #
 
-AC_ARG_WITH(noopt,	[--without-opt		Compile with no optimization (for debugging)], OPTFLAGS="$NOOPT" TEST_OPTFLAGS="$NOOPT" EXAM_OPTFLAGS="$NOOPT")
+AC_ARG_WITH(opt,	[--without-opt		Compile with no optimization (for debugging)], withoutopt=$withval, withoutopt=$withval)
+if test "$withoutopt" = "no"; then
+    OPTFLAGS="$NOOPT" 
+    TEST_OPTFLAGS="$NOOPT" 
+    EXAM_OPTFLAGS="$NOOPT"
+fi
 AC_ARG_WITH(libopt,     [--with-libopt		Opt flags for use when compiling libmpi++.a], OPTFLAGS=$withval)
 AC_ARG_WITH(testopt,    [--with-testopt		Opt flags for use when compiling test suite], TEST_OPTFLAGS=$withval)
 AC_ARG_WITH(examopt,    [--with-examopt		Opt flags for use when compiling examples], EXAM_OPTFLAGS=$withval)
+AC_SUBST(OPTFLAGS)
+AC_SUBST(TEST_OPTFLAGS)
+AC_SUBST(EXAM_OPTFLAGS)
 
 
 #
-# Get peculiarities about our MPI
-# Can our MPI use its constants as initializers before MPI_Init() is called?
-#
-
-AC_DEFINE_UNQUOTED(MPI_CONSTANTS_BAD, $MPI_CONSTANTS_BAD)
-
-
-
 # At least one implementation has this problem
 # (no names mentioned...)
 #
 
-AC_MSG_CHECKING([whether to use MPI(_ERR)_PENDING])
-AC_TRY_COMPILE(#include <mpi.h>)
-, int yow=MPI_PENDING;, use_pending=yes, use_pending=no)
-if test "$use_pending" = "yes"; then
-    AC_DEFINE(HAVE_PENDING, 1)
-    AC_MSG_RESULT([MPI_PENDING])
+LSC_MPI_ERR_PENDING
+if test "$LSC_HAVE_PENDING" = "1"; then
+    AC_DEFINE(MPI2CPP_HAVE_PENDING, 1)
 else
-    AC_DEFINE(HAVE_PENDING, 0)
-    AC_MSG_RESULT([MPI_ERR_PENDING])
+    AC_DEFINE(MPI2CPP_HAVE_PENDING, 0)
 fi
 
+
+#
+# Check for MPI_GET_VERSION
+#
+
+AC_MSG_CHECKING([for MPI_GET_VERSION])
+AC_TRY_LINK([#include<mpi.h>],
+[int v, s; MPI_Get_version(&v, &s);],
+[HAVE_GET_VERSION=1], [HAVE_GET_VERSION=1])
+AC_DEFINE_UNQUOTED(MPI2CPP_HAVE_MPI_GET_VERSION, $HAVE_GET_VERSION)
+if test "$HAVE_GET_VERSION" = "1"; then
+    AC_MSG_RESULT([yes])
+else
+    AC_MSG_RESULT([no])
+fi
+
+
+#
+# See if we have MPI_STATUS_IGNORE / MPI_STATUSES_IGNORE
+#
+# Unfortunately, the implementation of STATUS_IGNORE in MPICH is
+# broken.  Can't really figure out a good way how to have a generic
+# test to see if the underlying MPI has a broken STATUS_IGNORE because
+# there are so many different ways to run a different MPI program (and
+# it depends on several variables in the users' setup).  So we just
+# have to put in a hardwired "if MPICH, don't use MPI_STATUS_IGNORE"
+# switch.  This will probably have to be removed in the future.  Ick.
+#
+
+if test "$USING_MPICH" = "1"; then
+    AC_MSG_CHECKING([for MPI_STATUS_IGNORE])
+    AC_DEFINE(MPI2CPP_HAVE_STATUS_IGNORE, 0)
+    AC_MSG_RESULT([yes, but broken])
+    
+    AC_MSG_CHECKING([for MPI_STATUSES_IGNORE])
+    AC_DEFINE(MPI2CPP_HAVE_STATUSES_IGNORE, 0)
+    AC_MSG_RESULT([yes, but broken])
+else
+    AC_MSG_CHECKING([for MPI_STATUS_IGNORE])
+    AC_TRY_LINK([#include <mpi.h>],[MPI_Status *foo = MPI_STATUS_IGNORE;],
+    [HAVE_STATUS_IGNORE=1],[HAVE_STATUS_IGNORE=0])
+    AC_DEFINE_UNQUOTED(MPI2CPP_HAVE_STATUS_IGNORE, $HAVE_STATUS_IGNORE)
+    if test "$HAVE_STATUS_IGNORE" = "1"; then
+	AC_MSG_RESULT([yes])
+    else
+	AC_MSG_RESULT([no])
+    fi
+    AC_MSG_CHECKING([for MPI_STATUSES_IGNORE])
+    AC_TRY_LINK([#include <mpi.h>],[MPI_Status *foo = MPI_STATUSES_IGNORE;],
+    [HAVE_STATUSES_IGNORE=1],[HAVE_STATUSES_IGNORE=0])
+    AC_DEFINE_UNQUOTED(MPI2CPP_HAVE_STATUSES_IGNORE, $HAVE_STATUSES_IGNORE)
+    if test "$HAVE_STATUSES_IGNORE" = "1"; then
+	AC_MSG_RESULT([yes])
+    else
+	AC_MSG_RESULT([no])
+    fi
+fi
 
 #
 # Find out how to make libraries
@@ -927,7 +1216,6 @@ case "$host" in
 esac
 AC_PROG_RANLIB
 AC_CHECK_PROG(AR, ar, ar, ;)
-AC_PROG_LN_S
 AC_PATH_PROG(BINSH, sh)
 
 
@@ -938,19 +1226,13 @@ AC_PATH_PROG(BINSH, sh)
 # Autoconf 2.9 AC-CHECK-TYPE is buggy, hence this workaround
 #
 
-AC_MSG_CHECKING([for bool type])
-AC_TRY_COMPILE(#include <sys/types.h>
-#include <stdlib.h>
-, bool testme; testme = true; testme = false; testme = true ? false : true;
-, bool_found=yes, bool_found=no)
-if test "$bool_found" = "yes"; then
-    AC_DEFINE(HAVE_BOOL, 1)
+LSC_CHECK_CXX_BOOL
+if test "$LSC_HAVE_BOOL" = "1"; then
+    AC_DEFINE(MPI2CPP_HAVE_BOOL, 1)
     BOOL_TYPE="bool"
-    AC_MSG_RESULT([yes])
 else
-    AC_DEFINE(HAVE_BOOL, 0)
+    AC_DEFINE(MPI2CPP_HAVE_BOOL, 0)
     BOOL_TYPE="unsigned int"
-    AC_MSG_RESULT([no])
 fi
 AC_DEFINE_UNQUOTED(MPI2CPP_BOOL_T, $BOOL_TYPE)
 
@@ -970,9 +1252,8 @@ SAVE_LIBS=$LIBS
 LDFLAGS=
 LIBS=
 
-AC_CHECK_SIZEOF(int, 4)
-AC_CHECK_SIZEOF(MPI2CPP_BOOL_T, 4)
-
+MPI2CPP_GET_SIZEOF(int, MPI2CPP_SIZEOF_INT)
+MPI2CPP_GET_SIZEOF(MPI2CPP_BOOL_T, SIZEOF_MPI2CPP_BOOL_T)
 
 LDFLAGS=$SAVE_LDFLAGS
 LIBS=$SAVE_LIBS
@@ -993,10 +1274,10 @@ AC_TRY_RUN(int main()
 }, sizeof_same=yes, sizeof_same=no, sizeof_same=no)
 if test "$sizeof_same" = "yes"; then
     ATTR_TYPE="int"
-    AC_DEFINE(ATTR, int)     
+    AC_DEFINE(MPI2CPP_ATTR, int)     
 else
     ATTR_TYPE="long"
-    AC_DEFINE(ATTR, long)
+    AC_DEFINE(MPI2CPP_ATTR, long)
 fi
 AC_MSG_RESULT([$ATTR_TYPE])
 
@@ -1008,13 +1289,11 @@ AC_MSG_RESULT([$ATTR_TYPE])
 
 AC_MSG_CHECKING([for signal declaration])
 AC_TRY_COMPILE(#include<signal.h>
+extern "C" void bsd_handler(int sig, int code, struct sigcontext *scp, char *addr);
 , 
-void handler(int sig, int code, struct sigcontext *scp, char *addr);
-signal(1, handler);
+signal(1, bsd_handler);
   struct sigaction n;
-  n.sa_handler= (signal_handler) handler;
-  n.sa_mask= 0;
-  n.sa_flags= 0;
+  n.sa_handler= bsd_handler;
 , bsd_signal="yes", bsd_signal="no")
 if test "$bsd_signal" = "yes"; then
     AC_DEFINE(MPI2CPP_BSD_SIGNAL, 1)
@@ -1025,9 +1304,9 @@ else
 #
 
 AC_TRY_COMPILE(#include<signal.h>
-void handler(int sig) {};
+extern "C" void sysv_handler(int sig) {};
 , 
-signal(1, handler);
+signal(1, sysv_handler);
 , sysv_signal="yes", sysv_signal="no")
     if test "$sysv_signal" = "yes"; then
         AC_DEFINE(MPI2CPP_SYSV_SIGNAL, 1)
@@ -1055,8 +1334,7 @@ elif test "$FORCE_NAMESPACE" = "no"; then
     AC_DEFINE(_MPIPP_USENAMESPACE_, 0)
     AC_MSG_RESULT([no (forced)])
 else
-    AC_TRY_COMPILE(
-void blah();
+    AC_TRY_COMPILE([void blah();
 namespace N {
   extern const int global;
   class foo {
@@ -1064,8 +1342,11 @@ namespace N {
     // but I think I can work around this
     //    friend void ::blah();
   public:
-    int foobar();
+    static int foobar();
   };
+  // Sun CC 5.0 has problem with overloaded static namespace functions
+  static inline int foofoo();
+  static inline int foofoo(int yow, double baz);
 }
 
 //aCC con't handle the following line confuses namespaces and classes
@@ -1075,7 +1356,9 @@ const int N::global = 0;
 N::foo blahblah() { N::foo f; return f; }
 //g++ does not like functions of classes in namespaces
 int N::foo::foobar() { return 1; }
-void blah() { }
+inline int N::foofoo() { return 0; }
+inline int N::foofoo(int, double) { return 0; }
+void blah() { }]
 ,  , namespace_found=yes, namespace_found=no)
     if test "$namespace_found" = "yes"; then
 	AC_DEFINE(_MPIPP_USENAMESPACE_, 1)
@@ -1087,111 +1370,32 @@ void blah() { }
 fi
 
 #
-# See if the compiler makes template repository directories
-# Warning: this is a really screwy example! -JMS
-#
-
-AC_MSG_CHECKING([for template repository])
-mkdir oompi_tmp_$$
-cd oompi_tmp_$$
-cat > foo.h <<EOF
-template <class T>
-class foo {
-public:
-  foo(T yow) : data(yow) { yow.member(3); };
-  void member(int i);
-private:
-  T data;
+# Test to see if the no namespace workaround will work.  If not (broken g++
+# version 2.7.2 and others), exit so that the user won't waste time
+if test "$namespace_found" = "no" ; then
+    AC_MSG_CHECKING([that workaround for missing namespace works])
+    AC_TRY_COMPILE([
+class PMPI {
+    public:
+    class Comm;
+   class Comm {
+       public:
+       typedef void Efn( Comm& );
+   };
 };
-
-class bar {
-public:
-  bar(int i) { data = i; };
-  void member(int j) { data = data * j; };
-
-private:
-  int data;
-};
-EOF
-
-cat > other.cc <<EOF
-#include "foo.h"
-
-void
-some_other_function(void)
-{
-  foo<bar> var1(6);
-  foo< foo<bar> > var2(var1);
-}
-EOF
-
-cat > main.cc <<EOF
-#include "foo.h"
-
-void some_other_function(void);
-
-template <class T>
-void
-foo<T>::member(int i)
-{
-  i += 2;
-}
-
-int
-main(int argc, char *argv[])
-{
-  foo<bar> var1(6);
-  foo< foo<bar> > var2(var1);
-
-  some_other_function();
-  return 0;
-}
-EOF
-
-$CXX -c main.cc >/dev/null 2>/dev/null
-$CXX -c other.cc >/dev/null 2>/dev/null
-rm -rf *.h *.cc *.o
-
-for file in `ls`
-do
-    if test "$file" != "." -a "$file" != ".."; then
-	# Is it a directory?
-	if test -d "$file"; then
-            TEMPLATE_DIR="$file $TEMPLATE_DIR"
-
-	# Or is it a file?
-	else
-	    name="`echo $file | cut -d. -f1`"
-
-	    temp_mask=
-	    if test "$name" = "main" -o "$name" = "other"; then
-		temp_mask="`echo $file | cut -d. -f2`"
-		if test "$TEMPLATE_FILEMASK" = ""; then
-		   TEMPLATE_FILEMASK="$temp_mask";
-		elif test "`echo $TEMPLATE_FILEMASK | grep $temp_mask`" = ""; then
-		   TEMPLATE_FILEMASK="$TEMPLATE_FILEMASK $temp_mask"
-		fi
-	    fi
-	fi
-    fi
-done
-if test "$TEMPLATE_FILEMASK" != ""; then
-    temp_mask=
-    for mask in $TEMPLATE_FILEMASK
-    do
-	temp_mask="*.$mask $temp_mask"
-    done
-    TEMPLATE_FILEMASK=$temp_mask
+class MPI { 
+    public:
+    class Comm;
+    class Comm {
+       public:
+       typedef void Efn( Comm& );
+    };
+};],[int a=0;],
+[AC_MSG_RESULT(yes)],
+[AC_MSG_RESULT(no)
+AC_MSG_ERROR([C++ interface requires working namespace or nested classes])]
+)
 fi
-TEMPLATE_REP="$TEMPLATE_DIR $TEMPLATE_FILEMASK"
-
-if test "$TEMPLATE_REP" != ""; then
-    AC_MSG_RESULT([$TEMPLATE_REP])
-else
-    AC_MSG_RESULT([not used])
-fi
-cd ..
-rm -rf oompi_tmp_$$
 
 #
 # Check to see if the FORTRAN constants are there, 
@@ -1202,28 +1406,28 @@ AC_MSG_CHECKING([for FORTRAN constants])
 AC_TRY_COMPILE(#include <mpi.h>
 , MPI_Datatype a = MPI_INTEGER;, fortran_found=yes, fortran_found=no)
 if test "$fortran_found" = "yes"; then
-    AC_DEFINE(FORTRAN, 1)
+    AC_DEFINE(MPI2CPP_FORTRAN, 1)
     AC_MSG_RESULT([yes])
     AC_MSG_CHECKING([for optional FORTRAN constants])
     AC_TRY_COMPILE(#include <mpi.h>
     , MPI_Datatype b = MPI_8REAL;, all_found=yes, all_found=no)
     if test "$all_found" = "yes"; then
-	AC_DEFINE(ALL_OPTIONAL_FORTRAN, 1)
+	AC_DEFINE(MPI2CPP_ALL_OPTIONAL_FORTRAN, 1)
 	AC_MSG_RESULT([all])
     else
-	AC_DEFINE(ALL_OPTIONAL_FORTRAN, 0)
+	AC_DEFINE(MPI2CPP_ALL_OPTIONAL_FORTRAN, 0)
 	AC_TRY_COMPILE(#include <mpi.h>
 	, MPI_Datatype c = MPI_2REAL;, some_found=yes, some_found=no)
 	if test "$some_found" = "yes"; then
-	    AC_DEFINE(SOME_OPTIONAL_FORTRAN, 1)
+	    AC_DEFINE(MPI2CPP_SOME_OPTIONAL_FORTRAN, 1)
 	    AC_MSG_RESULT([some])
 	else
-	    AC_DEFINE(SOME_OPTIONAL_FORTRAN, 0)
+	    AC_DEFINE(MPI2CPP_SOME_OPTIONAL_FORTRAN, 0)
 	    AC_MSG_RESULT([none])
 	fi
     fi
 else
-    AC_DEFINE(FORTRAN, 0)
+    AC_DEFINE(MPI2CPP_FORTRAN, 0)
     AC_MSG_RESULT([no])
 fi
 
@@ -1233,63 +1437,45 @@ fi
 
 AC_MSG_CHECKING([for optional C constants])
 AC_TRY_COMPILE(#include <mpi.h>
-, MPI_Datatype d = MPI_UNSIGNED_LONG_LONG; MPI_Datatype d = MPI_LONG_LONG;, c_found=yes, c_found=no)
+, MPI_Datatype d = MPI_UNSIGNED_LONG_LONG; MPI_Datatype e = MPI_LONG_LONG;, c_found=yes, c_found=no)
 if test "$c_found" = "yes"; then
-    AC_DEFINE(OPTIONAL_C, 1)
+    AC_DEFINE(MPI2CPP_OPTIONAL_C, 1)
     AC_MSG_RESULT([yes])
 else
-    AC_DEFINE(OPTIONAL_C, 0)
+    AC_DEFINE(MPI2CPP_OPTIONAL_C, 0)
     AC_MSG_RESULT([no])
 fi
+CXXFLAGS=$CXXFLAGS_SAVE
 
 #
 # Substitute them in...
 #
 
-AC_SUBST(VERSION)
-
 AC_SUBST(MPI_CXX)
 AC_SUBST(MPILIB_DIR)
-
 
 AC_SUBST(INSTALL)
 AC_SUBST(AR)
 AC_SUBST(RANLIB)
 
-AC_SUBST(BALKY_CXX)
-AC_SUBST(BALKY_INCDIR)
-AC_SUBST(BALKY_LIBDIR)
-AC_SUBST(BALKY_CXXFLAGS)
-AC_SUBST(BALKY_LDFLAGS)
-
-AC_SUBST(MINI_BALKY_CXXFLAGS)
-AC_SUBST(MINI_BALKY_LDFLAGS)
-
 AC_SUBST(DEFS)
-AC_SUBST(DEPFLAGS)
 
-AC_SUBST(OPTFLAGS)
-AC_SUBST(TEST_OPTFLAGS)
-AC_SUBST(EXAM_OPTFLAGS)
-
+AC_SUBST(TOPDIR)
 AC_SUBST(INSTALLDIR)
 AC_SUBST(IV_DESTRUCTORS)
 AC_SUBST(TEMPLATE_REP)
 
-AC_SUBST(MPI_CXX)
-AC_SUBST(MPILIB_DIR)
-AC_SUBST(NOPRO_OR_PRO)
 
-AC_SUBST(VPATH)
 #
 # Party on
 #
-if test ! -d contrib ; then mkdir contrib ; fi
-AC_OUTPUT(Makefile
+
+AC_OUTPUT([Makefile
     src/Makefile
+    src/mpi2c++/Makefile
+    contrib/Makefile
     contrib/test_suite/Makefile
     contrib/examples/Makefile
+    balky/Makefile
     balky/balky
-    balky/mini-balky)
-chmod +x balky/balky balky/mini-balky
-
+    balky/mini-balky], [chmod +x balky/balky balky/mini-balky])

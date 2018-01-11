@@ -27,7 +27,8 @@
 //
 
 #include <iostream.h>
-#include "mpi++.h"
+// modified to reference the master mpi.h file, to meet the MPI standard spec.
+#include "mpi.h"
 
 int
 main(int argc, char *argv[])

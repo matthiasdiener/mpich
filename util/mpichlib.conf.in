@@ -1,0 +1,31 @@
+#! /bin/sh
+#
+# This file contains information on the MPICH configuration
+#
+# Variables used to build the MPICH libraries
+CC="@CC@"
+mpich_includes='@mpich_includes@'
+#
+# Installation directories defined at configure time for mpich
+prefix='@prefix@'
+libdir='@libdir@'
+bindir='@bindir@'
+#
+# Variables needed to *use* the MPICH libraries
+MPILIBNAME="@MPILIBNAME@"
+LIB_PATH='@LIB_PATH@'
+BASE_LIB_LIST="@BASE_LIB_LIST@"
+HASMPE="@HASMPE@"
+ROMIO_LFLAGS="@ROMIO_LFLAGS@"
+ROMIO_TFFLAGS="@ROMIO_TFFLAGS@"
+ROMIO_TCFLAGS="@ROMIO_TCFLAGS@"
+MPI_WITH_PMPI="@MPI_WITH_PMPI@"
+#
+# Shared library support (replace with libtool?)
+SHAREDKIND=@SHAREDKIND@
+SHARED_LIB_SEARCH_PATH_LEADER="@SHARED_LIB_SEARCH_PATH_LEADER@"
+SHARED_LIB_LOCALDIR='@SHARED_LIB_LOCALDIR@'
+sharedlibbuild_dir='@sharedlibbuild_dir@'
+#
+# Information about MPI data structures
+MPI_STATUS_SIZE=@MPI_STATUS_SIZE@

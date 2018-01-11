@@ -1,5 +1,5 @@
 /*
- *  $Id: type_hind.c,v 1.8 1999/08/30 15:49:54 swider Exp $
+ *  $Id: type_hind.c,v 1.10 2000/08/10 22:15:36 toonen Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -65,7 +65,7 @@ EXPORT_MPI_API int MPI_Type_hindexed(
   int           i, mpi_errno = MPI_SUCCESS;
   int           total_count;
   struct MPIR_DATATYPE *old_dtype_ptr;
-  MPI_Aint        ub_marker, lb_marker;
+  MPI_Aint        ub_marker = 0, lb_marker = 0; /* to suppress warnings */
   MPI_Aint        ub_found = 0, lb_found = 0;
   static char myname[] = "MPI_TYPE_HINDEXED";
   
@@ -181,5 +181,15 @@ EXPORT_MPI_API int MPI_Type_hindexed(
   */
   dteptr->elements   *= old_dtype_ptr->elements;
   
+# if defined(MPID_HAS_TYPE_HINDEXED)
+  {
+      mpi_errno = MPID_Type_hindexed(count,
+				     blocklens,
+				     indices,
+				     old_type,
+				     *newtype);
+  }
+# endif      
+
   return (mpi_errno);
 }

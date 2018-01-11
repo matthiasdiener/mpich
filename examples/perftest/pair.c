@@ -1,10 +1,17 @@
 #include <stdio.h>
 
 #include "mpi.h"
+#include "mpptest.h"
+#include "getopts.h"
 
 #if HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
+
+#if defined(HAVE_SHMALLOC) && !defined(HAVE_MPI_ALLOC_MEM)
+#include <mpp/shmem.h>
+#endif
+
 /*****************************************************************************
 
   Each collection of test routines contains:
@@ -55,22 +62,30 @@
 #define MSG_TAG(iter) 1
 #endif
 
+struct _PairData {
+    int  proc1, proc2;
+    int  source, destination,    /* Source and destination.  May be the
+				    same as partner (for pair) or different
+				    (for ring) */
+         partner;                /* = source = destination if same */
+    int  is_master, is_slave;
+    };
+
 static int CacheSize = 1048576;
 
-void *PairInit( proc1, proc2 )
-int proc1, proc2;
-{
-    PairData *new;
-    void PairChange();
+void PairChange( int, PairData);
 
-    new	       = (PairData *)malloc(sizeof(PairData));   if (!new)return 0;;
+PairData PairInit( int proc1, int proc2 )
+{
+    PairData new;
+
+    new	       = (PairData)malloc(sizeof(struct _PairData));   
+    if (!new)return 0;;
     PairChange( 1, new );
     return new;
 }
 
-void PairChange( distance, ctx )
-int      distance;
-PairData *ctx;
+void PairChange( int distance, PairData ctx )
 {
     int proc2;
 
@@ -117,23 +132,19 @@ PairData *ctx;
    masters, slaves, and ununsed.  Each new entry is marked as a master, 
    with the destination partner marked as a slave.  
  */
-void *BisectInit( distance )
-int distance;
+PairData BisectInit( int distance )
 {
-    PairData *new;
-    int      i, np;
-    int      *marks, curpos;
+    PairData new;
 
-    new	       = (PairData *)malloc(sizeof(PairData));   if (!new)return 0;;
+    new	       = (PairData)malloc(sizeof(struct _PairData));   
+    if (!new)return 0;;
 
     BisectChange( distance, new );
 
     return new;
 }
 
-void BisectChange( distance, ctx )
-int distance;
-PairData *ctx;
+void BisectChange( int distance, PairData ctx )
 {
     int      i, np;
     int      *marks, curpos;
@@ -178,8 +189,7 @@ PairData *ctx;
 }
 
 /* Print information on the ctx */
-void PrintPairInfo( ctx )
-PairData *ctx;
+void PrintPairInfo( PairData ctx )
 {
     MPE_Seq_begin(MPI_COMM_WORLD,1 );
     fprintf( stdout, "[%d] sending to %d, %s\n", __MYPROCID, ctx->partner, 
@@ -191,32 +201,47 @@ PairData *ctx;
 
 typedef enum { HEADtoHEAD, ROUNDTRIP } CommType;
 typedef enum { Blocking, NonBlocking, ReadyReceiver, Persistant, Vector, 
-               VectorType } 
+               VectorType, Put } 
                Protocol;
+typedef enum { SpecifiedSource, AnySource } SourceType;
+static SourceType source_type = AnySource;
+static int MsgPending = 0;
 
-double exchange_forcetype();
-double exchange_async();
-double exchange_sync();
+double exchange_forcetype( int, int, PairData );
+double exchange_async( int, int, PairData );
+double exchange_sync( int, int, PairData );
 
-double round_trip_sync();
-double round_trip_force();
-double round_trip_async();
-double round_trip_persis();
-double round_trip_vector();
-double round_trip_vectortype();
+double round_trip_sync( int, int, PairData );
+double round_trip_force( int, int, PairData );
+double round_trip_async( int, int, PairData );
+double round_trip_persis( int, int, PairData );
+double round_trip_vector( int, int, PairData );
+double round_trip_vectortype( int, int, PairData );
 
-double round_trip_nc_sync();
-double round_trip_nc_force();
-double round_trip_nc_async();
+double round_trip_nc_sync( int, int, PairData );
+double round_trip_nc_force( int, int, PairData );
+double round_trip_nc_async( int, int, PairData );
+
+#if ! defined(HAVE_MPI_PUT)
+#define round_trip_put 0
+#define round_trip_nc_put 0
+#define exchange_put 0
+#else
+double exchange_put( int, int, PairData );
+double round_trip_put( int, int, PairData );
+double round_trip_nc_put( int, int, PairData );
+#endif
+
+static void SetupTest( int );
+static void FinishTest( void );
 
 /* Determine the timing function */
-double ((*GetPairFunction( argc, argv, protocol_name )) ())
-int *argc;
-char **argv, *protocol_name;
+double ((*GetPairFunction( int *argc, char *argv[], char *protocol_name )) ( int, int, void * ))
 {
-    CommType comm_type = ROUNDTRIP;
-    Protocol protocol  = Blocking;
-    double (*f)();
+    CommType comm_type     = ROUNDTRIP;
+    Protocol protocol      = Blocking;
+
+    double (*f)(int,int,PairData);
     int      use_cache;
 
     f             = round_trip_sync;
@@ -232,6 +257,10 @@ char **argv, *protocol_name;
     if (SYArgHasName( argc, argv, 1, "-sync"  )) {
 	protocol      = Blocking;
 	strcpy( protocol_name, "blocking" );
+    }
+    if (SYArgHasName( argc, argv, 1, "-put"  )) {
+	protocol      = Put;
+	strcpy( protocol_name, "MPI_Put" );
     }
     if (SYArgHasName( argc, argv, 1, "-persistant"  )) {
 	protocol      = Persistant;
@@ -251,6 +280,17 @@ char **argv, *protocol_name;
 	if (SYArgGetInt( argc, argv, 1, "-vstride", &stride ))
 	    set_vector_stride( stride );
     }
+    if (SYArgHasName( argc, argv, 1, "-anysource" )) {
+	source_type = AnySource;
+    }
+    if (SYArgHasName( argc, argv, 1, "-specified" )) {
+	source_type = SpecifiedSource;
+	strcat( protocol_name, "(specified source)" );
+    }
+    if (SYArgHasName( argc, argv, 1, "-pending" )) {
+	MsgPending = 1;
+	strcat( protocol_name, "(pending recvs)" );
+    }
     use_cache = SYArgGetInt( argc, argv, 1, "-cachesize", &CacheSize );
     if (SYArgHasName( argc, argv, 1, "-head"  ))     comm_type = HEADtoHEAD;
     if (SYArgHasName( argc, argv, 1, "-roundtrip" )) comm_type = ROUNDTRIP;
@@ -261,6 +301,7 @@ char **argv, *protocol_name;
 	    case ReadyReceiver: f = round_trip_nc_force; break;
 	    case NonBlocking:   f = round_trip_nc_async; break;
 	    case Blocking:      f = round_trip_nc_sync;  break;
+	    case Put:           f = round_trip_nc_put;   break;
 		/* Rolling through the cache means using different buffers
 		   for each op; not doable with persistent requests */
 	    case Persistant:    f = 0;                   break;
@@ -273,6 +314,7 @@ char **argv, *protocol_name;
 	    case ReadyReceiver: f = round_trip_force;      break;
 	    case NonBlocking:   f = round_trip_async;      break;
 	    case Blocking:      f = round_trip_sync;       break;
+	    case Put:           f = round_trip_put;        break;
 	    case Persistant:    f = round_trip_persis;     break;
 	    case Vector:        f = round_trip_vector;     break;
 	    case VectorType:    f = round_trip_vectortype; break;
@@ -284,6 +326,7 @@ char **argv, *protocol_name;
 	case ReadyReceiver: f = exchange_forcetype; break;
 	case NonBlocking:   f = exchange_async;     break;
 	case Blocking:      f = exchange_sync;      break;
+	case Put:           f = exchange_put;       break;
 	case Persistant:    f = 0;                  break;
 	case Vector:        f = 0;                  break;
 	case VectorType:    f = 0;                  break;
@@ -293,7 +336,7 @@ char **argv, *protocol_name;
 	fprintf( stderr, "Option %s not supported\n", protocol_name );
 	MPI_Abort( MPI_COMM_WORLD, 1 );
     }
-    return f;
+    return (double (*)(int,int,void*)) f;
 }
 
 /*****************************************************************************
@@ -302,12 +345,11 @@ char **argv, *protocol_name;
 /* 
    Blocking exchange (head-to-head) 
 */
-double exchange_sync(reps,len,ctx)
-int      reps,len;
-PairData *ctx;
+double exchange_sync( int reps, int len, PairData ctx)
 {
   double elapsed_time;
-  int  i,msg_id,myproc, to = ctx->destination, from = ctx->source;
+  int  i, to = ctx->destination, from = ctx->source;
+  int  recv_from;
   char *sbuffer,*rbuffer;
   double t0, t1;
   MPI_Status status;
@@ -315,14 +357,17 @@ PairData *ctx;
   sbuffer = (char *)malloc(len);
   rbuffer = (char *)malloc(len);
 
-  myproc       = __MYPROCID;
+  SetupTest( from );
+
   elapsed_time = 0;
   if(ctx->is_master){
-    MPI_Recv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&status);
+    recv_from = MPI_ANY_SOURCE;
+    if (source_type == SpecifiedSource) recv_from = to;
+    MPI_Recv(rbuffer,len,MPI_BYTE,recv_from,0,MPI_COMM_WORLD,&status);
     t0=MPI_Wtime();
     for(i=0;i<reps;i++){
       MPI_Send(sbuffer,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
-      MPI_Recv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
+      MPI_Recv(rbuffer,len,MPI_BYTE,recv_from,MSG_TAG(i),
 	       MPI_COMM_WORLD,&status);
     }
     t1 = MPI_Wtime();
@@ -330,14 +375,17 @@ PairData *ctx;
   }
 
   if(ctx->is_slave){
+    recv_from = MPI_ANY_SOURCE;
+    if (source_type == SpecifiedSource) recv_from = to;
     MPI_Send(sbuffer,len,MPI_BYTE,from,0,MPI_COMM_WORLD);
     for(i=0;i<reps;i++){
       MPI_Send(sbuffer,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
-      MPI_Recv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
+      MPI_Recv(rbuffer,len,MPI_BYTE,recv_from,MSG_TAG(i),
 	       MPI_COMM_WORLD,&status);
     }
   }
 
+  FinishTest();
   free(sbuffer);
   free(rbuffer);
   return(elapsed_time);
@@ -346,12 +394,11 @@ PairData *ctx;
 /* 
    Nonblocking exchange (head-to-head) 
  */
-double exchange_async(reps,len,ctx)
-int      reps,len;
-PairData *ctx;
+double exchange_async( int reps, int len, PairData ctx)
 {
   double         elapsed_time;
-  int            i,myproc, to = ctx->destination, from = ctx->source;
+  int            i, to = ctx->destination, from = ctx->source;
+  int            recv_from;
   MPI_Request  msg_id;
   char           *sbuffer,*rbuffer;
   double   t0, t1;
@@ -360,13 +407,15 @@ PairData *ctx;
   sbuffer = (char *)malloc(len);
   rbuffer = (char *)malloc(len);
 
-  myproc = __MYPROCID;
+  SetupTest( from );
   elapsed_time = 0;
   if(ctx->is_master){
-    MPI_Recv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&status);  	
+    recv_from = MPI_ANY_SOURCE;
+    if (source_type == SpecifiedSource) recv_from = to;
+    MPI_Recv(rbuffer,len,MPI_BYTE,recv_from,0,MPI_COMM_WORLD,&status);  	
     t0=MPI_Wtime();
     for(i=0;i<reps;i++){
-      MPI_Irecv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
+      MPI_Irecv(rbuffer,len,MPI_BYTE,recv_from,MSG_TAG(i),
 		MPI_COMM_WORLD,&msg_id);
       MPI_Send(sbuffer,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
       MPI_Wait(&(msg_id),&status);
@@ -376,15 +425,18 @@ PairData *ctx;
   }
 
   if(ctx->is_slave){
+    recv_from = MPI_ANY_SOURCE;
+    if (source_type == SpecifiedSource) recv_from = to;
     MPI_Send(sbuffer,len,MPI_BYTE,from,0,MPI_COMM_WORLD);
     for(i=0;i<reps;i++){
-      MPI_Irecv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
+      MPI_Irecv(rbuffer,len,MPI_BYTE,recv_from,MSG_TAG(i),
 		MPI_COMM_WORLD,&msg_id);
       MPI_Send(sbuffer,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
       MPI_Wait(&(msg_id),&status);
     }
   }
 
+  FinishTest();
   free(sbuffer);
   free(rbuffer);
   return(elapsed_time);
@@ -394,13 +446,12 @@ PairData *ctx;
    head-to-head exchange using forcetypes.  This uses null messages to
    let the sender know when the receive is ready 
  */
-double exchange_forcetype(reps,len,ctx)
-int      reps,len;
-PairData *ctx;
+double exchange_forcetype( int reps, int len, PairData ctx)
 {
   double         elapsed_time;
-  int            i,myproc, d1, *dmy = &d1, 
+  int            i, d1, *dmy = &d1, 
                  to = ctx->destination, from = ctx->source;
+  int            recv_from;
   MPI_Request  msg_id;
   MPI_Status   status;
   char           *sbuffer,*rbuffer;
@@ -409,15 +460,17 @@ PairData *ctx;
   sbuffer = (char *)malloc(len);
   rbuffer = (char *)malloc(len);
 
-  myproc = __MYPROCID;
+  SetupTest( from );
   elapsed_time = 0;
   if(ctx->is_master){
-    MPI_Recv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,3,MPI_COMM_WORLD,&status);
+    recv_from = MPI_ANY_SOURCE;
+    if (source_type == SpecifiedSource) recv_from = to;
+    MPI_Recv(rbuffer,len,MPI_BYTE,recv_from,3,MPI_COMM_WORLD,&status);
     t0=MPI_Wtime();
     for(i=0;i<reps;i++){
-      MPI_Irecv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&(msg_id));
+      MPI_Irecv(rbuffer,len,MPI_BYTE,recv_from,0,MPI_COMM_WORLD,&(msg_id));
       MPI_Send(NULL,0,MPI_BYTE,to,2,MPI_COMM_WORLD);
-      MPI_Recv(dmy,0,MPI_BYTE,MPI_ANY_SOURCE,2,MPI_COMM_WORLD,&status);
+      MPI_Recv(dmy,0,MPI_BYTE,recv_from,2,MPI_COMM_WORLD,&status);
       MPI_Rsend(sbuffer,len,MPI_BYTE,to,0,MPI_COMM_WORLD);
       MPI_Wait(&(msg_id),&status);
     }
@@ -426,16 +479,19 @@ PairData *ctx;
   }
 
   if(ctx->is_slave){
+    recv_from = MPI_ANY_SOURCE;
+    if (source_type == SpecifiedSource) recv_from = to;
     MPI_Send(sbuffer,len,MPI_BYTE,from,3,MPI_COMM_WORLD);
     for(i=0;i<reps;i++){
-      MPI_Irecv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&(msg_id));
+      MPI_Irecv(rbuffer,len,MPI_BYTE,recv_from,0,MPI_COMM_WORLD,&(msg_id));
       MPI_Send(NULL,0,MPI_BYTE,to,2,MPI_COMM_WORLD);
-      MPI_Recv(dmy,0,MPI_BYTE,MPI_ANY_SOURCE,2,MPI_COMM_WORLD,&status);
+      MPI_Recv(dmy,0,MPI_BYTE,recv_from,2,MPI_COMM_WORLD,&status);
       MPI_Rsend(sbuffer,len,MPI_BYTE,to,0,MPI_COMM_WORLD);
       MPI_Wait(&(msg_id),&status);
     }
   }
 
+  FinishTest();
   free(sbuffer);
   free(rbuffer);
   return(elapsed_time);
@@ -444,28 +500,28 @@ PairData *ctx;
 /* 
    Blocking round trip (always unidirectional) 
  */
-double round_trip_sync(reps,len,ctx)
-int      reps,len;
-PairData *ctx;
+double round_trip_sync( int reps, int len, PairData ctx)
 {
   double elapsed_time;
-  double mean_time;
-  int  i,pid,myproc, to = ctx->destination, from = ctx->source;
+  int  i, to = ctx->destination, from = ctx->source;
+  int  recv_from;
   char *rbuffer,*sbuffer;
   MPI_Status status;
   double t0, t1;
 
-  myproc = __MYPROCID;
   sbuffer = (char *)malloc(len);
   rbuffer = (char *)malloc(len);
 
+  SetupTest( from );
   elapsed_time = 0;
   if(ctx->is_master){
-    MPI_Recv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&status);
+    recv_from = MPI_ANY_SOURCE;
+    if (source_type == SpecifiedSource) recv_from = to;
+    MPI_Recv(rbuffer,len,MPI_BYTE,recv_from,0,MPI_COMM_WORLD,&status);
     t0=MPI_Wtime();
     for(i=0;i<reps;i++){
       MPI_Send(sbuffer,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
-      MPI_Recv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
+      MPI_Recv(rbuffer,len,MPI_BYTE,recv_from,MSG_TAG(i),
 	       MPI_COMM_WORLD,&status);
     }
     t1=MPI_Wtime();
@@ -473,14 +529,17 @@ PairData *ctx;
   }
 
   if(ctx->is_slave){
+    recv_from = MPI_ANY_SOURCE;
+    if (source_type == SpecifiedSource) recv_from = to;
     MPI_Send(sbuffer,len,MPI_BYTE,from,0,MPI_COMM_WORLD);
     for(i=0;i<reps;i++){
-      MPI_Recv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
+      MPI_Recv(rbuffer,len,MPI_BYTE,recv_from,MSG_TAG(i),
 	       MPI_COMM_WORLD,&status);
       MPI_Send(sbuffer,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
     }
   }
 
+  FinishTest();
   free(sbuffer);
   free(rbuffer);
   return(elapsed_time);
@@ -489,28 +548,28 @@ PairData *ctx;
 /* 
    Ready-receiver round trip
  */
-double round_trip_force(reps,len,ctx)
-int      reps,len;
-PairData *ctx;
+double round_trip_force( int reps, int len, PairData ctx)
 {
   double elapsed_time;
-  double mean_time;
-  int  i,pid,myproc, to = ctx->destination, from = ctx->source;
+  int  i, to = ctx->destination, from = ctx->source;
+  int  recv_from;
   char *rbuffer,*sbuffer;
   double t0, t1;
   MPI_Request rid;
   MPI_Status  status;
 
-  myproc = __MYPROCID;
   sbuffer = (char *)malloc(len);
   rbuffer = (char *)malloc(len);
 
+  SetupTest( from );
   elapsed_time = 0;
   if(ctx->is_master){
-    MPI_Recv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&status);
+    recv_from = MPI_ANY_SOURCE;
+    if (source_type == SpecifiedSource) recv_from = to;
+    MPI_Recv(rbuffer,len,MPI_BYTE,recv_from,0,MPI_COMM_WORLD,&status);
     t0=MPI_Wtime();
     for(i=0;i<reps;i++){
-      MPI_Irecv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
+      MPI_Irecv(rbuffer,len,MPI_BYTE,recv_from,MSG_TAG(i),
 		MPI_COMM_WORLD,&(rid));
       MPI_Rsend(sbuffer,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
       MPI_Wait(&(rid),&status);
@@ -520,12 +579,14 @@ PairData *ctx;
   }
 
   if(ctx->is_slave){
-    MPI_Irecv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
+    recv_from = MPI_ANY_SOURCE;
+    if (source_type == SpecifiedSource) recv_from = to;
+    MPI_Irecv(rbuffer,len,MPI_BYTE,recv_from,MSG_TAG(i),
 	      MPI_COMM_WORLD,&(rid));
     MPI_Send(sbuffer,len,MPI_BYTE,from,0,MPI_COMM_WORLD);
     for(i=0;i<reps-1;i++){
       MPI_Wait(&(rid),&status);
-      MPI_Irecv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
+      MPI_Irecv(rbuffer,len,MPI_BYTE,recv_from,MSG_TAG(i),
 		MPI_COMM_WORLD,&(rid));
       MPI_Rsend(sbuffer,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
     }
@@ -533,6 +594,7 @@ PairData *ctx;
     MPI_Rsend(sbuffer,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
   }
 
+  FinishTest();
   free(sbuffer);
   free(rbuffer);
   return(elapsed_time);
@@ -541,28 +603,28 @@ PairData *ctx;
 /* 
    Nonblocking round trip
  */
-double round_trip_async(reps,len,ctx)
-int      reps,len;
-PairData *ctx;
+double round_trip_async( int reps, int len, PairData ctx)
 {
   double elapsed_time;
-  double mean_time;
-  int  i,pid,myproc, to = ctx->destination, from = ctx->source;
+  int  i, to = ctx->destination, from = ctx->source;
+  int  recv_from;
   char *rbuffer,*sbuffer;
   MPI_Status status;
   double t0, t1;
   MPI_Request rid;
 
-  myproc = __MYPROCID;
   sbuffer = (char *)malloc(len);
   rbuffer = (char *)malloc(len);
 
+  SetupTest( from );
   elapsed_time = 0;
   if(ctx->is_master){
-    MPI_Recv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&status);
+    recv_from = MPI_ANY_SOURCE;
+    if (source_type == SpecifiedSource) recv_from = to;
+    MPI_Recv(rbuffer,len,MPI_BYTE,recv_from,0,MPI_COMM_WORLD,&status);
     t0=MPI_Wtime();
     for(i=0;i<reps;i++){
-      MPI_Irecv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
+      MPI_Irecv(rbuffer,len,MPI_BYTE,recv_from,MSG_TAG(i),
 		MPI_COMM_WORLD,&(rid));
       MPI_Send(sbuffer,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
       MPI_Wait(&(rid),&status);
@@ -572,12 +634,14 @@ PairData *ctx;
   }
 
   if(ctx->is_slave){
-    MPI_Irecv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
+    recv_from = MPI_ANY_SOURCE;
+    if (source_type == SpecifiedSource) recv_from = to;
+    MPI_Irecv(rbuffer,len,MPI_BYTE,recv_from,MSG_TAG(i),
 	      MPI_COMM_WORLD,&(rid));
     MPI_Send(sbuffer,len,MPI_BYTE,from,0,MPI_COMM_WORLD);
     for(i=0;i<reps-1;i++){
       MPI_Wait(&(rid),&status);
-      MPI_Irecv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
+      MPI_Irecv(rbuffer,len,MPI_BYTE,recv_from,MSG_TAG(i),
 		MPI_COMM_WORLD,&(rid));
       MPI_Send(sbuffer,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
     }
@@ -585,39 +649,39 @@ PairData *ctx;
     MPI_Send(sbuffer,len,MPI_BYTE,to,1,MPI_COMM_WORLD);
   }
 
+  FinishTest();
   free(sbuffer);
   free(rbuffer);
   return(elapsed_time);
 }
 
-/* MPI_SUCCESS may be an enum instead of a macro */
-#define HAS_MPI
-#if defined(MPI_SUCCESS) || defined(HAS_MPI)
 /* 
    Persistant communication (only in MPI) 
  */
-double round_trip_persis(reps,len,ctx)
-int      reps,len;
-PairData *ctx;
+double round_trip_persis( int reps, int len, PairData ctx)
 {
   double elapsed_time;
-  double mean_time;
-  int  i,pid,myproc, to = ctx->destination, from = ctx->source;
+  int  i, to = ctx->destination, from = ctx->source;
+  int  recv_from;
   char *rbuffer,*sbuffer;
   double t0, t1;
   MPI_Request sid, rid, rq[2];
   MPI_Status status, statuses[2];
 
-  myproc = __MYPROCID;
   sbuffer = (char *)malloc(len);
   rbuffer = (char *)malloc(len);
+
+  SetupTest( from );
   elapsed_time = 0;
   if(ctx->is_master){
+    recv_from = MPI_ANY_SOURCE;
+    if (source_type == SpecifiedSource) recv_from = to;
+
     MPI_Send_init( sbuffer, len, MPI_BYTE, to, 1, MPI_COMM_WORLD, &sid );
-    MPI_Recv_init( rbuffer, len, MPI_BYTE, to, 1, MPI_COMM_WORLD, &rid );
+    MPI_Recv_init( rbuffer, len, MPI_BYTE, recv_from, 1, MPI_COMM_WORLD, &rid ); 
     rq[0] = rid;
     rq[1] = sid;
-    MPI_Recv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&status);
+    MPI_Recv(rbuffer,len,MPI_BYTE,recv_from,0,MPI_COMM_WORLD,&status);
     t0=MPI_Wtime();
     for(i=0;i<reps;i++){
       MPI_Startall( 2, rq );
@@ -630,8 +694,10 @@ PairData *ctx;
   }
 
   if(ctx->is_slave){
+    recv_from = MPI_ANY_SOURCE;
+    if (source_type == SpecifiedSource) recv_from = from;
     MPI_Send_init( sbuffer, len, MPI_BYTE, from, 1, MPI_COMM_WORLD, &sid );
-    MPI_Recv_init( rbuffer, len, MPI_BYTE, from, 1, MPI_COMM_WORLD, &rid );
+    MPI_Recv_init( rbuffer, len, MPI_BYTE, recv_from, 1, MPI_COMM_WORLD, &rid );
     rq[0] = rid;
     rq[1] = sid;
     MPI_Start( &rid );
@@ -648,6 +714,7 @@ PairData *ctx;
     MPI_Request_free( &sid );
   }
 
+  FinishTest();
   free(sbuffer);
   free(rbuffer);
   return(elapsed_time);
@@ -660,11 +727,11 @@ int set_vector_stride( int n )
     return 0;
 }
 
-double round_trip_vector(int reps, int len, PairData *ctx)
+double round_trip_vector(int reps, int len, PairData ctx)
 {
   double elapsed_time;
-  double mean_time;
-  int  i,pid,myproc, to = ctx->destination, from = ctx->source;
+  int  i, to = ctx->destination, from = ctx->source;
+  int  recv_from;
   double *rbuffer,*sbuffer;
   double t0, t1;
   MPI_Datatype vec, types[2];
@@ -672,9 +739,12 @@ double round_trip_vector(int reps, int len, PairData *ctx)
   MPI_Aint     displs[2];
   MPI_Status   status;
   MPI_Comm     comm;
+  int          alloc_len;
 
   /* Adjust len to be in bytes */
   len = len / sizeof(double);
+  alloc_len = len;
+  if (len == 0) alloc_len++;
 
   comm = MPI_COMM_WORLD;
   blens[0] = 1; displs[0] = 0; types[0] = MPI_DOUBLE;
@@ -682,112 +752,100 @@ double round_trip_vector(int reps, int len, PairData *ctx)
   MPI_Type_struct( 2, blens, displs, types, &vec );
   MPI_Type_commit( &vec );
 
-  myproc = __MYPROCID;
-  sbuffer = (double *)malloc((unsigned)(VectorStride * len * sizeof(double) ));
-  rbuffer = (double *)malloc((unsigned)(VectorStride * len * sizeof(double) ));
-  if (!sbuffer)return 0;;
-  if (!rbuffer)return 0;;
+  sbuffer = (double *)malloc((unsigned)(VectorStride * alloc_len * sizeof(double) ));
+  rbuffer = (double *)malloc((unsigned)(VectorStride * alloc_len * sizeof(double) ));
+  if (!sbuffer)return 0;
+  if (!rbuffer)return 0;
 
+  SetupTest( from );
   elapsed_time = 0;
   if(ctx->is_master){
-    MPI_Recv( rbuffer, len, vec, to, 0, comm, &status );
+    recv_from = MPI_ANY_SOURCE;
+    if (source_type == SpecifiedSource) recv_from = to;
+    MPI_Recv( rbuffer, len, vec, recv_from, 0, comm, &status );
     t0=MPI_Wtime();
     for(i=0;i<reps;i++){
       MPI_Send( sbuffer, len, vec, to, MSG_TAG(i), comm );
-      MPI_Recv( rbuffer, len, vec, from, MSG_TAG(i), comm, &status );
+      MPI_Recv( rbuffer, len, vec, recv_from, MSG_TAG(i), comm, &status );
       }
     t1=MPI_Wtime();
     elapsed_time = t1 - t0;
     }
 
   if(ctx->is_slave){
+    recv_from = MPI_ANY_SOURCE;
+    if (source_type == SpecifiedSource) recv_from = to;
     MPI_Send( sbuffer, len, vec, from, 0, comm );
     for(i=0;i<reps;i++){
-	MPI_Recv( rbuffer, len, vec, from, MSG_TAG(i), comm, &status );
+	MPI_Recv( rbuffer, len, vec, recv_from, MSG_TAG(i), comm, &status );
 	MPI_Send( sbuffer, len, vec, to, MSG_TAG(i), comm );
 	}
     }
 
+  FinishTest();
   free(sbuffer);
   free(rbuffer);
   MPI_Type_free( &vec );
   return(elapsed_time);
 }
-double round_trip_vectortype(reps,len,ctx)
-int      reps,len;
-PairData *ctx;
+
+double round_trip_vectortype( int reps, int len, PairData ctx)
 {
   double elapsed_time;
-  double mean_time;
-  int  i,pid,myproc, to = ctx->destination, from = ctx->source;
+  int  i, to = ctx->destination, from = ctx->source;
+  int  recv_from;
   double *rbuffer,*sbuffer;
   double t0, t1;
   MPI_Datatype vec;
   MPI_Status   status;
   MPI_Comm     comm;
+  int          alloc_len;
 
   /* Adjust len to be in doubles */
   len = len / sizeof(double);
+  alloc_len = len;
+  if (len == 0) alloc_len++;
 
   comm = MPI_COMM_WORLD;
   MPI_Type_vector( len, 1, VectorStride, MPI_DOUBLE, &vec );
   MPI_Type_commit( &vec );
 
-  myproc = __MYPROCID;
-  sbuffer = (double *)malloc((unsigned)(VectorStride * len * sizeof(double) ));
-  rbuffer = (double *)malloc((unsigned)(VectorStride * len * sizeof(double) ));
-  if (!sbuffer)return 0;;
-  if (!rbuffer)return 0;;
+  sbuffer = (double *)malloc((unsigned)(VectorStride * alloc_len * sizeof(double) ));
+  rbuffer = (double *)malloc((unsigned)(VectorStride * alloc_len * sizeof(double) ));
+  if (!sbuffer)return 0;
+  if (!rbuffer)return 0;
 
+  SetupTest( from );
   elapsed_time = 0;
   if(ctx->is_master){
-    MPI_Recv( rbuffer, 1, vec, to, 0, comm, &status );
+    recv_from = MPI_ANY_SOURCE;
+    if (source_type == SpecifiedSource) recv_from = to;
+    MPI_Recv( rbuffer, 1, vec, recv_from, 0, comm, &status );
     t0=MPI_Wtime();
     for(i=0;i<reps;i++){
       MPI_Send( sbuffer, 1, vec, to, MSG_TAG(i), comm );
-      MPI_Recv( rbuffer, 1, vec, from, MSG_TAG(i), comm, &status );
+      MPI_Recv( rbuffer, 1, vec, recv_from, MSG_TAG(i), comm, &status );
       }
     t1=MPI_Wtime();
     elapsed_time = t1 -t0;
     }
 
   if(ctx->is_slave){
+    recv_from = MPI_ANY_SOURCE;
+    if (source_type == SpecifiedSource) recv_from = to;
     MPI_Send( sbuffer, 1, vec, from, 0, comm );
     for(i=0;i<reps;i++){
-	MPI_Recv( rbuffer, 1, vec, from, MSG_TAG(i), comm, &status );
+	MPI_Recv( rbuffer, 1, vec, recv_from, MSG_TAG(i), comm, &status );
 	MPI_Send( sbuffer, 1, vec, to, MSG_TAG(i), comm );
 	}
     }
 
+  FinishTest();
   free(sbuffer );
   free(rbuffer );
   MPI_Type_free( &vec );
   return(elapsed_time);
 }
-#else
-double round_trip_persis(reps,len,ctx)
-int      reps,len;
-PairData *ctx;
-{
-    printf( "Persistent operations not defined\n" );
-    MPI_Abort( MPI_COMM_WORLD, 1 );
-    return 0.0;
-}
-
-int set_vector_stride( n )
-int n;
-{
-return 0;
-}
-double round_trip_vector(reps,len,ctx)
-int      reps,len;
-PairData *ctx;
-{
-    printf( "Vector operations not defined\n" );
-    exit(1 );
-    return 0.0;
-}
-#endif
 /*
     These versions try NOT to operate out of cache; rather, then send/receive
     into a moving window.
@@ -795,198 +853,459 @@ PairData *ctx;
 /* 
    Blocking round trip (always unidirectional) 
  */
-double round_trip_nc_sync(reps,len,ctx)
-int      reps,len;
-PairData *ctx;
+double round_trip_nc_sync( int reps, int len, PairData ctx)
 {
-  double elapsed_time;
-  double mean_time;
-  int  i,pid,myproc, to = ctx->destination, from = ctx->source;
-  char *rbuffer,*sbuffer, *rp, *sp, *rlast, *slast;
-  MPI_Status status;
-  double t0, t1;
+    double elapsed_time;
+    int  i, to = ctx->destination, from = ctx->source;
+    int  recv_from;
+    char *rbuffer,*sbuffer, *rp, *sp, *rlast, *slast;
+    MPI_Status status;
+    double t0, t1;
 
-  myproc = __MYPROCID;
-  sbuffer = (char *)malloc((unsigned)(2 * CacheSize ));
-  slast   = sbuffer + 2 * CacheSize - len;
-  rbuffer = (char *)malloc((unsigned)(2 * CacheSize ));
-  rlast   = rbuffer + 2 * CacheSize - len;
-  if (!sbuffer || !rbuffer) {
-      fprintf( stderr, "Could not allocate %d bytes\n", 4 * CacheSize );
-      exit(1 );
-      }
-  sp = sbuffer;
-  rp = rbuffer;
-
-  elapsed_time = 0;
-  if(ctx->is_master){
-    MPI_Recv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&status);
-    t0=MPI_Wtime();
-    for(i=0;i<reps;i++){
-      MPI_Send(sp,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
-      MPI_Recv(rp,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
-	       MPI_COMM_WORLD,&status);
-      sp += len;
-      rp += len;
-      if (sp > slast) sp = sbuffer;
-      if (rp > rlast) rp = rbuffer;
+    sbuffer = (char *)malloc((unsigned)(2 * CacheSize ));
+    slast   = sbuffer + 2 * CacheSize - len;
+    rbuffer = (char *)malloc((unsigned)(2 * CacheSize ));
+    rlast   = rbuffer + 2 * CacheSize - len;
+    if (!sbuffer || !rbuffer) {
+	fprintf( stderr, "Could not allocate %d bytes\n", 4 * CacheSize );
+	exit(1 );
     }
-    t1=MPI_Wtime();
-    elapsed_time = t1 -t0;
-  }
+    sp = sbuffer;
+    rp = rbuffer;
 
-  if(ctx->is_slave){
-    MPI_Send(sbuffer,len,MPI_BYTE,from,0,MPI_COMM_WORLD);
-    for(i=0;i<reps;i++){
-      MPI_Recv(rp,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
-	       MPI_COMM_WORLD,&status);
-      MPI_Send(sp,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
-      sp += len;
-      rp += len;
-      if (sp > slast) sp = sbuffer;
-      if (rp > rlast) rp = rbuffer;
+    SetupTest( from );
+    elapsed_time = 0;
+    if(ctx->is_master){
+	recv_from = MPI_ANY_SOURCE;
+	if (source_type == SpecifiedSource) recv_from = to;
+	MPI_Recv(rbuffer,len,MPI_BYTE,recv_from,0,MPI_COMM_WORLD,&status);
+	t0=MPI_Wtime();
+	for(i=0;i<reps;i++){
+	    MPI_Send(sp,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
+	    MPI_Recv(rp,len,MPI_BYTE,recv_from,MSG_TAG(i),
+		     MPI_COMM_WORLD,&status);
+	    sp += len;
+	    rp += len;
+	    if (sp > slast) sp = sbuffer;
+	    if (rp > rlast) rp = rbuffer;
+	}
+	t1=MPI_Wtime();
+	elapsed_time = t1 -t0;
     }
-  }
 
-  free(sbuffer );
-  free(rbuffer );
-  return(elapsed_time);
+    if(ctx->is_slave){
+	recv_from = MPI_ANY_SOURCE;
+	if (source_type == SpecifiedSource) recv_from = to;
+	MPI_Send(sbuffer,len,MPI_BYTE,from,0,MPI_COMM_WORLD);
+	for(i=0;i<reps;i++){
+	    MPI_Recv(rp,len,MPI_BYTE,recv_from,MSG_TAG(i),
+		     MPI_COMM_WORLD,&status);
+	    MPI_Send(sp,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
+	    sp += len;
+	    rp += len;
+	    if (sp > slast) sp = sbuffer;
+	    if (rp > rlast) rp = rbuffer;
+	}
+    }
+
+    FinishTest();
+    free(sbuffer );
+    free(rbuffer );
+    return(elapsed_time);
 }
 
 /* 
    Ready-receiver round trip
  */
-double round_trip_nc_force(reps,len,ctx)
-int      reps,len;
-PairData *ctx;
+double round_trip_nc_force( int reps, int len, PairData ctx)
 {
-  double elapsed_time;
-  double mean_time;
-  int  i,pid,myproc, to = ctx->destination, from = ctx->source;
-  char *rbuffer,*sbuffer, *rp, *sp, *rlast, *slast;
-  double t0, t1;
-  MPI_Request rid;
-  MPI_Status  status;
+    double elapsed_time;
+    int  i, to = ctx->destination, from = ctx->source;
+    int  recv_from;
+    char *rbuffer,*sbuffer, *rp, *sp, *rlast, *slast;
+    double t0, t1;
+    MPI_Request rid;
+    MPI_Status  status;
 
-  myproc = __MYPROCID;
-  sbuffer = (char *)malloc((unsigned)(2 * CacheSize ));
-  slast   = sbuffer + 2 * CacheSize - len;
-  rbuffer = (char *)malloc((unsigned)(2 * CacheSize ));
-  rlast   = rbuffer + 2 * CacheSize - len;
-  if (!sbuffer || !rbuffer) {
-      fprintf( stderr, "Could not allocate %d bytes\n", 4 * CacheSize );
-      exit(1 );
-      }
-  sp = sbuffer;
-  rp = rbuffer;
-
-  elapsed_time = 0;
-  if(ctx->is_master){
-    MPI_Recv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&status);
-    t0=MPI_Wtime();
-    for(i=0;i<reps;i++){
-      MPI_Irecv(rp,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
-		MPI_COMM_WORLD,&(rid));
-      MPI_Rsend(sp,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
-      MPI_Wait(&(rid),&status);
-      sp += len;
-      rp += len;
-      if (sp > slast) sp = sbuffer;
-      if (rp > rlast) rp = rbuffer;
+    sbuffer = (char *)malloc((unsigned)(2 * CacheSize ));
+    slast   = sbuffer + 2 * CacheSize - len;
+    rbuffer = (char *)malloc((unsigned)(2 * CacheSize ));
+    rlast   = rbuffer + 2 * CacheSize - len;
+    if (!sbuffer || !rbuffer) {
+	fprintf( stderr, "Could not allocate %d bytes\n", 4 * CacheSize );
+	exit(1 );
     }
-    t1=MPI_Wtime();
-    elapsed_time = t1 -t0;
-  }
+    sp = sbuffer;
+    rp = rbuffer;
 
-  if(ctx->is_slave){
-    MPI_Irecv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
-	      MPI_COMM_WORLD,&(rid));
-    MPI_Send(sbuffer,len,MPI_BYTE,from,0,MPI_COMM_WORLD);
-    for(i=0;i<reps-1;i++){
-      MPI_Wait(&(rid),&status);
-      rp += len;
-      if (rp > rlast) rp = rbuffer;
-      MPI_Irecv(rp,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
-		MPI_COMM_WORLD,&(rid));
-      MPI_Rsend(sp,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
-      sp += len;
-      if (sp > slast) sp = sbuffer;
+    SetupTest( from );
+    elapsed_time = 0;
+    if(ctx->is_master){
+	recv_from = MPI_ANY_SOURCE;
+	if (source_type == SpecifiedSource) recv_from = to;
+	MPI_Recv(rbuffer,len,MPI_BYTE,recv_from,0,MPI_COMM_WORLD,&status);
+	t0=MPI_Wtime();
+	for(i=0;i<reps;i++){
+	    MPI_Irecv(rp,len,MPI_BYTE,recv_from,MSG_TAG(i),
+		      MPI_COMM_WORLD,&(rid));
+	    MPI_Rsend(sp,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
+	    MPI_Wait(&(rid),&status);
+	    sp += len;
+	    rp += len;
+	    if (sp > slast) sp = sbuffer;
+	    if (rp > rlast) rp = rbuffer;
+	}
+	t1=MPI_Wtime();
+	elapsed_time = t1 -t0;
     }
-    MPI_Wait(&(rid),&status);
-    MPI_Rsend(sp,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
-  }
 
-  free(sbuffer );
-  free(rbuffer );
-  return(elapsed_time);
+    if(ctx->is_slave){
+	recv_from = MPI_ANY_SOURCE;
+	if (source_type == SpecifiedSource) recv_from = to;
+	MPI_Irecv(rbuffer,len,MPI_BYTE,recv_from,MSG_TAG(i),
+		  MPI_COMM_WORLD,&(rid));
+	MPI_Send(sbuffer,len,MPI_BYTE,from,0,MPI_COMM_WORLD);
+	for(i=0;i<reps-1;i++){
+	    MPI_Wait(&(rid),&status);
+	    rp += len;
+	    if (rp > rlast) rp = rbuffer;
+	    MPI_Irecv(rp,len,MPI_BYTE,recv_from,MSG_TAG(i),
+		      MPI_COMM_WORLD,&(rid));
+	    MPI_Rsend(sp,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
+	    sp += len;
+	    if (sp > slast) sp = sbuffer;
+	}
+	MPI_Wait(&(rid),&status);
+	MPI_Rsend(sp,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
+    }
+
+    FinishTest();
+    free(sbuffer );
+    free(rbuffer );
+    return(elapsed_time);
 }
 
 /* 
    Nonblocking round trip
  */
-double round_trip_nc_async(reps,len,ctx)
-int      reps,len;
-PairData *ctx;
+double round_trip_nc_async( int reps, int len, PairData ctx)
 {
-  double elapsed_time;
-  double mean_time;
-  int  i,pid,myproc, to = ctx->destination, from = ctx->source;
-  char *rbuffer,*sbuffer, *rp, *sp, *rlast, *slast;
-  double t0, t1;
-  MPI_Request rid;
-  MPI_Status  status;
+    double elapsed_time;
+    int  i, to = ctx->destination, from = ctx->source;
+    int  recv_from;
+    char *rbuffer,*sbuffer, *rp, *sp, *rlast, *slast;
+    double t0, t1;
+    MPI_Request rid;
+    MPI_Status  status;
 
-  myproc = __MYPROCID;
-  sbuffer = (char *)malloc((unsigned)(2 * CacheSize ));
-  slast   = sbuffer + 2 * CacheSize - len;
-  rbuffer = (char *)malloc((unsigned)(2 * CacheSize ));
-  rlast   = rbuffer + 2 * CacheSize - len;
-  if (!sbuffer || !rbuffer) {
-      fprintf( stderr, "Could not allocate %d bytes\n", 4 * CacheSize );
-      exit(1 );
-      }
-  sp = sbuffer;
-  rp = rbuffer;
-
-  elapsed_time = 0;
-  if(ctx->is_master){
-    MPI_Recv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&status);
-    t0=MPI_Wtime();
-    for(i=0;i<reps;i++){
-      MPI_Irecv(rp,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
-		MPI_COMM_WORLD,&(rid));
-      MPI_Send(sp,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
-      MPI_Wait(&(rid),&status);
-      sp += len;
-      rp += len;
-      if (sp > slast) sp = sbuffer;
-      if (rp > rlast) rp = rbuffer;
+    sbuffer = (char *)malloc((unsigned)(2 * CacheSize ));
+    slast   = sbuffer + 2 * CacheSize - len;
+    rbuffer = (char *)malloc((unsigned)(2 * CacheSize ));
+    rlast   = rbuffer + 2 * CacheSize - len;
+    if (!sbuffer || !rbuffer) {
+	fprintf( stderr, "Could not allocate %d bytes\n", 4 * CacheSize );
+	exit(1 );
     }
-    t1=MPI_Wtime();
-    elapsed_time = t1 -t0;
-  }
+    sp = sbuffer;
+    rp = rbuffer;
 
-  if(ctx->is_slave){
-    MPI_Irecv(rbuffer,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
-	      MPI_COMM_WORLD,&(rid));
-    MPI_Send(sbuffer,len,MPI_BYTE,from,0,MPI_COMM_WORLD);
-    for(i=0;i<reps-1;i++){
-      MPI_Wait(&(rid),&status);
-      rp += len;
-      if (rp > rlast) rp = rbuffer;
-      MPI_Irecv(rp,len,MPI_BYTE,MPI_ANY_SOURCE,MSG_TAG(i),
-		MPI_COMM_WORLD,&(rid));
-      MPI_Send(sp,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
-      sp += len;
-      if (sp > slast) sp = sbuffer;
+    SetupTest( from );
+    elapsed_time = 0;
+    if(ctx->is_master){
+	recv_from = MPI_ANY_SOURCE;
+	if (source_type == SpecifiedSource) recv_from = to;
+	MPI_Recv(rbuffer,len,MPI_BYTE,recv_from,0,MPI_COMM_WORLD,&status);
+	t0=MPI_Wtime();
+	for(i=0;i<reps;i++){
+	    MPI_Irecv(rp,len,MPI_BYTE,recv_from,MSG_TAG(i),
+		      MPI_COMM_WORLD,&(rid));
+	    MPI_Send(sp,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
+	    MPI_Wait(&(rid),&status);
+	    sp += len;
+	    rp += len;
+	    if (sp > slast) sp = sbuffer;
+	    if (rp > rlast) rp = rbuffer;
+	}
+	t1=MPI_Wtime();
+	elapsed_time = t1 -t0;
     }
-    MPI_Wait(&(rid),&status);
-    MPI_Send(sp,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
-  }
 
-  free(sbuffer );
-  free(rbuffer );
-  return(elapsed_time);
+    if(ctx->is_slave){
+	recv_from = MPI_ANY_SOURCE;
+	if (source_type == SpecifiedSource) recv_from = to;
+	MPI_Irecv(rbuffer,len,MPI_BYTE,recv_from,MSG_TAG(i),
+		  MPI_COMM_WORLD,&(rid));
+	MPI_Send(sbuffer,len,MPI_BYTE,from,0,MPI_COMM_WORLD);
+	for(i=0;i<reps-1;i++){
+	    MPI_Wait(&(rid),&status);
+	    rp += len;
+	    if (rp > rlast) rp = rbuffer;
+	    MPI_Irecv(rp,len,MPI_BYTE,recv_from,MSG_TAG(i),
+		      MPI_COMM_WORLD,&(rid));
+	    MPI_Send(sp,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
+	    sp += len;
+	    if (sp > slast) sp = sbuffer;
+	}
+	MPI_Wait(&(rid),&status);
+	MPI_Send(sp,len,MPI_BYTE,to,MSG_TAG(i),MPI_COMM_WORLD);
+    }
+
+    FinishTest();
+    free(sbuffer );
+    free(rbuffer );
+    return(elapsed_time);
 }
 
+#ifdef HAVE_MPI_PUT
+double exchange_put( int reps, int len, PairData ctx)
+{
+    double elapsed_time;
+    int  i, to = ctx->destination, from = ctx->source;
+    int  recv_from;
+    char *sbuffer,*rbuffer;
+    double t0, t1;
+    MPI_Status status;
+    MPI_Win    win;
+    int        alloc_len;
+  
+    alloc_len = len;
+    if (alloc_len == 0) alloc_len = sizeof(double);
 
+#if defined(HAVE_SHMALLOC) && !defined(HAVE_MPI_ALLOC_MEM)
+    sbuffer = (char *)shmalloc((unsigned)(alloc_len));
+    rbuffer = (char *)shmalloc((unsigned)(alloc_len));
+#else
+    sbuffer = (char *)malloc((unsigned)(alloc_len));
+    rbuffer = (char *)malloc((unsigned)(alloc_len));
+#endif
+    if (!sbuffer || !rbuffer) {
+	fprintf( stderr, "Could not allocate %d bytes\n", alloc_len );
+	exit(1 );
+    }
+
+    MPI_Win_create( rbuffer, len, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &win );
+
+    SetupTest( from );
+
+    elapsed_time = 0;
+    if(ctx->is_master){
+	recv_from = MPI_ANY_SOURCE;
+	if (source_type == SpecifiedSource) recv_from = to;
+	MPI_Recv(rbuffer,len,MPI_BYTE,recv_from,0,MPI_COMM_WORLD,&status);
+	t0=MPI_Wtime();
+	for(i=0;i<reps;i++){
+	    MPI_Put( sbuffer, len, MPI_BYTE, to, 
+		     0, len, MPI_BYTE, win );
+	    MPI_Win_fence( 0, win );
+	}
+	t1 = MPI_Wtime();
+	elapsed_time = t1-t0;
+    }
+    else if(ctx->is_slave){
+	recv_from = MPI_ANY_SOURCE;
+	if (source_type == SpecifiedSource) recv_from = to;
+	MPI_Send(sbuffer,len,MPI_BYTE,from,0,MPI_COMM_WORLD);
+	for(i=0;i<reps;i++){
+	    MPI_Put( sbuffer, len, MPI_BYTE, from, 
+		     0, len, MPI_BYTE, win );
+	    MPI_Win_fence( 0, win );
+	}
+    }
+    else {
+	for(i=0;i<reps;i++){
+	    MPI_Win_fence( 0, win );
+	}
+    }
+
+    FinishTest();
+    MPI_Win_free( &win );
+#if defined(HAVE_SHMALLOC) && !defined(HAVE_MPI_ALLOC_MEM)
+    shfree( sbuffer );
+    shfree( rbuffer );
+#else
+    free(sbuffer );
+    free(rbuffer );
+#endif
+    return(elapsed_time);
+}
+double round_trip_put( int reps, int len, PairData ctx)
+{
+    double elapsed_time;
+    int  i, to = ctx->destination, from = ctx->source;
+    int  recv_from;
+    char *rbuffer,*sbuffer;
+    double t0, t1;
+    MPI_Win win;
+    MPI_Status status;
+    int alloc_len;
+
+    alloc_len = len;
+    if (alloc_len == 0) alloc_len = sizeof(double);
+
+#if defined(HAVE_SHMALLOC) && !defined(HAVE_MPI_ALLOC_MEM)
+    sbuffer = (char *)shmalloc((unsigned)(alloc_len));
+    rbuffer = (char *)shmalloc((unsigned)(alloc_len));
+#else
+    sbuffer = (char *)malloc((unsigned)(alloc_len));
+    rbuffer = (char *)malloc((unsigned)(alloc_len));
+#endif
+    if (!sbuffer || !rbuffer) {
+	fprintf( stderr, "Could not allocate %d bytes\n", alloc_len );
+	exit(1 );
+    }
+
+    MPI_Win_create( rbuffer, len, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &win );
+
+    SetupTest( from );
+    elapsed_time = 0;
+    if(ctx->is_master){
+	recv_from = MPI_ANY_SOURCE;
+	if (source_type == SpecifiedSource) recv_from = to;
+	MPI_Recv(rbuffer,len,MPI_BYTE,recv_from,0,MPI_COMM_WORLD,&status);
+	t0=MPI_Wtime();
+	for(i=0;i<reps;i++){
+	    MPI_Put( sbuffer, len, MPI_BYTE, to, 
+		     0, len, MPI_BYTE, win );
+	    MPI_Win_fence( 0, win );
+	    MPI_Win_fence( 0, win );
+	}
+	t1=MPI_Wtime();
+	elapsed_time = t1 -t0;
+    }
+
+    else if(ctx->is_slave){
+	recv_from = MPI_ANY_SOURCE;
+	if (source_type == SpecifiedSource) recv_from = to;
+	MPI_Send(sbuffer,len,MPI_BYTE,from,0,MPI_COMM_WORLD);
+	for(i=0;i<reps;i++){
+	    MPI_Win_fence( 0, win );
+	    MPI_Put( sbuffer, len, MPI_BYTE, from, 
+		     0, len, MPI_BYTE, win );
+	    MPI_Win_fence( 0, win );
+	}
+    }
+    else {
+	for(i=0;i<reps;i++){
+	    MPI_Win_fence( 0, win );
+	    MPI_Win_fence( 0, win );
+	}
+    }
+
+    FinishTest();
+    MPI_Win_free( &win );
+#if defined(HAVE_SHMALLOC) && !defined(HAVE_MPI_ALLOC_MEM)
+    shfree( sbuffer );
+    shfree( rbuffer );
+#else
+    free(sbuffer );
+    free(rbuffer );
+#endif
+    return(elapsed_time);
+}
+
+double round_trip_nc_put( int reps, int len, PairData ctx)
+{
+    double elapsed_time;
+    int  i, to = ctx->destination, from = ctx->source;
+    int  recv_from;
+    char *rbuffer,*sbuffer, *rp, *sp, *rlast, *slast;
+    double t0, t1;
+    MPI_Win win;
+    MPI_Status status;
+
+#if defined(HAVE_SHMALLOC) && !defined(HAVE_MPI_ALLOC_MEM)
+    sbuffer = (char *)shmalloc((unsigned)(2 * CacheSize ));
+    rbuffer = (char *)shmalloc((unsigned)(2 * CacheSize ));
+#else
+    sbuffer = (char *)malloc((unsigned)(2 * CacheSize ));
+    rbuffer = (char *)malloc((unsigned)(2 * CacheSize ));
+#endif
+    slast   = sbuffer + 2 * CacheSize - len;
+    rlast   = rbuffer + 2 * CacheSize - len;
+    if (!sbuffer || !rbuffer) {
+	fprintf( stderr, "Could not allocate %d bytes\n", 4 * CacheSize );
+	exit(1 );
+    }
+    sp = sbuffer;
+    rp = rbuffer;
+
+    MPI_Win_create( rbuffer, len, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &win );
+
+    SetupTest( from );
+    elapsed_time = 0;
+    if(ctx->is_master){
+	recv_from = MPI_ANY_SOURCE;
+	if (source_type == SpecifiedSource) recv_from = to;
+	MPI_Recv(rbuffer,len,MPI_BYTE,recv_from,0,MPI_COMM_WORLD,&status);
+	t0=MPI_Wtime();
+	for(i=0;i<reps;i++){
+	    MPI_Put( sp, len, MPI_BYTE, to, 
+		     (int)(rp - rbuffer), len, MPI_BYTE, win );
+	    MPI_Win_fence( 0, win );
+	    MPI_Win_fence( 0, win );
+	    sp += len;
+	    rp += len;
+	    if (sp > slast) sp = sbuffer;
+	    if (rp > rlast) rp = rbuffer;
+	}
+	t1=MPI_Wtime();
+	elapsed_time = t1 -t0;
+    }
+
+    else if(ctx->is_slave){
+	recv_from = MPI_ANY_SOURCE;
+	if (source_type == SpecifiedSource) recv_from = to;
+	MPI_Send(sbuffer,len,MPI_BYTE,from,0,MPI_COMM_WORLD);
+	for(i=0;i<reps;i++){
+	    MPI_Win_fence( 0, win );
+	    MPI_Put( sp, len, MPI_BYTE, from, 
+		     (int)(rp - rbuffer), len, MPI_BYTE, win );
+	    MPI_Win_fence( 0, win );
+	    sp += len;
+	    rp += len;
+	    if (sp > slast) sp = sbuffer;
+	    if (rp > rlast) rp = rbuffer;
+	}
+    }
+    else {
+	for(i=0;i<reps;i++){
+	    MPI_Win_fence( 0, win );
+	    MPI_Win_fence( 0, win );
+	}
+    }
+
+    FinishTest();
+    MPI_Win_free( &win );
+#if defined(HAVE_SHMALLOC) && !defined(HAVE_MPI_ALLOC_MEM)
+    shfree( sbuffer );
+    shfree( rbuffer );
+#else
+    free(sbuffer );
+    free(rbuffer );
+#endif
+    return(elapsed_time);
+}
+#endif
+
+/* 
+   The following implements code to ensure that there is a pending receive
+   that will never be satisfied
+ */
+#define NEVER_SENT_TAG  1000000000
+
+static MPI_Request pending_req = MPI_REQUEST_NULL;
+static void SetupTest( int from )
+{
+    static int dummy;
+    if (MsgPending) {
+	MPI_Irecv( &dummy, 1, MPI_INT, from, NEVER_SENT_TAG,
+		   MPI_COMM_WORLD, &pending_req );
+    }
+}
+static void FinishTest( void )
+{
+    if (MsgPending && pending_req != MPI_REQUEST_NULL) {
+	MPI_Cancel( &pending_req );
+	pending_req = MPI_REQUEST_NULL;
+    }
+}

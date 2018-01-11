@@ -44,7 +44,7 @@ int main( int argc, char **argv )
     MPI_Allreduce( &i, &err, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
     if (rank == 0) {
 	if (err > 0) printf( "Found %d errors!\n", err );
-	else         printf( "Test passed\n" );
+	else         printf( " No Errors\n" );
     }
     MPI_Type_free( &vec );
     MPI_Finalize();

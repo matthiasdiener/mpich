@@ -1,5 +1,5 @@
 /*
- *  $Id: shmemdebug.c,v 1.7 1999/10/14 13:46:20 swider Exp $
+ *  $Id: shmemdebug.c,v 1.11 2000/08/09 22:29:37 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -11,17 +11,27 @@
 #include "chpackflow.h"
 #include <string.h>
 
+#ifdef USE_HOLD_LAST_DEBUG
+char ch_debug_buf[CH_MAX_DEBUG_LINE];
+#endif
+
 /* Grumble.  It is no longer valid to initialize FILEs to things like stderr 
    at compile time.  
  */
 FILE *MPID_DEBUG_FILE = 0;
 FILE *MPID_TRACE_FILE = 0;
-int MPID_DebugFlag = 0;
+int MPID_UseDebugFile = 0;
 
-void MPID_Get_print_pkt ANSI_ARGS(( FILE *, MPID_PKT_T *));
-int MPID_Cancel_print_pkt ANSI_ARGS(( FILE *, MPID_PKT_T *));
-int  MPID_Rndv_print_pkt ANSI_ARGS((FILE *, MPID_PKT_T *));
-void MPID_Print_Send_Handle ANSI_ARGS(( MPIR_SHANDLE * ));
+#ifdef USE_HOLD_LAST_DEBUG
+int MPID_DebugFlag = 1;
+#else
+int MPID_DebugFlag = 0;
+#endif
+
+void MPID_Get_print_pkt ( FILE *, MPID_PKT_T *);
+int MPID_Cancel_print_pkt ( FILE *, MPID_PKT_T *);
+int  MPID_Rndv_print_pkt (FILE *, MPID_PKT_T *);
+void MPID_Print_Send_Handle ( MPIR_SHANDLE * );
 
 /* Should each mode have its own print routines? */
 
@@ -122,15 +132,18 @@ MPID_PKT_T *pkt;
     if (pkt->head.mode != MPID_PKT_SEND_ADDRESS) {
 	/* begin if mode != address */
 	send_id = pkt->get_pkt.send_id;
-	if (pkt->head.mode != MPID_PKT_REQUEST_SEND_GET)
-	    recv_id = pkt->get_pkt.recv_id;
-
 	sprintf( sendid, "%lx", (long)send_id );
-	if (pkt->head.mode != MPID_PKT_REQUEST_SEND_GET)
+	if (pkt->head.mode != MPID_PKT_REQUEST_SEND_GET) {
+	    recv_id = pkt->get_pkt.recv_id;
 	    sprintf( recvid, "%lx", (long)recv_id );
+	}
     }  /* end if mode != address */
 
 #ifndef MPID_HAS_HETERO
+/* Casts from MPI_Aint to long are used to match the format descriptor (lx);
+   this will be ok as long as MPI_Aint is not long long.  In that case,
+   we'd need to edit the format.  For that, we could use ANSI C preprocessor
+   string concatenation */
 	if (pkt->head.mode == MPID_PKT_SEND_ADDRESS)
 	    fprintf( fp, "\
 \tlen        = %d\n\
@@ -140,7 +153,7 @@ MPID_PKT_T *pkt;
 \taddress    = %lx\n\
 \tmode       = ", 
 	pkt->head.len, pkt->head.tag, pkt->head.context_id, pkt->head.lrank,
-	     (MPI_Aint)pkt->get_pkt.address );
+	     (long)(MPI_Aint)pkt->get_pkt.address );
 	
 	else if (pkt->head.mode == MPID_PKT_REQUEST_SEND_GET)
 	    fprintf( fp, "\
@@ -151,7 +164,7 @@ MPID_PKT_T *pkt;
 \tsend_id    = %lx\n\
 \tmode       = ", 
 	pkt->head.len, pkt->head.tag, pkt->head.context_id, pkt->head.lrank,
-	pkt->get_pkt.send_id );
+	(long) pkt->get_pkt.send_id );
 	else fprintf( fp, "\
 \tcur_offset = %d\n\
 \tlen_avail  = %d\n\
@@ -159,8 +172,9 @@ MPID_PKT_T *pkt;
 \trecv_id    = %lx\n\
 \taddress    = %lx\n\
 \tmode       = ", 
-	pkt->get_pkt.cur_offset, pkt->get_pkt.len_avail, pkt->get_pkt.send_id,
-	pkt->get_pkt.recv_id, (MPI_Aint)pkt->get_pkt.address );
+	pkt->get_pkt.cur_offset, pkt->get_pkt.len_avail, 
+		      (long)pkt->get_pkt.send_id,
+	(long)pkt->get_pkt.recv_id, (long)(MPI_Aint)pkt->get_pkt.address );
 #endif
 }
 
@@ -328,14 +342,14 @@ MPIR_RHANDLE *rhandle;
 \tcookie     \t= %lx\n\
 \tis_complete\t= %d\n\
 \tbuf        \t= %lx\n", 
-	     (MPI_Aint)rhandle, 
+	     (long)(MPI_Aint)rhandle, 
 #ifdef MPIR_HAS_COOKIES
 	     rhandle->cookie, 
 #else
 	     0,
 #endif
 	     rhandle->is_complete, 
-	     (MPI_Aint)rhandle->buf );
+	     (long)(MPI_Aint)rhandle->buf );
 }
 
 void MPID_Print_shandle( fp, shandle )
@@ -348,14 +362,14 @@ MPIR_SHANDLE *shandle;
 \tstart      \t= %lx\n\
 \tbytes_as_contig\t= %d\n\
 ", 
-	     (MPI_Aint)shandle, 
+	     (long)(MPI_Aint)shandle, 
 #ifdef MPIR_HAS_COOKIES
 	     shandle->cookie, 
 #else
 	     0,
 #endif
 	     shandle->is_complete, 
-	     (MPI_Aint)shandle->start,
+	     (long)(MPI_Aint)shandle->start,
 	     shandle->bytes_as_contig
  );
 }

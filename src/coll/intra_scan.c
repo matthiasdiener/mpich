@@ -20,13 +20,10 @@ int MPIR_intra_Scan ( void *sendbuf, void *recvbuf, int count,
   MPI_Aint   lb, ub, m_extent;  /* Extent in memory */
   MPI_User_function   *uop;
   struct MPIR_OP *op_ptr;
-  MPIR_ERROR_DECL;
 
   int dd; /* displacement, no of hops to send (power of 2) */
   int rr; /* "round rank" */
-  void *tmpbuf;
-
-  mpi_comm_err_ret = 0;
+  void *tmpbuf = 0;
 
   /* Nov. 98: Improved O(log(size)) algorithm */
 

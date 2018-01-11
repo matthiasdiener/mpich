@@ -12,7 +12,7 @@ all: c-test @FORTRAN_TEST@
 
 c-test: simple perf async coll_test coll_perf misc file_info excl large_array \
      atomicity noncontig i_noncontig noncontig_coll split_coll shared_fp \
-     large_file psimple
+     large_file psimple error status
 
 default: all
 
@@ -36,6 +36,9 @@ perf: perf.o
 
 excl: excl.o
 	$(CC) $(USER_CFLAGS) -o excl excl.o $(LIBS)
+
+status: status.o
+	$(CC) $(USER_CFLAGS) -o status status.o $(LIBS)
 
 async: async.o
 	$(CC) $(USER_CFLAGS) -o async async.o $(LIBS)
@@ -63,6 +66,9 @@ noncontig_coll: noncontig_coll.o
 
 file_info: file_info.o
 	$(CC) $(USER_CFLAGS) -o file_info file_info.o $(LIBS)
+
+error: error.o
+	$(CC) $(USER_CFLAGS) -o error error.o $(LIBS)
 
 shared_fp: shared_fp.o
 	$(CC) $(USER_FFLAGS) -o shared_fp shared_fp.o $(LIBS)
@@ -96,3 +102,6 @@ large_array: large_array.o
 
 testing: 
 	-./runtests $(TESTARGS)
+
+cleanall:
+	-@rm -f .P* PI* misc.c large_file.c fcoll_test.f fmisc.f fperf.f \mpif.h simple async coll_test coll_perf misc perf fcoll_test fperf fmisc file_info excl large_array large_file noncontig i_noncontig noncontig_coll atomicity *.out runtests pfcoll_test.f

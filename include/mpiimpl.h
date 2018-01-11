@@ -1,5 +1,5 @@
 /*
- *  $Id: mpiimpl.h,v 1.17 1999/09/10 19:14:40 gropp Exp $
+ *  $Id: mpiimpl.h,v 1.21 2000/07/05 20:21:18 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -10,7 +10,7 @@
 
 #if defined(HAVE_MPICHCONF_H) && !defined(MPICHCONF_INC)
 /* This includes the definitions found by configure, and can be found in
-   the library directory (lib/$ARCH/$COMM) corresponding to this configuration
+   the include directory corresponding to this configuration
  */
 #define MPICHCONF_INC
 #include "mpichconf.h"
@@ -226,8 +226,7 @@ int MPIR_Attr_free_tree  ( struct MPIR_COMMUNICATOR * ) ;
 int MPIR_Attr_dup_tree( struct MPIR_COMMUNICATOR *, 
 				    struct MPIR_COMMUNICATOR * );
 int MPIR_Attr_create_tree  ( struct MPIR_COMMUNICATOR * ) ;
-int MPIR_Keyval_create( MPI_Copy_function *, 
-				    MPI_Delete_function *, 
+int MPIR_Keyval_create( MPI_Copy_function *, MPI_Delete_function *, 
 				    int *, void *, int );
 int MPIR_Comm_make_coll( struct MPIR_COMMUNICATOR *, 
 				     MPIR_COMM_TYPE );
@@ -285,7 +284,7 @@ void MPIR_Topology_init (void);
 void MPIR_Topology_finalize (void);
 
 /* Error handling */
-#ifdef USE_STDARG
+#if defined(USE_STDARG) && !defined(USE_OLDSTYLE_STDARG)
 int MPIR_Err_setmsg( int, int, const char *, const char *, const char *, ... );
 #else
 int MPIR_Err_setmsg();
@@ -338,10 +337,6 @@ void MPIR_Ref_init ( int, char * );
 
 /* Collective setup */
 void MPIR_Comm_collops_init ( struct MPIR_COMMUNICATOR *, MPIR_COMM_TYPE );
-
-/* Fortran <-> C string conversions in env/fstrutils.c */
-int MPIR_fstr2cstr  (char *, long, char *, long) ;
-int MPIR_cstr2fstr  (char *, long, char *) ;
 
 #endif
 

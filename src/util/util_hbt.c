@@ -1,5 +1,5 @@
 /*
- *  $Id: util_hbt.c,v 1.4 1999/08/20 02:28:08 ashton Exp $
+ *  $Id: util_hbt.c,v 1.5 2000/07/03 21:30:25 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -225,7 +225,7 @@ int MPIR_HBT_insert(
 	MPIR_HBT      tree,
 	MPIR_HBT_node *node)
 {
-  MPIR_HBT_node *temp, *inserted, *rebalance_son, *rebalance, *rebalance_father;
+  MPIR_HBT_node *temp, *inserted=0, *rebalance_son, *rebalance, *rebalance_father;
   int done = 0;
   int test, test_rebalance, rebalance_B;
 
@@ -253,18 +253,18 @@ int MPIR_HBT_insert(
     else if (test < 0) {
 	  /* Go left. */
 	  if( (inserted = LEFT(temp)) == (MPIR_HBT_node *)0 ) {
-        /* Found place to insert the new node */
-        inserted = LEFT(temp) = node;
-        done = 1;
+	      /* Found place to insert the new node */
+	      inserted = LEFT(temp) = node;
+	      done = 1;
 	  }
 	  else {
-        /* If not balanced at this point the move the starting location*/
-        /* for rebalancing effort here. */
-        if ( B(inserted) != MPIR_BALANCED ) {
-          rebalance_father = temp;
-          rebalance = inserted;
-        }
-        temp = inserted;
+	      /* If not balanced at this point the move the starting location*/
+	      /* for rebalancing effort here. */
+	      if ( B(inserted) != MPIR_BALANCED ) {
+		  rebalance_father = temp;
+		  rebalance = inserted;
+	      }
+	      temp = inserted;
 	  }
     }
     else if ( test > 0) {

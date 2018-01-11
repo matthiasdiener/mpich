@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_dup.c,v 1.4 1999/08/27 20:53:44 thakur Exp $    
+ *   $Id: info_dup.c,v 1.6 2000/02/09 21:30:35 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +19,7 @@
 #endif
 
 /* Include mapping from MPI->PMPI */
-#define __MPIO_BUILD_PROFILING
+#define MPIO_BUILD_PROFILING
 #include "mpioprof.h"
 #endif
 
@@ -39,7 +39,7 @@ int MPI_Info_dup(MPI_Info info, MPI_Info *newinfo)
     MPI_Info curr_old, curr_new;
 
     if ((info <= (MPI_Info) 0) || (info->cookie != MPIR_INFO_COOKIE)) {
-        printf("MPI_Info_dup: Invalid info object\n");
+        FPRINTF(stderr, "MPI_Info_dup: Invalid info object\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 

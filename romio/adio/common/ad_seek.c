@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_seek.c,v 1.3 1999/10/26 22:57:22 thakur Exp $    
+ *   $Id: ad_seek.c,v 1.7 2000/08/23 17:47:29 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -7,12 +7,16 @@
 
 #include "adio.h"
 #include "adio_extern.h"
-#ifdef __PROFILE
+#ifdef PROFILE
 #include "mpe.h"
 #endif
 
-#ifdef __SX4
+#ifdef SX4
 #define lseek llseek
+#endif
+
+#ifdef tflops
+#define lseek eseek
 #endif
 
 ADIO_Offset ADIOI_GEN_SeekIndividual(ADIO_File fd, ADIO_Offset offset, 
@@ -23,6 +27,9 @@ ADIO_Offset ADIOI_GEN_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
    routine. */
 /* offset is in units of etype relative to the filetype */
 
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "ADIOI_GEN_SEEKINDIVIDUAL";
+#endif
     ADIO_Offset off, err;
     ADIOI_Flatlist_node *flat_file;
 
@@ -42,6 +49,13 @@ ADIO_Offset ADIOI_GEN_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
 
 	MPI_Type_extent(fd->filetype, &filetype_extent);
 	MPI_Type_size(fd->filetype, &filetype_size);
+	if ( ! filetype_size ) {
+	    /* Since offset relative to the filetype size, we can't
+	       do compute the offset when that result is zero.
+	       Return zero for the offset for now */
+	    *error_code = MPI_SUCCESS; 
+	    return 0;
+	}
 
 	n_etypes_in_filetype = filetype_size/etype_size;
 	n_filetypes = (int) (offset / n_etypes_in_filetype);
@@ -63,16 +77,26 @@ ADIO_Offset ADIOI_GEN_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
                 abs_off_in_filetype;
     }
 
-#ifdef __PROFILE
+#ifdef PROFILE
     MPE_Log_event(11, 0, "start seek");
 #endif
     err = lseek(fd->fd_sys, off, SEEK_SET);
-#ifdef __PROFILE
+#ifdef PROFILE
     MPE_Log_event(12, 0, "end seek");
 #endif
     fd->fp_ind = off;
     fd->fp_sys_posn = off;
 
+#ifdef PRINT_ERR_MSG
     *error_code = (err == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
+#else
+    if (err == -1) {
+	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
+			      myname, "I/O Error", "%s", strerror(errno));
+	ADIOI_Error(MPI_FILE_NULL, *error_code, myname);	    
+    }
+    else *error_code = MPI_SUCCESS;
+#endif
+
     return off;
 }

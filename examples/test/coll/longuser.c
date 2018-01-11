@@ -69,7 +69,7 @@ int main( int argc, char **argv )
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );
     if (rank == 0) {
 	if (toterr == 0) 
-	    printf( "No errors\n" );
+	    printf( " No Errors\n" );
 	else 
 	    printf( "*! %d errors!\n", toterr );
     }

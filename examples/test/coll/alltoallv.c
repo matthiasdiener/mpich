@@ -89,7 +89,7 @@ int main( int argc, char **argv )
 	if (toterr > 0) 
 	    fprintf( stderr, "Test FAILED with %d errors\n", toterr );
 	else
-	    fprintf( stderr, "Test passed\n" );
+	    fprintf( stderr, " No Errors\n" );
     }
 	
     MPI_Finalize();

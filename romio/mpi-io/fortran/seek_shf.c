@@ -1,5 +1,5 @@
 /* 
- *   $Id: seek_shf.c,v 1.5 1999/08/27 20:53:35 thakur Exp $    
+ *   $Id: seek_shf.c,v 1.7 2000/08/24 16:18:27 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,18 +9,18 @@
 #include "adio.h"
 
 
-#if defined(__MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+#if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
 #ifdef FORTRANCAPS
 #define mpi_file_seek_shared_ PMPI_FILE_SEEK_SHARED
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_file_seek_shared_ pmpi_file_seek_shared__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_file_seek_shared pmpi_file_seek_shared_
 #endif
 #define mpi_file_seek_shared_ pmpi_file_seek_shared
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_file_seek_shared_ pmpi_file_seek_shared
 #endif
 #define mpi_file_seek_shared_ pmpi_file_seek_shared_
@@ -73,21 +73,25 @@
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_file_seek_shared_ mpi_file_seek_shared__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_file_seek_shared mpi_file_seek_shared_
 #endif
 #define mpi_file_seek_shared_ mpi_file_seek_shared
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_file_seek_shared_ mpi_file_seek_shared
 #endif
 #endif
 #endif
 
-void mpi_file_seek_shared_(MPI_Fint *fh,MPI_Offset *offset,int *whence, int *__ierr )
+/* Prototype to keep compiler happy */
+void mpi_file_seek_shared_(MPI_Fint *fh,MPI_Offset *offset,int *whence, 
+			   int *ierr );
+
+void mpi_file_seek_shared_(MPI_Fint *fh,MPI_Offset *offset,int *whence, int *ierr )
 {
     MPI_File fh_c;
     
     fh_c = MPI_File_f2c(*fh);
-    *__ierr = MPI_File_seek_shared(fh_c,*offset,*whence);
+    *ierr = MPI_File_seek_shared(fh_c,*offset,*whence);
 }

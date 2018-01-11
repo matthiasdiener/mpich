@@ -1,5 +1,5 @@
 /* 
- *   $Id: lock.c,v 1.4 1999/08/12 23:38:47 thakur Exp $    
+ *   $Id: lock.c,v 1.6 2000/02/09 21:30:07 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -23,7 +23,7 @@ int ADIOI_Set_lock(int fd, int cmd, int type, ADIO_Offset offset, int whence,
     } while (err && (errno == EINTR));
 
     if (err && (errno != EBADF)) {
-	printf("File locking failed in ADIOI_Set_lock. If the file system is NFS, you need to use NFS version 3 and mount the directory with the 'noac' option (no attribute caching).\n");
+	FPRINTF(stderr, "File locking failed in ADIOI_Set_lock. If the file system is NFS, you need to use NFS version 3 and mount the directory with the 'noac' option (no attribute caching).\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
@@ -32,7 +32,7 @@ int ADIOI_Set_lock(int fd, int cmd, int type, ADIO_Offset offset, int whence,
 }
 
 
-#if (defined(__HFS) || defined(__XFS))
+#if (defined(HFS) || defined(XFS))
 int ADIOI_Set_lock64(int fd, int cmd, int type, ADIO_Offset offset, int whence,
 	     ADIO_Offset len) 
 {
@@ -49,7 +49,7 @@ int ADIOI_Set_lock64(int fd, int cmd, int type, ADIO_Offset offset, int whence,
     } while (err && (errno == EINTR));
 
     if (err && (errno != EBADF)) {
-	printf("File locking failed in ADIOI_Set_lock64\n");
+	FPRINTF(stderr, "File locking failed in ADIOI_Set_lock64\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
 

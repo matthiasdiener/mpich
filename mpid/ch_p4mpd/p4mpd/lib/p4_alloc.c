@@ -383,6 +383,10 @@ P4VOID alloc_global()
     for (i = 0; i < P4_MAX_MSG_QUEUES; i++)
     {
 	initialize_msg_queue(&g->shmem_msg_queues[i]);
+    }
+
+    for (i = 0; i < P4_MAXPROCS; i++)
+    {
 	g->dest_id[i] = -1;
     }
 

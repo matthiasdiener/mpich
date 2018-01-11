@@ -1,5 +1,5 @@
 /* 
- *   $Id: wr_atallef.c,v 1.5 1999/08/27 20:53:37 thakur Exp $    
+ *   $Id: wr_atallef.c,v 1.7 2000/08/24 16:18:27 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,18 +9,18 @@
 #include "adio.h"
 
 
-#if defined(__MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+#if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
 #ifdef FORTRANCAPS
 #define mpi_file_write_at_all_end_ PMPI_FILE_WRITE_AT_ALL_END
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_file_write_at_all_end_ pmpi_file_write_at_all_end__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_file_write_at_all_end pmpi_file_write_at_all_end_
 #endif
 #define mpi_file_write_at_all_end_ pmpi_file_write_at_all_end
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_file_write_at_all_end_ pmpi_file_write_at_all_end
 #endif
 #define mpi_file_write_at_all_end_ pmpi_file_write_at_all_end_
@@ -73,22 +73,26 @@
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_file_write_at_all_end_ mpi_file_write_at_all_end__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_file_write_at_all_end mpi_file_write_at_all_end_
 #endif
 #define mpi_file_write_at_all_end_ mpi_file_write_at_all_end
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_file_write_at_all_end_ mpi_file_write_at_all_end
 #endif
 #endif
 #endif
 
-void mpi_file_write_at_all_end_(MPI_Fint *fh,void *buf,MPI_Status *status, int *__ierr )
+/* Prototype to keep compiler happy */
+void mpi_file_write_at_all_end_(MPI_Fint *fh,void *buf,MPI_Status *status, 
+				int *ierr );
+
+void mpi_file_write_at_all_end_(MPI_Fint *fh,void *buf,MPI_Status *status, int *ierr )
 {
     MPI_File fh_c;
     
     fh_c = MPI_File_f2c(*fh);
 
-    *__ierr = MPI_File_write_at_all_end(fh_c,buf,status);
+    *ierr = MPI_File_write_at_all_end(fh_c,buf,status);
 }

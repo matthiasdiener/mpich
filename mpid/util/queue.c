@@ -1,5 +1,5 @@
 /*
- *  $Id: queue.c,v 1.4 1999/10/12 17:41:13 swider Exp $
+ *  $Id: queue.c,v 1.8 2000/07/24 19:55:27 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -237,7 +237,7 @@ int                   flag;
     MPID_QUEUE *queue = &MPID_recvs.posted;
     MPID_QEL   **pp;
     MPID_QEL   *p;
-
+    
     /* Look for the one we need.
      * Note that by doing the tests using 'xor' and 'and' we don't need
      * to worry about the value in tag when tagmask is zero. (i.e. a wildcard
@@ -275,50 +275,29 @@ int                   flag;
    found is set to 1 for a successful search.  The element is dequeued if 
    found.
  */
-int MPID_Search_unexpected_for_request( shandle, rhandle, found )
-MPIR_SHANDLE *shandle;
-MPIR_RHANDLE **rhandle;
-int          *found;
-
+int MPID_Search_unexpected_for_request( MPIR_SHANDLE *shandle, 
+					MPIR_RHANDLE **rhandle, int *found )
 {  /* begin MPID_Search_unexpected_for_request */
     MPID_QUEUE   *queue = &MPID_recvs.unexpected;
     MPID_QEL     **pp;
     MPID_QEL     *p;
-    
-#if defined MPID_AINT_IS_STRUCT && defined(POINTER_64_BITS) 
-    char sendid[64];
-    char char_shandle[64];
+
     MPID_Aint temp_shandle;
-#else
-    char sendid[40];
-    char char_shandle[40];
-#endif
     MPID_Aint send_id;
 
     /* Look for the one we need */
+    MPID_AINT_SET(temp_shandle,shandle);
     for (pp = &(queue->first); 
 	 (p = *pp) != 0; 
 	 pp = &p->next) 
     {  /* begin for loop */
 	send_id = p->ptr->send_id; 
-	*rhandle = p->ptr;
 
-#if defined MPID_AINT_IS_STRUCT  && !defined(POINTER_64_BITS)
-	sprintf(sendid, "%x", send_id.low);
-	sprintf(char_shandle, "%lx", (long)shandle);
-#elif defined MPID_AINT_IS_STRUCT
-	sprintf(sendid, "%x%x", send_id.high, send_id.low);
-	MPID_AINT_SET(temp_shandle,shandle);
-	sprintf(char_shandle, "%x%x", temp_shandle.high, temp_shandle.low);
-#else
-	sprintf(sendid, "%lx", (long)send_id);
-	sprintf(char_shandle, "%lx", (long)shandle);
-#endif
-
-	if (strcmp(sendid,char_shandle) == 0) {  /* begin if strcmp */
+	if (MPID_AINT_CMP(send_id,temp_shandle)) {
+	    *rhandle = p->ptr;
 	    *found = 1;
 	    break;
-	}  /* end if strcmp */
+	}
 
     }  /* end for loop */
 

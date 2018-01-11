@@ -1,17 +1,6 @@
 #! /bin/sh
 # There's no good way to get the program's exit status
 exitstat=0
-if [ "$MPIR_HOME" = "" ] ; then 
-    MPIR_HOME=#MPIR_HOME#
-fi
-if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
-    MPIR_HOME=`pwd`/..
-fi
-if [ "#MPIRUN_BIN#" = "#""MPIRUN_BIN""#" ] ; then 
-    MPIRUN_HOME=$MPIR_HOME/bin
-else
-    MPIRUN_HOME=#MPIRUN_BIN#
-fi
 if [ "$argsset" = "" ] ; then
    . $MPIRUN_HOME/mpirun.args
    argsset=1
@@ -26,7 +15,7 @@ fi
 # assumed to already be available.
 #
 # This is the copy program
-spxcp=$MPIR_HOME/build/rs6000/ch_mpl/bin/spxcp
+spxcp=$bindir/spxcp
 #
 # Check to see if we need to move the file
 firstchar=`expr "$localpgm" : '\(.\)'`
@@ -143,7 +132,7 @@ if [ $mpirun_verbose = 1 ] ; then
     echo "Poe exited ..."
 fi
 # Attempt to fix file cache problems
-#SYNCLOC#
+$SYNCLOC 
 #sleep 2
 exit 0
 EOF
@@ -218,7 +207,7 @@ if [ $mpirun_verbose = 1 ] ; then
     echo "Poe exited ..." >> /sphome/$LOGNAME/job.output.$$
 fi
 # Attempt to fix file cache problems
-#SYNCLOC#
+$SYNCLOC
 sleep 2
 sprelease \$JID
 exit 0
@@ -264,7 +253,7 @@ else
     # I've had lots of problems with files not being present that I'm going
     # to chalk up to NFS problems.  To work around this, I'm going to 
     # add some sleeps and syncs
-    #SYNCLOC# > /dev/null 2>&1
+    $SYNCLOC > /dev/null 2>&1
     sleep 2
     JID=`sptest -cac $CAC -min $max_time -nodes $np -batch -mpl -us \
     	-path $SCRIPT_DIR/PIrun.$$ -noemail` 
@@ -284,7 +273,7 @@ else
     # There may be some filesystem race condition in spwait
     # THIS IS FIXED IN THE MOST RECENT ANL CODE; IF YOU HAVE TROUBLE,
     # GET A NEW VERSION OF spq and spwait
-    #SYNCLOC# > /dev/null 2>&1
+    $SYNCLOC > /dev/null 2>&1
     spwait $JID
     trap 2 3
     # 
@@ -292,7 +281,7 @@ else
     # written!) that I'm going to chalk up to NFS problems.  To work around 
     # this, I'm going to add some sleeps and syncs 
     # (sleeps removed now that spwait works!)
-    #SYNCLOC# > /dev/null 2>&1
+    $SYNCLOC > /dev/null 2>&1
     if [ $rmhome = 1 ] ; then
 	/bin/rm $localpgm
     fi

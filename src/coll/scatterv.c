@@ -1,5 +1,5 @@
 /*
- *  $Id: scatterv.c,v 1.10 1999/10/15 20:08:27 gropp Exp $
+ *  $Id: scatterv.c,v 1.11 2000/07/03 21:30:20 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -70,7 +70,7 @@ EXPORT_MPI_API int MPI_Scatterv (
   int        mpi_errno = MPI_SUCCESS;
   int        rank;
   struct MPIR_COMMUNICATOR *comm_ptr;
-  struct MPIR_DATATYPE     *stype_ptr, *rtype_ptr;
+  struct MPIR_DATATYPE     *stype_ptr = 0, *rtype_ptr;
   MPIR_ERROR_DECL;
   static char myname[] = "MPI_SCATTERV";
 

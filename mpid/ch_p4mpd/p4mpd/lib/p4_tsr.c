@@ -171,39 +171,15 @@ char **msg;
     return (0);
 }
 
-struct p4_msg *recv_message(req_type,req_from)
-int *req_type, *req_from;
+
+struct p4_msg *recv_message( int *req_type, int *req_from )
 {
 
-    p4_dprintfl( 99, "Starting recv_message for type = %d and sender = %d\n",
+    p4_dprintfl( 20, "Starting recv_message for type = %d and sender = %d\n",
 		 *req_type, *req_from );
-#if  defined(CAN_DO_SOCKET_MSGS) && \
-    !defined(CAN_DO_SHMEM_MSGS)  && \
-    !defined(CAN_DO_CUBE_MSGS)   && \
-    !defined(CAN_DO_SWITCH_MSGS)
-
+/* cut down to just this piece for MPD */
+#if  defined(CAN_DO_SOCKET_MSGS)
     return (socket_recv( P4_TRUE ));
-
-#else
-
-    while (P4_TRUE)
-    {
-#       if defined(CAN_DO_SHMEM_MSGS)
-	if (shmem_msgs_available())
-	{
-	    return (shmem_recv());
-	}
-#       endif
-
-#       if defined(CAN_DO_SOCKET_MSGS)
-	if (socket_msgs_available())
-	{
-	    return (socket_recv( P4_FALSE ));
-	}
-#       endif
-
-    }
-
 #endif
 }
 
@@ -365,7 +341,7 @@ P4BOOL ack_req, p4_buff_ind;
 
     conntype = p4_local->conntab[to].type;
 
-    p4_dprintfl(90, "send_message: to = %d, conntype=%d conntype=%s\n",
+    p4_dprintfl( 20, "send_message: to = %d, conntype=%d conntype=%s\n",
 		to, conntype, print_conn_type(conntype));
 
     switch (conntype)
@@ -390,7 +366,7 @@ P4BOOL ack_req, p4_buff_ind;
       case CONN_REMOTE_NON_EST:
 	if (establish_connection(to))
 	{
-	    p4_dprintfl(90, "send_message: conn just estabd to %d\n", to);
+	    p4_dprintfl(20, "send_message: conn just estabd to %d\n", to);
 	}
 	else
 	{
@@ -401,6 +377,7 @@ P4BOOL ack_req, p4_buff_ind;
       case CONN_REMOTE_EST:
 	if (data_type == P4NOX || p4_local->conntab[to].same_data_rep)
 	{
+	    p4_dprintfl( 20, "p4's send_message: calling socket_send to=%d\n", to);
 	    socket_send(type, from, to, msg, len, data_type, ack_req);
 	}
 	else

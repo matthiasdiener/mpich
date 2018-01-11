@@ -1,5 +1,5 @@
 /*
- *  $Id: type_hvec.c,v 1.7 1999/08/30 15:49:56 swider Exp $
+ *  $Id: type_hvec.c,v 1.8 2000/08/10 22:15:36 toonen Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -152,5 +152,15 @@ EXPORT_MPI_API int MPI_Type_hvector(
   dteptr->extent  = dteptr->ub - dteptr->lb;
   dteptr->size    = count * blocklen * dteptr->old_type->size;
   
+# if defined(MPID_HAS_TYPE_HVECTOR)
+  {
+      mpi_errno = MPID_Type_hvector(count, 
+				    blocklen, 
+				    stride, 
+				    old_type, 
+				    *newtype);
+  }
+# endif      
+
   return (mpi_errno);
 }

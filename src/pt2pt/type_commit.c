@@ -1,5 +1,5 @@
 /*
- *  $Id: type_commit.c,v 1.7 1999/08/30 15:49:45 swider Exp $
+ *  $Id: type_commit.c,v 1.8 2000/08/10 22:15:35 toonen Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -121,5 +121,16 @@ EXPORT_MPI_API int MPI_Type_commit ( MPI_Datatype *datatype )
 
     (dtype_ptr)->committed = 1;
 
-    return MPI_SUCCESS;
+#   if defined(MPID_HAS_TYPE_COMMIT)
+    {
+	/* Give the device a chance to initialization any additional data
+           structures it requires in order to be able to process derived
+           types */
+	return MPID_Type_commit(*datatype);
+    }
+#   else
+    {
+	return MPI_SUCCESS;
+    }
+#   endif    
 }

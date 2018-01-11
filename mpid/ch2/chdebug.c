@@ -1,5 +1,5 @@
 /*
- *  $Id: chdebug.c,v 1.10 1999/10/13 19:16:25 swider Exp $
+ *  $Id: chdebug.c,v 1.15 2000/08/11 13:58:17 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -9,6 +9,7 @@
 #include "mpid.h"
 #include "mpiddev.h"
 #include "chpackflow.h"
+#include "mpid_debug.h"
 #include <string.h>
 
 /* 
@@ -17,14 +18,18 @@
    stderr.  Instead, we set it to null, and check for null.  Note
    that stdout is used in chinit.c 
  */
-FILE *MPID_DEBUG_FILE = 0;
+
 FILE *MPID_TRACE_FILE = 0;
+FILE *MPID_DEBUG_FILE = 0;
+int MPID_UseDebugFile = 0;
+
+/* Setting DebugFlag to 1 causes output to the MPID_DEBUG_FILE */
 int MPID_DebugFlag = 0;
 
-void MPID_Get_print_pkt ANSI_ARGS(( FILE *, MPID_PKT_T *));
-int  MPID_Rndv_print_pkt ANSI_ARGS((FILE *, MPID_PKT_T *));
-int  MPID_Cancel_print_pkt ANSI_ARGS((FILE *, MPID_PKT_T *));
-void MPID_Print_Send_Handle ANSI_ARGS(( MPIR_SHANDLE * ));
+void MPID_Get_print_pkt ( FILE *, MPID_PKT_T *);
+int  MPID_Rndv_print_pkt (FILE *, MPID_PKT_T *);
+int  MPID_Cancel_print_pkt (FILE *, MPID_PKT_T *);
+void MPID_Print_Send_Handle ( MPIR_SHANDLE * );
 
 /* Should each mode have its own print routines? */
 
@@ -356,6 +361,7 @@ void MPID_SetDebugFlag( f )
 int f;
 {
     MPID_DebugFlag = f;
+    MPID_UseDebugFile = f;
 }
 
 /*

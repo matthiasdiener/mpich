@@ -1,0 +1,98 @@
+
+In order to run this code, one must have Java 1.1.6 or above.
+
+Directory Structure
+--------- ---------
+
+In the jumpshot-3 directory, we have the following subdirectories:
+
+bin/       contains the actual jumpshot wrappers
+
+doc/       contains various jumpshot documentations
+
+lib/       contains jumpshot's setup files and various jar's for the GUI
+
+logfiles/  contains the sample slogfiles
+
+src/       contains the actual JAVA codes for the GUI
+
+swing/     contains the swing library needed to build Jumpshot if you
+           are using JDK 1.1.x.
+
+
+
+Jumpshot Installation
+-------- ------------
+
+In order to build Jumpshot, we need to build four jar files and some
+wrapper scripts.  This can be achieved simply by doing the following:
+
+        cd $(JUMPSHOT-3)
+        ./configure --with-java=<Your_JAVA_full_pathname>
+        make
+
+Where "--with-java=<Your_JAVA_full_pathname>" is optional.  It is necessary
+only when configure cannot find a good version of JDK in the typical
+java location.   The procedure listed above is for the case when the 
+source and installed files are put in the same directory.  The more 
+elaborated procedure is to do a VPATH build like the following:
+
+       cd $(build_dir)
+       ./configure --with-java=<Your_JAVA_full_pathname> --prefix=<install_dir>
+       make
+       make install
+
+Or     
+
+       cd $(build_dir)
+       ./configure --with-java=<Your_JAVA_full_pathname>
+       make
+       make install PREFIX=<install_dir>
+
+For further details of configure, do "./configure --help"
+After "make install", "make uninstall" will remove all installed files.
+        
+Note: ignore the warning messages during compilation of jumpshot.jar.
+
+In AIX, be sure the "java -fullversion" return a build data later than 
+or equal to "JDK 1.1.6 IBM build a116-19990115 (JIT enabled: jitc)"
+
+
+
+Running Jumpshot
+------- --------
+
+There are 2 ways to run jumpshot-3.
+
+1, using the supplied script in $(JUMPSHOT-3)/bin:
+   cd to $(JUMPSHOT-3)/bin and run Jumpshot by entering "jumpshot" or
+   "jumpshot slog_filename", e.g.
+
+   /homes/chan/jumpshot-3> bin/jumpshot logfiles/merge.slog
+
+   With a filename as the command line argument, jumpshot skips the 
+   logfile selection process and starts reading the file immediately.
+
+2, run jumpshot directly using "java" or "jre"
+   Set the CLASSPATH in your local shell to where slog.jar, jumpshot.jar
+   and swing.jar, preview.jar and statsviewer.jar are located.  Check
+   $(JUMPSHOT-3)/bin/jumpshot for exact syntax.  Then you can invoke 
+   jumpshot-3 as "java jumpshot" or "java jumpshot slog_filename".
+
+
+
+Using Jumpshot
+----- --------
+
+The documentation on how to use Jumpshot-3, a color PDF file,
+can be found at $(JUMPSHOT-3)/doc/TourStepByStep.pdf
+
+You can get a copy of the file at
+
+ftp://ftp.mcs.anl.gov/pub/mpi/misc/jumpshot3_tour.pdf
+
+
+
+Current Limitations
+------- -----------
+

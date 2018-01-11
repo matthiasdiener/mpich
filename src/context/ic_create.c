@@ -1,5 +1,5 @@
 /*
- *  $Id: ic_create.c,v 1.10 1999/10/18 22:17:15 gropp Exp $
+ *  $Id: ic_create.c,v 1.12 2000/08/10 22:15:34 toonen Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -98,7 +98,7 @@ EXPORT_MPI_API int MPI_Intercomm_create ( MPI_Comm local_comm, int local_leader,
   int              mpi_errno = MPI_SUCCESS;
   MPIR_CONTEXT     context, send_context;
   struct MPIR_GROUP *remote_group_ptr;
-  struct MPIR_COMMUNICATOR *new_comm, *local_comm_ptr, *peer_comm_ptr;
+  struct MPIR_COMMUNICATOR *new_comm, *local_comm_ptr, *peer_comm_ptr=0;
   MPI_Request      req[6];
   MPI_Status       status[6];
   MPIR_ERROR_DECL;
@@ -133,7 +133,7 @@ EXPORT_MPI_API int MPI_Intercomm_create ( MPI_Comm local_comm, int local_leader,
 	  mpi_errno = MPIR_Err_setmsg( MPI_ERR_COMM, MPIR_ERR_PEER_COMM,
 			       myname, "Peer communicator is not valid", 
 				       (char *)0 );
-      return MPIR_ERROR( local_comm_ptr, mpi_errno, myname );
+	  return MPIR_ERROR( local_comm_ptr, mpi_errno, myname );
       }
 
     (void) MPIR_Comm_size ( peer_comm_ptr,  &peer_size  );
@@ -258,7 +258,7 @@ EXPORT_MPI_API int MPI_Intercomm_create ( MPI_Comm local_comm, int local_leader,
   new_comm->send_context   = send_context;
   new_comm->recv_context   = context;
   new_comm->comm_name      = 0;
-  if ((mpi_errno = MPID_CommInit( local_comm, new_comm )) )
+  if ((mpi_errno = MPID_CommInit( local_comm_ptr, new_comm )) )
       return mpi_errno;
   (void) MPIR_Attr_create_tree ( new_comm );
 

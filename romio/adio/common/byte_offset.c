@@ -1,5 +1,5 @@
 /* 
- *   $Id: byte_offset.c,v 1.2 1999/10/26 22:57:23 thakur Exp $    
+ *   $Id: byte_offset.c,v 1.3 2000/01/21 20:55:39 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -16,7 +16,7 @@ void ADIOI_Get_byte_offset(ADIO_File fd, ADIO_Offset offset, ADIO_Offset *disp)
     ADIOI_Flatlist_node *flat_file;
     int i, sum, n_etypes_in_filetype, size_in_filetype;
     int n_filetypes, etype_in_filetype;
-    ADIO_Offset abs_off_in_filetype;
+    ADIO_Offset abs_off_in_filetype=0;
     int filetype_size, etype_size, filetype_is_contig;
     MPI_Aint filetype_extent;
 

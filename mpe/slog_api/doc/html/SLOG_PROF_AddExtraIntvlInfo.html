@@ -7,6 +7,8 @@ Add one display description of an interval to the reserved space of the SLOG Dis
 <PRE><CODE>
 int SLOG_PROF_AddExtraIntvlInfo(       SLOG_STREAM      *slog,
                                  const SLOG_intvltype_t  intvltype,
+                                 const SLOG_bebit_t      bebit_0,
+                                 const SLOG_bebit_t      bebit_1,
                                  const char *            classtype,
                                  const char *            label,
                                  const char *            color )
@@ -18,6 +20,10 @@ located.
 <P>
 <H2>Unmodified Input Variables </H2>
 <DL><DT><B>intvltype </B> - index to the interval type.
+</DL>
+<DL><DT><B>bebit_0   </B> - the 1st bebit.
+</DL>
+<DL><DT><B>bebit_1   </B> - the 2nd bebit.
 </DL>
 <DL><DT><B>classtype </B> - character string for the classtype of the interval
 </DL>

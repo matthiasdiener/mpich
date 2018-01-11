@@ -18,23 +18,22 @@
  */
 
 /* Prototype definitions */
-int MPID_CH_Eagern_isend ANSI_ARGS(( void *, int, int, int, int, int, 
-				     MPID_Msgrep_t,
-				     MPIR_SHANDLE * ));
-int MPID_CH_Eagern_cancel_send ANSI_ARGS(( MPIR_SHANDLE * ));
-int MPID_CH_Eagern_wait_send ANSI_ARGS(( MPIR_SHANDLE * ));
-int MPID_CH_Eagern_test_send ANSI_ARGS(( MPIR_SHANDLE * ));
-void MPID_CH_Eagern_delete ANSI_ARGS(( MPID_Protocol * ));
+int MPID_CH_Eagern_isend ( void *, int, int, int, int, int, 
+				     MPID_Msgrep_t, MPIR_SHANDLE * );
+int MPID_CH_Eagern_cancel_send ( MPIR_SHANDLE * );
+int MPID_CH_Eagern_wait_send ( MPIR_SHANDLE * );
+int MPID_CH_Eagern_test_send ( MPIR_SHANDLE * );
+void MPID_CH_Eagern_delete ( MPID_Protocol * );
 
 /* 
  * Blocking operations come from chbeager.c
  */
-extern int MPID_CH_Eagerb_send ANSI_ARGS(( void *, int, int, int, int, 
-					   int, MPID_Msgrep_t ));
-extern int MPID_CH_Eagerb_recv ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
-extern int MPID_CH_Eagerb_irecv ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
-extern int MPID_CH_Eagerb_save ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
-extern int MPID_CH_Eagerb_unxrecv_start ANSI_ARGS(( MPIR_RHANDLE *, void * ));
+extern int MPID_CH_Eagerb_send ( void *, int, int, int, int, 
+					   int, MPID_Msgrep_t );
+extern int MPID_CH_Eagerb_recv ( MPIR_RHANDLE *, int, void * );
+extern int MPID_CH_Eagerb_irecv ( MPIR_RHANDLE *, int, void * );
+extern int MPID_CH_Eagerb_save ( MPIR_RHANDLE *, int, void * );
+extern int MPID_CH_Eagerb_unxrecv_start ( MPIR_RHANDLE *, void * );
 
 /*
  * Definitions of the actual functions
@@ -52,6 +51,7 @@ MPIR_SHANDLE  *shandle;
     
     DEBUG_PRINT_MSG("S Starting Eagern_isend");
 #ifdef MPID_FLOW_CONTROL
+    DEBUG_PRINT_MSG("Entering while !MPID_FLOW_MEM_OK");    
     while (!MPID_FLOW_MEM_OK(len,dest)) {  /* begin while !ok loop */
 	/* Wait for a flow packet */
 #ifdef MPID_DEBUG_ALL
@@ -63,11 +63,12 @@ MPIR_SHANDLE  *shandle;
 #endif
 	MPID_DeviceCheck( MPID_BLOCKING );
     }  /* end while !ok loop */
-
+    DEBUG_PRINT_MSG("Leaving while !MPID_FLOW_MEM_OK");    
     MPID_FLOW_MEM_SEND(len,dest); 
 #endif
 
 #ifdef MPID_PACK_CONTROL
+    DEBUG_PRINT_MSG("Entering while !MPID_PACKET_CHECK_OK");    
     while (!MPID_PACKET_CHECK_OK(dest)) {  /* begin while !ok loop */
 #ifdef MPID_DEBUG_ALL
 	if (MPID_DebugFlag || MPID_DebugFlow) {
@@ -78,7 +79,7 @@ MPIR_SHANDLE  *shandle;
 #endif
 	MPID_DeviceCheck( MPID_BLOCKING );
     }  /* end while !ok loop */
-
+    DEBUG_PRINT_MSG("Leaving while !MPID_PACKET_CHECK_OK");    
     MPID_PACKET_ADD_SENT(MPID_MyWorldRank, dest) 
 #endif
 

@@ -1,4 +1,19 @@
+#include <stdio.h>
+
+#ifdef HAVE_SLOGCONF_H
+#include "slog_config.h"
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
 #include <stdlib.h>
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STRING_H )
+#include <string.h>
+#endif
+#if defined( HAVE_ALLOCA_H )
+#include <alloca.h>
+#endif
+
+#include "bswp_fileio.h"
 #include "fbuf.h"
 
 /*  Global constant for file_buffering code  */

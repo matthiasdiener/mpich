@@ -77,10 +77,12 @@
 typedef int MPID_Aint
 #define MPID_AINT_SET(a,b) a = (MPID_Aint)(b)
 #define MPID_AINT_GET(a,b) a = (void*)(b)
+#define MPID_AINT_CMP(a,b) (a) == (b)
 #elif  defined(MPID_LONG8) && !defined(POINTER_64_BITS)
 typedef long MPID_Aint;
 #define MPID_AINT_SET(a,b) a = (MPID_Aint)(b)
 #define MPID_AINT_GET(a,b) a = (void *)(b)
+#define MPID_AINT_CMP(a,b) (a) == (b)
 #else 
 #define MPID_AINT_IS_STRUCT
 /* This is complicated by the need to set only the significant bits when
@@ -93,9 +95,11 @@ typedef struct {unsigned low:32; int high:32; } MPID_Aint;
 #ifndef POINTER_64_BITS
 #define MPID_AINT_SET(a,b) (a).low = (unsigned)(b)
 #define MPID_AINT_GET(a,b) (a) = (void *)(b).low
+#define MPID_AINT_CMP(a,b) ((a).low == (b).low)
 #else
 #define MPID_AINT_SET(a,b) (a) = *(MPID_Aint *)&(b)
 #define MPID_AINT_GET(a,b) *(MPID_Aint *)&(a) = *&(b)
+#define MPID_AINT_CMP(a,b) ((a).low == (b).low) && ((a).high == (b).high)
 #endif
 #endif
 #else /* Not MPID_HAS_HETERO */
@@ -109,6 +113,7 @@ DEBUG_H_INT(fprintf( stderr, "[%d] Aint set %x <- %x\n", MPID_MyWorldRank, a, b 
 a = b;\
 DEBUG_H_INT(fprintf( stderr, "[%d] Aint get %x <- %x\n", MPID_MyWorldRank, a, b ));\
 	  }
+#define MPID_AINT_CMP(a,b) (a) == (b)
 #endif
 
 typedef int MPID_RNDV_T;
@@ -194,7 +199,9 @@ extern struct MPIR_COMMUNICATOR *MPIR_COMM_WORLD;
  * a way to do that (some devices may have special needs and will need to
  * change this)
  */
+#ifndef MPID_ZERO_STATUS_COUNT
 #define MPID_ZERO_STATUS_COUNT(status) (status)->count = 0
+#endif
 /*
  * A device can also define how to set the status for an arbitrary value.
  */

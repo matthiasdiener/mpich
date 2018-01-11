@@ -1,26 +1,28 @@
-// Copyright 1997-1999, University of Notre Dame.
-// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
-//           Andrew Lumsdaine
-//
-// This file is part of the Notre Dame C++ bindings for MPI
-//
-// You should have received a copy of the License Agreement for the
-// Notre Dame C++ bindings for MPI along with the software;  see the
-// file LICENSE.  If not, contact Office of Research, University of Notre
-// Dame, Notre Dame, IN  46556.
-//
+// Copyright 1997-2000, University of Notre Dame.
+// Authors: Jeremy G. Siek, Jeffery M. Squyres, Michael P. McNally, and
+//          Andrew Lumsdaine
+// 
+// This file is part of the Notre Dame C++ bindings for MPI.
+// 
+// You should have received a copy of the License Agreement for the Notre
+// Dame C++ bindings for MPI along with the software; see the file
+// LICENSE.  If not, contact Office of Research, University of Notre
+// Dame, Notre Dame, IN 46556.
+// 
 // Permission to modify the code and to distribute modified code is
 // granted, provided the text of this NOTICE is retained, a notice that
 // the code was modified is included with the above COPYRIGHT NOTICE and
 // with the COPYRIGHT NOTICE in the LICENSE file, and that the LICENSE
 // file is distributed with the modified code.
-//
+// 
 // LICENSOR MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
 // By way of example, but not limitation, Licensor MAKES NO
 // REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY
 // PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE COMPONENTS
 // OR DOCUMENTATION WILL NOT INFRINGE ANY PATENTS, COPYRIGHTS, TRADEMARKS
 // OR OTHER RIGHTS.
+// 
+// Additional copyrights may follow.
 /****************************************************************************
 
  MESSAGE PASSING INTERFACE TEST CASE SUITE
@@ -58,53 +60,53 @@
 ****************************************************************************
 */
 #include "mpi2c++_test.h"
+#include <unistd.h>
 
+struct foo {
+  int a;
+  double b[2];
+};
 
 void
 bcast_struct()
 {
-  char msg[150];
-
-  int ii;
-  double a[2];
-
   int len[2];
-
+  char msg[150];
+  struct foo bar;
   MPI::Aint disp[2];
   MPI::Datatype newtype;
   MPI::Datatype type[2];
-  MPI::Status status;
   
-  Testing( (char *)"Create_struct");
+  Testing("Create_struct");
 
   len[0] = 1; 
   len[1] = 2;
-  
-  disp[0] = (MPI::Aint) &ii; 
-  disp[1] = (MPI::Aint) a;
-  
+  disp[0] = (MPI::Aint) &bar.a;
+  disp[1] = (MPI::Aint) &bar.b[0] - disp[0];
+  disp[0] = (MPI::Aint) 0;
+
   type[0] = MPI::INT; 
   type[1] = MPI::DOUBLE;
 
   newtype = MPI::Datatype::Create_struct(2, len, disp, type);
   newtype.Commit();
 
-  if(my_rank == 0) { 
-    ii = 2;
-    a[0] = 123.456;  
-    a[1] = 456.123;
+  if (my_rank == 0) { 
+    bar.a = 17;
+    bar.b[0] = 123.456;  
+    bar.b[1] = 456.123;
   }
 
-  MPI::COMM_WORLD.Bcast((void*) MPI::BOTTOM, 1, newtype, 0);
+  MPI::COMM_WORLD.Bcast(&bar, 1, newtype, 0);
    
-  if(ii != 2 || a[0] != 123.456 || a[1] != 456.123) {
-     sprintf(msg, "NODE %d - ERROR! %d %f %f", my_rank, ii, a[0], a[1]);
-     Fail(msg);
+  if (bar.a != 17 || bar.b[0] != 123.456 || bar.b[1] != 456.123) {
+    sprintf(msg, "NODE %d - ERROR! %d %f %f", my_rank, bar.a, bar.b[0], 
+	    bar.b[1]);
+    Fail(msg);
   }
+
+  if (newtype != MPI::DATATYPE_NULL)
+    newtype.Free();
 
   Pass(); // Create_struct
-
-  if(newtype != MPI::DATATYPE_NULL)
-    newtype.Free();
 }
-

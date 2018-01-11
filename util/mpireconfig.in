@@ -2,22 +2,27 @@
 #
 # For "inplace" usage of config.status, we need srcdir to be "."
 # Hmmmm
+top_srcdir=#top_srcdir#
+PREFIX=#PREFIX#
+bindir=#bindir#
+binbuild_dir=#binbuild_dir#
+MPIR_HOME=#MPIR_HOME#
+#
 CONFIG_FILES=""
 destpair=""
 for arg 
 do
     if [ -s $arg.in ] ; then 
         CONFIG_FILES="$CONFIG_FILES $arg" 
-    elif [ -s #top_srcdir#/$arg.in ] ; then
-        CONFIG_FILES="$CONFIG_FILES #top_srcdir#/$arg" 
-	destpair="$destpair #top_srcdir#/$arg::$arg"
+    elif [ -s ${top_srcdir}/$arg.in ] ; then
+        CONFIG_FILES="$CONFIG_FILES ${top_srcdir}/$arg" 
+	destpair="$destpair ${top_srcdir}/$arg::$arg"
     else
         echo "Cannot find file $arg"
 	exit 1
     fi
 done
 export CONFIG_FILES
-PREFIX="#PREFIX#"
 #
 # I once made a suggestion to do
 #if [ -n "$PREFIX" ] ; then 
@@ -36,28 +41,20 @@ if [ -x $mydir/mpireconfig.dat ] ; then
     CONFIG_HEADERS=""
     export CONFIG_HEADERS
     $mydir/mpireconfig.dat 
-elif [ -x #bindir#/mpireconfig.dat ] ; then
+elif [ -x ${bindir}/mpireconfig.dat ] ; then
     CONFIG_HEADERS=""
     export CONFIG_HEADERS
-    #bindir#/mpireconfig.dat 
-elif [ -x #binbuild_dir#/mpireconfig.dat ] ; then
+    ${bindir}/mpireconfig.dat 
+elif [ -x ${binbuild_dir}/mpireconfig.dat ] ; then
     CONFIG_HEADERS=""
     export CONFIG_HEADERS
-    #binbuild_dir#/mpireconfig.dat 
-elif [ -x #MPIR_HOME#/build/#ARCH#/#DEVICE#/bin/config.status ] ; then 
+    ${binbuild_dir}/mpireconfig.dat 
+elif [ -x ${MPIR_HOME}/config.status ] ; then
     # Export the location of mpichconf.h.in
-    #CONFIG_HEADERS="#MPIR_HOME#/build/#ARCH#/#DEVICE#/include/mpichconf.h"
-    # In fact, we DO NOT want to recreate mpichconf.h  We must
-    # suppress it by defineing CONFIG_HEADERS as empty
+    #CONFIG_HEADERS="${MPIR_HOME}/mpichconf.h"
     CONFIG_HEADERS=""
     export CONFIG_HEADERS
-    #MPIR_HOME#/build/#ARCH#/#DEVICE#/bin/config.status
-elif [ -x #MPIR_HOME#/config.status ] ; then
-    # Export the location of mpichconf.h.in
-    #CONFIG_HEADERS="#MPIR_HOME#/mpichconf.h"
-    CONFIG_HEADERS=""
-    export CONFIG_HEADERS
-    #MPIR_HOME#/config.status
+    ${MPIR_HOME}/config.status
 else
     echo "An mpireconfig.dat file is needed to perform a reconfig of a file"
     exit 1

@@ -180,8 +180,7 @@ int sig, code;
 struct sigcontext *scp;
 char *addr;
 #else
-static P4VOID sig_err_handler(sig)
-int sig;
+static P4VOID sig_err_handler(int sig)
 #endif
 {
     interrupt_caught = 1;

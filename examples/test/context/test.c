@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "test.h"
+#include "mpi.h"
 
 static int tests_passed = 0;
 static int tests_failed = 0;
@@ -19,6 +20,10 @@ int rank;
     sprintf(filename, "%s-%d.out", suite, rank);
     strncpy(suite_name, suite, 255);
     fileout = fopen(filename, "w");
+    if (!fileout) {
+	fprintf( stderr, "Could not open %s on node %d\n", filename, rank );
+	MPI_Abort( MPI_COMM_WORLD, 1 );
+    }
 }
 
 void Test_Message(mess)

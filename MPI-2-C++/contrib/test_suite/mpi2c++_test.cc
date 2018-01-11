@@ -1,41 +1,38 @@
-// Copyright 1997-1999, University of Notre Dame.
-// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
-//           Andrew Lumsdaine
-//
-// This file is part of the Notre Dame C++ bindings for MPI
-//
-// You should have received a copy of the License Agreement for the
-// Notre Dame C++ bindings for MPI along with the software;  see the
-// file LICENSE.  If not, contact Office of Research, University of Notre
-// Dame, Notre Dame, IN  46556.
-//
+// Copyright 1997-2000, University of Notre Dame.
+// Authors: Jeremy G. Siek, Jeffery M. Squyres, Michael P. McNally, and
+//          Andrew Lumsdaine
+// 
+// This file is part of the Notre Dame C++ bindings for MPI.
+// 
+// You should have received a copy of the License Agreement for the Notre
+// Dame C++ bindings for MPI along with the software; see the file
+// LICENSE.  If not, contact Office of Research, University of Notre
+// Dame, Notre Dame, IN 46556.
+// 
 // Permission to modify the code and to distribute modified code is
 // granted, provided the text of this NOTICE is retained, a notice that
 // the code was modified is included with the above COPYRIGHT NOTICE and
 // with the COPYRIGHT NOTICE in the LICENSE file, and that the LICENSE
 // file is distributed with the modified code.
-//
+// 
 // LICENSOR MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
 // By way of example, but not limitation, Licensor MAKES NO
 // REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY
 // PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE COMPONENTS
 // OR DOCUMENTATION WILL NOT INFRINGE ANY PATENTS, COPYRIGHTS, TRADEMARKS
 // OR OTHER RIGHTS.
-// The vast majority of this awesome file came from Jeff Squyres,
-// Perpetual Obsessive Notre Dame Student Craving Utter Madness, 
-// and Brian McCandless, another of the LSC crew, under the guidance
-// of Herr Doctor Boss Andrew Lumsdaine. My thanks for making my
-// life a whole lot easier.
+// 
+// Additional copyrights may follow.
 
 #include <iostream.h>
 #include "mpi++.h"
 #include "mpi2c++_test.h"
-#if SGI30
+#if MPI2CPP_SGI30
 extern "C" {
 #include <string.h>
 }
 #endif
-#if CRAY
+#if MPI2CPP_CRAY
 #include <mpp/rastream.h>
 #endif
 
@@ -47,9 +44,9 @@ int comm_size = -1;
 int my_rank = -1;
 int to = -1;
 int from = -1;
-MPI2CPP_BOOL_T CANCEL_WORKS = false;
-MPI2CPP_BOOL_T TIGHTLY_COUPLED = false;
-const int version[2] = {1, 0};
+MPI2CPP_BOOL_T CANCEL_WORKS = MPI2CPP_FALSE;
+MPI2CPP_BOOL_T TIGHTLY_COUPLED = MPI2CPP_FALSE;
+const int version[2] = {1, 5};
 const double Epsilon = 0.001;
 MPI2CPP_BOOL_T flags[SKIP_MAX];
 
@@ -59,7 +56,7 @@ MPI2CPP_BOOL_T flags[SKIP_MAX];
 //
 
 static void check_args(int argc, char *argv[]);
-static int my_strcasecmp(char *a, char *b);
+static int my_strcasecmp(const char *a, const char *b);
 static void check_minimals(void);
 
 
@@ -69,7 +66,7 @@ static void check_minimals(void);
 int
 main(int argc, char *argv[])
 {
-#if CRAY
+#if MPI2CPP_CRAY
   int oldstr = get_d_stream();
   set_d_stream(0);
 #endif
@@ -117,50 +114,50 @@ main(int argc, char *argv[])
   // Ensure that all the ranks have the relevant command line args
   // That is, pass on any of the _flag arguments
 
-#if BOOL_NE_INT
+#if _MPIPP_BOOL_NE_INT_
   MPI::COMM_WORLD.Bcast(flags, SKIP_MAX * sizeof(MPI2CPP_BOOL_T), MPI::CHAR, 0);
 #else
   MPI::COMM_WORLD.Bcast(flags, SKIP_MAX, MPI::INT, 0);
 #endif
+#define HANG 1
+#if HANG
   // Test all the objects
   // WDG - Make "xxx" a char * instead of a String
-  Testing((char *)"MPI namespace");
+  Testing("MPI namespace");
   initialized2();
   procname();
   Pass(); // MPI namespace
 
-  Testing((char *)"MPI::Comm");
+  Testing("MPI::Comm");
   rank_size();
   Pass(); // MPI::Comm
 
-  Testing((char *)"MPI::Status");
+  Testing("MPI::Status");
   status_test();
   Pass(); // MPI::Status
 
-  Testing((char *)"MPI::Comm");
+  Testing("MPI::Comm");
   send();
-
   errhandler();
-
   Pass(); // MPI::Comm
 
-  Testing((char *)"MPI::Request");
+  Testing("MPI::Request");
   request1();
   Pass(); // MPI::Request
 
-  Testing((char *)"MPI::Status");
+  Testing("MPI::Status");
   getcount();
   getel();
   Pass(); // MPI::Status
 
-  Testing((char *)"MPI namespace");
+  Testing("MPI namespace");
   buffer();
   dims();
   pcontrol();
   wtime();
   Pass(); // MPI namespace
 
-  Testing((char *)"MPI::Comm");
+  Testing("MPI::Comm");
   topo();
   bsend();
   rsend();
@@ -172,7 +169,7 @@ main(int argc, char *argv[])
   probe();
   Pass(); // MPI::Comm
 
-  Testing((char *)"MPI::Request");
+  Testing("MPI::Request");
   waitany();
   testany();
   waitall();
@@ -182,12 +179,14 @@ main(int argc, char *argv[])
   cancel();
   Pass(); // MPI::Request
 
-  Testing((char *)"MPI::Comm");
+  Testing("MPI::Comm");
   start();
   startall();
   Pass(); // MPI::Comm
+#endif
 
-  Testing((char *)"MPI::Intracomm");
+  Testing("MPI::Intracomm");
+#if HANG
   dup_test();
   bcast();
   gather();
@@ -198,55 +197,61 @@ main(int argc, char *argv[])
   reduce();
   allreduce();
   reduce_scatter();
+#endif
   scan();
+#if HANG
   split();
+#endif
   Pass(); // MPI::Intracomm
 
-  Testing((char *)"MPI::Cartcomm");
+  Testing("MPI::Cartcomm");
+#if HANG
   cartcomm(); 
+#endif
   Pass(); // MPI::Cartcomm
 
-  Testing((char *)"MPI::Graphcomm");
+  Testing("MPI::Graphcomm");
   graphcomm();
   Pass(); // MPI::Graphcomm
 
-  Testing((char *)"MPI::Datatype");
+#if HANG
+  Testing("MPI::Datatype");
   bcast_struct();
   pack_test();
   Pass(); // MPI::Datatype
 
-  Testing((char *)"MPI::Intracomm");
+  Testing("MPI::Intracomm");
   compare();
   Pass(); // MPI::Intracomm
+#endif
 
-  Testing((char *)"MPI::");
+  Testing("MPI::");
   intercomm1();
   Pass(); // MPI::
 
-  Testing((char *)"MPI::Comm");
+  Testing("MPI::Comm");
   attr();
   Pass(); // MPI::Comm
 
-  // MD 92 bytes leak
-  Testing((char *)"MPI::Group");
+  Testing("MPI::Group");
   group();
   groupfree();
   Pass(); // MPI::Group
 
-  Testing((char *)"MPI::Op");
+  Testing("MPI::Op");
   op_test();
   Pass(); // MPI::Op 
 
   // All done.  Call MPI_Finalize()
 
-  if(my_rank == 0)
+  if (my_rank == 0)
     cout << endl << "* MPI::Finalize..." << endl;
 
   MPI::COMM_WORLD.Barrier();
 
   MPI::Finalize();
 
-  if(my_rank == 0)
+  if (my_rank == 0)
     cout << endl << endl
 	 << "Since we made it this far, we will assume that" << endl
 	 << "MPI::Finalize() did what we wanted it to." << endl
@@ -255,7 +260,7 @@ main(int argc, char *argv[])
 	 << "MPI-2 C++ bindings test suite: All done.  All tests passed." << endl
 	 << endl;
 
-#if CRAY
+#if MPI2CPP_CRAY
   set_d_stream(oldstr);
 #endif
 
@@ -272,66 +277,59 @@ check_args(int argc, char *argv[])
   int i;
 
   for (i = 0; i <= SKIP_MAX; i++)
-    flags[i] = false;
+    flags[i] = MPI2CPP_FALSE;
 
   for (i = 1; i < argc; i++) {
-    if (my_strcasecmp(argv[i], (char *)"-lam61") == 0)
-      flags[SKIP_LAM61] = true;
-    else if (my_strcasecmp(argv[i], (char *)"-mpich1013") == 0)
-      flags[SKIP_MPICH1013] = true;
-    else if (my_strcasecmp(argv[i], (char *)"-mpich110") == 0)
-      flags[SKIP_MPICH110] = true;
-    else if (my_strcasecmp(argv[i], (char *)"-mpich111") == 0)
-      flags[SKIP_MPICH111] = true;
-    else if (my_strcasecmp(argv[i], (char *)"-mpich112") == 0)
-      flags[SKIP_MPICH112] = true;
-    else if (my_strcasecmp(argv[i], (char *)"-ibm21014") == 0)
-      flags[SKIP_IBM21014] = true;
-    else if (my_strcasecmp(argv[i], (char *)"-ibm21015") == 0)
-      flags[SKIP_IBM21015] = true;
-    else if (my_strcasecmp(argv[i], (char *)"-ibm21016") == 0)
-      flags[SKIP_IBM21016] = true;
-    else if (my_strcasecmp(argv[i], (char *)"-ibm21017") == 0)
-      flags[SKIP_IBM21017] = true;
-    else if (my_strcasecmp(argv[i], (char *)"-ibm21018") == 0)
-      flags[SKIP_IBM21018] = true;
-    else if (my_strcasecmp(argv[i], (char *)"-sgi20") == 0)
-      flags[SKIP_SGI20] = true;
-    else if (my_strcasecmp(argv[i], (char *)"-sgi30") == 0)
-      flags[SKIP_SGI30] = true;
-    else if (my_strcasecmp(argv[i], (char *)"-hpux0102") == 0)
-      flags[SKIP_HPUX0102] = true;
-    else if (my_strcasecmp(argv[i], (char *)"-hpux0103") == 0)
-      flags[SKIP_HPUX0103] = true;
-    else if (my_strcasecmp(argv[i], (char *)"-hpux0105") == 0)
-      flags[SKIP_HPUX0105] = true;
-    else if (my_strcasecmp(argv[i], (char *)"-cray1104") == 0)
-      flags[SKIP_CRAY1104] = true;
-    else if (my_strcasecmp(argv[i], (char *)"-g++") == 0)
-      flags[SKIP_G_PLUS_PLUS] = true;
-    else if (my_strcasecmp(argv[i], (char *)"-nothrow") == 0)
-      flags[SKIP_NO_THROW] = true;
-    else if (my_strcasecmp(argv[i], (char *)"-help") == 0 ||
-	     my_strcasecmp(argv[i], (char *)"-h") == 0) {
+    if (my_strcasecmp(argv[i], "-lam63") == 0)
+      flags[SKIP_LAM63] = MPI2CPP_TRUE;
+    else if (my_strcasecmp(argv[i], "-lam64") == 0)
+      flags[SKIP_LAM64] = MPI2CPP_TRUE;
+    else if (my_strcasecmp(argv[i], "-ibm21014") == 0)
+      flags[SKIP_IBM21014] = MPI2CPP_TRUE;
+    else if (my_strcasecmp(argv[i], "-ibm21015") == 0)
+      flags[SKIP_IBM21015] = MPI2CPP_TRUE;
+    else if (my_strcasecmp(argv[i], "-ibm21016") == 0)
+      flags[SKIP_IBM21016] = MPI2CPP_TRUE;
+    else if (my_strcasecmp(argv[i], "-ibm21017") == 0)
+      flags[SKIP_IBM21017] = MPI2CPP_TRUE;
+    else if (my_strcasecmp(argv[i], "-ibm21018") == 0)
+      flags[SKIP_IBM21018] = MPI2CPP_TRUE;
+    else if (my_strcasecmp(argv[i], "-ibm2300") == 0)
+      flags[SKIP_IBM2_3_0_0] = MPI2CPP_TRUE;
+    else if (my_strcasecmp(argv[i], "-sgi20") == 0)
+      flags[SKIP_SGI20] = MPI2CPP_TRUE;
+    else if (my_strcasecmp(argv[i], "-sgi30") == 0)
+      flags[SKIP_SGI30] = MPI2CPP_TRUE;
+    else if (my_strcasecmp(argv[i], "-sgi31") == 0)
+      flags[SKIP_SGI31] = MPI2CPP_TRUE;
+    else if (my_strcasecmp(argv[i], "-sgi32") == 0)
+      flags[SKIP_SGI32] = MPI2CPP_TRUE;
+    else if (my_strcasecmp(argv[i], "-hpux0102") == 0)
+      flags[SKIP_HPUX0102] = MPI2CPP_TRUE;
+    else if (my_strcasecmp(argv[i], "-cray1104") == 0)
+      flags[SKIP_CRAY1104] = MPI2CPP_TRUE;
+    else if (my_strcasecmp(argv[i], "-nothrow") == 0)
+      flags[SKIP_NO_THROW] = MPI2CPP_TRUE;
+    else if (my_strcasecmp(argv[i], "-help") == 0 ||
+	     my_strcasecmp(argv[i], "-h") == 0) {
       cout << "The following command line options are available:" << endl 
 	   << " -help        This message" << endl 
-	   << " -lam61       Skip tests for LAM (only on IRIX)" << endl 
-	   << " -mpich1013   Skip tests for buggy MPICH 1.0.13" << endl
-	   << " -mpich110    Skip tests for buggy MPICH 1.1.0" << endl
-	   << " -mpich111    Skip tests for buggy MPICH 1.1.1" << endl
-	   << " -mpich112    Skip tests for buggy MPICH 1.1.2" << endl
+	   << " -lam62       Skip tests for buggy LAM 6.2" << endl 
+	   << " -lam63       Skip tests for buggy LAM 6.3.x" << endl 
+	   << " -lam63       Skip tests for buggy LAM 6.4.x" << endl 
 	   << " -ibm21014    Skip tests for buggy IBM SP MPI 2.1.0.14" << endl
 	   << " -ibm21015    Skip tests for buggy IBM SP MPI 2.1.0.15" << endl
 	   << " -ibm21016    Skip tests for buggy IBM SP MPI 2.1.0.16" << endl
 	   << " -ibm21017    Skip tests for buggy IBM SP MPI 2.1.0.17" << endl
 	   << " -ibm21018    Skip tests for buggy IBM SP MPI 2.1.0.18" << endl
+	   << " -ibm2300     Skip tests for buggy IBM SP MPI 2.3.0.0" << endl
 	   << " -sgi20       Skip tests for buggy SGI MPI 2.0" << endl
 	   << " -sgi30       Skip tests for buggy SGI MPI 3.0" << endl
-	   << " -hpux0102    Skip tests for buggy HPUX 01.02" << endl
-	   << " -hpux0103    Skip tests for buggy HPUX 01.03" << endl
-	   << " -hpux0105    Skip tests for buggy HPUX 01.05" << endl
-	   << " -cray1104    Skip tests for buggy CRAY 1.1.0.4" << endl
-	   << " -g++         Skip tests for buggy G++ (exceptions)" << endl;
+	   << " -sgi31       Skip tests for buggy SGI MPI 3.1" << endl
+	   << " -sgi32       Skip tests for buggy SGI MPI 3.2" << endl
+	   << " -hpux0102    Skip tests for buggy HP-UX MPI 1.02" << endl
+	   << " -cray1104    Skip tests for buggy CRAY MPI 1.1.0.4" << endl
+	   << " -nothrow     Skip exception tests for buggy compilers" << endl;
 
       exit(0);
     }
@@ -340,7 +338,7 @@ check_args(int argc, char *argv[])
 
 
 int
-my_strcasecmp(char *a, char *b)
+my_strcasecmp(const char *a, const char *b)
 {
   while ((a != 0) && (b != 0) && (*a != '\0') && (*b != '\0') && (*a == *b))
     a++, b++;
@@ -370,8 +368,8 @@ do_work(int top)
 static void
 check_minimals()
 {
-  MPI2CPP_BOOL_T need_flag = false;
-  char *msg = (char *)"";
+  MPI2CPP_BOOL_T need_flag = MPI2CPP_FALSE;
+  /*const*/ char *msg = (char*) "";
 
   if (my_rank == 0)
     cout << "Test suite running on " << comm_size << " nodes" << endl;
@@ -398,85 +396,80 @@ check_minimals()
 
   // Check to see if we *should* be using one of the above flags
 
-#if LAM61
-  if (!flags[SKIP_LAM61]) {
-    need_flag = true;
-    msg = (char *)"-lam61";
+#if MPI2CPP_LAM63
+  if (!flags[SKIP_LAM63]) {
+    need_flag = MPI2CPP_TRUE;
+    msg = (char*) "-lam63";
   }
-#elif LAMIRIX
-  if (!flags[SKIP_LAM61]) {
-    need_flag = true;
-    msg = (char *)"-lam61";
+#elif MPI2CPP_LAM64
+  if (!flags[SKIP_LAM64]) {
+    need_flag = MPI2CPP_TRUE;
+    msg = (char*) "-lam64";
   }
-#elif MPICH1013
-  if (!flags[SKIP_MPICH1013]) {
-    need_flag = true;
-    msg = (char *)"-mpich1013";
-  }
-#elif MPICH110
-  if (!flags[SKIP_MPICH110]) {
-    need_flag = true;
-    msg = (char *)"-mpich110";
-  }
-#elif MPICH111
-  if (!flags[SKIP_MPICH111]) {
-    need_flag = true;
-    msg = (char *)"-mpich111";
-  }
-#elif MPICH112
-  if (!flags[SKIP_MPICH112]) {
-    need_flag = true;
-    msg = (char *)"-mpich112";
-  }
-#elif IBM21014
+#elif MPI2CPP_IBM21014
   if (!flags[SKIP_IBM21014]) {
-    need_flag = true;
-    msg = (char *)"-ibm21014";
+    need_flag = MPI2CPP_TRUE;
+    msg = "-ibm21014";
   }
-#elif IBM21015
+#elif MPI2CPP_IBM21015
   if (!flags[SKIP_IBM21015]) {
-    need_flag = true;
-    msg = (char *)"-ibm21015";
+    need_flag = MPI2CPP_TRUE;
+    msg = "-ibm21015";
   }
-#elif IBM21016
+#elif MPI2CPP_IBM21016
   if (!flags[SKIP_IBM21016]) {
-    need_flag = true;
-    msg = (char *)"-ibm21016";
+    need_flag = MPI2CPP_TRUE;
+    msg = "-ibm21016";
   }
-#elif IBM21017
+#elif MPI2CPP_IBM21017
   if (!flags[SKIP_IBM21017]) {
-    need_flag = true;
-    msg = (char *)"-ibm21017";
+    need_flag = MPI2CPP_TRUE;
+    msg = "-ibm21017";
   }
-#elif IBM21018
+#elif MPI2CPP_IBM21018
   if (!flags[SKIP_IBM21018]) {
-    need_flag = true;
-    msg = (char *)"-ibm21018";
+    need_flag = MPI2CPP_TRUE;
+    msg = "-ibm21018";
   }
-#elif SGI20
+#elif MPI2CPP_IBM2_3_0_0
+  if (!flags[SKIP_IBM2_3_0_0]) {
+    need_flag = MPI2CPP_TRUE;
+    msg = "-ibm2300";
+  }
+#elif MPI2CPP_SGI20
   if (!flags[SKIP_SGI20]) {
-    need_flag = true;
-    msg = (char *)"-sgi20";
+    need_flag = MPI2CPP_TRUE;
+    msg = "-sgi20";
   }
-#elif SGI30
+#elif MPI2CPP_SGI30
   if (!flags[SKIP_SGI30]) {
-    need_flag = true;
-    msg = (char *)"-sgi30";
+    need_flag = MPI2CPP_TRUE;
+    msg = "-sgi30";
   }
-#elif HPUX0102
+#elif MPI2CPP_SGI31
+  if (!flags[SKIP_SGI31]) {
+    need_flag = MPI2CPP_TRUE;
+    msg = "-sgi31";
+  }
+#elif MPI2CPP_SGI32
+  if (!flags[SKIP_SGI32]) {
+    need_flag = MPI2CPP_TRUE;
+    msg = "-sgi32";
+  }
+#elif MPI2CPP_HPUX0102
   if (!flags[SKIP_HPUX0102]) {
-    need_flag = true;
-    msg = (char *)"-hpux0102";
+    need_flag = MPI2CPP_TRUE;
+    msg = "-hpux0102";
   }
-#elif HPUX0103
+#elif MPI2CPP_HPUX0103
   if (!flags[SKIP_HPUX0103]) {
-    need_flag = true;
-    msg = (char *)"-hpux0103";
+    need_flag = MPI2CPP_TRUE;
+    msg = "-hpux0103";
   }
-#elif CRAY1104
+#elif MPI2CPP_CRAY1104
   if (!flags[SKIP_CRAY1104]) {
-    need_flag = true;
-    msg = (char *)"-cray1104";
+    need_flag = MPI2CPP_TRUE;
+    msg = "-cray1104";
   }
 #endif
 
@@ -494,11 +487,11 @@ check_minimals()
 	 << endl << endl;
   }
 
-  need_flag = false;
-#if G_PLUS_PLUS
-  if (!flags[SKIP_G_PLUS_PLUS]) {
-    need_flag = true;
-    msg = "-g++";
+  need_flag = MPI2CPP_FALSE;
+#if MPI2CPP_G_PLUS_PLUS
+  if (!flags[SKIP_NO_THROW]) {
+    need_flag = MPI2CPP_TRUE;
+    msg = "-nothrow";
   }
 #endif
 

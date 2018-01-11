@@ -1,5 +1,5 @@
 /* 
- *   $Id: ioreq_f2c.c,v 1.5 1999/08/27 20:53:07 thakur Exp $    
+ *   $Id: ioreq_f2c.c,v 1.7 2000/02/09 21:30:13 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +19,7 @@
 #endif
 
 /* Include mapping from MPI->PMPI */
-#define __MPIO_BUILD_PROFILING
+#define MPIO_BUILD_PROFILING
 #include "mpioprof.h"
 #endif
 #include "adio_extern.h"
@@ -37,12 +37,12 @@ Return Value:
 MPIO_Request MPIO_Request_f2c(MPI_Fint request)
 {
 
-#ifndef __INT_LT_POINTER
+#ifndef INT_LT_POINTER
     return (MPIO_Request) request;
 #else
     if (!request) return MPIO_REQUEST_NULL;
     if ((request < 0) || (request > ADIOI_Reqtable_ptr)) {
-	printf("MPIO_Request_f2c: Invalid request\n");
+	FPRINTF(stderr, "MPIO_Request_f2c: Invalid request\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
     return ADIOI_Reqtable[request];

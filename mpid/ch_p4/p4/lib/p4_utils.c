@@ -283,6 +283,7 @@ int p4_get_my_id_from_proc()
      * connections. - WDG
      */
     n_match = 0;
+    match_id = -1;
     for (pi = p4_global->proctable, i = 0; i < p4_global->num_in_proctable; i++, pi++)
     {
 	p4_dprintfl(88, "pid %d ?= %d\n", pi->unix_id, my_unix_id );
@@ -436,7 +437,7 @@ unsigned nbytes;
     if (ALIGNMENT != sizeof(Header) ||
 	ALIGNMENT < (sizeof(Header *) + sizeof(p4_lock_t)))
     {
-        p4_dprintfl(00,"%d %d\n",sizeof(Header),sizeof(p4_lock_t));
+        p4_dprintfl(40,"%d %d\n",sizeof(Header),sizeof(p4_lock_t));
 	p4_error("xx_init_shmem: Alignment is wrong", ALIGNMENT);
     }
 
@@ -957,7 +958,7 @@ P4VOID zap_p4_processes()
 P4VOID zap_remote_p4_processes()
 {
     int i;
-    int my_id, num_tries;
+    int my_id;
     struct proc_info *dest_pi;
     char *dest_host;
     int dest_id, dest_listener, dest_listener_con_fd, dest_pid;
@@ -978,12 +979,12 @@ P4VOID zap_remote_p4_processes()
 	    dest_host = dest_pi->host_name;
 	    dest_listener = dest_pi->port;
 	    dest_pid = dest_pi->unix_id;
-	    p4_dprintfl(00,
+	    p4_dprintfl(40,
 			"zap: my_id=%d dest_id=%d dest_host=%s dest_pid=%d "
 			"dest_listener=%d\n",
 			my_id, i, dest_host, dest_pid, dest_listener);
 
-	    p4_dprintfl(00, "zap: enter loop to connect to dest listener %s\n",dest_host);
+	    p4_dprintfl(40, "zap: enter loop to connect to dest listener %s\n",dest_host);
 	    if (dest_listener < 0)
 	        continue;
 	    /* try 2 times (~4 seconds with sleeps in net_conn_to_listener) */
@@ -1000,26 +1001,26 @@ P4VOID zap_remote_p4_processes()
 		}
 	    }
 	    **********/
-	    p4_dprintfl(00, "zap_remote_p4_processes: connected after %d tries, dest_listener_con_fd=%d\n",
-			num_tries, dest_listener_con_fd);
+	    p4_dprintfl(40, "zap_remote_p4_processes: dest_listener_con_fd=%d\n",
+			dest_listener_con_fd);
 
             /* send it kill-clients-and-die message */
 	    msg.type = p4_i_to_n(KILL_SLAVE);
 	    msg.from = p4_i_to_n(my_id);
 	    msg.to_pid = p4_i_to_n(dest_pid);
-	    p4_dprintfl(00, "zap_remote_p4_processes: sending DIE to %d on fd=%d size=%d\n",
+	    p4_dprintfl(40, "zap_remote_p4_processes: sending DIE to %d on fd=%d size=%d\n",
 			dest_id,dest_listener_con_fd,sizeof(msg));
 	    net_send(dest_listener_con_fd, &msg, sizeof(msg), P4_FALSE);
-	    p4_dprintfl(00, "zap_remote_p4_processes: sent DIE to dest_listener\n");
+	    p4_dprintfl(40, "zap_remote_p4_processes: sent DIE to dest_listener\n");
 	    /* Construct a die message for remote listener */
 	    if (strcmp(prev_hostname,dest_pi->host_name) != 0 || prev_port != dest_pi->port)
 	    {
 		msg.type = p4_i_to_n(DIE);
 		msg.from = p4_i_to_n(my_id);
-		p4_dprintfl(00, "zap_remote_p4_processes: sending DIE to %d on fd=%d size=%d\n",
+		p4_dprintfl(40, "zap_remote_p4_processes: sending DIE to %d on fd=%d size=%d\n",
 			    dest_id,dest_listener_con_fd,sizeof(msg));
 		net_send(dest_listener_con_fd, &msg, sizeof(msg), P4_FALSE);
-		p4_dprintfl(00, "zap_remote_p4_processes: sent DIE to dest_listener\n");
+		p4_dprintfl(40, "zap_remote_p4_processes: sent DIE to dest_listener\n");
 		strcpy(prev_hostname,dest_pi->host_name);
 		prev_port = dest_pi->port;
 	    }
@@ -1028,14 +1029,14 @@ P4VOID zap_remote_p4_processes()
     /* kill own listener */
     if (p4_local->listener_fd > 0)
     {
-	p4_dprintfl(00, "zap_remote_p4_processes: sending DIE to my listener\n");
+	p4_dprintfl(40, "zap_remote_p4_processes: sending DIE to my listener\n");
 	msg.type = p4_i_to_n(DIE);
 	msg.from = p4_i_to_n(p4_get_my_id());
 	net_send(p4_local->listener_fd, &msg, sizeof(msg), P4_FALSE);
 	close( p4_local->listener_fd );
 	p4_local->listener_fd = -1;
     }
-    p4_dprintfl(00, "zap_remote_p4_processes: done\n");
+    p4_dprintfl(40, "zap_remote_p4_processes: done\n");
 }
 
 P4VOID get_qualified_hostname(str)
@@ -1058,10 +1059,12 @@ char *str;
 	    }
 #       else
         if (*str == '\0')
+	{
             if (p4_global)
                 strcpy(str,p4_global->my_host_name);
             else
                 gethostname(str, 100);
+	}
 #       endif
     if (*local_domain != '\0'  &&  !index(str,'.'))
     {

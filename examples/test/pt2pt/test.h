@@ -3,14 +3,6 @@
 #ifndef _INCLUDED_TEST_H_
 #define _INCLUDED_TEST_H_
 
-#ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
-#define ANSI_ARGS(a) a
-#else
-#define ANSI_ARGS(a) ()
-#endif
-#endif
-
 #include "mpi.h"
 
 #if defined(NEEDS_STDLIB_PROTOTYPES)

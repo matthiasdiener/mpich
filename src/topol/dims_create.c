@@ -1,5 +1,5 @@
 /*
- *  $Id: dims_create.c,v 1.10 1999/08/30 15:50:59 swider Exp $
+ *  $Id: dims_create.c,v 1.12 2000/07/03 21:30:25 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -224,9 +224,9 @@ static int factorAndCombine(int factorMe, int numFactors, int *factors)
     BranchInfo *searchTree, bestBranch;
     int *primeFactors;
     int status, i, j, maxNumFactors, t, k, n, q, r, testing;
-    int numPrimeFactors, factorCount, insertIndex;
+    int numPrimeFactors, factorCount, insertIndex = 0;
     int numPrimeLeft;
-    double nthRoot, distance, minDistance;
+    double nthRoot, distance, minDistance = 0.0;
     int mpi_errno;
 
     /* Check for wacky input values. */
@@ -580,19 +580,18 @@ static int factorAndCombine(int factorMe, int numFactors, int *factors)
             /* Search for the right place to insert the new factor */
             /* (MAX --> MIN). */
             i = 0;
+	    insertIndex = factorCount; /* Default value if none found */
             while (i < factorCount)
                 {
                 if (bestBranch.currentValue > factors[i])
                     {
                     insertIndex = i;
-                    i = factorCount;
+		    break;
+                    /* i = factorCount; */
                     }
                 i++;  /* This is also needed for if below on "normal" exit. */
                 }  /* end of i while loop */
-            if (i == factorCount)
-                {
-                insertIndex = i;
-                }
+
             /* Insert new factor in factor list and shift factor list. */
             for (i=factorCount; i>insertIndex; i--)
                 {

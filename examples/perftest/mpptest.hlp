@@ -22,6 +22,11 @@ combinations of
   -bisect      Bisection test (all processes participate)
   -bisectdist n Distance between processes
     
+  Message test options:
+  -pending     A pending receive is posted before the tests
+  -specified   A specified source rather than MPI_ANY_SOURCE is used
+               for the source field in receive calls.
+
   Message sizes:
   -size start end stride                  (default 0 1024 32)
                Messages of length (start + i*stride) for i=0,1,... until

@@ -97,27 +97,19 @@ typedef struct
   MPIR_SQEL **sq_tailp;	    	/* pointer to pointer to last... */
 } MPIR_SQUEUE;
 
-#ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus)
-#define ANSI_ARGS(a) a
-#else
-#define ANSI_ARGS(a) ()
-#endif
-#endif
-
-void MPID_Dump_queue ANSI_ARGS((MPID_QHDR *));
-void MPID_Dump_queues ANSI_ARGS((void));
-int  MPID_Enqueue ANSI_ARGS((MPID_QUEUE *, int, int, int, MPIR_RHANDLE *));
-int  MPID_Dequeue ANSI_ARGS((MPID_QUEUE *, MPIR_RHANDLE *));
-int MPID_Search_posted_queue ANSI_ARGS(( int, int, int, int, MPIR_RHANDLE **));
-/*int MPID_Search_posted_for_request ANSI_ARGS(( MPIR_RHANDLE *, int *)); */
-int MPID_Search_unexpected_queue ANSI_ARGS(( int, int, int, int, 
-					     MPIR_RHANDLE **));
-void MPID_Msg_arrived ANSI_ARGS(( int, int, int, MPIR_RHANDLE **, int * ));
-void MPID_Search_unexpected_queue_and_post ANSI_ARGS(( int, int, int, 
-				       MPIR_RHANDLE *, MPIR_RHANDLE **));
-void MPID_Free_unexpected ANSI_ARGS(( MPIR_RHANDLE * ));
-void MPID_InitQueue ANSI_ARGS((void));
+void MPID_Dump_queue (MPID_QHDR *);
+void MPID_Dump_queues (void);
+int  MPID_Enqueue (MPID_QUEUE *, int, int, int, MPIR_RHANDLE *);
+int  MPID_Dequeue (MPID_QUEUE *, MPIR_RHANDLE *);
+int MPID_Search_posted_queue ( int, int, int, int, MPIR_RHANDLE **);
+int MPID_Search_unexpected_for_request( MPIR_SHANDLE *, 
+					MPIR_RHANDLE **, int * );
+int MPID_Search_unexpected_queue ( int, int, int, int, MPIR_RHANDLE **);
+void MPID_Msg_arrived ( int, int, int, MPIR_RHANDLE **, int * );
+void MPID_Search_unexpected_queue_and_post ( int, int, int, 
+				       MPIR_RHANDLE *, MPIR_RHANDLE **);
+void MPID_Free_unexpected ( MPIR_RHANDLE * );
+void MPID_InitQueue (void);
 #endif
 
 

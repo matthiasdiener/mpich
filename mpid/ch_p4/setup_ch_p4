@@ -187,9 +187,9 @@ rm -f $top_srcdir/mpid/ch_p4/mpich-mpid.h mpid/ch_p4/mpich-mpid.h
 . mpid/ch_p4/localdefs
 #
 if test -n "$rshcommand" ; then
-    otherargs="$otherargs -rsh=$rshcommand"
+    otherargs="$otherargs -rsh='"$rshcommand"'"
 elif test -n "$RSHCOMMAND" ; then 
-    otherargs="$otherargs -rsh=$RSHCOMMAND"
+    otherargs="$otherargs -rsh='"$RSHCOMMAND"'"
 fi
 
 # specify the C compiler in case it is different from the P4 choice
@@ -197,13 +197,16 @@ if [ ! -d mpid/ch_p4$P4EXT/p4$P4EXT ] ; then
     mkdir mpid/ch_p4$P4EXT/p4$P4EXT
 fi
 export VPATH
+# We use the eval to make sure that otherargs is evaluate correct in the
+# case where it contains quoted arguments with blanks 
+# (e.g., rshcommand="ssh -x")
 (cd mpid/ch_p4$P4EXT/p4$P4EXT ; \
-$top_srcdir/mpid/ch_p4$P4EXT/p4$P4EXT/configure -p4arch=$P4_ARCH \
-    -p4make="$MAKE" -opt="$OPTFLAGS" -cc="$CC" -p4comm="$COMM" \
+eval $top_srcdir/mpid/ch_p4$P4EXT/p4$P4EXT/configure -p4arch=$P4_ARCH \
+    -p4make="'$MAKE'" -opt="'$OPTFLAGS'" -cc="'$CC'" -p4comm="$COMM" \
     -p4device=$DEVICE -srcdir=$top_srcdir/mpid/ch_p4$P4EXT/p4$P4EXT \
     -exec-prefix=$exec_prefix \
     -libbuild_dir=$libbuild_dir \
-    -cflags="$USER_CFLAGS $P4_CFLAGS $CC_SHARED_OPT" $otherargs )
+    -cflags="'$USER_CFLAGS $P4_CFLAGS $CC_SHARED_OPT'" $otherargs )
 if test $? != 0 ; then
     print_error "Configure of the p4$P4EXT sub-system may have failed!"
     exit 1
@@ -221,6 +224,10 @@ if test -n "$P4_MDEPFFLAGS" ; then
     FFLAGS="$FFLAGS $P4_MDEPFFLAGS"
 fi
 
+# Look for SIGBLOCK used
+if grep HAVE_SIGBLOCK mpid/ch_p4/p4/lib/Makefile >/dev/null 2>&1 ; then
+    device_functions="sigblock"
+fi
 # These directories are built above.  
 #if test ! -d build/$ARCH/ch_p4$P4EXT/lib ; then 
 #    mkdir build/$ARCH/ch_p4$P4EXT/lib
@@ -240,4 +247,17 @@ fi
 #   LIB_PATH="$LIB_PATH -L$libdir"
 #   LIB_LIST="$LIB_LIST -lp4";
 IS_HETERO=1
-
+#
+# Try to configure the secure server
+if [ ! -d mpid/server ] ; then mkdir mpid/server ; fi
+echo "Configuring new p4 secure server"
+(cd mpid/server ; \
+    CC="$CC" ; export CC ; \
+    $top_srcdir/mpid/server/configure )
+if test $? != 0 ; then
+    print_error "Configure of the secure server may have failed!"
+    print_error "The secure server is not required for p4, but can be "
+    print_error "used to speedup process startup."
+    # No exit, because we want to be able to continue
+fi
+echo "Finished configuring the p4 secure server"

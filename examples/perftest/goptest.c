@@ -8,6 +8,9 @@ int __NUMNODES, __MYPROCID  ;
 #include <stdio.h>
 
 #include "mpi.h"
+#include "mpptest.h"
+#include "getopts.h"
+
 extern int __NUMNODES, __MYPROCID;
 
 
@@ -18,16 +21,19 @@ extern int __NUMNODES, __MYPROCID;
 #define DEFAULT_REPS 50
 #endif
 
-void *GOPInit();
-double (*GetGOPFunction())();
-void RunATest();
+double (*GetGOPFunction(int*, char *[], char *, char *))(int,int,void *);
+void RunAGOPTest( int len, int *Len1, int *Len2, double *T1, double *T2, 
+		  int *reps, double (*f)(int,int,void*), 
+		  int myproc, void *outctx, void *msgctx );
+void time_gop_function( int reps, int first, int last, int incr, 
+			double (*f)(int,int,void*),
+			void *outctx, void *msgctx);
+double RunSingleGOPTest( double (*f)(int,int,void*), 
+			 int reps, int len, void *msgctx );
+int PrintHelp( char *argv[] );
+int ComputeGoodReps( double t1, int len1, double t2, int len2, int len );
+int GetRepititions( double, double, int, int, int, int );
 
-void time_function( int, int, int, int, double (*)(), void *, void *);
-
-/* Routine to generate graphics context */
-void *SetupGraph();
-
-double RunSingleTest();
 /* These statics (globals) are used to estimate the parameters in the
    basic (s + rn) complexity model */
 static double sumtime = 0.0, sumlentime = 0.0;
@@ -82,106 +88,103 @@ static int nsizes = 0;
 
 int main( int argc, char *argv[])
 {
-double (* f)();
-void *MsgCtx = 0; /* This is the context of the message-passing operation */
-void *outctx;
-int  reps,len,error_flag;
-double t;
-int  first,last,incr, svals[3];
-char     units[32];         /* Name of units of length */
+    double (* f)(int,int,void*);
+    void *MsgCtx = 0; /* This is the context of the message-passing operation */
+    void *outctx;
+    int  reps;
+    int  first,last,incr, svals[3];
+    char     units[32];         /* Name of units of length */
 
-MPI_Init( &argc, &argv );
-MPI_Comm_size( MPI_COMM_WORLD, &__NUMNODES );
-MPI_Comm_rank( MPI_COMM_WORLD, &__MYPROCID );
-;
-strcpy( units, "" );
+    MPI_Init( &argc, &argv );
+    MPI_Comm_size( MPI_COMM_WORLD, &__NUMNODES );
+    MPI_Comm_rank( MPI_COMM_WORLD, &__MYPROCID );
+    strcpy( units, "" );
 
-if (SYArgHasName( &argc, argv, 1, "-help" )) {
-  return PrintHelp( argv );
-  }
+    if (SYArgHasName( &argc, argv, 1, "-help" )) {
+	return PrintHelp( argv );
+    }
 
-if (__NUMNODES < 2) {
-    fprintf( stderr, "Must run goptest with at least 2 nodes\n" );
-    return 1;
+    if (__NUMNODES < 2) {
+	fprintf( stderr, "Must run goptest with at least 2 nodes\n" );
+	return 1;
     }
 
 /* Get the output context */
-outctx = SetupGraph( &argc, argv );
-if (SYArgHasName( &argc, argv, 1, "-noinfo" ))    doinfo    = 0;
-if (SYArgHasName( &argc, argv, 1, "-nohead" ))    doheader  = 0;
-if (SYArgHasName( &argc, argv, 1, "-notail" ))    dotail    = 0;
+    outctx = SetupGraph( &argc, argv );
+    if (SYArgHasName( &argc, argv, 1, "-noinfo" ))    doinfo    = 0;
+    if (SYArgHasName( &argc, argv, 1, "-nohead" ))    doheader  = 0;
+    if (SYArgHasName( &argc, argv, 1, "-notail" ))    dotail    = 0;
 
-reps          = DEFAULT_REPS;
-error_flag    = 0;
-if (SYArgHasName( &argc, argv, 0, "-sync") ) {
-    svals[0] = svals[1] = svals[2] = 0;
+    reps          = DEFAULT_REPS;
+    if (SYArgHasName( &argc, argv, 0, "-sync") ) {
+	svals[0] = svals[1] = svals[2] = 0;
     }
-else {
-    /* We use fewer values because we are generating them on the same line. */
-    svals[0]      = 0;
-    svals[1]      = 1024;
-    svals[2]      = 256;
+    else {
+	/* We use fewer values because we are generating them on the same line. */
+	svals[0]      = 0;
+	svals[1]      = 1024;
+	svals[2]      = 256;
     }
 
-SYArgGetIntVec( &argc, argv, 1, "-size", 3, svals );
-nsizes = SYArgGetIntList( &argc, argv, 1, "-sizelist", MAX_SIZE_LIST, 
-                          sizelist );
+    SYArgGetIntVec( &argc, argv, 1, "-size", 3, svals );
+    nsizes = SYArgGetIntList( &argc, argv, 1, "-sizelist", MAX_SIZE_LIST, 
+			      sizelist );
 /* We ALWAYS use sizelist */
-if (nsizes == 0) {
-    /* Generate the size list from the svals list */
-    sizelist[0] = svals[0];
-    for (nsizes=1; sizelist[nsizes-1] < svals[1] && nsizes<MAX_SIZE_LIST; 
-	 nsizes++) {
-	sizelist[nsizes] = sizelist[nsizes-1] + svals[2];
+    if (nsizes == 0) {
+	/* Generate the size list from the svals list */
+	sizelist[0] = svals[0];
+	for (nsizes=1; sizelist[nsizes-1] < svals[1] && nsizes<MAX_SIZE_LIST; 
+	     nsizes++) {
+	    sizelist[nsizes] = sizelist[nsizes-1] + svals[2];
 	}
-    if (sizelist[nsizes] > svals[1]) nsizes--;
+	if (sizelist[nsizes] > svals[1]) nsizes--;
     }
 
-SYArgGetInt(    &argc, argv, 1, "-reps", &reps );
-if (SYArgHasName( &argc, argv, 1, "-autoreps" ))  AutoReps  = 1;
-if (SYArgGetDouble( &argc, argv, 1, "-tgoal", &Tgoal )) {
-    AutoReps = 1;
-    if (TgoalMin > 0.1 * Tgoal) TgoalMin = 0.1 * Tgoal;
+    SYArgGetInt(    &argc, argv, 1, "-reps", &reps );
+    if (SYArgHasName( &argc, argv, 1, "-autoreps" ))  AutoReps  = 1;
+    if (SYArgGetDouble( &argc, argv, 1, "-tgoal", &Tgoal )) {
+	AutoReps = 1;
+	if (TgoalMin > 0.1 * Tgoal) TgoalMin = 0.1 * Tgoal;
     }
-SYArgGetDouble( &argc, argv, 1, "-rthresh", &repsThresh );
+    SYArgGetDouble( &argc, argv, 1, "-rthresh", &repsThresh );
 
-f      = GetGOPFunction( &argc, argv, test_name, units );
-MsgCtx = GOPInit( &argc, argv );
-first = svals[0];
-last  = svals[1];
-incr  = svals[2];
-if (incr == 0) incr = 1;
+    f      = GetGOPFunction( &argc, argv, test_name, units );
+    MsgCtx = GOPInit( &argc, argv );
+    first = svals[0];
+    last  = svals[1];
+    incr  = svals[2];
+    if (incr == 0) incr = 1;
 
 /*
-   Finally, we are ready to run the tests.  We want to report times as
-   the times for a single link, and rates as the aggregate rate.
-   To do this, we need to know how to scale both the times and the rates.
+  Finally, we are ready to run the tests.  We want to report times as
+  the times for a single link, and rates as the aggregate rate.
+  To do this, we need to know how to scale both the times and the rates.
 
-   Times: scaled by the number of one-way trips measured by the base testing
-   code.  This is often 2 trips, or a scaling of 1/2.
+  Times: scaled by the number of one-way trips measured by the base testing
+  code.  This is often 2 trips, or a scaling of 1/2.
 
-   Rates: scaled by the number of simultaneous participants (as well as
-   the scaling in times).  Compute the rates based on the updated time, 
-   then multiply by the number of participants.  Note that, for a single
-   sender, time and rate are inversely proportional (that is, if TimeScale 
-   is 0.5, RateScale is 2.0).
+  Rates: scaled by the number of simultaneous participants (as well as
+  the scaling in times).  Compute the rates based on the updated time, 
+  then multiply by the number of participants.  Note that, for a single
+  sender, time and rate are inversely proportional (that is, if TimeScale 
+  is 0.5, RateScale is 2.0).
 
- */
+  */
 
-if (doinfo && doheader &&__MYPROCID == 0) {
-    HeaderForGopGraph( outctx, test_name, (char *)0, units );
+    if (doinfo && doheader &&__MYPROCID == 0) {
+	HeaderForGopGraph( outctx, test_name, (char *)0, units );
     }
-time_function(reps,first,last,incr,f,outctx,MsgCtx);
+    time_gop_function(reps,first,last,incr,f,outctx,MsgCtx);
 
 /* 
    Generate the "end of page".  This allows multiple graphs on the
    same plot 
- */
-if (doinfo && dotail && __MYPROCID == 0) 
-    EndPageGraph( outctx );
+   */
+    if (doinfo && dotail && __MYPROCID == 0) 
+	EndPageGraph( outctx );
 
-MPI_Finalize();
-return 0;
+    MPI_Finalize();
+    return 0;
 }
 
 /* 
@@ -198,51 +201,44 @@ return 0;
 .  outctx -  Pointer to output context
 .  msgctx - Context to pass through to operation routine
  */
-void time_function(reps,first,last,incr,f,outctx,msgctx)
-int    reps,first,last,incr;
-double (* f)();
-void   *outctx;
-void   *msgctx;
+void time_gop_function( int reps, int first, int last, int incr, 
+			double (*f)(int,int,void*),
+			void *outctx, void *msgctx)
 {
-  int    len, myproc, np;
-  int    k;
-  double mean_time,rate;
-  double t;
-  double s, r;
-  double T1, T2;
-  int    Len1, Len2;
-  int    flag, iwork;
-  int i;
+    int    len, myproc, np;
+    double s, r;
+    double T1, T2;
+    int    Len1, Len2;
+    int i;
 
-  myproc   = __MYPROCID;
-  np       = __NUMNODES;
+    myproc   = __MYPROCID;
+    np       = __NUMNODES;
 
-  /* Run test, using either the simple direct test or the automatic length
-     test */
-  ntest = 0;
-  T1 = 0;
-  T2 = 0;
-  if(myproc==0) {
-      DatabeginForGop( outctx, np );
-      }
+    /* Run test, using either the simple direct test or the automatic length
+       test */
+    ntest = 0;
+    T1 = 0;
+    T2 = 0;
+    if(myproc==0) {
+	DatabeginForGop( outctx, np );
+    }
 
-  for (i=0; i<nsizes; i++) {
-      len = sizelist[i];
-      RunATest( len, &Len1, &Len2, &T1, &T2, &reps, f, 
-	       myproc, outctx, msgctx );
-      }
+    for (i=0; i<nsizes; i++) {
+	len = sizelist[i];
+	RunAGOPTest( len, &Len1, &Len2, &T1, &T2, &reps, f, 
+		     myproc, outctx, msgctx );
+    }
 
-  /* Generate C.It output */
-  if (doinfo && myproc == 0) {
-      DataendForGop( outctx );
-      if (dotail) {
-	  RateoutputGraph( outctx, 
-		      sumlen, sumtime, sumlentime, sumlen2, sumtime2, 
-			  ntest, &s, &r );
-	  DrawGraphGop( outctx, first, last, s, r, nsizes, sizelist );
-	  }
-      }
-  
+    /* Generate C.It output */
+    if (doinfo && myproc == 0) {
+	DataendForGop( outctx );
+	if (dotail) {
+	    RateoutputGraph( outctx, 
+			     sumlen, sumtime, sumlentime, sumlen2, sumtime2, 
+			     ntest, &s, &r );
+	    DrawGraphGop( outctx, first, last, s, r, nsizes, sizelist );
+	}
+    }
 }
 
 
@@ -255,61 +251,56 @@ void   *msgctx;
    The output is formatted differently from mpptest; we put times on the
    same line for each length of message.
  */
-void RunATest( len, Len1, Len2, T1, T2, reps, f, 
-	      myproc, outctx, msgctx ) 
-int len, *Len1, *Len2, *reps, myproc;
-double *T1, *T2;
-double (*f)();
-void   *outctx, *msgctx;
+void RunAGOPTest( int len, int *Len1, int *Len2, double *T1, double *T2, 
+		  int *reps, double (*f)(int,int,void*), 
+		  int myproc, void *outctx, void *msgctx ) 
 {
-double mean_time, t, rate;
-double tmean = 0.0, tmax = 0.0;
+    double mean_time, t, rate;
+    double tmean = 0.0, tmax = 0.0;
 
-if (AutoReps) {
-    *reps = GetRepititions( *T1, *T2, *Len1, *Len2, len, *reps );
+    if (AutoReps) {
+	*reps = GetRepititions( *T1, *T2, *Len1, *Len2, len, *reps );
     }
-t = RunSingleTest( f, *reps, len, msgctx );
-mean_time = t;
-mean_time = mean_time / *reps;  /* take average over trials */
-if (mean_time > 0.0) 
-    rate      = ((double)len)/mean_time;
-else 
-    rate      = 0.0;
-if(myproc==0) {
-    DataoutGraphForGop( outctx, len, 
-		       t * TimeScale, mean_time * TimeScale, 
-		       rate * RateScale, tmean, tmax );
+    t = RunSingleGOPTest( f, *reps, len, msgctx );
+    mean_time = t;
+    mean_time = mean_time / *reps;  /* take average over trials */
+    if (mean_time > 0.0) 
+	rate      = ((double)len)/mean_time;
+    else 
+	rate      = 0.0;
+    if(myproc==0) {
+	DataoutGraphForGop( outctx, len, 
+			    t * TimeScale, mean_time * TimeScale, 
+			    rate * RateScale, tmean, tmax );
     }
 
-*T1   = *T2;
-*Len1 = *Len2;
-*T2   = mean_time;
-*Len2 = len;
+    *T1   = *T2;
+    *Len1 = *Len2;
+    *T2   = mean_time;
+    *Len2 = len;
 }
 
 /*
    This routine computes a good number of repititions to use based on 
    previous computations
  */
-int ComputeGoodReps( t1, len1, t2, len2, len )
-double t1, t2;
-int    len1, len2, len;
+int ComputeGoodReps( double t1, int len1, double t2, int len2, int len )
 {
-double s, r;
-int    reps;
+    double s, r;
+    int    reps;
 
-r = (t2 - t1) / (len2 - len1);
-s = t1 - r * len1;
+    r = (t2 - t1) / (len2 - len1);
+    s = t1 - r * len1;
 
-if (s <= 0.0) s = 0.0;
-reps = Tgoal / (s + r * len );
+    if (s <= 0.0) s = 0.0;
+    reps = Tgoal / (s + r * len );
  
-if (reps < 1) reps = 1;
+    if (reps < 1) reps = 1;
 
 /*
-printf( "Reps = %d (%d,%d,%d)\n", reps, len1, len2, len ); fflush( stdout );
- */
-return reps;
+  printf( "Reps = %d (%d,%d,%d)\n", reps, len1, len2, len ); fflush( stdout );
+  */
+    return reps;
 }
 
 
@@ -345,62 +336,59 @@ return reps;
   variance formula.  I'll deal with that later.)
 
  */
-double RunSingleTest( f, reps, len, msgctx )
-double (*f)();
-int    reps;
-void   *msgctx;
+double RunSingleGOPTest( double (*f)(int,int,void*), int reps, int len, 
+			 void *msgctx )
 {
-int    flag, k, iwork, natmin;
-double t, tmin, mean_time, tmax, tsum;
+    int    flag, k, iwork, natmin;
+    double t, tmin, mean_time, tmax, tsum;
 
 
-flag   = 0;
-tmin   = 1.0e+38;
-tmax   = tsum = 0.0;
-natmin = 0;
+    flag   = 0;
+    tmin   = 1.0e+38;
+    tmax   = tsum = 0.0;
+    natmin = 0;
 
-for (k=0; k<minreps; k++) {
-    t = (* f) (reps,len,msgctx);
-    if (__MYPROCID == 0) {
-	tsum += t;
-	if (t > tmax) tmax = t;
-	if (t < tmin) {
-	    tmin   = t;
-	    natmin = 0;
+    for (k=0; k<minreps; k++) {
+	t = (* f) (reps,len,msgctx);
+	if (__MYPROCID == 0) {
+	    tsum += t;
+	    if (t > tmax) tmax = t;
+	    if (t < tmin) {
+		tmin   = t;
+		natmin = 0;
 	    }
-	else if (minThreshTest < k && tmin * (1.0 + repsThresh) > t) {
-	    /* This time is close to the minimum; use this to decide
-	       that we've gotten close enough */
-	    natmin++;
-	    if (natmin >= NatThresh) 
-		flag = 1;
+	    else if (minThreshTest < k && tmin * (1.0 + repsThresh) > t) {
+		/* This time is close to the minimum; use this to decide
+		   that we've gotten close enough */
+		natmin++;
+		if (natmin >= NatThresh) 
+		    flag = 1;
 	    }
 	}
-    MPI_Allreduce(&flag, &iwork, 1, MPI_INT,MPI_SUM,MPI_COMM_WORLD );
-memcpy(&flag,&iwork,(1)*sizeof(int));;
-    if (flag > 0) break;
+	MPI_Allreduce(&flag, &iwork, 1, MPI_INT,MPI_SUM,MPI_COMM_WORLD );
+	memcpy(&flag,&iwork,(1)*sizeof(int));;
+	if (flag > 0) break;
     }
 
-mean_time  = tmin / reps;
-sumlen     += len;
-sumtime    += mean_time;
-sumlen2    += ((double)len)*((double)len);
-sumlentime += mean_time * len;
-sumtime2   += mean_time * mean_time;
-ntest      ++;
+    mean_time  = tmin / reps;
+    sumlen     += len;
+    sumtime    += mean_time;
+    sumlen2    += ((double)len)*((double)len);
+    sumlentime += mean_time * len;
+    sumtime2   += mean_time * mean_time;
+    ntest      ++;
 
-return tmin;
+    return tmin;
 }
 
-int PrintHelp( argv ) 
-char **argv;
+int PrintHelp( char *argv[] ) 
 {
-  if (__MYPROCID != 0) return 0;
-  fprintf( stderr, "%s - test individual communication speeds\n", argv[0] );
-  fprintf( stderr, 
+    if (__MYPROCID != 0) return 0;
+    fprintf( stderr, "%s - test individual communication speeds\n", argv[0] );
+    fprintf( stderr, 
 "Test a collective communication by various methods.  The tests are \n\
 combinations of\n" );
-  fprintf( stderr, 
+    fprintf( stderr, 
 "  Message sizes:\n\
   -size start end stride                  (default 0 1024 32)\n\
                Messages of length (start + i*stride) for i=0,1,... until\n\
@@ -409,7 +397,7 @@ combinations of\n" );
                Messages of length n1, n2, etc are used.  This overrides \n\
                -size\n");
 
-  fprintf( stderr, "\n\
+    fprintf( stderr, "\n\
   Number of tests\n\
   -reps n      Number of times message is sent (default 1000)\n\
   -autoreps    Compute the number of times a message is sent automatically\n\
@@ -418,16 +406,16 @@ combinations of\n" );
   -rthresh d   Fractional threshold used to determine when minimum time\n\
                has been found.  The default is 0.05.\n\
 \n" );
-  fprintf( stderr, "\n\
+    fprintf( stderr, "\n\
   Output options\n\
   -nohead      Do not print graphics header info\n\
   -notail      Do not print graphics tail info\n\
   -noinfo      Print neither head nor tail\n\
 \n" );
-fprintf( stderr, "  -gop [ options ]:\n" );
-PrintGOPHelp();
-PrintGraphHelp();
-return 0;
+    fprintf( stderr, "  -gop [ options ]:\n" );
+    PrintGOPHelp();
+    PrintGraphHelp();
+    return 0;
 }
 
 /* 

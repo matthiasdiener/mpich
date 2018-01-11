@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_util.c,v 1.5 1999/08/20 02:26:25 ashton Exp $
+ *  $Id: attr_util.c,v 1.6 2000/06/10 15:39:32 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,10 @@
 
 #include "mpiimpl.h"
 #include "attr.h"
+#ifndef MPID_NO_FORTRAN
+/* This is needed only for FLOG, and should be moved into src/fortran */
 #include "mpifort.h"
+#endif
 #include "mpimem.h"
 
 /* #define DEBUG_ATTR */
@@ -59,6 +62,7 @@ int MPIR_Attr_copy_node (
 #endif
 #endif
   if (attr_key->copy_fn.c_copy_fn) {
+#ifndef MPID_NO_FORTRAN
       if (attr_key->FortranCalling) {
 	  /* The following code attempts to suppress warnings about 
 	     converting an int, stored in a void *, back to an int. */
@@ -73,7 +77,9 @@ int MPIR_Attr_copy_node (
           attr_val = (void *)(MPI_Aint)attr_ival;
           flag = MPIR_FROM_FLOG(flag);
 	  }
-      else {
+      else 
+#endif
+     {
           copy_errno = (*(attr_key->copy_fn.c_copy_fn))(comm->self, 
 						       node->keyval->self, 
                                              attr_key->extra_state,

@@ -9,7 +9,6 @@ CCLINKER     = $(CCC)
 F77          = @MPIF77@
 FLINKER      = @MPIF77@
 OPTFLAGS     = @OPTFLAGS@
-F77_OPTFLAGS = @F77_EXTRA_FLAG@
 ### End User configurable options ###
 
 SHELL = /bin/sh
@@ -28,7 +27,7 @@ LIBS = @LIB_PATH@ @LIB_LIST@
 FLIBS = @FLIB_PATH@ @LIB_LIST@
 EXECS = timers baseattr errhand sigchk timertest init gtime aborttest testerr \
 	cmdline errhand2
-OTHEREXECS = baseattrf errstringsf
+OTHEREXECS = baseattrf errstringsf getprocf
 default: $(EXECS)
 
 #
@@ -54,6 +53,9 @@ gtime: gtime.o test.o
 baseattrf: baseattrf.o
 	$(FLINKER) $(OPTFLAGS) -o baseattrf baseattrf.o $(LIBS)
 
+getprocf: getprocf.o
+	$(FLINKER) $(OPTFLAGS) -o getprocf getprocf.o $(LIBS)
+
 errstringsf: errstringsf.o
 	$(FLINKER) $(OPTFLAGS) -o errstringsf errstringsf.o $(LIBS)
 
@@ -67,7 +69,7 @@ testerr: testerr.o
 	$(CLINKER) $(OPTFLAGS) -o testerr testerr.o $(LIBS)
 clean:
 	@-/bin/rm -f *.o *~ PI* $(EXECS) core *.out *.orig env.diff \
-	argstest $(OTHEREXECS) mpif.h ${srcdir}/*.o
+	argstest $(OTHEREXECS) mpif.h ${srcdir}/*.o *.stdo
 
 .c:
 	$(CC) $(CFLAGS) -c $<
@@ -75,4 +77,4 @@ clean:
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 .f.o:
-	$(F77) $(FFLAGS) $(F77_OPTFLAGS) -c $<
+	$(F77) $(FFLAGS) -c $<

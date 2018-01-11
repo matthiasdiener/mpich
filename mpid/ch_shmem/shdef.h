@@ -52,6 +52,7 @@
 #define VOLATILE volatile
 #else
 #define VOLATILE
+#define volatile
 #endif
 #endif
 
@@ -107,21 +108,23 @@
 #endif
 /* 
    The shared datastructures.  These are padded to be on different
-   cachelines.  The queue is aranged so that the head and tail pointers
+   cachelines.  The queue is arranged so that the head and tail pointers
    are on the same cacheline .
    It might be useful to put the locks for the datastructure in the same
    structure.  Then again, if one process is doing while(!head), this
    could slow down another process that is trying to lock the queue or
    stack.
+
+   Note that it is the head/tail pointers that are volatile, not the 
  */
 typedef struct {
-    VOLATILE MPID_PKT_T *head;
-    VOLATILE MPID_PKT_T *tail;
+    MPID_PKT_T * VOLATILE head;
+    MPID_PKT_T * VOLATILE tail;
     char                pad[MPID_CACHE_LINE_SIZE - 2 * sizeof(MPID_PKT_T *)];
     } MPID_SHMEM_Queue;
 
 typedef struct {
-    VOLATILE MPID_PKT_T *head;
+    MPID_PKT_T * VOLATILE head;
     char                pad[MPID_CACHE_LINE_SIZE - 1 * sizeof(MPID_PKT_T *)];
     } MPID_SHMEM_Stack;
 
@@ -187,7 +190,7 @@ extern int                  MPID_numids;
 extern MPID_PKT_T           *MPID_local;      /* Local pointer to arrived
 						 packets; it is only
 						 accessed by the owner */
-extern VOLATILE MPID_PKT_T **MPID_incoming;   /* pointer to my incoming 
+extern MPID_PKT_T * VOLATILE *MPID_incoming;   /* pointer to my incoming 
 						 queue HEAD (really?) */
 
 #ifdef FOO

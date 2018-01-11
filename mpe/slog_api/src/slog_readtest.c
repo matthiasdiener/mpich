@@ -1,5 +1,16 @@
-#include <ctype.h>
 #include <stdio.h>
+
+#ifdef HAVE_SLOGCONF_H
+#include "slog_config.h"
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_CTYPE_H )
+#include <ctype.h>
+#endif
+#if defined(HAVE_STRING_H)
+/* For strcpy */
+#include <string.h>
+#endif
+
 #include "slog.h"
 #include "slog_impl.h"
 
@@ -27,7 +38,7 @@ int main( int argc, char **argv )
     SLOG_nodeID_t    irec_node_id;
     SLOG_cpuID_t     irec_cpu_id;
     SLOG_threadID_t  irec_thread_id;
-    SLOG_where_t     irec_where;
+    SLOG_iaddr_t     irec_instr_addr;
 
     SLOG_N_assocs_t  irec_Nassocs;
     SLOG_assoc_t     irec_assocs[ MaxAssocs ];
@@ -98,7 +109,7 @@ int main( int argc, char **argv )
                              &irec_bebits[0], &irec_bebits[1],
                              &irec_starttime, &irec_duration,
                              &irec_node_id, &irec_cpu_id, &irec_thread_id,
-                             &irec_where );
+                             &irec_instr_addr );
         printf( fmt_rtype_t" ",  irec_rectype );
         printf( fmt_itype_t" ",  irec_intvltype );
         printf( "( "fmt_bebit_t", "fmt_bebit_t" ) ", 
@@ -108,7 +119,7 @@ int main( int argc, char **argv )
         printf( fmt_nodeID_t" ", irec_node_id );
         printf( fmt_cpuID_t" ",  irec_cpu_id );
         printf( fmt_thID_t" ",   irec_thread_id );
-        printf( fmt_where_t" ",  irec_where );
+        printf( fmt_iaddr_t" ",  irec_instr_addr );
 
         irec_Nassocs = SLOG_Irec_GetAssocs(irec, MaxAssocs, irec_assocs);
         if ( irec_Nassocs > 0 ) {

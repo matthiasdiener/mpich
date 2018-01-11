@@ -11,25 +11,29 @@
  */
 
 /* Prototype definitions */
-int MPID_SHMEM_Eagern_send ANSI_ARGS(( void *, int, int, int, int, int, 
-				       MPID_Msgrep_t ));
-int MPID_SHMEM_Eagern_isend ANSI_ARGS(( void *, int, int, int, int, int, 
-					MPID_Msgrep_t, MPIR_SHANDLE * ));
-int MPID_SHMEM_Eagern_cancel_send ANSI_ARGS(( MPIR_SHANDLE * ));
-int MPID_SHMEM_Eagern_wait_send ANSI_ARGS(( MPIR_SHANDLE * ));
-int MPID_SHMEM_Eagern_test_send ANSI_ARGS(( MPIR_SHANDLE * ));
-int MPID_SHMEM_Eagern_save ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
-int MPID_SHMEM_Eagern_unxrecv_start ANSI_ARGS(( MPIR_RHANDLE *, void * ));
-void MPID_SHMEM_Eagern_delete ANSI_ARGS(( MPID_Protocol * ));
-int MPID_SHMEM_Eagern_recv ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
-int MPID_SHMEM_Eagern_irecv ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
+int MPID_SHMEM_Eagern_send ( void *, int, int, int, int, int, 
+				       MPID_Msgrep_t );
+int MPID_SHMEM_Eagern_isend ( void *, int, int, int, int, int, 
+					MPID_Msgrep_t, MPIR_SHANDLE * );
+int MPID_SHMEM_Eagern_cancel_send ( MPIR_SHANDLE * );
+int MPID_SHMEM_Eagern_wait_send ( MPIR_SHANDLE * );
+int MPID_SHMEM_Eagern_test_send ( MPIR_SHANDLE * );
+int MPID_SHMEM_Eagern_save ( MPIR_RHANDLE *, int, void * );
+int MPID_SHMEM_Eagern_unxrecv_start ( MPIR_RHANDLE *, void * );
+void MPID_SHMEM_Eagern_delete ( MPID_Protocol * );
+int MPID_SHMEM_Eagern_recv ( MPIR_RHANDLE *, int, void * );
+int MPID_SHMEM_Eagern_irecv ( MPIR_RHANDLE *, int, void * );
 
-extern int MPID_SHMEM_Eagerb_send ANSI_ARGS(( void *, int, int, int, int, 
-					   int, MPID_Msgrep_t ));
-extern int MPID_SHMEM_Eagerb_recv ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
-extern int MPID_SHMEM_Eagerb_irecv ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
-extern int MPID_SHMEM_Eagerb_save ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
-extern int MPID_SHMEM_Eagerb_unxrecv_start ANSI_ARGS(( MPIR_RHANDLE *, void * ));
+extern int MPID_SHMEM_Eagerb_send ( void *, int, int, int, int, 
+					   int, MPID_Msgrep_t );
+extern int MPID_SHMEM_Eagerb_recv ( MPIR_RHANDLE *, int, void * );
+extern int MPID_SHMEM_Eagerb_irecv ( MPIR_RHANDLE *, int, void * );
+extern int MPID_SHMEM_Eagerb_save ( MPIR_RHANDLE *, int, void * );
+extern int MPID_SHMEM_Eagerb_unxrecv_start ( MPIR_RHANDLE *, void * );
+
+/* Used below */
+int MPID_SHMEM_Rndvn_isend ( void *, int, int, int, int, int, 
+				       MPID_Msgrep_t, MPIR_SHANDLE * );
 
 /*
  * Definitions of the actual functions

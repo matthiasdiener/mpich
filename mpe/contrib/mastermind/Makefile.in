@@ -1,45 +1,51 @@
 
 ##### User configurable options #####
 
-CC          = @CC@
-CLINKER     = $(CC)
-OPTFLAGS    = @OPTFLAGS@
-LIB_PATH    = -L@MPE_LIBPATH@ -lmpe @X_LIB@ @MPI_LIBS@ -lm 
-MPE_DIR     = @MPE_HOME@
-LOG_LIB     = -L@MPE_LIBPATH@ @LOGLIB@ @X_LIB@
-PROF_LIB    = -L@MPE_LIBPATH@ @PROFLIB@ @X_LIB@
-INCLUDE_DIR = @INCLUDEDIR@ -I$(MPE_DIR)
-LDFLAGS     = @OPTFLAGS@
+MPI_CC      = @MPI_CC@
+MPI_CLINKER = $(MPI_CC)
+#
+MPI_INC     = @MPI_INC@
+MPI_LIBS    = @MPI_LIBS@
+MPE_CFLAGS  = @MPE_CFLAGS@
+MPE_INCDIR  = @includebuild_dir@
+MPE_LIBDIR  = @libbuild_dir@
+LOG_LIBS    = -L$(MPE_LIBDIR) @LOG_LIBS@ @X_LIB@ $(MPI_LIBS) -lm
+PROF_LIBS   = -L$(MPE_LIBDIR) @PROF_LIBS@ @X_LIB@ $(MPI_LIBS) -lm
+#
+INCLUDE_DIR = -I$(MPE_INCDIR) $(MPI_INC)
+LDFLAGS     = @LDFLAGS@
+
+RM          = /bin/rm
 
 ### End User configurable options ###
 
-CFLAGS  =  @MPE_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR)
-EXECS =  mm gmm
+@VPATH@
+
+srcdir      = @srcdir@
+
+.c.o:
+	$(MPI_CC) $(CFLAGS) -c $<
+
+.o:
+	$(MPI_CLINKER) $(CC_LDFLAGS) -o $@ $< $(PROF_LIBS)
+
+CFLAGS     = $(MPE_CFLAGS) $(INCLUDE_DIR)
+CC_LDFLAGS = $(LDFLAGS) $(MPE_CFLAGS)
+EXECS      = gmm mm vb
 
 default: $(EXECS)
 
-gmm:	gmm.o $(MPE_DIR)/mpe.h
-	$(CLINKER) $(LDFLAGS)  -o gmm gmm.o \
-	$(PROF_LIB) -lm  
-
-mm:	mm.o $(MPE_DIR)/mpe.h
-	$(CLINKER) $(LDFLAGS) -o mm mm.o \
-	$(PROF_LIB) -lm
-
 gmm.o:	gmm.c
-	$(CC) $(CFLAGS) -DUSE_GRAPHICS -c gmm.c
+	$(MPI_CC) $(CFLAGS) -DUSE_GRAPHICS -c $?
 
 mm.o:	gmm.c
-	$(CC) $(CFLAGS) -c -o mm.o gmm.c
+	$(MPI_CC) $(CFLAGS) -c -o mm.o $?
 
-vb:	vb.o $(MPE_DIR)/mpe.h
-	$(CLINKER) $(LDFLAGS)  -o vb vb.o \
-	$(PROF_LIB)
+vb.o:	vb.c
+	$(MPI_CC) $(CFLAGS) -c $?
 
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) gmmlog
+	@-$(RM) -f *.o *~ PI* $(EXECS) gmmlog
 
-.c.o:
-	$(CC) $(CFLAGS) -c $*.c
-.f.o:
-	$(F77) $(FFLAGS) -c $*.f
+distclean: clean
+	@-$(RM) -f Makefile

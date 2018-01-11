@@ -551,13 +551,6 @@ int size, secs;
     int block_counter = 0;
     int eof_counter = 0;
     char *buf = (char *)in_buf;
-#ifdef P4SYSV
-    int n1 = 0;
-    struct timeval tv;
-    fd_set read_fds;
-    int rc;
-    char tempbuf[1];
-#endif
     time_t start_time, cur_time;
 
     start_time = time( (time_t) 0 );
@@ -575,8 +568,14 @@ int size, secs;
 	}
 
 	if (n == 0)		/* maybe EOF, maybe not */
-#if defined(P4SYSV)
+#if defined(P4SYSV) && !defined(NONBLOCKING_READ_WORKS)
 	{
+	    int n1 = 0;
+	    struct timeval tv;
+	    fd_set read_fds;
+	    int rc;
+	    char tempbuf[1];
+
 	    eof_counter++;
 
 	    tv.tv_sec = 5;

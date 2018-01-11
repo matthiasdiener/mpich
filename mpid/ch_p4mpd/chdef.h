@@ -44,7 +44,9 @@ extern int __P4FROM, __P4LEN, __P4TYPE, __P4GLOBALTYPE;
 /* Initialization routines */
 #define PIiInit   MPID_P4_Init
 #define PIiFinish() MPID_P4_End(); MPID_Close_sockets()
-#define SYexitall(msg,code) p4_error(msg,code)
+/* following SYexitall updated by RMB 12/6/99 */
+/* #define SYexitall(msg,code) p4_error(msg,code) */
+#define SYexitall(msg,code) MPD_Abort(code)
 
 void MPID_P4_Init ANSI_ARGS(( int *, char *** ));
 void MPID_P4_End  ANSI_ARGS((void));

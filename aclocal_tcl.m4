@@ -61,6 +61,7 @@ for dir in \
     /usr/bin \
     /bin \
     /usr/sgitcl \
+    /usr/pkg \
     /local/encap/tcl-7.1/bin ; do
     if test -x $dir/wish ; then
 	wishloc=$dir/wish
@@ -143,29 +144,42 @@ for dir in $TCL73TK36_DIR $tcllibs \
     /usr/bin \
     /Tools/tcl \
     /usr/sgitcl \
+    /usr/pgk \
     /software/$archdir/apps/packages/tcl-7* \
     /local/encap/tcl-7.1 ; do
-    if test -r $dir/include/tcl.h ; then 
-	# Check for correct version
-	changequote(,)
-	tclversion=`grep 'TCL_MAJOR_VERSION' $dir/include/tcl.h | \
-		sed -e 's/^.*TCL_MAJOR_VERSION[^0-9]*\([0-9]*\).*$/\1/'`
-	changequote([,])
-	if test "$tclversion" != "7" ; then
-	    # Skip if it is the wrong version
-	    foundversion=$tclversion
-	    continue
-	fi
-        if test -r $dir/lib/libtcl.a -o -r $dir/lib/libtcl.so ; then
- 	    TCL_DIR=$dir
-	    break
-        fi
-	for file in $dir/lib/libtcl*.a ; do
-	    if test -r $file ; then 
-                TCL_DIR_W="$TCL_DIR_W $file"
+    # In some cases, the tck/tk name comes *after* the include.
+    for fileloc in $dir/include $dir/include/tcl* ; do
+       if test -r $fileloc/tcl.h ; then 
+	    # Check for correct version
+   	    changequote(,)
+ 	    tclversion=`grep 'TCL_MAJOR_VERSION' $fileloc/tcl.h | \
+		    sed -e 's/^.*TCL_MAJOR_VERSION[^0-9]*\([0-9]*\).*$/\1/'`
+	    changequote([,])
+	    if test "$tclversion" != "7" ; then
+	        # Skip if it is the wrong version
+	        foundversion=$tclversion
+	        continue
 	    fi
-	done
-    fi
+            if test -r $dir/lib/libtcl.a -o -r $dir/lib/libtcl.so ; then
+	        TCL_DIR=$dir
+	        break
+            fi
+	    for libdir in $dir/lib $dir/lib/tcl* ; do
+                if test -r $libdir/libtcl.a -o -r $libdir/libtcl.so ; then
+	            # Not used yet
+ 	            TCL_LIB_DIR=$libdir
+	            break
+                fi
+            done
+	    for file in $dir/lib/libtcl*.a $dir/lib/tcl*/libtcl*.a ; do
+	        if test -r $file ; then 
+                    TCL_DIR_W="$TCL_DIR_W $file"
+	        fi
+	    done
+        fi
+	if test -n "$TCL_DIR" ; then break ; fi
+    done
+    if test -n "$TCL_DIR" ; then break ; fi
 done
 fi
 if test -n "$TCL_DIR" ; then 
@@ -231,6 +245,7 @@ for dir in $TCL73TK36_DIR $tklibs \
     /usr/bin \
     /Tools/tk \
     /usr/sgitcl \
+    /usr/pkg \
     /software/$archdir/apps/packages/tcl* \
     /local/encap/tk-3.4 $TCL_DIR ; do
     if test -r $dir/include/tk.h ; then 

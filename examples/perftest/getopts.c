@@ -1,42 +1,41 @@
-
-
-
-
-#ifndef lint 
-static char vcid[] = "$Id: getopts.c,v 1.2 1998/04/29 15:15:41 swider Exp $";
-#endif
-
 /* 
   This file contains routines for processoing options of the form
   -name <value>.  In order to simplify processing by other handlers, 
   the routines eliminate the values from the argument string by compressing
   it.
+  
+  This is an old file, and is included to simplify the use of the
+  test programs
  */
 
+#include "mpptestconf.h"
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#else
+extern double atof(const char *);
+#endif
+#include "getopts.h"
 #include <string.h>
 #include <stdio.h>
-#include <stdio.h>           /* For error handling */
 /*@C
    SYArgSqueeze - Remove all null arguments from an arg vector; 
    update the number of arguments.
  @*/
-void SYArgSqueeze( Argc, argv )
-int  *Argc;
-char **argv;
+void SYArgSqueeze( int *Argc, char **argv )
 {
-int argc, i, j;
+    int argc, i, j;
     
 /* Compress out the eliminated args */
-argc = *Argc;
-j    = 0;
-i    = 0;
-while (j < argc) {
-    while (argv[j] == 0 && j < argc) j++;
-    if (j < argc) argv[i++] = argv[j++];
+    argc = *Argc;
+    j    = 0;
+    i    = 0;
+    while (j < argc) {
+	while (argv[j] == 0 && j < argc) j++;
+	if (j < argc) argv[i++] = argv[j++];
     }
 /* Back off the last value if it is null */
-if (!argv[i-1]) i--;
-*Argc = i;
+    if (!argv[i-1]) i--;
+    *Argc = i;
 }
 
 /*@C
@@ -50,17 +49,14 @@ if (!argv[i-1]) i--;
    Returns:
    index in argv of name; -1 if name is not in argv
  @*/
-int SYArgFindName( argc, argv, name )
-int  argc;
-char **argv;
-char *name;
+int SYArgFindName( int argc, char **argv, char *name )
 {
-int  i;
+    int  i;
 
-for (i=0; i<argc; i++) {
-    if (strcmp( argv[i], name ) == 0) return i;
+    for (i=0; i<argc; i++) {
+	if (strcmp( argv[i], name ) == 0) return i;
     }
-return -1;
+    return -1;
 }
 
 /*@C
@@ -78,40 +74,38 @@ return -1;
   Note:
   This routine handles both decimal and hexidecimal integers.
 @*/
-int SYArgGetInt( Argc, argv, rflag, name, val )
-int  *Argc, rflag, *val;
-char **argv, *name;
+int SYArgGetInt( int *Argc, char **argv, int rflag, char *name, int *val )
 {
-int idx;
-char *p;
+    int idx;
+    char *p;
 
-idx = SYArgFindName( *Argc, argv, name );
-if (idx < 0) return 0;
+    idx = SYArgFindName( *Argc, argv, name );
+    if (idx < 0) return 0;
 
-if (idx + 1 >= *Argc) {
-    fprintf(stderr,"Error: %s\n","Missing value for argument" );
-    return 0;
+    if (idx + 1 >= *Argc) {
+	fprintf(stderr,"Error: %s\n","Missing value for argument" );
+	return 0;
     }
 
-p = argv[idx+1];
+    p = argv[idx+1];
 /* Check for hexidecimal value */
-if (((int)strlen(p) > 1) && p[0] == '0' && p[1] == 'x') {
-    sscanf( p, "%i", val );
+    if (((int)strlen(p) > 1) && p[0] == '0' && p[1] == 'x') {
+	sscanf( p, "%i", val );
     }
-else {
-    if ((int)strlen(p) > 1 && p[0] == '-' && p[1] >= 'A' && p[1] <= 'z') {
-        fprintf(stderr,"Error: %s\n","Missing value for argument" );	
-        return 0;
+    else {
+	if ((int)strlen(p) > 1 && p[0] == '-' && p[1] >= 'A' && p[1] <= 'z') {
+	    fprintf(stderr,"Error: %s\n","Missing value for argument" );	
+	    return 0;
         }	
-    *val = atoi( p );
+	*val = atoi( p );
     }
 
-if (rflag) {
-    argv[idx]   = 0;
-    argv[idx+1] = 0;
-    SYArgSqueeze( Argc, argv );
+    if (rflag) {
+	argv[idx]   = 0;
+	argv[idx+1] = 0;
+	SYArgSqueeze( Argc, argv );
     }
-return 1;
+    return 1;
 }
 
 /*@C
@@ -126,29 +120,26 @@ return 1;
   Returns:
   1 on success
 @*/
-int SYArgGetDouble( Argc, argv, rflag, name, val )
-int    *Argc, rflag;
-char   **argv, *name;
-double *val;
+int SYArgGetDouble( int *Argc, char **argv, int rflag, char *name, 
+		    double *val )
 {
-int idx;
-extern double atof();
+    int idx;
 
-idx = SYArgFindName( *Argc, argv, name );
-if (idx < 0) return 0;
+    idx = SYArgFindName( *Argc, argv, name );
+    if (idx < 0) return 0;
 
-if (idx + 1 >= *Argc) {
-    fprintf(stderr,"Error: %s\n","Missing value for argument" );
-    return 0;
+    if (idx + 1 >= *Argc) {
+	fprintf(stderr,"Error: %s\n","Missing value for argument" );
+	return 0;
     }
 
-*val = atof( argv[idx+1] );
-if (rflag) {
-    argv[idx]   = 0;
-    argv[idx+1] = 0;
-    SYArgSqueeze( Argc, argv );
+    *val = atof( argv[idx+1] );
+    if (rflag) {
+	argv[idx]   = 0;
+	argv[idx+1] = 0;
+	SYArgSqueeze( Argc, argv );
     }
-return 1;
+    return 1;
 }
 
 /*@C
@@ -164,27 +155,26 @@ return 1;
   Returns:
   1 on success
 @*/
-int SYArgGetString( Argc, argv, rflag, name, val, vallen )
-int  *Argc, rflag, vallen;
-char **argv, *name, *val;
+int SYArgGetString( int *Argc, char **argv, int rflag, char *name, char *val, 
+		    int vallen )
 {
-int idx;
+    int idx;
 
-idx = SYArgFindName( *Argc, argv, name );
-if (idx < 0) return 0;
+    idx = SYArgFindName( *Argc, argv, name );
+    if (idx < 0) return 0;
 
-if (idx + 1 >= *Argc) {
-    fprintf(stderr,"Error: %s\n","Missing value for argument" );
-    return 0;
+    if (idx + 1 >= *Argc) {
+	fprintf(stderr,"Error: %s\n","Missing value for argument" );
+	return 0;
     }
 
-strncpy( val, argv[idx+1], vallen );
-if (rflag) {
-    argv[idx]   = 0;
-    argv[idx+1] = 0;
-    SYArgSqueeze( Argc, argv );
+    strncpy( val, argv[idx+1], vallen );
+    if (rflag) {
+	argv[idx]   = 0;
+	argv[idx+1] = 0;
+	SYArgSqueeze( Argc, argv );
     }
-return 1;
+    return 1;
 }
 
 /*@C
@@ -199,20 +189,18 @@ return 1;
   Returns:
   1 on success
 @*/
-int SYArgHasName( Argc, argv, rflag, name )
-int  *Argc, rflag;
-char **argv, *name;
+int SYArgHasName( int *Argc, char **argv, int rflag, char *name )
 {
-int idx;
+    int idx;
 
-idx = SYArgFindName( *Argc, argv, name );
-if (idx < 0) return 0;
+    idx = SYArgFindName( *Argc, argv, name );
+    if (idx < 0) return 0;
 
-if (rflag) {
-    argv[idx]   = 0;
-    SYArgSqueeze( Argc, argv );
+    if (rflag) {
+	argv[idx]   = 0;
+	SYArgSqueeze( Argc, argv );
     }
-return 1;
+    return 1;
 }
 
 /*@C
@@ -230,33 +218,32 @@ return 1;
   Returns:
   1 on success
 @*/
-int SYArgGetIntVec( Argc, argv, rflag, name, n, val )
-int  *Argc, rflag, *val, n;
-char **argv, *name;
+int SYArgGetIntVec( int *Argc, char **argv, int rflag, char *name, int n, 
+		    int *val )
 {
-int idx, i;
+    int idx, i;
 
-idx = SYArgFindName( *Argc, argv, name );
-if (idx < 0) return 0;
+    idx = SYArgFindName( *Argc, argv, name );
+    if (idx < 0) return 0;
 
 /* Fail if there aren't enough values */
-if (idx + n + 1 > *Argc) {
-    fprintf(stderr,"Error: %s\n","Not enough values for vector of integers");
-    return 0;
+    if (idx + n + 1 > *Argc) {
+	fprintf(stderr,"Error: %s\n","Not enough values for vector of integers");
+	return 0;
     }
 
-for (i=0; i<n; i++) {
-    val[i] = atoi( argv[idx+i+1] );
-    if (rflag) {
-	argv[idx+i+1] = 0;
+    for (i=0; i<n; i++) {
+	val[i] = atoi( argv[idx+i+1] );
+	if (rflag) {
+	    argv[idx+i+1] = 0;
 	}
     }
-if (rflag) {
-    argv[idx]   = 0;
-    SYArgSqueeze( Argc, argv );
+    if (rflag) {
+	argv[idx]   = 0;
+	SYArgSqueeze( Argc, argv );
     }
 
-return 1;
+    return 1;
 }
 
 /*@C
@@ -276,40 +263,39 @@ return 1;
   Number of elements found.  0 if none or error (such as -name with 
   no additional arguments)
 @*/
-int SYArgGetIntList( Argc, argv, rflag, name, n, val )
-int  *Argc, rflag, *val, n;
-char **argv, *name;
+int SYArgGetIntList( int *Argc, char **argv, int rflag, char *name, int n, 
+		     int *val )
 {
-int  idx, i;
-char *p, *pcomma;
+    int  idx, i;
+    char *p, *pcomma;
 
-idx = SYArgFindName( *Argc, argv, name );
-if (idx < 0) return 0;
+    idx = SYArgFindName( *Argc, argv, name );
+    if (idx < 0) return 0;
 
 /* Fail if there aren't enough values */
-if (idx + 2 > *Argc) {
-    fprintf(stderr,"Error: %s\n","Not enough values for vector of integers");
-    return 0;
+    if (idx + 2 > *Argc) {
+	fprintf(stderr,"Error: %s\n","Not enough values for vector of integers");
+	return 0;
     }
 
-p = argv[idx + 1];
-i = 0;
-while (i + 1 < n && p && *p) {
-    /* Find next comma or end of value */
-    pcomma = strchr( p, ',' );
-    if (pcomma) {
-	pcomma[0] = 0;
-	pcomma++;
+    p = argv[idx + 1];
+    i = 0;
+    while (i + 1 < n && p && *p) {
+	/* Find next comma or end of value */
+	pcomma = strchr( p, ',' );
+	if (pcomma) {
+	    pcomma[0] = 0;
+	    pcomma++;
 	}
-    val[i++] = atoi( p );
-    p      = pcomma;
+	val[i++] = atoi( p );
+	p      = pcomma;
     }
 
-if (rflag) {
-    argv[idx]   = 0;
-    argv[idx+1] = 0;
-    SYArgSqueeze( Argc, argv );
+    if (rflag) {
+	argv[idx]   = 0;
+	argv[idx+1] = 0;
+	SYArgSqueeze( Argc, argv );
     }
 
-return i;
+    return i;
 }

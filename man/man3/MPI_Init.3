@@ -61,7 +61,8 @@ all systems support this argument; those that do not will ignore it.
 detected by MPI or a normally fatal signal).  This works only if MPICH
 was configured with 
 .I -mpedbg
-.  CURRENTLY DISABLED.  If you have TotalView,
+\&.
+CURRENTLY DISABLED.  If you have TotalView,
 -mpichtv or mpirun -tv will give you a better environment anyway.
 .PD 1
 
@@ -108,7 +109,8 @@ Because the Fortran and C versions of
 are different, there is
 a restriction on who can call 
 .I MPI_Init
-.  The version (Fortran or C) must
+\&.
+The version (Fortran or C) must
 match the main program.  That is, if the main program is in C, then
 the C version of 
 .I MPI_Init
@@ -132,7 +134,8 @@ The MPI standard does not say what a program can do before an
 or
 after an 
 .I MPI_FINALIZE
-.  In the MPICH implementation, you should do
+\&.
+In the MPICH implementation, you should do
 as little as possible.  In particular, avoid anything that changes the
 external state of the program, such as opening files, reading standard
 input or writing to standard output.
@@ -174,7 +177,8 @@ The signals that cause the most trouble for applications include
 .I SIGALRM
 , and 
 .I SIGPIPE
-.  For example, using 
+\&.
+For example, using 
 .I SIGIO
 and
 .I SIGPIPE

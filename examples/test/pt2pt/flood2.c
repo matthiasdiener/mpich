@@ -15,7 +15,12 @@ void SetupData ( int *, int, int );
 void SetupRdata ( int *, int );
 int  CheckData ( int *, int, int, MPI_Status * );
 
+#ifdef VERBOSE
 static int verbose = 1;
+#else
+static int verbose = 0;
+#endif
+
 
 int main( int argc, char **argv )
 {
@@ -161,7 +166,7 @@ int main( int argc, char **argv )
     MPI_Allreduce( &err, &toterr, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
     
     if (rank == 0) {
-	if (toterr == 0) printf( "No errors\n" );
+	if (toterr == 0) printf( " No Errors\n" );
 	else printf( "!! found %d errors\n", toterr );
     }
     if (toterr) {

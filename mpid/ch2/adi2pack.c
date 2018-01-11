@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2pack.c,v 1.5 1999/04/08 16:51:57 gropp Exp $
+ *  $Id: adi2pack.c,v 1.6 2000/08/09 22:29:35 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -156,9 +156,9 @@ struct MPIR_DATATYPE *dtype_ptr;
 struct MPIR_COMMUNICATOR *comm_ptr;
 MPID_Msg_pack_t msgact;
 {
-    int (*packcontig) ANSI_ARGS((unsigned char *, unsigned char *, 
+    int (*packcontig) (unsigned char *, unsigned char *, 
 				 struct MPIR_DATATYPE *, 
-				 int, void * )) = 0;
+				 int, void * ) = 0;
     void *packctx = 0;
     int  outlen;
     int  err;

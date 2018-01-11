@@ -3,6 +3,9 @@
 /* Define as the return type of signal handlers (int or void).  */
 #undef RETSIGTYPE
 
+/* Define if semget works properly */
+#undef HAVE_SEMGET
+
 /* Define if struct msemaphore rather than msemaphore required */
 #undef MSEMAPHORE_IS_STRUCT
 
@@ -90,12 +93,6 @@
 
 /* Define if you have the <signal.h> header file.  */
 #undef HAVE_SIGNAL_H
-
-/* Define if you have the nsl library (-lnsl).  */
-#undef HAVE_LIBNSL
-
-/* Define if you have the rpc library (-lrpc).  */
-#undef HAVE_LIBRPC
 
 /* Define if you have the thread library (-lthread).  */
 #undef HAVE_LIBTHREAD

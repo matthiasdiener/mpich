@@ -1,5 +1,5 @@
 /* 
- *   $Id: subarray.c,v 1.9 1999/08/30 15:47:53 swider Exp $    
+ *   $Id: subarray.c,v 1.10 1999/12/13 17:31:01 swider Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -54,7 +54,7 @@ EXPORT_MPI_API int MPI_Type_create_subarray(
     MPI_Aint extent, disps[3], size;
     int i, blklens[3];
     MPI_Datatype tmp1, tmp2, types[3];
-    int mpi_errno;
+    int mpi_errno=0;
     static char myname[] = "MPI_TYPE_CREATE_SUBARRAY";
 
     if (ndims <= 0) {

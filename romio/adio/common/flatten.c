@@ -1,5 +1,5 @@
 /* 
- *   $Id: flatten.c,v 1.2 1998/06/02 18:57:08 thakur Exp $    
+ *   $Id: flatten.c,v 1.4 2000/02/09 21:30:07 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -7,7 +7,7 @@
 
 #include "adio.h"
 #include "adio_extern.h"
-#ifdef __MPISGI
+#ifdef MPISGI
 #include "mpisgi2.h"
 #endif
 
@@ -45,7 +45,7 @@ void ADIOI_Flatten_datatype(MPI_Datatype datatype)
     flat->indices = NULL;
 
     flat->count = ADIOI_Count_contiguous_blocks(datatype, &curr_index);
-/*    printf("%d\n", flat->count);*/
+/*    FPRINTF(stderr, "%d\n", flat->count);*/
 
     if (flat->count) {
 	flat->blocklens = (int *) ADIOI_Malloc(flat->count * sizeof(int));
@@ -58,14 +58,14 @@ void ADIOI_Flatten_datatype(MPI_Datatype datatype)
     ADIOI_Flatten(datatype, flat, 0, &curr_index);
 
 /* debug */
-    /*printf("blens: ");
+    /*FPRINTF(stderr, "blens: ");
     for (i=0; i<flat->count; i++) 
-	printf("%d ", flat->blocklens[i]);
-    printf("\n\n");
-    printf("indices: ");
+	FPRINTF(stderr, "%d ", flat->blocklens[i]);
+    FPRINTF(stderr, "\n\n");
+    FPRINTF(stderr, "indices: ");
     for (i=0; i<flat->count; i++) 
-	printf("%ld ", flat->indices[i]);
-    printf("\n\n");*/
+	FPRINTF(stderr, "%ld ", flat->indices[i]);
+    FPRINTF(stderr, "\n\n");*/
 
 }
 
@@ -390,11 +390,11 @@ void ADIOI_Flatten(MPI_Datatype datatype, ADIOI_Flatlist_node *flat,
  	break;
 
     default:
-	printf("Error: Unsupported datatype passed to ADIOI_Flatten\n");
+	FPRINTF(stderr, "Error: Unsupported datatype passed to ADIOI_Flatten\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
-#ifndef __MPISGI
+#ifndef MPISGI
 /* There is a bug in SGI's impl. of MPI_Type_get_contents. It doesn't
    return new datatypes. Therefore no need to free. */
     for (i=0; i<ntypes; i++) {
@@ -548,11 +548,11 @@ int ADIOI_Count_contiguous_blocks(MPI_Datatype datatype, int *curr_index)
 	}
 	break;
     default:
-	printf("Error: Unsupported datatype passed to ADIOI_Count_contiguous_blocks\n");
+	FPRINTF(stderr, "Error: Unsupported datatype passed to ADIOI_Count_contiguous_blocks\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
-#ifndef __MPISGI
+#ifndef MPISGI
 /* There is a bug in SGI's impl. of MPI_Type_get_contents. It doesn't
    return new datatypes. Therefore no need to free. */
     for (i=0; i<ntypes; i++) {

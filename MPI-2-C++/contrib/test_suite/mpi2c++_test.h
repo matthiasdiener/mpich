@@ -1,31 +1,28 @@
-// Copyright 1997-1999, University of Notre Dame.
-// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
-//           Andrew Lumsdaine
-//
-// This file is part of the Notre Dame C++ bindings for MPI
-//
-// You should have received a copy of the License Agreement for the
-// Notre Dame C++ bindings for MPI along with the software;  see the
-// file LICENSE.  If not, contact Office of Research, University of Notre
-// Dame, Notre Dame, IN  46556.
-//
+// Copyright 1997-2000, University of Notre Dame.
+// Authors: Jeremy G. Siek, Jeffery M. Squyres, Michael P. McNally, and
+//          Andrew Lumsdaine
+// 
+// This file is part of the Notre Dame C++ bindings for MPI.
+// 
+// You should have received a copy of the License Agreement for the Notre
+// Dame C++ bindings for MPI along with the software; see the file
+// LICENSE.  If not, contact Office of Research, University of Notre
+// Dame, Notre Dame, IN 46556.
+// 
 // Permission to modify the code and to distribute modified code is
 // granted, provided the text of this NOTICE is retained, a notice that
 // the code was modified is included with the above COPYRIGHT NOTICE and
 // with the COPYRIGHT NOTICE in the LICENSE file, and that the LICENSE
 // file is distributed with the modified code.
-//
+// 
 // LICENSOR MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
 // By way of example, but not limitation, Licensor MAKES NO
 // REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY
 // PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE COMPONENTS
 // OR DOCUMENTATION WILL NOT INFRINGE ANY PATENTS, COPYRIGHTS, TRADEMARKS
 // OR OTHER RIGHTS.
-// The vast majority of this awesome file came from Jeff Squyres,
-// Perpetual Obsessive Notre Dame Student Craving Utter Madness, 
-// and Brian McCandless, another of the LSC crew, under the guidance
-// of Herr Doctor Boss Andrew Lumsdaine. My thanks for making my
-// life a whole lot easier.
+// 
+// Additional copyrights may follow.
 
 #ifndef _MPI2CPP_TEST_H_
 #define _MPI2CPP_TEST_H_
@@ -50,82 +47,82 @@ extern const int version[2];
 
 // All the testing functions
 
-void allgather(void);
-void allreduce(void);
-void alltoall(void);
-void attr(void);
-void badbuf(void);
-void barrier(void);
-void bcast(void);
-void bcast_struct(void);
-void bottom(void);
-void bsend(void);
-void buffer(void);
-void cancel(void);
-void cartcomm(void);
-void commdup(void);
-void commfree(void);
-void compare(void);
-void dims(void);
-void dup_test(void);
-void errhandler(void);
-void gather(void);
-void getcount(void);
-void getel(void);
-void graphcomm(void);
-void group(void);
-void groupfree(void);
-void initialized1(void);
-void initialized2(void);
-void intercomm1(void);
-void interf(void);
-void iprobe(void);
-void isend(void);
-void lbub(void);
-void lbub2(void);
-void loop(void);
-void op_test(void);
-void pack_test(void);
-void pcontrol(void);
-void pptransp(void);
-void probe(void);
-void procname(void);
-void range(void);
-void rank_size(void);
-void reduce(void);
-void reduce_scatter(void);
-void request1(void);
-void rsend(void);
-void rsend2(void);
-void scan(void);
-void scatter(void);
-void send(void);
-void sendrecv(void);
-void sendrecv_rep(void);
-void split(void);
-void ssend(void);
-void start(void);
-void startall(void);
-void status_test(void);
-void strangest1(void);
-void struct_gatherv(void);
-void structsr(void);
-void structsr2(void);
-void test1(void);
-void test3(void);
-void testall(void);
-void testany(void);
-void testsome(void);
-void topo(void);
-void transp(void);
-void transp2(void);
-void transp3(void);
-void transpa(void);
-void waitall(void);
-void waitany(void);
-void waitsome(void);
-void wildcard(void);
-void wtime(void);
+void allgather();
+void allreduce();
+void alltoall();
+void attr();
+void badbuf();
+void barrier();
+void bcast();
+void bcast_struct();
+void bottom();
+void bsend();
+void buffer();
+void cancel();
+void cartcomm();
+void commdup();
+void commfree();
+void compare();
+void dims();
+void dup_test();
+void errhandler();
+void gather();
+void getcount();
+void getel();
+void graphcomm();
+void group();
+void groupfree();
+void initialized1();
+void initialized2();
+void intercomm1();
+void interf();
+void iprobe();
+void isend();
+void lbub();
+void lbub2();
+void loop();
+void op_test();
+void pack_test();
+void pcontrol();
+void pptransp();
+void probe();
+void procname();
+void range();
+void rank_size();
+void reduce();
+void reduce_scatter();
+void request1();
+void rsend();
+void rsend2();
+void scan();
+void scatter();
+void send();
+void sendrecv();
+void sendrecv_rep();
+void split();
+void ssend();
+void start();
+void startall();
+void status_test();
+void strangest1();
+void struct_gatherv();
+void structsr();
+void structsr2();
+void test1();
+void test3();
+void testall();
+void testany();
+void testsome();
+void topo();
+void transp();
+void transp2();
+void transp3();
+void transpa();
+void waitall();
+void waitany();
+void waitsome();
+void wildcard();
+void wtime();
 
 // Helper functions
 // mpi2c++_test.cc
@@ -142,25 +139,24 @@ void do_work(int top = -1);
 
 
 // messages.cc
-// WDG - Make sure that "xxx" is a char * instead of a String
-void Testing(char *msg);
-void Pass(char *msg = (char *)"PASS");
-void Sync(char *msg = 0);
-void Postpone(char *class_name);
-void Done(char *msg = 0);
-void Fail(char *msg = (char *)"FAIL");
-void Abort(char *msg = 0);
+void Testing(const char *msg);
+void Pass(const char *msg = "PASS");
+void Sync(const char *msg = 0);
+void Postpone(const char *class_name);
+void Done(const char *msg = 0);
+void Fail(const char *msg = "FAIL");
+void Abort(const char *msg = 0);
 
 
 // stack.cc
 
-void Push(char *msg);
-char *Pop(void);
+void Push(const char *msg);
+const char *Pop();
 
 
 // signal.cc
 
-void signal_init(void);
+void signal_init();
 
 
 // General helper functions
@@ -173,12 +169,14 @@ inline MPI2CPP_BOOL_T doublecmp(double a, double b) { return (MPI2CPP_BOOL_T) (f
 // Skip test flags
 
 typedef enum _skip_flags {
-  SKIP_MPICH1013, SKIP_MPICH110, SKIP_MPICH111, SKIP_MPICH112,
+  SKIP_MPICH120,
   SKIP_IBM21014, SKIP_IBM21015, SKIP_IBM21016, SKIP_IBM21017, SKIP_IBM21018,
-  SKIP_LAM61, 
-  SKIP_SGI20, SKIP_SGI30,
-  SKIP_HPUX0102, SKIP_HPUX0103, SKIP_HPUX0105,
-  SKIP_CRAY1104, SKIP_G_PLUS_PLUS, SKIP_NO_THROW,
+    SKIP_IBM2_3_0_0,
+  SKIP_LAM63, SKIP_LAM64,
+  SKIP_SGI20, SKIP_SGI30, SKIP_SGI31, SKIP_SGI32,
+  SKIP_HPUX0102, 
+  SKIP_CRAY1104, 
+  SKIP_NO_THROW,
   SKIP_MAX
 } SKIP_FLAGS;
 extern MPI2CPP_BOOL_T flags[SKIP_MAX];

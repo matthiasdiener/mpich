@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_read_coll.c,v 1.4 1999/10/26 22:57:21 thakur Exp $    
+ *   $Id: ad_read_coll.c,v 1.8 2000/07/19 22:38:32 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -7,7 +7,7 @@
 
 #include "adio.h"
 #include "adio_extern.h"
-#ifdef __PROFILE
+#ifdef PROFILE
 #include "mpe.h"
 #endif
 
@@ -67,21 +67,18 @@ void ADIOI_GEN_ReadStridedColl(ADIO_File fd, void *buf, int count,
     int i, filetype_is_contig, nprocs, nprocs_for_coll, myrank;
     int *len_list, contig_access_count, interleave_count, info_flag;
     int *count_my_req_per_proc, count_my_req_procs, count_others_req_procs;
-    int buftype_is_contig, size, bufsize, *buf_idx;
+    int buftype_is_contig, *buf_idx;
     ADIO_Offset *offset_list, start_offset, end_offset, *st_offsets, orig_fp;
     ADIO_Offset *fd_start, *fd_end, fd_size, min_st_offset, *end_offsets;
     ADIO_Offset off;
     char *value;
-
-#ifdef __PROFILE
-        MPE_Log_event(13, 0, "start computation");
+#ifdef HAVE_STATUS_SET_BYTES
+    int bufsize, size;
 #endif
 
-/* PFS file pointer modes are not relevant here. */
-    if ((fd->iomode != M_ASYNC) && (fd->iomode != M_UNIX)) {
-	printf("ADIOI_GEN_ReadStridedColl: only M_ASYNC and M_UNIX iomodes are valid\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-    }
+#ifdef PROFILE
+        MPE_Log_event(13, 0, "start computation");
+#endif
 
     MPI_Comm_size(fd->comm, &nprocs);
     MPI_Comm_rank(fd->comm, &myrank);
@@ -107,7 +104,7 @@ void ADIOI_GEN_ReadStridedColl(ADIO_File fd, void *buf, int count,
 			   &end_offset, &contig_access_count); 
     
 /*    for (i=0; i<contig_access_count; i++) {
-	printf("rank %d  off %ld  len %d\n", myrank, offset_list[i], len_list[i]);
+	FPRINTF(stderr, "rank %d  off %ld  len %d\n", myrank, offset_list[i], len_list[i]);
     }*/
 
 /* each process communicates its start and end offsets to other 
@@ -142,15 +139,12 @@ void ADIOI_GEN_ReadStridedColl(ADIO_File fd, void *buf, int count,
 	ADIOI_Datatype_iscontig(fd->filetype, &filetype_is_contig);
 
 	if (buftype_is_contig && filetype_is_contig) {
-	    MPI_Type_size(datatype, &size);
-	    bufsize = size * count;
 	    if (file_ptr_type == ADIO_EXPLICIT_OFFSET) {
-		size = fd->etype_size;
-		off = fd->disp + size * offset;
-		ADIO_ReadContig(fd, buf, bufsize, ADIO_EXPLICIT_OFFSET,
+		off = fd->disp + (fd->etype_size) * offset;
+		ADIO_ReadContig(fd, buf, count, datatype, ADIO_EXPLICIT_OFFSET,
                        off, status, error_code);
 	    }
-	    else ADIO_ReadContig(fd, buf, bufsize, ADIO_INDIVIDUAL,
+	    else ADIO_ReadContig(fd, buf, count, datatype, ADIO_INDIVIDUAL,
                        0, status, error_code);
 	}
 	else ADIO_ReadStrided(fd, buf, count, datatype, file_ptr_type,
@@ -227,6 +221,15 @@ void ADIOI_GEN_ReadStridedColl(ADIO_File fd, void *buf, int count,
     ADIOI_Free(fd_start);
     ADIOI_Free(fd_end);
 
+#ifdef HAVE_STATUS_SET_BYTES
+    MPI_Type_size(datatype, &size);
+    bufsize = size * count;
+    MPIR_Status_set_bytes(status, datatype, bufsize);
+/* This is a temporary way of filling in status. The right way is to 
+   keep track of how much data was actually read and placed in buf 
+   during collective I/O. */
+#endif
+
     fd->fp_sys_posn = -1;   /* set it to null. */
 }
 
@@ -246,7 +249,7 @@ void ADIOI_Calc_my_off_len(ADIO_File fd, int bufcount, MPI_Datatype
     int contig_access_count, *len_list, flag, filetype_is_contig;
     MPI_Aint filetype_extent, filetype_lb;
     ADIOI_Flatlist_node *flat_file;
-    ADIO_Offset *offset_list, off, end_offset, disp;
+    ADIO_Offset *offset_list, off, end_offset=0, disp;
     
 /* For this process's request, calculate the list of offsets and
    lengths in the file and determine the start and end offsets. */
@@ -258,6 +261,23 @@ void ADIOI_Calc_my_off_len(ADIO_File fd, int bufcount, MPI_Datatype
     MPI_Type_lb(fd->filetype, &filetype_lb);
     MPI_Type_size(datatype, &buftype_size);
     etype_size = fd->etype_size;
+
+    if ( ! filetype_size ) {
+	*contig_access_count_ptr = 0;
+	*offset_list_ptr = (ADIO_Offset *) ADIOI_Malloc(2*sizeof(ADIO_Offset));
+	*len_list_ptr = (int *) ADIOI_Malloc(2*sizeof(int));
+        /* 2 is for consistency. everywhere I malloc one more than needed */
+
+	offset_list = *offset_list_ptr;
+	len_list = *len_list_ptr;
+        offset_list[0] = (file_ptr_type == ADIO_INDIVIDUAL) ? fd->fp_ind : 
+                 fd->disp + etype_size * offset;
+	len_list[0] = 0;
+	*start_offset_ptr = offset_list[0];
+	*end_offset_ptr = offset_list[0] + len_list[0] - 1;
+	
+	return;
+    }
 
     if (filetype_is_contig) {
 	*contig_access_count_ptr = 1;        
@@ -509,7 +529,7 @@ void ADIOI_Calc_my_req(ADIO_Offset *offset_list, int *len_list, int
 	proc = (int) ((offset_list[i] - min_st_offset + fd_size)/fd_size - 1);
         /* sanity check */
 	if (proc >= nprocs_for_coll) {
-	    printf("Error: proc >= nprocs_for_coll, file %s, line %d\n", __FILE__, __LINE__);
+	    FPRINTF(stderr, "Error: proc >= nprocs_for_coll, file %s, line %d\n", __FILE__, __LINE__);
 	    MPI_Abort(MPI_COMM_WORLD, 1);
 	}
 
@@ -712,18 +732,21 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
    at least another 8Mbytes of temp space is unacceptable. */
 
     int i, j, m, size, ntimes, max_ntimes, buftype_is_contig;
-    ADIO_Offset st_loc=0, end_loc=0, off, done, real_off, req_off;
+    ADIO_Offset st_loc=-1, end_loc=-1, off, done, real_off, req_off;
     char *read_buf, *tmp_buf;
     int *curr_offlen_ptr, *count, *send_size, *recv_size;
-    int *partial_send, *recd_from_proc, *start_pos, for_next_iter, err=-1;
+    int *partial_send, *recd_from_proc, *start_pos, for_next_iter;
     int *recv_buf_idx, *curr_from_proc, *done_from_proc;
-    int real_size, req_len, flag, for_curr_iter, rank, err_flag=0;
+    int real_size, req_len, flag, for_curr_iter, rank;
     MPI_Status status;
     ADIOI_Flatlist_node *flat_buf=NULL;
     MPI_Aint buftype_extent;
     int info_flag, coll_bufsize;
     char *value;
 
+    *error_code = MPI_SUCCESS;  /* changed below if error */
+    /* only I/O errors are currently reported */
+    
 /* calculate the number of reads of size coll_bufsize
    to be done by each process and the max among all processes.
    That gives the no. of communication phases as well.
@@ -755,7 +778,7 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
 
     ntimes = (int) ((end_loc - st_loc + coll_bufsize)/coll_bufsize);
 
-    if (!st_loc && !end_loc) ntimes = 0; /* this process does no I/O. */
+    if ((st_loc==-1) && (end_loc==-1)) ntimes = 0; /* this process does no I/O. */
 
     MPI_Allreduce(&ntimes, &max_ntimes, 1, MPI_INT, MPI_MAX, fd->comm); 
 
@@ -807,7 +830,7 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
 
     MPI_Comm_rank(fd->comm, &rank);
 
-#ifdef __PROFILE
+#ifdef PROFILE
         MPE_Log_event(14, 0, "end computation");
 #endif
 
@@ -849,7 +872,7 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
                        minus what was satisfied in previous iteration
              req_size = size corresponding to req_off */
 
-#ifdef __PROFILE
+#ifdef PROFILE
         MPE_Log_event(13, 0, "start computation");
 #endif
 	size = (int) (ADIOI_MIN(coll_bufsize, end_loc-st_loc+1-done)); 
@@ -860,7 +883,7 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
 	for_next_iter = 0;
 
 	for (i=0; i<nprocs; i++) {
-	    /* printf("rank %d, i %d, others_count %d\n", rank, i, others_req[i].count); */
+	    /* FPRINTF(stderr, "rank %d, i %d, others_count %d\n", rank, i, others_req[i].count); */
 	    if (others_req[i].count) {
 		start_pos[i] = curr_offlen_ptr[i];
 		for (j=curr_offlen_ptr[i]; j<others_req[i].count;
@@ -914,18 +937,18 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
 	for (i=0; i<nprocs; i++)
 	    if (count[i]) flag = 1;
 
-#ifdef __PROFILE
+#ifdef PROFILE
         MPE_Log_event(14, 0, "end computation");
 #endif
 	if (flag) {
-	    ADIO_ReadContig(fd, read_buf+for_curr_iter, size,
-			    ADIO_EXPLICIT_OFFSET, off, &status, &err);
-	    if (err != MPI_SUCCESS) err_flag = 1;
+	    ADIO_ReadContig(fd, read_buf+for_curr_iter, size, MPI_BYTE,
+			    ADIO_EXPLICIT_OFFSET, off, &status, error_code);
+	    if (*error_code != MPI_SUCCESS) return;
 	}
 	
 	for_curr_iter = for_next_iter;
 	
-#ifdef __PROFILE
+#ifdef PROFILE
         MPE_Log_event(7, 0, "start communication");
 #endif
 	ADIOI_R_Exchange_data(fd, buf, flat_buf, offset_list, len_list,
@@ -938,7 +961,7 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
                             curr_from_proc, done_from_proc, m,
                             buftype_extent, buf_idx); 
 
-#ifdef __PROFILE
+#ifdef PROFILE
         MPE_Log_event(8, 0, "end communication");
 #endif
 
@@ -956,7 +979,7 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
     }
 
     for (i=0; i<nprocs; i++) count[i] = send_size[i] = 0;
-#ifdef __PROFILE
+#ifdef PROFILE
         MPE_Log_event(7, 0, "start communication");
 #endif
     for (m=ntimes; m<max_ntimes; m++) 
@@ -970,7 +993,7 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
 			    others_req, recv_buf_idx, 
                             curr_from_proc, done_from_proc, m,
                             buftype_extent, buf_idx); 
-#ifdef __PROFILE
+#ifdef PROFILE
         MPE_Log_event(8, 0, "end communication");
 #endif
 
@@ -985,9 +1008,6 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
     ADIOI_Free(recv_buf_idx);
     ADIOI_Free(curr_from_proc);
     ADIOI_Free(done_from_proc);
-
-    /* only I/O errors are currently reported */
-    *error_code = (err_flag) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
 }
 
 
@@ -1052,7 +1072,7 @@ static void ADIOI_R_Exchange_data(ADIO_File fd, void *buf, ADIOI_Flatlist_node
 		    MPI_Irecv(recv_buf[i], recv_size[i], MPI_BYTE, i, 
 			      myrank+i+100*iter, fd->comm, requests+j);
 		    j++;
-		    /* printf("node %d, recv_size %d, tag %d \n", myrank, recv_size[i], myrank+i+100*iter); */
+		    /* FPRINTF(stderr, "node %d, recv_size %d, tag %d \n", myrank, recv_size[i], myrank+i+100*iter); */
 		}
     }
 
@@ -1095,7 +1115,7 @@ static void ADIOI_R_Exchange_data(ADIO_File fd, void *buf, ADIOI_Flatlist_node
 			       buftype_extent);
 
     if (buftype_is_contig) {
-#ifdef __NEEDS_MPI_TEST
+#ifdef NEEDS_MPI_TEST
 	j = 0;
 	while (!j) MPI_Testall(nprocs_recv, requests, &j, statuses);
 #else
@@ -1181,7 +1201,7 @@ static void ADIOI_Fill_user_buffer(void *buf, ADIOI_Flatlist_node
     int i, p, flat_buf_idx, rem_len, size, buf_incr;
     int flat_buf_sz, len, size_in_buf, jj, n_buftypes;
     ADIO_Offset off, user_buf_idx;
-#ifdef __NEEDS_MPI_TEST
+#ifdef NEEDS_MPI_TEST
     int j;
 #endif
 
@@ -1216,7 +1236,7 @@ static void ADIOI_Fill_user_buffer(void *buf, ADIOI_Flatlist_node
 	if (recv_buf_idx[p] < recv_size[p]) {
 	    if (curr_from_proc[p]+len > done_from_proc[p]) {
 		if (!recv_buf_idx[p]) {
-#ifdef __NEEDS_MPI_TEST
+#ifdef NEEDS_MPI_TEST
 		    j = 0;
 		    while (!j) MPI_Test(requests+jj, &j, statuses+jj);
 #else
@@ -1263,7 +1283,7 @@ static void ADIOI_Fill_user_buffer(void *buf, ADIOI_Flatlist_node
 	    if (recv_buf_idx[p] < recv_size[p]) {
 		if (curr_from_proc[p]+len > done_from_proc[p]) {
 		    if (!recv_buf_idx[p]) {
-#ifdef __NEEDS_MPI_TEST
+#ifdef NEEDS_MPI_TEST
 			j = 0;
 			while (!j) MPI_Test(requests+jj, &j, statuses+jj);
 #else

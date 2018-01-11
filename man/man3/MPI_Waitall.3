@@ -86,7 +86,8 @@ an error.
 .B MPI_ERR_REQUEST 
 - Invalid 
 .I MPI_Request
-.  Either null or, in the case of a
+\&.
+Either null or, in the case of a
 .I MPI_Start
 or 
 .I MPI_Startall
@@ -146,13 +147,15 @@ that tests multiple requests.  The requests that have not been processed
 .I MPI_ERROR
 field marked with 
 .I MPI_ERR_PENDING
-.
+\&.
+
 .PD 0
 .TP
 .B MPI_ERR_PENDING 
 - Pending request (not an error).  See 
 .I MPI_ERR_IN_STATUS
-. 
+\&.
+
 This value indicates that the request is not complete nor has a encountered
 a detected error.  
 .PD 1

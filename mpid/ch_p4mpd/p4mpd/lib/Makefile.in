@@ -28,7 +28,7 @@ FFLAGS = @OPTFLAGS@ -I$(FORTLIBDIR) $(MDEP_FFLAGS)
 P4_HOME_DIR = ${top_srcdir}
 INCLUDEDIR = $(P4_HOME_DIR)/include
 LIBDIR = $(P4_HOME_DIR)/lib
-MPD_HOME = ../../../mpd
+MPD_HOME = ${top_srcdir}/../../mpd
 
 P4_HDRS = p4.h p4_sys.h p4_defs.h p4_macros.h  \
           p4_sock_util.h p4_MD.h p4_funcs.h p4_sys_funcs.h \
@@ -48,8 +48,8 @@ P4_SOCK_OBJ	=	p4_rm.o      p4_sock_util.o \
 			p4_sock_sr.o p4_sock_list.o \
 			p4_secure.o
 
-P4_MPD_OBJ      =       $(MPD_HOME)/mpdlib.o $(MPD_HOME)/util.o \
-			$(MPD_HOME)/sockets.o
+P4_MPD_OBJ      =       ../../../mpd/mpdlib.o ../../../mpd/util.o \
+			../../../mpd/sockets.o ../../../mpd/bnr.o
 
 P4_CUBENODE_OBJ	=	$(P4_COMM_OBJ) p4_node_rm.o
 

@@ -1,0 +1,252 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 99.2beta6 (1.42)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>Time Lines Window </TITLE>
+<META NAME="description" CONTENT="Time Lines Window ">
+<META NAME="keywords" CONTENT="TourStepByStep">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Generator" CONTENT="LaTeX2HTML v99.2beta6">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="TourStepByStep.css">
+
+<LINK REL="next" HREF="node6.html">
+<LINK REL="previous" HREF="node4.html">
+<LINK REL="up" HREF="TourStepByStep.html">
+<LINK REL="next" HREF="node6.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html73"
+  HREF="node6.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html71"
+  HREF="TourStepByStep.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html65"
+  HREF="node4.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A>   
+<BR>
+<B> Next:</B> <A NAME="tex2html74"
+  HREF="node6.html">Bibliography</A>
+<B> Up:</B> <A NAME="tex2html72"
+  HREF="TourStepByStep.html">A Tour of Jumpshot-3</A>
+<B> Previous:</B> <A NAME="tex2html66"
+  HREF="node4.html">Statistics Viewer</A>
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H1><A NAME="SECTION00050000000000000000">
+Time Lines Window </A>
+</H1>
+
+<P>
+
+<P></P>
+<DIV ALIGN="CENTER"><A NAME="fig:_TimeLine_in_Thread_with_all"></A><A NAME="192"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 7:</STRONG>
+Time Line window in <I>Thread</I>
+view</CAPTION>
+<TR><TD>
+<DIV ALIGN="CENTER"><!-- MATH
+ $\resizebox*{0.9\textwidth}{!}{\includegraphics{pic/timeline_thread_all.ps}}$
+ -->
+<IMG
+ WIDTH="500" HEIGHT="409" ALIGN="BOTTOM" BORDER="0"
+ SRC="img9.gif"
+ ALT="\resizebox*{0.9\textwidth}{!}{\includegraphics{pic/timeline_thread_all.ps}}"> </DIV>
+<P>
+<DIV ALIGN="CENTER"></DIV>
+
+<P></TD></TR>
+</TABLE>
+</DIV><P></P>
+
+<P>
+Assume <I>Connected States</I> in <I>Thread</I> view in ``Preview'' is selected,
+as soon as user clicks on the <I>Display</I> buttons in the ``View &amp; Frame
+Selector'' window. A Time Lines window as shown in Figure <A HREF="node5.html#fig:_TimeLine_in_Thread_with_all">7</A>
+will pop up. Time Lines window provides a detailed display of the sppm's trace
+data as a GANTT chart with x-axis as time and y-axis as thread ID. The control
+buttons in the top panel provide zoom <I>IN</I> and <I>OUT</I> operations around
+the zoom focus which could be set by putting the cursor at the point of interest
+on the GANNT chart and press the key ``z''. In Figure <A HREF="node5.html#fig:_TimeLine_in_Thread_with_all">7</A>,
+the zoom focus is marked by a white line drawn from top to botton of the diagram
+and is labeled as Z<SMALL>OOM </SMALL>L<SMALL>OCK</SMALL> in red.
+
+<P>
+
+<P></P>
+<DIV ALIGN="CENTER"><A NAME="fig:_TimeLine_in_Thread_view_all_zoomed_in"></A><A NAME="195"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 8:</STRONG>
+A zoomed in view of the
+Time LIne window.</CAPTION>
+<TR><TD>
+<DIV ALIGN="CENTER"><!-- MATH
+ $\resizebox*{0.9\textwidth}{!}{\includegraphics{pic/timeline_thread_all_zoomed.ps}}$
+ -->
+<IMG
+ WIDTH="500" HEIGHT="409" ALIGN="BOTTOM" BORDER="0"
+ SRC="img10.gif"
+ ALT="\resizebox*{0.9\textwidth}{!}{\includegraphics{pic/timeline_thread_all_zoomed.ps}}"> </DIV>
+<P>
+<DIV ALIGN="CENTER"></DIV>
+
+<P>
+
+
+<P>
+
+
+<P>
+<DIV ALIGN="CENTER"><!-- MATH
+ $\resizebox*{0.9\textwidth}{!}{\includegraphics{pic/timeline_thread_all_zoomed_defs.ps}}$
+ -->
+<IMG
+ WIDTH="500" HEIGHT="83" ALIGN="BOTTOM" BORDER="0"
+ SRC="img11.gif"
+ ALT="\resizebox*{0.9\textwidth}{!}{\includegraphics{pic/timeline_thread_all_zoomed_defs.ps}}"> </DIV>
+<P>
+<DIV ALIGN="CENTER"></DIV>
+
+<P></TD></TR>
+</TABLE>
+</DIV><P></P>
+
+<P>
+After being zoomed in several times, the Time Line window looks like Figure
+<A HREF="node5.html#fig:_TimeLine_in_Thread_view_all_zoomed_in">8</A>. At this resolution, a lot
+more details are exposed. For instance, the MPI_Isend states which are in navy
+blue in the figure become noticeable. Clicking on any rectangle in the time
+line canvas will pop up a ``Rectangle Info'' box which contains various information
+regarding to the subroutine call, like start and end time of the call, various
+call arguments and instruction address(es) if there are any. Clicking on the
+``Rectangle Info'' box again will remove the box from the screen. Also, clicking
+on the red circle at the end of the arrow will pop up a ``Arrow Info'' box
+which provides similar function as ``Rectangle Info''. In Figure <A HREF="node5.html#fig:_TimeLine_in_Thread_view_all_zoomed_in">8</A>,
+MPI_Isend, MPI_Irecv and MPI_Wait are all nested within the user defined
+state ``bdrys''. This suggests ``bdrys'', which is a user defined subroutine
+call, makes all these MPI calls. Also the regularity on the pattern of arrows
+provides insight to the end user of how data are exchanged.
+
+<P>
+There are several tricks and hidden operations that are worth mentioning. Firstly,
+it is the trick in locating small rectangles: since all the rectangles have
+white border surrounding them, when many small rectangles are next to each other
+in very low resolution, they form a completely white rectangle. A totally white
+rectangle usually means a lot more details are hidden inside. Secondly, a trick
+about scrolling: user can drag on the scroll tab to advance to later time, but
+it is slow when there are many threads with a lot of objects. In this scenario,
+it is recommended to click on the white space between the scroll tab and the
+end arrow tab in the direction that one would want to advance to. The operation
+will allow the redraw of the next time frame in the canvas to be carried out
+immediately. Thirdly, the label of the y-axis in <I>Thread</I> view is ( MPI-rank,
+local thread ID ), but it is different in different view. Because of the limited
+space on the canvas, the label of the y-axis is actually written in the tooltip
+of the two vertical y-axis label. The tooltip can be activated by simply putting
+the cursor over any y-axis integer doublet for few seconds. Fourthly, doubly
+click on any integer doublet label will invoke the ``Time Lines Manipulation''
+window as shown in Figure <A HREF="node5.html#fig:_TimeLines_Manipulation">9</A>. This window provides
+various operations on the selected time line. For instance, the adjustment of
+time line by changing the offset of the time line for alignment of rectangles,
+swapping different time lines for organizational purpose, ...
+<P></P>
+<DIV ALIGN="CENTER"><A NAME="fig:_TimeLines_Manipulation"></A><A NAME="197"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 9:</STRONG>
+The Time Lines Manipulation window.</CAPTION>
+<TR><TD>
+<DIV ALIGN="CENTER"><!-- MATH
+ $\resizebox*{0.7\textwidth}{!}{\includegraphics{pic/timeline_manipulations.ps}}$
+ -->
+<IMG
+ WIDTH="389" HEIGHT="217" ALIGN="BOTTOM" BORDER="0"
+ SRC="img12.gif"
+ ALT="\resizebox*{0.7\textwidth}{!}{\includegraphics{pic/timeline_manipulations.ps}}"> </DIV>
+<P>
+<DIV ALIGN="CENTER"></DIV>
+
+<P></TD></TR>
+</TABLE>
+</DIV><P></P>
+Fifthly, this trick is about the Definitions window which is located at the
+bottom of the Time Line window. The Definitions windows consists of a collection
+of definition panels. Each definition panel which has a checkbox and a definition
+button corresponds to each state/arrow in the Time Lines canvas. The Definitions
+window can be torn out of the Time Lines window as a standalone window or it
+can be re-attached to any one of the four side of the Time Lines window. This
+allows user to change the arrangement of the state and arrow definitions to
+optimize the use of the Time Lines canvas. All the states' and arrows' definitions
+are checked by default. Unchecking any of definitions will make the corresponding
+states or arrows invisible. The goal is to help the user to highlight what he/she
+is interesed in by hiding the uninteresting ones. Clicking on any of the definition
+buttons will bring up the histogram window of the corresponding state/arrow.
+For example, the forward arrow button will invoke the a window as shown in the
+Figure <A HREF="node5.html#fig:_histogram__forward_arrow">10</A>.
+<P></P>
+<DIV ALIGN="CENTER"><A NAME="fig:_histogram__forward_arrow"></A><A NAME="199"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 10:</STRONG>
+The histogram for the forward arrow in
+the frame.</CAPTION>
+<TR><TD>
+<DIV ALIGN="CENTER"><!-- MATH
+ $\resizebox*{0.9\textwidth}{!}{\includegraphics{pic/arrow_histogram.ps}}$
+ -->
+<IMG
+ WIDTH="500" HEIGHT="357" ALIGN="BOTTOM" BORDER="0"
+ SRC="img13.gif"
+ ALT="\resizebox*{0.9\textwidth}{!}{\includegraphics{pic/arrow_histogram.ps}}"> </DIV>
+<P>
+<DIV ALIGN="CENTER"></DIV>
+
+<P></TD></TR>
+</TABLE>
+</DIV><P></P>
+The Histogram window provides basic statistics and statistical distribution
+of the duration of the selected state. The ``Blink States'' button enables
+the selected state/arrow in the Time Lines window to flash. Again the goal is
+to help to highlight the objects. Finally, worth mentioning about the memory
+demand for Time Line window. It is very high especially on Linux box, our experience
+seems to indicate that the amount of X server memory needed to have one instance
+of Time Lines window running is proportional to the size of the Time Lines window
+and the color depth of X server. If one plans to run multiple instances of Time
+Lines windows at the same time, be sure to have enough physical memory for the
+X server and Java Virtual Machine.
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html73"
+  HREF="node6.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html71"
+  HREF="TourStepByStep.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html65"
+  HREF="node4.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A>   
+<BR>
+<B> Next:</B> <A NAME="tex2html74"
+  HREF="node6.html">Bibliography</A>
+<B> Up:</B> <A NAME="tex2html72"
+  HREF="TourStepByStep.html">A Tour of Jumpshot-3</A>
+<B> Previous:</B> <A NAME="tex2html66"
+  HREF="node4.html">Statistics Viewer</A>
+<!--End of Navigation Panel-->
+
+</BODY>
+</HTML>

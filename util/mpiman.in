@@ -2,13 +2,22 @@
 #
 #    Starts up xman with the tools manual pages
 #
-if [ -z "$MPIDIR" ] ; then MPIDIR="#INSTALL_DIR#" ; fi
+prefix=@prefix@
+mandir=@mandir@
+htmldir=@htmldir@
+#
+if [ -n "$MPIDIR" ] ; then 
+    mandir="$MPIDIR/man"
+    htmldir="$MPIDIR/www"
+fi
+
 #
 # Start the appropriate program
-program="xman -notopbox -helpfile $MPIDIR/man/mpiman.help"
+program="xman -notopbox -helpfile $mandir/mpiman.help"
 docdir=man
 mankind=UNIX
-MANPATH=$MPIDIR/$docdir
+
+MANPATH=$mandir
 export MANPATH
 #
 for arg in "$@" ; do
@@ -17,31 +26,31 @@ for arg in "$@" ; do
 	set -x
 	;;
 	-xmosaic)
-	program="xmosaic $MPIDIR/www/index.html"
-	docdir=www
+	program="xmosaic $htmldir/index.html"
+	docdir=$htmldir
 	mankind=HTML
 	;;
 	-mosaic)
-	program="mosaic $MPIDIR/www/index.html"
-	docdir=www
+	program="mosaic $htmldir/index.html"
+	docdir=$htmldir
 	mankind=HTML
 	;;
 	-netscape)
-	program="netscape $MPIDIR/www/index.html"
-	docdir=www
+	program="netscape $htmldir/index.html"
+	docdir=$htmldir
 	mankind=HTML
 	;;
 	-xman)
-	program="xman -notopbox -helpfile $MPIDIR/man/mpiman.help"
-	docdir=man
+	program="xman -notopbox -helpfile $mandir/mpiman.help"
+	docdir=$mandir
 	MANPATH=$MPIDIR/$docdir
 	export MANPATH
 	mankind=UNIX
 	;;
 	-man)
 	program=man
-	docdir=man
-	MANPATH=$MPIDIR/$docdir
+	docdir=$mandir
+	MANPATH=$mandir
 	export MANPATH
 	mankind=UNIX
 	;;
@@ -50,7 +59,7 @@ for arg in "$@" ; do
 	;;
     esac
 done
-if [ ! -d $MPIDIR/$docdir ] ; then
+if [ ! -d $docdir ] ; then
     echo "You do not have $mankind manpages installed"
     exit 1
 fi

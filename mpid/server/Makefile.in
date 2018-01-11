@@ -3,27 +3,29 @@
 # simple with only one source file and one executable to produce.  Here
 # is a first attempt that will most likely need to be changed.
 #
-SHELL = /bin/sh
+SHELL = @SHELL@
 
 top_srcdir = @top_srcdir@
 srcdir = @srcdir@
+CC = @CC@
+
 
 @VPATH@
 
 ALL: serv_p4 clientlib.a lclient
 
 serv_p4: serv_p4.o server_ssl.o
-	@CC@ @LDFLAGS@ -o serv_p4 serv_p4.o server_ssl.o @CRYPT_LIBS@ @LIBS@
+	${CC} @LDFLAGS@ -o serv_p4 serv_p4.o server_ssl.o @CRYPT_LIBS@ @LIBS@
 
 serv_p4.o: ${srcdir}/serv_p4.c
-	@CC@ @CFLAGS@ -c ${srcdir}/serv_p4.c -I./ -o serv_p4.o
+	${CC} @CFLAGS@ -c ${srcdir}/serv_p4.c -I./ -o serv_p4.o
 
 clientlib.a: clients.o
 	ar cr clientlib.a clients.o
 	@RANLIB@ clientlib.a
 
 lclient: lclient.o clientlib.a
-	@CC@ @CFLAGS@ -o lclient lclient.o clientlib.a @LIBS@
+	${CC} @CFLAGS@ -o lclient lclient.o clientlib.a @LIBS@
 clean:
 	rm -rf serv_p4 *.o clientlib.a lclient
 
@@ -35,5 +37,5 @@ configure: configure.in
 	autoconf
 
 .c.o:
-	@CC@ @CFLAGS@ -c -I./ $<
+	${CC} @CFLAGS@ -c -I./ $<
 

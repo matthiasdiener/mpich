@@ -1,6 +1,6 @@
-/* mpich-mpid.h.in.  Generated automatically from .tmp by autoheader.  */
+/* mpich-mpid.h.in.  Generated automatically from configure.in by autoheader.  */
 
-/* Define if you have gettimeofday.  */
+/* Define if you have the gettimeofday function.  */
 #undef HAVE_GETTIMEOFDAY
 
 /* Define if you have the <mpproto.h> header file.  */

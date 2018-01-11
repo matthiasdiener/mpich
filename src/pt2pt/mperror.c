@@ -1,5 +1,5 @@
 /*
- *  $Id: mperror.c,v 1.8 1999/11/24 19:50:49 gropp Exp $
+ *  $Id: mperror.c,v 1.10 2000/08/23 17:49:22 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -47,7 +47,7 @@ void MPIR_Errors_are_fatal(  MPI_Comm *comm, int * code, ... )
   char buf[MPI_MAX_ERROR_STRING];
   int  result_len; 
   char *string, *file;
-  int  *line;
+  int  *line; 
   va_list Argp;
   struct MPIR_COMMUNICATOR *comm_ptr;
 
@@ -61,10 +61,8 @@ void MPIR_Errors_are_fatal(  MPI_Comm *comm, int * code, ... )
   line   = va_arg(Argp,int *);
   va_end( Argp );
 #else
-void MPIR_Errors_are_fatal(  comm, code, string, file, line )
-MPI_Comm *comm;
-int      *code, *line;
-char     *string, *file;
+void MPIR_Errors_are_fatal( MPI_Comm *comm, int *code, char *string, 
+			    char *file, int *line )
 {
   char buf[MPI_MAX_ERROR_STRING];
   int  result_len; 
@@ -72,6 +70,9 @@ char     *string, *file;
 #endif
 
   MPI_Error_string( *code, (char *)buf, &result_len );
+  if (result_len == 0) {
+      SPRINTF(buf,"No message for error in %s:%d", file, *line );
+  }
   FPRINTF( stderr, "%d - %s : %s\n", MPID_MyWorldRank,
           string ? string : "<NO ERROR MESSAGE>", buf );
 
@@ -138,6 +139,9 @@ char     *string, *file;
 
   myid = MPID_MyWorldRank;
   MPI_Error_string( *code, buf, &result_len );
+  if (result_len == 0) {
+      SPRINTF(buf,"No message for error in %s:%d", file, *line );
+  }
 #ifdef MPIR_DEBUG
   /* Generate this information ONLY when debugging MPIR */
   FPRINTF( stderr, "%d -  File: %s   Line: %d\n", myid, 

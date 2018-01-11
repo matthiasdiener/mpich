@@ -1,5 +1,5 @@
 /*
- *  $Id: pack_size.c,v 1.10 1999/08/30 15:49:09 swider Exp $
+ *  $Id: pack_size.c,v 1.12 2000/06/30 17:55:35 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -98,7 +98,12 @@ EXPORT_MPI_API int MPI_Pack_size ( int incount, MPI_Datatype datatype, MPI_Comm 
   MPID_Pack_size( incount, dtype_ptr, comm_ptr->msgform, 
 /*		  (comm_ptr->msgform == MPID_MSGFORM_OK) ? MPID_MSG_OK : 
 		  MPID_MSG_XDR, */ size );
+  /* We add the largest size that we expect */
+#ifndef MPID_NO_FORTRAN
   (*size) += MPIR_I_DCOMPLEX.size;
+#else
+  (*size) += sizeof(double);
+#endif
 
   TR_POP;
   return MPI_SUCCESS;

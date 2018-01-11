@@ -1,5 +1,5 @@
 /* 
- *   $Id: iotest.c,v 1.5 1999/08/27 20:53:08 thakur Exp $    
+ *   $Id: iotest.c,v 1.7 2000/02/09 21:30:13 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +19,7 @@
 #endif
 
 /* Include mapping from MPI->PMPI */
-#define __MPIO_BUILD_PROFILING
+#define MPIO_BUILD_PROFILING
 #include "mpioprof.h"
 #endif
 
@@ -40,6 +40,9 @@ Output Parameters:
 int MPIO_Test(MPIO_Request *request, int *flag, MPI_Status *status)
 {
     int error_code;
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "MPIO_TEST";
+#endif
 #ifdef MPI_hpux
     int fl_xmpi;
 
@@ -52,8 +55,14 @@ int MPIO_Test(MPIO_Request *request, int *flag, MPI_Status *status)
 
     if ((*request < (MPIO_Request) 0) || 
 	     ((*request)->cookie != ADIOI_REQ_COOKIE)) {
-	printf("MPIO_Test: Invalid request object\n");
+#ifdef PRINT_ERR_MSG
+	FPRINTF(stderr, "MPIO_Test: Invalid request object\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
+#else
+	error_code = MPIR_Err_setmsg(MPI_ERR_REQUEST, MPIR_ERR_REQUEST_NULL,
+				     myname, (char *) 0, (char *) 0);
+	return ADIOI_Error(MPI_FILE_NULL, error_code, myname);
+#endif
     }
 
     switch ((*request)->optype) {

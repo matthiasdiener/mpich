@@ -1,0 +1,41 @@
+MAKE   = @MAKE@
+SHELL  = /bin/sh
+RM     = /bin/rm
+
+# The empty string, "", in PKGS is needed to avoid /bin/sh from complaining
+# when @PKGS@ is really empty.  This is possible that some system may NOT
+# have any correct JAVA or WISH to configure any viewer.
+PKGS   = "" @PKGS@
+
+all:
+	@-for pkg in $(PKGS) ; do \
+	      if [ -n "$$pkg" -a -s $$pkg/Makefile ] ; then \
+	          echo "Making $$pkg" ; \
+	          ( cd $$pkg ; $(MAKE) ) ; \
+	      fi ; \
+	  done
+
+install:
+	@if [ -n "$(PKGS)" ] ; then \
+	     if [ -n "$(PREFIX)" ] ; then \
+	         ./sbin/install-viewers -prefix=$(PREFIX) ; \
+	     else \
+	         ./sbin/install-viewers ; \
+	     fi ; \
+	 fi
+
+uninstall:
+
+clean:
+	@-for pkg in $(PKGS) ; do \
+	      if [ -n "$$pkg" -a -s $$pkg/Makefile ] ; then \
+	          ( cd $$pkg ; $(MAKE) clean ) ; \
+	      fi ; \
+	  done
+
+distclean:
+	@-for pkg in $(PKGS) ; do \
+	      if [ -n "$$pkg" -a -s $$pkg/Makefile ] ; then \
+	          ( cd $$pkg ; $(MAKE) distclean ) ; \
+	      fi ; \
+	  done

@@ -1,26 +1,28 @@
-// Copyright 1997-1999, University of Notre Dame.
-// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
-//           Andrew Lumsdaine
-//
-// This file is part of the Notre Dame C++ bindings for MPI
-//
-// You should have received a copy of the License Agreement for the
-// Notre Dame C++ bindings for MPI along with the software;  see the
-// file LICENSE.  If not, contact Office of Research, University of Notre
-// Dame, Notre Dame, IN  46556.
-//
+// Copyright 1997-2000, University of Notre Dame.
+// Authors: Jeremy G. Siek, Jeffery M. Squyres, Michael P. McNally, and
+//          Andrew Lumsdaine
+// 
+// This file is part of the Notre Dame C++ bindings for MPI.
+// 
+// You should have received a copy of the License Agreement for the Notre
+// Dame C++ bindings for MPI along with the software; see the file
+// LICENSE.  If not, contact Office of Research, University of Notre
+// Dame, Notre Dame, IN 46556.
+// 
 // Permission to modify the code and to distribute modified code is
 // granted, provided the text of this NOTICE is retained, a notice that
 // the code was modified is included with the above COPYRIGHT NOTICE and
 // with the COPYRIGHT NOTICE in the LICENSE file, and that the LICENSE
 // file is distributed with the modified code.
-//
+// 
 // LICENSOR MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
 // By way of example, but not limitation, Licensor MAKES NO
 // REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY
 // PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE COMPONENTS
 // OR DOCUMENTATION WILL NOT INFRINGE ANY PATENTS, COPYRIGHTS, TRADEMARKS
 // OR OTHER RIGHTS.
+// 
+// Additional copyrights may follow.
 /****************************************************************************
 
  MESSAGE PASSING INTERFACE TEST CASE SUITE
@@ -87,7 +89,7 @@ group()
     ranks2[i] = -1;
   }
 
-  Testing( (char *)"Get_group");
+  Testing("Get_group");
 
   group1 = MPI::COMM_WORLD.Get_group();
   if(group1 == MPI::GROUP_NULL) {
@@ -97,7 +99,7 @@ group()
 
   Pass(); // Get_group
 
-  Testing( (char *)"Get_size");
+  Testing("Get_size");
 
   size = 0;
 
@@ -109,7 +111,7 @@ group()
 
   Pass(); // Get_size
 
-  Testing( (char *)"Get_rank");
+  Testing("Get_rank");
 
   rank = 0;
 
@@ -121,7 +123,7 @@ group()
 
   Pass(); // Get_rank
   
-  Testing( (char *)"Compare");
+  Testing("Compare");
 
   result = -1;
 
@@ -133,22 +135,17 @@ group()
 
   Pass(); // Compare
 
-  Testing( (char *)"Incl");
+  Testing("Incl");
 
-  for(i = 0; i < comm_size / 2; i++)  
-    ranks1[i] = i;
-
-  group2 = group1.Incl(comm_size/2, ranks1);
-
-  for(i = comm_size / 2; i < comm_size; i++)  
-    ranks1[i - (comm_size / 2)] = i;
-
-  group3 = group1.Incl(comm_size / 2, ranks1);
-
-  if (my_rank < (comm_size / 2))
-    newgroup = group2;
-  else
-    newgroup = group3;
+  if (my_rank < (comm_size / 2)) {
+    for(i = 0; i < comm_size / 2; i++)  
+      ranks1[i] = i;
+    newgroup = group2 = group1.Incl(comm_size / 2, ranks1);
+  } else {
+    for(i = comm_size / 2; i < comm_size; i++)  
+      ranks1[i - (comm_size / 2)] = i;
+    newgroup = group3 = group1.Incl(comm_size / 2, ranks1);
+  }
   
   size = 0;
 
@@ -167,10 +164,7 @@ group()
 
   Pass(); // Incl
 
-  Testing( (char *)"Union");
-
-  if(group2 != MPI::GROUP_NULL)
-    // group2.Free();
+  Testing("Union");
 
   group2 = MPI::Group::Union(group1, newgroup);
 
@@ -183,7 +177,7 @@ group()
 
   Pass(); // Union
 
-  Testing( (char *)"Intersect");
+  Testing("Intersect");
 
   if(group2 != MPI::GROUP_NULL)
     group2.Free();
@@ -199,7 +193,7 @@ group()
 
   Pass(); // Intersect
 
-  Testing( (char *)"Difference");
+  Testing("Difference");
 
   if(group2 != MPI::GROUP_NULL)
     group2.Free();
@@ -216,7 +210,7 @@ group()
 
   Pass(); // Difference
 
-  Testing( (char *)"Translate_ranks");
+  Testing("Translate_ranks");
 
   for(i = 0; i < size; i++)
     ranks1[i] = i;
@@ -239,7 +233,7 @@ group()
 
   Pass(); // Translate_ranks
 
-  Testing( (char *)"Intracomm::Create");
+  Testing("Intracomm::Create");
 
   newcomm = MPI::COMM_WORLD.Create(newgroup);
   if(newcomm != MPI::COMM_NULL) { 
@@ -258,7 +252,7 @@ group()
 
   Pass(); // Create
 
-  Testing( (char *)"Excl");
+  Testing("Excl");
 
   if(my_rank < (comm_size / 2)) {
     if(group3 != MPI::GROUP_NULL)
@@ -272,19 +266,35 @@ group()
       sprintf(msg, "NODE %d - 14) ERROR in MPI::Compare, result = %d, should be %d", my_rank, result, MPI::IDENT);
       Fail(msg);
     }
+
+    if(group3 != MPI::GROUP_NULL)
+      group3.Free();
   }
 
   Pass(); // Excl
 
   MPI::COMM_WORLD.Set_errhandler(MPI::ERRORS_RETURN);
 
-  if(group2 != MPI::GROUP_NULL)
-    group2.Free();
-  // if(group3 != MPI::GROUP_NULL)
-  // group3.Free();
-  if(newgroup != MPI::GROUP_NULL)
-    newgroup.Free();
+  MPI::Group to_free[3];
+  to_free[0] = group2;
+  to_free[1] = group3;
+  to_free[2] = newgroup;
 
+  int j;
+  for (i = 0; i < 2; i++)
+    for (j = i + 1; j < 3; j++)
+      if (to_free[i] != MPI::GROUP_NULL &&
+	  to_free[j] != MPI::GROUP_NULL &&
+	  MPI::Group::Compare(to_free[i], to_free[j]) == MPI::IDENT)
+        to_free[j] = MPI::GROUP_NULL;
+  for (i = 0; i < 3; i++)
+    if (to_free[i] != MPI::GROUP_NULL)
+      to_free[i].Free();
+
+  group2 = MPI::GROUP_NULL;
+  group3 = MPI::GROUP_NULL;
+  newgroup = MPI::GROUP_NULL;
+  
   if(newcomm != MPI::COMM_NULL && newcomm != MPI::COMM_WORLD)
     newcomm.Free();
 }

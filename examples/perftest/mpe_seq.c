@@ -1,8 +1,12 @@
 #include "mpi.h"
-#ifndef NULL
-#define NULL (void *)0
-#endif
+#include "mpptest.h"
+#include <stdio.h>
+
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#else
 extern void *malloc();
+#endif
 
 static int MPE_Seq_keyval = MPI_KEYVAL_INVALID;
 
@@ -28,35 +32,33 @@ $
    order to the controling terminal (in other words, even if you flush the
    output, you may not get the data in the order that you want).
  */
-void MPE_Seq_begin( comm, ng )
-MPI_Comm comm;
-int      ng;
+void MPE_Seq_begin( MPI_Comm comm, int ng )
 {
-int        lidx, np;
-int        flag;
-MPI_Comm   local_comm;
-MPI_Status status;
+    int        lidx, np;
+    int        flag;
+    MPI_Comm   local_comm;
+    MPI_Status status;
 
 /* Get the private communicator for the sequential operations */
-if (MPE_Seq_keyval == MPI_KEYVAL_INVALID) {
-    MPI_Keyval_create( MPI_NULL_COPY_FN, MPI_NULL_DELETE_FN, 
-		       &MPE_Seq_keyval, NULL );
+    if (MPE_Seq_keyval == MPI_KEYVAL_INVALID) {
+	MPI_Keyval_create( MPI_NULL_COPY_FN, MPI_NULL_DELETE_FN, 
+			   &MPE_Seq_keyval, NULL );
     }
-MPI_Attr_get( comm, MPE_Seq_keyval, (void *)&local_comm, &flag );
-if (!flag) {
-    /* This expects a communicator to be a pointer */
-    MPI_Comm_dup( comm, &local_comm );
-    MPI_Attr_put( comm, MPE_Seq_keyval, (void *)local_comm );
+    MPI_Attr_get( comm, MPE_Seq_keyval, (void *)&local_comm, &flag );
+    if (!flag) {
+	/* This expects a communicator to be a pointer */
+	MPI_Comm_dup( comm, &local_comm );
+	MPI_Attr_put( comm, MPE_Seq_keyval, (void *)local_comm );
     }
-MPI_Comm_rank( comm, &lidx );
-MPI_Comm_size( comm, &np );
-if (lidx != 0) {
-    MPI_Recv( NULL, 0, MPI_INT, lidx-1, 0, local_comm, &status );
+    MPI_Comm_rank( comm, &lidx );
+    MPI_Comm_size( comm, &np );
+    if (lidx != 0) {
+	MPI_Recv( NULL, 0, MPI_INT, lidx-1, 0, local_comm, &status );
     }
 /* Send to the next process in the group unless we are the last process 
    in the processor set */
-if ( (lidx % ng) < ng - 1 && lidx != np - 1) {
-    MPI_Send( NULL, 0, MPI_INT, lidx + 1, 0, local_comm );
+    if ( (lidx % ng) < ng - 1 && lidx != np - 1) {
+	MPI_Send( NULL, 0, MPI_INT, lidx + 1, 0, local_comm );
     }
 }
 
@@ -71,26 +73,24 @@ if ( (lidx % ng) < ng - 1 && lidx != np - 1) {
    Notes:
    See MPE_Seq_begin for more details.
 @*/
-void MPE_Seq_end( comm, ng )
-MPI_Comm comm;
-int      ng;
+void MPE_Seq_end( MPI_Comm comm, int ng )
 {
-int        lidx, np, flag;
-MPI_Status status;
-MPI_Comm   local_comm;
+    int        lidx, np, flag;
+    MPI_Status status;
+    MPI_Comm   local_comm;
 
-MPI_Comm_rank( comm, &lidx );
-MPI_Comm_size( comm, &np );
-MPI_Attr_get( comm, MPE_Seq_keyval, (void *)&local_comm, &flag );
-if (!flag) 
-    MPI_Abort( comm, MPI_ERR_UNKNOWN );
+    MPI_Comm_rank( comm, &lidx );
+    MPI_Comm_size( comm, &np );
+    MPI_Attr_get( comm, MPE_Seq_keyval, (void *)&local_comm, &flag );
+    if (!flag) 
+	MPI_Abort( comm, MPI_ERR_UNKNOWN );
 /* Send to the first process in the next group OR to the first process
    in the processor set */
-if ( (lidx % ng) == ng - 1 || lidx == np - 1) {
-    MPI_Send( NULL, 0, MPI_INT, (lidx + 1) % np, 0, local_comm );
+    if ( (lidx % ng) == ng - 1 || lidx == np - 1) {
+	MPI_Send( NULL, 0, MPI_INT, (lidx + 1) % np, 0, local_comm );
     }
-if (lidx == 0) {
-    MPI_Recv( NULL, 0, MPI_INT, np-1, 0, local_comm, &status );
+    if (lidx == 0) {
+	MPI_Recv( NULL, 0, MPI_INT, np-1, 0, local_comm, &status );
     }
 }
 

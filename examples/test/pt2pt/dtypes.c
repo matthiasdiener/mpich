@@ -38,6 +38,7 @@
    We may want to add a routine to call to check that the proper data
    has been received.
  */
+/* TYPECNT is the number of instances of each type in a test */
 #define TYPECNT 10
 #define SETUPBASICTYPE(mpi,c,name) { int i; c *a; \
 if (cnt > *n) {*n = cnt; return; }\
@@ -136,6 +137,7 @@ names[cnt] = (char *)malloc(100);\
 sprintf( names[cnt], "Struct (MPI_UB) type %s", name );\
 counts[cnt]  = TYPECNT;  bytesize[cnt] = sizeof(c) * TYPECNT * STRIDE;cnt++; }
 
+static int nbasic_types = 0;
 /* On input, n is the size of the various buffers.  On output, 
    it is the number available types 
  */
@@ -160,6 +162,13 @@ SETUPBASICTYPE(MPI_UNSIGNED_LONG,unsigned long,"MPI_UNSIGNED_LONG");
 SETUPBASICTYPE(MPI_FLOAT,float,"MPI_FLOAT");
 SETUPBASICTYPE(MPI_DOUBLE,double,"MPI_DOUBLE");
 SETUPBASICTYPE(MPI_BYTE,char,"MPI_BYTE");
+#ifdef HAVE_LONG_LONG_INT
+SETUPBASICTYPE(MPI_LONG_LONG_INT,long long,"MPI_LONG_LONG_INT");
+#endif
+#ifdef HAVE_LONG_DOUBLE
+SETUPBASICTYPE(MPI_LONG_DOUBLE,long double,"MPI_LONG_DOUBLE");
+#endif
+nbasic_types = cnt;
 
 /* Generate contiguous data items */
 SETUPCONTIGTYPE(MPI_CHAR,char,"MPI_CHAR");
@@ -173,6 +182,12 @@ SETUPCONTIGTYPE(MPI_UNSIGNED_LONG,unsigned long,"MPI_UNSIGNED_LONG");
 SETUPCONTIGTYPE(MPI_FLOAT,float,"MPI_FLOAT");
 SETUPCONTIGTYPE(MPI_DOUBLE,double,"MPI_DOUBLE");
 SETUPCONTIGTYPE(MPI_BYTE,char,"MPI_BYTE");
+#ifdef HAVE_LONG_LONG_INT
+SETUPCONTIGTYPE(MPI_LONG_LONG_INT,long long,"MPI_LONG_LONG_INT");
+#endif
+#ifdef HAVE_LONG_DOUBLE
+SETUPCONTIGTYPE(MPI_LONG_DOUBLE,long double,"MPI_LONG_DOUBLE");
+#endif
 
 /* Generate vector items */
 SETUPVECTORTYPE(MPI_CHAR,char,"MPI_CHAR");
@@ -186,6 +201,12 @@ SETUPVECTORTYPE(MPI_UNSIGNED_LONG,unsigned long,"MPI_UNSIGNED_LONG");
 SETUPVECTORTYPE(MPI_FLOAT,float,"MPI_FLOAT");
 SETUPVECTORTYPE(MPI_DOUBLE,double,"MPI_DOUBLE");
 SETUPVECTORTYPE(MPI_BYTE,char,"MPI_BYTE");
+#ifdef HAVE_LONG_LONG_INT
+SETUPVECTORTYPE(MPI_LONG_LONG_INT,long long,"MPI_LONG_LONG_INT");
+#endif
+#ifdef HAVE_LONG_DOUBLE
+SETUPVECTORTYPE(MPI_LONG_DOUBLE,long double,"MPI_LONG_DOUBLE");
+#endif
 
 /* Generate indexed items */
 SETUPINDEXTYPE(MPI_CHAR,char,"MPI_CHAR");
@@ -199,6 +220,12 @@ SETUPINDEXTYPE(MPI_UNSIGNED_LONG,unsigned long,"MPI_UNSIGNED_LONG");
 SETUPINDEXTYPE(MPI_FLOAT,float,"MPI_FLOAT");
 SETUPINDEXTYPE(MPI_DOUBLE,double,"MPI_DOUBLE");
 SETUPINDEXTYPE(MPI_BYTE,char,"MPI_BYTE");
+#ifdef HAVE_LONG_LONG_INT
+SETUPINDEXTYPE(MPI_LONG_LONG_INT,long long,"MPI_LONG_LONG_INT");
+#endif
+#ifdef HAVE_LONG_DOUBLE
+SETUPINDEXTYPE(MPI_LONG_DOUBLE,long double,"MPI_LONG_DOUBLE");
+#endif
 
 /* Generate struct items */ 
 SETUPSTRUCT2TYPE(MPI_CHAR,char,MPI_DOUBLE,double,d1,"char-double")
@@ -223,7 +250,8 @@ SETUPSTRUCTTYPEUB(MPI_FLOAT,float,"MPI_FLOAT");
 SETUPSTRUCTTYPEUB(MPI_DOUBLE,double,"MPI_DOUBLE");
 SETUPSTRUCTTYPEUB(MPI_BYTE,char,"MPI_BYTE");
 
-/* 60 different entries to this point */
+/* 60 different entries to this point + 4 for long long and 
+   4 for long double */
 *n = cnt;
 }
 
@@ -231,7 +259,7 @@ SETUPSTRUCTTYPEUB(MPI_BYTE,char,"MPI_BYTE");
    MAX_TEST should be 1 + actual max (allows us to check that it was, 
    indeed, large enough) 
  */
-#define MAX_TEST 61
+#define MAX_TEST 70
 void AllocateForData( types, inbufs, outbufs, counts, bytesize, names, n )
 MPI_Datatype **types;
 void ***inbufs;
@@ -305,7 +333,7 @@ for (i=0; i<n; i++) {
 	free( outbufs[i] );
     free( names[i] );
     /* Only if not basic ... */
-    if (i > 10) 
+    if (i > nbasic_types) 
 	MPI_Type_free( types + i );
     }
 free( inbufs );

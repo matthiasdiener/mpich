@@ -34,15 +34,15 @@ all: @MPIMOD@.$(MOD) mpi-base.$(MOD)
 # Because of VPATH, we may also need to make a copy of a few files to
 # the local directory as well.
 copysrcs:
-	for file in mpi1 mpi2 mpi_constants ; do \
+	@for file in mpi1 mpi2 mpi_constants ; do \
 	    if [ ! -s $${file}.${F90SUFFIX} ] ; then \
 		cp ${srcdir}/$$file.f90 $${file}.${F90SUFFIX} ; fi ; \
 	done
 @MPIMOD@.$(MOD): copysrcs \
-	mpi.$(F90SUFFIX) @MPICONSTMOD@.$(MOD) \
-	@MPIMOD@1.$(MOD) @MPIMOD@2.$(MOD) \
-	choice_modules
-	if [ -s mpi.$(F90SUFFIX) ] ; then \
+		mpi.$(F90SUFFIX) @MPICONSTMOD@.$(MOD) \
+		@MPIMOD@1.$(MOD) @MPIMOD@2.$(MOD) \
+		choice_modules
+	@if [ -s mpi.$(F90SUFFIX) ] ; then \
 	    $(F90) -c $(FFLAGS) mpi.$(F90SUFFIX) ; \
 	else \
 	    $(F90) -c $(FFLAGS) ${srcdir}/mpi.$(F90SUFFIX) ; fi
@@ -55,18 +55,18 @@ mpi-base.$(MOD): mpi.$(F90SUFFIX) \
 	if [ ! -d .tmp ] ; then mkdir .tmp ; fi
 	cp mpi-nochoice.$(F90SUFFIX) .tmp/mpi.$(F90SUFFIX)
 	rm -f .tmp/@MPIMOD@2.$(MOD) .tmp/@MPIMOD@1.$(MOD) .tmp/@MPICONSTMOD@.$(MOD)
-	(cd .tmp ; @LN_S@ ../@MPIMOD@1.$(MOD) @MPIMOD@1.$(MOD) ;\
+	@(cd .tmp ; @LN_S@ ../@MPIMOD@1.$(MOD) @MPIMOD@1.$(MOD) ;\
 	@LN_S@ ../@MPIMOD@2.$(MOD) @MPIMOD@2.$(MOD) ;\
 	@LN_S@ ../@MPICONSTMOD@.$(MOD) @MPICONSTMOD@.$(MOD) ;\
 	$(F90) -c $(FFLAGS) ./mpi.$(F90SUFFIX) )
 	@AR@ ${libbuild_dir}/lib@MPIMODLIBNAMENC@.a .tmp/mpi.o mpi1.o mpi2.o \
 		mpi_constants.o
-	cp .tmp/@MPIMOD@.$(MOD) mpi-base.$(MOD)
-	rm -f .tmp/*
-	if [ -d .tmp ] ; then rmdir .tmp ; fi
+	@cp .tmp/@MPIMOD@.$(MOD) mpi-base.$(MOD)
+	@rm -f .tmp/*
+	@if [ -d .tmp ] ; then rmdir .tmp ; fi
 	if [ ! -d ${includebuild_dir}/f90base ] ; then \
 		mkdir ${includebuild_dir}/f90base ; fi
-	cp mpi-base.${MOD} ${includebuild_dir}/f90base
+	cp mpi-base.${MOD} ${includebuild_dir}/f90base/@MPIMOD@.${MOD}
 	cp @MPICONSTMOD@.${MOD} ${includebuild_dir}/f90base
 	cp @MPIMOD@1.${MOD} ${includebuild_dir}/f90base
 	cp @MPIMOD@2.${MOD} ${includebuild_dir}/f90base
@@ -86,10 +86,10 @@ mpi-base.$(MOD): mpi.$(F90SUFFIX) \
 # These are for the maintainers only
 ExtractRawBindings:
 CreateModuleSrc:
-mpi1f.h: ExtractRawBindings
-	if [ -x ExtractRawBindings ] ; then ./ExtractRawBindings ; fi
+${srcdir}/mpi1f.h: ExtractRawBindings
+	if [ -x ./ExtractRawBindings ] ; then ./ExtractRawBindings ; fi
 	touch mpi1f.h
-mpi1__type_s.f90 mpi1.f90 mpi2.f90: mpi1f.h CreateModuleSrc
+${srcdir}mpi1__type_s.f90 ${srcdir}/mpi1.f90 ${srcdir}/mpi2.f90: ${srcdir}/mpi1f.h CreateModuleSrc
 	if [ -x ./CreateModuleSrc ] ; then \
 	    ./CreateModuleSrc -exclude=${srcdir}/exclude ; fi
 # to here
@@ -114,9 +114,9 @@ uninstall:
 #
 # Use -traditional to get the integer*2 types if you perfer that
 # Use -types="integer8 real2" if you want to specify specific types
-mpi.$(F90SUFFIX): mpi1__type_s.f90
-	( MAKE="@MAKE@" ; export MAKE ; \
-	${srcdir}/CreateChoiceSrc -kind @TYPELIST@ -f90suffix=@F90SUFFIX@ )
+mpi.$(F90SUFFIX): ${srcdir}/mpi1__type_s.f90
+	@( MAKE="@MAKE@" ; export MAKE ; \
+	${srcdir}/CreateChoiceSrc @CHOICE_TYPE@ @TYPELIST@ -f90suffix=@F90SUFFIX@ )
 
 #
 # This MUST use f90 as the suffix, because we use this to find the
@@ -125,7 +125,10 @@ mpi.$(F90SUFFIX): mpi1__type_s.f90
 # This must *not* use srcdir, since each system will generate slightly
 # different (based on available data kinds) files
 choice_modules: 
-	for file in `ls mpi[12]__[cilr][a-z0-9]*_[vs]*.${F90SUFFIX}` ; do \
+	@-for file in `ls mpi[12]__[cilr][a-z0-9]*_[vs]*.${F90SUFFIX}` ; do \
+	    if [ ! -s $$file ] ; then \
+		echo "No Fortran 90 choice files!" ; ls -l ; break ; \
+	    fi ; \
 	    filename=`basename $$file .${F90SUFFIX}` ; \
 	    @MAKE@ -f Makefile $$filename.$(MOD) ; done
 
@@ -133,6 +136,8 @@ f90modflag:
 	@echo "@MODDIRFLAG@"
 f90suffix:
 	@echo "@F90SUFFIX@"
+f90incflag:
+	@echo "@F90INC@"
 #
 # Add the module's object file to the module library as well.
 .$(F90SUFFIX).$(MOD): 
@@ -151,7 +156,7 @@ f90suffix:
 	$(F90) -c $(FFLAGS) $<
 
 configure: configure.in
-	autoconf --local_dir=..
+	./makeconfigure
 
 # Remove both .f90 and .f incase the Fortran90 compiler does not accept f90
 # Ditto for .M and .mod
@@ -165,6 +170,7 @@ clean:
 	       mpi2__[cilr][a-z0-9]*_[vs]*.f \
 	       mpi.f mpi-nochoice.f
 distclean: clean
+	@-rm -f config.log config.status config.cache config.system Makefile
 maintainer-clean: distclean
 	rm -f  mpi1__type_[sv]*.f90 mpi2__type_[sv]*.f90 mpi1.f90 mpi2.f90
 	rm -f mpi1f.h mpi1fv.h mpi2f.h mpi2fv.h mpi1fvs.h mpi1fsv.h \

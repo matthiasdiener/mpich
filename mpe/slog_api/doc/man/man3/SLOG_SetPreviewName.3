@@ -1,4 +1,4 @@
-.TH SLOG_SetPreviewName 3 "6/23/1999" " " "SLOG_API"
+.TH SLOG_SetPreviewName 3 "12/23/1999" " " "SLOG_API"
 .SH NAME
 SLOG_SetPreviewName \-  Set the filename of the to be copied Preview file and Copy the file's content to the SLOG file 
 .SH SYNOPSIS
@@ -10,6 +10,9 @@ int SLOG_SetPreviewName( SLOG_STREAM *slog, const char *pview_filename )
 .TP
 .B pview_filename 
 - pointer to the characters of the Preview's filename.
+If no file is supplied, "/dev/null" should be
+supplied to avoid checking of file SLOG_Preview.txt
+in working directory.
 .PD 1
 
 .SH MODIFIED INPUT PARAMETER 

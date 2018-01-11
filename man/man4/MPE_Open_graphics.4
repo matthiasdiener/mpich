@@ -1,10 +1,9 @@
-.TH MPE_Open_graphics 4 "5/15/1999" " " "MPE"
+.TH MPE_Open_graphics 4 "8/28/2000" " " "MPE"
 .SH NAME
 MPE_Open_graphics \-  (collectively) opens an X Windows display 
 .SH SYNOPSIS
 .nf
-#include <stdio.h>
-#include "mpe.h"
+#include "mpe.h" 
 int MPE_Open_graphics( handle, comm, display, x, y, w, h, is_collective )
 MPE_XGraph *handle;
 MPI_Comm   comm;
@@ -25,7 +24,8 @@ int        is_collective;
 - Name of X window display.  If null, display will be taken from
 the DISPLAY variable on the process with rank 0 in 
 .I comm
-.  If that is
+\&.
+If that is
 either undefined, or starts with w ":", then the value of display is
 `hostname`:0
 .PD 1

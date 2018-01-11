@@ -55,7 +55,9 @@ int main( int argc, char **argv )
 		MPI_Test( &request, &flag, &status );
 	    } while (!flag);
 	    if (status.MPI_TAG == 2001) {
+#ifdef VERBOSE
 		printf( "Received terminate message\n" );
+#endif
 		break;
 	    }
 	    if (status.MPI_TAG == 2000) {

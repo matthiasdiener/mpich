@@ -1,5 +1,5 @@
 /* 
- *   $Id: get_info.c,v 1.5 1999/08/27 20:53:05 thakur Exp $    
+ *   $Id: get_info.c,v 1.7 2000/02/09 21:30:12 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +19,7 @@
 #endif
 
 /* Include mapping from MPI->PMPI */
-#define __MPIO_BUILD_PROFILING
+#define MPIO_BUILD_PROFILING
 #include "mpioprof.h"
 #endif
 
@@ -36,10 +36,19 @@ Output Parameters:
 @*/
 int MPI_File_get_info(MPI_File fh, MPI_Info *info_used)
 {
+#ifndef PRINT_ERR_MSG
+    int error_code;
+    static char myname[] = "MPI_FILE_GET_INFO";
+#endif
+
+#ifdef PRINT_ERR_MSG
     if ((fh <= (MPI_File) 0) || (fh->cookie != ADIOI_FILE_COOKIE)) {
-	printf("MPI_File_get_info: Invalid file handle\n");
+	FPRINTF(stderr, "MPI_File_get_info: Invalid file handle\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
+#else
+    ADIOI_TEST_FILE_HANDLE(fh, myname);
+#endif
 
     return MPI_Info_dup(fh->info, info_used);
 }

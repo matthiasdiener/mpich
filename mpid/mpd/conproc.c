@@ -25,139 +25,125 @@ extern int    allexiting;
 /*
  *	Execute command at multiple nodes, using manager process
  */
-void con_mpexec(command)
-char *command;
+void con_mpexec( )
 {
-    char *c;
     char mpexecbuf[MAXLINE];
-    char program[80];
-    char buf[MAXLINE];
+    char program[256];
+    char buf[MAXLINE], eqbuf[80], locid[8], argid[8], envid[8];
     char console_hostname[MAXHOSTNMLEN];
-    int  console_portnum;
-    int  numprocs, jid;
-    int  pre_build_print_tree;
+    char username[MAXLINE];
+    int  console_portnum, iotree;
+    int  numprocs, jid, line_labels, shmemgrpsize;
+    int  i, locc, envc, argc;
+    int  groupid;
+    char groups[5*MAXGIDS];
 
-    c = strtok( command, " \n" );     /* should be mpexec */
+    getval( "hostname", console_hostname );
+    getval( "portnum", buf );
+    console_portnum = atoi( buf );
+    getval( "iotree", buf );
+    iotree = atoi( buf );
+    getval( "line_labels", buf );
+    line_labels = atoi( buf );
+    getval( "numprocs", buf );
+    numprocs = atoi( buf );
+    getval( "shmemgrpsize", buf );
+    shmemgrpsize = atoi( buf );
+    getval( "executable", program );
+    getval( "username", username );
+    getval( "groupid", buf );
+    groupid = atoi( buf );
+    getval( "groups", groups );
 
-    if ( !( c = strtok( NULL, " \n" ) ) ) { /* should be hostname where console is */
-	sprintf( buf, "must specify hostname for mpexec\n" );
-	write_line( console_idx, buf );
-	return;
-    }
-    strcpy( console_hostname, c );
-
-    if ( !( c = strtok( NULL, " \n" ) ) ) { /* should be port where console is listening*/
-	sprintf( buf, "must specify console listen port for mpexec\n" );
-	write_line( console_idx, buf );
-	return;
-    }
-    console_portnum = atoi( c );
-
-    if ( !( c = strtok( NULL, " \n" ) ) ) { /* should be pre_build_print_tree flag*/
-	sprintf( buf, "must specify pre_build_print_tree flag for mpexec\n" );
-	write_line( console_idx, buf );
-	return;
-    }
-    pre_build_print_tree = atoi( c );
-
-    if ( !( c = strtok( NULL, " \n" ) ) ) { /* should be numprocs */
-	sprintf( buf, "must specify numprocs for mpexec\n" );
-	write_line( console_idx, buf );
-	return;
-    }
-    numprocs = atoi( c );	
-    if ( !( c = strtok( NULL, " \n" ) ) ) {	 /* should be program */
-	sprintf( buf,"must specify program for mpexec\n" );
-	write_line( console_idx, buf );
-	return;
-    }
-    strcpy( program, c );
     jid = allocate_jobid();
     mpdprintf( debug, "con_mpexec: new job id allocated = %d\n", jid );
-    sprintf( buf, "job id is %d\n", jid );
+    sprintf( buf, "jobid=%d\n", jid );
     write_line( console_idx, buf );
 
     /* hopcount is for checking that an mpexec message has gone around the ring without
        any processes getting started, which indicates a bad machine name in MPDLOC */
     sprintf(mpexecbuf,
 	    "cmd=mpexec conhost=%s conport=%d rank=0 src=%s "
-	    "prebuildprinttree=%d "
-	    "dest=anyone job=%d jobsize=%d prog=%s hopcount=0 ",
-	    console_hostname, console_portnum, myid, 
-	    pre_build_print_tree,
-	    jid, numprocs, program);
+	    "iotree=%d dest=anyone job=%d jobsize=%d prog=%s hopcount=0 line_labels=%d "
+	    "shmemgrpsize=%d username=%s groupid=%d, groups=%s ",
+	    console_hostname, console_portnum, myid, iotree, jid, numprocs, program,
+	    line_labels, shmemgrpsize, username, groupid, groups );
 
-    while (*c != '\0') /* skip pgm */ 
-	c++;
-    c++;		/* skip over \0 planted by strtok */
-    if (*c)
-	strcat( mpexecbuf, c );  /* add args, env, and newline */
+    /* now add other arguments, which are already in key=val form */
+    if ( getval( "locc", buf ) )
+	locc = atoi( buf );
     else
-	strcat( mpexecbuf, "\n" );
+	locc = 0;
+    sprintf( eqbuf, "locc=%s ", buf );
+    strcat( mpexecbuf, eqbuf );
+    for ( i = 1; i <= locc; i++ ) {
+	sprintf( locid, "loc%d", i );
+	getval( locid, buf );
+	sprintf( eqbuf, "loc%d=%s ", i, buf );
+	strcat( mpexecbuf, eqbuf );
+    }
+
+    if ( getval( "argc", buf ) )
+	argc = atoi( buf );
+    else
+	argc = 0;
+    sprintf( eqbuf, "argc=%s ", buf );
+    strcat( mpexecbuf, eqbuf );
+    for ( i=1; i <= argc; i++ ) {
+	sprintf( argid, "arg%d", i );
+	getval( argid, buf );
+	sprintf( eqbuf, "arg%d=%s ", i, buf );
+	strcat( mpexecbuf, eqbuf );
+    }
+
+    if ( getval( "envc", buf ) )
+	envc = atoi( buf );
+    else
+	envc = 0;
+    sprintf( eqbuf, "envc=%s ", buf );
+    strcat( mpexecbuf, eqbuf );
+    for ( i=1; i <= envc; i++ ) {
+	sprintf( envid, "env%d", i );
+	getval( envid, buf );
+	sprintf( eqbuf, "env%d=%s ", i, buf );
+	strcat( mpexecbuf, eqbuf );
+    }
+
+    mpexecbuf[strlen(mpexecbuf)-1] = '\n';
     mpdprintf( debug, "con_mpexec sending :%s:\n", mpexecbuf );
     write_line( rhs_idx, mpexecbuf );
 }
 
-void con_pkill(command)
-char *command;
+void con_killjob( )
 {
-    char *c;
-    char pkillbuf[MAXLINE];
     char buf[MAXLINE];
-    int  jid;
+    int  jobid;
 
-    c = strtok( command, " \n" );	 /* should be pkill */
-    if ( !( c = strtok( NULL, " \n" ) ) ) {	 /* should be jid */
-	sprintf( buf, "must specify job id for pkill\n" );
-	write_line( console_idx, buf );
-	return;
-    }
-    else {
-	jid = atoi( c );
-	/* broadcast killjob message */
-	sprintf( pkillbuf, "src=%s bcast=true cmd=killjob job=%d\n", 
-		 myid, jid );
-	write_line( rhs_idx, pkillbuf );
-	kill_job( jid, SIGINT );
-    }
+    jobid = atoi( getval( "jobid", buf) );
+    sprintf( buf, "src=%s bcast=true cmd=killjob jobid=%d\n", myid, jobid );
+    write_line( rhs_idx, buf );
+    mpdprintf( debug, "con_killjob: sending killjob jobid=%d\n", jobid );
 }
 
-void con_exit(command)
-char *command;
+void con_exit( )
 {
-    char *c;
-    char buf[MAXLINE];
+    char buf[MAXLINE], mpd_id[IDSIZE];
 
-    c = strtok( command, " " );	  /* should be "exit" */
-    if ( !c ) {
-	mpdprintf( debug, "did not get expected exit command\n" );
-	return;
-    }
-    c = strtok( NULL , " \n" );	  /* should be id of mpd to exit */
-    if ( !c ) {
-	mpdprintf( debug, "did not get expected id to exit\n" );
-	return;
-    }
-    sprintf( buf, "src=%s dest=%s cmd=exit\n", myid, c );
+    getval( "mpd_id", mpd_id );
+    sprintf( buf, "src=%s dest=%s cmd=exit\n", myid, mpd_id );
     write_line( rhs_idx, buf );
 }
 
-void con_allexit(command)
-char *command;
+void con_allexit( )
 {
-    char *c;
     char buf[MAXLINE];
 
-    c = strtok( command, " " );	  /* should be "allexit" */
-    if ( !c ) {
-	mpdprintf( debug, "did not get expected allexit command\n" );
-	return;
-    }
     allexiting = 1;
     sprintf( buf, "src=%s bcast=true cmd=allexit\n", myid );
     write_line( rhs_idx, buf );
 }
 
+/* RMB: con_addmpd is woefully out of date */
 void con_addmpd(command)
 char *command;
 {
@@ -196,101 +182,106 @@ char *command;
     }
 }
 
-void con_debug(command)
-char *command;
+void con_debug()
 {
-    char *c, *to_id;
-    char buf[MAXLINE];
+    char buf[MAXLINE], dest[MAXLINE], src[MAXLINE];
     int  flag;
 	
-    c = strtok(command," \n" ); /* should be debug */
-    to_id = strtok( NULL , " \n" );
-    if ( !to_id ) {
-	sprintf(buf,"must specify to-id for debug\n" );
-	write_line( console_idx, buf );
-	return;
+    getval( "dest", dest );
+    flag = atoi( getval( "flag", buf ) );
+    if ( strcmp( dest, myid ) == 0 )  {
+        debug = flag;
     }
-    c = strtok(NULL," \n" ); /* should be count */
-    if (!c)
-    {
-	sprintf(buf,"must specify flag for debug cmd\n" );
-	write_line( console_idx, buf );
-	return;
-    }
-    else {
-	flag = atoi( c );
-	sprintf( buf, "src=%s dest=%s cmd=debug flag=%d\n",
-		 myid, to_id, flag );
-	write_line( rhs_idx, buf );
+    else  {
+        getval( "src", src );
+        sprintf( buf, "src=%s dest=%s cmd=debug flag=%d\n", myid, dest, flag );
+        write_line( rhs_idx, buf );
     }
 }
 
-void con_ringtest(command)
-char *command;
+void con_ringtest( )
 {
-    char *c;
     char ringtestbuf[MAXLINE];
     int  count;
     char buf[MAXLINE];
     double timestamp;
 
-    c = strtok(command," \n" ); /* should be ringtest */
-    c = strtok(NULL," \n" ); /* should be count */
-    if (!c)
-    {
-	sprintf(buf,"must specify count for ringtest\n" );
+    getval( "laps", buf );
+
+    if ( buf[0] == '\0' ) {
+	sprintf( buf, "must specify count for ringtest\n" );
 	write_line( console_idx, buf );
 	return;
     }
-    else {
-	count = atoi( c );
-	if ( count > 0 ) {
-	    /* send message around ring to self */
-	    timestamp = mpd_timestamp();
-	    sprintf( ringtestbuf, "src=%s dest=%s cmd=ringtest count=%d starttime=%f\n",
-		     myid, myid, count, timestamp );
-	    write_line( rhs_idx, ringtestbuf );
-	}
+    count = atoi( buf );
+    if ( count > 0 ) {
+	/* send message around ring to self */
+	timestamp = mpd_timestamp();
+	sprintf( ringtestbuf, "src=%s dest=%s cmd=ringtest count=%d starttime=%f\n",
+		 myid, myid, count, timestamp );
+	write_line( rhs_idx, ringtestbuf );
     }
 }
 
-void con_trace( command )
-char *command;
+void con_trace( )
 {
     char tracebuf[MAXLINE];
 	
     /* send message to next mpd in ring; it will be forwarded all the way around */
     sprintf( tracebuf, "src=%s bcast=true cmd=trace\n", myid );
     write_line( rhs_idx, tracebuf );
+    sprintf( tracebuf, "src=%s bcast=true cmd=trace_trailer\n", myid );
+    write_line( rhs_idx, tracebuf );
 }
-void con_dump( command )
-char *command;
+
+void con_listjobs( )
+{
+    char listbuf[MAXLINE];
+	
+    /* send message to next mpd in ring; it will be forwarded all the way around */
+    sprintf( listbuf, "src=%s bcast=true cmd=listjobs\n", myid );
+    write_line( rhs_idx, listbuf );
+    sprintf( listbuf, "src=%s bcast=true cmd=listjobs_trailer\n", myid );
+    write_line( rhs_idx, listbuf );
+}
+
+void con_dump( )
 {
     char dumpbuf[MAXLINE], what[80];
-    char *c;
 
-    c = strtok(command," \n" ); /* should be dump */
-    c = strtok(NULL," \n" ); /* should be what to dump */
-    strcpy( what, c );
+    getval( "what", what );
     mpdprintf( debug, "conproc sending dump message to rhs, src=%s, what=%s\n",
 	       myid, what );
-    sprintf( dumpbuf, "src=%s dest=anyone cmd=dump what_to_dump=%s\n", myid, what );
+    sprintf( dumpbuf, "src=%s dest=anyone cmd=dump what=%s\n", myid, what );
     write_line( rhs_idx, dumpbuf );
 }
 
-void con_ping(command)
-char *command;
+void con_mandump( )
 {
-    char *c;
+    char dumpbuf[MAXLINE], buf[MAXLINE], what[80];
+    int  jobid, manrank;
+
+    getval( "jobid", buf );
+    jobid = atoi( buf );
+    getval( "rank", buf );
+    manrank = atoi( buf );
+    getval( "what", what );
+    mpdprintf( debug,
+	       "conproc sending mandump message to rhs, src=%s, "
+               "jobid=%d manrank=%d what=%s\n",
+	       myid, jobid, manrank, what );
+    sprintf( dumpbuf,
+	     "src=%s dest=anyone cmd=mandump jobid=%d manrank=%d what=%s\n",
+	     myid, jobid, manrank, what );
+    write_line( rhs_idx, dumpbuf );
+}
+
+void con_ping( )
+{
     char buf[MAXLINE];
     char *pingee_id;
 
-    c = strtok( command, " " );		  /* should be "ping" */
-    if ( !c ) {
-	mpdprintf( debug, "did not get expected ping command\n" );
-	return;
-    }
-    pingee_id = strtok( NULL , " \n" );
+    pingee_id = getval( "pingee", buf );
     if ( !pingee_id ) {
 	mpdprintf( debug, "did not get expected id to ping\n" );
 	return;
@@ -300,22 +291,27 @@ char *command;
 }
 
 /* cmd to cause an mpd to "fail" for testing */
-void con_bomb(command)
-char *command;
+void con_bomb( )
 {
-    char *c;
-    char buf[MAXLINE];
+    char buf[MAXLINE], mpd_id[IDSIZE];
 
-    c = strtok( command, " " );	  /* should be "bomb" */
-    if ( !c ) {
-	mpdprintf( debug, "did not get expected bomb command\n" );
-	return;
-    }
-    c = strtok( NULL , " \n" );	  /* should be id of mpd to bomb */
-    if ( !c ) {
-	mpdprintf( debug, "did not get expected id to bomb\n" );
-	return;
-    }
-    sprintf( buf, "src=%s dest=%s cmd=bomb\n", myid, c );
+    getval( "mpd_id", mpd_id );
+    sprintf( buf, "src=%s dest=%s cmd=bomb\n", myid, mpd_id );
     write_line( rhs_idx, buf );
 }
+
+void con_signaljob( )
+{
+    char c_signum[32];
+    char buf[MAXLINE];
+    int  jobid;
+
+    jobid = atoi( getval( "jobid", buf) );
+    strcpy( c_signum, getval( "signum", buf ) );
+    sprintf( buf, "src=%s bcast=true cmd=signaljob jobid=%d signum=%s\n",
+             myid, jobid, c_signum );
+    write_line( rhs_idx, buf );
+    mpdprintf( debug, "con_signaljob: signaling jobid=%d c_signum=%s\n",
+               jobid, c_signum );
+}
+

@@ -1,13 +1,9 @@
-.TH MPE_IO_Stdout_to_file 4 "12/7/1998" " " "MPE"
+.TH MPE_IO_Stdout_to_file 4 "7/3/2000" " " "MPE"
 .SH NAME
 MPE_IO_Stdout_to_file \-  Re-direct stdout to a file 
 .SH SYNOPSIS
 .nf
-#include <stdio.h>
-#include "mpe.h"
-void MPE_IO_Stdout_to_file( name, mode )
-char *name;
-int  mode;
+void MPE_IO_Stdout_to_file( char *name, int mode )
 .fi
 .SH PARAMETERS
 .PD 0
@@ -18,7 +14,8 @@ int  mode;
 , this value will be replaced with
 the rank of the process in 
 .I MPI_COMM_WORLD
-.
+\&.
+
 .PD 1
 
 .PD 0

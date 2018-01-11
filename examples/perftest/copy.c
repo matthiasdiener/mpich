@@ -2,7 +2,6 @@
 
 #include "mpi.h"
 #include "mpptest.h"
-extern int __NUMNODES, __MYPROCID;
 
 #if HAVE_STDLIB_H
 #include <stdlib.h>
@@ -12,19 +11,16 @@ extern int __NUMNODES, __MYPROCID;
    Test of single process memcpy.
    ctx is ignored for this test.
 */
-double memcpy_rate(reps,len,ctx)
-int      reps,len;
-PairData *ctx;
+double memcpy_rate(int reps, int len, void *ctx)
 {
   double elapsed_time;
-  int  i,msg_id,myproc;
+  int  i;
   char *sbuffer,*rbuffer;
   double t0, t1;
 
   sbuffer = (char *)malloc(len);
   rbuffer = (char *)malloc(len);
 
-  myproc       = __MYPROCID;
   elapsed_time = 0;
   *(&t0)=MPI_Wtime();
   for(i=0;i<reps;i++){

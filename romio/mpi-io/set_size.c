@@ -1,5 +1,5 @@
 /* 
- *   $Id: set_size.c,v 1.5 1999/08/27 20:53:17 thakur Exp $    
+ *   $Id: set_size.c,v 1.7 2000/02/09 21:30:19 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +19,7 @@
 #endif
 
 /* Include mapping from MPI->PMPI */
-#define __MPIO_BUILD_PROFILING
+#define MPIO_BUILD_PROFILING
 #include "mpioprof.h"
 #endif
 
@@ -35,6 +35,9 @@ Input Parameters:
 int MPI_File_set_size(MPI_File fh, MPI_Offset size)
 {
     int error_code;
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "MPI_FILE_SET_SIZE";
+#endif
     MPI_Offset tmp_sz;
 #ifdef MPI_hpux
     int fl_xmpi;
@@ -43,22 +46,38 @@ int MPI_File_set_size(MPI_File fh, MPI_Offset size)
 		  MPI_DATATYPE_NULL, -1);
 #endif /* MPI_hpux */
 
+#ifdef PRINT_ERR_MSG
     if ((fh <= (MPI_File) 0) || (fh->cookie != ADIOI_FILE_COOKIE)) {
-	printf("MPI_File_set_size: Invalid file handle\n");
+	FPRINTF(stderr, "MPI_File_set_size: Invalid file handle\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
+#else
+    ADIOI_TEST_FILE_HANDLE(fh, myname);
+#endif
 
     if (size < 0) {
-        printf("MPI_File_set_size: Invalid size argument\n");
+#ifdef PRINT_ERR_MSG
+        FPRINTF(stderr, "MPI_File_set_size: Invalid size argument\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
+#else
+	error_code = MPIR_Err_setmsg(MPI_ERR_ARG, MPIR_ERR_SIZE_ARG,
+				     myname, (char *) 0, (char *) 0);
+	return ADIOI_Error(fh, error_code, myname);
+#endif
     }
 
     tmp_sz = size;
     MPI_Bcast(&tmp_sz, 1, ADIO_OFFSET, 0, fh->comm);
 
     if (tmp_sz != size) {
-	printf("MPI_File_set_size: size argument must be the same on all processes\n");
+#ifdef PRINT_ERR_MSG
+	FPRINTF(stderr, "MPI_File_set_size: size argument must be the same on all processes\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
+#else
+	error_code = MPIR_Err_setmsg(MPI_ERR_ARG, MPIR_ERR_SIZE_ARG_NOT_SAME,
+				     myname, (char *) 0, (char *) 0);
+	return ADIOI_Error(fh, error_code, myname);
+#endif
     }
 
     ADIO_Resize(fh, size, &error_code);

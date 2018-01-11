@@ -1,10 +1,9 @@
-.TH MPE_Get_mouse_press 4 "5/15/1999" " " "MPE"
+.TH MPE_Get_mouse_press 4 "7/14/2000" " " "MPE"
 .SH NAME
 MPE_Get_mouse_press \-  Waits for mouse button press 
 .SH SYNOPSIS
 .nf
-#include <stdio.h>
-#include "mpe.h"
+#include "mpe.h" 
 int MPE_Get_mouse_press( graph, x, y, button )
 MPE_XGraph graph;
 int *x, *y, *button;
@@ -32,6 +31,7 @@ int *x, *y, *button;
 .B button 
 - which button was pressed: 
 .I MPE_BUTTON[1-5]
+
 .PD 1
 
 .SH NOTES

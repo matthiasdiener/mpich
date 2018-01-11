@@ -1,4 +1,4 @@
-/* 	$Id: coll.h,v 1.3 1999/08/20 02:25:57 ashton Exp $	 */
+/* 	$Id: coll.h,v 1.4 2000/02/26 14:57:39 gropp Exp $	 */
 
 #ifndef MPIR_MIN
 
@@ -42,8 +42,8 @@ mpi_errno = MPI_Sendrecv ( (void *)(src), count, datatype, rank, tag, \
 #define MPIR_COPYSELF( src, count, datatype, dest, tag, rank, comm ) \
 {int _outlen, _totlen; \
 mpi_errno = MPIR_Pack2( src, count, maxcount, datatype, \
-			(int (*) ANSI_ARGS((unsigned char *, unsigned char *, \
-					    MPI_Datatype, int, void *)))0, \
+			(int (*) (unsigned char *, unsigned char *, \
+					    MPI_Datatype, int, void *))0, \
 			(void*)0, dest, &_outlen, &_totlen );}
 
 #endif
@@ -52,20 +52,11 @@ mpi_errno = MPIR_Pack2( src, count, maxcount, datatype, \
    Block sizes for various collective operations
    
    For most systems, a size of 1 is optimal.  The claim has been made that
-   for the SP1, 3 is better.
+   for the SP1, 3 is better.  Experiments disagree.
    
    NOTE THAT THIS MUST BE DISABLED FOR HETEROGENEOUS SYSTEMS
  */
-#if defined(MPID_HAS_HETERO)
 #define MPIR_BCAST_BLOCK_SIZE 1
-#else
-#if defined(MPI_rs6000)
-/* #define MPIR_BCAST_BLOCK_SIZE 3 */
-#define MPIR_BCAST_BLOCK_SIZE 1
-#else
-#define MPIR_BCAST_BLOCK_SIZE 1
-#endif
-#endif
 
 /* 
  * Unfortunately, the MPI_Op's are declared as returning void rather than

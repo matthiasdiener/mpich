@@ -9,8 +9,7 @@
 Waits for mouse button press 
 <H2>Synopsis</H2>
 <PRE>
-#include &lt;stdio.h&gt;
-#include "mpe.h"
+#include "mpe.h" 
 int MPE_Get_mouse_press( graph, x, y, button )
 MPE_XGraph graph;
 int *x, *y, *button;
@@ -25,8 +24,8 @@ int *x, *y, *button;
 <BR></TD></TR>
 <TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>y </B></TD><TD VALIGN=TOP>vertical coordinate of the point where the mouse button was pressed
 <BR></TD></TR>
-<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>button </B></TD><TD VALIGN=TOP>which button was pressed: <TT>MPE_BUTTON[1-5]</TT>
-<BR></TD></TR></TABLE>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>button </B></TD><TD VALIGN=TOP>which button was pressed: <TT>MPE_BUTTON[1-5]
+</TT><BR></TD></TR></TABLE>
 <P>
 <H2>Notes</H2>
 This routine waits for mouse button press, blocking

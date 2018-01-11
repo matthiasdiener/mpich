@@ -1,5 +1,15 @@
-#include <stdlib.h>
 #include <stdio.h>
+
+#ifdef HAVE_SLOGCONF_H
+#include "slog_config.h"
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
+#include <stdlib.h>
+#endif
+#if defined( HAVE_UNISTD_H )
+#include <unistd.h>
+#endif
+
 #include "bswp_fileio.h"
 #include "slog_fileio.h"
 #include "slog_header.h"
@@ -466,7 +476,7 @@ int SLOG_RDEF_AddExtraRecDef(       SLOG_STREAM          *slog,
 
 
 
-SLOG_recdef_t *SLOG_RDEF_GetRecDef(       SLOG_recdefs_table_t   *recdefs,
+SLOG_recdef_t *SLOG_RDEF_GetRecDef( const SLOG_recdefs_table_t   *recdefs,
                                     const SLOG_intvltype_t        intvltype,
                                     const SLOG_bebit_t            bebit_0,
                                     const SLOG_bebit_t            bebit_1 )
@@ -494,12 +504,143 @@ SLOG_recdef_t *SLOG_RDEF_GetRecDef(       SLOG_recdefs_table_t   *recdefs,
 
 
 
+static int SLOG_RecDef_CompareKey( const SLOG_recdef_t *def1,
+                                   const SLOG_recdef_t *def2 )
+{
+    int order1, order2;
+
+    if ( def1->intvltype < def2->intvltype )
+        return -1;
+    else if ( def1->intvltype == def2->intvltype ) {
+        order1 = SLOG_bebits_GetOrder( def1->bebits );
+        order2 = SLOG_bebits_GetOrder( def2->bebits );
+        if ( order1 < order2 )
+            return -1;
+        else if ( order1 == order2 )
+            return 0;
+        else
+            return 1;
+    }    
+    else
+        return 1;
+}
+
+
+
+static int SLOG_RecDef_CompareKeyFn( const void *def1, const void *def2 )
+{
+    return( SLOG_RecDef_CompareKey( (SLOG_recdef_t *) def1,
+                                    (SLOG_recdef_t *) def2 ) );
+}
+
+
+
+void SLOG_RDEF_SortTable( SLOG_recdefs_table_t *recdefs )
+{
+    qsort( recdefs->entries, recdefs->Nentries, sizeof( SLOG_recdef_t ),
+           &SLOG_RecDef_CompareKeyFn );
+}
+
+
+
+int SLOG_RDEF_IsBebitIntvlsConsistent( SLOG_recdefs_table_t *recdefs )
+{
+    SLOG_recdef_t          *recdef;
+    SLOG_recdef_t           joined_def;
+    SLOG_uint32             idx_begin, idx_end;
+    SLOG_uint32             ii, jj;
+    int                     DoPartIntvlsExist4itype;
+
+#if defined( DEBUG )
+    if ( recdefs == NULL ) {
+        fprintf( errfile, __FILE__":SLOG_RDEF_IsBebitIntvlsConsistent() - \n"
+                          "\t""the SLOG_recdefs_table_t pointer in slog "
+                          "is NULL\n" );
+        fflush( errfile );
+        return SLOG_FALSE;
+    }
+#endif
+
+    /*  Sort the table in increasing intvltype and bebits order  */
+    SLOG_RDEF_SortTable( recdefs );
+
+    /*
+        The following statements assume intvltype will be changed when
+        bebits are recycled
+    */
+    DoPartIntvlsExist4itype = SLOG_FALSE;
+    idx_begin               = 0;
+    for ( ii = 0; ii < recdefs->Nentries; ii++ ) {
+        recdef = &( recdefs->entries[ ii ] );
+        if ( ! SLOG_bebits_IsWholeIntvl( recdef->bebits ) ) {
+            if ( ! DoPartIntvlsExist4itype ) {
+                /*  The 1st bebit interval  */
+                idx_begin = ii;
+                SLOG_RecDef_Assign( &joined_def,
+                                    recdef->intvltype, 1, 1,
+                                    recdef->Nassocs, recdef->Nargs );
+            }
+            else {
+                /*  The non-1st bebit interval, but NOT whole interval  */
+                idx_end = ii;
+                if (    recdef->intvltype != joined_def.intvltype
+                     || recdef->Nassocs   != joined_def.Nassocs )
+                {
+                    fprintf( errfile, __FILE__
+                                      ":SLOG_RDEF_IsBebitIntvlsConsistent() -\n"
+                                      "\t""Inconsistency detected for "
+                                      "intvltype = "fmt_itype_t"\n",
+                                      recdef->intvltype );
+                    for ( jj = idx_begin; jj <= idx_end; jj++ ) {
+                        fprintf( errfile, "%d, ", jj );
+                        SLOG_RecDef_Print( &( recdefs->entries[ jj ] ),
+                                           errfile );
+                        fprintf( errfile, "\n" );
+                    }
+                    fflush( errfile );
+                    return SLOG_FALSE;
+                }
+                joined_def.Nargs   += recdef->Nargs;
+            }
+            DoPartIntvlsExist4itype  = SLOG_TRUE;
+        }
+        else {  /*  if ( SLOG_bebits_IsWholeIntvl( recdef->bebits ) )  */
+            /*  The whole bebit interval  */
+            idx_end = ii;
+            if ( DoPartIntvlsExist4itype ) {
+                if ( ! SLOG_RecDef_IsValueEqualTo( recdef, &joined_def ) ) {
+                    fprintf( errfile, __FILE__
+                                      ":SLOG_RDEF_IsBebitIntvlsConsistent() -\n"
+                                      "\t""Inconsistency detected for "
+                                      "intvltype = "fmt_itype_t"\n",
+                                      recdef->intvltype );
+                    for ( jj = idx_begin; jj <= idx_end; jj++ ) {
+                        fprintf( errfile, "%d, ", jj );
+                        SLOG_RecDef_Print( &( recdefs->entries[ jj ] ),
+                                           errfile );
+                        fprintf( errfile, "\n" );
+                    }
+                    fflush( errfile );
+                    return SLOG_FALSE;
+                }
+            }
+            DoPartIntvlsExist4itype = SLOG_FALSE;
+        }
+    }
+
+    return SLOG_TRUE;
+}
+
+
+
 int SLOG_RDEF_CompressTable( SLOG_recdefs_table_t *recdefs )
 {
     SLOG_recdef_t          *entries_used;
     SLOG_recdef_t          *recdef;
+    SLOG_intvltype_t        prev_used_itype;
     SLOG_uint32             Nentries_used;
     SLOG_uint32             idx, ii;
+    int                     itmp;
 
 #if defined( DEBUG )
     if ( recdefs == NULL ) {
@@ -511,21 +652,38 @@ int SLOG_RDEF_CompressTable( SLOG_recdefs_table_t *recdefs )
     }
 #endif
 
+    /*  Sort the table in increasing intvltype and bebits order  */
+    SLOG_RDEF_SortTable( recdefs );
+
+    /*  Set idx to first non scanned but used entry  */
+    itmp = -1; 
+    for ( idx = 0; idx < recdefs->Nentries && itmp != -1; idx++ ) {
+        recdef = &( recdefs->entries[ idx ] );
+        if ( recdef->used )
+            itmp = recdef->intvltype;
+    }
+    
+    /* 
+        If any of partial bebit intervals is set,
+        set the whole interval as used
+    */
+    for ( prev_used_itype = itmp; idx < recdefs->Nentries; idx++ ) {
+        recdef = &( recdefs->entries[ idx ] );
+        if ( recdef->used )
+            prev_used_itype = recdef->intvltype;
+        else {
+            if (    SLOG_bebits_IsWholeIntvl( recdef->bebits ) 
+                 && recdef->intvltype == prev_used_itype ) {
+                 SLOG_RecDef_SetUsed( recdef, SLOG_TRUE );
+            }
+        }
+    }
+
     /*  Compute the Number of __used__ entries in the record def table  */
     Nentries_used = 0;
     for ( ii = 0; ii < recdefs->Nentries; ii++ )
          if ( ( recdefs->entries[ ii ] ).used )
              Nentries_used++;
-
-    if ( Nentries_used > recdefs->Nentries ) {
-        fprintf( errfile, __FILE__":SLOG_RDEF_CompressTable() - \n"
-                          "\t""Nentries_used("fmt_ui32") > "
-                          "recdefs->Nentries("fmt_ui32
-                          ") Inconsistency detected ! \n",
-                          Nentries_used, recdefs->Nentries );
-        fflush( errfile );
-        return SLOG_FAIL;
-    }
 
     if ( Nentries_used == recdefs->Nentries )
         return SLOG_SUCCESS;

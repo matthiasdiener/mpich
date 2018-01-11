@@ -15,6 +15,10 @@ ROMIO       = @ROMIO@
 BUILDCPP    = @buildcpp@
 NOF77	    = @NOF77@
 NOMPE       = @NOMPE@
+MPILIBNAME  = @MPILIBNAME@
+
+AR          = @AR@
+RANLIB      = @RANLIB@
 ### End User configurable options ###
 
 SHELL = /bin/sh
@@ -23,7 +27,7 @@ SHELL = /bin/sh
 
 MPIDIRS  = src/pt2pt src/env src/dmpi src/util src/context src/coll \
 	   src/topol src/profile 
-MPI2DIRS = src/misc2 src/external
+MPI2DIRS = src/misc2 src/external @MPI2OPTIONAL@
 DIRS     = $(MPIDIRS) $(MPI2DIRS) mpid/$(DEVICE) \
 	   examples examples/basic examples/test/pt2pt examples/test/coll \
 	   examples/test/topol examples/test/context \
@@ -34,7 +38,7 @@ DIRS     = $(MPIDIRS) $(MPI2DIRS) mpid/$(DEVICE) \
 DEVICES  = mpid/ch2 \
 	   mpid/ch_nx mpid/ch_p4 mpid/ch_p4mpd \
 	   mpid/ch_mpl mpid/t3e mpid/ch_meiko mpid/ch_shmem \
-	   mpid/globus mpid/ch_lfshmem \
+	   mpid/globus mpid/globus2 mpid/ch_lfshmem \
 	   mpid/ch_cenju3
 # Change this in maint/maketar also
 OTHERDEVICES  = mpid/ch_nx mpid/ch_p4 mpid/ch_p4mpd mpid/ch_mpl \
@@ -43,6 +47,7 @@ OTHERDEVICES  = mpid/ch_nx mpid/ch_p4 mpid/ch_p4mpd mpid/ch_mpl \
 
 # Installation directories
 prefix           = @prefix@
+exec_prefix      = @exec_prefix@
 bindir           = @bindir@
 includedir       = @includedir@
 libdir           = @libdir@
@@ -73,11 +78,23 @@ CODEDIRS = mpid/$(DEVICE) $(MPIDIRS) $(MPI2DIRS)
 # C++ library is named libmpi++.a .
 #	${top_srcdir}/makelinks
 mpi: mkbuilddirs preinstall clean rmlib
+	${MAKE} mpi-modules
+	${MAKE} mpi-lib-test
+	${MAKE} mpi-addons
+	${MAKE} mpi-utils
+	@echo '--->'
+	@cat ${srcdir}/buildmsg
+	@echo '---<'
+
+# This target makes all of the code.  You can use this to avoid the "clean"
+# step *when you are certain that it is ok*.  
+mpi-modules:
 	$(MAKE) mpilib
-	$(MAKE) mpiflib
-	$(MAKE) clean
-	$(MAKE) profile
-	$(MAKE) mpelib        
+	@if [ $(NOF77) = 0 ] ; then \
+	    echo "Making Fortran interface" ; \
+	    (cd src/fortran ; $(MAKE) ); fi
+	@if [ "@HAS_WEAK_SYMBOLS@" = 0  ] ; then \
+	    $(MAKE) clean ; $(MAKE) profile ; fi
 	@if [ $(ROMIO) = 1 -a -d romio ] ; then \
 	    echo "making romio" ;  \
             (cd romio ; $(MAKE) )    \
@@ -86,60 +103,47 @@ mpi: mkbuilddirs preinstall clean rmlib
             echo "making C++ interface" ; \
 	    $(MAKE) cpplib ; \
 	fi
-	@-if [ -s f90modules/Makefile -a -n "@F90MODINC@" ] ; then \
+	@-if [ -s f90modules/Makefile -a -n "@F90MODINC@" -a "@NO_F90@" = 0 ] ; then \
 	    echo "making Fortran 90 module for MPI" ; \
 	    (cd f90modules ; $(MAKE) ) ;\
 	fi
+
+# Use this target to test the libraries
+mpi-lib-test:
 	$(MAKE) profileliblink
 	@echo "Testing that MPI applications can be linked..."
 	$(MAKE) linktest
+
+# Use this target for add-on features
+mpi-addons:
+	$(MAKE) mpelib        
 	$(MAKE) mpichsharelibs
-	$(MAKE) clean
+
+# This target is for various utilities (mpirun, servers)
+# Long term note:  The ch_p4 steps should be part of an mpirun-setup or
+# device-setup hook.
+mpi-utils:
+	@if [ $(DEVICE) = "ch_p4" -a -s mpid/server/Makefile ] ; then \
+	    ( cd mpid/server ; $(MAKE) serv_p4 ; ) ; fi
 	@if [ $(DEVICE) = "ch_p4" ] ; then \
-	    echo '--->' ; \
-	    echo "You may want to do" ; \
-	    echo "    $(MAKE) serv_p4" ; \
-	    echo "as well." ; \
-	    echo '---<' ; \
-	fi
-	/bin/rm -f ${binbuild_dir}/mpirun
-	if [ ${DEVICE} = "ch_p4mpd" ] ; then \
-	    ${MAKE} mpirun_chp4mpd ; \
+	    cp util/tstmachines ${binbuild_dir}/tstmachines ; fi
+	@/bin/rm -f ${binbuild_dir}/mpirun
+	@if [ -x mpid/${DEVICE}/mpirun_setup ] ; then \
+	    binbuild_dir=${binbuild_dir} ; libbuild_dir=${libbuild_dir} ; \
+	    top_srcdir=${top_srcdir} ; \
+	    ( export binbuild_dir ; export libbuild_dir ; export top_srcdir ; \
+	    mpid/${DEVICE}/mpirun_setup ; );\
+	elif [ -x ${top_srcdir}/mpid/${DEVICE}/mpirun_setup ] ; then \
+	    binbuild_dir=${binbuild_dir} ; libbuild_dir=${libbuild_dir} ; \
+	    top_srcdir=${top_srcdir} ; \
+	    ( export binbuild_dir ; export libbuild_dir ; export top_srcdir ; \
+	    ${top_srcdir}/mpid/${DEVICE}/mpirun_setup ; );\
 	else \
 	    ${MAKE} mpirun ; \
 	fi    
-	if [ ${DEVICE} = "ch_p4" ] ; then ${MAKE} tstmachines ; fi
-	/bin/rm -f ${binbuild_dir}/mpireconfig
-	$(MAKE) mpireconfig
-	$(MAKE) mpiman
-	$(MAKE) ./bin/mpiinstall
-	@echo '--->'
-	@echo "Completed build of MPI.  Check the output for errors"
-	@echo "Also try executing 'make testing' in examples/test"
-	@echo "(This relies on mpirun, which currently works for many"
-	@echo "but not all systems.  mpirun requires that you first"
-	@echo "setup the util/machines/machines.$(LARCH) file for the"
-	@echo "ch_p4 device.  Other devices do not need that file)."
-	@echo " "
-	@echo "Send bugs and comments to mpi-bugs@mcs.anl.gov"
-	@echo "With any bug report, please send"
-	@echo "     The version of MPICH (e.g., 1.1.1)"
-	@echo " "
-	@echo "The output of running your program with the -mpiversion argument"
-	@echo "(e.g., mpirun -np 1 a.out -mpiversion)"
-	@echo " "
-	@echo "The output of "
-	@echo "        uname -a"
-	@echo "for your system.  If you are on an SGI system, also"
-	@echo "	       hinv"
-	@echo " "
-	@echo "If the problem is with a script like configure or mpirun, run the"
-	@echo "script with the -echo argument "
-	@echo "(e.g., mpirun -echo -np 4 a.out )"
-	@echo " "
-	@echo "If you are using a network of workstations, also send the output of"
-	@echo "${binbuild_dir}/tstmachines."
-	@echo '---<'
+	@/bin/rm -f ${binbuild_dir}/mpireconfig
+	@$(MAKE) mpireconfig
+	@$(MAKE) ./bin/mpiinstall
 
 examples: ${binbuild_dir}/mpirun
 	( cd examples ; $(MAKE) default )
@@ -165,21 +169,26 @@ examples: ${binbuild_dir}/mpirun
 mpichsharelibs:
 	@-( cd $(libbuild_dir) ; \
 	CC="$(CC)" ; export CC ; CLINKER="@CLINKER@" ; export CLINKER ; \
-	for lib in lib@MPILIBNAME@.a libp@MPILIBNAME@.a \
-            libf@MPILIBNAME@.a ; do \
+	for lib in lib${MPILIBNAME}.a libp${MPILIBNAME}.a \
+            libf${MPILIBNAME}.a ; do \
 	    if [ -s $$lib ] ; then \
 	      ${top_srcdir}/util/makesharedlib -exceptobjs="farg.o farg90.o initf.o" -lib=$$lib -kind=@SHAREDKIND@ ; \
 	    fi ; \
 	done ; \
-        if [ $(NOF77) = 0 ] ; then \
-	    ar x lib@MPILIBNAME@.a farg.o initf.o ; \
-	    @AR@ lib@MPILIBNAME@farg.a farg.o initf.o ; \
+        if [ $(NOF77) = 0 -a -s farg.o -a -s initf.o ] ; then \
+	    ${AR} x lib${MPILIBNAME}.a farg.o initf.o ; \
+	    ${AR} lib${MPILIBNAME}farg.a farg.o initf.o ; \
 	fi ; \
 	)
+	@if [ "@SHAREDKIND@" != "ignore" ] ; then \
+	    echo "Testing that MPI applications can be linked with shared libs..." ;\
+	    ( cd examples/test/pt2pt ; MPICH_USE_SHLIB="yes" ; \
+		export MPICH_USE_SHLIB ; ${MAKE} linktest ) ;\
+	fi
 
 
 mkbuilddirs:
-	$(top_srcdir)/util/mkdirs ${libbuild_dir} ${includebuild_dir} ${binbuild_dir} ${sysconfdir}
+	@$(top_srcdir)/util/mkdirs ${libbuild_dir} ${includebuild_dir} ${binbuild_dir} ${sysconfdir}
 
 #
 # Remove the - in the linktest because the linktest should abort the build
@@ -217,31 +226,29 @@ report:
 # Make sure that a failure during the make causes the make to stop at 
 # that point.
 #	${top_srcdir}/makelinks
-mpilib: ${top_srcdir}/Makefile.in
+mpilib: ${top_srcdir}/Makefile.in ${includebuild_dir}/mpichconf.h
 	-@(cd mpid/@DEVICE@ ; $(MAKE) setlinks)
 	@for dir in $(CODEDIRS) ;\
 	  do \
 	  echo " " ;\
 	  echo making mpir in directory $$dir ;\
 	  (cd $$dir ; \
-	  $(MAKE) default_all ; st=$$? ; if [ $$st != 0 ] ; then \
+	  if [ "$$dir" = "mpid/@DEVICE@" ] ; then \
+	      $(MAKE) default_all ; \
+          elif [ $(NOF77) = 0 ] ; then \
+              $(MAKE) default_all ; \
+	  else $(MAKE) default_conly ; fi ; \
+	  st=$$? ; if [ $$st != 0 ] ; then \
 		echo "Exit status from make was $$st" ; fi ; exit $$st ) ;\
 	  if [ $$? != 0 ] ; then exit 1 ; fi ; \
 	  done
 	-(cd src/infoexport ; $(MAKE) default_all )
-	@RANLIB@ $(libbuild_dir)/lib@MPILIBNAME@.a
-	@if test -w $(libbuild_dir)/lib@MPILIBNAME@++.a ; then \
-		@RANLIB@ $(libbuild_dir)/lib@MPILIBNAME@++.a ; fi
+	${RANLIB} $(libbuild_dir)/lib${MPILIBNAME}.a
+	@if [ -w $(libbuild_dir)/lib${MPILIBNAME}++.a ] ; then \
+		${RANLIB} $(libbuild_dir)/lib${MPILIBNAME}++.a ; fi
 
 mpiflib: ${top_srcdir}/Makefile.in
-	@for dir in $(MPIDIRS) $(MPI2DIRS) ;\
-	  do \
-	  echo " " ;\
-	  echo making mpir in directory $$dir ;\
-	  (cd $$dir ; \
-	  $(MAKE) wrapperlib ) ;\
-	  done
-	@RANLIB@ $(libbuild_dir)/libf@MPILIBNAME@.a
+	@echo "See src/fortran"
 
 #
 # This target is used to remove the libraries for this configuration; this
@@ -260,47 +267,29 @@ rmlib:
 # This uses the "default" entry instead of "default_all" because it is
 # usually executed alone, and the RANLIB is needed at the end of this
 # target anyway.
-# Override the libbuild_dir
+#
+# Don't override MPE's includebuild_dir, libbuild_dir and binbuild_dir.
+# MPE builds on its own set of build_dir's not those of MPICH. The targets
+# built by MPE will be installed into MPICH's prefix  by mpeinstall during
+# the final install.  The goal is to get MPICH encapulated from the details
+# of MPE ( or at least as much as possible ).
+# 
+# In order not to force user to do a "make install" at the end of MPICH
+# build, we need to make the build_dir's as complete as possible.  So a 
+# "mpe/sbin/mpeinstall" is called to install MPE to the build_dir's right
+# after MPE build. Then "${binbuild_dir}/mpicc -mpilog" will work at the
+# end the build before doing a MPICH install.  If this is NOT a crucial
+# requirement, simply delete the 2nd subsshell execution of mpeinstall.
+# Everything, like mpeinstall, mpiinstall, .. , will still work the same.
+# In that case, "mpicc -mpilog" will NOT be able to locate libmpe.a, etc
 mpelib:
-	@-if [ $(NOMPE) = 0 ] ; then \
-            echo "making mpe graphics libraries" ; \
-	    if [ ! -d mpe ] ; then mkdir mpe ; fi ; \
-	    (cd mpe ; MAKE="$(MAKE)" ; export MAKE ; \
-	     libbuild_dir="${libbuild_dir}"; export libbuild_dir ; \
-	     /bin/rm -f config.cache ; \
-	     if [ $(NOF77) = 1 ] ; then \
-                 if ${top_srcdir}/mpe/configure --with-mpich=$(MPIR_HOME) \
-				--with-mpichdev=$(libbuild_dir)  \
-				@ENABLE_MPEDBG@ \
-			        --disable-f77  \
-				--prefix=$(prefix) \
-				--libdir=$(libdir) \
-				--bindir=$(bindir) \
-	                        "@JUMPSHOT_OPTS@" \
-				@MPE_OPTS@ ; then $(MAKE) ; \
-		 else echo "Error configuring mpe" ; \
-		      if [ -s config.log ] ; then cat config.log ; fi ; \
-		 fi  \
-	     else \
-                 if ${top_srcdir}/mpe/configure --with-mpich=$(MPIR_HOME) \
-			        --with-mpichdev=$(libbuild_dir)  \
-			        --with-f77_extra_flag=@F77_EXTRA_FLAG@ \
-				@ENABLE_MPEDBG@ \
-				--prefix=$(prefix) \
-				--libdir=$(libdir) \
-				--bindir=$(bindir) \
-				--with-flib_path_leader=@FLIB_PATH_LEADER@ \
-	                        "@JUMPSHOT_OPTS@" \
-			        @MPE_OPTS@ ; then $(MAKE) ; \
-		 else echo "Error configuring mpe" ; \
-		      if [ -s config.log ] ; then cat config.log ; fi ; \
-		 fi   \
-	     fi ) \
-	fi
-	@if test -w $(libbuild_dir)/libmpe.a ; then \
-		@RANLIB@ $(libbuild_dir)/libmpe.a ; fi
-	@if test -w $(libbuild_dir)/libmpe_nompi.a ; then \
-		@RANLIB@ $(libbuild_dir)/libmpe_nompi.a ; fi
+	@if [ $(NOMPE) = 0 ] ; then \
+              echo "Making MPE Profiling Libraries" ; \
+	      ( cd mpe ; $(MAKE) ) ; if [ $$? != 0 ] ; then exit 1 ; fi ; \
+	      ( MPE_TMP_PREFIX=`pwd` ; \
+	        cd mpe ; ./sbin/mpeinstall -prefix=$${MPE_TMP_PREFIX} ) ; \
+	      echo "Finished making MPE Profiling Libraries" ; echo ; \
+	  fi
 
 # Grumble.  The mpichdev is supposed to be the subdirectory of the mpich
 # home.
@@ -322,7 +311,16 @@ mpelib:
 #		    rm -f $(includedir)/mpi++.h ; fi ; \
 #	        if [ ! -s ../include/mpi++.h ] ; then \
 #		    rm -f ../include/mpi++.h ; fi ; 
+
+#
+# If --with-profiling is specified, the generated library is libpmpi++.a, not
+# libmpi++.a
 cpplib:
+	@if [ -d ${includebuild_dir}/mpi2c++ ] ; then \
+	    if [ -f ${includebuild_dir}/mpi2c++/mpi2c++_config.h ] ; then \
+	        /bin/rm -f ${includebuild_dir}/mpi2c++/mpi2c++_config.h ; \
+            fi ; \
+	fi
 	@(cd MPI-2-C++ ; MAKE="$(MAKE)" ; export MAKE ; \
 	/bin/rm -f config.cache ; \
 	CXXFLAGS="" ; export CXXFLAGS ; \
@@ -338,7 +336,14 @@ cpplib:
 		$(MAKE) ; \
 	fi ) 
 	@if [ -f "MPI-2-C++/src/libmpi++.a" ] ; then \
-	    cp -p MPI-2-C++/src/libmpi++.a $(libbuild_dir)/libmpich++.a ; fi 
+	    cp -p MPI-2-C++/src/libmpi++.a $(libbuild_dir)/libmpich++.a ; \
+	elif [ -f "MPI-2-C++/src/libpmpi++.a" ] ; then \
+	    cp -p MPI-2-C++/src/libpmpi++.a $(libbuild_dir)/libpmpich++.a ; fi 
+	@if [ ! -d ${includebuild_dir}/mpi2c++ ] ; then \
+		mkdir ${includebuild_dir}/mpi2c++ ; fi
+	@for file in ${srcdir}/MPI-2-C++/src/mpi2c++/*.h ; do \
+	    cp $$file ${includebuild_dir}/mpi2c++ ; done
+	@cp MPI-2-C++/src/mpi2c++/mpi2c++_config.h ${includebuild_dir}/mpi2c++
 
 mpidevlib:
 	(cd mpid/$(DEVICE) ; $(MAKE) clean )
@@ -364,10 +369,10 @@ mpilibdebug:
 	  (cd $$dir ; $(MAKE) clean ; \
 	  $(MAKE) profile_all MPIPROFILE="-DMPIR_DEBUG_MEM -DMPI_BUILD_PROFILING");\
 	  done 
-	@RANLIB@ $(libbuild_dir)/lib@MPILIBNAME@.a
-	@RANLIB@ $(libbuild_dir)/libp@MPILIBNAME@.a
-	@if test -w $(libbuild_dir)/lib@MPILIBNAME@++.a ; then \
-		@RANLIB@ $(libbuild_dir)/lib@MPILIBNAME@++.a ; fi
+	${RANLIB} $(libbuild_dir)/lib${MPILIBNAME}.a
+	${RANLIB} $(libbuild_dir)/libp${MPILIBNAME}.a
+	@if [ -w $(libbuild_dir)/lib${MPILIBNAME}++.a ] ; then \
+		${RANLIB} $(libbuild_dir)/lib${MPILIBNAME}++.a ; fi
 
 # 
 # We need to include the device here, so that the MPID symbols will be 
@@ -382,7 +387,7 @@ profile:
 	    (cd $$dir ; \
 	    $(MAKE) profile_all MPIPROFILE="-DMPI_BUILD_PROFILING" ) ;\
 	  done ; \
-	  @RANLIB@ $(libbuild_dir)/libp@MPILIBNAME@.a ; \
+	  ${RANLIB} $(libbuild_dir)/libp${MPILIBNAME}.a ; \
 	fi
 
 #
@@ -391,30 +396,18 @@ profile:
 # if they don't need to.  Also, ROMIO may generate explicit profiling library
 # routines, in that case the library will exist (but be small)
 profileliblink:
-	@if [ ! -s $(libbuild_dir)/libp@MPILIBNAME@.a ] ; then\
-	  (cd $(libbuild_dir) ; ln -s lib@MPILIBNAME@.a \
-		libp@MPILIBNAME@.a ) ; \
+	@if [ ! -s $(libbuild_dir)/libp${MPILIBNAME}.a ] ; then\
+	  (cd $(libbuild_dir) ; ln -s lib${MPILIBNAME}.a \
+		libp${MPILIBNAME}.a ) ; \
 	fi
 
-#
-# This is a temporary hack.  The code to build the rest of the mpirun
-# infrastructure should be part of the device setup code, not part of
-# the master Makefile (this also applies to the server targets).
-# Note that we copy rather than link to the programs
-mpirun_chp4mpd:
-	/bin/rm -f ${binbuild_dir}/startdaemons
-	if [ -d mpid/mpd ] ; then \
-	    if [ ! -f mpid/mpd/mpdcon ] ; then \
-	        ( cd mpid/mpd ; $(MAKE) mpdcon ) ; \
-	    fi ; \
-	    cp mpid/mpd/mpdcon ${binbuild_dir}/mpirun ; \
-	    cp mpid/mpd/startdaemons ${binbuild_dir}/startdaemons ; \
-	fi
 #
 # Make mpirun from mpirun.*.in
 #
 mpirun: ${binbuild_dir}/mpirun
-
+# Substituting datadir and EXECER_DIR with $(MPIR_HOME)/util is wrong.  This
+# places the machines file in the source directory in VPATH builds.  This will
+# have to be fixed.
 #
 # If you change this, ALSO change it in the install target!
 
@@ -422,28 +415,24 @@ mpirun: ${binbuild_dir}/mpirun
 # Makefile variables (sigh).
 MPIRUNLIST = `test -s ${srcdir}/mpid/$(DEVICE)/mpirun.lst && cat ${srcdir}/mpid/$(DEVICE)/mpirun.lst || echo mpid/$(DEVICE)/mpirun.$(DEVICE).in`
 
-#	  cp $(bindir)/$$bfile ${binbuild_dir}/$$bfile ; 
-${binbuild_dir}/mpirun: ${srcdir}/util/mpirun.in ${srcdir}/util/mpirun.args.in 
-	-@for file in util/mpirun.in util/mpirun.args.in $(MPIRUNLIST) ; do \
+${binbuild_dir}/mpirun: util/mpirun ${srcdir}/util/mpirun.args.in 
+	-@for file in util/mpirun.args.in $(MPIRUNLIST) ; do \
 	  bfile=`basename $$file .in` ; \
 	  /bin/rm -f ${binbuild_dir}/$$bfile ; \
-	  cat ${srcdir}/$$file | sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
-		-e "s%\#AUTOMOUNTFIX\#%@AUTOMOUNTFIX@%g" \
-		-e "s%\#EXECER_DIR\#%$(MPIR_HOME)/util%g" \
-		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
-		-e "s%\#RSHCOMMAND\#%$(RSHCOMMAND)%g" \
-		-e "s%\#SYNCLOC\#%@SYNCLOC@%g" \
-		-e "s%\#CC\#%@CC@%g" \
-		-e "s%\#COMM\#%@COMM@%g" \
-	        -e "s%\#GLOBUSDIR\#%@GLOBUSDIR@%g" \
-		-e "s%\#CLINKER\#%@CLINKER@%g" \
-	        -e "s%\#MPIRUN_BIN\#%$(binbuild_dir)%g" \
-		-e "s%\#datadir\#%$(MPIR_HOME)/util/machines%g" \
-		-e "s%\#bindir\#%$(binbuild_dir)%g" \
-		-e "s%\#DEFAULT_MACHINE\#%$(DEFAULT_MACHINE)%g" \
-		-e "s%\#DEFAULT_ARCH\#%$(LARCH)%g" > $(binbuild_dir)/$$bfile ; \
+	  cp ${srcdir}/$$file  $(binbuild_dir)/$$bfile ; \
 	  chmod 775 $(binbuild_dir)/$$bfile ; \
 	done ;
+	-@for file in ${srcdir}/util/mpirun_dbg.* ; do \
+	  bfile=`basename $$file .in` ; \
+	  /bin/rm -f ${binbuild_dir}/$$bfile ; \
+	  cp $$file  $(binbuild_dir)/$$bfile ; \
+	  chmod 775 $(binbuild_dir)/$$bfile ; \
+	done ;
+	@cp util/mpirun ${binbuild_dir}
+	-@if [ ! -x ${binbuild_dir}/tarch ] ; then \
+	    cp ${top_srcdir}/bin/tarch ${binbuild_dir} ; \
+	    cp ${top_srcdir}/bin/tdevice ${binbuild_dir} ; \
+	fi
 
 #
 # If you change this, ALSO change it in the install target!
@@ -469,35 +458,6 @@ ${binbuild_dir}/mpireconfig: ${srcdir}/util/mpireconfig.in config.status
 		${binbuild_dir}/mpireconfig.dat
 	@-chmod 775 ${binbuild_dir}/mpireconfig.dat
 
-#
-# Make mpiman from mpiman.in
-#
-mpiman: ${binbuild_dir}/mpiman
-
-#
-# If you change this, ALSO change it in the install target!
-${binbuild_dir}/mpiman: ${srcdir}/util/mpiman.in
-	@/bin/rm -f ${binbuild_dir}/mpiman
-	@cat ${srcdir}/util/mpiman.in \
-	    | sed -e "s%\#INSTALL_DIR\#%$(MPIR_HOME)%g" > ${binbuild_dir}/mpiman
-	@chmod 755 ${binbuild_dir}/mpiman
-
-tstmachines: ${binbuild_dir}/tstmachines
-${binbuild_dir}/tstmachines: ${srcdir}/util/tstmachines.in
-	rm -f ${binbuild_dir}/tstmachines
-	sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
-		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
-		-e "s%\#RSHCOMMAND\#%$(RSHCOMMAND)%g" \
-		-e "s%\#DEFAULT_MACHINE\#%$(DEFAULT_MACHINE)%g" \
-		-e "s%\#datadir\#%$(MPIR_HOME)/util/machines%g" \
-		-e "s%\#bindir\#%$(binbuild_dir)%g" \
-		-e "s%\#DEFAULT_ARCH\#%$(LARCH)%g" \
-		-e "s%\#AUTOMOUNTFIX\#%@AUTOMOUNTFIX@%g" \
-		-e "s%\#CC\#%@CC@%g" \
-		-e "s%\#CLINKER\#%@CLINKER@%g" \
-		${srcdir}/util/tstmachines.in > \
-		    ${binbuild_dir}/tstmachines
-	chmod 775 ${binbuild_dir}/tstmachines
 #
 # If you change this, ALSO change it in the install target!
 #	-cp ${binbuild_dir}/chp4_servs $(bindir)
@@ -548,6 +508,8 @@ clean:
 	    (cd MPI-2-C++ ; $(MAKE) clean ) ; fi
 	@-if [ -d mpe -a -s mpe/Makefile -a "@NOMPE@" = 0 ] ; then \
 	    (cd mpe ; $(MAKE) MAKE="$(MAKE)" clean ) ; fi
+	@-if [ -d src/fortran -a -s src/fortran/Makefile ] ; then \
+	    (cd src/fortran ; $(MAKE) clean ) ; fi
 	@-for dir in $(DIRS) ;\
 	  do \
 	  if [ -s $$dir/Makefile ] ; then \
@@ -564,52 +526,42 @@ cleanslate: clean
 #
 # distclean removes mpirun etc as well as the libraries.
 distclean: cleanslate
-	/bin/rm -f *~ *.ln bin/mpirun bin/mpirun.args bin/mpirun.ch_p4 \
-			   o bin/mpirun.ch_shmem bin/mpirun.pg bin/mpiman \
-			    bin/mpireconfig bin/mpicc bin/mpiCC bin/mpif77 \
-			    bin/mpif90 bin/mpiinstall bin/upshot bin/jumpshot \
-			    bin/startdaemons /bin/config.status \
-			    installtest/Makefile 
-	if [ -s util/Makefile ] ; then \
-	    (cd util ; /bin/rm -f chkmachine chkserv Makefile ) ; fi 
-	(cd util/machines ; \
+	-/bin/rm -f *~ *.ln bin/mpi* bin/upshot bin/jumpshot \
+			    bin/startdaemons bin/tstmachines \
+			    installtest/Makefile \
+			    bin/clog* bin/logviewer bin/mperecofig* \
+			    bin/slog_*
+	-if [ -s util/Makefile ] ; then \
+	    (cd util ; /bin/rm -f chkmachine chkserv Makefile ) ; \
+	    (cd util/machines ; \
 	    /bin/rm -f machines.IRIX* machines.sun* machines.solaris* \
 	    machines.cray* machines.CRAY* machines.LINUX machines.rs600 \
-	    machines.alpha machines.hp* )
-	/bin/rm -f doc/port doc/portbuild doc/portperf doc/porttest
-	if [ -d mpid/server -a -s mpid/server/Makefile ] ; then \
+	    machines.alpha machines.hp* ) ; fi
+	-rm -f util/mympiinstall* util/mpichlib.conf
+	-/bin/rm -f doc/port doc/portbuild doc/portperf doc/porttest
+	-if [ -d mpid/server -a -s mpid/server/Makefile ] ; then \
 	       (cd mpid/server ; $(MAKE) distclean) ; fi
-	if [ -d jumpshot ] ; then \
+	-if [ -d jumpshot ] ; then \
 	  /bin/rm -f jumpshot/confdefs.h jumpshot/config.log \
 	  jumpshot/config.cache jumpshot/config.status ; fi
-	if [ -d mpe -a -s mpe/Makefile -a "@NOMPE@" = 0 ] ; then \
+	-if [ -d mpe -a -s mpe/Makefile -a "@NOMPE@" = 0 ] ; then \
 	    (cd mpe ; $(MAKE) MAKE=$(MAKE) distclean ) ; fi
-	if [ -s f90modules/Makefile ] ; then \
+	-if [ -s f90modules/Makefile ] ; then \
 	    (cd f90modules ; $(MAKE) distclean ) ; fi
-	/bin/rm -f lib/*.[oa]
-	/bin/rm -f lib/*.so.*
-	/bin/rm -f lib/*.so
-	/bin/rm -f lib/shared/*
-	/bin/rm -f include/mpidefs.h include/mpif.h
-	/bin/rm -f bin/mpi* 
-	/bin/rm -f ID
-	for dir in $(DEVICES) ; do echo cleaning $$dir ; \
-	     if [ -d $$dir ] ; then \
-	       (cd $$dir ; if [ -s Makefile ] ; then $(MAKE) clean ; fi ) ; \
-	     fi ; \
+	-/bin/rm -f lib/*.[oa] lib/*.so.* lib/*.so lib/shared/*
+	-/bin/rm -rf include/f90choice include/f90base
+	-/bin/rm -f include/mpidefs.h include/mpif.h
+	-rm -rf include/mpi2c++
+	-/bin/rm -f ID
+	-for dir in $(DEVICES) ; do echo cleaning $$dir ; \
+	   if [ -d $$dir ] ; then \
+	     (cd $$dir ; if [ -s Makefile ] ; then $(MAKE) distclean ; fi ) ; \
+	   fi ; \
 	done
-	if [ -s mpid/ch_p4/Makefile ] ; then \
-	    (cd mpid/ch_p4 ; $(MAKE) distclean ) ; fi
-	if [ -s mpid/ch_p4mpd/Makefile ] ; then \
-	    (cd mpid/ch_p4mpd ; $(MAKE) distclean ) ; fi
-	if [ -s mpid/ch_shmem/Makefile ] ; then \
-	    (cd mpid/ch_shmem ; $(MAKE) distclean ) ; fi
-	if [ -s mpid/ch_mpl/Makefile ] ; then \
-	    (cd mpid/ch_mpl ; $(MAKE) distclean ) ; fi
 	if [ -d mpid/tests -a -s mpid/tests/Makefile ] ; then \
 	    (cd mpid/tests ; $(MAKE) distclean ) ; fi
-	if [ -s mpid/ch_p4mpd/p4mpd/Makefile ] ; then \
-	    (cd  mpid/ch_p4mpd/p4mpd ; $(MAKE) realclean ) ; fi
+	if [ -s examples/perftest/Makefile ] ; then \
+	    (cd examples/perftest ; ${MAKE} distclean ) ; fi
 	if [ -s romio/Makefile ] ; then \
 	    (cd  romio ; $(MAKE) cleanall ) ; fi
 	if [ -d MPI-2-C++ -a -s MPI-2-C++/Makefile -a "@buildcpp@" = 1 ] ; then \
@@ -619,25 +571,16 @@ distclean: cleanslate
 	  echo removing Makefile in $$dir ;\
 	  (cd $$dir ; /bin/rm -f Makefile) ;\
 	  done
-	if [ -s examples/test/runtests ] ; then \
-	    /bin/rm -f examples/test/runtests ; fi
-	if [ -s examples/test/coll/runtests ] ; then \
-	    /bin/rm -f examples/test/coll/runtests ; fi
-	if [ -s examples/test/context/runtests ] ; then \
-	    /bin/rm -f examples/test/context/runtests ; fi
-	if [ -s examples/test/env/runtests ] ; then \
-	    /bin/rm -f examples/test/env/runtests ; fi
-	if [ -s examples/test/profile/runtests ] ; then \
-	    /bin/rm -f examples/test/profile/runtests ; fi
-	if [ -s examples/test/pt2pt/runtests ] ; then \
-	    /bin/rm -f examples/test/pt2pt/runtests ; fi
-	if [ -s examples/test/topol/runtests ] ; then \
-	    /bin/rm -f examples/test/topol/runtests ; fi
+	for dir in . coll context env profile pt2pt topol ; do \
+	    if [ -s examples/test/$$dir/runtests ] ; then \
+		rm -f examples/test/$$dir/runtests ; fi ; done
 	if [ -s examples/test/config.status ] ; then \
 	      /bin/rm -f examples/test/config.status ; fi
 	if [ -s src/env/Makefile ] ; then \
 	    /bin/rm -f src/env/mpehname.c  src/env/farg.f ; fi
-	/bin/rm -f Makefile config.log config.status 
+	if [ -s src/fortran/Makefile ] ; then \
+	    (cd src/fortran ; ${MAKE} distclean ) ;  fi
+	/bin/rm -f Makefile config.log config.status mpichconf.h
 #
 # Make an ID database from a suitable subset of the sources
 # (Get mkid from sunsite if you want to use this)
@@ -653,18 +596,18 @@ frc:
 
 INSTALLDIR = /usr/local/mpi
 #
-# The install target really needs to use some for of 'install' program that
+# The install target really needs to use some form of 'install' program that
 # will create directories, set modes and owners, etc.  Alas, such a function
-# is not standard.
+# is not standard (though autoconf-2 tries hard to find one).
 # Note that clean removes mpirun (!) and mpiinstall (!) so we need to make
 # sure that it is around before doing the install
 # Make sure that we use our OWN copy of mpiinstall, because the created
 # copy goes into the same directory as the source file.
 # We also name it "mympiinstall" to ensure that we don't find the "wrong"
 # directory
-./bin/mpiinstall: ${binbuild_dir}/mpireconfig ${top_srcdir}/util/mpiinstall.in
-	if [ ! -s util/mympiinstall.in ] ; then \
-	    cp ${top_srcdir}/util/mpiinstall.in util/mympiinstall.in ; fi
+util/mympiinstall.in: ${top_srcdir}/util/mpiinstall.in
+	@cp ${top_srcdir}/util/mpiinstall.in util/mympiinstall.in
+./bin/mpiinstall: ${binbuild_dir}/mpireconfig util/mympiinstall.in
 	@-(${binbuild_dir}/mpireconfig util/mympiinstall ; \
 	rm -f ${binbuild_dir}/mpiinstall ; \
 	sed -e 1d util/mympiinstall > ${binbuild_dir}/mpiinstall ; \
@@ -687,17 +630,20 @@ INSTALLDIR = /usr/local/mpi
 #	-cp include/mpif.h ${includedir}/mpif.h
 # We need to resurrect this for the actual install
 #		true cp ${binbuild_dir}/$$file ${bindir}/$$file ;
+#	rm -f ${binbuild_dir}/config.status 
+#	cp config.status ${binbuild_dir}
 preinstall:
-	rm -f ${binbuild_dir}/config.status 
-	cp config.status ${binbuild_dir}
-	cp mpichconf.h ${includebuild_dir}
-	cp ${top_srcdir}/mpichconf.h.in ${includebuild_dir}
-	for file in mpicc mpiCC mpif77 mpif90 mpiinstall ; do \
+	@cp mpichconf.h ${includebuild_dir}
+	@cp ${top_srcdir}/mpichconf.h.in ${includebuild_dir}
+	@for file in mpicc mpiCC mpif77 mpif90 mpiinstall mpiman ; do \
 	    if test -s util/$$file ; then \
 	        rm -f ${binbuild_dir}/$$file ; \
 		mv util/$$file ${binbuild_dir}/$$file ;\
 	    fi ;\
 	done
+
+${includebuild_dir}/mpichconf.h: mpichconf.h
+	cp mpichconf.h ${includebuild_dir}
 
 # Eventually, this should have preinstall as a source.
 install: mpirun ./bin/mpiinstall
@@ -725,5 +671,15 @@ install-all: install
 	)
 
 etags:
-	etags include/*.h mpid/$(DEVICE)/*.h $(CODEDIRS)
+	etags include/*.h mpid/$(DEVICE)/*.h 
+	for dir in ${CODEDIRS} ; do etags --append $$dir/*.c ; done
+
+# This tags target builds in the current directory, not just the source
+# directory.
+TAGS:  
+	tags=; \
+	here=`pwd`; \
+	(cd $(srcdir) && etags -o $$here/TAGS include/*.h mpid/${DEVICE}/*.h ;\
+	for dir in ${CODEDIRS} ; do etags -o $$here/TAGS --append $$dir/*.c ;\
+	done
 

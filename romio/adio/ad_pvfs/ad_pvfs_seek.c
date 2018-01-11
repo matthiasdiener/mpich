@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_pvfs_seek.c,v 1.2 1999/10/26 22:57:20 thakur Exp $    
+ *   $Id: ad_pvfs_seek.c,v 1.5 2000/07/19 22:38:06 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -7,7 +7,7 @@
 
 #include "ad_pvfs.h"
 #include "adio_extern.h"
-#ifdef __PROFILE
+#ifdef PROFILE
 #include "mpe.h"
 #endif
 
@@ -19,6 +19,9 @@ ADIO_Offset ADIOI_PVFS_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
    routine. */
 /* offset is in units of etype relative to the filetype */
 
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "ADIOI_PVFS_SEEKINDIVIDUAL";
+#endif
     ADIO_Offset off, err;
     ADIOI_Flatlist_node *flat_file;
 
@@ -38,6 +41,10 @@ ADIO_Offset ADIOI_PVFS_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
 
 	MPI_Type_extent(fd->filetype, &filetype_extent);
 	MPI_Type_size(fd->filetype, &filetype_size);
+	if ( ! filetype_size ) {
+	    *error_code = MPI_SUCCESS; 
+	    return;
+	}
 
 	n_etypes_in_filetype = filetype_size/etype_size;
 	n_filetypes = (int) (offset / n_etypes_in_filetype);
@@ -59,16 +66,25 @@ ADIO_Offset ADIOI_PVFS_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
                 abs_off_in_filetype;
     }
 
-#ifdef __PROFILE
+#ifdef PROFILE
     MPE_Log_event(11, 0, "start seek");
 #endif
     err = pvfs_lseek(fd->fd_sys, off, SEEK_SET);
-#ifdef __PROFILE
+#ifdef PROFILE
     MPE_Log_event(12, 0, "end seek");
 #endif
     fd->fp_ind = off;
     fd->fp_sys_posn = off;
 
+#ifdef PRINT_ERR_MSG
     *error_code = (err == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
+#else
+    if (err == -1) {
+	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
+			      myname, "I/O Error", "%s", strerror(errno));
+	ADIOI_Error(fd, *error_code, myname);	    
+    }
+    else *error_code = MPI_SUCCESS;
+#endif
     return off;
 }

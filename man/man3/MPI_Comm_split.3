@@ -1,4 +1,4 @@
-.TH MPI_Comm_split 3 "8/30/1999" " " "MPI"
+.TH MPI_Comm_split 3 "8/10/2000" " " "MPI"
 .SH NAME
 MPI_Comm_split \-  Creates new communicators based on colors and keys 
 .SH SYNOPSIS
@@ -35,7 +35,8 @@ The
 .I color
 must be non-negative or 
 .I MPI_UNDEFINED
-.
+\&.
+
 
 .SH NOTES FOR FORTRAN
 All MPI routines in Fortran (except for 
@@ -69,7 +70,7 @@ that can be removed.  Here is what we do for now
 1) A table is built of colors, and keys (has a next field also).
 2) The tables of all processes are merged using 
 .I MPI_Allreduce
-.
+\&.
 3) Two contexts are allocated for all the comms to be created.  These
 same two contexts can be used for all created communicators since
 the communicators will not overlap.

@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_dup.c,v 1.8 1999/10/15 20:08:28 gropp Exp $
+ *  $Id: comm_dup.c,v 1.9 2000/08/10 22:15:34 toonen Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -79,7 +79,7 @@ EXPORT_MPI_API int MPI_Comm_dup (
   new_comm->lrank_to_grank = new_comm->group->lrank_to_grank;
   new_comm->np             = new_comm->group->np;
   new_comm->comm_name	   = 0;
-    if ((mpi_errno = MPID_CommInit( comm, new_comm )))
+    if ((mpi_errno = MPID_CommInit( comm_ptr, new_comm )))
 	return mpi_errno;
   DBG(FPRINTF(OUTFILE,"Dup:About to copy attr for comm %ld\n",(long)comm);)
   /* Also free at least some of the parts of the commuicator */      

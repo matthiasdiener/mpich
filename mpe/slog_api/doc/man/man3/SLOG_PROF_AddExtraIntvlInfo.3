@@ -1,10 +1,12 @@
-.TH SLOG_PROF_AddExtraIntvlInfo 3 "8/7/1999" " " "SLOG_API"
+.TH SLOG_PROF_AddExtraIntvlInfo 3 "4/24/2000" " " "SLOG_API"
 .SH NAME
 SLOG_PROF_AddExtraIntvlInfo \-  Add one display description of an interval to the reserved space of the SLOG Display Profile table. 
 .SH SYNOPSIS
 .nf
 int SLOG_PROF_AddExtraIntvlInfo(       SLOG_STREAM      *slog,
                                  const SLOG_intvltype_t  intvltype,
+                                 const SLOG_bebit_t      bebit_0,
+                                 const SLOG_bebit_t      bebit_1,
                                  const char *            classtype,
                                  const char *            label,
                                  const char *            color )
@@ -22,6 +24,16 @@ located.
 .TP
 .B intvltype 
 - index to the interval type.
+.PD 1
+.PD 0
+.TP
+.B bebit_0   
+- the 1st bebit.
+.PD 1
+.PD 0
+.TP
+.B bebit_1   
+- the 2nd bebit.
 .PD 1
 .PD 0
 .TP

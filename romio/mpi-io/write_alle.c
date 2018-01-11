@@ -1,5 +1,5 @@
 /* 
- *   $Id: write_alle.c,v 1.4 1999/08/27 20:53:20 thakur Exp $    
+ *   $Id: write_alle.c,v 1.6 2000/02/09 21:30:20 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +19,7 @@
 #endif
 
 /* Include mapping from MPI->PMPI */
-#define __MPIO_BUILD_PROFILING
+#define MPIO_BUILD_PROFILING
 #include "mpioprof.h"
 #endif
 
@@ -37,15 +37,29 @@ Output Parameters:
 @*/
 int MPI_File_write_all_end(MPI_File fh, void *buf, MPI_Status *status)
 {
+#ifndef PRINT_ERR_MSG
+    int error_code;
+    static char myname[] = "MPI_FILE_IREAD";
+#endif
 
+#ifdef PRINT_ERR_MSG
     if ((fh <= (MPI_File) 0) || (fh->cookie != ADIOI_FILE_COOKIE)) {
-	printf("MPI_File_write_all_end: Invalid file handle\n");
+	FPRINTF(stderr, "MPI_File_write_all_end: Invalid file handle\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
+#else
+    ADIOI_TEST_FILE_HANDLE(fh, myname);
+#endif
 
     if (!(fh->split_coll_count)) {
-        printf("MPI_File_write_all_end: Does not match a previous MPI_File_write_all_begin\n");
+#ifdef PRINT_ERR_MSG
+        FPRINTF(stderr, "MPI_File_write_all_end: Does not match a previous MPI_File_write_all_begin\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
+#else
+	error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ERR_NO_SPLIT_COLL,
+                              myname, (char *) 0, (char *) 0);
+	return ADIOI_Error(fh, error_code, myname);
+#endif
     }
 
     fh->split_coll_count = 0;

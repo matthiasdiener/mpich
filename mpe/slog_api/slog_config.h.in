@@ -25,12 +25,43 @@
  */
 #undef STACK_DIRECTION
 
+/* Define if you have the ANSI C header files.  */
+#undef STDC_HEADERS
+
 /* Define if your processor stores words with the most significant
    byte first (like Motorola and SPARC, unlike Intel and VAX).  */
 #undef WORDS_BIGENDIAN
 
-/* Define if C does NOT support const */
-#undef HAVE_NO_C_CONST
+/* DEBUG          : Turn on Debugging and extra redundant checking code       */
+#undef DEBUG
+
+/* CHECKTIMEORDER : Turn on the increasing time order checking code           */
+#undef CHECKTIMEORDER
+
+/* CHECKRECDEFS   : check the Record Defineition Table for bebits consistency */
+#undef CHECKRECDEFS
+
+/* CHECKPROFILE   : check the Display Profile for bebits consistency          */
+#undef CHECKPROFILE
+
+/* When CHECKRECDEFS and CHECKPROFILE are both turned on, the Display Profile */
+/* and the Record Definition Table will be checked against each other for     */
+/* consistency                                                                */
+
+/* COMPRESSION    : Turn on various header compression code                   */
+#undef COMPRESSION
+
+/* Define if you have the <ctype.h> header file.  */
+#undef HAVE_CTYPE_H
+
+/* Define if you have the <stdarg.h> header file.  */
+#undef HAVE_STDARG_H
+
+/* Define if you have the <stdlib.h> header file.  */
+#undef HAVE_STDLIB_H
+
+/* Define if you have the <string.h> header file.  */
+#undef HAVE_STRING_H
 
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H

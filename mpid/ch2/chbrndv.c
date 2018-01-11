@@ -1,5 +1,5 @@
 /*
- *  $Id: chbrndv.c,v 1.9 1999/11/01 20:33:51 swider Exp $
+ *  $Id: chbrndv.c,v 1.11 2000/08/09 22:29:35 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -17,23 +17,22 @@
 /* Blocking Rendezvous */
 
 /* Prototype definitions */
-int MPID_CH_Rndvb_send ANSI_ARGS(( void *, int, int, int, int, int, 
-					  MPID_Msgrep_t ));
-int MPID_CH_Rndvb_isend ANSI_ARGS(( void *, int, int, int, int, int, 
-				    MPID_Msgrep_t, MPIR_SHANDLE * ));
-int MPID_CH_Rndvb_irecv ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
-int MPID_CH_Rndvb_save ANSI_ARGS(( MPIR_RHANDLE *, int, void *));
-int MPID_CH_Rndvb_unxrecv_start ANSI_ARGS(( MPIR_RHANDLE *, void * ));
-int MPID_CH_Rndvb_unxrecv_end ANSI_ARGS(( MPIR_RHANDLE * ));
-int MPID_CH_Rndvb_unxrecv_test_end ANSI_ARGS(( MPIR_RHANDLE * ));
-int MPID_CH_Rndvb_ok_to_send  ANSI_ARGS(( MPID_Aint, MPID_RNDV_T, int ));
-int MPID_CH_Rndvb_ack ANSI_ARGS(( void *, int ));
+int MPID_CH_Rndvb_send ( void *, int, int, int, int, int, MPID_Msgrep_t );
+int MPID_CH_Rndvb_isend ( void *, int, int, int, int, int, 
+				    MPID_Msgrep_t, MPIR_SHANDLE * );
+int MPID_CH_Rndvb_irecv ( MPIR_RHANDLE *, int, void * );
+int MPID_CH_Rndvb_save ( MPIR_RHANDLE *, int, void *);
+int MPID_CH_Rndvb_unxrecv_start ( MPIR_RHANDLE *, void * );
+int MPID_CH_Rndvb_unxrecv_end ( MPIR_RHANDLE * );
+int MPID_CH_Rndvb_unxrecv_test_end ( MPIR_RHANDLE * );
+int MPID_CH_Rndvb_ok_to_send  ( MPID_Aint, MPID_RNDV_T, int );
+int MPID_CH_Rndvb_ack ( void *, int );
 #if defined(MPID_RNDV_SELF)
-int MPID_CH_Rndvb_save_self ANSI_ARGS(( MPIR_RHANDLE *, int, void *));
-int MPID_CH_Rndvb_unxrecv_start_self ANSI_ARGS(( MPIR_RHANDLE *, void * ));
+int MPID_CH_Rndvb_save_self ( MPIR_RHANDLE *, int, void *);
+int MPID_CH_Rndvb_unxrecv_start_self ( MPIR_RHANDLE *, void * );
 #endif
 
-void MPID_CH_Rndvb_delete ANSI_ARGS(( MPID_Protocol * ));
+void MPID_CH_Rndvb_delete ( MPID_Protocol * );
 
 /* Globals for this protocol */
 /* This should be state in the protocol/device ?? */
@@ -75,6 +74,7 @@ MPIR_SHANDLE  *shandle;
 
     DEBUG_PRINT_MSG("S Starting Rndvb_isend");
 #ifdef MPID_PACK_CONTROL
+    DEBUG_PRINT_MSG("Entering while !MPID_PACKET_CHECK_OK");
     while (!MPID_PACKET_CHECK_OK(dest)) {  /* begin while !ok loop */
 	/* Wait for a protocol ACK packet */
 #ifdef MPID_DEBUG_ALL
@@ -85,7 +85,7 @@ MPIR_SHANDLE  *shandle;
 #endif
 	MPID_DeviceCheck( MPID_BLOCKING );
     }  /* end while !ok loop */
-
+    DEBUG_PRINT_MSG("Leaving while !MPID_PACKET_CHECK_OK");
     MPID_PACKET_ADD_SENT(MPID_MyWorldRank, dest )
 #endif
     
@@ -221,6 +221,7 @@ void         *in_pkt;
 #endif
 
 #ifdef MPID_PACK_CONTROL
+    DEBUG_PRINT_MSG("Entering while !MPID_PACKET_CHECK_OK");
     while (!MPID_PACKET_CHECK_OK(from)) {  /* begin while !ok loop */
 	/* Wait for a protocol ACK packet */
 #ifdef MPID_DEBUG_ALL
@@ -231,7 +232,7 @@ void         *in_pkt;
 #endif
 	MPID_DeviceCheck( MPID_BLOCKING );
     }  /* end while !ok loop */
-
+    DEBUG_PRINT_MSG("Leaving while !MPID_PACKET_CHECK_OK");
     MPID_PACKET_ADD_SENT(pkt->to, from )
 #endif
 
@@ -326,6 +327,7 @@ void         *in_runex;
     MPID_RNDV_T rtag;
   
 #ifdef MPID_PACK_CONTROL
+    DEBUG_PRINT_MSG("Entering while !MPID_PACKET_CHECK_OK");
     while (!MPID_PACKET_CHECK_OK(runex->from)) {  /* begin while !ok loop */
 	/* Wait for a protocol ACK packet */
 #ifdef MPID_DEBUG_ALL
@@ -336,7 +338,7 @@ void         *in_runex;
 #endif
 	MPID_DeviceCheck( MPID_BLOCKING );
     }  /* end while !ok loop */
-
+    DEBUG_PRINT_MSG("Leaving while !MPID_PACKET_CHECK_OK");
     MPID_PACKET_ADD_SENT(runex->partner, runex->from )
 #endif
 
@@ -383,9 +385,11 @@ MPIR_RHANDLE *rhandle;
        If p4 had a blocking probe, we could use that to keep from spinning 
        endlessly by waiting for any message; this handles the case of cycles 
        rather than head-to-head rendezvous */
+    DEBUG_PRINT_MSG("Entering while !MPID_TestRecvTransfer");
     while (!MPID_TestRecvTransfer( rhandle )) {
 	MPID_DeviceCheck( MPID_NOTBLOCKING );
     }
+    DEBUG_PRINT_MSG("Leaving while !MPID_TestRecvTransfer");
     MPID_RecvTransfer( rhandle->buf, rhandle->s.count, 
 		       rhandle->from, 
 		       rhandle->recv_handle );

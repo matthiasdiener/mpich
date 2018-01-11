@@ -20,10 +20,15 @@
 # We now build the libraries in lib and the binaries in bin.
 # Installation into architecture-specific directories is done by this script,
 # not by the original build.
+# *CHANGE IN PROGRESS*
+# Changing the various "FixupFile" proceedures to work with the configured
+# versions, looking for specific directory assignment statements such as
+# prefix=... and includedir=... (config.status does something similar).
+# This requires changing the affected scripts to follow a standard format; 
+# see mpif90.in for an example
 CPP_DIR=@CPP_DIR@
 buildcpp=@buildcpp@
-CPPFLAGS="@CPPFLAGS@"
-CCFLAGS="@CCFLAGS@"
+CPP_COMPILER="@CPP_COMPILER@"
 ARCH=@ARCH@
 COMM=@COMM@
 PREFIX=@PREFIX@
@@ -32,21 +37,23 @@ DEVICE=@DEVICE@
 CPRP="@CPRP@"
 MAKE="@MAKE@"
 RSHCOMMAND="@RSHCOMMAND@"
-DEFAULT_MACHINE=@DEFAULT_MACHINE@
 NOMPE=@NOMPE@
 SHAREDLIB_LOCALDIR=@SHAREDLIB_LOCALDIR@
 MPIR_HOME=@MPIR_HOME@
 #
 # Default paths (set at configure time)
+    exec_prefix=@exec_prefix@
     bindir=@bindir@
     sbindir=@sbindir@
     includedir=@includedir@
+    sysconfdir=@sysconfdir@
     libdir=@libdir@
     sharedlib_dir=@sharedlib_dir@
     messagecat_dir=@messagecat_dir@
     mandir=@mandir@
+    htmldir=@htmldir@
     datadir=@datadir@
-    docdir=$prefix/doc
+    docdir=@docdir@
 # Location of sources
 top_srcdir=@top_srcdir@
 #
@@ -81,8 +88,16 @@ for arg in "$@" ; do
 	-echo) set -x ;;
 	-mode=*) MODE=`echo $arg | sed -e 's/-mode=//g'` ;;
 	-xmode=*)XMODE=`echo $arg | sed -e 's/-xmode=//g'` ;;
-	-prefix=*)prefix=`echo $arg | sed -e 's/-prefix=//g'` 
-	          prefix_override=1 ;;
+	-prefix=*)
+		  # make install passes the prefix.  If the old and
+		  # new prefix are the same, don't set the override
+	          # switch incase mandir etc. were set on the configure
+		  # line (it uses the PREFIX, not prefix, value)
+		  prefix=`echo $arg | sed -e 's/-prefix=//g'` 
+		  if [ $prefix != $PREFIX ] ; then
+  	              prefix_override=1 
+		  fi
+		;;
 	-aprefix=*)APREFIX=`echo $arg | sed -e 's/-aprefix=//g'` 
 		   arg="" ;;   # aprefix not valid for mpeargs
 	-shliblocal=*)
@@ -154,6 +169,7 @@ if [ "$prefix_override" = 1 ] ; then
     bindir=$prefix/bin
     sbindir=$prefix/sbin
     includedir=$prefix/include
+    sysconfdir=$prefix/etc
     libdir=$prefix/lib
     sharedlib_dir=$libdir/shared
     messagecat_dir=$libdir
@@ -185,43 +201,11 @@ if [ -z "$datadir" ] ; then echo "No datadir" ; exit 1 ; fi
 # there are MANY items to restore.  A better approach is to use an install
 # script from the library directory itself.
 if [ -n "$libonly" ] ; then
-#   trialname=`sed -n -e "s/DEFAULT_MACHINE='\(.*\)'/\1/p" \
-#	lib/$ARCH/$DEVICE/config.status`
-#   if [ -n "$trialname" ] ; then 
-#	DEFAULT_MACHINE="$trialname"
-#   fi
     if [ $inlib = 0 -a -x $binbuild_dir/mpiinstall ] ; then
         $binbuild_dir/mpiinstall -inlib "$@"
         exit $?
     fi
 fi
-#
-# Update some fields that contain the build root directory
-# These work by extracting the syntax for specifying the library, and then
-# adding the correct destination to it.
-# The lead stuff is looking for non-path values (like -L or -W,l)
-NLDFLAGS=`echo "@NLDFLAGS@" | \
-	sed -e "s%^[ ]*\([^/ ]*\)/[^ ]*/lib%\1$libdir%g"`
-NFLIB_PATH=`echo "@FLIB_PATH@" | \
-	sed -e "s%^[ ]*\([^/ ]*\)/[^ ]*/lib%\1$libdir%g"`
-NFINC=`echo "@FINC@" | \
-        sed -e "s%/[^ ]*/include%$includedir%g"`
-NF90LIB_PATH=`echo "@F90LIB_PATH@" | \
-	sed -e "s%^[ ]*\([^/ ]*\)/[^ ]*/lib%\1$libdir%g"`
-# This should really use inc-header, instead of this wholesale replacement
-NF90INC=`echo "@F90INC@" | \
-	sed -e "s%^[ ]*\([^/ ]*\)/[^ ]*%\1$includedir%g"`
-# This one is especially tricky because the default include path goes to the
-# source directory for the C++ interface
-# Also remove the link to the build root, since all of the files
-# are moved into includedir/c++
-NCPPFLAGS=`echo "A$CPPFLAGS" | \
-    sed -e "s%-I.*/MPI-2-C++/src%-I$includedir/c++%g" \
-        -e "s%/-I.*/MPI-2-C++%%g" \
-        -e "s%-I.*//src%-I$includedir/c++%g" \
-        -e "s%@prefix@%$prefix%g" \
-        -e "s/^A//g"`
-#
 #
 # We could use install, but install is too different and too hard to 
 # test.  So here are the routines to copy file, make directories, and 
@@ -287,9 +271,9 @@ CopyFileP() {
 # as required, and maintains a list of created directories in dirlist.
 MkDir() {
 if [ ! -d $1 ] ; then
-    dir=`echo $1 | sed 's%/% /%g'`
+    dir_to_make=`echo $1 | sed 's%/% /%g'`
     path_to_date=''
-    for path in $dir ; do
+    for path in $dir_to_make ; do
 	path_to_date="$path_to_date$path"
 	if [ ! -d $path_to_date ] ; then 
             if [ $verbose = 1 ] ; then echo "Creating directory $1" ; fi
@@ -318,6 +302,8 @@ fi
 }
 #
 # Fixup files that need #...# replaced
+# Only mpireconfig and ch4p_servs.  chp4_servs should be replaced with a
+# perl program.  mpireconfig can use FixupFile2 .
 #
 FixupFile() {
 if [ -d $2 ] ; then
@@ -333,41 +319,11 @@ else
     if [ -f $dest ] ; then $Show /bin/rm -f $dest ; fi
     if [ $just_testing = 0 ] ; then
         sed \
-	-e "s%\#ARCH\#%$ARCH%g" \
-	-e "s%\#AUTOMOUNTFIX\#%@AUTOMOUNTFIX@%g" \
-	-e "s%\#CC\#%@CC@%g" \
-	-e "s%\#CFLAGS\#%@CFLAGS@%g" \
-	-e "s%\#USER_CFLAGS\#%@USER_CFLAGS@%g" \
-	-e "s%\#CLINKER\#%@CLINKER@%g" \
-	-e "s%\#COMM\#%$COMM%g" \
-	-e "s%\#datadir\#%$datadir%g" \
+ 	-e "s%\#datadir\#%$datadir%g" \
 	-e "s%\#DEFAULT_ARCH\#%$ARCH%g" \
-	-e "s%\#DEFAULT_DEVICE\#%$DEVICE%g" \
-	-e "s%\#DEFAULT_MACHINE\#%$DEFAULT_MACHINE%g" \
-	-e "s%\#DEVICE\#%$DEVICE%g" \
-       	-e "s%\#EXECER_DIR\#%$prefix/util%g" \
-	-e "s%\#F77\#%@F77@%g" \
-	-e "s%\#FFLAGS\#%@FFLAGS@%g" \
-	-e "s%\#FLIB_PATH_LEADER\#%@FLIB_PATH_LEADER@%g" \
-	-e "s%\#FLIB_LIST\#%@FLIB_LIST@%g" \
-	-e "s%\#FLINKER\#%@FLINKER@%g" \
-	-e "s%\#F90\#%@F90@%g" \
-	-e "s%\#F90FLAGS\#%@F90FLAGS@%g" \
-	-e "s%\#F90LIB_PATH_LEADER\#%@F90LIB_PATH_LEADER@%g" \
-	-e "s%\#F90LIB_PATH\#%$NF90LIB_PATH%g" \
-	-e "s%\#F90LINKER\#%@F90LINKER@%g" \
-	-e "s%\#GLOBUSDIR\#%@GLOBUSDIR@%g" \
-	-e "s%\#INCLUDE_PATH\#%@INCLUDE_PATH@%g" \
-	-e "s%\#INSTALL_DIR\#%$prefix%g" \
-	-e "s%\#LIB_LIST\#%@LIB_LIST@%g" \
-	-e "s%\#MPICH_JOBTYPE_REQUIRED\#%@MPICH_JOBTYPE_REQUIRED@%g" \
-	-e "s%\#MPIRUN_BIN\#%$bindir%g" \
         -e "s%\#MPIR_HOME\#%$prefix%g" \
-	-e "s%\#OPTFLAGS\#%@OPTFLAGS@%g" \
 	-e "s%\#PREFIX\#%$prefix%g" \
 	-e "s%\#RSHCOMMAND\#%$RSHCOMMAND%g" \
-	-e "s%\#SYNCLOC\#%@SYNCLOC@%g" \
-	-e "s%\#MPILIBNAME\#%@MPILIBNAME@%g" \
 	-e "s%\#top_srcdir\#%@top_srcdir@%g" \
 	-e "s%\#bindir\#%@bindir@%g" \
 	-e "s%\#binbuild_dir\#%@bindir@%g" \
@@ -399,18 +355,9 @@ fi
 }
 
 #
-# This is a version of FixupFile that handles @...@ instead of #...#.
-# This is a little trickier, since this file itself is processed by
-# with @...@ replacements.  We take advantage of the fact that [char] 
-# matches the same things as char.
-# This has a few more fields than FixupFile
-#
-FixupFileWithAt() {
-    # Change the FIRST libpath to the new form.  This allows 
-    # the LIB_PATH to contain multiple names, as long as the MPICH libpath
-    # is first
-    NLIBPATH=`echo "@LIB_PATH@" | \
-	sed -e "s%^\([^/ ]*\)/[^ ]*/lib%\1$libdir%g"`
+# This version merely replaces builddir versions with the master versions
+# 
+FixupFile2() {
 if [ -d $2 ] ; then
     dest=$2/`basename $1`
 else
@@ -423,72 +370,17 @@ elif [ -d $1 ] ; then
 else
     if [ -f $dest ] ; then $Show /bin/rm -f $dest ; fi
     if [ $just_testing = 0 ] ; then
-        sed \
-	-e "s%[@]ARCH[@]%$ARCH%g" \
-	-e "s%[@]AUTOMOUNTFIX[@]%@AUTOMOUNTFIX@%g" \
-	-e "s%[@]FINC[@]%$NFINC%g" \
-	-e "s%[@]F90INC[@]%$NF90INC%g" \
-	-e "s%[@]F90MODINC[@]%@F90MODINC@%g" \
-	-e "s%[@]CC[@]%@CC@%g" \
-	-e "s%[@]CCC[@]%@CCC@%g" \
-	-e "s%[@]CPP_COMPILER[@]%@CPP_COMPILER@%g" \
-	-e "s%[@]CFLAGS[@]%@CFLAGS@%g" \
-	-e "s%[@]CCFLAGS[@]%$CCFLAGS%g" \
-	-e "s%[@]CPPFLAGS[@]%$NCPPFLAGS%g" \
-	-e "s%[@]LDFLAGS[@]%$NLDFLAGS%g" \
-	-e "s%[@]CPPLDFLAGS[@]%$CPPLDFLAGS%g" \
-	-e "s%[@]USER_CFLAGS[@]%@USER_CFLAGS@%g" \
-	-e "s%[@]CLINKER[@]%@CLINKER@%g" \
-	-e "s%[@]CCLINKER[@]%@CCLINKER@%g" \
-	-e "s%[@]COMM[@]%$COMM%g" \
-	-e "s%[@]DEFAULT_ARCH[@]%$ARCH%g" \
-	-e "s%[@]DEFAULT_DEVICE[@]%$DEVICE%g" \
-	-e "s%[@]DEFAULT_MACHINE[@]%$DEFAULT_MACHINE%g" \
-	-e "s%[@]DEVICE[@]%$DEVICE%g" \
-       	-e "s%[@]EXECER_DIR[@]%$prefix/util%g" \
-	-e "s%[@]F77[@]%@F77@%g" \
-	-e "s%[@]FFLAGS[@]%@FFLAGS@%g" \
-	-e "s%[@]FLIB_PATH_LEADER[@]%@FLIB_PATH_LEADER@%g" \
-	-e "s%[@]FLIB_PATH[@]%$NFLIB_PATH%g" \
-	-e "s%[@]FLIB_LIST[@]%@FLIB_LIST@%g" \
-	-e "s%[@]FLINKER[@]%@FLINKER@%g" \
-	-e "s%[@]F90[@]%@F90@%g" \
-	-e "s%[@]F90FLAGS[@]%@F90FLAGS@%g" \
-	-e "s%[@]F90LIB_PATH_LEADER[@]%@F90LIB_PATH_LEADER@%g" \
-	-e "s%[@]F90LIB_PATH[@]%$NF90LIB_PATH%g" \
-	-e "s%[@]F90LINKER[@]%@F90LINKER@%g" \
-	-e "s%[@]F90MODINC[@]%@F90MODINC@%g" \
-        -e "s%[@]HAS_WEAK_SYMBOLS[@]%@HAS_WEAK_SYMBOLS@%g" \
-	-e "s%[@]INCLUDE_PATH[@]%@INCLUDE_PATH@%g" \
-	-e "s%[@]INSTALL_DIR[@]%$prefix%g" \
-	-e "s%[@]includedir[@]%$includedir%g" \
-	-e "s%[@]includebuild_dir[@]%$includedir%g" \
-	-e "s%[@]LIB_PATH[@]%$NLIBPATH%g" \
-	-e "s%[@]LIB_LIST[@]%@LIB_LIST@%g" \
-	-e "s%[@]BASE_LIB_LIST[@]%@BASE_LIB_LIST@%g" \
-	-e "s%[@]MPE_DIR[@]%@MPE_DIR@%g" \
-	-e "s%[@]MPE_LIBS[@]%@MPE_LIBS@%g" \
-	-e "s%[@]MPICH_SED_FORTRAN_SOURCE[@]%@MPICH_SED_FORTRAN_SOURCE@%g" \
-        -e "s%[@]MPIR_HOME[@]%$prefix%g" \
-        -e "s%[@]MPILIBNAME[@]%@MPILIBNAME@%g" \
-	-e "s%[@]NOMPE[@]%@NOMPE@%g" \
-	-e "s%[@]OPTFLAGS[@]%@OPTFLAGS@%g" \
-	-e "s%[@]PREFIX[@]%$prefix%g" \
-	-e "s%[@]ROMIO_LFLAGS[@]%@ROMIO_LFLAGS@%g" \
-	-e "s%[@]ROMIO_TCFLAGS[@]%@ROMIO_TCFLAGS@%g" \
-	-e "s%[@]ROMIO_TCPPFLAGS[@]%@ROMIO_TCPPFLAGS@%g" \
-	-e "s%[@]ROMIO_TFFLAGS[@]%@ROMIO_TFFLAGS@%g" \
-	-e "s%[@]RSHCOMMAND[@]%$RSHCOMMAND%g" \
-	-e "s%[@]SHAREDKIND[@]%@SHAREDKIND@%g" \
-	-e "s%[@]SHAREDLIB_LOCALDIR[@]%$SHAREDLIB_LOCALDIR%g" \
-	-e "s%[@]SHARED_LIB_SEARCH_PATH_LEADER[@]%@SHARED_LIB_SEARCH_PATH_LEADER@%g" \
-	-e "s%[@]SYNCLOC[@]%@SYNCLOC@%g" \
-	-e "s%[@]top_srcdir[@]%@top_srcdir@%g" \
-	-e "s%[@]bindir[@]%@bindir@%g" \
-	-e "s%[@]binbuild_dir[@]%@bindir@%g" \
-	-e "s%[@]libbuild_dir[@]%@libdir@%g" \
-	-e "s%[@]sharedlibbuild_dir[@]%@sharedlib_dir@%g" \
-	$1 > $dest
+        # The $ forms are for PERL programs
+        sed -e "s%^prefix=.*%prefix=$prefix%g" \
+            -e "s%^includedir=.*%includedir=$includedir%g" \
+	    -e "s%^mandir=.*%mandir=$mandir%g" \
+	    -e "s%\$bindir=.*;%\$bindir=\"$bindir\";%"g \
+	    -e "s%^bindir=.*%bindir=$bindir%"g \
+	    -e "s%\$datadir=.*;%\$datadir=\"$datadir\";%"g \
+	    -e "s%^datadir=.*%datadir=$datadir%"g \
+            -e "s%^libdir=.*%libdir=$libdir%g" \
+	    -e "s%^sharedlibdir=.*%sharedlibdir=$sharedlib_dir%g" \
+		$1 > $dest
         rc=$?
         if [ $rc != 0 ] ; then
 	    echo "**Error fixing up file $dest**"
@@ -498,7 +390,7 @@ else
 	    echo "/bin/rm -f $dest" >> $UNINSTALLFILE
         fi
     else
-	if [ $verbose = 1 ] ; then echo "Fixup $1.in and copy to $dest" ; fi
+	if [ $verbose = 1 ] ; then echo "Fixup $1 and copy to $dest" ; fi
     fi
 fi
 if [ -z "$3" ] ; then
@@ -514,7 +406,6 @@ if [ $rc != 0 ] ; then
     if [ $failmode = "hard" ] ; then exit $rc ; fi
 fi
 }
-
 ##############################################################################
 #
 # End of routines
@@ -553,17 +444,23 @@ MkDir $sbindir
 MkDir $includedir
 MkDir $datadir
 MkDir $docdir
+MkDir $sysconfdir
 
-if [ -n "$CPP_DIR" -a "$buildcpp" = 1 ] ; then 
-    MkDir $prefix/$CPP_DIR
-    MkDir $prefix/$CPP_DIR/examples
-    MkDir $includedir/c++
-fi
 MkDir $prefix/examples
+if [ -n "$CPP_DIR" -a "$buildcpp" = 1 ] ; then 
+    MkDir $prefix/examples/$CPP_DIR
+    MkDir $includedir/mpi2c++
+fi
 
 #
 # Remove old uninstall file.  We can't do this until we've created the
 # sbindir directory.
+if [ -x $UNINSTALLFILE ] ; then
+    if [ -x ${UNINSTALLFILE}.old ] ; then
+        rm -f ${UNINSTALLFILE}.old
+    fi
+    mv $UNINSTALLFILE ${UNINSTALLFILE}.old
+fi
 /bin/rm -f $UNINSTALLFILE
 cat > $UNINSTALLFILE <<EOF
 #! /bin/sh
@@ -574,10 +471,11 @@ chmod +x $UNINSTALLFILE
 if [ -z "$libonly" ] ; then
     CopyFile ${top_srcdir}/bin/tarch $bindir $XMODE
     CopyFile ${top_srcdir}/bin/tdevice $bindir $XMODE
+    CopyFile util/mpichlib.conf ${sysconfdir} 
     #
     # mpiman
     $Show /bin/rm -f $bindir/mpiman
-    FixupFile $top_srcdir/util/mpiman.in $bindir/mpiman $XMODE
+    FixupFile2 bin/mpiman $bindir/mpiman $XMODE
     #
     # mpirun et al.  This would be a good place to identify 
     # "partial" mpirun installations
@@ -589,23 +487,19 @@ if [ -z "$libonly" ] ; then
     #     mpirun.pg.in
     # This needs to be modified to simply move the needed files, not 
     # all of them.
-    if [ -s $top_srcdir/mpid/$DEVICE/mpirun.lst ] ; then
-         MPIRUNLIST=`cat ${top_srcdir}/mpid/$DEVICE/mpirun.lst`
-    elif [ -s $top_srcdir/mpid/$DEVICE/mpirun.$DEVICE.in ] ; then
-         MPIRUNLIST=mpid/$DEVICE/mpirun.$DEVICE.in
-    fi
+    # Install should not execute a make.
+    # See the install_$DEVICE script.
     # tstmachines is handled as part of the ch_p4 device code (and placed in
     # sbin)
-    # Not all devices use mpirun.x.in.  If there is no in file, skip this step
-    if [ -n "$MPIRUNLIST" ] ; then
-        for file in util/mpirun.in util/mpirun.args.in $MPIRUNLIST ; do
-            bfile=`basename $file .in`
-            if [ $verbose = 1 ] ; then 
-                echo "Creating $bindir/$bfile from $file"
-            fi
-            FixupFile $top_srcdir/$file $bindir/$bfile $XMODE
+    # This step relies on a clean bin build directory
+    # Only mpirun really needs FixupFile2; all others just need copyfile
+    if [ -x bin/mpirun ] ; then
+        for file in bin/mpirun* ; do
+	    bfile=`basename $file`
+            FixupFile2 $file ${bindir}/$bfile $XMODE
         done
     fi
+
     #echo "/bin/rm -f $bindir/mpirun" >> $UNINSTALLFILE
     if [ ! -x $bindir/tarch ] ; then
         CopyFile $top_srcdir/bin/tarch $bindir $XMODE
@@ -642,7 +536,7 @@ if [ -z "$libonly" ] ; then
         -e "s%^MPIF77=\([^/ ]*\)/.*\$%MPIF77=$bindir/mpif77%g" \
         -e "s%^MPIF90=\([^/ ]*\)/.*\$%MPIF90=$bindir/mpif90%g" \
         -e "s%^MPICPLUSPLUS=\([^/ ]*\)/.*\$%MPICPLUSPLUS=$bindir/mpiCC%g" \
-		${binbuild_dir}/config.status > ${bindir}/mpireconfig.dat
+		config.status > ${bindir}/mpireconfig.dat
     chmod $XMODE ${bindir}/mpireconfig.dat
     echo "/bin/rm -f ${bindir}/mpireconfig.dat" >> $UNINSTALLFILE
     else
@@ -653,57 +547,78 @@ if [ -z "$libonly" ] ; then
     CopyFile $top_srcdir/util/execer $bindir/execer $XMODE
     #
     # mpicc, mpif77, mpif90
-    FixupFileWithAt $top_srcdir/util/mpicc.in $bindir/mpicc $XMODE
-    FixupFileWithAt $top_srcdir/util/mpif77.in $bindir/mpif77 $XMODE
-    FixupFileWithAt $top_srcdir/util/mpif90.in $bindir/mpif90 $XMODE
+    FixupFile2 bin/mpicc $bindir/mpicc $XMODE
+    if [ -x src/fortran/src/mpif77 -a "@NOF77@" = "0" ] ; then
+        CopyFile src/fortran/src/mpif77 $bindir/mpif77 $XMODE
+        CopyFile src/fortran/src/mpif77.conf $sysconfdir
+        CopyFile $includebuild_dir/mpif.h $includedir
+    fi
+    if [ -x src/fortran/src/mpif90 -a "@NO_F90@" = "0" ] ; then
+        CopyFile src/fortran/src/mpif90 $bindir/mpif90 $XMODE
+	CopyFile src/fortran/src/mpif90.conf $sysconfdir
+    fi
     #
     # mpiCC, if C++ selected
-    if [ -n "@CPP_COMPILER@" ] ; then
-	FixupFileWithAt $top_srcdir/util/mpiCC.in $bindir/mpiCC $XMODE
+    if [ -n "$CPP_COMPILER" ] ; then
+	FixupFile2 bin/mpiCC $bindir/mpiCC $XMODE
+    fi
+    # If there is a device install script, use that.  We
+    # put this last in case it wants to update any of the scripts or
+    # other files that are installed.  This is executed as an included
+    # script so that it has access to the various variables (e.g., 
+    # prefix and bindir).  If you need to run a program, run it from
+    # within the script
+    if [ -x mpid/$DEVICE/install_$DEVICE ] ; then
+        . mpid/$DEVICE/install_$DEVICE
+    elif [ -x $top_srcdir/mpid/$DEVICE/install_$DEVICE ] ; then
+	. $top_srcdir/mpid/$DEVICE/install_$DEVICE
     fi
 else
     # libonly
     #
     # mpirun et al.
-    if [ -s mpid/$DEVICE/mpirun.lst ] ; then
-         MPIRUNLIST=`cat mpid/$DEVICE/mpirun.lst`
-    elif [ -s mpid/$DEVICE/mpirun.$DEVICE.in ] ; then 
-         MPIRUNLIST=mpid/$DEVICE/mpirun.$DEVICE.in
-    fi
-    if [ -n "$MPIRUNLIST" ] ; then 
-        for file in util/mpirun.in util/mpirun.args.in $MPIRUNLIST ; do
-            bfile=`basename $file .in`
-            if [ $verbose = 1 ] ; then 
-                echo "Creating $bindir/$bfile from $file"
-  	    fi
-            FixupFile $top_srcdir/$file $bindir/$bfile $XMODE
+    # Only mpirun really needs FixupFile2; all others just need copyfile
+    if [ -x bin/mpirun ] ; then 
+        for file in bin/mpirun* ; do
+            bfile=`basename $file`
+            FixupFile2 $file $bindir/$bfile $XMODE
         done
     fi
     if [ ! -x $bindir/tarch ] ; then
 	CopyFile $binbuild_dir/tarch $bindir/tarch $XMODE
     fi
-    FixupFileWithAt $top_srcdir/util/mpicc.in $bindir/mpicc $XMODE
-    if [ -n "@CPP_COMPILER@" ] ; then
-        FixupFileWithAt $top_srcdir/util/mpiCC.in $bindir/mpiCC $XMODE
+    FixupFile2 bin/mpicc $bindir/mpicc $XMODE
+    if [ -n "$CPP_COMPILER" ] ; then
+        FixupFile2 bin/mpiCC $bindir/mpiCC $XMODE
     fi
-    FixupFileWithAt $top_srcdir/util/mpif77.in $bindir/mpif77 $XMODE
-    FixupFileWithAt $top_srcdir/util/mpif90.in $bindir/mpif90 $XMODE
+    CopyFile util/mpichlib.conf ${sysconfdir}
     FixupFile $top_srcdir/util/mpireconfig.in $bindir/mpireconfig $XMODE
-    CopyFile $includebuild_dir/mpichconf.h $includedir
+    # No user include uses mpichconf.h
+    CopyFile $includebuild_dir/mpichconf.h $sysconfdir/mpichconf.h.dat
     CopyFile $includebuild_dir/mpidefs.h $includedir 
-    CopyFile $includebuild_dir/mpif.h $includedir
+    CopyFile $includebuild_dir/mpi.h $includedir
+    if [ -s $includebuild_dir/mpif.h -a "@NOF77@" = "0" ] ; then
+        CopyFile $includebuild_dir/mpi_fortdefs.h $includedir
+        CopyFile src/fortran/src/mpif77 $bindir/mpif77 $XMODE
+	CopyFile src/fortran/src/mpif77.conf $sysconfdir
+        CopyFile $includebuild_dir/mpif.h $includedir
+    fi
+    if [ -x src/fortran/src/mpif90 -a "@NO_F90@" = "0" ] ; then
+        CopyFile src/fortran/src/mpif90 $bindir/mpif90 $XMODE
+	CopyFile src/fortran/src/mpif90.conf $sysconfdif
+    fi
     if [ -s romio/include/mpio.h ] ; then
         CopyFile romio/include/mpio.h $includedir
         CopyFile romio/include/mpiof.h $includedir
     fi
     # Fortran 90 modules
-    if [ -d $includebuild_dir/f90base ] ; then
+    if [ -d $includebuild_dir/f90base -a "@NO_F90@" = "0" ] ; then
         MkDir $includedir/f90base
         for file in $includebuild_dir/f90base/* ; do
 	    CopyFile $file $includedir/f90base
 	done
     fi
-    if [ -d $includebuild_dir/f90choice ] ; then
+    if [ -d $includebuild_dir/f90choice -a "@NO_F90@" = "0" ] ; then
         MkDir $includedir/f90choice
         for file in $includebuild_dir/f90choice/* ; do
 	    CopyFile $file $includedir/f90choice
@@ -713,25 +628,13 @@ fi
 #
 # P4
 if [ "$DEVICE" = "ch_p4" ] ; then
-    FixupFile $top_srcdir/util/tstmachines.in $sbindir/tstmachines $XMODE
-    if [ ! -x mpid/server/serv_p4 ] ; then
-	echo "Attempting to build ch_p4 secure server"
-	if [ ! -d mpid/server ] ; then 
-	    $Show mkdir mpid/server 
-	fi
-        if [ $just_testing = 1 ] ; then
-  	    echo "( cd mpid/server ; CC=\"@CC@\" ; export CC ; \
-	         $top_srcdir/mpid/server/configure ; $MAKE serv_p4 )"
-        else 
-	    ( cd mpid/server ; CC="@CC@" ; export CC ; \
-	         $top_srcdir/mpid/server/configure ; $MAKE serv_p4 )
-        fi
-    fi
+    FixupFile2 util/tstmachines $sbindir/tstmachines $XMODE
+    # Installs should not do builds
     if [ -x mpid/server/serv_p4 ] ; then 
 	CopyFile mpid/server/serv_p4 $bindir $XMODE
 	$Show /bin/rm -f util/chp4_servs
 	FixupFile $top_srcdir/util/chp4_servs.in $sbindir/chp4_servs $XMODE
-	FixupFileWithAt $top_srcdir/util/chkserv.in $sbindir/chkserv $XMODE
+	FixupFile2 util/chkserv $sbindir/chkserv $XMODE
     else
         echo "Server not available"
     fi
@@ -751,25 +654,28 @@ if [ -z "$libonly" ] ; then
     #
     # Include files
     CopyFile $includebuild_dir/mpi.h $includedir
+    if [ -s $includebuild_dir/mpif.h -a "@NOF77@" = "0" ] ; then
+        CopyFile $includebuild_dir/mpi_fortdefs.h $includedir
+    fi
     CopyFile $includebuild_dir/mpi_errno.h $includedir
     #CopyFile include/protofix.h $includedir
     #CopyFile include/patchlevel.h $includedir
-    CopyFile $includebuild_dir/mpichconf.h $includedir
+    # No user include uses mpichconf.h
+    CopyFile $includebuild_dir/mpichconf.h $sysconfdir/mpichconf.h.dat
     CopyFile $includebuild_dir/mpidefs.h $includedir
-    CopyFile $includebuild_dir/mpif.h $includedir
     # Install ROMIO files
     if [ -s romio/include/mpio.h ] ; then
         CopyFile romio/include/mpio.h $includedir
         CopyFile romio/include/mpiof.h $includedir
     fi
     # Fortran 90 modules
-    if [ -d $includebuild_dir/f90base ] ; then
+    if [ -d $includebuild_dir/f90base -a "@NO_F90@" = "0" ] ; then
         MkDir $includedir/f90base
         for file in $includebuild_dir/f90base/* ; do
 	    CopyFile $file $includedir/f90base
 	done
     fi
-    if [ -d $includebuild_dir/f90choice ] ; then
+    if [ -d $includebuild_dir/f90choice -a "@NO_F90@" = "0" ] ; then
         MkDir $includedir/f90choice
         for file in $includebuild_dir/f90choice/* ; do
 	    CopyFile $file $includedir/f90choice
@@ -778,16 +684,17 @@ if [ -z "$libonly" ] ; then
 fi
 #
 # Include files for C++
+# (We should eventually use the install target in C++)
 if [ -n "$CPP_DIR" -a "$buildcpp" = 1 ] ; then 
-    if [ ! -d $includedir/c++ ] ; then
-        MkDir $includedir/c++
+    if [ ! -d $includedir/mpi2c++ ] ; then
+        MkDir $includedir/mpi2c++
     fi
     # MPI-2-C++/src has the regular files; MPI-2-C++ has the config-dependent
     # files
-    for file in $top_srcdir/MPI-2-C++/src/*.h MPI-2-C++/*.h ; do 
+    for file in $top_srcdir/MPI-2-C++/src/mpi2c++/*.h \
+	        MPI-2-C++/src/mpi2c++/mpi2c++_config.h ; do 
         if [ -s $file ] ; then
-            # Should really be include/c++
-            CopyFile $file $includedir/c++
+            CopyFile $file $includedir/mpi2c++
 	fi
     done
 fi
@@ -812,6 +719,14 @@ for file in $libbuild_dir/libtvmpich.so* ; do
 	CopyFileP $file $libdir
     fi
 done
+# The Fortran wrapper libraries should have been created in libbuild_dir
+#if [ "@NOF77@" = "0" ] ; then
+#    for file in src/fortran/src/lib*.a ; do
+#        if [ -f $file ] ; then
+#            CopyFileP $file $libdir
+#        fi
+#    done
+#fi
 # Copy the shared library versions
 for file in $libbuild_dir/shared/*.so* ; do
     # Also need to handle any links!
@@ -828,7 +743,7 @@ for file in $sharedlib_dir/*.so* ; do
     filebase=`echo $file | sed -e 's%\.so\.[^/]*$%.so%g'`
     if [ ! -h $filebase -a -s $file ] ; then 
         $Show ln -s $file $filebase
-	echo "/bin/rm -f $file" >>$UNINSTALLFILE
+	echo "/bin/rm -f $filebase" >>$UNINSTALLFILE
     fi
 done
 #
@@ -866,6 +781,7 @@ if [ -z "$libonly" ] ; then
             if [ -f $messagecat_dir/mpich.En_US.cat ] ; then 
                 $Show ln -s $messagecat_dir/mpich.En_US.cat \
 	   		    $messagecat_dir/mpich.cat
+		echo "/bin/rm -f $messagecat_dir/mpich.cat" >>$UNINSTALLFILE
             fi
         elif [ -s $file ] ; then 
 	    # This will handle the case of no mpich.* matches
@@ -878,7 +794,6 @@ fi
 CopyFile $includebuild_dir/mpidefs.h $includedir
 #
 # Documentation
-# Note that we're not doing the www pages yet.
 if [ -z "$noman" -a -z "$libonly" ] ; then 
     if [ -z "$mandir" ] ; then
         mandir=$prefix/man
@@ -886,12 +801,12 @@ if [ -z "$noman" -a -z "$libonly" ] ; then
     MkDir $mandir
     CopyFile $top_srcdir/man/mandesc $mandir
     # No files in man5 (was ADI routines)
-    for dir in man1 man3 man4 ; do
-       MkDir $mandir/$dir
-        for file in $top_srcdir/man/$dir/* ; do 
+    for dir1 in man1 man3 man4 ; do
+       MkDir $mandir/$dir1
+        for file in $top_srcdir/man/$dir1/* ; do 
 	    # man5 in particular might be empty; be careful
             if [ -f "$file" -a -s "$file" ] ; then 
-  	        CopyFile $file $mandir/$dir
+  	        CopyFile $file $mandir/$dir1
 	    fi
         done
     done
@@ -901,6 +816,25 @@ if [ -z "$noman" -a -z "$libonly" ] ; then
   	    CopyFile $file $mandir/man3
 	fi
     done
+    # HTML pages
+    if [ -z "$htmldir" ] ; then
+        htmldir=$prefix/www
+    fi
+    MkDir $htmldir
+    if [ -s $top_srcdir/www/index.html ] ; then
+        # Some development versions don't include the www directories
+        CopyFile $top_srcdir/www/index.html $htmldir
+        # No files in www5 (was ADI routines)
+        for dir1 in www1 www3 www4 ; do
+           MkDir $htmldir/$dir1
+            for file in $top_srcdir/www/$dir1/* ; do 
+	        # www5 in particular might be empty; be careful
+                if [ -f "$file" -a -s "$file" ] ; then 
+  	            CopyFile $file $htmldir/$dir1
+	        fi
+            done
+        done
+    fi
 fi
 if [ -z "$libonly" ] ; then
     for file in functions.ps.gz guide.ps.gz install.ps.gz ; do
@@ -917,16 +851,16 @@ if [ -z "$libonly" ] ; then
     fi
 fi
 #
-if test "$NOMPE" = "0" ; then
-    if [ ! -x mpe/mpeinstall ] ; then
-        echo "** mpeinstall script is not available in mpe!"
+if [ "$NOMPE" = "0" ] ; then
+    if [ ! -x mpe/sbin/mpeinstall ] ; then
+        echo "** mpeinstall script is not available in mpe/sbin!"
         echo "** MPE will not be installed"
     else
         echo "Installing MPE"
 	# mpeargs should be the same for the most part as mpi args.
 	# see command line processing.
 	mpeargs="$mpeargs -uninstall=$UNINSTALLFILE"
-        ( cd mpe ; ./mpeinstall $mpeargs )
+        ( cd mpe ; ./sbin/mpeinstall $mpeargs )
     fi
 fi
 #
@@ -942,19 +876,22 @@ Savevar=$prefix
 # prefix=@prefix@ when ever prefix= starts in the first column (!)
 # It also does this with exec_prefix (!!)
      prefix=$APREFIX
-#FixupFile installtest/makefile.proto $prefix/examples/Makefile
 (cd $prefix/examples ; $bindir/mpireconfig Makefile )
 echo "(cd $prefix/examples ; $MAKE clean)" >> $UNINSTALLFILE
 echo "/bin/rm -f $prefix/examples/Makefile" >> $UNINSTALLFILE
      prefix=$Savevar
 CopyFile $prefix/examples/Makefile $datadir/Makefile.sample
 CopyFile $top_srcdir/installtest/cpi.c $prefix/examples
-CopyFile $top_srcdir/installtest/pi3.f $prefix/examples
 CopyFile $top_srcdir/installtest/cpip.c $prefix/examples
-CopyFile $top_srcdir/installtest/pi3p.f $prefix/examples
 CopyFile $top_srcdir/installtest/cpilog.c $prefix/examples
 CopyFile $top_srcdir/installtest/hello++.cc $prefix/examples
-CopyFile $top_srcdir/installtest/pi3f90.f90 $prefix/examples
+if [ "@NOF77@" = "0" ] ; then
+    CopyFile $top_srcdir/installtest/pi3.f $prefix/examples
+    CopyFile $top_srcdir/installtest/pi3p.f $prefix/examples
+    if [ "@NO_F90@" = "0" ] ; then
+        CopyFile $top_srcdir/installtest/pi3f90.f90 $prefix/examples
+    fi
+fi
 if [ -s $top_srcdir/romio/test/simple.c ] ; then 
     CopyFile $top_srcdir/romio/test/simple.c $prefix/examples/simpleio.c
 fi
@@ -976,29 +913,33 @@ fi
 Savevar=$prefix
 if [ -n "$CPP_DIR" -a "$buildcpp" = 1 ] ; then 
     # C++ Example programs 
-    CopyFile $top_srcdir/installtest/mpi-2-c++/Makefile.in $prefix/$CPP_DIR/examples
+    CopyFile $top_srcdir/installtest/mpi-2-c++/Makefile.in $prefix/examples/$CPP_DIR
     #
     prefix=$APREFIX
     CPPEXDIR=$top_srcdir/$CPP_DIR/contrib/examples
-    (cd $prefix/$CPP_DIR/examples ; $bindir/mpireconfig Makefile )
-    echo "(cd $prefix/$CPP_DIR/examples ; $MAKE clean)" >> $UNINSTALLFILE
-    echo "/bin/rm -f $prefix/$CPP_DIR/examples/Makefile" >> $UNINSTALLFILE
+    # This isn't correct because it doesn't handle all of the fields in
+    # the C++ examples Makefile, particularly the TEMPLATE_REP field
+    # The intent here is to update the directories; but we also need
+    # to update a few additional fields
+    (cd $prefix/examples/$CPP_DIR ; $bindir/mpireconfig Makefile )
+    echo "(cd $prefix/examples/$CPP_DIR ; $MAKE clean)" >> $UNINSTALLFILE
+    echo "/bin/rm -f $prefix/examples/$CPP_DIR/Makefile" >> $UNINSTALLFILE
     prefix=$Savevar
-    CopyFile $CPPEXDIR/hello_world.cc $prefix/$CPP_DIR/examples
-    CopyFile $CPPEXDIR/ring.cc $prefix/$CPP_DIR/examples
-    CopyFile $CPPEXDIR/topology.cc $prefix/$CPP_DIR/examples
-    CopyFile $CPPEXDIR/user_bcast.cc $prefix/$CPP_DIR/examples
-    CopyFile $CPPEXDIR/chapter_10_mpi2.cc $prefix/$CPP_DIR/examples
-    CopyFile $CPPEXDIR/pi.cc $prefix/$CPP_DIR/examples
-    CopyFile $CPPEXDIR/README $prefix/$CPP_DIR/examples
+    CopyFile $CPPEXDIR/hello_world.cc $prefix/examples/$CPP_DIR
+    CopyFile $CPPEXDIR/ring.cc $prefix/examples/$CPP_DIR
+    CopyFile $CPPEXDIR/topology.cc $prefix/examples/$CPP_DIR
+    CopyFile $CPPEXDIR/user_bcast.cc $prefix/examples/$CPP_DIR
+    CopyFile $CPPEXDIR/chapter_10_mpi2.cc $prefix/examples/$CPP_DIR
+    CopyFile $CPPEXDIR/pi.cc $prefix/examples/$CPP_DIR
+    CopyFile $CPPEXDIR/README $prefix/examples/$CPP_DIR
     #
     # Test build the C++ examples
-    $Show "(cd $prefix/$CPP_DIR/examples ; /bin/rm -f mpirun ; \
+    $Show "(cd $prefix/examples/$CPP_DIR ; /bin/rm -f mpirun ; \
 	      ln -s ../../bin/mpirun mpirun )"
-    echo "/bin/rm -f $prefix/$CPP_DIR/examples/mpirun" >> $UNINSTALLFILE
+    echo "/bin/rm -f $prefix/examples/$CPP_DIR/mpirun" >> $UNINSTALLFILE
     #
     echo "About to run C++ installation test..."
-    $Show "(cd $prefix/$CPP_DIR/examples; $MAKE ; $MAKE clean)"
+    $Show "(cd $prefix/examples/$CPP_DIR; $MAKE ; $MAKE clean)"
     #
 fi
 #
@@ -1009,7 +950,7 @@ for dir in $dirlist ; do
 done
 #
 echo installed MPICH in $prefix
-echo $sbindir/mpiuninstall may be used to remove the installation.
+echo $UNINSTALLFILE may be used to remove the installation.
 #
 if [ $errs -gt 0 ] ; then
     rc=1

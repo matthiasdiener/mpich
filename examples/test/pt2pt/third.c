@@ -6,6 +6,10 @@
 #include <stdio.h>
 #include "mpi.h"
 #include "test.h"
+#ifdef HAVE_UNISTD_H
+/* For sleep */
+#include <unistd.h>
+#endif
 
 /* Define VERBOSE to get printed output */
 int main( int argc, char **argv )

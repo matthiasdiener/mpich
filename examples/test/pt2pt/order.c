@@ -38,7 +38,13 @@ for this test.\n" );
 	MPI_Irecv(&a, 1, MPI_INT, 1, 0, MPI_COMM_WORLD, &request);
 	MPI_Recv(&b, 1, MPI_INT, 1, 0, MPI_COMM_WORLD, &status);
 	MPI_Wait(&request, &status);
-	printf("rank = %d, a = %d, b = %d\n", rank, a, b);
+	/* Check for correct values: */
+	if (a == 1 && b == 2) {
+	    printf( " No Errors\n" );
+	}
+	else {
+	    printf("rank = %d, a = %d, b = %d\n", rank, a, b);
+	}
     }
     else
     {

@@ -113,10 +113,14 @@ FLIB_PATH=""
 OPTFLAGS=""
 OPTFLAGSF=""
 NOF77=0
+HAS_CXX=no
 F77_EXTRA_FLAG=""
 HAS_FORTRAN=1
 MPILIBNAME=
 CFLAGS=""
+NOSHORTLONGS=no
+NO_LONG_LONG=no
+NO_LONG_DOUBLE=no
 # Change MPIFDEP to make Fortran builds depend on an mpif link.
 MPIFDEP=""
 #
@@ -129,7 +133,10 @@ CONFIGURE_ARGS="$*"
 DEFAULT_MACHINE=''
 DEVICE_KIND=MPP
 HAS_MPI2=0
-cross_compiling=0
+IO=""
+# Some autoconf tests check for cross_compiling being empty, rather than
+# having a value of 0 or 1 (or no or yes).
+cross_compiling=""
 # 
 BASECC=0
 BASEF77=0
@@ -292,6 +299,8 @@ do
 
      -mpi2)
 	HAS_MPI2=1
+	# add I/O test
+	IO="io"
 	;;
 
      -nof77 | --nof77)
@@ -301,6 +310,13 @@ do
        FC=true
        ;;
 	
+     -no-io | -disable-io | --disable-io)
+       IO=""
+       ;;
+     -enable-io | --enable-io | --enable-romio | -enable-romio)
+       IO="io"
+       ;;
+
      -nobanner)
 	nobanner=1
 	;;
@@ -309,6 +325,42 @@ do
 	set -x 
         configure_echo=1
 	;;
+
+     -no_short_longs | --no_short_longs | --disable-short-longs | -disable-short-longs)
+	NOSHORTLONGS=yes
+	NO_LONG_LONG="yes"
+	NO_LONG_DOUBLE="yes"
+	;;
+
+     --enable-short-longs | -enable-short-longs)
+	NOSHORTLONGS=no
+	NO_LONG_LONG="no"
+	NO_LONG_DOUBLE="no"
+	;;
+
+     --disable-long-long | -disable-long-long)
+	NO_LONG_LONG="yes"
+	enable_args="$enable_args --disable-long-long"
+	;;
+
+     --enable-long-long | --enable-long-long)
+	NO_LONG_LONG="no"
+	enable_args="$enable_args --enable-long-long"
+	;;
+
+     --disable-long-double | -disable-long-double)
+	NO_LONG_DOUBLE="yes"
+	enable_args="$enable_args --disable-long-double"
+	;;
+
+     --enable-long-double | --enable-long-double)
+	NO_LONG_DOUBLE="no"
+	enable_args="$enable_args --enable-long-double"
+	;;
+
+     --enable-c++ | -enable-c++)
+        HAS_CXX=yes
+        ;;
 
      -u | -usage | --usage | --usag | --usa | --us | --u | -help | --help )
 	print_usage >& 2
@@ -351,6 +403,7 @@ if test -n "$mpichpath" ; then
     if test -z "$MPICH_VERSION" ; then 
 	MPICH_VERSION="MPICH"
     fi
+    if test -z "$MPI_VERSION" ; then MPI_VERSION="MPICH" ; fi
 fi
 #
 if test $BASECC = 0 ; then
@@ -452,9 +505,17 @@ if test $stdarg_ok = 1 ; then
     AC_DEFINE(USE_STDARG)
 fi
 #
-# Check for special types
-PAC_LONG_DOUBLE()
-PAC_LONG_LONG_INT()
+# Check for special types.  Note that some systems cannot support long double,
+# even though the compiler can.  For example, there is no standard XDR form
+# for long double, so heterogeneous builds may need to ignore it.
+# 
+if test "$NOSHORTLONGS" = "no" -a "$NO_LONG_DOUBLE" = "no" ; then
+    PAC_LONG_DOUBLE()
+fi
+if test "$NOSHORTLONGS" = "no" -a "$NO_LONG_LONG" = "no" ; then
+    PAC_LONG_LONG_INT()
+fi
+
 #
 # Check to see if the compiler accepts prototypes
 PAC_CHECK_CC_PROTOTYPES(AC_DEFINE(HAVE_PROTOTYPES))
@@ -535,6 +596,11 @@ EOF
     fi
     rm -f conftest*
 fi
+#
+# Eventually add C++
+# For now, just test mpiCC
+AC_SUBST(HAS_CXX)
+#
 AC_SUBST(MPIRUNARGS)
 # Substitute variables
 # Variables used in scripts only
@@ -555,6 +621,7 @@ AC_SUBST(FLINKER)dnl
 AC_SUBST(HAS_FORTRAN)dnl
 AC_SUBST(F77_EXTRA_FLAG)dnl
 AC_SUBST(INCLUDE_PATH)dnl
+AC_SUBST(IO)dnl
 AC_SUBST(LIB_LIST)dnl
 AC_SUBST(LIB_PATH)dnl
 AC_SUBST(LIB_DIR)dnl
@@ -570,6 +637,7 @@ AC_SUBST(MPIF77)dnl
 AC_SUBST(MPICPLUSPLUS)dnl
 AC_SUBST(MPIRUN)dnl
 AC_SUBST(MPIRUNMVBACK)dnl
+AC_SUBST(MPI_VERSION)dnl
 AC_SUBST(OPTFLAGS)dnl
 AC_SUBST(OPTFLAGSC)dnl
 AC_SUBST(OPTFLAGSF)dnl
@@ -580,7 +648,9 @@ MPICH_VERSION=""
 dnl This is used to make sure that we get the correct mpirun.
 AC_SUBST(MPICH_VERSION)dnl
 # End configuration file
-AC_OUTPUT(Makefile pt2pt/Makefile coll/Makefile topol/Makefile context/Makefile env/Makefile profile/Makefile )
-PAC_OUTPUT_EXEC(pt2pt/runtests coll/runtests topol/runtests context/runtests env/runtests profile/runtests,a+x )
+AC_OUTPUT(Makefile pt2pt/Makefile coll/Makefile topol/Makefile \
+	context/Makefile env/Makefile profile/Makefile )
+PAC_OUTPUT_EXEC(pt2pt/runtests coll/runtests topol/runtests context/runtests \
+	command/runtests env/runtests profile/runtests,a+x )
 
 

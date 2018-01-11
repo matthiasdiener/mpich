@@ -53,9 +53,14 @@ fi
 if [ "$GetPathSpec" = "yes" ] ; then
     # Return only the path leader used for specifying the location of a
     # shared library
+    # This should follow the libtool rules (libdir_flag_spec, libdir_separator,
+    # etc.).  It should return quoted strings with ${shlibname}.  See the
+    # ltconfig program, which contains all of this info.
+    # Note that these sometimes need the linker spec line (${wl} in ltconfig,
+    # often either empty or -Wl,).
     case $kind in 
-        gcc) echo "-Wl,-rpath " ;;
-	solaris) echo "-R " ;;
+        gcc) echo "-Wl,-rpath -Wl," ;;
+	freebsd|solaris) echo "-R" ;;
         rs6000|aix|aix-4) echo "-L" ;; # ???
         irix|irix64|sgi) echo "-rpath " ;;
 	*) echo "" ;;
@@ -154,10 +159,12 @@ case $kind in
 	if [ $islocal = 1 ] ; then
 	    mv shared/$libbase.$slsuffix .
   	    if [ $slsuffix != $req_slsuffix -a $nolink = 0 ] ; then
+	        rm -f $libbase.$req_slsuffix
 	        ln -s $libbase.$slsuffix $libbase.$req_slsuffix
 	    fi
 	else
   	    if [ $slsuffix != $req_slsuffix -a $nolink = 0 ] ; then
+	        rm -f shared/$libbase.$req_slsuffix
 	        (cd shared ; \
                  ln -s ../$libbase.$slsuffix $libbase.$req_slsuffix )
             fi
@@ -186,10 +193,12 @@ case $kind in
 	if [ $islocal = 1 ] ; then
 	    mv shared/$libbase.$slsuffix .
   	    if [ $slsuffix != $req_slsuffix  -a $nolink = 0 ] ; then
+	        rm -f $libbase.$req_slsuffix
 	        ln -s $libbase.$slsuffix $libbase.$req_slsuffix
             fi
 	else
   	    if [ $slsuffix != $req_slsuffix  -a $nolink = 0 ] ; then
+	        rm -f shared/$libbase.$req_slsuffix
 	        ( cd shared ; ln -s $libbase.$slsuffix $libbase.$req_slsuffix )
             fi
         fi
@@ -254,10 +263,12 @@ case $kind in
 	if [ $islocal = 1 ] ; then
 	    mv shared/$libbase.$slsuffix .
   	    if [ $slsuffix != $req_slsuffix  -a $nolink = 0 ] ; then
+	        rm -f $libbase.$req_slsuffix
 	        ln -s $libbase.$slsuffix $libbase.$req_slsuffix
             fi
 	else
   	    if [ $slsuffix != $req_slsuffix  -a $nolink = 0 ] ; then
+	        rm -f shared/$libbase.$req_slsuffix
 	        ( cd shared ; ln -s $libbase.$slsuffix $libbase.$req_slsuffix )
             fi
         fi

@@ -1,20 +1,20 @@
 /* 
- *   $Id: ad_ufs.h,v 1.2 1998/06/02 18:52:01 thakur Exp $    
+ *   $Id: ad_ufs.h,v 1.3 2000/02/09 21:30:00 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
-#ifndef __AD_UNIX_INCLUDE
-#define __AD_UNIX_INCLUDE
+#ifndef AD_UNIX_INCLUDE
+#define AD_UNIX_INCLUDE
 
 #include <unistd.h>
 #include <sys/types.h>
 #include <fcntl.h>
 #include "adio.h"
 
-#ifndef __NO_AIO
-#ifdef __AIO_SUN
+#ifndef NO_AIO
+#ifdef AIO_SUN
 #include <sys/asynch.h>
 #else
 #include <aio.h>

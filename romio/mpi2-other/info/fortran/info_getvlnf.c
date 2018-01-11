@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_getvlnf.c,v 1.4 1999/08/27 20:53:49 thakur Exp $    
+ *   $Id: info_getvlnf.c,v 1.6 2000/02/09 21:30:38 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,18 +9,18 @@
 #include "adio.h"
 
 
-#if defined(__MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+#if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
 #ifdef FORTRANCAPS
 #define mpi_info_get_valuelen_ PMPI_INFO_GET_VALUELEN
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_info_get_valuelen_ pmpi_info_get_valuelen__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_info_get_valuelen pmpi_info_get_valuelen_
 #endif
 #define mpi_info_get_valuelen_ pmpi_info_get_valuelen
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_info_get_valuelen_ pmpi_info_get_valuelen
 #endif
 #define mpi_info_get_valuelen_ pmpi_info_get_valuelen_
@@ -73,26 +73,26 @@
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_info_get_valuelen_ mpi_info_get_valuelen__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_info_get_valuelen mpi_info_get_valuelen_
 #endif
 #define mpi_info_get_valuelen_ mpi_info_get_valuelen
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_info_get_valuelen_ mpi_info_get_valuelen
 #endif
 #endif
 #endif
 
 void mpi_info_get_valuelen_(MPI_Fint *info, char *key, int *valuelen,
-                 int *flag, int *__ierr, int keylen )
+                 int *flag, int *ierr, int keylen )
 {
     MPI_Info info_c;
     char *newkey;
     int new_keylen, lead_blanks, i;
 
     if (key <= (char *) 0) {
-        printf("MPI_Info_get_valuelen: key is an invalid address\n");
+        FPRINTF(stderr, "MPI_Info_get_valuelen: key is an invalid address\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
@@ -104,7 +104,7 @@ void mpi_info_get_valuelen_(MPI_Fint *info, char *key, int *valuelen,
 
     for (i=keylen-1; i>=0; i--) if (key[i] != ' ') break;
     if (i < 0) {
-        printf("MPI_Info_get_valuelen: key is a blank string\n");
+        FPRINTF(stderr, "MPI_Info_get_valuelen: key is a blank string\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
     new_keylen = i + 1 - lead_blanks;
@@ -115,6 +115,6 @@ void mpi_info_get_valuelen_(MPI_Fint *info, char *key, int *valuelen,
     newkey[new_keylen] = '\0';
 
     info_c = MPI_Info_f2c(*info);
-    *__ierr = MPI_Info_get_valuelen(info_c, newkey, valuelen, flag);
+    *ierr = MPI_Info_get_valuelen(info_c, newkey, valuelen, flag);
     ADIOI_Free(newkey);
 }

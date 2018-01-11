@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2probe.c,v 1.1.1.1 1997/09/17 20:39:29 gropp Exp $
+ *  $Id: adi2probe.c,v 1.2 2000/07/17 20:43:50 swider Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -51,6 +51,7 @@ MPI_Status *status;
 
     *error_code = 0;
     DEBUG_PRINT_MSG("Entering Probe");
+    DEBUG_PRINT_MSG( "Entering while(1)" );
     while (1) {
 	MPID_Iprobe( comm_ptr, tag, context_id, src_lrank, &found, error_code, 
 		     status );
@@ -58,5 +59,6 @@ MPI_Status *status;
 	/* Wait for a message */
 	MPID_DeviceCheck( MPID_BLOCKING );
     }
+    DEBUG_PRINT_MSG( "Leaving while(1)" );
     DEBUG_PRINT_MSG("Exiting Probe");
 }

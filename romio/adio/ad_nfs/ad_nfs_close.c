@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_nfs_close.c,v 1.3 1999/08/06 18:32:09 thakur Exp $    
+ *   $Id: ad_nfs_close.c,v 1.5 2000/02/09 21:29:48 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -10,7 +10,19 @@
 void ADIOI_NFS_Close(ADIO_File fd, int *error_code)
 {
     int err;
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "ADIOI_NFS_CLOSE";
+#endif
     
     err = close(fd->fd_sys);
+#ifdef PRINT_ERR_MSG
     *error_code = (err == 0) ? MPI_SUCCESS : MPI_ERR_UNKNOWN;
+#else
+    if (err == -1) {
+	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
+			      myname, "I/O Error", "%s", strerror(errno));
+	ADIOI_Error(fd, *error_code, myname);	    
+    }
+    else *error_code = MPI_SUCCESS;
+#endif
 }

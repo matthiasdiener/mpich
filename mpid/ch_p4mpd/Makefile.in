@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.13 1999/11/28 23:01:24 gropp Exp $
+#  $Id: Makefile.in,v 1.16 2000/09/05 14:23:16 gropp Exp $
 #
 #  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -47,7 +47,8 @@ SOURCE   = adi2recv.c adi2send.c adi2init.c adi2probe.c adi2ssend.c \
 	   chbeager.c chbrndv.c chdebug.c chchkdev.c chshort.c chflow.c \
 	   chinit.c chnodename.c chhetero.c chtick.c p4mpdpriv.c \
 	   queue.c cmnargs.c mprerr.c tr2.c sbcnst2.c objtrace.c \
-	   chpackflow.c calltrace.c chcancel.c connect.c @DEVCFILES@
+	   chpackflow.c calltrace.c chcancel.c connect.c \
+	   ch_ldebug.c @DEVCFILES@
 SOURCEC  = $(SOURCE)
 SOURCEF  =
 MPI_OBJECTS = adi2recv.o adi2send.o adi2init.o adi2probe.o adi2ssend.o \
@@ -56,7 +57,8 @@ MPI_OBJECTS = adi2recv.o adi2send.o adi2init.o adi2probe.o adi2ssend.o \
 	      chbeager.o chbrndv.o chdebug.o chchkdev.o chshort.o chflow.o \
 	      chinit.o chnodename.o chhetero.o chtick.o p4mpdpriv.o \
 	      $(ASMFILES_O) queue.o cmnargs.o tr2.o sbcnst2.o \
-	      chpackflow.o objtrace.o calltrace.o chcancel.o connect.o @DEVOFILES@
+	      chpackflow.o objtrace.o calltrace.o chcancel.o connect.o \
+	      ch_ldebug.o @DEVOFILES@
 
 default: $(LIBNAME)
 libdev: $(LIBDEV)
@@ -75,7 +77,7 @@ profile_all:
 clean:
 	rm -f *~ $(MPI_OBJECTS) libmpid.a mprerr.o
 	rm -f ${srcdir}/*.o
-	(cd $(P4_HOME); if [ -s Makefile ] ; then $(MAKE) clean; \
+	@(cd $(P4_HOME); if [ -s Makefile ] ; then $(MAKE) clean ; \
 	rm -f lib/libp4.a ; fi ) 
 #	rm -f Makefile lib/p4_config.h lib/libp4.a ; fi ;)
 
@@ -95,7 +97,7 @@ distclean:
 	@if [ -h sbcnst2.h ] ; then \
 	    /bin/rm -f sbcnst2.h ; fi
 	/bin/rm -f Makefile
-	(cd ../mpd; ${MAKE} distclean )
+	@(cd ../mpd; ${MAKE} distclean )
 
 MPIDHEADERS = mpid.h req.h comm.h datatype.h chhetero.h attach.h objtrace.h \
 	      calltrace.h cookie.h mpid_bind.h reqalloc.h tr2.h mpimem.h \

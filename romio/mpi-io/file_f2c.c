@@ -1,5 +1,5 @@
 /* 
- *   $Id: file_f2c.c,v 1.5 1999/08/27 20:53:02 thakur Exp $    
+ *   $Id: file_f2c.c,v 1.8 2000/02/10 21:54:56 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +19,7 @@
 #endif
 
 /* Include mapping from MPI->PMPI */
-#define __MPIO_BUILD_PROFILING
+#define MPIO_BUILD_PROFILING
 #include "mpioprof.h"
 #endif
 #include "adio_extern.h"
@@ -35,8 +35,7 @@ Return Value:
 @*/
 MPI_File MPI_File_f2c(MPI_Fint fh)
 {
-
-#ifndef __INT_LT_POINTER
+#ifndef INT_LT_POINTER
     return (MPI_File) ((void *) fh);  
     /* the extra cast is to get rid of a compiler warning on Exemplar.
        The warning is because MPI_File points to a structure containing
@@ -45,7 +44,7 @@ MPI_File MPI_File_f2c(MPI_Fint fh)
 #else
     if (!fh) return MPI_FILE_NULL;
     if ((fh < 0) || (fh > ADIOI_Ftable_ptr)) {
-	printf("MPI_File_f2c: Invalid file handle\n");
+	FPRINTF(stderr, "MPI_File_f2c: Invalid file handle\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
     return ADIOI_Ftable[fh];

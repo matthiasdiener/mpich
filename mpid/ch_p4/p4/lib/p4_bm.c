@@ -253,10 +253,10 @@ int create_bm_processes(pg)
 struct p4_procgroup *pg;
 {
     struct p4_procgroup_entry *local_pg;
-    struct listener_data *l;
+    struct listener_data *ldata = NULL;
     int nslaves, end_1, end_2;
-    int slave_pid, listener_pid;
-    int slave_idx, listener_fd;
+    int slave_pid, listener_pid = -1;
+    int slave_idx, listener_fd = -1;
 #   if defined(IPSC860)  ||  defined(CM5)  ||  defined(NCUBE)  ||  defined(SP1_EUI) || defined(SP1_EUIH)
     /* Message passing systems require additional information */
     struct bm_rm_msg bm_msg;
@@ -282,9 +282,9 @@ struct p4_procgroup *pg;
     {
 	listener_fd = p4_global->listener_fd;
 	listener_info = alloc_listener_info();
-	l = listener_info;
+	ldata = listener_info;
 	get_pipe(&end_1, &end_2); /* used even by thread listener */
-	l->slave_fd = end_2;
+	ldata->slave_fd = end_2;
     }
 #   endif
 
@@ -478,8 +478,8 @@ struct p4_procgroup *pg;
 	    sprintf(whoami_p4, "bm_list_%d", (int)getpid());
 	    /* Inside listener */
 	    p4_local = alloc_local_listener();
-	    l->listening_fd = listener_fd;
-	    l->slave_fd = end_2;
+	    ldata->listening_fd = listener_fd;
+	    ldata->slave_fd = end_2;
 	    close(end_1);
 	    {
 		/* exec external listener process */
@@ -492,8 +492,8 @@ struct p4_procgroup *pg;
 
 		    sprintf(dbg_c, "%d", p4_debug_level);
 		    sprintf(max_c, "%d", p4_global->max_connections);
-		    sprintf(lfd_c, "%d", l->listening_fd);
-		    sprintf(sfd_c, "%d", l->slave_fd);
+		    sprintf(lfd_c, "%d", ldata->listening_fd);
+		    sprintf(sfd_c, "%d", ldata->slave_fd);
 		    p4_dprintfl(70, "exec %s %s %s %s %s\n",
 				listener_prg, dbg_c, max_c, lfd_c, sfd_c);
 		    execlp(listener_prg, listener_prg,

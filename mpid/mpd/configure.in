@@ -1,77 +1,108 @@
-dnl
-dnl Caching is usually WRONG for systems with cross-mounted file systems
-dnl (the cache file may correspond to a different system).  Since configure
-dnl is not on a performance-critical path, go for robustness over speed.
-dnl
-define([AC_CACHE_LOAD], )dnl
-define([AC_CACHE_SAVE], )dnl
-dnl
-dnl
-AC_INIT()
-#
-print_error() {
-    echo "*# $*" 2>&1 ;
-    }
-echo "Configuring mpd with args $ac_configure_args"
-#
-OPTFLAGS=""
-#
-# Standard directories
-#
-AC_ARG_WITH( cc, [--with-cc=CC           - C compiler], CC="$withval")
-#
-AC_ARG_WITH( opt, [--with-opt=OPTFLAGS           - supply optional flags to
-the C compiler], OPTFLAGS="$withval")
-#
-AC_ARG_WITH( top_srcdir, [--with-top_srcdir=top_src  - top level code of
-MPICH (if using MPICH), or just the source directory where the mpd code is installled ], top_src="$withval")
-#
-if test -z "$top_src" -o "$top_src" = "." ; then 
-    top_src=$srcdir
-fi
-AC_SUBST(top_src)
-#
-if test -z "$libdir" ; then libdir="$top_src/lib" ; fi
-AC_SUBST(libdir)
-#
-# Never override an environment variable with a particular choice if you
-# can help it
-MAKE=${MAKE:-make}
-#
+dnl Process this file with autoconf to produce a configure script.
+# Autoconf initialization:
+AC_INIT(mpd.c)
+AC_PREREQ(2.13)                 dnl needed for SHELL
+# Autoconf header:
+AC_CONFIG_HEADER(mpdconf.h)
+
+dnl Process configure arguments
+# Processing configure arguments
+AC_SUBST(COPTIONS)
+AC_ARG_ENABLE(strict,
+   [--enable-strict - turn on strict compilation in gcc],
+   COPTIONS="${COPTIONS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes")
+AC_ARG_ENABLE(debug,
+   [--enable-debug - turn on -g option for debuggers],
+   COPTIONS="-g ${COPTIONS}")
+AC_ARG_ENABLE(root,
+   [--enable-root - enable mpd to run as root],
+   COPTIONS="${COPTIONS} -DROOT_ENABLED")
+AC_ARG_ENABLE(echo,
+   [--enable-echo - turn on echoing from within configure script],
+   set -x)
+
+dnl Handle caching safely
+# Handling caching
+PAC_ARG_CACHING
+
+dnl Handle case of configuring within MPICH build
+# Testing for MPICH build
+PAC_ARG_MPICH_BUILDING 
+
 dnl Checks for programs.
-if test -z $CC  ; then
-    AC_PROG_CC
-fi
+# Checking for programs.
+PAC_PROG_CC
+PAC_PROG_MAKE
 AC_PROG_LN_S
-#
+AC_PROG_RANLIB
+AC_CHECK_PROG(GDB,gdb,1,0)
+
+dnl Create command to process dependencies
+#   Create command to process dependencies
+PAC_C_DEPENDS
+
 dnl Checks for libraries.
-#
+# Searching libraries instead of checking
+AC_SEARCH_LIBS(gethostbyname, nsl)
+AC_SEARCH_LIBS(socket, socket)
+dnl If -lcrypt should not be added to LIBS, use the same approach as in
+dnl mpid/server/configure.in 
+AC_SEARCH_LIBS(crypt,crypt)
+
 dnl Checks for header files.
+# Checking headers
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(fcntl.h strings.h sys/time.h unistd.h)
-AC_CHECK_LIB(socket,socket)
-AC_CHECK_LIB(nsl,gethostbyname)
-#
+AC_CHECK_HEADERS(fcntl.h strings.h sys/time.h unistd.h stdlib.h)
+
 dnl Checks for typedefs, structures, and compiler characteristics.
+# Checking typedefs, structures, and compiler characteristics.
 AC_TYPE_PID_T
 AC_HEADER_TIME
+AC_C_CONST
 #
-dnl Checks for library functions.
-AC_FUNC_VPRINTF
-AC_CHECK_FUNCS(getcwd gethostname gettimeofday select socket)
-#
-dnl Determine mpd home directory.
-MPD_HOME=`pwd`
-AC_SUBST(MPD_HOME)dnl
-AC_SUBST(CC)
-AC_SUBST(OPTFLAGS)
-AC_SUBST(MAKE)
-AC_SUBST(VPATH)
-# Ensure that there are no file that can interfere with VPATH builds
-# Regrettably, top_srcdir isn't set yet (!).
-# We can use ac_confdir
-rm -f ${ac_confdir}/mpd.h ${ac_confdir}/mpdcon ${ac_confdir}/startdaemons
-AC_OUTPUT(Makefile mpd.h startdaemons)
-chmod +x startdaemons
+# The following are necessary for AIX in particular because in 64 bit mode,
+# some of the socket functions use size_t (unsigned long, 64 bits) instead of
+# int (signed int, 32 bits) as a return value.  Getting the wrong type
+# causes all sorts of chaos.  Unfortunately, there isn't any consensus on what
+# the arguments *should* be.
+found_sockopt_type=0
+AC_MSG_CHECKING([if getsockopt wants socklen_t])
+AC_TRY_COMPILE([#include <sys/types.h>
+#include <sys/socket.h>],[socklen_t dummy; int rc, skt; void *ssz;
+rc = getsockopt(skt,SOL_SOCKET,SO_SNDBUF,ssz,&dummy);],found_sockopt_type=1)
+if test $found_sockopt_type = 1 ; then
+    AC_MSG_RESULT(yes)
+    AC_DEFINE(USE_SOCKLEN_T)
+else
+    AC_MSG_RESULT(no)
+    # This case is harder.  size_t is a valid type, but it may not be the 
+    # one that getsockopt etc wants.
+    AC_MSG_CHECKING([if getsockopt wants size_t])
+    PAC_C_TRY_COMPILE_CLEAN([#include <sys/types.h>
+#include <sys/socket.h>],[int try(void){size_t dummy; int rc, skt; void *ssz;
+rc = getsockopt(skt,SOL_SOCKET,SO_SNDBUF,ssz,&dummy);
+return rc;}],found_sockopt_type)
+    case $found_sockopt_type in 
+	0) AC_MSG_RESULT(yes)
+	   AC_DEFINE(USE_SIZE_T_FOR_SOCKLEN_T)
+	;;
+	1) AC_MSG_RESULT([no (warnings from compiler)])
+	;;
+	2) AC_MSG_RESULT(no)
+	;;
+    esac
+fi
 
+
+dnl Checks for library functions.
+# Checking library functions
+AC_FUNC_VPRINTF
+AC_CHECK_FUNCS(getcwd gethostname gettimeofday putenv select socket)
+
+dnl Output:
+# Starting output
+MPD_HOME=`pwd`
+AC_SUBST(MPD_HOME)
+AC_OUTPUT_COMMANDS(chmod +x startdaemons)
+AC_OUTPUT(Makefile startdaemons)

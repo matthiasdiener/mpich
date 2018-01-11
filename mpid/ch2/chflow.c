@@ -1,5 +1,5 @@
 /*
- *  $Id: chflow.c,v 1.6 1999/08/12 20:18:36 gropp Exp $
+ *  $Id: chflow.c,v 1.7 2000/08/09 22:29:36 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -13,8 +13,7 @@
 MPID_Flow *MPID_flow_info = 0;
 int        MPID_DebugFlow = 0;
 
-void MPID_FlowDebug( flag )
-int flag;
+void MPID_FlowDebug( int flag )
 {
     MPID_DebugFlow = flag;
 }
@@ -22,8 +21,7 @@ int flag;
 /*
  * This routine sends an update packet indicating data read
  */
-void MPID_SendFlowPacket( partner )
-int partner;
+void MPID_SendFlowPacket( int partner )
 {
 #ifdef MPID_USE_SHMEM
     MPID_PKT_FLOW_T *pkt;
@@ -83,15 +81,14 @@ int buf_thresh, mem_thresh;
 
 }
 
-void MPID_FlowDelete()
+void MPID_FlowDelete( void )
 {
     FREE( MPID_flow_info );
 }
 
 #include <stdio.h>
 
-void MPID_FlowDump( fp )
-FILE *fp;
+void MPID_FlowDump( FILE *fp )
 {
     int i;
     for (i=0; i<MPID_MyWorldSize; i++) {

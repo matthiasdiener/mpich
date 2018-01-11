@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_delete.c,v 1.4 1999/08/27 20:53:44 thakur Exp $    
+ *   $Id: info_delete.c,v 1.6 2000/02/09 21:30:35 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +19,7 @@
 #endif
 
 /* Include mapping from MPI->PMPI */
-#define __MPIO_BUILD_PROFILING
+#define MPIO_BUILD_PROFILING
 #include "mpioprof.h"
 #endif
 
@@ -38,22 +38,22 @@ int MPI_Info_delete(MPI_Info info, char *key)
     int done;
 
     if ((info <= (MPI_Info) 0) || (info->cookie != MPIR_INFO_COOKIE)) {
-        printf("MPI_Info_delete: Invalid info object\n");
+        FPRINTF(stderr, "MPI_Info_delete: Invalid info object\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
     if (key <= (char *) 0) {
-	printf("MPI_Info_delete: key is an invalid address\n");
+	FPRINTF(stderr, "MPI_Info_delete: key is an invalid address\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
     if (strlen(key) > MPI_MAX_INFO_KEY) {
-	printf("MPI_Info_delete: key is longer than MPI_MAX_INFO_KEY\n");
+	FPRINTF(stderr, "MPI_Info_delete: key is longer than MPI_MAX_INFO_KEY\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
     if (!strlen(key)) {
-	printf("MPI_Info_delete: key is a null string\n");
+	FPRINTF(stderr, "MPI_Info_delete: key is a null string\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
@@ -75,7 +75,7 @@ int MPI_Info_delete(MPI_Info info, char *key)
     }
 
     if (!done) {
-	printf("MPI_Info_delete: key not defined in info\n");
+	FPRINTF(stderr, "MPI_Info_delete: key not defined in info\n");
         MPI_Abort(MPI_COMM_WORLD, 1);	
     }
 

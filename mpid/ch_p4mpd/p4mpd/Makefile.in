@@ -81,7 +81,7 @@ p4links:
 #	then\
 #	    true ;\
 #	else\
-#	    make config_hdr P4ARCH=$(P4ARCH) ;\
+#	    ${MAKE} config_hdr P4ARCH=$(P4ARCH) ;\
 #	fi
 	@if [ -f include/alog.h ] ;\
 	then\
@@ -187,7 +187,7 @@ clean:
 	  (cd $$dir; $(MAKE) clean) ;\
 	  done
 	$(RM) -f *~ *.o *.bak
-	(cd $(MPD_HOME); if [ -f Makefile ] ; then  make clean; fi)
+	(cd $(MPD_HOME); if [ -f Makefile ] ; then  $(MAKE) clean ; fi)
 
 dist:	realclean   
 

@@ -75,7 +75,7 @@ while [ $curarch -le $narch ] ; do
         if [ "$machine" = "ibmspx" -a -x /usr/local/bin/getjid ] ; then
 	    machineFile="/sphome/$LOGNAME/SPnodes.`/usr/local/bin/getjid`"
         else
-	    machineDir=#datadir#
+	    machineDir=$datadir
             for march in $archlist ; do
                 machineFile="${machineDir}/machines.${march}"
 	        if [ -r $machineFile ] ; then break ; fi
@@ -88,15 +88,60 @@ while [ $curarch -le $narch ] ; do
         if [ $nolocal != 0 -o $np != 1 ] ; then
             echo Cannot read $machineFile.  
 	    echo Looked for files with extension $archlist in 
-	    echo directory #datadir# .
+	    echo directory $datadir .
             exit 1
         fi
+	# If we did NOT issue a message because np == 1, we need 
+	# to be careful that machineFile is not empty.
+	machineFile=/dev/null
     fi
     #
     # Find the machines to use (build in file).  Note that "local"
     # refers only to the first architecture.
     # 
     MPI_HOSTLeader=`expr "$MPI_HOST" : '\([^\.]*\).*'`
+    #
+    # If MPIRUN_RANDOM is set to yes, randomly permute the machines file.
+    # This can be set by the environment variable MPIRUN_RANDOM being set
+    # to yes, or by the mpirun option -randommachines.
+    # The machines file created by configure will stay the same, the
+    # permuted one, mpirand-${LOGNAME}$$, will be located in 
+    # $TEMPDIR ( if $TMPDIR is set, then TEMPDIR=$TMPDIR, 
+    # else TEMPDIR=/tmp ).  
+    if [ "$MPIRUN_RANDOM" = "yes" ] ; then
+        # If mpirun.rand is located in the mpirun/bin directory
+        if [ -f $MPIRUN_HOME/mpirun.rand ] ; then
+	    if [ $mpirun_verbose = 1 ] ; then
+		echo "Permuting machines file"
+	    fi
+            # Check to see if TMPDIR is set, if not, use /tmp
+            if [ -n "$TMPDIR" ] ; then
+                TEMPDIR=$TMPDIR
+            else
+                TEMPDIR="/tmp"
+            fi
+	    export TEMPDIR
+	    # Set machines random file
+	    # machines_randFile is the permuted machines file
+            machines_randFile="$TEMPDIR/mpirand-${LOGNAME}$$"
+            if [ -x $MPIRUN_HOME/mpirun.rand ] ; then
+                $MPIRUN_HOME/mpirun.rand $machineFile $machines_randFile 
+	    else
+	        chmod +x $MPIRUN_HOME/mpirun.rand 
+                $MPIRUN_HOME/mpirun.rand $machineFile $machines_randFile 
+            fi
+        else
+	    echo "$MPIRUN_HOME/mpirun.rand does not exist"
+	    echo "Cannot permute machine file"
+	fi
+	# If a permuted machines file has been created, use it
+	if [ -s "$machines_randFile" ] ; then
+	    machineFile=$machines_randFile
+	    if [ $mpirun_verbose = 1 ] ; then
+                echo "using the permuted machine file $machineFile"
+	    fi
+	fi
+    fi
     if [ $nolocal = 0 -o $curarch -gt 1 ] ; then
         machineavail=`cat $machineFile | \
 		sed -e '/^#/d' -e 's/#.*^//g' | head -${np} | \
@@ -166,6 +211,10 @@ while [ $curarch -le $narch ] ; do
         done
     fi
     nleft=`expr $np - $procFound`
+# This if test is needed (req #5332) for -comm=shared configure option
+    if [ $nleft -lt 0 ] ; then
+	nproclocal=$np
+    fi
     while [ $procFound -lt $np ] ; do
         nfound=0
         for machineName in $machineavail ; do

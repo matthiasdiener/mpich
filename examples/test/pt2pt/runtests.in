@@ -6,57 +6,27 @@
 # -mvhome is needed for the ANL SP, and is ignored by others
 args=@MPIRUNARGS@
 device=@DEVICE@
-if [ "$device" = "ch_p4mpd" ] ; then
-    args=""
-fi
+top_srcdir=@top_srcdir@
+srcdir=@srcdir@
+MPICH_VERSION=@MPICH_VERSION@
 STOPFILE=$HOME/.stopmpichtests
-#
-# Some people don't include "." in their path (! in case an ls trojan horse,
-# I guess - if someone does that to you, you have bigger problems).  This
-# code tests to see if you have a path to mpirun; if not, it tries ./mpirun.
-#
-# One particular problem is having multiple mpiruns in the path.  An
-# absolute path for mpirun will fix many problems
 mpirun="@MPIRUN@"
-if [ -z "$MPICH_USE_LIB_MPIRUN" -a ! -x "$mpirun" ] ; then
-    IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
-    for dir in $PATH ; do 
-        if [ -x $dir/mpirun ] ; then
-	    if [ -n "@MPICH_VERSION@" ] ; then
-		# Test that we've found the correct mpirun
-		if strings $dir/mpirun | grep "MPIRUN for MPICH" > /dev/null ; then
-		    :
-		else
-		    # echo "$dir/mpirun isn't for MPICH"
-		    continue
-		fi
-	    fi
-            mpirun="mpirun"
-            break
-        fi
-    done
-    IFS="$saveifs"
-fi
-if [ -z "$mpirun" -a -x "./mpirun" ] ; then
-    mpirun=./mpirun
-fi
+MAKE="@MAKE@"
+MPIRUNMVBACK="@MPIRUNMVBACK@"
 #
-# Here is the location of the MPICH version of mpirun
-if [ -z "$mpirun" -a -x @LIB_DIR@/bin/mpirun ] ; then 
-    mpirun="@LIB_DIR@/bin/mpirun"
-fi
-if [ -z "$mpirun" ] ; then
-    echo "No mpirun in path.  Testing can not proceed."
-    exit 1
-fi
+# Load basic procedures
+. ${top_srcdir}/runbase
+#
+# Set mpirun to the name/path of the mpirun program
+FindMPIRUN
 #
 # If the programs are not available, run make.
 runtests=1
 makeeach=0
 check_at_once=1
 quiet=0
-MAKE="@MAKE@"
 check_canrun=0
+CheckOutputWhileRunning="yes"
 # Using shifts should  remove args from the list.
 for arg in "$@" ; do
     case $arg in 
@@ -110,111 +80,20 @@ for arg in "$@" ; do
     esac
 done
 
-# MakeExe program-name
-MakeExe() {
-    if [ -s $STOPFILE ] ; then 
-        echo "Found stopfile; exiting"
-	exit 0
-    fi
-    if [ ! -x $1 ] ; then
-	$MAKE $1
-        if [ ! -x $1 ] ; then 
-	    echo "Could not build executable $1; aborting tests"
-	    exit 1
-        fi
-    fi
-}
-# CleanExe program-name
-CleanExe() {
-    if [ $makeeach = 1 ] ; then
-	/bin/rm -f $1 $1.o
-    fi
-}
-# Output marker
-OutTime() {
-    if [ $quiet = 0 ] ; then
-	if [ -z "$hostname" ] ; then
-	    hostname=`hostname`
-	fi
-	d=`date`
-	echo "$hostname : $d"
-    fi
-}
-
-# Do an "on the fly" check for problems.
-CheckOutput() {
-  if [ $check_at_once = 1 ] ; then
-    stdfile=@srcdir@/$1.std
-    if [ ! -s $1.out ] ; then
-        echo "No output file $1.out!"
-    elif [ -s $stdfile ] ; then
-        stdfile2=${stdfile}2
-        if diff -b $1.out $stdfile > /dev/null ; then
-	    true
-	elif [ -s $stdfile2 ] ; then 
-	    # check for alternate in case configuration has fewer datatypes
-	    if diff -b $1.out $stdfile2 > /dev/null ; then
-	        true
-            else
-	        echo "Differences in $1.out"
-	        diff -b $1.out $stdfile
-	        nodiff=0
-	    fi
-        else
-	    echo "Differences in $1.out"
-	    diff -b $1.out $stdfile
-	fi
-    else
-        echo "Can not find file $stdfile to compare against for test $1"
-    fi
-  fi
-}
-
-# Runtest pgm-name np marker-test args outfiles
-RunTest() {
-    OutTime
-    testfiles="$testfiles $1.out"
-    /bin/rm -f $1.out
-    MakeExe $1
-    mname=$3
-    if [ -z "$mname" ] ; then mname="*** $1 ***" ; fi
-    echo "$mname" >> $1.out
-    echo "$mname"
-    mvarg=""
-    if [ -n "$5" ] ; then rm -f $5 ; 
-	if [ "$device" != "ch_p4mpd" ] ; then
-            if [ -n "@MPIRUNMVBACK@" ] ; then mvarg="@MPIRUNMVBACK@ \"$5\"" ;
-fi 
-	fi
-    fi
-    # The eval is necessary to ensure that the mvarg value is properly
-    # tokenized.
-    eval $mpirun $args -np $2 $mvarg $1 $4 </dev/null >> $1.out 2>&1
-    if [ -n "$5" ] ; then 
-        for file in $5 ; do 
-            if [ -s $file ] ; then 
-                cat $file >> $1.out ; rm -f $file 
-            fi
-        done
-    fi
-    echo "$mname" >> $1.out
-    CheckOutput $1
-    CleanExe $1
-}
-
 # If cannot run test, do that and exit
 if [ $check_canrun = 1 ] ; then
     MakeExe third
     /bin/rm -f third.out
     echo '*** Testing Unexpected messages ***' >> third.out
-if [ "$device" = "ch_p4mpd" ] ; then
-    $mpirun -np 2 third >> third.out
-else
     $mpirun $args -np 2 third </dev/null >> third.out 2>&1
-fi
     echo '*** Testing Unexpected messages ***' >> third.out
-    srcdir=@srcdir@
-    if diff -b third.out ${srcdir}/third.std > /dev/null ; then
+    rm -f third.stdo
+    cat >>third.stdo <<EOF
+*** Testing Unexpected messages ***
+ No Errors
+*** Testing Unexpected messages ***
+EOF
+    if diff -b third.out third.stdo > /dev/null ; then
 	rc=0
     else
 	echo "Failed to run simple program!"
@@ -237,9 +116,7 @@ testfiles=""
 if [ $runtests = 1 ] ; then
 echo '**** Testing MPI Point-to-point routines ****'
 
-if [ "$device" != "ch_p4mpd" ] ; then
 RunTest sendrecv 2 "**** Testing MPI_Send and MPI_Recv ****" "" "sendrecv-0.out sendrecv-1.out"
-fi 
 
 RunTest sendrecv2 2 "**** Testing MPI_Send and MPI_Recv (2) ****"
 
@@ -247,13 +124,9 @@ RunTest sendrecv3 2 "**** Testing MPI_Send and MPI_Recv (3) ****"
 
 RunTest sendrecv4 2 "**** Testing MPI_Send and MPI_Recv (4) ****"
 
-if [ "$device" != "ch_p4mpd" ] ; then
 RunTest bsendtest 2 "**** Testing MPI_Bsend and MPI_Recv (4) ****" "" "bsendtest-0.out bsendtest-1.out"
-fi 
 
-if [ "$device" != "ch_p4mpd" ] ; then
 RunTest isndrcv 2 "**** Testing MPI_Isend and MPI_Irecv ****" "" "isndrcv-0.out isndrcv-1.out"
-fi
 
 RunTest irsend 2 "**** Testing MPI_Irsend ****"
 
@@ -283,9 +156,7 @@ RunTest sndrcvrpl2 2 "**** Testing MPI_Sendrecv_replace (long) ****"
 
 RunTest getelm 2 "**** Testing MPI_Get_elements ****"
 
-if [ "$device" != "ch_p4mpd" ] ; then
 RunTest overtake 2 "**** Verifying that messages are non-overtaking ****" "" "overtake-0.out overtake-1.out"
-fi
 
 RunTest ssendtest 2 "**** Verifying ssend ****"
 
@@ -297,15 +168,13 @@ RunTest issend2 2 "**** Verifying Issend (2) ****"
 
 RunTest reqcreate 1 "**** Checking the request creation routines ****"
 
-RunTest reqfree 2 "**** Checking request free ****"
+RunTest reqfree 2 "**** Checking request free ****" "-req 2048"
 
 RunTest typebase 1 "**** Checking the type (sizes) routines ****"
 
 RunTest typecreate 1 "**** Checking the type creation routines ****"
 
-if [ "$device" != "ch_p4mpd" ] ; then
 RunTest typetest 2 "**** Checking the type routines ****" "" "typetest-0.out typetest-1.out"
-fi
 
 RunTest typeub 2 "**** Checking the type routines: MPI_UB ****"
 
@@ -347,6 +216,8 @@ RunTest truncmult 2 '*** Testing Message trunction in multiple completions ***'
 
 RunTest nullproc 2 "*** Testing handling of MPI_PROC_NULL ***"
 
+RunTest nullproc2 2 "*** Testing handling of MPI_PROC_NULL in blocking Recv ***"
+
 RunTest relrank 2 "*** Testing handling of relative rank ***"
 
 RunTest hvectest 2 "*** Testing Vector type ***"
@@ -362,6 +233,8 @@ RunTest probe 2 "*** Testing Probe and Get_count ***"
 RunTest probe1 2 "*** Testing Iprobe and Get_count ***"
 
 RunTest self 1 "*** Testing send to self ***"
+
+RunTest selfvsworld 2 "*** Testing COMM_SELF and COMM_WORLD ***"
 
 RunTest testtest1 2 "*** Testing MPI_Test ***"
 
@@ -415,6 +288,9 @@ if [ @HAS_FORTRAN@ = 1 ] ; then
     CleanExe structf
     #
     RunTest send1 2 "*** Testing pt-2-pt from Fortran (2) ***"
+
+    RunTest sendfort 2 "*** Testing Fortran logical datatype ***"
+
     #
 #    testfiles="$testfiles pingpong.out"
 #    /bin/rm -f pingpong.out
@@ -439,41 +315,6 @@ else
 fi
 #
 echo '*** Checking for differences from expected output ***'
-/bin/rm -f pt2pt.diff
-nodiff=1
-srcdir=@srcdir@
-for file in $testfiles ; do
-    stdfile=$srcdir/`basename $file .out`.std
-    # if basename is sendrecv or isndrcv, then we may want to test 
-    # with .std2 as well.  We should really separate out the long double
-    # tests ...
-    if [ -s $stdfile ] ; then
-	stdfile2=${stdfile}2
-        if diff -b $file $stdfile > /dev/null ; then
-	    true
-	elif [ -s $stdfile2 ] ; then 
-	    # check for alternate in case configuration has fewer datatypes
-	    if diff -b $file $stdfile2 > /dev/null ; then
-	        true
-            else
-	        echo "Differences in `basename $file .out`" >> pt2pt.diff
-	        diff -b $file $stdfile >> pt2pt.diff
-	        nodiff=0
-	    fi
-        else
-	    echo "Differences in `basename $file .out`" >> pt2pt.diff
-	    diff -b $file $stdfile >> pt2pt.diff
-	    nodiff=0
-	fi
-    else
-        echo "Cannot find file $stdfile to compare against for test `basename $file .out`"
-	nodiff=0
-    fi
-done
-if [ -s pt2pt.diff ] ; then
-   cat pt2pt.diff
-elif [ $nodiff = 1 ] ; then
-   echo "-- No differences found; test successful"
-fi
+CheckAllOutput pt2pt.diff
 exit 0
 

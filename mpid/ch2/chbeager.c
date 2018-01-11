@@ -1,5 +1,5 @@
 /*
- *  $Id: chbeager.c,v 1.6 1999/11/05 19:24:41 swider Exp $
+ *  $Id: chbeager.c,v 1.9 2000/08/09 22:29:35 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -20,16 +20,15 @@
  */
 
 /* Prototype definitions */
-int MPID_CH_Eagerb_send ANSI_ARGS(( void *, int, int, int, int, int, 
-				    MPID_Msgrep_t ));
-int MPID_CH_Eagerb_isend ANSI_ARGS(( void *, int, int, int, int, int, 
-				     MPID_Msgrep_t, MPIR_SHANDLE * ));
-int MPID_CH_Eagerb_recv ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
-int MPID_CH_Eagerb_irecv ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
-int MPID_CH_Eagerb_save ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
-int MPID_CH_Eagerb_unxrecv_start ANSI_ARGS(( MPIR_RHANDLE *, void * ));
-int MPID_CH_Eagerb_cancel_send ANSI_ARGS(( MPIR_SHANDLE * ));
-void MPID_CH_Eagerb_delete ANSI_ARGS(( MPID_Protocol * ));
+int MPID_CH_Eagerb_send ( void *, int, int, int, int, int, MPID_Msgrep_t );
+int MPID_CH_Eagerb_isend ( void *, int, int, int, int, int, 
+				     MPID_Msgrep_t, MPIR_SHANDLE * );
+int MPID_CH_Eagerb_recv ( MPIR_RHANDLE *, int, void * );
+int MPID_CH_Eagerb_irecv ( MPIR_RHANDLE *, int, void * );
+int MPID_CH_Eagerb_save ( MPIR_RHANDLE *, int, void * );
+int MPID_CH_Eagerb_unxrecv_start ( MPIR_RHANDLE *, void * );
+int MPID_CH_Eagerb_cancel_send ( MPIR_SHANDLE * );
+void MPID_CH_Eagerb_delete ( MPID_Protocol * );
 /*
  * Definitions of the actual functions
  */
@@ -44,6 +43,7 @@ MPID_Msgrep_t msgrep;
     
     DEBUG_PRINT_MSG("S Starting Eagerb_send");
 #ifdef MPID_FLOW_CONTROL
+    DEBUG_PRINT_MSG("Entering while !MPID_FLOW_MEM_OK");
     while (!MPID_FLOW_MEM_OK(len,dest)) {
 	/* Wait for a flow packet */
 #ifdef MPID_DEBUG_ALL
@@ -55,10 +55,12 @@ MPID_Msgrep_t msgrep;
 #endif
 	MPID_DeviceCheck( MPID_BLOCKING );
     }
+    DEBUG_PRINT_MSG("Leaving while !MPID_FLOW_MEM_OK");
     MPID_FLOW_MEM_SEND(len,dest);
 #endif
 
 #ifdef MPID_PACK_CONTROL
+    DEBUG_PRINT_MSG("Entering while !MPID_PACKET_CHECK_OK");
     while (!MPID_PACKET_CHECK_OK(dest)) {  /* begin while !ok loop */
 #ifdef MPID_DEBUG_ALL
 	if (MPID_DebugFlag || MPID_DebugFlow) {
@@ -69,7 +71,7 @@ MPID_Msgrep_t msgrep;
 #endif
 	MPID_DeviceCheck( MPID_BLOCKING );
     }  /* end while !ok loop */
-
+    DEBUG_PRINT_MSG("Leaving while !MPID_PACKET_CHECK_OK");
     MPID_PACKET_ADD_SENT(MPID_MyWorldRank, dest) 
 #endif
 
@@ -241,13 +243,12 @@ int  len, tag, context_id, src_lrank, dest;
 MPID_Msgrep_t msgrep;
 MPIR_SHANDLE *shandle;
 {
-    int mpi_errno;
-
     int pkt_len; 
     MPID_PKT_LONG_T  pkt;
 
     DEBUG_PRINT_MSG("S Starting Eagerb_isend");
 #ifdef MPID_FLOW_CONTROL
+    DEBUG_PRINT_MSG("Entering while !MPID_FLOW_MEM_OK");
     while (!MPID_FLOW_MEM_OK(len,dest)) {  /* begin while !ok loop */
 	/* Wait for a flow packet */
 #ifdef MPID_DEBUG_ALL
@@ -259,11 +260,12 @@ MPIR_SHANDLE *shandle;
 #endif
 	MPID_DeviceCheck( MPID_BLOCKING );
     }  /* end while !ok loop */
-
+    DEBUG_PRINT_MSG("Leaving while !MPID_FLOW_MEM_OK");
     MPID_FLOW_MEM_SEND(len,dest); 
 #endif
 
 #ifdef MPID_PACK_CONTROL
+    DEBUG_PRINT_MSG("Entering while !MPID_PACKET_CHECK_OK");
     while (!MPID_PACKET_CHECK_OK(dest)) {  /* begin while !ok loop */
 #ifdef MPID_DEBUG_ALL
 	if (MPID_DebugFlag || MPID_DebugFlow) {
@@ -274,7 +276,7 @@ MPIR_SHANDLE *shandle;
 #endif
 	MPID_DeviceCheck( MPID_BLOCKING );
     }  /* end while !ok loop */
-
+    DEBUG_PRINT_MSG("Leaving while !MPID_PACKET_CHECK_OK");
     MPID_PACKET_ADD_SENT(MPID_MyWorldRank, dest) 
 #endif
 
@@ -323,7 +325,6 @@ MPIR_SHANDLE *shandle;
 	(shandle->finish)( shandle );
 
     return MPI_SUCCESS;
-
 }
 
 int MPID_CH_Eagerb_cancel_send( shandle )

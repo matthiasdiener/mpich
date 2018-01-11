@@ -1,11 +1,14 @@
 /* test program to find out how much buffering a system supplies */
 
 #include "mpi.h"
+#include "mpptestconf.h"
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+
 #include <stdio.h>
 
-int main(argc,argv)
-int argc;
-char *argv[];
+int main( int argc, char *argv[])
 {
     int  myid, numprocs;
     int  namelen;

@@ -291,7 +291,6 @@ char *username;
 #if defined(DELTA)
 	    p4_dprintf("delta cannot create remote processes\n");
 #else
-	    p4_dprintfl(20, "creating remote slave on %s via remote shell\n",host);
 #if defined(P4BSD) && !defined(HAS_RSHCOMMAND)
 	    strcpy(remote_shell, "rsh");
 #endif
@@ -310,6 +309,7 @@ char *username;
 #        endif
 #    endif
 #endif
+	    p4_dprintfl(20, "creating remote slave on %s via remote shell %s\n",host, remote_shell);
 
 	    sprintf(serv_port_c, "%d", serv_port);
 	    /* We should remember ALL of the children's pid's so we can 

@@ -3,8 +3,10 @@
 #include <stdio.h>
 #include "mpid.h"
 #include "mpidmpi.h"
+#ifndef MPID_NO_FORTRAN
 /* mpifort.h is needed for conversions to/from Logical data */
 #include "mpifort.h"
+#endif
 
 #ifdef MPID_HAS_HETERO
 #if defined(HAS_XDR) && !defined(INCLUDED_RPC_RPC_H)
@@ -277,6 +279,8 @@ XDR           *xdr_ctx;
     total = xdr_getpos( xdr_ctx ) - total;
     return total;
 }
+
+#ifndef MPID_NO_FORTRAN
 /* Special version for Fortran LOGICAL data */
 int MPID_Mem_XDR_Encode_Logical(d, s, t, N, xdr_ctx) 
 unsigned char *d, *s;    /* dest, source */
@@ -305,6 +309,7 @@ XDR           *xdr_ctx;
     total = xdr_getpos( xdr_ctx ) - total;
     return total;
 }
+#endif
 
 /* 
  * We need to return two different lengths:
@@ -375,6 +380,7 @@ XDR           *xdr_ctx;
     if (!rval) return MPI_ERR_INTERN;
     return MPI_SUCCESS;
 }
+#ifndef MPID_NO_FORTRAN
 int MPID_Mem_XDR_Decode_Logical(d, s, t, N, size, act_bytes, srclen, destlen, 
 			xdr_ctx ) 
 unsigned char *d, *s;    /* dest and source */
@@ -412,7 +418,7 @@ XDR           *xdr_ctx;
     /* if (!rval) error; */
     return MPI_SUCCESS;
 }
-
+#endif
 
 int MPID_Type_XDR_encode(d, s, t, N, ctx) 
 unsigned char *d, *s;
@@ -473,10 +479,12 @@ void          *ctx;
       case MPIR_DOUBLE_COMPLEX:
       len = MPID_Mem_XDR_Encode(d, s, (xdrproc_t)xdr_double, 2*N, (int)sizeof(double), xdr_ctx);
       break;
+#ifndef MPID_NO_FORTRAN
       /* Fortran logicals */
       case MPIR_LOGICAL:
       len = MPID_Mem_XDR_Encode_Logical(d, s, (xdrproc_t)xdr_int, N, xdr_ctx );
       break;
+#endif
       case MPIR_LONGDOUBLE:
       MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_TYPE, 
           "Unfortuantely, XDR does not support the long double type. Sorry.");
@@ -589,12 +597,14 @@ void                  *ctx;
 				      (int)sizeof(double), 
 				    act_size, srcreadlen, destlen, xdr_ctx  );
       break;
+#ifndef MPID_NO_FORTRAN
       /* Fortran logicals */
       case MPIR_LOGICAL:
       mpi_errno = MPID_Mem_XDR_Decode_Logical(d, s, (xdrproc_t)xdr_int, N, 
 					      (int)sizeof(int), 
 				     act_size, srcreadlen, destlen, xdr_ctx );
       break;
+#endif
       case MPIR_LONGDOUBLE:
       MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_TYPE, 
           "Unfortuantely, XDR does not support the long double type. Sorry.");

@@ -1,5 +1,5 @@
 /* 
- *   $Id: read_ordf.c,v 1.5 1999/08/27 20:53:34 thakur Exp $    
+ *   $Id: read_ordf.c,v 1.7 2000/08/24 16:18:27 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,18 +9,18 @@
 #include "adio.h"
 
 
-#if defined(__MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+#if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
 #ifdef FORTRANCAPS
 #define mpi_file_read_ordered_ PMPI_FILE_READ_ORDERED
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_file_read_ordered_ pmpi_file_read_ordered__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_file_read_ordered pmpi_file_read_ordered_
 #endif
 #define mpi_file_read_ordered_ pmpi_file_read_ordered
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_file_read_ordered_ pmpi_file_read_ordered
 #endif
 #define mpi_file_read_ordered_ pmpi_file_read_ordered_
@@ -73,20 +73,24 @@
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_file_read_ordered_ mpi_file_read_ordered__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_file_read_ordered mpi_file_read_ordered_
 #endif
 #define mpi_file_read_ordered_ mpi_file_read_ordered
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_file_read_ordered_ mpi_file_read_ordered
 #endif
 #endif
 #endif
 
-#if defined(__MPIHP) || defined(__MPILAM)
+/* Prototype to keep compiler happy */
 void mpi_file_read_ordered_(MPI_Fint *fh,void *buf,int *count,
-                      MPI_Fint *datatype,MPI_Status *status, int *__ierr )
+		    MPI_Datatype *datatype,MPI_Status *status, int *ierr );
+
+#if defined(MPIHP) || defined(MPILAM)
+void mpi_file_read_ordered_(MPI_Fint *fh,void *buf,int *count,
+                      MPI_Fint *datatype,MPI_Status *status, int *ierr )
 {
     MPI_File fh_c;
     MPI_Datatype datatype_c;
@@ -94,14 +98,14 @@ void mpi_file_read_ordered_(MPI_Fint *fh,void *buf,int *count,
     fh_c = MPI_File_f2c(*fh);
     datatype_c = MPI_Type_f2c(*datatype);
 
-    *__ierr = MPI_File_read_ordered(fh_c,buf,*count,datatype_c,status);
+    *ierr = MPI_File_read_ordered(fh_c,buf,*count,datatype_c,status);
 }
 #else
 void mpi_file_read_ordered_(MPI_Fint *fh,void *buf,int *count,
-                      MPI_Datatype *datatype,MPI_Status *status, int *__ierr ){
+                      MPI_Datatype *datatype,MPI_Status *status, int *ierr ){
     MPI_File fh_c;
     
     fh_c = MPI_File_f2c(*fh);
-    *__ierr = MPI_File_read_ordered(fh_c,buf,*count,*datatype,status);
+    *ierr = MPI_File_read_ordered(fh_c,buf,*count,*datatype,status);
 }
 #endif

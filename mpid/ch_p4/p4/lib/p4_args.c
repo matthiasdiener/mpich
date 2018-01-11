@@ -219,9 +219,10 @@ static P4VOID strip_out_args(char **argv, int *argc, int *c, int num)
     int i;
 
     /* Strip out the argument. */
+    (*argc) -= num;
     for (a = argv, i = (*c); i <= *argc; i++, a++)
 	*a = (*(a + num));
-    (*argc) -= num;
+    *a = 0;   /* make last null just in case */
 }
 
 static P4VOID usage( void )

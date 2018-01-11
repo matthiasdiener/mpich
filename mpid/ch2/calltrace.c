@@ -29,8 +29,7 @@ extern int fflush(FILE *);
 char *(TR_stack[TR_MAX_STACK]);
 int  TR_stack_sp = 0, TR_stack_debug = 0;
 
-void TR_stack_init( flag )
-int flag;
+void TR_stack_init( int flag )
 {
     TR_stack_debug = flag;
 }
@@ -55,8 +54,7 @@ int  dir;
 }
 
 #else
-void TR_stack_init( flag )
-int flag;
+void TR_stack_init( int flag )
 {
 }
 #endif

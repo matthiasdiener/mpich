@@ -38,6 +38,7 @@ containing the number of elements that are received from each process
 specifies the displacement (relative to recvbuf ) at
 which to place the incoming data from process  
 .I i
+
 .PD 1
 .PD 0
 .TP
@@ -64,14 +65,16 @@ The jth block of data sent from
 each proess is received by every process and placed in the jth block of the
 buffer 
 .I recvbuf
-.
+\&.
+
 
 This is misleading; a better description is
 
 The block of data sent from the jth process is received by every
 process and placed in the jth block of the buffer 
 .I recvbuf
-.
+\&.
+
 
 This text was suggested by Rajeev Thakur.
 

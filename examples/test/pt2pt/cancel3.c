@@ -149,7 +149,7 @@ int main( int argc, char **argv )
 	    printf( "Test failed with %d errors.\n", err );
 	}
 	else {
-	    printf( "Test passed\n" );
+	    printf( " No Errors\n" );
 	}
     }
     else if (rank == size - 1) {

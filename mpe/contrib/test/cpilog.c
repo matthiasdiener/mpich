@@ -3,20 +3,18 @@
 #include <math.h>
 #include <stdio.h>
 
-double f(a)
-double a;
+double f( double );
+double f( double a)
 {
     return (4.0 / (1.0 + a*a));
 }
 
-int main(argc,argv)
-int argc;
-char *argv[];
+int main( int argc, char *argv[])
 {
     int  n, myid, numprocs, i, j;
     double PI25DT = 3.141592653589793238462643;
     double mypi, pi, h, sum, x;
-    double startwtime, endwtime;
+    double startwtime = 0.0, endwtime;
     int namelen; 
     int event1a, event1b, event2a, event2b,
         event3a, event3b, event4a, event4b;
@@ -29,6 +27,11 @@ char *argv[];
     MPI_Get_processor_name(processor_name,&namelen);
     fprintf(stderr,"Process %d running on %s\n", myid, processor_name);
 
+    /*
+        MPE_Init_log() & MPE_Finish_log() are NOT needed when
+        liblmpe.a is linked with this program.  In that case,
+        MPI_Init() would have called MPE_Init_log() already.
+    */
 /*
     MPE_Init_log();
 */

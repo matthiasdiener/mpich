@@ -49,12 +49,4 @@ typedef char *MPID_FCHAR_T;
 #define MPID_FCHAR_LARG(d) ,d
 #endif
 
-/*
- * This allows us to define the C type that corresponds to a Fortran
- * integer with e.g., -DMPIR_FORT_INT_T=long
- */
-#ifndef MPIR_FORT_INT_T
-#define MPIR_FORT_INT_T int
-#endif
-
 #endif

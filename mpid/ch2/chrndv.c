@@ -1,5 +1,5 @@
 /*
- *  $Id: chrndv.c,v 1.1.1.1 1997/09/17 20:39:20 gropp Exp $
+ *  $Id: chrndv.c,v 1.2 2000/07/17 20:50:43 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: chrndv.c,v 1.1.1.1 1997/09/17 20:39:20 gropp Exp $";
+static char vcid[] = "$Id: chrndv.c,v 1.2 2000/07/17 20:50:43 swider Exp $";
 #endif /* lint */
 
 #include "mpid.h"
@@ -254,11 +254,12 @@ DEBUG_PRINT_MSG("S Starting Send_rndv")
 mpid_send_handle = &dmpi_send_handle->dev_shandle;
 /* If we have rendevous send, then we may need to first wait until the
    message has been requested; then wait on the send to complete... */
+ DEBUG_PRINT_MSG("Entering while !MPID_Test_handle");    
 while (!MPID_Test_handle(dmpi_send_handle) && mpid_send_handle->sid == 0)
     /* This can be a BLOCKING check because we must wait until
        an "ok to send" message arrives */
     (void) MPID_CH_check_incoming( MPID_BLOCKING );
-
+ DEBUG_PRINT_MSG("Leaving while !MPID_Test_handle");    
 #ifndef PI_NO_NSEND
 if (mpid_send_handle->sid)  {
     /* Before we do the wait, try to clear all pending messages */
@@ -272,14 +273,14 @@ if (mpid_send_handle->sid) {
     MPID_CH_Test_send( dmpi_send_handle );
     }
 #endif
-DEBUG_PRINT_MSG("S Entering complete send while loop")
+ DEBUG_PRINT_MSG("Entering while !MPID_Test_handle")
 while (!MPID_Test_handle(dmpi_send_handle)) {
     /* This waits for the completion of a synchronous send, since at
        this point, we've finished waiting for the PInsend to complete,
        or for a incremental get */
     (void)MPID_CH_check_incoming( MPID_BLOCKING );
     }
-DEBUG_PRINT_MSG("S Ending send_rndv")
+ DEBUG_PRINT_MSG("Leaving while !MPID_Test_handle")
 }
 
 int MPID_CH_Cmpl_recv_rndv( dmpi_recv_handle )
@@ -300,9 +301,11 @@ if (!MPID_Test_handle(dmpi_recv_handle) && dmpi_recv_handle->dev_rhandle.rid) {
     DEBUG_PRINT_MSG("Completed recv of rndv send")
     return MPI_SUCCESS;
     }
+ DEBUG_PRINT_MSG("Entering while !MPID_Test_handle"); 
 while (!MPID_Test_handle(dmpi_recv_handle)) {
     (void)MPID_CH_check_incoming( MPID_BLOCKING );
     }
+ DEBUG_PRINT_MSG("Leaving while !MPID_Test_handle"); 
 DEBUG_PRINT_MSG("Exiting cmpl_recv_rndv")
 }
 

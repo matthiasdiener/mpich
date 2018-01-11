@@ -1,31 +1,28 @@
-// Copyright 1997-1999, University of Notre Dame.
-// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
-//           Andrew Lumsdaine
-//
-// This file is part of the Notre Dame C++ bindings for MPI
-//
-// You should have received a copy of the License Agreement for the
-// Notre Dame C++ bindings for MPI along with the software;  see the
-// file LICENSE.  If not, contact Office of Research, University of Notre
-// Dame, Notre Dame, IN  46556.
-//
+// Copyright 1997-2000, University of Notre Dame.
+// Authors: Jeremy G. Siek, Jeffery M. Squyres, Michael P. McNally, and
+//          Andrew Lumsdaine
+// 
+// This file is part of the Notre Dame C++ bindings for MPI.
+// 
+// You should have received a copy of the License Agreement for the Notre
+// Dame C++ bindings for MPI along with the software; see the file
+// LICENSE.  If not, contact Office of Research, University of Notre
+// Dame, Notre Dame, IN 46556.
+// 
 // Permission to modify the code and to distribute modified code is
 // granted, provided the text of this NOTICE is retained, a notice that
 // the code was modified is included with the above COPYRIGHT NOTICE and
 // with the COPYRIGHT NOTICE in the LICENSE file, and that the LICENSE
 // file is distributed with the modified code.
-//
+// 
 // LICENSOR MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
 // By way of example, but not limitation, Licensor MAKES NO
 // REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY
 // PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE COMPONENTS
 // OR DOCUMENTATION WILL NOT INFRINGE ANY PATENTS, COPYRIGHTS, TRADEMARKS
 // OR OTHER RIGHTS.
-// The vast majority of this awesome file came from Jeff Squyres,
-// Perpetual Obsessive Notre Dame Student Craving Utter Madness, 
-// and Brian McCandless, another of the LSC crew, under the guidance
-// of Herr Doctor Boss Andrew Lumsdaine. My thanks for making my
-// life a whole lot easier.
+// 
+// Additional copyrights may follow.
 
 #include "mpi2c++_test.h"
 extern "C" {
@@ -34,11 +31,11 @@ extern "C" {
 #include <unistd.h>
 #endif
 }
-// include <iostream.h>
+#include <iostream.h>
 // WDG - including string.h here causes problems because mpi2c++_test.h 
 // includes string.h within extern "C".  Do we really need to include
 // it here?
-// include <string.h>
+#include <string.h>
 #include "mpi++.h"
 
 
@@ -59,8 +56,8 @@ static const int dest_column = 50;
 // Local functions
 //
 
-static void check_for_failures(int my_code, char *msg = 0);
-static void Endline(char *msg);
+static void check_for_failures(int my_code, const char *msg = 0);
+static void Endline(const char *msg);
 static inline void decrement(void) 
 { indent_level = (indent_level <= 0) ? 0 : indent_level - 1; };
 static inline void increment(void)
@@ -71,7 +68,7 @@ static inline void increment(void)
 // Testing
 //
 void
-Testing(char *message)
+Testing(const char *message)
 {
   int i;
 
@@ -119,7 +116,7 @@ Testing(char *message)
 // Pass
 //
 void
-Pass(char *msg)
+Pass(const char *msg)
 {
   check_for_failures(0);
 
@@ -132,7 +129,7 @@ Pass(char *msg)
 // Sync
 //
 void
-Sync(char *msg)
+Sync(const char *msg)
 {
   check_for_failures(0, msg);
 }
@@ -142,7 +139,7 @@ Sync(char *msg)
 // Postpone
 //
 void
-Postpone(char *class_name)
+Postpone(const char *class_name)
 {
   static char buffer[1024];
 
@@ -157,7 +154,7 @@ Postpone(char *class_name)
 // Done
 //
 void
-Done(char *msg)
+Done(const char *msg)
 {
   decrement();
   Endline(msg);
@@ -169,7 +166,7 @@ Done(char *msg)
 // Fail
 //
 void
-Fail(char *msg)
+Fail(const char *msg)
 {
   check_for_failures(1, msg);
 }
@@ -179,10 +176,9 @@ Fail(char *msg)
 // Abort
 //
 void
-Abort(char *msg)
+Abort(const char *msg)
 {
-  // WDG - Change "xxx" from String to char *
-  Endline((char *)"FAIL");
+  Endline("FAIL");
 
   cerr << endl;
   if (msg != 0)
@@ -206,7 +202,7 @@ Abort(char *msg)
 // Endline
 //
 static void
-Endline(char *msg)
+Endline(const char *msg)
 {
   if (my_rank != 0)
     return;
@@ -222,11 +218,11 @@ Endline(char *msg)
     int i;
     column= 0;
     for (i= 0; i < indent_level; i++) {
-      cout <<"  ";
+      cout << "  ";
       column += 2;
     }
     
-    char *line= Pop();
+    const char *line= Pop();
     int len= (line != 0) ? strlen(line) : 0;
     cout << bullets[indent_level % num_bullets] << " " << line << "... ";
     for (i= column + 6 + len; i < dest_column; i++)
@@ -244,7 +240,7 @@ Endline(char *msg)
 // Check for failures among ranks
 //
 void
-check_for_failures(int my_code, char *msg)
+check_for_failures(int my_code, const char *msg)
 {
   char emsg[150];
   static int num_fails;
@@ -270,7 +266,7 @@ check_for_failures(int my_code, char *msg)
   if (my_rank == 0) {
     // End the line with a FAIL, because someone failed
     
-    Endline((char *)"FAIL");
+    Endline("FAIL");
     
     // If we have a descriptive message, print it
     

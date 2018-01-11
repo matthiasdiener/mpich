@@ -47,7 +47,7 @@ int main( int argc, char *argv[] )
     if (errcnt) 
 	printf( "Found %d errors!\n", errcnt );
     else
-	printf( "No Errors\n" );
+	printf( " No Errors\n" );
 
     MPI_Finalize( );
     return 0;

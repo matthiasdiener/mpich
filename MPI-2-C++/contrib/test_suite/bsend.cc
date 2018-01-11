@@ -1,26 +1,28 @@
-// Copyright 1997-1999, University of Notre Dame.
-// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
-//           Andrew Lumsdaine
-//
-// This file is part of the Notre Dame C++ bindings for MPI
-//
-// You should have received a copy of the License Agreement for the
-// Notre Dame C++ bindings for MPI along with the software;  see the
-// file LICENSE.  If not, contact Office of Research, University of Notre
-// Dame, Notre Dame, IN  46556.
-//
+// Copyright 1997-2000, University of Notre Dame.
+// Authors: Jeremy G. Siek, Jeffery M. Squyres, Michael P. McNally, and
+//          Andrew Lumsdaine
+// 
+// This file is part of the Notre Dame C++ bindings for MPI.
+// 
+// You should have received a copy of the License Agreement for the Notre
+// Dame C++ bindings for MPI along with the software; see the file
+// LICENSE.  If not, contact Office of Research, University of Notre
+// Dame, Notre Dame, IN 46556.
+// 
 // Permission to modify the code and to distribute modified code is
 // granted, provided the text of this NOTICE is retained, a notice that
 // the code was modified is included with the above COPYRIGHT NOTICE and
 // with the COPYRIGHT NOTICE in the LICENSE file, and that the LICENSE
 // file is distributed with the modified code.
-//
+// 
 // LICENSOR MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
 // By way of example, but not limitation, Licensor MAKES NO
 // REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY
 // PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE COMPONENTS
 // OR DOCUMENTATION WILL NOT INFRINGE ANY PATENTS, COPYRIGHTS, TRADEMARKS
 // OR OTHER RIGHTS.
+// 
+// Additional copyrights may follow.
 /****************************************************************************
 
  MESSAGE PASSING INTERFACE TEST CASE SUITE
@@ -62,28 +64,31 @@
 void
 bsend()
 {
+#if _MPIPP_USEEXCEPTIONS_
   char msg[150];
-  char* buf1;
   int class1;
   int data[100000];
   int i;
   int size;
   void* oldbuf;
   MPI::Status status;
+#endif
+  char* buf1;
 
-  Testing( (char *)"Bsend");
+  Testing("Bsend");
 
   if (flags[SKIP_IBM21014])
-    Done( (char *)"Skipped (IBM 2.1.0.14)");
+    Done("Skipped (IBM 2.1.0.14)");
   else if (flags[SKIP_IBM21015])
-    Done( (char *)"Skipped (IBM 2.1.0.15)");
+    Done("Skipped (IBM 2.1.0.15)");
   else if (flags[SKIP_IBM21016])
-    Done( (char *)"Skipped (IBM 2.1.0.16)");
+    Done("Skipped (IBM 2.1.0.16)");
   else if (flags[SKIP_IBM21017])
-    Done( (char *)"Skipped (IBM 2.1.0.17)");
+    Done("Skipped (IBM 2.1.0.17)");
   else {
     buf1 = new char[sizeof(int) * 1000 + MPI::BSEND_OVERHEAD];
     
+#if _MPIPP_USEEXCEPTIONS_
     MPI::COMM_WORLD.Set_errhandler(MPI::ERRORS_THROW_EXCEPTIONS);
     
     if((my_rank % 2) == 0) {
@@ -125,6 +130,9 @@ bsend()
     MPI::COMM_WORLD.Set_errhandler(MPI::ERRORS_RETURN);
 
     Pass(); // Bsend
+#else
+    Done("Compiler does not have exceptions");
+#endif
 
     delete[] buf1;
   }

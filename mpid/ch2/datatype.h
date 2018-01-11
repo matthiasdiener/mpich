@@ -55,7 +55,7 @@ struct MPIR_DATATYPE {
 #endif
 };
 
-extern void *MPIR_ToPointer ANSI_ARGS(( int ));
+extern void *MPIR_ToPointer ( int );
 
 #define MPIR_GET_DTYPE_PTR(idx) \
     (struct MPIR_DATATYPE *)MPIR_ToPointer( idx )

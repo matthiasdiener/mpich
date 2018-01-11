@@ -1,5 +1,5 @@
 /*
- *  $Id: cartdim_get.c,v 1.6 1999/08/30 15:50:57 swider Exp $
+ *  $Id: cartdim_get.c,v 1.7 2000/07/03 21:30:24 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -74,11 +74,12 @@ EXPORT_MPI_API int MPI_Cartdim_get ( MPI_Comm comm, int *ndims )
       return MPIR_ERROR( comm_ptr, mpi_errno, myname );
   }
   /* Set dims */
-  if ( ndims != (int *)0 )
+  if ( ndims != (int *)0 ) {
     if ( (flag == 1) && (topo->type == MPI_CART) )
       (*ndims) = topo->cart.ndims;
     else
       (*ndims) = MPI_UNDEFINED;
+  }
 
   TR_POP;
   return (MPI_SUCCESS);

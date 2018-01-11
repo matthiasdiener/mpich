@@ -42,28 +42,28 @@ int type, from, to, len, data_type, ack_req;
     switch (data_type)
     {
       case P4INT:
-	xdr_proc = xdr_int;
+	xdr_proc = (xdrproc_t) xdr_int;
 	xdr_elsize = XDR_INT_LEN;
 /* Begin bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
         elsize = sizeof(int);
 /* End   bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
 	break;
       case P4LNG:
-	xdr_proc = xdr_long;
+	xdr_proc = (xdrproc_t) xdr_long;
 	xdr_elsize = XDR_LNG_LEN;
 /* Begin bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
         elsize = sizeof(long);
 /* End   bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
 	break;
       case P4FLT:
-	xdr_proc = xdr_float;
+	xdr_proc = (xdrproc_t) xdr_float;
 	xdr_elsize = XDR_FLT_LEN;
 /* Begin bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
         elsize = sizeof(float);
 /* End   bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
 	break;
       case P4DBL:
-	xdr_proc = xdr_double;
+	xdr_proc = (xdrproc_t) xdr_double;
 	xdr_elsize = XDR_DBL_LEN;
 /* Begin bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
         elsize = sizeof(double);
@@ -325,7 +325,7 @@ int is_blocking;
 struct p4_msg *socket_recv_on_fd(fd)
 int fd;
 {
-    int n, data_type, msg_len;
+    int n, data_type, msg_len = -1;
     struct p4_msg *tmsg;
     struct p4_net_msg_hdr nmsg;
 
@@ -361,6 +361,8 @@ int fd;
 	}
     }
 
+    if (msg_len < 0)
+	p4_error("socket_recv_on_fd: failed to set msg_len %d\n", msg_len);
     tmsg = alloc_p4_msg(msg_len);
     tmsg->type = p4_n_to_i(nmsg.msg_type);
     tmsg->to = p4_n_to_i(nmsg.to);
@@ -487,28 +489,28 @@ struct p4_msg *rmsg;
     switch (rmsg->data_type)
     {
       case P4INT:
-	xdr_proc = xdr_int;
+	xdr_proc = (xdrproc_t) xdr_int;
 	xdr_elsize = XDR_INT_LEN;
 /* Begin bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
         elsize = sizeof(int);
 /* End   bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
 	break;
       case P4LNG:
-	xdr_proc = xdr_long;
+	xdr_proc = (xdrproc_t) xdr_long;
 	xdr_elsize = XDR_LNG_LEN;
 /* Begin bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
         elsize = sizeof(long);
 /* End   bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
 	break;
       case P4FLT:
-	xdr_proc = xdr_float;
+	xdr_proc = (xdrproc_t) xdr_float;
 	xdr_elsize = XDR_FLT_LEN;
 /* Begin bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
         elsize = sizeof(float);
 /* End   bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
 	break;
       case P4DBL:
-	xdr_proc = xdr_double;
+	xdr_proc = (xdrproc_t) xdr_double;
 	xdr_elsize = XDR_DBL_LEN;
 /* Begin bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
         elsize = sizeof(double);

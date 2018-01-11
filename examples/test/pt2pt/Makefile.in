@@ -12,7 +12,6 @@ F90          = @MPIF90@
 FLINKER      = @MPIF77@
 OPTFLAGS     = @OPTFLAGS@
 MPIFDEP      = @MPIFDEP@
-F77_OPTFLAGS = @F77_EXTRA_FLAG@
 ### End User configurable options ###
 
 SHELL = /bin/sh
@@ -32,15 +31,15 @@ FLIBS = @FLIB_PATH@ @LIB_LIST@
 EXECS = overtake sendrecv isndrcv third fourth fifth sixth hvectest \
 	hvectest2 hvec probe probe1 testtest1 ssendtest ssendtest2 typetest\
 	dtypelife issendtest issend2 issendinit relrank nullproc trunc \
-	truncmult typeub typeub2 typeub3 irecvtest htmsg \
+	truncmult typeub typeub2 typeub3 irecvtest htmsg nullproc2 \
 	isendtest self sendrecv2 sendrecv3 sendrecv4 persistent waitany \
 	pack bsendtest typebase irsend irsendinit longmsgs waitall waitall2 \
 	testsome getelm testall sndrcv nbtest nblock sendmany order hindexed \
 	commit cancel persist typecreate reqcreate sndrcvrep flood flood2 \
 	persist2 dataalign dtyperecv reqfree sndrcvrpl2 cancel2 cancel3 \
-	cancelmessages cancelibm sendorder exittest
+	cancelmessages cancelibm sendorder exittest selfvsworld
 OTHEREXECS = testtypes secondf allpair systest send1 \
-		systest1 allpair2 bsendtest structf typebasef 
+		systest1 allpair2 bsendtest structf typebasef sendfort bcastf
 default: $(EXECS)
 
 #
@@ -54,11 +53,13 @@ linktest:
 	@if [ ! -x overtake ] ; then \
 	    echo "Could not link a C program with MPI libraries" ; \
 	    exit 1 ; fi
-	-$(MAKE) secondf
-	@if [ ! -x secondf ] ; then \
-	    echo "Could not link a Fortran program with MPI libraries" ; \
-	    exit 1 ; fi
 	$(MAKE) clean
+#
+# This now becomes part of the Fortran module
+#	-$(MAKE) secondf
+#	@if [ ! -x secondf ] ; then \
+#	    echo "Could not link a Fortran program with MPI libraries" ; \
+#	    exit 1 ; fi
 
 linktest1: 
 	-$(MAKE) overtake
@@ -69,7 +70,8 @@ linktest1:
 
 all: testing
 
-fortran_tests: secondf allpair allpair2 structf typebasef send1 pingpong
+fortran_tests: secondf allpair allpair2 structf typebasef send1 pingpong \
+	sendfort
 
 #f90_tests: secondf90 allpair90 allpair290 structf90 typebasef90 send190 \
 #	pingpong90
@@ -161,8 +163,11 @@ reqfree: reqfree.o
 isndrcv: isndrcv.o test.o
 	$(CLINKER) $(OPTFLAGS) -o isndrcv isndrcv.o test.o $(LIBS)
 
-nullproc: nullproc.o test.o
-	$(CLINKER) $(OPTFLAGS) -o nullproc nullproc.o test.o $(LIBS)
+nullproc: nullproc.o
+	$(CLINKER) $(OPTFLAGS) -o nullproc nullproc.o $(LIBS)
+
+nullproc2: nullproc2.o
+	$(CLINKER) $(OPTFLAGS) -o nullproc2 nullproc2.o $(LIBS)
 
 trunc: trunc.o
 	$(CLINKER) $(OPTFLAGS) -o trunc trunc.o $(LIBS)
@@ -293,6 +298,9 @@ sendorder: sendorder.o
 exittest: exittest.o
 	$(CLINKER) $(OPTFLAGS) -o exittest exittest.o $(LIBS)
 
+selfvsworld: selfvsworld.o
+	$(CLINKER) $(OPTFLAGS) -o selfvsworld selfvsworld.o $(LIBS)
+
 # This has a test for HAS_FORTRAN so that the link test target will work
 # even when -nof77 is selected.
 secondf: $(MPIFDEP) secondf.o
@@ -311,6 +319,9 @@ structf: $(MPIFDEP) structf.o
 send1: $(MPIFDEP) send1.o
 	$(FLINKER) $(OPTFLAGS) -o ./send1 send1.o $(FLIBS)
 
+sendfort: $(MPIFDEP) sendfort.o
+	$(FLINKER) $(OPTFLAGS) -o ./sendfort sendfort.o $(FLIBS)
+
 pingpong: $(MPIFDEP) pingpong.o
 	$(FLINKER) $(OPTFLAGS) -o ./pingpong pingpong.o $(FLIBS)
 
@@ -321,7 +332,7 @@ typebasef: $(MPIFDEP) typebasef.o
 # Make sure that we remove executables for specific architectures
 clean:
 	@-/bin/rm -f *.o *~ PI* $(EXECS) *.out core pt2pt.diff $(OTHEREXECS) \
-		*.trace rdb.* startup.* mpif.h ${srcdir}/*.o
+		*.trace rdb.* startup.* mpif.h ${srcdir}/*.o *.stdo
 	@-for file in $(EXECS) Makefile ; do \
 	   /bin/rm -f $$file.sun4 $$file.alpha $$file.IRIX $$file.freebsd ;\
 	done
@@ -329,4 +340,4 @@ clean:
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 .f.o:
-	$(F77) $(FFLAGS) $(F77_OPTFLAGS) -c $<
+	$(F77) $(FFLAGS) -c $<

@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_xfs_seek.c,v 1.3 1999/10/26 22:57:20 thakur Exp $    
+ *   $Id: ad_xfs_seek.c,v 1.5 2000/08/23 17:47:28 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -34,6 +34,13 @@ ADIO_Offset ADIOI_XFS_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
 
 	MPI_Type_extent(fd->filetype, &filetype_extent);
 	MPI_Type_size(fd->filetype, &filetype_size);
+	if ( ! filetype_size ) {
+	    /* Since offset relative to the filetype size, we can't
+	       do compute the offset when that result is zero.
+	       Return zero for the offset for now */
+	    *error_code = MPI_SUCCESS; 
+	    return 0;
+	}
 
 	n_etypes_in_filetype = filetype_size/etype_size;
 	n_filetypes = (int) (offset / n_etypes_in_filetype);

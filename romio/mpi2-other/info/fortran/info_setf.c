@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_setf.c,v 1.4 1999/08/27 20:53:50 thakur Exp $    
+ *   $Id: info_setf.c,v 1.6 2000/02/09 21:30:38 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,18 +9,18 @@
 #include "adio.h"
 
 
-#if defined(__MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+#if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
 #ifdef FORTRANCAPS
 #define mpi_info_set_ PMPI_INFO_SET
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_info_set_ pmpi_info_set__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_info_set pmpi_info_set_
 #endif
 #define mpi_info_set_ pmpi_info_set
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF pmpi_info_set_ pmpi_info_set
 #endif
 #define mpi_info_set_ pmpi_info_set_
@@ -73,19 +73,19 @@
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpi_info_set_ mpi_info_set__
 #elif !defined(FORTRANUNDERSCORE)
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_info_set mpi_info_set_
 #endif
 #define mpi_info_set_ mpi_info_set
 #else
-#if defined(__HPUX) || defined(__SPPUX)
+#if defined(HPUX) || defined(SPPUX)
 #pragma _HP_SECONDARY_DEF mpi_info_set_ mpi_info_set
 #endif
 #endif
 #endif
 
 
-void mpi_info_set_(MPI_Fint *info, char *key, char *value, int *__ierr, 
+void mpi_info_set_(MPI_Fint *info, char *key, char *value, int *ierr, 
                    int keylen, int vallen)
 {
     MPI_Info info_c;
@@ -93,11 +93,11 @@ void mpi_info_set_(MPI_Fint *info, char *key, char *value, int *__ierr,
     int new_keylen, new_vallen, lead_blanks, i;
 
     if (key <= (char *) 0) {
-        printf("MPI_Info_set: key is an invalid address\n");
+        FPRINTF(stderr, "MPI_Info_set: key is an invalid address\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
     if (value <= (char *) 0) {
-        printf("MPI_Info_set: value is an invalid address\n");
+        FPRINTF(stderr, "MPI_Info_set: value is an invalid address\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
@@ -109,7 +109,7 @@ void mpi_info_set_(MPI_Fint *info, char *key, char *value, int *__ierr,
 
     for (i=keylen-1; i>=0; i--) if (key[i] != ' ') break;
     if (i < 0) {
-        printf("MPI_Info_set: key is a blank string\n");
+        FPRINTF(stderr, "MPI_Info_set: key is a blank string\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
     new_keylen = i + 1 - lead_blanks;
@@ -128,7 +128,7 @@ void mpi_info_set_(MPI_Fint *info, char *key, char *value, int *__ierr,
 
     for (i=vallen-1; i>=0; i--) if (value[i] != ' ') break;
     if (i < 0) {
-        printf("MPI_Info_set: value is a blank string\n");
+        FPRINTF(stderr, "MPI_Info_set: value is a blank string\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
     new_vallen = i + 1 - lead_blanks;
@@ -140,7 +140,7 @@ void mpi_info_set_(MPI_Fint *info, char *key, char *value, int *__ierr,
 
  
     info_c = MPI_Info_f2c(*info);
-    *__ierr = MPI_Info_set(info_c, newkey, newvalue);
+    *ierr = MPI_Info_set(info_c, newkey, newvalue);
     ADIOI_Free(newkey);
     ADIOI_Free(newvalue);
 }

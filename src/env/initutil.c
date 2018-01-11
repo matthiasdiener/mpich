@@ -1,15 +1,11 @@
 /*
- *  $Id: initutil.c,v 1.17 1999/11/03 22:53:42 gropp Exp $
+ *  $Id: initutil.c,v 1.22 2000/07/05 20:21:25 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 
-/* 
-   define MPID_NO_FORTRAN if the Fortran interface is not to be supported
-   (perhaps because there is no Fortran compiler)
- */
 #include "mpiimpl.h"
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
@@ -35,7 +31,7 @@
 #endif
 
 #if defined(MPE_USE_EXTENSIONS) && !defined(MPI_NO_MPEDBG)
-#include "../../mpe/mpeexten.h"
+#include "../../mpe/include/mpeexten.h"
 #endif
 
 #ifndef PATCHLEVEL_SUBMINOR
@@ -49,30 +45,11 @@
 MPI_Info *MPIR_Infotable = NULL;
 int MPIR_Infotable_ptr = 0, MPIR_Infotable_max = 0;
 
-#ifdef FORTRANCAPS
-#define mpir_init_fcm_   MPIR_INIT_FCM
-#define mpir_init_flog_  MPIR_INIT_FLOG
-#define mpir_init_bottom_ MPIR_INIT_BOTTOM
-#elif defined(FORTRANDOUBLEUNDERSCORE)
-#define mpir_init_fcm_   mpir_init_fcm__
-#define mpir_init_flog_  mpir_init_flog__
-#define mpir_init_bottom_ mpir_init_bottom__
-#elif !defined(FORTRANUNDERSCORE)
-#define mpir_init_fcm_   mpir_init_fcm
-#define mpir_init_flog_  mpir_init_flog
-#define mpir_init_bottom_ mpir_init_bottom
-#endif
-
-/* Prototypes for Fortran interface functions */
-void mpir_init_fcm_ ( void );
-void mpir_init_flog_ ( MPI_Fint *, MPI_Fint * );
-void mpir_init_bottom_ ( void * );
-
 /* Global memory management variables for fixed-size blocks */
 void *MPIR_errhandlers;  /* sbcnst Error handlers */
-void *MPIR_qels;      /* sbcnst queue elements */
-void *MPIR_fdtels; /* sbcnst flat datatype elements */
-void *MPIR_topo_els;/* sbcnst topology elements */
+void *MPIR_qels;         /* sbcnst queue elements */
+void *MPIR_fdtels;       /* sbcnst flat datatype elements */
+void *MPIR_topo_els;     /* sbcnst topology elements */
 
 /* Global communicators.  Initialize as null in case we fail during startup */
 /* We need the structure that MPI_COMM_WORLD refers to so often, 
@@ -103,21 +80,12 @@ int MPIR_Dump_Mem = 0;
 int MPIR_Dump_Mem = 1;
 #endif
 
-/* Fortran logical values */
-MPI_Fint MPIR_F_TRUE, MPIR_F_FALSE;
-
-/* 
- Location of the Fortran marker for MPI_BOTTOM.  The Fortran wrappers
- must detect the use of this address and replace it with MPI_BOTTOM.
- This is done by the macro MPIR_F_PTR.
- */
-void *MPIR_F_MPI_BOTTOM = 0;
-/* Here are the special status ignore values in MPI-2 */
-void *MPIR_F_STATUS_IGNORE = 0;
-void *MPIR_F_STATUSES_IGNORE = 0;
-
 /* MPICH extension keyvals */
 int MPICHX_QOS_BANDWIDTH = MPI_KEYVAL_INVALID;
+
+#ifndef MPID_NO_FORTRAN
+#include "mpi_fortran.h"
+#endif
 
 /*
    MPIR_Init - Initialize the MPI execution environment
@@ -248,15 +216,14 @@ char ***argv;
     MPIR_errhandlers= MPID_SBinit( sizeof( struct MPIR_Errhandler ), 10, 10 );
 
     MPIR_SENDQ_INIT();
-#ifdef FOO
-    MPIR_fdtels     = MPIR_SBinit( sizeof( MPIR_FDTEL ), 100, 100 );
-#endif
     MPIR_HBT_Init();
     MPIR_Topology_Init();
 
     /* This handles ALL datatype initialization */
     MPIR_Init_dtes();
-
+#ifndef MPID_NO_FORTRAN
+    MPIR_InitFortranDatatypes();
+#endif
     /* Create Error handlers */
     /* Must create at preassigned values */
     MPIR_Errhandler_create( MPIR_Errors_are_fatal, MPI_ERRORS_ARE_FATAL );
@@ -348,21 +315,11 @@ char ***argv;
     MPI_Attr_put( MPI_COMM_WORLD, MPI_HOST,   (void*)&MPI_HOST_VAL );
     MPI_Attr_put( MPI_COMM_WORLD, MPI_IO,     (void*)&MPI_IO_VAL );
 
-    /* Do the Fortran versions - Pass the actual value.  Note that these
-       use MPIR_Keyval_create with the "is_fortran" flag set. 
-       If you change these; change the removal in finalize.c. */
-        i = MPIR_TAG_UB;
-    MPIR_Keyval_create( NULL_COPY, NULL_DEL, &i, (void *)0, 1 );
-        i = MPIR_HOST;
-    MPIR_Keyval_create( NULL_COPY, NULL_DEL, &i, (void *)0, 1 );
-        i = MPIR_IO;
-    MPIR_Keyval_create( NULL_COPY, NULL_DEL, &i, (void *)0, 1 );
-        i = MPIR_WTIME_IS_GLOBAL;
-    MPIR_Keyval_create( NULL_COPY, NULL_DEL, &i, (void *)0, 1 );
-    MPI_Attr_put( MPI_COMM_WORLD, MPIR_TAG_UB, (void*)MPI_TAG_UB_VAL );
-    MPI_Attr_put( MPI_COMM_WORLD, MPIR_HOST,   (void*)MPI_HOST_VAL );
-    MPI_Attr_put( MPI_COMM_WORLD, MPIR_IO,     (void*)MPI_IO_VAL );
-
+    /* This is a dummy call to force MPI_Attr_get to be loaded */
+    if (MPI_IO_VAL == -37) {
+	void *ptr; int flag;
+	MPI_Attr_get( MPI_COMM_SELF, MPI_IO, &ptr, &flag );
+    }
 /* Add the flag on whether the timer is global */
 #ifdef MPID_Wtime_is_global
     MPI_WTIME_IS_GLOBAL_VAL = MPID_Wtime_is_global();
@@ -371,18 +328,12 @@ char ***argv;
 #endif    
     MPI_Attr_put( MPI_COMM_WORLD, MPI_WTIME_IS_GLOBAL, 
 		  (void *)&MPI_WTIME_IS_GLOBAL_VAL );
-    MPI_Attr_put( MPI_COMM_WORLD, MPIR_WTIME_IS_GLOBAL, 
-		  (void *)MPI_WTIME_IS_GLOBAL_VAL );
 /* Make these permanent.  Must do this AFTER the values are set (because
    changing a value of a permanent attribute is an error) */
     MPIR_Attr_make_perm( MPI_TAG_UB );
     MPIR_Attr_make_perm( MPI_HOST );
     MPIR_Attr_make_perm( MPI_IO );
     MPIR_Attr_make_perm( MPI_WTIME_IS_GLOBAL );
-    MPIR_Attr_make_perm( MPIR_TAG_UB );
-    MPIR_Attr_make_perm( MPIR_HOST );
-    MPIR_Attr_make_perm( MPIR_IO );
-    MPIR_Attr_make_perm( MPIR_WTIME_IS_GLOBAL );
 
     /* Remember COMM_WORLD for the debugger */
     MPIR_Comm_remember ( MPIR_COMM_WORLD );
@@ -442,11 +393,8 @@ char ***argv;
     MPIR_Op_setup( MPIR_MINLOC, 1, 1, MPI_MINLOC );
 
 #ifndef MPID_NO_FORTRAN
-    mpir_init_flog_( &MPIR_F_TRUE, &MPIR_F_FALSE );
-    /* fcm sets MPI_BOTTOM */
-    mpir_init_fcm_( );
+    MPIR_InitFortran( );
 #endif
-
     MPIR_PointerPerm( 0 );
 
     DEBUG(PRINTF("[%d] About to search for argument list options\n",MPIR_tid);)
@@ -460,15 +408,18 @@ char ***argv;
 		    MPIR_Print_queues = 1;
 		    (*argv)[i] = 0;
 		    }
-		else 
-		    if (strcmp((*argv)[i],"-mpiversion" ) == 0) {
+		else if (strcmp((*argv)[i],"-mpiversion" ) == 0) {
 		    char ADIname[128];
+		    char *patches = PATCHES_APPLIED;
 		    MPID_Version_name( ADIname );
 		    PRINTF( "MPICH %3.1f.%d%s of %s., %s\n", 
 			    PATCHLEVEL, PATCHLEVEL_SUBMINOR, 
 			    PATCHLEVEL_RELEASE_KIND, PATCHLEVEL_RELEASE_DATE,
 			    ADIname );
 		    PRINTF( "Configured with %s\n", CONFIGURE_ARGS_CLEAN );
+		    if (strlen(patches) > 0) {
+			PRINTF( "Patches applied %s\n", patches );
+		    }
 		    (*argv)[i] = 0;
 		    }
 #ifdef HAVE_NICE
@@ -565,21 +516,6 @@ char ***argv;
     return MPI_SUCCESS;
 }
 
-
-#ifndef MPID_NO_FORTRAN
-/* 
-   This routine is CALLED by MPIR_init_fcm to provide the address of 
-   the Fortran MPI_BOTTOM to C 
- */ 
-void mpir_init_bottom_( p )
-void *p;
-{
-    MPIR_F_MPI_BOTTOM	   = p;
-    MPIR_F_STATUS_IGNORE   = ((MPI_Fint*)p) + 1;
-    MPIR_F_STATUSES_IGNORE = ((MPI_Fint*)p) + 2;
-}
-
-#endif /* MPID_NO_FORTRAN */
 
 /****************************************************************************/
 /* The various MPI objects (MPI_Errhandler, MPI_Op, ... ) require some      */

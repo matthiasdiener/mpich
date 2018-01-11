@@ -28,8 +28,8 @@
 #define FALSE 0
 #endif
 
-extern int errno;
 /*****
+extern int errno;
 extern char *sys_errlist[];
 *****/
 

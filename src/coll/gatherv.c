@@ -1,5 +1,5 @@
 /*
- *  $Id: gatherv.c,v 1.10 1999/08/30 15:41:43 swider Exp $
+ *  $Id: gatherv.c,v 1.11 2000/07/03 21:30:19 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -66,7 +66,7 @@ EXPORT_MPI_API int MPI_Gatherv ( void *sendbuf, int sendcnt, MPI_Datatype sendty
   int        mpi_errno = MPI_SUCCESS;
   int        rank;
   struct MPIR_COMMUNICATOR *comm_ptr;
-  struct MPIR_DATATYPE     *stype_ptr, *rtype_ptr;
+  struct MPIR_DATATYPE     *stype_ptr, *rtype_ptr = 0;
   MPIR_ERROR_DECL;
   static char myname[] = "MPI_GATHERV";
 

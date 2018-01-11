@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_split.c,v 1.8 1999/08/30 15:43:04 swider Exp $
+ *  $Id: comm_split.c,v 1.9 2000/08/10 22:15:34 toonen Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -121,6 +121,7 @@ EXPORT_MPI_API int MPI_Comm_split ( MPI_Comm comm, int color, int key, MPI_Comm 
   /* stop here since there are no more communications with others */
   /* I'll even go ahead and free the 2 contexts I allocated above */
   if ( MPIR_Table_color(table,rank) == MPI_UNDEFINED ) {
+      mpi_errno = MPID_CommInit( comm_ptr, NULL );
       MPIR_ERROR_POP(comm_ptr);
       FREE(table);
       (void) MPIR_Context_dealloc( comm_ptr, 2, context );

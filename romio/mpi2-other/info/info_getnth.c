@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_getnth.c,v 1.4 1999/08/27 20:53:46 thakur Exp $    
+ *   $Id: info_getnth.c,v 1.6 2000/02/09 21:30:36 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +19,7 @@
 #endif
 
 /* Include mapping from MPI->PMPI */
-#define __MPIO_BUILD_PROFILING
+#define MPIO_BUILD_PROFILING
 #include "mpioprof.h"
 #endif
 
@@ -41,12 +41,12 @@ int MPI_Info_get_nthkey(MPI_Info info, int n, char *key)
     int nkeys, i;
 
     if ((info <= (MPI_Info) 0) || (info->cookie != MPIR_INFO_COOKIE)) {
-        printf("MPI_Info_get_nthkey: Invalid info object\n");
+        FPRINTF(stderr, "MPI_Info_get_nthkey: Invalid info object\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
     if (key <= (char *) 0) {
-	printf("MPI_Info_get: key is an invalid address\n");
+	FPRINTF(stderr, "MPI_Info_get: key is an invalid address\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
@@ -58,7 +58,7 @@ int MPI_Info_get_nthkey(MPI_Info info, int n, char *key)
     }
 
     if ((n < 0) || (n >= nkeys)) {
-        printf("MPI_Info_get_nthkey: n is an invalid number\n");
+        FPRINTF(stderr, "MPI_Info_get_nthkey: n is an invalid number\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 

@@ -1,5 +1,5 @@
 /*
- *  $Id: type_contig.c,v 1.7 1999/08/30 15:49:47 swider Exp $
+ *  $Id: type_contig.c,v 1.8 2000/08/10 22:15:35 toonen Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -101,6 +101,11 @@ EXPORT_MPI_API int MPI_Type_contiguous(
       dteptr->real_ub     = 0;
       dteptr->self        = *newtype;
       dteptr->old_type    = MPIR_Type_dup (old_dtype_ptr);
+#     if defined(MPID_HAS_TYPE_CONTIGUOUS)
+      {
+	  mpi_errno = MPID_Type_contiguous(count, old_type, *newtype);
+      }
+#     endif      
       TR_POP;
       return (mpi_errno);
       }
@@ -165,6 +170,12 @@ EXPORT_MPI_API int MPI_Type_contiguous(
       (dteptr->old_type->real_ub - dteptr->old_type->real_lb) + 
 	  dteptr->old_type->real_lb;
   
+# if defined(MPID_HAS_TYPE_CONTIGUOUS)
+  {
+      mpi_errno = MPID_Type_contiguous(count, old_type, *newtype);
+  }
+# endif      
+
   TR_POP;
   return (mpi_errno);
 }

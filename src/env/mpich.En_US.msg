@@ -256,6 +256,32 @@ $ MPIR_ERR_INFO_VAL_INVALID
 61 Value is an invalid address
 $ MPIR_ERR_INFO_VAL_INVALID takes 1 arguments
 62 Value is an invalid address
+$ MPIR_ERR_OFFSET_ARG
+65 Invalid offset argument
+$ MPIR_ERR_DATAREP_ARG
+67 Null datarep argument
+$ MPIR_ERR_COUNT_ARG
+69 Invalid count argument
+$ MPIR_ERR_SIZE_ARG
+71 Invalid size argument
+$ MPIR_ERR_WHENCE_ARG
+73 Invalid whence argument
+$ MPIR_ERR_FLAG_ARG
+75 flag argument must be the same on all processes
+$ MPIR_ERR_DISP_ARG
+77 Invalid displacement argument
+$ MPIR_ERR_ETYPE_ARG
+79 Invalid etype argument
+$ MPIR_ERR_FILETYPE_ARG
+81 Invalid filetype argument
+$ MPIR_ERR_SIZE_ARG_NOT_SAME
+83 size argument must be the same on all processes
+$ MPIR_ERR_OFFSET_ARG_NEG
+85 offset points to a negative location in the file
+$ MPIR_ERR_WHENCE_ARG_NOT_SAME
+87 whence argument must be the same on all processes
+$ MPIR_ERR_OFFSET_ARG_NOT_SAME
+87 offset argument must be the same on all processes
 $ 
 $set 13 MPI_ERR_UNKNOWN
 1 Unknown error
@@ -361,8 +387,18 @@ $
 $set 20 MPI_ERR_ACCESS
 1 ???
 $ 
+$set 21 MPI_ERR_AMODE
+1 Invalid amode
+3 Exactly one of MPI_MODE_RDONLY, MPI_MODE_WRONLY, or MPI_MODE_RDWR must be specified
+5 Cannot use MPI_MODE_CREATE or MPI_MODE_EXCL with MPI_MODE_RDONLY
+7 Cannot specify MPI_MODE_SEQUENTIAL with MPI_MODE_RDWR
+$ 
 $set 27 MPI_ERR_FILE
 1 Invalid MPI_File
+$ MPIR_ERR_FILE_NULL
+3 Null file handle
+$ MPIR_ERR_FILE_CORRUPT
+5 Corrupted file handle
 $ 
 $set 28 MPI_ERR_INFO
 1 Invalid MPI_Info
@@ -397,8 +433,65 @@ $set 31 MPI_ERR_INFO_NOKEY
 $ Takes 1 arguments
 2 MPI_Info key %s is not defined
 $ 
+$set 32 MPI_ERR_IO
+$ MPIR_ADIO_ERROR
+1 I/O Error
+$ MPIR_ADIO_ERROR takes 1 arguments
+2 %s
+$ MPIR_ERR_ETYPE_FRACTIONAL
+3 Only an integral number of etypes can be accessed
+$ MPIR_ERR_NO_FSTYPE
+5 Can't determine the file-system type. Check the filename/path you provided and try again. Otherwise, prefix the filename with a string to indicate the type of file sytem (piofs:, pfs:, nfs:, ufs:, hfs:, xfs:, sfs:, pvfs:)
+$ MPIR_ERR_NO_PFS
+7 ROMIO has not been configured to use the PFS file system
+$ MPIR_ERR_NO_PIOFS
+9 ROMIO has not been configured to use the PIOFS file system
+$ MPIR_ERR_NO_UFS
+11 ROMIO has not been configured to use the UFS file system
+$ MPIR_ERR_NO_NFS
+13 ROMIO has not been configured to use the NFS file system
+$ MPIR_ERR_NO_HFS
+15 ROMIO has not been configured to use the HFS file system
+$ MPIR_ERR_NO_XFS
+17 ROMIO has not been configured to use the XFS file system
+$ MPIR_ERR_NO_SFS
+19 ROMIO has not been configured to use the SFS file system
+$ MPIR_ERR_NO_PVFS
+21 ROMIO has not been configured to use the PVFS file system
+$ MPIR_ERR_MULTIPLE_SPLIT_COLL
+23 Only one active split collective I/O operation allowed per file handle
+$ MPIR_ERR_NO_SPLIT_COLL
+25 No previous split collective begin
+$ MPIR_ERR_ASYNC_OUTSTANDING
+27 There are outstanding nonblocking I/O operations on this file
+$ MPIR_READ_PERM
+29 ROMIO tries to optimize this access by doing a read-modify-write, but is unable to read the file. Please give the file read permission and open it with MPI_MODE_RDWR.
+$ MPIR_PREALLOC_PERM
+31 To preallocate disk space, ROMIO needs to read the file and write it back, but is unable to read the file. Please give the file read permission and open it with MPI_MODE_RDWR.
+$ MPIR_ERR_FILETYPE
+33 Filetype must be constructed out of one or more etypes
+$ 
+$set 43 MPI_ERR_UNSUPPORTED_DATAREP
+$ MPIR_ADIO_ERROR
+1 Unsupported data representation
+$ MPIR_ERR_NOT_NATIVE_DATAREP
+3 Only native data representation currently supported
+$ 
+$set 44 MPI_ERR_UNSUPPORTED_OPERATION
+$ MPIR_ADIO_ERROR
+1 Unsupported operation
+$ MPIR_ERR_NO_SHARED_FP
+3 Shared file pointer not supported on PIOFS and PVFS
+$ MPIR_ERR_AMODE_SEQ
+5 Cannot use this function when file is opened with amode MPI_MODE_SEQUENTIAL
+$ MPIR_ERR_MODE_WRONLY
+7 Cannot read from a file opened with amode MPI_MODE_WRONLY
+$ MPIR_ERR_NO_MODE_SEQ
+9 MPI_MODE_SEQUENTIAL not supported on PIOFS and PVFS
+$ 
 $set 45 MPI_ERR_WIN
 1 Invalid MPI_Win
 $ 
 $set 46 
 1 Error executing program or script
+

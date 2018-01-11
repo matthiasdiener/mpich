@@ -1,6 +1,8 @@
 #! /bin/sh
 #
 # Get the available types (kind form)
+# This only works if programs can be RUN.  If cross-compiling only,
+# you need to use the traditional form.
 #
 #set -x
 MAKE=${MAKE:-"make"}

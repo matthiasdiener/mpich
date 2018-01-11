@@ -34,7 +34,7 @@ typedef int p4_sockopt_len_t;
 
 char *start_prog_error;
 
-extern int errno;
+/* extern int errno; */
 
 /* 
    The strerror function may be defined in string.h .  If you get warnings 
@@ -334,9 +334,11 @@ char *buf;
     *bptr = 0;
 }
 
-#if defined(LINUX)
+/*****  RMB: no longer needed due to autoconf
+#if defined(LINUX) && !defined(NO_ECHO)
 #define NO_ECHO
 #endif
+*****/
 
 #if defined(P4BSD) && !defined(NO_ECHO)
 

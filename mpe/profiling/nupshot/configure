@@ -1371,29 +1371,42 @@ for dir in $TCL73TK36_DIR $tcllibs \
     /usr/bin \
     /Tools/tcl \
     /usr/sgitcl \
+    /usr/pgk \
     /software/$archdir/apps/packages/tcl-7* \
     /local/encap/tcl-7.1 ; do
-    if test -r $dir/include/tcl.h ; then 
-	# Check for correct version
-	
-	tclversion=`grep 'TCL_MAJOR_VERSION' $dir/include/tcl.h | \
-		sed -e 's/^.*TCL_MAJOR_VERSION[^0-9]*\([0-9]*\).*$/\1/'`
-	
-	if test "$tclversion" != "7" ; then
-	    # Skip if it is the wrong version
-	    foundversion=$tclversion
-	    continue
-	fi
-        if test -r $dir/lib/libtcl.a -o -r $dir/lib/libtcl.so ; then
- 	    TCL_DIR=$dir
-	    break
-        fi
-	for file in $dir/lib/libtcl*.a ; do
-	    if test -r $file ; then 
-                TCL_DIR_W="$TCL_DIR_W $file"
+    # In some cases, the tck/tk name comes *after* the include.
+    for fileloc in $dir/include $dir/include/tcl* ; do
+       if test -r $fileloc/tcl.h ; then 
+	    # Check for correct version
+   	    
+ 	    tclversion=`grep 'TCL_MAJOR_VERSION' $fileloc/tcl.h | \
+		    sed -e 's/^.*TCL_MAJOR_VERSION[^0-9]*\([0-9]*\).*$/\1/'`
+	    
+	    if test "$tclversion" != "7" ; then
+	        # Skip if it is the wrong version
+	        foundversion=$tclversion
+	        continue
 	    fi
-	done
-    fi
+            if test -r $dir/lib/libtcl.a -o -r $dir/lib/libtcl.so ; then
+	        TCL_DIR=$dir
+	        break
+            fi
+	    for libdir in $dir/lib $dir/lib/tcl* ; do
+                if test -r $libdir/libtcl.a -o -r $libdir/libtcl.so ; then
+	            # Not used yet
+ 	            TCL_LIB_DIR=$libdir
+	            break
+                fi
+            done
+	    for file in $dir/lib/libtcl*.a $dir/lib/tcl*/libtcl*.a ; do
+	        if test -r $file ; then 
+                    TCL_DIR_W="$TCL_DIR_W $file"
+	        fi
+	    done
+        fi
+	if test -n "$TCL_DIR" ; then break ; fi
+    done
+    if test -n "$TCL_DIR" ; then break ; fi
 done
 fi
 if test -n "$TCL_DIR" ; then 
@@ -1500,6 +1513,7 @@ for dir in $TCL73TK36_DIR $tklibs \
     /usr/bin \
     /Tools/tk \
     /usr/sgitcl \
+    /usr/pkg \
     /software/$archdir/apps/packages/tcl* \
     /local/encap/tk-3.4 $TCL_DIR ; do
     if test -r $dir/include/tk.h ; then 
@@ -1628,7 +1642,13 @@ if test -z "$no_x" -a -n "$TK_DIR" -a -n "$TCL_DIR" ; then
       CFLAGS="$CFLAGS -I$TKINCDIR/include"
   fi
   
-if test -z "$ac_echo_n" ; then
+
+if test -n "$pac_cv_cross_compiling" ; then
+    if test "$pac_cv_cross_compiling" = "yes" ; then
+	cross_compiling=1
+    fi
+else
+    if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -1654,8 +1674,8 @@ echo $ac_n "checking whether cross-compiling""... $ac_c"
 else
 echo $ac_n "checking whether cross-compiling""... $ac_c" 1>&1
 fi
-# If we cannot run a trivial program, we must be cross compiling.
-cat > conftest.c <<EOF
+    # If we cannot run a trivial program, we must be cross compiling.
+    cat > conftest.c <<EOF
 #include "confdefs.h"
 main(){exit(0);}
 EOF
@@ -1667,8 +1687,8 @@ else
   pac_ok=0
 fi
 rm -fr conftest*
-if test $pac_ok = 1 ; then
-    cat > conftest.c <<EOF
+    if test $pac_ok = 1 ; then
+         cat > conftest.c <<EOF
 #include "confdefs.h"
 main(){exit(1);}
 EOF
@@ -1678,27 +1698,31 @@ if test -s conftest && (./conftest; exit) 2>/dev/null; then
 
 fi
 rm -fr conftest*
-    if test $pac_ok = 1 ; then
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
+        if test $pac_ok = 1 ; then
+	    pac_cv_cross_compiling="no"
+            if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+        else
+            cross_compiling=1
+	    pac_cv_cross_compiling="yes"
+            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+        fi
     else
         cross_compiling=1
+        pac_cv_cross_compiling="yes"
         if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
     fi
-else
-    cross_compiling=1
-    if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""yes"
-else
-echo "$ac_t""yes" 1>&1
-fi
 fi
 
 

@@ -9,16 +9,14 @@ AR           = @AR@ cr
 RANLIB       = @RANLIB@
 MAKE         = @MAKE@
 INC_DIR      = -I./ -I../
-OPTFLAGS     = @OPTFLAGS@
 SLOG_CFLAGS  = @CFLAGS@
-MPICH        = @MPICH@
 
 ### End User configurable options ###
 SHELL = /bin/sh
 
 @VPATH@
 
-CFLAGS =  $(SLOG_CFLAGS ) $(OPTFLAGS) $(INCLUDE_DIR) 
+CFLAGS =  $(SLOG_CFLAGS) $(INCLUDE_DIR) 
 
 MAIN_SRC   = fbuf_readfile.c fbuf_writefile.c
 MAIN_OBJ   = $(MAIN_SRC:.c=.o)

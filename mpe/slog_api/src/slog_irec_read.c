@@ -1,6 +1,17 @@
 #include <stdio.h>
-#include <stdarg.h>
+
+#ifdef HAVE_SLOGCONF_H
+#include "slog_config.h"
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
 #include <stdlib.h>
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_UNISTD_H )
+#include <unistd.h>
+#endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STDARG_H )
+#include <stdarg.h>
+#endif
 
 #include "slog_fileio.h"
 #include "slog_bbuf.h"
@@ -308,7 +319,7 @@ fflush( stdout );
 . orig_node_id - pointer to interval record's origin node ID.
 . orig_cpu_id - pointer to interval record's origin cpu ID.
 . orig_thread_id - pointer to interval record's origin thread ID.
-. orig_where - pointer to interval record's where integer pointer.
+. orig_instr_addr - pointer to interval record's instr_addr integer pointer.
 . ...   - pointers to destination task labels for Message Record ( optional ) :
   dest_node_id - pointer to interval record's destination node ID.
   dest_cpu_id - pointer to interval record's destination cpu ID.
@@ -339,7 +350,7 @@ int SLOG_Irec_GetMinRec( const SLOG_intvlrec_t   *intvlrec,
                                SLOG_nodeID_t     *orig_node_id,
                                SLOG_cpuID_t      *orig_cpu_id,
                                SLOG_threadID_t   *orig_thread_id,
-                               SLOG_where_t      *where,
+                               SLOG_iaddr_t      *instr_addr,
                          ... )
 {
     /*  Local Variables  */
@@ -364,10 +375,10 @@ int SLOG_Irec_GetMinRec( const SLOG_intvlrec_t   *intvlrec,
     *orig_node_id   = (intvlrec->origID).node;
     *orig_cpu_id    = (intvlrec->origID).cpu;
     *orig_thread_id = (intvlrec->origID).thread;
-    *where          = intvlrec->where;
+    *instr_addr     = intvlrec->instr_addr;
 
     if ( SLOG_global_IsOffDiagRec( intvlrec->rectype ) ) {
-        va_start( ap, where );
+        va_start( ap, instr_addr );
         dest_node_id   = va_arg( ap, SLOG_nodeID_t * );
         dest_cpu_id    = va_arg( ap, SLOG_cpuID_t * );
         dest_thread_id = va_arg( ap, SLOG_threadID_t * );

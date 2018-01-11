@@ -5,6 +5,9 @@
 #define MPICHCONF_INC
 #include "mpichconf.h"
 #endif
+#ifdef HAVE_NO_C_CONST
+#define const
+#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -654,6 +657,29 @@ may be block not allocated with MPID_trmalloc or MALLOC\n",
     return pnew;
 }
 
+/*+C
+    MPID_trstrdup - Strdup with tracing
+
+    Input Parameters:
+.   str    - string to duplicate
+.   lineno - line number where used.  Use __LINE__ for this
+.   fname  - file name where used.  Use __FILE__ for this
+
+    Returns:
+    Pointer to copy of the input string.
+ +*/
+void *MPID_trstrdup( const char *str, int lineno, const char *fname )
+{
+    void *p;
+    unsigned len = strlen( str ) + 1;
+
+    p = MPID_trmalloc( len, lineno, (char *)fname );
+    if (p) {
+	memcpy( p, str, len + 1 );
+    }
+    return p;
+}
+
 #define TR_MAX_DUMP 100
 /*
    The following routine attempts to give useful information about the
@@ -674,13 +700,12 @@ may be block not allocated with MPID_trmalloc or MALLOC\n",
   merging them.  
  */
 /* Forward refs for these local routines */
-TRSPACE *MPID_trImerge ANSI_ARGS(( TRSPACE *, TRSPACE * ));
-TRSPACE *MPID_trIsort  ANSI_ARGS(( TRSPACE *, int ));
-void MPID_trSortBlocks ANSI_ARGS(( void ));
+TRSPACE *MPID_trImerge ( TRSPACE *, TRSPACE * );
+TRSPACE *MPID_trIsort  ( TRSPACE *, int );
+void MPID_trSortBlocks ( void );
  
 /* Merge two lists, returning the head of the merged list */
-TRSPACE *MPID_trImerge( l1, l2 )
-TRSPACE *l1, *l2;
+TRSPACE *MPID_trImerge( TRSPACE *l1, TRSPACE *l2 )
 {
 TRSPACE *head = 0, *tail = 0;
 int     sign;

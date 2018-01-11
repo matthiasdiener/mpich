@@ -1,5 +1,5 @@
 /*
- *  $Id: shmeminit.c,v 1.5 1999/09/08 21:44:10 gropp Exp $
+ *  $Id: shmeminit.c,v 1.6 2000/07/12 17:18:38 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -37,10 +37,8 @@ int MPID_SHMEM_Abort ( struct MPIR_COMMUNICATOR *, int, char * );
     Returns a device.  
     This sets up a message-passing device (short/eager/rendezvous protocols)
  */
-MPID_Device *MPID_CH_InitMsgPass( argc, argv, short_len, long_len )
-int  *argc;
-char ***argv;
-int  short_len, long_len;
+MPID_Device *MPID_CH_InitMsgPass( int *argc, char ***argv, 
+				  int short_len, int long_len )
 {
     MPID_Device *dev;
 
@@ -95,10 +93,8 @@ int  short_len, long_len;
    There should probably be a separate argument for whether it is a 
    user requested or internal abort.
  */
-int MPID_SHMEM_Abort( comm_ptr, code, msg )
-struct MPIR_COMMUNICATOR *comm_ptr;
-int      code;
-char     *msg;
+int MPID_SHMEM_Abort( struct MPIR_COMMUNICATOR *comm_ptr, int code, 
+		      char *msg )
 {
     if (msg) {
 	fprintf( stderr, "[%d] %s\n", MPID_MyWorldRank, msg );
@@ -116,8 +112,7 @@ char     *msg;
     return 0;
 }
 
-int MPID_SHMEM_End( dev )
-MPID_Device *dev;
+int MPID_SHMEM_End( MPID_Device *dev )
 {
     DEBUG_PRINT_MSG("Entering MPID_SHMEM_End\n");
     /* Finish off any pending transactions */
@@ -149,8 +144,7 @@ MPID_Device *dev;
 /*
  * Currently, this is inactive because adi2init contains MPID_Version_name .
  */
-void MPID_SHMEM_Version_name( name )
-char *name;
+void MPID_SHMEM_Version_name( char *name )
 {
     sprintf( name, "ADI version %4.2f - transport %s, locks %s", 
 	     MPIDPATCHLEVEL, MPIDTRANSPORT, p2p_lock_name );

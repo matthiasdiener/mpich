@@ -39,16 +39,16 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-void *xx_shmalloc ANSI_ARGS((unsigned));
-void xx_shfree ANSI_ARGS((char *));
-void xx_init_shmalloc ANSI_ARGS(( char *, unsigned ));
+void *xx_shmalloc (unsigned);
+void xx_shfree (char *);
+void xx_init_shmalloc ( char *, unsigned );
 
 #elif defined(USE_SHMAT)
-void *MD_init_shmem();
+void *MD_init_shmem( int * );
 
-void *xx_shmalloc ANSI_ARGS((unsigned));
-void xx_shfree ANSI_ARGS((char *));
-void xx_init_shmalloc ANSI_ARGS(( char *, unsigned ));
+void *xx_shmalloc (unsigned);
+void xx_shfree (char *);
+void xx_init_shmalloc ( char *, unsigned );
 
 #endif
 
@@ -57,7 +57,10 @@ void xx_init_shmalloc ANSI_ARGS(( char *, unsigned ));
    under another program, like a debugger or mpirun.  Until this is
    resolved, I'm ifdef'ing this out.
  */
+#if defined(MPI_cpss) || defined(FOO)
 static int MPID_SHMEM_ppid = 0;
+#endif
+
 void
 p2p_setpgrp()
 {
@@ -84,13 +87,24 @@ void p2p_init(maxprocs,memsize)
 int maxprocs;
 int memsize;
 {
-    int		mynode;
-    int		i, j, k, n;
-
 /* Initialize locks first */
 
 #ifdef USE_SEMOP
     MD_init_semop();
+#endif
+#ifdef USE_MUTEX
+    /* Ensure that we are linked with -lthread or -mt on Solaris systems
+       (otherwise nonfunctional versions of mutex_xxx functions are supplied
+       by libc !).  This may work because libc does not (at least in
+       a recent version of Solaris) have thr_getstate while libthread does. 
+       The strange test on maxprocs keeps the code from being execute, but
+       does force the compiler to include it. */
+    if (maxprocs < 0) {
+	void (*a)(void);
+	void thr_getstate(void);
+	a = thr_getstate;
+	if (a == 0) abort();
+    }
 #endif
 
 #if defined(USE_ARENAS) || defined(USE_USLOCKS)
@@ -113,11 +127,11 @@ int memsize;
 #if defined(USE_XX_SHMALLOC)
     {
     caddr_t p2p_start_shared_area;
-    static int p2p_shared_map_fd;
 
 #if defined(USE_MMAP) 
 
 #if !defined(MAP_ANONYMOUS) && !defined(MAP_VARIABLE)
+    static int p2p_shared_map_fd;
     /* In LINUX, we should try to open a large enough file of zeros.
        We can create a temp file, open it, write 0-filled blocks to 
        it, and mark it delete on close.  If you can create a
@@ -165,12 +179,16 @@ protections on /dev/zero\n", 0 );
        information.  Some locks may use some of the shared memory */
     xx_init_shmalloc(p2p_start_shared_area,memsize);
 #if defined(MPI_cspp)
-    mynode = MPID_SHMEM_getNodeId();
-    for (i = k = 0; i < numNodes; ++i) {
-	if ((n = numCPUs[i]) == 0) continue;
-	for (j = 0; j < n; ++j) {
-	    if ((i == mynode) && (j == (n - 1))) masterid = k;
-	    ++k;
+    { 
+	int	mynode, i, j, k, n;
+
+	mynode = MPID_SHMEM_getNodeId();
+	for (i = k = 0; i < numNodes; ++i) {
+	    if ((n = numCPUs[i]) == 0) continue;
+	    for (j = 0; j < n; ++j) {
+		if ((i == mynode) && (j == (n - 1))) masterid = k;
+		++k;
+	    }
 	}
     }
 #endif
@@ -231,8 +249,7 @@ static int sysv_shmid[P2_MAX_SYSV_SHMIDS];
 /* We save the addresses so that we can free them */
 static void *sysv_shmat[P2_MAX_SYSV_SHMIDS];
 
-void *MD_init_shmem(memsize)
-int *memsize;
+void *MD_init_shmem(int *memsize)
 {
     int i,nsegs;
     unsigned size, segsize = P2_SYSV_SHM_SEGSIZE;
@@ -285,7 +302,7 @@ int *memsize;
             if ((tmem = (char *)shmat(sysv_shmid[i],pmem-segsize,0)) == (char *)-1)
             {
 		char buf[1024];
-		sprintf( buf, "OOPS: shmat failed for segment %d location %d\n", 			 i, pmem-segsize);
+		sprintf( buf, "OOPS: shmat failed for segment %d location %ld\n", 			 i, (long)(pmem-segsize));
                 p2p_syserror( buf, 0 );
             }
 	    else
@@ -300,7 +317,7 @@ int *memsize;
     return mem;
 }
 
-void MD_remove_sysv_mipc()
+void MD_remove_sysv_mipc( void )
 {
     int i;
 
@@ -438,7 +455,7 @@ int value;
 }
 #include <sys/time.h>
 
-void p2p_wtime_init()
+void p2p_wtime_init( void )
 {
 }
 

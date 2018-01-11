@@ -4,9 +4,11 @@ $debug = 0;
 $username = getlogin || (getpwuid($<))[0] ;
 # restart_serv = 1 DOES NOT WORK because of bugs in perl.
 # (I've worked around this bug below, but it is pretty hideous)
+$bindir="@binbuild_dir@";
+$datadir="@datadir@;
 $restart_serv = 0;
-$serv_p4 = "@binbuild_dir@/serv_p4";
-#$serv_p4 = "@binbuild_dir@/serv_p4 -w @binbuild_dir@";
+$serv_p4 = "$bindir/serv_p4";
+#$serv_p4 = "$bindir/serv_p4 -w $bindir";
 #$server_name = "serv_p4";
 $run_dir = "$HOME";
 $kill_serv = 0;
@@ -19,7 +21,7 @@ use Socket;
 # Get the port to check
 $portnum=1234;
 # Get the list of machines
-$machinelist="@datadir@/machines.@ARCH@";
+$machinelist="$datadir/machines.@ARCH@";
 #
 # Read command line for overrides
 while ($_ = $ARGV[0]) {
@@ -45,7 +47,7 @@ while ($_ = $ARGV[0]) {
 	shift;
 	}
     elsif ($_ eq "-pgm") {
-	$serv_p4 = "@binbuild_dir@/$ARGV[0]";
+	$serv_p4 = "$bindir/$ARGV[0]";
 	shift;
 	}
     elsif ($_ eq "-restart") {
@@ -74,7 +76,7 @@ if ($username eq "") {
 # default location.
 if ($restart_serv) { 
     if (! -x $serv_p4 ) {
-        $serv_p4 = "@binbuild_dir@/$serv_p4";
+        $serv_p4 = "$bindir/$serv_p4";
     }
     if (! -x $serv_p4 ) {
         die "$serv_p4 is not executable!\n";

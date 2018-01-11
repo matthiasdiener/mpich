@@ -1,6 +1,5 @@
 #define MPID_PACK_CONTROL
 /* #undef MPID_PACK_CONTROL */
-#define MPID_DEBUG_ALL
 
 #define MPI_Pk_ackmark 25 /* number of packets received by the DESTINATION
 			     process before a protocol ACK is sent back
@@ -45,18 +44,23 @@ extern int expect_ack;          /* true if sender is expecting an ack */
       if (MPID_pack_info.pack_sent[partner] == MPI_Pk_ackmark) \
           expect_ack++; \
       if (MPID_DebugFlag) {\
-        FPRINTF( MPID_DEBUG_FILE,\
+        SPRINTF( ch_debug_buf,\
                  "[%d] sent %d packet(s) to %d - expect_ack = %d\n", me, \
-		 MPID_pack_info.pack_sent[partner], partner, expect_ack);}
+		 MPID_pack_info.pack_sent[partner], partner, expect_ack);\
+        MPID_DEBUG_MSG;\
+        MPID_SAVE_MSG;}
+
 /* Subtract 'ackmark' from packets sent */
 #define MPID_PACKET_SUB_SENT(me, partner) \
       MPID_pack_info.pack_sent[partner] -= MPI_Pk_ackmark; \
       expect_ack--; \
       if (MPID_DebugFlag) {\
-        FPRINTF( MPID_DEBUG_FILE,\
+        SPRINTF( ch_debug_buf,\
                  "[%d].pack_sent[%d] is %d - expect_ack = %d\n", me, partner, \
-		 MPID_pack_info.pack_sent[partner], expect_ack);}
-
+		 MPID_pack_info.pack_sent[partner], expect_ack);\
+        MPID_DEBUG_MSG;\
+        MPID_SAVE_MSG;}
+        
 /* If packet control and debugging are turned on and last packet is 
    turned off */
 #else
@@ -64,16 +68,22 @@ extern int expect_ack;          /* true if sender is expecting an ack */
 #define MPID_PACKET_ADD_SENT(me, partner) \
       MPID_pack_info.pack_sent[partner] += 1;\
       if (MPID_DebugFlag) {\
-        FPRINTF( MPID_DEBUG_FILE,\
+        SPRINTF( ch_debug_buf,\
                  "[%d] sent %d packet(s) to %d\n", me, \
-		 MPID_pack_info.pack_sent[partner], partner);}
+		 MPID_pack_info.pack_sent[partner], partner);\
+        MPID_DEBUG_MSG;\
+        MPID_SAVE_MSG;}
+
 /* Subtract 'ackmark' from packets sent */
 #define MPID_PACKET_SUB_SENT(me, partner) \
       MPID_pack_info.pack_sent[partner] -= MPI_Pk_ackmark; \
       if (MPID_DebugFlag) {\
-        FPRINTF( MPID_DEBUG_FILE,\
+        SPRINTF( ch_debug_buf,\
                  "[%d].pack_sent[%d] is %d\n", me, partner, \
-		 MPID_pack_info.pack_sent[partner]);}
+		 MPID_pack_info.pack_sent[partner]);\
+        MPID_DEBUG_MSG;\
+        MPID_SAVE_MSG;}
+
 #endif
 
 /* If packet control and debugging are turned on and last packet is 
@@ -82,16 +92,18 @@ extern int expect_ack;          /* true if sender is expecting an ack */
 #define MPID_PACKET_ADD_RCVD(me, partner) \
       MPID_pack_info.pack_rcvd[partner] += 1; \
       if (MPID_DebugFlag) {\
-        FPRINTF( MPID_DEBUG_FILE,\
+        SPRINTF( ch_debug_buf,\
                  "[%d] received %d packet(s) from %d\n", me, \
-		 MPID_pack_info.pack_rcvd[partner], partner);}
+		 MPID_pack_info.pack_rcvd[partner], partner);\
+        MPID_DEBUG_MSG;\
+        MPID_SAVE_MSG;}
+
 /* Subtract 'ackmark' from packets received */
 #define MPID_PACKET_SUB_RCVD(me, partner) \
       MPID_pack_info.pack_rcvd[partner] -= MPI_Pk_ackmark; \
-      if (MPID_DebugFlag) {\
-        FPRINTF( MPID_DEBUG_FILE,\
+      MPID_DEBUG_PRINTF(( ch_debug_buf,\
                  "[%d].pack_rcvd[%d] is %d\n", me, \
-		 partner, MPID_pack_info.pack_rcvd[partner]);}
+		 partner, MPID_pack_info.pack_rcvd[partner]))
 
 /* If packet control is turned on and debugging is turned off */
 #else

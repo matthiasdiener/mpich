@@ -52,7 +52,8 @@ The
 argument indicates the maximum length of a message; the actual
 number can be determined with 
 .I MPI_Get_count
-.
+\&.
+
 
 .SH NOTES FOR FORTRAN
 All MPI routines in Fortran (except for 
@@ -137,10 +138,12 @@ in a receive (
 , etc.) may
 also be 
 .I MPI_ANY_TAG
-.  The largest tag value is available through the 
+\&.
+The largest tag value is available through the 
 the attribute 
 .I MPI_TAG_UB
-.
+\&.
+
 .PD 1
 .PD 0
 .TP
@@ -155,7 +158,8 @@ zero and the size of the communicator minus one; ranks in a receive
 .I MPI_Sendrecv
 , etc.) may also be 
 .I MPI_ANY_SOURCE
-.
+\&.
+
 .PD 1
 
 .SH LOCATION
