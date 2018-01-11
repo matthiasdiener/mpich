@@ -28,4 +28,4 @@ write_proto: prof_wrapper.o driver.o doc.o write_proto.o system.o
 	$(CC) $(CFLAGS) -c $*.c
 
 clean:
-	/bin/rm -rf $(EXECS) *.o *~
+	-rm -rf $(EXECS) *.o *~

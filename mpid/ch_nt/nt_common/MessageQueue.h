@@ -13,10 +13,10 @@
 #include <winsock2.h>
 #include <windows.h>
 
-// With the environment variable MPICH_USE_POLLING undefined WaitForElementEvent waits on a kernel event handle
-// With MPICH_USE_POLLING defined WaitForElementEvent polls a variable in shared memory
+// With the environment variable MPICH_USE_POLLING undefined, WaitForElementEvent waits on a kernel event handle.
+// With MPICH_USE_POLLING defined, WaitForElementEvent polls a variable in shared memory.
 
-#define MSGQ_ELEMENT_BLOCK		1000
+#define MSGQ_ELEMENT_BLOCK		250
 #define MSGQ_INITIALNUMNODES	5000
 
 class MessageQueue  

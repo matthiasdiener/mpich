@@ -1,5 +1,5 @@
 /*
- *  $Id: waitall.c,v 1.24 2003/01/09 20:48:42 gropp Exp $
+ *  $Id: waitall.c,v 1.25 2004/02/24 15:09:13 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -92,6 +92,8 @@ int MPI_Waitall(
         if (!request) {
 	    /* See MPI Standard, 3.7 */
 	    if (array_of_statuses) {
+		/* This relies on using NULL for MPI_STATUS_IGNORE
+		   and MPI_STATUSES_IGNORE */
 		array_of_statuses[i].MPI_TAG    = MPI_ANY_TAG;
 		array_of_statuses[i].MPI_SOURCE = MPI_ANY_SOURCE;
 		array_of_statuses[i].MPI_ERROR  = MPI_SUCCESS;

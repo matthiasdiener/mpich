@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: fsync.c,v 1.8 2002/10/24 15:54:39 gropp Exp $    
+ *   $Id: fsync.c,v 1.13 2003/06/06 21:21:10 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -53,6 +53,8 @@ int MPI_File_sync(MPI_File fh)
 #else
     ADIOI_TEST_FILE_HANDLE(fh, myname);
 #endif
+
+    ADIOI_TEST_DEFERRED(fh, "MPI_File_sync", &error_code);
 
     ADIO_Flush(fh, &error_code);
 #ifdef MPI_hpux

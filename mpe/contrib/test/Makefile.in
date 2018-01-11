@@ -28,7 +28,7 @@ INCLUDE_DIR   = -I$(MPE_INCDIR) $(MPI_INC)
 LDFLAGS       = @LDFLAGS@
 NO_X          = @NO_X@
 NOF77         = @NOF77@
-RM            = /bin/rm
+RM            = rm
 
 ### End User configurable options ###
 

@@ -26,18 +26,21 @@ D*/
 #define HUGE_VAL 10.0e38
 #endif
 
+
 #include "mpi.h"
 #include "mpptest.h"
 #include "getopts.h"
 int __NUMNODES, __MYPROCID;
 
-#if HAVE_STDLIB_H
+#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
 
-#ifndef DEFAULT_REPS
-#define DEFAULT_REPS 50
+#ifndef DEFAULT_AVG
+#define DEFAULT_AVG 50
 #endif
+
+#include <string.h>
 
 /* Forward declarations */
 void PrintHelp( char *[] );
@@ -47,16 +50,6 @@ void PrintHelp( char *[] );
     a parallel machine.  
  */
     
-/* These statics (globals) are used to estimate the parameters in the
-   basic (s + rn) complexity model
-   Sum of lengths is stored as a double to give 53 bit integer on
-   systems where sizeof(int) == 4.
- */
-static double sumtime = 0.0, sumlentime = 0.0;
-static double sumlen  = 0.0,  sumlen2 = 0.0;
-static double sumtime2 = 0.0;
-static int    ntest   = 0;
-
 /* If doinfo is 0, don't write out the various text lines */
 static int    doinfo = 1;
 
@@ -64,11 +57,32 @@ static int    doinfo = 1;
 static double TimeScale = 1.0;
 static double RateScale = 1.0;
 
+/* The maximum of the MPI_Wtick values for all processes */
+static double gwtick;
+
 /* This is the number of times to run a test, taking as time the minimum
-   achieve timing.  This uses an adaptive approach that also stops when
-   minThreshTest values are within a few percent of the current minimum */
+   achieve timing.  
+   (NOT CURRENTLY IMPLEMENTED)
+   This uses an adaptive approach that also stops when
+   minThreshTest values are within a few percent of the current minimum 
+
+n_avg - number of iterations used to average the time for a test
+n_rep - number of repititions of a test, used to sample test average
+to avoid transient effects 
+*/
 static int    minreps       = 30;
+/* n_stable is the number of tests that must not (significantly, see 
+   repsThresh) change the results before mpptest will decide that no
+   further tests are required
+*/
+static int    n_stable;
 static double repsThresh    = 0.05;
+
+/* n_smooth is the number of passes over the data that will be taken to
+   smooth out any anomolies, defined as times that deviate significantly from
+   a linear progression
+ */ 
+static int    n_smooth      = 5;
 char   protocol_name[256];
 
 /* 
@@ -88,8 +102,9 @@ char   protocol_name[256];
    Tgoal / (s + r * len) = reps
  */
 static double Tgoal = 1.0;
-/* If less than Tgoalmin is spent, increase the number of repititions */
+/* If less than Tgoalmin is spent, increase the number of tests to average */
 static double TgoalMin = 0.5;
+static int autoavg = 0;
 
 /* This structure allows a collection of arbitray sizes to be specified */
 #define MAX_SIZE_LIST 256
@@ -109,26 +124,33 @@ static double start_time = 0.0;
 
 /* These are used to contain results for a single test */
 typedef struct _TwinResults {
-/*    double len, t, mean_time, rate; */
     double t,               /* min of the observations (per loop) */
 	   max_time,        /* max of the observations (per loop) */
            sum_time;        /* sum of all of the observations */
     int    len;             /* length of the message for this test */
     int    ntests;          /* number of observations */
-    int    reps;
+    int    n_avg;           /* number of times to run a test to get average 
+			       time */
+    int    new_min_found;   /* true if a new minimum was found */
+    int    n_loop;          /* number of times the timing loop was
+			       run and accepted */
     struct _TwinResults *next, *prev;
     } TwinResults;
 
 TwinResults *AllocResultsArray( int );
+void FreeResults( TwinResults * );
 void SetResultsForStrided( int first, int last, int incr, TwinResults *twin );
 void SetResultsForList( int sizelist[], int nsizes, TwinResults *twin );
 void SetRepsForList( TwinResults *, int );
 int RunTest( TwinResults *, double (*)(int,int,void *), void *, double );
-void RunTestList( TwinResults *, double (*)(int,int,void*), void* );
+int RunTestList( TwinResults *, double (*)(int,int,void*), void* );
 int SmoothList( TwinResults *, double (*)(int,int,void *), void * );
 int RefineTestList( TwinResults *, double (*)(int,int,void *),void *,
 		    int, double );
 void OutputTestList( TwinResults *, void *, int, int, int );
+double LinearTimeEst( TwinResults *, double );
+double LinearTimeEstBase( TwinResults *, TwinResults *, TwinResults*, double );
+TwinResults *InsertElm( TwinResults *, TwinResults * );
 
 /* Initialize the results array of a given list of data */
 
@@ -147,20 +169,27 @@ typedef struct {
 int main( int argc, char *argv[] )
 {
     int    dist;
-    double (* BasicCommTest)( int, int, void * );
-    void *MsgCtx = 0; /* This is the context of the message-passing operation */
+    double (* BasicCommTest)( int, int, void * ) = 0;
+    void *MsgCtx = 0; /* This is the context of the 
+			 message-passing operation */
     void *outctx;
     void (*ChangeDist)( int, PairData ) = 0;
-    int  reps,proc1,proc2, distance_flag,distance;
+    int  n_avg, proc1, proc2, distance_flag, distance;
     int  first,last,incr, svals[3];
     int      autosize = 0, autodx;
     double   autorel;
+    double   wtick;
     char     units[32];         /* Name of units of length */
 
     MPI_Init( &argc, &argv );
     MPI_Comm_size( MPI_COMM_WORLD, &__NUMNODES );
     MPI_Comm_rank( MPI_COMM_WORLD, &__MYPROCID );
 
+    /* Get the maximum clock grain */
+    wtick = MPI_Wtick();
+    MPI_Allreduce( &wtick, &gwtick, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
+
+    /* Set the default test name and labels */
     strcpy( protocol_name, "blocking" );
     strcpy( units, "(bytes)" );
 
@@ -170,8 +199,9 @@ int main( int argc, char *argv[] )
 	return 0;
     }
 
-    if (__NUMNODES < 2) {
+    if (__NUMNODES < 2 && !SYArgHasName( &argc, argv, 0, "-memcpy" )) {
 	fprintf( stderr, "Must run mpptest with at least 2 nodes\n" );
+	MPI_Finalize();
 	return 1;
     }
 
@@ -179,14 +209,20 @@ int main( int argc, char *argv[] )
     outctx = SetupGraph( &argc, argv );
     if (SYArgHasName( &argc, argv, 1, "-noinfo" ))    doinfo    = 0;
 
-    reps          = DEFAULT_REPS;
+    /* Proc1 *must* be 0 because of the way other data is collected */
     proc1         = 0;
     proc2         = __NUMNODES-1;
     distance_flag = 0;
-    svals[0]      = 0;
-    svals[1]      = 1024;
-    svals[2]      = 32;
-
+    if (SYArgHasName( &argc, argv, 0, "-logscale" )) {
+	svals[0]      = sizeof(int);
+	svals[1]      = 131072;   /* 128k */
+	svals[2]      = 32;
+    }
+    else {
+	svals[0]      = 0;
+	svals[1]      = 1024;
+	svals[2]      = 32;
+    }
     if (SYArgHasName( &argc, argv, 1, "-distance" ))  distance_flag++;
     SYArgGetIntVec( &argc, argv, 1, "-size", 3, svals );
     nsizes = SYArgGetIntList( &argc, argv, 1, "-sizelist", MAX_SIZE_LIST, 
@@ -214,15 +250,32 @@ int main( int argc, char *argv[] )
 	DataScale( outctx, 1 );
     }
 
-    SYArgGetInt(    &argc, argv, 1, "-reps", &reps );
+    /* Get the number of tests to average over */
+    n_avg          = DEFAULT_AVG;
+    if (SYArgHasName( &argc, argv, 1, "-autoavg" )) {
+        autoavg = 1;
+	n_avg   = 5;  /* Set a new default.  This can be overridden */
+    }
+    SYArgGetInt( &argc, argv, 1, "-n_avg", &n_avg ); /* was -reps */
+
     if (SYArgGetDouble( &argc, argv, 1, "-tgoal", &Tgoal )) {
 	if (TgoalMin > 0.1 * Tgoal) TgoalMin = 0.1 * Tgoal;
     }
     SYArgGetDouble( &argc, argv, 1, "-rthresh", &repsThresh );
 
     SYArgGetInt( &argc, argv, 1, "-sample_reps", &minreps );
+    n_stable = minreps;
+    SYArgGetInt( &argc, argv, 1, "-n_stable", &n_stable );
 
     SYArgGetDouble( &argc, argv, 1, "-max_run_time", &max_run_time );
+    if (SYArgHasName( &argc, argv, 1, "-quick" ) || 
+	SYArgHasName( &argc, argv, 1, "-fast"  )) {
+      /* This is a short cut for 
+       -autoavg -n_stable 5 */
+      autoavg  = 1;
+      n_avg    = 5;
+      n_stable = 5;
+    }
 
     autosize = SYArgHasName( &argc, argv, 1, "-auto" );
     if (autosize) {
@@ -240,6 +293,16 @@ int main( int argc, char *argv[] )
 	BasicCommTest = (double (*)(int,int,void*))
 			 GetGOPFunction( &argc, argv, protocol_name, units );
 	MsgCtx = GOPInit( &argc, argv );
+    }
+    else if (SYArgHasName( &argc, argv, 1, "-halo" )) {
+	int local_partners, max_partners;
+        BasicCommTest = GetHaloFunction( &argc, argv, &MsgCtx, protocol_name );
+	TimeScale = 1.0;  /* Halo time, not half round trip */
+	local_partners = GetHaloPartners( MsgCtx );
+	MPI_Allreduce( &local_partners, &max_partners, 1, MPI_INT, MPI_MAX,
+		       MPI_COMM_WORLD );
+	RateScale = (double) max_partners;  /* Since each sends len data */
+	/* I.e., gives total rate per byte */
     }
     else if (SYArgHasName( &argc, argv, 1, "-bisect" )) {
 	BasicCommTest = GetPairFunction( &argc, argv, protocol_name );
@@ -283,12 +346,47 @@ int main( int argc, char *argv[] )
 	RateScale = 2.0;
     }
     else if (SYArgHasName( &argc, argv, 1, "-memcpy" )) {
-	BasicCommTest = memcpy_rate;
+	int use_vector = 0;
 	MsgCtx     = 0;
 	ChangeDist = 0;
-	strcpy( protocol_name, "memcpy" );
 	TimeScale = 1.0;
 	RateScale = 1.0;
+	use_vector = SYArgHasName( &argc, argv, 1, "-vector" );
+	/* memcpy_rate_int, memcpy_rate_double */
+	if (SYArgHasName( &argc, argv, 1, "-int" )) {
+	    if (use_vector) {
+	    }
+	    else {
+		BasicCommTest = memcpy_rate_int;
+		strcpy( protocol_name, "memcpy-int" );
+	    }
+	}
+	else if (SYArgHasName( &argc, argv, 1, "-double" )) {
+	    if (use_vector) {
+		BasicCommTest = memcpy_rate_double_vector;
+		strcpy( protocol_name, "memcpy-double-vector" );
+	    }
+	    else {
+		BasicCommTest = memcpy_rate_double;
+		strcpy( protocol_name, "memcpy-double" );
+	    }
+	}
+#ifdef HAVE_LONG_LONG
+	else if (SYArgHasName( &argc, argv, 1, "-longlong" )) {
+	    if (use_vector) {
+		BasicCommTest = memcpy_rate_long_long_vector;
+		strcpy( protocol_name, "memcpy-longlong-vector" );
+	    }
+	    else {
+		BasicCommTest = memcpy_rate_long_long;
+		strcpy( protocol_name, "memcpy-longlong" );
+	    }
+	}
+#endif
+	else {
+	  BasicCommTest = memcpy_rate;
+	  strcpy( protocol_name, "memcpy" );
+	}
     }
     else {
 	/* Pair by default */
@@ -333,14 +431,13 @@ int main( int argc, char *argv[] )
 	    proc2 = GetNeighbor( 0, distance, 0 );
 	    if (ChangeDist)
 		(*ChangeDist)( distance, MsgCtx );
-	    time_function(reps,first,last,incr,proc1,proc2,
+	    time_function(n_avg,first,last,incr,proc1,proc2,
 			  BasicCommTest,outctx,
 			  autosize,autodx,autorel,MsgCtx);
-	    ClearTimes();
 	}
     }
     else{
-	time_function(reps,first,last,incr,proc1,proc2,BasicCommTest,outctx,
+	time_function(n_avg,first,last,incr,proc1,proc2,BasicCommTest,outctx,
 		      autosize,autodx,autorel,MsgCtx);
     }
 
@@ -350,6 +447,7 @@ int main( int argc, char *argv[] )
  */
     if (doinfo && __MYPROCID == 0) 
 	EndPageGraph( outctx );
+    EndGraph( outctx );
 
     MPI_Finalize();
     return 0;
@@ -359,7 +457,7 @@ int main( int argc, char *argv[] )
    This is the basic routine for timing an operation.
 
    Input Parameters:
-.  reps - Basic number of times to run basic test (see below)
+.  n_avg - Basic number of times to run basic test (see below)
 .  first,last,incr - length of data is first, first+incr, ... last
          (if last != first + k * incr, then actual last value is the 
          value of first + k * incr that is <= last and such that 
@@ -381,23 +479,20 @@ int main( int argc, char *argv[] )
          message sizes used.
 .  msgctx - Context to pass through to operation routine
  */
-void time_function(reps,first,last,incr,proc1,proc2,CommTest,outctx,
-		   autosize,autodx,autorel,msgctx)
-int    reps,first,last,incr,proc1,proc2,autosize,autodx;
-double autorel;
-double (* CommTest)( int, int, void *);
-void      *outctx;
-void *msgctx;
+void time_function( int n_avg, int first, int last, int incr, 
+		    int proc1, int proc2, double (*CommTest)(int,int,void*),
+		    void *outctx, int autosize, int autodx, 
+		    double autorel, void *msgctx)
 {
-    int    distance,myproc;
-    double s, r;
+    int    distance, myproc;
+    int    n_without_change;  /* Number of times through the list without
+				 changes */
 
     myproc   = __MYPROCID;
     distance = ((proc1)<(proc2)?(proc2)-(proc1):(proc1)-(proc2));
 
     /* Run test, using either the simple direct test or the automatic length
      test */
-    ntest = 0;
     if (autosize) {
 	TwinResults *twin;
 	int k;
@@ -406,19 +501,22 @@ void *msgctx;
 	SetResultsForStrided( first, last, (last-first)/8, twin );
 
 	/* Run tests */
-	SetRepsForList( twin, reps );
-	for (k=0; k<minreps; k++) {
+	SetRepsForList( twin, n_avg );
+	for (k=0; k<minreps/5; k++) {
 	    int kk;
 	    for (kk=0; kk<5; kk++)
-		RunTestList( twin, CommTest, msgctx );
-	    RefineTestList( twin, CommTest, msgctx, autodx, autorel );
+		(void)RunTestList( twin, CommTest, msgctx );
+	    /* Don't refine on the last iteration */
+	    if (k != minreps-1) 
+	      RefineTestList( twin, CommTest, msgctx, autodx, autorel );
 	}
-	for (k=1; k<5; k++) {
+	for (k=1; k<n_smooth; k++) {
 	    if (!SmoothList( twin, CommTest, msgctx )) break;
 	}
 	/* Final output */
 	if (myproc == 0) 
 	    OutputTestList( twin, outctx, proc1, proc2, distance );
+	FreeResults(twin);
     }
     else {
 	TwinResults *twin;
@@ -434,25 +532,31 @@ void *msgctx;
 	}
 
 	/* Run tests */
+	SetRepsForList( twin, n_avg );
+	n_without_change = 0;
 	for (k=1; k<minreps; k++) {
-	    SetRepsForList( twin, reps );
-	    RunTestList( twin, CommTest, msgctx );
+	    if (RunTestList( twin, CommTest, msgctx )) {
+	        n_without_change = 0;
+	    }
+	    else
+	        n_without_change++;
+	    if (n_without_change > n_stable) {
+#if DEBUG_AUTO
+		printf( "Breaking because stable results reached\n" );
+#endif		
+		break; 
+	    }
 	}
-	for (k=1; k<5; k++) {
+	for (k=1; k<n_smooth; k++) {
 	    if (!SmoothList( twin, CommTest, msgctx )) break;
 	}
 	/* Final output */
 	if (myproc == 0) 
 	    OutputTestList( twin, outctx, proc1, proc2, distance );
+	FreeResults(twin);
     }
-/* Generate output to be used as input to a graphics program */
-    if (doinfo && myproc == 0) {
-	RateoutputGraph( outctx, 
-			 sumlen, sumtime, sumlentime, sumlen2, sumtime2, 
-			 ntest, &s, &r );
-	DrawGraph( outctx, first, last, s, r );
-    }
-
+    if (myproc == 0) 
+	DrawGraph( outctx, 0, 0, 0.0, 0.0 );
 }
 
 
@@ -461,79 +565,22 @@ void *msgctx;
    Utility routines
  *****************************************************************************/
 
-/*
-   This routine computes a good number of repititions to use based on 
-   previous computations
- */
-int ComputeGoodReps( double t1, int len1, double t2, int len2, int len )
-{
-    double s, r;
-    int    reps;
-
-    r = (t2 - t1) / (len2 - len1);
-    s = t1 - r * len1;
-
-    if (s <= 0.0) s = 0.0;
-    reps = Tgoal / (s + r * len );
- 
-    if (reps < 1) reps = 1;
-
-/*
-printf( "Reps = %d (%d,%d,%d)\n", reps, len1, len2, len ); fflush( stdout );
- */
-    return reps;
-}
-
-
-#ifdef FOO
-/*
-  This runs the tests for a single size.  It adapts to the number of 
-  tests necessary to get a reliable value for the minimum time.
-  It also keeps track of the average and maximum times (which are unused
-  for now).
-
-  We can estimate the variance of the trials by using the following 
-  formulas:
-
-  variance = (1/N) sum (t(i) - (s+r n(i))**2
-           = (1/N) sum (t(i)**2 - 2 t(i)(s + r n(i)) + (s+r n(i))**2)
-	   = (1/N) (sum t(i)**2 - 2 s sum t(i) - 2 r sum t(i)n(i) + 
-	      sum (s**2 + 2 r s n(i) + r**2 n(i)**2))
-  Since we compute the parameters s and r, we need only maintain
-              sum t(i)**2
-              sum t(i)n(i)
-              sum n(i)**2
-  We already keep all of these in computing the (s,r) parameters; this is
-  simply a different computation.
-
-  In the case n == constant (that is, inside a single test), we can use
-  a similar test to estimate the variance of the individual measurements.
-  In this case, 
-
-  variance = (1/N) sum (t(i) - s**2
-           = (1/N) sum (t(i)**2 - 2 t(i)s + s**2)
-	   = (1/N) (sum t(i)**2 - 2 s sum t(i) + sum s**2)
-  Here, s = sum t(i)/N
-  (For purists, the divison should be slightly different from (1/N) in the
-  variance formula.  I'll deal with that later.)
-
-  tmax = max time observed
-  tmean = mean time observed
- */
-#endif 
-
 void PrintHelp( char *argv[] ) 
 {
   if (__MYPROCID != 0) return;
   fprintf( stderr, "%s - test individual communication speeds\n", argv[0] );
+
   fprintf( stderr, 
 "Test a single communication link by various methods.  The tests are \n\
 combinations of\n\
   Protocol: \n\
   -sync        Blocking sends/receives    (default)\n\
   -async       NonBlocking sends/receives\n\
+  -ssend       MPI Syncronous send (MPI_Ssend) and MPI_Irecv\n\
   -force       Ready-receiver (with a null message)\n\
-  -persistant  Persistant communication (only with MPI)\n\
+  -persistant  Persistant communication\n\
+  -put         MPI_Put (only on systems that support it)\n\
+  -get         MPI_Get (only on systems that support it)\n\
   -vector      Data is separated by constant stride (only with MPI, using UBs)\n\
   -vectortype  Data is separated by constant stride (only with MPI, using \n\
                MPI_Type_vector)\n\
@@ -545,7 +592,16 @@ combinations of\n\
   Message pattern:\n\
   -roundtrip   Roundtrip messages         (default)\n\
   -head        Head-to-head messages\n\
+  -halo        Halo Exchange (multiple head-to-head; limited options)\n\
     \n" );
+PrintHaloHelp();
+
+  fprintf( stderr, "\
+  -memcpy      Memory copy performance (no communication)\n\
+  -memcpy -int Memory copy using a for-loop with integers\n\
+  -memcpy -double Memory copy using a for-loop with doubles\n\
+  -memcpy -longlong Memory copy using a for-loop with long longs\n" );
+
   fprintf( stderr, 
 "  Message test type:\n\
   (if not specified, only communication tests run)\n\
@@ -555,6 +611,7 @@ combinations of\n\
   -bisect      Bisection test (all processes participate)\n\
   -bisectdist n Distance between processes\n\
     \n" );
+
   fprintf( stderr, 
 "  Message sizes:\n\
   -size start end stride                  (default 0 1024 32)\n\
@@ -564,43 +621,41 @@ combinations of\n\
                Messages of length n1, n2, etc are used.  This overrides \n\
                -size\n\
   -logscale    Messages of length 2**i are used.  The -size argument\n\
-               may be used to set the limits\n\
+               may be used to set the limits.  If -logscale is given,\n\
+               the default limits are from sizeof(int) to 128 k.\n\
   -auto        Compute message sizes automatically (to create a smooth\n\
                graph.  Use -size values for lower and upper range\n\
   -autodx n    Minimum number of bytes between samples when using -auto\n\
   -autorel d   Relative error tolerance when using -auto (0.02 by default)\n");
 
   fprintf( stderr, "\n\
-  Number of tests\n\
-  -reps n      Number of times message is sent (default %d)\n\
-  -autoreps    Compute the number of times a message is sent automatically\n\
+  Detailed control of tests:\n\
+  -quick       Short hand for -autoavg -n_stable 5\n\
+               this is a good choice for performing a relatively quick and\n\
+               accurate assessment of communication performance\n\
+  -n_avg n     Number of times a test is run; the time is averaged over this\n\
+               number of tests (default %d)\n\
+  -autoavg    Compute the number of times a message is sent automatically\n\
   -tgoal  d    Time that each test should take, in seconds.  Use with \n\
-               -autoreps\n\
+               -autoavg\n\
   -rthresh d   Fractional threshold used to determine when minimum time\n\
                has been found.  The default is 0.05.\n\
-  -sample_reps n   Number of times a full test is run inorder to find the\n\
+  -sample_reps n   Number of times a full test is run in order to find the\n\
                minimum average time.  The default is 30\n\
+  -n_stable n  Number of full tests that must not change the minimum \n\
+               average value before mpptest will stop testing.  By default,\n\
+               the value of -sample_reps is used (i.e.,no early termination)\n\
   -max_run_time n  Maximum number of seconds for all tests.  The default\n\
                is %d\n\
-\n", DEFAULT_REPS, (int)max_run_time );
-fprintf( stderr, "  -gop [ options ]:\n" );
+\n", DEFAULT_AVG, (int)max_run_time );
+
+fprintf( stderr, "\n\
+  Collective operations may be tested with -gop [ options ]:\n" );
 PrintGOPHelp();
+
 PrintGraphHelp();
 PrintPatternHelp(); 
-}
-
-/* 
-   Re-initialize the variables used to estimate the time that it
-   takes to send data
- */
-void ClearTimes()
-{
-    sumtime	   = 0.0;
-    sumlentime = 0.0;
-    sumlen	   = 0.0;
-    sumlen2	   = 0.0;
-    sumtime2   = 0.0;
-    ntest	   = 0;
+fflush( stderr ); 
 }
 
 /****************************************************************************
@@ -629,6 +684,11 @@ TwinResults *AllocResultsArray( int nsizes )
     /* Note that the last member (new[nsizes]) has null prev and next */
 
     return new;
+}
+
+void FreeResults( TwinResults *twin_p )
+{
+    free( twin_p );
 }
 
 /* Initialize the results array for a strided set of data */
@@ -667,64 +727,98 @@ void SetResultsForList( int sizelist[], int nsizes, TwinResults *twin )
 /* Run a test for a single entry in the list. Return 1 if the test
    was accepted, 0 otherwise */
 int RunTest( TwinResults *twin_p, double (*CommTest)(int,int,void *),
-		  void *msgctx, double wtick )
+	     void *msgctx, double wtick )
 {
     double t;
 
-    t = (*CommTest)( twin_p->reps, twin_p->len, msgctx );
-    /* t is the time overall repititions */
+    t = (*CommTest)( twin_p->n_avg, twin_p->len, msgctx );
+    /* t is the time over all (n_avg tests) */
 
+    /* Make sure that everyone has the same time value so that
+       they'll make the same decisions.  
+     */
+    MPI_Bcast( &t, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD );
     CheckTimeLimit();
 
-    /* Ignore times that are much shorter than the clock resolution */
-    if (t > 10*wtick) {
+#if DEBUG_AUTO
+    printf( "test(%d) for %d iterations took %f time\n", 
+	    twin_p->len, twin_p->n_avg, t );
+#endif    
+    /* Accept times only if they are much longer than the clock resolution */
+    if (t > 100*wtick) {
+	twin_p->n_loop++;
 	twin_p->sum_time += t;
-	twin_p->ntests   += twin_p->reps;
+	twin_p->ntests   += twin_p->n_avg;
 	/* Now, convert t to a per-loop time */
-	t = t / twin_p->reps;
-	if (t < twin_p->t) twin_p->t = t;
+	t = t / twin_p->n_avg;
+	if (t < twin_p->t) {
+	    twin_p->t = t;
+	    /* This could set only when t < (1-repsThresh) (previous value) */
+	    twin_p->new_min_found = 1;
+	}
+	else
+	    twin_p->new_min_found = 0;
 	if (t > twin_p->max_time) twin_p->max_time = t;
 	return 1;
     }
     return 0;
 }
 
-/* For each message length in the list, run the experiement CommTest */
-void RunTestList( TwinResults *twin, double (*CommTest)(int,int,void *),
+/* For each message length in the list, run the experiement CommTest.
+   Return the number of records that were updated */
+int RunTestList( TwinResults *twin_p, double (*CommTest)(int,int,void *),
 		  void *msgctx )
 {
-    double wtick;
-    TwinResults *twin_p = twin;
-    
-    wtick = MPI_Wtick();
+    int n_trials;  /* Used to bound the number of retries when total time
+		      is too small relative to gwtick */
+    int n_updated = 0;  /* Number of fields that were updated with a 
+			 new minimum */
 
     while (twin_p) {
-	(void)RunTest( twin_p, CommTest, msgctx, wtick );
+        n_trials = 0;
+        while (n_trials++ < 10 && 
+	       !RunTest( twin_p, CommTest, msgctx, gwtick )) {
+	    /* This run failed to pass the test on wtick (time too short).
+	       Update the #n_avg and try again 
+	       Special needs: must ensure that all processes are informed */
+	    twin_p->n_avg *= 2;
+        }
+	if (twin_p->new_min_found) n_updated++;
 	twin_p = twin_p->next;
     }
+#if DEBUG_AUTO
+    printf( "Found %d new minimums\n", n_updated );
+#endif
+    return n_updated;
 }
 
 /* This estimates the time at twin_p using a linear interpolation from the
    surrounding entries */
 double LinearTimeEst( TwinResults *twin_p, double min_dx )
 {
+    return LinearTimeEstBase( twin_p->prev, twin_p, twin_p->next, min_dx );
+}
+
+double LinearTimeEstBase( TwinResults *prev, TwinResults *cur, 
+			  TwinResults *next, double min_dx )
+{
     double t_prev, t_next, t_est, dn_prev, dn_next;
 
     /* Look at adjacent times */
-    if (twin_p->prev) {
-	t_prev = twin_p->prev->t;
-	dn_prev = twin_p->len - twin_p->prev->len;
+    if (prev) {
+	t_prev  = prev->t;
+	dn_prev = cur->len - prev->len;
     }
     else {
-	t_prev = twin_p->t;
+	t_prev  = cur->t;
 	dn_prev = min_dx;
     }
-    if (twin_p->next) {
-	t_next = twin_p->next->t;
-	dn_next = twin_p->next->len - twin_p->len;
+    if (next) {
+	t_next  = next->t;
+	dn_next = next->len - cur->len;
     }
     else {
-	t_next = twin_p->t;
+	t_next  = cur->t;
 	dn_next = min_dx;
     }
     /* Compute linear estimate, adjusting for the possibly unequal
@@ -741,76 +835,111 @@ TwinResults *InsertElm( TwinResults *prev, TwinResults *next )
 
     tnew = twin_avail;
     twin_avail = twin_avail->next;
+    if (!twin_avail) {
+	/* Now we have a problem.  I'm going to generate an error message and
+	   exit */
+	fprintf( stderr, 
+"Exhausted memory for results while refining test interval\n\
+Rerun with a smaller interval or without the -auto option\n" );
+	fflush( stderr );
+	MPI_Abort( MPI_COMM_WORLD, 1 );
+    }
     twin_avail->prev = 0;
     
-    tnew->next = next;
-    tnew->prev = prev;
-    prev->next = tnew;
-    next->prev = tnew;
-    tnew->len  = (prev->len + next->len) / 2;
-    tnew->reps = next->reps;
-    tnew->t    = HUGE_VAL;
+    tnew->next  = next;
+    tnew->prev  = prev;
+    prev->next  = tnew;
+    next->prev  = tnew;
+    tnew->len   = (prev->len + next->len) / 2;
+    tnew->n_avg = next->n_avg;
+    tnew->t     = HUGE_VAL;
 
-/*    printf( "%d running test with reps=%d, len=%d\n", 
-	    __MYPROCID, tnew->reps, (int)tnew->len );fflush(stdout); */
+#if DEBUG_AUTO
+    printf( "%d running test with n_avg=%d, len=%d\n", 
+	    __MYPROCID, tnew->n_avg, (int)tnew->len );fflush(stdout); 
+#endif
 
     return tnew;
 }
 
 /* This is a breadth-first refinement approach.  Each call to this routine
-   adds one level of refinement */
+   adds one level of refinement. */
 int RefineTestList( TwinResults *twin, double (*CommTest)(int,int,void*),
 		    void *msgctx, int min_dx, double autorel )
 {
-    double t_offset, t_center, wtick;
+    double t_offset, t_center;
     double abstol = 1.0e-10;
     int do_refine, n_refined = 0;
-    TwinResults *twin_p = twin, *tnew;
+    int n_loop, k;
+    TwinResults *twin_p = twin, *tprev, *tnext;
 
     /* There is a dummy empty entry at the end of the list */
     if (!twin_avail->next) return 0;
     
-    wtick = MPI_Wtick();
-    
     if (min_dx < 1) min_dx = 1;
 
+    /* We find the next pointer and set the current and previous from
+       that to ensure that we only look at values that were already
+       computed, not the newly inserted values */
+    tprev = 0;
+    n_loop = 0;
     while (twin_p && twin_avail) {
+	if (twin_p->n_loop > n_loop) n_loop = twin_p->n_loop;
+        tnext = twin_p->next;
 	/* Compute error estimate, adjusting for the possibly unequal
 	 interval sizes.  t_center is the linear interpolation at tnew_p->len,
 	 t_offset is the difference with the computed value */
-	t_center = LinearTimeEst( twin_p, min_dx );
+	t_center = LinearTimeEstBase( tprev, twin_p, tnext, min_dx );
 	t_offset = fabs(twin_p->t - t_center);
-	do_refine = t_offset > autorel * t_center + abstol;
+	do_refine = t_offset > (autorel * t_center + abstol);
 	MPI_Bcast( &do_refine, 1, MPI_INT, 0, MPI_COMM_WORLD );
 	if (do_refine) {
+#ifdef DEBUG_AUTO
+	    printf( "Refining at %d because predicted time %f far from %f\n",
+		    twin_p->len, t_center, twin_p->t );
+#endif
 	    /* update the list by refining both segments */
 	    if (twin_p->prev && twin_avail &&
 		min_dx < twin_p->len - twin_p->prev->len) {
-		tnew = InsertElm( twin_p->prev, twin_p );
-		n_refined += RunTest( tnew, CommTest, msgctx, wtick );
+		(void)InsertElm( twin_p->prev, twin_p );
+		n_refined ++; 
 	    }
 	    if (twin_p->next && twin_avail && 
 		min_dx < twin_p->next->len - twin_p->len) {
-		tnew = InsertElm( twin_p, twin_p->next );
-		n_refined += RunTest( tnew, CommTest, msgctx, wtick );
-		/* Skip this new element in this time through the loop */
-		twin_p = twin_p->next;
+		(void)InsertElm( twin_p, twin_p->next );
+		n_refined ++;
 	    }
 	}
-	twin_p = twin_p->next;
+	tprev  = twin_p;
+	twin_p = tnext;
     }
     MPI_Bcast( &n_refined, 1, MPI_INT, 0, MPI_COMM_WORLD );
+    MPI_Bcast( &n_loop, 1, MPI_INT, 0, MPI_COMM_WORLD );
+
+    /* Now, catch up the inserted elements with the rest of the results */
+    for (k=0; k<n_loop; k++) {
+	twin_p = twin;
+	while (twin_p) {
+	    if (twin_p->n_loop < n_loop) {
+		int n_trials = 0;
+		while (n_trials++ < 5 && 
+		       !RunTest( twin_p, CommTest, msgctx, gwtick )) {
+		    twin_p->n_avg *= 2;
+		}
+	    }
+	    twin_p = twin_p->next;
+	}
+    }
     return n_refined;
 }
 
-/* Initialize the number of repititions to use in the basic test */
-void SetRepsForList( TwinResults *twin, int reps )
+/* Initialize the number of tests to run over which the average time is 
+   computed. */
+void SetRepsForList( TwinResults *twin_p, int n_avg )
 {
-    TwinResults *twin_p = twin;
-    
     while (twin_p) {
-	twin_p->reps = reps;
-	twin_p = twin_p->next;
+	twin_p->n_avg = n_avg;
+	twin_p        = twin_p->next;
     }
 }
 
@@ -819,13 +948,11 @@ void SetRepsForList( TwinResults *twin, int reps )
 int SmoothList( TwinResults *twin, double (*CommTest)(int,int,void*),
 		void *msgctx )
 {
-    double wtick, t_est;
+    double t_est;
     int do_test;
     TwinResults *twin_p = twin;
     int n_smoothed = 0;
     
-    wtick = MPI_Wtick();
-
     while (twin_p) {
 	/* Look at adjacent times */
 	if (__MYPROCID == 0) {
@@ -834,7 +961,7 @@ int SmoothList( TwinResults *twin, double (*CommTest)(int,int,void*),
 	}
 	MPI_Bcast( &do_test, 1, MPI_INT, 0, MPI_COMM_WORLD );
 	if (do_test) {
-	    n_smoothed += RunTest( twin_p, CommTest, msgctx, wtick );
+	    n_smoothed += RunTest( twin_p, CommTest, msgctx, gwtick );
 	}
 	twin_p = twin_p->next;
     }
@@ -850,6 +977,12 @@ void OutputTestList( TwinResults *twin, void *outctx, int proc1, int proc2,
     double rate;
 
     while (twin_p) {
+	if (twin_p->n_loop < 1 || twin_p->ntests < 1) {
+	    /* Skip any tests that we could not successfully run */
+	    twin_p = twin_p->next;
+	    continue;
+	}
+
 	/* Compute final quantities */
 	if (twin_p->t > 0) 
 	    rate = ((double)twin_p->len) / twin_p->t;
@@ -874,3 +1007,5 @@ void CheckTimeLimit( void )
 	MPI_Abort( MPI_COMM_WORLD, 1 );
     }
 }
+
+

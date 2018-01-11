@@ -1,5 +1,5 @@
 /*
- *  $Id: type_util.c,v 1.8 2002/01/18 16:09:46 gropp Exp $
+ *  $Id: type_util.c,v 1.9 2004/04/29 19:11:46 karonis Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -97,6 +97,7 @@ int MPIR_Type_free ( struct MPIR_DATATYPE **dtype_ptr2 )
       default:
 	  if (!dtype_ptr->basic)
 	      MPIR_Type_free( &dtype_ptr->old_type );
+      }
 
 #     if defined(MPID_HAS_TYPE_FREE)
       {
@@ -106,7 +107,6 @@ int MPIR_Type_free ( struct MPIR_DATATYPE **dtype_ptr2 )
       }
 #     endif    
 
-      }
 
 	/* Free the datatype structure */
 	MPIR_CLR_COOKIE(dtype_ptr);

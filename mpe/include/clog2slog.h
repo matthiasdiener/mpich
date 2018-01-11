@@ -66,52 +66,14 @@ struct list_elemnt {
 /** initializations **/
 
 /*  void checkForBigEndian ( void );  */
-int  CLOG_init_state_defs ( double * );
-int  CLOG_init_all_mpi_state_defs( void );
-int  init_SLOG ( long, long, char * );
-int  init_SLOG_TTAB ( void );
-int  init_SLOG_PROF_RECDEF ( void );
-int  init_clog2slog ( char*, char** );
-void CLOG_init_essential_values ( long, int );
-
-/** actual logging */
-
-#ifdef FOO
-int  logEvent ( CLOG_HEADER * ,CLOG_RAW * ); 
-int  writeSLOGInterval ( CLOG_HEADER*, CLOG_RAW*, struct list_elemnt ));
-int  handleStartEvent ( int, CLOG_HEADER*, CLOG_RAW* );
-int  handle_extra_state_defs ( CLOG_STATE * );
-
-/** state_info and list_elemnt linked lists accessors **/
-
-int  addState ( int ,int ,int ,CLOG_CNAME ,CLOG_DESC );
-int  replace_state_in_list ( int, int, CLOG_CNAME, CLOG_DESC );
-int  findState_strtEvnt ( int );
-int  findState_endEvnt ( int );
-int  get_new_state_id ( void );
-int  addToList ( int ,int ,int ,double );
-int  find_elemnt ( int ,int ,int ,struct list_elemnt* );
-int  addToMsgList ( int ,int ,int ,int, double );
-int  find_msg_elemnt ( int ,int ,int ,int, struct list_elemnt* );
-void freeList ( void );
-void freeMsgList ( void );
-void freeStateInfo ( void );
-void printEventList ( void );
-void printMsgEventList ( void );
-#endif
-void CLOG_freeStateInfo(void);
-int  CLOG_makeSLOG ( double * ); 
-void CLOG_free_resources ( void );
-void CLOG_printHelp ( void );
-void CLOG_printStateInfo ( void );
+int  C2S1_init_state_defs ( double * );
+int  C2S1_init_all_mpi_state_defs ( void );
+int  C2S1_init_SLOG ( long, long, char * );
+int  C2S1_init_clog2slog ( char*, char** );
+void C2S1_init_essential_values ( long, int );
+void C2S1_free_state_info ( void );
+int  C2S1_make_SLOG ( double * ); 
+void C2S1_free_resources ( void );
+void C2S1_print_help ( void );
 
 #endif
-
-
-
-
-
-
-
-
-

@@ -1,5 +1,5 @@
 /*
- *  $Id: scatter.c,v 1.10 2001/11/14 19:50:14 ashton Exp $
+ *  $Id: scatter.c,v 1.11 2004/04/05 13:56:51 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -78,8 +78,10 @@ int MPI_Scatter (
   MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
   /* Significant only at root */
-  stype_ptr = MPIR_GET_DTYPE_PTR(sendtype);
-  MPIR_TEST_DTYPE(sendtype,stype_ptr,comm_ptr,myname);
+  if (root == comm_ptr->local_rank) {
+      stype_ptr = MPIR_GET_DTYPE_PTR(sendtype);
+      MPIR_TEST_DTYPE(sendtype,stype_ptr,comm_ptr,myname);
+  }
 
   rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
   MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr,myname);

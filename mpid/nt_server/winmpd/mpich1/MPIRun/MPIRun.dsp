@@ -112,6 +112,10 @@ SOURCE=.\LaunchProcess.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\LaunchRootProcess.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\localonly.cpp
 # End Source File
 # Begin Source File

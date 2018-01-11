@@ -89,7 +89,7 @@ createRslJob() {
 	fi
     done;
 
-    return $my_cnt
+    global_count="$my_cnt"
 }
 #
 # If this program was started up without the arguments being passed, we
@@ -165,7 +165,7 @@ else
     while [ $cnt -lt $np ]; do
 	createRslJob "$np" "$cnt" "$cmdLineArgs" "$dirname" "$progname" "$globus_stage_file" \
 	    < $globus_machine_file >> $globusrun_rsl_file
-	cnt=$?
+	cnt="$global_count"
 
 # Sebastien: commented out useless code
 #       if [ $cnt -ge $np ] ; then

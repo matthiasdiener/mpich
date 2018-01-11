@@ -6,6 +6,11 @@
 /* Define if you have the ANSI C header files.  */
 #undef STDC_HEADERS
 
+/* Sizeof standard Fortran types */
+#undef SIZEOF_F77_DOUBLE_PRECISION
+#undef SIZEOF_F77_INTEGER
+#undef SIZEOF_F77_INTEGER_4
+#undef SIZEOF_F77_REAL
 /* Define if MPI_xxx_f2c and c2f routines defined */
 #undef HAVE_MPI_F2C
 /* Define if Fortran functions pointers are pointers to pointers */
@@ -74,6 +79,9 @@
 
 /* Define if C compiler supports long double type */
 #undef HAVE_LONG_DOUBLE
+
+/* Define if MPI has F2C */
+#undef HAVE_MPI_F2C
 
 /* Define if long long allowed */
 #undef HAVE_LONG_LONG

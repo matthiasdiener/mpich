@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: delete.c,v 1.12 2002/10/24 15:54:39 gropp Exp $    
+ *   $Id: delete.c,v 1.19 2004/02/12 06:08:22 David Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -40,7 +40,7 @@ int MPI_File_delete(char *filename, MPI_Info info)
     int flag, error_code, file_system;
     char *tmp;
     ADIOI_Fns *fsops;
-#ifndef PRINT_ERR_MSG
+#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "MPI_FILE_DELETE";
 #endif
 #ifdef MPI_hpux
@@ -56,10 +56,19 @@ int MPI_File_delete(char *filename, MPI_Info info)
    /* check if MPI itself has been initialized. If not, flag an error.
    Can't initialize it here, because don't know argc, argv */
         MPI_Initialized(&flag);
-        if (!flag) {
+	/* --BEGIN ERROR HANDLING-- */
+        if (!flag)
+	{
+#ifdef MPICH2
+	    error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_INTERN, 
+					  "**initialized", 0);
+	    return MPIR_Err_return_file(MPI_FILE_NULL, myname, error_code);
+#else
             FPRINTF(stderr, "Error: MPI_Init() must be called before using MPI-IO\n");
             MPI_Abort(MPI_COMM_WORLD, 1);
-        }
+#endif
+	}
+	/* --END ERROR HANDLING-- */
 
         MPI_Keyval_create(MPI_NULL_COPY_FN, ADIOI_End_call, &ADIO_Init_keyval,
                           (void *) 0);  
@@ -80,18 +89,23 @@ int MPI_File_delete(char *filename, MPI_Info info)
     /* resolve file system type from file name; this is a collective call */
     ADIO_ResolveFileType(MPI_COMM_SELF, filename, &file_system, &fsops, 
 			 &error_code);
-    if (error_code != MPI_SUCCESS) {
+    /* --BEGIN ERROR HANDLING-- */
+    if (error_code != MPI_SUCCESS)
+    {
 	/* ADIO_ResolveFileType() will print as informative a message as it
 	 * possibly can or call MPIR_Err_setmsg.  We just need to propagate 
 	 * the error up.  In the PRINT_ERR_MSG case MPI_Abort has already
 	 * been called as well, so we probably didn't even make it this far.
 	 */
-#ifdef PRINT_ERR_MSG
+#ifdef MPICH2
+	return MPIR_Err_return_file(MPI_FILE_NULL, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
 	MPI_Abort(MPI_COMM_WORLD, 1); /* this is mostly here for clarity */
-#else
+#else /* MPICH-1 */
 	return ADIOI_Error(MPI_FILE_NULL, error_code, myname);
 #endif
     }
+    /* --END ERROR HANDLING-- */
 
     /* skip prefix on filename if there is one */
     tmp = strchr(filename, ':');

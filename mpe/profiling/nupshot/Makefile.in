@@ -85,7 +85,7 @@ nupshot: $(COBJECTS)
 	$(CC) $(CFLAGS) -c $<
 
 clean:
-	-/bin/rm -f *.o *~ ${srcdir}/*.o
+	-rm -f *.o *~ ${srcdir}/*.o
 
 distclean: clean
-	-/bin/rm -f $(EXECS)
+	-rm -f $(EXECS)

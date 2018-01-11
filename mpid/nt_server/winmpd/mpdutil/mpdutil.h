@@ -1,8 +1,16 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
+/*
+ *  (C) 2001 by Argonne National Laboratory.
+ *      See COPYRIGHT in top-level directory.
+ */
 #ifndef MPDUTIL_H
 #define MPDUTIL_H
 
 #include <winsock2.h>
 #include <windows.h>
+
+#define CREATE_THREAD_RETRIES       5
+#define CREATE_THREAD_SLEEP_TIME  250
 
 int easy_socket_init();
 int easy_socket_finalize();
@@ -13,6 +21,7 @@ int easy_connect_quick(SOCKET sock, char *host, int port);
 int easy_connect_timeout(SOCKET sock, char *host, int port, int seconds);
 int easy_closesocket(SOCKET sock);
 int easy_get_sock_info(SOCKET sock, char *name, int *port);
+int easy_get_sock_info_ip(SOCKET sock, char *ipstr, int *port);
 int easy_get_ip_string(char *host, char *ipstr);
 int easy_get_ip_string(char *ipstring);
 int easy_get_ip(unsigned long *ip);
@@ -22,6 +31,7 @@ int easy_receive_some(SOCKET sock, char *buffer, int len);
 int easy_receive_timeout(SOCKET sock, char *buffer, int len, int timeout);
 void MakeLoopAsync(SOCKET *pRead, SOCKET *pWrite);
 bool ReadStringMax(SOCKET sock, char *str, int max);
+bool ReadStringMaxTimeout(SOCKET sock, char *str, int max, int timeout);
 bool ReadStringTimeout(SOCKET sock, char *str, int timeout);
 bool ReadString(SOCKET sock, char *str);
 int WriteString(SOCKET sock, char *str);

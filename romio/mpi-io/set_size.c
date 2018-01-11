@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: set_size.c,v 1.8 2002/10/24 15:54:44 gropp Exp $    
+ *   $Id: set_size.c,v 1.17 2003/06/06 21:21:16 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -36,7 +36,7 @@ Input Parameters:
 int MPI_File_set_size(MPI_File fh, MPI_Offset size)
 {
     int error_code;
-#ifndef PRINT_ERR_MSG
+#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "MPI_FILE_SET_SIZE";
 #endif
     MPI_Offset tmp_sz;
@@ -57,10 +57,13 @@ int MPI_File_set_size(MPI_File fh, MPI_Offset size)
 #endif
 
     if (size < 0) {
-#ifdef PRINT_ERR_MSG
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_ARG, "**iobadsize", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
         FPRINTF(stderr, "MPI_File_set_size: Invalid size argument\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_ARG, MPIR_ERR_SIZE_ARG,
 				     myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);
@@ -71,15 +74,20 @@ int MPI_File_set_size(MPI_File fh, MPI_Offset size)
     MPI_Bcast(&tmp_sz, 1, ADIO_OFFSET, 0, fh->comm);
 
     if (tmp_sz != size) {
-#ifdef PRINT_ERR_MSG
-	FPRINTF(stderr, "MPI_File_set_size: size argument must be the same on all processes\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_ARG, "**notsame", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
+        FPRINTF(stderr, "MPI_File_set_size: size argument must be the same on all processes\n");
+        MPI_Abort(MPI_COMM_WORLD, 1);
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_ARG, MPIR_ERR_SIZE_ARG_NOT_SAME,
 				     myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);
 #endif
     }
+
+    ADIOI_TEST_DEFERRED(fh, "MPI_File_set_size", &error_code);
 
     ADIO_Resize(fh, size, &error_code);
     

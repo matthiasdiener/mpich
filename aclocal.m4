@@ -26,16 +26,29 @@ else
 [$1]
 EOF
     dnl This allows this script to work with both autoconf1 and 2
-    if test -n "$compile" ; then 
-        eval $compile
+    if test -n "$compile" ; then 	
+	eval $compile
     else
 	eval $ac_compile
 	eval $ac_link
     fi
     if test ! -s conftest ; then
-      echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
     ifelse([$3], , , [$3
 ])
     else

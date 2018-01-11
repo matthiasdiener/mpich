@@ -7,12 +7,13 @@
 SLOGNAME     = @SLOGNAME@
 SLOG_HOME    = @SLOG_HOME@
 CC           = @CC@
+CC_SHL       = @CC_SHL@
 CLINKER      = @CLINKER@
 AR           = @AR@
 ARFLAGS      = crl
 RANLIB       = @RANLIB@
 MAKE         = @MAKE@
-RM           = /bin/rm
+RM           = rm
 LN_S         = @LN_S@
 SLOG_CFLAGS  = @CFLAGS@
 DEBUG_LIBS   = @DEBUG_LIBS@
@@ -49,23 +50,28 @@ MAIN_SRC = ts_incrEQendtime_resfnEQyes.c ts_incrEQendtime_resfnEQno.c \
            ts_incrEQstarttime.c \
            slog_printframes.c slog_printbbufs.c slog_readtest.c \
            slog_recdefs_test.c
-MAIN_OBJ = $(MAIN_SRC:.c=.o)
-MAIN_EXE = $(MAIN_OBJ:.o=)
+MAIN_OBJ = $(MAIN_SRC:.c=.@OBJEXT@)
+MAIN_EXE = $(MAIN_OBJ:.@OBJEXT@=@EXEEXT@)
 
 LIB_SRC  = bswp_fileio.c fbuf.c slog_fileio.c str_util.c slog_strlist.c \
            slog_header.c slog_preview.c slog_pstat.c slog_profile.c \
            slog_ttable.c slog_recdefs.c slog_tasklabel.c slog_impl.c \
            slog_bbuf.c slog_assoc.c slog_vtrarg.c slog_bebits.c \
            slog_irec_common.c slog_irec_write.c slog_irec_read.c
-LIB_OBJ  = $(LIB_SRC:.c=.o)
+LIB_OBJ  = $(LIB_SRC:.c=.@OBJEXT@)
+SHLIB_OBJ  = $(LIB_SRC:.c=.lo)
 
 
-.SUFFIXES:	.c .o .a
+.SUFFIXES: .c .o .lo .a @EXEEXT@
 
-.c.o:
+.c.@OBJEXT@:
 	$(CC) $(CFLAGS) -c $< $(INC_DIR)
 
-.o:	
+# Allow compilers that do not allow -o for renaming object files
+.c.lo:
+	$(CC_SHL) $(CFLAGS) -c $< $(INC_DIR)
+	@mv $*.@OBJEXT@ $*.lo
+.@OBJEXT@@EXEEXT@:	
 	$(CLINKER) $(CFLAGS) -o $@ $< -L$(LIB_DIR) -l$(SLOGNAME) $(DEBUG_LIBS)
 
 
@@ -74,6 +80,16 @@ default: $(LIB_DIR)/lib$(SLOGNAME).a prog slog_destlib
 $(LIB_DIR)/lib$(SLOGNAME).a: $(LIB_OBJ)
 	$(AR) $(ARFLAGS) $@ $?
 	$(RANLIB) $@
+
+#
+# Building a shared library requires different tools on different systems.
+# The following will work *ONLY* for gcc.  Eventually, this should invoke
+# the approriate command to handle other shared libraries on other systems.
+$(LIB_DIR)/lib$(SLOGNAME).so: $(SHLIB_OBJ)
+	if [ "@SHAREDKIND@" = "gcc" ] ; then \
+	$(CLINKER) -shared -Wl,-soname,lib$(SLOGNAME).so.1.0 -Wl,-rpath,$(libdir) -o $@.1.0 $(SHLIB_OBJ) ; \
+	ln -sf lib$(SLOGNAME).so.1.0 ${LIB_DIR}/lib$(SLOGNAME).so ; \
+	fi
 
 prog: $(MAIN_OBJ) $(MAIN_EXE)
 	mv -f $(MAIN_EXE) $(BIN_DIR)
@@ -91,6 +107,7 @@ slog_destlib: $(LIB_OBJ)
 
 rmlib:  
 	$(RM) -f $(LIB_DIR)/lib$(SLOGNAME).a
+	-$(RM) -f $(LIB_DIR)/lib$(SLOGNAME).so
 
 rmprog:
 	@if [ -d $(BIN_DIR) ] ; then \
@@ -99,7 +116,8 @@ rmprog:
 	    cd $(TEST_DIR); $(RM) -f slogfile.data* core ; fi
 
 clean:	
-	-$(RM) -f *.o ${srcdir}/*.o *~ $(MAIN_EXE) PI* core
+	-$(RM) -f *.@OBJEXT@ ${srcdir}/*.@OBJEXT@ *~ $(MAIN_EXE) PI* core
+	-$(RM) -f *.lo ${srcdir}/*.lo *~ 
 	-@for dir in test_fbuf test_misc ; do \
 	    if [ -s $$dir/Makefile ] ; then \
 	        ( cd $$dir ; $(MAKE) clean ) ; \

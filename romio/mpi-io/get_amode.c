@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: get_amode.c,v 1.8 2002/10/24 15:54:39 gropp Exp $    
+ *   $Id: get_amode.c,v 1.10 2003/04/05 07:52:04 David Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

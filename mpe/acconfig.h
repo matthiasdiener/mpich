@@ -35,6 +35,9 @@
 /* Define if Fortran leaves case unchanged, followed by an underscore */
 #undef F77_NAME_MIXED_USCORE
 
+/* Define if SLOG-1 related code should be compiled in MPE source files */
+#undef HAVE_SLOG1
+
 /* Define Fortran logical values used in MPI C program  */
 #undef MPE_F77_TRUE_VALUE
 #undef MPE_F77_FALSE_VALUE
@@ -88,6 +91,12 @@
 /* Define if ROMIO is used in the MPI implementation */
 #undef HAVE_NO_MPIO_REQUEST
 
+/* Enable the large file support, i.e. > 2GB for 32-bit OS */
+#undef _LARGEFILE64_SOURCE
+
+/* Enable 64-bit file pointer support for 32-bit OS */
+#undef _FILE_OFFSET_BITS
+
 @BOTTOM@
 
 /* Define WINDOWS specific features */
@@ -98,5 +107,9 @@
 #ifdef HAVE_WINDOWS_H
 #define OPEN( a, b, c )    open( a, b | O_BINARY, c )
 #else
+#ifdef _LARGEFILE64_SOURCE
+#define OPEN( a, b, c )    open( a, b | O_LARGEFILE, c )
+#else
 #define OPEN( a, b, c )    open( a, b, c )
+#endif
 #endif

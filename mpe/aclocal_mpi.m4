@@ -135,11 +135,11 @@ $6
 EOF
 dnl
     pac_compile='${CC-cc} -c $CFLAGS conftest.c 1>&AC_FD_CC'
-    if AC_TRY_EVAL(pac_compile) && test -s conftest.o ; then
+    if AC_TRY_EVAL(pac_compile) && test -s conftest.${ac_objext} ; then
         CC="$pac_SER_CC"
         CFLAGS="$pac_SER_CFLAGS"
         LIBS="$pac_SER_LIBS"
-	pac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $LDFLAGS conftest.o $LIBS 1>&AC_FD_CC'
+	pac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $LDFLAGS conftest.${ac_objext} $LIBS 1>&AC_FD_CC'
         if AC_TRY_EVAL(pac_link) && test -s conftest${ac_exeext} && (./conftest${ac_exeext} ; exit) 2>/dev/null ; then
 	    pac_mpi_working=yes
 	else
@@ -197,11 +197,11 @@ dnl
 EOF
 dnl
     pac_compile='${F77-f77} -c $FFLAGS conftest.f 1>&AC_FD_CC'
-    if AC_TRY_EVAL(pac_compile) && test -s conftest.o ; then
+    if AC_TRY_EVAL(pac_compile) && test -s conftest.${ac_objext} ; then
         F77="$pac_SER_F77"
         FFLAGS="$pac_SER_FFLAGS"
         LIBS="$pac_SER_LIBS"
-	pac_link='${F77-f77} -o conftest${ac_exeext} $FFLAGS $LDFLAGS conftest.o $LIBS 1>&AC_FD_CC'
+	pac_link='${F77-f77} -o conftest${ac_exeext} $FFLAGS $LDFLAGS conftest.${ac_objext} $LIBS 1>&AC_FD_CC'
         if AC_TRY_EVAL(pac_link) && test -s conftest${ac_exeext} && (./conftest${ac_exeext} ; exit) 2>/dev/null ; then
 	    pac_mpi_working=yes
 	else
@@ -270,7 +270,7 @@ dnl
 EOF
 dnl - try compile f77 program
     pac_Fcompile='${F77-f77} -c $FFLAGS conftestf.f 1>&AC_FD_CC'
-    if AC_TRY_EVAL(pac_Fcompile) && test -s conftestf.o ; then
+    if AC_TRY_EVAL(pac_Fcompile) && test -s conftestf.${ac_objext} ; then
         pac_mpi_working=yes
     else
         pac_mpi_working=no
@@ -289,11 +289,11 @@ $9
 EOF
     pac_Ccompile='${CC-cc} -c $CFLAGS conftestc.c 1>&AC_FD_CC'
 dnl - try compile C program
-    if test "$pac_mpi_working" = "yes" && AC_TRY_EVAL(pac_Ccompile) && test -s conftestc.o ; then
+    if test "$pac_mpi_working" = "yes" && AC_TRY_EVAL(pac_Ccompile) && test -s conftestc.${ac_objext} ; then
         CC="$pac_SER_CC"
 	CFLAGS="$pac_SER_CFLAGS"
 	LIBS="$pac_SER_LIBS"
-        pac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $LDFLAGS conftestc.o conftestf.o $LIBS 1>&AC_FD_CC'
+        pac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $LDFLAGS conftestc.${ac_objext} conftestf.${ac_objext} $LIBS 1>&AC_FD_CC'
 	if AC_TRY_EVAL(pac_link) && test -s conftest${ac_exeext} && (./conftest${ac_exeext} ; exit) 2>/dev/null ; then
             pac_mpi_working=yes
         else

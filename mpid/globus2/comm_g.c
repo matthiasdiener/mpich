@@ -1,3 +1,4 @@
+#include "chconfig.h"
 #include <globdev.h>
 #include "topology_clusters.h"
 

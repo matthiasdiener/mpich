@@ -26,6 +26,9 @@ if [ -z "$ARCH" ] ; then
     esac
 fi
 larch=$ARCH
+case "$larch" in 
+    linux*|Linux*|LINUX*) larch=linux ;;
+esac
 #automake=/homes/gropp/bin/$larch/automake
 #aclocal=/homes/gropp/bin/$larch/aclocal
 #autoheader=/homes/gropp/bin/$larch/autoheader

@@ -182,7 +182,7 @@ dnl that complain about poor code are in effect.
 dnl
 dnl Because this is a long script, we have ensured that you can pass a 
 dnl variable containing the option name as the first argument.
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_CHECK_COMPILER_OPTION,[
 AC_MSG_CHECKING([that C compiler accepts option $1])
 save_CFLAGS="$CFLAGS"
@@ -268,7 +268,7 @@ dnl It should try to match known systems to known compilers (checking, of
 dnl course), and then falling back to some common defaults.
 dnl Note that many compilers will complain about -g and aggressive
 dnl optimization.  
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_OPTIMIZATION,[
     for copt in "-O4 -Ofast" "-Ofast" "-fast" "-O3" "-xO3" "-O" ; do
         PAC_C_CHECK_COMPILER_OPTION($copt,found_opt=yes,found_opt=no)
@@ -340,7 +340,7 @@ dnl `dependsrule.in` in the same directory as the other auxillery configure
 dnl scripts (set with dnl 'AC_CONFIG_AUX_DIR').  If you use `dependsrule.in`,
 dnl you must have `dependsrule` in 'AC_OUTPUT' before this `Makefile`.
 dnl 
-dnlD*/
+dnl D*/
 dnl 
 dnl Eventually, we can add an option to the C_DEPEND_MV to strip system
 dnl includes, such as /usr/xxxx and /opt/xxxx
@@ -470,7 +470,7 @@ dnl Sets 'HAVE_SEMCTL' if semctl is available.
 dnl Sets 'HAVE_UNION_SEMUN' if 'union semun' is available.
 dnl Sets 'SEMCTL_NEEDS_SEMUN' if a 'union semun' type must be passed as the
 dnl fourth argument to 'semctl'.
-dnlD*/ 
+dnl D*/ 
 dnl Check for semctl and arguments
 AC_DEFUN(PAC_FUNC_SEMCTL,[
 AC_CHECK_FUNC(semctl)
@@ -482,7 +482,7 @@ if test "$ac_cv_func_semctl" = "yes" ; then
 #include <sys/sem.h>],[union semun arg;arg.val=0;],
     pac_cv_type_union_semun="yes",pac_cv_type_union_semun="no")])
     if test "$pac_cv_type_union_semun" = "yes" ; then
-        AC_DEFINE(HAVE_UNION_SEMUN,,[Has union semun])
+        AC_DEFINE(HAVE_UNION_SEMUN,1,[Has union semun])
         #
         # See if we can use an int in semctl or if we need the union
         AC_CACHE_CHECK([whether semctl needs union semun],
@@ -495,7 +495,7 @@ int arg = 0; semctl( 1, 1, SETVAL, arg );],
         pac_cv_func_semctl_needs_semun="no")
         ])
         if test "$pac_cv_func_semctl_needs_semun" = "yes" ; then
-            AC_DEFINE(SEMCTL_NEEDS_SEMUN,[Needs an explicit definition of semun])
+            AC_DEFINE(SEMCTL_NEEDS_SEMUN,1,[Needs an explicit definition of semun])
         fi
     fi
 fi
@@ -510,7 +510,7 @@ dnl
 dnl Output Effect:
 dnl Defines 'volatile' as empty if volatile is not available.
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_VOLATILE,[
 AC_CACHE_CHECK([for volatile],
 pac_cv_c_volatile,[
@@ -530,7 +530,7 @@ dnl
 dnl Output Effect:
 dnl Defines 'inline' as empty if inline is not available.
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_INLINE,[
 AC_CACHE_CHECK([for inline],
 pac_cv_c_inline,[
@@ -551,7 +551,7 @@ dnl
 dnl Output Effects:
 dnl Invokes the true or false action
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_CPP_CONCAT,[
 pac_pound="#"
 AC_CACHE_CHECK([that the compiler $CC accepts $ac_pound$ac_pound for concatenation in cpp],
@@ -575,7 +575,7 @@ dnl
 dnl Notes:
 dnl One version of Solaris accepted only one argument.
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_FUNC_GETTIMEOFDAY,[
 AC_CACHE_CHECK([whether gettimeofday takes 2 arguments],
 pac_cv_func_gettimeofday,[
@@ -605,7 +605,7 @@ dnl
 dnl Note that some compilers accept restrict only with additional options.
 dnl DEC/Compaq/HP Alpha Unix (Tru64 etc.) -accept restrict_keyword
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_RESTRICT,[
 AC_CACHE_CHECK([for restrict],
 pac_cv_c_restrict,[
@@ -653,7 +653,7 @@ dnl are quite happy to accept the *wrong* number of arguments to a macro!
 dnl Instead, we try to find a clean compile version, using our special
 dnl PAC_C_TRY_COMPILE_CLEAN command.
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_HEADER_STDARG,[
 AC_CHECK_HEADER(stdarg.h)
 dnl Sets ac_cv_header_stdarg_h
@@ -732,7 +732,7 @@ dnl Output Effect:
 dnl The 'flagvar' is set to 0 (clean), 1 (dirty but success ok), or 2
 dnl (failed).
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_TRY_COMPILE_CLEAN,[
 $3=2
 dnl Get the compiler output to test against
@@ -787,7 +787,7 @@ dnl       action-if-unknown)
 dnl
 dnl Notes:
 dnl 'action-if-unknown' is used in the case of cross-compilation.
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_PROG_C_UNALIGNED_DOUBLES,[
 AC_CACHE_CHECK([whether C compiler allows unaligned doubles],
 pac_cv_prog_c_unaligned_doubles,[
@@ -835,10 +835,16 @@ dnl Defines one of the following if a weak symbol pragma is found:
 dnl.vb
 dnl    HAVE_PRAGMA_WEAK - #pragma weak
 dnl    HAVE_PRAGMA_HP_SEC_DEF - #pragma _HP_SECONDARY_DEF
-dnl    HAVE_PRAGMA_CRI_DUP) - #pragma _CRI duplicate x as y
+dnl    HAVE_PRAGMA_CRI_DUP  - #pragma _CRI duplicate x as y
 dnl.ve
+dnl May also define
+dnl.vb
+dnl    HAVE_WEAK_ATTRIBUTE
+dnl.ve
+dnl if functions can be declared as 'int foo(...) __attribute__ ((weak));'
+dnl sets the shell variable pac_cv_attr_weak to yes.
 dnl 
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_PROG_C_WEAK_SYMBOLS,[
 pragma_extra_message=""
 AC_CACHE_CHECK([for type of weak symbol support],
@@ -849,21 +855,25 @@ pac_cv_prog_c_weak_symbols,[
 AC_TRY_LINK([
 extern int PFoo(int);
 #pragma weak PFoo = Foo
-int Foo(a) { return a; }
+int Foo(int a) { return a; }
 ],[return PFoo(1);],has_pragma_weak=yes)
 #
 # Some systems (Linux ia64 and ecc, for example), support weak symbols
 # only within a single object file!  This tests that case.
+# Note that there is an extern int PFoo declaration before the
+# pragma.  Some compilers require this in order to make the weak symbol
+# extenally visible.  
 if test "$has_pragma_weak" = yes ; then
     rm -f conftest*
     cat >>conftest1.c <<EOF
+extern int PFoo(int);
 #pragma weak PFoo = Foo
 int Foo(int);
-int Foo(a) { return a; }
+int Foo(int a) { return a; }
 EOF
     cat >>conftest2.c <<EOF
 extern int PFoo(int);
-int main() {
+int main(int argc, char **argv) {
 return PFoo(0);}
 EOF
     ac_link2='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest1.c conftest2.c $LIBS >conftest.out 2>&1'
@@ -885,7 +895,7 @@ if test -z "$pac_cv_prog_c_weak_symbols" ; then
     AC_TRY_LINK([
 extern int PFoo(int);
 #pragma _HP_SECONDARY_DEF Foo  PFoo
-int Foo(a) { return a; }
+int Foo(int a) { return a; }
 ],[return PFoo(1);],pac_cv_prog_c_weak_symbols="pragma _HP_SECONDARY_DEF")
 fi
 dnl
@@ -893,14 +903,13 @@ if test -z "$pac_cv_prog_c_weak_symbols" ; then
     AC_TRY_LINK([
 extern int PFoo(int);
 #pragma _CRI duplicate PFoo as Foo
-int Foo(a) { return a; }
+int Foo(int a) { return a; }
 ],[return PFoo(1);],pac_cv_prog_c_weak_symbols="pragma _CRI duplicate x as y")
 fi
 dnl
 if test -z "$pac_cv_prog_c_weak_symbols" ; then
     pac_cv_prog_c_weak_symbols="no"
 fi
-])
 dnl
 dnl If there is an extra explanatory message, echo it now so that it
 dnl doesn't interfere with the cache result value
@@ -908,20 +917,26 @@ if test -n "$pragma_extra_message" ; then
     echo $pragma_extra_message
 fi
 dnl
+])
 if test "$pac_cv_prog_c_weak_symbols" = "no" ; then
     ifelse([$2],,:,[$2])
 else
     case "$pac_cv_prog_c_weak_symbols" in
-	"pragma weak") AC_DEFINE(HAVE_PRAGMA_WEAK,,[Supports weak pragma]) 
+	"pragma weak") AC_DEFINE(HAVE_PRAGMA_WEAK,1,[Supports weak pragma]) 
 	;;
-	"pragma _HP")  AC_DEFINE(HAVE_PRAGMA_HP_SEC_DEF,,[HP style weak pragma])
+	"pragma _HP")  AC_DEFINE(HAVE_PRAGMA_HP_SEC_DEF,1,[HP style weak pragma])
 	;;
-	"pragma _CRI") AC_DEFINE(HAVE_PRAGMA_CRI_DUP,,[Cray style weak pragma])
+	"pragma _CRI") AC_DEFINE(HAVE_PRAGMA_CRI_DUP,1,[Cray style weak pragma])
 	;;
     esac
     ifelse([$1],,:,[$1])
 fi
+AC_CACHE_CHECK([whether __attribute__ ((weak)) allowed],
+pac_cv_attr_weak,[
+AC_TRY_COMPILE([int foo(int) __attribute__ ((weak));],[int a;],
+pac_cv_attr_weak=yes,pac_cv_attr_weak=no)])
 ])
+
 #
 # This is a replacement that checks that FAILURES are signaled as well
 # (later configure macros look for the .o file, not just success from the
@@ -944,6 +959,56 @@ correctly set error code when a fatal error occurs])
 fi
 ])
 dnl
+dnl/*D 
+dnl PAC_PROG_C_MULTIPLE_WEAK_SYMBOLS - Test whether C and the
+dnl linker allow multiple weak symbols.
+dnl
+dnl Synopsis
+dnl PAC_PROG_C_MULTIPLE_WEAK_SYMBOLS(action-if-true,action-if-false)
+dnl
+dnl 
+dnl D*/
+AC_DEFUN(PAC_PROG_C_MULTIPLE_WEAK_SYMBOLS,[
+AC_CACHE_CHECK([for multiple weak symbol support],
+pac_cv_prog_c_multiple_weak_symbols,[
+# Test for multiple weak symbol support...
+#
+rm -f conftest*
+cat >>conftest1.c <<EOF
+extern int PFoo(int);
+extern int PFoo_(int);
+extern int pfoo_(int);
+#pragma weak PFoo = Foo
+#pragma weak PFoo_ = Foo
+#pragma weak pfoo_ = Foo
+int Foo(int);
+int Foo(a) { return a; }
+EOF
+cat >>conftest2.c <<EOF
+extern int PFoo(int), PFoo_(int), pfoo_(int);
+int main() {
+return PFoo(0) + PFoo_(1) + pfoo_(2);}
+EOF
+ac_link2='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest1.c conftest2.c $LIBS >conftest.out 2>&1'
+if eval $ac_link2 ; then
+    pac_cv_prog_c_multiple_weak_symbols="yes"
+else
+    echo "$ac_link2" >>config.log
+    echo "Failed program was" >>config.log
+    cat conftest1.c >>config.log
+    cat conftest2.c >>config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+fi
+rm -f conftest*
+dnl
+])
+if test "$pac_cv_prog_c_multiple_weak_symbols" = "yes" ; then
+    ifelse([$1],,:,[$1])
+else
+    ifelse([$2],,:,[$2])
+fi
+])
+dnl
 dnl/*D
 dnl PAC_FUNC_CRYPT - Check that the function crypt is defined
 dnl
@@ -957,7 +1022,7 @@ dnl _XOPEN_SOURCE is defines and _XOPEN_VERSION is 4 or greater.
 dnl We test by looking for a missing crypt by defining our own
 dnl incompatible one and trying to compile it.
 dnl Defines NEED_CRYPT_PROTOTYPE if no prototype is found.
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_FUNC_CRYPT,[
 AC_CACHE_CHECK([if crypt defined in unistd.h],
 pac_cv_func_crypt_defined,[
@@ -976,9 +1041,9 @@ double crypt(double a){return a;}],[return 0];,
 pac_cv_func_crypt_xopen="no",pac_cv_func_crypt_xopen="yes")])
 fi
 if test "$pac_cv_func_crypt_xopen" = "yes" ; then
-    AC_DEFINE(_XOPEN_SOURCE,,[if xopen needed for crypt])
+    AC_DEFINE(_XOPEN_SOURCE,1,[if xopen needed for crypt])
 elif test "$pac_cv_func_crypt_defined" = "no" ; then
-    AC_DEFINE(NEED_CRYPT_PROTOTYPE,,[if a prototype for crypt is needed])
+    AC_DEFINE(NEED_CRYPT_PROTOTYPE,1,[if a prototype for crypt is needed])
 fi
 ])dnl
 dnl/*D
@@ -1011,8 +1076,10 @@ dnl Not yet available: options when using other compilers.  However,
 dnl here are some possible choices
 dnl Solaris cc
 dnl  -fd -v -Xc
+dnl IRIX
+dnl  -ansi -DEBUG:trap_uninitialized=ON:varargs_interface_check=ON:verbose_runtime=ON
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_ARG_STRICT,[
 AC_ARG_ENABLE(strict,
 [--enable-strict  - Turn on strict compilation testing when using gcc])
@@ -1035,6 +1102,35 @@ if test "$enable_strict_done" != "yes" ; then
                 COPTIONS="${COPTIONS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL -Wunused -Wshadow -Wmissing-declarations -Wno-long-long"
     	    fi
         fi
+    fi
+fi
+])
+dnl
+dnl Use the value of enable-strict to update CFLAGS
+AC_DEFUN(PAC_CC_STRICT,[
+export enable_strict_done
+if test "$enable_strict_done" != "yes" ; then
+    if test "$enable_strict" = "yes" ; then
+        enable_strict_done="yes"
+        if test -z "CC" ; then
+            AC_CHECK_PROGS(CC,gcc)
+        fi
+        if test "$ac_cv_prog_gcc" = "yes" ; then 
+            CFLAGS="${CFLAGS} -Wall -O2 -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL"
+	    AC_MSG_RESULT([Adding strict check arguments to CFLAGS])
+	else 
+	    AC_MSG_WARN([enable strict supported only for gcc])
+    	fi
+    elif test "$enable_strict" = "all" ; then
+        enable_strict_done="yes"
+        if test -z "CC" ; then
+            AC_CHECK_PROGS(CC,gcc)
+        fi
+        if test "$ac_cv_prog_gcc" = "yes" ; then 
+            CFLAGS="${CFLAGS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL -Wunused -Wshadow -Wmissing-declarations -Wno-long-long"
+	else 
+	    AC_MSG_WARN([enable strict supported only for gcc])
+    	fi
     fi
 fi
 ])
@@ -1071,7 +1167,7 @@ dnl done
 dnl IFS="$SaveIFS"
 dnl.ve
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_ARG_CC_G,[
 AC_ARG_ENABLE(g,
 [--enable-g  - Turn on debugging of the package (typically adds -g to COPTIONS)])
@@ -1127,10 +1223,10 @@ dnl If so, add -fno-common to CFLAGS
 dnl An alternative is to use, on some systems, ranlib -c to force 
 dnl the system to find common symbols.
 dnl
-dnl NOT TESTED
 AC_DEFUN(PAC_PROG_C_BROKEN_COMMON,[
-AC_MSG_CHECKING([whether global variables handled properly])
-AC_MSG_REQUIRE([AC_PROG_RANLIB])
+AC_CACHE_CHECK([whether global variables handled properly],
+ac_cv_prog_cc_globals_work,[
+AC_REQUIRE([AC_PROG_RANLIB])
 ac_cv_prog_cc_globals_work=no
 echo 'extern int a; int a;' > conftest1.c
 echo 'extern int a; int main( ){ return a; }' > conftest2.c
@@ -1149,13 +1245,26 @@ if ${CC-cc} $CFLAGS -c conftest1.c >conftest.out 2>&1 ; then
 	        if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a >> conftest.out 2>&1 ; then
 		    ac_cv_prog_cc_globals_work="needs -fno-common"
 		    CFLAGS="$CFLAGS -fno-common"
+                elif test -n "$RANLIB" ; then 
+		    # Try again, with ranlib changed to ranlib -c
+		    ${RANLIB} -c libconftest.a
+		    if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a >> conftest.out 2>&1 ; then
+			RANLIB="$RANLIB -c"
+	 	    #else
+		    #	# That didn't work
+		    #	:
+		    fi
+	        #else 
+		#    :
 		fi
 	    fi
         fi
     fi
 fi
-rm -f conftest* libconftest*
-AC_MSG_RESULT($ac_cv_prog_cc_globals_work)
+rm -f conftest* libconftest*])
+if test "$ac_cv_prog_cc_globals_work" = no ; then
+    AC_MSG_WARN([Common symbols not supported on this system!])
+fi
 ])
 dnl
 dnl
@@ -1297,9 +1406,12 @@ int main( int argc, char *argv[] )
     return 0;
 }],
 pac_cv_c_struct_align=`cat ctest.out`
-,pac_cv_c_struct_align="unknown",pac_cv_c_struct_align="unknown")
+,pac_cv_c_struct_align="unknown",pac_cv_c_struct_align="$CROSS_STRUCT_ALIGN")
 rm -f ctest.out
 ])
+if test -z "$pac_cv_c_struct_align" ; then
+    pac_cv_c_struct_align="unknown"
+fi
 ])
 dnl
 dnl
@@ -1319,10 +1431,11 @@ pac_cv_func_decl_$2,[
 AC_TRY_COMPILE([$1],[int a=$2(27,1.0,"foo");],
 pac_cv_func_decl_$2=yes,pac_cv_func_decl_$2=no)])
 if test "$pac_cv_func_decl_$2" = "yes" ; then
-changequote(, )dnl
-  ac_tr_func=NEEDS_`echo $1 | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`_DECL
+changequote(<<,>>)dnl
+define(<<PAC_FUNC_NAME>>, translit(NEEDS_$2_DECL, [a-z *], [A-Z__]))dnl
 changequote([, ])dnl
-    AC_DEFINE_UNQUOTED($ac_tr_func,,[Define if $2 needs a declaration])
+    AC_DEFINE_UNQUOTED(PAC_FUNC_NAME,1,[Define if $2 needs a declaration])
+undefine([PAC_FUNC_NAME])
 fi
 ])dnl
 dnl
@@ -1333,7 +1446,7 @@ dnl
 dnl PAC_CHECK_SIZEOF_DERIVED(shortname,definition,defaultsize)
 dnl Like AC_CHECK_SIZEOF, but handles arbitrary types.
 dnl Unlike AC_CHECK_SIZEOF, does not define SIZEOF_xxx (because
-dnl autoheader can't handle this case)
+dnl autoheader can''t handle this case)
 dnl D*/
 AC_DEFUN(PAC_CHECK_SIZEOF_DERIVED,[
 changequote(<<,>>)dnl
@@ -1354,6 +1467,97 @@ main()
 AC_MSG_RESULT($AC_CV_NAME)
 dnl AC_DEFINE_UNQUOTED(AC_TYPE_NAME,$AC_CV_NAME)
 undefine([AC_TYPE_NAME])undefine([AC_CV_NAME])
+])
+
+dnl
+dnl PAC_C_GNU_ATTRIBUTE - See if the GCC __attribute__ specifier is allow.
+dnl Use the following
+dnl #ifndef HAVE_GCC_ATTRIBUTE
+dnl #define __attribute__(a)
+dnl #endif
+dnl If *not*, define __attribute__(a) as null
+dnl
+dnl We start by requiring Gcc.  Some other compilers accept __attribute__
+dnl but generate warning messages, or have different interpretations 
+dnl (which seems to make __attribute__ just as bad as #pragma) 
+dnl For example, the Intel icc compiler accepts __attribute__ and
+dnl __attribute__((pure)) but generates warnings for __attribute__((format...))
+dnl
+AC_DEFUN([PAC_C_GNU_ATTRIBUTE],[
+AC_REQUIRE([AC_PROG_CC_GNU])
+if test "$ac_cv_prog_gcc" = "yes" ; then
+    AC_CACHE_CHECK([whether __attribute__ allowed],
+pac_cv_gnu_attr_pure,[
+AC_TRY_COMPILE([int foo(int) __attribute__ ((pure));],[int a;],
+pac_cv_gnu_attr_pure=yes,pac_cv_gnu_attr_pure=no)])
+AC_CACHE_CHECK([whether __attribute__((format)) allowed],
+pac_cv_gnu_attr_format,[
+AC_TRY_COMPILE([int foo(char *,...) __attribute__ ((format(printf,1,2)));],[int a;],
+pac_cv_gnu_attr_format=yes,pac_cv_gnu_attr_format=no)])
+    if test "$pac_cv_gnu_attr_pure" = "yes" -a "$pac_cv_gnu_attr_format" = "yes" ; then
+        AC_DEFINE(HAVE_GCC_ATTRIBUTE,1,[Define if GNU __attribute__ is supported])
+    fi
+fi
+])
+dnl
+dnl Check for a broken install (fails to preserve file modification times,
+dnl thus breaking libraries.
+dnl
+dnl Create a library, install it, and then try to link against it.
+AC_DEFUN([PAC_PROG_INSTALL_BREAKS_LIBS],[
+AC_CACHE_CHECK([whether install breaks libraries],
+ac_cv_prog_install_breaks_libs,[
+AC_REQUIRE([AC_PROG_RANLIB])
+AC_REQUIRE([AC_PROG_INSTALL])
+AC_REQUIRE([AC_PROG_CC])
+ac_cv_prog_install_breaks_libs=yes
+rm -f libconftest* conftest*
+echo 'int foo(int);int foo(int a){return a;}' > conftest1.c
+echo 'extern int foo(int); int main( int argc, char **argv){ return foo(0); }' > conftest2.c
+if ${CC-cc} $CFLAGS -c conftest1.c >conftest.out 2>&1 ; then
+    if ${AR-ar} cr libconftest.a conftest1.o >/dev/null 2>&1 ; then
+        if ${RANLIB-:} libconftest.a >/dev/null 2>&1 ; then
+	    # Anything less than sleep 10, and Mac OS/X (Darwin) 
+	    # will claim that install works because ranlib won't complain
+	    sleep 10
+	    libinstall="$INSTALL_DATA"
+	    eval "libinstall=\"$libinstall\""
+	    if ${libinstall} libconftest.a libconftest1.a  >/dev/null 2>&1 ; then
+                if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest1.a 2>&1 >>conftest.out && test -x conftest ; then
+		    # Success!  Install works
+ 	            ac_cv_prog_install_breaks_libs=no
+	        else
+	            # Failure!  Does install -p work?	
+		    rm -f libconftest1.a
+		    if ${libinstall} -p libconftest.a libconftest1.a >/dev/null 2>&1 ; then
+                        if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest1.a >>conftest.out 2>&1 && test -x conftest ; then
+			# Success!  Install works
+			    ac_cv_prog_install_breaks_libs="no, with -p"
+			fi
+		    fi
+                fi
+            fi
+        fi
+    fi
+fi
+rm -f conftest* libconftest*])
+
+if test -z "$RANLIB_AFTER_INSTALL" ; then
+    RANLIB_AFTER_INSTALL=no
+fi
+case "$ac_cv_prog_install_breaks_libs" in
+	yes)
+	    RANLIB_AFTER_INSTALL=yes
+	;;
+	"no, with -p")
+	    INSTALL_DATA="$INSTALL_DATA -p"
+	;;
+	*)
+	# Do nothing
+	:
+	;;
+esac
+AC_SUBST(RANLIB_AFTER_INSTALL)
 ])
 
 AC_DEFUN(AM_IGNORE,[])
@@ -1410,7 +1614,7 @@ dnl
 dnl The environment variable 'CONFIG_AUX_DIR', if set, overrides the
 dnl directories listed.  This is an extension to the 'autoconf' version of
 dnl this macro. 
-dnlD*/
+dnl D*/
 undefine([AC_CONFIG_AUX_DIRS])
 AC_DEFUN(AC_CONFIG_AUX_DIRS,
 [if test -f $CONFIG_AUX_DIR/install-sh ; then ac_aux_dir=$CONFIG_AUX_DIR 
@@ -1437,27 +1641,52 @@ ac_configure=$ac_aux_dir/configure # This should be Cygnus configure.
 AC_PROVIDE([AC_CONFIG_AUX_DIR_DEFAULT])dnl
 ])
 
+dnl
+dnl Added complication:  We want to check for a header EVEN IF WE CAN'T 
+dnl COMPILE IT.  E.g., if the header requires another header, we want 
+dnl this to still work.  To make this slightly more robust, if the
+dnl CPP is the compiler, just use the CPP test.  Otherwise, fall
+dnl back into the compilation test.  Since autoconf uses /lib/cpp
+dnl only if it can't figure out how to use the compiler, we
+dnl test for that specific cast, then use CPP if we can. 
+dnl However, on failure, we still test to see if, even though CPP 
+dnl failed, the compiler accepts it (this avoids some of the "evaluation
+dnl copy" problems.
+dnl 
 undefine([AC_CHECK_HEADER])
 AC_DEFUN(AC_CHECK_HEADER,
 [dnl Do the transliteration at runtime so arg 1 can be a shell variable.
 ac_safe=`echo "$1" | sed 'y%./+-%__p_%'`
 AC_MSG_CHECKING([for $1])
 AC_CACHE_VAL(ac_cv_header_$ac_safe,
-[cat >conftest.c<<EOF
+[
+pac_found_header=no
+if test "$CPP" != "/lib/cpp" ; then
+    AC_TRY_CPP([#include <$1>], pac_found_header=yes)
+fi
+# If cpp failed, see if the compiler accepts the header.
+if test "$pac_found_header" != "yes" ; then
+    cat >conftest.c<<EOF
 [#]line __oline__ "configure"
 #include "confdefs.h"
 #include <$1>
 int conftest() {return 0;}
 EOF
-ac_compile_for_cpp='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.c 1>&AC_FD_CC'
-if AC_TRY_EVAL(ac_compile_for_cpp); then
+    ac_compile_for_cpp='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.c 1>&AC_FD_CC'
+    if AC_TRY_EVAL(ac_compile_for_cpp); then
+	pac_found_header=yes
+    else
+        echo "configure: failed program was:" >&AC_FD_CC
+        cat conftest.c >&AC_FD_CC
+    fi
+    rm -f conftest*
+fi
+# Finally, set the ac variable.
+if test "$pac_found_header" = "yes" ; then
     eval "ac_cv_header_$ac_safe=yes"
 else
     eval "ac_cv_header_$ac_safe=no"
-    echo "configure: failed program was:" >&AC_FD_CC
-    cat conftest.c >&AC_FD_CC
 fi
-rm -f conftest*
 ])dnl
 if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
   AC_MSG_RESULT(yes)
@@ -1469,6 +1698,16 @@ ifelse([$3], , , [$3
 fi
 ])
 
+dnl
+dnl This internal macro fails to work properly with OTHER internal macros.
+dnl Basically, if the prologue is [], then no message should be generated.
+dnl This macro is in autoconf 2.52
+m4_define([AC_LANG_PROGRAM(Fortran 77)],
+[m4_if([$1],[[[]]],,[m4_ifval([$1],
+       [m4_warn([syntax], [$0: ignoring PROLOGUE: $1])])])dnl
+      program main
+$2
+      end])
 
 dnl
 dnl/*D
@@ -1507,17 +1746,30 @@ dnl are processed *after* AC_CACHE_LOAD (!).  To address this, we avoid
 dnl changing the value of enable_cache, and use real_enable_cache, duplicating
 dnl the "notgiven" value.
 dnl
+dnl The environment variable CONFIGURE_DEBUG_CACHE, if set to yes,
+dnl will cause additional data to be written out during the configure process.
+dnl This can be helpful in debugging the cache file process.dnl
+dnl
 dnl See Also:
 dnl PAC_ARG_CACHING
-dnlD*/
+dnl D*/
 define([AC_CACHE_LOAD],
-[if test "X$cache_system" = "X" ; then
+[if test "$CONFIGURE_DEBUG_CACHE" = yes ; then 
+    oldopts="$-"
+    clearMinusX=no
+    set -x 
+    if test "$oldopts" != "$-" ; then 
+        clearMinusX=yes
+    fi
+fi 
+if test "X$cache_system" = "X" ; then
     # A default file name, just in case
     cache_system="config.system"
     if test "$cache_file" != "/dev/null" ; then
         # Get the directory for the cache file, if any
 	changequote(,)
-        cache_system=`echo $cache_file | sed -e 's%^\(.*/\)[^/]*%\1/config.system%'`
+        dnl Be careful to ensure that there is no doubled slash
+        cache_system=`echo $cache_file | sed -e 's%^\(.*/\)[^/]*%\1config.system%'`
 	changequote([,])
         test "x$cache_system" = "x$cache_file" && cache_system="config.system"
 #    else
@@ -1550,7 +1802,9 @@ if test "X$real_enable_cache" = "Xnotgiven" ; then
 	    echo "$testval" > $cache_system
 	    # remove the cache file because it may not correspond to our
 	    # system
-	    rm -f $cache_file
+	    if test "$cache_file" != "/dev/null" ; then 
+	        rm -f $cache_file
+	    fi
 	    real_enable_cache="yes"
         fi
     fi
@@ -1561,17 +1815,24 @@ fi
 if test "X$real_enable_cache" = "Xyes" ; then
   if test -r "$cache_file" ; then
     echo "loading cache $cache_file"
+    if test -w "$cache_file" ; then
+        # Clean the cache file (ergh)
+	PAC_CACHE_CLEAN
+    fi
     . $cache_file
   else
-    echo "creating cache $cache_file"
+    echo "Configure in `pwd` creating cache $cache_file"
     > $cache_file
     rm -f $cache_system
-    cleanargs=`echo "$CC $F77 $CXX" | tr '"' ' '`
+    cleanargs=`echo "$CC $F77 $CXX $F90" | tr '"' ' '`
     testval="`uname -srm` $cleanargs"
     echo "$testval" > $cache_system
   fi
 else
   cache_file="/dev/null"
+fi
+if test "$clearMinusX" = yes ; then
+    set +x
 fi
 ])
 dnl
@@ -1596,6 +1857,32 @@ AC_ARG_ENABLE(cache,
 [--enable-cache  - Turn on configure caching],
 enable_cache="$enableval",enable_cache="notgiven")
 ])
+dnl
+
+dnl Clean the cache of extraneous quotes that AC_CACHE_SAVE may add
+AC_DEFUN([PAC_CACHE_CLEAN],[
+    rm -f confcache
+    sed -e "s/'\\\\''//g" -e "s/'\\\\/'/" -e "s/\\\\'/'/" \
+		-e "s/'\\\\''//g" $cache_file > confcache
+    if cmp -s $cache_file confcache ; then
+        :
+    else
+        if test -w $cache_file ; then
+	    echo "updating cache $cache_file"
+            cat confcache > $cache_file
+        else
+            echo "not updating unwritable cache $cache_file"
+        fi
+    fi	
+    rm -f confcache
+    if test "$DEBUG_AUTOCONF_CACHE" = "yes" ; then
+        echo "Results of cleaned cache file:"
+	echo "--------------------------------------------------------"
+	cat $cache_file
+	echo "--------------------------------------------------------"
+    fi
+])
+
 dnl/*D
 dnl PAC_SUBDIR_CACHE - Create a cache file before ac_output for subdirectory
 dnl configures.
@@ -1620,31 +1907,81 @@ if test "$cache_file" = "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; the
     dnl for the cache.
     ac_cv_env_CC_set=set
     ac_cv_env_CC_value=$CC
-    ac_cv_env_CFLAGS_set=set
+    ac_cv_env_CFLAGS_set=${CFLAGS+set}
     ac_cv_env_CFLAGS_value=$CFLAGS
     ac_cv_env_CPP_set=set
     ac_cv_env_CPP_value=$CPP
-    ac_cv_env_CPPFLAGS_set=set
+    ac_cv_env_CPPFLAGS_set=${CPPFLAGS+set}
     ac_cv_env_CPPFLAGS_value=$CPPFLAGS
-    ac_cv_env_LDFLAGS_set=set
+    ac_cv_env_LDFLAGS_set=${LDFLAGS+set}
     ac_cv_env_LDFLAGS_value=$LDFLAGS
+    ac_cv_env_LIBS_set=${LIBS+set}
+    ac_cv_env_LIBS_value=$LIBS
+    ac_cv_env_FC_set=${FS+set}
+    ac_cv_env_FC_value=$FC
+    ac_cv_env_F77_set=${F77+set}
+    ac_cv_env_F77_value=$F77
+    ac_cv_env_FFLAGS_set=${FFLAGS+set}
+    ac_cv_env_FFLAGS_value=$FFLAGS
+    ac_cv_env_CXX_set=${CXX+set}
+    ac_cv_env_CXX_value=$CXX
+
+#     dnl For Autoconf 2.57+, we also need to look at these.  This does 
+#     dnl disable a sometimes useful check in autoconf, but I don't see
+#     dnl a way arount it
+#     ac_env_CC_set=set
+#     ac_env_CC_value=$CC
+#     ac_env_CFLAGS_set=set
+#     ac_env_CFLAGS_value=$CFLAGS
+#     ac_env_CPP_set=set
+#     ac_env_CPP_value=$CPP
+#     ac_env_CPPFLAGS_set=set
+#     ac_env_CPPFLAGS_value=$CPPFLAGS
+#     ac_env_LDFLAGS_set=set
+#     ac_env_LDFLAGS_value=$LDFLAGS
+#     ac_env_LIBS_set=set
+#     ac_env_LIBS_value=$LIBS
+#     ac_env_FC_set=set
+#     ac_env_FC_value=$FC
+#     ac_env_F77_set=set
+#     ac_env_F77_value=$F77
+#     ac_env_FFLAGS_set=set
+#     ac_env_FFLAGS_value=$FFLAGS
+#     ac_env_CXX_set=set
+#     ac_env_CXX_value=$CXX
+
+#	export ac_env_LDFLAGS_set
+#	export ac_env_LDFLAGS_value   
     dnl other parameters are
     dnl build_alias, host_alias, target_alias
+
+    # It turns out that A C CACHE_SAVE can't be invoked more than once
+    # with data that contains blanks.  What happens is that the quotes
+    # that it adds get quoted and then added again.  To avoid this,
+    # we strip off the outer quotes for all cached variables
     AC_CACHE_SAVE
+    PAC_CACHE_CLEAN
     ac_configure_args="$ac_configure_args -enable-cache"
 fi
 dnl Unconditionally export these values.  Subdir configures break otherwise
 export CC
 export CFLAGS
 export LDFLAGS
+export LIBS
 export CPPFLAGS
 export CPP
+export FC
+export F77
+export CXX
+export FFLAGS
+export CCFLAGS
 ])
 AC_DEFUN(PAC_SUBDIR_CACHE_CLEANUP,[
 if test "$cache_file" != "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; then
    rm -f $cache_file
 fi
 ])
+
 
 dnl
 dnl/*D 
@@ -1664,7 +2001,7 @@ dnl when MPICH is being built.
 dnl
 dnl Prerequisites:
 dnl autoconf version 2.13 (for AC_SEARCH_LIBS)
-dnlD*/
+dnl D*/
 dnl Other tests to add:
 dnl Version of MPI
 dnl MPI-2 I/O?
@@ -1717,7 +2054,7 @@ dnl 'no' otherwise.
 dnl
 dnl See Also:
 dnl PAC_LIB_MPI
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_ARG_MPICH_BUILDING,[
 AC_ARG_WITH(mpichbuilding,
 [--with-mpichbuilding - Assume that MPICH is being built],
@@ -1752,7 +2089,7 @@ dnl 'MPIUNBOOT' will stop those demons.
 dnl
 dnl See also:
 dnl PAC_LANG_PUSH_COMPILERS, PAC_LIB_MPI
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_ARG_MPI_TYPES,[
 AC_PROVIDE([AC_PROG_CC])
 AC_SUBST(CC)
@@ -1771,6 +2108,10 @@ ac_mpi_type=ibmmpi)
 AC_ARG_WITH(sgimpi,
 [--with-sgimpi    - Use the SGI implementation of MPI],
 ac_mpi_type=sgimpi)
+AC_ARG_WITH(mpichnt,
+[--with-mpichnt - Use MPICH for Windows NT ],
+ac_mpi_type=mpichnt)
+
 if test "X$ac_mpi_type" = "X" ; then
     if test "X$1" != "X" ; then
         ac_mpi_type=$1
@@ -1819,6 +2160,15 @@ case $ac_mpi_type in
 	    :
         fi
 	;;
+
+        mpichnt)
+        dnl
+        dnl This isn't adequate, but it helps with using MPICH-NT/SDK.gcc
+        CFLAGS="-I$with_mpichnt/include"
+        CPPFLAGS="-I$with_mpichnt/include"
+        LDFLAGS="-L$with_mpichnt/lib"
+        MPILIBNAME="mpich"
+        ;;
 
 	lammpi)
 	dnl
@@ -1874,9 +2224,17 @@ case $ac_mpi_type in
 	*)
 	# Find the compilers
 	PAC_PROG_CC
-	AC_PROG_F77
-	AC_PROG_CXX
-	PAC_PROG_F90
+	# We only look for the other compilers if there is no
+	# disable for them
+	if test "$enable_f77" != no -a "$enable_fortran" != no ; then
+   	    AC_PROG_F77
+        fi
+	if test "$enable_cxx" != no ; then
+	    AC_PROG_CXX
+	fi
+	if test "$enable_f90" != no ; then
+	    PAC_PROG_F90
+	fi
 	# Set defaults for the TEST versions if not already set
 	if test -z "$TESTCC" ; then 
 	    TESTCC=${CC:=cc}
@@ -1903,7 +2261,7 @@ dnl Define 'HAVE_MPI_F2C' if the routines are found.
 dnl
 dnl Notes:
 dnl Looks only for 'MPI_Request_c2f'.
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_MPI_F2C,[
 AC_CACHE_CHECK([for MPI F2C and C2F routines],
 pac_cv_mpi_f2c,
@@ -1913,8 +2271,19 @@ AC_TRY_LINK([#include "mpi.h"],
 pac_cv_mpi_f2c="yes",pac_cv_mpi_f2c="no")
 ])
 if test "$pac_cv_mpi_f2c" = "yes" ; then 
-    AC_DEFINE(HAVE_MPI_F2C) 
+    AC_DEFINE(HAVE_MPI_F2C,1,[Define if MPI has F2C]) 
 fi
+])
+dnl
+dnl/*D
+dnl PAC_HAVE_ROMIO - make mpi.h include mpio.h if romio enabled
+dnl
+dnl Output Effect:
+dnl expands @HAVE_ROMIO@ in mpi.h into #include "mpio.h"
+dnl D*/
+AC_DEFUN(PAC_HAVE_ROMIO,[
+if test "$enable_romio" = "yes" ; then HAVE_ROMIO='#include "mpio.h"'; fi
+AC_SUBST(HAVE_ROMIO)
 ])
 
 dnl
@@ -1955,6 +2324,8 @@ ifelse([$4], , , [  rm -rf conftest*
 ])dnl
 fi
 rm -f conftest*
+# The intel compiler sometimes generates these work.pc and .pcl files
+rm -f work.pc work.pcl
 ifelse(NEED_POP,yes,[
 undefine([NEED_POP])
 AC_LANG_RESTORE])
@@ -1966,15 +2337,18 @@ AC_DEFUN(PAC_F90_MODULE_EXT,
 [AC_CACHE_CHECK([for Fortran 90 module extension],
 pac_cv_f90_module_ext,[
 pac_cv_f90_module_case="unknown"
+rm -f conftest*
+# Intel ifc compiler generates files by the name of work.pc and work.pcl (!)
+rm -f work.pc work.pcl
 cat >conftest.$ac_f90ext <<EOF
-	module conftest
+        module conftest
         integer n
         parameter (n=1)
         end module conftest
 EOF
 if AC_TRY_EVAL(ac_f90compile) ; then
    dnl Look for module name
-   pac_MOD=`ls conftest* 2>&1 | grep -v conftest.$ac_f90ext | grep -v conftest.o`
+   pac_MOD=`ls conftest.* 2>&1 | grep -v conftest.$ac_f90ext | grep -v conftest.o`
    pac_MOD=`echo $pac_MOD | sed -e 's/conftest\.//g'`
    pac_cv_f90_module_case="lower"
    if test "X$pac_MOD" = "X" ; then
@@ -1996,7 +2370,12 @@ else
     pac_cv_f90_module_ext="unknown"
 fi
 rm -f conftest*
+# The intel compiler sometimes generates these work.pc and .pcl files
+rm -f work.pc work.pcl
 ])
+if test -s work.pcl ; then
+    AC_MSG_WARN([Compiler generates auxillery files (work.pcl)!])
+fi
 AC_SUBST(F90MODEXT)
 if test "$pac_cv_f90_module_ext" = "unknown" ; then
     ifelse($2,,:,[$2])
@@ -2010,21 +2389,37 @@ AC_DEFUN(PAC_F90_MODULE_INCFLAG,[
 AC_CACHE_CHECK([for Fortran 90 module include flag],
 pac_cv_f90_module_incflag,[
 AC_REQUIRE([PAC_F90_MODULE_EXT])
+#
+# Note that the name of the file and the name of the module must be
+# the same (some compilers use the module, some the file name)
+rm -f work.pc work.pcl conftest.$ac_f90ext
 cat >conftest.$ac_f90ext <<EOF
-	module conf
+        module conftest
         integer n
         parameter (n=1)
-        end module conf
+        end module conftest
 EOF
 pac_madedir="no"
-if test ! -d conf ; then mkdir conf ; pac_madedir="yes"; fi
+if test ! -d conftestdir ; then mkdir conftestdir ; pac_madedir="yes"; fi
 if test "$pac_cv_f90_module_case" = "upper" ; then
-    pac_module="CONF.$pac_cv_f90_module_ext"
+    pac_module="CONFTEST.$pac_cv_f90_module_ext"
 else
-    pac_module="conf.$pac_cv_f90_module_ext"
+    pac_module="conftest.$pac_cv_f90_module_ext"
 fi
 if AC_TRY_EVAL(ac_f90compile) ; then
-    cp $pac_module conf
+    if test -s "$pac_module" ; then
+        mv $pac_module conftestdir
+	# Remove any temporary files, and hide the work.pc file (if
+	# the compiler generates them)
+	if test -f work.pc ; then 
+	    mv -f work.pc conftest.pc
+        fi
+	rm -f work.pcl
+    else
+	AC_MSG_WARN([Unable to build a simple F90 module])
+        echo "configure: failed program was:" >&AC_FD_CC
+        cat conftest.$ac_f90ext >&AC_FD_CC
+    fi
 else
     echo "configure: failed program was:" >&AC_FD_CC
     cat conftest.$ac_f90ext >&AC_FD_CC
@@ -2032,23 +2427,53 @@ fi
 rm -f conftest.$ac_f90ext
 cat >conftest.$ac_f90ext <<EOF
     program main
-    use conf
+    use conftest
     end
 EOF
-if ${F90-f90} -c $F90FLAGS -Iconf conftest.$ac_f90ext 1>&AC_FD_CC && \
+pac_cv_f90_module_incflag="unknown"
+if ${F90-f90} -c $F90FLAGS -Iconftestdir conftest.$ac_f90ext 1>&AC_FD_CC 2>&1 && \
 	test -s conftest.o ; then
     pac_cv_f90_module_incflag="-I"
-elif ${F90-f90} -c $F90FLAGS -Mconf conftest.$ac_f90ext 1>&AC_FD_CC && \
-	test-s conftest.o ; then
+elif ${F90-f90} -c $F90FLAGS -Mconftestdir conftest.$ac_f90ext 1>&AC_FD_CC 2>&1 && \
+	test -s conftest.o ; then
     pac_cv_f90_module_incflag="-M"
-elif ${F90-f90} -c $F90FLAGS -pconf conftest.$ac_f90ext 1>&AC_FD_CC && \
+elif ${F90-f90} -c $F90FLAGS -pconftestdir conftest.$ac_f90ext 1>&AC_FD_CC 2>&1 && \
 	test -s conftest.o ; then
     pac_cv_f90_module_incflag="-p"
+elif test -s work.pc ; then 
+     mv conftest.pc conftestdir/mpimod.pc
+     echo "mpimod.pc" > conftestdir/mpimod.pcl
+     echo "`pwd`/conftestdir/mpimod.pc" >> conftestdir/mpimod.pcl
+     if ${F90-f90} -c $F90FLAGS -cl,conftestdir/mpimod.pcl conftest.$ac_f90ext 1>&AC_FD_CC 2>&1 && test -s conftest.o ; then
+         pac_cv_f90_module_incflag='-cl,'
+	# Not quite right; see the comments that follow
+         AC_MSG_RESULT([-cl,filename where filename contains a list of files and directories])
+	 F90_WORK_FILES_ARG="-cl,mpimod.pcl"
+         F90MODINCSPEC="-cl,<dir>/<file>mod.pcl"
+	 AC_SUBST(F90_WORK_FILES_ARG)
+     else 
+         # The version of the Intel compiler that I have refuses to let
+	 # you put the "work catalog" list anywhere but the current directory.
+         pac_cv_f90_module_incflag="Unavailable!"
+     fi
 else
+    # Early versions of the Intel ifc compiler required a *file*
+    # containing the names of files that contained the names of the
+    # 
+    # -cl,filename.pcl
+    #   filename.pcl contains
+    #     fullpathname.pc
+    # The "fullpathname.pc" is generated, I believe, when a module is 
+    # compiled.  
+    # Intel compilers use a wierd system: -cl,filename.pcl .  If no file is
+    # specified, work.pcl and work.pc are created.  However, if you specify
+    # a file, it must contain a the name of a file ending in .pc .  Ugh!
     pac_cv_f90_module_incflag="unknown"
 fi
-if test "$pac_madedir" = "yes" ; then rm -rf conf ; fi
+if test "$pac_madedir" = "yes" ; then rm -rf conftestdir ; fi
 rm -f conftest*
+# The intel compiler sometimes generates these work.pc and .pcl files
+rm -f work.pc work.pcl
 ])
 AC_SUBST(F90MODINCFLAG)
 F90MODINCFLAG=$pac_cv_f90_module_incflag
@@ -2074,7 +2499,7 @@ dnl
 dnl Synopsis:
 dnl  PAC_PROG_F90_INT_KIND(variable-to-set,number-of-bytes,[cross-size])
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_PROG_F90_INT_KIND,[
 # Set the default
 $1=-1
@@ -2113,7 +2538,7 @@ EOF
         KINDVAL="unavailable"
         eval "pac_cv_prog_f90_int_kind_$sellen"=-1
         if AC_TRY_EVAL(ac_f90link) && test -s conftest ; then
-            ./conftest >>config.log 2>&1
+            ./conftest 1>&AC_FD_CC 2>&1
             if test -s conftest1.out ; then
 	        # Because of write, there may be a leading blank.
                 KINDVAL=`cat conftest1.out | sed 's/ //g'`
@@ -2122,6 +2547,8 @@ EOF
             fi
         fi
         rm -f conftest*
+	# The intel compiler sometimes generates these work.pc and .pcl files
+	rm -f work.pc work.pcl
 	AC_MSG_RESULT($KINDVAL)
     fi # not cached
 fi # Has Fortran 90
@@ -2131,9 +2558,15 @@ dnl
 dnl
 dnl Note: This checks for f95 before f90, since F95 is the more recent
 dnl revision of Fortran 90.  efc is the Intel Fortran 77/90/95 compiler
+dnl The compilers are:
+dnl ifc - Intel 
+dnl xlf90 - IBM 
+dnl pgf90 - Portland group
+dnl f90/f95 - Miscellaneous compilers, including NAG, Solaris, IRIX
+dnl efc - An older Intel compiler (?)
 AC_DEFUN(PAC_PROG_F90,[
 if test -z "$F90" ; then
-    AC_CHECK_PROGS(F90,f95 f90 xlf90 pgf90 efc)
+    AC_CHECK_PROGS(F90,f95 f90 xlf90 pgf90 ifc efc)
     test -z "$F90" && AC_MSG_WARN([no acceptable Fortran 90 compiler found in \$PATH])
 fi
 if test -n "$F90" ; then
@@ -2143,16 +2576,18 @@ dnl Cache these so we don't need to change in and out of f90 mode
 ac_f90ext=$pac_cv_f90_ext
 ac_f90compile='${F90-f90} -c $F90FLAGS conftest.$ac_f90ext 1>&AC_FD_CC'
 ac_f90link='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest.$ac_f90ext $LIBS 1>&AC_FD_CC'
-# Check for problems with Intel efc compiler
-cat > conftest.$ac_f90ext <<EOF
+# Check for problems with Intel efc compiler, if the compiler works
+if test "$pac_cv_prog_f90_works" = yes ; then
+    cat > conftest.$ac_f90ext <<EOF
         program main
         end
 EOF
-pac_msg=`$F90 -o conftest $F90FLAGS $LDFLAGS conftest.$ac_f90ext $LIBS 2>&1 | grep 'bfd assertion fail'`
-if test -n "$pac_msg" ; then
-    pac_msg=`$F90 -o conftest $F90FLAGS $LDFLAGS conftest.$ac_f90ext -i_dynamic $LIBS 2>&1 | grep 'bfd assertion fail'`
-    if test -z "$pac_msg" ; then LDFLAGS="-i_dynamic" ; fi
-    # There should really be f90linker flags rather than generic ldflags.
+    pac_msg=`$F90 -o conftest $F90FLAGS $LDFLAGS conftest.$ac_f90ext $LIBS 2>&1 | grep 'bfd assertion fail'`
+    if test -n "$pac_msg" ; then
+        pac_msg=`$F90 -o conftest $F90FLAGS $LDFLAGS conftest.$ac_f90ext -i_dynamic $LIBS 2>&1 | grep 'bfd assertion fail'`
+        if test -z "$pac_msg" ; then LDFLAGS="-i_dynamic" ; fi
+        # There should really be f90linker flags rather than generic ldflags.
+    fi
 fi
 ])
 dnl Internal routine for testing F90
@@ -2192,8 +2627,11 @@ ac_ext=$pac_cv_f90_ext
 ac_compile='${F90-f90} -c $F90FLAGS conftest.$ac_ext 1>&AC_FD_CC'
 ac_link='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&AC_FD_CC'
 cross_compiling=$pac_cv_prog_f90_cross
+# Include a Fortran 90 construction to distinguish between Fortran 77 
+# and Fortran 90 compilers.
 cat >conftest.$ac_ext <<EOF
       program conftest
+      integer, dimension(10) :: n
       end
 EOF
 if AC_TRY_EVAL(ac_link) && test -s conftest${ac_exeect} ; then
@@ -2209,6 +2647,8 @@ else
   pac_cv_prog_f90_works="no"
 fi
 rm -f conftest*
+# The intel compiler sometimes generates these work.pc and .pcl files
+rm -f work.pc work.pcl
 AC_LANG_RESTORE
 AC_MSG_RESULT($pac_cv_prog_f90_works)
 if test $pac_cv_prog_f90_works = no; then
@@ -2219,9 +2659,1366 @@ AC_MSG_RESULT($pac_cv_prog_f90_cross)
 cross_compiling=$pac_cv_prog_f90_cross
 ])
 dnl
+dnl This version uses a Fortran program to link programs.
+dnl This is necessary because some compilers provide shared libraries
+dnl that are not within the default linker paths (e.g., our installation
+dnl of the Portland Group compilers).
+dnl We assume a naming convention consistent with the Fortran 77 one.
+dnl
+AC_DEFUN(PAC_PROG_F90_CHECK_SIZEOF,[
+changequote(<<,>>)dnl
+dnl The name to #define.
+dnl If the arg value contains a variable, we need to update that
+define(<<PAC_TYPE_NAME>>, translit(sizeof_f90_$1, [a-z *], [A-Z__]))dnl
+dnl The cache variable name.
+define(<<PAC_CV_NAME>>, translit(pac_cv_f90_sizeof_$1, [ *], [__]))dnl
+changequote([,])dnl
+AC_CACHE_CHECK([for size of Fortran type $1],PAC_CV_NAME,[
+AC_REQUIRE([PAC_PROG_F77_NAME_MANGLE])
+if test "$cross_compiling" = yes ; then
+    ifelse([$2],,[AC_MSG_WARN([No value provided for size of $1 when cross-compiling])]
+,eval PAC_CV_NAME=$2)
+else
+    rm -f conftest*
+    cat <<EOF > conftestc.c
+#include <stdio.h>
+#include "confdefs.h"
+#ifdef F77_NAME_UPPER
+#define cisize_ CISIZE
+#define isize_ ISIZE
+#elif defined(F77_NAME_LOWER) || defined(F77_NAME_MIXED)
+#define cisize_ cisize
+#define isize_ isize
+#endif
+int cisize_(char *,char*);
+int cisize_(char *i1p, char *i2p)
+{ 
+    int isize_val=0;
+    FILE *f = fopen("conftestval", "w");
+    if (!f) return 1;
+    isize_val = (int)(i2p - i1p);
+    fprintf(f,"%d\n", isize_val );
+    fclose(f);
+    return 0;
+}
+EOF
+    pac_tmp_compile='$CC -c $CFLAGS $CPPFLAGS conftestc.c >&5'
+    if AC_TRY_EVAL(pac_tmp_compile) && test -s conftestc.o ; then
+        AC_LANG_SAVE
+        AC_LANG_FORTRAN77
+        saveLIBS=$LIBS
+        LIBS="conftestc.o $LIBS"
+        dnl TRY_RUN does not work correctly for autoconf 2.13 (the
+        dnl macro includes C-preprocessor directives that are not 
+        dnl valid in Fortran.  Instead, we do this by hand
+        cat >conftest.f <<EOF
+         program main
+         $1 a(2)
+         integer irc
+         irc = cisize(a(1),a(2))
+         end
+EOF
+        rm -f conftest$ac_exeext
+        rm -f conftestval
+        if AC_TRY_EVAL(ac_link) && test -s conftest$ac_exeext ; then
+	    if ./conftest$ac_exeext ; then
+	        # success
+                :
+            else
+	        # failure 
+                :
+	    fi
+        else
+	    # failure
+            AC_MSG_WARN([Unable to build program to determine size of $1])
+        fi
+        AC_LANG_RESTORE
+        if test -s conftestval ; then
+            eval PAC_CV_NAME=`cat conftestval`
+        else
+	    eval PAC_CV_NAME=0
+        fi
+        rm -f conftest*
+	# The intel compiler sometimes generates these work.pc and .pcl files
+	rm -f work.pc work.pcl
+        LIBS=$saveLIBS
+    else
+        AC_MSG_WARN([Unable to compile the C routine for finding the size of a $1])
+    fi
+fi # cross-compiling
+])
+AC_DEFINE_UNQUOTED(PAC_TYPE_NAME,$PAC_CV_NAME,[Define size of PAC_TYPE_NAME])
+undefine([PAC_TYPE_NAME])
+undefine([PAC_CV_NAME])
+])
+
+dnl
 dnl The following looks for F90 options to enable th specified f90 compiler
 dnl to work with the f77 compiler, particularly for accessing command-line
 dnl arguments
+
+dnl
+
+dnl/*D
+dnl PAC_PROG_F77_NAME_MANGLE - Determine how the Fortran compiler mangles
+dnl names 
+dnl
+dnl Synopsis:
+dnl PAC_PROG_F77_NAME_MANGLE([action])
+dnl
+dnl Output Effect:
+dnl If no action is specified, one of the following names is defined:
+dnl.vb
+dnl If fortran names are mapped:
+dnl   lower -> lower                  F77_NAME_LOWER
+dnl   lower -> lower_                 F77_NAME_LOWER_USCORE
+dnl   lower -> UPPER                  F77_NAME_UPPER
+dnl   lower_lower -> lower__          F77_NAME_LOWER_2USCORE
+dnl   mixed -> mixed                  F77_NAME_MIXED
+dnl   mixed -> mixed_                 F77_NAME_MIXED_USCORE
+dnl.ve
+dnl If an action is specified, it is executed instead.
+dnl 
+dnl Notes:
+dnl We assume that if lower -> lower (any underscore), upper -> upper with the
+dnl same underscore behavior.  Previous versions did this by 
+dnl compiling a Fortran program and running strings -a over it.  Depending on 
+dnl strings is a bad idea, so instead we try compiling and linking with a 
+dnl C program, since that is why we are doing this anyway.  A similar approach
+dnl is used by FFTW, though without some of the cases we check (specifically, 
+dnl mixed name mangling)
+dnl
+dnl D*/
+dnl
+AC_DEFUN(PAC_PROG_F77_NAME_MANGLE,[
+AC_CACHE_CHECK([for Fortran 77 name mangling],
+pac_cv_prog_f77_name_mangle,
+[
+   # Check for strange behavior of Fortran.  For example, some FreeBSD
+   # systems use f2c to implement f77, and the version of f2c that they 
+   # use generates TWO (!!!) trailing underscores
+   # Currently, WDEF is not used but could be...
+   #
+   # Eventually, we want to be able to override the choices here and
+   # force a particular form.  This is particularly useful in systems
+   # where a Fortran compiler option is used to force a particular
+   # external name format (rs6000 xlf, for example).
+   rm -f conftest*
+   cat > conftest.f <<EOF
+       subroutine MY_name( a )
+       return
+       end
+EOF
+   # This is the ac_compile line used if LANG_FORTRAN77 is selected
+   if test "X$ac_fcompile" = "X" ; then
+       ac_fcompile='${F77-f77} -c $FFLAGS conftest.f 1>&AC_FD_CC'
+   fi
+   if AC_TRY_EVAL(ac_fcompile) && test -s conftest.o ; then
+	mv conftest.o fconftestf.o
+   else 
+	echo "configure: failed program was:" >&AC_FD_CC
+        cat conftest.f >&AC_FD_CC
+   fi
+
+   AC_LANG_SAVE
+   AC_LANG_C   
+   save_LIBS="$LIBS"
+   dnl FLIBS comes from AC_F77_LIBRARY_LDFLAGS
+   LIBS="fconftestf.o $FLIBS $LIBS"
+   AC_TRY_LINK(,my_name();,pac_cv_prog_f77_name_mangle="lower")
+   if test  "X$pac_cv_prog_f77_name_mangle" = "X" ; then
+     AC_TRY_LINK(,my_name_();,pac_cv_prog_f77_name_mangle="lower underscore")
+   fi
+   if test  "X$pac_cv_prog_f77_name_mangle" = "X" ; then
+     AC_TRY_LINK(,MY_NAME();,pac_cv_prog_f77_name_mangle="upper")
+   fi
+   if test  "X$pac_cv_prog_f77_name_mangle" = "X" ; then
+     AC_TRY_LINK(,my_name__();,
+       pac_cv_prog_f77_name_mangle="lower doubleunderscore")
+   fi
+   if test  "X$pac_cv_prog_f77_name_mangle" = "X" ; then
+     AC_TRY_LINK(,MY_name();,pac_cv_prog_f77_name_mangle="mixed")
+   fi
+   if test  "X$pac_cv_prog_f77_name_mangle" = "X" ; then
+     AC_TRY_LINK(,MY_name_();,pac_cv_prog_f77_name_mangle="mixed underscore")
+   fi
+   LIBS="$save_LIBS"
+   AC_LANG_RESTORE
+   rm -f fconftest*
+])
+# Make the actual definition
+pac_namecheck=`echo X$pac_cv_prog_f77_name_mangle | sed 's/ /-/g'`
+ifelse([$1],,[
+case $pac_namecheck in
+    X) AC_MSG_WARN([Cannot determine Fortran naming scheme]) ;;
+    Xlower) AC_DEFINE(F77_NAME_LOWER,1,[Define if Fortran names are lowercase]) 
+	F77_NAME_MANGLE="F77_NAME_LOWER"
+	;;
+    Xlower-underscore) AC_DEFINE(F77_NAME_LOWER_USCORE,1,[Define if Fortran names are lowercase with a trailing underscore])
+	F77_NAME_MANGLE="F77_NAME_LOWER_USCORE"
+	 ;;
+    Xlower-doubleunderscore) AC_DEFINE(F77_NAME_LOWER_2USCORE,1,[Define if Fortran names containing an underscore have two trailing underscores])
+	F77_NAME_MANGLE="F77_NAME_LOWER_2USCORE"
+	 ;;
+    Xupper) AC_DEFINE(F77_NAME_UPPER,1,[Define if Fortran names are uppercase]) 
+	F77_NAME_MANGLE="F77_NAME_UPPER"
+	;;
+    Xmixed) AC_DEFINE(F77_NAME_MIXED,1,[Define if Fortran names preserve the original case]) 
+	F77_NAME_MANGLE="F77_NAME_MIXED"
+	;;
+    Xmixed-underscore) AC_DEFINE(F77_NAME_MIXED_USCORE,1,[Define if Fortran names preserve the original case and add a trailing underscore]) 
+	F77_NAME_MANGLE="F77_NAME_MIXED_USCORE"
+	;;
+    *) AC_MSG_WARN([Unknown Fortran naming scheme]) ;;
+esac
+AC_SUBST(F77_NAME_MANGLE)
+],[$1])
+])
+dnl
+dnl/*D
+dnl PAC_PROG_F77_CHECK_SIZEOF - Determine the size in bytes of a Fortran
+dnl type
+dnl
+dnl Synopsis:
+dnl PAC_PROG_F77_CHECK_SIZEOF(type,[cross-size])
+dnl
+dnl Output Effect:
+dnl Sets SIZEOF_F77_uctype to the size if bytes of type.
+dnl If type is unknown, the size is set to 0.
+dnl If cross-compiling, the value cross-size is used (it may be a variable)
+dnl For example 'PAC_PROG_F77_CHECK_SIZEOF(real)' defines
+dnl 'SIZEOF_F77_REAL' to 4 on most systems.  The variable 
+dnl 'pac_cv_sizeof_f77_<type>' (e.g., 'pac_cv_sizeof_f77_real') is also set to
+dnl the size of the type. 
+dnl If the corresponding variable is already set, that value is used.
+dnl If the name has an '*' in it (e.g., 'integer*4'), the defined name 
+dnl replaces that with an underscore (e.g., 'SIZEOF_F77_INTEGER_4').
+dnl
+dnl Notes:
+dnl If the 'cross-size' argument is not given, 'autoconf' will issue an error
+dnl message.  You can use '0' to specify undetermined.
+dnl
+dnl D*/
+AC_DEFUN(PAC_PROG_F77_CHECK_SIZEOF,[
+changequote(<<, >>)dnl
+dnl The name to #define.
+dnl If the arg value contains a variable, we need to update that
+define(<<PAC_TYPE_NAME>>, translit(sizeof_f77_$1, [a-z *], [A-Z__]))dnl
+dnl The cache variable name.
+define(<<PAC_CV_NAME>>, translit(pac_cv_f77_sizeof_$1, [ *], [__]))dnl
+changequote([, ])dnl
+AC_CACHE_CHECK([for size of Fortran type $1],PAC_CV_NAME,[
+AC_REQUIRE([PAC_PROG_F77_NAME_MANGLE])
+/bin/rm -f conftest*
+cat <<EOF > conftest.f
+      subroutine isize( )
+      $1 i(2)
+      call cisize( i(1), i(2) )
+      end
+EOF
+if test "X$ac_fcompile" = "X" ; then
+    ac_fcompile='${F77-f77} -c $FFLAGS conftest.f 1>&AC_FD_CC'
+fi
+if AC_TRY_EVAL(ac_fcompile) && test -s conftest.o ; then
+    mv conftest.o conftestf.o
+    AC_LANG_SAVE
+    AC_LANG_C
+    save_LIBS="$LIBS"
+    dnl Add the Fortran linking libraries
+    LIBS="conftestf.o $FLIBS $LIBS"
+    AC_TRY_RUN([#include <stdio.h>
+#ifdef F77_NAME_UPPER
+#define cisize_ CISIZE
+#define isize_ ISIZE
+#elif defined(F77_NAME_LOWER) || defined(F77_NAME_MIXED)
+#define cisize_ cisize
+#define isize_ isize
+#endif
+static int isize_val=0;
+void cisize_(char *,char*);
+void isize_(void);
+void cisize_(char *i1p, char *i2p)
+{ 
+   isize_val = (int)(i2p - i1p);
+}
+int main(int argc, char **argv)
+{
+    FILE *f = fopen("conftestval", "w");
+    if (!f) return 1;
+    isize_();
+    fprintf(f,"%d\n", isize_val );
+    return 0;
+}], eval PAC_CV_NAME=`cat conftestval`,eval PAC_CV_NAME=0,
+ifelse([$2],,,eval PAC_CV_NAME=$2))
+    # Problem.  If the process fails to run, then there won't be
+    # a good error message.  For example, with one Portland Group
+    # installation, we had problems with finding the libpgc.so shared library
+    # The autoconf code for TRY_RUN doesn't capture the output from
+    # the test program (!)
+    
+    LIBS="$save_LIBS"
+    AC_LANG_RESTORE
+else 
+    echo "configure: failed program was:" >&AC_FD_CC
+    cat conftest.f >&AC_FD_CC
+    ifelse([$2],,eval PAC_CV_NAME=0,eval PAC_CV_NAME=$2)
+fi
+])
+AC_DEFINE_UNQUOTED(PAC_TYPE_NAME,$PAC_CV_NAME,[Define size of PAC_TYPE_NAME])
+undefine([PAC_TYPE_NAME])
+undefine([PAC_CV_NAME])
+])
+dnl
+dnl This version uses a Fortran program to link programs.
+dnl This is necessary because some compilers provide shared libraries
+dnl that are not within the default linker paths (e.g., our installation
+dnl of the Portland Group compilers)
+dnl
+AC_DEFUN(PAC_PROG_F77_CHECK_SIZEOF_EXT,[
+changequote(<<,>>)dnl
+dnl The name to #define.
+dnl If the arg value contains a variable, we need to update that
+define(<<PAC_TYPE_NAME>>, translit(sizeof_f77_$1, [a-z *], [A-Z__]))dnl
+dnl The cache variable name.
+define(<<PAC_CV_NAME>>, translit(pac_cv_f77_sizeof_$1, [ *], [__]))dnl
+changequote([,])dnl
+AC_CACHE_CHECK([for size of Fortran type $1],PAC_CV_NAME,[
+AC_REQUIRE([PAC_PROG_F77_NAME_MANGLE])
+if test "$cross_compiling" = yes ; then
+    ifelse([$2],,[AC_MSG_WARN([No value provided for size of $1 when cross-compiling])]
+,eval PAC_CV_NAME=$2)
+else
+    /bin/rm -f conftest*
+    cat <<EOF > conftestc.c
+#include <stdio.h>
+#include "confdefs.h"
+#ifdef F77_NAME_UPPER
+#define cisize_ CISIZE
+#define isize_ ISIZE
+#elif defined(F77_NAME_LOWER) || defined(F77_NAME_MIXED)
+#define cisize_ cisize
+#define isize_ isize
+#endif
+int cisize_(char *,char*);
+int cisize_(char *i1p, char *i2p)
+{ 
+    int isize_val=0;
+    FILE *f = fopen("conftestval", "w");
+    if (!f) return 1;
+    isize_val = (int)(i2p - i1p);
+    fprintf(f,"%d\n", isize_val );
+    fclose(f);
+    return 0;
+}
+EOF
+    pac_tmp_compile='$CC -c $CFLAGS $CPPFLAGS conftestc.c >&5'
+    if AC_TRY_EVAL(pac_tmp_compile) && test -s conftestc.o ; then
+        AC_LANG_SAVE
+        AC_LANG_FORTRAN77
+        saveLIBS=$LIBS
+        LIBS="conftestc.o $LIBS"
+        dnl TRY_RUN does not work correctly for autoconf 2.13 (the
+        dnl macro includes C-preprocessor directives that are not 
+        dnl valid in Fortran.  Instead, we do this by hand
+        cat >conftest.f <<EOF
+         program main
+         $1 a(2)
+         integer irc
+         irc = cisize(a(1),a(2))
+         end
+EOF
+        rm -f conftest$ac_exeext
+        rm -f conftestval
+        if AC_TRY_EVAL(ac_link) && test -s conftest$ac_exeext ; then
+	    if ./conftest$ac_exeext ; then
+	        # success
+                :
+            else
+	        # failure 
+                :
+	    fi
+        else
+	    # failure
+            AC_MSG_WARN([Unable to build program to determine size of $1])
+        fi
+        LIBS=$saveLIBS
+        AC_LANG_RESTORE
+        if test -s conftestval ; then
+            eval PAC_CV_NAME=`cat conftestval`
+        else
+	    eval PAC_CV_NAME=0
+        fi
+        rm -f conftest*
+    else
+        AC_MSG_WARN([Unable to compile the C routine for finding the size of a $1])
+    fi
+fi # cross-compiling
+])
+AC_DEFINE_UNQUOTED(PAC_TYPE_NAME,$PAC_CV_NAME,[Define size of PAC_TYPE_NAME])
+undefine([PAC_TYPE_NAME])
+undefine([PAC_CV_NAME])
+])
+dnl
+dnl/*D
+dnl PAC_PROG_F77_EXCLAIM_COMMENTS
+dnl
+dnl Synopsis:
+dnl PAC_PROG_F77_EXCLAIM_COMMENTS([action-if-true],[action-if-false])
+dnl
+dnl Notes:
+dnl Check whether '!' may be used to begin comments in Fortran.
+dnl
+dnl This macro requires a version of autoconf `after` 2.13; the 'acgeneral.m4'
+dnl file contains an error in the handling of Fortran programs in 
+dnl 'AC_TRY_COMPILE' (fixed in our local version).
+dnl
+dnl D*/
+AC_DEFUN(PAC_PROG_F77_EXCLAIM_COMMENTS,[
+AC_CACHE_CHECK([whether Fortran accepts ! for comments],
+pac_cv_prog_f77_exclaim_comments,[
+AC_LANG_SAVE
+AC_LANG_FORTRAN77
+AC_TRY_COMPILE(,[
+!      This is a comment
+],pac_cv_prog_f77_exclaim_comments="yes",
+pac_cv_prog_f77_exclaim_comments="no")
+AC_LANG_RESTORE
+])
+if test "$pac_cv_prog_f77_exclaim_comments" = "yes" ; then
+    ifelse([$1],,:,$1)
+else
+    ifelse([$2],,:,$2)
+fi
+])dnl
+dnl
+dnl/*D
+dnl PAC_F77_CHECK_COMPILER_OPTION - Check that a compiler option is accepted
+dnl without warning messages
+dnl
+dnl Synopsis:
+dnl PAC_F77_CHECK_COMPILER_OPTION(optionname,action-if-ok,action-if-fail)
+dnl
+dnl Output Effects:
+dnl
+dnl If no actions are specified, a working value is added to 'FOPTIONS'
+dnl
+dnl Notes:
+dnl This is now careful to check that the output is different, since 
+dnl some compilers are noisy.
+dnl 
+dnl We are extra careful to prototype the functions in case compiler options
+dnl that complain about poor code are in effect.
+dnl
+dnl Because this is a long script, we have ensured that you can pass a 
+dnl variable containing the option name as the first argument.
+dnl D*/
+AC_DEFUN(PAC_F77_CHECK_COMPILER_OPTION,[
+AC_MSG_CHECKING([that Fortran 77 compiler accepts option $1])
+ac_result="no"
+save_FFLAGS="$FFLAGS"
+FFLAGS="$1 $FFLAGS"
+rm -f conftest.out
+cat >conftest2.f <<EOF
+        subroutine try()
+        end
+EOF
+cat >conftest.f <<EOF
+        program main
+        end
+EOF
+dnl It is important to use the AC_TRY_EVAL in case F77 is not a single word
+dnl but is something like "f77 -64" (where the switch has changed the
+dnl compiler)
+ac_fscompilelink='${F77-f77} $save_FFLAGS -o conftest conftest.f $LDFLAGS >conftest.bas 2>&1'
+ac_fscompilelink2='${F77-f77} $FFLAGS -o conftest conftest.f $LDFLAGS >conftest.out 2>&1'
+if AC_TRY_EVAL(ac_fscompilelink) && test -x conftest ; then
+   if AC_TRY_EVAL(ac_fscompilelink2) && test -x conftest ; then
+      if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+         AC_MSG_RESULT(yes)
+         AC_MSG_CHECKING([that routines compiled with $1 can be linked with ones compiled  without $1])       
+         /bin/rm -f conftest2.out
+         /bin/rm -f conftest.bas
+	 ac_fscompile3='${F77-f77} -c $save_FFLAGS conftest2.f >conftest2.out 2>&1'
+	 ac_fscompilelink4='${F77-f77} $FFLAGS -o conftest conftest2.o conftest.f $LDFLAGS >conftest.bas 2>&1'
+         if AC_TRY_EVAL(ac_fscompile3) && test -s conftest2.o ; then
+            if AC_TRY_EVAL(ac_fscompilelink4) && test -x conftest ; then
+               if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+	          ac_result="yes"
+	       else 
+		  echo "configure: Compiler output differed in two cases" >&AC_FD_CC
+                  diff -b conftest.out conftest.bas >&AC_FD_CC
+	       fi
+	    else
+	       echo "configure: failed program was:" >&AC_FD_CC
+	       cat conftest.f >&AC_FD_CC
+	    fi
+	  else
+	    echo "configure: failed program was:" >&AC_FD_CC
+	    cat conftest2.f >&AC_FD_CC
+	  fi
+      else
+	# diff
+        echo "configure: Compiler output differed in two cases" >&AC_FD_CC
+        diff -b conftest.out conftest.bas >&AC_FD_CC
+      fi
+   else
+      # try_eval(fscompilelink2)
+      echo "configure: failed program was:" >&AC_FD_CC
+      cat conftest.f >&AC_FD_CC
+   fi
+   if test "$ac_result" != "yes" -a -s conftest.out ; then
+	cat conftest.out >&AC_FD_CC
+   fi
+else
+    # Could not compile without the option!
+    echo "configure: Could not compile program" >&AC_FD_CC
+    cat conftest.f >&AC_FD_CC
+    cat conftest.bas >&AC_FD_CC
+fi
+if test "$ac_result" = "yes" ; then
+     AC_MSG_RESULT(yes)	  
+     ifelse([$2],,FOPTIONS="$FOPTIONS $1",$2)
+else
+     AC_MSG_RESULT(no)
+     $3
+fi
+FFLAGS="$save_FFLAGS"
+rm -f conftest*
+])
+dnl
+dnl/*D
+dnl PAC_PROG_F77_CMDARGS - Determine how to access the command line from
+dnl Fortran 77
+dnl
+dnl Output Effects:
+dnl  The following variables are set:
+dnl.vb
+dnl    F77_GETARG         - Statement to get an argument i into string s
+dnl    F77_IARGC          - Routine to return the number of arguments
+dnl    FXX_MODULE         - Module command when using Fortran 90 compiler
+dnl    F77_GETARGDECL     - Declaration of routine used for F77_GETARG
+dnl    F77_GETARG_FFLAGS  - Flags needed when compiling/linking
+dnl    F77_GETARG_LDFLAGS - Flags needed when linking
+dnl.ve
+dnl If 'F77_GETARG' has a value, then that value and the values for these
+dnl other symbols will be used instead.  If no approach is found, all of these
+dnl variables will have empty values.
+dnl If no other approach works and a file 'f77argdef' is in the directory, 
+dnl that file will be sourced for the values of the above four variables.
+dnl
+dnl In most cases, you should add F77_GETARG_FFLAGS to the FFLAGS variable
+dnl and F77_GETARG_LDFLAGS to the LDFLAGS variable, to ensure that tests are
+dnl performed on the compiler version that will be used.
+dnl
+dnl 'AC_SUBST' is called for all six variables.
+dnl
+dnl One complication is that on systems with multiple Fortran compilers, 
+dnl some libraries used by one Fortran compiler may have been (mis)placed
+dnl in a common location.  We have had trouble with libg2c in particular.
+dnl To work around this, we test whether iargc etc. work first.  This
+dnl will catch most systems and will speed up the tests.
+dnl
+dnl Next, the libraries are only added if they are needed to complete a 
+dnl link; they aren''t added just because they exist.
+dnl
+dnl f77argdef
+dnl D*/
+dnl
+dnl Random notes
+dnl You can export the command line arguments from C to the g77 compiler
+dnl using
+dnl    extern char **__libc_argv;
+dnl    extern int  __libc_argc;
+dnl    f_setarg( __libc_argc, __libc_argv );
+dnl
+AC_DEFUN(PAC_PROG_F77_CMDARGS,[
+found_cached="yes"
+AC_MSG_CHECKING([for routines to access the command line from Fortran 77])
+AC_CACHE_VAL(pac_cv_prog_f77_cmdarg,
+[
+    AC_MSG_RESULT([searching...])
+    found_cached="no"
+    # First, we perform a quick check.  Does iargc and getarg work?
+    fxx_module="${FXX_MODULE:-}"
+    f77_getargdecl="${F77_GETARGDECL:-external getarg}"
+    f77_getarg="${F77_GETARG:-call GETARG(i,s)}"
+    f77_iargc="${F77_IARGC:-IARGC()}"
+    #    
+    # Grumble.  The Absoft Fortran compiler computes i - i as 0 and then
+    # 1.0 / 0 at compile time, even though the code may never be executed.
+    # What we need is a way to generate an error, so the second usage of i
+    # was replaced with f77_iargc.  
+    cat > conftest.f <<EOF
+        program main
+$fxx_module
+        integer i, j
+        character*20 s
+        $f77_getargdecl
+        i = 0
+        $f77_getarg
+        i=$f77_iargc
+        if (i .gt. 1) then
+            j = i - $f77_iargc
+            j = 1.0 / j
+        endif
+        end
+EOF
+    found_answer="no"
+    if test -z "$ac_fcompilelink" ; then
+        ac_fcompilelink="${F77-f77} -o conftest $FFLAGS $flags conftest.f $LDFLAGS $LIBS 1>&AC_FD_CC"
+    fi
+    AC_MSG_CHECKING([if ${F77-f77} $flags $libs works with GETARG and IARGC])
+    if AC_TRY_EVAL(ac_fcompilelink) && test -x conftest ; then
+	# Check that cross != yes so that this works with autoconf 2.52
+	if test "$ac_cv_prog_f77_cross" != "yes" ; then
+	    if ./conftest >/dev/null 2>&1 ; then
+		found_answer="yes"
+	        FXX_MODULE="$fxx_module"
+		F77_GETARGDECL="$f77_getargdecl"
+		F77_GETARG="$f77_getarg"
+		F77_IARGC="$f77_iargc"
+		AC_MSG_RESULT(yes)
+     	    fi
+        fi
+    fi    
+    if test $found_answer = "no" ; then
+	AC_MSG_RESULT(no)
+    # Grumph.  Here are a bunch of different approaches
+    # We have several axes the check:
+    # Library to link with (none, -lU77 (HPUX), -lg2c (LINUX f77))
+    # PEPCF90 (Intel ifc)
+    # The first line is a dummy
+    # (we experimented with using a <space>, but this caused other 
+    # problems because we need <space> in the IFS)
+    trial_LIBS="0 -lU77 -lPEPCF90"
+    if test "$NOG2C" != "1" ; then
+        trial_LIBS="$trial_LIBS -lg2c"
+    fi
+    # Discard libs that are not availble:
+    save_IFS="$IFS"
+    # Make sure that IFS includes a space, or the tests that run programs
+    # may fail
+    IFS=" 
+"
+    save_trial_LIBS="$trial_LIBS"
+    trial_LIBS=""
+    cat > conftest.f <<EOF
+        program main
+        end
+EOF
+    ac_fcompilelink_test='${F77-f77} -o conftest $FFLAGS conftest.f $LDFLAGS $libs $LIBS 1>&AC_FD_CC'
+    for libs in $save_trial_LIBS ; do
+	if test "$libs" = "0" ; then
+	    lib_ok="yes"
+        else
+	    AC_MSG_CHECKING([whether Fortran 77 links with $libs])
+	    if AC_TRY_EVAL(ac_fcompilelink_test) && test -x conftest ; then
+		AC_MSG_RESULT([yes])
+	        lib_ok="yes"
+	    else
+		AC_MSG_RESULT([no])
+	        lib_ok="no"
+	    fi
+	fi
+	if test "$lib_ok" = "yes" ; then
+	    trial_LIBS="$trial_LIBS
+$libs"
+        fi
+    done
+
+    # Options to use when compiling and linking
+    # +U77 is needed by HP Fortran to access getarg etc.
+    # The -N109 was used for getarg before we realized that GETARG
+    # was necessary with the (non standard conforming) Absoft compiler
+    # (Fortran is monocase; Absoft uses mixedcase by default)
+    # The -f is used by Absoft and is the compiler switch that folds 
+    # symbolic names to lower case.  Without this option, the compiler
+    # considers upper- and lower-case letters to be unique.
+    # The -YEXT_NAMES=LCS will cause external names to be output as lower
+    # case letter for Absoft F90 compilers (default is upper case)
+    # The first line is "<space><newline>, the space is important
+    # To make the Absoft f77 and f90 work together, we need to prefer the
+    # upper case versions of the arguments.  They also require libU77.
+    # -YCFRL=1 causes Absoft f90 to work with g77 and similar (f2c-based) 
+    # Fortran compilers
+    #
+    # Problem:  The Intel efc compiler hangs when presented with -N109 .
+    # The only real fix for this is to detect this compiler and exclude
+    # the test.  We may want to reorganize these tests so that if we
+    # can compile code without special options, we never look for them.
+    # 
+    using_intel_efc="no"
+    pac_test_msg=`$F77 -V 2>&1 | grep 'Intel(R) Fortran Itanium'`
+    if test "$pac_test_msg" != "" ; then
+	using_intel_efc="yes"
+    fi
+    if test "$using_intel_efc" = "yes" ; then
+        trial_FLAGS="000"
+    else
+        trial_FLAGS="000
+-N109
+-f
+-YEXT_NAMES=UCS
+-YEXT_NAMES=LCS
+-YCFRL=1
++U77"
+    fi
+    # Discard options that are not available:
+    # (IFS already saved above)
+    IFS=" 
+"
+    save_trial_FLAGS="$trial_FLAGS"
+    trial_FLAGS=""
+    for flag in $save_trial_FLAGS ; do
+	if test "$flag" = " " -o "$flag" = "000" ; then
+	    opt_ok="yes"
+        else
+            PAC_F77_CHECK_COMPILER_OPTION($flag,opt_ok=yes,opt_ok=no)
+        fi
+	if test "$opt_ok" = "yes" ; then
+	    if test "$flag" = " " -o "$flag" = "000" ; then 
+		fflag="" 
+	    else 
+		fflag="$flag" 
+	    fi
+	    # discard options that don't allow mixed-case name matching
+	    cat > conftest.f <<EOF
+        program main
+        call aB()
+        end
+        subroutine Ab()
+        end
+EOF
+	    if test -n "$fflag" ; then flagval="with $fflag" ; else flagval="" ; fi
+	    AC_MSG_CHECKING([that Fortran 77 routine names are case-insensitive $flagval])
+	    dnl we can use double quotes here because all is already
+            dnl evaluated
+            ac_fcompilelink_test="${F77-f77} -o conftest $fflag $FFLAGS conftest.f $LDFLAGS $LIBS 1>&AC_FD_CC"
+	    if AC_TRY_EVAL(ac_fcompilelink_test) && test -x conftest ; then
+	        AC_MSG_RESULT(yes)
+	    else
+	        AC_MSG_RESULT(no)
+	        opt_ok="no"
+            fi
+        fi
+        if test "$opt_ok" = "yes" ; then
+	    trial_FLAGS="$trial_FLAGS
+$flag"
+        fi
+    done
+    IFS="$save_IFS"
+    # Name of routines.  Since these are in groups, we use a case statement
+    # and loop until the end (accomplished by reaching the end of the
+    # case statement
+    # For one version of Nag F90, the names are 
+    # call f90_unix_MP_getarg(i,s) and f90_unix_MP_iargc().
+    trial=0
+    while test -z "$pac_cv_prog_f77_cmdarg" ; do
+        case $trial in 
+	0) # User-specified values, if any
+	   if test -z "$F77_GETARG" -o -z "$F77_IARGC" ; then 
+	       trial=`expr $trial + 1`
+	       continue 
+           fi
+           MSG="Using environment values of F77_GETARG etc."
+	   ;;
+	1) # Standard practice, uppercase (some compilers are case-sensitive)
+	   FXX_MODULE=""
+	   F77_GETARGDECL="external GETARG"
+	   F77_GETARG="call GETARG(i,s)"
+	   F77_IARGC="IARGC()"
+	   MSG="GETARG and IARGC"
+	   ;;
+	2) # Standard practice, lowercase
+	   FXX_MODULE=""
+           F77_GETARGDECL="external getarg"
+	   F77_GETARG="call getarg(i,s)"
+	   F77_IARGC="iargc()"
+	   MSG="getarg and iargc"
+	   ;;
+	3) # Posix alternative
+	   FXX_MODULE=""
+	   F77_GETARGDECL="external pxfgetarg"
+	   F77_GETARG="call pxfgetarg(i,s,l,ier)"
+	   F77_IARGC="ipxfargc()"
+	   MSG="pxfgetarg and ipxfargc"
+	   ;;
+	4) # Nag f90_unix_env module
+	   FXX_MODULE="        use f90_unix_env"
+	   F77_GETARGDECL=""
+	   F77_GETARG="call getarg(i,s)"
+	   F77_IARGC="iargc()"
+	   MSG="f90_unix_env module"
+	   ;;
+        5) # Nag f90_unix module
+	   FXX_MODULE="        use f90_unix"
+	   F77_GETARGDECL=""
+	   F77_GETARG="call getarg(i,s)"
+	   F77_IARGC="iargc()"
+	   MSG="f90_unix module"
+	   ;;
+	6) # user spec in a file
+	   if test -s f77argdef ; then
+		. ./f77argdef
+	       MSG="Using definitions in the file f77argdef"
+	   else
+	        trial=`expr $trial + 1`
+		continue
+	   fi
+	   ;;
+        *) # exit from while loop
+	   FXX_MODULE=""
+	   F77_GETARGDECL=""
+	   F77_GETARG=""
+	   F77_IARGC=""
+           break
+	   ;;
+	esac
+	# Create the program.  Make sure that we can run it.
+	# Force a divide-by-zero if there is a problem (but only at runtime!
+        # (the Absoft compiler does divide-by-zero at compile time)
+        cat > conftest.f <<EOF
+        program main
+$FXX_MODULE
+        integer i, j
+        character*20 s
+        $F77_GETARGDECL
+        i = 0
+        $F77_GETARG
+        i=$F77_IARGC
+        if (i .gt. 1) then
+            j = i - $F77_IARGC
+            j = 1.0 / j
+        endif
+        end
+EOF
+    #
+    # Now, try to find some way to compile and link that program, looping 
+    # over the possibilities of options and libraries
+        save_IFS="$IFS"
+        IFS=" 
+"
+        for libs in $trial_LIBS ; do
+            if test -n "$pac_cv_prog_f77_cmdarg" ; then break ; fi
+	    if test "$libs" = " " -o "$libs" = "0" ; then libs="" ; fi
+            for flags in $trial_FLAGS ; do
+	        if test "$flags" = " " -o "$flags" = "000"; then flags="" ; fi
+                AC_MSG_CHECKING([if ${F77-f77} $flags $libs works with $MSG])
+		IFS="$save_IFS"
+		dnl We need this here because we've fiddled with IFS
+	        ac_fcompilelink_test="${F77-f77} -o conftest $FFLAGS $flags conftest.f $LDFLAGS $libs $LIBS 1>&AC_FD_CC"
+		found_answer="no"
+                if AC_TRY_EVAL(ac_fcompilelink_test) && test -x conftest ; then
+		    if test "$ac_cv_prog_f77_cross" != "yes" ; then
+			if ./conftest >/dev/null 2>&1 ; then
+			    found_answer="yes"
+			fi
+		    else 
+			found_answer="yes"
+		    fi
+                fi
+	        IFS=" 
+"
+		if test "$found_answer" = "yes" ; then
+	            AC_MSG_RESULT([yes])
+		    pac_cv_prog_f77_cmdarg="$MSG"
+		    pac_cv_prog_f77_cmdarg_fflags="$flags"
+		    pac_cv_prog_f77_cmdarg_ldflags="$libs"
+		    break
+	        else
+                    AC_MSG_RESULT([no])
+		    echo "configure: failed program was:" >&AC_FD_CC
+                    cat conftest.f >&AC_FD_CC
+	        fi
+            done
+        done
+        IFS="$save_IFS"   
+	rm -f conftest.*
+        trial=`expr $trial + 1`   
+    done
+fi
+pac_cv_F77_GETARGDECL="$F77_GETARGDECL"
+pac_cv_F77_IARGC="$F77_IARGC"
+pac_cv_F77_GETARG="$F77_GETARG"
+pac_cv_FXX_MODULE="$FXX_MODULE"
+])
+if test "$found_cached" = "yes" ; then 
+    AC_MSG_RESULT([$pac_cv_prog_f77_cmdarg])
+elif test -z "$pac_cv_F77_IARGC" ; then
+    AC_MSG_WARN([Could not find a way to access the command line from Fortran 77])
+fi
+# Set the variable values based on pac_cv_prog_xxx
+F77_GETARGDECL="$pac_cv_F77_GETARGDECL"
+F77_IARGC="$pac_cv_F77_IARGC"
+F77_GETARG="$pac_cv_F77_GETARG"
+FXX_MODULE="$pac_cv_FXX_MODULE"
+F77_GETARG_FFLAGS="$pac_cv_prog_f77_cmdarg_fflags"
+F77_GETARG_LDFLAGS="$pac_cv_prog_f77_cmdarg_ldflags"
+AC_SUBST(F77_GETARGDECL)
+AC_SUBST(F77_IARGC)
+AC_SUBST(F77_GETARG)
+AC_SUBST(FXX_MODULE)
+AC_SUBST(F77_GETARG_FFLAGS)
+AC_SUBST(F77_GETARG_LDFLAGS)
+])
+dnl/*D
+dnl PAC_PROG_F77_LIBRARY_DIR_FLAG - Determine the flag used to indicate
+dnl the directories to find libraries in
+dnl
+dnl Notes:
+dnl Many compilers accept '-Ldir' just like most C compilers.  
+dnl Unfortunately, some (such as some HPUX Fortran compilers) do not, 
+dnl and require instead either '-Wl,-L,dir' or something else.  This
+dnl command attempts to determine what is accepted.  The flag is 
+dnl placed into 'F77_LIBDIR_LEADER'.
+dnl
+dnl D*/
+dnl
+dnl An earlier version of this only tried the arguments without using
+dnl a library.  This failed when the HP compiler complained about the
+dnl arguments, but produced an executable anyway.  
+AC_DEFUN(PAC_PROG_F77_LIBRARY_DIR_FLAG,[
+if test "X$F77_LIBDIR_LEADER" = "X" ; then
+AC_CACHE_CHECK([for Fortran 77 flag for library directories],
+pac_cv_prog_f77_library_dir_flag,
+[
+    
+    rm -f conftest.* conftest1.* 
+    cat > conftest.f <<EOF
+        program main
+        call f1conf
+        end
+EOF
+    cat > conftest1.f <<EOF
+        subroutine f1conf
+        end
+EOF
+dnl Build library
+    ac_fcompileforlib='${F77-f77} -c $FFLAGS conftest1.f 1>&AC_FD_CC'
+    if AC_TRY_EVAL(ac_fcompileforlib) && test -s conftest1.o ; then
+        if test ! -d conftest ; then mkdir conftest2 ; fi
+	dnl Use arcmd incase AR is defined as "ar cr"
+        AC_TRY_COMMAND(${ARCMD-"ar"} cr conftest2/libconftest.a conftest1.o)
+        AC_TRY_COMMAND(${RANLIB-ranlib} conftest2/libconftest.a)
+        ac_fcompileldtest='${F77-f77} -o conftest $FFLAGS ${ldir}conftest2 conftest.f -lconftest $LDFLAGS 1>&AC_FD_CC'
+        for ldir in "-L" "-Wl,-L," ; do
+            if AC_TRY_EVAL(ac_fcompileldtest) && test -s conftest ; then
+	        pac_cv_prog_f77_library_dir_flag="$ldir"
+	        break
+            fi
+        done
+        rm -rf ./conftest2
+    else
+        echo "configure: failed program was:" >&AC_FD_CC
+        cat conftest1.f >&AC_FD_CC
+    fi
+    rm -f conftest*
+])
+    AC_SUBST(F77_LIBDIR_LEADER)
+    if test "X$pac_cv_prog_f77_library_dir_flag" != "X" ; then
+        F77_LIBDIR_LEADER="$pac_cv_prog_f77_library_dir_flag"
+    fi
+fi
+])
+dnl/*D 
+dnl PAC_PROG_F77_HAS_INCDIR - Check whether Fortran accepts -Idir flag
+dnl
+dnl Syntax:
+dnl   PAC_PROG_F77_HAS_INCDIR(directory,action-if-true,action-if-false)
+dnl
+dnl Output Effect:
+dnl  Sets 'F77_INCDIR' to the flag used to choose the directory.  
+dnl
+dnl Notes:
+dnl This refers to the handling of the common Fortran include extension,
+dnl not to the use of '#include' with the C preprocessor.
+dnl If directory does not exist, it will be created.  In that case, the 
+dnl directory should be a direct descendant of the current directory.
+dnl
+dnl D*/ 
+AC_DEFUN(PAC_PROG_F77_HAS_INCDIR,[
+checkdir=$1
+AC_CACHE_CHECK([for include directory flag for Fortran],
+pac_cv_prog_f77_has_incdir,[
+if test ! -d $checkdir ; then mkdir $checkdir ; fi
+cat >$checkdir/conftestf.h <<EOF
+       call sub()
+EOF
+cat >conftest.f <<EOF
+       program main
+       include 'conftestf.h'
+       end
+EOF
+
+ac_fcompiletest='${F77-f77} -c $FFLAGS ${idir}$checkdir conftest.f 1>&AC_FD_CC'
+pac_cv_prog_f77_has_incdir="none"
+# SGI wants -Wf,-I
+for idir in "-I" "-Wf,-I" ; do
+    if AC_TRY_EVAL(ac_fcompiletest) && test -s conftest.o ; then
+        pac_cv_prog_f77_has_incdir="$idir"
+	break
+    fi
+done
+rm -f conftest*
+rm -f $checkdir/conftestf.h
+])
+AC_SUBST(F77_INCDIR)
+if test "X$pac_cv_prog_f77_has_incdir" != "Xnone" ; then
+    F77_INCDIR="$pac_cv_prog_f77_has_incdir"
+fi
+])
+dnl
+dnl/*D
+dnl PAC_PROG_F77_ALLOWS_UNUSED_EXTERNALS - Check whether the Fortran compiler
+dnl allows unused and undefined functions to be listed in an external 
+dnl statement
+dnl
+dnl Syntax:
+dnl   PAC_PROG_F77_ALLOWS_UNUSED_EXTERNALS(action-if-true,action-if-false)
+dnl
+dnl D*/
+AC_DEFUN(PAC_PROG_F77_ALLOWS_UNUSED_EXTERNALS,[
+AC_CACHE_CHECK([whether Fortran allows unused externals],
+pac_cv_prog_f77_allows_unused_externals,[
+AC_LANG_SAVE
+AC_LANG_FORTRAN77
+dnl We can't use TRY_LINK, because it wants a routine name, not a 
+dnl declaration.  The following is the body of TRY_LINK, slightly modified.
+cat > conftest.$ac_ext <<EOF
+       program main
+       external bar
+       end
+EOF
+if AC_TRY_EVAL(ac_link) && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  pac_cv_prog_f77_allows_unused_externals="yes"
+else
+  echo "configure: failed program was:" >&AC_FD_CC
+  cat conftest.$ac_ext >&AC_FD_CC
+  rm -rf conftest*
+  pac_cv_prog_f77_allows_unused_externals="no"
+  $4
+fi
+rm -f conftest*
+#
+AC_LANG_RESTORE
+])
+if test "X$pac_cv_prog_f77_allows_unused_externals" = "Xyes" ; then
+   ifelse([$1],,:,[$1])
+else
+   ifelse([$2],,:,[$2])
+fi
+])
+dnl /*D 
+dnl PAC_PROG_F77_HAS_POINTER - Determine if Fortran allows pointer type
+dnl
+dnl Synopsis:
+dnl   PAC_PROG_F77_HAS_POINTER(action-if-true,action-if-false)
+dnl D*/
+AC_DEFUN(PAC_PROG_F77_HAS_POINTER,[
+AC_CACHE_CHECK([whether Fortran has pointer declaration],
+pac_cv_prog_f77_has_pointer,[
+AC_LANG_SAVE
+AC_LANG_FORTRAN77
+AC_TRY_COMPILE(,[
+        integer M
+        pointer (MPTR,M)
+        data MPTR/0/
+],pac_cv_prog_f77_has_pointer="yes",pac_cv_prog_f77_has_pointer="no")
+AC_LANG_RESTORE
+])
+if test "$pac_cv_prog_f77_has_pointer" = "yes" ; then
+    ifelse([$1],,:,[$1])
+else
+    ifelse([$2],,:,[$2])
+fi
+])
+dnl
+dnl pac_prog_f77_run_proc_from_c( c main program, fortran routine, 
+dnl                               action-if-works, action-if-fails, 
+dnl                               cross-action )
+dnl Fortran routine MUST be named ftest unless you include code
+dnl to select the appropriate Fortran name.
+dnl 
+AC_DEFUN(PAC_PROG_F77_RUN_PROC_FROM_C,[
+/bin/rm -f conftest*
+cat <<EOF > conftest.f
+$2
+EOF
+dnl
+if test "X$ac_fcompile" = "X" ; then
+    ac_fcompile='${F77-f77} -c $FFLAGS conftest.f 1>&AC_FD_CC'
+fi
+if AC_TRY_EVAL(ac_fcompile) && test -s conftest.o ; then
+    mv conftest.o conftestf.o
+    AC_LANG_SAVE
+    AC_LANG_C
+    save_LIBS="$LIBS"
+    LIBS="conftestf.o $FLIBS $LIBS"
+    AC_TRY_RUN([#include <stdio.h>
+#ifdef F77_NAME_UPPER
+#define ftest_ FTEST
+#elif defined(F77_NAME_LOWER) || defined(F77_NAME_MIXED)
+#define ftest_ ftest
+#endif
+$1
+], [$3], [$4], [$5] )
+    LIBS="$save_LIBS"
+    AC_LANG_RESTORE
+else 
+    echo "configure: failed program was:" >&AC_FD_CC
+    cat conftest.f >&AC_FD_CC
+fi
+rm -f conftest*
+])
+dnl
+dnl PAC_PROG_F77_IN_C_LIBS
+dnl
+dnl Find the essential libraries that are needed to use the C linker to 
+dnl create a program that includes a trival Fortran code.  
+dnl
+dnl For example, all pgf90 compiled objects include a reference to the
+dnl symbol pgf90_compiled, found in libpgf90 .
+dnl
+dnl There is an additional problem.  To *run* programs, we may need 
+dnl additional arguments; e.g., if shared libraries are used.  Even
+dnl with autoconf 2.52, the autoconf macro to find the library arguments
+dnl doesn't handle this, either by detecting the use of -rpath or
+dnl by trying to *run* a trivial program.  It only checks for *linking*.
+dnl 
+dnl
+AC_DEFUN(PAC_PROG_F77_IN_C_LIBS,[
+AC_MSG_CHECKING([what Fortran libraries are needed to link C with Fortran])
+F77_IN_C_LIBS="$FLIBS"
+/bin/rm -f conftest*
+cat <<EOF > conftest.f
+        subroutine ftest
+        end
+EOF
+dnl
+if test "X$ac_fcompile" = "X" ; then
+    ac_fcompile='${F77-f77} -c $FFLAGS conftest.f 1>&AC_FD_CC'
+fi
+if AC_TRY_EVAL(ac_fcompile) && test -s conftest.o ; then
+    mv conftest.o mconftestf.o
+    AC_LANG_SAVE
+    AC_LANG_C
+    save_LIBS="$LIBS"
+    dnl First try with no libraries
+    LIBS="mconftestf.o $save_LIBS"
+    AC_TRY_LINK([#include <stdio.h>],[
+#ifdef F77_NAME_UPPER
+#define ftest_ FTEST
+#elif defined(F77_NAME_LOWER) || defined(F77_NAME_MIXED)
+#define ftest_ ftest
+#endif
+ftest_();
+], [link_worked=yes], [link_worked=no] )
+    if test "$link_worked" = "no" ; then
+        flibdirs=`echo $FLIBS | tr ' ' '\012' | grep '\-L' | tr '\012' ' '`
+        fliblibs=`echo $FLIBS | tr ' ' '\012' | grep -v '\-L' | tr '\012' ' '`
+        for flibs in $fliblibs ; do
+            LIBS="mconftestf.o $flibdirs $flibs $save_LIBS"
+            AC_TRY_LINK([#include <stdio.h>],[
+#ifdef F77_NAME_UPPER
+#define ftest_ FTEST
+#elif defined(F77_NAME_LOWER) || defined(F77_NAME_MIXED)
+#define ftest_ ftest
+#endif
+ftest_();
+], [link_worked=yes], [link_worked=no] )
+            if test "$link_worked" = "yes" ; then 
+	        F77_IN_C_LIBS="$flibdirs $flibs"
+                break
+            fi
+        done
+    if test "$link_worked" = "no" ; then
+	# try to add libraries until it works...
+        flibscat=""
+        for flibs in $fliblibs ; do
+	    flibscat="$flibscat $flibs"
+            LIBS="mconftestf.o $flibdirs $flibscat $save_LIBS"
+            AC_TRY_LINK([#include <stdio.h>],[
+#ifdef F77_NAME_UPPER
+#define ftest_ FTEST
+#elif defined(F77_NAME_LOWER) || defined(F77_NAME_MIXED)
+#define ftest_ ftest
+#endif
+ftest_();
+], [link_worked=yes], [link_worked=no] )
+            if test "$link_worked" = "yes" ; then 
+	        F77_IN_C_LIBS="$flibdirs $flibscat"
+                break
+            fi
+        done
+    fi
+    else
+	# No libraries needed
+	F77_IN_C_LIBS=""
+    fi
+    LIBS="$save_LIBS"
+    AC_LANG_RESTORE
+else 
+    echo "configure: failed program was:" >&AC_FD_CC
+    cat conftest.f >&AC_FD_CC
+fi
+rm -f conftest* mconftest*
+if test -z "$F77_IN_C_LIBS" ; then
+    AC_MSG_RESULT(none)
+else
+    AC_MSG_RESULT($F77_IN_C_LIBS)
+fi
+])
+dnl
+dnl Test to see if we should use C or Fortran to link programs whose
+dnl main program is in Fortran.  We may find that neither work because 
+dnl we need special libraries in each case.
+dnl
+AC_DEFUN([PAC_PROG_F77_LINKER_WITH_C],[
+AC_TRY_COMPILE(,
+long long a;,AC_DEFINE(HAVE_LONG_LONG,1,[Define if long long allowed]))
+AC_MSG_CHECKING([for linker for Fortran main programs])
+dnl
+dnl Create a program that uses multiplication and division in case
+dnl that requires special libraries
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#ifdef HAVE_LONG_LONG
+int f(int a, long long b) { int c; c = a * ( b / 3 ) / (b-1); return c ; }
+#else
+int f(int a, long b) { int c; c = a * b / (b-1); return c ; }
+#endif
+EOF
+AC_LANG_SAVE
+AC_LANG_C
+if AC_TRY_EVAL(ac_compile); then
+    mv conftest.o conftest1.o
+else
+    AC_MSG_ERROR([Could not compile C test program])
+fi
+AC_LANG_FORTRAN77
+cat > conftest.f <<EOF
+        program main
+        double precision d
+        print *, "hi"
+        end
+EOF
+if AC_TRY_EVAL(ac_compile); then
+    if ${F77} -o conftest conftest.o conftest1.o $LDFLAGS 2>&AC_FD_CC ; then
+	AC_MSG_RESULT([Use Fortran to link programs])
+    elif ${CC} -o conftest conftest.o conftest1.o $LDFLAGS $FLIBS 2>&AC_FD_CC ; then
+	AC_MSG_RESULT([Use C with FLIBS to link programs])
+	F77LINKER="$CC"
+        F77_LDFLAGS="$F77_LDFLAGS $FLIBS"
+    else
+	AC_MSG_RESULT([Unable to determine how to link Fortran programs with C])
+    fi
+else
+    AC_MSG_ERROR([Could not compile Fortran test program])
+fi
+AC_LANG_RESTORE
+])
+dnl
+dnl
+dnl
+AC_DEFUN(PAC_PROG_F77_CHECK_FLIBS,
+[AC_MSG_CHECKING([whether C can link with $FLIBS])
+# Try to link a C program with all of these libraries
+save_LIBS="$LIBS"
+LIBS="$LIBS $FLIBS"
+AC_TRY_LINK(,[int a;],runs=yes,runs=no)
+LIBS="$save_LIBS"
+AC_MSG_RESULT($runs)
+if test "$runs" = "no" ; then
+    AC_MSG_CHECKING([which libraries can be used])
+    pac_ldirs=""
+    pac_libs=""
+    pac_other=""
+    for name in $FLIBS ; do
+        case $name in 
+        -l*) pac_libs="$pac_libs $name" ;;
+        -L*) pac_ldirs="$pac_ldirs $name" ;;
+        *)   pac_other="$pac_other $name" ;;
+        esac
+    done
+    save_LIBS="$LIBS"
+    keep_libs=""
+    for name in $pac_libs ; do 
+        LIBS="$save_LIBS $pac_ldirs $pac_other $name"
+        AC_TRY_LINK(,[int a;],runs=yes,runs=no)
+        if test $runs = "yes" ; then keep_libs="$keep_libs $name" ; fi
+    done
+    AC_MSG_RESULT($keep_libs)
+    LIBS="$save_LIBS"
+    FLIBS="$pac_ldirs $pac_other $keep_libs"
+fi
+])
+AC_DEFUN(PAC_PROG_F77_NEW_CHAR_DECL,[
+AC_CACHE_CHECK([whether Fortran supports new-style character declarations],
+pac_cv_prog_f77_new_char_decl,[
+AC_LANG_SAVE
+AC_LANG_FORTRAN77
+AC_TRY_COMPILE(,[
+        character (len=10) s
+],pac_cv_prog_f77_new_char_decl="yes",
+pac_cv_prog_f77_new_char_decl="no")
+AC_LANG_RESTORE
+])
+if test "$pac_cv_prog_f77_new_char_decl" = "yes" ; then
+    ifelse([$1],,:,$1)
+else
+    ifelse([$2],,:,$2)
+fi
+])dnl
+
+AC_DEFUN([PAC_PROG_F77_CHAR_PARM],[
+#
+# We need to check on how character variables are passed.  If they 
+# are *not* passed at the end of the list, we need to know that NOW!
+case $pac_cv_prog_f77_name_mangle in 
+    mixed|lower)
+    sub1=sub
+    sub2=conffoo
+    ;;
+    upper)
+    sub1=SUB
+    sub2=CONFFOO
+    ;;
+    *)
+    sub1=sub_
+    sub2=conffoo_
+    ;;
+esac
+
+cat > conftest.c <<EOF
+#include <stdio.h>
+int loc = -1;
+void $sub1( char *a, int b, int c )
+{
+    if (b == 10) {
+    loc = 2;
+    }
+    if (c == 10) {
+    loc = 3;
+    }
+}
+int main( int argc, char **argv )
+{
+    int a, b, c;
+    $sub2();
+    printf( "%d\n", loc );
+}
+EOF
+cat > conftest1.f <<EOF
+        subroutine conffoo()
+        character a*10
+        a = "Foo"
+	call sub( a, 20 )
+        end
+EOF
+rm conftest*
+])
+
 
 dnl
 dnl We need routines to check that make works.  Possible problems with
@@ -2498,7 +4295,11 @@ else
 fi
 ])dnl
 dnl/*D
+dnl PAC_PROG_MAKE_CLOCK_SKEW - Check whether there is a problem with 
+dnl clock skew in suing make.
 dnl
+dnl Effect:
+dnl Sets the cache variable 'pac_cv_prog_make_found_clock_skew' to yes or no
 dnl D*/
 AC_DEFUN(PAC_PROG_MAKE_CLOCK_SKEW,[
 AC_CACHE_CHECK([whether clock skew breaks make],
@@ -2784,7 +4585,7 @@ dnl any effect.
 dnl
 dnl See also:
 dnl PAC_LANG_PUSH_COMPILERS
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_LANG_POP_COMPILERS,[
 pac_save_level=`expr $pac_save_level - 1`
 if test "X$pac_save_level" = "X0" ; then

@@ -6,6 +6,8 @@
 #include "mpid.h"
 #include "mpiddev.h"
 #include "mpimem.h"
+/* MPID_Process_group_init defined in session.h */
+#include "session.h"
 
 int __P4FROM, __P4LEN, __P4TYPE, __P4GLOBALTYPE;
 

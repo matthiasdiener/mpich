@@ -1,0 +1,3 @@
+Makefile
+*.o
+p4_config.h

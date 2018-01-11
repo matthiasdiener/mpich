@@ -95,7 +95,13 @@ void DatabaseServerThread(DatabaseServer *pServer)
 			cArg->sock = temp_socket;
 			cArg->sock_event = temp_event;
 			cArg->pServer = pServer;
-			hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)DatabaseClientThread, cArg, 0, &dwThreadID);
+			for (int i=0; i<DBS_CREATE_THREAD_RETRIES; i++)
+			{
+			    hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)DatabaseClientThread, cArg, 0, &dwThreadID);
+			    if (hThread != NULL)
+				break;
+			    Sleep(DBS_CREATE_THREAD_SLEEP_TIME);
+			}
 			if (hThread == NULL)
 			{
 				delete cArg;

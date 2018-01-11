@@ -22,6 +22,14 @@
 
  *****************************************************************************/
 
+/* Forward ref prototypes */
+void *malloc_check(size_t sz);
+double
+measure_latency(int reps, int root_proc, int proc, int my_pid);
+double
+measure_oper_latency_in_bcast(int len, int reps, int root_proc, int proc,
+                              int my_pid);
+
 /*****************************************************************************
  
  Here are the test functions for the collective (global) operations

@@ -1,0 +1,13 @@
+Makefile
+config.status
+config.cache
+config.log
+lib
+mpeconf.h
+config.guess
+install-sh
+mpe.ncb
+mpe.opt
+mpe.plg
+Debug
+Release

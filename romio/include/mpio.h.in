@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: mpio.h.in,v 1.15 2002/10/17 21:20:13 gropp Exp $    
+ *   $Id: mpio.h.in,v 1.24 2004/02/29 18:31:14 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -17,7 +17,7 @@
 extern "C" {
 #endif
 
-#define ROMIO_VERSION 124 /* version 1.2.4 */
+#define ROMIO_VERSION 126 /* version 1.2.6 */
 
 /* define MPI-IO datatypes and constants */
 
@@ -25,10 +25,19 @@ extern "C" {
 typedef struct ADIOI_FileD *MPI_File;
 #endif
 
-/* no generalized requests as yet */
-#ifndef HAVE_MPI_PREQUEST
+@DEFINE_HAVE_MPI_GREQUEST@
+#ifndef HAVE_MPI_GREQUEST
 typedef struct ADIOI_RequestD *MPIO_Request;  
+#else
+#define MPIO_Request MPI_Request
+#define MPIO_USES_MPI_REQUEST
+/* Also rename the MPIO routines to get the MPI versions */
+#define MPIO_Wait MPI_Wait
+#define MPIO_Test MPI_Test
+#define PMPIO_Wait PMPI_Wait
+#define PMPIO_Test PMPI_Test
 #endif
+#define MPIO_REQUEST_DEFINED
 
 #ifndef HAVE_MPI_OFFSET
 @DEFINE_MPI_OFFSET@
@@ -63,7 +72,12 @@ typedef int MPI_Fint;
 
 #define MPI_DISPLACEMENT_CURRENT   -54278278
 
+/* #ifndef MPICH2 */
+/* FIXME: Make sure that we get a consistent definition of MPI_FILE_NULL
+	in MPICH2 */
+/* MPICH2 defines null object handles differently */
 #define MPI_FILE_NULL           ((MPI_File) 0)
+/* #endif */
 #define MPIO_REQUEST_NULL       ((MPIO_Request) 0)
 
 #define MPI_SEEK_SET            600
@@ -201,8 +215,11 @@ int MPI_File_get_atomicity(MPI_File fh, int *flag);
 int MPI_File_sync(MPI_File fh);
 
 /* Section 4.13.3 */
+#ifndef MPICH2
+/* MPICH2 provides these definitions */
 int MPI_File_set_errhandler( MPI_File, MPI_Errhandler );
 int MPI_File_get_errhandler( MPI_File, MPI_Errhandler * );
+#endif
 /* End Prototypes */
 
 #ifndef HAVE_MPI_DARRAY_SUBARRAY
@@ -240,6 +257,13 @@ MPI_Fint MPI_File_c2f(MPI_File fh);
    after generalized requests are implemented. */
 int MPIO_Test(MPIO_Request *request, int *flag, MPI_Status *status);
 int MPIO_Wait(MPIO_Request *request, MPI_Status *status);
+int MPIO_Testall(int count, MPIO_Request *request, int *flag, MPI_Status *status);
+int MPIO_Waitall(int count, MPIO_Request *request, MPI_Status *status);
+int MPIO_Testany(int count, MPIO_Request *request, int *index, int *flag, MPI_Status *status);
+int MPIO_Waitany(int count, MPIO_Request *request, int *index, MPI_Status *status);
+int MPIO_Waitsome(int, MPIO_Request *, int *, int *, MPI_Status *);
+int MPIO_Testsome(int, MPIO_Request *, int *, int *, MPI_Status *);
+
 MPI_Fint MPIO_Request_c2f(MPIO_Request request);
 MPIO_Request MPIO_Request_f2c(MPI_Fint request);
 
@@ -389,8 +413,11 @@ int PMPI_File_get_atomicity(MPI_File fh, int *flag);
 int PMPI_File_sync(MPI_File fh);
 
 /* Section 4.13.3 */
+#ifndef MPICH2
+/* MPICH2 provides these definitions */
 int PMPI_File_set_errhandler( MPI_File, MPI_Errhandler );
 int PMPI_File_get_errhandler( MPI_File, MPI_Errhandler * );
+#endif
 
 #ifndef HAVE_MPI_DARRAY_SUBARRAY
 /* Section 4.14.4 */
@@ -414,6 +441,12 @@ MPI_Fint PMPI_File_c2f(MPI_File fh);
    after generalized requests are implemented. */
 int PMPIO_Test(MPIO_Request *request, int *flag, MPI_Status *status);
 int PMPIO_Wait(MPIO_Request *request, MPI_Status *status);
+int PMPIO_Testall(int count, MPIO_Request *request, int *flag, MPI_Status *status);
+int PMPIO_Waitall(int count, MPIO_Request *request, MPI_Status *status);
+int PMPIO_Testany(int count, MPIO_Request *request, int *index, int *flag, MPI_Status *status);
+int PMPIO_Waitany(int count, MPIO_Request *request, int *index, MPI_Status *status);
+int PMPIO_Waitsome(int, MPIO_Request *, int *, int *, MPI_Status *);
+int PMPIO_Testsome(int, MPIO_Request *, int *, int *, MPI_Status *);
 MPI_Fint PMPIO_Request_c2f(MPIO_Request request);
 MPIO_Request PMPIO_Request_f2c(MPI_Fint request);
 

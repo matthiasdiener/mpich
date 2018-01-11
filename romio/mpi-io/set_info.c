@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: set_info.c,v 1.8 2002/10/24 15:54:43 gropp Exp $    
+ *   $Id: set_info.c,v 1.10 2003/04/05 07:53:02 David Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

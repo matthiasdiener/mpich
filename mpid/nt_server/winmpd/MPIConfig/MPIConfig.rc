@@ -75,61 +75,6 @@ IDI_ICON_YES            ICON    DISCARDABLE     "res\\ico00001.ico"
 // Dialog
 //
 
-IDD_MPICONFIG_DIALOG DIALOGEX 0, 0, 528, 225
-STYLE WS_MINIMIZEBOX | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU | 
-    WS_THICKFRAME
-EXSTYLE WS_EX_APPWINDOW
-CAPTION "MPI Configuration Tool"
-FONT 8, "MS Sans Serif", 0, 0, 0x1
-BEGIN
-    EDITTEXT        IDC_HOSTNAME,11,17,51,14,ES_AUTOHSCROLL
-    DEFPUSHBUTTON   "&Add",IDC_EDIT_ADD_BTN,65,17,35,14
-    CONTROL         "HOSTS: Used by mpirun to determine hostnames for the -np option",
-                    IDC_HOSTS_CHK,"Button",BS_AUTOCHECKBOX | BS_MULTILINE | 
-                    WS_TABSTOP,158,22,173,23
-    CONTROL         "TEMP :",IDC_TEMP_CHK,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,158,54,40,10
-    EDITTEXT        IDC_TEMP_EDIT,199,52,131,14,ES_AUTOHSCROLL
-    CONTROL         "Launch timeout in seconds:",IDC_TIMEOUT_CHK,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,158,94,103,10
-    EDITTEXT        IDC_LAUNCH_TIMEOUT,273,93,57,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "&Apply",IDC_SET_BTN,355,93,40,14
-    GROUPBOX        "",IDC_PHRASE_STATIC,361,31,150,53,WS_GROUP
-    CONTROL         "",IDC_PHRASE_RADIO,"Button",BS_AUTORADIOBUTTON,367,43,
-                    10,8
-    EDITTEXT        IDC_PASSWORD,380,41,120,14,ES_PASSWORD | ES_AUTOHSCROLL
-    CONTROL         "I installed using the default passphrase",
-                    IDC_DEFAULT_RADIO,"Button",BS_AUTORADIOBUTTON,367,66,137,
-                    10
-    PUSHBUTTON      "&OK",IDOK,471,188,50,14
-    PUSHBUTTON      "&Cancel",IDCANCEL,471,204,50,14
-    LISTBOX         IDC_HOST_LIST,11,34,89,178,LBS_SORT | 
-                    LBS_NOINTEGRALHEIGHT | LBS_WANTKEYBOARDINPUT | 
-                    WS_VSCROLL | WS_TABSTOP
-    GROUPBOX        "1) Select the hosts to configure",IDC_ONE_STATIC,7,7,
-                    138,211
-    GROUPBOX        "2) Select the options to set",IDC_TWO_STATIC,151,7,186,
-                    110
-    LTEXT           "This directory is used for temporary files at process startup.  It must be read/write-able by all users",
-                    IDC_TEMP_STATIC,172,68,158,24
-    GROUPBOX        "3) Apply the options",IDC_THREE_STATIC,342,7,179,126
-    LTEXT           "Set the selected options",IDC_APPLY_STATIC,399,95,77,8
-    LTEXT           "Enter the password to connect to the remote mpd's",
-                    IDC_PWD_STATIC,353,19,165,12
-    CONTROL         133,IDC_STOPLIGHT_RED,"Static",SS_BITMAP,482,95,30,10
-    CONTROL         135,IDC_STOPLIGHT_GREEN,"Static",SS_BITMAP,482,95,30,10
-    CONTROL         134,IDC_STOPLIGHT_YELLOW,"Static",SS_BITMAP,482,95,30,10
-    CONTROL         "Show host configuration",IDC_SHOW_HOST_CHK,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,151,125,92,10
-    EDITTEXT        IDC_HOST_CONFIG,151,136,313,82,ES_MULTILINE | 
-                    ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY | 
-                    WS_VSCROLL
-    PUSHBUTTON      "Apply &single",IDC_SET_ONE_BTN,355,111,47,14
-    LTEXT           "Set the selected options on the highlighted host only",
-                    IDC_APPLY_ONE_STATIC,408,113,106,16
-    PUSHBUTTON      "&Select",IDC_SELECT_BTN,105,17,35,14
-END
-
 IDD_SET_DIALOG DIALOG DISCARDABLE  0, 0, 186, 121
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION
 CAPTION "MPICH Registry settings"
@@ -218,7 +163,7 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,88,98,10
 END
 
-IDD_CONFIG_DLG DIALOG DISCARDABLE  0, 0, 465, 342
+IDD_CONFIG_DLG DIALOG DISCARDABLE  0, 0, 465, 359
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION
 CAPTION "MPICH Configuration"
 FONT 8, "MS Sans Serif"
@@ -282,14 +227,14 @@ BEGIN
     CONTROL         "I installed using the default passphrase",
                     IDC_MPD_PHRASE_DEFAULT_RADIO,"Button",BS_AUTORADIOBUTTON | 
                     BS_MULTILINE,21,266,79,18
-    PUSHBUTTON      "A&pply",IDC_APPLY_BTN,154,271,33,14
-    LTEXT           "Set the selected options",IDC_APPLY_STATIC,194,274,77,8
-    PUSHBUTTON      "Apply Single",IDC_APPLY_SINGLE_BTN,154,288,50,14
+    PUSHBUTTON      "A&pply",IDC_APPLY_BTN,154,290,33,14
+    LTEXT           "Set the selected options",IDC_APPLY_STATIC,194,293,77,8
+    PUSHBUTTON      "Apply Single",IDC_APPLY_SINGLE_BTN,154,307,50,14
     LTEXT           "Set the selected options on the highlighted host only",
-                    IDC_APPLY_SINGLE_STATIC,209,287,67,27
-    RTEXT           "",IDC_N_OF_M_STATIC,157,321,47,8
+                    IDC_APPLY_SINGLE_STATIC,209,306,67,27
+    RTEXT           "",IDC_N_OF_M_STATIC,157,340,47,8
     CONTROL         "Progress1",IDC_PROGRESS,"msctls_progress32",PBS_SMOOTH | 
-                    WS_BORDER,208,322,67,6
+                    WS_BORDER,208,341,67,6
     CONTROL         "Show configuration:",IDC_SHOW_CONFIG_CHK,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,326,10,76,10
     PUSHBUTTON      "v",IDC_HOST_TOGGLE_BTN,325,31,10,9
@@ -334,15 +279,15 @@ BEGIN
                     BS_PUSHLIKE | WS_TABSTOP,344,192,19,11
     CONTROL         "no",IDC_HOST_POPUP_DEBUG_NO,"Button",BS_AUTOCHECKBOX | 
                     BS_PUSHLIKE | WS_TABSTOP,365,192,19,11
-    PUSHBUTTON      "Modify",IDC_MODIFY_BTN,330,274,35,14
+    PUSHBUTTON      "Modify",IDC_MODIFY_BTN,330,293,35,14
     LTEXT           "Modify the selected options on the above host only",
-                    IDC_MODIFY_STATIC,368,272,90,18
-    PUSHBUTTON      "OK",IDOK,408,302,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,408,320,50,14
+                    IDC_MODIFY_STATIC,368,291,90,18
+    PUSHBUTTON      "OK",IDOK,408,321,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,408,339,50,14
     GROUPBOX        "1) Select the hosts to configure",IDC_ONE_STATIC,7,7,
                     138,211
     GROUPBOX        "2) Select the options to set and their values",
-                    IDC_TWO_STATIC,149,7,172,328
+                    IDC_TWO_STATIC,149,7,172,345
     CTEXT           "",IDC_HOST_STATIC,339,20,119,8
     CONTROL         "List1",IDC_HOST_LIST,"SysListView32",LVS_LIST | 
                     LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | 
@@ -390,6 +335,18 @@ BEGIN
     CONTROL         "no",IDC_HOST_REDIRECT_MPD_NO,"Button",BS_AUTOCHECKBOX | 
                     BS_PUSHLIKE | WS_TABSTOP,366,239,19,11
     EDITTEXT        IDC_HOST_REDIRECT_MPD_EDIT,344,251,104,14,ES_AUTOHSCROLL
+    CONTROL         "enable -localroot option by default",IDC_LOCALROOT_CHK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,156,268,118,10
+    CONTROL         "yes",IDC_LOCALROOT_YES,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,276,268,19,11
+    CONTROL         "no",IDC_LOCALROOT_NO,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,298,268,19,11
+    CONTROL         "",IDC_HOST_LOCALROOT_CHK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,326,270,12,8
+    CONTROL         "yes",IDC_HOST_LOCALROOT_YES,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,344,268,19,11
+    CONTROL         "no",IDC_HOST_LOCALROOT_NO,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,366,268,19,11
 END
 
 IDD_WILDCARD_DLG DIALOG DISCARDABLE  0, 0, 186, 57
@@ -459,14 +416,6 @@ END
 #ifdef APSTUDIO_INVOKED
 GUIDELINES DESIGNINFO DISCARDABLE 
 BEGIN
-    IDD_MPICONFIG_DIALOG, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 521
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 218
-    END
-
     IDD_SET_DIALOG, DIALOG
     BEGIN
         LEFTMARGIN, 7
@@ -512,7 +461,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 458
         TOPMARGIN, 7
-        BOTTOMMARGIN, 335
+        BOTTOMMARGIN, 352
     END
 
     IDD_WILDCARD_DLG, DIALOG

@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: close.c,v 1.8 2002/10/24 17:01:16 gropp Exp $    
+ *   $Id: close.c,v 1.12 2004/04/06 18:46:31 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -53,8 +53,12 @@ int MPI_File_close(MPI_File *fh)
     ADIOI_TEST_FILE_HANDLE(*fh, myname);
 #endif
 
-    if (((*fh)->file_system != ADIO_PIOFS) && ((*fh)->file_system != ADIO_PVFS)) {
+    if (((*fh)->file_system != ADIO_PIOFS) && ((*fh)->file_system != ADIO_PVFS) && ((*fh)->file_system != ADIO_PVFS2)) {
 	ADIOI_Free((*fh)->shared_fp_fname);
+        /* need a barrier because the file containing the shared file
+        pointer is opened with COMM_SELF. We don't want it to be
+	deleted while others are still accessing it. */ 
+        MPI_Barrier((*fh)->comm);
 	if ((*fh)->shared_fp_fd != ADIO_FILE_NULL)
 	    ADIO_Close((*fh)->shared_fp_fd, &error_code);
     }

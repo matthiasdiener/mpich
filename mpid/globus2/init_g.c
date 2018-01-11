@@ -4,6 +4,12 @@
 #   define INET6
 #endif
 
+#include "chconfig.h"
+#include "globus_duroc_runtime.h"
+#include "globus_duroc_bootstrap.h"
+#include "globus_gram_myjob.h"
+#include "globus_gram_client.h"
+
 #include <strings.h>   /* for index */
 #include <sys/time.h> /* for gettimeofday() */
 
@@ -12,13 +18,10 @@
 
 extern int MPICHX_PARALLELSOCKETS_PARAMETERS; /* GRIDFTP */
 
-#include <globus_duroc_runtime.h>
-#include <globus_duroc_bootstrap.h>
-#include <globus_gram_myjob.h>
-#include <globus_gram_client.h> /* for MPID_Abort */
 #include "globdev.h"
 #include "reqalloc.h"
 #include "sendq.h"
+#include "queue.h"
 
 /* Include files to discover the appropriate network interface */
 #include <sys/types.h>
@@ -2839,12 +2842,22 @@ static void intra_subjob_send(int dest, char *tag_base, int nbytes, char *buff)
     char *bigtag;
     char *t;
     int i;
-    char send_buff[GRAM_MYJOB_MAX_BUFFER_LENGTH];
+    /* NICK: This is a hack because globus_duroc_runtime_intra_subjob_send
+     *       dictates that the tag+message must fit into a buffer the
+     *       size of GRAM_MYJOB_MAX_BUFFER_LENGTH-10 and they ain't 
+     *       likely gonna fix this Globus code ever ... they've moved on 
+     *       to Web-services and have abandonded all this DUROC code for good.
+     */
+    /* char send_buff[GRAM_MYJOB_MAX_BUFFER_LENGTH]; */
+    char send_buff[GRAM_MYJOB_MAX_BUFFER_LENGTH-15];
+    int max_payload_size = GRAM_MYJOB_MAX_BUFFER_LENGTH - 10 
+			    - strlen(tag_base) - 5;
     char *src;
     int bytes_sent;
     int ncpy;
 
-    if (strlen(tag_base) > sizeof(tag)+5)
+
+    if (strlen(tag_base)+5 > sizeof(tag))
     {
 	if (!(bigtag = (char *) globus_libc_malloc(strlen(tag_base)+5)))
 	{
@@ -2863,8 +2876,8 @@ static void intra_subjob_send(int dest, char *tag_base, int nbytes, char *buff)
 
     /* sending as much as i can in the first buffer */
     sprintf(send_buff, "%d ", nbytes);
-    ncpy = sizeof(send_buff)-HEADERLEN < nbytes 
-	    ? sizeof(send_buff)-HEADERLEN 
+    ncpy = max_payload_size-HEADERLEN < nbytes 
+	    ? max_payload_size-HEADERLEN 
 	    : nbytes;
 
     memcpy(send_buff+HEADERLEN, buff, ncpy);
@@ -2879,8 +2892,8 @@ static void intra_subjob_send(int dest, char *tag_base, int nbytes, char *buff)
     /* pushing out remaining data */
     for (i = 1, bytes_sent = ncpy, src = buff+ncpy; bytes_sent < nbytes; i ++)
     {
-	ncpy = sizeof(send_buff) < nbytes-bytes_sent
-		? sizeof(send_buff)
+	ncpy = max_payload_size < nbytes-bytes_sent
+		? max_payload_size
 		: nbytes-bytes_sent;
 	memcpy(send_buff, src, ncpy);
 	sprintf(t, "%s%d", tag_base, i);

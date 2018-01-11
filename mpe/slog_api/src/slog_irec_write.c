@@ -1171,14 +1171,19 @@ int SLOG_Irec_SetMinRec(       SLOG_intvlrec_t  *intvlrec,
 
     if ( SLOG_global_IsOffDiagRec( intvlrec->rectype ) ) {
         va_start( ap, instr_addr );
-#if defined( GCC296_VA_ARG_FIX )
+#if defined( GCC3XX_VA_ARG_FIX )
         dest_node_id      = va_arg( ap, SLOG_uint32 );
         dest_cpu_id       = va_arg( ap, SLOG_uint32 );
         dest_thread_id    = va_arg( ap, SLOG_uint32 );
 #else
-        dest_node_id      = va_arg( ap, SLOG_nodeID_t );
-        dest_cpu_id       = va_arg( ap, SLOG_cpuID_t );
-        dest_thread_id    = va_arg( ap, SLOG_threadID_t );
+	/* Some compilers want the varargs arguments to be ints;
+	   the node and cpu id are defined as uint_16, causing 
+	   compiler warnings.  We should think about passing 
+	   these as uint32 instead (and casting the values cast
+	   to make it clear that the values are uint23) */
+        dest_node_id      = (SLOG_nodeID_t) va_arg( ap, SLOG_nodeID_t );
+        dest_cpu_id       = (SLOG_cpuID_t) va_arg( ap, SLOG_cpuID_t );
+        dest_thread_id    = (SLOG_threadID_t) va_arg( ap, SLOG_threadID_t );
 #endif
         va_end( ap );
         SLOG_TaskID_Assign( &( intvlrec->destID ),

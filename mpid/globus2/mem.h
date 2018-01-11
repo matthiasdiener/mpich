@@ -1,8 +1,6 @@
 #ifndef __glodev_mem__
 #define __glodev_mem__
 
-#include <globus_common.h>
-
 /*******************/
 /* Mem mgmt macros */
 /*******************/

@@ -57,6 +57,8 @@ int MPIR_intra_Scan ( void *sendbuf, void *recvbuf, int count,
   void *partial_scan, *tmp_buf;
   static char myname[] = "MPI_SCAN";
 
+  if (count == 0) return MPI_SUCCESS;
+
   MPIR_Comm_size(comm, &size);
   MPIR_Comm_rank(comm, &rank);
 
@@ -82,7 +84,6 @@ int MPIR_intra_Scan ( void *sendbuf, void *recvbuf, int count,
   MPIR_ALLOC(tmp_buf,(void *)MALLOC(count*extent), comm,
              MPI_ERR_EXHAUSTED, myname);
   /* adjust for potential negative lower bound in datatype */
-  MPI_Type_lb( datatype->self, &lb );
   tmp_buf = (void *)((char*)tmp_buf - lb);
 
   /* Since this is an inclusive scan, copy local contribution into

@@ -179,8 +179,8 @@ void ADIOI_PVFS_WriteStrided(ADIO_File fd, void *buf, int count,
 		    combine_buf_remain -= flat_buf->blocklens[i];
 		    off += flat_buf->blocklens[i]; /* keep up with the final file offset too */
 		}
-		}
 	    }
+	}
 
 	if (combine_buf_ptr != combine_buf) {
 	    /* data left in buffer to write */
@@ -205,7 +205,7 @@ void ADIOI_PVFS_WriteStrided(ADIO_File fd, void *buf, int count,
 			      myname, "I/O Error", "%s", strerror(errno));
 	    ADIOI_Error(fd, *error_code, myname);
 #endif
-    }
+	}
 	else *error_code = MPI_SUCCESS;
     } /* if (!buftype_is_contig && filetype_is_contig)  ... */
 

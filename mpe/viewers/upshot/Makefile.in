@@ -1,6 +1,6 @@
 MAKE   = @MAKE@
 SHELL  = /bin/sh
-RM     = /bin/rm
+RM     = rm
 
 all:
 	@( UPSHOT_BUILD_DIR=`pwd` ; \
@@ -22,5 +22,5 @@ clean:
 distclean: clean uninstall
 	@-$(RM) -f sbin/install-viewer
 	@-$(RM) -f Makefile config.log config.status
-	
+
 

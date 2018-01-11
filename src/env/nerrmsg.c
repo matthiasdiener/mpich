@@ -1,3 +1,9 @@
+/* Include the configure definitions now */
+#ifndef MPICHCONF_INC
+#define MPICHCONF_INC
+#include "mpichconf.h"
+#endif
+
 #ifdef VXWORKS
 #include <types/vxANSI.h>
 #endif

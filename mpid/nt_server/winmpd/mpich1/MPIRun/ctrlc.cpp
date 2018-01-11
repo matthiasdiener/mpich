@@ -81,7 +81,13 @@ BOOL WINAPI CtrlHandlerRoutine(DWORD dwCtrlType)
 	    // if you hit Ctrl-C before all the process threads have been created.
 	    DWORD dwThreadId;
 	    HANDLE hThread;
-	    hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)WaitToBreak, NULL, 0, &dwThreadId);
+	    for (int iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+	    {
+		hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)WaitToBreak, NULL, 0, &dwThreadId);
+		if (hThread != NULL)
+		    break;
+		Sleep(CREATE_THREAD_SLEEP_TIME);
+	    }
 	    if (hThread == NULL)
 		bOK = false;
 	    else

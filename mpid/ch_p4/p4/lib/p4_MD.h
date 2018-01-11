@@ -450,7 +450,7 @@ typedef int MD_lock_t;
 #        define CAN_DO_XDR
 #        define CAN_DO_SHMEM_MSGS
 #        define USE_XX_SHMALLOC
-#        define P4_MAX_MSG_QUEUES 8
+#        define P4_MAX_MSG_QUEUES 64
 #        define P4_MAX_SYSV_SHMIDS  256
 #        define P4_MAX_SYSV_SEMIDS  256
 	 typedef struct { int semid;  int semnum; }   MD_lock_t;
@@ -487,7 +487,7 @@ typedef int MD_lock_t;
 
 #define CAN_DO_SOCKET_MSGS
 #define CAN_DO_XDR
-#define P4_MAX_MSG_QUEUES 8
+#define P4_MAX_MSG_QUEUES 64
 #    define CAN_DO_SHMEM_MSGS
 #    define USE_XX_SHMALLOC
 /* Increase GLOBMEMSIZE to allow more memory.  Not all systems will be 

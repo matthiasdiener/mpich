@@ -106,6 +106,10 @@ SOURCE=.\grph.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\halo.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\mpe_seq.c
 # End Source File
 # Begin Source File
@@ -127,10 +131,6 @@ SOURCE=.\pattern.c
 # Begin Source File
 
 SOURCE=.\rate.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\util.c
 # End Source File
 # End Group
 # Begin Group "Header Files"

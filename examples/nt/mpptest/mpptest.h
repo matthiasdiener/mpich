@@ -4,6 +4,8 @@
 #include "mpptestconf.h"
 
 /* Definitions for pair-wise communication testing */
+typedef double (*TimeFunction)( int, int, void * );
+
 typedef struct _PairData *PairData;
 /* Structure for the collective communication testing */
 typedef struct {
@@ -33,7 +35,17 @@ void CheckTimeLimit( void );
 
 double (*GetPairFunction( int *, char *[], char * ))(int, int, void *);
 double (*GetGOPFunction( int*, char *[], char *, char *))(int, int, void *);
+double (*GetHaloFunction( int *, char *[], void *, char * ))(int, int, void *);
+int GetHaloPartners( void * );
+void PrintHaloHelp( void );
+
+/* copy.c : memcpy test */
 double memcpy_rate( int, int, void *);
+double memcpy_rate_int( int, int, void *);
+double memcpy_rate_double( int, int, void *);
+double memcpy_rate_long_long( int, int, void *);
+double memcpy_rate_double_vector( int, int, void *);
+double memcpy_rate_long_long_vector( int, int, void *);
 
 /* Overlap testing */
 typedef struct {
@@ -62,10 +74,19 @@ void RateoutputGraph( GraphData ctx, double sumlen, double sumtime,
 		      double sumlentime, double sumlen2, double sumtime2, 
 		      int ntest, double *S, double *R );
 void EndPageGraph( GraphData ctx );
+void EndGraph( GraphData ctx );
 void DataoutGraph( GraphData ctx, int proc1, int proc2, int distance, 
 		   int len, double t, double mean_time, double rate,
 		   double tmean, double tmax );
-
+void DataScale( GraphData, int );
+void DrawGraphGop( GraphData ctx, int first, int last, double s, double r, 
+		   int nsizes, int *sizelist );
+void HeaderForGopGraph( GraphData ctx, char *protocol_name, 
+			char *title_string, char *units );
+void DataoutGraphForGop( GraphData ctx, int len, double t, double mean_time, 
+			 double rate, double tmean, double tmax );
+void DataendForGop( GraphData ctx );
+void DatabeginForGop( GraphData ctx, int np );
 
 /* Global operations */
 void PrintGOPHelp( void );
@@ -74,6 +95,9 @@ void PrintGOPHelp( void );
 void PrintPatternHelp( void );
 int GetNeighbor( int, int, int );
 void SetPattern( int *, char *[] );
+int GetMaxIndex( void );
+int GetDestination( int, int, int );
+int GetSource( int, int, int );
 
 /* Prototypes */
 double RunSingleTest( double (*)(int,int,void *), int, int, void *,
@@ -83,9 +107,15 @@ void time_function( int, int, int, int, int, int,
 		    int, int, double, void *);
 void ClearTimes(void);
 
+/* Rate */
+void PIComputeRate( double sumlen, double sumtime, double sumlentime, 
+		    double sumlen2, int ntest, double *s, double *r );
 
 /* MPE Seq */
 void MPE_Seq_begin( MPI_Comm, int );
 void MPE_Seq_end( MPI_Comm, int );
+
+/* gopf.c (goptest) */
+void *GOPInit( int *, char ** );
 
 #endif

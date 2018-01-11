@@ -1,0 +1,92 @@
+This file is to record things that need to be done before releasing 1.2.3
+
+Highly tentative beginning of final tests for 1.2.3 release:  Friday, January 11.
+
+Add things below this line when it is decided that we need to fix them before
+the release.
+--------------------------------------------------------------------------------
+To do:
+
+p4 device:
+     Nothing pending
+	
+MPD:
+     check for buffer overrun at least in setting up mpdmpexec message from
+       console to mpd, and in other dangerous places (dangerous = loop over
+       args)
+     test totalview interface
+	
+MPE:
+     check recent bug report on clog.
+
+
+MPICH-G2:
+    - get mpich-g2 to work with mpich-based vMPI's at least with globus v2.0
+      and if possible globus v1.1.4
+    - update g2 portion of mpich doc.  this should include new installation
+      instructions for globus v2.0
+    - integrate sc01 mods 
+    - talk to joe link about the mods he feels are necessary, 
+      make those changes where appropriate
+    - add checks to of return codes from calls to globus functions
+    - when all done, run test suite in following situations 
+      on number of platforms:
+	- globus v1.1.4; with and without mpich-based vMPI
+	- globus v2.0; with and without mpich-based vMPI
+
+Move things below this line when done.
+---------------------------------------------------------------------------------
+Done:
+
+MPD:
+     fix manual for -MPDLOC- and -MPDENV- options on mpirun
+	Discuss squash format for multiple nodes, both in machinefile and args
+     enable setting of working directory on mpirun command line
+     add set working directory option and replace current incorrect stuff in 
+       manual  (ch_p4mpd manual has ch_p4 working directory info)
+     get mpd crash recovery back into stable state.
+     provide better, user-oriented message for missing .mpdpasswd or .mpd.conf file
+	or wrong permissions on said file
+     add command-line option to store job id in file
+     make running with -np 0 an error (currently hangs)
+
+     make sure mpichboot works as described in the manual
+       It doesn't.  Manual needs to be changed to describe startdaemons
+       instead, and startdaemons needs to be added to install (It gets built
+       in mpich/bin)   
+       -> manual changed and changes tested under Linux
+
+     check whether .mpdpasswd only still works or .mpd.conf is now required
+       -> .mpd.conf is required.  Manual changed to eliminate mention
+       of .mpdpasswd.  
+
+p4 device with comm=shared:  Wycoff patch
+
+p4 device:
+     look into rash of "can't do xdr sends" reports.  Report is that 
+       configure does find xdr but apparently compile var isn't set.  Test.
+       See recent mpi-bugs on HAVE_XDR and HAS_XDR.	Tests in p4 code are
+       for CAN_DO_XDR. (Done, was HAVE_XDR where HAS_XDR needed).  Added
+       additional tests to release test; unfortunately, uncovered another
+       bug.
+
+     look at patch supplied with req 6500 (fortran compile flags -i8 -r8 )
+     --> applied; it adds long long and long double to known types.
+
+     test totalview interface
+     --> works (message queue display)
+
+MPE
+     test jumpshot and mpe
+
+Move things below this line instead, when it has been decided to postpone them
+to 1.2.4.
+---------------------------------------------------------------------------------
+To do eventually:
+
+p4 device:
+     Heterogeneous tests fail sendrecv4 (but pass sendrecv, sendrecv2, and
+	sendrecv3!).  Currently, the test for sendrecv4 is turned off in
+       /home/MPI/maint/build/testhetero, but it should be re-enabled once
+       1.2.3 is released.
+

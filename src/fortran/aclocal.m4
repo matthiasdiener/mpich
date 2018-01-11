@@ -10,6 +10,8 @@ dnl but WITHOUT ANY WARRANTY, to the extent permitted by law; without
 dnl even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 dnl PARTICULAR PURPOSE.
 
+AC_DEFUN(AM_IGNORE,[])
+
 dnl
 dnl/*D
 dnl AC_CACHE_LOAD - Replacement for autoconf cache load 
@@ -47,17 +49,30 @@ dnl are processed *after* AC_CACHE_LOAD (!).  To address this, we avoid
 dnl changing the value of enable_cache, and use real_enable_cache, duplicating
 dnl the "notgiven" value.
 dnl
+dnl The environment variable CONFIGURE_DEBUG_CACHE, if set to yes,
+dnl will cause additional data to be written out during the configure process.
+dnl This can be helpful in debugging the cache file process.dnl
+dnl
 dnl See Also:
 dnl PAC_ARG_CACHING
-dnlD*/
+dnl D*/
 define([AC_CACHE_LOAD],
-[if test "X$cache_system" = "X" ; then
+[if test "$CONFIGURE_DEBUG_CACHE" = yes ; then 
+    oldopts="$-"
+    clearMinusX=no
+    set -x 
+    if test "$oldopts" != "$-" ; then 
+        clearMinusX=yes
+    fi
+fi 
+if test "X$cache_system" = "X" ; then
     # A default file name, just in case
     cache_system="config.system"
     if test "$cache_file" != "/dev/null" ; then
         # Get the directory for the cache file, if any
 	changequote(,)
-        cache_system=`echo $cache_file | sed -e 's%^\(.*/\)[^/]*%\1/config.system%'`
+        dnl Be careful to ensure that there is no doubled slash
+        cache_system=`echo $cache_file | sed -e 's%^\(.*/\)[^/]*%\1config.system%'`
 	changequote([,])
         test "x$cache_system" = "x$cache_file" && cache_system="config.system"
 #    else
@@ -90,7 +105,9 @@ if test "X$real_enable_cache" = "Xnotgiven" ; then
 	    echo "$testval" > $cache_system
 	    # remove the cache file because it may not correspond to our
 	    # system
-	    rm -f $cache_file
+	    if test "$cache_file" != "/dev/null" ; then 
+	        rm -f $cache_file
+	    fi
 	    real_enable_cache="yes"
         fi
     fi
@@ -101,17 +118,24 @@ fi
 if test "X$real_enable_cache" = "Xyes" ; then
   if test -r "$cache_file" ; then
     echo "loading cache $cache_file"
+    if test -w "$cache_file" ; then
+        # Clean the cache file (ergh)
+	PAC_CACHE_CLEAN
+    fi
     . $cache_file
   else
-    echo "creating cache $cache_file"
+    echo "Configure in `pwd` creating cache $cache_file"
     > $cache_file
     rm -f $cache_system
-    cleanargs=`echo "$CC $F77 $CXX" | tr '"' ' '`
+    cleanargs=`echo "$CC $F77 $CXX $F90" | tr '"' ' '`
     testval="`uname -srm` $cleanargs"
     echo "$testval" > $cache_system
   fi
 else
   cache_file="/dev/null"
+fi
+if test "$clearMinusX" = yes ; then
+    set +x
 fi
 ])
 dnl
@@ -136,6 +160,32 @@ AC_ARG_ENABLE(cache,
 [--enable-cache  - Turn on configure caching],
 enable_cache="$enableval",enable_cache="notgiven")
 ])
+dnl
+
+dnl Clean the cache of extraneous quotes that AC_CACHE_SAVE may add
+AC_DEFUN([PAC_CACHE_CLEAN],[
+    rm -f confcache
+    sed -e "s/'\\\\''//g" -e "s/'\\\\/'/" -e "s/\\\\'/'/" \
+		-e "s/'\\\\''//g" $cache_file > confcache
+    if cmp -s $cache_file confcache ; then
+        :
+    else
+        if test -w $cache_file ; then
+	    echo "updating cache $cache_file"
+            cat confcache > $cache_file
+        else
+            echo "not updating unwritable cache $cache_file"
+        fi
+    fi	
+    rm -f confcache
+    if test "$DEBUG_AUTOCONF_CACHE" = "yes" ; then
+        echo "Results of cleaned cache file:"
+	echo "--------------------------------------------------------"
+	cat $cache_file
+	echo "--------------------------------------------------------"
+    fi
+])
+
 dnl/*D
 dnl PAC_SUBDIR_CACHE - Create a cache file before ac_output for subdirectory
 dnl configures.
@@ -160,31 +210,81 @@ if test "$cache_file" = "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; the
     dnl for the cache.
     ac_cv_env_CC_set=set
     ac_cv_env_CC_value=$CC
-    ac_cv_env_CFLAGS_set=set
+    ac_cv_env_CFLAGS_set=${CFLAGS+set}
     ac_cv_env_CFLAGS_value=$CFLAGS
     ac_cv_env_CPP_set=set
     ac_cv_env_CPP_value=$CPP
-    ac_cv_env_CPPFLAGS_set=set
+    ac_cv_env_CPPFLAGS_set=${CPPFLAGS+set}
     ac_cv_env_CPPFLAGS_value=$CPPFLAGS
-    ac_cv_env_LDFLAGS_set=set
+    ac_cv_env_LDFLAGS_set=${LDFLAGS+set}
     ac_cv_env_LDFLAGS_value=$LDFLAGS
+    ac_cv_env_LIBS_set=${LIBS+set}
+    ac_cv_env_LIBS_value=$LIBS
+    ac_cv_env_FC_set=${FS+set}
+    ac_cv_env_FC_value=$FC
+    ac_cv_env_F77_set=${F77+set}
+    ac_cv_env_F77_value=$F77
+    ac_cv_env_FFLAGS_set=${FFLAGS+set}
+    ac_cv_env_FFLAGS_value=$FFLAGS
+    ac_cv_env_CXX_set=${CXX+set}
+    ac_cv_env_CXX_value=$CXX
+
+#     dnl For Autoconf 2.57+, we also need to look at these.  This does 
+#     dnl disable a sometimes useful check in autoconf, but I don't see
+#     dnl a way arount it
+#     ac_env_CC_set=set
+#     ac_env_CC_value=$CC
+#     ac_env_CFLAGS_set=set
+#     ac_env_CFLAGS_value=$CFLAGS
+#     ac_env_CPP_set=set
+#     ac_env_CPP_value=$CPP
+#     ac_env_CPPFLAGS_set=set
+#     ac_env_CPPFLAGS_value=$CPPFLAGS
+#     ac_env_LDFLAGS_set=set
+#     ac_env_LDFLAGS_value=$LDFLAGS
+#     ac_env_LIBS_set=set
+#     ac_env_LIBS_value=$LIBS
+#     ac_env_FC_set=set
+#     ac_env_FC_value=$FC
+#     ac_env_F77_set=set
+#     ac_env_F77_value=$F77
+#     ac_env_FFLAGS_set=set
+#     ac_env_FFLAGS_value=$FFLAGS
+#     ac_env_CXX_set=set
+#     ac_env_CXX_value=$CXX
+
+#	export ac_env_LDFLAGS_set
+#	export ac_env_LDFLAGS_value   
     dnl other parameters are
     dnl build_alias, host_alias, target_alias
+
+    # It turns out that A C CACHE_SAVE can't be invoked more than once
+    # with data that contains blanks.  What happens is that the quotes
+    # that it adds get quoted and then added again.  To avoid this,
+    # we strip off the outer quotes for all cached variables
     AC_CACHE_SAVE
+    PAC_CACHE_CLEAN
     ac_configure_args="$ac_configure_args -enable-cache"
 fi
 dnl Unconditionally export these values.  Subdir configures break otherwise
 export CC
 export CFLAGS
 export LDFLAGS
+export LIBS
 export CPPFLAGS
 export CPP
+export FC
+export F77
+export CXX
+export FFLAGS
+export CCFLAGS
 ])
 AC_DEFUN(PAC_SUBDIR_CACHE_CLEANUP,[
 if test "$cache_file" != "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; then
    rm -f $cache_file
 fi
 ])
+
 
 dnl
 dnl/*D 
@@ -204,7 +304,7 @@ dnl when MPICH is being built.
 dnl
 dnl Prerequisites:
 dnl autoconf version 2.13 (for AC_SEARCH_LIBS)
-dnlD*/
+dnl D*/
 dnl Other tests to add:
 dnl Version of MPI
 dnl MPI-2 I/O?
@@ -257,7 +357,7 @@ dnl 'no' otherwise.
 dnl
 dnl See Also:
 dnl PAC_LIB_MPI
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_ARG_MPICH_BUILDING,[
 AC_ARG_WITH(mpichbuilding,
 [--with-mpichbuilding - Assume that MPICH is being built],
@@ -292,7 +392,7 @@ dnl 'MPIUNBOOT' will stop those demons.
 dnl
 dnl See also:
 dnl PAC_LANG_PUSH_COMPILERS, PAC_LIB_MPI
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_ARG_MPI_TYPES,[
 AC_PROVIDE([AC_PROG_CC])
 AC_SUBST(CC)
@@ -311,6 +411,10 @@ ac_mpi_type=ibmmpi)
 AC_ARG_WITH(sgimpi,
 [--with-sgimpi    - Use the SGI implementation of MPI],
 ac_mpi_type=sgimpi)
+AC_ARG_WITH(mpichnt,
+[--with-mpichnt - Use MPICH for Windows NT ],
+ac_mpi_type=mpichnt)
+
 if test "X$ac_mpi_type" = "X" ; then
     if test "X$1" != "X" ; then
         ac_mpi_type=$1
@@ -359,6 +463,15 @@ case $ac_mpi_type in
 	    :
         fi
 	;;
+
+        mpichnt)
+        dnl
+        dnl This isn't adequate, but it helps with using MPICH-NT/SDK.gcc
+        CFLAGS="-I$with_mpichnt/include"
+        CPPFLAGS="-I$with_mpichnt/include"
+        LDFLAGS="-L$with_mpichnt/lib"
+        MPILIBNAME="mpich"
+        ;;
 
 	lammpi)
 	dnl
@@ -414,9 +527,17 @@ case $ac_mpi_type in
 	*)
 	# Find the compilers
 	PAC_PROG_CC
-	AC_PROG_F77
-	AC_PROG_CXX
-	PAC_PROG_F90
+	# We only look for the other compilers if there is no
+	# disable for them
+	if test "$enable_f77" != no -a "$enable_fortran" != no ; then
+   	    AC_PROG_F77
+        fi
+	if test "$enable_cxx" != no ; then
+	    AC_PROG_CXX
+	fi
+	if test "$enable_f90" != no ; then
+	    PAC_PROG_F90
+	fi
 	# Set defaults for the TEST versions if not already set
 	if test -z "$TESTCC" ; then 
 	    TESTCC=${CC:=cc}
@@ -443,7 +564,7 @@ dnl Define 'HAVE_MPI_F2C' if the routines are found.
 dnl
 dnl Notes:
 dnl Looks only for 'MPI_Request_c2f'.
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_MPI_F2C,[
 AC_CACHE_CHECK([for MPI F2C and C2F routines],
 pac_cv_mpi_f2c,
@@ -453,8 +574,19 @@ AC_TRY_LINK([#include "mpi.h"],
 pac_cv_mpi_f2c="yes",pac_cv_mpi_f2c="no")
 ])
 if test "$pac_cv_mpi_f2c" = "yes" ; then 
-    AC_DEFINE(HAVE_MPI_F2C) 
+    AC_DEFINE(HAVE_MPI_F2C,1,[Define if MPI has F2C]) 
 fi
+])
+dnl
+dnl/*D
+dnl PAC_HAVE_ROMIO - make mpi.h include mpio.h if romio enabled
+dnl
+dnl Output Effect:
+dnl expands @HAVE_ROMIO@ in mpi.h into #include "mpio.h"
+dnl D*/
+AC_DEFUN(PAC_HAVE_ROMIO,[
+if test "$enable_romio" = "yes" ; then HAVE_ROMIO='#include "mpio.h"'; fi
+AC_SUBST(HAVE_ROMIO)
 ])
 
 dnl
@@ -509,7 +641,7 @@ dnl
 dnl The environment variable 'CONFIG_AUX_DIR', if set, overrides the
 dnl directories listed.  This is an extension to the 'autoconf' version of
 dnl this macro. 
-dnlD*/
+dnl D*/
 undefine([AC_CONFIG_AUX_DIRS])
 AC_DEFUN(AC_CONFIG_AUX_DIRS,
 [if test -f $CONFIG_AUX_DIR/install-sh ; then ac_aux_dir=$CONFIG_AUX_DIR 
@@ -536,27 +668,52 @@ ac_configure=$ac_aux_dir/configure # This should be Cygnus configure.
 AC_PROVIDE([AC_CONFIG_AUX_DIR_DEFAULT])dnl
 ])
 
+dnl
+dnl Added complication:  We want to check for a header EVEN IF WE CAN'T 
+dnl COMPILE IT.  E.g., if the header requires another header, we want 
+dnl this to still work.  To make this slightly more robust, if the
+dnl CPP is the compiler, just use the CPP test.  Otherwise, fall
+dnl back into the compilation test.  Since autoconf uses /lib/cpp
+dnl only if it can't figure out how to use the compiler, we
+dnl test for that specific cast, then use CPP if we can. 
+dnl However, on failure, we still test to see if, even though CPP 
+dnl failed, the compiler accepts it (this avoids some of the "evaluation
+dnl copy" problems.
+dnl 
 undefine([AC_CHECK_HEADER])
 AC_DEFUN(AC_CHECK_HEADER,
 [dnl Do the transliteration at runtime so arg 1 can be a shell variable.
 ac_safe=`echo "$1" | sed 'y%./+-%__p_%'`
 AC_MSG_CHECKING([for $1])
 AC_CACHE_VAL(ac_cv_header_$ac_safe,
-[cat >conftest.c<<EOF
+[
+pac_found_header=no
+if test "$CPP" != "/lib/cpp" ; then
+    AC_TRY_CPP([#include <$1>], pac_found_header=yes)
+fi
+# If cpp failed, see if the compiler accepts the header.
+if test "$pac_found_header" != "yes" ; then
+    cat >conftest.c<<EOF
 [#]line __oline__ "configure"
 #include "confdefs.h"
 #include <$1>
 int conftest() {return 0;}
 EOF
-ac_compile_for_cpp='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.c 1>&AC_FD_CC'
-if AC_TRY_EVAL(ac_compile_for_cpp); then
+    ac_compile_for_cpp='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.c 1>&AC_FD_CC'
+    if AC_TRY_EVAL(ac_compile_for_cpp); then
+	pac_found_header=yes
+    else
+        echo "configure: failed program was:" >&AC_FD_CC
+        cat conftest.c >&AC_FD_CC
+    fi
+    rm -f conftest*
+fi
+# Finally, set the ac variable.
+if test "$pac_found_header" = "yes" ; then
     eval "ac_cv_header_$ac_safe=yes"
 else
     eval "ac_cv_header_$ac_safe=no"
-    echo "configure: failed program was:" >&AC_FD_CC
-    cat conftest.c >&AC_FD_CC
 fi
-rm -f conftest*
 ])dnl
 if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
   AC_MSG_RESULT(yes)
@@ -568,6 +725,16 @@ ifelse([$3], , , [$3
 fi
 ])
 
+dnl
+dnl This internal macro fails to work properly with OTHER internal macros.
+dnl Basically, if the prologue is [], then no message should be generated.
+dnl This macro is in autoconf 2.52
+m4_define([AC_LANG_PROGRAM(Fortran 77)],
+[m4_if([$1],[[[]]],,[m4_ifval([$1],
+       [m4_warn([syntax], [$0: ignoring PROLOGUE: $1])])])dnl
+      program main
+$2
+      end])
 
 dnl
 dnl This is a replacement for AC_PROG_CC that does not prefer gcc and
@@ -626,7 +793,7 @@ dnl that complain about poor code are in effect.
 dnl
 dnl Because this is a long script, we have ensured that you can pass a 
 dnl variable containing the option name as the first argument.
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_CHECK_COMPILER_OPTION,[
 AC_MSG_CHECKING([that C compiler accepts option $1])
 save_CFLAGS="$CFLAGS"
@@ -712,7 +879,7 @@ dnl It should try to match known systems to known compilers (checking, of
 dnl course), and then falling back to some common defaults.
 dnl Note that many compilers will complain about -g and aggressive
 dnl optimization.  
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_OPTIMIZATION,[
     for copt in "-O4 -Ofast" "-Ofast" "-fast" "-O3" "-xO3" "-O" ; do
         PAC_C_CHECK_COMPILER_OPTION($copt,found_opt=yes,found_opt=no)
@@ -784,7 +951,7 @@ dnl `dependsrule.in` in the same directory as the other auxillery configure
 dnl scripts (set with dnl 'AC_CONFIG_AUX_DIR').  If you use `dependsrule.in`,
 dnl you must have `dependsrule` in 'AC_OUTPUT' before this `Makefile`.
 dnl 
-dnlD*/
+dnl D*/
 dnl 
 dnl Eventually, we can add an option to the C_DEPEND_MV to strip system
 dnl includes, such as /usr/xxxx and /opt/xxxx
@@ -914,7 +1081,7 @@ dnl Sets 'HAVE_SEMCTL' if semctl is available.
 dnl Sets 'HAVE_UNION_SEMUN' if 'union semun' is available.
 dnl Sets 'SEMCTL_NEEDS_SEMUN' if a 'union semun' type must be passed as the
 dnl fourth argument to 'semctl'.
-dnlD*/ 
+dnl D*/ 
 dnl Check for semctl and arguments
 AC_DEFUN(PAC_FUNC_SEMCTL,[
 AC_CHECK_FUNC(semctl)
@@ -926,7 +1093,7 @@ if test "$ac_cv_func_semctl" = "yes" ; then
 #include <sys/sem.h>],[union semun arg;arg.val=0;],
     pac_cv_type_union_semun="yes",pac_cv_type_union_semun="no")])
     if test "$pac_cv_type_union_semun" = "yes" ; then
-        AC_DEFINE(HAVE_UNION_SEMUN,,[Has union semun])
+        AC_DEFINE(HAVE_UNION_SEMUN,1,[Has union semun])
         #
         # See if we can use an int in semctl or if we need the union
         AC_CACHE_CHECK([whether semctl needs union semun],
@@ -939,7 +1106,7 @@ int arg = 0; semctl( 1, 1, SETVAL, arg );],
         pac_cv_func_semctl_needs_semun="no")
         ])
         if test "$pac_cv_func_semctl_needs_semun" = "yes" ; then
-            AC_DEFINE(SEMCTL_NEEDS_SEMUN,[Needs an explicit definition of semun])
+            AC_DEFINE(SEMCTL_NEEDS_SEMUN,1,[Needs an explicit definition of semun])
         fi
     fi
 fi
@@ -954,7 +1121,7 @@ dnl
 dnl Output Effect:
 dnl Defines 'volatile' as empty if volatile is not available.
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_VOLATILE,[
 AC_CACHE_CHECK([for volatile],
 pac_cv_c_volatile,[
@@ -974,7 +1141,7 @@ dnl
 dnl Output Effect:
 dnl Defines 'inline' as empty if inline is not available.
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_INLINE,[
 AC_CACHE_CHECK([for inline],
 pac_cv_c_inline,[
@@ -995,7 +1162,7 @@ dnl
 dnl Output Effects:
 dnl Invokes the true or false action
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_CPP_CONCAT,[
 pac_pound="#"
 AC_CACHE_CHECK([that the compiler $CC accepts $ac_pound$ac_pound for concatenation in cpp],
@@ -1019,7 +1186,7 @@ dnl
 dnl Notes:
 dnl One version of Solaris accepted only one argument.
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_FUNC_GETTIMEOFDAY,[
 AC_CACHE_CHECK([whether gettimeofday takes 2 arguments],
 pac_cv_func_gettimeofday,[
@@ -1049,7 +1216,7 @@ dnl
 dnl Note that some compilers accept restrict only with additional options.
 dnl DEC/Compaq/HP Alpha Unix (Tru64 etc.) -accept restrict_keyword
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_RESTRICT,[
 AC_CACHE_CHECK([for restrict],
 pac_cv_c_restrict,[
@@ -1097,7 +1264,7 @@ dnl are quite happy to accept the *wrong* number of arguments to a macro!
 dnl Instead, we try to find a clean compile version, using our special
 dnl PAC_C_TRY_COMPILE_CLEAN command.
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_HEADER_STDARG,[
 AC_CHECK_HEADER(stdarg.h)
 dnl Sets ac_cv_header_stdarg_h
@@ -1176,7 +1343,7 @@ dnl Output Effect:
 dnl The 'flagvar' is set to 0 (clean), 1 (dirty but success ok), or 2
 dnl (failed).
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_TRY_COMPILE_CLEAN,[
 $3=2
 dnl Get the compiler output to test against
@@ -1231,7 +1398,7 @@ dnl       action-if-unknown)
 dnl
 dnl Notes:
 dnl 'action-if-unknown' is used in the case of cross-compilation.
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_PROG_C_UNALIGNED_DOUBLES,[
 AC_CACHE_CHECK([whether C compiler allows unaligned doubles],
 pac_cv_prog_c_unaligned_doubles,[
@@ -1279,10 +1446,16 @@ dnl Defines one of the following if a weak symbol pragma is found:
 dnl.vb
 dnl    HAVE_PRAGMA_WEAK - #pragma weak
 dnl    HAVE_PRAGMA_HP_SEC_DEF - #pragma _HP_SECONDARY_DEF
-dnl    HAVE_PRAGMA_CRI_DUP) - #pragma _CRI duplicate x as y
+dnl    HAVE_PRAGMA_CRI_DUP  - #pragma _CRI duplicate x as y
 dnl.ve
+dnl May also define
+dnl.vb
+dnl    HAVE_WEAK_ATTRIBUTE
+dnl.ve
+dnl if functions can be declared as 'int foo(...) __attribute__ ((weak));'
+dnl sets the shell variable pac_cv_attr_weak to yes.
 dnl 
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_PROG_C_WEAK_SYMBOLS,[
 pragma_extra_message=""
 AC_CACHE_CHECK([for type of weak symbol support],
@@ -1293,21 +1466,25 @@ pac_cv_prog_c_weak_symbols,[
 AC_TRY_LINK([
 extern int PFoo(int);
 #pragma weak PFoo = Foo
-int Foo(a) { return a; }
+int Foo(int a) { return a; }
 ],[return PFoo(1);],has_pragma_weak=yes)
 #
 # Some systems (Linux ia64 and ecc, for example), support weak symbols
 # only within a single object file!  This tests that case.
+# Note that there is an extern int PFoo declaration before the
+# pragma.  Some compilers require this in order to make the weak symbol
+# extenally visible.  
 if test "$has_pragma_weak" = yes ; then
     rm -f conftest*
     cat >>conftest1.c <<EOF
+extern int PFoo(int);
 #pragma weak PFoo = Foo
 int Foo(int);
-int Foo(a) { return a; }
+int Foo(int a) { return a; }
 EOF
     cat >>conftest2.c <<EOF
 extern int PFoo(int);
-int main() {
+int main(int argc, char **argv) {
 return PFoo(0);}
 EOF
     ac_link2='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest1.c conftest2.c $LIBS >conftest.out 2>&1'
@@ -1329,7 +1506,7 @@ if test -z "$pac_cv_prog_c_weak_symbols" ; then
     AC_TRY_LINK([
 extern int PFoo(int);
 #pragma _HP_SECONDARY_DEF Foo  PFoo
-int Foo(a) { return a; }
+int Foo(int a) { return a; }
 ],[return PFoo(1);],pac_cv_prog_c_weak_symbols="pragma _HP_SECONDARY_DEF")
 fi
 dnl
@@ -1337,14 +1514,13 @@ if test -z "$pac_cv_prog_c_weak_symbols" ; then
     AC_TRY_LINK([
 extern int PFoo(int);
 #pragma _CRI duplicate PFoo as Foo
-int Foo(a) { return a; }
+int Foo(int a) { return a; }
 ],[return PFoo(1);],pac_cv_prog_c_weak_symbols="pragma _CRI duplicate x as y")
 fi
 dnl
 if test -z "$pac_cv_prog_c_weak_symbols" ; then
     pac_cv_prog_c_weak_symbols="no"
 fi
-])
 dnl
 dnl If there is an extra explanatory message, echo it now so that it
 dnl doesn't interfere with the cache result value
@@ -1352,20 +1528,26 @@ if test -n "$pragma_extra_message" ; then
     echo $pragma_extra_message
 fi
 dnl
+])
 if test "$pac_cv_prog_c_weak_symbols" = "no" ; then
     ifelse([$2],,:,[$2])
 else
     case "$pac_cv_prog_c_weak_symbols" in
-	"pragma weak") AC_DEFINE(HAVE_PRAGMA_WEAK,,[Supports weak pragma]) 
+	"pragma weak") AC_DEFINE(HAVE_PRAGMA_WEAK,1,[Supports weak pragma]) 
 	;;
-	"pragma _HP")  AC_DEFINE(HAVE_PRAGMA_HP_SEC_DEF,,[HP style weak pragma])
+	"pragma _HP")  AC_DEFINE(HAVE_PRAGMA_HP_SEC_DEF,1,[HP style weak pragma])
 	;;
-	"pragma _CRI") AC_DEFINE(HAVE_PRAGMA_CRI_DUP,,[Cray style weak pragma])
+	"pragma _CRI") AC_DEFINE(HAVE_PRAGMA_CRI_DUP,1,[Cray style weak pragma])
 	;;
     esac
     ifelse([$1],,:,[$1])
 fi
+AC_CACHE_CHECK([whether __attribute__ ((weak)) allowed],
+pac_cv_attr_weak,[
+AC_TRY_COMPILE([int foo(int) __attribute__ ((weak));],[int a;],
+pac_cv_attr_weak=yes,pac_cv_attr_weak=no)])
 ])
+
 #
 # This is a replacement that checks that FAILURES are signaled as well
 # (later configure macros look for the .o file, not just success from the
@@ -1388,6 +1570,56 @@ correctly set error code when a fatal error occurs])
 fi
 ])
 dnl
+dnl/*D 
+dnl PAC_PROG_C_MULTIPLE_WEAK_SYMBOLS - Test whether C and the
+dnl linker allow multiple weak symbols.
+dnl
+dnl Synopsis
+dnl PAC_PROG_C_MULTIPLE_WEAK_SYMBOLS(action-if-true,action-if-false)
+dnl
+dnl 
+dnl D*/
+AC_DEFUN(PAC_PROG_C_MULTIPLE_WEAK_SYMBOLS,[
+AC_CACHE_CHECK([for multiple weak symbol support],
+pac_cv_prog_c_multiple_weak_symbols,[
+# Test for multiple weak symbol support...
+#
+rm -f conftest*
+cat >>conftest1.c <<EOF
+extern int PFoo(int);
+extern int PFoo_(int);
+extern int pfoo_(int);
+#pragma weak PFoo = Foo
+#pragma weak PFoo_ = Foo
+#pragma weak pfoo_ = Foo
+int Foo(int);
+int Foo(a) { return a; }
+EOF
+cat >>conftest2.c <<EOF
+extern int PFoo(int), PFoo_(int), pfoo_(int);
+int main() {
+return PFoo(0) + PFoo_(1) + pfoo_(2);}
+EOF
+ac_link2='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest1.c conftest2.c $LIBS >conftest.out 2>&1'
+if eval $ac_link2 ; then
+    pac_cv_prog_c_multiple_weak_symbols="yes"
+else
+    echo "$ac_link2" >>config.log
+    echo "Failed program was" >>config.log
+    cat conftest1.c >>config.log
+    cat conftest2.c >>config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+fi
+rm -f conftest*
+dnl
+])
+if test "$pac_cv_prog_c_multiple_weak_symbols" = "yes" ; then
+    ifelse([$1],,:,[$1])
+else
+    ifelse([$2],,:,[$2])
+fi
+])
+dnl
 dnl/*D
 dnl PAC_FUNC_CRYPT - Check that the function crypt is defined
 dnl
@@ -1401,7 +1633,7 @@ dnl _XOPEN_SOURCE is defines and _XOPEN_VERSION is 4 or greater.
 dnl We test by looking for a missing crypt by defining our own
 dnl incompatible one and trying to compile it.
 dnl Defines NEED_CRYPT_PROTOTYPE if no prototype is found.
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_FUNC_CRYPT,[
 AC_CACHE_CHECK([if crypt defined in unistd.h],
 pac_cv_func_crypt_defined,[
@@ -1420,9 +1652,9 @@ double crypt(double a){return a;}],[return 0];,
 pac_cv_func_crypt_xopen="no",pac_cv_func_crypt_xopen="yes")])
 fi
 if test "$pac_cv_func_crypt_xopen" = "yes" ; then
-    AC_DEFINE(_XOPEN_SOURCE,,[if xopen needed for crypt])
+    AC_DEFINE(_XOPEN_SOURCE,1,[if xopen needed for crypt])
 elif test "$pac_cv_func_crypt_defined" = "no" ; then
-    AC_DEFINE(NEED_CRYPT_PROTOTYPE,,[if a prototype for crypt is needed])
+    AC_DEFINE(NEED_CRYPT_PROTOTYPE,1,[if a prototype for crypt is needed])
 fi
 ])dnl
 dnl/*D
@@ -1455,8 +1687,10 @@ dnl Not yet available: options when using other compilers.  However,
 dnl here are some possible choices
 dnl Solaris cc
 dnl  -fd -v -Xc
+dnl IRIX
+dnl  -ansi -DEBUG:trap_uninitialized=ON:varargs_interface_check=ON:verbose_runtime=ON
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_ARG_STRICT,[
 AC_ARG_ENABLE(strict,
 [--enable-strict  - Turn on strict compilation testing when using gcc])
@@ -1479,6 +1713,35 @@ if test "$enable_strict_done" != "yes" ; then
                 COPTIONS="${COPTIONS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL -Wunused -Wshadow -Wmissing-declarations -Wno-long-long"
     	    fi
         fi
+    fi
+fi
+])
+dnl
+dnl Use the value of enable-strict to update CFLAGS
+AC_DEFUN(PAC_CC_STRICT,[
+export enable_strict_done
+if test "$enable_strict_done" != "yes" ; then
+    if test "$enable_strict" = "yes" ; then
+        enable_strict_done="yes"
+        if test -z "CC" ; then
+            AC_CHECK_PROGS(CC,gcc)
+        fi
+        if test "$ac_cv_prog_gcc" = "yes" ; then 
+            CFLAGS="${CFLAGS} -Wall -O2 -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL"
+	    AC_MSG_RESULT([Adding strict check arguments to CFLAGS])
+	else 
+	    AC_MSG_WARN([enable strict supported only for gcc])
+    	fi
+    elif test "$enable_strict" = "all" ; then
+        enable_strict_done="yes"
+        if test -z "CC" ; then
+            AC_CHECK_PROGS(CC,gcc)
+        fi
+        if test "$ac_cv_prog_gcc" = "yes" ; then 
+            CFLAGS="${CFLAGS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL -Wunused -Wshadow -Wmissing-declarations -Wno-long-long"
+	else 
+	    AC_MSG_WARN([enable strict supported only for gcc])
+    	fi
     fi
 fi
 ])
@@ -1515,7 +1778,7 @@ dnl done
 dnl IFS="$SaveIFS"
 dnl.ve
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_ARG_CC_G,[
 AC_ARG_ENABLE(g,
 [--enable-g  - Turn on debugging of the package (typically adds -g to COPTIONS)])
@@ -1571,10 +1834,10 @@ dnl If so, add -fno-common to CFLAGS
 dnl An alternative is to use, on some systems, ranlib -c to force 
 dnl the system to find common symbols.
 dnl
-dnl NOT TESTED
 AC_DEFUN(PAC_PROG_C_BROKEN_COMMON,[
-AC_MSG_CHECKING([whether global variables handled properly])
-AC_MSG_REQUIRE([AC_PROG_RANLIB])
+AC_CACHE_CHECK([whether global variables handled properly],
+ac_cv_prog_cc_globals_work,[
+AC_REQUIRE([AC_PROG_RANLIB])
 ac_cv_prog_cc_globals_work=no
 echo 'extern int a; int a;' > conftest1.c
 echo 'extern int a; int main( ){ return a; }' > conftest2.c
@@ -1593,13 +1856,26 @@ if ${CC-cc} $CFLAGS -c conftest1.c >conftest.out 2>&1 ; then
 	        if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a >> conftest.out 2>&1 ; then
 		    ac_cv_prog_cc_globals_work="needs -fno-common"
 		    CFLAGS="$CFLAGS -fno-common"
+                elif test -n "$RANLIB" ; then 
+		    # Try again, with ranlib changed to ranlib -c
+		    ${RANLIB} -c libconftest.a
+		    if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a >> conftest.out 2>&1 ; then
+			RANLIB="$RANLIB -c"
+	 	    #else
+		    #	# That didn't work
+		    #	:
+		    fi
+	        #else 
+		#    :
 		fi
 	    fi
         fi
     fi
 fi
-rm -f conftest* libconftest*
-AC_MSG_RESULT($ac_cv_prog_cc_globals_work)
+rm -f conftest* libconftest*])
+if test "$ac_cv_prog_cc_globals_work" = no ; then
+    AC_MSG_WARN([Common symbols not supported on this system!])
+fi
 ])
 dnl
 dnl
@@ -1741,9 +2017,12 @@ int main( int argc, char *argv[] )
     return 0;
 }],
 pac_cv_c_struct_align=`cat ctest.out`
-,pac_cv_c_struct_align="unknown",pac_cv_c_struct_align="unknown")
+,pac_cv_c_struct_align="unknown",pac_cv_c_struct_align="$CROSS_STRUCT_ALIGN")
 rm -f ctest.out
 ])
+if test -z "$pac_cv_c_struct_align" ; then
+    pac_cv_c_struct_align="unknown"
+fi
 ])
 dnl
 dnl
@@ -1763,10 +2042,11 @@ pac_cv_func_decl_$2,[
 AC_TRY_COMPILE([$1],[int a=$2(27,1.0,"foo");],
 pac_cv_func_decl_$2=yes,pac_cv_func_decl_$2=no)])
 if test "$pac_cv_func_decl_$2" = "yes" ; then
-changequote(, )dnl
-  ac_tr_func=NEEDS_`echo $1 | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`_DECL
+changequote(<<,>>)dnl
+define(<<PAC_FUNC_NAME>>, translit(NEEDS_$2_DECL, [a-z *], [A-Z__]))dnl
 changequote([, ])dnl
-    AC_DEFINE_UNQUOTED($ac_tr_func,,[Define if $2 needs a declaration])
+    AC_DEFINE_UNQUOTED(PAC_FUNC_NAME,1,[Define if $2 needs a declaration])
+undefine([PAC_FUNC_NAME])
 fi
 ])dnl
 dnl
@@ -1777,7 +2057,7 @@ dnl
 dnl PAC_CHECK_SIZEOF_DERIVED(shortname,definition,defaultsize)
 dnl Like AC_CHECK_SIZEOF, but handles arbitrary types.
 dnl Unlike AC_CHECK_SIZEOF, does not define SIZEOF_xxx (because
-dnl autoheader can't handle this case)
+dnl autoheader can''t handle this case)
 dnl D*/
 AC_DEFUN(PAC_CHECK_SIZEOF_DERIVED,[
 changequote(<<,>>)dnl
@@ -1800,7 +2080,96 @@ dnl AC_DEFINE_UNQUOTED(AC_TYPE_NAME,$AC_CV_NAME)
 undefine([AC_TYPE_NAME])undefine([AC_CV_NAME])
 ])
 
-AC_DEFUN(AM_IGNORE,[])
+dnl
+dnl PAC_C_GNU_ATTRIBUTE - See if the GCC __attribute__ specifier is allow.
+dnl Use the following
+dnl #ifndef HAVE_GCC_ATTRIBUTE
+dnl #define __attribute__(a)
+dnl #endif
+dnl If *not*, define __attribute__(a) as null
+dnl
+dnl We start by requiring Gcc.  Some other compilers accept __attribute__
+dnl but generate warning messages, or have different interpretations 
+dnl (which seems to make __attribute__ just as bad as #pragma) 
+dnl For example, the Intel icc compiler accepts __attribute__ and
+dnl __attribute__((pure)) but generates warnings for __attribute__((format...))
+dnl
+AC_DEFUN([PAC_C_GNU_ATTRIBUTE],[
+AC_REQUIRE([AC_PROG_CC_GNU])
+if test "$ac_cv_prog_gcc" = "yes" ; then
+    AC_CACHE_CHECK([whether __attribute__ allowed],
+pac_cv_gnu_attr_pure,[
+AC_TRY_COMPILE([int foo(int) __attribute__ ((pure));],[int a;],
+pac_cv_gnu_attr_pure=yes,pac_cv_gnu_attr_pure=no)])
+AC_CACHE_CHECK([whether __attribute__((format)) allowed],
+pac_cv_gnu_attr_format,[
+AC_TRY_COMPILE([int foo(char *,...) __attribute__ ((format(printf,1,2)));],[int a;],
+pac_cv_gnu_attr_format=yes,pac_cv_gnu_attr_format=no)])
+    if test "$pac_cv_gnu_attr_pure" = "yes" -a "$pac_cv_gnu_attr_format" = "yes" ; then
+        AC_DEFINE(HAVE_GCC_ATTRIBUTE,1,[Define if GNU __attribute__ is supported])
+    fi
+fi
+])
+dnl
+dnl Check for a broken install (fails to preserve file modification times,
+dnl thus breaking libraries.
+dnl
+dnl Create a library, install it, and then try to link against it.
+AC_DEFUN([PAC_PROG_INSTALL_BREAKS_LIBS],[
+AC_CACHE_CHECK([whether install breaks libraries],
+ac_cv_prog_install_breaks_libs,[
+AC_REQUIRE([AC_PROG_RANLIB])
+AC_REQUIRE([AC_PROG_INSTALL])
+AC_REQUIRE([AC_PROG_CC])
+ac_cv_prog_install_breaks_libs=yes
+rm -f libconftest* conftest*
+echo 'int foo(int);int foo(int a){return a;}' > conftest1.c
+echo 'extern int foo(int); int main( int argc, char **argv){ return foo(0); }' > conftest2.c
+if ${CC-cc} $CFLAGS -c conftest1.c >conftest.out 2>&1 ; then
+    if ${AR-ar} cr libconftest.a conftest1.o >/dev/null 2>&1 ; then
+        if ${RANLIB-:} libconftest.a >/dev/null 2>&1 ; then
+	    # Anything less than sleep 10, and Mac OS/X (Darwin) 
+	    # will claim that install works because ranlib won't complain
+	    sleep 10
+	    libinstall="$INSTALL_DATA"
+	    eval "libinstall=\"$libinstall\""
+	    if ${libinstall} libconftest.a libconftest1.a  >/dev/null 2>&1 ; then
+                if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest1.a 2>&1 >>conftest.out && test -x conftest ; then
+		    # Success!  Install works
+ 	            ac_cv_prog_install_breaks_libs=no
+	        else
+	            # Failure!  Does install -p work?	
+		    rm -f libconftest1.a
+		    if ${libinstall} -p libconftest.a libconftest1.a >/dev/null 2>&1 ; then
+                        if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest1.a >>conftest.out 2>&1 && test -x conftest ; then
+			# Success!  Install works
+			    ac_cv_prog_install_breaks_libs="no, with -p"
+			fi
+		    fi
+                fi
+            fi
+        fi
+    fi
+fi
+rm -f conftest* libconftest*])
+
+if test -z "$RANLIB_AFTER_INSTALL" ; then
+    RANLIB_AFTER_INSTALL=no
+fi
+case "$ac_cv_prog_install_breaks_libs" in
+	yes)
+	    RANLIB_AFTER_INSTALL=yes
+	;;
+	"no, with -p")
+	    INSTALL_DATA="$INSTALL_DATA -p"
+	;;
+	*)
+	# Do nothing
+	:
+	;;
+esac
+AC_SUBST(RANLIB_AFTER_INSTALL)
+])
 
 dnl
 dnl Macros for Fortran 90
@@ -1840,6 +2209,8 @@ ifelse([$4], , , [  rm -rf conftest*
 ])dnl
 fi
 rm -f conftest*
+# The intel compiler sometimes generates these work.pc and .pcl files
+rm -f work.pc work.pcl
 ifelse(NEED_POP,yes,[
 undefine([NEED_POP])
 AC_LANG_RESTORE])
@@ -1851,15 +2222,18 @@ AC_DEFUN(PAC_F90_MODULE_EXT,
 [AC_CACHE_CHECK([for Fortran 90 module extension],
 pac_cv_f90_module_ext,[
 pac_cv_f90_module_case="unknown"
+rm -f conftest*
+# Intel ifc compiler generates files by the name of work.pc and work.pcl (!)
+rm -f work.pc work.pcl
 cat >conftest.$ac_f90ext <<EOF
-	module conftest
+        module conftest
         integer n
         parameter (n=1)
         end module conftest
 EOF
 if AC_TRY_EVAL(ac_f90compile) ; then
    dnl Look for module name
-   pac_MOD=`ls conftest* 2>&1 | grep -v conftest.$ac_f90ext | grep -v conftest.o`
+   pac_MOD=`ls conftest.* 2>&1 | grep -v conftest.$ac_f90ext | grep -v conftest.o`
    pac_MOD=`echo $pac_MOD | sed -e 's/conftest\.//g'`
    pac_cv_f90_module_case="lower"
    if test "X$pac_MOD" = "X" ; then
@@ -1881,7 +2255,12 @@ else
     pac_cv_f90_module_ext="unknown"
 fi
 rm -f conftest*
+# The intel compiler sometimes generates these work.pc and .pcl files
+rm -f work.pc work.pcl
 ])
+if test -s work.pcl ; then
+    AC_MSG_WARN([Compiler generates auxillery files (work.pcl)!])
+fi
 AC_SUBST(F90MODEXT)
 if test "$pac_cv_f90_module_ext" = "unknown" ; then
     ifelse($2,,:,[$2])
@@ -1895,21 +2274,37 @@ AC_DEFUN(PAC_F90_MODULE_INCFLAG,[
 AC_CACHE_CHECK([for Fortran 90 module include flag],
 pac_cv_f90_module_incflag,[
 AC_REQUIRE([PAC_F90_MODULE_EXT])
+#
+# Note that the name of the file and the name of the module must be
+# the same (some compilers use the module, some the file name)
+rm -f work.pc work.pcl conftest.$ac_f90ext
 cat >conftest.$ac_f90ext <<EOF
-	module conf
+        module conftest
         integer n
         parameter (n=1)
-        end module conf
+        end module conftest
 EOF
 pac_madedir="no"
-if test ! -d conf ; then mkdir conf ; pac_madedir="yes"; fi
+if test ! -d conftestdir ; then mkdir conftestdir ; pac_madedir="yes"; fi
 if test "$pac_cv_f90_module_case" = "upper" ; then
-    pac_module="CONF.$pac_cv_f90_module_ext"
+    pac_module="CONFTEST.$pac_cv_f90_module_ext"
 else
-    pac_module="conf.$pac_cv_f90_module_ext"
+    pac_module="conftest.$pac_cv_f90_module_ext"
 fi
 if AC_TRY_EVAL(ac_f90compile) ; then
-    cp $pac_module conf
+    if test -s "$pac_module" ; then
+        mv $pac_module conftestdir
+	# Remove any temporary files, and hide the work.pc file (if
+	# the compiler generates them)
+	if test -f work.pc ; then 
+	    mv -f work.pc conftest.pc
+        fi
+	rm -f work.pcl
+    else
+	AC_MSG_WARN([Unable to build a simple F90 module])
+        echo "configure: failed program was:" >&AC_FD_CC
+        cat conftest.$ac_f90ext >&AC_FD_CC
+    fi
 else
     echo "configure: failed program was:" >&AC_FD_CC
     cat conftest.$ac_f90ext >&AC_FD_CC
@@ -1917,23 +2312,53 @@ fi
 rm -f conftest.$ac_f90ext
 cat >conftest.$ac_f90ext <<EOF
     program main
-    use conf
+    use conftest
     end
 EOF
-if ${F90-f90} -c $F90FLAGS -Iconf conftest.$ac_f90ext 1>&AC_FD_CC && \
+pac_cv_f90_module_incflag="unknown"
+if ${F90-f90} -c $F90FLAGS -Iconftestdir conftest.$ac_f90ext 1>&AC_FD_CC 2>&1 && \
 	test -s conftest.o ; then
     pac_cv_f90_module_incflag="-I"
-elif ${F90-f90} -c $F90FLAGS -Mconf conftest.$ac_f90ext 1>&AC_FD_CC && \
-	test-s conftest.o ; then
+elif ${F90-f90} -c $F90FLAGS -Mconftestdir conftest.$ac_f90ext 1>&AC_FD_CC 2>&1 && \
+	test -s conftest.o ; then
     pac_cv_f90_module_incflag="-M"
-elif ${F90-f90} -c $F90FLAGS -pconf conftest.$ac_f90ext 1>&AC_FD_CC && \
+elif ${F90-f90} -c $F90FLAGS -pconftestdir conftest.$ac_f90ext 1>&AC_FD_CC 2>&1 && \
 	test -s conftest.o ; then
     pac_cv_f90_module_incflag="-p"
+elif test -s work.pc ; then 
+     mv conftest.pc conftestdir/mpimod.pc
+     echo "mpimod.pc" > conftestdir/mpimod.pcl
+     echo "`pwd`/conftestdir/mpimod.pc" >> conftestdir/mpimod.pcl
+     if ${F90-f90} -c $F90FLAGS -cl,conftestdir/mpimod.pcl conftest.$ac_f90ext 1>&AC_FD_CC 2>&1 && test -s conftest.o ; then
+         pac_cv_f90_module_incflag='-cl,'
+	# Not quite right; see the comments that follow
+         AC_MSG_RESULT([-cl,filename where filename contains a list of files and directories])
+	 F90_WORK_FILES_ARG="-cl,mpimod.pcl"
+         F90MODINCSPEC="-cl,<dir>/<file>mod.pcl"
+	 AC_SUBST(F90_WORK_FILES_ARG)
+     else 
+         # The version of the Intel compiler that I have refuses to let
+	 # you put the "work catalog" list anywhere but the current directory.
+         pac_cv_f90_module_incflag="Unavailable!"
+     fi
 else
+    # Early versions of the Intel ifc compiler required a *file*
+    # containing the names of files that contained the names of the
+    # 
+    # -cl,filename.pcl
+    #   filename.pcl contains
+    #     fullpathname.pc
+    # The "fullpathname.pc" is generated, I believe, when a module is 
+    # compiled.  
+    # Intel compilers use a wierd system: -cl,filename.pcl .  If no file is
+    # specified, work.pcl and work.pc are created.  However, if you specify
+    # a file, it must contain a the name of a file ending in .pc .  Ugh!
     pac_cv_f90_module_incflag="unknown"
 fi
-if test "$pac_madedir" = "yes" ; then rm -rf conf ; fi
+if test "$pac_madedir" = "yes" ; then rm -rf conftestdir ; fi
 rm -f conftest*
+# The intel compiler sometimes generates these work.pc and .pcl files
+rm -f work.pc work.pcl
 ])
 AC_SUBST(F90MODINCFLAG)
 F90MODINCFLAG=$pac_cv_f90_module_incflag
@@ -1959,7 +2384,7 @@ dnl
 dnl Synopsis:
 dnl  PAC_PROG_F90_INT_KIND(variable-to-set,number-of-bytes,[cross-size])
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_PROG_F90_INT_KIND,[
 # Set the default
 $1=-1
@@ -1998,7 +2423,7 @@ EOF
         KINDVAL="unavailable"
         eval "pac_cv_prog_f90_int_kind_$sellen"=-1
         if AC_TRY_EVAL(ac_f90link) && test -s conftest ; then
-            ./conftest >>config.log 2>&1
+            ./conftest 1>&AC_FD_CC 2>&1
             if test -s conftest1.out ; then
 	        # Because of write, there may be a leading blank.
                 KINDVAL=`cat conftest1.out | sed 's/ //g'`
@@ -2007,6 +2432,8 @@ EOF
             fi
         fi
         rm -f conftest*
+	# The intel compiler sometimes generates these work.pc and .pcl files
+	rm -f work.pc work.pcl
 	AC_MSG_RESULT($KINDVAL)
     fi # not cached
 fi # Has Fortran 90
@@ -2016,9 +2443,15 @@ dnl
 dnl
 dnl Note: This checks for f95 before f90, since F95 is the more recent
 dnl revision of Fortran 90.  efc is the Intel Fortran 77/90/95 compiler
+dnl The compilers are:
+dnl ifc - Intel 
+dnl xlf90 - IBM 
+dnl pgf90 - Portland group
+dnl f90/f95 - Miscellaneous compilers, including NAG, Solaris, IRIX
+dnl efc - An older Intel compiler (?)
 AC_DEFUN(PAC_PROG_F90,[
 if test -z "$F90" ; then
-    AC_CHECK_PROGS(F90,f95 f90 xlf90 pgf90 efc)
+    AC_CHECK_PROGS(F90,f95 f90 xlf90 pgf90 ifc efc)
     test -z "$F90" && AC_MSG_WARN([no acceptable Fortran 90 compiler found in \$PATH])
 fi
 if test -n "$F90" ; then
@@ -2028,16 +2461,18 @@ dnl Cache these so we don't need to change in and out of f90 mode
 ac_f90ext=$pac_cv_f90_ext
 ac_f90compile='${F90-f90} -c $F90FLAGS conftest.$ac_f90ext 1>&AC_FD_CC'
 ac_f90link='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest.$ac_f90ext $LIBS 1>&AC_FD_CC'
-# Check for problems with Intel efc compiler
-cat > conftest.$ac_f90ext <<EOF
+# Check for problems with Intel efc compiler, if the compiler works
+if test "$pac_cv_prog_f90_works" = yes ; then
+    cat > conftest.$ac_f90ext <<EOF
         program main
         end
 EOF
-pac_msg=`$F90 -o conftest $F90FLAGS $LDFLAGS conftest.$ac_f90ext $LIBS 2>&1 | grep 'bfd assertion fail'`
-if test -n "$pac_msg" ; then
-    pac_msg=`$F90 -o conftest $F90FLAGS $LDFLAGS conftest.$ac_f90ext -i_dynamic $LIBS 2>&1 | grep 'bfd assertion fail'`
-    if test -z "$pac_msg" ; then LDFLAGS="-i_dynamic" ; fi
-    # There should really be f90linker flags rather than generic ldflags.
+    pac_msg=`$F90 -o conftest $F90FLAGS $LDFLAGS conftest.$ac_f90ext $LIBS 2>&1 | grep 'bfd assertion fail'`
+    if test -n "$pac_msg" ; then
+        pac_msg=`$F90 -o conftest $F90FLAGS $LDFLAGS conftest.$ac_f90ext -i_dynamic $LIBS 2>&1 | grep 'bfd assertion fail'`
+        if test -z "$pac_msg" ; then LDFLAGS="-i_dynamic" ; fi
+        # There should really be f90linker flags rather than generic ldflags.
+    fi
 fi
 ])
 dnl Internal routine for testing F90
@@ -2077,8 +2512,11 @@ ac_ext=$pac_cv_f90_ext
 ac_compile='${F90-f90} -c $F90FLAGS conftest.$ac_ext 1>&AC_FD_CC'
 ac_link='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&AC_FD_CC'
 cross_compiling=$pac_cv_prog_f90_cross
+# Include a Fortran 90 construction to distinguish between Fortran 77 
+# and Fortran 90 compilers.
 cat >conftest.$ac_ext <<EOF
       program conftest
+      integer, dimension(10) :: n
       end
 EOF
 if AC_TRY_EVAL(ac_link) && test -s conftest${ac_exeect} ; then
@@ -2094,6 +2532,8 @@ else
   pac_cv_prog_f90_works="no"
 fi
 rm -f conftest*
+# The intel compiler sometimes generates these work.pc and .pcl files
+rm -f work.pc work.pcl
 AC_LANG_RESTORE
 AC_MSG_RESULT($pac_cv_prog_f90_works)
 if test $pac_cv_prog_f90_works = no; then
@@ -2104,627 +2544,106 @@ AC_MSG_RESULT($pac_cv_prog_f90_cross)
 cross_compiling=$pac_cv_prog_f90_cross
 ])
 dnl
+dnl This version uses a Fortran program to link programs.
+dnl This is necessary because some compilers provide shared libraries
+dnl that are not within the default linker paths (e.g., our installation
+dnl of the Portland Group compilers).
+dnl We assume a naming convention consistent with the Fortran 77 one.
+dnl
+AC_DEFUN(PAC_PROG_F90_CHECK_SIZEOF,[
+changequote(<<,>>)dnl
+dnl The name to #define.
+dnl If the arg value contains a variable, we need to update that
+define(<<PAC_TYPE_NAME>>, translit(sizeof_f90_$1, [a-z *], [A-Z__]))dnl
+dnl The cache variable name.
+define(<<PAC_CV_NAME>>, translit(pac_cv_f90_sizeof_$1, [ *], [__]))dnl
+changequote([,])dnl
+AC_CACHE_CHECK([for size of Fortran type $1],PAC_CV_NAME,[
+AC_REQUIRE([PAC_PROG_F77_NAME_MANGLE])
+if test "$cross_compiling" = yes ; then
+    ifelse([$2],,[AC_MSG_WARN([No value provided for size of $1 when cross-compiling])]
+,eval PAC_CV_NAME=$2)
+else
+    rm -f conftest*
+    cat <<EOF > conftestc.c
+#include <stdio.h>
+#include "confdefs.h"
+#ifdef F77_NAME_UPPER
+#define cisize_ CISIZE
+#define isize_ ISIZE
+#elif defined(F77_NAME_LOWER) || defined(F77_NAME_MIXED)
+#define cisize_ cisize
+#define isize_ isize
+#endif
+int cisize_(char *,char*);
+int cisize_(char *i1p, char *i2p)
+{ 
+    int isize_val=0;
+    FILE *f = fopen("conftestval", "w");
+    if (!f) return 1;
+    isize_val = (int)(i2p - i1p);
+    fprintf(f,"%d\n", isize_val );
+    fclose(f);
+    return 0;
+}
+EOF
+    pac_tmp_compile='$CC -c $CFLAGS $CPPFLAGS conftestc.c >&5'
+    if AC_TRY_EVAL(pac_tmp_compile) && test -s conftestc.o ; then
+        AC_LANG_SAVE
+        AC_LANG_FORTRAN77
+        saveLIBS=$LIBS
+        LIBS="conftestc.o $LIBS"
+        dnl TRY_RUN does not work correctly for autoconf 2.13 (the
+        dnl macro includes C-preprocessor directives that are not 
+        dnl valid in Fortran.  Instead, we do this by hand
+        cat >conftest.f <<EOF
+         program main
+         $1 a(2)
+         integer irc
+         irc = cisize(a(1),a(2))
+         end
+EOF
+        rm -f conftest$ac_exeext
+        rm -f conftestval
+        if AC_TRY_EVAL(ac_link) && test -s conftest$ac_exeext ; then
+	    if ./conftest$ac_exeext ; then
+	        # success
+                :
+            else
+	        # failure 
+                :
+	    fi
+        else
+	    # failure
+            AC_MSG_WARN([Unable to build program to determine size of $1])
+        fi
+        AC_LANG_RESTORE
+        if test -s conftestval ; then
+            eval PAC_CV_NAME=`cat conftestval`
+        else
+	    eval PAC_CV_NAME=0
+        fi
+        rm -f conftest*
+	# The intel compiler sometimes generates these work.pc and .pcl files
+	rm -f work.pc work.pcl
+        LIBS=$saveLIBS
+    else
+        AC_MSG_WARN([Unable to compile the C routine for finding the size of a $1])
+    fi
+fi # cross-compiling
+])
+AC_DEFINE_UNQUOTED(PAC_TYPE_NAME,$PAC_CV_NAME,[Define size of PAC_TYPE_NAME])
+undefine([PAC_TYPE_NAME])
+undefine([PAC_CV_NAME])
+])
+
+dnl
 dnl The following looks for F90 options to enable th specified f90 compiler
 dnl to work with the f77 compiler, particularly for accessing command-line
 dnl arguments
 
 dnl
-dnl We need routines to check that make works.  Possible problems with
-dnl make include
-dnl
-dnl It is really gnumake, and contrary to the documentation on gnumake,
-dnl it insists on screaming everytime a directory is changed.  The fix
-dnl is to add the argument --no-print-directory to the make
-dnl
-dnl It is really BSD 4.4 make, and can't handle 'include'.  For some
-dnl systems, this can be fatal; there is no fix (other than removing this
-dnl alleged make).
-dnl
-dnl It is the OSF V3 make, and can't handle a comment in a block of target
-dnl code.  There is no acceptable fix.
-dnl
-dnl
-dnl
-dnl
-dnl Find a make program if none is defined.
-AC_DEFUN(PAC_PROG_MAKE_PROGRAM,[true
-if test "X$MAKE" = "X" ; then
-   AC_CHECK_PROGS(MAKE,make gnumake nmake pmake smake)
-fi
-])dnl
-dnl/*D
-dnl PAC_PROG_MAKE_ECHOS_DIR - Check whether make echos all directory changes
-dnl
-dnl Synopsis:
-dnl PAC_PROG_MAKE_ECHOS_DIR
-dnl
-dnl Output Effect:
-dnl  If make echos directory changes, append '--no-print-directory' to the 
-dnl  symbol 'MAKE'.  If 'MAKE' is not set, chooses 'make' for 'MAKE'.
-dnl
-dnl See also:
-dnl PAC_PROG_MAKE
-dnl D*/
-dnl
-AC_DEFUN(PAC_PROG_MAKE_ECHOS_DIR,[
-AC_CACHE_CHECK([whether make echos directory changes],
-pac_cv_prog_make_echos_dir,
-[
-AC_REQUIRE([PAC_PROG_MAKE_PROGRAM])
-/bin/rm -f conftest
-cat > conftest <<.
-SHELL=/bin/sh
-ALL:
-	@(dir="`pwd`" ; cd .. ; \$(MAKE) -f "\$\$dir/conftest" SUB)
-SUB:
-	@echo "success"
-.
-str="`$MAKE -f conftest 2>&1`"
-if test "$str" != "success" ; then
-    str="`$MAKE --no-print-directory -f conftest 2>&1`"
-    if test "$str" = "success" ; then
-	pac_cv_prog_make_echos_dir="yes using --no-print-directory"
-    else
-	pac_cv_prog_make_echos_dir="no"
-	echo "Unexpected output from make with program" >>config.log
-	cat conftest >>config.log
-	echo "str" >> config.log
-    fi
-else
-    pac_cv_prog_make_echos_dir="no"
-fi
-/bin/rm -f conftest
-str=""
-])
-if test "$pac_cv_prog_make_echos_dir" = "yes using --no-print-directory" ; then
-    MAKE="$MAKE --no-print-directory"
-fi
-])dnl
-dnl
-dnl/*D
-dnl PAC_PROG_MAKE_INCLUDE - Check whether make supports include
-dnl
-dnl Synopsis:
-dnl PAC_PROG_MAKE_INCLUDE([action if true],[action if false])
-dnl
-dnl Output Effect:
-dnl   None
-dnl
-dnl Notes:
-dnl  This checks for makes that do not support 'include filename'.  Some
-dnl  versions of BSD 4.4 make required '#include' instead; some versions of
-dnl  'pmake' have the same syntax.
-dnl
-dnl See Also:
-dnl  PAC_PROG_MAKE
-dnl
-dnl D*/
-dnl
-AC_DEFUN(PAC_PROG_MAKE_INCLUDE,[
-AC_CACHE_CHECK([whether make supports include],pac_cv_prog_make_include,[
-AC_REQUIRE([PAC_PROG_MAKE_PROGRAM])
-/bin/rm -f conftest
-cat > conftest <<.
-ALL:
-	@echo "success"
-.
-cat > conftest1 <<.
-include conftest
-.
-pac_str=`$MAKE -f conftest1 2>&1`
-/bin/rm -f conftest conftest1
-if test "$pac_str" != "success" ; then
-    pac_cv_prog_make_include="no"
-else
-    pac_cv_prog_make_include="yes"
-fi
-])
-if test "$pac_cv_prog_make_include" = "no" ; then
-    ifelse([$2],,:,[$2])
-else
-    ifelse([$1],,:,[$1])
-fi
-])dnl
-dnl
-dnl/*D
-dnl PAC_PROG_MAKE_ALLOWS_COMMENTS - Check whether comments are allowed in 
-dnl   shell commands in a makefile
-dnl
-dnl Synopsis:
-dnl PAC_PROG_MAKE_ALLOWS_COMMENTS([false text])
-dnl
-dnl Output Effect:
-dnl Issues a warning message if comments are not allowed in a makefile.
-dnl Executes the argument if one is given.
-dnl
-dnl Notes:
-dnl Some versions of OSF V3 make do not all comments in action commands.
-dnl
-dnl See Also:
-dnl  PAC_PROG_MAKE
-dnl D*/
-dnl
-AC_DEFUN(PAC_PROG_MAKE_ALLOWS_COMMENTS,[
-AC_CACHE_CHECK([whether make allows comments in actions],
-pac_cv_prog_make_allows_comments,[
-AC_REQUIRE([PAC_PROG_MAKE_PROGRAM])
-/bin/rm -f conftest
-cat > conftest <<.
-SHELL=/bin/sh
-ALL:
-	@# This is a valid comment!
-	@echo "success"
-.
-pac_str=`$MAKE -f conftest 2>&1`
-/bin/rm -f conftest 
-if test "$pac_str" != "success" ; then
-    pac_cv_prog_make_allows_comments="no"
-else
-    pac_cv_prog_make_allows_comments="yes"
-fi
-])
-if test "$pac_cv_prog_make_allows_comments" = "no" ; then
-    AC_MSG_WARN([Your make does not allow comments in target code.
-Using this make may cause problems when building programs.
-You should consider using gnumake instead.])
-    ifelse([$1],,[$1])
-fi
-])dnl
-dnl
-dnl/*D
-dnl PAC_PROG_MAKE_VPATH - Check whether make supports source-code paths.
-dnl
-dnl Synopsis:
-dnl PAC_PROG_MAKE_VPATH
-dnl
-dnl Output Effect:
-dnl Sets the variable 'VPATH' to either
-dnl.vb
-dnl VPATH = .:${srcdir}
-dnl.ve
-dnl or
-dnl.vb
-dnl .PATH: . ${srcdir}
-dnl.ve
-dnl 
-dnl Notes:
-dnl The test checks that the path works with implicit targets (some makes
-dnl support only explicit targets with 'VPATH' or 'PATH').
-dnl
-dnl NEED TO DO: Check that $< works on explicit targets.
-dnl
-dnl See Also:
-dnl PAC_PROG_MAKE
-dnl
-dnl D*/
-dnl
-AC_DEFUN(PAC_PROG_MAKE_VPATH,[
-AC_SUBST(VPATH)AM_IGNORE(VPATH)
-AC_CACHE_CHECK([for virtual path format],
-pac_cv_prog_make_vpath,[
-AC_REQUIRE([PAC_PROG_MAKE_PROGRAM])
-rm -rf conftest*
-mkdir conftestdir
-cat >conftestdir/a.c <<EOF
-A sample file
-EOF
-cat > conftest <<EOF
-all: a.o
-VPATH=.:conftestdir
-.c.o:
-	@echo \$<
-EOF
-ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
-if test -n "$ac_out" ; then 
-    pac_cv_prog_make_vpath="VPATH"
-else
-    rm -f conftest
-    cat > conftest <<EOF
-all: a.o
-.PATH: . conftestdir
-.c.o:
-	@echo \$<
-EOF
-    ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
-    if test -n "$ac_out" ; then 
-        pac_cv_prog_make_vpath=".PATH"
-    else
-	pac_cv_prog_make_vpath="neither VPATH nor .PATH works"
-    fi
-fi
-rm -rf conftest*
-])
-if test "$pac_cv_prog_make_vpath" = "VPATH" ; then
-    VPATH='VPATH=.:${srcdir}'
-elif test "$pac_cv_prog_make_vpath" = ".PATH" ; then
-    VPATH='.PATH: . ${srcdir}'
-fi
-])dnl
-dnl
-dnl/*D
-dnl PAC_PROG_MAKE_SET_CFLAGS - Check whether make sets CFLAGS
-dnl
-dnl Synopsis:
-dnl PAC_PROG_MAKE_SET_CFLAGS([action if true],[action if false])
-dnl
-dnl Output Effects:
-dnl Executes the first argument if 'CFLAGS' is set by 'make'; executes
-dnl the second argument if 'CFLAGS' is not set by 'make'.
-dnl
-dnl Notes:
-dnl If 'CFLAGS' is set by make, you may wish to override that choice in your
-dnl makefile.
-dnl
-dnl See Also:
-dnl PAC_PROG_MAKE
-dnl D*/
-AC_DEFUN(PAC_PROG_MAKE_SET_CFLAGS,[
-AC_CACHE_CHECK([whether make sets CFLAGS],
-pac_cv_prog_make_set_cflags,[
-AC_REQUIRE([PAC_PROG_MAKE_PROGRAM])
-/bin/rm -f conftest
-cat > conftest <<EOF
-SHELL=/bin/sh
-ALL:
-	@echo X[\$]{CFLAGS}X
-EOF
-pac_str=`$MAKE -f conftest 2>&1`
-/bin/rm -f conftest 
-if test "$pac_str" = "XX" ; then
-    pac_cv_prog_make_set_cflags="no"
-else
-    pac_cv_prog_make_set_cflags="yes"
-fi
-])
-if test "$pac_cv_prog_make_set_cflags" = "no" ; then
-    ifelse([$2],,:,[$2])
-else
-    ifelse([$1],,:,[$1])
-fi
-])dnl
-dnl/*D
-dnl
-dnl D*/
-AC_DEFUN(PAC_PROG_MAKE_CLOCK_SKEW,[
-AC_CACHE_CHECK([whether clock skew breaks make],
-pac_cv_prog_make_found_clock_skew,[
-AC_REQUIRE([PAC_PROG_MAKE_PROGRAM])
-rm -f conftest*
-cat > conftest <<EOF
-ALL:
-	@-echo "success"
-EOF
-$MAKE -f conftest > conftest.out 2>&1
-if grep -i skew conftest >/dev/null 2>&1 ; then
-    pac_cv_prog_make_found_clock_skew=yes
-else
-    pac_cv_prog_make_found_clock_skew=no
-fi
-rm -f conftest*
-])
-dnl We should really do something if we detect clock skew.  The question is,
-dnl what?
-if test "$pac_cv_prog_make_found_clock_skew" = "yes" ; then
-    AC_MSG_WARN([Clock skew found by make.  The configure and build may fail.
-Consider building in a local instead of NFS filesystem.])
-fi
-])
-dnl
-dnl/*D
-dnl PAC_PROG_MAKE_HAS_PATTERN_RULES - Determine if the make program supports
-dnl pattern rules
-dnl
-dnl Synopsis:
-dnl PAC_PROG_MAKE_HAS_PATTERN_RULES([action if true],[action if false])
-dnl
-dnl Output Effect:
-dnl Executes the first argument if patterns of the form
-dnl.vb
-dnl   prefix%suffix: prefix%suffix
-dnl.ve
-dnl are supported by make (gnumake and Solaris make are known to support
-dnl this form of target).  If patterns are not supported, executes the
-dnl second argument.
-dnl
-dnl See Also:
-dnl PAC_PROG_MAKE
-dnl 
-dnl D*/
-AC_DEFUN(PAC_PROG_MAKE_HAS_PATTERN_RULES,[
-AC_CACHE_CHECK([whether make has pattern rules],
-pac_cv_prog_make_has_patterns,[
-AC_REQUIRE([PAC_PROG_MAKE_PROGRAM])
-rm -f conftest*
-cat > conftestmm <<EOF
-# Test for pattern rules
-.SUFFIXES:
-.SUFFIXES: .dep .c
-conftest%.dep: %.c
-	@cat \[$]< >\[$]@
-EOF
-date > conftest.c
-if ${MAKE} -f conftestmm conftestconftest.dep 1>&AC_FD_CC 2>&1 </dev/null ; then
-    pac_cv_prog_make_has_patterns="yes"
-else
-    pac_cv_prog_make_has_patterns="no"
-fi
-rm -f conftest*
-])
-if test "$pac_cv_prog_make_has_patterns" = "no" ; then
-    ifelse([$2],,:,[$2])
-else
-    ifelse([$1],,:,[$1])
-fi
-])dnl
-dnl
-dnl/*D
-dnl PAC_PROG_MAKE - Checks for the varieties of MAKE, including support for 
-dnl VPATH
-dnl
-dnl Synopsis:
-dnl PAC_PROG_MAKE
-dnl
-dnl Output Effect:
-dnl Sets 'MAKE' to the make program to use if 'MAKE' is not already set.
-dnl Sets the variable 'SET_CFLAGS' to 'CFLAGS =' if make sets 'CFLAGS'.
-dnl
-dnl Notes:
-dnl This macro uses 'PAC_PROG_MAKE_ECHOS_DIR', 'PAC_PROG_MAKE_INCLUDE',
-dnl 'PAC_PROG_MAKE_ALLOWS_COMMENTS', 'PAC_PROG_MAKE_VPATH', and
-dnl 'PAC_PROG_MAKE_SET_CFLAGS'.  See those commands for details about their
-dnl actions.
-dnl 
-dnl It may call 'AC_PROG_MAKE_SET', which sets 'SET_MAKE' to 'MAKE = @MAKE@'
-dnl if the make program does not set the value of make, otherwise 'SET_MAKE'
-dnl is set to empty; if the make program echos the directory name, then 
-dnl 'SET_MAKE' is set to 'MAKE = $MAKE'.
-dnl D*/
-dnl
-AC_DEFUN(PAC_PROG_MAKE,[
-PAC_PROG_MAKE_PROGRAM
-PAC_PROG_MAKE_CLOCK_SKEW
-PAC_PROG_MAKE_ECHOS_DIR
-PAC_PROG_MAKE_INCLUDE
-PAC_PROG_MAKE_ALLOWS_COMMENTS
-PAC_PROG_MAKE_VPATH
-dnl 
-dnl We're not using patterns any more, and Compaq/DEC OSF-1 sometimes hangs
-dnl at this test
-dnl PAC_PROG_MAKE_HAS_PATTERN_RULES
-AC_SUBST(SET_CFLAGS)AM_IGNORE(SET_CFLAGS)
-PAC_PROG_MAKE_SET_CFLAGS([SET_CFLAGS='CFLAGS='])
-if test "$pac_cv_prog_make_echos_dir" = "no" ; then
-    AC_PROG_MAKE_SET
-else
-    SET_MAKE="MAKE=${MAKE-make}"
-fi
-])
 
-dnl
-dnl/*D
-dnl PAC_LANG_PUSH_COMPILERS - Replace all compilers with test versions 
-dnl
-dnl Synopsis:
-dnl PAC_LANG_PUSH_COMPILERS
-dnl
-dnl Output Effects:
-dnl The values of 'CC', 'CXX', 'F77', 'F90', and 'CPP' are replaced with
-dnl the values of 'TESTCC' etc.  The old values are saved (see 
-dnl 'PAC_LANG_POP_COMPILERS').
-dnl 
-dnl Calls to this macro may be nested, but only the outer-most calls have
-dnl any effect.
-dnl
-dnl See also:
-dnl PAC_LANG_POP_COMPILERS
-dnl D*/
-dnl
-dnl These two name allow you to use TESTCC for CC, etc, in all of the 
-dnl autoconf compilation tests.  This is useful, for example, when the
-dnl compiler needed at the end cannot be used to build programs that can 
-dnl be run, for example, as required by some parallel computing systems.
-dnl Instead, define TESTCC, TESTCXX, TESTF77, and TESTF90 as the "local"
-dnl compilers.  Because autoconf insists on calling cpp for the header 
-dnl checks, we use TESTCPP for the CPP test as well.  And if no TESTCPP 
-dnl is defined, we create one using TESTCC.
-dnl
-dnl 2.52 does not have try_compiler, which is like try_compile, but 
-dnl it doesn't force a main program 
-dnl Not quite correct, but adequate for here
-ifdef([AC_TRY_COMPILER],,[AC_DEFUN([AC_TRY_COMPILER],
-[cat > conftest.$ac_ext <<EOF
-ifelse(_AC_LANG, [Fortran 77], ,
-[
-[#]line __oline__ "configure"
-#include "confdefs.h"
-])
-[$1]
-EOF
-if AC_TRY_EVAL(ac_link) && test -s conftest${ac_exeext}; then
-  [$2]=yes
-  # If we can't run a trivial program, we are probably using a cross compiler.
-  if (./conftest; exit) 2>/dev/null; then
-    [$3]=no
-  else
-    [$3]=yes
-  fi
-else
-  echo "configure: failed program was:" >&AC_FD_CC
-  cat conftest.$ac_ext >&AC_FD_CC
-  [$2]=no
-fi
-rm -fr conftest*])
-])
-dnl
-dnl pac_cross_compiling overrides all tests if set to yes.  This allows
-dnl us to test the cross-compilation branches of the code, and to use
-dnl compilers that can both cross-compile and build code for the current
-dnl platform
-dnl 
-AC_DEFUN(PAC_LANG_PUSH_COMPILERS,[
-if test "X$pac_save_level" = "X" ; then
-    pac_save_CC="$CC"
-    pac_save_CXX="$CXX"
-    pac_save_F77="$F77"
-    pac_save_F90="$F90"
-    pac_save_prog_cc_cross="$ac_cv_prog_cc_cross"
-    pac_save_prog_f77_cross="$ac_cv_prog_f77_cross"
-    pac_save_prog_cxx_cross="$ac_cv_prog_cxx_cross"
-    pac_save_prog_f90_cross="$pac_cv_prog_f90_cross"
-    if test "X$CPP" = "X" ; then
-	AC_PROG_CPP
-    fi
-    pac_save_CPP="$CPP"
-    CC="${TESTCC:=$CC}"
-    CXX="${TESTCXX:=$CXX}"
-    F77="${TESTF77:=$F77}"
-    F90="${TESTF90:=$F90}"
-    if test -z "$TESTCPP" ; then
-        PAC_PROG_TESTCPP
-    fi
-    CPP="${TESTCPP:=$CPP}"
-    pac_save_level="0"
-    # Recompute cross_compiling values and set for the current language
-    # This is just:
-    AC_LANG_SAVE
-    AC_LANG_C
-    if test "$pac_cross_compiling" = "yes" ; then
-        ac_cv_prog_cc_cross=yes
-	ac_cv_prog_cc_works=yes
-    else
-        AC_TRY_COMPILER([main(){return(0);}], ac_cv_prog_cc_works, ac_cv_prog_cc_cross)
-    fi
-    AC_LANG_RESTORE
-    # Ignore Fortran if we aren't using it.
-    if test -n "$F77" ; then
-        AC_LANG_SAVE
-        AC_LANG_FORTRAN77
-	if test "$pac_cross_compiling" = "yes" ; then
-	    ac_cv_prog_f77_cross=yes
-	    ac_cv_prog_f77_works=yes
-	else
-            AC_TRY_COMPILER(dnl
-[      program conftest
-      end
-], ac_cv_prog_f77_works, ac_cv_prog_f77_cross)
-	fi
-        AC_LANG_RESTORE
-    fi
-    # Ignore C++ if we aren't using it.
-    if test -n "$CXX" ; then
-        AC_LANG_SAVE
-        AC_LANG_CPLUSPLUS
-        AC_TRY_COMPILER([int main(){return(0);}], ac_cv_prog_cxx_works, ac_cv_prog_cxx_cross)
-        AC_LANG_RESTORE
-    fi
-    # Ignore Fortran 90 if we aren't using it.
-    if test -n "$F90" ; then
-        AC_LANG_SAVE
-        PAC_LANG_FORTRAN90
-	dnl We can't use AC_TRY_COMPILER because it doesn't know about 
-        dnl Fortran 90
-	if test "$pac_cross_compiling" = "yes" ; then
-	    ac_cv_prog_f90_cross=yes
-	    ac_cv_prog_f90_works=yes
-	else
-            cat > conftest.$ac_ext << EOF
-      program conftest
-      end
-EOF
-            if { (eval echo configure:2324: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
-              ac_cv_prog_f90_works=yes
-              # If we can't run a trivial program, we are probably using a cross compiler.
-              if (./conftest; exit) 2>/dev/null; then
-                  ac_cv_prog_f90_cross=no
-              else
-                  ac_cv_prog_f90_cross=yes
-              fi
-            else
-              echo "configure: failed program was:" >&5
-              cat conftest.$ac_ext >&5
-              ac_cv_prog_f90_works=no
-            fi
-	fi
-	pac_cv_prog_f90_cross="$ac_cv_prog_f90_cross"
-	pac_cv_prog_f90_works="$ac_cv_prog_f90_works"
-        rm -fr conftest*
-        AC_LANG_RESTORE
-    fi
-fi
-pac_save_level=`expr $pac_save_level + 1`
-])
-dnl/*D
-dnl PAC_LANG_POP_COMPILERS - Restore compilers that were displaced by
-dnl PAC_LANG_PUSH_COMPILERS
-dnl
-dnl Synopsis:
-dnl PAC_LANG_POP_COMPILERS
-dnl
-dnl Output Effects:
-dnl The values of 'CC', 'CXX', 'F77', 'F90', and 'CPP' are replaced with
-dnl their original values from the outermost call to 'PAC_LANG_PUSH_COMPILERS'.
-dnl 
-dnl Calls to this macro may be nested, but only the outer-most calls have
-dnl any effect.
-dnl
-dnl See also:
-dnl PAC_LANG_PUSH_COMPILERS
-dnlD*/
-AC_DEFUN(PAC_LANG_POP_COMPILERS,[
-pac_save_level=`expr $pac_save_level - 1`
-if test "X$pac_save_level" = "X0" ; then
-    CC="$pac_save_CC"
-    CXX="$pac_save_CXX"
-    F77="$pac_save_F77"
-    F90="$pac_save_F90"
-    CPP="$pac_save_CPP"
-    ac_cv_prog_cc_cross="$pac_save_prog_cc_cross"
-    ac_cv_prog_f77_cross="$pac_save_prog_f77_cross"
-    ac_cv_prog_cxx_cross="$pac_save_prog_cxx_cross"
-    pac_cv_prog_f90_cross="$pac_save_prog_f90_cross"
-    pac_save_level=""
-fi
-])
-AC_DEFUN(PAC_PROG_TESTCPP,[
-if test -z "$TESTCPP"; then
-  AC_CACHE_VAL(pac_cv_prog_TESTCPP,[
-  rm -f conftest.*
-  cat > conftest.c <<EOF
-  #include <assert.h>
-  Syntax Error
-EOF
-  # On the NeXT, cc -E runs the code through the compiler's parser,
-  # not just through cpp.
-  TESTCPP="${TESTCC-cc} -E"
-  ac_try="$TESTCPP conftest.c >/dev/null 2>conftest.out"
-  if AC_TRY_EVAL(ac_try) ; then
-      pac_cv_prog_TESTCPP="$TESTCPP"
-  fi
-  if test "X$pac_cv_prog_TESTCPP" = "X" ; then
-      TESTCPP="${TESTCC-cc} -E -traditional-cpp"
-      ac_try="$TESTCPP conftest.c >/dev/null 2>conftest.out"
-      if AC_TRY_EVAL(ac_try) ; then
-          pac_cv_prog_TESTCPP="$TESTCPP"
-      fi
-  fi
-  if test "X$pac_cv_prog_TESTCPP" = "X" ; then
-      TESTCPP="${TESTCC-cc} -nologo -E"
-      ac_try="$TESTCPP conftest.c >/dev/null 2>conftest.out"
-      if AC_TRY_EVAL(ac_try) ; then
-          pac_cv_prog_TESTCPP="$TESTCPP"
-      fi
-  fi
-  if test "X$pac_cv_prog_TESTCPP" = "X" ; then
-      AC_PATH_PROG(TESTCPP,cpp)
-  fi
-  rm -f conftest.*
-  ])
-else
-  pac_cv_prog_TESTCPP="$TESTCPP"
-fi
-])
-
-dnl
 dnl/*D
 dnl PAC_PROG_F77_NAME_MANGLE - Determine how the Fortran compiler mangles
 dnl names 
@@ -2754,7 +2673,7 @@ dnl C program, since that is why we are doing this anyway.  A similar approach
 dnl is used by FFTW, though without some of the cases we check (specifically, 
 dnl mixed name mangling)
 dnl
-dnlD*/
+dnl D*/
 dnl
 AC_DEFUN(PAC_PROG_F77_NAME_MANGLE,[
 AC_CACHE_CHECK([for Fortran 77 name mangling],
@@ -2817,22 +2736,22 @@ pac_namecheck=`echo X$pac_cv_prog_f77_name_mangle | sed 's/ /-/g'`
 ifelse([$1],,[
 case $pac_namecheck in
     X) AC_MSG_WARN([Cannot determine Fortran naming scheme]) ;;
-    Xlower) AC_DEFINE(F77_NAME_LOWER,,[Define if Fortran names are lowercase]) 
+    Xlower) AC_DEFINE(F77_NAME_LOWER,1,[Define if Fortran names are lowercase]) 
 	F77_NAME_MANGLE="F77_NAME_LOWER"
 	;;
-    Xlower-underscore) AC_DEFINE(F77_NAME_LOWER_USCORE,,[Define if Fortran names are lowercase with a trailing underscore])
+    Xlower-underscore) AC_DEFINE(F77_NAME_LOWER_USCORE,1,[Define if Fortran names are lowercase with a trailing underscore])
 	F77_NAME_MANGLE="F77_NAME_LOWER_USCORE"
 	 ;;
-    Xlower-doubleunderscore) AC_DEFINE(F77_NAME_LOWER_2USCORE,,[Define if Fortran names containing an underscore have two trailing underscores])
+    Xlower-doubleunderscore) AC_DEFINE(F77_NAME_LOWER_2USCORE,1,[Define if Fortran names containing an underscore have two trailing underscores])
 	F77_NAME_MANGLE="F77_NAME_LOWER_2USCORE"
 	 ;;
-    Xupper) AC_DEFINE(F77_NAME_UPPER,,[Define if Fortran names are uppercase]) 
+    Xupper) AC_DEFINE(F77_NAME_UPPER,1,[Define if Fortran names are uppercase]) 
 	F77_NAME_MANGLE="F77_NAME_UPPER"
 	;;
-    Xmixed) AC_DEFINE(F77_NAME_MIXED,,[Define if Fortran names preserve the original case]) 
+    Xmixed) AC_DEFINE(F77_NAME_MIXED,1,[Define if Fortran names preserve the original case]) 
 	F77_NAME_MANGLE="F77_NAME_MIXED"
 	;;
-    Xmixed-underscore) AC_DEFINE(F77_NAME_MIXED_USCORE,,[Define if Fortran names preserve the original case and add a trailing underscore]) 
+    Xmixed-underscore) AC_DEFINE(F77_NAME_MIXED_USCORE,1,[Define if Fortran names preserve the original case and add a trailing underscore]) 
 	F77_NAME_MANGLE="F77_NAME_MIXED_USCORE"
 	;;
     *) AC_MSG_WARN([Unknown Fortran naming scheme]) ;;
@@ -2864,7 +2783,7 @@ dnl Notes:
 dnl If the 'cross-size' argument is not given, 'autoconf' will issue an error
 dnl message.  You can use '0' to specify undetermined.
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_PROG_F77_CHECK_SIZEOF,[
 changequote(<<, >>)dnl
 dnl The name to #define.
@@ -2900,20 +2819,28 @@ if AC_TRY_EVAL(ac_fcompile) && test -s conftest.o ; then
 #define cisize_ cisize
 #define isize_ isize
 #endif
-static int isize_val;
+static int isize_val=0;
+void cisize_(char *,char*);
+void isize_(void);
 void cisize_(char *i1p, char *i2p)
 { 
    isize_val = (int)(i2p - i1p);
 }
-main()
+int main(int argc, char **argv)
 {
     FILE *f = fopen("conftestval", "w");
-    if (!f) exit(1);
+    if (!f) return 1;
     isize_();
     fprintf(f,"%d\n", isize_val );
-    exit(0);
+    return 0;
 }], eval PAC_CV_NAME=`cat conftestval`,eval PAC_CV_NAME=0,
 ifelse([$2],,,eval PAC_CV_NAME=$2))
+    # Problem.  If the process fails to run, then there won't be
+    # a good error message.  For example, with one Portland Group
+    # installation, we had problems with finding the libpgc.so shared library
+    # The autoconf code for TRY_RUN doesn't capture the output from
+    # the test program (!)
+    
     LIBS="$save_LIBS"
     AC_LANG_RESTORE
 else 
@@ -2921,6 +2848,96 @@ else
     cat conftest.f >&AC_FD_CC
     ifelse([$2],,eval PAC_CV_NAME=0,eval PAC_CV_NAME=$2)
 fi
+])
+AC_DEFINE_UNQUOTED(PAC_TYPE_NAME,$PAC_CV_NAME,[Define size of PAC_TYPE_NAME])
+undefine([PAC_TYPE_NAME])
+undefine([PAC_CV_NAME])
+])
+dnl
+dnl This version uses a Fortran program to link programs.
+dnl This is necessary because some compilers provide shared libraries
+dnl that are not within the default linker paths (e.g., our installation
+dnl of the Portland Group compilers)
+dnl
+AC_DEFUN(PAC_PROG_F77_CHECK_SIZEOF_EXT,[
+changequote(<<,>>)dnl
+dnl The name to #define.
+dnl If the arg value contains a variable, we need to update that
+define(<<PAC_TYPE_NAME>>, translit(sizeof_f77_$1, [a-z *], [A-Z__]))dnl
+dnl The cache variable name.
+define(<<PAC_CV_NAME>>, translit(pac_cv_f77_sizeof_$1, [ *], [__]))dnl
+changequote([,])dnl
+AC_CACHE_CHECK([for size of Fortran type $1],PAC_CV_NAME,[
+AC_REQUIRE([PAC_PROG_F77_NAME_MANGLE])
+if test "$cross_compiling" = yes ; then
+    ifelse([$2],,[AC_MSG_WARN([No value provided for size of $1 when cross-compiling])]
+,eval PAC_CV_NAME=$2)
+else
+    /bin/rm -f conftest*
+    cat <<EOF > conftestc.c
+#include <stdio.h>
+#include "confdefs.h"
+#ifdef F77_NAME_UPPER
+#define cisize_ CISIZE
+#define isize_ ISIZE
+#elif defined(F77_NAME_LOWER) || defined(F77_NAME_MIXED)
+#define cisize_ cisize
+#define isize_ isize
+#endif
+int cisize_(char *,char*);
+int cisize_(char *i1p, char *i2p)
+{ 
+    int isize_val=0;
+    FILE *f = fopen("conftestval", "w");
+    if (!f) return 1;
+    isize_val = (int)(i2p - i1p);
+    fprintf(f,"%d\n", isize_val );
+    fclose(f);
+    return 0;
+}
+EOF
+    pac_tmp_compile='$CC -c $CFLAGS $CPPFLAGS conftestc.c >&5'
+    if AC_TRY_EVAL(pac_tmp_compile) && test -s conftestc.o ; then
+        AC_LANG_SAVE
+        AC_LANG_FORTRAN77
+        saveLIBS=$LIBS
+        LIBS="conftestc.o $LIBS"
+        dnl TRY_RUN does not work correctly for autoconf 2.13 (the
+        dnl macro includes C-preprocessor directives that are not 
+        dnl valid in Fortran.  Instead, we do this by hand
+        cat >conftest.f <<EOF
+         program main
+         $1 a(2)
+         integer irc
+         irc = cisize(a(1),a(2))
+         end
+EOF
+        rm -f conftest$ac_exeext
+        rm -f conftestval
+        if AC_TRY_EVAL(ac_link) && test -s conftest$ac_exeext ; then
+	    if ./conftest$ac_exeext ; then
+	        # success
+                :
+            else
+	        # failure 
+                :
+	    fi
+        else
+	    # failure
+            AC_MSG_WARN([Unable to build program to determine size of $1])
+        fi
+        LIBS=$saveLIBS
+        AC_LANG_RESTORE
+        if test -s conftestval ; then
+            eval PAC_CV_NAME=`cat conftestval`
+        else
+	    eval PAC_CV_NAME=0
+        fi
+        rm -f conftest*
+    else
+        AC_MSG_WARN([Unable to compile the C routine for finding the size of a $1])
+    fi
+fi # cross-compiling
 ])
 AC_DEFINE_UNQUOTED(PAC_TYPE_NAME,$PAC_CV_NAME,[Define size of PAC_TYPE_NAME])
 undefine([PAC_TYPE_NAME])
@@ -2940,7 +2957,7 @@ dnl This macro requires a version of autoconf `after` 2.13; the 'acgeneral.m4'
 dnl file contains an error in the handling of Fortran programs in 
 dnl 'AC_TRY_COMPILE' (fixed in our local version).
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_PROG_F77_EXCLAIM_COMMENTS,[
 AC_CACHE_CHECK([whether Fortran accepts ! for comments],
 pac_cv_prog_f77_exclaim_comments,[
@@ -2979,7 +2996,7 @@ dnl that complain about poor code are in effect.
 dnl
 dnl Because this is a long script, we have ensured that you can pass a 
 dnl variable containing the option name as the first argument.
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_F77_CHECK_COMPILER_OPTION,[
 AC_MSG_CHECKING([that Fortran 77 compiler accepts option $1])
 ac_result="no"
@@ -3087,10 +3104,10 @@ dnl To work around this, we test whether iargc etc. work first.  This
 dnl will catch most systems and will speed up the tests.
 dnl
 dnl Next, the libraries are only added if they are needed to complete a 
-dnl link; they aren't added just because they exist.
+dnl link; they aren''t added just because they exist.
 dnl
 dnl f77argdef
-dnlD*/
+dnl D*/
 dnl
 dnl Random notes
 dnl You can export the command line arguments from C to the g77 compiler
@@ -3440,7 +3457,7 @@ dnl and require instead either '-Wl,-L,dir' or something else.  This
 dnl command attempts to determine what is accepted.  The flag is 
 dnl placed into 'F77_LIBDIR_LEADER'.
 dnl
-dnlD*/
+dnl D*/
 dnl
 dnl An earlier version of this only tried the arguments without using
 dnl a library.  This failed when the HP compiler complained about the
@@ -3503,7 +3520,7 @@ dnl not to the use of '#include' with the C preprocessor.
 dnl If directory does not exist, it will be created.  In that case, the 
 dnl directory should be a direct descendant of the current directory.
 dnl
-dnlD*/ 
+dnl D*/ 
 AC_DEFUN(PAC_PROG_F77_HAS_INCDIR,[
 checkdir=$1
 AC_CACHE_CHECK([for include directory flag for Fortran],
@@ -3544,7 +3561,7 @@ dnl
 dnl Syntax:
 dnl   PAC_PROG_F77_ALLOWS_UNUSED_EXTERNALS(action-if-true,action-if-false)
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_PROG_F77_ALLOWS_UNUSED_EXTERNALS,[
 AC_CACHE_CHECK([whether Fortran allows unused externals],
 pac_cv_prog_f77_allows_unused_externals,[
@@ -3647,6 +3664,13 @@ dnl create a program that includes a trival Fortran code.
 dnl
 dnl For example, all pgf90 compiled objects include a reference to the
 dnl symbol pgf90_compiled, found in libpgf90 .
+dnl
+dnl There is an additional problem.  To *run* programs, we may need 
+dnl additional arguments; e.g., if shared libraries are used.  Even
+dnl with autoconf 2.52, the autoconf macro to find the library arguments
+dnl doesn't handle this, either by detecting the use of -rpath or
+dnl by trying to *run* a trivial program.  It only checks for *linking*.
+dnl 
 dnl
 AC_DEFUN(PAC_PROG_F77_IN_C_LIBS,[
 AC_MSG_CHECKING([what Fortran libraries are needed to link C with Fortran])
@@ -3820,7 +3844,7 @@ pac_cv_prog_f77_new_char_decl,[
 AC_LANG_SAVE
 AC_LANG_FORTRAN77
 AC_TRY_COMPILE(,[
-       character (len=10) s
+        character (len=10) s
 ],pac_cv_prog_f77_new_char_decl="yes",
 pac_cv_prog_f77_new_char_decl="no")
 AC_LANG_RESTORE
@@ -3831,4 +3855,673 @@ else
     ifelse([$2],,:,$2)
 fi
 ])dnl
+
+AC_DEFUN([PAC_PROG_F77_CHAR_PARM],[
+#
+# We need to check on how character variables are passed.  If they 
+# are *not* passed at the end of the list, we need to know that NOW!
+case $pac_cv_prog_f77_name_mangle in 
+    mixed|lower)
+    sub1=sub
+    sub2=conffoo
+    ;;
+    upper)
+    sub1=SUB
+    sub2=CONFFOO
+    ;;
+    *)
+    sub1=sub_
+    sub2=conffoo_
+    ;;
+esac
+
+cat > conftest.c <<EOF
+#include <stdio.h>
+int loc = -1;
+void $sub1( char *a, int b, int c )
+{
+    if (b == 10) {
+    loc = 2;
+    }
+    if (c == 10) {
+    loc = 3;
+    }
+}
+int main( int argc, char **argv )
+{
+    int a, b, c;
+    $sub2();
+    printf( "%d\n", loc );
+}
+EOF
+cat > conftest1.f <<EOF
+        subroutine conffoo()
+        character a*10
+        a = "Foo"
+	call sub( a, 20 )
+        end
+EOF
+rm conftest*
+])
+
+
+dnl
+dnl We need routines to check that make works.  Possible problems with
+dnl make include
+dnl
+dnl It is really gnumake, and contrary to the documentation on gnumake,
+dnl it insists on screaming everytime a directory is changed.  The fix
+dnl is to add the argument --no-print-directory to the make
+dnl
+dnl It is really BSD 4.4 make, and can't handle 'include'.  For some
+dnl systems, this can be fatal; there is no fix (other than removing this
+dnl alleged make).
+dnl
+dnl It is the OSF V3 make, and can't handle a comment in a block of target
+dnl code.  There is no acceptable fix.
+dnl
+dnl
+dnl
+dnl
+dnl Find a make program if none is defined.
+AC_DEFUN(PAC_PROG_MAKE_PROGRAM,[true
+if test "X$MAKE" = "X" ; then
+   AC_CHECK_PROGS(MAKE,make gnumake nmake pmake smake)
+fi
+])dnl
+dnl/*D
+dnl PAC_PROG_MAKE_ECHOS_DIR - Check whether make echos all directory changes
+dnl
+dnl Synopsis:
+dnl PAC_PROG_MAKE_ECHOS_DIR
+dnl
+dnl Output Effect:
+dnl  If make echos directory changes, append '--no-print-directory' to the 
+dnl  symbol 'MAKE'.  If 'MAKE' is not set, chooses 'make' for 'MAKE'.
+dnl
+dnl See also:
+dnl PAC_PROG_MAKE
+dnl D*/
+dnl
+AC_DEFUN(PAC_PROG_MAKE_ECHOS_DIR,[
+AC_CACHE_CHECK([whether make echos directory changes],
+pac_cv_prog_make_echos_dir,
+[
+AC_REQUIRE([PAC_PROG_MAKE_PROGRAM])
+/bin/rm -f conftest
+cat > conftest <<.
+SHELL=/bin/sh
+ALL:
+	@(dir="`pwd`" ; cd .. ; \$(MAKE) -f "\$\$dir/conftest" SUB)
+SUB:
+	@echo "success"
+.
+str="`$MAKE -f conftest 2>&1`"
+if test "$str" != "success" ; then
+    str="`$MAKE --no-print-directory -f conftest 2>&1`"
+    if test "$str" = "success" ; then
+	pac_cv_prog_make_echos_dir="yes using --no-print-directory"
+    else
+	pac_cv_prog_make_echos_dir="no"
+	echo "Unexpected output from make with program" >>config.log
+	cat conftest >>config.log
+	echo "str" >> config.log
+    fi
+else
+    pac_cv_prog_make_echos_dir="no"
+fi
+/bin/rm -f conftest
+str=""
+])
+if test "$pac_cv_prog_make_echos_dir" = "yes using --no-print-directory" ; then
+    MAKE="$MAKE --no-print-directory"
+fi
+])dnl
+dnl
+dnl/*D
+dnl PAC_PROG_MAKE_INCLUDE - Check whether make supports include
+dnl
+dnl Synopsis:
+dnl PAC_PROG_MAKE_INCLUDE([action if true],[action if false])
+dnl
+dnl Output Effect:
+dnl   None
+dnl
+dnl Notes:
+dnl  This checks for makes that do not support 'include filename'.  Some
+dnl  versions of BSD 4.4 make required '#include' instead; some versions of
+dnl  'pmake' have the same syntax.
+dnl
+dnl See Also:
+dnl  PAC_PROG_MAKE
+dnl
+dnl D*/
+dnl
+AC_DEFUN(PAC_PROG_MAKE_INCLUDE,[
+AC_CACHE_CHECK([whether make supports include],pac_cv_prog_make_include,[
+AC_REQUIRE([PAC_PROG_MAKE_PROGRAM])
+/bin/rm -f conftest
+cat > conftest <<.
+ALL:
+	@echo "success"
+.
+cat > conftest1 <<.
+include conftest
+.
+pac_str=`$MAKE -f conftest1 2>&1`
+/bin/rm -f conftest conftest1
+if test "$pac_str" != "success" ; then
+    pac_cv_prog_make_include="no"
+else
+    pac_cv_prog_make_include="yes"
+fi
+])
+if test "$pac_cv_prog_make_include" = "no" ; then
+    ifelse([$2],,:,[$2])
+else
+    ifelse([$1],,:,[$1])
+fi
+])dnl
+dnl
+dnl/*D
+dnl PAC_PROG_MAKE_ALLOWS_COMMENTS - Check whether comments are allowed in 
+dnl   shell commands in a makefile
+dnl
+dnl Synopsis:
+dnl PAC_PROG_MAKE_ALLOWS_COMMENTS([false text])
+dnl
+dnl Output Effect:
+dnl Issues a warning message if comments are not allowed in a makefile.
+dnl Executes the argument if one is given.
+dnl
+dnl Notes:
+dnl Some versions of OSF V3 make do not all comments in action commands.
+dnl
+dnl See Also:
+dnl  PAC_PROG_MAKE
+dnl D*/
+dnl
+AC_DEFUN(PAC_PROG_MAKE_ALLOWS_COMMENTS,[
+AC_CACHE_CHECK([whether make allows comments in actions],
+pac_cv_prog_make_allows_comments,[
+AC_REQUIRE([PAC_PROG_MAKE_PROGRAM])
+/bin/rm -f conftest
+cat > conftest <<.
+SHELL=/bin/sh
+ALL:
+	@# This is a valid comment!
+	@echo "success"
+.
+pac_str=`$MAKE -f conftest 2>&1`
+/bin/rm -f conftest 
+if test "$pac_str" != "success" ; then
+    pac_cv_prog_make_allows_comments="no"
+else
+    pac_cv_prog_make_allows_comments="yes"
+fi
+])
+if test "$pac_cv_prog_make_allows_comments" = "no" ; then
+    AC_MSG_WARN([Your make does not allow comments in target code.
+Using this make may cause problems when building programs.
+You should consider using gnumake instead.])
+    ifelse([$1],,[$1])
+fi
+])dnl
+dnl
+dnl/*D
+dnl PAC_PROG_MAKE_VPATH - Check whether make supports source-code paths.
+dnl
+dnl Synopsis:
+dnl PAC_PROG_MAKE_VPATH
+dnl
+dnl Output Effect:
+dnl Sets the variable 'VPATH' to either
+dnl.vb
+dnl VPATH = .:${srcdir}
+dnl.ve
+dnl or
+dnl.vb
+dnl .PATH: . ${srcdir}
+dnl.ve
+dnl 
+dnl Notes:
+dnl The test checks that the path works with implicit targets (some makes
+dnl support only explicit targets with 'VPATH' or 'PATH').
+dnl
+dnl NEED TO DO: Check that $< works on explicit targets.
+dnl
+dnl See Also:
+dnl PAC_PROG_MAKE
+dnl
+dnl D*/
+dnl
+AC_DEFUN(PAC_PROG_MAKE_VPATH,[
+AC_SUBST(VPATH)AM_IGNORE(VPATH)
+AC_CACHE_CHECK([for virtual path format],
+pac_cv_prog_make_vpath,[
+AC_REQUIRE([PAC_PROG_MAKE_PROGRAM])
+rm -rf conftest*
+mkdir conftestdir
+cat >conftestdir/a.c <<EOF
+A sample file
+EOF
+cat > conftest <<EOF
+all: a.o
+VPATH=.:conftestdir
+.c.o:
+	@echo \$<
+EOF
+ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
+if test -n "$ac_out" ; then 
+    pac_cv_prog_make_vpath="VPATH"
+else
+    rm -f conftest
+    cat > conftest <<EOF
+all: a.o
+.PATH: . conftestdir
+.c.o:
+	@echo \$<
+EOF
+    ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
+    if test -n "$ac_out" ; then 
+        pac_cv_prog_make_vpath=".PATH"
+    else
+	pac_cv_prog_make_vpath="neither VPATH nor .PATH works"
+    fi
+fi
+rm -rf conftest*
+])
+if test "$pac_cv_prog_make_vpath" = "VPATH" ; then
+    VPATH='VPATH=.:${srcdir}'
+elif test "$pac_cv_prog_make_vpath" = ".PATH" ; then
+    VPATH='.PATH: . ${srcdir}'
+fi
+])dnl
+dnl
+dnl/*D
+dnl PAC_PROG_MAKE_SET_CFLAGS - Check whether make sets CFLAGS
+dnl
+dnl Synopsis:
+dnl PAC_PROG_MAKE_SET_CFLAGS([action if true],[action if false])
+dnl
+dnl Output Effects:
+dnl Executes the first argument if 'CFLAGS' is set by 'make'; executes
+dnl the second argument if 'CFLAGS' is not set by 'make'.
+dnl
+dnl Notes:
+dnl If 'CFLAGS' is set by make, you may wish to override that choice in your
+dnl makefile.
+dnl
+dnl See Also:
+dnl PAC_PROG_MAKE
+dnl D*/
+AC_DEFUN(PAC_PROG_MAKE_SET_CFLAGS,[
+AC_CACHE_CHECK([whether make sets CFLAGS],
+pac_cv_prog_make_set_cflags,[
+AC_REQUIRE([PAC_PROG_MAKE_PROGRAM])
+/bin/rm -f conftest
+cat > conftest <<EOF
+SHELL=/bin/sh
+ALL:
+	@echo X[\$]{CFLAGS}X
+EOF
+pac_str=`$MAKE -f conftest 2>&1`
+/bin/rm -f conftest 
+if test "$pac_str" = "XX" ; then
+    pac_cv_prog_make_set_cflags="no"
+else
+    pac_cv_prog_make_set_cflags="yes"
+fi
+])
+if test "$pac_cv_prog_make_set_cflags" = "no" ; then
+    ifelse([$2],,:,[$2])
+else
+    ifelse([$1],,:,[$1])
+fi
+])dnl
+dnl/*D
+dnl PAC_PROG_MAKE_CLOCK_SKEW - Check whether there is a problem with 
+dnl clock skew in suing make.
+dnl
+dnl Effect:
+dnl Sets the cache variable 'pac_cv_prog_make_found_clock_skew' to yes or no
+dnl D*/
+AC_DEFUN(PAC_PROG_MAKE_CLOCK_SKEW,[
+AC_CACHE_CHECK([whether clock skew breaks make],
+pac_cv_prog_make_found_clock_skew,[
+AC_REQUIRE([PAC_PROG_MAKE_PROGRAM])
+rm -f conftest*
+cat > conftest <<EOF
+ALL:
+	@-echo "success"
+EOF
+$MAKE -f conftest > conftest.out 2>&1
+if grep -i skew conftest >/dev/null 2>&1 ; then
+    pac_cv_prog_make_found_clock_skew=yes
+else
+    pac_cv_prog_make_found_clock_skew=no
+fi
+rm -f conftest*
+])
+dnl We should really do something if we detect clock skew.  The question is,
+dnl what?
+if test "$pac_cv_prog_make_found_clock_skew" = "yes" ; then
+    AC_MSG_WARN([Clock skew found by make.  The configure and build may fail.
+Consider building in a local instead of NFS filesystem.])
+fi
+])
+dnl
+dnl/*D
+dnl PAC_PROG_MAKE_HAS_PATTERN_RULES - Determine if the make program supports
+dnl pattern rules
+dnl
+dnl Synopsis:
+dnl PAC_PROG_MAKE_HAS_PATTERN_RULES([action if true],[action if false])
+dnl
+dnl Output Effect:
+dnl Executes the first argument if patterns of the form
+dnl.vb
+dnl   prefix%suffix: prefix%suffix
+dnl.ve
+dnl are supported by make (gnumake and Solaris make are known to support
+dnl this form of target).  If patterns are not supported, executes the
+dnl second argument.
+dnl
+dnl See Also:
+dnl PAC_PROG_MAKE
+dnl 
+dnl D*/
+AC_DEFUN(PAC_PROG_MAKE_HAS_PATTERN_RULES,[
+AC_CACHE_CHECK([whether make has pattern rules],
+pac_cv_prog_make_has_patterns,[
+AC_REQUIRE([PAC_PROG_MAKE_PROGRAM])
+rm -f conftest*
+cat > conftestmm <<EOF
+# Test for pattern rules
+.SUFFIXES:
+.SUFFIXES: .dep .c
+conftest%.dep: %.c
+	@cat \[$]< >\[$]@
+EOF
+date > conftest.c
+if ${MAKE} -f conftestmm conftestconftest.dep 1>&AC_FD_CC 2>&1 </dev/null ; then
+    pac_cv_prog_make_has_patterns="yes"
+else
+    pac_cv_prog_make_has_patterns="no"
+fi
+rm -f conftest*
+])
+if test "$pac_cv_prog_make_has_patterns" = "no" ; then
+    ifelse([$2],,:,[$2])
+else
+    ifelse([$1],,:,[$1])
+fi
+])dnl
+dnl
+dnl/*D
+dnl PAC_PROG_MAKE - Checks for the varieties of MAKE, including support for 
+dnl VPATH
+dnl
+dnl Synopsis:
+dnl PAC_PROG_MAKE
+dnl
+dnl Output Effect:
+dnl Sets 'MAKE' to the make program to use if 'MAKE' is not already set.
+dnl Sets the variable 'SET_CFLAGS' to 'CFLAGS =' if make sets 'CFLAGS'.
+dnl
+dnl Notes:
+dnl This macro uses 'PAC_PROG_MAKE_ECHOS_DIR', 'PAC_PROG_MAKE_INCLUDE',
+dnl 'PAC_PROG_MAKE_ALLOWS_COMMENTS', 'PAC_PROG_MAKE_VPATH', and
+dnl 'PAC_PROG_MAKE_SET_CFLAGS'.  See those commands for details about their
+dnl actions.
+dnl 
+dnl It may call 'AC_PROG_MAKE_SET', which sets 'SET_MAKE' to 'MAKE = @MAKE@'
+dnl if the make program does not set the value of make, otherwise 'SET_MAKE'
+dnl is set to empty; if the make program echos the directory name, then 
+dnl 'SET_MAKE' is set to 'MAKE = $MAKE'.
+dnl D*/
+dnl
+AC_DEFUN(PAC_PROG_MAKE,[
+PAC_PROG_MAKE_PROGRAM
+PAC_PROG_MAKE_CLOCK_SKEW
+PAC_PROG_MAKE_ECHOS_DIR
+PAC_PROG_MAKE_INCLUDE
+PAC_PROG_MAKE_ALLOWS_COMMENTS
+PAC_PROG_MAKE_VPATH
+dnl 
+dnl We're not using patterns any more, and Compaq/DEC OSF-1 sometimes hangs
+dnl at this test
+dnl PAC_PROG_MAKE_HAS_PATTERN_RULES
+AC_SUBST(SET_CFLAGS)AM_IGNORE(SET_CFLAGS)
+PAC_PROG_MAKE_SET_CFLAGS([SET_CFLAGS='CFLAGS='])
+if test "$pac_cv_prog_make_echos_dir" = "no" ; then
+    AC_PROG_MAKE_SET
+else
+    SET_MAKE="MAKE=${MAKE-make}"
+fi
+])
+
+dnl
+dnl/*D
+dnl PAC_LANG_PUSH_COMPILERS - Replace all compilers with test versions 
+dnl
+dnl Synopsis:
+dnl PAC_LANG_PUSH_COMPILERS
+dnl
+dnl Output Effects:
+dnl The values of 'CC', 'CXX', 'F77', 'F90', and 'CPP' are replaced with
+dnl the values of 'TESTCC' etc.  The old values are saved (see 
+dnl 'PAC_LANG_POP_COMPILERS').
+dnl 
+dnl Calls to this macro may be nested, but only the outer-most calls have
+dnl any effect.
+dnl
+dnl See also:
+dnl PAC_LANG_POP_COMPILERS
+dnl D*/
+dnl
+dnl These two name allow you to use TESTCC for CC, etc, in all of the 
+dnl autoconf compilation tests.  This is useful, for example, when the
+dnl compiler needed at the end cannot be used to build programs that can 
+dnl be run, for example, as required by some parallel computing systems.
+dnl Instead, define TESTCC, TESTCXX, TESTF77, and TESTF90 as the "local"
+dnl compilers.  Because autoconf insists on calling cpp for the header 
+dnl checks, we use TESTCPP for the CPP test as well.  And if no TESTCPP 
+dnl is defined, we create one using TESTCC.
+dnl
+dnl 2.52 does not have try_compiler, which is like try_compile, but 
+dnl it doesn't force a main program 
+dnl Not quite correct, but adequate for here
+ifdef([AC_TRY_COMPILER],,[AC_DEFUN([AC_TRY_COMPILER],
+[cat > conftest.$ac_ext <<EOF
+ifelse(_AC_LANG, [Fortran 77], ,
+[
+[#]line __oline__ "configure"
+#include "confdefs.h"
+])
+[$1]
+EOF
+if AC_TRY_EVAL(ac_link) && test -s conftest${ac_exeext}; then
+  [$2]=yes
+  # If we can't run a trivial program, we are probably using a cross compiler.
+  if (./conftest; exit) 2>/dev/null; then
+    [$3]=no
+  else
+    [$3]=yes
+  fi
+else
+  echo "configure: failed program was:" >&AC_FD_CC
+  cat conftest.$ac_ext >&AC_FD_CC
+  [$2]=no
+fi
+rm -fr conftest*])
+])
+dnl
+dnl pac_cross_compiling overrides all tests if set to yes.  This allows
+dnl us to test the cross-compilation branches of the code, and to use
+dnl compilers that can both cross-compile and build code for the current
+dnl platform
+dnl 
+AC_DEFUN(PAC_LANG_PUSH_COMPILERS,[
+if test "X$pac_save_level" = "X" ; then
+    pac_save_CC="$CC"
+    pac_save_CXX="$CXX"
+    pac_save_F77="$F77"
+    pac_save_F90="$F90"
+    pac_save_prog_cc_cross="$ac_cv_prog_cc_cross"
+    pac_save_prog_f77_cross="$ac_cv_prog_f77_cross"
+    pac_save_prog_cxx_cross="$ac_cv_prog_cxx_cross"
+    pac_save_prog_f90_cross="$pac_cv_prog_f90_cross"
+    if test "X$CPP" = "X" ; then
+	AC_PROG_CPP
+    fi
+    pac_save_CPP="$CPP"
+    CC="${TESTCC:=$CC}"
+    CXX="${TESTCXX:=$CXX}"
+    F77="${TESTF77:=$F77}"
+    F90="${TESTF90:=$F90}"
+    if test -z "$TESTCPP" ; then
+        PAC_PROG_TESTCPP
+    fi
+    CPP="${TESTCPP:=$CPP}"
+    pac_save_level="0"
+    # Recompute cross_compiling values and set for the current language
+    # This is just:
+    AC_LANG_SAVE
+    AC_LANG_C
+    if test "$pac_cross_compiling" = "yes" ; then
+        ac_cv_prog_cc_cross=yes
+	ac_cv_prog_cc_works=yes
+    else
+        AC_TRY_COMPILER([main(){return(0);}], ac_cv_prog_cc_works, ac_cv_prog_cc_cross)
+    fi
+    AC_LANG_RESTORE
+    # Ignore Fortran if we aren't using it.
+    if test -n "$F77" ; then
+        AC_LANG_SAVE
+        AC_LANG_FORTRAN77
+	if test "$pac_cross_compiling" = "yes" ; then
+	    ac_cv_prog_f77_cross=yes
+	    ac_cv_prog_f77_works=yes
+	else
+            AC_TRY_COMPILER(dnl
+[      program conftest
+      end
+], ac_cv_prog_f77_works, ac_cv_prog_f77_cross)
+	fi
+        AC_LANG_RESTORE
+    fi
+    # Ignore C++ if we aren't using it.
+    if test -n "$CXX" ; then
+        AC_LANG_SAVE
+        AC_LANG_CPLUSPLUS
+        AC_TRY_COMPILER([int main(){return(0);}], ac_cv_prog_cxx_works, ac_cv_prog_cxx_cross)
+        AC_LANG_RESTORE
+    fi
+    # Ignore Fortran 90 if we aren't using it.
+    if test -n "$F90" ; then
+        AC_LANG_SAVE
+        PAC_LANG_FORTRAN90
+	dnl We can't use AC_TRY_COMPILER because it doesn't know about 
+        dnl Fortran 90
+	if test "$pac_cross_compiling" = "yes" ; then
+	    ac_cv_prog_f90_cross=yes
+	    ac_cv_prog_f90_works=yes
+	else
+            cat > conftest.$ac_ext << EOF
+      program conftest
+      end
+EOF
+            if { (eval echo configure:2324: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+              ac_cv_prog_f90_works=yes
+              # If we can't run a trivial program, we are probably using a cross compiler.
+              if (./conftest; exit) 2>/dev/null; then
+                  ac_cv_prog_f90_cross=no
+              else
+                  ac_cv_prog_f90_cross=yes
+              fi
+            else
+              echo "configure: failed program was:" >&5
+              cat conftest.$ac_ext >&5
+              ac_cv_prog_f90_works=no
+            fi
+	fi
+	pac_cv_prog_f90_cross="$ac_cv_prog_f90_cross"
+	pac_cv_prog_f90_works="$ac_cv_prog_f90_works"
+        rm -fr conftest*
+        AC_LANG_RESTORE
+    fi
+fi
+pac_save_level=`expr $pac_save_level + 1`
+])
+dnl/*D
+dnl PAC_LANG_POP_COMPILERS - Restore compilers that were displaced by
+dnl PAC_LANG_PUSH_COMPILERS
+dnl
+dnl Synopsis:
+dnl PAC_LANG_POP_COMPILERS
+dnl
+dnl Output Effects:
+dnl The values of 'CC', 'CXX', 'F77', 'F90', and 'CPP' are replaced with
+dnl their original values from the outermost call to 'PAC_LANG_PUSH_COMPILERS'.
+dnl 
+dnl Calls to this macro may be nested, but only the outer-most calls have
+dnl any effect.
+dnl
+dnl See also:
+dnl PAC_LANG_PUSH_COMPILERS
+dnl D*/
+AC_DEFUN(PAC_LANG_POP_COMPILERS,[
+pac_save_level=`expr $pac_save_level - 1`
+if test "X$pac_save_level" = "X0" ; then
+    CC="$pac_save_CC"
+    CXX="$pac_save_CXX"
+    F77="$pac_save_F77"
+    F90="$pac_save_F90"
+    CPP="$pac_save_CPP"
+    ac_cv_prog_cc_cross="$pac_save_prog_cc_cross"
+    ac_cv_prog_f77_cross="$pac_save_prog_f77_cross"
+    ac_cv_prog_cxx_cross="$pac_save_prog_cxx_cross"
+    pac_cv_prog_f90_cross="$pac_save_prog_f90_cross"
+    pac_save_level=""
+fi
+])
+AC_DEFUN(PAC_PROG_TESTCPP,[
+if test -z "$TESTCPP"; then
+  AC_CACHE_VAL(pac_cv_prog_TESTCPP,[
+  rm -f conftest.*
+  cat > conftest.c <<EOF
+  #include <assert.h>
+  Syntax Error
+EOF
+  # On the NeXT, cc -E runs the code through the compiler's parser,
+  # not just through cpp.
+  TESTCPP="${TESTCC-cc} -E"
+  ac_try="$TESTCPP conftest.c >/dev/null 2>conftest.out"
+  if AC_TRY_EVAL(ac_try) ; then
+      pac_cv_prog_TESTCPP="$TESTCPP"
+  fi
+  if test "X$pac_cv_prog_TESTCPP" = "X" ; then
+      TESTCPP="${TESTCC-cc} -E -traditional-cpp"
+      ac_try="$TESTCPP conftest.c >/dev/null 2>conftest.out"
+      if AC_TRY_EVAL(ac_try) ; then
+          pac_cv_prog_TESTCPP="$TESTCPP"
+      fi
+  fi
+  if test "X$pac_cv_prog_TESTCPP" = "X" ; then
+      TESTCPP="${TESTCC-cc} -nologo -E"
+      ac_try="$TESTCPP conftest.c >/dev/null 2>conftest.out"
+      if AC_TRY_EVAL(ac_try) ; then
+          pac_cv_prog_TESTCPP="$TESTCPP"
+      fi
+  fi
+  if test "X$pac_cv_prog_TESTCPP" = "X" ; then
+      AC_PATH_PROG(TESTCPP,cpp)
+  fi
+  rm -f conftest.*
+  ])
+else
+  pac_cv_prog_TESTCPP="$TESTCPP"
+fi
+])
 

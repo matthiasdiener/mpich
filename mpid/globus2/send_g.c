@@ -1,6 +1,6 @@
+#include "chconfig.h"
 #include <sys/time.h> /* for gettimeofday() */
 
-#include <globus_dc.h>
 #include "globdev.h"
 #include "reqalloc.h"
 
@@ -1298,7 +1298,7 @@ static int start_tcp_send(struct tcpsendreq *sr)
 	    if (rc2 != GLOBUS_SUCCESS)
 	    {
 		globus_libc_fprintf(stderr,
-		    "ERROR: send_ack_over_tcp: write header failed\n"); 
+		    "ERROR: start_tcp_send: write header failed\n"); 
 		rc = -1;
 		goto fn_exit;
 	    } /* endif */
@@ -1526,7 +1526,7 @@ static int start_tcp_send(struct tcpsendreq *sr)
             if (rc2 != GLOBUS_SUCCESS)
             {
                 globus_libc_fprintf(stderr,
-                    "ERROR: send_ack_over_tcp: write header failed\n");
+                    "ERROR: start_tcp_send: write header failed\n");
                 rc = -1;
                 goto fn_exit;
             } /* endif */

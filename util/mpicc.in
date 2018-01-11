@@ -27,6 +27,8 @@ compileargs=
 linkargs=
 linkobjs=
 gettinglinkarg=0
+gettingdeptargetname=0
+quotecount=0
 HasDashC=0
 UsesPmpi=0
 verbose=0
@@ -91,6 +93,17 @@ for arg in "$@" ; do
 	gettinglinkarg=0
 	continue
     fi
+    # Special processing for gcc -Mxxx.o
+    if [ $gettingdeptargetname = 1 ] ; then
+	# Because below we use eval, we do indirection (easier than quoting).
+	# Quoting for make will be done by the compiler.
+	eval "quotedarg$quotecount=\$arg"
+	compileargs="$compileargs \$quotedarg$quotecount"
+	allargs="$allargs \$quotedarg$quotecount"
+	quotecount=`expr $quotecount + 1`
+	gettingdeptargetname=0
+	continue
+    fi
     case "$arg" in 
 	-c)
 	# If -c is NOT specified, then we need to perform a link step.
@@ -119,15 +132,27 @@ for arg in "$@" ; do
 	    DoLink=1
         fi
 	;;
-	-E|-M)
+
+	-MT|-MQ|-MF)
+	# recent gcc's (>2.95.4) allow dependency generation as a side effect
+	# while compiling, including setting the target name to be output
+	# in the dependency line with -MT or -MQ.
+	# Do not delete the following name.
+	allargs="$allargs $arg"
+	compileargs="$compileargs $arg"
+	gettingdeptargetname=1
+	;;
+
+	-E|-M|-MM)
 	# For compilers that support -E as a way to get at the C preprocessor
-	# Also, for compilers that support -M for creating dependencies
+	# Also, for compilers that support -M or -MM for creating dependencies
 	allargs="$allargs $arg"
 	compileargs="$compileargs $arg"
 	HasDashC=1
 	DoLink=0
 	;;
 
+ 
 	-mpilog)
 	if [ $UsesPmpi = 1 ] ; then
 	    echo "Only one of -mpilog, -mpitrace, or -mpianim may be used."
@@ -264,11 +289,11 @@ for arg in "$@" ; do
 	        compileargs="$compileargs $arg"
 	        fname=`basename $arg .c`
 	        linkobjs="$linkobjs $fname.o"
-	    elif [ "$ext" = ".s" ] ; then
-	        # Support .s for those compilers that can
+	    elif [ "$ext" = ".s" -o "$ext" = ".S" ] ; then
+	        # Support .s and .S for those compilers that can
 	        DoCompile=1
 	        compileargs="$compileargs $arg"
-	        fname=`basename $arg .s`
+	        fname=`basename $arg $ext`
 	        linkobjs="$linkobjs $fname.o"
 	    elif [ "$ext" = ".o" ] ; then
 		if [ $HasDashC = 1 ] ; then

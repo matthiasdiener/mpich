@@ -40,7 +40,7 @@ void PrintError(int error, char *msg, ...)
 	(LPTSTR) &str,
 	0,0);
     
-    printf("Error: %s", str);
+    printf("Error %d: %s", error, (const char *)str);
     fflush(stdout);
     
     LocalFree(str);
@@ -141,6 +141,16 @@ void PrintExtraOptions()
     printf("  the default is -priority 1:3\n");
     printf("-mpduser\n");
     printf("  use the installed mpd single user ignoring the current user credentials.\n");
+    printf("-localroot\n");
+    printf("  launch the root process without mpd if the host is local.\n");
+    printf("  (This allows the root process to create windows and be debugged.)\n");
+    printf("-iproot\n");
+    printf("-noiproot\n");
+    printf("  use or not the ip address of the root host instead of the host name.\n");
+    printf("-mpich2\n");
+    printf("  launch an mpich2 application.\n");
+    printf("-mpich1\n");
+    printf("  launch an mpich1 application.\n");
 }
 
 // Function name	: ConnectReadMPDRegistry
@@ -376,6 +386,27 @@ bool GetHostsFromRegistry(HostNode **list)
 	}
 	*list = l;
 	delete phosts;
+
+	// attempt to put the local host first in the list
+	DWORD dwLength = MAX_CMD_LENGTH + 1;
+	if (GetComputerName(pszHosts, &dwLength))
+	{
+	    if (stricmp(l->host, pszHosts) == 0)
+		return true;
+	    n = l->next;
+	    while (n)
+	    {
+		if (stricmp(n->host, pszHosts) == 0)
+		{
+		    l->next = n->next;
+		    n->next = *list;
+		    *list = n;
+		    return true;
+		}
+		n = n->next;
+		l = l->next;
+	    }
+	}
 	return true;
     }
     delete phosts;
@@ -918,10 +949,14 @@ void GetMPDPassPhrase(char *phrase)
 void CreateJobIDFromTemp(char * pszJobID)
 {
     // Use the name of a temporary file as the job id
-    char tBuffer[MAX_PATH], *pChar;
-    GetTempFileName(".", "mpi", 0, pszJobID);
-    GetFullPathName(pszJobID, 100, tBuffer, &pChar);
-    DeleteFile(pszJobID);
+    char tFileName[MAX_PATH], tBuffer[MAX_PATH], *pChar;
+    // Create a temporary file to get a unique name
+    GetTempFileName(".", "mpi", 0, tFileName);
+    // Get just the file name part
+    GetFullPathName(tFileName, MAX_PATH, tBuffer, &pChar);
+    // Delete the file
+    DeleteFile(tFileName);
+    // Use the filename as the jobid
     strcpy(pszJobID, pChar);
 }
 
@@ -933,8 +968,8 @@ void CreateJobID(char * pszJobID)
 {
     DWORD ret_val, job_number = 0, type, num_bytes = sizeof(DWORD);
     HANDLE hMutex = CreateMutex(NULL, FALSE, "MPIJobNumberMutex");
-    char pszHost[100];
-    DWORD size = 100;
+    char pszHost[MAX_COMPUTERNAME_LENGTH + 1];
+    DWORD size = MAX_COMPUTERNAME_LENGTH + 1;
     HKEY hKey;
     
     // Synchronize access to the job number in the registry
@@ -982,7 +1017,10 @@ void CreateJobID(char * pszJobID)
     ReleaseMutex(hMutex);
     CloseHandle(hMutex);
     
-    GetComputerName(pszHost, &size);
+    if (!GetComputerName(pszHost, &size))
+    {
+	strcpy(pszHost, "tmphost");
+    }
     
     sprintf(pszJobID, "%s.%d", pszHost, job_number);
 }
@@ -1126,8 +1164,9 @@ bool CreateShmCliqueString(HostNode *pHosts, char *str)
 {
     int i, iProc, iterProc, nProc = 0;
     HostNode *n, *iter;
-    bool *pDone;
+    bool *pDone = NULL;
     char *strOrig = str;
+    bool bRemoveRoot = false;
 
     str[0] = '\0';
 
@@ -1142,6 +1181,9 @@ bool CreateShmCliqueString(HostNode *pHosts, char *str)
 	}
 	return true;
     }
+
+    if (g_bLocalRoot && HostIsLocal(pHosts->host))
+	bRemoveRoot = true;
 
     n = pHosts;
     while (n)
@@ -1205,6 +1247,17 @@ bool CreateShmCliqueString(HostNode *pHosts, char *str)
 	n = n->next;
     }
 
+    if (bRemoveRoot)
+    {
+	if (strOrig[2] == '.')
+	    strOrig[1] = '1';
+	else
+	    strOrig[1] = ' ';
+	if (strOrig[2] == ',')
+	    strOrig[2] = ' ';
+	strcat(strOrig, "(0)");
+    }
+    delete [] pDone;
     return true;
 }
 
@@ -1270,6 +1323,67 @@ void SetupTimeouts()
     }
 }
 
+bool VerifyProcessMPIFinalized(char *pmi_host, int pmi_port, char *phrase, char *pmi_kvsname, int rank, bool &bFinalized)
+{
+    int error;
+    SOCKET sock;
+    char str[256];
+    if ((error = ConnectToMPD(pmi_host, pmi_port, phrase, &sock)) == 0)
+    {
+	sprintf(str, "dbget name='%s' key='P-%d.finalized'", pmi_kvsname, rank);
+	WriteString(sock, str);
+	ReadString(sock, str);
+	if (strcmp(str, "true") == 0)
+	    bFinalized = true;
+	else
+	    bFinalized = false;
+	WriteString(sock, "done");
+	easy_closesocket(sock);
+	return true;
+    }
+
+    printf("Unable to connect to mpd at %s:%d\n", pmi_host, pmi_port);
+    bFinalized = false;
+    return false;
+}
+
+bool CreatePMIDatabase(char *pmi_host, int pmi_port, char *phrase, char *pmi_kvsname)
+{
+    int error;
+    SOCKET sock;
+    if ((error = ConnectToMPD(pmi_host, pmi_port, phrase, &sock)) == 0)
+    {
+	WriteString(sock, "dbcreate");
+	ReadString(sock, pmi_kvsname);
+	WriteString(sock, "done");
+	easy_closesocket(sock);
+	return true;
+    }
+
+    printf("Unable to connect to mpd at %s:%d\n", pmi_host, pmi_port);
+    return false;
+}
+
+bool DestroyPMIDatabase(char *pmi_host, int pmi_port, char *phrase, char *pmi_kvsname)
+{
+    int error;
+    SOCKET sock;
+    char str[256];
+
+    if ((error = ConnectToMPD(pmi_host, pmi_port, phrase, &sock)) == 0)
+    {
+	sprintf(str, "dbdestroy %s", pmi_kvsname);
+	WriteString(sock, str);
+	ReadString(sock, str);
+	WriteString(sock, "done");
+	easy_closesocket(sock);
+	return true;
+    }
+
+    printf("Unable to connect to mpd at %s:%d\n", pmi_host, pmi_port);
+    return false;
+}
+
 // Function name	: main
 // Description	    : 
 // Return type		: void 
@@ -1286,7 +1400,7 @@ int main(int argc, char *argv[])
     DWORD dwThreadID;
     bool bLogon = false;
     char pBuffer[MAX_CMD_LENGTH];
-    char phrase[MPD_PASSPHRASE_MAX_LENGTH + 1];// = MPD_DEFAULT_PASSPHRASE;
+    //char phrase[MPD_PASSPHRASE_MAX_LENGTH + 1];// = MPD_DEFAULT_PASSPHRASE;
     bool bLogonDots = true;
     HANDLE hStdout;
     char cMapDrive, pszMapShare[MAX_PATH];
@@ -1311,6 +1425,8 @@ int main(int argc, char *argv[])
     char pszShmCliqueString[MAX_CMD_LENGTH];
     char pszSingleShmCliqueString[MAX_CMD_LENGTH];
     int nCliqueCount, *pMembers;
+    int iter;
+    DWORD pmi_host_length = MAX_HOST_LENGTH;
 
     if (argc < 2)
     {
@@ -1322,7 +1438,7 @@ int main(int argc, char *argv[])
 
     if ((err = WSAStartup( MAKEWORD( 2, 0 ), &wsaData )) != 0)
     {
-	printf("Winsock2 dll not initialized, error %d", err);
+	printf("Winsock2 dll not initialized, error %d ", err);
 	switch (err)
 	{
 	case WSASYSNOTREADY:
@@ -1348,6 +1464,8 @@ int main(int argc, char *argv[])
 	return 0;
     }
 
+    GetComputerName(pmi_host, &pmi_host_length);
+
     // Set defaults
     g_bDoMultiColorOutput = !ReadMPDDefault("nocolor");
     bRunLocal = false;
@@ -1357,7 +1475,7 @@ int main(int argc, char *argv[])
     GetCurrentDirectory(MAX_PATH, g_pszDir);
     bUseMachineFile = false;
     bDoSMP = true;
-    phrase[0] = '\0';
+    pmi_phrase[0] = '\0';
     bPhraseNeeded = true;
     g_nHosts = 0;
     g_pHosts = NULL;
@@ -1381,6 +1499,9 @@ int main(int argc, char *argv[])
 	}
     }
     bUseDebugFlag = ReadMPDDefault("dbg");
+    g_bLocalRoot = ReadMPDDefault("localroot");
+    g_bMPICH2 = ReadMPDDefault("mpich2");
+    g_bIPRoot = ReadMPDDefault("iproot");
     SetupTimeouts();
 
 
@@ -1574,7 +1695,7 @@ int main(int argc, char *argv[])
 	}
 	else if (stricmp(&argv[1][1], "getphrase") == 0)
 	{
-	    GetMPDPassPhrase(phrase);
+	    GetMPDPassPhrase(pmi_phrase);
 	    bPhraseNeeded = false;
 	}
 	else if (stricmp(&argv[1][1], "nocolor") == 0)
@@ -1635,6 +1756,10 @@ int main(int argc, char *argv[])
 	{
 	    g_bOutputExitCodes = true;
 	}
+	else if (stricmp(&argv[1][1], "localroot") == 0)
+	{
+	    g_bLocalRoot = true;
+	}
 	else if (stricmp(&argv[1][1], "priority") == 0)
 	{
 	    char *str;
@@ -1648,6 +1773,22 @@ int main(int argc, char *argv[])
 	    //printf("priorities = %d:%d\n", nPriorityClass, nPriority);fflush(stdout);
 	    bUsePriorities = true;
 	    nArgsToStrip = 2;
+	}
+	else if (stricmp(&argv[1][1], "iproot") == 0)
+	{
+	    g_bIPRoot = true;
+	}
+	else if (stricmp(&argv[1][1], "noiproot") == 0)
+	{
+	    g_bIPRoot = false;
+	}
+	else if (stricmp(&argv[1][1], "mpich2") == 0)
+	{
+	    g_bMPICH2 = true;
+	}
+	else if (stricmp(&argv[1][1], "mpich1") == 0)
+	{
+	    g_bMPICH2 = false;
 	}
 	else
 	{
@@ -1702,7 +1843,9 @@ int main(int argc, char *argv[])
 
     easy_socket_init();
 
-    if (!bRunLocal && g_pHosts == NULL)
+    // This block must be executed to fix up g_pszExe before GetHostsFromFile() 
+    // or GetAvailableHosts() is called because they make copies of g_pszExe.
+    if (!bRunLocal)
     {
 	// Save the original file name in case we end up running locally
 	strncpy(pszTempExe, g_pszExe, MAX_CMD_LENGTH);
@@ -1712,7 +1855,10 @@ int main(int argc, char *argv[])
 	// the need to map network drives on remote machines just to locate
 	// the executable.
 	ExeToUnc(g_pszExe);
+    }
 
+    if (!bRunLocal && g_pHosts == NULL)
+    {
 	// If we are not running locally and the hosts haven't been set up with a configuration file,
 	// create the host list now
 	if (bUseMachineFile)
@@ -1764,15 +1910,34 @@ int main(int argc, char *argv[])
     // the registry or use the default
     if (bPhraseNeeded)
     {
-	if (!ReadMPDRegistry("phrase", phrase, NULL))
+	if (!ReadMPDRegistry("phrase", pmi_phrase, NULL))
 	{
-	    strcpy(phrase, MPD_DEFAULT_PASSPHRASE);
+	    strcpy(pmi_phrase, MPD_DEFAULT_PASSPHRASE);
 	}
     }
 
+    if (g_bMPICH2)
+    {
+	char pmi_port_str[100];
+	DWORD port_str_length = 100;
+	if (ReadMPDRegistry("port", pmi_port_str, &port_str_length))
+	{
+	    pmi_port = atoi(pmi_port_str);
+	    if (pmi_port < 1)
+		pmi_port = MPD_DEFAULT_PORT;
+	}
+	// Put the pmi database on the root node to reduce contention on this host where mpirun has been executed.
+	// This assumes that the pmi passphrase is the same on the root host as it is here.
+	if (g_pHosts && strlen(g_pHosts->host))
+	    strcpy(pmi_host, g_pHosts->host);
+	CreatePMIDatabase(pmi_host, pmi_port, pmi_phrase, pmi_kvsname);
+    }
+    
     if (bRunLocal)
     {
 	RunLocal(bDoSMP);
+	if (g_bMPICH2)
+	    DestroyPMIDatabase(pmi_host, pmi_port, pmi_phrase, pmi_kvsname);
 	easy_socket_finalize();
 	return 0;
     }
@@ -1864,13 +2029,28 @@ int main(int argc, char *argv[])
 	pszEnv[0] = '\0';
     else
     {
-	sprintf(pszEnv, "MPICH_JOBID=%s|MPICH_NPROC=%d|MPICH_ROOTHOST=%s",
-	    pszJobID, nProc, g_pHosts->host);
+	if (g_bMPICH2)
+	{
+	    sprintf(pszEnv, "PMI_SIZE=%d|PMI_MPD=%s:%d|PMI_KVS=%s", nProc, pmi_host, pmi_port, pmi_kvsname);
+	}
+	else
+	{
+	    if (g_bIPRoot)
+		easy_get_ip_string(g_pHosts->host, g_pHosts->host);
+	    sprintf(pszEnv, "MPICH_JOBID=%s|MPICH_NPROC=%d|MPICH_ROOTHOST=%s",
+		pszJobID, nProc, g_pHosts->host);
+	}
     }
     
     // Allocate an array to hold handles to the LaunchProcess threads, sockets, ids, ranks, and forward host structures
     pThread = new HANDLE[nProc];
     g_pProcessSocket = new SOCKET[nProc];
+    if (g_pProcessSocket == NULL)
+    {
+	printf("Error: Unable to allocate memory for %d sockets\n", nProc);
+	return 0;
+    }
+    g_pProcessHost = new HostArray[nProc];
     for (i=0; i<nProc; i++)
 	g_pProcessSocket[i] = INVALID_SOCKET;
     g_pProcessLaunchId = new int[nProc];
@@ -1879,21 +2059,49 @@ int main(int argc, char *argv[])
     g_pForwardHost = new ForwardHostStruct[nProc];
     for (i=0; i<nProc; i++)
 	g_pForwardHost[i].nPort = 0;
+    if (pThread == NULL || g_pProcessHost == NULL || g_pProcessLaunchId == NULL || g_pLaunchIdToRank == NULL || g_pForwardHost == NULL)
+    {
+	printf("Error: Unable to allocate memory for process and socket structures\n");
+	return 0;
+    }
     
     // Start the IO redirection thread
-    HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-    g_hRedirectIOListenThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectIOThread, hEvent, 0, &dwThreadID);
+    HANDLE hEvent;
+    for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+    {
+	hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	if (hEvent != NULL)
+	    break;
+	Sleep(CREATE_THREAD_SLEEP_TIME);
+    }
+    if (hEvent == NULL)
+    {
+	printf("CreateEvent failed, error %d\n", GetLastError());
+	return 0;
+    }
+    for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+    {
+	g_hRedirectIOListenThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectIOThread, hEvent, 0, &dwThreadID);
+	if (g_hRedirectIOListenThread != NULL)
+	    break;
+	Sleep(CREATE_THREAD_SLEEP_TIME);
+    }
+    SwitchToThread();
     if (g_hRedirectIOListenThread)
     {
-	if (WaitForSingleObject(hEvent, 60000) != WAIT_OBJECT_0)
+	if (WaitForSingleObject(hEvent, 120000) != WAIT_OBJECT_0)
 	{
 	    printf("RedirectIOThread failed to initialize\n");
+	    if (g_bMPICH2)
+		DestroyPMIDatabase(pmi_host, pmi_port, pmi_phrase, pmi_kvsname);
 	    return 0;
 	}
     }
     else
     {
 	printf("Unable to create RedirectIOThread, error %d\n", GetLastError());
+	if (g_bMPICH2)
+	    DestroyPMIDatabase(pmi_host, pmi_port, pmi_phrase, pmi_kvsname);
 	return 0;
     }
     CloseHandle(hEvent);
@@ -1904,10 +2112,13 @@ int main(int argc, char *argv[])
     //printf("io redirection: %s:%d\n", g_pForwardHost[0].pszHost, g_pForwardHost[0].nPort);fflush(stdout);
 
 #ifdef SERIALIZE_ROOT_PROCESS
-    HANDLE hRootMutex = CreateMutex(NULL, FALSE, "MPIRunRootMutex");
+    HANDLE hRootMutex = NULL;
+    if (!g_bMPICH2)
+	hRootMutex = CreateMutex(NULL, FALSE, "MPIRunRootMutex");
 #endif
 
     CreateShmCliqueString(g_pHosts, pszShmCliqueString);
+    /*printf("shmem clique string: %s\n", pszShmCliqueString);fflush(stdout);*/
 
     // Launch the threads to launch the processes
     iproc = 0;
@@ -1924,7 +2135,7 @@ int main(int argc, char *argv[])
 	    arg->bUseDebugFlag = bUseDebugFlag;
 	    arg->n = g_nNproc;
 	    sprintf(arg->pszIOHostPort, "%s:%d", g_pszIOHost, g_nIOPort);
-	    strcpy(arg->pszPassPhrase, phrase);
+	    strcpy(arg->pszPassPhrase, pmi_phrase);
 	    arg->i = iproc;
 	    arg->bLogon = bLogon;
 	    if (bLogon)
@@ -1962,6 +2173,7 @@ int main(int argc, char *argv[])
 	    arg->pszEnv[MAX_CMD_LENGTH-1] = '\0';
 	    strncpy(arg->pszHost, g_pHosts->host, MAX_HOST_LENGTH);
 	    arg->pszHost[MAX_HOST_LENGTH-1] = '\0';
+	    strcpy(g_pProcessHost[iproc].host, arg->pszHost);
 	    strcpy(arg->pszJobID, pszJobID);
 
 	    if (g_bNoMPI)
@@ -1981,10 +2193,43 @@ int main(int argc, char *argv[])
 		    if (nCliqueCount > 1)
 		    {
 			CreateSingleShmCliqueString(nCliqueCount, pMembers, pszSingleShmCliqueString);
-			if (iproc == 0)
-			    sprintf(pBuffer, "MPICH_ROOTPORT=-1|MPICH_IPROC=%d|MPICH_SHM_CLIQUES=%s", iproc, pszSingleShmCliqueString);
+			if (g_bMPICH2)
+			{
+			    sprintf(pBuffer, "PMI_RANK=%d|PMI_SHM_CLIQUES=%s", iproc, pszSingleShmCliqueString);
+			}
 			else
-			    sprintf(pBuffer, "MPICH_ROOTPORT=%d|MPICH_IPROC=%d|MPICH_SHM_CLIQUES=%s", g_nRootPort, iproc, pszSingleShmCliqueString);
+			{
+			    if (iproc == 0)
+				sprintf(pBuffer, "MPICH_ROOTPORT=-1|MPICH_IPROC=%d|MPICH_SHM_CLIQUES=%s", iproc, pszSingleShmCliqueString);
+			    else
+				sprintf(pBuffer, "MPICH_ROOTPORT=%d|MPICH_IPROC=%d|MPICH_SHM_CLIQUES=%s", g_nRootPort, iproc, pszSingleShmCliqueString);
+			}
+		    }
+		    else
+		    {
+			if (g_bMPICH2)
+			{
+			    sprintf(pBuffer, "PMI_RANK=%d|PMI_SHM_CLIQUES=(%d..%d)", iproc, nShmLow, nShmHigh);
+			}
+			else
+			{
+			    if (iproc == 0)
+				sprintf(pBuffer, "MPICH_ROOTPORT=-1|MPICH_IPROC=%d|MPICH_SHM_LOW=%d|MPICH_SHM_HIGH=%d", iproc, nShmLow, nShmHigh);
+			    else
+				sprintf(pBuffer, "MPICH_ROOTPORT=%d|MPICH_IPROC=%d|MPICH_SHM_LOW=%d|MPICH_SHM_HIGH=%d", g_nRootPort, iproc, nShmLow, nShmHigh);
+			}
+		    }
+		    if (pMembers)
+		    {
+			FREE(pMembers);
+			pMembers = NULL;
+		    }
+		}
+		else
+		{
+		    if (g_bMPICH2)
+		    {
+			sprintf(pBuffer, "PMI_RANK=%d|PMI_SHM_CLIQUES=(%d..%d)", iproc, nShmLow, nShmHigh);
 		    }
 		    else
 		    {
@@ -1993,18 +2238,6 @@ int main(int argc, char *argv[])
 			else
 			    sprintf(pBuffer, "MPICH_ROOTPORT=%d|MPICH_IPROC=%d|MPICH_SHM_LOW=%d|MPICH_SHM_HIGH=%d", g_nRootPort, iproc, nShmLow, nShmHigh);
 		    }
-		    if (pMembers)
-		    {
-			delete pMembers;
-			pMembers = NULL;
-		    }
-		}
-		else
-		{
-		    if (iproc == 0)
-			sprintf(pBuffer, "MPICH_ROOTPORT=-1|MPICH_IPROC=%d|MPICH_SHM_LOW=%d|MPICH_SHM_HIGH=%d", iproc, nShmLow, nShmHigh);
-		    else
-			sprintf(pBuffer, "MPICH_ROOTPORT=%d|MPICH_IPROC=%d|MPICH_SHM_LOW=%d|MPICH_SHM_HIGH=%d", g_nRootPort, iproc, nShmLow, nShmHigh);
 		}
 		/*
 		if (iproc == 0)
@@ -2012,6 +2245,7 @@ int main(int argc, char *argv[])
 		else
 		    sprintf(pBuffer, "MPICH_ROOTPORT=%d|MPICH_IPROC=%d|MPICH_SHM_LOW=%d|MPICH_SHM_HIGH=%d", g_nRootPort, iproc, nShmLow, nShmHigh);
 		*/
+
 		if (strlen(arg->pszEnv) > 0)
 		    strncat(arg->pszEnv, "|", MAX_CMD_LENGTH - 1 - strlen(arg->pszEnv));
 		if (strlen(pBuffer) + strlen(arg->pszEnv) >= MAX_CMD_LENGTH)
@@ -2033,10 +2267,16 @@ int main(int argc, char *argv[])
 	    }
 	    //printf("creating MPIRunLaunchProcess thread\n");fflush(stdout);
 #ifdef SERIALIZE_ROOT_PROCESS
-	    if (iproc == 0 && !g_bNoMPI)
+	    if (iproc == 0 && !g_bNoMPI && !g_bMPICH2)
 		WaitForSingleObject(hRootMutex, INFINITE);
 #endif
-	    pThread[iproc] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)MPIRunLaunchProcess, arg, 0, &dwThreadID);
+	    for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+	    {
+		pThread[iproc] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)MPIRunLaunchProcess, arg, 0, &dwThreadID);
+		if (pThread[iproc] != NULL)
+		    break;
+		Sleep(CREATE_THREAD_SLEEP_TIME);
+	    }
 	    if (pThread[iproc] == NULL)
 	    {
 		printf("Unable to create LaunchProcess thread\n");fflush(stdout);
@@ -2051,7 +2291,7 @@ int main(int argc, char *argv[])
 		    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), g_ConsoleAttribute);
 		}
 #ifdef SERIALIZE_ROOT_PROCESS
-		if (iproc == 0 && !g_bNoMPI)
+		if (iproc == 0 && !g_bNoMPI && !g_bMPICH2)
 		{
 		    ReleaseMutex(hRootMutex);
 		    CloseHandle(hRootMutex);
@@ -2059,7 +2299,7 @@ int main(int argc, char *argv[])
 #endif
 		ExitProcess(1);
 	    }
-	    if (iproc == 0 && !g_bNoMPI)
+	    if (iproc == 0 && !g_bNoMPI && !g_bMPICH2)
 	    {
 		// Wait for the root port to be valid
 		while (g_nRootPort == 0 && (WaitForSingleObject(g_hAbortEvent, 0) != WAIT_OBJECT_0))
@@ -2073,11 +2313,12 @@ int main(int argc, char *argv[])
 		    // free stuff
 		    // ... <insert code here>
 		    CloseHandle(pThread[0]);
-		    delete pThread;
-		    delete g_pProcessSocket;
-		    delete g_pProcessLaunchId;
-		    delete g_pLaunchIdToRank;
-		    delete g_pForwardHost;
+		    delete [] pThread;
+		    delete [] g_pProcessSocket;
+		    delete [] g_pProcessHost;
+		    delete [] g_pProcessLaunchId;
+		    delete [] g_pLaunchIdToRank;
+		    delete [] g_pForwardHost;
 		    if (g_bDoMultiColorOutput)
 		    {
 			SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), g_ConsoleAttribute);
@@ -2098,7 +2339,7 @@ int main(int argc, char *argv[])
     WaitForLotsOfObjects(nProc, pThread);
     for (i = 0; i<nProc; i++)
 	CloseHandle(pThread[i]);
-    delete pThread;
+    delete [] pThread;
     pThread = NULL;
 
     if (WaitForSingleObject(g_hAbortEvent, 0) == WAIT_OBJECT_0)
@@ -2112,6 +2353,7 @@ int main(int argc, char *argv[])
 		sprintf(pszStr, "kill %d", g_pProcessLaunchId[i]);
 		WriteString(g_pProcessSocket[i], pszStr);
 		sprintf(pszStr, "freeprocess %d", g_pProcessLaunchId[i]);
+		g_pProcessLaunchId[i] = -1; // nobody should use the id after we free it
 		WriteString(g_pProcessSocket[i], pszStr);
 		ReadStringTimeout(g_pProcessSocket[i], pszStr, g_nMPIRUN_SHORT_TIMEOUT);
 		WriteString(g_pProcessSocket[i], "done");
@@ -2120,6 +2362,8 @@ int main(int argc, char *argv[])
 	}
 	if (g_bUseJobHost && !g_bNoMPI)
 	    UpdateJobState("ABORTED");
+	if (g_bMPICH2)
+	    DestroyPMIDatabase(pmi_host, pmi_port, pmi_phrase, pmi_kvsname);
 	ExitProcess(0);
     }
     // Note: If the user hits Ctrl-C between the above if statement and the following ResetEvent statement
@@ -2134,7 +2378,7 @@ int main(int argc, char *argv[])
     // Wait for the mpds to return the exit codes of all the processes
     WaitForExitCommands();
 
-    delete g_pForwardHost;
+    delete [] g_pForwardHost;
     g_pForwardHost = NULL;
 
     // Signal the IO redirection thread to stop
@@ -2159,11 +2403,16 @@ int main(int argc, char *argv[])
     {
 	SetConsoleTextAttribute(hStdout, g_ConsoleAttribute);
     }
+    if (g_bMPICH2)
+    {
+	DestroyPMIDatabase(pmi_host, pmi_port, pmi_phrase, pmi_kvsname);
+    }
     easy_socket_finalize();
 
-    delete g_pProcessSocket;
-    delete g_pProcessLaunchId;
-    delete g_pLaunchIdToRank;
+    delete [] g_pProcessSocket;
+    delete [] g_pProcessHost;
+    delete [] g_pProcessLaunchId;
+    delete [] g_pLaunchIdToRank;
 
     while (g_pDriveMapList)
     {

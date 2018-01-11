@@ -219,7 +219,7 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
 	if (pszMap)
 	{
 	    strcat(pszStr, pszMap);
-	    delete pszMap;
+	    delete [] pszMap;
 	}
 	*/
 	if (WriteString(sock, pszStr) == SOCKET_ERROR)
@@ -331,7 +331,7 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
 	    }
 	    if (stricmp(pszStr, "ACTIVE") != 0)
 	    {
-		printf("ERROR: Root process has unexpectedly exited.\n");
+		printf("ERROR: The root process on %s has unexpectedly exited.\n", arg->pszHost);
 		WriteString(sock, "done");
 		easy_closesocket(sock);
 		SetEvent(g_hAbortEvent);
@@ -402,7 +402,7 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
 		    }
 		    else
 		    {
-			printf("ERROR: The root process has unexpectedly exited.\n");
+			printf("ERROR: The root process on %s has unexpectedly exited.\n", arg->pszHost);
 			if (g_bUseJobHost)
 			{
 			    sprintf(pszStr, "geterror %d", launchid);

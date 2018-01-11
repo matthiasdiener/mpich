@@ -1,0 +1,9 @@
+Debug*
+Release*
+*.plg
+*.clw
+*.opt
+*.dep
+*.mak
+*.o
+*.ncb

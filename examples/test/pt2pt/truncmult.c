@@ -76,7 +76,7 @@ int main( int argc, char **argv )
 	}
 	if (statuses[0].MPI_ERROR == MPI_ERR_PENDING) {
 	    /* information - first send is not yet complete */
-	    if (MPI_Wait( &requests[0], &statuses[0] ) == MPI_SUCCESS) {
+	    if ((statuses[0].MPI_ERROR = MPI_Wait( &requests[0], &statuses[0] )) == MPI_SUCCESS) {
 		err++;
 		fprintf( stderr, "failed to complete legal request (1)\n" );
 	    }
@@ -111,7 +111,7 @@ int main( int argc, char **argv )
 	}
 	if (statuses[0].MPI_ERROR == MPI_ERR_PENDING) {
 	    /* information - first send is not yet complete */
-	    if (MPI_Wait( &requests[0], &statuses[0] ) != MPI_SUCCESS) {
+	    if ((statuses[0].MPI_ERROR = MPI_Wait( &requests[0], &statuses[0] )) != MPI_SUCCESS) {
 		err++;
 		fprintf( stderr, "failed to complete legal request (1a)\n" );
 	    }
@@ -121,7 +121,7 @@ int main( int argc, char **argv )
 
 	if (statuses[3].MPI_ERROR == MPI_ERR_PENDING) {
 	    /* information - first send is not yet complete */
-	    if (MPI_Wait( &requests[3], &statuses[3] ) != MPI_SUCCESS) {
+	    if ((statuses[3].MPI_ERROR = MPI_Wait( &requests[3], &statuses[3] )) != MPI_SUCCESS) {
 		err++;
 		fprintf( stderr, "failed to complete legal request (3a)\n" );
 	    }
@@ -239,7 +239,8 @@ char       *msg;
 
     case MPI_ERR_IN_STATUS:
 	/* Check for correct message */
-	if (status->MPI_ERROR != MPI_ERR_TRUNCATE) {
+        MPI_Error_class(status->MPI_ERROR, &class);
+	if (class != MPI_ERR_TRUNCATE) {
 	    MPI_Error_string( status->MPI_ERROR, buf, &rlen );
 	    fprintf( stderr, 
 		 "Unexpected error message for err in status for %s: %s\n", 

@@ -1197,7 +1197,7 @@ do
        NO_F90=1
        HAS_FORTRAN=0
        CFLAGS="-DMPID_NO_FORTRAN $CFLAGS"
-       romio_config_args="$romio_config_args -nof77"
+       romio_config_args="$romio_config_args --disable-f77"
        enable_args="$enable_args --disable-f77"
        ;;
 
@@ -1711,7 +1711,8 @@ if test -n "$arch_tflops"; then
    CROSS_F77_SIZEOF_DOUBLE_PRECISION=${CROSS_F77_SIZEOF_DOUBLE_PRECISION:-8}
    CROSS_BIGENDIAN=${CROSS_BIGENDIAN:-false}
    FORT_INT8=1
-   ROMIO_ARGS="-intsize=$CROSS_SIZEOF_INT -ptrsize=$CROSS_SIZEOF_VOID_P -longsize=$CROSS_SIZEOF_LONG -longlongsize=$CROSS_SIZEOF_LONG_LONG"
+   # Romio now looks at the CROSS_args
+#   ROMIO_ARGS="-intsize=$CROSS_SIZEOF_INT -ptrsize=$CROSS_SIZEOF_VOID_P -longsize=$CROSS_SIZEOF_LONG -longlongsize=$CROSS_SIZEOF_LONG_LONG --without-setbytes"
 
 fi
 #
@@ -5364,7 +5365,7 @@ if test "$HAS_F77" = "0" ; then
     NOF77=1
     HAS_FORTRAN=0
     CFLAGS="-DMPID_NO_FORTRAN $CFLAGS"
-    romio_config_args="$romio_config_args -nof77"
+    romio_config_args="$romio_config_args -disable-f77"
 fi
 #
 
@@ -7528,16 +7529,29 @@ return 0;
 }
 
 EOF
-        if test -n "$compile" ; then 
-        eval $compile
+        if test -n "$compile" ; then 	
+	eval $compile
     else
 	eval $ac_compile
 	eval $ac_link
     fi
     if test ! -s conftest ; then
-      echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
     ac_cv_mmap=0
 
     else
@@ -8936,16 +8950,29 @@ else
 main() {struct timeval tp;
 gettimeofday(&tp,(void*)0);return 0;}
 EOF
-        if test -n "$compile" ; then 
-        eval $compile
+        if test -n "$compile" ; then 	
+	eval $compile
     else
 	eval $ac_compile
 	eval $ac_link
     fi
     if test ! -s conftest ; then
-      echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""one!"
 else
@@ -9789,16 +9816,29 @@ main () {
   exit (u.c[sizeof (long) - 1] == 1);
 }
 EOF
-        if test -n "$compile" ; then 
-        eval $compile
+        if test -n "$compile" ; then 	
+	eval $compile
     else
 	eval $ac_compile
 	eval $ac_link
     fi
     if test ! -s conftest ; then
-      echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
     pac_r=1
 
     else
@@ -13697,16 +13737,29 @@ main() {
   exit(0);
 }
 EOF
-        if test -n "$compile" ; then 
-        eval $compile
+        if test -n "$compile" ; then 	
+	eval $compile
     else
 	eval $ac_compile
 	eval $ac_link
     fi
     if test ! -s conftest ; then
-      echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
     Pac_CV_NAME=""
 
     else
@@ -13864,16 +13917,29 @@ main() {
   exit(0);
 }
 EOF
-        if test -n "$compile" ; then 
-        eval $compile
+        if test -n "$compile" ; then 	
+	eval $compile
     else
 	eval $ac_compile
 	eval $ac_link
     fi
     if test ! -s conftest ; then
-      echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
     Pac_CV_NAME=""
 
     else
@@ -13972,16 +14038,29 @@ main() {
   exit(0);
 }
 EOF
-        if test -n "$compile" ; then 
-        eval $compile
+        if test -n "$compile" ; then 	
+	eval $compile
     else
 	eval $ac_compile
 	eval $ac_link
     fi
     if test ! -s conftest ; then
-      echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
     Pac_CV_NAME=""
 
     else
@@ -14154,16 +14233,29 @@ main() {
   exit(0);
 }
 EOF
-        if test -n "$compile" ; then 
-        eval $compile
+        if test -n "$compile" ; then 	
+	eval $compile
     else
 	eval $ac_compile
 	eval $ac_link
     fi
     if test ! -s conftest ; then
-      echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
     Pac_CV_NAME=""
 
     else
@@ -14294,16 +14386,29 @@ main() {
   exit(0);
 }
 EOF
-        if test -n "$compile" ; then 
-        eval $compile
+        if test -n "$compile" ; then 	
+	eval $compile
     else
 	eval $ac_compile
 	eval $ac_link
     fi
     if test ! -s conftest ; then
-      echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
     Pac_CV_NAME=""
 
     else
@@ -14418,16 +14523,29 @@ int main() {
    has the same problem on some systems */
 exit(sizeof(long long) < sizeof(long)); }
 EOF
-        if test -n "$compile" ; then 
-        eval $compile
+        if test -n "$compile" ; then 	
+	eval $compile
     else
 	eval $ac_compile
 	eval $ac_link
     fi
     if test ! -s conftest ; then
-      echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
     has_long_long=0
 
     else
@@ -14665,16 +14783,29 @@ int main() {
 /* On Ultrix 4.3 cc, long double is 4 and double is 8.  */
 exit(sizeof(long double) < sizeof(double)); }
 EOF
-        if test -n "$compile" ; then 
-        eval $compile
+        if test -n "$compile" ; then 	
+	eval $compile
     else
 	eval $ac_compile
 	eval $ac_link
     fi
     if test ! -s conftest ; then
-      echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
@@ -14787,16 +14918,29 @@ main()
   exit(0);
 }
 EOF
-        if test -n "$compile" ; then 
-        eval $compile
+        if test -n "$compile" ; then 	
+	eval $compile
     else
 	eval $ac_compile
 	eval $ac_link
     fi
     if test ! -s conftest ; then
-      echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
     ac_cv_sizeof_double=0
 
     else
@@ -14895,16 +15039,29 @@ main()
   exit(0);
 }
 EOF
-        if test -n "$compile" ; then 
-        eval $compile
+        if test -n "$compile" ; then 	
+	eval $compile
     else
 	eval $ac_compile
 	eval $ac_link
     fi
     if test ! -s conftest ; then
-      echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
     ac_cv_sizeof_long_double=0
 
     else
@@ -15715,26 +15872,46 @@ if test $ROMIO = 1 -a -d "${top_srcdir}/romio" ; then
   if test -z "$FILE_SYSTEM" ; then
       ROMIO_FILE_SYSTEM=""
   else
-      ROMIO_FILE_SYSTEM="-file_system=$FILE_SYSTEM"
+      ROMIO_FILE_SYSTEM="--with-file-system=$FILE_SYSTEM"
   fi
+  FROM_MPICH=yes
   if test ! -d romio ; then mkdir romio ; fi
   # We set -fc to F77 since we set F77 to either $FC or the value f77
+#            -mpiincdir=$includebuild_dir \
+#	    -mpibindir=$binbuild_dir \
+#            -mpilib=$libbuild_dir/lib$MPILIBNAME.a \
+#            -mpiolib=$libbuild_dir/lib$MPILIBNAME.a \
+#            -cc="$CC" -cflags="$ROMIO_CFLAGS $CC_SHARED_OPT" \
+#            -fc="$F77" -fflags="$ROMIO_FFLAGS $FC_SHARED_OPT" \
+#	    -f90="$F90"
+  MPI_BIN_DIR=$binbuild_dir 
+  MPI_LIB=$libbuild_dir/lib$MPILIBNAME.a
+  MPI_INCLUDE_DIR=$includebuild_dir
   (cd romio ; \
+  LIBNAME=$libbuild_dir/lib$MPILIBNAME.a ; export LIBNAME ; \
+  export MPI_BIN_DIR ; export MPI_LIB ; export MPI_INCLUDE_DIR ; \
   export CROSS_SIZEOF_INT; \
   export CROSS_SIZEOF_VOID_P; \
+  export CROSS_SIZEOF_LONG_LONG; \
+  export CROSS_SIZEOF_LONG;\
+  export MAKE;\
+  export ARCH;\
+  export CC; export F77; export F90; export MPILIBNAME ; \
+  export FROM_MPICH;\
   export int_len ; export void_star_len ; export OFFSET_KIND ; \
   export long_long_len ; \
-  "${top_srcdir}/romio/configure" -arch="$ARCH" $ROMIO_ARGS $ROMIO_FILE_SYSTEM \
-            --with-mpi=mpich -from_mpich \
-	    -make="$MAKE" \
-            -mpiincdir=$includebuild_dir \
-	    -mpibindir=$binbuild_dir \
-            -mpilib=$libbuild_dir/lib$MPILIBNAME.a \
-            -mpiolib=$libbuild_dir/lib$MPILIBNAME.a \
-            -cc="$CC" -cflags="$ROMIO_CFLAGS $CC_SHARED_OPT" \
-            -fc="$F77" -fflags="$ROMIO_FFLAGS $FC_SHARED_OPT" \
-	    -f90="$F90" $romio_config_args $enable_args $with_args )
-  /bin/rm -f include/mpio.h "${top_srcdir}/include/mpio.h"
+  "${top_srcdir}/romio/configure" $ROMIO_ARGS $ROMIO_FILE_SYSTEM \
+            --with-mpi=mpich $romio_config_args $enable_args $with_args )
+  rc=$?
+  if test "$rc" != 0 ; then
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""Error: ROMIO Configure failed, aborting configure"
+else
+echo "$ac_t""Error: ROMIO Configure failed, aborting configure" 1>&1
+fi
+exit 1
+  fi
+  rm -f include/mpio.h "${top_srcdir}/include/mpio.h"
   cp romio/include/mpio.h include
   ROMIO_LFLAGS="`$MAKE -f romio/Makefile romio_lflags`"
   ROMIO_TCFLAGS="`$MAKE -f romio/Makefile romio_tcflags`"

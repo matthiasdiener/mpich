@@ -22,12 +22,9 @@ int main( int argc, char **argv )
     return 0;
 }
 
-int copy_fn(oldcomm, keyval, extra_state,
-                      attribute_val_in, attribute_val_out, flag)
-MPI_Comm oldcomm;
-int      keyval;
-void     *extra_state, *attribute_val_in, *attribute_val_out;
-int      *flag;
+int copy_fn( MPI_Comm oldcomm, int keyval, void *extra_state,
+	     void *attribute_val_in, void *attribute_val_out, 
+	     int *flag)
 {
 /* Note that if (sizeof(int) < sizeof(void *), just setting the int
    part of attribute_val_out may leave some dirty bits
@@ -37,10 +34,8 @@ int      *flag;
 return MPI_SUCCESS;
 }
 
-int delete_fn(comm, keyval, attribute_val, extra_state)
-MPI_Comm comm;
-int      keyval;
-void     *attribute_val, *extra_state;
+int delete_fn( MPI_Comm comm, int keyval, void *attribute_val, 
+	       void *extra_state)
 {
 int world_rank;
 MPI_Comm_rank( MPI_COMM_WORLD, &world_rank );
@@ -51,7 +46,7 @@ if ((MPI_Aint)attribute_val != (MPI_Aint)world_rank) {
 return MPI_SUCCESS;
 }
 
-int test_communicators()
+int test_communicators( void )
 {
 MPI_Comm dup_comm_world, lo_comm, rev_comm, dup_comm, split_comm, world_comm;
 MPI_Group world_group, lo_group, rev_group;

@@ -143,6 +143,7 @@ void ProcessWait(ProcessWaitThreadArg *pArg)
 		}
 
 		sprintf(str, "freeprocess %d", pArg->pId[i]);
+		pArg->pId[i] = -1; // nobody should use the id after we free it
 		WriteString(pArg->pSocket[i], str);
 		ReadStringTimeout(pArg->pSocket[i], str, g_nMPIRUN_SHORT_TIMEOUT);
 		WriteString(pArg->pSocket[i], "done");
@@ -218,20 +219,66 @@ void ProcessWait(ProcessWaitThreadArg *pArg)
 
 			if (!g_bNoMPI)
 			{
-			    sprintf(str, "getmpifinalized %d", pArg->pId[i]);
-			    WriteString(pArg->pSocket[i], str);
-			    ReadStringTimeout(pArg->pSocket[i], str, g_nMPIRUN_SHORT_TIMEOUT);
-			    if (stricmp(str, "yes") != 0)
+			    if (g_bMPICH2)
 			    {
-				if (stricmp(str, "no") != 0)
-				    printf("getmpifinalized returned: %s\n", str);
+				/*
+				sprintf(str, "dbget name='%s' key='P-%d.finalized'", pmi_kvsname, nRank);
+				WriteString(pArg->pSocket[i], str);
+				ReadStringTimeout(pArg->pSocket[i], str, g_nMPIRUN_SHORT_TIMEOUT);
+				if (stricmp(str, "true") != 0)
+				{
+				    if (stricmp(str, "false") != 0)
+					printf("dbget(%s:P-%d.finalized) returned: %s\n", pmi_kvsname, nRank, str);
+				    else
+				    {
+					if (!g_bSuppressErrorOutput)
+					    printf("process %d on %s exited without calling MPIFinalize\n", nRank, g_pProcessHost[nRank].host);
+				    }
+				    fflush(stdout);
+				    easy_send(g_sockBreak, "x", 1);
+				}
+				*/
+			    }
+			    else
+			    {
+				if (g_bMPICH2)
+				{
+				    /*
+				    sprintf(str, "dbget name='%s' key='P-%d.finalized'", pmi_kvsname, nRank);
+				    WriteString(pArg->pSocket[i], str);
+				    ReadStringTimeout(pArg->pSocket[i], str, g_nMPIRUN_SHORT_TIMEOUT);
+				    if (stricmp(str, "true") != 0)
+				    {
+					if (stricmp(str, "false") != 0)
+					    printf("dbget(%s:P-%d.finalized) returned: %s\n", pmi_kvsname, nRank, str);
+					else
+					{
+					    if (!g_bSuppressErrorOutput)
+						printf("process %d on %s exited without calling MPIFinalize\n", nRank, g_pProcessHost[nRank].host);
+					}
+					fflush(stdout);
+					easy_send(g_sockBreak, "x", 1);
+				    }
+				    */
+				}
 				else
 				{
-				    if (!g_bSuppressErrorOutput)
-					printf("process %d exited without calling MPIFinalize\n", nRank);
+				    sprintf(str, "getmpifinalized %d", pArg->pId[i]);
+				    WriteString(pArg->pSocket[i], str);
+				    ReadStringTimeout(pArg->pSocket[i], str, g_nMPIRUN_SHORT_TIMEOUT);
+				    if (stricmp(str, "yes") != 0)
+				    {
+					if (stricmp(str, "no") != 0)
+					    printf("getmpifinalized returned: %s\n", str);
+					else
+					{
+					    if (!g_bSuppressErrorOutput)
+						printf("process %d on %s exited without calling MPIFinalize\n", nRank, g_pProcessHost[nRank].host);
+					}
+					fflush(stdout);
+					easy_send(g_sockBreak, "x", 1);
+				    }
 				}
-				fflush(stdout);
-				easy_send(g_sockBreak, "x", 1);
 			    }
 			}
 		    }
@@ -246,6 +293,7 @@ void ProcessWait(ProcessWaitThreadArg *pArg)
 		    }
 		    
 		    sprintf(str, "freeprocess %d", pArg->pId[i]);
+		    pArg->pId[i] = -1; // nobody should use the id after we free it
 		    WriteString(pArg->pSocket[i], str);
 		    ReadStringTimeout(pArg->pSocket[i], str, g_nMPIRUN_SHORT_TIMEOUT);
 		    
@@ -282,6 +330,7 @@ void ProcessWait(ProcessWaitThreadArg *pArg)
 void WaitForExitCommands()
 {
     bool bKillSent = false;
+    int iter;
     if (g_nNumProcessSockets < FD_SETSIZE)
     {
 	int i, n;
@@ -439,20 +488,43 @@ void WaitForExitCommands()
 
 				if (!g_bNoMPI)
 				{
-				    sprintf(str, "getmpifinalized %d", g_pProcessLaunchId[i]);
-				    WriteString(g_pProcessSocket[i], str);
-				    ReadStringTimeout(g_pProcessSocket[i], str, g_nMPIRUN_SHORT_TIMEOUT);
-				    if (stricmp(str, "yes") != 0)
+				    if (g_bMPICH2)
 				    {
-					if (stricmp(str, "no") != 0)
-					    printf("getmpifinalized returned: %s\n", str);
-					else
+					/*
+					sprintf(str, "dbget name='%s' key='P-%d.finalized'", pmi_kvsname, nRank);
+					WriteString(g_pProcessSocket[i], str);
+					ReadStringTimeout(g_pProcessSocket[i], str, g_nMPIRUN_SHORT_TIMEOUT);
+					if (stricmp(str, "true") != 0)
 					{
-					    if (!g_bSuppressErrorOutput)
-						printf("process %d exited without calling MPIFinalize\n", nRank);
+					    if (stricmp(str, "false") != 0)
+						printf("dbget(%s:P-%d.finalized) returned: %s\n", pmi_kvsname, nRank, str);
+					    else
+					    {
+						if (!g_bSuppressErrorOutput)
+						    printf("process %d on %s exited without calling MPIFinalize\n", nRank, g_pProcessHost[nRank].host);
+					    }
+					    fflush(stdout);
+					    easy_send(g_sockBreak, "x", 1);
 					}
-					fflush(stdout);
-					easy_send(g_sockBreak, "x", 1);
+					*/
+				    }
+				    else
+				    {
+					sprintf(str, "getmpifinalized %d", g_pProcessLaunchId[i]);
+					WriteString(g_pProcessSocket[i], str);
+					ReadStringTimeout(g_pProcessSocket[i], str, g_nMPIRUN_SHORT_TIMEOUT);
+					if (stricmp(str, "yes") != 0)
+					{
+					    if (stricmp(str, "no") != 0)
+						printf("getmpifinalized returned: %s\n", str);
+					    else
+					    {
+						if (!g_bSuppressErrorOutput)
+						    printf("process %d on %s exited without calling MPIFinalize\n", nRank, g_pProcessHost[nRank].host);
+					    }
+					    fflush(stdout);
+					    easy_send(g_sockBreak, "x", 1);
+					}
 				    }
 				}
 			    }
@@ -467,9 +539,13 @@ void WaitForExitCommands()
 				}
 			    }
 
+			    /////////////////////////////////////////////////////////////////////////////
+			    // Maybe we need the process structure around to get the exit codes or errors
 			    sprintf(str, "freeprocess %d", g_pProcessLaunchId[i]);
+			    g_pProcessLaunchId[i] = -1; // nobody should use the id after we free it
 			    WriteString(g_pProcessSocket[i], str);
 			    ReadStringTimeout(g_pProcessSocket[i], str, g_nMPIRUN_SHORT_TIMEOUT);
+			    /////////////////////////////////////////////////////////////////////////////
 			    
 			    WriteString(g_pProcessSocket[i], "done");
 			    //printf("closing socket [%d]: %s\n", i, bto_string(g_pProcessSocket[i]));fflush(stdout);
@@ -513,9 +589,9 @@ void WaitForExitCommands()
 	
 	easy_closesocket(g_sockBreak);
 	g_sockBreak = INVALID_SOCKET;
-	delete g_pProcessSocket;
-	delete g_pProcessLaunchId;
-	delete g_pLaunchIdToRank;
+	delete [] g_pProcessSocket;
+	delete [] g_pProcessLaunchId;
+	delete [] g_pLaunchIdToRank;
 	g_pProcessSocket = NULL;
 	g_pProcessLaunchId = NULL;
 	g_pLaunchIdToRank = NULL;
@@ -543,12 +619,25 @@ void WaitForExitCommands()
 	}
 	for (i=0; i<num; i++)
 	{
-	    hThread[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ProcessWait, &arg[i], 0, &dwThreadID);
+	    for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+	    {
+		hThread[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ProcessWait, &arg[i], 0, &dwThreadID);
+		if (hThread[i] != NULL)
+		    break;
+		Sleep(CREATE_THREAD_SLEEP_TIME);
+	    }
 	}
 	MakeLoop(&arg2->sockAbort, &g_sockBreak);
 	MakeLoop(&arg2->sockStop, &sockStop);
 
-	HANDLE hWaitAbortThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ProcessWaitAbort, arg2, 0, &dwThreadID);
+	HANDLE hWaitAbortThread;
+	for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+	{
+	    hWaitAbortThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ProcessWaitAbort, arg2, 0, &dwThreadID);
+	    if (hWaitAbortThread != NULL)
+		break;
+	    Sleep(CREATE_THREAD_SLEEP_TIME);
+	}
 
 	SetEvent(g_hBreakReadyEvent);
 

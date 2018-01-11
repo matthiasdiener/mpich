@@ -55,7 +55,7 @@ dnl that complain about poor code are in effect.
 dnl
 dnl Because this is a long script, we have ensured that you can pass a 
 dnl variable containing the option name as the first argument.
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_CHECK_COMPILER_OPTION,[
 AC_MSG_CHECKING([that C compiler accepts option $1])
 save_CFLAGS="$CFLAGS"
@@ -141,7 +141,7 @@ dnl It should try to match known systems to known compilers (checking, of
 dnl course), and then falling back to some common defaults.
 dnl Note that many compilers will complain about -g and aggressive
 dnl optimization.  
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_OPTIMIZATION,[
     for copt in "-O4 -Ofast" "-Ofast" "-fast" "-O3" "-xO3" "-O" ; do
         PAC_C_CHECK_COMPILER_OPTION($copt,found_opt=yes,found_opt=no)
@@ -213,7 +213,7 @@ dnl `dependsrule.in` in the same directory as the other auxillery configure
 dnl scripts (set with dnl 'AC_CONFIG_AUX_DIR').  If you use `dependsrule.in`,
 dnl you must have `dependsrule` in 'AC_OUTPUT' before this `Makefile`.
 dnl 
-dnlD*/
+dnl D*/
 dnl 
 dnl Eventually, we can add an option to the C_DEPEND_MV to strip system
 dnl includes, such as /usr/xxxx and /opt/xxxx
@@ -343,7 +343,7 @@ dnl Sets 'HAVE_SEMCTL' if semctl is available.
 dnl Sets 'HAVE_UNION_SEMUN' if 'union semun' is available.
 dnl Sets 'SEMCTL_NEEDS_SEMUN' if a 'union semun' type must be passed as the
 dnl fourth argument to 'semctl'.
-dnlD*/ 
+dnl D*/ 
 dnl Check for semctl and arguments
 AC_DEFUN(PAC_FUNC_SEMCTL,[
 AC_CHECK_FUNC(semctl)
@@ -355,7 +355,7 @@ if test "$ac_cv_func_semctl" = "yes" ; then
 #include <sys/sem.h>],[union semun arg;arg.val=0;],
     pac_cv_type_union_semun="yes",pac_cv_type_union_semun="no")])
     if test "$pac_cv_type_union_semun" = "yes" ; then
-        AC_DEFINE(HAVE_UNION_SEMUN,,[Has union semun])
+        AC_DEFINE(HAVE_UNION_SEMUN,1,[Has union semun])
         #
         # See if we can use an int in semctl or if we need the union
         AC_CACHE_CHECK([whether semctl needs union semun],
@@ -368,7 +368,7 @@ int arg = 0; semctl( 1, 1, SETVAL, arg );],
         pac_cv_func_semctl_needs_semun="no")
         ])
         if test "$pac_cv_func_semctl_needs_semun" = "yes" ; then
-            AC_DEFINE(SEMCTL_NEEDS_SEMUN,[Needs an explicit definition of semun])
+            AC_DEFINE(SEMCTL_NEEDS_SEMUN,1,[Needs an explicit definition of semun])
         fi
     fi
 fi
@@ -383,7 +383,7 @@ dnl
 dnl Output Effect:
 dnl Defines 'volatile' as empty if volatile is not available.
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_VOLATILE,[
 AC_CACHE_CHECK([for volatile],
 pac_cv_c_volatile,[
@@ -403,7 +403,7 @@ dnl
 dnl Output Effect:
 dnl Defines 'inline' as empty if inline is not available.
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_INLINE,[
 AC_CACHE_CHECK([for inline],
 pac_cv_c_inline,[
@@ -424,7 +424,7 @@ dnl
 dnl Output Effects:
 dnl Invokes the true or false action
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_CPP_CONCAT,[
 pac_pound="#"
 AC_CACHE_CHECK([that the compiler $CC accepts $ac_pound$ac_pound for concatenation in cpp],
@@ -448,7 +448,7 @@ dnl
 dnl Notes:
 dnl One version of Solaris accepted only one argument.
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_FUNC_GETTIMEOFDAY,[
 AC_CACHE_CHECK([whether gettimeofday takes 2 arguments],
 pac_cv_func_gettimeofday,[
@@ -478,7 +478,7 @@ dnl
 dnl Note that some compilers accept restrict only with additional options.
 dnl DEC/Compaq/HP Alpha Unix (Tru64 etc.) -accept restrict_keyword
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_RESTRICT,[
 AC_CACHE_CHECK([for restrict],
 pac_cv_c_restrict,[
@@ -526,7 +526,7 @@ dnl are quite happy to accept the *wrong* number of arguments to a macro!
 dnl Instead, we try to find a clean compile version, using our special
 dnl PAC_C_TRY_COMPILE_CLEAN command.
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_HEADER_STDARG,[
 AC_CHECK_HEADER(stdarg.h)
 dnl Sets ac_cv_header_stdarg_h
@@ -605,7 +605,7 @@ dnl Output Effect:
 dnl The 'flagvar' is set to 0 (clean), 1 (dirty but success ok), or 2
 dnl (failed).
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_TRY_COMPILE_CLEAN,[
 $3=2
 dnl Get the compiler output to test against
@@ -660,7 +660,7 @@ dnl       action-if-unknown)
 dnl
 dnl Notes:
 dnl 'action-if-unknown' is used in the case of cross-compilation.
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_PROG_C_UNALIGNED_DOUBLES,[
 AC_CACHE_CHECK([whether C compiler allows unaligned doubles],
 pac_cv_prog_c_unaligned_doubles,[
@@ -708,10 +708,16 @@ dnl Defines one of the following if a weak symbol pragma is found:
 dnl.vb
 dnl    HAVE_PRAGMA_WEAK - #pragma weak
 dnl    HAVE_PRAGMA_HP_SEC_DEF - #pragma _HP_SECONDARY_DEF
-dnl    HAVE_PRAGMA_CRI_DUP) - #pragma _CRI duplicate x as y
+dnl    HAVE_PRAGMA_CRI_DUP  - #pragma _CRI duplicate x as y
 dnl.ve
+dnl May also define
+dnl.vb
+dnl    HAVE_WEAK_ATTRIBUTE
+dnl.ve
+dnl if functions can be declared as 'int foo(...) __attribute__ ((weak));'
+dnl sets the shell variable pac_cv_attr_weak to yes.
 dnl 
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_PROG_C_WEAK_SYMBOLS,[
 pragma_extra_message=""
 AC_CACHE_CHECK([for type of weak symbol support],
@@ -722,21 +728,25 @@ pac_cv_prog_c_weak_symbols,[
 AC_TRY_LINK([
 extern int PFoo(int);
 #pragma weak PFoo = Foo
-int Foo(a) { return a; }
+int Foo(int a) { return a; }
 ],[return PFoo(1);],has_pragma_weak=yes)
 #
 # Some systems (Linux ia64 and ecc, for example), support weak symbols
 # only within a single object file!  This tests that case.
+# Note that there is an extern int PFoo declaration before the
+# pragma.  Some compilers require this in order to make the weak symbol
+# extenally visible.  
 if test "$has_pragma_weak" = yes ; then
     rm -f conftest*
     cat >>conftest1.c <<EOF
+extern int PFoo(int);
 #pragma weak PFoo = Foo
 int Foo(int);
-int Foo(a) { return a; }
+int Foo(int a) { return a; }
 EOF
     cat >>conftest2.c <<EOF
 extern int PFoo(int);
-int main() {
+int main(int argc, char **argv) {
 return PFoo(0);}
 EOF
     ac_link2='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest1.c conftest2.c $LIBS >conftest.out 2>&1'
@@ -758,7 +768,7 @@ if test -z "$pac_cv_prog_c_weak_symbols" ; then
     AC_TRY_LINK([
 extern int PFoo(int);
 #pragma _HP_SECONDARY_DEF Foo  PFoo
-int Foo(a) { return a; }
+int Foo(int a) { return a; }
 ],[return PFoo(1);],pac_cv_prog_c_weak_symbols="pragma _HP_SECONDARY_DEF")
 fi
 dnl
@@ -766,14 +776,13 @@ if test -z "$pac_cv_prog_c_weak_symbols" ; then
     AC_TRY_LINK([
 extern int PFoo(int);
 #pragma _CRI duplicate PFoo as Foo
-int Foo(a) { return a; }
+int Foo(int a) { return a; }
 ],[return PFoo(1);],pac_cv_prog_c_weak_symbols="pragma _CRI duplicate x as y")
 fi
 dnl
 if test -z "$pac_cv_prog_c_weak_symbols" ; then
     pac_cv_prog_c_weak_symbols="no"
 fi
-])
 dnl
 dnl If there is an extra explanatory message, echo it now so that it
 dnl doesn't interfere with the cache result value
@@ -781,20 +790,26 @@ if test -n "$pragma_extra_message" ; then
     echo $pragma_extra_message
 fi
 dnl
+])
 if test "$pac_cv_prog_c_weak_symbols" = "no" ; then
     ifelse([$2],,:,[$2])
 else
     case "$pac_cv_prog_c_weak_symbols" in
-	"pragma weak") AC_DEFINE(HAVE_PRAGMA_WEAK,,[Supports weak pragma]) 
+	"pragma weak") AC_DEFINE(HAVE_PRAGMA_WEAK,1,[Supports weak pragma]) 
 	;;
-	"pragma _HP")  AC_DEFINE(HAVE_PRAGMA_HP_SEC_DEF,,[HP style weak pragma])
+	"pragma _HP")  AC_DEFINE(HAVE_PRAGMA_HP_SEC_DEF,1,[HP style weak pragma])
 	;;
-	"pragma _CRI") AC_DEFINE(HAVE_PRAGMA_CRI_DUP,,[Cray style weak pragma])
+	"pragma _CRI") AC_DEFINE(HAVE_PRAGMA_CRI_DUP,1,[Cray style weak pragma])
 	;;
     esac
     ifelse([$1],,:,[$1])
 fi
+AC_CACHE_CHECK([whether __attribute__ ((weak)) allowed],
+pac_cv_attr_weak,[
+AC_TRY_COMPILE([int foo(int) __attribute__ ((weak));],[int a;],
+pac_cv_attr_weak=yes,pac_cv_attr_weak=no)])
 ])
+
 #
 # This is a replacement that checks that FAILURES are signaled as well
 # (later configure macros look for the .o file, not just success from the
@@ -817,6 +832,56 @@ correctly set error code when a fatal error occurs])
 fi
 ])
 dnl
+dnl/*D 
+dnl PAC_PROG_C_MULTIPLE_WEAK_SYMBOLS - Test whether C and the
+dnl linker allow multiple weak symbols.
+dnl
+dnl Synopsis
+dnl PAC_PROG_C_MULTIPLE_WEAK_SYMBOLS(action-if-true,action-if-false)
+dnl
+dnl 
+dnl D*/
+AC_DEFUN(PAC_PROG_C_MULTIPLE_WEAK_SYMBOLS,[
+AC_CACHE_CHECK([for multiple weak symbol support],
+pac_cv_prog_c_multiple_weak_symbols,[
+# Test for multiple weak symbol support...
+#
+rm -f conftest*
+cat >>conftest1.c <<EOF
+extern int PFoo(int);
+extern int PFoo_(int);
+extern int pfoo_(int);
+#pragma weak PFoo = Foo
+#pragma weak PFoo_ = Foo
+#pragma weak pfoo_ = Foo
+int Foo(int);
+int Foo(a) { return a; }
+EOF
+cat >>conftest2.c <<EOF
+extern int PFoo(int), PFoo_(int), pfoo_(int);
+int main() {
+return PFoo(0) + PFoo_(1) + pfoo_(2);}
+EOF
+ac_link2='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest1.c conftest2.c $LIBS >conftest.out 2>&1'
+if eval $ac_link2 ; then
+    pac_cv_prog_c_multiple_weak_symbols="yes"
+else
+    echo "$ac_link2" >>config.log
+    echo "Failed program was" >>config.log
+    cat conftest1.c >>config.log
+    cat conftest2.c >>config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+fi
+rm -f conftest*
+dnl
+])
+if test "$pac_cv_prog_c_multiple_weak_symbols" = "yes" ; then
+    ifelse([$1],,:,[$1])
+else
+    ifelse([$2],,:,[$2])
+fi
+])
+dnl
 dnl/*D
 dnl PAC_FUNC_CRYPT - Check that the function crypt is defined
 dnl
@@ -830,7 +895,7 @@ dnl _XOPEN_SOURCE is defines and _XOPEN_VERSION is 4 or greater.
 dnl We test by looking for a missing crypt by defining our own
 dnl incompatible one and trying to compile it.
 dnl Defines NEED_CRYPT_PROTOTYPE if no prototype is found.
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_FUNC_CRYPT,[
 AC_CACHE_CHECK([if crypt defined in unistd.h],
 pac_cv_func_crypt_defined,[
@@ -849,9 +914,9 @@ double crypt(double a){return a;}],[return 0];,
 pac_cv_func_crypt_xopen="no",pac_cv_func_crypt_xopen="yes")])
 fi
 if test "$pac_cv_func_crypt_xopen" = "yes" ; then
-    AC_DEFINE(_XOPEN_SOURCE,,[if xopen needed for crypt])
+    AC_DEFINE(_XOPEN_SOURCE,1,[if xopen needed for crypt])
 elif test "$pac_cv_func_crypt_defined" = "no" ; then
-    AC_DEFINE(NEED_CRYPT_PROTOTYPE,,[if a prototype for crypt is needed])
+    AC_DEFINE(NEED_CRYPT_PROTOTYPE,1,[if a prototype for crypt is needed])
 fi
 ])dnl
 dnl/*D
@@ -884,8 +949,10 @@ dnl Not yet available: options when using other compilers.  However,
 dnl here are some possible choices
 dnl Solaris cc
 dnl  -fd -v -Xc
+dnl IRIX
+dnl  -ansi -DEBUG:trap_uninitialized=ON:varargs_interface_check=ON:verbose_runtime=ON
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_ARG_STRICT,[
 AC_ARG_ENABLE(strict,
 [--enable-strict  - Turn on strict compilation testing when using gcc])
@@ -908,6 +975,35 @@ if test "$enable_strict_done" != "yes" ; then
                 COPTIONS="${COPTIONS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL -Wunused -Wshadow -Wmissing-declarations -Wno-long-long"
     	    fi
         fi
+    fi
+fi
+])
+dnl
+dnl Use the value of enable-strict to update CFLAGS
+AC_DEFUN(PAC_CC_STRICT,[
+export enable_strict_done
+if test "$enable_strict_done" != "yes" ; then
+    if test "$enable_strict" = "yes" ; then
+        enable_strict_done="yes"
+        if test -z "CC" ; then
+            AC_CHECK_PROGS(CC,gcc)
+        fi
+        if test "$ac_cv_prog_gcc" = "yes" ; then 
+            CFLAGS="${CFLAGS} -Wall -O2 -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL"
+	    AC_MSG_RESULT([Adding strict check arguments to CFLAGS])
+	else 
+	    AC_MSG_WARN([enable strict supported only for gcc])
+    	fi
+    elif test "$enable_strict" = "all" ; then
+        enable_strict_done="yes"
+        if test -z "CC" ; then
+            AC_CHECK_PROGS(CC,gcc)
+        fi
+        if test "$ac_cv_prog_gcc" = "yes" ; then 
+            CFLAGS="${CFLAGS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL -Wunused -Wshadow -Wmissing-declarations -Wno-long-long"
+	else 
+	    AC_MSG_WARN([enable strict supported only for gcc])
+    	fi
     fi
 fi
 ])
@@ -944,7 +1040,7 @@ dnl done
 dnl IFS="$SaveIFS"
 dnl.ve
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_ARG_CC_G,[
 AC_ARG_ENABLE(g,
 [--enable-g  - Turn on debugging of the package (typically adds -g to COPTIONS)])
@@ -1000,10 +1096,10 @@ dnl If so, add -fno-common to CFLAGS
 dnl An alternative is to use, on some systems, ranlib -c to force 
 dnl the system to find common symbols.
 dnl
-dnl NOT TESTED
 AC_DEFUN(PAC_PROG_C_BROKEN_COMMON,[
-AC_MSG_CHECKING([whether global variables handled properly])
-AC_MSG_REQUIRE([AC_PROG_RANLIB])
+AC_CACHE_CHECK([whether global variables handled properly],
+ac_cv_prog_cc_globals_work,[
+AC_REQUIRE([AC_PROG_RANLIB])
 ac_cv_prog_cc_globals_work=no
 echo 'extern int a; int a;' > conftest1.c
 echo 'extern int a; int main( ){ return a; }' > conftest2.c
@@ -1022,13 +1118,26 @@ if ${CC-cc} $CFLAGS -c conftest1.c >conftest.out 2>&1 ; then
 	        if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a >> conftest.out 2>&1 ; then
 		    ac_cv_prog_cc_globals_work="needs -fno-common"
 		    CFLAGS="$CFLAGS -fno-common"
+                elif test -n "$RANLIB" ; then 
+		    # Try again, with ranlib changed to ranlib -c
+		    ${RANLIB} -c libconftest.a
+		    if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a >> conftest.out 2>&1 ; then
+			RANLIB="$RANLIB -c"
+	 	    #else
+		    #	# That didn't work
+		    #	:
+		    fi
+	        #else 
+		#    :
 		fi
 	    fi
         fi
     fi
 fi
-rm -f conftest* libconftest*
-AC_MSG_RESULT($ac_cv_prog_cc_globals_work)
+rm -f conftest* libconftest*])
+if test "$ac_cv_prog_cc_globals_work" = no ; then
+    AC_MSG_WARN([Common symbols not supported on this system!])
+fi
 ])
 dnl
 dnl
@@ -1170,9 +1279,12 @@ int main( int argc, char *argv[] )
     return 0;
 }],
 pac_cv_c_struct_align=`cat ctest.out`
-,pac_cv_c_struct_align="unknown",pac_cv_c_struct_align="unknown")
+,pac_cv_c_struct_align="unknown",pac_cv_c_struct_align="$CROSS_STRUCT_ALIGN")
 rm -f ctest.out
 ])
+if test -z "$pac_cv_c_struct_align" ; then
+    pac_cv_c_struct_align="unknown"
+fi
 ])
 dnl
 dnl
@@ -1192,10 +1304,11 @@ pac_cv_func_decl_$2,[
 AC_TRY_COMPILE([$1],[int a=$2(27,1.0,"foo");],
 pac_cv_func_decl_$2=yes,pac_cv_func_decl_$2=no)])
 if test "$pac_cv_func_decl_$2" = "yes" ; then
-changequote(, )dnl
-  ac_tr_func=NEEDS_`echo $1 | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`_DECL
+changequote(<<,>>)dnl
+define(<<PAC_FUNC_NAME>>, translit(NEEDS_$2_DECL, [a-z *], [A-Z__]))dnl
 changequote([, ])dnl
-    AC_DEFINE_UNQUOTED($ac_tr_func,,[Define if $2 needs a declaration])
+    AC_DEFINE_UNQUOTED(PAC_FUNC_NAME,1,[Define if $2 needs a declaration])
+undefine([PAC_FUNC_NAME])
 fi
 ])dnl
 dnl
@@ -1206,7 +1319,7 @@ dnl
 dnl PAC_CHECK_SIZEOF_DERIVED(shortname,definition,defaultsize)
 dnl Like AC_CHECK_SIZEOF, but handles arbitrary types.
 dnl Unlike AC_CHECK_SIZEOF, does not define SIZEOF_xxx (because
-dnl autoheader can't handle this case)
+dnl autoheader can''t handle this case)
 dnl D*/
 AC_DEFUN(PAC_CHECK_SIZEOF_DERIVED,[
 changequote(<<,>>)dnl
@@ -1227,4 +1340,95 @@ main()
 AC_MSG_RESULT($AC_CV_NAME)
 dnl AC_DEFINE_UNQUOTED(AC_TYPE_NAME,$AC_CV_NAME)
 undefine([AC_TYPE_NAME])undefine([AC_CV_NAME])
+])
+
+dnl
+dnl PAC_C_GNU_ATTRIBUTE - See if the GCC __attribute__ specifier is allow.
+dnl Use the following
+dnl #ifndef HAVE_GCC_ATTRIBUTE
+dnl #define __attribute__(a)
+dnl #endif
+dnl If *not*, define __attribute__(a) as null
+dnl
+dnl We start by requiring Gcc.  Some other compilers accept __attribute__
+dnl but generate warning messages, or have different interpretations 
+dnl (which seems to make __attribute__ just as bad as #pragma) 
+dnl For example, the Intel icc compiler accepts __attribute__ and
+dnl __attribute__((pure)) but generates warnings for __attribute__((format...))
+dnl
+AC_DEFUN([PAC_C_GNU_ATTRIBUTE],[
+AC_REQUIRE([AC_PROG_CC_GNU])
+if test "$ac_cv_prog_gcc" = "yes" ; then
+    AC_CACHE_CHECK([whether __attribute__ allowed],
+pac_cv_gnu_attr_pure,[
+AC_TRY_COMPILE([int foo(int) __attribute__ ((pure));],[int a;],
+pac_cv_gnu_attr_pure=yes,pac_cv_gnu_attr_pure=no)])
+AC_CACHE_CHECK([whether __attribute__((format)) allowed],
+pac_cv_gnu_attr_format,[
+AC_TRY_COMPILE([int foo(char *,...) __attribute__ ((format(printf,1,2)));],[int a;],
+pac_cv_gnu_attr_format=yes,pac_cv_gnu_attr_format=no)])
+    if test "$pac_cv_gnu_attr_pure" = "yes" -a "$pac_cv_gnu_attr_format" = "yes" ; then
+        AC_DEFINE(HAVE_GCC_ATTRIBUTE,1,[Define if GNU __attribute__ is supported])
+    fi
+fi
+])
+dnl
+dnl Check for a broken install (fails to preserve file modification times,
+dnl thus breaking libraries.
+dnl
+dnl Create a library, install it, and then try to link against it.
+AC_DEFUN([PAC_PROG_INSTALL_BREAKS_LIBS],[
+AC_CACHE_CHECK([whether install breaks libraries],
+ac_cv_prog_install_breaks_libs,[
+AC_REQUIRE([AC_PROG_RANLIB])
+AC_REQUIRE([AC_PROG_INSTALL])
+AC_REQUIRE([AC_PROG_CC])
+ac_cv_prog_install_breaks_libs=yes
+rm -f libconftest* conftest*
+echo 'int foo(int);int foo(int a){return a;}' > conftest1.c
+echo 'extern int foo(int); int main( int argc, char **argv){ return foo(0); }' > conftest2.c
+if ${CC-cc} $CFLAGS -c conftest1.c >conftest.out 2>&1 ; then
+    if ${AR-ar} cr libconftest.a conftest1.o >/dev/null 2>&1 ; then
+        if ${RANLIB-:} libconftest.a >/dev/null 2>&1 ; then
+	    # Anything less than sleep 10, and Mac OS/X (Darwin) 
+	    # will claim that install works because ranlib won't complain
+	    sleep 10
+	    libinstall="$INSTALL_DATA"
+	    eval "libinstall=\"$libinstall\""
+	    if ${libinstall} libconftest.a libconftest1.a  >/dev/null 2>&1 ; then
+                if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest1.a 2>&1 >>conftest.out && test -x conftest ; then
+		    # Success!  Install works
+ 	            ac_cv_prog_install_breaks_libs=no
+	        else
+	            # Failure!  Does install -p work?	
+		    rm -f libconftest1.a
+		    if ${libinstall} -p libconftest.a libconftest1.a >/dev/null 2>&1 ; then
+                        if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest1.a >>conftest.out 2>&1 && test -x conftest ; then
+			# Success!  Install works
+			    ac_cv_prog_install_breaks_libs="no, with -p"
+			fi
+		    fi
+                fi
+            fi
+        fi
+    fi
+fi
+rm -f conftest* libconftest*])
+
+if test -z "$RANLIB_AFTER_INSTALL" ; then
+    RANLIB_AFTER_INSTALL=no
+fi
+case "$ac_cv_prog_install_breaks_libs" in
+	yes)
+	    RANLIB_AFTER_INSTALL=yes
+	;;
+	"no, with -p")
+	    INSTALL_DATA="$INSTALL_DATA -p"
+	;;
+	*)
+	# Do nothing
+	:
+	;;
+esac
+AC_SUBST(RANLIB_AFTER_INSTALL)
 ])

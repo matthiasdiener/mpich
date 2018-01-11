@@ -35,17 +35,30 @@ dnl are processed *after* AC_CACHE_LOAD (!).  To address this, we avoid
 dnl changing the value of enable_cache, and use real_enable_cache, duplicating
 dnl the "notgiven" value.
 dnl
+dnl The environment variable CONFIGURE_DEBUG_CACHE, if set to yes,
+dnl will cause additional data to be written out during the configure process.
+dnl This can be helpful in debugging the cache file process.dnl
+dnl
 dnl See Also:
 dnl PAC_ARG_CACHING
-dnlD*/
+dnl D*/
 define([AC_CACHE_LOAD],
-[if test "X$cache_system" = "X" ; then
+[if test "$CONFIGURE_DEBUG_CACHE" = yes ; then 
+    oldopts="$-"
+    clearMinusX=no
+    set -x 
+    if test "$oldopts" != "$-" ; then 
+        clearMinusX=yes
+    fi
+fi 
+if test "X$cache_system" = "X" ; then
     # A default file name, just in case
     cache_system="config.system"
     if test "$cache_file" != "/dev/null" ; then
         # Get the directory for the cache file, if any
 	changequote(,)
-        cache_system=`echo $cache_file | sed -e 's%^\(.*/\)[^/]*%\1/config.system%'`
+        dnl Be careful to ensure that there is no doubled slash
+        cache_system=`echo $cache_file | sed -e 's%^\(.*/\)[^/]*%\1config.system%'`
 	changequote([,])
         test "x$cache_system" = "x$cache_file" && cache_system="config.system"
 #    else
@@ -78,7 +91,9 @@ if test "X$real_enable_cache" = "Xnotgiven" ; then
 	    echo "$testval" > $cache_system
 	    # remove the cache file because it may not correspond to our
 	    # system
-	    rm -f $cache_file
+	    if test "$cache_file" != "/dev/null" ; then 
+	        rm -f $cache_file
+	    fi
 	    real_enable_cache="yes"
         fi
     fi
@@ -89,17 +104,24 @@ fi
 if test "X$real_enable_cache" = "Xyes" ; then
   if test -r "$cache_file" ; then
     echo "loading cache $cache_file"
+    if test -w "$cache_file" ; then
+        # Clean the cache file (ergh)
+	PAC_CACHE_CLEAN
+    fi
     . $cache_file
   else
-    echo "creating cache $cache_file"
+    echo "Configure in `pwd` creating cache $cache_file"
     > $cache_file
     rm -f $cache_system
-    cleanargs=`echo "$CC $F77 $CXX" | tr '"' ' '`
+    cleanargs=`echo "$CC $F77 $CXX $F90" | tr '"' ' '`
     testval="`uname -srm` $cleanargs"
     echo "$testval" > $cache_system
   fi
 else
   cache_file="/dev/null"
+fi
+if test "$clearMinusX" = yes ; then
+    set +x
 fi
 ])
 dnl
@@ -124,6 +146,32 @@ AC_ARG_ENABLE(cache,
 [--enable-cache  - Turn on configure caching],
 enable_cache="$enableval",enable_cache="notgiven")
 ])
+dnl
+
+dnl Clean the cache of extraneous quotes that AC_CACHE_SAVE may add
+AC_DEFUN([PAC_CACHE_CLEAN],[
+    rm -f confcache
+    sed -e "s/'\\\\''//g" -e "s/'\\\\/'/" -e "s/\\\\'/'/" \
+		-e "s/'\\\\''//g" $cache_file > confcache
+    if cmp -s $cache_file confcache ; then
+        :
+    else
+        if test -w $cache_file ; then
+	    echo "updating cache $cache_file"
+            cat confcache > $cache_file
+        else
+            echo "not updating unwritable cache $cache_file"
+        fi
+    fi	
+    rm -f confcache
+    if test "$DEBUG_AUTOCONF_CACHE" = "yes" ; then
+        echo "Results of cleaned cache file:"
+	echo "--------------------------------------------------------"
+	cat $cache_file
+	echo "--------------------------------------------------------"
+    fi
+])
+
 dnl/*D
 dnl PAC_SUBDIR_CACHE - Create a cache file before ac_output for subdirectory
 dnl configures.
@@ -148,28 +196,78 @@ if test "$cache_file" = "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; the
     dnl for the cache.
     ac_cv_env_CC_set=set
     ac_cv_env_CC_value=$CC
-    ac_cv_env_CFLAGS_set=set
+    ac_cv_env_CFLAGS_set=${CFLAGS+set}
     ac_cv_env_CFLAGS_value=$CFLAGS
     ac_cv_env_CPP_set=set
     ac_cv_env_CPP_value=$CPP
-    ac_cv_env_CPPFLAGS_set=set
+    ac_cv_env_CPPFLAGS_set=${CPPFLAGS+set}
     ac_cv_env_CPPFLAGS_value=$CPPFLAGS
-    ac_cv_env_LDFLAGS_set=set
+    ac_cv_env_LDFLAGS_set=${LDFLAGS+set}
     ac_cv_env_LDFLAGS_value=$LDFLAGS
+    ac_cv_env_LIBS_set=${LIBS+set}
+    ac_cv_env_LIBS_value=$LIBS
+    ac_cv_env_FC_set=${FS+set}
+    ac_cv_env_FC_value=$FC
+    ac_cv_env_F77_set=${F77+set}
+    ac_cv_env_F77_value=$F77
+    ac_cv_env_FFLAGS_set=${FFLAGS+set}
+    ac_cv_env_FFLAGS_value=$FFLAGS
+    ac_cv_env_CXX_set=${CXX+set}
+    ac_cv_env_CXX_value=$CXX
+
+#     dnl For Autoconf 2.57+, we also need to look at these.  This does 
+#     dnl disable a sometimes useful check in autoconf, but I don't see
+#     dnl a way arount it
+#     ac_env_CC_set=set
+#     ac_env_CC_value=$CC
+#     ac_env_CFLAGS_set=set
+#     ac_env_CFLAGS_value=$CFLAGS
+#     ac_env_CPP_set=set
+#     ac_env_CPP_value=$CPP
+#     ac_env_CPPFLAGS_set=set
+#     ac_env_CPPFLAGS_value=$CPPFLAGS
+#     ac_env_LDFLAGS_set=set
+#     ac_env_LDFLAGS_value=$LDFLAGS
+#     ac_env_LIBS_set=set
+#     ac_env_LIBS_value=$LIBS
+#     ac_env_FC_set=set
+#     ac_env_FC_value=$FC
+#     ac_env_F77_set=set
+#     ac_env_F77_value=$F77
+#     ac_env_FFLAGS_set=set
+#     ac_env_FFLAGS_value=$FFLAGS
+#     ac_env_CXX_set=set
+#     ac_env_CXX_value=$CXX
+
+#	export ac_env_LDFLAGS_set
+#	export ac_env_LDFLAGS_value   
     dnl other parameters are
     dnl build_alias, host_alias, target_alias
+
+    # It turns out that A C CACHE_SAVE can't be invoked more than once
+    # with data that contains blanks.  What happens is that the quotes
+    # that it adds get quoted and then added again.  To avoid this,
+    # we strip off the outer quotes for all cached variables
     AC_CACHE_SAVE
+    PAC_CACHE_CLEAN
     ac_configure_args="$ac_configure_args -enable-cache"
 fi
 dnl Unconditionally export these values.  Subdir configures break otherwise
 export CC
 export CFLAGS
 export LDFLAGS
+export LIBS
 export CPPFLAGS
 export CPP
+export FC
+export F77
+export CXX
+export FFLAGS
+export CCFLAGS
 ])
 AC_DEFUN(PAC_SUBDIR_CACHE_CLEANUP,[
 if test "$cache_file" != "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; then
    rm -f $cache_file
 fi
 ])
+

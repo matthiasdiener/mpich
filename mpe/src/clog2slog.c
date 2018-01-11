@@ -31,6 +31,9 @@
 #if defined( HAVE_UNISTD_H )
 #include <unistd.h>
 #endif
+#ifdef HAVE_GETOPT_H
+#include "getopt.h"
+#endif
 #include "clog2slog.h"
 #ifdef HAVE_WINDOWS_H
 #include <io.h>
@@ -47,8 +50,12 @@ int main (int argc, char **argv) {
       err_chk,            /* error check flag.                             */ 
       num_args = 0;       /* number of options specified on command line.  */
 
+#ifndef HAVE_GETOPT_H
   extern char *optarg;
-  extern int optind, opterr, optopt;
+  /* optind, opterr, and optopt allow access to more information from 
+     getopt.  Only optind is used in this code. */
+  extern int optind /*, opterr, optopt */;
+#endif
 
   double membuff[CLOG_BLOCK_SIZE/sizeof(double)];
                              /* buffer to read clog records into.*/
@@ -77,11 +84,11 @@ int main (int argc, char **argv) {
 	num_args++;
 	break;
       default:
-	CLOG_printHelp();
+	C2S1_print_help();
 	exit(0);
       }
     else {
-      CLOG_printHelp();
+      C2S1_print_help();
       exit(0);
     }
     optchar = getopt(argc,argv,optstring);
@@ -96,14 +103,14 @@ int main (int argc, char **argv) {
   else {
     fprintf(stderr, "clog2slog.c:%d: No clog file specified in command line.\n",
 	    __LINE__);
-    CLOG_printHelp();
+    C2S1_print_help();
     exit(1);
   }
  
   if(strstr(clog_file,".clog") == NULL) {
     fprintf(stderr, "clog2slog.c:%d: specified file is not a clog file.\n",
 	    __LINE__);
-    CLOG_printHelp();
+    C2S1_print_help();
     exit(1);
   }
   
@@ -113,12 +120,12 @@ int main (int argc, char **argv) {
     exit(1);
   }
 
-  if((err_chk = init_clog2slog(clog_file, &slog_file)) == C2S_ERROR) 
+  if((err_chk = C2S1_init_clog2slog(clog_file, &slog_file)) == C2S_ERROR) 
     exit(1);
 
   /*
     first pass to initialize the state definitions list using the 
-    init_state_defs() function.
+    C2S1_init_state_defs() function.
   */
   while
     ((err_chk = read(clogfd, membuff, CLOG_BLOCK_SIZE)) != -1) {
@@ -127,16 +134,16 @@ int main (int argc, char **argv) {
 	      __LINE__,CLOG_BLOCK_SIZE);
       exit(1);
     }
-    if((err_chk = CLOG_init_state_defs(membuff)) == CLOG_ENDLOG)
+    if((err_chk = C2S1_init_state_defs(membuff)) == CLOG_ENDLOG)
       break;
     else if(err_chk == C2S_ERROR) {
-      CLOG_freeStateInfo();
+      C2S1_free_state_info();
       exit(1);
     }
   }
 
   /* initialize slog tables */
-  if((err_chk = init_SLOG(num_frames,frame_size,slog_file)) == C2S_ERROR) 
+  if((err_chk = C2S1_init_SLOG(num_frames,frame_size,slog_file)) == C2S_ERROR) 
     exit(1);
   
   /*
@@ -148,7 +155,7 @@ int main (int argc, char **argv) {
   }
   /*
     making second pass of clog file to log slog intervals using clog events.
-    the function used here is CLOG_makeSLOG()
+    the function used here is C2S1_make_SLOG()
   */
   while((err_chk = read(clogfd, membuff, CLOG_BLOCK_SIZE)) != -1) {
     if(err_chk != CLOG_BLOCK_SIZE) {
@@ -157,7 +164,7 @@ int main (int argc, char **argv) {
       exit(1);
     }
 
-    if((err_chk = CLOG_makeSLOG(membuff)) == CLOG_ENDLOG)
+    if((err_chk = C2S1_make_SLOG(membuff)) == CLOG_ENDLOG)
       break;
     else if(err_chk == C2S_ERROR)
       exit(1);
@@ -165,7 +172,7 @@ int main (int argc, char **argv) {
   
  
   close(clogfd);
-  CLOG_free_resources();
+  C2S1_free_resources();
   return 0;
 }
 

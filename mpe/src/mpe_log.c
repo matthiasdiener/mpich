@@ -233,6 +233,7 @@ char *filename;
     ALOG format log files (CLOG is the default). 
  */
     char *env_log_format;
+    char *env_logfile_prefix;
     int shift, log_format, final_log_format;
     int *is_globalp, flag;
 
@@ -256,7 +257,7 @@ char *filename;
         */
 
 	log_format = CLOG_LOG;
-	env_log_format = (char *)getenv("MPE_LOG_FORMAT");
+	env_log_format = (char *) getenv( "MPE_LOG_FORMAT" );
 
         /*
         if ( env_log_format != NULL )
@@ -283,7 +284,12 @@ char *filename;
 
         /*  printf( "final_log_format = %d\n", final_log_format );  */
 
-	CLOG_mergelogs(shift, filename, final_log_format); 
+
+	env_logfile_prefix = (char *) getenv( "MPE_LOGFILE_PREFIX" );
+	if ( env_logfile_prefix != NULL )
+	    CLOG_mergelogs(shift, env_logfile_prefix, final_log_format); 
+	else
+	    CLOG_mergelogs(shift, filename, final_log_format); 
 
 	MPE_Log_hasBeenClosed = 1;
         MPE_Stop_log();

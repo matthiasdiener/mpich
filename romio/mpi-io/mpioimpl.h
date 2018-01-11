@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: mpioimpl.h,v 1.6 2002/10/24 17:01:18 gropp Exp $    
+ *   $Id: mpioimpl.h,v 1.10 2003/03/11 06:03:20 David Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

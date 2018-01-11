@@ -1,3 +1,5 @@
+void PIComputeRate( double sumlen, double sumtime, double sumlentime, 
+		    double sumlen2, int ntest, double *s, double *r );
 /*
     This file contains very simple code for estimating the parameters in the
     simple (s + rn) model of communication.  It does this using the NORMAL

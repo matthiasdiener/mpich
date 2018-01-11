@@ -73,7 +73,7 @@ systest: systest.o $(PROF_OBJ)
 	$(PROF_LIB) -lm
 
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) upshot
+	-rm -f *.o *~ PI* $(EXECS) upshot
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

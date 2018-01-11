@@ -1,3 +1,8 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
+/*
+ *  (C) 2001 by Argonne National Laboratory.
+ *      See COPYRIGHT in top-level directory.
+ */
 #include "dbs_internal.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,10 +12,15 @@
 DatabaseNode *g_pDatabase = NULL, *g_Iter = NULL;
 int g_nNextAvailableID = 0;
 HANDLE g_hMutex = NULL;
+static int s_nInitRefCount = 0;
 
 int dbs_init()
 {
-    g_hMutex = CreateMutex(NULL, FALSE, NULL);
+    if (s_nInitRefCount == 0)
+    {
+	g_hMutex = CreateMutex(NULL, FALSE, NULL);
+    }
+    s_nInitRefCount++;
     return DBS_SUCCESS;
 }
 
@@ -19,29 +29,35 @@ int dbs_finalize()
     DatabaseNode *pNode, *pNext;
     DatabaseElement *pElement;
 
-    WaitForSingleObject(g_hMutex, INFINITE);
+    s_nInitRefCount--;
 
-    pNode = g_pDatabase;
-    while (pNode)
+    if (s_nInitRefCount == 0)
     {
-	pNext = pNode->pNext;
+	WaitForSingleObject(g_hMutex, INFINITE);
 
-	while (pNode->pData)
+	pNode = g_pDatabase;
+	while (pNode)
 	{
-	    pElement = pNode->pData;
-	    pNode->pData = pNode->pData->pNext;
-	    free(pElement);
+	    pNext = pNode->pNext;
+
+	    while (pNode->pData)
+	    {
+		pElement = pNode->pData;
+		pNode->pData = pNode->pData->pNext;
+		free(pElement);
+	    }
+	    free(pNode);
+
+	    pNode = pNext;
 	}
-	free(pNode);
-	
-	pNode = pNext;
+
+	g_pDatabase = NULL;
+	g_Iter = NULL;
+
+	ReleaseMutex(g_hMutex);
+	CloseHandle(g_hMutex);
+	g_hMutex = NULL;
     }
-
-    g_pDatabase = NULL;
-    g_Iter = NULL;
-
-    ReleaseMutex(g_hMutex);
-    CloseHandle(g_hMutex);
 
     return DBS_SUCCESS;
 }

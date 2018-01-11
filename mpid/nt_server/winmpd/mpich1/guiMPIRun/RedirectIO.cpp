@@ -115,6 +115,7 @@ void RedirectIOThread2(SOCKET abort_sock)
     int nDatalen;
     bool bDeleteOnEmpty = false;
     HANDLE hChildThread = NULL;
+    int iter;
     
     FD_ZERO(&total_set);
     FD_SET(abort_sock, &total_set);
@@ -191,7 +192,13 @@ void RedirectIOThread2(SOCKET abort_sock)
 			break;
 		    }
 		    DWORD dwThreadId;
-		    hChildThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectIOThread2, (LPVOID)temp_sock, 0, &dwThreadId);
+		    for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+		    {
+			hChildThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectIOThread2, (LPVOID)temp_sock, 0, &dwThreadId);
+			if (hChildThread != NULL)
+			    break;
+			Sleep(CREATE_THREAD_SLEEP_TIME);
+		    }
 		    if (hChildThread == NULL)
 		    {
 			MessageBox(NULL, "Unable to create an io thread", "Critical error", MB_OK);
@@ -234,7 +241,13 @@ void RedirectIOThread2(SOCKET abort_sock)
 			DWORD dwThreadID;
 			if (g_pDlg->m_hRedirectRicheditThread != NULL)
 			    TerminateThread(g_pDlg->m_hRedirectRicheditThread, 0);
-			g_pDlg->m_hRedirectRicheditThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectRichEdit, (void*)client_sock, 0, &dwThreadID);
+			for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+			{
+			    g_pDlg->m_hRedirectRicheditThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectRichEdit, (void*)client_sock, 0, &dwThreadID);
+			    if (g_pDlg->m_hRedirectRicheditThread != NULL)
+				break;
+			    Sleep(CREATE_THREAD_SLEEP_TIME);
+			}
 		    }
 		    else
 		    {
@@ -331,6 +344,7 @@ void RedirectIOThread(RedirectIOArg *pArg)
     int nDatalen;
     bool bDeleteOnEmpty = false;
     HANDLE hChildThread = NULL;
+    int iter;
 
     try{
     // This is easier than passing these two arguments to all the io threads
@@ -349,6 +363,7 @@ void RedirectIOThread(RedirectIOArg *pArg)
     }
     listen(listen_sock, 5);
     easy_get_sock_info(listen_sock, pArg->pDlg->m_pszIOHost, &pArg->pDlg->m_nIOPort);
+    easy_get_ip_string(pArg->pDlg->m_pszIOHost, pArg->pDlg->m_pszIOHost);
     g_sockListen = listen_sock;
 
     // Connect a stop socket to myself
@@ -440,7 +455,13 @@ void RedirectIOThread(RedirectIOArg *pArg)
 			break;
 		    }
 		    DWORD dwThreadId;
-		    hChildThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectIOThread2, (LPVOID)temp_sock, 0, &dwThreadId);
+		    for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+		    {
+			hChildThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectIOThread2, (LPVOID)temp_sock, 0, &dwThreadId);
+			if (hChildThread != NULL)
+			    break;
+			Sleep(CREATE_THREAD_SLEEP_TIME);
+		    }
 		    if (hChildThread == NULL)
 		    {
 			MessageBox(NULL, "Unable to create an io thread", "Critical error", MB_OK);
@@ -469,7 +490,13 @@ void RedirectIOThread(RedirectIOArg *pArg)
 			DWORD dwThreadID;
 			if (g_pDlg->m_hRedirectRicheditThread != NULL)
 			    TerminateThread(g_pDlg->m_hRedirectRicheditThread, 0);
-			g_pDlg->m_hRedirectRicheditThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectRichEdit, (void*)client_sock, 0, &dwThreadID);
+			for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+			{
+			    g_pDlg->m_hRedirectRicheditThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectRichEdit, (void*)client_sock, 0, &dwThreadID);
+			    if (g_pDlg->m_hRedirectRicheditThread != NULL)
+				break;
+			    Sleep(CREATE_THREAD_SLEEP_TIME);
+			}
 		    }
 		    else
 		    {

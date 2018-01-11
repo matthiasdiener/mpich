@@ -1,5 +1,7 @@
 #include "mpdutil.h"
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/timeb.h>
 
 bool ReadStringMax(SOCKET sock, char *str, int max)
 {
@@ -46,12 +48,75 @@ bool ReadStringMax(SOCKET sock, char *str, int max)
     return true;
 }
 
+bool ReadStringMaxTimeout(SOCKET sock, char *str, int max, int timeout)
+{
+    int n;
+    char *str_orig = str;
+    int count = 0;
+    struct _timeb tin, tout;
+
+    _ftime(&tin);
+    do {
+	n = easy_receive_timeout(sock, str, 1, timeout);
+	if (n == SOCKET_ERROR)
+	{
+	    err_printf("eReadString failed, error %d\n", WSAGetLastError());
+	    return false;
+	}
+	if (n == 0)
+	{
+	    n = WSAGetLastError();
+	    _ftime(&tout);
+	    if (tout.time - tin.time + 1 < timeout)
+	    {
+		err_printf("ReadStringMaxTimeout returning timeout too early: timeout = %d, elapsed time = %d, last error code = %d\n",
+		    timeout, tout.time - tin.time, n);
+	    }
+	    WSASetLastError(ERROR_TIMEOUT);
+	    return false;
+	}
+	count++;
+	if (count == max && *str != '\0')
+	{
+	    *str = '\0';
+	    // truncate, read and discard all further characters of the string
+	    char ch;
+	    do {
+		n = easy_receive_timeout(sock, &ch, 1, timeout);
+		if (n == SOCKET_ERROR)
+		{
+		    err_printf("eReadString failed, error %d\n", WSAGetLastError());
+		    return false;
+		}
+		if (n == 0)
+		{
+		    n = WSAGetLastError();
+		    _ftime(&tout);
+		    if (tout.time - tin.time + 1 < timeout)
+		    {
+			err_printf("ReadStringMaxTimeout returning timeout too early: timeout = %d, elapsed time = %d, last error code = %d\n",
+			    timeout, tout.time - tin.time, n);
+		    }
+		    WSASetLastError(ERROR_TIMEOUT);
+		    return false;
+		}
+	    } while (ch != '\0');
+	}
+    } while (*str++ != '\0');
+    //dbg_printf("RSM(%s) '%s'\n", bto_string(sock), str_orig);
+    //dbg_printf_color(FOREGROUND_RED | FOREGROUND_INTENSITY, "RSM(%s) '%s'\n", bto_string(sock), str_orig);
+    //return strlen(str_orig);
+    return true;
+}
+
 bool ReadStringTimeout(SOCKET sock, char *str, int timeout)
 {
     int n;
     char *str_orig = str;
+    struct _timeb tin, tout;
 
     //dbg_printf("reading from %d\n", bget_fd(bfd));
+    _ftime(&tin);
     do {
 	n = 0;
 	while (!n)
@@ -64,6 +129,13 @@ bool ReadStringTimeout(SOCKET sock, char *str, int timeout)
 	    }
 	    if (n == 0)
 	    {
+		n = WSAGetLastError();
+		_ftime(&tout);
+		if (tout.time - tin.time + 1 < timeout)
+		{
+		    err_printf("ReadStringTimeout returning timeout too early: timeout = %d, elapsed time = %d, last error code = %d\n",
+			timeout, tout.time - tin.time, n);
+		}
 		WSASetLastError(ERROR_TIMEOUT);
 		return false;
 	    }

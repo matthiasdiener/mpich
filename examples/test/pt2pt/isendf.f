@@ -1,6 +1,6 @@
       program main
       include 'mpif.h'
-      integer ierr, errs
+      integer ierr, errs, toterrs
       integer request
       integer status(MPI_STATUS_SIZE)
       integer rank, size, buf(10)
@@ -41,7 +41,7 @@ C     Check the results
       endif
 C
       call MPI_Allreduce( errs, toterrs, 1, MPI_INTEGER, MPI_SUM,
-     $     MPI_COMM_WORLD )
+     $     MPI_COMM_WORLD, ierr )
       if (rank .eq. 0) then
          if (toterrs .gt. 0) then
             print *, "Found ", toterrs, " Errors"

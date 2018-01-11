@@ -1,3 +1,8 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
+/*
+ *  (C) 2001 by Argonne National Laboratory.
+ *      See COPYRIGHT in top-level directory.
+ */
 #if !defined(AFX_ACCOUNTPASSWORDDLG_H__D373E2BE_4A93_4208_B51F_FBCD8794930D__INCLUDED_)
 #define AFX_ACCOUNTPASSWORDDLG_H__D373E2BE_4A93_4208_B51F_FBCD8794930D__INCLUDED_
 

@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: mpioprof.h,v 1.8 2002/10/24 17:01:18 gropp Exp $    
+ *   $Id: mpioprof.h,v 1.9 2003/09/08 13:32:48 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -143,12 +143,24 @@
 #define MPIO_Test PMPIO_Test
 #undef MPIO_Wait
 #define MPIO_Wait PMPIO_Wait
+#undef MPIO_Testall
+#define MPIO_Testall PMPIO_Testall
+#undef MPIO_Waitall
+#define MPIO_Waitall PMPIO_Waitall
+#undef MPIO_Testany
+#define MPIO_Testany PMPIO_Testany
+#undef MPIO_Waitany
+#define MPIO_Waitany PMPIO_Waitany
+#undef MPIO_Testsome
+#define MPIO_Testsome PMPIO_Testsome
+#undef MPIO_Waitsome
+#define MPIO_Waitsome PMPIO_Waitsome
 #undef MPIO_Request_f2c
 #define MPIO_Request_f2c PMPIO_Request_f2c
 #undef MPIO_Request_c2f
 #define MPIO_Request_c2f PMPIO_Request_c2f
 
-#ifdef MPI_INFO_SRC  /* only in info source directory */
+#if defined(HAVE_MPI_INFO_SRC)  /* only in info source directory */
 
 #undef MPI_Info_create
 #define MPI_Info_create PMPI_Info_create

@@ -26,5 +26,11 @@
 /* COMPRESSION    : Turn on various header compression code                   */
 #undef COMPRESSION
 
-/* GCC296_VA_ARG_FIX : Turn on the workaround for the va_arg bug in gcc-2.96  */
-#undef GCC296_VA_ARG_FIX
+/* GCC3XX_VA_ARG_FIX : Turn on the workaround for the va_arg in gcc-2.96/3.xx */
+#undef GCC3XX_VA_ARG_FIX
+
+/* Enable the large file support, i.e. > 2GB for 32-bit OS */
+#undef _LARGEFILE64_SOURCE
+
+/* Enable 64-bit file pointer support for 32-bit OS */
+#undef _FILE_OFFSET_BITS

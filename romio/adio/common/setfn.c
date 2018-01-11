@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: setfn.c,v 1.12 2002/10/24 17:01:15 gropp Exp $    
+ *   $Id: setfn.c,v 1.13 2003/06/24 22:48:18 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -92,6 +92,15 @@ void ADIOI_SetFunctions(ADIO_File fd)
 	*(fd->fns) = ADIO_PVFS_operations;
 #else
 	FPRINTF(stderr, "ADIOI_SetFunctions: ROMIO has not been configured to use the PVFS file system\n");
+        MPI_Abort(MPI_COMM_WORLD, 1);
+#endif
+	break;
+
+    case ADIO_PVFS2:
+#ifdef ROMIO_PVFS2
+	*(fd->fns) = ADIO_PVFS2_operations;
+#else
+	FPRINTF(stderr, "ADIOI_SetFunctions: ROMIO has not been configured to use the PVFS2 file system\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
 #endif
 	break;

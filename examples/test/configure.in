@@ -113,6 +113,7 @@ FLIB_PATH=""
 OPTFLAGS=""
 OPTFLAGSF=""
 NOF77=0
+enable_coverage=no
 HAS_CXX=no
 F77_EXTRA_FLAG=""
 HAS_FORTRAN=1
@@ -129,7 +130,7 @@ USE_BOOT=no
 MPIFDEP=""
 #
 # By not setting FFLAGS, we get the values from the environment
-MAKE=make
+MAKE=${MAKE:-"make"}
 PREFIX=""
 DEVICE=""
 DEVCFLAGS=""
@@ -144,6 +145,9 @@ cross_compiling=""
 # 
 BASECC=0
 BASEF77=0
+#
+#
+MPIINCDIR=
 #
 # This next variable is a version without quotes.
 # We could also consider `echo $a | sed -e 's/"/\\"/g'`
@@ -310,12 +314,14 @@ do
 	fi
 	MPIRUNARGS='"-mvhome"'
 	MPIRUNMVBACK="-mvback"
+	MPIINCDIR=$mpichpath/../include
 	;;
 
      -with-mpich=*|--with-mpich=*)
         mpichpath=`echo A$arg | sed 's/A-*with-mpich=//'`
 	MPIRUNARGS='"-mvhome"'
 	MPIRUNMVBACK="-mvback"
+	MPIINCDIR=$mpichpath/../include
 	;;
      -mpi2)
 	HAS_MPI2=1
@@ -323,11 +329,23 @@ do
 	IO="io"
 	;;
 
-     -nof77 | --nof77)
+     -nof77 | --nof77 | -disable-f77 | --disable-f77)
        echo "Don't build the tests that need Fortran"
        NOF77=1
        HAS_FORTRAN=0
        FC=true
+       ;;
+
+     -enable-f77 | --enable-f77) 
+       # Nothing to do
+       ;;
+
+     -disable-coverage|--disable-coverage)
+       # Nothing to do
+       ;;
+
+     -enable-coverage|--enable-coverage)
+       enable_coverage=yes
        ;;
 	
      -no-io | -disable-io | --disable-io)
@@ -464,6 +482,13 @@ if test -n "$mpichpath" ; then
     if test "$DEVICE" = "ch_p4mpd" ; then
 	MPIRUNARGS=""
 	MPIRUNMVBACK=""
+	if test "$enable_boot" != "no" ; then
+	    USE_BOOT=yes
+	    if test -z "$MPIBOOT" ; then 
+		MPIBOOT="$mpichpath/mpichboot"
+		MPIUNBOOT="$mpichpath/mpichstop"
+	    fi
+	fi
     fi
 fi
 #
@@ -697,6 +722,12 @@ fi
 AC_SUBST(HAS_CXX)
 #
 
+if test "$enable_coverage" = "yes" ; then
+    # This will only work with GCC.  Note that the switches must be
+    # passed to both the linker and the compiler
+    CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
+    CLINKER="$CLINKER -fprofile-arcs -ftest-coverage"
+fi
 if test "$USE_BOOT" != "yes" ; then
     MPIBOOT=""
     MPIUNBOOT=""
@@ -705,6 +736,99 @@ AC_SUBST(MPIBOOT)
 AC_SUBST(MPIUNBOOT)
 #
 AC_SUBST(MPIRUNARGS)
+#
+# Special values for the ROMIO tests.  These are approximate only
+# The long term solution is to move most of these into a separate
+# file that ROMIO's configure can define; for the command-line
+# values, these should be optional (they really are not needed 
+# by the tests).
+# Override by setting all 5 in the environment.
+if test -z "$FTESTDEFINE" -a "$HAS_FORTRAN" = 1 ; then
+    # The % must have a backslash to keep from confusing sed when 
+    # configure replaces @LL@.
+    LL="\%lld"
+    # We really should try to compute the size of MPI_Offset in bytes
+    # and then use that value.
+    AC_MSG_CHECKING([for sizeof MPI_Offset])
+    rm -f cftestval
+    saveCPPFLAGS="$CPPFLAGS"
+    saveCFLAGS="$CFLAGS"
+    if test -n "$MPIINCDIR" ; then
+        CPPFLAGS="$CPPFLAGS -I$MPIINCDIR"
+	# Older autoconfs do not include CPPFLAGS in the compile test
+	CFLAGS="$CFLAGS -I$MPIINCDIR"
+    fi
+    PAC_TEST_PROGRAM([#include <stdio.h>
+#include "mpi.h"
+int main()
+{
+  FILE *f=fopen("cftestval", "w");
+  if (!f) exit(1);
+  fprintf(f, "%d\n", sizeof(MPI_Offset));
+  return 0;
+}], pac_cv_sizeof_mpi_offset=`cat cftestval`,pac_cv_sizeof_mpi_offset=0)
+rm -f cftestval
+    CPPFLAGS="$saveCPPFLAGS"
+    CFLAGS="$saveCFLAGS"
+    AC_MSG_RESULT($pac_cv_sizeof_mpi_offset)
+
+    if test "$pac_cv_sizeof_mpi_offset" -gt 0 ; then
+        FORTRAN_MPI_OFFSET="integer*$pac_cv_sizeof_mpi_offset"
+    else
+        FORTRAN_MPI_OFFSET="integer*8"
+    fi
+    # Use upper case because this works with the Absoft compiler, which
+    # is not monocase.  Since all other Fortran compilers, following the
+    # Fortran standard, map all names to a single case, using upper
+    # case works for all compilers that provide IARGC and GETARG
+    FTESTDEFINE="external IARGC, GETARG"
+    F77IARGC="IARGC()"
+    F77GETARG="call GETARG(i,str)"
+    # Some Fortran compilers require additional libraries to
+    # provide IARGC etc.  
+    # Intel ifc: -lPEPCF90 (or /4Yportlib
+    # Absoft f77: -lU77
+    fcompile='$MPIF77 -o conftest conftest.f $F77EXTRALIBS $ftestlib >>config.log 2>&1'
+    AC_MSG_CHECKING([for libraries needed for Fortran command line access])
+    cat >>conftest.f <<EOF
+        program main
+        print *, "arg count = ", iargc()
+        end
+EOF
+    if eval $fcompile ; then 
+       AC_MSG_RESULT([none])
+    else
+        addlib=""
+        for ftestlib in -lPEPCF90 -lU77 ; do
+	    echo "$fcompile" >>config.log
+	    fc=`echo $fcompile`
+	    echo "fcompile = $fc" >> config.log
+	    if eval $fcompile ; then 
+		addlib="$ftestlib"
+		break
+	    fi
+        done
+        if test -z "$addlib" ; then
+	    AC_MSG_RESULT([unable to determine])
+	else
+            AC_MSG_RESULT([$addlib])
+	    F77EXTRALIBS="$F77EXTRALIBS $addlib"
+	fi
+    fi
+    rm -f conftest*
+fi
+# Use F77MPIOINC to add an "include 'mpiof.h'" statement if necessary
+# (conforming MPI implementations should not require this)
+F77MPIOINC=""
+AC_SUBST(LL)
+AC_SUBST(FORTRAN_MPI_OFFSET)
+AC_SUBST(FTESTDEFINE)
+AC_SUBST(F77IARGC)
+AC_SUBST(F77GETARG)
+AC_SUBST(F77MPIOINC)
+AC_SUBST(F77EXTRALIBS)
+# End of the values for the ROMIO tests
+
 # Substitute variables
 # Variables used in scripts only
 # FINC contains an @MPIR_HOME@, so it needs to come first
@@ -750,10 +874,52 @@ AC_SUBST(DEVICE)
 MPICH_VERSION=""
 dnl This is used to make sure that we get the correct mpirun.
 AC_SUBST(MPICH_VERSION)dnl
+if test -n "$IO" -a ! -s "$srcdir/$IO/Mfile.in" ; then
+   # Look for romio relative to the srcdir
+   if test -s $srcdir/../../romio/test/Mfile.in ; then
+       # Copy the files (always copy in case there was an update)
+       cp -r $srcdir/../../romio/test $IO
+   else 
+       AC_MSG_WARN([No IO directory available for tests])
+   fi
+fi
 # End configuration file
 AC_OUTPUT(Makefile pt2pt/Makefile coll/Makefile topol/Makefile \
 	context/Makefile env/Makefile profile/Makefile )
+
+# Optionally build the io/Mfile
+if test -n "$IO" ; then
+    CONFIG_FILES=io/Mfile
+    export CONFIG_FILES
+    ${CONFIG_SHELL-/bin/sh} ./config.status
+    CONFIG_FILES=""
+    unset CONFIG_FILES
+fi   
+
+dnl Use PAC_OUTPUT_EXEC to create the C and Fortran files, since
+dnl this command does not include a header line
 PAC_OUTPUT_EXEC(pt2pt/runtests coll/runtests topol/runtests context/runtests \
-	command/runtests env/runtests profile/runtests,a+x )
+	command/runtests env/runtests profile/runtests, a+x)
 
+# Optionally build the programs and test files
+if test -n "$IO" ; then
+    CONFIG_FILES="io/rtest io/misc.c io/fmisc.f io/fcoll_test.f io/pfcoll_test.f"
+    export CONFIG_FILES
+    ${CONFIG_SHELL-/bin/sh} ./config.status
+    rm -f .pactmp
+    for file in $CONFIG_FILES ; do
+        sed -e '1d' $file > .pactmp
+        /bin/rm -f $file
+        mv .pactmp $file
+    done
+    CONFIG_FILES=""
+    unset CONFIG_FILES
+    chmod a+x io/rtest
+fi
 
+if test -s io/Mfile ; then
+    mv -f io/Mfile io/Makefile
+fi
+if test -x io/rtest ; then
+    mv -f io/rtest io/runtests
+fi

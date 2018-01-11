@@ -1,4 +1,4 @@
-#include <globus_io.h>
+#include "chconfig.h"
 #include "globdev.h"
 #include "mpiimpl.h"
 #include "mpimem.h"

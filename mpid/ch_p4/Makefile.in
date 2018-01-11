@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.27 2002/05/17 20:47:36 gropp Exp $
+#  $Id: Makefile.in,v 1.28 2003/03/18 17:17:10 gropp Exp $
 #
 #  {C} 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -100,7 +100,7 @@ distclean:
 
 MPIDHEADERS = mpid.h req.h comm.h datatype.h chhetero.h attach.h objtrace.h \
 	      calltrace.h cookie.h mpid_bind.h reqalloc.h tr2.h mpimem.h \
-	      chpackflow.h
+	      chpackflow.h session.h
 setlinks:
 	@for file in ${SOURCE} ; do  \
 	    if [ ! -s $$file -a -s ${top_srcdir}/mpid/ch2/$$file ] ; then \

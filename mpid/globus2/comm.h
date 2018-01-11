@@ -260,6 +260,9 @@ extern MPIR_Comm_list MPIR_All_communicators;
  * ^^^^^^^^^^^^^ from mpid/ch2/mpid.h
  */
 
+#undef MPID_ATTR_SET
+#undef MPID_ATTR_GET
+#undef MPID_KEYVAL_INIT
 #define MPID_ATTR_SET(a,b,c) MPID_Attr_set((a), (b), (c));
 #define MPID_ATTR_GET(comm_ptr,keyval,attr_value_p) 
 #define MPID_KEYVAL_INIT()                  \

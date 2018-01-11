@@ -1,6 +1,6 @@
 MAKE   = @MAKE@
 SHELL  = /bin/sh
-RM     = /bin/rm
+RM     = rm
 
 # The empty string, "", in PKGS is needed to avoid /bin/sh from complaining
 # when @PKGS@ is really empty.  This is possible that some system may NOT

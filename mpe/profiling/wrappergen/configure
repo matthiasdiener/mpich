@@ -1,4 +1,9 @@
-#! /bin/sh
+
+
+
+
+
+#!/bin/sh
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf.
 # Copyright (C) 1991, 1992, 1993 Free Software Foundation, Inc.
@@ -2313,7 +2318,7 @@ for file in .. ${CONFIG_FILES}; do if test "x$file" != x..; then
   echo creating $file
   rm -f $file
   echo "# Generated automatically from `echo $file|sed 's|.*/||'`.in by configure." > $file
-cat $top_srcdir/${file}.in | sed -e "
+  sed -e "
 $prsub
 $extrasub
 s%@CC@%$CC%g
@@ -2328,11 +2333,11 @@ s%@OPTFLAGS@%$OPTFLAGS%g
 s%@LIBS@%$LIBS%g
 s%@srcdir@%$srcdir%g
 s%@DEFS@%$DEFS%
-" >> $file
+" $top_srcdir/${file}.in >> $file
 fi; done
 
 
 exit 0
 EOF
 chmod +x config.status
-${CONFIG_SHELL-/bin/sh} ./config.status
+${CONFIG_SHELL-/bin/sh} config.status

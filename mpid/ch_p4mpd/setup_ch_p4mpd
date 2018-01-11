@@ -323,15 +323,17 @@ fi
 if [ ! -d mpid/mpd ] ; then 
     mkdir mpid/mpd
 fi
-# Run configure in the mpd directory
+# Run configure in the mpd directory.  Include any with_args from the top
+# level configure
 RSHCOMMAND="${RSHCOMMAND-$rshcommand}"
 echo "Configuring mpd subsystem..."
 (cd mpid/mpd ; \
     export VPATH ; export RSHCOMMAND ;\
-    export CC ; export CLINKER ; \
+    export CC ; export CLINKER ; export CFLAGS ; export CC_SHARED_OPT ; \
+    export SHAREDKIND ; \
     $top_srcdir/mpid/mpd/configure --with-cc="$CC" \
                 --with-opt="$OPTFLAGS" \
-                --with-top_srcdir=$top_srcdir \
+                --with-top_srcdir=$top_srcdir $with_args \
                 -srcdir=$top_srcdir/mpid/mpd \
 		-prefix=$prefix \
 		-exec-prefix=$exec_prefix \

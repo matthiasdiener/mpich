@@ -1,0 +1,5 @@
+Makefile
+mdepcflags
+config.status
+config.log
+p4_config.h

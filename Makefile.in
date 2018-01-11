@@ -158,6 +158,7 @@ mpi-utils:
 	else \
 	    ${MAKE} mpirun ; \
 	fi    
+	bin/mpicc -o ${binbuild_dir}/mpichversion ${top_srcdir}/util/mpichversion.c
 	@rm -f ${binbuild_dir}/mpireconfig
 	@$(MAKE) mpireconfig
 	@$(MAKE) ./bin/mpiinstall
@@ -189,7 +190,7 @@ examples: ${binbuild_dir}/mpirun
 # The test on the filenames below simply prevents error messages
 # when using these tests.
 mpichsharelibs:
-	@-( cd $(libbuild_dir) ; \
+	@-( cd $(libbuild_dir) && \
 	CC="$(CC)" ; export CC ; CLINKER="@CLINKER@" ; export CLINKER ; \
 	for lib in lib${MPILIBNAME}.a libp${MPILIBNAME}.a \
             lib${FMPILIBNAME}.a ; do \
@@ -214,7 +215,7 @@ mpichsharelibs:
 	)
 	@if [ "@SHAREDKIND@" != "ignore" ] ; then \
 	    echo "Testing that MPI applications can be linked with shared libs..." ;\
-	    ( cd examples/test/pt2pt ; MPICH_USE_SHLIB="yes" ; \
+	    ( cd examples/test/pt2pt && MPICH_USE_SHLIB="yes" ; \
 		export MPICH_USE_SHLIB ; ${MAKE} linktest ) ;\
 	fi
 
@@ -252,7 +253,7 @@ mpilib: ${top_srcdir}/Makefile.in ${includebuild_dir}/mpichconf.h
 	  do \
 	  echo " " ;\
 	  echo making mpir in directory $$dir ; sleep 1 ; \
-	  (cd $$dir ; \
+	  (cd $$dir && \
 	  if [ "$$dir" = "mpid/@DEVICE@" ] ; then \
 	      $(MAKE) default_all ; \
           elif [ $(NOF77) = 0 ] ; then \
@@ -307,7 +308,7 @@ mpelib:
               echo "Making MPE Profiling Libraries" ; \
 	      ( cd mpe && $(MAKE) ) ; if [ $$? != 0 ] ; then exit 1 ; fi ; \
 	      ( MPE_TMP_PREFIX=`pwd` ; \
-	        cd mpe ; ./sbin/mpeinstall -prefix=$${MPE_TMP_PREFIX} ) ; \
+	        cd mpe && ./sbin/mpeinstall -prefix=$${MPE_TMP_PREFIX} ) ; \
 	      echo "Finished making MPE Profiling Libraries" ; echo ; \
 	  fi
 
@@ -341,7 +342,7 @@ cpplib:
 	        rm -f ${includebuild_dir}/mpi2c++/mpi2c++_config.h ; \
             fi ; \
 	fi
-	@(cd ${CPP_DIR} ; MAKE="$(MAKE)" ; export MAKE ; \
+	@(cd ${CPP_DIR} && MAKE="$(MAKE)" ; export MAKE ; \
 	rm -f config.cache ; \
 	CXXFLAGS="" ; export CXXFLAGS ; \
 	CXX="g++" ; export CXX ; \
@@ -393,9 +394,9 @@ mpilibdebug:
 	  do \
 	  echo " " ;\
 	  echo making mpir in directory $$dir ;\
-	  (cd $$dir ; \
+	  (cd $$dir && \
 	  $(MAKE) default_all MPIPROFILE="-DMPIR_DEBUG_MEM" ) ;\
-	  (cd $$dir ; $(MAKE) clean ; \
+	  (cd $$dir && $(MAKE) clean ; \
 	  $(MAKE) profile_all MPIPROFILE="-DMPIR_DEBUG_MEM -DMPI_BUILD_PROFILING");\
 	  done 
 	${RANLIB} $(libbuild_dir)/lib${MPILIBNAME}.a
@@ -413,7 +414,7 @@ profile:
 	  for dir in mpid/${DEVICE} $(MPIDIRS) $(MPI2DIRS) ; do \
 	    echo " " ;\
 	    echo making mpir in directory $$dir ;\
-	    (cd $$dir ; \
+	    (cd $$dir && \
 	    $(MAKE) profile_all MPIPROFILE="-DMPI_BUILD_PROFILING" ) ;\
 	  done ; \
 	  ${RANLIB} $(libbuild_dir)/libp${MPILIBNAME}.a ; \
@@ -426,7 +427,7 @@ profile:
 # routines, in that case the library will exist (but be small)
 profileliblink:
 	@if [ ! -s $(libbuild_dir)/libp${MPILIBNAME}.a ] ; then\
-	  (cd $(libbuild_dir) ; ln -s lib${MPILIBNAME}.a \
+	  (cd $(libbuild_dir) && ln -s lib${MPILIBNAME}.a \
 		libp${MPILIBNAME}.a ) ; \
 	fi
 
@@ -499,7 +500,7 @@ ${binbuild_dir}/mpireconfig: ${srcdir}/util/mpireconfig.in config.status
 # Note that we need to set the C compiler through an environment variable.
 serv_p4 server:
 	@if [ ! -d mpid/server ] ; then mkdir mpid/server ; fi
-	@( cd mpid/server ; rm -f config.cache ; \
+	@( cd mpid/server && rm -f config.cache ; \
 	  CC="@CC@" ; export CC ; MAKE="${MAKE}" ; export MAKE ; \
 	  ${top_srcdir}/mpid/server/configure ; $(MAKE) serv_p4 ; \
 	  cp serv_p4 $(binbuild_dir) )
@@ -560,7 +561,7 @@ clean:
 	-@if [ -s mpid/tests/Makefile ] ; then \
 	    (cd mpid/tests && $(MAKE) clean ) ; fi
 cleanslate: clean
-	(cd util ; if [ -s Makefile ] ; then $(MAKE) clean ; fi )
+	(cd util && if [ -s Makefile ] ; then $(MAKE) clean ; fi )
 #
 # distclean removes mpirun etc as well as the libraries.
 distclean: cleanslate
@@ -570,8 +571,8 @@ distclean: cleanslate
 			    bin/clog* bin/logviewer bin/mperecofig* \
 			    bin/slog_*
 	-if [ -s util/Makefile ] ; then \
-	    (cd util ; rm -f chkmachine chkserv Makefile ) ; \
-	    (cd util/machines ; \
+	    (cd util && rm -f chkmachine chkserv Makefile ) ; \
+	    (cd util/machines && \
 	    rm -f machines.IRIX* machines.sun* machines.solaris* \
 	    machines.cray* machines.CRAY* machines.LINUX machines.rs600 \
 	    machines.alpha machines.hp* ) ; fi
@@ -595,7 +596,7 @@ distclean: cleanslate
 	-rm -f ID
 	-for dir in $(DEVICES) ; do echo cleaning $$dir ; \
 	   if [ -d $$dir ] ; then \
-	     (cd $$dir ; if [ -s Makefile ] ; then $(MAKE) distclean ; fi ) ; \
+	     (cd $$dir && if [ -s Makefile ] ; then $(MAKE) distclean ; fi ) ; \
 	   fi ; \
 	done
 	if [ -d mpid/tests -a -s mpid/tests/Makefile ] ; then \
@@ -634,6 +635,17 @@ ID: frc
 frc:
 
 
+## LOCAL START
+
+maintainer: msgcat configure
+msgcat: src/env/mpierrstrings.h
+src/env/mpierrstrings.h: include/mpi_error.h \
+	/home/MPI/maint/errmsgs/BaseErrMsgs.msg
+	/home/MPI/maint/errmsgs/GetMsgCat
+configure: configure.in aclocal.m4
+	/home/MPI/maint/makeconfigs
+
+## LOCAL END
 
 INSTALLDIR = /usr/local/mpi
 #
@@ -714,10 +726,10 @@ install-all: install
 	(rm $(PREFIX)/examples/*)
 	-$(CPRP) -r examples $(PREFIX)
 	# Update the makefiles
-	(cd $(PREFIX)/examples ; \
+	(cd $(PREFIX)/examples && \
 		$(bindir)/mpireconfig Makefile ; \
 		for dir in `find . -type d -print` ; do \
-			(cd $$dir ; \
+			(cd $$dir && \
 			if [ -s Makefile.in ] ; then \
 				$(bindir)/mpireconfig Makefile ; \
 			fi ) ; \

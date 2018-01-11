@@ -6,8 +6,11 @@
 extern int __NUMNODES, __MYPROCID;
 
 
-#if HAVE_STDLIB_H
+#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
+#endif
+#ifdef HAVE_STRING_H
+#include <string.h>
 #endif
 /*****************************************************************************
    These routines attempt to overlap computation with communication.

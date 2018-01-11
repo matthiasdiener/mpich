@@ -1,5 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
-/*  $Id: mpipr.h,v 1.6 2003/01/07 21:31:22 thakur Exp $
+/*  $Id: mpipr.h,v 1.9 2004/01/08 22:41:54 gropp Exp $
  *
  *  (C) 2001 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
@@ -149,6 +149,7 @@
 #define MPI_Group_union PMPI_Group_union
 #undef MPI_Ibsend
 #define MPI_Ibsend PMPI_Ibsend
+#if 0
 #undef MPI_Info_create
 #define MPI_Info_create PMPI_Info_create
 #undef MPI_Info_delete
@@ -167,6 +168,7 @@
 #define MPI_Info_get_valuelen PMPI_Info_get_valuelen
 #undef MPI_Info_set
 #define MPI_Info_set PMPI_Info_set
+#endif /* only conditionally set the info */
 #undef MPI_Init
 #define MPI_Init PMPI_Init
 #undef MPI_Initialized
@@ -337,8 +339,10 @@
 #undef MPI_Status_f2c
 #define MPI_Status_f2c PMPI_Status_f2c
 
+#undef MPI_Status_set_elements
+#define MPI_Status_set_elements PMPI_Status_set_elements
 
-#ifndef MPI_INFO_SRC  /* everywhere except in info source directory */
+#ifndef HAVE_MPI_INFO_SRC  /* everywhere except in info source directory */
 #undef MPI_Info_create
 #define MPI_Info_create PMPI_Info_create
 #undef MPI_Info_set

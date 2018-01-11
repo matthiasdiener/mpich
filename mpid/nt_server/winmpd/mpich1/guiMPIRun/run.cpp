@@ -214,11 +214,15 @@ void CGuiMPIRunView::GetHosts()
 void CreateJobIDFromTemp(char * pszJobID)
 {
     // Use the name of a temporary file as the job id
-    char tBuffer[MAX_PATH], *pszFileName;
-    GetTempFileName(".", "mpi", 0, pszJobID);
-    GetFullPathName(pszJobID, 100, tBuffer, &pszFileName);
-    DeleteFile(pszJobID);
-    strcpy(pszJobID, pszFileName);
+    char tFileName[MAX_PATH], tBuffer[MAX_PATH], *pChar;
+    // Create a temporary file to get a unique name
+    GetTempFileName(".", "mpi", 0, tFileName);
+    // Get just the file name part
+    GetFullPathName(tFileName, MAX_PATH, tBuffer, &pChar);
+    // Delete the file
+    DeleteFile(tFileName);
+    // Use the filename as the jobid
+    strcpy(pszJobID, pChar);
 }
 
 // Function name	: CreateJobID
@@ -647,6 +651,7 @@ void RunJob(CGuiMPIRunView *pDlg)
     CString pszMapShare;
     CString sAppOriginal;
     CString sMapping = "";
+    int iter;
 
     try{
     sAppOriginal = pDlg->m_app;
@@ -712,6 +717,7 @@ void RunJob(CGuiMPIRunView *pDlg)
     }
     else
     {
+	easy_get_ip_string(pDlg->m_pHosts->host, pDlg->m_pHosts->host);
 	if (pDlg->m_bUseCommonEnvironment && (pDlg->m_CommonEnvironment.GetLength() > 0))
 	{
 	    if (_snprintf(pszEnv, MAX_CMD_LENGTH, "%s|MPICH_JOBID=%s|MPICH_NPROC=%d|MPICH_ROOTHOST=%s",
@@ -803,7 +809,13 @@ void RunJob(CGuiMPIRunView *pDlg)
     RedirectIOArg *pArg = new RedirectIOArg;
     pArg->hReadyEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     pArg->pDlg = pDlg;
-    pDlg->m_hRedirectIOListenThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectIOThread, pArg, 0, &dwThreadID);
+    for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+    {
+	pDlg->m_hRedirectIOListenThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectIOThread, pArg, 0, &dwThreadID);
+	if (pDlg->m_hRedirectIOListenThread != NULL)
+	    break;
+	Sleep(CREATE_THREAD_SLEEP_TIME);
+    }
     if (pDlg->m_hRedirectIOListenThread)
     {
 	if (WaitForSingleObject(pArg->hReadyEvent, 10000) != WAIT_OBJECT_0)
@@ -923,7 +935,13 @@ void RunJob(CGuiMPIRunView *pDlg)
 		}
 		strncat(arg->pszEnv, pBuffer, MAX_CMD_LENGTH - 1 - strlen(arg->pszEnv));
 	    }
-	    pDlg->m_pProcessThread[iproc] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)MPIRunLaunchProcess, arg, 0, &dwThreadID);
+	    for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+	    {
+		pDlg->m_pProcessThread[iproc] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)MPIRunLaunchProcess, arg, 0, &dwThreadID);
+		if (pDlg->m_pProcessThread[iproc] != NULL)
+		    break;
+		Sleep(CREATE_THREAD_SLEEP_TIME);
+	    }
 	    if (pDlg->m_pProcessThread[iproc] == NULL)
 	    {
 		MessageBox(NULL, "Unable to create LaunchProcess thread", "Error", MB_OK);
@@ -1192,6 +1210,7 @@ bool ReadCachedPassword(char *pszAccount, char *pszPassword)
 void CGuiMPIRunView::OnRunBtn()
 {
     DWORD dwThreadID;
+    int iter;
 
     UpdateData();
 
@@ -1316,7 +1335,13 @@ void CGuiMPIRunView::OnRunBtn()
 
     SaveAppToMRU();
 
-    m_hJobThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RunJob, this, 0, &dwThreadID);
+    for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+    {
+	m_hJobThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RunJob, this, 0, &dwThreadID);
+	if (m_hJobThread != NULL)
+	    break;
+	Sleep(CREATE_THREAD_SLEEP_TIME);
+    }
     if (m_hJobThread == NULL)
     {
 	MessageBox("CreateThread(RunJob) failed");

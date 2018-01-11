@@ -2,7 +2,6 @@
 
 #include "mpi2.h"
 #include "datatype.h"
-/* #include <globus_common.h> needed for globus_mutex_t */
 
 /*
  * Modified definitions of the request.  The "device" handle has been 

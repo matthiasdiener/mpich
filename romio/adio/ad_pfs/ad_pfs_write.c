@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_pfs_write.c,v 1.6 2002/10/24 17:00:54 gropp Exp $    
+ *   $Id: ad_pfs_write.c,v 1.10 2003/04/18 20:14:59 David Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -68,16 +68,19 @@ void ADIOI_PFS_WriteContig(ADIO_File fd, void *buf, int count,
     if (err != -1) MPIR_Status_set_bytes(status, datatype, err);
 #endif
 
-#ifdef PRINT_ERR_MSG
-    *error_code = (err == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
-#else
     if (err == -1) {
+#ifdef MPICH2
+	*error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io",
+	    "**io %s", strerror(errno));
+#elif defined(PRINT_ERR_MSG)
+	*error_code =  MPI_ERR_UNKNOWN;
+#else /* MPICH-1 */
 	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
 			      myname, "I/O Error", "%s", strerror(errno));
 	ADIOI_Error(fd, *error_code, myname);
+#endif
     }
     else *error_code = MPI_SUCCESS;
-#endif
 }
 
 

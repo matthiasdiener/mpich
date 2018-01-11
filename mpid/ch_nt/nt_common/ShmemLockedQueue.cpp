@@ -55,15 +55,56 @@ bool ShmemLockedQueue::Init(char *name, unsigned long size)
 	bool bFirst = true;
 	HANDLE hInitEvent = NULL;
 	LONG *pInitialized;
+#ifdef SHARE_MEMORY_ACCROSS_WINWORKSTATIONS
+	PSECURITY_DESCRIPTOR pSD;
+	SECURITY_ATTRIBUTES sattr;
+#endif
 
 	m_dwMaxMsgSize = size;
 
 	size = size + sizeof(ShmemLockedQueueHeader) + 6*sizeof(LONG);
 
+#ifdef SHARE_MEMORY_ACCROSS_WINWORKSTATIONS
+	// Initialize a security descriptor.
+	pSD = (PSECURITY_DESCRIPTOR) LocalAlloc(LPTR, SECURITY_DESCRIPTOR_MIN_LENGTH);
+	if (pSD == NULL)
+	{
+	    printf("ShmemLockedQueue::Init: LocalAlloc failed, error %d\n", GetLastError());
+	    return false;
+	}
+	
+	if (!InitializeSecurityDescriptor(pSD, SECURITY_DESCRIPTOR_REVISION))
+	{
+	    printf("ShmemeLockedQueue::Init: InitializeSecurityDescriptor failed, error %d\n", GetLastError());
+	    LocalFree((HLOCAL) pSD);
+	    return false;
+	}
+	
+	// Add a NULL descriptor ACL to the security descriptor.
+	if (!SetSecurityDescriptorDacl(
+	    pSD, 
+	    TRUE,     // specifying a descriptor ACL
+	    (PACL) NULL,
+	    FALSE))
+	{
+	    printf("ShmemeLockeQueue::Init: SetSecurityDescriptorDacl failed, error %d\n", GetLastError());
+	    LocalFree((HLOCAL) pSD);
+	    return false;
+	}
+
+	sattr.bInheritHandle = TRUE;
+	sattr.lpSecurityDescriptor = pSD;
+	sattr.nLength = sizeof(SECURITY_ATTRIBUTES);
+#endif
+
 	// Create a mapping from the page file
 	m_hMapping = CreateFileMapping(
 		INVALID_HANDLE_VALUE,
+#ifdef SHARE_MEMORY_ACCROSS_WINWORKSTATIONS
+		&sattr,
+#else
 		NULL,
+#endif
 		PAGE_READWRITE,
 		0, size,
 		name);
@@ -74,7 +115,14 @@ bool ShmemLockedQueue::Init(char *name, unsigned long size)
 		bFirst = false;
 
 	if (m_hMapping == NULL)
+	{
+		printf("CreateFileMapping(%s) failed, error %d\n", name, GetLastError());fflush(stdout);
+#ifdef SHARE_MEMORY_ACCROSS_WINWORKSTATIONS
+		if(pSD != NULL)
+			LocalFree((HLOCAL) pSD);
+#endif
 		return false;
+	}
 
 	// Map the file and save the pointer to the base of the mapped file
 	m_pBottom = MapViewOfFile(
@@ -85,8 +133,13 @@ bool ShmemLockedQueue::Init(char *name, unsigned long size)
 
 	if (m_pBottom == NULL)
 	{
+		printf("MapViewOfFile failed, error %d\n", GetLastError());fflush(stdout);
 		CloseHandle(m_hMapping);
 		m_hMapping = NULL;
+#ifdef SHARE_MEMORY_ACCROSS_WINWORKSTATIONS
+		if(pSD != NULL)
+			LocalFree((HLOCAL) pSD);
+#endif
 		return false;
 	}
 
@@ -121,16 +174,27 @@ bool ShmemLockedQueue::Init(char *name, unsigned long size)
 
 	sprintf(pszEventName, "%s.event", name);
 
-	m_hMsgAvailableEvent = 
-		CreateEvent(NULL, TRUE, FALSE, pszEventName);
+	m_hMsgAvailableEvent = CreateEvent(
+#ifdef SHARE_MEMORY_ACCROSS_WINWORKSTATIONS
+		&sattr,
+#else
+		NULL,
+#endif
+		TRUE, FALSE, pszEventName);
 	if (m_hMsgAvailableEvent == NULL)
 	{
+		printf("CreateEvent(%s) failed, error %d\n", pszEventName, GetLastError());fflush(stdout);
 		CloseHandle(m_hMapping);
 		CloseHandle(m_plQMutex);
 		m_hMapping = NULL;
 		m_plQMutex = NULL;
 		return false;
 	}
+
+#ifdef SHARE_MEMORY_ACCROSS_WINWORKSTATIONS
+	if(pSD != NULL)
+		LocalFree((HLOCAL) pSD);
+#endif
 
 	if (bFirst)
 	{
@@ -147,7 +211,10 @@ bool ShmemLockedQueue::Init(char *name, unsigned long size)
 		retry--;
 	    }
 	    if (*pInitialized != SHM_Q_INITIALIZED)
+	    {
+		printf("timed out waiting for the shmem queue to be initialized\n");fflush(stdout);
 		return false;
+	    }
 	}
 
 	return true;

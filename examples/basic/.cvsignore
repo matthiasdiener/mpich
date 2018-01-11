@@ -1,0 +1,8 @@
+Makefile
+*.o
+*.alog
+cpi
+pi3f90
+hello++
+srtest
+fpi

@@ -168,6 +168,11 @@ dnl
 # compiler, but they should not HAVE to
 #
 dnl --- insert 2.52 compatibility here ---
+dnl 2.52+ does not have AC_PROG_CC_GNU
+ifdef([AC_PROG_CC_GNU],,[AC_DEFUN([AC_PROG_CC_GNU],)])
+dnl 2.52 does not have AC_PROG_CC_WORKS
+ifdef([AC_PROG_CC_WORKS],,[AC_DEFUN([AC_PROG_CC_WORKS],)])
+dnl
 dnl
 AC_DEFUN(PAC_PROG_CC_WORKS,
 [AC_PROG_CC_WORKS

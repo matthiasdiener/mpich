@@ -1,3 +1,8 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
+/*
+ *  (C) 2001 by Argonne National Laboratory.
+ *      See COPYRIGHT in top-level directory.
+ */
 #ifndef LAUNCH_PROCESS_H
 #define LAUNCH_PROCESS_H
 
@@ -32,5 +37,6 @@ void PutJobInDatabase(MPIRunLaunchProcessArg *arg);
 void PutJobProcessInDatabase(MPIRunLaunchProcessArg *arg, int pid);
 void UpdateJobState(char *state);
 void UpdateJobKeyValue(int rank, char *key, char *value);
+int LaunchRootProcess(char *launch_str, SOCKET *sock, int *pid);
 
 #endif

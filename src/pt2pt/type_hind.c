@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /*
- *  $Id: type_hind.c,v 1.12 2002/07/08 13:29:38 gropp Exp $
+ *  $Id: type_hind.c,v 1.13 2003/04/07 13:34:18 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -45,7 +45,7 @@ Output Parameter:
 
 .N fortran
 
-Also see the discussion for MPI_Type_indexed about the 'indices' in Fortran.
+Also see the discussion for 'MPI_Type_indexed' about the 'indices' in Fortran.
 
 .N Errors
 .N MPI_SUCCESS

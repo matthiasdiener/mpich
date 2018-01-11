@@ -22,7 +22,7 @@ void Translate_Error(int error, char *msg, char *prepend)
     if (prepend == NULL)
 	memcpy(msg, str, num_bytes+1);
     else
-	sprintf(msg, "%s%s", prepend, str);
+	sprintf(msg, "%s%s", prepend, (const char*)str);
     LocalFree(str);
     //strtok(msg, "\r\n");
     char *pCh;
@@ -52,9 +52,9 @@ void Translate_HRError(HRESULT hr, char *error_msg, char *prepend)
 	0,0);
     
     if (prepend == NULL)
-	sprintf(error_msg, "%s", str);
+	sprintf(error_msg, "%s", (const char*)str);
     else
-	sprintf(error_msg, "%s%s", prepend, str);
+	sprintf(error_msg, "%s%s", prepend, (const char*)str);
     
     LocalFree(str);
     //strtok(error_msg, "\r\n");

@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: write_alle.c,v 1.7 2002/10/24 15:54:45 gropp Exp $    
+ *   $Id: write_alle.c,v 1.18 2004/03/17 20:31:27 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -38,11 +38,12 @@ Output Parameters:
 @*/
 int MPI_File_write_all_end(MPI_File fh, void *buf, MPI_Status *status)
 {
-#ifndef PRINT_ERR_MSG
+#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     int error_code;
-    static char myname[] = "MPI_FILE_IREAD";
+    static char myname[] = "MPI_FILE_WRITE_ALL_END";
 #endif
 
+    /* --BEGIN ERROR HANDLING-- */
 #ifdef PRINT_ERR_MSG
     if ((fh <= (MPI_File) 0) || (fh->cookie != ADIOI_FILE_COOKIE)) {
 	FPRINTF(stderr, "MPI_File_write_all_end: Invalid file handle\n");
@@ -52,17 +53,30 @@ int MPI_File_write_all_end(MPI_File fh, void *buf, MPI_Status *status)
     ADIOI_TEST_FILE_HANDLE(fh, myname);
 #endif
 
-    if (!(fh->split_coll_count)) {
-#ifdef PRINT_ERR_MSG
+    if (!(fh->split_coll_count))
+    {
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO,
+	    "**iosplitcollnone", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
         FPRINTF(stderr, "MPI_File_write_all_end: Does not match a previous MPI_File_write_all_begin\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ERR_NO_SPLIT_COLL,
                               myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);
 #endif
     }
+    /* --END ERROR HANDLING-- */
 
+#ifdef HAVE_STATUS_SET_BYTES
+    /* FIXME - we should really ensure that the split_datatype remains
+       valid by incrementing the ref count in the write_allb.c routine
+       and decrement it here after setting the bytes */
+    if (status != MPI_STATUS_IGNORE)
+       *status = fh->split_status;
+#endif
     fh->split_coll_count = 0;
 
     return MPI_SUCCESS;

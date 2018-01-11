@@ -8,12 +8,12 @@ CFG=mpich - Win32 SDebugFortran
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
-!MESSAGE NMAKE /f "mpich.separatedfortran.mak".
+!MESSAGE NMAKE /f "mpich.static.mak".
 !MESSAGE 
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "mpich.separatedfortran.mak" CFG="mpich - Win32 SDebugFortran"
+!MESSAGE NMAKE /f "mpich.static.mak" CFG="mpich - Win32 SDebugFortran"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
@@ -50,10 +50,10 @@ RSC=rc.exe
 # PROP Intermediate_Dir "SRelease"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
+LIB2=link.exe -lib
 MTL=midl.exe
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
-LIB2=link.exe -lib
 # ADD BASE F90 /include:"SRelease/"
 # ADD F90 /browser /compile_only /iface:nomixed_str_len_arg /iface:cref /include:"SRelease/" /threads
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /YX /FD /c
@@ -79,10 +79,10 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "SDebug"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
+LIB2=link.exe -lib
 MTL=midl.exe
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
-LIB2=link.exe -lib
 # ADD BASE F90 /include:"SDebug/"
 # ADD F90 /browser /compile_only /dbglibs /iface:nomixed_str_len_arg /iface:cref /include:"SDebug/" /threads
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "_WINDOWS" /D "_DEBUG" /D "_MBCS" /YX /FD /GZ /c
@@ -109,10 +109,10 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "SDebugCDECLStrLenEnd"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
+LIB2=link.exe -lib
 MTL=midl.exe
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
-LIB2=link.exe -lib
 # ADD BASE F90 /browser /compile_only /dbglibs /iface:nomixed_str_len_arg /iface:cref /include:"SDebugCDECLStrLenEnd/" /threads
 # ADD F90 /browser /compile_only /dbglibs /iface:nomixed_str_len_arg /iface:cref /include:"SDebugCDECLStrLenEnd/" /threads
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\nt_common" /I ".\\" /I "..\..\include" /I "..\..\src\fortran\include" /I "..\ch2" /I "..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /D "USE_FORT_STDCALL" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /FR /YX /FD /GZ /c
@@ -139,10 +139,10 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "SReleaseCDECLStrLenEnd"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
+LIB2=link.exe -lib
 MTL=midl.exe
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
-LIB2=link.exe -lib
 # ADD BASE F90 /browser /compile_only /iface:nomixed_str_len_arg /iface:cref /include:"SReleaseCDECLStrLenEnd/" /threads
 # ADD F90 /browser /compile_only /iface:nomixed_str_len_arg /iface:cref /include:"SReleaseCDECLStrLenEnd/" /threads
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /I "..\nt_common" /I ".\\" /I "..\..\include" /I "..\..\src\fortran\include" /I "..\ch2" /I "..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /FR /YX /FD /c
@@ -169,10 +169,10 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "SDebugNoFortran"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
+LIB2=link.exe -lib
 MTL=midl.exe
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
-LIB2=link.exe -lib
 # ADD BASE F90 /browser /compile_only /dbglibs /iface:nomixed_str_len_arg /iface:cref /include:"SDebugNoFortran/" /include:"SDebug/" /threads
 # ADD F90 /browser /compile_only /dbglibs /iface:nomixed_str_len_arg /iface:cref /include:"SDebugNoFortran/" /include:"SDebug/" /threads
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /D "USE_FORT_MIXED_STR_LEN" /D "USE_FORT_STDCALL" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "HAVE_FORTRAN_API" /D "FORTRAN_EXPORTS" /FR /YX /FD /GZ /c
@@ -199,10 +199,10 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "SReleaseNoFortran"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
+LIB2=link.exe -lib
 MTL=midl.exe
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
-LIB2=link.exe -lib
 # ADD BASE F90 /browser /compile_only /iface:nomixed_str_len_arg /iface:cref /include:"SReleaseNoFortran/" /include:"SRelease/" /threads
 # ADD F90 /browser /compile_only /iface:nomixed_str_len_arg /iface:cref /include:"SReleaseNoFortran/" /include:"SRelease/" /threads
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /D "USE_FORT_MIXED_STR_LEN" /D "USE_FORT_STDCALL" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "HAVE_FORTRAN_API" /D "FORTRAN_EXPORTS" /FR /YX /FD /c
@@ -229,10 +229,10 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "PDebug"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
+LIB2=link.exe -lib
 MTL=midl.exe
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
-LIB2=link.exe -lib
 # ADD BASE F90 /browser /compile_only /dbglibs /iface:nomixed_str_len_arg /iface:cref /include:"PDebug/" /threads
 # ADD F90 /browser /compile_only /dbglibs /iface:nomixed_str_len_arg /iface:cref /include:"PDebug/" /threads
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /I "..\..\nt_server\winmpd\mpdutil" /I "..\..\nt_server\winmpd\bsocket" /D "USE_FORT_MIXED_STR_LEN" /D "USE_FORT_STDCALL" /D "_DEBUG" /D "HAVE_FORTRAN_API" /D "FORTRAN_EXPORTS" /D "_WINDOWS" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "USE_MPI_INTERNALLY" /D "HAVE_WINBCONF_H" /D "NO_BSOCKETS" /D "_LIB" /Fr /YX /FD /GZ /c
@@ -260,10 +260,10 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "PRelease"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
+LIB2=link.exe -lib
 MTL=midl.exe
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
-LIB2=link.exe -lib
 # ADD BASE F90 /browser /compile_only /iface:nomixed_str_len_arg /iface:cref /include:"PRelease/" /threads
 # ADD F90 /browser /compile_only /iface:nomixed_str_len_arg /iface:cref /include:"PRelease/" /threads
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /I "..\..\nt_server\winmpd\mpdutil" /I "..\..\nt_server\winmpd\bsocket" /D "USE_FORT_MIXED_STR_LEN" /D "USE_FORT_STDCALL" /D "NDEBUG" /D "HAVE_FORTRAN_API" /D "FORTRAN_EXPORTS" /D "_WINDOWS" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "USE_MPI_INTERNALLY" /D "HAVE_WINBCONF_H" /D "NO_BSOCKETS" /D "_LIB" /FR /YX /FD /c
@@ -291,10 +291,10 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "SDebugFortran"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
+LIB2=link.exe -lib
 MTL=midl.exe
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
-LIB2=link.exe -lib
 # ADD BASE F90 /browser /compile_only /dbglibs /iface:nomixed_str_len_arg /iface:cref /include:"mpich___Win32_SDebugFortran/" /threads
 # ADD F90 /browser /compile_only /dbglibs /iface:nomixed_str_len_arg /iface:cref /include:"SDebugFortran/" /threads
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /I "..\..\nt_server\winmpd\mpdutil" /I "..\..\nt_server\winmpd\bsocket" /D "USE_FORT_MIXED_STR_LEN" /D "USE_FORT_STDCALL" /D "_DEBUG" /D "HAVE_FORTRAN_API" /D "FORTRAN_EXPORTS" /D "_WINDOWS" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "USE_MPI_INTERNALLY" /D "HAVE_WINBCONF_H" /D "NO_BSOCKETS" /D "_LIB" /Fr /YX /FD /GZ /c
@@ -322,10 +322,10 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "SReleaseFortran"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
+LIB2=link.exe -lib
 MTL=midl.exe
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
-LIB2=link.exe -lib
 # ADD BASE F90 /browser /compile_only /iface:nomixed_str_len_arg /iface:cref /include:"mpich___Win32_SReleaseFortran/" /threads
 # ADD F90 /browser /compile_only /iface:nomixed_str_len_arg /iface:cref /include:"SReleaseFortran/" /threads
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /I "..\..\nt_server\winmpd\mpdutil" /I "..\..\nt_server\winmpd\bsocket" /D "USE_FORT_MIXED_STR_LEN" /D "USE_FORT_STDCALL" /D "NDEBUG" /D "HAVE_FORTRAN_API" /D "FORTRAN_EXPORTS" /D "_WINDOWS" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "USE_MPI_INTERNALLY" /D "HAVE_WINBCONF_H" /D "NO_BSOCKETS" /D "_LIB" /FR /YX /FD /c
@@ -14628,6 +14628,10 @@ SOURCE=..\..\..\romio\adio\common\ad_init.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\..\romio\adio\common\ad_iopen.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\..\romio\adio\ad_ntfs\ad_ntfs.c
 
 !IF  "$(CFG)" == "mpich - Win32 SRelease"
@@ -15279,6 +15283,10 @@ SOURCE=..\..\..\romio\adio\common\ad_set_sh_fp.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\..\romio\adio\common\ad_set_view.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\..\romio\adio\common\ad_write_coll.c
 
 !IF  "$(CFG)" == "mpich - Win32 SRelease"
@@ -15679,6 +15687,10 @@ SOURCE="..\..\..\romio\mpi-io\fsync.c"
 
 !ENDIF 
 
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\romio\adio\common\gencheck.c
 # End Source File
 # Begin Source File
 

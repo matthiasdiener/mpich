@@ -42,8 +42,8 @@ size_t byte2char( const size_t bytesize )
 
 #if ! defined( WORDS_BIGENDIAN )
 void bswp_byteswap( const bswp_uint32_t   Nelem, 
-               const bswp_uint32_t   elem_sz, 
-                     char           *bytes )
+                    const bswp_uint32_t   elem_sz, 
+                          char           *bytes )
 {
     char *bptr;
     char  btmp;

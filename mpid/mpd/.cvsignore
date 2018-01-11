@@ -1,0 +1,13 @@
+Makefile
+configure
+mpd
+mpdconf.h.in
+mpdconf.h
+startdaemons
+config.log
+config.status
+config.system
+config.cache
+*.dep
+mpdman
+mpdcon

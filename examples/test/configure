@@ -101,6 +101,7 @@ FLIB_PATH=""
 OPTFLAGS=""
 OPTFLAGSF=""
 NOF77=0
+enable_coverage=no
 HAS_CXX=no
 F77_EXTRA_FLAG=""
 HAS_FORTRAN=1
@@ -117,7 +118,7 @@ USE_BOOT=no
 MPIFDEP=""
 #
 # By not setting FFLAGS, we get the values from the environment
-MAKE=make
+MAKE=${MAKE:-"make"}
 PREFIX=""
 DEVICE=""
 DEVCFLAGS=""
@@ -132,6 +133,9 @@ cross_compiling=""
 # 
 BASECC=0
 BASEF77=0
+#
+#
+MPIINCDIR=
 #
 # This next variable is a version without quotes.
 # We could also consider `echo $a | sed -e 's/"/\\"/g'`
@@ -298,12 +302,14 @@ do
 	fi
 	MPIRUNARGS='"-mvhome"'
 	MPIRUNMVBACK="-mvback"
+	MPIINCDIR=$mpichpath/../include
 	;;
 
      -with-mpich=*|--with-mpich=*)
         mpichpath=`echo A$arg | sed 's/A-*with-mpich=//'`
 	MPIRUNARGS='"-mvhome"'
 	MPIRUNMVBACK="-mvback"
+	MPIINCDIR=$mpichpath/../include
 	;;
      -mpi2)
 	HAS_MPI2=1
@@ -311,11 +317,23 @@ do
 	IO="io"
 	;;
 
-     -nof77 | --nof77)
+     -nof77 | --nof77 | -disable-f77 | --disable-f77)
        echo "Don't build the tests that need Fortran"
        NOF77=1
        HAS_FORTRAN=0
        FC=true
+       ;;
+
+     -enable-f77 | --enable-f77) 
+       # Nothing to do
+       ;;
+
+     -disable-coverage|--disable-coverage)
+       # Nothing to do
+       ;;
+
+     -enable-coverage|--enable-coverage)
+       enable_coverage=yes
        ;;
 	
      -no-io | -disable-io | --disable-io)
@@ -603,6 +621,13 @@ if test -n "$mpichpath" ; then
     if test "$DEVICE" = "ch_p4mpd" ; then
 	MPIRUNARGS=""
 	MPIRUNMVBACK=""
+	if test "$enable_boot" != "no" ; then
+	    USE_BOOT=yes
+	    if test -z "$MPIBOOT" ; then 
+		MPIBOOT="$mpichpath/mpichboot"
+		MPIUNBOOT="$mpichpath/mpichstop"
+	    fi
+	fi
     fi
 fi
 #
@@ -1661,16 +1686,29 @@ int main() {
 /* On Ultrix 4.3 cc, long double is 4 and double is 8.  */
 exit(sizeof(long double) < sizeof(double)); }
 EOF
-        if test -n "$compile" ; then 
-        eval $compile
+        if test -n "$compile" ; then 	
+	eval $compile
     else
 	eval $ac_compile
 	eval $ac_link
     fi
     if test ! -s conftest ; then
-      echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
@@ -1766,16 +1804,29 @@ int main() {
    has the same problem on some systems */
 exit(sizeof(long long) < sizeof(long)); }
 EOF
-        if test -n "$compile" ; then 
-        eval $compile
+        if test -n "$compile" ; then 	
+	eval $compile
     else
 	eval $ac_compile
 	eval $ac_link
     fi
     if test ! -s conftest ; then
-      echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
     has_long_long=0
 
     else
@@ -2493,6 +2544,12 @@ fi
 
 #
 
+if test "$enable_coverage" = "yes" ; then
+    # This will only work with GCC.  Note that the switches must be
+    # passed to both the linker and the compiler
+    CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
+    CLINKER="$CLINKER -fprofile-arcs -ftest-coverage"
+fi
 if test "$USE_BOOT" != "yes" ; then
     MPIBOOT=""
     MPIUNBOOT=""
@@ -2501,12 +2558,242 @@ fi
 
 #
 
+#
+# Special values for the ROMIO tests.  These are approximate only
+# The long term solution is to move most of these into a separate
+# file that ROMIO's configure can define; for the command-line
+# values, these should be optional (they really are not needed 
+# by the tests).
+# Override by setting all 5 in the environment.
+if test -z "$FTESTDEFINE" -a "$HAS_FORTRAN" = 1 ; then
+    # The % must have a backslash to keep from confusing sed when 
+    # configure replaces @LL@.
+    LL="\%lld"
+    # We really should try to compute the size of MPI_Offset in bytes
+    # and then use that value.
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for sizeof MPI_Offset""... $ac_c"
+else
+echo $ac_n "checking for sizeof MPI_Offset""... $ac_c" 1>&1
+fi
+    rm -f cftestval
+    saveCPPFLAGS="$CPPFLAGS"
+    saveCFLAGS="$CFLAGS"
+    if test -n "$MPIINCDIR" ; then
+        CPPFLAGS="$CPPFLAGS -I$MPIINCDIR"
+	# Older autoconfs do not include CPPFLAGS in the compile test
+	CFLAGS="$CFLAGS -I$MPIINCDIR"
+    fi
+    
+
+if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
+    
+    Pac_CV_NAME=0
+else
+    if test -n "$TESTCC" ; then
+      CCsav="$CC"
+      CC="$TESTCC"
+    fi
+    cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <stdio.h>
+#include "mpi.h"
+int main()
+{
+  FILE *f=fopen("cftestval", "w");
+  if (!f) exit(1);
+  fprintf(f, "%d\n", sizeof(MPI_Offset));
+  return 0;
+}
+EOF
+        if test -n "$compile" ; then 	
+	eval $compile
+    else
+	eval $ac_compile
+	eval $ac_link
+    fi
+    if test ! -s conftest ; then
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
+    pac_cv_sizeof_mpi_offset=0
+
+    else
+      /bin/rm -f conftestout
+      if test -s conftest && (./conftest; exit) 2>conftestout; then
+          pac_cv_sizeof_mpi_offset=`cat cftestval`
+
+      else
+        pac_cv_sizeof_mpi_offset=0
+
+	if test -s conftestout ; then cat conftestout >> config.log ; fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
+        
+      fi
+    fi
+  if test -n "$TESTCC" ; then
+        CC="$CCsav"
+  fi
+  rm -fr conftest*
+fi
+
+rm -f cftestval
+    CPPFLAGS="$saveCPPFLAGS"
+    CFLAGS="$saveCFLAGS"
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""$pac_cv_sizeof_mpi_offset"
+else
+echo "$ac_t""$pac_cv_sizeof_mpi_offset" 1>&1
+fi
+
+    if test "$pac_cv_sizeof_mpi_offset" -gt 0 ; then
+        FORTRAN_MPI_OFFSET="integer*$pac_cv_sizeof_mpi_offset"
+    else
+        FORTRAN_MPI_OFFSET="integer*8"
+    fi
+    # Use upper case because this works with the Absoft compiler, which
+    # is not monocase.  Since all other Fortran compilers, following the
+    # Fortran standard, map all names to a single case, using upper
+    # case works for all compilers that provide IARGC and GETARG
+    FTESTDEFINE="external IARGC, GETARG"
+    F77IARGC="IARGC()"
+    F77GETARG="call GETARG(i,str)"
+    # Some Fortran compilers require additional libraries to
+    # provide IARGC etc.  
+    # Intel ifc: -lPEPCF90 (or /4Yportlib
+    # Absoft f77: -lU77
+    fcompile='$MPIF77 -o conftest conftest.f $F77EXTRALIBS $ftestlib >>config.log 2>&1'
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for libraries needed for Fortran command line access""... $ac_c"
+else
+echo $ac_n "checking for libraries needed for Fortran command line access""... $ac_c" 1>&1
+fi
+    cat >>conftest.f <<EOF
+        program main
+        print *, "arg count = ", iargc()
+        end
+EOF
+    if eval $fcompile ; then 
+       if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""none"
+else
+echo "$ac_t""none" 1>&1
+fi
+    else
+        addlib=""
+        for ftestlib in -lPEPCF90 -lU77 ; do
+	    echo "$fcompile" >>config.log
+	    fc=`echo $fcompile`
+	    echo "fcompile = $fc" >> config.log
+	    if eval $fcompile ; then 
+		addlib="$ftestlib"
+		break
+	    fi
+        done
+        if test -z "$addlib" ; then
+	    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""unable to determine"
+else
+echo "$ac_t""unable to determine" 1>&1
+fi
+	else
+            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""$addlib"
+else
+echo "$ac_t""$addlib" 1>&1
+fi
+	    F77EXTRALIBS="$F77EXTRALIBS $addlib"
+	fi
+    fi
+    rm -f conftest*
+fi
+# Use F77MPIOINC to add an "include 'mpiof.h'" statement if necessary
+# (conforming MPI implementations should not require this)
+F77MPIOINC=""
+
+
+
+
+
+
+
+# End of the values for the ROMIO tests
+
 # Substitute variables
 # Variables used in scripts only
 # FINC contains an @MPIR_HOME@, so it needs to come first
 # Variables used by Makefile.in's:
 
 MPICH_VERSION=""
+if test -n "$IO" -a ! -s "$srcdir/$IO/Mfile.in" ; then
+   # Look for romio relative to the srcdir
+   if test -s $srcdir/../../romio/test/Mfile.in ; then
+       # Copy the files (always copy in case there was an update)
+       cp -r $srcdir/../../romio/test $IO
+   else 
+       if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""Warning: No IO directory available for tests"
+else
+echo "$ac_t""Warning: No IO directory available for tests" 1>&1
+fi
+   fi
+fi
 # End configuration file
 # Set default prefixes.
 if test -n "$prefix"; then
@@ -2559,6 +2846,13 @@ HAS_CXX='$HAS_CXX'
 MPIBOOT='$MPIBOOT'
 MPIUNBOOT='$MPIUNBOOT'
 MPIRUNARGS='$MPIRUNARGS'
+LL='$LL'
+FORTRAN_MPI_OFFSET='$FORTRAN_MPI_OFFSET'
+FTESTDEFINE='$FTESTDEFINE'
+F77IARGC='$F77IARGC'
+F77GETARG='$F77GETARG'
+F77MPIOINC='$F77MPIOINC'
+F77EXTRALIBS='$F77EXTRALIBS'
 FINC='$FINC'
 ARCH='$ARCH'
 CFLAGS='$CFLAGS'
@@ -2631,6 +2925,13 @@ s%@HAS_CXX@%$HAS_CXX%g
 s%@MPIBOOT@%$MPIBOOT%g
 s%@MPIUNBOOT@%$MPIUNBOOT%g
 s%@MPIRUNARGS@%$MPIRUNARGS%g
+s%@LL@%$LL%g
+s%@FORTRAN_MPI_OFFSET@%$FORTRAN_MPI_OFFSET%g
+s%@FTESTDEFINE@%$FTESTDEFINE%g
+s%@F77IARGC@%$F77IARGC%g
+s%@F77GETARG@%$F77GETARG%g
+s%@F77MPIOINC@%$F77MPIOINC%g
+s%@F77EXTRALIBS@%$F77EXTRALIBS%g
 s%@FINC@%$FINC%g
 s%@ARCH@%$ARCH%g
 s%@CFLAGS@%$CFLAGS%g
@@ -2654,14 +2955,14 @@ s%@MPE_CFLAGS@%$MPE_CFLAGS%g
 s%@MPICH_VERSION@%$MPICH_VERSION%g
 s%@MPIR_HOME@%$MPIR_HOME%g
 s%@MPI_FOBJECTS@%$MPI_FOBJECTS%g
-s%@MPIFDEP@%$MPIFDEP%g
+s%@MPIFDEP@%$MPIFDEP%g" | sed -e "
 s%@MPILIBNAME@%$MPILIBNAME%g
 s%@MPICC@%$MPICC%g
 s%@MPIF77@%$MPIF77%g
 s%@MPICPLUSPLUS@%$MPICPLUSPLUS%g
 s%@MPIRUN@%$MPIRUN%g
 s%@MPIRUNMVBACK@%$MPIRUNMVBACK%g
-s%@MPI_VERSION@%$MPI_VERSION%g" | sed -e "
+s%@MPI_VERSION@%$MPI_VERSION%g
 s%@OPTFLAGS@%$OPTFLAGS%g
 s%@OPTFLAGSC@%$OPTFLAGSC%g
 s%@OPTFLAGSF@%$OPTFLAGSF%g
@@ -2679,6 +2980,16 @@ chmod +x config.status
 ${CONFIG_SHELL-/bin/sh} ./config.status
 
 
+# Optionally build the io/Mfile
+if test -n "$IO" ; then
+    CONFIG_FILES=io/Mfile
+    export CONFIG_FILES
+    ${CONFIG_SHELL-/bin/sh} ./config.status
+    CONFIG_FILES=""
+    unset CONFIG_FILES
+fi   
+
+
 CONFIG_FILES="pt2pt/runtests coll/runtests topol/runtests context/runtests \
 	command/runtests env/runtests profile/runtests"
 export CONFIG_FILES
@@ -2690,8 +3001,29 @@ for pac_file in pt2pt/runtests coll/runtests topol/runtests context/runtests \
     sed -e '1d' $pac_file > .pactmp
     /bin/rm -f $pac_file
     mv .pactmp $pac_file
-    chmod a+x  $pac_file
+    chmod a+x $pac_file
 done
 
 
+# Optionally build the programs and test files
+if test -n "$IO" ; then
+    CONFIG_FILES="io/rtest io/misc.c io/fmisc.f io/fcoll_test.f io/pfcoll_test.f"
+    export CONFIG_FILES
+    ${CONFIG_SHELL-/bin/sh} ./config.status
+    rm -f .pactmp
+    for file in $CONFIG_FILES ; do
+        sed -e '1d' $file > .pactmp
+        /bin/rm -f $file
+        mv .pactmp $file
+    done
+    CONFIG_FILES=""
+    unset CONFIG_FILES
+    chmod a+x io/rtest
+fi
 
+if test -s io/Mfile ; then
+    mv -f io/Mfile io/Makefile
+fi
+if test -x io/rtest ; then
+    mv -f io/rtest io/runtests
+fi

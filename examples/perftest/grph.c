@@ -7,6 +7,9 @@ extern int __NUMNODES, __MYPROCID;
 #if HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
+#ifdef HAVE_STRING_H
+#include <string.h>
+#endif
 
 /* 
     This file contains routines to generate output from the mpptest programs

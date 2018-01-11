@@ -16,7 +16,7 @@
 void ADIOI_NTFS_Open(ADIO_File fd, int *error_code)
 {
     int cmode, amode, smode;
-#ifndef PRINT_ERR_MSG
+#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "ADIOI_NTFS_OPEN";
 #endif
 
@@ -57,24 +57,28 @@ void ADIOI_NTFS_Open(ADIO_File fd, int *error_code)
     if ((fd->fd_sys != INVALID_HANDLE_VALUE) && (fd->access_mode & ADIO_APPEND))
 		fd->fp_ind = fd->fp_sys_posn = SetFilePointer(fd->fd_sys, 0, NULL, FILE_END);
 
-#ifdef PRINT_ERR_MSG
-    *error_code = (fd->fd_sys == INVALID_HANDLE_VALUE) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
+    if (fd->fd_sys == INVALID_HANDLE_VALUE) {
+#ifdef MPICH2
+			*error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io",
+							"**io %s", strerror(errno));
+			return;
+#elif defined(PRINT_ERR_MSG) 
+			*error_code =  MPI_ERR_UNKNOWN;
     FPRINTF(stderr, "MPI_NTFS_File_open: Error %d opening file %s\n", GetLastError(), fd->filename);
 #else
-    if (fd->fd_sys == INVALID_HANDLE_VALUE) {
 	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
 			      myname, "I/O Error", "%s", strerror(errno));
 	ADIOI_Error(ADIO_FILE_NULL, *error_code, myname);	    
+#endif
     }
     else *error_code = MPI_SUCCESS;
-#endif
 }
 
 /*
 void ADIOI_NTFS_Open(ADIO_File fd, int *error_code)
 {
     int cmode, amode;
-#ifndef PRINT_ERR_MSG
+#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "ADIOI_NTFS_OPEN";
 #endif
 

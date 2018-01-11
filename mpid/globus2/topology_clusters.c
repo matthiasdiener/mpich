@@ -1,8 +1,9 @@
 
 /*
- * CVS Id: $Id: topology_clusters.c,v 1.42 2002/09/13 23:24:44 lacour Exp $
+ * CVS Id: $Id: topology_clusters.c,v 1.43 2004/05/11 18:11:12 karonis Exp $
  */
 
+#include "chconfig.h"
 #include <globdev.h>
 #include "mpid.h"
 #include "mpiimpl.h"

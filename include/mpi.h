@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi.h,v 1.43 2003/01/10 15:55:40 gropp Exp $
+ *  $Id: mpi.h,v 1.44 2003/01/23 21:09:14 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -360,7 +360,7 @@ int MPI_Type_extent(MPI_Datatype, MPI_Aint *);
    error; however, it is the standard */
 /* int MPI_Type_size(MPI_Datatype, MPI_Aint *size); */
 int MPI_Type_size(MPI_Datatype, int *);
-int MPI_Type_count(MPI_Datatype, int *);
+/* MPI_Type_count was withdrawn in MPI 1.1 */
 int MPI_Type_lb(MPI_Datatype, MPI_Aint*);
 int MPI_Type_ub(MPI_Datatype, MPI_Aint*);
 int MPI_Type_commit(MPI_Datatype *);
@@ -550,7 +550,6 @@ int PMPI_Type_extent(MPI_Datatype, MPI_Aint *);
    error; however, it is the standard */
 /* int PMPI_Type_size(MPI_Datatype, MPI_Aint *); */
 int PMPI_Type_size(MPI_Datatype, int *);
-int PMPI_Type_count(MPI_Datatype, int *);
 int PMPI_Type_lb(MPI_Datatype, MPI_Aint*);
 int PMPI_Type_ub(MPI_Datatype, MPI_Aint*);
 int PMPI_Type_commit(MPI_Datatype *);

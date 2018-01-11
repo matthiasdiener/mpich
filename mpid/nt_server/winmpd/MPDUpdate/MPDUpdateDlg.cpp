@@ -637,6 +637,7 @@ bool CMPDUpdateDlg::GetTmpMpdFromURL()
     CInternetSession session("MPDUpdate");
     CStdioFile *fin, fout;
     CString str;
+    static bool bFirst = true;
     
     if (GetTempPath(MAX_PATH, path))
     {
@@ -648,7 +649,13 @@ bool CMPDUpdateDlg::GetTmpMpdFromURL()
 	    // open session
 	    fin = NULL;
 	    try {
-	    fin = session.OpenURL(m_urlname, 1, INTERNET_FLAG_TRANSFER_BINARY);
+	    if (bFirst)
+	    {
+		fin = session.OpenURL(m_urlname, 1, INTERNET_FLAG_TRANSFER_BINARY | INTERNET_FLAG_RELOAD);
+		bFirst = false;
+	    }
+	    else
+		fin = session.OpenURL(m_urlname, 1, INTERNET_FLAG_TRANSFER_BINARY);
 	    } catch(...)
 	    {
 		if (fin == NULL)
@@ -730,6 +737,8 @@ bool CMPDUpdateDlg::GetTmpMPICHFromURL()
     CInternetSession session("MPDUpdate");
     CStdioFile *fin, fout;
     CString str;
+    static bool bFirst = true;
+    static bool bFirstd = true;
 
     // Create two urls for mpich.dll and mpichd.dll
     CString str_url, str_urld;
@@ -760,7 +769,13 @@ bool CMPDUpdateDlg::GetTmpMPICHFromURL()
 	    // open session
 	    fin = NULL;
 	    try {
-	    fin = session.OpenURL(str_url, 1, INTERNET_FLAG_TRANSFER_BINARY);
+	    if (bFirst)
+	    {
+		fin = session.OpenURL(str_url, 1, INTERNET_FLAG_TRANSFER_BINARY | INTERNET_FLAG_RELOAD);
+		bFirst = false;
+	    }
+	    else
+		fin = session.OpenURL(str_url, 1, INTERNET_FLAG_TRANSFER_BINARY);
 	    } catch(...)
 	    {
 		if (fin == NULL)
@@ -851,7 +866,13 @@ bool CMPDUpdateDlg::GetTmpMPICHFromURL()
 	    // open session
 	    fin = NULL;
 	    try {
-	    fin = session.OpenURL(str_urld, 1, INTERNET_FLAG_TRANSFER_BINARY);
+	    if (bFirstd)
+	    {
+		fin = session.OpenURL(str_urld, 1, INTERNET_FLAG_TRANSFER_BINARY | INTERNET_FLAG_RELOAD);
+		bFirstd = false;
+	    }
+	    else
+		fin = session.OpenURL(str_urld, 1, INTERNET_FLAG_TRANSFER_BINARY);
 	    } catch(...)
 	    {
 		if (fin == NULL)

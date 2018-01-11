@@ -5,6 +5,7 @@
 prefix    = @prefix@
 exec_prefix = @exec_prefix@
 bindir    = @bindir@
+other_bindir = @other_bindir@
 srcdir	  = @srcdir@
 SHELL	  = @SHELL@
 CC	  = @CC@
@@ -15,6 +16,7 @@ COPTIONS  = @COPTIONS@
 LDFLAGS	  = @LDFLAGS@
 LIBS	  = @LIBS@ 
 GDB       = @GDB@
+CFLAGS    = @CFLAGS@
 
 C_COMPILE = ${CC} ${INCLUDES} ${CFLAGS} ${COPTIONS}
 C_LINK	  = ${CLINKER} ${CFLAGS} ${COPTIONS} ${LDFLAGS}
@@ -95,9 +97,15 @@ configure: configure.in
 
 Makefile: ${srcdir}/Makefile.in config.status
 	./config.status
-
+#
+# other_bindir allow us to specify a second installation directory;
+# this is valuable for rpm installs
 sibproc.o: sibproc.c
-	${C_COMPILE} -c -DMANAGER_PATHNAME=\"${bindir}/mpdman\" $< 
+	${C_COMPILE} -c -DMANAGER_PATHNAME=\"${bindir}/mpdman\" \
+	-DMANAGER_PATH=\"${bindir}${other_bindir}\" \
+	-DMANAGER_NAME=\"mpdman\" \
+	-DMANAGER_ENVPATH=\"MPIEXEC_MANAGERPATH\" \
+	-DMANAGER_ENVNAME=\"MPIEXEC_MANAGER\" $< 
 
 .c.o:	
 	${C_COMPILE} -c $<

@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: read_all.c,v 1.8 2002/10/24 17:01:18 gropp Exp $    
+ *   $Id: read_all.c,v 1.16 2003/09/05 22:35:25 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -44,7 +44,7 @@ int MPI_File_read_all(MPI_File fh, void *buf, int count,
                       MPI_Datatype datatype, MPI_Status *status)
 {
     int error_code, datatype_size;
-#ifndef PRINT_ERR_MSG
+#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "MPI_FILE_READ_ALL";
 #endif
 #ifdef MPI_hpux
@@ -63,10 +63,14 @@ int MPI_File_read_all(MPI_File fh, void *buf, int count,
 #endif
 
     if (count < 0) {
-#ifdef PRINT_ERR_MSG
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_ARG, 
+	    "**iobadcount", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
 	FPRINTF(stderr, "MPI_File_read_all: Invalid count argument\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_ARG, MPIR_ERR_COUNT_ARG,
 				     myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);
@@ -74,10 +78,14 @@ int MPI_File_read_all(MPI_File fh, void *buf, int count,
     }
 
     if (datatype == MPI_DATATYPE_NULL) {
-#ifdef PRINT_ERR_MSG
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_TYPE, 
+	    "**dtypenull", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
         FPRINTF(stderr, "MPI_File_read_all: Invalid datatype\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_TYPE, MPIR_ERR_TYPE_NULL,
 				     myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);	    
@@ -86,10 +94,14 @@ int MPI_File_read_all(MPI_File fh, void *buf, int count,
 
     MPI_Type_size(datatype, &datatype_size);
     if ((count*datatype_size) % fh->etype_size != 0) {
-#ifdef PRINT_ERR_MSG
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, 
+	    "**ioetype", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
         FPRINTF(stderr, "MPI_File_read_all: Only an integral number of etypes can be accessed\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ERR_ETYPE_FRACTIONAL,
 				     myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);	    
@@ -97,10 +109,14 @@ int MPI_File_read_all(MPI_File fh, void *buf, int count,
     }
 
     if (fh->access_mode & MPI_MODE_WRONLY) {
-#ifdef PRINT_ERR_MSG
+#ifdef MPICH2
+	error_code=  MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_ACCESS, 
+	    "**ioneedrd", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
 	FPRINTF(stderr, "MPI_File_read_all: Can't read from a file opened with MPI_MODE_WRONLY\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_UNSUPPORTED_OPERATION, 
  		MPIR_ERR_MODE_WRONLY, myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);	    
@@ -108,7 +124,11 @@ int MPI_File_read_all(MPI_File fh, void *buf, int count,
     }
 
     if (fh->access_mode & MPI_MODE_SEQUENTIAL) {
-#ifdef PRINT_ERR_MSG
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_UNSUPPORTED_OPERATION,
+	    "**ioamodeseq", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
 	FPRINTF(stderr, "MPI_File_read_all: Can't use this function because file was opened with MPI_MODE_SEQUENTIAL\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
 #else

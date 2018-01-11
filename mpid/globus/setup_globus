@@ -1,0 +1,176 @@
+#! /bin/sh
+#
+# Globus device setup.
+#
+print_error() {
+    echo "*# $*" 2>&1 ;
+    }
+#makefile_name=Makefile.mpich
+makefile_name=Makefile.mpich-new
+# Unpack device_args
+#
+for arg in $device_args $@ ; do
+    case $arg in 
+     -globusdir=* | --globusdir=*)
+	GLOBUSDIR="`echo $arg|sed 's/-*globusdir=//'`"
+       ;;
+     -u | -usage | --usage | --usag | --usa | --us | --u | -help | --help )
+        cat >&2 <<EOF
+--with-device=$DEVICE[:-globusdir=GLOBUSDIR]
+'-globusdir=GLOBUS' allows one to specify the location of an installed 
+version of Globus.  You can acquire Globus from http://www.globus.org ."
+EOF
+	exit 0;
+	;;
+     *) if [ -n "$arg" ] ; then
+	    echo "unrecognized argument $arg"
+	    exit 1
+	fi
+	;;
+    esac
+done
+#
+DEVICE_KIND=network
+if [ -z "$GLOBUSDIR" ] ; then
+    # Look for it in the MCS usual places
+    globus_prefix="/soft/pub/packages/globus-current"
+    if [ -x $globus_prefix/sbin/config.guess ] ; then
+        globus_arch=`${globus_prefix}/sbin/config.guess`
+        case "$globus_arch" in
+          mips-*) globus_arch="${globus_arch}-n32" ;;  # or "${globus_arch}-64"
+          *) ;;
+        esac
+        GLOBUSDIR="${globus_prefix}/development/${globus_arch}_nothreads_standard_debug"
+	echo "Using Globus in $GLOBUSDIR"
+    fi
+fi
+
+if [ -z "$GLOBUSDIR" ] ; then
+	print_error "You must set the directory for Globus with -globusdir=dir"
+	exit 1
+fi
+if [ ! -d $GLOBUSDIR ] ; then
+	print_error "Could not find Globus in $GLOBUSDIR"
+	exit 1
+fi
+# New with Globus 1.1, we need to set GLOBUS_INSTALL_PATH
+if [ -z "$GLOBUS_INSTALL_PATH" ] ; then
+    # Try to create it from GLOBUS_DIR
+    GLOBUS_INSTALL_PATH=$GLOBUSDIR
+    while [ -n "$GLOBUS_INSTALL_PATH" ] ; do
+        GLOBUS_INSTALL_PATH=`echo $GLOBUS_INSTALL_PATH | sed 's%/[^/]*$%%'`
+	if [ -s $GLOBUS_INSTALL_PATH/development ] ; then break ; fi
+    done
+fi
+export GLOBUS_INSTALL_PATH
+
+# Check the version
+globusversion="`$MAKE -f $GLOBUSDIR/etc/$makefile_name globusversion`"
+if [ $? != 0 ] ; then
+     print_error "Your version of globus does not support globusversion"
+     exit 1
+fi
+# Get the libraries, etc (there's also a globuslibpath and globuslib)
+# For some reason, Globus thinks that only MPICH is interested in this
+# information.  I'm surprised that no other Globus users need this info.
+USERLIB="$USERLIB `$MAKE -f $GLOBUSDIR/etc/$makefile_name userlibpath`"
+if [ $? != 0 ] ; then
+    print_error "Your version of globus does not support userlibpath"
+    print_error "You must get a new version of globus"
+    exit 1
+fi
+USERLIB="$USERLIB `$MAKE -f $GLOBUSDIR/etc/$makefile_name userlib`"
+if [ $? != 0 ] ; then
+    print_error "Your version of globus does not support userlib"
+    exit 1
+fi
+# User include directories (should there be any?)
+USER_CFLAGS="$USER_CFLAGS `$MAKE -f $GLOBUSDIR/etc/$makefile_name userincdir`"
+if [ $? != 0 ] ; then
+    print_error "Your version of globus does not support userincdir"
+    print_error "You must get a new version of globus"
+    exit 1
+fi
+# Globus requires different compilers 
+CC="`$MAKE -f $GLOBUSDIR/etc/$makefile_name cc`"
+if [ $? != 0 ] ; then
+    print_error "Your version of globus does not support cc target"
+    print_error "You must get a new version of globus"
+    exit 1
+fi
+extracflags="`$MAKE -f $GLOBUSDIR/etc/$makefile_name cflags`"
+if [ $? != 0 ] ; then
+    print_error "Your version of globus does not support cflags target"
+    print_error "You must get a new version of globus"
+    exit 1
+fi
+if [ -n "$extracflags" ] ; then
+    CFLAGS="$CFLAGS $extracflags"
+fi
+CLINKER="`$MAKE -f $GLOBUSDIR/etc/$makefile_name clinker`"
+if [ $? != 0 ] ; then
+    print_error "Your version of globus does not support clinker target"
+    print_error "You must get a new version of globus"
+    exit 1
+fi
+if [ -z "$CC" -o -z "$CLINKER" ] ; then
+    print_error "Globus did not specify C compiler or C linker"
+    print_error "You must get a new version of globus"
+    exit 1
+fi
+if [ "$USERCC" = 1 ] ; then
+    print_error "Globus device over-rode choice of C compiler"
+fi
+# Set usercc as if -cc was used, since the globus compiler must take
+# precedence
+USERCC=1
+if [ "$USERCLINKER" = 1 ] ; then
+    print_error "Globus device over-rode choice of C linker"
+fi
+# Set userclinker as if -clinker was used, since the globus compiler must 
+# take precedence
+USERCLINKER=1
+#
+FC="`$MAKE -f $GLOBUSDIR/etc/$makefile_name f77`"
+if [ $? != 0 ] ; then 
+	print_error "Your version of globus does not support f77 target"
+	print_error "Fortran will not be available"
+	FC=true
+fi
+FLINKER="`$MAKE -f $GLOBUSDIR/etc/$makefile_name f77linker`"
+if [ $? != 0 ] ; then
+     print_error "Your version of globus does not support f77linker target"
+     FLINKER=true
+fi
+if [ -n "$FLINKER" ] ; then 
+    USERFLINKER=1
+fi
+FLDFLAGS="`$MAKE -f $GLOBUSDIR/etc/$makefile_name f77linkerflags`"
+if [ $? != 0 ] ; then
+     print_error "Your version of globus does not support f77linkerflags target"
+     FLDFLAGS=""
+fi
+# Similar rules for f90:
+# f90, f90flags, f90linker, f90linkerflags.
+
+# (Globus requires prototypes; now the rest of MPICH does as well)
+GLOBUS_INCLUDE_DIR="`$MAKE -f $GLOBUSDIR/etc/$makefile_name globusincdir`"
+if [ $? != 0 ] ; then
+     print_error "Your version of globus does not support globusincdir"
+     exit 1
+fi
+#LIB_PATH="$LIB_PATH $GLOBUS_LIB_PATH $GLOBUS_EXTRA_LIB_PATH"
+#LIB_LIST="$LIB_LIST $GLOBUS_LIBS $GLOBUS_EXTRA_LIBS"
+# These files are only included by files in mpich/mpid/globus/*.c
+# and not by the user.
+INCLUDE_PATH="$INCLUDE_PATH $GLOBUS_INCLUDE_DIR"
+#
+# this is a kludge Bill suggested to Nick 
+# the correct solution is to figure out why the INCLUDE_PATH
+# line above is not getting correctly propogated to src/pt2pt/Makefile
+#
+if [ -n "$GLOBUS_INCLUDE_DIR" ] ; then
+    CFLAGS="$CFLAGS $GLOBUS_INCLUDE_DIR"
+fi
+
+MPI_STATUS_SIZE=`expr $MPI_STATUS_SIZE + 1`

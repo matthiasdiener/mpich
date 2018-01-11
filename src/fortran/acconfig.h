@@ -1,8 +1,3 @@
-/* This is a parallel file to aclocal.m4.  It uses includes the same
-   way that aclocal.m4 does.  Unfortunately, autoheader doesn't process
-   the acconfig.h files with cpp or with m4.  Thus, we use acconfig.h.in
-   to form acconfig.h with cpp 
- */
 /* acconfig_cc.h */
 /* Define if union semun is defined in sys/sem.h */
 #undef HAVE_UNION_SEMUN
@@ -59,7 +54,6 @@
 #undef SIZEOF_F77_INTEGER
 #undef SIZEOF_F77_INTEGER_4
 #undef SIZEOF_F77_REAL
-
 /* Define if MPI_xxx_f2c and c2f routines defined */
 #undef HAVE_MPI_F2C
 /* Define if Fortran functions pointers are pointers to pointers */

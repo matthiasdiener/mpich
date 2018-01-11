@@ -1,3 +1,9 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
+/*  
+ *  (C) 2001 by Argonne National Laboratory.
+ *      See COPYRIGHT in top-level directory.
+ */
+
 #include "mpd.h"
 #if defined(ROOT_ENABLED)
 #if !defined(__USE_BSD)
@@ -35,6 +41,10 @@ extern char   mpd_passwd[PASSWDLEN];
 extern int    no_execute;
 extern int    shutting_down;
 extern int    generation;
+
+/* Forward reference for an internal routine */
+static const char *mpdGetManager( const char [], const char [], 
+				  const char [], const char [] );
 
 void sib_reconnect_rhs( int idx ) 
 {
@@ -215,6 +225,7 @@ void sib_mpexec( void )		/* designed to work with process managers */
     int  hopcount, iotree, do_mpexec_here;
     char co_program[80], mship_host[80];
     int  mship_port;
+    const char *manager_pathname;
 #if defined(ROOT_ENABLED)
     struct passwd *pwent;
 #endif
@@ -394,8 +405,16 @@ void sib_mpexec( void )		/* designed to work with process managers */
 	    strcat( fwdbuf, buf );
 	}
     }
+    
+    /* Find the manager to use */
+    manager_pathname = mpdGetManager( MANAGER_PATH, MANAGER_NAME, 
+				      MANAGER_ENVPATH, MANAGER_ENVNAME );
 
-    argv[0] = MANAGER_PATHNAME;
+    if (!manager_pathname) {
+      mpdprintf( 1, "Could not find mpd manger; aborting\n" );
+      exit(1);
+    }
+    argv[0] = (char *)manager_pathname;
     env[0]  = NULL;       /* in case there are no env strings */
 
     mpd_getval("argc",buf);
@@ -596,10 +615,10 @@ void sib_mpexec( void )		/* designed to work with process managers */
 	proctable[cid].jobrank  = jobrank;
 	proctable[cid].state    = CLSTART; /* not running yet */
 	proctable[cid].clientfd = man_mpd_socket[0];
-	strcpy( proctable[cid].name, MANAGER_PATHNAME );
+	strcpy( proctable[cid].name, manager_pathname );
 
 	mpd_Signal( SIGCHLD, sigchld_handler );
-	mpdprintf( debug, "starting program %s\n", MANAGER_PATHNAME );
+	mpdprintf( debug, "starting program %s\n", manager_pathname );
         syslog( LOG_INFO, "starting job %d; user=%s pgm=%s", jobid, username, program );
 	pid = fork();
 	proctable[cid].pid = pid;
@@ -618,11 +637,11 @@ void sib_mpexec( void )		/* designed to work with process managers */
 	    setgid( pwent->pw_gid );
 	    setuid( pwent->pw_uid );
 #endif
-	    rc = execve( MANAGER_PATHNAME, argv, env );
+	    rc = execve( manager_pathname, argv, env );
 	    if ( rc < 0 ) {
 	        sprintf( buf, "src=%s dest=%s cmd=jobstarted job=%d status=failed\n",
 		         myid, src, jobid );
-	        mpdprintf( debug, "mpexec: sending jobstarted-failed: job=%d dest=%s manager pathname=%s\n", jobid, src, MANAGER_PATHNAME );
+	        mpdprintf( debug, "mpexec: sending jobstarted-failed: job=%d dest=%s manager pathname=%s\n", jobid, src, manager_pathname );
 	        write_line( rhs_idx, buf );
 	    }
 	    dclose( rhs_idx );
@@ -1427,4 +1446,96 @@ void get_mon_data_myr( char *retbuf )
 	}
 	pclose( pstream );
     }
+}
+
+/*
+ * Find the manager.  Look for the name in the path, unless envname
+ * is in the environment *and* that program exists.  envpath allows
+ * an alternate search path to be specified by the environment variable
+ * with that name.
+ * 
+ * The test for executability is crude and should be refined, but this
+ * should be sufficient for the needs of this routine.
+ *
+ * If mpd is running as root, we may not want to allow a general
+ * manager to run (though that should be ok, since it runs as a user
+ * process and since the manager will immediately run a user program.
+ * In that case, this routine should just return MANAGER_PATHNAME instead.
+ */
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 1024
+#endif
+static const char *mpdGetManager( const char path[], const char name[], 
+				  const char envpath[], const char envname[] ) 
+{
+    static char fullname[MAXPATHLEN];
+    const char *envfullname;
+    struct stat filestatus;
+    const char *(paths[2]);
+    int         err, len, i;
+
+    /* First, check the environment */
+    if (envname) {
+	envfullname = getenv( envname );
+	if (envfullname) {
+	    err = stat( envfullname, &filestatus );
+	    if (err == 0 && 
+		(filestatus.st_mode & (S_IXGRP | S_IXOTH | S_IXUSR))) {
+		strcpy( fullname, envfullname );
+		return (const char *)fullname;
+	    }
+	}
+    }
+
+    /* Get the array of possible path values */
+    paths[0] = 0;
+    if (envpath) {
+	paths[0] = getenv(envpath);
+    }
+    if (paths[0]) 
+	paths[1] = path;
+    else {
+	paths[0] = path;
+	paths[1] = 0;
+    }
+
+    /* Now, run through the search paths */
+    for (i=0; i<2 && paths[i]; i++) {
+	path = paths[i];
+	while (path) {
+	    char *next_path;
+	    /* Get next path member */
+	    next_path = strchr( path, ':' );
+	    if (next_path) 
+		len = next_path - path;
+	    else
+		len = strlen(path);
+	    
+	    /* Copy path into the file name */
+	    strncpy( fullname, path, len );
+	    
+	    fullname[len]   = '/';
+	    fullname[len+1] = 0;
+	    
+	    /* Construct the final path name */
+	    strcat( fullname, name ); 
+	    
+	    if (debug) 
+		printf( "Attempting to stat %s\n", fullname );
+	    
+	    err = stat( fullname, &filestatus );
+	    if (err == 0 && 
+		(filestatus.st_mode & (S_IXGRP | S_IXOTH | S_IXUSR))) {
+		return (const char *)fullname;
+	    }
+	    
+	    if (next_path) 
+		path = next_path + 1;
+	    else
+		path = 0;
+	}
+	
+    }
+    /* ! Could not find a manager.  Return null */
+    return 0;
 }

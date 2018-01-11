@@ -26,7 +26,7 @@ static void PrintError(int error, char *msg, ...)
 	(LPTSTR) &str,
 	0,0);
     
-    printf("Error Text: %s", str);
+    printf("Error Text: %s", (const char *)str);
     fflush(stdout);
     
     LocalFree(str);

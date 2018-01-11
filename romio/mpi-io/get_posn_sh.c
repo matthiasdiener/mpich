@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: get_posn_sh.c,v 1.7 2002/10/24 17:01:17 gropp Exp $    
+ *   $Id: get_posn_sh.c,v 1.18 2004/02/12 06:08:24 David Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -39,7 +39,7 @@ Output Parameters:
 int MPI_File_get_position_shared(MPI_File fh, MPI_Offset *offset)
 {
     int error_code;
-#ifndef PRINT_ERR_MSG
+#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "MPI_FILE_GET_POSITION_SHARED";
 #endif
 
@@ -52,27 +52,40 @@ int MPI_File_get_position_shared(MPI_File fh, MPI_Offset *offset)
     ADIOI_TEST_FILE_HANDLE(fh, myname);
 #endif
 
-    if (fh->access_mode & MPI_MODE_SEQUENTIAL) {
-#ifdef PRINT_ERR_MSG
+    /* --BEGIN ERROR HANDLING-- */
+    if (fh->access_mode & MPI_MODE_SEQUENTIAL)
+    {
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_UNSUPPORTED_OPERATION, 
+	    "**ioamodeseq", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
         FPRINTF(stderr, "MPI_File_get_position_shared: Can't use this function because file was opened with MPI_MODE_SEQUENTIAL\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_UNSUPPORTED_OPERATION, MPIR_ERR_AMODE_SEQ,
 				     myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);
 #endif
     }
 
-    if ((fh->file_system == ADIO_PIOFS) || (fh->file_system == ADIO_PVFS)) {
-#ifdef PRINT_ERR_MSG
+    if ((fh->file_system == ADIO_PIOFS) || (fh->file_system == ADIO_PVFS) || (fh->file_system == ADIO_PVFS2))
+    {
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_UNSUPPORTED_OPERATION, "**iosharedunsupported", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
 	FPRINTF(stderr, "MPI_File_get_position_shared: Shared file pointer not supported on PIOFS and PVFS\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_UNSUPPORTED_OPERATION, 
                     MPIR_ERR_NO_SHARED_FP, myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);
 #endif
     }
+    /* --END ERROR HANDLING-- */
+
+    ADIOI_TEST_DEFERRED(fh, "MPI_File_get_position_shared", &error_code);
 
     ADIO_Get_shared_fp(fh, 0, offset, &error_code);
     return error_code;

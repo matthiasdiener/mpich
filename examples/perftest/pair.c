@@ -58,7 +58,7 @@
 
 #include "mpptest.h"
 
-#if VARIABLE_TAG
+#ifdef VARIABLE_TAG
 #define MSG_TAG(iter) iter
 #else
 #define MSG_TAG(iter) 1

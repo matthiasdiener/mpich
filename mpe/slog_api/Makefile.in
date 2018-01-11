@@ -4,8 +4,8 @@
 SHELL = /bin/sh
 MAKE = @MAKE@ 
 LN_S = @LN_S@
-RM = /bin/rm
-CP = /bin/cp
+RM = rm
+CP = cp
 
 top_srcdir=@top_srcdir@
 
@@ -17,10 +17,11 @@ SLOG_HEADERS = slog.h fbuf.h \
                slog_header.h slog_preview.h slog_pstat.h slog_ttable.h \
                slog_profile.h slog_recdefs.h slog_strlist.h
 
-SLOG_EXES    = slog_printbbufs slog_printframes \
-               slog_readtest slog_recdefs_test \
-               ts_incrEQendtime_resfnEQno ts_incrEQendtime_resfnEQyes \
-               ts_incrEQstarttime
+SLOG_EXES    = slog_printbbufs@EXEEXT@ slog_printframes@EXEEXT@ \
+               slog_readtest@EXEEXT@ slog_recdefs_test@EXEEXT@ \
+               ts_incrEQendtime_resfnEQno@EXEEXT@ \
+               ts_incrEQendtime_resfnEQyes@EXEEXT@ \
+               ts_incrEQstarttime@EXEEXT@
 
 all:	build_links sloglib build_include build_man build_html
 
@@ -32,12 +33,12 @@ build_links:
 	        $(LN_S) ../bin/$$file $$file ; \
 	    fi ; \
 	done; \
-	if [ ! -h slog_print ] ; then \
-	    $(LN_S) ./slog_printbbufs slog_print ; \
+	if [ ! -h slog_print@EXEEXT@ ] ; then \
+	    $(LN_S) ./slog_printbbufs@EXEEXT@ slog_print@EXEEXT@ ; \
 	fi
 	-@cd bin; \
-	if [ ! -h slog_print ] ; then \
-	   $(LN_S) ./slog_printbbufs slog_print ; \
+	if [ ! -h slog_print@EXEEXT@ ] ; then \
+	   $(LN_S) ./slog_printbbufs@EXEEXT@ slog_print@EXEEXT@ ; \
 	fi
 
 build_include:
@@ -97,8 +98,8 @@ uninstall:
 	@-./sbin/uninstall-slog
 
 rmlinks:
-	-cd test; $(RM) -f $(SLOG_EXES) slog_print
-	-cd bin; $(RM) -f slog_print
+	-cd test; $(RM) -f $(SLOG_EXES) slog_print@EXEEXT@
+	-cd bin; $(RM) -f slog_print@EXEEXT@
 
 rmlib:
 	-@if [ -s src/Makefile ] ; then ( cd src ; $(MAKE) rmlib ); fi

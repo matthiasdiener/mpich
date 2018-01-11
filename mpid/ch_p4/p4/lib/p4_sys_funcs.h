@@ -41,7 +41,7 @@ int p4_establish_all_conns (void);
 /* P4VOID exec_pgm ( ); */
 P4VOID put_execer_port (int);
 int get_execer_port (char *);
-void clean_execer_port( void );
+void p4_clean_execer_port( void );
 int fork_p4 (void);
 P4VOID free_p4_msg (struct p4_msg *);
 P4VOID free_quel (struct p4_queued_msg *);

@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_ufs_write.c,v 1.7 2002/10/24 17:01:08 gropp Exp $    
+ *   $Id: ad_ufs_write.c,v 1.12 2003/04/18 20:15:04 David Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -13,7 +13,7 @@ void ADIOI_UFS_WriteContig(ADIO_File fd, void *buf, int count,
 	           ADIO_Offset offset, ADIO_Status *status, int *error_code)
 {
     int err=-1, datatype_size, len;
-#ifndef PRINT_ERR_MSG
+#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "ADIOI_UFS_WRITECONTIG";
 #endif
 
@@ -39,16 +39,19 @@ void ADIOI_UFS_WriteContig(ADIO_File fd, void *buf, int count,
     if (err != -1 && status) MPIR_Status_set_bytes(status, datatype, err);
 #endif
 
-#ifdef PRINT_ERR_MSG
-    *error_code = (err == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
-#else
     if (err == -1) {
+#ifdef MPICH2
+	*error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io",
+	    "**io %s", strerror(errno));
+#elif defined(PRINT_ERR_MSG)
+			*error_code = MPI_ERR_UNKNOWN;
+#else
 	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
 			      myname, "I/O Error", "%s", strerror(errno));
 	ADIOI_Error(fd, *error_code, myname);
+#endif
     }
     else *error_code = MPI_SUCCESS;
-#endif
 }
 
 

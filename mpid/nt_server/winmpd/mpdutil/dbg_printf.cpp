@@ -117,8 +117,11 @@ void dbg_printf(char *str, ...)
 	{
 	    FILE *fout;
 	    fout = fopen(g_pszFileName, "a+");
-	    fprintf(fout, "%s", pszStr);
-	    fclose(fout);
+	    if (fout)
+	    {
+		fprintf(fout, "%s", pszStr);
+		fclose(fout);
+	    }
 	    ReleaseMutex(g_hRedirectMutex);
 	}
     }
@@ -268,8 +271,11 @@ void dbg_printf_color(unsigned short color, char *str, ...)
 	{
 	    FILE *fout;
 	    fout = fopen(g_pszFileName, "a+");
-	    fprintf(fout, "%s", pszStr);
-	    fclose(fout);
+	    if (fout)
+	    {
+		fprintf(fout, "%s", pszStr);
+		fclose(fout);
+	    }
 	    ReleaseMutex(g_hRedirectMutex);
 	}
     }
@@ -390,8 +396,11 @@ void err_printf(char *str, ...)
 	{
 	    FILE *fout;
 	    fout = fopen(g_pszFileName, "a+");
-	    fprintf(fout, "%s", pszStr);
-	    fclose(fout);
+	    if (fout)
+	    {
+		fprintf(fout, "%s", pszStr);
+		fclose(fout);
+	    }
 	    ReleaseMutex(g_hRedirectMutex);
 	}
     }
@@ -525,8 +534,11 @@ void warning_printf(char *str, ...)
 	{
 	    FILE *fout;
 	    fout = fopen(g_pszFileName, "a+");
-	    fprintf(fout, "%s", pszStr);
-	    fclose(fout);
+	    if (fout)
+	    {
+		fprintf(fout, "%s", pszStr);
+		fclose(fout);
+	    }
 	    ReleaseMutex(g_hRedirectMutex);
 	}
     }

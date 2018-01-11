@@ -21,6 +21,9 @@ int main( int argc, char *argv[])
     char processor_name[MPI_MAX_PROCESSOR_NAME];
 
     MPI_Init(&argc,&argv);
+	
+	MPI_Pcontrol( 0 );
+
     MPI_Comm_size(MPI_COMM_WORLD,&numprocs);
     MPI_Comm_rank(MPI_COMM_WORLD,&myid);
 
@@ -60,7 +63,10 @@ int main( int argc, char *argv[])
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
+	MPI_Pcontrol( 1 );
+	/*
     MPE_Start_log();
+	*/
 
     for (j = 0; j < 5; j++)
     {

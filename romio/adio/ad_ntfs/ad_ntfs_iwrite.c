@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_ntfs_iwrite.c,v 1.4 2002/11/15 16:26:22 gropp Exp $    
+ *   $Id: ad_ntfs_iwrite.c,v 1.9 2003/04/18 20:14:57 David Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +19,7 @@ void ADIOI_NTFS_IwriteContig(ADIO_File fd, void *buf, int count,
 {
     int len, typesize;
     int err=FALSE;
-#ifndef PRINT_ERR_MSG
+#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "ADIOI_NTFS_IWRITECONTIG";
 #endif
 
@@ -38,16 +38,20 @@ void ADIOI_NTFS_IwriteContig(ADIO_File fd, void *buf, int count,
     (*request)->queued = 1;
     ADIOI_Add_req_to_list(request);
 
-#ifdef PRINT_ERR_MSG
-    *error_code = (err == FALSE) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
-#else
     if (err == FALSE) {
+#ifdef MPICH2
+			*error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io",
+							"**io %s", strerror(errno));
+			return;
+#elif defined(PRINT_ERR_MSG)
+    *error_code =  MPI_ERR_UNKNOWN;
+#else
 	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
 			      myname, "I/O Error", "%s", strerror(errno));
 	ADIOI_Error(fd, *error_code, myname);	    
+#endif
     }
     else *error_code = MPI_SUCCESS;
-#endif
 
     fd->fp_sys_posn = -1;   /* set it to null. */
     fd->async_count++;

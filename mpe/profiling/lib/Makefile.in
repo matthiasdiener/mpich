@@ -42,5 +42,5 @@ log_wrapio.c: log_mpio.w
 	$(CC) $(CFLAGS) -c $*.c
 
 clean:
-	/bin/rm -rf *.o *.c *~
+	-rm -rf *.o *.c *~
 

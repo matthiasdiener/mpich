@@ -101,7 +101,7 @@ CheckOutput() {
         rm -f ${bfile}.tout
 	grep -v 'FORTRAN STOP' ${bfile}.out > ${bfile}.tout
 	for stdfile in $srcdir/${bfile}.std $srcdir/${bfile}.std2 \
-			${bfile}.stdo ; do
+			$srcdir/std/${bfile}.std ${bfile}.stdo ; do
 	    if [ -z "$cmpfile" -a -s "$stdfile" ] ; then
 		cmpfile=$stdfile
 	    fi
@@ -144,8 +144,13 @@ EOF
 	        if [ ! -s ${bfile}.out ] ; then
 	            echo "No output file" >>$summaryfile
 	        else
+		    if [ -z "$cmpfile" ] ; then 
+		        cmpfile="/dev/null"
+		    fi
 	            diff -b ${bfile}.tout $cmpfile | \
-		    sed -e 's/</\&lt;/g' -e 's/>/\&gt;/g' >> $summaryfile
+		    sed -e 's/&/-AMP-amp;/g' -e 's/</-AMP-lt;/g' \
+			-e 's/>/-AMP-gt;/g' | \
+		    sed -e 's/-AMP-/\&/g' >> $summaryfile
 	        fi
 	        echo "</TESTDIFF>" >> $summaryfile
 	    fi
@@ -165,42 +170,50 @@ EOF
 # to get such files
 RunTest() {
     OutTime
-    testfiles="$testfiles $1.out"
-    /bin/rm -f $1.out $1.tbk
+    pgm=$1
+    np=$2
+    testfiles="$testfiles $pgm.out"
+    /bin/rm -f $pgm.out $pgm.tbk
     MakeExe $1
-    mname=$3
-    if [ -z "$mname" ] ; then mname="*** $1 ***" ; fi
-    echo "$mname" >> $1.out
-    echo "$mname"
-    mvarg=""
-    if [ -n "$5" ] ; then rm -f $5 ; 
-        if [ -n "$MPIRUNMVBACK" ] ; then mvarg="$MPIRUNMVBACK \"$5\"" ; fi 
-    fi
-    # The eval is necessary to ensure that the mvarg value is properly
-    # tokenized.  The ./$1 ensures that the program will be found,
-    # even if . is not in the PATH.
-    eval $mpirun $args -np $2 $mvarg ./$1 $4 </dev/null >> $1.out 2>&1
-    if [ -n "$5" ] ; then 
-        for file in $5 ; do 
-            if [ -s $file ] ; then 
-                cat $file >> $1.out ; rm -f $file 
-            fi
-        done
-    fi
-    echo "$mname" >> $1.out
-    if [ ! -s $srcdir/$1.std -a ! -s $1.stdo ] ; then
-        # We don't need a special file if the output is just "No Errors"
-        cat >>$1.stdo <<EOF
+    if [ ! -x $pgm ] ; then
+        # If no executable, put the make data into $1.out
+        $MAKE $pgm > $pgm.out 2>&1 
+    else
+        mname=$3
+        if [ -z "$mname" ] ; then mname="*** $1 ***" ; fi
+        echo "$mname" >> $pgm.out
+        echo "$mname"
+        mvarg=""
+        if [ -n "$5" ] ; then rm -f $5 ; 
+            if [ -n "$MPIRUNMVBACK" ] ; then mvarg="$MPIRUNMVBACK \"$5\"" ; fi 
+        fi
+        # The eval is necessary to ensure that the mvarg value is properly
+        # tokenized.  The ./$1 ensures that the program will be found,
+        # even if . is not in the PATH.
+        
+        eval $mpirun $args -np $np $mvarg ./$pgm $4 </dev/null >> $pgm.out 2>&1
+        if [ -n "$5" ] ; then 
+            for file in $5 ; do 
+                if [ -s $file ] ; then 
+                    cat $file >> $pgm.out ; rm -f $file 
+                fi
+            done
+        fi
+        echo "$mname" >> $pgm.out
+        if [ ! -s $srcdir/$pgm.std -a ! -s $pgm.stdo ] ; then
+            # We don't need a special file if the output is just "No Errors"
+            cat >>$pgm.stdo <<EOF
 $mname
  No Errors
 $mname
 EOF
-    fi
-    if [ "$CheckOutputWhileRunning" = "yes" -o "$check_at_once" = 1 ] ; then
-        CheckOutput $1
-    fi
-    CleanExe $1
+        fi
+        if [ "$CheckOutputWhileRunning" = "yes" -o "$check_at_once" = 1 ] ; then
+            CheckOutput $pgm
+        fi
+        CleanExe $pgm
     #ipcs
+    fi
 }
 
 #

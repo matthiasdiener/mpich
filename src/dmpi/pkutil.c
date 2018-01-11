@@ -1,5 +1,5 @@
 /*
- *  $Id: pkutil.c,v 1.11 2001/10/19 22:01:19 gropp Exp $
+ *  $Id: pkutil.c,v 1.12 2004/05/17 13:51:02 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -41,6 +41,12 @@
    srcreadlen is the number of bytes consumed from src.  The return
    value is the MPI error code
  */
+
+/* Include the configure definitions now */
+#ifndef MPICHCONF_INC
+#define MPICHCONF_INC
+#include "mpichconf.h"
+#endif
 
 #include <stdio.h>
 #define MPID_INCLUDE_STDIO

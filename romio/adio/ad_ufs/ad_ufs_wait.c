@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_ufs_wait.c,v 1.7 2002/10/24 17:01:08 gropp Exp $    
+ *   $Id: ad_ufs_wait.c,v 1.13 2003/04/18 20:15:04 David Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -11,7 +11,7 @@
 void ADIOI_UFS_ReadComplete(ADIO_Request *request, ADIO_Status *status, int *error_code)  
 {
 #ifndef NO_AIO
-#ifndef PRINT_ERR_MSG
+#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "ADIOI_UFS_READCOMPLETE";
 #endif
 #ifdef AIO_SUN 
@@ -39,16 +39,20 @@ void ADIOI_UFS_ReadComplete(ADIO_Request *request, ADIO_Status *status, int *err
 
         (*request)->nbytes = tmp->aio_return;
 
-#ifdef PRINT_ERR_MSG
-	*error_code = (tmp->aio_return == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
-#else
 	if (tmp->aio_return == -1) {
+#ifdef MPICH2
+	    *error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io",
+		"**io %s", strerror(tmp->aio_errno));
+	    return;
+#elif defined(PRINT_ERR_MSG)
+			*error_code = MPI_ERR_UNKNOWN;
+#else /* MPICH-1 */
 	    *error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
 			  myname, "I/O Error", "%s", strerror(tmp->aio_errno));
 	    ADIOI_Error((*request)->fd, *error_code, myname);	    
+#endif
 	}
 	else *error_code = MPI_SUCCESS;
-#endif
 
 /* aiowait only dequeues a request. The completion of a request can be
    checked by just checking the aio_return flag in the handle passed
@@ -85,17 +89,21 @@ void ADIOI_UFS_ReadComplete(ADIO_Request *request, ADIO_Status *status, int *err
    I'm assuming it is aio_return! POSIX says aio_return may be called 
    only once on a given handle. */
 
-#ifdef PRINT_ERR_MSG
-	*error_code = (err == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
-#else
 	if (err == -1) {
+#ifdef MPICH2
+	    *error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io",
+		"**io %s", strerror(errno));
+	    return;
+#elif defined(PRINT_ERR_MSG)
+			*error_code = MPI_ERR_UNKNOWN;
+#else /* MPICH-1 */
 	    *error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
              myname, "I/O Error", "%s", strerror(errno));
 	    ADIOI_Error((*request)->fd, *error_code, myname);	    
+#endif
 	}
 	else *error_code = MPI_SUCCESS;
-#endif
-    }
+    } /* if ((*request)->queued)  */
     else *error_code = MPI_SUCCESS;
 
 #ifdef HAVE_STATUS_SET_BYTES
@@ -117,17 +125,21 @@ void ADIOI_UFS_ReadComplete(ADIO_Request *request, ADIO_Status *status, int *err
 	}
 	else (*request)->nbytes = -1;
 
-#ifdef PRINT_ERR_MSG
-	*error_code = (err == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
-#else
 	if (err == -1) {
+#ifdef MPICH2
+	    *error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io",
+		"**io %s", strerror(errno));
+	    return;
+#elif defined(PRINT_ERR_MSG)
+			*error_code = MPI_ERR_UNKNOWN;
+#else /* MPICH-1 */
 	    *error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
 	 	            myname, "I/O Error", "%s", strerror(errno));
 	    ADIOI_Error((*request)->fd, *error_code, myname);	    
+#endif
 	}
 	else *error_code = MPI_SUCCESS;
-#endif
-    }
+    } /* if ((*request)->queued) */
     else *error_code = MPI_SUCCESS;
 #ifdef HAVE_STATUS_SET_BYTES
     if ((*request)->nbytes != -1)

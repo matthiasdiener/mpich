@@ -1,0 +1,12 @@
+*.o
+config.log
+config.status
+Makefile
+slog_config.h
+slog.dsp
+slog.dsw
+slog.ncb
+slog.opt
+slog.plg
+Debug
+Release

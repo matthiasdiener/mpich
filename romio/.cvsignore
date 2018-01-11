@@ -1,0 +1,14 @@
+TAGS
+Makefile
+config.status
+config.log
+config.cache
+config.system
+autom4te.cache
+configure2
+configure
+lib
+bin
+misc
+localdefs
+.deps

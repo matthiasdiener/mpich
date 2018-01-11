@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_getnth.c,v 1.8 2001/11/14 20:08:06 ashton Exp $    
+ *   $Id: info_getnth.c,v 1.9 2003/03/02 16:03:43 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -34,7 +34,7 @@ Input Parameters:
 - n - key number (integer)
 
 Output Parameters:
-. keys - key (string)
+. keys - key (string).  The maximum number of characters is 'MPI_MAX_INFO_KEY'.
 
 .N fortran
 @*/

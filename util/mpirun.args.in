@@ -233,8 +233,9 @@ while [ 1 -le $# ] ; do
 	eval arch$narch=$1
 	shift
 	;;
-    -np|--np)
+    -np|--np|-n)
         # Accept gnuish -- form for multicharater opts
+        # Also accecpt -n mpiexec form
 	np="$1"
         nodigits=`echo $np | sed 's/^[0-9]*$//'`
         if [ "$nodigits" != "" -o $np -lt 1 ] ; then

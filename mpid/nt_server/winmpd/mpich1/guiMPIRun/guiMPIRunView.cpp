@@ -953,6 +953,7 @@ void ProcessWait(ProcessWaitThreadArg *pArg)
 
 void CGuiMPIRunView::WaitForExitCommands()
 {
+    int iter;
     if (m_nNumProcessSockets < FD_SETSIZE)
     {
 	int i, j, n;
@@ -1134,14 +1135,27 @@ void CGuiMPIRunView::WaitForExitCommands()
 	}
 	for (i=0; i<num; i++)
 	{
-	    hThread[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ProcessWait, &arg[i], 0, &dwThreadID);
+	    for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+	    {
+		hThread[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ProcessWait, &arg[i], 0, &dwThreadID);
+		if (hThread[i] != NULL)
+		    break;
+		Sleep(CREATE_THREAD_SLEEP_TIME);
+	    }
 	}
 	if (m_sockBreak != INVALID_SOCKET)
 	    easy_closesocket(m_sockBreak);
 	MakeLoop(&arg2->sockAbort, &m_sockBreak);
 	MakeLoop(&arg2->sockStop, &sockStop);
 
-	HANDLE hWaitAbortThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ProcessWaitAbort, arg2, 0, &dwThreadID);
+	HANDLE hWaitAbortThread;
+	for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+	{
+	    hWaitAbortThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ProcessWaitAbort, arg2, 0, &dwThreadID);
+	    if (hWaitAbortThread != NULL)
+		break;
+	    Sleep(CREATE_THREAD_SLEEP_TIME);
+	}
 
 	SetEvent(m_hBreakReadyEvent);
 

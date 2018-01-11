@@ -1,5 +1,5 @@
 /*
- *  $Id: initutil.c,v 1.32 2002/04/09 13:59:30 gropp Exp $
+ *  $Id: initutil.c,v 1.35 2004/04/30 20:39:20 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -37,6 +37,25 @@
 
 #ifndef PATCHLEVEL_SUBMINOR
 #define PATCHLEVEL_SUBMINOR 0
+#endif
+
+/* 
+   Global definitions of variables that hold information about the
+   version and patchlevel.  This allows easy access to the version 
+   and configure information without requiring the user to run an MPI
+   program 
+*/
+const int MPIR_Version_patches[]    = { PATCHES_APPLIED_LIST -1 };
+const int MPIR_Version_major        = PATCHLEVEL_MAJOR;
+const int MPIR_Version_minor        = PATCHLEVEL_MINOR;
+const int MPIR_Version_subminor     = PATCHLEVEL_SUBMINOR;
+const char MPIR_Version_string[]    = PATCHLEVEL_STRING;
+const char MPIR_Version_date[]      = PATCHLEVEL_RELEASE_DATE;
+const char MPIR_Version_configure[] = CONFIGURE_ARGS_CLEAN;
+#ifdef MPIRUN_DEVICE
+const char MPIR_Version_device[]    = MPIRUN_DEVICE;
+#else
+const char MPIR_Version_device[]    = "Unknown MPICH device";
 #endif
 
 /* #define DEBUG(a) {a}  */
@@ -201,7 +220,7 @@ int MPIR_Init(int *argc, char ***argv)
 
 		this->pid = MPID_getpid(i, &this->host_name, &this->executable_name);
 		DEBUG(PRINTF("[%d] %s :: %s %d\n", i, 
-			     this->host_name ? this->hostname : "local",
+			     this->host_name ? this->host_name : "local",
 			     this->executable_name ? this->executable_name : "", 
 			     this->pid);)
 	    }

@@ -12,10 +12,13 @@
 #define MPE_INTERNAL
 #include "mpe.h"        /*I "mpe.h" I*/
 
-int MPE_SetKeyCallback( graph, key, routine )
+int MPE_SetKeyCallback( MPE_XGraph, int, int(*)(MPE_XGraph, XEvent *) );
+int MPE_SetKeyCallback( MPE_XGraph graph, int key, int (*routine)(MPE_XGraph, XEvent *) )
+/*
 MPE_XGraph graph;
 int        key;
 int        (*routine)();
+*/
 {
   if (graph->Cookie != MPE_G_COOKIE) {
     fprintf( stderr, "Handle argument is incorrect or corrupted\n" );
@@ -32,6 +35,7 @@ int        (*routine)();
 return MPE_SUCCESS;  
 }
 
+int MPE_ClrKeyCallback( MPE_XGraph, int );
 int MPE_ClrKeyCallback( graph, key )
 MPE_XGraph graph;
 int        key;

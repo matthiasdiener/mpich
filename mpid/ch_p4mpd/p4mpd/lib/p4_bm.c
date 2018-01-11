@@ -41,6 +41,9 @@ int bm_start(int *argc, char **argv)
        acquiring it. */
     rc = BNR_Man_msgs_fd( &(p4_local->parent_man_fd) );
 
+#if 0
+    /**********   This is done for us in the p4mpd device  **********/
+
     /* choose a working directory */
     if (strlen(p4_wd) && !chdir(p4_wd))
     {
@@ -54,8 +57,10 @@ int bm_start(int *argc, char **argv)
 	{
 	    *s = '\0';  /* chg to directory name only */
 	    chdir(pgmname);
+	    /* p4_dprintf("RMB bm_start: CHGING DIR TO %s\n",pgmname); */
 	}
     }
+#endif
 
 #   ifdef SYSV_IPC
     sysv_num_shmids = 0;

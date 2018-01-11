@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_hfs_fcntl.c,v 1.6 2002/10/24 17:00:43 gropp Exp $    
+ *   $Id: ad_hfs_fcntl.c,v 1.13 2003/05/12 14:54:03 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -11,9 +11,7 @@
 
 void ADIOI_HFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *error_code)
 {
-    MPI_Datatype copy_etype, copy_filetype;
-    int combiner, i, j, k, filetype_is_contig, ntimes, err;
-    ADIOI_Flatlist_node *flat_file;
+    int  i, ntimes, err;
     ADIO_Offset curr_fsize, alloc_size, size, len, done;
     ADIO_Status status;
     char *buf;
@@ -22,65 +20,6 @@ void ADIOI_HFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *er
 #endif
 
     switch(flag) {
-    case ADIO_FCNTL_SET_VIEW:
-        /* free copies of old etypes and filetypes and delete flattened 
-           version of filetype if necessary */
-
-	MPI_Type_get_envelope(fd->etype, &i, &j, &k, &combiner);
-	if (combiner != MPI_COMBINER_NAMED) MPI_Type_free(&(fd->etype));
-
-	ADIOI_Datatype_iscontig(fd->filetype, &filetype_is_contig);
-	if (!filetype_is_contig) ADIOI_Delete_flattened(fd->filetype);
-
-	MPI_Type_get_envelope(fd->filetype, &i, &j, &k, &combiner);
-	if (combiner != MPI_COMBINER_NAMED) MPI_Type_free(&(fd->filetype));
-
-	/* set new info */
-	ADIO_SetInfo(fd, fcntl_struct->info, &err);
-
-        /* set new etypes and filetypes */
-
-	MPI_Type_get_envelope(fcntl_struct->etype, &i, &j, &k, &combiner);
-	if (combiner == MPI_COMBINER_NAMED) fd->etype = fcntl_struct->etype;
-	else {
-	    MPI_Type_contiguous(1, fcntl_struct->etype, &copy_etype);
-	    MPI_Type_commit(&copy_etype);
-	    fd->etype = copy_etype;
-	}
-	MPI_Type_get_envelope(fcntl_struct->filetype, &i, &j, &k, &combiner);
-	if (combiner == MPI_COMBINER_NAMED) 
-	    fd->filetype = fcntl_struct->filetype;
-	else {
-	    MPI_Type_contiguous(1, fcntl_struct->filetype, &copy_filetype);
-	    MPI_Type_commit(&copy_filetype);
-	    fd->filetype = copy_filetype;
-	    ADIOI_Flatten_datatype(fd->filetype);
-            /* this function will not flatten the filetype if it turns out
-               to be all contiguous. */
-	}
-
-	MPI_Type_size(fd->etype, &(fd->etype_size));
-	fd->disp = fcntl_struct->disp;
-
-        /* reset MPI-IO file pointer to point to the first byte that can
-           be accessed in this view. */
-
-        ADIOI_Datatype_iscontig(fd->filetype, &filetype_is_contig);
-	if (filetype_is_contig) fd->fp_ind = fcntl_struct->disp;
-	else {
-	    flat_file = ADIOI_Flatlist;
-	    while (flat_file->type != fd->filetype) 
-		flat_file = flat_file->next;
-	    for (i=0; i<flat_file->count; i++) {
-		if (flat_file->blocklens[i]) {
-		    fd->fp_ind = fcntl_struct->disp + flat_file->indices[i];
-		    break;
-		}
-	    }
-	}
-	*error_code = MPI_SUCCESS;
-	break;
-
     case ADIO_FCNTL_GET_FSIZE:
 	fcntl_struct->fsize = lseek64(fd->fd_sys, 0, SEEK_END);
 #ifdef HPUX
@@ -88,16 +27,19 @@ void ADIOI_HFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *er
 	     lseek64(fd->fd_sys, fd->fp_sys_posn, SEEK_SET);
 /* not required in SPPUX since there we use pread/pwrite */
 #endif
-#ifdef PRINT_ERR_MSG
-	*error_code = (fcntl_struct->fsize == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
-#else
-    if (fcntl_struct->fsize == -1) {
-	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
-			      myname, "I/O Error", "%s", strerror(errno));
-	ADIOI_Error(fd, *error_code, myname);	    
-    }
-    else *error_code = MPI_SUCCESS;
+	if (fcntl_struct->fsize == -1) {
+#ifdef MPICH2
+	    *error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io", 
+		"**io %s", strerror(errno));
+#elif defined(PRINT_ERR_MSG)
+		*error_code = MPI_ERR_UNKNOWN;
+#else /* MPICH-1 */
+		*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
+				myname, "I/O Error", "%s", strerror(errno));
+		ADIOI_Error(fd, *error_code, myname);	    
 #endif
+	}
+	else *error_code = MPI_SUCCESS;
 	break;
 
     case ADIO_FCNTL_SET_DISKSPACE:
@@ -107,7 +49,10 @@ void ADIOI_HFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *er
 	err = prealloc64(fd->fd_sys, fcntl_struct->diskspace);
 	/* prealloc64 works only if file is of zero length */
 	if (err && (errno != ENOTEMPTY)) {
-#ifdef PRINT_ERR_MSG
+#ifdef MPICH2
+	    *error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io", 
+		"**io %s", strerror(errno));
+#elif defined(PRINT_ERR_MSG)
 	    *error_code = MPI_ERR_UNKNOWN;
 #else
 	    *error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
@@ -125,7 +70,10 @@ void ADIOI_HFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *er
         if (fcntl_struct->diskspace <= 2147483647) {
 	    err = prealloc(fd->fd_sys, (off_t) fcntl_struct->diskspace);
 	    if (err && (errno != ENOTEMPTY)) {
-#ifdef PRINT_ERR_MSG
+#ifdef MPICH2
+		*error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io",
+		    "**io %s", strerror(errno));
+#elif defined(PRINT_ERR_MSG)
     	        *error_code = MPI_ERR_UNKNOWN;
 #else
 		*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
@@ -161,15 +109,18 @@ void ADIOI_HFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *er
 		ADIO_ReadContig(fd, buf, len, MPI_BYTE, ADIO_EXPLICIT_OFFSET, 
                       done, &status, error_code);
 		if (*error_code != MPI_SUCCESS) {
-#ifdef PRINT_ERR_MSG
+#ifdef MPICH2
+		    *error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, 
+			"**iopreallocrdwr", 0);
+#elif defined(PRINT_ERR_MSG)
 		    FPRINTF(stderr, "ADIOI_HFS_Fcntl: To preallocate disk space, ROMIO needs to read the file and write it back, but is unable to read the file. Please give the file read permission and open it with MPI_MODE_RDWR.\n");
 		    MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 		    *error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_PREALLOC_PERM,
 			      myname, (char *) 0, (char *) 0);
 		    ADIOI_Error(fd, *error_code, myname);
-		    return;  
 #endif
+		    return;
 		}
 		ADIO_WriteContig(fd, buf, len, MPI_BYTE, ADIO_EXPLICIT_OFFSET,
                          done,  &status, error_code);

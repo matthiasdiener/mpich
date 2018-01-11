@@ -277,8 +277,15 @@ AC_SUBST(libbuild_dir)
 AC_PROG_RANLIB()
 # check for valid architecture
 # Check for an EXACT match, since that's what the defines require
-egrep "^    $p4arch\$" $srcdir/MACHINES > /dev/null 2>&1
-if test $? != 0 ; then
+# Also try to allow trailing whitespace, including <return>, using the
+# newer POSIX character class :space:
+if egrep "^    $p4arch\$" $srcdir/MACHINES > /dev/null 2>&1 ; then
+    :
+changequote(<<,>>)
+elif egrep "^    $p4arch[[:space:]]*\$" $srcdir/MACHINES > /dev/null 2>&1 ; then
+changequote([,])
+    :
+else 
     echo Invalid arch $p4arch
     exit 1
 fi

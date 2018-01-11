@@ -1,0 +1,5 @@
+Makefile
+runtests
+*.o
+*.out
+*.diff

@@ -17,7 +17,7 @@ double mpi_wtime__ ( void );
 double mpi_wtime ( void );
 #else
 #pragma weak mpi_wtime_ = pmpi_wtime_
-double mpi_time_ ( void );
+double mpi_wtime_ ( void );
 
 #endif
 

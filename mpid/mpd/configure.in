@@ -29,6 +29,9 @@ if test "$enable_g" = "yes" -o "$enable_g" = "all" ; then
     COPTIONS="${COPTIONS} -g"
 fi
 
+AC_ARG_WITH(rpmbindir,[
+--with-rpmbindir - Define the location of bin files for an rpm],,)
+
 dnl Handle caching safely
 # Handling caching
 PAC_ARG_CACHING
@@ -157,6 +160,12 @@ dnl Unfortunately, autoheader isn't sophisticated enough to handle
 dnl DEFINE_UNQUOTED.
 dnl PAC_FUNC_NEEDS_DECL([#include <unistd.h>],readlink)
 
+if test "$with_rpmbindir" != "no" -a "$with_rpmbindir" != "yes" -a \
+        -n "$with_rpmbindir" ; then
+    # The : is because this is used to extend a path list
+    other_bindir=":$with_rpmbindir"
+    AC_SUBST(other_bindir)
+fi
 dnl Output:
 # Starting output
 MPD_HOME=`pwd`

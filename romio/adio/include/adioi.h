@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: adioi.h,v 1.19 2002/10/24 17:01:16 gropp Exp $    
+ *   $Id: adioi.h,v 1.22 2003/12/17 16:49:52 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -66,6 +66,7 @@ struct ADIOI_Hints_struct {
     int no_indep_rw;
     int ind_rd_buffer_size;
     int ind_wr_buffer_size;
+    int deferred_open;
     char *cb_config_list;
     int *ranklist;
     union {
@@ -73,6 +74,9 @@ struct ADIOI_Hints_struct {
 		    int listio_read;
 		    int listio_write;
 	    } pvfs;
+	    struct {
+		    int debugmask;
+	    } pvfs2;
     } fs_hints;
 
 };
@@ -297,6 +301,10 @@ void ADIOI_GEN_ReadStrided_naive(ADIO_File fd, void *buf, int count,
                        ADIO_Offset offset, ADIO_Status *status, int
                        *error_code);
 void ADIOI_GEN_WriteStrided(ADIO_File fd, void *buf, int count,
+                       MPI_Datatype datatype, int file_ptr_type,
+                       ADIO_Offset offset, ADIO_Status *status, int
+                       *error_code);
+void ADIOI_GEN_WriteStrided_naive(ADIO_File fd, void *buf, int count,
                        MPI_Datatype datatype, int file_ptr_type,
                        ADIO_Offset offset, ADIO_Status *status, int
                        *error_code);

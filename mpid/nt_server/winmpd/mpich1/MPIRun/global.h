@@ -1,3 +1,8 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
+/*
+ *  (C) 2001 by Argonne National Laboratory.
+ *      See COPYRIGHT in top-level directory.
+ */
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
@@ -16,6 +21,8 @@
 #define MPIRUN_DEFAULT_TIMEOUT          30
 #define MPIRUN_SHORT_TIMEOUT            15
 #define MPIRUN_CREATE_PROCESS_TIMEOUT   60
+#define CREATE_THREAD_RETRIES            5
+#define CREATE_THREAD_SLEEP_TIME       250
 
 struct HostNode
 {
@@ -40,12 +47,18 @@ struct MapDriveNode
     MapDriveNode *pNext;
 };
 
+struct HostArray
+{
+    char host[MAX_HOST_LENGTH];
+};
+
 // Global variables
 extern MapDriveNode *g_pDriveMapList;
 extern bool g_bNoDriveMapping;
 extern HANDLE g_hRedirectIOListenThread;
 extern SOCKET g_sockStopIOSignalSocket;
 extern HANDLE g_hAbortEvent;
+extern HostArray *g_pProcessHost;
 extern SOCKET *g_pProcessSocket;
 extern int *g_pProcessLaunchId;
 extern int *g_pLaunchIdToRank;
@@ -72,6 +85,9 @@ extern bool g_bDoMultiColorOutput;
 extern WORD g_ConsoleAttribute;
 extern bool g_bUseJobHost;
 extern bool g_bOutputExitCodes;
+extern bool g_bLocalRoot;
+extern bool g_bMPICH2;
+extern bool g_bIPRoot;
 extern char g_pszJobHost[MAX_HOST_LENGTH];
 extern bool g_bUseJobMPDPwd;
 extern char g_pszJobHostMPDPwd[100];
@@ -82,6 +98,10 @@ extern bool g_bUseMPDUser;
 extern int g_nMPIRUN_DEFAULT_TIMEOUT;
 extern int g_nMPIRUN_SHORT_TIMEOUT;
 extern int g_nMPIRUN_CREATE_PROCESS_TIMEOUT;
+extern char pmi_host[MAX_HOST_LENGTH];
+extern int pmi_port;
+extern char pmi_kvsname[128];
+extern char pmi_phrase[100];
 
 #include <wincon.h>
 #define NUM_OUTPUT_COLORS 32

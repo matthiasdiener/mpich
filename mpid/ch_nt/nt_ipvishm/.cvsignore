@@ -1,0 +1,9 @@
+Debug*
+*.ncb
+*.opt
+*.plg
+Release*
+PDebug*
+SDebug*
+PRelease*
+SRelease*

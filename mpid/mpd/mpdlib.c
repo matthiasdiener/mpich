@@ -17,7 +17,7 @@ static void mpdlib_getexecname( char *, size_t );
 static char mpdlib_myid[MPD_IDSIZE];
 static int  mpdlib_debug;
 
-struct mpd_keyval_pairs mpd_keyval_tab[64];
+struct mpd_keyval_pairs mpd_keyval_tab[256];
 int mpd_keyval_tab_idx;
 
 

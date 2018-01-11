@@ -1,3 +1,8 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
+/*
+ *  (C) 2001 by Argonne National Laboratory.
+ *      See COPYRIGHT in top-level directory.
+ */
 #if !defined(AFX_PWDDIALOG_H__570578F6_CB25_43C4_AB81_447A3858D2E4__INCLUDED_)
 #define AFX_PWDDIALOG_H__570578F6_CB25_43C4_AB81_447A3858D2E4__INCLUDED_
 

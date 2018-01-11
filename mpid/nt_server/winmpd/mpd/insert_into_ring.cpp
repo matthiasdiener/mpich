@@ -62,7 +62,7 @@ bool InsertIntoRing(char *pszHost, bool bPostRead /*= true*/)
     }
 
     // send the "connect left" command
-    _snprintf(str, 256, "connect left %s", temp_host);
+    _snprintf(str, MAX_HOST_LENGTH, "connect left %s", temp_host);
     dbg_printf("InsertIntoRing:: writing '%s' to %s\n", str, g_pRightContext->pszHost);
     if (ContextWriteString(g_pRightContext, str) == SOCKET_ERROR)
     {

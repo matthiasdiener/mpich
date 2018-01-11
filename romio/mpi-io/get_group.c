@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: get_group.c,v 1.8 2002/10/24 17:01:17 gropp Exp $    
+ *   $Id: get_group.c,v 1.11 2003/05/29 22:50:03 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -52,5 +52,8 @@ int MPI_File_get_group(MPI_File fh, MPI_Group *group)
     ADIOI_TEST_FILE_HANDLE(fh, myname);
 #endif
 
+    /* note: this will return the group of processes that called open, but with
+     * deferred open this might not be the group of processes that actually
+     * opened the file */
     return MPI_Comm_group(fh->comm, group);
 }

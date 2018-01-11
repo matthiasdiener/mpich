@@ -9,7 +9,7 @@ device=@DEVICE@
 top_srcdir=@top_srcdir@
 srcdir=@srcdir@
 MPICH_VERSION=@MPICH_VERSION@
-STOPFILE=$HOME/.stopmpichtests
+STOPFILE=${MPITEST_STOPTEST:-"$HOME/.stopmpichtests"}
 mpirun=${MPIRUN:-"@MPIRUN@"}
 MAKE="@MAKE@"
 #

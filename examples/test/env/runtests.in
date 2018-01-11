@@ -9,7 +9,7 @@ device=@DEVICE@
 top_srcdir=@top_srcdir@
 srcdir=@srcdir@
 MPICH_VERSION=@MPICH_VERSION@
-STOPFILE=$HOME/.stopmpichtests
+STOPFILE=${MPITEST_STOPTEST:-"$HOME/.stopmpichtests"}
 mpirun=${MPIRUN:-"@MPIRUN@"}
 MAKE="@MAKE@"
 #
@@ -120,15 +120,23 @@ else
 fi
 OutTime
 testfiles="$testfiles aborttest.out"
-/bin/rm -f aborttest.out aborttest.p1 aborttest.p2
+/bin/rm -f aborttest.out aborttest.p1 aborttest.p2 aborttest.out2
 MakeExe aborttest
 echo "*** Tests of MPI_Abort ***"
 echo "*** Tests of MPI_Abort ***" >> aborttest.out
-$PSPGM | grep $LOGNAME | grep -v grep | grep -v runtests > aborttest.p1
-$mpirun $args -np 2 ./aborttest $* < /dev/null > /dev/null 2>&1
+# We also remove lines that look like build lines in case this system
+# is being used for other tests.  This is incomplete, but
+# it may help reduce false positives
+$PSPGM | grep $LOGNAME | grep -v grep | grep -v runtests | \
+    grep -v 'make ' | grep -v ' /ld' | grep -v 'gcc' | \
+    grep -v 'collect2' > aborttest.p1
+# Send the output of aborttest to a file in case there is a problem
+$mpirun $args -np 2 ./aborttest $* < /dev/null >> aborttest.out2 2>&1
 # allow some time for processes to exit
 sleep 5
-$PSPGM | grep $LOGNAME | grep -v grep | grep -v runtests > aborttest.p2
+$PSPGM | grep $LOGNAME | grep -v grep | grep -v runtests | \
+    grep -v 'make ' | grep -v ' /ld' | grep -v 'gcc' | \
+    grep -v 'collect2' > aborttest.p2
 # If there was a consistant format, we could process it ...
 ndiff="`cat aborttest.p1 | wc -l` - `cat aborttest.p2 | wc -l`"
 ndiff=`expr $ndiff`
@@ -142,21 +150,28 @@ else
     #cat aborttest.p2 >> aborttest.out
     echo "Differences are" >> aborttest.out
     diff -b aborttest.p1 aborttest.p2 >> aborttest.out
+    if [ -s aborttest.out2 ] ; then
+        echo "Output from mpirun was"
+        cat aborttest.out2 >> aborttest.out
+    fi
     # Try to kill them
     $PSPGM | grep $LOGNAME | grep aborttest | awk '{ print "kill ", $2 }' | sh
 fi
 echo "*** Tests of MPI_Abort ***" >> aborttest.out
-rm -f aborttest.p1 aborttest.p2
-CleanExe aborttest
+rm -f aborttest.p1 aborttest.p2 aborttest.out2
 
 OutTime
-/bin/rm -f aborttest.p1 aborttest.p2
+/bin/rm -f aborttest.p1 aborttest.p2 aborttest.out2
 echo "*** Tests of MPI_Abort (alt) ***"
 echo "*** Tests of MPI_Abort (alt) ***" >> aborttest.out
-$PSPGM | grep $LOGNAME > aborttest.p1
-$mpirun $args -np 2 ./aborttest -altmaster $* > /dev/null 2>&1
+$PSPGM | grep $LOGNAME | grep -v grep | grep -v runtests | \
+    grep -v 'make ' | grep -v ' /ld' | grep -v 'gcc' | \
+    grep -v 'collect2' > aborttest.p1
+$mpirun $args -np 2 ./aborttest -altmaster $* >aborttest.out2 2>&1
 sleep 5
-$PSPGM | grep $LOGNAME > aborttest.p2
+$PSPGM | grep $LOGNAME | grep -v grep | grep -v runtests | \
+    grep -v 'make ' | grep -v ' /ld' | grep -v 'gcc' | \
+    grep -v 'collect2' > aborttest.p2
 ndiff="`cat aborttest.p1 | wc -l` - `cat aborttest.p2 | wc -l`"
 ndiff=`expr $ndiff`
 if test "$ndiff" = 0 ; then
@@ -169,11 +184,15 @@ else
     #cat aborttest.p2 >> aborttest.out
     echo "Differences are" >> aborttest.out
     diff -b aborttest.p1 aborttest.p2 >> aborttest.out
+    if [ -s aborttest.out2 ] ; then
+        echo "Output from mpirun was"
+        cat aborttest.out2 >> aborttest.out
+    fi
     # Try to kill them
     $PSPGM | grep $LOGNAME | grep aborttest | awk '{ print "kill ", $2 }' | sh
 fi
 echo "*** Tests of MPI_Abort (alt) ***" >> aborttest.out
-/bin/rm -f aborttest.p1 aborttest.p2
+/bin/rm -f aborttest.p1 aborttest.p2 aborttest.out2
 CleanExe aborttest
 
 #

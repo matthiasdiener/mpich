@@ -257,7 +257,13 @@ void ControlLoopThread(HANDLE hReadyEvent)
 				nt_error_socket("ControlLoopThread: WSAEventSelect failed", WSAGetLastError());
 			cArg->sock = temp_socket;
 			cArg->sock_event = temp_event;
-			hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ControlLoopClientThread, cArg, NT_THREAD_STACK_SIZE, &dwThreadID);
+			for (int i=0; i<NT_CREATE_THREAD_RETRIES; i++)
+			{
+			    hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ControlLoopClientThread, cArg, NT_THREAD_STACK_SIZE, &dwThreadID);
+			    if (hThread != NULL)
+				break;
+			    Sleep(NT_CREATE_THREAD_SLEEP_TIME);
+			}
 			if (hThread == NULL)
 			{
 				delete cArg;

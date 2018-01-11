@@ -96,6 +96,7 @@ int BNR_Fence( BNR_Group group )
 
     while ( !MPD_global_fence_flag ) /* use single fence flag for now */
 	;	                 /* spin until set by interrupt-driven msg handler */
+    MPD_global_fence_flag = 0;   /* Fixing a bug found by Weikuan, yuw@cis */
     return(0);
 }
 

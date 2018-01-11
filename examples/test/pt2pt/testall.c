@@ -108,8 +108,14 @@ for (i=0; i<ncomm; i++) {
 	    if (requests[0] != MPI_REQUEST_NULL || 
 		requests[1] != MPI_REQUEST_NULL) {
 		err++;
-		fprintf( stderr, "MPI_Testall failed to free requests\n" );
+		fprintf( stderr, "MPI_Testall failed to free requests (test %d)\n", j );
+		if (requests[0] != MPI_REQUEST_NULL) {
+		    fprintf( stderr, "Failed to free Irecv request\n" );
 		}
+		if (requests[1] != MPI_REQUEST_NULL) {
+		    fprintf( stderr, "Failed to free Isend request\n" );
+		}
+	    }
 	    /* Check the received data */
             if (CheckDataAndPrint( inbufs[j], outbufs[j], bytesize[j],
 				   names[j], j )) {

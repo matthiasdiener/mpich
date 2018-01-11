@@ -1,3 +1,8 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
+/*
+ *  (C) 2001 by Argonne National Laboratory.
+ *      See COPYRIGHT in top-level directory.
+ */
 //{{NO_DEPENDENCIES}}
 // Microsoft Developer Studio generated include file.
 // Used by MPIConfig.rc
@@ -145,6 +150,12 @@
 #define IDC_HOST_REDIRECT_MPD_YES       1118
 #define IDC_HOST_REDIRECT_MPD_NO        1119
 #define IDC_HOST_REDIRECT_MPD_EDIT      1120
+#define IDC_LOCALROOT_CHK               1121
+#define IDC_LOCALROOT_YES               1122
+#define IDC_LOCALROOT_NO                1123
+#define IDC_HOST_LOCALROOT_CHK          1124
+#define IDC_HOST_LOCALROOT_YES          1125
+#define IDC_HOST_LOCALROOT_NO           1126
 #define ID_FILE_FINDHOSTS               32771
 #define ID_FILE_LOADLIST                32772
 #define ID_FILE_SAVELIST                32773

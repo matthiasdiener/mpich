@@ -228,6 +228,10 @@ void MessageLoopThread(MPE_XGraph &graph)
 	g_height = graph.height;
 
 	HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, TEXT("booglesandboogles"));
+	if (hEvent == NULL)
+	{
+	    printf("CreateEvent failed, error %d\n", GetLastError());fflush(stdout);
+	}
 	SetEvent(hEvent);
 	CloseHandle(hEvent);
 
@@ -243,6 +247,10 @@ void BringUpWindow(MPE_XGraph &graph)
 	HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, TEXT("booglesandboogles"));
 	HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)MessageLoopThread, &graph, 0, NULL);
 	CloseHandle(hThread);
+	if (hEvent == NULL)
+	{
+	    printf("CreateEvent failed, error %d\n", GetLastError());fflush(stdout);
+	}
 	WaitForSingleObject(hEvent, INFINITE);
 	CloseHandle(hEvent);
 	

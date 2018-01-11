@@ -1,3 +1,4 @@
+#include "chconfig.h"
 #include "globdev.h"
 
 int mpich_globus2_debug_rank = -1;

@@ -1,5 +1,4 @@
 #ifndef MPIR_DATATYPE_COOKIE
-#include "globus_common.h"
 #include "vmpi.h"
 /*****************************************************************************/
 /* Datatypes.  The contiguous, predefined datatypes are handled separately   */

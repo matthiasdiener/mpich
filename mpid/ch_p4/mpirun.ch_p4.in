@@ -175,7 +175,7 @@ if [ "$p4workdir" = "" ] ; then
     p4workdir=$PWD_TRIAL
 fi
 #
-# Having a p4p4file_master allows us to move the pg file to a location
+# Having a p4pgfile_master allows us to move the pg file to a location
 # where the master process can read it, even if the master does not
 # share a file system with the process that mpirun is executing on 
 p4pgfile_master=$p4pgfile

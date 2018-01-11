@@ -205,7 +205,7 @@ void CommPortThread(HANDLE hReadyEvent)
 	WSAEVENT temp_event;
 	DWORD ret_val;
 	int remote_iproc;
-	int i;
+	int i, j;
 	BOOL opt;
 	char add_socket_ack;
 	DWORD dwThreadID;
@@ -238,7 +238,13 @@ void CommPortThread(HANDLE hReadyEvent)
 	for (i=0; i<g_NumCommPortThreads; i++)
 	{
 	    //HANDLE hWorkerThread;
-	    hWorkers[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CommPortWorkerThread, NULL, NT_THREAD_STACK_SIZE, &dwThreadID);
+	    for (j=0; j<NT_CREATE_THREAD_RETRIES; j++)
+	    {
+		hWorkers[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CommPortWorkerThread, NULL, NT_THREAD_STACK_SIZE, &dwThreadID);
+		if (hWorkers[i] != NULL)
+		    break;
+		Sleep(NT_CREATE_THREAD_SLEEP_TIME);
+	    }
 	    if (hWorkers[i] == NULL)
 		nt_error_socket("CommPortThread: CreateThread(CommPortWorkerThread) failed", GetLastError());
 	    //CloseHandle(hWorkerThread);

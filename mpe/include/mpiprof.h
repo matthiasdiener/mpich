@@ -73,11 +73,9 @@
 #define MPI_Group_translate_ranks PMPI_Group_translate_ranks
 #define MPI_Group_union PMPI_Group_union
 #define MPI_Ibsend PMPI_Ibsend
-#define MPI_Info_c2f PMPI_Info_c2f
 #define MPI_Info_create PMPI_Info_create
 #define MPI_Info_delete PMPI_Info_delete
 #define MPI_Info_dup PMPI_Info_dup
-#define MPI_Info_f2c PMPI_Info_f2c
 #define MPI_Info_free PMPI_Info_free
 #define MPI_Info_get PMPI_Info_get
 #define MPI_Info_get_nkeys PMPI_Info_get_nkeys
@@ -107,7 +105,6 @@
 #define MPI_Recv_init PMPI_Recv_init
 #define MPI_Reduce PMPI_Reduce
 #define MPI_Reduce_scatter PMPI_Reduce_scatter
-#define MPI_Request_c2f PMPI_Request_c2f
 #define MPI_Request_free PMPI_Request_free
 #define MPI_Rsend PMPI_Rsend
 #define MPI_Rsend_init PMPI_Rsend_init
@@ -156,6 +153,20 @@
 #define MPI_Waitsome PMPI_Waitsome
 #define MPI_Wtick PMPI_Wtick
 #define MPI_Wtime PMPI_Wtime
+
+/* The following routines may be macros in some MPI implementations. */
+#ifdef MPI_Info_c2f
+#undef MPI_Info_c2f
+#endif
+#define MPI_Info_c2f PMPI_Info_c2f
+#ifdef MPI_Info_f2c
+#undef MPI_Info_f2c
+#endif
+#define MPI_Info_f2c PMPI_Info_f2c
+#ifdef MPI_Request_c2f
+#undef MPI_Request_c2f
+#endif
+#define MPI_Request_c2f PMPI_Request_c2f
 
 /* The Fortran versions are handled directly by the Fortran wrappers */
 

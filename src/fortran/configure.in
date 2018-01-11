@@ -6,6 +6,8 @@ AC_CONFIG_HEADER(mpi_fortconf.h)
 dnl We need install.sh, config.guess, etc. for the code that
 dnl finds the Fortran libraries
 AC_CONFIG_AUX_DIR(config)
+dnl PAC_PROVIDE_IGNORE
+define([AM_IGNORE],)
 dnl
 dnl Allow device to supply a mpid_fortdefs.h header file
 dnl
@@ -421,7 +423,7 @@ EOF
     dnl in initfcmn.f .
 else
     cat >>include/mpif_bottom.h <<EOF
-      COMMON /MPIPRIV/ MPI_BOTTOM,MPI_STATUS_IGNORE,MPI_STATUSES_IGNORE      
+      COMMON /MPIPRIV/ MPI_BOTTOM,MPI_STATUS_IGNORE,MPI_STATUSES_IGNORE
 C
 C     Without this save, some Fortran implementations may make the common
 C     dynamic!

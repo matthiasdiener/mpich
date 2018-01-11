@@ -65,11 +65,22 @@ COPTIONS = @COPTIONS@
 CPP = @CPP@
 CXX = @CXX@
 F77 = @F77@
+F77_GETARG = @F77_GETARG@
+F77_GETARGDECL = @F77_GETARGDECL@
+F77_GETARG_FFLAGS = @F77_GETARG_FFLAGS@
+F77_GETARG_LDFLAGS = @F77_GETARG_LDFLAGS@
+F77_IARGC = @F77_IARGC@
+F77_INCDIR = @F77_INCDIR@
+F77_LIBDIR_LEADER = @F77_LIBDIR_LEADER@
+F77_NAME_MANGLE = @F77_NAME_MANGLE@
 F90 = @F90@
 F90MODEXT = @F90MODEXT@
 F90MODINCFLAG = @F90MODINCFLAG@
+F90_WORK_FILES_ARG = @F90_WORK_FILES_ARG@
 FOPTIONS = @FOPTIONS@
+FXX_MODULE = @FXX_MODULE@
 GRAPHICS_PGM = @GRAPHICS_PGM@
+HAVE_ROMIO = @HAVE_ROMIO@
 MAKE = @MAKE@
 MAKEINFO = @MAKEINFO@
 MPIBOOT = @MPIBOOT@
@@ -81,6 +92,7 @@ MPIRUN = @MPIRUN@
 MPIUNBOOT = @MPIUNBOOT@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
+RANLIB_AFTER_INSTALL = @RANLIB_AFTER_INSTALL@
 TESTCPP = @TESTCPP@
 VERSION = @VERSION@
 
@@ -94,8 +106,9 @@ EXTRA_PROGRAMS = tunepkt pktuse copytest vectest stress ctest cluster tcomm
 EXTRA_SCRIPTS = rungoptest runmpptest runsample
 noinst_HEADERS = mpptest.h getopts.h
 
-extra_SOURCES = gopf.c grph.c ovlap.c pair.c pattern.c getopts.c 		rate.c mpe_seq.c copy.c
-
+# Some versions of automake can't handle continuation lines, so the line
+# for extra_SOURCES must be a single line.
+extra_SOURCES = gopf.c grph.c ovlap.c pair.c pattern.c getopts.c rate.c mpe_seq.c copy.c
 mpptest_SOURCES = mpptest.c $(extra_SOURCES) halo.c
 goptest_SOURCES = goptest.c $(extra_SOURCES)
 vectest_SOURCES = vectest.f
@@ -204,7 +217,9 @@ $(ACLOCAL_M4):  configure.in  config/confdb/aclangf90.m4 \
 		config/confdb/aclocal_cache.m4 \
 		config/confdb/aclocal_cc.m4 \
 		config/confdb/aclocal_cross.m4 \
+		config/confdb/aclocal_csharp.m4 \
 		config/confdb/aclocal_cxx.m4 \
+		config/confdb/aclocal_enable.m4 \
 		config/confdb/aclocal_f77.m4 \
 		config/confdb/aclocal_f90.m4 \
 		config/confdb/aclocal_java.m4 \
@@ -212,7 +227,8 @@ $(ACLOCAL_M4):  configure.in  config/confdb/aclangf90.m4 \
 		config/confdb/aclocal_mpi.m4 \
 		config/confdb/aclocal_perl.m4 \
 		config/confdb/aclocal_shl.m4 \
-		config/confdb/aclocal_web.m4
+		config/confdb/aclocal_web.m4 config/confdb/fortran90.m4 \
+		config/confdb/libtool-2.13.m4 config/confdb/libtool.m4
 	cd $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 
 config.status: $(srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)

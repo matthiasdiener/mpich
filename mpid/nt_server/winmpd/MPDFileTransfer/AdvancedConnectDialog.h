@@ -1,3 +1,8 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
+/*
+ *  (C) 2001 by Argonne National Laboratory.
+ *      See COPYRIGHT in top-level directory.
+ */
 #if !defined(AFX_ADVANCEDCONNECTDIALOG_H__D8529482_B991_4833_99EF_8D5DA7A13F6E__INCLUDED_)
 #define AFX_ADVANCEDCONNECTDIALOG_H__D8529482_B991_4833_99EF_8D5DA7A13F6E__INCLUDED_
 

@@ -73,6 +73,9 @@ static long events = 0;
 static SLOG slog;                       /* a handle to the slog format.      */
 
 /* Forward refs */
+static int init_SLOG_TTAB (void);
+static int init_SLOG_PROF_RECDEF(void);
+
 static int logEvent( CLOG_HEADER *, CLOG_RAW * );
 static int handle_extra_state_defs(CLOG_STATE *);
 static int writeSLOGInterval(CLOG_HEADER *, CLOG_RAW *, struct list_elemnt);
@@ -90,14 +93,16 @@ static void freeMsgList(void);
 #ifdef DEBUG_PRINT
 static void printEventList(void);
 static void printMsgEventList(void);
+static void printStateInfo(void);
 #endif
 static int get_new_state_id(void);
+
 
 
 /****
      initialize clog2slog data structures.
 ****/
-int init_clog2slog(char *clog_file, char **slog_file) {
+int C2S1_init_clog2slog(char *clog_file, char **slog_file) {
 
   first                = NULL;
   last                 = NULL;
@@ -127,8 +132,8 @@ int init_clog2slog(char *clog_file, char **slog_file) {
 /****
      returns memory resources used by clog2slog
 ****/
-void CLOG_free_resources() {
-  CLOG_freeStateInfo();
+void C2S1_free_resources() {
+  C2S1_free_state_info();
   freeList();
   freeMsgList();
   SLOG_CloseOutputStream( slog );
@@ -147,7 +152,7 @@ void CLOG_free_resources() {
      WARNING: to be used when a first pass is made for initializing
      state definitions.
 ****/
-int CLOG_init_state_defs(double *membuff) {
+int C2S1_init_state_defs(double *membuff) {
 
   int rec_type;
   CLOG_HEADER* headr;         /* pointer to a clog header.          */
@@ -253,7 +258,7 @@ int CLOG_init_state_defs(double *membuff) {
      it provides the very first state definitions in the linked list of 
      state definitions.
 ****/
-int CLOG_init_all_mpi_state_defs ( ) {
+int C2S1_init_all_mpi_state_defs ( ) {
   int event_id = 1;  /* identical to the state initializations in
 		        "log_wrap.c" in the mpe direcory under
 			MPI_Init's definition.
@@ -524,7 +529,7 @@ int CLOG_init_all_mpi_state_defs ( ) {
      initialization of slog when all state definitions and the number of 
      processes and number of events are known.
 ****/
-int init_SLOG (long num_frames, long frame_size, char *slog_file ) {
+int C2S1_init_SLOG (long num_frames, long frame_size, char *slog_file ) {
   
   long fixed_record_size,
        kilo_byte  = 1024,
@@ -536,7 +541,7 @@ int init_SLOG (long num_frames, long frame_size, char *slog_file ) {
   if(slog == NULL) {
     fprintf(stderr, __FILE__":%d: SLOG_OpenOutputStream returns null - "
 	    "check SLOG documentation for more information.\n",__LINE__);
-    CLOG_freeStateInfo();
+    C2S1_free_state_info();
     return C2S_ERROR;
   }
   
@@ -579,7 +584,7 @@ int init_SLOG (long num_frames, long frame_size, char *slog_file ) {
 /****
      initialize number of events and number of processes
 ****/
-void CLOG_init_essential_values(long event_count, int process_count) {
+void C2S1_init_essential_values(long event_count, int process_count) {
   num_events = event_count;
   proc_num   = process_count;
 }
@@ -589,7 +594,7 @@ void CLOG_init_essential_values(long event_count, int process_count) {
      it looks for CLOG_RAWEVENT types and then passes it on to the logEvent
      function where all the details are handled.
 ****/
-int CLOG_makeSLOG(double *membuff) {
+int C2S1_make_SLOG(double *membuff) {
 
   int  rec_type;
   CLOG_HEADER* headr;
@@ -768,9 +773,9 @@ static int logEvent( CLOG_HEADER *headr, CLOG_RAW *event_ptr )
 #ifdef DEBUG_PRINT
 	      /*
 	      printEventList();
-	      CLOG_printStateInfo();
+	      printStateInfo();
 	      free(one);
-	      CLOG_free_resources();
+	      C2S1_free_resources();
 	      */
 #endif
 	      return C2S_ERROR;
@@ -826,7 +831,7 @@ static int handle_extra_state_defs(CLOG_STATE *state) {
   if( ierr != SLOG_SUCCESS ) {
     fprintf( stderr, __FILE__":%d: SLOG Record Definition initialization"
 	     " failed. \n", __LINE__);
-    CLOG_free_resources();
+    C2S1_free_resources();
     return C2S_ERROR;
   }
 
@@ -837,7 +842,7 @@ static int handle_extra_state_defs(CLOG_STATE *state) {
     fprintf( stderr, __FILE__":%d: SLOG_PROF_AddExtraIntvlInfo failed - "
 	     "check SLOG documentation for more information. \n",
 	     __LINE__);
-    CLOG_free_resources();
+    C2S1_free_resources();
     return C2S_ERROR;
   }
   return C2S_SUCCESS;
@@ -1031,7 +1036,7 @@ int init_SLOG_TTAB() {
 
   if( SLOG_TTAB_Open( slog ) != SLOG_SUCCESS ) {
     fprintf(stderr, __FILE__":%d: SLOG_TTAB_Open() fails! \n",__LINE__ );
-    CLOG_free_resources();
+    C2S1_free_resources();
     return C2S_ERROR;
   }
 
@@ -1043,14 +1048,14 @@ int init_SLOG_TTAB() {
     if( ierr != SLOG_SUCCESS ) {
       fprintf( stderr,__FILE__":%d: SLOG Thread Table initialization "
 	       "failed.\n",__LINE__);
-      CLOG_free_resources();
+      C2S1_free_resources();
       return C2S_ERROR;
     }
   }
 
   if((ierr = SLOG_TTAB_Close( slog )) != SLOG_SUCCESS ) {
     fprintf(stderr, __FILE__":%d: SLOG_TTAB_Close() fails! \n", __LINE__ );
-    CLOG_free_resources();
+    C2S1_free_resources();
     return C2S_ERROR;
   }
   return C2S_SUCCESS;
@@ -1074,7 +1079,7 @@ int init_SLOG_PROF_RECDEF() {
   
   if( SLOG_PROF_Open( slog ) != SLOG_SUCCESS ) {
     fprintf(stderr, __FILE__":%d: SLOG_PROF_Open() fails! \n", __LINE__);
-    CLOG_free_resources();
+    C2S1_free_resources();
     return C2S_ERROR;
   }
 
@@ -1097,7 +1102,7 @@ int init_SLOG_PROF_RECDEF() {
       if( ierr != SLOG_SUCCESS ) {
 	fprintf( stderr,__FILE__":%d: SLOG Profile initialization failed.\n",
 		  __LINE__);
-	CLOG_free_resources();
+	C2S1_free_resources();
 	return C2S_ERROR;
       }
       ierr = SLOG_PROF_AddIntvlInfo( slog, BACKWARD_MSG, bebit_0, bebit_1,
@@ -1109,7 +1114,7 @@ int init_SLOG_PROF_RECDEF() {
     if( ierr != SLOG_SUCCESS ) {
       fprintf( stderr,__FILE__":%d: SLOG Profile initialization failed. \n",
 	        __LINE__);
-      CLOG_free_resources();
+      C2S1_free_resources();
       return C2S_ERROR;
     }
       
@@ -1120,12 +1125,12 @@ int init_SLOG_PROF_RECDEF() {
     fprintf(stderr, __FILE__
                     ":%d: SLOG_PROF_SetExtraNumOfIntvlInfos() fails! \n", 
 	            __LINE__);
-    CLOG_free_resources();
+    C2S1_free_resources();
     return C2S_ERROR;
   }
   if( SLOG_RDEF_Open( slog ) != SLOG_SUCCESS ) {
     fprintf(stderr, __FILE__":%d: SLOG_RDEF_Open() fails! \n", __LINE__);
-    CLOG_free_resources();
+    C2S1_free_resources();
     return C2S_ERROR;
   }
 
@@ -1145,7 +1150,7 @@ int init_SLOG_PROF_RECDEF() {
       if( ierr != SLOG_SUCCESS ) {
 	fprintf( stderr,__FILE__":%d: SLOG Record Definition initialization"
 		 " failed. \n",__LINE__);
-	CLOG_free_resources();
+	C2S1_free_resources();
 	return C2S_ERROR;
       }
       ierr = SLOG_RDEF_AddRecDef( slog, BACKWARD_MSG,
@@ -1155,7 +1160,7 @@ int init_SLOG_PROF_RECDEF() {
     if( ierr != SLOG_SUCCESS ) {
       fprintf( stderr,__FILE__":%d: SLOG Record Definition initialization"
 	       " failed. \n", __LINE__);
-      CLOG_free_resources();
+      C2S1_free_resources();
       return C2S_ERROR;
     }
   }
@@ -1163,7 +1168,7 @@ int init_SLOG_PROF_RECDEF() {
   if( SLOG_RDEF_SetExtraNumOfRecDefs( slog,EXTRA_STATES ) != SLOG_SUCCESS ) {
     fprintf(stderr, __FILE__":%d: SLOG_RDEF_SetExtraNumOfRecDefs() fails! \n",
 	    __LINE__);
-    CLOG_free_resources();
+    C2S1_free_resources();
     return C2S_ERROR;
   }
   return C2S_SUCCESS;
@@ -1229,7 +1234,7 @@ static int addState(int stat_id, int strt_id, int end_id,
   if(temp_ptr == NULL) {
     fprintf(stderr,__FILE__":%d: not enough memory for start event list!\n",
 	    __LINE__);
-    CLOG_free_resources();
+    C2S1_free_resources();
     return C2S_ERROR;
   }
   if(stat_id != MSG_STATE)
@@ -1309,7 +1314,7 @@ static int findState_endEvnt(int end_id){
 /****
      frees up memory malloced for state definitions in the list of state defs.
 ****/
-void CLOG_freeStateInfo(void) {
+void C2S1_free_state_info(void) {
   struct state_info *one = NULL,
                     *two = NULL;
   for(one = first; one != NULL; one = two) {
@@ -1323,7 +1328,7 @@ void CLOG_freeStateInfo(void) {
      debugging if the need be.
 ****/
 #ifdef DEBUG_PRINT
-void CLOG_printStateInfo(void) {
+void printStateInfo(void) {
   struct state_info *one = NULL,
                     *two = NULL;
   for(one = first; one != NULL; one = two) {
@@ -1352,7 +1357,7 @@ static int addToList(int stat_id, int data, int proc_id, double strt_time) {
   if(temp_ptr == NULL) {
     fprintf(stderr,__FILE__":%d: not enough memory for start event list!\n",
 	    __LINE__);
-    CLOG_free_resources();
+    C2S1_free_resources();
     return C2S_ERROR;
   }
 
@@ -1396,7 +1401,7 @@ static int addToMsgList(int stat_id, int data, int proc_id,
   if(temp_ptr == NULL) {
     fprintf(stderr,__FILE__":%d: not enough memory for message list!\n",
 	    __LINE__);
-    CLOG_free_resources();
+    C2S1_free_resources();
     return C2S_ERROR;
   }
 
@@ -1564,7 +1569,7 @@ static void printMsgEventList(void) {
 /****
      prints all the options available with this program.
 ****/
-void CLOG_printHelp(void) {
+void C2S1_print_help(void) {
     fprintf(stdout,"Usage : clog2slog [ -d=FrameNum ] [ -f=FrameSize ]"
 	    " [ -h ] file.clog\n"
 	    "        where file.clog is a clog file\n"

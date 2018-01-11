@@ -22,11 +22,13 @@ void main(int argc, char *argv[])
 	char pszHost[100], pszPassPhrase[100] = MPD_DEFAULT_PASSPHRASE;
 	char pszPort[100];
 	char pszStr[1024];
+	char pszErrMsg[1024];
 	char *pszEncoded;
 	int nPort = MPD_DEFAULT_PORT;
 	SOCKET sock;
 	int error;
 	bool bUseCache = true;
+	bool bNoSpecificError = false;
 
 	if ((argc > 1) && (stricmp(argv[1], "-remove") == 0))
 	{
@@ -36,7 +38,7 @@ void main(int argc, char *argv[])
 			printf("Account and password removed from the Registry.\n");
 		}
 		else
-			printf("Error: Unable to remove the encrypted password.\n");
+			printf("ERROR: Unable to remove the encrypted password.\n");
 		return;
 	}
 
@@ -46,6 +48,8 @@ void main(int argc, char *argv[])
 	    {
 		if (ReadPasswordFromRegistry(account, password))
 		{
+		    if (GetOpt(argc, argv, "-nodetails"))
+			bNoSpecificError = true;
 		    if (GetOpt(argc, argv, "-nocache"))
 			bUseCache = false;
 		    if (!GetOpt(argc, argv, "-host", pszHost))
@@ -57,7 +61,7 @@ void main(int argc, char *argv[])
 			nPort = atoi(pszPort);
 		    GetOpt(argc, argv, "-phrase", pszPassPhrase);
 		    easy_socket_init();
-		    if ((error = ConnectToMPD(pszHost, nPort, pszPassPhrase, &sock)) == 0)
+		    if ((error = ConnectToMPDReport(pszHost, nPort, pszPassPhrase, &sock, pszErrMsg)) == 0)
 		    {
 			pszEncoded = EncodePassword(password);
 			sprintf(pszStr, "validate a=%s p=%s c=%s", account, pszEncoded, bUseCache ? "yes" : "no");
@@ -68,7 +72,14 @@ void main(int argc, char *argv[])
 			easy_socket_finalize();
 			ExitProcess(0);
 		    }
-		    printf("FAIL: Unable to connect to the mpd on host <%s>\n", pszHost);fflush(stdout);
+		    if (bNoSpecificError)
+			printf("ERROR: Unable to connect to the mpd.\n");
+		    else
+		    {
+			printf("ERROR: Unable to connect to the mpd on host <%s>.\n", pszHost);
+			printf("%s\n", pszErrMsg);
+		    }
+		    fflush(stdout);
 		    easy_socket_finalize();
 		}
 		else

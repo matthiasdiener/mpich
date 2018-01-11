@@ -1,5 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
-/*  $Id: adioi_errmsg.h,v 1.3 2002/11/15 16:26:22 gropp Exp $
+/*  $Id: adioi_errmsg.h,v 1.4 2003/05/29 00:02:38 robl Exp $
  *
  *  (C) 2001 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
@@ -60,6 +60,7 @@ MPI_ERR_IO
     MPIR_PREALLOC_PERM "To preallocate disk space, ROMIO needs to read the file and write it back, but is unable to read the file. Please give the file read permission and open it with MPI_MODE_RDWR."
     MPIR_ERR_FILETYPE  "Filetype must be constructed out of one or more etypes"
     MPIR_ERR_NO_TESTFS "ROMIO has not been configured to use the TESTFS file system"
+    MPIR_ERR_DEFERRED "independent IO attempted even though no_indep_rw hint given"
 
 MPI_ERR_COMM
     MPIR_ERR_COMM_NULL (null communicator. from MPICH)

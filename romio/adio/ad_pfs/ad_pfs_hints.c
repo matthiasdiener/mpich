@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_pfs_hints.c,v 1.4 2002/10/24 17:00:51 gropp Exp $    
+ *   $Id: ad_pfs_hints.c,v 1.5 2003/02/27 02:26:44 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -15,7 +15,7 @@ void ADIOI_PFS_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code)
     struct sattr attr;
     int err, myrank, fd_sys, perm, amode, old_mask;
 
-    if (!(fd->info)) {
+    if ( (fd->info) == MPI_INFO_NULL) {
 	/* This must be part of the open call. can set striping parameters 
            if necessary. */ 
 	MPI_Info_create(&(fd->info));

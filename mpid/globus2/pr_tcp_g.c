@@ -1,3 +1,4 @@
+#include "chconfig.h"
 #include "mpid.h"    /* GRIDFTP */
 #include "globdev.h"
 #include "reqalloc.h"
@@ -1160,6 +1161,9 @@ void listen_callback(void *callback_arg,         /* unused */
                         &(rwhp->handle)); /* handle for new socket */
                                         /* created as a result of this accept */
 
+#if 0
+    /* commented out because as of GT 3.2 the   */
+    /* (rwhp->handle).fd field no longer exists */
     if (MpichGlobus2TcpBufsz > 0)
     {
 	int size;
@@ -1190,6 +1194,7 @@ void listen_callback(void *callback_arg,         /* unused */
 		MpichGlobus2TcpBufsz);
 	} /* endif */
     } /* endif */
+#endif
 	
     globus_io_register_read(&(rwhp->handle),
 			rwhp->instruction_buff, /* data will */
@@ -1360,6 +1365,9 @@ void prime_the_line(struct tcp_miproto_t *tp, int dest_grank)
 	    } /* endif */
 	    globus_io_tcpattr_destroy(&(tp->attr));
 
+#if 0
+	    /* commented out because as of GT 3.2 the   */
+	    /* (rwhp->handle).fd field no longer exists */
 	    if (MpichGlobus2TcpBufsz > 0)
 	    {
 		int				size;
@@ -1392,6 +1400,7 @@ void prime_the_line(struct tcp_miproto_t *tp, int dest_grank)
 			MpichGlobus2TcpBufsz);
 		} /* endif */
 	    } /* endif */
+#endif
 		    
 	    if ((row = get_channel_rowidx(MPID_MyWorldRank, &displ)) == -1)
 	    {

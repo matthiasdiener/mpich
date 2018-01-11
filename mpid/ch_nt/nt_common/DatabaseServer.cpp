@@ -95,11 +95,16 @@ bool DatabaseServer::Start()
 	if (m_hServerThread == NULL)
 	{
 		DWORD dwThreadID;
-		m_hServerThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)DatabaseServerThread, this, 0, &dwThreadID);
-		if (m_hServerThread == NULL)
+		for (int i=0; i<DBS_CREATE_THREAD_RETRIES; i++)
 		{
-			return false;
+			m_hServerThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)DatabaseServerThread, this, 0, &dwThreadID);
+			if (m_hServerThread != NULL)
+			{
+				return true;
+			}
+			Sleep(DBS_CREATE_THREAD_SLEEP_TIME);
 		}
+		return false;
 	}
 	return true;
 }

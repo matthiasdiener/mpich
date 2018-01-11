@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: adioi_fs_proto.h,v 1.11 2002/10/24 17:01:16 gropp Exp $    
+ *   $Id: adioi_fs_proto.h,v 1.12 2003/06/24 22:48:23 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -571,6 +571,11 @@ void ADIOI_PVFS_Resize(ADIO_File fd, ADIO_Offset size, int *error_code);
 ADIO_Offset ADIOI_PVFS_SeekIndividual(ADIO_File fd, ADIO_Offset offset, 
                        int whence, int *error_code);
 void ADIOI_PVFS_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code);
+#endif
+
+#ifdef ROMIO_PVFS2
+extern struct ADIOI_Fns_struct ADIO_PVFS2_operations;
+/* prototypes are in adio/ad_pvfs2/ad_pvfs2.h */
 #endif
 
 #ifdef ROMIO_TESTFS

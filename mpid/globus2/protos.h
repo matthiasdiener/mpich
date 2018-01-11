@@ -1,10 +1,6 @@
 #ifndef __globdev_protos__
 #define __globdev_protos__
 
-#include <globus_common.h>
-#include <globus_io.h>
-#include <globus_ftp_control.h> /* GRIDFTP */
-
 /*******************/
 /* Data Structures */
 /*******************/

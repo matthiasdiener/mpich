@@ -170,6 +170,7 @@ int Run()
     char host[100];
     int listen_port;
     HANDLE *hWorkers;
+    int iter;
 
     easy_get_ip(&g_nIP);
     easy_get_ip_string(g_pszIP);
@@ -218,7 +219,13 @@ int Run()
     hWorkers = new HANDLE[g_NumCommPortThreads];
     for (i=0; i<g_NumCommPortThreads; i++)
     {
-	hWorkers[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RunWorkerThread, NULL, 0, &dwThreadID);
+	for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+	{
+	    hWorkers[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RunWorkerThread, NULL, 0, &dwThreadID);
+	    if (hWorkers[i] != NULL)
+		break;
+	    Sleep(CREATE_THREAD_SLEEP_TIME);
+	}
 	if (hWorkers[i] == NULL)
 	    ErrorExit("Run: CreateThread(RunWorkerThread) failed", GetLastError());
     }

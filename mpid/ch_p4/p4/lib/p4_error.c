@@ -151,7 +151,7 @@ P4VOID p4_error( char *string, int value )
       BNR_Kill( mygroup );
     }
 #endif
-    clean_execer_port();
+    p4_clean_execer_port();
 
     if (interrupt_caught && value != SIGINT)
     {

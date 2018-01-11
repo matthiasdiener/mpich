@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: get_errh.c,v 1.3 2002/10/24 15:54:40 gropp Exp $    
+ *   $Id: get_errh.c,v 1.10 2003/04/18 20:15:07 David Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -39,16 +39,19 @@ Output Parameters:
 int MPI_File_get_errhandler(MPI_File fh, MPI_Errhandler *errhandler)
 {
     int error_code = MPI_SUCCESS;
-#ifndef PRINT_ERR_MSG
+#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "MPI_FILE_GET_ERRHANDLER";
 #endif
 
     if (fh == MPI_FILE_NULL) *errhandler = ADIOI_DFLT_ERR_HANDLER;
     else if (fh->cookie != ADIOI_FILE_COOKIE) {
-#ifdef PRINT_ERR_MSG
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_FILE, "**iobadfh", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
 	FPRINTF(stderr, "MPI_File_close: Invalid file handle\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_FILE, MPIR_ERR_FILE_CORRUPT, 
               myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(MPI_FILE_NULL, error_code, myname);

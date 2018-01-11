@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_write_str.c,v 1.8 2002/10/24 17:01:13 gropp Exp $    
+ *   $Id: ad_write_str.c,v 1.12 2003/12/16 21:51:22 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -96,10 +96,25 @@ void ADIOI_GEN_WriteStrided(ADIO_File fd, void *buf, int count,
     int buf_count, buftype_is_contig, filetype_is_contig;
     ADIO_Offset userbuf_off;
     ADIO_Offset off, req_off, disp, end_offset=0, writebuf_off, start_off;
-    char *writebuf, *value;
+    char *writebuf;
     int flag, st_fwr_size, st_n_filetypes, writebuf_len, write_sz;
     ADIO_Status status1;
-    int new_bwr_size, new_fwr_size, info_flag, max_bufsize;
+    int new_bwr_size, new_fwr_size, max_bufsize;
+
+    if (fd->hints->ds_write == ADIOI_HINT_DISABLE) {
+    	/* if user has disabled data sieving on reads, use naive
+	 * approach instead.
+	 */
+	ADIOI_GEN_WriteStrided_naive(fd, 
+				    buf,
+				    count,
+				    datatype,
+				    file_ptr_type,
+				    offset,
+				    status,
+				    error_code);
+    	return;
+    }
 
     *error_code = MPI_SUCCESS;  /* changed below if error */
 
@@ -121,11 +136,7 @@ void ADIOI_GEN_WriteStrided(ADIO_File fd, void *buf, int count,
 
 /* get max_bufsize from the info object. */
 
-    value = (char *) ADIOI_Malloc((MPI_MAX_INFO_VAL+1)*sizeof(char));
-    MPI_Info_get(fd->info, "ind_wr_buffer_size", MPI_MAX_INFO_VAL, value, 
-                 &info_flag);
-    max_bufsize = atoi(value);
-    ADIOI_Free(value);
+    max_bufsize = fd->hints->ind_wr_buffer_size;
 
     if (!buftype_is_contig && filetype_is_contig) {
 

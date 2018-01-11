@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_pvfs_read.c,v 1.12 2003/04/05 17:55:39 David Exp $    
+ *   $Id: ad_pvfs_read.c,v 1.13 2003/04/18 20:15:01 David Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -50,7 +50,7 @@ void ADIOI_PVFS_ReadContig(ADIO_File fd, void *buf, int count,
 
     if (err == -1) {
 #ifdef MPICH2
-	*error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, MPI_ERR_IO, "**io",
+	*error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io",
 	    "**io %s", strerror(errno));
 #elif defined(PRINT_ERR_MSG)
 	*error_code = MPI_ERR_UNKNOWN;

@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: iowait.c,v 1.8 2002/10/24 15:54:41 gropp Exp $    
+ *   $Id: iowait.c,v 1.17 2003/04/18 20:15:08 David Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -37,10 +37,16 @@ Output Parameters:
 
 .N fortran
 @*/
+#ifdef HAVE_MPI_GREQUEST
+int MPIO_Wait(MPIO_Request *request, MPI_Status *status)
+{
+	return(MPI_Wait(request, status));
+}
+#else
 int MPIO_Wait(MPIO_Request *request, MPI_Status *status)
 {
     int error_code;
-#ifndef PRINT_ERR_MSG
+#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "MPIO_WAIT";
 #endif
 #ifdef MPI_hpux
@@ -55,10 +61,13 @@ int MPIO_Wait(MPIO_Request *request, MPI_Status *status)
 
     if ((*request < (MPIO_Request) 0) || 
 	     ((*request)->cookie != ADIOI_REQ_COOKIE)) {
-#ifdef PRINT_ERR_MSG
+#ifdef MPICH2
+			error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_REQUEST, "**request", 0);
+			return error_code;
+#elif defined(PRINT_ERR_MSG)
 	FPRINTF(stderr, "MPIO_Wait: Invalid request object\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_REQUEST, MPIR_ERR_REQUEST_NULL,
 				     myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(MPI_FILE_NULL, error_code, myname);
@@ -79,3 +88,4 @@ int MPIO_Wait(MPIO_Request *request, MPI_Status *status)
 #endif /* MPI_hpux */
     return error_code;
 }
+#endif

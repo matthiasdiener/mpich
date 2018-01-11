@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: cb_config_list.c,v 1.4 2002/10/24 17:01:14 gropp Exp $    
+ *   $Id: cb_config_list.c,v 1.5 2003/04/24 21:10:20 David Exp $    
  *
  *   Copyright (C) 2001 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -673,7 +673,7 @@ static int cb_config_list_lex(void)
 
     if (*token_ptr == '\0') return AGG_EOS;
 
-    slen = strcspn(token_ptr, ":,");
+    slen = (int)strcspn(token_ptr, ":,");
 
     if (*token_ptr == ':') {
 	token_ptr++;

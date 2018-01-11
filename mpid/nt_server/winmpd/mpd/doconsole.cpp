@@ -695,7 +695,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		fflush(stdout);
 		break;
 	    }
-	    if (ReadStringMax(sock, str, CONSOLE_STR_LENGTH))
+	    if (ReadStringMaxTimeout(sock, str, CONSOLE_STR_LENGTH, MPD_DEFAULT_TIMEOUT))
 	    {
 		printf("%s", str);fflush(stdout);
 	    }
@@ -724,7 +724,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		fflush(stdout);
 		break;
 	    }
-	    if (ReadStringMax(sock, str, CONSOLE_STR_LENGTH))
+	    if (ReadStringMaxTimeout(sock, str, CONSOLE_STR_LENGTH, MPD_DEFAULT_TIMEOUT))
 	    {
 		printf("%s", str);fflush(stdout);
 	    }

@@ -49,6 +49,7 @@ void RedirectIOThread2(SOCKET abort_sock)
     int nDatalen;
     bool bDeleteOnEmpty = false;
     HANDLE hChildThread = NULL;
+    int iter;
 
     hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
     hStderr = GetStdHandle(STD_ERROR_HANDLE);
@@ -145,7 +146,14 @@ void RedirectIOThread2(SOCKET abort_sock)
 			break;
 		    }
 		    DWORD dwThreadId;
-		    HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectIOThread2, (LPVOID)temp_sock, 0, &dwThreadId);
+		    HANDLE hThread;
+		    for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+		    {
+			hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectIOThread2, (LPVOID)temp_sock, 0, &dwThreadId);
+			if (hThread != NULL)
+			    break;
+			Sleep(CREATE_THREAD_SLEEP_TIME);
+		    }
 		    if (hThread == NULL)
 		    {
 			printf("Critical error: Unable to create an io thread\n");fflush(stdout);
@@ -173,7 +181,13 @@ void RedirectIOThread2(SOCKET abort_sock)
 		    if (cType == 0)
 		    {
 			DWORD dwThreadID;
-			hChildThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectStdin, (void*)client_sock, 0, &dwThreadID);
+			for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+			{
+			    hChildThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectStdin, (void*)client_sock, 0, &dwThreadID);
+			    if (hChildThread != NULL)
+				break;
+			    Sleep(CREATE_THREAD_SLEEP_TIME);
+			}
 		    }
 		    else
 		    {
@@ -288,6 +302,7 @@ void RedirectIOThread(HANDLE hReadyEvent)
     int nDatalen;
     bool bDeleteOnEmpty = false;
     HANDLE hChildThread = NULL;
+    int iter;
 
     hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
     hStderr = GetStdHandle(STD_ERROR_HANDLE);
@@ -301,7 +316,20 @@ void RedirectIOThread(HANDLE hReadyEvent)
 	ExitProcess(error);
     }
     listen(g_sockListen, 5);
-    easy_get_sock_info(g_sockListen, g_pszIOHost, &g_nIOPort);
+    if (g_bIPRoot)
+    {
+	// I've seen problems where the job nodes cannot contact back to the mpirun process
+	// using the host name.  But they can connect back if they know the ip address.
+	// This will not work on systems with multiple nics, for those systems a list
+	// of ip's need to be transfered.
+	/*easy_get_sock_info_ip(g_sockListen, g_pszIOHost, &g_nIOPort);*/
+	easy_get_sock_info(g_sockListen, g_pszIOHost, &g_nIOPort);
+	easy_get_ip_string(g_pszIOHost, g_pszIOHost);
+    }
+    else
+    {
+	easy_get_sock_info(g_sockListen, g_pszIOHost, &g_nIOPort);
+    }
 
     // Connect a stop socket to myself
     if (easy_create(&g_sockStopIOSignalSocket, ADDR_ANY, INADDR_ANY) == SOCKET_ERROR)
@@ -327,7 +355,12 @@ void RedirectIOThread(HANDLE hReadyEvent)
 	ExitProcess(error);
     }
 
-    SetEvent(hReadyEvent);
+    if (!SetEvent(hReadyEvent))
+    {
+	int error = GetLastError();
+	printf("RedirectIOThread failed to set the ready event, error %d\n", error);
+	ExitProcess(error);
+    }
 
     fd_set total_set, readset;
     SOCKET sockActive[FD_SETSIZE];
@@ -398,7 +431,13 @@ void RedirectIOThread(HANDLE hReadyEvent)
 			break;
 		    }
 		    DWORD dwThreadId;
-		    hChildThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectIOThread2, (LPVOID)temp_sock, 0, &dwThreadId);
+		    for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+		    {
+			hChildThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectIOThread2, (LPVOID)temp_sock, 0, &dwThreadId);
+			if (hChildThread != NULL)
+			    break;
+			Sleep(CREATE_THREAD_SLEEP_TIME);
+		    }
 		    if (hChildThread == NULL)
 		    {
 			printf("Critical error: Unable to create an io thread\n");fflush(stdout);
@@ -425,7 +464,13 @@ void RedirectIOThread(HANDLE hReadyEvent)
 		    {
 			HANDLE hThread;
 			DWORD dwThreadID;
-			hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectStdin, (void*)client_sock, 0, &dwThreadID);
+			for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+			{
+			    hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectStdin, (void*)client_sock, 0, &dwThreadID);
+			    if (hThread != NULL)
+				break;
+			    Sleep(CREATE_THREAD_SLEEP_TIME);
+			}
 			if (hThread == NULL)
 			{
 			    printf("Critical error: Standard input redirection thread creation failed. error %d\n", GetLastError());fflush(stdout);

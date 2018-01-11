@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: get_size.c,v 1.8 2002/10/24 17:01:17 gropp Exp $    
+ *   $Id: get_size.c,v 1.12 2003/06/06 21:21:10 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -57,6 +57,8 @@ int MPI_File_get_size(MPI_File fh, MPI_Offset *size)
 #else
     ADIOI_TEST_FILE_HANDLE(fh, myname);
 #endif
+
+    ADIOI_TEST_DEFERRED(fh, "MPI_File_get_size", &error_code);
 
     fcntl_struct = (ADIO_Fcntl_t *) ADIOI_Malloc(sizeof(ADIO_Fcntl_t));
     ADIO_Fcntl(fh, ADIO_FCNTL_GET_FSIZE, fcntl_struct, &error_code);

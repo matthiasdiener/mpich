@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ioreq_f2c.c,v 1.8 2002/10/24 15:54:40 gropp Exp $    
+ *   $Id: ioreq_f2c.c,v 1.11 2004/02/12 06:08:27 David Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -35,17 +35,23 @@ Input Parameters:
 Return Value:
   C I/O-request handle (handle)
 @*/
+#ifdef HAVE_MPI_GREQUEST
+MPIO_Request MPIO_Request_f2c(MPI_Fint request) {return((MPIO_Request)request);}
+#else
 MPIO_Request MPIO_Request_f2c(MPI_Fint request)
 {
 
 #ifndef INT_LT_POINTER
     return (MPIO_Request) request;
 #else
+    /* --BEGIN ERROR HANDLING-- */
     if (!request) return MPIO_REQUEST_NULL;
     if ((request < 0) || (request > ADIOI_Reqtable_ptr)) {
 	FPRINTF(stderr, "MPIO_Request_f2c: Invalid request\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
+    /* --END ERROR HANDLING-- */
     return ADIOI_Reqtable[request];
 #endif
 }
+#endif

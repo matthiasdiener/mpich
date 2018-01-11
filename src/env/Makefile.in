@@ -27,7 +27,7 @@ SHELL       = /bin/sh
 @VPATH@
 
 .SUFFIXES:
-.SUFFIXES: .o .c
+.SUFFIXES: .o .c .txt
 
 LIBS = ${libbuild_dir}/lib${MPILIBNAME}.a
 
@@ -72,12 +72,9 @@ source_names:
 
 #
 # This gives -mpiversion the ability to echo the configuration arguments.
-#initutil.o: ${srcdir}/initutil.c
-#	${CC} ${DEFS} ${INCLUDES} ${CFLAGS} -c \
-#	-DCONFIGURE_ARGS_CLEAN='"@CONFIGURE_ARGS_CLEAN@"' \
-#	-DMPIRUN_MACHINE='"@DEFAULT_MACHINE@"' \
-#	-DMPIRUN_DEVICE='"@DEVICE@"' \
-#	${srcdir}/initutil.c
+# Make sure that the dependency on the patchlevel file is included
+# so that mpichversion will work correctly
+initutil.o: ${srcdir}/initutil.c ${top_srcdir}/include/patchlevel.h
 
 mpich.En_US.cat: ${srcdir}/mpich.En_US.msg
 	@GENCAT@ mpich.En_US.cat ${srcdir}/mpich.En_US.msg
@@ -124,6 +121,9 @@ msgqdllloc.o: ${top_srcdir}/src/env/msgqdllloc.c
 
 .c.o:
 	${CC} ${DEFS} ${INCLUDES} ${CFLAGS} ${OPTFLAGSC} ${OPTFLAGS} -c $<
+.c.txt:
+	${CC} -E ${DEFS} ${INCLUDES} ${CFLAGS} ${OPTFLAGSC} ${OPTFLAGS} -c $< > $*.txt
+
 
 # Always compile this with -g
 # Warning: some systems might not support -g.  We'll deal with that when

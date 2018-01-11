@@ -1,0 +1,6 @@
+Makefile
+*.o
+*.cat
+farg.f
+farg90.f
+mpich.En_US.cat.m

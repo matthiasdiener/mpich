@@ -33,6 +33,12 @@ char *alloca ();
 #   endif
 #  endif
 # endif
+# else
+/* alloca.h is not loaded by default by gcc if the -ansi (or any of a
+   number of other C dialects are selected) */
+# ifdef HAVE_ALLOCA_H
+#  include <alloca.h>
+# endif
 #endif
 
 #include "str_util.h"

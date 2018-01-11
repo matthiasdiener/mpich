@@ -30,25 +30,33 @@ bool HostIsLocal(char *pszHost)
     char temp[100], localhost[100];
     DWORD len = 100;
 
-    return false;
+    //return false;
 
     strcpy(temp, pszHost);
     // get rid of the domain extension
     strtok(temp, ".");
     // get the local computer name
     GetComputerName(localhost, &len);
-    // compare the local name to the provided name
-    return (stricmp(temp, localhost) == 0);
-}
+    // compare the computer name to the provided name
+    if (stricmp(temp, localhost) == 0)
+	return true;
 
-void CreateInProcessMPD()
-{
-}
-
-int ConnectToInProcessMPD(SOCKET *sock)
-{
-    *sock = NULL;
-    return -1;
+    if (gethostname(localhost, 100) != SOCKET_ERROR)
+    {
+	// compare to the result of gethostname
+	if (stricmp(pszHost, localhost) == 0)
+	    return true;
+	// compare to an ip string
+	easy_get_ip_string(localhost, localhost);
+	if (stricmp(pszHost, localhost) == 0)
+	    return true;
+	// convert to an ip string and then compare
+	strcpy(temp, pszHost);
+	easy_get_ip_string(temp, temp);
+	if (stricmp(pszHost, temp) == 0)
+	    return true;
+    }
+    return false;
 }
 
 // Function name	: LaunchProcess
@@ -62,7 +70,7 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
     long error;
     int nPid;
     int nPort = MPD_DEFAULT_PORT;
-    SOCKET sock;
+    SOCKET sock, root_sock;
     int launchid;
     char pszStartupDB[100];
     char pszStr[MAX_CMD_LENGTH+1];
@@ -74,73 +82,64 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
     if (arg->bUseDebugFlag)
 	dbg_str = "yes";
 
-    /*
-    if (arg->i == 0 && HostIsLocal(arg->pszHost))
-    {
-	CreateInProcessMPD();
-	error = ConnectToInProcessMPD(&sock);
-    }
-    else
-    {
-	error = ConnectToMPD(arg->pszHost, nPort, arg->pszPassPhrase, &sock);
-    }
-    */
-
-    if (arg->i == 0 && HostIsLocal(arg->pszHost))
+    if (arg->i == 0 && g_bLocalRoot && HostIsLocal(arg->pszHost))
 	bLocalStartup = true;
-    error = ConnectToMPD(arg->pszHost, nPort, arg->pszPassPhrase, &sock);
 
     //printf("MPIRunLaunchProcess:connecting to %s:%d rank %d\n", arg->pszHost, nPort, arg->i);fflush(stdout);
-    //if ((error = ConnectToMPD(arg->pszHost, nPort, arg->pszPassPhrase, &sock)) == 0)
+    error = ConnectToMPD(arg->pszHost, nPort, arg->pszPassPhrase, &sock);
+
     if (error == 0)
     {
-	if (arg->i == 0 && !g_bNoMPI)
+	if (!g_bMPICH2)
 	{
-	    sprintf(pszStr, "dbcreate");
-	    if (WriteString(sock, pszStr) == SOCKET_ERROR)
+	    if (arg->i == 0 && !g_bNoMPI)
 	    {
-		printf("ERROR: Unable to write '%s' to socket[%d]\n", pszStr, sock);
-		//ExitProcess(0);
-		easy_closesocket(sock);
-		SetEvent(g_hAbortEvent);
-		delete arg;
-		return;
-	    }
-	    // read result
-	    if (!ReadStringTimeout(sock, pszStartupDB, g_nMPIRUN_SHORT_TIMEOUT))
-	    {
-		printf("ERROR: ReadString failed to read the database name: error %d\n", WSAGetLastError());
-		//ExitProcess(0);
-		easy_closesocket(sock);
-		SetEvent(g_hAbortEvent);
-		delete arg;
-		return;
-	    }
-	    if (strnicmp(pszStartupDB, "FAIL ", 5) == 0)
-	    {
-		printf("Unable to create a database on '%s'\n%s", arg->pszHost, pszStartupDB);fflush(stdout);
-		//ExitProcess(0);
-		easy_closesocket(sock);
-		SetEvent(g_hAbortEvent);
-		delete arg;
-		return;
-	    }
-	    // The ordering of the arguments may seem funny because pszHost is last.
-	    // I think this needs to be this way so old mpd's can still launch new mpich processes
-	    sprintf(pszStr, "|MPICH_EXTRA=mpd:%s:%d:%s:%s", pszStartupDB, nPort, arg->pszPassPhrase, arg->pszHost);
-	    strncat(arg->pszEnv, pszStr, MAX_CMD_LENGTH - 1 - strlen(arg->pszEnv));
+		sprintf(pszStr, "dbcreate");
+		if (WriteString(sock, pszStr) == SOCKET_ERROR)
+		{
+		    printf("ERROR: Unable to write '%s' to socket[%d]\n", pszStr, sock);
+		    //ExitProcess(0);
+		    easy_closesocket(sock);
+		    SetEvent(g_hAbortEvent);
+		    delete arg;
+		    return;
+		}
+		// read result
+		if (!ReadStringTimeout(sock, pszStartupDB, g_nMPIRUN_SHORT_TIMEOUT))
+		{
+		    printf("ERROR: ReadString failed to read the database name: error %d\n", WSAGetLastError());
+		    //ExitProcess(0);
+		    easy_closesocket(sock);
+		    SetEvent(g_hAbortEvent);
+		    delete arg;
+		    return;
+		}
+		if (strnicmp(pszStartupDB, "FAIL ", 5) == 0)
+		{
+		    printf("Unable to create a database on '%s'\n%s", arg->pszHost, pszStartupDB);fflush(stdout);
+		    //ExitProcess(0);
+		    easy_closesocket(sock);
+		    SetEvent(g_hAbortEvent);
+		    delete arg;
+		    return;
+		}
+		// The ordering of the arguments may seem funny because pszHost is last.
+		// I think this needs to be this way so old mpd's can still launch new mpich processes
+		sprintf(pszStr, "|MPICH_EXTRA=mpd:%s:%d:%s:%s", pszStartupDB, nPort, arg->pszPassPhrase, arg->pszHost);
+		strncat(arg->pszEnv, pszStr, MAX_CMD_LENGTH - 1 - strlen(arg->pszEnv));
 
-	    if (g_bUseJobHost)
+		if (g_bUseJobHost)
+		{
+		    PutJobInDatabase(arg);
+		}
+	    }
+	    else
 	    {
-		PutJobInDatabase(arg);
+		sprintf(pszStr, "|MPICH_EXTRA=mpd:%s:%d:%s", arg->pszHost, nPort, arg->pszPassPhrase);
+		strncat(arg->pszEnv, pszStr, MAX_CMD_LENGTH - 1 - strlen(arg->pszEnv));
 	    }
 	}
-	else
-	{
-	    sprintf(pszStr, "|MPICH_EXTRA=mpd:%s:%d:%s", arg->pszHost, nPort, arg->pszPassPhrase);
-	    strncat(arg->pszEnv, pszStr, MAX_CMD_LENGTH - 1 - strlen(arg->pszEnv));
-	}
-	
+
 	if (arg->i == 0)
 	    strcpy(pszIOE, "012"); // only redirect stdin to the root process
 	else
@@ -250,13 +249,14 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
 	if (pszMap)
 	{
 	    strcat(pszStr, pszMap);
-	    delete pszMap;
+	    delete [] pszMap;
 	}
 	//printf("MPIRunLaunchProcess:launch command = %s\n", pszStr);fflush(stdout);
 	if (bLocalStartup)
 	{
 	    // launch process
-	    nPid = -1;
+	    LaunchRootProcess(pszStr, &root_sock, &nPid);
+	    launchid = 1010101;
 	}
 	else
 	{
@@ -270,7 +270,7 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
 	    }
 	    if (!ReadStringTimeout(sock, pszStr, g_nMPIRUN_SHORT_TIMEOUT))
 	    {
-		printf("ERROR: Unable to read the result of the launch command on '%s'\r\nError %d", arg->pszHost, WSAGetLastError());
+		printf("ERROR: Unable to read the result of the launch command for process %d sent to '%s'\r\nError %d", arg->i, arg->pszHost, WSAGetLastError());
 		easy_closesocket(sock);
 		SetEvent(g_hAbortEvent);
 		delete arg;
@@ -288,20 +288,21 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
 		return;
 	    }
 	    // the following timeout needs to be longer than MPIRUN_SHORT_TIMEOUT because the CreateProcess command may take
-	    // a while to start the process if it lives in a shared directory
+	    // a while to start the process.  For example: it may live on a shared directory
+	    /*printf("launching process with timeout: %d seconds\n", g_nMPIRUN_CREATE_PROCESS_TIMEOUT);fflush(stdout);*/
 	    if (!ReadStringTimeout(sock, pszStr, g_nMPIRUN_CREATE_PROCESS_TIMEOUT))
 	    {
 		error = WSAGetLastError();
 		if (error == ERROR_TIMEOUT || error == 0)
 		{
-		    printf("Launch process error: Timed out waiting for the result of the process launch command sent to host '%s'\r\n", arg->pszHost);
+		    printf("Launch process error: Timed out waiting for the result of the process launch command sent to host '%s' for process %d\r\n", arg->pszHost, arg->i);
 		}
 		else
 		{
-		    printf("Launch process error: Unable to read the result of the getpid command on '%s'\r\nError %d", arg->pszHost, error);
+		    printf("Launch process error: Unable to read the result of the getpid command sent to '%s' for process %d\r\nError %d", arg->pszHost, arg->i, error);
 		    fflush(stdout);
 		}
-		printf("Attempt to launch '%s' on '%s' failed.\n", arg->pszCmdLine, arg->pszHost);
+		printf("Attempt to launch process %d (%s) on '%s' failed.\n", arg->i, arg->pszCmdLine, arg->pszHost);
 		fflush(stdout);
 		easy_closesocket(sock);
 		SetEvent(g_hAbortEvent);
@@ -352,7 +353,7 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
 	}
 
 	// Get the port number and redirect input to the first process
-	if (arg->i == 0 && !g_bNoMPI)
+	if (arg->i == 0 && !g_bNoMPI && !g_bMPICH2)
 	{
 	    /*
 	    // Check if the root process is alive
@@ -376,7 +377,7 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
 	    }
 	    if (stricmp(pszStr, "ACTIVE") != 0)
 	    {
-		printf("ERROR: Root process has unexpectedly exited.\n");
+		printf("ERROR: The root process on %s has unexpectedly exited.\n", arg->pszHost);
 		WriteString(sock, "done");
 		easy_closesocket(sock);
 		SetEvent(g_hAbortEvent);
@@ -448,7 +449,7 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
 			    }
 			    else
 			    {
-				printf("ERROR: The root process has unexpectedly exited.\n");
+				printf("ERROR: The root process on %s has unexpectedly exited.\n", arg->pszHost);
 				if (g_bUseJobHost)
 				{
 				    sprintf(pszStr, "geterror %d", launchid);
@@ -499,7 +500,7 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
 			    }
 			    if (id == launchid)
 			    {
-				printf("ERROR: root process has unexpectedly exited. Exit code = %d\n", x);
+				printf("ERROR: The root process on %s has unexpectedly exited. Exit code = %d\n", arg->pszHost, x);
 				if (bLocalStartup)
 				{
 				    sprintf(pszStr, "freeprocess %d", launchid);
@@ -616,6 +617,16 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
 	if (bLocalStartup)
 	{
 	    // send a simulated getexitcodewait command to the local process
+	    sprintf(pszStr, "getexitcodewait %d", launchid);
+	    if (WriteString(root_sock, pszStr) == SOCKET_ERROR)
+	    {
+		printf("Error: Unable to send a getexitcodewait command to local host\r\nError %d", WSAGetLastError());fflush(stdout);
+		easy_closesocket(root_sock);
+		easy_closesocket(sock);
+		SetEvent(g_hAbortEvent);
+		delete arg;
+		return;
+	    }
 	}
 	else
 	{
@@ -632,7 +643,10 @@ void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg)
 	}
 
 	int i = InterlockedIncrement(&g_nNumProcessSockets) - 1;
-	g_pProcessSocket[i] = sock;
+	if (bLocalStartup)
+	    g_pProcessSocket[i] = root_sock;
+	else
+	    g_pProcessSocket[i] = sock;
 	g_pProcessLaunchId[i] = launchid;
 	g_pLaunchIdToRank[i] = arg->i;
 

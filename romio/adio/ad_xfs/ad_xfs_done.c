@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_xfs_done.c,v 1.5 2002/10/24 17:01:09 gropp Exp $    
+ *   $Id: ad_xfs_done.c,v 1.10 2003/04/18 20:15:04 David Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -11,7 +11,7 @@
 int ADIOI_XFS_ReadDone(ADIO_Request *request, ADIO_Status *status, int *error_code)  
 {
     int err, done=0;
-#ifndef PRINT_ERR_MSG
+#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "ADIOI_XFS_READDONE";
 #endif
 
@@ -32,18 +32,21 @@ int ADIOI_XFS_ReadDone(ADIO_Request *request, ADIO_Status *status, int *error_co
 	    errno = aio_error64((const aiocb64_t *) (*request)->handle);
 
 	    done = 1;
-#ifdef PRINT_ERR_MSG
-	    *error_code = (err == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
-#else
 	    if (err == -1) {
+#ifdef MPICH2
+		*error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io",
+		    "**io %s", strerror(errno));
+#elif defined(PRINT_ERR_MSG)
+		*error_code = MPI_ERR_UNKNOWN;
+#else /* MPICH-1 */
 		*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
 			      myname, "I/O Error", "%s", strerror(errno));
 		ADIOI_Error((*request)->fd, *error_code, myname);	    
+#endif
 	    }
 	    else *error_code = MPI_SUCCESS;
-#endif
 	}
-    }
+    } /* if ((*request)->queued) */
     else {
 	done = 1;
 	*error_code = MPI_SUCCESS;

@@ -35,6 +35,9 @@ c                                 function to integrate
       f(a) = 4.d0 / (1.d0 + a*a)
 
       call MPI_INIT( ierr )
+
+      call MPI_Pcontrol( 0, ierr )
+
       call MPI_COMM_RANK( MPI_COMM_WORLD, myid, ierr )
       call MPI_COMM_SIZE( MPI_COMM_WORLD, numprocs, ierr )
       print *, "Process ", myid, " of ", numprocs, " is alive"
@@ -74,6 +77,7 @@ C 99      format(i10)
       endif
 
       call MPI_BARRIER( MPI_COMM_WORLD, ierr )
+      call MPI_Pcontrol( 1, ierr )
 
       do idx = 1, 2
 

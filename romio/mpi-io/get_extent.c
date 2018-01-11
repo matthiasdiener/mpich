@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: get_extent.c,v 1.8 2002/10/24 15:54:40 gropp Exp $    
+ *   $Id: get_extent.c,v 1.16 2003/09/15 13:33:30 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -39,7 +39,7 @@ Output Parameters:
 int MPI_File_get_type_extent(MPI_File fh, MPI_Datatype datatype, 
                              MPI_Aint *extent)
 {
-#ifndef PRINT_ERR_MSG
+#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     int error_code;
     static char myname[] = "MPI_FILE_GET_TYPE_EXTENT";
 #endif
@@ -54,15 +54,19 @@ int MPI_File_get_type_extent(MPI_File fh, MPI_Datatype datatype,
 #endif
 
     if (datatype == MPI_DATATYPE_NULL) {
-#ifdef PRINT_ERR_MSG
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_TYPE, "**dtypenull", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
         FPRINTF(stderr, "MPI_File_get_type_extent: Invalid datatype\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_TYPE, MPIR_ERR_TYPE_NULL,
 				     myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);	    
 #endif
     }
 
+    /* FIXME: handle other file data representations */
     return MPI_Type_extent(datatype, extent);
 }

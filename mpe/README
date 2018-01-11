@@ -1,7 +1,7 @@
                       MPE (Multi-Processing Environment)
                       ----------------------------------
 
-                          Version 1.2.4. May, 2002
+                          Version 1.9.1. November, 2003
 
                     Mathematics and Computer Science Division
                            Argonne National Laboratory
@@ -32,27 +32,26 @@ libraries.
       that requires X window routines.  
 
    3) Logging Libraries - The most useful and widely used profiling libraries 
-      in MPE.  They form the basis to generate log files from user MPI programs.
-      There are currently 3 different log file formats allowed in MPE.  The 
-      default log file format is CLOG.  It is basically a collection of events 
-      with single timestamps.  And there is ALOG which is provided for backward
-      compatibility reason and it is not being developed.  And the most 
-      powerful one is SLOG, stands for Scalable LOGfile format, which can be
-      converted from CLOG file after CLOG file has been generated (preferred
-      approach), or can be generated directly when MPI program is executed 
-      (through setting the environmental variable MPE_LOG_FORMAT to SLOG).
+      in MPE.  These libraries form the basis to generate log files from 
+      user MPI programs.  There are several different log file formats
+      available in MPE.  The default log file format is CLOG.  It is a low
+      overhead logging format, a simple collection of single timestamp events.
+      There is ALOG which is provided for backward compatibility reason and 
+      it is not being developed, users are strongly urged not to use ALOG if
+      possible.  The most powerful one is SLOG-2, stands for Scalable 
+      LOGfile format version II which is a total redesign of the original
+      SLOG format.  SLOG-2 allows for much improved scalability for 
+      visualization purpose.  CLOG file can be easily converted to 
+      SLOG-2 file through the new SLOG-2 viewer, Jumpshot-4.
 
 The set of utility programs in MPE includes log format converter (e.g. 
-clog2slog), logfile print (e.g. slog_print) and logfile viewer wrappers, 
-logviewer, which selects the correct graphical tool to display the logfile 
-based on the logfile's file extension.
+clogTOslog2), logfile print (e.g. slog2print) and logfile viewer and
+convertor (e.g. jumpshot).  These new tools, clogTOslog2, slog2print and
+jumpshot(Jumpshot-4) replace old tools, clog2slog, slog_print and logviewer
+(i.e. Jumpshot-2 and Jumpshot-3).  For more information of various
+logfile formats and their viewers, see 
 
-Currently, MPE's graphical tools includes 3 display programs, upshot for
-ALOG, jumpshot-2 for CLOG and jumpshot-3 for SLOG.  The logviewer script 
-eliminates the need for user to remember the relationship of logfile formats 
-to display programs.
-
-
+http://www.mcs.anl.gov/perfvis
 
 
 
@@ -60,9 +59,10 @@ II. CONFIGURATION
 -----------------
 
 MPE can be configured and installed as an extension to most MPI standard
-compliant MPI implementations, e.g. MPICH, LAM, SGI's MPI, HP-UX's MPI 
-and IBM's MPI.  It has been integrated seamlessly into MPICH distribution, 
-so MPE will be installed automatically during MPICH's installation process.  
+compliant MPI implementations, e.g. MPICH-2, MPICH, LAM, SGI's MPI,
+HP-UX's MPI and IBM's MPI.  It has been integrated seamlessly into 
+MPICH and MPICH-2 distributions, so MPE will be installed automatically
+during MPICH-X's installation process.  
 
 
 
@@ -290,7 +290,7 @@ implementations.
 
 
 
-III. a)  Configuring as part of the MPICH configure
+III. a)  Configuring as part of the MPICH-x configure
 ---------------------------------------------------
 
 The configure in the MPICH directory will try to determine the necessary 
@@ -305,6 +305,8 @@ where MPE_OPTS is one or more of the choices in section II.  Multiple
 instances of -mpe_opts are allowed to specify different options for 
 the MPE configure.
 
+The MPICH-2 configure works seamlessly with MPE's, so MPE configure
+options can be passed down from MPICH-2 without -mpe_opts.
 
 
 III. b) Configuring as part of an existing MPI implementation
@@ -367,7 +369,7 @@ is there.  Here is the configure options.
 For LAM, do
 
     setenv MPI_CC ${LAM_INSTALL_DIR}/bin/mpicc
-    setenv MPI_f77 ${LAM_INSTALL_DIR}/bin/mpif77
+    setenv MPI_F77 ${LAM_INSTALL_DIR}/bin/mpif77
     ${MPE_SRC_DIR}/configure --with-mpilibs="-L${LAM_INSTALL_DIR}/lib -lpmpi" \
                              --with-java1=/sandbox/jdk117_v3 \
                              --with-java2=/sandbox/jdk1.3.1
@@ -380,13 +382,25 @@ To use LAM's Fortran to C MPI library in LAM 6.3.3 or later, liblamf77mpi.a,
 do
 
     setenv MPI_CC ${LAM_INSTALL_DIR}/bin/mpicc
-    setenv MPI_f77 ${LAM_INSTALL_DIR}/bin/mpif77
+    setenv MPI_F77 ${LAM_INSTALL_DIR}/bin/mpif77
     ${MPE_SRC_DIR}/configure --with-mpilibs="-L${LAM_INSTALL_DIR}/lib -lpmpi" \
                              --with-f2cmpilibs=-llamf77mpi \
                              --with-java1=/sandbox/jdk117_v3 \
                              --with-java2=/sandbox/jdk1.3.1
     make
     make install PREFIX=${MPE_INSTALL_DIR}
+
+LAM 6.5.6 to 6.5.9 has a bug that interferes with MPE's configure and make
+in enabling byte swapping on little endian machine, e.g. intel box.  For 
+details, see
+
+http://www.lam-mpi.org/MailArchives/lam/msg04894.php
+http://www.lam-mpi.org/MailArchives/lam/msg04896.php
+
+Solution: Upgrade to newer version of LAM.
+
+LAM 7.0 has included libpmpi.a into libmpi.a, so --with-mpilibs may not be
+needed.
 
 
 For prebuilt version of MPICH-1.1.2 or MPICH-1.2.0, e.g. donner, do
@@ -494,10 +508,10 @@ for your programs as well.
 
 The following example programs are also included in the mpe/contrib directory:
 
-    In mpe/contrib/mandel is a Mandelbrot program that uses the MPE 
+    mpe/contrib/mandel is a Mandelbrot program that uses the MPE 
     graphics package.  
 
-    In mpe/contrib/mastermind is a program for solving the Mastermind
+    mpe/contrib/mastermind is a program for solving the Mastermind
     puzzle in parallel.
 
 These programs should work on all MPI implementations, but have not been
@@ -530,6 +544,7 @@ The final install directory contains the following subdirectories.
     include/ contains all the include files that user program needs to read.
     lib/     contains all the libraries that user program needs to link with.
     bin/     contains all the utility programs that user needs to use.
+    doc/     contains available MPE documentation, e.g. Jumpshot-4's userguide.
     sbin/    contains the MPE uninstall script to uninstall the installation.
     share/   contains user read-only data.  Besides share/examples/, user 
              usually does NOT need to know the details of other subdirectories.
@@ -581,7 +596,11 @@ If the MPE logging library, liblmpe.a, are NOT linked with the user program,
 MPE_Init_log() and MPE_Finish_log() need to be used before and after all 
 the MPE calls.   Sample programs cpilog.c and fpi.f are available in MPE 
 source directory contrib/test or the installed directory share/examples to 
-illustrate the use of these MPE routines.
+illustrate the use of these MPE routines.  
+
+For undefined user-defined state, i.e. corresponding MPE_Describe_state() 
+has not been issued, new jumpshot (Jumpshot-4) may display the legend name as
+"UnknownType-INDEX" where INDEX is the internal MPE category index.
 
 
 
@@ -609,6 +628,12 @@ MPE_LOG_FORMAT : determines the format of the logfile generated from the
                  execution of application linked with MPE logging libraries.  
                  The allowed value for MPE_LOG_FORMAT are CLOG, SLOG and 
                  ALOG. When MPE_LOG_FORMAT is NOT set, CLOG is assumed.
+                 If slog_api/ is not shipped with your MPE, SLOG is
+                 NOT an available option for MPE_LOG_FORMAT.
+
+MPE_LOGFILE_PREFIX : specifies the filename prefix of the output logfile.
+                     The file extension will be determined by the output
+                     logfile format, i.e. MPE_LOG_FORMAT.
 
 TMPDIR : specifies a directory to be used as temporary storage for each
          process.  By default, when TMPDIR is NOT set, /tmp will be used.
@@ -636,6 +661,22 @@ logviewer.
 Log Format Converters
 ---------------------
 
+clogTOslog2 : a CLOG to SLOG-2 logfile convertor.  For more details,
+              do "clogTOslog2 -h".
+
+rlogTOslog2 : a RLOG to SLOG-2 logfile convertor.  For more details,
+              do "rlogTOslog2 -h".  Where RLOG is an internal MPICH2 logging
+              format.
+
+logconvertor : a standalone GUI based convertor that invokes clogTOslog2
+               or rlogTOslog2 based on logfile extension.  The GUI also
+               shows the progress of the conversion.  The same convertor
+               can be invoked from within the logfile viewer, jumpshot.
+
+clog2alog : a CLOG to ALOG logfile converter.  It is not being developed.
+            It is provided here for backward compatibility purpose.
+( DEPRECATED )
+
 clog2slog : a CLOG to SLOG logfile converter.  Since the automatic generation
             of SLOG file through setting of environmental variable 
             MPE_LOG_FORMAT to SLOG may NOT work for some non well-behaved 
@@ -646,32 +687,39 @@ clog2slog : a CLOG to SLOG logfile converter.  Since the automatic generation
             to be displayed by Jumpshot-3's time line window.  For non
             well-behaved MPI program, one may need to increase the frame
             size from the default 64KB to a bigger value.  For more
-            information about the converter, do "clog2slog -h"
-
-clog2alog : a CLOG to ALOG logfile converter.  It is not being developed.
-            It is provided here for backward compatibility purpose.
+            information about the converter, do "clog2slog -h".
+( DEPRECATED )
 	    
 
 Log Format Print Programs
 -------------------------
+
+clog_print : a stdout print program for CLOG file.  Java version is clogprint.
+
+rlog_print : a stdout print program for SLOG-2 file.
+
+slog2print : a stdout print program for SLOG-2 file.
 
 slog_print : a stdout print program for SLOG file.  It serves to check the
              content of the logfile.  If the SLOG file is too big, it may
              NOT be useful to use slog_print.  Also, when slog is NOT complete,
              slog_print won't work.  So it serves as a simple test to check
              if the SLOG file is generated completely.
-
-clog_print : a stdout print program for CLOG file.
+( DEPRECATED )
 
 
 Display Program Selector
 ------------------------
+
+jumpshot : the Jumpshot-4 launcher script.  Jumpshot-4 does logfile
+           conversion as well as visualization.
 
 logviewer : the script which involves appropriate viewer based on the file
             extension of logfile.  For instance, if the logfile is foo.slog,
             logviewer will invoke jumpshot-3 to display the logfile.
             Jumpshot-3 resides in share/.  For more information of
             logviewer, do "logviewer -help" to list all available options.
+( DEPRECATED )
 
 
 
@@ -713,22 +761,29 @@ VII. b) Inheritance of Environmental Variables
 MPE relies on certain environmental variables (e.g. TMPDIR).  These
 variables determine how MPE behaves.  It is important to make sure that
 all the MPI processes receive the intended value of environmental variables.
-The complication of this issue comes from the fact that MPICH contains many
-different devices for different platforms, some of these devices have a
-different way of passing of environmental variables to other processes.
-The often used devices, like ch_p4 and ch_shmem, do not require special
-attention to pass the value of the environmental variable to spawned
-processes.  The spawned process inherits the value from the launching
-process when the environmental variable in the launching process has been
-set.  But this is NOT true for all the devices, for instance, the
-ch_p4mpd device requires a special option of mpirun to be used to set
-the environmental variables to all processes.
+The complication of this issue comes from the fact that different MPI
+implementations have different way of passing environmental varaiable.  For
+instance, MPICH contains many different devices for different platforms,
+some of these devices have their unique way of passing of environmental
+variables to other processes.  The often used devices, like ch_p4 and ch_shmem,
+do not require special attention to pass the value of the environmental 
+variable to spawned processes.  The spawned process inherits the value from
+the launching process when the environmental variable in the launching
+process has been set.  But this is NOT true for all the devices, for instance,
+the ch_p4mpd device requires special option of mpirun to set environmental
+variables to all processes.
 
-mpirun -np N cpilog -MPDENV- MPE_LOG_FORMAT=SLOG
+mpirun -np N fpilog -MPDENV- MPE_LOGFILE_PREFIX=fpilog
 
 In this example, the option -MPDENV- is needed to make sure
-that all processes have their environmental variable, MPE_LOG_FORMAT,
-set to SLOG.
+that all processes have their environmental variable, MPE_LOGFILE_PREFIX,
+set to the desirable output logfile prefix.
+
+In MPICH-2 using MPD as a launcher, passing MPE_LOGFILE_PREFIX and
+TMPDIR can be done as follows:
+
+mpiexec -default -env MPE_LOGFILE_PREFIX <output-logname-prefix> \
+                 -env TMPDIR <local-tmp-dir> : -n 32 <executable-name>
 
 For other MPI implementations, how environmental variables are passed
 remains unchanged.  User needs to get familar with the environment and
@@ -738,11 +793,21 @@ set the environmental variables accordingly.
 
 VII. c) Viewing Logfiles
 ------------------------
-MPE's install directory structure is the same as MPICH's.  So all MPE's
-utility programs will be located in MPICH's bin/ directory.
-To view a logfile, say fpilog.slog, do
+MPE's install directory structure is the same as MPICH's and MPICH-2's.
+So all MPE's utility programs will be located in the bin/ directory of 
+MPICH and MPICH-2.  To view a logfile, say fpilog.slog2, do
 
-logviewer fpilog.slog
+jumpshot fpilog.slog2
 
-The command will select and invoke Jumpshot-3 to display the content
-of SLOG file if Jumpshot-3 has been built and installed successfully.
+The command will select and invoke Jumpshot-4 to display the content
+of SLOG-2 file if Jumpshot-4 has been built and installed successfully.
+One can also do
+
+jumpshot fpilog.clog2
+
+or
+
+jumpshot barrier.rlog
+
+Both will invoke the logfile convertor first before visualization.
+

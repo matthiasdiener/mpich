@@ -1,0 +1,6 @@
+*.ncb
+*.opt
+*.suo
+Release
+Debug
+test

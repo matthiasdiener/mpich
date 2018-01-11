@@ -2,7 +2,6 @@
 #define GLOBUS2_DEBUG_H
 
 #include "chconfig.h"
-#include "globus_common.h"
 
 
 #define DEBUG_MODULE_ALL		0xffff

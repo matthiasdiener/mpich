@@ -1,4 +1,19 @@
-#! /bin/sh
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#! bin/sh
 progname="`echo $0 | sed 's:^\./\./:\./:'`"
 print_error() {
     echo "*# $*" 2>&1 ;
@@ -1775,16 +1790,29 @@ main() { FILE *fp = fopen( "conftestval", "w" );
 fprintf( fp, "%d.%d", TK_MAJOR_VERSION, TK_MINOR_VERSION );
 return 0; }
 EOF
-        if test -n "$compile" ; then 
-        eval $compile
+        if test -n "$compile" ; then 	
+	eval $compile
     else
 	eval $ac_compile
 	eval $ac_link
     fi
     if test ! -s conftest ; then
-      echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS 
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
     TK_VERSION="unavailable"
 
     else
@@ -2012,7 +2040,7 @@ for file in .. ${CONFIG_FILES}; do if test "x$file" != x..; then
   echo creating $file
   rm -f $file
   echo "# Generated automatically from `echo $file|sed 's|.*/||'`.in by configure." > $file
-cat $top_srcdir/${file}.in | sed -e "
+  sed -e "
 $prsub
 $extrasub
 s%@NUPSHOT_HOME@%$NUPSHOT_HOME%g
@@ -2032,12 +2060,12 @@ s%@OPTFLAGS@%$OPTFLAGS%g
 s%@LIBS@%$LIBS%g
 s%@srcdir@%$srcdir%g
 s%@DEFS@%$DEFS%
-" >> $file
+" $top_srcdir/${file}.in >> $file
 fi; done
 
 
 exit 0
 EOF
 chmod +x config.status
-${CONFIG_SHELL-/bin/sh} ./config.status
+${CONFIG_SHELL-/bin/sh} config.status
 

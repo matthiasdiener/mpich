@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include "mpdutil.h"
 
-#define MPICH_MPD_TIMEOUT     20
+#define MPICH_MPD_TIMEOUT     30
 #define MPICH_SHORT_TIMEOUT   15000
 #define MPICH_MEDIUM_TIMEOUT  30000
 
@@ -284,25 +284,26 @@ bool PutRootPortInMPDDatabase(char *str, int port, char *barrier_name)
 
 	if (ConnectToMPD(g_pszMPDHost, g_nMPDPort, g_pszMPDPhrase, &sock))
 	{
+		printf("ERROR:PutRootPortInMPDDatabase: ConnectToMPD failed.\n");fflush(stdout);
 		return false;
 	}
 
 	sprintf(pszStr, "dbput name=%s key=port value=%d", dbname, port);
 	if (WriteString(sock, pszStr) == SOCKET_ERROR)
 	{
-		printf("ERROR:PutRootPortInMPDDatabase: Unable to write '%s' to socket[%d]\n", pszStr, sock);
+		printf("ERROR:PutRootPortInMPDDatabase: Unable to write '%s' to socket[%d]\n", pszStr, sock);fflush(stdout);
 		easy_closesocket(sock);
 		return false;
 	}
 	if (!ReadStringTimeout(sock, pszStr, MPICH_MPD_TIMEOUT))
 	{
-		printf("ERROR:PutRootPortInMPDDatabase: put failed: error %d", WSAGetLastError());
+		printf("ERROR:PutRootPortInMPDDatabase: put failed: error %d\n", WSAGetLastError());fflush(stdout);
 		easy_closesocket(sock);
 		return false;
 	}
 	if (strnicmp(pszStr, "DBS_SUCCESS", 11) != 0)
 	{
-	    printf("ERROR:PutRootPortInMPDDatabase: putting the root port in the mpd database failed.\n%s", pszStr);
+	    printf("ERROR:PutRootPortInMPDDatabase: putting the root port in the mpd database failed.\n%s", pszStr);fflush(stdout);
 	    WriteString(sock, "done");
 	    easy_closesocket(sock);
 	    return false;
@@ -311,16 +312,16 @@ bool PutRootPortInMPDDatabase(char *str, int port, char *barrier_name)
 	sprintf(pszStr, "barrier name=%s count=2", barrier_name);
 	if (WriteString(sock, pszStr) == SOCKET_ERROR)
 	{
-		printf("ERROR:PutRootPortInMPDDatabase: Unable to write the barrier command: error %d", WSAGetLastError());
+		printf("ERROR:PutRootPortInMPDDatabase: Unable to write the barrier command: error %d\n", WSAGetLastError());fflush(stdout);
 		easy_closesocket(sock);
 		return false;
 	}
 	bool bBarrierContinue = true;
 	while (bBarrierContinue)
 	{
-	    if (!ReadStringTimeout(sock, pszStr, MPICH_MPD_TIMEOUT))
+	    if (!ReadStringTimeout(sock, pszStr, MPICH_MPD_TIMEOUT*2))
 	    {
-		printf("ERROR:PutRootPortInMPDDatabase: Unable to read the result of the barrier command: error %d", WSAGetLastError());
+		printf("ERROR:PutRootPortInMPDDatabase: Unable to read the result of the barrier command: error %d\n", WSAGetLastError());fflush(stdout);
 		easy_closesocket(sock);
 		return false;
 	    }
@@ -330,7 +331,7 @@ bool PutRootPortInMPDDatabase(char *str, int port, char *barrier_name)
 		if (strncmp(pszStr, "INFO", 4))
 		{
 		    // If it is not an 'INFO - ...' message then it is an error
-		    printf("ERROR:PutRootPortInMPDDatabase: barrier failed:\n%s", pszStr);
+		    printf("ERROR:PutRootPortInMPDDatabase: barrier failed:\n%s\n", pszStr);fflush(stdout);
 		    easy_closesocket(sock);
 		    return false;
 		}
@@ -403,8 +404,11 @@ bool UpdateMPIFinalizedInMPD()
     }
     if (stricmp(pszStr, "SUCCESS") != 0)
     {
-	printf("ERROR:UpdateMPIFinalized: setMPIFinalized failed.\n");
-	fflush(stdout);
+	if (g_nIproc != 0) // don't print the error if it is the root process because the root may not have been started by an mpd.
+	{
+	    printf("ERROR:UpdateMPIFinalized: setMPIFinalized failed.\n");
+	    fflush(stdout);
+	}
 	WriteString(sock, "done");
 	easy_closesocket(sock);
 	return false;
@@ -714,11 +718,17 @@ void MPID_NT_ipvishm_Init( int *argc, char ***argv )
 		hReadyEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 		if (hReadyEvent == NULL)
 			AbortInit(1, "Unable to create an event in MPID_Init");
-		g_hCommPortThread = CreateThread(
+		for (i=0; i<NT_CREATE_THREAD_RETRIES; i++)
+		{
+		    g_hCommPortThread = CreateThread(
 			NULL, 0, 
 			(LPTHREAD_START_ROUTINE) CommPortThread,
 			hReadyEvent,
 			NT_THREAD_STACK_SIZE, &dwThreadID);
+		    if (g_hCommPortThread != NULL)
+			break;
+		    Sleep(NT_CREATE_THREAD_SLEEP_TIME);
+		}
 		if (g_hCommPortThread == NULL)
 			AbortInit(GetLastError(), "Unable to spawn CommPortThread");
 		if (WaitForSingleObject(hReadyEvent, MPICH_SHORT_TIMEOUT) == WAIT_TIMEOUT)
@@ -780,11 +790,17 @@ void MPID_NT_ipvishm_Init( int *argc, char ***argv )
 
 		// Start the control thread
 		ResetEvent(hReadyEvent);
-		g_hControlLoopThread = CreateThread(
+		for (i=0; i<NT_CREATE_THREAD_RETRIES; i++)
+		{
+		    g_hControlLoopThread = CreateThread(
 			NULL, 0, 
 			(LPTHREAD_START_ROUTINE) ControlLoopThread,
 			hReadyEvent,
 			NT_THREAD_STACK_SIZE, &dwThreadID);
+		    if (g_hControlLoopThread != NULL)
+			break;
+		    Sleep(NT_CREATE_THREAD_SLEEP_TIME);
+		}
 		if (g_hControlLoopThread == NULL)
 			AbortInit(GetLastError(), "Unable to spawn ControlLoopThread");
 		if (WaitForSingleObject(hReadyEvent, MPICH_SHORT_TIMEOUT) == WAIT_TIMEOUT)
@@ -955,7 +971,7 @@ void MPID_NT_ipvishm_End()
 	if (g_bMPDFinalize)
 	    UpdateMPIFinalizedInMPD();
 
-    if (g_nNproc > 1)
+	if (g_nNproc > 1)
 	{
 		if (g_bUseBNR)
 		{
@@ -1173,7 +1189,10 @@ int nt_ipvishm_proc_info(int i, char **hostname, char **exename)
 // Argument         : int value
 void nt_error(char *string, int value)
 {
-	printf("Error %d, process %d:\n   %s\n", value, g_nIproc, string);fflush(stdout);
+	char host[100] = "";
+	DWORD len = 100;
+	GetComputerName(host, &len);
+	printf("Error %d, process %d, host %s:\n   %s\n", value, g_nIproc, host, string);fflush(stdout);
     
 	// Signal the threads to stop and close their socket connections
 	DPRINTF(("process %d: nt_error signalling CommunicationThread to exit.\n", g_nIproc);fflush(stdout));

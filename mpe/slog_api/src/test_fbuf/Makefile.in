@@ -36,5 +36,5 @@ AUX_OBJ    = $(AUX_SRC:.c=.o)
 all:	$(AUX_OBJ) $(MAIN_OBJ) $(MAIN_EXE)
 
 clean:
-	/bin/rm -f *~ core $(AUX_OBJ) $(MAIN_OBJ) $(MAIN_EXE)
+	-rm -f *~ core $(AUX_OBJ) $(MAIN_OBJ) $(MAIN_EXE)
 

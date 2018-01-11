@@ -1389,7 +1389,13 @@ bool InitVI()
 	}
 
 	// Create a thread to wait for VI connections
-	g_hViListenThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ViListenThread, NULL, NT_THREAD_STACK_SIZE, &dwThreadID);
+	for (i=0; i<NT_CREATE_THREAD_RETRIES; i++)
+	{
+		g_hViListenThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ViListenThread, NULL, NT_THREAD_STACK_SIZE, &dwThreadID);
+		if (g_hViListenThread != NULL)
+			break;
+		Sleep(NT_CREATE_THREAD_SLEEP_TIME);
+	}
 	if (g_hViListenThread == NULL)
 	{
 		printf("CreateThread(ViListenThread) failed: %d\n", GetLastError());fflush(stdout);
@@ -1407,7 +1413,13 @@ bool InitVI()
 	else
 	{
 		// Create a worker thread to eagerly drain messages from all open VI connections
-		g_hViWorkerThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ViWorkerThread, (LPVOID)1, NT_THREAD_STACK_SIZE, &dwThreadID);
+		for (i=0; i<NT_CREATE_THREAD_RETRIES; i++)
+		{
+			g_hViWorkerThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ViWorkerThread, (LPVOID)1, NT_THREAD_STACK_SIZE, &dwThreadID);
+			if (g_hViWorkerThread != NULL)
+				break;
+			Sleep(NT_CREATE_THREAD_SLEEP_TIME);
+		}
 		if (g_hViWorkerThread == NULL)
 		{
 			printf("CreateThread(ViWorkerThread) failed: %d\n", GetLastError());fflush(stdout);

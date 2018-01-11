@@ -63,4 +63,9 @@
 #define DEBUG_MODULES_ENABLED		@DEBUG_MODULES_ENABLED@
 #define DEBUG_INFO_ENABLED      	@DEBUG_INFO_ENABLED@
 
+#include "globus_common.h"
+#include "globus_dc.h"
+#include "globus_io.h"
+#include "globus_ftp_control.h"
+
 #endif /* MPICH_GLOBUS2_CHCONFIG_H */

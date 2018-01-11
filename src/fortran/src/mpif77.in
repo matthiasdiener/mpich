@@ -250,11 +250,11 @@ EOF
 	        compileargs="$compileargs $arg"
 	        fname=`basename $arg $ext`
 	        linkobjs="$linkobjs $fname.o"
-	    elif [ "$ext" = ".s" ] ; then
-	        # Support .s for those compilers that can
+	    elif [ "$ext" = ".s" -o "$ext" = ".S" ] ; then
+	        # Support .s and .S for those compilers that can
 	        DoCompile=1
 	        compileargs="$compileargs $arg"
-	        fname=`basename $arg .s`
+	        fname=`basename $arg $ext`
 	        linkobjs="$linkobjs $fname.o"
 	    elif [ "$ext" = ".o" ] ; then
 		if [ $HasDashC = 1 ] ; then

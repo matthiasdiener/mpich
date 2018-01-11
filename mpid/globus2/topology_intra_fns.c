@@ -1,8 +1,9 @@
 
 /*
- * CVS Id: $Id: topology_intra_fns.c,v 1.115 2002/09/17 23:16:17 lacour Exp $
+ * CVS Id: $Id: topology_intra_fns.c,v 1.117 2004/05/11 18:11:12 karonis Exp $
  */
 
+#include "chconfig.h"
 #include "mpid.h"
 #include "mpiimpl.h"
 #include "mem.h"
@@ -1669,7 +1670,11 @@ binomial_allgather_up (const comm_set_t set, void * const buffer,
       sendtype = recurs_dbl_create_datatype(my_rank_idx, lvl, mask, datatype,
                                             set, ClusterSizes, Colors, Depths);
       mpi_errno = MPI_Type_commit(&sendtype);
-      if ( mpi_errno ) return mpi_errno;
+      if ( mpi_errno )
+      {
+         MPI_Type_free(&recvtype);
+         return mpi_errno;
+      }
       receiver = set.set[receiver];
 
       mpi_errno = MPI_Sendrecv(buffer, 1, sendtype, receiver,

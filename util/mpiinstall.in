@@ -479,6 +479,9 @@ if [ -z "$libonly" ] ; then
     CopyFile ${top_srcdir}/bin/tarch $bindir $XMODE
     CopyFile ${top_srcdir}/bin/tdevice $bindir $XMODE
     CopyFile util/mpichlib.conf ${sysconfdir} 
+    CopyFile bin/mpichversion $bindir $XMODE
+    # Copy the source file for mpichversion to the sysconfdir
+    CopyFile ${top_srcdir}/util/mpichversion.c ${sysconfdir}
     #
     # mpiman
     $Show /bin/rm -f $DESTDIR$bindir/mpiman
@@ -544,7 +547,7 @@ if [ -z "$libonly" ] ; then
         -e "s%^MPICC=\([^/ ]*\)/.*\$%MPICC=$bindir/mpicc%g" \
         -e "s%^MPIF77=\([^/ ]*\)/.*\$%MPIF77=$bindir/mpif77%g" \
         -e "s%^MPIF90=\([^/ ]*\)/.*\$%MPIF90=$bindir/mpif90%g" \
-        -e "s%^MPICPLUSPLUS=\([^/ ]*\)/.*\$%MPICPLUSPLUS=$bindir/mpiCC%g" \
+        -e "s%^MPICPLUSPLUS=\([^/ ]*\)/.*\$%MPICPLUSPLUS=$bindir/mpicxx%g" \
 		config.status > ${DESTDIR}${bindir}/mpireconfig.dat
     chmod $XMODE ${DESTDIR}${bindir}/mpireconfig.dat
     echo "/bin/rm -f ${bindir}/mpireconfig.dat" >> $UNINSTALLFILE
@@ -569,7 +572,12 @@ if [ -z "$libonly" ] ; then
     #
     # mpiCC, if C++ selected
     if [ -n "$CPP_COMPILER" ] ; then
-	FixupFile2 bin/mpiCC $bindir/mpiCC $XMODE
+	# If the file system doesn't preserve case, only use the
+	# mpicxx version.
+	if [ "@CASE_SENSITIVE@" = "yes" ] ; then
+  	    FixupFile2 bin/mpiCC $bindir/mpiCC $XMODE
+        fi
+	FixupFile2 bin/mpicxx $bindir/mpicxx $XMODE
     fi
     # If there is a device install script, use that.  We
     # put this last in case it wants to update any of the scripts or
@@ -599,9 +607,17 @@ else
     fi
     FixupFile2 bin/mpicc $bindir/mpicc $XMODE
     if [ -n "$CPP_COMPILER" ] ; then
-        FixupFile2 bin/mpiCC $bindir/mpiCC $XMODE
+	# If the file system doesn't preserve case, only use the
+	# mpicxx version.
+	if [ "@CASE_SENSITIVE@" = "yes" ] ; then
+  	    FixupFile2 bin/mpiCC $bindir/mpiCC $XMODE
+        fi
+        FixupFile2 bin/mpicxx $bindir/mpicxx $XMODE
     fi
+    CopyFile bin/mpichversion $bindir $XMODE
     CopyFile util/mpichlib.conf ${sysconfdir}
+    # Copy the source file for mpichversion to the sysconfdir
+    CopyFile $top_srcdir/util/mpichversion.c ${sysconfdir}
     FixupFile $top_srcdir/util/mpireconfig.in $bindir/mpireconfig $XMODE
     # No user include uses mpichconf.h
     CopyFile $includebuild_dir/mpichconf.h $sysconfdir/mpichconf.h.dat

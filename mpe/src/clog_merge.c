@@ -11,7 +11,9 @@
 #include <unistd.h>
 #endif
 
+#if defined( HAVE_SLOG1 )
 #include "clog2slog.h"
+#endif
 #include "clog_merge.h"
 #include "clogimpl.h"
 #include "mpi.h"
@@ -69,28 +71,31 @@ int logtype;
     /* printf("merging on %d at time %f\n", me, MPI_Wtime()); */
 
     PMPI_Reduce(&CLOG_event_count,&total_events,1,
-		MPI_INT,MPI_SUM,0,MPI_COMM_WORLD);
+                MPI_INT,MPI_SUM,0,MPI_COMM_WORLD);
 
     if (parent == -1) {		/* open output logfile at root */
         strncpy(logfilename, execfilename, 256);
-	strcat(logfilename, ".clog"); 
-	log_type = logtype;     /* (abhi) need to know log_type globally */ 
-	
-	FREE( slog_buffer );    /* (abhi) free memory for slog logging */
+        strcat(logfilename, ".clog"); 
+        log_type = logtype;     /* (abhi) need to know log_type globally */ 
 
-	/* (abhi) checking to see if SLOG needs initalization */
-	if(log_type == SLOG_LOG) {
-	    /* (abhi) getting total number of events.*/
-	    init_clog2slog(logfilename, &slog_file);
-	    CLOG_init_essential_values(total_events, nprocs-1);
-	    CLOG_init_all_mpi_state_defs( );
-	    init_SLOG(C2S_NUM_FRAMES, C2S_FRAME_BYTE_SIZE, slog_file);
-	}
-	else if ((logfd = OPEN(logfilename, O_CREAT|O_WRONLY|O_TRUNC, 0664)) == -1) {
+        FREE( slog_buffer );    /* (abhi) free memory for slog logging */
 
-	    printf("could not open file %s for logging\n",logfilename);
-	    MPI_Abort( MPI_COMM_WORLD, 1 );
-	}
+#if defined( HAVE_SLOG1 )
+        /* (abhi) checking to see if SLOG needs initalization */
+        if (log_type == SLOG_LOG) {
+            /* (abhi) getting total number of events.*/
+            C2S1_init_clog2slog(logfilename, &slog_file);
+            C2S1_init_essential_values(total_events, nprocs-1);
+            C2S1_init_all_mpi_state_defs( );
+            C2S1_init_SLOG(C2S_NUM_FRAMES, C2S_FRAME_BYTE_SIZE, slog_file);
+        }
+        else
+#endif
+            if ( (logfd = OPEN(logfilename, O_CREAT|O_WRONLY|O_TRUNC, 0664))
+                  == -1) {
+                printf("could not open file %s for logging\n",logfilename);
+                MPI_Abort( MPI_COMM_WORLD, 1 );
+            }
     }
 
     for (i = 0; i < nprocs; i++)
@@ -249,31 +254,36 @@ void CLOG_mergend()
     ((CLOG_HEADER *) outptr)->length    = CLOG_reclen(CLOG_ENDLOG);
 
     if (parent != -1) {
-	PMPI_Send(outbuf, (CLOG_BLOCK_SIZE / sizeof (double)), MPI_DOUBLE,
-		 parent, CMERGE_LOGBUFTYPE, MPI_COMM_WORLD);
-	/* printf("%d sent to %d\n", me, parent); */
+        PMPI_Send(outbuf, (CLOG_BLOCK_SIZE / sizeof (double)), MPI_DOUBLE,
+                  parent, CMERGE_LOGBUFTYPE, MPI_COMM_WORLD);
+        /* printf("%d sent to %d\n", me, parent); */
     }
     else {
-      if( log_type == SLOG_LOG) {
-	  if(CLOG_makeSLOG(outbuf) == C2S_ERROR)
-	      PMPI_Abort(MPI_COMM_WORLD, -1);
-	  CLOG_free_resources();           /*(abhi)*/
-      }
-      else {
-	  CLOG_output(outbuf); /* final output of last block at root */
-	  close(logfd);
-      }
+#if defined( HAVE_SLOG1 )
+        if ( log_type == SLOG_LOG) {
+            if (C2S1_make_SLOG(outbuf) == C2S_ERROR)
+                PMPI_Abort(MPI_COMM_WORLD, -1);
+            C2S1_free_resources();           /*(abhi)*/
+        }
+        else {
+#endif
+            CLOG_output(outbuf); /* final output of last block at root */
+            close(logfd);
+#if defined( HAVE_SLOG1 )
+        }
+#endif
     }
     FREE (outbuf);		/* free output buffer */
     CLOG_currbuff = buffer_parser = CLOG_first;
     while(CLOG_currbuff) {
-      CLOG_currbuff = CLOG_currbuff->next;
-      FREE (buffer_parser);
+        CLOG_currbuff = CLOG_currbuff->next;
+        FREE (buffer_parser);
+		buffer_parser = CLOG_currbuff;
     }
     if(rchild != -1)
-      FREE (CLOG_right_buffer);
+        FREE (CLOG_right_buffer);
     if(lchild != -1)
-      FREE (CLOG_left_buffer);
+        FREE (CLOG_left_buffer);
     close(CLOG_tempFD);
     unlink(CLOG_tmpfilename);
 }
@@ -378,9 +388,9 @@ double **ptr;
     h = (CLOG_HEADER *) p;
 
     if (h->rectype == CLOG_ENDLOG) {
-	h->timestamp = CLOG_MAXTIME;
-	inputs--;
-	return;
+        h->timestamp = CLOG_MAXTIME;
+        inputs--;
+        return;
     }
     
     /*printf("putting record with timestamp= %f\n",*p); */
@@ -388,27 +398,29 @@ double **ptr;
     outptr += h->length; /* skip to next output record */
 
     if (((char *) outptr + CLOG_MAX_REC_LEN) >= (char *) outend ) {
-	/* put on end-of-block-record */
-	((CLOG_HEADER *) outptr)->timestamp = h->timestamp; /* use prev rec. */
-	((CLOG_HEADER *) outptr)->rectype   = CLOG_ENDBLOCK;
-	((CLOG_HEADER *) outptr)->procid    = me;
-	((CLOG_HEADER *) outptr)->length    = CLOG_reclen(CLOG_ENDBLOCK);
+        /* put on end-of-block-record */
+        ((CLOG_HEADER *) outptr)->timestamp = h->timestamp; /* use prev rec. */
+        ((CLOG_HEADER *) outptr)->rectype   = CLOG_ENDBLOCK;
+        ((CLOG_HEADER *) outptr)->procid    = me;
+        ((CLOG_HEADER *) outptr)->length    = CLOG_reclen(CLOG_ENDBLOCK);
 
         if (parent != -1) {
-	    PMPI_Send(outbuf, (CLOG_BLOCK_SIZE / sizeof (double)), MPI_DOUBLE,
-		     parent, CMERGE_LOGBUFTYPE, MPI_COMM_WORLD);
-	    /* printf("%d sent to %d\n", me, parent); */
-	}
-	else {
-	  if(log_type == SLOG_LOG) {
-	      if(CLOG_makeSLOG(outbuf) == C2S_ERROR)
-	          PMPI_Abort(MPI_COMM_WORLD, -1);  /*(abhi) final output to 
-						     SLOG */
-	  }
-	  else
-	      CLOG_output(outbuf); /* final output of block */
-	}
-	outptr = outbuf;
+            PMPI_Send(outbuf, (CLOG_BLOCK_SIZE / sizeof (double)), MPI_DOUBLE,
+                      parent, CMERGE_LOGBUFTYPE, MPI_COMM_WORLD);
+            /* printf("%d sent to %d\n", me, parent); */
+        }
+        else {
+#if defined( HAVE_SLOG1 )
+            if (log_type == SLOG_LOG) {
+                /*(abhi) final output to SLOG */
+                if (C2S1_make_SLOG(outbuf) == C2S_ERROR)
+                    PMPI_Abort(MPI_COMM_WORLD, -1);
+            }
+            else
+#endif
+                CLOG_output(outbuf); /* final output of block */
+        }
+        outptr = outbuf;
     }
 
     p += h->length;		/* skip to next input record */
@@ -416,43 +428,44 @@ double **ptr;
 
     h = (CLOG_HEADER *) p;
     if (h->rectype == CLOG_ENDBLOCK) {
-	if (ptr == &myptr) {
-	    CLOG_num_blocks--;
-	    if ((!CLOG_currbuff->next) ||
-		(!CLOG_num_blocks)){ /* if no next buffer, endlog follows */
-	        if(CLOG_tempFD > 0)
-		  CLOG_reinit_buff();
-		if(CLOG_num_blocks == 0) {
-		  p += CLOG_reclen(CLOG_ENDBLOCK);
-		  /*printf("[%d] length of endblock = %d\n", me, 
-		    CLOG_reclen(CLOG_ENDBLOCK));*/
-		}
-		else {
-		  CLOG_currbuff = CLOG_first;
-		  p = CLOG_currbuff->data;
-		  CLOG_procbuf(p);        /* do postprocessing 
-					     (procids, lengths) */
-		}
-		*ptr = p;
-	    }
-	    else {
-	        /*p = (double *) CLOG_currbuff;*/
-	        CLOG_currbuff = CLOG_currbuff->next;
-		/*FREE( p );*/	        /* free local block just processed */
-		*ptr = (double *) CLOG_currbuff->data;
-		CLOG_procbuf(*ptr);	/* process next local block */
-	    }
-	}
-	if (ptr == &lptr) {
-	    PMPI_Recv(lbuf, (CLOG_BLOCK_SIZE / sizeof (double)), MPI_DOUBLE, 
-		     lchild, CMERGE_LOGBUFTYPE, MPI_COMM_WORLD, &logstatus);
-	    *ptr = lbuf;
-	}
-	if (ptr == &rptr) {
-	    PMPI_Recv(rbuf, (CLOG_BLOCK_SIZE / sizeof (double)), MPI_DOUBLE, 
-		     rchild, CMERGE_LOGBUFTYPE, MPI_COMM_WORLD, &logstatus);
-	    *ptr = rbuf;
-	}
+        if (ptr == &myptr) {
+            CLOG_num_blocks--;
+            if ((!CLOG_currbuff->next) || (!CLOG_num_blocks)) { 
+                /* if no next buffer, endlog follows */
+                if (CLOG_tempFD > 0)
+                    CLOG_reinit_buff();
+                if (CLOG_num_blocks == 0) {
+                    p += CLOG_reclen(CLOG_ENDBLOCK);
+                    /*
+                    printf( "[%d] length of endblock = %d\n", me,
+                            CLOG_reclen(CLOG_ENDBLOCK) );
+                    */
+                }
+                else {
+                    CLOG_currbuff = CLOG_first;
+                    p = CLOG_currbuff->data;
+                    CLOG_procbuf(p); /* do postprocessing(procids, lengths) */
+                }
+                *ptr = p;
+            }
+            else {
+                /*p = (double *) CLOG_currbuff;*/
+                CLOG_currbuff = CLOG_currbuff->next;
+                /*FREE( p );*/    /* free local block just processed */
+                *ptr = (double *) CLOG_currbuff->data;
+                CLOG_procbuf(*ptr);	/* process next local block */
+            }
+        }
+        if (ptr == &lptr) {
+            PMPI_Recv(lbuf, (CLOG_BLOCK_SIZE / sizeof (double)), MPI_DOUBLE, 
+                      lchild, CMERGE_LOGBUFTYPE, MPI_COMM_WORLD, &logstatus);
+            *ptr = lbuf;
+        }
+        if (ptr == &rptr) {
+            PMPI_Recv(rbuf, (CLOG_BLOCK_SIZE / sizeof (double)), MPI_DOUBLE, 
+                      rchild, CMERGE_LOGBUFTYPE, MPI_COMM_WORLD, &logstatus);
+            *ptr = rbuf;
+        }
     }
 }
 

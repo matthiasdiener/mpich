@@ -39,14 +39,14 @@ int EvalException(EXCEPTION_POINTERS *p)
 	    // write error
 	    sprintf(pszError, "EXCEPTION_ACCESS_VIOLATION: instruction address: 0x%p, invalid write to 0x%p",
 		p->ExceptionRecord->ExceptionAddress,
-		p->ExceptionRecord->ExceptionInformation[1]);
+		(void*)(p->ExceptionRecord->ExceptionInformation[1]));
 	}
 	else
 	{
 	    // read error
 	    sprintf(pszError, "EXCEPTION_ACCESS_VIOLATION: instruction address: 0x%p, invalid read from 0x%p",
 		p->ExceptionRecord->ExceptionAddress,
-		p->ExceptionRecord->ExceptionInformation[1]);
+		(void*)(p->ExceptionRecord->ExceptionInformation[1]));
 	}
 	err_printf("%s\n", pszError);
 	return EXCEPTION_CONTINUE_EXECUTION;
@@ -72,6 +72,7 @@ VOID ServiceStart (DWORD dwArgc, LPTSTR *lpszArgv)
 {
     int run_retval = RUN_EXIT;
     HANDLE stdin_thread = NULL;
+    int iter;
 
     // report the status to the service control manager.
     if (!ReportStatusToSCMgr(SERVICE_START_PENDING, NO_ERROR, 3000))
@@ -137,10 +138,20 @@ VOID ServiceStart (DWORD dwArgc, LPTSTR *lpszArgv)
 	
 	if (stdin_thread == NULL && bDebug)
 	{
-	    stdin_thread = CreateThread(
-		NULL, 0,
-		(LPTHREAD_START_ROUTINE)StdinThread,
-		NULL, 0, NULL);
+	    for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+	    {
+		stdin_thread = CreateThread(
+		    NULL, 0,
+		    (LPTHREAD_START_ROUTINE)StdinThread,
+		    NULL, 0, NULL);
+		if (stdin_thread != NULL)
+		    break;
+		Sleep(CREATE_THREAD_SLEEP_TIME);
+	    }
+	    if (stdin_thread == NULL)
+	    {
+		err_printf("CreateThread(stdin_thread) failed, error %d\n", GetLastError());
+	    }
 	}
 
 	__try {

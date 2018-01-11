@@ -1,8 +1,9 @@
+ALL: all-redirect
 
 MAKE   = @MAKE@
 SHELL  = /bin/sh
-RM     = /bin/rm
-CP     = /bin/cp
+RM     = rm
+CP     = cp
 
 NOF77             = @NOF77@
 top_srcdir        = @top_srcdir@
@@ -15,12 +16,16 @@ binbuild_dir      = @binbuild_dir@
 sbinbuild_dir     = @sbinbuild_dir@
 
 LOGVIEWERS        = @LOGVIEWERS@
+# MPI Impl characteristics
+# Turn off the link test while building MPI
+BUILDING_MPI = @BUILDING_MPI@
 
 @VPATH@
 
 MPE_HEADERS = @MPE_HEADERS@
 
-all: build_include build_libs_progs mpereconfig linktest_all logviewers
+all-redirect: all
+all: build_include build_libs_progs linktest_all logviewers slog2tools
 
 build_include:
 	-@if [ -n "$(includebuild_dir)" ] ; then \
@@ -36,35 +41,17 @@ build_include:
 	  fi
 
 build_libs_progs:
-	@( cd src ; $(MAKE) )
-
-# If you change this, ALSO change it in the sbin/mpeinstall.in !
-mpereconfig: ${top_srcdir}/bin/mpereconfig.in config.status
-	-$(RM) -f ${binbuild_dir}/mpereconfig
-	-$(RM) -f ${binbuild_dir}/mpereconfig.dat
-	@cat ${top_srcdir}/bin/mpereconfig.in | \
-	        sed -e "s%\#MPE_BUILD\#%$(libbuild_dir)/..%g" \
-	            -e "s%\#PREFIX\#%$(prefix)%g" \
-	            -e "s%\#top_srcdir\#%$(top_srcdir)%g" \
-                    -e "s%\#bindir\#%$(bindir)%g" \
-                    -e "s%\#binbuild_dir\#%$(binbuild_dir)%g" \
-	        > ${binbuild_dir}/mpereconfig
-	@chmod 775 ${binbuild_dir}/mpereconfig
-	@sed -e 's%$$top_srcdir/$$file%$$file%g' \
-	     -e 's%$$top_srcdir/$${file}%$${file}%g' \
-	        config.status \
-	     > ${binbuild_dir}/mpereconfig.dat
-	@-chmod 775 ${binbuild_dir}/mpereconfig.dat
+	@( cd src && $(MAKE) )
 
 ####### Linkage Tests
 linktest_all: linktest_C linktest_f77
 
 linktest_C:
-	@( cd contrib/test; $(MAKE) linktest_C )
+	@( if [ $(BUILDING_MPI) = no ] ; then  cd contrib/test && $(MAKE) linktest_C ; fi )
 
 linktest_f77:
-	@if [ $(NOF77) = 0 ] ; then \
-	    ( cd contrib/test; $(MAKE) linktest_f77 ) \
+	@if [ $(NOF77) = 0 -a $(BUILDING_MPI) = no ] ; then \
+	    ( cd contrib/test && $(MAKE) linktest_f77 ) \
 	 fi
 	@echo
 
@@ -75,10 +62,16 @@ linktest: linktest_C
 fortran_test: linktest_f77
 ########
 
-#  Tagets to build all log viewers, jumpshot-X ...  
+#  Tagets to build the old log viewers, upshot, jumpshot-2 and jumpshot-3
 logviewers:
 	@-if [ -s ./viewers/Makefile -a "$(LOGVIEWERS)" = "1" ] ; then \
-	      ( cd ./viewers ; $(MAKE) ) \
+	      ( cd ./viewers && $(MAKE) ) \
+	  fi
+
+#  Tagets to build all the SLOG-2 related tools, i.e. jumpshot-4 ...  
+slog2tools:
+	@-if [ -s ./slog2sdk/Makefile ] ; then \
+	      ( cd ./slog2sdk && $(MAKE) ) \
 	  fi
 
 install:
@@ -92,25 +85,23 @@ uninstall:
 	@./sbin/mpeuninstall
 
 rmprog:
-	@-$(RM) -f bin/mpereconfig bin/mpereconfig.dat
 
 clean: rmprog
 	@-$(RM) -f work.pc work.pcl
-	@( cd src ; $(MAKE) clean )
+	@( cd src && $(MAKE) clean )
 	@-for dir in contrib/life contrib/mandel contrib/mastermind \
-	             contrib/test share/examples ; do \
+	             contrib/test share/examples viewers slog2sdk ; do \
 	      if [ -s $$dir/Makefile ] ; then \
-	          ( cd $$dir ; $(MAKE) clean ) ; \
+	          ( cd $$dir && $(MAKE) clean ) ; \
 	      fi ; \
 	  done
 
 distclean: rmprog
-	( cd src ; $(MAKE) distclean )
-	( cd viewers ; $(MAKE) distclean )
+	( cd src && $(MAKE) distclean )
 	@-for dir in contrib/life contrib/mandel contrib/mastermind \
-	             contrib/test share/examples ; do \
+	             contrib/test share/examples viewers slog2sdk ; do \
 	      if [ -s $$dir/Makefile ] ; then \
-	          ( cd $$dir ; $(MAKE) distclean ) ; \
+	          ( cd $$dir && $(MAKE) distclean ) ; \
 	      fi ; \
 	  done
 	@-$(RM) -f sbin/mpeinstall sbin/mpeuninstall
@@ -120,3 +111,9 @@ configure: configure.in aclocal.m4 aclocal_f77.m4 aclocal_make.m4 \
 	aclocal_mpi.m4
 	autoheader
 	autoconf
+
+# Allow dependencies target
+dependencies:
+
+# Allow a coverage target
+coverage:

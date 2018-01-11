@@ -176,8 +176,9 @@ int main( int argc, char *argv[] )
     void (*ChangeDist)( int, PairData ) = 0;
     int  n_avg, proc1, proc2, distance_flag, distance;
     int  first,last,incr, svals[3];
-    int      autosize = 0, autodx;
-    double   autorel;
+    int      autosize = 0, autodx=0;  /* Set autodx and autorel to default
+					 values to placate some compilers */
+    double   autorel=0.0;
     double   wtick;
     char     units[32];         /* Name of units of length */
 
@@ -541,7 +542,7 @@ void time_function( int n_avg, int first, int last, int incr,
 	    else
 	        n_without_change++;
 	    if (n_without_change > n_stable) {
-#if DEBUG_AUTO
+#ifdef DEBUG_AUTO
 		printf( "Breaking because stable results reached\n" );
 #endif		
 		break; 
@@ -740,7 +741,7 @@ int RunTest( TwinResults *twin_p, double (*CommTest)(int,int,void *),
     MPI_Bcast( &t, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD );
     CheckTimeLimit();
 
-#if DEBUG_AUTO
+#ifdef DEBUG_AUTO
     printf( "test(%d) for %d iterations took %f time\n", 
 	    twin_p->len, twin_p->n_avg, t );
 #endif    
@@ -786,7 +787,7 @@ int RunTestList( TwinResults *twin_p, double (*CommTest)(int,int,void *),
 	if (twin_p->new_min_found) n_updated++;
 	twin_p = twin_p->next;
     }
-#if DEBUG_AUTO
+#ifdef DEBUG_AUTO
     printf( "Found %d new minimums\n", n_updated );
 #endif
     return n_updated;
@@ -854,7 +855,7 @@ Rerun with a smaller interval or without the -auto option\n" );
     tnew->n_avg = next->n_avg;
     tnew->t     = HUGE_VAL;
 
-#if DEBUG_AUTO
+#ifdef DEBUG_AUTO
     printf( "%d running test with n_avg=%d, len=%d\n", 
 	    __MYPROCID, tnew->n_avg, (int)tnew->len );fflush(stdout); 
 #endif

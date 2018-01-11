@@ -1,0 +1,6 @@
+Makefile
+Makefile_nompi
+*.o
+dbxerr.c
+dbxerr
+states

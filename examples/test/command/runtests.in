@@ -4,6 +4,7 @@
 #   -Dname=\"foo bar\"
 #   -Dname='"foo bar"'
 #   
+STOPFILE=${MPITEST_STOPTEST:-"$HOME/.stopmpichtests"}
 mpicc="@MPICC@"
 mpiCC="@MPICPLUSPLUS@"
 mpif77="@MPIF77@"

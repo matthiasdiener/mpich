@@ -1,3 +1,8 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
+/*
+ *  (C) 2001 by Argonne National Laboratory.
+ *      See COPYRIGHT in top-level directory.
+ */
 #ifndef MPIRUN_H
 #define MPIRUN_H
 
@@ -22,5 +27,7 @@ extern bool g_bNoMPI;
 BOOL WINAPI CtrlHandlerRoutine(DWORD dwCtrlType);
 void PrintError(int error, char *msg, ...);
 void WaitForExitCommands();
+bool HostIsLocal(char *pszHost);
+bool VerifyProcessMPIFinalized(char *pmi_host, int pmi_port, char *phrase, char *pmi_kvsname, int rank, bool &bFinalized);
 
 #endif

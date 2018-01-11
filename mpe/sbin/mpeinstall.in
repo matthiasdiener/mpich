@@ -38,9 +38,11 @@ sysconfdir=@sysconfdir@
 
 PROF_LIBNAME=@PROF_LIBNAME@
 CPRP="@CPRP@"
-MPICH=@MPICH@
+MPICH=@FROM_MPICH@
+MPICH2=@FROM_MPICH2@
 NOF77=@NOF77@
 LOGVIEWERS=@LOGVIEWERS@
+SLOG2TOOLS=@SLOG2TOOLS@
 MPE_HEADERS="@MPE_HEADERS@"
 
 # File access mode
@@ -126,8 +128,13 @@ EOF
 	    exit 1
 	    ;;
 	*)
-	    echo "mpeinstall: Unrecognized argument $arg ."
-	    exit 1
+	    # Silently skip empty arguments (these can occur on
+	    # some systems and within some scripts; they are
+	    # harmless)
+	    if [ -n "$arg" ] ; then
+  	        echo "mpeinstall: Unrecognized argument $arg ."
+	        exit 1
+	    fi
 	    ;;
     esac
 done
@@ -275,9 +282,9 @@ fi
 
 
 #
-# Fixup files that need #...# replaced
+# Fixup files with various xxxxbuild_dir to xxxxdir, install directory.
 #
-FixupFile() {
+FixInstallFile() {
 dest=$DESTDIR$2
 if [ -d $dest ] ; then
     dest=$dest/`basename $1`
@@ -291,15 +298,22 @@ elif [ -d $1 ] ; then
 else
     if [ -f $dest ] ; then $Show /bin/rm -f $dest ; fi
     if [ $just_testing = 0 ] ; then \
-        sed -e "s%\#MPE_BUILD\#%$top_srcdir%g" \
-            -e "s%\#PREFIX\#%$prefix%g" \
-	    -e "s%\#top_srcdir\#%$top_srcdir%g" \
-	    -e "s%\#bindir\#%$bindir%g" \
-	    -e "s%\#binbuild_dir\#%$bindir%g" \
-        $1 > $dest
+        if [ "$MPICH" = yes -o "$MPICH2" = yes ] ; then
+            sed \
+            -e "s%^MPI_CC\([ ]*\)=\([ ]*\).*\$%MPI_CC\1=\2$bindir/mpicc%g" \
+            -e "s%^MPI_F77\([ ]*\)=\([ ]*\).*\$%MPI_F77\1=\2$bindir/mpif77%g" \
+            -e "s%^MPE_INCDIR\([ ]*\)=\([ ]*\).*\$%MPE_INCDIR\1=\2$includedir%g" \
+            -e "s%^MPE_LIBDIR\([ ]*\)=\([ ]*\).*\$%MPE_LIBDIR\1=\2$libdir%g" \
+            $1 > $dest
+        else
+            sed \
+            -e "s%^MPE_INCDIR\([ ]*\)=\([ ]*\).*\$%MPE_INCDIR\1=\2$includedir%g" \
+            -e "s%^MPE_LIBDIR\([ ]*\)=\([ ]*\).*\$%MPE_LIBDIR\1=\2$libdir%g" \
+            $1 > $dest
+        fi
         rc=$?
         if [ $rc != 0 ] ; then
-	    echo "**Error fixing up file $dest**"
+	    echo "**** Error fixing up file $dest ****"
             errs=`expr $errs + 1`
             if [ $failmode = "hard" ] ; then exit $rc ; fi
         else
@@ -307,7 +321,7 @@ else
             filelist="$filelist $dest"
         fi
     else
-	if [ $verbose = 1 ] ; then echo "Fixup $1.in and copy to $dest" ; fi
+	if [ $verbose = 1 ] ; then echo "Fixup $1 and copy to $dest" ; fi
     fi
 fi
 if [ -z "$3" ] ; then
@@ -400,12 +414,6 @@ if [ -n "$binbuild_dir" ] ; then
          echo "Copying MPE utility programs to $bindir"
          CopyDirRecurP $binbuild_dir $bindir $XMODE
     fi
-    # Create mpereconfig from mpereconfig.in
-    $Show /bin/rm -f $DESTDIR$bindir/mpereconfig
-    if [ $verbose = 1 ] ; then
-        echo "Creating mpereconfig from mpereconfig.in"
-    fi
-    FixupFile $top_srcdir/bin/mpereconfig.in $bindir/mpereconfig $XMODE
 fi
 
 MkDir $sbindir
@@ -416,79 +424,12 @@ examplesdir=$datadir/examples
 MkDir $examplesdir
 
 #
-#
-# Updating the config.status file is trickier, since we need to edit
-# the directories that might have contained the original path.
-# It is important to update the CORRECT file, in the case that we are doing
-# a -libonly installation on a previously constructed version.
-# We also need to remove the code that mucks around with the directories
-#
-if [ $MPICH = 1 ] ; then
-    if test ! -f "$bindir/mpicc" ; then
-	echo "Must install MPICH before you can install MPE"
-	echo "Type 'make install' in the MPICH root directory"
-	exit 1
-    fi
-    if [ $just_testing = 0 ] ; then
-        # If we don't reset ac_given_srcdir, we can't use mpereconfig
-        # in any directory.
-        # Don't overload @CC@ and @F77@ which are meant for serial programs.
-        cat config.status | \
-            sed -e "s%\@MPI_CC\@\([^/ ]*\)/.*\$%\@MPI_CC\@\%$bindir/mpicc\%g%g" \
-                -e "s%\@MPI_F77\@\([^/ ]*\)/.*\$%\@MPI_F77\@\%$bindir/mpif77\%g%g" \
-                -e "s%\@libbuild_dir\@\([^/ ]*\)/.*\$%\@libbuild_dir\@\%$libdir\%g%g" \
-		-e "s%\@includebuild_dir\@\([^/ ]*\)/.*\$%\@includebuild_dir\@\%$includedir\%g%g" \
-		-e "s%^ac_given_srcdir=.*$%ac_given_srcdir=%g" \
-		-e '/if test "\$ac_dir/,/^[ ]*fi[ ]*$/d' \
-		-e 's/ac_dir_suffix/ac_dir/' \
-                > ${DESTDIR}$bindir/mpereconfig.dat
-        filelist="$filelist $bindir/mpereconfig.dat"
-        chmod $XMODE ${DESTDIR}$bindir/mpereconfig.dat
-    else 
-        cat <<.
-            cat config.status | \
-                sed -e "s%^MPI_CC=\([^/ ]*\)/.*\$%MPI_CC=$bindir/mpicc%g" \
-                    -e "s%^MPI_F77=\([^/ ]*\)/.*\$%MPI_F77=$bindir/mpif77%g" \
-                    -e "s%^libbuild_dir=\([^/ ]*\)/[^ ']*%libbuild_dir=$libdir%g" \
-		    -e "s%^includebuild_dir=\([^/ ]*\)/[^ ']*%includebuild_dir=$includedir%g" \
-		    -e "s%^ac_given_srcdir=.*$%ac_given_srcdir=%g" \
-		    -e '/if test "\$ac_dir/,/fi/d' \
-		    -e 's/ac_dir_suffix/ac_dir/' \
-                    > $bindir/mpereconfig.dat
-       chmod $XMODE $bindir/mpereconfig.dat
-.
-    fi
-else
-    if [ $just_testing = 0 ] ; then
-        cat config.status | \
-            sed -e "s%\@libbuild_dir\@\([^/ ]*\)/.*\$%\@libbuild_dir\@\%$libdir\%g%g" \
-		-e "s%\@includebuild_dir\@\([^/ ]*\)/.*\$%\@includebuild_dir\@\%$includedir\%g%g" \
-		-e "s%^ac_given_srcdir=.*$%ac_given_srcdir=%g" \
-		-e '/if test "\$ac_dir/,/^[ ]*fi[ ]*$/d' \
-		-e 's/ac_dir_suffix/ac_dir/' \
-                > $DESTDIR$bindir/mpereconfig.dat
-        filelist="$filelist $bindir/mpereconfig.dat"
-        chmod $XMODE $DESTDIR$bindir/mpereconfig.dat
-    else 
-        cat <<.
-            cat config.status | \
-                sed -e "s%^libbuild_dir=\([^/ ]*\)/[^ ']*%libbuild_dir=$libdir%g" \
-		    -e "s%^includebuild_dir=\([^/ ]*\)/[^ ']*%includebuild_dir=$includedir%g" \
-		    -e "s%^ac_given_srcdir=.*$%ac_given_srcdir=%g" \
-		    -e '/if test "\$ac_dir/,/fi/d' \
-		    -e 's/ac_dir_suffix/ac_dir/' \
-                    > $bindir/mpereconfig.dat
-       chmod $XMODE $bindir/mpereconfig.dat
-.
-    fi
-fi
-
-#
 # Copy MPE Example C and Fortran programs
 CopyDirRecurP $top_srcdir/contrib/test $examplesdir
 
 # Create MPE examples Makefile
-( cd $DESTDIR$examplesdir ; $bindir/mpereconfig Makefile ) 
+( cd $DESTDIR$examplesdir ; \
+  FixInstallFile $libbuild_dir/../contrib/test/Makefile $examplesdir/Makefile ) 
 filelist="$filelist $examplesdir/Makefile"
 
 if [ -x $bindir/mpirun ] ; then
@@ -510,7 +451,7 @@ if [ -z "$DESTDIR" ]; then
 fi
 
 # Remove old uninstall file
-if [ $appendUninstall = 0 -a -f $UNINSTALLFILE ] ; then
+if [ "$appendUninstall" = 0 -a -f $UNINSTALLFILE ] ; then
     /bin/rm -f $UNINSTALLFILE
 fi
 #
@@ -524,18 +465,33 @@ fi
 
 chmod u+x $UNINSTALLFILE
 
-# Install the log viewers
+# Install the old log viewers if they exist
 # Don't set the prefix if the default is chosen.  This
 # lets us use --with-common-prefix with the viewers
-if [ $LOGVIEWERS = 1 ] ; then
+if [ "$LOGVIEWERS" = 1 ] ; then
     if [ "$prefix_override" = "1" ] ; then
-    ( cd $sbinbuild_dir/../viewers ; \
-      ./sbin/install-viewers -prefix=$prefix -uninstall=$UNINSTALLFILE \
-	-mode=$MODE -xmode=$XMODE )
+        ( cd $sbinbuild_dir/../viewers ; \
+          ./sbin/install-viewers -prefix=$prefix -uninstall=$UNINSTALLFILE \
+          -mode=$MODE -xmode=$XMODE )
     else
-    ( cd $sbinbuild_dir/../viewers ; \
-      ./sbin/install-viewers -uninstall=$UNINSTALLFILE \
-	-mode=$MODE -xmode=$XMODE )
+        ( cd $sbinbuild_dir/../viewers ; \
+          ./sbin/install-viewers -uninstall=$UNINSTALLFILE \
+          -mode=$MODE -xmode=$XMODE )
+    fi
+fi
+
+# Install the SLOG-2 tools if they exist
+# Don't set the prefix if the default is chosen.  This
+# lets us use --with-common-prefix with the viewers
+if [ -s $sbinbuild_dir/../slog2sdk -a $SLOG2TOOLS = 1 ] ; then
+    if [ "$prefix_override" = "1" ] ; then
+        ( cd $sbinbuild_dir/../slog2sdk ; \
+          ./sbin/install-package -prefix=$prefix -uninstall=$UNINSTALLFILE \
+          -mode=$MODE -xmode=$XMODE -copymode=core)
+    else
+        ( cd $sbinbuild_dir/../slog2sdk ; \
+          ./sbin/install-package -uninstall=$UNINSTALLFILE \
+          -mode=$MODE -xmode=$XMODE -copymode=core )
     fi
 fi
 
@@ -548,7 +504,7 @@ for file in $filelist ; do
     echo "/bin/rm -f $file" >> $UNINSTALLFILE
 done
 
-if [ $appendUninstall = 0 ] ; then
+if [ "$appendUninstall" = 0 ] ; then
     echo "/bin/rm -f $sbindir/mpeuninstall" >> $UNINSTALLFILE
     echo "/bin/rm -f $UNINSTALLFILE" >> $UNINSTALLFILE
 fi
@@ -558,7 +514,7 @@ for dir in $dirlist ; do
     echo "if [ -d $dir ] ; then rmdir $dir ; fi" >> $UNINSTALLFILE
 done
  
-if [ $appendUninstall = 0 ] ; then
+if [ "$appendUninstall" = 0 ] ; then
     cp $UNINSTALLFILE $sbinbuild_dir/mpeuninstall
 #
     echo "Installed MPE in $prefix"

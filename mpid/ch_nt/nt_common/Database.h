@@ -26,6 +26,8 @@ extern HANDLE g_hStopDBSLoopEvent;
 
 #define DBSIDLEN					100
 #define DATABASE_TIMEOUT			10000
+#define DBS_CREATE_THREAD_RETRIES     5
+#define DBS_CREATE_THREAD_SLEEP_TIME  250
 
 class Database  
 {

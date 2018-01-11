@@ -1,13 +1,12 @@
 
 /*
- * CVS Id: $Id: mem.c,v 1.2 2002/12/10 14:24:16 karonis Exp $
+ * CVS Id: $Id: mem.c,v 1.3 2004/05/11 18:11:10 karonis Exp $
  */
 
 
+#include "chconfig.h"
 #include "comm.h"   /* for struct MPIR_COMMUNICATOR */
 #include "mpi.h"   /* for MPI_Comm_rank/size, MPI_COMM_WORLD */
-#include <globus_common.h>   /* for globus_libc_malloc, size_t */
-
 
 /**********************************************************************/
 /* allocate memory and check the return pointer.  MPID_Abort if NULL */

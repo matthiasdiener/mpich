@@ -309,7 +309,7 @@ MkDir $sbindir
 if [ -n "$binbuild_dir" ] ; then
     if [ -d $binbuild_dir ] ; then
         MkDir $bindir
-        CopyFileP $binbuild_dir/slog_printbbufs $bindir/slog_print $XMODE
+        CopyFileP $binbuild_dir/slog_printbbufs@EXEEXT@ $bindir/slog_print@EXEEXT@ $XMODE
     fi
 fi
 

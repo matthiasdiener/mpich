@@ -1,5 +1,5 @@
 /*
- *  $Id: testall.c,v 1.26 2003/01/09 20:48:41 gropp Exp $
+ *  $Id: testall.c,v 1.27 2003/02/19 16:38:32 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.

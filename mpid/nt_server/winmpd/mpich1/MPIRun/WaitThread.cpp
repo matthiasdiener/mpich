@@ -30,7 +30,13 @@ void WaitForLotsOfObjects(int nHandles, HANDLE *pHandle)
 				arg->n = MAXIMUM_WAIT_OBJECTS;
 			arg->pHandle = &pHandle[i*MAXIMUM_WAIT_OBJECTS];
 			DWORD dwThreadID;
-			hThread[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)WaitThreadFunction, arg, 0, &dwThreadID);
+			for (int iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+			{
+			    hThread[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)WaitThreadFunction, arg, 0, &dwThreadID);
+			    if (hThread[i] != NULL)
+				break;
+			    Sleep(CREATE_THREAD_SLEEP_TIME);
+			}
 		}
 		WaitForMultipleObjects(num, hThread, TRUE, INFINITE);
 		for (i=0; i<num; i++)

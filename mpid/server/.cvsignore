@@ -1,0 +1,7 @@
+Makefile
+config.log
+config.cache
+config.status
+server.h
+serv_p4
+lclient

@@ -4,6 +4,9 @@
 #if defined( HAVE_UNISTD_H )
 #include <unistd.h>
 #endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
+#include <stdlib.h>
+#endif
 
 
 int main( int argc, char *argv[] )

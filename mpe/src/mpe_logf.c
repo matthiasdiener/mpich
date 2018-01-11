@@ -32,6 +32,8 @@ extern void free();
 #define mpe_describe_state_ MPE_DESCRIBE_STATE
 #define mpe_describe_event_ MPE_DESCRIBE_EVENT
 #define mpe_log_event_ MPE_LOG_EVENT
+#define mpe_log_send_ MPE_LOG_SEND
+#define mpe_log_receive_ MPE_LOG_RECEIVE
 #define mpe_finish_log_ MPE_FINISH_LOG
 #elif defined(F77_NAME_LOWER_2USCORE)
 #define mpe_init_log_ mpe_init_log__
@@ -41,6 +43,8 @@ extern void free();
 #define mpe_describe_state_ mpe_describe_state__
 #define mpe_describe_event_ mpe_describe_event__
 #define mpe_log_event_ mpe_log_event__
+#define mpe_log_send_ mpe_log_send__
+#define mpe_log_receive_ mpe_log_receive__
 #define mpe_finish_log_ mpe_finish_log__
 #elif defined(F77_NAME_LOWER)
 #define mpe_init_log_ mpe_init_log
@@ -50,6 +54,8 @@ extern void free();
 #define mpe_describe_state_ mpe_describe_state
 #define mpe_describe_event_ mpe_describe_event
 #define mpe_log_event_ mpe_log_event
+#define mpe_log_send_ mpe_log_send
+#define mpe_log_receive_ mpe_log_receive
 #define mpe_finish_log_ mpe_finish_log
 #endif
 
@@ -64,12 +70,8 @@ extern void free();
    (a) not for substring expressions and (b) not all compilers do so (e.g.,
    RS6000)
  */
-static char *mpe_tmp_cpy ( char *, int );
-int mpe_init_log_ ( void );
-int mpe_start_log_ ( void );
-int mpe_stop_log_ ( void );
-int mpe_log_get_event_number_ ( void );
 
+static char *mpe_tmp_cpy ( char *, int );
 static char *mpe_tmp_cpy( s, d )
 char *s;
 int  d;
@@ -82,22 +84,40 @@ int  d;
     return p;
 }
 
+int mpe_init_log_ ( void );
 int  mpe_init_log_( void )
 {
     return MPE_Init_log();
 }
+
+int mpe_start_log_ ( void );
 int  mpe_start_log_( void )
 {
     return MPE_Start_log();
 }
+
+int mpe_stop_log_ ( void );
 int  mpe_stop_log_( void )
 {
     return MPE_Stop_log();
 }
 
+int mpe_log_get_event_number_ ( void );
 int mpe_log_get_event_number_( void )
 {
     return MPE_Log_get_event_number();
+}
+
+int mpe_log_send_( int*, int*, int* );
+int mpe_log_send_( int *otherParty, int *tag, int *size )
+{
+    return MPE_Log_send( *otherParty, *tag, *size );
+}
+
+int mpe_log_receive_( int*, int*, int* );
+int mpe_log_receive_( int *otherParty, int *tag, int *size )
+{
+    return MPE_Log_receive( *otherParty, *tag, *size );
 }
 
 #ifdef MPI_CRAY

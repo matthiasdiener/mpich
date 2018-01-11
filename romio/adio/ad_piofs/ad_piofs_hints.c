@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_piofs_hints.c,v 1.4 2002/10/24 17:00:55 gropp Exp $    
+ *   $Id: ad_piofs_hints.c,v 1.6 2003/06/02 18:27:47 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -16,7 +16,7 @@ void ADIOI_PIOFS_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code)
     int flag, tmp_val, str_factor=-1, str_unit=-1, start_iodev=-1;
     int err, myrank, perm, old_mask, nioservers;
 
-    if (!(fd->info)) {
+    if ((fd->info) == MPI_INFO_NULL) {
 	/* This must be part of the open call. can set striping parameters 
            if necessary. */ 
 	MPI_Info_create(&(fd->info));

@@ -16,7 +16,7 @@ dnl when MPICH is being built.
 dnl
 dnl Prerequisites:
 dnl autoconf version 2.13 (for AC_SEARCH_LIBS)
-dnlD*/
+dnl D*/
 dnl Other tests to add:
 dnl Version of MPI
 dnl MPI-2 I/O?
@@ -69,7 +69,7 @@ dnl 'no' otherwise.
 dnl
 dnl See Also:
 dnl PAC_LIB_MPI
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_ARG_MPICH_BUILDING,[
 AC_ARG_WITH(mpichbuilding,
 [--with-mpichbuilding - Assume that MPICH is being built],
@@ -104,7 +104,7 @@ dnl 'MPIUNBOOT' will stop those demons.
 dnl
 dnl See also:
 dnl PAC_LANG_PUSH_COMPILERS, PAC_LIB_MPI
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_ARG_MPI_TYPES,[
 AC_PROVIDE([AC_PROG_CC])
 AC_SUBST(CC)
@@ -123,6 +123,10 @@ ac_mpi_type=ibmmpi)
 AC_ARG_WITH(sgimpi,
 [--with-sgimpi    - Use the SGI implementation of MPI],
 ac_mpi_type=sgimpi)
+AC_ARG_WITH(mpichnt,
+[--with-mpichnt - Use MPICH for Windows NT ],
+ac_mpi_type=mpichnt)
+
 if test "X$ac_mpi_type" = "X" ; then
     if test "X$1" != "X" ; then
         ac_mpi_type=$1
@@ -171,6 +175,15 @@ case $ac_mpi_type in
 	    :
         fi
 	;;
+
+        mpichnt)
+        dnl
+        dnl This isn't adequate, but it helps with using MPICH-NT/SDK.gcc
+        CFLAGS="-I$with_mpichnt/include"
+        CPPFLAGS="-I$with_mpichnt/include"
+        LDFLAGS="-L$with_mpichnt/lib"
+        MPILIBNAME="mpich"
+        ;;
 
 	lammpi)
 	dnl
@@ -226,9 +239,17 @@ case $ac_mpi_type in
 	*)
 	# Find the compilers
 	PAC_PROG_CC
-	AC_PROG_F77
-	AC_PROG_CXX
-	PAC_PROG_F90
+	# We only look for the other compilers if there is no
+	# disable for them
+	if test "$enable_f77" != no -a "$enable_fortran" != no ; then
+   	    AC_PROG_F77
+        fi
+	if test "$enable_cxx" != no ; then
+	    AC_PROG_CXX
+	fi
+	if test "$enable_f90" != no ; then
+	    PAC_PROG_F90
+	fi
 	# Set defaults for the TEST versions if not already set
 	if test -z "$TESTCC" ; then 
 	    TESTCC=${CC:=cc}
@@ -255,7 +276,7 @@ dnl Define 'HAVE_MPI_F2C' if the routines are found.
 dnl
 dnl Notes:
 dnl Looks only for 'MPI_Request_c2f'.
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_MPI_F2C,[
 AC_CACHE_CHECK([for MPI F2C and C2F routines],
 pac_cv_mpi_f2c,
@@ -265,6 +286,17 @@ AC_TRY_LINK([#include "mpi.h"],
 pac_cv_mpi_f2c="yes",pac_cv_mpi_f2c="no")
 ])
 if test "$pac_cv_mpi_f2c" = "yes" ; then 
-    AC_DEFINE(HAVE_MPI_F2C) 
+    AC_DEFINE(HAVE_MPI_F2C,1,[Define if MPI has F2C]) 
 fi
+])
+dnl
+dnl/*D
+dnl PAC_HAVE_ROMIO - make mpi.h include mpio.h if romio enabled
+dnl
+dnl Output Effect:
+dnl expands @HAVE_ROMIO@ in mpi.h into #include "mpio.h"
+dnl D*/
+AC_DEFUN(PAC_HAVE_ROMIO,[
+if test "$enable_romio" = "yes" ; then HAVE_ROMIO='#include "mpio.h"'; fi
+AC_SUBST(HAVE_ROMIO)
 ])

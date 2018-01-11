@@ -144,7 +144,7 @@ void PutJobInDatabase(MPIRunLaunchProcessArg *arg)
 	}
 
 	// put the state of the job database
-	sprintf(pszStr, "dbput %s:state:LAUNCHING", arg->pszJobID, (arg->pszAccount[0] == '\0') ? "<single user mode>" : arg->pszAccount);
+	sprintf(pszStr, "dbput %s:state:LAUNCHING", arg->pszJobID);
 	if (WriteString(sock, pszStr) == SOCKET_ERROR)
 	{
 	    printf("ERROR: Unable to write '%s' to socket[%d]\n", pszStr, sock);

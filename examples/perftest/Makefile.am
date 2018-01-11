@@ -10,8 +10,9 @@ EXTRA_PROGRAMS = tunepkt pktuse copytest vectest stress ctest cluster tcomm
 EXTRA_SCRIPTS = rungoptest runmpptest runsample
 noinst_HEADERS = mpptest.h getopts.h
 
-extra_SOURCES = gopf.c grph.c ovlap.c pair.c pattern.c getopts.c \
-		rate.c mpe_seq.c copy.c
+# Some versions of automake can't handle continuation lines, so the line
+# for extra_SOURCES must be a single line.
+extra_SOURCES = gopf.c grph.c ovlap.c pair.c pattern.c getopts.c rate.c mpe_seq.c copy.c
 mpptest_SOURCES = mpptest.c $(extra_SOURCES) halo.c
 goptest_SOURCES = goptest.c $(extra_SOURCES)
 vectest_SOURCES = vectest.f

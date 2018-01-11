@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: set_atom.c,v 1.8 2002/10/24 15:54:43 gropp Exp $    
+ *   $Id: set_atom.c,v 1.17 2003/06/06 21:21:17 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -36,7 +36,7 @@ Input Parameters:
 int MPI_File_set_atomicity(MPI_File fh, int flag)
 {
     int error_code, tmp_flag;
-#ifndef PRINT_ERR_MSG
+#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "MPI_FILE_SET_ATOMICITY";
 #endif
     ADIO_Fcntl_t *fcntl_struct;
@@ -50,16 +50,22 @@ int MPI_File_set_atomicity(MPI_File fh, int flag)
     ADIOI_TEST_FILE_HANDLE(fh, myname);
 #endif
 
+    ADIOI_TEST_DEFERRED(fh, "MPI_File_set_atomicity", &error_code);
+
     if (flag) flag = 1;  /* take care of non-one values! */
 
 /* check if flag is the same on all processes */
     tmp_flag = flag;
     MPI_Bcast(&tmp_flag, 1, MPI_INT, 0, fh->comm);
     if (tmp_flag != flag) {
-#ifdef PRINT_ERR_MSG
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_ARG, 
+	    "**notsame", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
         FPRINTF(stderr, "MPI_File_set_atomicity: flag must be the same on all processes\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_ARG, MPIR_ERR_FLAG_ARG,
 				     myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);

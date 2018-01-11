@@ -1,0 +1,13 @@
+Debug*
+Release*
+*.ncb
+*.aps
+*.opt
+*.plg
+*.tlb
+*.mk
+RemoteShellServer_i.c
+RemoteShellServer_p.c
+resource.fd
+mpicherr.dll
+syslog.dll

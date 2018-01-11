@@ -114,11 +114,52 @@ void InitSMP()
 {
 	int i;
 	char nameBuffer[256], pszTemp[100], pszSMPLow[10]="", pszSMPHigh[10]="";
+#ifdef SHARE_MEMORY_ACCROSS_WINWORKSTATIONS
+	PSECURITY_DESCRIPTOR pSD;
+	SECURITY_ATTRIBUTES sattr;
+#endif
 
 	g_nNumShemQueues = GetShmemClique();
 
 	if (g_nNumShemQueues < 2)
 		return;
+
+#ifdef SHARE_MEMORY_ACCROSS_WINWORKSTATIONS
+	// Initialize a security descriptor.
+	pSD = (PSECURITY_DESCRIPTOR) LocalAlloc(LPTR, SECURITY_DESCRIPTOR_MIN_LENGTH);
+	if (pSD == NULL)
+	{
+	    nt_error("InitSMP: LocalAlloc failed", GetLastError());
+	    return;
+	}
+	
+	if (!InitializeSecurityDescriptor(pSD, SECURITY_DESCRIPTOR_REVISION))
+	{
+	    nt_error("InitSMP: InitializeSecurityDescriptor failed", GetLastError());
+	    LocalFree((HLOCAL) pSD);
+	    return;
+	}
+	
+	// Add a NULL descriptor ACL to the security descriptor.
+	if (!SetSecurityDescriptorDacl(
+	    pSD, 
+	    TRUE,     // specifying a descriptor ACL
+	    (PACL) NULL,
+	    FALSE))
+	{
+	    nt_error("InitSMP: SetSecurityDescriptorDacl failed", GetLastError());
+	    LocalFree((HLOCAL) pSD);
+	    return;
+	}
+
+	sattr.bInheritHandle = TRUE;
+	sattr.lpSecurityDescriptor = pSD;
+	sattr.nLength = sizeof(SECURITY_ATTRIBUTES);
+
+	// make my process accessable to other processes
+	// This doesn't work
+	//SetKernelObjectSecurity(GetCurrentProcess(), DACL_SECURITY_INFORMATION, &sattr);
+#endif
 
 	// Initialize shared memory stuff
 	if (GetEnvironmentVariable("MPICH_MAXSHMMSG", pszTemp, 100))
@@ -161,11 +202,23 @@ void InitSMP()
 		{
 		    char pBuffer[100];
 		    sprintf(pBuffer, "%s.shp%dMutex", g_pszJobID, i);
-		    g_hShpMutex[i] = CreateMutex(NULL, FALSE, pBuffer);
+		    g_hShpMutex[i] = CreateMutex(
+#ifdef SHARE_MEMORY_ACCROSS_WINWORKSTATIONS
+			&sattr,
+#else
+			NULL,
+#endif
+			FALSE, pBuffer);
 		    if (g_hShpMutex[i] == NULL)
 			MakeErrMsg(GetLastError(), "InitSMP: CreateMutex failed for g_hShmMutex[%d]", i);
 		    sprintf(pBuffer, "%s.shp%dSendComplete", g_pszJobID, i);
-		    g_hShpSendCompleteEvent[i] = CreateEvent(NULL, TRUE, FALSE, pBuffer);
+		    g_hShpSendCompleteEvent[i] = CreateEvent(
+#ifdef SHARE_MEMORY_ACCROSS_WINWORKSTATIONS
+			&sattr,
+#else
+			NULL,
+#endif
+			TRUE, FALSE, pBuffer);
 		    if (g_hShpSendCompleteEvent[i] == NULL)
 			MakeErrMsg(GetLastError(), "InitSMP: CreateEvent failed for g_hShpSendCompleteEvent[%d]", i);
 		}
@@ -208,10 +261,20 @@ void InitSMP()
 	{
 		// Start the shared memory receive thread
 		DWORD dwThreadID;
-		g_hShmRecvThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ShmRecvThread, g_pShmemQueue[g_nIproc], NT_THREAD_STACK_SIZE, &dwThreadID);
+		for (i=0; i<NT_CREATE_THREAD_RETRIES; i++)
+		{
+		    g_hShmRecvThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ShmRecvThread, g_pShmemQueue[g_nIproc], NT_THREAD_STACK_SIZE, &dwThreadID);
+		    if (g_hShmRecvThread != NULL)
+			break;
+		    Sleep(NT_CREATE_THREAD_SLEEP_TIME);
+		}
 		if (g_hShmRecvThread == NULL)
 			nt_error("InitSMP: Unable to create ShmRecvThread", 0);
 	}
+#ifdef SHARE_MEMORY_ACCROSS_WINWORKSTATIONS
+	if(pSD != NULL)
+		LocalFree((HLOCAL) pSD);
+#endif
 }
 
 // Function name	: EndSMP
@@ -270,7 +333,38 @@ void EndSMP()
 // Argument         : int to
 void NT_ShmSend(int type, void *buffer, int length, int to)
 {
-	if (length > g_nMaxShmSendSize)
+	// do a short send
+	if (length < g_nMaxShmSendSize)
+	{
+		// Shared memory send
+		if (!g_pShmemQueue[to]->Insert((unsigned char *)buffer, length, type, g_nIproc))
+		{
+			nt_error("shared memory send failed", to);
+		}
+		return;
+	}
+
+	// do a shared process send
+	if (g_hProcesses[to] != NULL)
+	{
+		// Shared process send
+		if (!g_pShmemQueue[to]->InsertSHP((unsigned char *)buffer, length, type, g_nIproc, g_hShpMutex[to], g_hShpSendCompleteEvent[to], g_pShmemQueue[g_nIproc]))
+		{
+			nt_error("shared process send failed", to);
+		}
+		return;
+	}
+
+	// Shared memory send
+	if (!g_pShmemQueue[to]->Insert((unsigned char *)buffer, length, type, g_nIproc))
+	{
+		nt_error("shared memory send failed", to);
+	}
+}
+/*
+void NT_ShmSend(int type, void *buffer, int length, int to)
+{
+	if (length > g_nMaxShmSendSize && g_hProcesses[to] != NULL)
 	{
 		// Shared process send
 		if (!g_pShmemQueue[to]->InsertSHP((unsigned char *)buffer, length, type, g_nIproc, g_hShpMutex[to], g_hShpSendCompleteEvent[to], g_pShmemQueue[g_nIproc]))
@@ -287,3 +381,44 @@ void NT_ShmSend(int type, void *buffer, int length, int to)
 		}
 	}
 }
+*/
+
+/*
+void NT_ShmSend(int type, void *buffer, int length, int to)
+{
+	int len;
+	// do a short send
+	if (length < g_nMaxShmSendSize)
+	{
+		// Shared memory send
+		if (!g_pShmemQueue[to]->Insert((unsigned char *)buffer, length, type, g_nIproc))
+		{
+			nt_error("shared memory send failed", to);
+		}
+		return;
+	}
+
+	// do a shared process send
+	if (g_hProcesses[to] != NULL)
+	{
+		// Shared process send
+		if (!g_pShmemQueue[to]->InsertSHP((unsigned char *)buffer, length, type, g_nIproc, g_hShpMutex[to], g_hShpSendCompleteEvent[to], g_pShmemQueue[g_nIproc]))
+		{
+			nt_error("shared process send failed", to);
+		}
+		return;
+	}
+
+	// stream the send through shared memory
+	do
+	{
+		len = min(length, g_nMaxShmSendSize);
+		if (!g_pShmemQueue[to]->Insert((unsigned char *)buffer, len, type, g_nIproc))
+		{
+			nt_error("shared memory send failed", to);
+		}
+		length -= len;
+		buffer = (char *)buffer + len;
+	} while (length);
+}
+*/

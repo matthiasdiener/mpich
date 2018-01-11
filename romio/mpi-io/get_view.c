@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: get_view.c,v 1.8 2002/10/24 17:01:17 gropp Exp $    
+ *   $Id: get_view.c,v 1.16 2004/02/12 06:08:26 David Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -44,7 +44,7 @@ Output Parameters:
 int MPI_File_get_view(MPI_File fh, MPI_Offset *disp, MPI_Datatype *etype,
 		 MPI_Datatype *filetype, char *datarep)
 {
-#ifndef PRINT_ERR_MSG
+#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     int error_code;
     static char myname[] = "MPI_FILE_GET_VIEW";
 #endif
@@ -60,16 +60,23 @@ int MPI_File_get_view(MPI_File fh, MPI_Offset *disp, MPI_Datatype *etype,
     ADIOI_TEST_FILE_HANDLE(fh, myname);
 #endif
 
-    if (datarep <= (char *) 0) {
-#ifdef PRINT_ERR_MSG
+    /* --BEGIN ERROR HANDLING-- */
+    if (datarep <= (char *) 0)
+    {
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_ARG, 
+	    "**iodatarepnomem", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
 	FPRINTF(stderr, "MPI_File_get_view: The user must allocate memory for datarep\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_ARG, MPIR_ERR_DATAREP_ARG,
 				     myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);
 #endif
     }
+    /* --END ERROR HANDLING-- */
 
     *disp = fh->disp;
     strcpy(datarep, "native");

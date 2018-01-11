@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_piofs_seek.c,v 1.7 2002/10/24 17:00:56 gropp Exp $    
+ *   $Id: ad_piofs_seek.c,v 1.12 2003/06/10 15:16:00 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -21,7 +21,7 @@ ADIO_Offset ADIOI_PIOFS_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
     static char myname[] = "ADIOI_PIOFS_SEEKINDIVIDUAL";
 #endif
 
-    ADIO_Offset off, abs_off_in_filetype=0, err;
+    ADIO_Offset off, abs_off_in_filetype=0;
     ADIOI_Flatlist_node *flat_file;
 
     int i, n_etypes_in_filetype, n_filetypes, etype_in_filetype;
@@ -64,25 +64,13 @@ ADIO_Offset ADIOI_PIOFS_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
                 abs_off_in_filetype;
     }
 
-#ifdef PROFILE
-    MPE_Log_event(11, 0, "start seek");
-#endif
-    err = llseek(fd->fd_sys, off, SEEK_SET);
-#ifdef PROFILE
-    MPE_Log_event(12, 0, "end seek");
-#endif
     fd->fp_ind = off;
-    fd->fp_sys_posn = off;
-
-#ifdef PRINT_ERR_MSG
-    *error_code = (err == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
-#else
-    if (err == -1) {
-	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
-			      myname, "I/O Error", "%s", strerror(errno));
-	ADIOI_Error(fd, *error_code, myname);	    
-    }
-    else *error_code = MPI_SUCCESS;
-#endif
+/*
+ * we used to do a seek here, but the fs-specifc ReadContig and
+ * WriteContig will seek to the correct place in the file before
+ * reading/writing.  to see how we used to do things, check out
+ * adio/common/ad_seek.c, where the old code still lives in commented-out form.
+ */
+    *error_code = MPI_SUCCESS;
     return off;
 }

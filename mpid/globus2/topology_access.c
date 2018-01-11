@@ -1,6 +1,6 @@
 
 /*
- * CVS Id: $Id: topology_access.c,v 1.5 2002/09/13 23:24:44 lacour Exp $
+ * CVS Id: $Id: topology_access.c,v 1.6 2004/05/11 18:11:12 karonis Exp $
  */
 
 /* This module allows the user to access the underlying topology of
@@ -17,6 +17,7 @@
  *  depths and colors permanent in MPICH core. */
 
 
+#include "chconfig.h"
 #include "mpiimpl.h"
 #include "topology_access.h"
 #include "mem.h"

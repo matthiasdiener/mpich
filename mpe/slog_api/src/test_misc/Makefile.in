@@ -34,4 +34,4 @@ MAIN_EXE   = $(MAIN_OBJ:.o=)
 all:	$(MAIN_OBJ) $(MAIN_EXE)
 
 clean:
-	/bin/rm -f core *~ PI* $(AUX_OBJ) $(MAIN_OBJ) $(MAIN_EXE)
+	-rm -f core *~ PI* $(AUX_OBJ) $(MAIN_OBJ) $(MAIN_EXE)

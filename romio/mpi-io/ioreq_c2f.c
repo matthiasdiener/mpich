@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ioreq_c2f.c,v 1.7 2002/10/24 15:54:40 gropp Exp $    
+ *   $Id: ioreq_c2f.c,v 1.9 2003/02/24 23:52:08 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -35,6 +35,10 @@ Input Parameters:
 Return Value:
   Fortran I/O-request handle (integer)
 @*/
+#ifdef HAVE_MPI_GREQUEST
+MPI_Fint MPIO_Request_c2f(MPIO_Request request) { return ((MPI_Fint)request); }
+#else
+
 MPI_Fint MPIO_Request_c2f(MPIO_Request request)
 {
 #ifndef INT_LT_POINTER
@@ -64,3 +68,4 @@ MPI_Fint MPIO_Request_c2f(MPIO_Request request)
     return (MPI_Fint) ADIOI_Reqtable_ptr;
 #endif
 }
+#endif

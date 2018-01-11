@@ -10,6 +10,8 @@ MPI_Group_rank
 MPI_Group_size
 MPI_Group_translate_ranks
 MPI_Group_union
+MPI_Group_range_incl
+MPI_Group_incl
 
  */
 #include "mpi.h"
@@ -22,11 +24,11 @@ int main( int argc, char **argv )
 {
     int errs=0, toterr;
     MPI_Group basegroup;
-    MPI_Group g1, g2, g3, g4, g5, g6, g7, g8, g9, g10;
+    MPI_Group g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12;
     MPI_Comm  comm, newcomm, splitcomm, dupcomm;
     int       i, grp_rank, rank, grp_size, size, result;
     int       nranks, *ranks, *ranks_out;
-    int       range[1][3];
+    int       range[2][3];
     int       worldrank;
 
     MPI_Init( &argc, &argv );
@@ -143,6 +145,23 @@ int main( int argc, char **argv )
 		 "MPI_GROUP_EMPTY didn't compare against empty group\n");
     }
 
+/* Grouptest usually runs with 4 processes.  Pick a range that specifies
+   1, size-1, but where "last" is size.  This checks for an 
+   error case that MPICH2 got wrong */
+    range[0][0] = 1;
+    range[0][1] = size ;
+    range[0][2] = size - 2;
+    MPI_Group_range_incl( basegroup, 1, range, &g11 );
+    ranks[0] = 1;
+    ranks[1] = size-1;
+    MPI_Group_incl( basegroup, 2, ranks, &g12 );
+    MPI_Group_compare( g11, g12, &result );
+    if (result != MPI_IDENT) {
+	errs++;
+	fprintf( stderr, 
+		 "MPI_Group_range_incl didn't compare against MPI_Group_incl\n" );
+    }
+
     MPI_Group_free( &basegroup );
     MPI_Group_free( &g1 );
     MPI_Group_free( &g2 );
@@ -154,6 +173,8 @@ int main( int argc, char **argv )
     MPI_Group_free( &g8 );
     MPI_Group_free( &g9 );
     MPI_Group_free( &g10 );
+    MPI_Group_free( &g11 );
+    MPI_Group_free( &g12 );
     MPI_Comm_free( &dupcomm );
     MPI_Comm_free( &splitcomm );
     MPI_Comm_free( &newcomm );

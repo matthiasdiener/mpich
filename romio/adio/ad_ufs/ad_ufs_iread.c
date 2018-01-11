@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_ufs_iread.c,v 1.6 2002/10/24 17:01:07 gropp Exp $    
+ *   $Id: ad_ufs_iread.c,v 1.11 2003/04/18 20:15:03 David Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -17,7 +17,7 @@ void ADIOI_UFS_IreadContig(ADIO_File fd, void *buf, int count,
     ADIO_Status status;
 #else
     int err=-1;
-#ifndef PRINT_ERR_MSG
+#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "ADIOI_UFS_IREADCONTIG";
 #endif
 #endif
@@ -52,17 +52,21 @@ void ADIOI_UFS_IreadContig(ADIO_File fd, void *buf, int count,
     (*request)->queued = 1;
     ADIOI_Add_req_to_list(request);
 
-#ifdef PRINT_ERR_MSG
-    *error_code = (err == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
-#else
     if (err == -1) {
+#ifdef MPICH2
+	*error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io",
+	    "**io %s", strerror(errno));
+	return;
+#elif defined(PRINT_ERR_MSG)
+			*error_code = MPI_ERR_UNKNOWN;
+#else /* MPICH-1 */
 	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
 			      myname, "I/O Error", "%s", strerror(errno));
 	ADIOI_Error(fd, *error_code, myname);	    
+#endif
     }
     else *error_code = MPI_SUCCESS;
-#endif
-#endif
+#endif  /* NO_AIO */
 
     fd->fp_sys_posn = -1;   /* set it to null. */
     fd->async_count++;

@@ -1,0 +1,6 @@
+Makefile
+Debug*
+Release*
+.deps
+*.bb
+*.bbg

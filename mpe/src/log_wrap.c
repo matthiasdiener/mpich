@@ -1643,7 +1643,7 @@ int  MPI_Finalize(  )
 		  0, MPI_COMM_WORLD );
     
      if (procid_0 == 0) {
-	 fprintf( stderr, "Writing logfile.\n");
+	 fprintf( stderr, "Writing logfile....\n");
 	 for (i=0; i<MPE_MAX_STATES; i++) {
 	     if (totcnt[i] > 0) {
 		 MPE_Describe_state( states[i].id, states[i].id + 1, 

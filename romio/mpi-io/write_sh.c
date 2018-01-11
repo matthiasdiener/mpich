@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: write_sh.c,v 1.7 2002/10/24 15:54:45 gropp Exp $    
+ *   $Id: write_sh.c,v 1.21 2004/02/20 19:47:59 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -44,7 +44,7 @@ int MPI_File_write_shared(MPI_File fh, void *buf, int count,
                           MPI_Datatype datatype, MPI_Status *status)
 {
     int error_code, bufsize, buftype_is_contig, filetype_is_contig;
-#ifndef PRINT_ERR_MSG
+#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "MPI_FILE_READ_SHARED";
 #endif
     int datatype_size, incr;
@@ -59,65 +59,105 @@ int MPI_File_write_shared(MPI_File fh, void *buf, int count,
     ADIOI_TEST_FILE_HANDLE(fh, myname);
 #endif
 
-    if (count < 0) {
-#ifdef PRINT_ERR_MSG
+    /* --BEGIN ERROR HANDLING-- */
+    if (count < 0)
+    {
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_ARG, 
+	    "**iobadcount", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
 	FPRINTF(stderr, "MPI_File_write_shared: Invalid count argument\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_ARG, MPIR_ERR_COUNT_ARG,
 				     myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);
 #endif
     }
 
-    if (datatype == MPI_DATATYPE_NULL) {
-#ifdef PRINT_ERR_MSG
+    if (datatype == MPI_DATATYPE_NULL)
+    {
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_TYPE, 
+	    "**dtypenull", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
         FPRINTF(stderr, "MPI_File_write_shared: Invalid datatype\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_TYPE, MPIR_ERR_TYPE_NULL,
 				     myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);	    
 #endif
     }
+    /* --END ERROR HANDLING-- */
 
     MPI_Type_size(datatype, &datatype_size);
-    if (count*datatype_size == 0) return MPI_SUCCESS;
+    if (count*datatype_size == 0) {
+#ifdef HAVE_STATUS_SET_BYTES
+       MPIR_Status_set_bytes(status, datatype, 0);
+#endif
+	return MPI_SUCCESS; 
+    }
 
-    if ((count*datatype_size) % fh->etype_size != 0) {
-#ifdef PRINT_ERR_MSG
+    /* --BEGIN ERROR HANDLING-- */
+    if ((count*datatype_size) % fh->etype_size != 0)
+    {
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, 
+	    "**ioetype", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
         FPRINTF(stderr, "MPI_File_write_shared: Only an integral number of etypes can be accessed\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ERR_ETYPE_FRACTIONAL,
 				     myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);	    
 #endif
     }
 
-    if ((fh->file_system == ADIO_PIOFS) || (fh->file_system == ADIO_PVFS)) {
-#ifdef PRINT_ERR_MSG
+    if ((fh->file_system == ADIO_PIOFS) || (fh->file_system == ADIO_PVFS)|| (fh->file_system == ADIO_PVFS2))
+    {
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_UNSUPPORTED_OPERATION, "**iosharedunsupported", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
 	FPRINTF(stderr, "MPI_File_write_shared: Shared file pointer not supported on PIOFS and PVFS\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_UNSUPPORTED_OPERATION, 
                     MPIR_ERR_NO_SHARED_FP, myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);
 #endif
     }
+    /* --END ERROR HANDLING-- */
 
     ADIOI_Datatype_iscontig(datatype, &buftype_is_contig);
     ADIOI_Datatype_iscontig(fh->filetype, &filetype_is_contig);
 
+    ADIOI_TEST_DEFERRED(fh, "MPI_File_write_shared", &error_code);
+
     incr = (count*datatype_size)/fh->etype_size;
     ADIO_Get_shared_fp(fh, incr, &shared_fp, &error_code);
-    if (error_code != MPI_SUCCESS) {
+    /* --BEGIN ERROR HANDLING-- */
+    if (error_code != MPI_SUCCESS)
+    {
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_FATAL, myname, __LINE__, MPI_ERR_INTERN, 
+					  "**iosharedfailed", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#else
 	FPRINTF(stderr, "MPI_File_write_shared: Error! Could not access shared file pointer.\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
+#endif
     }
+    /* --END ERROR HANDLING-- */
 
     /* contiguous or strided? */
-    if (buftype_is_contig && filetype_is_contig) {
+    if (buftype_is_contig && filetype_is_contig)
+    {
         /* convert bufocunt and shared_fp to bytes */
 	bufsize = datatype_size * count;
 	off = fh->disp + fh->etype_size * shared_fp;
@@ -136,9 +176,11 @@ int MPI_File_write_shared(MPI_File fh, void *buf, int count,
             ADIOI_UNLOCK(fh, off, SEEK_SET, bufsize);
     }
     else
+    {
 	ADIO_WriteStrided(fh, buf, count, datatype, ADIO_EXPLICIT_OFFSET,
-			 shared_fp, status, &error_code); 
-    /* For strided and atomic mode, locking is done in ADIO_WriteStrided */
+			 shared_fp, status, &error_code);
+	/* For strided and atomic mode, locking is done in ADIO_WriteStrided */
+    }
 
     return error_code;
 }

@@ -23,6 +23,7 @@ int easy_create(SOCKET *sock, int port /*=0*/, unsigned long addr /*=INADDR_ANY*
     struct linger linger;
     int optval, len;
     SOCKET temp_sock;
+    BOOL b;
 
     // create the socket
     temp_sock = WSASocket(PF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
@@ -39,6 +40,9 @@ int easy_create(SOCKET *sock, int port /*=0*/, unsigned long addr /*=INADDR_ANY*
     if (bind(temp_sock, (SOCKADDR*)&sockAddr, sizeof(sockAddr)) == SOCKET_ERROR)
 	return WSAGetLastError();
     
+    b = TRUE;
+    setsockopt(temp_sock, IPPROTO_TCP, TCP_NODELAY, (char*)&b, sizeof(BOOL));
+
     /* Set the linger on close option */
     linger.l_onoff = 1 ;
     linger.l_linger = 60;
@@ -159,33 +163,33 @@ int easy_connect(SOCKET sock, char *host, int port)
 	    case WSAECONNREFUSED:
 		if (!bWarningLogged[0])
 		{
-		    /*err_printf("WSAECONNREFUSED error, re-attempting bconnect(%s)\n", host);*/
+		    /*err_printf("WSAECONNREFUSED error, re-attempting easy_connect(%s)\n", host);*/
 		    bWarningLogged[0] = TRUE;
 		}
 		break;
 	    case WSAETIMEDOUT:
 		if (!bWarningLogged[1])
 		{
-		    err_printf("easy_connect::WSAETIMEDOUT error, re-attempting bconnect(%s)\n", host);
+		    err_printf("easy_connect::WSAETIMEDOUT error, re-attempting easy_connect(%s)\n", host);
 		    bWarningLogged[1] = TRUE;
 		}
 		break;
 	    case WSAENETUNREACH:
 		if (!bWarningLogged[2])
 		{
-		    err_printf("easy_connect::WSAENETUNREACH error, re-attempting bconnect(%s)\n", host);
+		    err_printf("easy_connect::WSAENETUNREACH error, re-attempting easy_connect(%s)\n", host);
 		    bWarningLogged[2] = TRUE;
 		}
 		break;
 	    case WSAEADDRINUSE:
 		if (!bWarningLogged[3])
 		{
-		    err_printf("easy_connect::WSAEADDRINUSE error, re-attempting bconnect(%s)\n", host);
+		    err_printf("easy_connect::WSAEADDRINUSE error, re-attempting easy_connect(%s)\n", host);
 		    bWarningLogged[3] = TRUE;
 		}
 		break;
 	    default:
-		err_printf("easy_connect::error %d, re-attempting bconnect\n", error);
+		err_printf("easy_connect::error %d, re-attempting easy_connect\n", error);
 		break;
 	    }
 	}
@@ -250,33 +254,33 @@ int easy_connect_timeout(SOCKET sock, char *host, int port, int seconds)
 	    case WSAECONNREFUSED:
 		if (!bWarningLogged[0])
 		{
-		    /*err_printf("WSAECONNREFUSED error, re-attempting bconnect(%s)", host);*/
+		    /*err_printf("WSAECONNREFUSED error, re-attempting easy_connect_timeout(%s)", host);*/
 		    bWarningLogged[0] = TRUE;
 		}
 		break;
 	    case WSAETIMEDOUT:
 		if (!bWarningLogged[1])
 		{
-		    err_printf("easy_connect_timeout::WSAETIMEDOUT error, re-attempting bconnect(%s)\n", host);
+		    err_printf("easy_connect_timeout::WSAETIMEDOUT error, re-attempting easy_connect_timeout(%s)\n", host);
 		    bWarningLogged[1] = TRUE;
 		}
 		break;
 	    case WSAENETUNREACH:
 		if (!bWarningLogged[2])
 		{
-		    err_printf("easy_connect_timeout::WSAENETUNREACH error, re-attempting bconnect(%s)\n", host);
+		    err_printf("easy_connect_timeout::WSAENETUNREACH error, re-attempting easy_connect_timeout(%s)\n", host);
 		    bWarningLogged[2] = TRUE;
 		}
 		break;
 	    case WSAEADDRINUSE:
 		if (!bWarningLogged[3])
 		{
-		    err_printf("easy_connect_timeout::WSAEADDRINUSE error, re-attempting bconnect(%s)\n", host);
+		    err_printf("easy_connect_timeout::WSAEADDRINUSE error, re-attempting easy_connect_timeout(%s)\n", host);
 		    bWarningLogged[3] = TRUE;
 		}
 		break;
 	    default:
-		err_printf("easy_connect_timeout::error %d, re-attempting bconnect\n", error);
+		err_printf("easy_connect_timeout::error %d, re-attempting easy_connect_timeout\n", error);
 		break;
 	    }
 	}
@@ -306,6 +310,23 @@ int easy_get_sock_info(SOCKET sock, char *name, int *port)
     getsockname(sock, (sockaddr*)&addr, &name_len);
     *port = ntohs(addr.sin_port);
     gethostname(name, 100);
+    return 0;
+}
+
+int easy_get_sock_info_ip(SOCKET sock, char *ipstr, int *port)
+{
+    char *str;
+    sockaddr_in addr;
+    int name_len = sizeof(addr);
+    getsockname(sock, (sockaddr*)&addr, &name_len);
+    *port = ntohs(addr.sin_port);
+    str = inet_ntoa(addr.sin_addr);
+    if (str)
+	strcpy(ipstr, str);
+    else
+	*ipstr = '\0';
+    if (*ipstr == '\0' || strcmp(ipstr, "0.0.0.0") == 0)
+	easy_get_ip_string(ipstr);
     return 0;
 }
 
@@ -367,7 +388,7 @@ int easy_send(SOCKET sock, char *buffer, int length)
     while ((num_sent = send(sock, buffer, length, 0)) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
-	if (error == WSAEWOULDBLOCK)
+	if (error == WSAEWOULDBLOCK && error == WSAEINTR && error == WSAEINPROGRESS)
 	{
             /*Sleep(0);*/
 	    continue;
@@ -519,7 +540,7 @@ int easy_receive_timeout(SOCKET sock, char *buffer, int len, int timeout)
 	    if (num_received == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();
-		if (error != WSAEWOULDBLOCK && error != ERROR_IO_PENDING)
+		if (error != WSAEWOULDBLOCK && error != ERROR_IO_PENDING && error != WSAEINTR && error != WSAEINPROGRESS)
 		    return SOCKET_ERROR;
 	    }
 	    else
@@ -538,7 +559,7 @@ int easy_receive_timeout(SOCKET sock, char *buffer, int len, int timeout)
 	    if (ret_val == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();
-		if (error != WSAEWOULDBLOCK && error != ERROR_IO_PENDING)
+		if (error != WSAEWOULDBLOCK && error != ERROR_IO_PENDING && error != WSAEINTR && error != WSAEINPROGRESS)
 		    return SOCKET_ERROR;
 	    }
 	    else
@@ -557,6 +578,7 @@ void MakeLoopAsync(SOCKET *pRead, SOCKET *pWrite)
     int port;
     sockaddr addr;
     int len;
+    static char ipstr[20] = ""; /* cached local ip string */
 
     // Create a listener
     if (easy_create(&sock, ADDR_ANY, INADDR_ANY) == SOCKET_ERROR)
@@ -567,6 +589,10 @@ void MakeLoopAsync(SOCKET *pRead, SOCKET *pWrite)
     }
     listen(sock, 5);
     easy_get_sock_info(sock, host, &port);
+    if (ipstr[0] == '\0')
+    {
+	easy_get_ip_string(host, ipstr);
+    }
     
     // Connect to myself
     if (easy_create(pWrite, ADDR_ANY, INADDR_ANY) == SOCKET_ERROR)
@@ -576,7 +602,7 @@ void MakeLoopAsync(SOCKET *pRead, SOCKET *pWrite)
 	*pWrite = INVALID_SOCKET;
 	return;
     }
-    if (easy_connect(*pWrite, host, port) == SOCKET_ERROR)
+    if (easy_connect(*pWrite, ipstr, port) == SOCKET_ERROR)
     {
 	easy_closesocket(*pWrite);
 	easy_closesocket(sock);

@@ -1,5 +1,8 @@
-/* mpich2conf.h.  Generated automatically by configure.  */
-/* mpich2conf.h.in.  Generated automatically from configure.in by autoheader.  */
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
+/*
+ *  (C) 2001 by Argonne National Laboratory.
+ *      See COPYRIGHT in top-level directory.
+ */
 #ifndef MPICH2WINCONF_H
 #define MPICH2WINCONF_H
 

@@ -327,6 +327,7 @@ void statProcessList(char *pszOutput, int length)
 	return;
     }
 
+    try {
     p = g_pProcessList;
     while (p)
     {
@@ -334,6 +335,11 @@ void statProcessList(char *pszOutput, int length)
 	length = length - strlen(pszOutput);
 	pszOutput = &pszOutput[strlen(pszOutput)];
 	p = p->pNext;
+    }
+    } catch (...)
+    {
+	err_printf("exception caught in stat ps command.\n");
+	strcpy(pszOutput, "internal error");
     }
     ReleaseMutex(g_hProcessStructMutex);
 }
@@ -650,6 +656,7 @@ void Launch(char *pszStr)
     char sTemp[10];
     HANDLE hTemp;
     LaunchThreadStruct *pArg = new LaunchThreadStruct;
+    int iter;
 
     if (GetStringOpt(pszStr, "g", sTemp))
 	pArg->bUseDebugFlag = (stricmp(sTemp, "yes") == 0);
@@ -686,24 +693,11 @@ void Launch(char *pszStr)
     GetStringOpt(pszStr, "0", pArg->pszStdin);
     GetStringOpt(pszStr, "1", pArg->pszStdout);
     GetStringOpt(pszStr, "2", pArg->pszStderr);
-    if (GetStringOpt(pszStr, "12", pszStr))
-    {
-	strncpy(pArg->pszStdout, pszStr, MAX_HOST_LENGTH);
-	strncpy(pArg->pszStderr, pszStr, MAX_HOST_LENGTH);
-	pArg->bMergeOutErr = true;
-    }
-    if (GetStringOpt(pszStr, "012", pszStr))
-    {
-	strncpy(pArg->pszStdin, pszStr, MAX_HOST_LENGTH);
-	strncpy(pArg->pszStdout, pszStr, MAX_HOST_LENGTH);
-	strncpy(pArg->pszStderr, pszStr, MAX_HOST_LENGTH);
-	pArg->bMergeOutErr = true;
-    }
-    if (GetStringOpt(pszStr, "r", pszStr))
+    if (GetStringOpt(pszStr, "r", sTemp))
     {
 	int c,p;
 	char *token;
-	token = strtok(pszStr, ":");
+	token = strtok(sTemp, ":");
 	if (token)
 	{
 	    c = atoi(token);
@@ -760,6 +754,21 @@ void Launch(char *pszStr)
 	}
     }
 
+    /* pszStr gets obliterated at this point */
+    if (GetStringOpt(pszStr, "12", pszStr))
+    {
+	strncpy(pArg->pszStdout, pszStr, MAX_HOST_LENGTH);
+	strncpy(pArg->pszStderr, pszStr, MAX_HOST_LENGTH);
+	pArg->bMergeOutErr = true;
+    }
+    if (GetStringOpt(pszStr, "012", pszStr))
+    {
+	strncpy(pArg->pszStdin, pszStr, MAX_HOST_LENGTH);
+	strncpy(pArg->pszStdout, pszStr, MAX_HOST_LENGTH);
+	strncpy(pArg->pszStderr, pszStr, MAX_HOST_LENGTH);
+	pArg->bMergeOutErr = true;
+    }
+
     WaitForSingleObject(g_hProcessStructMutex, INFINITE);
     if (!g_pProcessList)
     {
@@ -775,7 +784,13 @@ void Launch(char *pszStr)
     InterlockedIncrement(&g_nNumProcsRunning);
 
     DWORD dwThreadID;
-    hTemp = pArg->hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)LaunchThread, pArg, 0, &dwThreadID);
+    for (iter=0; iter<CREATE_THREAD_RETRIES; iter++)
+    {
+	hTemp = pArg->hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)LaunchThread, pArg, 0, &dwThreadID);
+	if (hTemp != NULL)
+	    break;
+	Sleep(CREATE_THREAD_SLEEP_TIME);
+    }
     if (hTemp == NULL)
     {
 	err_printf("Launch: CreateThread failed, error %d\n", GetLastError());

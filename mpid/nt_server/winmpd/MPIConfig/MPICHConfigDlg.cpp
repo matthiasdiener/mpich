@@ -91,6 +91,12 @@ CMPICHConfigDlg::CMPICHConfigDlg(CWnd* pParent /*=NULL*/)
 	m_bhost_codes = FALSE;
 	m_host_codes_no = TRUE;
 	m_host_codes_yes = FALSE;
+	m_blocalroot = FALSE;
+	m_localroot_no = TRUE;
+	m_localroot_yes = FALSE;
+	m_bhost_localroot = FALSE;
+	m_host_localroot_no = TRUE;
+	m_host_localroot_yes = FALSE;
 	m_blogfile = FALSE;
 	m_logfile = _T("");
 	m_logfile_no = TRUE;
@@ -126,6 +132,11 @@ void CMPICHConfigDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_HOST_CODES_CHK, m_host_codes_chk);
 	DDX_Control(pDX, IDC_CODES_YES, m_codes_yes_btn);
 	DDX_Control(pDX, IDC_CODES_NO, m_codes_no_btn);
+	DDX_Control(pDX, IDC_HOST_LOCALROOT_YES, m_host_localroot_yes_btn);
+	DDX_Control(pDX, IDC_HOST_LOCALROOT_NO, m_host_localroot_no_btn);
+	DDX_Control(pDX, IDC_HOST_LOCALROOT_CHK, m_host_localroot_chk);
+	DDX_Control(pDX, IDC_LOCALROOT_YES, m_localroot_yes_btn);
+	DDX_Control(pDX, IDC_LOCALROOT_NO, m_localroot_no_btn);
 	DDX_Control(pDX, IDC_HOST_MSG_STATIC, m_config_host_msg_static);
 	DDX_Control(pDX, IDC_HOST_CATCH_YES, m_host_catch_yes_btn);
 	DDX_Control(pDX, IDC_HOST_CATCH_NO, m_host_catch_no_btn);
@@ -246,6 +257,12 @@ void CMPICHConfigDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_HOST_CODES_CHK, m_bhost_codes);
 	DDX_Check(pDX, IDC_HOST_CODES_NO, m_host_codes_no);
 	DDX_Check(pDX, IDC_HOST_CODES_YES, m_host_codes_yes);
+	DDX_Check(pDX, IDC_LOCALROOT_CHK, m_blocalroot);
+	DDX_Check(pDX, IDC_LOCALROOT_NO, m_localroot_no);
+	DDX_Check(pDX, IDC_LOCALROOT_YES, m_localroot_yes);
+	DDX_Check(pDX, IDC_HOST_LOCALROOT_CHK, m_bhost_localroot);
+	DDX_Check(pDX, IDC_HOST_LOCALROOT_NO, m_host_localroot_no);
+	DDX_Check(pDX, IDC_HOST_LOCALROOT_YES, m_host_localroot_yes);
 	DDX_Check(pDX, IDC_REDIRECT_MPD_CHK, m_blogfile);
 	DDX_Text(pDX, IDC_REDIRECT_MPD_EDIT, m_logfile);
 	DDX_Check(pDX, IDC_REDIRECT_MPD_NO, m_logfile_no);
@@ -321,6 +338,12 @@ BEGIN_MESSAGE_MAP(CMPICHConfigDlg, CDialog)
 	ON_BN_CLICKED(IDC_CODES_CHK, OnCodesChk)
 	ON_BN_CLICKED(IDC_CODES_YES, OnCodesYes)
 	ON_BN_CLICKED(IDC_CODES_NO, OnCodesNo)
+	ON_BN_CLICKED(IDC_HOST_LOCALROOT_YES, OnHostLocalRootYes)
+	ON_BN_CLICKED(IDC_HOST_LOCALROOT_NO, OnHostLocalRootNo)
+	ON_BN_CLICKED(IDC_HOST_LOCALROOT_CHK, OnHostLocalRootChk)
+	ON_BN_CLICKED(IDC_LOCALROOT_CHK, OnLocalRootChk)
+	ON_BN_CLICKED(IDC_LOCALROOT_YES, OnLocalRootYes)
+	ON_BN_CLICKED(IDC_LOCALROOT_NO, OnLocalRootNo)
 	ON_BN_CLICKED(IDC_REDIRECT_MPD_CHK, OnRedirectMpdChk)
 	ON_BN_CLICKED(IDC_REDIRECT_MPD_NO, OnRedirectMpdNo)
 	ON_BN_CLICKED(IDC_REDIRECT_MPD_YES, OnRedirectMpdYes)
@@ -451,6 +474,7 @@ void CMPICHConfigDlg::OnToggleBtn()
     m_buse_jobhost = m_bToggle;
     m_bcatch = m_bToggle;
     m_bcodes = m_bToggle;
+    m_blocalroot = m_bToggle;
     m_blogfile = m_bToggle;
 
     UpdateData(FALSE);
@@ -464,6 +488,7 @@ void CMPICHConfigDlg::OnToggleBtn()
     OnUseJobhostChk();
     OnCatchChk();
     OnCodesChk();
+    OnLocalRootChk();
     OnRedirectMpdChk();
 }
 
@@ -741,6 +766,12 @@ void ApplyBtnThread(CMPICHConfigDlg *pDlg)
 	    sprintf(pszStr, "lset exitcodes=%s", (pDlg->m_codes_yes) ? "yes" : "no");
 	    WriteString(sock, pszStr);
 	}
+	// set localroot
+	if (pDlg->m_blocalroot)
+	{
+	    sprintf(pszStr, "lset localroot=%s", (pDlg->m_localroot_yes) ? "yes" : "no");
+	    WriteString(sock, pszStr);
+	}
 	// close the session
 	WriteString(sock, "done");
 	easy_closesocket(sock);
@@ -895,6 +926,12 @@ void CMPICHConfigDlg::OnApplySingleBtn()
 	sprintf(pszStr, "lset exitcodes=%s", (m_codes_yes) ? "yes" : "no");
 	WriteString(sock, pszStr);
     }
+    // set localroot
+    if (m_blocalroot)
+    {
+	sprintf(pszStr, "lset localroot=%s", (m_localroot_yes) ? "yes" : "no");
+	WriteString(sock, pszStr);
+    }
     // close the session
     WriteString(sock, "done");
     easy_closesocket(sock);
@@ -919,6 +956,7 @@ void CMPICHConfigDlg::OnShowConfigChk()
     m_host_popup_debug_chk.EnableWindow(m_bshow_config);
     m_host_catch_chk.EnableWindow(m_bshow_config);
     m_host_codes_chk.EnableWindow(m_bshow_config);
+    m_host_localroot_chk.EnableWindow(m_bshow_config);
     m_host_logfile_chk.EnableWindow(m_bshow_config);
 
     if (m_bshow_config)
@@ -934,6 +972,7 @@ void CMPICHConfigDlg::OnShowConfigChk()
 	OnHostPopupDebugChk();
 	OnHostCatchChk();
 	OnHostCodesChk();
+	OnHostLocalRootChk();
 	OnHostRedirectMpdChk();
 
 	//GetHostConfig();
@@ -963,7 +1002,9 @@ void CMPICHConfigDlg::OnShowConfigChk()
 	m_host_catch_yes_btn.EnableWindow(FALSE);
 	m_host_catch_no_btn.EnableWindow(FALSE);
 	m_host_codes_yes_btn.EnableWindow(FALSE);
+	m_host_localroot_yes_btn.EnableWindow(FALSE);
 	m_host_codes_no_btn.EnableWindow(FALSE);
+	m_host_localroot_no_btn.EnableWindow(FALSE);
 	m_host_logfile_yes_btn.EnableWindow(FALSE);
 	m_host_logfile_no_btn.EnableWindow(FALSE);
 	m_host_logfile_edit.EnableWindow(FALSE);
@@ -992,6 +1033,7 @@ void CMPICHConfigDlg::OnHostToggleBtn()
     m_bhost_use_jobhost = m_bHostToggle;
     m_bhost_catch = m_bHostToggle;
     m_bhost_codes = m_bHostToggle;
+    m_bhost_localroot = m_bHostToggle;
     m_bhost_logfile = m_bHostToggle;
 
     UpdateData(FALSE);
@@ -1005,6 +1047,7 @@ void CMPICHConfigDlg::OnHostToggleBtn()
     OnHostUseJobhostChk();
     OnHostCatchChk();
     OnHostCodesChk();
+    OnHostLocalRootChk();
     OnHostRedirectMpdChk();
 }
 
@@ -1283,6 +1326,12 @@ void CMPICHConfigDlg::OnModifyBtn()
 	sprintf(pszStr, "lset exitcodes=%s", (m_host_codes_yes) ? "yes" : "no");
 	WriteString(sock, pszStr);
     }
+    // set localroot
+    if (m_bhost_localroot)
+    {
+	sprintf(pszStr, "lset localroot=%s", (m_host_localroot_yes) ? "yes" : "no");
+	WriteString(sock, pszStr);
+    }
     // close the session
     WriteString(sock, "done");
     easy_closesocket(sock);
@@ -1313,6 +1362,7 @@ BOOL CMPICHConfigDlg::OnInitDialog()
     OnPopupDebugChk();
     OnCatchChk();
     OnCodesChk();
+    OnLocalRootChk();
     OnRedirectMpdChk();
     
     char host[100] = "";
@@ -1331,7 +1381,7 @@ void CMPICHConfigDlg::UpdateModifyButtonState()
 {
     UpdateData();
 
-    if (m_bhost_hosts || m_bhost_launch || m_bhost_use_jobhost || m_bhost_color || m_bhost_dots || m_bhost_mapping || m_bhost_popup_debug || m_bhost_catch || m_bhost_codes || m_bhost_logfile)
+    if (m_bhost_hosts || m_bhost_launch || m_bhost_use_jobhost || m_bhost_color || m_bhost_dots || m_bhost_mapping || m_bhost_popup_debug || m_bhost_catch || m_bhost_codes || m_bhost_logfile || m_bhost_localroot)
     {
 	m_modify_btn.EnableWindow(m_bshow_config);
 	m_modify_static.EnableWindow(m_bshow_config);
@@ -1347,7 +1397,7 @@ void CMPICHConfigDlg::UpdateApplyButtonStates()
 {
     UpdateData();
 
-    if (m_bhosts || m_blaunch || m_buse_jobhost || m_bcolor || m_bdots || m_bmapping || m_bpopup_debug || m_bcatch || m_bcodes || m_blogfile)
+    if (m_bhosts || m_blaunch || m_buse_jobhost || m_bcolor || m_bdots || m_bmapping || m_bpopup_debug || m_bcatch || m_bcodes || m_blogfile || m_blocalroot)
     {
 	m_apply_btn.EnableWindow(TRUE);
 	m_apply_single_btn.EnableWindow(TRUE);
@@ -1596,6 +1646,19 @@ void CMPICHConfigDlg::GetHostConfig()
     }
     m_host_codes_yes = (stricmp(pszStr, "yes") == 0);
     m_host_codes_no = !m_host_codes_yes;
+
+    // get localroot
+    WriteString(sock, "lget localroot");
+    if (!ReadStringTimeout(sock, pszStr, MPD_DEFAULT_TIMEOUT))
+    {
+	WriteString(sock, "done");
+	m_config_host_msg = "unable to reach mpd";
+	UpdateData(FALSE);
+	SetCursor(hOldCursor);
+	return;
+    }
+    m_host_localroot_yes = (stricmp(pszStr, "yes") == 0);
+    m_host_localroot_no = !m_host_localroot_yes;
 
     // get usejobhost
     WriteString(sock, "lget usejobhost");
@@ -1879,6 +1942,56 @@ void CMPICHConfigDlg::OnCodesNo()
     UpdateData();
     m_codes_yes = FALSE;
     m_codes_no = TRUE;
+    UpdateData(FALSE);
+}
+
+void CMPICHConfigDlg::OnHostLocalRootYes() 
+{
+    UpdateData();
+    m_host_localroot_yes = TRUE;
+    m_host_localroot_no = FALSE;
+    UpdateData(FALSE);
+}
+
+void CMPICHConfigDlg::OnHostLocalRootNo() 
+{
+    UpdateData();
+    m_host_localroot_yes = FALSE;
+    m_host_localroot_no = TRUE;
+    UpdateData(FALSE);
+}
+
+void CMPICHConfigDlg::OnHostLocalRootChk() 
+{
+    UpdateData();
+    //m_host_localroot_yes_btn.EnableWindow(m_bhost_localroot);
+    //m_host_localroot_no_btn.EnableWindow(m_bhost_localroot);
+    m_host_localroot_yes_btn.EnableWindow();
+    m_host_localroot_no_btn.EnableWindow();
+    UpdateModifyButtonState();
+}
+
+void CMPICHConfigDlg::OnLocalRootChk() 
+{
+    UpdateData();
+    m_localroot_yes_btn.EnableWindow(m_blocalroot);
+    m_localroot_no_btn.EnableWindow(m_blocalroot);
+    UpdateApplyButtonStates();
+}
+
+void CMPICHConfigDlg::OnLocalRootYes() 
+{
+    UpdateData();
+    m_localroot_yes = TRUE;
+    m_localroot_no = FALSE;
+    UpdateData(FALSE);
+}
+
+void CMPICHConfigDlg::OnLocalRootNo() 
+{
+    UpdateData();
+    m_localroot_yes = FALSE;
+    m_localroot_no = TRUE;
     UpdateData(FALSE);
 }
 

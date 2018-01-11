@@ -4806,6 +4806,10 @@ SOURCE=..\..\..\romio\adio\common\ad_init.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\..\romio\adio\common\ad_iopen.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\..\romio\adio\ad_ntfs\ad_ntfs.c
 # End Source File
 # Begin Source File
@@ -4890,6 +4894,10 @@ SOURCE=..\..\..\romio\adio\common\ad_set_sh_fp.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\..\romio\adio\common\ad_set_view.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\..\romio\adio\common\ad_write_coll.c
 # End Source File
 # Begin Source File
@@ -4939,6 +4947,10 @@ SOURCE=..\..\..\romio\adio\common\flatten.c
 # Begin Source File
 
 SOURCE="..\..\..\romio\mpi-io\fsync.c"
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\romio\adio\common\gencheck.c
 # End Source File
 # Begin Source File
 

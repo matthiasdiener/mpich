@@ -23,12 +23,13 @@ URL: http://www.mcs.anl.gov/mpi/mpich/
 # This is covered in the installation and users manual; this spec file 
 # only handles the case of a single choice of compiler
 # Choose only one compiler
-%define gnu    1
-%define absoft 0
-%define intel  0
-%define pgi    0
-%define lahey  0
-%define nag    0
+%define gnu        1
+%define absoft     0
+%define intel      0
+%define intelia64  0
+%define pgi        0
+%define lahey      0
+%define nag        0
 
 #
 # Pick the device.  The ch_p4mpd device is recommended for clusters of
@@ -67,7 +68,11 @@ URL: http://www.mcs.anl.gov/mpi/mpich/
 #
 # Define the release value; this will be used, along with the compiler
 # choice, to specify an actual Release name
-%define rel 1
+%define rel 1b
+
+#
+# Define whether to install the html and ps/pdf documentation
+%define extradoc 1
 
 #
 # Set update_paths to 1 when building an RPM for distribution.  Set it
@@ -99,9 +104,21 @@ URL: http://www.mcs.anl.gov/mpi/mpich/
     %define release %{rel}.absoft
 %endif
 %if %{intel}
+    # Current Intel release is version 7
     %define c_compiler icc
-    %define compiler_path /opt/intel/compiler50/ia32
+    %define compiler_path /opt/intel/compiler70/ia32
     %define setenvs export PATH=$PATH:%{compiler_path}/bin; export LD_LIBRARY_PATH=%{compiler_path}/lib; export FC=%{compiler_path}/bin/ifc; export F90=$FC
+    %define fopts -fflags="-Vaxlib "
+    %define extralibs %{nil}
+    %define extraldopts -L%{compiler_path}/lib -lPEPCF90 -lIEPCF90 -lF90 %{compiler_path}/lib/libintrins.a
+    %define release %{rel}.intel
+%endif
+%if %{intelia64}
+    # Current Intel release is version 7
+    # UNTESTED, BASED ON intel for IA32
+    %define c_compiler ecc
+    %define compiler_path /opt/intel/compiler70/ia64
+    %define setenvs export PATH=$PATH:%{compiler_path}/bin; export LD_LIBRARY_PATH=%{compiler_path}/lib; export FC=%{compiler_path}/bin/efc; export F90=$FC
     %define fopts -fflags="-Vaxlib "
     %define extralibs %{nil}
     %define extraldopts -L%{compiler_path}/lib -lPEPCF90 -lIEPCF90 -lF90 %{compiler_path}/lib/libintrins.a
@@ -136,7 +153,9 @@ URL: http://www.mcs.anl.gov/mpi/mpich/
 %endif
 
 Release: %{release}
-Source0: ftp://ftp.mcs.anl.gov/pub/mpi/%{name}-%{version}-1.tar.gz
+Source0: ftp://ftp.mcs.anl.gov/pub/mpi/%{name}-%{version}.%{rel}.tar.gz
+# Next release will include bz2 files
+#Source0: ftp://ftp.mcs.anl.gov/pub/mpi/%{name}-%{version}.1.tar.bz2
 Buildroot: %{_tmppath}/%{name}-root
 #BuildRequires: %{c_compiler}
 Provides: libmpich.so.1
@@ -154,29 +173,56 @@ Provides: libmpich.so.1
 
 #
 # If these are changed, make sure that you change the directories selected 
-# under the files step.
+# under the files step (they must not have the "buildroot" part)
+#
+# To simplify different installation styles, there are two sets of directory
+# definitions.  One uses the default directories (e.g., _libdir) for
+# most targets.  The other uses a subdirectory, containing the fullname 
+# (e.g., mpich-version), as in %_libdir/%fullname .  
+%define use_name_in_dir 0
 
+%if %{use_name_in_dir}
+# Choose whether to use a common directory or an mpich one
+
+%define sharedir_inst %{_datadir}/%{fullname}
+%define libdir_inst   %{_libdir}/%{fullname}
+%define mandir_inst   %{_mandir}/%{fullname}
+%define exec_prefix_inst %{_exec_prefix}/%{fullname}
+%define includedir_inst %{_includedir}/%{fullname}
+
+%else
+# Do *not* include the name of the package in the installation directories
+
+%define sharedir_inst %{_datadir}/%{fullname}
+%define libdir_inst   %{_libdir}
+%define mandir_inst   %{_mandir}
+%define exec_prefix_inst %{_exec_prefix}
+%define includedir_inst %{_includedir}
+
+%endif
+
+# For the directories that are defined by their installation dir, make sure 
+# that they use the appropriate dire
+%define sharedir %{?buildroot:%{buildroot}}%{sharedir_inst}
+%define libdir   %{?buildroot:%{buildroot}}%{libdir_inst}
+%define mandir   %{?buildroot:%{buildroot}}%{mandir_inst}
+%define includedir   %{?buildroot:%{buildroot}}%{includedir_inst}
+%define exec_prefix   %{?buildroot:%{buildroot}}%{exec_prefix_inst}
+
+# These directories are the same for either choice
 %define prefixdir   %{?buildroot:%{buildroot}}%{_prefix}
-%define sharedir %{?buildroot:%{buildroot}}%{_datadir}/%{fullname}
-%define libdir   %{?buildroot:%{buildroot}}%{_libdir}/%{fullname}
-
-# Choose whether the man pages go into a common directory or an mpich one
-# define mandir   %{?buildroot:%{buildroot}}%{_mandir}
-%define mandir   %{?buildroot:%{buildroot}}%{_mandir}/%{fullname}
-
-%define exec_prefix %{?buildroot:%{buildroot}}%{_exec_prefix}/%{fullname}
 %define bindir %{?buildroot:%{buildroot}}%{_bindir}
 %define sbindir %{?buildroot:%{buildroot}}%{_sbindir}
 %define datadir %{?buildroot:%{buildroot}}%{_datadir}
 %define docdir %{?buildroot:%{buildroot}}%{_docdir}
-
-# Choose whether you want all .h files in a common include dir or one
-# with the mpich name in it
-# define includedir %{?buildroot:%{buildroot}}%{_includedir}
-%define includedir %{?buildroot:%{buildroot}}%{_includedir}/%{fullname}
-
-%define sharedstatedir %{?buildroot:%{buildroot}}%{_sharedstatedir}
 %define webdir %{?buildroot:%{buildroot}}%{_webdir}
+%define sharedstatedir %{?buildroot:%{buildroot}}%{_sharedstatedir}
+
+# finalbindir is used to specify the intended installation bindir.  
+# Keeping this separate from the bindir allows the use of buildroot.  This
+# value is provided to the routines through the --with-rpmbindir=xxx 
+# configure option
+%define finalbindir %{_bindir}
 
 #package devel
 #Summary: Static libraries and header files for MPI.
@@ -198,7 +244,7 @@ developed by Argonne National Laboratory. See www.mcs.anl.gov/mpi/mpich for
 more information.
 
 %prep
-%setup -q -n mpich-%{version}
+%setup -q -n mpich-%{version}.%{rel}
 
 #
 # The MPICH configure is based on Autoconf version 1, and cannot be rebuilt
@@ -223,6 +269,7 @@ more information.
         --sharedstatedir=%{sharedstatedir} \
         --mandir=%{mandir} \
 	--wwwdir=%{webdir} \
+	--with-rpmbindir=%{finalbindir} \
         --with-device=%{device} --enable-sharedlib=%{libdir} \
         %{other_device_opts} %{other_config_opts} \
         --with-romio=--file_system=nfs+ufs%{other_file_systems}
@@ -235,6 +282,8 @@ if [ $RPM_BUILD_ROOT != "/" ]; then
   rm -rf $RPM_BUILD_ROOT
 fi
 make install
+# Should this be
+# make install PREFIX="/.%{prefixdir}" mandir_override=1
 
 # Examples are installed in the wrong location 
 mkdir -p %{sharedir}/examples
@@ -244,16 +293,23 @@ mv %{prefixdir}/examples/* %{sharedir}/examples
 rm -f %{sharedir}/examples/MPI-2-C++/mpirun
 rm -f %{sharedir}/examples/mpirun
 
-# Fix the paths in the shell scripts
+# Fix the paths in the shell scripts (and ONLY the shell scripts)
+# Note that this moves paths into /usr from builddir/fullname
 if [ %{update_paths} = 1 ] ; then
 for i in `find %{sharedir} %{prefixdir}/bin -type f`
  do
-    sed 's@%{?buildroot:%{buildroot}}@@g' $i > tmpfile
-    sed 's@%{_builddir}/%{name}-%{version}@/usr@g' tmpfile > $i
-    if [ -x $i ]; then
-        chmod 0755 $i
-    else
-        chmod 0644 $i
+    if (file -b $i | grep ELF >/dev/null) ; then 
+        # Ignore binary files.  They must use a search path
+        # to allow multiple paths
+        :
+    else 
+        sed 's@%{?buildroot:%{buildroot}}@@g' $i > tmpfile
+        sed 's@%{_builddir}/%{name}-%{version}@/usr@g' tmpfile > $i
+        if [ -x $i ]; then
+            chmod 0755 $i
+        else
+            chmod 0644 $i
+        fi
     fi
  done
 fi
@@ -276,26 +332,30 @@ fi
 %doc doc/mpichman-globus2.pdf doc/mpichman-globus2.ps.gz
 %{_bindir}/*
 %{_sbindir}/*
-#%{_webdir}/*
+%if %{extradoc}
+%{_webdir}/*
+%endif
 %{_docdir}/*
-%{_libdir}/%{fullname}/*.so.*
-%{_libdir}/%{fullname}/*.a
-%{_libdir}/%{fullname}/*.so
-%{_libdir}/%{fullname}/mpe_prof.o
-%{_mandir}/%{fullname}/man1/*
-%{_mandir}/%{fullname}/man3/*
-%{_mandir}/%{fullname}/man4/*
-%{_mandir}/%{fullname}/mandesc
+%{libdir_inst}/*.so.*
+%{libdir_inst}/*.a
+%{libdir_inst}/*.so
+%{libdir_inst}/mpe_prof.o
+%{mandir_inst}/man1/*
+%{mandir_inst}/man3/*
+%{mandir_inst}/man4/*
+%{mandir_inst}/mandesc
 %{_datadir}/%{fullname}
-%{_prefix}/share/upshot
-%{_prefix}/share/jumpshot-3
-%{_prefix}/share/jumpshot-2
-%{_exec_prefix}/%{fullname}
-%{_includedir}/%{fullname}/*
+%{_datadir}/upshot
+%{_datadir}/jumpshot-3
+%{_datadir}/jumpshot-2
+#%{exec_prefix_inst}/*
+%{includedir_inst}/*
 
 
 %changelog
-* Fri Jan 10 2003 Willam Gropp <gropp@mcs.anl.gov>
+* Mon Jan 20 2003 Willam Gropp <gropp@mcs.anl.gov>
+- Integrate suggestions; clean up the code for changing the installation dirs
+* Fri Jan 10 2003 William Gropp <gropp@mcs.anl.gov>
 - Update to MPICH 1.2.5 and fixed buildroot
 * Thu Apr 25 2002 William Gropp <gropp@mcs.anl.gov>
 - Initial version

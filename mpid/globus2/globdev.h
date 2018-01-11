@@ -5,9 +5,6 @@
 #define HEADERLEN 10
 
 #include "mpi2.h" /* MPI-2 Extensions */
-
-#include <globus_io.h>
-#include <globus_dc.h>
 #include "debug.h" /* debug must come before the other globus2 header files */
 #include "mpid.h"
 #include "protos.h"

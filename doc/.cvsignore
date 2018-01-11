@@ -1,0 +1,6 @@
+port
+portbuild
+portperf
+porttest
+*.pdf
+*.ps.gz

@@ -1496,6 +1496,26 @@ EOF
 		if test -z "$MPICH_BIN"; then
 		    { echo "configure: error: when configuring for 1.2.4, --with-mpichbin must be specified" 1>&2; exit 1; }
 		fi
+	    elif test "$MPICH_VERSION" = "1.2.5."; then
+		cat >> confdefs.h <<\EOF
+#define MPI2CPP_MPICH121 1
+EOF
+
+		echo "$ac_t""1.2.5 (good)" 1>&6
+		WANT_UPGRADE=0
+		if test -z "$MPICH_BIN"; then
+		    { echo "configure: error: when configuring for 1.2.5, --with-mpichbin must be specified" 1>&2; exit 1; }
+		fi
+	    elif test "$MPICH_VERSION" = "1.2.6."; then
+		cat >> confdefs.h <<\EOF
+#define MPI2CPP_MPICH121 1
+EOF
+
+		echo "$ac_t""1.2.6 (good)" 1>&6
+		WANT_UPGRADE=0
+		if test -z "$MPICH_BIN"; then
+		    { echo "configure: error: when configuring for 1.2.6, --with-mpichbin must be specified" 1>&2; exit 1; }
+		fi
 	    else
 		cat >> confdefs.h <<\EOF
 #define MPI2CPP_MPICHUNKNOWN 1

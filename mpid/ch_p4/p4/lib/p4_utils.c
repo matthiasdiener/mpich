@@ -1020,7 +1020,7 @@ int p4_wait_for_end( void )
 
 #   endif
 
-    clean_execer_port();
+    p4_clean_execer_port();
 
     if (p4_get_my_id())
         p4_dprintfl(20,"process exiting\n");
@@ -1392,7 +1392,7 @@ int get_execer_port(char *master_hostname)
 
     return(port);
 }
-void clean_execer_port( void )
+void p4_clean_execer_port( void )
 {
     char job_filename[64];
     if (execer_starting_remotes  &&  execer_mynodenum == 0)
@@ -1424,7 +1424,7 @@ P4VOID put_execer_port(int port)
     if (close(fd) < 0)
         p4_error("put_execer_port: close", errno);
 }
-void clean_execer_port(void)
+void p4_clean_execer_port(void)
 {
 }
 #endif

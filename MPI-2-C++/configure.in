@@ -444,10 +444,24 @@ if test "$MPI_IMP" = "mpich"; then
 		fi
 	    elif test "$MPICH_VERSION" = "1.2.4."; then
 		AC_DEFINE(MPI2CPP_MPICH121)
-		AC_MSG_RESULT([1.2.3 (good)])
+		AC_MSG_RESULT([1.2.4 (good)])
 		WANT_UPGRADE=0
 		if test -z "$MPICH_BIN"; then
 		    AC_MSG_ERROR([when configuring for 1.2.4, --with-mpichbin must be specified])
+		fi
+	    elif test "$MPICH_VERSION" = "1.2.5."; then
+		AC_DEFINE(MPI2CPP_MPICH121)
+		AC_MSG_RESULT([1.2.5 (good)])
+		WANT_UPGRADE=0
+		if test -z "$MPICH_BIN"; then
+		    AC_MSG_ERROR([when configuring for 1.2.5, --with-mpichbin must be specified])
+		fi
+	    elif test "$MPICH_VERSION" = "1.2.6."; then
+		AC_DEFINE(MPI2CPP_MPICH121)
+		AC_MSG_RESULT([1.2.6 (good)])
+		WANT_UPGRADE=0
+		if test -z "$MPICH_BIN"; then
+		    AC_MSG_ERROR([when configuring for 1.2.6, --with-mpichbin must be specified])
 		fi
 	    else
 		AC_DEFINE(MPI2CPP_MPICHUNKNOWN, 1)

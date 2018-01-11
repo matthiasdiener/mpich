@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 		     bsize );
 	    MPI_Abort( MPI_COMM_WORLD, 1 );
 	    }
-        MPI_Buffer_attach( tmpbuffer, bsize + MPI_BSEND_OVERHEAD );
+        MPI_Buffer_attach( tmpbuffer, bsize + 22*MPI_BSEND_OVERHEAD );
 	Buffered_Test_Send(buffer, SIZE);
 	Buffered_Test_Ibsend(buffer, SIZE);
 	MPI_Buffer_detach( &tmpbuf, &tsize );

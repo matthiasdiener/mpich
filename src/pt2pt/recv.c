@@ -1,5 +1,5 @@
 /*
- *  $Id: recv.c,v 1.10 2001/11/14 20:10:01 ashton Exp $
+ *  $Id: recv.c,v 1.11 2004/02/24 15:09:05 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -89,11 +89,13 @@ int MPI_Recv( void *buf, int count, MPI_Datatype datatype, int source,
 	MPIR_RETURN(comm_ptr, mpi_errno, myname );
     }
     else {
-	/* See MPI standard section 3.11 */
-	MPID_ZERO_STATUS_COUNT(status);
-	status->MPI_SOURCE     = MPI_PROC_NULL;
-	status->MPI_TAG        = MPI_ANY_TAG;
+	if (status != MPI_STATUS_IGNORE) {
+	    /* See MPI standard section 3.11 */
+	    MPID_ZERO_STATUS_COUNT(status);
+	    status->MPI_SOURCE     = MPI_PROC_NULL;
+	    status->MPI_TAG        = MPI_ANY_TAG;
 	}
+    }
     return MPI_SUCCESS;
 }
 

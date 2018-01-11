@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: iread.c,v 1.8 2002/10/24 15:54:41 gropp Exp $    
+ *   $Id: iread.c,v 1.20 2003/09/05 22:35:25 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -38,11 +38,38 @@ Output Parameters:
 
 .N fortran
 @*/
+#ifdef HAVE_MPI_GREQUEST
+#include "mpiu_greq.h"
+
+int MPI_File_iread(MPI_File fh, void *buf, int count, 
+		MPI_Datatype datatype, MPIO_Request *request)
+{
+	MPI_Status *status;
+	int errcode;
+
+	status = (MPI_Status*)malloc(sizeof(MPI_Status));
+
+	/* for now, no threads or anything fancy. 
+	 * just call the blocking version */
+	errcode = MPI_File_read(fh, buf, count, datatype, status); 
+	/* ROMIO-1 doesn't do anything with status.MPI_ERROR */
+	status->MPI_ERROR = errcode;
+
+	/* kick off the request */
+	MPI_Grequest_start(MPIU_Greq_query_fn, MPIU_Greq_free_fn, 
+			MPIU_Greq_cancel_fn, status, request);
+	/* but we did all the work already */
+	MPI_Grequest_complete(*request);
+
+	/* passed the buck to the blocking version...*/
+	return MPI_SUCCESS;
+}
+#else
 int MPI_File_iread(MPI_File fh, void *buf, int count, 
                    MPI_Datatype datatype, MPIO_Request *request)
 {
     int error_code, bufsize, buftype_is_contig, filetype_is_contig;
-#ifndef PRINT_ERR_MSG
+#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "MPI_FILE_IREAD";
 #endif
     int datatype_size;
@@ -64,10 +91,14 @@ int MPI_File_iread(MPI_File fh, void *buf, int count,
 #endif
 
     if (count < 0) {
-#ifdef PRINT_ERR_MSG
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_ARG, 
+	    "**iobadcount", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
 	FPRINTF(stderr, "MPI_File_iread: Invalid count argument\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_ARG, MPIR_ERR_COUNT_ARG,
 				     myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);
@@ -75,10 +106,14 @@ int MPI_File_iread(MPI_File fh, void *buf, int count,
     }
 
     if (datatype == MPI_DATATYPE_NULL) {
-#ifdef PRINT_ERR_MSG
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_TYPE, 
+	    "**dtypenull", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
         FPRINTF(stderr, "MPI_File_iread: Invalid datatype\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_TYPE, MPIR_ERR_TYPE_NULL,
 				     myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);	    
@@ -88,10 +123,14 @@ int MPI_File_iread(MPI_File fh, void *buf, int count,
     MPI_Type_size(datatype, &datatype_size);
 
     if ((count*datatype_size) % fh->etype_size != 0) {
-#ifdef PRINT_ERR_MSG
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, 
+	    "**ioetype", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
         FPRINTF(stderr, "MPI_File_iread: Only an integral number of etypes can be accessed\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ERR_ETYPE_FRACTIONAL,
 				     myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);	    
@@ -99,10 +138,14 @@ int MPI_File_iread(MPI_File fh, void *buf, int count,
     }
 
     if (fh->access_mode & MPI_MODE_WRONLY) {
-#ifdef PRINT_ERR_MSG
+#ifdef MPICH2
+	error_code =  MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_ACCESS, 
+	    "**ioneedrd", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
 	FPRINTF(stderr, "MPI_File_iread: Can't read from a file opened with MPI_MODE_WRONLY\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_UNSUPPORTED_OPERATION, 
  		MPIR_ERR_MODE_WRONLY, myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);	    
@@ -110,10 +153,14 @@ int MPI_File_iread(MPI_File fh, void *buf, int count,
     }
 
     if (fh->access_mode & MPI_MODE_SEQUENTIAL) {
-#ifdef PRINT_ERR_MSG
+#ifdef MPICH2
+	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_UNSUPPORTED_OPERATION,
+	    "**ioamodeseq", 0);
+	return MPIR_Err_return_file(fh, myname, error_code);
+#elif defined(PRINT_ERR_MSG)
 	FPRINTF(stderr, "MPI_File_iread: Can't use this function because file was opened with MPI_MODE_SEQUENTIAL\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
+#else /* MPICH-1 */
 	error_code = MPIR_Err_setmsg(MPI_ERR_UNSUPPORTED_OPERATION, 
                         MPIR_ERR_AMODE_SEQ, myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(fh, error_code, myname);
@@ -123,6 +170,7 @@ int MPI_File_iread(MPI_File fh, void *buf, int count,
     ADIOI_Datatype_iscontig(datatype, &buftype_is_contig);
     ADIOI_Datatype_iscontig(fh->filetype, &filetype_is_contig);
 
+    ADIOI_TEST_DEFERRED(fh, "MPI_File_iread", &error_code);
     /* contiguous or strided? */
 
     if (buftype_is_contig && filetype_is_contig) {
@@ -144,14 +192,16 @@ int MPI_File_iread(MPI_File fh, void *buf, int count,
 	    
 	    off = fh->fp_ind;
 	    if ((fh->file_system != ADIO_PIOFS) && 
-	       (fh->file_system != ADIO_NFS) && (fh->file_system != ADIO_PVFS))
+	       (fh->file_system != ADIO_NFS) && (fh->file_system != ADIO_PVFS)
+	       && (fh->file_system != ADIO_PVFS2))
 		ADIOI_WRITE_LOCK(fh, off, SEEK_SET, bufsize);
 		
 	    ADIO_ReadContig(fh, buf, count, datatype, ADIO_INDIVIDUAL, 0, 
                     &status, &error_code);  
 
 	    if ((fh->file_system != ADIO_PIOFS) && 
-	       (fh->file_system != ADIO_NFS) && (fh->file_system != ADIO_PVFS))
+	       (fh->file_system != ADIO_NFS) && (fh->file_system != ADIO_PVFS)
+	       && (fh->file_system != ADIO_PVFS2))
 		ADIOI_UNLOCK(fh, off, SEEK_SET, bufsize);
 
 	    fh->async_count++;
@@ -167,3 +217,4 @@ int MPI_File_iread(MPI_File fh, void *buf, int count,
 #endif /* MPI_hpux */
     return error_code;
 }
+#endif

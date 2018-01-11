@@ -233,111 +233,130 @@ void RunLocal(bool bDoSMP)
     if (strlen(g_pszDir))
 	SetCurrentDirectory(g_pszDir);
 
-    GetTempFileName(".", "mpi", 0, pszExtra);
-    // This produces a name in the form: ".\XXXmpi.tmp"
-    // \ is illegal in named objects so use &pszExtra[2] instead of pszExtra for the JobID
-    if (bDoSMP)
+    if (!g_bMPICH2)
     {
-	sprintf(pszEnv, "MPICH_JOBID=%s|MPICH_IPROC=0|MPICH_NPROC=%d|MPICH_ROOTHOST=%s|MPICH_ROOTPORT=%d|MPICH_EXTRA=%s|MPICH_COMNIC=%s|MPICH_SHM_LOW=0|MPICH_SHM_HIGH=%d",
-	    &pszExtra[2], g_nHosts, pszHost, -1, pszExtra, pszHost, g_nHosts-1);
-    }
-    else
-    {
-	sprintf(pszEnv, "MPICH_JOBID=%s|MPICH_IPROC=0|MPICH_NPROC=%d|MPICH_ROOTHOST=%s|MPICH_ROOTPORT=%d|MPICH_EXTRA=%s|MPICH_COMNIC=%s",
-	    &pszExtra[2], g_nHosts, pszHost, -1, pszExtra, pszHost);
-    }
-    
-    SetEnvironmentVariables(pszEnv);
-    if (strlen(g_pszEnv) > 0)
-	SetEnvironmentVariables(g_pszEnv);
-    pEnv = GetEnvironmentStrings();
-
-    // launch first process
-    if ((hProcess[0] = (HANDLE)spawnv(_P_NOWAIT, pszCmdLine, ppArgs)) == (HANDLE)-1)
-    {
-	int error = errno;
-	Translate_Error(error, error_msg, "CreateProcess failed: ");
-	printf("Unable to launch '%s', error %d: %s", pszCmdLine, error, error_msg);
-	return;
-    }
-    
-    RemoveEnvironmentVariables(pszEnv);
-    FreeEnvironmentStrings(pEnv);
-    
-    if (g_bNoMPI)
-    {
-	rootPort = -1;
-    }
-    else
-    {
-	// Open the file and read the port number written by the first process
-	HANDLE hFile = CreateFile(pszExtra, GENERIC_READ, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
-	if (hFile == INVALID_HANDLE_VALUE)
+	GetTempFileName(".", "mpi", 0, pszExtra);
+	// This produces a name in the form: ".\XXXmpi.tmp"
+	// \ is illegal in named objects so use &pszExtra[2] instead of pszExtra for the JobID
+	if (bDoSMP)
 	{
-	    Translate_Error(GetLastError(), error_msg, "CreateFile failed ");
-	    printf(error_msg);
+	    sprintf(pszEnv, "MPICH_JOBID=%s|MPICH_IPROC=0|MPICH_NPROC=%d|MPICH_ROOTHOST=%s|MPICH_ROOTPORT=%d|MPICH_EXTRA=%s|MPICH_COMNIC=%s|MPICH_SHM_LOW=0|MPICH_SHM_HIGH=%d",
+		&pszExtra[2], g_nHosts, pszHost, -1, pszExtra, pszHost, g_nHosts-1);
+	}
+	else
+	{
+	    sprintf(pszEnv, "MPICH_JOBID=%s|MPICH_IPROC=0|MPICH_NPROC=%d|MPICH_ROOTHOST=%s|MPICH_ROOTPORT=%d|MPICH_EXTRA=%s|MPICH_COMNIC=%s",
+		&pszExtra[2], g_nHosts, pszHost, -1, pszExtra, pszHost);
+	}
+
+	SetEnvironmentVariables(pszEnv);
+	if (strlen(g_pszEnv) > 0)
+	    SetEnvironmentVariables(g_pszEnv);
+	pEnv = GetEnvironmentStrings();
+
+	// launch first process
+	if ((hProcess[0] = (HANDLE)spawnv(_P_NOWAIT, pszCmdLine, ppArgs)) == (HANDLE)-1)
+	{
+	    int error = errno;
+	    Translate_Error(error, error_msg, "CreateProcess failed: ");
+	    printf("Unable to launch '%s', error %d: %s", pszCmdLine, error, error_msg);
 	    return;
 	}
-	
-	DWORD num_read = 0;
-	char pBuffer[100];
-	pBuffer[0] = '\0';
-	char *pChar = pBuffer;
-	clock_t cStart = clock();
-	while (true)
+
+	RemoveEnvironmentVariables(pszEnv);
+	FreeEnvironmentStrings(pEnv);
+
+	if (g_bNoMPI)
 	{
-	    num_read = 0;
-	    if (!ReadFile(hFile, pChar, 100, &num_read, NULL))
+	    rootPort = -1;
+	}
+	else
+	{
+	    // Open the file and read the port number written by the first process
+	    HANDLE hFile = CreateFile(pszExtra, GENERIC_READ, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+	    if (hFile == INVALID_HANDLE_VALUE)
 	    {
-		Translate_Error(GetLastError(), error_msg, "ReadFile failed ");
+		Translate_Error(GetLastError(), error_msg, "CreateFile failed ");
 		printf(error_msg);
-		CloseHandle(hFile);
-		DeleteFile(pszExtra);
 		return;
 	    }
-	    if (num_read == 0)
+
+	    DWORD num_read = 0;
+	    char pBuffer[100];
+	    pBuffer[0] = '\0';
+	    char *pChar = pBuffer;
+	    clock_t cStart = clock();
+	    while (true)
 	    {
-		if (clock() - cStart > launchtimeout * CLOCKS_PER_SEC)
+		num_read = 0;
+		if (!ReadFile(hFile, pChar, 100, &num_read, NULL))
 		{
-		    printf("Wait for process 0 to write port to temporary file timed out\n");
-		    TerminateProcess(hProcess, 0);
+		    Translate_Error(GetLastError(), error_msg, "ReadFile failed ");
+		    printf(error_msg);
 		    CloseHandle(hFile);
 		    DeleteFile(pszExtra);
 		    return;
 		}
-		Sleep(100);
+		if (num_read == 0)
+		{
+		    if (clock() - cStart > launchtimeout * CLOCKS_PER_SEC)
+		    {
+			printf("Wait for process 0 to write port to temporary file timed out\n");
+			TerminateProcess(hProcess, 0);
+			CloseHandle(hFile);
+			DeleteFile(pszExtra);
+			return;
+		    }
+		    Sleep(100);
+		}
+		else
+		{
+		    for (i=0; i<(int)num_read; i++)
+		    {
+			if (*pChar == '\n')
+			    break;
+			pChar ++;
+		    }
+		    if (*pChar == '\n')
+			break;
+		}
+	    }
+	    CloseHandle(hFile);
+	    rootPort = atoi(pBuffer);
+	}
+	DeleteFile(pszExtra);
+    }
+
+    // launch all the rest of the processes including the root process for mpich2 apps
+    for (i=g_bMPICH2 ? 0 : 1; i<g_nHosts; i++)
+    {
+	if (g_bMPICH2)
+	{
+	    if (bDoSMP)
+	    {
+		sprintf(pszEnv, "PMI_KVS=%s|PMI_RANK=%d|PMI_SIZE=%d|PMI_MPD=%s:%d|PMI_SHM_CLIQUES=(0..%d)",
+		    pmi_kvsname, i, g_nHosts, pmi_host, pmi_port, g_nHosts-1);
 	    }
 	    else
 	    {
-		for (i=0; i<(int)num_read; i++)
-		{
-		    if (*pChar == '\n')
-			break;
-		    pChar ++;
-		}
-		if (*pChar == '\n')
-		    break;
+		sprintf(pszEnv, "PMI_KVS=%s|PMI_RANK=%d|PMI_SIZE=%d|PMI_MPD=%s:%d",
+		    pmi_kvsname, i, g_nHosts, pmi_host, pmi_port);
 	    }
-	}
-	CloseHandle(hFile);
-	rootPort = atoi(pBuffer);
-    }
-    DeleteFile(pszExtra);
-    
-    // launch all the rest of the processes
-    for (i=1; i<g_nHosts; i++)
-    {
-	if (bDoSMP)
-	{
-	    sprintf(pszEnv, "MPICH_JOBID=%s|MPICH_IPROC=%d|MPICH_NPROC=%d|MPICH_ROOTHOST=%s|MPICH_ROOTPORT=%d|MPICH_COMNIC=%s|MPICH_SHM_LOW=0|MPICH_SHM_HIGH=%d",
-		&pszExtra[2], i, g_nHosts, pszHost, rootPort, pszHost, g_nHosts-1);
 	}
 	else
 	{
-	    sprintf(pszEnv, "MPICH_JOBID=%s|MPICH_IPROC=%d|MPICH_NPROC=%d|MPICH_ROOTHOST=%s|MPICH_ROOTPORT=%d|MPICH_COMNIC=%s",
-		&pszExtra[2], i, g_nHosts, pszHost, rootPort, pszHost);
+	    if (bDoSMP)
+	    {
+		sprintf(pszEnv, "MPICH_JOBID=%s|MPICH_IPROC=%d|MPICH_NPROC=%d|MPICH_ROOTHOST=%s|MPICH_ROOTPORT=%d|MPICH_COMNIC=%s|MPICH_SHM_LOW=0|MPICH_SHM_HIGH=%d",
+		    &pszExtra[2], i, g_nHosts, pszHost, rootPort, pszHost, g_nHosts-1);
+	    }
+	    else
+	    {
+		sprintf(pszEnv, "MPICH_JOBID=%s|MPICH_IPROC=%d|MPICH_NPROC=%d|MPICH_ROOTHOST=%s|MPICH_ROOTPORT=%d|MPICH_COMNIC=%s",
+		    &pszExtra[2], i, g_nHosts, pszHost, rootPort, pszHost);
+	    }
 	}
-	
+
 	SetEnvironmentVariables(pszEnv);
 	pEnv = GetEnvironmentStrings();
 	

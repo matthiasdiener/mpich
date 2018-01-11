@@ -1,0 +1,134 @@
+#! /bin/sh
+# runs autoheader and autoconf with local macros
+echo making configure in `pwd`
+#if [ ! -s install-sh ] ; then 
+#   # bug in AC_CONFIG_SUDIRS requires install-sh (!)
+#   cp /homes/gropp/bin/share/automake/install-sh .
+#fi
+# Check on version of autoconf
+#autoconf=autoconf
+#autoheader=autoheader
+#version=`autoconf --version | sed -e 's/Autoconf version //'`
+#mainversion=`expr $version : '\([0-9]\)\..*'`
+#subversion=`expr $version : '[0-9]\.\([0-9]*\)'`
+## We need a fixed autoconf for the Fortran language support
+#if [ "$mainversion" != "2" -o "$subversion" -lt 14 ] ; then
+#    echo "Using locally patched autoconf"
+#    autoconf=/homes/gropp/bin/autoconf
+#    autoheader=/homes/gropp/bin/autoheader
+#fi
+# Must use patched automake
+if [ -z "$ARCH" ] ; then
+    system="`uname -sr | sed -e 's/ /-/g'`"
+    case "$system" in 
+	SunOS-5*) ARCH=solaris-2 ;;
+	Linux*)   ARCH=linux ;;
+    esac
+fi
+# We should really consider just using uname...
+larch=$ARCH
+case "$larch" in 
+    linux*|Linux*|LINUX*) larch=linux ;;
+esac
+
+automake=/homes/gropp/bin/$larch/automake
+aclocal=/homes/gropp/bin/$larch/aclocal
+autoheader=/homes/gropp/bin/$larch/autoheader
+autoconf=/homes/gropp/bin/$larch/autoconf
+if [ -s Makefile.am -a ! -x $automake ] ; then
+    echo "Could not find working automake"
+    exit 1
+fi
+if [ ! -x $aclocal ] ; then
+    # Try to use any available aclocal/etc.
+    saveIFS="$IFS"
+    IFS=":"
+    automake=
+    autoheader=
+    autoconf=
+    aclocal=
+    for dir in $PATH ; do
+        if [ -z "$autoheader" -a -x $dir/autoheader ] ; then
+	    autoheader=$dir/autoheader
+	fi
+	if [ -z "$aclocal" -a -x $dir/aclocal ] ; then
+	    aclocal=$dir/aclocal
+        fi
+	if [ -z "$autoconf" -a -x $dir/autoconf ] ; then
+	    autoconf=$dir/autoconf
+        fi
+    done
+    IFS="$saveIFS"
+    if [ -z "$autoheader" -o -z "$aclocal" -o -z "$autoconf" ] ; then
+	echo "Could not find all of the needed aclocal/autoconf tools"
+        exit 1
+    fi
+fi
+# Change this if autoconf is version 2.52.
+ac_version="2.13"
+#
+#
+# Problem: If you can't checkout sowing, you won't have a copy of these 
+# files.
+if [ ! -d ../../examples/perftest/config/confdb ] ; then
+    if [ -d /homes/gropp/sowing-proj/sowing/confdb ] ; then
+        cp -rp /homes/gropp/sowing-proj/sowing/confdb \
+	    ../../examples/perftest/config 
+    else
+	echo "Could not find the confdb directory"
+	exit 1
+    fi
+fi
+# For autoheader, we need to add a few local definitions.  
+# Use the same acconfig.h that is in the perftest/config/confdb if possible,
+# otherwise, create it.
+if [ ! -s ../../examples/perftest/config/confdb/acconfig.h ] ; then
+    ( cd ../../examples/perftest/config/confdb && \
+	cat acconfig_cc.h acconfig_f77.h acconfig_mpi.h ) | \
+    cat - acconfigl.h > acconfig.h
+else 
+    cat ../../examples/perftest/config/confdb/acconfig.h acconfigl.h > \
+	acconfig.h
+fi
+# Problem:  aclocal doesn't know how to process include and ifelse
+# directives.  
+if [ -d ../../examples/perftest/config/confdb ] ; then
+    configdir=../../examples/perftest/config/confdb
+    #
+    # GRRRR.  aclocal reads *everything* out of the directory.  This
+    # breaks when the aclocal.m4 file includes different files depending on
+    # which mutually incompatible version of autoconf is being used.
+    # The problem is that automake needs aclocal.  We try to fix this 
+    # by hoping for autoconf 2.13 instead of 2.52
+    if [ "$ac_version" = "2.13" ] ; then
+        movefiles="aclangf90.m4 fortran90.m4 libtool.m4 libtool-2.13.m4"
+    else
+        movefiles="aclocal_f90.m4 fortran90.m4 libtool.m4 libtool-2.13.m4"
+    fi
+    for file in $movefiles ; do
+        mv $configdir/$file $configdir/$file.tmp
+    done
+    $aclocal -I $configdir
+    for file in $movefiles ; do 
+        mv $configdir/$file.tmp $configdir/$file
+    done
+fi
+$autoheader 
+$autoconf   -l /homes/gropp/sowing-proj/sowing/confdb
+if [ ! -s configure ] ; then
+    echo "WARNING: configure was not created!"
+    exit 1
+fi
+if grep endEOF configure >/dev/null 2>&1 ; then
+    # ARGH!  
+    echo "Your version of autoconf ($autoconf) is broken.  It does not generate"
+    echo "proper code for tests involving Fortran.  Attempting to fix..."
+    sed 's/endEOF/end\
+EOF/g' configure > c.tmp
+    mv -f c.tmp configure
+    chmod a+x configure
+fi
+rm -f config.cache config.system
+#for dir in $SUBDIRS ; do
+#    (cd $dir; ./makeconfigure)
+#done

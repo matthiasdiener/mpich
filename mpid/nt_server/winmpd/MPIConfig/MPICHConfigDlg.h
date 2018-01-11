@@ -1,3 +1,8 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
+/*
+ *  (C) 2001 by Argonne National Laboratory.
+ *      See COPYRIGHT in top-level directory.
+ */
 #if !defined(AFX_MPICHCONFIGDLG_H__21835812_B3D5_4E84_B37C_665D378EA803__INCLUDED_)
 #define AFX_MPICHCONFIGDLG_H__21835812_B3D5_4E84_B37C_665D378EA803__INCLUDED_
 
@@ -42,6 +47,11 @@ public:
 	CButton	m_host_codes_chk;
 	CButton	m_codes_yes_btn;
 	CButton	m_codes_no_btn;
+	CButton	m_host_localroot_yes_btn;
+	CButton	m_host_localroot_no_btn;
+	CButton	m_host_localroot_chk;
+	CButton	m_localroot_yes_btn;
+	CButton	m_localroot_no_btn;
 	CEdit	m_config_host_msg_static;
 	CButton	m_host_catch_yes_btn;
 	CButton	m_host_catch_no_btn;
@@ -160,6 +170,12 @@ public:
 	BOOL	m_bhost_codes;
 	BOOL	m_host_codes_no;
 	BOOL	m_host_codes_yes;
+	BOOL	m_blocalroot;
+	BOOL	m_localroot_no;
+	BOOL	m_localroot_yes;
+	BOOL	m_bhost_localroot;
+	BOOL	m_host_localroot_no;
+	BOOL	m_host_localroot_yes;
 	BOOL	m_blogfile;
 	CString	m_logfile;
 	BOOL	m_logfile_no;
@@ -246,6 +262,12 @@ protected:
 	afx_msg void OnCodesChk();
 	afx_msg void OnCodesYes();
 	afx_msg void OnCodesNo();
+	afx_msg void OnHostLocalRootYes();
+	afx_msg void OnHostLocalRootNo();
+	afx_msg void OnHostLocalRootChk();
+	afx_msg void OnLocalRootChk();
+	afx_msg void OnLocalRootYes();
+	afx_msg void OnLocalRootNo();
 	afx_msg void OnRedirectMpdChk();
 	afx_msg void OnRedirectMpdNo();
 	afx_msg void OnRedirectMpdYes();

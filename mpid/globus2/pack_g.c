@@ -1,5 +1,4 @@
-#include <globus_dc.h>
-
+#include "chconfig.h"
 #include "globdev.h"
 /* #include "mpid.h" */
 

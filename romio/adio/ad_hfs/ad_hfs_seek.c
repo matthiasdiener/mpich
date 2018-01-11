@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_hfs_seek.c,v 1.7 2002/10/24 17:00:45 gropp Exp $    
+ *   $Id: ad_hfs_seek.c,v 1.12 2003/06/10 15:15:59 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,9 +19,6 @@ ADIO_Offset ADIOI_HFS_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
 
     ADIO_Offset off;
     ADIOI_Flatlist_node *flat_file;
-#ifndef PRINT_ERR_MSG
-    static char myname[] = "ADIOI_HFS_SEEKINDIVIDUAL";
-#endif
 
     int i, n_etypes_in_filetype, n_filetypes, etype_in_filetype;
     ADIO_Offset abs_off_in_filetype=0;
@@ -65,25 +62,13 @@ ADIO_Offset ADIOI_HFS_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
     }
 
     fd->fp_ind = off;
-
-#ifdef HPUX
-    fd->fp_sys_posn = lseek64(fd->fd_sys, off, SEEK_SET);
-#ifdef PRINT_ERR_MSG
-    *error_code = (fd->fp_sys_posn == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
-#else
-    if (fd->fp_sys_posn == -1) {
-	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
-			      myname, "I/O Error", "%s", strerror(errno));
-	ADIOI_Error(fd, *error_code, myname);	    
-    }
-    else *error_code = MPI_SUCCESS;
-#endif
-#endif
-
-#ifdef SPPUX
-    fd->fp_sys_posn = -1;  /* no need to seek because we use pread/pwrite */
+/*
+ * we used to do a seek here, but the fs-specifc ReadContig and
+ * WriteContig will seek to the correct place in the file before
+ * reading/writing.  to see how we used to do things, check out
+ * adio/common/ad_seek.c, where the old code still lives in commented-out form.
+ */
     *error_code = MPI_SUCCESS;
-#endif
 
     return off;
 }

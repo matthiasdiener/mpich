@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: adio.h,v 1.18 2002/10/24 17:01:15 gropp Exp $    
+ *   $Id: adio.h,v 1.33 2004/03/16 22:53:55 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -160,7 +160,7 @@ MPI_Info PMPI_Info_f2c(MPI_Fint info);
 typedef struct ADIOI_Fns_struct ADIOI_Fns;
 typedef struct ADIOI_Hints_struct ADIOI_Hints;
 
-struct ADIOI_FileD {
+typedef struct ADIOI_FileD {
     int cookie;              /* for error checking */
     FDTYPE fd_sys;              /* system file descriptor */
 #ifdef XFS
@@ -179,16 +179,25 @@ struct ADIOI_FileD {
                                 in bytes */
     ADIOI_Fns *fns;          /* struct of I/O functions to use */
     MPI_Comm comm;           /* communicator indicating who called open */
+    MPI_Comm agg_comm;      /* deferred open: aggregators who called open */
+    int io_worker;	    /* bool: if one proc should do io, is it me? */
+    int is_open;	    /* deferred open: 0: not open yet 1: is open */
     char *filename;          
     int file_system;         /* type of file system */
-    int access_mode;         
+    int access_mode;         /* Access mode (sequential, append, etc.) */
     ADIO_Offset disp;        /* reqd. for MPI-IO */
     MPI_Datatype etype;      /* reqd. for MPI-IO */
     MPI_Datatype filetype;   /* reqd. for MPI-IO */
     int etype_size;          /* in bytes */
     ADIOI_Hints *hints;      /* structure containing fs-indep. info values */
     MPI_Info info;
+
+    /* The following support the split collective operations */
     int split_coll_count;    /* count of outstanding split coll. ops. */
+    MPI_Status split_status; /* status used for split collectives */
+    MPI_Datatype split_datatype; /* datatype used for split collectives */
+
+    /* The following support the shared file operations */
     char *shared_fp_fname;   /* name of file containing shared file pointer */
     struct ADIOI_FileD *shared_fp_fd;  /* file handle of file 
                                          containing shared fp */
@@ -197,7 +206,8 @@ struct ADIOI_FileD {
     int atomicity;          /* true=atomic, false=nonatomic */
     int iomode;             /* reqd. to implement Intel PFS modes */
     MPI_Errhandler err_handler;
-};
+    void *fs_ptr;            /* file-system specific information */
+} ADIOI_FileD;
 
 typedef struct ADIOI_FileD *ADIO_File;
 
@@ -260,12 +270,12 @@ typedef struct {
 #define ADIO_PVFS                157   /* PVFS for Linux Clusters from Clemson Univ. */
 #define ADIO_NTFS                158   /* NTFS for Windows NT */
 #define ADIO_TESTFS              159   /* fake file system for testing */
+#define ADIO_PVFS2               160   /* PVFS2: 2nd generation PVFS */
 
 #define ADIO_SEEK_SET            SEEK_SET
 #define ADIO_SEEK_CUR            SEEK_CUR
 #define ADIO_SEEK_END            SEEK_END
 
-#define ADIO_FCNTL_SET_VIEW      176
 #define ADIO_FCNTL_SET_ATOMICITY 180
 #define ADIO_FCNTL_SET_IOMODE    184
 #define ADIO_FCNTL_SET_DISKSPACE 188
@@ -299,6 +309,7 @@ ADIO_File ADIO_Open(MPI_Comm orig_comm, MPI_Comm comm, char *filename,
                     int access_mode, ADIO_Offset disp, MPI_Datatype etype, 
                     MPI_Datatype filetype, int iomode, 
                     MPI_Info info, int perm, int *error_code);
+void ADIO_ImmediateOpen(ADIO_File fd, int *error_code);
 void ADIO_Close(ADIO_File fd, int *error_code);
 void ADIO_ReadContig(ADIO_File fd, void *buf, int count, MPI_Datatype datatype,
                     int file_ptr_type,  ADIO_Offset offset, 
@@ -372,4 +383,17 @@ void ADIO_Set_view(ADIO_File fd, ADIO_Offset disp, MPI_Datatype etype,
 #include "adioi_fs_proto.h"
 #include "mpio_error.h"
 #include "mpipr.h"
+
+/* Copied from mpiimpl.h because mpiimpl.h cannot be included from romio. */
+/* Remove these prototypes when mpiimpl.h is broken up and a specific error */
+/* handling header file can be included. */
+#define MPIR_ERR_FATAL 1
+#define MPIR_ERR_RECOVERABLE 0
+int MPIR_Err_return_file( MPI_File file_ptr, const char fcname[], int errcode );
+int MPIR_Err_create_code( int, int, const char [], int, int, const char [], const char [], ... );
+int MPIR_Err_is_fatal(int);
+void MPIR_Err_get_string(int, char *);
+void MPIR_Err_print_stack(FILE *, int);
+extern int MPIR_Err_print_stack_flag;
+
 #endif

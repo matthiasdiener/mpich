@@ -1,6 +1,10 @@
 #include "mpeconf.h"
 #include <stdio.h>
 
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
+#include <stdlib.h>
+#endif
+
 int clog2alog( char * );
 
 int main( int argc, char *argv[] )

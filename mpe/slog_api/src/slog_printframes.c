@@ -9,6 +9,9 @@
 #if defined( STDC_HEADERS ) || defined( HAVE_CTYPE_H )
 #include <ctype.h>
 #endif
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
+#include <stdlib.h>
+#endif
 #if defined(HAVE_STRING_H)
 /* For strcpy */
 #include <string.h>

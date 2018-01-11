@@ -22,7 +22,7 @@
 #include <stdarg.h>
 #endif
 
-#ifndef MPICH_NAME
+#if ! defined( MPICH_NAME ) || defined ( MPICH2 )
 /* If we aren't running MPICH, just use fprintf for errors */
 /* Also avoid Fortran arguments */
 #define mpir_iargc_() 0

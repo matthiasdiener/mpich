@@ -49,13 +49,20 @@ c
 c     Determine the status of the new communicator 
 c
         call MPI_TOPO_TEST (comm_cart, topo_status, ierr)
-        IF (topo_status .ne. MPI_CART) errors=errors+1
+        IF (topo_status .ne. MPI_CART) then
+           print *, "Topo_status is not MPI_CART"
+           errors=errors+1
+        ENDIF
 
 c
 c     How many dims do we have? 
 c
         call MPI_CARTDIM_GET( comm_cart, ndims, ierr)
-        if (ndims .ne. NUM_DIMS ) errors = errors+1
+        if (ndims .ne. NUM_DIMS ) then
+           print *, "ndims (", ndims, ") is not NUM_DIMS (", NUMDIMS,
+     $          ")" 
+           errors = errors+1
+        ENDIF
 
 c
 c     Get the topology, does it agree with what we put in? 
@@ -70,7 +77,10 @@ c
 c     Does the mapping from coords to rank work? 
 c
         call MPI_CART_RANK( comm_cart, coords, new_rank, ierr)
-        if (new_rank .ne. rank ) errors=errors+1
+        if (new_rank .ne. rank ) then
+           print *, "New_rank = ", new_rank, " is not rank (", rank, ")"
+           errors=errors+1
+        endif
 
 c
 c     Does the mapping from rank to coords work 
@@ -78,7 +88,11 @@ c
         call MPI_CART_COORDS( comm_cart, rank, NUM_DIMS, new_coords ,
      $       ierr) 
         do 600 i=1,NUM_DIMS
-                if (coords(i) .ne. new_coords(i)) errors=errors + 1
+                if (coords(i) .ne. new_coords(i)) then
+                   print *, "coords(",i,") = ", coords(i), " not = ",
+     $                  new_coords(i) 
+                   errors=errors + 1
+                endif
 600     continue
 
 c
@@ -108,13 +122,19 @@ c
 c     Determine the status of the new communicator 
 c
         call MPI_TOPO_TEST( new_comm, topo_status, ierr )
-        if (topo_status .ne. MPI_CART ) errors=errors+1
+        if (topo_status .ne. MPI_CART ) then
+           print *, "Topo_status of new comm is not MPI_CART"
+           errors=errors+1
+        endif
 
 c
 c     How many dims do we have? 
 c
         call MPI_CARTDIM_GET( new_comm, ndims, ierr)
-        if (ndims .ne. NUM_DIMS-1 ) errors = errors+1
+        if (ndims .ne. NUM_DIMS-1 ) then
+           print *, "ndims (", ndims, ") is not NUM_DIMS-1"
+           errors = errors+1
+        endif
 
 c
 c     Get the topology, does it agree with what we put in? 
@@ -130,7 +150,10 @@ c     Does the mapping from coords to rank work?
 c
         call MPI_COMM_RANK( new_comm, newnewrank, ierr)
         call MPI_CART_RANK( new_comm, coords, new_rank, ierr)
-        if (new_rank .ne. newnewrank ) errors=errors+1
+        if (new_rank .ne. newnewrank ) then
+           print *, "New rank (", new_rank, ") is not newnewrank"
+           errors=errors+1
+        endif
 
 c
 c     Does the mapping from rank to coords work 
@@ -138,7 +161,11 @@ c
         call MPI_CART_COORDS( new_comm, new_rank, NUM_DIMS-1, new_coords
      $       ,  ierr)
         do 1000 i=1,NUM_DIMS-1
-                if (coords(i) .ne. new_coords(i)) errors=errors+1
+                if (coords(i) .ne. new_coords(i)) then
+                   print *, "coords(",i,") = ", coords(i),
+     $                  " != new_coords (", new_coords(i), ")"
+                   errors=errors+1
+                endif
 1000    continue
 
 c

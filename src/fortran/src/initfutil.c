@@ -1,16 +1,23 @@
 /*
- *  $Id: initfutil.c,v 1.17 2002/08/30 17:35:04 lacour Exp $
+ *  $Id: initfutil.c,v 1.18 2004/05/17 13:51:03 gropp Exp $
  *
  *  (C) 2000 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
  */
 
+/* Include the configure definitions now (these may be needed for some
+   varieties of stdlib or stdio) */
+#ifndef MPICHCONF_INC
+#define MPICHCONF_INC
+#include "mpichconf.h"
+#endif
 /*
  * This file contains that routines that support the Fortran interface.
  * In combines routines found in initutil.c and initdte.c
  */
 #include "mpi_fortimpl.h"
 #include "mpi_fortran.h"
+
 /* The following are needed to define the datatypes.  This needs to 
    be abstracted out of the datatype support */
 #define MPIR_HAS_COOKIES

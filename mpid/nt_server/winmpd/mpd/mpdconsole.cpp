@@ -60,7 +60,7 @@ LaunchStateStruct::~LaunchStateStruct()
     CloseHandle(hMutex);
 }
 
-int g_nCurrentLaunchId = 0;
+LONG g_nCurrentLaunchId = 0;
 LaunchStateStruct *g_pLaunchList = NULL;
 
 static void LaunchToString(LaunchStateStruct *p, char *pszStr, int length)
@@ -1020,11 +1020,10 @@ void HandleConsoleRead(MPD_Context *p)
 	else if (strnicmp(p->pszIn, "launch ", 7) == 0)
 	{
 	    char pszHost[MAX_HOST_LENGTH];
-	    g_nCurrentLaunchId++;
 	    LaunchStateStruct *pLS = new LaunchStateStruct;
 	    pLS->nStatus = LAUNCH_PENDING;
 	    strcpy(pLS->pszError, "LAUNCH_PENDING");
-	    pLS->nId = g_nCurrentLaunchId;
+	    pLS->nId = InterlockedIncrement(&g_nCurrentLaunchId);
 	    pLS->nBfd = p->sock;
 	    pLS->pNext = g_pLaunchList;
 	    if (!GetStringOpt(&p->pszIn[7], "h", pLS->pszHost))
@@ -1033,6 +1032,16 @@ void HandleConsoleRead(MPD_Context *p)
 		pLS->pszHost[MAX_HOST_LENGTH-1] = '\0';
 	    }
 	    g_pLaunchList = pLS;
+
+	    /* write the launch result back first to avoid a timeout */
+	    sprintf(pszStr, "%d", pLS->nId);
+	    if (ContextWriteString(p, pszStr) == SOCKET_ERROR)
+	    {
+		err_printf("ContextWriteString(\"%s\") failed to write the launch id, error %d\n"
+		    "unable to launch '%s'\n", pszStr, WSAGetLastError(), p->pszIn);
+		break;
+	    }
+
 	    _snprintf(pszStr, MAX_CMD_LENGTH, "launch src=%s id=%d %s", g_pszHost, pLS->nId, &p->pszIn[7]);
 	    if (GetStringOpt(pszStr, "h", pszHost))
 	    {
@@ -1043,8 +1052,10 @@ void HandleConsoleRead(MPD_Context *p)
 	    }
 	    else
 		Launch(pszStr); // No host provided so launch locally
+	    /*
 	    sprintf(pszStr, "%d", pLS->nId);
 	    ContextWriteString(p, pszStr);
+	    */
 	}
 	else if (strnicmp(p->pszIn, "getpid ", 7) == 0)
 	{

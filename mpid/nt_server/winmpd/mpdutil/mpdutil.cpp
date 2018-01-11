@@ -508,6 +508,7 @@ void MakeLoop(SOCKET *psockRead, SOCKET *psockWrite)
     SOCKET sock;
     char host[100];
     int port;
+    static char ipstr[20] = ""; /* cached local ip string */
 
     // Create a listener
     if (easy_create(&sock, ADDR_ANY, INADDR_ANY) == SOCKET_ERROR)
@@ -518,6 +519,10 @@ void MakeLoop(SOCKET *psockRead, SOCKET *psockWrite)
     }
     listen(sock, 5);
     easy_get_sock_info(sock, host, &port);
+    if (ipstr[0] == '\0')
+    {
+	easy_get_ip_string(host, ipstr);
+    }
     
     // Connect to myself
     if (easy_create(psockWrite, ADDR_ANY, INADDR_ANY) == SOCKET_ERROR)
@@ -527,7 +532,7 @@ void MakeLoop(SOCKET *psockRead, SOCKET *psockWrite)
 	*psockWrite = INVALID_SOCKET;
 	return;
     }
-    if (easy_connect(*psockWrite, host, port) == SOCKET_ERROR)
+    if (easy_connect(*psockWrite, ipstr, port) == SOCKET_ERROR)
     {
 	easy_closesocket(*psockWrite);
 	easy_closesocket(sock);

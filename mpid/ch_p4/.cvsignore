@@ -1,0 +1,6 @@
+Makefile
+*.o
+*.lnk
+mpich-mpid.h
+config.*
+localdefs
