@@ -38,6 +38,8 @@ Datatypes are of type </TT>MPI_Datatype<TT> in C and of tyep </TT>INTEGER<TT> in
 </DL>
 <DL><DT><B>MPI_LONG_DOUBLE  </B> <DD> long double (some systems may not implement)
 </DL>
+<DL><DT><B>MPI_LONG_LONG_INT </B> <DD> long long (some systems may not implement)
+</DL>
 <P>
 The following are datatypes for the MPI functions </TT>MPI_MAXLOC<TT> and
 </TT>MPI_MINLOC<TT>.
@@ -59,9 +61,9 @@ The following are datatypes for the MPI functions </TT>MPI_MAXLOC<TT> and
 <DL><DT><B>MPI_LONG_DOUBLE_INT </B> <DD> </TT>struct { long double, int }; this 
 is an OPTIONAL type, and may be set to NULL 
 </DL>
-<DL><DT><B>MPI_LONG_LONG_INT </B> <DD> struct { long long, int }; this is an OPTIONAL type,
-and may be set to NULL. 
-</DL>
+<P>
+Note that there is no <TT>MPI_LONG_LONG_INT</TT> type corresponding to
+a <TT>struct { long long, int }</TT>.
 <P>
 Special datatypes for C and Fortran
 <DL><DT><B>MPI_PACKED </B> <DD> For <TT>MPI_Pack</TT> and <TT>MPI_Unpack

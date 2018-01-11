@@ -59,6 +59,8 @@ some_other_function(void)
 }
 EOF
 
+dnl to get [] in main, we must change the m4 quote character
+changequote(,)
 cat > conftest1.C <<EOF
 #include "conftest.h"
 
@@ -81,6 +83,7 @@ main(int argc, char *argv[])
   return 0;
 }
 EOF
+   changequote([,])
 
 echo configure:__oline__: $CXX $CXXFLAGS -c conftest1.C >&5
 $CXX $CXXFLAGS -c conftest1.C >&5 2>&5
@@ -208,7 +211,7 @@ rm -f conftest.o
 cat > conftest.C <<EOF
 #include <mpi.h>
 int 
-main(int argc, char* argv[])
+main(int argc, char** argv)
 { return 0; }
 EOF
 echo configure:__oline__: $CXX $CXXFLAGS -c conftest.C >&5
@@ -241,6 +244,8 @@ if test "$?CXXFLAGS" = 0; then
 fi
 AC_MSG_CHECKING([for type bool])
 rm -f conftest.cc conftest.o
+dnl To get [] in main, we must change the quote character
+changequote(,)
 cat > conftest.cc <<EOF
 #include <stdio.h>
 #include <sys/types.h>
@@ -251,6 +256,7 @@ int main(int argc, char* argv[]) {
   return 0;
 }
 EOF
+changequote([,])
 echo configure:__oline__: $CXX $CXXFLAGS conftest.cc -o conftest >&5 
 $CXX $CXXFLAGS conftest.cc -o conftest >&5 2>&5
 if test -f conftest; then
@@ -325,6 +331,8 @@ fi
 # Determine datatype size. 
 # First arg is type, 2nd (optional) arg is config var to define.
 AC_MSG_CHECKING(size of of $1)
+dnl To get [] in main, we must change the quote character
+changequote(,)
 cat > conftest.C <<EOF
 #include <stdio.h>
 #ifdef _ALL_SOURCE
@@ -340,6 +348,7 @@ int main(int argc, char* argv[])
     return 0;
 }
 EOF
+changequote([,])
 # AIX really, really sucks.  If you use the mpCC compiler (wrapper to
 # the underlying C++ compiler), it expects that your program is
 # parallel, so trying to run it with "./foo" won't work.  Hence, we

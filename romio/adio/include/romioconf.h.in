@@ -177,6 +177,9 @@
 /* Define for XFS */
 #undef XFS
 
+/* Define if int64_t must be defined for PVFS */
+#undef ROMIO_PVFS_NEEDS_INT64_DEFINITION
+
 /* Define for Romio with PVFS */
 #undef ROMIO_PVFS
 

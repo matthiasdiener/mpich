@@ -67,6 +67,8 @@ ${libbuild_dir}/${LIB}: ${LIB}
 # filenames directly.
 # Let makesharedlib choose the suffix so that shared library handling
 # is the same for all shared libraries
+# However, note that the interface advertises libtvmpich.so as the name,
+# so we make sure that there is a link for that here (the ln -f steps)
 #${LIB}: ${OBJS}
 libtvmpich.so.1.0: dll_mpich.o
 	-if test "@SHAREDKIND_FOR_TV@" != "ignore" ; then \
@@ -74,6 +76,8 @@ libtvmpich.so.1.0: dll_mpich.o
 	( CC="${CC}" ; export CC ; CLINKER="@CLINKER@" ; export CLINKER ; \
 	${top_srcdir}/util/makesharedlib -lib=libtvmpich.a -obj="${OBJS}" \
 		 -kind=@SHAREDKIND_FOR_TV@ -local ; ) ; fi
+	-ln -s -f libtvmpich.so.1.0 libtvmpich.so.1
+	-ln -s -f libtvmpich.so.1   libtvmpich.so
 
 compile: ${OBJS}
 

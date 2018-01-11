@@ -42,7 +42,8 @@ MDEP_LIBS=
 MDEP_CFLAGS=
 MDEP_FFLAGS=
 MDEP_LFLAGS=
-OPTFLAGS="-g"
+# Use imported optflags if possible
+OPTFLAGS=${OPTFLAGS:-"-g"}
 USERCC=0
 CC=${CC:-cc}
 USERF77=0
@@ -455,6 +456,14 @@ fi
 #						486 running FreeBSD
 if test -n "$p4arch_FREEBSD"; then
     P4ARCH=FREEBSD
+    if test -n "$p4comm_shared"; then
+      DEFINE_SYSV_IPC="#define SYSV_IPC"
+    fi
+fi
+
+if test -n "$p4arch_FREEBSD_PPC"; then
+    # This may be Darwin as well.
+    P4ARCH=FREEBSD_PPC
     if test -n "$p4comm_shared"; then
       DEFINE_SYSV_IPC="#define SYSV_IPC"
     fi
@@ -7682,6 +7691,157 @@ fi
 fi
 done
 
+# time.h is needed to declare time
+# Note.  On some systems, including both time.h and sys/time.h can 
+# cause problems.  autoconf2 has a special test for this
+ac_cv_both_time_systime=no
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that time.h and sys/time.h can both be included""... $ac_c"
+else
+echo $ac_n "checking that time.h and sys/time.h can both be included""... $ac_c" 1>&1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <sys/time.h>
+#include <time.h>
+int main() {
+struct tm *tp;
+; return 0; }
+EOF
+eval $compile
+if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  ac_cv_both_time_systime=yes
+
+fi
+rm -fr conftest*
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""$ac_cv_both_time_systime"
+else
+echo "$ac_t""$ac_cv_both_time_systime" 1>&1
+fi
+if test "$ac_cv_both_time_systime" = yes ; then
+    
+{
+test -n "$verbose" && \
+echo "	defining TIME_WITH_SYS_TIME"
+echo "#define" TIME_WITH_SYS_TIME 1 >> confdefs.h
+DEFS="$DEFS -DTIME_WITH_SYS_TIME=1"
+}
+
+fi
+
+for ac_hdr in time.h
+do
+ac_safe=`echo "$ac_hdr" | tr '[a-z]./' '[A-Z]__'`
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for $ac_hdr""... $ac_c"
+else
+echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+#include <$ac_hdr>
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  
+  
+  eval "ac_cv_header_$ac_safe=yes"
+
+else
+  expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+  eval echo "configure:$expandcompile" >> config.log
+  echo "configure: failed program was:" >>config.log
+  cat confdefs.h >> config.log
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
+  fi
+  eval "ac_cv_header_$ac_safe=no"
+   
+fi
+rm -f conftest*
+if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+    ac_tr_hdr=HAVE_`echo $ac_hdr | tr '[a-z]./' '[A-Z]__'`
+  
+{
+test -n "$verbose" && \
+echo "	defining $ac_tr_hdr"
+echo "#define" $ac_tr_hdr 1 >> confdefs.h
+DEFS="$DEFS -D$ac_tr_hdr=1"
+}
+ 
+else
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+done
+
 #
 # In some cases, we need both string.h and strings.h .  Some systems
 # apparently complain, so we try to include them both
@@ -10192,6 +10352,99 @@ DEFS="$DEFS -DUSE_YIELD=1"
 
 fi
 
+# Check for the getwd function (used in alog/alog.h)
+for func in getwd
+do
+trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for ${func}""... $ac_c"
+else
+echo $ac_n "checking for ${func}""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_${func}) || defined (__stub___${func})
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char ${func}(); ${func}();
+#endif
+ }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  {
+test -n "$verbose" && \
+echo "	defining ${trfunc}"
+echo "#define" ${trfunc} 1 >> confdefs.h
+DEFS="$DEFS -D${trfunc}=1"
+}
+
+
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+    eval echo "configure:$expandcompile" >> config.log
+    echo "configure: failed program was:" >>config.log
+    cat confdefs.h >> config.log
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+done
+
+
 #
 # Test for sgttyb and the ability to set noecho on terminals
 if test -z "$ac_echo_n" ; then
@@ -10702,7 +10955,6 @@ fi
 fi
 #
 #
-#
 # Some systems don't include support for xdr.  Check for it.
 # Also, some versions of FreeBSD don't inlude xdr_float (later ones apparently
 # do).  Check for that as well.
@@ -10881,8 +11133,211 @@ fi
 fi
 rm -f conftest*
 
+
+# Before asserting that we have XDR, check that it works in this environment:
+
+#
+# Some combinations of compilers and operating systems expose inconsistent
+# system header files.  For example, the Intel version 8 compilers claim to 
+# be gcc (but they aren't, causing other problems), but at least the SuSE 
+# Linux header files fail to define int64_t unless GCC is specified but 
+# use int64_t unconditionally.  
+#
+if test "$HAS_XDR" = 1 ; then 
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for rpc/xdr.h compiles""... $ac_c"
+else
+echo $ac_n "checking for rpc/xdr.h compiles""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+#include <sys/types.h>
+#include <rpc/xdr.h>
+int main() { exit(0); }
+int t() { return 0; }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  xdr_compiles=yes
+
+else
+  expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+  eval echo "configure:$expandcompile" >> config.log
+  echo "configure: failed program was:" >>config.log
+  cat confdefs.h >> config.log
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
+  fi
+  xdr_compiles=no
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+    eval echo "configure:$expandcompile" >> config.log
+    echo "configure: failed program was:" >>config.log
+    cat confdefs.h >> config.log
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+
+    if test "$xdr_compiles" != "yes" ; then
+        # See if we need to define int64_t and uint64_t
+	# FIXME: We should really check that sizeof(long long) is 8
+        if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for that xdr.h compiles if int64_t defined""... $ac_c"
+else
+echo $ac_n "checking for that xdr.h compiles if int64_t defined""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+#include <sys/types.h>
+typedef long long int64_t;
+typedef unsigned long long uint64_t;
+#include <rcp/xdr.h>
+int main() { exit(0); }
+int t() { return 0; }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  xdr_needs_int64=yes
+
+else
+  expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+  eval echo "configure:$expandcompile" >> config.log
+  echo "configure: failed program was:" >>config.log
+  cat confdefs.h >> config.log
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
+  fi
+  xdr_needs_int64=no
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+    eval echo "configure:$expandcompile" >> config.log
+    echo "configure: failed program was:" >>config.log
+    cat confdefs.h >> config.log
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+
+        if test "$xdr_needs_int64" = "yes" ;then
+	    
+{
+test -n "$verbose" && \
+echo "	defining NEEDS_INT64_DEFINITION"
+echo "#define" NEEDS_INT64_DEFINITION 1 >> confdefs.h
+DEFS="$DEFS -DNEEDS_INT64_DEFINITION=1"
+}
+
+        else
+	    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""Warning: Unable to compile header file rcp/xdr.h"
+else
+echo "$ac_t""Warning: Unable to compile header file rcp/xdr.h" 1>&1
+fi
+	    HAS_XDR=0
+        fi
+    fi
+fi
 if test "$HAS_XDR" = 1 ; then
-	
+    
 {
 test -n "$verbose" && \
 echo "	defining HAS_XDR"
@@ -11169,6 +11624,15 @@ echo "#define" P4_DO_NOT_USE_SERVER 1 >> confdefs.h
 DEFS="$DEFS -DP4_DO_NOT_USE_SERVER=1"
 }
 
+    # If we don't find the needed headers, about the configuration
+    if test "$ac_cv_header_SYS_BPROC_H" != yes ; then
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""Error: Unable to build with bproc because sys/bproc.h is not available"
+else
+echo "$ac_t""Error: Unable to build with bproc because sys/bproc.h is not available" 1>&1
+fi
+exit 1
+    fi    
 fi
 #
 # We do NOT add the CFLAGS and DEFS to the MDEP_CFLAGS because they are 

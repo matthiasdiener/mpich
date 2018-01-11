@@ -49,7 +49,7 @@ MPI::Op& MPI::Op::operator=(const MPI::Op& op) {
 // comparison
 inline MPI2CPP_BOOL_T
 MPI::Op::operator== (const MPI::Op &a) {
-  return (MPI2CPP_BOOL_T)(pmpi_op == a);
+  return (MPI2CPP_BOOL_T)(pmpi_op == a.pmpi_op);
 }
 
 inline MPI2CPP_BOOL_T

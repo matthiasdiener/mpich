@@ -1,4 +1,4 @@
-#! /usr/local/bin/perl5
+#! /usr/bin/env perl
 #
 # Scan a make logfile for errors.  Eliminate informational messages and
 # innocuous warnings.

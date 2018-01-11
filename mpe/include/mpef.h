@@ -23,9 +23,3 @@ C
      *        MPE_ERR_LOW_MEM
       parameter (MPE_SUCCESS = 0, MPE_ERR_NOXCONNECT = 1, 
      *           MPE_ERR_BAD_ARGS = 2, MPE_ERR_LOW_MEM = 3)
-C
-C
-C
-      double precision MPE_WTIME, MPE_PTIME
-      external MPE_WTIME, MPE_PTIME
-      

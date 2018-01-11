@@ -561,8 +561,12 @@ if [ -z "$larch" ] ; then larch=$default_arch ; fi
 # Finally, some shells don't allow you to SET!! PWD.  (Mac OS X for one)
 # To get around that, we avoid the name PWD and use PWDreal
 if [ -n "$AUTOMOUNTFIX" ] ; then
+    # We have had some reports of problems in this step.  We try not to
+    # assume here that pwd works, or that the AUTOMOUNTFIX is correct
     PWDtest=`pwd | $AUTOMOUNTFIX`
-    if [ ! -d $PWDtest ] ; then
+    if [ ! -d "$PWDtest" ] ; then
+        PWDtest=`pwd`
+    elif [ -z "$PWDtest" ] ; then 
         PWDtest=`pwd`
     fi
     if [ -n "$PWD" ] ; then
@@ -570,7 +574,7 @@ if [ -n "$AUTOMOUNTFIX" ] ; then
 	PWDtest2=`echo $PWD | $AUTOMOUNTFIX`
         /bin/rm -f $PWDtest/.mpirtmp$$ $PWDtest2/.mpirtmp$$
         if `eval "echo test > $PWDtest2/.mpirtmp$$" 2>/dev/null` ; then
-            if [ ! -s $PWDtest/.mpirtmp$$ ] ; then
+            if [ ! -s "$PWDtest/.mpirtmp$$" ] ; then
 	        /bin/rm -f $PWDtest2/.mpirtmp$$
                 PWDreal=$PWDtest
 	    else

@@ -100,11 +100,20 @@
 /* Define if you have the strerror function.  */
 #undef HAVE_STRERROR
 
+/* Define if you have the <errno.h> header file.  */
+#undef HAVE_ERRNO_H
+
 /* Define if you have the <sched.h> header file.  */
 #undef HAVE_SCHED_H
 
 /* Define if you have the <signal.h> header file.  */
 #undef HAVE_SIGNAL_H
+
+/* Define if you have the <stdlib.h> header file.  */
+#undef HAVE_STDLIB_H
+
+/* Define if you have the <unistd.h> header file.  */
+#undef HAVE_UNISTD_H
 
 /* Define if you have the thread library (-lthread).  */
 #undef HAVE_LIBTHREAD

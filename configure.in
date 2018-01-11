@@ -245,7 +245,7 @@ specify options for just the C or Fortran compilers.  Use -cflags and
 -fflags for options not related to optimization.  
 
 Note that the '-opt' options are not passed to the 'mpicc', 'mpif77', 
-'mpiCC', and 'mpif90' scripts.  The '-opt' options are used only in 
+'mpicxx', and 'mpif90' scripts.  The '-opt' options are used only in 
 building MPICH.
 
 The option '-lib' allows you to specify the location of a library that
@@ -1325,6 +1325,11 @@ done]
 dnl Finish the initalization
 rm -f config.log
 AC_PREPARE()
+#
+# Export variables that should be used by all called scripts and configure
+export OPTFLAGS
+export OPTFLAGSC
+export OPTFLAGSF
 dnl
 dnl Place the definitions into a configuration file, rather than sedding
 dnl them into Makefiles.  
@@ -2213,7 +2218,7 @@ if test -f "$srcdir/mpid/$DEVICE/$device_setupfile" ; then
     if test ! -x "$top_srcdir_val/mpid/$DEVICE/configure" -a \
 	      -s "$top_srcdir_val/mpid/$DEVICE/configure.in" -a \
 	      -x "$top_srcdir_val/mpid/$DEVICE/makeconfigure" ; then
-	(cd "$top_srcdir_val/mpid/$DEVICE" ; ./makeconfigure)
+	(cd "$top_srcdir_val/mpid/$DEVICE" && ./makeconfigure)
     fi
     echo "Running device-specific setup program"
     #
@@ -2898,6 +2903,9 @@ DEFS="$SAVEDEFS"
 #
 # Test that the functions used by the device are availble to the C++ and
 # Fortran compilers.
+# FIXME:
+# Not all systems use or need gethostbyname.  (One was Jason OS)
+# The name of these functions should be provided by the device.
 testfuncs="gethostbyname"
 if test -n "$device_functions" ; then 
     testfuncs="$testfuncs $device_functions"
@@ -3189,18 +3197,44 @@ if test -n "$F77IDX" ; then
     AC_DEFINE(POINTER_64_BITS)
 fi
 dnl
-PAC_GET_TYPE_SIZE(void *,address_size)
-if test "$address_size" != "unknown" ; then
+# Normally, we compute AINT_SIZE to be the same as the size of void *.  
+# However, in some situations, we may want to use something larger
+# than the size of void*.  By setting MPI_AINT_SIZE, we can bypass the
+# code that computes the size of void *
+if test -z "MPI_AINT_SIZE" ; then
+    PAC_GET_TYPE_SIZE(void *,MPI_AINT_SIZE)
+fi
+if test "$MPI_AINT_SIZE" != "unknown" ; then
     AC_MSG_CHECKING([for C integer type for MPI_Aint])
     AC_MSG_RESULT()
-    for c_type in int long short "long long" ; do
-        PAC_GET_TYPE_SIZE($c_type,type_len)
-        if test "$type_len" = "$address_size" ; then
+    # We'd like to use a loop here, but the pac GET_TYPE_SIZE
+    # macro requires an autoconf-time constant
+    PAC_GET_TYPE_SIZE(int,type_len)
+    if test "$type_len" = "$MPI_AINT_SIZE" ; then
+        MPI_AINT_FOUND=yes
+        MPI_AINT=int
+    fi
+    if test "$MPI_AINT_FOUND" != yes ; then 
+        PAC_GET_TYPE_SIZE(long,type_len)
+        if test "$type_len" = "$MPI_AINT_SIZE" ; then
             MPI_AINT_FOUND=yes
-	    MPI_AINT=$c_type
-            break
+            MPI_AINT=long
         fi
-    done
+    fi
+    if test "$MPI_AINT_FOUND" != yes ; then 
+        PAC_GET_TYPE_SIZE(short,type_len)
+        if test "$type_len" = "$MPI_AINT_SIZE" ; then
+            MPI_AINT_FOUND=yes
+            MPI_AINT=short
+        fi
+    fi
+    if test "$MPI_AINT_FOUND" != yes ; then 
+        PAC_GET_TYPE_SIZE(long long,type_len)
+        if test "$type_len" = "$MPI_AINT_SIZE" ; then
+            MPI_AINT_FOUND=yes
+            MPI_AINT="long long"
+        fi
+    fi
     AC_MSG(C integer type for MPI_Aint is)
     if test "$MPI_AINT_FOUND" = yes ; then 
         AC_MSG_RESULT($MPI_AINT)
@@ -3463,7 +3497,7 @@ fi
 if test "$NO_F90" = "0" ; then 
     MPIF90=$binbuild_dir/mpif90
 fi
-MPICPLUSPLUS=$binbuild_dir/mpiCC
+MPICPLUSPLUS=$binbuild_dir/mpicxx
 ### FIXME: IS THIS CORRECT OR NEEDED???
 LIB_DIR=$exec_prefix
 #
@@ -3494,7 +3528,7 @@ if test "$NOF77" != 1 ; then
   if test ! -x "$top_srcdir_val/src/fortran/configure" -a \
             -s "$top_srcdir_val/src/fortran/configure.in" -a \
 	    -x "$top_srcdir_val/src/fortran/makeconfigure" ; then
-      (cd "$top_srcdir_val/src/fortran" ; ./makeconfigure)
+      (cd "$top_srcdir_val/src/fortran" && ./makeconfigure)
   fi
   # The test versions (e.g., TESTCC) are used for cross-compilation cases when
   # they allow programs to be built and run
@@ -3671,6 +3705,9 @@ if test $ROMIO = 1 -a -d "${top_srcdir}/romio" ; then
   MPI_BIN_DIR=$binbuild_dir 
   MPI_LIB=$libbuild_dir/lib$MPILIBNAME.a
   MPI_INCLUDE_DIR=$includebuild_dir
+  # We force the romio configure to use a null cache file.  Without this,
+  # ROMIO may pick up its local config.cache, which may not be current
+  # (autoconf caching is very dangerous)
   (cd romio ; \
   LIBNAME=$libbuild_dir/lib$MPILIBNAME.a ; export LIBNAME ; \
   export MPI_BIN_DIR ; export MPI_LIB ; export MPI_INCLUDE_DIR ; \
@@ -3685,7 +3722,8 @@ if test $ROMIO = 1 -a -d "${top_srcdir}/romio" ; then
   export int_len ; export void_star_len ; export OFFSET_KIND ; \
   export long_long_len ; \
   "${top_srcdir}/romio/configure" $ROMIO_ARGS $ROMIO_FILE_SYSTEM \
-            --with-mpi=mpich $romio_config_args $enable_args $with_args )
+            --with-mpi=mpich $romio_config_args $enable_args $with_args \
+            --cache-file=/dev/null )
   rc=$?
   if test "$rc" != 0 ; then
       AC_MSG_ERROR([ROMIO Configure failed, aborting configure])
@@ -3735,8 +3773,11 @@ if test $ROMIO = 1 -a -d "${top_srcdir}/romio" ; then
   # If a VPATH build, the examples dir may not exist
   if test ! -d examples ; then mkdir examples ; fi
   if test ! -d examples/test ; then mkdir examples/test ; fi
-  (cd examples; \rm -f io; ln -s ../romio/test io; \
-   (cd test; \rm -f io; ln -s ../../romio/test io))
+  # We do not create the io link because we need to have the 
+  # test configure create these files, using sources copied from
+  # the romio distribution
+  (cd examples && rm -f io && ln -s ../romio/test io )
+  #  (cd examples/test && rm -f io && ln -s ../../romio/test io)
   echo "Finished configuring ROMIO"
 fi
 if test "$ROMIO" = 1 ; then
@@ -3786,6 +3827,29 @@ fi
 if test "$Use_Intercomm_coll" = "yes" ; then
     MPI2OPTIONAL="src/coll2"
 fi
+#
+# Check for the command line format for head.  Some versions of the GNU
+# utilities no longer accept the arguments for the classic head command,
+# making any script that uses head non-portable (this was a very bad thing
+# for GNU to do).
+AC_MSG_CHECKING([whether head command is broken])
+ac_cv_prog_head_ok=no
+rm -f conftest
+echo "line 1" > conftest
+echo "line 2" >> conftest
+nline=`head -1 conftest 2>&1`
+if test "$nline" = "line 1" ; then
+    ac_cv_prog_head_ok=yes
+fi
+rm -f conftest
+if test "$ac_cv_prog_head_ok" = yes ; then
+    AC_MSG_RESULT([no])
+    HEADARG="-"
+else
+    AC_MSG_RESULT([yes (incompatible syntax)])
+    HEADARG="-n "
+fi
+AC_SUBST(HEADARG)
 #
 # Substitute variables
 # Variables used in scripts only
@@ -4035,7 +4099,7 @@ fi
 if test ! -x "$top_srcdir_val/examples/perftest/configure" -a \
           -s "$top_srcdir_val/examples/perftest/configure.in" -a \
 	  -x "$top_srcdir_val/examples/perftest/makeconfigure" ; then
-    (cd "$top_srcdir_val/examples/perftest" ; ./makeconfigure)
+    (cd "$top_srcdir_val/examples/perftest" && ./makeconfigure)
 fi
 (cd examples/perftest ; \
     export MAKE ; export CC ; export F77 ; export MPICC ; export MPIF77 ; \

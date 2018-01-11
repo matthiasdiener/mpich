@@ -1,13 +1,14 @@
 
 		      Portable MPI Model Implementation
 
-			 Version 1.2.5, January, 2003
+			 Version 1.2.6, August, 2004
 
                                  David Ashton
                                  Anthony Chan
 				  Bill Gropp
                                   Rob Latham
 				  Rusty Lusk
+                                 Neill Miller
                                    Rob Ross
                                  Rajeev Thakur
                                  Brian Toonen
@@ -20,6 +21,9 @@ MPICH is an open-source, portable implementation of the Message-Passing
 Interface Standard.  It contains a complete implementation of version 1.2 of
 the MPI Standard and also significant parts of MPI-2, particularly in the
 area of parallel I/O.
+
+This is only a bug fix release.  All new work is in MPICH2, available at
+www.mcs.anl.gov/mpi/mpich2 .
 
 The installation and user's manuals have been combined as of the
 1.2.3. release; in addition, device-specific versions are available,
@@ -35,14 +39,49 @@ Man pages for each MPI routine, along with commands for compiling and running
 MPI programs, are provided in the directories man (Unix man format) and www
 (HTML). 
 
-Version 1.2.5 is primarily a bug-fix release.  New features include
+Known Problems:
+
+MPICH (and MPICH2) are designed to be portable to a wide range of systems.  As
+part of our testing, we build and test MPICH on many systems.  However, we do
+not have access to some systems for development and testing, and on these
+systems there may be build problems.  The systems that we know do not work
+include
+
+IBM AIX 5.2 and the ch_shmem device
+
+Systems to which we have no access and cannot test include
+
+HP-UX
+IRIX
+Tru64
+
+(We can test on AIX but have no development access, so problems cannot be
+fixed) 
+
+Systems on which we test frequently and which MPICH is known to run include
+
+Linux for IA32 (several flavors)
+Linux for IA64
+Linux for Alpha
+Solaris (both 32 bit and 64 bit)
+
+MPICH has also been built on 
+
+Mac OS X
+
+but hangs on some tests when running them on a single machine.
+
+The globus2 device passes most tests but may fail ictest and ictest3 .
+
+Information on previous versions
+--------------------------------
+
+Features new and improved in Version 1.2.5 included:
 
 Significantly better collective algorithms are available.
 
 Major changes for the globus2 device and the ch_nt device.
 
-Information on previous versions
---------------------------------
 
 Features new or improved in Version 1.2.4 included:
 
@@ -114,9 +153,7 @@ A paper on MPD is available at ftp://ftp.mcs.anl.gov/pub/mpi/mpd.ps.gz.
 What's next:
 All of our new development effort is going towards an all-new implementation
 of MPI, including both the MPI-1 and MPI-2 functions.  This new system is 
-called MPICH2 and is still under development, though beta versions are
-available for those using MPICH as a research vehicle.  If you want an MPI
-implementation, MPICH, not MPICH2, is the right choice at this time.
+called MPICH2 and is available at www.mcs.anl.gov/mpi/mpich2 .
 
 Reporting Bugs:
 

@@ -181,10 +181,19 @@ while [ $curarch -le $narch ] ; do
     # A bug in the GNU head causes "head -08 filename" to generate a bogus
     # error message (it interprets 0xxx as octal).  Add 0 to the number
     # as an easy way to eliminate any leading zeros.
+    #
+    # Just to make things even harder, later version of GNU utilities no
+    # longer support the classic Unix "head" command; instead, they have
+    # a command with the same name but a different command syntax (yes, this
+    # is a *very* bad thing to do.  Please don't ever do something this nasty
+    # to your users).
+    #
+    # To workaround this, the top-level configure determines the format of the
+    # head command and puts the option name into ${HEADARG}
     np=`expr $np + 0`
     if [ $nolocal = 0 -o $curarch -gt 1 ] ; then
         machineavail=`cat $machineFile | \
-		sed -e '/^#/d' -e 's/#.*$//g' | head -${np} | \
+		sed -e '/^#/d' -e 's/#.*$//g' | head ${HEADARG}${np} | \
 		tr '\012' ' '`
     else
         if [ $np -gt 1 -o $nolocal = 1 ] ; then
@@ -192,10 +201,10 @@ while [ $curarch -le $narch ] ; do
 	    # Thanks to Bjarne Herland for modification to 
 	    # remove EXACTLY the host machine (eg., bar and not bark)
 #	    machineavail=`cat $machineFile | sed -e '/^#/d' -e 's/#.*$//g' | \
-#		grep -v "^$MPI_HOST\([ -\.:]\)" | head -${np} | tr '\012' ' '`
+#		grep -v "^$MPI_HOST\([ -\.:]\)" | head ${HEADARG}${np} | tr '\012' ' '`
 	    machineavail=`cat $machineFile | \
 		sed -e '/^#/d' -e 's/#.*$//g' -e "/^$MPI_HOST:/d" \
-		    -e "/^$MPI_HOST *\$/d" | head -${np} | tr '\012' ' '`
+		    -e "/^$MPI_HOST *\$/d" | head ${HEADARG}${np} | tr '\012' ' '`
 	else
 	    machineavail=""
         fi
@@ -208,6 +217,9 @@ while [ $curarch -le $narch ] ; do
 	for exclude in $excludelist; do
           newlist=""
           for machine in $machineavail; do
+	    # If the machine list has names in the
+	    # name:ncpu form, make sure that we have just the name
+            machine=`echo $machine | sed 's/:[0-9]*$//'`
 	    if [ "$machine" != "$exclude" ]; then 
 		newlist="$newlist $machine"
 	    fi

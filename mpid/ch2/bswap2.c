@@ -102,6 +102,11 @@ int MPID_Type_swap_copy(
       MPID_BSwap_N_copy( d, s, (int)sizeof(long double), N );
       break;
 #endif
+#ifdef HAVE_LONG_LONG_INT
+      case MPIR_LONGLONGINT:
+      MPID_BSwap_N_copy( d, s, (int)sizeof(long long), N );
+      break;
+#endif
       /* Does not handle Fortran int/float/double/logical */
       default:
       MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_INTERN, 
@@ -151,6 +156,11 @@ void MPID_Type_swap_inplace(
 #ifdef HAVE_LONG_DOUBLE
       case MPIR_LONGDOUBLE:
       MPID_BSwap_N_inplace( b, (int)sizeof(long double), N );
+      break;
+#endif
+#ifdef HAVE_LONG_LONG_INT
+      case MPIR_LONGLONGINT:
+      MPID_BSwap_N_inplace( b, (int)sizeof(long long), N );
       break;
 #endif
       /* Does not handle Fortran int/float/double/logical */

@@ -1,6 +1,19 @@
 #include "p4.h"
 #include "p4_sys.h"
 
+/* For the SYS_V shared memory functions, we need a unique segment id.
+   Originally, this was done by using getpid+i, which wasn't perfect but
+   was often good enough.  Later versions of the SYS_V routines support
+   IPC_PRIVATE, which gives us a guaranteed unique id.  The following
+   macro gives us backward portability while allowing us to use
+   IPC_PRIVATE
+ */
+#ifdef IPC_PRIVATE
+#define P4_SHM_GET_UNIQUE_ID(_i) IPC_PRIVATE
+#else
+#define P4_SHM_GET_UNIQUE_ID(_i) getpid()
+#endif
+
 /* --------- Most Machine Dependent Stuff is in this file */
 
 #if defined(ALLIANT) && defined(USE_XX_SHMALLOC)
@@ -101,7 +114,7 @@ P4VOID MD_initmem(int memsize)
     size = nsegs * segsize;
     /* Try first to get a single section of memeory.  If that doesn't work,
        try to piece it together */
-    if ((sysv_shmid[0] = shmget(getpid(),size,IPC_CREAT|0600)) >= 0) {
+    if ((sysv_shmid[0] = shmget(P4_SHM_GET_UNIQUE_ID(0),size,IPC_CREAT|0600)) >= 0) {
 	if ((sysv_shmat[0] = mem = (char *)shmat(sysv_shmid[0],NULL,0)) == (char *)-1) {
 	    p4_shmat_errmsg( (int)(sysv_shmid[0]) );
 	}
@@ -109,7 +122,7 @@ P4VOID MD_initmem(int memsize)
     }
     else {
 	/* Piece it together */
-	if ((sysv_shmid[0] = shmget(getpid(),segsize,IPC_CREAT|0600)) == -1)
+	if ((sysv_shmid[0] = shmget(P4_SHM_GET_UNIQUE_ID(0),segsize,IPC_CREAT|0600)) == -1)
 	{
 	    p4_error("OOPS: shmget failed",sysv_shmid[0]);
 	}
@@ -124,7 +137,7 @@ P4VOID MD_initmem(int memsize)
 	pmem = mem;
 	for (i=1; i <= nsegs; i++)
 	{
-	    if ((sysv_shmid[i] = shmget(i+getpid(),segsize,IPC_CREAT|0600)) == -1)
+	    if ((sysv_shmid[i] = shmget(P4_SHM_GET_UNIQUE_ID(i),segsize,IPC_CREAT|0600)) == -1)
 	    {
 		p4_error("OOPS: shmget failed",sysv_shmid[i]);
 	    }
@@ -1448,7 +1461,7 @@ int init_sysv_semset(int setnum)
 #   endif
 #   endif
 
-    if ((semid = semget(getpid()+setnum,10,IPC_CREAT|0600)) < 0)
+    if ((semid = semget(P4_SHM_GET_UNIQUE_ID(setnum),10,IPC_CREAT|0600)) < 0)
     {
 	p4_error("semget failed for setnum",setnum);
     }
@@ -1487,19 +1500,28 @@ int setnum;
 P4VOID MD_lock(MD_lock_t *L)
 {
     sem_lock[0].sem_num = L->semnum;
-    if (semop(L->semid,&sem_lock[0],1) < 0)
+    /* An EINTR is ok; other errors are not */
+    while (semop(L->semid,&sem_lock[0],1) < 0)
     {
 	/* Use -1 so that we get the value from perror for the call */
-	p4_error("OOPS: semop lock failed",-1); /* (int)L->semid); */
+	if (errno != EINTR) {
+	    p4_error("OOPS: semop lock failed",-1); /* (int)L->semid); */
+	    break;   /* The break should be unnecessary, but just in case 
+			p4_error fails to exit */
+	}
     }
 }
 
 P4VOID MD_unlock(MD_lock_t *L)
 {
     sem_unlock[0].sem_num = L->semnum;
-    if (semop(L->semid,&sem_unlock[0],1) < 0)
+    while (semop(L->semid,&sem_unlock[0],1) < 0)
     {
-        p4_error("OOPS: semop unlock failed",(int)L->semid);
+	if (errno != EINTR) {
+	    p4_error("OOPS: semop unlock failed",(int)L->semid);
+	    break;   /* The break should be unnecessary, but just in case 
+			p4_error fails to exit */
+	}
     }
 }
 #endif
@@ -1628,6 +1650,7 @@ int data_representation( char *machine_type )
 
     if (strcmp(machine_type, "LINUX_PPC") == 0)       return 24;
     if (strcmp(machine_type, "LINUX_ALPHA") == 0)     return 25;
+    if (strcmp(machine_type, "FREEBSD_PPC") == 0)     return 26;
     p4_dprintf("invalid machine type=:%s:\n",machine_type);
     p4_error("data_representation: invalid machine type",0);
     return(-1);

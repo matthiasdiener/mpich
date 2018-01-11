@@ -1,4 +1,4 @@
-.TH Constants 3 "12/10/1997" " " "MPI"
+.TH Constants 3 "5/27/2004" " " "MPI"
 .SH NAME
 Constants \-  Meaning of MPI
 .I s defined constants 
@@ -75,6 +75,11 @@ INTEGER
 .B MPI_LONG_DOUBLE  
 - long double (some systems may not implement)
 .PD 1
+.PD 0
+.TP
+.B MPI_LONG_LONG_INT 
+- long long (some systems may not implement)
+.PD 1
 
 The following are datatypes for the MPI functions 
 MPI_MAXLOC
@@ -123,12 +128,14 @@ struct { int, int }
 struct { long double, int }; this 
 is an OPTIONAL type, and may be set to NULL 
 .PD 1
-.PD 0
-.TP
-.B MPI_LONG_LONG_INT 
-- struct { long long, int }; this is an OPTIONAL type,
-and may be set to NULL. 
-.PD 1
+
+Note that there is no 
+.I MPI_LONG_LONG_INT
+type corresponding to
+a 
+.I struct { long long, int }
+\&.
+
 
 Special datatypes for C and Fortran
 .PD 0

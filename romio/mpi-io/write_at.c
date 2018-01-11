@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: write_at.c,v 1.21 2004/02/12 06:09:15 David Exp $    
+ *   $Id: write_at.c,v 1.23 2004/06/17 21:44:58 toonen Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

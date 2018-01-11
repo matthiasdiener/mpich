@@ -1,5 +1,5 @@
 /*
- *  $Id: topo_util.c,v 1.6 2002/01/04 22:42:27 gropp Exp $
+ *  $Id: topo_util.c,v 1.7 2004/07/26 18:26:14 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -22,6 +22,13 @@
  */
 int MPIR_TOPOLOGY_KEYVAL = MPI_KEYVAL_INVALID;
 
+/* 
+  We want to use the same name mapping for internal routines as in the
+  rest of the package.  Note that this file calls a few MPI routines,
+  such as MPI_Keyval_create.  
+*/
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
 
 /* 
    Topology implementation uses small blocks; for efficiency, these are

@@ -19,15 +19,15 @@ do
    n=`expr ${n} + 1`
 #
    if [ ${n} -eq 1 ] ; then   
-       cat $machines_temp | head -1 >> $machines_randFile
-       cat $machines_temp | tail -`expr ${machine_num} - 1` >> $machines_temp2
+       cat $machines_temp | head ${HEADARG}1 >> $machines_randFile
+       cat $machines_temp | tail ${HEADARG}`expr ${machine_num} - 1` >> $machines_temp2
    elif [ ${n} -eq ${machine_num} ] ; then
-       cat $machines_temp | tail -1 >> $machines_randFile
-       cat $machines_temp | head -`expr ${n} - 1` >> $machines_temp2
+       cat $machines_temp | tail ${HEADARG}1 >> $machines_randFile
+       cat $machines_temp | head ${HEADARG}`expr ${n} - 1` >> $machines_temp2
    else
-       cat $machines_temp | head -${n} | tail -1 >> $machines_randFile
-       cat $machines_temp | head -`expr ${n} - 1` > $machines_temp2
-       cat $machines_temp | tail -`expr ${machine_num} - ${n}` >> $machines_temp2
+       cat $machines_temp | head ${HEADARG}${n} | tail ${HEADARG}1 >> $machines_randFile
+       cat $machines_temp | head ${HEADARG}`expr ${n} - 1` > $machines_temp2
+       cat $machines_temp | tail ${HEADARG}`expr ${machine_num} - ${n}` >> $machines_temp2
    fi
 #
    mv $machines_temp2 $machines_temp

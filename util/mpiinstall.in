@@ -479,7 +479,11 @@ if [ -z "$libonly" ] ; then
     CopyFile ${top_srcdir}/bin/tarch $bindir $XMODE
     CopyFile ${top_srcdir}/bin/tdevice $bindir $XMODE
     CopyFile util/mpichlib.conf ${sysconfdir} 
-    CopyFile bin/mpichversion $bindir $XMODE
+    if [ -x "bin/mpichversion.exe" ] ; then
+        CopyFile bin/mpichversion.exe $bindir $XMODE
+    else 
+        CopyFile bin/mpichversion $bindir $XMODE
+    fi
     # Copy the source file for mpichversion to the sysconfdir
     CopyFile ${top_srcdir}/util/mpichversion.c ${sysconfdir}
     #
@@ -614,7 +618,11 @@ else
         fi
         FixupFile2 bin/mpicxx $bindir/mpicxx $XMODE
     fi
-    CopyFile bin/mpichversion $bindir $XMODE
+    if [ -x "bin/mpichversion.exe" ] ; then
+        CopyFile bin/mpichversion.exe $bindir $XMODE
+    else 
+        CopyFile bin/mpichversion $bindir $XMODE
+    fi
     CopyFile util/mpichlib.conf ${sysconfdir}
     # Copy the source file for mpichversion to the sysconfdir
     CopyFile $top_srcdir/util/mpichversion.c ${sysconfdir}
@@ -653,7 +661,10 @@ else
     if [ -d $includebuild_dir/f90choice -a "@NO_F90@" = "0" ] ; then
         MkDir $includedir/f90choice
         for file in $includebuild_dir/f90choice/* ; do
-	    CopyFile $file $includedir/f90choice
+	    if [ -s $file ] ; then
+		# Just in case the choice directory is empty
+		CopyFile $file $includedir/f90choice
+            fi
 	done
         if [ -s $includebuild_dir/f90choice/mpimod.pcl ] ; then
 	    rm -f $includedir/f90choice/mpimod.pcl
@@ -710,7 +721,9 @@ if [ -z "$libonly" ] ; then
     if [ -d $includebuild_dir/f90base -a "@NO_F90@" = "0" ] ; then
         MkDir $includedir/f90base
         for file in $includebuild_dir/f90base/* ; do
-	    CopyFile $file $includedir/f90base
+	    if [ -s $file ] ; then
+		CopyFile $file $includedir/f90base
+	    fi
 	done
         if [ -s $includebuild_dir/f90base/mpimod.pcl ] ; then
 	    rm -f $includedir/f90base/mpimod.pcl
@@ -722,7 +735,9 @@ if [ -z "$libonly" ] ; then
     if [ -d $includebuild_dir/f90choice -a "@NO_F90@" = "0" ] ; then
         MkDir $includedir/f90choice
         for file in $includebuild_dir/f90choice/* ; do
-	    CopyFile $file $includedir/f90choice
+	    if [ -s $file ] ; then
+		CopyFile $file $includedir/f90choice
+	    fi
 	done
         if [ -s $includebuild_dir/f90choice/mpimod.pcl ] ; then
 	    rm -f $includedir/f90choice/mpimod.pcl

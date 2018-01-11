@@ -46,6 +46,10 @@
 #define SGI
 #endif
 
+#if defined(FREEBSD_PPC)
+#define FREEBSD
+#endif
+
 /* ---------------------
  Global declarations
 --------------------- */
@@ -126,7 +130,7 @@ extern usc_time_t usc_MD_rollover_val;
 
 #if defined(SUN) || defined(DEC5000) || defined(HP) \
     || defined(SUN_SOLARIS) || defined(FREEBSD) || defined(LINUX) \
-    || defined(I86_SOLARIS) \
+    || defined(I86_SOLARIS) || defined(NETBSD) \
     || defined(IBM3090) || defined(RS6000) \
     || defined(NEXT) || defined(TITAN) || defined(GP_1000) \
     || defined(KSR) \

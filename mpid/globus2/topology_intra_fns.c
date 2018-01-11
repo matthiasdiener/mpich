@@ -1,6 +1,6 @@
 
 /*
- * CVS Id: $Id: topology_intra_fns.c,v 1.117 2004/05/11 18:11:12 karonis Exp $
+ * CVS Id: $Id: topology_intra_fns.c,v 1.118 2004/07/21 15:54:53 lacour Exp $
  */
 
 #include "chconfig.h"
@@ -2287,6 +2287,8 @@ MPID_FN_Gather (void *sendbuf, int sendcnt, struct MPIR_DATATYPE *sendtype,
    MPI_Status status;
    MPI_Aint recvtype_stride, recvtype_extent, lb, ub;
 
+   if ( sendcnt == 0 ) return MPI_SUCCESS;
+
    /* Is root within the communicator? */
    (void) MPIR_Comm_size (comm, &size);
 
@@ -2519,6 +2521,8 @@ MPID_FN_Scatter (void *sendbuf, int sendcnt, struct MPIR_DATATYPE *sendtype,
    MPI_Status status;
    MPI_Aint sendtype_stride, sendtype_extent, ub, lb;
 
+   if ( recvcnt == 0 ) return MPI_SUCCESS;
+
    /* Is root within the communicator? */
    (void) MPIR_Comm_size (comm, &size);
 
@@ -2719,6 +2723,8 @@ MPID_FN_Allgather (void *sendbuf, int sendcnt,
    int * const * const Colors = comm->Topology_Colors;
    int * const * const ClusterSizes = comm->Topology_ClusterSizes;
 
+   if ( sendcnt == 0 || recvcnt == 0 ) return MPI_SUCCESS;
+
    /* Get my rank and the size of the communicator */
    (void) MPIR_Comm_size (comm, &size);
    (void) MPIR_Comm_rank (comm, &my_rank);
@@ -2792,7 +2798,7 @@ MPID_FN_Allgatherv (void *sendbuf, int sendcnt,
                     struct MPIR_COMMUNICATOR *comm)
 {
    int mpi_errno = MPI_SUCCESS;
-   int lvl, size, rank, my_depth;
+   int i, lvl, size, rank, my_depth;
    static char myname[] = "MPI_ALLGATHERV";
    MPI_Aint recvtype_extent;
    comm_set_t *CommSets;
@@ -2800,10 +2806,16 @@ MPID_FN_Allgatherv (void *sendbuf, int sendcnt,
    const int * const Depths = comm->Topology_Depths;
    int * const * const Colors = comm->Topology_Colors;
    int * const * const ClusterSizes = comm->Topology_ClusterSizes;
+   int total_recvcnts = 0;
 
    /* Get my rank and the size of the communicator */
    (void) MPIR_Comm_size (comm, &size);
    (void) MPIR_Comm_rank (comm, &rank);
+
+   for (i = 0; i < size; i++)
+      total_recvcnts += recvcnts[i];
+   if ( total_recvcnts == 0 ) return MPI_SUCCESS;
+
    /* Switch communicators to the hidden collective */
    comm = comm->comm_coll;
    CommSets = comm->Topology_CommSets;
@@ -2874,6 +2886,8 @@ MPID_FN_Alltoall (void *sendbuf, int sendcnt,
    int * const * const Colors = comm->Topology_Colors;
    comm_set_t *CommSets;
    MPI_Aint lb, tmp_buf_stride, send_stride, recv_stride;
+
+   if ( sendcnt == 0 || recvcnt == 0 ) return MPI_SUCCESS;
 
    /* Get my rank and the size of the communicator */
    (void) MPIR_Comm_rank (comm, &rank);

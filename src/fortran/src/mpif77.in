@@ -165,12 +165,12 @@ for arg in "$@" ; do
 	F77=`echo A$arg | sed -e 's/A-fc=//g'`
 	F77LINKER="$F77"
 	;;
-	-compile_info)
+	-compile_info|-compile-info)
 	show_compile=1
 	DoLink=0
 	Show=echo
 	;;
-	-link_info)
+	-link_info|-link-info)
 	show_link=1
 	Show=echo
 	;;
@@ -206,8 +206,8 @@ In addition, the following special options are supported
                  this compiler.
     -show      - Show the commands that would be used without
                  runnning them
-    -compile_info - Show how to compile a program
-    -link_info - Show how to link a program
+    -compile-info - Show how to compile a program
+    -link-info - Show how to link a program
     -help      - Give this help
     -echo      - Show exactly what this program is doing.
                  This option should normally not be used.
@@ -365,13 +365,13 @@ if [ $DoLink = 1 -o $show_link = 1 ] ; then
     if [ "$F77LINKER" != "$F77" ] ; then
         F77_LAST_LDFLAGS="$F77_LDFLAGS"
     fi
-    $Show $F77LINKER $F77_LDFLAGS $LDFLAGS $BASE_FFLAGS $flibpath ${FLIB_PATH_LEADER}${FLIB_PATH} $linkobjs $MPILOG $linkargs $mpilibs $BASE_LIB_LIST $FLIB_LIST $F77_LAST_LDFLAGS
+    $Show $F77LINKER $F77_LDFLAGS $LDFLAGS $BASE_FFLAGS $flibpath ${FLIB_PATH_LEADER}${FLIB_PATH} $linkobjs $linkargs $MPILOG $mpilibs $BASE_LIB_LIST $FLIB_LIST $F77_LAST_LDFLAGS
     status=$?
 fi
 #
 # If we added the link, remove it.
 if [ $added_link = 1 ] ; then
-    $Show rm mpif.h
+    $Show rm -f mpif.h
     trap 0
 fi
 exit $status

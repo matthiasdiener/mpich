@@ -24,10 +24,14 @@ int main( int argc, char *argv[] )
     /* This test depends on a working wtime.  Make a simple check */
     t0 = MPI_Wtime();
     if (t0 == 0 && MPI_Wtime() == 0) {
-	fprintf( stderr, 
-		 "MPI_WTIME is returning 0; a working value is needed\n\
+	/* We MAY have a problem.  Check some more */
+	for (a=0; a<1000; a++) t0 = MPI_Wtime();
+	if (t0 == 0) {
+	    fprintf( stderr, 
+		     "MPI_WTIME is returning 0; a working value is needed\n\
 for this test.\n" );
-	MPI_Abort( MPI_COMM_WORLD, 1 );
+	    MPI_Abort( MPI_COMM_WORLD, 1 );
+	}
     }
 
     easy = 1;

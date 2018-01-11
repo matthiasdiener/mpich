@@ -1,6 +1,6 @@
 .TH MPE 4 "9/2/2000" " " "MPE"
 .SH NAME
-MPE \-  MultiProcessing Environment 
+MPE \-  MultiProcessing Environment 
 .SH DESCRIPTION
 
 The Multi-Processing Environment (MPE) attempts to provide programmers with
@@ -25,16 +25,16 @@ followed by another line indicating that the call has completed.
 Most send and receive routines also indicate the values of count, tag,
 and partner (destination for sends, source for receives).  Output 
 is to standard output.
-
 .PD 1
+
 .PD 0
 .TP
 .B Animation Library 
 - 
 This is a simple form of real-time program animation and requires X 
 window routines.  
-
 .PD 1
+
 .PD 0
 .TP
 .B Logging Library 
@@ -50,6 +50,7 @@ which can be converted from CLOG after CLOG file has been generated
 (preferred approach), or can be generated directly when MPI program 
 is executed (through setting the environmental variable MPE_LOG_FORMAT
 to SLOG).
+.PD 1
 
 The set of utility programs in MPE includes log format converter (e.g.
 clog2slog), logfile print (e.g. slog_print) and logfile viewer wrappers,
@@ -63,9 +64,8 @@ to display programs.
 
 
 
-Configuration and Installation:
+.SH CONFIGURATION AND INSTALLATION
 
-.PD 1
 MPE can be configured and installed as an extension to most MPI standard
 compliant MPI implementations, e.g. MPICH, LAM, SGI's MPI, HP-UX's MPI
 and IBM's MPI.  It has been integrated seamlessly into MPICH distribution,
@@ -194,8 +194,8 @@ The allowed value for
 .I MPE_LOG_FORMAT
 are CLOG, SLOG and
 ALOG. When MPE_LOG_FORMAT is NOT set, CLOG is assumed.
-
 .PD 1
+
 .PD 0
 .TP
 .B TMPDIR 
@@ -215,13 +215,14 @@ highly recommended user to use a *local* file system for
 .I TMPDIR
 \&.
 
+.PD 1
 
 Note : The final merged logfile will be written back to the
 file system where process 0 is.
 
 
 
-Utility Programs:
+.SH UTILITY PROGRAMS
 
 In bin/, user can find several useful utility programs when manipulating
 logfiles.  These includes log format converters, e.g. clog2slog, log format
@@ -230,9 +231,12 @@ logviewer.
 
 
 
-Log Format Converters:
+.SH LOG FORMAT CONVERTERS
 
-+   clog2slog - 
+.PD 0
+.TP
+.B clog2slog 
+- 
 a CLOG to SLOG logfile converter.  Since the automatic generation
 of SLOG file through setting of environmental variable
 .I MPE_LOG_FORMAT
@@ -245,36 +249,40 @@ to be displayed by Jumpshot-3's time line window.  For non
 well behaved MPI program, one may need to increase the frame
 size from the default 64KB to a bigger value.  For more
 information about the converter, do "clog2slog -h"
-
 .PD 1
+
 .PD 0
 .TP
 .B clog2alog 
 - 
 a CLOG to ALOG logfile converter.  It is not being developed.
 It is provided here for backward compatibility purpose.
+.PD 1
 
 
 
-Log Format Print Programs:
+.SH LOG FORMAT PRINT PROGRAMS
 
-+   slog_print -
+.PD 0
+.TP
+.B slog_print 
+- 
 a stdout print program for SLOG file.  It serves to check the
 content of the logfile.  If the SLOG file is too big, it may
 NOT be useful to use slog_print.  Also, when slog is NOT complete,
 slog_print won't work.  So it serves as a simple test to check
 if the SLOG file is generated completely.
-
 .PD 1
+
 .PD 0
 .TP
 .B clog_print 
 - 
 stdout print program for CLOG file.
-
-
-
 .PD 1
+
+
+
 .SH DISPLAY PROGRAM SELECTOR
 
 .PD 0
@@ -286,13 +294,14 @@ extension of logfile.  For instance, if the logfile is foo.slog,
 logviewer will invoke jumpshot-3 to display the logfile.
 Jumpshot-3 resides in share/.  For more information of
 logviewer, do "logviewer -help" to list all available options.
+.PD 1
 
 
 
-Additional Information:
+.SH ADDITIONAL INFORMATION
 To view a list of configure options, type 
 .I ./configure--help
-in the 
+in the
 top-level 
 .I mpe
 directory.
@@ -315,6 +324,5 @@ is a script that runs
 on
 these man pages.
 
-.PD 1
 .SH LOCATION
 /home/MPI/mansrc/mpepage

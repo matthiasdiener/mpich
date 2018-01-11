@@ -112,7 +112,7 @@ VOID usc_init()
 #endif
 
 #ifndef TIMER_FOUND
-   'Error - no timer defined.  Please file a bug report'
+#errof   "Error - no timer defined.  Please file a bug report"
 #endif
 }
 

@@ -37,7 +37,8 @@ EXECS = overtake sendrecv isndrcv third fourth fifth sixth hvectest \
 	testsome getelm testall sndrcv nbtest nblock sendmany order hindexed \
 	commit cancel persist typecreate reqcreate sndrcvrep flood flood2 \
 	persist2 dataalign dtyperecv reqfree sndrcvrpl2 cancel2 cancel3 \
-	cancelmessages cancelibm sendorder exittest selfvsworld waitall3 \
+	cancelmessages cancelibm cancelissend \
+	sendorder exittest selfvsworld waitall3 \
 	waitall4 typelb structlb
 OTHEREXECS = testtypes secondf allpair systest send1 \
 		systest1 allpair2 bsendtest structf typebasef sendfort bcastf \
@@ -299,6 +300,9 @@ cancelmessages: cancelmessages.o
 
 cancelibm: cancelibm.o
 	$(CLINKER) $(OPTFLAGS) -o cancelibm cancelibm.o $(LIBS)
+
+cancelissend: cancelissend.o
+	$(CLINKER) $(OPTFLAGS) -o cancelissend cancelissend.o $(LIBS)
 
 sendorder: sendorder.o
 	$(CLINKER) $(OPTFLAGS) -o sendorder sendorder.o $(LIBS)

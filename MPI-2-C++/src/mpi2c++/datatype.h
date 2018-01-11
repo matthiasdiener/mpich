@@ -54,7 +54,7 @@ public:
 
   // comparison
   inline MPI2CPP_BOOL_T operator== (const Datatype &a) const
-    { return (MPI2CPP_BOOL_T) (pmpi_datatype == a); }
+    { return (MPI2CPP_BOOL_T) (pmpi_datatype == a.pmpi_datatype); }
 
   inline MPI2CPP_BOOL_T operator!= (const Datatype &a) const
     { return (MPI2CPP_BOOL_T) !(*this == a); }

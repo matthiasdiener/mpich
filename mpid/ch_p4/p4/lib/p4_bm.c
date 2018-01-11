@@ -12,6 +12,14 @@ int bm_start(int *argc, char **argv)
     trap_sig_errs();		/* Errors can happen any time */
 
     /* choose a working directory */
+    /* p4_wd is set in p4_args, with a default of null.
+       For MPICH jobs, we don't really want to change the working directory
+       in the way that p4 expects.  We've handled this in mpirun.ch_p4.in
+       by explicitly setting the working directory.  That doesn't help
+       the singleton init (running a single process without mpirun)
+       but it is rather tricky to set (though we could fix it in the 
+       MPID_Init call in mpid/ch_p4/p4priv.c) 
+    */
     if (strlen(p4_wd) && !chdir(p4_wd))
     {
 	p4_dprintfl(90, "working directory set to %s\n", p4_wd);
@@ -254,7 +262,9 @@ else {
 int create_bm_processes( struct p4_procgroup *pg )
 {
     struct p4_procgroup_entry *local_pg;
-    int nslaves, end_1, end_2;
+    int nslaves;
+    int  end_1=-1, end_2=-1;   /* pipe fds.  Set to negative so that 
+				  we can tell when they're not used */
     int slave_pid, listener_pid = -1;
     int slave_idx, listener_fd = -1;
 #   if defined(IPSC860)  ||  defined(CM5)  ||  defined(NCUBE)  ||  defined(SP1_EUI) || defined(SP1_EUIH)
@@ -396,7 +406,8 @@ int create_bm_processes( struct p4_procgroup *pg )
 #endif /* USE_NONBLOCKING_LISTENER_SOCKETS */
 		p4_local->listener_fd = end_1;
 #               if !defined(THREAD_LISTENER)
-		close(end_2);
+		if (end_2 >= 0)
+		    close(end_2);
 #               endif
 		close(listener_fd);
 	    }
@@ -467,7 +478,8 @@ int create_bm_processes( struct p4_procgroup *pg )
 
 #   ifdef CAN_DO_SOCKET_MSGS
 	/* slave holds this end */
-	close(end_1);
+	if (end_1 >= 0) 
+	    close(end_1);
 #   endif
 
 	/* master installing local slaves */
@@ -533,7 +545,8 @@ int create_bm_processes( struct p4_procgroup *pg )
 	{
 	    /* I am the listener */
 	    listener_info->slave_pid[0] = getppid();
-	    close(end_1);
+	    if (end_1 >= 0)
+		close(end_1);
 	    sprintf(whoami_p4, "bm_list_%d", (int)getpid());
 	    /* Inside listener */
 	    p4_local = alloc_local_listener();
@@ -596,7 +609,8 @@ int create_bm_processes( struct p4_procgroup *pg )
     {
 #       if !defined(THREAD_LISTENER)
 	close(listener_fd);
-	close(end_2);
+	if (end_2 >= 0)
+	    close(end_2);
 #       endif
 	p4_global->listener_pid = listener_pid;
     }

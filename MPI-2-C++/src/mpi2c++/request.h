@@ -51,7 +51,7 @@ public:
 
   // comparison
   MPI2CPP_BOOL_T operator== (const Request &a) 
-  { return (MPI2CPP_BOOL_T)(pmpi_request == a); }
+  { return (MPI2CPP_BOOL_T)(pmpi_request == a.pmpi_request); }
   MPI2CPP_BOOL_T operator!= (const Request &a) 
   { return (MPI2CPP_BOOL_T)!(*this == a); }
 

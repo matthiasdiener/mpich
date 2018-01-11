@@ -1,8 +1,9 @@
-.TH MPIO_Test 3 "10/24/2002" " " "MPI-2"
+.TH MPIO_Test 3 "4/18/2003" " " "MPI-2"
 .SH NAME
 MPIO_Test \-  Test the completion of a nonblocking read or write 
 .SH SYNOPSIS
 .nf
+#ifdef HAVE_MPI_GREQUEST
 int MPIO_Test(MPIO_Request *request, int *flag, MPI_Status *status)
 .fi
 .SH INPUT PARAMETERS

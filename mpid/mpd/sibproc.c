@@ -1253,6 +1253,8 @@ int my_hostname_is_in_pattern( char *hostlist_pattern )
 	e = strchr( c, '-' );
 	if ( e != NULL )  {
 	    strncpy( range1_pattern, c, e-c );
+	    /* Need to insure a null at the end of range1_pattern */
+	    range1_pattern[e-c] = 0;
 	    strcpy( range2_pattern, e+1 );
 	}
 	else {

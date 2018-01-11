@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi.h,v 1.44 2003/01/23 21:09:14 gropp Exp $
+ *  $Id: mpi.h,v 1.46 2004/07/29 14:22:23 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -167,15 +167,6 @@ typedef int MPI_Op;
 #define MPI_ROOT        (-3)
 #define MPI_ANY_TAG     (-1)
 
-/* MPI Error handlers.  Systems that don't support stdargs can't use
-   this definition
- */
-#if defined(USE_STDARG) 
-typedef void (MPI_Handler_function) ( MPI_Comm *, int *, ... );
-#else
-typedef void (MPI_Handler_function) ();
-#endif
-
 #define MPI_ERRORS_ARE_FATAL ((MPI_Errhandler)119)
 #define MPI_ERRORS_RETURN    ((MPI_Errhandler)120)
 #define MPIR_ERRORS_WARN     ((MPI_Errhandler)121)
@@ -205,7 +196,7 @@ typedef int (MPI_Delete_function) ( MPI_Comm, int, void *, void * );
 #define MPI_VERSION    1
 #define MPI_SUBVERSION 2
 #define MPICH_NAME     1
-#define MPICH_VERSION "1.2.5"
+#define MPICH_VERSION "1.2.6"
 
 /********************** MPI-2 FEATURES BEGIN HERE ***************************/
 #define MPICH_HAS_C2F
@@ -237,6 +228,17 @@ typedef struct MPIR_Info *MPI_Info;
    type of MPI_Aint or MPI_Fint, also mpio.h, if it was built.  
    It now includes the definition of MPI_Status */
 #include "mpidefs.h"
+
+/* MPI Error handlers.  Systems that don't support stdargs can't use
+   this definition (this must occur after the mpidefs.h include,
+   since USE_STDARG is set in that file)
+ */
+#if defined(USE_STDARG) 
+typedef void (MPI_Handler_function) ( MPI_Comm *, int *, ... );
+#else
+typedef void (MPI_Handler_function) ();
+#endif
+
 
 /* Handle conversion types/functions */
 

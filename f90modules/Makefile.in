@@ -5,8 +5,12 @@ SHELL = /bin/sh
 F90 = @F90@
 F90LINKER = @F90LINKER@
 F90SUFFIX = @F90SUFFIX@
-LDFLAGS = @LDFLAGS@
-FFLAGS  = @FFLAGS@
+LDFLAGS   = @LDFLAGS@
+F90FLAGS  = @F90FLAGS@
+
+RANLIB = @RANLIB@
+AR     = @AR@
+
 # Module suffix.  M, mod, and d are known
 MOD = @MOD@
 SHELL = /bin/sh
@@ -45,10 +49,11 @@ copysrcs:
 		@MPIMOD@1.$(MOD) @MPIMOD@2.$(MOD) \
 		choice_modules
 	@if [ -s mpi.$(F90SUFFIX) ] ; then \
-	    $(F90) -c $(FFLAGS) mpi.$(F90SUFFIX) ; \
+	    $(F90) -c $(F90FLAGS) mpi.$(F90SUFFIX) ; \
 	else \
-	    $(F90) -c $(FFLAGS) ${srcdir}/mpi.$(F90SUFFIX) ; fi
-	@AR@ ${libbuild_dir}/lib@MPIMODLIBNAME@.a ./mpi.o	
+	    $(F90) -c $(F90FLAGS) ${srcdir}/mpi.$(F90SUFFIX) ; fi
+	${AR} ${libbuild_dir}/lib@MPIMODLIBNAME@.a ./mpi.o	
+	${RANLIB} ${libbuild_dir}/lib@MPIMODLIBNAME@.a 
 	if [ ! -d ${includebuild_dir}/f90choice ] ; then \
 		mkdir ${includebuild_dir}/f90choice ; fi
 	cp @MPIMOD@*.$(MOD) ${includebuild_dir}/f90choice
@@ -71,9 +76,10 @@ mpi-base.$(MOD): mpi.$(F90SUFFIX) \
 	@(cd .tmp ; @LN_S@ ../@MPIMOD@1.$(MOD) @MPIMOD@1.$(MOD) ;\
 	@LN_S@ ../@MPIMOD@2.$(MOD) @MPIMOD@2.$(MOD) ;\
 	@LN_S@ ../@MPICONSTMOD@.$(MOD) @MPICONSTMOD@.$(MOD) ;\
-	$(F90) -c $(FFLAGS) @F90_WORK_FILES_ARG@ ./mpi.$(F90SUFFIX) )
-	@AR@ ${libbuild_dir}/lib@MPIMODLIBNAMENC@.a .tmp/mpi.o mpi1.o mpi2.o \
+	$(F90) -c $(F90FLAGS) @F90_WORK_FILES_ARG@ ./mpi.$(F90SUFFIX) )
+	${AR} ${libbuild_dir}/lib@MPIMODLIBNAMENC@.a .tmp/mpi.o mpi1.o mpi2.o \
 		mpi_constants.o
+	${RANLIB} ${libbuild_dir}/lib@MPIMODLIBNAMENC@.a 
 	@cp .tmp/@MPIMOD@.$(MOD) mpi-base.$(MOD)
 	if [ ! -d ${includebuild_dir}/f90base ] ; then \
 		mkdir ${includebuild_dir}/f90base ; fi
@@ -91,16 +97,19 @@ mpi-base.$(MOD): mpi.$(F90SUFFIX) \
 	cp @MPIMOD@2.${MOD} ${includebuild_dir}/f90base
 
 @MPICONSTMOD@.$(MOD): mpi_constants.$(F90SUFFIX) $(mpiincdir)/mpif.h
-	$(F90) $(FFLAGS) -c -I$(mpiincdir) mpi_constants.$(F90SUFFIX)
-	@AR@ ${libbuild_dir}/lib@MPIMODLIBNAME@.a mpi_constants.o
+	$(F90) $(F90FLAGS) -c -I$(mpiincdir) mpi_constants.$(F90SUFFIX)
+	${AR} ${libbuild_dir}/lib@MPIMODLIBNAME@.a mpi_constants.o
+	${RANLIB} ${libbuild_dir}/lib@MPIMODLIBNAME@.a
 # Systems that make the module name upper case when the file name is lower
 # case make this harder than it should be.
 @MPIMOD@1.$(MOD): mpi1.$(F90SUFFIX)
-	$(F90) $(FFLAGS) -c mpi1.${F90SUFFIX}
-	@AR@ ${libbuild_dir}/lib@MPIMODLIBNAME@.a mpi1.o
+	$(F90) $(F90FLAGS) -c mpi1.${F90SUFFIX}
+	${AR} ${libbuild_dir}/lib@MPIMODLIBNAME@.a mpi1.o
+	${RANLIB} ${libbuild_dir}/lib@MPIMODLIBNAME@.a 
 @MPIMOD@2.$(MOD): mpi2.$(F90SUFFIX)
-	$(F90) $(FFLAGS) -c mpi2.${F90SUFFIX}
-	@AR@ ${libbuild_dir}/lib@MPIMODLIBNAME@.a mpi2.o
+	$(F90) $(F90FLAGS) -c mpi2.${F90SUFFIX}
+	${AR} ${libbuild_dir}/lib@MPIMODLIBNAME@.a mpi2.o
+	${RANLIB} ${libbuild_dir}/lib@MPIMODLIBNAME@.a 
 
 # These are for the maintainers only
 ExtractRawBindings:
@@ -170,19 +179,20 @@ f90modspec:
 #
 # Add the module's object file to the module library as well.
 .$(F90SUFFIX).$(MOD): 
-	$(F90) $(FFLAGS) -c $<
-	@AR@ ${libbuild_dir}/lib@MPIMODLIBNAME@.a $*.o
+	$(F90) $(F90FLAGS) -c $<
+	${AR} ${libbuild_dir}/lib@MPIMODLIBNAME@.a $*.o
+	${RANLIB} ${libbuild_dir}/lib@MPIMODLIBNAME@.a
 
 # If there is ANOTHER f90 suffix, add it here rather than using
 # $(F90SUFFIX) in case .f or .f90 is the F90SUFFIX
 .f90:
-	$(F90) -c $(FFLAGS) $<
-	$(F90LINKER) -o $* $(FFLAGS) $(LDFLAGS) $*.o
+	$(F90) -c $(F90FLAGS) $<
+	$(F90LINKER) -o $* $(F90FLAGS) $(LDFLAGS) $*.o
 .f:
-	$(F90) -c $(FFLAGS) $<
-	$(F90LINKER) -o $* $(FFLAGS) $(LDFLAGS) $*.o
+	$(F90) -c $(F90FLAGS) $<
+	$(F90LINKER) -o $* $(F90FLAGS) $(LDFLAGS) $*.o
 .f.o:
-	$(F90) -c $(FFLAGS) $<
+	$(F90) -c $(F90FLAGS) $<
 
 configure: configure.in
 	./makeconfigure

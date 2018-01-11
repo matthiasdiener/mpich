@@ -1,6 +1,6 @@
 Summary: Argonne National Laboratory MPI implementation
 Name: mpich
-Version: 1.2.5
+Version: 1.2.6
 Vendor: Argonne National Laboratory
 Packager: William Gropp <gropp@mcs.anl.gov>
 Copyright: BSD-like
@@ -353,7 +353,9 @@ fi
 
 
 %changelog
-* Mon Jan 20 2003 Willam Gropp <gropp@mcs.anl.gov>
+* Wed Jul 28 2004 William Gropp <gropp@mcs.anl.gov>
+- Update version number for next release
+* Mon Jan 20 2003 William Gropp <gropp@mcs.anl.gov>
 - Integrate suggestions; clean up the code for changing the installation dirs
 * Fri Jan 10 2003 William Gropp <gropp@mcs.anl.gov>
 - Update to MPICH 1.2.5 and fixed buildroot

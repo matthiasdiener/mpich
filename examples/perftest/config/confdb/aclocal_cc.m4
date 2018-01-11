@@ -547,7 +547,7 @@ fflush(stdout);
 return 0;
 }
 int main() { func( 1, 2 ); return 0;}],pac_check_compile)
-case $pac_check_compile in 
+case "$pac_check_compile" in 
     0)  pac_cv_header_stdarg_oldstyle="yes"
 	;;
     1)  pac_cv_header_stdarg_oldstyle="may be newstyle"
@@ -575,7 +575,7 @@ fflush(stdout);
 return 0;
 }
 int main() { func( 1, 2 ); return 0;}],pac_check_compile)
-case $pac_check_compile in 
+case "$pac_check_compile" in 
     0)  pac_cv_header_stdarg_works="yes"
 	;;
     1)  pac_cv_header_stdarg_works="yes with warnings"
@@ -939,6 +939,11 @@ dnl.vb
 dnl -Wunused -Wshadow -Wmissing-declarations -Wno-long-long -Wpointer-arith
 dnl.ve
 dnl 
+dnl If the value 'noopt' is given to '--enable-strict', no optimization
+dnl options are set.  For some compilers (including gcc), this may 
+dnl cause some strict complication tests to be skipped (typically, these are
+dnl tests for unused variables or variables used before they are defined).
+dnl 
 dnl This only works where 'gcc' is available.
 dnl In addition, it exports the variable 'enable_strict_done'. This
 dnl ensures that subsidiary 'configure's do not add the above flags to
@@ -956,55 +961,90 @@ dnl D*/
 AC_DEFUN(PAC_ARG_STRICT,[
 AC_ARG_ENABLE(strict,
 [--enable-strict  - Turn on strict compilation testing when using gcc])
-export enable_strict_done
-export COPTIONS
+saveCFLAGS="$CFLAGS"
 if test "$enable_strict_done" != "yes" ; then
-    if test "$enable_strict" = "yes" ; then
-        enable_strict_done="yes"
-        if test -z "CC" ; then
-            AC_CHECK_PROGS(CC,gcc)
-            if test "$CC" = "gcc" ; then 
-                COPTIONS="${COPTIONS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL"
-    	    fi
-        fi
-    elif test "$enable_strict" = "all" ; then
-        enable_strict_done="yes"
-        if test -z "CC" ; then
-            AC_CHECK_PROGS(CC,gcc)
-            if test "$CC" = "gcc" ; then 
-                COPTIONS="${COPTIONS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL -Wunused -Wshadow -Wmissing-declarations -Wno-long-long"
-    	    fi
-        fi
+    if test -z "CC" ; then
+        AC_CHECK_PROGS(CC,gcc)
     fi
+    case "$enable_strict" in 
+	yes)
+        enable_strict_done="yes"
+        if test "$CC" = "gcc" ; then 
+            COPTIONS="${COPTIONS} -Wall -O2 -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL"
+        fi
+	;;
+	all)
+        enable_strict_done="yes"
+        if test "$CC" = "gcc" ; then 
+            COPTIONS="${COPTIONS} -Wall -O2 -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL -Wunused -Wshadow -Wmissing-declarations -Wno-long-long"
+        fi
+	;;
+	noopt)
+        enable_strict_done="yes"
+        if test "$CC" = "gcc" ; then 
+            COPTIONS="${COPTIONS} -Wall -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL"
+        fi
+	;;
+	no)
+	# Accept and ignore this value
+	:
+	;;
+	*)
+	# Silently accept blank values for enable strict
+	if test -n "$enable_strict" ; then
+  	    AC_MSG_WARN([Unrecognized value for enable-strict:$enable_strict])
+	fi
+	;;
+    esac
 fi
 ])
 dnl
 dnl Use the value of enable-strict to update CFLAGS
+dnl 
 AC_DEFUN(PAC_CC_STRICT,[
 export enable_strict_done
 if test "$enable_strict_done" != "yes" ; then
-    if test "$enable_strict" = "yes" ; then
+    # We must know the compiler type
+    if test -z "CC" ; then
+        AC_CHECK_PROGS(CC,gcc)
+    fi
+    case "$enable_strict" in 
+	yes)
         enable_strict_done="yes"
-        if test -z "CC" ; then
-            AC_CHECK_PROGS(CC,gcc)
-        fi
         if test "$ac_cv_prog_gcc" = "yes" ; then 
             CFLAGS="${CFLAGS} -Wall -O2 -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL"
 	    AC_MSG_RESULT([Adding strict check arguments to CFLAGS])
 	else 
 	    AC_MSG_WARN([enable strict supported only for gcc])
     	fi
-    elif test "$enable_strict" = "all" ; then
+ 	;;	
+	all)
         enable_strict_done="yes"
-        if test -z "CC" ; then
-            AC_CHECK_PROGS(CC,gcc)
-        fi
         if test "$ac_cv_prog_gcc" = "yes" ; then 
             CFLAGS="${CFLAGS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL -Wunused -Wshadow -Wmissing-declarations -Wno-long-long"
 	else 
 	    AC_MSG_WARN([enable strict supported only for gcc])
     	fi
-    fi
+	;;
+	noopt)
+        enable_strict_done="yes"
+        if test "$ac_cv_prog_gcc" = "yes" ; then 
+            CFLAGS="${CFLAGS} -Wall -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL"
+	    AC_MSG_RESULT([Adding strict check arguments to CFLAGS])
+	else 
+	    AC_MSG_WARN([enable strict supported only for gcc])
+    	fi
+	;;
+	no)
+	# Accept and ignore this value
+	:
+	;;
+	*)
+	if test -n "$enable_strict" ; then
+  	    AC_MSG_WARN([Unrecognized value for enable-strict:$enable_strict])
+	fi
+	;;
+    esac	
 fi
 ])
 dnl/*D
@@ -1297,11 +1337,21 @@ dnl
 dnl Output Effect:
 dnl Sets 'NEEDS_<funcname>_DECL' if 'funcname' is not declared by the 
 dnl headerfiles.
+dnl
+dnl Approach:
+dnl Try to compile a program with the function, but passed with an incorrect
+dnl calling sequence.  If the compilation fails, then the declaration
+dnl is provided within the header files.  If the compilation succeeds,
+dnl the declaration is required.
+dnl
+dnl We use a 'double' as the first argument to try and catch varargs
+dnl routines that may use an int or pointer as the first argument.
+dnl 
 dnl D*/
 AC_DEFUN(PAC_FUNC_NEEDS_DECL,[
 AC_CACHE_CHECK([whether $2 needs a declaration],
 pac_cv_func_decl_$2,[
-AC_TRY_COMPILE([$1],[int a=$2(27,1.0,"foo");],
+AC_TRY_COMPILE([$1],[int a=$2(1.0,27,1.0,"foo");],
 pac_cv_func_decl_$2=yes,pac_cv_func_decl_$2=no)])
 if test "$pac_cv_func_decl_$2" = "yes" ; then
 changequote(<<,>>)dnl

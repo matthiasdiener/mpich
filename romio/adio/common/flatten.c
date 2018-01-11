@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: flatten.c,v 1.14 2004/02/19 16:24:02 robl Exp $    
+ *   $Id: flatten.c,v 1.15 2004/07/27 20:44:13 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -8,9 +8,9 @@
 
 #include "adio.h"
 #include "adio_extern.h"
-#ifdef MPISGI
+/* #ifdef MPISGI
 #include "mpisgi2.h"
-#endif
+#endif */
 
 void ADIOI_Optimize_flattened(ADIOI_Flatlist_node *flat_type);
 void ADIOI_Flatten_subarray(int ndims,

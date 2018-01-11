@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_util.c,v 1.8 2001/12/15 01:12:58 ashton Exp $
+ *  $Id: attr_util.c,v 1.9 2004/06/07 12:57:39 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -50,19 +50,21 @@ int MPIR_Attr_copy_node (
 
   attr_key = node->keyval;
 
+#ifndef MPIR_NO_ERROR_CHECKING
   if (!attr_key MPIR_TEST_COOKIE(attr_key,MPIR_ATTR_COOKIE)) {
       mpi_errno = MPIR_Err_setmsg( MPI_ERR_INTERN, MPIR_ERR_ATTR_CORRUPT,
 				   (char *)0, 
 				   (char *)0, (char *)0, attr_key->cookie );
       return MPIR_ERROR( comm, mpi_errno, (char *)0 );
   }
+#endif
 #ifdef FOO
   MPIR_REF_INCR(attr_key);
 #ifdef DEBUG_ATTR
   PRINTF( "incr attr_key ref to %d for %ld in %ld, copy to comm %ld\n", 
 	  attr_key->ref_count, (long)attr_key, (long)comm, (long)comm_new );
-#endif
-#endif
+#endif /* DEBUG_ATTR */
+#endif /* FOO */
   if (attr_key->copy_fn.c_copy_fn) {
 #ifndef MPID_NO_FORTRAN
       if (attr_key->FortranCalling) {
@@ -187,12 +189,14 @@ int MPIR_Attr_free_node (
 
   attr_key = node->keyval;
 
+#ifndef MPIR_NO_ERROR_CHECKING
   if (!attr_key MPIR_TEST_COOKIE(attr_key,MPIR_ATTR_COOKIE)) {
       mpi_errno = MPIR_Err_setmsg( MPI_ERR_INTERN, MPIR_ERR_ATTR_CORRUPT,
 				   (char *)0, 
 				   (char *)0, (char *)0, attr_key->cookie );
       return MPIR_ERROR( comm, mpi_errno, (char *)0 );
   }
+#endif
 
   if ( (node != (MPIR_HBT_node *)0) && (attr_key != 0) ) {
       MPIR_REF_DECR(attr_key);

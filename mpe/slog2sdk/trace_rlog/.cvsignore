@@ -1,7 +1,0 @@
-configure
-config.log
-autom4te.cache
-config.h.in
-trace_impl.h
-trace_impl.h.in
-trace_impl.h.in~

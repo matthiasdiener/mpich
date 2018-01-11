@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: read.c,v 1.20 2003/09/08 13:28:08 gropp Exp $    
+ *   $Id: read.c,v 1.24 2004/06/21 17:33:41 toonen Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

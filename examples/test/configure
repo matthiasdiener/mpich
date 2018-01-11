@@ -2781,11 +2781,19 @@ F77MPIOINC=""
 # Variables used by Makefile.in's:
 
 MPICH_VERSION=""
-if test -n "$IO" -a ! -s "$srcdir/$IO/Mfile.in" ; then
+#
+if test -n "$IO" ; then
    # Look for romio relative to the srcdir
    if test -s $srcdir/../../romio/test/Mfile.in ; then
-       # Copy the files (always copy in case there was an update)
-       cp -r $srcdir/../../romio/test $IO
+       # Copy the files (always copy in case there was an update).
+       # We must put them into the source directory inorder for configure
+       # to work correctly
+       if test ! -d $srcdir/$IO ; then mkdir $srcdir/$IO ; fi
+       for file in $srcdir/../../romio/test/* ; do 
+           if test -s $file -a ! -d $file ; then
+	       cp -f $file $srcdir/$IO
+	   fi
+       done
    else 
        if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""Warning: No IO directory available for tests"
@@ -2982,11 +2990,19 @@ ${CONFIG_SHELL-/bin/sh} ./config.status
 
 # Optionally build the io/Mfile
 if test -n "$IO" ; then
-    CONFIG_FILES=io/Mfile
-    export CONFIG_FILES
-    ${CONFIG_SHELL-/bin/sh} ./config.status
-    CONFIG_FILES=""
-    unset CONFIG_FILES
+    if test -d "$srcdir/$IO" ; then
+        CONFIG_FILES=io/Mfile
+        export CONFIG_FILES
+        ${CONFIG_SHELL-/bin/sh} ./config.status
+        CONFIG_FILES=""
+        unset CONFIG_FILES
+    else
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""Warning: No IO directory found in $srcdir/$IO"
+else
+echo "$ac_t""Warning: No IO directory found in $srcdir/$IO" 1>&1
+fi
+    fi
 fi   
 
 
@@ -3007,18 +3023,26 @@ done
 
 # Optionally build the programs and test files
 if test -n "$IO" ; then
-    CONFIG_FILES="io/rtest io/misc.c io/fmisc.f io/fcoll_test.f io/pfcoll_test.f"
-    export CONFIG_FILES
-    ${CONFIG_SHELL-/bin/sh} ./config.status
-    rm -f .pactmp
-    for file in $CONFIG_FILES ; do
-        sed -e '1d' $file > .pactmp
-        /bin/rm -f $file
-        mv .pactmp $file
-    done
-    CONFIG_FILES=""
-    unset CONFIG_FILES
-    chmod a+x io/rtest
+    if test -d "$srcdir/$IO" ; then
+        CONFIG_FILES="io/rtest io/misc.c io/fmisc.f io/fcoll_test.f io/pfcoll_test.f io/large_file.c io/fperf.f"
+        export CONFIG_FILES
+        ${CONFIG_SHELL-/bin/sh} ./config.status
+        rm -f .pactmp
+        for file in $CONFIG_FILES ; do
+            sed -e '1d' $file > .pactmp
+            rm -f $file
+            mv .pactmp $file
+        done
+        CONFIG_FILES=""
+        unset CONFIG_FILES
+        chmod a+x io/rtest
+    else
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""Warning: No IO directory found in $srcdir/$IO"
+else
+echo "$ac_t""Warning: No IO directory found in $srcdir/$IO" 1>&1
+fi
+    fi
 fi
 
 if test -s io/Mfile ; then

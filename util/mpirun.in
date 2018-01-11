@@ -28,6 +28,13 @@ GLOBUSDIR=@GLOBUSDIR@
 CLINKER="@CLINKER@"
 prefix=@MPIR_HOME@
 bindir=@binbuild_dir@
+# Record the value of sbindir.  Some useful utilities, such as 
+# cleanipcs (used for cleaning up shared memory segments and semaphores)
+# are placed in this directory.
+# exec_prefix is set because the sbindir by default is exec_prefix/sbin
+exec_prefix=@exec_prefix@
+sbindir=@sbindir@
+# This value for datadir is the default value setup by configure
 # This value for datadir is the default value setup by configure
 datadir=@builddir@/util/machines
 DEFAULT_MACHINE=@DEFAULT_MACHINE@
@@ -38,6 +45,10 @@ MPIRUN_BIN=$bindir
 MPIRUN_HOME=$MPIRUN_BIN
 MPIVERSION="@MPIVERSION@"
 
+# The command line argument for the head and tail commands.  Some
+# later versions of GNU utilities do not accept the classic commandline
+# option (!!)
+HEADARG="@HEADARG@"
 #set verbose
 #
 # Local routines

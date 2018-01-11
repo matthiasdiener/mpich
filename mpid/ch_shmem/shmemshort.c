@@ -163,7 +163,6 @@ int MPID_SHMEM_Eagerb_recv_short( MPIR_RHANDLE *rhandle, int from_grank,
     int          msglen;
     int          err = MPI_SUCCESS;
     int          to, src, tag, lrank;
-    void         *buffer;
 
     DEBUG_PRINT_MSG("R Starting Eagerb_recv_short");
     /* Extract values from pkt (we need to free it or even better, use
@@ -175,7 +174,18 @@ int MPID_SHMEM_Eagerb_recv_short( MPIR_RHANDLE *rhandle, int from_grank,
     src    = pkt->src;
     tag    = pkt->tag;
     lrank  = pkt->lrank;
-    buffer = pkt->buffer;
+
+    rhandle->s.MPI_TAG	  = tag;
+    rhandle->s.MPI_SOURCE = lrank;
+    rhandle->s.count      = msglen;
+    MPID_CHK_MSGLEN(rhandle,msglen,err);
+    if (msglen > 0) {
+	MEMCPY( rhandle->buf, pkt->buffer, msglen ); 
+    }
+    rhandle->s.MPI_ERROR = err;
+
+    /* We must not free the packet until we have copied the data out of 
+       it */
 #ifdef MPID_PACK_CONTROL
     if (MPID_PACKET_RCVD_GET(src)) {
 	MPID_SendProtoAckWithPacket(to, src, (MPID_PKT_T*)pkt);
@@ -188,14 +198,6 @@ int MPID_SHMEM_Eagerb_recv_short( MPIR_RHANDLE *rhandle, int from_grank,
     MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)pkt );
 #endif
 
-    rhandle->s.MPI_TAG	  = tag;
-    rhandle->s.MPI_SOURCE = lrank;
-    MPID_CHK_MSGLEN(rhandle,msglen,err);
-    if (msglen > 0) {
-	MEMCPY( rhandle->buf, buffer, msglen ); 
-    }
-    rhandle->s.count      = msglen;
-    rhandle->s.MPI_ERROR = err;
     if (rhandle->finish) {
 	(rhandle->finish)( rhandle );
     }
@@ -257,17 +259,6 @@ int MPID_SHMEM_Eagerb_save_short( MPIR_RHANDLE *rhandle, int from,
     tag = pkt->tag;
     lrank = pkt->lrank;
 
-#ifdef MPID_PACK_CONTROL
-    if (MPID_PACKET_RCVD_GET(src)) {
-	MPID_SendProtoAckWithPacket(to, src, (MPID_PKT_T*)pkt);
-    }
-    else {
-	MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)pkt );
-    }
-    MPID_PACKET_ADD_RCVD(to, src);
-#else     
-    MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)pkt );
-#endif
     rhandle->s.MPI_TAG	  = tag;
     rhandle->s.MPI_SOURCE = lrank;
     rhandle->s.MPI_ERROR  = 0;
@@ -284,6 +275,20 @@ int MPID_SHMEM_Eagerb_save_short( MPIR_RHANDLE *rhandle, int from,
 	}
 	MEMCPY( rhandle->start, buffer, len );
     }
+
+    /* Don't free the packet until we have copied the data out of it */
+#ifdef MPID_PACK_CONTROL
+    if (MPID_PACKET_RCVD_GET(src)) {
+	MPID_SendProtoAckWithPacket(to, src, (MPID_PKT_T*)pkt);
+    }
+    else {
+	MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)pkt );
+    }
+    MPID_PACKET_ADD_RCVD(to, src);
+#else     
+    MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)pkt );
+#endif
+
     rhandle->push = MPID_SHMEM_Eagerb_unxrecv_start_short;
     return 0;
 }

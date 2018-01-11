@@ -99,6 +99,6 @@ int MPI_Init_thread(int *argc, char ***argv, int required, int *provided )
        pointer to an array of pointers).  Rather than use different bindings
        depending on whether g++ is used, we just use the equivalent char *** 
      */
-    *provided = MPI_THREAD_SINGLE;
+    *provided = MPI_THREAD_FUNNELED;
     return MPIR_Init(argc,(char ***)argv);
 }

@@ -2,7 +2,10 @@
 #include "p4_sys.h"
 
 extern int errno;
+#ifndef HAVE_STRERROR
 extern char *sys_errlist[];
+#define strerror(n) sys_errlist[n]
+#endif
 
 VOID reaper();
 
@@ -32,7 +35,7 @@ char **argv;
     while (!done)
     {
 	fromlen = sizeof(from);
-	connection_fd = accept(listen_fd, &from, &fromlen);
+	connection_fd = accept(listen_fd, (struct sockaddr *)&from, &fromlen);
 	if (connection_fd == -1)
 	{
 	    if (errno == EINTR)

@@ -27,12 +27,11 @@ static int dest = 0;
 static int verbose = 0;
 
 #define MAX_TYPES 12
+static MPI_Datatype BasicTypes[MAX_TYPES];
 #if defined(HAVE_LONG_DOUBLE) && (!defined HAS_XDR)
 static int ntypes = 12;
-static MPI_Datatype BasicTypes[12];
 #else
 static int ntypes = 11;
-static MPI_Datatype BasicTypes[11];
 #endif
 
 static int maxbufferlen = 10000;

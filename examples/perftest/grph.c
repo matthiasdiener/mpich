@@ -77,8 +77,8 @@ void PrintGraphHelp( void )
 {
 fprintf( stderr, "\n\
 Output\n\
-  -cit         Generate data for CIt (default)\n\
-  -gnuplot     Generate data for GNUPLOT\n\
+  -cit         Generate data for CIt\n\
+  -gnuplot     Generate data for GNUPLOT (default)\n\
   -gnuploteps  Generate data for GNUPLOT in Encapsulated Postscript\n\
   -gnuplotps   Generate data for GNUPLOT in Postscript\n\
   -givedy      Give the range of data measurements\n\
@@ -566,7 +566,8 @@ GraphData SetupGraph( int *argc, char *argv[] )
 
     filename[0] = 0;
     /* Set default.  The gnuplot isn't as nice (separate file for data) */
-    isgnu = 0;
+    /* But gnuplot is everywhere and C.It is available essentially nowhere */
+    isgnu = 1;
 #ifdef FOO
 #if GRAPHICS_PGM == gnuplot
     isgnu = 1;

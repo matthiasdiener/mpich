@@ -81,6 +81,10 @@
 
 #if defined(LINUX_PPC)
 #define P4_MACHINE_TYPE "LINUX_PPC"
+/* Otherwise like LINUX */
+#ifndef LINUX
+#define LINUX
+#endif
 #endif
 
 #if defined(NETBSD)
@@ -88,7 +92,16 @@
 #endif
 
 #if defined(FREEBSD)
+#undef P4_MACHINE_TYPE
 #define P4_MACHINE_TYPE "FREEBSD"
+#endif
+
+#if defined(FREEBSD_PPC)
+#define P4_MACHINE_TYPE "FREEBSD_PPC"
+/* Otherwise like FREEBSD */
+#ifndef FREEBSD
+#define FREEBSD
+#endif
 #endif
 
 #if defined(CONVEX)
@@ -106,7 +119,7 @@
 #define ALLIANT
 #endif
 
-/* Rumor has it LINUX support VPRINTF */
+/* Rumor has it LINUX supports VPRINTF */
 #if defined(FX2800)  || defined(FX2800_SWITCH) || defined(FREEBSD) || \
     defined(NETBSD)
 #define VPRINTF
@@ -535,6 +548,10 @@ typedef int MD_lock_t;
 #endif
 
 /* Peter Krauss suggested this change (POSIX ?) */
+/* Unfortunately, this isn't correct.  The number of open files may
+   be different from the size of an fd_set (unfortunate but true), in 
+   part because some systems make the fd_set size static but the number of
+   open files is (somewhat) dynamic */
 #if defined(HP)
 #define		getdtablesize()		sysconf(_SC_OPEN_MAX)
 #endif

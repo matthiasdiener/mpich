@@ -1,7 +1,6 @@
 This is a partial list of the known bugs and problems in MPICH. 
 
-
-Current as of Release 1.2.4
+Current as of Release 1.2.6
 
 General:
 ========
@@ -15,11 +14,7 @@ files, you may need to accept "long long".
 shared-library flags (e.g., -PIC).  Some Fortran 90 compilers may not
 recognize the same flags, and generate an "unrecognized argument" warning.
 
-3. Some C++ compilers, particularly newer compilers under Solaris, may not
-be able to compile the C++ interface code.  Configure with --disable-cxx to
-turn off the C++ interface.
-
-4. Debugger switches to mpirun (e.g., -dbx, -gdb) may require site-specific
+3. Debugger switches to mpirun (e.g., -dbx, -gdb) may require site-specific
 customization.  This is caused by differences in the command line syntax for
 the debuggers; even for a single vendor, the command line syntax for the
 debugger may change from month to month.
@@ -29,17 +24,17 @@ mpirun_dbg.<debuggername>, for example, mpirun_dbg.dbx or mpirun_dbx.gdb .
 You may need to edit these files to fit the behavior of your debugger
 (particularly mpirun_dbg.dbx).
 
-5. MPICH is not thread-safe.  A thread-safe version is in our plans.  More
+4. MPICH is not thread-safe.  A thread-safe version is in our plans.  More
 precisely, MPICH supports the MPI_THREAD_FUNNELED level of thread support.
 This is usually adequate for OpenMP loop-parallelism.
 
-6. The choice of default struct alignment is fixed and may not match your
+5. The choice of default struct alignment is fixed and may not match your
 compiler.  The best fix is to use an MPI_UB when using MPI_Type_struct to
 define the end of the structure.  A subsequent version of MPICH will provide
 more flexibility on structure alignment (this requires changes to the
 implementation of MPI_Type_struct).
 
-7. Shared libraries for MPI.  We're still working on this; the lack of a
+6. Shared libraries for MPI.  We're still working on this; the lack of a
 common method for compiling/creating/using them is a burden.  Still, there are
 some steps in this direction; see mpich/util/makesharedlib.  If you can help
 us add to systems for which we can generate shared libraries, please send mail
@@ -47,7 +42,7 @@ to mpi-bugs@mcs.anl.gov .  The configure switch --enable-sharedlib will build
 shared libraries for a few systems.  We know about libtool, but have decided
 not to use it directly (it is a great source of information).
 
-8. If your Fortran 77 and Fortran90 compilers use different name mappings
+7. If your Fortran 77 and Fortran90 compilers use different name mappings
 (e.g., one uses a single trailing underscore and the other uses two), you
 won't be able to use one of them.  Instead, you'll need to build two separate
 MPICH versions, one for each name mapping.  We hoped to use weak symbols
@@ -57,18 +52,12 @@ interface.  In general, if your Fortran 77 and Fortran 90 compilers are
 different (e.g., different command-line forms, different libraries), you'll
 need to build separate Fortran versions for each.  
 
-9. Performance of collective routines is inadequate.  Many of these are
-simple functional implementations.  If you would like to contribute better
-versions, please contact us at mpi-bugs@mcs.anl.gov .  One project to
-provide better collective operations is known to us: MagPIe at
-http://www.cs.vu.nl/albatross/ .
-
-10.  When configuring with the -f95nag switch or the -fc=f95 switch, the 
+8.  When configuring with the -f95nag switch or the -fc=f95 switch, the 
 variable F77 is assigned the value of f95 and is substituted in the mpif77 
 script.  Thus, the mpif77 script is used to run f95 programs.  This can be
 very misleading.
 
-11. Systems with a Unix System V heritage may show performance problems when
+9. Systems with a Unix System V heritage may show performance problems when
 using the ch_p4 device.  This is due to the P4 code working around limitations
 in the SysV/R2 interface.  Later versions don't have the limitation that P4 is
 catering to.  We have added some code to bypass this old code (the P4
@@ -77,20 +66,20 @@ to use with the MPICH configure is -p4_opts=--enable-nonblockread .  We have
 *not* tested this option much yet, and if something goes wrong, you may see
 error messages from MPICH/P4 about "Unexpected EOF on socket".  
 
-12. Error reporting does not always go to the correct error handler.  In some
+10. Error reporting does not always go to the correct error handler.  In some
 cases, MPICH looses track of which communicator's error handler should be
 called.  In that case, it uses the error handler on MPI_COMM_WORLD.
 
-13. The Fortran 90 module build can fail on systems (like SunOS 4.x) whose
+11. The Fortran 90 module build can fail on systems (like SunOS 4.x) whose
 ar commands support only short (e.g., 15 character) file names.  We do not
 plan to fix this, since all new operating systems support longer names.
 
-14. On Cray PVP (XMP,YMP,C90) and Cray T3D, some operations with character
+12. On Cray PVP (XMP,YMP,C90) and Cray T3D, some operations with character
 data are not supported from Fortran.  This causes examples/test/pt2pt/structf
 to fail.  The 1.0.12 and all subsequent releases contains code from
 Laurie Costella of CRAY that should fix some of the problems.
 
-15. Fortran LOGICAL data is not handled correctly on some HETEROGENEOUS
+13. Fortran LOGICAL data is not handled correctly on some HETEROGENEOUS
 systems (basically, there is no XDR type for Fortran LOGICAL, and the current
 code doesn't convert to/from a standard representation).
 
@@ -250,7 +239,7 @@ MPICH installation manual.
 3. Viewing the manuals with Pageview (Solaris).  pageview has trouble with the
 Postcript files for the installation and user guides.  To work around this,
 choose the option, "Ignore PostScript Structuring Comments", under
-"Properties", in pageview. 
+"Properties", in pageview, or just use the PDF versions.
 
 Also, some programs apparently don't do a good job of displaying these files.
 If you are having this problem, you should try ghostscript instead (there is

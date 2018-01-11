@@ -1,6 +1,6 @@
 Summary: Argonne National Laboratory MPI implementation
 Name: mpich
-Version: 1.2.5
+Version: 1.2.6
 Vendor: Scyld Computing Corp.
 Distribution: Scyld Beowulf
 Packager: Rick Niles <niles@scyld.com>
@@ -242,6 +242,8 @@ fi
 /usr/man/man4/*
 
 %changelog
+* Mon July 26 2004 William Gropp <gropp@mcs.anl.gov>
+- Update for 1.2.6 version number.
 * Sat Jan  4 2003 William Gropp <gropp@mcs.anl.gov>
 - Update for 1.2.5 version number.
 * Thu Apr 26 2001 Frederick (Rick) A Niles <niles@scyld.com>

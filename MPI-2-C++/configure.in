@@ -554,8 +554,11 @@ if test "$MPI_IMP" = "mpich"; then
     ARCH=$OLD_ARCH
 
     # Look for the actual PROGRAMS; don't use the versions!
-    if test -x $MPICH_BIN/mpiCC ; then
-        # MPICH 1.2.0 and later
+    if test -x $MPICH_BIN/mpicxx ; then
+        # MPICH 1.2.5 and later; MPICH2
+        MPI_CXX=$MPICH_BIN/mpicxx
+    elif test -x $MPICH_BIN/mpiCC ; then
+        # MPICH 1.2.0 to 1.2.4
         MPI_CXX=$MPICH_BIN/mpiCC
     else
 	MPI_CXX=mpiCC
@@ -898,7 +901,10 @@ if test "$MPI_IMP" = "hp"; then
 	fi
 
         AC_MSG_CHECKING([for mpiCC compiler])
-        if test -x $MPI_ROOT/bin/mpiCC; then
+        if test -x $MPI_ROOT/bin/mpicxx; then
+                CXX="$MPI_ROOT/bin/mpicxx"
+                AC_MSG_RESULT([$CXX])
+        elif test -x $MPI_ROOT/bin/mpiCC; then
                 CXX="$MPI_ROOT/bin/mpiCC"
                 AC_MSG_RESULT([$CXX])
         else
@@ -1125,7 +1131,11 @@ AC_SUBST(BALKY_LDFLAGS)
 # (if necessary)
 #
 
-if test "$MPI_LIBS" != ""; then
+#
+# This test should be skipped if we're within an MPI build (because the
+# library may not have been built when we do this configure).
+# 
+if test "$MPI_LIBS" != "" -a "$USING_MPICH" != 1 ; then
     LSC_CHECK_LMPI
 fi
 

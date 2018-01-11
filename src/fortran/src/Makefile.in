@@ -2,10 +2,13 @@ SHELL        = @SHELL@
 CC           = @CC@
 COPTIONS     = @COPTIONS@
 CLINKER      = $(CC)
+OPTFLAGS     = @OPTFLAGS@
+OPTFLAGSF    = @OPTFLAGSF@
 F77          = @F77@
 FLINKER      = $(F77)
 FOPTIONS     = @FOPTIONS@
 AR           = @AR@
+RANLIB       = @RANLIB@
 @SET_MAKE@
 @VPATH@
 srcdir     = @srcdir@
@@ -22,8 +25,8 @@ CFLAGS    = @CFLAGS@
 FFLAGS    = @FFLAGS@
 LDFLAGS   = @LDFLAGS@
 LIBS      = @LIBS@
-C_COMPILE = ${CC} ${DEFS} ${INCLUDES} ${CPPFLAGS} ${CFLAGS} ${COPTIONS}
-F77_COMPILE = ${F77} ${FFLAGS} ${FINCLUDES} ${FOPTIONS}
+C_COMPILE = ${CC} ${DEFS} ${INCLUDES} ${CPPFLAGS} ${CFLAGS} ${COPTIONS} ${OPTFLAGS}
+F77_COMPILE = ${F77} ${FFLAGS} ${FINCLUDES} ${FOPTIONS} ${OPTFLAGSF}
 C_LINK    = ${CLINKER} ${CFLAGS} ${LDFLAGS}
 F77_LINK  = ${FLINKER} ${FFLAGS} ${LDFLAGS}
 
@@ -146,12 +149,15 @@ SOURCES = ${MPI1_SOURCES} ${MPI2_SOURCES} ${MPIINIT_SOURCES}
 
 ${libbuild_dir}/lib${FLIBNAME}.a: ${OBJECTS} ${MPIINIT_OBJECTS}
 	${AR} cr $@ $?
+	${RANLIB} $@
 
 ${libbuild_dir}/lib${FLIBNAME}fsup.a: ${MPIINIT_OBJECTS}
 	${AR} cr $@ $?
+	${RANLIB} $@
 
 ${libbuild_dir}/lib${FWRAPNAME}.a: ${OBJECTS}
 	${AR} cr $@ $?
+	${RANLIB} $@
 
 # Convert foo.po to _foo.o, then archive all at once
 ${libbuild_dir}/libp${FLIBNAME}.a: ${PMPI_OBJECTS}
@@ -163,6 +169,7 @@ ${libbuild_dir}/libp${FLIBNAME}.a: ${PMPI_OBJECTS}
 	done
 	@cd .tmp && ${AR} cr $@ *.o && rm -f *.o
 	-@rmdir .tmp
+	${RANLIB} $@
 
 PROGRAM_SOURCES = 
 ALL_SOURCES = ${PROGRAM_SOURCES} ${SOURCES} 

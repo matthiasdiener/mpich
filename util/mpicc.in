@@ -210,12 +210,12 @@ for arg in "$@" ; do
 	CC=`echo A$arg | sed -e 's/A-cc=//g'`
 	CLINKER="$CC"
 	;;
-	-compile_info)
+	-compile_info|-compile-info)
 	show_compile=1
 	DoLink=0
 	Show=echo
 	;;
-	-link_info)
+	-link_info|-link-info)
 	show_link=1
 	Show=echo
 	;;
@@ -251,8 +251,8 @@ for arg in "$@" ; do
         echo "                 this compiler."
 	echo "    -show      - Show the commands that would be used without"
 	echo "                 runnning them"
-	echo "    -compile_info - Show how to compile a program"
-	echo "    -link_info - Show how to link a program"
+	echo "    -compile-info - Show how to compile a program"
+	echo "    -link-info - Show how to link a program"
 	echo "    -help      - Give this help"
 	echo "    -echo      - Show exactly what this program is doing."
 	echo "                 This option should normally not be used."
@@ -394,7 +394,10 @@ if [ $DoLink = 1 -o $show_link = 1 ] ; then
     # used in some of the C/Fortran routines.  For Fortran subroutines,
     # we need to add the Fortran routines in a separate library 
     # ahead of the C implementation.
-    $Show $CLINKER $USER_CFLAGS $LDFLAGS $ROMIO_LFLAGS $clibpath $LIB_PATH $linkobjs $MPILOG $linkargs $mpilibs $BASE_LIB_LIST $F77_IN_C_LIBS
+    #
+    # MPILOG is after linkargs incase some library in linkargs uses MPI
+    # calls.  
+    $Show $CLINKER $USER_CFLAGS $LDFLAGS $ROMIO_LFLAGS $clibpath $LIB_PATH $linkobjs $linkargs $MPILOG $mpilibs $BASE_LIB_LIST $F77_IN_C_LIBS
     status=$?
 fi
 exit $status

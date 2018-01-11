@@ -1,5 +1,5 @@
 /*
- *  $Id: intra_fns_new.c,v 1.31 2004/03/15 01:00:55 thakur Exp $
+ *  $Id: intra_fns_new.c,v 1.34 2004/07/07 18:21:16 thakur Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -399,7 +399,7 @@ static int intra_Bcast (
   /* Lock for collective operation */
   MPID_THREAD_LOCK(comm->ADIctx,comm);
 
-  if ((nbytes < MPIR_BCAST_SHORT_MSG) || (size <= MPIR_BCAST_MIN_PROCS)) {
+  if ((nbytes < MPIR_BCAST_SHORT_MSG) || (size < MPIR_BCAST_MIN_PROCS)) {
 
       /* Use short message algorithm, namely, binomial tree */
 
@@ -3022,8 +3022,7 @@ static int intra_Alltoall(
               src = (rank - i + size) % size;
               dst = (rank + i) % size;
           }
-          src = (rank - i + size) % size;
-          dst = (rank + i) % size;
+
           mpi_errno = MPI_Sendrecv(((char *)sendbuf +
                                     dst*sendcount*sendtype_extent), 
                                    sendcount, sendtype->self, dst,
@@ -4889,7 +4888,7 @@ static int intra_Reduce_scatter (
             
             /* calculate recvtype */
             blklens[0] = blklens[1] = 0;
-            for (j=0; j<dst_tree_root; j++)
+            for (j=0; j<dst_tree_root && j<size; j++)
                 blklens[0] += recvcnts[j];
             for (j=dst_tree_root+mask; j<size; j++)
                 blklens[1] += recvcnts[j];

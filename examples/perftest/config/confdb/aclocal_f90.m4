@@ -42,9 +42,18 @@ ifelse(NEED_POP,yes,[
 undefine([NEED_POP])
 AC_LANG_RESTORE])
 ])
+dnl/*D
+dnl PAC_F90_MODULE_EXT - Determine the filename extension of F90 module
 dnl
+dnl Synopsis:
 dnl PAC_F90_MODULE_EXT(action if found,action if not found)
-dnl
+dnl 
+dnl Variables set include:
+dnl +  pac_cv_f90_module_ext - extension for created modules
+dnl -  pac_cv_f90_module_case - case of name for created module (where the
+dnl      module name in the source file is lowercase).  One
+dnl      of unknown, lower, upper
+dnl D*/
 AC_DEFUN(PAC_F90_MODULE_EXT,
 [AC_CACHE_CHECK([for Fortran 90 module extension],
 pac_cv_f90_module_ext,[
@@ -60,21 +69,41 @@ cat >conftest.$ac_f90ext <<EOF
 EOF
 if AC_TRY_EVAL(ac_f90compile) ; then
    dnl Look for module name
-   pac_MOD=`ls conftest.* 2>&1 | grep -v conftest.$ac_f90ext | grep -v conftest.o`
-   pac_MOD=`echo $pac_MOD | sed -e 's/conftest\.//g'`
-   pac_cv_f90_module_case="lower"
-   if test "X$pac_MOD" = "X" ; then
-	pac_MOD=`ls CONFTEST* 2>&1 | grep -v CONFTEST.f | grep -v CONFTEST.o`
-        pac_MOD=`echo $pac_MOD | sed -e 's/CONFTEST\.//g'`
-	if test -n "$pac_MOD" ; then
-	    testname="CONFTEST"
-	    pac_cv_f90_module_case="upper"
-	fi
-    fi
-    if test -z "$pac_MOD" ; then 
-	pac_cv_f90_module_ext="unknown"
-    else
-	pac_cv_f90_module_ext=$pac_MOD
+   dnl First, try to find known names.  This avoids confusion caused by
+   dnl additional files (like <name>.stb created by some versions of pgf90)
+   for name in conftest CONFTEST ; do
+       for ext in mod MOD ; do
+           if test -s $name.$ext ; then
+               if test $name = conftest ; then
+                   pac_cv_f90_module_case=lower
+               else
+                   pac_cv_f90_module_case=upper
+               fi
+               pac_cv_f90_module_ext=$ext
+               pac_MOD=$ext
+               break
+           fi
+       done
+       if test -n "$pac_cv_f90_module_ext" ; then break ; fi
+   done
+   if test -z "$pac_MOD" ; then
+		
+       pac_MOD=`ls conftest.* 2>&1 | grep -v conftest.$ac_f90ext | grep -v conftest.o`
+       pac_MOD=`echo $pac_MOD | sed -e 's/conftest\.//g'`
+       pac_cv_f90_module_case="lower"
+       if test "X$pac_MOD" = "X" ; then
+	   pac_MOD=`ls CONFTEST* 2>&1 | grep -v CONFTEST.f | grep -v CONFTEST.o`
+           pac_MOD=`echo $pac_MOD | sed -e 's/CONFTEST\.//g'`
+	   if test -n "$pac_MOD" ; then
+	       testname="CONFTEST"
+	       pac_cv_f90_module_case="upper"
+	   fi
+       fi
+       if test -z "$pac_MOD" ; then 
+	   pac_cv_f90_module_ext="unknown"
+       else
+	   pac_cv_f90_module_ext=$pac_MOD
+       fi
     fi
 else
     echo "configure: failed program was:" >&AC_FD_CC
@@ -96,7 +125,9 @@ else
 fi
 ])
 dnl
-dnl PAC_F90_MODULE_INCFLAG
+dnl PAC_F90_MODULE_INCFLAG - Determine the compiler flags for specifying 
+dnl directories that contain compiled Fortran 90 modules
+dnl
 AC_DEFUN(PAC_F90_MODULE_INCFLAG,[
 AC_CACHE_CHECK([for Fortran 90 module include flag],
 pac_cv_f90_module_incflag,[
@@ -138,9 +169,9 @@ else
 fi
 rm -f conftest.$ac_f90ext
 cat >conftest.$ac_f90ext <<EOF
-    program main
-    use conftest
-    end
+       program main
+       use conftest
+       end
 EOF
 pac_cv_f90_module_incflag="unknown"
 if ${F90-f90} -c $F90FLAGS -Iconftestdir conftest.$ac_f90ext 1>&AC_FD_CC 2>&1 && \

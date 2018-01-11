@@ -11,7 +11,7 @@ C
 C
       call MPI_Comm_size( MPI_COMM_WORLD, size, ierr )
       if (size .lt. 2) then
-         print *, 'Must have exactly at least two processes'
+         print *, 'Must have at least two processes'
          call MPI_Abort( MPI_COMM_WORLD, 1, ierr )
       endif
       call MPI_Comm_rank( MPI_COMM_WORLD, rank, ierr )

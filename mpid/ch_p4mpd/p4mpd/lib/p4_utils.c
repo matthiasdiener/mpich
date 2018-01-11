@@ -1077,7 +1077,7 @@ int get_execer_port( char *master_hostname)
 
     return(port);
 }
-void clean_execer_port( void )
+void p4_clean_execer_port( void )
 {
     char job_filename[64];
     if (execer_starting_remotes  &&  execer_mynodenum == 0)
@@ -1091,7 +1091,7 @@ void clean_execer_port( void )
 void put_execer_port( int port )
 {
 }
-void clean_execer_port( void )
+void p4_clean_execer_port( void )
 {
 }
 #endif

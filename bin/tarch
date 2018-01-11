@@ -70,13 +70,19 @@ for LARCH in $ARCHLIST ; do
 	IRIX64|IRIX) FARCH=$LARCH ; break ;;
  
         Linux)  
-	    # Pick between i86 and alpha LINUX
+	    # Pick between i86, alpha, and PowerPC LINUX
             LINUXARCH=`$UNAME -m`
-            if [ $LINUXARCH = "alpha" ] ; then
-                FARCH=LINUX_ALPHA ; 
-            else
-                FARCH=LINUX ; 
-            fi
+	    case $LINUXARCH in 
+		*alpha*)
+		FARCH=LINUX_ALPHA ; break ;;
+		*Power*|*power*)
+		FARCH=LINUX_PPC ; break ;;
+		*86*)
+		FARCH=LINUX ; break ;;
+		*)
+		# Hope for the best
+		FARCH=LINUX ; break ;;
+	    esac
             break ;;
 	i586|i486|i686|i86pc)
 	    GARCH=$LARCH 
@@ -144,7 +150,8 @@ for LARCH in $ARCHLIST ; do
             fi
         break;;
 	Darwin|Macintosh) 
-            FARCH=freebsd ; break ;;
+	    # We must distinquish the processor architecture
+            FARCH=freebsd_ppc ; break ;;
    esac
    LLARCH=$LARCH
 done

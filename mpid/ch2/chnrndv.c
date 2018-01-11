@@ -346,6 +346,11 @@ MPIR_RHANDLE *rhandle;
 {
 
 #if !defined(MPID_RNDV_SELF)
+    /* Parry Husbands suggests performing this only if
+	rhandle->from < MPID_MyWorldRank
+       to help head-to-head communication (this causes the operations
+       to become ordered, which helps some tests/apps.  The while loop
+       below may be sufficient instead */
     MPID_DeviceCheck( MPID_NOTBLOCKING ); 
 #endif
 
@@ -365,6 +370,11 @@ MPIR_RHANDLE *rhandle;
     rhandle->is_complete = 1;
     if (rhandle->finish) 
 	(rhandle->finish)( rhandle );
+
+#if !defined(MPID_RNDV_SELF)
+    /* Try to process some pending sends */
+    MPID_DeviceCheck( MPID_NOTBLOCKING ); 
+#endif
 
     return MPI_SUCCESS;
 }

@@ -491,13 +491,21 @@ for ac_site_file in $CONFIG_SITE; do
   fi
 done
 
+if test "$CONFIGURE_DEBUG_CACHE" = yes ; then 
+    oldopts="$-"
+    clearMinusX=no
+    set -x 
+    if test "$oldopts" != "$-" ; then 
+        clearMinusX=yes
+    fi
+fi 
 if test "X$cache_system" = "X" ; then
     # A default file name, just in case
     cache_system="config.system"
     if test "$cache_file" != "/dev/null" ; then
         # Get the directory for the cache file, if any
 	
-        cache_system=`echo $cache_file | sed -e 's%^\(.*/\)[^/]*%\1/config.system%'`
+                cache_system=`echo $cache_file | sed -e 's%^\(.*/\)[^/]*%\1config.system%'`
 	
         test "x$cache_system" = "x$cache_file" && cache_system="config.system"
 #    else
@@ -506,6 +514,18 @@ if test "X$cache_system" = "X" ; then
 #        enable_cache=no
     fi
 fi
+#
+# Get a test value and flag whether we should remove/replace the 
+# cache_system file (do so unless cache_system_ok is yes)
+cleanargs=`echo "$CC $F77 $CXX $F90 $PATH" | tr '"' ' '`
+# We might want to add CFLAGS and some of the configure parms ()
+if uname -srm >/dev/null 2>&1 ; then
+    cache_system_text="`uname -srm` $cleanargs"
+else
+    cache_system_text="-no-uname- $cleanargs"
+fi
+cache_system_ok=no
+#
 if test -z "$real_enable_cache" ; then
     real_enable_cache=$enable_cache
     if test -z "$real_enable_cache" ; then real_enable_cache="notgiven" ; fi
@@ -514,17 +534,17 @@ if test "X$real_enable_cache" = "Xnotgiven" ; then
     # check for valid cache file
     if test -z "$cache_system" ; then cache_system="config.system" ; fi
     if uname -srm >/dev/null 2>&1 ; then
-		cleanargs=`echo "$CC $F77 $CXX $F90" | tr '"' ' '`
-        testval="`uname -srm` $cleanargs"
-        if test -f "$cache_system" -a -n "$testval" ; then
-	    if test "$testval" = "`cat $cache_system`" ; then
+        if test -f "$cache_system" -a -n "$cache_system_text" ; then
+	    if test "$cache_system_text" = "`cat $cache_system`" ; then
 	        real_enable_cache="yes"
+                cache_system_ok=yes
 	    fi
-        elif test ! -f "$cache_system" -a -n "$testval" ; then
-	    echo "$testval" > $cache_system
+        elif test ! -f "$cache_system" -a -n "$cache_system_text" ; then
 	    # remove the cache file because it may not correspond to our
 	    # system
-	    rm -f $cache_file
+	    if test "$cache_file" != "/dev/null" ; then 
+	        rm -f $cache_file
+	    fi
 	    real_enable_cache="yes"
         fi
     fi
@@ -535,17 +555,50 @@ fi
 if test "X$real_enable_cache" = "Xyes" ; then
   if test -r "$cache_file" ; then
     echo "loading cache $cache_file"
+    if test -w "$cache_file" ; then
+        # Clean the cache file (ergh)
+	
+    rm -f confcache
+    sed -e "s/'\\\\''//g" -e "s/'\\\\/'/" -e "s/\\\\'/'/" \
+		-e "s/'\\\\''//g" $cache_file > confcache
+    if cmp -s $cache_file confcache ; then
+        :
+    else
+        if test -w $cache_file ; then
+	    echo "updating cache $cache_file"
+            cat confcache > $cache_file
+        else
+            echo "not updating unwritable cache $cache_file"
+        fi
+    fi	
+    rm -f confcache
+    if test "$DEBUG_AUTOCONF_CACHE" = "yes" ; then
+        echo "Results of cleaned cache file:"
+	echo "--------------------------------------------------------"
+	cat $cache_file
+	echo "--------------------------------------------------------"
+    fi
+
+    fi
     . $cache_file
   else
-    echo "creating cache $cache_file"
+    echo "Configure in `pwd` creating cache $cache_file"
     > $cache_file
     rm -f $cache_system
-    cleanargs=`echo "$CC $F77 $CXX" | tr '"' ' '`
-    testval="`uname -srm` $cleanargs"
-    echo "$testval" > $cache_system
   fi
 else
   cache_file="/dev/null"
+fi
+#
+# Update the cache_system file if necessary
+if test "$cache_system_ok" != yes ; then
+    if test -n "$cache_system" ; then
+        rm -f $cache_system
+        echo $cache_system_text > $cache_system
+    fi
+fi
+if test "$clearMinusX" = yes ; then
+    set +x
 fi
 
 ac_ext=c
@@ -577,7 +630,7 @@ fi
 # to use /lib/cpp instead of the C compiler (mpcc in this case)
 # (try compile instead?)
 cat > conftest.$ac_ext <<EOF
-#line 581 "configure"
+#line 634 "configure"
 #include "confdefs.h"
 
 #include <mpproto.h>
@@ -586,7 +639,7 @@ int main() {
 int a=0;
 ; return 0; }
 EOF
-if { (eval echo configure:590: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:643: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   pre_req=1
 else
@@ -612,12 +665,12 @@ fi
 for ac_func in gettimeofday
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:616: checking for $ac_func" >&5
+echo "configure:669: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 621 "configure"
+#line 674 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -640,7 +693,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:644: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:697: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else

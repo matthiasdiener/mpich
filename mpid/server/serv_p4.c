@@ -21,6 +21,9 @@
 #define SERVER_CD_NOTIFIER "\0"
 #define SERVER_ENV_NOTIFIER "\1"
 
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
 #include <stdio.h>
 #include <ctype.h>
 #include <pwd.h>
@@ -195,8 +198,8 @@ char token[1024];
 
 void doit                    ( int, int );
 void execute                 ( char *, char **, int,
-					 char *, char *, int, int, 
-					 struct hostent * );
+			       char *, char *, int, int, int,
+			       struct hostent * );
 void get_environment         ( char ***, int * );
 int getline                  ( char *, int );
 void failure                 ( char * );
@@ -210,8 +213,8 @@ char *timestamp              ( void );
 char *save_string            ( char * );
 int handle_remote_conn       ( int, int );
 int handle_local_conn        ( int, int );
-int Process_pgm_commands     ( char *, char *, char *, int,
-					 struct hostent *hp, int );
+int Process_pgm_commands     ( char *, char *, char *, int, int,
+			       struct hostent *hp, int );
 int check_allowed_file       ( char *, char *, char * );
 
 static int connect_to_listener ( struct hostent *, int, int );
@@ -786,7 +789,7 @@ int fd, is_local;
        commands.
      */
     Process_pgm_commands( client_user, server_user, user_home, pw->pw_uid, 
-			  hp, is_local );
+			  pw->pw_gid, hp, is_local );
 }
 
 /*
@@ -808,10 +811,10 @@ int fd, is_local;
  *    variablename=value\n
  *    ...
  */
-int Process_pgm_commands( client_user, server_user, user_home, uid, hp, 
+int Process_pgm_commands( client_user, server_user, user_home, uid, gid, hp, 
 			  is_local )
 char *client_user, *server_user, *user_home;
-int  uid, is_local;
+int  uid, gid, is_local;
 struct hostent *hp;
 {
     char dir[1024], pgm[1024], pgm_args[1024];
@@ -949,6 +952,12 @@ struct hostent *hp;
 
     if (this_uid == 0)
     {
+#if defined(HAVE_SETEGID)
+	if (setegid(gid) != 0) 
+	    failure2("setegid failed: %s", strerror(errno));
+#else
+	failure("No way to set egid!");
+#endif
 #if defined(HAVE_SETEUID) 
 	if (seteuid(uid) != 0)
 	    failure2("seteuid failed: %s", strerror(errno));
@@ -996,17 +1005,17 @@ struct hostent *hp;
 
     execute(cd_notifier ? dir : NULL,
 	    env_notifier ? env : NULL,
-	    n_env, pgm, pgm_args, uid, stdout_port, hp);
+	    n_env, pgm, pgm_args, uid, gid, stdout_port, hp);
 
     return 0;
 }
 
-void execute(dir, env, n_env, pgm, pgm_args, uid, stdout_port, hp)
+void execute(dir, env, n_env, pgm, pgm_args, uid, gid, stdout_port, hp)
 char *dir;
 char **env;
 int n_env;
 char *pgm, *pgm_args;
-int uid, stdout_port;
+int uid, gid, stdout_port;
 struct hostent *hp;
 {
     int p[2];
@@ -1086,6 +1095,12 @@ struct hostent *hp;
 
     if (this_uid == 0)
     {
+#if HAVE_SETRESGID
+	if (setresgid(gid, gid, -1) != 0)
+	    failure2("cannot setresgid: %s", strerror(errno));
+#else
+	failure("No way to set gid!");
+#endif
 #if HAVE_SETRESUID
 	if (setresuid(uid, uid, -1) != 0)
 	    failure2("cannot setresuid: %s", strerror(errno));

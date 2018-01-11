@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: adio.h,v 1.33 2004/03/16 22:53:55 robl Exp $    
+ *   $Id: adio.h,v 1.35 2004/06/07 17:59:57 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -57,7 +57,12 @@
 # define FORTRAN_API
 #endif
 
+/* Include romioconf.h if we haven't already (some include files may
+   need to include romioconf before some system includes) */
+#ifndef ROMIOCONF_H_INCLUDED
 #include "romioconf.h"
+#define ROMIOCONG_H_INCLUDED
+#endif
 
 #include "mpi.h"
 #include <fcntl.h>
@@ -392,7 +397,8 @@ void ADIO_Set_view(ADIO_File fd, ADIO_Offset disp, MPI_Datatype etype,
 int MPIR_Err_return_file( MPI_File file_ptr, const char fcname[], int errcode );
 int MPIR_Err_create_code( int, int, const char [], int, int, const char [], const char [], ... );
 int MPIR_Err_is_fatal(int);
-void MPIR_Err_get_string(int, char *);
+typedef int (* MPIR_Err_get_class_string_func_t)(int error, char *str, int length);
+void MPIR_Err_get_string(int, char *, int, MPIR_Err_get_class_string_func_t );
 void MPIR_Err_print_stack(FILE *, int);
 extern int MPIR_Err_print_stack_flag;
 

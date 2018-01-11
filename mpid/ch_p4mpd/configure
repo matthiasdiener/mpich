@@ -14,6 +14,7 @@
 
 
 
+
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf version 2.13 
 # Copyright (C) 1992, 93, 94, 95, 96 Free Software Foundation, Inc.
@@ -535,9 +536,9 @@ MMAP=0
 for ac_func in mmap
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&1
-echo "configure:539: checking for $ac_func" >&2
+echo "configure:540: checking for $ac_func" >&2
 cat > conftest.$ac_ext <<EOF
-#line 541 "configure"
+#line 542 "configure"
 #include "confdefs.h"
 #include <ctype.h> /* Arbitrary system header to define __stub macros. */
 #ifdef __cplusplus
@@ -558,7 +559,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:562: \"$ac_link\") 1>&2; (eval $ac_link) 2>&2; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:563: \"$ac_link\") 1>&2; (eval $ac_link) 2>&2; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -582,7 +583,7 @@ done
 
 # Check that MMAP works!
 echo $ac_n "checking that shared, anonymous mmap works with -1 filedes""... $ac_c" 1>&1
-echo "configure:586: checking that shared, anonymous mmap works with -1 filedes" >&2
+echo "configure:587: checking that shared, anonymous mmap works with -1 filedes" >&2
 
 
 if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
@@ -616,16 +617,29 @@ return 0;
 }
 
 EOF
-        if test -n "$compile" ; then 
-        eval $compile
+        if test -n "$compile" ; then 	
+	eval $compile
     else
 	eval $ac_compile
 	eval $ac_link
     fi
     if test ! -s conftest ; then
-      echo "Could not build executable program:"
-      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
-      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS 
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
     ac_cv_mmap=0
 
     else
@@ -664,7 +678,7 @@ fi
 # We need to check that semctl is ok.
 # Both of these need to go into aclocal.m4
 echo $ac_n "checking that semget works""... $ac_c" 1>&1
-echo "configure:668: checking that semget works" >&2
+echo "configure:682: checking that semget works" >&2
 ###
 ### Still need to check for SEMUN_UNDEFINED - see mpid/ch_p4/p4/configure.in
 ### 
@@ -696,8 +710,8 @@ semctl(semset_id,0,IPC_RMID,arg); }
 return 0; 
 }
 EOF
-echo "${CC-cc} $CFLAGS -o conftest conftest.c $LIBS" >> config.log
-if ${CC-cc} $CFLAGS -o conftest conftest.c $LIBS >> config.log 2>&1 ; then
+echo "${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS" >> config.log
+if ${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS >> config.log 2>&1 ; then
     if test -x conftest ; then
 	/bin/rm -f conftest.out
 	./conftest > conftest.out
@@ -771,7 +785,7 @@ fi
 
 
 echo $ac_n "checking that signals work correctly""... $ac_c" 1>&1
-echo "configure:775: checking that signals work correctly" >&2
+echo "configure:789: checking that signals work correctly" >&2
 cat >conftest.c <<EOF
 #include <signal.h>
 static int rc = 0, irc = 1, maxcnt=5;
@@ -794,7 +808,7 @@ return rc;
 }
 EOF
 rm -f conftest.out
-if eval ${CC-cc} $CFLAGS -o conftest conftest.c > conftest.out 2>&1 ; then
+if eval ${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS > conftest.out 2>&1 ; then
     if ./conftest ; then
 	echo "$ac_t""yes" 1>&1
     else
@@ -825,17 +839,17 @@ if test -n "$pac_cv_cross_compiling" ; then
     fi
 else
     echo $ac_n "checking whether cross-compiling""... $ac_c" 1>&1
-echo "configure:829: checking whether cross-compiling" >&2
+echo "configure:843: checking whether cross-compiling" >&2
     # If we cannot run a trivial program, we must be cross compiling.
             if test "$cross_compiling" = yes; then
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 835 "configure"
+#line 849 "configure"
 #include "confdefs.h"
 main(){exit(0);}
 EOF
-if { (eval echo configure:839: \"$ac_link\") 1>&2; (eval $ac_link) 2>&2; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:853: \"$ac_link\") 1>&2; (eval $ac_link) 2>&2; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   pac_ok=1
 else
@@ -852,11 +866,11 @@ fi
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 856 "configure"
+#line 870 "configure"
 #include "confdefs.h"
 main(){exit(1);}
 EOF
-if { (eval echo configure:860: \"$ac_link\") 1>&2; (eval $ac_link) 2>&2; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:874: \"$ac_link\") 1>&2; (eval $ac_link) 2>&2; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   pac_ok=0 
 else
@@ -884,7 +898,7 @@ fi
 # Extract the first word of "$program", so it can be a program name with args.
 set dummy $program; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
-echo "configure:888: checking for $ac_word" >&2
+echo "configure:902: checking for $ac_word" >&2
 if eval "test \"`echo '$''{'ac_cv_path_RSHCOMMAND'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&1
 else
@@ -918,7 +932,7 @@ fi
 
         if test -n "$RSHCOMMAND" ; then
 	    echo $ac_n "checking whether $RSHCOMMAND works""... $ac_c" 1>&1
-echo "configure:922: checking whether $RSHCOMMAND works" >&2
+echo "configure:936: checking whether $RSHCOMMAND works" >&2
             output=`$RSHCOMMAND $machine -n true 2>&1`
             if test -n "$output" ; then
 		echo "$ac_t""no" 1>&1
@@ -941,7 +955,7 @@ echo "configure:922: checking whether $RSHCOMMAND works" >&2
     	# Extract the first word of "ssh", so it can be a program name with args.
 set dummy ssh; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
-echo "configure:945: checking for $ac_word" >&2
+echo "configure:959: checking for $ac_word" >&2
 if eval "test \"`echo '$''{'ac_cv_path_RSHCOMMAND'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&1
 else
@@ -975,7 +989,7 @@ fi
 
     	if test -n "$RSHCOMMAND" ; then
     	    echo $ac_n "checking whether $RSHCOMMAND works""... $ac_c" 1>&1
-echo "configure:979: checking whether $RSHCOMMAND works" >&2
+echo "configure:993: checking whether $RSHCOMMAND works" >&2
     	    output=`$RSHCOMMAND -o "StrictHostKeyChecking no" \
     	      -o "BatchMode yes" $machine -n true 2>&1 </dev/null`
     	    if test $? -ne 0 ; then
@@ -997,9 +1011,9 @@ fi
 for ac_func in gettimeofday BSDgettimeofday
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&1
-echo "configure:1001: checking for $ac_func" >&2
+echo "configure:1015: checking for $ac_func" >&2
 cat > conftest.$ac_ext <<EOF
-#line 1003 "configure"
+#line 1017 "configure"
 #include "confdefs.h"
 #include <ctype.h> /* Arbitrary system header to define __stub macros. */
 #ifdef __cplusplus
@@ -1020,7 +1034,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:1024: \"$ac_link\") 1>&2; (eval $ac_link) 2>&2; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1038: \"$ac_link\") 1>&2; (eval $ac_link) 2>&2; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else

@@ -769,7 +769,9 @@ int net_send(int fd, P4VOID *in_buf, int size, int flag)
 	if (n < 0)
 	{
 	    /* See net_read; these are often the same and EAGAIN is POSIX */
-	    if (errno == EAGAIN || errno == EWOULDBLOCK)
+	    /* Solaris sometimes sets errno to 0 even though n is -1 (i.e.,
+	       a bug in Solaris); we treat this as EAGAIN */
+	    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == 0)
 	    {
 /*	        
                 p4_dprintfl( 90, "write net_send in EAGAIN with %d left", 
@@ -835,7 +837,9 @@ int net_send_w(int fd, void *in_buf, int size, int flag)
 	if (n < 0)
 	{
 	    /* See net_read; these are often the same and EAGAIN is POSIX */
-	    if (errno == EAGAIN || errno == EWOULDBLOCK)
+	    /* Solaris sometimes sets errno to 0 even though n is -1 (i.e.,
+	       a bug in Solaris); we treat this as EAGAIN */
+	    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == 0)
 	    {
 		block_counter++;
 		COLLECT_STAT(n_send_eagain++);
@@ -892,7 +896,10 @@ int net_send2( int fd, void *header, int header_len,
 	vbuf[1].iov_len  = len;
 	n = writev( fd, vbuf, 2 );
 	if (n == -1) {
-	    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+	    /* Solaris sometimes sets errno to 0 even though n is -1 (i.e.,
+	       a bug in Solaris); we treat this as EAGAIN */
+	    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR ||
+		errno == 0) {
 		/* Just pretend nothing was written */
 		n = 0;
 	    }

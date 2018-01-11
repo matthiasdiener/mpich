@@ -228,12 +228,12 @@ for arg in "$@" ; do
 	CCC=`echo A$arg | sed -e 's/A-CC=//g'`
 	CCLINKER="$CCC"
 	;;
-	-compile_info)
+	-compile_info|-compile-info)
 	show_compile=1
 	DoLink=0
 	Show=echo
 	;;
-	-link_info)
+	-link_info|-link-info)
 	show_link=1
 	Show=echo
 	;;
@@ -263,8 +263,8 @@ for arg in "$@" ; do
         echo "                 this compiler."
 	echo "    -show      - Show the commands that would be used without"
 	echo "                 runnning them"
-	echo "    -compile_info - Show how to compile a program"
-	echo "    -link_info - Show how to link a program"
+	echo "    -compile-info - Show how to compile a program"
+	echo "    -link-info - Show how to link a program"
 	echo "    -help      - Give this help"
 	echo "    -echo      - Show exactly what this program is doing."
 	echo "                 This option should normally not be used."

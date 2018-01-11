@@ -81,19 +81,19 @@ C 99      format(i10)
 
       do idx = 1, 2
 
-          ierr = MPE_Log_event( event1a, 0, "start broadcast" )
+          ierr = MPE_Log_event( event1a, 0, '' )
           call MPI_BCAST(n,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-          ierr = MPE_Log_event( event1b, 0, "end broadcast" )
+          ierr = MPE_Log_event( event1b, 0, '' )
 
 c                                 check for quit signal
 C         if ( n .le. 0 ) goto 30
 
-          ierr = MPE_Log_event( event2a, 0, "start barrier" )
+          ierr = MPE_Log_event( event2a, 0, '' )
           call MPI_Barrier( MPI_COMM_WORLD, ierr )
-          ierr = MPE_Log_event( event2b, 0, "end barrier" )
+          ierr = MPE_Log_event( event2b, 0, '' )
 
 c                                 calculate the interval size
-          ierr = MPE_Log_event( event3a, 0, "start compute" )
+          ierr = MPE_Log_event( event3a, 0, '' )
           h = 1.0d0/n
 
           sum  = 0.0d0
@@ -102,13 +102,13 @@ c                                 calculate the interval size
               sum = sum + f(x)
  20       continue
           mypi = h * sum
-          ierr = MPE_Log_event( event3b, 0, "end compute" )
+          ierr = MPE_Log_event( event3b, 0, '' )
 
 c                                 collect all the partial sums
-          ierr = MPE_Log_event( event4a, 0, "Start Reduce" )
+          ierr = MPE_Log_event( event4a, 0, '' )
           call MPI_REDUCE(mypi,pi,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,
      $                    MPI_COMM_WORLD,ierr)
-          ierr = MPE_Log_event( event4b, 0, "End Reduce" )
+          ierr = MPE_Log_event( event4b, 0, '' )
 
 c                                 node 0 prints the answer.
           if ( myid .eq. 0 ) then

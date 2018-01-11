@@ -1,8 +1,10 @@
-.TH MPI_File_iread_at 3 "10/24/2002" " " "MPI-2"
+.TH MPI_File_iread_at 3 "9/5/2003" " " "MPI-2"
 .SH NAME
 MPI_File_iread_at \-  Nonblocking read using explict offset 
 .SH SYNOPSIS
 .nf
+#ifdef HAVE_MPI_GREQUEST
+#include "mpiu_greq.h"
 int MPI_File_iread_at(MPI_File fh, MPI_Offset offset, void *buf,
                       int count, MPI_Datatype datatype, 
                       MPIO_Request *request)

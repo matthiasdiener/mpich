@@ -163,6 +163,8 @@ int main( int argc, char *argv[] )
 	case 'l':
 	    strncpy( c_listener_port, optarg, MAXLINE );	break;
 	case 'b':
+	    /* Note that mpd2 uses -d for this, but -d is alread
+	       used in mpd1 for debug.  Sigh. */
             strncpy( c_backgrounded, "yes", MAXLINE );          break;
 	case 'e':
             strncpy( c_no_execute, "yes", MAXLINE );            break;

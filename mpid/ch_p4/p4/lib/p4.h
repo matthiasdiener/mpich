@@ -27,6 +27,10 @@
 #include <signal.h>
 #include <errno.h>
 #include <sys/time.h>
+#if defined(HAVE_TIME_H) && defined(TIME_WITH_SYS_TIME)
+/* Include for some timer structures and for the time function call */
+#include <time.h>
+#endif
 #include <pwd.h>
 #include <fcntl.h>
 

@@ -26,7 +26,7 @@ RANLIB      = @RANLIB@
 
 ### Name of package and version (will be set with automake eventually) 
 PACKAGE = mpich
-VERSION = 1.2.4
+VERSION = 1.2.6
 ### End of name of package and version
 
 SHELL = /bin/sh
@@ -635,17 +635,6 @@ ID: frc
 frc:
 
 
-## LOCAL START
-
-maintainer: msgcat configure
-msgcat: src/env/mpierrstrings.h
-src/env/mpierrstrings.h: include/mpi_error.h \
-	/home/MPI/maint/errmsgs/BaseErrMsgs.msg
-	/home/MPI/maint/errmsgs/GetMsgCat
-configure: configure.in aclocal.m4
-	/home/MPI/maint/makeconfigs
-
-## LOCAL END
 
 INSTALLDIR = /usr/local/mpi
 #

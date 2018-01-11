@@ -6,7 +6,7 @@
 </HEAD>
 <BODY BGCOLOR="FFFFFF">
 <A NAME="MPE"><H1>MPE</H1></A>
-MultiProcessing Environment 
+MultiProcessing Environment 
 <H2>Description</H2>
 <P>
 The Multi-Processing Environment (MPE) attempts to provide programmers with
@@ -29,13 +29,13 @@ followed by another line indicating that the call has completed.
 Most send and receive routines also indicate the values of count, tag,
 and partner (destination for sends, source for receives).  Output 
 is to standard output.
-
 <BR></TD></TR>
+<P>
 <TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>Animation Library </B></TD><TD VALIGN=TOP>
 This is a simple form of real-time program animation and requires X 
 window routines.  
-
 <BR></TD></TR>
+<P>
 <TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>Logging Library </B></TD><TD VALIGN=TOP>
 This is the most useful and widely used profiling libraries in MPE. 
 They form the basis to generate log files from user MPI programs.
@@ -48,22 +48,22 @@ which can be converted from CLOG after CLOG file has been generated
 (preferred approach), or can be generated directly when MPI program 
 is executed (through setting the environmental variable MPE_LOG_FORMAT
 to SLOG).
-
+<BR></TD></TR></TABLE>
+<P>
 The set of utility programs in MPE includes log format converter (e.g.
 clog2slog), logfile print (e.g. slog_print) and logfile viewer wrappers,
 logviewer, which selects the correct graphical tool to display the logfile
 based on the logfile's file extension.
-
+<P>
 Currently, MPE's graphical tools includes 3 display programs, upshot for
 ALOG, jumpshot-2 for CLOG and jumpshot-3 for SLOG.  The logviewer script
 eliminates the need for user to remember the relationship of logfile formats
 to display programs.
-
-
-
-Configuration and Installation:
-
-<BR></TD></TR></TABLE>
+<P>
+<P>
+<P>
+<H2>Configuration and Installation</H2>
+<P>
 MPE can be configured and installed as an extension to most MPI standard
 compliant MPI implementations, e.g. MPICH, LAM, SGI's MPI, HP-UX's MPI
 and IBM's MPI.  It has been integrated seamlessly into MPICH distribution,
@@ -157,8 +157,8 @@ determines the format of the logfile generated from the
 execution of application linked with MPE logging libraries.
 The allowed value for <TT>MPE_LOG_FORMAT</TT> are CLOG, SLOG and
 ALOG. When MPE_LOG_FORMAT is NOT set, CLOG is assumed.
-
 <BR></TD></TR>
+<P>
 <TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>TMPDIR </B></TD><TD VALIGN=TOP>
 specifies a directory to be used as temporary storage for each
 process.  By default, when <TT>TMPDIR</TT> is NOT set, /tmp will be used.
@@ -168,24 +168,26 @@ hold the temporary logfile which will be deleted if the
 merged logfile can be created successfully.  In order to
 minimize the overhead of the logging to the MPI program, it is
 highly recommended user to use a *local* file system for <TT>TMPDIR</TT>.
-
+<BR></TD></TR></TABLE>
+<P>
 Note : The final merged logfile will be written back to the
 file system where process 0 is.
-
-
-
-Utility Programs:
-
+<P>
+<P>
+<P>
+<H2>Utility Programs</H2>
+<P>
 In bin/, user can find several useful utility programs when manipulating
 logfiles.  These includes log format converters, e.g. clog2slog, log format
 print programs, e.g. slog_print, and a script to launch display program,
 logviewer.
-
-
-
-Log Format Converters:
-
-+   clog2slog - 
+<P>
+<P>
+<P>
+<H2>Log Format Converters</H2>
+<P>
+<TABLE BORDER=0>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>clog2slog </B></TD><TD VALIGN=TOP>
 a CLOG to SLOG logfile converter.  Since the automatic generation
 of SLOG file through setting of environmental variable
 <TT>MPE_LOG_FORMAT</TT> to SLOG may NOT work for some non well-behaved
@@ -197,32 +199,32 @@ to be displayed by Jumpshot-3's time line window.  For non
 well behaved MPI program, one may need to increase the frame
 size from the default 64KB to a bigger value.  For more
 information about the converter, do "clog2slog -h"
-
-<BR></TD></TR></TABLE>
-<DL><DT><B>clog2alog </B> <DD> 
+<BR></TD></TR>
+<P>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>clog2alog </B></TD><TD VALIGN=TOP>
 a CLOG to ALOG logfile converter.  It is not being developed.
 It is provided here for backward compatibility purpose.
-
-
-
-Log Format Print Programs:
-
-+   slog_print -
+<BR></TD></TR></TABLE>
+<P>
+<P>
+<P>
+<H2>Log Format Print Programs</H2>
+<P>
+<TABLE BORDER=0>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>slog_print </B></TD><TD VALIGN=TOP>
 a stdout print program for SLOG file.  It serves to check the
 content of the logfile.  If the SLOG file is too big, it may
 NOT be useful to use slog_print.  Also, when slog is NOT complete,
 slog_print won't work.  So it serves as a simple test to check
 if the SLOG file is generated completely.
-
-</DL>
-</TABLE>
-<DL><DT><B>clog_print </B> <DD> 
+<BR></TD></TR>
+<P>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>clog_print </B></TD><TD VALIGN=TOP>
 stdout print program for CLOG file.
-
-
-
-</DL>
-</TABLE>
+<BR></TD></TR></TABLE>
+<P>
+<P>
+<P>
 <H2>Display Program Selector</H2>
 <P>
 <DL><DT><B>logviewer </B> <DD> 
@@ -231,25 +233,25 @@ extension of logfile.  For instance, if the logfile is foo.slog,
 logviewer will invoke jumpshot-3 to display the logfile.
 Jumpshot-3 resides in share/.  For more information of
 logviewer, do "logviewer -help" to list all available options.
-
-
-
-Additional Information:
-To view a list of configure options, type <TT>./configure--help</TT> in the 
+</DL>
+<P>
+<P>
+<P>
+<H2>Additional Information</H2>
+To view a list of configure options, type <TT>./configure--help</TT> in the
 top-level <TT>mpe</TT> directory.
-
+<P>
 In the Installation Manual, there is a section on MPE which gives
 instructions and examples for each type of installation.
-
+<P>
 The README in the top-level <TT>mpe</TT> directory.
-
+<P>
 In the Users Guide, there is additional information describing the MPE
 routines and the profiling libraries.
-
+<P>
 The man pages included in the distribution has information regarding the MPE
 routines.  The command <TT>mpich/bin/mpiman</TT> is a script that runs <TT>xman</TT> on
 these man pages.
-
-</DL>
+<P>
 <P><B>Location:</B>/home/MPI/mansrc/mpepage<P>
 </BODY></HTML>

@@ -36,7 +36,7 @@ DEFAULT_MACHINE="smp"
 
 # Run configure in the device directory
 rm -f ${top_srcdir}/mpid/ch_shmem/mpich-mpid.h
-( cd mpid/ch_shmem ; export CC ; export usesysv ; \
+( cd mpid/ch_shmem ; export CC ; export CFLAGS ; export usesysv ; \
     $top_srcdir/mpid/ch_shmem/configure $enable_args )
 if [ $? != 0 ] ; then
     echo "Aborting device setup because device configure failed"

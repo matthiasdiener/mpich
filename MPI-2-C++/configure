@@ -1611,8 +1611,11 @@ echo "configure:1525: checking for existing MPICH devices" >&5
     ARCH=$OLD_ARCH
 
     # Look for the actual PROGRAMS; don't use the versions!
-    if test -x $MPICH_BIN/mpiCC ; then
-        # MPICH 1.2.0 and later
+    if test -x $MPICH_BIN/mpicxx ; then
+        # MPICH 1.2.5 and later; MPICH2
+        MPI_CXX=$MPICH_BIN/mpicxx
+    elif test -x $MPICH_BIN/mpiCC ; then
+        # MPICH 1.2.0 to 1.2.4
         MPI_CXX=$MPICH_BIN/mpiCC
     else
 	MPI_CXX=mpiCC
@@ -2079,7 +2082,10 @@ EOF
 
         echo $ac_n "checking for mpiCC compiler""... $ac_c" 1>&6
 echo "configure:2042: checking for mpiCC compiler" >&5
-        if test -x $MPI_ROOT/bin/mpiCC; then
+        if test -x $MPI_ROOT/bin/mpicxx; then
+                CXX="$MPI_ROOT/bin/mpicxx"
+                echo "$ac_t""$CXX" 1>&6
+        elif test -x $MPI_ROOT/bin/mpiCC; then
                 CXX="$MPI_ROOT/bin/mpiCC"
                 echo "$ac_t""$CXX" 1>&6
         else
@@ -2515,7 +2521,7 @@ foo<T>::member(int i)
 }
 
 int
-main(int argc, char *argv)
+main(int argc, char *argv[])
 {
   foo<bar> var1(6);
   foo< foo<bar> > var2(var1);
@@ -2850,7 +2856,7 @@ foo<T>::member(int i)
 }
 
 int
-main(int argc, char *argv)
+main(int argc, char *argv[])
 {
   foo<bar> var1(6);
   foo< foo<bar> > var2(var1);
@@ -2931,7 +2937,7 @@ rm -f conftest.o
 cat > conftest.C <<EOF
 #include <mpi.h>
 int 
-main(int argc, char* argv)
+main(int argc, char* argv[])
 { return 0; }
 EOF
 echo configure:2898: $CXX $CXXFLAGS -c conftest.C >&5
@@ -3112,7 +3118,7 @@ BALKY_LDFLAGS="$EXCPTN_LDFLAGS $EXTRA_LDFLAGS $MPI_LDFLAGS -L$INSTALLDIR/lib $MP
 # (if necessary)
 #
 
-if test "$MPI_LIBS" != ""; then
+if test "$MPI_LIBS" != "" -a "$USING_MPICH" != 1 ; then
     
 #
 # Try to link a simple program, see if we can find libmpi.*
@@ -3178,7 +3184,7 @@ foo<T>::member(int i)
 }
 
 int
-main(int argc, char *argv)
+main(int argc, char *argv[])
 {
   foo<bar> var1(6);
   foo< foo<bar> > var2(var1);
@@ -3399,7 +3405,7 @@ foo<T>::member(int i)
 }
 
 int
-main(int argc, char *argv)
+main(int argc, char *argv[])
 {
   foo<bar> var1(6);
   foo< foo<bar> > var2(var1);
@@ -3861,7 +3867,7 @@ cat > conftest.cc <<EOF
 #include <stdio.h>
 #include <sys/types.h>
 
-int main(int argc, char* argv) {
+int main(int argc, char* argv[]) {
   bool foo = (bool) 0;
   printf("so foo is used and the compiler wont complain: %d", (int) foo);
   return 0;
@@ -3963,7 +3969,7 @@ cat > conftest.C <<EOF
 #endif
 #include "confdefs.h"
 
-int main(int argc, char* argv)
+int main(int argc, char* argv[])
 {
     FILE *f=fopen("conftestval", "w");
     if (!f) return 1;
@@ -4039,7 +4045,7 @@ cat > conftest.C <<EOF
 #endif
 #include "confdefs.h"
 
-int main(int argc, char* argv)
+int main(int argc, char* argv[])
 {
     FILE *f=fopen("conftestval", "w");
     if (!f) return 1;

@@ -1,10 +1,10 @@
-.TH MPIO_Request_f2c 3 "10/24/2002" " " "MPI-2"
+.TH MPIO_Request_f2c 3 "2/12/2004" " " "MPI-2"
 .SH NAME
 MPIO_Request_f2c \-  Translates a Fortran I/O-request handle to  a C I/O-request handle 
 .SH SYNOPSIS
 .nf
-MPIO_Request MPIO_Request_f2c(MPI_Fint request)
-.fi
+#ifdef HAVE_MPI_GREQUEST
+MPIO_Request MPIO_Request_f2c(MPI_Fint request).fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP

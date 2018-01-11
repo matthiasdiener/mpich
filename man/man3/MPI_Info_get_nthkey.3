@@ -1,4 +1,4 @@
-.TH MPI_Info_get_nthkey 3 "11/14/2001" " " "MPI-2"
+.TH MPI_Info_get_nthkey 3 "3/2/2003" " " "MPI-2"
 .SH NAME
 MPI_Info_get_nthkey \-  Returns the nth defined key in info 
 .SH SYNOPSIS
@@ -22,7 +22,10 @@ int MPI_Info_get_nthkey(MPI_Info info, int n, char *key)
 .PD 0
 .TP
 .B keys 
-- key (string)
+- key (string).  The maximum number of characters is 
+.I MPI_MAX_INFO_KEY
+\&.
+
 .PD 1
 
 .SH NOTES FOR FORTRAN

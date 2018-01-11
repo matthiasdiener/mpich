@@ -1149,8 +1149,17 @@ P4VOID zap_remote_p4_processes( void )
     my_id = p4_get_my_id();
 
     dest_pi = get_proc_info(0);
+    /* It was reported that setting the prev_hostname and prev_port 
+       caused the code to fail to kill the remote listeners (it only
+       killed the local slaves).
+       (REQ #9145)
+    */
+    /*
     strcpy(prev_hostname,dest_pi->host_name);
     prev_port = dest_pi->port;
+    */
+    strcpy( prev_hostname,"");
+    prev_port = 0;
     for (i = 0; i < p4_global->num_in_proctable; i++) {
 	dest_id = i;
 	if (dest_id != my_id) {

@@ -50,7 +50,7 @@ int  av_idx = 0;
 
 int  temp_group;
 char temp_attr[BNR_MAXATTRLEN];
-char temp_val[BNR_MAXATTRLEN];
+char temp_val[BNR_MAXVALLEN];
 
 int client_fenced_in = 0;
 int bnr_fence_in_msg_here = 0, bnr_fence_cnt = 0;

@@ -129,6 +129,9 @@ AC_PROG_LN_S
 AC_CHECK_PROGS(AR,ar)
 # Add options to ar
 AR="$AR cr"
+if test -z "$RANLIB" ; then
+    AC_PROG_RANLIB
+fi
 
 dnl Check for program behavior
 PAC_PROG_MAKE_PROGRAM
@@ -149,7 +152,7 @@ EOF
 # SGI and absoft compilers generates module name in upper case!
 testname="conftest"
 modcase="lower"
-if $F90 -c conftest.f > conftest.out 2>&1 ; then
+if $F90 $F90FLAGS -c conftest.f > conftest.out 2>&1 ; then
     MOD=`ls conftest* | grep -v conftest.f | grep -v conftest.o`
     MOD=`echo "$MOD" | sed -e 's/conftest\.//g'`
     if test -z "$MOD" ; then
@@ -207,15 +210,15 @@ cat >conftest1.f <<EOF
 EOF
 F90_WORK_FILES_ARG=""
 F90MODINCSPEC=""
-if $F90 -c -Iconf conftest1.f > conftest.out 2>&1 ; then
+if $F90 $F90FLAGS -c -Iconf conftest1.f > conftest.out 2>&1 ; then
     MODDIRFLAG="-I"
     F90MODINCSPEC="-I<dir>"
     AC_MSG_RESULT(-I)
-elif $F90 -c -Mconf conftest1.f >> conftest.out 2>&1 ; then
+elif $F90 $F90FLAGS -c -Mconf conftest1.f >> conftest.out 2>&1 ; then
     MODDIRFLAG="-M"
     F90MODINCSPEC="-M<dir>"
     AC_MSG_RESULT(-M)
-elif $F90 -c -pconf conftest1.f >> conftest.out 2>&1 ; then
+elif $F90 $F90FLAGS -c -pconf conftest1.f >> conftest.out 2>&1 ; then
     MODDIRFLAG="-p"
     F90MODINCSPEC="-p<dir>"
     AC_MSG_RESULT(-p)
@@ -223,7 +226,7 @@ elif test -s work.pc ; then
      cp work.pc conf/mpimod.pc
      echo "mpimod.pc" > conf/mpimod.pcl
      echo "`pwd`/conf/mpimod.pc" >> conf/mpimod.pcl
-     if $F90 -c -cl,conf/mpimod.pcl conftest1.f >>conftest.out 2>&1 ; then
+     if $F90 $F90FLAGS -c -cl,conf/mpimod.pcl conftest1.f >>conftest.out 2>&1 ; then
          MODDIRFLAG='-cl,mpimod.pcl'
          AC_MSG_RESULT([-cl,filename where filename contains a list of files and directories])
 	 F90_WORK_FILES_ARG="-cl,mpimod.pcl"
@@ -256,7 +259,7 @@ if test $mpif_ok != 1 ; then
         integer (kind=MPI_ADDRESS_KIND) b
         end
 EOF
-    if $F90 -I$MPIINCDIR -c conftest.f > conftest.out 2>&1 ; then
+    if $F90 $F90FLAGS -I$MPIINCDIR -c conftest.f > conftest.out 2>&1 ; then
         AC_MSG_RESULT(yes)
 	F90INC="-I"
     else
@@ -266,6 +269,8 @@ EOF
     rm -f conftest*
 fi
 AC_SUBST(F90INC)
+dnl Make sure that we get the f90 flags, not just the f77 (FFLAGS)
+AC_SUBST(F90FLAGS)
 
 # Check for Fortran suffix
 AC_MSG_CHECKING(that the compiler $F90 accepts .f90 suffix)
@@ -299,9 +304,9 @@ EOF
 pac_cv_prog_f90_and_f77=no
 AC_MSG_CHECKING([whether Fortran 90 is compatible with Fortran 77])
 if AC_TRY_EVAL(ac_f90compile) ; then
-    f77test='$F77 -c conftest1.f'
+    f77test='$F77 $FFLAGS -c conftest1.f'
     if AC_TRY_EVAL(f77test) ; then
-        f90_f77link='$F90 -o conftest conftest.o conftest1.o'
+        f90_f77link='$F90 $F90FLAGS -o conftest conftest.o conftest1.o'
         if AC_TRY_EVAL(f90_f77link) ; then 
 	    pac_cv_prog_f90_and_f77=yes
 	fi

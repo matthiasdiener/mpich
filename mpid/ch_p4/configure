@@ -1281,12 +1281,12 @@ else
 #line 1282 "configure"
 #include "confdefs.h"
 #include <stdio.h>
-main()
+int main()
 {
   FILE *f=fopen("conftestval", "w");
-  if (!f) exit(1);
+  if (!f) return(1);
   fprintf(f, "%d\n", sizeof(int));
-  exit(0);
+  return(0);
 }
 EOF
 if { (eval echo configure:1293: \"$ac_link\") 1>&2; (eval $ac_link) 2>&2; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
@@ -1320,12 +1320,12 @@ else
 #line 1321 "configure"
 #include "confdefs.h"
 #include <stdio.h>
-main()
+int main()
 {
   FILE *f=fopen("conftestval", "w");
-  if (!f) exit(1);
+  if (!f) return(1);
   fprintf(f, "%d\n", sizeof(long));
-  exit(0);
+  return(0);
 }
 EOF
 if { (eval echo configure:1332: \"$ac_link\") 1>&2; (eval $ac_link) 2>&2; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null

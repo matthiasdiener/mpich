@@ -674,7 +674,7 @@ fflush(stdout);
 return 0;
 }
 int main() { func( 1, 2 ); return 0;}],pac_check_compile)
-case $pac_check_compile in 
+case "$pac_check_compile" in 
     0)  pac_cv_header_stdarg_oldstyle="yes"
 	;;
     1)  pac_cv_header_stdarg_oldstyle="may be newstyle"
@@ -702,7 +702,7 @@ fflush(stdout);
 return 0;
 }
 int main() { func( 1, 2 ); return 0;}],pac_check_compile)
-case $pac_check_compile in 
+case "$pac_check_compile" in 
     0)  pac_cv_header_stdarg_works="yes"
 	;;
     1)  pac_cv_header_stdarg_works="yes with warnings"
@@ -1066,6 +1066,11 @@ dnl.vb
 dnl -Wunused -Wshadow -Wmissing-declarations -Wno-long-long -Wpointer-arith
 dnl.ve
 dnl 
+dnl If the value 'noopt' is given to '--enable-strict', no optimization
+dnl options are set.  For some compilers (including gcc), this may 
+dnl cause some strict complication tests to be skipped (typically, these are
+dnl tests for unused variables or variables used before they are defined).
+dnl 
 dnl This only works where 'gcc' is available.
 dnl In addition, it exports the variable 'enable_strict_done'. This
 dnl ensures that subsidiary 'configure's do not add the above flags to
@@ -1083,55 +1088,90 @@ dnl D*/
 AC_DEFUN(PAC_ARG_STRICT,[
 AC_ARG_ENABLE(strict,
 [--enable-strict  - Turn on strict compilation testing when using gcc])
-export enable_strict_done
-export COPTIONS
+saveCFLAGS="$CFLAGS"
 if test "$enable_strict_done" != "yes" ; then
-    if test "$enable_strict" = "yes" ; then
-        enable_strict_done="yes"
-        if test -z "CC" ; then
-            AC_CHECK_PROGS(CC,gcc)
-            if test "$CC" = "gcc" ; then 
-                COPTIONS="${COPTIONS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL"
-    	    fi
-        fi
-    elif test "$enable_strict" = "all" ; then
-        enable_strict_done="yes"
-        if test -z "CC" ; then
-            AC_CHECK_PROGS(CC,gcc)
-            if test "$CC" = "gcc" ; then 
-                COPTIONS="${COPTIONS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL -Wunused -Wshadow -Wmissing-declarations -Wno-long-long"
-    	    fi
-        fi
+    if test -z "CC" ; then
+        AC_CHECK_PROGS(CC,gcc)
     fi
+    case "$enable_strict" in 
+	yes)
+        enable_strict_done="yes"
+        if test "$CC" = "gcc" ; then 
+            COPTIONS="${COPTIONS} -Wall -O2 -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL"
+        fi
+	;;
+	all)
+        enable_strict_done="yes"
+        if test "$CC" = "gcc" ; then 
+            COPTIONS="${COPTIONS} -Wall -O2 -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL -Wunused -Wshadow -Wmissing-declarations -Wno-long-long"
+        fi
+	;;
+	noopt)
+        enable_strict_done="yes"
+        if test "$CC" = "gcc" ; then 
+            COPTIONS="${COPTIONS} -Wall -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL"
+        fi
+	;;
+	no)
+	# Accept and ignore this value
+	:
+	;;
+	*)
+	# Silently accept blank values for enable strict
+	if test -n "$enable_strict" ; then
+  	    AC_MSG_WARN([Unrecognized value for enable-strict:$enable_strict])
+	fi
+	;;
+    esac
 fi
 ])
 dnl
 dnl Use the value of enable-strict to update CFLAGS
+dnl 
 AC_DEFUN(PAC_CC_STRICT,[
 export enable_strict_done
 if test "$enable_strict_done" != "yes" ; then
-    if test "$enable_strict" = "yes" ; then
+    # We must know the compiler type
+    if test -z "CC" ; then
+        AC_CHECK_PROGS(CC,gcc)
+    fi
+    case "$enable_strict" in 
+	yes)
         enable_strict_done="yes"
-        if test -z "CC" ; then
-            AC_CHECK_PROGS(CC,gcc)
-        fi
         if test "$ac_cv_prog_gcc" = "yes" ; then 
             CFLAGS="${CFLAGS} -Wall -O2 -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL"
 	    AC_MSG_RESULT([Adding strict check arguments to CFLAGS])
 	else 
 	    AC_MSG_WARN([enable strict supported only for gcc])
     	fi
-    elif test "$enable_strict" = "all" ; then
+ 	;;	
+	all)
         enable_strict_done="yes"
-        if test -z "CC" ; then
-            AC_CHECK_PROGS(CC,gcc)
-        fi
         if test "$ac_cv_prog_gcc" = "yes" ; then 
             CFLAGS="${CFLAGS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL -Wunused -Wshadow -Wmissing-declarations -Wno-long-long"
 	else 
 	    AC_MSG_WARN([enable strict supported only for gcc])
     	fi
-    fi
+	;;
+	noopt)
+        enable_strict_done="yes"
+        if test "$ac_cv_prog_gcc" = "yes" ; then 
+            CFLAGS="${CFLAGS} -Wall -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL"
+	    AC_MSG_RESULT([Adding strict check arguments to CFLAGS])
+	else 
+	    AC_MSG_WARN([enable strict supported only for gcc])
+    	fi
+	;;
+	no)
+	# Accept and ignore this value
+	:
+	;;
+	*)
+	if test -n "$enable_strict" ; then
+  	    AC_MSG_WARN([Unrecognized value for enable-strict:$enable_strict])
+	fi
+	;;
+    esac	
 fi
 ])
 dnl/*D
@@ -1424,11 +1464,21 @@ dnl
 dnl Output Effect:
 dnl Sets 'NEEDS_<funcname>_DECL' if 'funcname' is not declared by the 
 dnl headerfiles.
+dnl
+dnl Approach:
+dnl Try to compile a program with the function, but passed with an incorrect
+dnl calling sequence.  If the compilation fails, then the declaration
+dnl is provided within the header files.  If the compilation succeeds,
+dnl the declaration is required.
+dnl
+dnl We use a 'double' as the first argument to try and catch varargs
+dnl routines that may use an int or pointer as the first argument.
+dnl 
 dnl D*/
 AC_DEFUN(PAC_FUNC_NEEDS_DECL,[
 AC_CACHE_CHECK([whether $2 needs a declaration],
 pac_cv_func_decl_$2,[
-AC_TRY_COMPILE([$1],[int a=$2(27,1.0,"foo");],
+AC_TRY_COMPILE([$1],[int a=$2(1.0,27,1.0,"foo");],
 pac_cv_func_decl_$2=yes,pac_cv_func_decl_$2=no)])
 if test "$pac_cv_func_decl_$2" = "yes" ; then
 changequote(<<,>>)dnl
@@ -1709,6 +1759,59 @@ m4_define([AC_LANG_PROGRAM(Fortran 77)],
 $2
       end])
 
+
+dnl/*D
+dnl PAC_PROG_CHECK_INSTALL_WORKS - Check whether the install program in INSTALL
+dnl works.
+dnl
+dnl Synopsis:
+dnl PAC_PROG_CHECK_INSTALL_WORKS
+dnl
+dnl Output Effect:
+dnl   Sets the variable 'INSTALL' to the value of 'ac_sh_install' if 
+dnl   a file cannot be installed into a local directory with the 'INSTALL'
+dnl   program
+dnl
+dnl Notes:
+dnl   The 'AC_PROG_INSTALL' scripts tries to avoid broken versions of 
+dnl   install by avoiding directories such as '/usr/sbin' where some 
+dnl   systems are known to have bad versions of 'install'.  Unfortunately, 
+dnl   this is exactly the sort of test-on-name instead of test-on-capability
+dnl   that 'autoconf' is meant to eliminate.  The test in this script
+dnl   is very simple but has been adequate for working around problems 
+dnl   on Solaris, where the '/usr/sbin/install' program (known by 
+dnl   autoconf to be bad because it is in /usr/sbin) is also reached by a 
+dnl   soft link through /bin, which autoconf believes is good.
+dnl
+dnl   No variables are cached to ensure that we do not make a mistake in 
+dnl   our choice of install program.
+dnl D*/
+AC_DEFUN([PAC_PROG_CHECK_INSTALL_WORKS],[
+if test -z "$INSTALL" ; then
+    AC_MSG_RESULT([No install program available])
+else
+    # Check that this install really works
+    rm -f conftest
+    echo "Test file" > conftest
+    if test ! -d .conftest ; then mkdir .conftest ; fi
+    AC_MSG_CHECKING([whether install works])
+    if $INSTALL conftest .conftest >/dev/null 2>&1 ; then
+        installOk=yes
+    else
+        installOk=no
+    fi
+    rm -rf .conftest conftest
+    AC_MSG_RESULT($installOk)
+    if test "$installOk" = no ; then
+        if test -n "$ac_install_sh" ; then
+            INSTALL=$ac_install_sh
+        else
+	    AC_MSG_ERROR([Unable to find working install])
+        fi
+    fi
+fi
+])
+
 dnl
 dnl/*D
 dnl AC_CACHE_LOAD - Replacement for autoconf cache load 
@@ -1738,7 +1841,10 @@ dnl in a config.system file; if the current system matches the value stored
 dnl in that file (or there is neither a config.cache nor config.system file),
 dnl configure will enable caching.  In order to ensure that the configure
 dnl tests make sense, the values of CC, F77, F90, and CXX are also included 
-dnl in the config.system file.
+dnl in the config.system file.  In addition, the value of PATH is included
+dnl to ensure that changes in the PATH that might select a different version
+dnl of a program with the same name (such as a native make versus gnumake)
+dnl are detected.
 dnl
 dnl Bugs:
 dnl This does not work with the Cygnus configure because the enable arguments
@@ -1748,7 +1854,7 @@ dnl the "notgiven" value.
 dnl
 dnl The environment variable CONFIGURE_DEBUG_CACHE, if set to yes,
 dnl will cause additional data to be written out during the configure process.
-dnl This can be helpful in debugging the cache file process.dnl
+dnl This can be helpful in debugging the cache file process.
 dnl
 dnl See Also:
 dnl PAC_ARG_CACHING
@@ -1783,6 +1889,23 @@ dnl The "action-if-not-given" part of AC_ARG_ENABLE is not executed until
 dnl after the AC_CACHE_LOAD is executed (!).  Thus, the value of 
 dnl enable_cache if neither --enable-cache or --disable-cache is selected
 dnl is null.  Just in case autoconf ever fixes this, we test both cases.
+dnl
+dnl Include PATH in the cache.system file since changing the path can
+dnl change which versions of programs are found (such as vendor make
+dnl or GNU make).
+dnl
+#
+# Get a test value and flag whether we should remove/replace the 
+# cache_system file (do so unless cache_system_ok is yes)
+cleanargs=`echo "$CC $F77 $CXX $F90 $PATH" | tr '"' ' '`
+# We might want to add CFLAGS and some of the configure parms ($*)
+if uname -srm >/dev/null 2>&1 ; then
+    cache_system_text="`uname -srm` $cleanargs"
+else
+    cache_system_text="-no-uname- $cleanargs"
+fi
+cache_system_ok=no
+#
 if test -z "$real_enable_cache" ; then
     real_enable_cache=$enable_cache
     if test -z "$real_enable_cache" ; then real_enable_cache="notgiven" ; fi
@@ -1791,15 +1914,12 @@ if test "X$real_enable_cache" = "Xnotgiven" ; then
     # check for valid cache file
     if test -z "$cache_system" ; then cache_system="config.system" ; fi
     if uname -srm >/dev/null 2>&1 ; then
-	dnl cleanargs=`echo "$*" | tr '"' ' '`
-	cleanargs=`echo "$CC $F77 $CXX $F90" | tr '"' ' '`
-        testval="`uname -srm` $cleanargs"
-        if test -f "$cache_system" -a -n "$testval" ; then
-	    if test "$testval" = "`cat $cache_system`" ; then
+        if test -f "$cache_system" -a -n "$cache_system_text" ; then
+	    if test "$cache_system_text" = "`cat $cache_system`" ; then
 	        real_enable_cache="yes"
+                cache_system_ok=yes
 	    fi
-        elif test ! -f "$cache_system" -a -n "$testval" ; then
-	    echo "$testval" > $cache_system
+        elif test ! -f "$cache_system" -a -n "$cache_system_text" ; then
 	    # remove the cache file because it may not correspond to our
 	    # system
 	    if test "$cache_file" != "/dev/null" ; then 
@@ -1824,12 +1944,17 @@ if test "X$real_enable_cache" = "Xyes" ; then
     echo "Configure in `pwd` creating cache $cache_file"
     > $cache_file
     rm -f $cache_system
-    cleanargs=`echo "$CC $F77 $CXX $F90" | tr '"' ' '`
-    testval="`uname -srm` $cleanargs"
-    echo "$testval" > $cache_system
   fi
 else
   cache_file="/dev/null"
+fi
+#
+# Update the cache_system file if necessary
+if test "$cache_system_ok" != yes ; then
+    if test -n "$cache_system" ; then
+        rm -f $cache_system
+        echo $cache_system_text > $cache_system
+    fi
 fi
 if test "$clearMinusX" = yes ; then
     set +x
@@ -1904,7 +2029,8 @@ if test "$cache_file" = "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; the
     touch $cache_file
     dnl 
     dnl For Autoconf 2.52+, we should ensure that the environment is set
-    dnl for the cache.
+    dnl for the cache.  Make sure that we get the values and set the 
+    dnl xxx_set variables properly
     ac_cv_env_CC_set=set
     ac_cv_env_CC_value=$CC
     ac_cv_env_CFLAGS_set=${CFLAGS+set}
@@ -1926,32 +2052,6 @@ if test "$cache_file" = "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; the
     ac_cv_env_CXX_set=${CXX+set}
     ac_cv_env_CXX_value=$CXX
 
-#     dnl For Autoconf 2.57+, we also need to look at these.  This does 
-#     dnl disable a sometimes useful check in autoconf, but I don't see
-#     dnl a way arount it
-#     ac_env_CC_set=set
-#     ac_env_CC_value=$CC
-#     ac_env_CFLAGS_set=set
-#     ac_env_CFLAGS_value=$CFLAGS
-#     ac_env_CPP_set=set
-#     ac_env_CPP_value=$CPP
-#     ac_env_CPPFLAGS_set=set
-#     ac_env_CPPFLAGS_value=$CPPFLAGS
-#     ac_env_LDFLAGS_set=set
-#     ac_env_LDFLAGS_value=$LDFLAGS
-#     ac_env_LIBS_set=set
-#     ac_env_LIBS_value=$LIBS
-#     ac_env_FC_set=set
-#     ac_env_FC_value=$FC
-#     ac_env_F77_set=set
-#     ac_env_F77_value=$F77
-#     ac_env_FFLAGS_set=set
-#     ac_env_FFLAGS_value=$FFLAGS
-#     ac_env_CXX_set=set
-#     ac_env_CXX_value=$CXX
-
-#	export ac_env_LDFLAGS_set
-#	export ac_env_LDFLAGS_value   
     dnl other parameters are
     dnl build_alias, host_alias, target_alias
 
@@ -2330,9 +2430,18 @@ ifelse(NEED_POP,yes,[
 undefine([NEED_POP])
 AC_LANG_RESTORE])
 ])
+dnl/*D
+dnl PAC_F90_MODULE_EXT - Determine the filename extension of F90 module
 dnl
+dnl Synopsis:
 dnl PAC_F90_MODULE_EXT(action if found,action if not found)
-dnl
+dnl 
+dnl Variables set include:
+dnl +  pac_cv_f90_module_ext - extension for created modules
+dnl -  pac_cv_f90_module_case - case of name for created module (where the
+dnl      module name in the source file is lowercase).  One
+dnl      of unknown, lower, upper
+dnl D*/
 AC_DEFUN(PAC_F90_MODULE_EXT,
 [AC_CACHE_CHECK([for Fortran 90 module extension],
 pac_cv_f90_module_ext,[
@@ -2348,21 +2457,41 @@ cat >conftest.$ac_f90ext <<EOF
 EOF
 if AC_TRY_EVAL(ac_f90compile) ; then
    dnl Look for module name
-   pac_MOD=`ls conftest.* 2>&1 | grep -v conftest.$ac_f90ext | grep -v conftest.o`
-   pac_MOD=`echo $pac_MOD | sed -e 's/conftest\.//g'`
-   pac_cv_f90_module_case="lower"
-   if test "X$pac_MOD" = "X" ; then
-	pac_MOD=`ls CONFTEST* 2>&1 | grep -v CONFTEST.f | grep -v CONFTEST.o`
-        pac_MOD=`echo $pac_MOD | sed -e 's/CONFTEST\.//g'`
-	if test -n "$pac_MOD" ; then
-	    testname="CONFTEST"
-	    pac_cv_f90_module_case="upper"
-	fi
-    fi
-    if test -z "$pac_MOD" ; then 
-	pac_cv_f90_module_ext="unknown"
-    else
-	pac_cv_f90_module_ext=$pac_MOD
+   dnl First, try to find known names.  This avoids confusion caused by
+   dnl additional files (like <name>.stb created by some versions of pgf90)
+   for name in conftest CONFTEST ; do
+       for ext in mod MOD ; do
+           if test -s $name.$ext ; then
+               if test $name = conftest ; then
+                   pac_cv_f90_module_case=lower
+               else
+                   pac_cv_f90_module_case=upper
+               fi
+               pac_cv_f90_module_ext=$ext
+               pac_MOD=$ext
+               break
+           fi
+       done
+       if test -n "$pac_cv_f90_module_ext" ; then break ; fi
+   done
+   if test -z "$pac_MOD" ; then
+		
+       pac_MOD=`ls conftest.* 2>&1 | grep -v conftest.$ac_f90ext | grep -v conftest.o`
+       pac_MOD=`echo $pac_MOD | sed -e 's/conftest\.//g'`
+       pac_cv_f90_module_case="lower"
+       if test "X$pac_MOD" = "X" ; then
+	   pac_MOD=`ls CONFTEST* 2>&1 | grep -v CONFTEST.f | grep -v CONFTEST.o`
+           pac_MOD=`echo $pac_MOD | sed -e 's/CONFTEST\.//g'`
+	   if test -n "$pac_MOD" ; then
+	       testname="CONFTEST"
+	       pac_cv_f90_module_case="upper"
+	   fi
+       fi
+       if test -z "$pac_MOD" ; then 
+	   pac_cv_f90_module_ext="unknown"
+       else
+	   pac_cv_f90_module_ext=$pac_MOD
+       fi
     fi
 else
     echo "configure: failed program was:" >&AC_FD_CC
@@ -2384,7 +2513,9 @@ else
 fi
 ])
 dnl
-dnl PAC_F90_MODULE_INCFLAG
+dnl PAC_F90_MODULE_INCFLAG - Determine the compiler flags for specifying 
+dnl directories that contain compiled Fortran 90 modules
+dnl
 AC_DEFUN(PAC_F90_MODULE_INCFLAG,[
 AC_CACHE_CHECK([for Fortran 90 module include flag],
 pac_cv_f90_module_incflag,[
@@ -2426,9 +2557,9 @@ else
 fi
 rm -f conftest.$ac_f90ext
 cat >conftest.$ac_f90ext <<EOF
-    program main
-    use conftest
-    end
+       program main
+       use conftest
+       end
 EOF
 pac_cv_f90_module_incflag="unknown"
 if ${F90-f90} -c $F90FLAGS -Iconftestdir conftest.$ac_f90ext 1>&AC_FD_CC 2>&1 && \
@@ -4054,16 +4185,21 @@ dnl Output Effect:
 dnl  If make echos directory changes, append '--no-print-directory' to the 
 dnl  symbol 'MAKE'.  If 'MAKE' is not set, chooses 'make' for 'MAKE'.
 dnl
+dnl  You can override this test (if, for example, you want make to be
+dnl  more noisy) by setting the environment variable MAKE_MAY_PRINT_DIR to 
+dnl  yes
+dnl
 dnl See also:
 dnl PAC_PROG_MAKE
 dnl D*/
 dnl
 AC_DEFUN(PAC_PROG_MAKE_ECHOS_DIR,[
-AC_CACHE_CHECK([whether make echos directory changes],
+if test "$MAKE_MAY_PRINT_DIR" != "yes" ; then
+    AC_CACHE_CHECK([whether make echos directory changes],
 pac_cv_prog_make_echos_dir,
 [
 AC_REQUIRE([PAC_PROG_MAKE_PROGRAM])
-/bin/rm -f conftest
+rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
 ALL:
@@ -4088,8 +4224,9 @@ fi
 /bin/rm -f conftest
 str=""
 ])
-if test "$pac_cv_prog_make_echos_dir" = "yes using --no-print-directory" ; then
-    MAKE="$MAKE --no-print-directory"
+    if test "$pac_cv_prog_make_echos_dir" = "yes using --no-print-directory" ; then
+        MAKE="$MAKE --no-print-directory"
+    fi
 fi
 ])dnl
 dnl

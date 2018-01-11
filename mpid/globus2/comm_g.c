@@ -86,7 +86,18 @@ int MPID_Comm_init(
     {
 	int				vgrank;
 
-	vgrank = VMPI_GRank_to_VGRank[newcomm->lrank_to_grank[i]];
+	/* fixing assignment of vgrank to accommodate the fact that
+	 * since the introduction of the MPI-2 stuff it is possible
+	 * for lrank_to_grank (i.e., grank) to be larger that
+	 * MPID_MyWorldSize.  this will happen when the new comm
+	 * has procs that are outside the orig MPI_COMM_WORLD 
+	 * NOTE: that it is invalid to index VMPI_GRank_to_VGRank
+	 *       with a value >= MPID_MyWorldSize
+	 */
+	/* vgrank = VMPI_GRank_to_VGRank[newcomm->lrank_to_grank[i]]; */
+	vgrank = (newcomm->lrank_to_grank[i] < MPID_MyWorldSize
+		? VMPI_GRank_to_VGRank[newcomm->lrank_to_grank[i]]
+		: -1);
 	if (vgrank >= 0)
 	{
 	    if (vgrank >= VMPI_MyWorldSize)

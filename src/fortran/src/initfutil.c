@@ -1,5 +1,5 @@
 /*
- *  $Id: initfutil.c,v 1.18 2004/05/17 13:51:03 gropp Exp $
+ *  $Id: initfutil.c,v 1.19 2004/07/26 18:26:13 gropp Exp $
  *
  *  (C) 2000 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
@@ -30,6 +30,10 @@
 #include <stdlib.h>
 #endif
 #include <stdio.h>
+
+/* Use the PMPI names for routines */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
 
 #define DEBUG(a)
 

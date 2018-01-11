@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_pvfs_resize.c,v 1.12 2004/05/20 19:05:36 robl Exp $    
+ *   $Id: ad_pvfs_resize.c,v 1.13 2004/06/07 16:42:26 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -23,7 +23,7 @@ void ADIOI_PVFS_Resize(ADIO_File fd, ADIO_Offset size, int *error_code)
     if (rank == fd->hints->ranklist[0]) {
 	err = pvfs_ftruncate64(fd->fd_sys, size);
     }
-    MPI_Bcast(&err, 1, MPI_INT, 0, fd->comm)
+    MPI_Bcast(&err, 1, MPI_INT, 0, fd->comm);
 
     if (err == -1) {
 #ifdef MPICH2

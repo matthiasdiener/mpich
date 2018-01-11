@@ -50,7 +50,8 @@ MDEP_LIBS=
 MDEP_CFLAGS=
 MDEP_FFLAGS=
 MDEP_LFLAGS=
-OPTFLAGS="-g"
+# Use imported optflags if possible
+OPTFLAGS=${OPTFLAGS:-"-g"}
 USERCC=0
 CC=${CC:-cc}
 USERF77=0
@@ -315,6 +316,14 @@ fi
 #						486 running FreeBSD
 if test -n "$p4arch_FREEBSD"; then
     P4ARCH=FREEBSD
+    if test -n "$p4comm_shared"; then
+      DEFINE_SYSV_IPC="#define SYSV_IPC"
+    fi
+fi
+
+if test -n "$p4arch_FREEBSD_PPC"; then
+    # This may be Darwin as well.
+    P4ARCH=FREEBSD_PPC
     if test -n "$p4comm_shared"; then
       DEFINE_SYSV_IPC="#define SYSV_IPC"
     fi
@@ -769,6 +778,23 @@ PAC_CHECK_HEADERS(string.h)
 PAC_CHECK_HEADERS(strings.h)
 PAC_CHECK_HEADERS(termio.h termios.h)
 PAC_CHECK_HEADERS(sys/types.h sys/wait.h)
+# time.h is needed to declare time
+# Note.  On some systems, including both time.h and sys/time.h can 
+# cause problems.  autoconf2 has a special test for this
+ac_cv_both_time_systime=no
+AC_MSG_CHECKING([that time.h and sys/time.h can both be included])
+AC_TEST_PROGRAM([#include <sys/time.h>
+#include <time.h>
+int main() {
+struct tm *tp;
+; return 0; }],
+ac_cv_both_time_systime=yes)
+AC_MSG_RESULT($ac_cv_both_time_systime)
+if test "$ac_cv_both_time_systime" = yes ; then
+    AC_DEFINE(TIME_WITH_SYS_TIME,1,[Define if both time.h and sys/time.h can be included])
+fi
+
+PAC_CHECK_HEADERS(time.h)
 #
 # In some cases, we need both string.h and strings.h .  Some systems
 # apparently complain, so we try to include them both
@@ -929,6 +955,9 @@ if test "$use_yield" = "yes" ; then
     AC_DEFINE(USE_YIELD,,[define to yield in the communication calls])
 fi
 
+# Check for the getwd function (used in alog/alog.h)
+AC_HAVE_FUNCS(getwd)
+
 dnl #
 dnl # Check that nonblocking read works:
 dnl # Early SYSV (R2) had a design problem with nonblocking sockets:
@@ -1055,7 +1084,6 @@ return rc;}],use_unsigned_int)
 fi
 #
 #
-#
 # Some systems don't include support for xdr.  Check for it.
 # Also, some versions of FreeBSD don't inlude xdr_float (later ones apparently
 # do).  Check for that as well.
@@ -1063,8 +1091,38 @@ AC_HAVE_FUNCS(xdrmem_create xdr_float)
 AC_COMPILE_CHECK("XDR includes and functions",[#include <rpc/rpc.h>],[
 int a=1;
 ],HAS_XDR=1,HAS_XDR=0)
+
+# Before asserting that we have XDR, check that it works in this environment:
+
+#
+# Some combinations of compilers and operating systems expose inconsistent
+# system header files.  For example, the Intel version 8 compilers claim to 
+# be gcc (but they aren't, causing other problems), but at least the SuSE 
+# Linux header files fail to define int64_t unless GCC is specified but 
+# use int64_t unconditionally.  
+#
+if test "$HAS_XDR" = 1 ; then 
+    AC_COMPILE_CHECK([rpc/xdr.h compiles],[
+#include <sys/types.h>
+#include <rpc/xdr.h>],[return 0;],xdr_compiles=yes,xdr_compiles=no)
+    if test "$xdr_compiles" != "yes" ; then
+        # See if we need to define int64_t and uint64_t
+	# FIXME: We should really check that sizeof(long long) is 8
+        AC_COMPILE_CHECK([that xdr.h compiles if int64_t defined],[
+#include <sys/types.h>
+typedef long long int64_t;
+typedef unsigned long long uint64_t;
+#include <rcp/xdr.h>],[return 0;],xdr_needs_int64=yes,xdr_needs_int64=no)
+        if test "$xdr_needs_int64" = "yes" ;then
+	    AC_DEFINE(NEEDS_INT64_DEFINITION)
+        else
+	    AC_MSG_WARN([Unable to compile header file rcp/xdr.h])
+	    HAS_XDR=0
+        fi
+    fi
+fi
 if test "$HAS_XDR" = 1 ; then
-	AC_DEFINE(HAS_XDR)
+    AC_DEFINE(HAS_XDR)
 else 
     print_error  "XDR not available on this system" 
 fi
@@ -1076,6 +1134,10 @@ if test -n "$p4comm_bproc" ; then
     AC_HAVE_LIBRARY(bproc)
     AC_FUNC_CHECK(bproc_numnodes,AC_DEFINE(SCYLD_BEOWULF))
     AC_DEFINE(P4_DO_NOT_USE_SERVER,,Define if server should never be used)
+    # If we don't find the needed headers, about the configuration
+    if test "$ac_cv_header_SYS_BPROC_H" != yes ; then
+        AC_MSG_ERROR([Unable to build with bproc because sys/bproc.h is not available])
+    fi    
 fi
 #
 # We do NOT add the CFLAGS and DEFS to the MDEP_CFLAGS because they are 

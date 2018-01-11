@@ -504,13 +504,21 @@ for ac_site_file in $CONFIG_SITE; do
   fi
 done
 
+if test "$CONFIGURE_DEBUG_CACHE" = yes ; then 
+    oldopts="$-"
+    clearMinusX=no
+    set -x 
+    if test "$oldopts" != "$-" ; then 
+        clearMinusX=yes
+    fi
+fi 
 if test "X$cache_system" = "X" ; then
     # A default file name, just in case
     cache_system="config.system"
     if test "$cache_file" != "/dev/null" ; then
         # Get the directory for the cache file, if any
 	
-        cache_system=`echo $cache_file | sed -e 's%^\(.*/\)[^/]*%\1/config.system%'`
+                cache_system=`echo $cache_file | sed -e 's%^\(.*/\)[^/]*%\1config.system%'`
 	
         test "x$cache_system" = "x$cache_file" && cache_system="config.system"
 #    else
@@ -519,6 +527,18 @@ if test "X$cache_system" = "X" ; then
 #        enable_cache=no
     fi
 fi
+#
+# Get a test value and flag whether we should remove/replace the 
+# cache_system file (do so unless cache_system_ok is yes)
+cleanargs=`echo "$CC $F77 $CXX $F90 $PATH" | tr '"' ' '`
+# We might want to add CFLAGS and some of the configure parms ()
+if uname -srm >/dev/null 2>&1 ; then
+    cache_system_text="`uname -srm` $cleanargs"
+else
+    cache_system_text="-no-uname- $cleanargs"
+fi
+cache_system_ok=no
+#
 if test -z "$real_enable_cache" ; then
     real_enable_cache=$enable_cache
     if test -z "$real_enable_cache" ; then real_enable_cache="notgiven" ; fi
@@ -527,17 +547,17 @@ if test "X$real_enable_cache" = "Xnotgiven" ; then
     # check for valid cache file
     if test -z "$cache_system" ; then cache_system="config.system" ; fi
     if uname -srm >/dev/null 2>&1 ; then
-		cleanargs=`echo "$CC $F77 $CXX $F90" | tr '"' ' '`
-        testval="`uname -srm` $cleanargs"
-        if test -f "$cache_system" -a -n "$testval" ; then
-	    if test "$testval" = "`cat $cache_system`" ; then
+        if test -f "$cache_system" -a -n "$cache_system_text" ; then
+	    if test "$cache_system_text" = "`cat $cache_system`" ; then
 	        real_enable_cache="yes"
+                cache_system_ok=yes
 	    fi
-        elif test ! -f "$cache_system" -a -n "$testval" ; then
-	    echo "$testval" > $cache_system
+        elif test ! -f "$cache_system" -a -n "$cache_system_text" ; then
 	    # remove the cache file because it may not correspond to our
 	    # system
-	    rm -f $cache_file
+	    if test "$cache_file" != "/dev/null" ; then 
+	        rm -f $cache_file
+	    fi
 	    real_enable_cache="yes"
         fi
     fi
@@ -575,15 +595,23 @@ if test "X$real_enable_cache" = "Xyes" ; then
     fi
     . $cache_file
   else
-    echo "creating cache $cache_file"
+    echo "Configure in `pwd` creating cache $cache_file"
     > $cache_file
     rm -f $cache_system
-    cleanargs=`echo "$CC $F77 $CXX" | tr '"' ' '`
-    testval="`uname -srm` $cleanargs"
-    echo "$testval" > $cache_system
   fi
 else
   cache_file="/dev/null"
+fi
+#
+# Update the cache_system file if necessary
+if test "$cache_system_ok" != yes ; then
+    if test -n "$cache_system" ; then
+        rm -f $cache_system
+        echo $cache_system_text > $cache_system
+    fi
+fi
+if test "$clearMinusX" = yes ; then
+    set +x
 fi
 
 ac_ext=c
@@ -658,7 +686,7 @@ do
 # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:662: checking for $ac_word" >&5
+echo "configure:690: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_MPIF90'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -767,7 +795,7 @@ do
 # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:771: checking for $ac_word" >&5
+echo "configure:799: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_F77'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -800,7 +828,7 @@ done
 fi
 
 echo $ac_n "checking whether the Fortran 77 compiler ($F77 $FFLAGS $LDFLAGS) works""... $ac_c" 1>&6
-echo "configure:804: checking whether the Fortran 77 compiler ($F77 $FFLAGS $LDFLAGS) works" >&5
+echo "configure:832: checking whether the Fortran 77 compiler ($F77 $FFLAGS $LDFLAGS) works" >&5
 
 ac_ext=f
 ac_compile='${F77-f77} -c $FFLAGS conftest.$ac_ext 1>&5'
@@ -813,7 +841,7 @@ cat > conftest.$ac_ext << EOF
       end
 
 EOF
-if { (eval echo configure:817: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:845: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   ac_cv_prog_f77_works=yes
   # If we can't run a trivial program, we are probably using a cross compiler.
   if (./conftest; exit) 2>/dev/null; then
@@ -839,12 +867,12 @@ if test $ac_cv_prog_f77_works = no; then
   { echo "configure: error: installation or configuration problem: Fortran 77 compiler cannot create executables." 1>&2; exit 1; }
 fi
 echo $ac_n "checking whether the Fortran 77 compiler ($F77 $FFLAGS $LDFLAGS) is a cross-compiler""... $ac_c" 1>&6
-echo "configure:843: checking whether the Fortran 77 compiler ($F77 $FFLAGS $LDFLAGS) is a cross-compiler" >&5
+echo "configure:871: checking whether the Fortran 77 compiler ($F77 $FFLAGS $LDFLAGS) is a cross-compiler" >&5
 echo "$ac_t""$ac_cv_prog_f77_cross" 1>&6
 cross_compiling=$ac_cv_prog_f77_cross
 
 echo $ac_n "checking whether we are using GNU Fortran 77""... $ac_c" 1>&6
-echo "configure:848: checking whether we are using GNU Fortran 77" >&5
+echo "configure:876: checking whether we are using GNU Fortran 77" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_g77'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -853,7 +881,7 @@ else
   yes
 #endif
 EOF
-if { ac_try='$F77 -E conftest.fpp'; { (eval echo configure:857: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } | egrep yes >/dev/null 2>&1; then
+if { ac_try='$F77 -E conftest.fpp'; { (eval echo configure:885: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } | egrep yes >/dev/null 2>&1; then
   ac_cv_prog_g77=yes
 else
   ac_cv_prog_g77=no
@@ -868,7 +896,7 @@ if test $ac_cv_prog_g77 = yes; then
   ac_save_FFLAGS="$FFLAGS"
   FFLAGS=
   echo $ac_n "checking whether $F77 accepts -g""... $ac_c" 1>&6
-echo "configure:872: checking whether $F77 accepts -g" >&5
+echo "configure:900: checking whether $F77 accepts -g" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_f77_g'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -901,12 +929,12 @@ fi
 FFLAGS="$save_FFLAGS"
 
 if test -z "$F90" ; then
-    for ac_prog in f95 f90 xlf90 pgf90 efc
+    for ac_prog in f95 f90 xlf90 pgf90 ifc efc
 do
 # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:910: checking for $ac_word" >&5
+echo "configure:938: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_F90'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -939,14 +967,14 @@ done
 fi
 if test -n "$F90" ; then
      echo $ac_n "checking for extension for Fortran 90 programs""... $ac_c" 1>&6
-echo "configure:943: checking for extension for Fortran 90 programs" >&5
+echo "configure:971: checking for extension for Fortran 90 programs" >&5
 pac_cv_f90_ext="f90"
 cat > conftest.$pac_cv_f90_ext <<EOF
       program conftest
       end
 EOF
 ac_compile='${F90-f90} -c $F90FLAGS conftest.$pac_cv_f90_ext 1>&5'
-if { (eval echo configure:950: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; } ; then
+if { (eval echo configure:978: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; } ; then
     echo "$ac_t""f90" 1>&6
 else
     rm -f conftest*
@@ -955,14 +983,14 @@ else
       program conftest
       end
 EOF
-    if { (eval echo configure:959: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; } ; then
+    if { (eval echo configure:987: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; } ; then
 	echo "$ac_t""f" 1>&6
     else
         echo "$ac_t""unknown!" 1>&6
     fi
 fi
 echo $ac_n "checking whether the Fortran 90 compiler ($F90 $F90FLAGS $LDFLAGS) works""... $ac_c" 1>&6
-echo "configure:966: checking whether the Fortran 90 compiler ($F90 $F90FLAGS $LDFLAGS) works" >&5
+echo "configure:994: checking whether the Fortran 90 compiler ($F90 $F90FLAGS $LDFLAGS) works" >&5
 
 # We cannot use _LANG_FORTRAN90 here because we will usually be executing this
 # test in the context of _PROG_F90, which is a require on _LANG_FORTRAN90.
@@ -971,11 +999,14 @@ ac_ext=$pac_cv_f90_ext
 ac_compile='${F90-f90} -c $F90FLAGS conftest.$ac_ext 1>&5'
 ac_link='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5'
 cross_compiling=$pac_cv_prog_f90_cross
+# Include a Fortran 90 construction to distinguish between Fortran 77 
+# and Fortran 90 compilers.
 cat >conftest.$ac_ext <<EOF
       program conftest
+      integer, dimension(10) :: n
       end
 EOF
-if { (eval echo configure:979: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeect} ; then
+if { (eval echo configure:1010: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeect} ; then
     pac_cv_prog_f90_works="yes"
     if (./conftest; exit) 2>/dev/null ; then
         pac_cv_prog_f90_cross="no"
@@ -988,6 +1019,8 @@ else
   pac_cv_prog_f90_works="no"
 fi
 rm -f conftest*
+# The intel compiler sometimes generates these work.pc and .pcl files
+rm -f work.pc work.pcl
 ac_ext=c
 # CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
 ac_cpp='$CPP $CPPFLAGS'
@@ -1000,7 +1033,7 @@ if test $pac_cv_prog_f90_works = no; then
   echo "configure: warning: installation or configuration problem: Fortran 90 compiler cannot create executables." 1>&2
 fi
 echo $ac_n "checking whether the Fortran 90 compiler ($F90 $F90FLAGS $LDFLAGS) is a cross-compiler""... $ac_c" 1>&6
-echo "configure:1004: checking whether the Fortran 90 compiler ($F90 $F90FLAGS $LDFLAGS) is a cross-compiler" >&5
+echo "configure:1037: checking whether the Fortran 90 compiler ($F90 $F90FLAGS $LDFLAGS) is a cross-compiler" >&5
 echo "$ac_t""$pac_cv_prog_f90_cross" 1>&6
 cross_compiling=$pac_cv_prog_f90_cross
 
@@ -1058,7 +1091,7 @@ ac_configure=$ac_aux_dir/configure # This should be Cygnus configure.
 # SVR4 /usr/ucb/install, which tries to use the nonexistent group "staff"
 # ./install, which can be erroneously created by make from ./install.sh.
 echo $ac_n "checking for a BSD compatible install""... $ac_c" 1>&6
-echo "configure:1062: checking for a BSD compatible install" >&5
+echo "configure:1095: checking for a BSD compatible install" >&5
 if test -z "$INSTALL"; then
 if eval "test \"`echo '$''{'ac_cv_path_install'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -1111,7 +1144,7 @@ test -z "$INSTALL_SCRIPT" && INSTALL_SCRIPT='${INSTALL_PROGRAM}'
 test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
 
 echo $ac_n "checking whether ln -s works""... $ac_c" 1>&6
-echo "configure:1115: checking whether ln -s works" >&5
+echo "configure:1148: checking whether ln -s works" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_LN_S'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1136,7 +1169,7 @@ do
 # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1140: checking for $ac_word" >&5
+echo "configure:1173: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_AR'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1167,6 +1200,38 @@ done
 
 # Add options to ar
 AR="$AR cr"
+if test -z "$RANLIB" ; then
+    # Extract the first word of "ranlib", so it can be a program name with args.
+set dummy ranlib; ac_word=$2
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
+echo "configure:1208: checking for $ac_word" >&5
+if eval "test \"`echo '$''{'ac_cv_prog_RANLIB'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  if test -n "$RANLIB"; then
+  ac_cv_prog_RANLIB="$RANLIB" # Let the user override the test.
+else
+  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
+  ac_dummy="$PATH"
+  for ac_dir in $ac_dummy; do
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/$ac_word; then
+      ac_cv_prog_RANLIB="ranlib"
+      break
+    fi
+  done
+  IFS="$ac_save_ifs"
+  test -z "$ac_cv_prog_RANLIB" && ac_cv_prog_RANLIB=":"
+fi
+fi
+RANLIB="$ac_cv_prog_RANLIB"
+if test -n "$RANLIB"; then
+  echo "$ac_t""$RANLIB" 1>&6
+else
+  echo "$ac_t""no" 1>&6
+fi
+
+fi
 
 true
 if test "X$MAKE" = "X" ; then
@@ -1175,7 +1240,7 @@ do
 # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1179: checking for $ac_word" >&5
+echo "configure:1244: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_MAKE'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1207,14 +1272,15 @@ done
 fi
 
 
-echo $ac_n "checking whether make echos directory changes""... $ac_c" 1>&6
-echo "configure:1212: checking whether make echos directory changes" >&5
+if test "$MAKE_MAY_PRINT_DIR" != "yes" ; then
+    echo $ac_n "checking whether make echos directory changes""... $ac_c" 1>&6
+echo "configure:1278: checking whether make echos directory changes" >&5
 if eval "test \"`echo '$''{'pac_cv_prog_make_echos_dir'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 
-/bin/rm -f conftest
+rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
 ALL:
@@ -1242,14 +1308,15 @@ str=""
 fi
 
 echo "$ac_t""$pac_cv_prog_make_echos_dir" 1>&6
-if test "$pac_cv_prog_make_echos_dir" = "yes using --no-print-directory" ; then
-    MAKE="$MAKE --no-print-directory"
+    if test "$pac_cv_prog_make_echos_dir" = "yes using --no-print-directory" ; then
+        MAKE="$MAKE --no-print-directory"
+    fi
 fi
 
 
 
 echo $ac_n "checking for virtual path format""... $ac_c" 1>&6
-echo "configure:1253: checking for virtual path format" >&5
+echo "configure:1320: checking for virtual path format" >&5
 if eval "test \"`echo '$''{'pac_cv_prog_make_vpath'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1298,7 +1365,7 @@ fi
 
 
 echo $ac_n "checking for module suffix""... $ac_c" 1>&6
-echo "configure:1302: checking for module suffix" >&5
+echo "configure:1369: checking for module suffix" >&5
 rm -f conftest*
 # Intel ifc compiler generates files by the name of work.pc and work.pcl (!)
 rm -f work*
@@ -1311,7 +1378,7 @@ EOF
 # SGI and absoft compilers generates module name in upper case!
 testname="conftest"
 modcase="lower"
-if $F90 -c conftest.f > conftest.out 2>&1 ; then
+if $F90 $F90FLAGS -c conftest.f > conftest.out 2>&1 ; then
     MOD=`ls conftest* | grep -v conftest.f | grep -v conftest.o`
     MOD=`echo "$MOD" | sed -e 's/conftest\.//g'`
     if test -z "$MOD" ; then
@@ -1338,7 +1405,7 @@ else
 fi
 
 echo $ac_n "checking for case of module names""... $ac_c" 1>&6
-echo "configure:1342: checking for case of module names" >&5
+echo "configure:1409: checking for case of module names" >&5
 if test "$modcase" = "lower" ; then
     echo "$ac_t""lower" 1>&6
     MPIMOD="mpi"
@@ -1358,7 +1425,7 @@ fi
 # a file, it must contain a the name of a file ending in .pc .  Ugh!
 # Use the module made above
 echo $ac_n "checking for module directory path flag""... $ac_c" 1>&6
-echo "configure:1362: checking for module directory path flag" >&5
+echo "configure:1429: checking for module directory path flag" >&5
 madedir=0
 if test ! -d conf ; then mkdir conf ; madedir=1; fi
 cp $testname.$MOD conf
@@ -1371,15 +1438,15 @@ cat >conftest1.f <<EOF
 EOF
 F90_WORK_FILES_ARG=""
 F90MODINCSPEC=""
-if $F90 -c -Iconf conftest1.f > conftest.out 2>&1 ; then
+if $F90 $F90FLAGS -c -Iconf conftest1.f > conftest.out 2>&1 ; then
     MODDIRFLAG="-I"
     F90MODINCSPEC="-I<dir>"
     echo "$ac_t""-I" 1>&6
-elif $F90 -c -Mconf conftest1.f >> conftest.out 2>&1 ; then
+elif $F90 $F90FLAGS -c -Mconf conftest1.f >> conftest.out 2>&1 ; then
     MODDIRFLAG="-M"
     F90MODINCSPEC="-M<dir>"
     echo "$ac_t""-M" 1>&6
-elif $F90 -c -pconf conftest1.f >> conftest.out 2>&1 ; then
+elif $F90 $F90FLAGS -c -pconf conftest1.f >> conftest.out 2>&1 ; then
     MODDIRFLAG="-p"
     F90MODINCSPEC="-p<dir>"
     echo "$ac_t""-p" 1>&6
@@ -1387,7 +1454,7 @@ elif test -s work.pc ; then
      cp work.pc conf/mpimod.pc
      echo "mpimod.pc" > conf/mpimod.pcl
      echo "`pwd`/conf/mpimod.pc" >> conf/mpimod.pcl
-     if $F90 -c -cl,conf/mpimod.pcl conftest1.f >>conftest.out 2>&1 ; then
+     if $F90 $F90FLAGS -c -cl,conf/mpimod.pcl conftest1.f >>conftest.out 2>&1 ; then
          MODDIRFLAG='-cl,mpimod.pcl'
          echo "$ac_t""-cl,filename where filename contains a list of files and directories" 1>&6
 	 F90_WORK_FILES_ARG="-cl,mpimod.pcl"
@@ -1412,7 +1479,7 @@ if test $mpif_ok != 1 ; then
     # This is set if we are building with MPICH; the mpif file may not
     # be ready yet.
     echo $ac_n "checking for mpif.h exists and contains KIND values""... $ac_c" 1>&6
-echo "configure:1416: checking for mpif.h exists and contains KIND values" >&5
+echo "configure:1483: checking for mpif.h exists and contains KIND values" >&5
     rm -f conftest*
     cat >conftest.f <<EOF
         program main
@@ -1421,7 +1488,7 @@ echo "configure:1416: checking for mpif.h exists and contains KIND values" >&5
         integer (kind=MPI_ADDRESS_KIND) b
         end
 EOF
-    if $F90 -I$MPIINCDIR -c conftest.f > conftest.out 2>&1 ; then
+    if $F90 $F90FLAGS -I$MPIINCDIR -c conftest.f > conftest.out 2>&1 ; then
         echo "$ac_t""yes" 1>&6
 	F90INC="-I"
     else
@@ -1432,9 +1499,10 @@ EOF
 fi
 
 
+
 # Check for Fortran suffix
 echo $ac_n "checking that the compiler $F90 accepts .f90 suffix""... $ac_c" 1>&6
-echo "configure:1438: checking that the compiler $F90 accepts .f90 suffix" >&5
+echo "configure:1506: checking that the compiler $F90 accepts .f90 suffix" >&5
 rm -f conftest*
 cat >conftest.f90 <<EOF
           program main
@@ -1463,12 +1531,12 @@ cat >conftest1.f <<EOF
 EOF
 pac_cv_prog_f90_and_f77=no
 echo $ac_n "checking whether Fortran 90 is compatible with Fortran 77""... $ac_c" 1>&6
-echo "configure:1467: checking whether Fortran 90 is compatible with Fortran 77" >&5
-if { (eval echo configure:1468: \"$ac_f90compile\") 1>&5; (eval $ac_f90compile) 2>&5; } ; then
-    f77test='$F77 -c conftest1.f'
-    if { (eval echo configure:1470: \"$f77test\") 1>&5; (eval $f77test) 2>&5; } ; then
-        f90_f77link='$F90 -o conftest conftest.o conftest1.o'
-        if { (eval echo configure:1472: \"$f90_f77link\") 1>&5; (eval $f90_f77link) 2>&5; } ; then 
+echo "configure:1535: checking whether Fortran 90 is compatible with Fortran 77" >&5
+if { (eval echo configure:1536: \"$ac_f90compile\") 1>&5; (eval $ac_f90compile) 2>&5; } ; then
+    f77test='$F77 $FFLAGS -c conftest1.f'
+    if { (eval echo configure:1538: \"$f77test\") 1>&5; (eval $f77test) 2>&5; } ; then
+        f90_f77link='$F90 $F90FLAGS -o conftest conftest.o conftest1.o'
+        if { (eval echo configure:1540: \"$f90_f77link\") 1>&5; (eval $f90_f77link) 2>&5; } ; then 
 	    pac_cv_prog_f90_and_f77=yes
 	fi
     fi
@@ -1651,6 +1719,7 @@ s%@INSTALL_SCRIPT@%$INSTALL_SCRIPT%g
 s%@INSTALL_DATA@%$INSTALL_DATA%g
 s%@LN_S@%$LN_S%g
 s%@AR@%$AR%g
+s%@RANLIB@%$RANLIB%g
 s%@MAKE@%$MAKE%g
 s%@VPATH@%$VPATH%g
 s%@MOD@%$MOD%g
@@ -1660,6 +1729,7 @@ s%@F90_WORK_FILES_ARG@%$F90_WORK_FILES_ARG%g
 s%@MODDIRFLAG@%$MODDIRFLAG%g
 s%@F90MODINCSPEC@%$F90MODINCSPEC%g
 s%@F90INC@%$F90INC%g
+s%@F90FLAGS@%$F90FLAGS%g
 s%@F90SUFFIX@%$F90SUFFIX%g
 s%@CHOICE_TYPE@%$CHOICE_TYPE%g
 

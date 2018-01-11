@@ -77,7 +77,7 @@ if [ -z "$p4pgfile"  ] ; then
     cat <<EOF 2>/dev/null > $p4pgfile
 Test
 EOF
-    if [ ! -s $p4pgfile ] ; then
+    if [ ! -s "$p4pgfile" ] ; then
 	# May not be able to write there.  Try the user's home directory
 	p4pgfile=$HOME/PI$$
     else
@@ -258,5 +258,13 @@ if [ "$just_testing" != 1 ] ; then
     if [ "$MPIRUN_RANDOM" = "yes" ] ; then
         /bin/rm -f "$TEMPDIR/mpirand-$LOGNAME"*
     fi
+fi
+#
+# Provide an automatic way to run cleanipcs.  
+# If MPICH_CLEAN_IPCS is no, don't run the clean step
+if [ "$MPICH_CLEAN_IPCS" != "no" -a "$COMM" = "shared" ] ; then
+   if [ -x $sbindir/cleanipcs ] ; then
+       $sbindir/cleanipcs
+   fi
 fi
 exit $exitstatus

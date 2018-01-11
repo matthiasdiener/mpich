@@ -12,6 +12,7 @@ MDEP_CFLAGS = @MDEP_CFLAGS@
 MDEP_FFLAGS = @MDEP_FFLAGS@
 MDEP_LFLAGS = @MDEP_LFLAGS@
 P4_OBJ = @P4_OBJ@
+EXEEXT = @EXEEXT@
 SHELL = /bin/sh
 top_srcdir  = @top_srcdir@
 srcdir      = @srcdir@
@@ -59,15 +60,15 @@ example_configs: inetd.entry services.entry
 
 serv_p4: serv_p4.o
 	$(CLINKER) $(CFLAGS) -o serv_p4 serv_p4.o $(MDEP_LIBS)
-	/bin/mv serv_p4 ../bin
+	mv serv_p4$(EXEEXT) ../bin
 
 iserv_p4:$(P)  iserv_p4.o
 	$(CLINKER) $(CFLAGS) -o iserv_p4 iserv_p4.o $(LIBDIR)/libmpi.a
-	/bin/mv iserv_p4 ../bin
+	mv iserv_p4$(EXEEXT) ../bin
 
 killiserv_p4:$(P)  killiserv_p4.o
 	$(CLINKER) $(CFLAGS) -o killiserv_p4 killiserv_p4.o $(LIBDIR)/libmpi.a
-	/bin/mv killiserv_p4 ../bin
+	mv killiserv_p4$(EXEEXT) ../bin
 
 inetd.entry: inetd.entry.base
 	$(SED) -e 's,P4_PORT_NAME,$(P4_PORT_NAME),g' \

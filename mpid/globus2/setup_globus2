@@ -636,6 +636,17 @@ if test "$vmpi" = "yes" ; then
     check_vendor_datatype MPI_LONG_LONG_INT
 
     #
+    # Getting the size of vMPI MPI_Aint and passing that back
+    # up to configure at the top level in the variable MPI_AINT_SIZE
+    # so that MPICH can pick a C datatype to typedef its MPI_Aint
+    # that is exactly the same size as the vMPI's MPI_Aint.
+    # NOTE: MPI_Aint must be large enough to hold (void *), but 
+    #       it may be larger.
+    #
+    get_vendor_size MPI_Aint
+    MPI_AINT_SIZE = $VENDOR_MPI_AINT_SIZE
+
+    #
     # If the vendor's MPI doesn't support MPI_LONG_LONG or MPI_LONG_LONG_INT
     # then we need to disable long long support in MPICH
     #

@@ -114,9 +114,16 @@ char *(*pw_hook) ( char *, char *);
 	local_username = pw->pw_name;
     }
 
+    p4_dprintfl(50, "Sending user names local=%s remote=%s to server\n", 
+		local_username, username );
+
     send_string(conn, local_username);
     send_string(conn, username);
-    tv.tv_sec = 1;
+    /* The original code specified a one second timeout.  This was too
+       short in some cases.  Two seconds was adequate, but this really
+       needs to be looked at some more.  To make this more robust,
+       we now use 5 seconds.*/
+    tv.tv_sec  = 5;
     tv.tv_usec = 0;
     FD_ZERO(&rcv_fds);
     FD_SET(conn, &rcv_fds);
@@ -127,6 +134,13 @@ char *(*pw_hook) ( char *, char *);
     }
     else
     {
+	if (n < 0) {
+	    p4_dprintfl( 90, "Errno from select in server handshake is %d\n", errno );
+	}
+	else {
+	    p4_dprintfl( 90, "Timeout talking to server (%d seconds)\n", 
+			 tv.tv_sec );
+	}
 	start_prog_error = "Handshake with server failed";
 	return -3;
     }
@@ -319,6 +333,7 @@ char *str;
 
 }
 
+/* Receive from fd sock into buf which is of length len */
 static void recv_string(sock, buf, len)
 int sock, len;
 char *buf;

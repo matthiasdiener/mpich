@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_open.c,v 1.27 2004/05/20 07:43:36 David Exp $    
+ *   $Id: ad_open.c,v 1.28 2004/07/27 20:44:12 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,9 +9,9 @@
 #include "adio.h"
 #include "adio_extern.h"
 #include "adio_cb_config_list.h"
-#ifdef MPISGI
+/* #ifdef MPISGI
 #include "mpisgi2.h"
-#endif
+#endif */
 
 static int is_aggregator(int rank, ADIO_File fd);
 

@@ -72,7 +72,7 @@ public:
   //this is called from MPI::Real_init
   // g++ doesn't understand friends so this must be public :(
   inline void init() const {
-    (void)MPI_Errhandler_create(&throw_excptn_fctn,
+    (void)MPI_Errhandler_create((MPI_Handler_function*)&throw_excptn_fctn,
 				(MPI_Errhandler *)&mpi_errhandler); 
   }
 };

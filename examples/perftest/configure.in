@@ -14,8 +14,9 @@ AC_ARG_ENABLE(echo,
 [--enable-echo    - Turn on echoing from within the configure script],
 set -x)
 
-AC_ARG_ENABLE(strict,[--enable-strict - Turn on strict debugging with gcc],
-COPTIONS="$COPTIONS -Wall -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi")
+dnl PAC_ARG_CC_COMMON adds enable-strict
+dnl AC_ARG_ENABLE(strict,[--enable-strict - Turn on strict debugging with gcc],
+dnl COPTIONS="$COPTIONS -Wall -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi")
 
 AC_ARG_ENABLE(restrict,
 [--enable-restrict - Check for C restrict keyword (or similar)],

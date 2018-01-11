@@ -1,5 +1,5 @@
 dnl
-dnl rcsid = $Header: /home/MPI/cvsMaster/mpich/mpid/server/configure.in,v 1.14 2003/01/09 21:03:07 gropp Exp $
+dnl rcsid = $Header: /home/MPI/cvsMaster/mpich/mpid/server/configure.in,v 1.16 2004/07/02 21:05:34 gropp Exp $
 dnl
 dnl Caching is usually WRONG for systems with cross-mounted file systems
 dnl (the cache file may correspond to a different system).  Since configure
@@ -36,9 +36,10 @@ fi
 AC_CHECK_HEADERS(termios.h)
 AC_CHECK_HEADERS(fcntl.h)
 AC_CHECK_HEADERS(unistd.h)
-AC_CHECK_HEADERS(sys/select.h)
+AC_CHECK_HEADERS(sys/select.h stdlib.h)
 AC_CHECK_FUNCS(index rindex)
 AC_CHECK_FUNCS(seteuid setresuid)
+AC_CHECK_FUNCS(setegid setresgid)
 AC_CHECK_KERBEROS
 AC_CHECK_AFS
 dnl HAVE_SSL

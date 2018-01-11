@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_xfs_fcntl.c,v 1.13 2003/05/12 14:54:04 robl Exp $    
+ *   $Id: ad_xfs_fcntl.c,v 1.14 2004/07/27 20:44:08 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -8,9 +8,9 @@
 
 #include "ad_xfs.h"
 #include "adio_extern.h"
-#ifdef MPISGI
+/* #ifdef MPISGI
 #include "mpisgi2.h"
-#endif
+#endif */
 
 void ADIOI_XFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *error_code)
 {

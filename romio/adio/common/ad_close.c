@@ -1,15 +1,15 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_close.c,v 1.16 2003/10/20 18:50:42 thakur Exp $    
+ *   $Id: ad_close.c,v 1.17 2004/07/27 20:44:12 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "adio.h"
-#ifdef MPISGI
+/* #ifdef MPISGI
 #include "mpisgi2.h"
-#endif
+#endif */
 
 void ADIO_Close(ADIO_File fd, int *error_code)
 {

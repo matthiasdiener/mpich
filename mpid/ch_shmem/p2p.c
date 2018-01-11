@@ -32,6 +32,10 @@
 #include <signal.h>
 #endif
 
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+
 #define p2p_dprintf printf
 
 #if defined(USE_MMAP)

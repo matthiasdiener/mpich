@@ -140,11 +140,14 @@ int  xx_getbuf (struct head_trace_buf *);
 
 #endif
 
+#if !defined(HAVE_GETWD)
+/* At least for some of these systems, we can use getcwd for getwd */
 #if defined(IPSC860)      || defined(DELTA)        || \
     defined(PARAGON)      ||                          \
     defined(TITAN)        || defined(SYMMETRY_PTX) || \
     defined(HP)           || defined(NCUBE)
 #define getwd(X)  getcwd(X,sizeof(X))
+#endif
 #endif
 
 #if defined(CRAY) || defined(TITAN)  ||  defined(NCUBE)

@@ -51,7 +51,7 @@ public:
 
   // comparison
   inline MPI2CPP_BOOL_T operator== (const Group &a) {
-    return (MPI2CPP_BOOL_T)(pmpi_group == a);
+    return (MPI2CPP_BOOL_T)(pmpi_group == a.pmpi_group);
   }
   inline MPI2CPP_BOOL_T operator!= (const Group &a) { 
     return (MPI2CPP_BOOL_T)!(*this == a);

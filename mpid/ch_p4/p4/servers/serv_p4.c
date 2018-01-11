@@ -245,6 +245,8 @@ Usage: %s [-d] [-D] [-p port] [-l logfile] [-o]\n",argv[0]);
     }
     logfile_fd = fileno( logfile_fp );
 
+    /* Note that this may not set no buffering, depending on the flavor of
+       Unix */
     setbuf(logfile_fp, NULL);
     
     fprintf( logfile_fp, "%s pid=%d starting at %s, logfile fd is %d\n",
@@ -294,7 +296,7 @@ Usage: %s [-d] [-D] [-p port] [-l logfile] [-o]\n",argv[0]);
 		if (fd != lfd && fd != logfile_fd)
 		    close(fd);
 	    
-#ifdef P4SYSV
+#if defined(P4SYSV) || !defined(TIOCNOTTY)
 	    fd = open ("/dev/console", O_RDWR);
 	    if (fd < 0)
 		fd = open ("/dev/tty", O_RDWR);
@@ -312,6 +314,7 @@ Usage: %s [-d] [-D] [-p port] [-l logfile] [-o]\n",argv[0]);
                version takes no arguments) */
 	    (void) setpgrp();
 #else
+	    /* Does anyone remember why we open / and forget the fd? */
 	    (void) open("/", 0);
 	    (void) dup2(0, 1);
 	    (void) dup2(0, 2);
@@ -348,7 +351,7 @@ Usage: %s [-d] [-D] [-p port] [-l logfile] [-o]\n",argv[0]);
 		    int ttyfd = open("/dev/tty",O_RDWR);
 		    if (ttyfd >= 0)
 		    {
-#    if !defined(CRAY)
+#    if !defined(CRAY) && defined(TIOCNOTTY)
 			ioctl(ttyfd, TIOCNOTTY, 0);
 #    endif
 			close(ttyfd);
@@ -432,7 +435,12 @@ int fd;
     if (this_uid != 0)
 	fprintf( logfile_fp, "WARNING: Not run as root\n");
 
+#ifdef HAVE_SETBUF_WITH_NULL
+    /* SYS V says that a NULL second argument causes no-buffering; other 
+       systems say that a NULL tells setbuf to allocate a buffer.  However,
+       this may require that we introduce more fflush commands */
     setbuf(stdout_fp, NULL);
+#endif
 
     fprintf( logfile_fp, "Got connection at %s", timestamp());
 
@@ -453,7 +461,7 @@ int fd;
     if (hp == NULL)
 	failure2("Cannot get remote address for %s", fromhost);
 
-    fromhost = hp->h_name;
+    fromhost = (char *) (hp->h_name);
 
     if (!getline(client_user, sizeof(client_user)))
 	failure("No client user");
@@ -480,19 +488,31 @@ int fd;
     {
 	char user_pw[80];
 	char *xpw;
+
+	fprintf( logfile_fp, "Ruserok failed, asking for password at %s\n", 
+		 timestamp() );
 	
-	fprintf( stdout_fp, "Password\n");
+	if (fprintf( stdout_fp, "Password\n") <= 0) {
+	    failure("Write to client failed as password" );
+	}
+	fflush( stdout_fp );
+
 	if (!getline(user_pw, sizeof(user_pw)))
-	    failure("No server user");
+	    failure("No server user (for authorization)");
 
 	xpw = crypt(user_pw, pw->pw_passwd);
 	if (strcmp(pw->pw_passwd, xpw) != 0)
 	    failure("Invalid password");
 
-	fprintf( stdout_fp, "Proceed\n");
+	if (fprintf( stdout_fp, "Proceed\n") <= 0) {
+	    failure("Write to client failed at Proceed" );
+	}
     }
-    else
-	fprintf( stdout_fp, "Proceed\n");
+    else {
+	if (fprintf( stdout_fp, "Proceed\n") <= 0) {
+	    failure( "Write to client failed at Proceed" );
+	}
+    }
     /* Make sure that the proceed message is delivered */
     fflush( stdout_fp );
 

@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: mpioprof.h,v 1.9 2003/09/08 13:32:48 gropp Exp $    
+ *   $Id: mpioprof.h,v 1.10 2004/05/28 23:05:41 David Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -140,8 +140,10 @@
 #endif
 
 #undef MPIO_Test
+#undef PMPIO_Test
 #define MPIO_Test PMPIO_Test
 #undef MPIO_Wait
+#undef PMPIO_Wait
 #define MPIO_Wait PMPIO_Wait
 #undef MPIO_Testall
 #define MPIO_Testall PMPIO_Testall
@@ -186,5 +188,12 @@
 #define MPI_Info_f2c PMPI_Info_f2c
 
 #endif
+
+#undef MPI_Grequest_start
+#define MPI_Grequest_start PMPI_Grequest_start
+#undef MPI_Grequest_complete
+#define MPI_Grequest_complete PMPI_Grequest_complete
+#undef MPI_Status_set_cancelled
+#define MPI_Status_set_cancelled PMPI_Status_set_cancelled
 
 #endif

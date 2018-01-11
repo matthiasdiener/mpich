@@ -327,7 +327,10 @@ fi
 # level configure
 RSHCOMMAND="${RSHCOMMAND-$rshcommand}"
 echo "Configuring mpd subsystem..."
+# We set CFLAGS to ensure that mpd gets, in particular, any Shared library
+# options.
 (cd mpid/mpd ; \
+    CFLAGS="$USER_CFLAGS $P4_CFLAGS $CC_SHARED_OPT" \
     export VPATH ; export RSHCOMMAND ;\
     export CC ; export CLINKER ; export CFLAGS ; export CC_SHARED_OPT ; \
     export SHAREDKIND ; \
@@ -370,6 +373,7 @@ EOF
 echo "Finished configuring the mpd subsystem"
 # Run configure in the device directory
 export CC 
+export CFLAGS
 export VPATH
 ( cd mpid/ch_p4mpd ; export VPATH ; export RSHCOMMAND ;\
   $top_srcdir/mpid/ch_p4mpd/configure --srcdir=$top_srcdir/mpid/ch_p4mpd)

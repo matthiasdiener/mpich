@@ -1,15 +1,15 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: iscontig.c,v 1.7 2003/01/07 21:31:16 thakur Exp $    
+ *   $Id: iscontig.c,v 1.8 2004/07/27 20:44:13 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "adio.h"
-#ifdef MPISGI
+/* #ifdef MPISGI
 #include "mpisgi2.h"
-#endif
+#endif */
 
 #if (defined(MPICH) || defined(MPICH2))
 /* MPICH2 also provides this routine */

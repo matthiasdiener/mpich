@@ -98,6 +98,10 @@ AC_ARG_WITH(subname,
               --with-mpichconfig],
 subname=$withval,subname="")
 
+# Propagate any optimization flags
+AC_SUBST(OPTFLAGS)
+AC_SUBST(OPTFLAGSF)
+
 PAC_ARG_MPICH_BUILDING
 
 if test -n "$subname" -a -z "$mpichconfig_file" ; then
@@ -218,6 +222,11 @@ else
     AR=ar
 fi
 AC_SUBST(AR)
+# We need ranlib as well
+if test -z "$RANLIB" ; then
+    AC_PROG_RANLIB
+fi
+
 # allow for a different linker for Fortran programs
 AC_SUBST(F77LINKER)
 if test -z "$F77LINKER" ; then

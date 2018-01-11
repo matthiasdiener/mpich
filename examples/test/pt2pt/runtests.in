@@ -159,6 +159,11 @@ RunTest cancelmessages 2 "**** Checking MPI_Cancel (short/eager/rndv) ****"
 
 RunTest cancelibm 2 "**** Checking MPI_Cancel (successful/nonsuccessful) ****"
 
+# This test exposes a SEGV in the MPICH1 code.  However, this is an
+# uncommon situtation.  Users who need this feature should switch to 
+# MPICH2 (www.mcs.anl.gov/mpi/mpich2)
+#RunTest cancelissend 2 "**** Checking MPI_Cancel and MPI_Issend (short msgs) ****"
+
 RunTest sndrcv 2 "**** Testing MPI_Sendrecv ****"
 
 RunTest sndrcvrep 2 "**** Testing MPI_Sendrecv_replace ****"

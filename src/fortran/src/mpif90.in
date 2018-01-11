@@ -181,12 +181,12 @@ for arg in "$@" ; do
 	F90=`echo A$arg | sed -e 's/A-f90=//g'`
 	F90LINKER="$F90"
 	;;
-	-compile_info)
+	-compile_info|-compile-info)
 	show_compile=1
 	DoLink=0
 	Show=echo
 	;;
-	-link_info)
+	-link_info|-link-info)
 	show_link=1
 	Show=echo
 	;;
@@ -225,8 +225,8 @@ In addition, the following special options are supported
                  this compiler.
     -show      - Show the commands that would be used without
                  runnning them
-    -compile_info - Show how to compile a program
-    -link_info - Show how to link a program
+    -compile-info - Show how to compile a program
+    -link-info - Show how to link a program
     -help      - Give this help
     -echo      - Show exactly what this program is doing.
                  This option should normally not be used.
@@ -405,13 +405,13 @@ if [ $DoLink = 1 -o $show_link = 1 ] ; then
 	fi
 	mpilibs="-l${FLIBNAME}farg $mpilibs" 
     fi
-    $Show $F90LINKER $F90_LDFLAGS $LDFLAGS $BASE_FFLAGS $flibpath ${F90LIB_PATH_LEADER}${F90LIB_PATH} $linkobjs $MPILOG $linkargs $mpilibs $BASE_LIB_LIST $FLIB_LIST
+    $Show $F90LINKER $F90_LDFLAGS $LDFLAGS $BASE_FFLAGS $flibpath ${F90LIB_PATH_LEADER}${F90LIB_PATH} $linkobjs $linkargs $MPILOG $mpilibs $BASE_LIB_LIST $FLIB_LIST
     status=$?
 fi
 #
 # If we added the link, remove it.
 if [ $added_link = 1 ] ; then
-    $Show rm mpif.h
+    $Show rm -f mpif.h
     trap 0
 fi
 exit $status

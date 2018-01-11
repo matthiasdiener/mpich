@@ -147,6 +147,7 @@ else
 	    -e 's/NeXT/NEXT/g'             -e 's/paragon/PARAGONIP/g'     \
 	    -e 's/inteldelta/DELTA/g'      -e 's/symmetry/SYMMETRY/g'\
 	    -e 's/cray/CRAY/g'             -e 's/tc2000/TC_2000/g'   \
+            -e 's/freebsd_ppc/FREEBSD_PPC/g' \
 	    -e 's/ksr/KSR/g'               -e 's/freebsd/FREEBSD/g'  \
 	    -e 's/cm5/CM5/g'               -e 's/meiko/MEIKO_CS2/g'  \
             -e 's/rs6000/RS6000/g'	   -e 's/symm_ptx/SYMMETRY_PTX/g' \
@@ -192,13 +193,13 @@ fi
 #     for an rsh command
 #     To check whether shared-memory works
 RSHCOMMAND="${RSHCOMMAND-$rshcommand}"
-export CC ; export RSHCOMMAND 
+export CC ; export CFLAGS ; export RSHCOMMAND 
 export CROSS_SIZEOF_INT ; export CROSS_SIZEOF_LONG
 # Remove the configuration file if present
 rm -f $top_srcdir/mpid/ch_p4/mpich-mpid.h mpid/ch_p4/mpich-mpid.h mpid/ch_p4/localdefs
 # Export ARCH so that the machines file will get made in the right place
 (cd mpid/ch_p4 ; export ARCH ; \
-"$top_srcdir/mpid/ch_p4/configure" --with-comm=$COMM ) # --srcdir=$srcdir)
+"$top_srcdir/mpid/ch_p4/configure" --with-comm=$COMM $otherargs) # --srcdir=$srcdir)
 # Variable assignments from configure are in localdefs
 if [ ! -f mpid/ch_p4/localdefs ] ; then
     echo "Failed to build file of local definitions"
@@ -273,7 +274,7 @@ IS_HETERO=1
 if [ ! -d mpid/server ] ; then mkdir mpid/server ; fi
 echo "Configuring new p4 secure server"
 (cd mpid/server ; \
-    CC="$CC" ; export CC ; \
+    CC="$CC" ; export CC ; export CFLAGS ; \
     "$top_srcdir/mpid/server/configure" )
 if test $? != 0 ; then
     print_error "Configure of the secure server may have failed!"

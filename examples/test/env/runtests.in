@@ -63,7 +63,7 @@ for arg in "$@" ; do
 done
 
 # If the programs are not available, run make.
-if [ ! -x sigchk -a $makeeach = 0 -a $runtests = 1 ] ; then
+if [ ! -x timers -a $makeeach = 0 -a $runtests = 1 ] ; then
     $MAKE default
 fi
 #
@@ -82,7 +82,11 @@ RunTest errhand 1 "*** Tests of error handling ***"
 
 RunTest errhand2 1 "*** Tests of error handling reference counting ***"
 
-RunTest sigchk 1 "*** Tests of signals used ***"
+# Do not run sigchk by default because it generates warnings that are not
+# errors, and the basic test should be clean
+if [ "$MPICH_TESTS_SIGCHK" = yes ] ; then
+    RunTest sigchk 1 "*** Tests of signals used ***"
+fi
 
 RunTest getproc 1 "*** Test Get Processor Name ***"
 

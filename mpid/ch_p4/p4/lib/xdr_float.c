@@ -30,7 +30,7 @@
 #if defined(LIBC_SCCS) && !defined(lint)
 /*static char *sccsid = "from: @(#)xdr_float.c 1.12 87/08/11 Copyr 1984 Sun Micro";*/
 /*static char *sccsid = "from: @(#)xdr_float.c	2.1 88/07/29 4.0 RPCSRC";*/
-static char *rcsid = "$Id: xdr_float.c,v 1.2 2001/07/13 20:45:39 gropp Exp $";
+static char *rcsid = "$Id: xdr_float.c,v 1.3 2004/06/07 12:54:03 gropp Exp $";
 #endif
 
 /*
@@ -47,6 +47,13 @@ static char *rcsid = "$Id: xdr_float.c,v 1.2 2001/07/13 20:45:39 gropp Exp $";
 #include <sys/types.h>
 #include <sys/param.h>
 #include <rpc/types.h>
+#ifdef NEEDS_INT64_DEFINITION
+/* Some combinations of OS and compiler require a few definitions (normally 
+   included in sys/types.h but sometimes skipped depending on compiler 
+   flags).  See configure.in for more details. */
+typedef long long int64_t;
+typedef unsigned long long uint64_t;
+#endif
 #include <rpc/xdr.h>
 
 /*

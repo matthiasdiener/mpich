@@ -236,7 +236,7 @@ specify options for just the C or Fortran compilers.  Use -cflags and
 -fflags for options not related to optimization.  
 
 Note that the '-opt' options are not passed to the 'mpicc', 'mpif77', 
-'mpiCC', and 'mpif90' scripts.  The '-opt' options are used only in 
+'mpicxx', and 'mpif90' scripts.  The '-opt' options are used only in 
 building MPICH.
 
 The option '-lib' allows you to specify the location of a library that
@@ -1363,6 +1363,11 @@ esac
 # Save the original args to write them into config.status later.
 configure_args="$*"
 
+#
+# Export variables that should be used by all called scripts and configure
+export OPTFLAGS
+export OPTFLAGSC
+export OPTFLAGSF
 
 # We may need to delete this
 
@@ -7317,7 +7322,7 @@ if test -f "$srcdir/mpid/$DEVICE/$device_setupfile" ; then
     if test ! -x "$top_srcdir_val/mpid/$DEVICE/configure" -a \
 	      -s "$top_srcdir_val/mpid/$DEVICE/configure.in" -a \
 	      -x "$top_srcdir_val/mpid/$DEVICE/makeconfigure" ; then
-	(cd "$top_srcdir_val/mpid/$DEVICE" ; ./makeconfigure)
+	(cd "$top_srcdir_val/mpid/$DEVICE" && ./makeconfigure)
     fi
     echo "Running device-specific setup program"
     #
@@ -11083,6 +11088,9 @@ DEFS="$SAVEDEFS"
 #
 # Test that the functions used by the device are availble to the C++ and
 # Fortran compilers.
+# FIXME:
+# Not all systems use or need gethostbyname.  (One was Jason OS)
+# The name of these functions should be provided by the device.
 testfuncs="gethostbyname"
 if test -n "$device_functions" ; then 
     testfuncs="$testfuncs $device_functions"
@@ -14175,7 +14183,12 @@ SEDDEFS="${SEDDEFS}\${SEDdA}POINTER_64_BITS\${SEDdB}POINTER_64_BITS\${SEDdC}1\${
 }
 
 fi
-Pac_name="void *"
+# Normally, we compute AINT_SIZE to be the same as the size of void *.  
+# However, in some situations, we may want to use something larger
+# than the size of void*.  By setting MPI_AINT_SIZE, we can bypass the
+# code that computes the size of void *
+if test -z "MPI_AINT_SIZE" ; then
+    Pac_name="void *"
  Pac_varname=`echo "$Pac_name" | sed -e 's/ /_/g' -e 's/\*/star/g'`
 eval Pac_testval=\$"${Pac_varname}_len"
 if test -z "$Pac_testval" ; then
@@ -14293,9 +14306,10 @@ echo "$ac_t""unavailable" 1>&1
 fi
  fi
 fi
-address_size=$Pac_CV_NAME
+MPI_AINT_SIZE=$Pac_CV_NAME
 
-if test "$address_size" != "unknown" ; then
+fi
+if test "$MPI_AINT_SIZE" != "unknown" ; then
     if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
@@ -14327,14 +14341,15 @@ echo "$ac_t"""
 else
 echo "$ac_t""" 1>&1
 fi
-    for c_type in int long short "long long" ; do
-        Pac_name="$c_type"
+    # We'd like to use a loop here, but the pac GET_TYPE_SIZE
+    # macro requires an autoconf-time constant
+    Pac_name="int"
  Pac_varname=`echo "$Pac_name" | sed -e 's/ /_/g' -e 's/\*/star/g'`
 eval Pac_testval=\$"${Pac_varname}_len"
 if test -z "$Pac_testval" ; then
    
       
-   eval Pac_testval=\$"CROSS_SIZEOF_$C_TYPE"
+   eval Pac_testval=\$"CROSS_SIZEOF_INT"
 fi
 if test -n "$Pac_testval" ; then
     Pac_CV_NAME=$Pac_testval
@@ -14448,12 +14463,388 @@ fi
 fi
 type_len=$Pac_CV_NAME
 
-        if test "$type_len" = "$address_size" ; then
-            MPI_AINT_FOUND=yes
-	    MPI_AINT=$c_type
-            break
+    if test "$type_len" = "$MPI_AINT_SIZE" ; then
+        MPI_AINT_FOUND=yes
+        MPI_AINT=int
+    fi
+    if test "$MPI_AINT_FOUND" != yes ; then 
+        Pac_name="long"
+ Pac_varname=`echo "$Pac_name" | sed -e 's/ /_/g' -e 's/\*/star/g'`
+eval Pac_testval=\$"${Pac_varname}_len"
+if test -z "$Pac_testval" ; then
+   
+      
+   eval Pac_testval=\$"CROSS_SIZEOF_LONG"
+fi
+if test -n "$Pac_testval" ; then
+    Pac_CV_NAME=$Pac_testval
+else
+ if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for size of $Pac_name""... $ac_c"
+else
+echo $ac_n "checking for size of $Pac_name""... $ac_c" 1>&1
+fi
+ /bin/rm -f conftestval
+ 
+
+if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
+    
+    Pac_CV_NAME=0
+else
+    if test -n "$TESTCC" ; then
+      CCsav="$CC"
+      CC="$TESTCC"
+    fi
+    cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <stdio.h>
+main() { 
+  FILE *f=fopen("conftestval","w");
+  if (!f) exit(1);
+  fprintf( f, "%d\n", sizeof($Pac_name));
+  exit(0);
+}
+EOF
+        if test -n "$compile" ; then 	
+	eval $compile
+    else
+	eval $ac_compile
+	eval $ac_link
+    fi
+    if test ! -s conftest ; then
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
         fi
-    done
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
+    Pac_CV_NAME=""
+
+    else
+      /bin/rm -f conftestout
+      if test -s conftest && (./conftest; exit) 2>conftestout; then
+          Pac_CV_NAME=`cat conftestval`
+
+      else
+        Pac_CV_NAME=""
+
+	if test -s conftestout ; then cat conftestout >> config.log ; fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
+        
+      fi
+    fi
+  if test -n "$TESTCC" ; then
+        CC="$CCsav"
+  fi
+  rm -fr conftest*
+fi
+
+ if test -n "$Pac_CV_NAME" -a "$Pac_CV_NAME" != 0 ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""$Pac_CV_NAME"
+else
+echo "$ac_t""$Pac_CV_NAME" 1>&1
+fi
+    eval ${Pac_varname}_len=$Pac_CV_NAME
+ else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""unavailable"
+else
+echo "$ac_t""unavailable" 1>&1
+fi
+ fi
+fi
+type_len=$Pac_CV_NAME
+
+        if test "$type_len" = "$MPI_AINT_SIZE" ; then
+            MPI_AINT_FOUND=yes
+            MPI_AINT=long
+        fi
+    fi
+    if test "$MPI_AINT_FOUND" != yes ; then 
+        Pac_name="short"
+ Pac_varname=`echo "$Pac_name" | sed -e 's/ /_/g' -e 's/\*/star/g'`
+eval Pac_testval=\$"${Pac_varname}_len"
+if test -z "$Pac_testval" ; then
+   
+      
+   eval Pac_testval=\$"CROSS_SIZEOF_SHORT"
+fi
+if test -n "$Pac_testval" ; then
+    Pac_CV_NAME=$Pac_testval
+else
+ if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for size of $Pac_name""... $ac_c"
+else
+echo $ac_n "checking for size of $Pac_name""... $ac_c" 1>&1
+fi
+ /bin/rm -f conftestval
+ 
+
+if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
+    
+    Pac_CV_NAME=0
+else
+    if test -n "$TESTCC" ; then
+      CCsav="$CC"
+      CC="$TESTCC"
+    fi
+    cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <stdio.h>
+main() { 
+  FILE *f=fopen("conftestval","w");
+  if (!f) exit(1);
+  fprintf( f, "%d\n", sizeof($Pac_name));
+  exit(0);
+}
+EOF
+        if test -n "$compile" ; then 	
+	eval $compile
+    else
+	eval $ac_compile
+	eval $ac_link
+    fi
+    if test ! -s conftest ; then
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
+    Pac_CV_NAME=""
+
+    else
+      /bin/rm -f conftestout
+      if test -s conftest && (./conftest; exit) 2>conftestout; then
+          Pac_CV_NAME=`cat conftestval`
+
+      else
+        Pac_CV_NAME=""
+
+	if test -s conftestout ; then cat conftestout >> config.log ; fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
+        
+      fi
+    fi
+  if test -n "$TESTCC" ; then
+        CC="$CCsav"
+  fi
+  rm -fr conftest*
+fi
+
+ if test -n "$Pac_CV_NAME" -a "$Pac_CV_NAME" != 0 ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""$Pac_CV_NAME"
+else
+echo "$ac_t""$Pac_CV_NAME" 1>&1
+fi
+    eval ${Pac_varname}_len=$Pac_CV_NAME
+ else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""unavailable"
+else
+echo "$ac_t""unavailable" 1>&1
+fi
+ fi
+fi
+type_len=$Pac_CV_NAME
+
+        if test "$type_len" = "$MPI_AINT_SIZE" ; then
+            MPI_AINT_FOUND=yes
+            MPI_AINT=short
+        fi
+    fi
+    if test "$MPI_AINT_FOUND" != yes ; then 
+        Pac_name="long long"
+ Pac_varname=`echo "$Pac_name" | sed -e 's/ /_/g' -e 's/\*/star/g'`
+eval Pac_testval=\$"${Pac_varname}_len"
+if test -z "$Pac_testval" ; then
+   
+      
+   eval Pac_testval=\$"CROSS_SIZEOF_LONG_LONG"
+fi
+if test -n "$Pac_testval" ; then
+    Pac_CV_NAME=$Pac_testval
+else
+ if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for size of $Pac_name""... $ac_c"
+else
+echo $ac_n "checking for size of $Pac_name""... $ac_c" 1>&1
+fi
+ /bin/rm -f conftestval
+ 
+
+if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
+    
+    Pac_CV_NAME=0
+else
+    if test -n "$TESTCC" ; then
+      CCsav="$CC"
+      CC="$TESTCC"
+    fi
+    cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <stdio.h>
+main() { 
+  FILE *f=fopen("conftestval","w");
+  if (!f) exit(1);
+  fprintf( f, "%d\n", sizeof($Pac_name));
+  exit(0);
+}
+EOF
+        if test -n "$compile" ; then 	
+	eval $compile
+    else
+	eval $ac_compile
+	eval $ac_link
+    fi
+    if test ! -s conftest ; then
+        echo "Could not build executable program:" >>config.log
+        if test -n "$compile" ; then
+	    # Autoconf defined a compile command with all output to dev null
+	    # For the configure log, rerun without the redirection
+	    compiletmp='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+	    echo $compiletmp >>config.log
+	    eval $compiletmp 
+	    echo "Return status was $?" >>config.log
+        else
+	    echo $ac_compile >>config.log
+   	    eval $ac_compile >>config.log 2>&1
+	    echo $ac_link >>config.log
+	    eval $ac_link >>config.log 2>&1
+        fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
+    Pac_CV_NAME=""
+
+    else
+      /bin/rm -f conftestout
+      if test -s conftest && (./conftest; exit) 2>conftestout; then
+          Pac_CV_NAME=`cat conftestval`
+
+      else
+        Pac_CV_NAME=""
+
+	if test -s conftestout ; then cat conftestout >> config.log ; fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
+        
+      fi
+    fi
+  if test -n "$TESTCC" ; then
+        CC="$CCsav"
+  fi
+  rm -fr conftest*
+fi
+
+ if test -n "$Pac_CV_NAME" -a "$Pac_CV_NAME" != 0 ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""$Pac_CV_NAME"
+else
+echo "$ac_t""$Pac_CV_NAME" 1>&1
+fi
+    eval ${Pac_varname}_len=$Pac_CV_NAME
+ else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""unavailable"
+else
+echo "$ac_t""unavailable" 1>&1
+fi
+ fi
+fi
+type_len=$Pac_CV_NAME
+
+        if test "$type_len" = "$MPI_AINT_SIZE" ; then
+            MPI_AINT_FOUND=yes
+            MPI_AINT="long long"
+        fi
+    fi
     
 if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo $ac_n "C integer type for MPI_Aint is""... $ac_c"
@@ -15587,7 +15978,7 @@ fi
 if test "$NO_F90" = "0" ; then 
     MPIF90=$binbuild_dir/mpif90
 fi
-MPICPLUSPLUS=$binbuild_dir/mpiCC
+MPICPLUSPLUS=$binbuild_dir/mpicxx
 ### FIXME: IS THIS CORRECT OR NEEDED???
 LIB_DIR=$exec_prefix
 #
@@ -15618,7 +16009,7 @@ if test "$NOF77" != 1 ; then
   if test ! -x "$top_srcdir_val/src/fortran/configure" -a \
             -s "$top_srcdir_val/src/fortran/configure.in" -a \
 	    -x "$top_srcdir_val/src/fortran/makeconfigure" ; then
-      (cd "$top_srcdir_val/src/fortran" ; ./makeconfigure)
+      (cd "$top_srcdir_val/src/fortran" && ./makeconfigure)
   fi
   # The test versions (e.g., TESTCC) are used for cross-compilation cases when
   # they allow programs to be built and run
@@ -15887,6 +16278,9 @@ if test $ROMIO = 1 -a -d "${top_srcdir}/romio" ; then
   MPI_BIN_DIR=$binbuild_dir 
   MPI_LIB=$libbuild_dir/lib$MPILIBNAME.a
   MPI_INCLUDE_DIR=$includebuild_dir
+  # We force the romio configure to use a null cache file.  Without this,
+  # ROMIO may pick up its local config.cache, which may not be current
+  # (autoconf caching is very dangerous)
   (cd romio ; \
   LIBNAME=$libbuild_dir/lib$MPILIBNAME.a ; export LIBNAME ; \
   export MPI_BIN_DIR ; export MPI_LIB ; export MPI_INCLUDE_DIR ; \
@@ -15901,7 +16295,8 @@ if test $ROMIO = 1 -a -d "${top_srcdir}/romio" ; then
   export int_len ; export void_star_len ; export OFFSET_KIND ; \
   export long_long_len ; \
   "${top_srcdir}/romio/configure" $ROMIO_ARGS $ROMIO_FILE_SYSTEM \
-            --with-mpi=mpich $romio_config_args $enable_args $with_args )
+            --with-mpi=mpich $romio_config_args $enable_args $with_args \
+            --cache-file=/dev/null )
   rc=$?
   if test "$rc" != 0 ; then
       if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -15956,8 +16351,11 @@ exit 1
   # If a VPATH build, the examples dir may not exist
   if test ! -d examples ; then mkdir examples ; fi
   if test ! -d examples/test ; then mkdir examples/test ; fi
-  (cd examples; \rm -f io; ln -s ../romio/test io; \
-   (cd test; \rm -f io; ln -s ../../romio/test io))
+  # We do not create the io link because we need to have the 
+  # test configure create these files, using sources copied from
+  # the romio distribution
+  (cd examples && rm -f io && ln -s ../romio/test io )
+  #  (cd examples/test && rm -f io && ln -s ../../romio/test io)
   echo "Finished configuring ROMIO"
 fi
 if test "$ROMIO" = 1 ; then
@@ -16007,6 +16405,62 @@ fi
 if test "$Use_Intercomm_coll" = "yes" ; then
     MPI2OPTIONAL="src/coll2"
 fi
+#
+# Check for the command line format for head.  Some versions of the GNU
+# utilities no longer accept the arguments for the classic head command,
+# making any script that uses head non-portable (this was a very bad thing
+# for GNU to do).
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking whether head command is broken""... $ac_c"
+else
+echo $ac_n "checking whether head command is broken""... $ac_c" 1>&1
+fi
+ac_cv_prog_head_ok=no
+rm -f conftest
+echo "line 1" > conftest
+echo "line 2" >> conftest
+nline=`head -1 conftest 2>&1`
+if test "$nline" = "line 1" ; then
+    ac_cv_prog_head_ok=yes
+fi
+rm -f conftest
+if test "$ac_cv_prog_head_ok" = yes ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    HEADARG="-"
+else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes (incompatible syntax)"
+else
+echo "$ac_t""yes (incompatible syntax)" 1>&1
+fi
+    HEADARG="-n "
+fi
+
 #
 # Substitute variables
 # Variables used in scripts only
@@ -16176,6 +16630,7 @@ F77_IN_C_LIBS='$F77_IN_C_LIBS'
 F90_SUFFIX='$F90_SUFFIX'
 F90_MODINCFLAG='$F90_MODINCFLAG'
 FLIBNAME='$FLIBNAME'
+HEADARG='$HEADARG'
 AUTOMOUNTFIX='$AUTOMOUNTFIX'
 RSHCOMMAND='$RSHCOMMAND'
 SYNCLOC='$SYNCLOC'
@@ -16345,6 +16800,7 @@ s%@F77_IN_C_LIBS@%$F77_IN_C_LIBS%g
 s%@F90_SUFFIX@%$F90_SUFFIX%g
 s%@F90_MODINCFLAG@%$F90_MODINCFLAG%g
 s%@FLIBNAME@%$FLIBNAME%g
+s%@HEADARG@%$HEADARG%g
 s%@AUTOMOUNTFIX@%$AUTOMOUNTFIX%g
 s%@RSHCOMMAND@%$RSHCOMMAND%g
 s%@SYNCLOC@%$SYNCLOC%g
@@ -16369,8 +16825,8 @@ s%@DEFAULT_MACHINE@%$DEFAULT_MACHINE%g
 s%@DEVCFLAGS@%$DEVCFLAGS%g
 s%@DEVCFILES@%$DEVCFILES%g
 s%@DEVOFILES@%$DEVOFILES%g
-s%@DEV_DEFS@%$DEV_DEFS%g
-s%@DEVICE@%$DEVICE%g" | sed -e "
+s%@DEV_DEFS@%$DEV_DEFS%g" | sed -e "
+s%@DEVICE@%$DEVICE%g
 s%@DEVICE_MAKE_INCLUDE@%$DEVICE_MAKE_INCLUDE%g
 s%@F77@%$F77%g
 s%@FAST_COPY@%$FAST_COPY%g
@@ -16411,8 +16867,8 @@ s%@NEWTESTDIRS@%$NEWTESTDIRS%g
 s%@OPTFLAGS@%$OPTFLAGS%g
 s%@OPTFLAGSC@%$OPTFLAGSC%g
 s%@OPTFLAGSF@%$OPTFLAGSF%g
-s%@P4_ARCH@%$P4_ARCH%g
-s%@P4_DIR@%$P4_DIR%g" | sed -e "
+s%@P4_ARCH@%$P4_ARCH%g" | sed -e "
+s%@P4_DIR@%$P4_DIR%g
 s%@RHS_COMMAND@%$RHS_COMMAND%g
 s%@PREFIX@%$PREFIX%g
 s%@USER_CFLAGS@%$USER_CFLAGS%g
@@ -16671,7 +17127,7 @@ fi
 if test ! -x "$top_srcdir_val/examples/perftest/configure" -a \
           -s "$top_srcdir_val/examples/perftest/configure.in" -a \
 	  -x "$top_srcdir_val/examples/perftest/makeconfigure" ; then
-    (cd "$top_srcdir_val/examples/perftest" ; ./makeconfigure)
+    (cd "$top_srcdir_val/examples/perftest" && ./makeconfigure)
 fi
 (cd examples/perftest ; \
     export MAKE ; export CC ; export F77 ; export MPICC ; export MPIF77 ; \

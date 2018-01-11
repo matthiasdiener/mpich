@@ -4,6 +4,14 @@
 /* The shmat code is present because, under AIX 4.x, it
    was suggested that shmat would be faster than mmap */
 
+/* To avoid problems with interrupts delivered while allocated shmat and
+   semaphores, we explicitly check for EINTR and retry.  To do this, 
+   we need errno.h */
+#if defined(HAVE_ERRNO_H) && !defined(INCLUDED_ERRNO_H)
+#define INCLUDED_ERRNO_H
+#include <errno.h>
+#endif
+
 #ifndef P2_MAX_SYSV_SEMIDS 
 #define P2_MAX_SYSV_SEMIDS 8
 #endif
@@ -163,18 +171,26 @@ static struct sembuf sem_unlock[1] = { { 0, 1, 0 } };
 void p2p_lock(p2p_lock_t *L)
 {
     sem_lock[0].sem_num = L->semnum;
-    if (semop(L->semid,&sem_lock[0],1) < 0)
+    while (semop(L->semid,&sem_lock[0],1) < 0)
     {
-        p2p_error("OOPS: semop lock failed\n",L->semid);
+	if (errno != EINTR) {
+	    p2p_error("OOPS: semop lock failed\n",L->semid);
+	    break;   /* The break should be unnecessary, but just in case 
+			p2p_error fails to exit */
+	}
     }
 }
 
 void p2p_unlock( p2p_lock_t *L)
 {
     sem_unlock[0].sem_num = L->semnum;
-    if (semop(L->semid,&sem_unlock[0],1) < 0)
+    while (semop(L->semid,&sem_unlock[0],1) < 0) 
     {
-        p2p_error("OOPS: semop unlock failed\n",L->semid);
+	if (errno != EINTR) {
+	    p2p_error("OOPS: semop unlock failed\n",L->semid);
+	    break;   /* The break should be unnecessary, but just in case 
+			p4_error fails to exit */
+	}
     }
 }
 
