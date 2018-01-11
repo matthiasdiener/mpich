@@ -1,5 +1,5 @@
 /*
- *  $Id: global_ops.c,v 1.10 2000/06/10 15:39:32 gropp Exp $
+ *  $Id: global_ops.c,v 1.12 2001/09/19 13:39:24 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -16,6 +16,12 @@ the datatype in most cases.
 
 #include "mpiimpl.h"
 #include "coll.h"
+
+/* SEBASTIEN L: EXPERIMENTS!!! */
+/* This should not be necessary; mpidefs.h is included by mpi.h */
+/* #include "mpidefs.h" */
+/* END OF EXPERIMENTATIONS */
+
 #ifndef MPID_NO_FORTRAN
 /* Eventually, this should include only the FLOG routines.  In fact,
    the Fortran part of this should be provided by routines in src/fortran
@@ -234,9 +240,13 @@ void MPIR_MINF (
   }
 }
 
-#ifndef MPIR_SUM
-#define MPIR_LSUM(a,b) ((a)+(b))
+#if 0
+#   ifndef MPIR_SUM
+#   define MPIR_LSUM(a,b) ((a)+(b))
+#   endif
 #endif
+
+#define MPIR_LSUM(a,b) ((a)+(b))
 
 void MPIR_SUM ( 
 	void *invec, 

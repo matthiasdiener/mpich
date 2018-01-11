@@ -1,5 +1,5 @@
 /*
- *  $Id: initutil.c,v 1.27 2001/08/14 14:43:48 lacour Exp $
+ *  $Id: initutil.c,v 1.28 2001/09/14 21:13:32 lacour Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -40,6 +40,12 @@
 
 /* #define DEBUG(a) {a}  */
 #define DEBUG(a)
+
+
+/* SEBASTIEN L: EXPERIMENTS!!! */
+#include "mpidefs.h"
+/* END OF EXPERIMENTATIONS */
+
 
 /* need to change these later */
 MPI_Info *MPIR_Infotable = NULL;
@@ -552,9 +558,12 @@ MPI_Errhandler       errhandler;
 }
 
 /* Change the reference count of errhandler by incr */
-#ifdef MPIR_ToPointer
-#undef MPIR_ToPointer
+#if 0
+#   ifdef MPIR_ToPointer
+#   undef MPIR_ToPointer
+#   endif
 #endif
+
 void MPIR_Errhandler_mark( errhandler, incr )
 MPI_Errhandler errhandler;
 int            incr;

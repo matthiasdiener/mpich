@@ -3,11 +3,6 @@
 
 #if defined(VMPI)
 
-
-/* SEBASTIEN L: experiments!!! */
-#include "global_c_symb.h"
-/* END OF EXPERIMENTS */
-
 /* 
  * THIS MUST BE THE VENDOR'S mpi.h ... NOT MPICH's, 
  * so we must make sure that this file is compiled WITHOUT MPICH's -I path.

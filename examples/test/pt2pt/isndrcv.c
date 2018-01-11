@@ -111,7 +111,7 @@ int bufferlen;
     for (i = 0; i < ntypes; i++) {
 	for (j = 0; j < bufferlen; j++) {
 	    if (buffertypes[i] == MPI_CHAR)
-		((char *)bufferspace[i])[j] = (char)j;
+		((char *)bufferspace[i])[j] = (char)(j & 0x7f);
 	    else if (buffertypes[i] == MPI_SHORT)
 		((short *)bufferspace[i])[j] = (short)j;
 	    else if (buffertypes[i] == MPI_INT)
@@ -149,8 +149,7 @@ int bufferlen;
     int j;
     for (j = 0; j < bufferlen; j++) {
 	if (buffertype == MPI_CHAR) {
-	    char val = *(char *)&j;
-	    if (((char *)bufferspace)[j] != val)
+	    if (((char *)bufferspace)[j] != (char)(j & 0x7f))
 		return 1;
 	} else if (buffertype == MPI_SHORT) {
 	    if (((short *)bufferspace)[j] != (short)j)

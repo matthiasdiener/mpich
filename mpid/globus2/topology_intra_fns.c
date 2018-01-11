@@ -119,6 +119,7 @@ MPID_FN_Barrier (struct MPIR_COMMUNICATOR *comm)
 
    for (n_req = 0, lvl = 0; lvl < n_set; lvl++)
       n_req += set_info.sets[lvl].size;
+   /* n_req == 0 is impossible here */
    req = (MPI_Request *) globus_libc_malloc (2 * n_req * sizeof(MPI_Request));
    if ( !req )
       MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2, "MPICH-G2 Internal",
@@ -161,8 +162,7 @@ MPID_FN_Barrier (struct MPIR_COMMUNICATOR *comm)
    }   /* endfor */
 
    /* exit the barrier (waiting again) */
-   if ( n_req )
-      mpi_errno = wait_barrier(req, n_req);
+   mpi_errno = wait_barrier(req, n_req);
    /* end of EXIT_FUZZY_BARRIER */
 
 clean_exit:
@@ -230,6 +230,8 @@ MPID_FN_Bcast (void *buffer, int count, struct MPIR_DATATYPE *datatype,
 
    for (n_req = 0, set = 0; set < n_set; set++)
       n_req += set_info.sets[set].size - 1;
+   /* n_req == 0 is impossible here, because count != 0 at this point:
+    * see test above. */
    req = (MPI_Request *) globus_libc_malloc (n_req * sizeof(MPI_Request));
    if ( !req )
       MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2, "MPICH-G2 Internal",
@@ -251,17 +253,20 @@ MPID_FN_Bcast (void *buffer, int count, struct MPIR_DATATYPE *datatype,
       if (mpi_errno) break;
    }   /* endfor */
 
-   status = (MPI_Status *) globus_libc_malloc (n_req * sizeof(MPI_Status));
-   if ( !status )
-      MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2, "MPICH-G2 Internal",
-                 "MPID_FN_Bcast() - failed malloc");
-   mpi_errno = MPI_Waitall(n_req, req, status);
+   if ( n_req )
+   {
+      status = (MPI_Status *) globus_libc_malloc (n_req * sizeof(MPI_Status));
+      if ( !status )
+         MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2, "MPICH-G2 Internal",
+                    "MPID_FN_Bcast() - failed malloc");
+      mpi_errno = MPI_Waitall(n_req, req, status);
+      g_free(status);
+   }
 
    /* Unlock for collective operation */
    MPID_THREAD_UNLOCK(comm->ADIctx,comm);
 
    g_free(req);
-   g_free(status);
    /* do not free "set_info.sets[...].set": they are pre-allocated pointers */
    /* do not free "set_info.sets": it is a pre-allocated pointer */
 
@@ -1034,6 +1039,7 @@ wait_barrier (MPI_Request *req, int n_req)
    MPI_Status *statuses;
    int mpi_errno = MPI_SUCCESS;
 
+   if ( !n_req ) return mpi_errno;
    statuses = (MPI_Status *) globus_libc_malloc (n_req * sizeof(MPI_Status));
    if ( !statuses )
       MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2, "MPICH-G2 Internal",

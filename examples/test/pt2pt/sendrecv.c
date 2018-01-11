@@ -115,7 +115,7 @@ void FillBuffers(bufferspace, buffertypes, num_types, bufferlen)
     for (i = 0; i < ntypes; i++) {
 	for (j = 0; j < bufferlen; j++) {
 	    if (buffertypes[i] == MPI_CHAR)
-		((char *)bufferspace[i])[j] = (char)j;
+		((char *)bufferspace[i])[j] = (char)(j & 0x7f);
 	    else if (buffertypes[i] == MPI_SHORT)
 		((short *)bufferspace[i])[j] = (short)j;
 	    else if (buffertypes[i] == MPI_INT)
@@ -159,10 +159,9 @@ CheckBuffer(bufferspace, buffertype, bufferlen)
     valerr[0] = 0;
     for (j = 0; j < bufferlen; j++) {
 	if (buffertype == MPI_CHAR) {
-	    char val = *(char *)&j;
-	    if (((char *)bufferspace)[j] != val) {
+	    if (((char *)bufferspace)[j] != (char)(j & 0x7f)) {
 		sprintf( valerr, "%x != %x", 
-			((char *)bufferspace)[j], val );
+			((char *)bufferspace)[j], (char)(j & 0x7f));
 		break;
 		}
 	} else if (buffertype == MPI_SHORT) {

@@ -90,8 +90,6 @@ setlinks: prebuild
 	ln -s ${top_srcdir}/mpid/ch2/chdebug.c .
 	rm -f chnodename.c
 	ln -s ${top_srcdir}/mpid/ch2/chnodename.c .
-#	rm -f chtick.c
-#	ln -s ${top_srcdir}/mpid/ch2/chtick.c .
 	rm -f dev.h
 	ln -s ${top_srcdir}/mpid/ch2/dev.h .
 	rm -f mpid.h
@@ -163,6 +161,30 @@ distclean: clean
 		   $(binbuild_dir)/mpich-globus2-CC			\
 		   $(binbuild_dir)/mpich-globus2-f77			\
 		   $(binbuild_dir)/mpich-globus2-f90
+	rm -f cmnargs.h
+	rm -f cmnargs.c
+	rm -f queue.h
+	rm -f queue.c
+	rm -f sbcnst2.h
+	rm -f sbcnst2.c
+	rm -f chdebug.c
+	rm -f chnodename.c
+	rm -f dev.h
+	rm -f mpid.h
+	rm -f attach.h
+	rm -f calltrace.h
+	rm -f chhetero.h
+	rm -f cookie.h
+	rm -f mpid_bind.h
+	rm -f objtrace.h
+	rm -f chpackflow.h
+	rm -f packets.h
+	rm -f mpid_debug.h
+	rm -f mpiddev.h
+	rm -f mpimem.h
+	rm -f tr2.h
+	rm -f channel.h
+	rm -f coll.h
 
 
 $(MPI_OBJECTS): dev.h req.h mpid.h
