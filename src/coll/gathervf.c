@@ -9,7 +9,57 @@
 #include <stdarg.h>
 #endif
 
-#ifdef MPI_BUILD_PROFILING
+
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_GATHERV = PMPI_GATHERV
+EXPORT_MPI_API void MPI_GATHERV ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_gatherv__ = pmpi_gatherv__
+EXPORT_MPI_API void mpi_gatherv__ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_gatherv = pmpi_gatherv
+EXPORT_MPI_API void mpi_gatherv ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_gatherv_ = pmpi_gatherv_
+EXPORT_MPI_API void mpi_gatherv_ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_GATHERV  MPI_GATHERV
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_gatherv__  mpi_gatherv__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_gatherv  mpi_gatherv
+#else
+#pragma _HP_SECONDARY_DEF pmpi_gatherv_  mpi_gatherv_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_GATHERV as PMPI_GATHERV
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_gatherv__ as pmpi_gatherv__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_gatherv as pmpi_gatherv
+#else
+#pragma _CRI duplicate mpi_gatherv_ as pmpi_gatherv_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_gatherv_ PMPI_GATHERV
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -19,7 +69,9 @@
 #else
 #define mpi_gatherv_ pmpi_gatherv_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_gatherv_ MPI_GATHERV
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -28,6 +80,7 @@
 #define mpi_gatherv_ mpi_gatherv
 #endif
 #endif
+
 
 #ifdef _CRAY
 #ifdef _TWO_WORD_FCD
@@ -109,23 +162,13 @@ if (_isfcd(recvbuf)) {
 #else
 /* Prototype to suppress warnings about missing prototypes */
 
-void mpi_gatherv_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, void *, 
+EXPORT_MPI_API void mpi_gatherv_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, void *, 
                               MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                               MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
-void mpi_gatherv_ ( sendbuf, sendcnt,  sendtype, 
-                  recvbuf, recvcnts, displs, recvtype, 
-                  root, comm, __ierr )
-void     *sendbuf;
-MPI_Fint *sendcnt;
-MPI_Fint *sendtype;
-void     *recvbuf;
-MPI_Fint *recvcnts;
-MPI_Fint *displs;
-MPI_Fint *recvtype;
-MPI_Fint *root;
-MPI_Fint *comm;
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_gatherv_ ( void *sendbuf, MPI_Fint *sendcnt,  MPI_Fint *sendtype, 
+                  void *recvbuf, MPI_Fint *recvcnts, MPI_Fint *displs, MPI_Fint *recvtype, 
+                  MPI_Fint *root, MPI_Fint *comm, MPI_Fint *__ierr )
 {
 
     if (sizeof(MPI_Fint) == sizeof(int)) 

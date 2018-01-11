@@ -9,7 +9,57 @@
 #include "mpiimpl.h"
 #include "mpimem.h"
 
-#ifdef MPI_BUILD_PROFILING
+
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_TYPE_GET_CONTENTS = PMPI_TYPE_GET_CONTENTS
+EXPORT_MPI_API void MPI_TYPE_GET_CONTENTS (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_type_get_contents__ = pmpi_type_get_contents__
+EXPORT_MPI_API void mpi_type_get_contents__ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_type_get_contents = pmpi_type_get_contents
+EXPORT_MPI_API void mpi_type_get_contents (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+#else
+#pragma weak mpi_type_get_contents_ = pmpi_type_get_contents_
+EXPORT_MPI_API void mpi_type_get_contents_ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_TYPE_GET_CONTENTS  MPI_TYPE_GET_CONTENTS
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_type_get_contents__  mpi_type_get_contents__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_type_get_contents  mpi_type_get_contents
+#else
+#pragma _HP_SECONDARY_DEF pmpi_type_get_contents_  mpi_type_get_contents_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_TYPE_GET_CONTENTS as PMPI_TYPE_GET_CONTENTS
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_type_get_contents__ as pmpi_type_get_contents__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_type_get_contents as pmpi_type_get_contents
+#else
+#pragma _CRI duplicate mpi_type_get_contents_ as pmpi_type_get_contents_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_type_get_contents_ PMPI_TYPE_GET_CONTENTS
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -19,7 +69,9 @@
 #else
 #define mpi_type_get_contents_ pmpi_type_get_contents_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_type_get_contents_ MPI_TYPE_GET_CONTENTS
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -29,21 +81,15 @@
 #endif
 #endif
 
+
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_type_get_contents_ ANSI_ARGS((MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+EXPORT_MPI_API void mpi_type_get_contents_ ANSI_ARGS((MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                        MPI_Fint *, MPI_Fint *, MPI_Fint *,
 				       MPI_Fint *, MPI_Fint *));
 
 /* Definitions of Fortran Wrapper routines */
-void mpi_type_get_contents_(datatype, max_integers, max_addresses, max_datatypes, array_of_integers, array_of_addresses, array_of_datatypes, __ierr )
-MPI_Fint  *datatype;
-MPI_Fint  *max_integers;
-MPI_Fint  *max_addresses;
-MPI_Fint  *max_datatypes;
-MPI_Fint  *array_of_integers;
-MPI_Fint  *array_of_addresses;
-MPI_Fint  *array_of_datatypes;
-MPI_Fint  *__ierr;
+EXPORT_MPI_API void mpi_type_get_contents_(MPI_Fint *datatype, MPI_Fint *max_integers, MPI_Fint *max_addresses, MPI_Fint *max_datatypes, 
+										   MPI_Fint *array_of_integers, MPI_Fint *array_of_addresses, MPI_Fint *array_of_datatypes, MPI_Fint *__ierr )
 {
     int i;
     int *l_array_of_integers;

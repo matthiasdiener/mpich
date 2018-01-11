@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_xfs_fcntl.c,v 1.2 1998/06/02 18:54:34 thakur Exp $    
+ *   $Id: ad_xfs_fcntl.c,v 1.3 1999/08/06 18:32:42 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -79,7 +79,7 @@ void ADIOI_XFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *er
 	break;
 
     case ADIO_FCNTL_GET_FSIZE:
-	fcntl_struct->fsize = lseek(fd->fd_sys, 0, SEEK_END);
+	fcntl_struct->fsize = lseek64(fd->fd_sys, 0, SEEK_END);
 	*error_code = (fcntl_struct->fsize == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
 	break;
 
@@ -90,7 +90,7 @@ void ADIOI_XFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *er
 	fl.l_len = fcntl_struct->diskspace;
 	err = fcntl(fd->fd_sys, F_RESVSP64, &fl);
 	if (err) i = 1;
-	if (fcntl_struct->diskspace > lseek(fd->fd_sys, 0, SEEK_END)) {
+	if (fcntl_struct->diskspace > lseek64(fd->fd_sys, 0, SEEK_END)) {
 	    /* also need to set the file size */
 	    err = ftruncate64(fd->fd_sys, fcntl_struct->diskspace);
 	    if (err) i = 1;

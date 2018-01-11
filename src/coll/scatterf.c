@@ -7,7 +7,57 @@
 #include <stdarg.h>
 #endif
 
-#ifdef MPI_BUILD_PROFILING
+
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_SCATTER = PMPI_SCATTER
+EXPORT_MPI_API void MPI_SCATTER ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_scatter__ = pmpi_scatter__
+EXPORT_MPI_API void mpi_scatter__ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_scatter = pmpi_scatter
+EXPORT_MPI_API void mpi_scatter ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_scatter_ = pmpi_scatter_
+EXPORT_MPI_API void mpi_scatter_ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_SCATTER  MPI_SCATTER
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_scatter__  mpi_scatter__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_scatter  mpi_scatter
+#else
+#pragma _HP_SECONDARY_DEF pmpi_scatter_  mpi_scatter_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_SCATTER as PMPI_SCATTER
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_scatter__ as pmpi_scatter__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_scatter as pmpi_scatter
+#else
+#pragma _CRI duplicate mpi_scatter_ as pmpi_scatter_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_scatter_ PMPI_SCATTER
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -17,7 +67,9 @@
 #else
 #define mpi_scatter_ pmpi_scatter_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_scatter_ MPI_SCATTER
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -26,6 +78,7 @@
 #define mpi_scatter_ mpi_scatter
 #endif
 #endif
+
 
 #ifdef _CRAY
 #ifdef _TWO_WORD_FCD
@@ -103,22 +156,13 @@ if (_isfcd(recvbuf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_scatter_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, 
+EXPORT_MPI_API void mpi_scatter_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, 
 			      void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                               MPI_Fint *, MPI_Fint * ));
 
-void mpi_scatter_ ( sendbuf, sendcnt, sendtype, 
-                    recvbuf, recvcnt, recvtype, 
-                    root, comm, __ierr )
-void     *sendbuf;
-MPI_Fint *sendcnt;
-MPI_Fint *sendtype;
-void     *recvbuf;
-MPI_Fint *recvcnt;
-MPI_Fint *recvtype;
-MPI_Fint *root;
-MPI_Fint *comm;
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_scatter_ ( void *sendbuf, MPI_Fint *sendcnt, MPI_Fint *sendtype, 
+                    void *recvbuf, MPI_Fint *recvcnt, MPI_Fint *recvtype, 
+                    MPI_Fint *root, MPI_Fint *comm, MPI_Fint *__ierr )
 {
     *__ierr = MPI_Scatter(MPIR_F_PTR(sendbuf), (int)*sendcnt,
                           MPI_Type_f2c(*sendtype), MPIR_F_PTR(recvbuf),

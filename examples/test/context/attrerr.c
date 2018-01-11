@@ -10,10 +10,10 @@
 #include "mpi.h"
 #include "test.h"
 
-int test_communicators ANSI_ARGS(( void ));
-void abort_msg ANSI_ARGS(( char *, int ));
-int copybomb_fn ANSI_ARGS(( MPI_Comm, int, void *, void *, void *, int * ));
-int deletebomb_fn ANSI_ARGS(( MPI_Comm, int, void *, void * ));
+int test_communicators ( void );
+void abort_msg ( char *, int );
+int copybomb_fn ( MPI_Comm, int, void *, void *, void *, int * );
+int deletebomb_fn ( MPI_Comm, int, void *, void * );
 
 int main( int argc, char **argv )
 {

@@ -1,12 +1,10 @@
-.TH MPI_Attr_delete 3 "4/28/1998" " " "MPI"
+.TH MPI_Attr_delete 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Attr_delete \-  Deletes attribute value associated with a key 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Attr_delete ( comm, keyval )
-MPI_Comm comm;
-int      keyval;
+int MPI_Attr_delete ( MPI_Comm comm, int keyval )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

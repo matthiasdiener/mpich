@@ -7,7 +7,56 @@
 #include <stdarg.h>
 #endif
 
-#ifdef MPI_BUILD_PROFILING
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_RECV = PMPI_RECV
+EXPORT_MPI_API void MPI_RECV ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_recv__ = pmpi_recv__
+EXPORT_MPI_API void mpi_recv__ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_recv = pmpi_recv
+EXPORT_MPI_API void mpi_recv ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_recv_ = pmpi_recv_
+EXPORT_MPI_API void mpi_recv_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_RECV  MPI_RECV
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_recv__  mpi_recv__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_recv  mpi_recv
+#else
+#pragma _HP_SECONDARY_DEF pmpi_recv_  mpi_recv_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_RECV as PMPI_RECV
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_recv__ as pmpi_recv__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_recv as pmpi_recv
+#else
+#pragma _CRI duplicate mpi_recv_ as pmpi_recv_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_recv_ PMPI_RECV
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -17,7 +66,9 @@
 #else
 #define mpi_recv_ pmpi_recv_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_recv_ MPI_RECV
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -26,6 +77,7 @@
 #define mpi_recv_ mpi_recv
 #endif
 #endif
+
 
 #ifdef _CRAY
 #ifdef _TWO_WORD_FCD
@@ -81,19 +133,11 @@ if (_isfcd(buf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_recv_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+EXPORT_MPI_API void mpi_recv_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                            MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                            MPI_Fint * ));
 
-void mpi_recv_( buf, count, datatype, source, tag, comm, status, __ierr )
-void     *buf;
-MPI_Fint *count;
-MPI_Fint *source;
-MPI_Fint *tag;
-MPI_Fint *datatype;
-MPI_Fint *comm;
-MPI_Fint *status;
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_recv_( void *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *source, MPI_Fint *tag, MPI_Fint *comm, MPI_Fint *status, MPI_Fint *__ierr )
 {
     MPI_Status c_status;
 

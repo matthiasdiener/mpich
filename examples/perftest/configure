@@ -26,10 +26,11 @@ Usage: ${progname} -arch=ARCH_TYPE
                    [-cc=C_COMPILER] [-fc=FORTRAN_COMPILER]
                    [-clinker=C_LINKER] [-flinker=FORTRAN_LINKER]
                    [-nof77] [-opt=OPTFLAGS] 
+                   [-f77_extra_flag=F77_EXTRA_FLAG]
 	           [-make=MAKEPGM]
                    [-cflags=CFLAGS] [-fflags=FFLAGS]
                    [-optcc=C_OPTFLAGS] [-optf77=F77_OPTFLAGS]
-                   [-lib=LIBRARY] [-mpilibname=MPINAME]
+                   [-mpilibname=MPINAME]
                    [-cross]
                    [-fortnames=FORTRANNAMES]
 where
@@ -63,6 +64,10 @@ Fortran).  For example, '-opt=-O' chooses optimized code generation on many
 systems.  '-optcc' and '-optf77' allow you to specify options for just the C
 or Fortran compilers
 
+The option '-f77_extra_flag' is the option Fortran code needs to compile, but 
+cannot link with this option.  This is needed currently for the Absoft compiler
+(-f option), but it could be used for other cases as well.
+
 The option '-make' may be used to select an alternate make program.  For
 example, on FreeBSD systems, -make=gnumake may be required because of bugs in
 the system make.
@@ -82,7 +87,7 @@ Sample Configure Usage:
 
 To make for an MPI with the MPI compile commands in your path:
 
-  ./configure -cc=mpicc -f77=mpif77
+  ./configure -cc=mpicc -fc=mpif77
   make
 .
 }
@@ -93,8 +98,9 @@ FLIB_PATH=""
 OPTFLAGS=""
 OPTFLAGSF=""
 NOF77=0
+F77_EXTRA_FLAG=""
 HAS_FORTRAN=1
-MPILIBNAME=mpi
+MPILIBNAME=
 CFLAGS=""
 #
 # By not setting FFLAGS, we get the values from the environment
@@ -192,15 +198,26 @@ do
 	cross_compiling=1
 	;;
 
+     -basecc=* | --basecc=*)
+	CC=`echo A$arg | sed 's/A-*basecc=//'`
+	BASECC=1
+	;;
+
      -cc=* | --cc=*)
 	MPICC=`echo $arg|sed 's/-*cc=//'`
-	CC="$MPICC"
 	USERCC=1
+	;;
+
+     -basefc=* | --basefc=*)
+	FC=`echo A$arg | sed 's/A-*basefc=//'`
+	BASEFC=1
 	;;
 
      -fc=* | --fc=*)
 	MPIF77=`echo $arg|sed 's/-*fc=//'`
-	FC=$MPIF77
+	if test -z "$FC" ; then
+  	    FC=$MPIF77
+        fi
 	USERF77=1
 	;;
 
@@ -247,6 +264,10 @@ do
      -fflags=* | --fflags=*)
        package="`echo $arg|sed 's/-*fflags=//'`"
        FFLAGS="$package" ;;
+
+     -f77_extra_flag=* | --f77_extra_flag=*)
+       package="`echo $arg |sed 's/-*f77_extra_flag=//'`"
+       F77_EXTRA_FLAG="$package" ;;
 
      -make=* | --make=*)
        package=`echo $arg|sed 's/-*make=//'`
@@ -334,7 +355,11 @@ configure_args="$*"
 
 #
 #
-
+# Find the home directory if not specified
+if test "X$srcdir" != "X." -a -s $srcdir/Makefile.in ; then 
+    MPIR_TRIAL=$srcdir
+else
+    
 if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
@@ -409,8 +434,12 @@ else
 echo "$ac_t""${MPIR_TRIAL}" 1>&1
 fi
 
+fi
 MPIR_HOME=$MPIR_TRIAL
 #
+if test -z "$BASECC" ; then 
+    CC=${CC-"$MPICC"}
+fi
 F77="$FC"
 #
 #
@@ -580,11 +609,15 @@ int t() { return 0; }
 EOF
 if eval $compile; then
   
-  rm -rf conftest*
+  
   eval "ac_cv_ccworks=yes"
 
 else
-  rm -rf conftest*
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
   eval "ac_cv_ccworks=no"
    
 fi
@@ -607,7 +640,7 @@ cat > conftest.c <<EOF
 int main() { exit(0); }
 int t() { return 0; }
 EOF
-$CC $CFLAGS conftest.c -o conftest $LIBS
+${CC-cc} $CFLAGS conftest.c -o conftest $LIBS
 rm -f conftest* 
 #
 # End of output
@@ -697,6 +730,143 @@ rm -f conftest*
 
 fi
 #
+# Check MAKE
+
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking gnumake""... $ac_c"
+else
+echo $ac_n "checking gnumake""... $ac_c" 1>&1
+fi
+/bin/rm -f conftest
+cat > conftest <<.
+SHELL=/bin/sh
+ALL:
+	@(dir=`pwd` ; cd .. ; \$(MAKE) -f \$\$dir/conftest SUB)
+SUB:
+	@echo "success"
+.
+str=`$MAKE -f conftest 2>&1`
+if test "$str" != "success" ; then
+    str=`$MAKE --no-print-directory -f conftest 2>&1`
+    if test "$str" = "success" ; then
+        MAKE="$MAKE --no-print-directory"
+	if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes using --no-print-directory"
+else
+echo "$ac_t""yes using --no-print-directory" 1>&1
+fi
+    else
+	if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    fi
+else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+/bin/rm -f conftest
+str=""
+
+
+
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for virtual path format""... $ac_c"
+else
+echo $ac_n "checking for virtual path format""... $ac_c" 1>&1
+fi
+rm -rf conftest*
+mkdir conftestdir
+cat >conftestdir/a.c <<EOF
+A sample file
+EOF
+cat > conftest <<EOF
+all: a.o
+VPATH=.:conftestdir
+.c.o:
+	@echo \$<
+EOF
+ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
+if test -n "$ac_out" ; then 
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""VPATH"
+else
+echo "$ac_t""VPATH" 1>&1
+fi
+    VPATH='VPATH=.:$(srcdir)'
+else
+    rm -f conftest
+    cat > conftest <<EOF
+all: a.o
+.PATH: . conftestdir
+.c.o:
+	@echo \$<
+EOF
+    ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
+    if test -n "$ac_out" ; then 
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"".PATH"
+else
+echo "$ac_t"".PATH" 1>&1
+fi
+        VPATH='.PATH: . $(srcdir)'
+    else
+	if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""neither VPATH nor .PATH works"
+else
+echo "$ac_t""neither VPATH nor .PATH works" 1>&1
+fi
+    fi
+fi
+rm -rf conftest*
+
+#
 # Check for header files
 # stdlib.h is used mostly for things like malloc and free, so it isn't
 # so important that stdlib.h be exactly "right".
@@ -750,11 +920,15 @@ int t() { main(); }
 EOF
 if eval $compile; then
   
-  rm -rf conftest*
+  
   eval "ac_cv_header_$ac_safe=yes"
 
 else
-  rm -rf conftest*
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
   eval "ac_cv_header_$ac_safe=no"
    
 fi
@@ -855,6 +1029,7 @@ do
 done
 
 trap 'rm -f Makefile; exit 1' 1 3 15
+VPATH='$VPATH'
 FINC='$FINC'
 ARCH='$ARCH'
 CC='$CC'
@@ -868,6 +1043,7 @@ FLIB_PATH='$FLIB_PATH'
 FLIB_PATH_LEADER='$FLIB_PATH_LEADER'
 FLINKER='$FLINKER'
 HAS_FORTRAN='$HAS_FORTRAN'
+F77_EXTRA_FLAG='$F77_EXTRA_FLAG'
 INCLUDE_PATH='$INCLUDE_PATH'
 LIB_LIST='$LIB_LIST'
 LIB_PATH='$LIB_PATH'
@@ -909,6 +1085,7 @@ for file in .. ${CONFIG_FILES}; do if test "x$file" != x..; then
 cat $top_srcdir/${file}.in | sed -e "
 $prsub
 $extrasub
+s%@VPATH@%$VPATH%g
 s%@FINC@%$FINC%g
 s%@ARCH@%$ARCH%g
 s%@CC@%$CC%g
@@ -922,6 +1099,7 @@ s%@FLIB_PATH@%$FLIB_PATH%g
 s%@FLIB_PATH_LEADER@%$FLIB_PATH_LEADER%g
 s%@FLINKER@%$FLINKER%g
 s%@HAS_FORTRAN@%$HAS_FORTRAN%g
+s%@F77_EXTRA_FLAG@%$F77_EXTRA_FLAG%g
 s%@INCLUDE_PATH@%$INCLUDE_PATH%g
 s%@LIB_LIST@%$LIB_LIST%g
 s%@LIB_PATH@%$LIB_PATH%g

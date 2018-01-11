@@ -10,9 +10,9 @@ Accesses the group associated with given communicator
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Comm_group ( comm, group )
-MPI_Comm comm;
-MPI_Group *group;
+int MPI_Comm_group ( 
+ MPI_Comm comm, 
+ MPI_Group *group )
 </PRE>
 <H2>Input Parameter</H2>
 <DL><DT><B>comm </B> <DD> Communicator
@@ -21,6 +21,22 @@ MPI_Group *group;
 <H2>Output Parameter</H2>
 <DL><DT><B>group </B> <DD> Group in communicator
 </DL>
+<P>
+<H2>Using 'MPI_COMM_NULL' with 'MPI_Comm_group'</H2>
+<P>
+It is an error to use <TT>MPI_COMM_NULL</TT> as one of the arguments to
+<TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node98.html#node98">MPI_Comm_group</A></TT>.  The relevant sections of the MPI standard are
+<P>
+.(2.4.1 Opaque Objects)
+A null handle argument is an erroneous <TT>IN</TT> argument in MPI calls, unless an
+exception is explicitly stated in the text that defines the function.
+<P>
+.(5.3.2. Group Constructors)
+&lt;no text in <TT>MPI_COMM_GROUP</TT> allowing a null handle&gt;
+<P>
+Previous versions of MPICH allow <TT>MPI_COMM_NULL</TT> in this function.  In the
+interests of promoting portability of applications, we have changed the
+behavior of <TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node98.html#node98">MPI_Comm_group</A></TT> to detect this violation of the MPI standard.
 <P>
 <H2>Notes for Fortran</H2>
 All MPI routines in Fortran (except for <TT>MPI_WTIME</TT> and <TT>MPI_WTICK</TT>) have

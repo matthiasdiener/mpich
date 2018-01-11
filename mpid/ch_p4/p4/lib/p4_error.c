@@ -50,8 +50,7 @@ static struct sigcontext *err_scp;
 static char              *err_addr;
 #endif
 
-int p4_soft_errors(onoff)
-int onoff;
+int p4_soft_errors( int onoff )
 {
     int old;
 
@@ -63,9 +62,7 @@ int onoff;
     return old;
 }
 
-P4VOID p4_error(string, value)
-char *string;
-int value;
+P4VOID p4_error( char *string, int value)
 {
     char job_filename[64];
     static int in_p4_error = 0;
@@ -98,11 +95,16 @@ int value;
     zap_p4_processes();
 
     /* Send kill-clients message to all known listeners */
+
 #ifdef FOOGLE
     /* Still being debugged */
-    if (p4_get_my_id() != p4_global->listener_pid)   /* if I am not the listener */
+    if (p4_local->my_id != -99)   /* if I am not the listener */
+    {
+        p4_dprintfl(99, "about to zap remote processes, value=%d\n", value);
 	zap_remote_p4_processes();
+    }
 #endif
+
     /* shutdown(sock,2), close(sock) all sockets */
 #   ifdef CAN_DO_SOCKET_MSGS
     shutdown_p4_socks();
@@ -216,12 +218,11 @@ int sig;
   Trap signals so that we can propagate error conditions and tidy up 
   shared system resources in a manner not possible just by killing procs
 */
-P4VOID trap_sig_errs()
+P4VOID trap_sig_errs( void )
 {
     P4_HANDLER_TYPE (*rc) ANSI_ARGS((HANDLER_ARGS));
 
-/*     rc = (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))  */
-	SIGNAL_WITH_OLD_P4(SIGINT, sig_err_handler,
+    SIGNAL_WITH_OLD_P4(SIGINT, sig_err_handler,
                            rc= (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))));
     if (rc == (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))) -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGINT);
@@ -232,8 +233,7 @@ P4VOID trap_sig_errs()
  * it for shmem stuff 
 */
 #ifdef CAN_HANDLE_SIGSEGV
-/*     rc = (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS)))  */
-	SIGNAL_WITH_OLD_P4(SIGSEGV, sig_err_handler, 
+    SIGNAL_WITH_OLD_P4(SIGSEGV, sig_err_handler, 
                            rc= (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))));
     if ((P4_Aint) rc == -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGSEGV);
@@ -241,24 +241,33 @@ P4VOID trap_sig_errs()
 	prev_sigsegv_handler = rc;
 #endif
 
-/*    rc = (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS)))  */
-	SIGNAL_WITH_OLD_P4(SIGBUS, sig_err_handler,
+    SIGNAL_WITH_OLD_P4(SIGBUS, sig_err_handler,
                  rc= (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))));
     if ((P4_Aint) rc == -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGBUS);
     if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
 	prev_sigbus_handler = rc;
-/*    rc = (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))) */
-	SIGNAL_WITH_OLD_P4(SIGFPE, sig_err_handler,
+
+    /* SIGFPE is a special case.  On some systems (HPUX at higher
+       optimization levels), speculative execution may generate
+       SIGFPE (e.g.,move a divide through the test for divide by zero).
+       If SIGFPE is SIG_IGN, then restore the signal handler */
+    SIGNAL_WITH_OLD_P4(SIGFPE, sig_err_handler,
                            rc= (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))));
     if ((P4_Aint) rc == -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGFPE);
-    if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
-	prev_sigfpe_handler = rc;
+    /* Test for ignore FPE */
+    if ((P4_Aint) rc == (P4_Aint)SIG_IGN) {
+	SIGNAL_P4(SIGFPE,SIG_IGN);
+	prev_sigfpe_handler = (P4_HANDLER_TYPE(*) (HANDLER_ARGS))(SIG_IGN); /* Just in case */
+    }
+    else {
+	if (((P4_Aint) rc > 1)  && ((P4_Aint) rc != (P4_Aint) sig_err_handler))
+	    prev_sigfpe_handler = rc;
+    }
 }
 
-P4VOID p4_set_hard_errors( flag )
-int flag;
+P4VOID p4_set_hard_errors( int flag )
 {
     p4_hard_errors = flag;
 }

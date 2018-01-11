@@ -38,10 +38,11 @@ Usage: ${progname} -arch=ARCH_TYPE
                    [-cc=C_COMPILER] [-fc=FORTRAN_COMPILER]
                    [-clinker=C_LINKER] [-flinker=FORTRAN_LINKER]
                    [-nof77] [-opt=OPTFLAGS] 
+                   [-f77_extra_flag=F77_EXTRA_FLAG]
 	           [-make=MAKEPGM]
                    [-cflags=CFLAGS] [-fflags=FFLAGS]
                    [-optcc=C_OPTFLAGS] [-optf77=F77_OPTFLAGS]
-                   [-lib=LIBRARY] [-mpilibname=MPINAME]
+                   [-mpilibname=MPINAME]
                    [-cross]
                    [-fortnames=FORTRANNAMES]
 where
@@ -75,6 +76,10 @@ Fortran).  For example, '-opt=-O' chooses optimized code generation on many
 systems.  '-optcc' and '-optf77' allow you to specify options for just the C
 or Fortran compilers
 
+The option '-f77_extra_flag' is the option Fortran code needs to compile, but 
+cannot link with this option.  This is needed currently for the Absoft compiler
+(-f option), but it could be used for other cases as well.
+
 The option '-make' may be used to select an alternate make program.  For
 example, on FreeBSD systems, -make=gnumake may be required because of bugs in
 the system make.
@@ -94,7 +99,7 @@ Sample Configure Usage:
 
 To make for an MPI with the MPI compile commands in your path:
 
-  ./configure -cc=mpicc -f77=mpif77
+  ./configure -cc=mpicc -fc=mpif77
   make
 .
 }
@@ -105,8 +110,9 @@ FLIB_PATH=""
 OPTFLAGS=""
 OPTFLAGSF=""
 NOF77=0
+F77_EXTRA_FLAG=""
 HAS_FORTRAN=1
-MPILIBNAME=mpi
+MPILIBNAME=
 CFLAGS=""
 #
 # By not setting FFLAGS, we get the values from the environment
@@ -204,15 +210,26 @@ do
 	cross_compiling=1
 	;;
 
+     -basecc=* | --basecc=*)
+	CC=`echo A$arg | sed 's/A-*basecc=//'`
+	BASECC=1
+	;;
+
      -cc=* | --cc=*)
 	MPICC=`echo $arg|sed 's/-*cc=//'`
-	CC="$MPICC"
 	USERCC=1
+	;;
+
+     -basefc=* | --basefc=*)
+	FC=`echo A$arg | sed 's/A-*basefc=//'`
+	BASEFC=1
 	;;
 
      -fc=* | --fc=*)
 	MPIF77=`echo $arg|sed 's/-*fc=//'`
-	FC=$MPIF77
+	if test -z "$FC" ; then
+  	    FC=$MPIF77
+        fi
 	USERF77=1
 	;;
 
@@ -260,6 +277,10 @@ do
        package="`echo $arg|sed 's/-*fflags=//'`"
        FFLAGS="$package" ;;
 
+     -f77_extra_flag=* | --f77_extra_flag=*)
+       package="`echo $arg |sed 's/-*f77_extra_flag=//'`"
+       F77_EXTRA_FLAG="$package" ;;
+
      -make=* | --make=*)
        package=`echo $arg|sed 's/-*make=//'`
        MAKE="$package"
@@ -299,9 +320,17 @@ dnl Finish the initalization
 AC_PREPARE()
 #
 #
-PAC_GETWD(MPIR_TRIAL,Makefile.in)
+# Find the home directory if not specified
+if test "X$srcdir" != "X." -a -s $srcdir/Makefile.in ; then 
+    MPIR_TRIAL=$srcdir
+else
+    PAC_GETWD(MPIR_TRIAL,Makefile.in)
+fi
 MPIR_HOME=$MPIR_TRIAL
 #
+if test -z "$BASECC" ; then 
+    CC=${CC-"$MPICC"}
+fi
 F77="$FC"
 #
 #
@@ -364,6 +393,10 @@ if test $NOF77 = 0 ; then
        MPI_FOBJECTS="")
 fi
 #
+# Check MAKE
+PAC_MAKE_IS_GNUMAKE
+PAC_MAKE_VPATH
+#
 # Check for header files
 # stdlib.h is used mostly for things like malloc and free, so it isn't
 # so important that stdlib.h be exactly "right".
@@ -411,6 +444,7 @@ AC_SUBST(FLIB_PATH)dnl
 AC_SUBST(FLIB_PATH_LEADER)dnl
 AC_SUBST(FLINKER)dnl
 AC_SUBST(HAS_FORTRAN)dnl
+AC_SUBST(F77_EXTRA_FLAG)dnl
 AC_SUBST(INCLUDE_PATH)dnl
 AC_SUBST(LIB_LIST)dnl
 AC_SUBST(LIB_PATH)dnl

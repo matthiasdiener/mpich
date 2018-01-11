@@ -1,11 +1,30 @@
 /*
- *  $Id: int2handle.c,v 1.2 1998/04/28 21:09:06 swider Exp $
+ *  $Id: int2handle.c,v 1.4 1999/08/30 15:54:07 swider Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Int2handle = PMPI_Int2handle
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Int2handle  MPI_Int2handle
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Int2handle as PMPI_Int2handle
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@C
   MPI_Int2handle - Convert an integer (Fortran) MPI handle to a C handle

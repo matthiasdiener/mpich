@@ -7,7 +7,57 @@
 #include <stdarg.h>
 #endif
 
-#ifdef MPI_BUILD_PROFILING
+
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_ADDRESS = PMPI_ADDRESS
+EXPORT_MPI_API void MPI_ADDRESS ( void *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_address__ = pmpi_address__
+EXPORT_MPI_API void mpi_address__ ( void *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_address = pmpi_address
+EXPORT_MPI_API void mpi_address ( void *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_address_ = pmpi_address_
+EXPORT_MPI_API void mpi_address_ ( void *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_ADDRESS  MPI_ADDRESS
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_address__  mpi_address__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_address  mpi_address
+#else
+#pragma _HP_SECONDARY_DEF pmpi_address_  mpi_address_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_ADDRESS as PMPI_ADDRESS
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_address__ as pmpi_address__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_address as pmpi_address
+#else
+#pragma _CRI duplicate mpi_address_ as pmpi_address_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_address_ PMPI_ADDRESS
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -17,7 +67,9 @@
 #else
 #define mpi_address_ pmpi_address_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_address_ MPI_ADDRESS
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -26,6 +78,7 @@
 #define mpi_address_ mpi_address
 #endif
 #endif
+
 
 /*
    This code is a little subtle.  By making all addresses relative 
@@ -85,12 +138,9 @@ if (_isfcd(location)) {
 #else
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_address_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint * ));
+EXPORT_MPI_API void mpi_address_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint * ));
 
-void mpi_address_( location, address, __ierr )
-void     *location;
-MPI_Fint *address;
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_address_( void *location, MPI_Fint *address, MPI_Fint *__ierr )
 {
     MPI_Aint a, b;
 
@@ -101,7 +151,7 @@ MPI_Fint *__ierr;
     *address = (int)( b );
     if (((MPI_Aint)*address) - b != 0) {
 	*__ierr = MPIR_ERROR( MPIR_COMM_WORLD,     
-			      MPI_ERR_ARG | MPIR_ERR_FORTRAN_ADDRESS_RANGE, 
+      MPIR_ERRCLASS_TO_CODE(MPI_ERR_ARG,MPIR_ERR_FORTRAN_ADDRESS_RANGE),
 			      "MPI_ADDRESS" );
     }
 }

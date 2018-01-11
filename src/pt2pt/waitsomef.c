@@ -3,7 +3,56 @@
 #include "mpiimpl.h"
 #include "mpimem.h"
 
-#ifdef MPI_BUILD_PROFILING
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_WAITSOME = PMPI_WAITSOME
+EXPORT_MPI_API void MPI_WAITSOME ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_waitsome__ = pmpi_waitsome__
+EXPORT_MPI_API void mpi_waitsome__ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_waitsome = pmpi_waitsome
+EXPORT_MPI_API void mpi_waitsome ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint * );
+#else
+#pragma weak mpi_waitsome_ = pmpi_waitsome_
+EXPORT_MPI_API void mpi_waitsome_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_WAITSOME  MPI_WAITSOME
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_waitsome__  mpi_waitsome__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_waitsome  mpi_waitsome
+#else
+#pragma _HP_SECONDARY_DEF pmpi_waitsome_  mpi_waitsome_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_WAITSOME as PMPI_WAITSOME
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_waitsome__ as pmpi_waitsome__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_waitsome as pmpi_waitsome
+#else
+#pragma _CRI duplicate mpi_waitsome_ as pmpi_waitsome_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_waitsome_ PMPI_WAITSOME
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -13,7 +62,9 @@
 #else
 #define mpi_waitsome_ pmpi_waitsome_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_waitsome_ MPI_WAITSOME
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -23,27 +74,22 @@
 #endif
 #endif
 
+
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_waitsome_ ANSI_ARGS(( MPI_Fint *, MPI_Fint [], MPI_Fint *, 
+EXPORT_MPI_API void mpi_waitsome_ ANSI_ARGS(( MPI_Fint *, MPI_Fint [], MPI_Fint *, 
                                MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE],
                                MPI_Fint * ));
 
-void mpi_waitsome_( incount, array_of_requests, outcount, array_of_indices, 
-    array_of_statuses, __ierr )
-MPI_Fint *incount;
-MPI_Fint *outcount;
-MPI_Fint array_of_indices[];
-MPI_Fint array_of_requests[];
-MPI_Fint array_of_statuses[][MPI_STATUS_SIZE];
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_waitsome_( MPI_Fint *incount, MPI_Fint array_of_requests[], MPI_Fint *outcount, MPI_Fint array_of_indices[], 
+    MPI_Fint array_of_statuses[][MPI_STATUS_SIZE], MPI_Fint *__ierr )
 {
     int i,j,found;
     int loutcount;
-    int *l_indices;
+    int *l_indices = 0;
     int local_l_indices[MPIR_USE_LOCAL_ARRAY];
-    MPI_Request *lrequest;
+    MPI_Request *lrequest = 0;
     MPI_Request local_lrequest[MPIR_USE_LOCAL_ARRAY];
-    MPI_Status * c_status;
+    MPI_Status * c_status = 0;
     MPI_Status local_c_status[MPIR_USE_LOCAL_ARRAY];
 
     if ((int)*incount > 0) {

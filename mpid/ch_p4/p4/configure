@@ -29,7 +29,7 @@ Usage: ${progname} -p4arch=ARCH_TYPE [-alog={on,off}] [-dprintfl={on,off}]
                    [-p4comm=shared]  [-listener_pathname="\<pathname\>"]
                    [-rsh=command] [-rshnol] [-cflags=flags] 
                    [-threaded_listener] [-nothreaded_listener]
-                   [-dlast] [-listenersig=name] [--enable-nonblockread]
+                   [-dlast] [-listenersig=name] [--disable-nonblockread]
 "
 RSHCOMMAND=
 MDEP_LIBS=
@@ -44,15 +44,28 @@ FC=${FC:-f77}
 threaded_listener=0
 userSet_threaded_listener=0
 listener_sig=""
-use_nonblock_read=0
+# use modern socket code (EOF on socket can be distinquished from no-data)
+# unless the test below fails.  This can be turned off with
+# --disable-nonblockread
+use_nonblock_read=1
 #
 for arg
 do
 case $arg in
+  -srcdir=* | --srcdir=* | --srcdi=* | --srcd=* | --src=* | --sr=* | --s=*)
+	srcdir=`echo $arg | sed 's/[-a-z_]*=//'` ;;
+  -exec-prefix=* | --exec_prefix=* | --exec-prefix=* | --exec-prefi=* | --exec-pref=* | --exec-pre=* | --exec-pr=* | --exec-p=* | --exec-=* | --exec=* | --exe=* | --ex=* | --e=*)
+	exec_prefix=`echo $arg | sed 's/[-a-z_]*=//'` ;;
+  -libbuild_dir=*) libbuild_dir=`echo A$arg | sed 's/A[-a-z_]*=//'` ;;
   -p4arch=*)
      p4arch=`echo $arg|sed 's/-p4arch=//'`
      eval "p4arch_`echo $p4arch`=1"
      echo Setting p4arch to $p4arch
+     ;;
+  -p4device=*)
+     p4device=`echo $arg|sed 's/-p4device=//'`
+     eval "p4device_`echo $p4device`=1"
+     echo Setting p4device to $p4device
      ;;
   -p4echo=*)
      p4echo=`echo $arg|sed 's/-p4echo=//'`
@@ -158,6 +171,10 @@ DEFINE_VENDOR_IPC="#undef VENDOR_IPC"
 DEFINE_P4_DPRINTFL="#define P4_DPRINTFL"
 LISTENER_PATHNAME=""
 
+
+# It is important to remove the p4_config.h file if we are performing
+# a VPATH build
+rm -f config.log p4_config.h
 trap 'rm -fr conftest* confdefs* core; exit 1' 1 3 15
 trap 'rm -f confdefs*' 0
 
@@ -207,6 +224,36 @@ esac
 # Save the original args to write them into config.status later.
 configure_args="$*"
 
+
+# Standard directories
+if test -z "$top_srcdir" -o "$top_srcdir" = "." ; then 
+    top_srcdir=$srcdir
+fi
+# Remove the config file from the srcdir if this is a VPATH build.
+rm -f $top_srcdir/p4_config.h
+
+
+if test -z "$exec_prefix" ; then 
+    exec_prefix="${top_srcdir}"
+fi
+
+if test -z "$libdir" ; then libdir="$exec_prefix/lib" ; fi
+
+
+# libbuild_dir is used to build the libraries in before they are installed.
+if test -z "$libbuild_dir" ; then 
+    libbuild_dir=`pwd`/lib
+fi
+if test ! -d $libbuild_dir ; then
+    if mkdir $libbuild_dir ; then 
+	:
+    else
+        print_error "Could not create directory $libbuild_dir"
+        exit 1
+    fi
+fi
+
+
 if test -z "$RANLIB"; then
   # Extract the first word of `ranlib', so it can be a program name with args.
   set dummy ranlib; word=$2
@@ -226,7 +273,7 @@ test -n "$RANLIB" && test -n "$verbose" && echo "	setting RANLIB to $RANLIB"
 
 # check for valid architecture
 # Check for an EXACT match, since that's what the defines require
-egrep "^    $p4arch\$" MACHINES > /dev/null 2>&1
+egrep "^    $p4arch\$" $srcdir/MACHINES > /dev/null 2>&1
 if test $? != 0 ; then
     echo Invalid arch $p4arch
     exit 1
@@ -236,6 +283,82 @@ if test -n "$p4make"; then
     MAKE=$p4make
 fi
 #
+if test -z "$VPATH" ; then 
+    
+
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for virtual path format""... $ac_c"
+else
+echo $ac_n "checking for virtual path format""... $ac_c" 1>&1
+fi
+rm -rf conftest*
+mkdir conftestdir
+cat >conftestdir/a.c <<EOF
+A sample file
+EOF
+cat > conftest <<EOF
+all: a.o
+VPATH=.:conftestdir
+.c.o:
+	@echo \$<
+EOF
+ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
+if test -n "$ac_out" ; then 
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""VPATH"
+else
+echo "$ac_t""VPATH" 1>&1
+fi
+    VPATH='VPATH=.:$(srcdir)'
+else
+    rm -f conftest
+    cat > conftest <<EOF
+all: a.o
+.PATH: . conftestdir
+.c.o:
+	@echo \$<
+EOF
+    ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
+    if test -n "$ac_out" ; then 
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"".PATH"
+else
+echo "$ac_t"".PATH" 1>&1
+fi
+        VPATH='.PATH: . $(srcdir)'
+    else
+	if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""neither VPATH nor .PATH works"
+else
+echo "$ac_t""neither VPATH nor .PATH works" 1>&1
+fi
+    fi
+fi
+rm -rf conftest*
+
+fi
+
 if test -n "$p4arch_SUN"; then
     P4ARCH=SUN
     if test -n "$p4comm_shared"; then
@@ -256,13 +379,22 @@ if test -n "$p4arch_NETBSD"; then
       DEFINE_SYSV_IPC="#define SYSV_IPC"
     fi
 fi
-#						486 running Linux
+#						x86 running Linux
 if test -n "$p4arch_LINUX"; then
     P4ARCH=LINUX
     if test -n "$p4comm_shared"; then
       DEFINE_SYSV_IPC="#define SYSV_IPC"
     fi
 fi
+
+#                                                Alpha running Linux
+if test -n "$p4arch_LINUX_ALPHA"; then
+    P4ARCH=LINUX
+    if test -n "$p4comm_shared"; then
+      DEFINE_SYSV_IPC="#define SYSV_IPC"
+    fi
+fi
+
 #                                             KSR
 if test -n "$p4arch_KSR"; then
     P4ARCH=KSR
@@ -320,7 +452,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -328,6 +460,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -410,7 +548,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -418,6 +556,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -487,7 +631,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -495,6 +639,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -563,7 +713,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -571,6 +721,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -586,9 +742,7 @@ DEFS="$DEFS -DHAVE_LIBNSL=1"
    LIBS="${LIBS} -lnsl"
 fi
 
-
-    
-if test -z "$ac_echo_n" ; then
+    if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -614,29 +768,27 @@ echo $ac_n "checking for how many arguments gettimeofday takes""... $ac_c"
 else
 echo $ac_n "checking for how many arguments gettimeofday takes""... $ac_c" 1>&1
 fi
-# Test sets "wierd" only for FAILURE to accept 2
-cat > conftest.c <<EOF
+    cat > conftest.c <<EOF
 #include "confdefs.h"
 #include <sys/time.h>
 main() {struct timeval tp;
-gettimeofday(&tp,(void*)0);return 0;}
+gettimeofday(&tp);return 0;}
 EOF
 eval $compile
 if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  MDEP_CFLAGS="$MDEP_CFLAGS -DUSE_WIERDGETTIMEOFDAY"
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""one!"
+else
+echo "$ac_t""one!" 1>&1
+fi
+
+else
   if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""two - whew"
 else
 echo "$ac_t""two - whew" 1>&1
 fi
-
-
-else
-  if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""one!"
-else
-echo "$ac_t""one!" 1>&1
-fi
-MDEP_CFLAGS="$MDEP_CFLAGS -DUSE_WIERDGETTIMEOFDAY"
 fi
 rm -fr conftest*
 
@@ -702,7 +854,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -710,6 +862,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -779,7 +937,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -787,6 +945,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -855,7 +1019,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -863,6 +1027,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -986,7 +1156,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -994,6 +1164,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -1067,7 +1243,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -1075,6 +1251,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -1143,7 +1325,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -1151,6 +1333,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -1246,7 +1434,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -1254,6 +1442,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -1352,7 +1546,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -1360,6 +1554,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -1439,7 +1639,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -1447,6 +1647,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -1527,7 +1733,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -1535,6 +1741,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -1613,7 +1825,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -1621,6 +1833,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -1642,7 +1860,93 @@ fi
 if test -n "$p4arch_SGI"; then
     P4ARCH=SGI
     RANLIB=true
-    LIBS_save="${LIBS}"
+    # Look for getpwnam.  If not found, try to find it in -lsun
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for getpwnam""... $ac_c"
+else
+echo $ac_n "checking for getpwnam""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_getpwnam) || defined (__stub___getpwnam)
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char getpwnam(); getpwnam();
+#endif
+ }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  has_getpwnam=1
+
+else
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
+  has_getpwnam=0
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+
+    if test $has_getpwnam = 0 ; then
+        LIBS_save="${LIBS}"
 LIBS="${LIBS} -lsun"
 have_lib=""
 if test -z "$ac_echo_n" ; then
@@ -1695,7 +1999,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -1703,6 +2007,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -1718,6 +2028,7 @@ DEFS="$DEFS -DHAVE_LIBSUN=1"
    LIBS="${LIBS} -lsun"
 fi
 
+    fi
         if test -n "$p4comm_shared"; then
       DEFINE_VENDOR_IPC="#define VENDOR_IPC"
     fi
@@ -1727,7 +2038,92 @@ fi
 if test -n "$p4arch_SGI5"; then
     P4ARCH=SGI
     RANLIB=true
-    LIBS_save="${LIBS}"
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for getpwnam""... $ac_c"
+else
+echo $ac_n "checking for getpwnam""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_getpwnam) || defined (__stub___getpwnam)
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char getpwnam(); getpwnam();
+#endif
+ }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  has_getpwnam=1
+
+else
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
+  has_getpwnam=0
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+
+    if test $has_getpwnam = 0 ; then
+        LIBS_save="${LIBS}"
 LIBS="${LIBS} -lsun"
 have_lib=""
 if test -z "$ac_echo_n" ; then
@@ -1780,7 +2176,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -1788,6 +2184,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -1803,6 +2205,7 @@ DEFS="$DEFS -DHAVE_LIBSUN=1"
    LIBS="${LIBS} -lsun"
 fi
 
+    fi
         if test -n "$p4comm_shared"; then
       DEFINE_VENDOR_IPC="#define VENDOR_IPC"
     fi
@@ -1812,7 +2215,92 @@ fi
 if test -n "$p4arch_SGI32"; then
     P4ARCH=SGI
     RANLIB=true
-    LIBS_save="${LIBS}"
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for getpwnam""... $ac_c"
+else
+echo $ac_n "checking for getpwnam""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_getpwnam) || defined (__stub___getpwnam)
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char getpwnam(); getpwnam();
+#endif
+ }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  has_getpwnam=1
+
+else
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
+  has_getpwnam=0
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+
+    if test $has_getpwnam = 0 ; then
+        LIBS_save="${LIBS}"
 LIBS="${LIBS} -lsun"
 have_lib=""
 if test -z "$ac_echo_n" ; then
@@ -1865,7 +2353,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -1873,6 +2361,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -1888,6 +2382,7 @@ DEFS="$DEFS -DHAVE_LIBSUN=1"
    LIBS="${LIBS} -lsun"
 fi
 
+    fi
     # This choice of flags is for the SGI compilers.  If the user chose
     # gcc, they won't work.
     
@@ -1922,23 +2417,15 @@ CFLAGS="-32 $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
-    if test -s conftest.out ; then
-        cat conftest.out >> config.log
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-        
-        CFLAGS="$CFLAGSSAV"         
-    else
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+      if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-        if test -z "$ac_echo_n" ; then
+         if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -1964,60 +2451,99 @@ echo $ac_n "checking that routines compiled with -32 can be linked with ones com
 else
 echo $ac_n "checking that routines compiled with -32 can be linked with ones compiled  without -32""... $ac_c" 1>&1
 fi       
-        /bin/rm -f conftest.out
-        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
-                if test -s conftest.out ; then
-	            cat conftest.out >> config.log
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-                    print_error "Will not add -32 to CFLAGS"
-                    CFLAGS="$CFLAGSSAV"
-	            
-                else
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         /bin/rm -f conftest.out
+         /bin/rm -f conftest.bas
+         if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                  if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi	  
-                    MDEP_CFLAGS="-32";MDEP_LFLAGS="-32"
-                fi
-            else
-                if test -z "$ac_echo_test" -a 1 = 1 ; then
+                     MDEP_CFLAGS="-32";MDEP_LFLAGS="-32"
+                  elif test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-                print_error "Will not add -32 to CFLAGS"
-                CFLAGS="$CFLAGSSAV"
-	        
-            fi  
-        else
-            if test -s conftest2.out ; then 
-                cat conftest2.out >> config.log 
+                     print_error "Will not add -32 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  else
+                     if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                     print_error "Will not add -32 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  fi  
+               else
+	          if test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	          fi
+                  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                  print_error "Will not add -32 to CFLAGS"
+                  CFLAGS="$CFLAGSSAV"
+                  
+               fi
+	    else
+               # Could not link with the option!
+               if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
             fi
-            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         else
+            if test -s conftest2.out ; then
+               cat conftest.out >> config.log
+            fi
+	    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
             print_error "Will not add -32 to CFLAGS"
             CFLAGS="$CFLAGSSAV"
-            
-        fi
-    fi
+	    
+         fi
+      else
+         cat conftest.out >> config.log
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
 else
+echo "$ac_t""no" 1>&1
+fi
+         
+         CFLAGS="$CFLAGSSAV"         
+      fi
+   else
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+      
+      if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+      CFLAGS="$CFLAGSSAV"
+   fi
+else
+    # Could not compile without the option!
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-    
-    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
-    CFLAGS="$CFLAGSSAV"
 fi
 rm -f conftest*
 
@@ -2053,23 +2579,15 @@ CFLAGS="-woff 1552,1174 $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
-    if test -s conftest.out ; then
-        cat conftest.out >> config.log
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-        
-        CFLAGS="$CFLAGSSAV"         
-    else
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+      if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-        if test -z "$ac_echo_n" ; then
+         if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -2095,60 +2613,99 @@ echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked w
 else
 echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked with ones compiled  without -woff 1552,1174""... $ac_c" 1>&1
 fi       
-        /bin/rm -f conftest.out
-        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
-                if test -s conftest.out ; then
-	            cat conftest.out >> config.log
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-                    print_error "Will not add -woff 1552,1174 to CFLAGS"
-                    CFLAGS="$CFLAGSSAV"
-	            
-                else
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         /bin/rm -f conftest.out
+         /bin/rm -f conftest.bas
+         if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                  if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi	  
-                    MDEP_CFLAGS="$MDEP_CFLAGS -woff 1552,1174"
-                fi
-            else
-                if test -z "$ac_echo_test" -a 1 = 1 ; then
+                     MDEP_CFLAGS="$MDEP_CFLAGS -woff 1552,1174"
+                  elif test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-                print_error "Will not add -woff 1552,1174 to CFLAGS"
-                CFLAGS="$CFLAGSSAV"
-	        
-            fi  
-        else
-            if test -s conftest2.out ; then 
-                cat conftest2.out >> config.log 
+                     print_error "Will not add -woff 1552,1174 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  else
+                     if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                     print_error "Will not add -woff 1552,1174 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  fi  
+               else
+	          if test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	          fi
+                  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                  print_error "Will not add -woff 1552,1174 to CFLAGS"
+                  CFLAGS="$CFLAGSSAV"
+                  
+               fi
+	    else
+               # Could not link with the option!
+               if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
             fi
-            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         else
+            if test -s conftest2.out ; then
+               cat conftest.out >> config.log
+            fi
+	    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
             print_error "Will not add -woff 1552,1174 to CFLAGS"
             CFLAGS="$CFLAGSSAV"
-            
-        fi
-    fi
+	    
+         fi
+      else
+         cat conftest.out >> config.log
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
 else
+echo "$ac_t""no" 1>&1
+fi
+         
+         CFLAGS="$CFLAGSSAV"         
+      fi
+   else
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+      
+      if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+      CFLAGS="$CFLAGSSAV"
+   fi
+else
+    # Could not compile without the option!
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-    
-    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
-    CFLAGS="$CFLAGSSAV"
 fi
 rm -f conftest*
 
@@ -2162,7 +2719,92 @@ fi
 if test -n "$p4arch_SGIN32"; then
     P4ARCH=SGI
     RANLIB=true
-    LIBS_save="${LIBS}"
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for getpwnam""... $ac_c"
+else
+echo $ac_n "checking for getpwnam""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_getpwnam) || defined (__stub___getpwnam)
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char getpwnam(); getpwnam();
+#endif
+ }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  has_getpwnam=1
+
+else
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
+  has_getpwnam=0
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+
+    if test $has_getpwnam = 0 ; then
+        LIBS_save="${LIBS}"
 LIBS="${LIBS} -lsun"
 have_lib=""
 if test -z "$ac_echo_n" ; then
@@ -2215,7 +2857,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -2223,6 +2865,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -2238,6 +2886,7 @@ DEFS="$DEFS -DHAVE_LIBSUN=1"
    LIBS="${LIBS} -lsun"
 fi
 
+    fi
     # This choice of flags is for the SGI compilers.  If the user chose
     # gcc, they won't work.
     
@@ -2272,23 +2921,15 @@ CFLAGS="-n32 $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
-    if test -s conftest.out ; then
-        cat conftest.out >> config.log
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-        
-        CFLAGS="$CFLAGSSAV"         
-    else
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+      if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-        if test -z "$ac_echo_n" ; then
+         if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -2314,60 +2955,99 @@ echo $ac_n "checking that routines compiled with -n32 can be linked with ones co
 else
 echo $ac_n "checking that routines compiled with -n32 can be linked with ones compiled  without -n32""... $ac_c" 1>&1
 fi       
-        /bin/rm -f conftest.out
-        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
-                if test -s conftest.out ; then
-	            cat conftest.out >> config.log
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-                    print_error "Will not add -n32 to CFLAGS"
-                    CFLAGS="$CFLAGSSAV"
-	            
-                else
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         /bin/rm -f conftest.out
+         /bin/rm -f conftest.bas
+         if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                  if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi	  
-                    MDEP_CFLAGS="-n32";MDEP_LFLAGS="-n32"
-                fi
-            else
-                if test -z "$ac_echo_test" -a 1 = 1 ; then
+                     MDEP_CFLAGS="-n32";MDEP_LFLAGS="-n32"
+                  elif test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-                print_error "Will not add -n32 to CFLAGS"
-                CFLAGS="$CFLAGSSAV"
-	        
-            fi  
-        else
-            if test -s conftest2.out ; then 
-                cat conftest2.out >> config.log 
+                     print_error "Will not add -n32 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  else
+                     if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                     print_error "Will not add -n32 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  fi  
+               else
+	          if test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	          fi
+                  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                  print_error "Will not add -n32 to CFLAGS"
+                  CFLAGS="$CFLAGSSAV"
+                  
+               fi
+	    else
+               # Could not link with the option!
+               if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
             fi
-            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         else
+            if test -s conftest2.out ; then
+               cat conftest.out >> config.log
+            fi
+	    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
             print_error "Will not add -n32 to CFLAGS"
             CFLAGS="$CFLAGSSAV"
-            
-        fi
-    fi
+	    
+         fi
+      else
+         cat conftest.out >> config.log
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
 else
+echo "$ac_t""no" 1>&1
+fi
+         
+         CFLAGS="$CFLAGSSAV"         
+      fi
+   else
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+      
+      if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+      CFLAGS="$CFLAGSSAV"
+   fi
+else
+    # Could not compile without the option!
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-    
-    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
-    CFLAGS="$CFLAGSSAV"
 fi
 rm -f conftest*
 
@@ -2403,23 +3083,15 @@ CFLAGS="-woff 1552,1174 $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
-    if test -s conftest.out ; then
-        cat conftest.out >> config.log
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-        
-        CFLAGS="$CFLAGSSAV"         
-    else
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+      if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-        if test -z "$ac_echo_n" ; then
+         if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -2445,60 +3117,99 @@ echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked w
 else
 echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked with ones compiled  without -woff 1552,1174""... $ac_c" 1>&1
 fi       
-        /bin/rm -f conftest.out
-        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
-                if test -s conftest.out ; then
-	            cat conftest.out >> config.log
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-                    print_error "Will not add -woff 1552,1174 to CFLAGS"
-                    CFLAGS="$CFLAGSSAV"
-	            
-                else
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         /bin/rm -f conftest.out
+         /bin/rm -f conftest.bas
+         if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                  if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi	  
-                    MDEP_CFLAGS="$MDEP_CFLAGS -woff 1552,1174"
-                fi
-            else
-                if test -z "$ac_echo_test" -a 1 = 1 ; then
+                     MDEP_CFLAGS="$MDEP_CFLAGS -woff 1552,1174"
+                  elif test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-                print_error "Will not add -woff 1552,1174 to CFLAGS"
-                CFLAGS="$CFLAGSSAV"
-	        
-            fi  
-        else
-            if test -s conftest2.out ; then 
-                cat conftest2.out >> config.log 
+                     print_error "Will not add -woff 1552,1174 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  else
+                     if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                     print_error "Will not add -woff 1552,1174 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  fi  
+               else
+	          if test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	          fi
+                  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                  print_error "Will not add -woff 1552,1174 to CFLAGS"
+                  CFLAGS="$CFLAGSSAV"
+                  
+               fi
+	    else
+               # Could not link with the option!
+               if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
             fi
-            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         else
+            if test -s conftest2.out ; then
+               cat conftest.out >> config.log
+            fi
+	    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
             print_error "Will not add -woff 1552,1174 to CFLAGS"
             CFLAGS="$CFLAGSSAV"
-            
-        fi
-    fi
+	    
+         fi
+      else
+         cat conftest.out >> config.log
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
 else
+echo "$ac_t""no" 1>&1
+fi
+         
+         CFLAGS="$CFLAGSSAV"         
+      fi
+   else
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+      
+      if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+      CFLAGS="$CFLAGSSAV"
+   fi
+else
+    # Could not compile without the option!
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-    
-    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
-    CFLAGS="$CFLAGSSAV"
 fi
 rm -f conftest*
 
@@ -2511,7 +3222,92 @@ fi
 if test -n "$p4arch_SGI6"; then
     P4ARCH=SGI
     RANLIB=true
-    LIBS_save="${LIBS}"
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for getpwnam""... $ac_c"
+else
+echo $ac_n "checking for getpwnam""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_getpwnam) || defined (__stub___getpwnam)
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char getpwnam(); getpwnam();
+#endif
+ }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  has_getpwnam=1
+
+else
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
+  has_getpwnam=0
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+
+    if test $has_getpwnam = 0 ; then
+        LIBS_save="${LIBS}"
 LIBS="${LIBS} -lsun"
 have_lib=""
 if test -z "$ac_echo_n" ; then
@@ -2564,7 +3360,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -2572,6 +3368,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -2587,6 +3389,7 @@ DEFS="$DEFS -DHAVE_LIBSUN=1"
    LIBS="${LIBS} -lsun"
 fi
 
+    fi
             
 if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
@@ -2619,23 +3422,15 @@ CFLAGS="-woff 1552,1174 $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
-    if test -s conftest.out ; then
-        cat conftest.out >> config.log
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-        
-        CFLAGS="$CFLAGSSAV"         
-    else
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+      if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-        if test -z "$ac_echo_n" ; then
+         if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -2661,60 +3456,99 @@ echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked w
 else
 echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked with ones compiled  without -woff 1552,1174""... $ac_c" 1>&1
 fi       
-        /bin/rm -f conftest.out
-        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
-                if test -s conftest.out ; then
-	            cat conftest.out >> config.log
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-                    print_error "Will not add -woff 1552,1174 to CFLAGS"
-                    CFLAGS="$CFLAGSSAV"
-	            
-                else
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         /bin/rm -f conftest.out
+         /bin/rm -f conftest.bas
+         if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                  if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi	  
-                    MDEP_CFLAGS="$MDEP_CFLAGS -woff 1552,1174"
-                fi
-            else
-                if test -z "$ac_echo_test" -a 1 = 1 ; then
+                     MDEP_CFLAGS="$MDEP_CFLAGS -woff 1552,1174"
+                  elif test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-                print_error "Will not add -woff 1552,1174 to CFLAGS"
-                CFLAGS="$CFLAGSSAV"
-	        
-            fi  
-        else
-            if test -s conftest2.out ; then 
-                cat conftest2.out >> config.log 
+                     print_error "Will not add -woff 1552,1174 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  else
+                     if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                     print_error "Will not add -woff 1552,1174 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  fi  
+               else
+	          if test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	          fi
+                  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                  print_error "Will not add -woff 1552,1174 to CFLAGS"
+                  CFLAGS="$CFLAGSSAV"
+                  
+               fi
+	    else
+               # Could not link with the option!
+               if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
             fi
-            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         else
+            if test -s conftest2.out ; then
+               cat conftest.out >> config.log
+            fi
+	    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
             print_error "Will not add -woff 1552,1174 to CFLAGS"
             CFLAGS="$CFLAGSSAV"
-            
-        fi
-    fi
+	    
+         fi
+      else
+         cat conftest.out >> config.log
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
 else
+echo "$ac_t""no" 1>&1
+fi
+         
+         CFLAGS="$CFLAGSSAV"         
+      fi
+   else
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+      
+      if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+      CFLAGS="$CFLAGSSAV"
+   fi
+else
+    # Could not compile without the option!
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-    
-    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
-    CFLAGS="$CFLAGSSAV"
 fi
 rm -f conftest*
 
@@ -2782,7 +3616,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   {
 test -n "$verbose" && \
 echo "	defining ${trfunc}"
@@ -2796,6 +3630,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 done
@@ -2863,7 +3703,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   {
 test -n "$verbose" && \
 echo "	defining ${trfunc}"
@@ -2877,6 +3717,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 done
@@ -2889,7 +3735,92 @@ fi
 if test -n "$p4arch_SGI_MP"; then
     P4ARCH=SGI_MP
     RANLIB=true
-    LIBS_save="${LIBS}"
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for getpwnam""... $ac_c"
+else
+echo $ac_n "checking for getpwnam""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_getpwnam) || defined (__stub___getpwnam)
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char getpwnam(); getpwnam();
+#endif
+ }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  has_getpwnam=1
+
+else
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
+  has_getpwnam=0
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+
+    if test $has_getpwnam = 0 ; then
+        LIBS_save="${LIBS}"
 LIBS="${LIBS} -lsun"
 have_lib=""
 if test -z "$ac_echo_n" ; then
@@ -2942,7 +3873,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -2950,6 +3881,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -2965,6 +3902,7 @@ DEFS="$DEFS -DHAVE_LIBSUN=1"
    LIBS="${LIBS} -lsun"
 fi
 
+    fi
     for func in setsid
 do
 trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
@@ -3028,7 +3966,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   {
 test -n "$verbose" && \
 echo "	defining ${trfunc}"
@@ -3042,6 +3980,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 done
@@ -3109,7 +4053,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   {
 test -n "$verbose" && \
 echo "	defining ${trfunc}"
@@ -3123,6 +4067,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 done
@@ -3198,7 +4148,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   {
 test -n "$verbose" && \
 echo "	defining ${trfunc}"
@@ -3212,6 +4162,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 done
@@ -3279,7 +4235,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   {
 test -n "$verbose" && \
 echo "	defining ${trfunc}"
@@ -3293,6 +4249,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 done
@@ -3329,23 +4291,15 @@ CFLAGS="-64 $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
-    if test -s conftest.out ; then
-        cat conftest.out >> config.log
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-        
-        CFLAGS="$CFLAGSSAV"         
-    else
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+      if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-        if test -z "$ac_echo_n" ; then
+         if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -3371,60 +4325,99 @@ echo $ac_n "checking that routines compiled with -64 can be linked with ones com
 else
 echo $ac_n "checking that routines compiled with -64 can be linked with ones compiled  without -64""... $ac_c" 1>&1
 fi       
-        /bin/rm -f conftest.out
-        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
-                if test -s conftest.out ; then
-	            cat conftest.out >> config.log
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-                    print_error "Will not add -64 to CFLAGS"
-                    CFLAGS="$CFLAGSSAV"
-	            
-                else
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         /bin/rm -f conftest.out
+         /bin/rm -f conftest.bas
+         if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                  if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi	  
-                    MDEP_CFLAGS="-64";MDEP_LFLAGS="-64"
-                fi
-            else
-                if test -z "$ac_echo_test" -a 1 = 1 ; then
+                     MDEP_CFLAGS="-64";MDEP_LFLAGS="-64"
+                  elif test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-                print_error "Will not add -64 to CFLAGS"
-                CFLAGS="$CFLAGSSAV"
-	        
-            fi  
-        else
-            if test -s conftest2.out ; then 
-                cat conftest2.out >> config.log 
+                     print_error "Will not add -64 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  else
+                     if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                     print_error "Will not add -64 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  fi  
+               else
+	          if test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	          fi
+                  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                  print_error "Will not add -64 to CFLAGS"
+                  CFLAGS="$CFLAGSSAV"
+                  
+               fi
+	    else
+               # Could not link with the option!
+               if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
             fi
-            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         else
+            if test -s conftest2.out ; then
+               cat conftest.out >> config.log
+            fi
+	    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
             print_error "Will not add -64 to CFLAGS"
             CFLAGS="$CFLAGSSAV"
-            
-        fi
-    fi
+	    
+         fi
+      else
+         cat conftest.out >> config.log
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
 else
+echo "$ac_t""no" 1>&1
+fi
+         
+         CFLAGS="$CFLAGSSAV"         
+      fi
+   else
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+      
+      if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+      CFLAGS="$CFLAGSSAV"
+   fi
+else
+    # Could not compile without the option!
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-    
-    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
-    CFLAGS="$CFLAGSSAV"
 fi
 rm -f conftest*
 
@@ -3460,23 +4453,15 @@ CFLAGS="-mips3 $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
-    if test -s conftest.out ; then
-        cat conftest.out >> config.log
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-        
-        CFLAGS="$CFLAGSSAV"         
-    else
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+      if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-        if test -z "$ac_echo_n" ; then
+         if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -3502,60 +4487,99 @@ echo $ac_n "checking that routines compiled with -mips3 can be linked with ones 
 else
 echo $ac_n "checking that routines compiled with -mips3 can be linked with ones compiled  without -mips3""... $ac_c" 1>&1
 fi       
-        /bin/rm -f conftest.out
-        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
-                if test -s conftest.out ; then
-	            cat conftest.out >> config.log
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-                    print_error "Will not add -mips3 to CFLAGS"
-                    CFLAGS="$CFLAGSSAV"
-	            
-                else
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         /bin/rm -f conftest.out
+         /bin/rm -f conftest.bas
+         if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                  if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi	  
-                    MDEP_CFLAGS="$MDEP_CFLAGS -mips3"
-                fi
-            else
-                if test -z "$ac_echo_test" -a 1 = 1 ; then
+                     MDEP_CFLAGS="$MDEP_CFLAGS -mips3"
+                  elif test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-                print_error "Will not add -mips3 to CFLAGS"
-                CFLAGS="$CFLAGSSAV"
-	        
-            fi  
-        else
-            if test -s conftest2.out ; then 
-                cat conftest2.out >> config.log 
+                     print_error "Will not add -mips3 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  else
+                     if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                     print_error "Will not add -mips3 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  fi  
+               else
+	          if test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	          fi
+                  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                  print_error "Will not add -mips3 to CFLAGS"
+                  CFLAGS="$CFLAGSSAV"
+                  
+               fi
+	    else
+               # Could not link with the option!
+               if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
             fi
-            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         else
+            if test -s conftest2.out ; then
+               cat conftest.out >> config.log
+            fi
+	    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
             print_error "Will not add -mips3 to CFLAGS"
             CFLAGS="$CFLAGSSAV"
-            
-        fi
-    fi
+	    
+         fi
+      else
+         cat conftest.out >> config.log
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
 else
+echo "$ac_t""no" 1>&1
+fi
+         
+         CFLAGS="$CFLAGSSAV"         
+      fi
+   else
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+      
+      if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+      CFLAGS="$CFLAGSSAV"
+   fi
+else
+    # Could not compile without the option!
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-    
-    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
-    CFLAGS="$CFLAGSSAV"
 fi
 rm -f conftest*
 
@@ -3591,23 +4615,15 @@ CFLAGS="-woff 1552,1174 $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
-    if test -s conftest.out ; then
-        cat conftest.out >> config.log
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-        
-        CFLAGS="$CFLAGSSAV"         
-    else
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+      if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-        if test -z "$ac_echo_n" ; then
+         if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -3633,60 +4649,99 @@ echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked w
 else
 echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked with ones compiled  without -woff 1552,1174""... $ac_c" 1>&1
 fi       
-        /bin/rm -f conftest.out
-        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
-                if test -s conftest.out ; then
-	            cat conftest.out >> config.log
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-                    print_error "Will not add -woff 1552,1174 to CFLAGS"
-                    CFLAGS="$CFLAGSSAV"
-	            
-                else
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         /bin/rm -f conftest.out
+         /bin/rm -f conftest.bas
+         if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                  if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi	  
-                    MDEP_CFLAGS="$MDEP_CFLAGS -woff 1552,1174"
-                fi
-            else
-                if test -z "$ac_echo_test" -a 1 = 1 ; then
+                     MDEP_CFLAGS="$MDEP_CFLAGS -woff 1552,1174"
+                  elif test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-                print_error "Will not add -woff 1552,1174 to CFLAGS"
-                CFLAGS="$CFLAGSSAV"
-	        
-            fi  
-        else
-            if test -s conftest2.out ; then 
-                cat conftest2.out >> config.log 
+                     print_error "Will not add -woff 1552,1174 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  else
+                     if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                     print_error "Will not add -woff 1552,1174 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  fi  
+               else
+	          if test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	          fi
+                  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                  print_error "Will not add -woff 1552,1174 to CFLAGS"
+                  CFLAGS="$CFLAGSSAV"
+                  
+               fi
+	    else
+               # Could not link with the option!
+               if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
             fi
-            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         else
+            if test -s conftest2.out ; then
+               cat conftest.out >> config.log
+            fi
+	    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
             print_error "Will not add -woff 1552,1174 to CFLAGS"
             CFLAGS="$CFLAGSSAV"
-            
-        fi
-    fi
+	    
+         fi
+      else
+         cat conftest.out >> config.log
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
 else
+echo "$ac_t""no" 1>&1
+fi
+         
+         CFLAGS="$CFLAGSSAV"         
+      fi
+   else
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+      
+      if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+      CFLAGS="$CFLAGSSAV"
+   fi
+else
+    # Could not compile without the option!
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-    
-    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
-    CFLAGS="$CFLAGSSAV"
 fi
 rm -f conftest*
 
@@ -3762,7 +4817,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   {
 test -n "$verbose" && \
 echo "	defining ${trfunc}"
@@ -3776,6 +4831,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 done
@@ -3843,7 +4904,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   {
 test -n "$verbose" && \
 echo "	defining ${trfunc}"
@@ -3857,6 +4918,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 done
@@ -3893,23 +4960,15 @@ CFLAGS="-n32 $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
-    if test -s conftest.out ; then
-        cat conftest.out >> config.log
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-        
-        CFLAGS="$CFLAGSSAV"         
-    else
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+      if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-        if test -z "$ac_echo_n" ; then
+         if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -3935,60 +4994,99 @@ echo $ac_n "checking that routines compiled with -n32 can be linked with ones co
 else
 echo $ac_n "checking that routines compiled with -n32 can be linked with ones compiled  without -n32""... $ac_c" 1>&1
 fi       
-        /bin/rm -f conftest.out
-        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
-                if test -s conftest.out ; then
-	            cat conftest.out >> config.log
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-                    print_error "Will not add -n32 to CFLAGS"
-                    CFLAGS="$CFLAGSSAV"
-	            
-                else
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         /bin/rm -f conftest.out
+         /bin/rm -f conftest.bas
+         if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                  if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi	  
-                    MDEP_CFLAGS="-n32";MDEP_LFLAGS="-n32"
-                fi
-            else
-                if test -z "$ac_echo_test" -a 1 = 1 ; then
+                     MDEP_CFLAGS="-n32";MDEP_LFLAGS="-n32"
+                  elif test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-                print_error "Will not add -n32 to CFLAGS"
-                CFLAGS="$CFLAGSSAV"
-	        
-            fi  
-        else
-            if test -s conftest2.out ; then 
-                cat conftest2.out >> config.log 
+                     print_error "Will not add -n32 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  else
+                     if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                     print_error "Will not add -n32 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  fi  
+               else
+	          if test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	          fi
+                  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                  print_error "Will not add -n32 to CFLAGS"
+                  CFLAGS="$CFLAGSSAV"
+                  
+               fi
+	    else
+               # Could not link with the option!
+               if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
             fi
-            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         else
+            if test -s conftest2.out ; then
+               cat conftest.out >> config.log
+            fi
+	    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
             print_error "Will not add -n32 to CFLAGS"
             CFLAGS="$CFLAGSSAV"
-            
-        fi
-    fi
+	    
+         fi
+      else
+         cat conftest.out >> config.log
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
 else
+echo "$ac_t""no" 1>&1
+fi
+         
+         CFLAGS="$CFLAGSSAV"         
+      fi
+   else
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+      
+      if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+      CFLAGS="$CFLAGSSAV"
+   fi
+else
+    # Could not compile without the option!
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-    
-    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
-    CFLAGS="$CFLAGSSAV"
 fi
 rm -f conftest*
 
@@ -4024,23 +5122,15 @@ CFLAGS="-woff 1552,1174 $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
-    if test -s conftest.out ; then
-        cat conftest.out >> config.log
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-        
-        CFLAGS="$CFLAGSSAV"         
-    else
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+      if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-        if test -z "$ac_echo_n" ; then
+         if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -4066,60 +5156,99 @@ echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked w
 else
 echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked with ones compiled  without -woff 1552,1174""... $ac_c" 1>&1
 fi       
-        /bin/rm -f conftest.out
-        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
-                if test -s conftest.out ; then
-	            cat conftest.out >> config.log
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-                    print_error "Will not add -woff 1552,1174 to CFLAGS"
-                    CFLAGS="$CFLAGSSAV"
-	            
-                else
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         /bin/rm -f conftest.out
+         /bin/rm -f conftest.bas
+         if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                  if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi	  
-                    MDEP_CFLAGS="$MDEP_CFLAGS -woff 1552,1174"
-                fi
-            else
-                if test -z "$ac_echo_test" -a 1 = 1 ; then
+                     MDEP_CFLAGS="$MDEP_CFLAGS -woff 1552,1174"
+                  elif test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-                print_error "Will not add -woff 1552,1174 to CFLAGS"
-                CFLAGS="$CFLAGSSAV"
-	        
-            fi  
-        else
-            if test -s conftest2.out ; then 
-                cat conftest2.out >> config.log 
+                     print_error "Will not add -woff 1552,1174 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  else
+                     if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                     print_error "Will not add -woff 1552,1174 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  fi  
+               else
+	          if test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	          fi
+                  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                  print_error "Will not add -woff 1552,1174 to CFLAGS"
+                  CFLAGS="$CFLAGSSAV"
+                  
+               fi
+	    else
+               # Could not link with the option!
+               if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
             fi
-            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         else
+            if test -s conftest2.out ; then
+               cat conftest.out >> config.log
+            fi
+	    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
             print_error "Will not add -woff 1552,1174 to CFLAGS"
             CFLAGS="$CFLAGSSAV"
-            
-        fi
-    fi
+	    
+         fi
+      else
+         cat conftest.out >> config.log
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
 else
+echo "$ac_t""no" 1>&1
+fi
+         
+         CFLAGS="$CFLAGSSAV"         
+      fi
+   else
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+      
+      if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+      CFLAGS="$CFLAGSSAV"
+   fi
+else
+    # Could not compile without the option!
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-    
-    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
-    CFLAGS="$CFLAGSSAV"
 fi
 rm -f conftest*
 
@@ -4164,23 +5293,15 @@ CFLAGS="-64 $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
-    if test -s conftest.out ; then
-        cat conftest.out >> config.log
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-        
-        CFLAGS="$CFLAGSSAV"         
-    else
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+      if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-        if test -z "$ac_echo_n" ; then
+         if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -4206,60 +5327,99 @@ echo $ac_n "checking that routines compiled with -64 can be linked with ones com
 else
 echo $ac_n "checking that routines compiled with -64 can be linked with ones compiled  without -64""... $ac_c" 1>&1
 fi       
-        /bin/rm -f conftest.out
-        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
-                if test -s conftest.out ; then
-	            cat conftest.out >> config.log
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-                    print_error "Will not add -64 to CFLAGS"
-                    CFLAGS="$CFLAGSSAV"
-	            
-                else
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         /bin/rm -f conftest.out
+         /bin/rm -f conftest.bas
+         if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                  if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi	  
-                    MDEP_CFLAGS="-64";MDEP_LFLAGS="-64"
-                fi
-            else
-                if test -z "$ac_echo_test" -a 1 = 1 ; then
+                     MDEP_CFLAGS="-64";MDEP_LFLAGS="-64"
+                  elif test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-                print_error "Will not add -64 to CFLAGS"
-                CFLAGS="$CFLAGSSAV"
-	        
-            fi  
-        else
-            if test -s conftest2.out ; then 
-                cat conftest2.out >> config.log 
+                     print_error "Will not add -64 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  else
+                     if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                     print_error "Will not add -64 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  fi  
+               else
+	          if test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	          fi
+                  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                  print_error "Will not add -64 to CFLAGS"
+                  CFLAGS="$CFLAGSSAV"
+                  
+               fi
+	    else
+               # Could not link with the option!
+               if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
             fi
-            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         else
+            if test -s conftest2.out ; then
+               cat conftest.out >> config.log
+            fi
+	    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
             print_error "Will not add -64 to CFLAGS"
             CFLAGS="$CFLAGSSAV"
-            
-        fi
-    fi
+	    
+         fi
+      else
+         cat conftest.out >> config.log
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
 else
+echo "$ac_t""no" 1>&1
+fi
+         
+         CFLAGS="$CFLAGSSAV"         
+      fi
+   else
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+      
+      if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+      CFLAGS="$CFLAGSSAV"
+   fi
+else
+    # Could not compile without the option!
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-    
-    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
-    CFLAGS="$CFLAGSSAV"
 fi
 rm -f conftest*
 
@@ -4295,23 +5455,15 @@ CFLAGS="-mips4 $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
-    if test -s conftest.out ; then
-        cat conftest.out >> config.log
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-        
-        CFLAGS="$CFLAGSSAV"         
-    else
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+      if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-        if test -z "$ac_echo_n" ; then
+         if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -4337,60 +5489,99 @@ echo $ac_n "checking that routines compiled with -mips4 can be linked with ones 
 else
 echo $ac_n "checking that routines compiled with -mips4 can be linked with ones compiled  without -mips4""... $ac_c" 1>&1
 fi       
-        /bin/rm -f conftest.out
-        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
-                if test -s conftest.out ; then
-	            cat conftest.out >> config.log
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-                    print_error "Will not add -mips4 to CFLAGS"
-                    CFLAGS="$CFLAGSSAV"
-	            
-                else
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         /bin/rm -f conftest.out
+         /bin/rm -f conftest.bas
+         if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                  if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi	  
-                    MDEP_CFLAGS="$MDEP_CFLAGS -mips4"
-                fi
-            else
-                if test -z "$ac_echo_test" -a 1 = 1 ; then
+                     MDEP_CFLAGS="$MDEP_CFLAGS -mips4"
+                  elif test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-                print_error "Will not add -mips4 to CFLAGS"
-                CFLAGS="$CFLAGSSAV"
-	        
-            fi  
-        else
-            if test -s conftest2.out ; then 
-                cat conftest2.out >> config.log 
+                     print_error "Will not add -mips4 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  else
+                     if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                     print_error "Will not add -mips4 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  fi  
+               else
+	          if test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	          fi
+                  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                  print_error "Will not add -mips4 to CFLAGS"
+                  CFLAGS="$CFLAGSSAV"
+                  
+               fi
+	    else
+               # Could not link with the option!
+               if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
             fi
-            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         else
+            if test -s conftest2.out ; then
+               cat conftest.out >> config.log
+            fi
+	    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
             print_error "Will not add -mips4 to CFLAGS"
             CFLAGS="$CFLAGSSAV"
-            
-        fi
-    fi
+	    
+         fi
+      else
+         cat conftest.out >> config.log
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
 else
+echo "$ac_t""no" 1>&1
+fi
+         
+         CFLAGS="$CFLAGSSAV"         
+      fi
+   else
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+      
+      if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+      CFLAGS="$CFLAGSSAV"
+   fi
+else
+    # Could not compile without the option!
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-    
-    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
-    CFLAGS="$CFLAGSSAV"
 fi
 rm -f conftest*
 
@@ -4426,23 +5617,15 @@ CFLAGS="-woff 1552,1174 $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
-    if test -s conftest.out ; then
-        cat conftest.out >> config.log
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-        
-        CFLAGS="$CFLAGSSAV"         
-    else
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+      if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-        if test -z "$ac_echo_n" ; then
+         if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -4468,60 +5651,99 @@ echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked w
 else
 echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked with ones compiled  without -woff 1552,1174""... $ac_c" 1>&1
 fi       
-        /bin/rm -f conftest.out
-        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
-                if test -s conftest.out ; then
-	            cat conftest.out >> config.log
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no"
-else
-echo "$ac_t""no" 1>&1
-fi
-                    print_error "Will not add -woff 1552,1174 to CFLAGS"
-                    CFLAGS="$CFLAGSSAV"
-	            
-                else
-	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         /bin/rm -f conftest.out
+         /bin/rm -f conftest.bas
+         if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                  if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi	  
-                    MDEP_CFLAGS="$MDEP_CFLAGS -woff 1552,1174"
-                fi
-            else
-                if test -z "$ac_echo_test" -a 1 = 1 ; then
+                     MDEP_CFLAGS="$MDEP_CFLAGS -woff 1552,1174"
+                  elif test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-                print_error "Will not add -woff 1552,1174 to CFLAGS"
-                CFLAGS="$CFLAGSSAV"
-	        
-            fi  
-        else
-            if test -s conftest2.out ; then 
-                cat conftest2.out >> config.log 
+                     print_error "Will not add -woff 1552,1174 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  else
+                     if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                     print_error "Will not add -woff 1552,1174 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             
+                  fi  
+               else
+	          if test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	          fi
+                  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                  print_error "Will not add -woff 1552,1174 to CFLAGS"
+                  CFLAGS="$CFLAGSSAV"
+                  
+               fi
+	    else
+               # Could not link with the option!
+               if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
             fi
-            if test -z "$ac_echo_test" -a 1 = 1 ; then
+         else
+            if test -s conftest2.out ; then
+               cat conftest.out >> config.log
+            fi
+	    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
             print_error "Will not add -woff 1552,1174 to CFLAGS"
             CFLAGS="$CFLAGSSAV"
-            
-        fi
-    fi
+	    
+         fi
+      else
+         cat conftest.out >> config.log
+         if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
 else
+echo "$ac_t""no" 1>&1
+fi
+         
+         CFLAGS="$CFLAGSSAV"         
+      fi
+   else
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+      
+      if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+      CFLAGS="$CFLAGSSAV"
+   fi
+else
+    # Could not compile without the option!
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-    
-    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
-    CFLAGS="$CFLAGSSAV"
 fi
 rm -f conftest*
 
@@ -4589,7 +5811,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   {
 test -n "$verbose" && \
 echo "	defining ${trfunc}"
@@ -4603,6 +5825,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 done
@@ -4670,7 +5898,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   {
 test -n "$verbose" && \
 echo "	defining ${trfunc}"
@@ -4684,6 +5912,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 done
@@ -4734,7 +5968,7 @@ fi
 # dump copy of MDEP_CFLAGS into file for other system to pick up
 /bin/rm -f mpdepcflags
 echo $MDEP_CFLAGS > mdepcflags
-# evaluate variables for lib/p4_config.h
+# evaluate variables for p4_config.h
 if test "$p4alog" = "on"; then
     DEFINE_ALOG="#define ALOG_TRACE"
 fi
@@ -4821,6 +6055,95 @@ fi
 
 #
 # Look for netinet/in.h and sys/socketvar.h
+has_rpc_rpc=0
+for ac_hdr in rpc/rpc.h
+do
+ac_safe=`echo "$ac_hdr" | tr '[a-z]./' '[A-Z]__'`
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for $ac_hdr""... $ac_c"
+else
+echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+#include <$ac_hdr>
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  
+  
+  eval "ac_cv_header_$ac_safe=yes"
+
+else
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
+  eval "ac_cv_header_$ac_safe=no"
+   
+fi
+rm -f conftest*
+if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+    ac_tr_hdr=HAVE_`echo $ac_hdr | tr '[a-z]./' '[A-Z]__'`
+  
+{
+test -n "$verbose" && \
+echo "	defining $ac_tr_hdr"
+echo "#define" $ac_tr_hdr 1 >> confdefs.h
+DEFS="$DEFS -D$ac_tr_hdr=1"
+}
+ has_rpc_rpc=1
+else
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+done
+
+has_netinet_in=0
 for ac_hdr in netinet/in.h
 do
 ac_safe=`echo "$ac_hdr" | tr '[a-z]./' '[A-Z]__'`
@@ -4871,11 +6194,15 @@ int t() { main(); }
 EOF
 if eval $compile; then
   
-  rm -rf conftest*
+  
   eval "ac_cv_header_$ac_safe=yes"
 
 else
-  rm -rf conftest*
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
   eval "ac_cv_header_$ac_safe=no"
    
 fi
@@ -4894,7 +6221,7 @@ echo "	defining $ac_tr_hdr"
 echo "#define" $ac_tr_hdr 1 >> confdefs.h
 DEFS="$DEFS -D$ac_tr_hdr=1"
 }
- 
+ has_netinet_in=1
 else
   if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
@@ -4954,11 +6281,15 @@ int t() { main(); }
 EOF
 if eval $compile; then
   
-  rm -rf conftest*
+  
   eval "ac_cv_header_$ac_safe=yes"
 
 else
-  rm -rf conftest*
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
   eval "ac_cv_header_$ac_safe=no"
    
 fi
@@ -5037,11 +6368,15 @@ int t() { main(); }
 EOF
 if eval $compile; then
   
-  rm -rf conftest*
+  
   eval "ac_cv_header_$ac_safe=yes"
 
 else
-  rm -rf conftest*
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
   eval "ac_cv_header_$ac_safe=no"
    
 fi
@@ -5120,11 +6455,15 @@ int t() { main(); }
 EOF
 if eval $compile; then
   
-  rm -rf conftest*
+  
   eval "ac_cv_header_$ac_safe=yes"
 
 else
-  rm -rf conftest*
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
   eval "ac_cv_header_$ac_safe=no"
    
 fi
@@ -5203,11 +6542,15 @@ int t() { main(); }
 EOF
 if eval $compile; then
   
-  rm -rf conftest*
+  
   eval "ac_cv_header_$ac_safe=yes"
 
 else
-  rm -rf conftest*
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
   eval "ac_cv_header_$ac_safe=no"
    
 fi
@@ -5284,11 +6627,15 @@ int t() { main(); }
 EOF
 if eval $compile; then
   
-  rm -rf conftest*
+  
   eval "ac_cv_header_$ac_safe=yes"
 
 else
-  rm -rf conftest*
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
   eval "ac_cv_header_$ac_safe=no"
    
 fi
@@ -5366,11 +6713,15 @@ int t() { main(); }
 EOF
 if eval $compile; then
   
-  rm -rf conftest*
+  
   eval "ac_cv_header_$ac_safe=yes"
 
 else
-  rm -rf conftest*
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
   eval "ac_cv_header_$ac_safe=no"
    
 fi
@@ -5449,11 +6800,15 @@ int t() { main(); }
 EOF
 if eval $compile; then
   
-  rm -rf conftest*
+  
   eval "ac_cv_header_$ac_safe=yes"
 
 else
-  rm -rf conftest*
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
   eval "ac_cv_header_$ac_safe=no"
    
 fi
@@ -5532,11 +6887,15 @@ int t() { main(); }
 EOF
 if eval $compile; then
   
-  rm -rf conftest*
+  
   eval "ac_cv_header_$ac_safe=yes"
 
 else
-  rm -rf conftest*
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
   eval "ac_cv_header_$ac_safe=no"
    
 fi
@@ -5625,6 +6984,184 @@ fi
 fi
 rm -fr conftest*
 #
+if test "$has_rpc_rpc" = 1 ; then
+    # does it really?
+    # (gcc on Solaris 5.6 sometimes fails, particularly when OS was upgraded
+    # from 5.5 to 5.6 but gcc was not reinstalled).
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for correct headers with rpc/rpc.h""... $ac_c"
+else
+echo $ac_n "checking for correct headers with rpc/rpc.h""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+#include <sys/types.h>
+#include <rpc/rpc.h>
+
+int main() { exit(0); }
+int t() {  }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  :
+else
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
+  cc_broken=1
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+
+    if test "$cc_broken" = 1; then
+        echo "Your C compiler $CC fails to compile the program"
+        echo "#include <sys/types.h>"
+        echo "#include <rpc/rpc.h>"
+	echo "If you are using gcc, make sure that the system include"
+        echo "files and the gcc include files are consistent.  If "
+        echo "you have upgraded the OS, you may need to reinstall gcc"
+        exit 1
+    fi
+fi
+if test "$has_netinet_in" = 1 ; then
+    # does it really?
+    # (gcc on Solaris 5.6 sometimes fails, particularly when OS was upgraded
+    # from 5.5 to 5.6 but gcc was not reinstalled).
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for correct headers with netinet/in.h""... $ac_c"
+else
+echo $ac_n "checking for correct headers with netinet/in.h""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+#include <sys/types.h>
+#include <netinet/in.h>
+
+int main() { exit(0); }
+int t() {  }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  :
+else
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
+  cc_broken=1
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+
+    if test "$cc_broken" = 1; then
+        echo "Your C compiler $CC fails to compile the program"
+        echo "#include <sys/types.h>"
+        echo "#include <netinet/in.h>"
+	echo "If you are using gcc, make sure that the system include"
+        echo "files and the gcc include files are consistent.  If "
+        echo "you have upgraded the OS, you may need to reinstall gcc"
+        exit 1
+    fi
+fi
 #
 # It isn't enough to check for stdarg.  Even gcc doesn't get it right;
 # on some systems, the gcc version of stdio.h loads stdarg.h WITH THE WRONG
@@ -5672,11 +7209,6 @@ fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 
-/* DEC Alpha compiler by default does NOT define __STDC__ but DOES
-   accept prototypes */
-#if !defined(__STDC__)
-'bad text'
-#endif
 #include <stdio.h>
 #include <stdarg.h>
 int func( int a, ... ){
@@ -5691,7 +7223,12 @@ return 0;
 }
 int main() { func( 1, 2 ); return 0;}
 EOF
-if eval $compile; then
+if test -z "$ac_compile_link" ; then 
+    ac_compile_link='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+fi
+echo "$ac_compile_link" >>config.log
+cat conftest.c >>config.log
+if eval $ac_compile_link; then
   if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
@@ -5707,7 +7244,10 @@ DEFS="$DEFS -DUSE_STDARG=1"
 }
 
 
-   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+else
+    rm -rf conftest*
+    
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
@@ -5717,6 +7257,180 @@ rm -f conftest*
 
 fi
 #
+for func in sigsetmask
+do
+trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for ${func}""... $ac_c"
+else
+echo $ac_n "checking for ${func}""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_${func}) || defined (__stub___${func})
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char ${func}(); ${func}();
+#endif
+ }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  {
+test -n "$verbose" && \
+echo "	defining ${trfunc}"
+echo "#define" ${trfunc} 1 >> confdefs.h
+DEFS="$DEFS -D${trfunc}=1"
+}
+
+
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+done
+
+for func in sigblock
+do
+trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for ${func}""... $ac_c"
+else
+echo $ac_n "checking for ${func}""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_${func}) || defined (__stub___${func})
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char ${func}(); ${func}();
+#endif
+ }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  {
+test -n "$verbose" && \
+echo "	defining ${trfunc}"
+echo "#define" ${trfunc} 1 >> confdefs.h
+DEFS="$DEFS -D${trfunc}=1"
+}
+
+
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+done
+
 # Look for sigaction routine (instead of signal)
 for func in sigaction
 do
@@ -5781,7 +7495,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   {
 test -n "$verbose" && \
 echo "	defining ${trfunc}"
@@ -5795,6 +7509,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 done
@@ -5850,17 +7570,110 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   sigaction_ok="yes"
 
 else
-  rm -rf conftest*
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
   sigaction_ok="no"
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+
+# XOPEN mandates that union semun NOT be defined(!)
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for for union semun""... $ac_c"
+else
+echo $ac_n "checking for for union semun""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
+int main() { exit(0); }
+int t() { 
+union semun arg;arg.val=0; }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  :
+else
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
+  
+{
+test -n "$verbose" && \
+echo "	defining SEMUN_UNDEFINED"
+echo "#define" SEMUN_UNDEFINED 1 >> confdefs.h
+DEFS="$DEFS -DSEMUN_UNDEFINED=1"
+}
+
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 
@@ -5928,7 +7741,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   {
 test -n "$verbose" && \
 echo "	defining ${trfunc}"
@@ -5942,6 +7755,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 done
@@ -5999,7 +7818,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -6007,6 +7826,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -6080,7 +7905,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   {
 test -n "$verbose" && \
 echo "	defining ${trfunc}"
@@ -6094,14 +7919,26 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 done
 
 
 #
-# Check that nonblocking read works
-if test -s readblock.c ; then
+# Check that nonblocking read works:
+# Early SYSV (R2) had a design problem with nonblocking sockets:
+# there was no way to distinquish between EOF and no data on socket.
+# This code tests for this case; if an EOF on the socket gives the
+# correct value (-1), we note this.  If it fails, there is code in
+# p4 to work around this design bug, but it can introduce performance
+# penalties.  
+if test -s $top_srcdir/readblock.c -a $use_nonblock_read = 1 ; then
     if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
@@ -6131,7 +7968,7 @@ fi
     readworks=0
     cat > conftest.c <<EOF
 #include "confdefs.h"
-`cat readblock.c`
+`cat $top_srcdir/readblock.c`
 EOF
 eval $compile
 if test -s conftest && (./conftest; exit) 2>/dev/null; then
@@ -6145,8 +7982,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-	if test $use_nonblock_read = 1 ; then
-            
+        
 {
 test -n "$verbose" && \
 echo "	defining NONBLOCKING_READ_WORKS"
@@ -6154,7 +7990,6 @@ echo "#define" NONBLOCKING_READ_WORKS 1 >> confdefs.h
 DEFS="$DEFS -DNONBLOCKING_READ_WORKS=1"
 }
 
-	fi
     else
 	if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
@@ -6220,7 +8055,12 @@ int main() { struct sgttyb tty_new;
     ioctl(0, TIOCSETP, &tty_new);
     return 0;}
 EOF
-if eval $compile; then
+if test -z "$ac_compile_link" ; then 
+    ac_compile_link='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+fi
+echo "$ac_compile_link" >>config.log
+cat conftest.c >>config.log
+if eval $ac_compile_link; then
   if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
@@ -6228,9 +8068,8 @@ echo "$ac_t""yes" 1>&1
 fi
   :
 else
-  rm -rf conftest*
-  
-{
+    rm -rf conftest*
+    {
 test -n "$verbose" && \
 echo "	defining NO_ECHO"
 echo "#define" NO_ECHO 1 >> confdefs.h
@@ -6267,6 +8106,277 @@ DEFS="$DEFS -DRSH_HAS_NO_L=1"
 
 fi
 #
+#
+# The following are necessary for AIX in particular because in 64 bit mode,
+# some of the socket functions use size_t (unsigned long, 64 bits) instead of
+# int (signed int, 32 bits) as a return value.  Getting the wrong type
+# causes all sorts of chaos.  Unfortunately, there isn't any consensus on what
+# the arguments *should* be.
+found_sockopt_type=0
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for if getsockopt wants socklen_t""... $ac_c"
+else
+echo $ac_n "checking for if getsockopt wants socklen_t""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <sys/types.h>
+#include <sys/socket.h>
+int main() { exit(0); }
+int t() { socklen_t dummy; int rc, skt; void *ssz;
+rc = getsockopt(skt,SOL_SOCKET,SO_SNDBUF,ssz,&dummy); }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  found_sockopt_type=1
+
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+
+if test $found_sockopt_type = 1 ; then
+    MDEP_CFLAGS="$MDEP_CFLAGS -DUSE_SOCKLEN_T"
+fi
+if test $found_sockopt_type = 0 ; then
+    # This case is harder.  size_t is a valid type, but it may not be the 
+    # one that getsockopt etc wants.
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking if getsockopt wants size_t""... $ac_c"
+else
+echo $ac_n "checking if getsockopt wants size_t""... $ac_c" 1>&1
+fi
+    
+found_sockopt_type=2
+rm -f conftest*
+if test -z "$TRY_COMPLILE_CLEAN" ; then
+    echo 'int try(void);int try(void){return 0;}' > conftest.c
+    if ${CC-cc} $CFLAGS -c conftest.c >conftest.bas 2>&1 ; then
+	if test -s conftest.bas ; then 
+	    TRY_COMPILE_CLEAN_OUT=`cat conftest.bas`
+        fi
+        TRY_COMPILE_CLEAN=1
+    else
+	
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "Warning: Could not compile simple test program!""... $ac_c"
+else
+echo $ac_n "Warning: Could not compile simple test program!""... $ac_c" 1>&1
+fi
+	if test -s conftest.bas ; then 	cat conftest.bas >> config.log ; fi
+    fi
+fi
+rm -f conftest*
+cat >conftest.c <<EOF
+#include "confdefs.h"
+#include <sys/types.h>
+#include <sys/socket.h>
+int try(void){size_t dummy; int rc, skt; void *ssz;
+rc = getsockopt(skt,SOL_SOCKET,SO_SNDBUF,ssz,&dummy);
+return rc;}
+EOF
+if ${CC-cc} $CFLAGS -c conftest.c >conftest.bas 2>&1 ; then
+        if test "$TRY_COMPILE_CLEAN_OUT" = "`cat conftest.bas`" ; then
+	found_sockopt_type=0
+    else
+        cat conftest.c >>config.log
+	if test -s conftest.bas ; then 	cat conftest.bas >> config.log ; fi
+        found_sockopt_type=1
+    fi
+else
+        cat conftest.c >>config.log
+    if test -s conftest.bas ; then cat conftest.bas >> config.log ; fi
+    found_sockopt_type=2
+fi
+rm -f conftest*
+
+    case $found_sockopt_type in 
+	0) if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+           MDEP_CFLAGS="$MDEP_CFLAGS -DUSE_SIZE_T_FOR_SOCKLEN_T"
+	;;
+	1) if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no (warnings from compiler)"
+else
+echo "$ac_t""no (warnings from compiler)" 1>&1
+fi
+	;;
+	2) if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+	;;
+    esac
+fi
+
+#
+# Check whether u_int should be used for xdr_array 
+use_u_int=0
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking if xdr_array wants u_int""... $ac_c"
+else
+echo $ac_n "checking if xdr_array wants u_int""... $ac_c" 1>&1
+fi
+
+use_u_int=2
+rm -f conftest*
+if test -z "$TRY_COMPLILE_CLEAN" ; then
+    echo 'int try(void);int try(void){return 0;}' > conftest.c
+    if ${CC-cc} $CFLAGS -c conftest.c >conftest.bas 2>&1 ; then
+	if test -s conftest.bas ; then 
+	    TRY_COMPILE_CLEAN_OUT=`cat conftest.bas`
+        fi
+        TRY_COMPILE_CLEAN=1
+    else
+	
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "Warning: Could not compile simple test program!""... $ac_c"
+else
+echo $ac_n "Warning: Could not compile simple test program!""... $ac_c" 1>&1
+fi
+	if test -s conftest.bas ; then 	cat conftest.bas >> config.log ; fi
+    fi
+fi
+rm -f conftest*
+cat >conftest.c <<EOF
+#include "confdefs.h"
+#include <rpc/xdr.h>
+
+int try(void){
+u_int l, ms, el; xdrproc_t elproc; XDR *xdrs; int rc; char **arrp;
+rc = xdr_array(xdrs,arrp,&l,ms,el,elproc);
+return rc;}
+EOF
+if ${CC-cc} $CFLAGS -c conftest.c >conftest.bas 2>&1 ; then
+        if test "$TRY_COMPILE_CLEAN_OUT" = "`cat conftest.bas`" ; then
+	use_u_int=0
+    else
+        cat conftest.c >>config.log
+	if test -s conftest.bas ; then 	cat conftest.bas >> config.log ; fi
+        use_u_int=1
+    fi
+else
+        cat conftest.c >>config.log
+    if test -s conftest.bas ; then cat conftest.bas >> config.log ; fi
+    use_u_int=2
+fi
+rm -f conftest*
+
+case $use_u_int in 
+    0) if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+       MDEP_CFLAGS="$MDEP_CFLAGS -DUSE_U_INT_FOR_XDR"
+       ;;
+    1) if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no (compiler warnings)"
+else
+echo "$ac_t""no (compiler warnings)" 1>&1
+fi
+       ;;
+    2) if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+       ;;
+esac
+
 if test $threaded_listener = 1 ; then
     # Try to find a thread package
     has_pthread=0
@@ -6318,11 +8428,15 @@ int t() { main(); }
 EOF
 if eval $compile; then
   
-  rm -rf conftest*
+  
   eval "ac_cv_header_$ac_safe=yes"
 
 else
-  rm -rf conftest*
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
   eval "ac_cv_header_$ac_safe=no"
    
 fi
@@ -6405,7 +8519,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   have_lib="1"
 
    else if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -6413,6 +8527,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -6537,7 +8657,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   {
 test -n "$verbose" && \
 echo "	defining ${trfunc}"
@@ -6551,6 +8671,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 done
@@ -6622,7 +8748,12 @@ do
 done
 
 trap 'rm -f Makefile lib/Makefile alog/Makefile usc/Makefile usc/usctest/Makefile messages/Makefile include/Makefile lib_f/Makefile contrib/Makefile contrib_f/Makefile bin/Makefile doc/Makefile messages_f/Makefile misc/Makefile monitors/Makefile servers/Makefile; exit 1' 1 3 15
+top_srcdir='$top_srcdir'
+exec_prefix='$exec_prefix'
+libdir='$libdir'
+libbuild_dir='$libbuild_dir'
 RANLIB='$RANLIB'
+VPATH='$VPATH'
 P4ARCH='$P4ARCH'
 MAKE='$MAKE'
 CC='$CC'
@@ -6674,7 +8805,12 @@ for file in .. ${CONFIG_FILES}; do if test "x$file" != x..; then
 cat $top_srcdir/${file}.in | sed -e "
 $prsub
 $extrasub
+s%@top_srcdir@%$top_srcdir%g
+s%@exec_prefix@%$exec_prefix%g
+s%@libdir@%$libdir%g
+s%@libbuild_dir@%$libbuild_dir%g
 s%@RANLIB@%$RANLIB%g
+s%@VPATH@%$VPATH%g
 s%@P4ARCH@%$P4ARCH%g
 s%@MAKE@%$MAKE%g
 s%@CC@%$CC%g
@@ -6712,11 +8848,11 @@ chmod +x config.status
 ${CONFIG_SHELL-/bin/sh} ./config.status
 
 
-CONFIG_FILES="lib/p4_config.h"
+CONFIG_FILES="p4_config.h"
 export CONFIG_FILES
 ./config.status
 CONFIG_FILES=""
-for pac_file in lib/p4_config.h ; do 
+for pac_file in p4_config.h ; do 
     /bin/rm -f .pactmp
     sed -e '1d' $pac_file > .pactmp
     /bin/rm -f $pac_file

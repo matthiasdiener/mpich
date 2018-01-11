@@ -35,6 +35,9 @@
 // Only works for int's.  Doh!
 
 //
+// note that if  _MPIPP_USENAMESPACE_ is defined, this must be defined
+// as extern "C" (because User_function is extern "C" in that case)
+
 static void
 My_sum(const void *invec, void *inoutvec, int len, const MPI::Datatype& thetype)
 {
@@ -71,7 +74,7 @@ op_test()
 
   len = 2;
 
-  Testing("Init");
+  Testing( (char *)"Init");
   {
     op1.Init(My_sum, true);
     
@@ -95,7 +98,7 @@ op_test()
   }
   Pass(); // Init
 
-  Testing("Free");
+  Testing( (char *)"Free");
   if (op1 != MPI::OP_NULL) {
     op1.Free();
 

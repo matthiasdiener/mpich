@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_nfs_wrcoll.c,v 1.2 1998/06/02 18:40:02 thakur Exp $    
+ *   $Id: ad_nfs_wrcoll.c,v 1.3 1999/08/06 18:32:25 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

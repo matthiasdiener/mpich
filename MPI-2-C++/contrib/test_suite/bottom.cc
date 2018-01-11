@@ -70,7 +70,7 @@ bottom()
   MPI::Datatype type;
   MPI::Status status;
  
-  Testing("MPI::BOTTOM");
+  Testing( (char *)"MPI::BOTTOM");
 
   len = 1; 
   disp = MPI::Get_address(&ii);

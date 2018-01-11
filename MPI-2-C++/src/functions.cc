@@ -67,7 +67,7 @@ MPI::Get_processor_name(char*& name, int& resultlen)
 }
 
 void
-MPI::Get_error_string(int errorcode, char*& string, int& resultlen)
+MPI::Get_error_string(int errorcode, char* string, int& resultlen)
 {
   PMPI::Get_error_string(errorcode, string, resultlen);
 }
@@ -90,17 +90,24 @@ MPI::Wtick()
   return PMPI::Wtick();
 }
 
+
 void
 MPI::Init(int& argc, char**& argv)
 {
-  PMPI::Init(argc, argv);
+  /*  PMPI::Init(argc, argv); */
+  (void)MPI_Init(&argc, &argv);
+  MPI::ERRORS_THROW_EXCEPTIONS.init();
 }
 
+
+// This causes problems with Solaris CC compiler
+/*
 void
 MPI::Init()
 {
   PMPI::Init();
 }
+*/
 
 void
 MPI::Finalize()

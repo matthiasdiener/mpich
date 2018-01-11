@@ -2,7 +2,7 @@
 #include "mpi.h"
 #include "test.h"
 
-int Test_errorhandling ANSI_ARGS((void));
+int Test_errorhandling (void);
 /* This is complicated by the fact that not all systems correctly 
    implement stdargs (for the ...) declarations).  MPICH uses USE_STDARG
    as the choice here, instead of the cases 
@@ -13,9 +13,9 @@ void handler_a( MPI_Comm *, int *, ...);
 void handler_b( MPI_Comm *, int *, ...);
 void error_handler(MPI_Comm *, int *, ...);
 #else
-void handler_a ANSI_ARGS(( MPI_Comm *, int * ));
-void handler_b ANSI_ARGS(( MPI_Comm *, int * ));
-void error_handler ANSI_ARGS(( MPI_Comm *, int * ));
+void handler_a ( MPI_Comm *, int * );
+void handler_b ( MPI_Comm *, int * );
+void error_handler ( MPI_Comm *, int * );
 #endif
 
 /* 
@@ -34,18 +34,12 @@ int main( int argc, char **argv )
 
 static int a_errors, b_errors;
 
-int Test_errorhandling()
+int Test_errorhandling( void )
 {
     char errstring[MPI_MAX_ERROR_STRING];
     MPI_Comm dup_comm_world, dummy;
+    MPI_Comm tempcomm;
     MPI_Errhandler errhandler_a, errhandler_b, errhandler, old_handler;
-#if defined(USE_STDARG)
-    void handler_a( MPI_Comm *, int *, ... ), 
-	handler_b( MPI_Comm *, int *, ... ), 
-	error_handler( MPI_Comm *, int *, ... );
-#else
-    void handler_a(), handler_b(), error_handler();
-#endif
     int  err, world_rank, class, resultlen;
 
 #ifdef FOO
@@ -75,6 +69,9 @@ int Test_errorhandling()
     b_errors = 0;
     MPI_Errhandler_create(handler_b, &errhandler_b);
     MPI_Errhandler_get(dup_comm_world, &old_handler);
+    /* The following is needed to preserve an old handler */
+    MPI_Comm_dup( MPI_COMM_SELF, &tempcomm );
+    MPI_Errhandler_set( tempcomm, old_handler );
     MPI_Errhandler_set(dup_comm_world, errhandler_b);
     MPI_Errhandler_free(&errhandler_b);
     MPI_Comm_create(dup_comm_world, MPI_GROUP_NULL, &dummy);
@@ -83,7 +80,8 @@ int Test_errorhandling()
     }
 
     MPI_Errhandler_set(dup_comm_world, old_handler);
-    MPI_Errhandler_free(&old_handler);
+    MPI_Comm_free( &tempcomm );
+    /* MPI_Errhandler_free(&old_handler); */
     MPI_Comm_create(dup_comm_world, MPI_GROUP_NULL, &dummy);
     if (a_errors != 2) {
 	printf( "    error handler A not re-invoked\n" );
@@ -120,19 +118,17 @@ which should both show an error class of %d\n", MPI_ERR_GROUP );
     MPI_Errhandler_set(dup_comm_world, MPI_ERRORS_ARE_FATAL);
 
 #ifdef FOO
-    if (test_default) then
-			  print *, 'Forcing error for default handler...'
-			  MPI_Comm_create(dup_comm_world,
-					  MPI_GROUP_NULL, dummy) 
-	end if
-
-	    if (test_abort) then
-				print *, 'Calling MPI_Abort...'
-				MPI_Abort(MPI_COMM_WORLD, 123456768)
-		end if
+    if (test_default) {
+	printf("Forcing error for default handler...\n");
+	MPI_Comm_create(dup_comm_world, MPI_GROUP_NULL, &dummy);
+    }
+    if (test_abort) {
+	printf( "Calling MPI_Abort...\n" );
+	MPI_Abort(MPI_COMM_WORLD, 123456768);
+    }
 #endif
 
-		    MPI_Comm_free( &dup_comm_world );
+    MPI_Comm_free( &dup_comm_world );
     return 0;
 }
 

@@ -4,6 +4,7 @@
  */
 #define MPICHCONF_INC
 #include "mpichconf.h"
+#include "mpich-mpid.h"
 #endif
 
 #ifndef MPID_CH_Wtime
@@ -12,9 +13,11 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #endif
+
 void MPID_CH_Wtime( seconds )
 double *seconds;
 {
+
 #if defined(USE_ALPHA_CYCLE_COUNTER)
 /* Code from LinuxJournal #42 (Oct-97), p50; 
    thanks to Dave Covey dnc@gi.alaska.edu
@@ -26,7 +29,6 @@ double *seconds;
     /* Convert to time.  Scale cc by 1024 incase it would overflow a double;
        consider using long double as well */
     *seconds = 1024.0 * ((double)(cc/1024) / (double)CLOCK_FREQ_HZ);
-
 #elif defined(HAVE_BSDGETTIMEOFDAY)
     struct timeval tp;
     struct timezone tzp;

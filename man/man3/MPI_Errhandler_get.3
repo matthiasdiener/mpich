@@ -1,12 +1,10 @@
-.TH MPI_Errhandler_get 3 "9/17/1997" " " "MPI"
+.TH MPI_Errhandler_get 3 "9/3/1999" " " "MPI"
 .SH NAME
 MPI_Errhandler_get \-  Gets the error handler for a communicator 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Errhandler_get( comm, errhandler )
-MPI_Comm comm;
-MPI_Errhandler *errhandler;
+int MPI_Errhandler_get( MPI_Comm comm, MPI_Errhandler *errhandler )
 .fi
 .SH INPUT PARAMETER
 .PD 0
@@ -45,6 +43,25 @@ All MPI objects (e.g.,
 ) are of type 
 .I INTEGER
 in Fortran.
+
+.SH NOTE ON IMPLEMENTATION
+
+The MPI Standard was unclear on whether this routine required the user to call
+.I MPI_Errhandler_free
+once for each call made to this routine in order to
+free the error handler.  After some debate, the MPI Forum added an explicit
+statement that users are required to call 
+.I MPI_Errhandler_free
+when the
+return value from this routine is no longer needed.  This behavior is similar
+to the other MPI routines for getting objects; for example, 
+.I MPI_Comm_group
+requires that the user call 
+.I MPI_Group_free
+when the group returned
+by 
+.I MPI_Comm_group
+is no longer needed.
 
 .SH ERRORS
 

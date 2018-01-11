@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_xfs_open.c,v 1.2 1998/06/02 18:54:59 thakur Exp $    
+ *   $Id: ad_xfs_open.c,v 1.3 1999/08/06 18:32:48 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,7 +9,8 @@
 
 void ADIOI_XFS_Open(ADIO_File fd, int *error_code)
 {
-    int perm, old_mask, amode;
+    int perm, old_mask, amode, amode_direct;
+    struct dioattr st;
 
     if (fd->perm == ADIO_PERM_NULL) {
 	old_mask = umask(022);
@@ -27,19 +28,27 @@ void ADIOI_XFS_Open(ADIO_File fd, int *error_code)
 	amode = amode | O_WRONLY;
     if (fd->access_mode & ADIO_RDWR)
 	amode = amode | O_RDWR;
+
+    amode_direct = amode | O_DIRECT;
+
     if (fd->access_mode & ADIO_EXCL)
 	amode = amode | O_EXCL;
 
     fd->fd_sys = open(fd->filename, amode, perm);
 
-    if ((fd->fd_sys != -1) && (fd->access_mode & ADIO_APPEND)) {
-	fd->fp_ind = lseek64(fd->fd_sys, 0, SEEK_END);
-	MPI_Barrier(fd->comm);
-	/* the barrier ensures that no process races ahead and modifies
-           the file size before all processes have opened the file. */
+    fd->fd_direct = open(fd->filename, amode_direct, perm);
+    if (fd->fd_direct != -1) {
+	fcntl(fd->fd_direct, F_DIOINFO, &st);
+	fd->d_mem = st.d_mem;
+	fd->d_miniosz = st.d_miniosz;
+	fd->d_maxiosz = st.d_maxiosz;
     }
+
+    if ((fd->fd_sys != -1) && (fd->access_mode & ADIO_APPEND))
+	fd->fp_ind = lseek64(fd->fd_sys, 0, SEEK_END);
 
     fd->fp_sys_posn = -1; /* set it to null because we use pread/pwrite */
 
-    *error_code = (fd->fd_sys == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
+    *error_code = ((fd->fd_sys == -1) || (fd->fd_direct == -1)) ? 
+	             MPI_ERR_UNKNOWN : MPI_SUCCESS;
 }

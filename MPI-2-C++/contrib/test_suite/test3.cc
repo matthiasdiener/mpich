@@ -70,7 +70,7 @@ test3()
   MPI::Request req2;
   MPI::Status status;
  
-  Testing("Test w/o Status");
+  Testing( (char *)"Test w/o Status");
 
   req1 = MPI::REQUEST_NULL;
   req2 = MPI::REQUEST_NULL;

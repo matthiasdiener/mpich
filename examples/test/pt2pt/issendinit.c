@@ -17,7 +17,7 @@ static int src  = 1;
 static int dest = 0;
 
 /* Prototypes for picky compilers */
-void Generate_Data ANSI_ARGS(( int *, int ));
+void Generate_Data ( int *, int );
 
 void Generate_Data(buffer, buff_size)
 int *buffer;
@@ -73,14 +73,13 @@ int main( int argc, char **argv )
 	MPI_Request_free( &r[0] );
 	MPI_Request_free( &r[1] );
 	Test_Waitforall( );
-	MPI_Finalize();
 	{
 	    int rval = Summarize_Test_Results(); /* Returns number of tests;
 						    that failed */
 	    Test_Finalize();
+	    MPI_Finalize();
 	    return rval;
 	}
-	MPI_Finalize();
 
     } else if (rank == dest) {
 	MPI_Send( buffer, 0, MPI_INT, src, 0, MPI_COMM_WORLD );
@@ -95,7 +94,7 @@ int main( int argc, char **argv )
 	MPI_Finalize();
     } else {
 	fprintf(stderr, "*** This program uses exactly 2 processes! ***\n");
-	exit(-1);
+	MPI_Abort( MPI_COMM_WORLD, 1 );
     }
 
     return 0;

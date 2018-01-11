@@ -75,8 +75,9 @@ while [ $curarch -le $narch ] ; do
         if [ "$machine" = "ibmspx" -a -x /usr/local/bin/getjid ] ; then
 	    machineFile="/sphome/$LOGNAME/SPnodes.`/usr/local/bin/getjid`"
         else
+	    machineDir=#datadir#
             for march in $archlist ; do
-                machineFile="${MPIR_HOME}/util/machines/machines.${march}"
+                machineFile="${machineDir}/machines.${march}"
 	        if [ -r $machineFile ] ; then break ; fi
     	    done
         fi
@@ -87,7 +88,7 @@ while [ $curarch -le $narch ] ; do
         if [ $nolocal != 0 -o $np != 1 ] ; then
             echo Cannot read $machineFile.  
 	    echo Looked for files with extension $archlist in 
-	    echo directory ${MPIR_HOME}/util/machines .
+	    echo directory #datadir# .
             exit 1
         fi
     fi
@@ -95,6 +96,7 @@ while [ $curarch -le $narch ] ; do
     # Find the machines to use (build in file).  Note that "local"
     # refers only to the first architecture.
     # 
+    MPI_HOSTLeader=`expr "$MPI_HOST" : '\([^\.]*\).*'`
     if [ $nolocal = 0 -o $curarch -gt 1 ] ; then
         machineavail=`cat $machineFile | \
 		sed -e '/^#/d' -e 's/#.*^//g' | head -${np} | \
@@ -129,6 +131,40 @@ while [ $curarch -le $narch ] ; do
     #
     KeepHost=0
     loopcnt=0
+    # If we have an SMP cluster, then first find the number that we can run 
+    # locally.
+    if [ -z "$MPI_MAX_CLUSTER_SIZE" ] ; then MPI_MAX_CLUSTER_SIZE=1 ; fi
+    if [ $nolocal = 0 -a $MPI_MAX_CLUSTER_SIZE -gt 1 ] ; then
+        for machineName in $machineavail ; do
+	    # Split machineName into name and number
+	    ntest=`expr $machineName : '.*:\([0-9]*\)'`
+	    # if ntest is blank, there is no : in the entry
+	    if [ -z "$ntest" ] ; then ntest=1 ; fi
+	    mtest=`expr $machineName : '\(.*\):.*'`
+	    if [ -z "$mtest" ] ; then mtest=$machineName ; fi
+	    machineName=$mtest
+	    machineNameLeader=`expr $machineName : '\([^\.]*\).*'`
+	    if [ $machineName = $MPI_HOST -o \
+	         \( $machineName != $machineNameLeader -a \
+	           $machineNameLeader = "$MPI_HOSTLeader" \) ] ; then
+		nprocmachine=1
+ 	        # Some systems return empty for no match; others return 0.  
+		# Empty is what they should use (0 is ambiguous), but we 
+		# have to be prepared for either.
+		if [ -n "$ntest" -a "$ntest" != "0" ] ; then
+		    nprocmachine=$ntest
+		    # Limit the allowed number
+		    if [ "$MPI_MAX_CLUSTER_SIZE" -lt $nprocmachine ] ; then
+			nprocmachine=$MPI_MAX_CLUSTER_SIZE
+		    fi
+		    machineName=`expr $machineName : '\(.*\):.*'`
+		    nproclocal="$nprocmachine"
+		    procFound=$nproclocal
+		fi
+	        break;
+	    fi
+        done
+    fi
     nleft=`expr $np - $procFound`
     while [ $procFound -lt $np ] ; do
         nfound=0
@@ -141,21 +177,25 @@ while [ $curarch -le $narch ] ; do
 	    ntest=`expr $machineName : '.*:\([0-9]*\)'`
 	    if [ -n "$ntest" -a "$ntest" != "0" ] ; then
 		nprocmachine=$ntest
-	        machineName=`expr $machineName : '\(.*\):.*'`
-	    fi
-	    #
-	    if [ $nolocal = 1 -o $KeepHost = 1 -o \
-		 $machineName != "$MPI_HOST" ] ; then
-		# Should we convert this the ${machineName}:$nprocmachine
-                # (with a care taken for nprocmachine > np - procFound).
-		if [ $nprocmachine -gt $nleft ] ; then
-		    nprocmachine=$nleft
-		fi
 		# Limit the allowed number
 		if [ -z "$MPI_MAX_CLUSTER_SIZE" ] ; then
 		    nprocmachine=1
 		elif [ "$MPI_MAX_CLUSTER_SIZE" -lt $nprocmachine ] ; then
 		    nprocmachine=$MPI_MAX_CLUSTER_SIZE
+		fi
+	        machineName=`expr $machineName : '\(.*\):.*'`
+	    fi
+	    # If nolocal = 0 (local machine to be included), 
+	    # the first time around, we don't accept the local host.
+	    machineNameLeader=`expr $machineName : '\([^\.]*\).*'`
+            if [ $nolocal = 1 -o $KeepHost = 1 -o \
+		 \( $machineName != "$MPI_HOST" -a \
+		    $machineNameLeader != "$MPI_HOSTLeader" \
+	       \) ] ; then
+		# Should we convert this the ${machineName}:$nprocmachine
+                # (with a care taken for nprocmachine > np - procFound).
+		if [ $nprocmachine -gt $nleft ] ; then
+		    nprocmachine=$nleft
 		fi
 		# Even better, we should use 
 		# machinename:nproc:arch, so that everything is together.

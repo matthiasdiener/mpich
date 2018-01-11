@@ -1,11 +1,27 @@
 /* 
- *   $Id: ioreq_f2c.c,v 1.2 1998/06/02 19:02:00 thakur Exp $    
+ *   $Id: ioreq_f2c.c,v 1.5 1999/08/27 20:53:07 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "mpioimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPIO_Request_f2c = PMPIO_Request_f2c
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPIO_Request_f2c MPIO_Request_f2c
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPIO_Request_f2c as PMPIO_Request_f2c
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define __MPIO_BUILD_PROFILING
+#include "mpioprof.h"
+#endif
 #include "adio_extern.h"
 
 /*@
@@ -13,7 +29,7 @@
                        a C I/O-request handle
 
 Input Parameters:
-. fh - Fortran I/O-request handle (integer)
+. request - Fortran I/O-request handle (integer)
 
 Return Value:
   C I/O-request handle (handle)

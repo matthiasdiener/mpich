@@ -1,5 +1,5 @@
 /*
- *  $Id: pack_size.c,v 1.5 1998/04/28 21:47:00 swider Exp $
+ *  $Id: pack_size.c,v 1.10 1999/08/30 15:49:09 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,25 @@
 
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Pack_size = PMPI_Pack_size
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Pack_size  MPI_Pack_size
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Pack_size as PMPI_Pack_size
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 extern struct MPIR_DATATYPE MPIR_I_DCOMPLEX;
 
@@ -36,13 +55,10 @@ the maximum that is needed by either 'MPI_Pack' or 'MPI_Unpack'.
 .N MPI_ERR_ARG
 
 @*/
-int MPI_Pack_size ( incount, datatype, comm, size )
-int           incount;
-MPI_Datatype  datatype;
-MPI_Comm      comm;
-int          *size;
+EXPORT_MPI_API int MPI_Pack_size ( int incount, MPI_Datatype datatype, MPI_Comm comm, 
+		    int *size )
 {
-  int mpi_errno;
+  int mpi_errno = MPI_SUCCESS;
   struct MPIR_COMMUNICATOR *comm_ptr;
   struct MPIR_DATATYPE     *dtype_ptr;
   static char myname[] = "MPI_PACK_SIZE";
@@ -50,12 +66,16 @@ int          *size;
   TR_PUSH(myname);
 
   comm_ptr = MPIR_GET_COMM_PTR(comm);
-  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
   dtype_ptr = MPIR_GET_DTYPE_PTR(datatype);
+  
+#ifndef MPIR_NO_ERROR_CHECKING
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
   MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
   
-  if (MPIR_TEST_ARG(size) || MPIR_TEST_COUNT(comm,incount))
+  MPIR_TEST_ARG(size);
+  MPIR_TEST_COUNT(incount);
+  if (mpi_errno)
       return MPIR_ERROR(comm_ptr, mpi_errno, myname );
 
   /******************************************************************
@@ -64,8 +84,10 @@ int          *size;
 
   /*** Check to see that datatype is committed ***/
   if (!dtype_ptr->committed) {
-      return MPIR_ERROR(comm_ptr, MPI_ERR_UNCOMMITTED, myname );
+      return MPIR_ERROR(comm_ptr, 
+            MPIR_ERRCLASS_TO_CODE(MPI_ERR_TYPE,MPIR_ERR_UNCOMMITTED), myname );
   }
+#endif
 
 
   /* Msgform is the form for ALL messages; we need to convert it into

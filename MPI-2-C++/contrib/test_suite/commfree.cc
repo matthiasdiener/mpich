@@ -66,7 +66,7 @@ commfree()
   int i;
   MPI::Intracomm comm;
 
-  Testing("Free");
+  Testing( (char *)"Free");
 
   comm = MPI::COMM_NULL;
 

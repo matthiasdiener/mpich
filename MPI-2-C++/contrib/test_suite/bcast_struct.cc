@@ -75,7 +75,7 @@ bcast_struct()
   MPI::Datatype type[2];
   MPI::Status status;
   
-  Testing("Create_struct");
+  Testing( (char *)"Create_struct");
 
   len[0] = 1; 
   len[1] = 2;

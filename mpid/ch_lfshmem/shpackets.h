@@ -158,12 +158,16 @@ extern FILE *MPID_TRACE_FILE;
 #define MPID_TRACE_CODE(name,channel) {if (MPID_TRACE_FILE){\
 fprintf( MPID_TRACE_FILE,"[%d] %20s on %4d at %s:%d\n", MPID_MyWorldRank, \
          name, channel, __FILE__, __LINE__ ); fflush( MPID_TRACE_FILE );}}
+#define MPID_TRACE_CODE_X(name,longvalue) {if (MPID_TRACE_FILE){\
+fprintf( MPID_TRACE_FILE,"[%d] %20s on %4d at %s:%lx\n", MPID_MyWorldRank, \
+         name, longvalue, __FILE__, __LINE__ ); fflush( MPID_TRACE_FILE );}}
 #define MPID_TRACE_CODE_PKT(name,channel,mode) {if (MPID_TRACE_FILE){\
 fprintf( MPID_TRACE_FILE,"[%d] %20s on %4d (type %d) at %s:%d\n", \
 	 MPID_MyWorldRank, name, channel, mode, __FILE__, __LINE__ ); \
 	 fflush( MPID_TRACE_FILE );}}
 #else
 #define MPID_TRACE_CODE(name,channel)
+#define MPID_TRACE_CODE_X(name,channel)
 #define MPID_TRACE_CODE_PKT(name,channel,mode)
 #endif
 

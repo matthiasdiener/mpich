@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_split.c,v 1.3 1998/04/28 20:58:00 swider Exp $
+ *  $Id: comm_split.c,v 1.8 1999/08/30 15:43:04 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,25 @@
 
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Comm_split = PMPI_Comm_split
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Comm_split  MPI_Comm_split
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Comm_split as PMPI_Comm_split
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpimem.h"
 
 /* Also used in comm_util.c */
@@ -57,10 +76,7 @@ that can be removed.  Here is what we do for now
 
 .seealso: MPI_Comm_free
 @*/
-int MPI_Comm_split ( comm, color, key, comm_out )
-MPI_Comm  comm;
-int       color, key;
-MPI_Comm *comm_out;
+EXPORT_MPI_API int MPI_Comm_split ( MPI_Comm comm, int color, int key, MPI_Comm *comm_out )
 {
   int           size, rank, head, new_size, i;
   int          *table, *table_in;
@@ -131,11 +147,16 @@ MPI_Comm *comm_out;
   MPIR_ERROR_POP(comm_ptr);
 
   group_ptr = MPIR_GET_GROUP_PTR(group);
-  MPIR_TEST_MPI_GROUP(group,group_ptr,MPIR_COMM_WORLD,myname);
+/*  MPIR_TEST_MPI_GROUP(group,group_ptr,MPIR_COMM_WORLD,myname); */
+#ifndef MPIR_NO_ERROR_CHECKING
+  MPIR_TEST_GROUP(group_ptr);
+    if (mpi_errno)
+	return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
 
   /* Make communicator using contexts allocated */
   MPIR_ALLOC(new_comm,NEW(struct MPIR_COMMUNICATOR),comm_ptr, MPI_ERR_EXHAUSTED, 
-	     "MPI_COMM_SPLIT" );
+	     myname );
   MPIR_Comm_init( new_comm, comm_ptr, MPIR_INTRA );
   *comm_out = new_comm->self;
 

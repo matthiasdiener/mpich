@@ -4,8 +4,8 @@
 #include "test.h" 
 
 /* Prototypes for picky compilers */
-void SetData ANSI_ARGS(( double *, double *, int, int, int, int, int, int ));
-int CheckData ANSI_ARGS(( double *, int, int, int, int, int ));
+void SetData ( double *, double *, int, int, int, int, int, int );
+int CheckData ( double *, int, int, int, int, int );
 /* 
    This is an example of using scatterv to send a matrix from one
    process to all others, with the matrix stored in Fortran order.

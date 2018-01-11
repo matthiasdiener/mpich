@@ -1,6 +1,8 @@
 #! /bin/sh
 DoLink=1
 DoCompile=0
+show_compile=0
+show_link=0
 MPILOG=
 Show=eval
 allargs=
@@ -12,11 +14,12 @@ HasDashC=0
 UsesPmpi=0
 verbose=0
 proflib=-lp@MPILIBNAME@
-proflibfullname=@MPIR_HOME@/build/@ARCH@/@DEVICE@/lib/libp@MPILIBNAME@.a
+proflibfullname=@libbuild_dir@/libp@MPILIBNAME@.a
 F77BASE="@F77@"
 F77="${MPICH_F77-$F77BASE}"
 FLINKERBASE="@FLINKER@"
 F77LINKER="${MPICH_F77LINKER-$FLINKERBASE}"
+UseSharedLib=${MPICH_USE_SHLIB-no}
 for arg in "$@" ; do
 #    echo procssing arg $arg
     # Special processing for -o name
@@ -55,11 +58,6 @@ for arg in "$@" ; do
 	    DoLink=1
         fi
 	;;
-	-l*)
-	# This SHOULD be the -l<lib> argument.  Only for the linker
-	linkargs="$linkargs $arg"
-	allargs="$allargs $arg"
-	;;
 	-mpilog)
 	if [ $UsesPmpi = 1 ] ; then
 	    echo "Only one of -mpilog, -mpitrace, or -mpianim may be used."
@@ -67,8 +65,8 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ -n "@MPE_DIR@" ] ; then
-		MPILOG="-lf@MPILIBNAME@ -llmpi"
+	if [ @NOMPE@ = 0 ] ; then
+		MPILOG="-lf@MPILIBNAME@ -llmpi -lmpe"
 	else
 	    echo "-mpilog requires the MPE libraries"
 	fi
@@ -80,7 +78,7 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ -n "@MPE_DIR@" ] ; then
+	if [ @NOMPE@ = 0 ] ; then
    	    MPILOG="-lf@MPILIBNAME@ -ltmpi"
 	else
 	    echo "-mpitrace requires the MPE libraries"
@@ -93,7 +91,7 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ -n "@MPE_DIR@" ] ; then
+	if [ @NOMPE@ = 0 ] ; then
 	    MPILOG="-lf@MPILIBNAME@ -lampi -lmpe"
 	else
 	    echo "-mpianim requires the MPE libraries"
@@ -105,10 +103,34 @@ for arg in "$@" ; do
 	-show)
 	Show=echo
 	;;
+	-fc=*)
+	F77=`echo A$arg | sed -e 's/A-fc=//g'`
+	F77LINKER="$F77"
+	;;
+	-compile_info)
+	show_compile=1
+	DoLink=0
+	Show=echo
+	;;
+	-link_info)
+	show_link=1
+	Show=echo
+	;;
+	-shlib)
+        UseSharedLib=yes
+	;;
+	-noshlib)
+        UseSharedLib=no
+	;;
 	-v)
 	verbose=1
 	compileargs="$compileargs -v"
 	linkargs="$linkargs -v"
+	;;
+	-l*)
+	# This SHOULD be the -l<lib> argument.  Only for the linker
+	linkargs="$linkargs $arg"
+	allargs="$allargs $arg"
 	;;
 	-help)
 	echo "This is a program to compile or link MPI programs"
@@ -117,8 +139,16 @@ for arg in "$@" ; do
 	echo "    -mpitrace  - Build version that generates traces"
 	echo "    -mpianim   - Build version that generates real-time"
 	echo "                 animation"
+	echo "    -fc=pgm    - Change the program to use to compile and link"
+        echo "                 MPI programs.  WARNING! The program that you"
+        echo "                 choose MUST be compatible with the MPICH "
+        echo "                 libraries.  If you have trouble, you should"
+        echo "                 reconfigure and rebuild MPICH, selecting"
+        echo "                 this compiler."
 	echo "    -show      - Show the commands that would be used without"
 	echo "                 runnning them"
+	echo "    -compile_info - Show how to compile a program"
+	echo "    -link_info - Show how to link a program"
 	echo "    -help      - Give this help"
 	echo "    -echo      - Show exactly what this program is doing."
 	echo "                 This option should normally not be used."
@@ -132,10 +162,24 @@ for arg in "$@" ; do
 	echo "may not work on some systems, and is not recommended."
 	exit 1
 	;;
+        #*\"*) 
+	#allargs="$allargs `echo $arg | sed 's/\"/\\\"/g'`"
+	#compileargs="$compileargs `echo $arg | sed 's/\"/\\\"/g'`"
+	#linkargs="$linkargs `echo $arg | sed 's/\"/\\\"/g'`"
+	#;;
+	# Unrecognized args.  Because we do an eval, we need to
+	# carefully quote any args that contain quotes.
         *\"*) 
-	allargs="$allargs `echo $arg | sed 's/\"/\\\"/g'`"
-	compileargs="$compileargs `echo $arg | sed 's/\"/\\\"/g'`"
-	linkargs="$linkargs `echo $arg | sed 's/\"/\\\"/g'`"
+	qarg="'"$arg"'"
+	allargs="$allargs $qarg"
+	compileargs="$compileargs $qarg"
+	linkargs="$linkargs $qarg"
+	;;
+        *\'*) 
+	qarg='\"'"$arg"'\"'
+	allargs="$allargs $qarg"
+	compileargs="$compileargs $qarg"
+	linkargs="$linkargs $qarg"
 	;;
         *) allargs="$allargs $arg"
 	if [ -s "$arg" ] ; then
@@ -171,14 +215,14 @@ added_link=0
 if [ -z "$finc" ] ; then
     # -r is true if we can read the file, which is what we want
     if [ ! -r mpif.h ] ; then
-        echo "Adding a symbolic link for mpif.h"
+        #echo "Adding a symbolic link for mpif.h"
 	trap "$Show /bin/rm mpif.h" 0
-	$Show ln -s @MPIR_HOME@/build/@ARCH@/@DEVICE@/include/mpif.h mpif.h
+	$Show ln -s @includebuild_dir@/mpif.h mpif.h
         added_link=1
     fi
 fi
 status=0
-if [ $DoCompile = 1 ] ; then 
+if [ $DoCompile = 1 -o $show_compile = 1 ] ; then 
     if [ $HasDashC != 1 ] ; then
         compileargs="-c $compileargs"
     fi
@@ -188,16 +232,39 @@ if [ $DoCompile = 1 ] ; then
 	exit $status
     fi
 fi
-if [ $DoLink = 1 ] ; then
+if [ $DoLink = 1 -o $show_link = 1 ] ; then
     # If the profiling library doesn't exist, or MPICH_NO_PROF environment
     # variable is set, skip the profiling library.
     if [ -n "$MPICH_NO_PROF" -o ! -s "$proflibfullname" ] ; then
         proflib=""
     fi
+    # Add this just in case we are building with shared libraries
+    if [ -s @libbuild_dir@/lib@MPILIBNAME@f.a ] ; then
+        farglib="-l@MPILIBNAME@f"
+    fi
+    # See the comment in mpicc about UseSharedLib
+    # Also, don't use if the shared libraries don't exist yet
+    # (because -lmpichfarg.a won't exist yet)
+    if [ "@SHAREDKIND@" != "ignore" -a $UseSharedLib = "yes" -a \
+	-s @libbuild_dir@/lib@MPILIBNAMEfarg.a ] ; then
+	# We also add a library containing MPI_Init and the routines
+        # that it uses to call getarg/iarg.  
+	flibpath="@FLIB_PATH_LEADER@@sharedlibbuild_dir@" 
+        if [ -n "@SHARED_LIB_SEARCH_PATH_LEADER@" ] ; then
+	    flibpath="@SHARED_LIB_SEARCH_PATH_LEADER@@sharedlibbuild_dir@ $flibpath"
+	fi
+	if [ -n "@SHAREDLIB_LOCALDIR@" ] ; then
+	    flibpath="@FLIB_PATH_LEADER@@SHAREDLIB_LOCALDIR@ $flibpath"
+ 	    if [ -n "@SHARED_LIB_SEARCH_PATH_LEADER@" ] ; then
+	        flibpath="@SHARED_LIB_SEARCH_PATH_LEADER@@SHAREDLIB_LOCALDIR@ $flibpath"
+	    fi
+	fi
+	farglib="-l@MPILIBNAME@farg $farglib" 
+    fi
     if [ -n "$MPILOG" ] ; then
-        $Show $F77LINKER @ROMIO_LFLAGS@ @ROMIO_TFFLAGS@ @FFLAGS@ @FLIB_PATH@ $linkobjs $MPILOG $linkargs $proflib @LIB_LIST@ @FLIB_LIST@ 
+        $Show $F77LINKER @ROMIO_LFLAGS@ @ROMIO_TFFLAGS@ @FFLAGS@ $flibpath @FLIB_PATH_LEADER@@FLIB_PATH@ $linkobjs $MPILOG $linkargs $proflib -l@MPILIBNAME@ $proflib $farglib @BASE_LIB_LIST@ @FLIB_LIST@ 
     else
-        $Show $F77LINKER @ROMIO_LFLAGS@ @ROMIO_TFFLAGS@ @FFLAGS@ @FLIB_PATH@ $linkobjs $linkargs $proflib @LIB_LIST@ @FLIB_LIST@ 
+        $Show $F77LINKER @ROMIO_LFLAGS@ @ROMIO_TFFLAGS@ @FFLAGS@ $flibpath @FLIB_PATH_LEADER@@FLIB_PATH@ $linkobjs $linkargs $proflib -l@MPILIBNAME@ $proflib $farglib @BASE_LIB_LIST@ @FLIB_LIST@ 
     fi
     status=$?
 fi

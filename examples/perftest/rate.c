@@ -1,9 +1,5 @@
-
-
-
-
 #ifndef lint
-static char vcid[] = "$Id: rate.c,v 1.2 1998/04/29 15:15:47 swider Exp $";
+static char vcid[] = "$Id: rate.c,v 1.4 1999/04/18 13:45:14 gropp Exp $";
 #endif
 
 /*
@@ -21,7 +17,7 @@ static char vcid[] = "$Id: rate.c,v 1.2 1998/04/29 15:15:47 swider Exp $";
     subject to numerical errors during accumulation) acquired values
  */    
 
-/*@
+/*
     PIComputeRate - Computes the communication rate given timing information
  
     Input Parameters:
@@ -47,26 +43,26 @@ static char vcid[] = "$Id: rate.c,v 1.2 1998/04/29 15:15:47 swider Exp $";
 
     The length sums are doubles rather than ints to provide a "long long"
     type (think of them as 53 bit integers).
-@*/
+ */
 void PIComputeRate( sumlen, sumtime, sumlentime, sumlen2, ntest, s, r )
 int    ntest;
 double sumlen, sumlen2, sumtime, sumlentime;
 double *s, *r;
 {
-double R, S;
+    double R, S;
 
-R = sumlen * sumlen - ntest * sumlen2;
-if (R == 0.0) {
-    *s = *r = 0.0;
-    return;
+    R = sumlen * sumlen - ntest * sumlen2;
+    if (R == 0.0) {
+	*s = *r = 0.0;
+	return;
     }
-R = (sumlen * sumtime - ntest * sumlentime) / R;
-S = (sumtime - R * sumlen) / ntest;
+    R = (sumlen * sumtime - ntest * sumlentime) / R;
+    S = (sumtime - R * sumlen) / ntest;
 
-if (S < 0 || R < 0) {
-    S = 0.0;
-    R = sumlentime / sumlen2;
+    if (S < 0 || R < 0) {
+	S = 0.0;
+	R = sumlentime / sumlen2;
     }
-*r = R;
-*s = S;
+    *r = R;
+    *s = S;
 }

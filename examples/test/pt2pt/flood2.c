@@ -11,9 +11,9 @@
    of both incoming messages and internal message queues
  */
 
-void SetupData ANSI_ARGS(( int *, int, int ));
-void SetupRdata ANSI_ARGS(( int *, int ));
-int  CheckData ANSI_ARGS(( int *, int, int, MPI_Status * ));
+void SetupData ( int *, int, int );
+void SetupRdata ( int *, int );
+int  CheckData ( int *, int, int, MPI_Status * );
 
 static int verbose = 1;
 

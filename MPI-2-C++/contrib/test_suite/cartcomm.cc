@@ -104,7 +104,7 @@ cartcomm()
   ccomm = MPI_COMM_NULL;
   cshiftcomm = MPI_COMM_NULL;
 
-  Testing("Non-Periodic Topology");
+  Testing( (char *)"Non-Periodic Topology");
 
   for(i = 0; i < MAXDIMS; i++) {
     cdims[i] = 0;
@@ -117,7 +117,7 @@ cartcomm()
   dims_save0 = dims[0];
   dims_save1 = dims[1];
 
-  Testing("Create_cart");
+  Testing( (char *)"Create_cart");
 
   for(i = 0; i < MAXDIMS; i++) {
     cperiods[i] = 0;
@@ -151,7 +151,7 @@ cartcomm()
   shiftcomm = MPI::COMM_WORLD.Create_cart(2, dims, periods, false);
   MPI_Cart_create(MPI_COMM_WORLD, 2, cdims, cperiods, 0, &cshiftcomm);
 
-  Testing("Get_dim");
+  Testing( (char *)"Get_dim");
   
   ndims = -1;
   cndims = -1;
@@ -165,16 +165,16 @@ cartcomm()
  
   Pass(); // Get_dim
 
-  Testing("Get_topo");
+  Testing( (char *)"Get_topo");
 
   if (flags[SKIP_IBM21014])
-    Done("Skipped (IBM 2.1.0.14)");
+    Done( (char *)"Skipped (IBM 2.1.0.14)");
   else if (flags[SKIP_IBM21015])
-    Done("Skipped (IBM 2.1.0.15)");
+    Done( (char *)"Skipped (IBM 2.1.0.15)");
   else if (flags[SKIP_IBM21016])
-    Done("Skipped (IBM 2.1.0.16)");
+    Done( (char *)"Skipped (IBM 2.1.0.16)");
   else if (flags[SKIP_IBM21017])
-    Done("Skipped (IBM 2.1.0.17)");
+    Done( (char *)"Skipped (IBM 2.1.0.17)");
   else {
     for(i = 0; i < MAXDIMS; i++) {
       dims[i] = -1;
@@ -204,7 +204,7 @@ cartcomm()
     Pass(); // Get_topo
   }
 
-  Testing("Get_cart_rank");
+  Testing( (char *)"Get_cart_rank");
   
   rank = -1;
 
@@ -217,7 +217,7 @@ cartcomm()
 
   Pass(); // Get_cart_rank
 
-  Testing("Get_coords");
+  Testing( (char *)"Get_coords");
 
   for(i = 0; i < MAXDIMS; i++) {
     coords[i] = -1;
@@ -234,7 +234,7 @@ cartcomm()
 
   Pass(); // Get_coords
 
-  Testing("Shift");
+  Testing( (char *)"Shift");
 
   dest = -1;
   src = -1;
@@ -292,7 +292,7 @@ cartcomm()
  
   Pass(); // Shift
 
-  Testing("Sub");
+  Testing( (char *)"Sub");
 
   remain[0] = false;
   remain[1] = true;
@@ -331,7 +331,7 @@ cartcomm()
 
   Pass(); // Sub
 
-  Testing("Map");
+  Testing( (char *)"Map");
 
   for(i = 0; i < MAXDIMS; i++) {
     dims[i] = -1;
@@ -343,13 +343,13 @@ cartcomm()
   }
 
   if (flags[SKIP_IBM21014])
-    Done("Skipped (IBM 2.1.0.14)");
+    Done( (char *)"Skipped (IBM 2.1.0.14)");
   else if (flags[SKIP_IBM21015])
-    Done("Skipped (IBM 2.1.0.15)");
+    Done( (char *)"Skipped (IBM 2.1.0.15)");
   else if (flags[SKIP_IBM21016])
-    Done("Skipped (IBM 2.1.0.16)");
+    Done( (char *)"Skipped (IBM 2.1.0.16)");
   else if (flags[SKIP_IBM21017])
-    Done("Skipped (IBM 2.1.0.17)");
+    Done( (char *)"Skipped (IBM 2.1.0.17)");
   else {
     mapcomm.Get_topo(ndims, dims, periods, coords);
     MPI_Cart_get(ccomm, cndims, cdims, cperiods, ccoords);
@@ -365,7 +365,7 @@ cartcomm()
   Pass(); // Map
 
 
-  Testing("Dup");
+  Testing( (char *)"Dup");
 
   dupcomm = comm.Dup();
 
@@ -379,13 +379,13 @@ cartcomm()
   }
 
   if (flags[SKIP_IBM21014])
-    Done("Skipped (IBM 2.1.0.14)");
+    Done( (char *)"Skipped (IBM 2.1.0.14)");
   else if (flags[SKIP_IBM21015])
-    Done("Skipped (IBM 2.1.0.15)");
+    Done( (char *)"Skipped (IBM 2.1.0.15)");
   else if (flags[SKIP_IBM21016])
-    Done("Skipped (IBM 2.1.0.16)");
+    Done( (char *)"Skipped (IBM 2.1.0.16)");
   else if (flags[SKIP_IBM21017])
-    Done("Skipped (IBM 2.1.0.17)");
+    Done( (char *)"Skipped (IBM 2.1.0.17)");
   else {
     dupcomm.Get_topo(ndims, dims, periods, coords);
     MPI_Cart_get(ccomm, cndims, cdims, cperiods, ccoords);
@@ -407,7 +407,7 @@ cartcomm()
 
   Pass(); // Dup
 
-  Testing("Clone");
+  Testing( (char *)"Clone");
 
   clonecomm = comm.Clone();
 
@@ -421,13 +421,13 @@ cartcomm()
   }
 
   if (flags[SKIP_IBM21014])
-    Done("Skipped (IBM 2.1.0.14)");
+    Done( (char *)"Skipped (IBM 2.1.0.14)");
   else if (flags[SKIP_IBM21015])
-    Done("Skipped (IBM 2.1.0.15)");
+    Done( (char *)"Skipped (IBM 2.1.0.15)");
   else if (flags[SKIP_IBM21016])
-    Done("Skipped (IBM 2.1.0.16)");
+    Done( (char *)"Skipped (IBM 2.1.0.16)");
   else if (flags[SKIP_IBM21017])
-    Done("Skipped (IBM 2.1.0.17)");
+    Done( (char *)"Skipped (IBM 2.1.0.17)");
   else {
     clonecomm.Get_topo(ndims, dims, periods, coords);
     MPI_Cart_get(ccomm, cndims, cdims, cperiods, ccoords);
@@ -468,7 +468,7 @@ cartcomm()
   if(cshiftcomm != MPI_COMM_NULL && cshiftcomm != MPI_COMM_WORLD)
     MPI_Comm_free(&cshiftcomm);
 
-  Testing("Periodic Topology");
+  Testing( (char *)"Periodic Topology");
 
   for(i = 0; i < MAXDIMS; i++) {
     cdims[i] = 0;
@@ -484,7 +484,7 @@ cartcomm()
   dims_save0 = dims[0];
   dims_save1 = dims[1];
 
-  Testing("Create_cart");
+  Testing( (char *)"Create_cart");
 
   for(i = 0; i < MAXDIMS; i++) {
     cperiods[i] = 0;
@@ -518,7 +518,7 @@ cartcomm()
   shiftcomm = MPI::COMM_WORLD.Create_cart(2, dims, periods, false);
   MPI_Cart_create(MPI_COMM_WORLD, 2, cdims, cperiods, 0, &cshiftcomm);
 
-  Testing("Get_dim");
+  Testing( (char *)"Get_dim");
   
   ndims = -1;
   cndims = -1;
@@ -532,16 +532,16 @@ cartcomm()
  
   Pass(); // Get_dim
 
-  Testing("Get_topo");
+  Testing( (char *)"Get_topo");
 
   if (flags[SKIP_IBM21014])
-    Done("Skipped (IBM 2.1.0.14)");
+    Done( (char *)"Skipped (IBM 2.1.0.14)");
   else if (flags[SKIP_IBM21015])
-    Done("Skipped (IBM 2.1.0.15)");
+    Done( (char *)"Skipped (IBM 2.1.0.15)");
   else if (flags[SKIP_IBM21016])
-    Done("Skipped (IBM 2.1.0.16)");
+    Done( (char *)"Skipped (IBM 2.1.0.16)");
   else if (flags[SKIP_IBM21017])
-    Done("Skipped (IBM 2.1.0.17)");
+    Done( (char *)"Skipped (IBM 2.1.0.17)");
   else {
     for(i = 0; i < MAXDIMS; i++) {
       dims[i] = -1;
@@ -571,7 +571,7 @@ cartcomm()
     Pass(); // Get_topo
   }
 
-  Testing("Get_cart_rank");
+  Testing( (char *)"Get_cart_rank");
   
   rank = -1;
 
@@ -584,7 +584,7 @@ cartcomm()
 
   Pass(); // Get_cart_rank
 
-  Testing("Get_coords");
+  Testing( (char *)"Get_coords");
 
   for(i = 0; i < MAXDIMS; i++) {
     coords[i] = -1;
@@ -601,7 +601,7 @@ cartcomm()
 
   Pass(); // Get_coords
 
-  Testing("Shift");
+  Testing( (char *)"Shift");
 
   dest = -1;
   src = -1;
@@ -652,7 +652,7 @@ cartcomm()
 
   Pass(); // Shift
 
-  Testing("Sub");
+  Testing( (char *)"Sub");
 
   remain[0] = false;
   remain[1] = true;
@@ -691,7 +691,7 @@ cartcomm()
 
   Pass(); // Sub
 
-  Testing("Map");
+  Testing( (char *)"Map");
 
   for(i = 0; i < MAXDIMS; i++) {
     dims[i] = -1;
@@ -703,13 +703,13 @@ cartcomm()
   }
 
   if (flags[SKIP_IBM21014])
-    Done("Skipped (IBM 2.1.0.14)");
+    Done( (char *)"Skipped (IBM 2.1.0.14)");
   else if (flags[SKIP_IBM21015])
-    Done("Skipped (IBM 2.1.0.15)");
+    Done( (char *)"Skipped (IBM 2.1.0.15)");
   else if (flags[SKIP_IBM21016])
-    Done("Skipped (IBM 2.1.0.16)");
+    Done( (char *)"Skipped (IBM 2.1.0.16)");
   else if (flags[SKIP_IBM21017])
-    Done("Skipped (IBM 2.1.0.17)");
+    Done( (char *)"Skipped (IBM 2.1.0.17)");
   else {
     mapcomm.Get_topo(ndims, dims, periods, coords);
     MPI_Cart_get(ccomm, cndims, cdims, cperiods, ccoords);
@@ -724,7 +724,7 @@ cartcomm()
 
   Pass(); // Map
 
-  Testing("Dup");
+  Testing( (char *)"Dup");
 
   dupcomm = comm.Dup();
 
@@ -738,13 +738,13 @@ cartcomm()
   }
   
   if (flags[SKIP_IBM21014])
-    Done("Skipped (IBM 2.1.0.14)");
+    Done( (char *)"Skipped (IBM 2.1.0.14)");
   else if (flags[SKIP_IBM21015])
-    Done("Skipped (IBM 2.1.0.15)");
+    Done( (char *)"Skipped (IBM 2.1.0.15)");
   else if (flags[SKIP_IBM21016])
-    Done("Skipped (IBM 2.1.0.16)");
+    Done( (char *)"Skipped (IBM 2.1.0.16)");
   else if (flags[SKIP_IBM21017])
-    Done("Skipped (IBM 2.1.0.17)");
+    Done( (char *)"Skipped (IBM 2.1.0.17)");
   else {
     dupcomm.Get_topo(ndims, dims, periods, coords);
     MPI_Cart_get(ccomm, cndims, cdims, cperiods, ccoords);
@@ -766,7 +766,7 @@ cartcomm()
 
   Pass(); // Dup
 
-  Testing("Clone");
+  Testing( (char *)"Clone");
 
   clonecomm = comm.Clone();
 
@@ -780,13 +780,13 @@ cartcomm()
   }
 
   if (flags[SKIP_IBM21014])
-    Done("Skipped (IBM 2.1.0.14)");
+    Done( (char *)"Skipped (IBM 2.1.0.14)");
   else if (flags[SKIP_IBM21015])
-    Done("Skipped (IBM 2.1.0.15)");
+    Done( (char *)"Skipped (IBM 2.1.0.15)");
   else if (flags[SKIP_IBM21016])
-    Done("Skipped (IBM 2.1.0.16)");
+    Done( (char *)"Skipped (IBM 2.1.0.16)");
   else if (flags[SKIP_IBM21017])
-    Done("Skipped (IBM 2.1.0.17)");
+    Done( (char *)"Skipped (IBM 2.1.0.17)");
   else {
     clonecomm.Get_topo(ndims, dims, periods, coords);
     MPI_Cart_get(ccomm, cndims, cdims, cperiods, ccoords);

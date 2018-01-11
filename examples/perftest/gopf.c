@@ -1,12 +1,7 @@
-
-
-
-
 #include <stdio.h>
 
 #include "mpi.h"
-extern int __NUMNODES, __MYPROCID;static MPI_Status _mpi_status;static int _n, _MPILEN;
-
+#include "mpptest.h"
 
 #if HAVE_STDLIB_H
 #include <stdlib.h>
@@ -33,12 +28,6 @@ extern int __NUMNODES, __MYPROCID;static MPI_Status _mpi_status;static int _n, _
  Chameleon collective operations.  Note that Chameleon supports subsets of
  processes, which most vendor (non-MPI) systems do not.
  *****************************************************************************/
-
-/* Structure for the test routines */
-typedef struct {
-    MPI_Comm pset;       /* Procset to test over */
-    int     src;         /* Source (for scatter) */
-    } GOPctx;
 
 #define GETMEM(type,nitem,p) {\
                           p = (type *)malloc((unsigned)(nitem * sizeof(type) )) ;\
@@ -83,7 +72,7 @@ double TestGDSumGlob(), TestGISumGlob(), TestGColGlob(), TestGColxGlob(),
        TestGScatGlob(), TestGSyncGlob();
 
 /* Determine the function from the arguments */
-double ((*GetGOPFunction( argc, argv, test_name, units )) ())
+double ((*GetGOPFunction( argc, argv, test_name, units )) (int,int,GOPctx*))
 int *argc;
 char **argv;
 char *test_name;
@@ -210,7 +199,7 @@ switch (op) {
 return f;
 }
 
-PrintGOPHelp()
+void PrintGOPHelp( void )
 {
   fprintf( stderr, "\nCollective Tests:\n" );
   fprintf( stderr, "-dsum     : reduction (double precision)\n" );
@@ -252,7 +241,6 @@ for (i=0; i<reps; i++) {
 memcpy(lval,work,(len)*sizeof(double));;
     }
 *(&t1)=MPI_Wtime();
-if (0) exit(2 );
 MPI_Barrier(MPI_COMM_WORLD );
 time = *(&t1 )-*(&t0);
 MPI_Bcast(&time, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
@@ -282,7 +270,6 @@ for (i=0; i<reps; i++) {
 memcpy(lval,work,(len)*sizeof(int));;
     }
 *(&t1)=MPI_Wtime();
-if (0) exit(2 );
 MPI_Barrier(MPI_COMM_WORLD );
 time = *(&t1 )-*(&t0);
 MPI_Bcast(&time, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
@@ -310,7 +297,6 @@ for (i=0; i<reps; i++) {
     MPI_Bcast(lval, len, MPI_BYTE, 0, MPI_COMM_WORLD );
     }
 *(&t1)=MPI_Wtime();
-if (0) exit(2 );
 MPI_Barrier(MPI_COMM_WORLD );
 time = *(&t1 )-*(&t0);
 MPI_Bcast(&time, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
@@ -340,7 +326,6 @@ for (i=0; i<reps; i++) {
     PIgcol( lval, len, gval, gsize, &glen, pset, MPI_INT );
     }
 *(&t1)=MPI_Wtime();
-if (0) exit(2 );
 MPI_Barrier(MPI_COMM_WORLD );
 time = *(&t1 )-*(&t0);
 MPI_Bcast(&time, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
@@ -378,7 +363,6 @@ for (i=0; i<reps; i++) {
     PIgcolx( lval, gsizes, gval, pset, MPI_INT ); 
     }
 *(&t1)=MPI_Wtime();
-if (0) exit(2 );
 MPI_Barrier(MPI_COMM_WORLD );
 time = *(&t1 )-*(&t0);
 MPI_Bcast(&time, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
@@ -398,14 +382,14 @@ double TestGColx( reps, len, ctx )
 int    reps, len;
 GOPctx *ctx;
 {
-exit(2 );
+MPI_Abort( MPI_COMM_WORLD, 1 );
 return -1.0;
 }
 double TestGCol( reps, len, ctx )
 int    reps, len;
 GOPctx *ctx;
 {
-exit(2 );
+MPI_Abort( MPI_COMM_WORLD, 1 );
 return -1.0;
 }
 #endif
@@ -425,7 +409,6 @@ for (i=0; i<reps; i++) {
     MPI_Barrier(MPI_COMM_WORLD );
     }
 *(&t1)=MPI_Wtime();
-if (0) exit(2 );
 MPI_Barrier(MPI_COMM_WORLD );
 time = *(&t1 )-*(&t0);
 MPI_Bcast(&time, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
@@ -453,7 +436,6 @@ for (i=0; i<reps; i++) {
     GDSUMGLOB( lval, len, work );
     }
 *(&t1)=MPI_Wtime();
-if (0) exit(2 );
 MPI_Barrier(MPI_COMM_WORLD );
 time = *(&t1 )-*(&t0);
 MPI_Bcast(&time, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
@@ -484,7 +466,6 @@ for (i=0; i<reps; i++) {
     GISUMGLOB( lval, len, work );
     }
 *(&t1)=MPI_Wtime();
-if (0) exit(2 );
 MPI_Barrier(MPI_COMM_WORLD );
 time = *(&t1 )-*(&t0);
 MPI_Bcast(&time, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
@@ -514,7 +495,6 @@ for (i=0; i<reps; i++) {
     GSCATTERGLOB( lval, len, PSISROOT(pset), MPI_INT );
     }
 *(&t1)=MPI_Wtime();
-if (0) exit(2 );
 MPI_Barrier(MPI_COMM_WORLD );
 time = *(&t1 )-*(&t0);
 MPI_Bcast(&time, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
@@ -545,7 +525,6 @@ for (i=0; i<reps; i++) {
     GCOLGLOB( lval, len, gval, gsize, &glen, G_INT );
     }
 *(&t1)=MPI_Wtime();
-if (0) exit(2 );
 MPI_Barrier(MPI_COMM_WORLD );
 time = *(&t1 )-*(&t0);
 MPI_Bcast(&time, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
@@ -571,7 +550,6 @@ for (i=0; i<reps; i++) {
     GSYNCGLOB();
     }
 *(&t1)=MPI_Wtime();
-if (0) exit(2 );
 MPI_Barrier(MPI_COMM_WORLD );
 time = *(&t1 )-*(&t0);
 MPI_Bcast(&time, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
@@ -605,7 +583,6 @@ for (i=0; i<reps; i++) {
     GCOLXGLOB( lval, gsizes, gval, MPI_INT );
     }
 *(&t1)=MPI_Wtime();
-if (0) exit(2 );
 MPI_Barrier(MPI_COMM_WORLD );
 time = *(&t1 )-*(&t0);
 MPI_Bcast(&time, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );

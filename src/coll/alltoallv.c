@@ -1,11 +1,30 @@
 /*
- *  $Id: alltoallv.c,v 1.3 1998/04/28 18:50:46 swider Exp $
+ *  $Id: alltoallv.c,v 1.8 1999/10/15 20:08:27 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Alltoallv = PMPI_Alltoallv
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Alltoallv  MPI_Alltoallv
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Alltoallv as PMPI_Alltoallv
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "coll.h"
 
 /*@
@@ -40,17 +59,16 @@ Output Parameter:
 .N MPI_ERR_TYPE
 .N MPI_ERR_BUFFER
 @*/
-int MPI_Alltoallv ( sendbuf, sendcnts, sdispls, sendtype, 
-                    recvbuf, recvcnts, rdispls, recvtype, comm )
-void             *sendbuf;
-int              *sendcnts;
-int              *sdispls;
-MPI_Datatype      sendtype;
-void             *recvbuf;
-int              *recvcnts;
-int              *rdispls; 
-MPI_Datatype      recvtype;
-MPI_Comm          comm;
+EXPORT_MPI_API int MPI_Alltoallv ( 
+	void *sendbuf, 
+	int *sendcnts, 
+	int *sdispls, 
+	MPI_Datatype sendtype, 
+	void *recvbuf, 
+	int *recvcnts, 
+	int *rdispls, 
+	MPI_Datatype recvtype, 
+	MPI_Comm comm )
 {
   int        mpi_errno = MPI_SUCCESS;
   struct MPIR_COMMUNICATOR *comm_ptr;
@@ -67,10 +85,6 @@ MPI_Comm          comm;
 
   rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
   MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
-
-  /* Check for mismatched receive/send types - Debbie Swider 11/20/97 */
-  if (recvtype != sendtype)
-      return MPIR_ERROR(comm_ptr, MPI_ERR_TYPE, myname);
 
   /* Check for invalid arguments */
   MPIR_ERROR_PUSH(comm_ptr);

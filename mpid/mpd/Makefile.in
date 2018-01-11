@@ -1,0 +1,168 @@
+#
+#  $Id: Makefile.in,v 1.14 1999/11/28 16:18:59 gropp Exp $
+#
+#  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
+#      All rights reserved.  See COPYRIGHT in top-level directory.
+#
+# Eventually, there will be two sets of routines
+#
+#
+##### User configurable options #####
+
+CC          = @CC@ 
+OPTFLAGS    = @OPTFLAGS@
+SHELL       = /bin/sh
+LIBS        = @LIBS@
+MAKE        = @MAKE@
+top_srcdir  = @top_src@
+srcdir      = @srcdir@
+libdir      = @libdir@
+INCLUDEDIRS = -I. -I${srcdir}
+
+@VPATH@
+
+EXECS  = mpd mpdman mpdcon hello hellop sleeper1 sleeper2 cpi
+
+SOURCES =  mpd.c handlers.c sockets.c sibproc.c conproc.c cliproc.c \
+           util.c mpdman.c mpdlib.c mpdcon.c
+OBJECTS =  mpd.o handlers.o sockets.o sibproc.o conproc.o cliproc.o \
+           util.o mpdman.o mpdlib.o mpdcon.o
+HEADERS =  mpd.h mpdman.h
+
+
+all : mpd mpdman mpdcon links mpdlib.o util.o
+
+$(OBJECTS): mpd.h
+
+BSF:	$(HEADERS) $(SOURCES) mpdcon.c mpdlib.h mpdlib.c makefile.in config* hello*
+	-mkdir BSF
+	cp $(HEADERS) $(SOURCES) mpdlib.h mpdlib.c mpdcon.c makefile.in config* hello* BSF
+	tar cvf BSF.tar BSF
+
+#
+# We must be careful with this; if there is an mpdcon in ${srcdir}, then 
+# VPATH will link against that (making the links refer to the one in
+# ${srcdir} rather than the current directory).  
+links:	mpdcon
+	@echo 'making links...'
+	@if [ ! -f mpdtrace ] ;\
+	then\
+	    ln -s mpdcon mpdtrace ;\
+	fi
+	@if [ ! -f mpddump ] ;\
+	then\
+	    ln -s mpdcon mpddump ;\
+	fi
+	@if [ ! -f mpdringtest ] ;\
+	then\
+	    ln -s mpdcon mpdringtest ;\
+	fi
+	@if [ ! -f mpdexit ] ;\
+	then\
+	    ln -s mpdcon mpdexit ;\
+	fi
+	@if [ ! -f mpdallexit ] ;\
+	then\
+	    ln -s mpdcon mpdallexit ;\
+	fi
+	@if [ ! -f mpdbomb ] ;\
+	then\
+	    ln -s mpdcon mpdbomb ;\
+	fi
+	@if [ ! -f mpdhelp ] ;\
+	then\
+	    ln -s mpdcon mpdhelp ;\
+	fi
+	@if [ ! -f mpdcleanup ] ;\
+	then\
+	    ln -s mpdcon mpdcleanup ;\
+	fi
+	@if [ ! -f mpdmpexec ] ;\
+	then\
+	    ln -s mpdcon mpdmpexec ;\
+	fi
+	@if [ ! -f mpirun ] ;\
+	then\
+	    ln -s mpdcon mpirun ;\
+	fi
+
+etags: $(HEADERS) $(SOURCES) 
+	etags  $(HEADERS) $(SOURCES)
+
+.c.o:   mpd.h
+	$(CC) $(INCLUDEDIRS) -c $<
+
+mpd: mpd.o handlers.o sockets.o sibproc.o conproc.o cliproc.o util.o
+	$(CC) -o mpd mpd.o handlers.o sockets.o sibproc.o conproc.o cliproc.o \
+        util.o $(LIBS)
+
+mpdman.o:  mpdman.h 
+
+mpdman: mpdman.o  mpdlib.o util.o sockets.o
+	$(CC) -o mpdman mpdman.o mpdlib.o util.o sockets.o $(LIBS)
+
+mpdcon: mpdcon.o util.o sockets.o
+	$(CC) -o mpdcon mpdcon.o sockets.o util.o $(LIBS)
+
+mpdcon.o: mpdcon.c mpd.h
+	$(CC) $(INCLUDEDIRS) -c ${srcdir}/mpdcon.c
+
+hello: hello.o mpdlib.o util.o
+	$(CC) -o hello hello.o $(LIBS)
+
+sleeper1: sleeper1.o mpdlib.o util.o
+	$(CC) -o sleeper1 sleeper1.o $(LIBS)
+
+sleeper2: sleeper2.o mpdlib.o util.o
+	$(CC) -o sleeper2 sleeper2.o $(LIBS)
+
+hellop: hellop.o mpdlib.o util.o sockets.o
+	$(CC) -o hellop hellop.o mpdlib.o util.o sockets.o $(LIBS)
+
+cpi: cpi.o mpdlib.o util.o sockets.o
+	$(CC) -o cpi cpi.o mpdlib.o util.o sockets.o $(LIBS)
+
+clean:
+	/bin/rm -f *.o *.a *~  core config.* hello hellop sleeper1 sleeper2 cpi
+
+distclean: clean
+	/bin/rm -f $(EXECS) Makefile
+	/bin/rm -f mpdtrace mpddump mpdringtest mpdexec mpdhelp mpdcleanup mpdpexec \
+	    mpdexit mpdbomb mpiexec mpdmpexec mpdallexit mpirun mpd.hosts mpd.h
+	rm -f mpdcon 
+	rm -f ${srcdir}/mpdcon
+	rm -f ${srcdir}/mpdtrace ${srcdir}/mpddump ${srcdir}/mpdringtest \
+	      ${srcdir}/mpdexec ${srcdir}/mpdhelp ${srcdir}/mpdcleanup \
+	      ${srcdir}/mpdpexec ${srcdir}/mpdexit ${srcdir}/mpdbomb mpiexec \
+	      ${srcdir}/mpdmpexec ${srcdir}/mpdallexit 
+print:
+	enscript -G $(HEADERS) $(SOURCES)
+
+# Use autoheader if a config file is generated
+configure: configure.in
+	autoconf
+
+#
+#   RIO
+#
+rio :  riod librio.a riotest
+
+riod:  riod.o riod_handlers.o util.o sockets.o
+	$(CC) -o riod riod.o riod_handlers.o util.o sockets.o $(LIBS)
+
+librio.a : rio.o sockets.o util.o
+	ar lruv librio.a rio.o sockets.o util.o
+	ranlib librio.a
+# Test suite
+riotest : localtest rtest
+localtest: localtest.o librio.a 
+	$(CC) $(LIBS) -o localtest localtest.o librio.a
+rtest: rtest.o librio.a 
+	$(CC) $(LIBS) -o rtest rtest.o librio.a
+rtest1: riotest.o librio.a 
+	$(CC) $(LIBS) -o riotest riotest.o librio.a
+
+riotar:    
+	tar cvf rio.tar rio.h mpd.h rio.c riod.c riod_handlers.c sockets.c\
+	 util.c localtest.c rtest.c makefile readme.rio
+#------------------------------------------------

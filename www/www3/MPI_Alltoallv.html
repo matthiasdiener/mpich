@@ -10,17 +10,16 @@ Sends data from all to all processes, with a displacement
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Alltoallv ( sendbuf, sendcnts, sdispls, sendtype, 
-                    recvbuf, recvcnts, rdispls, recvtype, comm )
-void             *sendbuf;
-int              *sendcnts;
-int              *sdispls;
-MPI_Datatype      sendtype;
-void             *recvbuf;
-int              *recvcnts;
-int              *rdispls; 
-MPI_Datatype      recvtype;
-MPI_Comm          comm;
+int MPI_Alltoallv ( 
+ void *sendbuf, 
+ int *sendcnts, 
+ int *sdispls, 
+ MPI_Datatype sendtype, 
+ void *recvbuf, 
+ int *recvcnts, 
+ int *rdispls, 
+ MPI_Datatype recvtype, 
+ MPI_Comm comm )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

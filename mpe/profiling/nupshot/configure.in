@@ -1,7 +1,7 @@
 dnl	This file is an input file used by the GNU "autoconf" program to
 dnl	generate the file "configure", which is run during Tk installation
 dnl	to configure the system for the local environment.
-
+[#! bin/sh
 progname="`echo $0 | sed 's:^\./\./:\./:'`"
 print_error() {
     echo "*# $*" 2>&1 ;
@@ -68,39 +68,101 @@ do
        USER_CFLAGS="$package"
        CFLAGS="$CFLAGS $package" ;;
 
+     -automountfix=* | --automountfix=*)
+	AUTOMOUNTFIX="`echo $arg | sed 's/-*automountfix=//'`"
+	;;
+
+   # Standard configure args from here to the end
+     # For backward compatibility, also recognize exact --exec_prefix.
+     -exec-prefix=* | --exec_prefix=* | --exec-prefix=* | --exec-prefi=* | --exec-pref=* | --exec-pre=* | --exec-pr=* | --exec-p=* | --exec-=* | --exec=* | --exe=* | --ex=* | --e=*)
+	exec_prefix=`echo $arg | sed 's/[-a-z_]*=//'` ;;
+     -exec-prefix | --exec_prefix | --exec-prefix | --exec-prefi | --exec-pref | --exec-pre | --exec-pr | --exec-p | --exec- | --exec | --exe | --ex | --e)
+	next_exec_prefix=yes ;;
+
+     -prefix=* | --prefix=* | --prefi=* | --pref=* | --pre=* | --pr=* | --p=*)
+	PREFIX=`echo $arg | sed 's/[-a-z_]*=//'` 
+	prefix=$PREFIX ;;
+     -prefix | --prefix | --prefi | --pref | --pre | --pr | --p)
+	next_prefix=yes ;;
+
+     -srcdir=* | --srcdir=* | --srcdi=* | --srcd=* | --src=* | --sr=* | --s=*)
+	srcdir=`echo $arg | sed 's/[-a-z_]*=//'` ;;
+     -srcdir | --srcdir | --srcdi | --srcd | --src | --sr | --s)
+	next_srcdir=yes ;;
+
+     -datadir=* | --datadir=* )
+	datadir=`echo $arg | sed 's/[-a-z_]*=//'` ;;
+
+     -libdir=* | --libdir=* )
+	libdir=`echo $arg | sed 's/[-a-z_]*=//'` ;;
+
+     -bindir=* | --bindir=* )
+	bindir=`echo $arg | sed 's/[-a-z_]*=//'` ;;
+
+     -sbindir=* | --sbindir=* )
+	sbindir=`echo $arg | sed 's/[-a-z_]*=//'` ;;
+
+     -includedir=* | --includedir=* )
+	includedir=`echo $arg | sed 's/[-a-z_]*=//'` ;;
+
+      -u | -usage | --usage | --usag | --usa | --us | --u | -help | --help )
+	print_usage >& 2
+       exit 1 ;;
+
+     -v | -verbose | --verbose | --verbos | --verbo | --verb | --ver | --ve | --v)
+       verbose=yes ;;
 
    *)
       echo "Unrecognized argument $arg"
       exit 1
      ;;
  esac
-done
+done]
+
+AC_PREPARE(nupshot.c)
 
 # A problem.  Some systems use an NFS automounter.  This can generate
 # paths of the form /tmp_mnt/... . On SOME systems, that path is
 # not recognized, and you need to strip off the /tmp_mnt. On others, 
 # it IS recognized, so you need to leave it in.  Grumble.
-# The real problem is that OTHER nodes on the same MFS system may not
+# The real problem is that OTHER nodes on the same NFS system may not
 # be able to find a directory based on a /tmp_mnt/... name.
 #
 # It is WRONG to use $PWD, since that is maintained only by the C shell,
 # and if we use it, we may find the 'wrong' directory.  To test this, we
 # try writing a file to the directory and then looking for it in the 
 # current directory
-NUPSHOT_TRIAL=$PWD
-if test "$NUPSHOT_TRIAL" != "" -a -d "$NUPSHOT_TRIAL" ; then 
-    if test -r $NUPSHOT_TRIAL/.foo ; then
-        /bin/rm -f $NUPSHOT_TRIAL/.foo
-	/bin/rm -f .foo
+#
+# First, find out where the real source is if this is a VPATH build
+if test -s nupshot.c ; then
+    tmpsrcdir=.
+else
+    # try to determine the source dir
+    tmpsrcdir=`echo $0 | sed -e 's%/configure%%' -e "s%^~/%$HOME/%"`
+    if test ! -s $tmpsrcdir/nupshot.c ; then
+        tmpsrcdir=""
     fi
-    if test -r $NUPSHOT_TRIAL/.foo -o -r .foo ; then
-	NUPSHOT_TRIAL=
-    else
-	echo "test" > $NUPSHOT_TRIAL/.foo
-	if test ! -r .foo ; then
+fi
+PAC_FIXUP_SRCDIR
+
+if test "X$srcdir" != "X." -a -s $srcdir/nupshot.c ; then
+    NUPSHOT_TRIAL=$srcdir
+else
+    NUPSHOT_TRIAL=$PWD
+    if test "$NUPSHOT_TRIAL" != "" -a -d "$NUPSHOT_TRIAL" ; then 
+        if test -r $NUPSHOT_TRIAL/.foo ; then
+            /bin/rm -f $NUPSHOT_TRIAL/.foo
+            /bin/rm -f .foo
+        fi
+        if test -r $NUPSHOT_TRIAL/.foo -o -r .foo ; then
 	    NUPSHOT_TRIAL=
-	fi
-	/bin/rm -f $NUPSHOT_TRIAL/.foo
+        else
+	    echo "test" > $NUPSHOT_TRIAL/.foo
+	    if test ! -r .foo ; then
+	        NUPSHOT_TRIAL=
+	    fi
+	    /bin/rm -f $NUPSHOT_TRIAL/.foo
+        fi
     fi
 fi
 if test "$NUPSHOT_TRIAL" = "" ; then
@@ -131,12 +193,15 @@ if test -z "$NUPSHOT_TRIAL" ; then
     fi
 fi
 NUPSHOT_HOME=$NUPSHOT_TRIAL
-AC_SUBST(NUPSHOT_HOME)
 
-AC_INIT(nupshot.c)
+AC_SUBST(NUPSHOT_HOME)
 CC=${CC-cc}
 AC_SUBST(CC)
 AC_HAVE_HEADERS(unistd.h)
+
+# Make support for VPATH
+MAKE=${MAKE:-"make"}
+PAC_MAKE_VPATH
 
 #--------------------------------------------------------------------
 #	Include sys/select.h if it exists and if it supplies things

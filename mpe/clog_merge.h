@@ -19,5 +19,5 @@ void CLOG_output ANSI_ARGS(( double * ));
 void CLOG_cput ANSI_ARGS(( double ** ));
 void CLOG_csync ANSI_ARGS(( int, double * ));
 void CLOG_printdiffs ANSI_ARGS(( double * ));
-
+void CLOG_reinit_buff ANSI_ARGS(( void ));
 void clog2alog ANSI_ARGS(( char * ));

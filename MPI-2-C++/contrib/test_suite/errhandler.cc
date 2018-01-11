@@ -40,18 +40,18 @@ errhandler()
 
   a = MPI::COMM_NULL;
 
-  Testing("ERRORS_THROW_EXCEPTIONS");
+  Testing( (char *)"ERRORS_THROW_EXCEPTIONS");
 
   if (flags[SKIP_CRAY1104])
-    Done("Skipped (CRAY 1.1.0.4)");
+    Done( (char *)"Skipped (CRAY 1.1.0.4)");
   else if (flags[SKIP_SGI20])
-    Done("Skipped (SGI 2.0)");
+    Done( (char *)"Skipped (SGI 2.0)");
   else if (flags[SKIP_SGI30])
-    Done("Skipped (SGI 3.0)");
+    Done( (char *)"Skipped (SGI 3.0)");
   else if (flags[SKIP_G_PLUS_PLUS])
-    Done("Skipped (G++ is broken.)");
+    Done( (char *)"Skipped (G++ is broken.)");
   else if (flags[SKIP_NO_THROW])
-    Done("Skipped (Exception throwing broken)");    
+    Done( (char *)"Skipped (Exception throwing broken)");    
   else
     {
       MPI::COMM_WORLD.Set_errhandler(MPI::ERRORS_THROW_EXCEPTIONS);
@@ -87,9 +87,9 @@ errhandler()
 	pass = true;
       }
       if (skip)
-	Fail("MPI_CHECK_ARGS not set");
+	Fail( (char *)"MPI_CHECK_ARGS not set");
       else if (!pass)
-	Fail("Exception not caught");
+	Fail( (char *)"Exception not caught");
       else
 	Pass();
       

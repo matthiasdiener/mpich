@@ -243,3 +243,51 @@ ac_cv_sys_signal_waiting="no")
     AC_DEFINE(HAVE_SYS_SIGWAITING)
   fi
 ])
+dnl
+dnl Eventually, this should include acmakeinfo.m4
+dnl
+dnl
+dnl Look for a style of VPATH.  Known forms are
+dnl VPATH = .:dir
+dnl .PATH: . dir
+dnl
+dnl Defines VPATH or .PATH with . $(srcdir)
+dnl Requires that vpath work with implicit targets
+dnl NEED TO DO: Check that $< works on explicit targets.
+dnl
+define(PAC_MAKE_VPATH,[
+AC_SUBST(VPATH)
+AC_MSG_CHECKING(for virtual path format)
+rm -rf conftest*
+mkdir conftestdir
+cat >conftestdir/a.c <<EOF
+A sample file
+EOF
+cat > conftest <<EOF
+all: a.o
+VPATH=.:conftestdir
+.c.o:
+	@echo \$<
+EOF
+ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
+if test -n "$ac_out" ; then 
+    AC_MSG_RESULT(VPATH)
+    VPATH='VPATH=.:$(srcdir)'
+else
+    rm -f conftest
+    cat > conftest <<EOF
+all: a.o
+.PATH: . conftestdir
+.c.o:
+	@echo \$<
+EOF
+    ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
+    if test -n "$ac_out" ; then 
+        AC_MSG_RESULT(.PATH)
+        VPATH='.PATH: . $(srcdir)'
+    else
+	AC_MSG_RESULT(neither VPATH nor .PATH works)
+    fi
+fi
+rm -rf conftest*
+])dnl

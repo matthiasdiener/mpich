@@ -11,6 +11,7 @@
 #ifdef MPI_BUILD_PROFILING
 #undef MPI_BUILD_PROFILING
 #endif
+#include "mpeconf.h"
 #include "mpi.h"
 #include "mpe.h"
 
@@ -21,7 +22,22 @@
 /* Also avoid Fortran arguments */
 #define mpir_iargc_() 0
 #define mpir_getarg_( idx, str, ln ) strncpy(str,"Unknown",ln)
+#else
+/* Make sure that we get the correct Fortran form */
+
+#ifdef FORTRANCAPS
+#define mpir_iargc_ MPIR_IARGC
+#define mpir_getarg_ MPIR_GETARG
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpir_iargc_ mpir_iargc__
+#define mpir_getarg_ mpir_getarg__
+#elif !defined(FORTRANUNDERSCORE)
+#define mpir_iargc_ mpir_iargc
+#define mpir_getarg_ mpir_getarg
 #endif
+
+#endif
+
 
 #ifndef ANSI_ARGS
 #if defined(__STDC__) || defined(__cplusplus)
@@ -29,12 +45,6 @@
 #else
 #define ANSI_ARGS(a) ()
 #endif
-#endif
-
-/* SGI does not have a constant MPI_STATUS_SIZE in mpi.h */
-/* Use MPICH's value */
-#ifndef MPI_STATUS_SIZE
-#define MPI_STATUS_SIZE 5
 #endif
 
 /* 
@@ -788,7 +798,7 @@ void mpi_testall_( count, array_of_requests, flag, array_of_statuses, __ierr )
 int *count;
 MPI_Request array_of_requests[];
 int *flag;
-MPI_Status array_of_statuses[MPI_STATUS_SIZE];
+MPI_Status array_of_statuses[];
 int *__ierr;
 {
     *__ierr = MPI_Testall(*count, array_of_requests, flag, array_of_statuses);
@@ -828,7 +838,7 @@ int         *incount;
 MPI_Request array_of_requests[];
 int         *outcount;
 int         array_of_indices[];
-MPI_Status  array_of_statuses[MPI_STATUS_SIZE];
+MPI_Status  array_of_statuses[];
 int *__ierr;
 {
     *__ierr = MPI_Testsome(*incount, array_of_requests, outcount,
@@ -994,7 +1004,7 @@ int         *incount;
 MPI_Request array_of_requests[];
 int         *outcount;
 int         array_of_indices[];
-MPI_Status array_of_statuses[MPI_STATUS_SIZE];
+MPI_Status array_of_statuses[];
 int *__ierr;
 {
     *__ierr = MPI_Waitsome(*incount, array_of_requests, outcount,

@@ -13,11 +13,18 @@ MDEP_FFLAGS = @MDEP_FFLAGS@
 MDEP_LFLAGS = @MDEP_LFLAGS@
 P4_OBJ = @P4_OBJ@
 
-CFLAGS = @OPTFLAGS@ -I$(INCLUDEDIR) $(MDEP_CFLAGS) $(USER_CFLAGS) @CFLAGS@
+SHELL = /bin/sh
+top_srcdir  = @top_srcdir@
+srcdir      = @srcdir@
+libbuild_dir = @libbuild_dir@
+
+@VPATH@
+CFLAGS = @OPTFLAGS@ -I$(INCLUDEDIR) $(MDEP_CFLAGS) $(USER_CFLAGS) @CFLAGS@ \
+	-I${srcdir} -I../../../../include -I../include
 
 FFLAGS = @OPTFLAGS@ -I$(FORTLIBDIR) $(MDEP_FFLAGS)
 
-P4_HOME_DIR = ..
+P4_HOME_DIR = ${top_srcdir}
 INCLUDEDIR = $(P4_HOME_DIR)/include
 LIBDIR = $(P4_HOME_DIR)/lib
 LIBS = $(MDEP_LIBS)
@@ -26,10 +33,11 @@ ALOG_HDR = alog.h
 ALOG_SRC = alog.c alogf.c
 ALOG_OBJ = alog.o alogf.o
 
+.SUFFIXES:
 .SUFFIXES:	.o .c .f .h
 
 .c.o:$(P)
-	$(CC) $(CFLAGS) -c $*.c 
+	$(CC) $(CFLAGS) -c $<
 
 .f.o:$(P)
 	$(FC) $(FFLAGS) -c $*.f 
@@ -37,7 +45,7 @@ ALOG_OBJ = alog.o alogf.o
 dummy:	default
 
 clean:
-	$(RM) -f *~ *.o *.bak tags TAGS core
+	$(RM) -f *~ *.o *.bak tags TAGS core ${srcdir}/*.o
 
 # the following used to both make mergelogs.  Now they don't.
 
@@ -53,10 +61,10 @@ all:
 USER_CFLAGS = -D$(P4ARCH)
 
 alog.o:$(P)
-	$(CC) $(CFLAGS) -I$(INCLUDEDIR) -c alog.c 
+	$(CC) $(CFLAGS) -c ${srcdir}/alog.c 
 
 alogf.o:$(P)
-	$(CC) $(CFLAGS) -I$(INCLUDEDIR) -c alogf.c 
+	$(CC) $(CFLAGS) -c ${srcdir}/alogf.c 
 
 $(ALOG_OBJ):  $(ALOG_SRC) $(ALOG_HDR)
 
@@ -67,8 +75,8 @@ $(LIBDIR)/libp4.a:  $(ALOG_OBJ)
 #	$(RANLIB) $@
 
 p4inmpi:$(P) $(ALOG_OBJ)
-	$(AR) ../../../../build/$(MPIARCH)/ch_p4/lib/lib$(MPILIBNAME).a $?
-	$(RANLIB) ../../../../build/$(MPIARCH)/ch_p4/lib/lib$(MPILIBNAME).a
+	$(AR) ${libbuild_dir}/lib$(MPILIBNAME).a $?
+	$(RANLIB) ${libbuild_dir}/lib$(MPILIBNAME).a
 
 mergelogs: alog_evntdfs.h mergelogs.o
 	$(CLINKER)  $(CFLAGS) -o mergelogs mergelogs.o

@@ -10,9 +10,9 @@
 #include "mpichconf.h"
 #endif
 
-/* This is defined to allow MPIR code to know which ADI it is compiled for */
-#ifndef MPI_ADI2
-#define MPI_ADI2
+#if defined(HAVE_MPICH_MPID_H) && !defined(MPICHMPID_INC)
+#define MPICHMPID_INC
+#include "mpich-mpid.h"
 #endif
 
 #include "mpi.h"
@@ -33,8 +33,19 @@
 #include "chconfig.h"
 
 #define MPID_HAS_DEBUG
-#ifndef MPID_DEBUG_NONE
+/* #ifndef MPID_DEBUG_NONE */
 #define MPID_DEBUG_ALL
+/* #endif */
+
+/* For debugging, use PRINTF, FPRINTF, SPRINTF, FPUTS.  This allows us to 
+   grep for printf to find stray error messages that should be handled with
+   the error message facility (errorstring/errmsg)
+   */
+#ifndef PRINTF
+#define PRINTF printf
+#define FPRINTF fprintf
+#define SPRINTF sprintf
+#define FPUTS   fputs
 #endif
 
 /*
@@ -54,15 +65,23 @@
  * in a request or placing in a pkt.
  */
 #ifdef MPID_HAS_HETERO
+
+#if SIZEOF_INT == 8 
+#define MPID_INT8
+#endif
+#if SIZEOF_LONG == 8
+#define MPID_LONG8
+#endif
+
 #ifdef MPID_INT8 
-typedef int MPID_Aint;
-#define MPID_AINT_SET(a,b) a = b
-#define MPID_AINT_GET(a,b) a = b
-#elif  defined(MPID_LONG8)
+typedef int MPID_Aint
+#define MPID_AINT_SET(a,b) a = (MPID_Aint)(b)
+#define MPID_AINT_GET(a,b) a = (void*)(b)
+#elif  defined(MPID_LONG8) && !defined(POINTER_64_BITS)
 typedef long MPID_Aint;
-#define MPID_AINT_SET(a,b) a = b
-#define MPID_AINT_GET(a,b) a = b
-#else
+#define MPID_AINT_SET(a,b) a = (MPID_Aint)(b)
+#define MPID_AINT_GET(a,b) a = (void *)(b)
+#else 
 #define MPID_AINT_IS_STRUCT
 /* This is complicated by the need to set only the significant bits when
    getting the address */
@@ -71,12 +90,13 @@ typedef struct {unsigned low:32; int high:32; } MPID_Aint;
 /* Note that we are using this because we may connect with a 64 bit system.
    This handles ONLY 32 and 64 bit systems.  The if test should be
    POINTER_64_BITS instead */
-#define MPID_AINT_SET(a,b) {\
-    if (sizeof(void *) <= 4) { (a).low = (unsigned)(b);}\
-    else {/* *& */(a) = *(MPID_Aint *)&(b);}}
-#define MPID_AINT_GET(a,b) {\
-    if (sizeof(void *) <= 4) /* *& */(a) = (void *)(b).low;\
-    else *(MPID_Aint *)&(a) = *&(b);}
+#ifndef POINTER_64_BITS
+#define MPID_AINT_SET(a,b) (a).low = (unsigned)(b)
+#define MPID_AINT_GET(a,b) (a) = (void *)(b).low
+#else
+#define MPID_AINT_SET(a,b) (a) = *(MPID_Aint *)&(b)
+#define MPID_AINT_GET(a,b) *(MPID_Aint *)&(a) = *&(b)
+#endif
 #endif
 #else /* Not MPID_HAS_HETERO */
 typedef void * MPID_Aint;
@@ -175,7 +195,10 @@ extern struct MPIR_COMMUNICATOR *MPIR_COMM_WORLD;
  * change this)
  */
 #define MPID_ZERO_STATUS_COUNT(status) (status)->count = 0
-
+/*
+ * A device can also define how to set the status for an arbitrary value.
+ */
+/* #define MPID_STATUS_SET_ELEMENTS(status,datatype,count) */
 /*
  * Thread definitions.  We show an example of pthreads, as well as
  * a default set for no threading.  
@@ -232,6 +255,27 @@ extern void *memset(void *, int, size_t);
 /* Following the Standard, we implement Rsend as just Send */
 #define MPID_IrsendDatatype MPID_IsendDatatype
 #define MPID_RsendDatatype MPID_SendDatatype
+
+/* 
+ * These macros define an interface between the device and the rest of the 
+ * MPI code for attributes.
+ *
+ * MPID_ATTR_SET(struct MPIR_COMMUNICATOR *comm, int keyval, void *attr_value)
+ * is called when the user sets an attribute value for any keyval.
+ *
+ * MPID_ATTR_GET(struct MPIR_COMMUNICATOR *comm, int keyval, void *attr_value)
+ * is called when the user gets an attribute value The last argument is a 
+ * pointer to a value, not a pointer to a pointer (store into the storage
+ * defined by the user, don't change the pointer)
+ *
+ * MPID_KEYVAL_INIT()
+ * The device should also call MPI_Keyval_create() for any keyvals that 
+ * it wishes to be available for users.  Otherwise, the keyvals will have
+ * value MPI_KEYVAL_INVALID.
+ */
+#define MPID_ATTR_SET(a,b,c)
+#define MPID_ATTR_GET(a,b,c)
+#define MPID_KEYVAL_INIT()
 
 /* Definitions for the device only are now in mpiddev.h (link to 
    mpiddevbase.h for channel code) */

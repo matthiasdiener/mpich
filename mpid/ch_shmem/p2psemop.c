@@ -26,6 +26,7 @@ struct p2_global_data {
 } *p2_global;
 
 /* Definition of arg for semctl */
+#ifdef FOO
 #if defined(MPI_solaris) || defined(MPI_SX_4)
 #define SEMCTL_ARG_UNION
 union semun {
@@ -37,17 +38,33 @@ union semun {
        defined(MPI_dec5000) ||    \
        defined(MPI_hpux) || defined(MPI_ksr) 
 #define SEMCTL_ARG_INT
+#elif defined(SEMUN_UNDEFINED)
+       /* configure decided that union sumun was undefined */
+       union semun {
+	   int val;
+	   struct semid_ds *buf;
+	   unsigned short int *array;
+	   struct seminfo *__buf;  /* We may want to comment this line out */
+       } arg;
 #else
 /* A guess.  Configure should determine */
 #define SEMCTL_ARG_UNION
 #endif
+#endif /* FOO */
 
+/* If union semun is required, but not defined, define a value here */
+#ifdef SEMCTL_ARG_UNION 
+#ifdef SEMUN_UNDEFINED
+union semun { int val; };
+#endif
+#endif
 /*
   This must be called BEFORE using the shared memory allocator
  */
 int MD_init_semop()
 {
     sysv_semid0 = MD_init_sysv_semset(0);
+    return 0;
 }
 
 /* This must be called AFTER MD_initmem but before anything else (like

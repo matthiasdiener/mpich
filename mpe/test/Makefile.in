@@ -8,12 +8,15 @@ FLINKER     = $(F77)
 OPTFLAGS    = @OPTFLAGS@
 MAKE        = @MAKE@
 #
-LIB_PATH    = -L@MPE_LIBPATH@ -lmpe @MPI_LIBS@
-FLIB_PATH   = -L@MPE_LIBPATH@ @EXTRA_FLIB@ @FLIBS@
-INCLUDE_DIR = @INCLUDEDIR@ 
-NOF77       = @NOF77@
-
+LIB_PATH    =  -L@MPE_LIBPATH@ -lmpe @MPI_LIBS@
+FLIB_PATH   =  @FLIB_PATH_LEADER@@MPE_LIBPATH@ @EXTRA_FLIB@ @FLIBS@
+INCLUDE_DIR =  @INCLUDEDIR@ 
+NOF77       =  @NOF77@
+F77_OPTFLAGS = @F77_EXTRA_FLAG@
 ### End User configurable options ###
+@VPATH@
+top_srcdir = @top_srcdir@
+srcdir     = @srcdir@
 
 CFLAGS  = @MPE_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) 
 FFLAGS = $(OPTFLAGS) $(INCLUDE_DIR)
@@ -44,7 +47,7 @@ clean:
 	/bin/rm -f *.o *~ PI* $(EXECS)
 
 .c.o:
-	$(CC) $(CFLAGS) -c $*.c
+	$(CC) $(CFLAGS) -c $<
 .f.o:
-	$(F77) $(FFLAGS) -c $*.f
+	$(F77) $(FFLAGS) -c $<
 

@@ -4,9 +4,6 @@
  */
 int __NUMNODES, __MYPROCID  ;
 
-
-
-
 #include <stdio.h>
 /* #undef LOGCOMMDISABLE */
 #include <time.h>
@@ -16,9 +13,11 @@ int __NUMNODES, __MYPROCID  ;
 
 #include "mpi.h"
 extern int __NUMNODES, __MYPROCID;
-static MPI_Status _mpi_status;static int _n, _MPILEN;
+static int _n, _MPILEN;
 
-
+/* Prototypes */
+void SetBuffer( unsigned long *, int, int );
+void PrintHelp( char ** );
 
 #define STRESS_PRINT_INTERVAL 60
 /*
@@ -31,7 +30,8 @@ static MPI_Status _mpi_status;static int _n, _MPILEN;
     consumer of messages. 
  */
     
-int EachToAll(), EachToAllNB(), AllToAll(), AllToAllNB(), AllToAllPhased();
+int EachToAll(), EachToAllNB( int, int ), 
+    AllToAll(), AllToAllNB(), AllToAllPhased();
 
 #define NPATTERNS 12
 static unsigned long Patterns[12] = {
@@ -76,10 +76,12 @@ MPI_Comm_size( MPI_COMM_WORLD, &__NUMNODES );
 MPI_Comm_rank( MPI_COMM_WORLD, &__MYPROCID );
 
 if (SYArgHasName( &argc, argv, 1, "-help" )) {
-  if (__MYPROCID != 0) return 0;
-  PrintHelp( argv );
-  return 0;
+  if (__MYPROCID == 0) {
+      PrintHelp( argv );
   }
+  MPI_Finalize();
+  return 0;
+}
 
 if (__NUMNODES < 2) {
     fprintf( stderr, "Must run stress with at least 2 nodes\n" );
@@ -152,7 +154,6 @@ last  = svals[1];
 incr  = svals[2];
 
 /* Disable resource checking */
-;
 MPI_Bcast(&endtime.tv_sec, sizeof(int), MPI_BYTE, 0, MPI_COMM_WORLD );
 err       = 0;
 loopcount = 0;
@@ -165,7 +166,7 @@ do {
 		fprintf( fp, "." ); BigFlush( fp, 0 );
                 }
             if (__MYPROCID == 0 && BeVerbose) {
-                fprintf( fp, "Running size = %d longs with pattern %x\n", 
+                fprintf( fp, "Running size = %ld longs with pattern %lx\n", 
 			 size, (pattern < NPATTERNS) ? Patterns[pattern] : 
 			 pattern );
                 BigFlush( fp, 1 );
@@ -174,7 +175,7 @@ do {
             err += curerr;
             if (curerr > 0) {
                 fprintf( fp, 
-		       "[%d] Error running size = %d longs with pattern %x\n", 
+		     "[%d] Error running size = %ld longs with pattern %lx\n", 
 		       __MYPROCID, size, 
 		       (pattern < NPATTERNS) ? Patterns[pattern] : pattern );
                 BigFlush( fp, 1 );
@@ -224,9 +225,10 @@ int pattern;
 int size;
 {
 int sender, dest, tag, from, err=0, bufmsize, actsize, bufsize;
-char *buffer;
+unsigned long *buffer;
+MPI_Status status;
 
-buffer = (char *)malloc((unsigned)(size * sizeof(long) ));  if (!buffer)return 0;;
+buffer = (unsigned long *)malloc((unsigned)(size * sizeof(long) ));  if (!buffer)return 0;;
 bufsize = size * sizeof(long);
 for (sender=0; sender < __NUMNODES; sender++) {
     tag = sender;
@@ -241,67 +243,76 @@ for (sender=0; sender < __NUMNODES; sender++) {
 	}
     else {
 	bufmsize = bufsize;
-	MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,&_mpi_status);
-	err += ErrTest( _mpi_status.MPI_SOURCE, sender, (MPI_Get_count(&_mpi_status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, pattern );
+	MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,&status);
+	err += ErrTest( status.MPI_SOURCE, sender, (MPI_Get_count(&status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, pattern );
 	}
-    }
+}
 free(buffer );
 return err;
 }
 
 /*
-   Each to all nonblocking is not yet ready.
+   Each to all nonblocking
+
+   In sequence, starting from process 0,   
+     Process "sender" sends buffer + i*size to process i, except for itself, 
+         with tag i
+     All processes, except for "sender", receive a 
+
  */
-int EachToAllNB( pattern, size )
-int pattern;
-int size;
+int EachToAllNB( int pattern, int size )
 {
-int sender, dest, tag, from, err=0, bufmsize, actsize, bufsize, i;
-char *sbuffer, *rbuffer;
-MPI_Request *sid;
-MPI_Request *rid;
+    int sender, dest, tag, from, err=0, bufmsize, actsize, bufsize, i;
+    unsigned long *sbuffer, *rbuffer;
+    MPI_Request *sid, *rid;
+    MPI_Status  status;
+    int         mysize, myrank, recvlen;
 
-sbuffer = (char *)malloc((unsigned)(__NUMNODES * size * sizeof(long) ));  if (!sbuffer)return 0;;
-rbuffer = (char *)malloc((unsigned)(__NUMNODES * size * sizeof(long) ));  if (!rbuffer)return 0;;
-sid     = (MPI_Request *)malloc((unsigned)(__NUMNODES * sizeof(MPI_Request) )); if (!sid)return 0;;
-rid     = (MPI_Request *)malloc((unsigned)(__NUMNODES * sizeof(MPI_Request) )); if (!rid)return 0;;
-bufsize = size * sizeof(long);
-for (sender=0; sender < __NUMNODES; sender++) {
-    tag = sender;
-    if (__MYPROCID == sender) {
-	rid[sender] = 0;
-	for (dest=0; dest < __NUMNODES; dest++) {
-	    if (sender != dest) {
-		SetBuffer( sbuffer, size, pattern );
-		MPI_Isend(sbuffer + dest*bufsize,bufsize,MPI_BYTE,dest,tag,MPI_COMM_WORLD,&(sid[dest] ));
-		bytes_sent += bufsize;
-		}
-	    else 
-		sid[dest] = 0;
-	    }
-	}
-    else {
-	bufmsize = bufsize;
-	MPI_Irecv(rbuffer+tag*bufmsize,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,&(rid[sender] ));
-	}
+    MPI_Comm_size( MPI_COMM_WORLD, &mysize );
+    MPI_Comm_rank( MPI_COMM_WORLD, &myrank );
+
+    sbuffer = (unsigned long *)malloc((unsigned)(mysize * size * sizeof(long) ));  if (!sbuffer)return 0;
+    rbuffer = (unsigned long *)malloc((unsigned)(mysize * size * sizeof(long) ));  if (!rbuffer)return 0;
+    sid     = (MPI_Request *)malloc((unsigned)(mysize * sizeof(MPI_Request) )); if (!sid)return 0;
+    rid     = (MPI_Request *)malloc((unsigned)(mysize * sizeof(MPI_Request) )); if (!rid)return 0;
+    bufsize = size * sizeof(long);
+
+    /* Send a buffer to everyone */
+    sid[myrank] = MPI_REQUEST_NULL;
+    for (dest = 0; dest < mysize; dest++) {
+	if (myrank == dest) continue;
+	SetBuffer( sbuffer+dest*size, size, pattern );
+	MPI_Isend( sbuffer+dest*size, bufsize, MPI_BYTE,
+		   dest, myrank, MPI_COMM_WORLD, &sid[dest] );
+    }
+    /* Receive from everyone */
+    rid[myrank] = MPI_REQUEST_NULL;
+    for (sender = 0; sender < mysize; sender++) {
+	if (myrank == sender) continue;
+	MPI_Irecv( rbuffer+sender*size, bufsize, MPI_BYTE,
+		   sender, sender, MPI_COMM_WORLD, &rid[sender] );
     }
 
-for (i=0; i<__NUMNODES; i++) {
-    if (rid[i]) {
-	MPI_Wait(&(rid[i] ),&_mpi_status);
-	err += ErrTest( _mpi_status.MPI_SOURCE, sender, (MPI_Get_count(&_mpi_status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, rbuffer, 
-		        pattern );
+    /* Complete all communication */
+    for (i=0; i<mysize; i++) {
+	if (rid[i]) {
+	    MPI_Wait(&(rid[i] ),&status);
+	    MPI_Get_count( &status, MPI_BYTE, &recvlen);
+	    /* i should = tag, since tag == sender in above loop */
+	    err += ErrTest( status.MPI_SOURCE, i, recvlen, 
+			    bufsize, rbuffer + status.MPI_TAG*size, 
+			    pattern );
 	}
-    if (sid[i]) {
-	MPI_Wait(&(sid[i] ),&_mpi_status);
+	if (sid[i]) {
+	    MPI_Wait(&(sid[i]),&status);
 	}
     }
-
-free(rbuffer );
-free(sbuffer );
-free(sid );
-free(rid );
-return err;
+    
+    free( rbuffer );
+    free( sbuffer );
+    free( sid );
+    free( rid );
+    return err;
 }
 
 /* This routine requires that the message passing system buffer significant
@@ -312,9 +323,11 @@ int pattern;
 int size;
 {
 int sender, dest, tag, from, err=0, bufmsize, actsize, bufsize;
-char *buffer;
+unsigned long *buffer;
+MPI_Status status;
 
-buffer	 = (char *)malloc((unsigned)(size * sizeof(long) ));  if (!buffer)return 0;;
+buffer	 = (unsigned long *)malloc((unsigned)(size * sizeof(long) ));  
+if (!buffer)return 0;
 bufsize	 = size * sizeof(long);
 bufmsize = bufsize;
 tag	 = __MYPROCID;
@@ -329,8 +342,8 @@ for (sender=0; sender<__NUMNODES; sender++) {
     tag = sender;
     if (__MYPROCID != sender) {
 	bufmsize = bufsize;
-	MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,&_mpi_status);
-	err += ErrTest( _mpi_status.MPI_SOURCE, sender, (MPI_Get_count(&_mpi_status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, pattern );
+	MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,&status);
+	err += ErrTest( status.MPI_SOURCE, sender, (MPI_Get_count(&status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, pattern );
 	}
     }
 free(buffer );
@@ -343,18 +356,21 @@ int size;
 {
 int sender, dest, tag, from, err=0, bufmsize, actsize, bufsize;
 MPI_Request *rc;
-char *buffer;
+unsigned long *buffer;
+MPI_Status status;
 
 rc      = (MPI_Request *)malloc((unsigned)(__NUMNODES * sizeof(MPI_Request) ));
-if (!rc)exit(1);;
+if (!rc) {
+    MPI_Abort( MPI_COMM_WORLD, 1 ); 
+}
 
-buffer  = (char *)malloc((unsigned)(__NUMNODES * size * sizeof(long) ));  if (!buffer)return 0;;
+buffer  = (unsigned long *)malloc((unsigned)(__NUMNODES * size * sizeof(long) ));  if (!buffer)return 0;;
 bufsize = size * sizeof(long);
 bufmsize = bufsize;
 for (sender = 0; sender < __NUMNODES; sender++) {
     if (sender != __MYPROCID) {
 	tag = sender;
-	MPI_Irecv(buffer+sender*bufsize,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,&(rc[sender] ));
+	MPI_Irecv(buffer+sender*size,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,&(rc[sender] ));
 	}
     }
 tag     = __MYPROCID;
@@ -369,8 +385,8 @@ for (sender=0; sender<__NUMNODES; sender++) {
     tag = sender;
     if (__MYPROCID != sender) {
 	bufmsize = bufsize;
-	MPI_Wait(&(rc[sender] ),&_mpi_status);
-	err += ErrTest( _mpi_status.MPI_SOURCE, sender, (MPI_Get_count(&_mpi_status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, pattern );
+	MPI_Wait(&(rc[sender] ),&status);
+	err += ErrTest( status.MPI_SOURCE, sender, (MPI_Get_count(&status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, pattern );
 	}
     }
 free(buffer );
@@ -387,7 +403,8 @@ int pattern;
 int size;
 {
 int  d, np, mytid, to, from, idx, err=0, bufmsize, bufsize;
-char *buffer;
+unsigned long *buffer;
+MPI_Status status;
 
 np      = __NUMNODES;
 mytid   = __MYPROCID;
@@ -395,7 +412,7 @@ mytid   = __MYPROCID;
 if (np & 0x1) np--;
 if (mytid >= np) return 0;
 
-buffer  = (char *)malloc((unsigned)(size * sizeof(long) ));  if (!buffer)return 0;;
+buffer  = (unsigned long *)malloc((unsigned)(size * sizeof(long) ));  if (!buffer)return 0;;
 bufsize = size * sizeof(long);
 
 
@@ -405,8 +422,8 @@ for (d=1; d<=np/2; d++) {
     from = (mytid + np - d) % np;
     if (idx & 0x1) {
 	bufmsize = bufsize;
-	MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,from,MPI_COMM_WORLD,&_mpi_status);
-	err += ErrTest( _mpi_status.MPI_SOURCE, from, (MPI_Get_count(&_mpi_status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, 
+	MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,from,MPI_COMM_WORLD,&status);
+	err += ErrTest( status.MPI_SOURCE, from, (MPI_Get_count(&status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, 
 			        pattern );
 	SetBuffer( buffer, size, pattern );
 	MPI_Send(buffer,bufsize,MPI_BYTE,to,mytid,MPI_COMM_WORLD);
@@ -414,8 +431,8 @@ for (d=1; d<=np/2; d++) {
 	MPI_Send(buffer,bufsize,MPI_BYTE,from,mytid,MPI_COMM_WORLD);
 	bytes_sent += bufsize;
 	bufmsize = bufsize;
-	MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,to,MPI_COMM_WORLD,&_mpi_status);
-	err += ErrTest( _mpi_status.MPI_SOURCE, to, (MPI_Get_count(&_mpi_status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, 
+	MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,to,MPI_COMM_WORLD,&status);
+	err += ErrTest( status.MPI_SOURCE, to, (MPI_Get_count(&status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, 
 			        pattern );
 	}
     else {
@@ -423,12 +440,12 @@ for (d=1; d<=np/2; d++) {
 	MPI_Send(buffer,bufsize,MPI_BYTE,to,mytid,MPI_COMM_WORLD);
 	bytes_sent += bufsize;
 	bufmsize = bufsize;
-	MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,from,MPI_COMM_WORLD,&_mpi_status);
-	err += ErrTest( _mpi_status.MPI_SOURCE, from, (MPI_Get_count(&_mpi_status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, 
+	MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,from,MPI_COMM_WORLD,&status);
+	err += ErrTest( status.MPI_SOURCE, from, (MPI_Get_count(&status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, 
 			        pattern );
 	bufmsize = bufsize;
-	MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,to,MPI_COMM_WORLD,&_mpi_status);
-	err += ErrTest( _mpi_status.MPI_SOURCE, to, (MPI_Get_count(&_mpi_status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, 
+	MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,to,MPI_COMM_WORLD,&status);
+	err += ErrTest( status.MPI_SOURCE, to, (MPI_Get_count(&status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, 
 			        pattern );
 	SetBuffer( buffer, size, pattern );
 	MPI_Send(buffer,bufsize,MPI_BYTE,from,mytid,MPI_COMM_WORLD);
@@ -444,9 +461,7 @@ return err;
   These routines set and check the buffers by inserting the specified pattern
   and checking it.
  --------------------------------------------------------------------------- */
-SetBuffer( buf, size, pattern )
-unsigned long *buf;
-int  size, pattern;
+void SetBuffer( unsigned long *buf, int size, int pattern )
 {
 unsigned long val;
 int  i;
@@ -486,7 +501,7 @@ return 0;
 
 int ErrTest( from, partner, actsize, bufsize, buffer, pattern )
 int  from, partner, actsize, bufsize, pattern;
-char *buffer;
+unsigned long *buffer;
 {
 int err = 0;
 
@@ -500,7 +515,7 @@ if (actsize != bufsize) {
 	     partner, actsize, bufsize );
     err++;
     }
-if (CheckBuffer( buffer, actsize / sizeof(long), pattern )) {
+if (CheckBuffer( buffer, (int)(actsize / sizeof(long)), pattern )) {
     fprintf( stderr, "Message from %d is corrupt\n", partner );
     err++;
     }
@@ -508,7 +523,7 @@ return err;
 }
 
 
-PrintHelp( argv )
+void PrintHelp( argv )
 char **argv;
 {
   fprintf( stderr, "%s - stress test communication\n", argv[0] );
@@ -533,7 +548,7 @@ combinations of\n\
 \n" );
   fprintf( stderr, "\
 %s should be run with an even number of processes; use all available\n\
-processes for the most extensive testing\n" );
+processes for the most extensive testing\n", argv[0] ? argv[0] : "stress" );
 }
 
 

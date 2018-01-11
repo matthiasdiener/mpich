@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2req.c,v 1.2 1998/03/13 22:32:20 gropp Exp $
+ *  $Id: adi2req.c,v 1.3 1999/04/08 16:52:01 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -59,7 +59,7 @@ MPI_Request request;
     /*if (MPID_devset->req_pending) {*/
     if (rq) {
 	rq->chandle.ref_count--;
-/*	printf( "Setting ref count to %d for %x\n", 
+/*	PRINTF( "Setting ref count to %d for %x\n", 
 		rq->chandle.ref_count, (long)rq ); */
 	/* MPID_devset->req_pending = 0; */
     }

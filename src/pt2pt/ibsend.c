@@ -1,5 +1,5 @@
 /*
- *  $Id: ibsend.c,v 1.4 1998/04/28 21:46:50 swider Exp $
+ *  $Id: ibsend.c,v 1.9 1999/08/30 15:48:56 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,25 @@
 
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Ibsend = PMPI_Ibsend
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Ibsend  MPI_Ibsend
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Ibsend as PMPI_Ibsend
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "reqalloc.h"
 
 /*@
@@ -35,14 +54,8 @@ Output Parameter:
 .N MPI_ERR_BUFFER
 
 @*/
-int MPI_Ibsend( buf, count, datatype, dest, tag, comm, request )
-void             *buf;
-int              count;
-MPI_Datatype     datatype;
-int              dest;
-int              tag;
-MPI_Comm         comm;
-MPI_Request      *request;
+EXPORT_MPI_API int MPI_Ibsend( void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+		MPI_Comm comm, MPI_Request *request )
 {
     int         mpi_errno = MPI_SUCCESS;
     static char myname[] = "MPI_IBSEND";
@@ -60,9 +73,13 @@ MPI_Request      *request;
 
     MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
 
-    if (MPIR_TEST_COUNT(comm,count) ||
-	MPIR_TEST_SEND_RANK(comm_ptr,dest) || MPIR_TEST_SEND_TAG(comm,tag))
-	return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+#ifndef MPIR_NO_ERROR_CHECKING
+    MPIR_TEST_COUNT(count);
+    MPIR_TEST_SEND_TAG(tag);
+    MPIR_TEST_SEND_RANK(comm_ptr,dest);
+    if (mpi_errno)
+	return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
 
     MPIR_ALLOCFN(shandle,MPID_SendAlloc,
 	       comm_ptr, MPI_ERR_EXHAUSTED,myname);

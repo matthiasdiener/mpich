@@ -1,11 +1,27 @@
 /* 
- *   $Id: write_all.c,v 1.2 1998/06/02 19:03:57 thakur Exp $    
+ *   $Id: write_all.c,v 1.5 1999/08/27 20:53:19 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "mpioimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_File_write_all = PMPI_File_write_all
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_File_write_all MPI_File_write_all
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_File_write_all as PMPI_File_write_all
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define __MPIO_BUILD_PROFILING
+#include "mpioprof.h"
+#endif
 
 /* status object not filled currently */
 
@@ -38,11 +54,6 @@ int MPI_File_write_all(MPI_File fh, void *buf, int count,
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
-    if (buf <= (void *) 0) {
-        printf("MPI_File_write_all: buf is not a valid address\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
-    }
-
     if (count < 0) {
 	printf("MPI_File_write_all: Invalid count argument\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
@@ -57,6 +68,11 @@ int MPI_File_write_all(MPI_File fh, void *buf, int count,
     if ((count*datatype_size) % fh->etype_size != 0) {
         printf("MPI_File_write_all: Only an integral number of etypes can be accessed\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+
+    if (fh->access_mode & MPI_MODE_SEQUENTIAL) {
+	printf("MPI_File_write_all: Can't use this function because file was opened with MPI_MODE_SEQUENTIAL\n");
+	MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
     ADIO_WriteStridedColl(fh, buf, count, datatype, ADIO_INDIVIDUAL,

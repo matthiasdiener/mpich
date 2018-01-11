@@ -1,11 +1,30 @@
 /*
- *  $Id: cancel.c,v 1.3 1998/01/29 14:27:46 gropp Exp $
+ *  $Id: cancel.c,v 1.9 1999/12/02 18:57:33 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Cancel = PMPI_Cancel
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Cancel  MPI_Cancel
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Cancel as PMPI_Cancel
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
     MPI_Cancel - Cancels a communication request
@@ -22,10 +41,11 @@ the user to cancel these unsatisfied requests.
 
 Cancelling a send operation is much more difficult, in large part because the 
 send will usually be at least partially complete (the information on the tag,
-size, and source are usually sent immediately to the destination).  MPICH
-will support this once other enhancements are completed; however, users are
-advised that cancelling a send, while a local operation, is likely to 
-be expensive (usually generating one or more internal messages).
+size, and source are usually sent immediately to the destination).  As of
+version 1.2.0, MPICH supports cancelling of sends.  Users are
+advised that cancelling a send, while a local operation (as defined by the MPI
+standard), is likely to be expensive (usually generating one or more internal
+messages). 
 
 .N fortran
 
@@ -36,21 +56,22 @@ be expensive (usually generating one or more internal messages).
 .N MPI_ERR_REQUEST
 .N MPI_ERR_ARG
 @*/
-int MPI_Cancel( request )
-MPI_Request *request;
+EXPORT_MPI_API int MPI_Cancel( MPI_Request *request )
 {
     static char myname[] = "MPI_CANCEL";
     int mpi_errno = MPI_SUCCESS;
 
     TR_PUSH(myname);
 
-    if (MPIR_TEST_ARG(request))
+    MPIR_TEST_ARG(request);
+    if (mpi_errno)
 	return MPIR_ERROR(MPIR_COMM_WORLD,mpi_errno,myname );
     
     /* A null request requires no effort to cancel.  However, it
        is an error. */
     if (*request == MPI_REQUEST_NULL) 
-	return MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_REQUEST_NULL,myname);
+	return MPIR_ERROR(MPIR_COMM_WORLD,
+	  MPIR_ERRCLASS_TO_CODE(MPI_ERR_REQUEST,MPIR_ERR_REQUEST_NULL),myname);
 
     /* Check that the request is actually a request */
     if (MPIR_TEST_REQUEST(MPI_COMM_WORLD,*request))

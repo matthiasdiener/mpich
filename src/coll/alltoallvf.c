@@ -9,7 +9,57 @@
 #include <stdarg.h>
 #endif
 
-#ifdef MPI_BUILD_PROFILING
+
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_ALLTOALLV = PMPI_ALLTOALLV
+EXPORT_MPI_API void MPI_ALLTOALLV ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_alltoallv__ = pmpi_alltoallv__
+EXPORT_MPI_API void mpi_alltoallv__ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_alltoallv = pmpi_alltoallv
+EXPORT_MPI_API void mpi_alltoallv ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_alltoallv_ = pmpi_alltoallv_
+EXPORT_MPI_API void mpi_alltoallv_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_ALLTOALLV  MPI_ALLTOALLV
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_alltoallv__  mpi_alltoallv__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_alltoallv  mpi_alltoallv
+#else
+#pragma _HP_SECONDARY_DEF pmpi_alltoallv_  mpi_alltoallv_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_ALLTOALLV as PMPI_ALLTOALLV
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_alltoallv__ as pmpi_alltoallv__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_alltoallv as pmpi_alltoallv
+#else
+#pragma _CRI duplicate mpi_alltoallv_ as pmpi_alltoallv_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_alltoallv_ PMPI_ALLTOALLV
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -19,7 +69,9 @@
 #else
 #define mpi_alltoallv_ pmpi_alltoallv_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_alltoallv_ MPI_ALLTOALLV
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -28,6 +80,7 @@
 #define mpi_alltoallv_ mpi_alltoallv
 #endif
 #endif
+
 
 #ifdef _CRAY
 #ifdef _TWO_WORD_FCD
@@ -107,22 +160,12 @@ if (_isfcd(recvbuf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_alltoallv_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+EXPORT_MPI_API void mpi_alltoallv_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
 				void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
 				MPI_Fint *, MPI_Fint * ));
 
-void mpi_alltoallv_ ( sendbuf, sendcnts, sdispls, sendtype, 
-                    recvbuf, recvcnts, rdispls, recvtype, comm, __ierr )
-void     *sendbuf;
-MPI_Fint *sendcnts;
-MPI_Fint *sdispls;
-MPI_Fint *sendtype;
-void     *recvbuf;
-MPI_Fint *recvcnts;
-MPI_Fint *rdispls; 
-MPI_Fint *recvtype;
-MPI_Fint *comm;
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_alltoallv_ ( void *sendbuf, MPI_Fint *sendcnts, MPI_Fint *sdispls, MPI_Fint *sendtype, 
+                    void *recvbuf, MPI_Fint *recvcnts, MPI_Fint *rdispls, MPI_Fint *recvtype, MPI_Fint *comm, MPI_Fint *__ierr )
 {
     
     if (sizeof(MPI_Fint) == sizeof(int))

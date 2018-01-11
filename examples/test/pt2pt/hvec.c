@@ -7,11 +7,11 @@
    I've modified it to fit the automated tests requirements
  */
 /* Prototypes for picky compilers */
-int iinit ANSI_ARGS(( int *, int, int ));
-int ilist1 ANSI_ARGS(( int *, int, int, int ));
-void Build_vect ANSI_ARGS(( MPI_Datatype * ));
-void Build_ctg ANSI_ARGS(( int, MPI_Datatype *, MPI_Datatype * ));
-void Get_d5 ANSI_ARGS(( int ));
+int iinit ( int *, int, int );
+int ilist1 ( int *, int, int, int );
+void Build_vect ( MPI_Datatype * );
+void Build_ctg ( int, MPI_Datatype *, MPI_Datatype * );
+void Get_d5 ( int );
 
 int iinit(a, value, l)
 int *a, value, l;
@@ -41,7 +41,6 @@ int *a, mype, pe_out, l;
 void Build_vect(mess_ptr) 
 MPI_Datatype* mess_ptr;
 {
-  int istat;
   int count, bllen, gap, str;
   
 /*   Define an MPI type with two blocks of 3 integers each, separated */
@@ -51,7 +50,7 @@ MPI_Datatype* mess_ptr;
   gap	= 1;
   str	= bllen + gap;
 
-  istat = MPI_Type_vector(count, bllen, str, MPI_INT, mess_ptr);
+  MPI_Type_vector(count, bllen, str, MPI_INT, mess_ptr);
   MPI_Type_commit(mess_ptr);
   
 }
@@ -61,12 +60,12 @@ void   Build_ctg(big_offset,messtyp, messtyp2)
 int big_offset;
 MPI_Datatype *messtyp, *messtyp2;
 {
-  int count, istat;
+  int count;
   MPI_Aint ext;
     
   count=3;
   MPI_Type_extent(*messtyp, &ext);
-  istat = MPI_Type_hvector(count, 1, ext+big_offset, *messtyp, messtyp2);
+  MPI_Type_hvector(count, 1, ext+big_offset, *messtyp, messtyp2);
   MPI_Type_commit(messtyp2);
   /*printf( "pack is:\n" );
   MPIR_PrintDatatypePack( stdout, 1, *messtyp2, 0, 0 );
@@ -82,7 +81,7 @@ int my_rank;
   MPI_Datatype messtyp, messtyp2;
   int root=0;
   int count=1;
-  int i, istat, big_offset;
+  int i, big_offset;
   int intlen;
 #define DL 32
   
@@ -104,7 +103,7 @@ int my_rank;
 	     big_offset/(int)sizeof(int));
     i=iinit(dar, my_rank, DL);
     Build_ctg(big_offset, &messtyp, &messtyp2);
-    istat = MPI_Bcast(dar, count, messtyp2, root, MPI_COMM_WORLD);
+    MPI_Bcast(dar, count, messtyp2, root, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Type_free(&messtyp2);
     i=ilist1(dar, my_rank, 1, DL);

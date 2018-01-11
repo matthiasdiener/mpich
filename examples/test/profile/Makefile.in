@@ -13,15 +13,19 @@ OPTFLAGS    = @OPTFLAGS@
 ### End User configurable options ###
 
 SHELL = /bin/sh
+prefix     = @prefix@
+top_srcdir = @top_srcdir@
+srcdir     = @srcdir@
+@VPATH@
 
 PROFLIB =
-CFLAGS  = $(OPTFLAGS) 
+CFLAGS  = @DEFS@ $(OPTFLAGS) 
 CCFLAGS = $(CFLAGS)
 FFLAGS = $(OPTFLAGS)
 # Use LIBS to add any special libraries for C programs
-LIBS = 
+LIBS = @LIB_PATH@ @LIB_LIST@
 # Use FLIBS to add any special libraries for Fortran programs
-FLIBS = 
+FLIBS = @FLIB_PATH@ @LIB_LIST@
 EXECS = ptest
 OTHEREXECS = 
 default: $(EXECS)
@@ -39,23 +43,15 @@ ptest: ptest.o
 	$(CLINKER) $(OPTFLAGS) -o ptest ptest.o $(LIBS)
 
 #
-# Some systems have no test for a symbolic link and return false for
-# a link that exists
-mpif.h: $(MPIR_HOME)/include/mpif.h
-	if test \! -f mpif.h ; then \
-	    /bin/rm -f mpif.h ; \
-	    ln -s $(MPIR_HOME)/include/mpif.h . ; \
-	fi
-
-#
 # Make sure that we remove executables for specific architectures
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) *.out core profile.diff $(OTHEREXECS)
-	for file in $(EXECS) Makefile ; do \
+	@-/bin/rm -f *.o *~ PI* $(EXECS) *.out core profile.diff \
+		$(OTHEREXECS) mpif.h ${srcdir}/*.o
+	@-for file in $(EXECS) Makefile ; do \
 	   /bin/rm -f $$file.sun4 $$file.alpha $$file.IRIX $$file.freebsd ;\
 	done
 
 .c.o:
-	$(CC) $(CFLAGS) -c $*.c
+	$(CC) $(CFLAGS) -c $<
 .f.o:
-	$(F77) $(FFLAGS) -c $*.f
+	$(F77) $(FFLAGS) -c $<

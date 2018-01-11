@@ -1,14 +1,14 @@
-.TH MPI_Testany 3 "4/28/1998" " " "MPI"
+.TH MPI_Testany 3 "11/6/1999" " " "MPI"
 .SH NAME
 MPI_Testany \-  Tests for completion of any previdously initiated  communication 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Testany( count, array_of_requests, index, flag, status )
-int         count;
-MPI_Request array_of_requests[];
-int         *index, *flag;
-MPI_Status  *status;
+int MPI_Testany( 
+ int count, 
+ MPI_Request array_of_requests[], 
+ int *index, int *flag, 
+ MPI_Status *status )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

@@ -1,11 +1,27 @@
 /* 
- *   $Id: iwrite.c,v 1.2 1998/06/02 19:02:21 thakur Exp $    
+ *   $Id: iwrite.c,v 1.5 1999/08/27 20:53:09 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "mpioimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_File_iwrite = PMPI_File_iwrite
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_File_iwrite MPI_File_iwrite
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_File_iwrite as PMPI_File_iwrite
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define __MPIO_BUILD_PROFILING
+#include "mpioprof.h"
+#endif
 
 
 /*@
@@ -40,11 +56,6 @@ int MPI_File_iwrite(MPI_File fh, void *buf, int count,
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
-    if (buf <= (void *) 0) {
-        printf("MPI_File_iwrite: buf is not a valid address\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
-    }
-
     if (count < 0) {
 	printf("MPI_File_iwrite: Invalid count argument\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
@@ -60,6 +71,11 @@ int MPI_File_iwrite(MPI_File fh, void *buf, int count,
     if ((count*datatype_size) % fh->etype_size != 0) {
         printf("MPI_File_iwrite: Only an integral number of etypes can be accessed\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+
+    if (fh->access_mode & MPI_MODE_SEQUENTIAL) {
+	printf("MPI_File_iwrite: Can't use this function because file was opened with MPI_MODE_SEQUENTIAL\n");
+	MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
     ADIOI_Datatype_iscontig(datatype, &buftype_is_contig);
@@ -86,14 +102,14 @@ int MPI_File_iwrite(MPI_File fh, void *buf, int count,
 
             off = fh->fp_ind;
             if ((fh->file_system != ADIO_PIOFS) && 
-                (fh->file_system != ADIO_NFS))
+               (fh->file_system != ADIO_NFS) && (fh->file_system != ADIO_PVFS))
                 ADIOI_WRITE_LOCK(fh, off, SEEK_SET, bufsize);
 
             ADIO_WriteContig(fh, buf, bufsize, ADIO_INDIVIDUAL, 0, &status,
                     &error_code);  
 
             if ((fh->file_system != ADIO_PIOFS) && 
-                (fh->file_system != ADIO_NFS))
+               (fh->file_system != ADIO_NFS) && (fh->file_system != ADIO_PVFS))
                 ADIOI_UNLOCK(fh, off, SEEK_SET, bufsize);
 
             fh->async_count++;

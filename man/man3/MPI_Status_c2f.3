@@ -1,12 +1,10 @@
-.TH MPI_Status_c2f 3 "12/8/1997" " " "MPI-2"
+.TH MPI_Status_c2f 3 "8/30/1999" " " "MPI-2"
 .SH NAME
 MPI_Status_c2f \-  Convert a C status to a Fortran status 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Status_c2f( c_status, f_status )
-MPI_Status   *c_status;
-MPI_Fint     *f_status;
+int MPI_Status_c2f( MPI_Status *c_status, MPI_Fint *f_status )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

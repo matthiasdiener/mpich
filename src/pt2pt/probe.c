@@ -1,5 +1,5 @@
 /*
- *  $Id: probe.c,v 1.4 1998/04/28 21:47:02 swider Exp $
+ *  $Id: probe.c,v 1.9 1999/08/30 15:49:12 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,25 @@
 
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Probe = PMPI_Probe
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Probe  MPI_Probe
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Probe as PMPI_Probe
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
     MPI_Probe - Blocking test for a message
@@ -27,11 +46,7 @@ Output Parameter:
 .N MPI_ERR_TAG
 .N MPI_ERR_RANK
 @*/
-int MPI_Probe( source, tag, comm, status )
-int         source;
-int         tag;
-MPI_Comm    comm;
-MPI_Status  *status;
+EXPORT_MPI_API int MPI_Probe( int source, int tag, MPI_Comm comm, MPI_Status *status )
 {
     int mpi_errno = MPI_SUCCESS;
     struct MPIR_COMMUNICATOR *comm_ptr;
@@ -40,8 +55,12 @@ MPI_Status  *status;
     comm_ptr = MPIR_GET_COMM_PTR(comm);
     MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
-    if (MPIR_TEST_RECV_TAG(comm,tag) || MPIR_TEST_RECV_RANK(comm_ptr,source))
-	return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+#ifndef MPIR_NO_ERROR_CHECKING
+    MPIR_TEST_RECV_TAG(tag);
+    MPIR_TEST_RECV_RANK(comm_ptr,source);
+    if (mpi_errno)
+	return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
 
     if (source == MPI_PROC_NULL) {
 	status->MPI_SOURCE = MPI_PROC_NULL;

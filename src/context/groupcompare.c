@@ -1,11 +1,30 @@
 /*
- *  $Id: groupcompare.c,v 1.2 1998/04/28 20:58:21 swider Exp $
+ *  $Id: groupcompare.c,v 1.7 1999/08/30 15:43:31 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Group_compare = PMPI_Group_compare
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Group_compare  MPI_Group_compare
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Group_compare as PMPI_Group_compare
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
 
@@ -27,10 +46,7 @@ and 'MPI_UNEQUAL' otherwise
 .N MPI_ERR_GROUP
 .N MPI_ERR_ARG
 @*/
-int MPI_Group_compare ( group1, group2, result )
-MPI_Group  group1;
-MPI_Group  group2;
-int       *result;
+EXPORT_MPI_API int MPI_Group_compare ( MPI_Group group1, MPI_Group group2, int *result )
 {
   int       mpi_errno = MPI_SUCCESS;
   int       size1, size2;
@@ -42,13 +58,17 @@ int       *result;
   TR_PUSH(myname);
 
   group1_ptr = MPIR_GET_GROUP_PTR(group1);
-  MPIR_TEST_MPI_GROUP(group1,group1_ptr,MPIR_COMM_WORLD,myname);
-
   group2_ptr = MPIR_GET_GROUP_PTR(group2);
-  MPIR_TEST_MPI_GROUP(grou2p,group2_ptr,MPIR_COMM_WORLD,myname);
 
-  if ( MPIR_TEST_ARG(result))
-    return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+#ifndef MPIR_NO_ERROR_CHECKING
+/*  MPIR_TEST_MPI_GROUP(group1,group1_ptr,MPIR_COMM_WORLD,myname);
+  MPIR_TEST_MPI_GROUP(grou2p,group2_ptr,MPIR_COMM_WORLD,myname);*/
+  MPIR_TEST_GROUP(group1_ptr);
+  MPIR_TEST_GROUP(group2_ptr);
+  MPIR_TEST_ARG(result);
+  if (mpi_errno)
+      return MPIR_ERROR(MPIR_COMM_WORLD, mpi_errno, myname );
+#endif
 
   /* See if their sizes are equal */
   MPI_Group_size ( group1, &size1 );

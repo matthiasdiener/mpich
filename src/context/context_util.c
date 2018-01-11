@@ -1,5 +1,5 @@
 /*
- *  $Id: context_util.c,v 1.1.1.1 1997/09/17 20:41:40 gropp Exp $
+ *  $Id: context_util.c,v 1.5 1999/10/15 20:08:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -82,10 +82,10 @@ MPIR_Context_alloc - allocate some number of contiguous contexts over given comm
 THREAD_SAFETY_ISSUE - this routine may currently be used in ways that is
 not safe in a multithreaded environment.
  */
-int MPIR_Context_alloc ( comm, num_contexts, context )
-MPI_Comm      comm;
-int           num_contexts;
-MPIR_CONTEXT *context;
+int MPIR_Context_alloc ( 
+	MPI_Comm comm, 
+	int num_contexts, 
+	MPIR_CONTEXT *context )
 {
   MPIR_CONTEXT result;
   int i;
@@ -141,7 +141,10 @@ MPIR_CONTEXT *context;
   if (result < 0)
   {
       MPID_THREAD_UNLOCK(comm->ADIctx,comm);
-      return MPIR_ERROR(comm, MPI_ERR_EXHAUSTED,"No more available contexts");
+      mpi_errno = MPIR_Err_setmsg( MPI_ERR_INTERN, MPIR_ERR_TOO_MANY_CONTEXTS,
+				   (char *)0, 
+				   (char *)0, "No more available contexts" );
+      return MPIR_ERROR(comm, mpi_errno, (char*)0);
   }
 
   *context = result;
@@ -183,10 +186,10 @@ MPIR_Context_dealloc - deallocate previously allocated contexts
  * comm_free is specified as a collective operation, so this sequence is illegal].
  * However it's probably reasonable not to bother for now.
  */
-int MPIR_Context_dealloc ( comm, num, context )
-MPI_Comm     comm;
-int          num;
-MPIR_CONTEXT context;
+int MPIR_Context_dealloc ( 
+	struct MPIR_COMMUNICATOR *comm, 
+	int num, 
+	MPIR_CONTEXT context )
 {
   while (num--)
       clear_bit(usedContextMap, context+num);

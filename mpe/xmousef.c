@@ -1,6 +1,7 @@
 /* xmouse.c */
 /* Fortran interface file */
 #include <stdio.h>
+#include "mpeconf.h"
 #include "mpe.h"
 
 #include "mpetools.h"

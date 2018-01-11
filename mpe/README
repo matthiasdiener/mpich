@@ -49,6 +49,9 @@ Specific MPI implementation switches:
 --with-mpichdev=subdir		Specifies the subdirectory of which
 				architecture/device you wish to use.
 
+--with-lam=subdir               Specifies the top-level install directory
+                                where LAM is installed
+
 --with-sp			Specifies use of the native IBM POE/MPI
 				implementation.
 
@@ -305,6 +308,34 @@ Example 4:  Configure MPE with SGI's MPI and pass options to JUMPSHOT's
 			  --with-jumpshot_opts=<jumpshot option>
 
 		2) make
+
+Example 5:  Configure MPE with LAM's MPI 
+
+	    In the MPE top-level directory,
+            1)  ./configure --with-lam=<top-level LAM install directory> \
+	               --with-libdir=<directory path of libdir> 
+
+	    2)  make
+
+	    This will configure and make the MPE library.  In order to use 
+            the MPE libraries, you will need to link them into your programs.
+            For example, in the 'config-defs' file in LAM's subdirectory 
+            ../examples,
+	    add the following:
+
+		MPE_DIR = -L<path where you just installed mpe libraries>
+	        PROFLIB = -lmpe -L$(LAMHOME)/lib -lpmpi
+	        LOGLIB  = -llmpi $(PROFLIB)
+
+	    Then add these variables to the compilation lines in the 
+	    Makefiles for the programs you wish to profile.  For example,
+	    in the Makefile in the ../examples/trivial, if you wish to
+	    profile trivial.c, then the compilation line would be as
+            follows:
+trivialc: trivial.c
+	$(CC) $(CFLAGS) -o trivialc trivial.c $(LDFLAGS) -L$(MPE_DIR) $(LOGLIB)	
+	   Currently, we do not support profiling LAM's Fortran library.
+	   However, we are working on it.
 
 IV.  EXAMPLE PROGRAMS
 ----------------------

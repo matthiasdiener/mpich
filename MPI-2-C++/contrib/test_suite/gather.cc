@@ -72,7 +72,7 @@ gather()
   int *in;
   int root;
  
-  Testing("Gather");
+  Testing( (char *)"Gather");
 
   in = new int[MAXLEN * comm_size];
   for (j = 1, root = 0; j <= MAXLEN; j *= 10, root = (root + 1) % comm_size) {

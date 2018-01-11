@@ -1,12 +1,10 @@
-.TH MPI_Init 3 "11/15/1998" " " "MPI"
+.TH MPI_Init 3 "10/8/1999" " " "MPI"
 .SH NAME
 MPI_Init \-  Initialize the MPI execution environment 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Init(argc,argv)
-int  *argc;
-char ***argv;
+int MPI_Init(int *argc, char ***argv)
 .fi
 .SH INPUT PARAMETERS
 .PD 0
@@ -158,6 +156,9 @@ SIGUSR2
 
 .SH CH_P4 DEVICE
 SIGUSR1
+
+The ch_p4 device also catches SIGINT, SIGFPE, SIGBUS, and SIGSEGV; this
+helps the p4 device (and MPICH) more gracefully abort a failed program.
 
 .SH INTEL PARAGON (CH_NX AND NX DEVICE)
 SIGUSR2

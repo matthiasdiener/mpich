@@ -1,13 +1,5 @@
 #ifndef MPIR_GROUP_COOKIE
 
-#ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
-#define ANSI_ARGS(a) a
-#else
-#define ANSI_ARGS(a) ()
-#endif
-#endif
-
 /*
  * Definition of a communicator and group
  */
@@ -136,10 +128,10 @@ extern MPIR_Comm_list MPIR_All_communicators;
 #define MPIR_TEST_COMM_NOTOK(idx,ptr) \
    (!(ptr) || ((ptr)->cookie != MPIR_COMM_COOKIE))
 #define MPIR_TEST_MPI_COMM(idx,ptr,comm,routine_name) \
-{if (!(ptr)) {RETURNV(MPIR_ERROR(comm,MPI_ERR_COMM_NULL,routine_name));}\
+{if (!(ptr)) {RETURNV(MPIR_ERROR(comm,MPIR_ERRCLASS_TO_CODE(MPI_ERR_COMM,MPIR_ERR_COMM_NULL),routine_name));}\
    if ((ptr)->cookie != MPIR_COMM_COOKIE){\
-    MPIR_ERROR_PUSH_ARG(&(ptr)->cookie);\
-   RETURNV(MPIR_ERROR(comm,MPI_ERR_COMM_CORRUPT,routine_name));}}
+    mpi_errno=MPIR_Err_setmsg(MPI_ERR_COMM,MPIR_ERR_COMM_CORRUPT,routine_name,(char *)0,(char*)0,(ptr)->cookie);\
+   RETURNV(MPIR_ERROR(comm,mpi_errno,routine_name));}}
 
 #define MPIR_GET_GROUP_PTR(idx) \
     (struct MPIR_GROUP *)MPIR_ToPointer( idx )

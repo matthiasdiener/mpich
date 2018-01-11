@@ -42,6 +42,18 @@
  */
 
 #include <stdlib.h>	
+/* 
+   The following was added by William Gropp to improve the portability 
+   to systems with non-ANSI C compilers 
+ */
+#include "mpichconf.h"
+#ifdef HAVE_NO_C_CONST
+#define const
+#endif
+
+/* 
+   End of inclusion
+ */
 #include "mpi_interface.h"
 #include "mpich_dll_defs.h"	
 
@@ -56,8 +68,13 @@
 #define FALSE (0==1)
 #endif
 
+#ifdef OLD_STYLE_CPP_CONCAT
+#define concat(a,b) a/**/b
+#define stringize(a) "a"
+#else
 #define concat(a,b) a##b
 #define stringize(a) #a
+#endif
 /**********************************************************************/
 /* Set up the basic callbacks into the debugger, also work out 
  * one crucial piece of info about the machine we're running on.
@@ -103,15 +120,19 @@ void mqs_setup_basic_callbacks (const mqs_basic_callbacks * cb)
 /* Version handling functions.
  * This one should never be changed.
  */
-int mqs_version_compatibility ()
+int mqs_version_compatibility ( void )
 {
   return MQS_INTERFACE_COMPATIBILITY;
 } /* mqs_version_compatibility */
 
 /* This one can say what you like */
-char *mqs_version_string()
+char *mqs_version_string( void )
 {
-  return "MPICH 1.1.2 from ANL release; compiled on " __DATE__;
+#ifndef __DATE__
+  return "MPICH 1.2.0 from ANL release";
+#else
+  return "MPICH 1.2.0 from ANL release; compiled on " __DATE__;
+#endif
 } /* mqs_version_string */
 
 /**********************************************************************/
@@ -366,7 +387,7 @@ int mqs_image_has_queues (mqs_image *image, char **message)
     if (!q_type)
       return err_failed_queue;
 
-    GETOFFSET(q_type, first);
+    GETOFFSET(q_type,first);
   }
       
   { /* Now fill in fields from MPID_QEL */
@@ -374,13 +395,13 @@ int mqs_image_has_queues (mqs_image *image, char **message)
     if (!qel_type)
       return err_failed_qel;
 
-    GETOFFSET(qel_type, context_id);
-    GETOFFSET(qel_type, tag);
-    GETOFFSET(qel_type, tagmask);
-    GETOFFSET(qel_type, lsrc);
-    GETOFFSET(qel_type, srcmask);
-    GETOFFSET(qel_type, next);
-    GETOFFSET(qel_type, ptr);
+    GETOFFSET(qel_type,context_id);
+    GETOFFSET(qel_type,tag);
+    GETOFFSET(qel_type,tagmask);
+    GETOFFSET(qel_type,lsrc);
+    GETOFFSET(qel_type,srcmask);
+    GETOFFSET(qel_type,next);
+    GETOFFSET(qel_type,ptr);
   }       
 
   { /* Fields from MPIR_SQUEUE */
@@ -388,7 +409,7 @@ int mqs_image_has_queues (mqs_image *image, char **message)
     if (!sq_type)
       return err_failed_squeue;
 
-    GETOFFSET(sq_type, sq_head);
+    GETOFFSET(sq_type,sq_head);
   }
 
   { /* Fields from MPIR_SQEL */
@@ -396,13 +417,13 @@ int mqs_image_has_queues (mqs_image *image, char **message)
     if (!sq_type)
       return err_failed_sqel;
 
-    GETOFFSET(sq_type, db_shandle);
-    GETOFFSET(sq_type, db_comm);
-    GETOFFSET(sq_type, db_target);
-    GETOFFSET(sq_type, db_tag);
-    GETOFFSET(sq_type, db_data);
-    GETOFFSET(sq_type, db_byte_length);
-    GETOFFSET(sq_type, db_next);
+    GETOFFSET(sq_type,db_shandle);
+    GETOFFSET(sq_type,db_comm);
+    GETOFFSET(sq_type,db_target);
+    GETOFFSET(sq_type,db_tag);
+    GETOFFSET(sq_type,db_data);
+    GETOFFSET(sq_type,db_byte_length);
+    GETOFFSET(sq_type,db_next);
   }
 
   { /* Now fill in fields from MPIR_RHANDLE */
@@ -413,9 +434,9 @@ int mqs_image_has_queues (mqs_image *image, char **message)
     if (!rh_type)
       return err_failed_rhandle;
 
-    GETOFFSET(rh_type, is_complete);
-    GETOFFSET(rh_type, buf);
-    GETOFFSET(rh_type, len);
+    GETOFFSET(rh_type,is_complete);
+    GETOFFSET(rh_type,buf);
+    GETOFFSET(rh_type,len);
 
     /* Digital MPI doesn't provide this, so we handle not having it below,
      * and don't complain about it
@@ -432,11 +453,11 @@ int mqs_image_has_queues (mqs_image *image, char **message)
       return err_failed_status;
     
     /* Adjust the offsets of the embedded fields */
-    GETOFFSET(status_type, count);
+    GETOFFSET(status_type,count);
     i_info->count_offs += status_offset;
-    GETOFFSET(status_type, MPI_SOURCE);
+    GETOFFSET(status_type,MPI_SOURCE);
     i_info->MPI_SOURCE_offs += status_offset;      
-    GETOFFSET(status_type, MPI_TAG);
+    GETOFFSET(status_type,MPI_TAG);
     i_info->MPI_TAG_offs += status_offset;
   }
       
@@ -445,8 +466,8 @@ int mqs_image_has_queues (mqs_image *image, char **message)
     if (!cl_type)
       return err_failed_commlist;
 
-    GETOFFSET(cl_type, sequence_number);
-    GETOFFSET(cl_type, comm_first);
+    GETOFFSET(cl_type,sequence_number);
+    GETOFFSET(cl_type,comm_first);
   }
 
   { /* Fields from the communicator */
@@ -454,12 +475,12 @@ int mqs_image_has_queues (mqs_image *image, char **message)
     if (!co_type)
       return err_failed_communicator;
 	
-    GETOFFSET(co_type, np);
-    GETOFFSET(co_type, lrank_to_grank);
-    GETOFFSET(co_type, send_context);
-    GETOFFSET(co_type, recv_context);
-    GETOFFSET(co_type, comm_next);
-    GETOFFSET(co_type, comm_name);
+    GETOFFSET(co_type,np);
+    GETOFFSET(co_type,lrank_to_grank);
+    GETOFFSET(co_type,send_context);
+    GETOFFSET(co_type,recv_context);
+    GETOFFSET(co_type,comm_next);
+    GETOFFSET(co_type,comm_name);
   }
 
   *message = NULL;

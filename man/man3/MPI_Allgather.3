@@ -1,18 +1,12 @@
-.TH MPI_Allgather 3 "7/20/1998" " " "MPI"
+.TH MPI_Allgather 3 "9/3/1999" " " "MPI"
 .SH NAME
 MPI_Allgather \-  Gathers data from all tasks and distribute it to all  
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Allgather ( sendbuf, sendcount, sendtype,
-                    recvbuf, recvcount, recvtype, comm )
-void             *sendbuf;
-int               sendcount;
-MPI_Datatype      sendtype;
-void             *recvbuf;
-int               recvcount;
-MPI_Datatype      recvtype;
-MPI_Comm          comm;
+int MPI_Allgather ( void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                    void *recvbuf, int recvcount, MPI_Datatype recvtype, 
+      MPI_Comm comm )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

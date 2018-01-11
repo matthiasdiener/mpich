@@ -76,7 +76,7 @@ testsome()
     req[i] = MPI::REQUEST_NULL;
   }
 
-  Testing("Testsome w/ Status");
+  Testing( (char *)"Testsome w/ Status");
 
   {
     if(my_rank > 0) 
@@ -116,7 +116,7 @@ testsome()
       req[i].Free();
   }
   
-  Testing("Testsome w/o Status");
+  Testing( (char *)"Testsome w/o Status");
 
   {
     if(my_rank > 0) 

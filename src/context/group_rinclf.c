@@ -22,7 +22,57 @@
    message, you'll need to copy the "ranges" array into a temporary.
  */
 
-#ifdef MPI_BUILD_PROFILING
+
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_GROUP_RANGE_INCL = PMPI_GROUP_RANGE_INCL
+EXPORT_MPI_API void MPI_GROUP_RANGE_INCL ( MPI_Fint *, MPI_Fint *, MPI_Fint [][3], MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_group_range_incl__ = pmpi_group_range_incl__
+EXPORT_MPI_API void mpi_group_range_incl__ ( MPI_Fint *, MPI_Fint *, MPI_Fint [][3], MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_group_range_incl = pmpi_group_range_incl
+EXPORT_MPI_API void mpi_group_range_incl ( MPI_Fint *, MPI_Fint *, MPI_Fint [][3], MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_group_range_incl_ = pmpi_group_range_incl_
+EXPORT_MPI_API void mpi_group_range_incl_ ( MPI_Fint *, MPI_Fint *, MPI_Fint [][3], MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_GROUP_RANGE_INCL  MPI_GROUP_RANGE_INCL
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_group_range_incl__  mpi_group_range_incl__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_group_range_incl  mpi_group_range_incl
+#else
+#pragma _HP_SECONDARY_DEF pmpi_group_range_incl_  mpi_group_range_incl_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_GROUP_RANGE_INCL as PMPI_GROUP_RANGE_INCL
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_group_range_incl__ as pmpi_group_range_incl__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_group_range_incl as pmpi_group_range_incl
+#else
+#pragma _CRI duplicate mpi_group_range_incl_ as pmpi_group_range_incl_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_group_range_incl_ PMPI_GROUP_RANGE_INCL
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -32,7 +82,9 @@
 #else
 #define mpi_group_range_incl_ pmpi_group_range_incl_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_group_range_incl_ MPI_GROUP_RANGE_INCL
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -42,17 +94,13 @@
 #endif
 #endif
 
+
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_group_range_incl_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, 
+EXPORT_MPI_API void mpi_group_range_incl_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, 
                                        MPI_Fint [][3], MPI_Fint *, 
                                        MPI_Fint * ));
 
-void mpi_group_range_incl_ ( group, n, ranges, newgroup, __ierr )
-MPI_Fint *group; 
-MPI_Fint *n;
-MPI_Fint ranges[][3];
-MPI_Fint *newgroup;
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_group_range_incl_ ( MPI_Fint *group, MPI_Fint *n, MPI_Fint ranges[][3], MPI_Fint *newgroup, MPI_Fint *__ierr )
 {
     MPI_Group l_newgroup;
  

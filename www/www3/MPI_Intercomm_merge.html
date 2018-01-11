@@ -10,10 +10,7 @@ Creates an intracommuncator from an intercommunicator
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Intercomm_merge ( comm, high, comm_out )
-MPI_Comm  comm;
-int       high;
-MPI_Comm *comm_out;
+int MPI_Intercomm_merge ( MPI_Comm comm, int high, MPI_Comm *comm_out )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

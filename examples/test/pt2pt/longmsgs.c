@@ -25,20 +25,23 @@ void Checkbuf( char *buf, int len, MPI_Status *status )
 {
     int count, i;
     int err = 0;
+    char ival;
     
     MPI_Get_count( status, MPI_CHAR, &count );
     if (count != len) {
 	fprintf( stderr, "Got len of %d but expected %d\n", count, len );
 	err++;
     }
+    ival = 0;
     for (i=0; i<len; i++) {
-	if (buf[i] != (char)i) {
+	if (buf[i] != ival) {
 	    err++;
 	    fprintf( stderr, 
 		     "Found wrong value in buffer[%d] = %d, expected %d\n",
-		     i, buf[i], (char)i );
+		     i, buf[i], ival );
 	    if (err > 10) break;
 	}
+	ival++;
     }
     if (err) MPI_Abort( MPI_COMM_WORLD, 1 );
 }
@@ -50,6 +53,7 @@ int main( int argc, char *argv[] )
     int msglen_max = MAX_MESSAGE_LENGTH;
     int rank,poolsize,Master;
     char *sendbuf,*recvbuf;
+    char ival;
     MPI_Request request;
     MPI_Status status;
 	
@@ -59,7 +63,7 @@ int main( int argc, char *argv[] )
 
     if(poolsize != 2) {
 	printf("Expected exactly 2 MPI processes\n");
-	exit(1);
+	MPI_Abort( MPI_COMM_WORLD, 1 );
     }
     Master = (rank == 0);	
 
@@ -71,11 +75,12 @@ int main( int argc, char *argv[] )
 	recvbuf = malloc(msglen);
 	if(sendbuf == NULL || recvbuf == NULL) {
 	    printf("Can't allocate %d bytes\n",msglen);
-	    exit(1);
+	    MPI_Abort( MPI_COMM_WORLD, 1 );
 	}
 
+	ival = 0;
 	for (i=0; i<msglen; i++) {
-	    sendbuf[i] = (char)i;
+	    sendbuf[i] = ival++;
 	    recvbuf[i] = 0;
 	}
 
@@ -129,10 +134,10 @@ int main( int argc, char *argv[] )
 
 	/* Isend/Recv - receive not ready */
 	if(Master) {
-	    MPI_Isend(sendbuf,msglen,MPI_CHAR,1,TAG4,MPI_COMM_WORLD, &request);
 	    MPI_Sendrecv( MPI_BOTTOM, 0, MPI_INT, 1, TAGSR,
 			  MPI_BOTTOM, 0, MPI_INT, 1, TAGSR,
 			  MPI_COMM_WORLD, &status );
+	    MPI_Isend(sendbuf,msglen,MPI_CHAR,1,TAG4,MPI_COMM_WORLD, &request);
 	    MPI_Wait( &request, &status );
 	}
 	else {

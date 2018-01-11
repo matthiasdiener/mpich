@@ -114,6 +114,7 @@ int memsize;
     {
     caddr_t p2p_start_shared_area;
     static int p2p_shared_map_fd;
+
 #if defined(USE_MMAP) 
 
 #if !defined(MAP_ANONYMOUS) && !defined(MAP_VARIABLE)
@@ -156,15 +157,13 @@ protections on /dev/zero\n", 0 );
 
     if (p2p_start_shared_area == (caddr_t)-1)
     {
-        perror("mmap failed");
-	p2p_error("OOPS: mmap failed: cannot map shared memory, size=",
+	p2p_syserror("OOPS: mmap failed: cannot map shared memory, size=",
 		  memsize);
     }
 
     /* Before we initialize shmalloc, we need to initialize any lock 
        information.  Some locks may use some of the shared memory */
     xx_init_shmalloc(p2p_start_shared_area,memsize);
-    
 #if defined(MPI_cspp)
     mynode = MPID_SHMEM_getNodeId();
     for (i = k = 0; i < numNodes; ++i) {
@@ -239,6 +238,22 @@ int *memsize;
     unsigned size, segsize = P2_SYSV_SHM_SEGSIZE;
     char *mem, *tmem, *pmem;
 
+    /* First, try to allocate the space as a single segment */
+    if ((sysv_shmid[0] = shmget(getpid(),*memsize,IPC_CREAT|0600)) != -1)
+    {
+	if ((mem = (char *)shmat(sysv_shmid[0],NULL,0)) == (char *)-1)
+	{
+	    printf( "could not allocate mem\n" );
+	    shmctl( sysv_shmid[0],IPC_RMID, 0 );
+	}
+	else {
+	    sysv_shmat[0] = mem;
+	    sysv_num_shmids++;
+	    return mem;
+	}
+    }
+
+    /* We couldn't get a single segment.  Try for multiple segments */
     if (*memsize  &&  (*memsize % P2_SYSV_SHM_SEGSIZE) == 0)
 	nsegs = *memsize / segsize;
     else
@@ -247,11 +262,11 @@ int *memsize;
     *memsize = size;
     if ((sysv_shmid[0] = shmget(getpid(),segsize,IPC_CREAT|0600)) == -1)
     {
-	p2p_error("OOPS: shmget failed\n",sysv_shmid[0]);
+	p2p_syserror("OOPS: shmget failed\n",sysv_shmid[0]);
     }
     if ((mem = (char *)shmat(sysv_shmid[0],NULL,0)) == (char *)-1)
     {
-	p2p_error("OOPS: shmat failed\n",0);
+	p2p_syserror("OOPS: shmat failed for (id,NULL,0)\n",0);
     }
     /* There are rumors that under LINUX, we can free these things 
        right away, and they then last until process exits. */
@@ -263,13 +278,15 @@ int *memsize;
     {
 	if ((sysv_shmid[i] = shmget(i+getpid(),segsize,IPC_CREAT|0600)) == -1)
 	{
-	    p2p_error("OOPS: shmget failed\n",sysv_shmid[i]);
+	    p2p_syserror("OOPS: shmget failed\n",sysv_shmid[i]);
 	}
         if ((tmem = (char *)shmat(sysv_shmid[i],pmem+segsize,0)) == (char *)-1)
         {
             if ((tmem = (char *)shmat(sysv_shmid[i],pmem-segsize,0)) == (char *)-1)
             {
-                p2p_error("OOPS: shmat failed\n",0);
+		char buf[1024];
+		sprintf( buf, "OOPS: shmat failed for segment %d location %d\n", 			 i, pmem-segsize);
+                p2p_syserror( buf, 0 );
             }
 	    else
 	    {

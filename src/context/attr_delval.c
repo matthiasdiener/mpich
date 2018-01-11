@@ -1,11 +1,30 @@
 /*
- *  $Id: attr_delval.c,v 1.3 1998/04/28 20:57:50 swider Exp $
+ *  $Id: attr_delval.c,v 1.8 1999/08/30 15:42:39 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Attr_delete = PMPI_Attr_delete
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Attr_delete  MPI_Attr_delete
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Attr_delete as PMPI_Attr_delete
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "attr.h"
 
 /*@
@@ -22,9 +41,7 @@ Input Parameters:
 .N MPI_ERR_COMM
 .N MPI_ERR_PERM_KEY
 @*/
-int MPI_Attr_delete ( comm, keyval )
-MPI_Comm comm;
-int      keyval;
+EXPORT_MPI_API int MPI_Attr_delete ( MPI_Comm comm, int keyval )
 {
   MPIR_HBT_node *attr;
   MPIR_Attr_key *attr_key;
@@ -44,7 +61,8 @@ int      keyval;
   MPIR_TEST_MPI_KEYVAL(keyval,attr_key,comm_ptr,myname);
 
   if (comm == MPI_COMM_WORLD && attr_key->permanent) 
-	return MPIR_ERROR( comm_ptr, MPI_ERR_PERM_KEY,myname );
+	return MPIR_ERROR( comm_ptr, 
+	     MPIR_ERRCLASS_TO_CODE(MPI_ERR_ARG,MPIR_ERR_PERM_KEY),myname );
 
   MPIR_HBT_lookup(comm_ptr->attr_cache, keyval, &attr);
   if (attr != (MPIR_HBT_node *)0) {
@@ -70,9 +88,13 @@ int      keyval;
 	if ( attr != (MPIR_HBT_node *)0 ) 
 	  (void) MPIR_HBT_free_node ( attr );
 	}
-  else 
-      return MPIR_ERROR( comm_ptr, MPI_ERR_OTHER, 
-		  "Error in MPI_ATTR_DELETE: key not in communicator" );
+  else {
+      mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_NOKEY, myname,
+				   "Key not in communicator", 
+				   "Key %d not in communicator", keyval );
+      return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+      /* "Error in MPI_ATTR_DELETE: key not in communicator" ); */
+  }
 
   TR_POP;
   return(mpi_errno);

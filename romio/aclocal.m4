@@ -850,7 +850,245 @@ if $F90 -o kind kind.f >/dev/null 2>&1 ; then
     KINDVAL=`cat k.out`
 fi
 rm -f kind k.out kind.f kind.o
-if test -n "$KINDVAL" -a "$KINDVAL" != "-1" -a "$KINDVAL" != " -1" ; then
+if test -n "$KINDVAL" -a "$KINDVAL" != "-1" ; then
+   AC_MSG_RESULT($KINDVAL)
+   MPI_OFFSET_KIND1="      INTEGER MPI_OFFSET_KIND"
+   MPI_OFFSET_KIND2="      PARAMETER (MPI_OFFSET_KIND=$KINDVAL)"
+else
+    AC_MSG_RESULT(unavailable)
+fi
+])dnl
+dnl
+dnl
+define(PAC_TEST_MPI_HAS_OFFSET_KIND,[
+  AC_MSG_CHECKING(if MPI_OFFSET_KIND is defined in mpif.h)
+  rm -f mpitest.f
+  cat > mpitest.f <<EOF
+      program main
+      implicit none
+      include 'mpif.h'
+      integer i
+      i = MPI_OFFSET_KIND
+      stop
+      end
+EOF
+  rm -f a.out
+  $F77 $FFLAGS -I$MPI_INCLUDE_DIR mpitest.f $MPI_LIB > /dev/null 2>&1
+  if test -x a.out ; then
+     AC_MSG_RESULT(yes)
+     MPI_OFFSET_KIND1="!"
+     MPI_OFFSET_KIND2="!"
+  else
+     AC_MSG_RESULT(no)
+  fi
+  rm -f a.out mpitest.f
+])dnl
+dnl
+dnl
+dnl PAC_GET_XFS_MEMALIGN
+dnl 
+dnl
+define(PAC_GET_XFS_MEMALIGN,
+[AC_MSG_CHECKING([for memory alignment needed for direct I/O])
+/bin/rm -f memalignval
+/bin/rm -f /tmp/romio_tmp.bin
+AC_TEST_PROGRAM([#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdio.h>
+main() { 
+  struct dioattr st;
+  int fd = open("/tmp/romio_tmp.bin", O_RDWR | O_CREAT, 0644);
+  FILE *f=fopen("memalignval","w");
+  if (fd == -1) exit(1);
+  if (!f) exit(1);
+  fcntl(fd, F_DIOINFO, &st);
+  fprintf( f, "%u\n", st.d_mem);
+  exit(0);
+}],Pac_CV_NAME=`cat memalignval`,Pac_CV_NAME="")
+/bin/rm -f memalignval
+/bin/rm -f /tmp/romio_tmp.bin
+if test -n "$Pac_CV_NAME" -a "$Pac_CV_NAME" != 0 ; then
+    AC_MSG_RESULT($Pac_CV_NAME)
+    CFLAGS="$CFLAGS -D__XFS_MEMALIGN=$Pac_CV_NAME"
+else
+    AC_MSG_RESULT(unavailable, assuming 128)
+    CFLAGS="$CFLAGS -D__XFS_MEMALIGN=128"
+fi
+])dnl
+dnl
+dnl
+dnl Look for a style of VPATH.  Known forms are
+dnl VPATH = .:dir
+dnl .PATH: . dir
+dnl
+dnl Defines VPATH or .PATH with . $(srcdir)
+dnl Requires that vpath work with implicit targets
+dnl NEED TO DO: Check that $< works on explicit targets.
+dnl
+define(PAC_MAKE_VPATH,[
+AC_SUBST(VPATH)
+AC_MSG_CHECKING(for virtual path format)
+rm -rf conftest*
+mkdir conftestdir
+cat >conftestdir/a.c <<EOF
+A sample file
+EOF
+cat > conftest <<EOF
+all: a.o
+VPATH=.:conftestdir
+.c.o:
+	@echo \$<
+EOF
+ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
+if test -n "$ac_out" ; then 
+    AC_MSG_RESULT(VPATH)
+    VPATH='VPATH=.:$(srcdir)'
+else
+    rm -f conftest
+    cat > conftest <<EOF
+all: a.o
+.PATH: . conftestdir
+.c.o:
+	@echo \$<
+EOF
+    ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
+    if test -n "$ac_out" ; then 
+        AC_MSG_RESULT(.PATH)
+        VPATH='.PATH: . $(srcdir)'
+    else
+	AC_MSG_RESULT(neither VPATH nor .PATH works)
+    fi
+fi
+rm -rf conftest*
+])dnl
+dnl
+dnl
+dnl There is a bug in AC_PREPARE that sets the srcdir incorrectly (it
+dnl is correct in configure, but it puts an absolute path into config.status,
+dnl which is a big problem for scripts like mpireconfig that are wrappers
+dnl around config.status).  The bug is in not recognizing that ./ and .//
+dnl are the same  directory as . (in fact, ./[/]* is the same).
+dnl
+define(PAC_FIXUP_SRCDIR,[
+# Find the source files, if location was not specified.
+if test "$srcdirdefaulted" = "yes" ; then
+  srcdir=""
+  # Try the directory containing this script, then `..'.
+  prog=[$]0
+changequote(,)dnl
+  confdir=`echo $prog|sed 's%/[^/][^/]*$%%'`
+  # Remove all trailing /'s 
+  confdir=`echo $confdir|sed 's%[/*]$%%'`
+changequote([,])dnl
+  test "X$confdir" = "X$prog" && confdir=.
+  srcdir=$confdir
+  if test ! -r $srcdir/$unique_file; then
+    srcdir=..
+  fi
+fi
+if test ! -r $srcdir/$unique_file; then
+  if test x$srcdirdefaulted = xyes; then
+    echo "configure: Cannot find sources in \`${confdir}' or \`..'." 1>&2
+  else
+    echo "configure: Cannot find sources in \`${srcdir}'." 1>&2
+  fi
+  exit 1
+fi
+# Preserve a srcdir of `.' to avoid automounter screwups with pwd.
+# (and preserve ./ and .//)
+# But we can't avoid them for `..', to make subdirectories work.
+case $srcdir in
+  .|./|.//|/*|~*) ;;
+  *) srcdir=`cd $srcdir; pwd` ;; # Make relative path absolute.
+esac
+])
+dnl
+dnl
+dnl AC_TRY_LINK(INCLUDES, FUNCTION-BODY,
+dnl             ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND])
+define(AC_TRY_LINK,
+if test -z "$ac_ext" ; then 
+    ac_ext=c
+fi
+[cat > conftest.$ac_ext <<EOF
+dnl This sometimes fails to find confdefs.h, for some reason.
+dnl [#]line __oline__ "[$]0"
+dnl [#]line __oline__ "configure"
+#include "confdefs.h"
+[$1]
+int main() { return 0; }
+int t() {
+[$2]
+; return 0; }
+EOF
+rm -f conftest.out
+if test -z "$ac_link" ; then
+ac_link='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >conftest.out 2>&1'
+fi
+if eval $ac_link; then
+  ifelse([$3], , :, [rm -rf conftest*
+  $3])
+else
+  if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+ifelse([$4], , , [rm -rf conftest*
+  $4
+])dnl
+fi
+rm -f conftest*]
+)dnl
+dnl
+dnl
+define(PAC_HAVE_MOUNT_NFS,[
+  AC_MSG_CHECKING([if MOUNT_NFS is defined in the include files])
+  rm -f conftest.c
+  cat > conftest.c <<EOF
+#include <sys/param.h>
+#include <sys/mount.h>
+     main()
+     {
+         int i=MOUNT_NFS;
+     }
+EOF
+  rm -f a.out
+  $CC $USER_CFLAGS conftest.c > /dev/null 2>&1
+  if test -x a.out ; then
+     AC_MSG_RESULT(yes)
+     AC_DEFINE(__HAVE_MOUNT_NFS)
+  else
+     AC_MSG_RESULT(no)
+  fi
+  rm -f a.out conftest.c
+])dnl
+dnl
+dnl
+dnl PAC_MPI_OFFSET_KIND_4BYTE()
+dnl
+dnl tries to determine the Fortran 90 kind parameter for 4-byte integers
+dnl
+define(PAC_MPI_OFFSET_KIND_4BYTE,
+[AC_MSG_CHECKING([for Fortran 90 KIND parameter for 4-byte integers])
+rm -f kind.f kind.o kind
+cat <<EOF > kind.f
+      program main
+      integer i
+      i = selected_int_kind(8)
+      open(8, file="k.out", form="formatted")
+      write (8,*) i
+      close(8)
+      stop
+      end
+EOF
+if test -z "$F90" ; then
+   F90=f90
+fi
+KINDVAL=""
+if $F90 -o kind kind.f >/dev/null 2>&1 ; then
+    ./kind >/dev/null 2>&1
+    KINDVAL=`cat k.out`
+fi
+rm -f kind k.out kind.f kind.o
+if test -n "$KINDVAL" -a "$KINDVAL" != "-1" ; then
    AC_MSG_RESULT($KINDVAL)
    MPI_OFFSET_KIND1="      INTEGER MPI_OFFSET_KIND"
    MPI_OFFSET_KIND2="      PARAMETER (MPI_OFFSET_KIND=$KINDVAL)"

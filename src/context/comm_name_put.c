@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_name_put.c,v 1.2 1998/01/29 14:26:22 gropp Exp $
+ *  $Id: comm_name_put.c,v 1.5 1999/08/20 02:26:28 ashton Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -19,10 +19,9 @@ static int MPIR_Name_put ANSI_ARGS((struct MPIR_COMMUNICATOR *, char *));
 MPI_Comm_set_name - give a print name to the communicator
 
 +*/
-int MPI_Comm_set_name( com, name )
-MPI_Comm com;
-char *   name;
+EXPORT_MPI_API int MPI_Comm_set_name( MPI_Comm com, char *name )
 {
+    int mpi_errno;
   struct MPIR_COMMUNICATOR *comm = MPIR_GET_COMM_PTR(com);
 
   MPIR_TEST_MPI_COMM(com,comm,comm,"MPI_COMM_SET_NAME");
@@ -30,9 +29,10 @@ char *   name;
   return MPIR_Name_put (comm, name);
 }
 
-static int MPIR_Name_put (comm, name)
-struct MPIR_COMMUNICATOR *comm;
-char * name;
+/* The following needs to be in util */
+static int MPIR_Name_put ( 
+	struct MPIR_COMMUNICATOR *comm,
+	char * name)
 {
   /* Release any previous name */
   if (comm->comm_name)

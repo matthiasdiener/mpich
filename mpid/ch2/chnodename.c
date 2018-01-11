@@ -69,7 +69,7 @@ int  nlen;
 #elif defined(HAVE_SYSINFO)
     sysinfo(SI_HOSTNAME, name, nlen);
 #else 
-    sprintf( name, "%d", MPID_MyWorldRank );
+    SPRINTF( name, "%d", MPID_MyWorldRank );
 #endif
 /* See if this name includes the domain */
     if (!strchr(name,'.')) {

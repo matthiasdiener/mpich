@@ -14,6 +14,7 @@
  */
 int main( int argc, char **argv )
 {
+   int          errs = 0, toterrs, rank; 
    MPI_Aint   	extent;
    int		blens[2];
    MPI_Aint	displ[2];
@@ -30,6 +31,7 @@ int main( int argc, char **argv )
    MPI_Type_extent( type1, &extent );
    extent1 = 5 * sizeof(int);
    if (extent != extent1) {
+       errs++;
        printf("extent(type1)=%ld\n",(long)extent);
        }
 
@@ -47,6 +49,7 @@ int main( int argc, char **argv )
    MPI_Type_commit( &type2 );
    MPI_Type_extent( type2, &extent );
    if (extent != extent2) {
+       errs++;
        printf("extent(type2)=%ld\n",(long)extent);
        }
 
@@ -64,12 +67,22 @@ int main( int argc, char **argv )
 
    MPI_Type_extent( type3, &extent );
    if (extent != extent3) {
+       errs++;
        printf("extent(type3)=%ld\n",(long)extent);
        }
 
    MPI_Type_free( &type1 );
    MPI_Type_free( &type2 );
    MPI_Type_free( &type3 );
+
+   MPI_Allreduce( &errs, &toterrs, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
+   MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+   if (rank == 0) {
+       if (toterrs == 0) printf( "No errors\n" );
+       else              printf( "Found %d errors\n", toterrs );
+   }
+
+
    MPI_Finalize();
    return 0;
 }

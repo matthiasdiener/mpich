@@ -1,17 +1,12 @@
-.TH MPI_Intercomm_create 3 "4/28/1998" " " "MPI"
+.TH MPI_Intercomm_create 3 "10/18/1999" " " "MPI"
 .SH NAME
 MPI_Intercomm_create \-  Creates an intercommuncator from two intracommunicators 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Intercomm_create ( local_comm, local_leader, peer_comm, 
-                           remote_leader, tag, comm_out )
-MPI_Comm  local_comm;
-int       local_leader;
-MPI_Comm  peer_comm;
-int       remote_leader;
-int       tag;
-MPI_Comm *comm_out;
+int MPI_Intercomm_create ( MPI_Comm local_comm, int local_leader, 
+      MPI_Comm peer_comm, int remote_leader, int tag, 
+      MPI_Comm *comm_out )
 .fi
 .SH INPUT PARAMTERS
 .PD 0

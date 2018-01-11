@@ -1,16 +1,11 @@
-.TH MPI_Allreduce 3 "4/28/1998" " " "MPI"
+.TH MPI_Allreduce 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Allreduce \-  Combines values from all processes and distribute the result back to all processes 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Allreduce ( sendbuf, recvbuf, count, datatype, op, comm )
-void             *sendbuf;
-void             *recvbuf;
-int               count;
-MPI_Datatype      datatype;
-MPI_Op            op;
-MPI_Comm          comm;
+int MPI_Allreduce ( void *sendbuf, void *recvbuf, int count, 
+      MPI_Datatype datatype, MPI_Op op, MPI_Comm comm )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

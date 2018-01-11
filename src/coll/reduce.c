@@ -1,11 +1,30 @@
 /*
- *  $Id: reduce.c,v 1.2 1998/04/28 18:51:01 swider Exp $
+ *  $Id: reduce.c,v 1.7 1999/08/30 15:41:51 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Reduce = PMPI_Reduce
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Reduce  MPI_Reduce
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Reduce as PMPI_Reduce
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "coll.h"
 #include "mpiops.h"
 
@@ -40,14 +59,8 @@ This implementation currently uses a simple tree algorithm.
 .N MPI_ERR_BUFFER
 .N MPI_ERR_BUFFER_ALIAS
 @*/
-int MPI_Reduce ( sendbuf, recvbuf, count, datatype, op, root, comm )
-void             *sendbuf;
-void             *recvbuf;
-int               count;
-MPI_Datatype      datatype;
-MPI_Op            op;
-int               root;
-MPI_Comm          comm;
+EXPORT_MPI_API int MPI_Reduce ( void *sendbuf, void *recvbuf, int count, 
+		 MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm )
 {
     int mpi_errno = MPI_SUCCESS;
     struct MPIR_COMMUNICATOR *comm_ptr;
@@ -58,15 +71,17 @@ MPI_Comm          comm;
     TR_PUSH(myname);
 
     comm_ptr = MPIR_GET_COMM_PTR(comm);
-    MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
     dtype_ptr = MPIR_GET_DTYPE_PTR(datatype);
-    MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
 
     /* Check for invalid arguments */
-    if ( MPIR_TEST_ALIAS(sendbuf,recvbuf) )
+#ifndef MPIR_NO_ERROR_CHECKING
+    MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+    MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
+    MPIR_TEST_ALIAS(sendbuf,recvbuf);
+    if (mpi_errno)
 	return MPIR_ERROR(comm_ptr, mpi_errno, myname );
-
+#endif
     MPIR_ERROR_PUSH(comm_ptr);
     mpi_errno = comm_ptr->collops->Reduce(sendbuf, recvbuf, count, dtype_ptr, 
 					  op, root, comm_ptr );

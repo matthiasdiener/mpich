@@ -1,21 +1,13 @@
-.TH MPI_Gatherv 3 "9/22/1998" " " "MPI"
+.TH MPI_Gatherv 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Gatherv \-  Gathers into specified locations from all processes in a group 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Gatherv ( sendbuf, sendcnt,  sendtype, 
-                  recvbuf, recvcnts, displs, recvtype, 
-                  root, comm )
-void             *sendbuf;
-int               sendcnt;
-MPI_Datatype      sendtype;
-void             *recvbuf;
-int              *recvcnts;
-int              *displs;
-MPI_Datatype      recvtype;
-int               root;
-MPI_Comm          comm;
+int MPI_Gatherv ( void *sendbuf, int sendcnt, MPI_Datatype sendtype, 
+                  void *recvbuf, int *recvcnts, int *displs, 
+    MPI_Datatype recvtype, 
+                  int root, MPI_Comm comm )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

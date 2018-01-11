@@ -12,19 +12,26 @@ MDEP_CFLAGS = @MDEP_CFLAGS@
 MDEP_FFLAGS = @MDEP_FFLAGS@
 MDEP_LFLAGS = @MDEP_LFLAGS@
 P4_OBJ = @P4_OBJ@
+SHELL = /bin/sh
+top_srcdir  = @top_srcdir@
+srcdir      = @srcdir@
+libbuild_dir = @libbuild_dir@
+
+@VPATH@
+
 
 # RSHCOMMAND is used ONLY is HAS_RSHCOMMAND is also defined.
-CFLAGS = @OPTFLAGS@ -I$(INCLUDEDIR) -I../../../../include $(MDEP_CFLAGS) $(USER_CFLAGS) @DEFS@ @CFLAGS@ -DRSHCOMMAND='"@RSHCOMMAND@"'
+CFLAGS = @OPTFLAGS@ -I../../../../include $(MDEP_CFLAGS) $(USER_CFLAGS) @DEFS@ @CFLAGS@ -DRSHCOMMAND='"@RSHCOMMAND@"' -I${top_srcdir}/include -I.. -I../include
 
 FFLAGS = @OPTFLAGS@ -I$(FORTLIBDIR) $(MDEP_FFLAGS)
 
-P4_HOME_DIR = ..
+P4_HOME_DIR = ${top_srcdir}
 INCLUDEDIR = $(P4_HOME_DIR)/include
 LIBDIR = $(P4_HOME_DIR)/lib
 
 P4_HDRS = p4.h p4_sys.h p4_defs.h p4_macros.h  \
           p4_sock_util.h p4_MD.h p4_funcs.h p4_sys_funcs.h \
-	  p4_mon.h p4_sr.h p4_globals.h p4_config.h
+	  p4_mon.h p4_sr.h p4_globals.h ../p4_config.h
 
 # add p4_fc.o to next line for fiber channel
 P4_COMM_OBJ	= 	p4_globals.o p4_MD.o p4_error.o \
@@ -46,10 +53,11 @@ P4_SHMEM_OBJ	=	p4_shmem_sr.o
 
 LIBS = $(LIBDIR)/libp4.a $(MDEP_LIBS) 
 
+.SUFFIXES:
 .SUFFIXES:	.o .c .f .h
 
 .c.o:$(P)
-	$(CC) $(CFLAGS) -c $*.c 
+	$(CC) $(CFLAGS) -c $<
 
 .f.o:$(P)
 	$(FC) $(FFLAGS) -c $*.f 
@@ -57,7 +65,7 @@ LIBS = $(LIBDIR)/libp4.a $(MDEP_LIBS)
 dummy:	default
 
 clean:
-	$(RM) -f *~ *.o *.bak tags TAGS core
+	$(RM) -f *~ *.o *.bak tags TAGS core ${srcdir}/*.o
 
 $(P4_OBJ): $(P4_HDRS)
 
@@ -74,8 +82,8 @@ libp4.a:$(P) $(P4_OBJ)
 	$(RANLIB) $@
 
 p4inmpi:$(P) $(P4_OBJ)
-	$(AR) ../../../../build/$(MPIARCH)/ch_p4/lib/lib$(MPILIBNAME).a $?
-	$(RANLIB) ../../../../build/$(MPIARCH)/ch_p4/lib/lib$(MPILIBNAME).a
+	$(AR) ${libbuild_dir}/lib$(MPILIBNAME).a $?
+	$(RANLIB) ${libbuild_dir}/lib$(MPILIBNAME).a
 
 p4mdeplibs:
 	@echo $(MDEP_LIBS)
@@ -94,7 +102,7 @@ p4_lock.o: p4_lock.s
 	as -P -DSUN_SOLARIS p4_lock.s
 
 realclean: clean
-	$(RM) -f Makefile libp4.a alog*.h p4_config.h alog*.h usc*.h
+	$(RM) -f Makefile libp4.a alog*.h usc*.h
 
 #p4_funcs.h:
 #	-mv p4_funcs.h p4_funcs.h.bak

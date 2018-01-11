@@ -1,10 +1,29 @@
 /* 
- *   $Id: type_get_cont.c,v 1.2 1998/04/28 21:11:09 swider Exp $    
+ *   $Id: type_get_cont.c,v 1.7 1999/08/30 15:46:49 swider Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Type_get_contents = PMPI_Type_get_contents
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Type_get_contents  MPI_Type_get_contents
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Type_get_contents as PMPI_Type_get_contents
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 /* #include "cookie.h"
 #include "datatype.h" 
 #include "objtrace.h" */
@@ -25,18 +44,19 @@ Output Parameters:
 
 .N fortran
 @*/
-int MPI_Type_get_contents(datatype, max_integers, max_addresses, max_datatypes, array_of_integers, array_of_addresses, array_of_datatypes)
-MPI_Datatype  datatype;
-int           max_integers;
-int           max_addresses;
-int           max_datatypes;
-int           *array_of_integers;
-MPI_Aint      *array_of_addresses;
-MPI_Datatype  *array_of_datatypes;
-
+EXPORT_MPI_API int MPI_Type_get_contents(
+	MPI_Datatype datatype, 
+	int max_integers, 
+	int max_addresses, 
+	int max_datatypes, 
+	int *array_of_integers, 
+	MPI_Aint *array_of_addresses, 
+	MPI_Datatype *array_of_datatypes)
 {
     int i;
     struct MPIR_DATATYPE *dtypeptr;
+    static char myname[] = "MPI_TYPE_GET_CONTENTS";
+    int mpi_errno;
 
     dtypeptr = MPIR_GET_DTYPE_PTR(datatype);
 
@@ -78,8 +98,12 @@ MPI_Datatype  *array_of_datatypes;
 	}
 	break;
     default:  
-	printf("Error: basic datatype passed to MPI_Type_get_contents\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
+	/* When we define datatype names, the argument should be the
+	   name of this type */
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_TYPE, MPIR_ERR_BASIC_TYPE, 
+				     myname, (char *)0, (char *)0,
+				     (char *)0 );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     }
     return MPI_SUCCESS;
 }

@@ -10,12 +10,12 @@ Creates a vector (strided) datatype
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Type_vector( count, blocklen, stride, old_type, newtype )
-int          count;
-int       blocklen;
-int       stride;
-MPI_Datatype old_type;
-MPI_Datatype *newtype;
+int MPI_Type_vector( 
+ int count, 
+ int blocklen, 
+ int stride, 
+ MPI_Datatype old_type, 
+ MPI_Datatype *newtype )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

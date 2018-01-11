@@ -10,10 +10,7 @@ Stores attribute value associated with a key
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Attr_put ( comm, keyval, attr_value )
-MPI_Comm comm;
-int      keyval;
-void     *attr_value;
+int MPI_Attr_put ( MPI_Comm comm, int keyval, void *attr_value )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

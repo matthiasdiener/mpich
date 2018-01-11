@@ -1,10 +1,6 @@
 /* 
  * General comments on making changes to this server
  *
- * C dialect: Unfortunately, ANSI C is still not omnipresent; you can not
- * depend on or require function prototypes.  However, the ANSI_ARGS macro
- * allows you to declare functions in prototype form.
- *
  * System specific code: Be VERY careful when considering removing 
  * system-specific code; it is probably there for a reason.  Note that the
  * secure server is called that because it has been designed so that it
@@ -15,7 +11,6 @@
  * NOT rely on system type to choose options; rather, it should use
  * HAVE_xxxx, with a configure script creating the HAVE_xxxx defines.
  */
-static char *rcsid = "$Header: /home/MPI/cvsMaster/mpich/mpid/server/serv_p4.c,v 1.13 1998/11/24 22:35:14 gropp Exp $";
 
 #include "server.h"
 
@@ -54,14 +49,6 @@ static char *rcsid = "$Header: /home/MPI/cvsMaster/mpich/mpid/server/serv_p4.c,v
 
 /* Unix domain sockets */
 #include <sys/un.h>
-
-#ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
-#define ANSI_ARGS(a) a
-#else
-#define ANSI_ARGS(a) ()
-#endif
-#endif
 
 #ifdef HAVE_TERMIOS_H
 #include <termios.h>
@@ -115,11 +102,26 @@ int seed;
 int t;
 #endif
 
-#ifdef HAVE_STRINGS_H
-#include <strings.h>
-#elif HAVE_STRING_H
+/* Older systems have strchr only in string.h, not strings.h */
+/* Prefer string because it is the ANSI version */
+/* Include *both* if possible.  Even this isn't always a good idea; 
+   in some cases, systems fail when both are included */
+#ifdef HAVE_STRING_H
 #include <string.h>
 #endif
+#if defined(HAVE_STRINGS_H)
+#include <strings.h>
+#endif
+
+/* Type for get/setsockopt calls */
+#ifdef USE_SOCKLEN_T
+typedef socklen_t p4_sockopt_len_t;
+#elif defined(USE_SIZE_T_FOR_SOCKLEN_T)
+typedef size_t p4_sockopt_len_t;
+#else
+typedef int p4_sockopt_len_t;
+#endif
+
 
 #ifndef HAVE_GETOPT
 
@@ -191,30 +193,30 @@ int this_uid;
 char token[1024];
 #endif
 
-void doit                    ANSI_ARGS(( int, int ));
-void execute                 ANSI_ARGS(( char *, char **, int,
+void doit                    ( int, int );
+void execute                 ( char *, char **, int,
 					 char *, char *, int, int, 
-					 struct hostent * ));
-void get_environment         ANSI_ARGS(( char ***, int * ));
-int getline                  ANSI_ARGS(( char *, int ));
-void failure                 ANSI_ARGS(( char * ));
-void notice                  ANSI_ARGS(( char * ));
-int net_accept               ANSI_ARGS(( int ));
-void net_setup_listener      ANSI_ARGS(( int, int, int * ));
-void net_setup_anon_listener ANSI_ARGS(( int, int *, int *));
-void net_setup_local_listener ANSI_ARGS(( int, int *, char * ));
-void error_check             ANSI_ARGS(( int, char * ));
-char *timestamp              ANSI_ARGS(( void ));
-char *save_string            ANSI_ARGS(( char * ));
-int handle_remote_conn       ANSI_ARGS(( int, int ));
-int handle_local_conn        ANSI_ARGS(( int, int ));
-int Process_pgm_commands     ANSI_ARGS(( char *, char *, char *, int,
-					 struct hostent *hp, int ));
-int check_allowed_file       ANSI_ARGS(( char *, char *, char * ));
+					 struct hostent * );
+void get_environment         ( char ***, int * );
+int getline                  ( char *, int );
+void failure                 ( char * );
+void notice                  ( char * );
+int net_accept               ( int );
+void net_setup_listener      ( int, int, int * );
+void net_setup_anon_listener ( int, int *, int *);
+void net_setup_local_listener ( int, int *, char * );
+void error_check             ( int, char * );
+char *timestamp              ( void );
+char *save_string            ( char * );
+int handle_remote_conn       ( int, int );
+int handle_local_conn        ( int, int );
+int Process_pgm_commands     ( char *, char *, char *, int,
+					 struct hostent *hp, int );
+int check_allowed_file       ( char *, char *, char * );
 
-static int connect_to_listener ANSI_ARGS(( struct hostent *, int, int ));
-void reaper ANSI_ARGS(( int ));
-int main ANSI_ARGS(( int, char ** ));
+static int connect_to_listener ( struct hostent *, int, int );
+void reaper ( int );
+int main ( int, char ** );
 
 #define REMOTE_CONN 1
 #define LOCAL_COMM 2
@@ -233,11 +235,11 @@ int main ANSI_ARGS(( int, char ** ));
  */
 
 int stdin_fd	= 0;
-FILE *stdin_fp	= stdin;
+FILE *stdin_fp	= 0; /* stdin; */
 int stdout_fd	= 1;
-FILE *stdout_fp	= stdout;
+FILE *stdout_fp	= 0; /* stdout; */
 int stderr_fd	= 2;
-FILE *stderr_fp	= stderr;
+FILE *stderr_fp	= 0; /* stderr; */
 
 void reaper(sigval)
 int sigval;
@@ -262,8 +264,13 @@ char **argv;
 {
     int c;
     struct sockaddr_in name;
-    int namelen;
+    p4_sockopt_len_t namelen;
     int pid;
+
+    /* Initialize the FILE handles */
+    stdin_fp	= stdin;
+    stdout_fp	= stdout;
+    stderr_fp	= stderr;
 
     daemon_pid = getpid();
 
@@ -283,6 +290,7 @@ char **argv;
     }
 
     namelen = sizeof(name);
+    /* AIX wants namelen to be size_t */
     if (getpeername(0, (struct sockaddr *) &name, &namelen) < 0)
 	daemon_mode = 1;
     else
@@ -628,7 +636,7 @@ void doit( fd, is_local )
 int fd, is_local;
 {
     struct sockaddr_in name;
-    int namelen;
+    p4_sockopt_len_t namelen;
     struct hostent *hp;
     struct passwd *pw;
     char client_user[80], server_user[80];
@@ -666,6 +674,7 @@ int fd, is_local;
     else {
 	namelen = sizeof(name);
 	
+	/* AIX wants namelen to be size_t */
 	if (getpeername(fd, (struct sockaddr *) &name, &namelen) != 0)
 	{
 	    fprintf( logfile_fp, "getpeername failed: %s\n",
@@ -761,7 +770,7 @@ int fd, is_local;
 	failure("Token does not match");
     }
 #endif
-    error_check( sendline("Proceed\n"), "Proceed in doit" );
+    error_check( sendline("Proceed-2\n"), "Proceed in doit" );
 
     sprintf(tmpbuf, "authenticated client_id=%s server_id=%s\n",
 	    client_user, server_user);
@@ -787,6 +796,12 @@ int fd, is_local;
  *    pgm_args (blank separated!)
  *    port for stdout connection back at partner, if -1, use existing 
  *    connection
+ *
+ *    environment info is in the following form:
+ *    n\n   (number of variables sent)
+ *    #chars\n
+ *    variablename=value\n
+ *    ...
  */
 int Process_pgm_commands( client_user, server_user, user_home, uid, hp, 
 			  is_local )
@@ -866,7 +881,7 @@ struct hostent *hp;
         if (strcmp(pgm, "%id" ) == 0) {
 	    char tmp[1024];
 
-	    sprintf(tmp, "Port %d for client %s and server user %s\n",
+	    sprintf(tmp, "Server-2: Port %d for client %s and server user %s\n",
 	        daemon_port, client_user, server_user );
 	    sendline(tmp);
 	    notice("received %id token");
@@ -1132,6 +1147,19 @@ struct hostent *hp;
 
 	if (n_env > 0)
 	{
+	    /* Some of the environment (in env) can affect whether the
+	       program can start *at all* .  For example, for a 
+	       program built with shared libraries, we may need
+	       LD_LIBRARY_PATH in *our* environment before exec'ing the
+	       program.  For now, we look for LD_ in the transmitted
+	       environment and putenv those values before executing 
+	       execve */
+	    for (i=0; i<n_env; i++) {
+		if (strncmp( "LD_", env[i], 3 ) == 0) {
+		    putenv( env[i] );
+		    notice2("set env %s", env[i] );
+		}
+	    }
 	    i = execve(pgm, args, env);
 	}
 	else
@@ -1162,13 +1190,11 @@ struct hostent *hp;
     notice2("Child %d started", pid);
 }
 
-void get_environment(env, n_env)
-char ***env;
-int *n_env;
+void get_environment(char ***env, int *n_env_p)
 {
     extern char **environ;
     int environ_count;
-    int env_count;
+    int env_count, n_env;
     char s[10];
     int i;
 
@@ -1180,9 +1206,10 @@ int *n_env;
 	failure("No environment count");
     }
     env_count = atoi(s);
-    *n_env = env_count + environ_count;
+    /* This is the max possible (see below for possible reductions) */
+    n_env = env_count + environ_count;
     notice2("Got %d environment variables", env_count);
-    *env = (char **)malloc(sizeof(char *) * (*n_env + 1));
+    *env = (char **)malloc(sizeof(char *) * (n_env + 1));
     if (!(*env))
     {
 	failure("Unable to allocate envrionment space");
@@ -1203,11 +1230,30 @@ int *n_env;
 	    failure2("No element for env[%d]", i);
 	}
     }
+    /* Here's a problem: we want the transmitted environment to
+       override the existing environment.  This is particularly 
+       critical for things like LD_LIBRARY_PATH.
+       
+       Since the environment is often small, we do this with a very 
+       simple n*n algorithm.  A better version would sort the two
+       environment lists and then merge them; that can be done in linear time 
+       (using lexigraphic sorts)
+    */
+    n_env = env_count;
     for (i = 0; i < environ_count; i++)
     {
-	(*env)[i + env_count] = environ[i];
+	int j, namelen;
+	for (j=0; j<env_count; j++) {
+	    namelen = strchr( (*env)[j], '=' ) - (*env)[j];
+	    if (strncmp( (*env)[j], environ[i], namelen ) == 0) {
+		break;   /* Found! */
+	    }
+	}
+	if (j == env_count)
+	    (*env)[n_env++] = environ[i];
     }
-    (*env)[*n_env] = NULL;
+    (*env)[n_env] = NULL;
+    *n_env_p = n_env;
 }
 
 int sendline(str)
@@ -1295,15 +1341,16 @@ char *s;
 int net_accept(skt)
 int skt;
 {
-struct sockaddr_in from;
-int fromlen;
-int skt2;
-int gotit;
+    struct sockaddr_in from;
+    p4_sockopt_len_t fromlen;
+    int skt2;
+    int gotit;
 
     fromlen = sizeof(from);
     gotit = 0;
     while (!gotit)
     {
+	/* AIX wants fromlen to be size_t */
 	skt2 = accept(skt, (struct sockaddr *) &from, &fromlen);
 	if (skt2 == -1)
 	{
@@ -1386,6 +1433,7 @@ struct sockaddr_in sin;
 
     error_check(listen(*skt, backlog), "net_setup_anon_listener listen");
 
+    /* AIX wants sinlen to be size_t */
     getsockname(*skt, (struct sockaddr *) &sin, &sinlen);
     *port = ntohs(sin.sin_port);
 }

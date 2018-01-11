@@ -25,12 +25,12 @@ static int dest = 1;
 /* static int Do_Standard = 1; */
 
 /* Prototypes for picky compilers */
-void Generate_Data ANSI_ARGS(( double *, int ));
-void Normal_Test_Recv ANSI_ARGS(( double *, int ));
-void Buffered_Test_Send ANSI_ARGS(( double *, int ));
-void Buffered_Test_Ibsend ANSI_ARGS(( double *, int ));
-int Check_Data ANSI_ARGS(( double *, int ));
-void Clear_Buffer ANSI_ARGS(( double *, int ));
+void Generate_Data ( double *, int );
+void Normal_Test_Recv ( double *, int );
+void Buffered_Test_Send ( double *, int );
+void Buffered_Test_Ibsend ( double *, int );
+int Check_Data ( double *, int );
+void Clear_Buffer ( double *, int );
 
 void Generate_Data(buffer, buff_size)
 double *buffer;
@@ -173,7 +173,7 @@ int main(int argc, char **argv)
     } else if (rank == dest) {
 	Test_Init("bsendtest", rank);
 	/* Test 3 */
-	Current_Test = "Overtaking Test (Buffered Send -> Normal Recieve)";
+	Current_Test = "Overtaking Test (Buffered Send -> Normal Receive)";
 	Clear_Buffer(buffer, SIZE);
 	/* For Bsend */
 	Normal_Test_Recv(buffer, SIZE);
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
 	    Test_Passed(Current_Test);
 
 	/* For Ibsend */
-	Current_Test = "Overtaking Test (Buffered Isend -> Normal Recieve)";
+	Current_Test = "Overtaking Test (Buffered Isend -> Normal Receive)";
 	Clear_Buffer(buffer, SIZE);
 	Normal_Test_Recv(buffer, SIZE);
 	if (Check_Data(buffer, SIZE))
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
 	}
     } else {
 	fprintf(stderr, "*** This program uses exactly 2 processes! ***\n");
-	exit(-1);
+        MPI_Abort( MPI_COMM_WORLD, 1 );
     }
 
     return 0;

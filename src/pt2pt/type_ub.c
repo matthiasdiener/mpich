@@ -1,11 +1,30 @@
 /*
- *  $Id: type_ub.c,v 1.2 1998/01/29 14:29:02 gropp Exp $
+ *  $Id: type_ub.c,v 1.7 1999/08/30 15:50:07 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Type_ub = PMPI_Type_ub
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Type_ub  MPI_Type_ub
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Type_ub as PMPI_Type_ub
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
     MPI_Type_ub - Returns the upper bound of a datatype
@@ -24,16 +43,15 @@ Output Parameter:
 .N MPI_ERR_TYPE
 .N MPI_ERR_ARG
 @*/
-int MPI_Type_ub ( datatype, displacement )
-MPI_Datatype  datatype;
-MPI_Aint      *displacement;
+EXPORT_MPI_API int MPI_Type_ub ( MPI_Datatype datatype, MPI_Aint *displacement )
 {
-  int mpi_errno;
+  int mpi_errno = MPI_SUCCESS;
   struct MPIR_DATATYPE *dtype_ptr;
   static char myname[] = "MPI_TYPE_UB";
 
   TR_PUSH(myname);
-  if (MPIR_TEST_ARG(displacement))
+  MPIR_TEST_ARG(displacement);
+  if (mpi_errno)
 	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 
   /* Assign the ub and return */

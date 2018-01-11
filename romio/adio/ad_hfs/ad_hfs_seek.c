@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_hfs_seek.c,v 1.2 1998/06/02 18:37:18 thakur Exp $    
+ *   $Id: ad_hfs_seek.c,v 1.3 1999/10/26 22:57:17 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -37,8 +37,8 @@ ADIO_Offset ADIOI_HFS_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
 	MPI_Type_size(fd->filetype, &filetype_size);
 
 	n_etypes_in_filetype = filetype_size/etype_size;
-	n_filetypes = offset / n_etypes_in_filetype;
-	etype_in_filetype = offset % n_etypes_in_filetype;
+	n_filetypes = (int) (offset / n_etypes_in_filetype);
+	etype_in_filetype = (int) (offset % n_etypes_in_filetype);
 	size_in_filetype = etype_in_filetype * etype_size;
  
 	sum = 0;
@@ -52,7 +52,7 @@ ADIO_Offset ADIOI_HFS_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
 	}
 
 	/* abs. offset in bytes in the file */
-	off = fd->disp + n_filetypes * filetype_extent +
+	off = fd->disp + (ADIO_Offset) n_filetypes * filetype_extent +
                 abs_off_in_filetype;
     }
 

@@ -74,12 +74,12 @@ probe()
  
   comm = MPI::COMM_WORLD;
 
-  Testing("Probe w/ Status");
+  Testing( (char *)"Probe w/ Status");
 
   // Probe for specific source and tag.
 
   if (flags[SKIP_LAM61])
-    Done("Skipped (LAM/IRIX)");
+    Done( (char *)"Skipped (LAM/IRIX)");
   else {
     if(my_rank > 0) {
       data = my_rank;
@@ -237,12 +237,12 @@ probe()
     Pass(); // Probe w/ Status
   }
   
-  Testing("Probe w/o Status");
+  Testing( (char *)"Probe w/o Status");
   
   // Probe for specific source and tag.
   
   if (flags[SKIP_LAM61])
-    Done("Skipped (LAM/IRIX)");
+    Done( (char *)"Skipped (LAM/IRIX)");
   else {
     if(my_rank > 0) {
       data = my_rank;

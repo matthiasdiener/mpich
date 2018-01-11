@@ -95,6 +95,44 @@ int fd;
 	p4_dprintfl(70, "got IGNORE_THIS\n");
 	break;
 
+      case DIE:
+	from = p4_n_to_i(msg.from);
+	p4_dprintfl(99, "received DIE msg from remote %d\n", from);
+	rc = P4_TRUE;
+	break;
+
+      case KILL_SLAVE:
+	from = p4_n_to_i(msg.from);
+	to_pid = p4_n_to_i(msg.to_pid);
+	p4_dprintfl(99, "received kill_slave %d msg from remote %d\n", to_pid, from);
+	slave_fd = listener_info->slave_fd;
+
+	if (kill(to_pid, LISTENER_ATTN_SIGNAL) == -1)
+	{
+	    p4_dprintf("Listener: Unable to interrupt client pid=%d.\n", to_pid);
+	    break;
+	}
+
+	net_send(slave_fd, &msg, sizeof(msg), P4_FALSE);
+	/* wait for msg from slave indicating it got connected */
+	/*
+	 * do not accept any more connections for slave until it has fully
+	 * completed this one, i.e. do not want to interrupt it until it has
+	 * handled this interrupt
+	 */
+	p4_dprintfl(70, "waiting for slave to handle interrupt\n");
+	net_recv(slave_fd, &msg, sizeof(msg));
+	/* Check that we get a valid message; for now (see p4_sock_conn/
+	   handle_connection_interrupt) this is just IGNORE_THIS */
+	if (p4_i_to_n(msg.type) != IGNORE_THIS) {
+	    p4_dprintf("received incorrect handshake message type=%d\n", 
+		       p4_i_to_n(msg.type) );
+	    p4_error("slave_listener_msg: broken handshake", 
+		     p4_i_to_n(msg.type));
+	    }
+	p4_dprintfl(70, "back from slave handling interrupt\n");
+	break;
+
       case CONNECTION_REQUEST:
 	from = p4_n_to_i(msg.from);
 	to_pid = p4_n_to_i(msg.to_pid);
@@ -138,6 +176,7 @@ int fd;
     close(connection_fd);
     return (rc);
 }
+
 P4BOOL process_slave_message(fd)
 int fd;
 {
@@ -159,7 +198,7 @@ int fd;
     switch (type)
     {
       case DIE:
-	p4_dprintfl(70, "received die msg from %d\n", from);
+	p4_dprintfl(70, "received die msg from slave %d\n", from);
 	rc = P4_TRUE;
 	break;
 

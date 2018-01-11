@@ -19,7 +19,10 @@ int type, from, to, len, data_type, ack_req;
     int elsize; 
 /* End   bugfix, compute xdr_numels correct, Rolf Rabenseifner,04SEP97*/
     int xdr_len1, len_bytes;
-#if defined(SUN_SOLARIS) || defined(CRAY) || defined(SGI)
+/* See new test (should only need the USE_U_INT_FOR_XDR).  Also, 
+   other int args to xdr_array should also be u_int */
+#if defined(SUN_SOLARIS) || defined(CRAY) || defined(SGI) || \
+    defined(USE_U_INT_FOR_XDR)
     u_int xdr_len;
 #else
     int xdr_len;
@@ -468,7 +471,10 @@ struct p4_msg *rmsg;
     int elsize; 
 /* End   bugfix, compute msg_len correct, Rolf Rabenseifner,04SEP97*/
     int xdr_len1, len_bytes;
-#if defined(SUN_SOLARIS) || defined(CRAY) || defined(SGI)
+/* See new test (should only need the USE_U_INT_FOR_XDR).  Also, 
+   other int args to xdr_array should also be u_int */
+#if defined(SUN_SOLARIS) || defined(CRAY) || defined(SGI) || \
+    defined(USE_U_INT_FOR_XDR)
     u_int xdr_len;
 #else
     int xdr_len;

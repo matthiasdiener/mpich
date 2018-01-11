@@ -1,11 +1,27 @@
 /* 
- *   $Id: info_set.c,v 1.2 1998/06/02 19:08:58 thakur Exp $    
+ *   $Id: info_set.c,v 1.4 1999/08/27 20:53:46 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "mpioimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Info_set = PMPI_Info_set
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Info_set MPI_Info_set
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Info_set as PMPI_Info_set
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define __MPIO_BUILD_PROFILING
+#include "mpioprof.h"
+#endif
 
 /*@
     MPI_Info_set - Adds a (key,value) pair to info

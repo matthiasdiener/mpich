@@ -1,17 +1,22 @@
 #
-# rcsid = $Header: /home/MPI/cvsMaster/mpich/mpid/server/Makefile.in,v 1.3 1998/04/07 18:16:04 gropp Exp $
-#
 # This is the small Makefile for the secure server.  It should be fairly
 # simple with only one source file and one executable to produce.  Here
 # is a first attempt that will most likely need to be changed.
 #
-ALL: server clientlib.a lclient
+SHELL = /bin/sh
 
-server: server.o server_ssl.o
-	@CC@ @LDFLAGS@ -o server server.o server_ssl.o @CRYPT_LIBS@ @LIBS@
+top_srcdir = @top_srcdir@
+srcdir = @srcdir@
 
-server.o: serv_p4.c
-	@CC@ @CFLAGS@ -c serv_p4.c -o server.o
+@VPATH@
+
+ALL: serv_p4 clientlib.a lclient
+
+serv_p4: serv_p4.o server_ssl.o
+	@CC@ @LDFLAGS@ -o serv_p4 serv_p4.o server_ssl.o @CRYPT_LIBS@ @LIBS@
+
+serv_p4.o: ${srcdir}/serv_p4.c
+	@CC@ @CFLAGS@ -c ${srcdir}/serv_p4.c -I./ -o serv_p4.o
 
 clientlib.a: clients.o
 	ar cr clientlib.a clients.o
@@ -20,11 +25,15 @@ clientlib.a: clients.o
 lclient: lclient.o clientlib.a
 	@CC@ @CFLAGS@ -o lclient lclient.o clientlib.a @LIBS@
 clean:
-	rm -rf server *.o clientlib.a lclient
+	rm -rf serv_p4 *.o clientlib.a lclient
 
 distclean: clean
 	rm -rf Makefile config.cache config.log config.status server.h
 
+configure: configure.in
+	autoheader
+	autoconf
+
 .c.o:
-	@CC@ @CFLAGS@ -c $*.c
+	@CC@ @CFLAGS@ -c -I./ $<
 

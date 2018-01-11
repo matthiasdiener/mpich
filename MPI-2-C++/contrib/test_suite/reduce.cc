@@ -72,7 +72,7 @@ reduce()
   int out[MAXLEN];
   int root;
 
-  Testing("Reduce");
+  Testing( (char *)"Reduce");
 
   root = comm_size / 2;
   

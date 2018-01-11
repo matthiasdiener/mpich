@@ -12,98 +12,93 @@
  *
  */
 
-void MPID_Init ANSI_ARGS(( int *, char ***, void *, int *));
-void MPID_End  ANSI_ARGS((void));
-void MPID_Abort ANSI_ARGS(( struct MPIR_COMMUNICATOR *, int, char *, char * ));
-int  MPID_DeviceCheck ANSI_ARGS(( MPID_BLOCKING_TYPE ));
-void MPID_Node_name ANSI_ARGS(( char *, int ));
-int  MPID_WaitForCompleteSend ANSI_ARGS((MPIR_SHANDLE *));
-int  MPID_WaitForCompleteRecv ANSI_ARGS((MPIR_RHANDLE *));
-void MPID_Version_name ANSI_ARGS((char *));
+void MPID_Init ( int *, char ***, void *, int *);
+void MPID_End  (void);
+void MPID_Abort ( struct MPIR_COMMUNICATOR *, int, char *, char * );
+int  MPID_DeviceCheck ( MPID_BLOCKING_TYPE );
+void MPID_Node_name ( char *, int );
+int  MPID_WaitForCompleteSend (MPIR_SHANDLE *);
+int  MPID_WaitForCompleteRecv (MPIR_RHANDLE *);
+void MPID_Version_name (char *);
 
 /* SetPktSize is used by util/cmnargs.c */
-void MPID_SetPktSize ANSI_ARGS(( int ));
+void MPID_SetPktSize ( int );
 
-void MPID_RecvContig ANSI_ARGS(( struct MPIR_COMMUNICATOR *, void *, int, int,
-				 int, int, MPI_Status *, int * ));
-void MPID_IrecvContig ANSI_ARGS(( struct MPIR_COMMUNICATOR *, void *, int, 
-				  int, int, int, MPI_Request, int * ));
-void MPID_RecvComplete ANSI_ARGS(( MPI_Request, MPI_Status *, int *));
-int  MPID_RecvIcomplete ANSI_ARGS(( MPI_Request, MPI_Status *, int *));
+void MPID_RecvContig ( struct MPIR_COMMUNICATOR *, void *, int, int,
+				 int, int, MPI_Status *, int * );
+void MPID_IrecvContig ( struct MPIR_COMMUNICATOR *, void *, int, 
+				  int, int, int, MPI_Request, int * );
+void MPID_RecvComplete ( MPI_Request, MPI_Status *, int *);
+int  MPID_RecvIcomplete ( MPI_Request, MPI_Status *, int *);
 
-void MPID_SendContig ANSI_ARGS(( struct MPIR_COMMUNICATOR *, void *, int, int,
-				 int, int, int, MPID_Msgrep_t, int * ));
-void MPID_BsendContig ANSI_ARGS(( struct MPIR_COMMUNICATOR *, void *, int, 
-				  int, int, int, int, MPID_Msgrep_t, int * ));
-void MPID_SsendContig ANSI_ARGS(( struct MPIR_COMMUNICATOR *, void *, int, 
-				  int, int, int, int, MPID_Msgrep_t, int * ));
-void MPID_IsendContig ANSI_ARGS(( struct MPIR_COMMUNICATOR *, void *, int, 
+void MPID_SendContig ( struct MPIR_COMMUNICATOR *, void *, int, int,
+				 int, int, int, MPID_Msgrep_t, int * );
+void MPID_BsendContig ( struct MPIR_COMMUNICATOR *, void *, int, 
+				  int, int, int, int, MPID_Msgrep_t, int * );
+void MPID_SsendContig ( struct MPIR_COMMUNICATOR *, void *, int, 
+				  int, int, int, int, MPID_Msgrep_t, int * );
+void MPID_IsendContig ( struct MPIR_COMMUNICATOR *, void *, int, 
 				  int, int, int, int, MPID_Msgrep_t, 
-				  MPI_Request, int * ));
-void MPID_IssendContig ANSI_ARGS(( struct MPIR_COMMUNICATOR *, void *, int, 
+				  MPI_Request, int * );
+void MPID_IssendContig ( struct MPIR_COMMUNICATOR *, void *, int, 
 				   int, int, int, int, 
-				   MPID_Msgrep_t, MPI_Request, int * ));
-void MPID_SendComplete ANSI_ARGS(( MPI_Request, int *));
-int  MPID_SendIcomplete ANSI_ARGS(( MPI_Request, int *));
+				   MPID_Msgrep_t, MPI_Request, int * );
+void MPID_SendComplete ( MPI_Request, int *);
+int  MPID_SendIcomplete ( MPI_Request, int *);
 
-void MPID_Probe ANSI_ARGS(( struct MPIR_COMMUNICATOR *, int, int, int, int *, 
-			    MPI_Status * ));
-void MPID_Iprobe ANSI_ARGS(( struct MPIR_COMMUNICATOR *, int, int, int, int *,
-			     int *, MPI_Status * ));
+void MPID_Probe ( struct MPIR_COMMUNICATOR *, int, int, int, int *, 
+			    MPI_Status * );
+void MPID_Iprobe ( struct MPIR_COMMUNICATOR *, int, int, int, int *,
+			     int *, MPI_Status * );
 
-void MPID_SendCancel ANSI_ARGS(( MPI_Request, int * ));
-void MPID_RecvCancel ANSI_ARGS(( MPI_Request, int * ));
+void MPID_SendCancel ( MPI_Request, int * );
+void MPID_RecvCancel ( MPI_Request, int * );
 
 /* General MPI Datatype routines  */
-void MPID_SendDatatype ANSI_ARGS(( struct MPIR_COMMUNICATOR *, void *, int, 
-				   struct MPIR_DATATYPE *, 
-				   int, int, int, int, int * ));
-void MPID_SsendDatatype ANSI_ARGS(( struct MPIR_COMMUNICATOR *, void *, int, 
-				    struct MPIR_DATATYPE *, 
-				    int, int, int, int, int * ));
-void MPID_IsendDatatype ANSI_ARGS(( struct MPIR_COMMUNICATOR *, void *, int, 
-				    struct MPIR_DATATYPE *, 
-				    int, int, int, int, MPI_Request, int * ));
-void MPID_IssendDatatype ANSI_ARGS(( struct MPIR_COMMUNICATOR *, void *, int, 
-				     struct MPIR_DATATYPE *, 
-				     int, int, int, int, MPI_Request, int * ));
-void MPID_RecvDatatype ANSI_ARGS(( struct MPIR_COMMUNICATOR *, void *, int, 
-				   struct MPIR_DATATYPE *, 
-				   int, int, int, MPI_Status *, int * ));
-void MPID_IrecvDatatype ANSI_ARGS(( struct MPIR_COMMUNICATOR *, void *, int, 
-				    struct MPIR_DATATYPE *, 
-				   int, int, int, MPI_Request, int * ));
+void MPID_SendDatatype ( struct MPIR_COMMUNICATOR *, void *, int, 
+			 struct MPIR_DATATYPE *, int, int, int, int, int * );
+void MPID_SsendDatatype ( struct MPIR_COMMUNICATOR *, void *, int, 
+			  struct MPIR_DATATYPE *, int, int, int, int, int * );
+void MPID_IsendDatatype ( struct MPIR_COMMUNICATOR *, void *, int, 
+			  struct MPIR_DATATYPE *, 
+			  int, int, int, int, MPI_Request, int * );
+void MPID_IssendDatatype ( struct MPIR_COMMUNICATOR *, void *, int, 
+			   struct MPIR_DATATYPE *, 
+			   int, int, int, int, MPI_Request, int * );
+void MPID_RecvDatatype ( struct MPIR_COMMUNICATOR *, void *, int, 
+			 struct MPIR_DATATYPE *, 
+			 int, int, int, MPI_Status *, int * );
+void MPID_IrecvDatatype ( struct MPIR_COMMUNICATOR *, void *, int, 
+			  struct MPIR_DATATYPE *, 
+			  int, int, int, MPI_Request, int * );
 
 /* Pack and unpack support */
-void MPID_Msg_rep ANSI_ARGS(( struct MPIR_COMMUNICATOR *, int, 
-			      struct MPIR_DATATYPE *, 
-			      MPID_Msgrep_t *, 
-			      MPID_Msg_pack_t * ));
-void MPID_Msg_act ANSI_ARGS(( struct MPIR_COMMUNICATOR *, int, 
-			      struct MPIR_DATATYPE *, MPID_Msgrep_t, 
-			      MPID_Msg_pack_t * ));
-void MPID_Pack_size ANSI_ARGS(( int, struct MPIR_DATATYPE *, MPID_Msg_pack_t,
-				int * ));
-void MPID_Pack ANSI_ARGS(( void *, int, struct MPIR_DATATYPE *, 
-			   void *, int, int *, struct MPIR_COMMUNICATOR *, 
-			   int, MPID_Msgrep_t, MPID_Msg_pack_t, int * ));
-void MPID_Unpack ANSI_ARGS(( void *, int, MPID_Msgrep_t, int *, 
-			     void *, int, struct MPIR_DATATYPE *, int *, 
-			     struct MPIR_COMMUNICATOR *, int, int * ));
+void MPID_Msg_rep ( struct MPIR_COMMUNICATOR *, int, 
+		    struct MPIR_DATATYPE *, MPID_Msgrep_t *, 
+		    MPID_Msg_pack_t * );
+void MPID_Msg_act ( struct MPIR_COMMUNICATOR *, int, 
+		    struct MPIR_DATATYPE *, MPID_Msgrep_t, 
+		    MPID_Msg_pack_t * );
+void MPID_Pack_size ( int, struct MPIR_DATATYPE *, MPID_Msg_pack_t, int * );
+void MPID_Pack ( void *, int, struct MPIR_DATATYPE *, 
+		 void *, int, int *, struct MPIR_COMMUNICATOR *, 
+		 int, MPID_Msgrep_t, MPID_Msg_pack_t, int * );
+void MPID_Unpack ( void *, int, MPID_Msgrep_t, int *, 
+		   void *, int, struct MPIR_DATATYPE *, int *, 
+		   struct MPIR_COMMUNICATOR *, int, int * );
 
 /* Requests */
-void MPID_Request_free ANSI_ARGS((MPI_Request));
+void MPID_Request_free (MPI_Request);
 
 /* Communicators 
  * These are often defined as simple macros.  These prototypes show how
  * they should be defined if they are routines.
  */
 #ifndef MPID_CommInit
-int MPID_CommInit ANSI_ARGS(( struct MPIR_COMMUNICATOR *, 
-			      struct MPIR_COMMUNICATOR * ));
+int MPID_CommInit ( struct MPIR_COMMUNICATOR *, struct MPIR_COMMUNICATOR * );
 #endif
 #ifndef MPID_CommFree
-int MPID_CommFree ANSI_ARGS(( struct MPIR_COMMUNICATOR * ));
+int MPID_CommFree ( struct MPIR_COMMUNICATOR * );
 #endif
 
 /*
@@ -112,19 +107,19 @@ int MPID_CommFree ANSI_ARGS(( struct MPIR_COMMUNICATOR * ));
  * they should be defined if they are routines.
  */
 #ifndef MPID_Wtime
-void MPID_Wtime ANSI_ARGS(( double * ));
+void MPID_Wtime ( double * );
 #endif
 #ifndef MPID_Wtick
-void MPID_Wtick ANSI_ARGS(( double * ));
+void MPID_Wtick ( double * );
 #endif
 
 /* 
  * These are debugging commands; they are exported so that the command-line
  * parser and other routines can control the debugging output
  */
-void MPID_SetDebugFile ANSI_ARGS(( char * ));
-void MPID_Set_tracefile ANSI_ARGS(( char * ));
-void MPID_SetSpaceDebugFlag ANSI_ARGS(( int ));
-void MPID_SetDebugFlag ANSI_ARGS(( int ));
+void MPID_SetDebugFile ( char * );
+void MPID_Set_tracefile ( char * );
+void MPID_SetSpaceDebugFlag ( int );
+void MPID_SetDebugFlag ( int );
 void MPID_SetMsgDebugFlag( int );
 #endif

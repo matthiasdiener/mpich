@@ -65,7 +65,7 @@ badbuf()
   char msg[150];
   int class1;
   
-  Testing("Bad buffer pointer");
+  Testing( (char *)"Bad buffer pointer");
 
   MPI::COMM_WORLD.Set_errhandler(MPI::ERRORS_THROW_EXCEPTIONS);
 

@@ -6,6 +6,8 @@ CLOG_cput	CLOG_cput (4)	-  move a log record from one of the input buffers to th
 CLOG_csync	CLOG_csync (4)	-  synchronize clocks for adjusting times in merge 
 CLOG_get_new_event		CLOG_get_new_event (4)	-  obtain unused event id 
 CLOG_get_new_state		CLOG_get_new_state (4)	-  obtain unused state id 
+CLOG_init_buffers		CLOG_init_buffers (4)	-  initialize necessary buffers for clog logging. 
+CLOG_init_tmpfilename		CLOG_init_tmpfilename (4)   -  initializes the temporary logfile name to "/tmp/temp_clogXXXXXX" (XXXXXX = process id) so as to keep it unique of anyother file. 
 CLOG_mergelogs	CLOG_mergelogs (4)  -  merge individual logfiles into one via messages 
 CLOG_mergend	CLOG_mergend (4)    -  finish log processing 
 CLOG_msgtype	CLOG_msgtype (4)    -  print communication event type 
@@ -13,6 +15,8 @@ CLOG_newbuff	CLOG_newbuff (4)    -  get and initialize new block of buffer
 CLOG_procbuf	CLOG_procbuf (4)    -  postprocess a buffer of log records before merging 
 CLOG_reclen	CLOG_reclen (4) -  get length (in doubles) of log record by type 
 CLOG_rectype	CLOG_rectype (4)    -  print log record type 
+CLOG_reinit_buff		CLOG_reinit_buff (4)	-  reads CLOG_BLOCKS from temporary logfile into memory. 
+CLOG_temp_log	CLOG_temp_log (4)   -  dump buffers into temporary log file. 
 CLOG_treesetup	CLOG_treesetup (4)  -  locally determine parent and children in binary tree 
 Constants	Constants (3)	-  Meaning of MPI .I s defined constants 
 Jumpshot	Jumpshot (1)	-  Graphical Visualization Tool for Parallel Programs	
@@ -142,6 +146,7 @@ MPI_Info_get_nthkey		MPI_Info_get_nthkey (3) -  Returns the nth defined key in i
 MPI_Info_get_valuelen		MPI_Info_get_valuelen (3)   -  Retrieves the length of the value associated with a key 
 MPI_Info_set	MPI_Info_set (3)    -  Adds a (key,value) pair to info 
 MPI_Init	MPI_Init (3)	-  Initialize the MPI execution environment 
+MPI_Init_thread MPI_Init_thread (3) -  Initialize the MPI execution environment 
 MPI_Initialized MPI_Initialized (3) -  Indicates whether  .I MPI_Init has been called. 
 MPI_Int2handle	MPI_Int2handle (3)  -  Convert an integer (Fortran) MPI handle to a C handle 
 MPI_Intercomm_create		MPI_Intercomm_create (3)    -  Creates an intercommuncator from two intracommunicators 
@@ -180,6 +185,8 @@ MPI_Start	MPI_Start (3)	-  Initiates a communication with a persistent request h
 MPI_Startall	MPI_Startall (3)    -  Starts a collection of requests	
 MPI_Status_c2f	MPI_Status_c2f (3)  -  Convert a C status to a Fortran status 
 MPI_Status_f2c	MPI_Status_f2c (3)  -  Convert a Fortran status to a C status 
+MPI_Status_set_cancelled	MPI_Status_set_cancelled (3)	-  Set the opaque part of an MPI_Status so that MPI_Test_cancelled will return flag 
+MPI_Status_set_elements 	MPI_Status_set_elements (3) -  Set the opaque part of an MPI_Status so that MPI_Get_elements will return count. 
 MPI_Test	MPI_Test (3)	-  Tests for the completion of a send or receive 
 MPI_Test_cancelled		MPI_Test_cancelled (3)	-  Tests to see if a request was cancelled 
 MPI_Testall	MPI_Testall (3) -  Tests for the completion of all previously initiated communications 
@@ -188,7 +195,6 @@ MPI_Testsome	MPI_Testsome (3)    -  Tests for some given communications to compl
 MPI_Topo_test	MPI_Topo_test (3)   -  Determines the type of topology (if any) associated with a  communicator 
 MPI_Type_commit MPI_Type_commit (3) -  Commits the datatype 
 MPI_Type_contiguous		MPI_Type_contiguous (3) -  Creates a contiguous datatype 
-MPI_Type_count	MPI_Type_count (3)  -  Returns the number of "top-level" entries in  the datatype 
 MPI_Type_create_darray		MPI_Type_create_darray (3)  -  Creates a datatype corresponding to a distributed, multidimensional array 
 MPI_Type_create_indexed_block	MPI_Type_create_indexed_block (3)   -  Creates an indexed datatype with constant sized blocks 
 MPI_Type_create_subarray	MPI_Type_create_subarray (3)	-  Creates a datatype describing a subarray of a multidimensional array 
@@ -212,6 +218,7 @@ MPI_Waitsome	MPI_Waitsome (3)    -  Waits for some given communications to compl
 MPI_Wtick	MPI_Wtick (3)	-  Returns the resolution of MPI_Wtime 
 MPI_Wtime	MPI_Wtime (3)	-  Returns an elapsed time on the calling processor 
 chp4_servs	chp4_servs (1)	-  Starts the P4 secure servers on machines known to MPICH 
+cleanipcs	cleanipcs (1)	-  Removes System V IPCs held by the user 
 mpiCC		mpiCC (1)	-  Compiles and links MPI programs written in C++ 
 mpicc		mpicc (1)	-  Compiles and links MPI programs written in C 
 mpif77		mpif77 (1)	-  Compiles and links MPI programs written in Fortran 77 

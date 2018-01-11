@@ -1,5 +1,5 @@
 /*
- *  $Id: chbrndv.c,v 1.3 1998/11/16 21:02:56 gropp Exp $
+ *  $Id: chbrndv.c,v 1.9 1999/11/01 20:33:51 swider Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -9,6 +9,9 @@
 #include "mpiddev.h"
 #include "mpimem.h"
 #include "reqalloc.h"
+#include "sendq.h"
+#include "flow.h"
+#include "chpackflow.h"
 
 
 /* Blocking Rendezvous */
@@ -69,16 +72,37 @@ MPID_Msgrep_t msgrep;
 MPIR_SHANDLE  *shandle;
 {
     MPID_PKT_REQUEST_SEND_T  pkt;
+
+    DEBUG_PRINT_MSG("S Starting Rndvb_isend");
+#ifdef MPID_PACK_CONTROL
+    while (!MPID_PACKET_CHECK_OK(dest)) {  /* begin while !ok loop */
+	/* Wait for a protocol ACK packet */
+#ifdef MPID_DEBUG_ALL
+	if (MPID_DebugFlag || MPID_DebugFlow)
+	    FPRINTF(MPID_DEBUG_FILE,
+	 "[%d] S Waiting for a protocol ACK packet (in rndvb isend) from %d\n",
+		    MPID_MyWorldRank, dest);
+#endif
+	MPID_DeviceCheck( MPID_BLOCKING );
+    }  /* end while !ok loop */
+
+    MPID_PACKET_ADD_SENT(MPID_MyWorldRank, dest )
+#endif
     
     pkt.mode	   = MPID_PKT_REQUEST_SEND;
     pkt.context_id = context_id;
     pkt.lrank	   = src_lrank;
+    pkt.to         = dest;
+    pkt.src        = MPID_MyWorldRank;
+    pkt.seqnum     = sizeof(MPID_PKT_REQUEST_SEND_T);
     pkt.tag	   = tag;
     pkt.len	   = len;
     MPID_DO_HETERO(pkt.msgrep = (int)msgrep);
 
+    /* We save the address of the send handle in the packet; the receiver
+       will return this to us */
     MPID_AINT_SET(pkt.send_id,shandle);
-	
+
     /* Store info in the request for completing the message */
     shandle->is_complete     = 0;
     shandle->start	     = buf;
@@ -87,6 +111,9 @@ MPIR_SHANDLE  *shandle;
     shandle->wait	     = MPID_WaitForCompleteSend;
     shandle->test            = 0;   /* default will work */
     shandle->finish          = 0;
+    /* Store partners rank in request in case message is cancelled */
+    shandle->partner         = dest;
+
     DEBUG_PRINT_BASIC_SEND_PKT("S Sending rndv message",&pkt)
     MPID_PKT_PACK( &pkt, sizeof(pkt), dest );
     MPID_DRAIN_INCOMING_FOR_TINY(1);
@@ -130,6 +157,13 @@ void         *in_pkt;
     MPIR_SHANDLE *shandle;
 #endif
     MPID_RNDV_T rtag;
+    
+#ifdef MPID_PACK_CONTROL
+    if (MPID_PACKET_RCVD_GET(pkt->src)) {
+	MPID_SendProtoAck(pkt->to, pkt->src);
+    }
+    MPID_PACKET_ADD_RCVD(pkt->to, pkt->src);
+#endif
 
     DEBUG_PRINT_MSG("R Starting rndvb irecv");
 
@@ -140,24 +174,27 @@ void         *in_pkt;
 		     from );
 
     msglen = pkt->len;
-
     /* Check for truncation */
     MPID_CHK_MSGLEN(rhandle,msglen,err)
     /* Note that if we truncate, We really must receive the message in two 
        parts; the part that we can store, and the part that we discard.
        This case is not yet handled. */
+    MPIR_SET_COOKIE((rhandle),MPIR_REQUEST_COOKIE); 
     rhandle->s.count	  = msglen;
     rhandle->s.MPI_TAG	  = pkt->tag;
     rhandle->s.MPI_SOURCE = pkt->lrank;
     rhandle->s.MPI_ERROR  = err;
+    rhandle->from         = from;
+    rhandle->send_id	  = pkt->send_id;
+
 #if defined(MPID_RNDV_SELF)
     if (from == MPID_MyWorldRank) {
 	DEBUG_PRINT_MSG("R Starting a receive transfer from self");
 	MPID_AINT_GET(shandle,pkt->send_id);
 #ifdef MPIR_HAS_COOKIES
 	if (shandle->cookie != MPIR_REQUEST_COOKIE) {
-	    fprintf( stderr, "shandle is %lx\n", (long)shandle );
-	    fprintf( stderr, "shandle cookie is %lx\n", shandle->cookie );
+	    FPRINTF( stderr, "shandle is %lx\n", (long)shandle );
+	    FPRINTF( stderr, "shandle cookie is %lx\n", shandle->cookie );
 	    MPID_Print_shandle( stderr, shandle );
 	    MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPI internal", 
 			"Bad address in Rendezvous send (irecv-self)" );
@@ -182,16 +219,33 @@ void         *in_pkt;
 	return err;
     }
 #endif
+
+#ifdef MPID_PACK_CONTROL
+    while (!MPID_PACKET_CHECK_OK(from)) {  /* begin while !ok loop */
+	/* Wait for a protocol ACK packet */
+#ifdef MPID_DEBUG_ALL
+	if (MPID_DebugFlag || MPID_DebugFlow)
+	    FPRINTF(MPID_DEBUG_FILE,
+	 "[%d] S Waiting for a protocol ACK packet (in rndvb isend) from %d\n",
+		    MPID_MyWorldRank, from);
+#endif
+	MPID_DeviceCheck( MPID_BLOCKING );
+    }  /* end while !ok loop */
+
+    MPID_PACKET_ADD_SENT(pkt->to, from )
+#endif
+
     DEBUG_PRINT_MSG("Starting a receive transfer in irecv");
-    rhandle->send_id	  = pkt->send_id;
     MPID_CreateRecvTransfer( 0, 0, from, &rtag );
     MPID_CH_Rndvb_ok_to_send( rhandle->send_id, rtag, from );
     rhandle->recv_handle = rtag;
     rhandle->wait	 = MPID_CH_Rndvb_unxrecv_end;
     rhandle->test	 = MPID_CH_Rndvb_unxrecv_test_end;
     rhandle->push	 = 0;
+    /* MPID_RecvTransfer might need from (used in wait/test routines) */
+    rhandle->from    = from;
     rhandle->is_complete = 0;
-    
+
     return err;
 }
 
@@ -208,6 +262,13 @@ void         *in_pkt;
     MPID_PKT_UNPACK( (MPID_PKT_HEAD_T *)in_pkt + 1, 
 		     sizeof(MPID_PKT_REQUEST_SEND_T) - sizeof(MPID_PKT_HEAD_T),
 		     from );
+    DEBUG_PRINT_MSG("S Starting Rndvb_save");
+#ifdef MPID_PACK_CONTROL
+    if (MPID_PACKET_RCVD_GET(pkt->src)) {
+	MPID_SendProtoAck(pkt->to, pkt->src);
+    }
+    MPID_PACKET_ADD_RCVD(pkt->to, pkt->src);
+#endif
 
 #if defined(MPID_RNDV_SELF)
     if (from == MPID_MyWorldRank) {
@@ -220,8 +281,10 @@ void         *in_pkt;
     rhandle->s.count      = pkt->len;
     rhandle->is_complete  = 0;
     rhandle->from         = from;
+    rhandle->partner      = pkt->to;
     rhandle->send_id      = pkt->send_id;
     MPID_DO_HETERO(rhandle->msgrep = (MPID_Msgrep_t)pkt->msgrep );
+
     /* Need to set the push etc routine to complete this transfer */
     rhandle->push = MPID_CH_Rndvb_unxrecv_start;
     return 0;
@@ -237,7 +300,11 @@ int         from;
 {
     MPID_PKT_OK_TO_SEND_T pkt;
 
-    pkt.mode = MPID_PKT_OK_TO_SEND;
+    pkt.mode   = MPID_PKT_OK_TO_SEND;
+    pkt.lrank  = MPID_MyWorldRank;
+    pkt.to     = from;
+    pkt.src    = MPID_MyWorldRank;
+    pkt.seqnum = sizeof(MPID_PKT_OK_TO_SEND_T);
     /* MPID_AINT_SET(pkt.send_id,send_id); */
     pkt.send_id = send_id;
     pkt.recv_handle = rtag;
@@ -257,6 +324,21 @@ void         *in_runex;
 {
     MPIR_RHANDLE *runex = (MPIR_RHANDLE *)in_runex;
     MPID_RNDV_T rtag;
+  
+#ifdef MPID_PACK_CONTROL
+    while (!MPID_PACKET_CHECK_OK(runex->from)) {  /* begin while !ok loop */
+	/* Wait for a protocol ACK packet */
+#ifdef MPID_DEBUG_ALL
+	if (MPID_DebugFlag || MPID_DebugFlow)
+	    FPRINTF(MPID_DEBUG_FILE,
+	 "[%d] S Waiting for a protocol ACK packet (in rndvb isend) from %d\n",
+		    MPID_MyWorldRank, runex->from);
+#endif
+	MPID_DeviceCheck( MPID_BLOCKING );
+    }  /* end while !ok loop */
+
+    MPID_PACKET_ADD_SENT(runex->partner, runex->from )
+#endif
 
     /* Send a request back to the sender, then do the receive */
     MPID_CreateRecvTransfer( 0, 0, runex->from, &rtag );
@@ -289,6 +371,7 @@ int MPID_CH_Rndvb_unxrecv_end( rhandle )
 MPIR_RHANDLE *rhandle;
 {
     /* This is a blocking transfer */
+
 #if !defined(MPID_RNDV_SELF)
     MPID_DeviceCheck( MPID_NOTBLOCKING ); 
 #endif
@@ -308,9 +391,9 @@ MPIR_RHANDLE *rhandle;
 		       rhandle->recv_handle );
     DEBUG_PRINT_MSG("Completed receive transfer");
     rhandle->is_complete = 1;
+
     if (rhandle->finish) 
 	(rhandle->finish)( rhandle );
-
     return MPI_SUCCESS;
 }
 
@@ -330,10 +413,10 @@ MPIR_RHANDLE *rhandle;
 			   rhandle->recv_handle );
 	DEBUG_PRINT_MSG("Completed receive transfer");
 	rhandle->is_complete = 1;
+
 	if (rhandle->finish) 
 	    (rhandle->finish)( rhandle );
     }
-
     return MPI_SUCCESS;
 }
 
@@ -346,6 +429,14 @@ int   from_grank;
     MPID_PKT_OK_TO_SEND_T *pkt = (MPID_PKT_OK_TO_SEND_T *)in_pkt;
     MPIR_SHANDLE *shandle=0;
 
+    DEBUG_PRINT_MSG("R Starting Rndvb_ack");
+#ifdef MPID_PACK_CONTROL
+    if (MPID_PACKET_RCVD_GET(pkt->src)) {
+	MPID_SendProtoAck(pkt->to, pkt->src);
+    }
+    MPID_PACKET_ADD_RCVD(pkt->to, pkt->src);
+#endif
+
     /* A request packet is a little larger than the basic packet size and 
        may need to be unpacked (in the heterogeneous case) */
     MPID_PKT_UNPACK( (MPID_PKT_HEAD_T *)in_pkt + 1, 
@@ -353,16 +444,18 @@ int   from_grank;
 		     from_grank );
 
     MPID_AINT_GET(shandle,pkt->send_id);
+
 #ifdef MPIR_HAS_COOKIES
     if (shandle->cookie != MPIR_REQUEST_COOKIE) {
-	fprintf( stderr, "shandle is %lx\n", (long)shandle );
-	fprintf( stderr, "shandle cookie is %lx\n", shandle->cookie );
+	FPRINTF( stderr, "shandle is %lx\n", (long)shandle );
+	FPRINTF( stderr, "shandle cookie is %lx\n", shandle->cookie );
 	MPID_Print_shandle( stderr, shandle );
 	MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPI internal", 
 		    "Bad address in Rendezvous send (ack)" );
     }
 #endif	
     DEBUG_PRINT_MSG("Sending data on channel");
+
 #ifdef MPID_DEBUG_ALL
     if (MPID_DebugFlag) {
 	FPRINTF( MPID_DEBUG_FILE, "[%d]S for ", MPID_MyWorldRank );
@@ -373,9 +466,11 @@ int   from_grank;
     MPID_SendTransfer( shandle->start, shandle->bytes_as_contig, 
 		       from_grank, pkt->recv_handle );
     DEBUG_PRINT_MSG("Completed sending data on channel");
+
     shandle->is_complete = 1;
     if (shandle->finish) 
 	(shandle->finish)( shandle );
+
     return MPI_SUCCESS;
 }
 
@@ -393,6 +488,7 @@ void         *in_pkt;
 {
     MPID_PKT_REQUEST_SEND_T   *pkt = (MPID_PKT_REQUEST_SEND_T *)in_pkt;
 
+    DEBUG_PRINT_MSG("R Starting Rndvb_save_self");
     /* A request packet is a little larger than the basic packet size and 
        may need to be unpacked (in the heterogeneous case) */
     MPID_PKT_UNPACK( (MPID_PKT_HEAD_T *)in_pkt + 1, 
@@ -428,11 +524,12 @@ void         *in_runex;
     MPIR_SHANDLE *shandle;
 
     /* Get the source handle */
+    DEBUG_PRINT_MSG("R Starting Rndvb_start_self");
     MPID_AINT_GET(shandle,runex->send_id);
 #ifdef MPIR_HAS_COOKIES
     if (shandle->cookie != MPIR_REQUEST_COOKIE) {
-	fprintf( stderr, "shandle is %lx\n", (long)shandle );
-	fprintf( stderr, "shandle cookie is %lx\n", shandle->cookie );
+	FPRINTF( stderr, "shandle is %lx\n", (long)shandle );
+	FPRINTF( stderr, "shandle cookie is %lx\n", shandle->cookie );
 	MPID_Print_shandle( stderr, shandle );
 	MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPI internal", 
 		    "Bad address in Rendezvous send (unx_start_self)" );
@@ -509,3 +606,5 @@ MPID_Protocol *MPID_CH_Rndvb_setup()
 
     return p;
 }
+
+

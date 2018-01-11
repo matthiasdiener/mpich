@@ -1,27 +1,4 @@
 **** Testing MPI_Send and MPI_Recv ****
-[sendrecv]: Test 'Send-Receive Test, Type 0 (MPI_CHAR)' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 1 (MPI_SHORT)' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 2 (MPI_INT)' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 3 (MPI_LONG)' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 4 (MPI_UNSIGNED_CHAR)' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 5 (MPI_UNSIGNED_SHORT)' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 6 (MPI_UNSIGNED)' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 7 (MPI_UNSIGNED_LONG)' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 8 (MPI_FLOAT)' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 9 (MPI_DOUBLE)' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 10 (MPI_BYTE)' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 11 (MPI_LONG_DOUBLE)' Passed.
-[sendrecv]: Test 'Tag Selectivity Test' Passed.
-[sendrecv]: Test 'NULL Communicator Test' Passed.
-[sendrecv]: Test 'Invalid Count Test' Passed.
-[sendrecv]: Test 'Invalid Type Test' Passed.
-[sendrecv]: Test 'Invalid Tag Test' Passed.
-[sendrecv]: Test 'Invalid Tag Test' Passed.
-[sendrecv]: Test 'Invalid Destination Test' Passed.
-[sendrecv]: Test 'Invalid Buffer Test (send)' Passed.
-[sendrecv]: Test 'Invalid Buffer Test (recv)' Passed.
-For test suite 'sendrecv':
-Of 21 attempted tests, 21 passed, 0 failed.
 Message of count 0, type 0 received correctly.
 Message of count 500, type 0 received correctly.
 Message of count 1000, type 0 received correctly.
@@ -264,13 +241,36 @@ Message of count 9000, type 11 received correctly.
 Message of count 9500, type 11 received correctly.
 There should be eight error messages about invalid communicator
 count argument, datatype argument, tag, rank, buffer send and buffer recv
-0 - MPI_SEND : Invalid communicator: Null communicator
-0 - MPI_SEND : Invalid count argument
-0 - MPI_SEND : Invalid datatype argument: Datatype is MPI_TYPE_NULL
+0 - MPI_SEND : Null communicator
+0 - MPI_SEND : Invalid count argument is -1
+0 - MPI_SEND : Datatype is MPI_TYPE_NULL
 0 - MPI_SEND : Invalid message tag -2
 0 - MPI_SEND : Invalid message tag -1
 0 - MPI_SEND : Invalid rank 300
 0 - MPI_SEND : Invalid buffer pointer
 0 - MPI_RECV : Invalid buffer pointer
 All processes completed test
+[sendrecv]: Test 'Send-Receive Test, Type 0 (MPI_CHAR)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 1 (MPI_SHORT)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 2 (MPI_INT)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 3 (MPI_LONG)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 4 (MPI_UNSIGNED_CHAR)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 5 (MPI_UNSIGNED_SHORT)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 6 (MPI_UNSIGNED)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 7 (MPI_UNSIGNED_LONG)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 8 (MPI_FLOAT)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 9 (MPI_DOUBLE)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 10 (MPI_BYTE)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 11 (MPI_LONG_DOUBLE)' Passed.
+[sendrecv]: Test 'Tag Selectivity Test' Passed.
+[sendrecv]: Test 'NULL Communicator Test' Passed.
+[sendrecv]: Test 'Invalid Count Test' Passed.
+[sendrecv]: Test 'Invalid Type Test' Passed.
+[sendrecv]: Test 'Invalid Tag Test' Passed.
+[sendrecv]: Test 'Invalid Tag Test' Passed.
+[sendrecv]: Test 'Invalid Destination Test' Passed.
+[sendrecv]: Test 'Invalid Buffer Test (send)' Passed.
+[sendrecv]: Test 'Invalid Buffer Test (recv)' Passed.
+For test suite 'sendrecv':
+Of 21 attempted tests, 21 passed, 0 failed.
 **** Testing MPI_Send and MPI_Recv ****

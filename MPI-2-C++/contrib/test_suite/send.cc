@@ -34,7 +34,7 @@ send()
   int tag;
   MPI::Status status;
 
-  Testing("Send / Recv w/ Status");
+  Testing( (char *)"Send / Recv w/ Status");
 
   if(my_rank > 0) {
     data = my_rank;
@@ -70,7 +70,7 @@ send()
 
   MPI::COMM_WORLD.Barrier();
 
-  Testing("Send / Recv w/o Status");
+  Testing( (char *)"Send / Recv w/o Status");
 
   if(my_rank) {
     data = my_rank;

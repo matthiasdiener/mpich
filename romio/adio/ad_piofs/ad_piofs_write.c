@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_piofs_write.c,v 1.2 1998/06/02 18:47:02 thakur Exp $    
+ *   $Id: ad_piofs_write.c,v 1.4 1999/10/26 22:57:19 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -15,10 +15,6 @@ void ADIOI_PIOFS_WriteContig(ADIO_File fd, void *buf, int len, int file_ptr_type
 		     ADIO_Offset offset, ADIO_Status *status, int *error_code)
 {
     int err=-1;
-#ifdef __PFS_ON_ADIO
-    int myrank, nprocs, i, *len_vec;
-    ADIO_Offset off;
-#endif
 
     if ((fd->iomode == M_ASYNC) || (fd->iomode == M_UNIX)) {
 	if (file_ptr_type == ADIO_EXPLICIT_OFFSET) {
@@ -38,7 +34,7 @@ void ADIOI_PIOFS_WriteContig(ADIO_File fd, void *buf, int len, int file_ptr_type
 #ifdef __PROFILE
         MPE_Log_event(6, 0, "end write");
 #endif
-            fd->fp_sys_posn = offset + len;
+            fd->fp_sys_posn = offset + err;
          /* individual file pointer not updated */        
         }
 	else { /* write from curr. location of ind. file pointer */
@@ -58,56 +54,11 @@ void ADIOI_PIOFS_WriteContig(ADIO_File fd, void *buf, int len, int file_ptr_type
 #ifdef __PROFILE
         MPE_Log_event(6, 0, "end write");
 #endif
-	    fd->fp_ind += len;
+	    fd->fp_ind += err;
             fd->fp_sys_posn = fd->fp_ind;
         }
     }
     else fd->fp_sys_posn = -1;    /* set it to null */
-
-
-#ifdef __PFS_ON_ADIO
-/* The remaining file pointer modes are relevant only for implementing 
-   the Intel PFS interface on top of ADIO. They should never appear,
-   for example, in the MPI-IO implementation. */
-
-    if (fd->iomode == M_RECORD) {
-/* this occurs only in the Intel PFS interface where there is no
-   explicit offset */
-
-	MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-	MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
-	llseek(fd->fd_sys, fd->fp_ind + myrank*len, SEEK_SET);
-	err = write(fd->fd_sys, buf, len);
-	fd->fp_ind = llseek(fd->fd_sys, (nprocs-myrank-1)*len, SEEK_CUR);
-    }
-
-    if (fd->iomode == M_GLOBAL) {
-/* this occurs only in the Intel PFS interface where there is no
-   explicit offset */
- 	MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-	if (myrank == 0) {
-	    llseek(fd->fd_sys, fd->fp_ind, SEEK_SET);
-	    err = write(fd->fd_sys, buf, len);
-	}
-        fd->fp_ind += len;
-    }
-
-    if (fd->iomode == M_SYNC) {
-        MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
-        MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-	len_vec = (int *) ADIOI_Malloc(nprocs*sizeof(int));
-	MPI_Allgather(&len, 1, MPI_INT, len_vec, 1, MPI_INT,
-		      MPI_COMM_WORLD); 
-	off = 0;
-	for (i=0; i<myrank; i++) off += len_vec[i];
-        llseek(fd->fd_sys, fd->fp_ind + off, SEEK_SET);
-        err = write(fd->fd_sys, buf, len);
-	off = 0;
-	for (i=(myrank+1); i<nprocs; i++) off += len_vec[i];
-        fd->fp_ind = llseek(fd->fd_sys, off, SEEK_CUR);
-	ADIOI_Free(len_vec);
-    }
-#endif
 
     *error_code = (err == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
 }
@@ -225,11 +176,11 @@ void ADIOI_PIOFS_WriteStrided(ADIO_File fd, void *buf, int count,
                 n_filetypes++;
                 for (i=0; i<flat_file->count; i++) {
                     if (disp + flat_file->indices[i] + 
-                        n_filetypes*filetype_extent + flat_file->blocklens[i] 
+                        (ADIO_Offset) n_filetypes*filetype_extent + flat_file->blocklens[i] 
                             >= offset) {
                         st_index = i;
                         fwr_size = disp + flat_file->indices[i] + 
-                                n_filetypes*filetype_extent
+                                (ADIO_Offset) n_filetypes*filetype_extent
                                  + flat_file->blocklens[i] - offset;
                         flag = 1;
                         break;
@@ -239,8 +190,8 @@ void ADIOI_PIOFS_WriteStrided(ADIO_File fd, void *buf, int count,
 	}
 	else {
 	    n_etypes_in_filetype = filetype_size/etype_size;
-	    n_filetypes = offset / n_etypes_in_filetype;
-	    etype_in_filetype = offset % n_etypes_in_filetype;
+	    n_filetypes = (int) (offset / n_etypes_in_filetype);
+	    etype_in_filetype = (int) (offset % n_etypes_in_filetype);
 	    size_in_filetype = etype_in_filetype * etype_size;
  
 	    sum = 0;
@@ -256,7 +207,7 @@ void ADIOI_PIOFS_WriteStrided(ADIO_File fd, void *buf, int count,
 	    }
 
 	    /* abs. offset in bytes in the file */
-            offset = disp + n_filetypes*filetype_extent + abs_off_in_filetype;
+            offset = disp + (ADIO_Offset) n_filetypes*filetype_extent + abs_off_in_filetype;
 	}
 
 	if (buftype_is_contig && !filetype_is_contig) {
@@ -289,7 +240,7 @@ void ADIOI_PIOFS_WriteStrided(ADIO_File fd, void *buf, int count,
 		i += fwr_size;
 
                 if (off + fwr_size < disp + flat_file->indices[j] +
-                   flat_file->blocklens[j] + n_filetypes*filetype_extent)
+                   flat_file->blocklens[j] + (ADIO_Offset) n_filetypes*filetype_extent)
                        off += fwr_size;
                 /* did not reach end of contiguous block in filetype.
                    no more I/O needed. off is incremented by fwr_size. */
@@ -300,7 +251,7 @@ void ADIOI_PIOFS_WriteStrided(ADIO_File fd, void *buf, int count,
 			n_filetypes++;
 		    }
 		    off = disp + flat_file->indices[j] + 
-                                        n_filetypes*filetype_extent;
+                                        (ADIO_Offset) n_filetypes*filetype_extent;
 		    fwr_size = ADIOI_MIN(flat_file->blocklens[j], bufsize-i);
 		}
 	    }
@@ -348,7 +299,7 @@ void ADIOI_PIOFS_WriteStrided(ADIO_File fd, void *buf, int count,
                     }
 
                     off = disp + flat_file->indices[j] + 
-                                              n_filetypes*filetype_extent;
+                                              (ADIO_Offset) n_filetypes*filetype_extent;
 
 		    new_fwr_size = flat_file->blocklens[j];
 		    if (size != bwr_size) {

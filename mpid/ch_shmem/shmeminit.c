@@ -1,5 +1,5 @@
 /*
- *  $Id: shmeminit.c,v 1.2 1998/03/13 22:32:57 gropp Exp $
+ *  $Id: shmeminit.c,v 1.5 1999/09/08 21:44:10 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -14,6 +14,7 @@
 #include "mpiddev.h"
 #include "mpimem.h"
 #include "flow.h"
+#include "chpackflow.h"
 #include <stdio.h>
 
 /* #define DEBUG(a) {a} */
@@ -24,8 +25,8 @@
  *****************************************************************************/
 
 /* Forward refs */
-int MPID_SHMEM_End ANSI_ARGS(( MPID_Device * ));
-int MPID_SHMEM_Abort ANSI_ARGS(( struct MPIR_COMMUNICATOR *, int, char * ));
+int MPID_SHMEM_End ( MPID_Device * );
+int MPID_SHMEM_Abort ( struct MPIR_COMMUNICATOR *, int, char * );
 
 /* 
     In addition, Chameleon processes many command-line arguments 
@@ -82,7 +83,9 @@ int  short_len, long_len;
     MPID_FlowSetup( buf_thresh, mem_thresh );
     }
 #endif
-
+#ifdef MPID_PACK_CONTROL
+    MPID_PacketFlowSetup( );
+#endif
     DEBUG_PRINT_MSG("Leaving MPID_SHMEM_InitMsgPass");
 
     return dev;
@@ -119,6 +122,11 @@ MPID_Device *dev;
     DEBUG_PRINT_MSG("Entering MPID_SHMEM_End\n");
     /* Finish off any pending transactions */
     /* MPID_SHMEM_Complete_pending(); */
+    MPID_SHMEM_FlushPkts();
+
+#ifdef MPID_PACK_CONTROL
+    MPID_PackDelete();
+#endif
 
     if (MPID_GetMsgDebugFlag()) {
 	MPID_PrintMsgDebug();

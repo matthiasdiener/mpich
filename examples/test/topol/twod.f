@@ -123,6 +123,9 @@ c
 c
       call MPI_Type_free( stride, ierr )
       call MPI_Comm_free( comm2d, ierr )
+      if (myid .eq. 0) then
+         print *, ' Finished test'
+      endif
       call MPI_FINALIZE(rc)
       end
 c

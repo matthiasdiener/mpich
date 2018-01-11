@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi.h,v 1.12 1998/05/21 20:26:32 gropp Exp $
+ *  $Id: mpi.h,v 1.26 1999/10/16 22:06:07 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -61,6 +61,9 @@ typedef int MPI_Datatype;
 #define MPI_DOUBLE         ((MPI_Datatype)11)
 #define MPI_LONG_DOUBLE    ((MPI_Datatype)12)
 #define MPI_LONG_LONG_INT  ((MPI_Datatype)13)
+/* MPI_LONG_LONG is in the complete ref 2nd edition, though not in the 
+   standard.  Rather, MPI_LONG_LONG_INT is on page 40 in the HPCA version */
+#define MPI_LONG_LONG      ((MPI_Datatype)13)
 
 #define MPI_PACKED         ((MPI_Datatype)14)
 #define MPI_LB             ((MPI_Datatype)15)
@@ -74,22 +77,22 @@ typedef int MPI_Datatype;
    }
    This is documented in the man pages on the various datatypes.   
  */
-#define MPI_FLOAT_INT      ((MPI_Datatype)17)
-#define MPI_DOUBLE_INT     ((MPI_Datatype)18)
-#define MPI_LONG_INT       ((MPI_Datatype)19)
-#define MPI_SHORT_INT      ((MPI_Datatype)20)
-#define MPI_2INT           ((MPI_Datatype)21)
-#define MPI_LONG_DOUBLE_INT ((MPI_Datatype)22)
+#define MPI_FLOAT_INT         ((MPI_Datatype)17)
+#define MPI_DOUBLE_INT        ((MPI_Datatype)18)
+#define MPI_LONG_INT          ((MPI_Datatype)19)
+#define MPI_SHORT_INT         ((MPI_Datatype)20)
+#define MPI_2INT              ((MPI_Datatype)21)
+#define MPI_LONG_DOUBLE_INT   ((MPI_Datatype)22)
 
 /* Fortran types */
-#define MPI_COMPLEX        ((MPI_Datatype)23)
-#define MPI_DOUBLE_COMPLEX ((MPI_Datatype)24)
-#define MPI_LOGICAL        ((MPI_Datatype)25)
-#define MPI_REAL           ((MPI_Datatype)26)
-#define MPI_DOUBLE_PRECISION ((MPI_Datatype)27)
-#define MPI_INTEGER        ((MPI_Datatype)28)
-#define MPI_2INTEGER       ((MPI_Datatype)29)
-#define MPI_2COMPLEX       ((MPI_Datatype)30)
+#define MPI_COMPLEX           ((MPI_Datatype)23)
+#define MPI_DOUBLE_COMPLEX    ((MPI_Datatype)24)
+#define MPI_LOGICAL           ((MPI_Datatype)25)
+#define MPI_REAL              ((MPI_Datatype)26)
+#define MPI_DOUBLE_PRECISION  ((MPI_Datatype)27)
+#define MPI_INTEGER           ((MPI_Datatype)28)
+#define MPI_2INTEGER          ((MPI_Datatype)29)
+#define MPI_2COMPLEX          ((MPI_Datatype)30)
 #define MPI_2DOUBLE_COMPLEX   ((MPI_Datatype)31)
 #define MPI_2REAL             ((MPI_Datatype)32)
 #define MPI_2DOUBLE_PRECISION ((MPI_Datatype)33)
@@ -98,7 +101,7 @@ typedef int MPI_Datatype;
 /* Communicators */
 typedef int MPI_Comm;
 #define MPI_COMM_WORLD 91
-#define MPI_COMM_SELF 92
+#define MPI_COMM_SELF  92
 
 /* Groups */
 typedef int MPI_Group;
@@ -122,14 +125,14 @@ typedef int MPI_Op;
 
 /* Permanent key values */
 /* C Versions (return pointer to value) */
-#define MPI_TAG_UB 81
-#define MPI_HOST 83
-#define MPI_IO 85
-#define MPI_WTIME_IS_GLOBAL 87
+#define MPI_TAG_UB           81
+#define MPI_HOST             83
+#define MPI_IO               85
+#define MPI_WTIME_IS_GLOBAL  87
 /* Fortran Versions (return integer value) */
-#define MPIR_TAG_UB 80
-#define MPIR_HOST 82
-#define MPIR_IO 84
+#define MPIR_TAG_UB          80
+#define MPIR_HOST            82
+#define MPIR_IO              84
 #define MPIR_WTIME_IS_GLOBAL 86
 
 /* Define some null objects */
@@ -161,7 +164,7 @@ typedef int MPI_Op;
 
 #define MPI_PROC_NULL   (-1)
 #define MPI_ANY_SOURCE 	(-2)
-#define MPI_ANY_TAG	(-1)
+#define MPI_ANY_TAG	    (-1)
 
 /* 
    Status object.  It is the only user-visible MPI data-structure 
@@ -214,25 +217,24 @@ typedef union MPIR_HANDLE *MPI_Request;
 typedef void (MPI_User_function) ( void *, void *, int *, MPI_Datatype * ); 
 
 /* MPI Attribute copy and delete functions */
-typedef int (MPI_Copy_function) ( MPI_Comm, int, void *,
-					    void *, void *, int * );
+typedef int (MPI_Copy_function) ( MPI_Comm, int, void *, void *, void *, int * );
 typedef int (MPI_Delete_function) ( MPI_Comm, int, void *, void * );
 
-#define MPI_VERSION 1
-#define MPI_SUBVERSION 1
-#define MPICH_NAME 1
+#define MPI_VERSION    1
+#define MPI_SUBVERSION 2
+#define MPICH_NAME     1
 
 /********************** MPI-2 FEATURES BEGIN HERE ***************************/
 #define MPICH_HAS_C2F
 
 /* for the datatype decoders */
-#define MPI_COMBINER_NAMED              2312
-#define MPI_COMBINER_CONTIGUOUS         2313
-#define MPI_COMBINER_VECTOR             2314
-#define MPI_COMBINER_HVECTOR            2315
-#define MPI_COMBINER_INDEXED            2316
-#define MPI_COMBINER_HINDEXED           2317
-#define MPI_COMBINER_STRUCT             2318
+#define MPI_COMBINER_NAMED         2312
+#define MPI_COMBINER_CONTIGUOUS    2313
+#define MPI_COMBINER_VECTOR        2314
+#define MPI_COMBINER_HVECTOR       2315
+#define MPI_COMBINER_INDEXED       2316
+#define MPI_COMBINER_HINDEXED      2317
+#define MPI_COMBINER_STRUCT        2318
 
 /* for info */
 typedef struct MPIR_Info *MPI_Info;
@@ -241,8 +243,8 @@ typedef struct MPIR_Info *MPI_Info;
 # define MPI_MAX_INFO_VAL      1024
 
 /* for subarray and darray constructors */
-#define MPI_ORDER_C             56
-#define MPI_ORDER_FORTRAN       57
+#define MPI_ORDER_C              56
+#define MPI_ORDER_FORTRAN        57
 #define MPI_DISTRIBUTE_BLOCK    121
 #define MPI_DISTRIBUTE_CYCLIC   122
 #define MPI_DISTRIBUTE_NONE     123
@@ -275,16 +277,415 @@ typedef struct MPIR_Info *MPI_Info;
 #define MPI_STATUS_IGNORE (MPI_Status *)0
 #define MPI_STATUSES_IGNORE (MPI_Status *)0
 
+/* For supported thread levels */
+#define MPI_THREAD_SINGLE 0
+#define MPI_THREAD_FUNNELED 1
+#define MPI_THREAD_SERIALIZED 2
+#define MPI_THREAD_MULTIPLE 3
+
 /********************** MPI-2 FEATURES END HERE ***************************/
+
+/*************** Experimental MPICH FEATURES BEGIN HERE *******************/
+/* Attribute keys.  These are set to MPI_KEYVAL_INVALID by default */
+extern int MPICHX_QOS_BANDWIDTH;
+/**************** Experimental MPICH FEATURES END HERE ********************/
 
 /* MPI's error classes */
 #include "mpi_errno.h"
+/* End of MPI's error classes */
 
-/* Bindings of the MPI routines */
-#include "binding.h"
+/* The following definitions are used to support a single source tree for
+   both Unix and Windows NT versions of MPICH.  For Unix users, the 
+   definition is empty */
+#ifdef HAVE_EXPORT_MPI_API
+#ifdef NT_TCP_DLL_EXPORTS
+#define EXPORT_MPI_API __declspec(dllexport)
+#else
+#define EXPORT_MPI_API __declspec(dllimport)
+#endif
+#else
+#define EXPORT_MPI_API
+#endif
+
+/*
+ * Normally, we provide prototypes for all MPI routines.  In a few wierd
+ * cases, we need to suppress the prototypes.
+ */
+#ifndef MPICH_SUPPRESS_PROTOTYPES
+/* We require that the C compiler support prototypes */
+EXPORT_MPI_API int MPI_Send(void*, int, MPI_Datatype, int, int, MPI_Comm);
+EXPORT_MPI_API int MPI_Recv(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Status *);
+EXPORT_MPI_API int MPI_Get_count(MPI_Status *, MPI_Datatype, int *);
+EXPORT_MPI_API int MPI_Bsend(void*, int, MPI_Datatype, int, int, MPI_Comm);
+EXPORT_MPI_API int MPI_Ssend(void*, int, MPI_Datatype, int, int, MPI_Comm);
+EXPORT_MPI_API int MPI_Rsend(void*, int, MPI_Datatype, int, int, MPI_Comm);
+EXPORT_MPI_API int MPI_Buffer_attach( void*, int);
+EXPORT_MPI_API int MPI_Buffer_detach( void*, int*);
+EXPORT_MPI_API int MPI_Isend(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int MPI_Ibsend(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int MPI_Issend(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int MPI_Irsend(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int MPI_Irecv(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int MPI_Wait(MPI_Request *, MPI_Status *);
+EXPORT_MPI_API int MPI_Test(MPI_Request *, int *, MPI_Status *);
+EXPORT_MPI_API int MPI_Request_free(MPI_Request *);
+EXPORT_MPI_API int MPI_Waitany(int, MPI_Request *, int *, MPI_Status *);
+EXPORT_MPI_API int MPI_Testany(int, MPI_Request *, int *, int *, MPI_Status *);
+EXPORT_MPI_API int MPI_Waitall(int, MPI_Request *, MPI_Status *);
+EXPORT_MPI_API int MPI_Testall(int, MPI_Request *, int *, MPI_Status *);
+EXPORT_MPI_API int MPI_Waitsome(int, MPI_Request *, int *, int *, MPI_Status *);
+EXPORT_MPI_API int MPI_Testsome(int, MPI_Request *, int *, int *, MPI_Status *);
+EXPORT_MPI_API int MPI_Iprobe(int, int, MPI_Comm, int *flag, MPI_Status *);
+EXPORT_MPI_API int MPI_Probe(int, int, MPI_Comm, MPI_Status *);
+EXPORT_MPI_API int MPI_Cancel(MPI_Request *);
+EXPORT_MPI_API int MPI_Test_cancelled(MPI_Status *, int *);
+EXPORT_MPI_API int MPI_Send_init(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int MPI_Bsend_init(void*, int, MPI_Datatype, int,int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int MPI_Ssend_init(void*, int, MPI_Datatype, int,int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int MPI_Rsend_init(void*, int, MPI_Datatype, int,int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int MPI_Recv_init(void*, int, MPI_Datatype, int,int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int MPI_Start(MPI_Request *);
+EXPORT_MPI_API int MPI_Startall(int, MPI_Request *);
+EXPORT_MPI_API int MPI_Sendrecv(void *, int, MPI_Datatype,int, int, void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Status *);
+EXPORT_MPI_API int MPI_Sendrecv_replace(void*, int, MPI_Datatype, int, int, int, int, MPI_Comm, MPI_Status *);
+EXPORT_MPI_API int MPI_Type_contiguous(int, MPI_Datatype, MPI_Datatype *);
+EXPORT_MPI_API int MPI_Type_vector(int, int, int, MPI_Datatype, MPI_Datatype *);
+EXPORT_MPI_API int MPI_Type_hvector(int, int, MPI_Aint, MPI_Datatype, MPI_Datatype *);
+EXPORT_MPI_API int MPI_Type_indexed(int, int *, int *, MPI_Datatype, MPI_Datatype *);
+EXPORT_MPI_API int MPI_Type_hindexed(int, int *, MPI_Aint *, MPI_Datatype, MPI_Datatype *);
+EXPORT_MPI_API int MPI_Type_struct(int, int *, MPI_Aint *, MPI_Datatype *, MPI_Datatype *);
+EXPORT_MPI_API int MPI_Address(void*, MPI_Aint *);
+EXPORT_MPI_API int MPI_Type_extent(MPI_Datatype, MPI_Aint *);
+/* See the 1.1 version of the Standard; I think that the standard is in 
+   error; however, it is the standard */
+/* int MPI_Type_size(MPI_Datatype, MPI_Aint *size); */
+EXPORT_MPI_API int MPI_Type_size(MPI_Datatype, int *);
+EXPORT_MPI_API int MPI_Type_count(MPI_Datatype, int *);
+EXPORT_MPI_API int MPI_Type_lb(MPI_Datatype, MPI_Aint*);
+EXPORT_MPI_API int MPI_Type_ub(MPI_Datatype, MPI_Aint*);
+EXPORT_MPI_API int MPI_Type_commit(MPI_Datatype *);
+EXPORT_MPI_API int MPI_Type_free(MPI_Datatype *);
+EXPORT_MPI_API int MPI_Get_elements(MPI_Status *, MPI_Datatype, int *);
+EXPORT_MPI_API int MPI_Pack(void*, int, MPI_Datatype, void *, int, int *,  MPI_Comm);
+EXPORT_MPI_API int MPI_Unpack(void*, int, int *, void *, int, MPI_Datatype, MPI_Comm);
+EXPORT_MPI_API int MPI_Pack_size(int, MPI_Datatype, MPI_Comm, int *);
+EXPORT_MPI_API int MPI_Barrier(MPI_Comm );
+EXPORT_MPI_API int MPI_Bcast(void*, int, MPI_Datatype, int, MPI_Comm );
+EXPORT_MPI_API int MPI_Gather(void* , int, MPI_Datatype, void*, int, MPI_Datatype, int, MPI_Comm); 
+EXPORT_MPI_API int MPI_Gatherv(void* , int, MPI_Datatype, void*, int *, int *, MPI_Datatype, int, MPI_Comm); 
+EXPORT_MPI_API int MPI_Scatter(void* , int, MPI_Datatype, void*, int, MPI_Datatype, int, MPI_Comm);
+EXPORT_MPI_API int MPI_Scatterv(void* , int *, int *,  MPI_Datatype, void*, int, MPI_Datatype, int, MPI_Comm);
+EXPORT_MPI_API int MPI_Allgather(void* , int, MPI_Datatype, void*, int, MPI_Datatype, MPI_Comm);
+EXPORT_MPI_API int MPI_Allgatherv(void* , int, MPI_Datatype, void*, int *, int *, MPI_Datatype, MPI_Comm);
+EXPORT_MPI_API int MPI_Alltoall(void* , int, MPI_Datatype, void*, int, MPI_Datatype, MPI_Comm);
+EXPORT_MPI_API int MPI_Alltoallv(void* , int *, int *, MPI_Datatype, void*, int *, int *, MPI_Datatype, MPI_Comm);
+EXPORT_MPI_API int MPI_Reduce(void* , void*, int, MPI_Datatype, MPI_Op, int, MPI_Comm);
+EXPORT_MPI_API int MPI_Op_create(MPI_User_function *, int, MPI_Op *);
+EXPORT_MPI_API int MPI_Op_free( MPI_Op *);
+EXPORT_MPI_API int MPI_Allreduce(void* , void*, int, MPI_Datatype, MPI_Op, MPI_Comm);
+EXPORT_MPI_API int MPI_Reduce_scatter(void* , void*, int *, MPI_Datatype, MPI_Op, MPI_Comm);
+EXPORT_MPI_API int MPI_Scan(void* , void*, int, MPI_Datatype, MPI_Op, MPI_Comm );
+EXPORT_MPI_API int MPI_Group_size(MPI_Group group, int *);
+EXPORT_MPI_API int MPI_Group_rank(MPI_Group group, int *);
+EXPORT_MPI_API int MPI_Group_translate_ranks (MPI_Group, int, int *, MPI_Group, int *);
+EXPORT_MPI_API int MPI_Group_compare(MPI_Group, MPI_Group, int *);
+EXPORT_MPI_API int MPI_Comm_group(MPI_Comm, MPI_Group *);
+EXPORT_MPI_API int MPI_Group_union(MPI_Group, MPI_Group, MPI_Group *);
+EXPORT_MPI_API int MPI_Group_intersection(MPI_Group, MPI_Group, MPI_Group *);
+EXPORT_MPI_API int MPI_Group_difference(MPI_Group, MPI_Group, MPI_Group *);
+EXPORT_MPI_API int MPI_Group_incl(MPI_Group group, int, int *, MPI_Group *);
+EXPORT_MPI_API int MPI_Group_excl(MPI_Group group, int, int *, MPI_Group *);
+EXPORT_MPI_API int MPI_Group_range_incl(MPI_Group group, int, int [][3], MPI_Group *);
+EXPORT_MPI_API int MPI_Group_range_excl(MPI_Group group, int, int [][3], MPI_Group *);
+EXPORT_MPI_API int MPI_Group_free(MPI_Group *);
+EXPORT_MPI_API int MPI_Comm_size(MPI_Comm, int *);
+EXPORT_MPI_API int MPI_Comm_rank(MPI_Comm, int *);
+EXPORT_MPI_API int MPI_Comm_compare(MPI_Comm, MPI_Comm, int *);
+EXPORT_MPI_API int MPI_Comm_dup(MPI_Comm, MPI_Comm *);
+EXPORT_MPI_API int MPI_Comm_create(MPI_Comm, MPI_Group, MPI_Comm *);
+EXPORT_MPI_API int MPI_Comm_split(MPI_Comm, int, int, MPI_Comm *);
+EXPORT_MPI_API int MPI_Comm_free(MPI_Comm *);
+EXPORT_MPI_API int MPI_Comm_test_inter(MPI_Comm, int *);
+EXPORT_MPI_API int MPI_Comm_remote_size(MPI_Comm, int *);
+EXPORT_MPI_API int MPI_Comm_remote_group(MPI_Comm, MPI_Group *);
+EXPORT_MPI_API int MPI_Intercomm_create(MPI_Comm, int, MPI_Comm, int, int, MPI_Comm * );
+EXPORT_MPI_API int MPI_Intercomm_merge(MPI_Comm, int, MPI_Comm *);
+EXPORT_MPI_API int MPI_Keyval_create(MPI_Copy_function *, MPI_Delete_function *, int *, void*);
+EXPORT_MPI_API int MPI_Keyval_free(int *);
+EXPORT_MPI_API int MPI_Attr_put(MPI_Comm, int, void*);
+EXPORT_MPI_API int MPI_Attr_get(MPI_Comm, int, void *, int *);
+EXPORT_MPI_API int MPI_Attr_delete(MPI_Comm, int);
+EXPORT_MPI_API int MPI_Topo_test(MPI_Comm, int *);
+EXPORT_MPI_API int MPI_Cart_create(MPI_Comm, int, int *, int *, int, MPI_Comm *);
+EXPORT_MPI_API int MPI_Dims_create(int, int, int *);
+EXPORT_MPI_API int MPI_Graph_create(MPI_Comm, int, int *, int *, int, MPI_Comm *);
+EXPORT_MPI_API int MPI_Graphdims_get(MPI_Comm, int *, int *);
+EXPORT_MPI_API int MPI_Graph_get(MPI_Comm, int, int, int *, int *);
+EXPORT_MPI_API int MPI_Cartdim_get(MPI_Comm, int *);
+EXPORT_MPI_API int MPI_Cart_get(MPI_Comm, int, int *, int *, int *);
+EXPORT_MPI_API int MPI_Cart_rank(MPI_Comm, int *, int *);
+EXPORT_MPI_API int MPI_Cart_coords(MPI_Comm, int, int, int *);
+EXPORT_MPI_API int MPI_Graph_neighbors_count(MPI_Comm, int, int *);
+EXPORT_MPI_API int MPI_Graph_neighbors(MPI_Comm, int, int, int *);
+EXPORT_MPI_API int MPI_Cart_shift(MPI_Comm, int, int, int *, int *);
+EXPORT_MPI_API int MPI_Cart_sub(MPI_Comm, int *, MPI_Comm *);
+EXPORT_MPI_API int MPI_Cart_map(MPI_Comm, int, int *, int *, int *);
+EXPORT_MPI_API int MPI_Graph_map(MPI_Comm, int, int *, int *, int *);
+EXPORT_MPI_API int MPI_Get_processor_name(char *, int *);
+EXPORT_MPI_API int MPI_Get_version(int *, int *);
+EXPORT_MPI_API int MPI_Errhandler_create(MPI_Handler_function *, MPI_Errhandler *);
+EXPORT_MPI_API int MPI_Errhandler_set(MPI_Comm, MPI_Errhandler);
+EXPORT_MPI_API int MPI_Errhandler_get(MPI_Comm, MPI_Errhandler *);
+EXPORT_MPI_API int MPI_Errhandler_free(MPI_Errhandler *);
+EXPORT_MPI_API int MPI_Error_string(int, char *, int *);
+EXPORT_MPI_API int MPI_Error_class(int, int *);
+EXPORT_MPI_API double MPI_Wtime(void);
+EXPORT_MPI_API double MPI_Wtick(void);
+#ifndef MPI_Wtime
+EXPORT_MPI_API double PMPI_Wtime(void);
+EXPORT_MPI_API double PMPI_Wtick(void);
+#endif
+EXPORT_MPI_API int MPI_Init(int *, char ***);
+EXPORT_MPI_API int MPI_Init_thread( int *, char ***, int, int * );
+EXPORT_MPI_API int MPI_Finalize(void);
+EXPORT_MPI_API int MPI_Initialized(int *);
+EXPORT_MPI_API int MPI_Abort(MPI_Comm, int);
+
+/* MPI-2 communicator naming functions */
+EXPORT_MPI_API int MPI_Comm_set_name(MPI_Comm, char *);
+EXPORT_MPI_API int MPI_Comm_get_name(MPI_Comm, char *, int *);
+
+#ifdef HAVE_NO_C_CONST
+/* Default Solaris compiler does not accept const but does accept prototypes */
+#if defined(USE_STDARG) 
+EXPORT_MPI_API int MPI_Pcontrol(int, ...);
+#else
+EXPORT_MPI_API int MPI_Pcontrol(int);
+#endif
+#else
+EXPORT_MPI_API int MPI_Pcontrol(const int, ...);
+#endif
+
+EXPORT_MPI_API int MPI_NULL_COPY_FN ( MPI_Comm, int, void *, void *, void *, int * );
+EXPORT_MPI_API int MPI_NULL_DELETE_FN ( MPI_Comm, int, void *, void * );
+EXPORT_MPI_API int MPI_DUP_FN ( MPI_Comm, int, void *, void *, void *, int * );
+
+/* misc2 (MPI2) */
+EXPORT_MPI_API int MPI_Status_f2c( MPI_Fint *, MPI_Status * );
+EXPORT_MPI_API int MPI_Status_c2f( MPI_Status *, MPI_Fint * );
+EXPORT_MPI_API int MPI_Finalized( int * );
+EXPORT_MPI_API int MPI_Type_create_indexed_block(int, int, int *, MPI_Datatype, MPI_Datatype *);
+EXPORT_MPI_API int MPI_Type_get_envelope(MPI_Datatype, int *, int *, int *, int *); 
+EXPORT_MPI_API int MPI_Type_get_contents(MPI_Datatype, int, int, int, int *, MPI_Aint *, MPI_Datatype *);
+EXPORT_MPI_API int MPI_Type_create_subarray(int, int *, int *, int *, int, MPI_Datatype, MPI_Datatype *);
+EXPORT_MPI_API int MPI_Type_create_darray(int, int, int, int *, int *, int *, int *, int, MPI_Datatype, MPI_Datatype *);
+EXPORT_MPI_API int MPI_Info_create(MPI_Info *);
+EXPORT_MPI_API int MPI_Info_set(MPI_Info, char *, char *);
+EXPORT_MPI_API int MPI_Info_delete(MPI_Info, char *);
+EXPORT_MPI_API int MPI_Info_get(MPI_Info, char *, int, char *, int *);
+EXPORT_MPI_API int MPI_Info_get_valuelen(MPI_Info, char *, int *, int *);
+EXPORT_MPI_API int MPI_Info_get_nkeys(MPI_Info, int *);
+EXPORT_MPI_API int MPI_Info_get_nthkey(MPI_Info, int, char *);
+EXPORT_MPI_API int MPI_Info_dup(MPI_Info, MPI_Info *);
+EXPORT_MPI_API int MPI_Info_free(MPI_Info *info);
+
+MPI_Fint MPI_Info_c2f(MPI_Info);
+MPI_Info MPI_Info_f2c(MPI_Fint);
+MPI_Fint MPI_Request_c2f( MPI_Request );
+
+/* external */
+EXPORT_MPI_API int MPI_Status_set_cancelled( MPI_Status *, int );
+EXPORT_MPI_API int MPI_Status_set_elements( MPI_Status *, MPI_Datatype, int );
+
+#endif /* MPICH_SUPPRESS_PROTOTYPES */
+
+
+
+/* Here are the bindings of the profiling routines */
+#if !defined(MPI_BUILD_PROFILING)
+EXPORT_MPI_API int PMPI_Send(void*, int, MPI_Datatype, int, int, MPI_Comm);
+EXPORT_MPI_API int PMPI_Recv(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Status *);
+EXPORT_MPI_API int PMPI_Get_count(MPI_Status *, MPI_Datatype, int *);
+EXPORT_MPI_API int PMPI_Bsend(void*, int, MPI_Datatype, int, int, MPI_Comm);
+EXPORT_MPI_API int PMPI_Ssend(void*, int, MPI_Datatype, int, int, MPI_Comm);
+EXPORT_MPI_API int PMPI_Rsend(void*, int, MPI_Datatype, int, int, MPI_Comm);
+EXPORT_MPI_API int PMPI_Buffer_attach( void* buffer, int);
+EXPORT_MPI_API int PMPI_Buffer_detach( void* buffer, int*);
+EXPORT_MPI_API int PMPI_Isend(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int PMPI_Ibsend(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int PMPI_Issend(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int PMPI_Irsend(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int PMPI_Irecv(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int PMPI_Wait(MPI_Request *, MPI_Status *);
+EXPORT_MPI_API int PMPI_Test(MPI_Request *, int *flag, MPI_Status *);
+EXPORT_MPI_API int PMPI_Request_free(MPI_Request *);
+EXPORT_MPI_API int PMPI_Waitany(int, MPI_Request *, int *, MPI_Status *);
+EXPORT_MPI_API int PMPI_Testany(int, MPI_Request *, int *, int *, MPI_Status *);
+EXPORT_MPI_API int PMPI_Waitall(int, MPI_Request *, MPI_Status *);
+EXPORT_MPI_API int PMPI_Testall(int, MPI_Request *, int *flag, MPI_Status *);
+EXPORT_MPI_API int PMPI_Waitsome(int, MPI_Request *, int *, int *, MPI_Status *);
+EXPORT_MPI_API int PMPI_Testsome(int, MPI_Request *, int *, int *, MPI_Status *);
+EXPORT_MPI_API int PMPI_Iprobe(int, int, MPI_Comm, int *flag, MPI_Status *);
+EXPORT_MPI_API int PMPI_Probe(int, int, MPI_Comm, MPI_Status *);
+EXPORT_MPI_API int PMPI_Cancel(MPI_Request *);
+EXPORT_MPI_API int PMPI_Test_cancelled(MPI_Status *, int *flag);
+EXPORT_MPI_API int PMPI_Send_init(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int PMPI_Bsend_init(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int PMPI_Ssend_init(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int PMPI_Rsend_init(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int PMPI_Recv_init(void*, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+EXPORT_MPI_API int PMPI_Start(MPI_Request *);
+EXPORT_MPI_API int PMPI_Startall(int, MPI_Request *);
+EXPORT_MPI_API int PMPI_Sendrecv(void *, int, MPI_Datatype, int, int, void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Status *);
+EXPORT_MPI_API int PMPI_Sendrecv_replace(void*, int, MPI_Datatype, int, int, int, int, MPI_Comm, MPI_Status *);
+EXPORT_MPI_API int PMPI_Type_contiguous(int, MPI_Datatype, MPI_Datatype *);
+EXPORT_MPI_API int PMPI_Type_vector(int, int, int, MPI_Datatype, MPI_Datatype *);
+EXPORT_MPI_API int PMPI_Type_hvector(int, int, MPI_Aint, MPI_Datatype, MPI_Datatype *);
+EXPORT_MPI_API int PMPI_Type_indexed(int, int *, int *, MPI_Datatype, MPI_Datatype *);
+EXPORT_MPI_API int PMPI_Type_hindexed(int, int *, MPI_Aint *, MPI_Datatype, MPI_Datatype *);
+EXPORT_MPI_API int PMPI_Type_struct(int, int *, MPI_Aint *, MPI_Datatype *, MPI_Datatype *);
+EXPORT_MPI_API int PMPI_Address(void*, MPI_Aint *);
+EXPORT_MPI_API int PMPI_Type_extent(MPI_Datatype, MPI_Aint *);
+/* See the 1.1 version of the Standard; I think that the standard is in 
+   error; however, it is the standard */
+/* EXPORT_MPI_API int PMPI_Type_size(MPI_Datatype, MPI_Aint *); */
+EXPORT_MPI_API int PMPI_Type_size(MPI_Datatype, int *);
+EXPORT_MPI_API int PMPI_Type_count(MPI_Datatype, int *);
+EXPORT_MPI_API int PMPI_Type_lb(MPI_Datatype, MPI_Aint*);
+EXPORT_MPI_API int PMPI_Type_ub(MPI_Datatype, MPI_Aint*);
+EXPORT_MPI_API int PMPI_Type_commit(MPI_Datatype *);
+EXPORT_MPI_API int PMPI_Type_free(MPI_Datatype *);
+EXPORT_MPI_API int PMPI_Get_elements(MPI_Status *, MPI_Datatype, int *);
+EXPORT_MPI_API int PMPI_Pack(void*, int, MPI_Datatype, void *, int, int *,  MPI_Comm);
+EXPORT_MPI_API int PMPI_Unpack(void*, int, int *, void *, int, MPI_Datatype, MPI_Comm);
+EXPORT_MPI_API int PMPI_Pack_size(int, MPI_Datatype, MPI_Comm, int *);
+EXPORT_MPI_API int PMPI_Barrier(MPI_Comm );
+EXPORT_MPI_API int PMPI_Bcast(void* buffer, int, MPI_Datatype, int, MPI_Comm );
+EXPORT_MPI_API int PMPI_Gather(void* , int, MPI_Datatype, void*, int, MPI_Datatype, int, MPI_Comm); 
+EXPORT_MPI_API int PMPI_Gatherv(void* , int, MPI_Datatype, void*, int *, int *, MPI_Datatype, int, MPI_Comm); 
+EXPORT_MPI_API int PMPI_Scatter(void* , int, MPI_Datatype, void*, int, MPI_Datatype, int, MPI_Comm);
+EXPORT_MPI_API int PMPI_Scatterv(void* , int *, int *displs, MPI_Datatype, void*, int, MPI_Datatype, int, MPI_Comm);
+EXPORT_MPI_API int PMPI_Allgather(void* , int, MPI_Datatype, void*, int, MPI_Datatype, MPI_Comm);
+EXPORT_MPI_API int PMPI_Allgatherv(void* , int, MPI_Datatype, void*, int *, int *, MPI_Datatype, MPI_Comm);
+EXPORT_MPI_API int PMPI_Alltoall(void* , int, MPI_Datatype, void*, int, MPI_Datatype, MPI_Comm);
+EXPORT_MPI_API int PMPI_Alltoallv(void* , int *, int *, MPI_Datatype, void*, int *, int *, MPI_Datatype, MPI_Comm);
+EXPORT_MPI_API int PMPI_Reduce(void* , void*, int, MPI_Datatype, MPI_Op, int, MPI_Comm);
+EXPORT_MPI_API int PMPI_Op_create(MPI_User_function *, int, MPI_Op *);
+EXPORT_MPI_API int PMPI_Op_free( MPI_Op *);
+EXPORT_MPI_API int PMPI_Allreduce(void* , void*, int, MPI_Datatype, MPI_Op, MPI_Comm);
+EXPORT_MPI_API int PMPI_Reduce_scatter(void* , void*, int *, MPI_Datatype, MPI_Op, MPI_Comm);
+EXPORT_MPI_API int PMPI_Scan(void* , void*, int, MPI_Datatype, MPI_Op, MPI_Comm );
+EXPORT_MPI_API int PMPI_Group_size(MPI_Group group, int *);
+EXPORT_MPI_API int PMPI_Group_rank(MPI_Group group, int *);
+EXPORT_MPI_API int PMPI_Group_translate_ranks (MPI_Group, int, int *, MPI_Group, int *);
+EXPORT_MPI_API int PMPI_Group_compare(MPI_Group, MPI_Group, int *);
+EXPORT_MPI_API int PMPI_Comm_group(MPI_Comm, MPI_Group *);
+EXPORT_MPI_API int PMPI_Group_union(MPI_Group, MPI_Group, MPI_Group *);
+EXPORT_MPI_API int PMPI_Group_intersection(MPI_Group, MPI_Group, MPI_Group *);
+EXPORT_MPI_API int PMPI_Group_difference(MPI_Group, MPI_Group, MPI_Group *);
+EXPORT_MPI_API int PMPI_Group_incl(MPI_Group group, int, int *, MPI_Group *);
+EXPORT_MPI_API int PMPI_Group_excl(MPI_Group group, int, int *, MPI_Group *);
+EXPORT_MPI_API int PMPI_Group_range_incl(MPI_Group group, int, int [][3], MPI_Group *);
+EXPORT_MPI_API int PMPI_Group_range_excl(MPI_Group group, int, int [][3], MPI_Group *);
+EXPORT_MPI_API int PMPI_Group_free(MPI_Group *);
+EXPORT_MPI_API int PMPI_Comm_size(MPI_Comm, int *);
+EXPORT_MPI_API int PMPI_Comm_rank(MPI_Comm, int *);
+EXPORT_MPI_API int PMPI_Comm_compare(MPI_Comm, MPI_Comm, int *);
+EXPORT_MPI_API int PMPI_Comm_dup(MPI_Comm, MPI_Comm *);
+EXPORT_MPI_API int PMPI_Comm_create(MPI_Comm, MPI_Group, MPI_Comm *);
+EXPORT_MPI_API int PMPI_Comm_split(MPI_Comm, int, int, MPI_Comm *);
+EXPORT_MPI_API int PMPI_Comm_free(MPI_Comm *);
+EXPORT_MPI_API int PMPI_Comm_test_inter(MPI_Comm, int *);
+EXPORT_MPI_API int PMPI_Comm_remote_size(MPI_Comm, int *);
+EXPORT_MPI_API int PMPI_Comm_remote_group(MPI_Comm, MPI_Group *);
+EXPORT_MPI_API int PMPI_Intercomm_create(MPI_Comm, int, MPI_Comm, int, int, MPI_Comm *);
+EXPORT_MPI_API int PMPI_Intercomm_merge(MPI_Comm, int, MPI_Comm *);
+EXPORT_MPI_API int PMPI_Keyval_create(MPI_Copy_function *, MPI_Delete_function *, int *, void*);
+EXPORT_MPI_API int PMPI_Keyval_free(int *);
+EXPORT_MPI_API int PMPI_Attr_put(MPI_Comm, int, void*);
+EXPORT_MPI_API int PMPI_Attr_get(MPI_Comm, int, void *, int *);
+EXPORT_MPI_API int PMPI_Attr_delete(MPI_Comm, int);
+EXPORT_MPI_API int PMPI_Topo_test(MPI_Comm, int *);
+EXPORT_MPI_API int PMPI_Cart_create(MPI_Comm, int, int *, int *, int, MPI_Comm *);
+EXPORT_MPI_API int PMPI_Dims_create(int, int, int *);
+EXPORT_MPI_API int PMPI_Graph_create(MPI_Comm, int, int *, int *, int, MPI_Comm *);
+EXPORT_MPI_API int PMPI_Graphdims_get(MPI_Comm, int *, int *);
+EXPORT_MPI_API int PMPI_Graph_get(MPI_Comm, int, int, int *, int *);
+EXPORT_MPI_API int PMPI_Cartdim_get(MPI_Comm, int *);
+EXPORT_MPI_API int PMPI_Cart_get(MPI_Comm, int, int *, int *, int *);
+EXPORT_MPI_API int PMPI_Cart_rank(MPI_Comm, int *, int *);
+EXPORT_MPI_API int PMPI_Cart_coords(MPI_Comm, int, int, int *);
+EXPORT_MPI_API int PMPI_Graph_neighbors_count(MPI_Comm, int, int *);
+EXPORT_MPI_API int PMPI_Graph_neighbors(MPI_Comm, int, int, int *);
+EXPORT_MPI_API int PMPI_Cart_shift(MPI_Comm, int, int, int *, int *);
+EXPORT_MPI_API int PMPI_Cart_sub(MPI_Comm, int *, MPI_Comm *);
+EXPORT_MPI_API int PMPI_Cart_map(MPI_Comm, int, int *, int *, int *);
+EXPORT_MPI_API int PMPI_Graph_map(MPI_Comm, int, int *, int *, int *);
+EXPORT_MPI_API int PMPI_Get_processor_name(char *, int *);
+EXPORT_MPI_API int PMPI_Get_version(int *, int *);
+EXPORT_MPI_API int PMPI_Errhandler_create(MPI_Handler_function *, MPI_Errhandler *);
+EXPORT_MPI_API int PMPI_Errhandler_set(MPI_Comm, MPI_Errhandler);
+EXPORT_MPI_API int PMPI_Errhandler_get(MPI_Comm, MPI_Errhandler *);
+EXPORT_MPI_API int PMPI_Errhandler_free(MPI_Errhandler *);
+EXPORT_MPI_API int PMPI_Error_string(int, char *, int *);
+EXPORT_MPI_API int PMPI_Error_class(int, int *);
+
+EXPORT_MPI_API int PMPI_Type_get_envelope(MPI_Datatype, int *, int *, int *, int *); 
+EXPORT_MPI_API int PMPI_Type_get_contents(MPI_Datatype, int, int, int, int *, MPI_Aint *, MPI_Datatype *);
+EXPORT_MPI_API int PMPI_Type_create_subarray(int, int *, int *, int *, int, MPI_Datatype, MPI_Datatype *);
+EXPORT_MPI_API int PMPI_Type_create_darray(int, int, int, int *, int *, int *, int *, int, MPI_Datatype, MPI_Datatype *);
+EXPORT_MPI_API int PMPI_Info_create(MPI_Info *);
+EXPORT_MPI_API int PMPI_Info_set(MPI_Info, char *, char *);
+EXPORT_MPI_API int PMPI_Info_delete(MPI_Info, char *);
+EXPORT_MPI_API int PMPI_Info_get(MPI_Info, char *, int, char *, int *);
+EXPORT_MPI_API int PMPI_Info_get_valuelen(MPI_Info, char *, int *, int *);
+EXPORT_MPI_API int PMPI_Info_get_nkeys(MPI_Info, int *);
+EXPORT_MPI_API int PMPI_Info_get_nthkey(MPI_Info, int, char *);
+EXPORT_MPI_API int PMPI_Info_dup(MPI_Info, MPI_Info *);
+EXPORT_MPI_API int PMPI_Info_free(MPI_Info *);
+
+MPI_Fint PMPI_Info_c2f(MPI_Info);
+MPI_Info PMPI_Info_f2c(MPI_Fint);
+
+/* Wtime done above */
+EXPORT_MPI_API int PMPI_Init(int *, char ***);
+EXPORT_MPI_API int PMPI_Init_thread( int *, char ***, int, int * );
+EXPORT_MPI_API int PMPI_Finalize(void);
+EXPORT_MPI_API int PMPI_Initialized(int *);
+EXPORT_MPI_API int PMPI_Abort(MPI_Comm, int);
+/* MPI-2 communicator naming functions */
+/* EXPORT_MPI_API int PMPI_Comm_set_name(MPI_Comm, char *); */
+/* EXPORT_MPI_API int PMPI_Comm_get_name(MPI_Comm, char **); */
+#ifdef HAVE_NO_C_CONST
+/* Default Solaris compiler does not accept const but does accept prototypes */
+#if defined(USE_STDARG) 
+EXPORT_MPI_API int PMPI_Pcontrol(int, ...);
+#else
+EXPORT_MPI_API int PMPI_Pcontrol(int);
+#endif
+#else
+EXPORT_MPI_API int PMPI_Pcontrol(const int, ...);
+#endif
+
+/* external */
+EXPORT_MPI_API int PMPI_Status_set_cancelled( MPI_Status *, int );
+EXPORT_MPI_API int PMPI_Status_set_elements( MPI_Status *, MPI_Datatype, int );
+
+#endif  /* MPI_BUILD_PROFILING */
+/* End of MPI bindings */
 
 #if defined(__cplusplus)
 }
+/* Add the C++ bindings */
+/* 
+   If MPICH_SKIP_MPICXX is defined, the mpi++.h file will *not* be included.
+   This is necessary, for example, when building the C++ interfaces.  It
+   can also be used when you want to use a C++ compiler to compile C code,
+   and do not want to load the C++ bindings
+ */
+#if defined(HAVE_MPI_CPP) && !defined(MPICH_SKIP_MPICXX)
+#include "mpi++.h"
+#endif 
 #endif
 
 #endif

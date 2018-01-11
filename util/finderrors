@@ -120,7 +120,7 @@ endif
     exit($RC)
 endif
 #
-# This is the fallthrough case 
+# This is the fall-through case 
 #
 if ($ISRC) then
     # was ^[a-zA-Z0-9_]*\.c: [1-9]
@@ -136,18 +136,27 @@ if ($ISRC) then
 		wc -l`
     if ($RC1 != 0) set RC = $RC1
 else
+    /bin/rm -f .tmp
     egrep '^"|^\\.|^\*\#|^accom:|^/usr.*:|^Error|syntax error|^ar:|^mv:|^ld:|^Archive:|^make:|^xlc:|^cfe:|^PGC\-|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.c:|^cc:|^f77:|^[-0-9 ]*ERROR:' $1 | \
     egrep -v '/X11R5/.*/Xlib.h:.*function declaration.*a prototype' |\
     egrep -v '/X11/Xlib.h:.*function declaration.*a prototype' | \
     egrep -v '^ar: creating|^ar: writing' | \
     egrep -v 'Warning .*declared EXTERNAL but never used' | \
     egrep -v 'if \[ .* \] ; then ln -s .* fi' |\
-    egrep -v 'Type long double has the same' 
+    egrep -v 'Type long double has the same' >& .tmp
+    if ($?MPICH_WARNING_SEP) then
+       /bin/rm -f .tmp2
+       sed -e '/>'"$MPICH_WARNING_SEP"/,'/<'"$MPICH_WARNING_SEP"/d .tmp > .tmp2
+       /bin/rm -f .tmp
+       mv .tmp2 .tmp
+    endif
+    cat .tmp
     egrep 'No space left|Connection timed' $1
 endif
 #
 # Try for test suite.  Print out the head line and the summary for the 
-# directory
+# directory.
+# Grumble.  IRIX can abort, flushing the 'End of testing' message.
 sed -n -e '/^Making testing/p' -e '/\*\*\* Checking for diff/,/^End of testing/p' $1 | grep -v '^.*/mpicc' | \
 	grep -v '^.*/mpif77'
 #

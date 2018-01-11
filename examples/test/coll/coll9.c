@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "test.h"
 
-void addem ANSI_ARGS(( int *, int *, int *, MPI_Datatype * ));
+void addem ( int *, int *, int *, MPI_Datatype * );
 
 void addem(invec, inoutvec, len, dtype)
 int *invec, *inoutvec, *len;

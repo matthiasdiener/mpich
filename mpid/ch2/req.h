@@ -60,8 +60,14 @@ struct _MPIR_SHANDLE {
     int          self_index;      /* Used when mapping to/from indices */
     int          ref_count;       /* Used to handle freed (by user) but
 				     not complete */
+    int          is_cancelled;    /* Indicates message is cancelled */
+    int          cancel_complete; /* Indicates when cancel call has 
+				     completed */
+    int          partner;         /* Holds rank of process - used to 
+				     cancel isend requests */
     int          errval;          /* Holds any error code; 0 for none */
     MPI_Comm     comm;            /* Do we need this?  */
+    MPI_Status   s;               /* Status of data */
 
     /* Device data */
     int           is_non_blocking;
@@ -77,7 +83,6 @@ struct _MPIR_SHANDLE {
 				       completed */
     MPID_RNDV_T   recv_handle;      /* Holds 'transfer' handle for RNDV 
 				       operations */
-
 
     /* New fields are the functions to call */
     /* Is test a field or a function ? */
@@ -108,6 +113,8 @@ struct _MPIR_RHANDLE {
     int          contextid;    /* context id -- why? */
     void         *buf;         /* address of buffer */
     int          len;          /* length of buffer at bufadd in bytes */
+    int          partner;      /* Holds rank of process - used for 
+				  rendevous unexpected messages */
 
     /* Device data */
     int           is_non_blocking;
@@ -230,5 +237,10 @@ union MPIR_HANDLE {
                       (ptr)->ref_count = 1;\
 		      MPIR_SET_COOKIE((ptr),MPIR_REQUEST_COOKIE);}
 #endif
+
+/* These have been added to provide a procedural interface to these 
+   fields; the Globus device implements these in a different way */
+#define MPID_SendRequestCancelled(r) (r)->shandle.s.MPI_TAG == MPIR_MSG_CANCELLED
+#define MPID_SendRequestErrval(r) (r)->s.MPI_ERROR
 
 #endif

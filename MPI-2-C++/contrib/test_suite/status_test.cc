@@ -43,7 +43,7 @@ status_test()
   set_src = 2;
   set_tag = 3;
 
-  Testing("Set_source / Get_source");
+  Testing( (char *)"Set_source / Get_source");
 
   status.Set_source(set_src);
   get_src = status.Get_source();
@@ -55,7 +55,7 @@ status_test()
 
   Pass(); // Set_source / Get_source
 
-  Testing("Set_tag / Get_tag");
+  Testing( (char *)"Set_tag / Get_tag");
 
   status.Set_tag(set_tag);
   get_tag = status.Get_tag();
@@ -67,7 +67,7 @@ status_test()
 
   Pass(); // Set_tag / Get_tag
 
-  Testing("Set_error / Get_error");
+  Testing( (char *)"Set_error / Get_error");
 
   status.Set_error(set_err);
   get_err = status.Get_error();

@@ -3,7 +3,6 @@ ALL: default
 
 SHELL       = /bin/sh
 ARCH        = @ARCH@
-COMM        = @COMM@
 MPIR_HOME   = @MPIR_HOME@
 CC          = @MPICC@
 CLINKER     = $(CC)
@@ -19,8 +18,11 @@ LOG_LIB     = -mpilog -lm
 PROF_LIB    = -lmpe -lm
 OPTFLAGS    = @OPTFLAGS@
 MPE_DIR     = @MPE_DIR@
+F77_OPTFLAGS = @F77_EXTRA_FLAG@
 #
+srcdir=@srcdir@
 
+@VPATH@
 ### End User configurable options ###
 
 CFLAGS	  = $(OPTFLAGS) 
@@ -41,7 +43,7 @@ default: $(EXECS)
 	if [ -n "@F90@" -o "@f90nag@" = 1 ] ; then $(MAKE) fibon ; fi
 
 
-fpi: fpi.o $(MPIR_HOME)/include/mpif.h
+fpi: fpi.o 
 	$(FLINKER) $(OPTFLAGS) -o fpi fpi.o
 
 fibon: fibon.o 
@@ -79,16 +81,18 @@ cpilog.o: cpilog.c
 	    echo "Use -mpe to configure to have the MPE libraries built" ; \
 	    exit 1 ; \
 	fi
-	$(CC) $(CFLAGSMPE) -c cpilog.c
+	$(CC) $(CFLAGSMPE) -c ${srcdir}/cpilog.c
 .c.o:
-	$(CC) $(CFLAGS) -c $*.c
+	$(CC) $(CFLAGS) -c $<
 .f.o:
-	$(F77) $(FFLAGS) -c $*.f
+	$(F77) $(F77_OPTFLAGS) $(FFLAGS) -c $<
 .cc.o:
-	$(CCC) -c $*.cc
+	$(CCC) -c $<
+.C.o:
+	$(CCC) -c $<
 .SUFFIXES:	\
-	.cc
+	.cc .C
 .f90.o:
-	$(F90) -c $*.f90
+	$(F90) -c $<
 .SUFFIXES:	\
 	.f90

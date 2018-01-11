@@ -74,7 +74,7 @@ interf()
   request1 = MPI::REQUEST_NULL;
   request2 = MPI::REQUEST_NULL;
 
-  Testing("Dup");
+  Testing( (char *)"Dup");
 
   my_comm = MPI::COMM_WORLD.Dup();
 

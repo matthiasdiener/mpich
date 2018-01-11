@@ -12,7 +12,7 @@ for arg in "$@" ; do
 	set -x
 	;;
 	-show)
-	ipccmd=echo
+	ipccmd="echo ipcrm"
 	;;
 	*)
 	if [ -n "$arg" ] ; then
@@ -36,8 +36,8 @@ if [ $UseLinux = 0 ] ; then
 else
     #
     # For LINUX, we need this instead:
-    ipcs -m | gawk '{if ($3 == name) system(comm $3)}' name=$LOGNAME comm="$ipccmd shm " > /dev/null
-    ipcs -s | gawk '{if ($3 == name) system(comm $2)}' name=$LOGNAME comm="$ipccmd sem " > /dev/null
+    ipcs -m | gawk '{if ($3 == name) printf("%s %s\n", comm, $2)}' name=$LOGNAME comm="$ipccmd shm " | sh > /dev/null
+    ipcs -s | gawk '{if ($3 == name) printf("%s %s\n", comm, $2)}' name=$LOGNAME comm="$ipccmd sem " | sh > /dev/null
 fi
 #
 # mpirun could call this for systems that use SYSV shared memory features,

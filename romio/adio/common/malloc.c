@@ -1,5 +1,5 @@
 /* 
- *   $Id: malloc.c,v 1.2 1998/06/02 18:57:24 thakur Exp $    
+ *   $Id: malloc.c,v 1.4 1999/08/16 17:36:46 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,12 +19,17 @@
 #include "mpi.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include "mpipr.h"
 
 void *ADIOI_Malloc(size_t size, int lineno, char *fname)
 {
     void *new;
 
+#ifdef __XFS
+    new = (void *) memalign(__XFS_MEMALIGN, size);
+#else
     new = (void *) malloc(size);
+#endif
     if (!new) {
 	printf("Out of memory in file %s, line %d\n", fname, lineno);
 	MPI_Abort(MPI_COMM_WORLD, 1);

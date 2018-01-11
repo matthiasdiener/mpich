@@ -10,10 +10,10 @@ Compares two communicators
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Comm_compare ( comm1, comm2, result )
-MPI_Comm  comm1;
-MPI_Comm  comm2;
-int       *result;
+int MPI_Comm_compare ( 
+ MPI_Comm  comm1,
+ MPI_Comm  comm2,
+ int *result)
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>
@@ -27,6 +27,18 @@ int       *result;
 same, <TT>MPI_CONGRUENT</TT> if different contexts but identical groups, <TT>MPI_SIMILAR</TT>
 if different contexts but similar groups, and <TT>MPI_UNEQUAL</TT> otherwise
 </DL>
+<P>
+<H2>Using 'MPI_COMM_NULL' with 'MPI_Comm_compare'</H2>
+<P>
+It is an error to use <TT>MPI_COMM_NULL</TT> as one of the arguments to
+<TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node101.html#node101">MPI_Comm_compare</A></TT>.  The relevant sections of the MPI standard are
+<P>
+.(2.4.1 Opaque Objects)
+A null handle argument is an erroneous <TT>IN</TT> argument in MPI calls, unless an
+exception is explicitly stated in the text that defines the function.
+<P>
+.(5.4.1. Communicator Accessors)
+&lt;no text in <TT>MPI_COMM_COMPARE</TT> allowing a null handle&gt;
 <P>
 <H2>Notes for Fortran</H2>
 All MPI routines in Fortran (except for <TT>MPI_WTIME</TT> and <TT>MPI_WTICK</TT>) have

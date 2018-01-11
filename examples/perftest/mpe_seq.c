@@ -6,7 +6,7 @@ extern void *malloc();
 
 static int MPE_Seq_keyval = MPI_KEYVAL_INVALID;
 
-/*@
+/*
    MPE_Seq_begin - Begins a sequential section of code.  
 
    Input Parameters:
@@ -27,7 +27,7 @@ $
    calling MPE_Seq_end; also note that some systems do not propagate I/O in any
    order to the controling terminal (in other words, even if you flush the
    output, you may not get the data in the order that you want).
-@*/
+ */
 void MPE_Seq_begin( comm, ng )
 MPI_Comm comm;
 int      ng;

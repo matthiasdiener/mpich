@@ -41,8 +41,10 @@ extern "C" {
 
 
 //JGS: this is used for implementing user functions for MPI::Op
+extern "C" {
 extern void
 op_intercept(void *invec, void *outvec, int *len, MPI_Datatype *datatype);
+}
 
 #if IBM_SP
 //Here's the sp2 typedeffrom their header file:
@@ -58,17 +60,20 @@ throw_excptn_fctn(MPI_Comm* comm, int* errcode, char*, int*, int*);
 
 //JGS: this is used as the MPI_Handler_function for
 // the mpi_errhandler in ERRORS_THROW_EXCEPTIONS
+extern "C" {
 extern void
 throw_excptn_fctn(MPI_Comm* comm, int* errcode, ...);
 
 extern void
 errhandler_intercept(MPI_Comm * mpi_comm, int * err, ...);
+}
 #endif
 
 
 //used for attr intercept functions
 enum CommType { eIntracomm, eIntercomm, eCartcomm, eGraphcomm};
 
+extern "C" {
 extern int
 copy_attr_intercept(MPI_Comm oldcomm, int keyval, 
 		    void *extra_state, void *attribute_val_in, 
@@ -77,7 +82,7 @@ copy_attr_intercept(MPI_Comm oldcomm, int keyval,
 extern int
 delete_attr_intercept(MPI_Comm comm, int keyval, 
 		      void *attribute_val, void *extra_state);
-
+}
 
 #if _MPIPP_PROFILING_
 #include "pmpi++.h"
@@ -113,8 +118,16 @@ public:
 #include "functions.h"
 #include "datatype.h"
 
+#if _MPIPP_USENAMESPACE_
+  // We can't put this inside of a class.
+  extern "C" {
   typedef void User_function(const void* invec, void* inoutvec, int len,
 			     const Datatype& datatype);
+  }
+#else
+  typedef void User_function(const void* invec, void* inoutvec, int len,
+			     const Datatype& datatype);
+#endif
 
 #include "exception.h"
 #include "op.h"

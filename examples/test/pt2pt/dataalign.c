@@ -53,12 +53,12 @@ int main( int argc, char *argv[])
 	MPI_Type_size( str, &tsize );
 	MPI_Type_extent( str, &text );
 #ifdef DEBUG
-	printf("Size of MPI struct is %d, extent is %d\n", tsize, text );
+	printf("Size of MPI struct is %d, extent is %d\n", tsize, (int)text );
 	printf("Size of C struct is %d\n", sizeof(struct a) );
 #endif
 	if (text != sizeof(struct a)) {
 	    printf( "Extent of struct a (%d) does not match sizeof (%d)\n",
-		    text, (int)sizeof(struct a) );
+		    (int)text, (int)sizeof(struct a) );
 	    errs++;
 	}
 

@@ -1,4 +1,4 @@
-/* $Header: /home/MPI/cvsMaster/mpich/src/infoexport/mpi_interface.h,v 1.2 1998/10/07 18:29:55 gropp Exp $ */
+/* $Header: /home/MPI/cvsMaster/mpich/src/infoexport/mpi_interface.h,v 1.5 1999/09/20 21:36:13 gropp Exp $ */
 /* $Locker:  $ */
 
 /**********************************************************************
@@ -366,8 +366,8 @@ typedef struct mqs_process_callbacks
 extern void mqs_setup_basic_callbacks (const mqs_basic_callbacks *);
 
 /* Version handling */
-extern char *mqs_version_string ();
-extern int   mqs_version_compatibility();
+extern char *mqs_version_string ( void );
+extern int   mqs_version_compatibility( void );
 
 /* Provide a text string for an error value */
 extern char * mqs_dll_error_string (int);

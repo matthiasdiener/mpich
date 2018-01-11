@@ -1,11 +1,30 @@
 /*
- *  $Id: group_rank.c,v 1.1.1.1 1997/09/17 20:41:42 gropp Exp $
+ *  $Id: group_rank.c,v 1.6 1999/08/30 15:43:20 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Group_rank = PMPI_Group_rank
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Group_rank  MPI_Group_rank
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Group_rank as PMPI_Group_rank
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
 
@@ -26,9 +45,7 @@ process is not a member (integer)
 .N MPI_ERR_ARG
 
 @*/
-int MPI_Group_rank ( group, rank )
-MPI_Group group;
-int *rank;
+EXPORT_MPI_API int MPI_Group_rank ( MPI_Group group, int *rank )
 {
   int mpi_errno = MPI_SUCCESS;
   struct MPIR_GROUP *group_ptr;
@@ -37,11 +54,15 @@ int *rank;
   TR_PUSH(myname);
 
   group_ptr = MPIR_GET_GROUP_PTR(group);
-  MPIR_TEST_MPI_GROUP(group,group_ptr,MPIR_COMM_WORLD,myname);
 
   /* Check for invalid arguments */
-  if ( MPIR_TEST_ARG(rank) )
-      return MPIR_ERROR(MPIR_COMM_WORLD,mpi_errno,myname );
+#ifndef MPIR_NO_ERROR_CHECKING
+  MPIR_TEST_GROUP(group_ptr);
+  MPIR_TEST_ARG(rank);
+  if (mpi_errno)
+	return MPIR_ERROR(MPIR_COMM_WORLD, mpi_errno, myname );
+#endif
+/*  MPIR_TEST_MPI_GROUP(group,group_ptr,MPIR_COMM_WORLD,myname); */
 
   /* Get the rank of the group */
   (*rank) = group_ptr->local_rank;

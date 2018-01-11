@@ -1,5 +1,5 @@
 /*
- *  $Id: recv.c,v 1.4 1998/04/28 21:47:03 swider Exp $
+ *  $Id: recv.c,v 1.9 1999/08/30 15:49:14 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,25 @@
 
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Recv = PMPI_Recv
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Recv  MPI_Recv
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Recv as PMPI_Recv
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 /*@
     MPI_Recv - Basic receive
 
@@ -36,12 +55,8 @@ number can be determined with 'MPI_Get_count'.
 .N MPI_ERR_RANK
 
 @*/
-int MPI_Recv( buf, count, datatype, source, tag, comm, status )
-void             *buf;
-int              count, source, tag;
-MPI_Datatype     datatype;
-MPI_Comm         comm;
-MPI_Status       *status;
+EXPORT_MPI_API int MPI_Recv( void *buf, int count, MPI_Datatype datatype, int source, 
+	      int tag, MPI_Comm comm, MPI_Status *status )
 {
     struct MPIR_COMMUNICATOR *comm_ptr;
     struct MPIR_DATATYPE     *dtype_ptr;
@@ -62,9 +77,13 @@ MPI_Status       *status;
 	dtype_ptr = MPIR_GET_DTYPE_PTR(datatype);
 	MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
 
-        if (MPIR_TEST_COUNT(comm,count) || MPIR_TEST_RECV_TAG(comm,tag) ||
-	    MPIR_TEST_RECV_RANK(comm_ptr,source)) 
+#ifndef MPIR_NO_ERROR_CHECKING
+	MPIR_TEST_COUNT(count);
+	MPIR_TEST_RECV_TAG(tag);
+	MPIR_TEST_RECV_RANK(comm_ptr,source);
+	if (mpi_errno)
 	    return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
 
 	MPID_RecvDatatype( comm_ptr, buf, count, dtype_ptr, source, tag, 
 			   comm_ptr->recv_context, status, &mpi_errno );

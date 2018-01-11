@@ -1,5 +1,5 @@
 /*
- *  $Id: sbcnst2.c,v 1.4 1998/11/01 17:13:42 gropp Exp $
+ *  $Id: sbcnst2.c,v 1.5 1999/11/04 23:02:11 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -193,8 +193,10 @@ if (!p) {
 /* Initialize the data to an invalid value */
 /* Eventually this will be conditional on debugging */
 n = bsize * nb + headeroffset;
+#ifdef DEBUG
 for (i=0; i<n; i++) 
     p[i] = 0xea;
+#endif
 
 header          = (MPID_SBiAlloc *)p;
 /* Place at header for list of allocated blocks */

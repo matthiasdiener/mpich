@@ -1,11 +1,30 @@
 /*
- *  $Id: graphcreate.c,v 1.4 1998/04/29 14:28:49 swider Exp $
+ *  $Id: graphcreate.c,v 1.9 1999/08/30 15:51:09 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Graph_create = PMPI_Graph_create
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Graph_create  MPI_Graph_create
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Graph_create as PMPI_Graph_create
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpitopo.h"
 #include "sbcnst2.h"
 #define MPIR_SBalloc MPID_SBalloc
@@ -36,13 +55,8 @@ We ignore the 'reorder' info currently.
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-int MPI_Graph_create ( comm_old, nnodes, index, edges, reorder, comm_graph )
-MPI_Comm  comm_old;
-int       nnodes;
-int      *index;
-int      *edges;
-int       reorder;
-MPI_Comm *comm_graph;
+EXPORT_MPI_API int MPI_Graph_create ( MPI_Comm comm_old, int nnodes, int *index, int *edges, 
+		       int reorder, MPI_Comm *comm_graph )
 {
   int range[1][3];
   MPI_Group group_old, group;
@@ -55,27 +69,36 @@ MPI_Comm *comm_graph;
 
   TR_PUSH(myname);
   comm_old_ptr = MPIR_GET_COMM_PTR(comm_old);
+  
+#ifndef MPIR_NO_ERROR_CHECKING
   MPIR_TEST_MPI_COMM(comm_old,comm_old_ptr,comm_old_ptr,myname);
 
   /* Check validity of arguments */
-  if (MPIR_TEST_ARG(comm_graph) || MPIR_TEST_ARG(index) || 
-      MPIR_TEST_ARG(edges) || 
-      ((nnodes     <  1)             && (mpi_errno = MPI_ERR_ARG))   )
-    return MPIR_ERROR( comm_old_ptr, mpi_errno, myname );
+  MPIR_TEST_ARG(comm_graph);
+  MPIR_TEST_ARG(index);
+  MPIR_TEST_ARG(edges);
+  if (nnodes < 1) mpi_errno = MPI_ERR_ARG;
 
   /*** Check that edge number is not out of range, ***
    *** Check that edge number is not negative - Debbie Swider 11/18/97 ***/
   for (j=0; j<index[nnodes-1]; j++) {    
-    if ( ((edges[j] > nnodes) && (mpi_errno = MPI_ERR_TOPOLOGY)) ||
-         ((edges[j] < 0) && (mpi_errno = MPI_ERR_TOPOLOGY)) )
+    if ( edges[j] > nnodes || edges[j] < 0) {
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_TOPOLOGY, 
+				     MPIR_ERR_GRAPH_EDGE_ARRAY, myname, 
+		     "Specified edge < 0 or > nnodes", 
+		     "edges[%d] = %d is not between 0 and %d", j, edges[j], nnodes );
 	return MPIR_ERROR( comm_old_ptr, mpi_errno, myname );
+    }
   } 
 
   /* Check for Intra-communicator */
   MPI_Comm_test_inter ( comm_old, &flag );
-  if (flag)
-    return MPIR_ERROR(comm_old_ptr, MPI_ERR_COMM_INTER, myname );
-  
+  if (flag) 
+      mpi_errno = MPIR_ERRCLASS_TO_CODE(MPI_ERR_COMM,MPIR_ERR_COMM_INTER);
+
+  if (mpi_errno)
+	return MPIR_ERROR(comm_old_ptr, mpi_errno, myname );
+#endif
   /* Determine number of ranks in topology */
   num_ranks = nnodes;
   if ( num_ranks < 1 ) {
@@ -85,9 +108,12 @@ MPI_Comm *comm_graph;
 
   /* Is the old communicator big enough? */
   MPI_Comm_size (comm_old, &size);
-  if (num_ranks > size) 
-	return MPIR_ERROR(comm_old_ptr, MPI_ERR_ARG, 
-			         "Topology size too big in MPI_GRAPH_CREATE");
+  if (num_ranks > size) {
+      mpi_errno = MPIR_Err_setmsg( MPI_ERR_TOPOLOGY, MPIR_ERR_TOPO_TOO_LARGE,
+				   myname, (char *)0, (char *)0, 
+				   num_ranks, size );
+	return MPIR_ERROR(comm_old_ptr, mpi_errno, myname );
+  }
 
   /* Make new communicator */
   range[0][0] = 0; range[0][1] = num_ranks - 1; range[0][2] = 1;

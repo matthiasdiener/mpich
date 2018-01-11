@@ -1,5 +1,5 @@
 /*
- *  $Id: ssend_init.c,v 1.3 1998/04/28 21:47:14 swider Exp $
+ *  $Id: ssend_init.c,v 1.8 1999/08/30 15:49:27 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,25 @@
 
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Ssend_init = PMPI_Ssend_init
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Ssend_init  MPI_Ssend_init
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Ssend_init as PMPI_Ssend_init
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "reqalloc.h"
 
 /*@
@@ -33,16 +52,10 @@ Output Parameter:
 .N MPI_ERR_TAG
 .N MPI_ERR_RANK
 @*/
-int MPI_Ssend_init( buf, count, datatype, dest, tag, comm, request )
-void          *buf;
-int           count;
-MPI_Datatype  datatype;
-int           dest;
-int           tag;
-MPI_Comm      comm;
-MPI_Request   *request;
+EXPORT_MPI_API int MPI_Ssend_init( void *buf, int count, MPI_Datatype datatype, int dest, 
+		    int tag, MPI_Comm comm, MPI_Request *request )
 {
-    int         mpi_errno;
+    int         mpi_errno = MPI_SUCCESS;
     struct MPIR_DATATYPE *dtype_ptr;
     struct MPIR_COMMUNICATOR *comm_ptr;
     static char myname[] = "MPI_SSEND_INIT";
@@ -53,10 +66,13 @@ MPI_Request   *request;
     comm_ptr = MPIR_GET_COMM_PTR(comm);
     MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
-    if (MPIR_TEST_COUNT(comm,count) ||
-	MPIR_TEST_SEND_TAG(comm,tag) ||
-	MPIR_TEST_SEND_RANK(comm_ptr,dest)) 
+#ifndef MPIR_NO_ERROR_CHECKING
+    MPIR_TEST_COUNT(count);
+    MPIR_TEST_SEND_TAG(tag);
+    MPIR_TEST_SEND_RANK(comm_ptr,dest);
+    if (mpi_errno)
 	return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
 
     /* This is IDENTICAL to the create_send code except for the send
        function */

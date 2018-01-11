@@ -1,17 +1,11 @@
-.TH MPI_Recv_init 3 "4/28/1998" " " "MPI"
+.TH MPI_Recv_init 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Recv_init \-  Builds a handle for a receive 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Recv_init( buf, count, datatype, source, tag, comm, request )
-void         *buf;
-int          count;
-MPI_Request  *request;
-MPI_Datatype datatype;
-int          source;
-int          tag;
-MPI_Comm     comm;
+int MPI_Recv_init( void *buf, int count, MPI_Datatype datatype, int source, 
+     int tag, MPI_Comm comm, MPI_Request *request )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

@@ -23,11 +23,11 @@ static int dest = 1;
 /* static int Do_Standard = 1; */
 
 /* Prototypes for picky compilers */
-void Generate_Data ANSI_ARGS(( double *, int ));
-void Normal_Test_Send ANSI_ARGS(( double *, int ));
-void Async_Test_Recv ANSI_ARGS(( double *, int ));
-int Check_Data ANSI_ARGS(( double *, int ));
-void Clear_Buffer ANSI_ARGS(( double *, int ));
+void Generate_Data ( double *, int );
+void Normal_Test_Send ( double *, int );
+void Async_Test_Recv ( double *, int );
+int Check_Data ( double *, int );
+void Clear_Buffer ( double *, int );
 
 void Generate_Data(buffer, buff_size)
 double *buffer;
@@ -142,7 +142,7 @@ int main( int argc, char **argv)
 	}
     } else {
 	fprintf(stderr, "*** This program uses exactly 2 processes! ***\n");
-	exit(-1);
+	MPI_Abort( MPI_COMM_WORLD, 1 );
     }
 
     return 0;

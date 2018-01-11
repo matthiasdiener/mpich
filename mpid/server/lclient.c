@@ -14,14 +14,6 @@
 #include <sys/select.h>
 #endif
 
-#ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
-#define ANSI_ARGS(a) a
-#else
-#define ANSI_ARGS(a) ()
-#endif
-#endif
-
 int main( argc, argv )
 int argc;
 char **argv;
@@ -37,7 +29,7 @@ char **argv;
     pw = getpwuid(geteuid());
     if (pw == NULL)
     {
-	extern char *getlogin ANSI_ARGS((void));
+	extern char *getlogin (void);
 
 	local_username = getlogin();
 	if (local_username == NULL)

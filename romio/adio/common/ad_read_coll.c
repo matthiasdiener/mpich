@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_read_coll.c,v 1.2 1998/06/02 18:56:30 thakur Exp $    
+ *   $Id: ad_read_coll.c,v 1.4 1999/10/26 22:57:21 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -294,11 +294,11 @@ void ADIOI_Calc_my_off_len(ADIO_File fd, int bufcount, MPI_Datatype
 		n_filetypes++;
 		for (i=0; i<flat_file->count; i++) {
 		    if (disp + flat_file->indices[i] + 
-			n_filetypes*filetype_extent + flat_file->blocklens[i] 
+			(ADIO_Offset) n_filetypes*filetype_extent + flat_file->blocklens[i] 
                             >= offset) {
 			st_index = i;
 			frd_size = (int) (disp + flat_file->indices[i] + 
-			    n_filetypes*filetype_extent
+			    (ADIO_Offset) n_filetypes*filetype_extent
 			        + flat_file->blocklens[i] - offset);
 			flag = 1;
 			break;
@@ -325,7 +325,7 @@ void ADIOI_Calc_my_off_len(ADIO_File fd, int bufcount, MPI_Datatype
 	    }
 
 	    /* abs. offset in bytes in the file */
-	    offset = disp + n_filetypes*filetype_extent + abs_off_in_filetype;
+	    offset = disp + (ADIO_Offset) n_filetypes*filetype_extent + abs_off_in_filetype;
 	}
 
          /* calculate how much space to allocate for offset_list, len_list */
@@ -373,7 +373,7 @@ void ADIOI_Calc_my_off_len(ADIO_File fd, int bufcount, MPI_Datatype
          e.g., if start_offset=0 and 100 bytes to be read, end_offset=99*/
 
 	    if (off + frd_size < disp + flat_file->indices[j] +
-		   flat_file->blocklens[j] + n_filetypes*filetype_extent)
+		   flat_file->blocklens[j] + (ADIO_Offset) n_filetypes*filetype_extent)
 		off += frd_size;
 	    /* did not reach end of contiguous block in filetype.
 	       no more I/O needed. off is incremented by frd_size. */
@@ -383,7 +383,7 @@ void ADIOI_Calc_my_off_len(ADIO_File fd, int bufcount, MPI_Datatype
 		    j = 0;
 		    n_filetypes++;
 		}
-		off = disp + flat_file->indices[j] + n_filetypes*filetype_extent;
+		off = disp + flat_file->indices[j] + (ADIO_Offset) n_filetypes*filetype_extent;
 		frd_size = ADIOI_MIN(flat_file->blocklens[j], bufsize-i);
 	    }
 	}
@@ -1179,8 +1179,11 @@ static void ADIOI_Fill_user_buffer(void *buf, ADIOI_Flatlist_node
 /* this function is only called if buftype is not contig */
 
     int i, p, flat_buf_idx, rem_len, size, buf_incr;
-    int flat_buf_sz, len, size_in_buf, j, jj, n_buftypes;
+    int flat_buf_sz, len, size_in_buf, jj, n_buftypes;
     ADIO_Offset off, user_buf_idx;
+#ifdef __NEEDS_MPI_TEST
+    int j;
+#endif
 
 /*  curr_from_proc[p] = amount of data recd from proc. p that has already
                         been accounted for so far

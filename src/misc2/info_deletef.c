@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_deletef.c,v 1.4 1998/04/29 16:59:16 swider Exp $    
+ *   $Id: info_deletef.c,v 1.12 1999/09/07 17:45:17 swider Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,7 +9,57 @@
 #include "mpimem.h"
 
 
-#ifdef MPI_BUILD_PROFILING
+
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_INFO_DELETE = PMPI_INFO_DELETE
+EXPORT_MPI_API void MPI_INFO_DELETE (MPI_Fint *, char *, MPI_Fint *, MPI_Fint);
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_info_delete__ = pmpi_info_delete__
+EXPORT_MPI_API void mpi_info_delete__ (MPI_Fint *, char *, MPI_Fint *, MPI_Fint);
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_info_delete = pmpi_info_delete
+EXPORT_MPI_API void mpi_info_delete (MPI_Fint *, char *, MPI_Fint *, MPI_Fint);
+#else
+#pragma weak mpi_info_delete_ = pmpi_info_delete_
+EXPORT_MPI_API void mpi_info_delete_ (MPI_Fint *, char *, MPI_Fint *, MPI_Fint);
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_INFO_DELETE  MPI_INFO_DELETE
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_info_delete__  mpi_info_delete__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_info_delete  mpi_info_delete
+#else
+#pragma _HP_SECONDARY_DEF pmpi_info_delete_  mpi_info_delete_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_INFO_DELETE as PMPI_INFO_DELETE
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_info_delete__ as pmpi_info_delete__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_info_delete as pmpi_info_delete
+#else
+#pragma _CRI duplicate mpi_info_delete_ as pmpi_info_delete_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_info_delete_ PMPI_INFO_DELETE
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -19,7 +69,9 @@
 #else
 #define mpi_info_delete_ pmpi_info_delete_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_info_delete_ MPI_INFO_DELETE
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -29,20 +81,25 @@
 #endif
 #endif
 
+
 /* Prototype to suppress warning about missing prototypes */
-void mpi_info_delete_ ANSI_ARGS((MPI_Fint *, char *, MPI_Fint *, MPI_Fint));
+EXPORT_MPI_API void mpi_info_delete_ ANSI_ARGS((MPI_Fint *, char *, MPI_Fint *, MPI_Fint));
 
 /* Definitions of Fortran Wrapper routines */ 
-void mpi_info_delete_(MPI_Fint *info, char *key, MPI_Fint *__ierr, 
+EXPORT_MPI_API void mpi_info_delete_(MPI_Fint *info, char *key, MPI_Fint *__ierr, 
 		      MPI_Fint keylen)
 {
     MPI_Info info_c;
     char *newkey;
     int new_keylen, lead_blanks, i;
+    static char myname[] = "MPI_INFO_DELETE";
+    int mpi_errno;
 
-    if (key <= (char *) 0) {
-        printf("MPI_Info_delete: key is an invalid address\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
+    if (!key) {
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_INFO_KEY, MPIR_ERR_DEFAULT, 
+				     myname, (char *)0, (char *)0);
+	*__ierr = MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+	return;
     }
 
     /* strip leading and trailing blanks in key */
@@ -53,13 +110,19 @@ void mpi_info_delete_(MPI_Fint *info, char *key, MPI_Fint *__ierr,
 
     for (i=(int)keylen-1; i>=0; i--) if (key[i] != ' ') break;
     if (i < 0) {
-        printf("MPI_Info_delete: key is a blank string\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_INFO_KEY, MPIR_ERR_KEY_EMPTY,
+				     myname, (char *)0, (char *)0 );
+	*__ierr = MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+	return;
     }
     new_keylen = i + 1 - lead_blanks;
     key += lead_blanks;
 
     newkey = (char *) MALLOC((new_keylen+1)*sizeof(char));
+    if (!newkey) {
+	*__ierr = MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, myname );
+	return;
+    }
     strncpy(newkey, key, new_keylen);
     newkey[new_keylen] = '\0';
 

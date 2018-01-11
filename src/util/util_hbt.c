@@ -1,5 +1,5 @@
 /*
- *  $Id: util_hbt.c,v 1.2 1998/01/29 14:29:53 gropp Exp $
+ *  $Id: util_hbt.c,v 1.4 1999/08/20 02:28:08 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -92,8 +92,8 @@ void MPIR_HBT_Free()
 MPIR_HBT_new_tree -
 
 +*/
-int MPIR_HBT_new_tree ( tree_out )
-MPIR_HBT *tree_out;
+int MPIR_HBT_new_tree ( 
+	MPIR_HBT *tree_out)
 {
   MPIR_HBT new_tree;
 
@@ -113,10 +113,10 @@ MPIR_HBT *tree_out;
 MPIR_HBT_new_node -
 
 +*/
-int MPIR_HBT_new_node ( keyval, value, node_out )
-MPIR_Attr_key *keyval;
-void *value;
-MPIR_HBT_node **node_out;
+int MPIR_HBT_new_node ( 
+	MPIR_Attr_key *keyval,
+	void *value,
+	MPIR_HBT_node **node_out)
 {
   MPIR_HBT_node *new_node;
 
@@ -138,8 +138,8 @@ MPIR_HBT_node **node_out;
 MPIR_HBT_free_node -
 
 +*/
-int MPIR_HBT_free_node ( node )
-MPIR_HBT_node *node;
+int MPIR_HBT_free_node (
+	MPIR_HBT_node *node)
 {
     TR_PUSH("MPIR_HBT_free_node");
     if (node != (MPIR_HBT_node *)0) {
@@ -155,8 +155,8 @@ MPIR_HBT_node *node;
 MPIR_HBT_free_subtree -
 
 +*/
-int MPIR_HBT_free_subtree ( subtree )
-MPIR_HBT_node *subtree;
+int MPIR_HBT_free_subtree ( 
+	MPIR_HBT_node *subtree)
 {
     TR_PUSH("MPIR_HBT_free_subtree");
 
@@ -174,8 +174,8 @@ MPIR_HBT_node *subtree;
 MPIR_HBT_free_tree -
 
 +*/
-int MPIR_HBT_free_tree ( tree )
-MPIR_HBT tree;
+int MPIR_HBT_free_tree ( 
+	MPIR_HBT tree)
 {
     TR_PUSH("MPIR_HBT_free_tree");
     if ( tree != (MPIR_HBT)0 ) {
@@ -192,10 +192,10 @@ MPIR_HBT tree;
 MPIR_HBT_lookup( -
 
 +*/
-int MPIR_HBT_lookup( tree, keyval, node_out )
-MPIR_HBT      tree;
-int           keyval;
-MPIR_HBT_node **node_out;
+int MPIR_HBT_lookup( 
+	MPIR_HBT      tree,
+	int           keyval,
+	MPIR_HBT_node **node_out)
 {
   int test;
   MPIR_HBT_node *temp = tree->root;
@@ -221,9 +221,9 @@ MPIR_HBT_node **node_out;
 MPIR_HBT_insert( -
 
 +*/
-int MPIR_HBT_insert( tree, node )
-MPIR_HBT      tree;
-MPIR_HBT_node *node;
+int MPIR_HBT_insert( 
+	MPIR_HBT      tree,
+	MPIR_HBT_node *node)
 {
   MPIR_HBT_node *temp, *inserted, *rebalance_son, *rebalance, *rebalance_father;
   int done = 0;
@@ -385,10 +385,10 @@ MPIR_HBT_node *node;
 MPIR_HBT_delete -
 
 +*/
-int MPIR_HBT_delete(tree, keyval, node_out)
-MPIR_HBT      tree;
-int           keyval;
-MPIR_HBT_node **node_out;
+int MPIR_HBT_delete(
+	MPIR_HBT      tree,
+	int           keyval,
+	MPIR_HBT_node **node_out)
 {
   /* The stack keeps elements from root to the node to be deleted.         */
   /* element_stack has pointers to the nodes.  dir_stack has the direction */

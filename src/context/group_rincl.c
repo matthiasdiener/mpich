@@ -1,11 +1,30 @@
 /*
- *  $Id: group_rincl.c,v 1.3 1998/04/28 20:58:14 swider Exp $
+ *  $Id: group_rincl.c,v 1.8 1999/08/30 15:43:24 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Group_range_incl = PMPI_Group_range_incl
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Group_range_incl  MPI_Group_range_incl
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Group_range_incl as PMPI_Group_range_incl
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpimem.h"
 
 /*@
@@ -39,9 +58,8 @@ ranges to include are valid ranks in the group.
 
 .seealso: MPI_Group_free
 @*/
-int MPI_Group_range_incl ( group, n, ranges, newgroup )
-MPI_Group group, *newgroup;
-int       n, ranges[][3];
+EXPORT_MPI_API int MPI_Group_range_incl ( MPI_Group group, int n, int ranges[][3], 
+			   MPI_Group *newgroup )
 {
   int i, j, k, ranks, first, last, stride;
   int np = 0;
@@ -52,7 +70,12 @@ int       n, ranges[][3];
   TR_PUSH(myname);
 
   group_ptr = MPIR_GET_GROUP_PTR(group);
-  MPIR_TEST_MPI_GROUP(group,group_ptr,MPIR_COMM_WORLD,myname);
+/*  MPIR_TEST_MPI_GROUP(group,group_ptr,MPIR_COMM_WORLD,myname); */
+#ifndef MPIR_NO_ERROR_CHECKING
+  MPIR_TEST_GROUP(group_ptr);
+  if (mpi_errno)
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+#endif
 
   /* Check for a EMPTY input group or EMPTY sized new group */
   if ( (group == MPI_GROUP_EMPTY) || (n == 0) ) {
@@ -71,8 +94,10 @@ int       n, ranges[][3];
       if (stride != 0) {
 	  if ( (stride > 0 && first > last) ||
 	       (stride < 0 && first < last) ) {
-	      return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ARG, 
-				 "range non terminating" );
+	      mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ARG_STRIDE,
+					   myname, (char *)0, (char *)0,
+					   first, last, stride );
+	      return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 	  }
 	  if ( (ranks=((last-first)/stride)+1) > 0 )
 	      np += ranks;
@@ -117,8 +142,10 @@ int       n, ranges[][3];
         }
         else {
 	    /* Negative rank */
-	    MPIR_ERROR_PUSH_ARG( &j );
-	    return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_RANK, myname );
+	    mpi_errno = MPIR_Err_setmsg( MPI_ERR_RANK, MPIR_ERR_DEFAULT, 
+					 myname, (char *)0,
+					 (char *)0, j );
+	    return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 
 	}
       }

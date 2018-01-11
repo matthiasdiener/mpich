@@ -1,11 +1,30 @@
 /*
- *  $Id: comm_dup.c,v 1.2 1998/01/29 14:26:18 gropp Exp $
+ *  $Id: comm_dup.c,v 1.8 1999/10/15 20:08:28 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Comm_dup = PMPI_Comm_dup
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Comm_dup  MPI_Comm_dup
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Comm_dup as PMPI_Comm_dup
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpimem.h"
 #include "ic.h"
 
@@ -32,8 +51,9 @@ Output Parameter:
 
 .seealso: MPI_Comm_free
 @*/
-int MPI_Comm_dup ( comm, comm_out )
-MPI_Comm comm, *comm_out;
+EXPORT_MPI_API int MPI_Comm_dup ( 
+	MPI_Comm comm, 
+	MPI_Comm *comm_out )
 {
   struct MPIR_COMMUNICATOR *new_comm, *comm_ptr;
   int mpi_errno;
@@ -63,6 +83,7 @@ MPI_Comm comm, *comm_out;
 	return mpi_errno;
   DBG(FPRINTF(OUTFILE,"Dup:About to copy attr for comm %ld\n",(long)comm);)
   /* Also free at least some of the parts of the commuicator */      
+
   if ((mpi_errno = MPIR_Attr_copy ( comm_ptr, new_comm ) )) {
       MPI_Group gtmp1, gtmp2;
       *comm_out = MPI_COMM_NULL;
@@ -76,7 +97,10 @@ MPI_Comm comm, *comm_out;
       MPIR_CLR_COOKIE(new_comm);
       MPIR_RmPointer( new_comm->self );
       FREE( new_comm );
-      return MPIR_ERROR( comm_ptr, mpi_errno, "Error copying attributes" );
+      /* MPIR_Attr_copy converts the user's code into an MPI_ERR_OTHER class */
+      /* What is the appropriate error return here?  Does Attr_copy
+	 return an MPI error class, or a user error code? */
+      return MPIR_ERROR( comm_ptr, mpi_errno, myname );
   }
 
   /* Duplicate intra-communicators */
@@ -127,9 +151,6 @@ MPI_Comm comm, *comm_out;
 
 	/* Build the collective inter-communicator */
 	MPIR_Comm_make_coll( new_comm, MPIR_INTER );
-
-	/* Build the collective intra-communicator */
-	MPIR_Comm_make_coll ( new_comm->comm_coll, MPIR_INTRA );
   }
   (*comm_out)               = new_comm->self;
 

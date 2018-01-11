@@ -10,10 +10,7 @@ Creates new communicators based on colors and keys
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Comm_split ( comm, color, key, comm_out )
-MPI_Comm  comm;
-int       color, key;
-MPI_Comm *comm_out;
+int MPI_Comm_split ( MPI_Comm comm, int color, int key, MPI_Comm *comm_out )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

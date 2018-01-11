@@ -1,5 +1,5 @@
 /*
- *  $Id: fstrutils.c,v 1.4 1998/07/01 19:56:10 gropp Exp $
+ *  $Id: fstrutils.c,v 1.7 1999/09/02 21:41:38 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -17,8 +17,6 @@
 #include <string.h>
 #endif
 
-#ifndef MPID_NO_FORTRAN
-
 /*
    MPIR_fstr2cstr - Convert a Fortran string into a C string.
 
@@ -34,11 +32,11 @@
 
    Trailing blanks are removed from the Fortran string.
 */
-int MPIR_fstr2cstr (res, reslen, src, srclen)
-char * res;
-long reslen;
-char *src;
-long srclen;
+int MPIR_fstr2cstr (
+	char * res,
+	long reslen,
+	char *src,
+	long srclen)
 {
   /* Count the trailing blanks on the Fortran string */
   char *p = src + srclen;
@@ -85,10 +83,10 @@ long srclen;
 
    Blank padding is added to the Fortran string as required.
 */
-int MPIR_cstr2fstr (res, reslen, src)
-char * res;
-long reslen;
-char * src;
+int MPIR_cstr2fstr ( 
+	char * res,
+	long reslen,
+	char * src)
 {
   long srclen = strlen(src);
 
@@ -111,5 +109,3 @@ char * src;
       return 0;
     }
 }
-
-#endif /* MPID_NO_FORTRAN */

@@ -3,7 +3,57 @@
 #include "mpiimpl.h"
 #include "mpimem.h"
 
-#ifdef MPI_BUILD_PROFILING
+
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_GROUP_TRANSLATE_RANKS = PMPI_GROUP_TRANSLATE_RANKS
+EXPORT_MPI_API void MPI_GROUP_TRANSLATE_RANKS ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_group_translate_ranks__ = pmpi_group_translate_ranks__
+EXPORT_MPI_API void mpi_group_translate_ranks__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_group_translate_ranks = pmpi_group_translate_ranks
+EXPORT_MPI_API void mpi_group_translate_ranks ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_group_translate_ranks_ = pmpi_group_translate_ranks_
+EXPORT_MPI_API void mpi_group_translate_ranks_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_GROUP_TRANSLATE_RANKS  MPI_GROUP_TRANSLATE_RANKS
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_group_translate_ranks__  mpi_group_translate_ranks__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_group_translate_ranks  mpi_group_translate_ranks
+#else
+#pragma _HP_SECONDARY_DEF pmpi_group_translate_ranks_  mpi_group_translate_ranks_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_GROUP_TRANSLATE_RANKS as PMPI_GROUP_TRANSLATE_RANKS
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_group_translate_ranks__ as pmpi_group_translate_ranks__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_group_translate_ranks as pmpi_group_translate_ranks
+#else
+#pragma _CRI duplicate mpi_group_translate_ranks_ as pmpi_group_translate_ranks_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_group_translate_ranks_ PMPI_GROUP_TRANSLATE_RANKS
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -13,7 +63,9 @@
 #else
 #define mpi_group_translate_ranks_ pmpi_group_translate_ranks_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_group_translate_ranks_ MPI_GROUP_TRANSLATE_RANKS
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -23,18 +75,15 @@
 #endif
 #endif
 
+
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_group_translate_ranks_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, 
+EXPORT_MPI_API void mpi_group_translate_ranks_ ( MPI_Fint *, MPI_Fint *, 
                                             MPI_Fint *, MPI_Fint *, 
-                                            MPI_Fint *, MPI_Fint * ));
-void mpi_group_translate_ranks_ ( group_a, n, ranks_a, group_b, ranks_b,
-				  __ierr )
-MPI_Fint *group_a;
-MPI_Fint *n;
-MPI_Fint *ranks_a;
-MPI_Fint *group_b;
-MPI_Fint *ranks_b;
-MPI_Fint *__ierr;
+                                            MPI_Fint *, MPI_Fint * );
+
+EXPORT_MPI_API void mpi_group_translate_ranks_ ( MPI_Fint *group_a, 
+     MPI_Fint *n, MPI_Fint *ranks_a, MPI_Fint *group_b, MPI_Fint *ranks_b,
+				  MPI_Fint *__ierr )
 {
 
     if (sizeof(MPI_Fint) == sizeof(int))
@@ -63,7 +112,7 @@ MPI_Fint *__ierr;
                                             MPI_Group_f2c(*group_b), 
                                             l_ranks_b);
         for (i=0; i<(int)*n; i++) {
-            ranks_b[i] = (MPI_Fint)l_ranks_b;
+            ranks_b[i] = (MPI_Fint)(l_ranks_b[i]);
         }
 	FREE( l_ranks_a );
 	FREE( l_ranks_b );

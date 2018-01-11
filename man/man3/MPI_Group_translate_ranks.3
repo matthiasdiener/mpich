@@ -1,15 +1,11 @@
-.TH MPI_Group_translate_ranks 3 "11/28/1998" " " "MPI"
+.TH MPI_Group_translate_ranks 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Group_translate_ranks \-  Translates the ranks of processes in one group to  those in another group 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Group_translate_ranks ( group_a, n, ranks_a, group_b, ranks_b )
-MPI_Group group_a;
-int n;
-int       *ranks_a;
-MPI_Group  group_b;
-int       *ranks_b;
+int MPI_Group_translate_ranks ( MPI_Group group_a, int n, int *ranks_a, 
+    MPI_Group group_b, int *ranks_b )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

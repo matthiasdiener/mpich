@@ -7,7 +7,56 @@
 #include <stdarg.h>
 #endif
 
-#ifdef MPI_BUILD_PROFILING
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_PACK = PMPI_PACK
+EXPORT_MPI_API void MPI_PACK ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_pack__ = pmpi_pack__
+EXPORT_MPI_API void mpi_pack__ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_pack = pmpi_pack
+EXPORT_MPI_API void mpi_pack ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_pack_ = pmpi_pack_
+EXPORT_MPI_API void mpi_pack_ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_PACK  MPI_PACK
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_pack__  mpi_pack__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_pack  mpi_pack
+#else
+#pragma _HP_SECONDARY_DEF pmpi_pack_  mpi_pack_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_PACK as PMPI_PACK
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_pack__ as pmpi_pack__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_pack as pmpi_pack
+#else
+#pragma _CRI duplicate mpi_pack_ as pmpi_pack_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_pack_ PMPI_PACK
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -17,7 +66,9 @@
 #else
 #define mpi_pack_ pmpi_pack_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_pack_ MPI_PACK
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -26,6 +77,7 @@
 #define mpi_pack_ mpi_pack
 #endif
 #endif
+
 
 #ifdef _CRAY
 #ifdef _TWO_WORD_FCD
@@ -102,18 +154,11 @@ if (_isfcd(outbuf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_pack_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, void *, 
+EXPORT_MPI_API void mpi_pack_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, void *, 
                            MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * ));
-void mpi_pack_ ( inbuf, incount, type, outbuf, outcount, position, comm, 
-		 __ierr )
-void     *inbuf;
-MPI_Fint *incount;
-MPI_Fint *type;
-void     *outbuf;
-MPI_Fint *outcount;
-MPI_Fint *position;
-MPI_Comm *comm;
-MPI_Fint *__ierr;
+
+EXPORT_MPI_API void mpi_pack_ ( void *inbuf, MPI_Fint *incount, MPI_Fint *type, void *outbuf, MPI_Fint *outcount, MPI_Fint *position, MPI_Fint *comm, 
+		 MPI_Fint *__ierr )
 {
     int lposition;
 

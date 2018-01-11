@@ -12,7 +12,7 @@
 
 int main(int argc, char **argv)
 {
-    int *buf, i, rank, nints, len, flag;
+    int *buf, i, rank, nints, len;
     char *filename, *tmp;
     MPI_File fh;
     MPI_Status status;
@@ -57,7 +57,6 @@ int main(int argc, char **argv)
 
     MPI_File_open(MPI_COMM_SELF, filename, MPI_MODE_CREATE | MPI_MODE_RDWR,
 		   MPI_INFO_NULL, &fh);
-    MPI_File_set_view(fh, 0, MPI_INT, MPI_INT, "native", MPI_INFO_NULL);
     MPI_File_write(fh, buf, nints, MPI_INT, &status);
     MPI_File_close(&fh);
 
@@ -66,17 +65,13 @@ int main(int argc, char **argv)
     for (i=0; i<nints; i++) buf[i] = 0;
     MPI_File_open(MPI_COMM_SELF, filename, MPI_MODE_CREATE | MPI_MODE_RDWR, 
                   MPI_INFO_NULL, &fh);
-    MPI_File_set_view(fh, 0, MPI_INT, MPI_INT, "native", MPI_INFO_NULL);
     MPI_File_read(fh, buf, nints, MPI_INT, &status);
     MPI_File_close(&fh);
 
     /* check if the data read is correct */
-    flag = 0;
     for (i=0; i<nints; i++) 
-	if (buf[i] != (rank*100000 + i)) {
+	if (buf[i] != (rank*100000 + i)) 
 	    printf("Process %d: error, read %d, should be %d\n", rank, buf[i], rank*100000+i);
-	    flag = 1;
-	}
 
     if (!rank) printf("Done\n");
 

@@ -1,7 +1,7 @@
 #include "p4.h"
 #include "p4_sys.h"
 
-struct local_data *alloc_local_bm()
+struct local_data *alloc_local_bm( void )
 {
     struct local_data *l;
 
@@ -34,7 +34,7 @@ struct local_data *alloc_local_bm()
     return (l);
 }
 
-struct local_data *alloc_local_rm()
+struct local_data *alloc_local_rm( void )
 {
     struct local_data *l;
 
@@ -67,7 +67,7 @@ struct local_data *alloc_local_rm()
     return (l);
 }				/* alloc_local_rm */
 
-struct local_data *alloc_local_listener()
+struct local_data *alloc_local_listener( void )
 {
     struct local_data *l;
 
@@ -84,7 +84,7 @@ struct local_data *alloc_local_listener()
     return (l);
 }				/* alloc_local_listener */
 
-struct local_data *alloc_local_slave()
+struct local_data *alloc_local_slave( void )
 {
     struct local_data *l;
 
@@ -119,16 +119,14 @@ struct local_data *alloc_local_slave()
     This routine should be called before any sends and receives are done by
     the user.  If not, some buffers may be lost.
 */
-P4VOID p4_set_avail_buff(bufidx,size)
-int bufidx;
-int size;
+P4VOID p4_set_avail_buff( int bufidx, int size )
 {
     p4_global->avail_buffs[bufidx].size = size;
     p4_global->avail_buffs[bufidx].buff = NULL;
 }
 
 
-P4VOID init_avail_buffs()
+P4VOID init_avail_buffs( void )
 {
     static int sizes[NUMAVAILS] = 
             {64,256,1024,4096,16384,65536,262144,1048576};
@@ -141,7 +139,7 @@ P4VOID init_avail_buffs()
     }
 }
 
-P4VOID p4_print_avail_buffs()
+P4VOID p4_print_avail_buffs( void )
 {
     int i, count;
     struct p4_msg *next;
@@ -159,13 +157,17 @@ P4VOID p4_print_avail_buffs()
     p4_unlock(&p4_global->avail_buffs_lock);
 }
 
-struct p4_msg *alloc_p4_msg(msglen)
-int msglen;
+struct p4_msg *alloc_p4_msg(int msglen)
 {
     struct p4_msg *rmsg = NULL;
     int i, rounded, buff_len;
 
     p4_dprintfl(40, "allocating a buffer for message of size %d\n", msglen);
+
+    if (msglen > P4_MAX_MSGLEN) {
+	/* Catch the error now rather than later (in free_p4_msg) */
+	p4_error( "alloc_p4_msg: Message size exceeds P4s maximum message size", msglen );
+    }
 
 #   if defined(TCMP)
 
@@ -271,8 +273,7 @@ int msglen;
 #   endif
 }				/* alloc_p4_msg */
 
-P4VOID free_p4_msg(tmsg)
-struct p4_msg *tmsg;
+P4VOID free_p4_msg(struct p4_msg *tmsg)
 {
     int i;
     struct p4_msg *p;
@@ -324,7 +325,7 @@ struct p4_msg *tmsg;
 #   endif
 }				/* free_p4_msg */
 
-P4VOID free_avail_buffs()
+P4VOID free_avail_buffs(void)
 {
     int i;
     struct p4_msg *p, *q;
@@ -344,7 +345,7 @@ P4VOID free_avail_buffs()
     p4_unlock(&p4_global->avail_buffs_lock);
 }
 
-P4VOID alloc_global()
+P4VOID alloc_global(void)
 {
     int i;
     struct p4_global_data *g;
@@ -420,7 +421,7 @@ P4VOID alloc_global()
 
 }
 
-struct listener_data *alloc_listener_info()
+struct listener_data *alloc_listener_info(void)
 {
     struct listener_data *l;
 

@@ -8,6 +8,7 @@ islocal=0
 created_shared=0
 Verbose=echo
 setecho=0
+GetPathSpec="no"
 for arg in "$@" ; do
     case $arg in
 	-lib=*) lib=`echo A$arg | sed -e 's/A-lib=//g'`
@@ -15,9 +16,14 @@ for arg in "$@" ; do
 	;;
 	-obj=*) objs=`echo A$arg | sed -e 's/A-obj=//g'`
 	;;
+	# exceptobjs are the files NOT to include in the shared library
+	-exceptobjs=*) except_objs=`echo A$arg | sed -e 's/A-exceptobjs=//g'`
+	;;
 	-kind=*) kind=`echo A$arg | sed -e 's/A-kind=//g'`
 	;;
 	-suffix=*) slsuffix=`echo A$arg | sed -e 's/A-suffix=//g'`
+	;;
+	-cc=*) CC=`echo A$arg | sed -e 's/A-cc=//g'`
 	;;
 	-echo) set -x ;;
 	-noecho) set +x ; setecho=0 ;;
@@ -25,6 +31,7 @@ for arg in "$@" ; do
 	-link) nolink=0 ;;
 	-verbose) Verbose=echo ;;
 	-noverbose) Verbose=true ;;
+	-getpathspec) GetPathSpec="yes" ;;
 	*)
 	echo "Unrecognized option $arg"
 	exit 1
@@ -43,6 +50,23 @@ if [ "$kind" = "ignore" ] ; then
     exit 0
 fi
 
+if [ "$GetPathSpec" = "yes" ] ; then
+    # Return only the path leader used for specifying the location of a
+    # shared library
+    case $kind in 
+        gcc) echo "-Wl,-rpath " ;;
+	solaris) echo "-R " ;;
+        rs6000|aix|aix-4) echo "-L" ;; # ???
+        irix|irix64|sgi) echo "-rpath " ;;
+	*) echo "" ;;
+    esac
+    exit 0
+fi
+
+#
+# Put other system-dependent option output here
+#
+# Actually build the library
 if [ -z "$slsuffix" ] ; then
     slsuffix=so.1.0
     req_slsuffix=so
@@ -99,6 +123,10 @@ if [ ! -d shared ] ; then
     mkdir shared
     created_shared=1
 fi
+#
+# Note on except_objs:
+# It is NOT an error to fail to find these files; if they aren't present,
+# they are ignored.
 case $kind in
     gcc)
     for libname in $SHLIBS ; do
@@ -109,6 +137,9 @@ case $kind in
 	if [ -z "$objs" ] ; then
             cd .tmp
             $AR x ../$libname
+	    if [ -n "$except_objs" ] ; then
+	        rm -f $except_objs
+	    fi
             #$CLINKER -shared -Wl,-soname,$libbase.$slsuffix \
 	    #	-o ../shared/$libbase.$slsuffix *.o
 	else
@@ -142,6 +173,9 @@ case $kind in
 	if [ -z "$objs" ] ; then
             cd .tmp
             $AR x ../$libname
+	    if [ -n "$except_objs" ] ; then
+	        rm -f $except_objs
+	    fi
         else
 	    cp $objs .tmp
 	    cd .tmp
@@ -172,16 +206,22 @@ case $kind in
 	if [ -z "$objs" ] ; then
             cd .tmp
             ar x ../$libname
+	    if [ -n "$except_objs" ] ; then
+	        rm -f $except_objs
+	    fi
 	else
 	    cp $objs .tmp
 	    cd .tmp
 	fi
+        # Another alternative is to export everything.  The following
+        # has been suggested:
+        # ld -o ../shared/$libbase.so *.o -bexpall -bnoentry -G
 	libbase=`basename $libname .a`
         nm -g -p *.o | awk '{ if ($2 == "T") { print $1 ; }}' | \
 	    sed -e 's/^\.//g' >  $libbase.exp
         # xlC doesn't work with this!
         # cc misses the iargc/getarg libraries
-        xlf -o ../shared/$libbase.so *.o -bE:$libbase.exp -bM:SRE -bnoentry
+        xlf -r -o ../shared/$libbase.so *.o -bE:$libbase.exp -bM:SRE -bnoentry
         # create new shared file name
         newfile="${libbase}shared.a"
         /bin/rm -f $newfile
@@ -191,6 +231,40 @@ case $kind in
         /bin/rm -rf .tmp
     done
     ;;
+
+    irix|irix64|sgi)
+    for libname in $SHLIBS ; do
+        $Verbose "Making a shared library of $libname"
+        rm -rf .tmp
+        mkdir .tmp
+	if [ -z "$objs" ] ; then
+            cd .tmp
+            $AR x ../$libname
+	    if [ -n "$except_objs" ] ; then
+	        rm -f $except_objs
+	    fi
+        else
+	    cp $objs .tmp
+	    cd .tmp
+	fi
+	libbase=`basename $libname .a`
+        $CLINKER -elf -no_library_replacement -shared -rdata_shared -all \
+	    -o ../shared/$libbase.$slsuffix *.o
+        cd ..
+	if [ $islocal = 1 ] ; then
+	    mv shared/$libbase.$slsuffix .
+  	    if [ $slsuffix != $req_slsuffix  -a $nolink = 0 ] ; then
+	        ln -s $libbase.$slsuffix $libbase.$req_slsuffix
+            fi
+	else
+  	    if [ $slsuffix != $req_slsuffix  -a $nolink = 0 ] ; then
+	        ( cd shared ; ln -s $libbase.$slsuffix $libbase.$req_slsuffix )
+            fi
+        fi
+        rm -rf .tmp
+    done
+    ;;
+
     *)	
     if [ -z "$kind" ] ; then
         echo "Shared library type not specified"

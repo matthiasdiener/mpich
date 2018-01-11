@@ -7,7 +7,56 @@
 #include <stdarg.h>
 #endif
 
-#ifdef MPI_BUILD_PROFILING
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_SENDRECV = PMPI_SENDRECV
+EXPORT_MPI_API void MPI_SENDRECV ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_sendrecv__ = pmpi_sendrecv__
+EXPORT_MPI_API void mpi_sendrecv__ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_sendrecv = pmpi_sendrecv
+EXPORT_MPI_API void mpi_sendrecv ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_sendrecv_ = pmpi_sendrecv_
+EXPORT_MPI_API void mpi_sendrecv_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_SENDRECV  MPI_SENDRECV
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_sendrecv__  mpi_sendrecv__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_sendrecv  mpi_sendrecv
+#else
+#pragma _HP_SECONDARY_DEF pmpi_sendrecv_  mpi_sendrecv_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_SENDRECV as PMPI_SENDRECV
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_sendrecv__ as pmpi_sendrecv__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_sendrecv as pmpi_sendrecv
+#else
+#pragma _CRI duplicate mpi_sendrecv_ as pmpi_sendrecv_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_sendrecv_ PMPI_SENDRECV
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -17,7 +66,9 @@
 #else
 #define mpi_sendrecv_ pmpi_sendrecv_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_sendrecv_ MPI_SENDRECV
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -26,6 +77,7 @@
 #define mpi_sendrecv_ mpi_sendrecv
 #endif
 #endif
+
 
 #ifdef _CRAY
 #ifdef _TWO_WORD_FCD
@@ -115,27 +167,14 @@ if (_isfcd(recvbuf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_sendrecv_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+EXPORT_MPI_API void mpi_sendrecv_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, 
                                MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                MPI_Fint *, MPI_Fint * ));
 
-void mpi_sendrecv_( sendbuf, sendcount, sendtype, dest, sendtag, 
-                  recvbuf, recvcount, recvtype, source, recvtag, 
-                  comm, status, __ierr )
-void     *sendbuf;
-MPI_Fint *sendcount;
-MPI_Fint *sendtype;
-MPI_Fint *dest;
-MPI_Fint *sendtag;
-void     *recvbuf;
-MPI_Fint *recvcount;
-MPI_Fint *recvtype;
-MPI_Fint *source;
-MPI_Fint *recvtag;
-MPI_Fint *comm;
-MPI_Fint *status;
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_sendrecv_( void *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *dest, MPI_Fint *sendtag, 
+                  void *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *source, MPI_Fint *recvtag, 
+                  MPI_Fint *comm, MPI_Fint *status, MPI_Fint *__ierr )
 {
     MPI_Status c_status;
 

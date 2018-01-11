@@ -17,8 +17,8 @@
 #include <stdlib.h>
 #include "test.h"
 
-void NumberEdges ANSI_ARGS(( int **, int **, int, int, int ));
-void PrintGraph ANSI_ARGS(( int, int *, int * ));
+void NumberEdges ( int **, int **, int, int, int );
+void PrintGraph  ( int, int *, int * );
 
 int main( int argc, char **argv )
 {

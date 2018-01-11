@@ -6,9 +6,7 @@
  * local queue of messages already received.  If it finds one, it dequeues it 
  * if deq is true, and returns its address; otherwise it returns NULL.
  */
-struct p4_msg *search_p4_queue(req_type, req_from, deq)
-int req_type, req_from;
-P4BOOL deq;
+struct p4_msg *search_p4_queue( int req_type, int req_from, P4BOOL deq)
 {
     struct p4_queued_msg *qpp, *qp;
     struct p4_msg *tqp;
@@ -98,9 +96,7 @@ P4BOOL deq;
  *
  *   returns 0 if successful; non-zero if error
  */
-int p4_recv(req_type, req_from, msg, len_rcvd)
-int *req_type, *req_from, *len_rcvd;
-char **msg;
+int p4_recv( int *req_type, int *req_from, char **msg, int *len_rcvd)
 {
     struct p4_msg *tmsg, *tempmsg;
     P4BOOL good;
@@ -179,8 +175,7 @@ char **msg;
     return (0);
 }
 
-struct p4_msg *recv_message(req_type,req_from)
-int *req_type, *req_from;
+struct p4_msg *recv_message( int *req_type, int *req_from )
 {
 
     p4_dprintfl( 99, "Starting recv_message for type = %d and sender = %d\n",

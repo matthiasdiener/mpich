@@ -69,10 +69,10 @@ testall()
   MPI::Request req[2000];
   MPI::Status status[2000];
 
-  Testing("Testall w/ Status");
+  Testing( (char *)"Testall w/ Status");
 
   if (flags[SKIP_SGI20])
-    Done("Skipped (SGI 2.0)");
+    Done( (char *)"Skipped (SGI 2.0)");
   else {
     for(i = 0; i < 2000; i++) {
       data[i] = -1;
@@ -137,10 +137,10 @@ testall()
       req[i].Free();
   }
 
-  Testing("Testall w/o Status");
+  Testing( (char *)"Testall w/o Status");
 
   if (flags[SKIP_SGI20])
-    Done("Skipped (SGI 2.0)");
+    Done( (char *)"Skipped (SGI 2.0)");
   else {
     if(my_rank > 0) 
       MPI::COMM_WORLD.Send(&my_rank, 1, MPI::INT, 0, 1);

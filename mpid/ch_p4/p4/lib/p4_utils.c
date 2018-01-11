@@ -273,6 +273,14 @@ int p4_get_my_id_from_proc()
      * Remaining bugs: if there are multiple matches, we can't resolve which
      * we are if the hostname matching didn't find us (because of different
      * interfaces).
+     *
+     * To fix the test for a match, we need either to rethink this entire 
+     * logic (don't figure out who we are this way) or place the value
+     * of gethostbyname_p4 into the proctable that gets shipped around (
+     * as part of the startup, the started process could ship that back 
+     * with its pid).  This would guarantee that the correct name would 
+     * be used, and could be different from the name used to establish 
+     * connections. - WDG
      */
     n_match = 0;
     for (pi = p4_global->proctable, i = 0; i < p4_global->num_in_proctable; i++, pi++)
@@ -620,6 +628,43 @@ P4VOID remove_sysv_ipc()
 {
     int i;
     struct p4_global_data *g = p4_global;
+#   if defined(SUN_SOLARIS)
+    union semun{
+      int val;
+      struct semid_ds *buf;
+      ushort *array;
+      } arg;
+#   else
+#   if defined(IBM3090) || defined(RS6000) ||    \
+       defined(TITAN)  || defined(DEC5000) ||    \
+       defined(HP) || defined(KSR)  
+    int arg;
+#   else
+#   if defined(SEMUN_UNDEFINED)    
+       union semun {
+	   int val;
+	   struct semid_ds *buf;
+	   unsigned short int *array;
+	   struct seminfo *__buf;
+       } arg;
+#   else
+    union semun arg;
+#      endif
+#   endif
+#endif
+
+    /* Setup a default union semun value for semctl calls */
+#   if defined(SUN_SOLARIS)
+    arg.val = 0;
+#   else
+#   if defined(IBM3090) || defined(RS6000) ||    \
+       defined(TITAN)  || defined(DEC5000) ||    \
+       defined(HP) || defined(KSR) 
+    arg = 0;
+#   else
+    arg.val = 0;
+#   endif
+#   endif
 
     /* ignore -1 return codes below due to multiple processes cleaning
        up the same sysv stuff; commented out "if" used to make sure
@@ -634,17 +679,17 @@ P4VOID remove_sysv_ipc()
 	   g, since g is inside of the memory */
 	/* shmdt( sysv_shmat[i] ); */
 	/* Remove the ids */
-        shmctl(sysv_shmid[i],IPC_RMID,0);
+        shmctl(sysv_shmid[i],IPC_RMID,(struct shmid_ds *)0);
     }
     if (g == NULL)
         return;
 
     if (sysv_semid0 != -1)
-	semctl(sysv_semid0,0,IPC_RMID,0);  /* delete initial set */
+	semctl(sysv_semid0,0,IPC_RMID,arg);  /* delete initial set */
 
     for (i=1; i < g->sysv_num_semids; i++)  /* delete other sets */
     {
-	semctl(g->sysv_semid[i],0,IPC_RMID,0);
+	semctl(g->sysv_semid[i],0,IPC_RMID,arg);
     }
 }
 #endif
@@ -902,6 +947,7 @@ P4VOID zap_p4_processes()
     if (p4_global == NULL)
         return;
     n = p4_global->n_forked_pids;
+    p4_dprintfl(99,"DOING ZAP of %d local processes\n",n);
     while (n--)
     {
 	kill(pid_list[n], SIGINT);
@@ -914,27 +960,37 @@ P4VOID zap_remote_p4_processes()
     int my_id, num_tries;
     struct proc_info *dest_pi;
     char *dest_host;
-    int dest_listener;
-    int dest_listener_con_fd;
-/*
+    int dest_id, dest_listener, dest_listener_con_fd, dest_pid;
     struct slave_listener_msg msg;
-    int connection_fd;
-    int new_listener_port, new_listener_fd;
- */
+    int prev_port;
+    char prev_hostname[HOSTNAME_LEN];
 
-    p4_dprintfl(00,"killing remote processes\n");
+    p4_dprintfl(70,"killing remote processes\n");
     my_id = p4_get_my_id();
 
+    dest_pi = get_proc_info(0);
+    strcpy(prev_hostname,dest_pi->host_name);
+    prev_port = dest_pi->port;
     for (i = 0; i < p4_global->num_in_proctable; i++) {
-	if (i != my_id) {
+	dest_id = i;
+	if (dest_id != my_id) {
 	    dest_pi = get_proc_info(i);
 	    dest_host = dest_pi->host_name;
 	    dest_listener = dest_pi->port;
-	    p4_dprintfl(00, "zap: my_id=%d dest_id=%d dest_host=%s dest_listener=%d\n",
-			my_id, i, dest_host, dest_listener);
+	    dest_pid = dest_pi->unix_id;
+	    p4_dprintfl(00,
+			"zap: my_id=%d dest_id=%d dest_host=%s dest_pid=%d "
+			"dest_listener=%d\n",
+			my_id, i, dest_host, dest_pid, dest_listener);
 
 	    p4_dprintfl(00, "zap: enter loop to connect to dest listener %s\n",dest_host);
-	    /* Connect to dest listener */
+	    if (dest_listener < 0)
+	        continue;
+	    /* try 2 times (~4 seconds with sleeps in net_conn_to_listener) */
+	    dest_listener_con_fd = net_conn_to_listener(dest_host,dest_listener,2);
+	    if (dest_listener_con_fd == -1)
+		continue;
+	    /**********  RMB: old scheme waits a long time
 	    num_tries = 1;
 	    p4_has_timedout( 0 );
 	    while((dest_listener_con_fd = net_conn_to_listener(dest_host,dest_listener,1)) == -1) {
@@ -943,16 +999,43 @@ P4VOID zap_remote_p4_processes()
 		    p4_error( "Timeout in establishing connection to remote process", 0 );
 		}
 	    }
-	    p4_dprintfl(00, "conn_to_proc_contd: connected after %d tries, dest_listener_con_fd=%d\n",
+	    **********/
+	    p4_dprintfl(00, "zap_remote_p4_processes: connected after %d tries, dest_listener_con_fd=%d\n",
 			num_tries, dest_listener_con_fd);
-/*
-            send it kill-clients-and-die message
-*/
+
+            /* send it kill-clients-and-die message */
+	    msg.type = p4_i_to_n(KILL_SLAVE);
+	    msg.from = p4_i_to_n(my_id);
+	    msg.to_pid = p4_i_to_n(dest_pid);
+	    p4_dprintfl(00, "zap_remote_p4_processes: sending DIE to %d on fd=%d size=%d\n",
+			dest_id,dest_listener_con_fd,sizeof(msg));
+	    net_send(dest_listener_con_fd, &msg, sizeof(msg), P4_FALSE);
+	    p4_dprintfl(00, "zap_remote_p4_processes: sent DIE to dest_listener\n");
+	    /* Construct a die message for remote listener */
+	    if (strcmp(prev_hostname,dest_pi->host_name) != 0 || prev_port != dest_pi->port)
+	    {
+		msg.type = p4_i_to_n(DIE);
+		msg.from = p4_i_to_n(my_id);
+		p4_dprintfl(00, "zap_remote_p4_processes: sending DIE to %d on fd=%d size=%d\n",
+			    dest_id,dest_listener_con_fd,sizeof(msg));
+		net_send(dest_listener_con_fd, &msg, sizeof(msg), P4_FALSE);
+		p4_dprintfl(00, "zap_remote_p4_processes: sent DIE to dest_listener\n");
+		strcpy(prev_hostname,dest_pi->host_name);
+		prev_port = dest_pi->port;
+	    }
 	}
     }
-/*   
-    kill own listener
-*/
+    /* kill own listener */
+    if (p4_local->listener_fd > 0)
+    {
+	p4_dprintfl(00, "zap_remote_p4_processes: sending DIE to my listener\n");
+	msg.type = p4_i_to_n(DIE);
+	msg.from = p4_i_to_n(p4_get_my_id());
+	net_send(p4_local->listener_fd, &msg, sizeof(msg), P4_FALSE);
+	close( p4_local->listener_fd );
+	p4_local->listener_fd = -1;
+    }
+    p4_dprintfl(00, "zap_remote_p4_processes: done\n");
 }
 
 P4VOID get_qualified_hostname(str)

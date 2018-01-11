@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_ufs_done.c,v 1.2 1998/06/02 18:52:12 thakur Exp $    
+ *   $Id: ad_ufs_done.c,v 1.3 1999/08/12 23:38:41 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,11 +9,14 @@
 
 int ADIOI_UFS_ReadDone(ADIO_Request *request, ADIO_Status *status, int *error_code)  
 {
-    int err, nbytes, done=0;
+    int done=0;
 #ifndef __NO_AIO
 #ifdef __AIO_SUN 
     aio_result_t *result=0, *tmp;
 #else
+    int err, nbytes;
+#endif
+#ifdef __AIO_HANDLE_IN_AIOCB
     struct aiocb *tmp1;
 #endif
 #endif

@@ -1,3 +1,4 @@
+#include "mpeconf.h"
 #include <stdio.h>
 
 int ctoalog();

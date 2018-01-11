@@ -73,7 +73,7 @@ scatter()
   int *out;
   int root;
  
-  Testing("Scatter");
+  Testing( (char *)"Scatter");
 
   out = new int[MAXLEN * comm_size];
 

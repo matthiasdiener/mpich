@@ -3,31 +3,28 @@
 #      All rights reserved.  See COPYRIGHT in top-level directory.
 #
 
-##### User configurable options #####
-
-ARCH        = @ARCH@
-DEVICE      = @DEVICE@
-MPIR_HOME   = @MPIR_HOME@
 CC          = @CC@
 F77         = @F77@
 AR          = @AR@
 RANLIB      = @RANLIB@
-INCLUDE_DIR = @INCLUDE_PATH@ -I../../mpid/@DEVICE@ -I../../include
-DEVICE      = @DEVICE@
 OPTFLAGS    = @OPTFLAGS@
+OPTFLAGSC   = @OPTFLAGSC@
+prefix      = @prefix@
+top_srcdir  = @top_srcdir@
+srcdir      = @srcdir@
+libbuild_dir = @libbuild_dir@
 
-### End User configurable options ###
+DEFS        = @DEFS@ ${MPIPROFILE} -I. -I${srcdir} @mpich_includes@
+CFLAGS      = @CFLAGS@ 
 
-SHELL = /bin/sh
+SHELL       = /bin/sh
 
-DEVICE_INCLUDE = ../../mpid/$(DEVICE)/dmch.h
+@VPATH@
 
-MPI_INCLUDE    = ../../include/mpi.h  
-DEVICE_LIB = 
-CFLAGS = @CFLAGS@ @OPTFLAGSC@ $(OPTFLAGS) $(INCLUDE_DIR) \
-	-DMPI_$(ARCH) $(MPIPROFILE)
+.SUFFIXES:
+.SUFFIXES: .o .c .f
 
-LIBS = ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a $(DEVICE_LIB)
+LIBS = ${libbuild_dir}/lib@MPILIBNAME@.a
 
 MPI_CSOURCES = mperror.c isend.c irecv.c wait.c test.c \
                address.c cancel.c commreq_free.c probe.c \
@@ -94,51 +91,42 @@ MPI_WOBJECTS = isendf.o irecvf.o waitf.o testf.o \
 	       type_structf.o type_ubf.o type_vecf.o getelementsf.o \
 	       pack_sizef.o packf.o unpackf.o
 
-MPI_SOURCES = $(MPI_CSOURCES) $(MPI_WSOURCES)
-MPI_OBJECTS = $(MPI_COBJECTS) $(MPI_WOBJECTS)
+MPI_SOURCES = ${MPI_CSOURCES} ${MPI_WSOURCES}
+MPI_OBJECTS = ${MPI_COBJECTS} ${MPI_WOBJECTS}
 
-default: ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a
+default: ${libbuild_dir}/lib@MPILIBNAME@.a
 
 # default_all is the same as default, but without the RANLIB.  This
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
-default_all: $(MPI_OBJECTS)
-	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a $?
-profile_all: $(MPI_OBJECTS)
-	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a $?
-wrapperlib: $(MPI_WOBJECTS)
-	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/libf@MPILIBNAME@.a $?	
+default_all: ${MPI_OBJECTS}
+	${AR} ${libbuild_dir}/lib@MPILIBNAME@.a $?
+profile_all: ${MPI_OBJECTS}
+	${AR} ${libbuild_dir}/libp@MPILIBNAME@.a $?
+wrapperlib: ${MPI_WOBJECTS}
+	${AR} ${libbuild_dir}/libf@MPILIBNAME@.a $?	
 
-default_conly: $(MPI_COBJECTS)
-	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a $?
-	$(RANLIB) ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a
+default_conly: ${MPI_COBJECTS}
+	${AR} ${libbuild_dir}/lib@MPILIBNAME@.a $?
+	${RANLIB} ${libbuild_dir}/lib@MPILIBNAME@.a
 
-profile: ../../build/$(ARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a
-
-#wrappers:
-#	../../util/bfort -ferr -mpi -mnative -mapptr -ptrprefix MPIR_ \
-#		-anyname -I pubinc $(MPI_TSOURCES)	
+profile: ${libbuild_dir}/libp@MPILIBNAME@.a
 
 source_names:
-	@echo $(MPI_CSOURCES)
-
-$(MPI_OBJECTS) :  $(MPI_INCLUDE)
+	@echo ${MPI_CSOURCES}
 
 .c.o:
-	$(CC) $(CFLAGS) -c $*.c
+	${CC} ${DEFS} ${INCLUDES} ${CFLAGS} ${OPTFLAGSC} ${OPTFLAGS} -c $<
 
-../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
-	$(AR) $@ $?
-	$(RANLIB) $@
+${libbuild_dir}/lib@MPILIBNAME@.a: ${MPI_OBJECTS} 
+	${AR} $@ $?
+	${RANLIB} $@
 
-../../build/$(ARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a: $(MPI_OBJECTS) 
-	$(AR) $@ $?
-	$(RANLIB) $@
+${libbuild_dir}/libp@MPILIBNAME@.a: ${MPI_OBJECTS} 
+	${AR} $@ $?
+	${RANLIB} $@
 
+# We need to clean the srcdir of any .o files because they can confuse the
+# VPATH build process
 clean:
-	/bin/rm -f *.o *~ 
-
-
-
-
-
+	/bin/rm -f *.o *~ ${srcdir}/*.o

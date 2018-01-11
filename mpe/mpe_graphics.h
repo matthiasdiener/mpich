@@ -117,13 +117,11 @@ typedef struct MPE_Point_ {
 } MPE_Point;
 
 #define MPE_GRAPH_INDEPDENT  0
+#define MPE_GRAPH_INDEPENDENT MPE_GRAPH_INDEPDENT
 #define MPE_GRAPH_COLLECTIVE 1
 
 extern int MPE_Open_graphics ANSI_ARGS(( MPE_XGraph *handle, MPI_Comm comm, 
 	   char *display, int x, int y, int w, int h, int is_collective ));
-
-extern int MPE_Get_mouse_press ANSI_ARGS(( MPE_XGraph graph,
-           int *x, int *y, int *button ));
 
 extern int MPE_Draw_point ANSI_ARGS(( MPE_XGraph handle, int x, int y,
 	   MPE_Color color ));

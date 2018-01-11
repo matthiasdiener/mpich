@@ -1,11 +1,27 @@
 /* 
- *   $Id: info_dup.c,v 1.2 1998/06/02 19:08:30 thakur Exp $    
+ *   $Id: info_dup.c,v 1.4 1999/08/27 20:53:44 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "mpioimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Info_dup = PMPI_Info_dup
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Info_dup MPI_Info_dup
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Info_dup as PMPI_Info_dup
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define __MPIO_BUILD_PROFILING
+#include "mpioprof.h"
+#endif
 
 /*@
     MPI_Info_dup - Returns a duplicate of the info object

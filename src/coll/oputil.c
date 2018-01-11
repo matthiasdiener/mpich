@@ -1,5 +1,5 @@
 /*
- *  $Id: oputil.c,v 1.2 1998/01/29 14:26:04 gropp Exp $
+ *  $Id: oputil.c,v 1.4 1999/08/20 02:26:02 ashton Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -17,10 +17,11 @@
    This function is used to initialize the MPI_Op's; it can be used
    for the predefined operations as well 
  */
-int MPIR_Op_setup( function, commute, is_perm, newop )
-MPI_User_function *function;
-int               commute, is_perm;
-MPI_Op            newop;
+int MPIR_Op_setup( 
+	MPI_User_function *function, 
+	int commute, 
+	int is_perm, 
+	MPI_Op newop )
 {
 
     struct MPIR_OP *new;

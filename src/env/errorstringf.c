@@ -5,7 +5,57 @@
 #include "fortran.h"
 #endif
 
-#ifdef MPI_BUILD_PROFILING
+
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_ERROR_STRING = PMPI_ERROR_STRING
+EXPORT_MPI_API void MPI_ERROR_STRING ( MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_error_string__ = pmpi_error_string__
+EXPORT_MPI_API void mpi_error_string__ ( MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_error_string = pmpi_error_string
+EXPORT_MPI_API void mpi_error_string ( MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
+#else
+#pragma weak mpi_error_string_ = pmpi_error_string_
+EXPORT_MPI_API void mpi_error_string_ ( MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_ERROR_STRING  MPI_ERROR_STRING
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_error_string__  mpi_error_string__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_error_string  mpi_error_string
+#else
+#pragma _HP_SECONDARY_DEF pmpi_error_string_  mpi_error_string_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_ERROR_STRING as PMPI_ERROR_STRING
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_error_string__ as pmpi_error_string__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_error_string as pmpi_error_string
+#else
+#pragma _CRI duplicate mpi_error_string_ as pmpi_error_string_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_error_string_ PMPI_ERROR_STRING
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -15,7 +65,9 @@
 #else
 #define mpi_error_string_ pmpi_error_string_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_error_string_ MPI_ERROR_STRING
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -24,6 +76,7 @@
 #define mpi_error_string_ mpi_error_string
 #endif
 #endif
+
 
 #define LOCAL_MIN(a,b) ((a) < (b) ? (a) : (b))
 
@@ -44,14 +97,10 @@ int *__ierr;
 #else
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_error_string_ ANSI_ARGS(( MPI_Fint *, char *, MPI_Fint *, 
+EXPORT_MPI_API void mpi_error_string_ ANSI_ARGS(( MPI_Fint *, char *, MPI_Fint *, 
                                    MPI_Fint *, MPI_Fint ));
-void mpi_error_string_( errorcode, string, resultlen, __ierr, d )
-MPI_Fint *errorcode; 
-char     *string;
-MPI_Fint *resultlen;
-MPI_Fint *__ierr;
-MPI_Fint d;
+
+EXPORT_MPI_API void mpi_error_string_( MPI_Fint *errorcode, char *string, MPI_Fint *resultlen, MPI_Fint *__ierr, MPI_Fint d )
 {
   char cres[MPI_MAX_ERROR_STRING];
   int l_resultlen;

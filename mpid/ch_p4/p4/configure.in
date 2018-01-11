@@ -37,7 +37,7 @@ Usage: ${progname} -p4arch=ARCH_TYPE [-alog={on,off}] [-dprintfl={on,off}]
                    [-p4comm=shared]  [-listener_pathname="\<pathname\>"]
                    [-rsh=command] [-rshnol] [-cflags=flags] 
                    [-threaded_listener] [-nothreaded_listener]
-                   [-dlast] [-listenersig=name] [--enable-nonblockread]
+                   [-dlast] [-listenersig=name] [--disable-nonblockread]
 "
 RSHCOMMAND=
 MDEP_LIBS=
@@ -52,15 +52,28 @@ FC=${FC:-f77}
 threaded_listener=0
 userSet_threaded_listener=0
 listener_sig=""
-use_nonblock_read=0
+# use modern socket code (EOF on socket can be distinquished from no-data)
+# unless the test below fails.  This can be turned off with
+# --disable-nonblockread
+use_nonblock_read=1
 #
 for arg
 do
 case $arg in
+  -srcdir=* | --srcdir=* | --srcdi=* | --srcd=* | --src=* | --sr=* | --s=*)
+	srcdir=`echo $arg | sed 's/[-a-z_]*=//'` ;;
+  -exec-prefix=* | --exec_prefix=* | --exec-prefix=* | --exec-prefi=* | --exec-pref=* | --exec-pre=* | --exec-pr=* | --exec-p=* | --exec-=* | --exec=* | --exe=* | --ex=* | --e=*)
+	exec_prefix=`echo $arg | sed 's/[-a-z_]*=//'` ;;
+  -libbuild_dir=*) libbuild_dir=`echo A$arg | sed 's/A[-a-z_]*=//'` ;;
   -p4arch=*)
      p4arch=`echo $arg|sed 's/-p4arch=//'`
      eval "p4arch_`echo $p4arch`=1"
      echo Setting p4arch to $p4arch
+     ;;
+  -p4device=*)
+     p4device=`echo $arg|sed 's/-p4device=//'`
+     eval "p4device_`echo $p4device`=1"
+     echo Setting p4device to $p4device
      ;;
   -p4echo=*)
      p4echo=`echo $arg|sed 's/-p4echo=//'`
@@ -166,11 +179,45 @@ DEFINE_VENDOR_IPC="#undef VENDOR_IPC"
 DEFINE_P4_DPRINTFL="#define P4_DPRINTFL"
 LISTENER_PATHNAME=""
 ]
+
+# It is important to remove the p4_config.h file if we are performing
+# a VPATH build
+rm -f config.log p4_config.h
 AC_PREPARE()
+
+# Standard directories
+if test -z "$top_srcdir" -o "$top_srcdir" = "." ; then 
+    top_srcdir=$srcdir
+fi
+# Remove the config file from the srcdir if this is a VPATH build.
+rm -f $top_srcdir/p4_config.h
+
+AC_SUBST(top_srcdir)
+if test -z "$exec_prefix" ; then 
+    exec_prefix="${top_srcdir}"
+fi
+AC_SUBST(exec_prefix)
+if test -z "$libdir" ; then libdir="$exec_prefix/lib" ; fi
+AC_SUBST(libdir)
+
+# libbuild_dir is used to build the libraries in before they are installed.
+if test -z "$libbuild_dir" ; then 
+    libbuild_dir=`pwd`/lib
+fi
+if test ! -d $libbuild_dir ; then
+    if mkdir $libbuild_dir ; then 
+	:
+    else
+        print_error "Could not create directory $libbuild_dir"
+        exit 1
+    fi
+fi
+AC_SUBST(libbuild_dir)
+
 AC_PROG_RANLIB()
 # check for valid architecture
 # Check for an EXACT match, since that's what the defines require
-egrep "^    $p4arch\$" MACHINES > /dev/null 2>&1
+egrep "^    $p4arch\$" $srcdir/MACHINES > /dev/null 2>&1
 if test $? != 0 ; then
     echo Invalid arch $p4arch
     exit 1
@@ -180,6 +227,10 @@ if test -n "$p4make"; then
     MAKE=$p4make
 fi
 #
+if test -z "$VPATH" ; then 
+    PAC_MAKE_VPATH
+fi
+
 if test -n "$p4arch_SUN"; then
     P4ARCH=SUN
     if test -n "$p4comm_shared"; then
@@ -200,13 +251,22 @@ if test -n "$p4arch_NETBSD"; then
       DEFINE_SYSV_IPC="#define SYSV_IPC"
     fi
 fi
-#						486 running Linux
+#						x86 running Linux
 if test -n "$p4arch_LINUX"; then
     P4ARCH=LINUX
     if test -n "$p4comm_shared"; then
       DEFINE_SYSV_IPC="#define SYSV_IPC"
     fi
 fi
+
+#                                                Alpha running Linux
+if test -n "$p4arch_LINUX_ALPHA"; then
+    P4ARCH=LINUX
+    if test -n "$p4comm_shared"; then
+      DEFINE_SYSV_IPC="#define SYSV_IPC"
+    fi
+fi
+
 #                                             KSR
 if test -n "$p4arch_KSR"; then
     P4ARCH=KSR
@@ -230,8 +290,14 @@ if test -n "$p4arch_SUN_SOLARIS"; then
     fi
     AC_HAVE_LIBRARY(socket)
     AC_HAVE_LIBRARY(nsl)
+    AC_MSG_CHECKING(for how many arguments gettimeofday takes)
+    AC_TEST_PROGRAM([#include <sys/time.h>
+main() {struct timeval tp;
+gettimeofday(&tp);return 0;}],
+MDEP_CFLAGS="$MDEP_CFLAGS -DUSE_WIERDGETTIMEOFDAY"
+AC_MSG_RESULT(one!),AC_MSG_RESULT(two - whew))
 
-    PAC_IS_GETTIMEOFDAY_OK(,MDEP_CFLAGS="$MDEP_CFLAGS -DUSE_WIERDGETTIMEOFDAY")
+dnl    PAC_IS_GETTIMEOFDAY_OK(,MDEP_CFLAGS="$MDEP_CFLAGS -DUSE_WIERDGETTIMEOFDAY")
 
     dnl #MDEP_LIBS = /usr/ucblib/libucb.a -lsocket -lnsl  # for fortran
 fi
@@ -368,7 +434,11 @@ fi
 if test -n "$p4arch_SGI"; then
     P4ARCH=SGI
     RANLIB=true
-    AC_HAVE_LIBRARY(sun)
+    # Look for getpwnam.  If not found, try to find it in -lsun
+    AC_FUNC_CHECK(getpwnam,has_getpwnam=1,has_getpwnam=0)
+    if test $has_getpwnam = 0 ; then
+        AC_HAVE_LIBRARY(sun)
+    fi
     dnl    MDEP_CFLAGS=-cckr
     if test -n "$p4comm_shared"; then
       DEFINE_VENDOR_IPC="#define VENDOR_IPC"
@@ -379,7 +449,10 @@ fi
 if test -n "$p4arch_SGI5"; then
     P4ARCH=SGI
     RANLIB=true
-    AC_HAVE_LIBRARY(sun)
+    AC_FUNC_CHECK(getpwnam,has_getpwnam=1,has_getpwnam=0)
+    if test $has_getpwnam = 0 ; then
+        AC_HAVE_LIBRARY(sun)
+    fi
     dnl    MDEP_CFLAGS=-cckr
     if test -n "$p4comm_shared"; then
       DEFINE_VENDOR_IPC="#define VENDOR_IPC"
@@ -390,7 +463,10 @@ fi
 if test -n "$p4arch_SGI32"; then
     P4ARCH=SGI
     RANLIB=true
-    AC_HAVE_LIBRARY(sun)
+    AC_FUNC_CHECK(getpwnam,has_getpwnam=1,has_getpwnam=0)
+    if test $has_getpwnam = 0 ; then
+        AC_HAVE_LIBRARY(sun)
+    fi
     # This choice of flags is for the SGI compilers.  If the user chose
     # gcc, they won't work.
     PAC_CHECK_COMPILER_OPTION(-32,MDEP_CFLAGS="-32";MDEP_LFLAGS="-32")
@@ -406,7 +482,10 @@ fi
 if test -n "$p4arch_SGIN32"; then
     P4ARCH=SGI
     RANLIB=true
-    AC_HAVE_LIBRARY(sun)
+    AC_FUNC_CHECK(getpwnam,has_getpwnam=1,has_getpwnam=0)
+    if test $has_getpwnam = 0 ; then
+        AC_HAVE_LIBRARY(sun)
+    fi
     # This choice of flags is for the SGI compilers.  If the user chose
     # gcc, they won't work.
     PAC_CHECK_COMPILER_OPTION(-n32,MDEP_CFLAGS="-n32";MDEP_LFLAGS="-n32")
@@ -421,7 +500,10 @@ fi
 if test -n "$p4arch_SGI6"; then
     P4ARCH=SGI
     RANLIB=true
-    AC_HAVE_LIBRARY(sun)
+    AC_FUNC_CHECK(getpwnam,has_getpwnam=1,has_getpwnam=0)
+    if test $has_getpwnam = 0 ; then
+        AC_HAVE_LIBRARY(sun)
+    fi
     dnl MDEP_CFLAGS="-cckr -woff 1552,1174"
     dnl MDEP_FFLAGS="-cckr -woff 1552,1174"
     PAC_CHECK_COMPILER_OPTION([-woff 1552,1174],
@@ -438,7 +520,10 @@ fi
 if test -n "$p4arch_SGI_MP"; then
     P4ARCH=SGI_MP
     RANLIB=true
-    AC_HAVE_LIBRARY(sun)
+    AC_FUNC_CHECK(getpwnam,has_getpwnam=1,has_getpwnam=0)
+    if test $has_getpwnam = 0 ; then
+        AC_HAVE_LIBRARY(sun)
+    fi
     AC_HAVE_FUNCS(setsid)
     AC_HAVE_FUNCS(isatty)
     dnl MDEP_CFLAGS=-cckr
@@ -537,7 +622,7 @@ fi
 # dump copy of MDEP_CFLAGS into file for other system to pick up
 /bin/rm -f mpdepcflags
 echo $MDEP_CFLAGS > mdepcflags
-# evaluate variables for lib/p4_config.h
+# evaluate variables for p4_config.h
 if test "$p4alog" = "on"; then
     DEFINE_ALOG="#define ALOG_TRACE"
 fi
@@ -552,7 +637,10 @@ fi
 AC_CROSS_CHECK()
 #
 # Look for netinet/in.h and sys/socketvar.h
-PAC_CHECK_HEADERS(netinet/in.h)
+has_rpc_rpc=0
+PAC_CHECK_HEADERS(rpc/rpc.h,has_rpc_rpc=1)
+has_netinet_in=0
+PAC_CHECK_HEADERS(netinet/in.h,has_netinet_in=1)
 PAC_CHECK_HEADERS(arpa/inet.h)
 PAC_CHECK_HEADERS(sys/socketvar.h)
 PAC_CHECK_HEADERS(stdlib.h)
@@ -572,6 +660,42 @@ main() {return 0;}],
 AC_MSG_RESULT(yes)
 AC_DEFINE(BOTH_STRING_INCS),AC_MSG_RESULT(no))
 #
+if test "$has_rpc_rpc" = 1 ; then
+    # does it really?
+    # (gcc on Solaris 5.6 sometimes fails, particularly when OS was upgraded
+    # from 5.5 to 5.6 but gcc was not reinstalled).
+    AC_COMPILE_CHECK([correct headers with rpc/rpc.h],[
+#include <sys/types.h>
+#include <rpc/rpc.h>]
+,,,cc_broken=1)
+    if test "$cc_broken" = 1; then
+        echo "Your C compiler $CC fails to compile the program"
+        echo "#include <sys/types.h>"
+        echo "#include <rpc/rpc.h>"
+	echo "If you are using gcc, make sure that the system include"
+        echo "files and the gcc include files are consistent.  If "
+        echo "you have upgraded the OS, you may need to reinstall gcc"
+        exit 1
+    fi
+fi
+if test "$has_netinet_in" = 1 ; then
+    # does it really?
+    # (gcc on Solaris 5.6 sometimes fails, particularly when OS was upgraded
+    # from 5.5 to 5.6 but gcc was not reinstalled).
+    AC_COMPILE_CHECK([correct headers with netinet/in.h],[
+#include <sys/types.h>
+#include <netinet/in.h>]
+,,,cc_broken=1)
+    if test "$cc_broken" = 1; then
+        echo "Your C compiler $CC fails to compile the program"
+        echo "#include <sys/types.h>"
+        echo "#include <netinet/in.h>"
+	echo "If you are using gcc, make sure that the system include"
+        echo "files and the gcc include files are consistent.  If "
+        echo "you have upgraded the OS, you may need to reinstall gcc"
+        exit 1
+    fi
+fi
 #
 # It isn't enough to check for stdarg.  Even gcc doesn't get it right;
 # on some systems, the gcc version of stdio.h loads stdarg.h WITH THE WRONG
@@ -579,11 +703,6 @@ AC_DEFINE(BOTH_STRING_INCS),AC_MSG_RESULT(no))
 #
 if test -n "$havestdarg" ; then
     PAC_COMPILE_CHECK_FUNC(stdarg is correct,[
-/* DEC Alpha compiler by default does NOT define __STDC__ but DOES
-   accept prototypes */
-#if !defined(__STDC__)
-'bad text'
-#endif
 #include <stdio.h>
 #include <stdarg.h>
 int func( int a, ... ){
@@ -599,10 +718,17 @@ return 0;
 int main() { func( 1, 2 ); return 0;}],AC_DEFINE(USE_STDARG))
 fi
 #
+AC_HAVE_FUNCS(sigsetmask)
+AC_HAVE_FUNCS(sigblock)
 # Look for sigaction routine (instead of signal)
 AC_HAVE_FUNCS(sigaction)
 AC_COMPILE_CHECK(for struct sigaction,[#include <signal.h>],[
 struct sigaction act; sigaddset( &act.sa_mask, SIGINT );],sigaction_ok="yes",sigaction_ok="no")
+# XOPEN mandates that union semun NOT be defined(!)
+AC_COMPILE_CHECK(for union semun,[#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>],[
+union semun arg;arg.val=0;],,AC_DEFINE(SEMUN_UNDEFINED))
 # strerror is prefered over extern char *sys_errlist[];
 AC_HAVE_FUNCS(strerror)
 AC_HAVE_LIBRARY(crypt,CRYPT_LIBS=-lcrypt)
@@ -610,16 +736,20 @@ AC_HAVE_LIBRARY(crypt,CRYPT_LIBS=-lcrypt)
 AC_HAVE_FUNCS(vprintf)
 
 #
-# Check that nonblocking read works
-if test -s readblock.c ; then
+# Check that nonblocking read works:
+# Early SYSV (R2) had a design problem with nonblocking sockets:
+# there was no way to distinquish between EOF and no data on socket.
+# This code tests for this case; if an EOF on the socket gives the
+# correct value (-1), we note this.  If it fails, there is code in
+# p4 to work around this design bug, but it can introduce performance
+# penalties.  
+if test -s $top_srcdir/readblock.c -a $use_nonblock_read = 1 ; then
     AC_MSG_CHECKING([that read O_NDELAY works])
     readworks=0
-    AC_TEST_PROGRAM([`cat readblock.c`],readworks=1)
+    AC_TEST_PROGRAM([`cat $top_srcdir/readblock.c`],readworks=1)
     if test $readworks = 1 ; then
         AC_MSG_RESULT(yes)
-	if test $use_nonblock_read = 1 ; then
-            AC_DEFINE(NONBLOCKING_READ_WORKS)
-	fi
+        AC_DEFINE(NONBLOCKING_READ_WORKS)
     else
 	AC_MSG_RESULT(no)
     fi
@@ -648,6 +778,57 @@ if test -n "$RSHNOL" ; then
     AC_DEFINE(RSH_HAS_NO_L)
 fi
 #
+#
+# The following are necessary for AIX in particular because in 64 bit mode,
+# some of the socket functions use size_t (unsigned long, 64 bits) instead of
+# int (signed int, 32 bits) as a return value.  Getting the wrong type
+# causes all sorts of chaos.  Unfortunately, there isn't any consensus on what
+# the arguments *should* be.
+found_sockopt_type=0
+AC_COMPILE_CHECK([if getsockopt wants socklen_t],[#include <sys/types.h>
+#include <sys/socket.h>],[socklen_t dummy; int rc, skt; void *ssz;
+rc = getsockopt(skt,SOL_SOCKET,SO_SNDBUF,ssz,&dummy);],found_sockopt_type=1)
+if test $found_sockopt_type = 1 ; then
+    MDEP_CFLAGS="$MDEP_CFLAGS -DUSE_SOCKLEN_T"
+fi
+if test $found_sockopt_type = 0 ; then
+    # This case is harder.  size_t is a valid type, but it may not be the 
+    # one that getsockopt etc wants.
+    AC_MSG_CHECKING([if getsockopt wants size_t])
+    PAC_TRY_COMPILE_CLEAN([#include <sys/types.h>
+#include <sys/socket.h>],[int try(void){size_t dummy; int rc, skt; void *ssz;
+rc = getsockopt(skt,SOL_SOCKET,SO_SNDBUF,ssz,&dummy);
+return rc;}],found_sockopt_type)
+    case $found_sockopt_type in 
+	0) AC_MSG_RESULT(yes)
+           MDEP_CFLAGS="$MDEP_CFLAGS -DUSE_SIZE_T_FOR_SOCKLEN_T"
+	;;
+	1) AC_MSG_RESULT([no (warnings from compiler)])
+	;;
+	2) AC_MSG_RESULT(no)
+	;;
+    esac
+fi
+
+#
+# Check whether u_int should be used for xdr_array 
+use_u_int=0
+AC_MSG_CHECKING([if xdr_array wants u_int])
+PAC_TRY_COMPILE_CLEAN([#include <rpc/xdr.h>
+],[int try(void){
+u_int l, ms, el; xdrproc_t elproc; XDR *xdrs; int rc; char **arrp;
+rc = xdr_array(xdrs,arrp,&l,ms,el,elproc);
+return rc;}],use_u_int)
+case $use_u_int in 
+    0) AC_MSG_RESULT(yes)
+       MDEP_CFLAGS="$MDEP_CFLAGS -DUSE_U_INT_FOR_XDR"
+       ;;
+    1) AC_MSG_RESULT([no (compiler warnings)])
+       ;;
+    2) AC_MSG_RESULT(no)
+       ;;
+esac
+
 if test $threaded_listener = 1 ; then
     # Try to find a thread package
     has_pthread=0
@@ -721,5 +902,7 @@ AC_SUBST(RSHCOMMAND)dnl
 AC_OUTPUT(Makefile lib/Makefile alog/Makefile usc/Makefile usc/usctest/Makefile messages/Makefile include/Makefile lib_f/Makefile contrib/Makefile contrib_f/Makefile bin/Makefile doc/Makefile messages_f/Makefile misc/Makefile monitors/Makefile servers/Makefile)
 dnl 
 dnl This code removes that stupid first line placed by ac_output
-PAC_OUTPUT_EXEC(lib/p4_config.h)
+dnl p4_config.h needs to be in the top-level directory so that VPATH will 
+dnl work correctly
+PAC_OUTPUT_EXEC(p4_config.h)
 

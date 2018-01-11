@@ -69,7 +69,7 @@ test1()
   MPI::Request msgid;
   MPI::Status status;
 
-  Testing("Test w/ Status");
+  Testing( (char *)"Test w/ Status");
 
   flag = 0;
 

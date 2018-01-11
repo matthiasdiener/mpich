@@ -7,7 +7,56 @@
 #include <stdarg.h>
 #endif
 
-#ifdef MPI_BUILD_PROFILING
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_RECV_INIT = PMPI_RECV_INIT
+EXPORT_MPI_API void MPI_RECV_INIT ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_recv_init__ = pmpi_recv_init__
+EXPORT_MPI_API void mpi_recv_init__ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_recv_init = pmpi_recv_init
+EXPORT_MPI_API void mpi_recv_init ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_recv_init_ = pmpi_recv_init_
+EXPORT_MPI_API void mpi_recv_init_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_RECV_INIT  MPI_RECV_INIT
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_recv_init__  mpi_recv_init__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_recv_init  mpi_recv_init
+#else
+#pragma _HP_SECONDARY_DEF pmpi_recv_init_  mpi_recv_init_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_RECV_INIT as PMPI_RECV_INIT
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_recv_init__ as pmpi_recv_init__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_recv_init as pmpi_recv_init
+#else
+#pragma _CRI duplicate mpi_recv_init_ as pmpi_recv_init_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_recv_init_ PMPI_RECV_INIT
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -17,7 +66,9 @@
 #else
 #define mpi_recv_init_ pmpi_recv_init_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_recv_init_ MPI_RECV_INIT
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -26,6 +77,7 @@
 #define mpi_recv_init_ mpi_recv_init
 #endif
 #endif
+
 
 #ifdef _CRAY
 #ifdef _TWO_WORD_FCD
@@ -92,18 +144,10 @@ if (_isfcd(buf)) {
 #else
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_recv_init_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+EXPORT_MPI_API void mpi_recv_init_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                 MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                 MPI_Fint * ));
-void mpi_recv_init_( buf, count, datatype, source, tag, comm, request, __ierr )
-void     *buf;
-MPI_Fint *count;
-MPI_Fint *request;
-MPI_Fint *datatype;
-MPI_Fint *source;
-MPI_Fint *tag;
-MPI_Fint *comm;
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_recv_init_( void *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *source, MPI_Fint *tag, MPI_Fint *comm, MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest;
     *__ierr = MPI_Recv_init(MPIR_F_PTR(buf),(int)*count,

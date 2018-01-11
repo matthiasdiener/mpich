@@ -52,7 +52,7 @@ linktest:
 # environment (only the pt2pt test has this option).  runtest exits with 1 if
 # the test fails, which will cause the Make to exit.
 runtest:
-	(cd pt2pt ; ./runtests -check )
+	(cd pt2pt ; ./runtests $(TESTARGS) -check )
 
 #
 # This also cleans the files after the testing to keep the

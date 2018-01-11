@@ -1,11 +1,30 @@
 /*
- *  $Id: cart_get.c,v 1.3 1998/04/29 14:28:32 swider Exp $
+ *  $Id: cart_get.c,v 1.7 1999/08/30 15:50:45 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Cart_get = PMPI_Cart_get
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Cart_get  MPI_Cart_get
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Cart_get as PMPI_Cart_get
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpitopo.h"
 
 /*@
@@ -33,10 +52,12 @@ Output Parameters:
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-int MPI_Cart_get ( comm, maxdims, dims, periods, coords )
-MPI_Comm comm;
-int maxdims;
-int *dims, *periods, *coords;
+EXPORT_MPI_API int MPI_Cart_get ( 
+	MPI_Comm comm, 
+	int maxdims, 
+	int *dims, 
+	int *periods, 
+	int *coords )
 {
   int i, num, flag;
   int *array;

@@ -20,7 +20,12 @@ struct proc_info {
     int slave_idx;
     int group_id;
     P4BOOL am_rm;
+    /* The host_name is the name used for connections.  */
     char host_name[HOSTNAME_LEN];
+    /* local_name is the name that the machine knows itself by.  This
+       is the same as host_name unless the machine has multiple networks
+     */
+    char local_name[HOSTNAME_LEN];
 #   ifdef CAN_DO_SOCKET_MSGS
     struct sockaddr_in sockaddr;
 #   endif
@@ -46,6 +51,7 @@ struct p4_global_data {
     P4BOOL local_communication_only;
     int local_slave_count;
     int n_forked_pids;
+    /* my_host_name is the name that the system knows itself by */
     char my_host_name[HOSTNAME_LEN];
     struct p4_avail_buff avail_buffs[NUMAVAILS];
     p4_lock_t avail_buffs_lock;
@@ -154,6 +160,7 @@ struct p4_queued_msg {
 #define SLAVE_DYING   2     /* Unused.  Check for whole data struct. */
 #define CONNECTION_REQUEST   3
 #define IGNORE_THIS   4
+#define KILL_SLAVE   5
 
 struct slave_listener_msg {
     int type:32;
@@ -203,6 +210,7 @@ struct bm_rm_msg {
     int switch_port:32;
     /* int pad:32;  to keep number of 32 bit quantities even */
     char host_name[HOSTNAME_LEN];
+    char local_name[HOSTNAME_LEN];
 
     /* also for INITIAL INFO */
     char pgm[P4_MAX_PGM_LEN];

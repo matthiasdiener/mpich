@@ -1,5 +1,5 @@
 /*
- *  $Id: handle2int.c,v 1.3 1998/04/28 21:09:01 swider Exp $
+ *  $Id: handle2int.c,v 1.5 1999/08/20 02:26:57 ashton Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.

@@ -1,11 +1,30 @@
 /*
- *  $Id: cart_coords.c,v 1.2 1998/04/29 14:28:29 swider Exp $
+ *  $Id: cart_coords.c,v 1.7 1999/08/30 15:50:40 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Cart_coords = PMPI_Cart_coords
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Cart_coords  MPI_Cart_coords
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Cart_coords as PMPI_Cart_coords
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpitopo.h"
 
 /*@
@@ -31,11 +50,7 @@ Output Parameter:
 .N MPI_ERR_ARG
 
 @*/
-int MPI_Cart_coords ( comm, rank, maxdims, coords )
-MPI_Comm  comm;
-int       rank;
-int       maxdims;
-int      *coords;
+EXPORT_MPI_API int MPI_Cart_coords ( MPI_Comm comm, int rank, int maxdims, int *coords )
 {
   int i, flag;
   int mpi_errno = MPI_SUCCESS;
@@ -46,18 +61,24 @@ int      *coords;
 
   TR_PUSH(myname);
   comm_ptr = MPIR_GET_COMM_PTR(comm);
+
+#ifndef MPIR_NO_ERROR_CHECKING
   MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
   /* Check for valid arguments */
-  if ( ((rank                <  0)       && (mpi_errno = MPI_ERR_RANK))      ||
-       ((maxdims             <  1)       && (mpi_errno = MPI_ERR_DIMS))      ||
-       MPIR_TEST_ARG(coords) )
-    return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+  if (rank < 0) mpi_errno = MPI_ERR_RANK; /* ???? */
+  if (maxdims < 1) mpi_errno = MPI_ERR_DIMS;
+  MPIR_TEST_ARG(coords);
+  if (mpi_errno)
+      return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
 
   /* Get topology information from the communicator */
   MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );
 
   /* Check for valid topology */
+#ifndef MPIR_NO_ERROR_CHECKING
+#endif
   if ( ( (flag != 1)                 && (mpi_errno = MPI_ERR_TOPOLOGY))  ||
        ( (topo->type != MPI_CART)    && (mpi_errno = MPI_ERR_TOPOLOGY))  ||
        ( (rank >= topo->cart.nnodes) && (mpi_errno = MPI_ERR_RANK))      )

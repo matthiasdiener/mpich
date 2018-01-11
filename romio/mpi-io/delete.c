@@ -1,11 +1,27 @@
 /* 
- *   $Id: delete.c,v 1.2 1998/06/02 19:00:48 thakur Exp $    
+ *   $Id: delete.c,v 1.5 1999/08/27 20:53:02 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "mpioimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_File_delete = PMPI_File_delete
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_File_delete MPI_File_delete
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_File_delete as PMPI_File_delete
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define __MPIO_BUILD_PROFILING
+#include "mpioprof.h"
+#endif
 
 extern int ADIO_Init_keyval;
 

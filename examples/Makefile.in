@@ -16,19 +16,10 @@ OPTFLAGS    = @OPTFLAGS@
 MPE_GRAPH   = @MPE_GRAPHICS@
 #
 DEVICE      = @DEVICE@
-INCLUDE_DIR = @USER_INCLUDE_PATH@ -I$(MPIR_HOME)/include -I$(MPIR_HOME)/lib/$ARCH/$COMM
 
 ### End User configurable options ###
 SHELL = /bin/sh
 
-CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPE_GRAPH)
-CCFLAGS = $(CFLAGS)
-#FFLAGS = '-qdpc=e' 
-FFLAGS = $(OPTFLAGS)
-MPILIB = $(MPIR_HOME)/build/$(ARCH)/$(DEVICE)/lib/libmpich.a 
-MPIPPLIB = $(MPIR_HOME)/build/$(ARCH)/$(DEVICE)/lib/libmpi++.a
-LIBS = $(LIB_PATH) $(LIB_LIST)
-LIBSPP = $(MPIPPLIB) $(LIBS)
 # Were not ready to do contrib by default yet.
 SUBDIRS = test perftest
 TESTDIRS = test
@@ -47,6 +38,8 @@ subdirs:
 testing:
 	@for dir in $(TESTDIRS) ;\
 		do \
+			if [ ! -d $$dir -o ! -s $$dir/Makefile ] ; then \
+				continue ; fi ; \
 			echo " " ;\
 			echo Making tests in directory $$dir ;\
 			(cd $$dir; $(MAKE) testing) ;\
@@ -55,6 +48,8 @@ testing:
 linktest:
 	@for dir in $(SUBDIRS) ;\
 		do \
+			if [ ! -d $$dir -o ! -s $$dir/Makefile ] ; then \
+				continue ; fi ; \
 			echo " " ;\
 			echo Making linktest in directory $$dir ;\
 			(cd $$dir; $(MAKE) linktest) ;\
@@ -66,6 +61,8 @@ clean:
 	/bin/rm -f $(EXECS) *.o
 	@for dir in $(SUBDIRS) ;\
 		do \
+			if [ ! -d $$dir -o ! -s $$dir/Makefile ] ; then \
+				continue ; fi ; \
 			echo " " ;\
 			echo Making clean in directory $$dir ;\
 			(cd $$dir; $(MAKE) clean) ;\

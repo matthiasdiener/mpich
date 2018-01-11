@@ -4,16 +4,6 @@
 #define P2P_EXTERN extern
 #endif
 
-/* Handle argument declarations for ANSI C and C++ compilers */
-
-#ifndef ANSI_ARGS
-#    if defined(__STDC__) || defined(__cplusplus)
-#        define ANSI_ARGS(a) a
-#    else
-#        define ANSI_ARGS(a) ()
-#    endif
-#endif
-
 /* Definitions for improving Cache locality */
 
 #define MPID_CACHE_ALIGN	/* could become machine-dependent  */
@@ -34,20 +24,21 @@
 
 /* function declarations for p2p */
 
-double p2p_wtime       ANSI_ARGS((void));
-void   p2p_init        ANSI_ARGS((int,int));
-void   p2p_shfree      ANSI_ARGS((char *));
-void   p2p_cleanup     ANSI_ARGS((void));
-void   p2p_error       ANSI_ARGS((char *, int));
-void   p2p_setpgrp     ANSI_ARGS((void));
-void   p2p_yield       ANSI_ARGS((void));
-void   p2p_kill_procs  ANSI_ARGS((void)); 
-void   p2p_clear_signal ANSI_ARGS((void)); 
-void   p2p_cleanup     ANSI_ARGS((void)); 
-void p2p_create_procs  ANSI_ARGS((int,int,char **));
+double p2p_wtime       (void);
+void   p2p_init        (int,int);
+void   p2p_shfree      (char *);
+void   p2p_cleanup     (void);
+void   p2p_error       (char *, int);
+void   p2p_syserror    (char *, int);
+void   p2p_setpgrp     (void);
+void   p2p_yield       (void);
+void   p2p_kill_procs  (void); 
+void   p2p_clear_signal (void); 
+void   p2p_cleanup     (void); 
+void p2p_create_procs  (int,int,char **);
 
 #ifdef USE_DISTRIB_SHMALLOC
-    void *p2p_shmalloc ANSI_ARGS((int, int));
+    void *p2p_shmalloc (int, int);
 #else
-    void *p2p_shmalloc ANSI_ARGS((int));
+    void *p2p_shmalloc (int);
 #endif

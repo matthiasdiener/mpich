@@ -1,3 +1,4 @@
+#include "mpeconf.h"
 #include "clogimpl.h"
 #include <unistd.h>
 #include <fcntl.h>

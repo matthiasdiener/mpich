@@ -11,7 +11,7 @@ int main(int argc, char **argv)
     int i, len, nkeys, flag, mynod, default_striping_factor, nprocs;
     MPI_File fh;
     MPI_Info info, info_used;
-    char *filename, key[MPI_MAX_INFO_KEY+1], value[MPI_MAX_INFO_VAL+1];
+    char *filename, key[MPI_MAX_INFO_KEY], value[MPI_MAX_INFO_VAL];
 
     MPI_Init(&argc,&argv);
 
@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 
     for (i=0; i<nkeys; i++) {
 	MPI_Info_get_nthkey(info_used, i, key);
-	MPI_Info_get(info_used, key, MPI_MAX_INFO_VAL, value, &flag);
+	MPI_Info_get(info_used, key, MPI_MAX_INFO_VAL-1, value, &flag);
 	if (!mynod) 
 	    printf("Process %d, Default:  key = %s, value = %s\n", mynod, 
                 key, value);
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
     if (!mynod) printf("\n New values\n\n");
     for (i=0; i<nkeys; i++) {
 	MPI_Info_get_nthkey(info_used, i, key);
-	MPI_Info_get(info_used, key, MPI_MAX_INFO_VAL, value, &flag);
+	MPI_Info_get(info_used, key, MPI_MAX_INFO_VAL-1, value, &flag);
 	if (!mynod) printf("Process %d, key = %s, value = %s\n", mynod, 
                 key, value);
     }

@@ -76,9 +76,7 @@ c =========================== program header ===========================
 c
 
       program pong
-
       implicit none
-
       include 'mpif.h'
 
 c sizedouble = size in bytes of double precision element

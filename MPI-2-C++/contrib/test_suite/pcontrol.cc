@@ -62,7 +62,7 @@
 void
 pcontrol()
 {
-  Testing("Pcontrol");
+  Testing( (char *)"Pcontrol");
 
   MPI::Pcontrol(0);
   MPI::Pcontrol(1);

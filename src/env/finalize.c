@@ -1,11 +1,30 @@
 /*
- *  $Id: finalize.c,v 1.5 1998/04/06 20:04:28 swider Exp $
+ *  $Id: finalize.c,v 1.11 1999/10/18 22:18:09 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Finalize = PMPI_Finalize
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Finalize  MPI_Finalize
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Finalize as PMPI_Finalize
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "reqalloc.h"
 #define MPIR_SBdestroy MPID_SBdestroy
 extern int MPIR_Dump_Mem;
@@ -29,11 +48,8 @@ extern void MPIR_Topology_finalize ANSI_ARGS((void));
 
 .N fortran
 @*/
-int MPI_Finalize()
+EXPORT_MPI_API int MPI_Finalize()
 {
-
-    void *ADIctx;
-
     TR_PUSH("MPI_Finalize");
 
     DBG(FPRINTF( stderr, "Entering system finalize\n" ); fflush(stderr);)
@@ -59,6 +75,9 @@ int MPI_Finalize()
     MPI_Barrier( MPI_COMM_WORLD );
 #endif    
 
+    /* This Barrier is needed in order for MPI_Cancel to work properly */
+    MPI_Barrier( MPI_COMM_WORLD );
+
     /* Mark the MPI environment as having been destroyed.
        Note that the definition of MPI_Initialized returns only whether
        MPI_Init has been called; not if MPI_Finalize has also been called */
@@ -66,8 +85,6 @@ int MPI_Finalize()
 
     /* Un-initialize topology code */
     MPIR_Topology_finalize();
-
-    ADIctx = MPIR_COMM_WORLD->ADIctx;
 
     /* Like the basic datatypes, the predefined operators are in 
        permanent storage */

@@ -1,11 +1,30 @@
 /* 
- *   $Id: info_delete.c,v 1.4 1998/04/28 21:25:00 swider Exp $    
+ *   $Id: info_delete.c,v 1.9 1999/08/30 15:47:32 swider Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Info_delete = PMPI_Info_delete
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Info_delete  MPI_Info_delete
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Info_delete as PMPI_Info_delete
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpimem.h"
 
 /*@
@@ -17,29 +36,36 @@ Input Parameters:
 
 .N fortran
 @*/
-int MPI_Info_delete(MPI_Info info, char *key)
+EXPORT_MPI_API int MPI_Info_delete(MPI_Info info, char *key)
 {
     MPI_Info prev, curr;
     int done;
+    static char myname[] = "MPI_INFO_DELETE";
+    int mpi_errno;
 
     if ((info <= (MPI_Info) 0) || (info->cookie != MPIR_INFO_COOKIE)) {
-        printf("MPI_Info_delete: Invalid info object\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_INFO, MPIR_ERR_DEFAULT, myname, 
+				     (char *)0, (char *)0 );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     }
 
-    if (key <= (char *) 0) {
-	printf("MPI_Info_delete: key is an invalid address\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
+    if (!key) {
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_INFO_KEY, MPIR_ERR_DEFAULT, 
+				     myname, (char *)0, (char *)0);
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     }
 
     if (strlen(key) > MPI_MAX_INFO_KEY) {
-	printf("MPI_Info_delete: key is longer than MPI_MAX_INFO_KEY\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_INFO_KEY, MPIR_ERR_KEY_TOOLONG,
+				     myname, (char *)0, (char *)0, 
+				     strlen(key), MPI_MAX_INFO_KEY );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     }
 
     if (!strlen(key)) {
-	printf("MPI_Info_delete: key is a null string\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_INFO_KEY, MPIR_ERR_KEY_EMPTY,
+				     myname, (char *)0, (char *)0 );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     }
 
     prev = info;
@@ -67,8 +93,9 @@ int MPI_Info_delete(MPI_Info info, char *key)
     }
 
     if (!done) {
-	printf("MPI_Info_delete: key not defined in info\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);	
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_INFO_NOKEY, MPIR_ERR_DEFAULT, 
+				     myname, (char *)0, (char *)0, key );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     }
 
     return MPI_SUCCESS;

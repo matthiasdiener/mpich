@@ -1,11 +1,30 @@
 /*
- *  $Id: initialize.c,v 1.1.1.1 1997/09/17 20:41:57 gropp Exp $
+ *  $Id: initialize.c,v 1.5 1999/08/30 15:46:14 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Initialized = PMPI_Initialized
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Initialized  MPI_Initialized
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Initialized as PMPI_Initialized
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
    MPI_Initialized - Indicates whether 'MPI_Init' has been called.
@@ -15,8 +34,7 @@ Output Parameter:
 
 .N fortran
 @*/
-int MPI_Initialized( flag )
-int  *flag;
+EXPORT_MPI_API int MPI_Initialized( int *flag )
 {
 /* 
    MPI_Init sets MPIR_Has_been_initialized to 1, MPI_Finalize sets to 2.

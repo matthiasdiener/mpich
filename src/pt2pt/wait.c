@@ -1,5 +1,5 @@
 /*
- *  $Id: wait.c,v 1.2 1998/01/16 16:27:00 swider Exp $
+ *  $Id: wait.c,v 1.6 1999/08/30 15:50:13 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,25 @@
 
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Wait = PMPI_Wait
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Wait  MPI_Wait
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Wait as PMPI_Wait
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
     MPI_Wait  - Waits for an MPI send or receive to complete
@@ -26,9 +45,9 @@ Output Parameter:
 .N MPI_ERR_REQUEST
 .N MPI_ERR_ARG
 @*/
-int MPI_Wait ( request, status )
-MPI_Request  *request;
-MPI_Status   *status;
+EXPORT_MPI_API int MPI_Wait ( 
+	MPI_Request  *request,
+	MPI_Status   *status)
 {
     int mpi_errno;
     MPIR_ERROR_DECL;

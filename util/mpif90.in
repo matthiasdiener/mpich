@@ -1,6 +1,9 @@
 #! /bin/sh
+#
 DoLink=1
 DoCompile=0
+show_compile=0
+show_link=0
 MPILOG=
 Show=eval
 allargs=
@@ -11,11 +14,13 @@ gettinglinkarg=0
 HasDashC=0
 UsesPmpi=0
 proflib=-lp@MPILIBNAME@
-proflibfullname=@MPIR_HOME@/build/@ARCH@/@DEVICE@/lib/libp@MPILIBNAME@.a
+proflibfullname=@libbuild_dir@/libp@MPILIBNAME@.a
 F90BASE="@F90@"
 F90="${MPICH_F90-$F90BASE}"
 F90LINKERBASE="@F90LINKER@"
 F90LINKER="${MPICH_F90LINKER-$F90LINKERBASE}"
+UseSharedLib=${MPICH_USE_SHLIB-no}
+choice=0
 for arg in "$@" ; do
 #    echo procssing arg $arg
     # Special processing for -o name
@@ -54,11 +59,14 @@ for arg in "$@" ; do
 	    DoLink=1
         fi
 	;;
-	-l*)
-	# This SHOULD be the -l<lib> argument.  Only for the linker
-	linkargs="$linkargs $arg"
+	-O*)
 	allargs="$allargs $arg"
+	compileargs="$compileargs $arg"
+	linkargs="$linkargs $arg"
+	if [ $choice = 0 ] ; then choice=2 ; fi
 	;;
+	-choicemod) choice=1 ;;
+	-nochoicemod) choice=2 ;;
 	-mpilog)
 	if [ $UsesPmpi = 1 ] ; then
 	    echo "Only one of -mpilog, -mpitrace, or -mpianim may be used."
@@ -66,7 +74,7 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ -n "@MPE_DIR@" ] ; then
+	if [ @NOMPE@ = 0 ] ; then
 		MPILOG="-lf@MPILIBNAME@ -llmpi"
 	else
 	    echo "-mpilog requires the MPE libraries"
@@ -79,7 +87,7 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ -n "@MPE_DIR@" ] ; then
+	if [ @NOMPE@ = 0 ] ; then
    	    MPILOG="-lf@MPILIBNAME@ -ltmpi"
 	else
 	    echo "-mpitrace requires the MPE libraries"
@@ -92,7 +100,7 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ -n "@MPE_DIR@" ] ; then
+	if [ @NOMPE@ = 0 ] ; then
 	    MPILOG="-lf@MPILIBNAME@ -lampi -lmpe"
 	else
 	    echo "-mpianim requires the MPE libraries"
@@ -104,37 +112,82 @@ for arg in "$@" ; do
 	-show)
 	Show=echo
 	;;
+	-f90=*)
+	F90=`echo A$arg | sed -e 's/A-f90=//g'`
+	F90LINKER="$F90"
+	;;
+	-compile_info)
+	show_compile=1
+	DoLink=0
+	Show=echo
+	;;
+	-link_info)
+	show_link=1
+	Show=echo
+	;;
+	-shlib)
+        UseSharedLib=yes
+	;;
+	-noshlib)
+        UseSharedLib=no
+	;;
 	-v)
 	verbose=1
 	compileargs="$compileargs -v"
 	linkargs="$linkargs -v"
 	;;
+	-l*)
+	# This SHOULD be the -l<lib> argument.  Only for the linker
+	linkargs="$linkargs $arg"
+	allargs="$allargs $arg"
+	;;
 	-help)
-	echo "This is a program to compile or link MPI programs"
-	echo "In addition, the following special options are supported"
-	echo "    -mpilog    - Build version that generate MPE log files"
-	echo "    -mpitrace  - Build version that generates traces"
-	echo "    -mpianim   - Build version that generates real-time"
-	echo "                 animation"
-	echo "    -show      - Show the commands that would be used without"
-	echo "                 runnning them"
-	echo "    -help      - Give this help"
-	echo "    -echo      - Show exactly what this program is doing."
-	echo "                 This option should normally not be used."
-	echo "This should be used just like the usual Fortran compiler"
-	echo "For example,"
-	echo "   $0 -c foo.f "
-	echo "and"
-	echo "   $0 -o foo foo.o"
-	echo "Combining compilation and linking in a single command"
-	echo "   $0 -o foo foo.f"
-	echo "may not work on some systems, and is not recommended."
+cat <<EOF
+This is a program to compile or link MPI programs
+In addition, the following special options are supported
+    -mpilog    - Build version that generate MPE log files
+    -mpitrace  - Build version that generates traces
+    -mpianim   - Build version that generates real-time animation
+    -choicemod - Use a version of the MPI module that supports "choice"
+                 types.  This is also the default unless -O is specified
+    -nochoicemod - Use a basic version of the MPI module.
+    -f90=pgm   - Change the program to use to compile and link
+                 MPI programs.  WARNING! The program that you
+                 choose MUST be compatible with the MPICH 
+                 libraries.  If you have trouble, you should
+                 reconfigure and rebuild MPICH, selecting
+                 this compiler.
+    -show      - Show the commands that would be used without
+                 runnning them
+    -compile_info - Show how to compile a program
+    -link_info - Show how to link a program
+    -help      - Give this help
+    -echo      - Show exactly what this program is doing.
+                 This option should normally not be used.
+This should be used just like the usual Fortran compiler
+For example,
+   $0 -c foo.f 
+and
+   $0 -o foo foo.o
+Combining compilation and linking in a single command
+   $0 -o foo foo.f
+may not work on some systems, and is not recommended.
+EOF
 	exit 1
 	;;
+	# Unrecognized args.  Because we do an eval, we need to
+	# carefully quote any args that contain quotes.
         *\"*) 
-	allargs="$allargs `echo $arg | sed 's/\"/\\\"/g'`"
-	compileargs="$compileargs `echo $arg | sed 's/\"/\\\"/g'`"
-	linkargs="$linkargs `echo $arg | sed 's/\"/\\\"/g'`"
+	qarg="'"$arg"'"
+	allargs="$allargs $qarg"
+	compileargs="$compileargs $qarg"
+	linkargs="$linkargs $qarg"
+	;;
+        *\'*) 
+	qarg='\"'"$arg"'\"'
+	allargs="$allargs $qarg"
+	compileargs="$compileargs $qarg"
+	linkargs="$linkargs $qarg"
 	;;
         *) allargs="$allargs $arg"
 	if [ -s "$arg" ] ; then
@@ -164,6 +217,20 @@ for arg in "$@" ; do
     esac
 done
 #
+# Set the module directory
+if [ -n "@F90MODINC@" ] ; then
+    if [ $choice -lt 2 ] ; then
+        moduledir="@F90MODINC@@includebuild_dir@/f90choice"
+        modulelib=@MPILIBNAME@f90
+    else
+        moduledir="@F90MODINC@@includebuild_dir@/f90base"
+        modulelib=@MPILIBNAME@f90base
+    fi
+    compileargs="$compileargs $moduledir"
+    linkargs="$linkargs -l$modulelib"
+fi
+
+#
 # Take care of mpif.h; try to add the link if necessary
 # We'll need to edit mpif.h to remove comments if we use mpif.h instead
 # of an MPI module
@@ -172,14 +239,14 @@ finc="@F90INC@"
 added_link=0
 if [ -z "$finc" ] ; then
     if [ ! -r mpif.h ] ; then
-        echo "Adding a symbolic link for mpif.h"
+        #echo "Adding a symbolic link for mpif.h"
 	trap "$Show /bin/rm mpif.h" 0
-	$Show ln -s @MPIR_HOME@/build/@ARCH@/@DEVICE@/include/mpif.h mpif.h
+	$Show ln -s @includebuild_dir@/mpif.h mpif.h
 	added_link=1
     fi
 fi
 status=0
-if [ $DoCompile = 1 ] ; then 
+if [ $DoCompile = 1 -o $show_compile = 1 ] ; then 
     if [ $HasDashC != 1 ] ; then
         compileargs="-c $compileargs"
     fi
@@ -189,16 +256,42 @@ if [ $DoCompile = 1 ] ; then
 	exit $status
     fi
 fi
-if [ $DoLink = 1 ] ; then
+if [ $DoLink = 1 -o $show_link = 1 ] ; then
     # If the profiling library doesn't exist, or MPICH_NO_PROF environment
     # variable is set, skip the profiling library.
     if [ -n "$MPICH_NO_PROF" -o ! -s "$proflibfullname" ] ; then
         proflib=""
     fi
+    # IRIX complains if we include a library twice.  In the case of a
+    # library using weak symbols, we don't need the proflib.  Just
+    # in case we do, there is an enviroment variable that
+    # can be used to override this test.
+    if [ "@HAS_WEAK_SYMBOLS@" = "1" -a "$MPICH_INCLUDE_PROFLIB" != yes ] ; then
+        proflib=""
+    fi
+    # See the comment in mpicc about UseSharedLib
+    # Also, don't use if the shared libraries don't exist yet
+    # (because -lmpichfarg.a won't exist yet)
+    if [ "@SHAREDKIND@" != "ignore" -a $UseSharedLib = "yes" -a \
+	-s @libbuild_dir@/lib@MPILIBNAMEfarg.a ] ; then
+	# We also add a library containing MPI_Init and the routines
+        # that it uses to call getarg/iarg.  
+	flibpath="@FLIB_PATH_LEADER@@sharedlibbuild_dir@" 
+        if [ -n "@SHARED_LIB_SEARCH_PATH_LEADER@" ] ; then
+	    flibpath="@SHARED_LIB_SEARCH_PATH_LEADER@@sharedlibbuild_dir@ $flibpath"
+	fi
+	if [ -n "@SHAREDLIB_LOCALDIR@" ] ; then
+	    flibpath="@FLIB_PATH_LEADER@@SHAREDLIB_LOCALDIR@ $flibpath"
+ 	    if [ -n "@SHARED_LIB_SEARCH_PATH_LEADER@" ] ; then
+	        flibpath="@SHARED_LIB_SEARCH_PATH_LEADER@@SHAREDLIB_LOCALDIR@ $flibpath"
+	    fi
+	fi
+	farglib="-l@MPILIBNAME@farg $farglib" 
+    fi
     if [ -n "$MPILOG" ] ; then
-        $Show $F90LINKER @ROMIO_LFLAGS@ @ROMIO_TFFLAGS@ @F90LIB_PATH@ $linkobjs $MPILOG $linkargs $proflib @LIB_LIST@ @FLIB_LIST@
+        $Show $F90LINKER @ROMIO_LFLAGS@ @ROMIO_TFFLAGS@ $flibpath @F90LIB_PATH@ $linkobjs $MPILOG $linkargs $proflib -l@MPILIBNAME@ $proflib $farglib @BASE_LIB_LIST@ @FLIB_LIST@
     else
-        $Show $F90LINKER @ROMIO_LFLAGS@ @ROMIO_TFFLAGS@ @F90LIB_PATH@ $linkobjs $linkargs $proflib @LIB_LIST@ @FLIB_LIST@
+        $Show $F90LINKER @ROMIO_LFLAGS@ @ROMIO_TFFLAGS@ $flibpath @F90LIB_PATH@ $linkobjs $linkargs $proflib -l@MPILIBNAME@ $proflib $farglib @BASE_LIB_LIST@ @FLIB_LIST@
     fi
     status=$?
 fi

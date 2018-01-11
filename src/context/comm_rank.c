@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_rank.c,v 1.1.1.1 1997/09/17 20:41:39 gropp Exp $
+ *  $Id: comm_rank.c,v 1.6 1999/08/30 15:42:56 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,25 @@
 
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Comm_rank = PMPI_Comm_rank
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Comm_rank  MPI_Comm_rank
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Comm_rank as PMPI_Comm_rank
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
 
@@ -24,12 +43,11 @@ Output Parameter:
 .N MPI_SUCCESS
 .N MPI_ERR_COMM
 @*/
-int MPI_Comm_rank ( comm, rank )
-MPI_Comm  comm;
-int      *rank;
+EXPORT_MPI_API int MPI_Comm_rank ( MPI_Comm comm, int *rank )
 {
     struct MPIR_COMMUNICATOR *comm_ptr;
     static char myname[] = "MPI_COMM_RANK";
+    int mpi_errno;
 
     TR_PUSH(myname);
 

@@ -1,5 +1,5 @@
 /*
- *  $Id: scatter.c,v 1.4 1998/04/28 18:51:06 swider Exp $
+ *  $Id: scatter.c,v 1.9 1999/10/15 20:08:27 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,25 @@
 
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Scatter = PMPI_Scatter
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Scatter  MPI_Scatter
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Scatter as PMPI_Scatter
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "coll.h"
 
 /*@
@@ -37,17 +56,15 @@ Output Parameter:
 .N MPI_ERR_TYPE
 .N MPI_ERR_BUFFER
 @*/
-int MPI_Scatter ( sendbuf, sendcnt, sendtype, 
-		  recvbuf, recvcnt, recvtype, 
-		  root, comm )
-void             *sendbuf;
-int               sendcnt;
-MPI_Datatype      sendtype;
-void             *recvbuf;
-int               recvcnt;
-MPI_Datatype      recvtype;
-int               root;
-MPI_Comm          comm;
+EXPORT_MPI_API int MPI_Scatter ( 
+	void *sendbuf, 
+	int sendcnt, 
+	MPI_Datatype sendtype, 
+	void *recvbuf, 
+	int recvcnt, 
+	MPI_Datatype recvtype, 
+	int root, 
+	MPI_Comm comm )
 {
   int        mpi_errno = MPI_SUCCESS;
   struct MPIR_COMMUNICATOR *comm_ptr;
@@ -66,13 +83,6 @@ MPI_Comm          comm;
 
   rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
   MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr,myname);
-
-#ifdef FOO
-/* Only check for matching signature */
-  /* Check for mismatched receive/send types - Debbie Swider 11/20/97 */
-  if (recvtype != sendtype)
-    return MPIR_ERROR(comm_ptr, MPI_ERR_TYPE, myname);
-#endif
 
   MPIR_ERROR_PUSH(comm_ptr);
   mpi_errno = comm_ptr->collops->Scatter(sendbuf, sendcnt, stype_ptr, 

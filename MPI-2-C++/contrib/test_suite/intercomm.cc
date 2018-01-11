@@ -102,7 +102,7 @@ intercomm1()
     Fail(msg);
   }
 
-  Testing("Create_intercomm");
+  Testing( (char *)"Create_intercomm");
 
   newme = comm.Get_rank();
   comm.Allreduce(&my_rank, &sum, 1, MPI::INT, MPI::SUM);
@@ -122,18 +122,18 @@ intercomm1()
   
   pass1 = 0;
   
-  Testing("Intercomm::Dup");
+  Testing( (char *)"Intercomm::Dup");
   
   if(flags[SKIP_IBM21014])
-    Done("Skipped (IBM 2.1.0.14)");
+    Done( (char *)"Skipped (IBM 2.1.0.14)");
   else if(flags[SKIP_IBM21015])
-    Done("Skipped (IBM 2.1.0.15)");
+    Done( (char *)"Skipped (IBM 2.1.0.15)");
   else if(flags[SKIP_IBM21016])
-    Done("Skipped (IBM 2.1.0.16)");
+    Done( (char *)"Skipped (IBM 2.1.0.16)");
   else if(flags[SKIP_IBM21017])
-    Done("Skipped (IBM 2.1.0.17)");
+    Done( (char *)"Skipped (IBM 2.1.0.17)");
   else if(flags[SKIP_IBM21018])
-    Done("Skipped (IBM 2.1.0.18)");
+    Done( (char *)"Skipped (IBM 2.1.0.18)");
   else {
     intercomm2 = intercomm.Dup();
     if (intercomm2 == MPI::COMM_NULL) {
@@ -179,7 +179,7 @@ inter_tests1(MPI::Intercomm& intercomm, int newme, int color, int sum)
   newto = (rank + 1)  % size;
   newfrom = (rank + size - 1) % size;
 
-  Testing("Is_inter");
+  Testing( (char *)"Is_inter");
 
   flag = -1;
 
@@ -192,7 +192,7 @@ inter_tests1(MPI::Intercomm& intercomm, int newme, int color, int sum)
 
   Pass(); // Is_inter
 
-  Testing("Get_remote_size");
+  Testing( (char *)"Get_remote_size");
   
   newsize = -1;
   newsize = intercomm.Get_remote_size();
@@ -202,7 +202,7 @@ inter_tests1(MPI::Intercomm& intercomm, int newme, int color, int sum)
   }
   Pass(); // Get_remote_size
 
-  Testing("Get_remote_group");
+  Testing( (char *)"Get_remote_group");
 
   newgid = intercomm.Get_remote_group();
   if (newgid == MPI::GROUP_NULL) {
@@ -234,7 +234,7 @@ inter_tests1(MPI::Intercomm& intercomm, int newme, int color, int sum)
     Fail(msg);
   }
 
-  Testing("Merge");
+  Testing( (char *)"Merge");
   
   mergecomm = intercomm.Merge((MPI2CPP_BOOL_T) color);
   mergecomm.Allreduce(&my_rank, &newsum, 1, MPI::INT, MPI::SUM);

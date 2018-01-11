@@ -1,5 +1,5 @@
 /*
- *  $Id: ptrcvt.c,v 1.5 1998/12/07 20:14:37 gropp Exp $
+ *  $Id: ptrcvt.c,v 1.8 1999/08/20 02:28:07 ashton Exp $
  *
  *  (C) 1994 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -89,14 +89,12 @@ static int      PermPtr = 0;
 
 static int      DebugFlag = 0;
 
-void MPIR_PointerPerm( flag )
-int flag;
+void MPIR_PointerPerm( int flag )
 {
     PermPtr = flag;
 }
 
-void MPIR_PointerOpts( flag )
-int flag;
+void MPIR_PointerOpts( int flag )
 {
     DebugFlag = flag;
 }
@@ -139,8 +137,7 @@ void MPIR_DestroyPointer ANSI_ARGS((void))
     }
 }
 
-void *MPIR_ToPointer( idx )
-int idx;
+void *MPIR_ToPointer( int idx )
 {
     int blockidx, blocknum;
 
@@ -165,11 +162,13 @@ int idx;
     blockidx = idx & PTR_MASK;
     if (blocknum < 0 || blocknum >= MAX_BLOCKS ||
 	blockidx < 0 || blockidx >= MAX_PTRS || !PtrBlocks[blocknum]) {
+	int mpi_errno;
 	/* Errors here are fatal */
-	MPIR_ERROR_PUSH_ARG(&idx);
-	MPIR_ERROR_PUSH_ARG(&idx);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_OTHER, MPIR_ERR_BAD_INDEX,
+				     (char *)0, (char *)0, (char *)0, idx );
 	MPIR_COMM_WORLD->use_return_handler = 0;
-	MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_BAD_INDEX, "Error in MPI object" );
+	/* Error in MPI Object */
+	MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, (char *)0 );
 	return (void *)0;
     }
     if (blocknum == 0 && blockidx == 0) return (void *)0;
@@ -182,8 +181,7 @@ int idx;
 }
 
 /* Create an index from a pointer */
-int MPIR_FromPointer( ptr )
-void *ptr;
+int MPIR_FromPointer( void *ptr )
 {
     int      idx, blocknum, i;
     PtrToIdx *new;
@@ -221,15 +219,17 @@ void *ptr;
 	/* This isn't the right thing to do, but it isn't too bad */
 	/* Errors here are fatal */
 	MPIR_COMM_WORLD->use_return_handler = 0;
-	(void) MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_INDEX_EXHAUSTED, 
-			   "Error in MPI object" );
+	(void) MPIR_ERROR( MPIR_COMM_WORLD, 
+	    MPIR_ERRCLASS_TO_CODE(MPI_ERR_OTHER,MPIR_ERR_INDEX_EXHAUSTED), 
+			   (char *)0 );
     }
     PtrBlocks[blocknum] = (PtrToIdx *)MALLOC( sizeof(PtrToIdx) * MAX_PTRS );
     if (!PtrBlocks[blocknum]) {
 	/* Errors here are fatal */
 	MPIR_COMM_WORLD->use_return_handler = 0;
-	(void) MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_INDEX_EXHAUSTED, 
-			   "Error in MPI object" );
+	(void) MPIR_ERROR( MPIR_COMM_WORLD,
+	    MPIR_ERRCLASS_TO_CODE(MPI_ERR_OTHER,MPIR_ERR_INDEX_EXHAUSTED), 
+			   (char *)0 );
     }
     for (i=0; i<MAX_PTRS-1; i++) {
 	PtrBlocks[blocknum][i].next = &PtrBlocks[blocknum][i+1];
@@ -250,8 +250,7 @@ void *ptr;
     return idx;
 }
 
-void MPIR_RmPointer( idx )
-int idx;
+void MPIR_RmPointer( int idx )
 {
     int      blocknum, blockidx;
     PtrToIdx *ptridx;
@@ -265,11 +264,12 @@ int idx;
     blockidx = idx & PTR_MASK;
     if (blocknum < 0 || blocknum >= MAX_BLOCKS ||
 	blockidx < 0 || blockidx >= MAX_PTRS || !PtrBlocks[blocknum]) {
+	int mpi_errno;
 	/* Errors here are fatal */
-	MPIR_ERROR_PUSH_ARG(&idx);
-	MPIR_ERROR_PUSH_ARG(&idx);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_OTHER, MPIR_ERR_BAD_INDEX,
+				     (char *)0, (char *)0, (char *)0, idx );
 	MPIR_COMM_WORLD->use_return_handler = 0;
-	MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_BAD_INDEX, "Error in MPI object" );
+	MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, (char *)0 );
 	return;
     }
 
@@ -277,10 +277,10 @@ int idx;
 #ifdef DEBUG_NULL_IDX
     if (idx == 0) {
 	/* Errors here are fatal */
-	MPIR_ERROR_PUSH_ARG(&idx);
-	MPIR_ERROR_PUSH_ARG(&idx);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_OTHER, MPIR_ERR_BAD_INDEX,
+				     (char *)0, (char *)0, (char *)0, idx );
 	MPIR_COMM_WORLD->use_return_handler = 0;
-	MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_BAD_INDEX, "Error in MPI object" );
+	MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, (char *)0 );
 	return;
     }
 #endif
@@ -289,11 +289,13 @@ int idx;
 
     ptridx = PtrBlocks[blocknum];
     if (ptridx[blockidx].next) {
+	int mpi_errno;
 	/* In-use pointers NEVER have next set */
 	/* Errors here are fatal */
-	MPIR_ERROR_PUSH_ARG(&idx);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_OTHER, MPIR_ERR_INDEX_FREED,
+				     (char *)0, (char *)0, (char *)0, idx );
 	MPIR_COMM_WORLD->use_return_handler = 0;
-	MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_INDEX_FREED, 
+	MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, 
 		    "Error in MPI object - already freed" );
 	return;
     }
@@ -309,8 +311,8 @@ int idx;
 /*
  * Produce information on the pointer conversions in use on the specified file.
  */
-int MPIR_UsePointer( fp )
-FILE *fp;
+int MPIR_UsePointer( 
+	FILE *fp)
 {
     int      count, perm_in_use;
     int      in_use, allocated_blocks;
@@ -352,9 +354,9 @@ FILE *fp;
  *  index to pointer table.  For simplicity, predefined values MUST be
  *  in the initial block.
  */
-void MPIR_RegPointerIdx( idx, ptr )
-int  idx;
-void *ptr;
+void MPIR_RegPointerIdx( 
+	int  idx,
+	void *ptr)
 {
     PtrToIdx *new;
 
@@ -423,8 +425,8 @@ static cookie_def cookie[N_COOKIE] = {
     {	   MPIR_DATATYPE_COOKIE, "DATATYPE" },
     {	   MPIR_ERRHANDLER_COOKIE, "ERRHANDLER" } };
 
-void MPIR_DumpPointers( fp )
-FILE *fp;
+void MPIR_DumpPointers( 
+	FILE *fp )
 {
     PtrToIdx *new;
     int blocknum, idx;
@@ -451,12 +453,12 @@ FILE *fp;
 		found_cookie = 0;
 		for (i=0; i<2; i++) {
 		    for (j=0; j<N_COOKIE; j++) {
-			if (header[i] == cookie[j].val) {
+			if (header[i] == (int)cookie[j].val) {
 			    FPRINTF( fp, " %s\n", cookie[j].name );
 			    found_cookie = 1;
 			    j = N_COOKIE; i = 3;
 			}
-			else if (header[i] == cookie[j].val + 1) {
+			else if (header[i] == (int)cookie[j].val + 1) {
 			    FPRINTF( fp, " %s <deleted>\n", cookie[j].name );
 			    found_cookie = 1;
 			    j = N_COOKIE; i = 3;

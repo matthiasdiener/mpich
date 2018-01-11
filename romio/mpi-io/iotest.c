@@ -1,11 +1,27 @@
 /* 
- *   $Id: iotest.c,v 1.2 1998/06/02 19:02:05 thakur Exp $    
+ *   $Id: iotest.c,v 1.5 1999/08/27 20:53:08 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "mpioimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPIO_Test = PMPIO_Test
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPIO_Test MPIO_Test
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPIO_Test as PMPIO_Test
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define __MPIO_BUILD_PROFILING
+#include "mpioprof.h"
+#endif
 
 /* status object not filled currently */
 

@@ -71,7 +71,7 @@ scan()
   int k;
   int out[MAXLEN];
 
-  Testing("Scan");
+  Testing( (char *)"Scan");
 
   for(j = 1; j <= MAXLEN; j *= 10) {
     for(i = 0; i < j; i++)  

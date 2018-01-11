@@ -28,6 +28,9 @@
 /* Define if stdarg can be used */
 #undef USE_STDARG
 
+/* For Cray, define two word character descriptors in use */
+#undef _TWO_WORD_FCD
+
 /* MPE/acconfig.h specific entries */
 /* define is stdargs.h is available */
 #undef HAVE_STDARG_H

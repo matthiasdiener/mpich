@@ -1,12 +1,10 @@
-.TH MPI_Startall 3 "4/28/1998" " " "MPI"
+.TH MPI_Startall 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Startall \-  Starts a collection of requests  
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Startall( count, array_of_requests )
-int count;
-MPI_Request array_of_requests[];
+int MPI_Startall( int count, MPI_Request array_of_requests[] )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

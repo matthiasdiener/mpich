@@ -1,11 +1,30 @@
 /* 
- *   $Id: info_getnth.c,v 1.2 1998/04/28 21:25:04 swider Exp $    
+ *   $Id: info_getnth.c,v 1.7 1999/08/30 15:47:43 swider Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Info_get_nthkey = PMPI_Info_get_nthkey
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Info_get_nthkey  MPI_Info_get_nthkey
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Info_get_nthkey as PMPI_Info_get_nthkey
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
     MPI_Info_get_nthkey - Returns the nth defined key in info
@@ -19,19 +38,23 @@ Output Parameters:
 
 .N fortran
 @*/
-int MPI_Info_get_nthkey(MPI_Info info, int n, char *key)
+EXPORT_MPI_API int MPI_Info_get_nthkey(MPI_Info info, int n, char *key)
 {
     MPI_Info curr;
     int nkeys, i;
+    int mpi_errno;
+    static char myname[] = "MPI_INFO_GET_NTHKEY";
 
     if ((info <= (MPI_Info) 0) || (info->cookie != MPIR_INFO_COOKIE)) {
-        printf("MPI_Info_get_nthkey: Invalid info object\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_INFO, MPIR_ERR_DEFAULT, myname, 
+				     (char *)0, (char *)0 );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     }
 
-    if (key <= (char *) 0) {
-	printf("MPI_Info_get: key is an invalid address\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
+    if (!key) {
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_INFO_KEY, MPIR_ERR_DEFAULT, 
+				     myname, (char *)0, (char *)0);
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     }
 
     curr = info->next;
@@ -42,8 +65,10 @@ int MPI_Info_get_nthkey(MPI_Info info, int n, char *key)
     }
 
     if ((n < 0) || (n >= nkeys)) {
-        printf("MPI_Info_get_nthkey: n is an invalid number\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_INFO_NKEY, myname,
+				     "n is an invalid number",
+				     "n = %d is an invalid number", n );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     }
 
     curr = info->next;

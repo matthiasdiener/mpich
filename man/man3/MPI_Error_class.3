@@ -1,11 +1,12 @@
-.TH MPI_Error_class 3 "9/17/1997" " " "MPI"
+.TH MPI_Error_class 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Error_class \-  Converts an error code into an error class 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Error_class( errorcode, errorclass )
-int errorcode, *errorclass;
+int MPI_Error_class( 
+ int errorcode, 
+ int *errorclass)
 .fi
 .SH INPUT PARAMETER
 .PD 0

@@ -10,50 +10,50 @@ Initialize the MPI execution environment
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Init(argc,argv)
-int  *argc;
-char ***argv;
+int MPI_Init(int *argc, char ***argv)
 </PRE>
 <H2>Input Parameters</H2>
-<DL><DT><B>argc </B> <DD> Pointer to the number of arguments 
-</DL>
-<DL><DT><B>argv </B> <DD> Pointer to the argument vector
-</DL>
+<TABLE BORDER=0>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>argc </B></TD><TD VALIGN=TOP>Pointer to the number of arguments 
+<BR></TD></TR>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>argv </B></TD><TD VALIGN=TOP>Pointer to the argument vector
+<BR></TD></TR></TABLE>
 <P>
 <H2>Command line arguments</H2>
 MPI specifies no command-line arguments but does allow an MPI
 implementation to make use of them.
 <P>
-<DL><DT><B>-mpiqueue </B> <DD> print out the state of the message queues when <TT>MPI_FINALIZE</TT>
+<TABLE BORDER=0>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>-mpiqueue </B></TD><TD VALIGN=TOP>print out the state of the message queues when <TT>MPI_FINALIZE</TT>
 is called.  All processors print; the output may be hard to decipher.  This
 is intended as a debugging aid.
-</DL>
+<BR></TD></TR>
 <P>
-<DL><DT><B>-mpiversion </B> <DD> print out the version of the implementation (<EM>not</EM> of MPI),
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>-mpiversion </B></TD><TD VALIGN=TOP>print out the version of the implementation (<EM>not</EM> of MPI),
 including the arguments that were used with configure.
-</DL>
+<BR></TD></TR>
 <P>
-<DL><DT><B>-mpinice nn </B> <DD> Increments the nice value by <TT>nn</TT> (lowering the priority 
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>-mpinice nn </B></TD><TD VALIGN=TOP>Increments the nice value by <TT>nn</TT> (lowering the priority 
 of the program by <TT>nn</TT>).  <TT>nn</TT> must be positive (except for root).  Not
 all systems support this argument; those that do not will ignore it.
-</DL>
+<BR></TD></TR>
 <P>
-<DL><DT><B>-mpedbg </B> <DD> Start a debugger in an xterm window if there is an error (either
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>-mpedbg </B></TD><TD VALIGN=TOP>Start a debugger in an xterm window if there is an error (either
 detected by MPI or a normally fatal signal).  This works only if MPICH
 was configured with <TT>-mpedbg</TT>.  CURRENTLY DISABLED.  If you have TotalView,
 -mpichtv or mpirun -tv will give you a better environment anyway.
-</DL>
+<BR></TD></TR>
 <P>
-<DL><DT><B>-mpimem </B> <DD> If MPICH was built with <TT>-DMPIR_DEBUG_MEM</TT>, this checks all
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>-mpimem </B></TD><TD VALIGN=TOP>If MPICH was built with <TT>-DMPIR_DEBUG_MEM</TT>, this checks all
 malloc and free operations (internal to MPICH) for signs of injury 
 to the memory allocation areas.
-</DL>
+<BR></TD></TR>
 <P>
-<DL><DT><B>-mpidb options </B> <DD> Activate various debugging options.  Some require
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>-mpidb options </B></TD><TD VALIGN=TOP>Activate various debugging options.  Some require
 that MPICH have been built with special options.  These are intended 
 for debugging MPICH, not for debugging user programs.  The available 
 options include:
-</DL>
+<BR></TD></TR></TABLE>
 <PRE>
         mem     - Enable dynamic memory tracing of internal MPI objects
 	memall  - Generate output of all memory allocation/deallocation
@@ -113,6 +113,9 @@ SIGUSR2
 <P>
 <H2>ch_p4 device</H2>
 SIGUSR1
+<P>
+The ch_p4 device also catches SIGINT, SIGFPE, SIGBUS, and SIGSEGV; this
+helps the p4 device (and MPICH) more gracefully abort a failed program.
 <P>
 <H2>Intel Paragon (ch_nx and nx device)</H2>
 SIGUSR2

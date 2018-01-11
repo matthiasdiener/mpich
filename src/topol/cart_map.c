@@ -1,11 +1,30 @@
 /*
- *  $Id: cart_map.c,v 1.3 1998/04/29 14:28:34 swider Exp $
+ *  $Id: cart_map.c,v 1.8 1999/08/30 15:50:47 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Cart_map = PMPI_Cart_map
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Cart_map  MPI_Cart_map
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Cart_map as PMPI_Cart_map
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
 
@@ -28,12 +47,12 @@ Output Parameter:
 .N MPI_ERR_DIMS
 .N MPI_ERR_ARG
 @*/
-int MPI_Cart_map ( comm_old, ndims, dims, periods, newrank )
-MPI_Comm comm_old;
-int      ndims;
-int     *dims;
-int     *periods;
-int     *newrank;
+EXPORT_MPI_API int MPI_Cart_map ( 
+	MPI_Comm comm_old,
+	int ndims,
+	int *dims,
+	int *periods,
+	int *newrank)
 {
   int i;
   int nranks = 1;
@@ -59,7 +78,10 @@ int     *newrank;
   /* Test that the communicator is large enough */
   MPIR_Comm_size( comm_old_ptr, &size );
   if (size < nranks) {
-      return MPIR_ERROR( comm_old_ptr, MPI_ERR_DIMS, myname );
+      mpi_errno = MPIR_Err_setmsg( MPI_ERR_TOPOLOGY, MPIR_ERR_TOPO_TOO_LARGE,
+				   myname, (char *)0, (char *)0, 
+				   nranks, size );
+      return MPIR_ERROR(comm_old_ptr, mpi_errno, myname );
   }
 
   /* Am I in this range? */

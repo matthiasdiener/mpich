@@ -11,7 +11,7 @@ int main( int argc, char **argv )
   double a[TABLE_SIZE];
   struct { double a; int b; } in[TABLE_SIZE], out[TABLE_SIZE];
   int    i;
-  int    errors = 0;
+  int    errors = 0, toterrors;
 
   /* Initialize the environment and some variables */
   MPI_Init( &argc, &argv );
@@ -62,8 +62,15 @@ int main( int argc, char **argv )
       }
 
   /* Finish up! */
+  MPI_Allreduce( &errors, &toterrors, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
+  if (toterrors) {
+      if (errors)
+	  printf( "[%d] done with ERRORS(%d)!\n", rank, errors );
+  }
+  else {
+      if (rank == 0) printf( "No errors\n" );
+  }
+      
   MPI_Finalize();
-  if (errors)
-	printf( "[%d] done with ERRORS(%d)!\n", rank, errors );
   return errors;
 }

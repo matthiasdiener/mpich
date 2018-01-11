@@ -62,11 +62,28 @@ for LARCH in $ARCHLIST ; do
  	    FARCH=sppux ;
  	fi
         break ;;
+
 	IRIX64|IRIX) FARCH=$LARCH ; break ;;
-	Linux)  FARCH=LINUX ; break ;;
-	i586|i486|i86pc)
-	    GARCH=$LARCH ;;
-	sun4*)
+ 
+        Linux)  
+	    # Pick between i86 and alpha LINUX
+            LINUXARCH=`$UNAME -m`
+            if [ $LINUXARCH = "alpha" ] ; then
+                FARCH=LINUX_ALPHA ; 
+            else
+                FARCH=LINUX ; 
+            fi
+            break ;;
+	i586|i486|i686|i86pc)
+	    GARCH=$LARCH 
+	    if [ -n "$UNAME" ] ; then
+  	        SysName=`$UNAME -s`
+  	        if [ "$SysName" = "SunOS" ] ; then
+	            FARCH="solaris86"
+		fi
+	    fi
+	;;
+	sun4*|SunOS)
 	Version=`$UNAME -r`
         # In "improving" SunOS, the useful feature of "substr" was withdrawn 
         # from expr.  Can't let the users have life too easy, can we?  This 
@@ -76,7 +93,16 @@ for LARCH in $ARCHLIST ; do
         # on both:
         MajorVersion=`expr "$Version" : "\(.\)"`
         if [ "$MajorVersion" -ge 5 ] ; then
-            FARCH=solaris
+	    # Check for solaris86
+            if [ -n "$UNAME" ] ; then
+                hardware=`$UNAME -i`
+		case $hardware in
+		*86*) FARCH="solaris86" ;;
+		*)    FARCH="solaris"   ;;
+                esac
+            else
+                FARCH=solaris
+            fi
 	else
 	    FARCH=sun4
 	fi

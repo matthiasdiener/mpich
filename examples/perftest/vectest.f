@@ -7,8 +7,8 @@ c
       integer ierror
       integer status(MPI_STATUS_SIZE)
       integer i, size1, size2, size3
-      double precision a(nx,ny,nz), b(nx,ny,nz)
-      double precision t1, t2, t3, ttmp
+      double precision a(nx,ny,nz)
+      double precision t1, ttmp
 c
       call MPI_Init( ierror )
 c

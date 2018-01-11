@@ -1,11 +1,30 @@
 /*
- *  $Id: allgatherv.c,v 1.3 1998/04/28 18:50:40 swider Exp $
+ *  $Id: allgatherv.c,v 1.9 1999/10/15 20:08:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Allgatherv = PMPI_Allgatherv
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Allgatherv  MPI_Allgatherv
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Allgatherv as PMPI_Allgatherv
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "coll.h"
 
 /*@
@@ -48,16 +67,9 @@ Notes:
 .N MPI_ERR_COUNT
 .N MPI_ERR_TYPE
 @*/
-int MPI_Allgatherv ( sendbuf, sendcount,  sendtype, 
-                     recvbuf, recvcounts, displs,   recvtype, comm )
-void             *sendbuf;
-int               sendcount;
-MPI_Datatype      sendtype;
-void             *recvbuf;
-int              *recvcounts;
-int              *displs;
-MPI_Datatype      recvtype;
-MPI_Comm          comm;
+EXPORT_MPI_API int MPI_Allgatherv ( void *sendbuf, int sendcount, MPI_Datatype sendtype, 
+                     void *recvbuf, int *recvcounts, int *displs, 
+		     MPI_Datatype recvtype, MPI_Comm comm )
 {
   int mpi_errno = MPI_SUCCESS;
   struct MPIR_COMMUNICATOR *comm_ptr;
@@ -68,21 +80,21 @@ MPI_Comm          comm;
   TR_PUSH(myname);
 
   comm_ptr = MPIR_GET_COMM_PTR(comm);
-  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr, myname );
 
   stype_ptr = MPIR_GET_DTYPE_PTR(sendtype);
-  MPIR_TEST_DTYPE(sendtype,stype_ptr,comm_ptr, myname );
 
   rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
-  MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
-
-  /* Check for  mismatched receive/send types - Debbie Swider 11/20/97 */
-  if (recvtype != sendtype)
-      return MPIR_ERROR(comm_ptr, MPI_ERR_TYPE, myname);
 
   /* Check for invalid arguments */
-  if (MPIR_TEST_COUNT(comm,sendcount))
-      return MPIR_ERROR(comm_ptr, mpi_errno, myname ); 
+#ifndef MPIR_NO_ERROR_CHECKING
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr, myname );
+  MPIR_TEST_DTYPE(sendtype,stype_ptr,comm_ptr, myname );
+  MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
+  MPIR_TEST_COUNT(sendcount);
+  if (mpi_errno)
+      return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
+
   /* We should really check for recvcounts[i] as well */
   /* also alltoallv, bcast, gather, gatherv, red_scat, reduce, 
      scan, scatter, scatterv */

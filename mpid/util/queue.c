@@ -1,5 +1,5 @@
 /*
- *  $Id: queue.c,v 1.2 1998/01/29 14:25:46 gropp Exp $
+ *  $Id: queue.c,v 1.4 1999/10/12 17:41:13 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -72,14 +72,14 @@ void MPID_Dump_queues()
 {
     MPID_Dump_queue( &MPID_recvs );
 }
-static int DebugFlag = 0;
+static int DebugFlag = 1;
 void MPID_Dump_queue(header)
 MPID_QHDR *header;
 {
     MPID_QEL *p;
 
     if (!header) return;
-
+  
     MPID_THREAD_DS_LOCK(header)
     p = header->unexpected.first;
     if (p) {
@@ -136,10 +136,11 @@ MPIR_RHANDLE  *rhandle;
     MPID_QEL *p;
 
     DEBUG(printf( "[%d] Before enqueing...\n", MPID_MyWorldRank ));
-    DEBUG(MPID_Dump_queue(&MPID_recvs));
+    DEBUG(MPID_Dump_queue(&MPID_recvs)); 
     p           = (MPID_QEL *) MPID_SBalloc( MPID_qels );
     if (!p) return MPI_ERR_EXHAUSTED;
     p->ptr      = rhandle;
+
     /* Store the selection criteria is an easy-to-get place */
     p->context_id = context_id;
     if (tag == MPI_ANY_TAG) {
@@ -161,14 +162,14 @@ MPIR_RHANDLE  *rhandle;
     printf( "[%d] Enqueing msg with (%d,%d,%d) in elm at %lx\n", 
 	    MPID_MyWorldRank, 
 	    p->context_id, (p->tag & p->tagmask), (p->lsrc & p->srcmask), 
-	    (MPI_Aint)p ));
+	    (MPI_Aint)p )); 
 
     /* Insert at the tail of the queue, nice and simple ! */
     *(header->lastp)= p;
     p->next         = 0;
     header->lastp   = &p->next;
 
-    DEBUG(MPID_Dump_queue(&MPID_recvs));
+    DEBUG(MPID_Dump_queue(&MPID_recvs)); 
     return MPI_SUCCESS;
 }
 
@@ -189,8 +190,8 @@ MPIR_RHANDLE *rhandle;
 	 (p = *pp) != 0; 
 	 pp = &p->next) 
     {
-	if (p->ptr == rhandle )
-	    break;
+	if (p->ptr == rhandle ) 
+	    break; 
     }
 
     if (p == NULL)
@@ -267,70 +268,73 @@ int                   flag;
     return MPI_SUCCESS;
 }
 
-#ifdef FOO
 /* 
-   Search posted_receive queue for a particular request (for implementing
+   Search unexpected_receive queue for a particular request (for implementing
    cancel)
 
-   found is set to 1 for a successful search.  The element is dequeued
-   if found.
+   found is set to 1 for a successful search.  The element is dequeued if 
+   found.
  */
-int MPID_Search_posted_for_request( handle, found )
-MPIR_RHANDLE          *handle;
-int                   *found;
-{
-    MPID_QUEUE   *queue = &MPID_recvs.posted;
+int MPID_Search_unexpected_for_request( shandle, rhandle, found )
+MPIR_SHANDLE *shandle;
+MPIR_RHANDLE **rhandle;
+int          *found;
+
+{  /* begin MPID_Search_unexpected_for_request */
+    MPID_QUEUE   *queue = &MPID_recvs.unexpected;
+    MPID_QEL     **pp;
     MPID_QEL     *p;
-
-    p      = queue->first;
-    while (p)
-    {
-	if (p->ptr == handle) {
-	    *found = 1;
-	    /* Delete and free the queue element */
-	    if ( p->next != NULL )
-		p->next->prev = p->prev;
-	    else
-		queue->last  = p->prev;
-	    
-	    if ( p->prev != NULL )
-		p->prev->next = p->next;
-	    else
-		queue->first = p->next;
-	    MPID_SBfree( MPID_qels, p);	/* free queue element */
-	    return MPI_SUCCESS;
-	}
-	p   = p->next;
-    }
-    *found = 0;
-    return MPI_SUCCESS;
-
-    /* From the Dequeue code */
-    MPID_QEL **pp;
-    MPID_QEL *p;
+    
+#if defined MPID_AINT_IS_STRUCT && defined(POINTER_64_BITS) 
+    char sendid[64];
+    char char_shandle[64];
+    MPID_Aint temp_shandle;
+#else
+    char sendid[40];
+    char char_shandle[40];
+#endif
+    MPID_Aint send_id;
 
     /* Look for the one we need */
-    for (pp = &(header->first); 
+    for (pp = &(queue->first); 
 	 (p = *pp) != 0; 
-	 pp = &p->next)
-    {
-	if (p->ptr == rhandle )
-	break;
-    }
+	 pp = &p->next) 
+    {  /* begin for loop */
+	send_id = p->ptr->send_id; 
+	*rhandle = p->ptr;
 
-  if (p == NULL)
-    return MPI_ERR_INTERN;		/* It's not there. Oops */
-  else
-    {					/* Remove from the Q and delete */
-      if ((*pp = p->next) == 0)		
-	header->lastp = pp;		/* Fix the tail ptr */
-	
-      MPID_SBfree( MPID_qels, p );	/* free queue element */
-    }	    
-  return MPI_SUCCESS;
-
-}
+#if defined MPID_AINT_IS_STRUCT  && !defined(POINTER_64_BITS)
+	sprintf(sendid, "%x", send_id.low);
+	sprintf(char_shandle, "%lx", (long)shandle);
+#elif defined MPID_AINT_IS_STRUCT
+	sprintf(sendid, "%x%x", send_id.high, send_id.low);
+	MPID_AINT_SET(temp_shandle,shandle);
+	sprintf(char_shandle, "%x%x", temp_shandle.high, temp_shandle.low);
+#else
+	sprintf(sendid, "%lx", (long)send_id);
+	sprintf(char_shandle, "%lx", (long)shandle);
 #endif
+
+	if (strcmp(sendid,char_shandle) == 0) {  /* begin if strcmp */
+	    *found = 1;
+	    break;
+	}  /* end if strcmp */
+
+    }  /* end for loop */
+
+    if (p == NULL)
+	return MPI_ERR_INTERN;		/* It's not there. Oops */
+    else
+    {					/* Remove from the Q and delete */
+	if ((*pp = p->next) == 0)		
+	    queue->lastp = pp;		/* Fix the tail ptr */
+	
+	MPID_SBfree( MPID_qels, p );	 /* free queue element */
+    }	    
+    return MPI_SUCCESS;
+
+}  /* end MPID_Search_unexpected_for_request */
+
 
 /* search unexpected_recv queue for message matching criteria
 
@@ -430,7 +434,6 @@ MPIR_RHANDLE **dmpi_recv_handle;
 	handleptr->s.MPI_TAG  	= tag;
 	/* Note that we don't save the context id or set a datatype */
 	handleptr->is_complete  = 0;
-	
 	MPID_Enqueue( &MPID_recvs.unexpected, src, tag, context_id, 
 		      *dmpi_recv_handle );
 	*foundflag = 0;
@@ -486,3 +489,6 @@ void MPID_InitQueue()
 
     MPID_THREAD_DS_LOCK_INIT(&MPID_recvs)
 }
+
+
+

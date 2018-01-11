@@ -13,7 +13,7 @@ int main( int argc, char **argv )
 {
     int rank, size, loop, max_loop = DEFAULT_LOOP, max_req = DEFAULT_REQ;
     int buf_len = DEFAULT_LEN;
-    int i, j, errs = 0;
+    int i, j, errs = 0, toterrs;
     MPI_Request r;
     MPI_Status  status;
     int *(b[MAX_REQ]);
@@ -100,6 +100,12 @@ int main( int argc, char **argv )
 	    }
 	    MPI_Barrier( MPI_COMM_WORLD );
 	}
+    }
+
+    MPI_Allreduce( &errs, &toterrs, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
+    if (rank == 0) {
+	if (toterrs == 0) printf( "No errors\n" );
+	else              printf( "Found %d errors\n", toterrs );
     }
 
     MPI_Finalize( );

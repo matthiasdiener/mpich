@@ -1,5 +1,8 @@
 AC_INIT(src/comm.h)
-AC_CONFIG_HEADER(src/mpi2c++_config.h)
+#
+# This file was in src, but needs to to bee in a place where it cannot be 
+# confused with a VPATH version.  For example, in the root directory.
+AC_CONFIG_HEADER(mpi2c++_config.h)
 
 #
 # Configure script for MPI C++ Bindings.
@@ -70,6 +73,7 @@ ARCH=
 EXFLAGS=
 FORCE_EXFLAGS=
 
+# WDG: VPATH is used, but we allow it to be imported from the environment
 
 #
 # Get our system type
@@ -77,8 +81,21 @@ FORCE_EXFLAGS=
 #
 
 AC_CANONICAL_HOST
+
+# 
+# WDG: It is *wrong* to set these options before we know what compiler
+# we are using.  After all, we may be using g++!
+#
+# (case on host moved to later)
 case "$host" in
     *-hp-hpux*)
+        # WDG, 11/9/99:
+	# It is *NOT* correct to chose compiler flags based on the system
+        # For example, what if g++ is being used?
+        # The following flags for are the aCC compiler.  
+        # Unfortunately, the compiler isn't available yet, so I can't
+	# add the appropriate tests.  Errg.  
+        
         EXTRA_CXXFLAGS="+W829"
         CXXFLAGS="$CXXFLAGS $EXTRA_CXXFLAGS"
 	EXFLAGS="+eh"
@@ -161,6 +178,49 @@ fi
 AC_PATH_PROG(AWK, awk)
 AC_PATH_PROG(WC, wc)
 
+# From MPICH configure:
+# Look for a style of VPATH.  Known forms are
+# VPATH = .:dir
+# .PATH: . dir
+#
+# Defines VPATH or .PATH with . $(srcdir)
+# Requires that vpath work with implicit targets
+# NEED TO DO: Check that $< works on explicit targets.
+#
+AC_SUBST(VPATH)
+AC_MSG_CHECKING(for virtual path format)
+rm -rf conftest*
+mkdir conftestdir
+cat >conftestdir/a.c <<EOF
+A sample file
+EOF
+cat > conftest <<EOF
+all: a.o
+VPATH=.:conftestdir
+.c.o:
+	@echo \$<
+EOF
+ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
+if test -n "$ac_out" ; then 
+    AC_MSG_RESULT(VPATH)
+    VPATH='VPATH=.:$(srcdir)'
+else
+    rm -f conftest
+    cat > conftest <<EOF
+all: a.o
+.PATH: . conftestdir
+.c.o:
+	@echo \$<
+EOF
+    ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
+    if test -n "$ac_out" ; then 
+        AC_MSG_RESULT(.PATH)
+        VPATH='.PATH: . $(srcdir)'
+    else
+	AC_MSG_RESULT(neither VPATH nor .PATH works)
+    fi
+fi
+rm -rf conftest*
 
 #
 # Check --with values for specific MPI implementations.  Check for:
@@ -208,6 +268,9 @@ fi
 
 AC_ARG_WITH(mpich,	[--with-mpich=MPI_DIR	Top-level install directory for MPICH/MPI], MPI_IMP="mpich" WITHDIR=$withval)
 AC_ARG_WITH(mpichdev,	[--with-mpichdev=LIBDIR	Library subdirectory for MPICH/MPI], MPI_IMP="mpich" MPICH_DEV=$withval)
+AC_ARG_WITH(mpichbin,   [--with-mpichbin=BINDIR bin subdirectory for MPICH/MPI], MPI_IMP="mpich" MPICH_BIN=$withval)
+AC_ARG_WITH(mpichsrc,   [--with-mpichsrc=SRCDIR source home for MPICH/MPI], MPI_IMP="mpich" MPICH_SRC=$withval)
+AC_ARG_WITH(mpichlib,   [--with-mpichlib=LIBDIR Library directory for MPICH/MPI], MPI_IMP="mpich" MPILIB_DIR=$withval)
 
 if test "$MPI_IMP" = "mpich"; then
 
@@ -216,7 +279,14 @@ if test "$MPI_IMP" = "mpich"; then
     fi
 
     AC_MSG_CHECKING([MPICH version])
-    MPICH_VERSION=`cat $WITHDIR/include/patchlevel.h | awk '{print $3}' | sed -e 's/\.[0-9]//' | tr '\012' '.'`
+    patchfile=$WITHDIR/include/patchlevel.h
+    if test ! -s $patchfile -a -n "$MPICH_SRC" ; then
+	# look for it in the source location
+        if test -s $MPICH_SRC/include/patchlevel.h ; then
+	    patchfile=$MPICH_SRC/include/patchlevel.h
+	fi
+    fi
+    MPICH_VERSION=`cat $patchfile | awk '{print $3}' | sed -e 's/\.[0-9]//' | tr '\012' '.'`
     if test "$MPICH_VERSION" = "1.0.0.13."; then
         MPI_CONSTANTS_BAD=1
         AC_DEFINE(MPICH1013)
@@ -231,25 +301,36 @@ if test "$MPI_IMP" = "mpich"; then
 	# as of version 1.1.1.
 	#
 
-	MPICH_VERSION=`grep 'PATCHLEVEL ' $WITHDIR/include/patchlevel.h | awk '{print $3}'`
-	mv1=`grep 'PATCHLEVEL_SUBMINOR' $WITHDIR/include/patchlevel.h | awk '{print $3}'`
+	MPICH_VERSION=`grep 'PATCHLEVEL ' $patchfile | awk '{print $3}'`
+	mv1=`grep 'PATCHLEVEL_SUBMINOR' $patchfile | awk '{print $3}'`
 	MPICH_VERSION="$MPICH_VERSION.$mv1."
 
-	MPILIB_DIR=$WITHDIR/$MPICH_DEV
-
+	if test -z "$MPILIB_DIR" ; then
+  	    MPILIB_DIR=$WITHDIR/$MPICH_DEV
+        fi
 	if test "$MPICH_VERSION" = "1.1.1."; then
 	    AC_DEFINE(MPICH111)
 	    AC_MSG_RESULT([1.1.1 (you should upgrade)])
 	elif test "$MPICH_VERSION" = "1.1.2."; then
 	    AC_DEFINE(MPICH112)
 	    AC_MSG_RESULT([1.1.2 (good)])
+	elif test "$MPICH_VERSION" = "1.1.3."; then
+            # Need to make this MPICH113 eventually
+	    AC_DEFINE(MPICH112)
+	    AC_MSG_RESULT([1.1.3 (good)])
+	elif test "$MPICH_VERSION" = "1.2.0."; then
+            # Need to make this MPICH120 eventually
+	    AC_DEFINE(MPICH112)
+	    AC_MSG_RESULT([1.2.0 (good)])
 	else
 	    AC_DEFINE(MPICH)
 	    AC_MSG_RESULT([unrecognized MPICH level -- good luck!])
 	fi
     fi
 
-    MPILIB_DIR=$WITHDIR/$MPICH_DEV
+    if test -z "$MPILIB_DIR" ; then
+        MPILIB_DIR=$WITHDIR/$MPICH_DEV
+    fi
     
     OLD_ARCH=$ARCH
     if test -x $WITHDIR/util/tarch; then 
@@ -319,15 +400,28 @@ if test "$MPI_IMP" = "mpich"; then
     
     ARCH=$OLD_ARCH
 
-    if test "$MPICH_VERSION" = "1.1.2."; then
+    # Look for the actual PROGRAMS; don't use the versions!
+    if test -x $MPICH_BIN/mpiCC ; then
+        # MPICH 1.2.0 and later
+        MPI_CXX=$MPICH_BIN/mpiCC
+	# Tell mpiCC to not load mpi++.h when reading mpi.h
+        CXXFLAGS="$CXXFLAGS -DMPICH_SKIP_MPICXX"
+        CXX=$MPI_CXX
+        MPI_LIBS="-lmpich"
+    elif test -x $WITHDIR/$MPICH_DEV/../bin/mpiCC ; then 
+        # MPICH 1.1.2 and later
         MPI_CXX=$WITHDIR/$MPICH_DEV/../bin/mpiCC
         CXX=$MPI_CXX
         MPI_LIBS="-lmpich"
-    elif test "$MPICH_VERSION" = "1.1.1."; then
+        # We should NOT be using this, since the MPICH library name is
+	# a configure-time parameter
+    elif test -x $WITHDIR/$MPICH_DEV/mpiCC ; then
+	# MPICH 1.1.1
         MPI_CXX=$WITHDIR/$MPICH_DEV/mpiCC
         CXX=$MPI_CXX
         MPI_LIBS="-lmpich"
     else
+	# MPICH 1.1.0 and earlier
         MPI_LIBS="-lmpi"
     fi
     # JGS not sure were these should go
@@ -631,7 +725,7 @@ AC_DEFINE_UNQUOTED(IV_DESTRUCTORS, $IV_DESTRUCTORS)
 # Get the version number
 #
 
-VERSION=`cat VERSION | cut -f5 -d\ `
+VERSION=`cat $ac_confdir/VERSION | cut -f5 -d\ `
 
 
 #
@@ -660,8 +754,8 @@ elif test "$GXX" = "yes"; then
     AC_DEFINE(G_PLUS_PLUS, 1)
 elif test "$CXX" = "KCC" -o "$LAMHCP" = "KCC"; then
     EXFLAGS="-x"
+    CXXFLAGS=$CXXFLAGS_SAVE
 fi
-CXXFLAGS=$CXXFLAGS_SAVE
 
 EXCPTN_CXXFLAGS=$EXFLAGS
 CXXFLAGS="$EXFLAGS $CXXFLAGS"
@@ -680,6 +774,9 @@ fi
 # Since our errhandling test in the testsuite fails
 # when compiling with g++ (both 2.8 and with egcs)
 # we'll specify no exceptions for g++
+#
+# This needs to test for the problem, so that when g++/egcs is fixed, this
+# will still work! - WDG
 
 AC_MSG_CHECKING([for throw/catch])
 AC_TRY_COMPILE(, int i=1; throw(i);, have_excep=yes, have_excep=no)
@@ -750,7 +847,7 @@ BALKY_LDFLAGS="$EXCPTN_LDFLAGS $EXTRA_LDFLAGS $MPI_LDFLAGS -L$INSTALLDIR/lib -lm
 #
 
 if test "$MPI_LIBS" != ""; then
-    AC_MSG_CHECKING([for MPI_Initialized in -lmpi])
+    AC_MSG_CHECKING([for MPI_Initialized in $MPI_LIBS])
     AC_TRY_LINK(#include <mpi.h>
 , int i; MPI_Initialized(&i);, libmpi_found=yes, libmpi_found=no)
     if test "$libmpi_found" = "yes"; then
@@ -1183,11 +1280,11 @@ AC_SUBST(MPI_CXX)
 AC_SUBST(MPILIB_DIR)
 AC_SUBST(NOPRO_OR_PRO)
 
-
+AC_SUBST(VPATH)
 #
 # Party on
 #
-
+if test ! -d contrib ; then mkdir contrib ; fi
 AC_OUTPUT(Makefile
     src/Makefile
     contrib/test_suite/Makefile

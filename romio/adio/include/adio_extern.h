@@ -1,5 +1,5 @@
 /* 
- *   $Id: adio_extern.h,v 1.2 1998/06/02 18:57:56 thakur Exp $    
+ *   $Id: adio_extern.h,v 1.3 1999/08/06 18:32:59 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -27,4 +27,7 @@ extern int ADIOI_Reqtable_ptr, ADIOI_Reqtable_max;
 #ifndef __HAS_MPI_INFO
 extern MPI_Info *MPIR_Infotable;
 extern int MPIR_Infotable_ptr, MPIR_Infotable_max;
+#endif
+#ifdef __XFS
+extern int ADIOI_Direct_read, ADIOI_Direct_write;
 #endif

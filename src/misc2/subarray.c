@@ -1,11 +1,30 @@
 /* 
- *   $Id: subarray.c,v 1.3 1998/04/28 21:25:09 swider Exp $    
+ *   $Id: subarray.c,v 1.9 1999/08/30 15:47:53 swider Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Type_create_subarray = PMPI_Type_create_subarray
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Type_create_subarray  MPI_Type_create_subarray
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Type_create_subarray as PMPI_Type_create_subarray
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
 MPI_Type_create_subarray - Creates a datatype describing a subarray of a multidimensional array
@@ -23,56 +42,63 @@ Output Parameters:
 
 .N fortran
 @*/
-int MPI_Type_create_subarray(ndims, array_of_sizes, array_of_subsizes, array_of_starts, order, oldtype, newtype)
-int          ndims;
-int          *array_of_sizes;
-int          *array_of_subsizes;
-int          *array_of_starts;
-int          order;
-MPI_Datatype oldtype; 
-MPI_Datatype *newtype;
+EXPORT_MPI_API int MPI_Type_create_subarray(
+	int ndims, 
+	int *array_of_sizes, 
+	int *array_of_subsizes, 
+	int *array_of_starts, 
+	int order, 
+	MPI_Datatype oldtype, 
+	MPI_Datatype *newtype)
 {
     MPI_Aint extent, disps[3], size;
     int i, blklens[3];
     MPI_Datatype tmp1, tmp2, types[3];
+    int mpi_errno;
+    static char myname[] = "MPI_TYPE_CREATE_SUBARRAY";
 
     if (ndims <= 0) {
-	printf("MPI_Type_create_subarray: Invalid ndims argument\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ARG_NAMED, myname, 
+				     (char *)0, 
+			     "Invalid %s argument = %d", "ndims", ndims );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     }
-    if (array_of_sizes <= (int *) 0) {
-	printf("MPI_Type_create_subarray: array_of_sizes is an invalid address\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-    }
-    if (array_of_subsizes <= (int *) 0) {
-	printf("MPI_Type_create_subarray: array_of_subsizes is an invalid address\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-    }
-    if (array_of_starts <= (int *) 0) {
-	printf("MPI_Type_create_subarray: array_of_starts is an invalid address\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-    }
+    MPIR_TEST_ARG(array_of_sizes);
+    MPIR_TEST_ARG(array_of_subsizes);
+    MPIR_TEST_ARG(array_of_starts);
+    if (mpi_errno) 
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 
     for (i=0; i<ndims; i++) {
         if (array_of_sizes[i] <= 0) {
-            printf("MPI_Type_create_subarray: Invalid value in array_of_sizes\n");
-            MPI_Abort(MPI_COMM_WORLD, 1);
+	    mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ARG_ARRAY_VAL,
+					 myname, (char *)0, (char *)0,
+					 "array_of_sizes", i, 
+					 array_of_sizes[i] );
+	    return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
         }
         if (array_of_subsizes[i] <= 0) {
-            printf("MPI_Type_create_subarray: Invalid value in array_of_subsizes\n");
-            MPI_Abort(MPI_COMM_WORLD, 1);
+	    mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ARG_ARRAY_VAL,
+					 myname, (char *)0, (char *)0,
+					 "array_of_subsizes", i, 
+					 array_of_subsizes[i] );
+	    return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
         }
         if (array_of_starts[i] < 0) {
-            printf("MPI_Type_create_subarray: Invalid value in array_of_starts\n");
-            MPI_Abort(MPI_COMM_WORLD, 1);
+	    mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ARG_ARRAY_VAL,
+					 myname, (char *)0, (char *)0,
+					 "array_of_starts", i, 
+					 array_of_starts[i] );
+	    return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
         }
     }
 
     /* order argument checked below */
 
     if (oldtype == MPI_DATATYPE_NULL) {
-        printf("MPI_Type_create_subarray: oldtype is an invalid datatype\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_TYPE, MPIR_ERR_TYPE_NULL, 
+				     myname, (char *)0, (char *)0 );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     }
 
     MPI_Type_extent(oldtype, &extent);
@@ -133,8 +159,9 @@ MPI_Datatype *newtype;
 	}
     }
     else {
-	printf("MPI_Type_create_subarray: Invalid order argument\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ORDER, myname, 
+				     (char *)0, (char *)0, order );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     }
     
     disps[1] *= extent;

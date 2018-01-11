@@ -1,5 +1,5 @@
 /*
- *  $Id: pkutil.c,v 1.4 1998/03/09 22:08:46 gropp Exp $
+ *  $Id: pkutil.c,v 1.9 1999/10/18 22:17:37 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -114,14 +114,11 @@ int MPIR_Type_swap_copy ANSI_ARGS((unsigned char *, unsigned char *,
    keep things like status.count updated.
    
 */
-int MPIR_Unpack ( comm_ptr, src, srcsize, count, dtype_ptr, msgrep, 
-		  dest, act_len, dest_len )
-struct MPIR_COMMUNICATOR *comm_ptr;
-void         *src, *dest;
-int          srcsize, count;
-MPID_Msgrep_t msgrep;
-struct MPIR_DATATYPE *dtype_ptr;
-int          *act_len, *dest_len;
+int MPIR_Unpack ( 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	void *src, int srcsize, int count, struct MPIR_DATATYPE *dtype_ptr, 
+	MPID_Msgrep_t msgrep, 
+	void *dest, int *act_len, int *dest_len )
 {
 int (*unpackcontig) ANSI_ARGS((unsigned char *, int, struct MPIR_DATATYPE*, 
 			       int, unsigned char *, int, int *, int *, 
@@ -163,11 +160,14 @@ return err;
 #ifdef FOO
 #ifdef MPID_HAS_HETERO
 int 
-MPIR_Type_convert_copy2(comm, dbuf, sbuf, type, count, dest, decode)
-MPI_Comm     comm;
-char         *dbuf, *sbuf;
-MPI_Datatype type;
-int          count, dest, *decode;
+MPIR_Type_convert_copy2(
+	MPI_Comm comm, 
+	char *dbuf, 
+	char *sbuf, 
+	MPI_Datatype type, 
+	int count, 
+	int dest, 
+	int *decode)
 {
   int len, outlen, totlen;
   int (*packcontig)() = 0;
@@ -215,16 +215,16 @@ return MPIR_Pack2( sbuf, count, maxcount, type, packcontig, packctx, dbuf, &outl
    destination.  This is incompatible with XDR encoding, and isn't really 
    necessary.
  */
-int MPIR_Pack2( buf, count, maxcount, type, packcontig, packctx, dest, 
-		outlen, totlen )
-char         *buf;
-int          count, maxcount;
-struct MPIR_DATATYPE *type;
-char         *dest;
-int          (*packcontig) ANSI_ARGS((unsigned char *, unsigned char *, 
-				      struct MPIR_DATATYPE*, int, void *));
-void         *packctx;
-int          *outlen, *totlen;
+int MPIR_Pack2( 
+	char *buf, 
+	int count, 
+	int maxcount, 
+	struct MPIR_DATATYPE *type, 
+	int (*packcontig) ANSI_ARGS((unsigned char *, unsigned char *, struct MPIR_DATATYPE*, int, void *)), 
+	void *packctx, 
+	char *dest, 
+	int *outlen, 
+	int *totlen )
 {
     int i,j;
     int mpi_errno = MPI_SUCCESS;
@@ -373,18 +373,16 @@ int          *outlen, *totlen;
    dest_len - Number of bytes written to dest.  
    used_len - Number of bytes consumed in src
  */
-int MPIR_Unpack2 ( src, count, type, unpackcontig, unpackctx, dest, srclen, 
-		   dest_len, used_len )
-char         *src, *dest;
-int          count, srclen;
-int          (*unpackcontig) ANSI_ARGS((unsigned char *, int, 
-					struct MPIR_DATATYPE*, 
-					int, unsigned char *, int, int *, 
-					int *, void *));
-void         *unpackctx;
-struct MPIR_DATATYPE *type;
-int          *dest_len;
-int          *used_len;
+int MPIR_Unpack2 ( 
+	char *src, 
+	int count, 
+	struct MPIR_DATATYPE *type, 
+	int (*unpackcontig) ANSI_ARGS((unsigned char *, int, struct MPIR_DATATYPE*, int, unsigned char *, int, int *, int *, void *)),
+	void *unpackctx, 
+	char *dest, 
+	int srclen, 
+	int *dest_len, 
+	int *used_len )
 {
   int i,j;
   int mpi_errno = MPI_SUCCESS;
@@ -535,12 +533,16 @@ int          *used_len;
    basic elements in a datatype.  If we have received only part of
    a datatype, this gives the correct value.
  */
-int MPIR_Elementcnt( src, num, datatype, inbytes, dest, srclen, srcreadlen, 
-		     destlen, ctx )
-unsigned char *dest, *src;
-struct MPIR_DATATYPE  *datatype;
-int           num, inbytes, srclen, *srcreadlen, *destlen;
-void          *ctx;
+int MPIR_Elementcnt( 
+	unsigned char *src, 
+	int num, 
+	struct MPIR_DATATYPE *datatype, 
+	int inbytes, 
+	unsigned char *dest, 
+	int srclen, 
+	int *srcreadlen, 
+	int *destlen, 
+	void *ctx )
 {
 int len = datatype->size * num;
 int *totelm = (int *)ctx;
@@ -579,54 +581,64 @@ static char *i_offset, *o_offset;
 static char i_dummy;
 
 /* The interface makes these unsigned chars */
-int MPIR_Printcontig( dest, src, datatype, num, ctx )
-unsigned char         *dest, *src;
-struct MPIR_DATATYPE *datatype;
-int          num;
-void         *ctx;
+int MPIR_Printcontig( 
+	unsigned char *dest, 
+	unsigned char *src, 
+	struct MPIR_DATATYPE *datatype, 
+	int num, 
+	void *ctx )
 {
     int len = datatype->size * num;
 
 /* gcc doesn't like subtracting from a POINTER to unsigned(!) */
-    FPRINTF( datatype_fp, "Copy %x <- %x for %d bytes\n", 
-	     ((char *)dest)-o_offset, ((char *)src)-i_offset, len );
+    FPRINTF( datatype_fp, "Copy %lx <- %lx for %d bytes\n", 
+	     (long)(((char *)dest)-o_offset), (long)(((char *)src)-i_offset), 
+	     len );
     return len;
 }
 
-int MPIR_Printcontig2( src, num, datatype, inbytes, dest, ctx )
-char         *dest, *src;
-struct MPIR_DATATYPE *datatype;
-int          num, inbytes;
-void         *ctx;
+int MPIR_Printcontig2( 
+	char *src, 
+	int num, 
+	struct MPIR_DATATYPE *datatype, 
+	int inbytes, 
+	char *dest, 
+	void *ctx )
 {
     int len = datatype->size * num;
 
-    FPRINTF( datatype_fp, "Copy %x <- %x for %d bytes\n", 
-	     dest-o_offset, src-i_offset, len );
+    FPRINTF( datatype_fp, "Copy %lx <- %lx for %d bytes\n", 
+	     (long)(dest-o_offset), (long)(src-i_offset), len );
     return len;
 }
 
-int MPIR_Printcontig2a( src, num, datatype, inbytes, dest, srclen, 
-		       srcreadlen, destlen, ctx )
-unsigned char *dest, *src;
-struct MPIR_DATATYPE *datatype;
-int          num, inbytes, srclen, *srcreadlen, *destlen;
-void         *ctx;
+int MPIR_Printcontig2a( 
+	unsigned char *src, 
+	int num, 
+	struct MPIR_DATATYPE *datatype, 
+	int inbytes, 
+	unsigned char *dest, 
+	int srclen, 
+	int *srcreadlen, 
+	int *destlen, 
+	void *ctx )
 {
     int len = datatype->size * num;
     
-    FPRINTF( datatype_fp, "Copy %x <- %x for %d bytes\n", 
-	     (char *)dest-o_offset, (char *)src-i_offset, len );
+    FPRINTF( datatype_fp, "Copy %lx <- %lx for %d bytes\n", 
+	     (long)((char *)dest-o_offset), (long)((char *)src-i_offset), 
+	     len );
     *srcreadlen = len;
     *destlen    = len;
     return MPI_SUCCESS;
 }
 
-int MPIR_PrintDatatypePack( fp, count, type, in_offset, out_offset )
-FILE         *fp;
-int          count;
-struct MPIR_DATATYPE *type;
-long         in_offset, out_offset;
+int MPIR_PrintDatatypePack( 
+	FILE *fp, 
+	int count, 
+	struct MPIR_DATATYPE *type, 
+	long in_offset, 
+	long out_offset )
 {
 int outlen, totlen;
 char *src, *dest;
@@ -649,11 +661,12 @@ MPIR_Pack2( src, count, 100000000, type, MPIR_Printcontig, (void *)0, dest,
 return MPI_SUCCESS;
 }
 
-int MPIR_PrintDatatypeUnpack( fp, count, type, in_offset, out_offset )
-FILE         *fp;
-int          count;
-MPI_Datatype type;
-long         in_offset, out_offset;
+int MPIR_PrintDatatypeUnpack( 
+	FILE *fp, 
+	int count, 
+	MPI_Datatype type, 
+	long in_offset, 
+	long out_offset )
 {
     struct MPIR_DATATYPE *dtype_ptr;
     int      srclen, destlen, used_len;

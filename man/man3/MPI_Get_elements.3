@@ -1,13 +1,11 @@
-.TH MPI_Get_elements 3 "4/28/1998" " " "MPI"
+.TH MPI_Get_elements 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Get_elements \-  Returns the number of basic elements in a datatype 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Get_elements ( status, datatype, elements )
-MPI_Status    *status;
-MPI_Datatype  datatype;
-int          *elements;
+int MPI_Get_elements ( MPI_Status *status, MPI_Datatype datatype, 
+         int *elements )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

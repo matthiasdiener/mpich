@@ -1,12 +1,10 @@
-.TH MPI_Group_incl 3 "4/28/1998" " " "MPI"
+.TH MPI_Group_incl 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Group_incl \-  Produces a group by reordering an existing group and taking only listed members 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Group_incl ( group, n, ranks, group_out )
-MPI_Group group, *group_out;
-int       n, *ranks;
+int MPI_Group_incl ( MPI_Group group, int n, int *ranks, MPI_Group *group_out )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

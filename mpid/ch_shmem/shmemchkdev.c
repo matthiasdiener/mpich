@@ -1,5 +1,5 @@
 /*
- *  $Id: shmemchkdev.c,v 1.2 1998/03/13 22:32:55 gropp Exp $
+ *  $Id: shmemchkdev.c,v 1.4 1999/10/14 13:49:04 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -10,6 +10,7 @@
 #include "mpiddev.h"
 #include "flow.h"
 #include "../util/queue.h"
+#include "chpackflow.h"
 
 /***************************************************************************/
 /* This is one of the main routines.  It checks for incoming messages and  */
@@ -66,6 +67,17 @@ MPID_BLOCKING_TYPE is_blocking;
 	MPID_Msg_arrived( pkt->head.lrank, pkt->head.tag, 
 			  pkt->head.context_id, 
 			  &rhandle, &is_posted );
+
+	/* Need the send handle address in order to cancel a send */
+	if (!is_posted) {  /* begin if !is_posted */
+	    if (pkt->head.mode == MPID_PKT_SEND_ADDRESS) 
+		rhandle->send_id = pkt->sendadd_pkt.send_id;
+	    else if (pkt->head.mode == MPID_PKT_SHORT) 
+		rhandle->send_id = pkt->short_pkt.send_id; 
+	    else if (pkt->head.mode == MPID_PKT_OK_TO_SEND_GET)
+		rhandle->send_id = pkt->get_pkt.send_id; 
+	} 
+
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
 	if (MPID_DebugFlag) {
 	    fprintf( MPID_DEBUG_FILE, "[%d]R msg was %s (%s:%d)\n", 
@@ -127,9 +139,23 @@ MPID_BLOCKING_TYPE is_blocking;
 	    err = (*dev->rndv->do_ack)( pkt, from_grank );
 	    break;
 
+	case MPID_PKT_ANTI_SEND:
+	    MPID_SendCancelOkPacket( (MPID_PKT_T *)pkt, from_grank ); 
+	    break;
+	    
+	case MPID_PKT_ANTI_SEND_OK:
+	    MPID_RecvCancelOkPacket( (MPID_PKT_T *)pkt, from_grank ); 
+	    break;
+
 #ifdef MPID_FLOW_CONTROL
 	case MPID_PKT_FLOW:
 	    MPID_RecvFlowPacket( &pkt, from_grank );
+	    break;
+#endif
+#ifdef MPID_PACK_CONTROL
+	case MPID_PKT_PROTO_ACK:
+	case MPID_PKT_ACK_PROTO:
+	    MPID_RecvProtoAck( (MPID_PKT_T *)pkt, from_grank ); 
 	    break;
 #endif
 

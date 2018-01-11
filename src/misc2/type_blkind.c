@@ -1,11 +1,30 @@
 /*
- *  $Id: type_blkind.c,v 1.4 1998/04/28 21:25:11 swider Exp $
+ *  $Id: type_blkind.c,v 1.9 1999/08/30 15:47:55 swider Exp $
  *
  *  (C) 1997 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Type_create_indexed_block = PMPI_Type_create_indexed_block
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Type_create_indexed_block  MPI_Type_create_indexed_block
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Type_create_indexed_block as PMPI_Type_create_indexed_block
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "sbcnst2.h"
 #include "mpimem.h"
 #define MPIR_SBalloc MPID_SBalloc
@@ -52,12 +71,12 @@ consider declaring the Fortran array with a zero origin
 .N MPI_ERR_ARG
 .N MPI_ERR_EXHAUSTED
 @*/
-int MPI_Type_create_indexed_block( count, blocklength, array_of_displacements, old_type, newtype )
-int           count;
-int 	      blocklength;
-int 	      array_of_displacements[];
-MPI_Datatype  old_type;
-MPI_Datatype *newtype;
+EXPORT_MPI_API int MPI_Type_create_indexed_block( 
+	int count, 
+	int blocklength, 
+	int array_of_displacements[], 
+	MPI_Datatype old_type, 
+	MPI_Datatype *newtype )
 {
   MPI_Aint      *hindices;
   int           *blocklens;
@@ -76,8 +95,10 @@ MPI_Datatype *newtype;
    ( (old_dtype_ptr->dte_type == MPIR_LB) && (mpi_errno = MPI_ERR_TYPE) ) )
 	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno,myname);
   if (blocklength < 0) {
-      return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ARG,
-		 "Invalid blocklength in MPI_TYPE_CREATE_INDEXED_BLOCK" );
+      mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ARG_NAMED, myname,
+				   (char *)0, (char *)0, "blocklength", 
+				   blocklength );
+      return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
   }
 	
   /* Are we making a null datatype? */

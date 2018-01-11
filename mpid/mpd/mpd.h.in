@@ -1,0 +1,285 @@
+/* mpd.h */
+#ifndef _MPD
+#define _MPD
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <ctype.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/socket.h>
+#include <sys/wait.h>
+#include <sys/un.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <errno.h>
+#include <strings.h>
+#include <string.h>
+#include <signal.h>
+#include <fcntl.h>
+#include <pwd.h>
+    
+#define CONSOLE_NAME "/tmp/mpd.console"
+#define MANAGER_PATHNAME "@MPD_HOME@/mpdman"
+
+#define RECV_OK    0
+#define RECV_EOF  -1
+#define DEFAULT_P4_PORT           6001
+#define DEFAULT_NEXT_SIBLING_PORT 6002
+#define DEFAULT_PREV_SIBLING_PORT 6003
+
+/*
+char *sys_errlist[];
+*/
+
+/* Macros to convert from integer to net byte order and vice versa */
+#define i_to_n(n)  (int) htonl( (u_long) n)
+#define n_to_i(n)  (int) ntohl( (u_long) n)
+
+#define MAXFDENTRIES   256
+#define MAXJOBS         32
+#define MAXPROCS        32
+#define MAXFILES        32
+#define MAXHOSTNMLEN    64
+#define MAXSOCKNAMELEN 128
+#define MAXFILENAMELEN 256
+#define MAXLINE        2048
+#define STREAMBUFSIZE   4096
+#define IDSIZE         (MAXHOSTNMLEN+8)
+
+#define CHUNKSIZE       3
+#define BIGCHUNKSIZE    6       /* must be multiple of chunksize */
+
+struct fdentry {
+    int active;			/* whether this entry is filled */
+    int fd;			/* fd assigned by system when opened */
+    int job;			/* job of owner*/
+    int rank;			/* rank of owner*/
+    int read;			/* whether this fd should be selected for reading */
+    int write;			/* whether this fd should be selected for writing */
+    int portnum;		/* optional unix port number, for debugging */
+    FILE *file;			/* file from fdopen, if present, for using fgets */
+    int handler;		/* function to call to handle input after connection */
+    char name[MAXSOCKNAMELEN];	/* name of fd, for debugging */
+};
+
+struct jobentry {
+    int active;
+    int jobid;
+    int jobsize;
+    int jobsync_is_here;
+    int alive_here_sofar;
+    int alive_in_job_sofar;
+    int added_to_job_sofar;
+};
+
+/* 
+ *	State of MPD client process 
+ */
+#define CLSTART		1
+#define CLALIVE		2    
+#define CLNONE		3    
+#define CLRUNNING	4    
+#define CLDEAD          5
+
+struct procentry {
+    int active;			/* whether this entry is filled */
+    int state;			/* state of client 		*/
+    int pid;			/* process id of forked process */
+    int jobid;			/* job that this process is part of, -1 if independent */
+    int jobrank;		/* rank of this process in its job */
+    int clientfd;		/* fd on which this process is connected to mpd */
+    int lport;			/* port number on which this process is listening */
+    char name[MAXSOCKNAMELEN];	/* name of port (optional) */
+};
+
+struct fileentry {
+    int active;			/* whether this entry is filled */
+    int fd;			/* file descriptor */
+    int conn_id;		/* connection id */
+    char name[MAXFILENAMELEN];	/* pathname */
+};
+
+struct keyval_pairs
+{
+    char key[32];
+    char value[MAXLINE];	
+};
+
+/* handlers */
+#define NOTSET          0
+#define CONSOLE_LISTEN  1
+#define CONSOLE         2
+#define PARENT	        3
+#define LHS             4
+#define RHS             5
+#define CLIENT_LISTEN   6
+#define CLIENT          7
+#define MPD             9
+#define LISTEN	        8
+#define STDIN          10
+#define CONTROL        11
+#define DATA           12
+#define MANAGER_LISTEN 13
+#define MANAGER        14
+/* manager handlers */
+#define  MAN_LISTEN         100
+#define  LHS_MSGS           200
+#define  RHS_MSGS           300
+#define  PARENT_MPD_MSGS    400
+#define  CON_STDIN          500
+#define  CON_CNTL           600
+#define  MAN_CLIENT         700
+#define  CLIENT_STDOUT      800
+#define  CLIENT_STDERR      900
+#define  TREE_STDOUT        1000
+#define  TREE_STDERR        1100
+
+/************************* function prototypes ***************************/
+
+#ifdef ANSI_ARGS
+#undef ANSI_ARGS
+#endif
+
+#if defined(__STDC__) || defined(__cplusplus)
+
+#ifndef USE_STDARG
+#define USE_STDARG
+#endif
+#define ANSI_ARGS(x) x
+#else
+#define ANSI_ARGS(x) ()
+#endif
+
+void mpd_cleanup ANSI_ARGS(( void ));
+void handle_input_fd ANSI_ARGS(( int ));
+int  setup_unix_socket ANSI_ARGS(( char * ));
+int  setup_network_socket ANSI_ARGS(( int * ));
+int  network_connect ANSI_ARGS(( char *, int ));
+int  local_connect ANSI_ARGS(( char * ));
+void handle_console_input ANSI_ARGS(( int ));
+int  accept_connection ANSI_ARGS(( int ));
+int  accept_unix_connection ANSI_ARGS(( int ));
+int  recv_msg ANSI_ARGS(( int, char * ));
+void send_msg ANSI_ARGS(( int, char *, int ));
+void write_line ANSI_ARGS(( int, char * ));
+void error_check ANSI_ARGS(( int, char * ));
+void handle_p4_input ANSI_ARGS(( int ));
+void handle_listener_input ANSI_ARGS(( int ));
+void handle_console_listener_input ANSI_ARGS(( int ));
+void handle_client_listener_input ANSI_ARGS(( int ));
+void handle_client_input ANSI_ARGS(( int ));
+void handle_sibling_input ANSI_ARGS(( int ));
+void process_sibling_input ANSI_ARGS(( char *, int ));
+void process_client_input ANSI_ARGS(( char * ));
+void handle_next_output ANSI_ARGS(( int ));
+int  allocate_port ANSI_ARGS(( void ));
+char *getval ANSI_ARGS(( char *, char * ));
+void chgval ANSI_ARGS(( char *, char * ));
+void deallocate_port ANSI_ARGS(( int ));
+int  allocate_fileent ANSI_ARGS(( void ));
+void deallocate_fileent ANSI_ARGS(( int ));
+void dump_jobtable ANSI_ARGS(( int ));
+void init_jobtable ANSI_ARGS(( void ));
+int  allocate_jobent ANSI_ARGS(( void ));
+int  find_jobid_in_jobtable ANSI_ARGS(( int ));
+void remove_from_jobtable ANSI_ARGS (( int ));
+void deallocate_jobent ANSI_ARGS(( int ));
+void init_proctable ANSI_ARGS(( void ));
+int  allocate_procent ANSI_ARGS(( void ));
+void remove_from_proctable ANSI_ARGS (( int ));
+void deallocate_procent ANSI_ARGS(( int ));
+char *phandler ANSI_ARGS(( int ));
+int  count_hosts ANSI_ARGS(( void ));
+void dump_porttable ANSI_ARGS(( char * ));
+void dump_proctable ANSI_ARGS(( int ));
+int  allocate_jobid ANSI_ARGS(( void ));
+int  find_host ANSI_ARGS(( int ));
+void handle_console_fd ANSI_ARGS(( int ));
+void handle_mpd_input ANSI_ARGS(( int ));
+void handle_stdin_input ANSI_ARGS(( int ));
+void unlink_clients ANSI_ARGS(( void ));
+void process_next_input ANSI_ARGS(( char *, int ));
+void usage ANSI_ARGS(( char * ));
+void mpdprintf ANSI_ARGS(( int, char *, ... ));
+void init_fdtable ANSI_ARGS(( void ));
+void dump_fdtable ANSI_ARGS(( char * ));
+int  allocate_fdentry ANSI_ARGS(( void ));
+void deallocate_fdentry ANSI_ARGS(( int ));
+void handle_lhs_input ANSI_ARGS(( int ));
+void handle_rhs_input ANSI_ARGS(( int ));
+int  router ANSI_ARGS(( char *, int ));
+void sib_new_rhs ANSI_ARGS(( int ));
+void sib_ping ANSI_ARGS(( void ));
+void sib_ping_ack ANSI_ARGS(( void ));
+void sib_ringtest ANSI_ARGS(( void ));
+void sib_trace ANSI_ARGS(( void ));
+void sib_dump ANSI_ARGS(( void ));
+void sib_trace_ack ANSI_ARGS(( void ));
+void sib_new_lhs ANSI_ARGS(( int ));
+void sib_rhs2info ANSI_ARGS(( int ));
+void sib_reconnect_rhs ANSI_ARGS(( int ));
+void sib_killjob ANSI_ARGS(( void ));
+void sib_exit ANSI_ARGS(( void ));
+void sib_jobsync ANSI_ARGS(( void ));
+void sib_jobgo ANSI_ARGS(( void ));
+void sib_bomb ANSI_ARGS(( void ));
+void sib_findclient ANSI_ARGS(( void ));
+void sib_foundclient ANSI_ARGS(( void ));
+void sib_debug ANSI_ARGS(( void ));
+void sib_allexit ANSI_ARGS(( void ));
+void sib_mpexec ANSI_ARGS(( void ));
+void sib_needjobids ANSI_ARGS(( void ));
+void sib_newjobids ANSI_ARGS(( void ));
+void fatal_error ANSI_ARGS(( int, char * ));
+void parse_keyvals ANSI_ARGS(( char * ));
+void dump_keyvals ANSI_ARGS(( void ));
+void reconstruct_message_from_keyvals ANSI_ARGS(( char * ));
+void kill_job ANSI_ARGS(( int, int ));
+int  find_proclisten ANSI_ARGS(( int, int ));
+int  find_proclisten_pid ANSI_ARGS(( int, int ));
+void con_pkill ANSI_ARGS(( char * ));
+void con_ringtest ANSI_ARGS(( char * ));
+void con_trace ANSI_ARGS(( char * ));
+void con_dump ANSI_ARGS(( char * ));
+void con_ping ANSI_ARGS(( char * ));
+void con_exit ANSI_ARGS(( char * ));
+void con_bomb ANSI_ARGS(( char * ));
+void con_addmpd ANSI_ARGS(( char * ));
+void con_debug ANSI_ARGS(( char * ));
+void con_mpexec ANSI_ARGS(( char * ));
+void con_allexit ANSI_ARGS(( char * ));
+void cli_alive ANSI_ARGS(( int ));
+void cli_findclient ANSI_ARGS(( int ));
+void stuff_arg ANSI_ARGS(( char *, char * ));
+void destuff_arg ANSI_ARGS(( char *, char * ));
+void init_jobids ANSI_ARGS(( void ));
+int  steal_jobids ANSI_ARGS(( int *, int * ));
+void add_jobids ANSI_ARGS(( int, int ));
+/* for rio */
+void handle_rio_listen_input ANSI_ARGS(( int ));
+void handle_control_input ANSI_ARGS(( int ));
+void handle_data_inout ANSI_ARGS(( int ));
+void process_control_command ANSI_ARGS(( char * ));
+double mpd_timestamp ANSI_ARGS(( void ));
+
+/* couldn't find on Solaris */
+/* int gethostname ANSI_ARGS ((char *, int ));   */
+
+/* from Stevens book */
+typedef void Sigfunc( int );
+Sigfunc *Signal ANSI_ARGS (( int, Sigfunc * ));
+void sigchld_handler ANSI_ARGS (( int ));
+void sigusr1_handler ANSI_ARGS (( int ));
+int read_line ANSI_ARGS (( int, char *, int ));
+int writen ANSI_ARGS (( int, char *, int ));
+#endif /* _MPD */
+
+/* manager stuff */
+
+#define DUMMYHOSTNAME "_dummyhost_"
+#define DUMMYPORTNUM  -2
+
+

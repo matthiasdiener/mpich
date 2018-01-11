@@ -139,8 +139,8 @@
 #define MPI_Type_create_subarray PMPI_Type_create_subarray
 #define MPI_Type_extent PMPI_Type_extent
 #define MPI_Type_free PMPI_Type_free
-#define MPI_Type_get_cont PMPI_Type_get_cont
-#define MPI_Type_get_env PMPI_Type_get_env
+#define MPI_Type_get_contents PMPI_Type_get_contents
+#define MPI_Type_get_envelope PMPI_Type_get_envelope
 #define MPI_Type_hindexed PMPI_Type_hindexed
 #define MPI_Type_hvector PMPI_Type_hvector
 #define MPI_Type_indexed PMPI_Type_indexed
@@ -243,6 +243,7 @@
 #define MPI_Request_get_status PMPI_Request_get_status
 #define MPI_Sizeof PMPI_Sizeof
 #define MPI_Status_set_cancelled PMPI_Status_set_cancelled
+#define MPI_Status_set_elements  PMPI_Status_set_elements
 #define MPI_Type_create_darray PMPI_Type_create_darray
 #define MPI_Type_create_hindexed PMPI_Type_create_hindexed
 #define MPI_Type_create_indexed_block PMPI_Type_create_indexed_block

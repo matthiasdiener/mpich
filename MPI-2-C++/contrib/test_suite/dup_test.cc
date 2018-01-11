@@ -34,7 +34,7 @@ dup_test()
 
   dupcomm = MPI::COMM_NULL;
 
-  Testing("Dup");
+  Testing( (char *)"Dup");
 
   dupcomm = MPI::COMM_WORLD.Dup();
     

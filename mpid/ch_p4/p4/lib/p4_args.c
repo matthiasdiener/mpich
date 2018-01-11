@@ -16,14 +16,17 @@ static P4VOID print_version_info ANSI_ARGS((void));
 static P4VOID strip_out_args ANSI_ARGS((char **, int*, int *, int));
 
 
-P4VOID process_args(argc,argv)
-int *argc;
-char **argv;
+P4VOID process_args(int *argc, char **argv)
 {
     int i,c,nextarg;
     FILE *fp;
     char *s, **a;
     struct p4_procgroup_entry *pe;
+
+    if (!argc || !argv) {
+	/* Failure if either argc or argv are null */
+        p4_error( "Command-line arguments are missing",0 );
+    }
 
     /* Put the name of the called program (according to the args) into pgm */
     s = (char *)  rindex(*argv, '/');
@@ -57,7 +60,6 @@ char **argv;
      */
     for (c = (*argc); c > 1; c--, a--)
     {
-        /* p4_dprintfl(00,"p4: process_args:  :%s:",*a); */
 	if (**a != '-')
 	    continue;
 
@@ -211,9 +213,7 @@ char **argv;
     }
 }
 
-static P4VOID strip_out_args(argv, argc, c, num)
-char **argv;
-int *argc, *c, num;
+static P4VOID strip_out_args(char **argv, int *argc, int *c, int num)
 {
     char **a;
     int i;
@@ -224,7 +224,7 @@ int *argc, *c, num;
     (*argc) -= num;
 }
 
-static P4VOID usage()
+static P4VOID usage( void )
 {
     print_version_info();
     printf("p4 usage: %s [p4 options]\n", pgm);
@@ -248,7 +248,7 @@ static P4VOID usage()
 
 }
 
-static P4VOID print_version_info()
+static P4VOID print_version_info( void )
 {
         printf("\n");
         printf("p4  version number: %s\n",P4_PATCHLEVEL);

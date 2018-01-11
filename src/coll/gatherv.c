@@ -1,11 +1,30 @@
 /*
- *  $Id: gatherv.c,v 1.5 1998/09/22 15:49:43 swider Exp $
+ *  $Id: gatherv.c,v 1.10 1999/08/30 15:41:43 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Gatherv = PMPI_Gatherv
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Gatherv  MPI_Gatherv
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Gatherv as PMPI_Gatherv
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "coll.h"
 
 /*@
@@ -39,18 +58,10 @@ Output Parameter:
 .N MPI_ERR_TYPE
 .N MPI_ERR_BUFFER
 @*/
-int MPI_Gatherv ( sendbuf, sendcnt,  sendtype, 
-                  recvbuf, recvcnts, displs, recvtype, 
-                  root, comm )
-void             *sendbuf;
-int               sendcnt;
-MPI_Datatype      sendtype;
-void             *recvbuf;
-int              *recvcnts;
-int              *displs;
-MPI_Datatype      recvtype;
-int               root;
-MPI_Comm          comm;
+EXPORT_MPI_API int MPI_Gatherv ( void *sendbuf, int sendcnt, MPI_Datatype sendtype, 
+                  void *recvbuf, int *recvcnts, int *displs, 
+		  MPI_Datatype recvtype, 
+                  int root, MPI_Comm comm )
 {
   int        mpi_errno = MPI_SUCCESS;
   int        rank;
@@ -62,10 +73,8 @@ MPI_Comm          comm;
   TR_PUSH(myname);
 
   comm_ptr = MPIR_GET_COMM_PTR(comm);
-  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr, myname);
 
   stype_ptr = MPIR_GET_DTYPE_PTR(sendtype);
-  MPIR_TEST_DTYPE(sendtype,stype_ptr,comm_ptr, myname );
 
   /* rtype is significant only at root */
   (void) MPIR_Comm_rank ( comm_ptr, &rank );
@@ -74,8 +83,13 @@ MPI_Comm          comm;
       MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
   }
 
-  if ( MPIR_TEST_COUNT(comm,sendcnt) ) 
-    return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#ifndef MPIR_NO_ERROR_CHECKING
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr, myname);
+  MPIR_TEST_COUNT(sendcnt);
+  MPIR_TEST_DTYPE(sendtype,stype_ptr,comm_ptr, myname );
+  if (mpi_errno)
+      return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
 
   MPIR_ERROR_PUSH(comm_ptr);
   mpi_errno = comm_ptr->collops->Gatherv( sendbuf, sendcnt,  stype_ptr, 

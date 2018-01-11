@@ -10,10 +10,7 @@ Returns the number of neighbors of a node associated with a graph topology
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Graph_neighbors_count ( comm, rank, nneighbors )
-MPI_Comm  comm;
-int       rank;
-int      *nneighbors;
+int MPI_Graph_neighbors_count ( MPI_Comm comm, int rank, int *nneighbors )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

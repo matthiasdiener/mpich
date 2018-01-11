@@ -5,29 +5,26 @@
 set -x
 #
 # Use tar to copy to /tmp
-if [ ! -d /tmp/perfcopy ] ; then
-    mkdir /tmp/perfcopy
+if [ -d /sandbox ] ; then
+    workdir="/sandbox/$LOGNAME"
+else
+    workdir="/tmp/$LOGNAME"
 fi
-cd /tmp/perfcopy
-tar cf - -C /home/MPI/mpich/examples perftest | tar xf -
+if [ ! -d $workdir/perfcopy ] ; then
+    mkdir $workdir/perfcopy
+fi
+cd $workdir/perfcopy
+cvs -d /home/MPI/cvsMaster export -D '1 minute ago' perftest
 #
 # Update a few files
 # The next copy pulls in versions of mpicc and mpirun that may
 # be useful.
-cp -rp /home/MPI/class/mpiexmpl/maint/envs /tmp/perfcopy/perftest/bin
-cp /home/MPI/mpich/util/tarch /tmp/perfcopy/perftest
-chmod a+x /tmp/perfcopy/perftest/tarch
-#
-# Remove the RCS files, old executables, and debris
-cd /tmp/perfcopy/perftest
-/bin/rm -rf /tmp/perfcopy/perftest/save
-find . \( -name 'RCS' -o -name '*.o' -o -name '#*#' -o \
-              -name '*~' -o -name 'mputil.mp*' -o -name Makefile -o \
-	      -name makefile -o -name 'PI*' -o -name '*.cit' \) -print | \
-	sed 's%^%/bin/rm -rf %g' | sh
+cp -rp /home/MPI/class/mpiexmpl/maint/envs $workdir/perfcopy/perftest/bin
+cp /home/MPI/mpich/bin/tarch $workdir/perfcopy/perftest
+chmod a+x $workdir/perfcopy/perftest/tarch
 #
 # rebuild the tar file
-cd /tmp/perfcopy
-tar cf - perftest | gzip > /tmp/perftest.tar.gz
-/bin/rm -rf /tmp/perfcopy &
-echo "tar file in /tmp/perftest.tar.gz"
+cd $workdir/perfcopy
+tar cf - perftest | gzip > $workdir/perftest.tar.gz
+/bin/rm -rf $workdir/perfcopy &
+echo "tar file in $workdir/perftest.tar.gz"

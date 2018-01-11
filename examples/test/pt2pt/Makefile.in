@@ -1,28 +1,34 @@
 ALL: default
 ##### User configurable options #####
 
-MPIR_HOME   = @MPIR_HOME@
-CC          = @MPICC@
-CLINKER     = @MPICC@
-CCC         = @MPICPLUSPLUS@
-CCLINKER    = $(CCC)
-F77         = @MPIF77@
-FLINKER     = @MPIF77@
-OPTFLAGS    = @OPTFLAGS@
-MPIFDEP     = @MPIFDEP@
-
+MPIR_HOME    = @MPIR_HOME@
+CC           = @MPICC@
+CLINKER      = @MPICC@
+CCC          = @MPICPLUSPLUS@
+CCLINKER     = $(CCC)
+F77          = @MPIF77@
+F90BASE	     = @MPIF90BASE@
+F90          = @MPIF90@
+FLINKER      = @MPIF77@
+OPTFLAGS     = @OPTFLAGS@
+MPIFDEP      = @MPIFDEP@
+F77_OPTFLAGS = @F77_EXTRA_FLAG@
 ### End User configurable options ###
 
 SHELL = /bin/sh
+prefix     = @prefix@
+top_srcdir = @top_srcdir@
+srcdir     = @srcdir@
+@VPATH@
 
 PROFLIB =
-CFLAGS  = $(OPTFLAGS) 
+CFLAGS  = @CFLAGS@ @DEFS@ $(OPTFLAGS) 
 CCFLAGS = $(CFLAGS)
 FFLAGS = $(OPTFLAGS)
 # Use LIBS to add any special libraries for C programs
-LIBS = 
+LIBS = @LIB_PATH@ @LIB_LIST@
 # Use FLIBS to add any special libraries for Fortran programs
-FLIBS = 
+FLIBS = @FLIB_PATH@ @LIB_LIST@
 EXECS = overtake sendrecv isndrcv third fourth fifth sixth hvectest \
 	hvectest2 hvec probe probe1 testtest1 ssendtest ssendtest2 typetest\
 	dtypelife issendtest issend2 issendinit relrank nullproc trunc \
@@ -31,7 +37,8 @@ EXECS = overtake sendrecv isndrcv third fourth fifth sixth hvectest \
 	pack bsendtest typebase irsend irsendinit longmsgs waitall waitall2 \
 	testsome getelm testall sndrcv nbtest nblock sendmany order hindexed \
 	commit cancel persist typecreate reqcreate sndrcvrep flood flood2 \
-	persist2 dataalign dtyperecv reqfree sndrcvrpl2 cancel2
+	persist2 dataalign dtyperecv reqfree sndrcvrpl2 cancel2 cancel3 \
+	cancelmessages cancelibm sendorder exittest
 OTHEREXECS = testtypes secondf allpair systest send1 \
 		systest1 allpair2 bsendtest structf typebasef 
 default: $(EXECS)
@@ -41,13 +48,31 @@ default: $(EXECS)
 testing: 
 	  -./runtests $(TESTARGS)
 
-linktest: overtake secondf clean
+# We want the link tests to be noisier about problems
+linktest: 
+	-$(MAKE) overtake
+	@if [ ! -x overtake ] ; then \
+	    echo "Could not link a C program with MPI libraries" ; \
+	    exit 1 ; fi
+	-$(MAKE) secondf
+	@if [ ! -x secondf ] ; then \
+	    echo "Could not link a Fortran program with MPI libraries" ; \
+	    exit 1 ; fi
+	$(MAKE) clean
 
-linktest1: overtake clean
+linktest1: 
+	-$(MAKE) overtake
+	@if [ ! -x overtake ] ; then \
+	    echo "Could not link a C program with MPI libraries" ; \
+	    exit 1 ; fi
+	$(MAKE) clean
 
 all: testing
 
 fortran_tests: secondf allpair allpair2 structf typebasef send1 pingpong
+
+#f90_tests: secondf90 allpair90 allpair290 structf90 typebasef90 send190 \
+#	pingpong90
 
 overtake: overtake.o test.o
 	$(CLINKER) $(OPTFLAGS) -o overtake overtake.o test.o $(LIBS)
@@ -253,49 +278,55 @@ cancel: cancel.o
 cancel2: cancel2.o
 	$(CLINKER) $(OPTFLAGS) -o cancel2 cancel2.o $(LIBS)
 
+cancel3: cancel3.o
+	$(CLINKER) $(OPTFLAGS) -o cancel3 cancel3.o $(LIBS)
+
+cancelmessages: cancelmessages.o
+	$(CLINKER) $(OPTFLAGS) -o cancelmessages cancelmessages.o $(LIBS)
+
+cancelibm: cancelibm.o
+	$(CLINKER) $(OPTFLAGS) -o cancelibm cancelibm.o $(LIBS)
+
+sendorder: sendorder.o
+	$(CLINKER) $(OPTFLAGS) -o sendorder sendorder.o $(LIBS)
+
+exittest: exittest.o
+	$(CLINKER) $(OPTFLAGS) -o exittest exittest.o $(LIBS)
+
 # This has a test for HAS_FORTRAN so that the link test target will work
 # even when -nof77 is selected.
 secondf: $(MPIFDEP) secondf.o
 	if test "@HAS_FORTRAN@" = 1 ; then \
-	$(FLINKER) $(OPTFLAGS) -o secondf secondf.o $(FLIBS) ; fi
+	$(FLINKER) $(OPTFLAGS) -o ./secondf secondf.o $(FLIBS) ; fi
 
 allpair: $(MPIFDEP) allpair.o 
-	$(FLINKER) $(OPTFLAGS) -o allpair allpair.o $(FLIBS)
+	$(FLINKER) $(OPTFLAGS) -o ./allpair allpair.o $(FLIBS)
 
 allpair2: $(MPIFDEP) allpair2.o
-	$(FLINKER) $(OPTFLAGS) -o allpair2 allpair2.o $(FLIBS)
+	$(FLINKER) $(OPTFLAGS) -o ./allpair2 allpair2.o $(FLIBS)
 
 structf: $(MPIFDEP) structf.o
-	$(FLINKER) $(OPTFLAGS) -o structf structf.o $(FLIBS)
+	$(FLINKER) $(OPTFLAGS) -o ./structf structf.o $(FLIBS)
 
 send1: $(MPIFDEP) send1.o
-	$(FLINKER) $(OPTFLAGS) -o send1 send1.o $(FLIBS)
+	$(FLINKER) $(OPTFLAGS) -o ./send1 send1.o $(FLIBS)
 
 pingpong: $(MPIFDEP) pingpong.o
-	$(FLINKER) $(OPTFLAGS) -o pingpong pingpong.o $(FLIBS)
+	$(FLINKER) $(OPTFLAGS) -o ./pingpong pingpong.o $(FLIBS)
 
 typebasef: $(MPIFDEP) typebasef.o
-	$(FLINKER) $(OPTFLAGS) -o typebasef typebasef.o $(FLIBS)
-
-#
-# Some systems have no test for a symbolic link and return false for
-# a link that exists
-#mpif.h: $(MPIR_HOME)/include/mpif.h
-#	if test \! -r mpif.h ; then \
-#	    /bin/rm -f mpif.h ; \
-#	    ln -s $(MPIR_HOME)/include/mpif.h . ; \
-#	fi
+	$(FLINKER) $(OPTFLAGS) -o ./typebasef typebasef.o $(FLIBS)
 
 #
 # Make sure that we remove executables for specific architectures
 clean:
 	@-/bin/rm -f *.o *~ PI* $(EXECS) *.out core pt2pt.diff $(OTHEREXECS) \
-		*.trace rdb.* startup.* 
+		*.trace rdb.* startup.* mpif.h ${srcdir}/*.o
 	@-for file in $(EXECS) Makefile ; do \
 	   /bin/rm -f $$file.sun4 $$file.alpha $$file.IRIX $$file.freebsd ;\
 	done
 
 .c.o:
-	$(CC) $(CFLAGS) -c $*.c
+	$(CC) $(CFLAGS) -c $<
 .f.o:
-	$(F77) $(FFLAGS) -c $*.f
+	$(F77) $(FFLAGS) $(F77_OPTFLAGS) -c $<

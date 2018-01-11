@@ -10,10 +10,10 @@ Waits for all given communications to complete
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Waitall(count, array_of_requests, array_of_statuses )
-int         count;
-MPI_Request array_of_requests[];
-MPI_Status  array_of_statuses[];
+int MPI_Waitall(
+ int count, 
+ MPI_Request array_of_requests[], 
+ MPI_Status array_of_statuses[] )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

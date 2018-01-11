@@ -6,8 +6,6 @@
 
 #if defined(USE_STDARG)
 #include <stdarg.h>
-#else
-#include <varargs.h>
 #endif
 
 static int tests_passed = 0;
@@ -28,30 +26,6 @@ int rank;
 
     MPI_Errhandler_create( Test_Errors_warn, &TEST_ERRORS_WARN );
 }
-
-#if defined(USE_STDARG)
-void Test_Printf(char *format, ...)
-{
-    va_list arglist;
-
-    va_start(arglist, format);
-    (void)vfprintf(fileout, format, arglist);
-    va_end(arglist);
-}
-#else
-void Test_Printf(va_alist)
-va_dcl
-{
-    char *format;
-    va_list arglist;
-
-    va_start(arglist);
-    format = va_arg(arglist, char *);
-    (void)vfprintf(fileout, format, arglist);
-    fflush(fileout);
-    va_end(arglist);
-}
-#endif
 
 void Test_Message(mess)
 char *mess;
@@ -136,7 +110,11 @@ void Test_Errors_warn(  MPI_Comm *comm, int *code, ... )
   static int in_handler = 0;
   va_list Argp;
 
+#ifdef USE_OLDSTYLE_STDARG
+  va_start( Argp );
+#else
   va_start( Argp, code );
+#endif
   string = va_arg(Argp,char *);
   file   = va_arg(Argp,char *);
   line   = va_arg(Argp,int *);

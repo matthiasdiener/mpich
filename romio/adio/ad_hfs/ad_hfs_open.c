@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_hfs_open.c,v 1.2 1998/06/02 18:36:37 thakur Exp $    
+ *   $Id: ad_hfs_open.c,v 1.3 1999/08/06 18:32:07 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -37,13 +37,11 @@ void ADIOI_HFS_Open(ADIO_File fd, int *error_code)
 #ifdef __HPUX
 	fd->fp_sys_posn = fd->fp_ind;
 #endif
+    }
+
 #ifdef __SPPUX
 	fd->fp_sys_posn = -1;  /* set it to null bec. we use pread, pwrite*/
 #endif
-	MPI_Barrier(fd->comm);
-	/* the barrier ensures that no process races ahead and modifies
-           the file size before all processes have opened the file. */
-    }
 
     *error_code = (fd->fd_sys == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;
 }

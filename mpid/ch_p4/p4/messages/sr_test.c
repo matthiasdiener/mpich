@@ -72,7 +72,7 @@ worker()
         next = 0;
     else
 	next = my_id + 1;
-    done = FALSE;
+    done = P4_FALSE;
     while (!done)
     {
 	type = -1;
@@ -80,7 +80,7 @@ worker()
 	incoming = NULL;
 	p4_recv(&type,&from, &incoming, &size);
 	if (type == END)
-	    done = TRUE;
+	    done = P4_TRUE;
 	p4_send(type, next, incoming, size);
 	p4_msg_free(incoming);
     }

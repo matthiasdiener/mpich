@@ -10,11 +10,7 @@ Blocking test for a message
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Probe( source, tag, comm, status )
-int         source;
-int         tag;
-MPI_Comm    comm;
-MPI_Status  *status;
+int MPI_Probe( int source, int tag, MPI_Comm comm, MPI_Status *status )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

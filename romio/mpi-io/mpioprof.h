@@ -1,5 +1,5 @@
 /* 
- *   $Id: mpioprof.h,v 1.2 1998/06/02 19:02:36 thakur Exp $    
+ *   $Id: mpioprof.h,v 1.4 1999/08/16 17:36:47 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -43,6 +43,28 @@
 #define MPI_File_get_position PMPI_File_get_position
 #define MPI_File_get_byte_offset PMPI_File_get_byte_offset
 
+#define MPI_File_read_shared PMPI_File_read_shared
+#define MPI_File_write_shared PMPI_File_write_shared
+#define MPI_File_iread_shared PMPI_File_iread_shared
+#define MPI_File_iwrite_shared PMPI_File_iwrite_shared
+#define MPI_File_read_ordered PMPI_File_read_ordered
+#define MPI_File_write_ordered PMPI_File_write_ordered
+#define MPI_File_seek_shared PMPI_File_seek_shared
+#define MPI_File_get_position_shared PMPI_File_get_position_shared
+
+#define MPI_File_read_at_all_begin PMPI_File_read_at_all_begin
+#define MPI_File_read_at_all_end PMPI_File_read_at_all_end
+#define MPI_File_write_at_all_begin PMPI_File_write_at_all_begin
+#define MPI_File_write_at_all_end PMPI_File_write_at_all_end
+#define MPI_File_read_all_begin PMPI_File_read_all_begin
+#define MPI_File_read_all_end PMPI_File_read_all_end
+#define MPI_File_write_all_begin PMPI_File_write_all_begin
+#define MPI_File_write_all_end PMPI_File_write_all_end
+#define MPI_File_read_ordered_begin PMPI_File_read_ordered_begin
+#define MPI_File_read_ordered_end PMPI_File_read_ordered_end
+#define MPI_File_write_ordered_begin PMPI_File_write_ordered_begin
+#define MPI_File_write_ordered_end PMPI_File_write_ordered_end
+
 #define MPI_File_get_type_extent PMPI_File_get_type_extent
 #define MPI_File_set_atomicity PMPI_File_set_atomicity
 #define MPI_File_get_atomicity PMPI_File_get_atomicity
@@ -51,14 +73,15 @@
 #define MPI_Type_create_subarray PMPI_Type_create_subarray
 #define MPI_Type_create_darray PMPI_Type_create_darray
 
+#ifndef MPI_File_f2c
 #define MPI_File_f2c PMPI_File_f2c
 #define MPI_File_c2f PMPI_File_c2f
+#endif
 
 #define MPIO_Test PMPIO_Test
 #define MPIO_Wait PMPIO_Wait
 #define MPIO_Request_f2c PMPIO_Request_f2c
 #define MPIO_Request_c2f PMPIO_Request_c2f
-
 
 #ifdef __MPI_INFO_SRC  /* only in info source directory */
 

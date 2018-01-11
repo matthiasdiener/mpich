@@ -1,11 +1,27 @@
 /* 
- *   $Id: subarray.c,v 1.2 1998/06/02 19:07:38 thakur Exp $    
+ *   $Id: subarray.c,v 1.5 1999/08/27 20:53:42 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "mpioimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Type_create_subarray = PMPI_Type_create_subarray
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Type_create_subarray MPI_Type_create_subarray
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Type_create_subarray as PMPI_Type_create_subarray
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define __MPIO_BUILD_PROFILING
+#include "mpioprof.h"
+#endif
 
 /*@
 MPI_Type_create_subarray - Creates a datatype describing a subarray of a multidimensional array
@@ -61,6 +77,14 @@ int MPI_Type_create_subarray(int ndims, int *array_of_sizes,
         }
         if (array_of_starts[i] < 0) {
             printf("MPI_Type_create_subarray: Invalid value in array_of_starts\n");
+            MPI_Abort(MPI_COMM_WORLD, 1);
+        }
+        if (array_of_subsizes[i] > array_of_sizes[i]) {
+            printf("MPI_Type_create_subarray: Error! array_of_subsizes[%d] > array_of_sizes[%d]\n", i, i);
+            MPI_Abort(MPI_COMM_WORLD, 1);
+        }
+        if (array_of_starts[i] > (array_of_sizes[i] - array_of_subsizes[i])) {
+            printf("MPI_Type_create_subarray: Error! array_of_starts[%d] > (array_of_sizes[%d] - array_of_subsizes[%d])\n", i, i, i);
             MPI_Abort(MPI_COMM_WORLD, 1);
         }
     }

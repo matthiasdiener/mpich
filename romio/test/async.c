@@ -12,7 +12,7 @@
 
 int main(int argc, char **argv)
 {
-    int *buf, i, rank, nints, len, flag;
+    int *buf, i, rank, nints, len;
     char *filename, *tmp;
     MPI_File fh;
     MPI_Status status;
@@ -74,12 +74,9 @@ int main(int argc, char **argv)
     MPI_File_close(&fh);
 
     /* check if the data read is correct */
-    flag = 0;
     for (i=0; i<nints; i++) 
-	if (buf[i] != (rank*100000 + i)) {
+	if (buf[i] != (rank*100000 + i))
 	    printf("Process %d: error, read %d, should be %d\n", rank, buf[i], rank*100000+i);
-	    flag = 1;
-        }
 
     if (!rank) printf("Done\n");
 

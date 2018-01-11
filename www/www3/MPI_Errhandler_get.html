@@ -10,9 +10,7 @@ Gets the error handler for a communicator
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Errhandler_get( comm, errhandler )
-MPI_Comm comm;
-MPI_Errhandler *errhandler;
+int MPI_Errhandler_get( MPI_Comm comm, MPI_Errhandler *errhandler )
 </PRE>
 <H2>Input Parameter</H2>
 <DL><DT><B>comm </B> <DD> communicator to get the error handler from (handle) 
@@ -32,6 +30,17 @@ in C.  In Fortran, MPI routines are subroutines, and are invoked with the
 <P>
 All MPI objects (e.g., <TT>MPI_Datatype</TT>, <TT>MPI_Comm</TT>) are of type <TT>INTEGER
 </TT>in Fortran.
+<P>
+<H2>Note on Implementation</H2>
+<P>
+The MPI Standard was unclear on whether this routine required the user to call
+<TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node148.html#node148">MPI_Errhandler_free</A></TT> once for each call made to this routine in order to
+free the error handler.  After some debate, the MPI Forum added an explicit
+statement that users are required to call <TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node148.html#node148">MPI_Errhandler_free</A></TT> when the
+return value from this routine is no longer needed.  This behavior is similar
+to the other MPI routines for getting objects; for example, <TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node98.html#node98">MPI_Comm_group</A>
+</TT>requires that the user call <TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node99.html#node99">MPI_Group_free</A></TT> when the group returned
+by <TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node98.html#node98">MPI_Comm_group</A></TT> is no longer needed.
 <P>
 <H2>Errors</H2>
 <P>

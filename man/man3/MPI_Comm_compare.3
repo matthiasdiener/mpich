@@ -1,13 +1,13 @@
-.TH MPI_Comm_compare 3 "4/28/1998" " " "MPI"
+.TH MPI_Comm_compare 3 "10/10/1999" " " "MPI"
 .SH NAME
 MPI_Comm_compare \-  Compares two communicators 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Comm_compare ( comm1, comm2, result )
-MPI_Comm  comm1;
-MPI_Comm  comm2;
-int       *result;
+int MPI_Comm_compare ( 
+ MPI_Comm  comm1,
+ MPI_Comm  comm2,
+ int *result)
 .fi
 .SH INPUT PARAMETERS
 .PD 0
@@ -36,6 +36,25 @@ if different contexts but similar groups, and
 .I MPI_UNEQUAL
 otherwise
 .PD 1
+
+.SH USING 'MPI_COMM_NULL' WITH 'MPI_COMM_COMPARE'
+
+It is an error to use 
+.I MPI_COMM_NULL
+as one of the arguments to
+.I MPI_Comm_compare
+.  The relevant sections of the MPI standard are
+
+.(2.4.1 Opaque Objects)
+A null handle argument is an erroneous 
+.I IN
+argument in MPI calls, unless an
+exception is explicitly stated in the text that defines the function.
+
+.(5.4.1. Communicator Accessors)
+<no text in 
+.I MPI_COMM_COMPARE
+allowing a null handle>
 
 .SH NOTES FOR FORTRAN
 All MPI routines in Fortran (except for 

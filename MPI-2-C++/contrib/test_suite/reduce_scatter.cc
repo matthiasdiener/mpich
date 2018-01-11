@@ -75,7 +75,7 @@ reduce_scatter()
   int *out;
   int recvcounts[128];
  
-  Testing("Reduce_scatter");
+  Testing( (char *)"Reduce_scatter");
 
   out = new int[MAXLEN * comm_size];
   for (j = 1; j <= MAXLEN * comm_size; j *= 10) {

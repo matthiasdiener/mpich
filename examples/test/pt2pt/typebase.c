@@ -16,7 +16,7 @@ static char         *(BasicTypesName[MAX_TYPES]);
 static int          BasicSizes[MAX_TYPES];
 
 /* Prototypes for picky compilers */
-void SetupBasicTypes ANSI_ARGS((void));
+void SetupBasicTypes (void);
 
 void 
 SetupBasicTypes()

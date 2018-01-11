@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_sfs_fcntl.c,v 1.2 1998/06/02 18:48:20 thakur Exp $    
+ *   $Id: ad_sfs_fcntl.c,v 1.3 1999/08/06 18:32:32 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -127,6 +127,7 @@ void ADIOI_SFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *er
 	}
 
 	if (alloc_size > curr_fsize) {
+	    memset(buf, 0, ADIOI_PREALLOC_BUFSZ); 
 	    size = alloc_size - curr_fsize;
 	    ntimes = (int)((size + ADIOI_PREALLOC_BUFSZ - 1)/ADIOI_PREALLOC_BUFSZ);
 	    for (i=0; i<ntimes; i++) {

@@ -1,7 +1,8 @@
 #include <stdio.h>
 
 #include "mpi.h"
-extern int __NUMNODES, __MYPROCID;static MPI_Status _mpi_status;static int _n, _MPILEN;
+#include "mpptest.h"
+extern int __NUMNODES, __MYPROCID;
 
 #if HAVE_STDLIB_H
 #include <stdlib.h>
@@ -13,7 +14,7 @@ extern int __NUMNODES, __MYPROCID;static MPI_Status _mpi_status;static int _n, _
 */
 double memcpy_rate(reps,len,ctx)
 int      reps,len;
-void     *ctx;
+PairData *ctx;
 {
   double elapsed_time;
   int  i,msg_id,myproc;

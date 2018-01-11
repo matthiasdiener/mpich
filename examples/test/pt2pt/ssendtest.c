@@ -24,7 +24,7 @@ static int src  = 0;
 static int dest = 1;
 
 /* Prototypes for picky compilers */
-void Generate_Data ANSI_ARGS(( int *, int ));
+void Generate_Data ( int *, int );
 
 void Generate_Data(buffer, buff_size)
 int *buffer;

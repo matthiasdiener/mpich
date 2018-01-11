@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "mpeconf.h"
+
 /* This is used to correct system header files without prototypes */
 #if defined(NEEDS_STDLIB_PROTOTYPES)
 #include "protofix.h"

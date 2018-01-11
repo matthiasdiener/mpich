@@ -12,7 +12,8 @@
 #include <stdlib.h>
 #endif
 #if defined(NEEDS_STDLIB_PROTOTYPES)
-#include "protofix.h"
+/* This is included in the MPI include files ONLY */
+#include "../../../../include/protofix.h"
 #endif
 
 #include "alog.h"

@@ -1,5 +1,5 @@
 /*
- *  $Id: ic.h,v 1.1.1.1 1997/09/17 20:41:41 gropp Exp $
+ *  $Id: ic.h,v 1.3 1999/08/20 02:26:44 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.

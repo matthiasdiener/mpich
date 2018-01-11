@@ -30,7 +30,8 @@ C
          count  = 10
          tag    = 2001
          do 10 i=1, 10
- 10         data(i) = i
+            data(i) = i
+ 10      continue
          call MPI_SEND( data, count, MPI_DOUBLE_PRECISION, to, tag, 
      &                  MPI_COMM_WORLD, ierr )
          print *, rank, ' sent'

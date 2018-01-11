@@ -10,7 +10,7 @@
 
 int main(int argc, char **argv)
 {
-    int *buf, i, mynod, nprocs, flag, len, b[3];
+    int *buf, i, mynod, nprocs, len, b[3];
     MPI_Aint d[3];
     MPI_File fh;
     MPI_Status status;
@@ -74,10 +74,8 @@ int main(int argc, char **argv)
     MPI_Info_set(info, "ind_rd_buffer_size", "1209");
     MPI_Info_set(info, "ind_wr_buffer_size", "1107");
 
-    flag = 0;
-
     if (!mynod) {
-    printf("\ntesting noncontiguous in memory, noncontiguous in file using independent I/O\n");
+	printf("\ntesting noncontiguous in memory, noncontiguous in file using independent I/O\n");
 	MPI_File_delete(filename, MPI_INFO_NULL);
     }
     MPI_Barrier(MPI_COMM_WORLD);
@@ -98,32 +96,22 @@ int main(int argc, char **argv)
 
     for (i=0; i<SIZE; i++) {
 	if (!mynod) {
-	    if ((i%2) && (buf[i] != -1)) {
+	    if ((i%2) && (buf[i] != -1))
 		printf("Process %d: buf %d is %d, should be -1\n", mynod, i, buf[i]);
-		flag = 1;
-	    }
-	    if (!(i%2) && (buf[i] != i)) {
+	    if (!(i%2) && (buf[i] != i))
 		printf("Process %d: buf %d is %d, should be %d\n", mynod, i, buf[i], i);
-		flag = 1;
-	    }
 	}
 	else {
-	    if ((i%2) && (buf[i] != i + mynod*SIZE)) {
+	    if ((i%2) && (buf[i] != i + mynod*SIZE))
 		printf("Process %d: buf %d is %d, should be %d\n", mynod, i, buf[i], i + mynod*SIZE);
-		flag = 1;
-	    }
-	    if (!(i%2) && (buf[i] != -1)) {
+	    if (!(i%2) && (buf[i] != -1))
 		printf("Process %d: buf %d is %d, should be -1\n", mynod, i, buf[i]);
-		flag = 1;
-	    }
 	}
     }
 
     MPI_File_close(&fh);
 
     MPI_Barrier(MPI_COMM_WORLD);
-
-    flag = 0;
 
     if (!mynod) {
 	printf("\ntesting noncontiguous in memory, contiguous in file using independent I/O\n");
@@ -145,32 +133,22 @@ int main(int argc, char **argv)
 
     for (i=0; i<SIZE; i++) {
 	if (!mynod) {
-	    if ((i%2) && (buf[i] != -1)) {
+	    if ((i%2) && (buf[i] != -1))
 		printf("Process %d: buf %d is %d, should be -1\n", mynod, i, buf[i]);
-		flag = 1;
-	    }
-	    if (!(i%2) && (buf[i] != i)) {
+	    if (!(i%2) && (buf[i] != i))
 		printf("Process %d: buf %d is %d, should be %d\n", mynod, i, buf[i], i);
-		flag = 1;
-	    }
 	}
 	else {
-	    if ((i%2) && (buf[i] != i + mynod*SIZE)) {
+	    if ((i%2) && (buf[i] != i + mynod*SIZE))
 		printf("Process %d: buf %d is %d, should be %d\n", mynod, i, buf[i], i + mynod*SIZE);
-		flag = 1;
-	    }
-	    if (!(i%2) && (buf[i] != -1)) {
+	    if (!(i%2) && (buf[i] != -1))
 		printf("Process %d: buf %d is %d, should be -1\n", mynod, i, buf[i]);
-		flag = 1;
-	    }
 	}
     }
 
     MPI_File_close(&fh);
 
     MPI_Barrier(MPI_COMM_WORLD);
-
-    flag = 0;
 
     if (!mynod) {
 	printf("\ntesting contiguous in memory, noncontiguous in file using independent I/O\n");
@@ -194,21 +172,16 @@ int main(int argc, char **argv)
 
     for (i=0; i<SIZE; i++) {
 	if (!mynod) {
-	    if (buf[i] != i) {
+	    if (buf[i] != i)
 		printf("Process %d: buf %d is %d, should be %d\n", mynod, i, buf[i], i);
-		flag = 1;
-	    }
 	}
 	else {
-	    if (buf[i] != i + mynod*SIZE) {
+	    if (buf[i] != i + mynod*SIZE)
 		printf("Process %d: buf %d is %d, should be %d\n", mynod, i, buf[i], i + mynod*SIZE);
-		flag = 1;
-	    }
 	}
     }
 
     MPI_File_close(&fh);
-
 
     MPI_Type_free(&newtype);
     MPI_Info_free(&info);

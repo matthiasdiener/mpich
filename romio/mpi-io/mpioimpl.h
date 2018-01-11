@@ -1,5 +1,5 @@
 /* 
- *   $Id: mpioimpl.h,v 1.2 1998/06/02 19:02:32 thakur Exp $    
+ *   $Id: mpioimpl.h,v 1.3 1999/08/06 18:33:34 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

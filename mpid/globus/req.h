@@ -187,4 +187,7 @@ union MPIR_HANDLE {
 		      memset(ptr,0,sizeof(*(ptr)));\
 		      (ptr)->handle_type = in_type;\
 		      MPIR_SET_COOKIE((ptr),MPIR_REQUEST_COOKIE);}
+
+#define MPID_SendRequestCancelled(r) 0
+#define MPID_SendRequestErrval(r) (r)->errval
 #endif

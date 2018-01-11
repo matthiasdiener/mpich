@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_nfs_wait.c,v 1.2 1998/06/02 18:39:53 thakur Exp $    
+ *   $Id: ad_nfs_wait.c,v 1.4 1999/08/12 23:38:32 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,11 +9,13 @@
 
 void ADIOI_NFS_ReadComplete(ADIO_Request *request, ADIO_Status *status, int *error_code)  
 {
-    int err, nbytes;
 #ifndef __NO_AIO
 #ifdef __AIO_SUN 
     aio_result_t *result=0, *tmp;
 #else
+    int err, nbytes;
+#endif
+#ifdef __AIO_HANDLE_IN_AIOCB
     struct aiocb *tmp1;
 #endif
 #endif

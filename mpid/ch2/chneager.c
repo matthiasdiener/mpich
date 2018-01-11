@@ -2,6 +2,9 @@
 #include "mpiddev.h"
 #include "mpimem.h"
 #include "reqalloc.h"
+/* flow.h includes the optional flow control for eager delivery */
+#include "flow.h"
+#include "chpackflow.h"
 
 /*
    Nonblocking, eager send/recv.
@@ -47,17 +50,62 @@ MPIR_SHANDLE  *shandle;
     int              pkt_len;
     MPID_PKT_LONG_T  pkt;
     
+    DEBUG_PRINT_MSG("S Starting Eagern_isend");
+#ifdef MPID_FLOW_CONTROL
+    while (!MPID_FLOW_MEM_OK(len,dest)) {  /* begin while !ok loop */
+	/* Wait for a flow packet */
+#ifdef MPID_DEBUG_ALL
+	if (MPID_DebugFlag || MPID_DebugFlow) {
+	    FPRINTF( MPID_DEBUG_FILE, 
+		     "[%d] S Waiting for flow control packet from %d\n",
+		     MPID_MyWorldRank, dest );
+	}
+#endif
+	MPID_DeviceCheck( MPID_BLOCKING );
+    }  /* end while !ok loop */
+
+    MPID_FLOW_MEM_SEND(len,dest); 
+#endif
+
+#ifdef MPID_PACK_CONTROL
+    while (!MPID_PACKET_CHECK_OK(dest)) {  /* begin while !ok loop */
+#ifdef MPID_DEBUG_ALL
+	if (MPID_DebugFlag || MPID_DebugFlow) {
+	    FPRINTF( MPID_DEBUG_FILE, 
+	  "[%d] S Waiting for protocol ACK packet (in eagerb_send) from %d\n",
+		     MPID_MyWorldRank, dest );
+	}
+#endif
+	MPID_DeviceCheck( MPID_BLOCKING );
+    }  /* end while !ok loop */
+
+    MPID_PACKET_ADD_SENT(MPID_MyWorldRank, dest) 
+#endif
+
     pkt.mode	   = MPID_PKT_LONG;
     pkt_len	   = sizeof(MPID_PKT_LONG_T); 
     pkt.context_id = context_id;
     pkt.lrank	   = src_lrank;
+    pkt.to         = dest;
+    pkt.seqnum     = pkt_len + len;
+    pkt.src        = MPID_MyWorldRank;
     pkt.tag	   = tag;
     pkt.len	   = len;
     MPID_DO_HETERO(pkt.msgrep = msgrep);
+#ifdef MPID_FLOW_CONTROL
+    MPID_FLOW_MEM_ADD(&pkt,dest);
+#endif
+
+    /* We save the address of the send handle in the packet; the receiver
+       will return this to us */
+    MPID_AINT_SET(pkt.send_id,shandle);
+    
+    /* Store partners rank in request in case message is cancelled */
+    shandle->partner     = dest;
 	
     DEBUG_PRINT_SEND_PKT("S Sending extra-long message",&pkt)
 
-    MPID_PKT_PACK( &pkt, sizeof(MPID_PKT_HEAD_T), dest );
+    MPID_PKT_PACK( &pkt, sizeof(pkt_len), dest );
 
     /* Send as packet only */
     MPID_DRAIN_INCOMING_FOR_TINY(1);

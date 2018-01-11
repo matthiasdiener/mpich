@@ -6,6 +6,9 @@
 
    Lloyd Lewins, Hughes Aircraft Co.
 */
+
+#define SPRINTF sprintf
+
 {    int i, j;
      int startddd = 0;
      int pid;
@@ -48,7 +51,7 @@ if (startddd) {
 
 	/* Create a string containing the pid of the MPI program */
         
-        sprintf (masterpid, "%u", getppid());
+        SPRINTF (masterpid, "%u", getppid());
 
 	/* Exec the debugger */
         rc = execlp (DDD, DDD, "-attach-source-window", "-debugger", 

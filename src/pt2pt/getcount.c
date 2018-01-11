@@ -1,11 +1,30 @@
 /*
- *  $Id: getcount.c,v 1.4 1999/01/05 20:19:55 gropp Exp $
+ *  $Id: getcount.c,v 1.8 1999/08/30 15:48:52 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Get_count = PMPI_Get_count
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Get_count  MPI_Get_count
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Get_count as PMPI_Get_count
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
   MPI_Get_count - Gets the number of "top level" elements
@@ -28,10 +47,10 @@ size of 'datatype' (so that 'count' would not be integral), a 'count' of
 .N MPI_SUCCESS
 .N MPI_ERR_TYPE
 @*/
-int MPI_Get_count( status, datatype, count )
-MPI_Status   *status;
-MPI_Datatype datatype;
-int          *count;
+EXPORT_MPI_API int MPI_Get_count( 
+	MPI_Status *status, 
+	MPI_Datatype datatype, 
+	int *count )
 {
   struct MPIR_DATATYPE *dtype_ptr;
   static char myname[] = "MPI_GET_COUNT";

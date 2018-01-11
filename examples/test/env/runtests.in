@@ -4,7 +4,11 @@
 # test programs.
 #
 # -mvhome is needed for the ANL SP, and is ignored by others
-args="-pg -mvhome"
+args=@MPIRUNARGS@
+device=@DEVICE@
+if [ "$device" = "ch_p4mpd" ] ; then
+    args=""
+fi
 STOPFILE=$HOME/.stopmpichtests
 #
 # Some people don't include "." in their path (! in case an ls trojan horse,
@@ -61,6 +65,7 @@ for arg in "$@" ; do
 	;;
 	-small)
 	makeeach=1
+	shift
 	;;
 	-quiet)
 	shift
@@ -107,73 +112,61 @@ OutTime() {
 	echo "$hostname : $d"
     fi
 }
+
+# Runtest pgm-name np marker-test args outfiles
+RunTest() {
+    OutTime
+    testfiles="$testfiles $1.out"
+    /bin/rm -f $1.out
+    MakeExe $1
+    mname=$3
+    if [ -z "$mname" ] ; then mname="*** $1 ***" ; fi
+    echo "$mname" >> $1.out
+    echo "$mname"
+    mvarg=""
+    if [ -n "$5" ] ; then rm -f $5 ; 
+	if [ "$device" != "ch_p4mpd" ] ; then
+            if [ -n "@MPIRUNMVBACK@" ] ; then mvarg="@MPIRUNMVBACK@ $5" ; fi 
+        fi
+    fi
+    $mpirun $args -np $2 $mvarg $1 $4 </dev/null >> $1.out 2>&1
+    if [ -n "$5" ] ; then cat $5 >> $1.out ; rm -f $5 ; fi
+    echo "$mname" >> $1.out
+    #CheckOutput $1
+    CleanExe $1
+}
+
 # If the programs are not available, run make.
-if [ ! -x sigchk -a $makeeach = 0 ] ; then
+if [ ! -x sigchk -a $makeeach = 0 -a $runtests = 1 ] ; then
     $MAKE default
 fi
 #
 testfiles=""
 if [ $runtests = 1 ] ; then
 
-OutTime
-testfiles="$testfiles timers.out"
-/bin/rm -f timers.out
-MakeExe timers
-echo "*** Timer tests ***"
-echo "*** Timer tests ***" >> timers.out
-$mpirun $args -np 1 timers $* >> timers.out 2>&1
-echo "*** Timer tests ***" >> timers.out
-CleanExe timers
+RunTest timers 1 "*** Timer tests ***"
+
+RunTest init 2 "*** MPI_Initialized tests ***"
+
+RunTest baseattr 1 "*** Basic attributes ***"
+
+RunTest gtime 1 "*** WTIME_IS_GLOBAL ***"
+
+RunTest errhand 1 "*** Tests of error handling ***"
+
+RunTest errhand2 1 "*** Tests of error handling reference counting ***"
+
+RunTest sigchk 1 "*** Tests of signals used ***"
 
 OutTime
-testfiles="$testfiles init.out"
-/bin/rm -f init.out
-MakeExe init
-echo "*** MPI_Initialized tests ***"
-echo "*** MPI_Initialized tests ***" >> init.out
-$mpirun $args -np 2 ./init $* >> init.out 2>&1
-echo "*** MPI_Initialized tests ***" >> init.out
-CleanExe init
-
-OutTime
-testfiles="$testfiles baseattr.out"
-/bin/rm -f baseattr.out
-MakeExe baseattr
-echo "*** Basic attributes ***"
-echo "*** Basic attributes ***" >> baseattr.out
-$mpirun $args -np 1 baseattr $* >> baseattr.out 2>&1
-echo "*** Basic attributes ***" >> baseattr.out
-CleanExe baseattr
-
-OutTime
-testfiles="$testfiles gtime.out"
-/bin/rm -f gtime.out
-MakeExe gtime
-echo "*** WTIME_IS_GLOBAL ***"
-echo "*** WTIME_IS_GLOBAL ***" >> gtime.out
-$mpirun $args -np 1 gtime $* >> gtime.out 2>&1
-echo "*** WTIME_IS_GLOBAL ***" >> gtime.out
-CleanExe gtime
-
-OutTime
-testfiles="$testfiles errhand.out"
-/bin/rm -f errhand.out
-MakeExe errhand
-echo "*** Tests of error handling ***" 
-echo "*** Tests of error handling ***" >>errhand.out
-$mpirun $args -np 1 errhand $* >> errhand.out 2>&1
-echo "*** Tests of error handling ***" >>errhand.out
-CleanExe errhand
-
-OutTime
-testfiles="$testfiles sigchk.out"
-/bin/rm -f sigchk.out
-MakeExe sigchk
-echo "*** Tests of signals used ***"
-echo "*** Tests of signals used ***" >> sigchk.out
-$mpirun $args -np 1 sigchk $* >> sigchk.out 2>&1
-echo "*** Tests of signals used ***" >> sigchk.out
-CleanExe sigchk
+testfiles="$testfiles cmdline.out"
+/bin/rm -f cmdline.out
+MakeExe cmdline
+echo "*** Tests of command line handling ***"
+echo "*** Tests of command line handling ***" >> cmdline.out
+$mpirun $args -np 2 cmdline a "b c" "d'e" 'f"g" h' $* </dev/null l>> cmdline.out 2>&1
+echo "*** Tests of command line handling ***" >> cmdline.out
+CleanExe cmdline
 
 #
 # If there was a Unix standard interface to ps, we could check for orphaned
@@ -190,7 +183,7 @@ MakeExe aborttest
 echo "*** Tests of MPI_Abort ***"
 echo "*** Tests of MPI_Abort ***" >> aborttest.out
 $PSPGM | grep $LOGNAME > aborttest.p1
-$mpirun $args -np 2 aborttest $* > /dev/null 2>&1
+$mpirun $args -np 2 aborttest $* < /dev/null > /dev/null 2>&1
 $PSPGM | grep $LOGNAME > aborttest.p2
 # If there was a consistant format, we could process it ...
 ndiff="`cat aborttest.p1 | wc -l` - `cat aborttest.p2 | wc -l`"
@@ -203,6 +196,8 @@ else
     cat aborttest.p1 >> aborttest.out
     echo "Processes after" >> aborttest.out
     cat aborttest.p2 >> aborttest.out
+    echo "Differences are" >> aborttest.out
+    diff -b aborttest.p1 aborttest.p2 >> aborttest.out
 fi
 echo "*** Tests of MPI_Abort ***" >> aborttest.out
 CleanExe aborttest
@@ -258,18 +253,19 @@ fi
 echo '*** Checking for differences from expected output ***'
 /bin/rm -f env.diff
 nodiff=1
+srcdir=@srcdir@
 for file in $testfiles ; do
-    stdfile=`basename $file .out`.std
+    stdfile=$srcdir/`basename $file .out`.std
     if [ -s $stdfile ] ; then
-        if diff -b $file `basename $file .out`.std > /dev/null ; then
+        if diff -b $file $stdfile > /dev/null ; then
 	    true
         else
 	    echo "Differences in `basename $file .out`" >> env.diff
-	    diff -b $file `basename $file .out`.std >> env.diff
+	    diff -b $file $stdfile >> env.diff
 	    nodiff=0
 	fi
     else
-        echo "Can not find file $stdfile to compare against for test `basename $file .out`"
+        echo "Cannot find file $stdfile to compare against for test `basename $file .out`"
     fi
 done
 if [ -s env.diff ] ; then

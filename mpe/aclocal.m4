@@ -93,7 +93,7 @@ cat > conftest.c <<EOF
 [$2]
 EOF
 dnl Don't try to run the program, which would prevent cross-configuring.
-if eval $compile; then
+if { (eval echo configure:__oline__: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   ifelse([$1], , , [AC_MSG_RESULT(yes)])
   ifelse([$3], , :, [rm -rf conftest*
   $3
@@ -113,7 +113,7 @@ dnl tclsh can be used with
 dnl puts stdout $tcl_library
 dnl
 dnl
-define(PAC_FIND_TCL,[
+define(PAC_FIND_TCL_OLD,[
 # Look for Tcl
 if test -z "$TCL_DIR" ; then
 # See if tclsh is in the path
@@ -312,6 +312,10 @@ else
 fi
 ])dnl
 dnl
+dnl New, improved, common check for TCL/TK
+define([PAC_PROGRAM_CHECK],[AC_PROGRAM_CHECK]($1,$2,$3,$4,$5))
+builtin(include,../aclocal_tcl.m4)
+dnl
 dnl PAC_OUTPUT_EXEC(files[,mode]) - takes files (as shell script or others),
 dnl and applies configure to the them.  Basically, this is what AC_OUTPUT
 dnl should do, but without adding a comment line at the top.
@@ -425,4 +429,49 @@ else
     AC_MSG_RESULT(no)
 fi
 str=""
+])dnl
+dnl
+dnl Look for a style of VPATH.  Known forms are
+dnl VPATH = .:dir
+dnl .PATH: . dir
+dnl
+dnl Defines VPATH or .PATH with . $(srcdir)
+dnl Requires that vpath work with implicit targets
+dnl NEED TO DO: Check that $< works on explicit targets.
+dnl
+define(PAC_MAKE_VPATH,[
+AC_SUBST(VPATH)
+AC_MSG_CHECKING(for virtual path format)
+rm -rf conftest*
+mkdir conftestdir
+cat >conftestdir/a.c <<EOF
+A sample file
+EOF
+cat > conftest <<EOF
+all: a.o
+VPATH=.:conftestdir
+.c.o:
+	@echo \$<
+EOF
+ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
+if test -n "$ac_out" ; then 
+    AC_MSG_RESULT(VPATH)
+    VPATH='VPATH=.:$(srcdir)'
+else
+    rm -f conftest
+    cat > conftest <<EOF
+all: a.o
+.PATH: . conftestdir
+.c.o:
+	@echo \$<
+EOF
+    ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
+    if test -n "$ac_out" ; then 
+        AC_MSG_RESULT(.PATH)
+        VPATH='.PATH: . $(srcdir)'
+    else
+	AC_MSG_RESULT(neither VPATH nor .PATH works)
+    fi
+fi
+rm -rf conftest*
 ])dnl

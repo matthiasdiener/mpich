@@ -1,5 +1,5 @@
 /*
- *  $Id: mpirutil.c,v 1.4 1998/01/29 14:29:46 gropp Exp $
+ *  $Id: mpirutil.c,v 1.6 1999/08/20 02:28:07 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -50,9 +50,9 @@ int MPIR_Tab ANSI_ARGS(( int ));
    are of interest.  We'll leave this in in case we need it for cancel (!)
  */
 
-int MPIR_dump_dte( dte, indent )
-MPI_Datatype  dte;
-int           indent;
+int MPIR_dump_dte( 
+	MPI_Datatype  dte,
+	int indent)
 {
     int i;
     struct MPIR_DATATYPE *dtype_ptr;
@@ -205,10 +205,11 @@ return MPI_SUCCESS;
    head and to "next" pointer in last element, for appending.  Updates 
    current displacement.
  */
-int MPIR_flatten_dte( dte, fdte, tailptr, disp )
-MPI_Datatype  dte;
-MPIR_FDTEL    **fdte, ***tailptr;
-int           *disp;
+int MPIR_flatten_dte( 
+	MPI_Datatype dte, 
+	MPIR_FDTEL **fdte, 
+	MPIR_FDTEL ***tailptr, 
+	int *disp )
 {
     int i;
     MPIR_FDTEL *p, **q, **r;
@@ -260,8 +261,7 @@ int           *disp;
     return MPI_SUCCESS;
 }
 
-int MPIR_dump_flat_dte( fdte )
-MPIR_FDTEL *fdte;
+int MPIR_dump_flat_dte( MPIR_FDTEL *fdte )
 {
     MPIR_FDTEL *p;
 
@@ -277,8 +277,7 @@ MPIR_FDTEL *fdte;
 
 #endif
 
-int MPIR_Tab( n  )
-int n;
+int MPIR_Tab( int n  )
 {
     int i;
 

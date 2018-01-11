@@ -10,10 +10,8 @@ Returns the number of basic elements in a datatype
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Get_elements ( status, datatype, elements )
-MPI_Status    *status;
-MPI_Datatype  datatype;
-int          *elements;
+int MPI_Get_elements ( MPI_Status *status, MPI_Datatype datatype, 
+         int *elements )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

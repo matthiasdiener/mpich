@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_pfs_write.c,v 1.2 1998/06/02 18:43:59 thakur Exp $    
+ *   $Id: ad_pfs_write.c,v 1.3 1999/08/12 23:38:34 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -32,7 +32,7 @@ void ADIOI_PFS_WriteContig(ADIO_File fd, void *buf, int len, int file_ptr_type,
 #ifdef __PROFILE
 	MPE_Log_event(6, 0, "end write");
 #endif
-        fd->fp_sys_posn = offset + len;
+        fd->fp_sys_posn = offset + err;
          /* individual file pointer not updated */        
     }
     else { /* write from curr. location of ind. file pointer */
@@ -52,7 +52,7 @@ void ADIOI_PFS_WriteContig(ADIO_File fd, void *buf, int len, int file_ptr_type,
 #ifdef __PROFILE
 	MPE_Log_event(6, 0, "end write");
 #endif
-        fd->fp_ind += len;
+        fd->fp_ind += err;
         fd->fp_sys_posn = fd->fp_ind;
     }
 

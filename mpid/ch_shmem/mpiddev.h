@@ -4,6 +4,12 @@
 #ifndef MPID_DEV_H
 #define MPID_DEV_H
 
+/* mpich-mpid contains device-specific definitions */
+#if defined(HAVE_MPICH_MPID_H) && !defined(MPICHMPID_INC)
+#define MPICHMPID_INC
+#include "mpich-mpid.h"
+#endif
+
 #if !defined(VOLATILE)
 #if (HAS_VOLATILE || defined(__STDC__))
 #define VOLATILE volatile
@@ -61,38 +67,49 @@ if ((actlen) < (msglen)) {\
     }
 
 /* Function prototypes for routines known only to the device */
-extern MPID_Device *MPID_SHMEM_InitMsgPass ANSI_ARGS(( int *, char ***, 
-						    int, int ));
-extern MPID_Protocol *MPID_SHMEM_Short_setup ANSI_ARGS((void));
-extern MPID_Protocol *MPID_SHMEM_Eagerb_setup ANSI_ARGS((void));
-extern MPID_Protocol *MPID_SHMEM_Rndvb_setup ANSI_ARGS((void));
-extern MPID_Protocol *MPID_SHMEM_Eagern_setup ANSI_ARGS((void));
-extern MPID_Protocol *MPID_SHMEM_Rndvn_setup ANSI_ARGS((void));
-extern int MPID_SHMEM_Check_incoming ANSI_ARGS(( MPID_Device *, 
-					      MPID_BLOCKING_TYPE));
-extern int  MPID_CH_Init_hetero ANSI_ARGS(( int *, char *** ));
-extern MPID_PKT_T *MPID_SHMEM_GetSendPkt ANSI_ARGS((int));
-extern void *MPID_SetupGetAddress ANSI_ARGS(( void *, int *, int ));
-extern void MPID_FreeGetAddress ANSI_ARGS(( void * ));
-extern int MPID_PackMessageFree ANSI_ARGS((MPIR_SHANDLE *));
-extern void MPID_PackMessage ANSI_ARGS((void *, int, struct MPIR_DATATYPE *, 
+extern MPID_Device *MPID_SHMEM_InitMsgPass ( int *, char ***, int, int );
+extern MPID_Protocol *MPID_SHMEM_Short_setup (void);
+extern MPID_Protocol *MPID_SHMEM_Eagerb_setup (void);
+extern MPID_Protocol *MPID_SHMEM_Rndvb_setup (void);
+extern MPID_Protocol *MPID_SHMEM_Eagern_setup (void);
+extern MPID_Protocol *MPID_SHMEM_Rndvn_setup (void);
+extern int MPID_SHMEM_Check_incoming ( MPID_Device *, MPID_BLOCKING_TYPE);
+extern int  MPID_CH_Init_hetero ( int *, char *** );
+extern MPID_PKT_T *MPID_SHMEM_GetSendPkt (int);
+extern void *MPID_SetupGetAddress ( void *, int *, int );
+extern void MPID_FreeGetAddress ( void * );
+extern int MPID_PackMessageFree (MPIR_SHANDLE *);
+extern void MPID_PackMessage (void *, int, struct MPIR_DATATYPE *, 
 					struct MPIR_COMMUNICATOR *, int, 
 					MPID_Msgrep_t, MPID_Msg_pack_t, 
-					void **, int *, int *));
-extern void MPID_UnpackMessageSetup ANSI_ARGS(( int, struct MPIR_DATATYPE *, 
+					void **, int *, int *);
+extern void MPID_UnpackMessageSetup ( int, struct MPIR_DATATYPE *, 
 						struct MPIR_COMMUNICATOR *,
 						int, MPID_Msgrep_t, void **, 
-						int *, int * ));
-extern int MPID_UnpackMessageComplete ANSI_ARGS(( MPIR_RHANDLE * ));
+						int *, int * );
+extern int MPID_UnpackMessageComplete ( MPIR_RHANDLE * );
 
 /* Internal device routines */
-extern int MPID_SHMEM_ReadControl ANSI_ARGS(( MPID_PKT_T **, int, int * ));
-extern int MPID_SHMEM_SendControl ANSI_ARGS(( MPID_PKT_T *, int, int ));
-extern void MPID_SHMEM_FreeRecvPkt ANSI_ARGS(( MPID_PKT_T * ));
+extern int MPID_SHMEM_ReadControl ( MPID_PKT_T **, int, int * );
+extern int MPID_SHMEM_SendControl ( MPID_PKT_T *, int, int );
+extern void MPID_SHMEM_FreeRecvPkt ( MPID_PKT_T * );
 
 /* Internal debugging routines */
-extern int MPID_Print_packet ANSI_ARGS(( FILE *, MPID_PKT_T * ));
-extern void MPID_Print_rhandle ANSI_ARGS(( FILE *, MPIR_RHANDLE * ));
-extern void MPID_Print_shandle ANSI_ARGS(( FILE *, MPIR_SHANDLE * ));
+extern int MPID_Print_packet ( FILE *, MPID_PKT_T * );
+extern void MPID_Print_rhandle ( FILE *, MPIR_RHANDLE * );
+extern void MPID_Print_shandle ( FILE *, MPIR_SHANDLE * );
+
+/* Routines used to cancel sends */
+extern void MPID_SendCancelPacket ( MPI_Request *, int * );
+extern void MPID_SendCancelOkPacket ( void *, int );
+extern void MPID_RecvCancelOkPacket ( void *, int );
+extern void MPID_FinishCancelPackets ( MPID_Device * );
+
+
+/* 
+ * We can communicate some information to the device by way of attributes 
+ * (communicator construction should have had info!).  The following 
+ * include file simply defines the GET/SET operations as empty.
+ */
 
 #endif

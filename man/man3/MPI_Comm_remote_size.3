@@ -1,12 +1,10 @@
-.TH MPI_Comm_remote_size 3 "9/17/1997" " " "MPI"
+.TH MPI_Comm_remote_size 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Comm_remote_size \-  Determines the size of the remote group  associated with an inter-communictor 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Comm_remote_size ( comm, size )
-MPI_Comm  comm;
-int      *size;
+int MPI_Comm_remote_size ( MPI_Comm comm, int *size )
 .fi
 .SH INPUT PARAMETER
 .PD 0

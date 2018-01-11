@@ -1,5 +1,5 @@
 /*
- *  $Id: waitsome.c,v 1.4 1998/04/28 21:47:38 swider Exp $
+ *  $Id: waitsome.c,v 1.10 1999/11/06 21:44:15 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,25 @@
 
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Waitsome = PMPI_Waitsome
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Waitsome  MPI_Waitsome
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Waitsome as PMPI_Waitsome
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "reqalloc.h"
 
 /*@
@@ -40,11 +59,12 @@ returns with 'outcount' set to 'MPI_UNDEFINED'.
 .N MPI_ERR_ARG
 .N MPI_ERR_IN_STATUS
 @*/
-int MPI_Waitsome( incount, array_of_requests, outcount, array_of_indices, 
-		  array_of_statuses )
-int         incount, *outcount, array_of_indices[];
-MPI_Request array_of_requests[];
-MPI_Status  array_of_statuses[];
+EXPORT_MPI_API int MPI_Waitsome( 
+	int incount, 
+	MPI_Request array_of_requests[], 
+	int *outcount, 
+	int array_of_indices[], 
+	MPI_Status array_of_statuses[] )
 {
     int i, j, mpi_errno = MPI_SUCCESS;
     MPI_Request request;
@@ -79,43 +99,63 @@ MPI_Status  array_of_statuses[];
 	    mpi_lerr = 0;
 	    switch (request->handle_type) {
 	    case MPIR_SEND:
-		if (request->shandle.is_complete || 
-		    MPID_SendIcomplete( request, &mpi_lerr )) {
-		    array_of_indices[nfound] = i;
-		    if (mpi_lerr) {
-			if (mpi_errno == MPI_SUCCESS) {
-			    for (j=0; j<incount; j++) 
-				array_of_statuses[j].MPI_ERROR = MPI_SUCCESS;
-			    mpi_errno = MPI_ERR_IN_STATUS;
-			}
-			array_of_statuses[nfound].MPI_ERROR = mpi_lerr;
-		    }
-		    MPIR_FORGET_SEND( &request->shandle );
-		    MPID_SendFree( request );
-		    array_of_requests[i] = 0;
+		if (MPID_SendRequestCancelled(request)) {
+		    array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED; 
 		    nfound++;
+		}
+		else {
+		    if (request->shandle.is_complete || 
+			MPID_SendIcomplete( request, &mpi_lerr )) {
+			array_of_indices[nfound] = i;
+			if (mpi_lerr) {
+			    if (mpi_errno == MPI_SUCCESS) {
+				for (j=0; j<incount; j++) 
+				    array_of_statuses[j].MPI_ERROR = MPI_SUCCESS;
+				mpi_errno = MPI_ERR_IN_STATUS;
+			    }
+			    array_of_statuses[nfound].MPI_ERROR = mpi_lerr;
+			}
+			MPIR_FORGET_SEND( &request->shandle );
+			MPID_SendFree( request );
+			array_of_requests[i] = 0;
+			nfound++;
+		    }
 		}
 		break;
 	    case MPIR_RECV:
-		if (request->rhandle.is_complete || 
-		    MPID_RecvIcomplete( request, (MPI_Status *)0, &mpi_lerr )) {
-		    array_of_indices[nfound]  = i;
-		    if (request->rhandle.s.MPI_ERROR) {
-			if (mpi_errno == MPI_SUCCESS) {
-			    for (j=0; j<incount; j++) 
-				array_of_statuses[j].MPI_ERROR = MPI_SUCCESS;
-			    mpi_errno = MPI_ERR_IN_STATUS;
-			}
-		    }
-		    array_of_statuses[nfound] = request->rhandle.s;
-		    MPID_RecvFree( request );
-		    array_of_requests[i] = 0;
+		if (request->rhandle.s.MPI_TAG == MPIR_MSG_CANCELLED) {
+		    array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED;
+		    MPID_RecvFree( array_of_requests[i] );
+		    array_of_requests[i] = 0; 
 		    nfound++;
+		}
+		else {
+		    if (request->rhandle.is_complete || 
+			MPID_RecvIcomplete( request, (MPI_Status *)0, 
+					    &mpi_lerr )) {
+			array_of_indices[nfound]  = i;
+			if (request->rhandle.s.MPI_ERROR) {
+			    if (mpi_errno == MPI_SUCCESS) {
+				for (j=0; j<incount; j++) 
+				    array_of_statuses[j].MPI_ERROR = MPI_SUCCESS;
+				mpi_errno = MPI_ERR_IN_STATUS;
+			    }
+			}
+			array_of_statuses[nfound] = request->rhandle.s;
+			MPID_RecvFree( request );
+			array_of_requests[i] = 0;
+			nfound++;
+		    }
 		}
 		break;
 	    case MPIR_PERSISTENT_SEND:
 		if (!request->persistent_shandle.active) {
-		    nnull++;
+		    if (MPID_SendRequestCancelled(&request->persistent_shandle)) {
+			array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED;
+			nfound++;
+		    }
+		    else
+			nnull++;
 		}
 		else if (request->persistent_shandle.shandle.is_complete ||
 			 MPID_SendIcomplete( request, &mpi_lerr )) {
@@ -134,7 +174,13 @@ MPI_Status  array_of_statuses[];
 		break;
 	    case MPIR_PERSISTENT_RECV:
 		if (!request->persistent_rhandle.active) {
-		    nnull++;
+		    if (request->persistent_rhandle.rhandle.s.MPI_TAG ==
+			MPIR_MSG_CANCELLED) {
+			array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED;
+			nfound++;
+		    }
+		    else
+			nnull++;
 		}
 		else if (request->persistent_rhandle.rhandle.is_complete ||
 			 MPID_RecvIcomplete( request, (MPI_Status *)0, 

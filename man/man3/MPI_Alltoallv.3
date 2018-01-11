@@ -1,20 +1,19 @@
-.TH MPI_Alltoallv 3 "4/28/1998" " " "MPI"
+.TH MPI_Alltoallv 3 "10/15/1999" " " "MPI"
 .SH NAME
 MPI_Alltoallv \-  Sends data from all to all processes, with a displacement 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Alltoallv ( sendbuf, sendcnts, sdispls, sendtype, 
-                    recvbuf, recvcnts, rdispls, recvtype, comm )
-void             *sendbuf;
-int              *sendcnts;
-int              *sdispls;
-MPI_Datatype      sendtype;
-void             *recvbuf;
-int              *recvcnts;
-int              *rdispls; 
-MPI_Datatype      recvtype;
-MPI_Comm          comm;
+int MPI_Alltoallv ( 
+ void *sendbuf, 
+ int *sendcnts, 
+ int *sdispls, 
+ MPI_Datatype sendtype, 
+ void *recvbuf, 
+ int *recvcnts, 
+ int *rdispls, 
+ MPI_Datatype recvtype, 
+ MPI_Comm comm )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

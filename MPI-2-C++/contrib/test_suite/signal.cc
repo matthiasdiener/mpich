@@ -42,17 +42,17 @@ struct signal_map {
 };
 
 struct signal_map block_me[] = {
-  { SIGHUP, "Hangup", 0 },
-  { SIGINT, "Interrupt",0  },
-  { SIGQUIT, "Quit", 0 },
-  { SIGTRAP, "IOT Trap", 0 },
-  { SIGFPE, "Floating point exception", 0 },
-  { SIGBUS, "Bus error", 0 },
-  { SIGSEGV, "Segmentation fault", 0 },
-  { SIGTERM, "Terminate", 0 },
-  { SIGSTOP, "Stop", 0 },
-  { SIGIOT, "IOT instruction", 0 },
-  { SIGABRT, "Signal abort", 0 },
+  { SIGHUP, (char *)"Hangup", 0 },
+  { SIGINT, (char *)"Interrupt",0  },
+  { SIGQUIT, (char *)"Quit", 0 },
+  { SIGTRAP, (char *)"IOT Trap", 0 },
+  { SIGFPE, (char *)"Floating point exception", 0 },
+  { SIGBUS, (char *)"Bus error", 0 },
+  { SIGSEGV, (char *)"Segmentation fault", 0 },
+  { SIGTERM, (char *)"Terminate", 0 },
+  { SIGSTOP, (char *)"Stop", 0 },
+  { SIGIOT, (char *)"IOT instruction", 0 },
+  { SIGABRT, (char *)"Signal abort", 0 },
   { -1, (char *) -1, (struct sigaction *) -1 },
 };
 
@@ -63,10 +63,14 @@ struct signal_map block_me[] = {
 
 #if MPI2CPP_BSD_SIGNAL
 typedef void (*signal_handler)(...);
+extern "C" {
 void handler(int sig, int code, struct sigcontext *scp, char *addr);
+}
 #elif MPI2CPP_SYSV_SIGNAL
 typedef void (*signal_handler)(int);
+extern "C" {
 void handler(int sig);
+}
 #endif
 
 

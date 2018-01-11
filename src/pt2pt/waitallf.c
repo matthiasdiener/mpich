@@ -3,7 +3,56 @@
 #include "mpiimpl.h"
 #include "mpimem.h"
 
-#ifdef MPI_BUILD_PROFILING
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_WAITALL = PMPI_WAITALL
+EXPORT_MPI_API void MPI_WAITALL ( MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint *);
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_waitall__ = pmpi_waitall__
+EXPORT_MPI_API void mpi_waitall__ ( MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint *);
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_waitall = pmpi_waitall
+EXPORT_MPI_API void mpi_waitall ( MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint *);
+#else
+#pragma weak mpi_waitall_ = pmpi_waitall_
+EXPORT_MPI_API void mpi_waitall_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint *);
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_WAITALL  MPI_WAITALL
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_waitall__  mpi_waitall__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_waitall  mpi_waitall
+#else
+#pragma _HP_SECONDARY_DEF pmpi_waitall_  mpi_waitall_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_WAITALL as PMPI_WAITALL
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_waitall__ as pmpi_waitall__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_waitall as pmpi_waitall
+#else
+#pragma _CRI duplicate mpi_waitall_ as pmpi_waitall_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_waitall_ PMPI_WAITALL
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -13,7 +62,9 @@
 #else
 #define mpi_waitall_ pmpi_waitall_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_waitall_ MPI_WAITALL
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -23,21 +74,18 @@
 #endif
 #endif
 
+
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_waitall_ ANSI_ARGS(( MPI_Fint *, MPI_Fint [],
+EXPORT_MPI_API void mpi_waitall_ ANSI_ARGS(( MPI_Fint *, MPI_Fint [],
 			      MPI_Fint [][MPI_STATUS_SIZE], 
 			      MPI_Fint *));
 
-void mpi_waitall_(count, array_of_requests, array_of_statuses, __ierr )
-MPI_Fint *count;
-MPI_Fint array_of_requests[];
-MPI_Fint array_of_statuses[][MPI_STATUS_SIZE];
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_waitall_(MPI_Fint *count, MPI_Fint array_of_requests[], MPI_Fint array_of_statuses[][MPI_STATUS_SIZE], MPI_Fint *__ierr )
 {
     int i;
-    MPI_Request *lrequest;
+    MPI_Request *lrequest = 0;
     MPI_Request local_lrequest[MPIR_USE_LOCAL_ARRAY];
-    MPI_Status *c_status;
+    MPI_Status *c_status = 0;
     MPI_Status local_c_status[MPIR_USE_LOCAL_ARRAY];
 
     if ((int)*count > 0) {

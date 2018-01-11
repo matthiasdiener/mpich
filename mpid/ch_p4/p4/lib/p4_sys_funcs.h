@@ -86,7 +86,7 @@ P4VOID p4_cluster_shmem_sync ANSI_ARGS((P4VOID **));
 P4VOID init_avail_buffs ANSI_ARGS((void));
 P4VOID free_avail_buffs ANSI_ARGS((void));
 P4VOID initialize_msg_queue ANSI_ARGS((struct p4_msg_queue *));
-int install_in_proctable ANSI_ARGS((int,int,int,char *,int,char *,int));
+int install_in_proctable ANSI_ARGS((int,int,int,char *,char *,int,char *,int));
 /* P4VOID kill_server ANSI_ARGS(( )); */
 P4VOID listener ANSI_ARGS((void));
 P4VOID thread_listener ANSI_ARGS((void));

@@ -34,8 +34,11 @@ extern "C" {
 #include <unistd.h>
 #endif
 }
-#include <iostream.h>
-#include <string.h>
+// include <iostream.h>
+// WDG - including string.h here causes problems because mpi2c++_test.h 
+// includes string.h within extern "C".  Do we really need to include
+// it here?
+// include <string.h>
 #include "mpi++.h"
 
 
@@ -178,7 +181,8 @@ Fail(char *msg)
 void
 Abort(char *msg)
 {
-  Endline("FAIL");
+  // WDG - Change "xxx" from String to char *
+  Endline((char *)"FAIL");
 
   cerr << endl;
   if (msg != 0)
@@ -266,7 +270,7 @@ check_for_failures(int my_code, char *msg)
   if (my_rank == 0) {
     // End the line with a FAIL, because someone failed
     
-    Endline("FAIL");
+    Endline((char *)"FAIL");
     
     // If we have a descriptive message, print it
     

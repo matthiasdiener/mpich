@@ -1,11 +1,30 @@
 /*
- *  $Id: ic_create.c,v 1.3 1998/04/28 20:58:23 swider Exp $
+ *  $Id: ic_create.c,v 1.10 1999/10/18 22:17:15 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Intercomm_create = PMPI_Intercomm_create
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Intercomm_create  MPI_Intercomm_create
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Intercomm_create as PMPI_Intercomm_create
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpimem.h"
 
 /*@
@@ -38,7 +57,7 @@ Notes:
 .N fortran
 
 Algorithm:
-. 1) Allocate a send context, an inter-coll context, and an intra-coll context
++ 1) Allocate a send context, an inter-coll context, and an intra-coll context
 . 2) Send "send_context" and lrank_to_grank list from local comm group 
      if I''m the local_leader.
 . 3) If I''m the local leader, then wait on the posted sends and receives
@@ -46,7 +65,7 @@ Algorithm:
 	 wait for it to complete.
 . 4) Broadcast information received from the remote leader.  
 . 5) Create the inter_communicator from the information we now have.
-.    An inter-communicator ends up with three levels of communicators. 
+-    An inter-communicator ends up with three levels of communicators. 
      The inter-communicator returned to the user, a "collective" 
      inter-communicator that can be used for safe communications between
      local & remote groups, and a collective intra-communicator that can 
@@ -70,14 +89,9 @@ Algorithm:
 .seealso: MPI_Intercomm_merge, MPI_Comm_free, MPI_Comm_remote_group, 
           MPI_Comm_remote_size
 @*/
-int MPI_Intercomm_create ( local_comm, local_leader, peer_comm, 
-                           remote_leader, tag, comm_out )
-MPI_Comm  local_comm;
-int       local_leader;
-MPI_Comm  peer_comm;
-int       remote_leader;
-int       tag;
-MPI_Comm *comm_out;
+EXPORT_MPI_API int MPI_Intercomm_create ( MPI_Comm local_comm, int local_leader, 
+			   MPI_Comm peer_comm, int remote_leader, int tag, 
+			   MPI_Comm *comm_out )
 {
   int              local_size, local_rank, peer_size, peer_rank;
   int              remote_size;
@@ -92,45 +106,60 @@ MPI_Comm *comm_out;
 
   TR_PUSH(myname);
   local_comm_ptr = MPIR_GET_COMM_PTR(local_comm);
-  MPIR_TEST_MPI_COMM(local_comm,local_comm_ptr,local_comm_ptr,myname);
-  
-  /* Check for valid arguments to function */
-  if (MPIR_TEST_SEND_TAG(local_comm,tag))
-	return MPIR_ERROR(MPIR_COMM_WORLD, mpi_errno, myname );
 
-  if (local_comm  == MPI_COMM_NULL)
-      return MPIR_ERROR( local_comm_ptr, MPI_ERR_COMM, 
-             "Local communicator is not valid in MPI_INTERCOMM_CREATE");
+  
+#ifndef MPIR_NO_ERROR_CHECKING
+  /* Check for valid arguments to function */
+  MPIR_TEST_MPI_COMM(local_comm,local_comm_ptr,local_comm_ptr,myname);
+  MPIR_TEST_SEND_TAG(tag);
+  if (mpi_errno)
+      return MPIR_ERROR(local_comm_ptr, mpi_errno, myname );
+#endif
+
+  if (local_comm  == MPI_COMM_NULL) {
+      mpi_errno = MPIR_Err_setmsg( MPI_ERR_COMM, MPIR_ERR_LOCAL_COMM, myname, 
+		   "Local communicator must not be MPI_COMM_NULL", (char *)0 );
+      return MPIR_ERROR( local_comm_ptr, mpi_errno, myname );
+  }
 
   (void) MPIR_Comm_size ( local_comm_ptr, &local_size );
   (void) MPIR_Comm_rank ( local_comm_ptr, &local_rank );
 
   if ( local_leader == local_rank ) {
-      
       /* Peer_comm need be valid only at local_leader */
       peer_comm_ptr = MPIR_GET_COMM_PTR(peer_comm);
       if ((MPIR_TEST_COMM_NOTOK(peer_comm,peer_comm_ptr) || 
-	  (peer_comm == MPI_COMM_NULL)) && (mpi_errno = MPI_ERR_COMM))
-      return MPIR_ERROR( local_comm_ptr, mpi_errno, 
-             "Peer communicator is not valid in MPI_INTERCOMM_CREATE");
+	   (peer_comm == MPI_COMM_NULL))) {
+	  mpi_errno = MPIR_Err_setmsg( MPI_ERR_COMM, MPIR_ERR_PEER_COMM,
+			       myname, "Peer communicator is not valid", 
+				       (char *)0 );
+      return MPIR_ERROR( local_comm_ptr, mpi_errno, myname );
+      }
 
     (void) MPIR_Comm_size ( peer_comm_ptr,  &peer_size  );
     (void) MPIR_Comm_rank ( peer_comm_ptr,  &peer_rank  );
 
     if (((peer_rank     == MPI_UNDEFINED) && (mpi_errno = MPI_ERR_RANK)))
-	return MPIR_ERROR( local_comm_ptr, mpi_errno, 
-			   myname );
+	return MPIR_ERROR( local_comm_ptr, mpi_errno, myname );
 
     if (((remote_leader >= peer_size)     && (mpi_errno = MPI_ERR_RANK)) || 
-        ((remote_leader <  0)             && (mpi_errno = MPI_ERR_RANK)))
-       return MPIR_ERROR( local_comm_ptr, mpi_errno, 
-                  "Error specifying remote_leader in MPI_INTERCOMM_CREATE" );
+        ((remote_leader <  0)             && (mpi_errno = MPI_ERR_RANK))) {
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_RANK, MPIR_ERR_REMOTE_RANK, 
+				     myname, 
+				     "Error specifying remote_leader", 
+"Error specifying remote_leader; value %d not between 0 and %d", remote_leader, peer_size );
+       return MPIR_ERROR( local_comm_ptr, mpi_errno, myname );
+    }
   }
 
   if (((local_leader  >= local_size)    && (mpi_errno = MPI_ERR_RANK)) || 
-      ((local_leader  <  0)             && (mpi_errno = MPI_ERR_RANK)))
-    return MPIR_ERROR( local_comm_ptr, mpi_errno, 
-           "Error specifying local leader in MPI_INTERCOMM_CREATE" );
+      ((local_leader  <  0)             && (mpi_errno = MPI_ERR_RANK))) {
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_RANK, MPIR_ERR_LOCAL_RANK, 
+				     myname, 
+				     "Error specifying local_leader", 
+"Error specifying local_leader; value %d not in between 0 and %d", local_leader, local_size );
+       return MPIR_ERROR( local_comm_ptr, mpi_errno, myname );
+    }
 
   /* Allocate send context, inter-coll context and intra-coll context */
   MPIR_Context_alloc ( local_comm_ptr, 3, &context );
@@ -155,8 +184,7 @@ MPI_Comm *comm_out;
       MPIR_CALL_POP(MPI_Isend (&local_size, 1, MPI_INT, remote_leader, tag, 
                peer_comm, &(req[0])),peer_comm_ptr,myname);
       MPIR_CALL_POP(MPI_Isend (&context, 1, MPIR_CONTEXT_TYPE, remote_leader, 
-               tag, peer_comm, &(req[1])),peer_comm_ptr,
-		    myname);
+               tag, peer_comm, &(req[1])),peer_comm_ptr,myname);
     
       /* Wait on the communication requests to finish */
       MPIR_CALL_POP(MPI_Waitall ( 4, req, status ),peer_comm_ptr,myname);
@@ -219,7 +247,7 @@ MPI_Comm *comm_out;
   /* We all now have all the information necessary, start building the */
   /* inter-communicator */
   MPIR_ALLOC(new_comm,NEW(struct MPIR_COMMUNICATOR),local_comm_ptr, 
-	     MPI_ERR_EXHAUSTED,"MPI_INTERCOMM_CREATE" );
+	     MPI_ERR_EXHAUSTED,myname );
   MPIR_Comm_init( new_comm, local_comm_ptr, MPIR_INTER );
   *comm_out = new_comm->self;
   new_comm->group = remote_group_ptr;
@@ -237,11 +265,18 @@ MPI_Comm *comm_out;
   /* Build the collective inter-communicator */
   MPIR_Comm_make_coll( new_comm, MPIR_INTER );
   
+  /* Build the collective intra-communicator.  Note that we require
+     an intra-communicator for the "coll_comm" so that MPI_COMM_DUP
+     can use it for some collective operations (do we need this
+     for MPI-2 with intercommunicator collective?) 
+     
+     Note that this really isn't the right thing to do; we need to replace
+     *all* of the Mississippi state collective code.
+   */
+  MPIR_Comm_make_coll( new_comm->comm_coll, MPIR_INTRA );
+  
   /* Remember it for the debugger */
   MPIR_Comm_remember ( new_comm );
-
-  /* Build the collective intra-communicator */
-  MPIR_Comm_make_coll ( new_comm->comm_coll, MPIR_INTRA );
 
   TR_POP;
   return (mpi_errno);

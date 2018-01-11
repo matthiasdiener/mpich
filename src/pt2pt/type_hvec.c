@@ -1,11 +1,30 @@
 /*
- *  $Id: type_hvec.c,v 1.3 1998/04/28 21:47:26 swider Exp $
+ *  $Id: type_hvec.c,v 1.7 1999/08/30 15:49:56 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Type_hvector = PMPI_Type_hvector
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Type_hvector  MPI_Type_hvector
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Type_hvector as PMPI_Type_hvector
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "sbcnst2.h"
 #define MPIR_SBalloc MPID_SBalloc
 /* pt2pt for MPIR_Type_dup */
@@ -33,12 +52,12 @@ Output Parameter:
 .N MPI_ERR_ARG
 .N MPI_ERR_EXHAUSTED
 @*/
-int MPI_Type_hvector( count, blocklen, stride, old_type, newtype )
-int          count;
-int 	     blocklen;
-MPI_Aint     stride;
-MPI_Datatype old_type;
-MPI_Datatype *newtype;
+EXPORT_MPI_API int MPI_Type_hvector( 
+	int count, 
+	int blocklen, 
+	MPI_Aint stride, 
+	MPI_Datatype old_type, 
+	MPI_Datatype *newtype )
 {
   struct MPIR_DATATYPE  *dteptr;
   int           mpi_errno = MPI_SUCCESS;

@@ -686,10 +686,10 @@ c  Check that requests have been set to null
 c
 c------------------------------------------------------------------------------
       subroutine rq_check( requests, n, msg )
+      include 'mpif.h'
       integer n, requests(n)
       character*(*) msg
       integer i
-      include 'mpif.h'
 c
       do 10 i=1, n
          if (requests(i) .ne. MPI_REQUEST_NULL) then
@@ -735,10 +735,10 @@ c  Verify test data buffer
 c
 c------------------------------------------------------------------------------
       subroutine verify_test_data(buf, count, n, name)
+      include 'mpif.h'
       integer n
       real buf(n)
       character *(*) name
-      include 'mpif.h'
 
       integer count, ierr, i
 

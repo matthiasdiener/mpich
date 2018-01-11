@@ -1,11 +1,30 @@
 /*
- *  $Id: attr_getval.c,v 1.3 1998/04/28 20:57:54 swider Exp $
+ *  $Id: attr_getval.c,v 1.8 1999/09/15 22:43:40 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Attr_get = PMPI_Attr_get
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Attr_get  MPI_Attr_get
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Attr_get as PMPI_Attr_get
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "attr.h"
 
 /*@C
@@ -40,11 +59,11 @@ Notes for C:
 .N MPI_ERR_COMM
 .N MPI_ERR_KEYVAL
 @*/
-int MPI_Attr_get ( comm, keyval, attr_value, flag )
-MPI_Comm comm;
-int keyval;
-void *attr_value;
-int *flag;
+EXPORT_MPI_API int MPI_Attr_get ( 
+	MPI_Comm comm, 
+	int keyval, 
+	void *attr_value, 
+	int *flag )
 {
   MPIR_HBT_node *attr;
   int mpi_errno = MPI_SUCCESS;
@@ -65,6 +84,8 @@ int *flag;
   }
   else {
 	(*flag) = 1;
+	/* Device may want to update attribute */
+	MPID_ATTR_GET(comm_ptr,keyval,&attr->value);
 	(*(void **)attr_value) = attr->value;
   }
   TR_POP;

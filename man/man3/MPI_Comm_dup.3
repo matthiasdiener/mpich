@@ -1,11 +1,12 @@
-.TH MPI_Comm_dup 3 "1/29/1998" " " "MPI"
+.TH MPI_Comm_dup 3 "10/15/1999" " " "MPI"
 .SH NAME
 MPI_Comm_dup \-  Duplicates an existing communicator with all its cached information 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Comm_dup ( comm, comm_out )
-MPI_Comm comm, *comm_out;
+int MPI_Comm_dup ( 
+ MPI_Comm comm, 
+ MPI_Comm *comm_out )
 .fi
 .SH INPUT PARAMETER
 .PD 0

@@ -10,15 +10,9 @@ Gathers data from all tasks and distribute it to all
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Allgather ( sendbuf, sendcount, sendtype,
-                    recvbuf, recvcount, recvtype, comm )
-void             *sendbuf;
-int               sendcount;
-MPI_Datatype      sendtype;
-void             *recvbuf;
-int               recvcount;
-MPI_Datatype      recvtype;
-MPI_Comm          comm;
+int MPI_Allgather ( void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                    void *recvbuf, int recvcount, MPI_Datatype recvtype, 
+      MPI_Comm comm )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

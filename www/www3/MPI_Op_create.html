@@ -10,10 +10,10 @@ Creates a user-defined combination function handle
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Op_create( function, commute, op )
-MPI_User_function *function;
-int               commute;
-MPI_Op            *op;
+int MPI_Op_create( 
+ MPI_User_function *function, 
+ int commute, 
+ MPI_Op *op )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>
@@ -25,6 +25,18 @@ MPI_Op            *op;
 <H2>Output Parameter</H2>
 <DL><DT><B>op </B> <DD> operation (handle) 
 </DL>
+<P>
+<H2>Notes on the user function</H2>
+The calling list for the user function type is
+<PRE>
+ typedef void (MPI_User_function) ( void * a, 
+               void * b, int * len, MPI_Datatype * ); 
+</PRE>
+
+where the operation is <TT>b[i] = a[i] op b[i]</TT>, for <TT>i=0,...,len-1</TT>.  A pointer
+to the datatype given to the MPI collective computation routine (i.e.,
+<TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node77.html#node77">MPI_Reduce</A></TT>, <TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node82.html#node82">MPI_Allreduce</A></TT>, <TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node84.html#node84">MPI_Scan</A></TT>, or <TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node83.html#node83">MPI_Reduce_scatter</A></TT>) is also
+passed to the user-specified routine.
 <P>
 <H2>Notes for Fortran</H2>
 All MPI routines in Fortran (except for <TT>MPI_WTIME</TT> and <TT>MPI_WTICK</TT>) have

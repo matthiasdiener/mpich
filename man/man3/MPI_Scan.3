@@ -1,16 +1,11 @@
-.TH MPI_Scan 3 "4/28/1998" " " "MPI"
+.TH MPI_Scan 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Scan \-  Computes the scan (partial reductions) of data on a collection of processes 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Scan ( sendbuf, recvbuf, count, datatype, op, comm )
-void             *sendbuf;
-void             *recvbuf;
-int               count;
-MPI_Datatype      datatype;
-MPI_Op            op;
-MPI_Comm          comm;
+int MPI_Scan ( void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
+        MPI_Op op, MPI_Comm comm )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

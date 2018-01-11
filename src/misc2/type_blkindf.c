@@ -8,7 +8,56 @@
 #include "mpiimpl.h"
 #include "mpimem.h"
 
-#ifdef MPI_BUILD_PROFILING
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_TYPE_CREATE_INDEXED_BLOCK = PMPI_TYPE_CREATE_INDEXED_BLOCK
+EXPORT_MPI_API void MPI_TYPE_CREATE_INDEXED_BLOCK (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_type_create_indexed_block__ = pmpi_type_create_indexed_block__
+EXPORT_MPI_API void mpi_type_create_indexed_block__ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_type_create_indexed_block = pmpi_type_create_indexed_block
+EXPORT_MPI_API void mpi_type_create_indexed_block (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+#else
+#pragma weak mpi_type_create_indexed_block_ = pmpi_type_create_indexed_block_
+EXPORT_MPI_API void mpi_type_create_indexed_block_ (MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *);
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_TYPE_CREATE_INDEXED_BLOCK  MPI_TYPE_CREATE_INDEXED_BLOCK
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_type_create_indexed_block__  mpi_type_create_indexed_block__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_type_create_indexed_block  mpi_type_create_indexed_block
+#else
+#pragma _HP_SECONDARY_DEF pmpi_type_create_indexed_block_  mpi_type_create_indexed_block_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_TYPE_CREATE_INDEXED_BLOCK as PMPI_TYPE_CREATE_INDEXED_BLOCK
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_type_create_indexed_block__ as pmpi_type_create_indexed_block__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_type_create_indexed_block as pmpi_type_create_indexed_block
+#else
+#pragma _CRI duplicate mpi_type_create_indexed_block_ as pmpi_type_create_indexed_block_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_type_create_indexed_block_ PMPI_TYPE_CREATE_INDEXED_BLOCK
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -18,7 +67,9 @@
 #else
 #define mpi_type_create_indexed_block_ pmpi_type_create_indexed_block_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_type_create_indexed_block_ MPI_TYPE_CREATE_INDEXED_BLOCK
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -28,20 +79,15 @@
 #endif
 #endif
 
+
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_type_create_indexed_block_ ANSI_ARGS((MPI_Fint *, MPI_Fint *, 
-					       MPI_Fint **, MPI_Fint *,
-					       MPI_Fint *, MPI_Fint *));
+EXPORT_MPI_API void mpi_type_create_indexed_block_ (MPI_Fint *, MPI_Fint *, 
+					       MPI_Fint *, MPI_Fint *,
+					       MPI_Fint *, MPI_Fint *);
 /* Definitions of Fortran Wrapper routines */
-void mpi_type_create_indexed_block_( count, blocklength, 
-				     array_of_displacements, old_type, 
-				     newtype, __ierr )
-MPI_Fint *count;
-MPI_Fint *blocklength;
-MPI_Fint *array_of_displacements[];
-MPI_Fint *old_type;
-MPI_Fint *newtype;
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_type_create_indexed_block_( MPI_Fint *count, MPI_Fint *blocklength, 
+				     MPI_Fint array_of_displacements[], MPI_Fint *old_type, 
+				     MPI_Fint *newtype, MPI_Fint *__ierr )
 {
 
     int i;
@@ -60,7 +106,7 @@ MPI_Fint *__ierr;
 	}
 
 	for (i=0; i<(int)*count; i++)
-	    l_array_of_displacements[i] = (int)array_of_displacements[i];
+	    l_array_of_displacements[i] = (int)(array_of_displacements[i]);
     }
 
     *__ierr = MPI_Type_create_indexed_block((int)*count, (int)*blocklength,

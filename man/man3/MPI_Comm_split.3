@@ -1,13 +1,10 @@
-.TH MPI_Comm_split 3 "4/28/1998" " " "MPI"
+.TH MPI_Comm_split 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Comm_split \-  Creates new communicators based on colors and keys 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Comm_split ( comm, color, key, comm_out )
-MPI_Comm  comm;
-int       color, key;
-MPI_Comm *comm_out;
+int MPI_Comm_split ( MPI_Comm comm, int color, int key, MPI_Comm *comm_out )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

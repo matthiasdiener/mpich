@@ -1,5 +1,5 @@
 /*
- *  $Id: wtick.c,v 1.2 1998/01/29 14:27:26 gropp Exp $
+ *  $Id: wtick.c,v 1.6 1999/08/30 15:46:24 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,25 @@
 
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Wtick = PMPI_Wtick
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Wtick  MPI_Wtick
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Wtick as PMPI_Wtick
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpid_time.h"
 
 /*@
@@ -19,7 +38,7 @@
   This is a function, declared as 'DOUBLE PRECISION MPI_WTICK()' in Fortran.
   
 @*/
-double MPI_Wtick()
+EXPORT_MPI_API double MPI_Wtick()
 {
     double t1;
     MPID_Wtick( &t1 );

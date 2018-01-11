@@ -4,7 +4,56 @@
 #include "mpimem.h"
 #include "mpifort.h"
 
-#ifdef MPI_BUILD_PROFILING
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_GRAPH_CREATE = PMPI_GRAPH_CREATE
+EXPORT_MPI_API void MPI_GRAPH_CREATE ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_graph_create__ = pmpi_graph_create__
+EXPORT_MPI_API void mpi_graph_create__ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_graph_create = pmpi_graph_create
+EXPORT_MPI_API void mpi_graph_create ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_graph_create_ = pmpi_graph_create_
+EXPORT_MPI_API void mpi_graph_create_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_GRAPH_CREATE  MPI_GRAPH_CREATE
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_graph_create__  mpi_graph_create__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_graph_create  mpi_graph_create
+#else
+#pragma _HP_SECONDARY_DEF pmpi_graph_create_  mpi_graph_create_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_GRAPH_CREATE as PMPI_GRAPH_CREATE
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_graph_create__ as pmpi_graph_create__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_graph_create as pmpi_graph_create
+#else
+#pragma _CRI duplicate mpi_graph_create_ as pmpi_graph_create_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_graph_create_ PMPI_GRAPH_CREATE
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -14,7 +63,9 @@
 #else
 #define mpi_graph_create_ pmpi_graph_create_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_graph_create_ MPI_GRAPH_CREATE
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -24,20 +75,14 @@
 #endif
 #endif
 
+
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_graph_create_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+EXPORT_MPI_API void mpi_graph_create_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                    MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                                    MPI_Fint * ));
 
-void mpi_graph_create_ ( comm_old, nnodes, index, edges, reorder, comm_graph,
-			 __ierr )
-MPI_Fint *comm_old;
-MPI_Fint *nnodes;
-MPI_Fint *index;
-MPI_Fint *edges;
-MPI_Fint *reorder;
-MPI_Fint *comm_graph;
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_graph_create_ ( MPI_Fint *comm_old, MPI_Fint *nnodes, MPI_Fint *index, MPI_Fint *edges, MPI_Fint *reorder, MPI_Fint *comm_graph,
+			 MPI_Fint *__ierr )
 {
 
     MPI_Comm lcomm_graph;

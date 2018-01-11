@@ -1,11 +1,30 @@
 /*
- *  $Id: sendrecv.c,v 1.2 1998/04/28 21:47:09 swider Exp $
+ *  $Id: sendrecv.c,v 1.7 1999/08/30 15:49:22 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Sendrecv = PMPI_Sendrecv
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Sendrecv  MPI_Sendrecv
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Sendrecv as PMPI_Sendrecv
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
     MPI_Sendrecv - Sends and receives a message
@@ -37,19 +56,10 @@ Output Parameters:
 .N MPI_ERR_RANK
 
 @*/
-int MPI_Sendrecv( sendbuf, sendcount, sendtype, dest, sendtag, 
-                  recvbuf, recvcount, recvtype, source, recvtag, 
-                  comm, status )
-void         *sendbuf;
-int           sendcount;
-MPI_Datatype  sendtype;
-int           dest, sendtag;
-void         *recvbuf;
-int           recvcount;
-MPI_Datatype  recvtype;
-int           source, recvtag;
-MPI_Comm      comm;
-MPI_Status   *status;
+EXPORT_MPI_API int MPI_Sendrecv( void *sendbuf, int sendcount, MPI_Datatype sendtype, 
+		  int dest, int sendtag, 
+                  void *recvbuf, int recvcount, MPI_Datatype recvtype, 
+		  int source, int recvtag, MPI_Comm comm, MPI_Status *status )
 {
     int               mpi_errno = MPI_SUCCESS;
     MPI_Status        status_array[2];

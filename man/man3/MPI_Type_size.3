@@ -1,12 +1,10 @@
-.TH MPI_Type_size 3 "1/29/1998" " " "MPI"
+.TH MPI_Type_size 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Type_size \-  Return the number of bytes occupied by entries in the datatype 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Type_size ( datatype, size )
-MPI_Datatype  datatype;
-int           *size;
+int MPI_Type_size ( MPI_Datatype datatype, int *size )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

@@ -22,6 +22,16 @@ c
 
       if (errs(reslen+1:) .ne. ' ') then
          print *,' Fortran strings are not correctly blank padded'
+         if (errs(reslen+1:reslen+1) .eq. char(0)) then
+c
+c           Very strictly interpreted, an since an error string must be 
+c           MPI_MAX_ERROR_STRING characters long, and the Fortran rules
+c           for such assignements is to blank pad them, there should not
+c           be a null character (C-like) in them.  However, the standard
+c           is ambiguous on this.  
+c
+            print *, ' Fortran strings have bogus null character'
+         end if
       else
          print *,' Fortran strings are assigned ok'
       end if
@@ -29,6 +39,8 @@ c
 c     Check that the length was right
       if (errs(reslen:reslen) .eq. ' ') then
          print *,' Length of result is wrong'
+      else 
+         print *,' Length of result is correct'
       end if
 
       call MPI_Finalize( ierr )

@@ -69,7 +69,7 @@ compare()
   MPI::Intracomm compare_comm1;
   MPI::Intracomm compare_comm2;
 
-  Testing("Compare - MPI::IDENT");
+  Testing( (char *)"Compare - MPI::IDENT");
 
   compare_comm1 = MPI::COMM_WORLD.Dup();
   
@@ -81,7 +81,7 @@ compare()
 
   Pass(); // Compare - MPI::IDENT
   
-  Testing("Compare - MPI::CONGRUENT");
+  Testing( (char *)"Compare - MPI::CONGRUENT");
 
   compare_result = MPI::COMM_WORLD.Compare(MPI::COMM_WORLD, compare_comm1);
   if(compare_result != MPI::CONGRUENT) {
@@ -91,7 +91,7 @@ compare()
 
   Pass(); // Compare - MPI::CONGRUENT
 
-  Testing("Compare - MPI::SIMILAR");
+  Testing( (char *)"Compare - MPI::SIMILAR");
 
   compare_color = 1;
   compare_key = -my_rank;
@@ -108,7 +108,7 @@ compare()
   if(compare_comm2 != MPI::COMM_NULL && compare_comm2 != MPI::COMM_WORLD)
     compare_comm2.Free();
 
-  Testing("Compare - MPI::UNEQUAL");
+  Testing( (char *)"Compare - MPI::UNEQUAL");
 
   compare_color = my_rank;
 

@@ -10,12 +10,12 @@ Creates an indexed datatype with constant sized blocks
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Type_create_indexed_block( count, blocklength, array_of_displacements, old_type, newtype )
-int           count;
-int        blocklength;
-int        array_of_displacements[];
-MPI_Datatype  old_type;
-MPI_Datatype *newtype;
+int MPI_Type_create_indexed_block( 
+ int count, 
+ int blocklength, 
+ int array_of_displacements[], 
+ MPI_Datatype old_type, 
+ MPI_Datatype *newtype )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

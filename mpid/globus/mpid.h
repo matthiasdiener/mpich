@@ -26,11 +26,6 @@
 #endif
 /* end NICK */
 
-/* This is defined to allow MPIR code to know which ADI it is compiled for */
-#ifndef MPI_ADI2
-#define MPI_ADI2
-#endif
-
 #include "mpi.h"
 #define MPIR_HAS_COOKIES
 #include "cookie.h"
@@ -247,6 +242,28 @@ extern void *memset(void *, int, size_t);
 /* Following the Standard, we implement Rsend as just Send */
 #define MPID_IrsendDatatype MPID_IsendDatatype
 #define MPID_RsendDatatype MPID_SendDatatype
+
+/* 
+ * These macros define an interface between the device and the rest of the 
+ * MPI code for attributes.
+ *
+ * MPID_ATTR_SET(struct MPIR_COMMUNICATOR *comm, int keyval, void *attr_value)
+ * is called when the user sets an attribute value for any keyval.
+ *
+ * MPID_ATTR_GET(struct MPIR_COMMUNICATOR *comm, int keyval, void *attr_value)
+ * is called when the user gets an attribute value The last argument is a 
+ * pointer to a value, not a pointer to a pointer (store into the storage
+ * defined by the user, don't change the pointer)
+ *
+ * MPID_KEYVAL_INIT()
+ * The device should also call MPI_Keyval_create() for any keyvals that 
+ * it wishes to be available for users.  Otherwise, the keyvals will have
+ * value MPI_KEYVAL_INVALID.
+ */
+/* NICK! YOU WILL HAVE TO FIX THESE FOR THE QoS STUFF! */
+#define MPID_ATTR_SET(a,b,c)
+#define MPID_ATTR_GET(a,b,c)
+#define MPID_KEYVAL_INIT()
 
 /* Definitions for the device only are now in mpiddev.h (link to 
    mpiddevbase.h for channel code) */

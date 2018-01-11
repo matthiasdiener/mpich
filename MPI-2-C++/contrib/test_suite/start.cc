@@ -74,9 +74,9 @@ start()
   int size;
   void* oldbuf;
 
-  Testing("Start");
+  Testing( (char *)"Start");
 
-  Testing("Send_init");
+  Testing( (char *)"Send_init");
 
   request_start = MPI::REQUEST_NULL;
   non_blocker = MPI::REQUEST_NULL;
@@ -88,7 +88,7 @@ start()
 
   Pass(); // Send_init
 
-  Testing("Ssend_init");
+  Testing( (char *)"Ssend_init");
   
   if(request_start != MPI::REQUEST_NULL)
     request_start.Free();
@@ -102,16 +102,16 @@ start()
 
   Pass(); // Ssend_init
  
-  Testing("Bsend_init");
+  Testing( (char *)"Bsend_init");
 
   if (flags[SKIP_IBM21014])
-    Done("Skipped (IBM 2.1.0.14)");
+    Done( (char *)"Skipped (IBM 2.1.0.14)");
   else if (flags[SKIP_IBM21015])
-    Done("Skipped (IBM 2.1.0.15)");
+    Done( (char *)"Skipped (IBM 2.1.0.15)");
   else if (flags[SKIP_IBM21016])
-    Done("Skipped (IBM 2.1.0.16)");
+    Done( (char *)"Skipped (IBM 2.1.0.16)");
   else if (flags[SKIP_IBM21017])
-    Done("Skipped (IBM 2.1.0.17)");
+    Done( (char *)"Skipped (IBM 2.1.0.17)");
   else {
     MPI::Attach_buffer(buf, sizeof(buf));
 
@@ -133,7 +133,7 @@ start()
     Pass(); // Bsend_init
   }
 
-  Testing("Rsend_init");
+  Testing( (char *)"Rsend_init");
 
   if(request_start != MPI::REQUEST_NULL)
     request_start.Free();
@@ -147,7 +147,7 @@ start()
 
   Pass(); // Rsend_init
 
-  Testing("Recv_init");
+  Testing( (char *)"Recv_init");
 
   if(request_start != MPI::REQUEST_NULL)
     request_start.Free();

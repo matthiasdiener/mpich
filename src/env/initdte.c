@@ -1,5 +1,5 @@
 /*
- *  $Id: initdte.c,v 1.5 1998/11/28 22:08:59 gropp Exp $
+ *  $Id: initdte.c,v 1.9 1999/10/18 22:18:29 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -114,9 +114,9 @@ struct MPIR_DATATYPE MPIR_I_2REAL, MPIR_I_2DOUBLE_PRECISION,
                      MPIR_I_2COMPLEX, MPIR_I_2DCOMPLEX;
 
 /* Sizes of Fortran types; computed when initialized. */
-static int MPIR_FSIZE_C = 0;
-static int MPIR_FSIZE_R = 0;
-static int MPIR_FSIZE_D = 0;
+static int MPIR_FSIZE_C = 0;  /* Characters */
+static int MPIR_FSIZE_R = 0;  /* Reals */
+static int MPIR_FSIZE_D = 0;  /* Doubles */
 
 void MPIR_Init_dtes()
 {
@@ -162,9 +162,12 @@ void MPIR_Init_dtes()
        Check for consistent definition of ints in the interfaces.
        If we get this message, we need to make changes in all of the 
        Fortran wrappers (replacing int types and adding casts)
+
+       This is nearly out-of-date.  Most of the wrappers now correctly
+       use MPI_Fint instead of int.
      */
     if (sizeof(int) != MPIR_FSIZE_R) {
-	fprintf( stderr, 
+	FPRINTF( stderr, 
 	    "WARNING: Fortran integers are different in size from C ints\n" );
 	}
 #endif
@@ -431,11 +434,11 @@ void MPIR_Free_dtes()
 /* This routine sets up a datatype that is specified as a small integer (val)
    and has a local reference
  */
-void MPIR_Setup_base_datatype( val, lval, type, size )
-MPI_Datatype         val;
-struct MPIR_DATATYPE *lval;
-MPIR_NODETYPE        type;
-int                  size;
+void MPIR_Setup_base_datatype( 
+	MPI_Datatype         val,
+	struct MPIR_DATATYPE *lval,
+	MPIR_NODETYPE        type,
+	int                  size)
 {
     MPIR_SET_COOKIE(lval,MPIR_DATATYPE_COOKIE);
     lval->dte_type       = type;
@@ -462,9 +465,10 @@ int                  size;
    This takes a datatype created with the datatype routines, copies the
    data into the "newtype" structure, and frees the old datatype storage 
  */
-void MPIR_Setup_complex_datatype( oldtype, newtype, newtype_ptr )
-MPI_Datatype         oldtype, newtype;
-struct MPIR_DATATYPE *newtype_ptr;
+void MPIR_Setup_complex_datatype( 
+	MPI_Datatype oldtype, 
+	MPI_Datatype newtype,
+	struct MPIR_DATATYPE *newtype_ptr)
 {
     struct MPIR_DATATYPE *oldtype_ptr;
     oldtype_ptr = MPIR_ToPointer( oldtype );
@@ -477,10 +481,12 @@ struct MPIR_DATATYPE *newtype_ptr;
     newtype_ptr->self = newtype;
     MPI_Type_commit( &newtype );
 }
-void MPIR_Type_contiguous( cnt, old_type, newtype_ptr, newtype )
-int cnt;
-MPI_Datatype old_type, newtype;
-struct MPIR_DATATYPE *newtype_ptr;
+
+void MPIR_Type_contiguous( 
+	int cnt, 
+	MPI_Datatype old_type, 
+	struct MPIR_DATATYPE *newtype_ptr, 
+	MPI_Datatype newtype )
 {
     MPI_Datatype tmp_type;
     MPI_Type_contiguous( cnt, old_type, &tmp_type );
@@ -496,10 +502,11 @@ struct MPIR_DATATYPE *newtype_ptr;
    an array of the three Fortran types (character, real, double).
    Note that Fortran REQUIRES that integers have the same size as reals.
  */
-void mpir_init_fsize_( r1, r2, d1, d2 )
-/* char   *c1, *c2; */
-float  *r1, *r2;
-double *d1, *d2;
+void mpir_init_fsize_( 
+	float *r1, 
+	float *r2, 
+	double *d1, 
+	double *d2 )
 {
 /* MPIR_FSIZE_C = (int)(c2 - c1); */
 /* Because of problems in passing characters, we pick the most likely size

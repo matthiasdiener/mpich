@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 
+#include "clog2slog.h"
 #include "clog_merge.h"
 #include "clogimpl.h"
 #include "mpi.h"
@@ -25,6 +26,7 @@ static int    inputs;			    /* number of inputs to the merge */
 static double timediffs[CMERGE_MAXPROCS];  /* array of time shifts, averaged */
 /*static double newdiffs[CMERGE_MAXPROCS]; */ /* array of time shifts, once  */
 static int    logfd;			   /* the log file */
+static int    log_type;
 
 /*@
     CLOG_mergelogs - merge individual logfiles into one via messages
@@ -46,22 +48,41 @@ int logtype;
 {
     MPI_Status logstatus;
     double maxtime = CLOG_MAXTIME;  /* place to hold maxtime, dummy record */
-    char logfilename[256];
+    char logfilename[256],
+         *slog_file;
     int i;
+    int total_events;               /* (abhi) total event count for process 
+				       with rank 0.*/
     
     /* set up tree */
     PMPI_Comm_size(MPI_COMM_WORLD, &nprocs);
     PMPI_Comm_rank(MPI_COMM_WORLD, &me);
+
     CLOG_treesetup(me, nprocs, &parent, &lchild, &rchild);
     /* printf("merging on %d at time %f\n", me, MPI_Wtime()); */
 
+    PMPI_Reduce(&event_count,&total_events,1,
+		MPI_INT,MPI_SUM,0,MPI_COMM_WORLD);
+
     if (parent == -1) {		/* open output logfile at root */
-	strncpy(logfilename, execfilename, 256);
+        strncpy(logfilename, execfilename, 256);
 	strcat(logfilename, ".clog"); 
-	if ((logfd = open(logfilename, O_CREAT|O_WRONLY|O_TRUNC, 0664)) == -1)
-	{
+	log_type = logtype;     /* (abhi) need to know log_type globally */ 
+	
+	FREE( slog_buffer );    /* (abhi) free memory for slog logging */
+
+	/* (abhi) checking to see if SLOG needs initalization */
+	if(log_type == SLOG_LOG) {
+	    /* (abhi) getting total number of events.*/
+	    init_clog2slog(logfilename, &slog_file);
+	    init_essential_values(total_events, nprocs-1);
+	    init_all_mpi_state_defs( );
+	    init_SLOG(C2S_NUM_FRAMES, C2S_FRAME_BYTE_SIZE, slog_file);
+	}
+	else if ((logfd = open(logfilename, O_CREAT|O_WRONLY|O_TRUNC, 0664)) == -1) {
+
 	    printf("could not open file %s for logging\n",logfilename);
-	    exit(-1);
+	    MPI_Abort( MPI_COMM_WORLD, 1 );
 	}
     }
 
@@ -75,6 +96,13 @@ int logtype;
     }
     CLOG_LOGTIMESHIFT( timediffs[me] );
 
+    /*(abhi)*/
+    if(CLOG_tempFD > 0) {
+      CLOG_temp_log();
+      lseek(CLOG_tempFD, (long)0, 0);
+      CLOG_reinit_buff();
+    }
+
     /* set up buffers, send if a leaf */
     CLOG_currbuff = CLOG_first;	/* reinitialize pointer to first local buff */
     mybuf  = (double *) CLOG_first->data;
@@ -82,26 +110,29 @@ int logtype;
     CLOG_procbuf(mybuf);	/* do postprocessing (procids, lengths) */
     inputs = 1;			/* always have at least own buffer */
 
-    outptr = outbuf = (double *) MALLOC ( CLOG_BLOCK_SIZE );
+    outptr = outbuf = out_buffer; /*(double *) MALLOC ( CLOG_BLOCK_SIZE );*/
     outend = (void *) ((char *) outptr + CLOG_BLOCK_SIZE);
 
     if (lchild != -1) {
 	inputs++;
-	lptr = lbuf = (double *) MALLOC ( CLOG_BLOCK_SIZE );
+	lptr = lbuf = left_buffer; /*(double *) MALLOC ( CLOG_BLOCK_SIZE );*/
 	PMPI_Recv(lbuf, (CLOG_BLOCK_SIZE / sizeof (double)), MPI_DOUBLE, 
 		 lchild, CMERGE_LOGBUFTYPE, MPI_COMM_WORLD, &logstatus);
     }
-    else
+    else {
 	lptr = &maxtime;
-
+	FREE (left_buffer);
+    }
     if (rchild != -1) {
 	inputs++;
-	rptr = rbuf = (double *) MALLOC ( CLOG_BLOCK_SIZE );
+	rptr = rbuf = right_buffer; /*(double *) MALLOC ( CLOG_BLOCK_SIZE );*/
 	PMPI_Recv(rbuf, (CLOG_BLOCK_SIZE / sizeof (double)), MPI_DOUBLE, 
 		 rchild, CMERGE_LOGBUFTYPE, MPI_COMM_WORLD, &logstatus);
     }
-    else
+    else {
 	rptr = &maxtime;
+	FREE (right_buffer);
+    }
 
     /* Do the merge.  Abstractly, we do this one record at a time, letting
        the CLOG_cput routine buffer input from children and output
@@ -111,7 +142,6 @@ int logtype;
        timestamp of the next record in each buffer, and outbuf is pointing
        at the place to put the next output record.
        */
-
     while (inputs > 0) {
 	if (*lptr <= *rptr)
 	    if (*lptr <= *myptr)
@@ -204,6 +234,7 @@ double *buf;
 @*/
 void CLOG_mergend()
 {
+    CLOG_BLOCK *buffer_parser;
     /* put on end-of-log record */
     ((CLOG_HEADER *) outptr)->timestamp = CLOG_MAXTIME;
     ((CLOG_HEADER *) outptr)->rectype   = CLOG_ENDLOG;
@@ -216,10 +247,28 @@ void CLOG_mergend()
 	/* printf("%d sent to %d\n", me, parent); */
     }
     else {
-	CLOG_output(outbuf); /* final output of last block at root */
-	close(logfd);
+      if( log_type == SLOG_LOG) {
+	  if(makeSLOG(outbuf) == C2S_ERROR)
+	      PMPI_Abort(MPI_COMM_WORLD, -1);
+	  free_resources();           /*(abhi)*/
+      }
+      else {
+	  CLOG_output(outbuf); /* final output of last block at root */
+	  close(logfd);
+      }
     }
     FREE (outbuf);		/* free output buffer */
+    CLOG_currbuff = buffer_parser = CLOG_first;
+    while(CLOG_currbuff) {
+      CLOG_currbuff = CLOG_currbuff->next;
+      FREE (buffer_parser);
+    }
+    if(rchild != -1)
+      FREE (right_buffer);
+    if(lchild != -1)
+      FREE (left_buffer);
+    close(CLOG_tempFD);
+    unlink(CLOG_tmpfilename);
 }
 
 /*@
@@ -285,7 +334,7 @@ double *buf;
     rc = write( logfd, buf, CLOG_BLOCK_SIZE );	/* write block to file */
     if ( rc != CLOG_BLOCK_SIZE ) {
 	fprintf( stderr, "write failed for clog logging, rc = %d\n", rc );
-	exit (-1);
+	MPI_Abort( MPI_COMM_WORLD, 1 );
     }
 }
 
@@ -327,7 +376,7 @@ double **ptr;
 	return;
     }
     
-    /* printf("putting record with timestamp= %f\n",*p); */
+    /*printf("putting record with timestamp= %f\n",*p); */
     memcpy(outptr, p, h->length * sizeof(double)); 
     outptr += h->length; /* skip to next output record */
 
@@ -344,7 +393,13 @@ double **ptr;
 	    /* printf("%d sent to %d\n", me, parent); */
 	}
 	else {
-	    CLOG_output(outbuf); /* final output of block */
+	  if(log_type == SLOG_LOG) {
+	      if(makeSLOG(outbuf) == C2S_ERROR)
+	          PMPI_Abort(MPI_COMM_WORLD, -1);  /*(abhi) final output to 
+						     SLOG */
+	  }
+	  else
+	      CLOG_output(outbuf); /* final output of block */
 	}
 	outptr = outbuf;
     }
@@ -355,15 +410,28 @@ double **ptr;
     h = (CLOG_HEADER *) p;
     if (h->rectype == CLOG_ENDBLOCK) {
 	if (ptr == &myptr) {
-	    if (!CLOG_currbuff->next) { /* if no next buffer, endlog follows */
-		p += CLOG_reclen(CLOG_ENDBLOCK);
-		printf("[%d] length of endblock = %d\n", me, CLOG_reclen(CLOG_ENDBLOCK));
+	    CLOG_num_blocks--;
+	    if ((!CLOG_currbuff->next) ||
+		(!CLOG_num_blocks)){ /* if no next buffer, endlog follows */
+	        if(CLOG_tempFD > 0)
+		  CLOG_reinit_buff();
+		if(CLOG_num_blocks == 0) {
+		  p += CLOG_reclen(CLOG_ENDBLOCK);
+		  /*printf("[%d] length of endblock = %d\n", me, 
+		    CLOG_reclen(CLOG_ENDBLOCK));*/
+		}
+		else {
+		  CLOG_currbuff = CLOG_first;
+		  p = CLOG_currbuff->data;
+		  CLOG_procbuf(p);        /* do postprocessing 
+					     (procids, lengths) */
+		}
 		*ptr = p;
 	    }
 	    else {
-		p = (double *) CLOG_currbuff;
-		CLOG_currbuff = CLOG_currbuff->next;
-		FREE( p );	        /* free local block just processed */
+	        /*p = (double *) CLOG_currbuff;*/
+	        CLOG_currbuff = CLOG_currbuff->next;
+		/*FREE( p );*/	        /* free local block just processed */
 		*ptr = (double *) CLOG_currbuff->data;
 		CLOG_procbuf(*ptr);	/* process next local block */
 	    }
@@ -380,6 +448,45 @@ double **ptr;
 	}
     }
 }
+
+/*@
+    CLOG_reinit_buff - reads CLOG_BLOCKS from temporary logfile into memory.
+@*/
+void CLOG_reinit_buff( ) 
+{
+    
+    int return_code;
+    CLOG_BLOCK *buffer_parser;
+    buffer_parser = CLOG_first;
+    CLOG_num_blocks = 0;
+    return_code = read(CLOG_tempFD, buffer_parser, sizeof (CLOG_BLOCK));
+
+    while((buffer_parser->next != NULL) && (return_code)) {
+      if(return_code == -1) {
+	fprintf(stderr, "Unable to read from temporary log file on process"
+		" %d\n", me);
+	fflush(stderr);
+	PMPI_Abort(MPI_COMM_WORLD, 1);
+      }
+      else  
+	CLOG_num_blocks++;
+      buffer_parser = buffer_parser->next;
+      return_code = read(CLOG_tempFD, buffer_parser, sizeof (CLOG_BLOCK));
+    }
+    if(return_code == -1) {
+      fprintf(stderr, "Unable to read from temporary log file on process"
+	      " %d\n", me);
+      fflush(stderr);
+      PMPI_Abort(MPI_COMM_WORLD, 1);
+    }
+    else if((buffer_parser->next == NULL) && (return_code))
+      CLOG_num_blocks++;
+    CLOG_currbuff = CLOG_first;
+}
+	
+      
+      
+    
 
 /*@
     CLOG_csync - synchronize clocks for adjusting times in merge

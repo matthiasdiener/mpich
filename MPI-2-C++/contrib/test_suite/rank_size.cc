@@ -31,7 +31,7 @@ rank_size()
   int rank;
   int size;
 
-  Testing("Get_rank");
+  Testing( (char *)"Get_rank");
 
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if(my_rank != rank) {
@@ -41,7 +41,7 @@ rank_size()
 
   Pass(); // Get_rank;
 
-  Testing("Get_size");
+  Testing( (char *)"Get_size");
 
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   if(comm_size != size) {

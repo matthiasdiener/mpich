@@ -5,8 +5,8 @@ $username = getlogin || (getpwuid($<))[0] ;
 # restart_serv = 1 DOES NOT WORK because of bugs in perl.
 # (I've worked around this bug below, but it is pretty hideous)
 $restart_serv = 0;
-$serv_p4 = "/home/MPI/mpich/build/sun4/ch_p4/bin/serv_p4";
-#$serv_p4 = "/home/MPI/mpich/build/sun4/ch_p4/bin/serv_p4 -w /home/gropp/serverdir";
+$serv_p4 = "@binbuild_dir@/serv_p4";
+#$serv_p4 = "@binbuild_dir@/serv_p4 -w @binbuild_dir@";
 #$server_name = "serv_p4";
 $run_dir = "$HOME";
 $kill_serv = 0;
@@ -19,7 +19,7 @@ use Socket;
 # Get the port to check
 $portnum=1234;
 # Get the list of machines
-$machinelist="/home/MPI/mpich/util/machines/machines.sun4";
+$machinelist="@datadir@/machines.@ARCH@";
 #
 # Read command line for overrides
 while ($_ = $ARGV[0]) {
@@ -45,7 +45,7 @@ while ($_ = $ARGV[0]) {
 	shift;
 	}
     elsif ($_ eq "-pgm") {
-	$serv_p4 = "/home/MPI/mpich/build/sun4/ch_p4/bin/$ARGV[0]";
+	$serv_p4 = "@binbuild_dir@/$ARGV[0]";
 	shift;
 	}
     elsif ($_ eq "-restart") {
@@ -72,12 +72,14 @@ if ($username eq "") {
 #
 # If the program name was just the name without the location, try a
 # default location.
-if (! -x $serv_p4 ) {
-    $serv_p4 = "/home/MPI/mpich/build/sun4/ch_p4/bin/$serv_p4";
+if ($restart_serv) { 
+    if (! -x $serv_p4 ) {
+        $serv_p4 = "@binbuild_dir@/$serv_p4";
     }
-if (! -x $serv_p4 ) {
-    die "$serv_p4 is not executable!\n";
+    if (! -x $serv_p4 ) {
+        die "$serv_p4 is not executable!\n";
     }
+}
 #
 #
 open( FLIST, $machinelist ) || die "Could not open $machinelist" ;
@@ -180,7 +182,8 @@ while (<FLIST>) {
         }
     else {
 	$msg = <S>;
-        if ($msg ne "Proceed\n") { 
+	# Proceed-2 indicates server version 2
+        if ($msg ne "Proceed\n" && $msg ne "Proceed-2\n") { 
 	    print "Bad message from $hostname: :$msg:\n";
 	}
 	if ($kill_serv != 1) {

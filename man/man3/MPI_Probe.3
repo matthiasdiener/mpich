@@ -1,14 +1,10 @@
-.TH MPI_Probe 3 "4/28/1998" " " "MPI"
+.TH MPI_Probe 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Probe \-  Blocking test for a message 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Probe( source, tag, comm, status )
-int         source;
-int         tag;
-MPI_Comm    comm;
-MPI_Status  *status;
+int MPI_Probe( int source, int tag, MPI_Comm comm, MPI_Status *status )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

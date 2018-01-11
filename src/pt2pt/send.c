@@ -1,5 +1,5 @@
 /*
- *  $Id: send.c,v 1.3 1998/04/28 21:47:08 swider Exp $
+ *  $Id: send.c,v 1.8 1999/08/30 15:49:20 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,25 @@
 
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Send = PMPI_Send
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Send  MPI_Send
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Send as PMPI_Send
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /* 
    Because this is a very common routine, we show how it can be
@@ -41,11 +60,8 @@ This routine may block until the message is received.
 
 .seealso: MPI_Isend, MPI_Bsend
 @*/
-int MPI_Send( buf, count, datatype, dest, tag, comm )
-void             *buf;
-int              count, dest, tag;
-MPI_Datatype     datatype;
-MPI_Comm         comm;
+EXPORT_MPI_API int MPI_Send( void *buf, int count, MPI_Datatype datatype, int dest, 
+	      int tag, MPI_Comm comm )
 {
     int          mpi_errno = MPI_SUCCESS;
     struct MPIR_COMMUNICATOR *comm_ptr;
@@ -61,10 +77,13 @@ MPI_Comm         comm;
     dtype_ptr = MPIR_GET_DTYPE_PTR(datatype);
     MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
 
-    if (MPIR_TEST_COUNT(comm,count) ||
-	MPIR_TEST_SEND_TAG(comm,tag) ||
-	MPIR_TEST_SEND_RANK(comm_ptr,dest)) 
+#ifndef MPIR_NO_ERROR_CHECKING
+    MPIR_TEST_COUNT(count);
+    MPIR_TEST_SEND_TAG(tag);
+    MPIR_TEST_SEND_RANK(comm_ptr,dest);
+    if (mpi_errno)
 	return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
 
     if (dest == MPI_PROC_NULL) return MPI_SUCCESS;
 

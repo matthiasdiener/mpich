@@ -1,5 +1,5 @@
 /*
- *  $Id: bufattach.c,v 1.3 1998/04/28 21:46:41 swider Exp $
+ *  $Id: bufattach.c,v 1.8 1999/08/30 15:48:40 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,25 @@
 
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Buffer_attach = PMPI_Buffer_attach
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Buffer_attach  MPI_Buffer_attach
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Buffer_attach as PMPI_Buffer_attach
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
   MPI_Buffer_attach - Attaches a user-defined buffer for sending
@@ -46,18 +65,21 @@ is in 'mpi.h' (for C) and 'mpif.h' (for Fortran).
 
 .seealso: MPI_Buffer_detach, MPI_Bsend
 @*/
-int MPI_Buffer_attach( buffer, size )
-void *buffer;
-int  size;
+EXPORT_MPI_API int MPI_Buffer_attach( void *buffer, int size )
 {
     int mpi_errno;
     static char myname[] = "MPI_BUFFER_ATTACH";
 
     TR_PUSH(myname);
+
+#ifndef MPIR_NO_ERROR_CHECKING
     if (size < 0) {
-	MPIR_ERROR_PUSH_ARG(&size);
-	return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_BUFFER_SIZE, myname );
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_BUFFER, MPIR_ERR_BUFFER_SIZE, 
+				     myname, (char *)0, (char *)0, size );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     }
+#endif
+
     if ((mpi_errno = MPIR_BsendInitBuffer( buffer, size )))
 	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     TR_POP;

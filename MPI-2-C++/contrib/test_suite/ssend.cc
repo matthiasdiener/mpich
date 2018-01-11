@@ -79,7 +79,7 @@ ssend()
   
   request = MPI::REQUEST_NULL;
   
-  Testing("Ssend");
+  Testing( (char *)"Ssend");
    
   if(TIGHTLY_COUPLED) {
     time = 0.0;

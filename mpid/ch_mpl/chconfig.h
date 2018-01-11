@@ -16,3 +16,9 @@
 #define MPID_LIMITED_BUFFERS
 #endif
 #endif
+
+/* Used for packet control */
+#undef MPID_USE_SHMEM
+
+/* Used for making sure we get the last packet from a tcp connection */
+#undef MPID_GET_LAST_PKT

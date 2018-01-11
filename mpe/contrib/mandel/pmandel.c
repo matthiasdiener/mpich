@@ -268,7 +268,7 @@ Flags *flags;
       if (myid == 0) {
 	MPE_Fill_rectangle( graph, 0, 0, winspecs->width, winspecs->height,
 			   MPE_WHITE );
-	fprintf( stderr, "Drawing region -rmin %.17lf -imin %.17lf -rmax %.17lf -imax %.17lf\n",
+	fprintf( stdout, "Drawing region -rmin %.17lf -imin %.17lf -rmax %.17lf -imax %.17lf\n",
 		NUM2DBL( flags->rmin ), NUM2DBL( flags-> imin ),
 		NUM2DBL( flags->rmax ), NUM2DBL( flags-> imax ) );
 	MPE_Update( graph );
@@ -310,7 +310,7 @@ Flags *flags;
   MPI_Comm_rank( MPI_COMM_WORLD, &myid );
 
   if (!myid) {
-    printf( "Ready for zoom rectangle" );
+    fprintf( stdout, "Ready for zoom rectangle\n" );
     /*
     printf( "Ready for zoom rectangle; button 2 to quit.\n" );
     MPE_Iget_mouse_press( graph, &x1, &y1, &button, &i );

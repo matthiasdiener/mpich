@@ -66,7 +66,7 @@ _REAL_MPI_::Get_processor_name(char*& name, int& resultlen)
 }
 
 inline void
-_REAL_MPI_::Get_error_string(int errorcode, char*& string, int& resultlen)
+_REAL_MPI_::Get_error_string(int errorcode, char* string, int& resultlen)
 {
   (void)MPI_Error_string(errorcode, string, &resultlen);
 }
@@ -97,20 +97,25 @@ _REAL_MPI_::Real_init()
   MPI::ERRORS_THROW_EXCEPTIONS.init();
 }
 
+/*
 inline void
 _REAL_MPI_::Init(int& argc, char**& argv)
 {
   (void)MPI_Init(&argc, &argv);
   Real_init();
 }
+*/
 
+// The new Solaris CC refuses to accept this, complaining that PMPI::Init
+// already has a body - WDG
+/*
 inline void
 _REAL_MPI_::Init()
 {
   (void)MPI_Init(0, 0);
   Real_init();
 }
-
+*/
 inline void
 _REAL_MPI_::Finalize()
 {

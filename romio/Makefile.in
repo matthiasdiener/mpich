@@ -16,6 +16,8 @@ MPIO_DIRS   = mpi-io
 ALL_DIRS    = mpi-io mpi-io/fortran mpi2-other/info mpi2-other/info/fortran mpi2-other/array mpi2-other/array/fortran adio/common adio/ad_pfs adio/ad_piofs adio/ad_nfs adio/ad_ufs adio/ad_xfs adio/ad_hfs adio/ad_sfs test
 SHELL       = /bin/sh
 
+@VPATH@
+
 all: mpio
 
 mpio:
@@ -24,7 +26,7 @@ mpio:
 	$(MAKE) clean
 	@if test "$(NOPROFILE)" = 0 ; then\
             $(MAKE) profile; \
-        fi;
+        fi;\
 	$(MAKE) clean
 	$(RANLIB) $(LIBNAME)
 	@if test "$(FROM_MPICH)" = 0 ; then \
@@ -108,32 +110,34 @@ mpiolib:
          done
 
 profile: 
-	@dirs=`echo "$(MPIO_DIRS)"`; \
-        if test "$(BUILD_MPI_INFO)" = 1 ; then \
-            dirs=`echo "$$dirs" mpi2-other/info` ;\
-            if test "$(NOF77)" = 0 ; then\
-                dirs=`echo "$$dirs" mpi2-other/info/fortran` ;\
-            fi;\
-        fi; \
-        if test "$(BUILD_MPI_ARRAY)" = 1 ; then \
-            dirs=`echo "$$dirs" mpi2-other/array` ;\
-            if test "$(NOF77)" = 0 ; then\
-                dirs=`echo "$$dirs" mpi2-other/array/fortran` ;\
-            fi;\
-        fi; \
-        if test "$(NOF77)" = 0 ; then\
-            dirs=`echo "$$dirs" mpi-io/fortran` ;\
-        fi;\
-        for dir in $$dirs ;\
-         do \
-            echo " " ;\
-            echo building profiling interface in directory $$dir ;\
-            (cd $$dir; \
-             $(MAKE) profile MPIOPROFILE="-D__MPIO_BUILD_PROFILING";) ;\
-             if [ $$? != 0 ] ; then \
-                 echo "Make failed in directory $$dir" ; exit 1 ;\
-             fi ;\
-         done
+	@if [ "@HAS_WEAK_SYMBOLS@" = 0 ] ; then \
+           dirs=`echo "$(MPIO_DIRS)"`; \
+           if test "$(BUILD_MPI_INFO)" = 1 ; then \
+               dirs=`echo "$$dirs" mpi2-other/info` ;\
+               if test "$(NOF77)" = 0 ; then\
+                   dirs=`echo "$$dirs" mpi2-other/info/fortran` ;\
+               fi;\
+           fi; \
+           if test "$(BUILD_MPI_ARRAY)" = 1 ; then \
+               dirs=`echo "$$dirs" mpi2-other/array` ;\
+               if test "$(NOF77)" = 0 ; then\
+                   dirs=`echo "$$dirs" mpi2-other/array/fortran` ;\
+               fi;\
+           fi; \
+           if test "$(NOF77)" = 0 ; then\
+               dirs=`echo "$$dirs" mpi-io/fortran` ;\
+           fi;\
+           for dir in $$dirs ;\
+            do \
+               echo " " ;\
+               echo building profiling interface in directory $$dir ;\
+               (cd $$dir; \
+                $(MAKE) profile MPIOPROFILE="-D__MPIO_BUILD_PROFILING";) ;\
+                if [ $$? != 0 ] ; then \
+                    echo "Make failed in directory $$dir" ; exit 1 ;\
+                fi ;\
+            done \
+	fi
 
 cleanall:
 	@dirs=`echo "$(ALL_DIRS)"`; \

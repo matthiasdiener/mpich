@@ -1,13 +1,13 @@
-.TH MPI_Op_create 3 "4/28/1998" " " "MPI"
+.TH MPI_Op_create 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Op_create \-  Creates a user-defined combination function handle 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Op_create( function, commute, op )
-MPI_User_function *function;
-int               commute;
-MPI_Op            *op;
+int MPI_Op_create( 
+ MPI_User_function *function, 
+ int commute, 
+ MPI_Op *op )
 .fi
 .SH INPUT PARAMETERS
 .PD 0
@@ -27,6 +27,29 @@ MPI_Op            *op;
 .B op 
 - operation (handle) 
 .PD 1
+
+.SH NOTES ON THE USER FUNCTION
+The calling list for the user function type is
+.nf
+typedef void (MPI_User_function) ( void * a, 
+void * b, int * len, MPI_Datatype * ); 
+.fi
+
+where the operation is 
+.I b[i] = a[i] op b[i]
+, for 
+.I i=0,...,len-1
+.  A pointer
+to the datatype given to the MPI collective computation routine (i.e.,
+.I MPI_Reduce
+, 
+.I MPI_Allreduce
+, 
+.I MPI_Scan
+, or 
+.I MPI_Reduce_scatter
+) is also
+passed to the user-specified routine.
 
 .SH NOTES FOR FORTRAN
 All MPI routines in Fortran (except for 

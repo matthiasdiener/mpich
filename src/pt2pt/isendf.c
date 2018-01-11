@@ -7,7 +7,56 @@
 #include <stdarg.h>
 #endif
 
-#ifdef MPI_BUILD_PROFILING
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_ISEND = PMPI_ISEND
+EXPORT_MPI_API void MPI_ISEND ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_isend__ = pmpi_isend__
+EXPORT_MPI_API void mpi_isend__ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_isend = pmpi_isend
+EXPORT_MPI_API void mpi_isend ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_isend_ = pmpi_isend_
+EXPORT_MPI_API void mpi_isend_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_ISEND  MPI_ISEND
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_isend__  mpi_isend__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_isend  mpi_isend
+#else
+#pragma _HP_SECONDARY_DEF pmpi_isend_  mpi_isend_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_ISEND as PMPI_ISEND
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_isend__ as pmpi_isend__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_isend as pmpi_isend
+#else
+#pragma _CRI duplicate mpi_isend_ as pmpi_isend_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_isend_ PMPI_ISEND
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -17,7 +66,9 @@
 #else
 #define mpi_isend_ pmpi_isend_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_isend_ MPI_ISEND
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -27,11 +78,12 @@
 #endif
 #endif
 
+
 #ifdef _CRAY
 #ifdef _TWO_WORD_FCD
 #define NUMPARAMS 8
 
- void mpi_isend_( void *unknown, ...)
+void mpi_isend_( void *unknown, ...)
 {
 void             *buf;
 int*count;
@@ -90,18 +142,10 @@ if (_isfcd(buf)) {
 #else
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_isend_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
-                            MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * ));
+EXPORT_MPI_API void mpi_isend_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                            MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 
-void mpi_isend_( buf, count, datatype, dest, tag, comm, request, __ierr )
-void     *buf;
-MPI_Fint *count;
-MPI_Fint *datatype;
-MPI_Fint *dest;
-MPI_Fint *tag;
-MPI_Fint *comm;
-MPI_Fint *request;
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_isend_( void *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm, MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest;
     *__ierr = MPI_Isend(MPIR_F_PTR(buf),(int)*count,MPI_Type_f2c(*datatype),

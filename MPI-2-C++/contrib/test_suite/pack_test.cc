@@ -42,7 +42,7 @@ pack_test()
   iout = 0;
   position = 0;
 
-  Testing("Pack / Unpack");
+  Testing( (char *)"Pack / Unpack");
 
   MPI::INT.Pack(&iin, 1, buffer, sizeof(buffer), position, MPI::COMM_WORLD);
   MPI::DOUBLE.Pack(&din, 1, buffer, sizeof(buffer), position, MPI::COMM_WORLD);

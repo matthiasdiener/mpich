@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2pack.c,v 1.3 1998/11/28 22:08:52 gropp Exp $
+ *  $Id: adi2pack.c,v 1.5 1999/04/08 16:51:57 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -87,6 +87,7 @@ struct MPIR_DATATYPE *dtype_ptr;
 MPID_Msgrep_t   msgrep;
 MPID_Msg_pack_t *msgact;
 {
+    int mpi_errno;
     switch (msgrep) {
     case MPID_MSGREP_RECEIVER:
 	*msgact = MPID_MSG_OK;
@@ -96,15 +97,19 @@ MPID_Msg_pack_t *msgact;
        break;
     case MPID_MSGREP_SENDER:
 	/* Could check here for byte swap */
-	(void) MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_MSGREP_SENDER,
-			  "Error in packing data" );
-	fprintf( stderr, "WARNING - sender format not ready!\n" );
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_INTERN, MPIR_ERR_MSGREP_SENDER,
+				     (char *)0, (char *)0,
+		     "Error in packing data: sender format not implemented!" );
+	(void) MPIR_ERROR(MPIR_COMM_WORLD,mpi_errno, (char *)0);
 	*msgact = MPID_MSG_OK;
 	break;	
     default:
-	MPIR_ERROR_PUSH_ARG(&msgrep);
-	(void) MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_MSGREP_UNKNOWN,
-			  "Error in packing data" );
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_INTERN, MPIR_ERR_MSGREP_UNKNOWN,
+				     (char *)0, 
+    "Error in packing data: Unknown internal message format",
+    "Error in packing data: Unknown internal message format %d", (int)msgrep );
+	(void) MPIR_ERROR(MPIR_COMM_WORLD,mpi_errno, (char *)0);
+	
     }
 }
 

@@ -1,4 +1,4 @@
-/* 	$Id: coll.h,v 1.1.1.1 1997/09/17 20:42:29 gropp Exp $	 */
+/* 	$Id: coll.h,v 1.3 1999/08/20 02:25:57 ashton Exp $	 */
 
 #ifndef MPIR_MIN
 

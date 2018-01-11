@@ -14,31 +14,22 @@
 #ifndef _MPID_DEV
 #define _MPID_DEV
 
-#ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
-#define ANSI_ARGS(a) a
-#else
-#define ANSI_ARGS(a) ()
-#endif
-#endif
-
 typedef struct _MPID_Protocol MPID_Protocol;
 struct _MPID_Protocol { 
-    int (*send)        ANSI_ARGS((void *, int, int, int, int, int, 
-				  MPID_Msgrep_t ));
-    int (*recv)        ANSI_ARGS((MPIR_RHANDLE *, int, void *));
-    int (*isend)       ANSI_ARGS((void *, int, int, int, int, int,
-				  MPID_Msgrep_t, MPIR_SHANDLE *));
-    int (*wait_send)   ANSI_ARGS((MPIR_SHANDLE *));
-    int (*push_send)   ANSI_ARGS((MPIR_SHANDLE *));
-    int (*cancel_send) ANSI_ARGS((MPIR_SHANDLE *));
-    int (*irecv)       ANSI_ARGS((MPIR_RHANDLE *, int, void *));
-    int (*wait_recv)   ANSI_ARGS((MPIR_RHANDLE *, MPI_Status *));
-    int (*push_recv)   ANSI_ARGS((MPIR_RHANDLE *));
-    int (*cancel_recv) ANSI_ARGS((MPIR_RHANDLE *));
-    int (*unex)        ANSI_ARGS((MPIR_RHANDLE *, int, void *));
-    int (*do_ack)      ANSI_ARGS((void *, int));
-    void (*delete)     ANSI_ARGS((MPID_Protocol *));
+    int (*send)        (void *, int, int, int, int, int, MPID_Msgrep_t );
+    int (*recv)        (MPIR_RHANDLE *, int, void *);
+    int (*isend)       (void *, int, int, int, int, int,
+				  MPID_Msgrep_t, MPIR_SHANDLE *);
+    int (*wait_send)   (MPIR_SHANDLE *);
+    int (*push_send)   (MPIR_SHANDLE *);
+    int (*cancel_send) (MPIR_SHANDLE *);
+    int (*irecv)       (MPIR_RHANDLE *, int, void *);
+    int (*wait_recv)   (MPIR_RHANDLE *, MPI_Status *);
+    int (*push_recv)   (MPIR_RHANDLE *);
+    int (*cancel_recv) (MPIR_RHANDLE *);
+    int (*unex)        (MPIR_RHANDLE *, int, void *);
+    int (*do_ack)      (void *, int);
+    void (*delete)     (MPID_Protocol *);
     };
 
 /* 
@@ -62,12 +53,11 @@ struct _MPID_Device {
        null to use grank directly */
     int           *grank_to_devlrank;
     /* Routines to receive header (check/wait header) */
-    int           (*check_device) ANSI_ARGS((MPID_Device*, 
-					     MPID_BLOCKING_TYPE));
+    int           (*check_device) (MPID_Device*, MPID_BLOCKING_TYPE);
     /* Run down and abort - do these need self (device)? */
-    int           (*terminate)        ANSI_ARGS((MPID_Device *));
-    int           (*abort)            ANSI_ARGS((struct MPIR_COMMUNICATOR *, 
-						 int, char *));
+    int           (*terminate)        (MPID_Device *);
+    int           (*abort)            (struct MPIR_COMMUNICATOR *, 
+						 int, char *);
 
     /* This next field is used to link together all of the devices */
     struct _MPID_Device *next;
@@ -97,7 +87,7 @@ typedef struct {
 typedef struct _MPID_Config MPID_Config;
 struct _MPID_Config {
     /* The routine to initialize the device */
-    MPID_Device *(*device_init) ANSI_ARGS(( int *, char ***, int, int ));
+    MPID_Device *(*device_init) ( int *, char ***, int, int );
     /* The name of the routine if device_init is null for dynamic loading */
     char *device_init_name; 
     /* Number of partners served by this device */

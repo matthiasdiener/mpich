@@ -1,5 +1,5 @@
 /* 
- *   $Id: eof_offset.c,v 1.2 1998/06/02 18:57:03 thakur Exp $    
+ *   $Id: eof_offset.c,v 1.3 1999/10/26 22:57:23 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -55,14 +55,14 @@ void ADIOI_Get_eof_offset(ADIO_File fd, ADIO_Offset *eof_offset)
 	    for (i=0; i<flat_file->count; i++) {
 		sum += flat_file->blocklens[i];
 		if (disp + flat_file->indices[i] + 
-		    n_filetypes*filetype_extent + 
+		    (ADIO_Offset) n_filetypes*filetype_extent + 
 		       flat_file->blocklens[i] >= fsize) {
 		    if (disp + flat_file->indices[i] + 
-			   n_filetypes*filetype_extent >= fsize)
+			   (ADIO_Offset) n_filetypes*filetype_extent >= fsize)
 			sum -= flat_file->blocklens[i];
 		    else {
 			rem = (int) (disp + flat_file->indices[i] + 
-				n_filetypes*filetype_extent
+				(ADIO_Offset) n_filetypes*filetype_extent
 				+ flat_file->blocklens[i] - fsize);
 			sum -= rem;
 		    }
@@ -71,7 +71,7 @@ void ADIOI_Get_eof_offset(ADIO_File fd, ADIO_Offset *eof_offset)
 		}
 	    }
 	}
-	size_in_file = n_filetypes*filetype_size + sum;
+	size_in_file = (ADIO_Offset) n_filetypes*filetype_size + sum;
 	*eof_offset = (size_in_file+etype_size-1)/etype_size; /* ceiling division */
     }
 }

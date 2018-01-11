@@ -1,12 +1,10 @@
-.TH MPI_Group_excl 3 "4/28/1998" " " "MPI"
+.TH MPI_Group_excl 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Group_excl \-  Produces a group by reordering an existing group and taking only unlisted members 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Group_excl ( group, n, ranks, newgroup )
-MPI_Group group, *newgroup;
-int       n, *ranks;
+int MPI_Group_excl ( MPI_Group group, int n, int *ranks, MPI_Group *newgroup )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

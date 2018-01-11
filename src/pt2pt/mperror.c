@@ -1,5 +1,5 @@
 /*
- *  $Id: mperror.c,v 1.3 1998/02/17 20:44:36 gropp Exp $
+ *  $Id: mperror.c,v 1.8 1999/11/24 19:50:49 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -11,10 +11,12 @@
 
 /* Note that some systems define all of these, but because of problems 
    in the header files, don't actually support them.  We've had this
-   problem with Solaris systems
+   problem with Solaris systems.
+
+   If you change this test, you *must* change the corresponding test
+   int include/mpipt2pt.h!
  */
-#if defined(USE_STDARG) && \
-    (defined(__STDC__) || defined(__cpluscplus) || defined(HAVE_PROTOTYPES))
+#if defined(USE_STDARG) 
 #if !defined(MPIR_USE_STDARG)
 #define MPIR_USE_STDARG
 #endif
@@ -49,7 +51,11 @@ void MPIR_Errors_are_fatal(  MPI_Comm *comm, int * code, ... )
   va_list Argp;
   struct MPIR_COMMUNICATOR *comm_ptr;
 
+#ifdef USE_OLDSTYLE_STDARG
+  va_start( Argp );
+#else
   va_start( Argp, code );
+#endif
   string = va_arg(Argp,char *);
   file   = va_arg(Argp,char *);
   line   = va_arg(Argp,int *);
@@ -111,7 +117,11 @@ void MPIR_Errors_warn(  MPI_Comm *comm, int *code, ... )
   int  *line;
   va_list Argp;
 
+#ifdef USE_OLDSTYLE_STDARG
+  va_start( Argp );
+#else
   va_start( Argp, code );
+#endif
   string = va_arg(Argp,char *);
   file   = va_arg(Argp,char *);
   line   = va_arg(Argp,int *);
@@ -142,10 +152,12 @@ char     *string, *file;
    This calls the user-specified error handler.  If that handler returns,
    we return the error code 
  */
-int MPIR_Error( comm, code, string, file, line )
-struct MPIR_COMMUNICATOR *comm;
-int       code, line;
-char     *string, *file;
+int MPIR_Error( 
+	struct MPIR_COMMUNICATOR *comm, 
+	int code, 
+	char *string, 
+	char *file, 
+	int line )
 {
   MPI_Errhandler handler;
   static int InHandler = 0;
@@ -197,11 +209,10 @@ May be MPI call before MPI_INIT.  Error message is %s and code is %d\n",
  * complete requests once an error is detected; we just use MPI_ERR_PENDING
  * to indicate any incomplete requests.
  */
-void MPIR_Set_Status_error_array( array_of_requests, count, i_failed, 
-				  err_failed, array_of_statuses )
-MPI_Request array_of_requests[];
-int         count, i_failed, err_failed;
-MPI_Status  array_of_statuses[];
+void MPIR_Set_Status_error_array( 
+	MPI_Request array_of_requests[], 
+	int count, int i_failed, int err_failed, 
+	MPI_Status array_of_statuses[] )
 {
     int i;
     MPI_Request request;

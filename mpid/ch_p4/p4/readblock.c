@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
+#include <signal.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
@@ -10,6 +11,10 @@ static int childpid;
 
 void set_fd_nonblock( int );
 int bread( int, void *, int );
+
+#if !defined(EAGAIN) 
+#define EAGAIN EWOULDBLOCK
+#endif
 
 int main( int argc, char *argv[] )
 {
@@ -34,12 +39,20 @@ int main( int argc, char *argv[] )
 	perror( "Fork failed" );
 	exit(1);
     }
+    /* We must be careful.  Once a process uses an end of the pipe, it
+       gets that end of the pipe forever.  Thus, if the pipes are 
+       unidirectional, and both the parent and child need to write, 
+       we need two pipe sets. (LINUX is unidirectional, for example.) 
+     */
     if (childpid) {
 	/* I am the parent */
+#ifdef FOO
 	/* I do the receiving so that I can exit with a status code
 	   reflecting the success or failure of the test */
 	/* Synchronize with child */
-#ifdef FOO
+	/* ???? what is needed???? */
+	/* This is needed on Linux running gcc version 2.91.66 */
+
 	val = -2;
 	n = write( fds[1], &val, sizeof(int) );
 	if (n < 0) {
@@ -54,7 +67,15 @@ int main( int argc, char *argv[] )
 	
 	/* Start reading */
 	do { 
+	    val = 1;
 	    n = bread( fds[0], &val, sizeof(int) );
+	    if (n < 0) {
+		if (errno == EAGAIN) continue;
+		printf( "n = %d and errno = %d\n", n, errno );
+		perror( "Read error in parent" );
+		err++;
+		break;
+	    }
 #ifdef DEBUG
 	    printf( "Read %d in parent\n", val );
 #endif
@@ -70,9 +91,16 @@ int main( int argc, char *argv[] )
 		err ++;
 	    }
     	}
+	else {
+	    fprintf( stderr, "Unexpected output data (%d) read in parent\n", 
+		     val );
+	    err ++;
+	}
 #ifdef DEBUG
 	printf( "Parent found %d errors\n", err ); fflush(stdout);
 #endif
+	close( fds[0] );
+	if (err) kill( childpid, SIGINT );
 	return err;
     }
     else {
@@ -80,11 +108,17 @@ int main( int argc, char *argv[] )
 	/* I will read and write to fds[0] */
 #ifdef FOO
 	/* Synchronize with parent */
+	/* This is needed on Linux running gcc version 2.91.66 */
 	n = bread( fds[0], &val, sizeof(int) );
 #ifdef DEBUG
 	printf( "Child synchronized\n" ); fflush(stdout);
 #endif	
+	if (val != -2) {
+	    perror ("Read failed in child" );
+	    exit(1);
+	}
 #endif
+
 	close(fds[0]);
 	/* Start writing */
 	for (val=1; val<10; val++) {
@@ -162,16 +196,11 @@ int bread( int fd, void *buf, int size )
     while (1) {
 	n = read( fd, buf, size );
 	if (n < 0) {
-#ifdef EAGAIN
 	    if (errno == EAGAIN) continue;
-#endif
-#ifdef EWOULDBLOCK
-	    if (errno == EWOULDBLOCK) continue;
-#endif
 	    /* printf( "n = %d and errno = %d\n", n, errno ); */
 	    perror( "Read error in child" );
-	    break;
 	    err++;
+	    break;
 	}
 #ifdef DEBUG
 	printf( "Read %d bytes in %s\n", n,

@@ -78,7 +78,9 @@ typedef enum { MPID_PKT_SHORT=0, MPID_PKT_LONG=1,
 	       MPID_PKT_ANTI_SEND=5,
 	       MPID_PKT_ANTI_SEND_OK=6,
                MPID_PKT_DONE_GET = 7, MPID_PKT_CONT_GET = 8,
-	       MPID_PKT_FLOW = 9
+	       MPID_PKT_FLOW = 9,
+	       MPID_PKT_PROTO_ACK = 10,
+	       MPID_PKT_ACK_PROTO = 11
                }
     MPID_Pkt_t;
 
@@ -133,6 +135,7 @@ typedef enum { MPID_PKT_SHORT=0, MPID_PKT_LONG=1,
    that indicate how much channel/buffer memory has be used since the 
    last message
  */
+
 #ifdef MPID_FLOW_CONTROL
 #define MPID_PKT_FLOW_DECL int flow_info:32;
 #else
@@ -151,6 +154,9 @@ typedef enum { MPID_PKT_SHORT=0, MPID_PKT_LONG=1,
     int mode:32;                 /* Contains MPID_Pkt_t */             \
     int context_id:32;           /* Context_id */                      \
     int lrank:32;                /* Local rank in sending context */   \
+    int to:32;                   /* destination rank */                \
+    int src:32;                  /* source of the packet */            \
+    int seqnum:32;               /* bytes sent / bytes received */     \
     MPID_PKT_LEN_DECL            /* size of packets in bytes */        \
     MPID_PKT_LINK_DECL           /* link to 'next' packet    */        \
     MPID_PKT_SRC_DECL            /* Source of packet in COMM_WORLD system */ \
@@ -161,6 +167,9 @@ typedef enum { MPID_PKT_SHORT=0, MPID_PKT_LONG=1,
     unsigned mode:5;             /* Contains MPID_Pkt_t */             \
     unsigned context_id:16;      /* Context_id */                      \
     unsigned lrank:11;           /* Local rank in sending context */   \
+    int to:32;                   /* destination rank */                \
+    int src:32;                  /* source of the packet */            \
+    int seqnum:32;               /* bytes sent / bytes received */     \
     MPID_PKT_LEN_DECL            /* size of packets in bytes */        \
     MPID_PKT_LINK_DECL           /* link to 'next' packet    */        \
     MPID_PKT_SRC_DECL            /* Source of packet in COMM_WORLD system */ \
@@ -216,12 +225,14 @@ typedef struct {
 /* Short messages are sent eagerly (unless Ssend) */
 typedef struct { 
     MPID_PKT_BASIC
+    MPID_Aint   send_id;         /* Id needed in case of a cancel */    
     char     buffer[MPID_PKT_MAX_DATA_SIZE];
     } MPID_PKT_SHORT_T;
 
 /* Eager long messages */
 typedef struct {
     MPID_PKT_BASIC
+    MPID_Aint   send_id;         /* Id needed in case of a cancel */    
     } MPID_PKT_LONG_T;
 
 /* Long messages (and Ssend) are send in rendezvous mode, or with "get" */
@@ -233,6 +244,7 @@ typedef struct {
 typedef struct {
     MPID_PKT_MODE
     MPID_Aint   send_id;        /* Id sent by REQUEST_SEND */
+    MPID_Aint   recv_id;         /* rhandle's address */
     MPID_RNDV_T recv_handle;    /* additional data for sender */
     } MPID_PKT_OK_TO_SEND_T;
 /* The "rendezvous" packets can be canceled by sending a message with
@@ -259,6 +271,14 @@ typedef struct {
     MPID_PKT_BASIC
 } MPID_PKT_FLOW_T;
 
+typedef struct {
+    MPID_PKT_BASIC
+    int          cancel;        /* set to 1 if msg was cancelled - 
+				   0 otherwise */
+    MPID_Aint    send_id;       /* Id sent by SENDER, identifies MPI_Request */
+    MPID_Aint    recv_id;       /* rhandle's address */
+} MPID_PKT_ANTI_SEND_T;
+
 /* We may want to make all of the packets an exact size (e.g., memory/cache
    page.  This is done by defining a pad */
 #ifndef MPID_PKT_PAD
@@ -271,6 +291,7 @@ typedef union _MPID_PKT_T {
     MPID_PKT_LONG_T          long_pkt;
     MPID_PKT_REQUEST_SEND_T  request_pkt;
     MPID_PKT_OK_TO_SEND_T    sendok_pkt;
+    MPID_PKT_ANTI_SEND_T     antisend_pkt;
     MPID_PKT_GET_T           get_pkt;
     MPID_PKT_FLOW_T          flow_pkt;
     char                     pad[MPID_PKT_PAD];
@@ -337,12 +358,16 @@ extern FILE *MPID_TRACE_FILE;
 #define MPID_TRACE_CODE(name,channel) {if (MPID_TRACE_FILE){\
 fprintf( MPID_TRACE_FILE,"[%d] %20s on %4d at %s:%d\n", MPID_MyWorldRank, \
          name, channel, __FILE__, __LINE__ ); fflush( MPID_TRACE_FILE );}}
+#define MPID_TRACE_CODE_X(name,longvalue) {if (MPID_TRACE_FILE){\
+fprintf( MPID_TRACE_FILE,"[%d] %20s on %4d at %s:%lx\n", MPID_MyWorldRank, \
+         name, longvalue, __FILE__, __LINE__ ); fflush( MPID_TRACE_FILE );}}
 #define MPID_TRACE_CODE_PKT(name,channel,mode) {if (MPID_TRACE_FILE){\
 fprintf( MPID_TRACE_FILE,"[%d] %20s on %4d (type %d) at %s:%d\n", \
 	 MPID_MyWorldRank, name, channel, mode, __FILE__, __LINE__ ); \
 	 fflush( MPID_TRACE_FILE );}}
 #else
 #define MPID_TRACE_CODE(name,channel)
+#define MPID_TRACE_CODE_X(name,channel)
 #define MPID_TRACE_CODE_PKT(name,channel,mode)
 #endif
 

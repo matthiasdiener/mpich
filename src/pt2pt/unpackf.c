@@ -7,7 +7,56 @@
 #include <stdarg.h>
 #endif
 
-#ifdef MPI_BUILD_PROFILING
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_UNPACK = PMPI_UNPACK
+EXPORT_MPI_API void MPI_UNPACK ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_unpack__ = pmpi_unpack__
+EXPORT_MPI_API void mpi_unpack__ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_unpack = pmpi_unpack
+EXPORT_MPI_API void mpi_unpack ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_unpack_ = pmpi_unpack_
+EXPORT_MPI_API void mpi_unpack_ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_UNPACK  MPI_UNPACK
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_unpack__  mpi_unpack__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_unpack  mpi_unpack
+#else
+#pragma _HP_SECONDARY_DEF pmpi_unpack_  mpi_unpack_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_UNPACK as PMPI_UNPACK
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_unpack__ as pmpi_unpack__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_unpack as pmpi_unpack
+#else
+#pragma _CRI duplicate mpi_unpack_ as pmpi_unpack_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_unpack_ PMPI_UNPACK
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -17,7 +66,9 @@
 #else
 #define mpi_unpack_ pmpi_unpack_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_unpack_ MPI_UNPACK
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -26,6 +77,7 @@
 #define mpi_unpack_ mpi_unpack
 #endif
 #endif
+
 
 #ifdef _CRAY
 #ifdef _TWO_WORD_FCD
@@ -99,20 +151,12 @@ if (_isfcd(outbuf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_unpack_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, void *, 
+EXPORT_MPI_API void mpi_unpack_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, void *, 
                              MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                              MPI_Fint * ));
 
-void mpi_unpack_ ( inbuf, insize, position, outbuf, outcount, type, comm, 
-		   __ierr )
-void     *inbuf;
-MPI_Fint *insize;
-MPI_Fint *position;
-void     *outbuf;
-MPI_Fint *outcount;
-MPI_Fint *type;
-MPI_Fint *comm;
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_unpack_ ( void *inbuf, MPI_Fint *insize, MPI_Fint *position, void *outbuf, MPI_Fint *outcount, MPI_Fint *type, MPI_Fint *comm, 
+		   MPI_Fint *__ierr )
 {
     int l_position;
     l_position = (int)*position;

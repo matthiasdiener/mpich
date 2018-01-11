@@ -1,11 +1,27 @@
 /* 
- *   $Id: info_free.c,v 1.2 1998/06/02 19:08:39 thakur Exp $    
+ *   $Id: info_free.c,v 1.4 1999/08/27 20:53:45 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "mpioimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Info_free = PMPI_Info_free
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Info_free MPI_Info_free
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Info_free as PMPI_Info_free
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define __MPIO_BUILD_PROFILING
+#include "mpioprof.h"
+#endif
 
 /*@
     MPI_Info_free - Frees an info object

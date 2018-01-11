@@ -4,7 +4,56 @@
 #include "mpimem.h"
 #include "mpifort.h"
 
-#ifdef MPI_BUILD_PROFILING
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_TESTALL = PMPI_TESTALL
+EXPORT_MPI_API void MPI_TESTALL ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_testall__ = pmpi_testall__
+EXPORT_MPI_API void mpi_testall__ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_testall = pmpi_testall
+EXPORT_MPI_API void mpi_testall ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint * );
+#else
+#pragma weak mpi_testall_ = pmpi_testall_
+EXPORT_MPI_API void mpi_testall_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_TESTALL  MPI_TESTALL
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_testall__  mpi_testall__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_testall  mpi_testall
+#else
+#pragma _HP_SECONDARY_DEF pmpi_testall_  mpi_testall_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_TESTALL as PMPI_TESTALL
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_testall__ as pmpi_testall__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_testall as pmpi_testall
+#else
+#pragma _CRI duplicate mpi_testall_ as pmpi_testall_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_testall_ PMPI_TESTALL
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -14,7 +63,9 @@
 #else
 #define mpi_testall_ pmpi_testall_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_testall_ MPI_TESTALL
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -24,23 +75,19 @@
 #endif
 #endif
 
+
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_testall_ ANSI_ARGS(( MPI_Fint *, MPI_Fint [], MPI_Fint *, 
+EXPORT_MPI_API void mpi_testall_ ANSI_ARGS(( MPI_Fint *, MPI_Fint [], MPI_Fint *, 
                               MPI_Fint [][MPI_STATUS_SIZE],
 			      MPI_Fint * ));
 
-void mpi_testall_( count, array_of_requests, flag, array_of_statuses, __ierr )
-MPI_Fint *count;
-MPI_Fint array_of_requests[];
-MPI_Fint *flag;
-MPI_Fint array_of_statuses[][MPI_STATUS_SIZE];
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_testall_( MPI_Fint *count, MPI_Fint array_of_requests[], MPI_Fint *flag, MPI_Fint array_of_statuses[][MPI_STATUS_SIZE], MPI_Fint *__ierr )
 {
     int lflag;
     int i;
-    MPI_Request *lrequest;
+    MPI_Request *lrequest = 0;
     MPI_Request local_lrequest[MPIR_USE_LOCAL_ARRAY];
-    MPI_Status *c_status;
+    MPI_Status *c_status = 0;
     MPI_Status local_c_status[MPIR_USE_LOCAL_ARRAY];
 
     if ((int)*count > 0) {

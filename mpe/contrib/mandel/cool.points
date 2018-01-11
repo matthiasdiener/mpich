@@ -23,6 +23,9 @@
   -rmin -.743025 -rmax -.742475 -imin .0996875 -imax .1002375 -maxiter 1000
 #NW crack
 
+-rmin -0.06661093186739318 -imin 0.66584839707015930 -rmax -0.06661087654348632 -imax 0.66584845239406609 -maxiter 1000
+#double spiral 
+
  -rmin -.7455 -rmax -.7505 -imin .0975 -imax .1025 -maxiter 500
 #spiderweb
 

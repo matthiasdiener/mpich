@@ -1,5 +1,5 @@
 /*
- *  $Id: errorstring.c,v 1.6 1998/07/01 19:56:09 gropp Exp $
+ *  $Id: errorstring.c,v 1.11 1999/08/30 15:45:35 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,25 @@
 
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Error_string = PMPI_Error_string
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Error_string  MPI_Error_string
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Error_string as PMPI_Error_string
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #if defined(STDC_HEADERS) || defined(HAVE_STRING_H)
 #include <string.h>
 #endif
@@ -36,13 +55,11 @@ with the routine 'MPI_Error_class'.
 
 .N fortran
 @*/
-int MPI_Error_string( errorcode, string, resultlen )
-int  errorcode, *resultlen;
-char *string;
+EXPORT_MPI_API int MPI_Error_string( int errorcode, char *string, int *resultlen )
 {
     int error_case = errorcode & ~MPIR_ERR_CLASS_MASK;
     int mpi_errno = MPI_SUCCESS;
-    char *newmsg;
+    const char *newmsg;
 
 /* 
    error_case contains any additional details on the cause of the error.
@@ -50,7 +67,8 @@ char *string;
    
  */
 
-string[0] = 0;
+    string[0] = 0;
+#ifdef OLD_ERRMSG
 switch (errorcode & MPIR_ERR_CLASS_MASK) {
     case MPI_SUCCESS:
         strcpy( string, "No error" );
@@ -345,7 +363,10 @@ if (error_case != 0) {
 
 /* Now we have the default message.  Try to get a better one */
 MPIR_GetErrorMessage( errorcode, string, &newmsg );
-
+#else
+MPIR_GetErrorMessage( errorcode, string, &newmsg );
+/* newmsg = MPIR_Err_map_code_to_string( errorcode ); */
+#endif
 if (newmsg) {
     strcpy( string, newmsg );
 }

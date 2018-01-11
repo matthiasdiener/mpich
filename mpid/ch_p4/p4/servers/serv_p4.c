@@ -133,11 +133,11 @@ int main ANSI_ARGS(( int, char ** ));
  */
 
 int stdin_fd	= 0;
-FILE *stdin_fp	= stdin;
+FILE *stdin_fp  = 0; /*	= stdin; */
 int stdout_fd	= 1;
-FILE *stdout_fp	= stdout;
+FILE *stdout_fp = 0; /*	= stdout; */
 int stderr_fd	= 2;
-FILE *stderr_fp	= stderr;
+FILE *stderr_fp = 0; /*	= stderr; */
 
 void reaper(sigval)
 int sigval;
@@ -161,6 +161,11 @@ char **argv;
     struct sockaddr_in name;
     int namelen;
     int pid;
+
+    /* Initialize the FILE handles */
+    stdin_fp	= stdin;
+    stdout_fp	= stdout;
+    stderr_fp	= stderr;
 
     daemon_pid = getpid();
 

@@ -2,6 +2,7 @@
 #undef MPI_BUILD_PROFILING
 #endif
 #include <stdio.h>
+#include "mpeconf.h"
 #include "mpi.h"
 
 #if defined(NEEDS_STDLIB_PROTOTYPES)

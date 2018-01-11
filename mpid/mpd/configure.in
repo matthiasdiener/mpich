@@ -1,0 +1,77 @@
+dnl
+dnl Caching is usually WRONG for systems with cross-mounted file systems
+dnl (the cache file may correspond to a different system).  Since configure
+dnl is not on a performance-critical path, go for robustness over speed.
+dnl
+define([AC_CACHE_LOAD], )dnl
+define([AC_CACHE_SAVE], )dnl
+dnl
+dnl
+AC_INIT()
+#
+print_error() {
+    echo "*# $*" 2>&1 ;
+    }
+echo "Configuring mpd with args $ac_configure_args"
+#
+OPTFLAGS=""
+#
+# Standard directories
+#
+AC_ARG_WITH( cc, [--with-cc=CC           - C compiler], CC="$withval")
+#
+AC_ARG_WITH( opt, [--with-opt=OPTFLAGS           - supply optional flags to
+the C compiler], OPTFLAGS="$withval")
+#
+AC_ARG_WITH( top_srcdir, [--with-top_srcdir=top_src  - top level code of
+MPICH (if using MPICH), or just the source directory where the mpd code is installled ], top_src="$withval")
+#
+if test -z "$top_src" -o "$top_src" = "." ; then 
+    top_src=$srcdir
+fi
+AC_SUBST(top_src)
+#
+if test -z "$libdir" ; then libdir="$top_src/lib" ; fi
+AC_SUBST(libdir)
+#
+# Never override an environment variable with a particular choice if you
+# can help it
+MAKE=${MAKE:-make}
+#
+dnl Checks for programs.
+if test -z $CC  ; then
+    AC_PROG_CC
+fi
+AC_PROG_LN_S
+#
+dnl Checks for libraries.
+#
+dnl Checks for header files.
+AC_HEADER_STDC
+AC_HEADER_SYS_WAIT
+AC_CHECK_HEADERS(fcntl.h strings.h sys/time.h unistd.h)
+AC_CHECK_LIB(socket,socket)
+AC_CHECK_LIB(nsl,gethostbyname)
+#
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_TYPE_PID_T
+AC_HEADER_TIME
+#
+dnl Checks for library functions.
+AC_FUNC_VPRINTF
+AC_CHECK_FUNCS(getcwd gethostname gettimeofday select socket)
+#
+dnl Determine mpd home directory.
+MPD_HOME=`pwd`
+AC_SUBST(MPD_HOME)dnl
+AC_SUBST(CC)
+AC_SUBST(OPTFLAGS)
+AC_SUBST(MAKE)
+AC_SUBST(VPATH)
+# Ensure that there are no file that can interfere with VPATH builds
+# Regrettably, top_srcdir isn't set yet (!).
+# We can use ac_confdir
+rm -f ${ac_confdir}/mpd.h ${ac_confdir}/mpdcon ${ac_confdir}/startdaemons
+AC_OUTPUT(Makefile mpd.h startdaemons)
+chmod +x startdaemons
+

@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2cancel.c,v 1.2 1998/04/10 17:44:13 gropp Exp $
+ *  $Id: adi2cancel.c,v 1.4 1999/10/18 21:20:05 swider Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -7,6 +7,7 @@
 
 #include "mpid.h"
 #include "mpiddev.h"
+#include "mpimem.h"
 #include "../util/queue.h"
 
 /*
@@ -20,16 +21,46 @@
 void MPID_SendCancel( request, error_code )
 MPI_Request request;
 int         *error_code;
-{
-    *error_code = MPI_SUCCESS;
-    /* This isn't really correct */
-}
 
+{  /* begin MPID_SendCancel */
+
+    MPIR_SHANDLE *shandle = &request->shandle;
+
+    DEBUG_PRINT_MSG("S Starting SendCancel");
+
+    shandle->is_cancelled = 0;
+    shandle->cancel_complete = 0;
+
+    MPID_SendCancelPacket(&request, error_code); 
+
+    if (*error_code == MPI_SUCCESS) {   /* begin if !fail */
+	while (!shandle->cancel_complete) {  /* begin while */
+	    MPID_DeviceCheck( MPID_BLOCKING );
+	}
+
+	if (shandle->is_cancelled) { 
+	    if (shandle->finish)
+		(shandle->finish)(shandle);  
+	    if (shandle->handle_type == MPIR_PERSISTENT_SEND) {
+		MPIR_PSHANDLE *pshandle = (MPIR_PSHANDLE *)request;
+		pshandle->active = 0; 
+	    }
+	}
+
+    }  /* end if !fail */
+
+    DEBUG_PRINT_MSG("E Exiting SendCancel");
+}  /* end MPID_SendCancel */
+
+ 
 void MPID_RecvCancel( request, error_code )
 MPI_Request request;
 int         *error_code;
 {
-    MPIR_RHANDLE *rhandle = (MPIR_RHANDLE *)request;
+
+    MPIR_RHANDLE *rhandle = &request->rhandle;
+
+    DEBUG_PRINT_MSG("S Starting RecvCancel"); 
 
     /* First, try to find in pending receives */
     if (MPID_Dequeue( &MPID_recvs.posted, rhandle ) == 0) {
@@ -38,27 +69,22 @@ int         *error_code;
 	/* Mark it as complete */
 	rhandle->is_complete = 1;
 	/* Should we call finish to free any space?  cancel? */
-
+	if (rhandle->finish)
+	    (rhandle->finish)( rhandle ); 
 	/* Note that the request is still active until we complete it with
 	   a wait/test operation */
-#ifdef FOO
-	if (rhandle->handle_type == MPIR_PERSISTENT_RECV) {
-	    MPIR_PRHANDLE *prhandle = (MPIR_PRHANDLE *)request;
-	    prhandle->active = 0;
-	}
-#endif
     }
-    else {
-	/* Mark the request as not cancelled */
-	/* tag is already set >= 0 as part of receive */
-	/* rhandle->s.tag = 0; */
-	;
-        /* What to do about an inactive persistent receive? */
+    if (rhandle->handle_type == MPIR_PERSISTENT_RECV) {
+	MPIR_PRHANDLE *prhandle = (MPIR_PRHANDLE *)request;
+	prhandle->active = 0; 
     }
+    /* Mark the request as not cancelled */
+    /* tag is already set >= 0 as part of receive */
+    /* rhandle->s.tag = 0; */
+    /* What to do about an inactive persistent receive? */
 
     /* In the case of a partly completed rendezvous receive, we might
        want to do something */
     *error_code = MPI_SUCCESS;
+    DEBUG_PRINT_MSG("E Exiting RecvCancel");
 }
-
-

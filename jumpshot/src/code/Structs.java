@@ -17,7 +17,8 @@ import com.sun.java.swing.*;
  * This is a static class which stores all global constants.
  */
 class CONST {
-  public static final int CLOG_BLOCK_SIZE = 1024;
+  /*  public static final int CLOG_BLOCK_SIZE = 1024;  */
+  public static final int CLOG_BLOCK_SIZE = 65536;
   public static final int CLOG_ENDLOG   = -2;
   public static final int CLOG_ENDBLOCK = -1;
   public static final int CLOG_UNDEF    =  0;

@@ -16,11 +16,15 @@
 #include <stdlib.h>
 #include "mpi.h"
 
+#ifdef HAVE_MPICHCONF_H
+#include "mpichconf.h"
+#endif
+
 static int src = 1;
 static int dest = 0;
 
 #define MAX_TYPES 12
-#if defined(HAVE_LONG_DOUBLE)
+#if defined(HAVE_LONG_DOUBLE) && (!defined HAS_XDR)
 static int ntypes = 12;
 static MPI_Datatype BasicTypes[12];
 #else
@@ -32,17 +36,17 @@ static int maxbufferlen = 10000;
 static int stdbufferlen = 300;
 
 /* Prototypes to keep compilers quiet */
-void AllocateBuffers ANSI_ARGS(( void **, MPI_Datatype *, int, int ));
-void FreeBuffers ANSI_ARGS(( void **, int ));
-void FillBuffers ANSI_ARGS(( void **, MPI_Datatype *, int, int ));
-int CheckBuffer ANSI_ARGS(( void *, MPI_Datatype, int ));
-void SetupBasicTypes ANSI_ARGS((void));
-void SenderTest1 ANSI_ARGS((void));
-void ReceiverTest1 ANSI_ARGS((void));
-void SenderTest2 ANSI_ARGS((void));
-void ReceiverTest2 ANSI_ARGS((void));
-void SenderTest3 ANSI_ARGS((void));
-void ReceiverTest3 ANSI_ARGS((void));
+void AllocateBuffers ( void **, MPI_Datatype *, int, int );
+void FreeBuffers ( void **, int );
+void FillBuffers ( void **, MPI_Datatype *, int, int );
+int CheckBuffer ( void *, MPI_Datatype, int );
+void SetupBasicTypes (void);
+void SenderTest1 (void);
+void ReceiverTest1 (void);
+void SenderTest2 (void);
+void ReceiverTest2 (void);
+void SenderTest3 (void);
+void ReceiverTest3 (void);
 
 void 
 AllocateBuffers(bufferspace, buffertypes, num_types, bufferlen)
@@ -73,7 +77,7 @@ int bufferlen;
 	    bufferspace[i] = malloc(bufferlen * sizeof(float));
 	else if (buffertypes[i] == MPI_DOUBLE)
 	    bufferspace[i] = malloc(bufferlen * sizeof(double));
-#if defined(HAVE_LONG_DOUBLE)
+#if defined(HAVE_LONG_DOUBLE)  && (!defined HAS_XDR)
 	else if (MPI_LONG_DOUBLE && buffertypes[i] == MPI_LONG_DOUBLE) {
 	    int dlen;
 	    MPI_Type_size( MPI_LONG_DOUBLE, &dlen );
@@ -125,7 +129,7 @@ int bufferlen;
 		((float *)bufferspace[i])[j] = (float)j;
 	    else if (buffertypes[i] == MPI_DOUBLE)
 		((double *)bufferspace[i])[j] = (double)j;
-#if defined(HAVE_LONG_DOUBLE)
+#if defined(HAVE_LONG_DOUBLE)  && (!defined HAS_XDR)
 	    else if (MPI_LONG_DOUBLE && buffertypes[i] == MPI_LONG_DOUBLE)
 		((long double *)bufferspace[i])[j] = (long double)j;
 #endif
@@ -159,7 +163,7 @@ int bufferlen;
 	    if (((unsigned char *)bufferspace)[j] != (unsigned char)j)
 		return 1;
 	} else if (buffertype == MPI_UNSIGNED_SHORT) {
-	    if (((unsigned short *)bufferspace)[j] != (unsigned short)j)
+       	    if (((unsigned short *)bufferspace)[j] != (unsigned short)j)
 		return 1;
 	} else if (buffertype == MPI_UNSIGNED) {
 	    if (((unsigned int *)bufferspace)[j] != (unsigned int)j)
@@ -173,7 +177,7 @@ int bufferlen;
 	} else if (buffertype == MPI_DOUBLE) {
 	    if (((double *)bufferspace)[j] != (double)j)
 		return 1;
-#if defined(HAVE_LONG_DOUBLE)
+#if defined(HAVE_LONG_DOUBLE)  && (!defined HAS_XDR)
 	} else if (MPI_LONG_DOUBLE && buffertype == MPI_LONG_DOUBLE) {
 	    if (((long double *)bufferspace)[j] != (long double)j)
 		return 1;
@@ -198,7 +202,7 @@ void SetupBasicTypes()
     BasicTypes[7] = MPI_UNSIGNED_LONG;
     BasicTypes[8] = MPI_FLOAT;
     BasicTypes[9] = MPI_DOUBLE;
-#if defined (HAVE_LONG_DOUBLE)
+#if defined (HAVE_LONG_DOUBLE) && (!defined HAS_XDR)
     if (MPI_LONG_DOUBLE) {
 	BasicTypes[10] = MPI_LONG_DOUBLE;
 	BasicTypes[11] = MPI_BYTE;
@@ -210,8 +214,6 @@ void SetupBasicTypes()
 #else
     BasicTypes[10] = MPI_BYTE;
 #endif
-
-
 }
 
 void 
@@ -257,7 +259,6 @@ ReceiverTest1()
     AllocateBuffers(bufferspace, BasicTypes, ntypes, maxbufferlen);
     for (i = 0; i < ntypes; i++) {
 	passed = 1;
-
 	/* Try different sized messages */
 	for (j = 0; j < maxbufferlen; j += 500) {
 	    /* Skip null datatypes */
@@ -471,7 +472,7 @@ main( int argc, char **argv)
     if (mysize != 2) {
 	fprintf(stderr, 
 		"*** This test program requires exactly 2 processes.\n");
-	exit(-1);
+	MPI_Abort( MPI_COMM_WORLD, 1 );
     }
     
     /* Turn stdout's buffering to line buffered so it mixes right with
@@ -481,11 +482,11 @@ main( int argc, char **argv)
     if (myrank == src) {
 	SenderTest1();
 	SenderTest2();
-	SenderTest3(); 
+	SenderTest3();  
     } else if (myrank == dest) {
 	ReceiverTest1();
 	ReceiverTest2();
-	ReceiverTest3();
+	ReceiverTest3(); 
     } else {
 	fprintf(stderr, "*** This program uses exactly 2 processes! ***\n");
 	exit(-1);

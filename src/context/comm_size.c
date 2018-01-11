@@ -1,11 +1,30 @@
 /*
- *  $Id: comm_size.c,v 1.1.1.1 1997/09/17 20:41:39 gropp Exp $
+ *  $Id: comm_size.c,v 1.6 1999/08/30 15:43:02 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Comm_size = PMPI_Comm_size
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Comm_size  MPI_Comm_size
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Comm_size as PMPI_Comm_size
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 
 /*@
@@ -28,22 +47,21 @@ Notes:
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-int MPI_Comm_size ( comm, size )
-MPI_Comm comm;
-int *size;
+EXPORT_MPI_API int MPI_Comm_size ( MPI_Comm comm, int *size )
 {
-    int mpi_errno;
+    int mpi_errno = MPI_SUCCESS;
     struct MPIR_COMMUNICATOR *comm_ptr;
     static char myname[] = "MPI_COMM_SIZE";
 
     comm_ptr = MPIR_GET_COMM_PTR(comm);
-    MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname );
 
-    if (MPIR_TEST_ARG(size) ) {
+#ifndef MPIR_NO_ERROR_CHECKING
+    MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname );
+    MPIR_TEST_ARG(size);
+    if (mpi_errno)
 	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
-    }
-    else 
-	(*size) = comm_ptr->local_group->np;
+#endif
+    (*size) = comm_ptr->local_group->np;
 
     return (MPI_SUCCESS);
 }

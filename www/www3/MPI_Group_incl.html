@@ -10,9 +10,7 @@ Produces a group by reordering an existing group and taking only listed members
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Group_incl ( group, n, ranks, group_out )
-MPI_Group group, *group_out;
-int       n, *ranks;
+int MPI_Group_incl ( MPI_Group group, int n, int *ranks, MPI_Group *group_out )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

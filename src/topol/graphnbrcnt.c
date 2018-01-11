@@ -1,11 +1,30 @@
 /*
- *  $Id: graphnbrcnt.c,v 1.2 1998/04/29 14:28:52 swider Exp $
+ *  $Id: graphnbrcnt.c,v 1.7 1999/08/30 15:51:13 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Graph_neighbors_count = PMPI_Graph_neighbors_count
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Graph_neighbors_count  MPI_Graph_neighbors_count
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Graph_neighbors_count as PMPI_Graph_neighbors_count
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpitopo.h"
 
 /*@
@@ -29,10 +48,7 @@ Output Parameter:
 .N MPI_ERR_ARG
 .N MPI_ERR_RANK
 @*/
-int MPI_Graph_neighbors_count ( comm, rank, nneighbors )
-MPI_Comm  comm;
-int       rank;
-int      *nneighbors;
+EXPORT_MPI_API int MPI_Graph_neighbors_count ( MPI_Comm comm, int rank, int *nneighbors )
 {
   int mpi_errno = MPI_SUCCESS;
   int flag;
@@ -42,20 +58,25 @@ int      *nneighbors;
 
   TR_PUSH(myname);
   comm_ptr = MPIR_GET_COMM_PTR(comm);
-  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
-  if (((rank <  0) && (mpi_errno = MPI_ERR_RANK))  ||
-      MPIR_TEST_ARG(nneighbors))
-    return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+#ifndef MPIR_NO_ERROR_CHECKING
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+  if (rank < 0) mpi_errno = MPI_ERR_RANK; /* ??? */
+  MPIR_TEST_ARG(nneighbors);
+  if (mpi_errno)
+      return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
 
   /* Get topology information from the communicator */
   MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );
 
+#ifndef MPIR_NO_ERROR_CHECKING
   /* Check for valid topology */
   if ( ( (flag != 1)                  && (mpi_errno = MPI_ERR_TOPOLOGY))  ||
        ( (topo->type != MPI_GRAPH)    && (mpi_errno = MPI_ERR_TOPOLOGY))  ||
        ( (rank >= topo->graph.nnodes) && (mpi_errno = MPI_ERR_RANK))      )
     return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+#endif
 
   /* Get nneighbors */
   if ( rank == 0 ) 

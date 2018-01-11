@@ -1,11 +1,7 @@
-
-
-
-
 #include <stdio.h>
 
 #include "mpi.h"
-extern int __NUMNODES, __MYPROCID;static MPI_Status _mpi_status;static int _n, _MPILEN;
+#include "mpptest.h"
 
 /*
     This file contains routines to choose the "partners" given a distance or 
@@ -18,15 +14,15 @@ void SetPattern( argc, argv )
 int *argc;
 char **argv;
 {
-Pattern = RING;
+    Pattern = RING;
 
-if (SYArgHasName( argc, argv, 1, "-nbrring" ))  Pattern = RING;
-if (SYArgHasName( argc, argv, 1, "-nbrdbl" ))   Pattern = DOUBLE;
-if (SYArgHasName( argc, argv, 1, "-nbrhc" ))    Pattern = HYPERCUBE;
-if (SYArgHasName( argc, argv, 1, "-nbrshift" )) Pattern = SHIFT;
+    if (SYArgHasName( argc, argv, 1, "-nbrring" ))  Pattern = RING;
+    if (SYArgHasName( argc, argv, 1, "-nbrdbl" ))   Pattern = DOUBLE;
+    if (SYArgHasName( argc, argv, 1, "-nbrhc" ))    Pattern = HYPERCUBE;
+    if (SYArgHasName( argc, argv, 1, "-nbrshift" )) Pattern = SHIFT;
 }
 
-int GetMaxIndex( )
+int GetMaxIndex( void )
 {
 int i, cnt;
 switch (Pattern) {
@@ -90,9 +86,9 @@ switch (Pattern) {
 return loc;
 }
 
-PrintPatternHelp()
+void PrintPatternHelp( void )
 {
-fprintf( stderr, "\n\
+    fprintf( stderr, "\n\
 Pattern (Neighbor) choices:\n\
   -nbrring  - neighbors are +/- distance\n\
   -nbrdbl   - neighbors are +/- 2**distance\n\

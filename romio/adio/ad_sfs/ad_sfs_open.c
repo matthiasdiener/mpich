@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_sfs_open.c,v 1.2 1998/06/02 18:49:54 thakur Exp $    
+ *   $Id: ad_sfs_open.c,v 1.3 1999/08/06 18:32:33 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -34,12 +34,7 @@ void ADIOI_SFS_Open(ADIO_File fd, int *error_code)
 
     if ((fd->fd_sys != -1) && (fd->access_mode & ADIO_APPEND)) {
 	fd->fp_ind = llseek(fd->fd_sys, 0, SEEK_END);
-
 	fd->fp_sys_posn = fd->fp_ind;
-
-	MPI_Barrier(fd->comm);
-	/* the barrier ensures that no process races ahead and modifies
-           the file size before all processes have opened the file. */
     }
 
     *error_code = (fd->fd_sys == -1) ? MPI_ERR_UNKNOWN : MPI_SUCCESS;

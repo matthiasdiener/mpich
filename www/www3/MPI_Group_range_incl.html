@@ -10,9 +10,8 @@ Creates a new group from ranges of ranks in an  existing group
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Group_range_incl ( group, n, ranges, newgroup )
-MPI_Group group, *newgroup;
-int       n, ranges[][3];
+int MPI_Group_range_incl ( MPI_Group group, int n, int ranges[][3], 
+      MPI_Group *newgroup )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

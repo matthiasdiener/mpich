@@ -7,6 +7,7 @@
    The region has 6 parameters.  These are the dimensions of the actual frame.
  */
 
+#include "mpeconf.h"
 #include "mpetools.h"
 #include "basex11.h"
 

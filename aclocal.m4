@@ -24,7 +24,13 @@ else
 #include "confdefs.h"
 [$1]
 EOF
-    eval $compile
+    dnl This allows this script to work with both autoconf1 and 2
+    if test -n "$compile" ; then 
+        eval $compile
+    else
+	eval $ac_compile
+	eval $ac_link
+    fi
     if test ! -s conftest ; then
       echo "Could not build executable program:"
       echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
@@ -37,14 +43,12 @@ EOF
           ifelse([$2], , :, [$2
 ])
       else
-	if test [$2] != "MMAP=1"; then
-            echo "Execution of test program failed"
-	fi
         ifelse([$3], , , [$3
 ])
-        if test -s conftestout ; then
-            cat conftestout
-        fi
+	if test -s conftestout ; then cat conftestout >> config.log ; fi
+	echo "Test program was" >> config.log
+	cat conftest.c >> config.log
+        ifelse([$3], ,[echo "Execution of test program failed"])
       fi
     fi
   if test -n "$TESTCC" ; then
@@ -225,241 +229,6 @@ else
 fi
 ])dnl
 dnl
-dnl Define the test to look for wish (the tcl/tk windowing shell)
-dnl This is under development and is derived from the FINDX command
-dnl FIND_WISH looks in the path and in places that we've found wish.
-dnl It sets "wishloc" to the location that it found, or to the
-dnl empty string if it can't find wish.
-dnl Note that we need tk version 3.3 or later, so we don't check for the 
-dnl earlier versions
-dnl
-dnl Some systems are now (probably wisely, given the number of 
-dnl incompatibilities) using names like "wish4.2" or "wish-3.6" and the like.
-define(PAC_FIND_WISH,[wishloc=""
-AC_MSG_CHECKING([for wish])
-# Look for wish in the path
-IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
-for dir in $PATH ; do 
-    if test -x $dir/wish ; then
-	wishloc=$dir/wish
-        break
-    elif test -x $dir/tcl7.3-tk3.6/bin/wish ; then
-	wishloc=$dir/tcl7.3-tk3.6/bin/wish
-	break
-    elif test -x $dir/tcl7.4-tk4.0/bin/wish ; then
-        wishloc=$dir/tcl7.4-tk4.0/bin/wish
-	break
-    else
-	for file in $dir/wish3.? $dir/wish-3.? $dir/wish4.? $dir/wish* ; do
-	    if test -x $file ; then
-		wishloc=$file
-		break
-	    fi
-	if test -n "$wishloc" ; then break ; fi
-	done
-    fi
-done
-IFS="$saveifs"
-# Look for wish elsewhere
-if test -z "$wishloc" ; then
-for dir in \
-    /usr/local/bin \
-    /usr/local/tk-3.3/bin \
-    /usr/local/tcl7.3-tk3.6/bin \
-    /usr/local/tcl7.0/bin \
-    /usr/local/tcl7.0-tk3.3/bin \
-    /usr/contrib/bin \
-    /usr/contrib/tk3.6/bin \
-    /usr/contrib/tcl7.3-tk3.6/bin \
-    /usr/contrib/tk3.3/bin \
-    /usr/contrib/tcl7.0-tk3.3/bin \
-    $HOME/tcl/bin \
-    $HOME/tcl7.3/bin \
-    /opt/Tcl/bin \
-    /opt/bin \
-    /usr/unsupported \
-    /usr/unsupported/bin \
-    /usr/bin \
-    /bin \
-    /usr/sgitcl \
-    /local/encap/tcl-7.1/bin ; do
-    if test -x $dir/wish ; then
-	wishloc=$dir/wish
-        break
-    fi
-done
-fi
-if test -n "$wishloc" ; then 
-  AC_MSG_RESULT(found $wishloc)
-else
-  AC_MSG_RESULT(no)
-fi])dnl
-dnl
-dnl We can use wish to find tcl and tk libraries with
-dnl puts stdout $tk_library
-dnl tclsh can be used with 
-dnl puts stdout $tcl_library
-dnl
-dnl
-define(PAC_FIND_TCL,[
-# Look for Tcl
-if test -z "$TCL_DIR" ; then
-PAC_PROGRAM_CHECK(TCLSH,tclsh,1,,tclshloc)
-AC_MSG_CHECKING([for Tcl])
-# See if tclsh is in the path
-# If there is a tclsh, it MAY provide tk.
-if test -n "$tclshloc" ; then
-    cat >conftest <<EOF
-puts stdout [\$]tcl_library
-EOF
-    tcllibloc=`$tclshloc conftest 2>/dev/null`
-    # The tcllibloc is the directory containing the .tcl files.  
-    # The .a files may be one directory up
-    if test -n "$tcllibloc" ; then
-        tcllibloc=`dirname $tcllibloc`
-        # and the lib directory one above that
-        tcllibs="$tcllibloc `dirname $tcllibloc`"
-    fi
-    /bin/rm -f conftest   
-fi
-for dir in $tcllibs \
-    /usr \
-    /usr/local \
-    /usr/local/tcl7.5 \
-    /usr/local/tcl7.3 \
-    /usr/local/tcl7.3-tk3.6 \
-    /usr/local/tcl7.0 \
-    /usr/local/tcl7.0-tk3.3 \
-    /usr/local/tcl7.* \
-    /usr/contrib \
-    /usr/contrib/tk3.6 \
-    /usr/contrib/tcl7.3-tk3.6 \
-    /usr/contrib/tk3.3 \
-    /usr/contrib/tcl7.0-tk3.3 \
-    $HOME/tcl \
-    $HOME/tcl7.3 \
-    $HOME/tcl7.5 \
-    /opt/Tcl \
-    /opt/local \
-    /opt/local/tcl7.5 \
-    /opt/local/tcl7.* \
-    /usr/bin \
-    /Tools/tcl \
-    /usr/sgitcl \
-    /local/encap/tcl-7.1 ; do
-    if test -r $dir/include/tcl.h ; then 
-	# Check for correct version
-	changequote(,)
-	tclversion=`grep 'TCL_MAJOR_VERSION' $dir/include/tcl.h | \
-		sed -e 's/^.*TCL_MAJOR_VERSION[^0-9]*\([0-9]*\).*$/\1/'`
-	changequote([,])
-	if test "$tclversion" != "7" ; then
-	    # Skip if it is the wrong version
-	    continue
-	fi
-        if test -r $dir/lib/libtcl.a -o -r $dir/lib/libtcl.so ; then
- 	    TCL_DIR=$dir
-	    break
-        fi
-	for file in $dir/lib/libtcl*.a ; do
-	    if test -r $file ; then 
-                TCL_DIR_W="$TCL_DIR_W $file"
-	    fi
-	done
-    fi
-done
-fi
-if test -n "$TCL_DIR" ; then 
-  AC_MSG_RESULT(found $TCL_DIR/include/tcl.h and $TCL_DIR/lib/libtcl)
-else
-  if test -n "$TCL_DIR_W" ; then
-    AC_MSG_RESULT(found $TCL_DIR_W but need libtcl.a)
-  else
-    AC_MSG_RESULT(no)
-  fi
-fi
-# Look for Tk (look in tcl dir if the code is nowhere else)
-if test -z "$TK_DIR" ; then
-AC_MSG_CHECKING([for Tk])
-if test -n "$wishloc" ; then
-    # Originally, we tried to run wish and get the tkversion from it
-    # unfortunately, this sometimes hung, probably waiting to get a display
-#    cat >conftest <<EOF
-#puts stdout [\$]tk_library
-#exit
-#EOF
-#    tklibloc=`$wishloc -file conftest 2>/dev/null`
-    tklibloc=`strings $wishloc | grep 'lib/tk'`
-    # The tklibloc is the directory containing the .tclk files.  
-    # The .a files may be one directory up
-    # There may be multiple lines in tklibloc now.  Make sure that we only
-    # test actual directories
-    if test -n "$tklibloc" ; then
-	for tkdirname in $tklibloc ; do
-    	    if test -d $tkdirname ; then
-                tkdirname=`dirname $tkdirname`
-                # and the lib directory one above that
-                tklibs="$tkdirname `dirname $tkdirname`"
-	    fi
-	done
-    fi
-    /bin/rm -f conftest   
-fi
-for dir in $tklibs \
-    /usr \
-    /usr/local \
-    /usr/local/tk3.6 \
-    /usr/local/tcl7.3-tk3.6 \
-    /usr/local/tk3.3 \
-    /usr/local/tcl7.0-tk3.3 \
-    /usr/contrib \
-    /usr/contrib/tk3.6 \
-    /usr/contrib/tcl7.3-tk3.6 \
-    /usr/contrib/tk3.3 \
-    /usr/contrib/tcl7.0-tk3.3 \
-    $HOME/tcl \
-    $HOME/tcl7.3 \
-    /opt/Tcl \
-    /opt/local \
-    /opt/local/tk3.6 \
-    /usr/bin \
-    /Tools/tk \
-    /usr/sgitcl \
-    /local/encap/tk-3.4 $TCL_DIR ; do
-    if test -r $dir/include/tk.h ; then 
-	# Check for correct version
-	changequote(,)
-	tkversion=`grep 'TK_MAJOR_VERSION' $dir/include/tk.h | \
-		sed -e 's/^.*TK_MAJOR_VERSION[^0-9]*\([0-9]*\).*$/\1/'`
-	changequote([,])
-	if test "$tkversion" != "3" ; then
-	    # Skip if it is the wrong version
-	    continue
-	fi
-        if test -r $dir/lib/libtk.a -o -r $dir/lib/libtk.so ; then
-	    TK_DIR=$dir
-	    break
-	fi
-	for file in $dir/lib/libtk*.a ; do
-	    if test -r $file ; then 
-                TK_DIR_W="$TK_DIR_W $file"
-	    fi
-	done
-    fi
-done
-fi
-if test -n "$TK_DIR" ; then 
-  AC_MSG_RESULT(found $TK_DIR/include/tk.h and $TK_DIR/lib/libtk)
-else
-  if test -n "$TK_DIR_W" ; then
-    AC_MSG_RESULT(found $TK_DIR_W but need libtk.a (and version 3.6) )
-  else
-    AC_MSG_RESULT(no)
-  fi
-  AC_MSG_RESULT(no)
-fi
-])dnl
-dnl
 dnl Look for a non-standard library by looking in some named places.
 dnl Check for both foo.a and libfoo.a (and .so)
 dnl 
@@ -637,6 +406,8 @@ if test -z "$ac_echo_test" -a AC_FD_MSG = 1 ; then
 else
 [echo "$ac_t""$1" 1>&AC_FD_MSG]
 fi)dnl
+dnl AC_MSG_WARN(msg)
+define(AC_MSG_WARN,[AC_MSG(Warning: $1)])
 dnl
 dnl PAC_CHECK_HEADER(HEADER-FILE, ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND],
 dnl PRE-REQ-HEADERS )
@@ -720,7 +491,7 @@ cat > conftest.c <<EOF
 int main() { exit(0); }
 int t() { return 0; }
 EOF
-$CC $CFLAGS conftest.c -o conftest $LIBS
+${CC-cc} $CFLAGS conftest.c -o conftest $LIBS
 rm -f conftest* 
 #
 # End of output
@@ -729,10 +500,12 @@ fi
 ])dnl
 dnl
 dnl Check that the compile accepts ANSI prototypes.  Perform first arg if yes,
-dnl second if false
+dnl second if false.  Only test if it hasn't been tested for this compiler
+dnl (and flags) before
 dnl PAC_CHECK_CC_PROTOTYPES(true-action, false-action)
 dnl
 define(PAC_CHECK_CC_PROTOTYPES,[
+if test "$ac_cv_ccansi" != "$CC $CFLAGS" ; then
 AC_MSG_CHECKING(that the compiler $CC accepts ANSI prototypes)
 AC_COMPILE_CHECK(,[int f(double a){return 0;}],,eval "ac_cv_ccworks=yes",eval "ac_cv_ccworks=no")
 AC_MSG_RESULT($ac_cv_ccworks)
@@ -740,6 +513,8 @@ if test $ac_cv_ccworks = "yes" ; then
     ifelse([$1],,:,[$1])
 else
     ifelse([$2],,:,[$2])
+fi
+ac_cv_ccansi="$CC $CFLAGS"
 fi
 ])dnl
 dnl
@@ -757,6 +532,25 @@ else
     ifelse([$2],,:,[$2])
 fi
 ])dnl
+dnl
+dnl Check that the compile accepts ANSI CPP concatenation.  Perform first 
+dnl arg if yes, second if false
+dnl PAC_CHECK_CPP_CONCAT(true-action, false-action)
+dnl
+define(PAC_CHECK_CPP_CONCAT,[
+ac_pound="#"
+AC_MSG_CHECKING([that the compiler $CC accepts $ac_pound$ac_pound for concatenation in cpp])
+AC_COMPILE_CHECK(,[
+#define concat(a,b) a##b],[int concat(a,b);return ab;],
+eval "ac_cv_ccworks=yes",eval "ac_cv_ccworks=no")
+AC_MSG_RESULT($ac_cv_ccworks)
+if test $ac_cv_ccworks = "yes" ; then
+    ifelse([$1],,:,[$1])
+else
+    ifelse([$2],,:,[$2])
+fi
+])dnl
+
 dnl
 dnl Test the compiler to see if it actually works.  First, check to see
 dnl if the compiler works at all
@@ -840,9 +634,10 @@ if test -d $CCBUGS ; then
         CFILE=`basename $file .c`
         AC_MSG_CHECKING(`cat $CCBUGS/$CFILE.title`)
         cp $file conftest.c
-        if eval $CC $CFLAGS \
+	echo "${CC-cc} $CFLAGS ... test for quotes in defn" >>config.log
+        if eval ${CC-cc} $CFLAGS \
 	    -DCONFIGURE_ARGS_CLEAN="'"'"'-A -B'"'"'" -c \
-	    conftest.c $LIBS > /dev/null 2>&1 ; then
+	    conftest.c $LIBS >> config.log 2>&1 ; then
 	    AC_MSG_RESULT(yes)
 	    true 
 	else
@@ -1115,10 +910,11 @@ fi
 str=""
 ])dnl
 dnl
+dnl This make does not support "include filename"
 dnl PAC_MAKE_IS_BSD44([true text])
 dnl
 define(PAC_MAKE_IS_BSD44,[
-AC_MSG_CHECKING(BSD 4.4 make)
+AC_MSG_CHECKING(whether make supports include)
 /bin/rm -f conftest
 cat > conftest <<.
 ALL:
@@ -1130,13 +926,13 @@ include conftest
 str=`$MAKE -f conftest1 2>&1`
 /bin/rm -f conftest conftest1
 if test "$str" != "success" ; then
-    AC_MSG_RESULT(Found BSD 4.4 so-called make)
-    echo "The BSD 4.4 make is INCOMPATIBLE with all other makes."
-    echo "Using this so-called make may cause problems when building programs."
-    echo "You should consider using gnumake instead."
+    AC_MSG_RESULT(no)
+dnl    echo "The BSD 4.4 make is INCOMPATIBLE with all other makes."
+dnl    echo "Using this so-called make may cause problems when building programs."
+dnl    echo "You should consider using gnumake instead."
     ifelse([$1],,[$1])
 else
-    AC_MSG_RESULT(no - whew)
+    AC_MSG_RESULT(yes)
 fi
 str=""
 ])dnl
@@ -1164,6 +960,51 @@ else
     AC_MSG_RESULT(no)
 fi
 str=""
+])dnl
+dnl
+dnl Look for a style of VPATH.  Known forms are
+dnl VPATH = .:dir
+dnl .PATH: . dir
+dnl
+dnl Defines VPATH or .PATH with . $(srcdir)
+dnl Requires that vpath work with implicit targets
+dnl NEED TO DO: Check that $< works on explicit targets.
+dnl
+define(PAC_MAKE_VPATH,[
+AC_SUBST(VPATH)
+AC_MSG_CHECKING(for virtual path format)
+rm -rf conftest*
+mkdir conftestdir
+cat >conftestdir/a.c <<EOF
+A sample file
+EOF
+cat > conftest <<EOF
+all: a.o
+VPATH=.:conftestdir
+.c.o:
+	@echo \$<
+EOF
+ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
+if test -n "$ac_out" ; then 
+    AC_MSG_RESULT(VPATH)
+    VPATH='VPATH=.:$(srcdir)'
+else
+    rm -f conftest
+    cat > conftest <<EOF
+all: a.o
+.PATH: . conftestdir
+.c.o:
+	@echo \$<
+EOF
+    ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
+    if test -n "$ac_out" ; then 
+        AC_MSG_RESULT(.PATH)
+        VPATH='.PATH: . $(srcdir)'
+    else
+	AC_MSG_RESULT(neither VPATH nor .PATH works)
+    fi
+fi
+rm -rf conftest*
 ])dnl
 dnl
 dnl Here begins macros for setting defaults for specific systems.
@@ -1247,7 +1088,11 @@ case $1 in
                     CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3e -DT3E" ; GCC="" 
                     if test -z "$USERCLINKER" ; then 
 	            CLINKER="$CC -Tcray-t3e" ; fi ;;
-   hpux) if test "`which ${CC-cc}`" = "/usr/convex/bin/cc" ; then 
+   hpux)
+	# For some systems, the (linker) option 
+        #  -Wl,+vnocompatwarnings 
+	# will suppress warning messages about versions of object files.
+	if test "`which ${CC-cc}`" = "/usr/convex/bin/cc" ; then 
         CFLAGS="$CFLAGS -or none -U_REENTRANT -D_POSIX_SOURCE -D_HPUX_SOURCE -DMPI_cspp"
          elif test "$CC" != "gcc" ; then
 	    # If cflags includes -Ae or -Aa, we don't need to add -Aa
@@ -1263,6 +1108,9 @@ case $1 in
  	            PAC_CHECK_COMPILER_OPTION(-Aa,hasarg=1)
 		    if test -n "$hasarg" ; then
 			CFLAGS="$CFLAGS -Aa"
+			AaOPT=1
+		    else
+			AaOPT=0
 		    fi
                 fi
 	    fi
@@ -1273,7 +1121,9 @@ case $1 in
             P4_CFLAGS="-D_POSIX_SOURCE -D_HPUX_SOURCE"
 	    # We MUST have an ANSI compiler for HPUX, even for USER code
 	    # If the regular cpp worked, we would not need to do this.
- 	    PAC_CHECK_COMPILER_OPTION(-Aa,AaOPT=1,AaOPT=0)
+	    if test -z "$AaOPT" ; then
+   	        PAC_CHECK_COMPILER_OPTION(-Aa,AaOPT=1,AaOPT=0)
+            fi
 	    if test "$AaOPT" = 1 ; then
 	       USER_CFLAGS="$USER_CFLAGS -Aa"
 	    fi
@@ -1355,11 +1205,15 @@ case $1 in
       fi
       ;;
     *)
-      CCval=""
-      # Pick the vendor's cc ahead of gcc.
-      PAC_PROGRAMS_CHECK(CCval,cc gcc)
-      if test -n "$CCval" ; then
-	 CC=$CCval
+      # If no CC has yet been set:
+      if test -z "$CC" ; then
+          CCval=""
+          # Pick the vendor's cc ahead of gcc.
+          PAC_PROGRAMS_CHECK(CCval,cc gcc pgcc)
+          # For pgcc, we might want to add -Muchar (char == unsigned char)
+          if test -n "$CCval" ; then
+	      CC=$CCval
+	  fi
       fi
       ;;
 esac
@@ -1541,7 +1395,20 @@ EOF
     ncube)   F77=nf77 ;;
     rs6000)  F77=xlf ;;
     LINUX|linux) 
-      PAC_PROGRAMS_CHECK(F77,f77 fort77 g77)
+      PAC_PROGRAMS_CHECK(FCval,f77 fort77 g77 pgf77)
+      if test "$FCval" != "$F77" -a "$USERF77" != 1 ; then 
+  	  F77="$FCval"
+      fi
+      # For pgf77, some people use fflags="-tp p6 -Msignextend"
+      ;;
+    *)
+      # Fujitsu Fortran is frt
+      # We must use an FCval (undefined variable) to ensure
+      # that we make the tests
+      PAC_PROGRAMS_CHECK(FCval,f77 g77 fort77 frt,,,F77FULL)
+      if test "$FCval" != "$F77" -a "$USERF77" != 1 ; then 
+  	  F77="$FCval"
+      fi
       ;;
 esac
 fi
@@ -1552,7 +1419,13 @@ fi
 # Check that the Fortran compiler is actually available:
 HAS_F77=
 if test -n "$F77" ; then
-    PAC_PROGRAM_CHECK(HAS_F77,$F77,1,0,F77FULL)
+    if test -z "$F77FULL" ; then
+        PAC_PROGRAM_CHECK(HAS_F77,$F77,1,0,F77FULL)
+    else
+	if test -x $F77FULL ; then
+	    HAS_F77=1
+	fi
+    fi
     # if test -n "$F77FULL" ; then
 	# Really should replace with full path....
         # but would need to capture arguments as well...
@@ -1591,7 +1464,8 @@ define(PAC_GET_FORTNAMES,[
        return
        end
 EOF
-   $F77 $FFLAGS -c confftest.f > /dev/null 2>&1
+   echo "$F77 $FFLAGS -c confftest.f" >> config.log
+   $F77 $FFLAGS -c confftest.f >> config.log 2>&1
    if test ! -s confftest.o ; then
         print_error "Unable to test Fortran compiler"
         print_error "(compiling a test program failed to produce an "
@@ -1881,14 +1755,24 @@ EOF
 dnl Don't try to run the program, which would prevent cross-configuring.
 if eval $compile; then
   ifelse([$1], , , [AC_MSG_RESULT(yes)])
-  ifelse([$4], , :, [rm -rf conftest*
+  ifelse([$4], , :, [
   $4
 ])
 ifelse([$5], , , [else
-  rm -rf conftest*
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
   $5
 ])dnl
-   ifelse([$1], , , ifelse([$5], ,else) [AC_MSG_RESULT(no)])
+   ifelse([$1], , , ifelse([$5], ,else) [AC_MSG_RESULT(no)]
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+)
 fi
 rm -f conftest*]
 )dnl
@@ -1915,16 +1799,20 @@ cat > conftest.c <<EOF
 [$2]
 EOF
 dnl Don't try to run the program, which would prevent cross-configuring.
-if eval $compile; then
+if test -z "$ac_compile_link" ; then 
+    ac_compile_link='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+fi
+echo "$ac_compile_link" >>config.log
+cat conftest.c >>config.log
+if eval $ac_compile_link; then
   ifelse([$1], , , [AC_MSG_RESULT(yes)])
   ifelse([$3], , :, [rm -rf conftest*
   $3
 ])
-ifelse([$4], , , [else
-  rm -rf conftest*
-  $4
-])dnl
-   ifelse([$1], , , ifelse([$4], ,else) [AC_MSG_RESULT(no)])
+else
+    rm -rf conftest*
+    ifelse([$4], , , $4)
+    ifelse([$1], , , [AC_MSG_RESULT(no)])
 fi
 rm -f conftest*]
 )dnl
@@ -1984,12 +1872,18 @@ cat > conftest.f <<EOF
        include 'conftestf.h'
        end
 EOF
-if $F77 $FFLAGS -c -I$1 conftest.f > /dev/null 2>&1 ; then
+echo "$F77 $FFLAGS -c -I$1 conftest.f" >> config.log
+if $F77 $FFLAGS -c -I$1 conftest.f >> config.log 2>&1 ; then
+    FINCARG="-I"
     ifelse($2,,true,$2)
     AC_MSG_RESULT([supports -I for include])
+elif $F77 $FFLAGS -c -Wf,-I$1 conftest.f >> config.log 2>&1 ; then
+    FINCARG="-Wf,-I"
+    ifelse($2,,true,$2)
+    AC_MSG_RESULT([supports -Wf,-I for include])
 else
     ifelse($3,,true,$3)
-    AC_MSG_RESULT([does NOT support -I for include])
+    AC_MSG_RESULT([does NOT support -I or -Wf,-I for include])
 fi
 /bin/rm -f conftest.f $1/conftestf.h
 ])dnl
@@ -2008,7 +1902,8 @@ cat <<EOF > conftestf.f
       call cisize( i(1), i(2) )
       end
 EOF
-if $F77 $FFLAGS -c conftestf.f >/dev/null 2>&1 ; then 
+echo "$F77 $FFLAGS -c conftestf.f" >>config.log
+if $F77 $FFLAGS -c conftestf.f >>config.log 2>&1 ; then 
     SaveLIBS="$LIBS"
     LIBS="conftestf.o $LIBS"
     PAC_TEST_PROGRAM([#include <stdio.h>
@@ -2040,7 +1935,8 @@ fi
 if test -z "$Pac_CV_NAME" ; then
     # Try to compile/link with the Fortran compiler instead.  This
     # worked for the NEC SX-4
-    compile_f='${CC-cc} $CFLAGS -c conftest.c; ${F77-f77} $FFLAGS -o conftest conftest.o $LIBS >/dev/null 2>&1'
+    compile_f='${CC-cc} $CFLAGS -c conftest.c; ${F77-f77} $FFLAGS -o conftest conftest.o $LIBS >config.log 2>&1'
+    echo "$compile_f" >> config.log
     eval $compile_f
     if test ! -s conftest ; then 
 	echo "Could not build executable program:"
@@ -2076,7 +1972,8 @@ cat <<EOF > conftestf.f
       call cisize( i(1), i(2) )
       end
 EOF
-if $F77 $FFLAGS -c conftestf.f >/dev/null 2>&1 ; then 
+echo "$F77 $FFLAGS -c conftestf.f" >>config.log
+if $F77 $FFLAGS -c conftestf.f >>config.log 2>&1 ; then 
     SaveLIBS="$LIBS"
     LIBS="conftestf.o $LIBS"
     PAC_TEST_PROGRAM([#include <stdio.h>
@@ -2125,7 +2022,8 @@ cat > conftest.f <<EOF
 !      This is a comment
        end
 EOF
-if $F77 $FFLAGS -c conftest.f > /dev/null 2>&1 ; then
+echo "$F77 $FFLAGS -c conftest.f" >>config.log
+if $F77 $FFLAGS -c conftest.f >> config.log 2>&1 ; then
     ifelse($1,,true,$1)
     AC_MSG_RESULT([yes])
 else
@@ -2134,6 +2032,86 @@ else
 fi
 /bin/rm -f conftest.f
 ])dnl
+dnl
+dnl tries to determine the Fortran 90 kind parameter for 8-byte integers
+dnl
+dnl Set decimal digits to 2 for int*1, 4 for int*2, 8 (or 9) for int*4, and
+dnl 16 to 18 for int*8.  If not set, it assumes 16.
+dnl PAC_FORTRAN_INT_KIND([variable to set to kind value],[decimal digits])
+dnl The value is -1 if it is not available
+dnl The second arg is the number of BYTES
+define(PAC_FORTRAN_INT_KIND,[
+AC_MSG_CHECKING([for Fortran 90 KIND parameter for ifelse($2,,8-byte,$2-byte) integers])
+# We need to evaluate the second arg, which may be a runtime value
+sellen="$2"
+if test -z "$sellen" ; then 
+    sellen=16
+else 
+    # Convert bytes to digits
+    case $sellen in 
+	1) sellen=2 ;;
+	2) sellen=4 ;;
+	4) sellen=8 ;;
+	8) sellen=16 ;;
+	16) sellen=30 ;;
+        *) sellen=8 ;;
+    esac
+fi
+rm -f conftest*
+cat <<EOF > conftest.f
+      program main
+      integer i
+      i = selected_int_kind($sellen)
+      open(8, file="conftest1.out", form="formatted")
+      write (8,*) i
+      close(8)
+      stop
+      end
+EOF
+if test -z "$F90" ; then
+   F90=f90
+fi
+KINDVAL=""
+# We must be careful in case the F90LINKER isn't the same as F90
+# (e.g., it has extra options or is a different program)
+if $F90 -c -o conftest.o conftest.f >conftest.out 2>&1 ; then
+    # Use F90 if we can (in case the linker prepares programs
+    # for a parallel environment).
+    echo "$F90 -o conftest conftest.o" >> config.log
+    if $F90 -o conftest conftest.o >>config.log 2>&1 ; then
+	F90LINKERTEST="$F90" 
+    elif test -z "$F90LINKER" ; then 
+	F90LINKERTEST="$F90"
+    else
+	F90LINKERTEST="$F90LINKER"
+    fi
+    if $F90LINKERTEST -o conftest conftest.o >conftest.out 2>&1 ; then
+        ./conftest >>conftest.out 2>&1
+        if test -s conftest1.out ; then
+	    # Because of write, there may be a leading blank.
+            KINDVAL=`cat conftest1.out | sed 's/ //g'`
+        else
+	    if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+	    KINDVAL=-1
+        fi
+    else
+        echo "Failure to link program to test for INTEGER kind" >>config.log
+        $F90LINKER -o conftest conftest.f >>config.log 2>&1
+    fi
+else 
+   echo "Failure to build program to test for INTEGER kind" >>config.log
+   $F90 -o conftest conftest.f >>config.log 2>&1
+fi
+rm -f conftest*
+if test -n "$KINDVAL" -a "$KINDVAL" != "-1" ; then
+   AC_MSG_RESULT($KINDVAL)
+   ifelse($1,,,$1=$KINDVAL)
+else
+   AC_MSG_RESULT(unavailable)
+   ifelse($1,,,$1="-1")
+fi
+])dnl
+dnl
 dnl
 dnl Check that signal semantics work correctly
 dnl
@@ -2162,15 +2140,18 @@ return rc;
 }
 EOF
 rm -f conftest.out
-if eval $CC $CFLAGS -o conftest conftest.c > conftest.out 2>&1 ; then
+if eval ${CC-cc} $CFLAGS -o conftest conftest.c > conftest.out 2>&1 ; then
     if ./conftest ; then
 	AC_MSG_RESULT(yes)
     else
 	if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+        cat conftest.c >>config.log
 	AC_MSG_RESULT(Signals reset when used!)
 	AC_DEFINE(SIGNALS_RESET_WHEN_USED)
     fi
 else
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+    cat conftest.c >>config.log
     AC_MSG_RESULT(Could not compile test program!)
 fi
 /bin/rm -f conftest conftest.c conftest.o conftest.out
@@ -2409,7 +2390,7 @@ cat <<EOF >conftest.c
 int a(){return 1;}
 EOF
 rm -f conftest.out
-compileonly='$CC -c $CFLAGS conftest.c >conftest.out 2>&1'
+compileonly='${CC-cc} -c $CFLAGS conftest.c >conftest.out 2>&1'
 if eval $compileonly ; then 
     :
 else
@@ -2434,7 +2415,7 @@ else
     cat <<EOF >conftest.c
 int a(); int main(argc,argv)int argc; char **argv;{ return a();}
 EOF
-    compileonly='$CC -c $CFLAGS conftest.c >conftest.out 2>&1'
+    compileonly='${CC-cc} -c $CFLAGS conftest.c >conftest.out 2>&1'
     if eval $compileonly ; then 
         : 
     else
@@ -2666,6 +2647,7 @@ choke me
 [$1();
 #endif
 ], eval "ac_cv_func_$1=yes", eval "ac_cv_func_$1=no")dnl        ])dnl
+
 if eval "test \"`echo '$ac_cv_func_'$1`\" = yes"; then
   AC_MSG_RESULT(yes)
   ifelse([$2], , :, [$2])
@@ -2771,9 +2753,9 @@ changequote([,])dnl
 fi
 if test ! -r $srcdir/$unique_file; then
   if test x$srcdirdefaulted = xyes; then
-    echo "configure: Can not find sources in \`${confdir}' or \`..'." 1>&2
+    echo "configure: Cannot find sources in \`${confdir}' or \`..'." 1>&2
   else
-    echo "configure: Can not find sources in \`${srcdir}'." 1>&2
+    echo "configure: Cannot find sources in \`${srcdir}'." 1>&2
   fi
   exit 1
 fi
@@ -2793,7 +2775,7 @@ dnl
 define(PAC_IS_GETTIMEOFDAY_OK,[
 AC_MSG_CHECKING(for how many arguments gettimeofday takes)
 # Test sets "wierd" only for FAILURE to accept 2
-AC_TEST_PROGRAM([#include <sys/time.h>
+PAC_TEST_PROGRAM([#include <sys/time.h>
 main() {struct timeval tp;
 gettimeofday(&tp,(void*)0);return 0;}],AC_MSG_RESULT(two - whew)
 $1,
@@ -2807,11 +2789,6 @@ dnl
 dnl PAC_STDARG_CORRECT(var)
 define([PAC_STDARG_CORRECT],[
 PAC_COMPILE_CHECK_FUNC(stdarg is correct,[
-/* DEC Alpha compiler by default does NOT define __STDC__ but DOES
-   accept prototypes */
-#if !defined(__STDC__)
-'bad text'
-#endif
 #include <stdio.h>
 #include <stdarg.h>
 int func( int a, ... ){
@@ -2850,7 +2827,8 @@ cat > testfort.f <<EOF
         return
         end
 EOF
-   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
+   echo "$F77 $FFLAGS -c testfort.f" >>config.log
+   $F77 $FFLAGS -c testfort.f >> config.log 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_INT1=0
@@ -2868,7 +2846,8 @@ AC_MSG_CHECKING(for integer * 2)
 	return
         end
 EOF
-   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
+   echo "$F77 $FFLAGS -c testfort.f" >>config.log
+   $F77 $FFLAGS -c testfort.f >> config.log 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_INT2=0
@@ -2886,7 +2865,8 @@ AC_MSG_CHECKING(for integer * 4)
 	return
         end
 EOF
-   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
+   echo "$F77 $FFLAGS -c testfort.f" >>config.log
+   $F77 $FFLAGS -c testfort.f >> config.log 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_INT4=0
@@ -2904,7 +2884,8 @@ AC_MSG_CHECKING(for integer * 8)
 	return
         end
 EOF
-   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
+   echo "$F77 $FFLAGS -c testfort.f" >>config.log
+   $F77 $FFLAGS -c testfort.f >>config.log 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_INT8=0
@@ -2922,7 +2903,8 @@ AC_MSG_CHECKING(for integer * 16)
 	return
         end
 EOF
-   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
+   echo "$F77 $FFLAGS -c testfort.f" >>config.log
+   $F77 $FFLAGS -c testfort.f >> config.log 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_INT16=0
@@ -2940,7 +2922,8 @@ AC_MSG_CHECKING(for real * 4)
 	return
         end
 EOF
-   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
+   echo "$F77 $FFLAGS -c testfort.f" >>config.log
+   $F77 $FFLAGS -c testfort.f >> config.log 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_REAL4=0
@@ -2958,7 +2941,8 @@ AC_MSG_CHECKING(for real * 8)
 	return
         end
 EOF
-   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
+   echo "$F77 $FFLAGS -c testfort.f" >>config.log
+   $F77 $FFLAGS -c testfort.f >> config.log 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_REAL8=0
@@ -2976,7 +2960,8 @@ AC_MSG_CHECKING(for real * 16)
 	return
         end
 EOF
-   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
+   echo "$F77 $FFLAGS -c testfort.f" >>config.log
+   $F77 $FFLAGS -c testfort.f >> config.log 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_REAL16=0
@@ -2994,7 +2979,8 @@ AC_MSG_CHECKING(for double complex)
 	return
         end
 EOF
-   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
+   echo "$F77 $FFLAGS -c testfort.f" >>config.log
+   $F77 $FFLAGS -c testfort.f >> config.log 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_DOUBLE_COMPLEX=0
@@ -3012,7 +2998,8 @@ AC_MSG_CHECKING(for complex * 8)
 	return
         end
 EOF
-   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
+   echo "$F77 $FFLAGS -c testfort.f" >>config.log
+   $F77 $FFLAGS -c testfort.f >> config.log 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_COMPLEX8=0
@@ -3030,7 +3017,8 @@ AC_MSG_CHECKING(for complex * 16)
 	return
         end
 EOF
-   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
+   echo "$F77 $FFLAGS -c testfort.f" >>config.log
+   $F77 $FFLAGS -c testfort.f >> config.log 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_COMPLEX16=0
@@ -3048,7 +3036,8 @@ AC_MSG_CHECKING(for complex * 32)
 	return
         end
 EOF
-   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
+   echo "$F77 $FFLAGS -c testfort.f" >>config.log
+   $F77 $FFLAGS -c testfort.f >> config.log 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_COMPLEX32=0
@@ -3063,8 +3052,8 @@ dnl
 dnl
 dnl
 dnl PAC_CHECK_COMPILER_OPTION(optionname,action-if-ok,action-if-fail)
-dnl This should actually check that compiler doesn't complain about it either,
-dnl by compiling the same program with two options, and diff'ing the output.
+dnl This is now careful to check that the output is different, since 
+dnl some compilers are noisy.
 dnl 
 dnl We are extra careful to prototype the functions incase compiler options
 dnl that complain about poor code are in effect
@@ -3078,49 +3067,68 @@ CFLAGS="$1 $CFLAGS"
 rm -f conftest.out
 echo 'int try(void);int try(void){return 0;}' > conftest2.c
 echo 'int main(void);int main(void){return 0;}' > conftest.c
-if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
-    if test -s conftest.out ; then
-        cat conftest.out >> config.log
-        AC_MSG_RESULT(no)
-        $3
-        CFLAGS="$CFLAGSSAV"         
-    else
-        AC_MSG_RESULT(yes)
-        AC_MSG_CHECKING([that routines compiled with $1 can be linked with ones compiled  without $1])       
-        /bin/rm -f conftest.out
-        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
-                if test -s conftest.out ; then
-	            cat conftest.out >> config.log
-	            AC_MSG_RESULT(no)
-                    print_error "Will not add $1 to CFLAGS"
-                    CFLAGS="$CFLAGSSAV"
-	            $3
-                else
-	            AC_MSG_RESULT(yes)	  
-                    $2
-                fi
-            else
-                AC_MSG_RESULT(no)
-                print_error "Will not add $1 to CFLAGS"
-                CFLAGS="$CFLAGSSAV"
-	        $3
-            fi  
-        else
-            if test -s conftest2.out ; then 
-                cat conftest2.out >> config.log 
+if ${CC-cc} $CFLAGSSAV -o conftest conftest.c >conftest.bas 2>&1 ; then
+   if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+      if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+         AC_MSG_RESULT(yes)
+         AC_MSG_CHECKING([that routines compiled with $1 can be linked with ones compiled  without $1])       
+         /bin/rm -f conftest.out
+         /bin/rm -f conftest.bas
+         if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.bas 2>&1 ; then
+               if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                  if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
+	             AC_MSG_RESULT(yes)	  
+                     $2
+                  elif test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	             AC_MSG_RESULT(no)
+                     print_error "Will not add $1 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             $3
+                  else
+                     AC_MSG_RESULT(no)
+                     print_error "Will not add $1 to CFLAGS"
+                     CFLAGS="$CFLAGSSAV"
+	             $3
+                  fi  
+               else
+	          if test -s conftest.out ; then
+	             cat conftest.out >> config.log
+	          fi
+                  AC_MSG_RESULT(no)
+                  print_error "Will not add $1 to CFLAGS"
+                  CFLAGS="$CFLAGSSAV"
+                  $3
+               fi
+	    else
+               # Could not link with the option!
+               AC_MSG_RESULT(no)
             fi
-            AC_MSG_RESULT(no)
+         else
+            if test -s conftest2.out ; then
+               cat conftest.out >> config.log
+            fi
+	    AC_MSG_RESULT(no)
             print_error "Will not add $1 to CFLAGS"
             CFLAGS="$CFLAGSSAV"
-            $3
-        fi
-    fi
+	    $3
+         fi
+      else
+         cat conftest.out >> config.log
+         AC_MSG_RESULT(no)
+         $3
+         CFLAGS="$CFLAGSSAV"         
+      fi
+   else
+      AC_MSG_RESULT(no)
+      $3
+      if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+      CFLAGS="$CFLAGSSAV"
+   fi
 else
+    # Could not compile without the option!
     AC_MSG_RESULT(no)
-    $3
-    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
-    CFLAGS="$CFLAGSSAV"
 fi
 rm -f conftest*
 ])
@@ -3202,9 +3210,15 @@ dnl Extra symbols used:
 dnl    CC_SHARED_OPT
 dnl    SHARED_LIB_UTIL (mpich/util/makesharedlib -kind=@SHAREDKIND@ -local)
 dnl    SHARED_LIB_PATH (how to get linker to look in current directory
-dnl                     for a shared library)
+dnl                     for a shared library).  
+dnl    SHARED_LIB_SEARCH_PATH (How to specify that the PROGRAM should look
+dnl                     in a particular directory for a shared library.
+dnl                     It should include `pwd`
 dnl
-dnl PAC_SHARED_LIBS([action-if-ok],[action-if-failed])
+dnl    Also checks to see if a program remembers where the shared library
+dnl    was (!).  Some systems require LD_LIBRARY_PATH be set(!)
+dnl    Set SHARED_LIB_NEEDS_PATH to yes if LD_LIBRARY_PATH needed
+dnl PAC_SHARED_LIBS_OK([action-if-ok],[action-if-failed])
 dnl
 define(PAC_SHARED_LIBS_OK,[
     if test -z "$SHARED_LIB_UTIL" ; then
@@ -3222,12 +3236,37 @@ int main(void);
 int foo(int);
 int main(void){ return foo(-1); }
 EOF
-    if $CC $CFLAGS $CC_SHARED_OPT -c conftest.c >conftest.out 2>&1 ; then
+    if ${CC-cc} $CFLAGS $CC_SHARED_OPT -c conftest.c >conftest.out 2>&1 ; then
 	$SHARED_LIB_UTIL -obj=conftest.o -lib=libconftest.a
-	if $CC $CFLAGS -o conftest conftest1.c $SHARED_LIB_PATH \
-		-lconftest >conftest.out 2>&1 ; then
+	if ${CC-cc} $CFLAGS -o conftest conftest1.c $SHARED_LIB_PATH \
+		$SHARED_LIB_SEARCH_PATH -lconftest >conftest.out 2>&1 ; then
 	   ifelse([$1],,,[$1])
 	   AC_MSG_RESULT(yes)
+	   AC_MSG_CHECKING(that programs remember where the shared lib is)
+           mkdir .tmp
+           cp conftest .tmp
+	   cd .tmp 
+	      if ./conftest >conftest.out 2>&1 ; then
+		  AC_MSG_RESULT(yes)
+	      else
+		  if test -s conftest.out ; then 
+			cat conftest.out >>../config.log
+		  fi
+		  # Try with LD_LIBRARY_PATH
+		  saveLD="$LD_LIBRARY_PATH"
+		  if test -z "$LD_LIBRARY_PATH" ; then LD_LIBRARY_PATH="." ; fi
+	          LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:`pwd`/.."
+		  export LD_LIBRARY_PATH
+		  if ./conftest >>conftest.out 2>&1 ; then
+		      AC_MSG_RESULT(no: needs path in LD_LIBRARY_PATH!)
+		      SHARED_LIB_NEEDS_PATH="yes"
+		  else
+		      AC_MSG_RESULT(no: LD_LIBRARY_PATH does not work!)
+		  fi
+		  LD_LIBRARY_PATH="$saveLD"
+	      fi
+           cd ..
+	   rm -rf .tmp
 	else
            ifelse([$2],,,[$2])
 	   if test -s conftest.out ; then cat conftest.out >> config.log ; fi
@@ -3240,3 +3279,231 @@ EOF
     fi
 rm -f conftest* libconftest*
 ])
+dnl
+dnl Test that the C compiler allows #define a(b) a(b,__LINE__,__FILE__)
+dnl PAC_MACRO_NAME_IN_MACRO([action if ok],[action if failed])
+dnl
+dnl Note that we can't put a pound sign into the msg_checking macro because
+dnl it confuses autoconf
+define(PAC_MACRO_NAME_IN_MACRO,
+[AC_REQUIRE([AC_PROG_CC])dnl
+AC_MSG_CHECKING([that compiler allows define a(b) a(b,__LINE__)])
+AC_COMPILE_CHECK(,
+[
+void a(i,j)int i,j;{}
+#define a(b) a(b,__LINE__)],
+a(0);return 0;,ac_cv_cpprworks="yes",ac_cv_cpprworks="no")
+if test $ac_cv_cpprworks = "yes" ; then
+    AC_MSG_RESULT(yes)
+    ifelse([$1],,,[$1])
+else
+    AC_MSG_RESULT(no)
+    ifelse([$2],,,[$2])
+fi
+])
+dnl
+dnl Check that anonymous mmap works
+dnl
+dnl PAC_HAVE_ANON_MMAP([action-if-success],[action-if-failure])
+define([PAC_HAVE_ANON_MMAP],[
+AC_HAVE_FUNCS(mmap)
+# Check that MMAP works!
+AC_MSG_CHECKING([that shared, anonymous mmap works with -1 filedes])
+PAC_TEST_PROGRAM([
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <errno.h>
+int main(){
+int memsize;
+caddr_t shmptr;
+memsize = getpagesize();
+shmptr = mmap((caddr_t) 0, memsize, 
+PROT_READ|PROT_WRITE|PROT_EXEC, 
+MAP_SHARED
+#ifdef MAP_ANON
+|MAP_ANON
+#endif
+,-1, (off_t) 0);
+if (shmptr == (caddr_t) -1) {
+ return 1;}
+return 0;
+}
+],ac_cv_mmap=1,ac_cv_mmap=0)
+if test $ac_cv_mmap = 0 ; then 
+    AC_MSG_RESULT(no!)
+    ifelse($1,,,$1)
+else
+    AC_MSG_RESULT(yes)
+    ifelse($2,,,$2)
+fi
+])
+dnl
+dnl Check that semget works correctly (sometimes no enabled, sometimes only
+dnl root can use it).  
+dnl
+dnl PAC_SEMGET_WORKS([action-if-success],[action-if-failure],[errmsg])
+dnl errmsg prints a more detailed error message.  Default is echo; use true
+dnl to suppress output.
+define([PAC_SEMGET_WORKS],[
+# We need to check that semctl is ok.
+# Both of these need to go into aclocal.m4
+AC_MSG_CHECKING([that semget works])
+###
+### Still need to check for SEMUN_UNDEFINED - see mpid/ch_p4/p4/configure.in
+### 
+cat > conftest.c <<EOF
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <errno.h>
+#include <sys/sem.h>
+int main () {
+#ifdef NEEDS_UNION_SEMUN
+#if defined(SEMUN_UNDEFINED)    
+union semun { int val } arg;
+#else
+union semun arg;
+arg.val = 0;
+#endif
+#else
+int arg = 0;
+#endif
+key_t key;
+int semset_id;
+key=ftok(".", 'a');
+errno=0;
+if ((semset_id=semget(key,10,IPC_CREAT|IPC_EXCL|0666)) == -1) 
+printf("%d\n", errno);
+else {
+printf("%d\n", errno);
+semctl(semset_id,0,IPC_RMID,arg); }
+return 0; 
+}
+EOF
+echo "${CC-cc} $CFLAGS -o conftest conftest.c $LIBS" >> config.log
+if ${CC-cc} $CFLAGS -o conftest conftest.c $LIBS >> config.log 2>&1 ; then
+    if test -x conftest ; then
+	/bin/rm -f conftest.out
+	./conftest > conftest.out
+	errno=`cat conftest.out`
+
+	# these values are specific to a particular unix.
+        # we need to convert number to ERRNO based on the local 
+        # system, and then match, if we can
+	if test $errno -eq 0 ; then
+	    AC_MSG_RESULT(yes)
+	    ifelse($1,,,$1)
+	elif test $errno -eq 13 ; then  
+	    AC_MSG_RESULT(no)
+	    ifelse($2,,,$2)
+            ifelse($3,,echo,$3) "No access permission rights to the semaphore set"
+	    ifelse($3,,echo,$3) "created with this key!"
+            ifelse($3,,echo,$3) "Configure could have chosen to create a"
+            ifelse($3,,echo,$3) "semaphore set using an unacceptable key value"
+        elif test $errno -eq 17 ; then
+	    AC_MSG_RESULT(no)
+	    ifelse($2,,,$2)
+	    ifelse($3,,echo,$3) "The semaphore set created with this key"
+	    ifelse($3,,echo,$3) "already exists!"
+	    ifelse($3,,echo,$3) "Try running util/cleanipcs and then reconfiguring"
+	    ifelse($3,,echo,$3) "This may or may not help."
+	elif test $errno -eq 43 ; then
+	    AC_MSG_RESULT(no)
+	    ifelse($2,,,$2)
+	    ifelse($3,,echo,$3) "The semaphore set created with this key"
+	    ifelse($3,,echo,$3) "is marked to be deleted!"
+	    ifelse($3,,echo,$3) "Try running util/cleanipcs and then"
+	    ifelse($3,,echo,$3) "reconfiguring.  This may or may not help."
+	elif test $errno -eq 2 ; then
+	    AC_MSG_RESULT(no)
+	    ifelse($2,,,$2)
+	    ifelse($3,,echo,$3) "No semaphore set exists for this key!"
+	    ifelse($3,,echo,$3) "Configure could have chosen to create a" 
+	    ifelse($3,,echo,$3) "semaphore set using an unacceptable key value."
+	elif test $errno -eq 12 ; then
+	    AC_MSG_RESULT(undetermined)
+	    ifelse($2,,,$2)
+	    ifelse($3,,echo,$3) "Not enough memory to create a semaphore set!"
+	    ifelse($3,,echo,$3) "Try running util/cleanipcs and then" 
+	    ifelse($3,,echo,$3) "reconfiguring.  This may or may not help."
+	elif test $errno -eq 28 ; then
+	    AC_MSG_RESULT(no)
+	    ifelse($2,,,$2)
+	    ifelse($3,,echo,$3) "The system limit for the maximum number of"
+	    ifelse($3,,echo,$3) "semaphore sets (SEMMNI), or the system wide"
+            ifelse($3,,echo,$3) "maximum number of semaphores (SEMMNS)"
+	    ifelse($3,,echo,$3) "has been reached."
+        fi
+    else
+	AC_MSG_RESULT(undetermined)
+        ifelse($2,,,$2)
+	ifelse($3,,echo,$3) "Could not build executable"
+    fi
+else
+    AC_MSG_RESULT(undetermined)
+    ifelse($2,,,$2)
+    ifelse($3,,echo,$3) "Could not compile program"
+fi
+/bin/rm -f conftest*
+])
+dnl
+dnl
+dnl The following trys a program and sets a flag to indicate whether
+dnl the compilation is clean (no extra messages), successful (messages but
+dnl status is zero), or failed.  This handles the case where the compiler
+dnl complains about a type mismatch, but allows it anyway, and it can be
+dnl used to find the appropriate type.
+dnl
+dnl PAC_TRY_COMPILE_CLEAN(includes,function,flagvar)
+dnl flagvar is set to 0 (clean), 1 (dirty but status ok), 2 (failed)
+dnl Note that an entire function is needed as the second argument,
+dnl not just a function body.  This allows us to check for more 
+dnl complex situations (such as handling ... in an arg list)
+dnl
+define([PAC_TRY_COMPILE_CLEAN],[
+$3=2
+rm -f conftest*
+dnl 
+dnl Get the compiler output to test against
+if test -z "$TRY_COMPLILE_CLEAN" ; then
+    echo 'int try(void);int try(void){return 0;}' > conftest.c
+    if ${CC-cc} $CFLAGS -c conftest.c >conftest.bas 2>&1 ; then
+	if test -s conftest.bas ; then 
+	    TRY_COMPILE_CLEAN_OUT=`cat conftest.bas`
+        fi
+        TRY_COMPILE_CLEAN=1
+    else
+	AC_MSG_WARN([Could not compile simple test program!])
+	if test -s conftest.bas ; then 	cat conftest.bas >> config.log ; fi
+    fi
+fi
+dnl
+dnl Create the program that we need to test with
+rm -f conftest*
+cat >conftest.c <<EOF
+#include "confdefs.h"
+[$1]
+[$2]
+EOF
+dnl
+dnl Compile it and test
+if ${CC-cc} $CFLAGS -c conftest.c >conftest.bas 2>&1 ; then
+    dnl Success.  Is the output the same?
+    if test "$TRY_COMPILE_CLEAN_OUT" = "`cat conftest.bas`" ; then
+	$3=0
+    else
+        cat conftest.c >>config.log
+	if test -s conftest.bas ; then 	cat conftest.bas >> config.log ; fi
+        $3=1
+    fi
+else
+    dnl Failure.  Set flag to 2
+    cat conftest.c >>config.log
+    if test -s conftest.bas ; then cat conftest.bas >> config.log ; fi
+    $3=2
+fi
+rm -f conftest*
+])
+dnl
+dnl
+dnl Include other definitions
+builtin(include,aclocal_tcl.m4)

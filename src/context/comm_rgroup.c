@@ -1,11 +1,30 @@
 /*
- *  $Id: comm_rgroup.c,v 1.1.1.1 1997/09/17 20:41:47 gropp Exp $
+ *  $Id: comm_rgroup.c,v 1.6 1999/08/30 15:42:58 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Comm_remote_group = PMPI_Comm_remote_group
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Comm_remote_group  MPI_Comm_remote_group
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Comm_remote_group as PMPI_Comm_remote_group
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
 
@@ -24,13 +43,12 @@ Output Parameter:
 .N MPI_SUCCESS
 .N MPI_ERR_COMM
 @*/
-int MPI_Comm_remote_group ( comm, group )
-MPI_Comm comm;
-MPI_Group *group;
+EXPORT_MPI_API int MPI_Comm_remote_group ( MPI_Comm comm, MPI_Group *group )
 {
     struct MPIR_COMMUNICATOR *comm_ptr;
     struct MPIR_GROUP *group_ptr;
     int flag;
+    int mpi_errno = MPI_SUCCESS;
     static char myname[] = "MPI_COMM_REMOTE_GROUP";
 
     TR_PUSH(myname);
@@ -39,8 +57,8 @@ MPI_Group *group;
 
     /* Check for intra-communicator */
     MPI_Comm_test_inter ( comm, &flag );
-    if (!flag) return MPIR_ERROR(comm_ptr,MPI_ERR_COMM,
-		       "Intra-communicator invalid in MPI_COMM_REMOTE_GROUP");
+    if (!flag) return MPIR_ERROR(comm_ptr,
+	 MPIR_ERRCLASS_TO_CODE(MPI_ERR_COMM,MPIR_ERR_COMM_INTRA),myname);
 
     MPIR_Group_dup( comm_ptr->group, &group_ptr );
     *group = group_ptr->self;

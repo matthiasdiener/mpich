@@ -7,14 +7,8 @@
 #undef _ALL_SOURCE
 #endif
 
-/* Define if you don't have vprintf but do have _doprnt.  */
-#undef HAVE_DOPRNT
-
 /* Define if the `long double' type works.  */
 #undef HAVE_LONG_DOUBLE
-
-/* Define if you have the vprintf function.  */
-#undef HAVE_VPRINTF
 
 /* Define if on MINIX.  */
 #undef _MINIX
@@ -25,9 +19,6 @@
 
 /* Define if you need to in order for stat and other things to work.  */
 #undef _POSIX_SOURCE
-
-/* Define as the return type of signal handlers (int or void).  */
-#undef RETSIGTYPE
 
 /* Define if you have the ANSI C header files.  */
 #undef STDC_HEADERS
@@ -57,17 +48,14 @@
 /* Define if C has long long int */
 #undef HAVE_LONG_LONG_INT
 
-/* Define if C supports long doubles */
-#undef HAVE_LONG_DOUBLE 
-
-/* Define if msem_init function available */
-#undef HAVE_MSEM_INIT
-
 /* Define if C does NOT support const */
 #undef HAVE_NO_C_CONST
 
 /* Define if C supports prototypes (but isn't ANSI C) */
 #undef HAVE_PROTOTYPES
+
+/* Define if C preprocessor does not accept ## for concatenation */
+#undef OLD_STYLE_CPP_CONCAT
 
 /* Define if uname function available */
 #undef HAVE_UNAME
@@ -81,9 +69,6 @@
 /* Define if MPE extensions are included in MPI libraries */
 #undef MPE_USE_EXTENSIONS
 
-/* Define if MPID contains special case code for collective over world */
-#undef MPID_COLL_WORLD
-
 /* Define if MPID supports ADI collective */
 #undef MPID_USE_ADI_COLLECTIVE
 
@@ -93,14 +78,14 @@
 /* Define if mpe debug features should NOT be included */
 #undef MPI_NO_MPEDBG
 
-/* Define if struct msemaphore rather than msemaphore required */
-#undef MSEMAPHORE_IS_STRUCT
-
 /* Define if void * is 8 bytes */
 #undef POINTER_64_BITS
 
 /* Define if stdarg can be used */
 #undef USE_STDARG
+
+/* Define if oldstyle stdarg (one arg va_start) can be used */
+#undef USE_OLDSTYLE_STDARG
 
 /* For Cray, define two word character descriptors in use */
 #undef _TWO_WORD_FCD
@@ -126,32 +111,28 @@
 /* Define if mmap does not work correctly for anonymous memory */
 #undef HAVE_NO_ANON_MMAP
 
-/* Define if signals reset to the default when used (SYSV vs BSD semantics).
-   Such signals are essentially un-usable, because of the resulting race
-   condition.  The fix is to use the sigaction etc. routines instead (they're
-   usually available, since without them signals are entirely useless) */
-#undef SIGNALS_RESET_WHEN_USED
-
 /* Define if MPI Structs should align on the largest basic element */
 #undef USE_BASIC_ALIGNMENT
 
 /* The number of processors expected on an SMP.  Usually undefined */
 #undef PROCESSOR_COUNT
 
-/* Define this to force a choice of shared memory allocator */
-#undef SHMEM_PICKED
+/* Define this if weak symbols are supported */
+#undef HAVE_WEAK_SYMBOLS
 
-/* Define this to force SysV shmat for shared memory allocator */
-#undef USE_SHMAT
+/* Define this if the weak symbol support is pragma weak */
+#undef HAVE_PRAGMA_WEAK
 
-/* Define this to force a choice for memory locking */
-#undef LOCKS_PICKED
+/* Define this if the weak symbol support is pragma _HP_SECONDARY_DEF */
+#undef HAVE_PRAGMA_HP_SEC_DEF
 
-/* Define this to force SysV semop for locks */
-#undef USE_SEMOP
+/* Define this if the weak symbol support is pragma _CRI duplicate */
+#undef HAVE_PRAGMA_CRI_DUP
 
-/* Define if you have BSDgettimeofday.  */
-#undef HAVE_BSDGETTIMEOFDAY
+/* These provide information for initutil about the configuration options */
+#undef CONFIGURE_ARGS_CLEAN
+#undef MPIRUN_MACHINE
+#undef MPIRUN_DEVICE
 
 /* Define if you have catclose.  */
 #undef HAVE_CATCLOSE
@@ -165,38 +146,14 @@
 /* Define if you have gethostname.  */
 #undef HAVE_GETHOSTNAME
 
-/* Define if you have gettimeofday.  */
-#undef HAVE_GETTIMEOFDAY
-
 /* Define if you have mmap.  */
 #undef HAVE_MMAP
-
-/* Define if you have mutex_init.  */
-#undef HAVE_MUTEX_INIT
 
 /* Define if you have nice.  */
 #undef HAVE_NICE
 
-/* Define if you have semop.  */
-#undef HAVE_SEMOP
-
-/* Define if you have shmat.  */
-#undef HAVE_SHMAT
-
 /* Define if you have sigaction.  */
 #undef HAVE_SIGACTION
-
-/* Define if you have sigmask.  */
-#undef HAVE_SIGMASK
-
-/* Define if you have signal.  */
-#undef HAVE_SIGNAL
-
-/* Define if you have sigprocmask.  */
-#undef HAVE_SIGPROCMASK
-
-/* Define if you have sigset.  */
-#undef HAVE_SIGSET
 
 /* Define if you have sysinfo.  */
 #undef HAVE_SYSINFO
@@ -206,9 +163,6 @@
 
 /* Define if you have the <memory.h> header file.  */
 #undef HAVE_MEMORY_H
-
-/* Define if you have the <mpproto.h> header file.  */
-#undef HAVE_MPPROTO_H
 
 /* Define if you have the <netdb.h> header file.  */
 #undef HAVE_NETDB_H
@@ -236,9 +190,3 @@
 
 /* Define if you have the nsl library (-lnsl).  */
 #undef HAVE_LIBNSL
-
-/* Define if you have the rpc library (-lrpc).  */
-#undef HAVE_LIBRPC
-
-/* Define if you have the thread library (-lthread).  */
-#undef HAVE_LIBTHREAD

@@ -2,6 +2,15 @@
 #include "p4_sys.h"
 /* p4_net_utils.h generally would suffice here */
 
+/* Type for get/setsockopt calls */
+#ifdef USE_SOCKLEN_T
+typedef socklen_t p4_sockopt_len_t;
+#elif defined(USE_SIZE_T_FOR_SOCKLEN_T)
+typedef size_t p4_sockopt_len_t;
+#else
+typedef int p4_sockopt_len_t;
+#endif
+
 extern int errno;
 /*  removed 11/27/94 by RL.  Causes problems in FreeBSD and is not used.
 extern char *sys_errlist[];
@@ -43,6 +52,15 @@ extern char *getenv();
  *    forking off the listener.
  */
 
+/*
+   Still needed:
+   The prototypes for getsockopt, accept, etc pass the address of an
+   integer of some kind to hold a length or other output value.
+   Unfortunately, there is no standardization for this.  
+   AIX: size_t
+   Solaris, LINUX: socklen_t
+   IRIX, SunOS: int
+ */
 
 P4VOID net_set_sockbuf_size(size, skt)	/* 7/12/95, bri@sgi.com */
 int size;
@@ -50,7 +68,8 @@ int skt;
 {
     int rc;
     char *env_value;
-    int rsz,ssz,dummy;
+    int rsz,ssz;
+    p4_sockopt_len_t dummy;
 #ifdef TCP_WINSHIFT
     int shft; /* Window shift; helpful on CRAY */
 #endif
@@ -147,7 +166,7 @@ int skt;
             if (rc < 0) {gethostname(hostname,255);
 			 fprintf(stdout,
                         "ERROR_WINSHIFT in %s rc=%d, shft=%d, size_shft=%d \n",
-                        hostname, rc,shft,dummy);
+                        hostname, rc,shft,(int)dummy);
                          p4_error("net_set_WINSHIFT socket", skt);}
 
                 /* Fetch Back the Newly Set Sizes */
@@ -161,6 +180,18 @@ int skt;
         }
       }
 
+#endif
+
+#ifdef TCP_FASTACK
+    { int arg;
+    /*
+      Some SGI systems will delay acks unless this field is set (even with
+      TCP_NODELAY set!).  Without this, occassional 5 second (!) delays
+      are introduced.
+     */
+    arg = 1;
+    SYSCALL_P4(rc,setsockopt(skt,IPPROTO_TCP,TCP_FASTACK,&arg,sizeof(arg)));
+    }
 #endif
 
 #endif
@@ -207,7 +238,8 @@ int backlog;
 int *port;
 int *skt;
 {
-    int rc, sinlen;
+    int rc;
+    p4_sockopt_len_t sinlen;
     struct sockaddr_in sin;
     int optval = P4_TRUE;
 
@@ -251,7 +283,8 @@ int net_accept(skt)
 int skt;
 {
     struct sockaddr_in from;
-    int rc, flags, fromlen, skt2, gotit, sockbuffsize;
+    int rc, flags, skt2, gotit, sockbuffsize;
+    p4_sockopt_len_t fromlen;
     int optval = P4_TRUE;
 
     /* dump_sockinfo("net_accept call of dumpsockinfo \n",skt); */
@@ -621,6 +654,16 @@ int flag;
 
 /* This can FAIL if the host name is invalid.  For that reason, there is
    a timeout in the test, with a failure return if the entry cannot be found 
+
+   Note also that the name returned may or may not be the canonnical, 
+   "well known" name for the host, depending on the implementation of Unix.  
+   This may not be the same as the input name, particularly 
+   if the system has several networks.
+
+   Finally, this can hang on systems that don't have a working name resolution
+   service (this is not uncommon on LINUX clusters).  There is currently
+   no fix for this (we need something like the timeout code in other 
+   parts of the P4 implementation).
  */
 #include <sys/time.h>
 #ifndef TIMEOUT_VALUE 
@@ -649,7 +692,7 @@ char *hostname;
 		if (p4_local && p4_local->procgroup) 
 		    dump_procgroup(p4_local->procgroup,00);
 		sprintf( msgbuf, 
-"Could not gethostby name for host %s; may be invalid name\n", hostname );
+"Could not gethostbyname for host %s; may be invalid name\n", hostname );
 		p4_error(msgbuf, cur_time - start_time);
 		return 0;
 	    }
@@ -680,12 +723,13 @@ char *str;
 }
 
 /* 
-   This routine prints information on a socket, includeing many of the options
+   This routine prints information on a socket, including many of the options
  */
 void p4_print_sock_params( int skt )
 {
 #ifdef CAN_DO_SETSOCKOPT
-    int rc, ival,ivallen;
+    int rc, ival;
+    p4_sockopt_len_t ivallen;
 #ifdef SO_KEEPALIVE
     ivallen = sizeof(ival);
     rc = getsockopt( skt, SOL_SOCKET, SO_KEEPALIVE, (char *)&ival, &ivallen );
@@ -760,7 +804,7 @@ P4VOID dump_sockinfo(msg, fd)
 char *msg;
 int fd;
 {
-    int nl;
+    p4_sockopt_len_t nl;
     struct sockaddr_in peer, me;
 
     p4_dprintfl(00, "Dumping sockinfo for fd=%d: %s\n", fd, msg);

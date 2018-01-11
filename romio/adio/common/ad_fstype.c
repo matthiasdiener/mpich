@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_fstype.c,v 1.3 1998/06/15 17:45:25 thakur Exp $    
+ *   $Id: ad_fstype.c,v 1.8 1999/09/15 14:38:49 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -11,7 +11,8 @@
 #endif
 #ifdef __LINUX
 #include <sys/vfs.h>
-#include <linux/nfs_fs.h>
+/* #include <linux/nfs_fs.h> this file is broken in newer versions of linux */
+#define NFS_SUPER_MAGIC 0x6969
 #endif
 #ifdef __FREEBSD
 #include <sys/param.h>
@@ -25,7 +26,9 @@
 #ifdef __SX4
 #include <sys/stat.h>
 #endif
-
+#ifdef __PVFS
+#include "pvfs_config.h"
+#endif
 
 void ADIO_FileSysType(char *filename, int *fstype, int *error_code)
 {
@@ -63,7 +66,11 @@ void ADIO_FileSysType(char *filename, int *fstype, int *error_code)
 	if (!strncmp(vfsbuf.f_basetype, "nfs", 3)) *fstype = ADIO_NFS;
 	else {
 # if (defined(__HPUX) || defined(__SPPUX))
+#    ifdef __HFS
 	    *fstype = ADIO_HFS;
+#    else
+            *fstype = ADIO_UFS;
+#    endif
 # else
 	    if (!strncmp(vfsbuf.f_basetype, "xfs", 3)) *fstype = ADIO_XFS;
 	    else if (!strncmp(vfsbuf.f_basetype, "piofs", 4)) *fstype = ADIO_PIOFS;
@@ -81,10 +88,13 @@ void ADIO_FileSysType(char *filename, int *fstype, int *error_code)
     else {
 	/* printf("%d\n", fsbuf.f_type);*/
 	if (fsbuf.f_type == NFS_SUPER_MAGIC) *fstype = ADIO_NFS;
+#ifdef __PVFS
+	else if (fsbuf.f_type == PVFS_SUPER_MAGIC) *fstype = ADIO_PVFS;
+#endif
 	else *fstype = ADIO_UFS;
 	*error_code = MPI_SUCCESS;
     }
-#elif defined(__FREEBSD)
+#elif (defined(__FREEBSD) && defined(__HAVE_MOUNT_NFS))
     err = statfs(filename, &fsbuf);
     if (err && (errno == ENOENT)) err = statfs(dir, &fsbuf);
     free(dir);

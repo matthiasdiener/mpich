@@ -42,8 +42,7 @@ See your system administrator\n");
 }
 #endif
 
-P4VOID MD_initmem(memsize)
-int memsize;
+P4VOID MD_initmem(int memsize)
 {
 #ifdef TC_2000
     MD_malloc_hint(HEAP_INTERLEAVED | HEAP_UNCACHED, 0);
@@ -203,7 +202,7 @@ int memsize;
 #endif
 }
 
-P4VOID MD_initenv()
+P4VOID MD_initenv( void )
 {
 
     /* next 2 should stay together -> used in MD_clock 
@@ -228,8 +227,7 @@ static int characteristic = HEAP_INTERLEAVED | HEAP_UNCACHED,	/* "flag" arg to
   locality = HEAP_ANYWHERE;	/* "node" arg to heapmalloc(3) */
 #endif
 
-P4VOID MD_malloc_hint(a, b)
-int a, b;
+P4VOID MD_malloc_hint( int a, int b )
 {
 #if defined(TC_2000)
     characteristic = a;
@@ -301,8 +299,7 @@ int size;
     return (p);
 }
 
-P4VOID MD_shfree(ptr)
-char *ptr;
+P4VOID MD_shfree(char *ptr)
 {
 
 #if defined(BALANCE) || defined(SYMMETRY) || defined(SYMMETRY_PTX)
@@ -361,8 +358,7 @@ char *ptr;
 
 #if defined(GP_1000)
 
-P4BOOL simple_lock(lock)
-int *lock;
+P4BOOL simple_lock(int *lock)
 {
     register short got_lock = 0;
 
@@ -1285,7 +1281,7 @@ char **argv;
 /* endif for ifdef ipsc860 or cm5 */
 #endif 
 
-P4VOID MD_set_reference_time()
+P4VOID MD_set_reference_time( void )
 {
 /* We want MD_clock to deal with small numbers */
 
@@ -1334,7 +1330,7 @@ P4VOID MD_set_reference_time()
     
 }
 
-int MD_clock()
+int MD_clock( void )
 {
     /* returns value in milleseconds */
     int i = 0;
@@ -1396,8 +1392,7 @@ int myhost()
 
 #ifdef SYSV_IPC
 
-int init_sysv_semset(setnum)
-int setnum;
+int init_sysv_semset(int setnum)
 {
     int i, semid;
 #   if defined(SUN_SOLARIS)
@@ -1412,7 +1407,16 @@ int setnum;
        defined(HP) || defined(KSR)  
     int arg;
 #   else
+#   if defined(SEMUN_UNDEFINED)    
+       union semun {
+	   int val;
+	   struct semid_ds *buf;
+	   unsigned short int *array;
+	   struct seminfo *__buf;
+       } arg;
+#   else
     union semun arg;
+#      endif
 #   endif
 #endif
 
@@ -1442,8 +1446,7 @@ int setnum;
     return(semid);
 }
 
-P4VOID MD_lock_init(L)
-MD_lock_t *L;
+P4VOID MD_lock_init(MD_lock_t *L)
 {
 int setnum;
 
@@ -1465,8 +1468,7 @@ int setnum;
 }
 
 
-P4VOID MD_lock(L)
-MD_lock_t *L;
+P4VOID MD_lock(MD_lock_t *L)
 {
     sem_lock[0].sem_num = L->semnum;
     if (semop(L->semid,&sem_lock[0],1) < 0)
@@ -1475,8 +1477,7 @@ MD_lock_t *L;
     }
 }
 
-P4VOID MD_unlock(L)
-MD_lock_t *L;
+P4VOID MD_unlock(MD_lock_t *L)
 {
     sem_unlock[0].sem_num = L->semnum;
     if (semop(L->semid,&sem_unlock[0],1) < 0)
@@ -1492,16 +1493,14 @@ MD_lock_t *L;
 /* MD_lock and MD_unlock are defined in p4_MD.h for SGI */
 
 /* this is the spinlock method */
-P4VOID MD_lock_init(L) 
-MD_lock_t *L;
+P4VOID MD_lock_init(MD_lock_t *L) 
 { 
     (*L) = usnewlock(p4_sgi_usptr);
 }
 
 /* this is the semaphore method */
 /**********
-P4VOID MD_lock_init(L) 
-MD_lock_t *L;
+P4VOID MD_lock_init(MD_lock_t *L) 
 { 
     (*L) = usnewsema(p4_sgi_usptr,1); 
 }
@@ -1570,8 +1569,7 @@ struct p4_msg *MD_tcmp_recv()
 
 #endif
 
-int data_representation(machine_type)
-char *machine_type;
+int data_representation( char *machine_type )
 {
     if (strcmp(machine_type, "SUN") == 0)             return 1;
     if (strcmp(machine_type, "HP") == 0)              return 1;

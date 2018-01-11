@@ -1,5 +1,5 @@
 /*
- *  $Id: errclass.c,v 1.1.1.1 1997/09/17 20:41:53 gropp Exp $
+ *  $Id: errclass.c,v 1.6 1999/08/30 15:45:17 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,25 @@
 
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Error_class = PMPI_Error_class
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Error_class  MPI_Error_class
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Error_class as PMPI_Error_class
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
    MPI_Error_class - Converts an error code into an error class
@@ -19,9 +38,11 @@ Output Parameter:
 
 .N fortran
 @*/
-int MPI_Error_class( errorcode, errorclass )
-int errorcode, *errorclass;
+EXPORT_MPI_API int MPI_Error_class( 
+	int errorcode, 
+	int *errorclass)
 {
-    *errorclass = errorcode & 0xff;
+    /* We could check for invalid error code here */
+    *errorclass = errorcode & MPIR_ERR_CLASS_MASK;
     return MPI_SUCCESS;
 }

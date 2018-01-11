@@ -297,6 +297,7 @@ int bm_fd;
     bm_msg.slave_pid = p4_i_to_n(getpid());
     bm_msg.switch_port = p4_i_to_n(rm_switch_port);
     strcpy(bm_msg.host_name,rm_host);
+    strcpy(bm_msg.local_name,g->my_host_name);
     strcpy(bm_msg.machine_type,P4_MACHINE_TYPE);
     net_send(bm_fd, &bm_msg, sizeof(struct bm_rm_msg), P4_FALSE);
 
@@ -397,6 +398,7 @@ int bm_fd;
 	bm_msg.slave_pid = p4_i_to_n(slave_pid);
 	bm_msg.switch_port = p4_i_to_n(rm_switch_port);
 	strcpy(bm_msg.machine_type,P4_MACHINE_TYPE);
+	/* strcpy(bm_msg.slave_hosthame, ); */
 	net_send(bm_fd, &bm_msg, sizeof(struct bm_rm_msg), P4_FALSE);
 
 	g->local_slave_count++;
@@ -507,6 +509,7 @@ int bm_fd;
 			group_id,msg.host_name,port,unix_id,slave_idx,switch_port);
 	    /* remote master loading proctable from big master */
 	    install_in_proctable(group_id, port, unix_id, msg.host_name,
+				 msg.local_name, 
 				 slave_idx, msg.machine_type, switch_port);
 	    break;
 

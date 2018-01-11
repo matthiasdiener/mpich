@@ -1,13 +1,10 @@
-.TH MPI_Comm_create 3 "4/28/1998" " " "MPI"
+.TH MPI_Comm_create 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Comm_create \-  Creates a new communicator 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Comm_create ( comm, group, comm_out )
-MPI_Comm  comm;
-MPI_Group group;
-MPI_Comm *comm_out;
+int MPI_Comm_create ( MPI_Comm comm, MPI_Group group, MPI_Comm *comm_out )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

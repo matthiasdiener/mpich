@@ -1,11 +1,30 @@
 /*
- *  $Id: comm_create.c,v 1.3 1998/04/28 20:57:58 swider Exp $
+ *  $Id: comm_create.c,v 1.9 1999/08/30 15:42:45 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Comm_create = PMPI_Comm_create
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Comm_create  MPI_Comm_create
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Comm_create as PMPI_Comm_create
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpimem.h"
 
 /*@
@@ -29,10 +48,7 @@ Output Parameter:
 
 .seealso: MPI_Comm_free
 @*/
-int MPI_Comm_create ( comm, group, comm_out )
-MPI_Comm  comm;
-MPI_Group group;
-MPI_Comm *comm_out;
+EXPORT_MPI_API int MPI_Comm_create ( MPI_Comm comm, MPI_Group group, MPI_Comm *comm_out )
 {
   int mpi_errno = MPI_SUCCESS;
   struct MPIR_COMMUNICATOR *comm_ptr, *new_comm;
@@ -41,21 +57,26 @@ MPI_Comm *comm_out;
 
   TR_PUSH(myname);
 
-  comm_ptr = MPIR_GET_COMM_PTR(comm);
+  comm_ptr  = MPIR_GET_COMM_PTR(comm);
+  group_ptr = MPIR_GET_GROUP_PTR(group);
+  /* MPIR_TEST_MPI_GROUP(group,group_ptr,comm_ptr,myname); */
+#ifndef MPIR_NO_ERROR_CHECKING
   /* Check for invalid arguments */
   if ( MPIR_TEST_COMM_NOTOK(comm,comm_ptr)) {
       (*comm_out) = MPI_COMM_NULL;
       return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_COMM, myname );
       }
 
-  group_ptr = MPIR_GET_GROUP_PTR(group);
-  MPIR_TEST_MPI_GROUP(group,group_ptr,comm_ptr,myname);
+  MPIR_TEST_GROUP(group_ptr);
+    if (mpi_errno)
+	return MPIR_ERROR(comm_ptr, mpi_errno, myname );
 
   if ( (MPIR_TEST_GROUP_NOTOK(group,group_ptr) && (mpi_errno = MPI_ERR_COMM))||
       ((comm_ptr->comm_type == MPIR_INTER) && (mpi_errno = MPI_ERR_COMM))  ) {
       (*comm_out) = MPI_COMM_NULL;
       return MPIR_ERROR( comm_ptr, mpi_errno, myname );
   }
+#endif
 
   /* Create the communicator */
   if (group_ptr->local_rank == MPI_UNDEFINED) {

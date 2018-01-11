@@ -1,12 +1,10 @@
-.TH MPI_Errhandler_set 3 "4/28/1998" " " "MPI"
+.TH MPI_Errhandler_set 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Errhandler_set \-  Sets the error handler for a communicator 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Errhandler_set( comm, errhandler )
-MPI_Comm       comm;
-MPI_Errhandler errhandler;
+int MPI_Errhandler_set( MPI_Comm comm, MPI_Errhandler errhandler )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

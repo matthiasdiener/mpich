@@ -1,5 +1,5 @@
 /*
- *  $Id: topo_util.c,v 1.2 1998/01/29 14:29:39 gropp Exp $
+ *  $Id: topo_util.c,v 1.4 1999/08/20 02:28:06 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -29,15 +29,17 @@ void MPIR_Topology_Free()
 {
     MPIR_SBdestroy( MPIR_topo_els );
 }
+
 /*
   MPIR_Topology_copy_fn - copies topology information.
  */
-int MPIR_Topology_copy_fn(old_comm, keyval, extra, attr_in, attr_out, flag)
-MPI_Comm old_comm;
-int      keyval;
-void     *extra;
-void     *attr_in, *attr_out;
-int      *flag;
+int MPIR_Topology_copy_fn(
+	MPI_Comm old_comm, 
+	int keyval, 
+	void *extra, 
+	void *attr_in, 
+	void *attr_out, 
+	int *flag)
 {
   MPIR_TOPOLOGY *old_topo = (MPIR_TOPOLOGY *) attr_in;
   MPIR_TOPOLOGY *new_topo = (MPIR_TOPOLOGY *) MPIR_SBalloc ( MPIR_topo_els );
@@ -90,10 +92,11 @@ int      *flag;
 /*
   MPIR_Topology_delete_fn - deletes topology information.
  */
-int MPIR_Topology_delete_fn(comm, keyval, attr_val, extra)
-MPI_Comm comm;
-int      keyval;
-void     *attr_val, *extra;
+int MPIR_Topology_delete_fn(
+	MPI_Comm comm, 
+	int keyval, 
+	void *attr_val, 
+	void *extra)
 {
   MPIR_TOPOLOGY *topo = (MPIR_TOPOLOGY *)attr_val;
 

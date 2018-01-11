@@ -78,7 +78,9 @@ void MPIR_HBT_Free ANSI_ARGS((void));
 #define MPIR_TEST_KEYVAL_NOTOK(idx,ptr) \
    (!(ptr) || ((ptr)->cookie != MPIR_ATTR_COOKIE))
 #define MPIR_TEST_MPI_KEYVAL(idx,ptr,comm,routine_name) \
-   if ( MPIR_TEST_KEYVAL_NOTOK(idx,ptr) && (mpi_errno = MPI_ERR_KEYVAL)) {\
-     return MPIR_ERROR(comm,mpi_errno,routine_name);}
-
+if (!(ptr)) {\
+ mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_KEYVAL_NULL,myname,(char*)0,(char *)0);}\
+else if ((ptr)->cookie != MPIR_ATTR_COOKIE) {\
+mpi_errno = MPIR_Err_setmsg( MPI_ERR_INTERN, MPIR_ERR_ATTR_CORRUPT, myname,\
+(char*)0,(char *)0,(ptr)->cookie);}
 #endif

@@ -1,5 +1,5 @@
 /*
- *  $Id: chflow.c,v 1.2 1998/03/13 22:32:25 gropp Exp $
+ *  $Id: chflow.c,v 1.6 1999/08/12 20:18:36 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -25,13 +25,25 @@ int flag;
 void MPID_SendFlowPacket( partner )
 int partner;
 {
+#ifdef MPID_USE_SHMEM
+    MPID_PKT_FLOW_T *pkt;
+#else
     MPID_PKT_FLOW_T pkt;
+#endif
 
     DEBUG_PRINT_MSG("- Sending flow control packet");
+#ifdef MPID_USE_SHMEM
+    pkt = (MPID_PKT_FLOW_T *) MPID_SHMEM_GetSendPkt(0);
+    pkt->mode = MPID_PKT_FLOW;
+    MPID_FLOW_MEM_ADD(pkt,partner);
+    MPID_SendControl( (MPID_PKT_T *)pkt, sizeof(MPID_PKT_FLOW_T), partner );
+#else
     pkt.mode = MPID_PKT_FLOW;
-    MPID_FLOW_MEM_ADD(&pkt,partner);
     MPID_PKT_PACK( &pkt, sizeof(MPID_PKT_HEAD_T), partner );
+    MPID_FLOW_MEM_ADD(&pkt,partner);
     MPID_SendControl( &pkt, sizeof(MPID_PKT_FLOW_T), partner );
+#endif
+
 }
 
 void MPID_RecvFlowPacket( in_pkt, partner )
@@ -39,8 +51,12 @@ MPID_PKT_T *in_pkt;
 int        partner;
 {
     MPID_PKT_FLOW_T  *pkt = (MPID_PKT_FLOW_T *)in_pkt;
+
     DEBUG_PRINT_MSG("- Receiving flow control packet");
     MPID_FLOW_MEM_GET(pkt,partner);
+#ifdef MPID_USE_SHMEM
+    MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)in_pkt );
+#endif
 }
 
 void MPID_FlowSetup( buf_thresh, mem_thresh )
@@ -79,13 +95,13 @@ FILE *fp;
 {
     int i;
     for (i=0; i<MPID_MyWorldSize; i++) {
-	fprintf( fp, 
+	FPRINTF( fp, 
       "[%d]%d: Buf used = %d, thresh = %d, Mem used = %d, thresh = %d\n",
 		 MPID_MyWorldRank, i, MPID_flow_info[i].buf_use, 
 		 MPID_flow_info[i].buf_thresh, 
 		 MPID_flow_info[i].mem_use, 
 		 MPID_flow_info[i].mem_thresh );
-	fprintf( fp, 
+	FPRINTF( fp, 
       "[%d]%d Buf read = %d, mem read = %d, need update = %c\n",
 		 MPID_MyWorldRank, i, 
 		 MPID_flow_info[i].buf_read, 

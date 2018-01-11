@@ -86,7 +86,7 @@ int main( int argc, char **argv )
     ret = MPI_Type_commit(&carray_t);
     if (ret != MPI_SUCCESS) {
 	fprintf(stderr, "Could not make char array type."), fflush(stderr); 
-	exit(1);
+	MPI_Abort( MPI_COMM_WORLD, 1 );
     }
 
     /* A fairly simple structure */
@@ -99,16 +99,16 @@ int main( int argc, char **argv )
     MPI_Type_struct(2, block1, disp1, type1, &struct1_t);
     ret = MPI_Type_commit(&struct1_t);
     if (ret != MPI_SUCCESS) {
-	fprintf(stderr, "Could not make struct 1."), fflush(stderr), exit(1);
-	exit(1);
+	fprintf(stderr, "Could not make struct 1."); fflush(stderr); 
+        MPI_Abort( MPI_COMM_WORLD, 1 );
     }
 
     /* And a short array of this type */
     MPI_Type_contiguous(2, struct1_t, &astruct1_t);
     ret = MPI_Type_commit(&astruct1_t);
     if (ret != MPI_SUCCESS) {
-	fprintf(stderr, "Could not make struct 1 array."), fflush(stderr);
-	exit(1);
+	fprintf(stderr, "Could not make struct 1 array."); fflush(stderr);
+        MPI_Abort( MPI_COMM_WORLD, 1 );
     }
 
     
@@ -129,7 +129,7 @@ int main( int argc, char **argv )
     ret = MPI_Type_commit(&struct2_t);
     if (ret != MPI_SUCCESS) {
 	fprintf(stderr, "Could not make struct 2."), fflush(stderr);
-	exit(1);
+	MPI_Abort( MPI_COMM_WORLD, 1 );
     }
 
     /* Another (hopefully compatible) complex structure */
@@ -144,7 +144,7 @@ int main( int argc, char **argv )
     ret = MPI_Type_commit(&struct3_t);
     if (ret != MPI_SUCCESS) {
 	fprintf(stderr, "Could not make struct 3."), fflush(stderr);
-	exit(1);
+	MPI_Abort( MPI_COMM_WORLD, 1 );
     }
 
     /* A structure with gaps (invokes padding) */

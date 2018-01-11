@@ -1,14 +1,14 @@
-.TH MPI_Keyval_create 3 "9/17/1997" " " "MPI"
+.TH MPI_Keyval_create 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Keyval_create \-  Generates a new attribute key 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Keyval_create ( copy_fn, delete_fn, keyval, extra_state )
-MPI_Copy_function   *copy_fn;
-MPI_Delete_function *delete_fn;
-int                 *keyval;
-void                *extra_state;
+int MPI_Keyval_create ( 
+ MPI_Copy_function *copy_fn, 
+ MPI_Delete_function *delete_fn, 
+ int *keyval, 
+ void *extra_state )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

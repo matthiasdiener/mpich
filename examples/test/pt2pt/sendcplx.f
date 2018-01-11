@@ -3,7 +3,7 @@
       
       INTEGER LDA
       PARAMETER (LDA=2)
-      INTEGER myid,IERR,NPROCS
+      INTEGER myid,IERR,NPROCS, stat(MPI_STATUS_SIZE)
       COMPLEX A(2,2)
 
       CALL MPI_INIT(IERR)

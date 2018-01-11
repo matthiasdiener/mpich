@@ -38,8 +38,10 @@ Usage: ${progname} [-arch=ARCH_TYPE]
                    [-cc=C_COMPILER] [-fc=FORTRAN_COMPILER]
 		   [-basecc=C_COMPILER] [-basefc=FORTRAN_COMPILER]
                    [-clinker=C_LINKER] [-flinker=FORTRAN_LINKER]
-                   [-nof77] [-opt=OPTFLAGS] 
+                   [-nof77] [-opt=OPTFLAGS]
+                   [-f77_extra_flag=F77_EXTRA_FLAG] 
 	           [-make=MAKEPGM]
+		   [-device=DEVICE]
                    [-cflags=CFLAGS] [-fflags=FFLAGS]
                    [-optcc=C_OPTFLAGS] [-optf77=F77_OPTFLAGS]
                    [-lib=LIBRARY] [-mpilibname=MPINAME]
@@ -75,6 +77,10 @@ Fortran).  For example, '-opt=-O' chooses optimized code generation on many
 systems.  '-optcc' and '-optf77' allow you to specify options for just the C
 or Fortran compilers
 
+The option '-f77_extra_flag' is the option Fortran code needs to compile, but 
+cannot link with this option.  This is needed currently for the Absoft compiler
+(-f option), but it could be used for other cases as well.
+
 The option '-make' may be used to select an alternate make program.  For
 example, on FreeBSD systems, -make=gnumake may be required because of bugs in
 the system make.
@@ -107,8 +113,9 @@ FLIB_PATH=""
 OPTFLAGS=""
 OPTFLAGSF=""
 NOF77=0
+F77_EXTRA_FLAG=""
 HAS_FORTRAN=1
-MPILIBNAME=mpi
+MPILIBNAME=
 CFLAGS=""
 # Change MPIFDEP to make Fortran builds depend on an mpif link.
 MPIFDEP=""
@@ -116,6 +123,7 @@ MPIFDEP=""
 # By not setting FFLAGS, we get the values from the environment
 MAKE=make
 PREFIX=""
+DEVICE=""
 DEVCFLAGS=""
 CONFIGURE_ARGS="$*"
 DEFAULT_MACHINE=''
@@ -267,6 +275,10 @@ do
        package="`echo $arg|sed 's/-*fflags=//'`"
        FFLAGS="$package" ;;
 
+     -f77_extra_flag=* | --f77_extra_flag=*)
+       package="`echo $arg |sed 's/-*f77_extra_flag=//'`"
+       F77_EXTRA_FLAG="$package" ;;
+
      -make=* | --make=*)
        package=`echo $arg|sed 's/-*make=//'`
        MAKE="$package"
@@ -274,6 +286,8 @@ do
 
      -mpichpath=*|--mpichpath=*)
 	mpichpath=`echo A$arg | sed 's/A-*mpichpath=//'`
+	MPIRUNARGS='"-mvhome"'
+	MPIRUNMVBACK="-mvback"
 	;;
 
      -mpi2)
@@ -314,13 +328,25 @@ dnl Finish the initalization
 AC_PREPARE()
 #
 #
-PAC_GETWD(MPIR_TRIAL,Makefile.in)
-MPIR_HOME=$MPIR_TRIAL
+## Find the MPICH home directory if not specified
+#if test -s $srcdir/src/pt2pt/Makefile.in ; then 
+#    MPIR_TRIAL=$srcdir
+#else
+#    PA C_GETWD(MPIR_TRIAL,src/pt2pt/Makefile.in)
+#fi
+#MPIR_HOME=$MPIR_TRIAL
 #
+if test -z "$prefix" -a -n "$PREFIX" ; then prefix=$PREFIX ; fi
+AC_SUBST(prefix)
+if test -z "$top_srcdir" -o "$top_srcdir" = "." ; then 
+    top_srcdir=$srcdir
+fi
+AC_SUBST(top_srcdir)
+
 if test -n "$mpichpath" ; then
-    if test -z "$CC" ; then MPICC=$mpichpath/mpicc ; fi
-    if test -z "$FC" ; then MPIF77=$mpichpath/mpif77 ; fi
-    if test -z "$CXX" ; then MPICPLUSPLUS=$mpichpath/mpiCC ; fi
+    if test -z "$MPICC" ; then MPICC=$mpichpath/mpicc ; fi
+    if test -z "$MPIF77" ; then MPIF77=$mpichpath/mpif77 ; fi
+    if test -z "$MPICPLUSPLUS" ; then MPICPLUSPLUS=$mpichpath/mpiCC ; fi
     if test -z "$MPIRUN" ; then MPIRUN=$mpichpath/mpirun ; fi
     if test -z "$MPICH_VERSION" ; then 
 	MPICH_VERSION="MPICH"
@@ -342,13 +368,20 @@ F77="$FC"
 if test -z "$ARCH" -a -x tarch ; then
     echo "Trying to guess architecture ..."
     ARCH=`./tarch | sed s/-/_/g`
-    if test -z "$ARCH" ; then
-       print_error "Error: Couldn't guess target architecture."
-    else
-        eval "arch_$ARCH=1"
-        echo "  configuring for \"$ARCH\" target architecture"
-    fi
 fi
+if test -z "$ARCH" -a -x ../../bin/tarch ; then
+    ARCH=`../../bin/tarch | sed s/-/_/g`
+fi
+if test -z "$ARCH" -a -x $top_srcdir/../../bin/tarch ; then
+    ARCH=`$top_srcdir/../../bin/tarch | sed s/-/_/g`
+fi
+if test -z "$ARCH" ; then
+    print_error "Error: Couldn't guess target architecture."
+else
+    eval "arch_$ARCH=1"
+    echo "  configuring for \"$ARCH\" target architecture"
+fi
+
 if test -n "$arch_sgi" ; then
     arch_IRIX=1
     ARCH=IRIX
@@ -406,6 +439,7 @@ fi
 PAC_MAKE_IS_GNUMAKE
 PAC_MAKE_IS_BSD44
 PAC_MAKE_IS_OSF
+PAC_MAKE_VPATH
 #
 # Check for header files
 # stdlib.h is used mostly for things like malloc and free, so it isn't
@@ -414,7 +448,7 @@ PAC_CHECK_HEADERS(stdlib.h)
 #
 # Check for stdarg correct (used in test.h)
 PAC_STDARG_CORRECT(stdarg_ok)
-if test $stdarg_ok ; then
+if test $stdarg_ok = 1 ; then
     AC_DEFINE(USE_STDARG)
 fi
 #
@@ -469,6 +503,39 @@ fi
 #
 #
 MPE_CFLAGS="$MPE_CFLAGS $DEFS"
+if test -n "$MPILIBNAME" ; then
+    LIB_LIST="$LIB_LIST -l$MPILIBNAME"
+fi
+
+#
+# Check that we can link MPI_Init using the MPICC program (if not MPICH)
+# (We don't test mpich because we may be configuring this before MPICH 
+# is built.)
+if test -z "$MPICH_VERSION" ; then
+    rm -f conftest*
+    cat >> conftest.c <<EOF
+#include "mpi.h"
+int main(int argc, char **argv)
+{MPI_Init( &argc, &argv );
+ MPI_Finalize();
+ return 0;
+}
+EOF
+    if $MPICC -o conftest conftest.c $LIB_LIST >conftest.log 2>&1 ; then
+	:
+    else
+        # Try adding -lmpi
+        rm conftest.log
+        if $MPICC -o conftest conftest.c $LIB_LIST -lmpi >conftest.log 2>&1 ; then
+            LIB_LIST="$LIB_LIST -lmpi"
+        else
+	    printerror "Could not compile/link a program containing MPI_Init"
+            if test -s conftest.log ; then cat conftest.out ; fi
+        fi
+    fi
+    rm -f conftest*
+fi
+AC_SUBST(MPIRUNARGS)
 # Substitute variables
 # Variables used in scripts only
 # FINC contains an @MPIR_HOME@, so it needs to come first
@@ -486,6 +553,7 @@ AC_SUBST(FLIB_PATH)dnl
 AC_SUBST(FLIB_PATH_LEADER)dnl
 AC_SUBST(FLINKER)dnl
 AC_SUBST(HAS_FORTRAN)dnl
+AC_SUBST(F77_EXTRA_FLAG)dnl
 AC_SUBST(INCLUDE_PATH)dnl
 AC_SUBST(LIB_LIST)dnl
 AC_SUBST(LIB_PATH)dnl
@@ -501,13 +569,18 @@ AC_SUBST(MPICC)dnl
 AC_SUBST(MPIF77)dnl
 AC_SUBST(MPICPLUSPLUS)dnl
 AC_SUBST(MPIRUN)dnl
+AC_SUBST(MPIRUNMVBACK)dnl
 AC_SUBST(OPTFLAGS)dnl
 AC_SUBST(OPTFLAGSC)dnl
 AC_SUBST(OPTFLAGSF)dnl
+AC_SUBST(VPATH)dnl
 AC_SUBST(HAS_MPI2)dnl
+AC_SUBST(DEVICE)
 MPICH_VERSION=""
 dnl This is used to make sure that we get the correct mpirun.
 AC_SUBST(MPICH_VERSION)dnl
 # End configuration file
 AC_OUTPUT(Makefile pt2pt/Makefile coll/Makefile topol/Makefile context/Makefile env/Makefile profile/Makefile )
 PAC_OUTPUT_EXEC(pt2pt/runtests coll/runtests topol/runtests context/runtests env/runtests profile/runtests,a+x )
+
+

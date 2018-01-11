@@ -69,7 +69,7 @@ waitall()
   MPI::Request req[100];
   MPI::Status stats[100];
   
-  Testing("Waitall w/ Status");
+  Testing( (char *)"Waitall w/ Status");
 
   for(i = 0; i < 100; i++) {
     data[i] = -1;
@@ -97,7 +97,7 @@ waitall()
 
   MPI::COMM_WORLD.Barrier();
 
-  Testing("Waitall w/o Status");
+  Testing( (char *)"Waitall w/o Status");
 
   // The following tests waitall without Status arguments.
 

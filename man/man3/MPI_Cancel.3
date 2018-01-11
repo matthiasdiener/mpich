@@ -1,11 +1,10 @@
-.TH MPI_Cancel 3 "1/29/1998" " " "MPI"
+.TH MPI_Cancel 3 "12/2/1999" " " "MPI"
 .SH NAME
 MPI_Cancel \-  Cancels a communication request 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Cancel( request )
-MPI_Request *request;
+int MPI_Cancel( MPI_Request *request )
 .fi
 .SH INPUT PARAMETER
 .PD 0
@@ -23,10 +22,11 @@ the user to cancel these unsatisfied requests.
 
 Cancelling a send operation is much more difficult, in large part because the
 send will usually be at least partially complete (the information on the tag,
-size, and source are usually sent immediately to the destination).  MPICH
-will support this once other enhancements are completed; however, users are
-advised that cancelling a send, while a local operation, is likely to
-be expensive (usually generating one or more internal messages).
+size, and source are usually sent immediately to the destination).  As of
+version 1.2.0, MPICH supports cancelling of sends.  Users are
+advised that cancelling a send, while a local operation (as defined by the MPI
+standard), is likely to be expensive (usually generating one or more internal
+messages).
 
 .SH NOTES FOR FORTRAN
 All MPI routines in Fortran (except for 

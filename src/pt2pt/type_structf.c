@@ -3,7 +3,56 @@
 #include "mpiimpl.h"
 #include "mpimem.h"
 
-#ifdef MPI_BUILD_PROFILING
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_TYPE_STRUCT = PMPI_TYPE_STRUCT
+EXPORT_MPI_API void MPI_TYPE_STRUCT ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_type_struct__ = pmpi_type_struct__
+EXPORT_MPI_API void mpi_type_struct__ ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_type_struct = pmpi_type_struct
+EXPORT_MPI_API void mpi_type_struct ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_type_struct_ = pmpi_type_struct_
+EXPORT_MPI_API void mpi_type_struct_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [], MPI_Fint [], MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_TYPE_STRUCT  MPI_TYPE_STRUCT
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_type_struct__  mpi_type_struct__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_type_struct  mpi_type_struct
+#else
+#pragma _HP_SECONDARY_DEF pmpi_type_struct_  mpi_type_struct_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_TYPE_STRUCT as PMPI_TYPE_STRUCT
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_type_struct__ as pmpi_type_struct__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_type_struct as pmpi_type_struct
+#else
+#pragma _CRI duplicate mpi_type_struct_ as pmpi_type_struct_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_type_struct_ PMPI_TYPE_STRUCT
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -13,7 +62,9 @@
 #else
 #define mpi_type_struct_ pmpi_type_struct_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_type_struct_ MPI_TYPE_STRUCT
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -23,18 +74,13 @@
 #endif
 #endif
 
+
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_type_struct_ ANSI_ARGS(( MPI_Fint *, MPI_Fint [], MPI_Fint [], 
+EXPORT_MPI_API void mpi_type_struct_ ANSI_ARGS(( MPI_Fint *, MPI_Fint [], MPI_Fint [], 
                                   MPI_Fint [], MPI_Fint *, 
                                   MPI_Fint * ));
 
-void mpi_type_struct_( count, blocklens, indices, old_types, newtype, __ierr )
-MPI_Fint *count;
-MPI_Fint blocklens[];
-MPI_Fint indices[];      
-MPI_Fint old_types[];
-MPI_Fint *newtype;
-MPI_Fint     *__ierr;
+EXPORT_MPI_API void mpi_type_struct_( MPI_Fint *count, MPI_Fint blocklens[], MPI_Fint indices[], MPI_Fint old_types[], MPI_Fint *newtype, MPI_Fint *__ierr )
 {
     MPI_Aint     *c_indices;
     MPI_Aint     local_c_indices[MPIR_USE_LOCAL_ARRAY];
@@ -44,6 +90,8 @@ MPI_Fint     *__ierr;
     int          *l_blocklens;
     int          local_l_blocklens[MPIR_USE_LOCAL_ARRAY];
     int          i;
+    int          mpi_errno;
+    static char  myname[] = "MPI_TYPE_STRUCT";
     
     if ((int)*count > 0) {
 	if ((int)*count > MPIR_USE_LOCAL_ARRAY) {
@@ -51,13 +99,13 @@ MPI_Fint     *__ierr;
 	   they are currently relative to MPIF_F_MPI_BOTTOM.  
 	   Convert them back */
 	    MPIR_FALLOC(c_indices,(MPI_Aint *) MALLOC( *count * sizeof(MPI_Aint) ),
-		        MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, "MPI_TYPE_STRUCT" );
+		        MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, myname );
 
 	    MPIR_FALLOC(l_blocklens,(int *) MALLOC( *count * sizeof(int) ),
-		        MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, "MPI_TYPE_STRUCT" );
+		        MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, myname );
 
 	    MPIR_FALLOC(l_datatype,(MPI_Datatype *) MALLOC( *count * sizeof(MPI_Datatype) ),
-		        MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, "MPI_TYPE_STRUCT" );
+		        MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, myname );
 	}
 	else {
 	    c_indices = local_c_indices;
@@ -85,8 +133,10 @@ MPI_Fint     *__ierr;
 	*newtype = 0;
     }
     else {
-	*__ierr = MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_COUNT,
-			      "Negative count in MPI_TYPE_STRUCT" );
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_COUNT, MPIR_ERR_DEFAULT, myname,
+				     (char *)0, (char *)0, (int)(*count) );
+	*__ierr = MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+	return;
     }
     *newtype = MPI_Type_c2f(l_newtype);
 

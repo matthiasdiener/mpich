@@ -1,5 +1,5 @@
-#include "clogimpl.h"
 #include "mpeconf.h"
+#include "clogimpl.h"
 
 
 void CLOG_dumplog()

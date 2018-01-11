@@ -1,5 +1,5 @@
 /*
- *  $Id: waitall.c,v 1.9 1998/11/15 20:32:04 gropp Exp $
+ *  $Id: waitall.c,v 1.18 1999/11/06 21:44:14 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,25 @@
 
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Waitall = PMPI_Waitall
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Waitall  MPI_Waitall
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Waitall as PMPI_Waitall
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "reqalloc.h"
 
 /*@
@@ -30,10 +49,10 @@ Output Parameter:
 .N MPI_ERR_IN_STATUS
 .N MPI_ERR_PENDING
 @*/
-int MPI_Waitall(count, array_of_requests, array_of_statuses )
-int         count;
-MPI_Request array_of_requests[];
-MPI_Status  array_of_statuses[];
+EXPORT_MPI_API int MPI_Waitall(
+	int count, 
+	MPI_Request array_of_requests[], 
+	MPI_Status array_of_statuses[] )
 {
     int i;
     MPI_Request request;
@@ -79,22 +98,32 @@ MPI_Status  array_of_statuses[];
 	    }
 
 	if ( request->handle_type == MPIR_SEND ) {
-	    rc = MPI_SUCCESS;
-	    MPID_SendComplete( request, &rc );
-	    if (rc) {
-		MPIR_Set_Status_error_array( array_of_requests, count, i, 
-					     rc, array_of_statuses );
-		mpi_errno = MPI_ERR_IN_STATUS;
-		MPIR_RETURN(MPIR_COMM_WORLD, mpi_errno, myname );
+	    if (MPID_SendRequestCancelled(request)) {
+		array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED; 
 	    }
-	    MPIR_FORGET_SEND( &request->shandle );
-	    MPID_SendFree( array_of_requests[i] );
-	    array_of_requests[i]    = 0;
+	    else {
+		rc = MPI_SUCCESS;
+		MPID_SendComplete( request, &rc );
+		if (rc) {
+		    MPIR_Set_Status_error_array( array_of_requests, count, i, 
+						 rc, array_of_statuses );
+		    mpi_errno = MPI_ERR_IN_STATUS;
+		    MPIR_RETURN(MPIR_COMM_WORLD, mpi_errno, myname );
+		}
+		MPIR_FORGET_SEND( &request->shandle );
+		MPID_SendFree( array_of_requests[i] );
+		array_of_requests[i]    = 0;
+	    }
 	}
 	else if (request->handle_type == MPIR_PERSISTENT_SEND) {
 	    if (!request->persistent_shandle.active) {
                 /* See MPI Standard, 3.7 */
-		array_of_statuses[i].MPI_TAG	= MPI_ANY_TAG;
+		if (MPID_SendRequestCancelled(&request->persistent_shandle)) {
+		    array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED;
+		}
+		else
+		    array_of_statuses[i].MPI_TAG = MPI_ANY_TAG;
+
 		array_of_statuses[i].MPI_SOURCE	= MPI_ANY_SOURCE;
 		array_of_statuses[i].MPI_ERROR	= MPI_SUCCESS;
 		array_of_statuses[i].count	= 0;
@@ -126,27 +155,33 @@ MPI_Status  array_of_statuses[];
 	if ( request->handle_type == MPIR_RECV ) {
 	    /*FPRINTF( stderr, "[%d] receive request %d\n", MPIR_tid, i );*/
 	    /* Old code does test first */
-	    rc = MPI_SUCCESS;
-	    MPID_RecvComplete( request, &array_of_statuses[i], &rc );
-	    if (rc) {
-		MPIR_Set_Status_error_array( array_of_requests, count, i, 
-					     rc, array_of_statuses );
-		mpi_errno = MPI_ERR_IN_STATUS;
-		MPIR_RETURN(MPIR_COMM_WORLD, mpi_errno, myname );
+	    if (request->rhandle.s.MPI_TAG == MPIR_MSG_CANCELLED) {
+		array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED;
+		MPID_RecvFree( array_of_requests[i] );
+		array_of_requests[i] = 0; 
 	    }
-	    MPID_RecvFree( array_of_requests[i] );
-	    array_of_requests[i] = 0;
+	    else {
+		rc = MPI_SUCCESS;
+		MPID_RecvComplete( request, &array_of_statuses[i], &rc );
+		if (rc) {
+		    MPIR_Set_Status_error_array( array_of_requests, count, i, 
+						 rc, array_of_statuses );
+		    mpi_errno = MPI_ERR_IN_STATUS;
+		    MPIR_RETURN(MPIR_COMM_WORLD, mpi_errno, myname );
+		}
+		MPID_RecvFree( array_of_requests[i] );
+		array_of_requests[i] = 0;
+	    }
 	}
 	else if (request->handle_type == MPIR_PERSISTENT_RECV) {
 	    if (!request->persistent_rhandle.active) {
-#ifdef FOO
 		/* Thanks to mechi@terra.co.il for this fix */
 		if (request->persistent_rhandle.rhandle.s.MPI_TAG ==
 		    MPIR_MSG_CANCELLED) 
 		    array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED;
 		else
-#endif
 		    array_of_statuses[i].MPI_TAG    = MPI_ANY_TAG;
+
 		array_of_statuses[i].MPI_SOURCE = MPI_ANY_SOURCE;
 		array_of_statuses[i].MPI_ERROR  = MPI_SUCCESS;
 		array_of_statuses[i].count	    = 0;
@@ -173,7 +208,7 @@ MPI_Status  array_of_statuses[];
 
 	for (i=0; i<count; i++) {
 	    rc = MPI_Waitany( count, array_of_requests, &index, &status );
-	    printf( "Found index = %d\n", index );
+	    PRINTF( "Found index = %d\n", index );
 	    array_of_statuses[index] = status;
 	    if (rc) {
 		MPIR_Set_Status_error_array( array_of_requests, count, i, 

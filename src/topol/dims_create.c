@@ -1,5 +1,5 @@
 /*
- *  $Id: dims_create.c,v 1.4 1998/04/29 14:28:40 swider Exp $
+ *  $Id: dims_create.c,v 1.10 1999/08/30 15:50:59 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -11,6 +11,25 @@
 */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Dims_create = PMPI_Dims_create
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Dims_create  MPI_Dims_create
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Dims_create as PMPI_Dims_create
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include <stdio.h>
 #include <math.h>
 #include "mpimem.h"
@@ -21,14 +40,13 @@
 #define MPIR_guess(a,b)  MPIR_root((a),(b))
 
 /* Prototype to suppress warnings about missing prototypes */
-int MPIR_root ANSI_ARGS((double, double));
-static int getFirstBit ANSI_ARGS(( int, int * ));
-static int factorAndCombine ANSI_ARGS(( int, int, int * ));
+int MPIR_root( double, double);
+static int getFirstBit ( int, int * );
+static int factorAndCombine ( int, int, int * );
  
 /* Simple function to make a guess at the root of a number */
 #define ROOT_ITERS 10
-int MPIR_root(x_in,n_in)
-double x_in, n_in ;
+int MPIR_root(double x_in, double n_in)
 {
   int      n = (int)n_in;
   int      x = (int)x_in;
@@ -39,7 +57,7 @@ double x_in, n_in ;
     return (1);
  
   r = n ;
-  for(i=1;i<n;i++)
+  for(i=1;i<(unsigned long)n;i++)
     r*=n ;
   r = x/r ;
   guess = 1<<(31/n) ;
@@ -50,9 +68,9 @@ double x_in, n_in ;
   low = 1 ;
   for(j=0;j<ROOT_ITERS;j++) {
     r = guess ;
-    for(i=1;i<n;i++)
+    for(i=1;i<(unsigned long)n;i++)
       r *= guess ;
-    if(r > x) {
+    if(r > (unsigned long)x) {
       high = guess ;
       guess = (guess - low)/2 + low ;
     } else {
@@ -95,9 +113,7 @@ double x_in, n_in ;
 ** 
 **--------------------------------------------------------------------------*/ 
 
-static int getFirstBit(inputInt, bitPositionPtr)
-int inputInt;
-int *bitPositionPtr;
+static int getFirstBit(int inputInt, int *bitPositionPtr)
     {
     int mask, saveMask, bitPosition;
 
@@ -175,10 +191,7 @@ int *bitPositionPtr;
 ** 
 **--------------------------------------------------------------------------*/ 
 
-static int factorAndCombine(factorMe, numFactors, factors)
-int  factorMe;
-int  numFactors;
-int *factors;
+static int factorAndCombine(int factorMe, int numFactors, int *factors)
 {
   typedef struct BranchInfo	{
 	int currentBranch;                 /* encoded branch identification */
@@ -214,13 +227,16 @@ int *factors;
     int numPrimeFactors, factorCount, insertIndex;
     int numPrimeLeft;
     double nthRoot, distance, minDistance;
+    int mpi_errno;
 
     /* Check for wacky input values. */
     if ((factorMe <= 0) || (factorMe >= (MAX_PRIME * MAX_PRIME)) || 
         (numFactors <= 0))
         {
-	return MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_INTERN,
-			  "Invalid args to factorAndcombine");
+	    mpi_errno = MPIR_Err_setmsg( MPI_ERR_INTERN, MPIR_ERR_FACTOR,
+					 "MPI_DIMS_CREATE",
+	 "Internal MPI error! Invalid data for factorAndcombine", (char *)0 );
+	    return mpi_errno;
         }
 
     /* Check for trivial numFactors case. */
@@ -315,8 +331,8 @@ int *factors;
         if (searchTree == ((BranchInfo *)NULL))
 		  {
             FREE(primeFactors);
-			return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-							  "Out of memory in MPI_DIMS_CREATE" );
+	    return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+							  "MPI_DIMS_CREATE" );
 		  }
         remainingFactorMe = factorMe;
         factorCount = 0;              /* Track # of output factors created. */
@@ -710,25 +726,31 @@ dimension
 
 .N fortran
 @*/
-int MPI_Dims_create(nnodes, ndims, dims)
-int  nnodes;
-int  ndims;
-int *dims;
+EXPORT_MPI_API int MPI_Dims_create(
+	int nnodes, 
+	int ndims, 
+	int *dims)
 {
   int i, *newDims, newNdims;
   int testProduct, freeNodes, stat, ii;
+  int mpi_errno = MPI_SUCCESS;
+  static char myname[] = "MPI_DIMS_CREATE";
 
   /* Check for wacky input values. */
-  if ((nnodes <= 0) || (ndims <= 0))
-	return MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_ARG,
-			  "Invalid args to MPI_DIMS_CREATE");
+#ifndef MPIR_NO_ERROR_CHECKING
+  if (nnodes <= 0) mpi_errno = MPI_ERR_ARG;
+  if (ndims <= 0) mpi_errno = MPI_ERR_ARG;
+    if (mpi_errno)
+	return MPIR_ERROR(MPIR_COMM_WORLD, mpi_errno, myname );
+#endif
 
   newNdims = 0;                        /* number of zero values in dims[] */
   for (i=0; i<ndims; i++) {
       if (dims[i]<0) {
-	  MPIR_ERROR_PUSH_ARG(&dims[i]);
-	  return MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_DIMS,
-			    "Invalid args to MPI_DIMS_CREATE");
+	  mpi_errno = MPIR_Err_setmsg( MPI_ERR_DIMS, MPIR_ERR_DIMS_ARRAY, 
+				       myname, (char *)0, (char *)0, 
+				       i, dims[i] );
+	  return MPIR_ERROR(MPIR_COMM_WORLD,mpi_errno,myname );
       }
 	if (dims[i]==0)
 	  newNdims++;
@@ -741,9 +763,14 @@ int *dims;
 	  for (i=0; i<ndims; i++) {
 		testProduct *= dims[i];
 	  }
-	  if (testProduct != nnodes)
-		return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_DIMS, 
-				 "Tensor product size does not match nnodes");
+	  if (testProduct != nnodes) {
+	      mpi_errno = MPIR_Err_setmsg( MPI_ERR_DIMS, MPIR_ERR_DIMS_SIZE,
+					   myname, 
+                 "Tensor product size does not match nnodes",
+		 "Tensor product size (%d) does not match nnodes (%d)", 
+					   testProduct, nnodes );
+		return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+	  }
 	  else
 		return(MPI_SUCCESS);
 	}
@@ -752,24 +779,27 @@ int *dims;
   freeNodes = nnodes;
   for (i=0; i<ndims; i++) {
 	if (dims[i]>0) {
-	  if (nnodes%dims[i] != 0)
-		return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_DIMS,
-				 "Can not partition nodes as requested");
+	    if (nnodes%dims[i] != 0) {
+		mpi_errno = MPIR_Err_setmsg( MPI_ERR_DIMS, 
+					     MPIR_ERR_DIMS_PARTITION, myname,
+			"Can not partition nodes as requested", (char *)0);
+		return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+	    }
 	  freeNodes /= dims[i];
 	}
   }
 
   /* newDims will contain all dimensions not specified by the user. */
   newDims = (int *)CALLOC(newNdims, sizeof(int));
-  if (newDims == ((int *)0))
-      return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_INTERN, 
-			       "Could not allocate space in MPI_DIMS_CREATE");
+  if (newDims == ((int *)0)) {
+      return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, myname );
+  }
 
   /* Factor freeNodes into newDims */
   stat = factorAndCombine(freeNodes, newNdims, newDims);
   if (stat != 0) {
 	FREE(newDims);
-	return(stat);
+	return MPIR_ERROR( MPIR_COMM_WORLD, stat, myname );
   }
   
   /* Insert newDims into dims */

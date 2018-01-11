@@ -13,10 +13,18 @@ MDEP_FFLAGS = @MDEP_FFLAGS@
 MDEP_LFLAGS = @MDEP_LFLAGS@
 P4_OBJ = @P4_OBJ@
 
-CFLAGS = @OPTFLAGS@ -I$(INCLUDEDIR) $(MDEP_CFLAGS) $(USER_CFLAGS) @CFLAGS@
+SHELL = /bin/sh
+top_srcdir  = @top_srcdir@
+srcdir      = @srcdir@
+libbuild_dir = @libbuild_dir@
+
+@VPATH@
+
+CFLAGS = @OPTFLAGS@ -I$(INCLUDEDIR) $(MDEP_CFLAGS) $(USER_CFLAGS) @CFLAGS@ \
+	-I${srcdir} -I../include
 
 FFLAGS = @OPTFLAGS@ -I$(FORTLIBDIR) $(MDEP_FFLAGS)
-P4_HOME_DIR = ..
+P4_HOME_DIR = ${top_srcdir}
 INCLUDEDIR = $(P4_HOME_DIR)/include
 LIBDIR = $(P4_HOME_DIR)/lib
 LIBS = $(MDEP_LIBS)
@@ -27,10 +35,11 @@ USC_HDR = usc_sys.h usc.h
 USC_SRC = usc.c
 USC_OBJ = usc.o
 
+.SUFFIXES:
 .SUFFIXES:	.o .c .f .h
 
 .c.o:$(P)
-	$(CC) $(CFLAGS) -c $*.c 
+	$(CC) $(CFLAGS) -c $<
 
 .f.o:$(P)
 	$(FC) $(FFLAGS) -c $*.f 
@@ -38,7 +47,7 @@ USC_OBJ = usc.o
 dummy:	default
 
 clean:
-	$(RM) -f *~ *.o *.bak tags TAGS core
+	$(RM) -f *~ *.o *.bak tags TAGS core ${srcdir}/*.o
 
 default:	
 	$(MAKE) $(LIBDIR)/libp4.a
@@ -47,7 +56,7 @@ all:
 	$(MAKE) $(LIBDIR)/libp4.a
 
 usc.o:$(P)
-	$(CC) $(CFLAGS) -I$(INCLUDEDIR) -c usc.c 
+	$(CC) $(CFLAGS) -I$(INCLUDEDIR) -c ${srcdir}/usc.c 
 
 $(USC_OBJ):  $(USC_SRC) $(USC_HDR)
 
@@ -59,8 +68,8 @@ $(LIBDIR)/libp4.a:  $(USC_OBJ)
 #	$(RANLIB) $@
 
 p4inmpi:$(P) $(USC_OBJ)
-	$(AR) ../../../../build/$(MPIARCH)/ch_p4/lib/lib$(MPILIBNAME).a $?
-	$(RANLIB) ../../../../build/$(MPIARCH)/ch_p4/lib/lib$(MPILIBNAME).a
+	$(AR) ${libbuild_dir}/lib$(MPILIBNAME).a $?
+	$(RANLIB) ${libbuild_dir}/lib$(MPILIBNAME).a
 
 realclean:	clean
 	$(RM) -f $(LIBDIR)/libp4.a Makefile

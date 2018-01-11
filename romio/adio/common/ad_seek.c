@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_seek.c,v 1.2 1998/06/02 18:56:42 thakur Exp $    
+ *   $Id: ad_seek.c,v 1.3 1999/10/26 22:57:22 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -59,7 +59,7 @@ ADIO_Offset ADIOI_GEN_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
 	}
 
 	/* abs. offset in bytes in the file */
-	off = fd->disp + n_filetypes * filetype_extent +
+	off = fd->disp + (ADIO_Offset) n_filetypes * filetype_extent +
                 abs_off_in_filetype;
     }
 

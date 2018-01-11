@@ -10,15 +10,14 @@ Retrieves the actual arguments used in the creation call for a datatype
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Type_get_contents(datatype, max_integers, max_addresses, max_datatypes, array_of_integers, array_of_addresses, array_of_datatypes)
-MPI_Datatype  datatype;
-int           max_integers;
-int           max_addresses;
-int           max_datatypes;
-int           *array_of_integers;
-MPI_Aint      *array_of_addresses;
-MPI_Datatype  *array_of_datatypes;
-
+int MPI_Type_get_contents(
+ MPI_Datatype datatype, 
+ int max_integers, 
+ int max_addresses, 
+ int max_datatypes, 
+ int *array_of_integers, 
+ MPI_Aint *array_of_addresses, 
+ MPI_Datatype *array_of_datatypes)
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

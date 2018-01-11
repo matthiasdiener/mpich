@@ -1,5 +1,5 @@
 /*
- *  $Id: ssend.c,v 1.3 1998/04/28 21:47:12 swider Exp $
+ *  $Id: ssend.c,v 1.9 1999/09/18 15:50:08 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,25 @@
 
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Ssend = PMPI_Ssend
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Ssend  MPI_Ssend
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Ssend as PMPI_Ssend
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
     MPI_Ssend - Basic synchronous send
@@ -29,11 +48,8 @@ Input Parameters:
 .N MPI_ERR_TAG
 .N MPI_ERR_RANK
 @*/
-int MPI_Ssend( buf, count, datatype, dest, tag, comm )
-void             *buf;
-int              count, dest, tag;
-MPI_Datatype     datatype;
-MPI_Comm         comm;
+EXPORT_MPI_API int MPI_Ssend( void *buf, int count, MPI_Datatype datatype, 
+	       int dest, int tag, MPI_Comm comm )
 {
     int         mpi_errno = MPI_SUCCESS;
     MPI_Request handle;
@@ -52,6 +68,7 @@ MPI_Comm         comm;
 			        &handle ),comm_ptr,myname);
 
 	MPIR_CALL_POP(MPI_Wait( &handle, &status ),comm_ptr,myname);
+	MPIR_ERROR_POP(comm_ptr);
     }
     return mpi_errno;
 }

@@ -8,7 +8,7 @@ double a;
     return (4.0 / (1.0 + a*a));
 }
 
-void main(argc,argv)
+int main(argc,argv)
 int argc;
 char *argv[];
 {
@@ -24,8 +24,8 @@ char *argv[];
     MPI_Comm_rank(MPI_COMM_WORLD,&myid);
     MPI_Get_processor_name(processor_name,&namelen);
 
-    fprintf(stderr,"Process %d on %s\n",
-	    myid, processor_name);
+    fprintf(stdout,"Process %d of %d on %s\n",
+	    myid, numprocs, processor_name);
 
     n = 0;
     while (!done)
@@ -67,6 +67,7 @@ char *argv[];
         }
     }
     MPI_Finalize();
+    return 0;
 }
 
             

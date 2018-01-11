@@ -1,11 +1,30 @@
 /*
- *  $Id: cart_shift.c,v 1.4 1998/09/22 15:50:40 swider Exp $
+ *  $Id: cart_shift.c,v 1.10 1999/10/18 22:18:56 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Cart_shift = PMPI_Cart_shift
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Cart_shift  MPI_Cart_shift
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Cart_shift as PMPI_Cart_shift
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpitopo.h"
 
 /*@
@@ -34,14 +53,10 @@ Cartesian mesh.
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-int MPI_Cart_shift ( comm, direction, displ, source, dest )
-MPI_Comm  comm;
-int       direction;
-int       displ;
-int      *source;
-int      *dest;
+EXPORT_MPI_API int MPI_Cart_shift ( MPI_Comm comm, int direction, int displ, 
+		     int *source, int *dest )
 {
-  int rank, size, flag;
+  int rank, flag;
   int source_position, dest_position, save_position, periodic;
   int mpi_errno = MPI_SUCCESS;
   MPIR_TOPOLOGY *topo;
@@ -50,22 +65,29 @@ int      *dest;
 
   TR_PUSH(myname);
   comm_ptr = MPIR_GET_COMM_PTR(comm);
+
+#ifndef MPIR_NO_ERROR_CHECKING
   MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
   /* Check for valid arguments */
-  if ( ((direction <  0) && (mpi_errno = MPI_ERR_ARG))   ||
-       MPIR_TEST_ARG(dest) || MPIR_TEST_ARG(source)) 
-    return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+  if (direction < 0) mpi_errno = MPI_ERR_ARG;
+  MPIR_TEST_ARG(dest);
+  MPIR_TEST_ARG(source);
+  if (mpi_errno) 
+      return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+#endif
 
 
   /* Get topology information from the communicator */
   MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );
 
+#ifndef MPIR_NO_ERROR_CHECKING
   /* Check for valid topology */
   if ( ( (flag != 1)                      && (mpi_errno = MPI_ERR_TOPOLOGY)) ||
        ( (topo->type != MPI_CART)         && (mpi_errno = MPI_ERR_TOPOLOGY)) ||
        ( (direction  >= topo->cart.ndims) && (mpi_errno=MPI_ERR_ARG))        )
     return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+#endif
   
   /* Check the case for a 0 displacement */
   MPIR_Comm_rank (comm_ptr, &rank);
@@ -75,7 +97,6 @@ int      *dest;
   }
 
   /* Get ready for shifting */
-  MPIR_Comm_size (comm_ptr, &size);
   periodic = topo->cart.periods[direction];
   save_position = source_position = dest_position = 
       topo->cart.position[direction];

@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_name_get.c,v 1.3 1998/01/29 14:26:21 gropp Exp $
+ *  $Id: comm_name_get.c,v 1.6 1999/08/20 02:26:28 ashton Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -19,13 +19,11 @@
 MPI_Comm_get_name - return the print name from the communicator
 
 +*/
-int MPI_Comm_get_name( comm, namep, reslen )
-MPI_Comm comm;
-char *namep;
-int *reslen;
+EXPORT_MPI_API int MPI_Comm_get_name( MPI_Comm comm, char *namep, int *reslen )
 {
   struct MPIR_COMMUNICATOR *comm_ptr = MPIR_GET_COMM_PTR(comm);
   static char myname[] = "MPI_COMM_GET_NAME";
+  int mpi_errno;
   char *nm;
 
   TR_PUSH(myname);

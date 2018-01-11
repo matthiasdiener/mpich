@@ -1,11 +1,30 @@
 /*
- *  $Id: type_vec.c,v 1.4 1998/04/28 21:47:31 swider Exp $
+ *  $Id: type_vec.c,v 1.8 1999/08/30 15:50:09 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Type_vector = PMPI_Type_vector
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Type_vector  MPI_Type_vector
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Type_vector as PMPI_Type_vector
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
     MPI_Type_vector - Creates a vector (strided) datatype
@@ -22,12 +41,12 @@ Output Parameter:
 
 .N fortran
 @*/
-int MPI_Type_vector( count, blocklen, stride, old_type, newtype )
-int          count;
-int 	     blocklen;
-int 	     stride;
-MPI_Datatype old_type;
-MPI_Datatype *newtype;
+EXPORT_MPI_API int MPI_Type_vector( 
+	int count, 
+	int blocklen, 
+	int stride, 
+	MPI_Datatype old_type, 
+	MPI_Datatype *newtype )
 {
   int           mpi_errno = MPI_SUCCESS;
   struct MPIR_DATATYPE *old_dtype_ptr;

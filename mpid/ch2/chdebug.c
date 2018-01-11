@@ -1,5 +1,5 @@
 /*
- *  $Id: chdebug.c,v 1.2 1998/11/16 21:02:57 gropp Exp $
+ *  $Id: chdebug.c,v 1.10 1999/10/13 19:16:25 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -8,6 +8,7 @@
 
 #include "mpid.h"
 #include "mpiddev.h"
+#include "chpackflow.h"
 #include <string.h>
 
 /* 
@@ -22,6 +23,7 @@ int MPID_DebugFlag = 0;
 
 void MPID_Get_print_pkt ANSI_ARGS(( FILE *, MPID_PKT_T *));
 int  MPID_Rndv_print_pkt ANSI_ARGS((FILE *, MPID_PKT_T *));
+int  MPID_Cancel_print_pkt ANSI_ARGS((FILE *, MPID_PKT_T *));
 void MPID_Print_Send_Handle ANSI_ARGS(( MPIR_SHANDLE * ));
 
 /* Should each mode have its own print routines? */
@@ -35,40 +37,100 @@ MPID_PKT_T *pkt;
        To help keep the output "nearly" atomic, we first convert the
        send_id to a string, and then print that
        */
-    char sendid[40];
-    MPID_Aint send_id;
-
-    if (pkt->head.mode != MPID_PKT_OK_TO_SEND) 
-	send_id = pkt->request_pkt.send_id;
-    else
-	send_id = pkt->sendok_pkt.send_id;
-#ifdef MPID_AINT_IS_STRUCT
-    if (sizeof(void *) <= 4) 
-	sprintf( sendid, "%x", send_id.low );
-    else
-	sprintf( sendid, "%x%x", send_id.high, send_id.low );
+#if defined MPID_AINT_IS_STRUCT && defined(POINTER_64_BITS)
+    char sendid[64], recvid[64];
 #else
-    sprintf( sendid, "%lx", (long)send_id );
+    char sendid[40], recvid[40];
 #endif
 
-    if (pkt->head.mode != MPID_PKT_OK_TO_SEND) {
-	fprintf( fp, "\
+    MPID_Aint send_id, recv_id;
+
+    if (pkt->head.mode == MPID_PKT_REQUEST_SEND) 
+	send_id = pkt->request_pkt.send_id;
+    else {
+	send_id = pkt->sendok_pkt.send_id;
+	recv_id = pkt->sendok_pkt.recv_id;
+    }
+
+#if defined(MPID_AINT_IS_STRUCT) && !defined(POINTER_64_BITS)
+    SPRINTF( sendid, "%x", send_id.low );
+    SPRINTF( recvid, "%x", recv_id.low );
+#elif defined(MPID_AINT_IS_STRUCT) && defined(POINTER_64_BITS) 
+    SPRINTF( sendid, "%x%x", send_id.high, send_id.low );
+    SPRINTF( recvid, "%x%x", recv_id.high, recv_id.low );
+#else
+    SPRINTF( sendid, "%lx", (long)send_id );
+    SPRINTF( recvid, "%lx", (long)recv_id );
+#endif
+
+    if (pkt->head.mode == MPID_PKT_REQUEST_SEND) {
+	FPRINTF( fp, "\
 \tlen        = %d\n\
 \ttag        = %d\n\
 \tcontext_id = %d\n\
 \tlrank      = %d\n\
+\tto         = %d\n\
+\tseqnum     = %d\n\
 \tsend_id    = %s\n\
-\tsend_hndl  = %ld\n\
 \tmode       = ", 
 	pkt->head.len, pkt->head.tag, pkt->head.context_id, pkt->head.lrank,
-	sendid, (long)pkt->request_pkt.send_handle );
+	pkt->head.to, pkt->head.seqnum, sendid );
     }
     else {
-	fprintf( fp, "\
+	FPRINTF( fp, "\
+\tlrank      = %d\n\
+\tto         = %d\n\
+\tseqnum     = %d\n\
 \tsend_id    = %s\n\
-\trecv_hndl  = %ld\n\
-\tmode       = ", sendid, (long)pkt->sendok_pkt.recv_handle );
+\trecv_id    = %s\n\
+\tmode       = ", pkt->head.lrank, pkt->head.to, pkt->head.seqnum, 
+		 sendid, recvid );
     }
+    return MPI_SUCCESS;
+}
+
+int MPID_Cancel_print_pkt( fp, pkt )
+FILE       *fp;
+MPID_PKT_T *pkt;
+{
+    /* A "send_id" is a 64bit item on heterogeneous systems.  On 
+       systems without 64bit longs, we need special code to print these.
+       To help keep the output "nearly" atomic, we first convert the
+       send_id to a string, and then print that
+       */
+#if defined MPID_AINT_IS_STRUCT && defined(POINTER_64_BITS)
+    char sendid[64];
+#else
+    char sendid[40];
+#endif
+
+    MPID_Aint send_id;
+
+    send_id = pkt->antisend_pkt.send_id;
+#if defined(MPID_AINT_IS_STRUCT) && !defined(POINTER_64_BITS)
+    sprintf( sendid, "%x", send_id.low );
+#elif defined(MPID_AINT_IS_STRUCT) && defined(POINTER_64_BITS)
+    sprintf( sendid, "%x%x", send_id.high, send_id.low );
+#else
+    sprintf( sendid, "%lx", (long)send_id );
+#endif
+
+    if (pkt->head.mode != MPID_PKT_ANTI_SEND_OK)
+	fprintf( fp, "\
+\tlrank      = %d\n\
+\tdest       = %d\n\
+\tsend_id    = %s\n\
+\tmode       = ", 
+	pkt->head.lrank, pkt->head.to, sendid);
+    else
+	fprintf( fp, "\
+\tlrank      = %d\n\
+\tdest       = %d\n\
+\tcancel     = %d\n\
+\tsend_id    = %s\n\
+\tmode       = ", 
+	pkt->head.lrank, pkt->head.to, pkt->antisend_pkt.cancel, sendid);
+
     return MPI_SUCCESS;
 }
 
@@ -76,46 +138,69 @@ int MPID_Print_packet( fp, pkt )
 FILE        *fp;
 MPID_PKT_T  *pkt;
 {
-    fprintf( fp, "[%d] PKT =\n", MPID_MyWorldRank );
+    FPRINTF( fp, "[%d] PKT =\n", MPID_MyWorldRank );
     switch (pkt->head.mode) {
     case MPID_PKT_SHORT:
     case MPID_PKT_LONG:
-	fprintf( fp, "\
+	FPRINTF( fp, "\
 \tlen        = %d\n\
 \ttag        = %d\n\
 \tcontext_id = %d\n\
 \tlrank      = %d\n\
+\tseqnum     = %d\n\
 \tmode       = ", 
-	pkt->head.len, pkt->head.tag, pkt->head.context_id, pkt->head.lrank );
+	pkt->head.len, pkt->head.tag, pkt->head.context_id, 
+        pkt->head.lrank, pkt->head.seqnum );
 	break;
     case MPID_PKT_REQUEST_SEND:
     case MPID_PKT_OK_TO_SEND:
 	MPID_Rndv_print_pkt( fp, pkt );
 	break;
+    case MPID_PKT_ANTI_SEND:
+    case MPID_PKT_ANTI_SEND_OK:
+	MPID_Cancel_print_pkt( fp, pkt );
+	break;
     case MPID_PKT_FLOW:
 #ifdef MPID_FLOW_CONTROL
-	fprintf( fp, "\
+	FPRINTF( fp, "\
 \tflow info  = %d\n", pkt->head.flow_info );
 #endif
 	break;
+    case MPID_PKT_PROTO_ACK:
+    case MPID_PKT_ACK_PROTO:
+#ifdef MPID_PACK_CONTROL
+	fprintf( fp, "\
+\tlrank  = %d\n\
+\tto     = %d\n\
+\tmode   = ",
+	pkt->head.lrank, pkt->head.to);
+#endif      
+	break;
     default:
-	fprintf( fp, "\n" );
+	FPRINTF( fp, "\n" );
     }
     MPID_Print_mode( fp, pkt );
 #ifdef MPID_HAS_HETERO
-    switch ((MPID_Msgrep_t)pkt->head.msgrep) {
-    case MPID_MSGREP_RECEIVER:
-    fprintf( fp, "\n\tmsgrep = MPID_MSGREP_RECEIVER\n" ); break;
-    case MPID_MSGREP_SENDER:
-    fprintf( fp, "\n\tmsgrep = MPID_MSGREP_SENDER\n" ); break;
-    case MPID_MSGREP_XDR:
-    fprintf( fp, "\n\tmsgrep = MPID_MSGREP_XDR\n" ); break;
-    default:
-    fprintf( fp, "\n\tmsgrep = %d !UNKNOWN!\n", 
-	     (int) pkt->head.msgrep ); break;
+    if ( (pkt->head.mode != MPID_PKT_FLOW) &&
+	 (pkt->head.mode != MPID_PKT_OK_TO_SEND) &&
+	 (pkt->head.mode != MPID_PKT_PROTO_ACK) &&
+	 (pkt->head.mode != MPID_PKT_ACK_PROTO) && 
+	 (pkt->head.mode != MPID_PKT_ANTI_SEND) &&
+	 (pkt->head.mode != MPID_PKT_ANTI_SEND_OK) ) {
+      switch ((MPID_Msgrep_t)pkt->head.msgrep) {
+      case MPID_MSGREP_RECEIVER:
+	FPRINTF( fp, "\n\tmsgrep = MPID_MSGREP_RECEIVER\n" ); break;
+      case MPID_MSGREP_SENDER:
+	FPRINTF( fp, "\n\tmsgrep = MPID_MSGREP_SENDER\n" ); break;
+      case MPID_MSGREP_XDR:
+	FPRINTF( fp, "\n\tmsgrep = MPID_MSGREP_XDR\n" ); break;
+      default:
+	FPRINTF( fp, "\n\tmsgrep = %d !UNKNOWN!\n", 
+		 (int) pkt->head.msgrep ); break;
+      }
     }
 #endif
-    fputs( "\n", fp );
+    FPUTS( "\n", fp );
     return MPI_SUCCESS;
 }
 
@@ -124,18 +209,19 @@ FILE       *fp;
 MPID_PKT_T *pkt;
 {
 #ifndef MPID_HAS_HETERO
-    fprintf( fp, "\
+    FPRINTF( fp, "\
 \tlen        = %d\n\
 \ttag        = %d\n\
 \tcontext_id = %d\n\
 \tlrank      = %d\n\
+\tseqnum     = %d\n\
 \tcur_offset = %d\n\
 \tlen_avail  = %d\n\
 \tsend_id    = %lx\n\
 \trecv_id    = %ld\n\
 \tmode       = ", 
 	pkt->head.len, pkt->head.tag, pkt->head.context_id, pkt->head.lrank,
-	pkt->get_pkt.cur_offset, pkt->get_pkt.len_avail, 
+	pkt->head.seqnum, pkt->get_pkt.cur_offset, pkt->get_pkt.len_avail, 
 	     (long)pkt->get_pkt.send_id, (long)pkt->get_pkt.recv_id );
 #endif
 }
@@ -147,28 +233,40 @@ MPID_PKT_T  *pkt;
     char *modename=0;
     switch (pkt->short_pkt.mode) {
     case MPID_PKT_SHORT:
-	fputs( "short", fp );
+	FPUTS( "short", fp );
 	break;
     case MPID_PKT_LONG:
-	fputs( "long", fp );
+	FPUTS( "long", fp );
 	break;
     case MPID_PKT_REQUEST_SEND:
-	fputs( "request send", fp );
+	FPUTS( "request send", fp );
 	break;
     case MPID_PKT_OK_TO_SEND:
-	fputs( "ok to send", fp );
+	FPUTS( "ok to send", fp );
 	break;
     case MPID_PKT_FLOW:
-	fputs( "flow control", fp );
+	FPUTS( "flow control", fp );
+	break;
+    case MPID_PKT_PROTO_ACK:
+	fputs( "protocol ACK", fp );
+        break;
+    case MPID_PKT_ACK_PROTO:
+	fputs( "Ack protocol", fp );
+	break;
+    case MPID_PKT_ANTI_SEND:
+	fputs( "anti send", fp );
+	break;
+    case MPID_PKT_ANTI_SEND_OK:
+	fputs( "anti send ok", fp );
 	break;
     default:
-	fprintf( fp, "Mode %d is unknown!\n", pkt->short_pkt.mode );
+	FPRINTF( fp, "Mode %d is unknown!\n", pkt->short_pkt.mode );
 	break;
     }
-    /* if (MPID_MODE_HAS_XDR(pkt)) fputs( "xdr", fp ); */
+    /* if (MPID_MODE_HAS_XDR(pkt)) FPUTS( "xdr", fp ); */
 
     if (modename) {
-	fputs( modename, fp );
+	FPUTS( modename, fp );
     }
     return MPI_SUCCESS;
 }
@@ -181,12 +279,12 @@ int  len;
     int i; char *aa = (char *)address;
 
     if (msg)
-	fprintf( MPID_DEBUG_FILE, "[%d]%s\n", MPID_MyWorldRank, msg );
+	FPRINTF( MPID_DEBUG_FILE, "[%d]%s\n", MPID_MyWorldRank, msg );
     if (len < 78 && address) {
 	for (i=0; i<len; i++) {
-	    fprintf( MPID_DEBUG_FILE, "%x", aa[i] );
+	    FPRINTF( MPID_DEBUG_FILE, "%x", aa[i] );
 	}
-	fprintf( MPID_DEBUG_FILE, "\n" );
+	FPRINTF( MPID_DEBUG_FILE, "\n" );
     }
     fflush( MPID_DEBUG_FILE );
 }
@@ -194,7 +292,7 @@ int  len;
 void MPID_Print_Send_Handle( shandle )
 MPIR_SHANDLE *shandle;
 {
-    fprintf( stdout, "[%d]* dmpi_send_contents:\n\
+    FPRINTF( stdout, "[%d]* dmpi_send_contents:\n\
 * totallen    = %d\n\
 * recv_handle = %x\n", MPID_MyWorldRank, 
 		 shandle->bytes_as_contig, 
@@ -211,7 +309,7 @@ char *name;
 	return;
     }
     if (strchr( name, '%' )) {
-	sprintf( filename, name, MPID_MyWorldRank );
+	SPRINTF( filename, name, MPID_MyWorldRank );
 	MPID_DEBUG_FILE = fopen( filename, "w" );
     }
     else
@@ -230,7 +328,7 @@ char *name;
 	return;
     }
     if (strchr( name, '%' )) {
-	sprintf( filename, name, MPID_MyWorldRank );
+	SPRINTF( filename, name, MPID_MyWorldRank );
 	MPID_TRACE_FILE = fopen( filename, "w" );
     }
     else
@@ -284,7 +382,7 @@ void MPID_Print_rhandle( fp, rhandle )
 FILE *fp;
 MPIR_RHANDLE *rhandle;
 {
-    fprintf( fp, "rhandle at %lx\n\
+    FPRINTF( fp, "rhandle at %lx\n\
 \tcookie     \t= %lx\n\
 \tis_complete\t= %d\n\
 \tbuf        \t= %lx\n", 
@@ -301,7 +399,7 @@ void MPID_Print_shandle( fp, shandle )
 FILE *fp;
 MPIR_SHANDLE *shandle;
 {
-    fprintf( fp, "shandle at %lx\n\
+    FPRINTF( fp, "shandle at %lx\n\
 \tcookie     \t= %lx\n\
 \tis_complete\t= %d\n\
 \tstart      \t= %lx\n\

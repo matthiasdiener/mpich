@@ -69,7 +69,7 @@ commdup()
   int result;
   MPI::Intracomm comm[ITER];
 
-  Testing("Compare");
+  Testing( (char *)"Compare");
   
   result = MPI::COMM_WORLD.Compare(MPI::COMM_WORLD, MPI::COMM_WORLD);
 
@@ -81,7 +81,7 @@ commdup()
 
   Pass(); // Compare
 
-  Testing("Dup");
+  Testing( (char *)"Dup");
 
   for(i = 0; i < ITER; i++)  
     comm[i] = MPI::COMM_WORLD.Dup();

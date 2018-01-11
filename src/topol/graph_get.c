@@ -1,11 +1,30 @@
 /*
- *  $Id: graph_get.c,v 1.2 1998/04/29 14:28:43 swider Exp $
+ *  $Id: graph_get.c,v 1.7 1999/08/30 15:51:02 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Graph_get = PMPI_Graph_get
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Graph_get  MPI_Graph_get
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Graph_get as PMPI_Graph_get
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpitopo.h"
 
 /*@
@@ -30,10 +49,8 @@ Output Parameter:
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-int MPI_Graph_get ( comm, maxindex, maxedges, index, edges )
-MPI_Comm comm;
-int maxindex, maxedges;
-int *index, *edges;
+EXPORT_MPI_API int MPI_Graph_get ( MPI_Comm comm, int maxindex, int maxedges, 
+		    int *index, int *edges )
 {
   int i, num, flag;
   int *array;
@@ -41,16 +58,23 @@ int *index, *edges;
   MPIR_TOPOLOGY *topo;
   struct MPIR_COMMUNICATOR *comm_ptr;
   static char myname[] = "MPI_GRAPH_GET";
+  MPIR_ERROR_DECL;
 
   TR_PUSH(myname);
   comm_ptr = MPIR_GET_COMM_PTR(comm);
-  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
-  if (MPIR_TEST_ARG(index) || MPIR_TEST_ARG(edges) )
-      return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+#ifndef MPIR_NO_ERROR_CHECKING
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+  MPIR_TEST_ARG(index);
+  MPIR_TEST_ARG(edges);
+  if (mpi_errno)
+      return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
 
   /* Get topology information from the communicator */
-  MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );
+  MPIR_ERROR_PUSH(comm_ptr);
+  mpi_errno = MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );
+  MPIR_ERROR_POP(comm_ptr);
   if ( ( (flag != 1)               && (mpi_errno = MPI_ERR_TOPOLOGY) ) ||
        ( (topo->type != MPI_GRAPH) && (mpi_errno = MPI_ERR_TOPOLOGY) )  )
       return MPIR_ERROR( comm_ptr, mpi_errno, myname );

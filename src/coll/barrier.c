@@ -1,11 +1,30 @@
 /*
- *  $Id: barrier.c,v 1.1.1.1 1997/09/17 20:42:27 gropp Exp $
+ *  $Id: barrier.c,v 1.5 1999/08/30 15:41:37 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Barrier = PMPI_Barrier
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Barrier  MPI_Barrier
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Barrier as PMPI_Barrier
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "coll.h"
 
 /*@
@@ -32,8 +51,8 @@ communicator.  We can modifiy this to use "blocks" at a later time
 .N MPI_SUCCESS
 .N MPI_ERR_COMM
 @*/
-int MPI_Barrier ( comm )
-MPI_Comm comm;
+EXPORT_MPI_API int MPI_Barrier ( 
+	MPI_Comm comm )
 {
   int        mpi_errno = MPI_SUCCESS;
   struct MPIR_COMMUNICATOR *comm_ptr;

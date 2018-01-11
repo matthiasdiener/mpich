@@ -1,7 +1,11 @@
-#!/bin/sh
+#! /bin/sh
 # This version puts the output from each program into a separate file.
 # -mvhome is needed for the ANL SP, and is ignored by others
-args="-pg -mvhome"
+args=@MPIRUNARGS@
+device=@DEVICE@
+if [ "$device" = "ch_p4mpd" ] ; then
+    args=""
+fi
 STOPFILE=$HOME/.stopmpichtests
 #
 # Some people don't include "." in their path (! in case an ls trojan horse,
@@ -57,6 +61,7 @@ for arg in "$@" ; do
 	args="$args $margs"
 	;;
 	-small)
+	shift
 	makeeach=1
 	;;
 	-quiet)
@@ -109,8 +114,32 @@ OutTime() {
     fi
 }
 
+# Runtest pgm-name np marker-test args outfiles
+RunTest() {
+    OutTime
+    testfiles="$testfiles $1.out"
+    /bin/rm -f $1.out
+    MakeExe $1
+    mname=$3
+    if [ -z "$mname" ] ; then mname="*** $1 ***" ; fi
+    echo "$mname" >> $1.out
+    echo "$mname"
+    mvarg=""
+    if [ -n "$5" ] ; then rm -f $5 ; 
+	if [ "$device" != "ch_p4mpd" ] ; then
+             if [ -n "@MPIRUNMVBACK@" ] ; then mvarg="@MPIRUNMVBACK@ \"$5\"" ;
+fi 
+	fi
+    fi
+    eval $mpirun $args -np $2 $mvarg $1 $4 </dev/null >> $1.out 2>&1
+    if [ -n "$5" ] ; then cat $5 >> $1.out ; rm -f $5 ; fi
+    echo "$mname" >> $1.out
+    #CheckOutput $1
+    CleanExe $1
+}
+
 # If the programs are not available, run make.
-if [ ! -x coll1 -a $makeeach = 0 ] ; then
+if [ ! -x coll1 -a $makeeach = 0 -a $runtests = 1 ] ; then
     $MAKE default
 fi
 
@@ -118,195 +147,56 @@ testfiles=""
 if [ $runtests = 1 ] ; then
 echo '**** Testing MPI Collective routines ****'
 
-OutTime
-testfiles="$testfiles barrier.out"
-/bin/rm -f barrier.out barrier-0.out
-MakeExe barrier
-echo '*** Barrier Test ***' >> barrier.out
-echo '**** Barrier Test ****'
-$mpirun $args -np 4 -mvback "barrier-0.out" barrier $* >> barrier.out 2>&1
-cat barrier-0.out >> barrier.out
-/bin/rm -f barrier-[01234].out
-echo '*** Barrier Test ***' >> barrier.out
-CleanExe barrier
+RunTest barrier 4 "*** Barrier Test ***" "" "barrier-0.out"
 
-OutTime
-testfiles="$testfiles bcast.out"
-/bin/rm -f bcast.out bcast-[0-3].out
-MakeExe bcast
-echo '**** Broadcast Test ****'
-echo '*** Broadcast Test ***' >> bcast.out
-$mpirun $args -np 4 \
-   -mvback "bcast-0.out bcast-1.out bcast-2.out bcast-3.out" \
-	bcast $* >> bcast.out 2>&1
-cat bcast-[0123].out >> bcast.out
-/bin/rm -f bcast-[0123].out
-echo '*** Broadcast Test ***' >> bcast.out
-CleanExe bcast
+if [ "$device" != "ch_p4mpd" ] ; then
+RunTest bcast 4 "*** Broadcast Test ***" "" "bcast-0.out bcast-1.out bcast-2.out bcast-3.out"
+fi
 
-OutTime
-testfiles="$testfiles bcastvec.out"
-/bin/rm -f bcastvec.out bcastvec-[0-3].out
-MakeExe bcastvec
-echo '**** Broadcast Datatype Test ****'
-echo '*** Broadcast Datatype Test ***' >> bcastvec.out
-$mpirun $args -np 4 \
-   -mvback "bcastvec-0.out bcastvec-1.out bcastvec-2.out bcastvec-3.out" \
-	bcastvec $* >> bcastvec.out 2>&1
-cat bcastvec-[0123].out >> bcastvec.out
-/bin/rm -f bcastvec-[0123].out
-echo '*** Broadcast Datatype Test ***' >> bcastvec.out
-CleanExe bcastvec
+if [ "$device" != "ch_p4mpd" ] ; then
+RunTest bcastvec 4 "*** Broadcast Datatype Test ***" "" "bcastvec-0.out bcastvec-1.out bcastvec-2.out bcastvec-3.out"
+fi
 
-OutTime
-testfiles="$testfiles coll1.out"
-/bin/rm -f coll1.out
-MakeExe coll1
-echo '**** coll1 ****'
-echo '*** coll1 ***' >> coll1.out
-$mpirun $args -np 4 coll1 $* >> coll1.out 2>&1
-echo '*** coll1 ***' >> coll1.out
-CleanExe coll1
+RunTest coll1 4
 
-OutTime
-testfiles="$testfiles coll2.out"
-/bin/rm -f coll2.out
-MakeExe coll2
-echo '**** coll2 ****'
-echo '*** coll2 ***' >> coll2.out
-$mpirun $args -np 5 coll2 $* >> coll2.out 2>&1
-echo '*** coll2 ***' >> coll2.out
-CleanExe coll2
+RunTest coll2 5
 
-OutTime
-testfiles="$testfiles coll3.out"
-/bin/rm -f coll3.out
-MakeExe coll3
-echo '**** coll3 ****'
-echo '*** coll3 ***' >> coll3.out
-$mpirun $args -np 5 coll3 $* >> coll3.out 2>&1
-echo '*** coll3 ***' >> coll3.out
-CleanExe coll3
+RunTest coll3 5
 
-OutTime
-testfiles="$testfiles coll4.out"
-/bin/rm -f coll4.out
-MakeExe coll4
-echo '**** coll4 ****'
-echo '*** coll4 ***' >> coll4.out
-$mpirun $args -np 4 coll4 $* >> coll4.out 2>&1
-echo '*** coll4 ***' >> coll4.out
-CleanExe coll4
+RunTest coll4 4
 
-OutTime
-testfiles="$testfiles coll5.out"
-/bin/rm -f coll5.out
-MakeExe coll5
-echo '**** coll5 ****'
-echo '*** coll5 ***' >> coll5.out
-$mpirun $args -np 4 coll5 $* >> coll5.out 2>&1
-echo '*** coll5 ***' >> coll5.out
-CleanExe coll5
+RunTest coll5 4
 
-OutTime
-testfiles="$testfiles coll6.out"
-/bin/rm -f coll6.out
-MakeExe coll6
-echo '**** coll6 ****'
-echo '*** coll6 ***' >> coll6.out
-$mpirun $args -np 5 coll6 $* >> coll6.out 2>&1
-echo '*** coll6 ***' >> coll6.out
-CleanExe coll6
+RunTest coll6 5
 
-OutTime
-testfiles="$testfiles coll7.out"
-/bin/rm -f coll7.out
-MakeExe coll7
-echo '**** coll7 ****'
-echo '*** coll7 ***' >> coll7.out
-$mpirun $args -np 5 coll7 $* >> coll7.out 2>&1
-echo '*** coll7 ***' >> coll7.out
-CleanExe coll7
+RunTest coll7 5
 
-OutTime
-testfiles="$testfiles coll8.out"
-/bin/rm -f coll8.out
-MakeExe coll8
-echo '**** coll8 ****'
-echo '*** coll8 ***' >> coll8.out
-$mpirun $args -np 4 coll8 $* >> coll8.out 2>&1
-echo '*** coll8 ***' >> coll8.out
-CleanExe coll8
+RunTest coll8 4
 
-OutTime
-testfiles="$testfiles coll9.out"
-/bin/rm -f coll9.out
-MakeExe coll9
-echo '**** coll9 ****'
-echo '*** coll9 ***' >> coll9.out
-$mpirun $args -np 4 coll9 $* >>  coll9.out 2>&1
-echo '*** coll9 ***' >> coll9.out
-CleanExe coll9
+RunTest coll9 4
 
-OutTime
-testfiles="$testfiles coll10.out"
-/bin/rm -f coll10.out
-MakeExe coll10
-echo '**** coll10 ****'
-echo '*** coll10 ***' >> coll10.out
-$mpirun -np 4 $args coll10 $* >> coll10.out 2>&1
-echo '*** coll10 ***' >> coll10.out
-CleanExe coll10
+RunTest coll10 4
 
-OutTime
-testfiles="$testfiles coll11.out"
-/bin/rm -f coll11.out
-MakeExe coll11
-echo '**** coll11 ****'
-echo '*** coll11 ***' >> coll11.out
-$mpirun -np 4 $args coll11 $* >> coll11.out 2>&1
-echo '*** coll11 ***' >> coll11.out
-CleanExe coll11
+RunTest coll11 4
 
-OutTime
-testfiles="$testfiles coll12.out"
-/bin/rm -f coll12.out
-MakeExe coll12
-echo '**** coll12 ****'
-echo '*** coll12 ***' >> coll12.out
-$mpirun -np 4 $args coll12 $* >> coll12.out 2>&1
-echo '*** coll12 ***' >> coll12.out
-CleanExe coll12
+RunTest scantst 4
 
-OutTime
-testfiles="$testfiles coll13.out"
-/bin/rm -f coll13.out
-MakeExe coll13
-echo '**** coll13 ****'
-echo '*** coll13 ***' >> coll13.out
+RunTest coll12 4
+
 # coll13 is very picky about arguments
-$mpirun -np 4 $args coll13 >> coll13.out 2>&1
-echo '*** coll13 ***' >> coll13.out
-CleanExe coll13
+RunTest coll13 4
 
-OutTime
-testfiles="$testfiles longuser.out"
-/bin/rm -f longuser.out
-MakeExe longuser
-echo '**** longuser ****'
-echo '*** longuser ***' >> longuser.out
-$mpirun -np 4 $args longuser >> longuser.out 2>&1
-echo '*** longuser ***' >> longuser.out
-CleanExe longuser
+RunTest longuser 4
 
-OutTime
 # Some implementations (e.g., IBM's) forget to handle the np = 1 case.
+#RunTest longuser 1 "*** longuser (np == 1) ***"
+OutTime
 testfiles="$testfiles longuser1.out"
 /bin/rm -f longuser1.out
 MakeExe longuser
 echo '**** longuser (np == 1) ****'
 echo '*** longuser (np == 1) ***' >> longuser1.out
-$mpirun -np 1 $args longuser >> longuser1.out 2>&1
+$mpirun -np 1 $args longuser < /dev/null >> longuser1.out 2>&1
 echo '*** longuser (np == 1) ***' >> longuser1.out
 CleanExe longuser
 
@@ -327,91 +217,26 @@ CleanExe longuser
 #echo '*** allredmany ***' >> allredmany.out
 #CleanExe allredmany
 
-OutTime
-testfiles="$testfiles grouptest.out"
-/bin/rm -f grouptest.out
-MakeExe grouptest
-echo '*** Grouptest ***'
-echo '*** grouptest ***' >> grouptest.out
-$mpirun $args -np 4 grouptest  $* >> grouptest.out 2>&1
-echo '*** grouptest ***' >> grouptest.out
-CleanExe grouptest
+RunTest grouptest 4
 
-OutTime
-testfiles="$testfiles allred.out"
-/bin/rm -f allred.out
-MakeExe allred
-echo '*** Allred ***'
-echo '*** Allred ***' >> allred.out
-$mpirun $args -np 4 allred  $* >> allred.out 2>&1
-echo '*** Allred ***' >> allred.out
-CleanExe allred
+RunTest allred 4 "*** Allred ***"
 
-OutTime
-testfiles="$testfiles scatterv.out"
-/bin/rm -f scatterv.out
-MakeExe scatterv
-echo '*** Scatterv ***'
-echo '*** Scatterv ***' >> scatterv.out
-$mpirun $args -np 4 scatterv  $* >> scatterv.out 2>&1
-echo '*** Scatterv ***' >> scatterv.out
-CleanExe scatterv
+RunTest scatterv 4 "*** Scatterv ***"
 
-OutTime
-testfiles="$testfiles scattern.out"
-/bin/rm -f scattern.out
-MakeExe scattern
-echo '*** Scattern ***'
-echo '*** Scattern ***' >> scattern.out
-$mpirun $args -np 4 scattern  $* >> scattern.out 2>&1
-echo '*** Scattern ***' >> scattern.out
-CleanExe scattern
+RunTest scattern 4 "*** Scattern ***"
 
-OutTime
-testfiles="$testfiles redscat.out"
-/bin/rm -f redscat.out
-MakeExe redscat
-echo '*** Reduce_scatter ***'
-echo '*** Reduce_scatter ***' >> redscat.out
-$mpirun $args -np 4 redscat  $* >> redscat.out 2>&1
-echo '*** Reduce_scatter ***' >> redscat.out
-CleanExe redscat
+RunTest redscat 4 "*** Reduce_scatter ***"
 
-OutTime
-testfiles="$testfiles alltoallv.out"
-/bin/rm -f alltoallv.out
-MakeExe alltoallv
-echo '*** Alltoallv ***'
-echo '*** Alltoallv ***' >> alltoallv.out
-$mpirun $args -np 4 alltoallv  $* >> alltoallv.out 2>&1
-echo '*** Alltoallv ***' >> alltoallv.out
-CleanExe alltoallv
+RunTest alltoallv 4 "*** Alltoallv ***"
 
 #
 # Run Fortran tests ONLY if Fortran available
 if [ @HAS_FORTRAN@ = 1 ] ; then 
     echo "FORTRAN TESTS"
-    #
-    OutTime
-    testfiles="$testfiles allredf.out"
-    /bin/rm -f allredf.out
-    MakeExe allredf
-    echo '*** Testing allreduce from Fortran ***'
-    echo '*** Testing allreduce from Fortran ***' >> allredf.out
-    $mpirun $args -np 4 allredf "$@" >> allredf.out 2>&1
-    echo '*** Testing allreduce from Fortran ***' >> allredf.out
-    CleanExe allredf
-    #
-    OutTime
-    testfiles="$testfiles assocf.out"
-    /bin/rm -f assocf.out
-    MakeExe assocf
-    echo '*** Testing allreduce from Fortran (2) ***'
-    echo '*** Testing allreduce from Fortran (2) ***' >> assocf.out
-    $mpirun $args -np 4 assocf "$@" >> assocf.out 2>&1
-    echo '*** Testing allreduce from Fortran (2) ***' >> assocf.out
-    CleanExe assocf
-    #
+
+    RunTest allredf 4 "*** Testing allreduce from Fortran ***"
+
+    RunTest assocf 4 "*** Testing allreduce from Fortran (2) ***"
     echo "END OF FORTRAN TESTS"
 fi
 
@@ -427,18 +252,19 @@ fi
 echo '*** Checking for differences from expected output ***'
 /bin/rm -f coll.diff
 nodiff=1
+srcdir=@srcdir@
 for file in $testfiles ; do
-    stdfile=`basename $file .out`.std
+    stdfile=$srcdir/`basename $file .out`.std
     if [ -s $stdfile ] ; then
-        if diff -b $file `basename $file .out`.std > /dev/null ; then
+        if diff -b $file $stdfile > /dev/null ; then
 	    true
   	else
 	    echo "Differences in `basename $file .out`" >> coll.diff
-	    diff -b $file `basename $file .out`.std >> coll.diff
+	    diff -b $file $stdfile >> coll.diff
 	    nodiff=0
 	fi
     else
-        echo "Can not find file $stdfile to compare against for test `basename $file .out`"
+        echo "Cannot find file $stdfile to compare against for test `basename $file .out`"
     fi
 done
 if [ -s coll.diff ] ; then
@@ -447,3 +273,6 @@ elif [ $nodiff = 1 ] ; then
    echo "-- No differences found; test successful"
 fi
 exit 0
+
+
+

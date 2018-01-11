@@ -4,7 +4,57 @@
 #include "mpimem.h"
 #include "mpifort.h"
 
-#ifdef MPI_BUILD_PROFILING
+
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_TESTANY = PMPI_TESTANY
+EXPORT_MPI_API void MPI_TESTANY ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_testany__ = pmpi_testany__
+EXPORT_MPI_API void mpi_testany__ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_testany = pmpi_testany
+EXPORT_MPI_API void mpi_testany ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_testany_ = pmpi_testany_
+EXPORT_MPI_API void mpi_testany_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_TESTANY  MPI_TESTANY
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_testany__  mpi_testany__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_testany  mpi_testany
+#else
+#pragma _HP_SECONDARY_DEF pmpi_testany_  mpi_testany_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_TESTANY as PMPI_TESTANY
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_testany__ as pmpi_testany__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_testany as pmpi_testany
+#else
+#pragma _CRI duplicate mpi_testany_ as pmpi_testany_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_testany_ PMPI_TESTANY
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -14,7 +64,9 @@
 #else
 #define mpi_testany_ pmpi_testany_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_testany_ MPI_TESTANY
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -24,16 +76,12 @@
 #endif
 #endif
 
+
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_testany_ ANSI_ARGS(( MPI_Fint *, MPI_Fint [], MPI_Fint *, 
+EXPORT_MPI_API void mpi_testany_ ANSI_ARGS(( MPI_Fint *, MPI_Fint [], MPI_Fint *, 
 			      MPI_Fint *, MPI_Fint *, MPI_Fint * ));
-void mpi_testany_( count, array_of_requests, index, flag, status, __ierr )
-MPI_Fint *count;
-MPI_Fint array_of_requests[];
-MPI_Fint *index; 
-MPI_Fint *flag;
-MPI_Fint *status;
-MPI_Fint *__ierr;
+
+EXPORT_MPI_API void mpi_testany_( MPI_Fint *count, MPI_Fint array_of_requests[], MPI_Fint *index, MPI_Fint *flag, MPI_Fint *status, MPI_Fint *__ierr )
 {
     int lindex;
     int lflag;

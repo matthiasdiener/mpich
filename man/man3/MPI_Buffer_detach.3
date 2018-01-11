@@ -1,12 +1,12 @@
-.TH MPI_Buffer_detach 3 "4/28/1998" " " "MPI"
+.TH MPI_Buffer_detach 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Buffer_detach \-  Removes an existing buffer (for use in MPI_Bsend etc) 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Buffer_detach( bufferptr, size )
-void *bufferptr;
-int  *size;
+int MPI_Buffer_detach( 
+ void *bufferptr, 
+ int *size )
 .fi
 .SH OUTPUT PARAMETERS
 .PD 0

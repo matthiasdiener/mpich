@@ -1,11 +1,30 @@
 /* 
- *   $Id: info_create.c,v 1.3 1998/04/13 21:17:37 gropp Exp $    
+ *   $Id: info_create.c,v 1.7 1999/08/30 15:47:30 swider Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Info_create = PMPI_Info_create
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Info_create  MPI_Info_create
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Info_create as PMPI_Info_create
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpimem.h"
 
 /*@
@@ -16,7 +35,7 @@ Output Parameters:
 
 .N fortran
 @*/
-int MPI_Info_create(MPI_Info *info)
+EXPORT_MPI_API int MPI_Info_create(MPI_Info *info)
 {
     *info	    = (MPI_Info) MALLOC(sizeof(struct MPIR_Info));
     (*info)->cookie = MPIR_INFO_COOKIE;

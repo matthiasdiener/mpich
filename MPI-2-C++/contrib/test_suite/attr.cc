@@ -72,9 +72,9 @@ attr()
   ATTR val;
   MPI::Intracomm pcomm;
   
-  Testing("Get_attr");
+  Testing( (char *)"Get_attr");
 
-  Testing("MPI::TAG_UB");
+  Testing( (char *)"MPI::TAG_UB");
 
   flag = 0;
   val = 0;
@@ -99,7 +99,7 @@ attr()
 
   Pass(); // MPI::TAG_UB
 
-  Testing("MPI::HOST");
+  Testing( (char *)"MPI::HOST");
 
   flag = 0;
   val = 0;
@@ -124,7 +124,7 @@ attr()
 
   Pass(); // MPI::HOST
 
-  Testing("MPI::IO");
+  Testing( (char *)"MPI::IO");
 
   flag = 0;
   val = 0;
@@ -148,7 +148,7 @@ attr()
 
   Pass(); // MPI::IO
 
-  Testing("MPI::WTIME_IS_GLOBAL");
+  Testing( (char *)"MPI::WTIME_IS_GLOBAL");
 
   flag = 0;
   val = 0;
@@ -174,7 +174,7 @@ attr()
 
   Pass(); // Get_attr
 
-  Testing("Comm::Create_keyval");
+  Testing( (char *)"Comm::Create_keyval");
 
   pkey = 0;
 
@@ -187,7 +187,7 @@ attr()
   
   Pass(); // Create_keyval
 
-  Testing("Attr_put / Set_attr");
+  Testing( (char *)"Attr_put / Set_attr");
 
   pcomm = MPI::COMM_WORLD.Dup();
 
@@ -210,7 +210,7 @@ attr()
 
   Pass(); // Attr_put / Set_attr
 
-  Testing("Delete_attr");
+  Testing( (char *)"Delete_attr");
 
   pcomm.Set_errhandler(MPI::ERRORS_THROW_EXCEPTIONS);
  
@@ -231,7 +231,7 @@ attr()
 
   Pass(); // Delete_attr
 
-  Testing("MPI::COMM_WORLD.Free_keyval");
+  Testing( (char *)"MPI::COMM_WORLD.Free_keyval");
 
   MPI::COMM_WORLD.Free_keyval(pkey);
   if(pkey != MPI::KEYVAL_INVALID) {

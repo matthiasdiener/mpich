@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_ufs_read.c,v 1.2 1998/06/02 18:53:33 thakur Exp $    
+ *   $Id: ad_ufs_read.c,v 1.3 1999/08/12 23:38:43 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -28,7 +28,7 @@ void ADIOI_UFS_ReadContig(ADIO_File fd, void *buf, int len, int file_ptr_type,
 	    if (fd->fp_sys_posn != fd->fp_ind)
 		lseek(fd->fd_sys, fd->fp_ind, SEEK_SET);
 	    err = read(fd->fd_sys, buf, len);
-	    fd->fp_ind += len; 
+	    fd->fp_ind += err; 
 	    fd->fp_sys_posn = fd->fp_ind;
 	}         
     }

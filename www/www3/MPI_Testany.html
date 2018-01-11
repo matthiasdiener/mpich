@@ -10,11 +10,11 @@ Tests for completion of any previdously initiated  communication
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Testany( count, array_of_requests, index, flag, status )
-int         count;
-MPI_Request array_of_requests[];
-int         *index, *flag;
-MPI_Status  *status;
+int MPI_Testany( 
+ int count, 
+ MPI_Request array_of_requests[], 
+ int *index, int *flag, 
+ MPI_Status *status )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

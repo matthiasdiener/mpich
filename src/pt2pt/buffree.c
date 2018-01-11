@@ -1,5 +1,5 @@
 /*
- *  $Id: buffree.c,v 1.3 1998/04/28 21:46:42 swider Exp $
+ *  $Id: buffree.c,v 1.7 1999/08/30 15:48:42 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,25 @@
 
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Buffer_detach = PMPI_Buffer_detach
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Buffer_detach  MPI_Buffer_detach
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Buffer_detach as PMPI_Buffer_detach
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
   MPI_Buffer_detach - Removes an existing buffer (for use in MPI_Bsend etc)
@@ -61,9 +80,9 @@ Notes for C:
     really the address of a void pointer.  See the rationale in the 
     standard for more details. 
 @*/
-int MPI_Buffer_detach( bufferptr, size )
-void *bufferptr;
-int  *size;
+EXPORT_MPI_API int MPI_Buffer_detach( 
+	void *bufferptr, 
+	int *size )
 {
     return MPIR_BsendRelease( (void **)bufferptr, size );
 }

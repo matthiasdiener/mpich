@@ -1,11 +1,27 @@
 /* 
- *   $Id: ioreq_c2f.c,v 1.2 1998/06/02 19:01:56 thakur Exp $    
+ *   $Id: ioreq_c2f.c,v 1.5 1999/08/27 20:53:07 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "mpioimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPIO_Request_c2f = PMPIO_Request_c2f
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPIO_Request_c2f MPIO_Request_c2f
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPIO_Request_c2f as PMPIO_Request_c2f
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define __MPIO_BUILD_PROFILING
+#include "mpioprof.h"
+#endif
 #include "adio_extern.h"
 
 /*@
@@ -13,18 +29,18 @@
                        Fortran I/O-request handle
 
 Input Parameters:
-. fh - C I/O-request handle (integer)
+. request - C I/O-request handle (handle)
 
 Return Value:
-  Fortran I/O-request handle (handle)
+  Fortran I/O-request handle (integer)
 @*/
 MPI_Fint MPIO_Request_c2f(MPIO_Request request)
 {
-    int i;
-
 #ifndef __INT_LT_POINTER
     return (MPI_Fint) request;
 #else
+    int i;
+
     if ((request <= (MPIO_Request) 0) || (request->cookie != ADIOI_REQ_COOKIE))
 	return (MPI_Fint) 0;
     if (!ADIOI_Reqtable) {

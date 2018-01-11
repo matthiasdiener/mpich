@@ -30,6 +30,9 @@
 #ifndef _MPI2CPP_TEST_H_
 #define _MPI2CPP_TEST_H_
 
+// WDG - At least on Solaris, iostream MUST come before stdio (because
+// stdio loads string, and iostream and string don't mix well
+#include <iostream.h>
 extern "C" {
 #include <stdio.h>
 #include <string.h>
@@ -139,13 +142,13 @@ void do_work(int top = -1);
 
 
 // messages.cc
-
+// WDG - Make sure that "xxx" is a char * instead of a String
 void Testing(char *msg);
-void Pass(char *msg = "PASS");
+void Pass(char *msg = (char *)"PASS");
 void Sync(char *msg = 0);
 void Postpone(char *class_name);
 void Done(char *msg = 0);
-void Fail(char *msg = "FAIL");
+void Fail(char *msg = (char *)"FAIL");
 void Abort(char *msg = 0);
 
 

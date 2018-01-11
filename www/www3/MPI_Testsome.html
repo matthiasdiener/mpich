@@ -10,11 +10,12 @@ Tests for some given communications to complete
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Testsome( incount, array_of_requests, outcount, array_of_indices, 
-    array_of_statuses )
-int         incount, *outcount, array_of_indices[];
-MPI_Request array_of_requests[];
-MPI_Status  array_of_statuses[];
+int MPI_Testsome( 
+ int incount, 
+ MPI_Request array_of_requests[], 
+ int *outcount, 
+ int array_of_indices[], 
+ MPI_Status array_of_statuses[] )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

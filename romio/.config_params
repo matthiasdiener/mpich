@@ -16,12 +16,15 @@ _IRIXN32_
 _IRIX64_
 _alpha_
 _freebsd_
+_netbsd_
 _LINUX_
+_LINUX_ALPHA_
 _CRAY_
 _nfs_
 _ufs_
 _pfs_
 _piofs_
+_pvfs_
 _xfs_
 _hfs_
 _sfs_
@@ -29,3 +32,4 @@ _mpich_mpi
 _sgi_mpi
 _hp_mpi
 _cray_mpi
+_lam_mpi

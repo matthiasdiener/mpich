@@ -1,6 +1,7 @@
 #ifdef MPI_BUILD_PROFILING
 #undef MPI_BUILD_PROFILING
 #endif
+#include "mpeconf.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "mpi.h"
@@ -225,7 +226,7 @@ static int procid_0;
 static char logFileName_0[256];
 
 /* This is used for the multiple-completion test/wait functions */
-#define MPE_MAX_REQUESTS 16
+#define MPE_MAX_REQUESTS 1024
 static MPI_Request req[MPE_MAX_REQUESTS];
 
 /* Function prototypes */
@@ -2028,6 +2029,7 @@ char *** argv;
   state = &states[MPE_RSEND_ID];
   state->kind_mask = MPE_KIND_MSG;
   state->name = "RSEND";
+  state->color = "DeepSkyBlue:gray";
 
   state = &states[MPE_RSEND_INIT_ID];
   state->kind_mask = MPE_KIND_MSG_INIT;
@@ -2950,7 +2952,8 @@ MPI_Comm comm;
 }
 
 int  MPI_Sendrecv( sendbuf, sendcount, sendtype, dest, sendtag, 
-		  recvbuf, recvcount, recvtype, source, recvtag, comm, status )
+		   recvbuf, recvcount, recvtype, source, recvtag,
+                   comm, status )
 void * sendbuf;
 int sendcount;
 MPI_Datatype sendtype;
@@ -2975,16 +2978,15 @@ MPI_Status * status;
 
   MPE_LOG_STATE_BEGIN(MPE_SENDRECV_ID,comm);
 
+      PMPI_Type_size( sendtype, &sendsize );
+      MPE_LOG_DO(MPE_Log_send( dest, sendtag, sendcount * sendsize ));
+
   returnVal = PMPI_Sendrecv( sendbuf, sendcount, sendtype, dest, sendtag, 
 			     recvbuf, recvcount, recvtype, source, recvtag, 
 			     comm, status );
 
-  if (returnVal == MPI_SUCCESS) {
-      PMPI_Type_size( sendtype, &sendsize );
-      MPE_LOG_DO(MPE_Log_send( dest, sendtag, sendcount * sendsize ));
       PMPI_Get_count( status, MPI_BYTE, &acount );
       MPE_LOG_DO(MPE_Log_receive( status->MPI_SOURCE, status->MPI_TAG, acount ));
-      }
 
   MPE_LOG_STATE_END(comm);
 
@@ -3012,16 +3014,15 @@ MPI_Status * status;
 */
 
   MPE_LOG_STATE_BEGIN(MPE_SENDRECV_REPLACE_ID,comm);
+
+      PMPI_Type_size( datatype, &sendsize );
+      MPE_LOG_DO(MPE_Log_send( dest, sendtag, count * sendsize ));
   
   returnVal = PMPI_Sendrecv_replace( buf, count, datatype, dest, 
 				     sendtag, source, recvtag, comm, status );
 
-  if (returnVal == MPI_SUCCESS) {
-      PMPI_Type_size( datatype, &sendsize );
-      MPE_LOG_DO(MPE_Log_send( dest, sendtag, count * sendsize ));
       PMPI_Get_count( status, MPI_BYTE, &acount );
       MPE_LOG_DO(MPE_Log_receive( status->MPI_SOURCE, status->MPI_TAG, acount ));
-      }
 
   MPE_LOG_STATE_END(comm);
 
@@ -3176,14 +3177,22 @@ MPI_Status * array_of_statuses;
 
   MPE_LOG_STATE_BEGIN(MPE_TESTALL_ID,MPI_COMM_NULL);
   
-  if (count < MPE_MAX_REQUESTS) {
+  if (count > MPE_MAX_REQUESTS) {
+    fprintf( stderr, __FILE__":MPI_Testall() - "
+                     "Array Index Out of Bound Exception !"
+                     "\t""count(%d) > MPE_MAX_REQUESTS(%d)\n",
+                     count, MPE_MAX_REQUESTS );
+    fflush( stderr );
+  }
+
+  if (count <= MPE_MAX_REQUESTS) {
       for (i=0; i<count; i++) 
 	  req[i] = array_of_requests[i];
   }
 
   returnVal = PMPI_Testall( count, array_of_requests, flag, array_of_statuses );
 
-  if (*flag && count < MPE_MAX_REQUESTS) {
+  if (*flag && count <= MPE_MAX_REQUESTS) {
     for (i=0; i < count; i++) {
       MPE_ProcessWaitTest( req[i], &array_of_statuses[i], "MPI_Testall",
 			   state );
@@ -3212,15 +3221,23 @@ MPI_Status * status;
 */
 
   MPE_LOG_STATE_BEGIN(MPE_TESTANY_ID,MPI_COMM_NULL);
+
+  if (count > MPE_MAX_REQUESTS) {
+    fprintf( stderr, __FILE__":MPI_Testany() - "
+                     "Array Index Out of Bound Exception !"
+                     "\t""count(%d) > MPE_MAX_REQUESTS(%d)\n",
+                     count, MPE_MAX_REQUESTS );
+    fflush( stderr );
+  }
   
-  if (count < MPE_MAX_REQUESTS) {
+  if (count <= MPE_MAX_REQUESTS) {
       for (i=0; i<count; i++) 
 	  req[i] = array_of_requests[i];
   }
 
   returnVal = PMPI_Testany( count, array_of_requests, index, flag, status );
 
-  if (*flag && count < MPE_MAX_REQUESTS) 
+  if (*flag && count <= MPE_MAX_REQUESTS) 
       MPE_ProcessWaitTest( req[*index], status, "MPI_Testany", state );
 
   MPE_LOG_STATE_END(MPI_COMM_NULL);
@@ -3267,8 +3284,16 @@ MPI_Status * array_of_statuses;
 */
 
   MPE_LOG_STATE_BEGIN(MPE_TESTSOME_ID,MPI_COMM_NULL);
+
+  if (incount > MPE_MAX_REQUESTS) {
+    fprintf( stderr, __FILE__":MPI_Testsome() - "
+                     "Array Index Out of Bound Exception !"
+                     "\t""incount(%d) > MPE_MAX_REQUESTS(%d)\n",
+                     incount, MPE_MAX_REQUESTS );
+    fflush( stderr );
+  }
   
-  if (incount < MPE_MAX_REQUESTS) {
+  if (incount <= MPE_MAX_REQUESTS) {
       for (i=0; i<incount; i++) 
 	  req[i] = array_of_requests[i];
   }
@@ -3276,11 +3301,11 @@ MPI_Status * array_of_statuses;
   returnVal = PMPI_Testsome( incount, array_of_requests, outcount, 
 			     array_of_indices, array_of_statuses );
 
-  if (incount < MPE_MAX_REQUESTS) {
+  if (incount <= MPE_MAX_REQUESTS) {
       for (i=0; i < *outcount; i++) {
 	  MPE_ProcessWaitTest( req[array_of_indices[i]], 
-	       &array_of_statuses[array_of_indices[i]], "MPI_Testsome",
-			       state );
+	                       &array_of_statuses[i], 
+                               "MPI_Testsome", state );
       }
   }
 
@@ -3621,14 +3646,22 @@ MPI_Status * array_of_statuses;
 
   MPE_LOG_STATE_BEGIN(MPE_WAITALL_ID,MPI_COMM_NULL);
   
-  if (count < MPE_MAX_REQUESTS) {
+  if (count > MPE_MAX_REQUESTS) {
+    fprintf( stderr, __FILE__":MPI_Waitall() - "
+                     "Array Index Out of Bound Exception !"
+                     "\t""count(%d) > MPE_MAX_REQUESTS(%d)\n",
+                     count, MPE_MAX_REQUESTS );
+    fflush( stderr );
+  }
+
+  if (count <= MPE_MAX_REQUESTS) {
       for (i=0; i<count; i++) 
 	  req[i] = array_of_requests[i];
   }
 
   returnVal = PMPI_Waitall( count, array_of_requests, array_of_statuses );
 
-  if (count < MPE_MAX_REQUESTS) {
+  if (count <= MPE_MAX_REQUESTS) {
       for (i=0; i < count; i++) {
 	  MPE_ProcessWaitTest( req[i], &array_of_statuses[i], "MPI_Waitall",
 			       state );
@@ -3657,15 +3690,30 @@ MPI_Status * status;
 
   MPE_LOG_STATE_BEGIN(MPE_WAITANY_ID,MPI_COMM_NULL);
   
-  if (count < MPE_MAX_REQUESTS) {
+  if (count > MPE_MAX_REQUESTS) {
+    fprintf( stderr, __FILE__":MPI_Waitany() - "
+                     "Array Index Out of Bound Exception !"
+                     "\t""count(%d) > MPE_MAX_REQUESTS(%d)\n",
+                     count, MPE_MAX_REQUESTS );
+    fflush( stderr );
+  }
+
+  if (count <= MPE_MAX_REQUESTS) {
       for (i=0; i<count; i++) 
 	  req[i] = array_of_requests[i];
   }
 
   returnVal = PMPI_Waitany( count, array_of_requests, index, status );
 
-  if (count < MPE_MAX_REQUESTS) {
+  if (*index <= MPE_MAX_REQUESTS) {
       MPE_ProcessWaitTest( req[*index], status, "MPI_Waitany", state );
+  }
+  else {
+    fprintf( stderr, __FILE__":MPI_Waitany() - "
+                     "Array Index Out of Bound Exception !"
+                     "\t""*index(%d) > MPE_MAX_REQUESTS(%d)\n",
+                     *index, MPE_MAX_REQUESTS );
+    fflush( stderr );
   }
 
   MPE_LOG_STATE_END(MPI_COMM_NULL);
@@ -3691,7 +3739,15 @@ MPI_Status * array_of_statuses;
 
   MPE_LOG_STATE_BEGIN(MPE_WAITSOME_ID,MPI_COMM_NULL);
   
-  if (incount < MPE_MAX_REQUESTS) {
+  if (incount > MPE_MAX_REQUESTS) {
+    fprintf( stderr, __FILE__":MPI_Waitsome() - "
+                     "Array Index Out of Bound Exception !"
+                     "\t""incount(%d) > MPE_MAX_REQUESTS(%d)\n",
+                     incount, MPE_MAX_REQUESTS );
+    fflush( stderr );
+  }
+
+  if (incount <= MPE_MAX_REQUESTS) {
       for (i=0; i<incount; i++) 
 	  req[i] = array_of_requests[i];
   }
@@ -3699,12 +3755,11 @@ MPI_Status * array_of_statuses;
   returnVal = PMPI_Waitsome( incount, array_of_requests, outcount, 
 			     array_of_indices, array_of_statuses );
 
-  if (incount < MPE_MAX_REQUESTS) {
-      for (i=0; i < *outcount; i++) {
+  if (incount <= MPE_MAX_REQUESTS) {
+      for (i=0; i < *outcount; i++)
 	  MPE_ProcessWaitTest( req[array_of_indices[i]],
-			        &array_of_statuses[array_of_indices[i]],
-			        "MPI_Waitsome", state );
-      }
+			       &array_of_statuses[i],
+			       "MPI_Waitsome", state );
   }
 
   MPE_LOG_STATE_END(MPI_COMM_NULL);
@@ -4095,8 +4150,12 @@ int MPI_Pcontrol( int level, ... )
 int MPI_Pcontrol( const int level, ... )
 #endif
 #else
+#ifdef HAVE_NO_C_CONST
 int MPI_Pcontrol( level )
 int level;
+#else
+int MPI_Pcontrol(const int level, ...)
+#endif
 #endif
 {
     trace_on = level;

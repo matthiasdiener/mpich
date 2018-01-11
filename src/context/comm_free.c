@@ -1,11 +1,30 @@
 /*
- *  $Id: comm_free.c,v 1.2 1998/01/29 14:26:19 gropp Exp $
+ *  $Id: comm_free.c,v 1.7 1999/08/30 15:42:50 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Comm_free = PMPI_Comm_free
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Comm_free  MPI_Comm_free
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Comm_free as PMPI_Comm_free
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpimem.h"
 
 /* For MPIR_COLLOPS */
@@ -40,8 +59,7 @@ disallows freeing a null communicator.  The text from the standard is:
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-int MPI_Comm_free ( commp )
-MPI_Comm *commp;
+EXPORT_MPI_API int MPI_Comm_free ( MPI_Comm *commp )
 {
   int mpi_errno = MPI_SUCCESS;
   int attr_free_err = 0;
@@ -57,7 +75,7 @@ MPI_Comm *commp;
      by the standard.  For now, I'll leave it as ok */
   if (*commp == MPI_COMM_NULL) {
       TR_POP;
-      mpi_errno = MPI_ERR_COMM_NULL;
+      mpi_errno = MPIR_ERRCLASS_TO_CODE(MPI_ERR_COMM, MPIR_ERR_COMM_NULL);
       return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
   }
 
@@ -68,7 +86,7 @@ MPI_Comm *commp;
 
 #ifdef MPIR_MEMDEBUG
   if (commp == &comm->self) {
-      fprintf( stderr, 
+      FPRINTF( stderr, 
 	       "Cannot pass address of self pointer to MPI_Comm_free\n" );
       MPI_Abort( (MPI_Comm)0, 2 );
   }
@@ -82,7 +100,8 @@ MPI_Comm *commp;
       DBG(FPRINTF(OUTFILE,"About to check for perm comm\n");fflush(OUTFILE);)
       /* We can't free permanent objects unless finalize has been called */
       if  ( ( comm->permanent == 1 ) && (MPIR_Has_been_initialized == 1) )
-	  return MPIR_ERROR( comm, MPI_ERR_PERM_KEY, myname );
+	  return MPIR_ERROR( comm,
+		MPIR_ERRCLASS_TO_CODE(MPI_ERR_ARG,MPIR_ERR_PERM_KEY), myname );
 
       /* Remove it from the debuggers list of active communicators */
       MPIR_Comm_forget( comm );

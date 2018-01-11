@@ -7,7 +7,56 @@
 #include <stdarg.h>
 #endif
 
-#ifdef MPI_BUILD_PROFILING
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_RSEND = PMPI_RSEND
+EXPORT_MPI_API void MPI_RSEND ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_rsend__ = pmpi_rsend__
+EXPORT_MPI_API void mpi_rsend__ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_rsend = pmpi_rsend
+EXPORT_MPI_API void mpi_rsend ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_rsend_ = pmpi_rsend_
+EXPORT_MPI_API void mpi_rsend_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_RSEND  MPI_RSEND
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_rsend__  mpi_rsend__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_rsend  mpi_rsend
+#else
+#pragma _HP_SECONDARY_DEF pmpi_rsend_  mpi_rsend_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_RSEND as PMPI_RSEND
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_rsend__ as pmpi_rsend__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_rsend as pmpi_rsend
+#else
+#pragma _CRI duplicate mpi_rsend_ as pmpi_rsend_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_rsend_ PMPI_RSEND
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -17,7 +66,9 @@
 #else
 #define mpi_rsend_ pmpi_rsend_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_rsend_ MPI_RSEND
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -26,6 +77,7 @@
 #define mpi_rsend_ mpi_rsend
 #endif
 #endif
+
 
 #ifdef _CRAY
 #ifdef _TWO_WORD_FCD
@@ -76,17 +128,10 @@ int *__ierr;
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_rsend_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+EXPORT_MPI_API void mpi_rsend_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                             MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
-void mpi_rsend_( buf, count, datatype, dest, tag, comm, __ierr )
-void     *buf;
-MPI_Fint *count;
-MPI_Fint *dest;
-MPI_Fint *tag;
-MPI_Fint *datatype;
-MPI_Fint *comm;
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_rsend_( void *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm, MPI_Fint *__ierr )
 {
     *__ierr = MPI_Rsend(MPIR_F_PTR(buf), (int)*count,MPI_Type_f2c(*datatype),
 			(int)*dest, (int)*tag, MPI_Comm_f2c(*comm));

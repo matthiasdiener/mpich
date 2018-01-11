@@ -27,6 +27,9 @@
 /* Define if we have BSD (working) signals */
 #undef HAVE_BSD_SIGNAL
 
+/* Define if getpeername/accept/getsocktop want socklen_t for arg length */
+#undef USE_SOCKLEN_T
+
 /* Define if you have the getopt function.  */
 #undef HAVE_GETOPT
 

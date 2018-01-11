@@ -18,7 +18,12 @@ char *argv[];
     MPI_Init(&argc,&argv);
     MPI_Comm_size(MPI_COMM_WORLD,&numprocs);
     MPI_Comm_rank(MPI_COMM_WORLD,&myid);
-    
+
+    if ((numprocs % 2) != 0) {
+	fprintf( stderr, "buflimit requires an even number of processes\n" );
+	MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+
     /* Output processor names in rank order */
     MPI_Get_processor_name(processor_name,&namelen);
     if (myid > 0) 
@@ -38,7 +43,6 @@ char *argv[];
 	if ((buf = (char *) malloc (bufsize)) == NULL) {
 	    fprintf(stderr, "%d could not malloc %d bytes\n", myid, bufsize );
 	    MPI_Abort( MPI_COMM_WORLD, 1 );
-	    exit(-1);
 	}
 	/* fprintf(stderr,"%d sending %d to %d\n", myid, bufsize, other ); */
 	if ((myid % 2) == 0) {

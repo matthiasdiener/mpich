@@ -1,10 +1,29 @@
 /* 
- *   $Id: type_get_env.c,v 1.2 1998/04/28 21:11:11 swider Exp $    
+ *   $Id: type_get_env.c,v 1.6 1999/08/30 15:46:50 swider Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Type_get_envelope = PMPI_Type_get_envelope
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Type_get_envelope  MPI_Type_get_envelope
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Type_get_envelope as PMPI_Type_get_envelope
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 /* #include "cookie.h"
 #include "datatype.h"
 #include "objtrace.h" */
@@ -23,13 +42,12 @@ Output Parameters:
 
 .N fortran
 @*/
-int MPI_Type_get_envelope(datatype, num_integers, num_addresses, num_datatypes, combiner)
-MPI_Datatype  datatype;
-int           *num_integers;
-int           *num_addresses;
-int           *num_datatypes;
-int           *combiner;
-
+EXPORT_MPI_API int MPI_Type_get_envelope(
+	MPI_Datatype datatype, 
+	int *num_integers, 
+	int *num_addresses, 
+	int *num_datatypes, 
+	int *combiner)
 {
     struct MPIR_DATATYPE *dtypeptr;
 

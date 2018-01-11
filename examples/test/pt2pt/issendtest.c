@@ -23,7 +23,7 @@ static int src  = 1;
 static int dest = 0;
 
 /* Prototypes for picky compilers */
-void Generate_Data ANSI_ARGS(( int *, int ));
+void Generate_Data ( int *, int );
 
 void Generate_Data(buffer, buff_size)
 int *buffer;
@@ -41,7 +41,7 @@ int main( int argc, char **argv)
     int act_size = 1000;
     int flag;
     int buffer[SIZE];
-    double t0, t1;
+    double t0;
     char *Current_Test = NULL;
     MPI_Status status;
     MPI_Request r1, r2;
@@ -80,7 +80,7 @@ for this test.\n" );
 	MPI_Issend( buffer, act_size, MPI_INT, dest, 2, MPI_COMM_WORLD, &r2 );
 	t0 = MPI_Wtime();
 	flag = 0;
-	while ( (t1 = (MPI_Wtime() - t0)) < MAX_TIME) {
+	while ( (MPI_Wtime() - t0) < MAX_TIME) {
 	    MPI_Test( &r1, &flag, &status );
 	    if (flag) {
 		Test_Failed(Current_Test);

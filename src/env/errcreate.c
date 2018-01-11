@@ -1,11 +1,30 @@
 /*
- *  $Id: errcreate.c,v 1.2 1998/01/29 14:27:07 gropp Exp $
+ *  $Id: errcreate.c,v 1.6 1999/08/30 15:45:29 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Errhandler_create = PMPI_Errhandler_create
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Errhandler_create  MPI_Errhandler_create
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Errhandler_create as PMPI_Errhandler_create
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "sbcnst2.h"
 #define MPIR_SBalloc MPID_SBalloc
 
@@ -32,9 +51,9 @@ freed.
 .N MPI_SUCCESS
 .N MPI_ERR_EXHAUSTED
 @*/
-int MPI_Errhandler_create( function, errhandler )
-MPI_Handler_function *function;
-MPI_Errhandler       *errhandler;
+EXPORT_MPI_API int MPI_Errhandler_create( 
+	MPI_Handler_function *function,
+	MPI_Errhandler       *errhandler)
 {
     struct MPIR_Errhandler *new;
 

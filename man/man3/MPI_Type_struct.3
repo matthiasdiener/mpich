@@ -1,15 +1,15 @@
-.TH MPI_Type_struct 3 "9/17/1998" " " "MPI"
+.TH MPI_Type_struct 3 "8/31/1999" " " "MPI"
 .SH NAME
 MPI_Type_struct \-  Creates a struct datatype 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Type_struct( count, blocklens, indices, old_types, newtype )
-int           count;
-int        blocklens[];
-MPI_Aint      indices[];      
-MPI_Datatype  old_types[];
-MPI_Datatype *newtype;
+int MPI_Type_struct( 
+ int count, 
+ int blocklens[], 
+ MPI_Aint indices[], 
+ MPI_Datatype old_types[], 
+ MPI_Datatype *newtype )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

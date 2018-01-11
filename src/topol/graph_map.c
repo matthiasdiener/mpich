@@ -1,11 +1,30 @@
 /*
- *  $Id: graph_map.c,v 1.2 1998/04/29 14:28:45 swider Exp $
+ *  $Id: graph_map.c,v 1.7 1999/08/30 15:51:04 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Graph_map = PMPI_Graph_map
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Graph_map  MPI_Graph_map
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Graph_map as PMPI_Graph_map
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
 
@@ -29,12 +48,8 @@ calling process does not belong to graph (integer)
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-int MPI_Graph_map ( comm_old, nnodes, index, edges, newrank )
-MPI_Comm comm_old;
-int      nnodes;
-int     *index;
-int     *edges;
-int     *newrank;
+EXPORT_MPI_API int MPI_Graph_map ( MPI_Comm comm_old, int nnodes, int *index, int *edges, 
+		    int *newrank )
 {
   int rank, size;
   int mpi_errno = MPI_SUCCESS;
@@ -43,12 +58,16 @@ int     *newrank;
 
   TR_PUSH(myname);
   comm_old_ptr = MPIR_GET_COMM_PTR(comm_old);
-  MPIR_TEST_MPI_COMM(comm_old,comm_old_ptr,comm_old_ptr,myname);
 
-  if (((nnodes   <  1)             && (mpi_errno = MPI_ERR_ARG))  ||
-      MPIR_TEST_ARG(newrank) || MPIR_TEST_ARG(index) ||
-      MPIR_TEST_ARG(edges))
-    return MPIR_ERROR( comm_old_ptr, mpi_errno, myname );
+#ifndef MPIR_NO_ERROR_CHECKING
+  MPIR_TEST_MPI_COMM(comm_old,comm_old_ptr,comm_old_ptr,myname);
+  if (nnodes < 1) mpi_errno = MPI_ERR_ARG;
+  MPIR_TEST_ARG(newrank);
+  MPIR_TEST_ARG(index);
+  MPIR_TEST_ARG(edges);
+  if (mpi_errno)
+      return MPIR_ERROR(comm_old_ptr, mpi_errno, myname );
+#endif
   
   /* Test that the communicator is large enough */
   MPIR_Comm_size( comm_old_ptr, &size );

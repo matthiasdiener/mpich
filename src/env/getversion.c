@@ -1,11 +1,30 @@
 /*
- *  $Id: getversion.c,v 1.3 1998/04/28 21:09:00 swider Exp $
+ *  $Id: getversion.c,v 1.7 1999/08/30 15:46:00 swider Exp $
  *
  *  (C) 1997 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Get_version = PMPI_Get_version
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Get_version  MPI_Get_version
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Get_version as PMPI_Get_version
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
   MPI_Get_version - Gets the version of MPI
@@ -21,9 +40,9 @@ version specified in the 'mpi.h' and 'mpif.h' files.
 
 .N fortran
 @*/
-int MPI_Get_version( version, subversion )
-int *version;
-int *subversion;
+EXPORT_MPI_API int MPI_Get_version( 
+	int *version, 
+	int *subversion )
 {
     *version    = MPI_VERSION;
     *subversion = MPI_SUBVERSION;

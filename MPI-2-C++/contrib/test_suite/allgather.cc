@@ -71,7 +71,7 @@ allgather()
   int out[MAXLEN];
   int *in;
   
-  Testing("Allgather");
+  Testing( (char *)"Allgather");
 
   in = new int[MAXLEN * comm_size];
   for (j = 1; j <= MAXLEN; j *= 10) {

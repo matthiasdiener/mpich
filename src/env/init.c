@@ -1,5 +1,5 @@
 /*
- *  $Id: init.c,v 1.4 1998/11/16 02:19:13 gropp Exp $
+ *  $Id: init.c,v 1.10 1999/10/08 21:36:48 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -12,18 +12,37 @@
  */
 #include "mpiimpl.h"
 
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Init = PMPI_Init
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Init  MPI_Init
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Init as PMPI_Init
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 /*@
    MPI_Init - Initialize the MPI execution environment
 
    Input Parameters:
-.  argc - Pointer to the number of arguments 
-.  argv - Pointer to the argument vector
++  argc - Pointer to the number of arguments 
+-  argv - Pointer to the argument vector
 
    Command line arguments:
    MPI specifies no command-line arguments but does allow an MPI 
    implementation to make use of them.
 
-.  -mpiqueue - print out the state of the message queues when 'MPI_FINALIZE'
++  -mpiqueue - print out the state of the message queues when 'MPI_FINALIZE'
    is called.  All processors print; the output may be hard to decipher.  This
    is intended as a debugging aid.
 
@@ -43,7 +62,7 @@
     malloc and free operations (internal to MPICH) for signs of injury 
     to the memory allocation areas.
 
-.  -mpidb options - Activate various debugging options.  Some require
+-  -mpidb options - Activate various debugging options.  Some require
    that MPICH have been built with special options.  These are intended 
    for debugging MPICH, not for debugging user programs.  The available 
    options include:
@@ -106,6 +125,9 @@
    ch_p4 device:
    SIGUSR1
 
+   The ch_p4 device also catches SIGINT, SIGFPE, SIGBUS, and SIGSEGV; this
+   helps the p4 device (and MPICH) more gracefully abort a failed program.
+
    Intel Paragon (ch_nx and nx device):
    SIGUSR2
 
@@ -122,9 +144,7 @@
 .N MPI_SUCCESS
 .N MPI_ERR_INIT
 @*/
-int MPI_Init(argc,argv)
-int  *argc;
-char ***argv;
+EXPORT_MPI_API int MPI_Init(int *argc, char ***argv)
 {
     return MPIR_Init(argc,argv);
 }

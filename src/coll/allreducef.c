@@ -7,7 +7,57 @@
 #include <stdarg.h>
 #endif
 
-#ifdef MPI_BUILD_PROFILING
+
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_ALLREDUCE = PMPI_ALLREDUCE
+EXPORT_MPI_API void MPI_ALLREDUCE ( void *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_allreduce__ = pmpi_allreduce__
+EXPORT_MPI_API void mpi_allreduce__ ( void *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_allreduce = pmpi_allreduce
+EXPORT_MPI_API void mpi_allreduce ( void *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_allreduce_ = pmpi_allreduce_
+EXPORT_MPI_API void mpi_allreduce_ ( void *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_ALLREDUCE  MPI_ALLREDUCE
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_allreduce__  mpi_allreduce__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_allreduce  mpi_allreduce
+#else
+#pragma _HP_SECONDARY_DEF pmpi_allreduce_  mpi_allreduce_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_ALLREDUCE as PMPI_ALLREDUCE
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_allreduce__ as pmpi_allreduce__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_allreduce as pmpi_allreduce
+#else
+#pragma _CRI duplicate mpi_allreduce_ as pmpi_allreduce_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_allreduce_ PMPI_ALLREDUCE
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -17,7 +67,9 @@
 #else
 #define mpi_allreduce_ pmpi_allreduce_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_allreduce_ MPI_ALLREDUCE
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -26,6 +78,7 @@
 #define mpi_allreduce_ mpi_allreduce
 #endif
 #endif
+
 
 #ifdef _CRAY
 #ifdef _TWO_WORD_FCD
@@ -96,16 +149,10 @@ if (_isfcd(recvbuf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_allreduce_ ANSI_ARGS(( void *, void *, MPI_Fint *, MPI_Fint *, 
+EXPORT_MPI_API void mpi_allreduce_ ANSI_ARGS(( void *, void *, MPI_Fint *, MPI_Fint *, 
 				MPI_Fint *, MPI_Fint *, MPI_Fint * ));
-void mpi_allreduce_ ( sendbuf, recvbuf, count, datatype, op, comm, __ierr )
-void     *sendbuf;
-void     *recvbuf;
-MPI_Fint *count;
-MPI_Fint *datatype;
-MPI_Fint *op;
-MPI_Fint *comm;
-MPI_Fint *__ierr;
+
+EXPORT_MPI_API void mpi_allreduce_ ( void *sendbuf, void *recvbuf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *comm, MPI_Fint *__ierr )
 {
     *__ierr = MPI_Allreduce(MPIR_F_PTR(sendbuf),MPIR_F_PTR(recvbuf),
                             (int)*count, MPI_Type_f2c(*datatype),

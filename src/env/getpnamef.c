@@ -1,5 +1,5 @@
 /*
- *  $Id: getpnamef.c,v 1.3 1998/01/29 14:27:15 gropp Exp $
+ *  $Id: getpnamef.c,v 1.10 1999/09/07 16:52:26 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -15,7 +15,57 @@
 #include <fortran.h>
 #endif
 
-#ifdef MPI_BUILD_PROFILING
+
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_GET_PROCESSOR_NAME = PMPI_GET_PROCESSOR_NAME
+EXPORT_MPI_API void MPI_GET_PROCESSOR_NAME ( char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_get_processor_name__ = pmpi_get_processor_name__
+EXPORT_MPI_API void mpi_get_processor_name__ ( char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_get_processor_name = pmpi_get_processor_name
+EXPORT_MPI_API void mpi_get_processor_name ( char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
+#else
+#pragma weak mpi_get_processor_name_ = pmpi_get_processor_name_
+EXPORT_MPI_API void mpi_get_processor_name_ ( char *, MPI_Fint *, MPI_Fint *, MPI_Fint );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_GET_PROCESSOR_NAME  MPI_GET_PROCESSOR_NAME
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_get_processor_name__  mpi_get_processor_name__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_get_processor_name  mpi_get_processor_name
+#else
+#pragma _HP_SECONDARY_DEF pmpi_get_processor_name_  mpi_get_processor_name_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_GET_PROCESSOR_NAME as PMPI_GET_PROCESSOR_NAME
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_get_processor_name__ as pmpi_get_processor_name__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_get_processor_name as pmpi_get_processor_name
+#else
+#pragma _CRI duplicate mpi_get_processor_name_ as pmpi_get_processor_name_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_get_processor_name_ PMPI_GET_PROCESSOR_NAME
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -25,7 +75,9 @@
 #else
 #define mpi_get_processor_name_ pmpi_get_processor_name_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_get_processor_name_ MPI_GET_PROCESSOR_NAME
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -34,6 +86,7 @@
 #define mpi_get_processor_name_ mpi_get_processor_name
 #endif
 #endif
+
 
 #define LOCAL_MIN(a,b) ((a) < (b) ? (a) : (b))
 
@@ -60,16 +113,10 @@ _fcd name_fcd;
 
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_get_processor_name_ ANSI_ARGS(( char *, MPI_Fint *, 
+EXPORT_MPI_API void mpi_get_processor_name_ ANSI_ARGS(( char *, MPI_Fint *, 
                                          MPI_Fint *, MPI_Fint ));
 
-void mpi_get_processor_name_( name, len, ierr, d )
-char     *name;
-MPI_Fint *len;
-MPI_Fint *ierr;
-MPI_Fint d;
-
-
+EXPORT_MPI_API void mpi_get_processor_name_( char *name, MPI_Fint *len, MPI_Fint *ierr, MPI_Fint d )
 {
   char cres[MPI_MAX_PROCESSOR_NAME];
   int l_len;

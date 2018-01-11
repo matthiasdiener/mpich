@@ -62,10 +62,10 @@ extern void *MPIR_ToPointer ANSI_ARGS(( int ));
 #define MPIR_GET_DTYPE_SIZE(idx,ptr) \
    ((ptr)->is_contig) ? (ptr)->size : 0
 #define MPIR_TEST_DTYPE(idx,ptr,comm,routine_name) {\
-   if (!(ptr)) {RETURNV(MPIR_ERROR(comm,MPI_ERR_TYPE_NULL,routine_name));}\
+   if (!(ptr)) {RETURNV(MPIR_ERROR(comm,MPIR_ERRCLASS_TO_CODE(MPI_ERR_TYPE,MPIR_ERR_TYPE_NULL),routine_name));}\
    if ((ptr)->cookie != MPIR_DATATYPE_COOKIE){\
-    MPIR_ERROR_PUSH_ARG(&(ptr)->cookie);\
-   RETURNV(MPIR_ERROR(comm,MPI_ERR_TYPE_CORRUPT,routine_name));}}
+mpi_errno = MPIR_Err_setmsg(MPI_ERR_TYPE,MPIR_ERR_TYPE_CORRUPT,routine_name,(char *)0,(char *)0,(ptr)->cookie);\
+   RETURNV(MPIR_ERROR(comm,mpi_errno,routine_name));}}
 #define MPIR_DATATYPE_ISCONTIG(idx,flag) \
 {struct MPIR_DATATYPE *_pp=MPIR_GET_DTYPE_PTR(idx);*(flag)=(_pp)->is_contig;}
 

@@ -66,7 +66,7 @@ groupfree()
   int i;
   MPI::Group group;
 
-  Testing("Free");
+  Testing( (char *)"Free");
 
   group = MPI::GROUP_NULL;
 

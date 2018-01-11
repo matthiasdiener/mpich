@@ -368,7 +368,9 @@ _REAL_MPI_::Comm::Create_keyval(_REAL_MPI_::Comm::COPYATTRFN* comm_copy_attr_fn,
   int keyval;
   (void)MPI_Keyval_create(copy_attr_intercept, delete_attr_intercept,
 			  &keyval, extra_state);
-  Map::Pair* copy_and_delete = new Map::Pair((void*)comm_copy_attr_fn, (void*)comm_delete_attr_fn); 
+  // C++ no longer allows the cast to void * from a pointer to a function (!)
+  // Only fix is to pass through a C address converter
+  Map::Pair* copy_and_delete = new Map::Pair((void (*)(void))comm_copy_attr_fn, (void (*)(void))comm_delete_attr_fn); 
   _REAL_MPI_::Comm::key_fn_map[(Map::address)keyval] = copy_and_delete;
   return keyval;
 }

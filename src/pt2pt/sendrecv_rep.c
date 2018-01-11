@@ -1,11 +1,30 @@
 /*
- *  $Id: sendrecv_rep.c,v 1.7 1998/04/28 21:47:11 swider Exp $
+ *  $Id: sendrecv_rep.c,v 1.12 1999/08/30 15:49:23 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Sendrecv_replace = PMPI_Sendrecv_replace
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Sendrecv_replace  MPI_Sendrecv_replace
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Sendrecv_replace as PMPI_Sendrecv_replace
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpimem.h"
 /* pt2pt for MPIR_Unpack */
 #include "mpipt2pt.h"
@@ -39,13 +58,9 @@ Output Parameters:
 .N MPI_ERR_EXHAUSTED
 
 @*/
-int MPI_Sendrecv_replace( buf, count, datatype, dest, sendtag, 
-			  source, recvtag, comm, status )
-void         *buf;
-int           count, dest, sendtag, source, recvtag;
-MPI_Datatype  datatype;
-MPI_Comm      comm;
-MPI_Status   *status;
+EXPORT_MPI_API int MPI_Sendrecv_replace( void *buf, int count, MPI_Datatype datatype, 
+			  int dest, int sendtag, int source, int recvtag, 
+			  MPI_Comm comm, MPI_Status *status )
 {
     int          mpi_errno = MPI_SUCCESS;
     int          buflen;
@@ -62,9 +77,11 @@ MPI_Status   *status;
     comm_ptr = MPIR_GET_COMM_PTR(comm);
     MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname );
 
-    /* Check for invalid arguments */
-    if ( MPIR_TEST_COUNT(comm,count) )
-      return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+#ifndef MPIR_NO_ERROR_CHECKING
+    MPIR_TEST_COUNT(count);
+    if (mpi_errno)
+	return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
 
     /* Let the other send/recv routines find the remaining errors. */
 

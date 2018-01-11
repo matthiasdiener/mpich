@@ -1,13 +1,13 @@
-.TH MPI_Dims_create 3 "4/29/1998" " " "MPI"
+.TH MPI_Dims_create 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Dims_create \-  Creates a division of processors in a cartesian grid 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Dims_create(nnodes, ndims, dims)
-int  nnodes;
-int  ndims;
-int *dims;
+int MPI_Dims_create(
+ int nnodes, 
+ int ndims, 
+ int *dims)
 .fi
 .SH INPUT PARAMETERS
 .PD 0

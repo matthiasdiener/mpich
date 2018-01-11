@@ -1,11 +1,30 @@
 /*
- *  $Id: cart_rank.c,v 1.2 1998/04/29 14:28:36 swider Exp $
+ *  $Id: cart_rank.c,v 1.6 1999/08/30 15:50:50 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Cart_rank = PMPI_Cart_rank
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Cart_rank  MPI_Cart_rank
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Cart_rank as PMPI_Cart_rank
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpitopo.h"
 
 /*@
@@ -29,10 +48,10 @@ Output Parameter:
 .N MPI_ERR_RANK
 .N MPI_ERR_ARG
 @*/
-int MPI_Cart_rank ( comm, coords, rank )
-MPI_Comm comm;
-int *coords;
-int *rank;
+EXPORT_MPI_API int MPI_Cart_rank ( 
+	MPI_Comm comm, 
+	int *coords, 
+	int *rank )
 {
   int i, ndims, multiplier = 1;
   int mpi_errno = MPI_SUCCESS;

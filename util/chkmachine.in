@@ -8,7 +8,7 @@ $rsh = "rsh";
 # in the machines list.  Use chkserv to check on the servers.
 #
 # Get the list of machines
-$machinelist="/home/MPI/mpich/util/machines/machines.sun4";
+$machinelist="@datadir@/machines.@ARCH@";
 #
 # Read command line for overrides
 while ($_ = $ARGV[0]) {
@@ -22,7 +22,7 @@ while ($_ = $ARGV[0]) {
 	shift;
 	}
     elsif ($_ eq "-arch") {
-	$machinelist = "/home/MPI/mpich/util/machines/machines.$ARGV[0]";
+	$machinelist="@datadir@/machines.$ARGV[0]";
 	shift;
 	}
     elsif ($_ eq "-user") {

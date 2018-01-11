@@ -69,7 +69,7 @@ waitany()
   MPI::Request req[2000];
   MPI::Status status;
   
-  Testing("Waitany w/ Status");
+  Testing( (char *)"Waitany w/ Status");
 
   for(i = 0; i < 2000; i++) {
     data[i] = -1;
@@ -102,7 +102,7 @@ waitany()
 
   MPI::COMM_WORLD.Barrier();
 
-  Testing("Waitany w/o Status");
+  Testing( (char *)"Waitany w/o Status");
 
   for(i = 0; i < 2000; i++) {
     data[i] = -1;

@@ -87,7 +87,7 @@ group()
     ranks2[i] = -1;
   }
 
-  Testing("Get_group");
+  Testing( (char *)"Get_group");
 
   group1 = MPI::COMM_WORLD.Get_group();
   if(group1 == MPI::GROUP_NULL) {
@@ -97,7 +97,7 @@ group()
 
   Pass(); // Get_group
 
-  Testing("Get_size");
+  Testing( (char *)"Get_size");
 
   size = 0;
 
@@ -109,7 +109,7 @@ group()
 
   Pass(); // Get_size
 
-  Testing("Get_rank");
+  Testing( (char *)"Get_rank");
 
   rank = 0;
 
@@ -121,7 +121,7 @@ group()
 
   Pass(); // Get_rank
   
-  Testing("Compare");
+  Testing( (char *)"Compare");
 
   result = -1;
 
@@ -133,7 +133,7 @@ group()
 
   Pass(); // Compare
 
-  Testing("Incl");
+  Testing( (char *)"Incl");
 
   for(i = 0; i < comm_size / 2; i++)  
     ranks1[i] = i;
@@ -167,7 +167,7 @@ group()
 
   Pass(); // Incl
 
-  Testing("Union");
+  Testing( (char *)"Union");
 
   if(group2 != MPI::GROUP_NULL)
     // group2.Free();
@@ -183,7 +183,7 @@ group()
 
   Pass(); // Union
 
-  Testing("Intersect");
+  Testing( (char *)"Intersect");
 
   if(group2 != MPI::GROUP_NULL)
     group2.Free();
@@ -199,7 +199,7 @@ group()
 
   Pass(); // Intersect
 
-  Testing("Difference");
+  Testing( (char *)"Difference");
 
   if(group2 != MPI::GROUP_NULL)
     group2.Free();
@@ -216,7 +216,7 @@ group()
 
   Pass(); // Difference
 
-  Testing("Translate_ranks");
+  Testing( (char *)"Translate_ranks");
 
   for(i = 0; i < size; i++)
     ranks1[i] = i;
@@ -239,7 +239,7 @@ group()
 
   Pass(); // Translate_ranks
 
-  Testing("Intracomm::Create");
+  Testing( (char *)"Intracomm::Create");
 
   newcomm = MPI::COMM_WORLD.Create(newgroup);
   if(newcomm != MPI::COMM_NULL) { 
@@ -258,7 +258,7 @@ group()
 
   Pass(); // Create
 
-  Testing("Excl");
+  Testing( (char *)"Excl");
 
   if(my_rank < (comm_size / 2)) {
     if(group3 != MPI::GROUP_NULL)

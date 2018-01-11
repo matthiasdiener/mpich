@@ -92,7 +92,7 @@ struct_gatherv()
     recvcounts[i] = sendcount;
   }
 
-  Testing("Gatherv");
+  Testing( (char *)"Gatherv");
 
   MPI::COMM_WORLD.Gatherv(sendbuf, sendcount, sendtype,
 			  recvbuf, recvcounts, displs, recvtype, 0);

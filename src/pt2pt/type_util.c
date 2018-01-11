@@ -1,5 +1,5 @@
 /*
- *  $Id: type_util.c,v 1.3 1998/04/10 17:36:20 gropp Exp $
+ *  $Id: type_util.c,v 1.6 1999/08/20 02:27:50 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -26,8 +26,7 @@
   is not used to determine whether or not the type is freed
   during normal program execution.
 +*/
-struct MPIR_DATATYPE * MPIR_Type_dup ( dtype_ptr )
-struct MPIR_DATATYPE *dtype_ptr;
+struct MPIR_DATATYPE * MPIR_Type_dup ( struct MPIR_DATATYPE *dtype_ptr )
 {
   /* We increment the reference count even for the permanent types, so that 
      an eventual free (in MPI_Finalize) will correctly free these types */
@@ -39,8 +38,7 @@ struct MPIR_DATATYPE *dtype_ptr;
 /*+
   MPIR_Type_permanent - Utility function to mark a type as permanent
 +*/
-int MPIR_Type_permanent ( dtype_ptr )
-struct MPIR_DATATYPE *dtype_ptr;
+int MPIR_Type_permanent ( struct MPIR_DATATYPE *dtype_ptr )
 {
   if (dtype_ptr)
     dtype_ptr->permanent = 1;
@@ -55,22 +53,23 @@ struct MPIR_DATATYPE *dtype_ptr;
    that is used to define another datatype); but to free it, we must not
    require that it have been committed.
  */
-int MPIR_Type_free ( dtype_ptr2 )
-struct MPIR_DATATYPE **dtype_ptr2;
+int MPIR_Type_free ( struct MPIR_DATATYPE **dtype_ptr2 )
 {
   int mpi_errno = MPI_SUCCESS;
   struct MPIR_DATATYPE *dtype_ptr;
+  static char myname[] = "MPI_TYPE_FREE";
 
   /* Check for bad arguments */
-  if (MPIR_TEST_ARG(dtype_ptr2))
-	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, "MPI_TYPE_FREE" );
+  MPIR_TEST_ARG(dtype_ptr2);
+  if (mpi_errno)
+      return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 
   /* Freeing null datatypes succeeds silently */
   if ( *dtype_ptr2 == MPI_DATATYPE_NULL )
 	return (MPI_SUCCESS);
 
   dtype_ptr   = *dtype_ptr2;
-  MPIR_TEST_DTYPE(dtype_ptr->self,dtype_ptr,MPIR_COMM_WORLD,"MPI_TYPE_FREE");
+  MPIR_TEST_DTYPE(dtype_ptr->self,dtype_ptr,MPIR_COMM_WORLD,myname);
 
   /* We can't free permanent objects unless finalize has been called */
   if  ( ( dtype_ptr->permanent ) && MPIR_Has_been_initialized == 1) {
@@ -125,8 +124,7 @@ struct MPIR_DATATYPE **dtype_ptr2;
 
 #ifdef FOO
 /* Free the parts of a structure datatype */
-void MPIR_Type_free_struct( dtype )
-struct MPIR_DATATYPE *dtype;
+void MPIR_Type_free_struct( struct MPIR_DATATYPE *dtype )
 {
 /* Free malloc'd memory for various datatypes */
     if ( (dtype->dte_type == MPIR_INDEXED)  ||
@@ -166,9 +164,10 @@ struct MPIR_DATATYPE *dtype;
 
    STILL NEEDS TO BE IMPLEMENTED IN THE TYPE ROUTINES
  */
-void MPIR_Type_get_limits( dtype_ptr, lb, ub )
-struct MPIR_DATATYPE *dtype_ptr;
-MPI_Aint *lb, *ub;
+void MPIR_Type_get_limits( 
+	struct MPIR_DATATYPE *dtype_ptr,
+	MPI_Aint *lb, 
+	MPI_Aint *ub)
 {
 /*
     *lb = dtype->real_lb;
@@ -181,8 +180,7 @@ MPI_Aint *lb, *ub;
 /* 
  * Routine to free a datatype
  */
-void MPIR_Free_perm_type( datatype )
-MPI_Datatype datatype;
+void MPIR_Free_perm_type( MPI_Datatype datatype )
 {
     struct MPIR_DATATYPE *dtype_ptr;
 
@@ -209,8 +207,8 @@ MPI_Datatype datatype;
  * Routine to free INTERNALS of type struct, including the locally referenced
  * datatypes.
  */
-void MPIR_Free_struct_internals( dtype_ptr )
-struct MPIR_DATATYPE *dtype_ptr;
+void MPIR_Free_struct_internals( 
+	struct MPIR_DATATYPE *dtype_ptr)
 {
     int i;
 
@@ -228,9 +226,7 @@ struct MPIR_DATATYPE *dtype_ptr;
 /*
  * Routine to return whether a datatype is contiguous
  */
-void MPIR_Datatype_iscontig( dtype, flag )
-MPI_Datatype dtype;
-int          *flag;
+void MPIR_Datatype_iscontig( MPI_Datatype dtype, int *flag )
 {
     MPIR_DATATYPE_ISCONTIG(dtype,flag);
 }

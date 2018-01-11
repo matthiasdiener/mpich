@@ -33,8 +33,14 @@ SHELL		= @BINSH@
 CXX		= @MPI_CXX@
 TEMPLATE_REP	= @TEMPLATE_REP@
 
-CXXFLAGS	= @EXAM_OPTFLAGS@
+# The ../.. includes the configuration file for VPATH builds
+# When the C++ interface is installed, this path should be not be necessary.
+CXXFLAGS	= @TEST_OPTFLAGS@ -I../..
 LDFLAGS		= @EXAM_OPTFLAGS@
+
+srcdir=@srcdir@
+top_srcdir=@top_srcdir@
+@VPATH@
 
 #
 # General compilation rule
@@ -77,9 +83,12 @@ chapter_10_mpi2:  chapter_10_mpi2.o
 # delete...
 #
 
+#
+# The Solaris C++ compiler creates a directory containing miscellaneous
+# data.  The action is not documented in the Solaris CC man pages
 clean:
 	@ touch bogus
-	rm -rf *.o *~ *% core $(PROGS) bogus $(TEMPLATE_REP)
+	rm -rf *.o *~ *% core $(PROGS) bogus $(TEMPLATE_REP) SunWS_cache
 
 distclean: clean
 	@ touch bogus

@@ -1,5 +1,5 @@
 /*
- *  $Id: dmpipk.c,v 1.3 1998/01/29 14:26:58 gropp Exp $
+ *  $Id: dmpipk.c,v 1.5 1999/08/20 02:26:49 ashton Exp $
  *
  *  (C) 1994 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -21,12 +21,13 @@
 
    It also fails to detect an overrun error, or inadequate input data.
 */
-void MPIR_Pack_Hvector( comm_ptr, buf, count, datatype, dest, outbuf )
-struct MPIR_COMMUNICATOR *comm_ptr;
-char        *buf;
-int         count, dest;
-struct MPIR_DATATYPE *datatype;
-char        *outbuf;
+void MPIR_Pack_Hvector( 
+	struct MPIR_COMMUNICATOR *comm_ptr, 
+	char *buf, 
+	int count, 
+	struct MPIR_DATATYPE *datatype, 
+	int dest, 
+	char *outbuf )
 {
 int count1 = datatype->count,           /* Number of blocks */
     blocklen = datatype->blocklen;      /* Number of elements in each block */
@@ -85,11 +86,12 @@ else {
     }
 }
 
-void MPIR_UnPack_Hvector( inbuf, count, datatype, source, outbuf )
-char        *inbuf;
-int         count, source;
-struct MPIR_DATATYPE *datatype;
-char        *outbuf;
+void MPIR_UnPack_Hvector( 
+	char *inbuf, 
+	int count, 
+	struct MPIR_DATATYPE *datatype, 
+	int source, 
+	char *outbuf )
 {
 int count1 = datatype->count,            /* Number of blocks */
     blocklen = datatype->blocklen;       /* Number of elements in each block */
@@ -145,9 +147,9 @@ else {
 }
 
 /* Get the length needed for the Hvector as a contiguous lump */
-int MPIR_HvectorLen( count, datatype )
-int count;
-struct MPIR_DATATYPE *datatype;
+int MPIR_HvectorLen( 
+	int count,
+	struct MPIR_DATATYPE *datatype)
 {
     return datatype->size * count;
 }

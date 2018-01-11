@@ -37,7 +37,7 @@ dims()
 
   dims[0] = 2;
 
-  Testing("Compute_dims");
+  Testing( (char *)"Compute_dims");
 
   MPI::Compute_dims(comm_size, 2, dims);
   

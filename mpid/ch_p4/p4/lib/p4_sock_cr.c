@@ -106,7 +106,8 @@ int rm_fd, rm_num;
 		p4_dprintf("OOPS! got slave_info w/o getting port first\n");
 	    /* big master installing remote processes */
 	    pidx = install_in_proctable(rm_num,port,slave_pid,
-					pe->host_name,slave_idx,
+					pe->host_name,
+					pe->host_name, slave_idx,
 					msg.machine_type,remote_switch_port);
             p4_dprintfl(90, "net_slave_info: adding connection to %d (%d) \n",
 		        pidx,rm_num);
@@ -316,12 +317,37 @@ char *username;
 	    child_pid = rc = fork_p4();
 	    if (rc == 0)
 	    {
+/* define SHORT_CIRCUIT_LOCALHOST */
+/* This doesn't work yet.  redirection of stdin/out/error are undoubtedly
+   part of the problem.  We'll leave this for the next release */
+#ifdef SHORT_CIRCUIT_LOCALHOST
+		/* If host is localhost or myhost, then we don't need to run 
+		   remote shell (do we? what about stdin/out/err?) */
+		if (strcmp( host, "localhost" ) == 0 ||
+		    strcmp( myhost, host ) == 0) { 
+		    p4_dprintfl( 80, "Not using rsh to localhost\n" );
+		    rc = execlp(pgm, pgm,
+			    myhost, serv_port_c, am_slave_c, NULL);
+		}
+		else {
+		    rc = execlp(remote_shell, remote_shell,
+			    host, 
+#if !defined(RSH_HAS_NO_L)
+			    "-l", username, 
+#endif
+			    "-n", pgm,
+			    myhost, serv_port_c, am_slave_c, NULL);
+		}
+#else
 #   if defined(LINUX)
+		/* This must be in this branch because the backslash 
+		   is not stripped off if rsh is not used */
 		/* On some LINUX systems, it was necessary to escape the
 		   - in -p4amslave.  It is reported that current systems
 		   do not require this, but it should be safe. */
 		am_slave_c = "\\-p4amslave";
 #   endif
+
 		rc = execlp(remote_shell, remote_shell,
 			    host, 
 #if !defined(RSH_HAS_NO_L)
@@ -329,6 +355,7 @@ char *username;
 #endif
 			    "-n", pgm,
 			    myhost, serv_port_c, am_slave_c, NULL);
+#endif /* Short_circuit_localhost */
 		/* host,"-n","cluster","5",pgm,myhost,serv_port_c,0); for butterfly */
 		if (rc < 0)
 		    p4_error("net_create_slave: execlp", rc);

@@ -123,43 +123,44 @@ main(int argc, char *argv[])
   MPI::COMM_WORLD.Bcast(flags, SKIP_MAX, MPI::INT, 0);
 #endif
   // Test all the objects
-  Testing("MPI namespace");
+  // WDG - Make "xxx" a char * instead of a String
+  Testing((char *)"MPI namespace");
   initialized2();
   procname();
   Pass(); // MPI namespace
 
-  Testing("MPI::Comm");
+  Testing((char *)"MPI::Comm");
   rank_size();
   Pass(); // MPI::Comm
 
-  Testing("MPI::Status");
+  Testing((char *)"MPI::Status");
   status_test();
   Pass(); // MPI::Status
 
-  Testing("MPI::Comm");
+  Testing((char *)"MPI::Comm");
   send();
 
   errhandler();
 
   Pass(); // MPI::Comm
 
-  Testing("MPI::Request");
+  Testing((char *)"MPI::Request");
   request1();
   Pass(); // MPI::Request
 
-  Testing("MPI::Status");
+  Testing((char *)"MPI::Status");
   getcount();
   getel();
   Pass(); // MPI::Status
 
-  Testing("MPI namespace");
+  Testing((char *)"MPI namespace");
   buffer();
   dims();
   pcontrol();
   wtime();
   Pass(); // MPI namespace
 
-  Testing("MPI::Comm");
+  Testing((char *)"MPI::Comm");
   topo();
   bsend();
   rsend();
@@ -171,7 +172,7 @@ main(int argc, char *argv[])
   probe();
   Pass(); // MPI::Comm
 
-  Testing("MPI::Request");
+  Testing((char *)"MPI::Request");
   waitany();
   testany();
   waitall();
@@ -181,12 +182,12 @@ main(int argc, char *argv[])
   cancel();
   Pass(); // MPI::Request
 
-  Testing("MPI::Comm");
+  Testing((char *)"MPI::Comm");
   start();
   startall();
   Pass(); // MPI::Comm
 
-  Testing("MPI::Intracomm");
+  Testing((char *)"MPI::Intracomm");
   dup_test();
   bcast();
   gather();
@@ -201,38 +202,38 @@ main(int argc, char *argv[])
   split();
   Pass(); // MPI::Intracomm
 
-  Testing("MPI::Cartcomm");
+  Testing((char *)"MPI::Cartcomm");
   cartcomm(); 
   Pass(); // MPI::Cartcomm
 
-  Testing("MPI::Graphcomm");
+  Testing((char *)"MPI::Graphcomm");
   graphcomm();
   Pass(); // MPI::Graphcomm
 
-  Testing("MPI::Datatype");
+  Testing((char *)"MPI::Datatype");
   bcast_struct();
   pack_test();
   Pass(); // MPI::Datatype
 
-  Testing("MPI::Intracomm");
+  Testing((char *)"MPI::Intracomm");
   compare();
   Pass(); // MPI::Intracomm
 
-  Testing("MPI::");
+  Testing((char *)"MPI::");
   intercomm1();
   Pass(); // MPI::
 
-  Testing("MPI::Comm");
+  Testing((char *)"MPI::Comm");
   attr();
   Pass(); // MPI::Comm
 
   // MD 92 bytes leak
-  Testing("MPI::Group");
+  Testing((char *)"MPI::Group");
   group();
   groupfree();
   Pass(); // MPI::Group
 
-  Testing("MPI::Op");
+  Testing((char *)"MPI::Op");
   op_test();
   Pass(); // MPI::Op 
 
@@ -274,44 +275,44 @@ check_args(int argc, char *argv[])
     flags[i] = false;
 
   for (i = 1; i < argc; i++) {
-    if (my_strcasecmp(argv[i], "-lam61") == 0)
+    if (my_strcasecmp(argv[i], (char *)"-lam61") == 0)
       flags[SKIP_LAM61] = true;
-    else if (my_strcasecmp(argv[i], "-mpich1013") == 0)
+    else if (my_strcasecmp(argv[i], (char *)"-mpich1013") == 0)
       flags[SKIP_MPICH1013] = true;
-    else if (my_strcasecmp(argv[i], "-mpich110") == 0)
+    else if (my_strcasecmp(argv[i], (char *)"-mpich110") == 0)
       flags[SKIP_MPICH110] = true;
-    else if (my_strcasecmp(argv[i], "-mpich111") == 0)
+    else if (my_strcasecmp(argv[i], (char *)"-mpich111") == 0)
       flags[SKIP_MPICH111] = true;
-    else if (my_strcasecmp(argv[i], "-mpich112") == 0)
+    else if (my_strcasecmp(argv[i], (char *)"-mpich112") == 0)
       flags[SKIP_MPICH112] = true;
-    else if (my_strcasecmp(argv[i], "-ibm21014") == 0)
+    else if (my_strcasecmp(argv[i], (char *)"-ibm21014") == 0)
       flags[SKIP_IBM21014] = true;
-    else if (my_strcasecmp(argv[i], "-ibm21015") == 0)
+    else if (my_strcasecmp(argv[i], (char *)"-ibm21015") == 0)
       flags[SKIP_IBM21015] = true;
-    else if (my_strcasecmp(argv[i], "-ibm21016") == 0)
+    else if (my_strcasecmp(argv[i], (char *)"-ibm21016") == 0)
       flags[SKIP_IBM21016] = true;
-    else if (my_strcasecmp(argv[i], "-ibm21017") == 0)
+    else if (my_strcasecmp(argv[i], (char *)"-ibm21017") == 0)
       flags[SKIP_IBM21017] = true;
-    else if (my_strcasecmp(argv[i], "-ibm21018") == 0)
+    else if (my_strcasecmp(argv[i], (char *)"-ibm21018") == 0)
       flags[SKIP_IBM21018] = true;
-    else if (my_strcasecmp(argv[i], "-sgi20") == 0)
+    else if (my_strcasecmp(argv[i], (char *)"-sgi20") == 0)
       flags[SKIP_SGI20] = true;
-    else if (my_strcasecmp(argv[i], "-sgi30") == 0)
+    else if (my_strcasecmp(argv[i], (char *)"-sgi30") == 0)
       flags[SKIP_SGI30] = true;
-    else if (my_strcasecmp(argv[i], "-hpux0102") == 0)
+    else if (my_strcasecmp(argv[i], (char *)"-hpux0102") == 0)
       flags[SKIP_HPUX0102] = true;
-    else if (my_strcasecmp(argv[i], "-hpux0103") == 0)
+    else if (my_strcasecmp(argv[i], (char *)"-hpux0103") == 0)
       flags[SKIP_HPUX0103] = true;
-    else if (my_strcasecmp(argv[i], "-hpux0105") == 0)
+    else if (my_strcasecmp(argv[i], (char *)"-hpux0105") == 0)
       flags[SKIP_HPUX0105] = true;
-    else if (my_strcasecmp(argv[i], "-cray1104") == 0)
+    else if (my_strcasecmp(argv[i], (char *)"-cray1104") == 0)
       flags[SKIP_CRAY1104] = true;
-    else if (my_strcasecmp(argv[i], "-g++") == 0)
+    else if (my_strcasecmp(argv[i], (char *)"-g++") == 0)
       flags[SKIP_G_PLUS_PLUS] = true;
-    else if (my_strcasecmp(argv[i], "-nothrow") == 0)
+    else if (my_strcasecmp(argv[i], (char *)"-nothrow") == 0)
       flags[SKIP_NO_THROW] = true;
-    else if (my_strcasecmp(argv[i], "-help") == 0 ||
-	     my_strcasecmp(argv[i], "-h") == 0) {
+    else if (my_strcasecmp(argv[i], (char *)"-help") == 0 ||
+	     my_strcasecmp(argv[i], (char *)"-h") == 0) {
       cout << "The following command line options are available:" << endl 
 	   << " -help        This message" << endl 
 	   << " -lam61       Skip tests for LAM (only on IRIX)" << endl 
@@ -370,7 +371,7 @@ static void
 check_minimals()
 {
   MPI2CPP_BOOL_T need_flag = false;
-  char *msg = "";
+  char *msg = (char *)"";
 
   if (my_rank == 0)
     cout << "Test suite running on " << comm_size << " nodes" << endl;
@@ -400,82 +401,82 @@ check_minimals()
 #if LAM61
   if (!flags[SKIP_LAM61]) {
     need_flag = true;
-    msg = "-lam61";
+    msg = (char *)"-lam61";
   }
 #elif LAMIRIX
   if (!flags[SKIP_LAM61]) {
     need_flag = true;
-    msg = "-lam61";
+    msg = (char *)"-lam61";
   }
 #elif MPICH1013
   if (!flags[SKIP_MPICH1013]) {
     need_flag = true;
-    msg = "-mpich1013";
+    msg = (char *)"-mpich1013";
   }
 #elif MPICH110
   if (!flags[SKIP_MPICH110]) {
     need_flag = true;
-    msg = "-mpich110";
+    msg = (char *)"-mpich110";
   }
 #elif MPICH111
   if (!flags[SKIP_MPICH111]) {
     need_flag = true;
-    msg = "-mpich111";
+    msg = (char *)"-mpich111";
   }
 #elif MPICH112
   if (!flags[SKIP_MPICH112]) {
     need_flag = true;
-    msg = "-mpich112";
+    msg = (char *)"-mpich112";
   }
 #elif IBM21014
   if (!flags[SKIP_IBM21014]) {
     need_flag = true;
-    msg = "-ibm21014";
+    msg = (char *)"-ibm21014";
   }
 #elif IBM21015
   if (!flags[SKIP_IBM21015]) {
     need_flag = true;
-    msg = "-ibm21015";
+    msg = (char *)"-ibm21015";
   }
 #elif IBM21016
   if (!flags[SKIP_IBM21016]) {
     need_flag = true;
-    msg = "-ibm21016";
+    msg = (char *)"-ibm21016";
   }
 #elif IBM21017
   if (!flags[SKIP_IBM21017]) {
     need_flag = true;
-    msg = "-ibm21017";
+    msg = (char *)"-ibm21017";
   }
 #elif IBM21018
   if (!flags[SKIP_IBM21018]) {
     need_flag = true;
-    msg = "-ibm21018";
+    msg = (char *)"-ibm21018";
   }
 #elif SGI20
   if (!flags[SKIP_SGI20]) {
     need_flag = true;
-    msg = "-sgi20";
+    msg = (char *)"-sgi20";
   }
 #elif SGI30
   if (!flags[SKIP_SGI30]) {
     need_flag = true;
-    msg = "-sgi30";
+    msg = (char *)"-sgi30";
   }
 #elif HPUX0102
   if (!flags[SKIP_HPUX0102]) {
     need_flag = true;
-    msg = "-hpux0102";
+    msg = (char *)"-hpux0102";
   }
 #elif HPUX0103
   if (!flags[SKIP_HPUX0103]) {
     need_flag = true;
-    msg = "-hpux0103";
+    msg = (char *)"-hpux0103";
   }
 #elif CRAY1104
   if (!flags[SKIP_CRAY1104]) {
     need_flag = true;
-    msg = "-cray1104";
+    msg = (char *)"-cray1104";
   }
 #endif
 

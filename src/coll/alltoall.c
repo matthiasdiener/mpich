@@ -1,5 +1,5 @@
 /*
- *  $Id: alltoall.c,v 1.5 1998/07/20 16:20:16 swider Exp $
+ *  $Id: alltoall.c,v 1.10 1999/08/30 15:41:33 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,25 @@
 
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Alltoall = PMPI_Alltoall
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Alltoall MPI_Alltoall
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Alltoall as PMPI_Alltoall
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "coll.h"
 
 /*@
@@ -32,15 +51,9 @@ Output Parameter:
 .N MPI_ERR_TYPE
 .N MPI_ERR_BUFFER
 @*/
-int MPI_Alltoall( sendbuf, sendcount, sendtype, 
-                  recvbuf, recvcnt, recvtype, comm )
-void             *sendbuf;
-int               sendcount;
-MPI_Datatype      sendtype;
-void             *recvbuf;
-int               recvcnt;
-MPI_Datatype      recvtype;
-MPI_Comm          comm;
+EXPORT_MPI_API int MPI_Alltoall( void *sendbuf, int sendcount, MPI_Datatype sendtype, 
+                  void *recvbuf, int recvcnt, MPI_Datatype recvtype, 
+		  MPI_Comm comm )
 {
   int          mpi_errno = MPI_SUCCESS;
   struct MPIR_COMMUNICATOR *comm_ptr;
@@ -50,18 +63,22 @@ MPI_Comm          comm;
 
   TR_PUSH(myname);
   comm_ptr = MPIR_GET_COMM_PTR(comm);
-  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
   stype_ptr = MPIR_GET_DTYPE_PTR(sendtype);
-  MPIR_TEST_DTYPE(sendtype,stype_ptr,comm_ptr, myname );
 
   rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
-  MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
  
   /* Check for invalid arguments */
-  if ( MPIR_TEST_COUNT(comm,sendcount) ||
-       MPIR_TEST_COUNT(comm,recvcnt) )
-	return MPIR_ERROR(comm_ptr, mpi_errno, myname ); 
+#ifndef MPIR_NO_ERROR_CHECKING
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+  MPIR_TEST_DTYPE(sendtype,stype_ptr,comm_ptr, myname );
+  MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
+  MPIR_TEST_COUNT(sendcount);
+  MPIR_TEST_COUNT(recvcnt);
+  if (mpi_errno)
+      return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
+
   MPIR_ERROR_PUSH(comm_ptr);
   mpi_errno = comm_ptr->collops->Alltoall(sendbuf, sendcount, stype_ptr, 
                   recvbuf, recvcnt, rtype_ptr, comm_ptr );

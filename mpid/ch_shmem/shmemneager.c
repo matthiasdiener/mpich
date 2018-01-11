@@ -4,6 +4,7 @@
 #include "reqalloc.h"
 /* flow.h includs the optional flow control for eager delivery */
 #include "flow.h"
+#include "chpackflow.h"
 
 /*
    Nonblocking, eager shared-memory send/recv.
@@ -42,16 +43,61 @@ MPID_Msgrep_t msgrep;
 MPIR_SHANDLE *shandle;
 {
     MPID_PKT_SEND_ADDRESS_T   *pkt;
-    int                       in_len;
+    int                       in_len, pkt_len;
     
     pkt = (MPID_PKT_SEND_ADDRESS_T *)MPID_SHMEM_GetSendPkt(0);
     /* GetSendPkt hangs until successful */
 
+    DEBUG_PRINT_MSG("S Starting Eagern_isend");
+#ifdef MPID_FLOW_CONTROL
+    while (!MPID_FLOW_MEM_OK(len,dest)) {  /* begin while !ok loop */
+	/* Wait for a flow packet */
+#ifdef MPID_DEBUG_ALL
+	if (MPID_DebugFlag || MPID_DebugFlow) {
+	    FPRINTF( MPID_DEBUG_FILE, 
+		     "[%d] S Waiting for flow control packet from %d\n",
+		     MPID_myid, dest );
+	}
+#endif
+	MPID_DeviceCheck( MPID_BLOCKING );
+    }  /* end while !ok loop */
+
+    MPID_FLOW_MEM_SEND(len,dest); 
+#endif
+
+#ifdef MPID_PACK_CONTROL
+    while (!MPID_PACKET_CHECK_OK(dest)) {  /* begin while !ok loop */
+#ifdef MPID_DEBUG_ALL
+	if (MPID_DebugFlag || MPID_DebugFlow) {
+	    FPRINTF( MPID_DEBUG_FILE, 
+	  "[%d] S Waiting for protocol ACK packet (in eagerb_send) from %d\n",
+		     MPID_myid, dest );
+	}
+#endif
+	MPID_DeviceCheck( MPID_BLOCKING );
+    }  /* end while !ok loop */
+
+    MPID_PACKET_ADD_SENT(MPID_myid, dest);
+#endif
+
+    pkt_len         = sizeof(MPID_PKT_SEND_ADDRESS_T) + len;
     pkt->mode	    = MPID_PKT_SEND_ADDRESS;
     pkt->context_id = context_id;
     pkt->lrank	    = src_lrank;
+    pkt->to         = dest;
+    pkt->seqnum     = pkt_len;
     pkt->tag	    = tag;
     pkt->len	    = len;
+#ifdef MPID_FLOW_CONTROL
+    MPID_FLOW_MEM_ADD(&pkt,dest);
+#endif
+
+    /* We save the address of the send handle in the packet; the receiver
+       will return this to us */
+    MPID_AINT_SET(pkt->send_id,shandle);
+    
+    /* Store partners rank in request in case message is cancelled */
+    shandle->partner     = dest;
 	
     DEBUG_PRINT_SEND_PKT("S Sending extra-long message",pkt);
 
@@ -78,6 +124,8 @@ MPIR_SHANDLE *shandle;
     shandle->wait	 = 0;
     shandle->test	 = 0;
     shandle->is_complete = 1;
+    if (shandle->finish)
+	(shandle->finish)(shandle);
 
     return MPI_SUCCESS;
 }
@@ -137,11 +185,26 @@ void         *in_pkt;
 
     msglen = pkt->len;
 
+    DEBUG_PRINT_MSG("R Starting Eagern_recv");
+#ifdef MPID_FLOW_CONTROL 
+     MPID_FLOW_MEM_GET(pkt,from);
+#endif
+
+#ifdef MPID_PACK_CONTROL
+    if (MPID_PACKET_RCVD_GET(pkt->src)) {
+	MPID_SendProtoAck(pkt->to, pkt->src);
+    }
+    MPID_PACKET_ADD_RCVD(pkt->to, pkt->src);
+#endif
     /* Check for truncation */
     MPID_CHK_MSGLEN(rhandle,msglen,err)
     /* Note that if we truncate, We really must receive the message in two 
        parts; the part that we can store, and the part that we discard.
        This case is not yet handled. */
+#ifdef MPID_FLOW_CONTROL
+    MPID_FLOW_MEM_READ(msglen,from);
+    MPID_FLOW_MEM_RECV(msglen,from);
+#endif
     rhandle->s.count	 = msglen;
     rhandle->s.MPI_ERROR = err;
     /* source/tag? */
@@ -167,8 +230,22 @@ void         *in_pkt;
 
     msglen = pkt->len;
 
+    DEBUG_PRINT_MSG("R Starting Eagern_irecv");
     /* Check for truncation */
     MPID_CHK_MSGLEN(rhandle,msglen,err)
+#ifdef MPID_FLOW_CONTROL
+    MPID_FLOW_MEM_GET(pkt,from);
+    MPID_FLOW_MEM_READ(msglen,from);
+    MPID_FLOW_MEM_RECV(msglen,from);
+#endif
+
+#ifdef MPID_PACK_CONTROL
+    if (MPID_PACKET_RCVD_GET(pkt->src)) {
+	MPID_SendProtoAck(pkt->to, pkt->src);
+    }
+    MPID_PACKET_ADD_RCVD(pkt->to, pkt->src);
+#endif
+
     /* Note that if we truncate, We really must receive the message in two 
        parts; the part that we can store, and the part that we discard.
        This case is not yet handled. */
@@ -198,10 +275,19 @@ void         *in_pkt;
 {
     MPID_PKT_SEND_ADDRESS_T *pkt = (MPID_PKT_SEND_ADDRESS_T *)in_pkt;
 
+    DEBUG_PRINT_MSG("R Starting Eagern_save");
+#ifdef MPID_PACK_CONTROL
+    if (MPID_PACKET_RCVD_GET(pkt->src)) {
+	MPID_SendProtoAck(pkt->to, pkt->src);
+    }
+    MPID_PACKET_ADD_RCVD(pkt->to, pkt->src);
+#endif
     rhandle->s.MPI_TAG	  = pkt->tag;
     rhandle->s.MPI_SOURCE = pkt->lrank;
     rhandle->s.MPI_ERROR  = 0;
+    rhandle->partner      = pkt->to;
     rhandle->s.count      = pkt->len;
+    rhandle->from         = from;
     rhandle->is_complete  = 0;
     /* Save the address */
 #ifdef LEAVE_IN_SHARED_MEM
@@ -216,7 +302,9 @@ void         *in_pkt;
 	       the actual message, leaving it in the system */
 	    return 1;
 	}
+#ifdef MPID_FLOW_CONTROL
 	MPID_FLOW_MEM_READ(pkt->len,from);
+#endif
 	MEMCPY( rhandle->start, pkt->address, pkt->len );
 	MPID_FreeGetAddress( pkt->address );
     }
@@ -238,6 +326,13 @@ void         *in_runex;
 
     msglen = runex->s.count;
     MPID_CHK_MSGLEN(rhandle,msglen,err);
+    DEBUG_PRINT_MSG("R Starting unxrecv_start");
+#ifdef MPID_PACK_CONTROL
+    if (MPID_PACKET_RCVD_GET(runex->from)) {
+	MPID_SendProtoAck(runex->partner, runex->from);
+    }
+    MPID_PACKET_ADD_RCVD(runex->partner, runex->from);
+#endif
     /* Copy the data from the local area and free that area */
     if (runex->s.count > 0) {
 	MEMCPY( rhandle->buf, runex->start, msglen );
@@ -245,7 +340,10 @@ void         *in_runex;
 	MPID_FreeGetAddress( runex->start );
 #else
 	FREE( runex->start );
-#endif	
+#endif
+#ifdef MPID_FLOW_CONTROL
+    MPID_FLOW_MEM_RECV(msglen,runex->from);
+#endif
     }
     rhandle->s		 = runex->s;
     rhandle->wait	 = 0;

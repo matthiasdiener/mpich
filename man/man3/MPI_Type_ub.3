@@ -1,12 +1,10 @@
-.TH MPI_Type_ub 3 "1/29/1998" " " "MPI"
+.TH MPI_Type_ub 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Type_ub \-  Returns the upper bound of a datatype 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Type_ub ( datatype, displacement )
-MPI_Datatype  datatype;
-MPI_Aint      *displacement;
+int MPI_Type_ub ( MPI_Datatype datatype, MPI_Aint *displacement )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

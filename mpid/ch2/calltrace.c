@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #endif
 
+#ifndef FPRINTF
+#define FPRINTF fprintf
+#endif
+
 #if defined(NEEDS_STDLIB_PROTOTYPES)
 #include <stdio.h>
 /* 
@@ -14,7 +18,7 @@
 
    These are from stdlib.h, stdio.h, and unistd.h
  */
-extern int fprintf(FILE*,const char*,...);
+extern int FPRINTF(FILE*,const char*,...);
 extern int fflush(FILE *);
 #endif
 
@@ -40,12 +44,12 @@ int  dir;
 
     if (dir == 1) {
 	for (i=0; i<TR_stack_sp; i++) {
-	    fprintf( fp, "(%d) %s\n", i, TR_stack[i] );
+	    FPRINTF( fp, "(%d) %s\n", i, TR_stack[i] );
 	}
     }
     else {
 	for (i=TR_stack_sp-1; i>=0; i--) {
-	    fprintf( fp, "(%d) %s\n", i, TR_stack[i] );
+	    FPRINTF( fp, "(%d) %s\n", i, TR_stack[i] );
 	}
     }
 }

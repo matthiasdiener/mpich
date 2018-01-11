@@ -1,11 +1,30 @@
 /*
- *  $Id: gather.c,v 1.4 1998/09/22 15:49:42 swider Exp $
+ *  $Id: gather.c,v 1.9 1999/08/30 15:41:41 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Gather = PMPI_Gather
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Gather  MPI_Gather
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Gather as PMPI_Gather
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "coll.h"
 
 /*@
@@ -35,16 +54,9 @@ Output Parameter:
 .N MPI_ERR_TYPE
 .N MPI_ERR_BUFFER
 @*/
-int MPI_Gather ( sendbuf, sendcnt, sendtype, recvbuf, recvcount, recvtype, 
-		 root, comm )
-void             *sendbuf;
-int               sendcnt;
-MPI_Datatype      sendtype;
-void             *recvbuf;
-int               recvcount;
-MPI_Datatype      recvtype;
-int               root;
-MPI_Comm          comm;
+EXPORT_MPI_API int MPI_Gather ( void *sendbuf, int sendcnt, MPI_Datatype sendtype, 
+		 void *recvbuf, int recvcount, MPI_Datatype recvtype, 
+		 int root, MPI_Comm comm )
 {
   int        mpi_errno = MPI_SUCCESS;
   struct MPIR_COMMUNICATOR *comm_ptr;
@@ -54,17 +66,18 @@ MPI_Comm          comm;
 
   TR_PUSH(myname);
 
-  comm_ptr = MPIR_GET_COMM_PTR(comm);
-  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr, myname );
-
+  comm_ptr  = MPIR_GET_COMM_PTR(comm);
   stype_ptr = MPIR_GET_DTYPE_PTR(sendtype);
-  MPIR_TEST_DTYPE(sendtype,stype_ptr,comm_ptr, myname );
-
   rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
-  MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
 
-  if ( MPIR_TEST_COUNT(comm,sendcnt) ) 
-    return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#ifndef MPIR_NO_ERROR_CHECKING
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr, myname );
+  MPIR_TEST_DTYPE(sendtype,stype_ptr,comm_ptr, myname );
+  MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
+  MPIR_TEST_COUNT(sendcnt);
+  if (mpi_errno)
+      return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
 
   MPIR_ERROR_PUSH(comm_ptr);
   mpi_errno = comm_ptr->collops->Gather(sendbuf, sendcnt, stype_ptr, 

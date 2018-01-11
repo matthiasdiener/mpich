@@ -15,7 +15,7 @@ int main( int argc, char **argv )
     double sbuf1[10], sbuf2[10];
     double rbuf1[10], rbuf2[10];
     double userbuf[40+4*MPI_BSEND_OVERHEAD];
-    int size, rank, up_nbr, down_nbr, i, err;
+    int size, rank, up_nbr, down_nbr, i, err, toterr;
 
     MPI_Init( &argc, &argv );
     MPI_Comm_size( MPI_COMM_WORLD, &size );
@@ -67,6 +67,12 @@ int main( int argc, char **argv )
 		fprintf( stderr, "Expected %d, rbuf2[%d] = %f\n", i+20, i, 
 			 rbuf2[i] );
 	}
+    }
+
+    MPI_Allreduce( &err, &toterr, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
+    if (rank == 0) {
+	if (toterr == 0) printf( "No errors\n" );
+	else             printf( "Found %d errors\n", toterr );
     }
 
     MPI_Finalize();

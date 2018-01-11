@@ -1,5 +1,5 @@
 /*
- *  $Id: chhetero.c,v 1.3 1997/09/25 21:59:33 gropp Exp $
+ *  $Id: chhetero.c,v 1.4 1999/04/21 18:55:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -203,7 +203,7 @@ char ***argv;
 	printf( 
 	"Ordering short int long float double longdouble sizes float-type\n" );
 	for (i=0; i<MPID_MyWorldSize; i++) {
-	    printf( "<%d> %s %d %d %d %d %d %d %d\n", i,
+	    PRINTF( "<%d> %s %d %d %d %d %d %d %d\n", i,
 		    ByteOrderName[MPID_procinfo[i].byte_order],
 		    MPID_procinfo[i].short_size, 
 		    MPID_procinfo[i].int_size, 

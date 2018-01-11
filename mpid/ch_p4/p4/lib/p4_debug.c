@@ -16,13 +16,12 @@
 #undef p4_dprintfl
 #endif
 
-int p4_get_dbg_level()
+int p4_get_dbg_level( void )
 {
     return(p4_debug_level);
 }
 
-P4VOID p4_set_dbg_level(level)
-int level;
+P4VOID p4_set_dbg_level(int level)
 {
     p4_debug_level = level;
 }
@@ -225,8 +224,7 @@ va_dcl
 #endif
 #endif 
 
-P4VOID dump_global(level)
-int level;
+P4VOID dump_global(int level)
 {
     int i;
     struct p4_global_data *g = p4_global;
@@ -273,8 +271,7 @@ int level;
     p4_dprintf("    am_bm       = %d\n", l->am_bm);
 }
 
-char *print_conn_type(conn_type)
-int conn_type;
+char *print_conn_type(int conn_type)
 {
     static char val[20];
 
@@ -305,8 +302,7 @@ int conn_type;
 }
 
 
-P4VOID dump_listener(level)
-int level;
+P4VOID dump_listener(int level)
 {
     struct listener_data *l = listener_info;
 
@@ -347,8 +343,7 @@ struct p4_msg *tmsg;
 	       &(tmsg->msg));
 }
 
-P4VOID dump_conntab(level)
-int level;
+P4VOID dump_conntab(int level)
 {
     int i;
 

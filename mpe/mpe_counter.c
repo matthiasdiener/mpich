@@ -8,6 +8,8 @@
 *  *
 *  * All work funded by Argonne National Laboratory
 \**/
+#include "mpeconf.h"
+
 #include <stdio.h>
 #include "mpi.h"
 

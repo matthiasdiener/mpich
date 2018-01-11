@@ -30,7 +30,7 @@ initialized2()
   char msg[150];
   int flag;
 
-  Testing("Is_initialized");
+  Testing( (char *)"Is_initialized");
 
   flag = MPI::Is_initialized();
   

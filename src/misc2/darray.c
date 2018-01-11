@@ -1,18 +1,42 @@
 /* 
- *   $Id: darray.c,v 1.5 1998/05/19 17:39:07 lusk Exp $    
+ *   $Id: darray.c,v 1.11 1999/09/13 20:09:35 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Type_create_darray = PMPI_Type_create_darray
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Type_create_darray  MPI_Type_create_darray
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Type_create_darray as PMPI_Type_create_darray
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+
+#undef MPI_BUILD_PROFILING  /* so that MPIOI_Type_block and MPIOI_Type_cyclic
+                               get compiled below */
+
+#endif
+
 #include "mpimem.h"
 
-void MPIOI_Type_block(int *array_of_gsizes, int dim, int ndims, int nprocs,
+int MPIOI_Type_block(int *array_of_gsizes, int dim, int ndims, int nprocs,
 		      int rank, int darg, int order, MPI_Aint orig_extent,
 		      MPI_Datatype type_old, MPI_Datatype *type_new,
 		      MPI_Aint *st_offset);
-void MPIOI_Type_cyclic(int *array_of_gsizes, int dim, int ndims, int nprocs,
+int MPIOI_Type_cyclic(int *array_of_gsizes, int dim, int ndims, int nprocs,
 		      int rank, int darg, int order, MPI_Aint orig_extent,
 		      MPI_Datatype type_old, MPI_Datatype *type_new,
 		      MPI_Aint *st_offset);
@@ -37,7 +61,7 @@ Output Parameters:
 
 .N fortran
 @*/
-int MPI_Type_create_darray(int size, int rank, int ndims, 
+EXPORT_MPI_API int MPI_Type_create_darray(int size, int rank, int ndims, 
      	                   int *array_of_gsizes, int *array_of_distribs, 
                            int *array_of_dargs, int *array_of_psizes, 
                            int order, MPI_Datatype oldtype, 
@@ -46,61 +70,70 @@ int MPI_Type_create_darray(int size, int rank, int ndims,
     MPI_Datatype type_old, type_new, types[3];
     int procs, tmp_rank, i, tmp_size, blklens[3], *coords;
     MPI_Aint *st_offsets, orig_extent, disps[3];
+    static char myname[] = "MPI_TYPE_CREATE_DARRAY";
+    int mpi_errno = MPI_SUCCESS;
 
     if (size <= 0) {
-	printf("MPI_Type_create_darray: Invalid size argument\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ARG_NAMED, myname, 
+				     "Invalid argument", 
+			     "Invalid %s argument = %d", "size", size );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     }
     if (rank < 0) {
-	printf("MPI_Type_create_darray: Invalid rank argument\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ARG_NAMED, myname, 
+				     (char *)0, 
+			     "Invalid %s argument = %d", "rank", rank );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     }
     if (ndims <= 0) {
-	printf("MPI_Type_create_darray: Invalid ndims argument\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ARG_NAMED, myname, 
+				     (char *)0, 
+			     "Invalid %s argument = %d", "ndims", ndims );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     }
-    if (array_of_gsizes <= (int *) 0) {
-	printf("MPI_Type_create_darray: array_of_gsizes is an invalid address\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-    }
-    if (array_of_distribs <= (int *) 0) {
-	printf("MPI_Type_create_darray: array_of_distribs is an invalid address\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-    }
-    if (array_of_dargs <= (int *) 0) {
-	printf("MPI_Type_create_darray: array_of_dargs is an invalid address\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-    }
-    if (array_of_psizes <= (int *) 0) {
-	printf("MPI_Type_create_darray: array_of_psizes is an invalid address\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-    }
+    MPIR_TEST_ARG(array_of_gsizes);
+    MPIR_TEST_ARG(array_of_distribs);
+    MPIR_TEST_ARG(array_of_dargs);
+    MPIR_TEST_ARG(array_of_psizes);
+    if (mpi_errno) 
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 
     for (i=0; i<ndims; i++) {
 	if (array_of_gsizes[i] <= 0) {
-	    printf("MPI_Type_create_darray: Invalid value in array_of_gsizes\n");
-	    MPI_Abort(MPI_COMM_WORLD, 1);
+	    mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ARG_ARRAY_VAL,
+					 myname,
+					 "Invalid value in array", 
+			 "Invalid value in %s[%d] = %d", "array_of_gsizes", i, 
+					 array_of_gsizes[i] );
+	    return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 	}
 
 	/* array_of_distribs checked below */
 
 	if ((array_of_dargs[i] != MPI_DISTRIBUTE_DFLT_DARG) && 
 	                 (array_of_dargs[i] <= 0)) {
-	    printf("MPI_Type_create_darray: Invalid value in array_of_dargs\n");
-	    MPI_Abort(MPI_COMM_WORLD, 1);
+	    mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ARG_ARRAY_VAL,
+					 myname,
+					 (char *)0, 
+			 "Invalid value in %s[%d] = %d", "array_of_dargs", i, 
+					 array_of_dargs[i] );
+	    return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 	}
 
 	if (array_of_psizes[i] <= 0) {
-	    printf("MPI_Type_create_darray: Invalid value in array_of_psizes\n");
-	    MPI_Abort(MPI_COMM_WORLD, 1);
+	    mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ARG_ARRAY_VAL,
+					 myname,
+					 (char *)0, 
+			 "Invalid value in %s[%d] = %d", "array_of_psizes", i, 
+					 array_of_psizes[i] );
+	    return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 	}
     }
 
     /* order argument checked below */
 
     if (oldtype == MPI_DATATYPE_NULL) {
-	printf("MPI_Type_create_darray: oldtype is an invalid datatype\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
+	return MPIR_ERROR( MPIR_COMM_WORLD, MPIR_ERR_TYPE_NULL, myname );
     }
 
     MPI_Type_extent(oldtype, &orig_extent);
@@ -124,29 +157,38 @@ int MPI_Type_create_darray(int size, int rank, int ndims,
 	for (i=0; i<ndims; i++) {
 	    switch(array_of_distribs[i]) {
 	    case MPI_DISTRIBUTE_BLOCK:
-		MPIOI_Type_block(array_of_gsizes, i, ndims, array_of_psizes[i],
+		mpi_errno = MPIOI_Type_block(array_of_gsizes, i, ndims, 
+					     array_of_psizes[i],
 			 coords[i], array_of_dargs[i], order, orig_extent, 
 			      type_old, &type_new, st_offsets+i); 
 		break;
 	    case MPI_DISTRIBUTE_CYCLIC:
-		MPIOI_Type_cyclic(array_of_gsizes, i, ndims, 
+		mpi_errno = MPIOI_Type_cyclic(array_of_gsizes, i, ndims, 
 		   array_of_psizes[i], coords[i], array_of_dargs[i], order,
                         orig_extent, type_old, &type_new, st_offsets+i);
 		break;
 	    case MPI_DISTRIBUTE_NONE:
 		if (array_of_psizes[i] != 1) {
-		    printf("MPI_Type_create_darray: For MPI_DISTRIBUTE_NONE, the number of processes in that dimension of the grid must be 1\n");
-		    MPI_Abort(MPI_COMM_WORLD, 1);
+		    mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, 
+					 MPIR_ERR_DARRAY_DIST_NONE, myname,
+"For MPI_DISTRIBUTE_NONE, the number of processes in that dimension of the grid must be 1",
+"For MPI_DISTRIBUTE_NONE, the number of processes in that dimension of the grid must be 1 (array_of_psizes[%d] = %d)", i, array_of_psizes[i]);
+		    return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 		}
 		/* treat it as a block distribution on 1 process */
-		MPIOI_Type_block(array_of_gsizes, i, ndims, 1, 0, 
+		mpi_errno = MPIOI_Type_block(array_of_gsizes, i, ndims, 1, 0, 
 		      MPI_DISTRIBUTE_DFLT_DARG, order, orig_extent, 
                            type_old, &type_new, st_offsets+i); 
 		break;
 	    default:
-		printf("Error: wrong distribution to MPI_Type_darray\n");
-		MPI_Abort(MPI_COMM_WORLD, 1);
+		mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, 
+					 MPIR_ERR_DARRAY_DIST_UNKNOWN, myname,
+				     "Unknown distribution type",(char *)0);
+		return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 	    }
+	    if (mpi_errno) 
+		return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+
 	    if (i) MPI_Type_free(&type_old);
 	    type_old = type_new;
 	}
@@ -177,8 +219,11 @@ int MPI_Type_create_darray(int size, int rank, int ndims,
 		break;
 	    case MPI_DISTRIBUTE_NONE:
 		if (array_of_psizes[i] != 1) {
-		    printf("MPI_Type_create_darray: For MPI_DISTRIBUTE_NONE, the number of processes in that dimension of the grid must be 1\n");
-		    MPI_Abort(MPI_COMM_WORLD, 1);
+		    mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, 
+						 MPIR_ERR_DARRAY_DIST_NONE, 
+						 myname,
+			       (char *)0, (char *)0,i, array_of_psizes[i] );
+		    return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 		}
 		/* treat it as a block distribution on 1 process */
 		MPIOI_Type_block(array_of_gsizes, i, ndims, array_of_psizes[i],
@@ -186,8 +231,13 @@ int MPI_Type_create_darray(int size, int rank, int ndims,
                            type_old, &type_new, st_offsets+i); 
 		break;
 	    default:
-		printf("MPI_Type_create_darray: Invalid value in array_of_distribs\n");
-		MPI_Abort(MPI_COMM_WORLD, 1);
+		mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, 
+                       MPIR_ERR_DARRAY_ARRAY_DIST_UNKNOWN, myname, 
+		   "Invalid value in array_of_distribs",
+		   "Invalid value in array_of_distribs[%d] = %d", 
+					     i, array_of_distribs[i] );
+		return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+		/* Invalid value in array_of_distribs */
 	    }
 	    if (i != ndims-1) MPI_Type_free(&type_old);
 	    type_old = type_new;
@@ -202,8 +252,10 @@ int MPI_Type_create_darray(int size, int rank, int ndims,
 	}
     }
     else {
-        printf("MPI_Type_create_darray: Invalid order argument\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ORDER, myname, 
+				     "Invalid order argument",
+				     "Invalid order argument = %d", order );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     }
 
     disps[1] *= orig_extent;
@@ -227,7 +279,7 @@ int MPI_Type_create_darray(int size, int rank, int ndims,
 
 
 #ifndef MPI_BUILD_PROFILING
-void MPIOI_Type_block(int *array_of_gsizes, int dim, int ndims, int nprocs,
+int MPIOI_Type_block(int *array_of_gsizes, int dim, int ndims, int nprocs,
 		      int rank, int darg, int order, MPI_Aint orig_extent,
 		      MPI_Datatype type_old, MPI_Datatype *type_new,
 		      MPI_Aint *st_offset) 
@@ -236,6 +288,7 @@ void MPIOI_Type_block(int *array_of_gsizes, int dim, int ndims, int nprocs,
    rank = coordinate of this process in dimension dim */
 
     int blksize, global_size, mysize, i, j;
+    int mpi_errno;
     MPI_Aint stride;
     
     global_size = array_of_gsizes[dim];
@@ -245,12 +298,19 @@ void MPIOI_Type_block(int *array_of_gsizes, int dim, int ndims, int nprocs,
     else {
 	blksize = darg;
 	if (blksize <= 0) {
-	   printf("Error in MPI_Type_darray: m <= 0 is not valid for a block(m) distribution\n");
-	   MPI_Abort(MPI_COMM_WORLD, 1);
+	    mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, 
+				 MPIR_ERR_DARRAY_INVALID_BLOCK, (char *)0,
+        "m must be positive for a block(m) distribution",
+	"m = %d must be positive for a block(m) distribution", blksize );
+	    return mpi_errno;
 	}
 	if (blksize * nprocs < global_size) {
-	    printf("Error in MPI_Type_darray: m * nprocs < array_size is not valid for a block(m) distribution\n");
-	    MPI_Abort(MPI_COMM_WORLD, 1);
+	    mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, 
+				 MPIR_ERR_DARRAY_INVALID_BLOCK2, (char *)0, 
+    "m * nprocs is < array_size and is not valid for a block(m) distribution", 
+    "m * nprocs = %d is < array_size = %d and is not valid for a block(m) distribution", 
+					 blksize * nprocs, global_size );
+	    return mpi_errno;
 	}
     }
 
@@ -280,10 +340,11 @@ void MPIOI_Type_block(int *array_of_gsizes, int dim, int ndims, int nprocs,
     *st_offset = blksize * rank;
      /* in terms of no. of elements of type oldtype in this dimension */
     if (mysize == 0) *st_offset = 0;
+    return MPI_SUCCESS;
 }
 
 
-void MPIOI_Type_cyclic(int *array_of_gsizes, int dim, int ndims, int nprocs,
+int MPIOI_Type_cyclic(int *array_of_gsizes, int dim, int ndims, int nprocs,
 		      int rank, int darg, int order, MPI_Aint orig_extent,
 		      MPI_Datatype type_old, MPI_Datatype *type_new,
 		      MPI_Aint *st_offset) 
@@ -292,6 +353,7 @@ void MPIOI_Type_cyclic(int *array_of_gsizes, int dim, int ndims, int nprocs,
    rank = coordinate of this process in dimension dim */
 
     int blksize, i, blklens[2], st_index, end_index, local_size, rem, count;
+    int mpi_errno;
     MPI_Aint stride, disps[2];
     MPI_Datatype type_tmp, types[2];
 
@@ -299,8 +361,11 @@ void MPIOI_Type_cyclic(int *array_of_gsizes, int dim, int ndims, int nprocs,
     else blksize = darg;
 
     if (blksize <= 0) {
-	printf("MPI_Type_create_darray: m <= 0 is not valid for a cyclic(m) distribution\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, 
+				     MPIR_ERR_DARRAY_INVALID_BLOCK3, (char *)0,
+	"m must be positive for a cyclic(m) distribution", 
+	"m = %d must be positive for a cyclic(m) distribution", blksize );
+	return mpi_errno;
     }
     
     st_index = rank*blksize;
@@ -343,5 +408,7 @@ void MPIOI_Type_cyclic(int *array_of_gsizes, int dim, int ndims, int nprocs,
     *st_offset = rank * blksize; 
      /* in terms of no. of elements of type oldtype in this dimension */
     if (local_size == 0) *st_offset = 0;
+    
+    return MPI_SUCCESS;
 }
 #endif

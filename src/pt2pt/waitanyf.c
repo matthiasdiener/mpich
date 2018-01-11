@@ -3,7 +3,56 @@
 #include "mpiimpl.h"
 #include "mpimem.h"
 
-#ifdef MPI_BUILD_PROFILING
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_WAITANY = PMPI_WAITANY
+EXPORT_MPI_API void MPI_WAITANY ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_waitany__ = pmpi_waitany__
+EXPORT_MPI_API void mpi_waitany__ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_waitany = pmpi_waitany
+EXPORT_MPI_API void mpi_waitany ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_waitany_ = pmpi_waitany_
+EXPORT_MPI_API void mpi_waitany_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_WAITANY  MPI_WAITANY
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_waitany__  mpi_waitany__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_waitany  mpi_waitany
+#else
+#pragma _HP_SECONDARY_DEF pmpi_waitany_  mpi_waitany_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_WAITANY as PMPI_WAITANY
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_waitany__ as pmpi_waitany__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_waitany as pmpi_waitany
+#else
+#pragma _CRI duplicate mpi_waitany_ as pmpi_waitany_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_waitany_ PMPI_WAITANY
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -13,7 +62,9 @@
 #else
 #define mpi_waitany_ pmpi_waitany_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_waitany_ MPI_WAITANY
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -23,16 +74,12 @@
 #endif
 #endif
 
+
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_waitany_ ANSI_ARGS(( MPI_Fint *, MPI_Fint [], MPI_Fint *, 
+EXPORT_MPI_API void mpi_waitany_ ANSI_ARGS(( MPI_Fint *, MPI_Fint [], MPI_Fint *, 
                               MPI_Fint *, MPI_Fint * ));
 
-void mpi_waitany_(count, array_of_requests, index, status, __ierr )
-MPI_Fint *count;
-MPI_Fint array_of_requests[];
-MPI_Fint *index;
-MPI_Fint *status;
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_waitany_(MPI_Fint *count, MPI_Fint array_of_requests[], MPI_Fint *index, MPI_Fint *status, MPI_Fint *__ierr )
 {
 
     int lindex;

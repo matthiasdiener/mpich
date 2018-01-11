@@ -73,7 +73,7 @@ procname()
   name1 = name;
   tmp1 = tmp;
 
-  Testing("Get_processor_name");
+  Testing( (char *)"Get_processor_name");
   
   MPI::Get_processor_name(name1, len);
   MPI_Get_processor_name(tmp1, &clen);

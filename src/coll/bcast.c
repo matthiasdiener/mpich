@@ -1,11 +1,30 @@
 /*
- *  $Id: bcast.c,v 1.2 1998/04/28 18:50:49 swider Exp $
+ *  $Id: bcast.c,v 1.7 1999/08/30 15:41:39 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Bcast = PMPI_Bcast
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Bcast  MPI_Bcast
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Bcast as PMPI_Bcast
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "coll.h"
 
 /*@
@@ -41,12 +60,8 @@ efficient value on different machines.
 .N MPI_ERR_BUFFER
 .N MPI_ERR_ROOT
 @*/
-int MPI_Bcast ( buffer, count, datatype, root, comm )
-void             *buffer;
-int               count;
-MPI_Datatype      datatype;
-int               root;
-MPI_Comm          comm;
+EXPORT_MPI_API int MPI_Bcast ( void *buffer, int count, MPI_Datatype datatype, int root, 
+		MPI_Comm comm )
 {
     int mpi_errno = MPI_SUCCESS;
     struct MPIR_COMMUNICATOR *comm_ptr;
@@ -56,15 +71,21 @@ MPI_Comm          comm;
 
     TR_PUSH(myname)
     comm_ptr = MPIR_GET_COMM_PTR(comm);
-    MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
     dtype_ptr = MPIR_GET_DTYPE_PTR(datatype);
-    MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
 
     /* Check for invalid arguments */
-    if ( ( (root            <  0)          &&
-	     (MPIR_ERROR_PUSH_ARG(&root),mpi_errno = MPI_ERR_ROOT) )) 
-	return MPIR_ERROR( comm_ptr, mpi_errno, myname);
+#ifndef MPIR_NO_ERROR_CHECKING
+    MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+    MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
+    if (root < 0 || root >= comm_ptr->np) {
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_ROOT, MPIR_ERR_DEFAULT, myname, 
+				     (char *)0, (char *)0, root );
+    }
+    MPIR_TEST_COUNT(count);
+    if (mpi_errno)
+	return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
 
     /* See the overview in Collection Operations for why this is ok */
     if (count == 0) return MPI_SUCCESS;

@@ -10,13 +10,8 @@ Combines values from all processes and distribute the result back to all process
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Allreduce ( sendbuf, recvbuf, count, datatype, op, comm )
-void             *sendbuf;
-void             *recvbuf;
-int               count;
-MPI_Datatype      datatype;
-MPI_Op            op;
-MPI_Comm          comm;
+int MPI_Allreduce ( void *sendbuf, void *recvbuf, int count, 
+      MPI_Datatype datatype, MPI_Op op, MPI_Comm comm )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

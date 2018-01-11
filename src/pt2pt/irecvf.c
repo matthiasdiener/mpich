@@ -7,7 +7,56 @@
 #include <stdarg.h>
 #endif
 
-#ifdef MPI_BUILD_PROFILING
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_IRECV = PMPI_IRECV
+EXPORT_MPI_API void MPI_IRECV ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_irecv__ = pmpi_irecv__
+EXPORT_MPI_API void mpi_irecv__ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_irecv = pmpi_irecv
+EXPORT_MPI_API void mpi_irecv ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_irecv_ = pmpi_irecv_
+EXPORT_MPI_API void mpi_irecv_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_IRECV  MPI_IRECV
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_irecv__  mpi_irecv__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_irecv  mpi_irecv
+#else
+#pragma _HP_SECONDARY_DEF pmpi_irecv_  mpi_irecv_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_IRECV as PMPI_IRECV
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_irecv__ as pmpi_irecv__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_irecv as pmpi_irecv
+#else
+#pragma _CRI duplicate mpi_irecv_ as pmpi_irecv_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_irecv_ PMPI_IRECV
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -17,7 +66,9 @@
 #else
 #define mpi_irecv_ pmpi_irecv_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_irecv_ MPI_IRECV
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -26,6 +77,7 @@
 #define mpi_irecv_ mpi_irecv
 #endif
 #endif
+
 
 #ifdef _CRAY
 #ifdef _TWO_WORD_FCD
@@ -88,18 +140,10 @@ if (_isfcd(buf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_irecv_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+EXPORT_MPI_API void mpi_irecv_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                             MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
-void mpi_irecv_( buf, count, datatype, source, tag, comm, request, __ierr )
-void     *buf;
-MPI_Fint *count;
-MPI_Fint *datatype;
-MPI_Fint *source;
-MPI_Fint *tag;
-MPI_Fint *comm;
-MPI_Fint *request;
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_irecv_( void *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *source, MPI_Fint *tag, MPI_Fint *comm, MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest;
     *__ierr = MPI_Irecv(MPIR_F_PTR(buf),(int)*count,MPI_Type_f2c(*datatype),

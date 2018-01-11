@@ -71,7 +71,7 @@ sendrecv_rep()
   int src;
   MPI::Status status;
 
-  Testing("Sendrecv_rep w/ Status");
+  Testing( (char *)"Sendrecv_rep w/ Status");
 
   if(my_rank < 2) {
     src = dest = 1 - my_rank;
@@ -132,7 +132,7 @@ sendrecv_rep()
   
   MPI::COMM_WORLD.Barrier();
   
-  Testing("Sendrecv_rep w/o Status");
+  Testing( (char *)"Sendrecv_rep w/o Status");
 
   if(my_rank < 2) {
     src = dest = 1 - my_rank;

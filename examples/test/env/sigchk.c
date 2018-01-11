@@ -7,8 +7,8 @@
 
 /* In order to quiet noisy C compilers, we provide ANSI-style prototypes
    where possible */
-int SYiCheckSig ANSI_ARGS(( FILE *, int, char * ));
-int SYCheckSignals ANSI_ARGS(( FILE * ));
+int SYiCheckSig ( FILE *, int, char * );
+int SYCheckSignals ( FILE * );
 
 #ifdef HAVE_SIGACTION
 int SYiCheckSig( fp, sig, signame )
@@ -16,7 +16,6 @@ FILE *fp;
 int  sig;
 char *signame;
 {
-void (*oldsig)();
 static int firstmsg = 1;
 struct sigaction libsig;
 

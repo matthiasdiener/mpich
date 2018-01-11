@@ -4,12 +4,13 @@
 
 C. Data layout
 C. Number of tests
+      integer PM_GLOBAL_ERROR, PM_NUM_NODES
       integer PM_MAX_TESTS
       parameter (PM_MAX_TESTS=3)
 C. Test data
       integer PM_TEST_INTEGER, fuzzy, Error, FazAttr
       integer PM_RANK_SELF
-      integer Faz_World
+      integer Faz_World, FazTag
       parameter (PM_TEST_INTEGER=12345)
       logical FazFlag
       external FazCreate, FazDelete
@@ -26,11 +27,22 @@ C. Find out the number of processes
       call MPI_keyval_create ( FazCreate, FazDelete, FazTag,
      &                         fuzzy, Error )
 
+C. Make sure that we can get an attribute that hasn't been set yet (flag
+C. is false)
       call MPI_attr_get (MPI_COMM_WORLD, FazTag, FazAttr, 
      &                   FazFlag, Error)
 
+      if (FazFlag) then
+         print *, 'Did not get flag==false when attr_get of key that'
+         print *, 'had not had a value set with attr_put'
+      endif
+
       FazAttr = 120
       call MPI_attr_put (MPI_COMM_WORLD, FazTag, FazAttr, Error)
+
+C. Check that the put worked
+      call MPI_attr_get (MPI_COMM_WORLD, FazTag, FazAttr, 
+     &                   FazFlag, Error)
 
       if (FazAttr .ne. 120) then
           print 1, ' Proc=',PM_Rank_self, ' ATTR=', FazAttr
@@ -53,6 +65,7 @@ C. Duplicate the Communicator and it's cached attributes
  1    format( a, i5, a, i5 )
 
 C. Clean up MPI
+      if (PM_Rank_self .eq. 0) print *, ' End of test'
       call MPI_Comm_free( Faz_WORLD, Error )
       call MPI_FINALIZE (PM_GLOBAL_ERROR)
 

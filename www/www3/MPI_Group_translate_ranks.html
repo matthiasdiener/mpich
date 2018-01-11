@@ -10,12 +10,8 @@ Translates the ranks of processes in one group to  those in another group
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Group_translate_ranks ( group_a, n, ranks_a, group_b, ranks_b )
-MPI_Group group_a;
-int n;
-int       *ranks_a;
-MPI_Group  group_b;
-int       *ranks_b;
+int MPI_Group_translate_ranks ( MPI_Group group_a, int n, int *ranks_a, 
+    MPI_Group group_b, int *ranks_b )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

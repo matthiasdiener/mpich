@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.4 1998/11/17 22:14:04 gropp Exp $
+#  $Id: Makefile.in,v 1.7 1999/11/04 22:51:29 gropp Exp $
 #
 #  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -20,12 +20,19 @@ OPTFLAGS    = @OPTFLAGS@
 SHELL       = /bin/sh
 ASMFILES_O  = @ASMFILES_O@
 ##NEXUS_HOME  = @NEXUSDIR@
+prefix      = @prefix@
+top_srcdir  = @top_srcdir@
+srcdir      = @srcdir@
+libbuild_dir = @libbuild_dir@
 ### End User configurable options ###
+@VPATH@
 
 ALL: default
 
-LIBNAME  = ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a
-CFLAGS   = @CFLAGS@ $(OPTFLAGS) -I../.. -I../../include -I. $(INCLUDE_DIR) \
+LIBNAME  = ${libbuild_dir}/lib@MPILIBNAME@.a
+CFLAGS   = @CFLAGS@ $(OPTFLAGS) -I${top_srcdir} -I${top_srcdir}/include -I. \
+		-I${srcdir} \
+		$(INCLUDE_DIR) \
 		-DMPI_$(ARCH) -DMPID_DEVICE_CODE @GETNAME_DEFS@ @DEV_DEFS@ \
 	        @DEVCFLAGS@
 # See mpid/ch_adi2/Makefile.in for a full list
@@ -71,37 +78,37 @@ profile_all:
 #
 setlinks:
 	/bin/rm -f attach.h
-	ln -s ../ch2/attach.h .
+	ln -s ${top_srcdir}/mpid/ch2/attach.h .
 	/bin/rm -f calltrace.h
-	ln -s ../ch2/calltrace.h .
+	ln -s ${top_srcdir}/mpid/ch2/calltrace.h .
 	/bin/rm -f chdef.h
 	ln -s ./nexusdef.h ./chdef.h
 	/bin/rm -f comm.h
-	ln -s ../ch2/comm.h .
+	ln -s ${top_srcdir}/mpid/ch2/comm.h .
 	/bin/rm -f cookie.h
-	ln -s ../ch2/cookie.h .
+	ln -s ${top_srcdir}/mpid/ch2/cookie.h .
 	/bin/rm -f datatype.h
-	ln -s ../ch2/datatype.h .
+	ln -s ${top_srcdir}/mpid/ch2/datatype.h .
 	/bin/rm -f mpid_bind.h
-	ln -s ../ch2/mpid_bind.h .
+	ln -s ${top_srcdir}/mpid/ch2/mpid_bind.h .
 	/bin/rm -f objtrace.h
-	ln -s ../ch2/objtrace.h .
+	ln -s ${top_srcdir}/mpid/ch2/objtrace.h .
 	/bin/rm -f packets.h
-	ln -s ../ch2/packets.h .
+	ln -s ${top_srcdir}/mpid/ch2/packets.h .
 	/bin/rm -f flow.h
-	ln -s ../ch2/flow.h .
+	ln -s ${top_srcdir}/mpid/ch2/flow.h .
 	/bin/rm -f mpid_debug.h
-	ln -s ../ch2/mpid_debug.h .
+	ln -s ${top_srcdir}/mpid/ch2/mpid_debug.h .
 	/bin/rm -f mpiddevbase.h
-	ln -s ../ch2/mpiddevbase.h .
+	ln -s ${top_srcdir}/mpid/ch2/mpiddevbase.h .
 	/bin/rm -f mpimem.h
-	ln -s ../ch2/mpimem.h .
+	ln -s ${top_srcdir}/mpid/ch2/mpimem.h .
 	/bin/rm -f reqalloc.h
-	ln -s ../ch2/reqalloc.h .
+	ln -s ${top_srcdir}/mpid/ch2/reqalloc.h .
 	/bin/rm -f sbcnst2.h
-	ln -s ../ch2/sbcnst2.h .
+	ln -s ${top_srcdir}/mpid/util/sbcnst2.h .
 	/bin/rm -f tr2.h
-	ln -s ../ch2/tr2.h  .
+	ln -s ${top_srcdir}/mpid/util/tr2.h  .
 
 $(MPI_OBJECTS): dev.h req.h mpid.h
 
@@ -109,18 +116,18 @@ clean:
 	/bin/rm -f *~ $(MPI_OBJECTS) 
 
 .c.A:
-	cia $(CFLAGS) $(BASEOPT) -c $*.c $(MPI_PROFILE)
+	cia $(CFLAGS) $(BASEOPT) -c $< $(MPI_PROFILE)
 
 .c.o:
-	$(CC) $(CFLAGS) $(BASEOPT) -c $*.c $(MPI_PROFILE)
+	$(CC) $(CFLAGS) $(BASEOPT) -c $< $(MPI_PROFILE)
 
 .o.s:
-	$(CC) $(CFLAGS) $(BASEOPT) -c -S $*.c $(MPI_PROFILE)
+	$(CC) $(CFLAGS) $(BASEOPT) -c -S $< $(MPI_PROFILE)
 
 CIA: $(CIAS)
 	cia $(CIAS)
 
-../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
+${libbuild_dir}/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
 	$(AR) $@ $?
 	$(RANLIB) $@
 

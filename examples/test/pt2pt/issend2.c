@@ -19,7 +19,7 @@ static int complete[2];
 
 /*------------------------------------------------------------------------*/
 
-void fatal ANSI_ARGS(( int, char * ));
+void fatal ( int, char * );
 
 void fatal(rank, msg)
 int rank;

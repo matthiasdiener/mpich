@@ -3,7 +3,7 @@
 
 #include "duff.c"
 
-main(argc,argv)
+int main(argc,argv)
 int  argc;
 char **argv;
 {
@@ -20,7 +20,7 @@ char **argv;
     {
 	printf("Usage:  copytest <bufsize>\n");
 	MPI_Finalize();
-	exit(1);
+        return 0;
     }
     bufsize  = atoi(argv[1]);
     bufsize1 = bufsize/1000000.0;	/* Megabytes */

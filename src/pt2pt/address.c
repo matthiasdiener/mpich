@@ -1,11 +1,30 @@
 /*
- *  $Id: address.c,v 1.2 1998/01/29 14:27:37 gropp Exp $
+ *  $Id: address.c,v 1.6 1999/08/30 15:48:34 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Address = PMPI_Address
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Address  MPI_Address
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Address as PMPI_Address
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
     MPI_Address - Gets the address of a location in memory  
@@ -25,9 +44,7 @@ Output Parameter:
 
 .N fortran
 @*/
-int MPI_Address( location, address)
-void     *location;
-MPI_Aint *address;
+EXPORT_MPI_API int MPI_Address( void *location, MPI_Aint *address)
 {
   /* SX_4 needs to set CHAR_PTR_IS_ADDRESS 
      The reason is that it computes the different in two pointers in

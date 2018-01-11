@@ -10,14 +10,9 @@ Creates an intercommuncator from two intracommunicators
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Intercomm_create ( local_comm, local_leader, peer_comm, 
-                           remote_leader, tag, comm_out )
-MPI_Comm  local_comm;
-int       local_leader;
-MPI_Comm  peer_comm;
-int       remote_leader;
-int       tag;
-MPI_Comm *comm_out;
+int MPI_Intercomm_create ( MPI_Comm local_comm, int local_leader, 
+      MPI_Comm peer_comm, int remote_leader, int tag, 
+      MPI_Comm *comm_out )
 </PRE>
 <H2>Input Paramters</H2>
 <TABLE BORDER=0>
@@ -60,21 +55,22 @@ All MPI objects (e.g., <TT>MPI_Datatype</TT>, <TT>MPI_Comm</TT>) are of type <TT
 </TT>in Fortran.
 <P>
 <H2>Algorithm</H2>
-<DL><DT><B>1) Allocate a send context, an inter</B> <DD> coll context, and an intra-coll context
-</DL>
-<DL><DT><B>2) Send "send_context" and lrank_to_grank list from local comm group </B> <DD> if I'm the local_leader.
-</DL>
-<DL><DT><B>3) If I'm the local leader, then wait on the posted sends and receives</B> <DD> to complete.  Post the receive for the remote group information and
+<TABLE BORDER=0>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>1) Allocate a send context, an inter</B></TD><TD VALIGN=TOP>coll context, and an intra-coll context
+<BR></TD></TR>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>2) Send "send_context" and lrank_to_grank list from local comm group </B></TD><TD VALIGN=TOP>if I'm the local_leader.
+<BR></TD></TR>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>3) If I'm the local leader, then wait on the posted sends and receives</B></TD><TD VALIGN=TOP>to complete.  Post the receive for the remote group information and
 wait for it to complete.
-</DL>
-<DL><DT><B>4) Broadcast information received from the remote leader.  </B> <DD> . 5) Create the inter_communicator from the information we now have.
-</DL>
-<DL><DT><B>An inter</B> <DD> communicator ends up with three levels of communicators. 
+<BR></TD></TR>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>4) Broadcast information received from the remote leader.  </B></TD><TD VALIGN=TOP>. 5) Create the inter_communicator from the information we now have.
+<BR></TD></TR>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>An inter</B></TD><TD VALIGN=TOP>communicator ends up with three levels of communicators. 
 The inter-communicator returned to the user, a "collective" 
 inter-communicator that can be used for safe communications between
 local &amp; remote groups, and a collective intra-communicator that can 
 be used to allocate new contexts during the merge and dup operations.
-</DL>
+<BR></TD></TR></TABLE>
 <P>
 For the resulting inter-communicator, <TT>comm_out
 </TT>

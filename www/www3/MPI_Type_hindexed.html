@@ -10,12 +10,12 @@ Creates an indexed datatype with offsets in bytes
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Type_hindexed( count, blocklens, indices, old_type, newtype )
-int           count;
-int           blocklens[];
-MPI_Aint      indices[];
-MPI_Datatype  old_type;
-MPI_Datatype *newtype;
+int MPI_Type_hindexed( 
+ int count, 
+ int blocklens[], 
+ MPI_Aint indices[], 
+ MPI_Datatype old_type, 
+ MPI_Datatype *newtype )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

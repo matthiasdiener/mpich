@@ -73,7 +73,7 @@ bcast()
   int out[MAXLEN];
   int root;
    
-  Testing("Bcast");
+  Testing( (char *)"Bcast");
   
   root = comm_size - 1;
 

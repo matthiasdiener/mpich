@@ -10,12 +10,8 @@ Maps process to graph topology information
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Graph_map ( comm_old, nnodes, index, edges, newrank )
-MPI_Comm comm_old;
-int      nnodes;
-int     *index;
-int     *edges;
-int     *newrank;
+int MPI_Graph_map ( MPI_Comm comm_old, int nnodes, int *index, int *edges, 
+      int *newrank )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

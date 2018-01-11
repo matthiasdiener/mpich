@@ -1,8 +1,5 @@
 int __NUMNODES, __MYPROCID  ;
 
-
-
-
 /*
    This program is intended to be used in testing the SCALABILITY of the
    collective operations as a function of the number of processes;
@@ -11,7 +8,7 @@ int __NUMNODES, __MYPROCID  ;
 #include <stdio.h>
 
 #include "mpi.h"
-extern int __NUMNODES, __MYPROCID;static MPI_Status _mpi_status;static int _n, _MPILEN;
+extern int __NUMNODES, __MYPROCID;
 
 
 #if HAVE_STDLIB_H
@@ -24,6 +21,8 @@ extern int __NUMNODES, __MYPROCID;static MPI_Status _mpi_status;static int _n, _
 void *GOPInit();
 double (*GetGOPFunction())();
 void RunATest();
+
+void time_function( int, int, int, int, double (*)(), void *, void *);
 
 /* Routine to generate graphics context */
 void *SetupGraph();
@@ -81,77 +80,7 @@ static int    AutoReps = 0;
 static int sizelist[MAX_SIZE_LIST];
 static int nsizes = 0;
 
-/* These are used to contain results for a single test */
-typedef struct {
-    double len, t, mean_time, rate;
-    int    reps;
-    } TwinResults;
-typedef struct {
-    double (*f)();
-    int    reps;
-    void   *msgctx;
-    /* Here is where we should put "recent" timing data used to estimate
-       the values of reps */
-    double t1, t2;
-    int    len1, len2;
-    } TwinTest;
-
-/* 
-   This function manages running a test and putting the data into the 
-   accumulators.  The information is placed in result.  
-
-   This function is intended for use by TSTAuto1d.  That routine controls
-   the parameters passed to this routine (the value of x) and accumulates
-   the results based on parameters (for accuracy, completeness, and 
-   "smoothness") passed to the TST routine.
- */
-double GeneralF( x, result, ctx )
-double      x;
-TwinResults *result;
-TwinTest    *ctx;
-{
-double t, mean_time;
-int    len = (int)x, k;
-int    reps = ctx->reps;
-int    flag, iwork;
-
-if (AutoReps) {
-    reps = GetRepititions( ctx->t1, ctx->t2, ctx->len1, ctx->len2, len, reps );
-    }
-
-t = RunSingleTest( ctx->f, reps, len, ctx->msgctx );
-
-mean_time         = t / reps;              /* take average over trials */
-result->t         = t;
-result->len       = x;
-result->reps      = reps;
-result->mean_time = mean_time;
-if (mean_time > 0.0) 
-    result->rate      = ((double)len) / mean_time;
-else
-    result->rate      = 0.0;
-
-/* Save the most recent timing data */
-ctx->t1     = ctx->t2;
-ctx->len1   = ctx->len2;
-ctx->t2     = mean_time;
-ctx->len2   = len;
- 
-sumlen     += len;
-sumtime    += mean_time;
-sumlen2    += ((double)len) * ((double)len);
-sumlentime += mean_time * len;
-sumtime2   += mean_time * mean_time;
-ntest      ++;
-
-/* We need to insure that everyone gets the same result */
-MPI_Bcast(&result->rate, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
-return result->rate;
-}
-
-int main(argc,argv)
-int argc;
-char *argv[];
+int main( int argc, char *argv[])
 {
 double (* f)();
 void *MsgCtx = 0; /* This is the context of the message-passing operation */
@@ -269,7 +198,7 @@ return 0;
 .  outctx -  Pointer to output context
 .  msgctx - Context to pass through to operation routine
  */
-time_function(reps,first,last,incr,f,outctx,msgctx)
+void time_function(reps,first,last,incr,f,outctx,msgctx)
 int    reps,first,last,incr;
 double (* f)();
 void   *outctx;
@@ -505,12 +434,12 @@ return 0;
    Re-initialize the variables used to estimate the time that it
    takes to send data
  */
-ClearTimes()
+void ClearTimes( void )
 {
-sumtime	   = 0.0;
-sumlentime = 0.0;
-sumlen	   = 0.0;
-sumlen2	   = 0.0;
-sumtime2   = 0.0;
-ntest	   = 0;
+    sumtime	   = 0.0;
+    sumlentime = 0.0;
+    sumlen	   = 0.0;
+    sumlen2	   = 0.0;
+    sumtime2   = 0.0;
+    ntest	   = 0;
 }

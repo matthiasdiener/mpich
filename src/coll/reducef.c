@@ -7,7 +7,57 @@
 #include <stdarg.h>
 #endif
 
-#ifdef MPI_BUILD_PROFILING
+
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_REDUCE = PMPI_REDUCE
+EXPORT_MPI_API void MPI_REDUCE ( void *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_reduce__ = pmpi_reduce__
+EXPORT_MPI_API void mpi_reduce__ ( void *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_reduce = pmpi_reduce
+EXPORT_MPI_API void mpi_reduce ( void *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_reduce_ = pmpi_reduce_
+EXPORT_MPI_API void mpi_reduce_ ( void *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_REDUCE  MPI_REDUCE
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_reduce__  mpi_reduce__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_reduce  mpi_reduce
+#else
+#pragma _HP_SECONDARY_DEF pmpi_reduce_  mpi_reduce_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_REDUCE as PMPI_REDUCE
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_reduce__ as pmpi_reduce__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_reduce as pmpi_reduce
+#else
+#pragma _CRI duplicate mpi_reduce_ as pmpi_reduce_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_reduce_ PMPI_REDUCE
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -17,7 +67,9 @@
 #else
 #define mpi_reduce_ pmpi_reduce_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_reduce_ MPI_REDUCE
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -26,6 +78,7 @@
 #define mpi_reduce_ mpi_reduce
 #endif
 #endif
+
 
 #ifdef _CRAY
 #ifdef _TWO_WORD_FCD
@@ -98,19 +151,11 @@ if (_isfcd(recvbuf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_reduce_ ANSI_ARGS(( void *, void *, MPI_Fint *, MPI_Fint *, 
+EXPORT_MPI_API void mpi_reduce_ ANSI_ARGS(( void *, void *, MPI_Fint *, MPI_Fint *, 
                              MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                              MPI_Fint * ));
 
-void mpi_reduce_ ( sendbuf, recvbuf, count, datatype, op, root, comm, __ierr )
-void     *sendbuf;
-void     *recvbuf;
-MPI_Fint *count;
-MPI_Fint *datatype;
-MPI_Fint *op;
-MPI_Fint *root;
-MPI_Fint *comm;
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_reduce_ ( void *sendbuf, void *recvbuf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *root, MPI_Fint *comm, MPI_Fint *__ierr )
 {
     *__ierr = MPI_Reduce(MPIR_F_PTR(sendbuf), MPIR_F_PTR(recvbuf), 
                          (int)*count, MPI_Type_f2c(*datatype), 

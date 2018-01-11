@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "mpeconf.h"
 #include "mpetools.h"
 #include "basex11.h"
 

@@ -9,6 +9,7 @@
 #
 verbose=0
 rsh="#RSHCOMMAND#"
+machineDir=#datadir#
 # Could use #DEFAULT_ARCH#
 # and #DEFAULT_DEVICE# to see if we should check....
 for arg in "$@" ; do
@@ -16,7 +17,7 @@ for arg in "$@" ; do
         -echo) set -x ;;
 	-v) verbose=1 ;;
 	-machinefile=*)
-	machineFile=`echo A$arg | sed -e 's/-machinefile=//g'`
+        machineFile=`echo A$arg | sed -e 's/A-machinefile=//g'`
 	;;
         -help) cat <<.
 Usage: 
@@ -41,7 +42,7 @@ if [ -z "$arch" ] ; then
 fi
 #
 if [ -z "$machineFile" ] ; then
-    machineFile="${MPIR_HOME}/util/machines/machines.${arch}"
+    machineFile="${machineDir}/machines.${arch}"
 fi
 if [ ! -f $machineFile ] ; then
     echo "Cannot read list of nodes $machineFile"

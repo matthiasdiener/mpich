@@ -10,14 +10,8 @@ Builds a handle for a standard send
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Send_init( buf, count, datatype, dest, tag, comm, request )
-void          *buf;
-int           count;
-MPI_Datatype  datatype;
-int           dest;
-int           tag;
-MPI_Comm      comm;
-MPI_Request   *request;
+int MPI_Send_init( void *buf, int count, MPI_Datatype datatype, int dest, 
+     int tag, MPI_Comm comm, MPI_Request *request )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>
@@ -83,6 +77,6 @@ implementation is unable to acquire memory.
 </DL>
 <P>
 <H2>See Also</H2>
- <A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node51.html#node51">MPI_Start</A>, <A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node47.html#node47">MPI_Request_free</A>
+ <A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node51.html#node51">MPI_Start</A>, <A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node51.html#node51">MPI_Startall</A>, <A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node47.html#node47">MPI_Request_free</A>
 <BR><P><B>Location:</B>create_send.c<P>
 </BODY></HTML>

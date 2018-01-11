@@ -1,11 +1,30 @@
 /*
- *  $Id: type_free.c,v 1.2 1998/01/29 14:28:47 gropp Exp $
+ *  $Id: type_free.c,v 1.7 1999/08/30 15:49:52 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Type_free = PMPI_Type_free
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Type_free  MPI_Type_free
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Type_free as PMPI_Type_free
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 /* pt2pt for MPIR_Type_free */
 #include "mpipt2pt.h"
 
@@ -38,8 +57,7 @@ it clear that it is an error to free a null datatype.
 .N MPI_ERR_TYPE
 .N MPI_ERR_ARG
 @*/
-int MPI_Type_free ( datatype )
-MPI_Datatype *datatype;
+EXPORT_MPI_API int MPI_Type_free ( MPI_Datatype *datatype )
 {
     int mpi_errno = MPI_SUCCESS;
     struct MPIR_DATATYPE *dtype_ptr;
@@ -47,7 +65,8 @@ MPI_Datatype *datatype;
 
     TR_PUSH(myname);
     /* Check for bad arguments */
-    if (MPIR_TEST_ARG(datatype))
+    MPIR_TEST_ARG(datatype);
+    if (mpi_errno)
 	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 
     dtype_ptr   = MPIR_GET_DTYPE_PTR(*datatype);
@@ -61,12 +80,14 @@ MPI_Datatype *datatype;
 
     /* Freeing null datatypes succeeds silently */
     if ( (*datatype) == MPI_DATATYPE_NULL ) {
-	return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_TYPE_NULL , myname );
+	return MPIR_ERROR( MPIR_COMM_WORLD, 
+	     MPIR_ERRCLASS_TO_CODE(MPI_ERR_TYPE,MPIR_ERR_TYPE_NULL), myname );
     }
 
     /* We can't free permanent objects unless finalize has been called */
     if  ( ( (dtype_ptr)->permanent ) && MPIR_Has_been_initialized == 1) 
-	return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_PERM_TYPE, myname );
+	return MPIR_ERROR( MPIR_COMM_WORLD, 
+            MPIR_ERRCLASS_TO_CODE(MPI_ERR_TYPE,MPIR_ERR_PERM_TYPE), myname );
 
     mpi_errno = MPIR_Type_free( &dtype_ptr );
 

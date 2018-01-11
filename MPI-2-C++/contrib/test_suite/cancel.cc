@@ -77,26 +77,26 @@ cancel()
   data = 13;
   request = MPI::REQUEST_NULL;
 
-  Testing("Cancel");
+  Testing( (char *)"Cancel");
 
   if (flags[SKIP_MPICH1013])
-    Done("Skipped (MPICH 1.0.13)");
+    Done( (char *)"Skipped (MPICH 1.0.13)");
   else if (flags[SKIP_MPICH110])
-    Done("Skipped (MPICH 1.1.0)");
+    Done( (char *)"Skipped (MPICH 1.1.0)");
   else if (flags[SKIP_MPICH111])
-    Done("Skipped (MPICH 1.1.1)");
+    Done( (char *)"Skipped (MPICH 1.1.1)");
   else if (flags[SKIP_MPICH112])
-    Done("Skipped (MPICH 1.1.2)");
+    Done( (char *)"Skipped (MPICH 1.1.2)");
   else if (flags[SKIP_SGI20])
-    Done("Skipped (SGI 2.0)");
+    Done( (char *)"Skipped (SGI 2.0)");
   else if (flags[SKIP_SGI30])
-    Done("Skipped (SGI 3.0)");
+    Done( (char *)"Skipped (SGI 3.0)");
   else if (flags[SKIP_LAM61])
-    Done("Skipped (LAM 6.1)");
+    Done( (char *)"Skipped (LAM 6.1)");
   else if (flags[SKIP_CRAY1104])
-    Done("Skipped (CRAY 1.1.0.4)");
+    Done( (char *)"Skipped (CRAY 1.1.0.4)");
   else if (flags[SKIP_HPUX0102])
-    Done("Skipped (HPUX 01.02)");
+    Done( (char *)"Skipped (HPUX 01.02)");
   else { 
 #if (HPUX0103 || HPUX0105)
     if (getenv("MPI_FLAGS") == 0) {

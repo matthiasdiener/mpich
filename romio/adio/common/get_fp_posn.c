@@ -1,5 +1,5 @@
 /* 
- *   $Id: get_fp_posn.c,v 1.2 1998/06/02 18:57:12 thakur Exp $    
+ *   $Id: get_fp_posn.c,v 1.3 1999/10/26 22:57:24 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -41,10 +41,10 @@ void ADIOI_Get_position(ADIO_File fd, ADIO_Offset *offset)
 	    for (i=0; i<flat_file->count; i++) {
 		sum += flat_file->blocklens[i];
 		if (disp + flat_file->indices[i] + 
-	     	    n_filetypes*filetype_extent + flat_file->blocklens[i] 
+	     	    (ADIO_Offset) n_filetypes*filetype_extent + flat_file->blocklens[i] 
 		    >= byte_offset) {
 		    frd_size = (int) (disp + flat_file->indices[i] + 
-			n_filetypes*filetype_extent
+			(ADIO_Offset) n_filetypes*filetype_extent
 			+ flat_file->blocklens[i] - byte_offset);
 		    sum -= frd_size;
 		    flag = 1;
@@ -52,7 +52,7 @@ void ADIOI_Get_position(ADIO_File fd, ADIO_Offset *offset)
 		}
 	    }
 	}
-	size_in_file = n_filetypes*filetype_size + sum;
+	size_in_file = (ADIO_Offset) n_filetypes*filetype_size + sum;
 	*offset = size_in_file/etype_size;
     }
 }

@@ -74,7 +74,7 @@ split()
   for(i = 0; i < 128; i++)
     ranks[i] = -1;
 
-  Testing("Split");
+  Testing( (char *)"Split");
 
   color = my_rank % 2;
   key = my_rank;

@@ -2,10 +2,13 @@
 
 /* 
  * Macros to simplify error handling
- * MPIR_ERROR - used primarily in "return MPIR_ERROR( comm, MPI_ERR_ccc, "")
- * MPIR_RETURN(comm,mpi_errno,"") use instead of return mpi_errno (calls
+ * MPIR_ERROR - used primarily in 
+ *      return MPIR_ERROR( comm, err_code, routine )
+ * MPIR_RETURN(comm,err_code,routine) 
+ *  use instead of return mpi_errno (calls
  *  MPIR_ERROR if mpi_errno != MPI_SUCCESS).
- * MPIR_CALL(fcn,comm,msg) calls an MPI routine and returns if error
+ * MPIR_CALL(fcn,comm,msg) calls an MPI routine and returns if error (returning
+ * the functions's return value)
  * 
  * The following are to allow MPI routines to call other MPI routines and
  * get the "correct" error behavior (i.e., return up to the outermost caller).
@@ -15,20 +18,12 @@
  * MPIR_CALL_POP(fcn,comm,msg) - like MPIR_CALL, but also does MPIR_ERROR_POP.
  */
 
-#ifndef ANSI_ARGS
-#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
-#define ANSI_ARGS(a) a
-#else
-#define ANSI_ARGS(a) ()
-#endif
-#endif
-
 /* Generic error handling code.  This handles inserting the file and line
    number (in MPI) where the error occured.  In addition, it
    checks the error handler and calls the appropriate one.  Finally, 
    it returns the errorcode as its value.
  */
-int MPIR_Error ANSI_ARGS(( struct MPIR_COMMUNICATOR *, int, char *, char *, int ));
+int MPIR_Error( struct MPIR_COMMUNICATOR *, int, char *, char *, int );
 
 #define MPIR_ERROR(comm,code,string) \
     MPIR_Error( comm, code, string, __FILE__, __LINE__ )
@@ -67,182 +62,242 @@ int MPIR_Error ANSI_ARGS(( struct MPIR_COMMUNICATOR *, int, char *, char *, int 
 #define MPIR_ALLOC_POP(ptr,fcn,comm,code,msg) \
    {if (!((ptr) = fcn)) {MPIR_RETURN_POP(comm,code,msg);}}
 
+#ifdef OLD_ERRMSGS
 #define MPIR_MAX_ARGS 10
 extern void *(MPIR_errargs[MPIR_MAX_ARGS]);
 extern int    MPIR_errargcnt;
 
 #define MPIR_ERROR_PUSH_ARG(ptr) MPIR_errargs[MPIR_errargcnt++] = (void*)(ptr)
 
+#else
+#define MPIR_ERROR_PUSH_ARG(ptr) ---- Error ----
+#endif
+
+/* Here is the new format:
+
+   fields:   0 + <user?> + <ringid> + <kind> + <class>
+   bits:     1     1         18          6       6
+
+   This is for a 32 bit int; for a 64 bit int, zero extend.  <user?> is 
+   0 for system message and 1 for user-defined error classes and codes.
+   The <ringid> is a value used to extract a text message.
+*/
 /* Here we define some additional error information values.  These need to be
    or'ed into the appropriate MPI error class (from mpi_errno.h) 
  */
-#define MPIR_ERR_CLASS_BITS 8
-#define MPIR_ERR_CLASS_MASK 0xff
+#define MPIR_ERR_CLASS_BITS 6
+#define MPIR_ERR_CLASS_MASK 0x3f
 
 /* 
    The various error codes are in the second 8 bits.  We reserve the 
-   remaining 16 bits to indicate special error handling, for example,
+   remaining 18 bits to indicate special error handling, for example,
    to indicate that runtime data for the message is available
  */
-#define MPIR_ERR_CODE_BITS 16
-#define MPIR_ERR_CODE_MASK 0xff00
+#define MPIR_ERR_CODE_BITS 12
+#define MPIR_ERR_CODE_MASK 0xfc0
 
-/* Here are error CODE bits, to be or'ed with the error CLASS.
-   In addition, some MPI_ERR types are defined that are CODES, not CLASSES 
+/* To form a code from a class and kind, ALWAYS use the following */
+
+#define MPIR_ERRCLASS_TO_CODE(class,kind) \
+        ((class) | ((kind)<<MPIR_ERR_CLASS_BITS))
+
+/* 
+   These are all error CODES mapped onto some of the error CLASSES.
+
+   These need to be reorganized.
+
+   These are numbered from 1, not zero, simply to make matching against
+   the message catalogs easier.
+
+   We should reorder these for consistency
+   1 Default message
+   3 Null object
+   5 Corrupt object
+   7 Value out of range
+   9 (more out of range choices)
  */
 
-/* These are all error CODES mapped onto some of the error CLASSES.
-   The error CLASS is the low byte; the code is in the second byte 
- */
-
-/* MPI_ERR_COMM */
-#define MPIR_ERR_COMM_NULL    (1 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_COMM_NULL    (MPIR_ERR_COMM_NULL | MPI_ERR_COMM)
-                                    /* NULL communicator argument 
-				       passed to function */
-#define MPIR_ERR_COMM_INTER   (2 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_COMM_INTER   (MPIR_ERR_COMM_INTER | MPI_ERR_COMM)
-			            /* Intercommunicator is not allowed 
-				       in function */
-#define MPIR_ERR_COMM_INTRA   (3 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_COMM_INTRA   (MPIR_ERR_COMM_INTRA | MPI_ERR_COMM)      
-                                    /* Intracommunicator is not allowed 
-				       in function */
-#define MPIR_ERR_COMM_CORRUPT (4 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_COMM_CORRUPT  (MPIR_ERR_COMM_CORRUPT | MPI_ERR_COMM)
-
-#define MPIR_ERR_COMM_NAME    (5 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_COMM_NAME     (MPIR_ERR_COMM_NAME | MPI_ERR_COMM)
-
-/* MPI_ERR_GROUP */
-#define MPIR_ERR_GROUP_NULL   (1 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_GROUP_NULL    (MPIR_ERR_GROUP_NULL | MPI_ERR_GROUP)
-
-#define MPIR_ERR_GROUP_CORRUPT (2 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_GROUP_CORRUPT (MPIR_ERR_GROUP_CORRUPT | MPI_ERR_GROUP)
-
-/* MPI_ERR_TYPE */
-#define MPIR_ERR_UNCOMMITTED  (1 << MPIR_ERR_CLASS_BITS) 
-                                    /* Uncommitted datatype */  
-#define MPI_ERR_UNCOMMITTED   (MPIR_ERR_UNCOMMITTED | MPI_ERR_TYPE)
-
-#define MPIR_ERR_TYPE_NULL    (2 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_TYPE_NULL     (MPIR_ERR_TYPE_NULL | MPI_ERR_TYPE)
-
-#define MPIR_ERR_TYPE_CORRUPT (3 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_TYPE_CORRUPT  (MPIR_ERR_TYPE_CORRUPT | MPI_ERR_TYPE)
-
-#define MPIR_ERR_PERM_TYPE    (4 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_PERM_TYPE    (MPIR_ERR_PERM_TYPE | MPI_ERR_TYPE)      
-                                    /* Can't free a perm type */
-/* MPI_ERR_OP */
-#define MPIR_ERR_NOT_DEFINED  (1 << MPIR_ERR_CLASS_BITS)
-                                    /* Operation not defined for this 
-				      datatype */
-#define MPI_ERR_OP_NOT_DEFINED (MPIR_ERR_NOT_DEFINED | MPI_ERR_OP)
-
-#define MPIR_ERR_OP_NULL      (2 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_OP_NULL       (MPIR_ERR_OP_NULL | MPI_ERR_OP)
-
-/* MPI_ERR_ARG */
-#define MPIR_ERR_ERRORCODE    (1 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_ERRORCODE    (MPIR_ERR_ERRORCODE | MPI_ERR_ARG)
-			            /* Invalid error code */
-#define MPIR_ERR_NULL         (2 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_NULL         (MPIR_ERR_NULL | MPI_ERR_ARG)
-                                    /* Null parameter */
-#define MPIR_ERR_PERM_KEY     (4 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_PERM_KEY     (MPIR_ERR_PERM_KEY | MPI_ERR_ARG)
-                                    /* Can't free a perm key */
-#define MPIR_ERR_PERM_OP      (6 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_PERM_OP      (MPIR_ERR_PERM_OP | MPI_ERR_ARG)      
-                                    /* Can't free a permanent operator */
-#define MPIR_ERR_FORTRAN_ADDRESS_RANGE (7 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_FORTRAN_ADDRESS_RANGE \
-                             (MPIR_ERR_FORTRAN_ADDRESS_RANGE | MPI_ERR_ARG)
-           /* Address of location given to MPI_ADDRESS does not fit in 
-	      Fortran int */
-#define MPIR_ERR_PERM_GROUP      (8 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_PERM_GROUP      (MPIR_ERR_PERM_GROUP | MPI_ERR_ARG)      
-
-#define MPIR_ERR_KEYVAL          (9 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_KEYVAL           (MPIR_ERR_KEYVAL | MPI_ERR_ARG)      
-				 /* Can't free a permanent group */   
-
-#define MPIR_ERR_ERRHANDLER_NULL (10 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_ERRHANDLER_NULL  (MPIR_ERR_ERRHANDLER_NULL | MPI_ERR_ARG)
-
-#define MPIR_ERR_ERRHANDLER_CORRUPT  (11 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_ERRHANDLER_CORRUPT (MPIR_ERR_ERRHANDLER_CORRUPT | MPI_ERR_ARG)
-
-#define MPIR_ERR_STATUS_IGNORE      (12 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_STATUS_IGNORE      (MPIR_ERR_STATUS_IGNORE | MPI_ERR_ARG)
+/* This should replace "0" in places where the default value is used. */
+#define MPIR_ERR_DEFAULT 1
 
 /* MPI_ERR_BUFFER */
-#define MPIR_ERR_BUFFER_EXISTS (1 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_BUFFER_EXISTS (MPIR_ERR_BUFFER_EXISTS | MPI_ERR_BUFFER)
-
-#define MPIR_ERR_USER_BUFFER_EXHAUSTED (2 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_USER_BUFFER_EXHAUSTED \
-                            (MPIR_ERR_USER_BUFFER_EXHAUSTED | MPI_ERR_BUFFER)
+#define MPIR_ERR_BUFFER_EXISTS 3
+#define MPIR_ERR_USER_BUFFER_EXHAUSTED 5
                                     /* BSend with insufficent buffer space */
-#define MPIR_ERR_BUFFER_ALIAS (3 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_BUFFER_ALIAS (MPIR_ERR_BUFFER_ALIAS | MPI_ERR_BUFFER)
+#define MPIR_ERR_BUFFER_ALIAS 7
                                     /* User has aliased an argument */
-#define MPIR_ERR_BUFFER_SIZE (4 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_BUFFER_SIZE (MPIR_ERR_BUFFER_SIZE | MPI_ERR_BUFFER)
+#define MPIR_ERR_BUFFER_SIZE 9
 
 /* MPI_ERR_COUNT */
-#define MPIR_ERR_COUNT_ARRAY_NEG (1 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_COUNT_ARRAY_NEG (MPIR_ERR_COUNT_ARRAY_NEG | MPI_ERR_COUNT)
+#define MPIR_ERR_COUNT_ARRAY_NEG 3
+
+/* MPI_ERR_TYPE */
+#define MPIR_ERR_UNCOMMITTED  3
+                                    /* Uncommitted datatype */  
+#define MPIR_ERR_TYPE_NULL    5
+#define MPIR_ERR_TYPE_CORRUPT 7
+#define MPIR_ERR_PERM_TYPE    9
+                                    /* Can't free a perm type */
+#define MPIR_ERR_BASIC_TYPE   11
+                                    /* Can't get contents of a perm type */
+#define MPIR_ERR_TYPE_ARRAY_NULL 13
+
+/* MPI_ERR_TAG */
+
+/* MPI_ERR_COMM */
+#define MPIR_ERR_COMM_NULL    3
+                                    /* NULL communicator argument 
+				       passed to function */
+#define MPIR_ERR_COMM_INTER   5
+			            /* Intercommunicator is not allowed 
+				       in function */
+#define MPIR_ERR_COMM_INTRA   7
+                                    /* Intracommunicator is not allowed 
+				       in function */
+#define MPIR_ERR_COMM_CORRUPT 9
+#define MPIR_ERR_COMM_NAME    11
+#define MPIR_ERR_PEER_COMM    13
+#define MPIR_ERR_LOCAL_COMM   15
+
+/* MPI_ERR_RANK */
+#define MPIR_ERR_DUP_RANK     3
+#define MPIR_ERR_RANK_ARRAY   5
+#define MPIR_ERR_LOCAL_RANK   7
+#define MPIR_ERR_REMOTE_RANK  9
+
+/* MPI_ERR_ROOT */
+#define MPIR_ERR_ROOT_TOOBIG 3
+
+/* MPI_ERR_GROUP */
+#define MPIR_ERR_GROUP_NULL   3
+#define MPIR_ERR_GROUP_CORRUPT 5
+
+/* MPI_ERR_OP */
+#define MPIR_ERR_OP_NULL      3
+#define MPIR_ERR_NOT_DEFINED  5
+                                    /* Operation not defined for this 
+				      datatype */
+
+/* MPI_ERR_TOPOLOGY */
+#define MPIR_ERR_TOPO_TOO_LARGE 3
+#define MPIR_ERR_GRAPH_EDGE_ARRAY 5
+
+/* MPI_ERR_DIMS */
+/* MUST CHECK THESE IN USE */
+#define MPIR_ERR_DIMS_SIZE 5
+#define MPIR_ERR_DIMS_ARRAY 3
+#define MPIR_ERR_DIMS_TOOLARGE 9
+#define MPIR_ERR_DIMS_PARTITION 7
+
+/* MPI_ERR_ARG */
+#define MPIR_ERR_ERRORCODE    3
+			            /* Invalid error code */
+#define MPIR_ERR_NULL         5
+                                    /* Null parameter */
+#define MPIR_ERR_PERM_KEY     9
+                                    /* Can't free a perm key */
+#define MPIR_ERR_PERM_OP      13
+                                    /* Can't free a permanent operator */
+#define MPIR_ERR_FORTRAN_ADDRESS_RANGE 15
+           /* Address of location given to MPI_ADDRESS does not fit in 
+	      Fortran int */
+#define MPIR_ERR_PERM_GROUP      17
+				 /* Can't free a permanent group */   
+#define MPIR_ERR_KEYVAL          19
+#define MPIR_ERR_ERRHANDLER_NULL 21
+#define MPIR_ERR_ERRHANDLER_CORRUPT  23
+#define MPIR_ERR_STATUS_IGNORE      25
+#define MPIR_ERR_ARG_STRIDE      27
+#define MPIR_ERR_ARG_ZERO_STRIDE 29
+#define MPIR_ERR_ARG_ARRAY_VAL   31
+#define MPIR_ERR_ARG_NAMED       33
+#define MPIR_ERR_NOKEY           35
+#define MPIR_ERR_DARRAY_DIST_NONE 37
+#define MPIR_ERR_DARRAY_DIST_UNKNOWN 39
+#define MPIR_ERR_ARG_POSITION_NEG 41
+#define MPIR_ERR_KEYVAL_NULL 43
+#define MPIR_ERR_DARRAY_ARRAY_DIST_UNKNOWN 45
+#define MPIR_ERR_ORDER 47
+#define MPIR_ERR_DARRAY_INVALID_BLOCK 49
+#define MPIR_ERR_DARRAY_INVALID_BLOCK2 51
+#define MPIR_ERR_DARRAY_INVALID_BLOCK3 53
+#define MPIR_ERR_INFO_VALLEN 55
+#define MPIR_ERR_INFO_VALSIZE 57
+#define MPIR_ERR_INFO_NKEY 59
+#define MPIR_ERR_INFO_VAL_INVALID 61
 
 /* MPI_ERR_OTHER */
-#define MPIR_ERR_LIMIT        (1 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_LIMIT        (MPIR_ERR_LIMIT | MPI_ERR_OTHER)
+#define MPIR_ERR_LIMIT        3
                                     /* limit reached */
-#define MPIR_ERR_NOMATCH      (2 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_NOMATCH      (MPIR_ERR_NOMATCH | MPI_ERR_OTHER)
+#define MPIR_ERR_NOMATCH      5
                                     /* no recv posted for ready send */
-
-#define MPIR_ERR_INIT         (3 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_INIT         (MPIR_ERR_INIT | MPI_ERR_OTHER)
+#define MPIR_ERR_INIT         7
                                     /* MPI_INIT already called */
-#define MPIR_ERR_PRE_INIT     (4 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_PRE_INIT     (MPIR_ERR_PRE_INIT | MPI_ERR_OTHER)
+#define MPIR_ERR_PRE_INIT     9
                                     /* MPI_INIT has not been called */
 
-#define MPIR_ERR_MPIRUN       (5 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_MPIRUN        (MPIR_ERR_MPIRUN | MPI_ERR_OTHER)
-
-#define MPIR_ERR_BAD_INDEX    (6 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_BAD_INDEX     (MPIR_ERR_BAD_INDEX | MPI_ERR_OTHER)
-
-#define MPIR_ERR_INDEX_EXHAUSTED (7 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_INDEX_EXHAUSTED (MPIR_ERR_INDEX_EXHAUSTED | MPI_ERR_OTHER)
-
-#define MPIR_ERR_INDEX_FREED  (8 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_INDEX_FREED   (MPIR_ERR_INDEX_FREED | MPI_ERR_OTHER)
-
-#define MPIR_ERR_BUFFER_TOO_SMALL (9 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_BUFFER_TOO_SMALL (MPIR_ERR_BUFFER_TOO_SMALL | MPI_ERR_OTHER)
-
+#define MPIR_ERR_MPIRUN       11
+#define MPIR_ERR_BAD_INDEX    13
+#define MPIR_ERR_INDEX_EXHAUSTED 15
+#define MPIR_ERR_INDEX_FREED  17
+#define MPIR_ERR_BUFFER_TOO_SMALL 19
+#define MPIR_ERR_MPIRUN_MACHINE    21
+#define MPIR_ERR_ATTR_COPY    23
+                                    /* User Copy routine returned error */
 /* MPI_ERR_INTERN */
-#define MPIR_ERR_EXHAUSTED    (1 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_EXHAUSTED    (MPIR_ERR_EXHAUSTED | MPI_ERR_INTERN)
+#define MPIR_ERR_EXHAUSTED    3
+#define MPI_ERR_EXHAUSTED    MPIR_ERRCLASS_TO_CODE(MPI_ERR_INTERN,MPIR_ERR_EXHAUSTED)
                                     /* Memory exhausted */
-#define MPIR_ERR_ONE_CHAR     (2 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_ONE_CHAR     (MPIR_ERR_ONE_CHAR | MPI_ERR_INTERN)
-
-#define MPIR_ERR_MSGREP_SENDER (3 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_MSGREP_SENDER  (MPIR_ERR_MSGREP_SENDER | MPI_ERR_INTERN)
-
-#define MPIR_ERR_MSGREP_UNKNOWN (4 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_MSGREP_UNKNOWN  (MPIR_ERR_MSGREP_UNKNOWN | MPI_ERR_INTERN)
+#define MPIR_ERR_ONE_CHAR     5
+#define MPIR_ERR_MSGREP_SENDER 7
+#define MPIR_ERR_MSGREP_UNKNOWN 9
+#define MPIR_ERR_ATTR_CORRUPT   11
+#define MPIR_ERR_TOO_MANY_CONTEXTS 13
+#define MPIR_ERR_BSEND_CORRUPT 15
+#define MPIR_ERR_BSEND_DATA 17
+#define MPIR_ERR_BSEND_PREPARE 19
+#define MPIR_ERR_BSEND_PREPAREDATA 21
+#define MPIR_ERR_FACTOR 23
 
 /* MPI_ERR_REQUEST */
-#define MPIR_ERR_REQUEST_NULL (1 << MPIR_ERR_CLASS_BITS)
-#define MPI_ERR_REQUEST_NULL  (MPIR_ERR_REQUEST_NULL | MPI_ERR_REQUEST)
+#define MPIR_ERR_REQUEST_NULL 3
 
+/* MPI_ERR_ACCESS */
+/* MPI_ERR_AMODE */
+/* MPI_ERR_BAD_FILE */
+/* MPI_ERR_CONVERSION */
+/* MPI_ERR_DUP_DATAREP */
+/* MPI_ERR_FILE_EXISTS */
+/* MPI_ERR_FILE_IN_USE */
+/* MPI_ERR_FILE        */
+/* MPI_ERR_INFO        */
+
+/* MPI_ERR_INFO_KEY    */
+#define MPIR_ERR_KEY_TOOLONG 3
+#define MPIR_ERR_KEY_EMPTY 5
+
+/* MPI_ERR_INFO_VALUE  */
+#define MPIR_ERR_INFO_VALUE_NULL 3
+#define MPIR_ERR_INFO_VALUE_TOOLONG 5
+/* MPI_ERR_INFO_NOKEY  */
+/* MPI_ERR_IO          */
+/* MPI_ERR_NAME        */
+/* MPI_ERR_NOMEM       */
+/* MPI_ERR_NOT_SAME    */
+/* MPI_ERR_NO_SPACE    */
+/* MPI_ERR_NO_SUCH_FILE */
+/* MPI_ERR_PORT        */
+/* MPI_ERR_QUOTA       */
+/* MPI_ERR_READ_ONLY   */
+/* MPI_ERR_SERVICE     */
+/* MPI_ERR_SPAWN       */
+/* MPI_ERR_UNSUPPORTED_DATAREP   */
+/* MPI_ERR_UNSUPPORTED_OPERATION */
+/* MPI_ERR_WIN         */
+
+/* MPI_ERR_THATS_ALL */
+/* The above is used to terminate the search for error kinds in the MakeMsgCat
+   script */
 /* 
    Standardized argument testing
 
@@ -287,8 +342,12 @@ extern int    MPIR_errargcnt;
 #else
 #ifdef MPIR_HAS_COOKIES
 #define MPIR_TEST_COOKIE(val,value) || ( ((val)->cookie != (value)) )
+#define MPIR_CHECK_COOKIE(val,value) ( ((val)->cookie != (value)) )
+#define MPIR_COOKIE_VAL(val) ((val)->cookie)
 #else 
 #define MPIR_TEST_COOKIE(val,value) 
+#define MPIR_CHECK_COOKIE(val,value) 0
+#define MPIR_COOKIE_VAL(val) 0
 #endif
 
 /*
@@ -305,6 +364,7 @@ extern int    MPIR_errargcnt;
  * could be a global variable if the device wants that option)
  */
 
+#ifdef OLD_ERRMSGS
 #define MPIR_TEST_SEND_TAG(comm,tag) \
     ((((tag) < 0 ) && (MPIR_ERROR_PUSH_ARG(&tag),mpi_errno = MPI_ERR_TAG )) ||\
      (((tag) > MPID_TAG_UB) && (MPIR_ERROR_PUSH_ARG(&tag),mpi_errno = MPI_ERR_TAG)))
@@ -323,10 +383,55 @@ extern int    MPIR_errargcnt;
      (MPIR_ERROR_PUSH_ARG(&rank),mpi_errno = MPI_ERR_RANK))
 #define MPIR_TEST_COUNT(comm,count) ( ((count) < 0) && \
 				     (mpi_errno = MPI_ERR_COUNT)) 
+#else
+#define MPIR_TEST_SEND_TAG(tag) \
+if ((tag) < 0 || (tag) > MPID_TAG_UB) {\
+  mpi_errno = MPIR_Err_setmsg( MPI_ERR_TAG, MPIR_ERR_DEFAULT, myname, (char*)0,(char *)0, tag );}
+
+    /* This requires MPI_ANY_TAG == -1 */
+#define MPIR_TEST_RECV_TAG(tag) \
+if ((tag) < MPI_ANY_TAG || (tag)>MPID_TAG_UB) {\
+   mpi_errno = MPIR_Err_setmsg( MPI_ERR_TAG, MPIR_ERR_DEFAULT, myname, (char*)0,(char *)0, tag );}
+    /* This exploits MPI_ANY_SOURCE==-2, MPI_PROC_NULL==-1 */
+#define MPIR_TEST_SEND_RANK(comm_ptr,rank) \
+if ((rank) < MPI_PROC_NULL || (rank) >= (comm_ptr)->np) {\
+    mpi_errno = MPIR_Err_setmsg( MPI_ERR_RANK,MPIR_ERR_DEFAULT,myname,(char *)0,(char *)0, rank );}
+    /* This requires min(MPI_PROC_NULL,MPI_ANY_SOURCE)=-2 */
+#define MPIR_TEST_RECV_RANK(comm_ptr,rank) \
+if ((rank) < -2 || (rank) >= (comm_ptr)->np) {\
+  mpi_errno = MPIR_Err_setmsg( MPI_ERR_RANK,MPIR_ERR_DEFAULT,myname,(char*)0,(char *)0, rank );}
+#define MPIR_TEST_COUNT(count) \
+if ((count)<0) { \
+    mpi_errno = MPIR_Err_setmsg( MPI_ERR_COUNT,MPIR_ERR_DEFAULT,myname,(char *)0,(char *)0, count );}
+
+#endif
+
+/* New generic tests are needed for the following:
+
+   The following take the name of the variable as one of the arguments.
+   E.g., TEST_NULL(status,"status")
+   TEST_NULL (for null pointer)
+   TEST_NONNEGATIVE (non negative value)
+   TEST_POSITIVE (positive value)
+   TEST_<OBJ>_VALID, e.g., TEST_COMM_VALID (for valid cookie)
+   
+   For communication,
+   TEST_COUNT
+   TEST_SEND_TAG
+   TEST_RECV_TAG
+   TEST_RANK
+   TEST_ROOT
+
+   Also need topology, dimensions, array versions of many of these; e.g., 
+   TEST_ARRAY_COUNT
+
+
+ */
 
 /*********************************************************************
  *** Debbie Swider put these in on 11/17/97 - for pack.c & unpack.c **/
 
+/* These need to switch to the MPIR_Err_setmsg form */
 #define MPIR_TEST_OUTSIZE(comm,count) ( ((count) < 0) && \
                                        (mpi_errno = MPI_ERR_ARG))
 #define MPIR_TEST_OUT_LT_IN(comm,outcount,incount) ( (outcount < incount) \
@@ -343,7 +448,14 @@ extern int    MPIR_errargcnt;
     ( (!(op) MPIR_TEST_COOKIE(op,MPIR_OP_COOKIE)) && (mpi_errno = MPI_ERR_OP ))
 #endif
 #ifdef NEW_POINTERS
+#ifdef OLD_ERRMSGS
 #define MPIR_TEST_GROUP(comm,group) 'fixme'
+#else
+#define MPIR_TEST_GROUP(group_ptr) \
+if (!(group_ptr)) { mpi_errno = MPIR_ERRCLASS_TO_CODE(MPI_ERR_GROUP,MPIR_ERR_GROUP_NULL); } \
+else if ((group_ptr)->cookie != MPIR_GROUP_COOKIE) {\
+mpi_errno = MPIR_Err_setmsg( MPI_ERR_GROUP, MPIR_ERR_GROUP_CORRUPT, myname, (char *)0, (char*)0,(group_ptr)->cookie );}
+#endif
 #else
 #define MPIR_TEST_GROUP(comm,group) \
     ( (!(group) MPIR_TEST_COOKIE(group,MPIR_GROUP_COOKIE)) && \
@@ -380,12 +492,23 @@ extern int    MPIR_errargcnt;
 #endif
 
 #ifdef NEW_POINTERS
+#ifdef OLD_ERRMSGS
 #define MPIR_TEST_ERRHANDLER(comm,errhandler) 'fixme'
+#else
+#define MPIR_TEST_ERRHANDLER(errhandler) \
+  if (!(errhandler)) {\
+ mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ERRHANDLER_NULL, myname, (char *)0,(char*)0 );}else{\
+  if (MPIR_CHECK_COOKIE(errhandler,MPIR_ERRHANDLER_COOKIE)) {\
+      mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ERRHANDLER_CORRUPT, myname, (char*)0,(char *)0, MPIR_COOKIE_VAL(errhandler));}}
+
+#endif
 #else
 #define MPIR_TEST_ERRHANDLER(comm,errhandler) \
     ( ( (!(errhandler) MPIR_TEST_COOKIE(errhandler,MPIR_ERRHANDLER_COOKIE)) \
        && (mpi_errno = MPI_ERR_ARG )))
 #endif
+
+#ifdef OLD_ERRMSGS
 #define MPIR_TEST_HBT_NODE(comm,node) \
     ( ( !(node) MPIR_TEST_COOKIE(node,MPIR_HBT_NODE_COOKIE)) \
       && (mpi_errno = MPI_ERR_INTERN))
@@ -396,6 +519,15 @@ extern int    MPIR_errargcnt;
 #define MPIR_TEST_ALIAS(b1,b2)      \
     ( ((b1)==(b2)) && (mpi_errno = (MPI_ERR_BUFFER | MPIR_ERR_BUFFER_ALIAS) ))
 #define MPIR_TEST_ARG(arg)  (!(arg) && (mpi_errno = MPI_ERR_ARG) )
+#else
+/* Allow datatypes to be relative to MPI_BOTTOM */
+#define MPIR_TEST_ALIAS(b1,b2) \
+if ((b1) == (b2) && (b1) != MPI_BOTTOM) {\
+mpi_errno = MPIR_Err_setmsg( MPI_ERR_BUFFER, MPIR_ERR_BUFFER_ALIAS, myname, (char*)0,(char*)0);}
+#define MPIR_TEST_ARG(arg) \
+if (!(arg)) {mpi_errno = MPI_ERR_ARG;}
+#endif
+
 #endif 
 
 /* 

@@ -2,147 +2,206 @@
 #      All rights reserved.  See COPYRIGHT in top-level directory.
 #
 
-##### User configurable options #####
-
-ARCH        = @ARCH@
-DEVICE      = @DEVICE@
-MPIR_HOME   = @MPIR_HOME@
-PREFIX      = @PREFIX@
 CC          = @CC@
 F77         = @F77@
+F90         = @F90@
 AR          = @AR@
 RANLIB      = @RANLIB@
-INCLUDE_DIR = @INCLUDE_PATH@ -I../../mpid/$(DEVICE) -I../../include
-DEVICE      = @DEVICE@
 OPTFLAGS    = @OPTFLAGS@
+OPTFLAGSC   = @OPTFLAGSC@
+prefix      = @prefix@
+top_srcdir  = @top_srcdir@
+srcdir      = @srcdir@
+libbuild_dir = @libbuild_dir@
 
-### End User configurable options ###
+DEFS        = @DEFS@ ${MPIPROFILE} -I. -I${srcdir} @mpich_includes@
+CFLAGS      = @CFLAGS@ 
 
-SHELL = /bin/sh
+SHELL       = /bin/sh
 
-MPI_INCLUDE    = ../../include/mpi.h
-DEVICE_LIB = 
-CFLAGS = @CFLAGS@ $(OPTFLAGS) @OPTFLAGSC@ $(INCLUDE_DIR) -DMPI_$(ARCH) \
-	$(MPIPROFILE)
-FFLAGS = @FFLAGS@ $(OPTFLAGS) @OPTFLAGSF@
-LIBS = ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a $(DEVICE_LIB)
+@VPATH@
+
+.SUFFIXES:
+.SUFFIXES: .o .c .f
+
+LIBS = ${libbuild_dir}/lib@MPILIBNAME@.a
+
+FFLAGS = @FFLAGS@ ${OPTFLAGS} @OPTFLAGSF@
+
 MPI_FOBJECTS = farg.o initfcmn.o initfdte.o
-MPI_COBJECTS = abort.o debugutil.o init.o initutil.o finalize.o initialize.o \
+MPI_COBJECTS = abort.o debugutil.o init.o initthread.o initutil.o \
+	finalize.o initialize.o \
 	errorstring.o fstrutils.o initdte.o \
 	getpname.o errcreate.o errset.o errget.o errfree.o errclass.o \
-	wtime.o wtick.o errmsg.o getversion.o msgqdllloc.o
+	wtime.o wtick.o nerrmsg.o getversion.o msgqdllloc.o
 MPI_FSOURCES = farg.f initfcmn.f initfdte.f
-MPI_CSOURCES = abort.c debugutil.c init.c initutil.c \
+MPI_CSOURCES = abort.c debugutil.c init.c initthread.c initutil.c \
 	finalize.c fstrutils.c initialize.c errorstring.c initdte.c \
 	getpname.c errcreate.c errset.c errget.c errfree.c errclass.c \
-	wtime.c wtick.c errmsg.c getversion.c msgqdllloc.c
+	wtime.c wtick.c nerrmsg.c getversion.c msgqdllloc.c
 MPI_TSOURCES = errclass.c 
 MPI_WSOURCES = abortf.c finalizef.c errclassf.c
 MPI_WOBJECTS = initializef.o abortf.o initf.o finalizef.o errorstringf.o \
 	getpnamef.o errcreatef.o errsetf.o errgetf.o errfreef.o errclassf.o \
 	wtimef.o wtickf.o getversionf.o
 
-MPI_SOURCES = $(MPI_CSOURCES) $(MPI_WSOURCES)
-MPI_OBJECTS = $(MPI_COBJECTS) $(MPI_WOBJECTS)
+MPI_SOURCES = ${MPI_CSOURCES} ${MPI_WSOURCES}
+MPI_OBJECTS = ${MPI_COBJECTS} ${MPI_WOBJECTS}
 
-default: setlinks ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a
+default: ${libbuild_dir}/lib@MPILIBNAME@.a
+	if [ -n "@MPI_FOBJECTS@" ] ; then \
+	@MAKE@ ${libbuild_dir}/lib@MPILIBNAME@f.a ; fi
 
-profile: ../../build/$(ARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a
 
-wrapperlib: $(MPI_WOBJECTS)
-	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/libf@MPILIBNAME@.a $?	
+profile: ${libbuild_dir}/libp@MPILIBNAME@.a
+
+wrapperlib: ${MPI_WOBJECTS}
+	${AR} ${libbuild_dir}/libf@MPILIBNAME@.a $?	
 
 # default_all is the same as default, but without the RANLIB.  This
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
-default_all: setlinks default_objs
-default_objs: $(MPI_OBJECTS) @MPI_FOBJECTS@ @MPE_MPI_EXT_O@
-	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a $?
-profile_all: $(MPI_OBJECTS) @MPI_FOBJECTS@
-	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a $?
+default_all: default_objs
+default_objs: ${MPI_OBJECTS} @MPI_FOBJECTS@ 
+	${AR} ${libbuild_dir}/lib@MPILIBNAME@.a $?
+	if [ -n "@MPI_FOBJECTS@" ] ; then \
+	@MAKE@ ${libbuild_dir}/lib@MPILIBNAME@f.a ; fi
+profile_all: ${MPI_OBJECTS} @MPI_FOBJECTS@
+	${AR} ${libbuild_dir}/libp@MPILIBNAME@.a $?
 
-$(MPI_OBJECTS) :  $(MPI_INCLUDE)
-$(MPI_FOBJECTS) :  $(MPI_INCLUDE)
+${MPI_OBJECTS} :  ${MPI_INCLUDE}
+${MPI_FOBJECTS} :  ${MPI_INCLUDE}
+
+mpe_debug_objs: @MPE_MPI_EXT_O@
+	${AR} ${libbuild_dir}/lib@MPILIBNAME@.a @MPE_MPI_EXT_O@
+	${RANLIB} ${libbuild_dir}/lib@MPILIBNAME@.a
 
 # 
 # This is needed for initutil.c
-setlinks:
-	if [ ! -s ../../include/mpeexten.h ] ; then \
-	    (cd ../../include ; ln -s ../mpe/mpeexten.h mpeexten.h ) ; fi
-	if [ ! -s mpehname.c ] ; then \
-	    ln -s ../../mpe/mpehname.c mpehname.c ; fi
-#	if [ ! -s dbxerr.c ] ; then \
-#	    ln -s ../../mpe/dbxerr.c dbxerr.c ; fi
-#wrappers:
-#	-/bin/rm -f $(MPI_WSOURCES)
-#	../../util/bfort -ferr -mpi -mnative -mapptr -ptrprefix MPIR_ \
-#		-anyname -I pubinc $(MPI_TSOURCES)	
+#setlinks:
+#	if [ ! -s ${top_srcdir}/include/mpeexten.h ] ; then \
+#	    (cd ${top_srcdir}/include ; \
+#		ln -s ${top_srcdir}/mpe/mpeexten.h mpeexten.h ) ; fi
 
 source_names:
-	@echo $(MPI_CSOURCES)
+	@echo ${MPI_CSOURCES}
 
 #
 # This gives -mpiversion the ability to echo the configuration arguments.
-initutil.o: initutil.c
-	$(CC) $(CFLAGS) -c -DCONFIGURE_ARGS_CLEAN='"@CONFIGURE_ARGS_CLEAN@"' \
-	-DMPIRUN_MACHINE='"@DEFAULT_MACHINE@"' \
-	-DMPIRUN_DEVICE='"@DEVICE@"' \
-	initutil.c
+#initutil.o: ${srcdir}/initutil.c
+#	${CC} ${DEFS} ${INCLUDES} ${CFLAGS} -c \
+#	-DCONFIGURE_ARGS_CLEAN='"@CONFIGURE_ARGS_CLEAN@"' \
+#	-DMPIRUN_MACHINE='"@DEFAULT_MACHINE@"' \
+#	-DMPIRUN_DEVICE='"@DEVICE@"' \
+#	${srcdir}/initutil.c
+
+mpich.En_US.cat: ${srcdir}/mpich.En_US.msg
+	@GENCAT@ mpich.En_US.cat ${srcdir}/mpich.En_US.msg
+
+# Create the message catalog files.  This will add ALL files, including the
+# US English one
+# The .m files are requires on IRIX and perhaps other platforms
+# The files are put into the libbuild directory when building.  When
+# installing, they are put into messagecat_dir.
+message_cat: mpich.En_US.cat
+	for file in ${srcdir}/mpich.*.msg ; do \
+	fileroot=`basename $file .msg` ; \
+	/bin/rm -f $fileroot.cat $fileroot.cat.m ; \
+	@GENCAT@ $fileroot.cat $file > /dev/null 2>&1 ; \
+	if test -s $fileroot.cat ; then \
+	    /bin/rm -f ${libbuild_dir}/$fileroot.cat ; \
+	    cp $fileroot.cat ${libbuild_dir} ; \
+	fi ; \
+	if test -s $fileroot.cat.m ; then \
+	    /bin/rm -f ${libbuild_dir}/$fileroot.cat.m ; \
+	    cp $fileroot.cat.m ${libbuild_dir} ; \
+	fi ; \
+	done )
+	if test -s mpich.En_US.cat ; then \
+	    if test ! -s ${libbuild_dir}/mpich.cat ; then \
+	       (cd ${libbuild_dir} ; ln -s mpich.En_US.cat mpich.cat ) \
+	    fi \
+	else \
+	    echo "Could not create catalog. US English messages will be used" ; \
+	fi
+
 #
 # We should really put this entire directory AFTER src/infoexport; then we
 # can test on the existance of the library.  
 # We use PREFIX instead of MPIR_HOME so that the result of installing
 # the MPI libraries will work
-msgqdllloc.o: msgqdllloc.c
+msgqdllloc.o: ${top_srcdir}/src/env/msgqdllloc.c
 	if test -n "@SHAREDKIND_FOR_TV@" -a "@SHAREDKIND_FOR_TV@" != "ignore" ; then \
 	  if test -n "@PREFIX@" ; then \
-	      $(CC) $(CFLAGS) @CC_SHARED_OPT_FOR_TV@ -c \
-	  -DMPICH_INFODLL_LOC='"@PREFIX@/build/$(ARCH)/$(DEVICE)/lib/libtvmpich.so"' \
-		  msgqdllloc.c ; \
+	      ${CC} ${DEFS} ${CFLAGS} @CC_SHARED_OPT_FOR_TV@ -c \
+	  -DMPICH_INFODLL_LOC='"@PREFIX@/build/${ARCH}/${DEVICE}/lib/libtvmpich.so"' \
+		  ${top_srcdir}/src/env/msgqdllloc.c ; \
 	  else \
-	      $(CC) $(CFLAGS) -c @CC_SHARED_OPT_FOR_TV@ \
-	  -DMPICH_INFODLL_LOC='"@MPIR_HOME@/build/$(ARCH)/$(DEVICE)/lib/libtvmpich.so"' \
-		  msgqdllloc.c ; \
+	      ${CC} ${DEFS} ${CFLAGS} -c @CC_SHARED_OPT_FOR_TV@ \
+	  -DMPICH_INFODLL_LOC='"@MPIR_HOME@/build/${ARCH}/${DEVICE}/lib/libtvmpich.so"' \
+		  ${top_srcdir}/src/env/msgqdllloc.c ; \
 	  fi \
 	else \
-	    $(CC) $(CFLAGS) -c msgqdllloc.c ; \
+	    ${CC} ${DEFS} ${CFLAGS} -c ${top_srcdir}/src/env/msgqdllloc.c ; \
 	fi
 .c.o:
-	$(CC) $(CFLAGS) -c $*.c
+	${CC} ${DEFS} ${INCLUDES} ${CFLAGS} ${OPTFLAGSC} ${OPTFLAGS} -c $<
+# For VPATH builds, some Fortran compilers use the directory of the file 
+# rather than the directory of the build.
 .f.o:
-	$(F77) $(FFLAGS) -c $*.f
+	if [ -n "@FINCARG@" ] ; then \
+	    ${F77} @FINCARG@. ${FFLAGS} -c $< ; \
+	else \
+	    if [ ! -s $*.f ] ; then cp $< . ; fi ; \
+	    ${F77} ${FFLAGS} -c $*.f ; \
+	fi
 
 # Always compile this with -g
 # Warning: some systems might not support -g.  We'll deal with that when
 # we have to.  We use the part of CFLAGS that does not include the
 # optimization switches.
-debugutil.o: debugutil.c
-	$(CC) -g @CFLAGS@ $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPIPROFILE) -c \
-		debugutil.c
+debugutil.o: ${srcdir}/debugutil.c
+	${CC} -g ${DEFS} ${INCLUDES} @CFLAGS@ ${INCLUDE_DIR} ${MPIPROFILE} -c \
+		${srcdir}/debugutil.c
 
 # GETNAME_DEFS are needed by mpehname.c; these need mpe includes
-mpehname.o: mpehname.c
-	$(CC) $(CFLAGS) @GETNAME_DEFS@ -c -I../../mpe mpehname.c 
+mpehname.o: ${top_srcdir}/mpe/mpehname.c
+	${CC} ${DEFS} ${CFLAGS} @GETNAME_DEFS@ -c -I${top_srcdir}/mpe \
+		${top_srcdir}/mpe/mpehname.c 
 # Note that we remove the link after we use it.
-#dbxerr.o: dbxerr.c
-#	$(CC) $(CFLAGS) @GETNAME_DEFS@ -c -I../../mpe dbxerr.c 
-#	rm -f dbxerr.c
+dbxerr.o: ${top_srcdir}/mpe/dbxerr.c
+	${CC} ${DEFS} ${CFLAGS} @GETNAME_DEFS@ -c -I${top_srcdir}/mpe \
+		${top_srcdir}/mpe/dbxerr.c 
+	rm -f dbxerr.c
 # errmsg needs to know about NLS definitions.
-errmsg.o: errmsg.c
-	$(CC) $(CFLAGS) @NLS_DEFS@ -c errmsg.c
+nerrmsg.o: ${srcdir}/nerrmsg.c mpierrstrings.h
+	${CC} ${DEFS} ${CFLAGS} @NLS_DEFS@ -c ${srcdir}/nerrmsg.c
 
-../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a: \
-		$(MPI_OBJECTS) @MPI_FOBJECTS@ @MPE_MPI_EXT_O@
-	$(AR) $@ $?
-	$(RANLIB) $@
+farg90.o: ${srcdir}/farg90.f
+	@if [ -n "$(F90)" ] ; then \
+	  $(F90) -c ${FFLAGS} ${srcdir}/farg90.f ; \
+	  cp farg90.o ${libbuild_dir} ; \
+	fi
 
-../../build/$(ARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a: $(MPI_OBJECTS) @MPI_FOBJECTS@
-	$(AR) $@ $?
-	$(RANLIB) $@
+${libbuild_dir}/lib@MPILIBNAME@.a: \
+		${MPI_OBJECTS} @MPI_FOBJECTS@ 
+	${AR} $@ $?
+	${RANLIB} $@
+
+${libbuild_dir}/libp@MPILIBNAME@.a: ${MPI_OBJECTS} @MPI_FOBJECTS@
+	${AR} $@ $?
+	${RANLIB} $@
+# This library is created to contain ONLY the Fortran MPI_Init and
+# called routines.  This is needed for shared library support.
+${libbuild_dir}/lib@MPILIBNAME@f.a: initf.o farg.o
+	${AR} $@ initf.o farg.o
+	${RANLIB} $@
 tstmsg:
-	$(CC) $(CFLAGS) -DTEST_MSGS @NSL_DEFS@ -c errmsg.c
-	@CLINKER@ -o errmsg errmsg.o \
-		../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a
-	/bin/rm -f errmsg.o
+	${CC} ${CFLAGS} -DTEST_MSGS @NLS_DEFS@ -c nerrmsg.c
+	@CLINKER@ -o nerrmsg nerrmsg.o ${libbuild_dir}/lib@MPILIBNAME@.a
+	/bin/rm -f nerrmsg.o
+
+# We need to clean the srcdir of any .o files because they can confuse the
+# VPATH build process
 clean:
-	/bin/rm -f *.o *~ errmsg
+	/bin/rm -f *.o *~ ${srcdir}/*.o

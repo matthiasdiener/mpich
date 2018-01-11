@@ -9,6 +9,8 @@
 #
 DoLink=1
 DoCompile=0
+show_compile=0
+show_link=0
 MPILOG=
 Show=eval
 allargs=
@@ -20,11 +22,12 @@ HasDashC=0
 UsesPmpi=0
 verbose=0
 proflib=-lp@MPILIBNAME@
-proflibfullname=@MPIR_HOME@/build/@ARCH@/@DEVICE@/lib/libp@MPILIBNAME@.a
+proflibfullname=@libbuild_dir@/libp@MPILIBNAME@.a
 CCBASE="@CC@"
 CC="${MPICH_CC-$CCBASE}"
 CLINKERBASE="@CLINKER@"
 CLINKER="${MPICH_CLINKER-$CLINKERBASE}"
+UseSharedLib=${MPICH_USE_SHLIB-no}
 for arg in "$@" ; do
 #    echo procssing arg $arg
     # Special processing for -o name
@@ -62,12 +65,6 @@ for arg in "$@" ; do
 	    DoLink=1
         fi
 	;;
-	-l*)
-	# This SHOULD be the -l<lib> argument.  Only for the linker
-	linkargs="$linkargs $arg"
-	allargs="$allargs $arg"
-	;;
-	
 	-E|-M)
 	# For compilers that support -E as a way to get at the C preprocessor
 	# Also, for compilers that support -M for creating dependencies
@@ -83,7 +80,7 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ -n "@MPE_DIR@" ] ; then
+	if [ @NOMPE@ = 0 ] ; then
 		MPILOG="-llmpi -lmpe"
 	else
 	    echo "-mpilog requires the MPE libraries"
@@ -96,7 +93,7 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ -n "@MPE_DIR@" ] ; then
+	if [ @NOMPE@ = 0 ] ; then
    	    MPILOG=-ltmpi
 	else
 	    echo "-mpitrace requires the MPE libraries"
@@ -109,7 +106,7 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ -n "@MPE_DIR@" ] ; then
+	if [ @NOMPE@ = 0 ] ; then
 	    MPILOG="-lampi -lmpe"
 	else
 	    echo "-mpianim requires the MPE libraries"
@@ -121,10 +118,34 @@ for arg in "$@" ; do
 	-show)
 	Show=echo
 	;;
+	-cc=*)
+	CC=`echo A$arg | sed -e 's/A-cc=//g'`
+	CLINKER="$CC"
+	;;
+	-compile_info)
+	show_compile=1
+	DoLink=0
+	Show=echo
+	;;
+	-link_info)
+	show_link=1
+	Show=echo
+	;;
+	-shlib)
+        UseSharedLib=yes
+	;;
+	-noshlib)
+        UseSharedLib=no
+	;;
 	-v)
 	verbose=1
 	compileargs="$compileargs -v"
 	linkargs="$linkargs -v"
+	;;
+	-l*)
+	# This SHOULD be the -l<lib> argument.  Only for the linker
+	linkargs="$linkargs $arg"
+	allargs="$allargs $arg"
 	;;
 	-help)
 	echo "This is a program to compile or link MPI programs"
@@ -133,8 +154,16 @@ for arg in "$@" ; do
 	echo "    -mpitrace  - Build version that generates traces"
 	echo "    -mpianim   - Build version that generates real-time"
 	echo "                 animation"
+	echo "    -cc=pgm    - Change the program to use to compile and link"
+        echo "                 MPI programs.  WARNING! The program that you"
+        echo "                 choose MUST be compatible with the MPICH "
+        echo "                 libraries.  If you have trouble, you should"
+        echo "                 reconfigure and rebuild MPICH, selecting"
+        echo "                 this compiler."
 	echo "    -show      - Show the commands that would be used without"
 	echo "                 runnning them"
+	echo "    -compile_info - Show how to compile a program"
+	echo "    -link_info - Show how to link a program"
 	echo "    -help      - Give this help"
 	echo "    -echo      - Show exactly what this program is doing."
 	echo "                 This option should normally not be used."
@@ -148,10 +177,20 @@ for arg in "$@" ; do
 	echo "may not work on some systems, and is not recommended."
 	exit 1
 	;;
+	
+	# Unrecognized args.  Because we do an eval, we need to
+	# carefully quote any args that contain quotes.
         *\"*) 
-	allargs="$allargs `echo $arg | sed 's/\"/\\\"/g'`"
-	compileargs="$compileargs `echo $arg | sed 's/\"/\\\"/g'`"
-	linkargs="$linkargs `echo $arg | sed 's/\"/\\\"/g'`"
+	qarg="'"$arg"'"
+	allargs="$allargs $qarg"
+	compileargs="$compileargs $qarg"
+	linkargs="$linkargs $qarg"
+	;;
+        *\'*) 
+	qarg='\"'"$arg"'\"'
+	allargs="$allargs $qarg"
+	compileargs="$compileargs $qarg"
+	linkargs="$linkargs $qarg"
 	;;
         *) allargs="$allargs $arg"
 	if [ -s "$arg" ] ; then
@@ -181,12 +220,11 @@ for arg in "$@" ; do
 done
 #
 status=0
-if [ $DoCompile = 1 ] ; then 
+if [ $DoCompile = 1 -o $show_compile = 1 ] ; then 
     if [ $HasDashC != 1 ] ; then
         compileargs="-c $compileargs"
     fi
-    $Show $CC @USER_CFLAGS@ @ROMIO_TCFLAGS@ -I@MPIR_HOME@/include \
-	-I@MPIR_HOME@/build/@ARCH@/@DEVICE@/include $compileargs
+    $Show $CC @USER_CFLAGS@ @ROMIO_TCFLAGS@ -I@includebuild_dir@ $compileargs
     status=$?
     if [ $status != 0 ] ; then 
 	exit $status
@@ -198,17 +236,44 @@ fi
 # build and run non-mpi programs.  This is currently handled in the configure
 # by making a dummy library.
 # 
-if [ $DoLink = 1 ] ; then
+if [ $DoLink = 1 -o $show_link = 1 ] ; then
     # If the profiling library doesn't exist, or MPICH_NO_PROF environment
     # variable is set, skip the profiling library.
     if [ -n "$MPICH_NO_PROF" -o ! -s "$proflibfullname" ] ; then
         proflib=""
     fi
+    # IRIX complains if we include a library twice.  In the case of a
+    # library using weak symbols, we don't need the proflib.  Just
+    # in case we do, there is an enviroment variable that
+    # can be used to override this test.
+    if [ "@HAS_WEAK_SYMBOLS@" = "1" -a "$MPICH_INCLUDE_PROFLIB" != yes ] ; then
+        proflib=""
+    fi
+    # Only use the shared libraries if explicitly requested.  This is
+    # necessary because some (all?) systems are quite happy to link with
+    # a shared library *and then forget where it is*!  You often need to
+    # set an environment variable like LD_LIBRARY_PATH to include the
+    # path where the shared libraries are (is this broken or what?).
+    # Since that enviroment variable would then need to be set for all
+    # hosts where the program might run (since rsh doesn't propagate 
+    # the environment), we don't make this the default.
+    if [ "@SHAREDKIND@" != "ignore" -a $UseSharedLib = "yes" ] ; then
+	clibpath="-L@sharedlibbuild_dir@"
+        if [ -n "@SHARED_LIB_SEARCH_PATH_LEADER@" ] ; then
+	    clibpath="@SHARED_LIB_SEARCH_PATH_LEADER@@sharedlibbuild_dir@ $clibpath"
+  	    fi
+	if [ -n "@SHAREDLIB_LOCALDIR@" ] ; then
+	    clibpath="-L@SHAREDLIB_LOCALDIR@ $clibpath"
+ 	    if [ -n "@SHARED_LIB_SEARCH_PATH_LEADER@" ] ; then
+	        clibpath="@SHARED_LIB_SEARCH_PATH_LEADER@@SHAREDLIB_LOCALDIR@ $clibpath"
+  	    fi
+	fi
+    fi
     if [ -n "$MPILOG" ] ; then
-        $Show $CLINKER @USER_CFLAGS@ @ROMIO_LFLAGS@ @LIB_PATH@ $linkobjs $MPILOG $linkargs $proflib @LIB_LIST@
+        $Show $CLINKER @USER_CFLAGS@ @ROMIO_LFLAGS@ $clibpath @LIB_PATH@ $linkobjs $MPILOG $linkargs $proflib -l@MPILIBNAME@ $proflib @BASE_LIB_LIST@
     else
 	# linkargs needs to be after linkobjs for things like "-lm"
-        $Show $CLINKER @USER_CFLAGS@ @ROMIO_LFLAGS@ @LIB_PATH@ $linkobjs $linkargs $proflib @LIB_LIST@
+        $Show $CLINKER @USER_CFLAGS@ @ROMIO_LFLAGS@ $clibpath @LIB_PATH@ $linkobjs $linkargs $proflib -l@MPILIBNAME@ $proflib @BASE_LIB_LIST@
     fi
     status=$?
 fi

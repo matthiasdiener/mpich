@@ -5,7 +5,7 @@
  * 
  * Authors: George K. Thiruvathukal and Jonathan Geisler
  *
- * Version: $Id: adi2pack.c,v 1.5 1998/06/25 19:53:16 karonis Exp $
+ * Version: $Id: adi2pack.c,v 1.6 1999/03/02 17:01:46 gropp Exp $
  *
  * Nexus-MPI is an application being developed using the Globus Communications
  * Specification. For more information about the Globus project, its
@@ -29,6 +29,7 @@ static void MPID_Pack_size_recursive(int count,
 				    MPID_Msg_pack_t msgact,
 				    int *size);
 
+#if 0 /* not needed by globus device */
 void MPID_Msg_rep(struct MPIR_COMMUNICATOR *comm,
 		  int partner,
 		  struct MPIR_DATATYPE *datatype,
@@ -38,6 +39,7 @@ void MPID_Msg_rep(struct MPIR_COMMUNICATOR *comm,
     *msgrep = remote_formats[comm->lrank_to_grank[partner]];
     *msgact = MPID_MSG_OK;
 }
+#endif
 
 int MPID_Msgrep_from_comm(struct MPIR_COMMUNICATOR *comm)
 {

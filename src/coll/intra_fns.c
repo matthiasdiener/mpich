@@ -1,5 +1,5 @@
 /*
- *  $Id: intra_fns.c,v 1.5 1998/09/15 15:48:16 swider Exp $
+ *  $Id: intra_fns.c,v 1.11 1999/11/23 03:15:09 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -11,6 +11,8 @@
 #include "mpipt2pt.h"
 #include "coll.h"
 #include "mpiops.h"
+
+#define MPIR_ERR_OP_NOT_DEFINED MPIR_ERRCLASS_TO_CODE(MPI_ERR_OP,MPIR_ERR_NOT_DEFINED)
 
 /*
  * Provide the collective ops structure for intra communicators.
@@ -25,57 +27,56 @@
  */
 
 /* Forward declarations */
-static int intra_Barrier ANSI_ARGS((struct MPIR_COMMUNICATOR *comm ));
-static int intra_Bcast ANSI_ARGS((void* buffer, int count, 
-				  struct MPIR_DATATYPE * datatype, int root, 
-				  struct MPIR_COMMUNICATOR *comm ));
-static int intra_Gather ANSI_ARGS((void*, int, 
-				   struct MPIR_DATATYPE *, void*, 
-				   int, struct MPIR_DATATYPE *, 
-				   int, struct MPIR_COMMUNICATOR *)); 
-static int intra_Gatherv ANSI_ARGS((void*, int, 
-				    struct MPIR_DATATYPE *, 
-				    void*, int *, 
-				    int *, struct MPIR_DATATYPE *, 
-				    int, struct MPIR_COMMUNICATOR *)); 
-static int intra_Scatter ANSI_ARGS((void* sendbuf, int sendcount, 
-				    struct MPIR_DATATYPE * sendtype, 
-				    void* recvbuf, int recvcount, 
-				    struct MPIR_DATATYPE * recvtype, 
-				    int root, struct MPIR_COMMUNICATOR *comm));
-static int intra_Scatterv ANSI_ARGS((void*, int *, 
-				     int *, struct MPIR_DATATYPE *, 
-				     void*, int, 
-				     struct MPIR_DATATYPE *, int, 
-				     struct MPIR_COMMUNICATOR *));
-static int intra_Allgather ANSI_ARGS((void*, int, 
-				      struct MPIR_DATATYPE *, 
-				      void*, int, 
-				      struct MPIR_DATATYPE *, 
-				      struct MPIR_COMMUNICATOR *comm));
-static int intra_Allgatherv ANSI_ARGS((void*, int, struct MPIR_DATATYPE *, 
-				       void*, int *, int *, 
-				       struct MPIR_DATATYPE *, 
-				       struct MPIR_COMMUNICATOR *));
-static int intra_Alltoall ANSI_ARGS((void*, int, struct MPIR_DATATYPE *, 
-				     void*, int, struct MPIR_DATATYPE *, 
-				     struct MPIR_COMMUNICATOR *));
-static int intra_Alltoallv ANSI_ARGS((void*, int *, int *, 
-				      struct MPIR_DATATYPE *, void*, int *, 
-				      int *, struct MPIR_DATATYPE *, 
-				      struct MPIR_COMMUNICATOR *));
-static int intra_Reduce ANSI_ARGS((void*, void*, int, struct MPIR_DATATYPE *, 
-				   MPI_Op, 
-				   int, struct MPIR_COMMUNICATOR *));
-static int intra_Allreduce ANSI_ARGS((void*, void*, int, 
-				      struct MPIR_DATATYPE *, MPI_Op, 
-				      struct MPIR_COMMUNICATOR *));
-static int intra_Reduce_scatter ANSI_ARGS((void*, void*, int *, 
-					   struct MPIR_DATATYPE *, MPI_Op, 
-					   struct MPIR_COMMUNICATOR *));
-static int intra_Scan ANSI_ARGS((void* sendbuf, void* recvbuf, int count, 
-				 struct MPIR_DATATYPE * datatype, 
-				 MPI_Op op, struct MPIR_COMMUNICATOR *comm ));
+static int intra_Barrier (struct MPIR_COMMUNICATOR *comm );
+static int intra_Bcast (void* buffer, int count, 
+			struct MPIR_DATATYPE * datatype, int root, 
+			struct MPIR_COMMUNICATOR *comm );
+static int intra_Gather (void*, int, 
+			 struct MPIR_DATATYPE *, void*, 
+			 int, struct MPIR_DATATYPE *, 
+			 int, struct MPIR_COMMUNICATOR *); 
+static int intra_Gatherv (void*, int, 
+			  struct MPIR_DATATYPE *, 
+			  void*, int *, 
+			  int *, struct MPIR_DATATYPE *, 
+			  int, struct MPIR_COMMUNICATOR *); 
+static int intra_Scatter (void* sendbuf, int sendcount, 
+			  struct MPIR_DATATYPE * sendtype, 
+			  void* recvbuf, int recvcount, 
+			  struct MPIR_DATATYPE * recvtype, 
+			  int root, struct MPIR_COMMUNICATOR *comm);
+static int intra_Scatterv (void*, int *, 
+			   int *, struct MPIR_DATATYPE *, 
+			   void*, int, 
+			   struct MPIR_DATATYPE *, int, 
+			   struct MPIR_COMMUNICATOR *);
+static int intra_Allgather (void*, int, 
+			    struct MPIR_DATATYPE *, 
+			    void*, int, 
+			    struct MPIR_DATATYPE *, 
+			    struct MPIR_COMMUNICATOR *comm);
+static int intra_Allgatherv (void*, int, struct MPIR_DATATYPE *, 
+			     void*, int *, int *, 
+			     struct MPIR_DATATYPE *, 
+			     struct MPIR_COMMUNICATOR *);
+static int intra_Alltoall (void*, int, struct MPIR_DATATYPE *, 
+			   void*, int, struct MPIR_DATATYPE *, 
+			   struct MPIR_COMMUNICATOR *);
+static int intra_Alltoallv (void*, int *, int *, 
+			    struct MPIR_DATATYPE *, void*, int *, 
+			    int *, struct MPIR_DATATYPE *, 
+			    struct MPIR_COMMUNICATOR *);
+static int intra_Reduce (void*, void*, int, struct MPIR_DATATYPE *, 
+			 MPI_Op, int, struct MPIR_COMMUNICATOR *);
+static int intra_Allreduce (void*, void*, int, 
+			    struct MPIR_DATATYPE *, MPI_Op, 
+			    struct MPIR_COMMUNICATOR *);
+static int intra_Reduce_scatter (void*, void*, int *, 
+				 struct MPIR_DATATYPE *, MPI_Op, 
+				 struct MPIR_COMMUNICATOR *);
+static int intra_Scan (void* sendbuf, void* recvbuf, int count, 
+		       struct MPIR_DATATYPE * datatype, 
+		       MPI_Op op, struct MPIR_COMMUNICATOR *comm );
 
 /* I don't really want to to this this way, but for now... */
 static struct _MPIR_COLLOPS intra_collops =  {
@@ -127,7 +128,12 @@ static struct _MPIR_COLLOPS intra_collops =  {
     intra_Reduce_scatterv,
 #endif
 #endif
+#ifdef MPIR_USE_BASIC_COLL
     intra_Scan,
+#else
+    /* This is in intra_scan.c and is now the default */
+    MPIR_intra_Scan,
+#endif
     1                              /* Giving it a refcount of 1 ensures it
 				    * won't ever get freed.
 				    */
@@ -136,8 +142,7 @@ static struct _MPIR_COLLOPS intra_collops =  {
 MPIR_COLLOPS MPIR_intra_collops = &intra_collops;
 
 /* Now the functions */
-static int intra_Barrier ( comm )
-struct MPIR_COMMUNICATOR *comm;
+static int intra_Barrier ( struct MPIR_COMMUNICATOR *comm )
 {
   int        rank, size, N2_prev, surfeit;
   int        d, dst, src;
@@ -204,25 +209,31 @@ struct MPIR_COMMUNICATOR *comm;
   return(MPI_SUCCESS); 
 }
 
-static int intra_Bcast ( buffer, count, datatype, root, comm )
-void                     *buffer;
-int                       count;
-struct MPIR_DATATYPE     *datatype;
-int                       root;
-struct MPIR_COMMUNICATOR *comm;
+static int intra_Bcast ( 
+	void *buffer, 
+	int count, 
+	struct MPIR_DATATYPE *datatype, 
+	int root, 
+	struct MPIR_COMMUNICATOR *comm )
 {
   MPI_Status status;
   int        rank, size, src, dst;
   int        relative_rank, mask;
   int        mpi_errno = MPI_SUCCESS;
+  static char myname[] = "MPI_BCAST";
 
   /* See the overview in Collection Operations for why this is ok */
   if (count == 0) return MPI_SUCCESS;
 
   /* Is root within the comm and more than 1 processes involved? */
   MPIR_Comm_size ( comm, &size );
-  if ( (root >= size)  && (MPIR_ERROR_PUSH_ARG(&root),mpi_errno = MPI_ERR_ROOT) )
-    return MPIR_ERROR( comm, mpi_errno, "MPI_BCAST" );
+#ifndef MPIR_NO_ERROR_CHECKING
+  if (root >= size) 
+      mpi_errno = MPIR_Err_setmsg( MPI_ERR_ROOT, MPIR_ERR_ROOT_TOOBIG, 
+				   myname, (char *)0, (char *)0, root, size );
+  if (mpi_errno)
+      return MPIR_ERROR(comm, mpi_errno, myname );
+#endif
   
   /* If there is only one process */
   if (size == 1)
@@ -329,26 +340,33 @@ struct MPIR_COMMUNICATOR *comm;
   return (mpi_errno);
 }
 
-static int intra_Gather ( sendbuf, sendcnt, sendtype, recvbuf, recvcount, recvtype, 
-		 root, comm )
-void             *sendbuf;
-int               sendcnt;
-struct MPIR_DATATYPE *      sendtype;
-void             *recvbuf;
-int               recvcount;
-struct MPIR_DATATYPE *      recvtype;
-int               root;
-struct MPIR_COMMUNICATOR *         comm;
+static int intra_Gather ( 
+	void *sendbuf, 
+	int sendcnt, 
+	struct MPIR_DATATYPE *sendtype, 
+	void *recvbuf, 
+	int recvcount, 
+	struct MPIR_DATATYPE *recvtype, 
+	int root, 
+	struct MPIR_COMMUNICATOR *comm )
 {
   int        size, rank;
   int        mpi_errno = MPI_SUCCESS;
   MPI_Aint   extent;            /* Datatype extent */
+  static char myname[] = "MPI_GATHER";
 
   /* Is root within the communicator? */
   MPIR_Comm_size ( comm, &size );
-  if ( (root >= size || root < 0) && 
-       (MPIR_ERROR_PUSH_ARG(&root),mpi_errno = MPI_ERR_ROOT) )
-    return MPIR_ERROR( comm, mpi_errno, "MPI_GATHER" );
+#ifndef MPIR_NO_ERROR_CHECKING
+    if ( root >= size )
+	mpi_errno = MPIR_Err_setmsg(MPI_ERR_ROOT,MPIR_ERR_ROOT_TOOBIG,
+				    myname,(char *)0, (char *)0, root,size);
+    if (root < 0) 
+	mpi_errno = MPIR_Err_setmsg(MPI_ERR_ROOT,MPIR_ERR_DEFAULT,myname,
+				    (char *)0,(char *)0,root);
+    if (mpi_errno)
+	return MPIR_ERROR(comm, mpi_errno, myname );
+#endif
 
   /* Get my rank and switch communicators to the hidden collective */
   MPIR_Comm_rank ( comm, &rank );
@@ -390,28 +408,33 @@ struct MPIR_COMMUNICATOR *         comm;
   return (mpi_errno);
 }
 
-static int intra_Gatherv ( sendbuf, sendcnt,  sendtype, 
-                  recvbuf, recvcnts, displs, recvtype, 
-                  root, comm )
-void             *sendbuf;
-int               sendcnt;
-struct MPIR_DATATYPE *      sendtype;
-void             *recvbuf;
-int              *recvcnts;
-int              *displs;
-struct MPIR_DATATYPE *      recvtype;
-int               root;
-struct MPIR_COMMUNICATOR *         comm;
+static int intra_Gatherv ( 
+	void *sendbuf, 
+	int sendcnt,  
+	struct MPIR_DATATYPE *sendtype, 
+	void *recvbuf, 
+	int *recvcnts, 
+	int *displs, 
+	struct MPIR_DATATYPE *recvtype, 
+	int root, 
+	struct MPIR_COMMUNICATOR *comm )
 {
   int        size, rank;
   int        mpi_errno = MPI_SUCCESS;
+  static char myname[] = "MPI_GATHERV";
 
   /* Is root within the communicator? */
   MPIR_Comm_size ( comm, &size );
-  if ( (root >= size) || (root < 0) ) {
-      MPIR_ERROR_PUSH_ARG(&root);
-      return MPIR_ERROR( comm, MPI_ERR_ROOT, "MPI_GATHERV" );
-  }
+#ifndef MPIR_NO_ERROR_CHECKING
+    if ( root >= size )
+	mpi_errno = MPIR_Err_setmsg(MPI_ERR_ROOT, MPIR_ERR_ROOT_TOOBIG,
+				    myname,(char *)0,(char *)0,root,size);
+    if (root < 0) 
+	mpi_errno = MPIR_Err_setmsg(MPI_ERR_ROOT,MPIR_ERR_DEFAULT,myname,
+				    (char *)0,(char*)0,root);
+    if (mpi_errno)
+	return MPIR_ERROR(comm, mpi_errno, myname );
+#endif
 
   /* Get my rank and switch communicators to the hidden collective */
   MPIR_Comm_rank ( comm, &rank );
@@ -449,34 +472,37 @@ struct MPIR_COMMUNICATOR *         comm;
   return (mpi_errno);
 }
 
-static int intra_Scatter ( sendbuf, sendcnt, sendtype, 
-		  recvbuf, recvcnt, recvtype, 
-		  root, comm )
-void             *sendbuf;
-int               sendcnt;
-struct MPIR_DATATYPE *      sendtype;
-void             *recvbuf;
-int               recvcnt;
-struct MPIR_DATATYPE *      recvtype;
-int               root;
-struct MPIR_COMMUNICATOR *         comm;
+static int intra_Scatter ( 
+	void *sendbuf, 
+	int sendcnt, 
+	struct MPIR_DATATYPE *sendtype, 
+	void *recvbuf, 
+	int recvcnt, 
+	struct MPIR_DATATYPE *recvtype, 
+	int root, 
+	struct MPIR_COMMUNICATOR *comm )
 {
   MPI_Status status;
   MPI_Aint   extent;
   int        rank, size, i;
   int        mpi_errno = MPI_SUCCESS;
-  
+  static char myname[] = "MPI_SCATTER";
 
   /* Get size and rank */
   MPIR_Comm_size ( comm, &size );
   MPIR_Comm_rank ( comm, &rank );
 
   /* Check for invalid arguments */
-  if ( ( (root            <  0)           && (mpi_errno = MPI_ERR_ROOT) )   || 
-       ( (root            >= size)        && (mpi_errno = MPI_ERR_ROOT) )) {
-      MPIR_ERROR_PUSH_ARG(&root);
-      return MPIR_ERROR( comm, mpi_errno, "MPI_SCATTER" ); 
-  }
+#ifndef MPIR_NO_ERROR_CHECKING
+    if ( root >= size )
+	mpi_errno = MPIR_Err_setmsg(MPI_ERR_ROOT, MPIR_ERR_ROOT_TOOBIG,
+				    myname,(char *)0,(char *)0,root,size);
+    if (root < 0) 
+	mpi_errno = MPIR_Err_setmsg(MPI_ERR_ROOT,MPIR_ERR_DEFAULT,myname,
+				    (char *)0,(char *)0,root);
+    if (mpi_errno)
+	return MPIR_ERROR(comm, mpi_errno, myname );
+#endif
  
   /* Switch communicators to the hidden collective */
   comm = comm->comm_coll;
@@ -519,33 +545,37 @@ struct MPIR_COMMUNICATOR *         comm;
   return (mpi_errno);
 }
 
-static int intra_Scatterv ( sendbuf, sendcnts, displs, sendtype, 
-                   recvbuf, recvcnt,  recvtype, 
-                   root, comm )
-void             *sendbuf;
-int              *sendcnts;
-int              *displs;
-struct MPIR_DATATYPE *      sendtype;
-void             *recvbuf;
-int               recvcnt;
-struct MPIR_DATATYPE *      recvtype;
-int               root;
-struct MPIR_COMMUNICATOR *         comm;
+static int intra_Scatterv ( 
+	void *sendbuf, 
+	int *sendcnts, 
+	int *displs, 
+	struct MPIR_DATATYPE *sendtype, 
+	void *recvbuf, 
+	int recvcnt,  
+	struct MPIR_DATATYPE *recvtype, 
+	int root, 
+	struct MPIR_COMMUNICATOR *comm )
 {
   MPI_Status status;
   int        rank, size;
   int        mpi_errno = MPI_SUCCESS;
+  static char myname[] = "MPI_SCATTERV";
 
   /* Get size and rank */
   MPIR_Comm_size ( comm, &size );
   MPIR_Comm_rank ( comm, &rank );
 
   /* Check for invalid arguments */
-  if ( ( (root            <  0)           && (mpi_errno = MPI_ERR_ROOT) )  || 
-       ( (root            >= size)        && (mpi_errno = MPI_ERR_ROOT) )) {
-      MPIR_ERROR_PUSH_ARG(&root);
-      return MPIR_ERROR( comm, mpi_errno, "MPI_SCATTERV" );
-  }
+#ifndef MPIR_NO_ERROR_CHECKING
+    if ( root >= size )
+	mpi_errno = MPIR_Err_setmsg(MPI_ERR_ROOT, MPIR_ERR_ROOT_TOOBIG,
+				    myname,(char *)0,(char *)0,root,size);
+    if (root < 0) 
+	mpi_errno = MPIR_Err_setmsg(MPI_ERR_ROOT,MPIR_ERR_DEFAULT,myname,
+				    (char *)0,(char *)0,root);
+    if (mpi_errno)
+	return MPIR_ERROR(comm, mpi_errno, myname );
+#endif
 
   /* Switch communicators to the hidden collective */
   comm = comm->comm_coll;
@@ -608,15 +638,14 @@ struct MPIR_COMMUNICATOR *         comm;
    implementations of these routines can take advantage of such information.
  */
 
-static int intra_Allgather ( sendbuf, sendcount, sendtype,
-                    recvbuf, recvcount, recvtype, comm )
-void             *sendbuf;
-int               sendcount;
-struct MPIR_DATATYPE *      sendtype;
-void             *recvbuf;
-int               recvcount;
-struct MPIR_DATATYPE *      recvtype;
-struct MPIR_COMMUNICATOR *         comm;
+static int intra_Allgather ( 
+	void *sendbuf, 
+	int sendcount, 
+	struct MPIR_DATATYPE *sendtype,
+	void *recvbuf, 
+	int recvcount, 
+	struct MPIR_DATATYPE *recvtype, 
+	struct MPIR_COMMUNICATOR *comm )
 {
   int        size, rank;
   int        mpi_errno = MPI_SUCCESS;
@@ -674,16 +703,15 @@ struct MPIR_COMMUNICATOR *         comm;
 }
 
 
-static int intra_Allgatherv ( sendbuf, sendcount,  sendtype, 
-                     recvbuf, recvcounts, displs,   recvtype, comm )
-void             *sendbuf;
-int               sendcount;
-struct MPIR_DATATYPE *      sendtype;
-void             *recvbuf;
-int              *recvcounts;
-int              *displs;
-struct MPIR_DATATYPE *      recvtype;
-struct MPIR_COMMUNICATOR *         comm;
+static int intra_Allgatherv ( 
+	void *sendbuf, 
+	int sendcount,  
+	struct MPIR_DATATYPE *sendtype, 
+	void *recvbuf, 
+	int *recvcounts, 
+	int *displs,   
+	struct MPIR_DATATYPE *recvtype, 
+	struct MPIR_COMMUNICATOR *comm )
 {
   int        size, rank;
   int        mpi_errno = MPI_SUCCESS;
@@ -738,25 +766,24 @@ struct MPIR_COMMUNICATOR *         comm;
   return (mpi_errno);
 }
 
-static int intra_Alltoall( sendbuf, sendcount, sendtype, 
-                  recvbuf, recvcnt, recvtype, comm )
-void             *sendbuf;
-int               sendcount;
-struct MPIR_DATATYPE *      sendtype;
-void             *recvbuf;
-int               recvcnt;
-struct MPIR_DATATYPE *      recvtype;
-struct MPIR_COMMUNICATOR *         comm;
+static int intra_Alltoall( 
+	void *sendbuf, 
+	int sendcount, 
+	struct MPIR_DATATYPE *sendtype, 
+	void *recvbuf, 
+	int recvcnt, 
+	struct MPIR_DATATYPE *recvtype, 
+	struct MPIR_COMMUNICATOR *comm )
 {
-  int          size, rank, i, j;
+  int          size, i, j;
   MPI_Aint     send_extent, recv_extent;
   int          mpi_errno = MPI_SUCCESS;
   MPI_Status  *starray;
   MPI_Request *reqarray;
+  static char myname[] = "MPI_ALLTOALL";
 
-  /* Get size and rank and switch to collective communicator */
+  /* Get size and switch to collective communicator */
   MPIR_Comm_size ( comm, &size );
-  MPIR_Comm_rank ( comm, &rank );
   comm = comm->comm_coll;
   
   /* Get extent of send and recv types */
@@ -770,10 +797,10 @@ struct MPIR_COMMUNICATOR *         comm;
  */
   /* 1st, get some storage from the heap to hold handles, etc. */
   MPIR_ALLOC(starray,(MPI_Status *)MALLOC(2*size*sizeof(MPI_Status)),
-	     comm, MPI_ERR_EXHAUSTED, "MPI_ALLTOALL" );
+	     comm, MPI_ERR_EXHAUSTED, myname );
 
   MPIR_ALLOC(reqarray, (MPI_Request *)MALLOC(2*size*sizeof(MPI_Request)),
-	     comm, MPI_ERR_EXHAUSTED, "MPI_ALLTOALL" );
+	     comm, MPI_ERR_EXHAUSTED, myname );
 
   /* do the communication -- post *all* sends and receives: */
   /* We could order these, for example, starting with rank+1, so that
@@ -827,27 +854,25 @@ struct MPIR_COMMUNICATOR *         comm;
   return (mpi_errno);
 }
 
-static int intra_Alltoallv ( sendbuf, sendcnts, sdispls, sendtype, 
-                    recvbuf, recvcnts, rdispls, recvtype, comm )
-void             *sendbuf;
-int              *sendcnts;
-int              *sdispls;
-struct MPIR_DATATYPE *      sendtype;
-void             *recvbuf;
-int              *recvcnts;
-int              *rdispls; 
-struct MPIR_DATATYPE *      recvtype;
-struct MPIR_COMMUNICATOR *         comm;
+static int intra_Alltoallv ( 
+	void *sendbuf, 
+	int *sendcnts, 
+	int *sdispls, 
+	struct MPIR_DATATYPE *sendtype, 
+	void *recvbuf, 
+	int *recvcnts, 
+	int *rdispls, 
+	struct MPIR_DATATYPE *recvtype, 
+	struct MPIR_COMMUNICATOR *comm )
 {
-  int        size, rank, i, j, rcnt;
+  int        size, i, j, rcnt;
   MPI_Aint   send_extent, recv_extent;
   int        mpi_errno = MPI_SUCCESS;
   MPI_Status  *starray;
   MPI_Request *reqarray;
   
-  /* Get size and rank and switch to collective communicator */
+  /* Get size and switch to collective communicator */
   MPIR_Comm_size ( comm, &size );
-  MPIR_Comm_rank ( comm, &rank );
   comm = comm->comm_coll;
 
   /* Get extent of send and recv types */
@@ -919,14 +944,14 @@ struct MPIR_COMMUNICATOR *         comm;
   return (mpi_errno);
 }
 
-static int intra_Reduce ( sendbuf, recvbuf, count, datatype, op, root, comm )
-void             *sendbuf;
-void             *recvbuf;
-int               count;
-struct MPIR_DATATYPE *datatype;
-MPI_Op            op;
-int               root;
-struct MPIR_COMMUNICATOR *         comm;
+static int intra_Reduce ( 
+	void *sendbuf, 
+	void *recvbuf, 
+	int count, 
+	struct MPIR_DATATYPE *datatype, 
+	MPI_Op op, 
+	int root, 
+	struct MPIR_COMMUNICATOR *comm )
 {
   MPI_Status status;
   int        size, rank;
@@ -942,10 +967,16 @@ struct MPIR_COMMUNICATOR *         comm;
 
   /* Is root within the communicator? */
   MPIR_Comm_size ( comm, &size );
-  if ( ((root >= size) || (root < 0)) ) {
-      MPIR_ERROR_PUSH_ARG(&root);
-      return MPIR_ERROR(comm, MPI_ERR_ROOT, myname );
-  }
+#ifndef MPIR_NO_ERROR_CHECKING
+    if ( root >= size )
+	mpi_errno = MPIR_Err_setmsg(MPI_ERR_ROOT, MPIR_ERR_ROOT_TOOBIG,
+				    myname,(char *)0,(char *)0,root,size);
+    if (root < 0) 
+	mpi_errno = MPIR_Err_setmsg(MPI_ERR_ROOT,MPIR_ERR_DEFAULT,myname,
+				    (char *)0,(char *)0,root);
+    if (mpi_errno)
+	return MPIR_ERROR(comm, mpi_errno, myname );
+#endif
 
   /* See the overview in Collection Operations for why this is ok */
   if (count == 0) return MPI_SUCCESS;
@@ -1089,7 +1120,7 @@ struct MPIR_COMMUNICATOR *         comm;
      MPI_Allreduce.  Use care with this.
    */
   if (mpi_errno == MPI_SUCCESS && MPIR_Op_errno) {
-      /* printf( "Error in performing MPI_Op in reduce\n" ); */
+      /* PRINTF( "Error in performing MPI_Op in reduce\n" ); */
       mpi_errno = MPIR_Op_errno;
   }
 
@@ -1107,20 +1138,20 @@ struct MPIR_COMMUNICATOR *         comm;
  * in floating-point arithmetic (including choice of round-off mode and
  * the infamous fused multiply-add) can lead to different results.
  */
-static int intra_Allreduce ( sendbuf, recvbuf, count, datatype, op, comm )
-void             *sendbuf;
-void             *recvbuf;
-int               count;
-struct MPIR_DATATYPE *      datatype;
-MPI_Op            op;
-struct MPIR_COMMUNICATOR *         comm;
+static int intra_Allreduce ( 
+	void *sendbuf, 
+	void *recvbuf, 
+	int count, 
+	struct MPIR_DATATYPE *datatype, 
+	MPI_Op op, 
+	struct MPIR_COMMUNICATOR *comm )
 {
   int mpi_errno, rc;
 
   /* Reduce to 0, then bcast */
   mpi_errno = MPI_Reduce ( sendbuf, recvbuf, count, datatype->self, op, 0, 
 			   comm->self );
-  if (mpi_errno == MPI_ERR_OP_NOT_DEFINED || mpi_errno == MPI_SUCCESS) {
+  if (mpi_errno == MPIR_ERR_OP_NOT_DEFINED || mpi_errno == MPI_SUCCESS) {
       rc = MPI_Bcast  ( recvbuf, count, datatype->self, 0, comm->self );
       if (rc) mpi_errno = rc;
   }
@@ -1128,19 +1159,20 @@ struct MPIR_COMMUNICATOR *         comm;
   return (mpi_errno);
 }
 
-static int intra_Reduce_scatter ( sendbuf, recvbuf, recvcnts, datatype, op, comm )
-void             *sendbuf;
-void             *recvbuf;
-int              *recvcnts;
-struct MPIR_DATATYPE *      datatype;
-MPI_Op            op;
-struct MPIR_COMMUNICATOR *         comm;
+static int intra_Reduce_scatter ( 
+	void *sendbuf, 
+	void *recvbuf, 
+	int *recvcnts, 
+	struct MPIR_DATATYPE *datatype, 
+	MPI_Op op, 
+	struct MPIR_COMMUNICATOR *comm )
 {
   int   rank, size, i, count=0;
   MPI_Aint   lb, ub, m_extent;  /* Extent in memory */
   int  *displs;
   void *buffer;
   int   mpi_errno = MPI_SUCCESS, rc;
+  static char myname[] = "MPI_REDUCE_SCATTER";
 
   /* Determine the "count" of items to reduce and set the displacements*/
   MPIR_Type_get_limits( datatype, &lb, &ub );
@@ -1151,15 +1183,16 @@ struct MPIR_COMMUNICATOR *         comm;
 
   /* Allocate the displacements and initialize them */
   MPIR_ALLOC(displs,(int *)MALLOC(size*sizeof(int)),comm, MPI_ERR_EXHAUSTED, 
-			 "MPI_REDUCE_SCATTER" );
+			 myname);
   for (i=0;i<size;i++) {
     displs[i] = count;
     count += recvcnts[i];
     if (recvcnts[i] < 0) {
 	FREE( displs );
-	MPIR_ERROR_PUSH_ARG(&i);
-	MPIR_ERROR_PUSH_ARG(&recvcnts[i]);
-	return MPI_ERR_COUNT_ARRAY_NEG;
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_COUNT, MPIR_ERR_COUNT_ARRAY_NEG,
+				     myname, (char *)0, (char *)0,
+				     i, recvcnts[i] );
+	return mpi_errno;
     }
   }
 
@@ -1170,13 +1203,13 @@ struct MPIR_COMMUNICATOR *         comm;
       }
 
   MPIR_ALLOC(buffer,(void *)MALLOC(m_extent*count), comm, MPI_ERR_EXHAUSTED, 
-			 "MPI_REDUCE_SCATTER" );
+			 myname);
   buffer = (void *)((char*)buffer - lb);
 
   /* Reduce to 0, then scatter */
   mpi_errno = MPI_Reduce   ( sendbuf, buffer, count, datatype->self, op, 0, 
 			     comm->self);
-  if (mpi_errno == MPI_SUCCESS || mpi_errno == MPI_ERR_OP_NOT_DEFINED) {
+  if (mpi_errno == MPI_SUCCESS || mpi_errno == MPIR_ERR_OP_NOT_DEFINED) {
       rc = MPI_Scatterv ( buffer, recvcnts, displs, datatype->self,
 			  recvbuf, recvcnts[rank], datatype->self, 0,
 			  comm->self );
@@ -1187,13 +1220,14 @@ struct MPIR_COMMUNICATOR *         comm;
   return (mpi_errno);
 }
 
-static int intra_Scan ( sendbuf, recvbuf, count, datatype, op, comm )
-void             *sendbuf;
-void             *recvbuf;
-int               count;
-struct MPIR_DATATYPE *      datatype;
-MPI_Op            op;
-struct MPIR_COMMUNICATOR *         comm;
+#ifdef MPIR_USE_BASIC_COLL
+static int intra_Scan ( 
+	void *sendbuf, 
+	void *recvbuf, 
+	int count, 
+	struct MPIR_DATATYPE *datatype, 
+	MPI_Op op, 
+	struct MPIR_COMMUNICATOR *comm )
 {
   MPI_Status status;
   int        rank, size;
@@ -1281,3 +1315,4 @@ struct MPIR_COMMUNICATOR *         comm;
 
   return(mpi_errno);
 }
+#endif

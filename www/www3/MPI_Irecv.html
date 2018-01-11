@@ -10,14 +10,8 @@ Begins a nonblocking receive
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Irecv( buf, count, datatype, source, tag, comm, request )
-void             *buf;
-int              count;
-MPI_Datatype     datatype;
-int              source;
-int              tag;
-MPI_Comm         comm;
-MPI_Request      *request;
+int MPI_Irecv( void *buf, int count, MPI_Datatype datatype, int source, 
+        int tag, MPI_Comm comm, MPI_Request *request )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

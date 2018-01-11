@@ -80,7 +80,7 @@ isend()
   for(i = 0; i < 1000; i++)
     req[i] = MPI::REQUEST_NULL;
 
-  Testing("Isend / Irecv");
+  Testing( (char *)"Isend / Irecv");
 
   for(i = 0; i < comm_size; i++)  
     data_isend[i] = -1;
@@ -94,7 +94,7 @@ isend()
 
   Pass(); // Isend / Irecv
 
-  Testing("Issend / Irecv");
+  Testing( (char *)"Issend / Irecv");
   
   for(i = 0; i < comm_size; i++)
     data_isend[i] = -1;
@@ -108,7 +108,7 @@ isend()
 
   Pass(); // Issend / Irecv
 
-  Testing("Irsend / Irecv");
+  Testing( (char *)"Irsend / Irecv");
 
   for(i = 0; i < comm_size; i++)
     data_isend[i] = -1;
@@ -125,16 +125,16 @@ isend()
   
   Pass(); // Irsend / Irecv
 
-  Testing("Ibsend / Irecv");
+  Testing( (char *)"Ibsend / Irecv");
 
   if (flags[SKIP_IBM21014])
-    Done("Skipped (IBM 2.1.0.14)");
+    Done( (char *)"Skipped (IBM 2.1.0.14)");
   else if (flags[SKIP_IBM21015])
-    Done("Skipped (IBM 2.1.0.15)");
+    Done( (char *)"Skipped (IBM 2.1.0.15)");
   else if (flags[SKIP_IBM21016])
-    Done("Skipped (IBM 2.1.0.16)");
+    Done( (char *)"Skipped (IBM 2.1.0.16)");
   else if (flags[SKIP_IBM21017])
-    Done("Skipped (IBM 2.1.0.17)");
+    Done( (char *)"Skipped (IBM 2.1.0.17)");
   else {
     MPI::Attach_buffer(buf, sizeof(buf));
 

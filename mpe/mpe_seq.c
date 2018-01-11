@@ -1,3 +1,4 @@
+#include "mpeconf.h"
 #include "mpi.h"
 #include "mpe.h"
 #ifndef NULL

@@ -2,9 +2,9 @@ C
 C Fortran program to test the basic Fortran types
 C 
       subroutine SetupBasicTypes( basictypes, basicnames )
+      include 'mpif.h'
       integer basictypes(*)
       character*40 basicnames(*)
-      include 'mpif.h'
 C
       basictypes(1) = MPI_INTEGER
       basictypes(2) = MPI_REAL

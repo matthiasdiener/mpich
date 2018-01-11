@@ -1,5 +1,5 @@
 /*
- *  $Id: chinit.c,v 1.2 1998/03/13 22:32:27 gropp Exp $
+ *  $Id: chinit.c,v 1.7 1999/11/23 22:27:30 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -27,6 +27,8 @@ extern char *getenv();
 #include "mpiddev.h"
 #include "mpimem.h"
 #include "flow.h"
+#include "chpackflow.h"
+#include "packets.h"
 #include <stdio.h>
 
 /* #define DEBUG(a) {a} */
@@ -103,6 +105,9 @@ int  short_len, long_len;
     MPID_FlowSetup( buf_thresh, mem_thresh );
     }
 #endif
+#ifdef MPID_PACK_CONTROL
+    MPID_PacketFlowSetup( );
+#endif
 
     DEBUG_PRINT_MSG("Leaving MPID_CH_InitMsgPass");
 
@@ -136,8 +141,14 @@ MPID_Device *dev;
 {
     DEBUG_PRINT_MSG("Entering MPID_CH_End\n");
     /* Finish off any pending transactions */
-    /* MPID_CH_Complete_pending(); */
 
+#ifdef MPID_PACK_CONTROL
+#ifdef MPID_GET_LAST_PKT
+    MPID_FinishRecvPackets(dev);
+#endif
+    MPID_PackDelete();
+#endif
+    MPID_FinishCancelPackets(dev);
     if (MPID_GetMsgDebugFlag()) {
 	MPID_PrintMsgDebug();
     }
@@ -155,8 +166,13 @@ MPID_Device *dev;
 
     /* We should really generate an error or warning message if there 
        are uncompleted operations... */
-    
+
     PIiFinish();
+    /* chinit is the generic ADI channel init code.  There should be
+       no device-specific code inserted here.  Instead, put things like 
+       "close sockets" into the PIiFinish definition */
+    /* MPID_Close_sockets(); */
+    DEBUG_PRINT_MSG("Leaving MPID_CH_End");
     return 0;
 }
 

@@ -1,11 +1,30 @@
 /*
- *  $Id: cartdim_get.c,v 1.1.1.1 1997/09/17 20:42:39 gropp Exp $
+ *  $Id: cartdim_get.c,v 1.6 1999/08/30 15:50:57 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Cartdim_get = PMPI_Cartdim_get
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Cartdim_get  MPI_Cartdim_get
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Cartdim_get as PMPI_Cartdim_get
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpitopo.h"
 
 /*@
@@ -26,14 +45,13 @@ Output Parameter:
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-int MPI_Cartdim_get ( comm, ndims )
-MPI_Comm  comm;
-int      *ndims;
+EXPORT_MPI_API int MPI_Cartdim_get ( MPI_Comm comm, int *ndims )
 {
-  int mpi_errno, flag;
+  int mpi_errno = MPI_SUCCESS, flag;
   MPIR_TOPOLOGY *topo;
   struct MPIR_COMMUNICATOR *comm_ptr;
   static char myname[] = "MPI_CARTDIM_GET";
+  MPIR_ERROR_DECL;
 
   TR_PUSH(myname);
 
@@ -41,12 +59,20 @@ int      *ndims;
   MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
   /* Check for valid arguments */
-  if ( MPIR_TEST_ARG(ndims) )
-    return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+#ifndef MPIR_NO_ERROR_CHECKING
+  MPIR_TEST_ARG(ndims);
+  if (mpi_errno)
+      return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
 
   /* Get topology information from the communicator */
-  MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );
-
+  MPIR_ERROR_PUSH( comm_ptr );
+  mpi_errno = MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );
+  MPIR_ERROR_POP( comm_ptr );
+  /* Really need to convert this into a non-attr_get message */
+  if (mpi_errno) {
+      return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+  }
   /* Set dims */
   if ( ndims != (int *)0 )
     if ( (flag == 1) && (topo->type == MPI_CART) )

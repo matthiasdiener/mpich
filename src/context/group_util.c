@@ -1,5 +1,5 @@
 /*
- *  $Id: group_util.c,v 1.3 1998/01/29 14:26:45 gropp Exp $
+ *  $Id: group_util.c,v 1.5 1999/08/20 02:26:43 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -9,8 +9,7 @@
 #include "mpimem.h"
 
 
-struct MPIR_GROUP *MPIR_CreateGroup( np )
-int np;
+struct MPIR_GROUP *MPIR_CreateGroup( int np )
 {
     struct MPIR_GROUP *new;
     int        i;
@@ -40,8 +39,8 @@ int np;
     return new;
 }
 
-void MPIR_FreeGroup( group )
-struct MPIR_GROUP *group;
+void MPIR_FreeGroup( 
+	struct MPIR_GROUP *group)
 {
     TR_PUSH("MPIR_FreeGroup");
 
@@ -57,8 +56,8 @@ struct MPIR_GROUP *group;
     TR_POP;
 }
 
-void MPIR_SetToIdentity( g )
-struct MPIR_GROUP *g;
+void MPIR_SetToIdentity( 
+	struct MPIR_GROUP *g)
 {
   int np, i;
 
@@ -79,8 +78,9 @@ struct MPIR_GROUP *g;
 MPIR_Group_dup -
 
 +*/
-void MPIR_Group_dup( group, new_group )
-struct MPIR_GROUP *group, **new_group;
+void MPIR_Group_dup( 
+	struct MPIR_GROUP *group, 
+	struct MPIR_GROUP **new_group)
 {
   (*new_group) = group;
   if ( group != MPI_GROUP_NULL ) {
@@ -94,8 +94,8 @@ struct MPIR_GROUP *group, **new_group;
 MPIR_Dump_group - dump group information
 
 +*/
-int MPIR_Dump_group ( group )
-struct MPIR_GROUP *group;
+int MPIR_Dump_group ( 
+	struct MPIR_GROUP *group)
 {
   int i, rank;
   (void)MPIR_Comm_rank ( MPIR_COMM_WORLD, &rank );
@@ -117,8 +117,9 @@ struct MPIR_GROUP *group;
 MPIR_Dump_ranks - dump an array of ranks
 
 +*/
-int MPIR_Dump_ranks ( n, ranks )
-int n, *ranks;
+int MPIR_Dump_ranks ( 
+	int n, 
+	int *ranks)
 {
   int i;
 
@@ -134,8 +135,9 @@ int n, *ranks;
 MPIR_Dump_ranges - dump an array of ranges
 
 +*/
-int MPIR_Dump_ranges ( n, ranges )
-int n, *ranges;
+int MPIR_Dump_ranges ( 
+	int n, 
+	int *ranges)
 {
   int i;
 
@@ -154,9 +156,10 @@ MPIR_Powers_of_2 - given a number N, determine the previous and next
                    powers of 2
 
 +*/
-int MPIR_Powers_of_2 ( N, N2_next, N2_prev )
-int  N;
-int *N2_next, *N2_prev;
+int MPIR_Powers_of_2 ( 
+	int  N,
+	int *N2_next, 
+	int *N2_prev)
 {
   int high     = 131072;
   int low      = 1;
@@ -194,9 +197,9 @@ int *N2_next, *N2_prev;
 MPIR_Group_N2_prev - retrieve greatest power of two < size of group.
 
 +*/
-int MPIR_Group_N2_prev ( group, N2_prev )
-struct MPIR_GROUP *group;
-int       *N2_prev;
+int MPIR_Group_N2_prev ( 
+	struct MPIR_GROUP *group,
+	int       *N2_prev)
 {
   (*N2_prev) = group->N2_prev;
   return (MPI_SUCCESS);

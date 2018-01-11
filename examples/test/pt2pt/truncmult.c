@@ -10,9 +10,9 @@
 #include <stdlib.h>
 #include "test.h"
 /* Prototypes for picky compilers */
-int SetupRecvBuf ANSI_ARGS(( int * ));
-int CheckRecvErr ANSI_ARGS(( int, MPI_Status *, int *, char * ));
-int CheckRecvOk  ANSI_ARGS(( MPI_Status *, int *, int, char * ));
+int SetupRecvBuf ( int * );
+int CheckRecvErr ( int, MPI_Status *, int *, char * );
+int CheckRecvOk  ( MPI_Status *, int *, int, char * );
 
 int main( int argc, char **argv )
 {

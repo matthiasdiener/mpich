@@ -1,11 +1,30 @@
 /*
- *  $Id: group_inter.c,v 1.3 1998/04/28 20:58:10 swider Exp $
+ *  $Id: group_inter.c,v 1.8 1999/08/30 15:43:18 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Group_intersection = PMPI_Group_intersection
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Group_intersection  MPI_Group_intersection
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Group_intersection as PMPI_Group_intersection
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpimem.h"
 
 /*@
@@ -29,8 +48,8 @@ Output Parameter:
 
 .seealso: MPI_Group_free
 @*/
-int MPI_Group_intersection ( group1, group2, group_out )
-MPI_Group group1, group2, *group_out;
+EXPORT_MPI_API int MPI_Group_intersection ( MPI_Group group1, MPI_Group group2, 
+			     MPI_Group *group_out )
 {
   int        i, j, global_rank;
   struct MPIR_GROUP *group1_ptr, *group2_ptr, *new_group_ptr;
@@ -41,11 +60,17 @@ MPI_Group group1, group2, *group_out;
   TR_PUSH(myname);
 
   group1_ptr = MPIR_GET_GROUP_PTR(group1);
-  MPIR_TEST_MPI_GROUP(group1,group1_ptr,MPIR_COMM_WORLD,myname);
 
   group2_ptr = MPIR_GET_GROUP_PTR(group2);
-  MPIR_TEST_MPI_GROUP(grou2p,group2_ptr,MPIR_COMM_WORLD,myname);
 
+#ifndef MPIR_NO_ERROR_CHECKING
+  /* MPIR_TEST_MPI_GROUP(group1,group1_ptr,MPIR_COMM_WORLD,myname); */
+  /* MPIR_TEST_MPI_GROUP(group2,group2_ptr,MPIR_COMM_WORLD,myname); */
+  MPIR_TEST_GROUP(group1_ptr);
+  MPIR_TEST_GROUP(group2_ptr);
+  if (mpi_errno)
+      return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+#endif
   /* Check for EMPTY groups */
   if ( (group1 == MPI_GROUP_EMPTY) || (group2 == MPI_GROUP_EMPTY) ) {
       MPIR_Group_dup ( MPIR_GROUP_EMPTY, &new_group_ptr );

@@ -68,16 +68,16 @@ buffer()
   void* oldbuf;
   MPI::Status status;
 
-  Testing("Attach_buffer / Detach_buffer");
+  Testing( (char *)"Attach_buffer / Detach_buffer");
 
   if (flags[SKIP_IBM21014])
-    Done("Skipped (IBM 2.1.0.14)");
+    Done( (char *)"Skipped (IBM 2.1.0.14)");
   else if (flags[SKIP_IBM21015])
-    Done("Skipped (IBM 2.1.0.15)");
+    Done( (char *)"Skipped (IBM 2.1.0.15)");
   else if (flags[SKIP_IBM21016])
-    Done("Skipped (IBM 2.1.0.16)");
+    Done( (char *)"Skipped (IBM 2.1.0.16)");
   else if (flags[SKIP_IBM21017])
-    Done("Skipped (IBM 2.1.0.17)");
+    Done( (char *)"Skipped (IBM 2.1.0.17)");
   else {
     if(my_rank == 0) {
       size = 0;

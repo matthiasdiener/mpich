@@ -6,21 +6,29 @@
 #include <stdio.h>
 #include "clog_time.h"		/* definitions of CLOG timer access rtns */
 
-/* the function of the CLOG logging routines is to write log records into 
+/* 
+   the function of the CLOG logging routines is to write log records into 
    buffers, which are processed later.
-   */
+*/
 
-/* CLOG buffers are linked lists of CLOG blocks, allocated as needed.
+/* 
+   CLOG buffers are linked lists of CLOG blocks, allocated as needed.
    Note that blocks are actually a little longer than CLOG_BLOCK_SIZE, which
-   is the length of the data part */
+   is the length of the data part
+*/
 
-/* #define CLOG_BLOCK_SIZE  8*1024   in bytes, multiple of sizeof(double) */
-#define CLOG_BLOCK_SIZE 1024 
+/* mpich 1.1.2 and before's clog_block size is 1024 */
+/*
+   #define CLOG_BLOCK_SIZE 1024
+*/
+#define CLOG_BLOCK_SIZE 65536
+
 typedef struct _CLOG_BLOCK {
     struct _CLOG_BLOCK *next;	/* next block */
     double data[CLOG_BLOCK_SIZE / sizeof (double) ];
 } CLOG_BLOCK;
     
+#define MAX_CLOG_BLOCKS 100
 
 /* Formats of all records */
 
@@ -130,8 +138,12 @@ typedef struct {
 
 /* log file types - currently old alog format for backward compatibility as
                     well as "native" clog format. */
-#define CLOG_LOG        1
-#define ALOG_LOG        2
+#define ALOG_LOG        1
+#define CLOG_LOG        2
+#define SLOG_LOG        3
+
+/* (abhi) memory requirement for SLOG */
+#define SLOG_MEMORY_REQUIREMENT 2048
 
 /* special event ids for ALOG compatibility */
 #define LOG_MESG_SEND -101
@@ -169,7 +181,13 @@ extern int    CLOG_srcid;	/* next id for source code location */
 extern int    CLOG_nextevent;	/* next id for user-defined events */
 extern int    CLOG_nextstate;	/* next id for user-defined state  */
 extern char   CLOG_filename[];	/* name for log file */
-
+extern char   CLOG_tmpfilename[]; /* temp log file name (abhi) */ 
+extern int    CLOG_tempFD;      /* temp log file descriptor (abhi) */
+extern double *out_buffer, *left_buffer,
+              *right_buffer;    /* buffers for clog-merge (abhi) */ 
+extern int    CLOG_num_blocks;
+extern long   event_count;
+extern void   *slog_buffer;
 /************************* function prototypes ***************************/
 
 #ifdef ANSI_ARGS
@@ -199,6 +217,9 @@ void CLOG_newbuff ANSI_ARGS(( CLOG_BLOCK **));
 int  CLOG_get_new_event ANSI_ARGS(( void ));
 int  CLOG_get_new_state ANSI_ARGS(( void ));
 void CLOG_setup ANSI_ARGS(( void ));
+void CLOG_init_tmpfilename ANSI_ARGS(( void ));
+void CLOG_temp_log ANSI_ARGS(( void ));
+void CLOG_init_buffers ANSI_ARGS(( void ));
 
 /*********************** macros *******************************************/
 

@@ -75,7 +75,7 @@ testany()
     req[i] = MPI::REQUEST_NULL;
   }
 
-  Testing("Testany w/ Status");
+  Testing( (char *)"Testany w/ Status");
 
   if(my_rank > 0) 
     MPI::COMM_WORLD.Send(&my_rank, 1, MPI::INT, 0, 1);
@@ -121,7 +121,7 @@ testany()
       req[i].Free();
   }
 
-  Testing("Testany w/o Status");
+  Testing( (char *)"Testany w/o Status");
 
   if(my_rank > 0) 
     MPI::COMM_WORLD.Send(&my_rank, 1, MPI::INT, 0, 1);

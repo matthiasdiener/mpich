@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_util.c,v 1.2 1998/01/29 14:26:27 gropp Exp $
+ *  $Id: comm_util.c,v 1.5 1999/08/20 02:26:34 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -20,14 +20,14 @@ MPIR_Comm_make_coll - make a hidden collective communicator
 
 See comm_create.c for code that creates a visible communicator.
 */
-int MPIR_Comm_make_coll ( comm, comm_type )
-struct MPIR_COMMUNICATOR *comm;
-MPIR_COMM_TYPE comm_type;
+int MPIR_Comm_make_coll ( struct MPIR_COMMUNICATOR *comm, 
+			  MPIR_COMM_TYPE comm_type )
 {
   struct MPIR_COMMUNICATOR *new_comm;
   int      mpi_errno;
 
-  MPIR_ALLOC(new_comm,NEW(struct MPIR_COMMUNICATOR),comm,MPI_ERR_COMM_NAME,
+  MPIR_ALLOC(new_comm,NEW(struct MPIR_COMMUNICATOR),comm,
+	     MPIR_ERRCLASS_TO_CODE(MPI_ERR_COMM,MPIR_ERR_COMM_NAME),
 			"internal-Comm_make_coll" );
   MPIR_Comm_init( new_comm, comm, comm_type );
   MPIR_Attr_dup_tree ( comm, new_comm );
@@ -84,9 +84,9 @@ MPIR_COMM_TYPE comm_type;
 MPIR_Comm_N2_prev - retrieve greatest power of two < size of Comm.
 
 +*/
-int MPIR_Comm_N2_prev ( comm, N2_prev )
-struct MPIR_COMMUNICATOR *comm;
-int              *N2_prev;
+int MPIR_Comm_N2_prev ( 
+	struct MPIR_COMMUNICATOR *comm,
+	int *N2_prev)
 {
   (*N2_prev) = comm->group->N2_prev;
   return (MPI_SUCCESS);
@@ -96,8 +96,8 @@ int              *N2_prev;
 /*+
   MPIR_Dump_comm - utility function to dump a communicator 
 +*/
-int MPIR_Dump_comm ( comm )
-struct MPIR_COMMUNICATOR * comm;
+int MPIR_Dump_comm ( 
+	struct MPIR_COMMUNICATOR * comm )
 {
   int  rank;
 
@@ -128,9 +128,9 @@ struct MPIR_COMMUNICATOR * comm;
   MPIR_Intercomm_high - determine a high value for an
                         inter-communicator
 +*/
-int MPIR_Intercomm_high ( comm, high )
-struct MPIR_COMMUNICATOR *  comm;
-int      *high;
+int MPIR_Intercomm_high ( 
+	struct MPIR_COMMUNICATOR * comm,
+	int *high)
 {
   MPI_Status status;
   struct MPIR_COMMUNICATOR *   inter = comm->comm_coll;
@@ -176,9 +176,10 @@ MPIR_Comm_init  - Initialize some of the elements of a communicator from
 		  to void.  gcc in check mode complains about not using the
 		  result, even when cast to void!
 */
-void MPIR_Comm_init ( new_comm, comm, comm_type )
-struct MPIR_COMMUNICATOR *new_comm, *comm;
-MPIR_COMM_TYPE comm_type;
+void MPIR_Comm_init ( 
+	struct MPIR_COMMUNICATOR *new_comm, 
+	struct MPIR_COMMUNICATOR *comm,
+	MPIR_COMM_TYPE comm_type)
 {
   MPIR_SET_COOKIE(new_comm,MPIR_COMM_COOKIE);
   new_comm->self = (MPI_Comm) MPIR_FromPointer(new_comm);
@@ -203,8 +204,8 @@ MPIR_Comm_remember - remember the communicator on the list of
 		     to see it.
 
 +*/
-void MPIR_Comm_remember( new_comm )
-struct MPIR_COMMUNICATOR * new_comm;
+void MPIR_Comm_remember( 
+	struct MPIR_COMMUNICATOR * new_comm)
 {
   /* What about thread locking ? */
   new_comm->comm_next = MPIR_All_communicators.comm_first;
@@ -222,8 +223,8 @@ MPIR_Comm_forget - forget a communicator which is going away
 		   communicator.
 
 +*/
-void MPIR_Comm_forget( old_comm )
-struct MPIR_COMMUNICATOR *old_comm;
+void MPIR_Comm_forget( 
+	struct MPIR_COMMUNICATOR *old_comm)
 {
   struct MPIR_COMMUNICATOR * *p;
 
@@ -243,9 +244,9 @@ struct MPIR_COMMUNICATOR *old_comm;
  * Default to the ones MPIR provides.
  */
 
-void MPIR_Comm_collops_init( comm, comm_type )
-struct MPIR_COMMUNICATOR * comm;
-MPIR_COMM_TYPE comm_type;
+void MPIR_Comm_collops_init( 
+	struct MPIR_COMMUNICATOR * comm,
+	MPIR_COMM_TYPE comm_type)
 {  
     comm->collops = (comm_type == MPIR_INTRA) ? MPIR_intra_collops :
                                                 MPIR_inter_collops ;
@@ -268,10 +269,12 @@ MPIR_Sort_split_table - sort split table using a yuckie sort (YUCK!).  I'll
 
 +*/
 #define MPIR_EOTABLE -1
-int MPIR_Sort_split_table ( size, rank, table, head, list_size )
-int  size, rank;
-int *table;
-int *head, *list_size;
+int MPIR_Sort_split_table ( 
+	int size, 
+	int rank, 
+	int *table, 
+	int *head, 
+	int *list_size )
 {
   int i, j, prev;
   int color = MPIR_Table_color(table,rank);

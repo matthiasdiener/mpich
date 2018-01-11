@@ -1,13 +1,13 @@
-.TH MPI_Get_count 3 "1/5/1999" " " "MPI"
+.TH MPI_Get_count 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Get_count \-  Gets the number of "top level" elements 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Get_count( status, datatype, count )
-MPI_Status   *status;
-MPI_Datatype datatype;
-int          *count;
+int MPI_Get_count( 
+ MPI_Status *status, 
+ MPI_Datatype datatype, 
+ int *count )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

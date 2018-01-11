@@ -19,7 +19,7 @@ combinations of
   -overlap     Overlap computation with communication (see -size)
   -overlapmsgsize nn
                Size of messages to overlap with is nn bytes.
-  -bisect      Bisection test (all processes participate
+  -bisect      Bisection test (all processes participate)
   -bisectdist n Distance between processes
     
   Message sizes:
@@ -41,6 +41,8 @@ combinations of
                -autoreps
   -rthresh d   Fractional threshold used to determine when minimum time
                has been found.  The default is 0.05.
+  -sample_reps n   Number of times a full test is run inorder to find the
+               minimum average time.  The default is 30
 
   -gop [ options ]:
 

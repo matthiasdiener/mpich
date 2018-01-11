@@ -10,13 +10,8 @@ Combines values and scatters the results
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Reduce_scatter ( sendbuf, recvbuf, recvcnts, datatype, op, comm )
-void             *sendbuf;
-void             *recvbuf;
-int              *recvcnts;
-MPI_Datatype      datatype;
-MPI_Op            op;
-MPI_Comm          comm;
+int MPI_Reduce_scatter ( void *sendbuf, void *recvbuf, int *recvcnts, 
+    MPI_Datatype datatype, MPI_Op op, MPI_Comm comm )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

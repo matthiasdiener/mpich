@@ -1,6 +1,16 @@
 #include "p4.h"
 #include "p4_sys.h"
 
+/* Type for accept calls */
+#ifdef USE_SOCKLEN_T
+typedef socklen_t p4_sockopt_len_t;
+#elif defined(USE_SIZE_T_FOR_SOCKLEN_T)
+typedef size_t p4_sockopt_len_t;
+#else
+typedef int p4_sockopt_len_t;
+#endif
+
+
 /* #if defined(SYMMETRY) || defined(SUN)  || \
     defined(DEC5000)  || defined(SGI)  || \
     defined(RS6000)   || defined(HP)   || \
@@ -58,7 +68,8 @@ char *(*pw_hook) ANSI_ARGS(( char *, char *));
     int new_port, new_fd, stdout_fd;
     char msg[500];
     struct sockaddr_in temp;
-    int rc, templen;
+    int rc;
+    p4_sockopt_len_t templen;
     int pid;
     struct timeval tv;
     fd_set rcv_fds;
@@ -78,7 +89,7 @@ char *(*pw_hook) ANSI_ARGS(( char *, char *));
     pw = getpwuid(geteuid());
     if (pw == NULL)
     {
-	extern char *getlogin ANSI_ARGS((void));
+	extern char *getlogin (void);
 
 	local_username = getlogin();
 	if (local_username == NULL)
@@ -112,6 +123,7 @@ char *(*pw_hook) ANSI_ARGS(( char *, char *));
     printf("Got reply1 '%s'\n", buf);
 #endif
 
+    /* Proceed-2 indicates the new server, Proceed is the old server */
     if (strncmp(buf, "Password", 8) == 0)
     {
 	if (pw_hook == NULL)
@@ -123,18 +135,44 @@ char *(*pw_hook) ANSI_ARGS(( char *, char *));
 #ifdef DEBUG
 	printf("Got reply '%s'\n", buf);
 #endif
-	if (strncmp(buf, "Proceed", 7) != 0)
+	if (strncmp(buf, "Proceed", 7) != 0 && 
+	    strncmp(buf, "Proceed-2", 9 ) != 0)
 	{
 	    start_prog_error = buf;
 	    return -4;
 	}
     }
-    else if (strncmp(buf, "Proceed", 7) != 0)
+    else if (strncmp(buf, "Proceed", 7) != 0 && 
+	     strncmp(buf, "Proceed-2", 9 ) != 0)
     {
 	start_prog_error = buf;
 	return -4;
     }
 
+    /* We can send the environment here if we are using the newer server */
+    /* The environment values are (count)\n#chars\nvariable=value\n.... */
+#define P4_SEND_ENVIRONMENT
+#ifdef P4_SEND_ENVIRONMENT
+    if (strncmp( buf, "Proceed-2", 9 ) == 0) {
+	extern char **environ;
+	char digits[10];
+	int  environ_count;
+
+	for (environ_count = 0; environ[environ_count] != NULL; 
+	     environ_count++);
+	sprintf( digits, "%d", environ_count );
+	send_string( conn, "%env" );
+	send_string( conn, digits );
+	for (environ_count = 0; environ[environ_count] != NULL; 
+	     environ_count++) {
+	    sprintf( digits, "%d", (int)strlen( environ[environ_count] ) );
+	    send_string( conn, digits );
+	    send_string( conn, environ[environ_count] );
+	}
+    }
+#endif    
+    
+    /* Send the program and then the args */
     send_string(conn, prog);
 
     sprintf(pgm_args_string, "%s %d %s", myhost, port, am_slave);

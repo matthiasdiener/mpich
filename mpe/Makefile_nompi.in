@@ -13,7 +13,7 @@ CLINKER     = $(CC)
 F77         = @F77@
 AR          = @AR@ cr
 RANLIB      = @RANLIB@
-INCLUDE_DIR = @X_INC@ @INCLUDEDIR@
+INCLUDE_DIR = @X_INC@ @INCLUDEDIR@ -I${srcdir} -I.
 OPTFLAGS    = @OPTFLAGS@
 MPE_GRAPH   = @MPE_GRAPHICS@
 LIB_PATH    = -L@MPE_LIBPATH@ @X_LIB@ @MPI_LIBS@
@@ -26,6 +26,14 @@ MPEGRAPHICS_FOBJS   = @MPEGRAPHICS_FOBJS@
 ### End User configurable options ###
 
 SHELL = /bin/sh
+@VPATH@
+prefix       = @prefix@
+exec_prefix  = @exec_prefix@
+top_srcdir   = @top_srcdir@
+srcdir       = @srcdir@
+libbuild_dir = @libbuild_dir@
+binbuild_dir = @binbuild_dir@
+
 
 CFLAGS = @MPE_CFLAGS@ $(MPE_GRAPH) $(OPTFLAGS) $(INCLUDE_DIR) 
 
@@ -45,13 +53,15 @@ MPE_OBJECTS = $(MPE_COBJECTS) $(MPE_WOBJECTS)
 # but this would require that all makes properly handle library dependencies.
 # Since makes that DO are the exception rather than the rule, we don't
 # use this form
-$(LIB_DIR)/libmpe_nompi.a: $(MPEGRAPHICS_OBJS) mpehname.o
+${libbuild_dir}/libmpe_nompi.a: $(MPEGRAPHICS_OBJS) mpehname.o
 	$(AR) $@ $?
 	$(RANLIB) $@
+
+clean: $(MPEGRAPHICS_OBJS) mpehname.o
 	-/bin/rm -f $?
 
 .c.o:
-	$(CC) $(CFLAGS) -DMPE_NOMPI -c $*.c
+	$(CC) $(CFLAGS) -DMPE_NOMPI -c $<
 
 .c.a:
-	$(CC) $(CFLAGS) -DMPE_NOMPI -c $*.c
+	$(CC) $(CFLAGS) -DMPE_NOMPI -c $<

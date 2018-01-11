@@ -23,7 +23,8 @@
 #undef HAVE_LONG_LONG_INT
 
 /* Define if C supports long doubles */
-#undef HAVE_LONG_DOUBLE 
+/* This is part of the default acconfig.h */
+/* #undef HAVE _ LONG _ DOUBLE  */
 
 /* Define if msem_init function available */
 #undef HAVE_MSEM_INIT
@@ -33,6 +34,9 @@
 
 /* Define if C supports prototypes (but isn't ANSI C) */
 #undef HAVE_PROTOTYPES
+
+/* Define if C preprocessor does not accept ## for concatenation */
+#undef OLD_STYLE_CPP_CONCAT
 
 /* Define if uname function available */
 #undef HAVE_UNAME
@@ -66,6 +70,9 @@
 
 /* Define if stdarg can be used */
 #undef USE_STDARG
+
+/* Define if oldstyle stdarg (one arg va_start) can be used */
+#undef USE_OLDSTYLE_STDARG
 
 /* For Cray, define two word character descriptors in use */
 #undef _TWO_WORD_FCD
@@ -114,3 +121,39 @@
 
 /* Define this to force SysV semop for locks */
 #undef USE_SEMOP
+
+/* Define this if the union semun that is REQUIRED for semctl is NOT 
+   defined by ANY system header file */
+#undef SEMUN_UNDEFINED
+
+/* Define this if weak symbols are supported */
+#undef HAVE_WEAK_SYMBOLS
+
+/* Define this if the weak symbol support is pragma weak */
+#undef HAVE_PRAGMA_WEAK
+
+/* Define this if the weak symbol support is pragma _HP_SECONDARY_DEF */
+#undef HAVE_PRAGMA_HP_SEC_DEF
+
+/* Define this if the weak symbol support is pragma _CRI duplicate */
+#undef HAVE_PRAGMA_CRI_DUP
+
+/* Define this is semctl requires a union semun */
+#undef SEMCTL_ARG_UNION
+
+/* The following are for mpid/ch_shmem */
+/* Define these for IRIX uslocks */
+#undef HAVE_USLOCKS
+#undef PREFER_USLOCKS
+#undef PREFER_SPINLOCKS
+#undef PREFER_ARENAS
+#undef HAVE_ARENAS
+
+/* Define these for SX-4 tslocks */
+#undef HAVE_TSLOCKS
+#undef PREFER_TSLOCKS
+
+/* These provide information for initutil about the configuration options */
+#undef CONFIGURE_ARGS_CLEAN
+#undef MPIRUN_MACHINE
+#undef MPIRUN_DEVICE

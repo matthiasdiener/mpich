@@ -3,6 +3,8 @@
 #include "mpimem.h"
 #include "reqalloc.h"
 #include "sendq.h"	/* For MPIR_FORGET_SEND */
+#include "flow.h"
+#include "chpackflow.h"
 
 /* Shared memory by rendezvous.  Messages are sent in one of two ways 
    (not counting the short in packet way):
@@ -59,10 +61,27 @@ MPIR_SHANDLE *shandle;
     DEBUG_PRINT_MSG("S About to get pkt for request to send");
     pkt = (MPID_PKT_GET_T *) MPID_SHMEM_GetSendPkt(0);
     /* GetSendPkt hangs untill successful */
+    DEBUG_PRINT_MSG("S Starting Rndvb_isend");
+#ifdef MPID_PACK_CONTROL
+    while (!MPID_PACKET_CHECK_OK(dest)) {  /* begin while !ok loop */
+	/* Wait for a protocol ACK packet */
+#ifdef MPID_DEBUG_ALL
+	if (MPID_DebugFlag || MPID_DebugFlow)
+	    FPRINTF(MPID_DEBUG_FILE,
+	 "[%d] S Waiting for a protocol ACK packet (in rndvb isend) from %d\n",
+		    MPID_myid, dest);
+#endif
+	MPID_DeviceCheck( MPID_BLOCKING );
+    }  /* end while !ok loop */
+
+    MPID_PACKET_ADD_SENT(MPID_myid, dest);
+#endif
 
     pkt->mode	    = MPID_PKT_REQUEST_SEND_GET;
     pkt->context_id = context_id;
     pkt->lrank	    = src_lrank;
+    pkt->to         = dest;
+    pkt->seqnum     = sizeof(MPID_PKT_GET_T);
     pkt->tag	    = tag;
     pkt->len	    = len;
 
@@ -85,6 +104,8 @@ MPIR_SHANDLE *shandle;
     shandle->test            = MPID_SHMEM_Rndvn_send_test_ack;
     /* shandle->finish must NOT be set here; it must be cleared/set
        when the request is created */
+    /* Store partners rank in request in case message is cancelled */
+    shandle->partner         = dest;
     DEBUG_PRINT_BASIC_SEND_PKT("S Sending rndv-get message",pkt)
     MPID_n_pending++;
     MPID_SHMEM_SendControl( (MPID_PKT_T *)pkt, sizeof(MPID_PKT_GET_T), dest );
@@ -134,12 +155,25 @@ MPID_Msgrep_t msgrep;
 int MPID_SHMEM_Rndvn_ack( in_pkt, from_grank )
 void  *in_pkt;
 int   from_grank;
-{
+
+{  /* begin MPID_SHMEM_Rndvn_ack */
+
     MPID_PKT_GET_T *pkt = (MPID_PKT_GET_T *)in_pkt;
     int            len;
     int            is_done;
+    int            temp_to, temp_lrank;
 
-    if (pkt->mode == MPID_PKT_OK_TO_SEND_GET) {
+    DEBUG_PRINT_MSG("R Starting Rndvb_ack");
+#ifdef MPID_PACK_CONTROL
+    if (MPID_PACKET_RCVD_GET(pkt->src)) {
+	MPID_SendProtoAck(pkt->to, pkt->src);
+    }
+    MPID_PACKET_ADD_RCVD(pkt->to, pkt->src);
+#endif
+
+    if (pkt->mode == MPID_PKT_OK_TO_SEND_GET) {  
+	/* begin if mode == OK_TO_SEND_GET */
+
 	MPIR_SHANDLE *shandle=0;
 	MPID_AINT_GET(shandle,pkt->send_id);
 #ifdef MPIR_HAS_COOKIES
@@ -151,46 +185,72 @@ int   from_grank;
 			"Bad address in Rendezvous send" );
 	}
 #endif	
+#ifdef MPID_PACK_CONTROL
+    while (!MPID_PACKET_CHECK_OK(pkt->src)) {  /* begin while !ok loop */
+	/* Wait for a protocol ACK packet */
+#ifdef MPID_DEBUG_ALL
+	if (MPID_DebugFlag || MPID_DebugFlow)
+	    FPRINTF(MPID_DEBUG_FILE,
+	 "[%d] S Waiting for a protocol ACK packet (in rndvb isend) from %d\n",
+		    MPID_myid, pkt->src);
+#endif
+	MPID_DeviceCheck( MPID_BLOCKING );
+    }  /* end while !ok loop */
+
+    MPID_PACKET_ADD_SENT(pkt->to, pkt->src);
+#endif
+
 	/* Continuing data */
 	DEBUG_PRINT_MSG("Sending incremental cont get");
-	pkt->mode = MPID_PKT_CONT_GET;
-	if (pkt->len_avail == 0) {
+        temp_to     = pkt->to;
+	temp_lrank  = pkt->lrank;
+	pkt->mode   = MPID_PKT_CONT_GET;
+	pkt->to     = temp_lrank;
+        pkt->lrank  = temp_to;
+	pkt->seqnum = sizeof(MPID_PKT_GET_T) + shandle->bytes_as_contig;
+
+	if (pkt->len_avail == 0) {  /* begin if len_avail */
 	    /* Need to get initial memory */
 	    /* Handle the special case of 0-length data */
 	    /* This results in one more message but simplifies the 
 	       rest of the code */
 	    pkt->len_avail = shandle->bytes_as_contig;
-	    if (pkt->len_avail > 0) {
+	    if (pkt->len_avail > 0) {  /* begin if len_avail > 0 */
 		pkt->address = MPID_SetupGetAddress( shandle->start, 
-						 &pkt->len_avail, from_grank );
-	    }
+					    &pkt->len_avail, from_grank );
+	    }  /* end if len_avail > 0 */
 	    else 
 		pkt->address = 0;
 	    pkt->cur_offset = 0;
-	}
-	else {
+	}  /* end if len_avail == 0 */
+
+	else {  /* begin else */
 	    pkt->cur_offset	+= pkt->len_avail;
-	}
+	}  /* end else */
+
 	/* Compute length available to send.  If this is it,
 	   remember so that we can mark the operation as complete */
 	len		 = shandle->bytes_as_contig - pkt->cur_offset;
-	if (len > pkt->len_avail) {
+	if (len > pkt->len_avail) {  /* begin if len > len_avail */
 	    len = pkt->len_avail;
 	    is_done = 0;
-	}
-	else {
+	}  /* end if len > len_avail */
+
+	else {  /* begin else */
 	    pkt->len_avail	 = len;
 	    is_done = 1;
-	}
+	}  /* end else */
 	    
-	if (len > 0) {
-	    MEMCPY( pkt->address, ((char *)shandle->start) + pkt->cur_offset, 
+	if (len > 0) {  /* begin if len > 0 */
+	    MEMCPY( pkt->address, ((char *)shandle->start) + pkt->cur_offset,
 		    len );
-	}
+	}  /* end if len > 0 */
+
 	DEBUG_PRINT_BASIC_SEND_PKT("S Sending cont-get message",pkt)
 	MPID_SHMEM_SendControl( (MPID_PKT_T *)pkt, 
 				sizeof(MPID_PKT_GET_T), from_grank );
-	if (is_done) {
+
+	if (is_done) {  /* begin if is_done */
 	    MPID_n_pending--;
 	    shandle->is_complete = 1;
 	    if (shandle->finish)
@@ -199,14 +259,17 @@ int   from_grank;
 	    /* If the corresponding send request is orphaned, delete it */
 	    /* printf( "Completed rendezvous send shandle = %x (ref=%d)\n", 
 		    (long)shandle, shandle->ref_count ); */
-	    if (shandle->ref_count == 0) {
+	    if (shandle->ref_count == 0) {  /* begin if ref_count == 0 */
 		/* ? persistent requests? */
 	        MPIR_FORGET_SEND( shandle );
 		MPID_SendFree( shandle );
-	    }
-	}
-    }
-    else if (pkt->mode == MPID_PKT_CONT_GET) {
+	    }  /* begin if ref_count == 0 */
+	    
+	}  /* end if is_done */
+    }	/* end if mode == OK_TO_SEND_GET */
+
+    else if (pkt->mode == MPID_PKT_CONT_GET) {  /* begin if mode == CONT_GET */
+
 	/* Data is available */
 	MPIR_RHANDLE *rhandle=0;
 	MPID_AINT_GET(rhandle,pkt->recv_id);
@@ -219,11 +282,14 @@ int   from_grank;
 		    "Bad address in Rendezvous send" );
     }
 #endif	
-	if (pkt->len_avail > 0) {
+	if (pkt->len_avail > 0) {  /* begin if len_avail > 0 */
 	    MEMCPY( ((char *)rhandle->buf) + pkt->cur_offset, pkt->address, 
 		    pkt->len_avail );
-	}
+	}  /* end if len_avail > 0 */
+
 	if (pkt->len_avail + pkt->cur_offset >= rhandle->s.count) {
+	    /* begin if len_avail + cur_offset > s.count */
+
 	    /* We have all the data; the transfer is complete and
 	       we can release the packet and the memory */
 	    rhandle->is_complete = 1;
@@ -231,16 +297,36 @@ int   from_grank;
 		(rhandle->finish)( rhandle );
 	    MPID_FreeGetAddress( pkt->address );
 	    MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T*)pkt );
-	}
-	else {
+	}  /* end if len_avail + cur_offset > s.count */
+
+	else {  /* begin else */
 	    pkt->mode = MPID_PKT_OK_TO_SEND_GET;
 	    DEBUG_PRINT_BASIC_SEND_PKT("R Sending ok-to-send message",pkt)
-	    MPID_SHMEM_SendControl( (MPID_PKT_T *)pkt, 
-				    sizeof(MPID_PKT_GET_T), from_grank );
-	}
-    }
+#ifdef MPID_PACK_CONTROL
+    while (!MPID_PACKET_CHECK_OK(pkt->src)) {  /* begin while !ok loop */
+	/* Wait for a protocol ACK packet */
+#ifdef MPID_DEBUG_ALL
+	if (MPID_DebugFlag || MPID_DebugFlow)
+	    FPRINTF(MPID_DEBUG_FILE,
+	 "[%d] S Waiting for a protocol ACK packet (in rndvb isend) from %d\n",
+		    MPID_myid, pkt->src);
+#endif
+	MPID_DeviceCheck( MPID_BLOCKING );
+    }  /* end while !ok loop */
+
+    MPID_PACKET_ADD_SENT(pkt->to, pkt->src);
+#endif
+
+	MPID_SHMEM_SendControl( (MPID_PKT_T *)pkt, 
+				sizeof(MPID_PKT_GET_T), from_grank );
+
+	}  /* end else */
+
+    }  /* begin if mode == CONT_GET */
+
     return MPI_SUCCESS;
-}
+
+}  /* begin MPID_SHMEM_Rndvn_ack */
 
 /*
  * This is the routine called when a packet of type MPID_PKT_REQUEST_SEND is
@@ -256,6 +342,14 @@ void         *in_pkt;
     int    msglen, err = MPI_SUCCESS;
 
     msglen = pkt->len;
+#ifdef MPID_PACK_CONTROL
+    if (MPID_PACKET_RCVD_GET(pkt->src)) {
+	MPID_SendProtoAck(pkt->to, pkt->src);
+    }
+    MPID_PACKET_ADD_RCVD(pkt->to, pkt->src);
+#endif
+
+    DEBUG_PRINT_MSG("R Starting rndvb irecv");
 
     /* Check for truncation */
     MPID_CHK_MSGLEN(rhandle,msglen,err)
@@ -267,14 +361,32 @@ void         *in_pkt;
     rhandle->s.MPI_TAG	  = pkt->tag;
     rhandle->s.MPI_SOURCE = pkt->lrank;
     rhandle->s.MPI_ERROR  = err;
+    rhandle->from         = from_grank;
     rhandle->send_id	  = pkt->send_id;
     rhandle->wait	  = MPID_SHMEM_Rndvn_unxrecv_end;
     rhandle->test	  = MPID_SHMEM_Rndvn_unxrecv_test_end;
     rhandle->push	  = 0;
     rhandle->is_complete  = 0;
 
+#ifdef MPID_PACK_CONTROL
+    while (!MPID_PACKET_CHECK_OK(from_grank)) {  /* begin while !ok loop */
+	/* Wait for a protocol ACK packet */
+#ifdef MPID_DEBUG_ALL
+	if (MPID_DebugFlag || MPID_DebugFlow)
+	    FPRINTF(MPID_DEBUG_FILE,
+	 "[%d] S Waiting for a protocol ACK packet (in rndvb isend) from %d\n",
+		    MPID_myid, from_grank);
+#endif
+	MPID_DeviceCheck( MPID_BLOCKING );
+    }  /* end while !ok loop */
+
+    MPID_PACKET_ADD_SENT(pkt->to, from_grank);
+#endif
+
     /* Send back an "ok to proceed" packet */
     pkt->mode = MPID_PKT_OK_TO_SEND_GET;
+    pkt->to         = from_grank;
+    pkt->lrank      = MPID_myid;
     pkt->cur_offset = 0;
     pkt->len_avail  = 0;
     pkt->address    = 0;
@@ -298,6 +410,12 @@ void         *in_pkt;
 {
     MPID_PKT_GET_T   *pkt = (MPID_PKT_GET_T *)in_pkt;
 
+#ifdef MPID_PACK_CONTROL
+    if (MPID_PACKET_RCVD_GET(pkt->src)) {
+	MPID_SendProtoAck(pkt->to, pkt->src);
+    }
+    MPID_PACKET_ADD_RCVD(pkt->to, pkt->src);
+#endif
     DEBUG_PRINT_MSG("Saving info on unexpected message");
     rhandle->s.MPI_TAG	  = pkt->tag;
     rhandle->s.MPI_SOURCE = pkt->lrank;
@@ -305,6 +423,7 @@ void         *in_pkt;
     rhandle->s.count      = pkt->len;
     rhandle->is_complete  = 0;
     rhandle->from         = from_grank;
+    rhandle->partner      = pkt->to;
     rhandle->send_id      = pkt->send_id;
     MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)pkt );
     /* Need to set the push etc routine to complete this transfer */
@@ -351,6 +470,12 @@ void         *in_runex;
     DEBUG_PRINT_MSG("R about to get packet for ok to send");
     pkt = (MPID_PKT_GET_T *) MPID_SHMEM_GetSendPkt(0);
     /* ? test for length ? */
+#ifdef MPID_PACK_CONTROL
+    if (MPID_PACKET_RCVD_GET(runex->from)) {
+	MPID_SendProtoAck(runex->partner, runex->from);
+    }
+    MPID_PACKET_ADD_RCVD(runex->partner, runex->from);
+#endif
 
     MPIR_SET_COOKIE((rhandle),MPIR_REQUEST_COOKIE);
     rhandle->s		  = runex->s;
@@ -362,6 +487,9 @@ void         *in_runex;
 
     /* Send back an "ok to proceed" packet */
     pkt->mode	    = MPID_PKT_OK_TO_SEND_GET;
+    pkt->lrank      = runex->partner;
+    pkt->to         = runex->s.MPI_SOURCE;
+    pkt->seqnum     = sizeof(MPID_PKT_GET_T);
     pkt->cur_offset = 0;
     pkt->len_avail  = 0;
     pkt->address    = 0;
@@ -369,6 +497,21 @@ void         *in_runex;
     MPID_AINT_SET(pkt->recv_id,rhandle);
     
     DEBUG_PRINT_BASIC_SEND_PKT("R Sending ok-to-send message",pkt)
+#ifdef MPID_PACK_CONTROL
+    while (!MPID_PACKET_CHECK_OK(runex->from)) {  /* begin while !ok loop */
+	/* Wait for a protocol ACK packet */
+#ifdef MPID_DEBUG_ALL
+	if (MPID_DebugFlag || MPID_DebugFlow)
+	    FPRINTF(MPID_DEBUG_FILE,
+	 "[%d] S Waiting for a protocol ACK packet (in rndvb isend) from %d\n",
+		    MPID_myid, runex->from);
+#endif
+	MPID_DeviceCheck( MPID_BLOCKING );
+    }  /* end while !ok loop */
+
+    MPID_PACKET_ADD_SENT(runex->partner, runex->from);
+#endif
+
     MPID_SHMEM_SendControl( (MPID_PKT_T *)pkt, 
 			    sizeof(MPID_PKT_GET_T), runex->from );
 

@@ -73,7 +73,7 @@ iprobe()
 
   comm = MPI::COMM_WORLD;
 
-  Testing("Iprobe w/ Status");
+  Testing( (char *)"Iprobe w/ Status");
   
   if((my_rank % 2) == 0) {
     data = 7;
@@ -120,7 +120,7 @@ iprobe()
   
   comm.Barrier();
   
-  Testing("Iprobe w/o Status");
+  Testing( (char *)"Iprobe w/o Status");
   
   if((my_rank % 2) == 0) {
     data = 7;

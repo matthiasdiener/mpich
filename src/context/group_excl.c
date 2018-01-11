@@ -1,11 +1,30 @@
 /*
- *  $Id: group_excl.c,v 1.4 1998/04/28 20:58:06 swider Exp $
+ *  $Id: group_excl.c,v 1.9 1999/08/30 15:43:12 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Group_excl = PMPI_Group_excl
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Group_excl  MPI_Group_excl
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Group_excl as PMPI_Group_excl
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpimem.h"
 
 /*@
@@ -38,9 +57,7 @@ function is erroneous.  This restriction is per the draft.
 
 .seealso: MPI_Group_free
 @*/
-int MPI_Group_excl ( group, n, ranks, newgroup )
-MPI_Group group, *newgroup;
-int       n, *ranks;
+EXPORT_MPI_API int MPI_Group_excl ( MPI_Group group, int n, int *ranks, MPI_Group *newgroup )
 {
   int i, j, rank;
   struct MPIR_GROUP *new_group_ptr;
@@ -51,18 +68,26 @@ int       n, *ranks;
   TR_PUSH(myname);
 
   group_ptr = MPIR_GET_GROUP_PTR(group);
-  MPIR_TEST_MPI_GROUP(group,group_ptr,MPIR_COMM_WORLD,myname);
+/*  MPIR_TEST_MPI_GROUP(group,group_ptr,MPIR_COMM_WORLD,myname); */
+#ifndef MPIR_NO_ERROR_CHECKING
+  MPIR_TEST_GROUP( group_ptr );
+  if (mpi_errno)
+      return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 
   if (n < 0) 
       return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ARG, myname );
 
-  if ( (n > 0 && MPIR_TEST_ARG(ranks)))
-    return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+  if ( n > 0 ) {
+      MPIR_TEST_ARG(ranks);
+      if (mpi_errno)
+	  return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+  }
 
   /* Error if we're excluding more than the size of the group */
   if ( n > group_ptr->np ) {
       return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ARG, myname );
   }
+#endif
 
   /* Check for a EMPTY input group */
   if ( (group == MPI_GROUP_EMPTY) || (n == group_ptr->np) ) {
@@ -82,15 +107,20 @@ int       n, *ranks;
      duplicates) */
   for (i=0; i<n; i++) {
       if (ranks[i] < 0 || ranks[i] >= group_ptr->np) {
-	  MPIR_ERROR_PUSH_ARG(&ranks[i]);
-	  return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ARG, myname );
+	  mpi_errno = MPIR_Err_setmsg( MPI_ERR_RANK, MPIR_ERR_RANK_ARRAY, 
+			       myname, 
+			 (char *)0, (char *)0, i, ranks[i], group_ptr->np );
+	  return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 	  }
   /*** Check for duplicate ranks - Debbie Swider 11/18/97 ***/
       else {
           for (j=i+1; j<n; j++) {
 	      if (ranks[i] == ranks[j]) {
-		  MPIR_ERROR_PUSH_ARG(&ranks[j]);
-		  return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_RANK, myname );
+		  mpi_errno = MPIR_Err_setmsg( MPI_ERR_RANK, MPIR_ERR_DUP_RANK,
+					       myname,
+					       (char *)0,(char *)0,i,ranks[i],
+					       j );
+		  return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 	      }
 	  }
       }
@@ -99,7 +129,7 @@ int       n, *ranks;
 
   /* Create the new group */
   MPIR_ALLOC(new_group_ptr,NEW(struct MPIR_GROUP),MPIR_COMM_WORLD, 
-	     MPI_ERR_EXHAUSTED, "MPI_GROUP_EXCL" );
+	     MPI_ERR_EXHAUSTED, myname );
   new_group_ptr->self = MPIR_FromPointer( new_group_ptr );
   *newgroup = new_group_ptr->self;
   MPIR_SET_COOKIE(new_group_ptr,MPIR_GROUP_COOKIE)
@@ -110,30 +140,33 @@ int       n, *ranks;
   new_group_ptr->np             = group_ptr->np - n;
   MPIR_ALLOC(new_group_ptr->lrank_to_grank,
 	     (int *)MALLOC(new_group_ptr->np * sizeof(int)),
-	     MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, "MPI_GROUP_EXCL" );
+	     MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, myname );
 
   /* Allocate set marking space for group if necessary */
   if (group_ptr->set_mark == NULL) {
       MPIR_ALLOC(group_ptr->set_mark,(int *) MALLOC( group_ptr->np * sizeof(int) ),
-		 MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-		 "MPI_GROUP_EXCL" );
+		 MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, myname );
   }
   (void) memset( group_ptr->set_mark, (char)0, group_ptr->np * sizeof(int) );
 
   /* Mark the ranks to be excluded */
   for (i=0; i<n; i++) {
     if ( ((rank = ranks[i]) < group_ptr->np) && (rank >= 0) ) 
+	/* Is this test duplicate code? */
 	if (group_ptr->set_mark[rank] == MPIR_MARKED) {
 	    /* Do not allow duplicate ranks */
-	    MPIR_ERROR_PUSH_ARG(&rank);
-	    return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_RANK, myname );
+	    mpi_errno = MPIR_Err_setmsg( MPI_ERR_RANK, MPIR_ERR_DUP_RANK, 
+					 myname, 
+					 (char *)0, (char *)0, i, rank, -1 );
+	    return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 	}
 	else
 	    group_ptr->set_mark[rank] = MPIR_MARKED;
     else {
 	/* Out of range rank in input */
-	MPIR_ERROR_PUSH_ARG(&rank);
-        return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_RANK, myname );
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_RANK, MPIR_ERR_DEFAULT, myname, 
+				     (char *)0, (char *)0, rank );
+        return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     }
   }
 

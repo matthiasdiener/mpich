@@ -1,5 +1,5 @@
 /* 
- *   $Id: adioi.h,v 1.2 1998/06/02 18:58:02 thakur Exp $    
+ *   $Id: adioi.h,v 1.4 1999/08/12 23:38:48 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -114,7 +114,6 @@ struct ADIOI_Fns_struct {
     void (*ADIOI_xxx_Flush) (ADIO_File fd, int *error_code); 
     void (*ADIOI_xxx_Resize) (ADIO_File fd, ADIO_Offset size, int *error_code);
 };
-
 
 /* optypes for ADIO_RequestD */
 #define ADIOI_READ                26
@@ -240,6 +239,7 @@ void ADIOI_Free(void *ptr, int lineno, char *fname);
 void ADIOI_Datatype_iscontig(MPI_Datatype datatype, int *flag);
 void ADIOI_Get_position(ADIO_File fd, ADIO_Offset *offset);
 void ADIOI_Get_eof_offset(ADIO_File fd, ADIO_Offset *eof_offset);
+void ADIOI_Get_byte_offset(ADIO_File fd, ADIO_Offset offset, ADIO_Offset *disp);
 
 void ADIOI_GEN_Flush(ADIO_File fd, int *error_code);
 
@@ -288,6 +288,7 @@ void ADIOI_Calc_others_req(ADIO_File fd, int count_my_req_procs,
 ADIO_Offset ADIOI_GEN_SeekIndividual(ADIO_File fd, ADIO_Offset offset, 
                       int whence, int *error_code);
 void ADIOI_GEN_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code);
+void ADIOI_Shfp_fname(ADIO_File fd, int rank);
 
 
 /* Unix-style file locking */

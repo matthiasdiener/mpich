@@ -1,5 +1,5 @@
 /*
- *  $Id: sendutil.c,v 1.2 1998/01/29 14:28:23 gropp Exp $
+ *  $Id: sendutil.c,v 1.4 1999/08/20 02:27:36 ashton Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -45,14 +45,14 @@ void MPIR_Sendq_finalize()
 			state of the program from a debugger.
 */
 
-void MPIR_Remember_send( sh, buff, count, datatype, target, tag, comm_ptr )
-MPIR_SHANDLE * sh;
-void *buff;
-int count;
-MPI_Datatype datatype;
-int target;
-int tag;
-struct MPIR_COMMUNICATOR *comm_ptr;
+void MPIR_Remember_send( 
+	MPIR_SHANDLE *sh, 
+	void *buff, 
+	int count, 
+	MPI_Datatype datatype, 
+	int target, 
+	int tag, 
+	struct MPIR_COMMUNICATOR *comm_ptr )
 {
   struct MPIR_DATATYPE *dtype_ptr;
 
@@ -89,8 +89,8 @@ struct MPIR_COMMUNICATOR *comm_ptr;
 		      it from the list of pending ops.
 @*/
 
-void MPIR_Forget_send( sh )
-MPIR_SHANDLE *sh;
+void MPIR_Forget_send( 
+	MPIR_SHANDLE *sh)
 {
   /* Walk over the list looking for the one we need */
   MPIR_SQEL **sqep = &MPIR_Sendq.sq_head;

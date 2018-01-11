@@ -1,5 +1,5 @@
 /*
- *  $Id: initutil.c,v 1.13 1999/01/06 14:53:10 gropp Exp $
+ *  $Id: initutil.c,v 1.17 1999/11/03 22:53:42 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -21,7 +21,11 @@
 
 #if defined(MPID_HAS_PROC_INFO)
 /* This is needed to use select for a timeout */
+#ifdef HAVE_WINSOCK2_H
+#include <winsock2.h>
+#else
 #include <sys/time.h>
+#endif
 #include <sys/types.h>
 #endif
 
@@ -31,7 +35,7 @@
 #endif
 
 #if defined(MPE_USE_EXTENSIONS) && !defined(MPI_NO_MPEDBG)
-#include "mpeexten.h"
+#include "../../mpe/mpeexten.h"
 #endif
 
 #ifndef PATCHLEVEL_SUBMINOR
@@ -60,9 +64,9 @@ int MPIR_Infotable_ptr = 0, MPIR_Infotable_max = 0;
 #endif
 
 /* Prototypes for Fortran interface functions */
-void mpir_init_fcm_ ANSI_ARGS(( void ));
-void mpir_init_flog_ ANSI_ARGS(( MPI_Fint *, MPI_Fint * ));
-void mpir_init_bottom_ ANSI_ARGS(( void * ));
+void mpir_init_fcm_ ( void );
+void mpir_init_flog_ ( MPI_Fint *, MPI_Fint * );
+void mpir_init_bottom_ ( void * );
 
 /* Global memory management variables for fixed-size blocks */
 void *MPIR_errhandlers;  /* sbcnst Error handlers */
@@ -112,6 +116,9 @@ void *MPIR_F_MPI_BOTTOM = 0;
 void *MPIR_F_STATUS_IGNORE = 0;
 void *MPIR_F_STATUSES_IGNORE = 0;
 
+/* MPICH extension keyvals */
+int MPICHX_QOS_BANDWIDTH = MPI_KEYVAL_INVALID;
+
 /*
    MPIR_Init - Initialize the MPI execution environment
 
@@ -138,8 +145,8 @@ char ***argv;
 
     if (MPIR_Has_been_initialized) 
     return 
-        MPIR_ERROR( (struct MPIR_COMMUNICATOR *)0, MPI_ERR_INIT, 
-		    "Cannot MPI_INIT again" );
+        MPIR_ERROR( (struct MPIR_COMMUNICATOR *)0, 
+	    MPIR_ERRCLASS_TO_CODE(MPI_ERR_OTHER,MPIR_ERR_INIT), myname);
 
     /* Sanity check.  If this program is being run with MPIRUN, check that
        we have the expected information.  That is, make sure that we
@@ -150,19 +157,25 @@ char ***argv;
 #if defined(MPIRUN_DEVICE) && defined(MPIRUN_MACHINE)
     {char *p1, *p2;
 #ifdef HAVE_NO_C_CONST
-    extern char *getenv ANSI_ARGS((char *));
+    extern char *getenv (char *);
 #else
-    extern char *getenv ANSI_ARGS((const char *));
+    extern char *getenv (const char *);
 #endif
 
     mpi_errno = MPI_SUCCESS;
     p1 = getenv( "MPIRUN_DEVICE" );
     p2 = getenv( "MPIRUN_MACHINE" );
-    if (p1 && strcmp( p1, MPIRUN_DEVICE ) != 0) mpi_errno = MPI_ERR_MPIRUN;
-    if (p2 && strcmp( p2, MPIRUN_MACHINE ) != 0) mpi_errno = MPI_ERR_MPIRUN;
+    if (p1 && strcmp( p1, MPIRUN_DEVICE ) != 0) {
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_OTHER, MPIR_ERR_MPIRUN, myname,
+				     (char *)0,(char *)0, p1, MPIRUN_DEVICE );
+    }
+    else if (p2 && strcmp( p2, MPIRUN_MACHINE ) != 0) {
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_OTHER, MPIR_ERR_MPIRUN_MACHINE, 
+				     myname,
+				     (char *)0,(char *)0, p2, MPIRUN_MACHINE );
+    }
+
     if (mpi_errno) {
-	MPIR_ERROR_PUSH_ARG(p1);
-	MPIR_ERROR_PUSH_ARG(MPIRUN_DEVICE);
 	MPIR_Errors_are_fatal( (MPI_Comm*)0, &mpi_errno, myname,
 			       __FILE__, (int *)0 );
     }
@@ -309,6 +322,9 @@ char ***argv;
     MPIR_Keyval_create( NULL_COPY, NULL_DEL, &i, (void *)0, 0 );
         i = MPI_WTIME_IS_GLOBAL;
     MPIR_Keyval_create( NULL_COPY, NULL_DEL, &i, (void *)0, 0 );
+
+    /* Initialize any device-specific keyvals */
+    MPID_KEYVAL_INIT();
     MPI_TAG_UB_VAL = MPID_TAG_UB;
 #ifndef MPID_HOST
 #define MPID_HOST MPI_PROC_NULL
@@ -448,11 +464,11 @@ char ***argv;
 		    if (strcmp((*argv)[i],"-mpiversion" ) == 0) {
 		    char ADIname[128];
 		    MPID_Version_name( ADIname );
-		    printf( "MPICH %3.1f.%d%s of %s., %s\n", 
+		    PRINTF( "MPICH %3.1f.%d%s of %s., %s\n", 
 			    PATCHLEVEL, PATCHLEVEL_SUBMINOR, 
 			    PATCHLEVEL_RELEASE_KIND, PATCHLEVEL_RELEASE_DATE,
 			    ADIname );
-		    printf( "Configured with %s\n", CONFIGURE_ARGS_CLEAN );
+		    PRINTF( "Configured with %s\n", CONFIGURE_ARGS_CLEAN );
 		    (*argv)[i] = 0;
 		    }
 #ifdef HAVE_NICE

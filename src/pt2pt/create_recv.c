@@ -1,11 +1,30 @@
 /*
- *  $Id: create_recv.c,v 1.3 1998/04/28 21:46:44 swider Exp $
+ *  $Id: create_recv.c,v 1.8 1999/08/30 15:48:48 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Recv_init = PMPI_Recv_init
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Recv_init  MPI_Recv_init
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Recv_init as PMPI_Recv_init
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "reqalloc.h"
 
 /*@
@@ -35,16 +54,10 @@ Output Parameter:
 
 .seealso: MPI_Start, MPI_Request_free
 @*/
-int MPI_Recv_init( buf, count, datatype, source, tag, comm, request )
-void         *buf;
-int          count;
-MPI_Request  *request;
-MPI_Datatype datatype;
-int          source;
-int          tag;
-MPI_Comm     comm;
+EXPORT_MPI_API int MPI_Recv_init( void *buf, int count, MPI_Datatype datatype, int source, 
+		   int tag, MPI_Comm comm, MPI_Request *request )
 {
-    int         mpi_errno;
+    int         mpi_errno = MPI_SUCCESS;
     struct MPIR_DATATYPE *dtype_ptr;
     struct MPIR_COMMUNICATOR *comm_ptr;
     static char myname[] = "MPI_RECV_INIT";
@@ -58,9 +71,13 @@ MPI_Comm     comm;
     dtype_ptr   = MPIR_GET_DTYPE_PTR(datatype);
     MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
 
-    if (MPIR_TEST_COUNT(comm,count) || MPIR_TEST_RECV_TAG(comm,tag) ||
-	MPIR_TEST_RECV_RANK(comm_ptr,source)) 
-	return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#ifndef MPIR_NO_ERROR_CHECKING
+	MPIR_TEST_COUNT(count);
+	MPIR_TEST_RECV_TAG(tag);
+	MPIR_TEST_RECV_RANK(comm_ptr,source);
+	if (mpi_errno)
+	    return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
 
     MPIR_ALLOCFN(rhandle,MPID_PRecvAlloc,
 	       comm_ptr,MPI_ERR_EXHAUSTED,myname );

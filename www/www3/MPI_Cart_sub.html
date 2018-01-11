@@ -10,10 +10,7 @@ Partitions a communicator into subgroups which  form lower-dimensional cartesian
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Cart_sub ( comm, remain_dims, comm_new )
-MPI_Comm  comm;
-int      *remain_dims;
-MPI_Comm *comm_new;
+int MPI_Cart_sub ( MPI_Comm comm, int *remain_dims, MPI_Comm *comm_new )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

@@ -10,8 +10,9 @@ Duplicates an existing communicator with all its cached information
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Comm_dup ( comm, comm_out )
-MPI_Comm comm, *comm_out;
+int MPI_Comm_dup ( 
+ MPI_Comm comm, 
+ MPI_Comm *comm_out )
 </PRE>
 <H2>Input Parameter</H2>
 <DL><DT><B>comm </B> <DD> communicator (handle) 

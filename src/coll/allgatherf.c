@@ -7,7 +7,57 @@
 #include <stdarg.h>
 #endif
 
-#ifdef MPI_BUILD_PROFILING
+
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_ALLGATHER = PMPI_ALLGATHER
+EXPORT_MPI_API void MPI_ALLGATHER ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_allgather__ = pmpi_allgather__
+EXPORT_MPI_API void mpi_allgather__ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_allgather = pmpi_allgather
+EXPORT_MPI_API void mpi_allgather ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_allgather_ = pmpi_allgather_
+EXPORT_MPI_API void mpi_allgather_ ( void *, MPI_Fint *, MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_ALLGATHER  MPI_ALLGATHER
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_allgather__  mpi_allgather__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_allgather  mpi_allgather
+#else
+#pragma _HP_SECONDARY_DEF pmpi_allgather_  mpi_allgather_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_ALLGATHER as PMPI_ALLGATHER
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_allgather__ as pmpi_allgather__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_allgather as pmpi_allgather
+#else
+#pragma _CRI duplicate mpi_allgather_ as pmpi_allgather_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_allgather_ PMPI_ALLGATHER
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -17,7 +67,9 @@
 #else
 #define mpi_allgather_ pmpi_allgather_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_allgather_ MPI_ALLGATHER
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -26,6 +78,7 @@
 #define mpi_allgather_ mpi_allgather
 #endif
 #endif
+
 
 #ifdef _CRAY
 #ifdef _TWO_WORD_FCD
@@ -99,20 +152,12 @@ if (_isfcd(recvbuf)) {
 #else
 /* Prototype to suppress warnings about missing prototypes */
 
-void mpi_allgather_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, void *, 
-                                MPI_Fint *, MPI_Fint *, MPI_Fint *, 
-				MPI_Fint * ));
+EXPORT_MPI_API void mpi_allgather_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, void *, 
+                                               MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+				               MPI_Fint * ));
 
-void mpi_allgather_ ( sendbuf, sendcount, sendtype,
-                    recvbuf, recvcount, recvtype, comm, __ierr )
-void     *sendbuf;
-MPI_Fint *sendcount;
-MPI_Fint *sendtype;
-void     *recvbuf;
-MPI_Fint *recvcount;
-MPI_Fint *recvtype;
-MPI_Fint *comm;
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_allgather_ ( void *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype,
+                    void *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *comm, MPI_Fint *__ierr )
 {
     *__ierr = MPI_Allgather(MPIR_F_PTR(sendbuf), (int)*sendcount,
                             MPI_Type_f2c(*sendtype),

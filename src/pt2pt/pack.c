@@ -1,11 +1,30 @@
 /*
- *  $Id: pack.c,v 1.6 1998/11/28 22:09:03 gropp Exp $
+ *  $Id: pack.c,v 1.11 1999/08/30 15:49:08 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Pack = PMPI_Pack
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Pack  MPI_Pack
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Pack as PMPI_Pack
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
     MPI_Pack - Packs a datatype into contiguous memory
@@ -33,14 +52,8 @@ Output Parameter:
 .seealso: MPI_Unpack, MPI_Pack_size
 
 @*/
-int MPI_Pack ( inbuf, incount, datatype, outbuf, outcount, position, comm )
-void         *inbuf;
-int           incount;
-MPI_Datatype  datatype;
-void         *outbuf;
-int           outcount;
-int          *position;
-MPI_Comm      comm;
+EXPORT_MPI_API int MPI_Pack ( void *inbuf, int incount, MPI_Datatype datatype, 
+	       void *outbuf, int outcount, int *position, MPI_Comm comm )
 {
   int mpi_errno = MPI_SUCCESS;
   struct MPIR_COMMUNICATOR *comm_ptr;
@@ -56,9 +69,16 @@ MPI_Comm      comm;
   MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
 
   /* NOT ENOUGH ERROR CHECKING AT PRESENT */
-  if (MPIR_TEST_COUNT(comm,incount) || MPIR_TEST_ARG(position) ||
-      ( (*position < 0 ) && (mpi_errno = MPI_ERR_ARG) ) ) 
-      return MPIR_ERROR(comm_ptr,mpi_errno,myname );
+#ifndef MPIR_NO_ERROR_CHECKING
+  MPIR_TEST_ARG(position);
+  MPIR_TEST_COUNT(incount);
+  if (*position < 0) 
+      mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ARG_POSITION_NEG, 
+		   myname, "Value of position must be nonnegative", 
+			   "Value of position must be nonnegative (is %d)",
+				   *position );
+  if (mpi_errno)
+      return MPIR_ERROR(comm_ptr, mpi_errno, myname );
 
   /***************************************************************
    ** Debbie Swider put these error checks in on 11/17/97 ********
@@ -79,8 +99,10 @@ MPI_Comm      comm;
    *****************************************************************/
      
   if (!dtype_ptr->committed) {
-      return MPIR_ERROR( comm_ptr, MPI_ERR_UNCOMMITTED, myname );
+      return MPIR_ERROR( comm_ptr, 
+	     MPIR_ERRCLASS_TO_CODE(MPI_ERR_TYPE,MPIR_ERR_UNCOMMITTED), myname );
   }
+#endif
 
   /* Msgform is the form for ALL messages; we need to convert it into
      a Msgrep which may be different for each system.  Eventually, 

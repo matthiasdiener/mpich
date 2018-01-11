@@ -1,3 +1,4 @@
+#include "mpeconf.h"
 /* 
    This file contains simple binary read/write routines.
  */

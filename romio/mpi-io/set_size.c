@@ -1,11 +1,27 @@
 /* 
- *   $Id: set_size.c,v 1.2 1998/06/02 19:03:44 thakur Exp $    
+ *   $Id: set_size.c,v 1.5 1999/08/27 20:53:17 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "mpioimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_File_set_size = PMPI_File_set_size
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_File_set_size MPI_File_set_size
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_File_set_size as PMPI_File_set_size
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define __MPIO_BUILD_PROFILING
+#include "mpioprof.h"
+#endif
 
 /*@
     MPI_File_set_size - Sets the file size

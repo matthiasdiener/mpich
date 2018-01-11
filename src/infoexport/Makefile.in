@@ -1,19 +1,20 @@
 # Make file for the MPI DLL
-ARCH        = @ARCH@
-DEVICE      = @DEVICE@
 CC          = @CC@
-CFLAGS      = -g @CC_SHARED_OPT_FOR_TV@
+prefix      = @prefix@
+top_srcdir  = @top_srcdir@
+srcdir      = @srcdir@
+libbuild_dir      = @libbuild_dir@
 
-### End User configurable options ###
+DEFS        = @DEFS@ ${MPIPROFILE} -I. -I${srcdir} @mpich_includes@
+CFLAGS      = -g @CC_SHARED_OPT_FOR_TV@ @CFLAGS@
 
-SHELL = /bin/sh
-#
-# The suffixes we'll need.
-#
+@VPATH@
+
+SHELL       = /bin/sh
 
 .SUFFIXES:
+.SUFFIXES: .o .c .f
 
-.SUFFIXES: .c .h .o
 
 # Target library
 LIB = libtvmpich.so
@@ -22,7 +23,7 @@ LIB = libtvmpich.so
 # The rules for regenerating things
 #
 .c.o:
-	-$(CC) $(CFLAGS) $(INCLUDES) -c $<
+	-${CC} ${DEFS} ${CFLAGS} ${INCLUDES} -c $<
 
 # Compilers and flags
 
@@ -35,7 +36,7 @@ CPP = /lib/cpp
 # library. Very target specific
 #	
 
-LINKER = $(CC) $(CFLAGS) 
+LINKER = ${CC} ${CFLAGS} 
 LDFLAGS= -G
 
 # *******************************************************************
@@ -47,33 +48,32 @@ LDFLAGS= -G
 #
 SRCS		= dll_mpich.c
 OBJS		= dll_mpich.o
-LIBDIR = ../../build/$(ARCH)/$(DEVICE)/lib
 
-all update:	$(LIB)
+all update:	${LIB}
 
 #
 # For the moment, we build both with the original makefile, and with
 # the makesharedlib script
 # Use so* to handle so.<versioninfo>
 #
-$(LIBDIR)/$(LIB): $(LIB)
-	@-if test -f $(LIB) ; then cp $(LIB) $(LIBDIR)/$(LIB) ; fi
-	 -if test -f $(LIB) ; then cp libtvmpich.so* $(LIBDIR) ; fi
+${libbuild_dir}/${LIB}: ${LIB}
+	@-if test -f ${LIB} ; then cp ${LIB} ${libbuild_dir}/${LIB} ; fi
+	 -if test -f ${LIB} ; then cp libtvmpich.so* ${libbuild_dir} ; fi
 
 # Because this is an optional library, we don't stop if there is an error
 # The following works for Solaris and some other systems
-#	$(LINKER) $(LDFLAGS) -o $(LIB) $(OBJS) $(LIBS) ; \
+#	${LINKER} ${LDFLAGS} -o ${LIB} ${OBJS} ${LIBS} ; \
 # Several makes could not handle these expansions, so we have replaced the
 # filenames directly
-#$(LIB): $(OBJS)
+#${LIB}: ${OBJS}
 libtvmpich.so: dll_mpich.o
 	-if test "@SHAREDKIND_FOR_TV@" != "ignore" ; then \
-	$(REMOVER) $(LIB); \
-	( CC="$(CC)" ; export CC ; CLINKER="@CLINKER@" ; export CLINKER ; \
-	../../util/makesharedlib -lib=libtvmpich.a -obj="$(OBJS)" \
+	${REMOVER} ${LIB}; \
+	( CC="${CC}" ; export CC ; CLINKER="@CLINKER@" ; export CLINKER ; \
+	${top_srcdir}/util/makesharedlib -lib=libtvmpich.a -obj="${OBJS}" \
 		 -kind=@SHAREDKIND_FOR_TV@ -local ; ) fi
 
-compile: $(OBJS)
+compile: ${OBJS}
 
 # ****************************************************************
 # Some other entrypoints.
@@ -84,33 +84,31 @@ MPI_TSOURCES =
 MPI_WSOURCES = 
 MPI_WOBJECTS = 
 
-MPI_SOURCES = $(MPI_CSOURCES) $(MPI_WSOURCES)
-MPI_OBJECTS = $(MPI_COBJECTS) $(MPI_WOBJECTS)
-MPI_INCLUDE = ../../include/mpi.h
+MPI_SOURCES = ${MPI_CSOURCES} ${MPI_WSOURCES}
+MPI_OBJECTS = ${MPI_COBJECTS} ${MPI_WOBJECTS}
 
-default: $(LIBDIR)/$(LIB)
+default: ${libbuild_dir}/${LIB}
 
 profile: 
-
-#$(MPI_OBJECTS) :  $(MPI_INCLUDE)
 
 # default_all is the same as default, but without the RANLIB.  This
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
-default_all: $(LIBDIR)/$(LIB)
-profile_all: $(MPI_OBJECTS)
-wrapperlib: $(MPI_WOBJECTS)
+default_all: ${libbuild_dir}/${LIB}
+profile_all: ${MPI_OBJECTS}
+wrapperlib: ${MPI_WOBJECTS}
 
 source_names:
-	@echo $(MPI_CSOURCES)
+	@echo ${MPI_CSOURCES}
 
 clean:
-	-$(REMOVER) *.o
-	-$(REMOVER) *.i
-	-$(REMOVER) *.s
-	-$(REMOVER) *.cxx.log
-	-$(REMOVER) *.cxx.errors
-	-$(REMOVER) $(LIB)
-	-$(REMOVER) libtvmpich.so*
+	-${REMOVER} *.o
+	-${REMOVER} *.i
+	-${REMOVER} *.s
+	-${REMOVER} *.cxx.log
+	-${REMOVER} *.cxx.errors
+	-${REMOVER} ${LIB}
+	-${REMOVER} libtvmpich.so*
+	-${REMOVER} ${srcdir}/*.o
 
-rebuild: clean $(LIB)
+rebuild: clean ${LIB}

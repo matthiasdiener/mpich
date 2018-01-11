@@ -1,11 +1,30 @@
 /*
- *  $Id: type_commit.c,v 1.2 1998/01/29 14:28:43 gropp Exp $
+ *  $Id: type_commit.c,v 1.7 1999/08/30 15:49:45 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Type_commit = PMPI_Type_commit
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Type_commit  MPI_Type_commit
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Type_commit as PMPI_Type_commit
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
     MPI_Type_commit - Commits the datatype
@@ -19,11 +38,11 @@ Input Parameter:
 .N MPI_SUCCESS
 .N MPI_ERR_TYPE
 @*/
-int MPI_Type_commit ( datatype )
-MPI_Datatype *datatype;
+EXPORT_MPI_API int MPI_Type_commit ( MPI_Datatype *datatype )
 {
     struct MPIR_DATATYPE *dtype_ptr;
     static char myname[] = "MPI_TYPE_COMMIT";
+    int mpi_errno = MPI_SUCCESS;
 
     dtype_ptr   = MPIR_GET_DTYPE_PTR(*datatype);
     MPIR_TEST_DTYPE(*datatype,dtype_ptr,MPIR_COMM_WORLD,myname);

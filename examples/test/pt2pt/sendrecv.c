@@ -16,6 +16,10 @@
 #include <stdlib.h>
 #include "mpi.h"
 
+#ifdef HAVE_MPICHCONF_H
+#include "mpichconf.h"
+#endif
+
 static int src = 1;
 static int dest = 0;
 
@@ -24,7 +28,7 @@ static int do_test2 = 1;
 static int do_test3 = 1;
 
 #define MAX_TYPES 12
-#if defined(HAVE_LONG_DOUBLE) 
+#if defined(HAVE_LONG_DOUBLE) && (!defined HAS_XDR) 
 static int ntypes = 12;
 #else
 static int ntypes = 11;
@@ -37,17 +41,17 @@ static char *(BasicNames[MAX_TYPES]);
 /* In order to quiet noisy C compilers, we provide ANSI-style prototypes
    where possible */
 
-void AllocateBuffers ANSI_ARGS(( void **, MPI_Datatype *, int, int ));
-void FreeBuffers ANSI_ARGS(( void **, int ));
-void FillBuffers ANSI_ARGS(( void **, MPI_Datatype *, int, int ));
-int CheckBuffer ANSI_ARGS(( void *, MPI_Datatype, int ));
-void SetupBasicTypes ANSI_ARGS((void));
-void SenderTest1 ANSI_ARGS((void));
-void ReceiverTest1 ANSI_ARGS((void));
-void SenderTest2 ANSI_ARGS((void));
-void ReceiverTest2 ANSI_ARGS((void));
-void SenderTest3 ANSI_ARGS((void));
-void ReceiverTest3 ANSI_ARGS((void));
+void AllocateBuffers ( void **, MPI_Datatype *, int, int );
+void FreeBuffers ( void **, int );
+void FillBuffers ( void **, MPI_Datatype *, int, int );
+int CheckBuffer ( void *, MPI_Datatype, int );
+void SetupBasicTypes (void);
+void SenderTest1 (void);
+void ReceiverTest1 (void);
+void SenderTest2 (void);
+void ReceiverTest2 (void);
+void SenderTest3 (void);
+void ReceiverTest3 (void);
 
 void 
 AllocateBuffers(bufferspace, buffertypes, num_types, bufferlen)
@@ -78,7 +82,7 @@ AllocateBuffers(bufferspace, buffertypes, num_types, bufferlen)
 	    bufferspace[i] = malloc(bufferlen * sizeof(float));
 	else if (buffertypes[i] == MPI_DOUBLE)
 	    bufferspace[i] = malloc(bufferlen * sizeof(double));
-#if defined(HAVE_LONG_DOUBLE) 
+#if defined(HAVE_LONG_DOUBLE) && (!defined HAS_XDR) 
 	else if (buffertypes[i] == MPI_LONG_DOUBLE) {
 	    int dlen;
 	    MPI_Type_size( MPI_LONG_DOUBLE, &dlen );
@@ -130,7 +134,7 @@ FillBuffers(bufferspace, buffertypes, num_types, bufferlen)
 		((float *)bufferspace[i])[j] = (float)j;
 	    else if (buffertypes[i] == MPI_DOUBLE)
 		((double *)bufferspace[i])[j] = (double)j;
-#if defined(HAVE_LONG_DOUBLE) 
+#if defined(HAVE_LONG_DOUBLE) && (!defined HAS_XDR) 
 	    else if (buffertypes[i] == MPI_LONG_DOUBLE)
 		((long double *)bufferspace[i])[j] = (long double)j;
 #endif
@@ -196,7 +200,7 @@ CheckBuffer(bufferspace, buffertype, bufferlen)
 	    if (((double *)bufferspace)[j] != (double)j) {
 		break;
 		}
-#if defined(HAVE_LONG_DOUBLE)
+#if defined(HAVE_LONG_DOUBLE) && (!defined HAS_XDR) 
 	} else if (buffertype == MPI_LONG_DOUBLE) {
 	    if (((long double *)bufferspace)[j] != (long double)j) {
 		break;
@@ -222,7 +226,7 @@ CheckBuffer(bufferspace, buffertype, bufferlen)
 void 
 SetupBasicTypes()
 {
-#if defined (HAVE_LONG_DOUBLE)
+#if defined (HAVE_LONG_DOUBLE) && (!defined HAS_XDR) 
     int l;
 #endif
     BasicTypes[0] = MPI_CHAR;        BasicNames[0] = "MPI_CHAR" ;
@@ -238,7 +242,7 @@ SetupBasicTypes()
     BasicTypes[10] = MPI_BYTE;       BasicNames[10] = "MPI_BYTE";
     /* By making the BYTE type LAST, we make it easier to handle heterogeneous
        systems that may not support all of the types */
-#if defined (HAVE_LONG_DOUBLE)
+#if defined (HAVE_LONG_DOUBLE) && (!defined HAS_XDR) 
     /* This test allows us to use MPI_LONG_DOUBLE, but rely on size > 0 
        for "actually implemented" */
     MPI_Type_size( MPI_LONG_DOUBLE, &l );
@@ -538,7 +542,7 @@ int main( int argc, char **argv )
     if (mysize != 2) {
 	fprintf(stderr, 
 		"*** This test program requires exactly 2 processes.\n");
-	exit(-1);
+	MPI_Abort( MPI_COMM_WORLD, 1 );
     }
 
     /* Check for no long double */
@@ -597,7 +601,7 @@ int main( int argc, char **argv )
 	    ReceiverTest3();
     } else {
 	fprintf(stderr, "*** This program uses exactly 2 processes! ***\n");
-	exit(-1);
+	MPI_Abort( MPI_COMM_WORLD, 1 );
     }
     if (myrank == dest) {
 	rc = Summarize_Test_Results();

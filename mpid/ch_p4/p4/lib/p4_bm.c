@@ -56,6 +56,7 @@ char **argv;
 
     /* big master installing himself */
     install_in_proctable(0, (-1), getpid(), p4_global->my_host_name, 
+			 p4_global->my_host_name, 
 			 0, P4_MACHINE_TYPE, bm_switch_port);
 
     p4_local->my_id = 0;
@@ -331,6 +332,7 @@ struct p4_procgroup *pg;
 	switch_port = p4_n_to_i(bm_msg.switch_port);
 	/* big master installing local slaves */
 	install_in_proctable(0, port, slave_pid, bm_msg.host_name, 
+			     bm_msg.local_name, 
 			     slave_idx, P4_MACHINE_TYPE, switch_port);
 	p4_global->local_slave_count++;
     }
@@ -431,6 +433,7 @@ struct p4_procgroup *pg;
 
 	/* master installing local slaves */
 	install_in_proctable(0, p4_global->listener_port, slave_pid,
+			     p4_global->my_host_name, 
 			     p4_global->my_host_name, 
 			     slave_idx, P4_MACHINE_TYPE,
 			     p4_global->proctable[0].switch_port);
@@ -659,6 +662,7 @@ P4VOID send_proc_table()
 	    msg.slave_idx = p4_i_to_n(pe->slave_idx);
 	    msg.group_id = p4_i_to_n(pe->group_id);
 	    strcpy(msg.host_name, pe->host_name);
+	    strcpy(msg.local_name, pe->local_name);
 	    strcpy(msg.machine_type,pe->machine_type);
 	    msg.switch_port = p4_i_to_n(pe->switch_port);
 	    net_send(fd, &msg, sizeof(msg), P4_FALSE);

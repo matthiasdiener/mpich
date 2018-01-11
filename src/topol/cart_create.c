@@ -1,11 +1,30 @@
 /*
- *  $Id: cart_create.c,v 1.4 1998/12/21 16:41:47 gropp Exp $
+ *  $Id: cart_create.c,v 1.9 1999/08/30 15:50:42 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Cart_create = PMPI_Cart_create
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Cart_create  MPI_Cart_create
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Cart_create as PMPI_Cart_create
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpitopo.h"
 #include "sbcnst2.h"
 #define MPIR_SBalloc MPID_SBalloc
@@ -40,13 +59,8 @@ We ignore 'reorder' info currently.
 .N MPI_ERR_DIMS
 .N MPI_ERR_ARG
 @*/
-int MPI_Cart_create ( comm_old, ndims, dims, periods, reorder, comm_cart )
-MPI_Comm  comm_old;
-int       ndims;     
-int      *dims;     
-int      *periods;
-int       reorder;
-MPI_Comm *comm_cart;
+EXPORT_MPI_API int MPI_Cart_create ( MPI_Comm comm_old, int ndims, int *dims, int *periods, 
+		      int reorder, MPI_Comm *comm_cart )
 {
   int range[1][3];
   MPI_Group group_old, group;
@@ -59,19 +73,22 @@ MPI_Comm *comm_cart;
 
   TR_PUSH(myname);
   comm_old_ptr = MPIR_GET_COMM_PTR(comm_old);
-  MPIR_TEST_MPI_COMM(comm_old,comm_old_ptr,comm_old_ptr,myname);
 
   /* Check validity of arguments */
-  if (MPIR_TEST_ARG(comm_cart) ||
-      MPIR_TEST_ARG(periods)  ||
-      ((ndims     <  1)             && (mpi_errno = MPI_ERR_DIMS)) ||
-      ((dims      == (int *)0)      && (mpi_errno = MPI_ERR_DIMS)))
-    return MPIR_ERROR( comm_old_ptr, mpi_errno, myname );
-
+#ifndef MPIR_NO_ERROR_CHECKING
+  MPIR_TEST_MPI_COMM(comm_old,comm_old_ptr,comm_old_ptr,myname);
+  MPIR_TEST_ARG(comm_cart);
+  MPIR_TEST_ARG(periods);
+  if (ndims < 1 || dims == (int *)0) mpi_errno = MPI_ERR_DIMS;
+  if (mpi_errno)
+	return MPIR_ERROR(comm_old_ptr, mpi_errno, myname );
+  
   /* Check for Intra-communicator */
   MPI_Comm_test_inter ( comm_old, &flag );
   if (flag)
-    return MPIR_ERROR(comm_old_ptr, MPI_ERR_COMM_INTER, myname );
+    return MPIR_ERROR(comm_old_ptr, 
+            MPIR_ERRCLASS_TO_CODE(MPI_ERR_COMM,MPIR_ERR_COMM_INTER), myname );
+#endif
 
   /* Determine number of ranks in topology */
   for ( i=0; i<ndims; i++ )
@@ -83,9 +100,14 @@ MPI_Comm *comm_cart;
 
   /* Is the old communicator big enough? */
   MPIR_Comm_size (comm_old_ptr, &size);
-  if (num_ranks > size) 
-	return MPIR_ERROR(comm_old_ptr, MPI_ERR_ARG, 
-				  "Topology size too big in MPI_CART_CREATE");
+  if (num_ranks > size) {
+      mpi_errno = MPIR_Err_setmsg( MPI_ERR_TOPOLOGY, MPIR_ERR_TOPO_TOO_LARGE, 
+				   myname, 
+                  "Topology size is larger than size of communicator",
+		  "Topology size %d is greater than communicator size %d", 
+				   num_ranks, size );
+	return MPIR_ERROR(comm_old_ptr, mpi_errno, myname );
+  }
 	
   /* Make new comm */
   range[0][0] = 0; range[0][1] = num_ranks - 1; range[0][2] = 1;

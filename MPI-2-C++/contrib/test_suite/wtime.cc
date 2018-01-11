@@ -69,7 +69,7 @@ wtime()
   double t1;
   int i;
 
-  Testing("Wtick");
+  Testing( (char *)"Wtick");
 
   t0 = 0.0;
 
@@ -89,7 +89,7 @@ wtime()
   t0 = 0.0;
   t1 = 0.0;
 
-  Testing("Wtime");
+  Testing( (char *)"Wtime");
 
   for(i = 0; i < 10; i++) {
     t0 = MPI::Wtick();

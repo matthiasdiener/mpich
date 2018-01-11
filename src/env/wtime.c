@@ -1,11 +1,30 @@
 /*
- *  $Id: wtime.c,v 1.2 1998/01/29 14:27:27 gropp Exp $
+ *  $Id: wtime.c,v 1.6 1999/08/30 15:46:25 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Wtime = PMPI_Wtime
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Wtime  MPI_Wtime
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Wtime as PMPI_Wtime
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpid_time.h"
 
 /*@
@@ -25,7 +44,7 @@
 
 .see also: MPI_Wtick, MPI_Attr_get
 @*/
-double MPI_Wtime()
+EXPORT_MPI_API double MPI_Wtime()
 {
     double t1;
     MPID_Wtime( &t1 );

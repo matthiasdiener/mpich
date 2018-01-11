@@ -11,11 +11,6 @@
 
 #if !defined(SHMEM_PICKED)
 
-/* SGI has shared arenas, which are preferred there */
-#if defined(MPI_IRIX)
-#    define PREFER_ARENAS
-#endif
-
 #if defined(MPI_cspp)
 #    define PREFER_MMAP		/* unnecessary because of general mmap pref? */
 #endif
@@ -71,6 +66,7 @@
 #    include <malloc.h>
      P2P_EXTERN usptr_t *p2p_sgi_usptr;
      P2P_EXTERN char p2p_sgi_shared_arena_filename[64];
+#    define p2p_shmem_name "SGI Shared arena"
 #endif
 
 /* mmap */
@@ -80,6 +76,7 @@
 #    endif
 #    include <sys/mman.h>
 #    define USE_XX_SHMALLOC
+#    define p2p_shmem_name "Unix mmap"
 #endif
 
 /* System V shared memory - look out for dangling ipcs when used */
@@ -87,6 +84,7 @@
 #    include <sys/ipc.h>
 #    include <sys/shm.h>
 #    define USE_XX_SHMALLOC
+#    define p2p_shmem_name "SYS V shared memory"
 #endif
 
 /* A few special cases */

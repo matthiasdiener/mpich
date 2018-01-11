@@ -86,15 +86,15 @@ int dest_id;
     int dest_listener_con_fd;
     int my_listener, dest_listener;
     int new_listener_port, new_listener_fd;
-#   ifndef P4SYSV
+#   if (defined(HAVE_SIGBLOCK) && defined(HAVE_SIGSETMASK))
     int oldmask;
 #   endif
     int num_tries;
 
-#   ifdef P4SYSV
-    sighold(LISTENER_ATTN_SIGNAL);
-#   else
+#   if (defined(HAVE_SIGBLOCK) && defined(HAVE_SIGSETMASK))
     oldmask = sigblock(sigmask(LISTENER_ATTN_SIGNAL));
+#   else
+    sighold(LISTENER_ATTN_SIGNAL);
 #   endif
 
     /* Get some initial information */
@@ -114,10 +114,10 @@ int dest_id;
     if (p4_local->conntab[dest_id].type == CONN_REMOTE_EST)
     {
 	p4_dprintfl(70,"request_connection %d: already connected\n", dest_id);
-#       ifdef P4SYSV
-        sigrelse(LISTENER_ATTN_SIGNAL);
-#       else
+#   if (defined(HAVE_SIGBLOCK) && defined(HAVE_SIGSETMASK))
 	sigsetmask(oldmask);
+#       else
+        sigrelse(LISTENER_ATTN_SIGNAL);
 #       endif
 	return;
     }
@@ -173,10 +173,10 @@ int dest_id;
     /* Now release the listener connections */
     close(new_listener_fd);
 
-#   ifdef P4SYSV
-    sigrelse(LISTENER_ATTN_SIGNAL);
-#   else
+#   if (defined(HAVE_SIGBLOCK) && defined(HAVE_SIGSETMASK))
     sigsetmask(oldmask);
+#   else
+    sigrelse(LISTENER_ATTN_SIGNAL);
 #   endif
 
     p4_dprintfl(70, "request_connection: finished connecting\n");
@@ -208,6 +208,16 @@ int sig;
     }
 
     type = p4_n_to_i(msg.type);
+
+    if (type == KILL_SLAVE) {
+        msg.type = p4_i_to_n(IGNORE_THIS);
+        p4_dprintfl(70, "handle_connection_interrupt: sending IGNORE_THIS to my_listener\n");
+        /* send msg to listener indicating I made the connection */
+        net_send(listener_fd, &msg, sizeof(msg), P4_FALSE);
+	p4_dprintfl(99, "handle_connection_interrupt: exiting due to DIE msg\n");
+	exit(0);
+    }
+
     if (type != CONNECTION_REQUEST)
     {
 	p4_dprintf("handle_connection_interrupt: invalid type %d\n", type);

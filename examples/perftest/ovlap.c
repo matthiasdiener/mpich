@@ -1,12 +1,7 @@
-
-
-
-
-
 #include <stdio.h>
 
 #include "mpi.h"
-extern int __NUMNODES, __MYPROCID;static MPI_Status _mpi_status;static int _n, _MPILEN;
+extern int __NUMNODES, __MYPROCID;
 
 
 #if HAVE_STDLIB_H
@@ -125,8 +120,8 @@ OverlapData *ctx;
        proc1=ctx->proc1,proc2=ctx->proc2,MsgSize=ctx->MsgSize;
   char *rbuffer,*sbuffer;
   double t0, t1;
-  MPI_Request rid;
-  MPI_Request sid;
+  MPI_Request rid, sid;
+  MPI_Status  status;
 
   /* If the MsgSize is negative, just do the floating point computation.
      This allows us to test for cache effects independant of the message
@@ -134,12 +129,12 @@ OverlapData *ctx;
   if (MsgSize < 0) {
       SetupOverlap(len,ctx);
       elapsed_time = 0;
-      *(&t0)=MPI_Wtime();
+      t0=MPI_Wtime();
       for(i=0;i<reps;i++){
 	  OverlapComputation(len,ctx);
 	  }
-      *(&t1)=MPI_Wtime();
-      elapsed_time = *(&t1 )-*(&t0);
+      t1=MPI_Wtime();
+      elapsed_time = t1 -t0;
       return elapsed_time;
       }
 
@@ -149,17 +144,17 @@ OverlapData *ctx;
   SetupOverlap(len,ctx);
   elapsed_time = 0;
   if(myproc==proc1){
-    MPI_Recv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&_mpi_status);
-    *(&t0)=MPI_Wtime();
+    MPI_Recv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&status);
+    t0=MPI_Wtime();
     for(i=0;i<reps;i++){
       MPI_Irecv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,1,MPI_COMM_WORLD,&(rid));
       MPI_Isend(sbuffer,MsgSize,MPI_BYTE,proc2,1,MPI_COMM_WORLD,&(sid));
       OverlapComputation(len,ctx);
-      MPI_Wait(&(rid),&_mpi_status);
-      MPI_Wait(&(sid),&_mpi_status);
+      MPI_Wait(&(rid),&status);
+      MPI_Wait(&(sid),&status);
     }
-    *(&t1)=MPI_Wtime();
-    elapsed_time = *(&t1 )-*(&t0);
+    t1=MPI_Wtime();
+    elapsed_time = t1 -t0;
   }
 
   if(myproc==proc2){
@@ -167,14 +162,14 @@ OverlapData *ctx;
     MPI_Isend(sbuffer,MsgSize,MPI_BYTE,proc1,0,MPI_COMM_WORLD,&(sid));
     for(i=0;i<reps-1;i++){
       OverlapComputation(len,ctx);
-      MPI_Wait(&(rid),&_mpi_status);
-      MPI_Wait(&(sid),&_mpi_status);
+      MPI_Wait(&(rid),&status);
+      MPI_Wait(&(sid),&status);
       MPI_Irecv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,1,MPI_COMM_WORLD,&(rid));
       MPI_Isend(sbuffer,MsgSize,MPI_BYTE,proc1,1,MPI_COMM_WORLD,&(sid));
     }
     OverlapComputation(len,ctx);
-    MPI_Wait(&(rid),&_mpi_status);
-    MPI_Wait(&(sid),&_mpi_status);
+    MPI_Wait(&(rid),&status);
+    MPI_Wait(&(sid),&status);
     MPI_Send(sbuffer,MsgSize,MPI_BYTE,proc1,1,MPI_COMM_WORLD);
   }
 
@@ -198,6 +193,7 @@ OverlapData *ctx;
   int  i,pid,myproc,
        proc1=ctx->proc1,proc2=ctx->proc2,MsgSize=ctx->MsgSize;
   char *rbuffer,*sbuffer;
+  MPI_Status status;
   double t0, t1;
 
   /* If the MsgSize is negative, just do the floating point computation.
@@ -206,12 +202,12 @@ OverlapData *ctx;
   if (MsgSize < 0) {
       SetupOverlap(len,ctx);
       elapsed_time = 0;
-      *(&t0)=MPI_Wtime();
+      t0=MPI_Wtime();
       for(i=0;i<reps;i++){
 	  OverlapComputation(len,ctx);
 	  }
-      *(&t1)=MPI_Wtime();
-      elapsed_time = *(&t1 )-*(&t0);
+      t1=MPI_Wtime();
+      elapsed_time = t1 -t0;
       return elapsed_time;
       }
 
@@ -221,22 +217,22 @@ OverlapData *ctx;
   SetupOverlap(len,ctx);
   elapsed_time = 0;
   if(myproc==proc1){
-    MPI_Recv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&_mpi_status);
-    *(&t0)=MPI_Wtime();
+    MPI_Recv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,&status);
+    t0=MPI_Wtime();
     for(i=0;i<reps;i++){
       MPI_Send(sbuffer,MsgSize,MPI_BYTE,proc2,1,MPI_COMM_WORLD);
       OverlapComputation(len,ctx);
-      MPI_Recv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,1,MPI_COMM_WORLD,&_mpi_status);
+      MPI_Recv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,1,MPI_COMM_WORLD,&status);
     }
-    *(&t1)=MPI_Wtime();
-    elapsed_time = *(&t1 )-*(&t0);
+    t1=MPI_Wtime();
+    elapsed_time = t1 -t0;
   }
 
   if(myproc==proc2){
     MPI_Send(sbuffer,MsgSize,MPI_BYTE,proc1,0,MPI_COMM_WORLD);
     for(i=0;i<reps;i++){
       OverlapComputation(len,ctx);
-      MPI_Recv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,1,MPI_COMM_WORLD,&_mpi_status);
+      MPI_Recv(rbuffer,MsgSize,MPI_BYTE,MPI_ANY_SOURCE,1,MPI_COMM_WORLD,&status);
       MPI_Send(sbuffer,MsgSize,MPI_BYTE,proc1,1,MPI_COMM_WORLD);
     }
   }
@@ -285,8 +281,8 @@ if (ctx->OverlapSize > 0) {
 	ctx->Overlap2 = 0;
 	fprintf( stderr, 
 		"Error allocating space in SetupOverlap (2x%d bytes)\n",
-		ctx->OverlapLen * sizeof(double) );
-	exit(1 );
+		(int)(ctx->OverlapLen * sizeof(double)) );
+	MPI_Abort( MPI_COMM_WORLD, 1 );
 	}
     }
 else 

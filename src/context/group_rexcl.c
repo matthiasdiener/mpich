@@ -1,11 +1,30 @@
 /*
- *  $Id: group_rexcl.c,v 1.3 1998/04/28 20:58:12 swider Exp $
+ *  $Id: group_rexcl.c,v 1.8 1999/08/30 15:43:22 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Group_range_excl = PMPI_Group_range_excl
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Group_range_excl  MPI_Group_range_excl
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Group_range_excl as PMPI_Group_range_excl
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpimem.h"
 
 /*@
@@ -42,9 +61,8 @@ function is erroneous.  This restriction is per the draft.
 
 .seealso: MPI_Group_free
 @*/
-int MPI_Group_range_excl ( group, n, ranges, newgroup )
-MPI_Group group, *newgroup;
-int       n, ranges[][3];
+EXPORT_MPI_API int MPI_Group_range_excl ( MPI_Group group, int n, int ranges[][3], 
+			   MPI_Group *newgroup )
 {
   int i, j, first, last, stride;
   int np;
@@ -56,7 +74,12 @@ int       n, ranges[][3];
 
   /* Check for bad arguments */
   group_ptr = MPIR_GET_GROUP_PTR(group);
-  MPIR_TEST_MPI_GROUP(group,group_ptr,MPIR_COMM_WORLD,myname);
+#ifndef MPIR_NO_ERROR_CHECKING
+  /* MPIR_TEST_MPI_GROUP(group,group_ptr,MPIR_COMM_WORLD,myname); */
+  MPIR_TEST_GROUP(group_ptr);
+    if (mpi_errno)
+	return MPIR_ERROR(MPIR_COMM_WORLD, mpi_errno, myname );
+#endif
 
   /* Check for a EMPTY input group */
   if ( (group == MPI_GROUP_EMPTY) ) {
@@ -90,8 +113,11 @@ int       n, ranges[][3];
     if (stride != 0) {
 	if ( (stride > 0 && first > last) ||
 	     (stride < 0 && first < last) ) {
-	    return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ARG, 
-			       "range non terminating" );
+	    mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ARG_STRIDE,
+					 myname, 
+		 "Range does not terminate", 
+		 "Range (%d,%d,%d) does not terminate", first, last, stride );
+	    return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 	}
 	for ( j=first; j*stride <= last*stride; j += stride )
 	  if ( (j < group_ptr->np) && (j >= 0) ) {
@@ -101,12 +127,16 @@ int       n, ranges[][3];
 	      }
 	  }
 	  else{
-	      MPIR_ERROR_PUSH_ARG(&j);
-	      return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_RANK, myname );
+	      mpi_errno = MPIR_Err_setmsg( MPI_ERR_RANK, MPIR_ERR_DEFAULT, 
+					   myname, (char *)0,(char *)0, j );
+	      return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 	  }
     }
     else {
-	return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ARG, "Zero stride" );
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ARG_ZERO_STRIDE, 
+				     myname, "Zero stride is incorrect",
+				     (char *)0 );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
     }
   }
 

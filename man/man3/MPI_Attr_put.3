@@ -1,13 +1,10 @@
-.TH MPI_Attr_put 3 "4/28/1998" " " "MPI"
+.TH MPI_Attr_put 3 "9/15/1999" " " "MPI"
 .SH NAME
 MPI_Attr_put \-  Stores attribute value associated with a key 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Attr_put ( comm, keyval, attr_value )
-MPI_Comm comm;
-int      keyval;
-void     *attr_value;
+int MPI_Attr_put ( MPI_Comm comm, int keyval, void *attr_value )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

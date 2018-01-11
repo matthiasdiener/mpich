@@ -80,7 +80,7 @@ waitsome()
   MPI_Status array_of_statuses[2000];
   MPI::Status status[2000];
 
-  Testing("Waitsome w/ Status");
+  Testing( (char *)"Waitsome w/ Status");
   
   {
     for(i = 0; i < 2000; i++) {
@@ -149,7 +149,7 @@ waitsome()
 
   MPI::COMM_WORLD.Barrier();
 
-  Testing("Waitsome w/o Status");
+  Testing( (char *)"Waitsome w/o Status");
 
   {
     for(i = 0; i < 2000; i++) {

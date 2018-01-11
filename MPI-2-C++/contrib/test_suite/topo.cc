@@ -33,7 +33,7 @@ topo()
 
   comm1 = MPI::COMM_WORLD;
 
-  Testing("Get_topology");
+  Testing( (char *)"Get_topology");
 
   topology = comm1.Get_topology();
 

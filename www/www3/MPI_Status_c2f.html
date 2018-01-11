@@ -10,9 +10,7 @@ Convert a C status to a Fortran status
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Status_c2f( c_status, f_status )
-MPI_Status   *c_status;
-MPI_Fint     *f_status;
+int MPI_Status_c2f( MPI_Status *c_status, MPI_Fint *f_status )
 </PRE>
 <H2>Input Parameters</H2>
 <DL><DT><B>c_status </B> <DD> Status value in C (Status)

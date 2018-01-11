@@ -1,15 +1,11 @@
-.TH MPI_Iprobe 3 "4/28/1998" " " "MPI"
+.TH MPI_Iprobe 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Iprobe \-  Nonblocking test for a message 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Iprobe( source, tag, comm, flag, status )
-int         source;
-int         tag;
-int         *flag;
-MPI_Comm    comm;
-MPI_Status  *status;
+int MPI_Iprobe( int source, int tag, MPI_Comm comm, int *flag, 
+  MPI_Status *status )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

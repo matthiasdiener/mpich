@@ -1,5 +1,5 @@
 /*
- *  $Id: pcontrol.c,v 1.1.1.1 1997/09/17 20:42:42 gropp Exp $
+ *  $Id: pcontrol.c,v 1.7 1999/09/15 22:41:53 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,9 +7,28 @@
 
 #include "mpiimpl.h"
 
-#if defined(__STDC__) || defined(HAVE_PROTOTYPES)
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Pcontrol = PMPI_Pcontrol
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Pcontrol  MPI_Pcontrol
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Pcontrol as PMPI_Pcontrol
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
+#if defined(__STDC__) || defined(HAVE_PROTOTYPES) || defined(USE_STDARG)
 #ifdef HAVE_NO_C_CONST
-int MPI_Pcontrol( int level, ... )
+EXPORT_MPI_API int MPI_Pcontrol( int level, ... )
 #else
 int MPI_Pcontrol( const int level, ... )
 #endif
@@ -30,8 +49,7 @@ int MPI_Pcontrol( const int level, ... )
 
 .N fortran
 @*/
-int MPI_Pcontrol( level )
-int level;
+int MPI_Pcontrol( int level )
 {
     return MPI_SUCCESS;
 }

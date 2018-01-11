@@ -1,15 +1,11 @@
-.TH MPI_Graph_map 3 "4/29/1998" " " "MPI"
+.TH MPI_Graph_map 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Graph_map \-  Maps process to graph topology information 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Graph_map ( comm_old, nnodes, index, edges, newrank )
-MPI_Comm comm_old;
-int      nnodes;
-int     *index;
-int     *edges;
-int     *newrank;
+int MPI_Graph_map ( MPI_Comm comm_old, int nnodes, int *index, int *edges, 
+      int *newrank )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

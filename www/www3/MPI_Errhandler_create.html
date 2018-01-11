@@ -10,9 +10,9 @@ Creates an MPI-style errorhandler
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Errhandler_create( function, errhandler )
-MPI_Handler_function *function;
-MPI_Errhandler       *errhandler;
+int MPI_Errhandler_create( 
+ MPI_Handler_function *function,
+ MPI_Errhandler       *errhandler)
 </PRE>
 <H2>Input Parameter</H2>
 <DL><DT><B>function </B> <DD> user defined error handling procedure 

@@ -1,13 +1,13 @@
-.TH MPI_Test 3 "4/28/1998" " " "MPI"
+.TH MPI_Test 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Test \-  Tests for the completion of a send or receive 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Test ( request, flag, status )
-MPI_Request  *request;
-int          *flag;
-MPI_Status   *status;
+int MPI_Test ( 
+ MPI_Request  *request,
+ int          *flag,
+ MPI_Status   *status)
 .fi
 .SH INPUT PARAMETER
 .PD 0

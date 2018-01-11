@@ -26,8 +26,10 @@ Usage: ${progname} [-arch=ARCH_TYPE]
                    [-cc=C_COMPILER] [-fc=FORTRAN_COMPILER]
 		   [-basecc=C_COMPILER] [-basefc=FORTRAN_COMPILER]
                    [-clinker=C_LINKER] [-flinker=FORTRAN_LINKER]
-                   [-nof77] [-opt=OPTFLAGS] 
+                   [-nof77] [-opt=OPTFLAGS]
+                   [-f77_extra_flag=F77_EXTRA_FLAG] 
 	           [-make=MAKEPGM]
+		   [-device=DEVICE]
                    [-cflags=CFLAGS] [-fflags=FFLAGS]
                    [-optcc=C_OPTFLAGS] [-optf77=F77_OPTFLAGS]
                    [-lib=LIBRARY] [-mpilibname=MPINAME]
@@ -63,6 +65,10 @@ Fortran).  For example, '-opt=-O' chooses optimized code generation on many
 systems.  '-optcc' and '-optf77' allow you to specify options for just the C
 or Fortran compilers
 
+The option '-f77_extra_flag' is the option Fortran code needs to compile, but 
+cannot link with this option.  This is needed currently for the Absoft compiler
+(-f option), but it could be used for other cases as well.
+
 The option '-make' may be used to select an alternate make program.  For
 example, on FreeBSD systems, -make=gnumake may be required because of bugs in
 the system make.
@@ -95,8 +101,9 @@ FLIB_PATH=""
 OPTFLAGS=""
 OPTFLAGSF=""
 NOF77=0
+F77_EXTRA_FLAG=""
 HAS_FORTRAN=1
-MPILIBNAME=mpi
+MPILIBNAME=
 CFLAGS=""
 # Change MPIFDEP to make Fortran builds depend on an mpif link.
 MPIFDEP=""
@@ -104,6 +111,7 @@ MPIFDEP=""
 # By not setting FFLAGS, we get the values from the environment
 MAKE=make
 PREFIX=""
+DEVICE=""
 DEVCFLAGS=""
 CONFIGURE_ARGS="$*"
 DEFAULT_MACHINE=''
@@ -255,6 +263,10 @@ do
        package="`echo $arg|sed 's/-*fflags=//'`"
        FFLAGS="$package" ;;
 
+     -f77_extra_flag=* | --f77_extra_flag=*)
+       package="`echo $arg |sed 's/-*f77_extra_flag=//'`"
+       F77_EXTRA_FLAG="$package" ;;
+
      -make=* | --make=*)
        package=`echo $arg|sed 's/-*make=//'`
        MAKE="$package"
@@ -262,6 +274,8 @@ do
 
      -mpichpath=*|--mpichpath=*)
 	mpichpath=`echo A$arg | sed 's/A-*mpichpath=//'`
+	MPIRUNARGS='"-mvhome"'
+	MPIRUNMVBACK="-mvback"
 	;;
 
      -mpi2)
@@ -349,87 +363,25 @@ configure_args="$*"
 
 #
 #
-
-if test -z "$ac_echo_n" ; then
-ac_echo_n=yes
-if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
-  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
-  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
-    ac_n= ac_c='
-' ac_t='	'
-  else
-    ac_n=-n ac_c= ac_t=
-  fi
-else
-  ac_n= ac_c='\c' ac_t=
-fi
-ac_echo_test=`echo foo 1>&1`
-if test -z "$ac_echo_test" ; then
-     print_error "Your sh shell does not handle the output redirection"
-     print_error "1>&1 correctly.  Configure will work around this problem,"
-     print_error "but you should report the problem to your vendor."
-fi
-
-fi
-if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking for current directory name""... $ac_c"
-else
-echo $ac_n "checking for current directory name""... $ac_c" 1>&1
-fi
-MPIR_TRIAL=$PWD
-if test "${MPIR_TRIAL}" != "" -a -d "${MPIR_TRIAL}" ; then 
-    if test -r ${MPIR_TRIAL}/.foo$$ ; then
-        /bin/rm -f ${MPIR_TRIAL}/.foo$$
-	/bin/rm -f .foo$$
-    fi
-    if test -r ${MPIR_TRIAL}/.foo$$ -o -r .foo$$ ; then
-	MPIR_TRIAL=
-    else
-	echo "test" > ${MPIR_TRIAL}/.foo$$
-	if test ! -r .foo$$ ; then
-            /bin/rm -f ${MPIR_TRIAL}/.foo$$
-	    MPIR_TRIAL=
-        else
- 	    /bin/rm -f ${MPIR_TRIAL}/.foo$$
-	fi
-    fi
-fi
-if test "${MPIR_TRIAL}" = "" ; then
-    MPIR_TRIAL=`pwd | sed -e 's%/tmp_mnt/%/%g'`
-fi
-if test ! -r ${MPIR_TRIAL}/Makefile.in ; then
-        MPIR_TRIAL=`pwd`
-    if test ! -r ${MPIR_TRIAL}/Makefile.in ; then
-	print_error "Cannot determine the root directory!" 
-        exit 1
-    fi
-    MPIR_TRIAL=`pwd | sed -e 's%/tmp_mnt/%/%g'`
-    if test ! -d ${MPIR_TRIAL} ; then 
-        print_error "Warning: your default path uses the automounter; this may"
-        print_error "cause some problems if you use other NFS-connected systems."
-        MPIR_TRIAL=`pwd`
-    fi
-fi
-if test -z "${MPIR_TRIAL}" ; then
-    MPIR_TRIAL=`pwd | sed -e 's%/tmp_mnt/%/%g'`
-    if test ! -d ${MPIR_TRIAL} ; then 
-        print_error "Warning: your default path uses the automounter; this may"
-        print_error "cause some problems if you use other NFS-connected systems."
-        MPIR_TRIAL=`pwd`
-    fi
-fi
-if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""${MPIR_TRIAL}"
-else
-echo "$ac_t""${MPIR_TRIAL}" 1>&1
-fi
-
-MPIR_HOME=$MPIR_TRIAL
+## Find the MPICH home directory if not specified
+#if test -s $srcdir/src/pt2pt/Makefile.in ; then 
+#    MPIR_TRIAL=$srcdir
+#else
+#    PA C_GETWD(MPIR_TRIAL,src/pt2pt/Makefile.in)
+#fi
+#MPIR_HOME=$MPIR_TRIAL
 #
+if test -z "$prefix" -a -n "$PREFIX" ; then prefix=$PREFIX ; fi
+
+if test -z "$top_srcdir" -o "$top_srcdir" = "." ; then 
+    top_srcdir=$srcdir
+fi
+
+
 if test -n "$mpichpath" ; then
-    if test -z "$CC" ; then MPICC=$mpichpath/mpicc ; fi
-    if test -z "$FC" ; then MPIF77=$mpichpath/mpif77 ; fi
-    if test -z "$CXX" ; then MPICPLUSPLUS=$mpichpath/mpiCC ; fi
+    if test -z "$MPICC" ; then MPICC=$mpichpath/mpicc ; fi
+    if test -z "$MPIF77" ; then MPIF77=$mpichpath/mpif77 ; fi
+    if test -z "$MPICPLUSPLUS" ; then MPICPLUSPLUS=$mpichpath/mpiCC ; fi
     if test -z "$MPIRUN" ; then MPIRUN=$mpichpath/mpirun ; fi
     if test -z "$MPICH_VERSION" ; then 
 	MPICH_VERSION="MPICH"
@@ -451,13 +403,20 @@ F77="$FC"
 if test -z "$ARCH" -a -x tarch ; then
     echo "Trying to guess architecture ..."
     ARCH=`./tarch | sed s/-/_/g`
-    if test -z "$ARCH" ; then
-       print_error "Error: Couldn't guess target architecture."
-    else
-        eval "arch_$ARCH=1"
-        echo "  configuring for \"$ARCH\" target architecture"
-    fi
 fi
+if test -z "$ARCH" -a -x ../../bin/tarch ; then
+    ARCH=`../../bin/tarch | sed s/-/_/g`
+fi
+if test -z "$ARCH" -a -x $top_srcdir/../../bin/tarch ; then
+    ARCH=`$top_srcdir/../../bin/tarch | sed s/-/_/g`
+fi
+if test -z "$ARCH" ; then
+    print_error "Error: Couldn't guess target architecture."
+else
+    eval "arch_$ARCH=1"
+    echo "  configuring for \"$ARCH\" target architecture"
+fi
+
 if test -n "$arch_sgi" ; then
     arch_IRIX=1
     ARCH=IRIX
@@ -615,11 +574,15 @@ int t() { return 0; }
 EOF
 if eval $compile; then
   
-  rm -rf conftest*
+  
   eval "ac_cv_ccworks=yes"
 
 else
-  rm -rf conftest*
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
   eval "ac_cv_ccworks=no"
    
 fi
@@ -642,7 +605,7 @@ cat > conftest.c <<EOF
 int main() { exit(0); }
 int t() { return 0; }
 EOF
-$CC $CFLAGS conftest.c -o conftest $LIBS
+${CC-cc} $CFLAGS conftest.c -o conftest $LIBS
 rm -f conftest* 
 #
 # End of output
@@ -821,9 +784,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking BSD 4.4 make""... $ac_c"
+echo $ac_n "checking whether make supports include""... $ac_c"
 else
-echo $ac_n "checking BSD 4.4 make""... $ac_c" 1>&1
+echo $ac_n "checking whether make supports include""... $ac_c" 1>&1
 fi
 /bin/rm -f conftest
 cat > conftest <<.
@@ -837,19 +800,16 @@ str=`$MAKE -f conftest1 2>&1`
 /bin/rm -f conftest conftest1
 if test "$str" != "success" ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""Found BSD 4.4 so-called make"
+echo "$ac_t""no"
 else
-echo "$ac_t""Found BSD 4.4 so-called make" 1>&1
+echo "$ac_t""no" 1>&1
 fi
-    echo "The BSD 4.4 make is INCOMPATIBLE with all other makes."
-    echo "Using this so-called make may cause problems when building programs."
-    echo "You should consider using gnumake instead."
     
 else
     if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no - whew"
+echo "$ac_t""yes"
 else
-echo "$ac_t""no - whew" 1>&1
+echo "$ac_t""yes" 1>&1
 fi
 fi
 str=""
@@ -909,6 +869,79 @@ fi
 fi
 str=""
 
+
+
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for virtual path format""... $ac_c"
+else
+echo $ac_n "checking for virtual path format""... $ac_c" 1>&1
+fi
+rm -rf conftest*
+mkdir conftestdir
+cat >conftestdir/a.c <<EOF
+A sample file
+EOF
+cat > conftest <<EOF
+all: a.o
+VPATH=.:conftestdir
+.c.o:
+	@echo \$<
+EOF
+ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
+if test -n "$ac_out" ; then 
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""VPATH"
+else
+echo "$ac_t""VPATH" 1>&1
+fi
+    VPATH='VPATH=.:$(srcdir)'
+else
+    rm -f conftest
+    cat > conftest <<EOF
+all: a.o
+.PATH: . conftestdir
+.c.o:
+	@echo \$<
+EOF
+    ac_out=`$MAKE -f conftest 2>&1 | grep 'conftestdir/a.c'`
+    if test -n "$ac_out" ; then 
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"".PATH"
+else
+echo "$ac_t"".PATH" 1>&1
+fi
+        VPATH='.PATH: . $(srcdir)'
+    else
+	if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""neither VPATH nor .PATH works"
+else
+echo "$ac_t""neither VPATH nor .PATH works" 1>&1
+fi
+    fi
+fi
+rm -rf conftest*
+
 #
 # Check for header files
 # stdlib.h is used mostly for things like malloc and free, so it isn't
@@ -963,11 +996,15 @@ int t() { main(); }
 EOF
 if eval $compile; then
   
-  rm -rf conftest*
+  
   eval "ac_cv_header_$ac_safe=yes"
 
 else
-  rm -rf conftest*
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
   eval "ac_cv_header_$ac_safe=no"
    
 fi
@@ -1040,11 +1077,6 @@ fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 
-/* DEC Alpha compiler by default does NOT define __STDC__ but DOES
-   accept prototypes */
-#if !defined(__STDC__)
-'bad text'
-#endif
 #include <stdio.h>
 #include <stdarg.h>
 int func( int a, ... ){
@@ -1059,7 +1091,12 @@ return 0;
 }
 int main() { func( 1, 2 ); return 0;}
 EOF
-if eval $compile; then
+if test -z "$ac_compile_link" ; then 
+    ac_compile_link='${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >>config.log 2>&1'
+fi
+echo "$ac_compile_link" >>config.log
+cat conftest.c >>config.log
+if eval $ac_compile_link; then
   if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
@@ -1069,8 +1106,8 @@ fi
   stdarg_ok=1
 
 else
-  rm -rf conftest*
-  stdarg_ok=0
+    rm -rf conftest*
+    stdarg_ok=0
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
@@ -1079,7 +1116,7 @@ fi
 fi
 rm -f conftest*
 
-if test $stdarg_ok ; then
+if test $stdarg_ok = 1 ; then
     
 {
 test -n "$verbose" && \
@@ -1181,11 +1218,15 @@ int t() { long double a;return 0; }
 EOF
 if eval $compile; then
   
-  rm -rf conftest*
+  
   ldok=1
 
 else
-  rm -rf conftest*
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
   ldok=0
    
 fi
@@ -1351,6 +1392,7 @@ fi
 #
 # Check to see if the compiler accepts prototypes
 
+if test "$ac_cv_ccansi" != "$CC $CFLAGS" ; then
 if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
@@ -1397,11 +1439,15 @@ int t() {  }
 EOF
 if eval $compile; then
   
-  rm -rf conftest*
+  
   eval "ac_cv_ccworks=yes"
 
 else
-  rm -rf conftest*
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
   eval "ac_cv_ccworks=no"
    
 fi
@@ -1423,6 +1469,8 @@ DEFS="$DEFS -DHAVE_PROTOTYPES=1"
 
 else
     :
+fi
+ac_cv_ccansi="$CC $CFLAGS"
 fi
 
 #
@@ -1477,11 +1525,15 @@ int t() { main(); }
 EOF
 if eval $compile; then
   
-  rm -rf conftest*
+  
   eval "ac_cv_header_$ac_safe=yes"
 
 else
-  rm -rf conftest*
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
   eval "ac_cv_header_$ac_safe=no"
    
 fi
@@ -1573,7 +1625,7 @@ echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  rm -rf conftest*
+  
   {
 test -n "$verbose" && \
 echo "	defining ${trfunc}"
@@ -1587,6 +1639,12 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
 fi
 rm -f conftest*
 done
@@ -1632,10 +1690,44 @@ fi
 #
 #
 MPE_CFLAGS="$MPE_CFLAGS $DEFS"
+if test -n "$MPILIBNAME" ; then
+    LIB_LIST="$LIB_LIST -l$MPILIBNAME"
+fi
+
+#
+# Check that we can link MPI_Init using the MPICC program (if not MPICH)
+# (We don't test mpich because we may be configuring this before MPICH 
+# is built.)
+if test -z "$MPICH_VERSION" ; then
+    rm -f conftest*
+    cat >> conftest.c <<EOF
+#include "mpi.h"
+int main(int argc, char **argv)
+{MPI_Init( &argc, &argv );
+ MPI_Finalize();
+ return 0;
+}
+EOF
+    if $MPICC -o conftest conftest.c $LIB_LIST >conftest.log 2>&1 ; then
+	:
+    else
+        # Try adding -lmpi
+        rm conftest.log
+        if $MPICC -o conftest conftest.c $LIB_LIST -lmpi >conftest.log 2>&1 ; then
+            LIB_LIST="$LIB_LIST -lmpi"
+        else
+	    printerror "Could not compile/link a program containing MPI_Init"
+            if test -s conftest.log ; then cat conftest.out ; fi
+        fi
+    fi
+    rm -f conftest*
+fi
+
 # Substitute variables
 # Variables used in scripts only
 # FINC contains an @MPIR_HOME@, so it needs to come first
 # Variables used by Makefile.in's:
+
 MPICH_VERSION=""
 # End configuration file
 # Set default prefixes.
@@ -1679,7 +1771,11 @@ do
 done
 
 trap 'rm -f Makefile pt2pt/Makefile coll/Makefile topol/Makefile context/Makefile env/Makefile profile/Makefile ; exit 1' 1 3 15
+prefix='$prefix'
+top_srcdir='$top_srcdir'
+VPATH='$VPATH'
 CC='$CC'
+MPIRUNARGS='$MPIRUNARGS'
 FINC='$FINC'
 ARCH='$ARCH'
 CFLAGS='$CFLAGS'
@@ -1692,6 +1788,7 @@ FLIB_PATH='$FLIB_PATH'
 FLIB_PATH_LEADER='$FLIB_PATH_LEADER'
 FLINKER='$FLINKER'
 HAS_FORTRAN='$HAS_FORTRAN'
+F77_EXTRA_FLAG='$F77_EXTRA_FLAG'
 INCLUDE_PATH='$INCLUDE_PATH'
 LIB_LIST='$LIB_LIST'
 LIB_PATH='$LIB_PATH'
@@ -1707,6 +1804,7 @@ MPICC='$MPICC'
 MPIF77='$MPIF77'
 MPICPLUSPLUS='$MPICPLUSPLUS'
 MPIRUN='$MPIRUN'
+MPIRUNMVBACK='$MPIRUNMVBACK'
 OPTFLAGS='$OPTFLAGS'
 OPTFLAGSC='$OPTFLAGSC'
 OPTFLAGSF='$OPTFLAGSF'
@@ -1738,7 +1836,11 @@ for file in .. ${CONFIG_FILES}; do if test "x$file" != x..; then
 cat $top_srcdir/${file}.in | sed -e "
 $prsub
 $extrasub
+s%@prefix@%$prefix%g
+s%@top_srcdir@%$top_srcdir%g
+s%@VPATH@%$VPATH%g
 s%@CC@%$CC%g
+s%@MPIRUNARGS@%$MPIRUNARGS%g
 s%@FINC@%$FINC%g
 s%@ARCH@%$ARCH%g
 s%@CFLAGS@%$CFLAGS%g
@@ -1751,6 +1853,7 @@ s%@FLIB_PATH@%$FLIB_PATH%g
 s%@FLIB_PATH_LEADER@%$FLIB_PATH_LEADER%g
 s%@FLINKER@%$FLINKER%g
 s%@HAS_FORTRAN@%$HAS_FORTRAN%g
+s%@F77_EXTRA_FLAG@%$F77_EXTRA_FLAG%g
 s%@INCLUDE_PATH@%$INCLUDE_PATH%g
 s%@LIB_LIST@%$LIB_LIST%g
 s%@LIB_PATH@%$LIB_PATH%g
@@ -1766,12 +1869,13 @@ s%@MPICC@%$MPICC%g
 s%@MPIF77@%$MPIF77%g
 s%@MPICPLUSPLUS@%$MPICPLUSPLUS%g
 s%@MPIRUN@%$MPIRUN%g
+s%@MPIRUNMVBACK@%$MPIRUNMVBACK%g
 s%@OPTFLAGS@%$OPTFLAGS%g
 s%@OPTFLAGSC@%$OPTFLAGSC%g
 s%@OPTFLAGSF@%$OPTFLAGSF%g
 s%@HAS_MPI2@%$HAS_MPI2%g
 s%@LIBS@%$LIBS%g
-s%@srcdir@%$srcdir%g
+s%@srcdir@%$srcdir%g" | sed -e "
 s%@DEFS@%$DEFS%
 " >> $file
 fi; done
@@ -1794,4 +1898,6 @@ for pac_file in pt2pt/runtests coll/runtests topol/runtests context/runtests env
     mv .pactmp $pac_file
     chmod a+x  $pac_file
 done
+
+
 

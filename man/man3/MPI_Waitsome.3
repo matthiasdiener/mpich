@@ -1,14 +1,15 @@
-.TH MPI_Waitsome 3 "4/28/1998" " " "MPI"
+.TH MPI_Waitsome 3 "11/6/1999" " " "MPI"
 .SH NAME
 MPI_Waitsome \-  Waits for some given communications to complete 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Waitsome( incount, array_of_requests, outcount, array_of_indices, 
-    array_of_statuses )
-int         incount, *outcount, array_of_indices[];
-MPI_Request array_of_requests[];
-MPI_Status  array_of_statuses[];
+int MPI_Waitsome( 
+ int incount, 
+ MPI_Request array_of_requests[], 
+ int *outcount, 
+ int array_of_indices[], 
+ MPI_Status array_of_statuses[] )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

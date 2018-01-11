@@ -71,7 +71,7 @@ getcount()
   for(i = 0; i < 100; i++)
     data[i] = -1;
 
-  Testing("Get_count");
+  Testing( (char *)"Get_count");
 
   if((my_rank % 2) == 0) {
     MPI::COMM_WORLD.Send(&data, 5, MPI::BYTE, my_rank + 1, 1);

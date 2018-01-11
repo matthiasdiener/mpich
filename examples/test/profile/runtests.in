@@ -4,7 +4,11 @@
 # test programs.
 #
 # -mvhome is needed for the ANL SP, and is ignored by others
-args="-pg -mvhome"
+args=@MPIRUNARGS@
+device=@DEVICE@
+if [ "$device" = "ch_p4mpd" ] ; then
+    args=""
+fi
 STOPFILE=$HOME/.stopmpichtests
 #
 # Some people don't include "." in their path (! in case an ls trojan horse,
@@ -42,7 +46,7 @@ if [ -z "$mpirun" -a -x @LIB_DIR@/bin/mpirun ] ; then
     mpirun="@LIB_DIR@/bin/mpirun"
 fi
 if [ -z "$mpirun" ] ; then
-    echo "No mpirun in path.  Testing can not proceed."
+    echo "No mpirun in path.  Testing cannot proceed."
     exit 1
 fi
 #
@@ -143,24 +147,36 @@ CheckOutput() {
 	    diff -b $1.out $stdfile
 	fi
     else
-        echo "Can not find file $stdfile to compare against for test $1"
+        echo "Cannot find file $stdfile to compare against for test $1"
     fi
   fi
 }
-## RunTest program-name marker-text outputfile programargs
-#RunTest() {
-#    testfiles="$testfiles $3"
-#    /bin/rm -f $3
-#    MakeExe $1
-#    echo "$2"
-#    echo "$2" >> $3
-#    $mpirun $args -np 2 $1 "$4" >> $3 2>&1
-#    echo "$2" >> $3
-#    CleanExe $1
-#}   
+
+# Runtest pgm-name np marker-test args outfiles
+RunTest() {
+    OutTime
+    testfiles="$testfiles $1.out"
+    /bin/rm -f $1.out
+    MakeExe $1
+    mname=$3
+    if [ -z "$mname" ] ; then mname="*** $1 ***" ; fi
+    echo "$mname" >> $1.out
+    echo "$mname"
+    mvarg=""
+    if [ -n "$5" ] ; then rm -f $5 ; 
+	if [ "$device" != "ch_p4mpd" ] ; then
+            if [ -n "@MPIRUNMVBACK@" ] ; then mvarg="@MPIRUNMVBACK@ $5" ; fi 
+	fi
+    fi
+    $mpirun $args -np $2 $mvarg $1 $4 </dev/null >> $1.out 2>&1
+    if [ -n "$5" ] ; then cat $5 >> $1.out ; rm -f $5 ; fi
+    echo "$mname" >> $1.out
+    #CheckOutput $1
+    CleanExe $1
+}
 
 # If the programs are not available, run make.
-if [ ! -x sendrecv -a $makeeach = 0 ] ; then
+if [ ! -x sendrecv -a $makeeach = 0 -a $runtests = 1 ] ; then
     $MAKE default
 fi
 
@@ -168,37 +184,8 @@ testfiles=""
 if [ $runtests = 1 ] ; then
 echo '**** Testing MPI Profiling routines ****'
 
-OutTime
-testfiles="$testfiles ptest.out"
-/bin/rm -f ptest.out
-MakeExe ptest
-echo '**** Testing MPI_Pcontrol ****' >> ptest.out
-echo '**** Testing MPI_Pcontrol ****' 
-$mpirun $args -np 1 ptest "$@" >> ptest.out 2>&1
-echo '**** Testing MPI_Pcontrol ****' >> ptest.out
-#CheckOutput ptest
-CleanExe ptest
-#
-# Run Fortran tests ONLY if Fortran available
-#if [ @HAS_FORTRAN@ = 1 ] ; then 
-#    echo "FORTRAN TESTS"
-    #
-    #echo "*** secondf ***" >> pt2pt.out
-    #$mpirun $args -np 2 secondf "$@" >> pt2pt.out 2>&1
-    #
-    #testfiles="$testfiles allpair.out"
-    #/bin/rm -f allpair.out
-    #MakeExe allpair
-    #echo '*** Testing pt-2-pt from Fortran ***'
-    #echo '*** Testing pt-2-pt from Fortran ***' >> allpair.out
-    #$mpirun $args -np 2 allpair "$@" >> allpair.out 2>&1
-    #echo '*** Testing pt-2-pt from Fortran ***' >> allpair.out
-    #CheckOutput allpair
-    #CleanExe allpair
-    #
-#    echo "END OF FORTRAN TESTS"
-#fi
-#
+RunTest ptest 1 "**** Testing MPI_Pcontrol ****"
+
 else
     # Just run checks
     testfiles=`echo *.out`
@@ -211,8 +198,9 @@ fi
 echo '*** Checking for differences from expected output ***'
 /bin/rm -f profile.diff
 nodiff=1
+srcdir=@srcdir@
 for file in $testfiles ; do
-    stdfile=`basename $file .out`.std
+    stdfile=$srcdir/`basename $file .out`.std
     # if basename is sendrecv or isndrcv, then we may want to test 
     # with .std2 as well.  We should really separate out the long double
     # tests ...
@@ -245,4 +233,6 @@ elif [ $nodiff = 1 ] ; then
    echo "-- No differences found; test successful"
 fi
 exit 0
+
+
 

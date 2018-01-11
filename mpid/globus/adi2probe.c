@@ -5,7 +5,7 @@
  * 
  * Authors: George K. Thiruvathukal and Jonathan Geisler
  *
- * Version: $Id: adi2probe.c,v 1.3 1998/06/08 19:39:54 karonis Exp $
+ * Version: $Id: adi2probe.c,v 1.5 1999/04/01 21:17:24 gropp Exp $
  *
  * Nexus-MPI is an application being developed using the Globus Communications
  * Specification. For more information about the Globus project, its
@@ -102,9 +102,11 @@ static char myname[] = "MPID_GET_COUNT";
 int dataorigin_unitsize;
 int dataorigin_format;
 int dummy;
+int mpi_errno = MPI_SUCCESS;
 
     dtype_ptr   = MPIR_GET_DTYPE_PTR(datatype);
     MPIR_TEST_DTYPE(datatype,dtype_ptr,MPIR_COMM_WORLD,myname);
+    if (mpi_errno) return mpi_errno;
 
 /* globus_nexus_printf("NICK: enter MPID_Get_count() status->count = %d status->private_count = %0x dtype_ptr->size = %d\n", status->count, status->private_count, dtype_ptr->size); */
     if (dtype_ptr->size == 0)
@@ -195,7 +197,7 @@ int dummy;
 	} 
 	else if (STATUSCOUNT_ISRCVBUFSIZE(status->private_count))
 	{
-	    globus_nexus_printf("FATAL ERROR: MPID_Get_count(): encountered invalid status->private_count %0 which is STATUSCOUNT_RCVBUFSIZE\n");
+	    globus_nexus_printf("FATAL ERROR: MPID_Get_count(): encountered invalid status->private_count %d which is STATUSCOUNT_RCVBUFSIZE\n", status->private_count);
 	    exit(1);
 	}
 	else
@@ -225,9 +227,11 @@ int dummy;
 int dataorigin_unitsize;
 int dataorigin_format;
 globus_bool_t done;
+int mpi_errno = MPI_SUCCESS;
 
     dtype_ptr   = MPIR_GET_DTYPE_PTR(datatype);
     MPIR_TEST_DTYPE(datatype,dtype_ptr,MPIR_COMM_WORLD,myname);
+    if (mpi_errno) return mpi_errno;
 
     MPID_Get_count(status, datatype, &count);
     if (count == MPI_UNDEFINED)
@@ -305,7 +309,7 @@ globus_bool_t done;
 	} 
 	else if (STATUSCOUNT_ISRCVBUFSIZE(status->private_count))
 	{
-	    globus_nexus_printf("FATAL ERROR: MPID_Get_elements(): encountered invalid status->private_count %0 which is STATUSCOUNT_RCVBUFSIZE\n");
+	    globus_nexus_printf("FATAL ERROR: MPID_Get_elements(): encountered invalid status->private_count %d which is STATUSCOUNT_RCVBUFSIZE\n", status->private_count);
 	    exit(1);
 	}
     	else

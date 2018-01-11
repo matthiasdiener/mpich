@@ -7,7 +7,57 @@
 #include <stdarg.h>
 #endif
 
-#ifdef MPI_BUILD_PROFILING
+
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_BCAST = PMPI_BCAST
+EXPORT_MPI_API void MPI_BCAST ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_bcast__ = pmpi_bcast__
+EXPORT_MPI_API void mpi_bcast__ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_bcast = pmpi_bcast
+EXPORT_MPI_API void mpi_bcast ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+#pragma weak mpi_bcast_ = pmpi_bcast_
+EXPORT_MPI_API void mpi_bcast_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_BCAST  MPI_BCAST
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_bcast__  mpi_bcast__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_bcast  mpi_bcast
+#else
+#pragma _HP_SECONDARY_DEF pmpi_bcast_  mpi_bcast_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_BCAST as PMPI_BCAST
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_bcast__ as pmpi_bcast__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_bcast as pmpi_bcast
+#else
+#pragma _CRI duplicate mpi_bcast_ as pmpi_bcast_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_bcast_ PMPI_BCAST
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -17,7 +67,9 @@
 #else
 #define mpi_bcast_ pmpi_bcast_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_bcast_ MPI_BCAST
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -26,6 +78,7 @@
 #define mpi_bcast_ mpi_bcast
 #endif
 #endif
+
 
 #ifdef _CRAY
 #ifdef _TWO_WORD_FCD
@@ -79,16 +132,10 @@ if (_isfcd(buffer)) {
 #else
 /* Prototype to suppress warnings about missing prototypes */
 
-void mpi_bcast_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+EXPORT_MPI_API void mpi_bcast_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
                             MPI_Fint *, MPI_Fint * ));
 
-void mpi_bcast_ ( buffer, count, datatype, root, comm, __ierr )
-void     *buffer;
-MPI_Fint *count;
-MPI_Fint *datatype;
-MPI_Fint *root;
-MPI_Fint *comm;
-MPI_Fint *__ierr;
+EXPORT_MPI_API void mpi_bcast_ ( void *buffer, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *root, MPI_Fint *comm, MPI_Fint *__ierr )
 {
     *__ierr = MPI_Bcast(MPIR_F_PTR(buffer), (int)*count, 
                         MPI_Type_f2c(*datatype), (int)*root,

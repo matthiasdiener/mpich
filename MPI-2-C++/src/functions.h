@@ -50,7 +50,7 @@ _MPIPP_STATIC_ void
 Get_processor_name(char*& name, int& resultlen);
 
 _MPIPP_STATIC_ void
-Get_error_string(int errorcode, char*& string, int& resultlen);
+Get_error_string(int errorcode, char* string, int& resultlen);
 
 _MPIPP_STATIC_ int 
 Get_error_class(int errorcode);

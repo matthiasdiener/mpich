@@ -1,21 +1,19 @@
-.TH MPI_Scatterv 3 "4/28/1998" " " "MPI"
+.TH MPI_Scatterv 3 "10/15/1999" " " "MPI"
 .SH NAME
 MPI_Scatterv \-  Scatters a buffer in parts to all tasks in a group 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Scatterv ( sendbuf, sendcnts, displs, sendtype, 
-                   recvbuf, recvcnt,  recvtype, 
-                   root, comm )
-void             *sendbuf;
-int              *sendcnts;
-int              *displs;
-MPI_Datatype      sendtype;
-void             *recvbuf;
-int               recvcnt;
-MPI_Datatype      recvtype;
-int               root;
-MPI_Comm          comm;
+int MPI_Scatterv ( 
+ void *sendbuf, 
+ int *sendcnts, 
+ int *displs, 
+ MPI_Datatype sendtype, 
+ void *recvbuf, 
+ int recvcnt,  
+ MPI_Datatype recvtype, 
+ int root, 
+ MPI_Comm comm )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

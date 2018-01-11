@@ -12,7 +12,13 @@ egrep -v '^checking|^rm |^/bin/rm|^creating|^cleaning|^Creating|^cp ' | \
 egrep -v '^[ 	]rm -rf |^[ 	]rm -f ' | \
 egrep -v '^cc |^gcc |^Copying |^chmod |^cat |^U |^Making |^for file' | \
 egrep -v '^[ 	]*cc|^[ 	] *gcc|^Configuring |^setting |^ar |^ranlib |^ *if \[' |
-egrep -v '^[ 	]*xlc |^[ 	] *xlC |^[ 	]*f77 ' > .tmp 2>&1
+egrep -v '^[ 	]*xlc |^[ 	] *xlC |^[ 	]*f77|^[ 	]*f90' > .tmp 2>&1
+if [ -n "$MPICH_WARNING_SEP" ] ; then
+    /bin/rm -f .tmp2
+    sed -e '/>'"$MPICH_WARNING_SEP"/,'/<'"$MPICH_WARNING_SEP"/d .tmp > .tmp2
+    /bin/rm -f .tmp
+    mv .tmp2 .tmp
+fi
 #
 /bin/rm -f .tmp2
 egrep -v '^[ 	]*mpcc |^[ 	] *mpCC ' .tmp |
@@ -74,7 +80,8 @@ egrep -v 'Compiling C\+\+|Include C\+\+ bindings' |\
 egrep -v 'When building multiple|include instead of bin/ and ' >.tmp2 2>&1
 #
 /bin/rm -f .tmp
-egrep -v 'if test ".*" != "ignore"|export CC|util/makesharedlib -lib' .tmp2 |\
+egrep -v 'if test ".*" != "ignore"' .tmp2 |\
+egrep -v 'export CC|util/makesharedlib -lib'  |\
 egrep -v '^[ 	]*-kind=.* -local|^[ 	]*MAIN main:$|^pi3.f:$' |\
 egrep -v 'updating cache ./config|config.h is unchanged' |\
 egrep -v 'Testing that MPI applications' |\
@@ -82,7 +89,14 @@ egrep -v '^[ 	]*/bin/mv |may be used to remove the ' |\
 egrep -v 'Created util/machines|You may want to edit|These hosts are used' |\
 egrep -v '^[ 	]*if test "." = 1 ; then|Installing MPE'  |\
 egrep -v '^[ 	]*if \[ ["!]|mpeconf.h is unchanged|^[ 	]*if \[ -n' |\
-egrep -v '^[ 	]*[/a-zA-Z]*cc '
+egrep -v '^[ 	]*mpif.h[ 	]*$' |\
+egrep -v 'End of Compilation|Trying GETARG' |\
+egrep -v '^[ 	]*xlf90 ' |\
+egrep -v '^[ 	]*[/a-zA-Z]*cc ' >.tmp 2>&1
+#
+/bin/rm -f .tmp2
+egrep -v 'solaris/doctext|^[ ]*[a-zA-Z0-9/\._]*cc |^\*\* Testing|^\*\* C app' .tmp |\
+    egrep -v '^\*\* Fortran77 app'
 #
 # Try for ld messages
 sed -n -e '/Unresolved:/,/^[ ]*$/p' $1

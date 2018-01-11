@@ -10,10 +10,12 @@ Retrieves Cartesian topology information associated with a  communicator
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Cart_get ( comm, maxdims, dims, periods, coords )
-MPI_Comm comm;
-int maxdims;
-int *dims, *periods, *coords;
+int MPI_Cart_get ( 
+ MPI_Comm comm, 
+ int maxdims, 
+ int *dims, 
+ int *periods, 
+ int *coords )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

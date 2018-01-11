@@ -71,7 +71,7 @@ alltoall()
   int *out;
   int *in;
 
-  Testing("Alltoall");
+  Testing( (char *)"Alltoall");
 
   out = new int [MAXLEN * comm_size];
   in = new int [MAXLEN * comm_size];

@@ -45,7 +45,7 @@ request1()
 
   request = MPI::REQUEST_NULL;
 
-  Testing("Wait w/o Status");
+  Testing( (char *)"Wait w/o Status");
 
   if ((my_rank % 2) == 0) {
     data = my_rank;
@@ -65,7 +65,7 @@ request1()
     
   Pass(); // Wait w/o Status
 
-  Testing("Wait w/ Status");
+  Testing( (char *)"Wait w/ Status");
 
   if ((my_rank % 2) == 0) {
     data = my_rank;
@@ -94,7 +94,7 @@ request1()
   }
   Pass(); // Wait w/ Status
 
-  Testing("Test w/o Status");
+  Testing( (char *)"Test w/o Status");
   if ((my_rank % 2) == 0) {
     data = my_rank;
 
@@ -121,7 +121,7 @@ request1()
   }
   Pass(); // Test w/o Status
 
-  Testing("Test w/ Status");
+  Testing( (char *)"Test w/ Status");
   if ((my_rank % 2) == 0) {
     data = my_rank;
 

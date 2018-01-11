@@ -1,12 +1,12 @@
-.TH MPI_Wait 3 "1/16/1998" " " "MPI"
+.TH MPI_Wait 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Wait \-  Waits for an MPI send or receive to complete 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Wait ( request, status )
-MPI_Request  *request;
-MPI_Status   *status;
+int MPI_Wait ( 
+ MPI_Request  *request,
+ MPI_Status   *status)
 .fi
 .SH INPUT PARAMETER
 .PD 0

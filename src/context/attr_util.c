@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_util.c,v 1.2 1998/01/29 14:26:15 gropp Exp $
+ *  $Id: attr_util.c,v 1.5 1999/08/20 02:26:25 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -30,9 +30,10 @@
 MPIR_Attr_copy_node -
 
  */
-int MPIR_Attr_copy_node ( comm, comm_new, node )
-struct MPIR_COMMUNICATOR *comm, *comm_new;
-MPIR_HBT_node *node;
+int MPIR_Attr_copy_node ( 
+	struct MPIR_COMMUNICATOR *comm, 
+	struct MPIR_COMMUNICATOR *comm_new,
+	MPIR_HBT_node *node)
 {
   void          *attr_val;
   MPIR_Attr_key *attr_key;
@@ -40,11 +41,15 @@ MPIR_HBT_node *node;
   int            flag;
   int            attr_ival;
   int            mpi_errno = MPI_SUCCESS;
+  int            copy_errno = 0;
 
   attr_key = node->keyval;
 
   if (!attr_key MPIR_TEST_COOKIE(attr_key,MPIR_ATTR_COOKIE)) {
-      return MPIR_ERROR( comm, MPI_ERR_INTERN, "Corrupted attribute key" );
+      mpi_errno = MPIR_Err_setmsg( MPI_ERR_INTERN, MPIR_ERR_ATTR_CORRUPT,
+				   (char *)0, 
+				   (char *)0, (char *)0, attr_key->cookie );
+      return MPIR_ERROR( comm, mpi_errno, (char *)0 );
   }
 #ifdef FOO
   MPIR_REF_INCR(attr_key);
@@ -58,22 +63,23 @@ MPIR_HBT_node *node;
 	  /* The following code attempts to suppress warnings about 
 	     converting an int, stored in a void *, back to an int. */
 	  /* We may also need to do something about the "comm" argument */
+	  /* This needs to use Fints! and c2f for communicator */
 	  MPI_Aint  invall = (MPI_Aint)node->value;
           int inval = (int)invall;
           (*(attr_key->copy_fn.f77_copy_fn))(comm->self, &node->keyval->self, 
                                              attr_key->extra_state,
                                              &inval, 
-                                             &attr_ival, &flag, &mpi_errno );
+                                             &attr_ival, &flag, &copy_errno );
           attr_val = (void *)(MPI_Aint)attr_ival;
           flag = MPIR_FROM_FLOG(flag);
 	  }
       else {
-          mpi_errno = (*(attr_key->copy_fn.c_copy_fn))(comm->self, 
+          copy_errno = (*(attr_key->copy_fn.c_copy_fn))(comm->self, 
 						       node->keyval->self, 
                                              attr_key->extra_state,
                                              node->value, &attr_val, &flag );
       }
-      if (flag && !mpi_errno) {
+      if (flag && !copy_errno) {
 #ifdef DEBUG_ATTR
 	  PRINTF( ".. inserting attr into comm %ld\n", comm_new );
 #endif	  
@@ -87,9 +93,15 @@ MPIR_HBT_node *node;
       }
   }
 
-  if (mpi_errno) 
-      return MPIR_ERROR( comm, mpi_errno,
-			 "Error copying communicator attribute" );
+  /* Return this to the calling routine which should handle the error
+     message delivery */
+  if (copy_errno) {
+      mpi_errno = MPIR_Err_setmsg( MPI_ERR_OTHER, MPIR_ERR_ATTR_COPY,
+				   (char *)0,
+    "User defined attribute copy routine returned non-zero error code",
+    "User defined attribute copy routine returned error code %d", copy_errno );
+      return mpi_errno;
+  }
    return MPI_SUCCESS;
 }
 
@@ -98,10 +110,11 @@ MPIR_HBT_node *node;
 MPIR_Attr_copy_subtree -
 
 +*/
-int MPIR_Attr_copy_subtree ( comm, comm_new, tree, subtree )
-struct MPIR_COMMUNICATOR *comm, *comm_new;
-MPIR_HBT tree;
-MPIR_HBT_node *subtree;
+int MPIR_Attr_copy_subtree ( 
+	struct MPIR_COMMUNICATOR *comm, 
+	struct MPIR_COMMUNICATOR *comm_new, 
+	MPIR_HBT tree,
+	MPIR_HBT_node *subtree)
 {
   int tmp_mpi_errno, mpi_errno = MPI_SUCCESS;
 
@@ -123,8 +136,9 @@ MPIR_HBT_node *subtree;
 MPIR_Attr_copy - copy a tree of attributes 
 
 +*/
-int MPIR_Attr_copy ( comm, comm_new )
-struct MPIR_COMMUNICATOR *comm, *comm_new;
+int MPIR_Attr_copy ( 
+	struct MPIR_COMMUNICATOR *comm, 
+	struct MPIR_COMMUNICATOR *comm_new )
 {
   int mpi_errno = MPI_SUCCESS;
 
@@ -154,9 +168,9 @@ struct MPIR_COMMUNICATOR *comm, *comm_new;
 MPIR_Attr_free_node -
 
 +*/
-int MPIR_Attr_free_node ( comm, node )
-struct MPIR_COMMUNICATOR *comm;
-MPIR_HBT_node *node;
+int MPIR_Attr_free_node ( 
+	struct MPIR_COMMUNICATOR *comm, 
+	MPIR_HBT_node *node)
 {
   MPIR_Attr_key *attr_key;
   int           mpi_errno = MPI_SUCCESS;
@@ -164,7 +178,10 @@ MPIR_HBT_node *node;
   attr_key = node->keyval;
 
   if (!attr_key MPIR_TEST_COOKIE(attr_key,MPIR_ATTR_COOKIE)) {
-      return MPIR_ERROR( comm, MPI_ERR_INTERN, "Corrupted attribute key" );
+      mpi_errno = MPIR_Err_setmsg( MPI_ERR_INTERN, MPIR_ERR_ATTR_CORRUPT,
+				   (char *)0, 
+				   (char *)0, (char *)0, attr_key->cookie );
+      return MPIR_ERROR( comm, mpi_errno, (char *)0 );
   }
 
   if ( (node != (MPIR_HBT_node *)0) && (attr_key != 0) ) {
@@ -204,9 +221,9 @@ MPIR_HBT_node *node;
 MPIR_Attr_free_subtree -
 
 +*/
-int MPIR_Attr_free_subtree ( comm, subtree )
-struct MPIR_COMMUNICATOR *comm;
-MPIR_HBT_node *subtree;
+int MPIR_Attr_free_subtree ( 
+	struct MPIR_COMMUNICATOR *comm, 
+	MPIR_HBT_node *subtree )
 {
     int mpi_errno, rc;
 
@@ -227,8 +244,8 @@ MPIR_HBT_node *subtree;
 MPIR_Attr_free_tree -
 
 +*/
-int MPIR_Attr_free_tree ( comm )
-struct MPIR_COMMUNICATOR *comm;
+int MPIR_Attr_free_tree ( 
+	struct MPIR_COMMUNICATOR *comm)
 {
     int mpi_errno = MPI_SUCCESS;
     int rc;
@@ -273,8 +290,9 @@ implementation of the collective routines by point-to-point routines
 (see comm_util.c/MPIR_Comm_make_coll)
 
 +*/
-int MPIR_Attr_dup_tree ( comm, new_comm )
-struct MPIR_COMMUNICATOR *comm, *new_comm;
+int MPIR_Attr_dup_tree ( 
+	struct MPIR_COMMUNICATOR *comm, 
+	struct MPIR_COMMUNICATOR *new_comm)
 {
     if ( comm->attr_cache != (MPIR_HBT)0 ) {
 	MPIR_REF_INCR(comm->attr_cache);
@@ -292,8 +310,7 @@ struct MPIR_COMMUNICATOR *comm, *new_comm;
 MPIR_Attr_create_tree -
 
 +*/
-int MPIR_Attr_create_tree ( comm )
-struct MPIR_COMMUNICATOR *comm;
+int MPIR_Attr_create_tree ( struct MPIR_COMMUNICATOR *comm )
 {
   (void) MPIR_HBT_new_tree ( &(comm->attr_cache) );
 #ifdef DEBUG_ATTR
@@ -308,12 +325,12 @@ struct MPIR_COMMUNICATOR *comm;
  * Special feature - if *keyval is not 0, then use that value 
  * as a predefined value.
  */
-int MPIR_Keyval_create ( copy_fn, delete_fn, keyval, extra_state, is_fortran )
-MPI_Copy_function   *copy_fn;
-MPI_Delete_function *delete_fn;
-int                 *keyval;
-void                *extra_state;
-int                 is_fortran;
+int MPIR_Keyval_create ( 
+	MPI_Copy_function *copy_fn, 
+	MPI_Delete_function *delete_fn, 
+	int *keyval, 
+	void *extra_state, 
+	int is_fortran )
 {
   MPIR_Attr_key *new_key;
 
@@ -352,8 +369,7 @@ int                 is_fortran;
 /*
  * This routine is called to make a keyval permanent (used in the init routine)
  */
-void MPIR_Attr_make_perm( keyval )
-int keyval;
+void MPIR_Attr_make_perm( int keyval )
 {
     MPIR_Attr_key *attr_key;
 

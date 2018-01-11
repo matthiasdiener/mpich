@@ -1,11 +1,30 @@
 /*
- *  $Id: cart_sub.c,v 1.3 1998/04/29 14:28:39 swider Exp $
+ *  $Id: cart_sub.c,v 1.8 1999/08/30 15:50:54 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Cart_sub = PMPI_Cart_sub
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Cart_sub  MPI_Cart_sub
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Cart_sub as PMPI_Cart_sub
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpitopo.h"
 #include "sbcnst2.h"
 #define MPIR_SBalloc MPID_SBalloc
@@ -33,10 +52,7 @@ process (handle)
 .N MPI_ERR_COMM
 .N MPI_ERR_ARG
 @*/
-int MPI_Cart_sub ( comm, remain_dims, comm_new )
-MPI_Comm  comm;
-int      *remain_dims;
-MPI_Comm *comm_new;
+EXPORT_MPI_API int MPI_Cart_sub ( MPI_Comm comm, int *remain_dims, MPI_Comm *comm_new )
 {
   int i, j, ndims, flag;
   int num_remain_dims = 0;
@@ -52,19 +68,26 @@ MPI_Comm *comm_new;
   TR_PUSH(myname);
 
   comm_ptr = MPIR_GET_COMM_PTR(comm);
+
+#ifndef MPIR_NO_ERROR_CHECKING
   MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
   /* Check for valid arguments */
-  if ( MPIR_TEST_ARG(remain_dims) || MPIR_TEST_ARG(comm_new))
-    return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+  MPIR_TEST_ARG(remain_dims);
+  MPIR_TEST_ARG(comm_new);
+  if (mpi_errno)
+      return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+#endif
 
   /* Get topology information from the communicator */
   MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );
 
+#ifndef MPIR_NO_ERROR_CHECKING
   /* Check for valid topology */
   if ( ( (flag != 1)                      && (mpi_errno = MPI_ERR_TOPOLOGY)) ||
        ( (topo->type != MPI_CART)         && (mpi_errno = MPI_ERR_TOPOLOGY)) )
     return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+#endif
   
   /* Determine the remaining dimension total */
   ndims = topo->cart.ndims;

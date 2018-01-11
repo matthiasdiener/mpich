@@ -5,7 +5,7 @@
 extern struct tc_globmem *tcglob;
 #endif
 
-struct p4_procgroup *p4_alloc_procgroup()
+struct p4_procgroup *p4_alloc_procgroup( void )
 {
     struct p4_procgroup *pg;
 
@@ -20,7 +20,7 @@ struct p4_procgroup *p4_alloc_procgroup()
     return (pg);
 }
 
-struct p4_procgroup *read_procgroup()
+struct p4_procgroup *read_procgroup( void )
 {
     FILE *fp;
     char buf[1024], *s;
@@ -44,11 +44,28 @@ struct p4_procgroup *read_procgroup()
        return "root", rather than either the users name or null (null is
        correct and will cause an alternate process to be used below).  
        This is hard to test for...
+
+       One reason why batch systems don't set the login name correctly is
+       that while getlogin is in POSIX, setlogin isn't.  This isn't a problem
+       for applications that use configure to determine what is supported, 
+       but can be a problem for applications that are rigidly single source.
+       We'll be nicer to them than they are to us.
      */
+    /* An alternative is to use getpwuid FIRST, rather than after getlogin */
+
 #   if defined(CM5)  ||  defined(NCUBE) || defined(GETLOGIN_BROKEN)
     logname = '\0';
 #   else
-    logname = (char *) getlogin();
+    /* We hope here that getpwuid isn't a scalability problem.  It might
+       be, in which case we need to consider an alternative mechanism, 
+       such as an environment variable for the username-to-use */
+    pwent = getpwuid( getuid() );
+    if (pwent) {
+        logname = pwent->pw_name;
+    }
+    else {
+        logname = (char *) getlogin();
+    }
 #   endif
 
     if ((fp = fopen(procgroup_file, "r")) == NULL) {
@@ -123,15 +140,9 @@ struct p4_procgroup *read_procgroup()
 }				/* read_procgroup */
 
 
-int install_in_proctable(group_id,port,unix_id,host_name,
-			 slv_idx,machine_type,switch_port)
-int group_id;
-int port;
-int unix_id;
-char host_name[64];
-int slv_idx;
-char machine_type[];
-int switch_port;
+int install_in_proctable( int group_id, int port, int unix_id,
+			  char host_name[64], char local_name[64],
+			  int slv_idx, char machine_type[], int switch_port)
 {
     struct p4_global_data *g;
     struct proc_info *pi;
@@ -143,6 +154,7 @@ int switch_port;
     pi->port = port;
     pi->unix_id = unix_id;
     strcpy(pi->host_name, host_name);
+    strcpy(pi->local_name, local_name );
 
     /* gethostchange newstuff -RL */
     hp = gethostbyname_p4(host_name);

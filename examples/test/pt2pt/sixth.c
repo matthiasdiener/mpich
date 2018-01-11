@@ -14,9 +14,9 @@ typedef struct _table {
 } Table;
 
 /* Prototypes for picky compilers */
-int copy_table ANSI_ARGS(( MPI_Comm, int, void *, void *, void *, int * ));
-void create_table ANSI_ARGS(( int, int *, Table ** ));
-int delete_table ANSI_ARGS(( MPI_Comm, int, void *, void * ));
+int copy_table ( MPI_Comm, int, void *, void *, void *, int * );
+void create_table ( int, int *, Table ** );
+int delete_table ( MPI_Comm, int, void *, void * );
 
 /* These are incorrect...*/
 int copy_table (oldcomm, keyval, extra_state, attr_in, attr_out, flag)

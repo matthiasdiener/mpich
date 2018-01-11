@@ -3,34 +3,34 @@
 #      All rights reserved.  See COPYRIGHT in top-level directory.
 #
 
-##### User configurable options #####
-
-ARCH        = @ARCH@
-DEVICE      = @DEVICE@
-MPIR_HOME   = @MPIR_HOME@
 CC          = @CC@
 F77         = @F77@
 AR          = @AR@
 RANLIB      = @RANLIB@
-INCLUDE_DIR = @INCLUDE_PATH@ -I../../mpid/$(DEVICE) -I../../include
-DEVICE      = @DEVICE@
 OPTFLAGS    = @OPTFLAGS@
+OPTFLAGSC   = @OPTFLAGSC@
+prefix      = @prefix@
+top_srcdir  = @top_srcdir@
+srcdir      = @srcdir@
+libbuild_dir = @libbuild_dir@
 
-### End User configurable options ###
-SHELL = /bin/sh
+DEFS        = @DEFS@ ${MPIPROFILE} -I. -I${srcdir} @mpich_includes@
+CFLAGS      = @CFLAGS@ 
 
-DEVICE_INCLUDE = ../../mpid/$(DEVICE)/dmch.h
+SHELL       = /bin/sh
 
-MPI_INCLUDE    = ../../include/mpi.h ./coll.h
-DEVICE_LIB = 
-CFLAGS = @CFLAGS@ $(OPTFLAGS) @OPTFLAGSC@ $(INCLUDE_DIR) \
-	-DMPI_$(ARCH)  $(MPIPROFILE)
+@VPATH@
 
-LIBS = ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a $(DEVICE_LIB)
+.SUFFIXES:
+.SUFFIXES: .o .c .f
+
+LIBS = ${libbuild_dir}/lib@MPILIBNAME@.a
+
 MPI_CSOURCES = barrier.c bcast.c gather.c gatherv.c scatter.c scatterv.c \
                allgather.c allgatherv.c alltoall.c alltoallv.c reduce.c \
                allreduce.c red_scat.c scan.c global_ops.c \
-	       opcreate.c opfree.c oputil.c intra_fns.c inter_fns.c
+	       opcreate.c opfree.c oputil.c intra_fns.c inter_fns.c \
+	       intra_scan.c
 
 MPI_TSOURCES = global_ops.c 
 
@@ -42,57 +42,51 @@ MPI_WSOURCES = barrierf.c bcastf.c gatherf.c gathervf.c scatterf.c scattervf.c\
 MPI_COBJECTS = barrier.o bcast.o gather.o gatherv.o scatter.o scatterv.o \
                allgather.o allgatherv.o alltoall.o alltoallv.o reduce.o \
                allreduce.o red_scat.o scan.o global_ops.o \
-	       opcreate.o opfree.o oputil.o intra_fns.o inter_fns.o
+	       opcreate.o opfree.o oputil.o intra_fns.o inter_fns.o \
+	       intra_scan.o
 
 MPI_WOBJECTS = barrierf.o bcastf.o gatherf.o gathervf.o scatterf.o scattervf.o\
                allgatherf.o allgathervf.o alltoallf.o alltoallvf.o reducef.o \
                allreducef.o red_scatf.o scanf.o \
 	       opcreatef.o opfreef.o
 
-default: ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a
+default: ${libbuild_dir}/lib@MPILIBNAME@.a
 
-MPI_SOURCES = $(MPI_CSOURCES) $(MPI_WSOURCES)
-MPI_OBJECTS = $(MPI_COBJECTS) $(MPI_WOBJECTS)
+MPI_SOURCES = ${MPI_CSOURCES} ${MPI_WSOURCES}
+MPI_OBJECTS = ${MPI_COBJECTS} ${MPI_WOBJECTS}
 
-profile: ../../build/$(ARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a
+profile: ${libbuild_dir}/libp@MPILIBNAME@.a
 
 # default_all is the same as default, but without the RANLIB.  This
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
-default_all: $(MPI_OBJECTS)
-	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a $?
-profile_all: $(MPI_OBJECTS)
-	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a $?
-wrapperlib: $(MPI_WOBJECTS)
-	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/libf@MPILIBNAME@.a $?	
-
-#wrappers:
-#	../../util/bfort -ferr -mpi -mnative -mapptr -ptrprefix MPIR_ \
-#		-anyname -I pubinc $(MPI_TSOURCES)	
+default_all: ${MPI_OBJECTS}
+	${AR} ${libbuild_dir}/lib@MPILIBNAME@.a $?
+profile_all: ${MPI_OBJECTS}
+	${AR} ${libbuild_dir}/libp@MPILIBNAME@.a $?
+wrapperlib: ${MPI_WOBJECTS}
+	${AR} ${libbuild_dir}/libf@MPILIBNAME@.a $?	
 
 source_names:
-	@echo $(MPI_CSOURCES)
-
-$(MPI_OBJECTS) :  $(MPI_INCLUDE)
+	@echo ${MPI_CSOURCES}
 
 .c.o:
-	$(CC) $(CFLAGS) -c $*.c
+	${CC} ${DEFS} ${INCLUDES} ${CFLAGS} ${OPTFLAGSC} ${OPTFLAGS} -c $<
 
-rules:
-	@$(CC) -MM $(CFLAGS) $(MPI_CSOURCES)
+${libbuild_dir}/lib@MPILIBNAME@.a: ${MPI_OBJECTS} 
+	${AR} $@ $?
+	${RANLIB} $@
 
-../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
-	$(AR) $@ $?
-	$(RANLIB) $@
+${libbuild_dir}/libp@MPILIBNAME@.a: ${MPI_OBJECTS} 
+	${AR} $@ $?
+	${RANLIB} $@
 
-../../build/$(ARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a: $(MPI_OBJECTS) 
-	$(AR) $@ $?
-	$(RANLIB) $@
+${libbuild_dir}/libf@MPILIBNAME@.a: ${MPI_WOBJECTS} 
+	${AR} $@ $?
+	${RANLIB} $@
 
-../../build/$(ARCH)/$(DEVICE)/lib/libf@MPILIBNAME@.a: $(MPI_WOBJECTS) 
-	$(AR) $@ $?
-	$(RANLIB) $@
-
+# We need to clean the srcdir of any .o files because they can confuse the
+# VPATH build process
 clean:
-	/bin/rm -f *.o *~ 
+	/bin/rm -f *.o *~ ${srcdir}/*.o
 

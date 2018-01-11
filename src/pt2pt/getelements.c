@@ -1,11 +1,30 @@
 /*
- *  $Id: getelements.c,v 1.5 1998/04/28 21:46:48 swider Exp $
+ *  $Id: getelements.c,v 1.10 1999/08/30 15:48:54 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Get_elements = PMPI_Get_elements
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Get_elements  MPI_Get_elements
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Get_elements as PMPI_Get_elements
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpidmpi.h"
 
 /*@
@@ -26,10 +45,8 @@ Output Parameter:
 .N MPI_ERR_TYPE
 
 @*/
-int MPI_Get_elements ( status, datatype, elements )
-MPI_Status    *status;
-MPI_Datatype  datatype;
-int          *elements;
+EXPORT_MPI_API int MPI_Get_elements ( MPI_Status *status, MPI_Datatype datatype, 
+		       int *elements )
 {
     int count;
     int mpi_errno = MPI_SUCCESS;
@@ -42,8 +59,8 @@ int          *elements;
     /*********** Check to see if datatype is committed ********
      *********** Debbie Swider - 11/17/97 *********************/
     if (!dtype_ptr->committed) {
-        return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_UNCOMMITTED,
-                           myname );
+        return MPIR_ERROR( MPIR_COMM_WORLD, 
+	    MPIR_ERRCLASS_TO_CODE(MPI_ERR_TYPE,MPIR_ERR_UNCOMMITTED), myname );
     }
 
 #ifdef MPID_HAS_GET_ELEMENTS

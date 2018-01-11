@@ -4,6 +4,9 @@
 
 */
 
+#include <stdio.h>
+
+#include "mpeconf.h"
 #include "clog.h"
 #include "clog_merge.h"
 #include "mpi.h"		/* Needed for MPI routines */
@@ -224,33 +227,51 @@ char *filename;
     if (MPE_Log_hasBeenClosed == 0) {
 	CLOG_Finalize();
 
-	MPI_Attr_get( MPI_COMM_WORLD, MPI_WTIME_IS_GLOBAL, &is_globalp, 
-		      &flag );
+	PMPI_Attr_get( MPI_COMM_WORLD, MPI_WTIME_IS_GLOBAL,
+                       &is_globalp, &flag );
+
 	if (!flag || (is_globalp && !*is_globalp))
 	    shift = CMERGE_SHIFT;
 	else
 	    shift = CMERGE_NOSHIFT;
+        /*
+            Ignore what MPI says if the clock is sync.,
+            force synchronization of the clocks
+        */
+        /*  
+            printf( "Forcing the synchronization of the clock\n" );
+            shift = CMERGE_SHIFT;
+        */
 
 	log_format = CLOG_LOG;
 	env_log_format = (char *)getenv("MPE_LOG_FORMAT");
- 
-	if ((env_log_format) && (strcmp(env_log_format,"ALOG") == 0)) 
-	    log_format = ALOG_LOG;
 
-	/* We should do a compare across all processes to choose the format, in
-	   case the environment is not the same on all processes.  We use
-	   MPI_MAX since ALOG_LOG > CLOG_LOG */
-	MPI_Allreduce( &log_format, &final_log_format, 1, MPI_INT, MPI_MAX, 
-		       MPI_COMM_WORLD );
+        /*
+        if ( env_log_format != NULL )
+            printf( "MPE_LOG_FORMAT = %s\n", env_log_format );
+        */
+ 
+        if ( env_log_format != NULL )
+            if (strcmp(env_log_format,"ALOG") == 0)
+                log_format = ALOG_LOG;
+            else if (strcmp(env_log_format,"SLOG") == 0)
+                log_format = SLOG_LOG;
+             
+
+	/* 
+           We should do a compare across all processes to choose the format,
+	   in case the environment is not the same on all processes.  We use
+	   MPI_MAX since CLOG_LOG > ALOG_LOG and SLOG_LOG > ALOG_LOG 
+        */
+	PMPI_Allreduce( &log_format, &final_log_format, 1, MPI_INT,
+                        MPI_MAX, MPI_COMM_WORLD );
+
+        /*  printf( "final_log_format = %d\n", final_log_format );  */
+
 	CLOG_mergelogs(shift, filename, final_log_format); 
 
 	MPE_Log_hasBeenClosed = 1;
+        MPE_Stop_log();
     }
     return MPE_Log_OK;
 }
-
-
-
-
-
-

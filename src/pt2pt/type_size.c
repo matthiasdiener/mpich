@@ -1,11 +1,30 @@
 /*
- *  $Id: type_size.c,v 1.2 1998/01/29 14:28:57 gropp Exp $
+ *  $Id: type_size.c,v 1.7 1999/08/30 15:50:02 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Type_size = PMPI_Type_size
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Type_size  MPI_Type_size
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Type_size as PMPI_Type_size
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 
 /*@
@@ -25,16 +44,15 @@ Output Parameter:
 .N MPI_ERR_TYPE
 .N MPI_ERR_ARG
 @*/
-int MPI_Type_size ( datatype, size )
-MPI_Datatype  datatype;
-int           *size;
+EXPORT_MPI_API int MPI_Type_size ( MPI_Datatype datatype, int *size )
 {
-  int mpi_errno;
+  int mpi_errno = MPI_SUCCESS;
   struct MPIR_DATATYPE *dtype_ptr;
   static char myname[] = "MPI_TYPE_SIZE";
 
   TR_PUSH(myname);
-  if (MPIR_TEST_ARG(size))
+  MPIR_TEST_ARG(size);
+  if (mpi_errno)
 	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 
   dtype_ptr   = MPIR_GET_DTYPE_PTR(datatype);

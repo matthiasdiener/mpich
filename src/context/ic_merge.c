@@ -1,11 +1,30 @@
 /*
- *  $Id: ic_merge.c,v 1.3 1998/04/28 20:58:25 swider Exp $
+ *  $Id: ic_merge.c,v 1.10 1999/10/18 22:17:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Intercomm_merge = PMPI_Intercomm_merge
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Intercomm_merge  MPI_Intercomm_merge
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Intercomm_merge as PMPI_Intercomm_merge
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "mpimem.h"
 #include "ic.h"
 
@@ -38,12 +57,9 @@ Algorithm:
 
 .seealso: MPI_Intercomm_create, MPI_Comm_free
 @*/
-int MPI_Intercomm_merge ( comm, high, comm_out )
-MPI_Comm  comm;
-int       high;
-MPI_Comm *comm_out;
+EXPORT_MPI_API int MPI_Intercomm_merge ( MPI_Comm comm, int high, MPI_Comm *comm_out )
 {
-  int              rank, mpi_errno = MPI_SUCCESS;
+  int              mpi_errno = MPI_SUCCESS;
   struct MPIR_COMMUNICATOR *new_comm, *comm_ptr;
   MPI_Group new_group;
   int              flag;
@@ -51,11 +67,15 @@ MPI_Comm *comm_out;
   static char myname[] = "MPI_INTERCOMM_MERGE";
 
   comm_ptr = MPIR_GET_COMM_PTR(comm);
+
+#ifndef MPIR_NO_ERROR_CHECKING
   MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
 
   /* Check for valid arguments to function */
   if (comm == MPI_COMM_NULL)
-    return MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_COMM_NULL,myname);
+    return MPIR_ERROR(MPIR_COMM_WORLD, 
+         MPIR_ERRCLASS_TO_CODE(MPI_ERR_COMM,MPIR_ERR_COMM_NULL),myname);
+#endif
 
   MPIR_ERROR_PUSH(comm_ptr);
 
@@ -64,15 +84,11 @@ MPI_Comm *comm_out;
   if (!flag) MPIR_RETURN_POP(comm_ptr,MPI_ERR_COMM,
 		       "Intra-communicator invalid in MPI_INTERCOMM_MERGE");
 
-  /* Get my rank in the local group */
-  (void) MPIR_Comm_rank ( comm_ptr, &rank );
-
   /* Make the new communicator */
   MPIR_ALLOC_POP(new_comm,NEW(struct MPIR_COMMUNICATOR),comm_ptr, 
 		 MPI_ERR_EXHAUSTED,"MPI_COMM_CREATE" );
   MPIR_Comm_init( new_comm, comm_ptr, MPIR_INTRA );
   (void) MPIR_Attr_create_tree ( new_comm );
-  MPIR_Comm_collops_init( new_comm, MPIR_INTRA);
 
   /* Get the high value for our side */
   MPIR_Intercomm_high ( comm_ptr, &high );

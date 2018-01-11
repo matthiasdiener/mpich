@@ -4,6 +4,7 @@
 #define DEBUG_ALL
 #endif
 #include <stdio.h>
+#include "mpeconf.h"
 #include "mpe.h"
  int  mpe_counter_create_( oldcomm, smaller_comm, counter_comm)
 MPI_Comm  *oldcomm,  *smaller_comm,  *counter_comm;

@@ -4,8 +4,13 @@ SHELL		= @BINSH@
 CXX		= @MPI_CXX@
 TEMPLATE_REP	= @TEMPLATE_REP@
 
-CXXFLAGS	= @TEST_OPTFLAGS@
+# The ../.. includes the configuration file for VPATH builds
+CXXFLAGS	= @TEST_OPTFLAGS@ -I../..
 LDFLAGS		= @TEST_OPTFLAGS@
+
+srcdir=@srcdir@
+top_srcdir=@top_srcdir@
+@VPATH@
 
 #
 # MPI2C++ Test suite

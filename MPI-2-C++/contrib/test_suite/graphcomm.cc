@@ -102,7 +102,7 @@ graphcomm()
     edges[0] = 1;
     edges[1] = 0;
 
-    Testing("Create_graph");
+    Testing( (char *)"Create_graph");
 
     reorder = false;
     
@@ -118,7 +118,7 @@ graphcomm()
     
     Pass(); // Create_graph
 
-    Testing("Get_dim");
+    Testing( (char *)"Get_dim");
     
     nnodes = 0;
     nedges = 0;
@@ -131,16 +131,16 @@ graphcomm()
     
     Pass(); // Get_dim
 
-    Testing("Get_topo");
+    Testing( (char *)"Get_topo");
 
     if (flags[SKIP_IBM21014])
-      Done("Skipped (IBM 2.1.0.14)");
+      Done( (char *)"Skipped (IBM 2.1.0.14)");
     else if (flags[SKIP_IBM21015])
-      Done("Skipped (IBM 2.1.0.15)");
+      Done( (char *)"Skipped (IBM 2.1.0.15)");
     else if (flags[SKIP_IBM21016])
-      Done("Skipped (IBM 2.1.0.16)");
+      Done( (char *)"Skipped (IBM 2.1.0.16)");
     else if (flags[SKIP_IBM21017])
-      Done("Skipped (IBM 2.1.0.17)");
+      Done( (char *)"Skipped (IBM 2.1.0.17)");
     else {
       dogindex[0] = -1;
       dogindex[1] = -1;
@@ -159,7 +159,7 @@ graphcomm()
       Pass(); // Get_topo
     }
 
-    Testing("Get_neighbors_count");
+    Testing( (char *)"Get_neighbors_count");
 
     nnodes = 0;
 
@@ -171,7 +171,7 @@ graphcomm()
 
     Pass(); // Get_neighbors_count
 
-    Testing("Get_neighbors");
+    Testing( (char *)"Get_neighbors");
 
     comm.Get_neighbors(my_rank, 1, neighbors);  
     if (my_rank == 0)
@@ -182,7 +182,7 @@ graphcomm()
 
     Pass(); // Get_neighbors
 
-    Testing("Map");
+    Testing( (char *)"Map");
     
     rank = comm.Map(2, dogindex, edges);
     if(rank < 0 || rank > comm_size) {
@@ -191,7 +191,7 @@ graphcomm()
     }
 
     Pass(); // Map
-    Testing("Dup");
+    Testing( (char *)"Dup");
 
     dupcomm = comm.Dup();
     
@@ -201,13 +201,13 @@ graphcomm()
     edges[1] = -1;
 
     if (flags[SKIP_IBM21014])
-      Done("Skipped (IBM 2.1.0.14)");
+      Done( (char *)"Skipped (IBM 2.1.0.14)");
     else if (flags[SKIP_IBM21015])
-      Done("Skipped (IBM 2.1.0.15)");
+      Done( (char *)"Skipped (IBM 2.1.0.15)");
     else if (flags[SKIP_IBM21016])
-      Done("Skipped (IBM 2.1.0.16)");
+      Done( (char *)"Skipped (IBM 2.1.0.16)");
     else if (flags[SKIP_IBM21017])
-      Done("Skipped (IBM 2.1.0.17)");
+      Done( (char *)"Skipped (IBM 2.1.0.17)");
     else {
       dupcomm.Get_topo(2, 2, dogindex, edges);
       if (dogindex[0] != 1 || dogindex[1] != 2) {
@@ -222,7 +222,7 @@ graphcomm()
 
     Pass(); // Dup
 
-    Testing("Clone");
+    Testing( (char *)"Clone");
 
     MPI::Graphcomm& clonecomm = (MPI::Graphcomm&)comm.Clone();
 
@@ -232,13 +232,13 @@ graphcomm()
     edges[1] = -1;
 
     if (flags[SKIP_IBM21014])
-      Done("Skipped (IBM 2.1.0.14)");
+      Done( (char *)"Skipped (IBM 2.1.0.14)");
     else if (flags[SKIP_IBM21015])
-      Done("Skipped (IBM 2.1.0.15)");
+      Done( (char *)"Skipped (IBM 2.1.0.15)");
     else if (flags[SKIP_IBM21016])
-      Done("Skipped (IBM 2.1.0.16)");
+      Done( (char *)"Skipped (IBM 2.1.0.16)");
     else if (flags[SKIP_IBM21017])
-      Done("Skipped (IBM 2.1.0.17)");
+      Done( (char *)"Skipped (IBM 2.1.0.17)");
     else {
       clonecomm.Get_topo(2, 2, dogindex, edges);
       if (dogindex[0] != 1 || dogindex[1] != 2) {
@@ -292,7 +292,7 @@ graphcomm()
     for (i = 0; i < 2 * comm_size; i++)
       tedges[i] = -1;
 
-    Testing("Create_graph"); {
+    Testing( (char *)"Create_graph"); {
       reorder = false;
       comm = MPI::COMM_WORLD.Create_graph(comm_size, dogindex, edges, reorder);
       
@@ -310,7 +310,7 @@ graphcomm()
     }
     Pass(); // Create_graph
 
-    Testing("Get_dim");
+    Testing( (char *)"Get_dim");
     
     nnodes = 0;
     nedges = 0;
@@ -323,16 +323,16 @@ graphcomm()
        
     Pass(); // Get_dim
 
-    Testing("Get_topo"); 
+    Testing( (char *)"Get_topo"); 
     
     if (flags[SKIP_IBM21014])
-      Done("Skipped (IBM 2.1.0.14)");
+      Done( (char *)"Skipped (IBM 2.1.0.14)");
     else if (flags[SKIP_IBM21015])
-      Done("Skipped (IBM 2.1.0.15)");
+      Done( (char *)"Skipped (IBM 2.1.0.15)");
     else if (flags[SKIP_IBM21016])
-      Done("Skipped (IBM 2.1.0.16)");
+      Done( (char *)"Skipped (IBM 2.1.0.16)");
     else if (flags[SKIP_IBM21017])
-      Done("Skipped (IBM 2.1.0.17)");
+      Done( (char *)"Skipped (IBM 2.1.0.17)");
     else {
       comm.Get_topo(comm_size, 2 * comm_size, tindex, tedges);
       for (i = 0; i < comm_size; i++)
@@ -348,7 +348,7 @@ graphcomm()
       Pass(); // Get_topo
     }
 
-    Testing("Get_neighbors_count");
+    Testing( (char *)"Get_neighbors_count");
     
     nnodes = 0;
     
@@ -360,7 +360,7 @@ graphcomm()
     
     Pass(); // Get_neighbors_count
 
-    Testing("Get_neighbors");
+    Testing( (char *)"Get_neighbors");
     
     comm.Get_neighbors(my_rank, 2, neighbors);  
     if (neighbors[0] != edges[dogindex[my_rank] - 2] || 
@@ -371,7 +371,7 @@ graphcomm()
 
     Pass(); // Get_neighbors
 
-    Testing("Map");
+    Testing( (char *)"Map");
     
     rank = comm.Map(comm_size, dogindex, edges);
     if (rank != my_rank) 
@@ -383,18 +383,18 @@ graphcomm()
     
     Pass(); // Map
 
-    Testing("Dup");
+    Testing( (char *)"Dup");
 
     dupcomm = comm.Dup();
 
     if (flags[SKIP_IBM21014])
-      Done("Skipped (IBM 2.1.0.14)");
+      Done( (char *)"Skipped (IBM 2.1.0.14)");
     else if (flags[SKIP_IBM21015])
-      Done("Skipped (IBM 2.1.0.15)");
+      Done( (char *)"Skipped (IBM 2.1.0.15)");
     else if (flags[SKIP_IBM21016])
-      Done("Skipped (IBM 2.1.0.16)");
+      Done( (char *)"Skipped (IBM 2.1.0.16)");
     else if (flags[SKIP_IBM21017])
-      Done("Skipped (IBM 2.1.0.17)");
+      Done( (char *)"Skipped (IBM 2.1.0.17)");
     else {
       comm.Get_topo(comm_size, 2 * comm_size, tindex, tedges);
       for (i = 0; i < comm_size; i++)
@@ -411,18 +411,18 @@ graphcomm()
     
     Pass(); // Dup
 
-    Testing("Clone");
+    Testing( (char *)"Clone");
     
     MPI::Graphcomm& clonecomm1 = (MPI::Graphcomm&)comm.Clone();
     
     if (flags[SKIP_IBM21014])
-      Done("Skipped (IBM 2.1.0.14)");
+      Done( (char *)"Skipped (IBM 2.1.0.14)");
     else if (flags[SKIP_IBM21015])
-      Done("Skipped (IBM 2.1.0.15)");
+      Done( (char *)"Skipped (IBM 2.1.0.15)");
     else if (flags[SKIP_IBM21016])
-      Done("Skipped (IBM 2.1.0.16)");
+      Done( (char *)"Skipped (IBM 2.1.0.16)");
     else if (flags[SKIP_IBM21017])
-      Done("Skipped (IBM 2.1.0.17)");
+      Done( (char *)"Skipped (IBM 2.1.0.17)");
     else {
       clonecomm1.Get_topo(comm_size, 2 * comm_size, tindex, tedges);
       for (i = 0; i < comm_size; i++)

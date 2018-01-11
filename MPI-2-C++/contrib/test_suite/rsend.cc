@@ -71,7 +71,7 @@ rsend()
   buf = new char[10];
   flag = 0; 
 
-  Testing("Rsend");
+  Testing( (char *)"Rsend");
 
   if((my_rank % 2)== 1) {
     strcpy(buf, "NULL");

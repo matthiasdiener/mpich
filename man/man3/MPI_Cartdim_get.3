@@ -1,12 +1,10 @@
-.TH MPI_Cartdim_get 3 "9/17/1997" " " "MPI"
+.TH MPI_Cartdim_get 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Cartdim_get \-  Retrieves Cartesian topology information associated with a  communicator 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Cartdim_get ( comm, ndims )
-MPI_Comm  comm;
-int      *ndims;
+int MPI_Cartdim_get ( MPI_Comm comm, int *ndims )
 .fi
 .SH INPUT PARAMETER
 .PD 0

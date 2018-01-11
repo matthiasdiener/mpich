@@ -28,18 +28,20 @@ print_error() {
 usage_msg="
 Usage: ${progname} [-file_system=FILE_SYSTEM] [-arch=ARCH_TYPE] [-mpi=MPI_IMPL]
                 [-mpiincdir=MPI_INCLUDE_DIR] [-mpilib=MPI_LIBRARY]
+		[-mpibindir=MPI_BIN_DIR]
                 [-cc=C_COMPILER] [-fc=FORTRAN_COMPILER] [-nof77] 
                 [-cflags=CFLAGS] [-fflags=FFLAGS] [-f90=F90_COMPILER] [-debug] 
                 [-make=MAKEPGM] [-mpiolib=MPIO_LIBRARY] [-ar_nolocal] 
                 [-noranlib] [-ar=AR_COMMAND] [-prefix=INSTALL_DIR]  
                 [-intsize=INTSIZE] [-ptrsize=PTRSIZE] [-longsize=LONGSIZE]
-                [-longlongsize=LONGLONGSIZE] [-f90nag] [-noprofile] 
-                 
+                [-longlongsize=LONGLONGSIZE] [-f90nag] [-disable-weak-symbols]
+
 where
    FILE_SYSTEM  = the file system(s) for which ROMIO is to be configured.
-                  Valid values are pfs, piofs, hfs, xfs, sfs, ufs, and nfs 
-                  (case-sensitive). They correspond to Intel's PFS, 
-                  IBM's PIOFS, HP/Convex's HFS, SGI's XFS, NEC's SFS, any Unix 
+                  Valid values are pfs, piofs, hfs, xfs, sfs, pvfs, ufs,
+                  and nfs (case-sensitive). They correspond to Intel's PFS, 
+                  IBM's PIOFS, HP/Convex's HFS, SGI's XFS, NEC's SFS, 
+                  Clemson University's PVFS (for Linux clusters), any Unix 
                   file system, and NFS. 
                   To configure for multiple file systems, use "+" as a 
                   separator; e.g., ufs+nfs
@@ -49,7 +51,7 @@ where
                   cross-compiling for a different architecture.
                   Valid values are sun4, solaris, solaris86, rs6000,
                   paragon, hpux, sppux, IRIX, IRIX32, IRIXN32, IRIX64, SX4, 
-                  alpha, freebsd, and LINUX.  (case-sensitive)
+                  alpha, freebsd, LINUX, and LINUX_ALPHA.  (case-sensitive)
    MPI_IMPL     = the MPI implementation with which ROMIO will be used
                   Valid values are mpich, sgi, hp. (case-sensitive)
                   Valid implementations are MPICH 1.1.1 or higher,
@@ -60,6 +62,10 @@ where
    MPI_LIBRARY  = name of the file containing the MPI library (full path).
                   Not needed if the library is in the compiler's default
                   list of libraries
+   MPI_BIN_DIR  = the full path of the directory that contains the MPI
+                  versions of the compilers, such as mpicc and mpif77.
+                  Use only if the ROMIO configure cannot find the
+                  necessary commands
    C_COMPILER   = the C compiler to use. If not specified, ROMIO uses a 
                   default compiler depending on the machine.
    FORTRAN_COMPILER = the Fortran compiler to use. If not specified, ROMIO 
@@ -108,22 +114,21 @@ is allowed, configure chooses to use it just in case) but can fail (some
 local directory, they can fail (destroying the library in the process) if
 the temporary directory (usually '/tmp') does not have enough space.
 
-The option -noprofile prevents the compilation of the profiling interface
-of MPI-IO.
+The option -disable-weak-symbols disables the use of weak symbols, even if 
+available, for building the profiling interface.
 "
 #
 echo " "
-echo "Configuring ROMIO Version 1.0.1"
+echo "Configuring ROMIO Version 1.0.2"
 echo " "
 CONFIGURE_ARGS="$*"
 if test -n "$CONFIGURE_ARGS" ; then
     echo "Configuring with args $CONFIGURE_ARGS"
 fi
 #
-rm -f include/*.h
+# rm -f include/*.h
 #
 NOF77=0
-NOPROFILE=0
 ARCH=""
 arch_IRIX=""
 MPI=""
@@ -160,7 +165,10 @@ ROMIO_LIBLIST=""
 ROMIO_TCFLAGS=""
 ROMIO_TCPPFLAGS=""
 ROMIO_TFFLAGS=""
+NOPROFILE=0
 MPIRUN=""
+FORTRAN_TEST=""
+MAKE=${MAKE:-"make"}
 # foll. needed for f77 test programs
 F77GETARG="call getarg(i,str)"
 F77IARGC="iargc()"
@@ -172,6 +180,7 @@ MPI_OFFSET_KIND2="!"
 F90=""
 TEST_CC=""
 TEST_F77=""
+TRY_WEAK_SYMBOLS=1
 #
 for arg
 do
@@ -193,6 +202,9 @@ case $arg in
      ;;
   -mpiincdir=* | --mpiincdir=*)  
      MPI_INCLUDE_DIR=`echo $arg|sed 's/-*mpiincdir=//'`
+     ;;
+  -mpibindir=* | --mpibindir=*)  
+     MPI_BIN_DIR=`echo $arg|sed 's/-*mpibindir=//'`
      ;;
   -mpilib=* | --mpilib=*)  
      MPI_LIB=`echo $arg|sed 's/-*mpilib=//'`
@@ -274,6 +286,9 @@ case $arg in
   -echo)
      set -x
      ;;
+  -disable-weak-symbols|--disable-weak-symbols)
+     TRY_WEAK_SYMBOLS=0
+     ;;
   -h | -help | --h | --help | -u | --u)
     (echo "${usage_msg}") >& 2
     exit 1 ;;
@@ -289,12 +304,16 @@ done
 #
 AC_PREPARE()
 #
+PAC_FIXUP_SRCDIR
+#
+PAC_MAKE_VPATH
+#
 # Check that an arch was set
 # If it wasn't set, try to guess using "util/tarch"
 #
-if test -z "$ARCH" -a -x util/tarch ; then
+if test -z "$ARCH" -a -x $srcdir/util/tarch ; then
     AC_MSG_CHECKING(for architecture)
-    ARCH=`./util/tarch | sed s/-/_/g`
+    ARCH=`$srcdir/util/tarch | sed s/-/_/g`
     if test -z "$ARCH" ; then
        AC_MSG_RESULT(Unknown!)
        print_error "Error: Couldn't guess target architecture, you must"
@@ -306,7 +325,7 @@ if test -z "$ARCH" -a -x util/tarch ; then
 fi
 #
 # check for valid architecture
-grep _"$ARCH"_ .config_params > /dev/null 2>&1
+grep _"$ARCH"_ $srcdir/.config_params > /dev/null 2>&1
 if test $? != 0 ; then
    echo "Unknown architecture $arch... proceeding anyway"
 fi
@@ -315,7 +334,7 @@ fi
 if test -n "$FILE_SYSTEM" ; then
    for x in $FILE_SYSTEM
    do
-      grep _"$x"_ .config_params > /dev/null 2>&1
+      grep _"$x"_ $srcdir/.config_params > /dev/null 2>&1
       if test $? != 0 ; then
          echo "Unknown file system $x... proceeding anyway"
       fi
@@ -324,7 +343,7 @@ fi
 #
 # check for valid MPI implementation
 if test -n "$MPI" ; then
-   grep _"$MPI"_mpi .config_params > /dev/null 2>&1
+   grep _"$MPI"_mpi $srcdir/.config_params > /dev/null 2>&1
    if test $? != 0 ; then
       echo "Unknown MPI implementation $MPI... proceeding anyway"
    fi
@@ -374,7 +393,7 @@ if test -n "$arch_sun4" ; then
     CC=${CC:-gcc}
     F77=${FC:-f77}
     if test $DEBUG = 1; then
-	if test $CC = "gcc"; then
+	if test "$CC" = "gcc"; then
            CFLAGS="$CFLAGS -g -D__USE_FIXED_PROTOTYPES__ -Wall -D__AIO_SUN"
 	else
            CFLAGS="$CFLAGS -g -D__AIO_SUN"
@@ -398,7 +417,11 @@ if test -n "$arch_solaris" || test -n "$arch_solaris86" ; then
     CC=${CC:-cc}
     F77=${FC:-f77}
     if test $DEBUG = 1; then
-        CFLAGS="$CFLAGS -g -v -D__AIO_SUN"
+        if test "$CC" = "gcc" ; then
+            CFLAGS="$CFLAGS -g -Wall -D__AIO_SUN"
+        else 
+            CFLAGS="$CFLAGS -g -v -D__AIO_SUN"
+        fi
     else 
         CFLAGS="$CFLAGS -O -D__AIO_SUN"
     fi
@@ -448,7 +471,7 @@ if test -n "$arch_rs6000"; then
         mpi_mpich=1
     fi
     if test -z "$FILE_SYSTEM" ; then
-        if test $CC = "mpcc" || test $CC = "mpCC" ; then
+        if test "$CC" = "mpcc" || test "$CC" = "mpCC" ; then
             file_system_piofs=1
             FILE_SYSTEM="piofs"
             echo "configuring for file systems piofs, ufs, and nfs"
@@ -472,7 +495,7 @@ if test -n "$arch_paragon"; then
     if test $DEBUG = 1; then
         CFLAGS="$CFLAGS -g"
     else 
-	if test $CC = "icc"; then
+	if test "$CC" = "icc"; then
            CFLAGS="$CFLAGS -Knoieee -Mvect -O3"
 	else
            CFLAGS="$CFLAGS -O"
@@ -504,7 +527,7 @@ if test -n "$arch_tflop" || test -n "$arch_tflops"; then
     if test $DEBUG = 1; then
         CFLAGS="$CFLAGS -g $TFLOP_FLAGS"
     else
-       if test $CC = "pgcc"; then
+       if test "$CC" = "pgcc"; then
            CFLAGS="$CFLAGS -Knoieee -Mvect -O3 $TFLOP_FLAGS"
        else
            CFLAGS="$CFLAGS -O $TFLOP_FLAGS"
@@ -524,11 +547,12 @@ if test -n "$arch_tflop" || test -n "$arch_tflops"; then
     fi
 fi
 #
-if test -n "$arch_freebsd" || test -n "$arch_LINUX" ; then
+if test -n "$arch_freebsd" || test -n "$arch_LINUX" || test -n "$arch_LINUX_ALPHA" || test -n "$arch_netbsd" ; then
     CC=${CC:-gcc}
-    if test -n "$arch_freebsd" ; then
+    if test -n "$arch_freebsd" || test -n "$arch_netbsd" ; then
        F77=${FC:-f77}
        CFLAGS="$CFLAGS -D__FREEBSD"
+       PAC_HAVE_MOUNT_NFS
        longlongsize=${longlongsize:-0}
 # printf doesn't work properly and no integer*8 as far as I can tell
     else 
@@ -536,7 +560,7 @@ if test -n "$arch_freebsd" || test -n "$arch_LINUX" ; then
        CFLAGS="$CFLAGS -D__LINUX"
     fi
     if test $DEBUG = 1; then
-        CFLAGS="$CFLAGS -g -D__NO_AIO"
+        CFLAGS="$CFLAGS -g -Wall -D__NO_AIO"
     else 
         CFLAGS="$CFLAGS -O -D__NO_AIO"
     fi
@@ -586,31 +610,26 @@ if test -n "$arch_hpux" || test -n "$arch_sppux" ; then
     RANLIB=":"
     if test -z "$MPI"; then
         if test -f "/opt/mpi/include/mpi.h" ; then
-                echo "assuming that you want to use ROMIO with HP MPI"
-                MPI=hp
-            else 
-                echo "assuming that you want to use ROMIO with MPICH"
-                MPI=mpich
-            fi            
-	fi
+            echo "assuming that you want to use ROMIO with HP MPI"
+            MPI=hp
+        else 
+            echo "assuming that you want to use ROMIO with MPICH"
+            MPI=mpich
+        fi            
+    fi
     if test $MPI = "mpich" ; then
-        MPI=mpich
         mpi_mpich=1
         MPI_LIB="$MPI_LIB -lV3"
         CC=${CC:-cc -Ae}
         F77=${FC:-f77 +U77}
     fi
     if test $MPI = "hp" ; then
-        MPI=hp
         mpi_hp=1
         CC=${CC:-mpicc -Ae}
         F77=${FC:-mpif77 +U77}
     fi
-    if test -z "$FILE_SYSTEM" ; then
-        file_system_hfs=1
-        file_system_nfs=1
-        FILE_SYSTEM="hfs nfs"
-        echo "configuring for file systems hfs and nfs"
+    if test $MPI = "lam" && test "$FC" != ""; then
+        FC="$FC +U77"
     fi
     FTESTDEFINE="external iargc, getarg"
     if test -n "$arch_hpux" ; then
@@ -623,10 +642,33 @@ if test -n "$arch_hpux" || test -n "$arch_sppux" ; then
     else
         CFLAGS="$CFLAGS -D__SPPUX"
     fi
+    if test -z "$FILE_SYSTEM" ; then
+        if test -n "$arch_hpux" ; then
+           AC_COMPILE_CHECK(struct flock64,[#include <fcntl.h>],[
+struct flock64 fl; int i=F_SETLKW64;],flock64_ok="yes",flock64_ok="no")
+        else
+            flock64_ok="yes"
+        fi
+        if test $flock64_ok = "yes" ; then
+            file_system_hfs=1
+            file_system_nfs=1
+            FILE_SYSTEM="hfs nfs"
+            echo "configuring for file systems hfs and nfs"
+        else
+            file_system_ufs=1
+            file_system_nfs=1
+            FILE_SYSTEM="ufs nfs"
+            echo "no flock64; configuring for file systems ufs and nfs"
+        fi
+    fi
     MPI_OFFSET_KIND1="      INTEGER MPI_OFFSET_KIND"
     MPI_OFFSET_KIND2="      PARAMETER (MPI_OFFSET_KIND=8)"
-    ROMIO_TCFLAGS="-Ae"
-    ROMIO_TFFLAGS="+U77"
+    if test "$CC" != "gcc" ; then
+        ROMIO_TCFLAGS="-Ae"
+    fi
+    if test "$F77" != "g77" ; then
+        ROMIO_TFFLAGS="+U77"
+    fi
 fi
 #
 if test -n "$arch_alpha" ; then
@@ -658,13 +700,15 @@ if test -n "$arch_CRAY" ; then
     CC=${CC:-cc}
     F77=${FC:-f90}
     NOF77=1
+    FTESTDEFINE="integer ilen"
+    F77GETARG="call pxfgetarg(i, str, ilen, ierr)"
     if test $DEBUG = 1; then
         CFLAGS="$CFLAGS -g -D__NO_AIO"
     else 
         CFLAGS="$CFLAGS -O -D__NO_AIO"
     fi
     RANLIB=":"
-    CFLAGS="$CFLAGS -D__CRAY"
+    CFLAGS="$CFLAGS -D__CRAY -D_UNICOS"
     if test -z "$MPI" || test -n "$mpi_sgi" ; then
         MPI=cray
         mpi_cray=1
@@ -814,8 +858,12 @@ if test -n "$longlongsize"; then
    fi
 fi
 #
-if test "$FORTRAN_MPI_OFFSET" = "integer*8" && test "A$MPI_OFFSET_KIND2" = "A!" ; then
+if test "$FORTRAN_MPI_OFFSET" = "integer*8" && test "A$MPI_OFFSET_KIND2" = "A!" && test $NOF77 = 0 ; then
    PAC_MPI_OFFSET_KIND()
+fi
+#
+if test "$FORTRAN_MPI_OFFSET" = "integer" && test "A$MPI_OFFSET_KIND2" = "A!" && test $NOF77 = 0 ; then
+   PAC_MPI_OFFSET_KIND_4BYTE()
 fi
 #
 # check if MPI_Info functions are defined in the MPI implementation
@@ -836,6 +884,7 @@ if test -n "$mpi_sgi"; then
    fi
    PAC_TEST_MPI_SGI_type_is_contig
    PAC_TEST_MPI_COMBINERS
+   PAC_TEST_MPI_HAS_OFFSET_KIND
 fi
 #
 # check if darray and subarray constructors are defined in the MPI implementation
@@ -856,6 +905,66 @@ fi
 # Check to see if the compiler accepts prototypes
 dnl PAC_CHECK_CC_PROTOTYPES(AC_DEFINE(__HAVE_PROTOTYPES))
 #
+#
+# Test for weak symbol support...
+# We can't put # in the message because it causes autoconf to generate
+# incorrect code
+HAS_WEAK_SYMBOLS=0
+if test -n "$arch_hpux" || test -n "$arch_sppux" ; then
+# multiple secondary definitions not allowed by HP compilers
+# Fortran interface for HP already uses one secondary defn. 
+# therefore, do not use this method for profiling interface.
+# build profiling interface explicitly.
+   TRY_WEAK_SYMBOLS=0
+fi
+if test $TRY_WEAK_SYMBOLS = 1 ; then
+  AC_MSG_CHECKING(for weak symbol support)
+  AC_TRY_LINK([
+#pragma weak PFoo = Foo
+int Foo(a) { return a; }
+],[return PFoo(1);],has_pragma_weak=1)
+  if test "$has_pragma_weak" = 1 ; then
+    AC_MSG_RESULT([pragma weak])
+    HAS_WEAK_SYMBOLS=1
+    AC_DEFINE(HAVE_WEAK_SYMBOLS)
+    AC_DEFINE(HAVE_PRAGMA_WEAK)
+  else
+    AC_TRY_LINK([
+#pragma _HP_SECONDARY_DEF Foo PFoo
+int Foo(a) { return a; }
+],[return PFoo(1);],has_pragma_hp_secondary=1)
+    if test "$has_pragma_hp_secondary" = 1 ; then 
+        AC_MSG_RESULT([pragma _HP_SECONDARY_DEF])
+        HAS_WEAK_SYMBOLS=1
+        AC_DEFINE(HAVE_WEAK_SYMBOLS)
+        AC_DEFINE(HAVE_PRAGMA_HP_SEC_DEF)
+    else
+        AC_TRY_LINK([
+#pragma _CRI duplicate PFoo as Foo
+int Foo(a) { return a; }
+],[return PFoo(1);],has_pragma_cri_duplicate=1)
+        if test "$has_pragma_cri_duplicate" = 1 ; then
+	    AC_MSG_RESULT([pragma _CRI duplicate x as y])
+	    HAS_WEAK_SYMBOLS=1
+	    AC_DEFINE(HAVE_WEAK_SYMBOLS)
+	    AC_DEFINE(HAVE_PRAGMA_CRI_DUP)
+        else    
+            AC_MSG_RESULT(no)
+        fi
+    fi
+  fi
+fi
+AC_SUBST(HAS_WEAK_SYMBOLS)
+#
+# if FILE_SYSTEM is not set above, use ufs and nfs as default
+#
+if test -z "$FILE_SYSTEM" ; then
+    file_system_ufs=1
+    file_system_nfs=1
+    FILE_SYSTEM="ufs nfs"
+    echo "configuring for file systems ufs and nfs"
+fi
+#
 if test -n "$file_system_nfs"; then
     CFLAGS="$CFLAGS -D__NFS"
 fi
@@ -870,6 +979,10 @@ if test -n "$file_system_sfs"; then
 fi
 if test -n "$file_system_xfs"; then
     CFLAGS="$CFLAGS -D__XFS"
+    PAC_GET_XFS_MEMALIGN
+fi
+if test -n "$file_system_pvfs"; then
+    CFLAGS="$CFLAGS -D__PVFS"
 fi
 if test -n "$file_system_pfs"; then
     CFLAGS="$CFLAGS -D__PFS"
@@ -889,28 +1002,40 @@ fi
 if test -n "$mpi_sgi"; then
    CFLAGS="$CFLAGS -D__MPISGI"
 fi
+if test -n "$mpi_lam"; then
+   CFLAGS="$CFLAGS -D__MPILAM"
+fi
 if test -n "$mpi_hp"; then
    CFLAGS="$CFLAGS -D__MPIHP"
    if test "$NOF77" = 0; then
       PAC_CHECK_MPIOF_H
    fi
 fi
-PAC_GETWD(ROMIO_HOME_TRIAL,mpi-io/Makefile.in)
+# Find the home directory if not specified
+if test "X$srcdir" != "X." -a -s $srcdir/mpi-io/Makefile.in ; then 
+    ROMIO_HOME_TRIAL=$srcdir
+else
+    PAC_GETWD(ROMIO_HOME_TRIAL,mpi-io/Makefile.in)
+fi
 echo "ROMIO home directory is $ROMIO_HOME_TRIAL"
 ROMIO_HOME=$ROMIO_HOME_TRIAL
+if test -z "$srcdir" -o "$srcdir" = "." ; then srcdir="$ROMIO_HOME" ; fi
+AC_SUBST(srcdir)
 if test -z "$LIBNAME"; then
 LIBNAME="$ROMIO_HOME/lib/$ARCH/libmpio.a"
 fi
 #
-if test ! -d lib ; then 
-   mkdir lib
+if test ! -d $ROMIO_HOME/lib ; then 
+   mkdir $ROMIO_HOME/lib
 fi
-if test ! -d lib/$ARCH ; then 
-   mkdir lib/$ARCH
+if test ! -d $ROMIO_HOME/lib/$ARCH ; then 
+   mkdir $ROMIO_HOME/lib/$ARCH
 fi
 #
 if test $NOF77 = 1 ; then
    F77=":"
+else
+   FORTRAN_TEST="fperf fcoll_test fmisc pfcoll_test" 
 fi
 #
 if test $FROM_MPICH = 0 ; then
@@ -921,9 +1046,9 @@ else
 fi
 #
 if test "$MPI_INCLUDE_DIR" = "." ; then
-   ROMIO_INCLUDE="-I$ROMIO_HOME/include"
+   ROMIO_INCLUDE="-I../include"
 else 
-   ROMIO_INCLUDE="-I$ROMIO_HOME/include -I$MPI_INCLUDE_DIR"
+   ROMIO_INCLUDE="-I../include -I$MPI_INCLUDE_DIR"
 fi
 #
 TEST_LIBNAME=$LIBNAME
@@ -933,19 +1058,20 @@ MPIRUN=mpirun
 #
 if test $FROM_MPICH = 1 ; then
    MPICH_HOME=`dirname $ROMIO_HOME`
-   TEST_CC=$MPICH_HOME/bin/mpicc
+   if test -z "$MPI_BIN_DIR" ; then MPI_BIN_DIR=$MPICH_HOME/bin ; fi
+   TEST_CC=$MPI_BIN_DIR/mpicc
    MPI_LIB=""
    ROMIO_INCLUDE=""
    USER_CFLAGS=""
    USER_FFLAGS=""
    TEST_LIBNAME=""
-   MPIRUN=$MPICH_HOME/bin/mpirun
+   MPIRUN=$MPI_BIN_DIR/mpirun
    if test -n "$arch_SX4" || test -n "$arch_hpux" ; then
-      TEST_F77=$MPICH_HOME/bin/mpif90
+      TEST_F77=$MPI_BIN_DIR/mpif90
    else
-      TEST_F77=$MPICH_HOME/bin/mpif77
+      TEST_F77=$MPI_BIN_DIR/mpif77
    fi
-   CC=$MPICH_HOME/bin/mpicc
+   CC=$MPI_BIN_DIR/mpicc
 fi
 #
 if test -z "$TEST_CC" ; then
@@ -965,6 +1091,7 @@ echo "setting CFLAGS to $CFLAGS"
 echo "setting USER_CFLAGS to $USER_CFLAGS"
 echo "setting USER_FFLAGS to $USER_FFLAGS"
 #
+AC_SUBST(ARCH)
 AC_SUBST(FILE_SYSTEM)
 AC_SUBST(CC)
 AC_SUBST(CFLAGS)
@@ -1020,9 +1147,12 @@ AC_SUBST(ROMIO_TCFLAGS)
 AC_SUBST(ROMIO_TCPPFLAGS)
 AC_SUBST(ROMIO_TFFLAGS)
 AC_SUBST(MPIRUN)
+AC_SUBST(FORTRAN_TEST)
+if test ! -d adio ; then mkdir adio ; fi
+if test ! -d mpi2-other ; then mkdir mpi2-other ; fi
 AC_OUTPUT(Makefile mpi-io/Makefile mpi2-other/info/Makefile mpi2-other/array/Makefile adio/common/Makefile test/Makefile test/misc.c test/large_file.c test/runtests util/romioinstall include/mpio.h include/mpiof.h)
 if test "$NOF77" = 0; then
-    CONFIG_FILES="$CONFIG_FILES mpi-io/fortran/Makefile mpi2-other/info/fortran/Makefile mpi2-other/array/fortran/Makefile test/fmisc.f test/fcoll_test.f test/fperf.f"
+    CONFIG_FILES="$CONFIG_FILES mpi-io/fortran/Makefile mpi2-other/info/fortran/Makefile mpi2-other/array/fortran/Makefile test/fmisc.f test/fcoll_test.f test/pfcoll_test.f test/fperf.f"
 fi
 if test -n "$file_system_nfs"; then
     CONFIG_FILES="$CONFIG_FILES adio/ad_nfs/Makefile"
@@ -1042,6 +1172,9 @@ fi
 if test -n "$file_system_pfs"; then
     CONFIG_FILES="$CONFIG_FILES adio/ad_pfs/Makefile"
 fi
+if test -n "$file_system_pvfs"; then
+    CONFIG_FILES="$CONFIG_FILES adio/ad_pvfs/Makefile"
+fi
 if test -n "$file_system_piofs"; then
     CONFIG_FILES="$CONFIG_FILES adio/ad_piofs/Makefile"
 fi
@@ -1058,6 +1191,12 @@ if test "$NOF77" = 0; then
    if test "$MPIOF_H_INCLUDED" = 1; then
       sed 5d test/fcoll_test.f > test/tmp
       mv test/tmp test/fcoll_test.f
+   fi
+   sed 1d test/pfcoll_test.f > test/tmp
+   mv test/tmp test/pfcoll_test.f
+   if test "$MPIOF_H_INCLUDED" = 1; then
+      sed 5d test/pfcoll_test.f > test/tmp
+      mv test/tmp test/pfcoll_test.f
    fi
    sed 1d test/fperf.f > test/tmp
    mv test/tmp test/fperf.f

@@ -5,6 +5,10 @@ MAKE   = @MAKE@
 
 SHELL=/bin/sh
 
+top_srcdir  = @top_srcdir@
+srcdir      = @srcdir@
+libbuild_dir = @libbuild_dir@
+
 MFLAGS = 
 #MFLAGS = -i    # for alliant fx/8
   
@@ -41,22 +45,26 @@ p4:
 	  (cd $$dir; $(MAKE) $(MFLAGS) default) ;\
 	  done 
 
-
+#
+# Make sure the MAKE is the last statement in the (cd xxx; make) to ensure
+# that an error causes the make to abort right there
+# The following code duplicates part of the build and creates an unnecessary 
+# libp4 in a local directory.
+#	@for dir in $(P4_DIRS) ;\
+#	  do \
+#	  echo " " ;\
+#	  echo making p4 in directory $$dir ;\
+#	  (cd $$dir; $(MAKE) $(MFLAGS) default) ;\
+#	  done 
 p4inmpi: 
 	@echo making p4 on architecture=$(P4ARCH)
 	@$(MAKE) $(MFLAGS) p4links P4ARCH=$(P4ARCH)
-	@for dir in $(P4_DIRS) ;\
-	  do \
-	  echo " " ;\
-	  echo making p4 in directory $$dir ;\
-	  (cd $$dir; $(MAKE) $(MFLAGS) default) ;\
-	  done 
 	(cd lib;  $(MAKE) $(MFLAGS) MPIARCH=$(MPIARCH) \
-		MPILIBNAME=$(MPILIBNAME) p4inmpi; cd ..)
+		MPILIBNAME=$(MPILIBNAME) p4inmpi)
 	(cd alog; $(MAKE) $(MFLAGS) MPIARCH=$(MPIARCH) \
-		MPILIBNAME=$(MPILIBNAME) p4inmpi; cd ..)
+		MPILIBNAME=$(MPILIBNAME) p4inmpi)
 	(cd usc;  $(MAKE) $(MFLAGS) MPIARCH=$(MPIARCH) \
-		MPILIBNAME=$(MPILIBNAME) p4inmpi; cd ..)
+		MPILIBNAME=$(MPILIBNAME) p4inmpi)
 
 p4links:
 #	@if [ -f lib/p4_config.h ] ;\
@@ -70,39 +78,39 @@ p4links:
 	    true ;\
 	else\
 	    (cd include ;\
-	    ln -s ../alog/alog.h . ;\
-	    ln -s ../alog/alog_evntdfs.h . ;\
-	    cd ..) ;\
+	    ln -s ${top_srcdir}/alog/alog.h . ;\
+	    ln -s ${top_srcdir}/alog/alog_evntdfs.h . ;\
+	    ) ;\
 	fi
 	@if [ -f include/usc.h ] ;\
 	then\
 	    true ;\
 	else\
 	    (cd include ;\
-	    ln -s ../usc/usc.h . ;\
-	    ln -s ../usc/usc_sys.h . ;\
-	    cd ..) ;\
+	    ln -s ${top_srcdir}/usc/usc.h . ;\
+	    ln -s ${top_srcdir}/usc/usc_sys.h . ;\
+	    ) ;\
 	fi
 	@if [ -f include/p4.h ] ;\
 	then\
 	    true ;\
 	else\
 	    (cd include ;\
-	    ln -s ../lib/p4.h . ;\
-	    ln -s ../lib/p4_MD.h . ;\
-	    ln -s ../lib/p4_config.h . ;\
-	    ln -s ../lib/p4_defs.h . ;\
-	    ln -s ../lib/p4_funcs.h . ;\
-	    ln -s ../lib/p4_globals.h . ;\
-	    ln -s ../lib/p4_macros.h . ;\
-	    ln -s ../lib/p4_mon.h . ;\
-	    ln -s ../lib/p4_patchlevel.h . ;\
-	    ln -s ../lib/p4_sock_util.h . ;\
-	    ln -s ../lib/p4_sr.h . ;\
-	    ln -s ../lib/p4_sys.h . ;\
-	    ln -s ../lib/p4_sys_funcs.h . ;\
-	    ln -s ../lib/sfcdchi.h . ;\
-	    cd ..) ;\
+	    ln -s ${top_srcdir}/lib/p4.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_MD.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_defs.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_funcs.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_globals.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_macros.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_mon.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_patchlevel.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_sock_util.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_sr.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_sys.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_sys_funcs.h . ;\
+	    ln -s ${top_srcdir}/lib/sfcdchi.h . ;\
+	    ln -s ../p4_config.h . ;\
+	    ) ;\
 	fi
 
 links:
@@ -111,51 +119,51 @@ links:
 	    true ;\
 	else\
 	    (cd include ;\
-	    ln -s ../alog/alog.h . ;\
-	    ln -s ../alog/alog_evntdfs.h . ;\
-	    cd ..) ;\
+	    ln -s ${top_srcdir}/alog/alog.h . ;\
+	    ln -s ${top_srcdir}/alog/alog_evntdfs.h . ;\
+	    ) ;\
 	fi
 	@if [ -f include/usc.h ] ;\
 	then\
 	    true ;\
 	else\
 	    (cd include ;\
-	    ln -s ../usc/usc.h . ;\
-	    ln -s ../usc/usc_sys.h . ;\
-	    cd ..) ;\
+	    ln -s ${top_srcdir}/usc/usc.h . ;\
+	    ln -s ${top_srcdir}/usc/usc_sys.h . ;\
+	    ) ;\
 	fi
 	@if [ -f include/p4.h ] ;\
 	then\
 	    true ;\
 	else\
 	    (cd include ;\
-	    ln -s ../lib/p4.h . ;\
-	    ln -s ../lib/p4_MD.h . ;\
-	    ln -s ../lib/p4_config.h . ;\
-	    ln -s ../lib/p4_defs.h . ;\
-	    ln -s ../lib/p4_funcs.h . ;\
-	    ln -s ../lib/p4_globals.h . ;\
-	    ln -s ../lib/p4_macros.h . ;\
-	    ln -s ../lib/p4_mon.h . ;\
-	    ln -s ../lib/p4_patchlevel.h . ;\
-	    ln -s ../lib/p4_sock_util.h . ;\
-	    ln -s ../lib/p4_sr.h . ;\
-	    ln -s ../lib/p4_sys.h . ;\
-	    ln -s ../lib/p4_sys_funcs.h . ;\
-	    ln -s ../lib/sfcdchi.h . ;\
-	    cd ..) ;\
+	    ln -s ${top_srcdir}/lib/p4.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_MD.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_defs.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_funcs.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_globals.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_macros.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_mon.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_patchlevel.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_sock_util.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_sr.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_sys.h . ;\
+	    ln -s ${top_srcdir}/lib/p4_sys_funcs.h . ;\
+	    ln -s ${top_srcdir}/lib/sfcdchi.h . ;\
+	    ln -s ${top_srcdir}/p4_config.h . ;\
+	    ) ;\
 	fi
 	@if [ -f messages_f/p4f.h ] ;\
 	then\
 		true ;\
 	else\
-		(cd messages_f; ln -s ../lib_f/p4f.h . ; cd ..) ;\
+		(cd messages_f; ln -s ${top_srcdir}/lib_f/p4f.h . ; cd ..) ;\
 	fi
 	@if [ -f contrib_f/p4f.h ] ;\
 	then\
 		true ;\
 	else\
-		(cd contrib_f; ln -s ../lib_f/p4f.h . ; cd ..) ;\
+		(cd contrib_f; ln -s ${top_srcdir}/lib_f/p4f.h . ; cd ..) ;\
 	fi
 
 

@@ -2,6 +2,8 @@
 #include "mpiddev.h"
 #include "mpimem.h"
 #include "reqalloc.h"
+#include "flow.h"
+#include "chpackflow.h"
 
 /* NonBlocking Rendezvous */
 
@@ -46,13 +48,34 @@ MPIR_SHANDLE  *shandle;
 {
     MPID_PKT_REQUEST_SEND_T  pkt;
     
+    DEBUG_PRINT_MSG("S Starting Rndvn_isend");
+#ifdef MPID_PACK_CONTROL
+    while (!MPID_PACKET_CHECK_OK(dest)) {  /* begin while !ok loop */
+	/* Wait for a protocol ACK packet */
+#ifdef MPID_DEBUG_ALL
+	if (MPID_DebugFlag || MPID_DebugFlow)
+	    FPRINTF(MPID_DEBUG_FILE,
+	 "[%d] S Waiting for a protocol ACK packet (in rndvb isend) from %d\n",
+		    MPID_MyWorldRank, dest);
+#endif
+	MPID_DeviceCheck( MPID_BLOCKING );
+    }  /* end while !ok loop */
+
+    MPID_PACKET_ADD_SENT(MPID_MyWorldRank, dest )
+#endif
+
     pkt.mode	   = MPID_PKT_REQUEST_SEND;
     pkt.context_id = context_id;
     pkt.lrank	   = src_lrank;
+    pkt.to         = dest;
+    pkt.src        = MPID_MyWorldRank;
+    pkt.seqnum     = sizeof(MPID_PKT_REQUEST_SEND_T);
     pkt.tag	   = tag;
     pkt.len	   = len;
     MPID_DO_HETERO(pkt.msgrep = (int)msgrep);
 
+    /* We save the address of the send handle in the packet; the receiver
+       will return this to us */
     MPID_AINT_SET(pkt.send_id,shandle);
 	
     /* Store info in the request for completing the message */
@@ -62,6 +85,8 @@ MPIR_SHANDLE  *shandle;
     /* Set the test/wait functions */
     shandle->wait	     = MPID_CH_Rndvn_send_wait_ack;
     shandle->test            = MPID_CH_Rndvn_send_test_ack;
+    /* Store partners rank in request in case message is cancelled */
+    shandle->partner         = dest;
     /* shandle->finish must NOT be set here; it must be cleared/set
        when the request is created */
     DEBUG_PRINT_BASIC_SEND_PKT("S Sending rndv message",&pkt)
@@ -104,9 +129,21 @@ void         *in_pkt;
 {
     MPID_PKT_REQUEST_SEND_T *pkt = (MPID_PKT_REQUEST_SEND_T *)in_pkt;
     int    msglen, err = MPI_SUCCESS;
+#if defined(MPID_RNDV_SELF)
+    MPIR_SHANDLE *shandle;
+#endif
     MPID_RNDV_T rtag;
 
     msglen = pkt->len;
+
+#ifdef MPID_PACK_CONTROL
+    if (MPID_PACKET_RCVD_GET(pkt->src)) {
+	MPID_SendProtoAck(pkt->to, pkt->src);
+    }
+    MPID_PACKET_ADD_RCVD(pkt->to, pkt->src);
+#endif
+
+    DEBUG_PRINT_MSG("R Starting rndvn irecv");
 
     /* Check for truncation */
     MPID_CHK_MSGLEN(rhandle,msglen,err)
@@ -118,6 +155,55 @@ void         *in_pkt;
     rhandle->s.MPI_SOURCE = pkt->lrank;
     rhandle->s.MPI_ERROR  = err;
     rhandle->send_id     = pkt->send_id;
+
+#if defined(MPID_RNDV_SELF)
+    if (from == MPID_MyWorldRank) {
+	DEBUG_PRINT_MSG("R Starting a receive transfer from self");
+	MPID_AINT_GET(shandle,pkt->send_id);
+#ifdef MPIR_HAS_COOKIES
+	if (shandle->cookie != MPIR_REQUEST_COOKIE) {
+	    FPRINTF( stderr, "shandle is %lx\n", (long)shandle );
+	    FPRINTF( stderr, "shandle cookie is %lx\n", shandle->cookie );
+	    MPID_Print_shandle( stderr, shandle );
+	    MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPI internal", 
+			"Bad address in Rendezvous send (irecv-self)" );
+	}
+#endif	
+	/* Copy directly from the shandle */
+	MEMCPY( rhandle->buf, shandle->start, shandle->bytes_as_contig );
+
+	shandle->is_complete = 1;
+	if (shandle->finish) 
+	    (shandle->finish)( shandle );
+	MPID_n_pending--;
+
+	/* Update all of the rhandle information */
+	rhandle->wait	 = 0;
+	rhandle->test	 = 0;
+	rhandle->push	 = 0;
+
+	rhandle->is_complete = 1;
+	if (rhandle->finish) 
+	    (rhandle->finish)( rhandle );
+	return err;
+    }
+#endif
+
+#ifdef MPID_PACK_CONTROL
+    while (!MPID_PACKET_CHECK_OK(from)) {  /* begin while !ok loop */
+	/* Wait for a protocol ACK packet */
+#ifdef MPID_DEBUG_ALL
+	if (MPID_DebugFlag || MPID_DebugFlow)
+	    FPRINTF(MPID_DEBUG_FILE,
+	 "[%d] S Waiting for a protocol ACK packet (in rndvb isend) from %d\n",
+		    MPID_MyWorldRank, from);
+#endif
+	MPID_DeviceCheck( MPID_BLOCKING );
+    }  /* end while !ok loop */
+
+    MPID_PACKET_ADD_SENT(pkt->to, from )
+#endif
+
     MPID_CreateRecvTransfer( 0, 0, from, &rtag );
     DEBUG_PRINT_MSG("Starting a nonblocking receive transfer");
     MPID_StartNBRecvTransfer( rhandle->buf, rhandle->len, from, rtag, rhandle, 
@@ -128,6 +214,7 @@ void         *in_pkt;
     rhandle->test	 = MPID_CH_Rndvn_unxrecv_test_end;
     rhandle->push	 = 0;
     /* Must NOT zero finish in case it has already been set */
+    rhandle->from    = from;
     rhandle->is_complete = 0;
     
     return err;
@@ -143,12 +230,25 @@ void         *in_pkt;
     MPID_PKT_REQUEST_SEND_T   *pkt = (MPID_PKT_REQUEST_SEND_T *)in_pkt;
 
     DEBUG_PRINT_MSG("Saving info on unexpected message");
+#ifdef MPID_PACK_CONTROL
+    if (MPID_PACKET_RCVD_GET(pkt->src)) {
+	MPID_SendProtoAck(pkt->to, pkt->src);
+    }
+    MPID_PACKET_ADD_RCVD(pkt->to, pkt->src);
+#endif
+
+#if defined(MPID_RNDV_SELF)
+    if (from == MPID_MyWorldRank) {
+	return MPID_CH_Rndvb_save_self( rhandle, from, in_pkt );
+    }
+#endif
     rhandle->s.MPI_TAG	  = pkt->tag;
     rhandle->s.MPI_SOURCE = pkt->lrank;
     rhandle->s.MPI_ERROR  = 0;
     rhandle->s.count      = pkt->len;
     rhandle->is_complete  = 0;
     rhandle->from         = from;
+    rhandle->partner      = pkt->to;
     rhandle->send_id      = pkt->send_id;
     MPID_DO_HETERO(rhandle->msgrep = (MPID_Msgrep_t)pkt->msgrep );
     /* Need to set the push etc routine to complete this transfer */
@@ -167,7 +267,11 @@ int         from;
 {
     MPID_PKT_OK_TO_SEND_T pkt;
 
-    pkt.mode = MPID_PKT_OK_TO_SEND;
+    pkt.mode   = MPID_PKT_OK_TO_SEND;
+    pkt.lrank  = MPID_MyWorldRank;
+    pkt.to     = from;
+    pkt.src    = MPID_MyWorldRank;
+    pkt.seqnum = sizeof(MPID_PKT_OK_TO_SEND_T);
     MPID_AINT_SET(pkt.send_id,send_id);
     pkt.recv_handle = rtag;
     DEBUG_PRINT_BASIC_SEND_PKT("S Ok send", &pkt);
@@ -186,6 +290,21 @@ void         *in_runex;
 {
     MPIR_RHANDLE *runex = (MPIR_RHANDLE *)in_runex;
     MPID_RNDV_T rtag;
+
+#ifdef MPID_PACK_CONTROL
+    while (!MPID_PACKET_CHECK_OK(runex->from)) {  /* begin while !ok loop */
+	/* Wait for a protocol ACK packet */
+#ifdef MPID_DEBUG_ALL
+	if (MPID_DebugFlag || MPID_DebugFlow)
+	    FPRINTF(MPID_DEBUG_FILE,
+	 "[%d] S Waiting for a protocol ACK packet (in rndvb isend) from %d\n",
+		    MPID_MyWorldRank, runex->from);
+#endif
+	MPID_DeviceCheck( MPID_BLOCKING );
+    }  /* end while !ok loop */
+
+    MPID_PACKET_ADD_SENT(runex->partner, runex->from )
+#endif
 
     /* Send a request back to the sender, then do the receive */
     MPID_CreateRecvTransfer( 0, 0, from, &rtag );
@@ -223,8 +342,18 @@ void         *in_runex;
 int MPID_CH_Rndvn_unxrecv_end( rhandle )
 MPIR_RHANDLE *rhandle;
 {
+
+#if !defined(MPID_RNDV_SELF)
+    MPID_DeviceCheck( MPID_NOTBLOCKING ); 
+#endif
+
     /* This is a blocking transfer */
     DEBUG_PRINT_MSG("Ending a receive transfer");
+
+    while (!MPID_TestNBRecvTransfer(rhandle)) {
+        MPID_DeviceCheck( MPID_NOTBLOCKING );
+    }
+
     MPID_EndNBRecvTransfer( rhandle, rhandle->recv_handle, rhandle->rid );
     DEBUG_PRINT_MSG("Completed receive transfer");
     rhandle->is_complete = 1;
@@ -264,16 +393,32 @@ int   from_grank;
     MPID_PKT_OK_TO_SEND_T *pkt = (MPID_PKT_OK_TO_SEND_T *)in_pkt;
     MPIR_SHANDLE *shandle=0;
 
+    DEBUG_PRINT_MSG("R Starting Rndvb_ack");
+#ifdef MPID_PACK_CONTROL
+    if (MPID_PACKET_RCVD_GET(pkt->src)) {
+	MPID_SendProtoAck(pkt->to, pkt->src);
+    }
+    MPID_PACKET_ADD_RCVD(pkt->to, pkt->src);
+#endif
+
     MPID_AINT_GET(shandle,pkt->send_id);
 #ifdef MPIR_HAS_COOKIES
     if (shandle->cookie != MPIR_REQUEST_COOKIE) {
-	fprintf( stderr, "shandle is %lx\n", (long)shandle );
-	fprintf( stderr, "shandle cookie is %lx\n", shandle->cookie );
+	FPRINTF( stderr, "shandle is %lx\n", (long)shandle );
+	FPRINTF( stderr, "shandle cookie is %lx\n", shandle->cookie );
 	MPID_Print_shandle( stderr, shandle );
 	MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPI internal", 
 		    "Bad address in Rendezvous send" );
     }
 #endif	
+
+#ifdef MPID_DEBUG_ALL
+    if (MPID_DebugFlag) {
+	FPRINTF( MPID_DEBUG_FILE, "[%d]S for ", MPID_MyWorldRank );
+	MPID_Print_shandle( MPID_DEBUG_FILE, shandle );
+    }
+#endif
+
     DEBUG_PRINT_MSG("Sending data on channel with nonblocking send");
     MPID_n_pending--;
     MPID_StartNBSendTransfer( shandle->start, shandle->bytes_as_contig, 

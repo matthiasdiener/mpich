@@ -13,6 +13,7 @@
    when we do an update.
  */
 
+#include "mpeconf.h"
 #include "mpi.h"
 #include "mpe.h"
 /* For malloc */

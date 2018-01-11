@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_hints.c,v 1.2 1998/06/02 18:56:15 thakur Exp $    
+ *   $Id: ad_hints.c,v 1.3 1999/08/06 18:32:52 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -80,9 +80,9 @@ void ADIOI_GEN_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code)
 
     ADIOI_Free(value);
 
-    if (fd->file_system == ADIO_PIOFS) 
+    if ((fd->file_system == ADIO_PIOFS) && (fd->file_system == ADIO_PVFS))
 	MPI_Info_delete(info, "ind_wr_buffer_size");
-    /* no data sieving for writes in PIOFS, because it doesn't
+    /* no data sieving for writes in PIOFS and PVFS, because it doesn't
        support file locking */
 
     *error_code = MPI_SUCCESS;

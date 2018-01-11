@@ -1,11 +1,30 @@
 /*
- *  $Id: attr_putval.c,v 1.3 1998/04/28 20:57:56 swider Exp $
+ *  $Id: attr_putval.c,v 1.9 1999/09/15 22:43:40 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Attr_put = PMPI_Attr_put
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Attr_put  MPI_Attr_put
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Attr_put as PMPI_Attr_put
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "attr.h" 
 
 /*@
@@ -40,10 +59,7 @@ corresponding keyval was created) will be called.
 
 .seealso MPI_Attr_get, MPI_Keyval_create, MPI_Attr_delete
 @*/
-int MPI_Attr_put ( comm, keyval, attr_value )
-MPI_Comm comm;
-int      keyval;
-void     *attr_value;
+EXPORT_MPI_API int MPI_Attr_put ( MPI_Comm comm, int keyval, void *attr_value )
 {
   MPIR_HBT_node *attr;
   MPIR_Attr_key *attr_key;
@@ -64,7 +80,8 @@ void     *attr_value;
 	return MPIR_ERROR( comm_ptr, mpi_errno, myname);
 
   if (comm == MPI_COMM_WORLD && attr_key->permanent) 
-	return MPIR_ERROR( comm_ptr, MPI_ERR_PERM_KEY, myname);
+	return MPIR_ERROR( comm_ptr, 
+	     MPIR_ERRCLASS_TO_CODE(MPI_ERR_ARG,MPIR_ERR_PERM_KEY),myname );
 
   MPIR_HBT_lookup(comm_ptr->attr_cache, keyval, &attr);
   if (attr == (MPIR_HBT_node *)0) {
@@ -98,6 +115,8 @@ void     *attr_value;
 	    }
 	attr->value = attr_value;
   }
+  /* The device may want to know about attributes */
+  MPID_ATTR_SET(comm_ptr,keyval,attr_value);
 
   TR_POP;
   return (mpi_errno);

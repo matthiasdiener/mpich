@@ -1,6 +1,7 @@
 /* mpe_seq.c */
 /* Fortran interface file */
 #include <stdio.h>
+#include "mpeconf.h"
 #include "mpe.h"
 
 #ifdef MPI_BUILD_PROFILING
@@ -23,12 +24,9 @@
 #endif
 #endif
 
-void mpe_seq_begin_ ANSI_ARGS(( MPI_Comm *, int *, int * ));
+void mpe_seq_begin_ ( MPI_Comm *, int *, int * );
 
- void  mpe_seq_begin_( comm, ng, __ierr )
-MPI_Comm *comm;
-int*ng;
-int *__ierr;
+void  mpe_seq_begin_( MPI_Comm *comm, int *ng, int * __ierr )
 {
     MPE_Seq_begin(*comm, *ng);
 }
@@ -52,11 +50,9 @@ int *__ierr;
 #endif
 #endif
 
-void mpe_seq_end_ ANSI_ARGS(( MPI_Comm *, int *, int * ));
- void  mpe_seq_end_( comm, ng, __ierr )
-MPI_Comm *comm;
-int*ng;
-int *__ierr;
+void mpe_seq_end_ ( MPI_Comm *, int *, int * );
+
+void  mpe_seq_end_( MPI_Comm *comm, int *ng, int *__ierr )
 {
     MPE_Seq_end(*comm, *ng);
 }

@@ -30,8 +30,18 @@ user_bcast:  user_bcast.o
 chapter_10_mpi2:  chapter_10_mpi2.o
 	$(CXX) chapter_10_mpi2.o  -o chapter_10_mpi2
 
+#
+# clean
+# On some weird Unix's, rm -f will complain if there are no files to 
+# delete...
+#
+
+#
+# The Solaris C++ compiler creates a directory containing miscellaneous
+# data.  The action is not documented in the Solaris CC man pages
 clean:
-	/bin/rm -f *.o *~ $(EXECS)
+	@ touch bogus
+	rm -rf *.o *~ *% core $(EXECS) bogus $(TEMPLATE_REP) SunWS_cache
 
 .cc.o:
 	$(CXX) -c $*.cc

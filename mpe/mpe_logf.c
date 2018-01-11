@@ -5,6 +5,7 @@
 #define DEBUG_ALL
 #endif
 #include <stdio.h>
+#include "mpeconf.h"
 #include "mpe.h"
 
 #ifdef HAVE_STDLIB_H
@@ -27,6 +28,7 @@ extern void free();
 #define mpe_init_log_ MPE_INIT_LOG
 #define mpe_start_log_ MPE_START_LOG
 #define mpe_stop_log_ MPE_STOP_LOG
+#define mpe_log_get_event_number_ MPE_LOG_GET_EVENT_NUMBER
 #define mpe_describe_state_ MPE_DESCRIBE_STATE
 #define mpe_describe_event_ MPE_DESCRIBE_EVENT
 #define mpe_log_event_ MPE_LOG_EVENT
@@ -35,6 +37,7 @@ extern void free();
 #define mpe_init_log_ mpe_init_log__
 #define mpe_start_log_ mpe_start_log__
 #define mpe_stop_log_ mpe_stop_log__
+#define mpe_log_get_event_number_ mpe_log_get_event_number__
 #define mpe_describe_state_ mpe_describe_state__
 #define mpe_describe_event_ mpe_describe_event__
 #define mpe_log_event_ mpe_log_event__
@@ -43,6 +46,7 @@ extern void free();
 #define mpe_init_log_ mpe_init_log
 #define mpe_start_log_ mpe_start_log
 #define mpe_stop_log_ mpe_stop_log
+#define mpe_log_get_event_number_ mpe_log_get_event_number
 #define mpe_describe_state_ mpe_describe_state
 #define mpe_describe_event_ mpe_describe_event
 #define mpe_log_event_ mpe_log_event
@@ -88,6 +92,11 @@ int  mpe_start_log_()
 int  mpe_stop_log_()
 {
     return MPE_Stop_log();
+}
+
+int mpe_log_get_event_number_()
+{
+    return MPE_Log_get_event_number();
 }
 
 #ifdef MPI_CRAY
@@ -157,7 +166,7 @@ _fcd string;
 {
     char *c1;
     int  err;
-    c1 = mpe_tmp_cpy( _fcdtocp( string ), _fcdtocp( string ) );
+    c1 = mpe_tmp_cpy( _fcdtocp( string ), _fcdlen( string ) );
     err = MPE_Log_event(*event,*data,c1);
     free( c1 );
     return err;
@@ -184,7 +193,7 @@ _fcd filename;
 {
     char *c1;
     int  err;
-    c1 = mpe_tmp_cpy( _fcdtocp( filename ), _fcdtocp( filename ) );
+    c1 = mpe_tmp_cpy( _fcdtocp( filename ), _fcdlen( filename ) );
     err =  MPE_Finish_log(c1);
     free( c1 );
     return err;

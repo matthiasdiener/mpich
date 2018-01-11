@@ -1,11 +1,30 @@
 /*
- *  $Id: statusf2c.c,v 1.3 1998/01/16 16:25:36 swider Exp $
+ *  $Id: statusf2c.c,v 1.8 1999/08/30 15:47:52 swider Exp $
  *
  *  (C) 1997 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Status_f2c = PMPI_Status_f2c
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Status_f2c  MPI_Status_f2c
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Status_f2c as PMPI_Status_f2c
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
 /*@
   MPI_Status_f2c - Convert a Fortran status to a C status
@@ -20,9 +39,7 @@ Output Parameter:
 .N MPI_SUCCESS
 .N MPI_ERR_ARG
 @*/
-int MPI_Status_f2c( f_status, c_status )
-MPI_Fint     *f_status;
-MPI_Status   *c_status;
+int MPI_Status_f2c( MPI_Fint *f_status, MPI_Status *c_status )
 {
     int i;
     int *c_status_arr = (int *)c_status;
@@ -30,7 +47,8 @@ MPI_Status   *c_status;
 
     if  (l_f_status == MPIR_F_STATUS_IGNORE ||
 	 l_f_status == MPIR_F_STATUSES_IGNORE) {
-	 return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_STATUS_IGNORE,
+	return MPIR_ERROR( MPIR_COMM_WORLD, 
+		MPIR_ERRCLASS_TO_CODE(MPI_ERR_ARG,MPIR_ERR_STATUS_IGNORE),
 			   "MPI_STATUS_F2C" );
     }
 

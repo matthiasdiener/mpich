@@ -85,6 +85,20 @@ char **argv;
 	    MPID_ArgSqueeze( argc, argv );
 	    break;
 	}
+	else if (strcmp( argv[i], "-mpiversion" ) == 0) {
+	    /* provide additional information on the device implementation */
+	    PRINTF( "ch_shmem device with the following device choices\n" );
+	    PRINTF( "Lock type = %s\n", p2p_lock_name );
+	    PRINTF( "Shared memory type = %s\n", p2p_shmem_name );
+#if HAS_VOLATILE
+	    PRINTF( "Compiler supports volatile\n" );
+#else
+            PRINTF( "Compiler *does not* support volatile\n" );
+#endif
+	    PRINTF( "Maximum processor count = %d\n", MPID_MAX_PROCS );
+	    PRINTF( "Maximum shared memory region size is %d bytes\n", 
+		    MPID_MAX_SHMEM ); 
+	}
     }
 
 #if defined (MPI_cspp)
@@ -127,7 +141,7 @@ char **argv;
 
     if (!MPID_shmem) {
 	fprintf( stderr, "Could not allocate shared memory (%d bytes)!\n",
-		 sizeof( MPID_SHMEM_globmem ) );
+		 (int) sizeof( MPID_SHMEM_globmem ) );
 	exit(1);
     }
 
@@ -170,10 +184,10 @@ char **argv;
 
     for (i=0; i<numprocs; i++) {
 	/* setup the local copy of the addresses of objects in MPID_shmem */
-	MPID_lshmem.availlockPtr[i]	   = &MPID_shmem->availlock[i];
+	MPID_lshmem.availlockPtr[i]    = &MPID_shmem->availlock[i];
 	MPID_lshmem.incominglockPtr[i] = &MPID_shmem->incominglock[i];
-	MPID_lshmem.incomingPtr[i]	   = &MPID_shmem->incoming[i];
-	MPID_lshmem.availPtr[i]	   = &MPID_shmem->avail[i];
+	MPID_lshmem.incomingPtr[i]     = &MPID_shmem->incoming[i];
+	MPID_lshmem.availPtr[i]	       = &MPID_shmem->avail[i];
 
 	/* Initialize the shared memory data structures */
 	MPID_shmem->incoming[i].head     = 0;
@@ -626,7 +640,7 @@ int  *len, dest;
     void *new;
     int  tlen = *len;
 
-    MPID_TRACE_CODE("Allocating shared space",len);
+    MPID_TRACE_CODE("Alloc shared space",tlen);
 /* To test, just comment out the first line and set new to null */
     /* tlen = tlen/2; */
     new = p2p_shmalloc( tlen );
@@ -672,14 +686,14 @@ if (MPID_DEBUG_FILE) {
     MEMCPY( new, in_addr, tlen );
 #endif
 
-    MPID_TRACE_CODE("Allocated space at",(long)new );
+    MPID_TRACE_CODE_X("Allocated space at",(long)new );
     return new;
 }
 
 void MPID_FreeGetAddress( addr )
 void *addr;
 {
-    MPID_TRACE_CODE("Freeing space at",(long)addr );
+    MPID_TRACE_CODE_X("Freeing space at",(long)addr );
     p2p_shfree( addr );
     /* printf( "Freeing %x in free_get\n", (long)addr ); */
 }

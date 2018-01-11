@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_getvlnf.c,v 1.5 1998/04/29 16:59:25 swider Exp $    
+ *   $Id: info_getvlnf.c,v 1.13 1999/09/07 17:45:22 swider Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,7 +9,57 @@
 #include "mpimem.h"
 #include "mpifort.h"
 
-#ifdef MPI_BUILD_PROFILING
+
+#if defined(MPI_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
+
+#if defined(HAVE_WEAK_SYMBOLS)
+#if defined(HAVE_PRAGMA_WEAK)
+#if defined(FORTRANCAPS)
+#pragma weak MPI_INFO_GET_VALUELEN = PMPI_INFO_GET_VALUELEN
+EXPORT_MPI_API void MPI_INFO_GET_VALUELEN (MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint);
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma weak mpi_info_get_valuelen__ = pmpi_info_get_valuelen__
+EXPORT_MPI_API void mpi_info_get_valuelen__ (MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint);
+#elif !defined(FORTRANUNDERSCORE)
+#pragma weak mpi_info_get_valuelen = pmpi_info_get_valuelen
+EXPORT_MPI_API void mpi_info_get_valuelen (MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint);
+#else
+#pragma weak mpi_info_get_valuelen_ = pmpi_info_get_valuelen_
+EXPORT_MPI_API void mpi_info_get_valuelen_ (MPI_Fint *, char *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint);
+#endif
+
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#if defined(FORTRANCAPS)
+#pragma _HP_SECONDARY_DEF PMPI_INFO_GET_VALUELEN  MPI_INFO_GET_VALUELEN
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_info_get_valuelen__  mpi_info_get_valuelen__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _HP_SECONDARY_DEF pmpi_info_get_valuelen  mpi_info_get_valuelen
+#else
+#pragma _HP_SECONDARY_DEF pmpi_info_get_valuelen_  mpi_info_get_valuelen_
+#endif
+
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#if defined(FORTRANCAPS)
+#pragma _CRI duplicate MPI_INFO_GET_VALUELEN as PMPI_INFO_GET_VALUELEN
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#pragma _CRI duplicate mpi_info_get_valuelen__ as pmpi_info_get_valuelen__
+#elif !defined(FORTRANUNDERSCORE)
+#pragma _CRI duplicate mpi_info_get_valuelen as pmpi_info_get_valuelen
+#else
+#pragma _CRI duplicate mpi_info_get_valuelen_ as pmpi_info_get_valuelen_
+#endif
+
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
 #ifdef FORTRANCAPS
 #define mpi_info_get_valuelen_ PMPI_INFO_GET_VALUELEN
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -19,7 +69,9 @@
 #else
 #define mpi_info_get_valuelen_ pmpi_info_get_valuelen_
 #endif
+
 #else
+
 #ifdef FORTRANCAPS
 #define mpi_info_get_valuelen_ MPI_INFO_GET_VALUELEN
 #elif defined(FORTRANDOUBLEUNDERSCORE)
@@ -29,21 +81,26 @@
 #endif
 #endif
 
+
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_info_get_valuelen_ ANSI_ARGS((MPI_Fint *, char *, MPI_Fint *,
+EXPORT_MPI_API void mpi_info_get_valuelen_ ANSI_ARGS((MPI_Fint *, char *, MPI_Fint *,
 				       MPI_Fint *, MPI_Fint *, MPI_Fint));
 /* Definitions of Fortran Wrapper routines */
-void mpi_info_get_valuelen_(MPI_Fint *info, char *key, MPI_Fint *valuelen,
+EXPORT_MPI_API void mpi_info_get_valuelen_(MPI_Fint *info, char *key, MPI_Fint *valuelen,
 			    MPI_Fint *flag, MPI_Fint *__ierr, MPI_Fint keylen )
 {
     MPI_Info info_c;
     char *newkey;
     int new_keylen, lead_blanks, i;
     int lvaluelen, lflag;
+    int mpi_errno;
+    static char myname[] = "MPI_INFO_GET_VALUELEN";
 
-    if (key <= (char *) 0) {
-        printf("MPI_Info_get_valuelen: key is an invalid address\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
+    if (!key) {
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_INFO_KEY, MPIR_ERR_DEFAULT, 
+				     myname, (char *)0, (char *)0);
+	*__ierr =  MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+	return;
     }
 
     /* strip leading and trailing blanks in key */
@@ -54,8 +111,10 @@ void mpi_info_get_valuelen_(MPI_Fint *info, char *key, MPI_Fint *valuelen,
 
     for (i=(int)keylen-1; i>=0; i--) if (key[i] != ' ') break;
     if (i < 0) {
-        printf("MPI_Info_get_valuelen: key is a blank string\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_INFO_KEY, MPIR_ERR_KEY_EMPTY,
+				     myname, (char *)0, (char *)0 );
+	*__ierr = MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+	return;
     }
     new_keylen = i + 1 - lead_blanks;
     key += lead_blanks;

@@ -61,6 +61,7 @@
 211 211 211		LightGrey
 211 211 211		light gray
 211 211 211		LightGray
+211 211 211		light_gray
  25  25 112		midnight blue
  25  25 112		MidnightBlue
   0   0 128		navy
@@ -81,10 +82,12 @@
  65 105 225		royal blue
  65 105 225		RoyalBlue
   0   0 255		blue
+  0   0 255		Blue
  30 144 255		dodger blue
  30 144 255		DodgerBlue
   0 191 255		deep sky blue
   0 191 255		DeepSkyBlue
+  0 191 255		deepskyblue
 135 206 235		sky blue
 135 206 235		SkyBlue
 135 206 235		skyblue
@@ -119,6 +122,7 @@
  85 107  47		DarkOliveGreen
 143 188 143		dark sea green
 143 188 143		DarkSeaGreen
+ 46 139  87		seagreen
  46 139  87		sea green
  46 139  87		SeaGreen
  60 179 113		medium sea green
@@ -738,3 +742,4 @@
 252 252 252 		grey99
 255 255 255 		gray100
 255 255 255 		grey100
+119 255 119             LightGreen

@@ -97,7 +97,7 @@ copy_attr_intercept(MPI_Comm oldcomm, int keyval,
   int ret = 0;
   Map::Pair* copy_and_delete = (Map::Pair*)_REAL_MPI_::Comm::key_fn_map[(Map::address)keyval];
   MPI::Comm::Copy_attr_function* copy_fn;
-  copy_fn = (MPI::Comm::Copy_attr_function*)copy_and_delete->first;
+  copy_fn = (MPI::Comm::Copy_attr_function*)copy_and_delete->first_f;
 
   Map::Pair* comm_type = (Map::Pair*)_REAL_MPI_::Comm::mpi_comm_map[(Map::address)oldcomm];
   
@@ -132,6 +132,8 @@ copy_attr_intercept(MPI_Comm oldcomm, int keyval,
   return ret;
 }
 
+// WDG - Changed to use pointers to functions in Map instead of pointers to 
+// non-functions
 int
 delete_attr_intercept(MPI_Comm comm, int keyval, 
 		      void *attribute_val, void *extra_state)
@@ -141,7 +143,7 @@ delete_attr_intercept(MPI_Comm comm, int keyval,
   Map::Pair* copy_and_delete = (Map::Pair*)_REAL_MPI_::Comm::key_fn_map[(Map::address)keyval];
 
   MPI::Comm::Delete_attr_function* delete_fn;  
-  delete_fn = (MPI::Comm::Delete_attr_function*)copy_and_delete->second;
+  delete_fn = (MPI::Comm::Delete_attr_function*)copy_and_delete->second_f;
 
   Map::Pair* comm_type = (Map::Pair*)_REAL_MPI_::Comm::mpi_comm_map[(Map::address)comm];
 

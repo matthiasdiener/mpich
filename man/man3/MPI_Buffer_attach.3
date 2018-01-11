@@ -1,12 +1,10 @@
-.TH MPI_Buffer_attach 3 "4/28/1998" " " "MPI"
+.TH MPI_Buffer_attach 3 "8/30/1999" " " "MPI"
 .SH NAME
 MPI_Buffer_attach \-  Attaches a user-defined buffer for sending 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Buffer_attach( buffer, size )
-void *buffer;
-int  size;
+int MPI_Buffer_attach( void *buffer, int size )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

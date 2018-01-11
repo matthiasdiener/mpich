@@ -10,9 +10,7 @@ Return a string for a given error code
 <H2>Synopsis</H2>
 <PRE>
 #include "mpi.h"
-int MPI_Error_string( errorcode, string, resultlen )
-int  errorcode, *resultlen;
-char *string;
+int MPI_Error_string( int errorcode, char *string, int *resultlen )
 </PRE>
 <H2>Input Parameters</H2>
 <DL><DT><B>errorcode </B> <DD> Error code returned by an MPI routine or an MPI error class

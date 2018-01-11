@@ -12,8 +12,15 @@ MDEP_CFLAGS = @MDEP_CFLAGS@
 MDEP_FFLAGS = @MDEP_FFLAGS@
 MDEP_LFLAGS = @MDEP_LFLAGS@
 P4_OBJ = @P4_OBJ@
+SHELL = /bin/sh
+top_srcdir  = @top_srcdir@
+srcdir      = @srcdir@
+libbuild_dir = @libbuild_dir@
 
-CFLAGS = @OPTFLAGS@ -I$(INCLUDEDIR) -I../../../../include $(MDEP_CFLAGS) $(USER_CFLAGS) @DEFS@ @CFLAGS@
+@VPATH@
+
+
+CFLAGS = @OPTFLAGS@ -I$(INCLUDEDIR) -I../../../../include $(MDEP_CFLAGS) $(USER_CFLAGS) @DEFS@ @CFLAGS@ -I${top_srcdir}/include -I..
 
 FFLAGS = @OPTFLAGS@ -I$(FORTLIBDIR) $(MDEP_FFLAGS)
 SERVER_HOME = /etc
@@ -26,22 +33,22 @@ CHOWN = chown
 INSTALL = /bin/cp -i
 SED   = sed
 
-P4_HOME_DIR = ..
+P4_HOME_DIR = ${top_srcdir}
 INCLUDEDIR = $(P4_HOME_DIR)/include
 LIBDIR = @MPIR_HOME@/lib/@ARCH@/@COMM@
 
 .SUFFIXES:	.o .c .f .h
 
 .c.o:$(P)
-	$(CC) $(CFLAGS) -c $*.c 
+	$(CC) $(CFLAGS) -c $<
 
 .f.o:$(P)
-	$(FC) $(FFLAGS) -c $*.f 
+	$(FC) $(FFLAGS) -c $<
 
 dummy:	default
 
 clean:
-	$(RM) -f *~ *.o *.bak tags TAGS core
+	$(RM) -f *~ *.o *.bak tags TAGS core ${srcdir}/*.o
 
 default:
 	@echo not making server on $(P4ARCH)

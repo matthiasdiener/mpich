@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_hfs_fcntl.c,v 1.2 1998/06/02 18:35:39 thakur Exp $    
+ *   $Id: ad_hfs_fcntl.c,v 1.3 1999/08/06 18:32:06 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -7,15 +7,6 @@
 
 #include "ad_hfs.h"
 #include "adio_extern.h"
-#include <sys/statvfs.h>
-
-static int is_hfs(int fd)
-{
-    struct statvfs buf;
-
-    fstatvfs(fd, &buf);
-    return ! strcmp("hfs", buf.f_basetype);
-}
 
 void ADIOI_HFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *error_code)
 {
@@ -155,6 +146,7 @@ void ADIOI_HFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *er
 	    }
 
 	    if (alloc_size > curr_fsize) {
+		memset(buf, 0, ADIOI_PREALLOC_BUFSZ); 
 		size = alloc_size - curr_fsize;
 		ntimes = (size + ADIOI_PREALLOC_BUFSZ - 1)/ADIOI_PREALLOC_BUFSZ;
 		for (i=0; i<ntimes; i++) {
@@ -186,20 +178,8 @@ void ADIOI_HFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *er
 	break;
 
     case ADIO_FCNTL_SET_ATOMICITY:
-#ifdef __SPPUX
 	fd->atomicity = (fcntl_struct->atomicity == 0) ? 0 : 1;
 	*error_code = MPI_SUCCESS;
-#endif
-#ifdef __HPUX
-	/* HFS on HP-UX does not adhere to atomicity semantics.
-	   Maybe a bug in HFS.*/
-	if ((fcntl_struct->atomicity != 0) && is_hfs(fd->fd_sys))
-	    *error_code = MPI_ERR_UNKNOWN;
-	else {
- 	    fd->atomicity = (fcntl_struct->atomicity == 0) ? 0 : 1;
- 	    *error_code = MPI_SUCCESS;
-	}
-#endif
 	break;
 
     default:

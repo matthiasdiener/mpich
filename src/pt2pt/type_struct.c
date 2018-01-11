@@ -1,11 +1,30 @@
 /*
- *  $Id: type_struct.c,v 1.8 1998/09/17 22:01:14 gropp Exp $
+ *  $Id: type_struct.c,v 1.14 1999/08/31 19:59:59 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Type_struct = PMPI_Type_struct
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Type_struct  MPI_Type_struct
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Type_struct as PMPI_Type_struct
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "sbcnst2.h"
 #define MPIR_SBalloc MPID_SBalloc
 /* pt2pt for MPIR_Type_dup */
@@ -72,12 +91,12 @@ for the structure foo
 .N MPI_ERR_COUNT
 .N MPI_ERR_EXHAUSTED
 @*/
-int MPI_Type_struct( count, blocklens, indices, old_types, newtype )
-int           count;
-int 	      blocklens[];
-MPI_Aint      indices[];      
-MPI_Datatype  old_types[];
-MPI_Datatype *newtype;
+EXPORT_MPI_API int MPI_Type_struct( 
+	int count, 
+	int blocklens[], 
+	MPI_Aint indices[], 
+	MPI_Datatype old_types[], 
+	MPI_Datatype *newtype )
 {
   struct MPIR_DATATYPE* dteptr;
   MPI_Aint        ub, lb, high, low, real_ub, real_lb, real_init;
@@ -86,11 +105,14 @@ MPI_Datatype *newtype;
   MPI_Aint        ub_marker, lb_marker;
   MPI_Aint        ub_found = 0, lb_found = 0;
   int             size, total_count;
+  static char myname[] = "MPI_TYPE_STRUCT";
 
   /* Check for bad arguments */
-  if ( count < 0 )
-	return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_COUNT,
-			       	  "Negative count in MPI_TYPE_STRUCT" );
+  if ( count < 0 ) {
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_COUNT, MPIR_ERR_DEFAULT, myname,
+				   (char *)0, (char *)0, count );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+  }
 
   if (count == 0) 
       return MPI_Type_contiguous( 0, MPI_INT, newtype );
@@ -100,12 +122,18 @@ MPI_Datatype *newtype;
   total_count = 0;
   for (i=0; i<count; i++) {
     total_count += blocklens[i];
-    if ( blocklens[i] < 0)
-      return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ARG,
-                        "Negative block length in MPI_TYPE_STRUCT");
-    if ( old_types[i] == MPI_DATATYPE_NULL )
-      return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_TYPE,
-                        "Null type in MPI_TYPE_STRUCT");
+    if ( blocklens[i] < 0) {
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ARG_ARRAY_VAL,
+				     myname, (char *)0, (char *)0,
+				     "blocklens", i, blocklens[i] );
+	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno,myname);
+    }
+    if ( old_types[i] == MPI_DATATYPE_NULL ) {
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_TYPE, MPIR_ERR_TYPE_ARRAY_NULL,
+				     myname, (char *)0, (char *)0, 
+				     "old_types", i );
+      return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
+    }
   }
   if (total_count == 0) {
       return MPI_Type_contiguous( 0, MPI_INT, newtype );
@@ -113,7 +141,7 @@ MPI_Datatype *newtype;
 
   /* Create and fill in the datatype */
   MPIR_ALLOC(dteptr,(struct MPIR_DATATYPE *) MPIR_SBalloc( MPIR_dtes ),MPIR_COMM_WORLD, 
-	     MPI_ERR_EXHAUSTED, "MPI_TYPE_STRUCT" );
+	     MPI_ERR_EXHAUSTED, myname );
   *newtype = (MPI_Datatype) MPIR_FromPointer( dteptr );
   dteptr->self = *newtype;
   MPIR_SET_COOKIE(dteptr,MPIR_DATATYPE_COOKIE)

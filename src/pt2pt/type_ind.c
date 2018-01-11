@@ -1,11 +1,30 @@
 /*
- *  $Id: type_ind.c,v 1.3 1998/04/28 21:47:27 swider Exp $
+ *  $Id: type_ind.c,v 1.8 1999/08/30 15:49:58 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Type_indexed = PMPI_Type_indexed
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Type_indexed  MPI_Type_indexed
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Type_indexed as PMPI_Type_indexed
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 #include "sbcnst2.h"
 #define MPIR_SBalloc MPID_SBalloc
 
@@ -52,12 +71,12 @@ consider declaring the Fortran array with a zero origin
 .N MPI_ERR_ARG
 .N MPI_ERR_EXHAUSTED
 @*/
-int MPI_Type_indexed( count, blocklens, indices, old_type, newtype )
-int           count;
-int 	      blocklens[];
-int 	      indices[];
-MPI_Datatype  old_type;
-MPI_Datatype *newtype;
+EXPORT_MPI_API int MPI_Type_indexed( 
+	int count, 
+	int blocklens[], 
+	int indices[], 
+	MPI_Datatype old_type, 
+	MPI_Datatype *newtype )
 {
   MPI_Aint      *hindices;
   int           i, mpi_errno = MPI_SUCCESS;
@@ -81,8 +100,10 @@ MPI_Datatype *newtype;
   for (i=0; i<count; i++) {
       total_count += blocklens[i];
       if (blocklens[i] < 0) {
-	  return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ARG,
-			     "Invalid blocklens in MPI_TYPE_INDEXED" );
+	  mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_ARG_ARRAY_VAL,
+				       myname, (char *)0, (char *)0,
+				       "blocklens", i, blocklens[i] );
+	  return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno,myname);
       }
   }
   if (total_count == 0) {

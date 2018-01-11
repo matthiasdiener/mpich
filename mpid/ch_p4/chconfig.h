@@ -8,9 +8,16 @@
 
 /* Turn on flow control */
 /* #define MPID_NO_FLOW_CONTROL */
+#define MPID_NO_FLOW_CONTROL 
 #ifndef MPID_NO_FLOW_CONTROL
 #define MPID_FLOW_CONTROL
 #endif
+
+/* Used for packet control */
+#undef MPID_USE_SHMEM
+
+/* Used for making sure we get the last packet from a tcp connection */
+#define MPID_GET_LAST_PKT
 
 #define MPID_HAS_PROC_INFO
 /* This is needed if you want TotalView to acquire all of the processes
