@@ -6,9 +6,7 @@
 #include <stdio.h>
 #include "test.h"
 
-int main(argc, argv) 
-int  argc;
-char **argv;
+int main( int argc, char **argv ) 
 {
     int data, to, from, tag, maxlen, np, myid, flag, dest, src;
     MPI_Status status;

@@ -35,15 +35,13 @@ int buff_size;
 	buffer[i] = i+1;
 }
 
-int main(argc, argv)
-int argc;
-char **argv;
+int main( int argc, char **argv)
 {
     int rank; /* My Rank (0 or 1) */
     int act_size = 1000;
     int flag;
     int buffer[SIZE];
-    double t0;
+    double t0, t1;
     char *Current_Test = NULL;
     MPI_Status status;
     MPI_Request r1, r2;
@@ -52,11 +50,22 @@ char **argv;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     /* This test depends on a working wtime.  Make a simple check */
+    Current_Test = "Testing timer";
     t0 = MPI_Wtime();
     if (t0 == 0 && MPI_Wtime() == 0) {
 	fprintf( stderr, 
 		 "MPI_WTIME is returning 0; a working value is needed\n\
 for this test.\n" );
+	Test_Failed(Current_Test);
+	MPI_Abort( MPI_COMM_WORLD, 1 );
+    }
+    /* Test that the timer increases */
+    Current_Test = "Testing timer increases";
+    for (flag=0; flag<1000000; flag++) {
+	if (MPI_Wtime() > t0) break;
+    }
+    if (flag >= 1000000) {
+	fprintf( stderr, "MPI_WTIME is not returning increasing values!\n" );
 	Test_Failed(Current_Test);
 	MPI_Abort( MPI_COMM_WORLD, 1 );
     }
@@ -71,7 +80,7 @@ for this test.\n" );
 	MPI_Issend( buffer, act_size, MPI_INT, dest, 2, MPI_COMM_WORLD, &r2 );
 	t0 = MPI_Wtime();
 	flag = 0;
-	while (MPI_Wtime() - t0 < MAX_TIME) {
+	while ( (t1 = (MPI_Wtime() - t0)) < MAX_TIME) {
 	    MPI_Test( &r1, &flag, &status );
 	    if (flag) {
 		Test_Failed(Current_Test);
@@ -108,7 +117,7 @@ for this test.\n" );
 	MPI_Finalize();
     } else {
 	fprintf(stderr, "*** This program uses exactly 2 processes! ***\n");
-	exit(-1);
+	MPI_Abort( MPI_COMM_WORLD, 1 );
     }
 
     return 0;

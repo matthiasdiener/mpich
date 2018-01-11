@@ -348,7 +348,8 @@ C Test LOR
 
 
 	if (errcnt .gt. 0) then
-	print *, 'Found ', errcnt, ' errors on ', rank, ' for MPI_LOR(0)'
+	   print *, 'Found ', errcnt, ' errors on ', rank,
+     *  	' for MPI_LOR(0)' 
 	endif
 	errcnt = 0
 
@@ -374,7 +375,8 @@ C Test LOR
 
 
 	if (errcnt .gt. 0) then
-	print *, 'Found ', errcnt, ' errors on ', rank, ' for MPI_LOR(1)'
+	   print *, 'Found ', errcnt, ' errors on ', rank,
+     *              ' for MPI_LOR(1)'
 	endif
 	errcnt = 0
 
@@ -768,7 +770,9 @@ C Test Maxloc
 	endif
 23061	continue
        	if (fnderr) then
-	print *, 'Error for type MPI_2DOUBLE_PRECISION and op MPI_MAXLOC'
+	   print *,
+     *     'Error for type MPI_2DOUBLE_PRECISION and op MPI_MAXLOC'
+
 	endif
 
 
@@ -847,7 +851,8 @@ C Test minloc
 	endif
 23067	continue
        	if (fnderr) then
-	print *, 'Error for type MPI_2DOUBLE_PRECISION and op MPI_MINLOC'
+	   print *,
+     *      'Error for type MPI_2DOUBLE_PRECISION and op MPI_MINLOC'
 	endif
 
 

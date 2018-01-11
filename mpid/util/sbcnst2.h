@@ -1,5 +1,5 @@
 /*
- *  $Id: sbcnst2.h,v 1.1.1.1 1997/09/17 20:39:34 gropp Exp $
+ *  $Id: sbcnst2.h,v 1.2 1998/11/01 17:13:43 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -8,7 +8,7 @@
 #ifndef _SBCNST
 #define _SBCNST
 
-#if defined(HAVE_CONFIG_H) && !defined(MPICHCONF_INC)
+#if defined(HAVE_MPICHCONF_H) && !defined(MPICHCONF_INC)
 /* This includes the definitions found by configure, and can be found in
    the library directory (lib/$ARCH/$COMM) corresponding to this configuration
  */

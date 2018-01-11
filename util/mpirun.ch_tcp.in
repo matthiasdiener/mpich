@@ -103,7 +103,7 @@ else
 	    $debugger $commandfile $PWD_TRIAL/PId$$ $prognamemain
     else
 ####### here is where we run the newexecer to start the program ##########
-            $MPIR_HOME/lib/$DEFAULT_ARCH/ch_tcp/newexecer "$tcppgfile"
+            $MPIR_HOME/build/$DEFAULT_ARCH/ch_tcp/bin/newexecer "$tcppgfile"
     fi
   fi # nolocal
   if [ $leavePGFile = 1 ] ; then

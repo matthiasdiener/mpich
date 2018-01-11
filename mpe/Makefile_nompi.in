@@ -4,26 +4,20 @@
 
 ##### User configurable options #####
 
-ARCH        = @ARCH@
-COMM        = @COMM@
-BOPT        = @BOPT@
-MPIR_HOME   = @MPIR_HOME@
+MPI_HOME   = @MPI_HOME@
 # We must use mpicc since some defines (like -D_ALL_SOURCE for AIX) are
 # included there and not in the "USER_FLAGS".  We should clean this up
 # at some point....
-CC          = @MPICC@
-CLINKER     = @CLINKER@
+CC          = @CC@
+CLINKER     = $(CC)
 F77         = @F77@
-AR          = @AR@
+AR          = @AR@ cr
 RANLIB      = @RANLIB@
-INCLUDE_DIR = @INCLUDE_PATH@ -I$(MPIR_HOME)/include @X_INC@
-DEVICE      = @DEVICE@
+INCLUDE_DIR = @X_INC@ @INCLUDEDIR@
 OPTFLAGS    = @OPTFLAGS@
 MPE_GRAPH   = @MPE_GRAPHICS@
-LIB_PATH    = @LIB_PATH@ @X_LIB@
-# On the meiko, you need to add -lsocket to LIB_LIST
-LIB_LIST    = @LIB_LIST@
-LIB_DIR     = @LIB_DIR@
+LIB_PATH    = -L@MPE_LIBPATH@ @X_LIB@ @MPI_LIBS@
+LIB_DIR     = @LIBDIR@
 
 MPEGRAPHICS_SOURCE = @MPEGRAPHICS_SOURCE@
 MPEGRAPHICS_OBJS   = @MPEGRAPHICS_OBJS@
@@ -33,16 +27,15 @@ MPEGRAPHICS_FOBJS   = @MPEGRAPHICS_FOBJS@
 
 SHELL = /bin/sh
 
-CFLAGS = @USER_CFLAGS@ @MPE_CFLAGS@ @GETNAME_DEFS@ $(OPTFLAGS) $(INCLUDE_DIR) \
-	 $(MPIPROFILE) -DMPI_$(ARCH) $(MPE_GRAPH)
+CFLAGS = @MPE_CFLAGS@ $(MPE_GRAPH) $(OPTFLAGS) $(INCLUDE_DIR) 
 
-MPE_CSOURCES = timers.c  $(MPEGRAPHICS_SOURCE) mpe_log.c decomp.c \
+MPE_CSOURCES = $(MPEGRAPHICS_SOURCE) mpe_log.c decomp.c \
 	       mpe_seq.c mpehname.c
 MPE_TSOURCES = $(MPEGRAPHICS_SOURCE) decomp.c mpe_seq.c dbxerr.c
-MPE_COBJECTS = timers.o  $(MPEGRAPHICS_OBJS) mpe_log.o decomp.o mpe_seq.o \
+MPE_COBJECTS = $(MPEGRAPHICS_OBJS) mpe_log.o decomp.o mpe_seq.o \
 		dbxerr.o mpehname.o
 MPE_WSOURCES = $(MPEGRAPHICS_FSOURCE) mpe_logf.c decompf.c mpe_seqf.c
-MPE_WOBJECTS = timersf.o $(MPEGRAPHICS_FOBJS) mpe_logf.o decompf.o mpe_seqf.o
+MPE_WOBJECTS = $(MPEGRAPHICS_FOBJS) mpe_logf.o decompf.o mpe_seqf.o
 
 MPE_SOURCES = $(MPE_CSOURCES) $(MPE_WSOURCES)
 MPE_OBJECTS = $(MPE_COBJECTS) $(MPE_WOBJECTS)

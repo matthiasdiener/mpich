@@ -14,9 +14,7 @@ typedef struct {
     double data[1000];
     } buf_t;
 
-int main( argc, argv )
-int  argc;
-char **argv;
+int main( int argc, char **argv )
 {
 int err = 0, toterr;
 MPI_Datatype contig1, varstruct1, oldtypes[2], varstruct2;

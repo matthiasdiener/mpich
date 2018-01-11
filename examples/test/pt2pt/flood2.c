@@ -17,9 +17,7 @@ int  CheckData ANSI_ARGS(( int *, int, int, MPI_Status * ));
 
 static int verbose = 1;
 
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     MPI_Comm comm;
     MPI_Request r[MAX_REQ];

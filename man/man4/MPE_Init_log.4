@@ -1,4 +1,4 @@
-.TH MPE_Init_log 4 "4/29/1998" " " "MPE"
+.TH MPE_Init_log 4 "2/3/1999" " " "MPE"
 .SH NAME
 MPE_Init_log \-  Initialize for logging 
 .SH SYNOPSIS
@@ -9,7 +9,9 @@ int MPE_Init_log()
 .fi
 .SH NOTES
 Initializes the MPE logging package.  This must be called before any of
-the other MPE logging routines.
+the other MPE logging routines.  It is collective over 
+.I MPI_COMM_WORLD
+
 
 .SH SEE ALSO
 MPE_Finish_log

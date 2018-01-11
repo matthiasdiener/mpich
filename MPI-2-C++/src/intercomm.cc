@@ -1,8 +1,8 @@
 // -*- c++ -*-
 //
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -35,12 +35,17 @@ MPI::Intercomm MPI::Intercomm::Dup() const
 #if VIRTUAL_FUNC_RET
 MPI::Intercomm& MPI::Intercomm::Clone() const
 {
-  return (MPI::Intercomm&)pmpi_comm.Clone();
+  PMPI::Comm* pmpi_inter = &pmpi_comm.Clone();
+  MPI::Intercomm* mpi_inter = new MPI::Intercomm(*(PMPI::Intercomm*)pmpi_inter);
+  return *mpi_inter;
 }
 #else
 MPI::Comm& MPI::Intercomm::Clone() const
 {
-  return (MPI::Comm&)pmpi_comm.Clone();
+  // JGS Memory leak, but no other way...
+  PMPI::Comm* pmpi_inter = &pmpi_comm.Clone();
+  MPI::Intercomm* mpi_inter = new MPI::Intercomm(*(PMPI::Intercomm*)pmpi_inter);
+  return *mpi_inter;
 }
 #endif
 

@@ -6,9 +6,7 @@
  * Test that receives are done by relative rank, and that the status value
  * contains the relative rank
  */
-int main(argc, argv)
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int rank, new_world_rank, size, order, errcnt = 0, i;
     int tmpint = 0;

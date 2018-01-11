@@ -183,8 +183,13 @@ C     All other MPI routines are subroutines
 C     This may cause some Fortran compilers to complain about defined and
 C     not used.  Such compilers should be improved.
 C
-      DOUBLE PRECISION MPI_WTIME, MPI_WTICK, PMPI_WTIME, PMPI_WTICK
-      EXTERNAL MPI_WTIME, MPI_WTICK, PMPI_WTIME, PMPI_WTICK
+C     Some Fortran compilers will not link programs that contain
+C     external statements to routines that are not provided, even if
+C     the routine is never called.  Remove PMPI_WTIME and PMPI_WTICK
+C     if you have trouble with them.
+C
+      DOUBLE PRECISION MPI_WTIME, MPI_WTICK@MPIFPMPI@
+      EXTERNAL MPI_WTIME, MPI_WTICK@MPIFPMPI@
 C
 C     The attribute copy/delete subroutines are symbols that can be passed
 C     to MPI routines

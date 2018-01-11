@@ -1,5 +1,5 @@
 /*
- *  $Id: pack.c,v 1.5 1998/04/28 21:46:59 swider Exp $
+ *  $Id: pack.c,v 1.6 1998/11/28 22:09:03 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -94,7 +94,7 @@ MPI_Comm      comm;
   MPID_Pack( inbuf, incount, dtype_ptr, 
 	     /*((char *)outbuf) + *position, outcount-*position, position,*/
 	     outbuf,outcount,position,
-	     comm_ptr, MPI_ANY_SOURCE, -1, comm_ptr->msgform, 
+	     comm_ptr, MPI_ANY_SOURCE, MPID_MSGREP_UNKNOWN, comm_ptr->msgform, 
 /*	     (comm_ptr->msgform == MPID_MSGFORM_OK) ? MPID_MSG_OK : 
 		  MPID_MSG_XDR, */ &mpi_errno );
   TR_POP;

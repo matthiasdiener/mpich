@@ -15,9 +15,7 @@
  * MPI_Type_vector or MPI_Type_struct to define the elements that are sent
  */
 
-int main( argc, argv )
-int  argc;
-char **argv;
+int main( int argc, char **argv )
 {
     MPI_Datatype rowtype, mattype;
     int          *sbuf, *rbuf;

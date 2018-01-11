@@ -1,41 +1,22 @@
 ALL: default
 ##### User configurable options #####
 
-ARCH        = @ARCH@
-MAKE        = @MAKE@
-COMM        = @COMM@
-MPIR_HOME   = @MPIR_HOME@
-CC          = @MPICC@
+CC          = @CC@
 CLINKER     = $(CC)
-CCC         = @MPICPLUSPLUS@
-CCLINKER    = $(CCC)
-F77         = @MPIF77@
-FLINKER     = $(F77)
-AR          = @AR@
+AR          = @AR@ -r
 RANLIB      = @RANLIB@
-PROFILING   = $(PMPILIB)
 OPTFLAGS    = @OPTFLAGS@
-MPE_LIBS    = @MPE_LIBS@
-PMPILIB     = -lp@MPILIBNAME@
-MPE_DIR     = @MPE_DIR@
-LIB_PATH    = @LIB_PATH@ @X_LIB@
-FLIB_PATH   = @FLIB_PATH@
-LIB_LIST    = @LIB_LIST@
+MPE_DIR     = @MPE_HOME@
+LIB_PATH    = -L@MPE_LIBPATH@ -lmpe @X_LIB@ @MPI_LIBS@
+LOG_LIB     = -L@MPE_LIBPATH@ @LOGLIB@ @X_LIB@
+PROF_LIB    = -L@MPE_LIBPATH@ @PROFLIB@ @X_LIB@
 MPE_GRAPH   = @MPE_GRAPHICS@
-#
-INCLUDE_DIR = @USER_INCLUDE_PATH@ 
+INCLUDE_DIR = @INCLUDEDIR@ -I$(MPE_DIR)
+LDFLAGS     = @OPTFLAGS@
 
 ### End User configurable options ###
 
-CFLAGS	  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) \
-	    $(PROF_FLG)
-CFLAGSMPE = $(CFLAGS) -I$(MPE_DIR) $(MPE_GRAPH)
-CCFLAGS	  = $(CFLAGS)
-#FFLAGS	  = '-qdpc=e' 
-FFLAGS	  = @FFLAGS@ $(OPTFLAGS)
-
-LIBS	  = $(LIB_PATH) $(LIB_LIST)
-FLIBS	  = $(FLIB_PATH) $(LIB_LIST)
+CFLAGS	  = @MPE_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) 
 EXECS	  = systest
 
 default: $(EXECS)
@@ -70,15 +51,15 @@ all: default
 # Add $(PROF_LIB) to the link line, after the main code but before -lmpich
 # Add $(PROF_CLN) to the clean line
 
-WGEN_DIR  = $(MPIR_HOME)/mpe/profiling/wrappergen
-PROF_DIR  = $(MPIR_HOME)/mpe/profiling/lib
+WGEN_DIR  = $(MPE_DIR)/profiling/wrappergen
+PROF_DIR  = $(MPE_DIR)/profiling/lib
 PROF_DEF  = $(PROF_DIR)/log_wrappers.w
 PROF_ARG  = -w $(PROF_DIR)/log_wrappers.w -f $(PROF_DIR)/pt2pt_fn
 PROF_SRC  = log_wrap.c
 PROF_CLN  = $(PROF_SRC) *.log
 PROF_OBJ  = log_wrap.o
-PROF_FLG  = -I$(MPIR_HOME)/mpe/profiling/lib -I$(MPE_DIR)
-PROF_LIB  = $(PROF_OBJ) -lmpe $(PMPILIB)
+PROF_FLG  = -I$(MPE_DIR)/profiling/lib -I$(MPE_DIR)
+PROFS_LIB  = $(PROF_OBJ) $(MPE_LIBS)
 
 $(WGEN_DIR)/wrappergen:
 	(cd $(WGEN_DIR); $(MAKE) wrappergen)
@@ -89,11 +70,11 @@ $(PROF_SRC): $(PROF_DEF) $(WGEN_DIR)/wrappergen
 # End of $(MPIR_HOME)/profiling/lib/Makefile.logging 
 
 systest: systest.o $(PROF_OBJ)
-	$(CLINKER) $(OPTFLAGS) -o systest systest.o \
-	$(LIB_PATH) $(LIB_LIST) -lm
+	$(CLINKER) $(LDFLAGS) -o systest systest.o \
+	$(PROF_LIB) -lm
 
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS)
+	/bin/rm -f *.o *~ PI* $(EXECS) upshot
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "mpi.h"
 
 /* Header for testing procedures */
@@ -17,9 +18,7 @@
 /*
  * This tests for the existence of MPI_Pcontrol; nothing more.
  */
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     MPI_Init( &argc, &argv );
     

@@ -1,5 +1,5 @@
 /*
- *  $Id: group_tranks.c,v 1.2 1998/04/28 20:58:17 swider Exp $
+ *  $Id: group_tranks.c,v 1.3 1998/11/28 22:08:56 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -66,7 +66,6 @@ int       *ranks_b;
       if ( ((rank_a = ranks_a[i]) >= group_a_ptr->np) || (rank_a < 0) ) {
 	  MPIR_ERROR_PUSH_ARG(&rank_a);
 	  return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_RANK, myname );
-      break;
       }
     pid_a = group_a_ptr->lrank_to_grank[rank_a];
     for ( j=0; j<group_b_ptr->np; j++ ) 

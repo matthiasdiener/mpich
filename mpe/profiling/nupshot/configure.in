@@ -10,12 +10,16 @@ print_usage() {
 cat <<.
 Usage: ${progname} [-tcldir=TCLDIR] [-tkdir=TKDIR] [-opt=OPTFLAGS] 
                    [-cc=C_COMPILER] [-cflags=CFLAGS]
+                   [-tclincdir=TCLINCDIR] [-tkincdir=TKINCDIR]
 
 where
-   TCLDIR       = Directory containing tcl.  Must have lib/libtcl.a and
-                  include/tcl.h .
-   TKDIR        = Directory containing tk 3.3 or later.  Must have lib/libtk.a
-                  and include/tk.h .  May be the same as TCLDIR.
+   TCLDIR       = Directory containing tcl.  Must have lib/libtcl.a.  Must
+                  have include/tcl.h unless TCLINCDIR specified.
+   TKDIR        = Directory containing tk 3.3 or later.  Must have lib/libtk.a.
+                  Must have include/tk.h unless TKINCDIR specified.  May
+                  be the same as TCLDIR.
+   TCLINCDIR    = Directory containing include/tcl.h .
+   TKINCDIR     = Directory containing include/tk.h .
    OPTFLAGS     = Flags for compiling (e.g., -g or -O)
    CFLAGS       = flags to give C compiler
    C_COMPILER   = Name of C compiler
@@ -36,6 +40,14 @@ do
  
    -tcldir=* | --tcldir=*)
       TCL_DIR="`echo $arg|sed 's/-*tcldir=//'`"
+     ;;
+
+   -tkincdir=* | --tkincdir=*)
+      TKINCDIR="`echo $arg|sed 's/-*tkincdir=//'`"
+     ;;
+ 
+   -tclincdir=* | --tclincdir=*)
+      TCLINCDIR="`echo $arg|sed 's/-*tclincdir=//'`"
      ;;
 
    -opt=* | --opt=*)
@@ -274,9 +286,17 @@ if test -s $TK_DIR/lib/libXpm.a ; then
 else
     AC_HAVE_LIBRARY(Xpm, XPMLIB="-lXpm")
 fi
+if test -z "$TKINCDIR" -a -s $TK_DIR/include/tk.h ; then
+    TKINCDIR=$TK_DIR
+fi
+if test -z "$TCLINCDIR" -a -s $TCL_DIR/include/tcl.h ; then
+    TCLINCDIR=$TCL_DIR
+fi
 AC_SUBST(XPMLIB)
 AC_SUBST(TCL_DIR)
 AC_SUBST(TK_DIR)
+AC_SUBST(TCLINCDIR)
+AC_SUBST(TKINCDIR)
 
 AC_SUBST(USER_CFLAGS)
 AC_SUBST(OPTFLAGS)

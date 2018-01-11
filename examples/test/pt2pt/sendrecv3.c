@@ -16,9 +16,7 @@
    This version uses Pack to send a message and Unpack OR the datatype 
    to receive it.
  */
-int main(argc, argv)
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
 MPI_Datatype *types;
 void         **inbufs, **outbufs;

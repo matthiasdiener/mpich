@@ -1,8 +1,8 @@
 -*- text -*-
 
-Copyright 1997, University of Notre Dame.
-Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-         Jeffery M. Squyres.
+Copyright 1997-1999, University of Notre Dame.
+Authors: Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres,
+         Andrew Lumsdaine
 
 This file is part of the Notre Dame C++ bindings for MPI
 
@@ -43,27 +43,31 @@ architectures and MPI implementations listed in Table 1.
 
 These MPI C++ bindings are available from their main distribution site:
 
-	http://www.cse.nd.edu/~lsc/research/mpi2c++/
+        http://www.mpi.nd.edu/research/mpi2c++/
 
 
-Hardware	Operating System	Compilers	MPI Implementations
+Hardware        Operating System        Compilers       MPI Implementations
 =============== ======================= =============== ======================
-Sun SPARC	Solaris 2.5.1		Workshop CC	MPICH 1.1.0, LAM 6.1
-					v4.2,
-					g++ v2.7.2.3
+Sun SPARC       Solaris 2.5.1           Workshop CC     LAM 6.1, LAM 6.2
+                Solaris 2.6             v4.2,           MPICH 1.1.2
+                                        g++ v2.7.2,
+                                        g++ v2.8.1,
 --------------- ----------------------- --------------- ----------------------
-SGI		IRIX 6.2		CC v7.10,v7.20	Native v3.0,
-							MPICH 1.1.0, LAM 6.1
+SGI             IRIX 6.4                CC v7.2.1.1     Native v3.1.1.0,
+                                                        LAM 6.1, LAM 6.2
+                                                        MPICH 1.1.2
 --------------- ----------------------- --------------- ----------------------
-IBM RS/6000	AIX 4.1.4		xlC v3.1.4.0	Native, POE v2.1.0.18,
-and SP							MPICH 1.1.0, LAM 6.1
+IBM RS/6000     AIX 4.1.2, AIX 4.1.4    xlC v3.1.4.7    Native POE v2.1.0.18,
+and SP                                  g++ v2.8.1      LAM 6.1, LAM 6.2
+                                                        MPICH 1.1.2
 --------------- ----------------------- --------------- ----------------------
-HP		HP-UX 10.20		aCC A.01.05	Native v1.2,v1.3.1,
-					aCC A.01.06	MPICH 1.1.0, LAM 6.1
+HP              HP-UX 11.00             aCC X.03.11.10  Native v1.5
+                                                        LAM 6.1, LAM 6.2
+                                                        MPICH 1.1.2
 --------------- ----------------------- --------------- ----------------------
-CRAY T3E	UNICOS/mk 1.6.2.40	Cray C++ v3.0.0.0 Native v1.1.0.4
+Intel x86       Linux 2.0.36            g++ v2.8.1      MPICH 1.1.2, LAM 6.2
 --------------- ----------------------- --------------- ----------------------
-	Table 1: Supported hardware/OSs/Compilers/MPI implementations
+        Table 1: Supported hardware/OSs/Compilers/MPI implementations
 
 
 II. USING THE LIBRARY
@@ -194,20 +198,20 @@ new semantics could be replicated based upon the old MPI-1 C
 functions.  Table 2 lists the deprecated MPI-1 names and the
 corresponding new C++ names.
 
-MPI 1.1 Function	C++ Binding
-=======================	=====================================
-MPI_ADDRESS		MPI::Get_address
-MPI_TYPE_HINDEXED	MPI::Datatype::Create_hindexed
-MPI_TYPE_HVECTOR	MPI::Datatype::Create_hvector
-MPI_TYPE_STRUCT		MPI::Datatype::Create_struct
+MPI 1.1 Function        C++ Binding
+======================= =====================================
+MPI_ADDRESS             MPI::Get_address
+MPI_TYPE_HINDEXED       MPI::Datatype::Create_hindexed
+MPI_TYPE_HVECTOR        MPI::Datatype::Create_hvector
+MPI_TYPE_STRUCT         MPI::Datatype::Create_struct
 
-MPI_TYPE_EXTENT		MPI::Datatype::Get_extent
-MPI_TYPE_UB		MPI::Datatype::Get_extent
-MPI_TYPE_LB		MPI::Datatype::Get_extent
-MPI_LB			No corresponding MPI-2 Binding
-MPI_UB			No corresponding MPI-2 Binding
-=======================	=====================================
-	   Table 2: Deprecated MPI-1 functions
+MPI_TYPE_EXTENT         MPI::Datatype::Get_extent
+MPI_TYPE_UB             MPI::Datatype::Get_extent
+MPI_TYPE_LB             MPI::Datatype::Get_extent
+MPI_LB                  No corresponding MPI-2 Binding
+MPI_UB                  No corresponding MPI-2 Binding
+======================= =====================================
+           Table 2: Deprecated MPI-1 functions
 
 
 New MPI 1.2 Functions
@@ -308,16 +312,16 @@ IV. CONTACT INFORMATION
 
 These MPI C++ bindings are available from their main distribution site:
 
-	http://www.cse.nd.edu/~lsc/research/mpi2c++/
+        http://www.mpi.nd.edu/research/mpi2c++/
 
 This distribution includes:
 
-	- Source code for the MPI 1.2 C++ bindings (src/ subdirectory)
-	- Several example programs (contrib/examples/ subdirectory)
-	- All the examples from chapter 10 of the MPI-2 standard
-	  (contrib/examples/chapter_10_mpi2.cc)
+        - Source code for the MPI 1.2 C++ bindings (src/ subdirectory)
+        - Several example programs (contrib/examples/ subdirectory)
+        - All the examples from chapter 10 of the MPI-2 standard
+          (contrib/examples/chapter_10_mpi2.cc)
         - A test suite for the MPI 1.2 C++ bindings
-	  (contrib/test_suite/ )
+          (contrib/test_suite/ )
 
 See the INSTALL file in this directory for how to build the C++
 bindings library.  The INSTALL file also includes information on how

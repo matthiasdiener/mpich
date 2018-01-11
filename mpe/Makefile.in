@@ -4,22 +4,27 @@
 
 ##### User configurable options #####
 
-ARCH        = @ARCH@
+INSTALL_DIR  = @MPE_HOME@
+PREFIX       = @PREFIX@
+CC           = @CC@
+CLINKER      = $(CC)
+F77          = @F77@
+FLINKER      = $(F77)
+AR           = @AR@ cr
+RANLIB       = @RANLIB@
 MAKE        = @MAKE@
-COMM        = @COMM@
-MPIR_HOME   = @MPIR_HOME@
-CC          = @MPICC@
-CLINKER     = $(CC)
-F77         = @MPIF77@
-FLINKER     = $(F77)
-AR          = @AR@
-RANLIB      = @RANLIB@
-INCLUDE_DIR = @X_INC@ -I@MPIR_HOME@/mpid/ch2
-OPTFLAGS    = @OPTFLAGS@
-MPE_GRAPH   = @MPE_GRAPHICS@
-LIB_PATH    = @X_LIB@ -lmpe -lp@MPILIBNAME@
-LIB_LIST    = 
-LIB_DIR     = @LIB_DIR@
+INCLUDE_DIR  = @X_INC@ @INCLUDEDIR@ 
+OPTFLAGS     = @OPTFLAGS@
+MPE_GRAPH    = @MPE_GRAPHICS@
+LIB_PATH     = -L@MPE_LIBPATH@ @X_LIB@ @MPI_LIBS@
+LOG_LIB      = -L@MPE_LIBPATH@ @LOGLIB@
+PROF_LIB     = -L@MPE_LIBPATH@ @PROFLIB@
+LIB_DIR      = @LIBDIR@
+LDFLAGS      = @OPTFLAGS@
+BUILDUPSHOT  = @BUILD_UPSHOT@
+BUILDNUPSHOT = @BUILD_NUPSHOT@
+MPICH        = @MPICH@
+NOF77        = @NOF77@
 
 MPEGRAPHICS_SOURCE = @MPEGRAPHICS_SOURCE@
 MPEGRAPHICS_OBJS   = @MPEGRAPHICS_OBJS@
@@ -31,21 +36,19 @@ SHELL = /bin/sh
 EXECS = dbxtest dbxtest2 printlog ctoalog testlog srtest
 
 # GETNAME_DEFS are needed by mpehname.c
-CFLAGS = @MPE_CFLAGS@ @GETNAME_DEFS@ \
-	$(OPTFLAGS) $(INCLUDE_DIR) $(MPIPROFILE) \
-	$(MPE_GRAPH)
+CFLAGS =  @MPE_CFLAGS@  $(MPE_GRAPH) $(OPTFLAGS) $(INCLUDE_DIR) 
 
-MPE_CSOURCES =  timers.c  $(MPEGRAPHICS_SOURCE) clog_sysio.c mpe_log.c clog.c \
+MPE_CSOURCES =  $(MPEGRAPHICS_SOURCE) clog_sysio.c mpe_log.c clog.c \
 		clog_merge.c clog_time.c clog_util.c clog2alog.c decomp.c \
 	       	mpe_seq.c examine.c privtags.c getgrank.c mpehname.c mpe_io.c
 MPE_TSOURCES =  decomp.c mpe_seq.c dbxerr.c getgrank.c
-MPE_COBJECTS =  timers.o  $(MPEGRAPHICS_OBJS) clog_sysio.o mpe_log.o clog.o \
+MPE_COBJECTS =  $(MPEGRAPHICS_OBJS) clog_sysio.o mpe_log.o clog.o \
 		clog_merge.o clog_time.o clog_util.o clog2alog.o decomp.o \
 		mpe_seq.o dbxerr.o examine.o privtags.o getgrank.o mpehname.o \
 		mpe_io.o
 MPE_WSOURCES = $(MPEGRAPHICS_FSOURCE) mpe_logf.c decompf.c mpe_seqf.c \
 	       getgrankf.c
-MPE_WOBJECTS = timersf.o $(MPEGRAPHICS_FOBJS) mpe_logf.o decompf.o mpe_seqf.o \
+MPE_WOBJECTS = $(MPEGRAPHICS_FOBJS) mpe_logf.o decompf.o mpe_seqf.o \
 		getgrankf.o
 
 MPE_SOURCES = $(MPE_CSOURCES) $(MPE_WSOURCES)
@@ -63,19 +66,19 @@ profile_all:
 # all dependencies at the beginning, rather than when each target is
 # evaluated.  Since libmpe_nompi cleans the object files (to force a rebuild
 # with the NO_MPI switch), this can cause problems.
-default: $(LIB_DIR)/libmpe.a \
+default: clean \
+	 $(LIB_DIR)/libmpe.a \
 	 $(LIB_DIR)/mpe_prof.o \
 	 $(LIB_DIR)/mpe_proff.o \
 	 $(LIB_DIR)/libtmpi.a \
 	 $(LIB_DIR)/liblmpi.a \
 	 $(LIB_DIR)/libampi.a \
-	 $(LIB_DIR)/libmpe_nompi.a
-
-profile:
-wrappers:
-	$(MPIR_HOME)/util/bfort -ferr -mpi -mnative -mapptr -ptrprefix MPIR_ \
-		-anyname -I pubinc $(MPE_TSOURCES)
-
+	 $(LIB_DIR)/libmpe_nompi.a \
+	 upshot \
+	 nupshot \
+	 linktest \
+         fortran_test \
+	 mpereconfig
 #
 # It is tempting here to use ... libmpe.a($(MPE_OBJECTS)) as the dependency,
 # but this would require that all makes properly handle library dependencies.
@@ -91,21 +94,6 @@ $(LIB_DIR)/libmpe_nompi.a:  $(MPEGRAPHICS_SOURCE)
 	    $(MAKE) clean ; \
 	    $(MAKE) -f Makefile_nompi $@ ; \
 	fi
-manpages:
-	$(MPIR_HOME)/util/doctext -mpath $(MPIR_HOME)/man/man4 \
-	 -ext 4 -I pubinc -index $(MPIR_HOME)/www.mpe.index \
-	 -jumpfile $(MPIR_HOME)/jumpfile.list \
-	   -indexdir "http://www.mcs.anl.gov/mpi/man" -heading MPE \
-		$(MPE_CSOURCES)
-	$(MPIR_HOME)/util/doc2lt $(MPE_CSOURCES) >> $(MPIR_HOME)/rsummpe.tmp
-
-wwwpages:
-	../util/doctext -html -mpath ../www/www4 -ext html -I pubinc \
-	   -index ../www.index -jumpfile ../jumpfile.list \
-	   -mapref $(MPIR_HOME)/util/mpis.cit \
-	   -indexdir "http://www.mcs.anl.gov/mpi/man" -heading MPE \
-		-quotefmt ../util/fortnotes ../util/errnotes \
-	$(MPE_CSOURCES)
 
 mpe_log.o: mpe_log.h clog.h clog_merge.h
 clog.o: clog.h clogimpl.h
@@ -151,38 +139,103 @@ $(LIB_DIR)/mpe_proff.o: mpe_proff.c
 	$(CC) $(CFLAGS) -c mpe_proff.c
 	@-if [ $(LIB_DIR) != "." ] ; then /bin/cp mpe_proff.o $(LIB_DIR) ; fi
 
+# Make upshot from upshot.in
+upshot: profiling/upshot/bin/upshot
+	@-if [ $(MPICH) = 1 -a -x profiling/upshot/bin/upshot ] ; then \
+	    cp profiling/upshot/bin/upshot ../bin/upshot ; \
+	fi
+
+#
+# Update the install if you change this!
+profiling/upshot/bin/upshot: profiling/upshot/bin/upshot.in
+	@-if [ $(BUILDUPSHOT) = 1 ] ; then \
+	    if [ -z "@wishloc@" ] ; then \
+	        echo "Upshot requires the tk wish shell" ; \
+	    else \
+	        echo "Making Upshot" ; \
+	        /bin/rm -f profiling/upshot/bin/upshot ; \
+	        cat profiling/upshot/bin/upshot.in | sed \
+	        -e "s%\#wishloc\#%@wishloc@%g" \
+	        -e "s%\#TK_VERSION\#%@TK_VERSION@%g" \
+	        -e "s%\#BITMAP_DIR\#%$(MPE_HOME)/profiling/upshot/bitmaps%g" > \
+	        profiling/upshot/bin/upshot;\
+	        chmod 775 profiling/upshot/bin/upshot ; \
+	    fi \
+	fi
+
+nupshot:
+	@-if [ $(BUILDNUPSHOT) = 1 ] ; then \
+	    (cd profiling/nupshot; \
+	    if [ ! -s Makefile ] ; then \
+	        /bin/rm -f config.cache ; \
+	        configure -tcldir=@TCL_DIR@ -tkdir=@TK_DIR@ ; fi ; \
+	    $(MAKE) ) ; \
+	fi
+
+linktest:
+	(cd contrib/test; $(MAKE) linktest )
+
+fortran_test:
+	@if [ $(NOF77) = 0 ] ; then \
+	    (cd test; $(MAKE) linktest ) \
+        fi
+#
+# If you change this, ALSO change it in the install target!
+mpereconfig: mpereconfig.in config.status
+	@/bin/rm -f mpereconfig ; \
+	cat mpereconfig.in | sed -e "s%\#MPE_HOME\#%$(INSTALL_DIR)%g" > \
+		    mpereconfig ;\
+	chmod 775 mpereconfig
+
 dbxtest: dbxtest.o $(LIB_DIR)/libmpe.a
-	$(CLINKER) -o dbxtest dbxtest.o \
+	$(CLINKER) $(LDFLAGS) -o dbxtest dbxtest.o \
 		$(LIB_DIR)/libmpe.a \
-		$(LIB_DIR)/lib@MPILIBNAME@.a \
-		$(LIB_PATH) $(LIB_LIST)
+		$(LIB_PATH)
 dbxtest2: dbxtest2.o $(LIB_DIR)/libmpe.a
-	$(CLINKER) -o dbxtest2 dbxtest2.o \
+	$(CLINKER) $(LDFLAGS) -o dbxtest2 dbxtest2.o \
 		$(LIB_DIR)/libmpe.a \
-		$(LIB_DIR)/lib@MPILIBNAME@.a \
-		$(LIB_PATH) $(LIB_LIST)
+		$(LIB_PATH) 
 printlog: printlog.o clog.o clog_time.o clog_util.o clog_merge.o
 	$(CLINKER) $(LDFLAGS) -o printlog printlog.o \
 		$(LIB_DIR)/libmpe.a \
-		$(LIB_DIR)/lib@MPILIBNAME@.a \
-		$(LIB_PATH) $(LIB_LIST)
+		$(PROF_LIB) 
 ctoalog: ctoalog.o clog2alog.o clog.o clog_time.o clog_merge.o
 	$(CLINKER) $(LDFLAGS) -o ctoalog ctoalog.o clog2alog.o \
 		$(LIB_DIR)/libmpe.a \
-		$(LIB_DIR)/lib@MPILIBNAME@.a \
-		$(LIB_PATH) $(LIB_LIST)
+		$(LIB_PATH) 
 testlog.o: testlog.c clog.h clog_merge.h clog_time.h
 	$(CC) $(CFLAGS) -c testlog.c
 testlog: testlog.o clog.o clog_time.o clog_merge.o clog_util.o
 	$(CLINKER) $(LDFLAGS) -o testlog testlog.o \
-		$(LIB_DIR)/libmpe.a \
-		$(LIB_DIR)/lib@MPILIBNAME@.a \
-		$(LIB_PATH) $(LIB_LIST)
+		$(LOG_LIB) 
 clean:
 	-/bin/rm -f *.o *~ $(EXECS) PI*
-	-(cd contrib/mandel ; $(MAKE) clean)
-	-(cd contrib/mastermind ; $(MAKE) clean)
-	-(cd contrib/life ; $(MAKE) clean)
-	-(cd test ; $(MAKE) clean)
+	for dir in contrib/mandel contrib/mastermind contrib/life \
+	    contrib/test test; do \
+	    if test -s $$dir/Makefile ; then (cd $$dir ; $(MAKE) clean ) ; \
+	    fi ;\
+	done 
+	@-if [ -d profiling/wrappergen ] ; then \
+	    /bin/rm -f profiling/wrappergen/*.o ; fi
+	@-if [ -s profiling/nupshot/Makefile ] ; then \
+	    ( cd profiling/nupshot ; $(MAKE) clean ; \
+		/bin/rm Makefile ) ; fi
+	@-if [ -s profiling/upshot/bin/Makefile ] ; then \
+	    ( cd profiling/upshot/bin ; $(MAKE) clean ) ; fi
+
+distclean: clean
+	for dir in contrib/mandel contrib/mastermind contrib/life \
+	    contrib/test test profiling/examples profiling/lib \
+	    profiling/wrappergen test; do \
+	    if test -s $$dir/Makefile ; then (cd $$dir ; \
+		                              /bin/rm -f Makefile ) ; \
+	    fi ;\
+	done 	
+	-@if [ -d profiling/nupshot -a -s /profiling/nupshot/config.status ] ; then \
+	  (cd profiling/nupshot ; /bin/rm -f config.status) ; fi
+	-@if [ -d profiling/upshot/bin -a -s profiling/upshot/bin/upshot ] ; then \
+	  (cd profiling/upshot/bin ; /bin/rm -f upshot) ; fi
+	-@/bin/rm -f Makefile Makefile_nompi dbxerr.c mpeconf.h mpeinstall \
+	mpereconfig config.log config.status
 
 

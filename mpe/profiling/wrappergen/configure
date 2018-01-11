@@ -456,7 +456,7 @@ fi
 cat > conftest <<.
 SHELL=/bin/sh
 ALL:
-	@(dir=`pwd` ; cd .. ; $MAKE -f \$\$dir/conftest SUB)
+	@(dir=`pwd` ; cd .. ; \$(MAKE) -f \$\$dir/conftest SUB)
 SUB:
 	@echo "success"
 .
@@ -807,15 +807,27 @@ echo $ac_n "checking that C compiler accepts option -Ae""... $ac_c" 1>&1
 fi
 CFLAGSSAV="$CFLAGS"
 CFLAGS="-Ae $CFLAGS"
-echo 'void f(){}' > conftest.c
-if test -z "`${CC-cc} $CFLAGS -c conftest.c 2>&1`"; then
-  if test -z "$ac_echo_test" -a 1 = 1 ; then
+rm -f conftest.out
+echo 'int main(){return 0;}' > conftest.c
+if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+  if test -s conftest.out ; then
+      cat conftest.out >> config.log
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+      
+  else
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  hasarg=1
+      hasarg=1
+  fi
 else
+  if test -s conftest.out ; then cat conftest.out >> config.log ; fi
   if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
@@ -858,15 +870,27 @@ echo $ac_n "checking that C compiler accepts option -Aa""... $ac_c" 1>&1
 fi
 CFLAGSSAV="$CFLAGS"
 CFLAGS="-Aa $CFLAGS"
-echo 'void f(){}' > conftest.c
-if test -z "`${CC-cc} $CFLAGS -c conftest.c 2>&1`"; then
-  if test -z "$ac_echo_test" -a 1 = 1 ; then
+rm -f conftest.out
+echo 'int main(){return 0;}' > conftest.c
+if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+  if test -s conftest.out ; then
+      cat conftest.out >> config.log
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+      
+  else
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-  hasarg=1
+      hasarg=1
+  fi
 else
+  if test -s conftest.out ; then cat conftest.out >> config.log ; fi
   if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
@@ -889,7 +913,69 @@ CFLAGS="$CFLAGSSAV"
             P4_CFLAGS="-D_POSIX_SOURCE -D_HPUX_SOURCE"
 	    # We MUST have an ANSI compiler for HPUX, even for USER code
 	    # If the regular cpp worked, we would not need to do this.
-	    USER_CFLAGS="$USER_CFLAGS -Aa"
+ 	    
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that C compiler accepts option -Aa""... $ac_c"
+else
+echo $ac_n "checking that C compiler accepts option -Aa""... $ac_c" 1>&1
+fi
+CFLAGSSAV="$CFLAGS"
+CFLAGS="-Aa $CFLAGS"
+rm -f conftest.out
+echo 'int main(){return 0;}' > conftest.c
+if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+  if test -s conftest.out ; then
+      cat conftest.out >> config.log
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+      AaOPT=0
+  else
+      if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+      AaOPT=1
+  fi
+else
+  if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+  AaOPT=0
+fi
+rm -f conftest*
+CFLAGS="$CFLAGSSAV"
+
+	    if test "$AaOPT" = 1 ; then
+	       USER_CFLAGS="$USER_CFLAGS -Aa"
+	    fi
 	    # Alternate...
 	    # -Ae is extended -Aa (only on some PA RISC systems)
 	    #CFLAGS="$CFLAGS -Ae +Olibcalls"
@@ -1835,13 +1921,12 @@ fi
    
 {
 test -n "$verbose" && \
-echo "	defining PROCESSOR_COUNT"
-echo "#define" PROCESSOR_COUNT 1 >> confdefs.h
-DEFS="$DEFS -DPROCESSOR_COUNT=1"
+echo "	defining" PROCESSOR_COUNT to be $PROCESSOR_COUNT
+echo "#define" PROCESSOR_COUNT $PROCESSOR_COUNT >> confdefs.h
+DEFS="$DEFS -DPROCESSOR_COUNT=$PROCESSOR_COUNT"
 }
 
-
-         if test -d mpid/sgi -a "$osversion" -ge 6 -a "$osvminor" -ge 1 -a \
+            if test -d mpid/sgi -a "$osversion" -ge 6 -a "$osvminor" -ge 1 -a \
 	`uname -s` = "IRIX64" ; then
 	if test -z "$device_sgi" ; then
 	    echo "Consider using -device=sgi for SGI arrays"

@@ -34,9 +34,7 @@ int    n;
    MPI_Datatypes in static initializers (i.e., they must be compile time
    constants).  This was voted as a clarification on 4/26/95.
  */
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int rank, size, to, from, tag, count, i;
     int src, dest;

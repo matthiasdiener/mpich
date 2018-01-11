@@ -9,9 +9,7 @@
 #include "test.h"
 /* #define SHOWMSG */
 
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int rank, size, to, from, tag, count, i;
     int src, dest;

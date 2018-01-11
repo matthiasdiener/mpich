@@ -1,4 +1,4 @@
-.TH MPI_Testall 3 "7/1/1998" " " "MPI"
+.TH MPI_Testall 3 "11/16/1998" " " "MPI"
 .SH NAME
 MPI_Testall \-  Tests for the completion of all previously initiated communications 
 .SH SYNOPSIS
@@ -125,13 +125,14 @@ contains the error value or
 (no error and complete) or
 .I MPI_ERR_PENDING
 to indicate that the request has not completed.
-The MPI Standard does not specify what the result of the multiple 
-completion routines is when an error occurs.  For example, in an 
+.PD 1
+The MPI Standard does not specify what the result of the multiple
+completion routines is when an error occurs.  For example, in an
 .I MPI_WAITALL
 , does the routine wait for all requests to either fail or
-complete, or does it return immediately (with the MPI definition of 
+complete, or does it return immediately (with the MPI definition of
 immediately, which means independent of actions of other MPI processes)?
-MPICH has chosen to make the return immediate (alternately, local in MPI 
+MPICH has chosen to make the return immediate (alternately, local in MPI
 terms), and to use the error class 
 .I MPI_ERR_PENDING
 (introduced in MPI 1.1)
@@ -143,7 +144,6 @@ that tests multiple requests.  The requests that have not been processed
 field marked with 
 .I MPI_ERR_PENDING
 .
-.PD 1
 
 .SH LOCATION
 testall.c

@@ -1,8 +1,8 @@
 // -*- c++ -*-
 //
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -28,7 +28,7 @@
 #ifndef MPIPP_H
 #define MPIPP_H
 
-#include "config.h"
+#include "mpi2c++_config.h"
 
 extern "C" {
 #include <mpi.h>
@@ -144,7 +144,7 @@ private:
 // These are the "real" functions, whether prototyping is enabled
 // or not. These functions are assigned to either the MPI::XXX class
 // or the PMPI::XXX class based on the value of the macro _REAL_MPI_
-// which is set in config.h.
+// which is set in mpi2c++_config.h.
 // If prototyping is enabled, there is a top layer that calls these
 // PMPI functions, and this top layer is in the XXX.cc files.
 //

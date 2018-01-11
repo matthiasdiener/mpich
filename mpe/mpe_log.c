@@ -15,7 +15,8 @@
 #include <stdlib.h>
 #endif
 
-/* why this? */
+/* we want to use the PMPI routines instead of the MPI routines for all of 
+   the logging calls internal to the mpe_log package */
 #ifdef USE_PMPI
 #define MPI_BUILD_PROFILING
 #include "mpiprof.h"
@@ -36,17 +37,17 @@ static int    MPE_Log_procid;
 
     Notes:
     Initializes the MPE logging package.  This must be called before any of
-    the other MPE logging routines.
+    the other MPE logging routines.  It is collective over 'MPI_COMM_WORLD'
 
 .seealso: MPE_Finish_log
 @*/
 int MPE_Init_log()
 {
+
     if (!MPE_Log_hasBeenInit || MPE_Log_hasBeenClosed) {
 	MPI_Comm_rank( MPI_COMM_WORLD, &MPE_Log_procid ); /* get process ID */
 	CLOG_Init();
 	CLOG_LOGCOMM(INIT, -1, (int) MPI_COMM_WORLD);
-
 	MPE_Log_hasBeenInit = 1;	/* set MPE_Log as being initialized */
 	MPE_Log_hasBeenClosed = 0;
 	MPE_Log_isLockedOut = 0;
@@ -77,13 +78,37 @@ int MPE_Stop_log()
 }
 
 /*@
+  MPE_Initialized_logging - Indicate whether MPE_Init_log or MPE_Finish_log
+  have been called.
+
+  Returns:
+  0 if MPE_Init_log has not been called, 1 if MPE_Init_log has been called
+  but MPE_Finish_log has not been called, and 2 otherwise.
+@*/
+int MPE_Initialized_logging ()
+{
+    return MPE_Log_hasBeenInit + MPE_Log_hasBeenClosed;
+}
+
+/*@
     MPE_Describe_state - Create log record describing a state
+
+    Input Parameters:
+. start - event number for the start of the state
+. end   - event number for the end of the state
+. name  - Name of the state
+. color - color to display the state in
 
     Notes:
     Adds string containing a state def to the logfile.  The format of the
-    def is (LOG_STATE_DEF) 0 sevent eevent 0 0 "color" "name".
+    definition is (in ALOG)
+.vb
+    (LOG_STATE_DEF) 0 sevent eevent 0 0 "color" "name"
+.ve
+    States are added to a log file by calling 'MPE_Log_event' for the start and
+    end event numbers.
 
-.seealso: MPE_Log_get_event_number 
+.seealso: MPE_Log_get_event_number
 @*/
 int MPE_Describe_state( start, end, name, color )
 int start, end;
@@ -181,33 +206,51 @@ char *string;
     MPE_Finish_log - Send log to master, who writes it out
 
     Notes:
-    This routine dumps a logfile in clog format.
+    This routine dumps a logfile in alog or clog format.  It is collective over
+    'MPI_COMM_WORLD'.  The default is alog format.  To generate clog output,
+    set the environment variable MPE_LOG_FORMAT to CLOG.
 
 @*/
 int MPE_Finish_log( filename )
 char *filename;
 {
-/*  The environment variable MPE_LOG_FORMAT may be set to CLOG to generate
-    CLOG format log files (ALOG is the default). */
+/*  The environment variable MPE_LOG_FORMAT may be set to ALOG to generate
+    ALOG format log files (CLOG is the default). 
+ */
     char *env_log_format;
-    int shift, log_format;
+    int shift, log_format, final_log_format;
     int *is_globalp, flag;
 
-    CLOG_Finalize();
+    if (MPE_Log_hasBeenClosed == 0) {
+	CLOG_Finalize();
 
-    MPI_Attr_get( MPI_COMM_WORLD, MPI_WTIME_IS_GLOBAL, &is_globalp, &flag );
-    if (!flag || (is_globalp && !*is_globalp))
-	shift = CMERGE_SHIFT;
-    else
-        shift = CMERGE_NOSHIFT;
+	MPI_Attr_get( MPI_COMM_WORLD, MPI_WTIME_IS_GLOBAL, &is_globalp, 
+		      &flag );
+	if (!flag || (is_globalp && !*is_globalp))
+	    shift = CMERGE_SHIFT;
+	else
+	    shift = CMERGE_NOSHIFT;
 
-    log_format = ALOG_LOG;
-    env_log_format = getenv("MPE_LOG_FORMAT");
- 
-    if ((env_log_format) && (strcmp(env_log_format,"CLOG") == 0)) 
 	log_format = CLOG_LOG;
+	env_log_format = (char *)getenv("MPE_LOG_FORMAT");
+ 
+	if ((env_log_format) && (strcmp(env_log_format,"ALOG") == 0)) 
+	    log_format = ALOG_LOG;
 
-    CLOG_mergelogs(shift, filename, log_format); 
+	/* We should do a compare across all processes to choose the format, in
+	   case the environment is not the same on all processes.  We use
+	   MPI_MAX since ALOG_LOG > CLOG_LOG */
+	MPI_Allreduce( &log_format, &final_log_format, 1, MPI_INT, MPI_MAX, 
+		       MPI_COMM_WORLD );
+	CLOG_mergelogs(shift, filename, final_log_format); 
+
+	MPE_Log_hasBeenClosed = 1;
+    }
     return MPE_Log_OK;
 }
+
+
+
+
+
 

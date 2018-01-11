@@ -1,0 +1,493 @@
+#! /bin/sh
+#
+MPE_HOME=@MPE_HOME@
+PREFIX=@PREFIX@
+LIBDIR=@LIBDIR@
+LIBPATH=@LIBPATH@
+CPRP="@CPRP@"
+MPICH=@MPICH@
+NOF77=@NOF77@
+NO_JUMPSHOT=@NO_JUMPSHOT@
+MAKE="@MAKE@"
+# File access mode
+MODE=0664
+XMODE=0775
+# Uninstall filename
+UNINSTALLFILE="mpeuninstall"
+appendUninstall=0
+replace=1
+# If we're doing -libonly, we may want a different file....
+#
+# dirlist is used to uninstall empty directories at the end
+dirlist=""
+#
+inlib=0
+#
+errs=0
+#
+# set failmode to soft to let failures accumulate
+failmode="hard"
+# chmod can fail for various reasons.  Let it?
+chmodfailmode="hard"
+Show=eval
+# set verbose to 0 to suppress success output
+verbose=0
+just_testing=0
+for arg in "$@" ; do
+    case "$arg" in
+	-echo) set -x ;;
+	-mode=*) MODE=`echo $arg | sed -e 's/-mode=//g'` ;;
+	-xmode=*)XMODE=`echo $arg | sed -e 's/-xmode=//g'` ;;
+	-prefix=*)PREFIX=`echo $arg | sed -e 's/-prefix=//g'` ;;
+	-uninstall=*) UNINSTALLFILE=`echo A$arg | sed -e 's/A-uninstall=//g'` 
+	appendUninstall=1
+	;;
+	-nonupshot)nonupshot=1 ;;
+	-noreplace|-no_replace) replace=0 ;;
+	-replace) replace=1 ;;
+	-cpnupshot)cpnupshot=1 ;;
+	-noman) noman=1 ;;
+        -no_verbose|-noverbose)  verbose=0 ;;
+	-verbose)                verbose=1 ;;
+	-soft) failmode="soft" ; chmodfailmode="soft" ;;
+	-hard) failmode="hard" ; chmodfailmode="hard" ;;
+	-softchmod) chmodfailmode="soft" ;;
+	-t) Show=echo
+	    just_testing=1
+	    failmode="soft"
+	    ;;
+	-help|-u|-usage|-h)
+cat <<EOF
+Install MPE into $PREFIX.
+-mode=nnnn   - mode for regular files.  Default is $MODE .
+-xmode=nnnn  - mode for execuables and directories.  Default is $XMODE .
+-prefix=path - Destination directory.
+-uninstall=path - File to append uninstall information to
+-t           - Try only; do no installation.
+-manpath=path- Set an alternate path for the man pages
+-noman       - Do not install the man pages.
+-nonupshot   - Do not try to build or install nupshot.
+-cpnupshot   - Do not build nupshot; install the one in
+               profiling/nupshot - WARNING - read the 
+               installation manual first!
+-noreplace   - Do not replace files that are found in the
+               installation directory
+-soft        - Do not abort on failure
+-softchmod   - Do not abort on failure of chmod
+EOF
+	exit 1
+	;;
+	*)
+	echo "Unrecognized argument $arg ."
+	exit 1
+	;;
+    esac
+done
+
+if [ "$SHELL_ECHO" = "on" ] ; then 
+    set -x 
+fi
+#
+# Remove old uninstall file
+if [ $appendUninstall = 0 -a -f $UNINSTALLFILE ] ; then
+    /bin/rm -f $UNINSTALLFILE
+fi
+if [ ! -f $UNINSTALLFILE ] ; then
+    cat > $UNINSTALLFILE <<EOF
+#! /bin/sh
+set -x
+EOF
+fi
+# It is always safe to add the execute bit to the uninstall file
+chmod +x $UNINSTALLFILE
+#	
+#
+#
+# We could use install, but install is too different and too hard to 
+# test.  So here are the routines to copy file, make directories, and 
+# replace #...# and @...@ in files
+CP=cp
+#
+CopyFile() {
+if [ -z "$3" ] ; then
+    mode=$MODE
+else
+    mode=$3
+fi
+if [ -d $2 ] ; then
+    dest=$2/`basename $1`
+else
+    dest=$2
+fi
+if [ $replace = 0 -a -f $dest ] ; then
+    if [ $verbose = 1 ] ; then echo "$dest exists; not changed" ; fi
+elif [ -d $1 ] ; then
+    echo ">>> $1 is a directory; not copied <<<"
+    errs=`expr $errs + 1`
+    if [ $failmode = "hard" ] ; then exit 1 ; fi
+elif [ ! -f $1 ] ; then 
+    echo "**File $1 does not exist (or is not a regular file)!"
+    errs=`expr $errs + 1`
+    if [ $failmode = "hard" ] ; then exit 1 ; fi
+else
+    if [ $verbose = 1 ] ; then echo "Copying $1 to $dest" ; fi
+    if [ -f $dest ] ; then $Show /bin/rm -f $dest ; fi
+    $Show $CP $1 $dest
+    rc=$?
+    if [ $rc != 0 ] ; then
+	echo "**Error copying file $1 to $dest **"
+        errs=`expr $errs + 1`
+        if [ $failmode = "hard" ] ; then exit $rc ; fi
+    else
+	echo "/bin/rm -f $dest" >> $UNINSTALLFILE
+    fi
+    $Show chmod $mode $dest
+    rc=$?
+    if [ $rc != 0 ] ; then
+	echo "**Error setting mode on file $dest**"
+        errs=`expr $errs + 1`
+        if [ $chmodefailmode = "hard" ] ; then exit $rc ; fi
+    fi
+fi
+}
+
+#
+# A version of copy file that preserves file dates
+CopyFileP() {
+    CP="$CPRP -p"
+    CopyFile $1 $2 $3
+    CP=cp
+}
+
+#
+# Fixup files that need #...# replaced
+#
+FixupFile() {
+if [ -d $2 ] ; then
+    dest=$2/`basename $1`
+else
+    dest=$2
+fi
+if [ $replace = 0 -a -f $dest ] ; then
+    if [ $verbose = 1 ] ; then echo "$dest exists; not changed" ; fi
+elif [ -d $1 ] ; then
+    echo "$1 is a directory; not copied"
+else
+    if [ -f $dest ] ; then $Show /bin/rm -f $dest ; fi
+    if [ $just_testing = 0 ] ; then \
+        sed -e "s%\#MPE_HOME\#%$PREFIX/bin%g" \
+            -e "s%\#BITMAP_DIR\#%$PREFIX/build/bitmaps%g" \
+            -e "s%\#PREFIX\#%$PREFIX%g" \
+            -e "s%\#TK_VERSION\#%@TK_VERSION@%g" \
+            -e "s%\#LIBDIR\#%@LIBDIR@%g" \
+            -e "s%\#wishloc\#%@wishloc@%g" \
+        $1 > $dest
+        rc=$?
+        if [ $rc != 0 ] ; then
+	    echo "**Error fixing up file $dest**"
+            errs=`expr $errs + 1`
+            if [ $failmode = "hard" ] ; then exit $rc ; fi
+        else
+	    echo "/bin/rm -f $dest" >> $UNINSTALLFILE
+        fi
+    else
+	if [ $verbose = 1 ] ; then echo "Fixup $1.in and copy to $dest" ; fi
+    fi
+fi
+if [ -z "$3" ] ; then
+    mode=$MODE
+else
+    mode=$3
+fi
+$Show chmod $mode $2
+rc=$?
+if [ $rc != 0 ] ; then
+    echo "**Error setting mode on file $2**"
+    errs=`expr $errs + 1`
+    if [ $failmode = "hard" ] ; then exit $rc ; fi
+fi
+}
+
+	
+MkDir() {
+if [ ! -d $1 ] ; then
+    $Show mkdir -p $1
+    rc=$?
+    if [ $rc != 0 ] ; then
+        echo "**Error making directory $1**"
+        errs=`expr $errs + 1`
+        if [ $failmode = "hard" ] ; then exit $rc ; fi
+    else
+	# Note that we store in inverse order
+	dirlist="$1 $dirlist"
+    fi
+    $Show chmod $XMODE $1
+    rc=$?
+    if [ $rc != 0 ] ; then
+	echo "**Error setting mode on directory $1**"
+        errs=`expr $errs + 1`
+        if [ $chmodfailmode = "hard" ] ; then exit $rc ; fi
+    fi
+fi
+}
+#
+##############################################################################
+#
+# End of routines
+#
+##############################################################################
+if [ ! -s @LIBDIR@/libmpe.a ] ; then 
+    echo "You must make MPE before installing it!"
+    echo "Could not find @libdir@/libmpe.a !"
+    exit 1
+fi
+
+if [ ! -n "$PREFIX" ] ; then 
+  echo "Set an installation location with -prefix=<location> ."
+  exit 1
+fi
+
+if [ "$verbose" = "1" ] ; then 
+    echo "Install into $PREFIX"
+fi
+
+if [ -d $PREFIX ] ; then
+    if [ "$verbose" = "1" ] ; then echo "using existing directory $PREFIX" ; fi
+else
+    MkDir $PREFIX 
+fi
+
+MkDir $PREFIX/bin
+MkDir $PREFIX/include
+MkDir $PREFIX/mpe_examples
+MkDir $PREFIX/mpe_examples/C
+if test "$NOF77" = "0" ; then
+    MkDir $PREFIX/mpe_examples/Fortran
+fi
+MkDir $PREFIX/build
+MkDir $PREFIX/build/bitmaps
+if test -n "$LIBPATH" ; then
+    MkDir $PREFIX/$LIBPATH
+    MkDir $PREFIX/$LIBPATH/../bin
+else
+    MkDir $PREFIX/lib
+fi
+# Create mpereconfig from mpereconfig.in
+$Show /bin/rm -f $PREFIX/bin/mpereconfig
+if [ $verbose = 1 ] ; then
+    echo "Creating mpereconfig from mpereconfig.in"
+fi
+FixupFile mpereconfig.in $PREFIX/bin/mpereconfig $XMODE
+
+# Do Jumpshot
+if [ "$NO_JUMPSHOT" = 0 ] ; then
+    echo "Copying Jumpshot to $PREFIX/bin"
+    $Show /bin/rm -f $PREFIX/bin/jumpshot    
+    if [ "$MPICH" = "1" ] ; then
+        if [ -f @LIBDIR@/../bin/jumpshot ] ; then
+            echo "Copying jumpshot to $PREFIX/$LIBPATH/../bin/jumpshot"
+            CopyFileP @LIBDIR@/../bin/jumpshot $PREFIX/$LIBPATH/../bin
+            if test ! -x $PREFIX/$LIBPATH/../bin/jumpshot ; then
+	        chmod a+x $PREFIX/$LIBPATH/../bin/jumpshot
+	    fi
+        fi
+    fi
+    if [ -f @LIBDIR@/../bin/jumpshot ] ; then
+        CopyFileP @LIBDIR@/../bin/jumpshot $PREFIX/bin
+        if test ! -x $PREFIX/bin/jumpshot ; then
+	    chmod a+x $PREFIX/bin/jumpshot
+	fi
+    fi
+fi
+#
+# Upshot and Nupshot
+# Do Upshot/Nupshot early in case there is a problem.
+if [ -z "$nonupshot" ] ; then
+    echo "Copying upshot to $PREFIX/bin" 
+    $Show /bin/rm -f $PREFIX/bin/upshot
+    FixupFile profiling/upshot/bin/upshot.in $PREFIX/bin/upshot $XMODE
+    #
+    # Should clean nupshot sources  (*.c/h) 
+    if [ -n "@TCL_DIR@" -a -z "$cpnupshot" -a -n "@TK_DIR@" -a \
+        "@TK_VERSION@" = "3.6" ] ; then 
+        echo "Attempting to build nupshot... "
+        $Show $CPRP -r profiling/nupshot $PREFIX
+	echo "/bin/rm -rf $PREFIX/nupshot" >> $UNINSTALLFILE
+        $Show "(cd $PREFIX/nupshot ; \
+	    if configure -tcldir=@TCL_DIR@ -tkdir=@TK_DIR@ ; then \
+	    $MAKE clean ; $MAKE ; \
+    	    mv nupshot ../bin ; $MAKE clean ; fi )"
+	echo "/bin/rm -f $PREFIX/bin/nupshot" >> $UNINSTALLFILE
+    elif [ -n "$cpnupshot" -a -f profiling/nupshot ] ; then 
+        $Show $CPRP -r profiling/nupshot $PREFIX
+	echo "/bin/rm -rf $PREFIX/nupshot" >> $UNINSTALLFILE
+        $Show "(cd $PREFIX/nupshot ; \
+	mv nupshot ../bin ; $MAKE clean )"
+	echo "/bin/rm -f $PREFIX/bin/nupshot" >> $UNINSTALLFILE
+    fi
+#
+# Copy bitmap files
+  for file in profiling/upshot/bitmaps/* ; do
+      if [ -f $file ] ; then 
+          CopyFile $file $PREFIX/build/bitmaps
+      fi
+  done
+#
+# Copy necessary MPE include Files
+    echo "Copying MPE include Files to $PREFIX/include"
+    CopyFile mpeconf.h $PREFIX/include
+    CopyFile mpe.h $PREFIX/include
+    CopyFile mpe_graphics.h $PREFIX/include
+    CopyFile mpe_log.h $PREFIX/include
+    CopyFile mpetools.h $PREFIX/include
+    CopyFile mpeexten.h $PREFIX/include
+    CopyFile basex11.h $PREFIX/include
+    if test ! -f $PREFIX/include/mpeexten.h ; then
+        CopyFile mpeexten.h $PREFIX/include
+    fi
+    if test ! -f $PREFIX/include/protofix.h ; then
+        CopyFile protofix.h $PREFIX/include
+    fi
+#
+# Copy MPE libraries
+    echo "Copying MPE libraries to $PREFIX/$LIBPATH"
+    if [ -f @LIBDIR@/libampi.a ] ; then
+        CopyFileP @LIBDIR@/libampi.a $PREFIX/$LIBPATH
+    fi
+    if [ -f @LIBDIR@/liblmpi.a ] ; then
+        CopyFileP @LIBDIR@/liblmpi.a $PREFIX/$LIBPATH
+    fi
+    if [ -f @LIBDIR@/libmpe.a ] ; then
+        CopyFileP @LIBDIR@/libmpe.a $PREFIX/$LIBPATH
+    fi
+    if [ -f @LIBDIR@/libmpe_nompi.a ] ; then
+        CopyFileP @LIBDIR@/libmpe_nompi.a $PREFIX/$LIBPATH
+    fi      
+    if [ -f @LIBDIR@/libtmpi.a ] ; then
+        CopyFileP @LIBDIR@/libtmpi.a $PREFIX/$LIBPATH
+    fi
+    if [ -f @LIBDIR@/mpe_prof.o ] ; then
+        CopyFileP @LIBDIR@/mpe_prof.o $PREFIX/$LIBPATH
+    fi
+    if [ -f @LIBDIR@/mpe_proff.o ] ; then
+        CopyFileP @LIBDIR@/mpe_proff.o $PREFIX/$LIBPATH
+    fi
+fi
+#
+# Updating the config.status file is trickier, since we need to edit
+# the directories that might have contained the original path.
+# It is important to update the CORRECT file, in the case that we are doing
+# a -libonly installation on a previously constructed version.
+#
+if [ $MPICH = 1 ] ; then
+    if test ! -f "$PREFIX/$LIBPATH/../bin/mpicc" ; then
+	echo "Must install MPICH before you can install MPE"
+	echo "Type 'make install' in the MPICH root directory"
+	exit 1
+    fi
+    if [ $just_testing = 0 ] ; then
+        cat config.status | \
+            sed -e "s%\@CC\@\([^/ ]*\)/.*\$%\@CC\@\%$PREFIX/$LIBPATH/../bin/mpicc\%g%g" \
+                -e "s%\@F77\@\([^/ ]*\)/.*\$%\@F77\@\%$PREFIX/$LIBPATH/../bin/mpif77\%g%g" \
+                -e "s%\@MPE_LIBPATH\@\([^/ ]*\)/.*\$%\@MPE_LIBPATH\@\%$PREFIX/$LIBPATH\%g%g" \
+                -e "s%\@MPE_HOME\@\([^/ ]*\)/.*\$%\@MPE_HOME\@\%$PREFIX/include\%g%g" \
+                -e "s%\@EXTRA_FLIB\@\([^/ ]*\)/.*\$%\@EXTRA_FLIB\@\%$PREFIX/lib/mpe_proff.o\%g%g" \
+                -e "s%\@INCLUDEDIR\@\([^/ ]*\)/.*\$%\@INCLUDEDIR\@\%-I$PREFIX/$LIBPATH/../include -I$PREFIX/include\%g%g" \
+                > $PREFIX/bin/config.status 
+        echo "/bin/rm -f $PREFIX/bin/config.status" >> $UNINSTALLFILE
+        chmod $XMODE $PREFIX/bin/config.status 
+    else 
+        cat <<.
+            cat config.status | \
+                sed -e "s%^CC=\([^/ ]*\)/.*\$%CC=$PREFIX/$LIBPATH/../bin/mpicc%g" \
+                    -e "s%^F77=\([^/ ]*\)/.*\$%F77=$PREFIX/$LIBPATH/../bin/mpif77%g" \
+                    -e "s%^MPE_LIBPATH=\([^/ ]*\)/[^ ']*%MPE_LIBPATH=$PREFIX/$LIBPATH%g" \
+                    -e "s%^MPE_HOME=\([^/ ]*\)/[^ ']*%MPE_HOME=$PREFIX/include%g" \
+                    -e "s%\@EXTRA_FLIB\@\([^/ ]*\)/.*\$%\@EXTRA_FLIB\@\%$PREFIX/lib/mpe_proff.o\%g%g" \
+                    -e "s%\@INCLUDEDIR\@\([^/ ]*\)/.*\$%\@INCLUDEDIR\@\%-I$PREFIX/$LIBPATH/../include -I$PREFIX/include\%g%g" \
+                    > $PREFIX/bin/config.status
+       chmod $XMODE $PREFIX/bin/config.status 
+.
+    fi
+else
+    if [ $just_testing = 0 ] ; then
+        cat config.status | \
+            sed -e "s%\@MPE_LIBPATH\@\([^/ ]*\)/.*\$%\@MPE_LIBPATH\@\%$PREFIX/$LIBPATH\%g%g" \
+                -e "s%\@MPE_HOME\@\([^/ ]*\)/.*\$%\@MPE_HOME\@\%$PREFIX/include\%g%g" \
+                -e "s%\@EXTRA_FLIB\@\([^/ ]*\)/.*\$%\@EXTRA_FLIB\@\%$PREFIX/lib/mpe_proff.o\%g%g" \
+                -e "s%\@INCLUDEDIR\@\([^/ ]*\)/.*\$%\@INCLUDEDIR\@\%-I$PREFIX/$LIBPATH/../include -I$PREFIX/include\%g%g" \
+                > $PREFIX/bin/config.status 
+        echo "/bin/rm -f $PREFIX/bin/config.status" >> $UNINSTALLFILE
+        chmod $XMODE $PREFIX/bin/config.status 
+    else 
+        cat <<.
+            cat config.status | \
+                sed -e "s%^MPE_LIBPATH=\([^/ ]*\)/[^ ']*%MPE_LIBPATH=$PREFIX/$LIBPATH%g" \
+                    -e "s%^MPE_HOME=\([^/ ]*\)/[^ ']*%MPE_HOME=$PREFIX/include%g" \
+                    -e "s%\@EXTRA_FLIB\@\([^/ ]*\)/.*\$%\@EXTRA_FLIB\@\%$PREFIX/lib/mpe_proff.o\%g%g" \
+                    -e "s%\@INCLUDEDIR\@\([^/ ]*\)/.*\$%\@INCLUDEDIR\@\%-I$PREFIX/$LIBPATH/../include -I$PREFIX/include\%g%g" \
+                    > $PREFIX/bin/config.status
+       chmod $XMODE $PREFIX/bin/config.status 
+.
+    fi
+fi
+#
+# MPE Example C programs
+CopyFile contrib/test/Makefile.in $PREFIX/mpe_examples/C
+( cd $PREFIX/mpe_examples/C ; $PREFIX/bin/mpereconfig Makefile ) 
+echo "(cd $PREFIX/mpe_examples/C ; $MAKE clean)" >> $UNINSTALLFILE
+echo "/bin/rm -f $PREFIX/mpe_examples/C/Makefile" >> $UNINSTALLFILE
+CopyFile contrib/test/cpi.c $PREFIX/mpe_examples/C
+CopyFile contrib/test/cpilog.c $PREFIX/mpe_examples/C
+# 
+#Test build the examples
+$Show "(cd $PREFIX/mpe_examples/C ; /bin/rm -f mpirun ; \
+	  ln -s ../../bin/mpirun mpirun )"
+echo "/bin/rm -f $PREFIX/mpe_examples/C/mpirun" >> $UNINSTALLFILE
+#
+echo "About to run installation test for C programs..."
+$Show "(cd $PREFIX/mpe_examples/C; $MAKE linktest)"
+#
+#
+# MPE Example Fortran programs
+if test "$NOF77" = "0" ; then
+    CopyFile test/Makefile.in $PREFIX/mpe_examples/Fortran
+    ( cd $PREFIX/mpe_examples/Fortran ; $PREFIX/bin/mpereconfig Makefile ) 
+    echo "(cd $PREFIX/mpe_examples/Fortran ; $MAKE clean)" >> $UNINSTALLFILE
+    echo "/bin/rm -f $PREFIX/mpe_examples/Fortran/Makefile" >> $UNINSTALLFILE
+    CopyFile test/fpi.f $PREFIX/mpe_examples/Fortran
+# 
+    #Test build the examples
+    $Show "(cd $PREFIX/mpe_examples/Fortran ; /bin/rm -f mpirun ; \
+	      ln -s ../../bin/mpirun mpirun )"
+    echo "/bin/rm -f $PREFIX/mpe_examples/Fortran/mpirun" >> $UNINSTALLFILE
+#
+    echo "About to run installation test for Fortran programs..."
+    $Show "(cd $PREFIX/mpe_examples/Fortran; $MAKE linktest)"
+fi
+#
+if [ $appendUninstall = 0 ] ; then
+    echo "/bin/rm -f $PREFIX/mpeuninstall" >> $UNINSTALLFILE
+    echo "/bin/rm -f $UNINSTALLFILE" >> $UNINSTALLFILE
+fi
+# Add the directory removes to the UNINSTALL file
+for dir in $dirlist ; do
+    echo "if [ -d $dir ] ; then rmdir $dir ; fi" >> $UNINSTALLFILE
+done
+#
+if [ $appendUninstall = 0 ] ; then
+    cp $UNINSTALLFILE $PREFIX/mpeuninstall
+#
+    echo installed MPE in $PREFIX
+    echo $PREFIX/mpeuninstall may be used to remove the installation.
+fi
+#
+if [ $errs -gt 0 ] ; then
+    rc=1
+else
+    rc=0
+fi
+exit $rc
+
+
+

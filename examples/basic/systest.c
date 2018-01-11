@@ -18,11 +18,18 @@ int argc;
 char **argv;
 {
 
-    int me, option, namelen;
+    int me, option, namelen, size;
     char processor_name[MPI_MAX_PROCESSOR_NAME];
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD,&me);
+    MPI_Comm_size(MPI_COMM_WORLD,&size);
+
+    if (size < 2) {
+	fprintf(stderr, "systest requires at least 2 processes" );
+	MPI_Abort(MPI_COMM_WORLD,1);
+    }
+
     MPI_Get_processor_name(processor_name,&namelen);
 
     fprintf(stderr,"Process %d is alive on %s\n",

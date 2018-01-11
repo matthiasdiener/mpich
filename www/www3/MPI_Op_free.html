@@ -21,8 +21,7 @@ MPI_Op  *op;
 <TT>op</TT> is set to <TT>MPI_OP_NULL</TT> on exit.
 <P>
 <H2>Null Handles</H2>
-The MPI 1.1 specification, in the section on opaque objects, 
-explicitly
+The MPI 1.1 specification, in the section on opaque objects, explicitly
 <H2>disallows freeing a null communicator.  The text from the standard is</H2>
 <PRE>
  A null handle argument is an erroneous IN argument in MPI calls, unless an
@@ -35,25 +34,25 @@ explicitly
 
 <P>
 <H2>Notes for Fortran</H2>
-All MPI routines in Fortran (except for <TT>MPI_WTIME</TT> and <TT>MPI_WTICK</TT>) 
-havean additional argument <TT>ierr</TT> at the end of the argument list.  <TT>
-ierr</TT>is an integer and has the same meaning as the return value of the 
-routinein C.  In Fortran, MPI routines are subroutines, and are invoked with 
-the<TT>call</TT> statement.
+All MPI routines in Fortran (except for <TT>MPI_WTIME</TT> and <TT>MPI_WTICK</TT>) have
+an additional argument <TT>ierr</TT> at the end of the argument list.  <TT>ierr
+</TT>is an integer and has the same meaning as the return value of the routine
+in C.  In Fortran, MPI routines are subroutines, and are invoked with the
+<TT>call</TT> statement.
 <P>
-All MPI objects (e.g., <TT>MPI_Datatype</TT>, <TT>MPI_Comm</TT>) are of type <TT>
-INTEGER</TT>in Fortran.
+All MPI objects (e.g., <TT>MPI_Datatype</TT>, <TT>MPI_Comm</TT>) are of type <TT>INTEGER
+</TT>in Fortran.
 <P>
 <H2>Errors</H2>
 <P>
-All MPI routines (except <TT><A HREF="http://www.mcs.anl.gov/mpi/mpi-report-1.1/node150.html#node150">MPI_Wtime</A></TT> and <TT><A HREF="http://www.mcs.anl.gov/mpi/mpi-report-1.1/node150.html#node150">MPI_Wtick</A></TT>) return an error value;
-C routines as the value of the function and Fortran routines in the 
-lastargument.  Before the value is returned, the current MPI error handler 
-iscalled.  By default, this error handler aborts the MPI job.  The error 
-handlermay be changed with <TT><A HREF="http://www.mcs.anl.gov/mpi/mpi-report-1.1/node148.html#node148">MPI_Errhandler_set</A></TT>; the predefined error 
-handler<TT>MPI_ERRORS_RETURN</TT> may be used to cause error values to be returned.
-Note that MPI does <EM>not</EM> guarentee that an MPI program can continue 
-pastan error.
+All MPI routines (except <TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node150.html#node150">MPI_Wtime</A></TT> and <TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node150.html#node150">MPI_Wtick</A></TT>) return an error value;
+C routines as the value of the function and Fortran routines in the last
+argument.  Before the value is returned, the current MPI error handler is
+called.  By default, this error handler aborts the MPI job.  The error handler
+may be changed with <TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node148.html#node148">MPI_Errhandler_set</A></TT>; the predefined error handler
+<TT>MPI_ERRORS_RETURN</TT> may be used to cause error values to be returned.
+Note that MPI does <EM>not</EM> guarentee that an MPI program can continue past
+an error.
 <P>
 <DL><DT><B>MPI_SUCCESS </B> <DD> No error; MPI routine completed successfully.
 </DL>
@@ -77,6 +76,6 @@ do, report it to <TT>mpi-bugs@mcs.anl.gov</TT>.
 </DL>
 <P>
 <H2>See Also</H2>
- <A HREF="http://www.mcs.anl.gov/mpi/mpi-report-1.1/node80.html#node80">MPI_Op_create</A>
+ <A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node80.html#node80">MPI_Op_create</A>
 <BR><P><B>Location:</B>opfree.c<P>
 </BODY></HTML>

@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.1.1.1 1997/09/17 20:41:29 gropp Exp $
+#  $Id: Makefile.in,v 1.5 1999/02/01 16:13:02 gropp Exp $
 #
 #  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -10,7 +10,6 @@
 ##### User configurable options #####
 
 ARCH        = @ARCH@
-COMM        = @COMM@
 DEVICE      = @DEVICE@
 MPIR_HOME   = @MPIR_HOME@
 INCLUDE_DIR = @INCLUDE_PATH@ -Impid/@DEVICE@ -Iinclude
@@ -26,10 +25,10 @@ ASMFILES_O  = @ASMFILES_O@
 #ALL: default
 ALL: setlinks libdev
 
-LIBNAME  = ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
+LIBNAME  = ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a
 LIBDEV   = libmpid.a
 CFLAGS   = @CFLAGS@ $(OPTFLAGS) @OPTFLAGSC@ \
-	   	-I../.. -I../../include -I./ -I../ch2 \
+	   	-I../.. -I../../include -I. -I../ch2 \
 		-I../util \
 		-DMPID_DEVICE_CODE @GETNAME_DEFS@ @DEVCFLAGS@ @DEV_DEFS@
 # See mpid/ch_adi2/Makefile.in for a full list
@@ -39,7 +38,7 @@ SOURCE   = adi2recv.c adi2send.c adi2init.c adi2probe.c adi2ssend.c \
            chinit.c shmemdebug.c shmemchkdev.c \
            shmemshort.c shmemneager.c shmemnrndv.c cenju3priv.c \
            chnodename.c chtick.c queue.c cmnargs.c \
-           tr2.c sbcnst2.c @DEVCFILES@
+           tr2.c sbcnst2.c mprerr.c @DEVCFILES@
 SOURCEC  = $(SOURCE)
 SOURCEF  =
 # chbeager.o chbrndv.o
@@ -50,6 +49,9 @@ MPI_OBJECTS = adi2recv.o adi2send.o adi2init.o adi2probe.o adi2ssend.o \
               shmemshort.o shmemneager.o shmemnrndv.o cenju3priv.o \
               chnodename.o chtick.o queue.o cmnargs.o \
               tr2.o sbcnst2.o $(ASMFILES_O) @DEVOFILES@
+
+MPIDHEADERS = mpid.h req.h comm.h datatype.h chhetero.h attach.h objtrace.h \
+              calltrace.h cookie.h mpid_bind.h reqalloc.h tr2.h mpimem.h
 
 default: setlinks $(LIBNAME)
 libdev: setlinks $(LIBDEV)
@@ -73,13 +75,21 @@ setlinks:
 	    if [ ! -s $$file -a -s ../util/$$file ] ; then \
 		ln -s ../util/$$file $$file ; fi ; \
 	done
+	@for file in $(MPIDHEADERS) ; do \
+    	if [ ! -s $$file -a -s ../ch2/$$file ] ; then \
+        	ln -s ../ch2/$$file $$file ; fi ; \
+	done
+	@if [ ! -s mpiddev.h ] ; then \
+    	    ln -s ../ch2/mpiddevbase.h mpiddev.h ; fi
+	@if [ ! -s sbcnst2.h ] ; then \
+    	    ln -s ../util/sbcnst2.h sbcnst2.h ; fi
 .c.o:
 	$(CC) $(CFLAGS) $(BASEOPT) -c $*.c $(MPI_PROFILE)
 
 .s.o:
 	$(ASM) -c $*.s
 
-../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
+../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
 	$(AR) $@ $?
 	$(RANLIB) $@
 
@@ -91,4 +101,3 @@ lint:
 	lint -chvuz -I../.. -I../../include -I../ch2 \
 		-I./ \
 	-DMPID_DEVICE_CODE $(SOURCE) ../util/queue.c ../util/cmnargs.c
-

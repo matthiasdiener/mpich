@@ -16,7 +16,7 @@ MPIFDEP     = @MPIFDEP@
 SHELL = /bin/sh
 
 PROFLIB =
-CFLAGS  = @MPE_CFLAGS@ $(OPTFLAGS) 
+CFLAGS  = $(OPTFLAGS) 
 CCFLAGS = $(CFLAGS)
 FFLAGS = $(OPTFLAGS)
 # Use LIBS to add any special libraries for C programs
@@ -28,7 +28,7 @@ EXECS = overtake sendrecv isndrcv third fourth fifth sixth hvectest \
 	dtypelife issendtest issend2 issendinit relrank nullproc trunc \
 	truncmult typeub typeub2 typeub3 irecvtest htmsg \
 	isendtest self sendrecv2 sendrecv3 sendrecv4 persistent waitany \
-	pack bsendtest typebase irsend irsendinit longmsgs waitall \
+	pack bsendtest typebase irsend irsendinit longmsgs waitall waitall2 \
 	testsome getelm testall sndrcv nbtest nblock sendmany order hindexed \
 	commit cancel persist typecreate reqcreate sndrcvrep flood flood2 \
 	persist2 dataalign dtyperecv reqfree sndrcvrpl2 cancel2
@@ -42,6 +42,8 @@ testing:
 	  -./runtests $(TESTARGS)
 
 linktest: overtake secondf clean
+
+linktest1: overtake clean
 
 all: testing
 
@@ -239,6 +241,9 @@ waitany: waitany.o
 waitall: waitall.o
 	$(CLINKER) $(OPTFLAGS) -o waitall waitall.o $(LIBS)
 
+waitall2: waitall2.o
+	$(CLINKER) $(OPTFLAGS) -o waitall2 waitall2.o $(LIBS)
+
 commit: commit.o
 	$(CLINKER) $(OPTFLAGS) -o commit commit.o $(LIBS)
 
@@ -248,8 +253,11 @@ cancel: cancel.o
 cancel2: cancel2.o
 	$(CLINKER) $(OPTFLAGS) -o cancel2 cancel2.o $(LIBS)
 
+# This has a test for HAS_FORTRAN so that the link test target will work
+# even when -nof77 is selected.
 secondf: $(MPIFDEP) secondf.o
-	$(FLINKER) $(OPTFLAGS) -o secondf secondf.o $(FLIBS)
+	if test "@HAS_FORTRAN@" = 1 ; then \
+	$(FLINKER) $(OPTFLAGS) -o secondf secondf.o $(FLIBS) ; fi
 
 allpair: $(MPIFDEP) allpair.o 
 	$(FLINKER) $(OPTFLAGS) -o allpair allpair.o $(FLIBS)
@@ -273,7 +281,7 @@ typebasef: $(MPIFDEP) typebasef.o
 # Some systems have no test for a symbolic link and return false for
 # a link that exists
 #mpif.h: $(MPIR_HOME)/include/mpif.h
-#	if test \! -f mpif.h ; then \
+#	if test \! -r mpif.h ; then \
 #	    /bin/rm -f mpif.h ; \
 #	    ln -s $(MPIR_HOME)/include/mpif.h . ; \
 #	fi

@@ -4,9 +4,7 @@
  * masternode == 0
  * masternode != 0
  */
-int main(argc, argv)
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
   int node, size, i;
   int masternode = 0;

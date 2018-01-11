@@ -5,9 +5,7 @@
 
 #define TABLE_SIZE 2
 
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
   int    rank, size;
   double a[TABLE_SIZE];

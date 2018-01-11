@@ -1,5 +1,5 @@
 /*
- *  $Id: mpiimpl.h,v 1.9 1998/04/10 17:50:00 gropp Exp $
+ *  $Id: mpiimpl.h,v 1.11 1998/11/28 22:08:45 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -8,7 +8,7 @@
 #ifndef _MPIRIMPL_INCLUDE
 #define _MPIRIMPL_INCLUDE
 
-#if defined(HAVE_CONFIG_H) && !defined(MPICHCONF_INC)
+#if defined(HAVE_MPICHCONF_H) && !defined(MPICHCONF_INC)
 /* This includes the definitions found by configure, and can be found in
    the library directory (lib/$ARCH/$COMM) corresponding to this configuration
  */
@@ -259,7 +259,7 @@ int MPIR_GetErrorMessage ANSI_ARGS(( int, char *, char ** ));
 void MPIR_Init_dtes ANSI_ARGS(( void ));
 void MPIR_Free_dtes ANSI_ARGS(( void ));
 void MPIR_Datatype_iscontig ANSI_ARGS(( MPI_Datatype, int * ));
-
+void MPIR_Msg_queue_export( void );
 int MPIR_Errhandler_create ANSI_ARGS(( MPI_Handler_function *, 
 				       MPI_Errhandler ));
 void MPIR_Errhandler_mark ANSI_ARGS(( MPI_Errhandler, int ));

@@ -80,9 +80,6 @@ it's a %s\n", eventNames[event.type] );
 
 /*@
   MPE_Iget_mouse_press - Checks for mouse button press
-  Checks if the mouse button has been pressed inside this MPE window.
-  If pressed, returns the coordinate relative to the upper right of
-  this MPE window and the button that was pressed.
 
   Input Parameter:
 . graph - MPE graphics handle
@@ -92,6 +89,12 @@ it's a %s\n", eventNames[event.type] );
 . y - vertical coordinate of the point where the mouse button was pressed
 . button - which button was pressed: MPE_BUTTON[1-5]
 - wasPressed - 1 if the button was pressed, 0 if not
+
+  Notes:
+  Checks if the mouse button has been pressed inside this MPE window.
+  If pressed, returns the coordinate relative to the upper right of
+  this MPE window and the button that was pressed.
+
 
 @*/
 int MPE_Iget_mouse_press( graph, x, y, button, wasPressed )

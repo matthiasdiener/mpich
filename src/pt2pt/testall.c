@@ -1,5 +1,5 @@
 /*
- *  $Id: testall.c,v 1.10 1998/07/01 19:56:16 gropp Exp $
+ *  $Id: testall.c,v 1.11 1998/11/16 21:03:04 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -106,7 +106,7 @@ MPI_Status *array_of_statuses;
 	}
     }
     *flag = (nready == count);
-    /* Becausea request may have completed with an error (such as 
+    /* Because a request may have completed with an error (such as 
        MPI_ERR_TRUNCATE), we need to check here as well */
     if (nready == count) {
 	for (i=0; i<count; i++) {

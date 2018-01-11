@@ -35,7 +35,9 @@ extern char *sys_errlist[];
 
 #define PRECV_EOF -1
 
+#ifndef LISTENER_ATTN_SIGNAL
 #define LISTENER_ATTN_SIGNAL SIGUSR1
+#endif
 
 #define LISTENER_ID (-99)
 

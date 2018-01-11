@@ -8,6 +8,7 @@ c
 @F90UNIX@
       integer       i
       character*(*) s
+      @F77GETARGDECL@
       @F77GETARG@
       return
       end

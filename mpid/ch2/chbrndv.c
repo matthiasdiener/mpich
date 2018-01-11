@@ -1,5 +1,5 @@
 /*
- *  $Id: chbrndv.c,v 1.2 1998/01/29 14:25:30 gropp Exp $
+ *  $Id: chbrndv.c,v 1.3 1998/11/16 21:02:56 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -238,7 +238,8 @@ int         from;
     MPID_PKT_OK_TO_SEND_T pkt;
 
     pkt.mode = MPID_PKT_OK_TO_SEND;
-    MPID_AINT_SET(pkt.send_id,send_id);
+    /* MPID_AINT_SET(pkt.send_id,send_id); */
+    pkt.send_id = send_id;
     pkt.recv_handle = rtag;
     DEBUG_PRINT_BASIC_SEND_PKT("S Ok send", &pkt);
     MPID_PKT_PACK( &pkt, sizeof(pkt), from );
@@ -362,6 +363,12 @@ int   from_grank;
     }
 #endif	
     DEBUG_PRINT_MSG("Sending data on channel");
+#ifdef MPID_DEBUG_ALL
+    if (MPID_DebugFlag) {
+	FPRINTF( MPID_DEBUG_FILE, "[%d]S for ", MPID_MyWorldRank );
+	MPID_Print_shandle( MPID_DEBUG_FILE, shandle );
+    }
+#endif
     MPID_n_pending--;
     MPID_SendTransfer( shandle->start, shandle->bytes_as_contig, 
 		       from_grank, pkt->recv_handle );

@@ -126,6 +126,7 @@ extern usc_time_t usc_MD_rollover_val;
 
 #if defined(SUN) || defined(DEC5000) || defined(HP) \
     || defined(SUN_SOLARIS) || defined(FREEBSD) || defined(LINUX) \
+    || defined(I86_SOLARIS) \
     || defined(IBM3090) || defined(RS6000) \
     || defined(NEXT) || defined(TITAN) || defined(GP_1000) \
     || defined(KSR) \

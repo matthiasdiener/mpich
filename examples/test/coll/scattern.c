@@ -5,9 +5,7 @@
 
 /* This example sends a vector and receives individual elements */
 
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     MPI_Datatype vec;
     double *vecin, *vecout, ivalue;

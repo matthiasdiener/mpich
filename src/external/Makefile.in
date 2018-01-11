@@ -5,13 +5,13 @@
 ##### User configurable options #####
 
 ARCH        = @ARCH@
-COMM	    = @COMM@
+DEVICE      = @DEVICE@
 MPIR_HOME   = @MPIR_HOME@
 CC          = @CC@
 F77         = @F77@
 AR          = @AR@
 RANLIB      = @RANLIB@
-INCLUDE_DIR = @INCLUDE_PATH@ -I../../mpid/@DEVICE@ -I../../include
+INCLUDE_DIR = @INCLUDE_PATH@ -I../../mpid/$(DEVICE) -I../../include
 DEVICE      = @DEVICE@
 OPTFLAGS    = @OPTFLAGS@
 
@@ -24,7 +24,7 @@ DEVICE_LIB =
 CFLAGS = @CFLAGS@ $(OPTFLAGS) @OPTFLAGSC@ $(INCLUDE_DIR) -DMPI_$(ARCH) \
 	$(MPIPROFILE)
 FFLAGS = @FFLAGS@ $(OPTFLAGS) @OPTFLAGSF@
-LIBS = ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $(DEVICE_LIB)
+LIBS = ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a $(DEVICE_LIB)
 MPI_FOBJECTS = 
 MPI_COBJECTS = type_get_cont.o type_get_env.o
 MPI_FSOURCES = 
@@ -39,44 +39,30 @@ MPI_WOBJECTS = type_getcontf.o type_get_envf.o
 MPI_SOURCES = $(MPI_CSOURCES) $(MPI_WSOURCES)
 MPI_OBJECTS = $(MPI_COBJECTS) $(MPI_WOBJECTS)
 
-default: ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
+default: ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a
 
-profile: ../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a
+profile: ../../build/$(ARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a
 
 wrapperlib: $(MPI_WOBJECTS)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libf@MPILIBNAME@.a $?	
+	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/libf@MPILIBNAME@.a $?	
 
 # default_all is the same as default, but without the RANLIB.  This
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
 default_all: default_objs
 default_objs: $(MPI_OBJECTS) @MPI_FOBJECTS@ 
-	$(AR) ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $?
+	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a $?
 profile_all: $(MPI_OBJECTS) @MPI_FOBJECTS@
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a $?
+	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a $?
 
 $(MPI_OBJECTS) :  $(MPI_INCLUDE)
 # We can't use a definition like this on some systems unless MPI_FOBJECTS is
 # non-null
 #$(MPI_FOBJECTS) :  $(MPI_INCLUDE)
 
-wrappers:
-	../../util/bfort -ferr -mpi -mnative -mapptr -ptrprefix MPIR_ \
-		-anyname -I pubinc $(MPI_TSOURCES)	
-manpages:
-	../../util/doctext -mpath ../../man/man3 -ext 3 -I pubinc \
-	   -jumpfile ../../jumpfile.list -heading MPI \
-		-quotefmt ../../util/fortnotes ../../util/errnotes \
-		$(MPI_CSOURCES)
-	../../util/doc2lt $(MPI_CSOURCES) >> ../../rsum.tmp
-
-wwwpages:
-	../../util/doctext -html -mpath ../../www/www3 -I pubinc \
-	   -index ../../www.index -jumpfile ../../jumpfile.list \
-	   -mapref $(MPIR_HOME)/util/mpis.cit \
-	   -indexdir "http://www.mcs.anl.gov/mpi/www/www3" -heading MPI \
-		-quotefmt ../../util/fortnotes ../../util/errnotes \
-		$(MPI_CSOURCES)
+#wrappers:
+#	../../util/bfort -ferr -mpi -mnative -mapptr -ptrprefix MPIR_ \
+#		-anyname -I pubinc $(MPI_TSOURCES)	
 
 source_names:
 	@echo $(MPI_CSOURCES)
@@ -86,12 +72,12 @@ source_names:
 .f.o:
 	$(F77) $(FFLAGS) -c $*.f
 
-../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a: \
+../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a: \
 		$(MPI_OBJECTS) @MPI_FOBJECTS@ 
 	$(AR) $@ $?
 	$(RANLIB) $@
 
-../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a: $(MPI_OBJECTS) @MPI_FOBJECTS@
+../../build/$(ARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a: $(MPI_OBJECTS) @MPI_FOBJECTS@
 	$(AR) $@ $?
 	$(RANLIB) $@
 clean:

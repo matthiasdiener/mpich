@@ -1,8 +1,8 @@
 // -*- c++ -*-
 //
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -27,12 +27,14 @@
 
 class Intracomm : public Comm {
 
+#if 0 // friends cause portability problems
 #if _MPIPP_USENAMESPACE_
   friend void ::op_intercept(void *invec, void *outvec, int *len, MPI_Datatype *datatype);
 #endif
 
 #if ! _MPIPP_USENAMESPACE_
   friend void op_intercept(void *invec, void *outvec, int *len, MPI_Datatype *datatype);
+#endif
 #endif
 
 public:
@@ -123,13 +125,15 @@ public:
 					  int remote_leader, int tag) const;
   
   virtual Cartcomm Create_cart(int ndims, const int dims[],
-				    const MPI2CPP_BOOL_T periods[], bool reorder) const;
+				    const MPI2CPP_BOOL_T periods[], MPI2CPP_BOOL_T reorder) const;
   
   virtual Graphcomm Create_graph(int nnodes, const int index[],
 				      const int edges[], MPI2CPP_BOOL_T reorder) const;
 
 
 protected:
+
+public: // JGS, friends issue
   static Op* current_op;
 
 };

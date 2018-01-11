@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_shift.c,v 1.3 1998/04/29 14:28:37 swider Exp $
+ *  $Id: cart_shift.c,v 1.4 1998/09/22 15:50:40 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -57,9 +57,6 @@ int      *dest;
        MPIR_TEST_ARG(dest) || MPIR_TEST_ARG(source)) 
     return MPIR_ERROR( comm_ptr, mpi_errno, myname );
 
-  /*** Check to see if displacement = 0 - Debbie Swider 11/19/97 ***/
-  if ( (displ == 0) && (mpi_errno = MPI_ERR_TOPOLOGY) )
-      return MPIR_ERROR( comm_ptr, mpi_errno, myname) ;
 
   /* Get topology information from the communicator */
   MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );

@@ -77,10 +77,17 @@ int  nlen;
 	l = strlen(name);
 	name[l++] = '.';
 	name[l] = 0;  /* In case we have neither SYSINFO or GETDOMAINNAME */
+	/* We used to try to get the internet domain, but there isn't a
+	   reliable and portable way to do that.  The calls below actually
+	   get the NIS domain name; more and more often, these are made 
+	   different from the Internet domain name
+	   */
+#ifdef USE_NIS_DOMAIN_AS_INTERNET_DOMAIN
 #if defined(HAVE_SYSINFO) && defined(SI_SRPC_DOMAIN)
 	sysinfo( SI_SRPC_DOMAIN,name+l,nlen-l);
 #elif defined(HAVE_GETDOMAINNAME)
 	getdomainname( name+l, nlen - l );
+#endif
 #endif
   }
 #endif

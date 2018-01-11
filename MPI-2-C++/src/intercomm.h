@@ -1,8 +1,8 @@
 // -*- c++ -*-
 //
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -41,20 +41,21 @@ public:
 
 #if _MPIPP_PROFILING_
   // copy
-  Intercomm(const Intercomm& data) : Comm(data) { }
+  Intercomm(const Intercomm& data) : pmpi_comm(data.pmpi_comm), Comm(data) { }
   Intercomm(const PMPI::Intercomm& d) : pmpi_comm(d), Comm((const PMPI::Comm&)d) { }
 
   // assignment
   Intercomm& operator=(const Intercomm& data) {
     Comm::operator=(data);
-    pmpi_comm = (PMPI::Intercomm)data; return *this; }
+    pmpi_comm = data.pmpi_comm; return *this; }
   Intercomm& operator=(const Comm_Null& data) {
     Comm::operator=(data);
-    pmpi_comm = (PMPI::Intercomm)data; return *this; }
+    Intercomm& ic = (Intercomm&)data;
+    pmpi_comm = ic.pmpi_comm; return *this; }
   // inter-language operability
   Intercomm& operator=(const MPI_Comm& data) {
     Comm::operator=(data);
-    pmpi_comm = data; return *this; }
+    pmpi_comm = PMPI::Intercomm(data); return *this; }
 #else
   // copy
   Intercomm(const Intercomm& data) : Comm(data.mpi_comm) { }

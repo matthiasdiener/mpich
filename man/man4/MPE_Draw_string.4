@@ -1,16 +1,41 @@
-.TH MPE_Draw_string 4 "7/1/1998" " " "MPE"
+.TH MPE_Draw_string 4 "10/22/1998" " " "MPE"
 .SH NAME
-MPE_Draw_string \-  Input Parameters: + graph - MPE graphics handle . x - x-coordinate of the origin of the string . y - y-coordinate of the origin of the string . color - color of the text - string - text string to be drawn 
+MPE_Draw_string \-  Draw a text string 
 .SH SYNOPSIS
 .nf
 #include <stdio.h>
 #include "mpe.h"
-
 int MPE_Draw_string( graph, x, y, color, string )
 MPE_XGraph graph;
 int x, y;
 MPE_Color color;
 char *string;
 .fi
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B graph 
+- MPE graphics handle
+.PD 1
+.PD 0
+.TP
+.B x 
+- x-coordinate of the origin of the string
+.PD 1
+.PD 0
+.TP
+.B y 
+- y-coordinate of the origin of the string
+.PD 1
+.PD 0
+.TP
+.B color 
+- color of the text
+.PD 1
+.PD 0
+.TP
+.B string 
+- text string to be drawn
+.PD 1
 .SH LOCATION
 mpe_graphics.c

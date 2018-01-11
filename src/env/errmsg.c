@@ -4,6 +4,14 @@
 #include <string.h>
 #endif
 
+/* prototype for getenv */
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#else
+extern char *getenv();
+#endif
+
+
 /*
  * This file provides for error message handling including the use
  * of NLS message catalogs.
@@ -31,7 +39,6 @@ char *defmsg;
     char *msg = 0;
     char *lang;
     char *path;
-    extern char *getenv();
 
     if (!opened_msgcat) {
 	opened_msgcat = 1;

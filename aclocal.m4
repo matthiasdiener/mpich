@@ -37,7 +37,9 @@ EOF
           ifelse([$2], , :, [$2
 ])
       else
-        echo "Execution of test program failed"
+	if test [$2] != "MMAP=1"; then
+            echo "Execution of test program failed"
+	fi
         ifelse([$3], , , [$3
 ])
         if test -s conftestout ; then
@@ -215,7 +217,7 @@ AC_TEST_PROGRAM([main () {
   u.l = 1;
   exit (u.c[sizeof (long) - 1] == 1);
 }], ,pac_r=1)
-if test -n "$pac_r" ; then
+if test -z "$pac_r" ; then
     AC_MSG_RESULT(little endian)
 else
     AC_MSG_RESULT(big endian)
@@ -903,6 +905,55 @@ rm -f conftest*
 ])dnl
 dnl
 dnl
+dnl Check that the Fortran 90 compiler works.  
+dnl Perform first arg is yes, second if false
+dnl PAC_CHECK_F90_COMPILER_OK(true-action, false-action)
+dnl The name of the compiler is F90
+dnl Also defines F90_SUFFIX as f or f90 (xlf90 accepts only f; Solaris
+dnl uses suffix to decide on free versus fixed format.
+dnl
+define(PAC_CHECK_F90_COMPILER_OK,[
+AC_MSG_CHECKING(that the compiler $F90 runs)
+cat >conftest.f <<EOF
+          program main
+          end
+EOF
+/bin/rm -f conftest.out
+$F90 $F90FLAGS -c conftest.f > conftest.out 2>&1
+if test $? != 0 ; then
+    AC_MSG_RESULT(no)
+    echo "Fortran 90 compiler returned non-zero return code"
+    if test -s conftest.out ; then
+	echo "Output from test was"
+        cat conftest.out
+    fi
+    ifelse([$2],,:,[$2])
+elif test ! -s conftest.o ; then
+    AC_MSG_RESULT(no)
+    echo "Fortran 90 compiler did not produce object file"
+    if test -s conftest.out ; then
+	echo "Output from test was"
+        cat conftest.out
+    fi
+    ifelse([$2],,:,[$2])
+else    
+    AC_MSG_RESULT(yes)
+    ifelse([$1],,:,[$1])
+    /bin/mv -f conftest.f conftest.f90
+    AC_MSG_CHECKING(that the compiler $F90 accepts .f90 suffix)
+    $F90 $F90FLAGS -c conftest.f90 > conftest.out 2>&1
+    if test $? != 0 ; then
+        F90_SUFFIX="f"
+	AC_MSG_RESULT(no)
+    else
+        F90_SUFFIX="f90"
+	AC_MSG_RESULT(yes)
+    fi
+fi
+rm -f conftest* 
+])dnl
+dnl
+dnl
 dnl PAC_PROGRAM_CHECK(VARIABLE, PROG-TO-CHECK-FOR, VALUE-IF-FOUND
 dnl               [, VALUE-IF-NOT-FOUND [,FULL-PATH-IF-FOUND])
 dnl
@@ -1044,7 +1095,7 @@ AC_MSG_CHECKING(gnumake)
 cat > conftest <<.
 SHELL=/bin/sh
 ALL:
-	@(dir=`pwd` ; cd .. ; $MAKE -f \$\$dir/conftest SUB)
+	@(dir=`pwd` ; cd .. ; \$(MAKE) -f \$\$dir/conftest SUB)
 SUB:
 	@echo "success"
 .
@@ -1222,7 +1273,10 @@ case $1 in
             P4_CFLAGS="-D_POSIX_SOURCE -D_HPUX_SOURCE"
 	    # We MUST have an ANSI compiler for HPUX, even for USER code
 	    # If the regular cpp worked, we would not need to do this.
-	    USER_CFLAGS="$USER_CFLAGS -Aa"
+ 	    PAC_CHECK_COMPILER_OPTION(-Aa,AaOPT=1,AaOPT=0)
+	    if test "$AaOPT" = 1 ; then
+	       USER_CFLAGS="$USER_CFLAGS -Aa"
+	    fi
 	    # Alternate...
 	    # -Ae is extended -Aa (only on some PA RISC systems)
 	    #CFLAGS="$CFLAGS -Ae +Olibcalls"
@@ -1767,6 +1821,8 @@ dnl  Put result into TK_VERSION (as, e.g., 3.6 or 4.0).  Should test version
 dnl as STRING, since we don't control the changes between versions, and 
 dnl only versions that we know should be tested.
 dnl Note that this may be important ONLY if you include tk.h .
+dnl TKINCDIR may also be defined if the include files are not where the
+dnl architecture-dependant library files are
 dnl
 dnl TK_LIB and XINCLUDES must be defined (and no_x must NOT be true)
 dnl
@@ -1780,6 +1836,9 @@ AC_MSG_CHECKING(for version of TK)
 if test -z "$no_x" -a -n "$TK_DIR" -a -n "$TCL_DIR" ; then
   CFLAGSsave="$CFLAGS"
   CFLAGS="$CFLAGS -I$TK_DIR/include -I$TCL_DIR/include $XINCLUDES"
+  if test -n "$TKINCDIR" ; then
+      CFLAGS="$CFLAGS -I$TKINCDIR/include"
+  fi
   PAC_TEST_PROGRAM([#include "tk.h"
 #include <stdio.h>
 main() { FILE *fp = fopen( "conftestval", "w" ); 
@@ -1978,6 +2037,22 @@ LIBS="$SaveLIBS"
 else
    :
 fi
+if test -z "$Pac_CV_NAME" ; then
+    # Try to compile/link with the Fortran compiler instead.  This
+    # worked for the NEC SX-4
+    compile_f='${CC-cc} $CFLAGS -c conftest.c; ${F77-f77} $FFLAGS -o conftest conftest.o $LIBS >/dev/null 2>&1'
+    eval $compile_f
+    if test ! -s conftest ; then 
+	echo "Could not build executable program:"
+	echo "${F77-f77} $FFLAGS -o conftest conftest.o $LIBS"
+    else
+	/bin/rm -f conftestout
+	if test -s conftest && (./conftest;exit) 2>conftestout ; then
+	    Pac_CV_NAME=`cat conftestval`
+        fi
+    fi
+
+fi
 /bin/rm -f conftestf.f conftestf.o
 if test -n "$Pac_CV_NAME" -a "$Pac_CV_NAME" != 0 ; then
     AC_MSG_RESULT($Pac_CV_NAME)
@@ -2086,17 +2161,19 @@ while (irc && maxcnt) { sleep(1); maxcnt--;}
 return rc;
 }
 EOF
-if eval $CC $CFLAGS -o conftest conftest.c > /dev/null 2>&1 ; then
+rm -f conftest.out
+if eval $CC $CFLAGS -o conftest conftest.c > conftest.out 2>&1 ; then
     if ./conftest ; then
 	AC_MSG_RESULT(yes)
     else
+	if test -s conftest.out ; then cat conftest.out >> config.log ; fi
 	AC_MSG_RESULT(Signals reset when used!)
 	AC_DEFINE(SIGNALS_RESET_WHEN_USED)
     fi
 else
     AC_MSG_RESULT(Could not compile test program!)
 fi
-/bin/rm -f conftest conftest.c conftest.o
+/bin/rm -f conftest conftest.c conftest.o conftest.out
 ])dnl
 dnl
 dnl
@@ -2215,8 +2292,8 @@ if test -n "$arch_IRIX" ; then
    fi
    AC_MSG_RESULT($cpucount)
    if test -z "$PROCESSOR_COUNT" ; then PROCESSOR_COUNT=$cpucount ; fi
-   AC_DEFINE(PROCESSOR_COUNT)
-
+   AC_DEFINE_UNQUOTED(PROCESSOR_COUNT, $PROCESSOR_COUNT)
+   dnl
    dnl 
    dnl Check for fast SGI device
    if test -d mpid/sgi -a "$osversion" -ge 6 -a "$osvminor" -ge 1 -a \
@@ -2331,33 +2408,40 @@ broken=0
 cat <<EOF >conftest.c
 int a(){return 1;}
 EOF
-compileonly='$CC -c $CFLAGS conftest.c >/dev/null 2>&1'
+rm -f conftest.out
+compileonly='$CC -c $CFLAGS conftest.c >conftest.out 2>&1'
 if eval $compileonly ; then 
     :
 else
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi
     broken=1;
 fi
+rm conftest.out
 if test $broken = 1 ; then
     AC_MSG_RESULT(no)
     print_error "Error in creating test object for ranlib!"
 else
-    arcmd='$AR foo.a conftest.o >/dev/null 2>&1'
+    arcmd='$AR foo.a conftest.o >conftest.out 2>&1'
     eval $arcmd
-    ranlibtest='$RANLIB foo.a >/dev/null 2>&1'
+    ranlibtest='$RANLIB foo.a >>conftest.out 2>&1'
     if eval $ranlibtest ; then
         : 
     else
+	if test -s conftest.out ; then cat conftest.out >> config.log ; fi
         broken=1
     fi
+    rm conftest.out
     cat <<EOF >conftest.c
 int a(); int main(argc,argv)int argc; char **argv;{ return a();}
 EOF
-    compileonly='$CC -c $CFLAGS conftest.c >/dev/null 2>&1'
+    compileonly='$CC -c $CFLAGS conftest.c >conftest.out 2>&1'
     if eval $compileonly ; then 
         : 
     else
         broken=1
+	if test -s conftest.out ; then cat conftest.out >> config.log ; fi
     fi
+    rm conftest.out
     if test $broken = 1 ; then
         AC_MSG_RESULT(no)
         print_error "Error in creating test program for ranlib test!"
@@ -2546,14 +2630,16 @@ int t() {
 [$2]
 ; return 0; }
 EOF
+rm -f conftest.out
 if test -z "$ac_link" ; then
-ac_link='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >/dev/null 2>&1'
+ac_link='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >conftest.out 2>&1'
 fi
 if eval $ac_link; then
   ifelse([$3], , :, [rm -rf conftest*
   $3])
-ifelse([$4], , , [else
-  rm -rf conftest*
+else
+  if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+ifelse([$4], , , [rm -rf conftest*
   $4
 ])dnl
 fi
@@ -2764,7 +2850,7 @@ cat > testfort.f <<EOF
         return
         end
 EOF
-   $F77 -c testfort.f > /dev/null 2>&1
+   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_INT1=0
@@ -2782,7 +2868,7 @@ AC_MSG_CHECKING(for integer * 2)
 	return
         end
 EOF
-   $F77 -c testfort.f > /dev/null 2>&1
+   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_INT2=0
@@ -2800,7 +2886,7 @@ AC_MSG_CHECKING(for integer * 4)
 	return
         end
 EOF
-   $F77 -c testfort.f > /dev/null 2>&1
+   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_INT4=0
@@ -2818,7 +2904,7 @@ AC_MSG_CHECKING(for integer * 8)
 	return
         end
 EOF
-   $F77 -c testfort.f > /dev/null 2>&1
+   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_INT8=0
@@ -2836,7 +2922,7 @@ AC_MSG_CHECKING(for integer * 16)
 	return
         end
 EOF
-   $F77 -c testfort.f > /dev/null 2>&1
+   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_INT16=0
@@ -2854,7 +2940,7 @@ AC_MSG_CHECKING(for real * 4)
 	return
         end
 EOF
-   $F77 -c testfort.f > /dev/null 2>&1
+   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_REAL4=0
@@ -2872,7 +2958,7 @@ AC_MSG_CHECKING(for real * 8)
 	return
         end
 EOF
-   $F77 -c testfort.f > /dev/null 2>&1
+   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_REAL8=0
@@ -2890,7 +2976,7 @@ AC_MSG_CHECKING(for real * 16)
 	return
         end
 EOF
-   $F77 -c testfort.f > /dev/null 2>&1
+   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_REAL16=0
@@ -2908,7 +2994,7 @@ AC_MSG_CHECKING(for double complex)
 	return
         end
 EOF
-   $F77 -c testfort.f > /dev/null 2>&1
+   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_DOUBLE_COMPLEX=0
@@ -2926,7 +3012,7 @@ AC_MSG_CHECKING(for complex * 8)
 	return
         end
 EOF
-   $F77 -c testfort.f > /dev/null 2>&1
+   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_COMPLEX8=0
@@ -2944,7 +3030,7 @@ AC_MSG_CHECKING(for complex * 16)
 	return
         end
 EOF
-   $F77 -c testfort.f > /dev/null 2>&1
+   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_COMPLEX16=0
@@ -2962,7 +3048,7 @@ AC_MSG_CHECKING(for complex * 32)
 	return
         end
 EOF
-   $F77 -c testfort.f > /dev/null 2>&1
+   $F77 $FFLAGS -c testfort.f > /dev/null 2>&1
    if test ! -s testfort.o ; then
        AC_MSG_RESULT(no)
        FORT_COMPLEX32=0
@@ -2979,27 +3065,72 @@ dnl
 dnl PAC_CHECK_COMPILER_OPTION(optionname,action-if-ok,action-if-fail)
 dnl This should actually check that compiler doesn't complain about it either,
 dnl by compiling the same program with two options, and diff'ing the output.
+dnl 
+dnl We are extra careful to prototype the functions incase compiler options
+dnl that complain about poor code are in effect
+dnl
+dnl Side effect: If compiler option works, it is added to CFLAGS
 dnl
 define([PAC_CHECK_COMPILER_OPTION],[
 AC_MSG_CHECKING([that C compiler accepts option $1])
 CFLAGSSAV="$CFLAGS"
 CFLAGS="$1 $CFLAGS"
-echo 'void f(){}' > conftest.c
-if test -z "`${CC-cc} $CFLAGS -c conftest.c 2>&1`"; then
-  AC_MSG_RESULT(yes)
-  $2
+rm -f conftest.out
+echo 'int try(void);int try(void){return 0;}' > conftest2.c
+echo 'int main(void);int main(void){return 0;}' > conftest.c
+if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+    if test -s conftest.out ; then
+        cat conftest.out >> config.log
+        AC_MSG_RESULT(no)
+        $3
+        CFLAGS="$CFLAGSSAV"         
+    else
+        AC_MSG_RESULT(yes)
+        AC_MSG_CHECKING([that routines compiled with $1 can be linked with ones compiled  without $1])       
+        /bin/rm -f conftest.out
+        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                if test -s conftest.out ; then
+	            cat conftest.out >> config.log
+	            AC_MSG_RESULT(no)
+                    print_error "Will not add $1 to CFLAGS"
+                    CFLAGS="$CFLAGSSAV"
+	            $3
+                else
+	            AC_MSG_RESULT(yes)	  
+                    $2
+                fi
+            else
+                AC_MSG_RESULT(no)
+                print_error "Will not add $1 to CFLAGS"
+                CFLAGS="$CFLAGSSAV"
+	        $3
+            fi  
+        else
+            if test -s conftest2.out ; then 
+                cat conftest2.out >> config.log 
+            fi
+            AC_MSG_RESULT(no)
+            print_error "Will not add $1 to CFLAGS"
+            CFLAGS="$CFLAGSSAV"
+            $3
+        fi
+    fi
 else
-  AC_MSG_RESULT(no)
-  $3
+    AC_MSG_RESULT(no)
+    $3
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+    CFLAGS="$CFLAGSSAV"
 fi
 rm -f conftest*
-CFLAGS="$CFLAGSSAV"
 ])
 dnl
 dnl PAC_CHECK_FC_COMPILER_OPTION is like PAC_CHECK_COMPILER_OPTION,
 dnl except for Fortran 
 dnl It is harder to do a test here since Fortran compilers tend to be very 
 dnl noisy.
+dnl
+dnl Side effect: If compiler option works, it is added to FFLAGS
 dnl
 define([PAC_CHECK_FC_COMPILER_OPTION],[
 AC_MSG_CHECKING([that Fortran compiler accepts option $1])
@@ -3009,27 +3140,103 @@ cat >conftest.f <<EOF
         program main
         end
 EOF
+cat >conftest3.f <<EOF
+       subroutine try( )
+       return
+       end
+EOF
 /bin/rm -f conftest1.out conftest2.out
-if $F77 $FFLAGS -c conftest.f > conftest1.out 2>&1 ; then
-    if $F77 $FFLAGSSAV -c conftest.f > conftest2.out 2>&1 ; then
+/bin/rm -f conftest3.out
+if $F77 $FFLAGS -o conftest conftest.f > conftest1.out 2>&1 ; then
+    if $F77 $FFLAGSSAV -o conftest conftest.f > conftest2.out 2>&1 ; then
         if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
             AC_MSG_RESULT(yes)
-            $2
-	else
-            AC_MSG_RESULT(no)
-            cat conftest2.out >> config.log
-            $3
-	fi
+            AC_MSG_CHECKING([that routines compiled with $1 can be linked with ones compiled without $1])
+            /bin/rm -f conftest1.out 
+            if $F77 -c $FFLAGSSAVE conftest3.f >conftest3.out 2>&1 ;then
+                if $F77 $FFLAGS -o conftest conftest3.o conftest.f >conftest1.out 2>&1 ; then
+                    if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
+                        AC_MSG_RESULT(yes)  
+			$2
+	            else
+                        AC_MSG_RESULT(no)
+			FFLAGS="$FFLAGSSAV"
+                        cat conftest1.out >> config.log
+                        $3
+	            fi
+                else
+                    AC_MSG_RESULT(no)
+		    FFLAGS="$FFLAGSSAV"
+                    cat conftest1.out >> config.log
+                    $3
+                fi
+            else
+                 AC_MSG_RESULT(no)
+	         FFLAGS="$FFLAGSSAV"
+                 cat conftest3.out >> config.log
+                 $3
+            fi
+       else
+           AC_MSG_RESULT(no)
+	   FFLAGS="$FFLAGSSAV"
+	   $3
+       fi
     else
         AC_MSG_RESULT(no)
-        cat conftest2.out >> config.log
-        $3
+        FFLAGS="$FFLAGSSAV"
+	$3
     fi
 else
     AC_MSG_RESULT(no)
-    cat conftest1.out >> config.log
+    FFLAGS="$FFLAGSSAV"
     $3
 fi
 rm -f conftest*
-FFLAGS="$FFLAGSSAV"
+
+])
+dnl
+dnl
+dnl Check that shared library support actually works
+dnl
+dnl Extra symbols used:
+dnl    CC_SHARED_OPT
+dnl    SHARED_LIB_UTIL (mpich/util/makesharedlib -kind=@SHAREDKIND@ -local)
+dnl    SHARED_LIB_PATH (how to get linker to look in current directory
+dnl                     for a shared library)
+dnl
+dnl PAC_SHARED_LIBS([action-if-ok],[action-if-failed])
+dnl
+define(PAC_SHARED_LIBS_OK,[
+    if test -z "$SHARED_LIB_UTIL" ; then
+	echo "Error in configure; SHARED_LIB_UTIL not set"
+	exit 1
+    fi
+    AC_MSG_CHECKING([that shared libraries can be built])
+    rm -f conftest* libconftest*
+    cat >conftest.c <<EOF
+int foo(int a);
+int foo(int a) {return a+1;}
+EOF
+    cat >conftest1.c <<EOF
+int main(void);
+int foo(int);
+int main(void){ return foo(-1); }
+EOF
+    if $CC $CFLAGS $CC_SHARED_OPT -c conftest.c >conftest.out 2>&1 ; then
+	$SHARED_LIB_UTIL -obj=conftest.o -lib=libconftest.a
+	if $CC $CFLAGS -o conftest conftest1.c $SHARED_LIB_PATH \
+		-lconftest >conftest.out 2>&1 ; then
+	   ifelse([$1],,,[$1])
+	   AC_MSG_RESULT(yes)
+	else
+           ifelse([$2],,,[$2])
+	   if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+	   AC_MSG_RESULT(no)
+	fi
+    else
+        ifelse([$2],,,[$2])
+	if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+	AC_MSG_RESULT(no)
+    fi
+rm -f conftest* libconftest*
 ])

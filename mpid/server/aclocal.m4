@@ -2,11 +2,14 @@ dnl
 dnl To Have Kerberos for the purposes of the server, we need the 
 dnl programming interface as well as the /usr/kerberos directories.
 dnl 
+dnl Just having Kerberos directories doesn't mean you can build applications
+dnl with it....
 AC_DEFUN(AC_CHECK_KERBEROS,
 [AC_MSG_CHECKING(for Kerberos (/usr/kerberos))
     AC_CACHE_VAL(ac_cv_sys_kerberos, [dnl
+        ac_cv_sys_kerberos="no"
 	if test -d /usr/kerberos ; then
-	    ac_cv_sys_kerberos="yes"
+	    AC_CHECK_FUNC(ka_UserAuthenticateGeneral,ac_cv_sys_kerberos="yes")
 	else
 	    ac_cv_sys_kerberos="no"
 	fi
@@ -17,11 +20,22 @@ AC_DEFUN(AC_CHECK_KERBEROS,
     AC_MSG_RESULT($ac_cv_sys_kerberos)
 ])
 
+dnl
+dnl Just having AFS directories doesn't mean that you can use 
+dnl AFS headers.
 AC_DEFUN(AC_CHECK_AFS,
 [AC_MSG_CHECKING(for AFS (/usr/afsws))
     AC_CACHE_VAL(ac_cv_sys_afs, [dnl
 	if test -d /usr/afsws ; then
-	    ac_cv_sys_afs="yes"
+	    afs_avail=1
+	    AC_CHECK_HEADER(afs/kauth.h,,afs_avail=0)
+	    AC_CHECK_HEADER(afs/kautils.h,,afs_avail=0)
+	    AC_CHECK_HEADER(afs/auth.h,,afs_avail=0)
+	    if test $afs_avail = 1 ; then
+  	        ac_cv_sys_afs="yes"
+	    else
+		ac_cv_sys_afs="no"
+	    fi
 	else
 	    ac_cv_sys_afs="no"
 	fi

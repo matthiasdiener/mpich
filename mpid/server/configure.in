@@ -1,5 +1,5 @@
 dnl
-dnl rcsid = $Header: /home/MPI/cvsMaster/mpich/mpid/server/configure.in,v 1.6 1998/05/08 14:43:23 gropp Exp $
+dnl rcsid = $Header: /home/MPI/cvsMaster/mpich/mpid/server/configure.in,v 1.7 1998/12/30 19:55:26 gropp Exp $
 dnl
 dnl Caching is usually WRONG for systems with cross-mounted file systems
 dnl (the cache file may correspond to a different system).  Since configure
@@ -59,7 +59,11 @@ dnl     AC_DEFINE(SETPGRP_HAS_TWO_ARGS)
 dnl else
 dnl    AC_MSG_RESULT(0)
 dnl fi
-
+dnl
+dnl routines like getpeername, accept, and getsockname take a third arg
+dnl that might be a int* or an unsigned long * or a size_t *.  We still 
+dnl need a test for which one it is.
+dnl
 AC_ARG_ENABLE(cflags, --enable-cflags=...   additional flags for c compiler,
     CFLAGS="$CFLAGS $enableval")
 

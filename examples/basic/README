@@ -13,6 +13,12 @@ cpilog  - cpi with explicit logging, requires mpe library
 
 systest - simple bandwidth benchmark
 
+fibon - This program calls a recursive function to calculate the nth value
+	of the Fibonacci sequence.  fib(1) = 1, fib(2) = 1, 
+	fib(i) = fib(i-1) + fib(i-2), i.e., 1, 1, 2, 3, 5, 8, 13, ...
+	This program, and others can be found at the following URL: 
+        http://www.hpctec.mcc.ac.uk/hpctec/courses/Fortran90/F90course.html
+
 To make these, type 
 
   make

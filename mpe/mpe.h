@@ -26,9 +26,8 @@ extern "C" {
 #define MPE_ERR_BAD_ARGS   2            /* graphics handle invalid */
 #define MPE_ERR_LOW_MEM    3	        /* out of memory (malloc() failed) */
 
-#if defined(MPI_rs6000)
+#if defined(FORTRANNOUNDERSCORE)
 
-#define mpe_ptime_            mpe_ptime
 #define mpe_initlog_          mpe_initlog
 #define mpe_startlog_         mpe_startlog
 #define mpe_stoplog_          mpe_stoplog
@@ -51,11 +50,8 @@ void MPE_IO_Stdout_to_file ANSI_ARGS(( char *, int ));
 
 void MPE_GetHostName       ANSI_ARGS(( char *, int ));
 
-double MPE_Wtime   ANSI_ARGS(( void ));
-double MPE_Ptime   ANSI_ARGS(( void ));
-
 void MPE_Start_debugger ANSI_ARGS(( void ));
-#if (defined(__STDC__) || defined(__cpluscplus))
+#if (defined(__STDC__) || defined(__cplusplus))
 void MPE_Errors_to_dbx ANSI_ARGS(( MPI_Comm *, int *, ... ));
 #else
 void MPE_Errors_to_dbx ANSI_ARGS(( MPI_Comm *, int *, char *, char *, int * ));

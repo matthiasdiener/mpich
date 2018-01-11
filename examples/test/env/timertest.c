@@ -1,10 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "mpi.h"
 #include "test.h"
 
-int main(argc, argv)
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     double t1, t2;
     double tick;

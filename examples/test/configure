@@ -1,9 +1,4 @@
-
-
-
-
-
-#!/bin/sh
+#! /bin/sh
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf.
 # Copyright (C) 1991, 1992, 1993 Free Software Foundation, Inc.
@@ -27,8 +22,9 @@ print_error() {
     }
 print_usage() {
 cat <<.
-Usage: ${progname} -arch=ARCH_TYPE 
+Usage: ${progname} [-arch=ARCH_TYPE]
                    [-cc=C_COMPILER] [-fc=FORTRAN_COMPILER]
+		   [-basecc=C_COMPILER] [-basefc=FORTRAN_COMPILER]
                    [-clinker=C_LINKER] [-flinker=FORTRAN_LINKER]
                    [-nof77] [-opt=OPTFLAGS] 
 	           [-make=MAKEPGM]
@@ -74,11 +70,21 @@ the system make.
 The option '-mpi2' enables testing of some MPI 2 functions.  Currently, only a
 few simple functions are tested.
 
+The option '-mpichpath=bindir' sets both the directory to look for compiler
+and mpirun commands in and specifies that MPICH is the version of MPI being
+tested.
+
 Sample Configure Usage:
 
 To make for an MPI with the MPI compile commands in your path:
 
   ./configure -cc=mpicc -fc=mpif77
+  make
+
+To test an installed MPICH configuration (installed into /usr/local/mpich for
+architecture solaris and device ch_p4), use
+
+  ./configure -mpichpath=/usr/local/mpich/build/solaris/ch_p4/bin -mpi2
   make
 .
 }
@@ -104,6 +110,9 @@ DEFAULT_MACHINE=''
 DEVICE_KIND=MPP
 HAS_MPI2=0
 cross_compiling=0
+# 
+BASECC=0
+BASEF77=0
 #
 # This next variable is a version without quotes.
 # We could also consider `echo $a | sed -e 's/"/\\"/g'`
@@ -191,16 +200,24 @@ do
 	cross_compiling=1
 	;;
 
+     -basecc=* | --basecc=*)
+	CC=`echo A$arg | sed 's/A-*basecc=//'`
+	BASECC=1
+	;;
+
      -cc=* | --cc=*)
-	MPICC=`echo $arg|sed 's/-*cc=//'`
-	CC="$MPICC"
+	MPICC=`echo A$arg|sed 's/A-*cc=//'`
 	USERCC=1
 	;;
 
      -fc=* | --fc=*)
-	MPIF77=`echo $arg|sed 's/-*fc=//'`
-	FC=$MPIF77
+	MPIF77=`echo A$arg|sed 's/A-*fc=//'`
 	USERF77=1
+	;;
+
+     -basefc=* | --basefc=*)
+	FC=`echo A$arg|sed 's/A-*basefc=//'`
+	BASEF77=1
 	;;
 
      -clinker=* | --clinker=*)
@@ -410,11 +427,21 @@ fi
 MPIR_HOME=$MPIR_TRIAL
 #
 if test -n "$mpichpath" ; then
-    if test -z "$CC" ; then CC=$mpichpath/mpicc ; fi
-    if test -z "$FC" ; then FC=$mpichpath/mpif77 ; fi
-    # Could also set mpirun=$mpichpath/mpirun
+    if test -z "$CC" ; then MPICC=$mpichpath/mpicc ; fi
+    if test -z "$FC" ; then MPIF77=$mpichpath/mpif77 ; fi
+    if test -z "$CXX" ; then MPICPLUSPLUS=$mpichpath/mpiCC ; fi
+    if test -z "$MPIRUN" ; then MPIRUN=$mpichpath/mpirun ; fi
+    if test -z "$MPICH_VERSION" ; then 
+	MPICH_VERSION="MPICH"
+    fi
 fi
 #
+if test $BASECC = 0 ; then
+    CC="$MPICC"
+fi
+if test $BASEF77 = 0 ; then
+    FC="$MPIF77"
+fi
 F77="$FC"
 #
 #
@@ -708,6 +735,180 @@ fi
 rm -f conftest* 
 
 fi
+# Fixup for make
+
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking gnumake""... $ac_c"
+else
+echo $ac_n "checking gnumake""... $ac_c" 1>&1
+fi
+/bin/rm -f conftest
+cat > conftest <<.
+SHELL=/bin/sh
+ALL:
+	@(dir=`pwd` ; cd .. ; \$(MAKE) -f \$\$dir/conftest SUB)
+SUB:
+	@echo "success"
+.
+str=`$MAKE -f conftest 2>&1`
+if test "$str" != "success" ; then
+    str=`$MAKE --no-print-directory -f conftest 2>&1`
+    if test "$str" = "success" ; then
+        MAKE="$MAKE --no-print-directory"
+	if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes using --no-print-directory"
+else
+echo "$ac_t""yes using --no-print-directory" 1>&1
+fi
+    else
+	if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    fi
+else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+/bin/rm -f conftest
+str=""
+
+
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking BSD 4.4 make""... $ac_c"
+else
+echo $ac_n "checking BSD 4.4 make""... $ac_c" 1>&1
+fi
+/bin/rm -f conftest
+cat > conftest <<.
+ALL:
+	@echo "success"
+.
+cat > conftest1 <<.
+include conftest
+.
+str=`$MAKE -f conftest1 2>&1`
+/bin/rm -f conftest conftest1
+if test "$str" != "success" ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""Found BSD 4.4 so-called make"
+else
+echo "$ac_t""Found BSD 4.4 so-called make" 1>&1
+fi
+    echo "The BSD 4.4 make is INCOMPATIBLE with all other makes."
+    echo "Using this so-called make may cause problems when building programs."
+    echo "You should consider using gnumake instead."
+    
+else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no - whew"
+else
+echo "$ac_t""no - whew" 1>&1
+fi
+fi
+str=""
+
+
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking OSF V3 make""... $ac_c"
+else
+echo $ac_n "checking OSF V3 make""... $ac_c" 1>&1
+fi
+/bin/rm -f conftest
+cat > conftest <<.
+SHELL=/bin/sh
+ALL:
+	@# This is a valid comment!
+	@echo "success"
+.
+str=`$MAKE -f conftest 2>&1`
+/bin/rm -f conftest 
+if test "$str" != "success" ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""Found OSF V3 make"
+else
+echo "$ac_t""Found OSF V3 make" 1>&1
+fi
+    echo "The OSF V3 make does not allow comments in target code."
+    echo "Using this make may cause problems when building programs."
+    echo "You should consider using gnumake instead."
+    
+else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+str=""
+
 #
 # Check for header files
 # stdlib.h is used mostly for things like malloc and free, so it isn't
@@ -889,6 +1090,265 @@ DEFS="$DEFS -DUSE_STDARG=1"
 
 fi
 #
+# Check for special types
+if test -z "$CC"; then
+  # Extract the first word of `gcc', so it can be a program name with args.
+  set dummy gcc; word=$2
+  echo checking for $word
+  IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
+  for dir in $PATH; do
+    test -z "$dir" && dir=.
+    if test -f $dir/$word; then
+      CC="gcc"
+      break
+    fi
+  done
+  IFS="$saveifs"
+fi
+test -z "$CC" && CC="cc"
+test -n "$CC" && test -n "$verbose" && echo "	setting CC to $CC"
+
+# Find out if we are using GNU C, under whatever name.
+cat > conftest.c <<EOF
+#ifdef __GNUC__
+  yes
+#endif
+EOF
+${CC-cc} -E conftest.c > conftest.out 2>&1
+if egrep yes conftest.out >/dev/null 2>&1; then
+  GCC=1 # For later tests.
+fi
+rm -f conftest*
+
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for long double""... $ac_c"
+else
+echo $ac_n "checking for long double""... $ac_c" 1>&1
+fi
+if test -n "$GCC"; then
+
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LONG_DOUBLE"
+echo "#define" HAVE_LONG_DOUBLE 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LONG_DOUBLE=1"
+}
+
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+else
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { long double a;return 0; }
+EOF
+if eval $compile; then
+  
+  rm -rf conftest*
+  ldok=1
+
+else
+  rm -rf conftest*
+  ldok=0
+   
+fi
+rm -f conftest*
+
+if test $ldok = 1 ; then
+cat > conftest.c <<EOF
+#include "confdefs.h"
+int main() {
+/* On Ultrix 4.3 cc, long double is 4 and double is 8.  */
+exit(sizeof(long double) < sizeof(double)); }
+EOF
+eval $compile
+if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LONG_DOUBLE"
+echo "#define" HAVE_LONG_DOUBLE 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LONG_DOUBLE=1"
+}
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+
+else
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+rm -fr conftest*
+else
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+fi
+
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for long long""... $ac_c"
+else
+echo $ac_n "checking for long long""... $ac_c" 1>&1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+int main() {
+/* See long double test; this handles the possibility that long long
+   has the same problem on some systems */
+exit(sizeof(long long) < sizeof(long)); }
+EOF
+eval $compile
+if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi;has_long_long=1
+
+else
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi;has_long_long=0
+fi
+rm -fr conftest*
+if test "$has_long_long" = 1 ; then
+   if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that compiler can handle loops with long long""... $ac_c"
+else
+echo $ac_n "checking that compiler can handle loops with long long""... $ac_c" 1>&1
+fi
+         
+   cat > conftest.c <<EOF
+void MPIR_SUM_ext( invec, inoutvec, len )
+void *invec, *inoutvec;
+int  len;
+{
+    int i;
+    long long *a = (long long *)inoutvec; long long *b = (long long *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = a[i]+b[i];
+}
+int main(){return 0;}
+EOF
+    
+    if eval $compile ; then
+        rm -rf conftest*
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+    else
+        rm -rf conftest*
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no!"
+else
+echo "$ac_t""no!" 1>&1
+fi
+        has_long_long=0
+    fi
+fi
+if test "$has_long_long" = 1 ; then
+    
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LONG_LONG_INT"
+echo "#define" HAVE_LONG_LONG_INT 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LONG_LONG_INT=1"
+}
+
+fi
+
+#
 # Check to see if the compiler accepts prototypes
 
 if test -z "$ac_echo_n" ; then
@@ -966,6 +1426,172 @@ else
 fi
 
 #
+# This is used in one of the TEST programs (sigchk.c)
+for ac_hdr in signal.h
+do
+ac_safe=`echo "$ac_hdr" | tr '[a-z]./' '[A-Z]__'`
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for $ac_hdr""... $ac_c"
+else
+echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+#include <$ac_hdr>
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  
+  rm -rf conftest*
+  eval "ac_cv_header_$ac_safe=yes"
+
+else
+  rm -rf conftest*
+  eval "ac_cv_header_$ac_safe=no"
+   
+fi
+rm -f conftest*
+if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+    ac_tr_hdr=HAVE_`echo $ac_hdr | tr '[a-z]./' '[A-Z]__'`
+  
+{
+test -n "$verbose" && \
+echo "	defining $ac_tr_hdr"
+echo "#define" $ac_tr_hdr 1 >> confdefs.h
+DEFS="$DEFS -D$ac_tr_hdr=1"
+}
+ 
+else
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+done
+
+for func in sigaction
+do
+trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for ${func}""... $ac_c"
+else
+echo $ac_n "checking for ${func}""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_${func}) || defined (__stub___${func})
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char ${func}(); ${func}();
+#endif
+ }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  rm -rf conftest*
+  {
+test -n "$verbose" && \
+echo "	defining ${trfunc}"
+echo "#define" ${trfunc} 1 >> confdefs.h
+DEFS="$DEFS -D${trfunc}=1"
+}
+
+
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+rm -f conftest*
+done
+
+#
 INCLUDE_PATH=""
 USER_INCLUDE_PATH=""
 USER_DEFS=""
@@ -976,17 +1602,32 @@ MPE_LIBS=""
 # in Makefiles that should not be MPICH dependent
 # MPICC etc should be set on the configure line
 if test -z "$MPICC" ; then
-    MPICC=$MPIR_HOME/lib/$ARCH/$COMM/mpicc
+    if  -x $MPIR_HOME/build/$ARCH/$DEVICE/bin/mpicc  ; then
+	MPICC=$MPIR_HOME/build/$ARCH/$DEVICE/bin/mpicc
+    else
+	# MPICH 1.1.1 and earlier
+        MPICC=$MPIR_HOME/lib/$ARCH/$DEVICE/mpicc
+    fi
 fi
 if test -z "$MPIF77" ; then
     if test $NOF77 = 1 ; then
 	MPIF77=:
     else
-        MPIF77=$MPIR_HOME/lib/$ARCH/$COMM/mpif77
+	if  -x $MPIR_HOME/build/$ARCH/$DEVICE/bin/mpif77  ; then
+	    MPIF77=$MPIR_HOME/build/$ARCH/$DEVICE/bin/mpif77
+	else
+ 	    # MPICH 1.1.1 and earlier
+            MPIF77=$MPIR_HOME/lib/$ARCH/$DEVICE/mpif77
+        fi
     fi
 fi
 if test -z "$LIB_DIR" ; then
     LIB_DIR="."
+fi
+# 
+# Default name for MPIRUN command
+if test -z "$MPIRUN" ; then
+    MPIRUN="mpirun"
 fi
 #
 #
@@ -1038,9 +1679,9 @@ do
 done
 
 trap 'rm -f Makefile pt2pt/Makefile coll/Makefile topol/Makefile context/Makefile env/Makefile profile/Makefile ; exit 1' 1 3 15
+CC='$CC'
 FINC='$FINC'
 ARCH='$ARCH'
-CC='$CC'
 CFLAGS='$CFLAGS'
 CLINKER='$CLINKER'
 COMM='$COMM'
@@ -1057,17 +1698,19 @@ LIB_PATH='$LIB_PATH'
 LIB_DIR='$LIB_DIR'
 MAKE='$MAKE'
 MPE_CFLAGS='$MPE_CFLAGS'
+MPICH_VERSION='$MPICH_VERSION'
 MPIR_HOME='$MPIR_HOME'
 MPI_FOBJECTS='$MPI_FOBJECTS'
 MPIFDEP='$MPIFDEP'
 MPILIBNAME='$MPILIBNAME'
 MPICC='$MPICC'
 MPIF77='$MPIF77'
+MPICPLUSPLUS='$MPICPLUSPLUS'
+MPIRUN='$MPIRUN'
 OPTFLAGS='$OPTFLAGS'
 OPTFLAGSC='$OPTFLAGSC'
 OPTFLAGSF='$OPTFLAGSF'
 HAS_MPI2='$HAS_MPI2'
-MPICH_VERSION='$MPICH_VERSION'
 LIBS='$LIBS'
 srcdir='$srcdir'
 DEFS='$DEFS'
@@ -1095,9 +1738,9 @@ for file in .. ${CONFIG_FILES}; do if test "x$file" != x..; then
 cat $top_srcdir/${file}.in | sed -e "
 $prsub
 $extrasub
+s%@CC@%$CC%g
 s%@FINC@%$FINC%g
 s%@ARCH@%$ARCH%g
-s%@CC@%$CC%g
 s%@CFLAGS@%$CFLAGS%g
 s%@CLINKER@%$CLINKER%g
 s%@COMM@%$COMM%g
@@ -1114,17 +1757,19 @@ s%@LIB_PATH@%$LIB_PATH%g
 s%@LIB_DIR@%$LIB_DIR%g
 s%@MAKE@%$MAKE%g
 s%@MPE_CFLAGS@%$MPE_CFLAGS%g
+s%@MPICH_VERSION@%$MPICH_VERSION%g
 s%@MPIR_HOME@%$MPIR_HOME%g
 s%@MPI_FOBJECTS@%$MPI_FOBJECTS%g
 s%@MPIFDEP@%$MPIFDEP%g
 s%@MPILIBNAME@%$MPILIBNAME%g
 s%@MPICC@%$MPICC%g
 s%@MPIF77@%$MPIF77%g
+s%@MPICPLUSPLUS@%$MPICPLUSPLUS%g
+s%@MPIRUN@%$MPIRUN%g
 s%@OPTFLAGS@%$OPTFLAGS%g
 s%@OPTFLAGSC@%$OPTFLAGSC%g
 s%@OPTFLAGSF@%$OPTFLAGSF%g
 s%@HAS_MPI2@%$HAS_MPI2%g
-s%@MPICH_VERSION@%$MPICH_VERSION%g
 s%@LIBS@%$LIBS%g
 s%@srcdir@%$srcdir%g
 s%@DEFS@%$DEFS%

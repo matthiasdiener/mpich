@@ -1,8 +1,8 @@
 // -*- c++ -*-
 //
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -67,9 +67,9 @@ _REAL_MPI_::Datatype::Create_struct(int count, const int array_of_blocklengths[]
   MPI_Datatype newtype;
   int i;
   MPI_Datatype* type_array = new MPI_Datatype[count];
-  for (i=0; i < count; i++) {
+  for (i=0; i < count; i++)
     type_array[i] = array_of_types[i];
-  }
+
   (void)MPI_Type_struct(count, (int*)array_of_blocklengths,
 			(MPI_Aint*)array_of_displacements, type_array, &newtype);
   delete type_array;

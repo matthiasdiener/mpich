@@ -9,9 +9,7 @@
    This is a very simple MPI program which can be used to check things
    like the behavior of the ADI or heterogeneous code
  */
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
 char msg[10];
 char smsg[10];

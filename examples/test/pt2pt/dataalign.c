@@ -2,14 +2,11 @@
 #include <stdio.h>
 #include "mpi.h"
 
-int main(argc, argv)
-int argc;
-char * argv[];
+int main( int argc, char *argv[])
 {
 	struct a {	int	i;
 			char	c;
 		} s[10], s1[10];
-	void * p1, *p2;
 	int j;
 	int errs = 0, toterrs;
 	int rank, size, tsize;
@@ -44,11 +41,14 @@ char * argv[];
 	printf("Size of MPI array is %d, extent is %d\n", tsize, text );
 #endif
 
-	p1 = s;
-	p2 = &(s[10].i);
 #ifdef DEBUG
+        {
+	void * p1, *p2;
+	p1 = s;
+	p2 = &(s[10].i);  /* This statement may fail on some systems */
 	printf("C array starts at %p and ends at %p for a length of %d\n",
 		s, &(s[9].c), (char *)p2-(char *)p1 );
+        }
 #endif
 	MPI_Type_size( str, &tsize );
 	MPI_Type_extent( str, &text );
@@ -58,7 +58,7 @@ char * argv[];
 #endif
 	if (text != sizeof(struct a)) {
 	    printf( "Extent of struct a (%d) does not match sizeof (%d)\n",
-		    text, sizeof(struct a) );
+		    text, (int)sizeof(struct a) );
 	    errs++;
 	}
 

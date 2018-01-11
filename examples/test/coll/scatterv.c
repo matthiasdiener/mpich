@@ -71,9 +71,7 @@ for (m=0; m<ny; m++) {
 return errs;
 }
 
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int rank, size, myrow, mycol, nx, ny, stride, cnt, i, j, errs, tot_errs;
     double    *sendbuf, *recvbuf;

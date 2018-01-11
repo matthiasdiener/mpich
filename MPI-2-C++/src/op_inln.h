@@ -1,8 +1,8 @@
 // -*- c++ -*-
 //
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -31,7 +31,7 @@ inline
 MPI::Op::Op() { }
   
 inline
-MPI::Op::Op(const MPI::Op& o) : pmpi_op((PMPI::Op&)o) { }
+MPI::Op::Op(const MPI::Op& o) : pmpi_op(o.pmpi_op) { }
   
 inline
 MPI::Op::Op(const MPI_Op& o) : pmpi_op(o) { }
@@ -41,7 +41,7 @@ MPI::Op::~Op() { }
 
 inline
 MPI::Op& MPI::Op::operator=(const MPI::Op& op) {
-  pmpi_op = (PMPI::Op&)op; return *this;
+  pmpi_op = op.pmpi_op; return *this;
 }
 
 // comparison

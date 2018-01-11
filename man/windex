@@ -15,6 +15,8 @@ CLOG_reclen	CLOG_reclen (4) -  get length (in doubles) of log record by type
 CLOG_rectype	CLOG_rectype (4)    -  print log record type 
 CLOG_treesetup	CLOG_treesetup (4)  -  locally determine parent and children in binary tree 
 Constants	Constants (3)	-  Meaning of MPI .I s defined constants 
+Jumpshot	Jumpshot (1)	-  Graphical Visualization Tool for Parallel Programs	
+MPE		MPE (4) 	-  MultiProcessing Environment 
 MPE_Add_RGB_color		MPE_Add_RGB_color (4)	-  Adds a color to the colormap given its RGB values 
 MPE_CaptureFile MPE_CaptureFile (4) -  Sets the base filename used to capture output from updates 
 MPE_Close_graphics		MPE_Close_graphics (4)	-  Closes a X11 graphics device 
@@ -30,15 +32,16 @@ MPE_Draw_line	MPE_Draw_line (4)   -  Draws a line on an X11 display
 MPE_Draw_logic	MPE_Draw_logic (4)  -  Sets logical operation for laying down new pixels 
 MPE_Draw_point	MPE_Draw_point (4)  -  Draws a point on an X Windows display  
 MPE_Draw_points MPE_Draw_points (4) -  Draws points on an X Windows display  
-MPE_Errors_call_debugger	MPE_Errors_call_debugger (4)	-  On an error, print a message and (attempt) to start the specified debugger on the program 
+MPE_Draw_string MPE_Draw_string (4) -  Draw a text string 
 MPE_Fill_circle MPE_Fill_circle (4) -  Fills a circle 
 MPE_Fill_rectangle		MPE_Fill_rectangle (4)	-  Draws a filled rectangle on an X11 display  
 MPE_Finish_log	MPE_Finish_log (4)  -  Send log to master, who writes it out 
 MPE_GetTags	MPE_GetTags (4) -  Returns tags that can be used in communication with a  communicator 
 MPE_Get_mouse_press		MPE_Get_mouse_press (4) -  Waits for mouse button press 
 MPE_IO_Stdout_to_file		MPE_IO_Stdout_to_file (4)   -  Re-direct stdout to a file 
-MPE_Iget_mouse_press		MPE_Iget_mouse_press (4)    -  Checks for mouse button press Checks if the mouse button has been pressed inside this MPE window. If pressed, returns the coordinate relative to the upper right of this MPE window and the button that was pressed. 
+MPE_Iget_mouse_press		MPE_Iget_mouse_press (4)    -  Checks for mouse button press 
 MPE_Init_log	MPE_Init_log (4)    -  Initialize for logging 
+MPE_Initialized_logging 	MPE_Initialized_logging (4) -  Indicate whether MPE_Init_log or MPE_Finish_log have been called. 
 MPE_Line_thickness		MPE_Line_thickness (4)	-  Sets thickness of lines 
 MPE_Log_event	MPE_Log_event (4)   -  Logs an event 
 MPE_Log_get_event_number	MPE_Log_get_event_number (4)	-  Gets an unused event number 
@@ -49,18 +52,14 @@ MPE_Num_colors	MPE_Num_colors (4)  -  Gets the number of available colors
 MPE_Open_graphics		MPE_Open_graphics (4)	-  (collectively) opens an X Windows display 
 MPE_Print_datatype_pack_action	MPE_Print_datatype_pack_action (4)  -  Prints the operations performed in an  pack of a datatype 
 MPE_Print_datatype_unpack_action    MPE_Print_datatype_unpack_action (4)    -  Prints the operations performed in an  unpack of a datatype 
-MPE_Ptime	MPE_Ptime (4)	-  Returns process time stamp 
 MPE_ReturnTags	MPE_ReturnTags (4)  -  Returns tags allocated with MPE_GetTags. 
 MPE_Seq_begin	MPE_Seq_begin (4)   -  Begins a sequential section of code.   
 MPE_Seq_end	MPE_Seq_end (4) -  Ends a sequential section of code. 
-MPE_Signals_call_debugger	MPE_Signals_call_debugger (4)	-  Process-killing signals invoke the MPE error handler 
 MPE_Start_log	MPE_Start_log (4)   -  Begin logging of events 
 MPE_Stop_log	MPE_Stop_log (4)    -  Stop logging events 
 MPE_TagsEnd	MPE_TagsEnd (4) -  Returns the private keyval.	 
 MPE_Update	MPE_Update (4)	-  Updates an X11 display 
-MPE_Wtime	MPE_Wtime (4)	-  Returns wall clock time stamp 
 MPI		MPI (1) 	-  Introduction to the Message-Passing Interface 
-MPIR_Init	MPIR_Init (3)	-  Initialize the MPI execution environment 
 MPI_Abort	MPI_Abort (3)	-  Terminates MPI execution environment 
 MPI_Address	MPI_Address (3) -  Gets the address of a location in memory   
 MPI_Allgather	MPI_Allgather (3)   -  Gathers data from all tasks and distribute it to all  

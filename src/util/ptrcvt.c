@@ -1,5 +1,5 @@
 /*
- *  $Id: ptrcvt.c,v 1.3 1998/01/29 14:29:48 gropp Exp $
+ *  $Id: ptrcvt.c,v 1.5 1998/12/07 20:14:37 gropp Exp $
  *
  *  (C) 1994 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -53,6 +53,8 @@
    already have a "self" field.  That really should be "self_index".
  */
 
+/* mpiimpl.h is needed to get the symbols like HAVE_STDLIB_H ... */
+#include "mpiimpl.h"
 #include <stdio.h>
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
@@ -163,8 +165,10 @@ int idx;
     blockidx = idx & PTR_MASK;
     if (blocknum < 0 || blocknum >= MAX_BLOCKS ||
 	blockidx < 0 || blockidx >= MAX_PTRS || !PtrBlocks[blocknum]) {
+	/* Errors here are fatal */
 	MPIR_ERROR_PUSH_ARG(&idx);
 	MPIR_ERROR_PUSH_ARG(&idx);
+	MPIR_COMM_WORLD->use_return_handler = 0;
 	MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_BAD_INDEX, "Error in MPI object" );
 	return (void *)0;
     }
@@ -215,11 +219,15 @@ void *ptr;
     }
     if (blocknum == MAX_BLOCKS) {
 	/* This isn't the right thing to do, but it isn't too bad */
+	/* Errors here are fatal */
+	MPIR_COMM_WORLD->use_return_handler = 0;
 	(void) MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_INDEX_EXHAUSTED, 
 			   "Error in MPI object" );
     }
     PtrBlocks[blocknum] = (PtrToIdx *)MALLOC( sizeof(PtrToIdx) * MAX_PTRS );
     if (!PtrBlocks[blocknum]) {
+	/* Errors here are fatal */
+	MPIR_COMM_WORLD->use_return_handler = 0;
 	(void) MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_INDEX_EXHAUSTED, 
 			   "Error in MPI object" );
     }
@@ -257,8 +265,10 @@ int idx;
     blockidx = idx & PTR_MASK;
     if (blocknum < 0 || blocknum >= MAX_BLOCKS ||
 	blockidx < 0 || blockidx >= MAX_PTRS || !PtrBlocks[blocknum]) {
+	/* Errors here are fatal */
 	MPIR_ERROR_PUSH_ARG(&idx);
 	MPIR_ERROR_PUSH_ARG(&idx);
+	MPIR_COMM_WORLD->use_return_handler = 0;
 	MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_BAD_INDEX, "Error in MPI object" );
 	return;
     }
@@ -266,8 +276,10 @@ int idx;
 /* #define DEBUG_NULL_IDX */
 #ifdef DEBUG_NULL_IDX
     if (idx == 0) {
+	/* Errors here are fatal */
 	MPIR_ERROR_PUSH_ARG(&idx);
 	MPIR_ERROR_PUSH_ARG(&idx);
+	MPIR_COMM_WORLD->use_return_handler = 0;
 	MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_BAD_INDEX, "Error in MPI object" );
 	return;
     }
@@ -278,7 +290,9 @@ int idx;
     ptridx = PtrBlocks[blocknum];
     if (ptridx[blockidx].next) {
 	/* In-use pointers NEVER have next set */
+	/* Errors here are fatal */
 	MPIR_ERROR_PUSH_ARG(&idx);
+	MPIR_COMM_WORLD->use_return_handler = 0;
 	MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_INDEX_FREED, 
 		    "Error in MPI object - already freed" );
 	return;
@@ -353,6 +367,8 @@ void *ptr;
     if (idx > MAX_PTRS) {
 	fprintf( stderr, "Internal error! Predefined index %d too large!\n",
 		 idx );
+	/* Errors here are fatal */
+	MPIR_COMM_WORLD->use_return_handler = 0;
 	MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_INTERN, 
 		    "Handle value too large" );
 	return;
@@ -373,6 +389,8 @@ void *ptr;
 	    /* If we didn't find the entry, we have a problem ... */
 	    fprintf( stderr, "Internal Error: Index %d is a duplicate\n", 
 		     idx );
+	    /* Errors here are fatal */
+	    MPIR_COMM_WORLD->use_return_handler = 0;
 	    MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_INTERN, 
 			"Handle value is a duplicate" );
 	    avail = 0;

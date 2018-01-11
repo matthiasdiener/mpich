@@ -16,7 +16,7 @@ MPIFDEP     = @MPIFDEP@
 SHELL = /bin/sh
 
 PROFLIB =
-CFLAGS  = @MPE_CFLAGS@ $(OPTFLAGS) 
+CFLAGS  = $(OPTFLAGS) 
 CCFLAGS = $(CFLAGS)
 FFLAGS = $(OPTFLAGS)
 # Use LIBS to add any special libraries for C programs

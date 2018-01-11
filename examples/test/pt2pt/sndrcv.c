@@ -15,9 +15,7 @@
    This version uses sendrecv and sendrecv_replace (but only in the
    head-to-head mode).
  */
-int main(argc, argv)
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
 MPI_Datatype *types;
 void         **inbufs, **outbufs;

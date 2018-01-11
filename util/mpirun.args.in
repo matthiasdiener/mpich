@@ -384,7 +384,7 @@ while [ 1 -le $# ] ; do
     -v)
        	mpirun_verbose=1
 	;;
-    -t)
+    -t|-show)
       	just_testing=1
 	Show=echo
 	;;

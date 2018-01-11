@@ -7,9 +7,7 @@
  * implementation to handle a flood of one-way messages.
  */
 
-int main( argc, argv )
-int argc;
-char ** argv;
+int main( int argc, char **argv )
 {
   double wscale = 10.0, scale;
   int numprocs, myid,i,namelen;

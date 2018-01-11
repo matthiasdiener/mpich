@@ -1,0 +1,166 @@
+This is a partial list of the known problems in MPICH. 
+
+
+Current as of Release 1.1.2
+
+General:
+========
+
+1. Cancel of nonblocking sends doesn't work
+
+2. When using strict ANSI/ISO C compilation, the use of the "long long" type
+generates an error.  This is tricky; "long long" is needed by ROMIO on some
+systems to get 8-byte integers for file offsets.  Basically, if you want large
+files, you may need to accept "long long". 
+
+3. The Fortran 90 compile and Fortran compilers may be passed the same
+shared-library flags (e.g., -PIC).  Some Fortran 90 compilers may not
+recognize the same flags, and generate an "unrecognized argument" warning.
+
+4. Totalview access to the message queues may not work.  We've done some
+preliminary testing but due to bureaucratic snafus haven't been able to fully
+test this.
+
+5. Debugger switches to mpirun (e.g., -dbx, -gdb) may not work.  This is
+caused by differences in the command line syntax for the debuggers; even for a
+single vendor, the command line syntax for the debugger may change from month
+to month.  We plan to offer a more generalized configuration method for this
+in the future.
+
+6. MPICH is not thread-safe.  A thread-safe version is in our plans.
+
+7. The choice of default struct alignment is fixed and may not match your
+compiler.  The best fix is to use an MPI_UB when using MPI_Type_struct to
+define the end of the structure.  A subsequent version of MPICH will provide
+more flexibility on structure alignment (requires changes to MPI_Type_struct).
+
+8. Shared libraries for MPI.  We're still working on this; the lack of a
+common method for compiling/creating/using them is a burden.  Still, there are
+some steps in this direction; see mpich/util/makesharedlib.  If you can help
+us add to systems for which we can generate shared libraries, please send mail
+to mpi-bugs@mcs.anl.gov .
+
+9. If your Fortran and Fortran90 compilers use different name mappings (e.g.,
+one uses a single trailing underscore and the other uses two), you won't be
+able to use one of them.  Systems that support weak symbols may be fixed in a
+later release as long as other interface issues (e.g., size of MPI_Fint) are
+the same.
+
+10. Performance of collective routines is inadequate.  Many of these are
+simple functional implementations.  If you would like to contribute better
+versions, please contact us at mpi-bugs@mcs.anl.gov .  One project to
+provide better collective operations is known to us: MagPIe at
+http://www.cs.vu.nl/albatross/ .
+
+
+11. The installation process doesn't install the HTML versions of the
+documentation. 
+
+12.  When configuring with the -f95nag switch or the -fc=f95 switch, the 
+variable F77 is assigned the value of f95 and is substituted in the mpif77 
+script.  Thus, the mpif77 script is used to run f95 programs.  This can be
+very misleading.
+
+13. Systems with a Unix System V heritage may show performance problems when
+using the ch_p4 device.  This is due to the P4 code working around limitations
+in the SysV/R2 interface.  Later versions don't have the limitation that P4 is
+catering to.  We have added some code to bypass this old code (the P4
+configure tests to make sure that the problem has been fixed).  The option
+to use with the MPICH configure is -p4_opts=--enable-nonblockread .  We have 
+*not* tested this option much yet, and if something goes wrong, you may see
+error messages from MPICH/P4 about "Unexpected EOF on socket".  
+
+MPE:
+====
+
+1. MPE Logging doesn't currently record communicator information.  This can
+cause upshot/jumpshot/nupshot to become confused about message arrows.
+
+2. MPE Logging uses the MPICH definitions for MPI_PROC_NULL, MPI_ANY_TAG, and
+MPI_ANY_SOURCE.  This is fine for MPICH, but can cause problems when using MPE
+logging with other MPI implementations.
+
+3. The mechanism that upshot/nupshot/jumpshot uses to match sends and receives
+can be fooled by multiple messages from the same source and with the same tag,
+particularly when nonblocking sends and receives are used.
+
+JUMPSHOT:
+========
+
+1.  There is no man pages for the java routines.
+
+ROMIO:
+======
+
+1. There are problems with NFS (they are not in ROMIO).  See the README. 
+
+2. Error messages in ROMIO do not use the MPI Error_string service yet.
+
+3. ROMIO Fortran tests may use getarg; some systems require pxfgetarg.
+
+Device Specific:
+===============
+ch_p4 device:
+
+1. MPI_Abort may not abort all processes
+
+2. In certain cases, established connections can be lost by the TCP layer
+(this is under the MPICH layer).  MPICH depends on TCP to be reliable; when
+the TCP implementation decides that a connection has failed, so does MPICH.
+It turns out that the algorithm that some TCP implementations uses to decide
+that a connection has failed can confuse network congestion and local node CPU
+load with a failed connection.  To fix this, we will either need to use UDP
+instead of TCP or add our own reliability layer on top of TCP.
+
+This problem affects more than MPICH; we have xterms and Emacs sessions fail
+because of this problem with TCP.
+
+3: Heterogeneous systems containing LINUX on different architectures does not
+work.  The p4 layer that is used for workstation networks predates portable
+operating systems.  This will be fixed when the p4 layer is replaced.
+
+ch_meiko:
+
+1. This device is no longer supported.  If someone would like to send us a
+patch that would make it work, we'll make it available as part of the regular
+release. 
+
+ch_lfshmem:
+
+1. The "lock free shared memory" device requires very specific memory ordering
+or operations; this usually requires either adding assembly language
+instructions (e.g., a write sync) or special compiler options.  You can't just
+configure/make this device, alas.
+
+System Specific:
+================
+
+Cray J90:
+
+1. The Fortran interfaces may not compile because of MPIR_FROM_FLOG.  This
+is a macro that converts Fortran logical values to C booleans.  The fix is to
+put the argument to MPIR_FROM_FLOG into a temporary int variable and pass that
+to MPIR_FROM_FLOG.
+
+LINUX:
+
+1. We currently don't distinguish between LINUX on an Alpha and LINUX on an
+X86, either as an architecture (tarch) or within ch_p4 (see above under
+ch_p4).  This makes it impossible to have a single directory contain LINUX
+builds for several different architectures for any device (e.g., ch_shmem).
+
+2. System include files in 2.1 before 2.1.128 have errors than can keep MPICH
+from compiling.  Update your version of LINUX to fix these problems.
+
+FreeBSD:
+
+1. ch_shmem doesn't work.  One one system, the semget call generates a SIGSYS
+interrupt.  This appears to be an error in FreeBSD, as semget should not
+generate this signal (EACCESS, EINVAL, or ENOSPC should be used if the semget
+calls fails in this circumstance).
+
+Solaris86:
+
+1. Some users have had trouble compiling with pgcc (in sys/signal.h); using
+gcc fixed the problem.
+

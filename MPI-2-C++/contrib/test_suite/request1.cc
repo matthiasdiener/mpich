@@ -1,6 +1,6 @@
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -22,10 +22,17 @@
 // OR DOCUMENTATION WILL NOT INFRINGE ANY PATENTS, COPYRIGHTS, TRADEMARKS
 // OR OTHER RIGHTS.
 // I made this.
-extern "C" {
-#include <unistd.h>
-}
+
 #include "mpi2c++_test.h"
+extern "C" {
+#if !MPI2CPP_AIX 
+#include <unistd.h>
+#else
+  // #@%$#@%$@#%$#@% AIX!!!
+typedef unsigned int   useconds_t;
+unsigned int sleep (useconds_t Seconds);
+#endif
+}
 
 void
 request1()

@@ -1,8 +1,8 @@
 // -*- c++ -*-
 //
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -368,8 +368,8 @@ _REAL_MPI_::Comm::Create_keyval(_REAL_MPI_::Comm::COPYATTRFN* comm_copy_attr_fn,
   int keyval;
   (void)MPI_Keyval_create(copy_attr_intercept, delete_attr_intercept,
 			  &keyval, extra_state);
-  map::Pair* copy_and_delete = new map::Pair((void*)comm_copy_attr_fn, (void*)comm_delete_attr_fn); 
-  _REAL_MPI_::Comm::key_fn_map[(map::address)keyval] = copy_and_delete;
+  Map::Pair* copy_and_delete = new Map::Pair((void*)comm_copy_attr_fn, (void*)comm_delete_attr_fn); 
+  _REAL_MPI_::Comm::key_fn_map[(Map::address)keyval] = copy_and_delete;
   return keyval;
 }
 
@@ -399,8 +399,8 @@ _REAL_MPI_::Comm::Set_attr(int comm_keyval, const void* attribute_val) const
     else
       type = eIntracomm;
   }
-  map::Pair* comm_type = new map::Pair((void*)this, (void*)type);
-  _REAL_MPI_::Comm::mpi_comm_map[(map::address)mpi_comm] = (map::address)comm_type;
+  Map::Pair* comm_type = new Map::Pair((void*)this, (void*)type);
+  _REAL_MPI_::Comm::mpi_comm_map[(Map::address)mpi_comm] = (Map::address)comm_type;
   (void)MPI_Attr_put(mpi_comm, comm_keyval, (void*)attribute_val);
 }
 

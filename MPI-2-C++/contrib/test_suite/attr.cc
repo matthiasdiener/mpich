@@ -1,6 +1,6 @@
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -93,7 +93,7 @@ attr()
     Fail(msg);
   }
   if(val != pval) {
-    sprintf(msg, "NODE %d - 3) ERROR in MPI::COMM_WORLD.Get_attr: tag_ub = %d, should be %d", my_rank, pval, val);
+    sprintf(msg, "NODE %d - 3) ERROR in MPI::COMM_WORLD.Get_attr: tag_ub incorrect", my_rank);
     Fail(msg);
   }
 
@@ -118,7 +118,7 @@ attr()
     Fail(msg);
   }
   if(val != pval) {
-    sprintf(msg, "NODE %d - 6) ERROR in MPI::COMM_WORLD.Get_attr: host = %d, should be %d", my_rank, pval, val);
+    sprintf(msg, "NODE %d - 6) ERROR in MPI::COMM_WORLD.Get_attr: host incorrect", my_rank);
     Fail(msg);
   }
 
@@ -142,7 +142,7 @@ attr()
     Fail(msg);
   }
   if(val != pval) {
-    sprintf(msg, "NODE %d - 9) ERROR in MPI::COMM_WORLD.Get_attr: io = %d, should be %d", my_rank, pval, val);
+    sprintf(msg, "NODE %d - 9) ERROR in MPI::COMM_WORLD.Get_attr: io incorrect", my_rank);
     Fail(msg);
   }
 
@@ -166,7 +166,7 @@ attr()
     Fail(msg);
   }
   if(val != pval) {
-    sprintf(msg, "NODE %d - 12) ERROR in MPI::COMM_WORLD.Get_attr: wtime_is_global = %d, should be %d", my_rank, pval, val);
+    sprintf(msg, "NODE %d - 12) ERROR in MPI::COMM_WORLD.Get_attr: wtime_is_global incorrect", my_rank);
     Fail(msg);
   }
 
@@ -203,8 +203,8 @@ attr()
     Fail(msg);
   }
   if(pkeyval != pval) {
-    sprintf(msg, "NODE %d - 16) ERROR in pcomm.Get_attr: val = %d, should be %d",
-	    my_rank, pkeyval, pval);
+    sprintf(msg, "NODE %d - 16) ERROR in pcomm.Get_attr: val incorrect",
+	    my_rank);
     Fail(msg);
   }
 

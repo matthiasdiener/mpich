@@ -1,6 +1,6 @@
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -138,7 +138,9 @@ main(int argc, char *argv[])
 
   Testing("MPI::Comm");
   send();
+
   errhandler();
+
   Pass(); // MPI::Comm
 
   Testing("MPI::Request");
@@ -280,6 +282,8 @@ check_args(int argc, char *argv[])
       flags[SKIP_MPICH110] = true;
     else if (my_strcasecmp(argv[i], "-mpich111") == 0)
       flags[SKIP_MPICH111] = true;
+    else if (my_strcasecmp(argv[i], "-mpich112") == 0)
+      flags[SKIP_MPICH112] = true;
     else if (my_strcasecmp(argv[i], "-ibm21014") == 0)
       flags[SKIP_IBM21014] = true;
     else if (my_strcasecmp(argv[i], "-ibm21015") == 0)
@@ -298,8 +302,14 @@ check_args(int argc, char *argv[])
       flags[SKIP_HPUX0102] = true;
     else if (my_strcasecmp(argv[i], "-hpux0103") == 0)
       flags[SKIP_HPUX0103] = true;
+    else if (my_strcasecmp(argv[i], "-hpux0105") == 0)
+      flags[SKIP_HPUX0105] = true;
     else if (my_strcasecmp(argv[i], "-cray1104") == 0)
       flags[SKIP_CRAY1104] = true;
+    else if (my_strcasecmp(argv[i], "-g++") == 0)
+      flags[SKIP_G_PLUS_PLUS] = true;
+    else if (my_strcasecmp(argv[i], "-nothrow") == 0)
+      flags[SKIP_NO_THROW] = true;
     else if (my_strcasecmp(argv[i], "-help") == 0 ||
 	     my_strcasecmp(argv[i], "-h") == 0) {
       cout << "The following command line options are available:" << endl 
@@ -308,6 +318,7 @@ check_args(int argc, char *argv[])
 	   << " -mpich1013   Skip tests for buggy MPICH 1.0.13" << endl
 	   << " -mpich110    Skip tests for buggy MPICH 1.1.0" << endl
 	   << " -mpich111    Skip tests for buggy MPICH 1.1.1" << endl
+	   << " -mpich112    Skip tests for buggy MPICH 1.1.2" << endl
 	   << " -ibm21014    Skip tests for buggy IBM SP MPI 2.1.0.14" << endl
 	   << " -ibm21015    Skip tests for buggy IBM SP MPI 2.1.0.15" << endl
 	   << " -ibm21016    Skip tests for buggy IBM SP MPI 2.1.0.16" << endl
@@ -317,7 +328,9 @@ check_args(int argc, char *argv[])
 	   << " -sgi30       Skip tests for buggy SGI MPI 3.0" << endl
 	   << " -hpux0102    Skip tests for buggy HPUX 01.02" << endl
 	   << " -hpux0103    Skip tests for buggy HPUX 01.03" << endl
-	   << " -cray1104    Skip tests for buggy CRAY 1.1.0.4" << endl;
+	   << " -hpux0105    Skip tests for buggy HPUX 01.05" << endl
+	   << " -cray1104    Skip tests for buggy CRAY 1.1.0.4" << endl
+	   << " -g++         Skip tests for buggy G++ (exceptions)" << endl;
 
       exit(0);
     }
@@ -409,6 +422,11 @@ check_minimals()
     need_flag = true;
     msg = "-mpich111";
   }
+#elif MPICH112
+  if (!flags[SKIP_MPICH112]) {
+    need_flag = true;
+    msg = "-mpich112";
+  }
 #elif IBM21014
   if (!flags[SKIP_IBM21014]) {
     need_flag = true;
@@ -458,6 +476,28 @@ check_minimals()
   if (!flags[SKIP_CRAY1104]) {
     need_flag = true;
     msg = "-cray1104";
+  }
+#endif
+
+  if (need_flag && my_rank == 0) {
+    cout << "**** WARNING!! ****" << endl << endl
+	 << "You really should use the \"" << msg << "\" flag when running the " 
+	 << endl 
+	 << "test suite on this architecture/OS.  If you do not use this flag," 
+	 << endl
+	 << "certain tests will probably fail, and the test suite will abort." 
+	 << endl << endl
+	 << "The test suite will now commence without this flag so that you " 
+	 << endl
+	 << "can see which tests will fail on this architecture/OS." 
+	 << endl << endl;
+  }
+
+  need_flag = false;
+#if G_PLUS_PLUS
+  if (!flags[SKIP_G_PLUS_PLUS]) {
+    need_flag = true;
+    msg = "-g++";
   }
 #endif
 

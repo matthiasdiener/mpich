@@ -9,9 +9,7 @@
 #define DEFAULT_LEN 10000
 #define DEFAULT_LOOP 10
 
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int rank, size, loop, max_loop = DEFAULT_LOOP, max_req = DEFAULT_REQ;
     int buf_len = DEFAULT_LEN;

@@ -15,9 +15,12 @@ for arg in "$@" ; do
     case $arg in 
         -echo) set -x ;;
 	-v) verbose=1 ;;
+	-machinefile=*)
+	machineFile=`echo A$arg | sed -e 's/-machinefile=//g'`
+	;;
         -help) cat <<.
 Usage: 
-     tstmachines [ -echo ] [ -v ] architecture
+     tstmachines [ -echo ] [ -v ] [ -machinefile=filename ] architecture
 Tests that you can run remote shells with $rsh on the systems in 
 your machines file and that executables are all cross-mounted.  To run this
 test, you must be able to create files in the current directory.
@@ -37,7 +40,9 @@ if [ -z "$arch" ] ; then
     arch=`$MPIR_HOME/bin/tarch`
 fi
 #
-machineFile="${MPIR_HOME}/util/machines/machines.${arch}"
+if [ -z "$machineFile" ] ; then
+    machineFile="${MPIR_HOME}/util/machines/machines.${arch}"
+fi
 if [ ! -f $machineFile ] ; then
     echo "Cannot read list of nodes $machineFile"
     exit 1
@@ -121,6 +126,16 @@ for machine in $list ; do
 	    echo "used when a process is attached to a terminal."
             echo "See the Users Manual for ways to fix this."
         fi
+        # Add comment about unguarded messages
+        echo "If your .cshrc, login, .bashrc, or other startup file"
+        echo "contains a command that generates any output when logging in,"
+        echo "such as fortune or hostname or even echo, you should modify"
+        echo "that startup file to only print such a message when the"
+        echo "process is attached to a terminal.  Examples of how to do"
+        echo "this are in the Users Manual.  If you do not do this, MPICH"
+        echo "will still work, but this script and the test programs will"
+        echo "report problems because they compare expected output from"
+        echo "what the programs produce."
 	errcnt=`expr $errcnt + 1`
 	errsimple=`expr $errsimple + 1`
     else

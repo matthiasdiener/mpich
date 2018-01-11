@@ -14,13 +14,12 @@ postprocess a buffer of log records before merging
 void CLOG_procbuf( buf )
 double *buf;
 </PRE>
-This function fills in fields in log records that were left out 
-duringactual logging to save memory accesses.  Typical fields are the 
-processid and the lengths of records that are known by predefined type.  This 
-isalso where we will adjust timestamps.
+This function fills in fields in log records that were left out during
+actual logging to save memory accesses.  Typical fields are the process
+id and the lengths of records that are known by predefined type.  This is
+also where we will adjust timestamps.
 <P>
-Input 
-parameter
+Input parameter
 <P>
 <DL><DT><B>address of the buffer to be processed</B> <DD> 
 </DL>

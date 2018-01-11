@@ -13,6 +13,8 @@
 #include <assert.h>
 #include <string.h>
 /* END NICK DUROC */
+#include <ctype.h>  /* isdigit() */
+#include <stdlib.h> /* getenv() */
 
 #include "mpid.h"
 #include "dev.h"
@@ -134,6 +136,7 @@ void MPID_Globus_Init(int *argc, char ***argv)
     globus_nexus_startpoint_t *sp_vector;
     int err;
     int n_orig_nodes;
+    char *mpichg_subjob_idx;
 
     globus_module_activate(GLOBUS_NEXUS_MODULE);
     globus_nexus_enable_fault_tolerance(NULL, NULL);
@@ -141,6 +144,7 @@ void MPID_Globus_Init(int *argc, char ***argv)
 
     globus_duroc_runtime_barrier();
 
+    globus_module_deactivate(GLOBUS_DUROC_RUNTIME_MODULE);    
     globus_module_activate(GLOBUS_DUROC_BOOTSTRAP_MODULE);
 
     MPID_InitQueue();
@@ -156,17 +160,38 @@ void MPID_Globus_Init(int *argc, char ***argv)
     globus_nexus_endpoint_init(&default_ep, &default_ep_attr);
     globus_nexus_startpoint_bind(&default_sp, &default_ep);
 
-    globus_duroc_bootstrap_master_sp_vector(&default_sp, 
-					    &n_orig_nodes, 
-					    &sp_vector);
-
-    globus_module_deactivate(GLOBUS_DUROC_BOOTSTRAP_MODULE);
-    globus_module_deactivate(GLOBUS_DUROC_RUNTIME_MODULE);
-
-/* #ifdef DEBUG_INIT */
+    if ((mpichg_subjob_idx = getenv("GLOBUS_DUROC_SUBJOB_INDEX"))
+           && isdigit(*mpichg_subjob_idx))
+    {
+      /* env var specified ... better be a non-negative int */
+      if (isdigit(*mpichg_subjob_idx))
+      {
+          /* env var is a non-negative int ... may now be used to    */
+          /* preserve order of subjobs as they were specified in RSL */
+          globus_duroc_bootstrap_ordered_master_sp_vector(&default_sp, 
+                                                      atoi(mpichg_subjob_idx),
+                                                      &n_orig_nodes, 
+                                                      &sp_vector);
+      }
+      else
+      {
+          printf("ERROR: MPID_Init() detected env var GLOBUS_DUROC_SUBJOB_INDEX %s ... must be non-negative integer\n", mpichg_subjob_idx);
+           exit(1);
+      } /* endif */
+    }
+    else
+    {
+      globus_duroc_bootstrap_master_sp_vector(&default_sp, 
+                                              &n_orig_nodes, 
+                                              &sp_vector);
+    } /* endif */
+  
+      globus_module_deactivate(GLOBUS_DUROC_BOOTSTRAP_MODULE);
+  
+#ifdef DEBUG_INIT
     globus_nexus_printf("sp_vector = %x\tn_orig_nodes = %d\n",
     		     sp_vector, n_orig_nodes);
-/* #endif */
+#endif
 
     if (sp_vector)
     {
@@ -203,6 +228,46 @@ void MPID_Globus_Init(int *argc, char ***argv)
 #ifdef DEBUG_INIT
 	globus_nexus_printf("node awaiting formats.\n");
 #endif
+ 
+       /* added wait_for_formats(), re-set barrier.count,             */
+       /* and pulled all this code out of publicize_formats_handler() */
+       /* because it can be unsafe to copy a startpoint within a      */
+       /* non-threaded handler .... publicize_nodes() copies a sp     */
+       /* it is a problem when you're copying a sp that has a         */
+       /* transform module that requires round-trip messaging to copy */
+       /* ... the wait-for-reply on that round-trip message cannot    */
+       /* be done within a non-threaded handler                       */
+ 
+      wait_for_formats();
+        format_barrier.count = 1; 
+        {
+            int next_node;
+            int buf_size;
+            globus_nexus_buffer_t send_buf;
+
+            next_node = MPID_MyWorldRank + 1;
+            if (next_node < MPID_MyWorldSize)
+            {
+                /* send startpoints and format on to next node */
+                publicize_nodes(argc, argv, next_node, GLOBUS_FALSE);
+            }
+            else
+            {
+                /* I am last node, so send formats back to the node 0 */
+                buf_size = globus_nexus_sizeof_int(MPID_MyWorldSize);
+                globus_nexus_buffer_init(&send_buf, buf_size, 0);
+                globus_nexus_put_int(&send_buf, remote_formats, MPID_MyWorldSize);
+                globus_nexus_send_rsr(&send_buf,
+                               /* NICK */
+                               /* &MPID_Nexus_nodes[0], */
+                               &Nexus_nodes[0],
+                               PUBLICIZE_NODES_REPLY_HANDLER_ID,
+                               GLOBUS_TRUE,
+                               GLOBUS_FALSE);
+            }
+        }
+        /* end of what we moved from publicize_formats_handler() */  
+
 	wait_for_formats();
     }
 
@@ -278,13 +343,15 @@ static void publicize_nodes(int *argc, char ***argv, int next_node,
 
     /* Figure out the buffer size */
     buf_size = 2 * globus_nexus_sizeof_int(1);
-    buf_size = globus_nexus_sizeof_startpoint(Nexus_nodes, MPID_MyWorldSize);
+    buf_size += globus_nexus_sizeof_startpoint(Nexus_nodes, MPID_MyWorldSize);
     buf_size += globus_nexus_sizeof_int(MPID_MyWorldSize);
+#if 0
     for (j = 0; j < *argc; j++)
     {
 	buf_size += globus_nexus_sizeof_int(1);
 	buf_size += globus_nexus_sizeof_char(strlen((*argv)[j]));
     }
+#endif
 
     globus_nexus_buffer_init(&send_buf, buf_size, 0);
 
@@ -296,6 +363,7 @@ static void publicize_nodes(int *argc, char ***argv, int next_node,
     globus_nexus_put_startpoint_transfer(&send_buf,tmp_nodes,MPID_MyWorldSize);
     globus_nexus_put_int(&send_buf, remote_formats, MPID_MyWorldSize);
 
+#if 0
     /* argc */
     globus_nexus_put_int(&send_buf, argc, 1);
     for (j = 0; j < *argc; j++)
@@ -306,6 +374,7 @@ static void publicize_nodes(int *argc, char ***argv, int next_node,
 	/* argv[j] */
 	globus_nexus_put_char(&send_buf, (*argv)[j], arg_len);
     } /* endfor */
+#endif
 	
     globus_nexus_send_rsr(&send_buf,
 		   &Nexus_nodes[next_node],
@@ -347,6 +416,7 @@ static void publicize_nodes_handler(globus_nexus_endpoint_t *ep,
     globus_nexus_get_startpoint(recv_buf, Nexus_nodes, MPID_MyWorldSize);
     globus_nexus_get_int(recv_buf, remote_formats, MPID_MyWorldSize);
 
+#if 0
     globus_nexus_get_int(recv_buf, &my_argc, 1);
     MPIDGlobusMalloc(publicize_nodes_handler(),
 		my_argv,
@@ -363,10 +433,16 @@ static void publicize_nodes_handler(globus_nexus_endpoint_t *ep,
 	/* make sure there is a terminating zero at the end */
 	my_argv[i][arg_len] = '\0';
     }
+#endif
 
     /* fillin my format */
     remote_formats[MPID_MyWorldRank] = NEXUS_DC_FORMAT_LOCAL;
     
+    /* stuff moved to MPID_Init() so that publicize_nodes() */
+    /* is not called within a handler ... publicize_nodes() */
+    /* copies a sp, which can be dangerous operation to do  */
+    /* from within a handler.                               */
+#if 0
     next_node = MPID_MyWorldRank + 1;
     if (next_node < MPID_MyWorldSize)
     {
@@ -387,6 +463,14 @@ static void publicize_nodes_handler(globus_nexus_endpoint_t *ep,
 		       GLOBUS_TRUE,
 		       is_nonthreaded_handler);
     }
+#endif
+    /* stuff that is added to signal MPID_Init() so that it    */
+    /* can go ahead and do the stuff above that we moved there */
+    globus_mutex_lock(&format_barrier.mutex);
+    format_barrier.count--;
+    globus_cond_signal(&format_barrier.cond);
+    globus_mutex_unlock(&format_barrier.mutex);
+
 } /* publicize_nodes_handler() */
 
 static void publicize_nodes_reply_handler(globus_nexus_endpoint_t *ep,

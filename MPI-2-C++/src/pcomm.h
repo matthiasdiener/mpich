@@ -1,8 +1,8 @@
 // -*- c++ -*-
 //
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -56,6 +56,7 @@ protected:
 
 class Comm : public Comm_Null {
 
+#if 0 // JGS getting rid of !@(&!$@ friends, justing making some stuff public
 #if _MPIPP_USENAMESPACE_
 #if IBM_SP
   friend void ::errhandler_intercept(MPI_Comm * mpi_comm, int * err, char*, int*, int*);
@@ -82,6 +83,7 @@ class Comm : public Comm_Null {
 				 void *attribute_val_out, int *flag);
   friend int delete_attr_intercept(MPI_Comm comm, int keyval, 
 				   void *attribute_val, void *extra_state);
+#endif
 #endif
 
 public:
@@ -258,9 +260,9 @@ public:
 			    void* extra_state);
 private:
   static Status ignored_status;
-
-  static map mpi_comm_map;
-  static map key_fn_map;
+public: // JGS friends cause portability problems
+  static Map mpi_comm_map;
+  static Map key_fn_map;
   Errhandler* my_errhandler;
 
 };

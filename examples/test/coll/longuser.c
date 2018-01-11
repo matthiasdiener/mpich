@@ -1,5 +1,6 @@
 #include "mpi.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include "test.h"
 
 int add ANSI_ARGS(( double *, double *, int *, MPI_Datatype * ));
@@ -20,9 +21,7 @@ MPI_Datatype *dtype;
     return 0;
 }
 
-int main( argc, argv )
-int  argc;
-char **argv;
+int main( int argc, char **argv )
 {
     MPI_Op op;
     int    i, rank, size, bufsize, errcnt = 0, toterr;

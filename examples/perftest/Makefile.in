@@ -3,7 +3,7 @@ ALL: default
 
 SHELL = /bin/sh
 ARCH        = @ARCH@
-COMM        = @COMM@
+DEVICE      = @DEVICE@
 MPIR_HOME   = @MPIR_HOME@
 CC          = @MPICC@
 CLINKER     = $(CC)

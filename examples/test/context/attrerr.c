@@ -15,9 +15,7 @@ void abort_msg ANSI_ARGS(( char *, int ));
 int copybomb_fn ANSI_ARGS(( MPI_Comm, int, void *, void *, void *, int * ));
 int deletebomb_fn ANSI_ARGS(( MPI_Comm, int, void *, void * ));
 
-int main(argc, argv)
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     MPI_Init( &argc, &argv );
     test_communicators();

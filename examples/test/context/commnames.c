@@ -18,9 +18,7 @@
 #include "protofix.h"
 #endif
 
-int main(argc, argv)
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
   char commName [MPI_MAX_NAME_STRING+1];
   int namelen;

@@ -2,11 +2,16 @@
 # This version puts the output from each program into a separate file.
 # -mvhome is needed for the ANL SP, and is ignored by others
 args="-pg -mvhome"
+STOPFILE=$HOME/.stopmpichtests
 #
 # Some people don't include "." in their path (! in case an ls trojan horse,
 # I guess - if someone does that to you, you have bigger problems).  This
 # code tests to see if you have a path to mpirun; if not, it tries ./mpirun.
-if [ -z "$MPICH_USE_LIB_MPIRUN" ] ; then
+#
+# One particular problem is having multiple mpiruns in the path.  An
+# absolute path for mpirun will fix many problems
+mpirun="@MPIRUN@"
+if [ -z "$MPICH_USE_LIB_MPIRUN" -a ! -x "$mpirun" ] ; then
     IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
     for dir in $PATH ; do 
         if [ -x $dir/mpirun ] ; then
@@ -30,8 +35,8 @@ if [ -z "$mpirun" -a -x "./mpirun" ] ; then
 fi
 #
 # Here is the location of the MPICH version of mpirun
-if [ -z "$mpirun" -a -x @LIB_DIR@/mpirun ] ; then 
-    mpirun="@LIB_DIR@/mpirun"
+if [ -z "$mpirun" -a -x @LIB_DIR@/bin/mpirun ] ; then 
+    mpirun="@LIB_DIR@/bin/mpirun"
 fi
 if [ -z "$mpirun" ] ; then
     echo "No mpirun in path.  Testing can not proceed."
@@ -76,6 +81,10 @@ for arg in "$@" ; do
 done
 
 MakeExe() {
+    if [ -s $STOPFILE ] ; then 
+        echo "Found stopfile; exiting"
+	exit 0
+    fi
     if [ ! -x $1 ] ; then
 	$MAKE $1
         if [ ! -x $1 ] ; then 

@@ -7,8 +7,8 @@
 #define FREE   free
 
 #include "mpid.h"
-#include "mpid_debug.h"
 #include "shpackets.h"
+#include "mpid_debug.h"
 
 void  *MPID_CENJU3_malloc ();
 void   MPID_CENJU3_free ();
@@ -226,8 +226,7 @@ int        size, dest;
                           &(pkt->head.ready), sizeof (int) );
 #else
   MPID_REMOTE_WRITE(dest, &(MPID_mypackets->packets[next_write]), pkt, new_size );
-#endif MPID_TWO_WRITES
-
+#endif /* MPID_TWO_WRITES */
 
   DEBUG_PRINT_MSG("Exiting SendControl");
 

@@ -14,9 +14,7 @@
 #define WAIT_TIMES 500
 
 int
-main(argc, argv)
-int argc;
-char **argv;
+main( int argc, char **argv)
 {
     int rank, size, i, recv_flag, ret, passed;
     MPI_Status Status;

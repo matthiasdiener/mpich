@@ -1,22 +1,15 @@
-#if defined(HAVE_CONFIG_H) && !defined(MPICHCONF_INC)
-/* This includes the definitions found by configure, and can be found in
-   the library directory (lib/$ARCH/$COMM) corresponding to this configuration
- */
-#define MPICHCONF_INC
-#include "mpichconf.h"
-#endif
+#include "mpeconf.h"
 
 #include <unistd.h>
 #include <stdlib.h>
 #include <fcntl.h>
 
-#if defined(NEEDS_STDLIB_PROTOTYPES) 
-#include "protofix.h"
-#endif
-
 #include "clog_merge.h"
 #include "clogimpl.h"
 #include "mpi.h"
+#if defined(NEEDS_STDLIB_PROTOTYPES) && !defined ( malloc )
+#include "protofix.h"
+#endif
 
 #if defined(HAVE_STRING_H) || defined(STDC_HEADERS)
 #include <string.h>
@@ -237,14 +230,13 @@ void CLOG_mergend()
 void CLOG_output( buf )
 double *buf;
 {
-#if !(defined(WORDS_BIGENDIAN))
+  int rc;   
+#ifndef WORDS_BIGENDIAN
   double *p = buf;
   int         rtype;
   CLOG_HEADER *h;
-  int rc;   
   rtype = CLOG_UNDEF;
 
-  printf ("%s", "SWAPPING THE BYTES");
   while (rtype != CLOG_ENDBLOCK && rtype != CLOG_ENDLOG) {
     h	 = (CLOG_HEADER *) p;
     rtype = h->rectype;

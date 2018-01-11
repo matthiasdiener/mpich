@@ -184,6 +184,9 @@ int *skt;
 
 #ifdef CAN_DO_SETSOCKOPT
     SYSCALL_P4(rc,setsockopt(*skt, IPPROTO_TCP, TCP_NODELAY, (char *) &optval, sizeof(optval)));
+
+    if (p4_debug_level > 79)
+	p4_print_sock_params( *skt );
 #endif
 
     sin.sin_family	= AF_INET;
@@ -218,6 +221,9 @@ int *skt;
 
 #ifdef CAN_DO_SETSOCKOPT
     SYSCALL_P4(rc, setsockopt(*skt, IPPROTO_TCP, TCP_NODELAY, (char *) &optval, sizeof(optval)));
+
+    if (p4_debug_level > 79)
+	p4_print_sock_params( *skt );
 #endif
 
     sin.sin_family = AF_INET;
@@ -278,6 +284,8 @@ int skt;
       p4_dprintf("net_accept: setsockopt sndbuf failed\n");
 #endif
 
+    if (p4_debug_level > 79)
+	p4_print_sock_params( skt2 );
 #endif
     /* Peter Krauss suggested eliminating these lines for HPs  */
     flags = fcntl(skt2, F_GETFL, 0);
@@ -380,6 +388,8 @@ int port, num_tries;
 
 #       ifdef CAN_DO_SETSOCKOPT
 	SYSCALL_P4(rc, setsockopt(s,IPPROTO_TCP,TCP_NODELAY,(char *) &optval,sizeof(optval)));
+	if (p4_debug_level > 79)
+	    p4_print_sock_params( s );
 #       endif
 
 /*  RL
@@ -437,7 +447,7 @@ int size;
     int block_counter = 0;
     int eof_counter = 0;
     char *buf = (char *)in_buf;
-#ifdef P4SYSV
+#if defined(P4SYSV) && !defined(NONBLOCKING_READ_WORKS)
     int n1 = 0;
     struct timeval tv;
     fd_set read_fds;
@@ -452,7 +462,7 @@ int size;
 
 	SYSCALL_P4(n, read(fd, buf + recvd, size - recvd));
 	if (n == 0)		/* maybe EOF, maybe not */
-#if defined(P4SYSV)
+#if defined(P4SYSV) && !defined(NONBLOCKING_READ_WORKS)
 	{
 	    eof_counter++;
 
@@ -667,6 +677,64 @@ char *str;
 
     get_inet_addr(&addr);
     strcpy(str, (char *) inet_ntoa(addr));
+}
+
+/* 
+   This routine prints information on a socket, includeing many of the options
+ */
+void p4_print_sock_params( int skt )
+{
+#ifdef CAN_DO_SETSOCKOPT
+    int rc, ival,ivallen;
+#ifdef SO_KEEPALIVE
+    ivallen = sizeof(ival);
+    rc = getsockopt( skt, SOL_SOCKET, SO_KEEPALIVE, (char *)&ival, &ivallen );
+    if (!rc)
+	printf( "Socket %d SO_KEEPALIVE = %d\n", skt, ival );
+#endif
+#ifdef SO_OOBINLINE
+    ivallen = sizeof(ival);
+    rc = getsockopt( skt, SOL_SOCKET, SO_OOBINLINE, (char *)&ival, &ivallen );
+    if (!rc)
+	printf( "Socket %d SO_OOBINLINE = %d\n", skt, ival );
+#endif
+#ifdef SO_SNDBUF
+    ivallen = sizeof(ival);
+    rc = getsockopt( skt, SOL_SOCKET, SO_SNDBUF, (char *)&ival, &ivallen );
+    if (!rc)
+	printf( "Socket %d SO_SNDBUF = %d\n", skt, ival );
+#endif
+#ifdef SO_RCVBUF
+    ivallen = sizeof(ival);
+    rc = getsockopt( skt, SOL_SOCKET, SO_RCVBUF, (char *)&ival, &ivallen );
+    if (!rc)
+	printf( "Socket %d SO_RCVBUF = %d\n", skt, ival );
+#endif
+#ifdef SO_SNDTIMEO
+    ivallen = sizeof(ival);
+    rc = getsockopt( skt, SOL_SOCKET, SO_SNDTIMEO, (char *)&ival, &ivallen );
+    if (!rc)
+	printf( "Socket %d SO_SNDTIMEO = %d\n", skt, ival );
+#endif
+#ifdef SO_RCVTIMEO
+    ivallen = sizeof(ival);
+    rc = getsockopt( skt, SOL_SOCKET, SO_RCVTIMEO, (char *)&ival, &ivallen );
+    if (!rc)
+	printf( "Socket %d SO_RCVTIMEO = %d\n", skt, ival );
+#endif
+#ifdef SO_SNDLOWAT
+    ivallen = sizeof(ival);
+    rc = getsockopt( skt, SOL_SOCKET, SO_SNDLOWAT, (char *)&ival, &ivallen );
+    if (!rc)
+	printf( "Socket %d SO_SNDLOWAT = %d\n", skt, ival );
+#endif
+#ifdef SO_RCVLOWAT
+    ivallen = sizeof(ival);
+    rc = getsockopt( skt, SOL_SOCKET, SO_RCVLOWAT, (char *)&ival, &ivallen );
+    if (!rc)
+	printf( "Socket %d SO_RCVLOWAT = %d\n", skt, ival );
+#endif
+#endif
 }
 
 #if !defined(CRAY)

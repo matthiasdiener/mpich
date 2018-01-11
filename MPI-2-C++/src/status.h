@@ -1,8 +1,8 @@
 // -*- c++ -*-
 //
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -41,12 +41,12 @@ public:
   virtual ~Status() {}
 
   // copy / assignment
-  Status(const Status& data) : pmpi_status((PMPI::Status&)data) { }
+  Status(const Status& data) : pmpi_status(data.pmpi_status) { }
 
   Status(const MPI_Status &i) : pmpi_status(i) { }
 
   Status& operator=(const Status& data) {
-    pmpi_status = (PMPI::Status&)data; return *this; }
+    pmpi_status = data.pmpi_status; return *this; }
 
   // comparison, don't need for status
 

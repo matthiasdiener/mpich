@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "mpi.h"
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
@@ -65,9 +66,7 @@ void     *extra_state;
   return MPI_SUCCESS;
 }
 
-int main ( argc, argv )
-int argc;
-char **argv;
+int main ( int argc, char **argv )
 {
   int rank, size;
   Table *table;

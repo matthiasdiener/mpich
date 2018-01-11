@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.5 1998/07/05 16:49:01 gropp Exp $
+#  $Id: Makefile.in,v 1.9 1999/01/19 22:28:24 swider Exp $
 #
 #  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -10,7 +10,6 @@
 ##### User configurable options #####
 
 ARCH        = @ARCH@
-COMM        = @COMM@
 DEVICE      = @DEVICE@
 MPIR_HOME   = @MPIR_HOME@
 INCLUDE_DIR = @INCLUDE_PATH@ -Impid/@DEVICE@ -Iinclude
@@ -25,10 +24,10 @@ ASMFILES_O  = @ASMFILES_O@
 #ALL: default
 ALL: libdev
 
-LIBNAME  = ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
+LIBNAME  = ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a
 LIBDEV   = libmpid.a
 CFLAGS   = @CFLAGS@ $(OPTFLAGS) @OPTFLAGSC@ \
-	   	-I../.. -I../../include -I./ -I../ch2 \
+	   	-I../.. -I../../include -I. -I../ch2 \
 		-I../util -DMPI_@ARCH@ \
 		-DMPID_DEVICE_CODE @GETNAME_DEFS@ @DEVCFLAGS@ @DEV_DEFS@
 CFLAGSNOOPT   = @CFLAGS@ \
@@ -85,6 +84,19 @@ profile_all:
 clean:
 	/bin/rm -f *~ $(MPI_OBJECTS) libmpid.a mprerr.o
 
+distclean: clean
+	@for file in $(SOURCE) ; do \
+	    if [ -l $$file ] ; then \
+	        /bin/rm -f $$file ; fi ; \
+	done
+	@for file in $(MPIDHEADERS) ; do \
+	    if [ -l $$file ] ; then \
+	        /bin/rm -f $$file ; fi ; \
+	done
+	@if [ -d p2ptest -a -s p2ptest/Makefile ] ; then \
+	    /bin/rm -f p2ptest/Makefile
+	/bin/rm -f Makefile
+
 MPIDHEADERS = mpid.h req.h comm.h datatype.h chhetero.h attach.h objtrace.h \
 	      calltrace.h cookie.h mpid_bind.h reqalloc.h tr2.h mpimem.h \
 	      sbcnst2.h flow.h
@@ -106,7 +118,7 @@ setlinks:
 .o.s:
 	$(CC) $(CFLAGS) $(BASEOPT) -c -S $*.c $(MPI_PROFILE)
 
-../../lib/$(ARCH)/$(COMM)/libmpi.a: $(MPI_OBJECTS) 
+../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
 	$(AR) $@ $?
 	$(RANLIB) $@
 
@@ -118,4 +130,5 @@ lint:
 	lint -chvuz -I../.. -I../../include -I../ch2 \
 		-I./ \
 	-DMPID_DEVICE_CODE $(SOURCE) ../util/queue.c ../util/cmnargs.c
+
 

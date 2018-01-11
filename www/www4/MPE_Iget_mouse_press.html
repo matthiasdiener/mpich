@@ -6,7 +6,7 @@
 </HEAD>
 <BODY BGCOLOR="FFFFFF">
 <A NAME="MPE_Iget_mouse_press"><H1>MPE_Iget_mouse_press</H1></A>
-Checks for mouse button press Checks if the mouse button has been pressed inside this MPE window. If pressed, returns the coordinate relative to the upper right of this MPE window and the button that was pressed. 
+Checks for mouse button press 
 <H2>Synopsis</H2>
 <PRE>
 #include &lt;stdio.h&gt;
@@ -29,6 +29,12 @@ int *x, *y, *button, *wasPressed;
 <BR></TD></TR>
 <TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>wasPressed </B></TD><TD VALIGN=TOP>1 if the button was pressed, 0 if not
 <BR></TD></TR></TABLE>
+<P>
+<H2>Notes</H2>
+Checks if the mouse button has been pressed inside this MPE window.
+If pressed, returns the coordinate relative to the upper right of
+this MPE window and the button that was pressed.
+<P>
 <P>
 <P><B>Location:</B>xmouse.c<P>
 </BODY></HTML>

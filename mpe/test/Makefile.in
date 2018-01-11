@@ -1,42 +1,45 @@
-##### User configurable options #####
+#### User configurable options #####
 # This is an example Makefile.in (or Makefile configured with mpireconfig)
 
-LARCH       = @ARCH@
-COMM        = @COMM@
-INSTALL_DIR = @MPIR_HOME@
-CC          = @MPICC@
-F77         = @MPIF77@
-CLINKER     = @CLINKER@
-FLINKER     = @FLINKER@
+CC          = @CC@
+F77         = @F77@
+CLINKER     = $(CC)
+FLINKER     = $(F77)
 OPTFLAGS    = @OPTFLAGS@
+MAKE        = @MAKE@
 #
-LIB_PATH    = -L@LIB_DIR@
-FLIB_PATH   = @FLIB_PATH_LEADER@@LIB_DIR@
-LIB_LIST    = @LIB_LIST@
-MPE_LIBS    = @MPE_LIBS@
-PMPILIB     = -lp@MPILIBNAME@
-#
-INCLUDE_DIR = @INCLUDE_PATH@ -I$(INSTALL_DIR)/include
+LIB_PATH    = -L@MPE_LIBPATH@ -lmpe @MPI_LIBS@
+FLIB_PATH   = -L@MPE_LIBPATH@ @EXTRA_FLIB@ @FLIBS@
+INCLUDE_DIR = @INCLUDEDIR@ 
+NOF77       = @NOF77@
 
 ### End User configurable options ###
 
-CFLAGS  = @CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(LARCH)
-FFLAGS = @FFLAGS@ $(INCLUDE_DIR) $(OPTFLAGS)
-LIBS = $(LIB_PATH) -lmpe $(LIB_LIST)
-FLIBS = $(FLIB_PATH) $(LIB_LIST)
-EXECS = pttest fpilog
+CFLAGS  = @MPE_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) 
+FFLAGS = $(OPTFLAGS) $(INCLUDE_DIR)
+EXECS = fpilog
 
-default: pttest
+default: fpilog
 
 all: $(EXECS)
 
-pttest: pttest.o 
-	$(CLINKER) $(OPTFLAGS) -o pttest pttest.o \
-	$(LIB_PATH) -lmpe $(LIB_LIST) -lm
+fpilog: fpi.o
+	$(FLINKER) $(OPTFLAGS) -o fpilog fpi.o  \
+	    $(FLIB_PATH) -lm 
 
-fpilog: fpi.o 
-	$(FLINKER) $(OPTFLAGS) -o fpilog fpi.o $(FLIB_PATH) \
-	-lfmpi -llmpi $(PMPILIB) -lm $(MPE_LIBS) $(LIB_LIST)
+linktest:
+	@if [ $(NOF77) = 0 ] ; then \
+	    echo "Testing if Fortran application can be linked with logging library" ; \
+	    $(MAKE) clean ; \
+	    $(MAKE) fpilog ; \
+	    if test -x fpilog ; then \
+	        echo "Fortran application can be linked with logging library" ; \
+	        $(MAKE) clean ; \
+	    else \
+	        echo "Fortran application cannot be linked with logging library***" ; \
+	    fi \
+	fi 
+
 clean:
 	/bin/rm -f *.o *~ PI* $(EXECS)
 

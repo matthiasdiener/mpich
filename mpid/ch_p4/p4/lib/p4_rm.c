@@ -427,7 +427,7 @@ int bm_fd;
     if (listener_pid == 0)
     {
 	/* Inside listener */
-	sprintf(whoami_p4, "rm_l_%d_%d", rm_num, getpid());
+	sprintf(whoami_p4, "rm_l_%d_%d", rm_num, (int)getpid());
 	p4_dprintfl(70, "inside listener pid %d\n", getpid());
 	p4_local = alloc_local_listener();
 	close(end_1);

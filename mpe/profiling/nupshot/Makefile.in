@@ -32,8 +32,8 @@ TCL_LIB     = $(TCL_DIR)/lib/libtcl.a -L$(TCL_DIR)/lib
 TK_LIB      = $(TK_DIR)/lib/libtk.a -L$(TK_DIR)/lib
 TCLTK_LIB   = $(TK_LIB) $(TCL_LIB)
 
-TCL_INC     = -I$(TCL_DIR)/include
-TK_INC      = -I$(TK_DIR)/include
+TCL_INC     = -I@TCLINCDIR@/include
+TK_INC      = -I@TKINCDIR@/include
 TCLTK_INC   = $(TCL_INC) $(TK_INC)
 
 

@@ -15,9 +15,11 @@ void MPID_FlowDebug ANSI_ARGS(( int ));
  */
 #include "ptrcvt.h"
 
-#ifdef HAVE_STDLIB_H
 /* prototype for getenv */
+#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
+#else
+extern char *getenv();
 #endif
 
 #ifdef HAVE_UNISTD_H
@@ -46,7 +48,6 @@ int MPID_GetIntParameter( name, defval )
 char *name;
 int  defval;
 {
-    extern char *getenv();
     char *p = getenv( name );
 
     if (p) 

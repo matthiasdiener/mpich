@@ -9,38 +9,52 @@ CC          = @MPICC@
 CLINKER     = $(CC)
 F77         = @MPIF77@
 FLINKER     = $(F77)
+F90         = @MPIF90@
+F90LINKER   = $(F90)      
 CCC         = @MPICPLUSPLUS@
 CCLINKER    = $(CCC)
 AR          = @AR@
 RANLIB      = @RANLIB@
-PMPILIB     = -lp@MPILIBNAME@
+LOG_LIB     = -mpilog -lm
+PROF_LIB    = -lmpe -lm
 OPTFLAGS    = @OPTFLAGS@
-MPE_LIBS    = @MPE_LIBS@
 MPE_DIR     = @MPE_DIR@
-MPE_GRAPH   = @MPE_GRAPHICS@
 #
 
 ### End User configurable options ###
 
 CFLAGS	  = $(OPTFLAGS) 
-CFLAGSMPE = $(CFLAGS) -I$(MPE_DIR) $(MPE_GRAPH)
+CFLAGSMPE = $(CFLAGS) -I$(MPE_DIR) 
 CCFLAGS	  = $(CFLAGS)
 #FFLAGS	  = '-qdpc=e' 
 FFLAGS	  = $(OPTFLAGS)
-EXECS	  = cpi systest fpi cpilog srtest hello++ iotest
+EXECS	  = cpi systest srtest 
+
+all: cpi systest srtest fpi cpilog hello++ iotest fibon 
 
 default: $(EXECS)
+	if [ "@ROMIO@" = 1 -a -s iotest.c ] ; then $(MAKE) iotest ; fi
+	if [ "@buildcpp@" = 1 ] ; then $(MAKE) hello++ ; fi
+	if [ "@NOF77@" = 0 ] ; then $(MAKE) fpi ; fi
+	if [ "@NOMPE@" = 0 ] ; then $(MAKE) cpilog ; fi
+	if [ "@NOMPE@" = 0 ] ; then $(MAKE) cpi_autolog ; fi
+	if [ -n "@F90@" -o "@f90nag@" = 1 ] ; then $(MAKE) fibon ; fi
 
-all: default
 
 fpi: fpi.o $(MPIR_HOME)/include/mpif.h
 	$(FLINKER) $(OPTFLAGS) -o fpi fpi.o
 
+fibon: fibon.o 
+	$(F90LINKER) $(OPTFLAGS) -o fibon fibon.o
+
 cpi: cpi.o
 	$(CLINKER) $(OPTFLAGS) -o cpi cpi.o -lm
 
+cpi_autolog: cpi.o
+	$(CLINKER) $(OPTFLAGS) -o cpi_autolog cpi.o $(LOG_LIB)
+
 cpilog: cpilog.o
-	$(CLINKER) $(OPTFLAGS) -o cpilog cpilog.o -lmpe $(PMPILIB) -lm
+	$(CLINKER) $(OPTFLAGS) -o cpilog cpilog.o $(PROF_LIB)
 
 srtest: srtest.o
 	$(CLINKER) $(OPTFLAGS) -o srtest srtest.o -lm
@@ -57,7 +71,7 @@ hello++: hello++.o
 unsafe: unsafe.o
 	$(CLINKER) $(OPTFLAGS) -o unsafe unsafe.o 
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) rdb.* startup.*
+	/bin/rm -f *.o *~ PI* $(EXECS) fpi cpilog cpi_autolog hello++ iotest fibon upshot rdb.* startup.* 
 
 cpilog.o: cpilog.c
 	@if test -z "$(MPE_DIR)" ; then \
@@ -72,3 +86,9 @@ cpilog.o: cpilog.c
 	$(F77) $(FFLAGS) -c $*.f
 .cc.o:
 	$(CCC) -c $*.cc
+.SUFFIXES:	\
+	.cc
+.f90.o:
+	$(F90) -c $*.f90
+.SUFFIXES:	\
+	.f90

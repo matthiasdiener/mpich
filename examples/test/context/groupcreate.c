@@ -4,9 +4,7 @@
 #include <stdlib.h>
 #include "test.h"
 
-int main( argc, argv )
-int  argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int i, n, n_goal = 2048, n_all, rc, n_ranks, *ranks, rank, size, len;
     MPI_Group *group_array, world_group;

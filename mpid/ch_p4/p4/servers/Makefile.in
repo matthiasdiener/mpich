@@ -44,7 +44,7 @@ clean:
 	$(RM) -f *~ *.o *.bak tags TAGS core
 
 default:
-	echo not making server on $(P4ARCH)
+	@echo not making server on $(P4ARCH)
 
 all: serv_p4 example_configs iserv_p4 killiserv_p4
 

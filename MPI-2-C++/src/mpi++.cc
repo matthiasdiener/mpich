@@ -1,8 +1,8 @@
 // -*- c++ -*-
 //
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -48,7 +48,7 @@
 #endif  
 }
 
-map _REAL_MPI_::Comm::mpi_comm_map;
+Map _REAL_MPI_::Comm::mpi_comm_map;
 
 #if IBM_SP
 void
@@ -87,7 +87,7 @@ op_intercept(void *invec, void *outvec, int *len, MPI_Datatype *datatype)
   //  Anyway, without the cast the code breaks on HP LAM with the aCC compiler.
 }
 
-map _REAL_MPI_::Comm::key_fn_map;
+Map _REAL_MPI_::Comm::key_fn_map;
 
 int
 copy_attr_intercept(MPI_Comm oldcomm, int keyval, 
@@ -95,11 +95,11 @@ copy_attr_intercept(MPI_Comm oldcomm, int keyval,
 		    void *attribute_val_out, int *flag)
 {
   int ret = 0;
-  map::Pair* copy_and_delete = (map::Pair*)_REAL_MPI_::Comm::key_fn_map[(map::address)keyval];
+  Map::Pair* copy_and_delete = (Map::Pair*)_REAL_MPI_::Comm::key_fn_map[(Map::address)keyval];
   MPI::Comm::Copy_attr_function* copy_fn;
   copy_fn = (MPI::Comm::Copy_attr_function*)copy_and_delete->first;
 
-  map::Pair* comm_type = (map::Pair*)_REAL_MPI_::Comm::mpi_comm_map[(map::address)oldcomm];
+  Map::Pair* comm_type = (Map::Pair*)_REAL_MPI_::Comm::mpi_comm_map[(Map::address)oldcomm];
   
   MPI::Intracomm intracomm;
   MPI::Intercomm intercomm;
@@ -138,12 +138,12 @@ delete_attr_intercept(MPI_Comm comm, int keyval,
 {
   int ret = 0;
 
-  map::Pair* copy_and_delete = (map::Pair*)_REAL_MPI_::Comm::key_fn_map[(map::address)keyval];
+  Map::Pair* copy_and_delete = (Map::Pair*)_REAL_MPI_::Comm::key_fn_map[(Map::address)keyval];
 
   MPI::Comm::Delete_attr_function* delete_fn;  
   delete_fn = (MPI::Comm::Delete_attr_function*)copy_and_delete->second;
 
-  map::Pair* comm_type = (map::Pair*)_REAL_MPI_::Comm::mpi_comm_map[(map::address)comm];
+  Map::Pair* comm_type = (Map::Pair*)_REAL_MPI_::Comm::mpi_comm_map[(Map::address)comm];
 
   MPI::Intracomm intracomm;
   MPI::Intercomm intercomm;
@@ -169,176 +169,187 @@ delete_attr_intercept(MPI_Comm comm, int keyval,
   return ret;
 }
 
-MPI::Status MPI::Comm::ignored_status;
-MPI::Status MPI::Request::ignored_status;
+//$)(*!&@)$(*!&)@($*&!@(*&$(@*  HPUX !!!!!!!!!!!!!!!!!!!
+#if _MPIPP_USENAMESPACE_
+namespace MPI {
+#define MPIPPNSPACE(X) X
+#else
+#define MPIPPNSPACE(X) MPI::##X
+#endif
+
+MPIPPNSPACE(Status) MPIPPNSPACE(Comm)::ignored_status;
+MPIPPNSPACE(Status) MPIPPNSPACE(Request)::ignored_status;
 
 #if ! _MPIPP_USEEXCEPTIONS_
-int MPI::errno = MPI_SUCCESS;
+int MPIPPNSPACE(errno) = MPI_SUCCESS;
 #endif
 
 
-const void* MPI::BOTTOM = (void*) MPI_BOTTOM;
+const void* MPIPPNSPACE(BOTTOM) = (void*) MPI_BOTTOM;
 
 // return  codes
-const int MPI::SUCCESS = MPI_SUCCESS;
-const int MPI::ERR_BUFFER = MPI_ERR_COUNT;
-const int MPI::ERR_TYPE = MPI_ERR_TYPE;
-const int MPI::ERR_TAG = MPI_ERR_TAG;
-const int MPI::ERR_COMM = MPI_ERR_COMM;
-const int MPI::ERR_RANK = MPI_ERR_RANK;
-const int MPI::ERR_REQUEST = MPI_ERR_REQUEST;
-const int MPI::ERR_ROOT = MPI_ERR_ROOT;
-const int MPI::ERR_GROUP = MPI_ERR_GROUP;
-const int MPI::ERR_OP = MPI_ERR_OP;
-const int MPI::ERR_TOPOLOGY = MPI_ERR_TOPOLOGY;
-const int MPI::ERR_DIMS = MPI_ERR_DIMS;
-const int MPI::ERR_ARG = MPI_ERR_ARG;
-const int MPI::ERR_UNKNOWN = MPI_ERR_UNKNOWN;
-const int MPI::ERR_TRUNCATE = MPI_ERR_TRUNCATE;
-const int MPI::ERR_OTHER = MPI_ERR_OTHER;
-const int MPI::ERR_INTERN = MPI_ERR_INTERN;
+const int MPIPPNSPACE(SUCCESS) = MPI_SUCCESS;
+const int MPIPPNSPACE(ERR_BUFFER) = MPI_ERR_COUNT;
+const int MPIPPNSPACE(ERR_TYPE) = MPI_ERR_TYPE;
+const int MPIPPNSPACE(ERR_TAG) = MPI_ERR_TAG;
+const int MPIPPNSPACE(ERR_COMM) = MPI_ERR_COMM;
+const int MPIPPNSPACE(ERR_RANK) = MPI_ERR_RANK;
+const int MPIPPNSPACE(ERR_REQUEST) = MPI_ERR_REQUEST;
+const int MPIPPNSPACE(ERR_ROOT) = MPI_ERR_ROOT;
+const int MPIPPNSPACE(ERR_GROUP) = MPI_ERR_GROUP;
+const int MPIPPNSPACE(ERR_OP) = MPI_ERR_OP;
+const int MPIPPNSPACE(ERR_TOPOLOGY) = MPI_ERR_TOPOLOGY;
+const int MPIPPNSPACE(ERR_DIMS) = MPI_ERR_DIMS;
+const int MPIPPNSPACE(ERR_ARG) = MPI_ERR_ARG;
+const int MPIPPNSPACE(ERR_UNKNOWN) = MPI_ERR_UNKNOWN;
+const int MPIPPNSPACE(ERR_TRUNCATE) = MPI_ERR_TRUNCATE;
+const int MPIPPNSPACE(ERR_OTHER) = MPI_ERR_OTHER;
+const int MPIPPNSPACE(ERR_INTERN) = MPI_ERR_INTERN;
 #if HAVE_PENDING
-const int MPI::ERR_PENDING = MPI_PENDING;
+const int MPIPPNSPACE(ERR_PENDING) = MPI_PENDING;
 #else
-const int MPI::ERR_PENDING = MPI_ERR_PENDING;
+const int MPIPPNSPACE(ERR_PENDING) = MPI_ERR_PENDING;
 #endif
-const int MPI::ERR_IN_STATUS = MPI_ERR_IN_STATUS;
-const int MPI::ERR_LASTCODE = MPI_ERR_LASTCODE;
+const int MPIPPNSPACE(ERR_IN_STATUS) = MPI_ERR_IN_STATUS;
+const int MPIPPNSPACE(ERR_LASTCODE) = MPI_ERR_LASTCODE;
 
 // assorted constants
-const int MPI::PROC_NULL = MPI_PROC_NULL;
-const int MPI::ANY_SOURCE = MPI_ANY_SOURCE;
-const int MPI::ANY_TAG = MPI_ANY_TAG;
-const int MPI::UNDEFINED = MPI_UNDEFINED;
-const int MPI::BSEND_OVERHEAD = MPI_BSEND_OVERHEAD;
-const int MPI::KEYVAL_INVALID = MPI_KEYVAL_INVALID;
+const int MPIPPNSPACE(PROC_NULL) = MPI_PROC_NULL;
+const int MPIPPNSPACE(ANY_SOURCE) = MPI_ANY_SOURCE;
+const int MPIPPNSPACE(ANY_TAG) = MPI_ANY_TAG;
+const int MPIPPNSPACE(UNDEFINED) = MPI_UNDEFINED;
+const int MPIPPNSPACE(BSEND_OVERHEAD) = MPI_BSEND_OVERHEAD;
+const int MPIPPNSPACE(KEYVAL_INVALID) = MPI_KEYVAL_INVALID;
 
 // error-handling specifiers
-const MPI::Errhandler  MPI::ERRORS_ARE_FATAL(MPI_ERRORS_ARE_FATAL);
-const MPI::Errhandler  MPI::ERRORS_RETURN(MPI_ERRORS_RETURN);
-const MPI::Errhandler  MPI::ERRORS_THROW_EXCEPTIONS(MPI_ERRORS_RETURN);
+const MPIPPNSPACE(Errhandler)  MPIPPNSPACE(ERRORS_ARE_FATAL)(MPI_ERRORS_ARE_FATAL);
+const MPIPPNSPACE(Errhandler)  MPIPPNSPACE(ERRORS_RETURN)(MPI_ERRORS_RETURN);
+const MPIPPNSPACE(Errhandler)  MPIPPNSPACE(ERRORS_THROW_EXCEPTIONS)(MPI_ERRORS_RETURN);
 //JGS: the MPI_ERRORS_RETURN function in ERRORS_THROW_EXCEPTIONS gets replaced
-//by the throw_exptn_fctn in MPI::Init
+//by the throw_exptn_fctn in MPIPPNSPACE(Init)
 
 // maximum sizes for strings
-const int MPI::MAX_PROCESSOR_NAME = MPI_MAX_PROCESSOR_NAME;
-const int MPI::MAX_ERROR_STRING = MPI_MAX_ERROR_STRING;
+const int MPIPPNSPACE(MAX_PROCESSOR_NAME) = MPI_MAX_PROCESSOR_NAME;
+const int MPIPPNSPACE(MAX_ERROR_STRING) = MPI_MAX_ERROR_STRING;
 
 // elementary datatypes
-const MPI::Datatype MPI::CHAR(MPI_CHAR);
-const MPI::Datatype MPI::SHORT(MPI_SHORT);
-const MPI::Datatype MPI::INT(MPI_INT);
-const MPI::Datatype MPI::LONG(MPI_LONG);
-const MPI::Datatype MPI::UNSIGNED_CHAR(MPI_UNSIGNED_CHAR);
-const MPI::Datatype MPI::UNSIGNED_SHORT(MPI_UNSIGNED_SHORT);
-const MPI::Datatype MPI::UNSIGNED(MPI_UNSIGNED);
-const MPI::Datatype MPI::UNSIGNED_LONG(MPI_UNSIGNED_LONG);
-const MPI::Datatype MPI::FLOAT(MPI_FLOAT);
-const MPI::Datatype MPI::DOUBLE(MPI_DOUBLE);
-const MPI::Datatype MPI::LONG_DOUBLE(MPI_LONG_DOUBLE);
-const MPI::Datatype MPI::BYTE(MPI_BYTE);
-const MPI::Datatype MPI::PACKED(MPI_PACKED);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(CHAR)(MPI_CHAR);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(SHORT)(MPI_SHORT);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(INT)(MPI_INT);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(LONG)(MPI_LONG);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(UNSIGNED_CHAR)(MPI_UNSIGNED_CHAR);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(UNSIGNED_SHORT)(MPI_UNSIGNED_SHORT);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(UNSIGNED)(MPI_UNSIGNED);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(UNSIGNED_LONG)(MPI_UNSIGNED_LONG);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(FLOAT)(MPI_FLOAT);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(DOUBLE)(MPI_DOUBLE);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(LONG_DOUBLE)(MPI_LONG_DOUBLE);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(BYTE)(MPI_BYTE);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(PACKED)(MPI_PACKED);
 
 // datatypes for reductions functions (C / C++)
-const MPI::Datatype MPI::FLOAT_INT(MPI_FLOAT_INT);
-const MPI::Datatype MPI::DOUBLE_INT(MPI_FLOAT_INT);
-const MPI::Datatype MPI::LONG_INT(MPI_LONG_INT);
-const MPI::Datatype MPI::TWOINT(MPI_2INT);
-const MPI::Datatype MPI::SHORT_INT(MPI_SHORT_INT);
-const MPI::Datatype MPI::LONG_DOUBLE_INT(MPI_LONG_DOUBLE);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(FLOAT_INT)(MPI_FLOAT_INT);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(DOUBLE_INT)(MPI_FLOAT_INT);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(LONG_INT)(MPI_LONG_INT);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(TWOINT)(MPI_2INT);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(SHORT_INT)(MPI_SHORT_INT);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(LONG_DOUBLE_INT)(MPI_LONG_DOUBLE);
 
 #if FORTRAN
 // elementary datatype (Fortran)
-const MPI::Datatype INTEGER(MPI_INTEGER);
-const MPI::Datatype REAL(MPI_REAL);
-const MPI::Datatype DOUBLE_PRECISION(MPI_DOUBLE_PRECISION);
-const MPI::Datatype F_COMPLEX(MPI_COMPLEX);
-const MPI::Datatype LOGICAL(MPI_LOGICAL);
-const MPI::Datatype CHARACTER(MPI_CHARACTER);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(INTEGER)(MPI_INTEGER);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(REAL)(MPI_REAL);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(DOUBLE_PRECISION)(MPI_DOUBLE_PRECISION);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(F_COMPLEX)(MPI_COMPLEX);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(LOGICAL)(MPI_LOGICAL);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(CHARACTER)(MPI_CHARACTER);
 
 // datatype for reduction functions (Fortran)
-const MPI::Datatype TWOREAL(MPI_2REAL);
-const MPI::Datatype TWODOUBLE_PRECISION(MPI_2DOUBLE_PRECISION);
-const MPI::Datatype TWOINTEGER(MPI_2INTEGER);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(TWOREAL)(MPI_2REAL);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(TWODOUBLE_PRECISION)(MPI_2DOUBLE_PRECISION);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(TWOINTEGER)(MPI_2INTEGER);
 
 // optional datatypes (Fortran)
 #if ALL_OPTIONAL_FORTRAN
-const MPI::Datatype INTEGER1(MPI_1INTEGER);
-const MPI::Datatype INTEGER2(MPI_2INTEGER);
-const MPI::Datatype INTEGER4(MPI_4INTEGER);
-const MPI::Datatype REAL2(MPI_2REAL);
-const MPI::Datatype REAL4(MPI_4REAL);
-const MPI::Datatype REAL8(MPI_8REAL);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(INTEGER1)(MPI_1INTEGER);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(INTEGER2)(MPI_2INTEGER);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(INTEGER4)(MPI_4INTEGER);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(REAL2)(MPI_2REAL);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(REAL4)(MPI_4REAL);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(REAL8)(MPI_8REAL);
 #elif SOME_OPTIONAL_FORTRAN
-const MPI::Datatype INTEGER2(MPI_2INTEGER);
-const MPI::Datatype REAL2(MPI_2REAL);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(INTEGER2)(MPI_2INTEGER);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(REAL2)(MPI_2REAL);
 #endif //optional datatypes (Fortran)
 
 #endif //FORTRAN
 
 #if OPTIONAL_C
 // optional datatype (C / C++)
-const MPI::Datatype LONG_LONG(MPI_LONG_LONG);
-const MPI::Datatype UNSIGNED_LONG_LONG(MPI_UNSIGNED_LONG_LONG);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(LONG_LONG)(MPI_LONG_LONG);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(UNSIGNED_LONG_LONG)(MPI_UNSIGNED_LONG_LONG);
 #endif //OPTIONAL_C
 
 #if 0
-// c++ types
-const MPI::Datatype BOOL;
-const MPI::Datatype COMPLEX;
-const MPI::Datatype DOUBLE_COMPLEX;
-const MPI::Datatype LONG_DOUBLE_COMPLEX;
+// c++ type)s
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(BOOL);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(COMPLEX);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(DOUBLE_COMPLEX);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(LONG_DOUBLE_COMPLEX);
 #endif
 
 // reserved communicators
-MPI::Intracomm MPI::COMM_WORLD(MPI_COMM_WORLD);
-MPI::Intracomm MPI::COMM_SELF(MPI_COMM_SELF);
+MPIPPNSPACE(Intracomm) MPIPPNSPACE(COMM_WORLD)(MPI_COMM_WORLD);
+MPIPPNSPACE(Intracomm) MPIPPNSPACE(COMM_SELF)(MPI_COMM_SELF);
 
 // results of communicator and group comparisons
-const int MPI::IDENT = MPI_IDENT;
-const int MPI::CONGRUENT = MPI_CONGRUENT;
-const int MPI::SIMILAR = MPI_SIMILAR;
-const int MPI::UNEQUAL = MPI_UNEQUAL;
+const int MPIPPNSPACE(IDENT) = MPI_IDENT;
+const int MPIPPNSPACE(CONGRUENT) = MPI_CONGRUENT;
+const int MPIPPNSPACE(SIMILAR) = MPI_SIMILAR;
+const int MPIPPNSPACE(UNEQUAL) = MPI_UNEQUAL;
 
 // environmental inquiry keys
-const int MPI::TAG_UB = MPI_TAG_UB;
-const int MPI::IO = MPI_IO;
-const int MPI::HOST= MPI_HOST;
-const int MPI::WTIME_IS_GLOBAL = MPI_WTIME_IS_GLOBAL;
+const int MPIPPNSPACE(TAG_UB) = MPI_TAG_UB;
+const int MPIPPNSPACE(IO) = MPI_IO;
+const int MPIPPNSPACE(HOST) = MPI_HOST;
+const int MPIPPNSPACE(WTIME_IS_GLOBAL) = MPI_WTIME_IS_GLOBAL;
 
 // collective operations
-const MPI::Op MPI::MAX(MPI_MAX);
-const MPI::Op MPI::MIN(MPI_MIN);
-const MPI::Op MPI::SUM(MPI_SUM);
-const MPI::Op MPI::PROD(MPI_PROD);
-const MPI::Op MPI::MAXLOC(MPI_MAXLOC);
-const MPI::Op MPI::MINLOC(MPI_MINLOC);
-const MPI::Op MPI::BAND(MPI_BAND);
-const MPI::Op MPI::BOR(MPI_BOR);
-const MPI::Op MPI::BXOR(MPI_BXOR);
-const MPI::Op MPI::LAND(MPI_LAND);
-const MPI::Op MPI::LOR(MPI_LOR);
-const MPI::Op MPI::LXOR(MPI_LXOR);
+const MPIPPNSPACE(Op) MPIPPNSPACE(MAX)(MPI_MAX);
+const MPIPPNSPACE(Op) MPIPPNSPACE(MIN)(MPI_MIN);
+const MPIPPNSPACE(Op) MPIPPNSPACE(SUM)(MPI_SUM);
+const MPIPPNSPACE(Op) MPIPPNSPACE(PROD)(MPI_PROD);
+const MPIPPNSPACE(Op) MPIPPNSPACE(MAXLOC)(MPI_MAXLOC);
+const MPIPPNSPACE(Op) MPIPPNSPACE(MINLOC)(MPI_MINLOC);
+const MPIPPNSPACE(Op) MPIPPNSPACE(BAND)(MPI_BAND);
+const MPIPPNSPACE(Op) MPIPPNSPACE(BOR)(MPI_BOR);
+const MPIPPNSPACE(Op) MPIPPNSPACE(BXOR)(MPI_BXOR);
+const MPIPPNSPACE(Op) MPIPPNSPACE(LAND)(MPI_LAND);
+const MPIPPNSPACE(Op) MPIPPNSPACE(LOR)(MPI_LOR);
+const MPIPPNSPACE(Op) MPIPPNSPACE(LXOR)(MPI_LXOR);
 
 // null handles
-const MPI::Group        MPI::GROUP_NULL = MPI_GROUP_NULL;
-//const MPI::Comm         MPI::COMM_NULL = MPI_COMM_NULL;
-//const MPI_Comm          MPI::COMM_NULL = MPI_COMM_NULL;
-MPI::Comm_Null    MPI::COMM_NULL;
-const MPI::Datatype     MPI::DATATYPE_NULL = MPI_DATATYPE_NULL;
-MPI::Request      MPI::REQUEST_NULL = MPI_REQUEST_NULL;
-const MPI::Op           MPI::OP_NULL = MPI_OP_NULL;
-const MPI::Errhandler   MPI::ERRHANDLER_NULL;  
+const MPIPPNSPACE(Group)        MPIPPNSPACE(GROUP_NULL) = MPI_GROUP_NULL;
+//const MPIPPNSPACE(Comm)         MPIPPNSPACE(COMM_NULL) = MPI_COMM_NULL;
+//const MPI_Comm          MPIPPNSPACE(COMM_NULL) = MPI_COMM_NULL;
+MPIPPNSPACE(Comm_Null)    MPIPPNSPACE(COMM_NULL);
+const MPIPPNSPACE(Datatype)     MPIPPNSPACE(DATATYPE_NULL) = MPI_DATATYPE_NULL;
+MPIPPNSPACE(Request)      MPIPPNSPACE(REQUEST_NULL) = MPI_REQUEST_NULL;
+const MPIPPNSPACE(Op)           MPIPPNSPACE(OP_NULL) = MPI_OP_NULL;
+const MPIPPNSPACE(Errhandler)   MPIPPNSPACE(ERRHANDLER_NULL);  
 
 // empty group
-const MPI::Group MPI::GROUP_EMPTY(MPI_GROUP_EMPTY);
+const MPIPPNSPACE(Group) MPIPPNSPACE(GROUP_EMPTY)(MPI_GROUP_EMPTY);
 
 // topologies
-const int MPI::GRAPH = MPI_GRAPH;
-const int MPI::CART = MPI_CART;
+const int MPIPPNSPACE(GRAPH) = MPI_GRAPH;
+const int MPIPPNSPACE(CART) = MPI_CART;
 
 // special datatypes for contstruction of derived datatypes
-const MPI::Datatype MPI::UB(MPI_UB);
-const MPI::Datatype MPI::LB(MPI_LB);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(UB)(MPI_UB);
+const MPIPPNSPACE(Datatype) MPIPPNSPACE(LB)(MPI_LB);
 
 
+#if _MPIPP_USENAMESPACE_
+}; /* namespace MPI */
+#endif

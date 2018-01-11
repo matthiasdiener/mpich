@@ -11,18 +11,17 @@
 #define TAG4 4
 #define TAGSR 101
 
-void Resetbuf( buf, len )
-char *buf;
-int  len;
+void Resetbuf( char *, int );
+void Checkbuf( char *, int, MPI_Status * );
+
+void Resetbuf( char *buf, int len )
 {
     int i;
     for (i=0; i<len; i++) 
 	buf[i] = 0;
 }
-void Checkbuf( buf, len, status )
-char       *buf;
-int        len;
-MPI_Status *status;
+
+void Checkbuf( char *buf, int len, MPI_Status *status )
 {
     int count, i;
     int err = 0;
@@ -44,9 +43,7 @@ MPI_Status *status;
     if (err) MPI_Abort( MPI_COMM_WORLD, 1 );
 }
 
-int main( argc, argv )
-int argc;
-char* argv[];
+int main( int argc, char *argv[] )
 {
     int msglen, i;
     int msglen_min = MIN_MESSAGE_LENGTH;

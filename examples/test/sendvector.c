@@ -52,9 +52,7 @@ for (i=0; i<10; i++) {
 
 /*
  */
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int rank, c, size, master, slave, step, errs;
     MPI_Status status;

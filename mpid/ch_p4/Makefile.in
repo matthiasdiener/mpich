@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.6 1998/07/05 16:48:59 gropp Exp $
+#  $Id: Makefile.in,v 1.11 1999/01/19 22:22:33 swider Exp $
 #
 #  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -10,26 +10,29 @@
 ##### User configurable options #####
 
 ARCH        = @ARCH@
-COMM        = @COMM@
 DEVICE      = @DEVICE@
 MPIR_HOME   = @MPIR_HOME@
-INCLUDE_DIR = @INCLUDE_PATH@ -Impid/@DEVICE@ -Iinclude
 CC          = @CC@
 AR          = @AR@
 RANLIB      = @RANLIB@
 OPTFLAGS    = @OPTFLAGS@
 SHELL       = /bin/sh
 ASMFILES_O  = @ASMFILES_O@
+
 ### End User configurable options ###
 
 #ALL: default
 ALL: libdev
 
 P4_HOME  = ./p4
-LIBNAME  = ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
+LIBNAME  = ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a
 LIBDEV   = libmpid.a
+# You need the ../ch_p4 for some broken compilers (versions of gcc)
+# that make all of these paths relative to the directory an include is
+# found in, not the directory where the compiler is running (!)
+# Trailing / causes problems for some versions of gcc (was -I./)
 CFLAGS   = @CFLAGS@ $(OPTFLAGS) @OPTFLAGSC@ \
-	-I../.. -I../../include -I./ -I../ch2 \
+	-I../.. -I../../include -I. -I../ch2 -I../ch_p4 \
 		-I../util -Ip4/include \
 		-DMPID_DEVICE_CODE @GETNAME_DEFS@ @DEVCFLAGS@ @DEV_DEFS@
 # See mpid/ch_adi2/Makefile.in for a full list
@@ -66,8 +69,23 @@ profile_all:
 clean:
 	/bin/rm -f *~ $(MPI_OBJECTS) libmpid.a mprerr.o
 	(cd $(P4_HOME); if [ -s Makefile ] ; then $(MAKE) clean; \
-	/bin/rm -f lib/libp4.a ; fi ;)
+	/bin/rm -f lib/libp4.a ; fi ) 
 #	/bin/rm -f Makefile lib/p4_config.h lib/libp4.a ; fi ;)
+
+distclean: 
+	@for file in $(SOURCE) ; do \
+	    if [ -l $$file ] ; then \
+	        /bin/rm -f $$file ; fi ; \
+	done
+	@for file in $(MPIDHEADERS) ; do \
+	    if [ -l $$file ] ; then \
+	        /bin/rm -f $$file ; fi ; \
+	done
+	@if [ -s mpiddev.h ] ; then \
+	    /bin/rm -f mpiddev.h ; fi
+	@if [ -s sbcnst2.h ] ; then \
+	    /bin/rm -f sbcnst2.h ; fi
+	/bin/rm -f Makefile
 
 MPIDHEADERS = mpid.h req.h comm.h datatype.h chhetero.h attach.h objtrace.h \
 	      calltrace.h cookie.h mpid_bind.h reqalloc.h tr2.h mpimem.h 

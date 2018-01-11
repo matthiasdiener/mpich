@@ -22,8 +22,8 @@ static int  ready = 0;
 
 /* Prototype definitions */
 int MPID_CENJU3_Rndvn_send ANSI_ARGS(( void *, int, int, int, int, int, 
-					  int ));
-int MPID_CENJU3_Rndvn_isend ANSI_ARGS(( void *, int, int, int, int, int, int, 
+					  MPID_Msgrep_t ));
+int MPID_CENJU3_Rndvn_isend ANSI_ARGS(( void *, int, int, int, int, int, MPID_Msgrep_t, 
 				    MPIR_SHANDLE * ));
 int MPID_CENJU3_Rndvn_irecv ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
 int MPID_CENJU3_Rndvn_save ANSI_ARGS(( MPIR_RHANDLE *, int, void *));
@@ -55,7 +55,8 @@ void MPID_CENJU3_Rndvn_delete ANSI_ARGS(( MPID_Protocol * ));
 int MPID_CENJU3_Rndvn_isend( buf, len, src_lrank, tag, context_id, dest,
 			 msgrep, shandle )
 void *buf;
-int  len, tag, context_id, src_lrank, dest, msgrep;
+int  len, tag, context_id, src_lrank, dest;
+MPID_Msgrep_t msgrep;
 MPIR_SHANDLE *shandle;
 {
     MPID_PKT_GET_T *pkt, spkt;
@@ -116,7 +117,8 @@ MPIR_SHANDLE *shandle;
 int MPID_CENJU3_Rndvn_send( buf, len, src_lrank, tag, context_id, dest,
 			 msgrep )
 void *buf;
-int  len, tag, context_id, src_lrank, dest, msgrep;
+int  len, tag, context_id, src_lrank, dest;
+MPID_Msgrep_t msgrep;
 {
     MPIR_SHANDLE shandle;
 

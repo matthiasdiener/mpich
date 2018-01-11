@@ -9,9 +9,7 @@
 #include <stdio.h>
 #include <mpi.h>
 
-int main(argc, argv)
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     MPI_Status status;
     int count, rank, size,  dest, source, i, err = 0, toterr;

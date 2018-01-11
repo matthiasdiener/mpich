@@ -21,26 +21,27 @@ and <TT>-mpianim</TT> commands.
 mpiCC cannot be used to compile C programs.  Use mpicc for C programs.
 <P>
 <H2>Command line arguments</H2>
-<DL><DT><B>-mpilog    </B> <DD> Build version that generate MPE log files
-</DL>
-<DL><DT><B>-mpitrace  </B> <DD> Build version that generates traces
-</DL>
-<DL><DT><B>-mpianim   </B> <DD> Build version that generates real-time
+<TABLE BORDER=0>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>-mpilog    </B></TD><TD VALIGN=TOP>Build version that generate MPE log files
+<BR></TD></TR>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>-mpitrace  </B></TD><TD VALIGN=TOP>Build version that generates traces
+<BR></TD></TR>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>-mpianim   </B></TD><TD VALIGN=TOP>Build version that generates real-time
 animation
-</DL>
-<DL><DT><B>-show      </B> <DD> Show the commands that would be used without
+<BR></TD></TR>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>-show      </B></TD><TD VALIGN=TOP>Show the commands that would be used without
 runnning them
-</DL>
-<DL><DT><B>-help      </B> <DD> Give short help
-</DL>
-<DL><DT><B>-echo      </B> <DD> Show exactly what this program is doing.
+<BR></TD></TR>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>-help      </B></TD><TD VALIGN=TOP>Give short help
+<BR></TD></TR>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>-echo      </B></TD><TD VALIGN=TOP>Show exactly what this program is doing.
 This option should normally not be used.
-</DL>
-<DL><DT><B>others     </B> <DD> are passed to the compiler or linker.  For example, <TT>-c</TT>
+<BR></TD></TR>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>others     </B></TD><TD VALIGN=TOP>are passed to the compiler or linker.  For example, <TT>-c</TT>
 causes files to be compiled, <TT>-g</TT> selects compilation with debugging
 on most systems, and <TT>-o name</TT> causes linking with the output
 executable given the name <TT>name</TT>.
-</DL>
+<BR></TD></TR></TABLE>
 <P>
 <H2>Environment Variables</H2>
 The environment variables <TT>MPICH_CCC</TT> and <TT>MPICH_CCLINKER</TT> may be used

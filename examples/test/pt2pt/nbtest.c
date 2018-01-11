@@ -14,9 +14,7 @@
    Just like nblock, but with the probe test.
 */
 
-int main( argc, argv )
-int  argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int count, tag, nsend, myid, np, rcnt, scnt, i, j, *send_buf;
     int length, finished;

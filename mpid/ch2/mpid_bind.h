@@ -5,6 +5,11 @@
  * This is not necessarily a complete set.  Check the ADI2 documentation
  * in http://www.mcs.anl.gov/mpi/mpich/workingnote/nextgen/note.html .
  *
+ * These include routines that are internal to the device implementation.
+ * A device implementation that replaces a large piece such as the datatype
+ * handling may not need to replace all of the routines (e.g., MPID_Msg_rep is 
+ * used only by the pack/send/receive routines, not by the MPIR level)
+ *
  */
 
 void MPID_Init ANSI_ARGS(( int *, char ***, void *, int *));
@@ -121,4 +126,5 @@ void MPID_SetDebugFile ANSI_ARGS(( char * ));
 void MPID_Set_tracefile ANSI_ARGS(( char * ));
 void MPID_SetSpaceDebugFlag ANSI_ARGS(( int ));
 void MPID_SetDebugFlag ANSI_ARGS(( int ));
+void MPID_SetMsgDebugFlag( int );
 #endif

@@ -1,8 +1,8 @@
 // -*- c++ -*-
 //
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -57,9 +57,12 @@ MPI::Datatype::Create_struct(int count, const int array_of_blocklengths[],
   PMPI::Datatype* pmpi_types = new PMPI::Datatype[count];
   int i;
   for (i = 0; i < count; i++)
-    pmpi_types[i] = (PMPI::Datatype&)array_of_types[i];
-  return PMPI::Datatype::Create_struct(count, array_of_blocklengths,
+    pmpi_types[i] = array_of_types[i].pmpi();
+
+  PMPI::Datatype data = PMPI::Datatype::Create_struct(count, array_of_blocklengths,
 				       array_of_displacements, pmpi_types);
+  delete pmpi_types;
+  return data;
 }
 
 MPI::Datatype

@@ -11,9 +11,7 @@
    stresses them by sending large numbers of requests and receiving them
    piecemeal.
  */
-int main( argc, argv )
-int  argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int count, tag, nsend, myid, np, rcnt, scnt, i, j, *buf;
     MPI_Status status;

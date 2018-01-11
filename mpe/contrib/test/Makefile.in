@@ -1,0 +1,86 @@
+
+##### User configurable options #####
+
+CC          = @CC@
+CLINKER     = $(CC)
+MAKE        = @MAKE@
+OPTFLAGS    = @OPTFLAGS@
+LIB_PATH    = -L@MPE_LIBPATH@ -lmpe @X_LIB@ @MPI_LIBS@ -lm 
+MPE_DIR     = @MPE_HOME@
+LOG_LIB     = -L@MPE_LIBPATH@ @LOGLIB@
+TRACE_LIB   = -L@MPE_LIBPATH@ @TRACELIB@
+ANIM_LIB    = -L@MPE_LIBPATH@ @ANIMLIB@
+PROF_LIB    = -L@MPE_LIBPATH@ @PROFLIB@
+INCLUDE_DIR = @INCLUDEDIR@ -I$(MPE_DIR)
+LDFLAGS     = @OPTFLAGS@
+NO_X        = @NO_X@
+
+### End User configurable options ###
+
+CFLAGS  =  @MPE_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) 
+EXECS =  cpilog cpi
+
+default: $(EXECS)
+
+cpi_log: cpi.o
+	$(CLINKER) $(LDFLAGS) -o cpi_log cpi.o $(LOG_LIB) -lm
+
+cpi_trace: cpi.o
+	$(CLINKER) $(LDFLAGS) -o cpi_trace cpi.o $(TRACE_LIB) -lm
+
+cpi_anim: cpi.o
+	$(CLINKER) $(LDFLAGS) -o cpi_anim cpi.o $(ANIM_LIB) -lm 
+
+cpilog: cpilog.o $(MPE_DIR)/mpe.h
+	$(CLINKER) $(LDFLAGS)  -o cpilog cpilog.o \
+	$(LOG_LIB) -lm 
+
+cpilog.o: cpilog.c
+	$(CC) $(CFLAGS) -DUSE_GRAPHICS -c cpilog.c
+
+linktest: 
+	@-echo "Testing if application can be linked with logging library" ; \
+	$(MAKE) clean ; \
+	$(MAKE) cpi_log ; \
+	if test -x cpi_log ; then \
+	    echo "Application can be linked with logging library" ; \
+	    /bin/rm cpi_log ; \
+	else \
+	    echo "Application cannot be linked with logging library" ; \
+	fi 
+	@-echo "Testing if application can be linked with tracing library" ; \
+	$(MAKE) cpi_trace ; \
+	if test -x cpi_trace ; then \
+	    echo "Application can be linked with tracing library" ; \
+	    /bin/rm cpi_trace ; \
+	else \
+	    echo "Application cannot be linked with tracing library" ; \
+	fi 
+	@-if [ $(NO_X) = 0 ] ; then \
+	    echo "Testing if application can be linked with animation library" ; \
+	    $(MAKE) cpi_anim ; \
+	    if test -x cpi_anim ; then \
+	        echo "Application can be linked with animation library" ; \
+	        /bin/rm cpi_anim ; \
+	    else \
+	        echo "Application cannot be linked with animation library" ; \
+	    fi \
+	fi  
+	@-echo "Testing if application can use both automatic and manual logging together" ; \
+	$(MAKE) cpilog ; \
+	if test -x cpilog ; then \
+	    echo "Application can use both automatic and manual logging together" ; \
+	    /bin/rm cpilog ; \
+	else \
+	    echo "Application cannot use both automatic and manual logging together" ; \
+	fi 
+	$(MAKE) clean
+
+clean:
+	/bin/rm -f *.o *~ PI* $(EXECS) cpilog cpi_anim cpi_trace cpi_log
+
+.c.o:
+	$(CC) $(CFLAGS) -c $*.c
+.f.o:
+	$(F77) $(FFLAGS) -c $*.f
+

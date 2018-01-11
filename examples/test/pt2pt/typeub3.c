@@ -8,9 +8,7 @@
 #include "protofix.h"
 #endif
  
-int main( argc, argv )
-int argc;
-char *argv[]; 
+int main( int argc, char *argv[] )
 {
     MPI_Datatype dt1, dt2, dt3, dt4, dt5;
     MPI_Aint     ex;

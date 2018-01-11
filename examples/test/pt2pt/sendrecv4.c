@@ -15,9 +15,7 @@
    This version sends and receives EVERYTHING from MPI_BOTTOM, by putting
    the data into a structure.
  */
-int main(argc, argv)
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
 MPI_Datatype *types;
 void         **inbufs, **outbufs;

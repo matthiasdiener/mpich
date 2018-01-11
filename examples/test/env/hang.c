@@ -2,8 +2,7 @@
 #include <stdio.h>
 #include "mpi.h"
 
-int main(argc,args)
-int argc; char **args;
+int main( int argc, char **args )
 {
   int mytid;
     printf("doing mpi_init\n");

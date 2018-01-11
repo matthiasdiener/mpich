@@ -9,6 +9,8 @@ F77         = @MPIF77@
 CLINKER     = @MPICC@
 CCLINKER    = @MPICPLUSPLUS@
 FLINKER     = @MPIF77@
+F90         = @MPIF90@
+F90LINKER   = @MPIF90@	  
 OPTFLAGS    = @OPTFLAGS@
 MAKE        = @MAKE@
 SHELL       = /bin/sh
@@ -20,13 +22,16 @@ CFLAGS  = $(OPTFLAGS)
 FFLAGS =  $(OPTFLAGS)
 LIBS =
 FLIBS =
-EXECS = pi3 cpi cpilog
+EXECS = cpi 
 
 default: cpi pi3
 
 all: $(EXECS)
 	if [ "@ROMIO@" = 1 -a -s simpleio.c ] ; then $(MAKE) simpleio ; fi
 	if [ "@buildcpp@" = 1 ] ; then $(MAKE) hello++ ; fi
+	if [ "@NOF77@" = 0 ] ; then $(MAKE) pi3 ; fi
+	if [ "@NOMPE@" = 0 ] ; then $(MAKE) cpilog ; fi
+	if [ -n "@F90@" -o "@f90nag@" = 1 ] ; then $(MAKE) fibon ; fi
 
 cpi: cpi.o 
 	$(CLINKER) $(OPTFLAGS) -o cpi cpi.o -lm
@@ -43,6 +48,12 @@ cpiwithlog: cpi.o
 pi3: pi3.o 
 	$(FLINKER) $(OPTFLAGS) -o pi3 pi3.o $(FLIBS)
 
+# Some Fortran 90 compilers do not accept a .f90 suffix (xlf90 for one)
+fibon.o: fibon.@F90_SUFFIX@
+	$(F90) $(FFLAGS) -c fibon.@F90_SUFFIX@
+fibon: fibon.o 
+	$(F90LINKER) $(OPTFLAGS) -o fibon fibon.o $(FLIBS)
+
 #
 # Here are the rules for the optional package examples (ROMIO/C++)
 simpleio: simpleio.o
@@ -53,10 +64,12 @@ hello++.o: hello++.cc
 	$(CCC) -c $(OPTFLAGS) hello++.cc
 
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) simpleio hello++
+	/bin/rm -f *.o *~ PI* $(EXECS) pi3 simpleio hello++ fibon cpilog
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c
 .f.o:
 	$(F77) $(FFLAGS) -c $*.f
-
+.f90.o:
+	$(F90) $(FFLAGS) -c $*.f90
+.SUFFIXES: .f90

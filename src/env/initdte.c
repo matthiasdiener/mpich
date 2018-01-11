@@ -1,5 +1,5 @@
 /*
- *  $Id: initdte.c,v 1.4 1998/05/15 16:17:42 gropp Exp $
+ *  $Id: initdte.c,v 1.5 1998/11/28 22:08:59 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -123,7 +123,7 @@ void MPIR_Init_dtes()
     MPI_Datatype   type[3], temptype;
     MPI_Aint       disp[3];
     int            blln[3];
-    int            nodetype;
+    MPIR_NODETYPE  nodetype;
 
     /* set up pre-defined data types */
     DEBUG(PRINTF("[%d] About to create datatypes\n", MPIR_tid);)

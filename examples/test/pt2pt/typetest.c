@@ -44,9 +44,7 @@ struct struct4 {
     int a2;
 };   
 
-int main(argc, argv)
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int rank, size, ret; 
     MPI_Status Status;

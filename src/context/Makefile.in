@@ -6,14 +6,13 @@
 ##### User configurable options #####
 
 ARCH        = @ARCH@
-COMM        = @COMM@
-BOPT        = @BOPT@
+DEVICE      = @DEVICE@
 MPIR_HOME   = @MPIR_HOME@
 CC          = @CC@
 F77         = @F77@
 AR          = @AR@
 RANLIB      = @RANLIB@
-INCLUDE_DIR = @INCLUDE_PATH@ -I../../mpid/@DEVICE@ -I../../include
+INCLUDE_DIR = @INCLUDE_PATH@ -I../../mpid/$(DEVICE) -I../../include
 DEVICE      = @DEVICE@
 OPTFLAGS    = @OPTFLAGS@
 
@@ -27,7 +26,7 @@ DEVICE_LIB =
 CFLAGS = @CFLAGS@ $(OPTFLAGS) @OPTFLAGSC@ $(INCLUDE_DIR) \
 	-DMPI_$(ARCH) $(MPIPROFILE)
 
-LIBS = ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $(DEVICE_LIB)
+LIBS = ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a $(DEVICE_LIB)
 
 MPI_CSOURCES = keyval_free.c keyvalcreate.c attr_getval.c \
 		attr_delval.c attr_util.c attr_putval.c \
@@ -83,47 +82,33 @@ MPI_WOBJECTS = keyval_freef.o keyvalcreatf.o attr_getvalf.o \
 		comm_rsizef.o comm_rgroupf.o ic_createf.o ic_mergef.o \
 		null_copyfnf.o null_del_fnf.o dup_fnf.o
 
-default: ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
+default: ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a
 
 MPI_SOURCES = $(MPI_CSOURCES) $(MPI_WSOURCES)
 MPI_OBJECTS = $(MPI_COBJECTS) $(MPI_WOBJECTS)
 
-profile: ../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a
+profile: ../../build/$(ARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a
 
 # default_all is the same as default, but without the RANLIB.  This
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
 default_all: $(MPI_OBJECTS)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $?
+	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a $?
 profile_all: $(MPI_OBJECTS)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a $?
+	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a $?
 wrapperlib: $(MPI_WOBJECTS)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libf@MPILIBNAME@.a $?	
+	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/libf@MPILIBNAME@.a $?	
 
-wrappers:
-	-/bin/rm -f $(MPI_WSOURCES)
-	../../util/bfort -ferr -mpi -mnative -mapptr -ptrprefix MPIR_ \
-		-anyname -I pubinc $(MPI_TSOURCES)	
-	if [ -s keyvalcreatef.c ] ; then \
-	    /bin/mv keyvalcreatef.c keyvalcreatf.c ; fi
-	if [ -s group_tranksf.c ] ; then \
-	    /bin/mv group_tranksf.c grouptranksf.c ; fi
-	if [ -s groupcomparef.c ] ; then \
-	    /bin/mv groupcomparef.c groupcomparf.c ; fi
-manpages:
-	../../util/doctext -mpath ../../man/man3 -ext 3 -I pubinc \
-	   -jumpfile ../../jumpfile.list -heading MPI \
-		-quotefmt ../../util/fortnotes ../../util/errnotes \
-		$(MPI_CSOURCES)
-	../../util/doc2lt $(MPI_CSOURCES) >> ../../rsum.tmp
-
-wwwpages:
-	../../util/doctext -html -mpath ../../www/www3 -I pubinc \
-	   -index ../../www.index -jumpfile ../../jumpfile.list \
-	   -mapref $(MPIR_HOME)/util/mpis.cit \
-	   -indexdir "http://www.mcs.anl.gov/mpi/www/www3" -heading MPI \
-		-quotefmt ../../util/fortnotes ../../util/errnotes \
-		$(MPI_CSOURCES)
+#wrappers:
+#	-/bin/rm -f $(MPI_WSOURCES)
+#	../../util/bfort -ferr -mpi -mnative -mapptr -ptrprefix MPIR_ \
+#		-anyname -I pubinc $(MPI_TSOURCES)	
+#	if [ -s keyvalcreatef.c ] ; then \
+#	    /bin/mv keyvalcreatef.c keyvalcreatf.c ; fi
+#	if [ -s group_tranksf.c ] ; then \
+#	    /bin/mv group_tranksf.c grouptranksf.c ; fi
+#	if [ -s groupcomparef.c ] ; then \
+#	    /bin/mv groupcomparef.c groupcomparf.c ; fi
 
 source_names:
 	@echo $(MPI_CSOURCES)
@@ -133,11 +118,11 @@ $(MPI_OBJECTS) :  $(MPI_INCLUDE)
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c
 
-../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
+../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
 	$(AR) $@ $?
 	$(RANLIB) $@
 
-../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a: $(MPI_OBJECTS) 
+../../build/$(ARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a: $(MPI_OBJECTS) 
 	$(AR) $@ $?
 	$(RANLIB) $@
 

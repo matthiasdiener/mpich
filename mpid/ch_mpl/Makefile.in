@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.5 1998/07/05 16:48:58 gropp Exp $
+#  $Id: Makefile.in,v 1.8 1998/11/17 22:13:51 gropp Exp $
 #
 #  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -10,7 +10,6 @@
 ##### User configurable options #####
 
 ARCH        = @ARCH@
-COMM        = @COMM@
 DEVICE      = @DEVICE@
 MPIR_HOME   = @MPIR_HOME@
 INCLUDE_DIR = @INCLUDE_PATH@ -Impid/@DEVICE@ -Iinclude
@@ -25,10 +24,10 @@ ASMFILES_O  = @ASMFILES_O@
 #ALL: default
 ALL: libdev
 
-LIBNAME  = ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
+LIBNAME  = ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a
 LIBDEV   = libmpid.a
 CFLAGS   = @CFLAGS@ $(OPTFLAGS) @OPTFLAGSC@ \
-	   	-I../.. -I../../include -I./ -I../ch2 \
+	   	-I../.. -I../../include -I. -I../ch2 \
 		-I../util \
 		-DMPID_DEVICE_CODE @GETNAME_DEFS@ @DEVCFLAGS@ @DEV_DEFS@
 # See mpid/ch_adi2/Makefile.in for a full list
@@ -100,7 +99,7 @@ setlinks:
 .c.s:
 	$(CC) $(CFLAGS) $(BASEOPT) -c -S $*.c $(MPI_PROFILE)
 
-../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
+../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
 	$(AR) $@ $?
 	$(RANLIB) $@
 
@@ -121,4 +120,4 @@ lint:
 #
 spxcp: spxcp.c
 	-mpcc -o spxcp spxcp.c
-	-cp spxcp ../../lib/$(ARCH)/$(COMM)
+	-cp spxcp ../../build/$(ARCH)/$(DEVICE)/bin

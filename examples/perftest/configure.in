@@ -379,13 +379,13 @@ MPE_LIBS=""
 # in Makefiles that should not be MPICH dependent
 # MPICC etc should be set on the configure line
 if test -z "$MPICC" ; then
-    MPICC=$MPIR_HOME/lib/$ARCH/$COMM/mpicc
+    MPICC=$MPIR_HOME/build/$ARCH/$DEVICE/bin/mpicc
 fi
 if test -z "$MPIF77" ; then
     if test $NOF77 = 1 ; then
 	MPIF77=:
     else
-        MPIF77=$MPIR_HOME/lib/$ARCH/$COMM/mpif77
+        MPIF77=$MPIR_HOME/build/$ARCH/$DEVICE/bin/mpif77
     fi
 fi
 if test -z "$LIB_DIR" ; then

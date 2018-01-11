@@ -1,6 +1,6 @@
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -44,6 +44,14 @@ errhandler()
 
   if (flags[SKIP_CRAY1104])
     Done("Skipped (CRAY 1.1.0.4)");
+  else if (flags[SKIP_SGI20])
+    Done("Skipped (SGI 2.0)");
+  else if (flags[SKIP_SGI30])
+    Done("Skipped (SGI 3.0)");
+  else if (flags[SKIP_G_PLUS_PLUS])
+    Done("Skipped (G++ is broken.)");
+  else if (flags[SKIP_NO_THROW])
+    Done("Skipped (Exception throwing broken)");    
   else
     {
       MPI::COMM_WORLD.Set_errhandler(MPI::ERRORS_THROW_EXCEPTIONS);

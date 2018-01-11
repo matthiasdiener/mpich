@@ -12,9 +12,7 @@
 
 /* #define DEBUG */
 
-int main( argc, argv )
-     int argc;
-     char **argv;
+int main( int argc, char **argv )
 {
   int size, rank, key, lrank, rsize, result;
   MPI_Comm myFirstComm;

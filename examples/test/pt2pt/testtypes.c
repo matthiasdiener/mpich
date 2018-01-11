@@ -1,9 +1,7 @@
 #include <mpi.h>
 #include <stdio.h>
 
-main(argc, argv)
-     int argc;
-     char **argv;
+main( int argc, char **argv )
 {
   int i_size;
   MPI_Aint i_extent;

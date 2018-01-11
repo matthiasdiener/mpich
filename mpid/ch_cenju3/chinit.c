@@ -1,5 +1,5 @@
 /*
- *  $Id: chinit.c,v 1.1.1.1 1997/09/17 20:41:30 gropp Exp $
+ *  $Id: chinit.c,v 1.2 1999/02/01 16:13:05 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -25,7 +25,7 @@
 
 /* Forward refs */
 int MPID_CENJU3_End ANSI_ARGS(( MPID_Device * ));
-int MPID_CENJU3_Abort ANSI_ARGS(( MPI_Comm, int, char * ));
+int MPID_CENJU3_Abort ANSI_ARGS(( struct MPIR_COMMUNICATOR *, int, char * ));
 void MPID_CENJU3_Version_name ANSI_ARGS(( char * ));
 
 /* 
@@ -87,8 +87,8 @@ int  short_len, long_len;
    There should probably be a separate argument for whether it is a 
    user requested or internal abort.
  */
-int MPID_CENJU3_Abort( comm, code, msg )
-MPI_Comm comm;
+int MPID_CENJU3_Abort( comm_ptr, code, msg )
+struct MPIR_COMMUNICATOR *comm_ptr;
 int      code;
 char     *msg;
 {

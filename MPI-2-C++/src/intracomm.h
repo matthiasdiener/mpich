@@ -1,8 +1,8 @@
 // -*- c++ -*-
 //
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -26,6 +26,10 @@
 //
 
 class Intracomm : public Comm {
+
+#if 0
+  // JGS to many portability issues with these friend decls (see comm.h)
+  // going to just make some stuff public
 #if ! _MPIPP_PROFILING_
 #if _MPIPP_USENAMESPACE_
   friend void ::op_intercept(void *invec, void *outvec, int *len, MPI_Datatype *datatype);
@@ -35,7 +39,9 @@ class Intracomm : public Comm {
   friend void op_intercept(void *invec, void *outvec, int *len, MPI_Datatype *datatype);
 #endif
 
-#endif
+#endif // #if ! _MPIPP_PROFILING_
+
+#endif // #if 0
 
 public:
 
@@ -207,12 +213,14 @@ public:
   //#endif
 protected:
 
-#if ! _MPIPP_PROFILING_
-  static Op* current_op;
-#endif
 
 #if _MPIPP_PROFILING_
   PMPI::Intracomm pmpi_comm;
+#endif
+
+public: // JGS see above about friend decls
+#if ! _MPIPP_PROFILING_
+  static Op* current_op;
 #endif
 
 };

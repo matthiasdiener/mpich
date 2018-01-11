@@ -11,9 +11,11 @@ gettinglinkarg=0
 HasDashC=0
 UsesPmpi=0
 proflib=-lp@MPILIBNAME@
-proflibfullname=@MPIR_HOME@/lib/@ARCH@/@COMM@/libp@MPILIBNAME@.a
-F90=${MPICH_F90-@F90@}
-F90LINKER=${MPICH_F90LINKER-@F90LINKER@}
+proflibfullname=@MPIR_HOME@/build/@ARCH@/@DEVICE@/lib/libp@MPILIBNAME@.a
+F90BASE="@F90@"
+F90="${MPICH_F90-$F90BASE}"
+F90LINKERBASE="@F90LINKER@"
+F90LINKER="${MPICH_F90LINKER-$F90LINKERBASE}"
 for arg in "$@" ; do
 #    echo procssing arg $arg
     # Special processing for -o name
@@ -64,7 +66,7 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ -n "@MPE_LIBS@" ] ; then
+	if [ -n "@MPE_DIR@" ] ; then
 		MPILOG="-lf@MPILIBNAME@ -llmpi"
 	else
 	    echo "-mpilog requires the MPE libraries"
@@ -77,7 +79,7 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ -n "@MPE_LIBS@" ] ; then
+	if [ -n "@MPE_DIR@" ] ; then
    	    MPILOG="-lf@MPILIBNAME@ -ltmpi"
 	else
 	    echo "-mpitrace requires the MPE libraries"
@@ -90,8 +92,8 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ -n "@MPE_LIBS@" ] ; then
-	    MPILOG="-lf@MPILIBNAME@ -lampi @MPE_LIBS@ @X_LIB@"
+	if [ -n "@MPE_DIR@" ] ; then
+	    MPILOG="-lf@MPILIBNAME@ -lampi -lmpe"
 	else
 	    echo "-mpianim requires the MPE libraries"
 	fi
@@ -167,10 +169,13 @@ done
 # of an MPI module
 #
 finc="@F90INC@"
+added_link=0
 if [ -z "$finc" ] ; then
-    if [ ! -f mpif.h ] ; then
+    if [ ! -r mpif.h ] ; then
         echo "Adding a symbolic link for mpif.h"
-	$Show ln -s @MPIR_HOME@/lib/@ARCH@/@COMM@/mpif.h mpif.h
+	trap "$Show /bin/rm mpif.h" 0
+	$Show ln -s @MPIR_HOME@/build/@ARCH@/@DEVICE@/include/mpif.h mpif.h
+	added_link=1
     fi
 fi
 status=0
@@ -196,5 +201,11 @@ if [ $DoLink = 1 ] ; then
         $Show $F90LINKER @ROMIO_LFLAGS@ @ROMIO_TFFLAGS@ @F90LIB_PATH@ $linkobjs $linkargs $proflib @LIB_LIST@ @FLIB_LIST@
     fi
     status=$?
+fi
+#
+# If we added the link, remove it.
+if [ $added_link = 1 ] ; then
+    $Show rm mpif.h
+    trap 0
 fi
 exit $status

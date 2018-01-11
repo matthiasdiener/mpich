@@ -7,7 +7,7 @@
 #include "list.h"
 typedef List Container;
 
-class map {
+class Map {
   Container c;
 public:
 
@@ -21,9 +21,9 @@ public:
     address second;
   };
 
-  map() { }
+  Map() { }
 
-  ~map() {
+  ~Map() {
     for (iter i = c.end(); i != c.end(); i++) {
       delete (Pair*)(*i);
     }

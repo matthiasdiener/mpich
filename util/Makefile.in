@@ -7,6 +7,6 @@ clean:
 	mpirun.ch_cmmd mpirun.ch_mpl mpirun.ch_p4 mpirun.ch_shmem \
 	mpirun.ch_tcp mpirun.delta mpirun.djm mpirun.execer mpirun.i860 \
 	mpirun.meiko mpirun.nexus mpirun.p4shmem mpirun.paragon mpirun.pg \
-	mpirun mpirun.sh mpirun.t3d
+	mpirun mpirun.sh mpirun.t3d mpirun.globus
 	/bin/rm -f mpicc mpif77 mpiCC mpiman tstmachines chp4_servs \
-	mpiinstall mpireconfig
+	mpiinstall mpireconfig mpiuninstall

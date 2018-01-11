@@ -80,6 +80,7 @@ VOID usc_init()
 
 #if defined(SUN) || defined(HP) || defined(DEC5000) || \
     defined(SUN_SOLARIS) || defined(FREEBSD) || defined(LINUX) || \
+    defined(I86_SOLARIS) || \
     defined(BALANCE) || \
     defined(RS6000)  ||  defined(IBM3090) || \
     defined(NEXT) || defined(TITAN) || defined(GP_1000) || \

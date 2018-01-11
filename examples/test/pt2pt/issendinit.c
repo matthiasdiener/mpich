@@ -29,9 +29,7 @@ int buff_size;
 	buffer[i] = i+1;
 }
 
-int main(argc, argv)
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int rank; /* My Rank (0 or 1) */
     int act_size = 1000;

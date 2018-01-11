@@ -113,6 +113,10 @@ dnl						486 running FreeBSD
 if test -n "$p4arch_FREEBSD"; then
 P4ARCH=FREEBSD
 fi
+dnl						486 running NetBSD
+if test -n "$p4arch_NETBSD"; then
+P4ARCH=NETBSD
+fi
 dnl						486 running Linux
 if test -n "$p4arch_LINUX"; then
 P4ARCH=LINUX

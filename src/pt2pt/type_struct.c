@@ -1,5 +1,5 @@
 /*
- *  $Id: type_struct.c,v 1.7 1998/06/22 14:28:25 swider Exp $
+ *  $Id: type_struct.c,v 1.8 1998/09/17 22:01:14 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -256,7 +256,9 @@ MPI_Datatype *newtype;
 #if defined(USE_BASIC_ALIGNMENT)
   if (!lb_found && !ub_found) {
       MPI_Aint eps_offset;
-      eps_offset = dteptr->ub % dteptr->align;
+      /* Since data is always offset by the extent, is the extent that
+	 we must adjust. */
+      eps_offset = dteptr->extent % dteptr->align;
       if (eps_offset > 0) {
 	  dteptr->ub += (dteptr->align - eps_offset);
 	  dteptr->extent = dteptr->ub - dteptr->lb;

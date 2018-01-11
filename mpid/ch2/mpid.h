@@ -2,7 +2,7 @@
 #ifndef MPID_INC
 #define MPID_INC
 
-#if defined(HAVE_CONFIG_H) && !defined(MPICHCONF_INC)
+#if defined(HAVE_MPICHCONF_H) && !defined(MPICHCONF_INC)
 /* This includes the definitions found by configure, and can be found in
    the library directory (lib/$ARCH/$COMM) corresponding to this configuration
  */
@@ -68,7 +68,12 @@ typedef long MPID_Aint;
    getting the address */
 typedef struct {unsigned low:32; int high:32; } MPID_Aint;
 /* HP doesn't handle *& correctly; so we try without */
-#define MPID_AINT_SET(a,b) {/* *& */(a) = *(MPID_Aint *)&(b);}
+/* Note that we are using this because we may connect with a 64 bit system.
+   This handles ONLY 32 and 64 bit systems.  The if test should be
+   POINTER_64_BITS instead */
+#define MPID_AINT_SET(a,b) {\
+    if (sizeof(void *) <= 4) { (a).low = (unsigned)(b);}\
+    else {/* *& */(a) = *(MPID_Aint *)&(b);}}
 #define MPID_AINT_GET(a,b) {\
     if (sizeof(void *) <= 4) /* *& */(a) = (void *)(b).low;\
     else *(MPID_Aint *)&(a) = *&(b);}

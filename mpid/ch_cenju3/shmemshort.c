@@ -13,9 +13,9 @@ static char cready = 0;
 
 /* Prototype definitions */
 int MPID_CENJU3_Eagerb_send_short ANSI_ARGS(( void *, int, int, int, int, int, 
-					  int ));
+					  MPID_Msgrep_t ));
 int MPID_CENJU3_Eagerb_isend_short ANSI_ARGS(( void *, int, int, int, int, int, 
-					   int, MPIR_SHANDLE * ));
+					   MPID_Msgrep_t, MPIR_SHANDLE * ));
 int MPID_CENJU3_Eagerb_recv_short ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
 int MPID_CENJU3_Eagerb_save_short ANSI_ARGS(( MPIR_RHANDLE *, int, void *));
 int MPID_CENJU3_Eagerb_unxrecv_start_short ANSI_ARGS(( MPIR_RHANDLE *, void * ));
@@ -27,7 +27,8 @@ void MPID_CENJU3_Eagerb_short_delete ANSI_ARGS(( MPID_Protocol * ));
 int MPID_CENJU3_Eagerb_send_short( buf, len, src_lrank, tag, context_id, dest,
 			       msgrep )
 void *buf;
-int  len, tag, context_id, src_lrank, dest, msgrep;
+int  len, tag, context_id, src_lrank, dest;
+MPID_Msgrep_t msgrep;
 {
     MPID_PKT_SHORT_T spkt;
     MPID_PKT_SHORT_T *pkt = &spkt;
@@ -66,7 +67,8 @@ int  len, tag, context_id, src_lrank, dest, msgrep;
 int MPID_CENJU3_Eagerb_isend_short( buf, len, src_lrank, tag, context_id, dest,
 			 msgrep, shandle )
 void *buf;
-int  len, tag, context_id, src_lrank, dest, msgrep;
+int  len, tag, context_id, src_lrank, dest;
+MPID_Msgrep_t msgrep;
 MPIR_SHANDLE *shandle;
 {
     int mpi_errno;

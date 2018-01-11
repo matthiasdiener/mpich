@@ -1,4 +1,4 @@
-/* $Id: basex11.h,v 1.1.1.1 1997/09/17 20:38:19 gropp Exp $ */
+/* $Id: basex11.h,v 1.2 1998/09/16 19:14:31 gropp Exp $ */
 
 
 /*
@@ -6,7 +6,7 @@
     other structures for basic graphics operations.
  */
 
-#if !defined(_BASEX11) && !defined(TOOLSNOX11)
+#if !defined(_BASEX11)
 #define _BASEX11
 
 /* AIX assumes that sys/types is included before Xutil is (when it defines

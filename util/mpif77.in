@@ -12,9 +12,11 @@ HasDashC=0
 UsesPmpi=0
 verbose=0
 proflib=-lp@MPILIBNAME@
-proflibfullname=@MPIR_HOME@/lib/@ARCH@/@COMM@/libp@MPILIBNAME@.a
-F77=${MPICH_F77-@F77@}
-F77LINKER=${MPICH_F77LINKER-@FLINKER@}
+proflibfullname=@MPIR_HOME@/build/@ARCH@/@DEVICE@/lib/libp@MPILIBNAME@.a
+F77BASE="@F77@"
+F77="${MPICH_F77-$F77BASE}"
+FLINKERBASE="@FLINKER@"
+F77LINKER="${MPICH_F77LINKER-$FLINKERBASE}"
 for arg in "$@" ; do
 #    echo procssing arg $arg
     # Special processing for -o name
@@ -65,7 +67,7 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ -n "@MPE_LIBS@" ] ; then
+	if [ -n "@MPE_DIR@" ] ; then
 		MPILOG="-lf@MPILIBNAME@ -llmpi"
 	else
 	    echo "-mpilog requires the MPE libraries"
@@ -78,7 +80,7 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ -n "@MPE_LIBS@" ] ; then
+	if [ -n "@MPE_DIR@" ] ; then
    	    MPILOG="-lf@MPILIBNAME@ -ltmpi"
 	else
 	    echo "-mpitrace requires the MPE libraries"
@@ -91,8 +93,8 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ -n "@MPE_LIBS@" ] ; then
-	    MPILOG="-lf@MPILIBNAME@ -lampi @MPE_LIBS@ @X_LIB@"
+	if [ -n "@MPE_DIR@" ] ; then
+	    MPILOG="-lf@MPILIBNAME@ -lampi -lmpe"
 	else
 	    echo "-mpianim requires the MPE libraries"
 	fi
@@ -165,10 +167,14 @@ done
 #
 # Take care of mpif.h; try to add the link if necessary
 finc="@FINC@"
+added_link=0
 if [ -z "$finc" ] ; then
-    if [ ! -f mpif.h ] ; then
+    # -r is true if we can read the file, which is what we want
+    if [ ! -r mpif.h ] ; then
         echo "Adding a symbolic link for mpif.h"
-	$Show ln -s @MPIR_HOME@/lib/@ARCH@/@COMM@/mpif.h mpif.h
+	trap "$Show /bin/rm mpif.h" 0
+	$Show ln -s @MPIR_HOME@/build/@ARCH@/@DEVICE@/include/mpif.h mpif.h
+        added_link=1
     fi
 fi
 status=0
@@ -189,10 +195,16 @@ if [ $DoLink = 1 ] ; then
         proflib=""
     fi
     if [ -n "$MPILOG" ] ; then
-        $Show $F77LINKER @ROMIO_LFLAGS@ @ROMIO_TFFLAGS@ @FLIB_PATH@ $linkobjs $MPILOG $linkargs $proflib @LIB_LIST@ @FLIB_LIST@ 
+        $Show $F77LINKER @ROMIO_LFLAGS@ @ROMIO_TFFLAGS@ @FFLAGS@ @FLIB_PATH@ $linkobjs $MPILOG $linkargs $proflib @LIB_LIST@ @FLIB_LIST@ 
     else
-        $Show $F77LINKER @ROMIO_LFLAGS@ @ROMIO_TFFLAGS@ @FLIB_PATH@ $linkobjs $linkargs $proflib @LIB_LIST@ @FLIB_LIST@ 
+        $Show $F77LINKER @ROMIO_LFLAGS@ @ROMIO_TFFLAGS@ @FFLAGS@ @FLIB_PATH@ $linkobjs $linkargs $proflib @LIB_LIST@ @FLIB_LIST@ 
     fi
     status=$?
+fi
+#
+# If we added the link, remove it.
+if [ $added_link = 1 ] ; then
+    $Show rm mpif.h
+    trap 0
 fi
 exit $status

@@ -1,8 +1,8 @@
 // -*- c++ -*-
 //
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -26,10 +26,12 @@
 //
 
 class Errhandler {
+#if 0 // JGS compilers hate friends :(
 #if _MPIPP_USENAMESPACE_
   friend void _REAL_MPI_::Real_init();  //see function init below
 #else
   friend class _REAL_MPI_; //g++ won't except above friend function
+#endif
 #endif
 
 public:
@@ -128,7 +130,9 @@ protected:
 #endif
 
 
-private:
+public:
+  // took out the friend decls
+  //private:
 
   //this is for ERRORS_THROW_EXCEPTIONS
   //this is called from MPI::Real_init

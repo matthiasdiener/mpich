@@ -19,7 +19,7 @@ extern void free();
 #endif
 
 /* This is needed to process Cray - style character data */
-#ifdef _CRAY
+#if defined(MPI_CRAY) || defined(_CRAY)
 #include <fortran.h>
 #endif
 
@@ -90,7 +90,7 @@ int  mpe_stop_log_()
     return MPE_Stop_log();
 }
 
-#ifdef _CRAY
+#ifdef MPI_CRAY
 int  mpe_describe_state_( start, end, name, color )
 int *start, *end;
 _fcd name, color;
@@ -122,7 +122,7 @@ int  d1, d2;
 }
 #endif
 
-#ifdef _CRAY
+#ifdef MPI_CRAY
 int mpe_describe_event_( event, name )
 int *event;
 _fcd name;
@@ -150,7 +150,7 @@ int  d1;
 }
 #endif
 
-#ifdef _CRAY
+#ifdef MPI_CRAY
 int  mpe_log_event_(event,data,string)
 int *event, *data;
 _fcd string;
@@ -178,7 +178,7 @@ int  d1;
 }
 #endif
 
-#ifdef _CRAY
+#ifdef MPI_CRAY
 int  mpe_finish_log_( filename)
 _fcd filename;
 {

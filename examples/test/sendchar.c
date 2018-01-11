@@ -12,9 +12,7 @@
 
    Sends back and forth to check on one-sided conversion schemes
  */
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int rank, c;
     MPI_Status status;

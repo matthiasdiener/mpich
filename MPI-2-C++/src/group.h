@@ -1,8 +1,8 @@
 // -*- c++ -*-
 //
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -37,14 +37,14 @@ public:
   inline Group() { }
   inline Group(const MPI_Group &i) : pmpi_group(i) { }
   // copy
-  inline Group(const Group& g) : pmpi_group((PMPI::Group&)g) { }
+  inline Group(const Group& g) : pmpi_group(g.pmpi_group) { }
 
   inline Group(const PMPI::Group& g) : pmpi_group(g) { }
 
   inline virtual ~Group() {}
 
   Group& operator=(const Group& g) {
-    pmpi_group = (PMPI::Group&)g; return *this;
+    pmpi_group = g.pmpi_group; return *this;
   }
 
   // comparison
@@ -57,10 +57,11 @@ public:
  
   // inter-language operability
   Group& operator= (const MPI_Group &i) { pmpi_group = i; return *this; }
-  inline operator MPI_Group () const { return pmpi_group; }
+  inline operator MPI_Group () const { return pmpi_group.mpi(); }
   //  inline operator MPI_Group* () const { return pmpi_group; }
   inline operator const PMPI::Group&() const { return pmpi_group; }
 
+  const PMPI::Group& pmpi() { return pmpi_group; }
 #else
 
   // construction
@@ -82,6 +83,8 @@ public:
   inline Group& operator= (const MPI_Group &i) { mpi_group = i; return *this; }
   inline operator MPI_Group () const { return mpi_group; }
   //  inline operator MPI_Group* () const { return (MPI_Group*)&mpi_group; }
+
+  inline MPI_Group mpi() const { return mpi_group; }
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- *  $Id: alltoall.c,v 1.4 1998/04/28 18:50:44 swider Exp $
+ *  $Id: alltoall.c,v 1.5 1998/07/20 16:20:16 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -58,10 +58,6 @@ MPI_Comm          comm;
   rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
   MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
  
-  /* Check for  mismatched receive/send types - Debbie Swider 11/20/97 */
-  if (recvtype != sendtype)
-      return MPIR_ERROR(comm_ptr, MPI_ERR_TYPE, myname);
-
   /* Check for invalid arguments */
   if ( MPIR_TEST_COUNT(comm,sendcount) ||
        MPIR_TEST_COUNT(comm,recvcnt) )

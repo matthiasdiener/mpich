@@ -2,6 +2,7 @@
 #include "mpiddev.h"
 #include "mpimem.h"
 #include "reqalloc.h"
+#include "sendq.h"
 
 /* Shared memory by rendezvous.  Messages are sent in one of two ways 
    (not counting the short in packet way):

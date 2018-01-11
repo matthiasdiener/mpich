@@ -48,6 +48,10 @@ MPI_Fint          *__ierr;
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
     *__ierr = MPI_Op_create(*function,MPIR_FROM_FLOG((int)*commute),
                             &l_op);
+#elif defined(_TWO_WORD_FCD)
+    int tmp = *commute;
+    *__ierr = MPI_Op_create(*function,MPIR_FROM_FLOG(tmp),&l_op);
+
 #else
     *__ierr = MPI_Op_create(function,MPIR_FROM_FLOG((int)*commute),
                             &l_op);

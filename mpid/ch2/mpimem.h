@@ -24,7 +24,7 @@
 #include <string.h>
 #elif defined(HAVE_STRING_H)
 #include <string.h>
-#elif defines(HAVE_MEMORY_H)
+#elif defined(HAVE_MEMORY_H)
 #include <memory.h>
 #endif
 

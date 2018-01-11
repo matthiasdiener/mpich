@@ -5,9 +5,7 @@
 
 /* Test request creation */
 
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int i, n, n_goal = 2048, rc, len, buf[1];
     MPI_Request *req_array;

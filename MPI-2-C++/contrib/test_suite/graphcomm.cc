@@ -1,6 +1,6 @@
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -399,12 +399,12 @@ graphcomm()
       comm.Get_topo(comm_size, 2 * comm_size, tindex, tedges);
       for (i = 0; i < comm_size; i++)
 	if (tindex[i] != dogindex[i]) {
-	  sprintf(msg, "NODE %d - 14) ERROR in comm.Get_topo, dogindex[%d] = %d, should be %d", my_rank, i, tindex, dogindex);
+	  sprintf(msg, "NODE %d - 14) ERROR in comm.Get_topo, dogindex[%d] incorrect", my_rank, i);
 	  Fail(msg);
 	}
       for (i = 0; i < 2 * comm_size; i++)
 	if (tedges[i] != edges[i]) {
-	  sprintf(msg, "NODE %d - 15) ERROR in comm.Get_topo, edges[%d] = %d, should be %d", my_rank, i, tedges[i], edges[i]);
+	  sprintf(msg, "NODE %d - 15) ERROR in comm.Get_topo, edges[%d] incorrect", my_rank, i);
 	  Fail(msg);
 	}
     }
@@ -427,12 +427,12 @@ graphcomm()
       clonecomm1.Get_topo(comm_size, 2 * comm_size, tindex, tedges);
       for (i = 0; i < comm_size; i++)
 	if (tindex[i] != dogindex[i]) {
-	  sprintf(msg, "NODE %d - 16) ERROR in comm.Get_topo, dogindex[%d] = %d, should be %d", my_rank, i, tindex, dogindex);
+	  sprintf(msg, "NODE %d - 16) ERROR in comm.Get_topo, dogindex[%d] = %d, should be %d", my_rank, i, tindex[i], dogindex[i]);
 	  Fail(msg);
 	}
       for (i = 0; i < 2 * comm_size; i++)
 	if (tedges[i] != edges[i]) {
-	  sprintf(msg, "NODE %d - 17) ERROR in comm.Get_topo, edges[%d] = %d, should be %d", my_rank, i, tedges[i], edges[i]);
+	  sprintf(msg, "NODE %d - 17) ERROR in comm.Get_topo, edges[%d] incorrect", my_rank, i);
 	  Fail(msg);
 	}
     }

@@ -2,7 +2,6 @@ ALL: default
 ##### User configurable options #####
 
 ARCH        = @ARCH@
-COMM        = @COMM@
 MPIR_HOME   = @MPIR_HOME@
 CC          = @CC@
 CLINKER     = $(CC)
@@ -26,8 +25,8 @@ CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPE_GRAPH)
 CCFLAGS = $(CFLAGS)
 #FFLAGS = '-qdpc=e' 
 FFLAGS = $(OPTFLAGS)
-MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a 
-MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
+MPILIB = $(MPIR_HOME)/build/$(ARCH)/$(DEVICE)/lib/libmpich.a 
+MPIPPLIB = $(MPIR_HOME)/build/$(ARCH)/$(DEVICE)/lib/libmpi++.a
 LIBS = $(LIB_PATH) $(LIB_LIST)
 LIBSPP = $(MPIPPLIB) $(LIBS)
 # Were not ready to do contrib by default yet.

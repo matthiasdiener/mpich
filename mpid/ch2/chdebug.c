@@ -1,5 +1,5 @@
 /*
- *  $Id: chdebug.c,v 1.1.1.1 1997/09/17 20:39:18 gropp Exp $
+ *  $Id: chdebug.c,v 1.2 1998/11/16 21:02:57 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -43,7 +43,10 @@ MPID_PKT_T *pkt;
     else
 	send_id = pkt->sendok_pkt.send_id;
 #ifdef MPID_AINT_IS_STRUCT
-    sprintf( sendid, "%x%x", send_id.high, send_id.low );
+    if (sizeof(void *) <= 4) 
+	sprintf( sendid, "%x", send_id.low );
+    else
+	sprintf( sendid, "%x%x", send_id.high, send_id.low );
 #else
     sprintf( sendid, "%lx", (long)send_id );
 #endif

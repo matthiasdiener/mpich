@@ -43,9 +43,11 @@ char **argv;
   char fileName[50];
 #endif
 
+#ifndef SGI_MPI
   if (IsArgPresent( &argc, argv, "-h" )) {
     PrintHelp( argv[0] );
-  }
+  } 
+#endif
 
   MPI_Init( &argc, &argv );
   MPI_Comm_rank( MPI_COMM_WORLD, &myid );
@@ -190,7 +192,7 @@ Flags *oldFlags;
 	Strings_AddItem( argList, oldFlags->inf );
 	tok = strtok( line, " \t" );
 	while (tok) {
-	  copy = malloc( sizeof( char ) * strlen( tok ) + 1 );
+	  copy = (char *) malloc( sizeof( char ) * strlen( tok ) + 1 );
 	  strcpy( copy, tok );
 	  Strings_AddItem( argList, copy );
 	  tok = strtok( (char *)0, " \t" );

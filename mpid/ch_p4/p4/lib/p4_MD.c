@@ -1303,6 +1303,7 @@ P4VOID MD_set_reference_time()
  || defined(TITAN)    || defined(ALLIANT) || defined(SGI)     \
  || defined(NCUBE)    || defined(SP1_EUI) || defined(SP1_EUIH)\
  || defined(MULTIMAX) || defined(IBM3090) || defined(FREEBSD) \
+ || defined(NETBSD) \
  || (defined(HP)  &&  !defined(SUN_SOLARIS))
 
 /* reference time will be in seconds */
@@ -1353,6 +1354,7 @@ int MD_clock()
  || defined(TITAN)    || defined(ALLIANT) || defined(SGI)     \
  || defined(NCUBE)    || defined(SP1_EUI) || defined(SP1_EUIH)\
  || defined(MULTIMAX) || defined(IBM3090) || defined(FREEBSD) \
+ || defined(NETBSD) \
  || (defined(HP)  &&  !defined(SUN_SOLARIS))
 
     struct timeval tp;
@@ -1582,6 +1584,7 @@ char *machine_type;
     if (strcmp(machine_type, "SUN386I") == 0)         return 2;
     if (strcmp(machine_type, "LINUX") == 0)           return 2;
     if (strcmp(machine_type, "FREEBSD") == 0)         return 2;
+    if (strcmp(machine_type, "NETBSD") == 0)          return 2;
     if (strcmp(machine_type, "I86_SOLARIS") == 0)     return 2;
     if (strcmp(machine_type, "DEC5000") == 0)         return 3;
     if (strcmp(machine_type, "IBM3090") == 0)         return 4;

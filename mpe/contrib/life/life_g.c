@@ -125,8 +125,8 @@ MPI_Comm comm;
   /* Return the average time taken/processor */
   slavetime = MPI_Wtime() - starttime;
   MPI_Reduce (&slavetime, &totaltime, 1, MPI_DOUBLE, MPI_SUM, 0, comm);
-  return (totaltime/(double)size);
-}
+  return (totaltime/(double)size);}
+  
 
 int main(argc, argv)
 int argc ;
@@ -134,7 +134,7 @@ char *argv[] ;
 {
   int rank, N, iters ;
   double time ;
-
+  
   MPI_Init (&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank) ;
 
@@ -143,13 +143,18 @@ char *argv[] ;
      that does not end in a newline.  MPI does not require this, though
      high-quality implementations will do this.
    */
+#if !defined (SGI_MPI) && !defined (IBM_MPI)
   if ( rank == 0 ) {
     printf("Matrix Size : ") ;
     scanf("%d",&N) ;
     printf("Iterations : ") ;
     scanf("%d",&iters) ;
   }
-
+#else
+  N=20;
+  iters=50;
+#endif
+  
   /* Broadcast the size and # of iterations to all processes */
   MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD) ;
   MPI_Bcast(&iters, 1, MPI_INT, 0, MPI_COMM_WORLD) ;

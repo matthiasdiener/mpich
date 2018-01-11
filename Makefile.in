@@ -4,8 +4,6 @@ ALL: mpi
 LARCH       = @ARCH@
 COMM        = @COMM@
 DEVICE      = @DEVICE@
-BOPT        = @BOPT@
-P4_DIR      = @P4_DIR@
 MPIR_HOME   = @MPIR_HOME@
 INCLUDE_DIR = @INCLUDE_PATH@ -Impid/@DEVICE@ -Iinclude
 PREFIX	    = @PREFIX@
@@ -15,35 +13,36 @@ RSHCOMMAND  = @RSHCOMMAND@
 DEFAULT_MACHINE = @DEFAULT_MACHINE@
 ROMIO       = @ROMIO@
 BUILDCPP    = @buildcpp@
+NOF77	    = @NOF77@
+NOMPE       = @NOMPE@
 ### End User configurable options ###
 
 SHELL = /bin/sh
 
 MPIDIRS  = src/pt2pt src/env src/dmpi src/util src/context src/coll \
-	   src/topol src/profile
+	   src/topol src/profile 
 MPI2DIRS = src/misc2 src/external
-DIRS     = $(MPIDIRS) $(MPI2DIRS) mpid/$(DEVICE) @MPE_DIR@ \
+DIRS     = $(MPIDIRS) $(MPI2DIRS) mpid/$(DEVICE) \
 	   examples examples/basic examples/test/pt2pt examples/test/coll \
 	   examples/test/topol examples/test/context \
 	   examples/test/env examples/test/profile examples/test \
-	   examples/perftest \
-           mpe/profiling/examples mpe/profiling/lib mpe/profiling/wrappergen
+	   examples/perftest src/infoexport
 # 
 # This is a list of the devices that are available
 DEVICES  = mpid/ch2 \
 	   mpid/ch_nx mpid/ch_p4 \
-	   mpid/ch_mpl mpid/t3d mpid/ch_meiko mpid/ch_shmem \
+	   mpid/ch_mpl mpid/t3e mpid/ch_meiko mpid/ch_shmem \
 	   mpid/globus mpid/ch_lfshmem \
 	   mpid/ch_cenju3
-# Change this in util/maketar also
+# Change this in maint/maketar also
 OTHERDEVICES  = mpid/ch_nx mpid/ch_p4 mpid/ch_mpl \
-		mpid/ch_meiko mpid/ch_shmem mpid/ch_lfshmem mpid/t3d \
+		mpid/ch_meiko mpid/ch_shmem mpid/ch_lfshmem mpid/t3e \
 		mpid/globus mpid/ch_cenju3
 # 
 # Build the device FIRST in case the device include, used in mpiimpl.h, 
 # needs to be built (e.g., ch_p4 device)
 # We need MPI2DIRS for the Fortran interface, among other things
-CODEDIRS = mpid/$(DEVICE) $(MPIDIRS) $(MPI2DIRS) @MPE_DIR@
+CODEDIRS = mpid/$(DEVICE) $(MPIDIRS) $(MPI2DIRS) 
 
 #
 # The order here was chosen to identify problems early in the build
@@ -63,26 +62,22 @@ mpi:
 	$(MAKE) rmlib
 	$(MAKE) mpilib
 	$(MAKE) mpiflib
+	$(MAKE) clean
+	$(MAKE) profile
+	$(MAKE) mpelib        
 	@if [ $(ROMIO) = 1 ] ; then \
 	    echo "making romio" ;  \
             (cd romio ; $(MAKE) )    \
         fi
-	@-if [ $(BUILDCPP) = 1 ] ; then \
+	@if [ $(BUILDCPP) = 1 ] ; then \
             echo "making C++ interface" ; \
-	    (cd MPI-2-C++ ; MAKE="$(MAKE)" ; export MAKE ; \
-	     /bin/rm -f config.cache ; \
-	     CXXFLAGS="@CXXFLAGS_FOR_SHARED@" ; export CXXFLAGS ; \
-             if ./configure --with-mpich=$(MPIR_HOME) \
-			 --with-libopt="@CXXFLAGS_FOR_SHARED@ @CCFLAGS@" \
-	                 --with-mpichdev=lib/$(LARCH)/$(COMM) ; then $(MAKE) ; fi ) \
-        fi
+	    $(MAKE) cpplib ; \
+	fi
 	@echo "Testing that MPI applications can be linked..."
 	$(MAKE) linktest
-	$(MAKE) clean
-	$(MAKE) profile
 	$(MAKE) mpichsharelibs
 	$(MAKE) clean
-	@if [ $(COMM) = "ch_p4" ] ; then \
+	@if [ $(DEVICE) = "ch_p4" ] ; then \
 	    echo '--->' ; \
 	    echo "You may want to do" ; \
 	    echo "    $(MAKE) serv_p4" ; \
@@ -97,7 +92,6 @@ mpi:
 	$(MAKE) mpireconfig
 	$(MAKE) mpiman
 	$(MAKE) util/mpiinstall
-	$(MAKE) upshot
 	@echo '--->'
 	@echo "Completed build of MPI.  Check the output for errors"
 	@echo "Also try executing 'make testing' in examples/test"
@@ -131,16 +125,22 @@ examples: bin/mpirun
 	( cd examples ; $(MAKE) default )
 
 # 
-# This is an experimental target
+# This is an experimental target.  We skip the C++ library for now.
 mpichsharelibs:
-	@( cd lib/@ARCH@/@DEVICE@ ; \
-	CC="$(CC)" ; export CC ; CLINKER="$(CLINKER)" ; export CLINKER ; \
+	@-( cd build/@ARCH@/@DEVICE@/lib ; \
+	CC="$(CC)" ; export CC ; CLINKER="@CLINKER@" ; export CLINKER ; \
 	for lib in lib*.a ; do \
-		../../../util/makesharedlib -lib=$$lib -kind=@SHAREDKIND@ ; \
+		if test $$lib != lib@MPILIBNAME@++.a ; then \
+		../../../../util/makesharedlib -lib=$$lib -kind=@SHAREDKIND@ ; \
+	fi ; \
 	done )
 
 linktest:
-	( cd examples/test/pt2pt; $(MAKE) linktest )
+	@-if [ $(NOF77) = 1 ] ; then \
+	( cd examples/test/pt2pt ; $(MAKE) linktest1 ) ; \
+	else \
+	( cd examples/test/pt2pt ; $(MAKE) linktest ) ; \
+	fi
 
 testing:
 	(cd examples/test ; $(MAKE) testing)
@@ -174,34 +174,31 @@ mpilib: Makefile.in
 	  do \
 	  echo " " ;\
 	  echo making mpir in directory $$dir ;\
-	  (cd $$dir; \
+	  (cd $$dir ; \
 	  $(MAKE) default_all ; if [ $$? != 0 ] ; then \
 		echo "Exit status from make was $$?" ; exit 1 ; fi ;) ;\
 	  done
-	@RANLIB@ lib/$(LARCH)/$(COMM)/lib@MPILIBNAME@.a
-	@if test -w lib/$(LARCH)/$(COMM)/lib@MPILIBNAME@++.a ; then \
-		@RANLIB@ lib/$(LARCH)/$(COMM)/lib@MPILIBNAME@++.a ; fi
-	@if test -w lib/$(LARCH)/$(COMM)/libmpe.a ; then \
-		@RANLIB@ lib/$(LARCH)/$(COMM)/libmpe.a ; fi
-	@if test -w lib/$(LARCH)/$(COMM)/libmpe_nompi.a ; then \
-		@RANLIB@ lib/$(LARCH)/$(COMM)/libmpe_nompi.a ; fi
+	-(cd src/infoexport ; $(MAKE) default_all )
+	@RANLIB@ build/$(LARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a
+	@if test -w build/$(LARCH)/$(DEVICE)/lib/lib@MPILIBNAME@++.a ; then \
+		@RANLIB@ build/$(LARCH)/$(DEVICE)/lib/lib@MPILIBNAME@++.a ; fi
 
 mpiflib: Makefile.in
 	@for dir in $(MPIDIRS) $(MPI2DIRS) ;\
 	  do \
 	  echo " " ;\
 	  echo making mpir in directory $$dir ;\
-	  (cd $$dir; \
+	  (cd $$dir ; \
 	  $(MAKE) wrapperlib ) ;\
 	  done
-	@RANLIB@ lib/$(LARCH)/$(COMM)/libf@MPILIBNAME@.a
+	@RANLIB@ build/$(LARCH)/$(DEVICE)/lib/libf@MPILIBNAME@.a
 
 #
 # This target is used to remove the libraries for this configuration; this
 # can lead to better performance when rebuilding.
 rmlib:
-	/bin/rm -f lib/$(LARCH)/$(COMM)/lib*.a 
-	/bin/rm -f lib/$(LARCH)/$(COMM)/lib*.so
+	/bin/rm -f build/$(LARCH)/$(DEVICE)/lib/lib*.a 
+	/bin/rm -f build/$(LARCH)/$(DEVICE)/lib/shared/lib*.so*
 #
 # This is a special target for just the device part of the transport
 # (used to speed builds for multiple Chameleon transport layers)
@@ -212,13 +209,56 @@ rmlib:
 # This uses the "default" entry instead of "default_all" because it is
 # usually executed alone, and the RANLIB is needed at the end of this
 # target anyway.
+mpelib:
+	@-if [ $(NOMPE) = 0 ] ; then \
+            echo "making mpe graphics libraries" ; \
+	    (cd mpe ; MAKE="$(MAKE)" ; export MAKE ; \
+	     /bin/rm -f config.cache ; \
+	     if [ $(NOF77) = 1 ] ; then \
+                 if ./configure --with-mpich=$(MPIR_HOME) \
+			        --with-mpichdev=build/$(LARCH)/$(COMM)/lib  \
+			        --disable-f77  \
+				--prefix=$(PREFIX) \
+	                        "@JUMPSHOT_OPTS@" \
+				@MPE_OPTS@ ; then $(MAKE) ; \
+		 else echo "Error configuring mpe" ; \
+		      if [ -s config.log ] ; then cat config.log ; fi ; \
+		 fi  \
+	     else \
+                 if ./configure --with-mpich=$(MPIR_HOME) \
+			        --with-mpichdev=build/$(LARCH)/$(COMM)/lib  \
+				--prefix=$(PREFIX) \
+	                        "@JUMPSHOT_OPTS@" \
+			        @MPE_OPTS@ ; then $(MAKE) ; \
+		 else echo "Error configuring mpe" ; \
+		      if [ -s config.log ] ; then cat config.log ; fi ; \
+		 fi   \
+	     fi ) \
+	fi
+	@if test -w build/$(LARCH)/$(DEVICE)/lib/libmpe.a ; then \
+		@RANLIB@ build/$(LARCH)/$(DEVICE)/lib/libmpe.a ; fi
+	@if test -w build/$(LARCH)/$(DEVICE)/lib/libmpe_nompi.a ; then \
+		@RANLIB@ build/$(LARCH)/$(DEVICE)/lib/libmpe_nompi.a ; fi
+
+cpplib:
+	@(cd MPI-2-C++ ; MAKE="$(MAKE)" ; export MAKE ; \
+	/bin/rm -f config.cache ; \
+	CXXFLAGS="" ; export CXXFLAGS ; \
+	CXX="g++" ; export CXX ; \
+	if ./configure --with-mpich=$(MPIR_HOME) \
+			--with-libopt=" " \
+			 --with-profiling \
+	                 --with-mpichdev=build/$(LARCH)/$(COMM)/lib ; then $(MAKE) ; fi ) 
+	@if [ -f "MPI-2-C++/src/libmpi++.a" ] ; then \
+	    cp -p MPI-2-C++/src/libmpi++.a $(MPIR_HOME)/build/$(LARCH)/$(COMM)/lib/libmpich++.a ; fi 
+
 mpidevlib:
 	(cd mpid/$(DEVICE) ; $(MAKE) clean )
 	@for dir in mpid/$(DEVICE) ;\
 	  do \
 	  echo " " ;\
 	  echo making mpir in directory $$dir ;\
-	  (cd $$dir; \
+	  (cd $$dir ; \
 	  $(MAKE) default) ;\
 	  done
 
@@ -231,30 +271,25 @@ mpilibdebug:
 	  do \
 	  echo " " ;\
 	  echo making mpir in directory $$dir ;\
-	  (cd $$dir; \
+	  (cd $$dir ; \
 	  $(MAKE) default_all MPIPROFILE="-DMPIR_DEBUG_MEM" ) ;\
 	  (cd $$dir ; $(MAKE) clean ; \
 	  $(MAKE) profile_all MPIPROFILE="-DMPIR_DEBUG_MEM -DMPI_BUILD_PROFILING");\
 	  done 
-	@RANLIB@ lib/$(LARCH)/$(COMM)/lib@MPILIBNAME@.a
-	@RANLIB@ lib/$(LARCH)/$(COMM)/libp@MPILIBNAME@.a
-	@if test -w lib/$(LARCH)/$(COMM)/lib@MPILIBNAME@++.a ; then \
-		@RANLIB@ lib/$(LARCH)/$(COMM)/lib@MPILIBNAME@++.a ; fi
-	@if test -w lib/$(LARCH)/$(COMM)/libmpe.a ; then \
-		@RANLIB@ lib/$(LARCH)/$(COMM)/libmpe.a ; fi
-	@if test -w lib/$(LARCH)/$(COMM)/libmpe_nompi.a ; then \
-		@RANLIB@ lib/$(LARCH)/$(COMM)/libmpe_nompi.a ; fi
-
+	@RANLIB@ build/$(LARCH)/$(COMM)/lib/lib@MPILIBNAME@.a
+	@RANLIB@ build/$(LARCH)/$(COMM)/lib/libp@MPILIBNAME@.a
+	@if test -w build/$(LARCH)/$(COMM)/lib/lib@MPILIBNAME@++.a ; then \
+		@RANLIB@ build/$(LARCH)/$(COMM)/lib/lib@MPILIBNAME@++.a ; fi
 
 profile:
 	@for dir in $(MPIDIRS) $(MPI2DIRS) ;\
 	  do \
 	  echo " " ;\
 	  echo making mpir in directory $$dir ;\
-	  (cd $$dir; \
+	  (cd $$dir ; \
 	  $(MAKE) profile_all MPIPROFILE="-DMPI_BUILD_PROFILING" ) ;\
 	  done
-	@RANLIB@ lib/$(LARCH)/$(COMM)/libp@MPILIBNAME@.a
+	@RANLIB@ build/$(LARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a
 
 #
 # Make mpirun from mpirun.*.in
@@ -277,19 +312,19 @@ bin/mpirun: util/mpirun.sh.in util/mpirun.pg.in util/mpirun.ch_p4.in
 		-e "s%\#CC\#%@CC@%g" \
 	        -e "s%\#GLOBUSDIR\#%@GLOBUSDIR@%g" \
 		-e "s%\#CLINKER\#%@CLINKER@%g" \
-	        -e "s%\#MPIRUN_BIN\#%lib/$(LARCH)/$(COMM)%g" \
+	        -e "s%\#MPIRUN_BIN\#%build/$(LARCH)/$(DEVICE)/bin%g" \
 		-e "s%\#DEFAULT_MACHINE\#%$(DEFAULT_MACHINE)%g" \
 		-e "s%\#DEFAULT_ARCH\#%$(LARCH)%g" > $$bfile ; \
 	chmod 775 $$bfile ; \
-	/bin/rm -f ../lib/$(LARCH)/$(COMM)/$$bfile ; \
-	cp $$bfile ../lib/$(LARCH)/$(COMM) ; done ; \
-        mv ../lib/$(LARCH)/$(COMM)/mpirun.sh ../lib/$(LARCH)/$(COMM)/mpirun ; \
+	/bin/rm -f ../build/$(LARCH)/$(DEVICE)/bin/$$bfile ; \
+	cp $$bfile ../build/$(LARCH)/$(DEVICE)/bin ; done ; \
+        mv ../build/$(LARCH)/$(DEVICE)/bin/mpirun.sh ../build/$(LARCH)/$(DEVICE)/bin/mpirun ; \
 	mv mpirun.sh ../bin/mpirun ; mv mpirun.args ../bin/mpirun.args)
-	@if test -s util/mpirun.$(COMM) ; then \
-	    rm -f bin/mpirun.$(COMM) ; \
-	    mv util/mpirun.$(COMM) bin/mpirun.$(COMM) ; \
+	@if test -s util/mpirun.$(DEVICE) ; then \
+	    rm -f bin/mpirun.$(DEVICE) ; \
+	    mv util/mpirun.$(DEVICE) bin/mpirun.$(DEVICE) ; \
 	fi
-	@if test $(COMM) = "ch_p4" -o $(COMM) = "globus" ; then \
+	@if test $(DEVICE) = "ch_p4" -o $(DEVICE) = "globus" ; then \
 	    rm -f bin/mpirun.pg ; \
 	    mv util/mpirun.pg bin/mpirun.pg ; \
 	fi
@@ -300,12 +335,13 @@ bin/mpireconfig: util/mpireconfig.in
 	@cat util/mpireconfig.in | sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
 			    -e "s%\#ARCH\#%$(LARCH)%g" \
 			    -e "s%\#PREFIX\#%$(PREFIX)%g" \
+			    -e "s%\#DEVICE\#%$(DEVICE)%g" \
 			    -e "s%\#COMM\#%$(COMM)%g" > \
 		    bin/mpireconfig ;\
 	chmod 775 bin/mpireconfig
-	@-/bin/rm -f lib/$(LARCH)/$(COMM)/mpireconfig \
-		lib/$(LARCH)/$(COMM)/config.status 
-	@-cp bin/mpireconfig config.status lib/$(LARCH)/$(COMM)
+	@-/bin/rm -f build/$(LARCH)/$(DEVICE)/bin/mpireconfig \
+		build/$(LARCH)/$(DEVICE)/bin/config.status 
+	@-cp bin/mpireconfig config.status build/$(LARCH)/$(DEVICE)/bin
 
 #
 # Make mpiman from mpiman.in
@@ -319,40 +355,12 @@ bin/mpiman: util/mpiman.in
 	@cat util/mpiman.in \
 	    | sed -e "s%\#INSTALL_DIR\#%$(MPIR_HOME)%g" > bin/mpiman
 	@chmod 755 bin/mpiman
-#
-#
-# Make upshot from upshot.in
-#
-upshot: mpe/profiling/upshot/bin/upshot
-	-cp mpe/profiling/upshot/bin/upshot bin/upshot
-
-#
-# Update the install if you change this!
-mpe/profiling/upshot/bin/upshot: mpe/profiling/upshot/bin/upshot.in
-	@-if [ -z "@wishloc@" ] ; then \
-	    echo "Upshot requires the tk wish shell" ; \
-	else \
-	/bin/rm -f mpe/profiling/upshot/bin/upshot ; \
-	cat mpe/profiling/upshot/bin/upshot.in | sed \
-	  -e "s%\#wishloc\#%@wishloc@%g" \
-	  -e "s%\#TK_VERSION\#%@TK_VERSION@%g" \
-	  -e "s%\#BITMAP_DIR\#%$(MPIR_HOME)/mpe/profiling/upshot/bitmaps%g" > \
-	    mpe/profiling/upshot/bin/upshot;\
-	chmod 775 mpe/profiling/upshot/bin/upshot ; \
-	fi
-
-nupshot:
-	@-(cd mpe/profiling/nupshot; \
-	if [ ! -s Makefile ] ; then \
-	    /bin/rm -f config.cache ; \
-	    configure -tcldir=@TCL_DIR@ -tkdir=@TK_DIR@ ; fi ; \
-	$(MAKE) )
 
 #
 # If you change this, ALSO change it in the install target!
 serv_p4:
 	( cd mpid/ch_p4/p4/servers ; $(MAKE) serv_p4 ; \
-	  cp ../bin/serv_p4 ../../../../lib/$(LARCH)/ch_p4 )
+	  cp ../bin/serv_p4 ../../../../build/$(LARCH)/ch_p4/bin )
 	/bin/rm -f bin/chp4_servs
 	cat util/chp4_servs.in | sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
 		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
@@ -361,15 +369,15 @@ serv_p4:
 		-e "s%\#DEFAULT_ARCH\#%$(LARCH)%g" > \
 		    bin/chp4_servs ;\
 	chmod 775 bin/chp4_servs
-	-cp bin/chp4_servs lib/$(LARCH)/$(COMM)
-	-cp util/chkserv lib/$(LARCH)/$(COMM)
-	-cp util/chkmachine lib/$(LARCH)/$(COMM)
+	-cp bin/chp4_servs build/$(LARCH)/$(DEVICE)/bin
+	-cp util/chkserv build/$(LARCH)/$(DEVICE)/bin
+	-cp util/chkmachine build/$(LARCH)/$(DEVICE)/bin
 #
 # If you change this, ALSO change it in the install target!
 server:
 	( cd mpid/server ; /bin/rm -f config.cache ; \
 	  ./configure ; $(MAKE) server ; \
-	  cp server ../../lib/$(LARCH)/$(COMM) )
+	  cp server ../../build/$(LARCH)/$(DEVICE)/lib )
 	/bin/rm -f bin/chp4_servs
 	cat util/chp4_servs.in | sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
 		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
@@ -378,9 +386,9 @@ server:
 		-e "s%\#DEFAULT_ARCH\#%$(LARCH)%g" > \
 		    bin/chp4_servs ;\
 	chmod 775 bin/chp4_servs
-	-cp bin/chp4_servs lib/$(LARCH)/$(COMM)
-	-cp util/chkserv lib/$(LARCH)/$(COMM)
-	-cp util/chkmachine lib/$(LARCH)/$(COMM)
+	-cp bin/chp4_servs build/$(LARCH)/$(DEVICE)/bin
+	-cp util/chkserv build/$(LARCH)/$(DEVICE)/bin
+	-cp util/chkmachine build/$(LARCH)/$(DEVICE)/bin
 
 #
 # Changed clean to not remove the library, only the object files
@@ -389,13 +397,12 @@ server:
 # We also do NOT clean util, since it has files (like mpicc) that are built
 # by configure.  Builds with a new architecture
 # should use make cleanslate
+# We also remove the Makefile in nupshot after using it as it is created
+# by the nupshot configure itself.
+# We pass MAKE to the MPE Makefile to make sure that it has a valid
+# version of make.  Since MPE is configured separately, it might have
+# a make choice from a previous configuration.
 clean:
-	@-if [ -d mpe/profiling/wrappergen ] ; then \
-	    /bin/rm -f mpe/profiling/wrappergen/*.o ; fi
-	@-if [ -s mpe/profiling/nupshot/Makefile ] ; then \
-	    ( cd mpe/profiling/nupshot ; $(MAKE) clean ) ; fi
-	@-if [ -s mpe/profiling/upshot/bin/Makefile ] ; then \
-	    ( cd mpe/profiling/upshot/bin ; $(MAKE) clean ) ; fi
 	@-if [ -d tsuite ] ; then \
 	    (cd tsuite ; $(MAKE) clean ) ; fi
 	@-if [ -d bugs -a -s bugs/Makefile ] ; then \
@@ -404,51 +411,102 @@ clean:
 	    (cd mpid/server ; $(MAKE) clean ) ; fi
 	@-if [ -d romio -a -s romio/Makefile -a "@ROMIO@" = 1 ] ; then \
 	    (cd romio ; $(MAKE) clean ) ; fi
-	@-if [ -d MPI-2-C++ -a -s MPI-2-C++/Makefile -a "@buildcpp" = 1 ] ; then \
+	@-if [ -d installtest -a -s installtest/Makefile ] ; then \
+	    (cd installtest ; $(MAKE) clean ) ; fi
+	@-if [ -d MPI-2-C++ -a -s MPI-2-C++/Makefile -a "@buildcpp@" = 1 ] ; then \
 	    (cd MPI-2-C++ ; $(MAKE) clean ) ; fi
+	@-if [ -d mpe -a -s mpe/Makefile -a "@NOMPE@" = 0 ] ; then \
+	    (cd mpe ; $(MAKE) MAKE="$(MAKE)" clean ) ; fi
 	@-for dir in $(DIRS) ;\
 	  do \
 	  echo cleaning $$dir ;\
-	  (cd $$dir; if [ -s Makefile ] ; then $(MAKE) clean ; fi ) ;\
+	  (cd $$dir ; if [ -s Makefile ] ; then $(MAKE) clean ; fi ) ;\
 	  done
 	-@if [ -s mpid/ch_shmem/p2ptest/Makefile ] ; then \
 	    echo "cleaning mpid/ch_shmem/p2ptest" ; \
 	    (cd mpid/ch_shmem/p2ptest ; $(MAKE) clean ) ; fi
-	-@if [ -d mpid/tests -a -s mpid/tests/Makefile ] ; then \
+	-@if [ -s mpid/tests/Makefile ] ; then \
 	    (cd mpid/tests ; $(MAKE) clean ) ; fi
 cleanslate: clean
 	(cd util ; if [ -s Makefile ] ; then $(MAKE) clean ; fi )
 #
-# Realclean removes mpirun etc as well as the libraries.
-realclean: clean
-	@/bin/rm -f *~ *.ln bin/mpirun bin/mpireconfig util/tstmachines \
-			    bin/mpicc bin/mpiCC bin/mpif77 bin/mpif90 \
-		            bin/mpiinstall \
-			    installtest/Makefile \
-			    mpid/server/server \
-	  		    mpe/profiling/upshot/bin/upshot
-	-@/bin/rm -f lib/*/*/*.[oa]
-	-@/bin/rm -f lib/*/*.[oa]
-	-@/bin/rm -f ID
-	@-for dir in $(OTHERDEVICES) ; do echo cleaning $$dir ; \
-	     (cd $$dir ; if [ -s Makefile ] ; then $(MAKE) clean ; fi ) ; done
-	@if [ -s mpid/ch_p4/p4/Makefile ] ; then \
+# distclean removes mpirun etc as well as the libraries.
+distclean: cleanslate
+	/bin/rm -f *~ *.ln bin/mpirun bin/mpirun.args bin/mpirun.ch_p4 \
+			   o bin/mpirun.ch_shmem bin/mpirun.pg bin/mpiman \
+			    bin/mpireconfig bin/mpicc bin/mpiCC bin/mpif77 \
+			    bin/mpif90 bin/mpiinstall bin/upshot bin/jumpshot \
+			    installtest/Makefile 
+	if [ -s util/Makefile ] ; then \
+	    (cd util ; /bin/rm -f chkmachine chkserv Makefile ) ; fi 
+	(cd util/machines ; \
+	    /bin/rm -f machines.IRIX* machines.sun* machines.solaris* \
+	    machines.cray* machines.CRAY* machines.LINUX machines.rs600 \
+	    machines.alpha machines.hp* )
+	/bin/rm -f doc/port doc/portbuild doc/portperf doc/porttest
+	if [ -d mpid/server -a -s mpid/server/Makefile ] ; then \
+	       (cd mpid/server ; $(MAKE) distclean) ; fi
+	if [ -d jumpshot ] ; then \
+	  /bin/rm -f jumpshot/confdefs.h jumpshot/config.log \
+	  jumpshot/config.cache jumpshot/config.status ; fi
+	if [ -d mpe -a -s mpe/Makefile -a "@NOMPE@" = 0 ] ; then \
+	    (cd mpe ; $(MAKE) MAKE=$(MAKE) distclean ) ; fi
+	/bin/rm -f build/*/*/lib/*.[oa]
+	/bin/rm -f build/*/*/lib/*.[oa]
+	/bin/rm -f build/*/*/lib/*.so.*
+	/bin/rm -f build/*/*/lib/*.so
+	/bin/rm -f build/*/*/lib/shared/*
+	/bin/rm -f build/*/*/include/mpi*
+	/bin/rm -f build/*/*/bin/mpi* build/*/*/bin/config.status \
+	           build/*/*/bin/jumpshot build/*/*/bin/tstmachines
+	/bin/rm -f ID
+	for dir in $(DEVICES) ; do echo cleaning $$dir ; \
+	     (cd $$dir ; if [ -s Makefile ] ; then \
+	      $(MAKE) clean ; fi ) ; \
+	done
+	if [ -s mpid/ch_p4/Makefile ] ; then \
+	    (cd mpid/ch_p4 ; $(MAKE) distclean ) ; fi
+	if [ -s mpid/ch_shmem/Makefile ] ; then \
+	    (cd mpid/ch_shmem ; $(MAKE) distclean ) ; fi
+	if [ -d mpid/tests -a -s mpid/tests/Makefile ] ; then \
+	    (cd mpid/tests ; $(MAKE) distclean ) ; fi
+	if [ -s mpid/ch_p4/p4/Makefile ] ; then \
 	    (cd  mpid/ch_p4/p4 ; $(MAKE) realclean ) ; fi
-	@if [ -s romio/Makefile ] ; then \
+	if [ -s romio/Makefile ] ; then \
 	    (cd  romio ; $(MAKE) cleanall ) ; fi
-	@for dir in $(DIRS) ;\
+	if [ -d MPI-2-C++ -a -s MPI-2-C++/Makefile -a "@buildcpp@" = 1 ] ; then \
+	    (cd MPI-2-C++ ; $(MAKE) distclean ) ; fi
+	for dir in $(DIRS) ;\
 	  do \
 	  echo removing Makefile in $$dir ;\
-	  (cd $$dir; /bin/rm -f Makefile) ;\
+	  (cd $$dir ; /bin/rm -f Makefile) ;\
 	  done
-	@/bin/rm Makefile
+	if [ -s examples/test/runtests ] ; then \
+	    /bin/rm -f examples/test/runtests ; fi
+	if [ -s examples/test/coll/runtests ] ; then \
+	    /bin/rm -f examples/test/coll/runtests ; fi
+	if [ -s examples/test/context/runtests ] ; then \
+	    /bin/rm -f examples/test/context/runtests ; fi
+	if [ -s examples/test/env/runtests ] ; then \
+	    /bin/rm -f examples/test/env/runtests ; fi
+	if [ -s examples/test/profile/runtests ] ; then \
+	    /bin/rm -f examples/test/profile/runtests ; fi
+	if [ -s examples/test/pt2pt/runtests ] ; then \
+	    /bin/rm -f examples/test/pt2pt/runtests ; fi
+	if [ -s examples/test/topol/runtests ] ; then \
+	    /bin/rm -f examples/test/topol/runtests ; fi
+	if [ -s examples/test/config.status ] ; then \
+	      /bin/rm -f examples/test/config.status ; fi
+	if [ -s src/env/Makefile ] ; then \
+	    /bin/rm -f src/env/mpehname.c  src/env/farg.f ; fi
+	/bin/rm -f Makefile config.log config.status 
 #
 # Make an ID database from a suitable subset of the sources
 # (Get mkid from sunsite if you want to use this)
 #
 ID: frc
 	find include src/coll src/context src/dmpi src/env src/pt2pt \
-		src/topol src/util \
+		src/topol src/util src/infoexport \
 	mpid/ch2 mpid/$(DEVICE) mpid/util -name "*.[hc]" -print | mkid -v -
 
 frc:
@@ -477,17 +535,19 @@ installlib: mpirun util/mpiinstall
 # Install adds ALL of the examples to the installation area
 # This is an initial version.
 install-all: install
+	(/bin/rm $(PREFIX)/examples/*)
 	-$(CPRP) -r examples $(PREFIX)
 	# Update the makefiles
 	(cd $(PREFIX)/examples ; \
-		$(PREFIX)/lib/$(LARCH)/$(COMM)/mpireconfig Makefile ; \
-		for dir in `find -type d -print` ; do \
+		$(PREFIX)/build/$(LARCH)/$(DEVICE)/bin/mpireconfig Makefile ; \
+		for dir in `find . -type d -print` ; do \
 			(cd $$dir ; \
 			if [ -s Makefile.in ] ; then \
-			$(PREFIX)/lib/$(LARCH)/$(COMM)/mpireconfig Makefile ; \
+			$(PREFIX)/build/$(LARCH)/$(DEVICE)/bin/mpireconfig Makefile ; \
 			fi ) ; \
 		done \
 	)
 
 etags:
 	etags include/*.h mpid/$(DEVICE)/*.h $(CODEDIRS)
+

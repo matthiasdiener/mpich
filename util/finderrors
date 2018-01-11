@@ -67,6 +67,12 @@ endif
 # compilers, since this is what is used in the tests.  gcc is also a
 # valid compiler name.
 #
+# Some systems have error messages of the form:
+#  ld:
+#  Unresolved:
+#  ... list of names
+#  blank line
+# Find these with sed -n -e '/Unresolved:/,/^.*$/p'
 set ISRC = 0
 set RC   = 0
 set LARCH = ""
@@ -82,13 +88,13 @@ endif
 if ($LARCH == "386BSD") then
     # was ^[a-zA-Z0-9]*\.c: [1-9]
     if ($ISRC) then
-        set RC = `egrep '^"|^Error on line|^ar:|^mv:|^ld:|^Archive:|^make:|^xlc:|^PGC\-|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.c:|^cc:' $1 | \
+        set RC = `egrep '^"|^Error on line|syntax error|^ar:|^mv:|^ld:|^Archive:|^make:|^xlc:|^PGC\-|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.c:|^cc:' $1 | \
      egrep -v '/X11R5/.*/Xlib.h:.*function declaration.*a prototype' | \
      egrep -v 'if \[ .* \] ; then ln -s .* fi' |\
      egrep -v '/X11/Xlib.h:.*function declaration.*a prototype' | \
              wc -l`
     else
-        egrep '^"|^Error on line|^ar:|^mv:|^ld:|^Archive:|^make:|^xlc:|^PGC\-|^[a-zA-Z0-9_][a-zA-Z0-9]*\.c:|^cc:' $1 | egrep -v '/X11R5/.*/Xlib.h:.*function declaration.*a prototype' | \
+        egrep '^"|^Error on line|syntax error|^ar:|^mv:|^ld:|^Archive:|^make:|^xlc:|^PGC\-|^[a-zA-Z0-9_][a-zA-Z0-9]*\.c:|^cc:' $1 | egrep -v '/X11R5/.*/Xlib.h:.*function declaration.*a prototype' | \
      egrep -v 'if \[ .* \] ; then ln -s .* fi' |\
      egrep -v '/X11/Xlib.h:.*function declaration.*a prototype' 
     endif
@@ -99,14 +105,14 @@ if ($LARCH == "LINUX") then
     # LINUX has very hard to detect error messages.
     if ($ISRC) then
     # was ^[a-zA-Z0-9]*\.c: [1-9]
-    set RC = `egrep '^"|^\.|^\*\#|^/usr.*:|^Error|^ar:|^mv:|^ld:|^Archive:|^make:|^make\[|^[a-zA-Z0-9_]*\.c:|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.o.*:|^cc:|^f77:' $1 | egrep -v 'Warning .*declared EXTERNAL but never used' | \
+    set RC = `egrep '^"|^\.|^\*\#|^/usr.*:|^Error|syntax error|^ar:|^mv:|^ld:|^Archive:|^make:|^make\[|^[a-zA-Z0-9_]*\.c:|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.o.*:|^cc:|^f77:' $1 | egrep -v 'Warning .*declared EXTERNAL but never used' | \
  egrep -v 'if \[ .* \] ; then ln -s .* fi' |\
  wc -l`
     set RC1 = `egrep 'No space left|^[-0-9 ]*ERROR:|Connection timed' $1 | \
 		wc -l`
     if ($RC1 != 0) set RC = $RC1
 else
-    egrep '^"|^\.|^\*\#|^/usr.*:|^Error|^ar:|^mv:|^ld:|^Archive:|^make:|^make\[|^[a-zA-Z0-9_]*\.c:|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.o.*:|^cc:|^f77:|^[-0-9 ]*ERROR:' $1 | \
+    egrep '^"|^\.|^\*\#|^/usr.*:|^Error|syntax error|^ar:|^mv:|^ld:|^Archive:|^make:|^make\[|^[a-zA-Z0-9_]*\.c:|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.o.*:|^cc:|^f77:|^[-0-9 ]*ERROR:' $1 | \
     egrep -v 'Warning .*declared EXTERNAL but never used' |\
     egrep -v 'if \[ .* \] ; then ln -s .* fi'
     egrep 'No space left|Connection timed' $1
@@ -118,7 +124,7 @@ endif
 #
 if ($ISRC) then
     # was ^[a-zA-Z0-9_]*\.c: [1-9]
-    set RC = `egrep '^"|^\\.|^\*\#|^accom:|^/usr.*:|^Error|^ar:|^mv:|^ld:|^Archive:|^make:|^xlc:|^cfe:|^PGC\-|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.c:|^cc:|^f77:' $1 | \
+    set RC = `egrep '^"|^\\.|^\*\#|^accom:|^/usr.*:|^Error|syntax error|^ar:|^mv:|^ld:|^Archive:|^make:|^xlc:|^cfe:|^PGC\-|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.c:|^cc:|^f77:' $1 | \
 	egrep -v '/X11R5/.*/Xlib.h:.*function declaration.*a prototype' \
         egrep -v '/X11/Xlib.h:.*function declaration.*a prototype' | \
         egrep -v '^ar: creating|^ar: writing' | \
@@ -130,7 +136,7 @@ if ($ISRC) then
 		wc -l`
     if ($RC1 != 0) set RC = $RC1
 else
-    egrep '^"|^\\.|^\*\#|^accom:|^/usr.*:|^Error|^ar:|^mv:|^ld:|^Archive:|^make:|^xlc:|^cfe:|^PGC\-|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.c:|^cc:|^f77:|^[-0-9 ]*ERROR:' $1 | \
+    egrep '^"|^\\.|^\*\#|^accom:|^/usr.*:|^Error|syntax error|^ar:|^mv:|^ld:|^Archive:|^make:|^xlc:|^cfe:|^PGC\-|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.c:|^cc:|^f77:|^[-0-9 ]*ERROR:' $1 | \
     egrep -v '/X11R5/.*/Xlib.h:.*function declaration.*a prototype' |\
     egrep -v '/X11/Xlib.h:.*function declaration.*a prototype' | \
     egrep -v '^ar: creating|^ar: writing' | \
@@ -144,4 +150,7 @@ endif
 # directory
 sed -n -e '/^Making testing/p' -e '/\*\*\* Checking for diff/,/^End of testing/p' $1 | grep -v '^.*/mpicc' | \
 	grep -v '^.*/mpif77'
+#
+# Try for ld messages
+sed -n -e '/Unresolved:/,/^[ ]*$/p' $1
 exit($RC)

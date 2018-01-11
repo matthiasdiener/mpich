@@ -1,5 +1,5 @@
 /*
- *  $Id: allgather.c,v 1.3 1998/04/28 18:50:38 swider Exp $
+ *  $Id: allgather.c,v 1.4 1998/07/20 16:20:15 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -71,10 +71,6 @@ MPI_Comm          comm;
   rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
   MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
 
-  /*** Check for mismatched send/recieve types - Debbie Swider 11/20/97 ***/
-  if (sendtype != recvtype)
-    return MPIR_ERROR( comm_ptr, MPI_ERR_TYPE, myname ); 
- 
   /* Check for invalid arguments */
   if ( MPIR_TEST_COUNT(comm,sendcount) ||
        MPIR_TEST_COUNT(comm,recvcount) ) 

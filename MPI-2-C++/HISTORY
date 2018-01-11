@@ -1,8 +1,8 @@
 -*- text -*-
 
-Copyright 1997, University of Notre Dame.
-Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-         Jeffery M. Squyres.
+Copyright 1997-1999, University of Notre Dame.
+Authors: Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres,
+         Andrew Lumsdaine
 
 This file is part of the Notre Dame C++ bindings for MPI
 
@@ -30,6 +30,17 @@ OR OTHER RIGHTS.
 
 Version History
 ===============
+
+Version 1.0.3
+2 February 1999
+===============
+
+- Tested and passed with several more compilers
+- Updated for new versions of MPICH (1.1.2) and LAM (6.2)
+- Revealed problem with HP aCC compiler
+- Fixed bug in use of conversion operators, which affected 
+   the create_struct test among others. The problem showed
+   up only with the IBM xlC compiler.
 
 
 Version 1.0.1

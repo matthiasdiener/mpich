@@ -16,9 +16,7 @@
 #define DAR 32  /* ``Data: ARray''  */
 
 
-int main(argc, argv)
-int argc;
-char** argv;
+int main( int argc, char **argv )
  {
   int locId ;
   int data [i_ntotin] ;

@@ -1,10 +1,9 @@
 /* ictest.c */
+#include <stdio.h>
 #include "mpi.h"
 #include "test.h"
 
-int main( argc, argv )
-     int argc;
-     char **argv;
+int main( int argc, char **argv )
 {
   int size, rank, key, his_key, lrank;
   MPI_Comm myComm;

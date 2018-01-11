@@ -72,6 +72,10 @@
 #define P4_MACHINE_TYPE "LINUX"
 #endif
 
+#if defined(NETBSD)
+#define P4_MACHINE_TYPE "NETBSD"
+#endif
+
 #if defined(FREEBSD)
 #define P4_MACHINE_TYPE "FREEBSD"
 #endif
@@ -92,7 +96,8 @@
 #endif
 
 /* Rumor has it LINUX support VPRINTF */
-#if defined(FX2800)  || defined(FX2800_SWITCH) || defined(FREEBSD)
+#if defined(FX2800)  || defined(FX2800_SWITCH) || defined(FREEBSD) || \
+    defined(NETBSD)
 #define VPRINTF
 #endif
 
@@ -115,7 +120,7 @@
 
 #if defined(SUN)        || defined(DEC5000)  || defined(LINUX) || \
     defined(NEXT)       || defined(KSR)      || defined(FREEBSD) || \
-    defined(SYMMETRY)   || defined(BALANCE)  || \
+    defined(SYMMETRY)   || defined(BALANCE)  || defined(NETBSD) || \
     defined(ALLIANT)    || defined(MULTIMAX) ||  defined(CM5) || \
     defined(GP_1000)    || defined(TC_2000)  ||  defined(IBM3090)
 
@@ -125,7 +130,7 @@
 
 #if defined(SUN)        || defined(DEC5000)  || defined(LINUX) || \
     defined(NEXT)       || defined(KSR)      || defined(FREEBSD) || \
-    defined(SYMMETRY)   || defined(BALANCE)  || \
+    defined(SYMMETRY)   || defined(BALANCE)  || defined(NETBSD) || \
     defined(ALLIANT)    || defined(MULTIMAX) || \
     defined(GP_1000)    || defined(TC_2000)  ||  defined(IBM3090)
 
@@ -193,6 +198,7 @@ sigaction( signame, &oldact, (struct sigaction *)0 );}
 #define SIGNAL_P4(signame,sigf) {\
 struct sigaction oldact;\
 sigaction( signame, (struct sigaction *)0, &oldact );\
+p4_CheckSighandler( oldact.sa_handler ); \
 oldact.sa_handler = sigf;\
 oldact.sa_flags   = oldact.sa_flags & ~(SA_RESETHAND);\
 sigaddset( &oldact.sa_mask, signame );\
@@ -213,6 +219,7 @@ sigaction( signame, &oldact, (struct sigaction *)0 );}
 #define SIGNAL_P4(signame,sigf) {\
 struct sigaction oldact;\
 sigaction( signame, (struct sigaction *)0, &oldact );\
+p4_CheckSighandler( oldact.sa_handler ); \
 oldact.sa_handler = sigf;\
 sigaddset( &oldact.sa_mask, signame );\
 sigaction( signame, &oldact, (struct sigaction *)0 );}
@@ -231,7 +238,11 @@ sigaction( signame, &oldact, (struct sigaction *)0 );}
 #   endif
 #else
 #define SIGNAL_WITH_OLD_P4(signame,sigf,oldsigf) oldsigf signal(signame,sigf)
-#define SIGNAL_P4(signame,sigf) signal(signame,sigf)
+#ifdef CHECK_SIGNALS
+#define SIGNAL_P4(signame,sigf) p4_CheckSighandler( signal(signame,sigf) );
+#else
+#define SIGNAL_P4(signame,sigf) signal(signame,sigf);
+#endif
 #endif
 #endif
 
@@ -409,7 +420,7 @@ typedef int MD_lock_t;
 #if    defined(SUN)     || defined(SGI)  \
     || defined(DEC5000) || defined(LINUX) \
     || defined(RS6000)  || defined(IBM3090) || defined(FREEBSD) \
-    || defined(TITAN)  \
+    || defined(TITAN)   || defined(NETBSD) \
     || defined(HP)
 
 #    define P4_SYSV_SHM_SEGSIZE (1*1024*1024)
@@ -680,7 +691,7 @@ static unsigned int allocated = 0;
 #endif
 
 /* Some systems don't include XDR */
-#ifndef HAVE_XDR_CREATE
+#ifndef HAVE_XDRMEM_CREATE
 #undef CAN_DO_XDR
 #endif
 

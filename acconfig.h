@@ -102,3 +102,15 @@
 
 /* The number of processors expected on an SMP.  Usually undefined */
 #undef PROCESSOR_COUNT
+
+/* Define this to force a choice of shared memory allocator */
+#undef SHMEM_PICKED
+
+/* Define this to force SysV shmat for shared memory allocator */
+#undef USE_SHMAT
+
+/* Define this to force a choice for memory locking */
+#undef LOCKS_PICKED
+
+/* Define this to force SysV semop for locks */
+#undef USE_SEMOP

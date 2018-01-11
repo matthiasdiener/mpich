@@ -318,13 +318,16 @@ void p2p_cleanup()
     unlink(p2p_sgi_shared_arena_filename);
 #endif
 
+#ifdef USE_SEMOP
+    MD_remove_sysv_sipc();
+#endif
+
+/* The locks (freed in USE_SEMOP code) are stored shared memory, so we have to 
+   do this last */
 #ifdef USE_SHMAT
     MD_remove_sysv_mipc();
 #endif
 
-#ifdef USE_SEMOP
-    MD_remove_sysv_sipc();
-#endif
 
 }
 

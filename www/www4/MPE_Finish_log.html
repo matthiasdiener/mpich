@@ -15,7 +15,9 @@ int MPE_Finish_log( filename )
 char *filename;
 </PRE>
 <H2>Notes</H2>
-This routine dumps a logfile in clog format.
+This routine dumps a logfile in alog or clog format.  It is collective over
+<TT>MPI_COMM_WORLD</TT>.  The default is alog format.  To generate clog output,
+set the environment variable MPE_LOG_FORMAT to CLOG.
 <P>
 <P><B>Location:</B>mpe_log.c<P>
 </BODY></HTML>

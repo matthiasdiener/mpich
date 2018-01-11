@@ -20,9 +20,7 @@
 void NumberEdges ANSI_ARGS(( int **, int **, int, int, int ));
 void PrintGraph ANSI_ARGS(( int, int *, int * ));
 
-int main( argc, argv )
-int  argc;
-char **argv;
+int main( int argc, char **argv )
 {
     MPI_Comm comm, new_comm;
     int      reorder;

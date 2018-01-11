@@ -1616,31 +1616,33 @@ int  MPI_Finalize(  )
 /*
     MPI_Finalize - prototyping replacement for MPI_Finalize
 */
+
   /* First, get the total number of calls by any processor */
-    for (i=0; i<MPE_MAX_STATES; i++) 
-  	cnt[i] = states[i].n_calls;
-    PMPI_Reduce( cnt, totcnt, MPE_MAX_STATES, MPI_INT, MPI_SUM, 
-		 0, MPI_COMM_WORLD );
+     for (i=0; i<MPE_MAX_STATES; i++) 
+	 cnt[i] = states[i].n_calls;
+     PMPI_Reduce( cnt, totcnt, MPE_MAX_STATES, MPI_INT, MPI_SUM, 
+		  0, MPI_COMM_WORLD );
     
-  if (procid_0 == 0) {
-    fprintf( stderr, "Writing logfile.\n");
-    for (i=0; i<MPE_MAX_STATES; i++) {
-        if (totcnt[i] > 0) {
-  	    MPE_Describe_state( states[i].id, states[i].id + 1, 
-				states[i].name, states[i].color );
-  	}
-    }
-  }
-  MPE_Finish_log( logFileName_0 );
-  if (procid_0 == 0)
-      fprintf( stderr, "Finished writing logfile.\n");
+     if (procid_0 == 0) {
+	 fprintf( stderr, "Writing logfile.\n");
+	 for (i=0; i<MPE_MAX_STATES; i++) {
+	     if (totcnt[i] > 0) {
+		 MPE_Describe_state( states[i].id, states[i].id + 1, 
+				     states[i].name, states[i].color );
+	     }
+	 }
+     }
 
-  /* Recover all of the allocated requests */
-  rq_end( requests_avail_0 );
+     MPE_Finish_log( logFileName_0 );
+     if (procid_0 == 0)
+	 fprintf( stderr, "Finished writing logfile.\n");
 
-  returnVal = PMPI_Finalize(  );
+     /* Recover all of the allocated requests */
+     rq_end( requests_avail_0 );
 
-  return returnVal;
+     returnVal = PMPI_Finalize(  );
+
+     return returnVal;
 }
 
 int  MPI_Get_processor_name( name, resultlen )

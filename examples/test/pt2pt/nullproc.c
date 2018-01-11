@@ -10,9 +10,7 @@
 #include "protofix.h"
 #endif
 
-int main( argc, argv )
-int argc;
-char *argv[];
+int main( int argc, char *argv[] )
 {
    int             a[4];
    int             i, nproc;

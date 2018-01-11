@@ -4,9 +4,7 @@
 
 #define MAX_PROCESSES 10
 
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int              rank, size, i,j;
     int              table[MAX_PROCESSES][MAX_PROCESSES];

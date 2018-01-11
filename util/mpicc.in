@@ -20,9 +20,11 @@ HasDashC=0
 UsesPmpi=0
 verbose=0
 proflib=-lp@MPILIBNAME@
-proflibfullname=@MPIR_HOME@/lib/@ARCH@/@COMM@/libp@MPILIBNAME@.a
-CC=${MPICH_CC-@CC@}
-CLINKER=${MPICH_CLINKER-@CLINKER@}
+proflibfullname=@MPIR_HOME@/build/@ARCH@/@DEVICE@/lib/libp@MPILIBNAME@.a
+CCBASE="@CC@"
+CC="${MPICH_CC-$CCBASE}"
+CLINKERBASE="@CLINKER@"
+CLINKER="${MPICH_CLINKER-$CLINKERBASE}"
 for arg in "$@" ; do
 #    echo procssing arg $arg
     # Special processing for -o name
@@ -81,8 +83,8 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ -n "@MPE_LIBS@" ] ; then
-		MPILOG=-llmpi
+	if [ -n "@MPE_DIR@" ] ; then
+		MPILOG="-llmpi -lmpe"
 	else
 	    echo "-mpilog requires the MPE libraries"
 	fi
@@ -94,7 +96,7 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ -n "@MPE_LIBS@" ] ; then
+	if [ -n "@MPE_DIR@" ] ; then
    	    MPILOG=-ltmpi
 	else
 	    echo "-mpitrace requires the MPE libraries"
@@ -107,8 +109,8 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ -n "@MPE_LIBS@" ] ; then
-	    MPILOG="-lampi @MPE_LIBS@ @X_LIB@"
+	if [ -n "@MPE_DIR@" ] ; then
+	    MPILOG="-lampi -lmpe"
 	else
 	    echo "-mpianim requires the MPE libraries"
 	fi
@@ -184,12 +186,18 @@ if [ $DoCompile = 1 ] ; then
         compileargs="-c $compileargs"
     fi
     $Show $CC @USER_CFLAGS@ @ROMIO_TCFLAGS@ -I@MPIR_HOME@/include \
-	-I@MPIR_HOME@/lib/@ARCH@/@COMM@ $compileargs
+	-I@MPIR_HOME@/build/@ARCH@/@DEVICE@/include $compileargs
     status=$?
     if [ $status != 0 ] ; then 
 	exit $status
     fi
 fi
+#
+# Here's a tricky issue:  If there is no mpi library yet, we can't link,
+# but if we are building other tools that need mpicc, they may need to 
+# build and run non-mpi programs.  This is currently handled in the configure
+# by making a dummy library.
+# 
 if [ $DoLink = 1 ] ; then
     # If the profiling library doesn't exist, or MPICH_NO_PROF environment
     # variable is set, skip the profiling library.
@@ -197,10 +205,10 @@ if [ $DoLink = 1 ] ; then
         proflib=""
     fi
     if [ -n "$MPILOG" ] ; then
-        $Show $CLINKER @ROMIO_LFLAGS@ @LIB_PATH@ $linkobjs $MPILOG $linkargs $proflib @LIB_LIST@
+        $Show $CLINKER @USER_CFLAGS@ @ROMIO_LFLAGS@ @LIB_PATH@ $linkobjs $MPILOG $linkargs $proflib @LIB_LIST@
     else
 	# linkargs needs to be after linkobjs for things like "-lm"
-        $Show $CLINKER @ROMIO_LFLAGS@ @LIB_PATH@ $linkobjs $linkargs $proflib @LIB_LIST@
+        $Show $CLINKER @USER_CFLAGS@ @ROMIO_LFLAGS@ @LIB_PATH@ $linkobjs $linkargs $proflib @LIB_LIST@
     fi
     status=$?
 fi

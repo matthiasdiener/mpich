@@ -1,5 +1,5 @@
 /*
- *  $Id: waitall.c,v 1.8 1998/04/28 21:47:35 swider Exp $
+ *  $Id: waitall.c,v 1.9 1998/11/15 20:32:04 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -40,6 +40,11 @@ MPI_Status  array_of_statuses[];
     int mpi_errno = MPI_SUCCESS, rc = MPI_SUCCESS;
     static char myname[] = "MPI_WAITALL";
 
+/* There was some concern about waiting "inorder" here.  Since the underlying 
+   ADI code processes all requests as they arrive, this should not matter.
+   The code examples/test/pt2pt/waitall2.c tests for this. */
+#define OLD_WAITALL
+#ifdef OLD_WAITALL
     /* NOTE:
        This implementation will not work correctly if the device requires
        messages to be received in some particular order.  In that case, 
@@ -158,6 +163,27 @@ MPI_Status  array_of_statuses[];
 	    request->persistent_rhandle.active = 0;
 	}
     }
+
+#else
+    /* The only thing that complicates using MPI_Waitany here is the
+       error handling */
+    {
+	int i, index;
+	MPI_Status status;
+
+	for (i=0; i<count; i++) {
+	    rc = MPI_Waitany( count, array_of_requests, &index, &status );
+	    printf( "Found index = %d\n", index );
+	    array_of_statuses[index] = status;
+	    if (rc) {
+		MPIR_Set_Status_error_array( array_of_requests, count, i, 
+					     rc, array_of_statuses );
+		mpi_errno = MPI_ERR_IN_STATUS;
+		MPIR_RETURN(MPIR_COMM_WORLD, mpi_errno, myname );
+	    }
+	}
+    }
+#endif
     
     if (mpi_errno) {
 	return MPIR_ERROR(MPIR_COMM_WORLD, mpi_errno, myname);

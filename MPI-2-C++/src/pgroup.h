@@ -1,8 +1,8 @@
 // -*- c++ -*-
 //
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -48,9 +48,10 @@ public:
  
   // inter-language operability
   inline Group& operator= (const MPI_Group &i) { mpi_group = i; return *this; }
-  inline operator MPI_Group () const { return mpi_group; }
+  inline operator const MPI_Group& () const { return mpi_group; }
   inline operator MPI_Group* () const { return (MPI_Group*)&mpi_group; }
 
+  inline const MPI_Group& mpi() const { return mpi_group; }
   //
   // Groups, Contexts, and Communicators
   //

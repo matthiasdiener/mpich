@@ -6,9 +6,7 @@
 #include "test.h"
 #include "../pt2pt/gcomm.h"
 
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
 int count, errcnt = 0, gerr = 0, size, rank;
 MPI_Comm comm;

@@ -5,6 +5,7 @@
     Reply-To: M.Weber@kfa-juelich.de
    modified slightly to meet our test rules.)
  */
+#include <stdio.h>
 #include "mpi.h"
 #define SIZE 100
 /* SIZE 16 worked on Paragon */
@@ -13,9 +14,7 @@
 #include "protofix.h"
 #endif
 
-int main(argc,argv)
-int argc;
-char *argv[];
+int main( int argc, char *argv[])
 {
   int num_procs,my_id,flag;
   int buf[SIZE][SIZE];

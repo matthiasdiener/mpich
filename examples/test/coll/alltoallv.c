@@ -16,9 +16,7 @@
   that use point-to-point operations
  */
 
-int main( argc, argv )
-int  argc;
-char **argv;
+int main( int argc, char **argv )
 {
 
     MPI_Comm comm;

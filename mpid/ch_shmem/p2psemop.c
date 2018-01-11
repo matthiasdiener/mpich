@@ -161,6 +161,14 @@ void MD_remove_sysv_sipc()
 {
     int i;
     struct p2_global_data *g = p2_global;
+    /* Define a dummy argument value (some systems (e.g., LINUX Redhat)
+       require the fourth argument to be declared and not 0) */
+#   if defined(SEMCTL_ARG_UNION)
+    union semun arg;
+    arg.val = 0;
+#   else
+    int arg = 0;
+#   endif
 
     /* ignore -1 return codes below due to multiple processes cleaning
        up the same sysv stuff; commented out "if" used to make sure
@@ -171,6 +179,6 @@ void MD_remove_sysv_sipc()
         return;
     for (i=0 /*1*/; i < g->sysv_num_semids; i++)  /* delete other sets */
     {
-	semctl(g->sysv_semid[i],0,IPC_RMID,0);
+	semctl(g->sysv_semid[i],0,IPC_RMID,arg);
     }
 }

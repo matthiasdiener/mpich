@@ -1,9 +1,4 @@
-
-
-
-
-
-#!/bin/sh
+#! /bin/sh
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf.
 # Copyright (C) 1991, 1992, 1993 Free Software Foundation, Inc.
@@ -34,7 +29,7 @@ Usage: ${progname} -p4arch=ARCH_TYPE [-alog={on,off}] [-dprintfl={on,off}]
                    [-p4comm=shared]  [-listener_pathname="\<pathname\>"]
                    [-rsh=command] [-rshnol] [-cflags=flags] 
                    [-threaded_listener] [-nothreaded_listener]
-                   [-dlast]
+                   [-dlast] [-listenersig=name] [--enable-nonblockread]
 "
 RSHCOMMAND=
 MDEP_LIBS=
@@ -48,6 +43,8 @@ USERF77=0
 FC=${FC:-f77}
 threaded_listener=0
 userSet_threaded_listener=0
+listener_sig=""
+use_nonblock_read=0
 #
 for arg
 do
@@ -95,6 +92,9 @@ case $arg in
      p4listener_pathname=`echo $arg|sed 's/-listener_pathname=//'`
      echo Setting p4listener_pathname to $p4listener_pathname
      ;;
+  -listenersig=*)
+     listener_sig=`echo A$arg|sed -e 's/A-listenersig=//g'`
+     ;;
   -threaded_list*)
      threaded_listener=1
      userSet_threaded_listener=1
@@ -120,6 +120,12 @@ case $arg in
      ;;
    -socksize=*|--socksize=*)
      SOCKSIZE="`echo $arg|sed 's/-*socksize=//'`"
+     ;;
+   -*enable-nonblockread)
+	use_nonblock_read=1
+     ;;
+   -*disable-nonblockread)
+	use_nonblock_read=0
      ;;
    *)
      # Allow null args
@@ -243,6 +249,13 @@ if test -n "$p4arch_FREEBSD"; then
       DEFINE_SYSV_IPC="#define SYSV_IPC"
     fi
 fi
+#						486 running NetBSD
+if test -n "$p4arch_NETBSD"; then
+    P4ARCH=NETBSD
+    if test -n "$p4comm_shared"; then
+      DEFINE_SYSV_IPC="#define SYSV_IPC"
+    fi
+fi
 #						486 running Linux
 if test -n "$p4arch_LINUX"; then
     P4ARCH=LINUX
@@ -319,17 +332,25 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS=-lrpc
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBRPC"
+echo "#define" HAVE_LIBRPC 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBRPC=1"
+}
+
+   LIBS="${LIBS} -lrpc"
 fi
 
 fi
 #						Sun running Solaris
 if test -n "$p4arch_SUN_SOLARIS"; then
-    if test $userSet_threaded_listener = 0 -a -z "$p4comm_shared" ; then
-	threaded_listener=1
-    fi
+    # We've had so many problems with the threaded listener that we are
+    # leaving the default as off.
+    #if test $userSet_threaded_listener = 0 -a -z "$p4comm_shared" ; then
+    #	threaded_listener=1
+    #fi
     P4ARCH=SUN_SOLARIS
     AR="ar ruv"
     RANLIB=true
@@ -401,9 +422,15 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lthread"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBTHREAD"
+echo "#define" HAVE_LIBTHREAD 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBTHREAD=1"
+}
+
+   LIBS="${LIBS} -lthread"
 fi
 
     fi
@@ -472,9 +499,15 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lsocket"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBSOCKET"
+echo "#define" HAVE_LIBSOCKET 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBSOCKET=1"
+}
+
+   LIBS="${LIBS} -lsocket"
 fi
 
     LIBS_save="${LIBS}"
@@ -542,9 +575,15 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lnsl"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBNSL"
+echo "#define" HAVE_LIBNSL 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBNSL=1"
+}
+
+   LIBS="${LIBS} -lnsl"
 fi
 
 
@@ -675,9 +714,15 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lthread"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBTHREAD"
+echo "#define" HAVE_LIBTHREAD 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBTHREAD=1"
+}
+
+   LIBS="${LIBS} -lthread"
 fi
 
     fi
@@ -746,9 +791,15 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lsocket"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBSOCKET"
+echo "#define" HAVE_LIBSOCKET 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBSOCKET=1"
+}
+
+   LIBS="${LIBS} -lsocket"
 fi
 
     LIBS_save="${LIBS}"
@@ -816,9 +867,15 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lnsl"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBNSL"
+echo "#define" HAVE_LIBNSL 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBNSL=1"
+}
+
+   LIBS="${LIBS} -lnsl"
 fi
 
     if test -z "$ac_echo_n" ; then
@@ -875,6 +932,7 @@ rm -fr conftest*
 if test -n "$p4arch_HP"; then
     P4ARCH=HP
     RANLIB=true
+    libs_before="$LIBS"
     LIBS_save="${LIBS}"
 LIBS="${LIBS} -lV3"
 have_lib=""
@@ -940,12 +998,18 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lV3"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBV3"
+echo "#define" HAVE_LIBV3 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBV3=1"
+}
+
+   LIBS="${LIBS} -lV3"
 fi
 
-    if test -z "$MDEP_LIBS" ; then
+    if test "$LIBS" = "$libs_before" ; then
        echo "HP currently requires the System V Release 3 libraries (libV3.a)"
        exit 1
     fi
@@ -1015,9 +1079,15 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lnsl"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBNSL"
+echo "#define" HAVE_LIBNSL 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBNSL=1"
+}
+
+   LIBS="${LIBS} -lnsl"
 fi
 
     LIBS_save="${LIBS}"
@@ -1085,12 +1155,18 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lU77"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBU77"
+echo "#define" HAVE_LIBU77 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBU77=1"
+}
+
+   LIBS="${LIBS} -lU77"
 fi
 
-        # -lV3 is for sighold, etc.
+    # -lV3 is for sighold, etc.
     MDEP_FFLAGS="+U77 +T"
     if test -n "$p4comm_shared"; then
       DEFINE_SYSV_IPC="#define SYSV_IPC"
@@ -1182,9 +1258,15 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lrpc"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBRPC"
+echo "#define" HAVE_LIBRPC 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBRPC=1"
+}
+
+   LIBS="${LIBS} -lrpc"
 fi
 
     AR='ar860 r'
@@ -1282,9 +1364,15 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lbsd"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBBSD"
+echo "#define" HAVE_LIBBSD 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBBSD=1"
+}
+
+   LIBS="${LIBS} -lbsd"
 fi
 
     MDEP_CFLAGS=-D_ALL_SOURCE
@@ -1363,9 +1451,15 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lbsd"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBBSD"
+echo "#define" HAVE_LIBBSD 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBBSD=1"
+}
+
+   LIBS="${LIBS} -lbsd"
 fi
 
     if test -n "$p4comm_shared"; then
@@ -1445,9 +1539,15 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lbsd"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBBSD"
+echo "#define" HAVE_LIBBSD 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBBSD=1"
+}
+
+   LIBS="${LIBS} -lbsd"
 fi
 
     MDEP_CFLAGS = -I/usr/lpp/poe/include
@@ -1525,9 +1625,15 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lbsd"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBBSD"
+echo "#define" HAVE_LIBBSD 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBBSD=1"
+}
+
+   LIBS="${LIBS} -lbsd"
 fi
 
     MDEP_CFLAGS=-D_ALL_SOURCE
@@ -1601,9 +1707,15 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lsun"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBSUN"
+echo "#define" HAVE_LIBSUN 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBSUN=1"
+}
+
+   LIBS="${LIBS} -lsun"
 fi
 
         if test -n "$p4comm_shared"; then
@@ -1680,9 +1792,15 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lsun"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBSUN"
+echo "#define" HAVE_LIBSUN 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBSUN=1"
+}
+
+   LIBS="${LIBS} -lsun"
 fi
 
         if test -n "$p4comm_shared"; then
@@ -1759,14 +1877,282 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lsun"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBSUN"
+echo "#define" HAVE_LIBSUN 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBSUN=1"
+}
+
+   LIBS="${LIBS} -lsun"
 fi
 
-    MDEP_CFLAGS="-32 -woff 1552,1174"
+    # This choice of flags is for the SGI compilers.  If the user chose
+    # gcc, they won't work.
+    
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that C compiler accepts option -32""... $ac_c"
+else
+echo $ac_n "checking that C compiler accepts option -32""... $ac_c" 1>&1
+fi
+CFLAGSSAV="$CFLAGS"
+CFLAGS="-32 $CFLAGS"
+rm -f conftest.out
+echo 'int try(void);int try(void){return 0;}' > conftest2.c
+echo 'int main(void);int main(void){return 0;}' > conftest.c
+if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+    if test -s conftest.out ; then
+        cat conftest.out >> config.log
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+        
+        CFLAGS="$CFLAGSSAV"         
+    else
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+        if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that routines compiled with -32 can be linked with ones compiled  without -32""... $ac_c"
+else
+echo $ac_n "checking that routines compiled with -32 can be linked with ones compiled  without -32""... $ac_c" 1>&1
+fi       
+        /bin/rm -f conftest.out
+        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                if test -s conftest.out ; then
+	            cat conftest.out >> config.log
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                    print_error "Will not add -32 to CFLAGS"
+                    CFLAGS="$CFLAGSSAV"
+	            
+                else
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi	  
+                    MDEP_CFLAGS="-32";MDEP_LFLAGS="-32"
+                fi
+            else
+                if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                print_error "Will not add -32 to CFLAGS"
+                CFLAGS="$CFLAGSSAV"
+	        
+            fi  
+        else
+            if test -s conftest2.out ; then 
+                cat conftest2.out >> config.log 
+            fi
+            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+            print_error "Will not add -32 to CFLAGS"
+            CFLAGS="$CFLAGSSAV"
+            
+        fi
+    fi
+else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+    CFLAGS="$CFLAGSSAV"
+fi
+rm -f conftest*
+
+    
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that C compiler accepts option -woff 1552,1174""... $ac_c"
+else
+echo $ac_n "checking that C compiler accepts option -woff 1552,1174""... $ac_c" 1>&1
+fi
+CFLAGSSAV="$CFLAGS"
+CFLAGS="-woff 1552,1174 $CFLAGS"
+rm -f conftest.out
+echo 'int try(void);int try(void){return 0;}' > conftest2.c
+echo 'int main(void);int main(void){return 0;}' > conftest.c
+if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+    if test -s conftest.out ; then
+        cat conftest.out >> config.log
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+        
+        CFLAGS="$CFLAGSSAV"         
+    else
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+        if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked with ones compiled  without -woff 1552,1174""... $ac_c"
+else
+echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked with ones compiled  without -woff 1552,1174""... $ac_c" 1>&1
+fi       
+        /bin/rm -f conftest.out
+        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                if test -s conftest.out ; then
+	            cat conftest.out >> config.log
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                    print_error "Will not add -woff 1552,1174 to CFLAGS"
+                    CFLAGS="$CFLAGSSAV"
+	            
+                else
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi	  
+                    MDEP_CFLAGS="$MDEP_CFLAGS -woff 1552,1174"
+                fi
+            else
+                if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                print_error "Will not add -woff 1552,1174 to CFLAGS"
+                CFLAGS="$CFLAGSSAV"
+	        
+            fi  
+        else
+            if test -s conftest2.out ; then 
+                cat conftest2.out >> config.log 
+            fi
+            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+            print_error "Will not add -woff 1552,1174 to CFLAGS"
+            CFLAGS="$CFLAGSSAV"
+            
+        fi
+    fi
+else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+    CFLAGS="$CFLAGSSAV"
+fi
+rm -f conftest*
+
     MDEP_FFLAGS="-32" # -woff 1552,1174"
-    MDEP_LFLAGS="-32"
     if test -n "$p4comm_shared"; then
       DEFINE_VENDOR_IPC="#define VENDOR_IPC"
     fi
@@ -1841,14 +2227,282 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lsun"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBSUN"
+echo "#define" HAVE_LIBSUN 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBSUN=1"
+}
+
+   LIBS="${LIBS} -lsun"
 fi
 
-    MDEP_CFLAGS="-n32 -woff 1552,1174"
+    # This choice of flags is for the SGI compilers.  If the user chose
+    # gcc, they won't work.
+    
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that C compiler accepts option -n32""... $ac_c"
+else
+echo $ac_n "checking that C compiler accepts option -n32""... $ac_c" 1>&1
+fi
+CFLAGSSAV="$CFLAGS"
+CFLAGS="-n32 $CFLAGS"
+rm -f conftest.out
+echo 'int try(void);int try(void){return 0;}' > conftest2.c
+echo 'int main(void);int main(void){return 0;}' > conftest.c
+if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+    if test -s conftest.out ; then
+        cat conftest.out >> config.log
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+        
+        CFLAGS="$CFLAGSSAV"         
+    else
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+        if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that routines compiled with -n32 can be linked with ones compiled  without -n32""... $ac_c"
+else
+echo $ac_n "checking that routines compiled with -n32 can be linked with ones compiled  without -n32""... $ac_c" 1>&1
+fi       
+        /bin/rm -f conftest.out
+        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                if test -s conftest.out ; then
+	            cat conftest.out >> config.log
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                    print_error "Will not add -n32 to CFLAGS"
+                    CFLAGS="$CFLAGSSAV"
+	            
+                else
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi	  
+                    MDEP_CFLAGS="-n32";MDEP_LFLAGS="-n32"
+                fi
+            else
+                if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                print_error "Will not add -n32 to CFLAGS"
+                CFLAGS="$CFLAGSSAV"
+	        
+            fi  
+        else
+            if test -s conftest2.out ; then 
+                cat conftest2.out >> config.log 
+            fi
+            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+            print_error "Will not add -n32 to CFLAGS"
+            CFLAGS="$CFLAGSSAV"
+            
+        fi
+    fi
+else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+    CFLAGS="$CFLAGSSAV"
+fi
+rm -f conftest*
+
+    
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that C compiler accepts option -woff 1552,1174""... $ac_c"
+else
+echo $ac_n "checking that C compiler accepts option -woff 1552,1174""... $ac_c" 1>&1
+fi
+CFLAGSSAV="$CFLAGS"
+CFLAGS="-woff 1552,1174 $CFLAGS"
+rm -f conftest.out
+echo 'int try(void);int try(void){return 0;}' > conftest2.c
+echo 'int main(void);int main(void){return 0;}' > conftest.c
+if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+    if test -s conftest.out ; then
+        cat conftest.out >> config.log
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+        
+        CFLAGS="$CFLAGSSAV"         
+    else
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+        if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked with ones compiled  without -woff 1552,1174""... $ac_c"
+else
+echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked with ones compiled  without -woff 1552,1174""... $ac_c" 1>&1
+fi       
+        /bin/rm -f conftest.out
+        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                if test -s conftest.out ; then
+	            cat conftest.out >> config.log
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                    print_error "Will not add -woff 1552,1174 to CFLAGS"
+                    CFLAGS="$CFLAGSSAV"
+	            
+                else
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi	  
+                    MDEP_CFLAGS="$MDEP_CFLAGS -woff 1552,1174"
+                fi
+            else
+                if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                print_error "Will not add -woff 1552,1174 to CFLAGS"
+                CFLAGS="$CFLAGSSAV"
+	        
+            fi  
+        else
+            if test -s conftest2.out ; then 
+                cat conftest2.out >> config.log 
+            fi
+            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+            print_error "Will not add -woff 1552,1174 to CFLAGS"
+            CFLAGS="$CFLAGSSAV"
+            
+        fi
+    fi
+else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+    CFLAGS="$CFLAGSSAV"
+fi
+rm -f conftest*
+
     MDEP_FFLAGS="-n32" # -woff 1552,1174"
-    MDEP_LFLAGS="-n32"
     if test -n "$p4comm_shared"; then
       DEFINE_VENDOR_IPC="#define VENDOR_IPC"
     fi
@@ -1922,12 +2576,148 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lsun"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBSUN"
+echo "#define" HAVE_LIBSUN 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBSUN=1"
+}
+
+   LIBS="${LIBS} -lsun"
 fi
 
-            MDEP_CFLAGS="-woff 1552,1174"
+            
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that C compiler accepts option -woff 1552,1174""... $ac_c"
+else
+echo $ac_n "checking that C compiler accepts option -woff 1552,1174""... $ac_c" 1>&1
+fi
+CFLAGSSAV="$CFLAGS"
+CFLAGS="-woff 1552,1174 $CFLAGS"
+rm -f conftest.out
+echo 'int try(void);int try(void){return 0;}' > conftest2.c
+echo 'int main(void);int main(void){return 0;}' > conftest.c
+if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+    if test -s conftest.out ; then
+        cat conftest.out >> config.log
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+        
+        CFLAGS="$CFLAGSSAV"         
+    else
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+        if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked with ones compiled  without -woff 1552,1174""... $ac_c"
+else
+echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked with ones compiled  without -woff 1552,1174""... $ac_c" 1>&1
+fi       
+        /bin/rm -f conftest.out
+        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                if test -s conftest.out ; then
+	            cat conftest.out >> config.log
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                    print_error "Will not add -woff 1552,1174 to CFLAGS"
+                    CFLAGS="$CFLAGSSAV"
+	            
+                else
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi	  
+                    MDEP_CFLAGS="$MDEP_CFLAGS -woff 1552,1174"
+                fi
+            else
+                if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                print_error "Will not add -woff 1552,1174 to CFLAGS"
+                CFLAGS="$CFLAGSSAV"
+	        
+            fi  
+        else
+            if test -s conftest2.out ; then 
+                cat conftest2.out >> config.log 
+            fi
+            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+            print_error "Will not add -woff 1552,1174 to CFLAGS"
+            CFLAGS="$CFLAGSSAV"
+            
+        fi
+    fi
+else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+    CFLAGS="$CFLAGSSAV"
+fi
+rm -f conftest*
+
     MDEP_FFLAGS="" # "-woff 1552,1174"
     for func in setsid
 do
@@ -2164,9 +2954,15 @@ fi
 rm -f conftest*
 LIBS="${LIBS_save}"
 if test -n "${have_lib}"; then
-   :; MDEP_LIBS="$MDEP_LIBS -lsun"
-else
-   :; 
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBSUN"
+echo "#define" HAVE_LIBSUN 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBSUN=1"
+}
+
+   LIBS="${LIBS} -lsun"
 fi
 
     for func in setsid
@@ -2501,9 +3297,400 @@ fi
 rm -f conftest*
 done
 
-            MDEP_CFLAGS="-64 -mips3 -woff 1552,1174" # -non_shared
-    MDEP_FFLAGS="-64 -mips3" #  -woff 1552,1174" # -non_shared
-    MDEP_LFLAGS="-64"
+            
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that C compiler accepts option -64""... $ac_c"
+else
+echo $ac_n "checking that C compiler accepts option -64""... $ac_c" 1>&1
+fi
+CFLAGSSAV="$CFLAGS"
+CFLAGS="-64 $CFLAGS"
+rm -f conftest.out
+echo 'int try(void);int try(void){return 0;}' > conftest2.c
+echo 'int main(void);int main(void){return 0;}' > conftest.c
+if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+    if test -s conftest.out ; then
+        cat conftest.out >> config.log
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+        
+        CFLAGS="$CFLAGSSAV"         
+    else
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+        if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that routines compiled with -64 can be linked with ones compiled  without -64""... $ac_c"
+else
+echo $ac_n "checking that routines compiled with -64 can be linked with ones compiled  without -64""... $ac_c" 1>&1
+fi       
+        /bin/rm -f conftest.out
+        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                if test -s conftest.out ; then
+	            cat conftest.out >> config.log
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                    print_error "Will not add -64 to CFLAGS"
+                    CFLAGS="$CFLAGSSAV"
+	            
+                else
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi	  
+                    MDEP_CFLAGS="-64";MDEP_LFLAGS="-64"
+                fi
+            else
+                if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                print_error "Will not add -64 to CFLAGS"
+                CFLAGS="$CFLAGSSAV"
+	        
+            fi  
+        else
+            if test -s conftest2.out ; then 
+                cat conftest2.out >> config.log 
+            fi
+            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+            print_error "Will not add -64 to CFLAGS"
+            CFLAGS="$CFLAGSSAV"
+            
+        fi
+    fi
+else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+    CFLAGS="$CFLAGSSAV"
+fi
+rm -f conftest*
+
+    
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that C compiler accepts option -mips3""... $ac_c"
+else
+echo $ac_n "checking that C compiler accepts option -mips3""... $ac_c" 1>&1
+fi
+CFLAGSSAV="$CFLAGS"
+CFLAGS="-mips3 $CFLAGS"
+rm -f conftest.out
+echo 'int try(void);int try(void){return 0;}' > conftest2.c
+echo 'int main(void);int main(void){return 0;}' > conftest.c
+if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+    if test -s conftest.out ; then
+        cat conftest.out >> config.log
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+        
+        CFLAGS="$CFLAGSSAV"         
+    else
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+        if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that routines compiled with -mips3 can be linked with ones compiled  without -mips3""... $ac_c"
+else
+echo $ac_n "checking that routines compiled with -mips3 can be linked with ones compiled  without -mips3""... $ac_c" 1>&1
+fi       
+        /bin/rm -f conftest.out
+        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                if test -s conftest.out ; then
+	            cat conftest.out >> config.log
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                    print_error "Will not add -mips3 to CFLAGS"
+                    CFLAGS="$CFLAGSSAV"
+	            
+                else
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi	  
+                    MDEP_CFLAGS="$MDEP_CFLAGS -mips3"
+                fi
+            else
+                if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                print_error "Will not add -mips3 to CFLAGS"
+                CFLAGS="$CFLAGSSAV"
+	        
+            fi  
+        else
+            if test -s conftest2.out ; then 
+                cat conftest2.out >> config.log 
+            fi
+            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+            print_error "Will not add -mips3 to CFLAGS"
+            CFLAGS="$CFLAGSSAV"
+            
+        fi
+    fi
+else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+    CFLAGS="$CFLAGSSAV"
+fi
+rm -f conftest*
+
+    
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that C compiler accepts option -woff 1552,1174""... $ac_c"
+else
+echo $ac_n "checking that C compiler accepts option -woff 1552,1174""... $ac_c" 1>&1
+fi
+CFLAGSSAV="$CFLAGS"
+CFLAGS="-woff 1552,1174 $CFLAGS"
+rm -f conftest.out
+echo 'int try(void);int try(void){return 0;}' > conftest2.c
+echo 'int main(void);int main(void){return 0;}' > conftest.c
+if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+    if test -s conftest.out ; then
+        cat conftest.out >> config.log
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+        
+        CFLAGS="$CFLAGSSAV"         
+    else
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+        if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked with ones compiled  without -woff 1552,1174""... $ac_c"
+else
+echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked with ones compiled  without -woff 1552,1174""... $ac_c" 1>&1
+fi       
+        /bin/rm -f conftest.out
+        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                if test -s conftest.out ; then
+	            cat conftest.out >> config.log
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                    print_error "Will not add -woff 1552,1174 to CFLAGS"
+                    CFLAGS="$CFLAGSSAV"
+	            
+                else
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi	  
+                    MDEP_CFLAGS="$MDEP_CFLAGS -woff 1552,1174"
+                fi
+            else
+                if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                print_error "Will not add -woff 1552,1174 to CFLAGS"
+                CFLAGS="$CFLAGSSAV"
+	        
+            fi  
+        else
+            if test -s conftest2.out ; then 
+                cat conftest2.out >> config.log 
+            fi
+            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+            print_error "Will not add -woff 1552,1174 to CFLAGS"
+            CFLAGS="$CFLAGSSAV"
+            
+        fi
+    fi
+else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+    CFLAGS="$CFLAGSSAV"
+fi
+rm -f conftest*
+
+        MDEP_FFLAGS="-64 -mips3" #  -woff 1552,1174" # -non_shared
     if test -n "$p4comm_shared"; then
        DEFINE_VENDOR_IPC="#define VENDOR_IPC"
     fi
@@ -2674,9 +3861,269 @@ fi
 rm -f conftest*
 done
 
-    MDEP_CFLAGS="-n32 -woff 1552,1174"
+    
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that C compiler accepts option -n32""... $ac_c"
+else
+echo $ac_n "checking that C compiler accepts option -n32""... $ac_c" 1>&1
+fi
+CFLAGSSAV="$CFLAGS"
+CFLAGS="-n32 $CFLAGS"
+rm -f conftest.out
+echo 'int try(void);int try(void){return 0;}' > conftest2.c
+echo 'int main(void);int main(void){return 0;}' > conftest.c
+if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+    if test -s conftest.out ; then
+        cat conftest.out >> config.log
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+        
+        CFLAGS="$CFLAGSSAV"         
+    else
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+        if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that routines compiled with -n32 can be linked with ones compiled  without -n32""... $ac_c"
+else
+echo $ac_n "checking that routines compiled with -n32 can be linked with ones compiled  without -n32""... $ac_c" 1>&1
+fi       
+        /bin/rm -f conftest.out
+        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                if test -s conftest.out ; then
+	            cat conftest.out >> config.log
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                    print_error "Will not add -n32 to CFLAGS"
+                    CFLAGS="$CFLAGSSAV"
+	            
+                else
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi	  
+                    MDEP_CFLAGS="-n32";MDEP_LFLAGS="-n32"
+                fi
+            else
+                if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                print_error "Will not add -n32 to CFLAGS"
+                CFLAGS="$CFLAGSSAV"
+	        
+            fi  
+        else
+            if test -s conftest2.out ; then 
+                cat conftest2.out >> config.log 
+            fi
+            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+            print_error "Will not add -n32 to CFLAGS"
+            CFLAGS="$CFLAGSSAV"
+            
+        fi
+    fi
+else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+    CFLAGS="$CFLAGSSAV"
+fi
+rm -f conftest*
+
+    
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that C compiler accepts option -woff 1552,1174""... $ac_c"
+else
+echo $ac_n "checking that C compiler accepts option -woff 1552,1174""... $ac_c" 1>&1
+fi
+CFLAGSSAV="$CFLAGS"
+CFLAGS="-woff 1552,1174 $CFLAGS"
+rm -f conftest.out
+echo 'int try(void);int try(void){return 0;}' > conftest2.c
+echo 'int main(void);int main(void){return 0;}' > conftest.c
+if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+    if test -s conftest.out ; then
+        cat conftest.out >> config.log
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+        
+        CFLAGS="$CFLAGSSAV"         
+    else
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+        if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked with ones compiled  without -woff 1552,1174""... $ac_c"
+else
+echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked with ones compiled  without -woff 1552,1174""... $ac_c" 1>&1
+fi       
+        /bin/rm -f conftest.out
+        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                if test -s conftest.out ; then
+	            cat conftest.out >> config.log
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                    print_error "Will not add -woff 1552,1174 to CFLAGS"
+                    CFLAGS="$CFLAGSSAV"
+	            
+                else
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi	  
+                    MDEP_CFLAGS="$MDEP_CFLAGS -woff 1552,1174"
+                fi
+            else
+                if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                print_error "Will not add -woff 1552,1174 to CFLAGS"
+                CFLAGS="$CFLAGSSAV"
+	        
+            fi  
+        else
+            if test -s conftest2.out ; then 
+                cat conftest2.out >> config.log 
+            fi
+            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+            print_error "Will not add -woff 1552,1174 to CFLAGS"
+            CFLAGS="$CFLAGSSAV"
+            
+        fi
+    fi
+else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+    CFLAGS="$CFLAGSSAV"
+fi
+rm -f conftest*
+
     MDEP_FFLAGS="-n32" # -woff 1552,1174"
-    MDEP_LFLAGS="-n32"
     if test -n "$p4comm_shared"; then
        DEFINE_VENDOR_IPC="#define VENDOR_IPC"
     fi
@@ -2685,9 +4132,400 @@ fi
 if test -n "$p4arch_SGI_CH64"; then
     P4ARCH=SGI_CH64
     RANLIB=true
-            MDEP_CFLAGS="-64 -mips4 -woff 1552,1174"
+            
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that C compiler accepts option -64""... $ac_c"
+else
+echo $ac_n "checking that C compiler accepts option -64""... $ac_c" 1>&1
+fi
+CFLAGSSAV="$CFLAGS"
+CFLAGS="-64 $CFLAGS"
+rm -f conftest.out
+echo 'int try(void);int try(void){return 0;}' > conftest2.c
+echo 'int main(void);int main(void){return 0;}' > conftest.c
+if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+    if test -s conftest.out ; then
+        cat conftest.out >> config.log
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+        
+        CFLAGS="$CFLAGSSAV"         
+    else
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+        if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that routines compiled with -64 can be linked with ones compiled  without -64""... $ac_c"
+else
+echo $ac_n "checking that routines compiled with -64 can be linked with ones compiled  without -64""... $ac_c" 1>&1
+fi       
+        /bin/rm -f conftest.out
+        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                if test -s conftest.out ; then
+	            cat conftest.out >> config.log
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                    print_error "Will not add -64 to CFLAGS"
+                    CFLAGS="$CFLAGSSAV"
+	            
+                else
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi	  
+                    MDEP_CFLAGS="-64";MDEP_LFLAGS="-64"
+                fi
+            else
+                if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                print_error "Will not add -64 to CFLAGS"
+                CFLAGS="$CFLAGSSAV"
+	        
+            fi  
+        else
+            if test -s conftest2.out ; then 
+                cat conftest2.out >> config.log 
+            fi
+            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+            print_error "Will not add -64 to CFLAGS"
+            CFLAGS="$CFLAGSSAV"
+            
+        fi
+    fi
+else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+    CFLAGS="$CFLAGSSAV"
+fi
+rm -f conftest*
+
+    
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that C compiler accepts option -mips4""... $ac_c"
+else
+echo $ac_n "checking that C compiler accepts option -mips4""... $ac_c" 1>&1
+fi
+CFLAGSSAV="$CFLAGS"
+CFLAGS="-mips4 $CFLAGS"
+rm -f conftest.out
+echo 'int try(void);int try(void){return 0;}' > conftest2.c
+echo 'int main(void);int main(void){return 0;}' > conftest.c
+if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+    if test -s conftest.out ; then
+        cat conftest.out >> config.log
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+        
+        CFLAGS="$CFLAGSSAV"         
+    else
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+        if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that routines compiled with -mips4 can be linked with ones compiled  without -mips4""... $ac_c"
+else
+echo $ac_n "checking that routines compiled with -mips4 can be linked with ones compiled  without -mips4""... $ac_c" 1>&1
+fi       
+        /bin/rm -f conftest.out
+        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                if test -s conftest.out ; then
+	            cat conftest.out >> config.log
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                    print_error "Will not add -mips4 to CFLAGS"
+                    CFLAGS="$CFLAGSSAV"
+	            
+                else
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi	  
+                    MDEP_CFLAGS="$MDEP_CFLAGS -mips4"
+                fi
+            else
+                if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                print_error "Will not add -mips4 to CFLAGS"
+                CFLAGS="$CFLAGSSAV"
+	        
+            fi  
+        else
+            if test -s conftest2.out ; then 
+                cat conftest2.out >> config.log 
+            fi
+            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+            print_error "Will not add -mips4 to CFLAGS"
+            CFLAGS="$CFLAGSSAV"
+            
+        fi
+    fi
+else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+    CFLAGS="$CFLAGSSAV"
+fi
+rm -f conftest*
+
+    
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that C compiler accepts option -woff 1552,1174""... $ac_c"
+else
+echo $ac_n "checking that C compiler accepts option -woff 1552,1174""... $ac_c" 1>&1
+fi
+CFLAGSSAV="$CFLAGS"
+CFLAGS="-woff 1552,1174 $CFLAGS"
+rm -f conftest.out
+echo 'int try(void);int try(void){return 0;}' > conftest2.c
+echo 'int main(void);int main(void){return 0;}' > conftest.c
+if ${CC-cc} $CFLAGS -o conftest conftest.c >conftest.out 2>&1 ; then
+    if test -s conftest.out ; then
+        cat conftest.out >> config.log
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+        
+        CFLAGS="$CFLAGSSAV"         
+    else
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+        if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked with ones compiled  without -woff 1552,1174""... $ac_c"
+else
+echo $ac_n "checking that routines compiled with -woff 1552,1174 can be linked with ones compiled  without -woff 1552,1174""... $ac_c" 1>&1
+fi       
+        /bin/rm -f conftest.out
+        if ${CC-cc} -c $CFLAGSSAVE conftest2.c >conftest2.out 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c >conftest.out 2>&1 ; then
+                if test -s conftest.out ; then
+	            cat conftest.out >> config.log
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                    print_error "Will not add -woff 1552,1174 to CFLAGS"
+                    CFLAGS="$CFLAGSSAV"
+	            
+                else
+	            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi	  
+                    MDEP_CFLAGS="$MDEP_CFLAGS -woff 1552,1174"
+                fi
+            else
+                if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+                print_error "Will not add -woff 1552,1174 to CFLAGS"
+                CFLAGS="$CFLAGSSAV"
+	        
+            fi  
+        else
+            if test -s conftest2.out ; then 
+                cat conftest2.out >> config.log 
+            fi
+            if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+            print_error "Will not add -woff 1552,1174 to CFLAGS"
+            CFLAGS="$CFLAGSSAV"
+            
+        fi
+    fi
+else
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    
+    if test -s conftest.out ; then cat conftest.out >> config.log ; fi    
+    CFLAGS="$CFLAGSSAV"
+fi
+rm -f conftest*
+
     MDEP_FFLAGS="-64 -mips4" # -woff 1552,1174"
-    MDEP_LFLAGS="-64"
     for func in setsid
 do
 trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
@@ -2859,7 +4697,7 @@ if test -n "$p4arch_UXPM"; then
     # Make it think that it is an IRIX v5 SGI
     P4ARCH=SGI
     RANLIB=true
-    MDEP_LIBS="$MDEP_LIBS -lsocket -lnsl"
+    LIBS="$LIBS -lsocket -lnsl"
     MDEP_CFLAGS="-DNEEDS_NETINET"
 fi
 #                                              UXPV  (Fujitsu VX,VPP300,VPP700)
@@ -2867,7 +4705,7 @@ if test -n "$p4arch_UXPV"; then
     # Make it think that it is an IRIX v5 SGI
     P4ARCH=SGI
     RANLIB=true
-    MDEP_LIBS="$MDEP_LIBS -lsocket -lnsl"
+    LIBS="$LIBS -lsocket -lnsl"
     MDEP_CFLAGS="-DNEEDS_NETINET"
 fi
 #                                              Symmetry with Dynix
@@ -2877,7 +4715,7 @@ if test -n "$p4arch_SYMMETRY"; then
     FC=fortran
     CLINKER="cc -Z1000000"
     FLINKER="fortran -Z1000000"
-    MDEP_LIBS="$MDEP_LIBS -lpps -lseq"
+    LIBS="$LIBS -lpps -lseq"
     MDEP_CFLAGS=
     MDEP_FFLAGS=
 fi
@@ -2888,7 +4726,7 @@ if test -n "$p4arch_SYMMETRY_PTX"; then
     FC=fortran
     FLINKER=fortran 
     RANLIB=true
-    MDEP_LIBS="$MDEP_LIBS -lpps -lseq -lrpc -lsocket -linet -lnsl"
+    LIBS="$LIBS -lpps -lseq -lrpc -lsocket -linet -lnsl"
     MDEP_CFLAGS="-Wc,-seq"
 fi
 
@@ -3961,6 +5799,71 @@ fi
 rm -f conftest*
 done
 
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for for struct sigaction""... $ac_c"
+else
+echo $ac_n "checking for for struct sigaction""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <signal.h>
+int main() { exit(0); }
+int t() { 
+struct sigaction act; sigaddset( &act.sa_mask, SIGINT ); }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  rm -rf conftest*
+  sigaction_ok="yes"
+
+else
+  rm -rf conftest*
+  sigaction_ok="no"
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+rm -f conftest*
+
 # strerror is prefered over extern char *sys_errlist[];
 for func in strerror
 do
@@ -4196,6 +6099,70 @@ rm -f conftest*
 done
 
 
+#
+# Check that nonblocking read works
+if test -s readblock.c ; then
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking that read O_NDELAY works""... $ac_c"
+else
+echo $ac_n "checking that read O_NDELAY works""... $ac_c" 1>&1
+fi
+    readworks=0
+    cat > conftest.c <<EOF
+#include "confdefs.h"
+`cat readblock.c`
+EOF
+eval $compile
+if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  readworks=1
+
+fi
+rm -fr conftest*
+    if test $readworks = 1 ; then
+        if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+	if test $use_nonblock_read = 1 ; then
+            
+{
+test -n "$verbose" && \
+echo "	defining NONBLOCKING_READ_WORKS"
+echo "#define" NONBLOCKING_READ_WORKS 1 >> confdefs.h
+DEFS="$DEFS -DNONBLOCKING_READ_WORKS=1"
+}
+
+	fi
+    else
+	if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    fi
+fi
 #
 # Test for sgttyb and the ability to set noecho on terminals
 if test -z "$ac_echo_n" ; then
@@ -4473,7 +6440,34 @@ echo "#define" USE_PTHREADS 1 >> confdefs.h
 DEFS="$DEFS -DUSE_PTHREADS=1"
 }
 
-	    MDEP_LIBS="$MDEP_LIBS -lpthread"
+	    # We need this to ensure that things like errno are thread safe.
+	    
+{
+test -n "$verbose" && \
+echo "	defining" _POSIX_C_SOURCE to be 199506L
+echo "#define" _POSIX_C_SOURCE 199506L >> confdefs.h
+DEFS="$DEFS -D_POSIX_C_SOURCE=199506L"
+}
+
+	    
+{
+test -n "$verbose" && \
+echo "	defining _POSIX_SOURCE"
+echo "#define" _POSIX_SOURCE 1 >> confdefs.h
+DEFS="$DEFS -D_POSIX_SOURCE=1"
+}
+
+	    # In order to use XDR, we may also need to define __EXTENSIONS__
+	    # or other awful things.
+	    
+{
+test -n "$verbose" && \
+echo "	defining __EXTENSIONS__"
+echo "#define" __EXTENSIONS__ 1 >> confdefs.h
+DEFS="$DEFS -D__EXTENSIONS__=1"
+}
+
+	    LIBS="$LIBS -lpthread"
             echo "Using threaded listener"
         fi
     fi
@@ -4573,8 +6567,20 @@ CFLAGS="$USER_CFLAGS $CFLAGS $DEFS"
 if test -n "$SOCKSIZE" ; then
     OPTFLAGS="$OPTFLAGS -DSET_SOCK_BUFF_SIZE -DSOCK_BUFF_SIZE=$SOCKSIZE"
 fi
+if test -n "$listener_sig" ; then
+    LISTENER_ATTN_SIGNAL="$listener_sig"
+    
+{
+test -n "$verbose" && \
+echo "	defining" LISTENER_ATTN_SIGNAL to be $listener_sig
+echo "#define" LISTENER_ATTN_SIGNAL $listener_sig >> confdefs.h
+DEFS="$DEFS -DLISTENER_ATTN_SIGNAL=$listener_sig"
+}
+
+fi
 #
 # Variables used by Makefile.in's:
+MDEP_LIBS="$LIBS"
 # Set default prefixes.
 if test -n "$prefix"; then
   test -z "$exec_prefix" && exec_prefix='${prefix}'

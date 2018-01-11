@@ -20,9 +20,7 @@
 #include <stdlib.h>
 #include "mpi.h"
 
-int main(argc, argv)
-int argc;
-char** argv;
+int main( int argc, char **argv )
 {
   int my_rank, i, data[6];
   MPI_Status  status;

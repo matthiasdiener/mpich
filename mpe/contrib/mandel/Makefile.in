@@ -1,27 +1,20 @@
 ALL: default
 ##### User configurable options #####
 
-ARCH        = @ARCH@
-MAKE        = @MAKE@
-COMM        = @COMM@
-MPIR_HOME   = @MPIR_HOME@
-CC          = @MPICC@
+CC          = @CC@
 CLINKER     = $(CC)
-F77         = @MPIF77@
-FLINKER     = $(F77)
-INCLUDE_DIR = -I@MPE_DIR@ @X_INC@
-OPTFLAGS    = 
+INCLUDE_DIR = @INCLUDEDIR@ -I$(MPE_DIR)
+OPTFLAGS    = @OPTFLAGS@
 MPE_GRAPH   = @MPE_GRAPHICS@
-MPE_LIBS    = @MPE_LIBS@ -lp@MPILIBNAME@
-MPE_DIR     = @MPE_DIR@
-LIB_PATH    = @X_LIB@
-LIB_LIST    = 
+MPE_DIR     = @MPE_HOME@
+LIB_PATH    = -L@MPE_LIBPATH@ -lmpe @X_LIB@ @MPI_LIBS@ -lm
+LOG_LIB     = -L@MPE_LIBPATH@ @LOGLIB@ @X_LIB@ -lm
+PROF_LIB    = -L@MPE_LIBPATH@ @PROFLIB@ @X_LIB@ -lm
+LDFLAGS     = @OPTFLAGS@
 
 ### End User configurable options ###
 
-PROFLIB =
-CFLAGS  = @MPE_CFLAGS@ $(OPTFLAGS) $(MPE_GRAPH) $(INCLUDE_DIR)
-LIBS = $(LIB_PATH) $(PROFLIB) $(LIB_LIST)
+CFLAGS  = @MPE_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) 
 EXECS = pmandel
 
 default: $(EXECS)
@@ -37,9 +30,9 @@ pmandel.o: pmandel.h fract_gen.h lists.h pm_genproc.h
 pm_separate_rect.o: pmandel.h pm_genproc.h
 
 pmandel: pmandel.o pm_genproc.o fract_gen.o pm_separate_rect.o lists.o args.o
-	$(CLINKER) $(OPTFLAGS) -o pmandel pmandel.o pm_genproc.o \
+	$(CLINKER) $(LDFLAGS) -o pmandel pmandel.o pm_genproc.o \
 	  fract_gen.o pm_separate_rect.o lists.o args.o \
-	  $(LIB_PATH) $(MPE_LIBS) $(LIB_LIST)
+	  $(PROF_LIB) 
 
 clean:
 	/bin/rm -f *.o *~ PI* $(EXECS) *.log *.out
@@ -50,6 +43,6 @@ clean:
 	$(F77) $(FFLAGS) -c $*.f
 
 lint:
-	lint -chv @USER_CFLAGS@ $(MPE_GRAPH) \
+	lint -chv @MPE_CFLAGS@ $(MPE_GRAPH) \
 		$(INCLUDE_DIR) pmandel.c \
 		pm_genproc.c fract_gen.c pm_separate_rect.c lists.c args.c

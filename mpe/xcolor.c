@@ -2,6 +2,7 @@
 #include "basex11.h"
 #include "baseclr.h"
 
+/* This is used to correct system header files without prototypes */
 #if defined(NEEDS_STDLIB_PROTOTYPES)
 #include "protofix.h"
 #endif
@@ -530,7 +531,7 @@ int      ncolors;
     unsigned char *red, *green, *blue;
 
     red   = (unsigned char *)MALLOC( 3 * ncolors * sizeof(unsigned char) );   
-    CHKPTR(red);
+    /* CHKPTR(red); */
     green = red + ncolors;
     blue  = green + ncolors;
     XBSetCmapHue( red, green, blue, ncolors );

@@ -106,9 +106,7 @@ int buff_size;
 }
 
 
-int main(argc, argv)
-int argc;
-char **argv;
+int main( int argc, char **argv)
 {
     int rank; /* My Rank (0 or 1) */
     double buffer[SIZE];

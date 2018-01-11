@@ -1,7 +1,7 @@
 
 		      Portable MPI Model Implementation
 
-        		  Version 1.1.1, July 1998
+        		  Version 1.1.2, February 1999
 
 				  Bill Gropp
 				  Rusty Lusk
@@ -9,6 +9,79 @@
 				Rajeev Thakur
 			 Argonne National Laboratory
 
+
+Major Changes
+
+This release is primarily a bug fix release, particularly for the various
+scripts (mpicc, configure, etc.).  There are now separate configures for mpe
+and examples/test (in reality, there have been for some time since these
+parts can be used with any MPI implementation, but these configures are now
+used by MPICH).
+
+This version includes support for viewing the message queues with debuggers
+such as Totalview that know how to access the generic queue routines.  These
+are dynamically linked routines, and require that the MPICH configure figure
+out how to build a shared library for your system.  If MPICH does NOT figure
+this out on your system, please send mail to mpi-bugs@mcs.anl.gov telling us
+what commands are needed (see mpich/util/makesharedlib for a example).  In
+addition, if you intend to install MPICH for others to use (with make
+install), you need to configure with the PREFIX value that you will be using:
+    configure ... -prefix=PREFIX
+in order for MPICH to be able to tell the debugger where to find the message
+queue DLL (dynamically linked library).
+
+A list of known problems and issues is in the file KnownBugs.
+
+A change log for all changes from the previous release is available from
+http://www.mcs.anl.gov/mpi/mpich/r1_1_2changes.html .
+
+Miscellaneous issues:
+
+Using NFS with MPI-IO:
+
+NFS requires special care and use in order to get correct behavior when
+multiple hosts access or try to lock the same file.  Without this special
+care, NFS silently fails (for example, a file lock system call will succeed,
+but the actual file lock will not be correctly handled.  This is considered a
+feature, not a bug, of NFS.  Go figure).  If you need to use NFS, then you
+should do the following:  
+    Make sure that you are using version 3 of NFS
+    Make sure that attribute caching is turned off
+This will have various negative consequences (automounts won't work, some
+other operations will be slower).  The up side is that file operations will be
+correctly implemented.  This is an instance of "do you want it fast or
+correct; you can't have both".
+
+Viewing the manuals with Pageview (Solaris)
+
+pageview has trouble with the Postcript files for the installation and user
+guides.  To work around this, choose the option, "Ignore PostScript
+Structuring Comments", under "Properties", in pageview.
+
+Also, some programs apparently don't do a good job of displaying these files.
+If you are having this problem, you should try ghostscript instead.
+
+Connection failures on LINUX
+
+We've had a number of problem reports about programs running on LINUX suddenly
+failing with lost TCP connections.  We believe that this is a problem in how
+the LINUX TCP implementation decides that a connection has failed (even when
+it hasn't), and reflects a general weakness in TCP (more precisely, the
+definition of "reliable" for TCP and for us and most users isn't the same, and
+that difference causes trouble).  This is on our list of things to fix in a
+future release.
+
+What's next:
+
+We continue to enhance MPICH with a goal of full MPI-2 capability.  In
+addition, we continue to explore ways to improve the performance of MPICH.  In
+the queue are improved datatype handling and a new sockets implementation.  In
+the longer term, a new ADI with better support for multithreaded applications
+and new network approaches will be introduced.  One area where we'd like
+contributions is better implementations of the collective routines.  Please
+contact us if you'd like to contribute (send mail to gropp@mcs.anl.gov).
+
+        		  Version 1.1.1, July 1998
 
 Major Changes
 
@@ -273,7 +346,7 @@ mpich.tar.Z          - the implementation itself, sufficient to run on the
                        are the actual releases.
                        New releases are indicated by a change in the last 
                        number; the value when this readme was written
-                       was 1 (as in 1.1.1).
+                       was 1 (as in 1.1.2).
 
 You do not need anything else if you are using either the various MPP versions
 (Cray T3D, Intel Paragon, TMC CM5, IBM SP2) or the integrated version of p4
@@ -439,15 +512,15 @@ To build for the CM-5, use
     make
     (Not extensively tested; bug reports, particularly with fixes, encouraged)
 
-To build for SP1, SP2, or rs6000's using MPL (version 1), give the command
+To build for SP1, SP2, or rs6000's using MPL, give the command
 
     configure -device=ch_mpl -arch=rs6000
     make
 
 If you have version 2 of MPL, IBM has included their own MPI with it.  We 
-recommend that you use that instead.  If you need to use ours, try
+recommend that you use that instead.  If you need to use ours, just use
 
-    configure -device=ch_mpl -arch=rs6000 -mpilibname=mpich
+    configure -device=ch_mpl -arch=rs6000 
     make
 
 The Makefile contains some sample targets that run configure with the

@@ -3,19 +3,16 @@
  * for MPE
  */
 
-#if defined(HAVE_CONFIG_H) && !defined(MPICHCONF_INC)
-/* This includes the definitions found by configure, and can be found in
-   the library directory (lib/$ARCH/$COMM) corresponding to this configuration
- */
-#define MPICHCONF_INC
-#include "mpichconf.h"
-#endif
+#include "mpeconf.h"
 
 #include "mpi.h"
 #include "mpe.h"
 #include <sys/types.h>
 #include <fcntl.h>
 #include <string.h>
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
 #ifdef HAVE_UNISTD_H
 /* Prototype for dup2 */
 #include <unistd.h>

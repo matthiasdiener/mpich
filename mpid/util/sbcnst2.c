@@ -1,11 +1,11 @@
 /*
- *  $Id: sbcnst2.c,v 1.2 1998/01/18 02:46:38 gropp Exp $
+ *  $Id: sbcnst2.c,v 1.4 1998/11/01 17:13:42 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#if defined(HAVE_CONFIG_H) && !defined(MPICHCONF_INC)
+#if defined(HAVE_MPICHCONF_H) && !defined(MPICHCONF_INC)
 /* This includes the definitions found by configure, and can be found in
    the library directory (lib/$ARCH/$COMM) corresponding to this configuration
  */
@@ -190,11 +190,11 @@ if (!p) {
     /* MPID_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, "Not enough space" ); */
    return;
    }
-/* zero the data FOR DEBUGGING
-   LATER CHANGE THIS TO SOME INVALID POINTER VALUE */
+/* Initialize the data to an invalid value */
+/* Eventually this will be conditional on debugging */
 n = bsize * nb + headeroffset;
 for (i=0; i<n; i++) 
-    p[i] = 0;
+    p[i] = 0xea;
 
 header          = (MPID_SBiAlloc *)p;
 /* Place at header for list of allocated blocks */

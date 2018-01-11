@@ -1,5 +1,5 @@
 /*
- *  $Id: getcount.c,v 1.3 1998/04/28 21:46:47 swider Exp $
+ *  $Id: getcount.c,v 1.4 1999/01/05 20:19:55 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -16,7 +16,6 @@ Input Parameters:
 
 Output Parameter:
 . count - number of received elements (integer) 
-  
 Notes:
 If the size of the datatype is zero, this routine will return a count of
 zero.  If the amount of data in 'status' is not an exact multiple of the 

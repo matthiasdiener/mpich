@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 	    argv++;
 	}
 	if (i >= argc) {
-	    printf("\n*#  Usage: simple -fname filename\n\n");
+	    printf("\n*#  Usage: %s -fname filename\n\n", argv[0]);
 	    MPI_Abort(MPI_COMM_WORLD, 1);
 	}
 	argv++;

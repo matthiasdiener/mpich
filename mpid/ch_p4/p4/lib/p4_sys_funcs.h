@@ -45,6 +45,7 @@ P4VOID dump_procgroup ANSI_ARGS((struct p4_procgroup *, int))	;
 P4VOID dump_tmsg ANSI_ARGS((struct p4_msg *));
 int p4_has_timedout ANSI_ARGS(( int ));
 int establish_connection ANSI_ARGS((int));
+int p4_establish_all_conns ANSI_ARGS((void));
 /* P4VOID exec_pgm ANSI_ARGS(( )); */
 P4VOID put_execer_port ANSI_ARGS((int));
 int get_execer_port ANSI_ARGS((char *));
@@ -53,6 +54,7 @@ P4VOID free_p4_msg ANSI_ARGS((struct p4_msg *));
 P4VOID free_quel ANSI_ARGS((struct p4_queued_msg *));
 P4VOID get_inet_addr ANSI_ARGS((struct in_addr *));
 P4VOID get_inet_addr_str ANSI_ARGS((char *));
+void p4_print_sock_params( int skt );
 #if !defined(CRAY)
 P4VOID dump_sockaddr ANSI_ARGS(( char *, struct sockaddr_in *));
 P4VOID dump_sockinfo ANSI_ARGS((char *, int));
@@ -163,6 +165,12 @@ struct hostent *gethostbyname_p4 ANSI_ARGS(( char *));
 char *getpw_ss ANSI_ARGS((char *, char * ));
 
 P4VOID p4_dprint_last ANSI_ARGS(( FILE * ));
+
+#ifdef CHECK_SIGNALS
+P4VOID p4_CheckSighandler ANSI_ARGS(( ));
+#else
+#define p4_CheckSighandler( a )
+#endif
 
 #ifdef SYSV_IPC
 int init_sysv_semset ANSI_ARGS((int));

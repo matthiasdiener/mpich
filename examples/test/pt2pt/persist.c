@@ -11,9 +11,7 @@
  * ERROR: 0032-158 Persistent request already active  (2) in MPI_Startall, task 0
  * in the SECOND set of MPI_Startall (after the MPI_Request_free).
  */
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     MPI_Request r[4];
     MPI_Status  statuses[4];

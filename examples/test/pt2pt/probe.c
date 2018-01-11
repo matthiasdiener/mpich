@@ -2,12 +2,11 @@
    This is a test of probe to receive a message of unknown length
  */
 
+#include <stdio.h>
 #include "mpi.h"
 #include "test.h"
 
-int main(argc, argv) 
-int  argc;
-char **argv;
+int main( int argc, char **argv ) 
 {
 int data, to, from, tag, maxlen, np, myid, src, dest;
 MPI_Status status;

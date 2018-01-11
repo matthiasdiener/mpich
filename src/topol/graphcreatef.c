@@ -43,10 +43,18 @@ MPI_Fint *__ierr;
     MPI_Comm lcomm_graph;
 
     if (sizeof(MPI_Fint) == sizeof(int))
+#if defined(_TWO_WORD_FCD)
+        int tmp = *reorder;
+        *__ierr = MPI_Graph_create( MPI_Comm_f2c(*comm_old), *nnodes,
+                                    index, edges,
+                                    MPIR_FROM_FLOG(tmp), 
+                                    &lcomm_graph);
+#else
         *__ierr = MPI_Graph_create( MPI_Comm_f2c(*comm_old), *nnodes,
                                     index, edges,
                                     MPIR_FROM_FLOG(*reorder), 
                                     &lcomm_graph);
+#endif
     else {
         int i;
         int nedges;
@@ -68,10 +76,18 @@ MPI_Fint *__ierr;
         for (i=0; i<nedges; i++)
 	    ledges[i] = (int)edges[i];
 
+#if defined(_TWO_WORD_FCD)
+        int tmp = *reorder;
+        *__ierr = MPI_Graph_create( MPI_Comm_f2c(*comm_old), (int)*nnodes,
+                                    lindex, ledges,
+                                    MPIR_FROM_FLOG(tmp), 
+                                    &lcomm_graph);
+#else
         *__ierr = MPI_Graph_create( MPI_Comm_f2c(*comm_old), (int)*nnodes,
                                     lindex, ledges,
                                     MPIR_FROM_FLOG(*reorder), 
                                     &lcomm_graph);
+#endif
 	FREE( lindex );
 	FREE( ledges );
     }

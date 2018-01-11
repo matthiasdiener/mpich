@@ -8,9 +8,7 @@
 
 /*
  */
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     MPI_Request r[4];
     MPI_Status  statuses[4];

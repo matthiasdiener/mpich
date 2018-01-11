@@ -12,12 +12,16 @@ print_usage() {
 cat <<.
 Usage: ${progname} -tcldir=TCLDIR -tkdir=TKDIR -opt=OPTFLAGS 
                    -cc=C_COMPILER -cflags=CFLAGS
+                   -tclincdir=TCLINCDIR -tkincdir=TKINCDIR
 
 where
-   TCLDIR       = Directory containing tcl.  Must have lib/libtcl.a and
-                  include/tcl.h .
-   TKDIR        = Directory containing tk 3.3 or later.  Must have lib/libtk.a
-                  and include/tk.h .  May be the same as TCLDIR.
+   TCLDIR       = Directory containing tcl.  Must have lib/libtcl.a.  Must
+                  have include/tcl.h unless TCLINCDIR specified.
+   TKDIR        = Directory containing tk 3.3 or later.  Must have lib/libtk.a.
+                  Must have include/tk.h unless TKINCDIR specified.  May
+                  be the same as TCLDIR.
+   TCLINCDIR    = Directory containing include/tcl.h .
+   TKINCDIR     = Directory containing include/tk.h .
    OPTFLAGS     = Flags for compiling (e.g., -g or -O)
    CFLAGS       = flags to give C compiler
    C_COMPILER   = Name of C compiler
@@ -38,6 +42,14 @@ do
  
    -tcldir=* | --tcldir=*)
       TCL_DIR="`echo $arg|sed 's/-*tcldir=//'`"
+     ;;
+
+   -tkincdir=* | --tkincdir=*)
+      TKINCDIR="`echo $arg|sed 's/-*tkincdir=//'`"
+     ;;
+ 
+   -tclincdir=* | --tclincdir=*)
+      TCLINCDIR="`echo $arg|sed 's/-*tclincdir=//'`"
      ;;
 
    -opt=* | --opt=*)
@@ -1430,6 +1442,9 @@ fi
 if test -z "$no_x" -a -n "$TK_DIR" -a -n "$TCL_DIR" ; then
   CFLAGSsave="$CFLAGS"
   CFLAGS="$CFLAGS -I$TK_DIR/include -I$TCL_DIR/include $XINCLUDES"
+  if test -n "$TKINCDIR" ; then
+      CFLAGS="$CFLAGS -I$TKINCDIR/include"
+  fi
   
 if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
@@ -1534,7 +1549,11 @@ EOF
           TK_VERSION=`cat conftestval`
 
       else
-        echo "Execution of test program failed"
+	if test TK_VERSION=`cat conftestval` != "MMAP=1"; then
+	   if test TK_VERSION=`cat conftestval` != "SEMGET=1"; then
+              echo "Execution of test program failed"
+	   fi
+	fi
         TK_VERSION="unavailable"
 
         if test -s conftestout ; then
@@ -1649,6 +1668,14 @@ else
 fi
 
 fi
+if test -z "$TKINCDIR" -a -s $TK_DIR/include/tk.h ; then
+    TKINCDIR=$TK_DIR
+fi
+if test -z "$TCLINCDIR" -a -s $TCL_DIR/include/tcl.h ; then
+    TCLINCDIR=$TCL_DIR
+fi
+
+
 
 
 
@@ -1706,6 +1733,8 @@ XLIBSW='$XLIBSW'
 XPMLIB='$XPMLIB'
 TCL_DIR='$TCL_DIR'
 TK_DIR='$TK_DIR'
+TCLINCDIR='$TCLINCDIR'
+TKINCDIR='$TKINCDIR'
 USER_CFLAGS='$USER_CFLAGS'
 OPTFLAGS='$OPTFLAGS'
 LIBS='$LIBS'
@@ -1744,6 +1773,8 @@ s%@XLIBSW@%$XLIBSW%g
 s%@XPMLIB@%$XPMLIB%g
 s%@TCL_DIR@%$TCL_DIR%g
 s%@TK_DIR@%$TK_DIR%g
+s%@TCLINCDIR@%$TCLINCDIR%g
+s%@TKINCDIR@%$TKINCDIR%g
 s%@USER_CFLAGS@%$USER_CFLAGS%g
 s%@OPTFLAGS@%$OPTFLAGS%g
 s%@LIBS@%$LIBS%g

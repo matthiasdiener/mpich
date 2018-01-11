@@ -1,5 +1,5 @@
 /*
- *  $Id: init.c,v 1.3 1998/02/02 22:53:26 gropp Exp $
+ *  $Id: init.c,v 1.4 1998/11/16 02:19:13 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -36,7 +36,8 @@
 
 .  -mpedbg - Start a debugger in an xterm window if there is an error (either
    detected by MPI or a normally fatal signal).  This works only if MPICH
-   was configured with '-mpedbg'.
+   was configured with '-mpedbg'.  CURRENTLY DISABLED.  If you have TotalView,
+   -mpichtv or mpirun -tv will give you a better environment anyway.
 
 .  -mpimem - If MPICH was built with '-DMPIR_DEBUG_MEM', this checks all
     malloc and free operations (internal to MPICH) for signs of injury 

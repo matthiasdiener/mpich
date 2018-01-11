@@ -12,9 +12,7 @@
  * hang.  Sorry about that....
  *
  */
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
 int           sendbuf[10];
 int           sendcount = 10;

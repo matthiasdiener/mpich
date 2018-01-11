@@ -21,7 +21,7 @@ void				MPID_SHMEM_lbarrier  ANSI_ARGS((void));
 
 /*
    Get an integer from the environment; otherwise, return defval.
- */
+ 
 int MPID_GetIntParameter( name, defval )
 char *name;
 int  defval;
@@ -32,7 +32,7 @@ int  defval;
     if (p) 
 	return atoi(p);
     return defval;
-}
+} */
 
 void MPID_SHMEM_init( argc, argv )
 int  *argc;
@@ -44,7 +44,7 @@ char **argv;
 
 /* Make one process the default */
 
-    numprocs = 1;
+    numprocs = MPID_GetIntParameter( "MPICH_NP" , 1 );
     for (i=1; i<*argc; i++) {
 	if (strcmp( argv[i], "-np" ) == 0) {
 	    /* Need to remove both args and check for missing value for -np */
@@ -326,3 +326,9 @@ void *addr;
     p2p_shfree( addr );
 }
 
+/*
+ * Debugging support
+ */
+void MPID_SHMEM_Print_internals( fp )
+FILE *fp;
+{}

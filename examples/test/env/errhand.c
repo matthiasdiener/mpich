@@ -21,9 +21,7 @@ void error_handler ANSI_ARGS(( MPI_Comm *, int * ));
 /* 
    Test the error handers (based on a Fortran test program)
  */
-int main(argc, argv)
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     MPI_Init( &argc, &argv );
 

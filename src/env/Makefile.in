@@ -5,14 +5,14 @@
 ##### User configurable options #####
 
 ARCH        = @ARCH@
-COMM        = @COMM@
-BOPT        = @BOPT@
+DEVICE      = @DEVICE@
 MPIR_HOME   = @MPIR_HOME@
+PREFIX      = @PREFIX@
 CC          = @CC@
 F77         = @F77@
 AR          = @AR@
 RANLIB      = @RANLIB@
-INCLUDE_DIR = @INCLUDE_PATH@ -I../../mpid/@DEVICE@ -I../../include
+INCLUDE_DIR = @INCLUDE_PATH@ -I../../mpid/$(DEVICE) -I../../include
 DEVICE      = @DEVICE@
 OPTFLAGS    = @OPTFLAGS@
 
@@ -25,17 +25,17 @@ DEVICE_LIB =
 CFLAGS = @CFLAGS@ $(OPTFLAGS) @OPTFLAGSC@ $(INCLUDE_DIR) -DMPI_$(ARCH) \
 	$(MPIPROFILE)
 FFLAGS = @FFLAGS@ $(OPTFLAGS) @OPTFLAGSF@
-LIBS = ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $(DEVICE_LIB)
+LIBS = ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a $(DEVICE_LIB)
 MPI_FOBJECTS = farg.o initfcmn.o initfdte.o
 MPI_COBJECTS = abort.o debugutil.o init.o initutil.o finalize.o initialize.o \
 	errorstring.o fstrutils.o initdte.o \
 	getpname.o errcreate.o errset.o errget.o errfree.o errclass.o \
-	wtime.o wtick.o errmsg.o getversion.o
+	wtime.o wtick.o errmsg.o getversion.o msgqdllloc.o
 MPI_FSOURCES = farg.f initfcmn.f initfdte.f
 MPI_CSOURCES = abort.c debugutil.c init.c initutil.c \
 	finalize.c fstrutils.c initialize.c errorstring.c initdte.c \
 	getpname.c errcreate.c errset.c errget.c errfree.c errclass.c \
-	wtime.c wtick.c errmsg.c getversion.c
+	wtime.c wtick.c errmsg.c getversion.c msgqdllloc.c
 MPI_TSOURCES = errclass.c 
 MPI_WSOURCES = abortf.c finalizef.c errclassf.c
 MPI_WOBJECTS = initializef.o abortf.o initf.o finalizef.o errorstringf.o \
@@ -45,21 +45,21 @@ MPI_WOBJECTS = initializef.o abortf.o initf.o finalizef.o errorstringf.o \
 MPI_SOURCES = $(MPI_CSOURCES) $(MPI_WSOURCES)
 MPI_OBJECTS = $(MPI_COBJECTS) $(MPI_WOBJECTS)
 
-default: setlinks ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
+default: setlinks ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a
 
-profile: ../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a
+profile: ../../build/$(ARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a
 
 wrapperlib: $(MPI_WOBJECTS)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libf@MPILIBNAME@.a $?	
+	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/libf@MPILIBNAME@.a $?	
 
 # default_all is the same as default, but without the RANLIB.  This
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
 default_all: setlinks default_objs
 default_objs: $(MPI_OBJECTS) @MPI_FOBJECTS@ @MPE_MPI_EXT_O@
-	$(AR) ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $?
+	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a $?
 profile_all: $(MPI_OBJECTS) @MPI_FOBJECTS@
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a $?
+	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a $?
 
 $(MPI_OBJECTS) :  $(MPI_INCLUDE)
 $(MPI_FOBJECTS) :  $(MPI_INCLUDE)
@@ -69,28 +69,14 @@ $(MPI_FOBJECTS) :  $(MPI_INCLUDE)
 setlinks:
 	if [ ! -s ../../include/mpeexten.h ] ; then \
 	    (cd ../../include ; ln -s ../mpe/mpeexten.h mpeexten.h ) ; fi
-	if [ ! -s dbxerr.c ] ; then \
-	    ln -s ../../mpe/dbxerr.c dbxerr.c ; fi
 	if [ ! -s mpehname.c ] ; then \
 	    ln -s ../../mpe/mpehname.c mpehname.c ; fi
-wrappers:
-	-/bin/rm -f $(MPI_WSOURCES)
-	../../util/bfort -ferr -mpi -mnative -mapptr -ptrprefix MPIR_ \
-		-anyname -I pubinc $(MPI_TSOURCES)	
-manpages:
-	../../util/doctext -mpath ../../man/man3 -ext 3 -I pubinc \
-	   -jumpfile ../../jumpfile.list -heading MPI \
-		-quotefmt ../../util/fortnotes ../../util/errnotes \
-		$(MPI_CSOURCES)
-	../../util/doc2lt $(MPI_CSOURCES) >> ../../rsum.tmp
-
-wwwpages:
-	../../util/doctext -html -mpath ../../www/www3 -I pubinc \
-	   -index ../../www.index -jumpfile ../../jumpfile.list \
-	   -mapref $(MPIR_HOME)/util/mpis.cit \
-	   -indexdir "http://www.mcs.anl.gov/mpi/www/www3" -heading MPI \
-		-quotefmt ../../util/fortnotes ../../util/errnotes \
-		$(MPI_CSOURCES)
+#	if [ ! -s dbxerr.c ] ; then \
+#	    ln -s ../../mpe/dbxerr.c dbxerr.c ; fi
+#wrappers:
+#	-/bin/rm -f $(MPI_WSOURCES)
+#	../../util/bfort -ferr -mpi -mnative -mapptr -ptrprefix MPIR_ \
+#		-anyname -I pubinc $(MPI_TSOURCES)	
 
 source_names:
 	@echo $(MPI_CSOURCES)
@@ -102,7 +88,25 @@ initutil.o: initutil.c
 	-DMPIRUN_MACHINE='"@DEFAULT_MACHINE@"' \
 	-DMPIRUN_DEVICE='"@DEVICE@"' \
 	initutil.c
-
+#
+# We should really put this entire directory AFTER src/infoexport; then we
+# can test on the existance of the library.  
+# We use PREFIX instead of MPIR_HOME so that the result of installing
+# the MPI libraries will work
+msgqdllloc.o: msgqdllloc.c
+	if test -n "@SHAREDKIND_FOR_TV@" -a "@SHAREDKIND_FOR_TV@" != "ignore" ; then \
+	  if test -n "@PREFIX@" ; then \
+	      $(CC) $(CFLAGS) @CC_SHARED_OPT_FOR_TV@ -c \
+	  -DMPICH_INFODLL_LOC='"@PREFIX@/build/$(ARCH)/$(DEVICE)/lib/libtvmpich.so"' \
+		  msgqdllloc.c ; \
+	  else \
+	      $(CC) $(CFLAGS) -c @CC_SHARED_OPT_FOR_TV@ \
+	  -DMPICH_INFODLL_LOC='"@MPIR_HOME@/build/$(ARCH)/$(DEVICE)/lib/libtvmpich.so"' \
+		  msgqdllloc.c ; \
+	  fi \
+	else \
+	    $(CC) $(CFLAGS) -c msgqdllloc.c ; \
+	fi
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c
 .f.o:
@@ -119,24 +123,26 @@ debugutil.o: debugutil.c
 # GETNAME_DEFS are needed by mpehname.c; these need mpe includes
 mpehname.o: mpehname.c
 	$(CC) $(CFLAGS) @GETNAME_DEFS@ -c -I../../mpe mpehname.c 
-dbxerr.o: dbxerr.c
-	$(CC) $(CFLAGS) @GETNAME_DEFS@ -c -I../../mpe dbxerr.c 
+# Note that we remove the link after we use it.
+#dbxerr.o: dbxerr.c
+#	$(CC) $(CFLAGS) @GETNAME_DEFS@ -c -I../../mpe dbxerr.c 
+#	rm -f dbxerr.c
 # errmsg needs to know about NLS definitions.
 errmsg.o: errmsg.c
 	$(CC) $(CFLAGS) @NLS_DEFS@ -c errmsg.c
 
-../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a: \
+../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a: \
 		$(MPI_OBJECTS) @MPI_FOBJECTS@ @MPE_MPI_EXT_O@
 	$(AR) $@ $?
 	$(RANLIB) $@
 
-../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a: $(MPI_OBJECTS) @MPI_FOBJECTS@
+../../build/$(ARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a: $(MPI_OBJECTS) @MPI_FOBJECTS@
 	$(AR) $@ $?
 	$(RANLIB) $@
 tstmsg:
 	$(CC) $(CFLAGS) -DTEST_MSGS @NSL_DEFS@ -c errmsg.c
 	@CLINKER@ -o errmsg errmsg.o \
-		../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
+		../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a
 	/bin/rm -f errmsg.o
 clean:
 	/bin/rm -f *.o *~ errmsg

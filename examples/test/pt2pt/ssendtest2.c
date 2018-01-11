@@ -46,9 +46,7 @@ Received 274878008072
 static int src  = 0;
 static int dest = 1;
 
-int main( argc, argv)
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int rank; /* My Rank (0 or 1) */
     int i, ivalue;

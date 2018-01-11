@@ -650,6 +650,8 @@ void p2p_kill_procs()
     /* We are no longer interested in signals from the children */
     SIGNAL_HAND_SET( SIGCHLD, SIG_IGN );
     /* numprocs - 1 because the parent is not in the list */
+    /* MPID_numprocs is the number of *children*, and does not include 
+       the parent */
     for (i=0; i<MPID_numprocs; i++) {
       if (MPID_child_pid[i] > 0) 
 	kill( MPID_child_pid[i], SIGINT );

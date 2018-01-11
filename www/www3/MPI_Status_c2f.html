@@ -20,18 +20,17 @@ MPI_Fint     *f_status;
 <P>
 <H2>Output Parameter</H2>
 <DL><DT><B>f_status </B> <DD> Status value in Fortran (Integer)
-
 </DL>
 <H2>Errors</H2>
 <P>
-All MPI routines (except <TT><A HREF="http://www.mcs.anl.gov/mpi/mpi-report-1.1/node150.html#node150">MPI_Wtime</A></TT> and <TT><A HREF="http://www.mcs.anl.gov/mpi/mpi-report-1.1/node150.html#node150">MPI_Wtick</A></TT>) return an error value;
-C routines as the value of the function and Fortran routines in the 
-lastargument.  Before the value is returned, the current MPI error handler 
-iscalled.  By default, this error handler aborts the MPI job.  The error 
-handlermay be changed with <TT><A HREF="http://www.mcs.anl.gov/mpi/mpi-report-1.1/node148.html#node148">MPI_Errhandler_set</A></TT>; the predefined error 
-handler<TT>MPI_ERRORS_RETURN</TT> may be used to cause error values to be returned.
-Note that MPI does <EM>not</EM> guarentee that an MPI program can continue 
-pastan error.
+All MPI routines (except <TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node150.html#node150">MPI_Wtime</A></TT> and <TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node150.html#node150">MPI_Wtick</A></TT>) return an error value;
+C routines as the value of the function and Fortran routines in the last
+argument.  Before the value is returned, the current MPI error handler is
+called.  By default, this error handler aborts the MPI job.  The error handler
+may be changed with <TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node148.html#node148">MPI_Errhandler_set</A></TT>; the predefined error handler
+<TT>MPI_ERRORS_RETURN</TT> may be used to cause error values to be returned.
+Note that MPI does <EM>not</EM> guarentee that an MPI program can continue past
+an error.
 <P>
 <DL><DT><B>MPI_SUCCESS </B> <DD> No error; MPI routine completed successfully.
 </DL>

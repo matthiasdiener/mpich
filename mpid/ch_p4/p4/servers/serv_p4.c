@@ -171,7 +171,7 @@ char **argv;
     }
     else
     {
-	sprintf(logfile, "P4Server.Log.%d", getpid());
+	sprintf(logfile, "P4Server.Log.%d", (int)getpid());
 	daemon_port = 0;
 	debug = 1;
     }
@@ -251,7 +251,7 @@ Usage: %s [-d] [-D] [-p port] [-l logfile] [-o]\n",argv[0]);
     setbuf(logfile_fp, NULL);
     
     fprintf( logfile_fp, "%s pid=%d starting at %s, logfile fd is %d\n",
-	    argv[0], getpid(), timestamp(), logfile_fd );
+	    argv[0], (int)getpid(), timestamp(), logfile_fd );
 	     
     fflush( logfile_fp );
 
@@ -343,7 +343,7 @@ Usage: %s [-d] [-D] [-p port] [-l logfile] [-o]\n",argv[0]);
 	    {
 		fprintf( logfile_fp, 
 		 "Started subprocess for connection at %s with pid %d\n", 
-			 timestamp(), getpid() );
+			 timestamp(), (int)getpid() );
 #if defined(HP)
 		(void) setpgrp();
 #else

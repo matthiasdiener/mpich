@@ -1,12 +1,10 @@
-/* 	$Id: grouptest.c,v 1.1.1.1 1997/09/17 20:37:21 gropp Exp $	 */
+/* 	$Id: grouptest.c,v 1.2 1998/11/28 04:04:56 gropp Exp $	 */
 
 #include "mpi.h"
 #include <stdio.h>
 #include "test.h"
 
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int rank, size, i;
     MPI_Group group1, group2, group3, groupall, groupunion, newgroup;

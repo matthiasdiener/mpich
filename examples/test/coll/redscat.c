@@ -12,9 +12,7 @@
 #include <stdlib.h>
 #include "test.h"
 
-int main( argc, argv )
-int  argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int      err = 0, toterr;
     int      *sendbuf, recvbuf, *recvcounts;

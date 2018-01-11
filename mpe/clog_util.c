@@ -1,4 +1,6 @@
 #include "clogimpl.h"
+#include "mpeconf.h"
+
 
 void CLOG_dumplog()
 {
@@ -27,14 +29,19 @@ double *p;
     rtype = CLOG_UNDEF;
     while (rtype != CLOG_ENDBLOCK && rtype != CLOG_ENDLOG) {
 	h = (CLOG_HEADER *) p;
+#ifndef WORDS_BIGENDIAN
+	adjust_CLOG_HEADER(h);
+#endif
 	rtype = h->rectype;
-	
 	printf("ts=%f type=", h->timestamp);
 	CLOG_rectype(h->rectype); /* print record type */
 	printf(" len=%d, pid=%d ", h->length, h->procid);
 	p = (double *) (h->rest);	/* skip to end of header */
 	switch (rtype) {
 	case CLOG_MSGEVENT:
+#ifndef WORDS_BIGENDIAN
+	    adjust_CLOG_MSG ((CLOG_MSG *)p);
+#endif
 	    printf("et="); CLOG_msgtype(((CLOG_MSG *) p)->etype);
 	    printf(" tg=%d ",      ((CLOG_MSG *) p)->tag);
 	    printf("prt=%d ",      ((CLOG_MSG *) p)->partner);
@@ -44,6 +51,9 @@ double *p;
 	    p = (double *)        (((CLOG_MSG *) p)->end);
 	    break;
 	case CLOG_COLLEVENT:
+#ifndef WORDS_BIGENDIAN
+	    adjust_CLOG_COLL ((CLOG_COLL *)p);
+#endif
 	    printf("et="); CLOG_colltype(((CLOG_COLL *) p)->etype);
 	    printf(" root=%d ",   ((CLOG_COLL *) p)->root);
 	    printf("cm=%d ",      ((CLOG_COLL *) p)->comm);
@@ -51,12 +61,18 @@ double *p;
 	    p = (double *)       (((CLOG_COLL *) p)->end);
 	    break;
 	case CLOG_SRCLOC:
+#ifndef WORDS_BIGENDIAN
+	    adjust_CLOG_SRC ((CLOG_SRC *)p);
+#endif
 	    printf("srcid=%d ",    ((CLOG_SRC *) p)->srcloc);
 	    printf("line=%d ",     ((CLOG_SRC *) p)->lineno);
 	    printf("file=%s\n",    ((CLOG_SRC *) p)->filename);
 	    p = (double *)        (((CLOG_SRC *) p)->end);
 	    break;
 	case CLOG_COMMEVENT:
+#ifndef WORDS_BIGENDIAN
+	    adjust_CLOG_COMM ((CLOG_COMM *)p);
+#endif
 	    printf("et="); CLOG_commtype(((CLOG_MSG *) p)->etype);
 	    printf(" pt=%d ",     ((CLOG_COMM *) p)->parent);
 	    printf("ncomm=%d ",   ((CLOG_COMM *) p)->newcomm);
@@ -64,6 +80,9 @@ double *p;
 	    p = (double *)       (((CLOG_COMM *) p)->end);
 	    break;
 	case CLOG_STATEDEF:
+#ifndef WORDS_BIGENDIAN
+	    adjust_CLOG_STATE ((CLOG_STATE *)p);
+#endif
 	    printf("id=%d ",     ((CLOG_STATE *) p)->stateid);
 	    printf("start=%d ",  ((CLOG_STATE *) p)->startetype);
 	    printf("end=%d ",    ((CLOG_STATE *) p)->endetype);
@@ -72,6 +91,9 @@ double *p;
 	    p = (double *)      (((CLOG_STATE *) p)->end);
 	    break;
 	case CLOG_EVENTDEF:
+#ifndef WORDS_BIGENDIAN
+	    adjust_CLOG_EVENT ((CLOG_EVENT *)p);
+#endif
 	    printf("id=%d ",     ((CLOG_EVENT *) p)->etype);
 	    printf("desc=%s\n",  ((CLOG_EVENT *) p)->description);
 	    p = (double *)      (((CLOG_EVENT *) p)->end);
@@ -81,6 +103,9 @@ double *p;
 	    p = (double *)     (((CLOG_TSHIFT *) p)->end);
 	    break;
 	case CLOG_RAWEVENT:
+#ifndef WORDS_BIGENDIAN
+	    adjust_CLOG_RAW ((CLOG_RAW *)p);
+#endif
 	    printf("id=%d ",       ((CLOG_RAW *) p)->etype);
 	    printf("data=%d ",     ((CLOG_RAW *) p)->data);
 	    printf("srcid=%d ",    ((CLOG_RAW *) p)->srcloc);

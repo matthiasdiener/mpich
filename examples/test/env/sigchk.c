@@ -10,6 +10,30 @@
 int SYiCheckSig ANSI_ARGS(( FILE *, int, char * ));
 int SYCheckSignals ANSI_ARGS(( FILE * ));
 
+#ifdef HAVE_SIGACTION
+int SYiCheckSig( fp, sig, signame )
+FILE *fp;
+int  sig;
+char *signame;
+{
+void (*oldsig)();
+static int firstmsg = 1;
+struct sigaction libsig;
+
+sigaction( sig, NULL, &libsig);
+if (libsig.sa_handler != SIG_IGN && libsig.sa_handler != SIG_DFL) {
+    if (firstmsg) {
+	firstmsg = 0;
+	fprintf( fp, "Some signals have been changed.  This is not an error\n\
+but rather is a warning that user programs should not redefine the signals\n\
+listed here\n" );
+	}
+    fprintf( fp, "Signal %s has been changed\n", signame );
+    return 1;
+    }
+return 0;
+}
+#else
 int SYiCheckSig( fp, sig, signame )
 FILE *fp;
 int  sig;
@@ -32,6 +56,7 @@ listed here\n" );
 signal(sig,oldsig);
 return 0;
 }
+#endif
 
 int SYCheckSignals( fp )
 FILE *fp;
@@ -166,9 +191,7 @@ return ndiff;
 }
 
 
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int err;
     MPI_Init( &argc, &argv );

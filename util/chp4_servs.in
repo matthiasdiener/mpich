@@ -73,7 +73,7 @@ fi
 # Change to the startup dir
 cd $run_dir
 #
-serverloc=$MPIR_HOME/lib/$LARCH/ch_p4/$server_name
+serverloc=$MPIR_HOME/build/$LARCH/ch_p4/bin/$server_name
 #
 /bin/rm -f .tmp1
 sed -e 's/^\([^:]*\):.*$/\1/g' -e '/^#/d' $filename > .tmp1

@@ -1,4 +1,4 @@
-#if defined(HAVE_CONFIG_H) && !defined(MPICHCONF_INC)
+#if defined(HAVE_MPICHCONF_H) && !defined(MPICHCONF_INC)
 /* This includes the definitions found by configure, and can be found in
    the library directory (lib/$ARCH/$COMM) corresponding to this configuration
  */
@@ -7,7 +7,7 @@
 #endif
 
 #ifndef MPID_CH_Wtime
-#if defined(HAVE_GETTIMEOFDAY) || defined(HAVE_WIERDGETTIMEOFDAY) || \
+#if defined(HAVE_GETTIMEOFDAY) || defined(USE_WIERDGETTIMEOFDAY) || \
     defined(HAVE_BSDGETTIMEOFDAY)
 #include <sys/types.h>
 #include <sys/time.h>

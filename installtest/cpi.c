@@ -2,15 +2,12 @@
 #include <stdio.h>
 #include <math.h>
 
-double f(a)
-double a;
+double f( double a )
 {
     return (4.0 / (1.0 + a*a));
 }
 
-int main(argc,argv)
-int argc;
-char *argv[];
+int main( int argc, char *argv[])
 {
     int done = 0, n, myid, numprocs, i;
     double PI25DT = 3.141592653589793238462643;

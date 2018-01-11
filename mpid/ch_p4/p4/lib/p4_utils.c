@@ -150,7 +150,9 @@ int n;
     char *rc;
 
     if ((rc = MD_shmalloc(n)) == NULL)
-	p4_dprintf("p4_shmalloc returning NULL; request = %d bytes\n",n);
+	p4_dprintf("p4_shmalloc returning NULL; request = %d bytes\n\
+You can increase the amount of memory by setting the environment variable\n\
+P4_GLOBMEMSIZE (in bytes)\n",n);
     return (rc);
 }
 
@@ -1157,5 +1159,19 @@ double p4_usclock()
 
     return(rc);
 }
+
+#ifndef p4_CheckSighandler
+P4VOID p4_CheckSighandler( sigf )
+int (*sigf)();
+{
+    if (sigf != SIG_IGN && sigf != SIG_DFL && sigf != SIG_ERR) {
+	printf( "Replaced a non-default signal in P4\n" );
+    }
+}
+#endif
+
+
+
+
 
 

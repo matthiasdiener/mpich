@@ -3,9 +3,7 @@
 #include "test.h"
 #include <stdlib.h>
 
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int i, n, n_goal = 2048, rc, len;
     MPI_Datatype *type_array;

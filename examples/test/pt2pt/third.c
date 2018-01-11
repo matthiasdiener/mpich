@@ -3,13 +3,12 @@
             tags, receiving them in particular order.
  */
 
+#include <stdio.h>
 #include "mpi.h"
 #include "test.h"
 
 /* Define VERBOSE to get printed output */
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int rank, size, to, from, tag, count;
     int src, dest, waiter;

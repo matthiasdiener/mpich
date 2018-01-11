@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_create.c,v 1.3 1998/04/29 14:28:31 swider Exp $
+ *  $Id: cart_create.c,v 1.4 1998/12/21 16:41:47 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -24,7 +24,7 @@ Input Parameters:
   each dimension 
 . periods - logical array of size ndims specifying whether the grid is 
   periodic (true) or not (false) in each dimension 
-- reorder - ranking may be reordered (true) or not (false ) (logical) 
+- reorder - ranking may be reordered (true) or not (false) (logical) 
 
 Output Parameter:
 . comm_cart - communicator with new cartesian topology (handle) 

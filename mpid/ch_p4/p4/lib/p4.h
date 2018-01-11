@@ -10,6 +10,8 @@
 
 /* for xdr  -  includes netinet/in.h and sys/types.h */
 /* HP-UX does not properly guard rpc/rpc.h from multiple inclusion */
+/* We do not check for this in configure and have to put this check outside */
+/* of the rpc code so rpc.h does not get included twice */
 #if !defined(INCLUDED_RPC_RPC_H)
 #include <rpc/rpc.h>      
 #define INCLUDED_RPC_RPC_H

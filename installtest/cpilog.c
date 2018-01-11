@@ -3,15 +3,12 @@
 #include <math.h>
 #include <stdio.h>
 
-double f(a)
-double a;
+double f( double a )
 {
     return (4.0 / (1.0 + a*a));
 }
 
-int main(argc,argv)
-int argc;
-char *argv[];
+int main( int argc, char *argv[] )
 {
     int  n, myid, numprocs, i, j;
     double PI25DT = 3.141592653589793238462643;
@@ -68,8 +65,7 @@ char *argv[];
 	MPI_Reduce(&mypi, &pi, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 	MPE_Log_event(6, 0, "end reduce");
     }
-    MPE_Stop_log();
-    MPE_Finish_log("cpilog.log");
+    MPE_Finish_log("cpilog");
 
     if (myid == 0)
     {
@@ -79,6 +75,5 @@ char *argv[];
 	printf("wall clock time = %f\n", endwtime-startwtime);	       
     }
     MPI_Finalize();
-
-    return 0;
+    return(0);
 }

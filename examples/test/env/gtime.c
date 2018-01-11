@@ -7,9 +7,7 @@
  * This routine tests that if MPI_WTIME_IS_GLOBAL is set, the timer
  * IS in fact global.  We have some suspicions about certain vendor systems
  */
-int main(argc, argv)
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int    err = 0;
     void *v;

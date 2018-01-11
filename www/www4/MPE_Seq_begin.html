@@ -24,21 +24,21 @@ at the same time.  Usually one.
 <BR></TD></TR></TABLE>
 <P>
 <H2>Notes</H2>
-<TT>MPE_Seq_begin</TT> and <TT>MPE_Seq_end</TT> provide a way to force a section of 
-
-codetobe executed by the processes in rank order.  Typically, this is 
-
-donewith<PRE>
+<TT>MPE_Seq_begin</TT> and <TT>MPE_Seq_end</TT> provide a way to force a section of code
+to
+be executed by the processes in rank order.  Typically, this is done
+with
+<PRE>
   MPE_Seq_begin( comm, 1 );
   &lt;code to be executed sequentially&gt;
   MPE_Seq_end( comm, 1 );
 </PRE>
 
-Often, the sequential code contains output statements (e.g., <TT>printf</TT>) 
-tobe executed.  Note that you may need to flush the I/O buffers 
-beforecalling <TT>MPE_Seq_end</TT>; also note that some systems do not propagate I/O 
-
-inanyorder to the controling terminal (in other words, even if you flush 
-theoutput, you may not get the data in the order that you want).
+Often, the sequential code contains output statements (e.g., <TT>printf</TT>) to
+be executed.  Note that you may need to flush the I/O buffers before
+calling <TT>MPE_Seq_end</TT>; also note that some systems do not propagate I/O in
+any
+order to the controling terminal (in other words, even if you flush the
+output, you may not get the data in the order that you want).
 <P><B>Location:</B>mpe_seq.c<P>
 </BODY></HTML>

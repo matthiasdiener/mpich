@@ -13,9 +13,7 @@ MPI_Datatype *dtype;
     inoutvec[i] += invec[i];
 }
 
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int              rank, size, i;
     int              data;

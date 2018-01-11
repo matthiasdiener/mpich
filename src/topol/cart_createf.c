@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_createf.c,v 1.3 1998/01/29 14:29:22 gropp Exp $
+ *  $Id: cart_createf.c,v 1.4 1999/02/09 16:13:56 swider Exp $
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  * Custom Fortran wrapper
@@ -64,10 +64,17 @@ MPI_Fint *ierr;
 	lperiods[i] = MPIR_FROM_FLOG(periods[i]);
 	ldims[i] = (int)dims[i];
     }
-
+#if defined(_TWO_WORD_FCD)
+    int tmp = *reorder;
+    *ierr = MPI_Cart_create( MPI_Comm_f2c(*comm_old), 
+			     (int)*ndims, ldims, 
+			     lperiods, MPIR_FROM_FLOG(tmp), 
+			     &l_comm_cart);
+#else
     *ierr = MPI_Cart_create( MPI_Comm_f2c(*comm_old), 
 			     (int)*ndims, ldims, 
 			     lperiods, MPIR_FROM_FLOG(*reorder), 
 			     &l_comm_cart);
+#endif
     *comm_cart = MPI_Comm_c2f(l_comm_cart);
 }

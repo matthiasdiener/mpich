@@ -4,26 +4,20 @@
 
 ##### User configurable options #####
 
-ARCH        = @ARCH@
-BOPT        = @BOPT@
-MPIR_HOME   = @MPIR_HOME@
 CC          = @CC@
 CLINKER     = $(CC)
-CFLAGS	    = @CFLAGS@
-F77         = @F77@
-AR          = @AR@
-RANLIB      = @RANLIB@
-INCLUDE_DIR = @INCLUDE_PATH@ -I$(MPIR_HOME)/include \
-	      -I$(MPIR_HOME)/mpe
-DEVICE      = @DEVICE@
-OPTFLAGS    = @OPTFLAGS@
 MAKE        = @MAKE@
+AR          = @AR@ -r
+RANLIB      = @RANLIB@
+INCLUDE_DIR = @INCLUDEDIR@ -I$(MPE_DIR)
+OPTFLAGS    = @OPTFLAGS@
+LIB_PATH    = -L@MPE_LIBPATH@ -lmpe @X_LIB@ @MPI_LIBS@
+LOG_LIB     = -L@MPE_LIBPATH@ @LOGLIB@ @X_LIB@
+PROF_LIB    = -L@MPE_LIBPATH@ @PROFLIB@ @X_LIB@
 
 ### End User configurable options ###
 
-CFLAGS = $(CFLAGS) $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
-LIBNAME  = 
-
+CFLAGS = @MPE_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) 
 
 default: ../wrappergen/wrappergen log_wrappers.c time_wrappers.c visual_mess.c
 
@@ -45,3 +39,4 @@ visual_mess.c: visual_mess.w
 
 clean:
 	/bin/rm -rf *.o *.c *~
+

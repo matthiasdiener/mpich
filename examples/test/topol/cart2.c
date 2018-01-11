@@ -4,9 +4,7 @@
 
 #define NUM_DIMS 2
 
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int              rank, size, i;
     int              dims[NUM_DIMS];

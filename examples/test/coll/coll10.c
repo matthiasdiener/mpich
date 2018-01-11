@@ -31,9 +31,7 @@ MPI_Datatype *dtype;
   return (1);
 }
 
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int              rank, size;
     int              data;

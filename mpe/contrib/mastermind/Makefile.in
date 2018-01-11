@@ -1,38 +1,30 @@
 
 ##### User configurable options #####
 
-SHELL       = /bin/sh
-ARCH        = @ARCH@
-COMM        = @COMM@
-MPIR_HOME   = @MPIR_HOME@
-CC          = @MPICC@
+CC          = @CC@
 CLINKER     = $(CC)
 OPTFLAGS    = @OPTFLAGS@
-#
-LIB_PATH    = @LIB_PATH@ @X_LIB@
-MPE_DIR     = @MPE_DIR@
-MPE_LIBS    = @MPE_LIBS@
-LIB_LIST    = @LIB_LIST@
-#
-INCLUDE_DIR =  -I$(MPIR_HOME)/include -I@MPE_DIR@
+LIB_PATH    = -L@MPE_LIBPATH@ -lmpe @X_LIB@ @MPI_LIBS@ -lm 
+MPE_DIR     = @MPE_HOME@
+LOG_LIB     = -L@MPE_LIBPATH@ @LOGLIB@ @X_LIB@
+PROF_LIB    = -L@MPE_LIBPATH@ @PROFLIB@ @X_LIB@
+INCLUDE_DIR = @INCLUDEDIR@ -I$(MPE_DIR)
+LDFLAGS     = @OPTFLAGS@
 
 ### End User configurable options ###
 
-CFLAGS  =  @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPE_GRAPH)
-FFLAGS =  $(INCLUDE_DIR) $(OPTFLAGS)
-LIBS = $(LIB_PATH) $(LIB_LIST)
-FLIBS = $(FLIB_PATH) $(LIB_LIST)
+CFLAGS  =  @MPE_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR)
 EXECS =  mm gmm
 
 default: $(EXECS)
 
 gmm:	gmm.o $(MPE_DIR)/mpe.h
-	$(CLINKER) $(OPTFLAGS)  -o gmm gmm.o \
-	$(LIB_PATH)  $(MPE_LIBS) $(LIB_LIST) -lm
+	$(CLINKER) $(LDFLAGS)  -o gmm gmm.o \
+	$(PROF_LIB) -lm  
 
 mm:	mm.o $(MPE_DIR)/mpe.h
-	$(CLINKER) $(OPTFLAGS) -o mm mm.o \
-	$(LIB_PATH)  $(MPE_LIBS) $(LIB_LIST) -lm
+	$(CLINKER) $(LDFLAGS) -o mm mm.o \
+	$(PROF_LIB) -lm
 
 gmm.o:	gmm.c
 	$(CC) $(CFLAGS) -DUSE_GRAPHICS -c gmm.c
@@ -41,8 +33,8 @@ mm.o:	gmm.c
 	$(CC) $(CFLAGS) -c -o mm.o gmm.c
 
 vb:	vb.o $(MPE_DIR)/mpe.h
-	$(CLINKER) $(OPTFLAGS)  -o vb vb.o \
-	$(LIB_PATH)  $(MPE_LIBS) $(LIB_LIST) -lm
+	$(CLINKER) $(LDFLAGS)  -o vb vb.o \
+	$(PROF_LIB)
 
 clean:
 	/bin/rm -f *.o *~ PI* $(EXECS) gmmlog

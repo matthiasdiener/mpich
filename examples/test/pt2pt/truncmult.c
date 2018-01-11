@@ -14,9 +14,7 @@ int SetupRecvBuf ANSI_ARGS(( int * ));
 int CheckRecvErr ANSI_ARGS(( int, MPI_Status *, int *, char * ));
 int CheckRecvOk  ANSI_ARGS(( MPI_Status *, int *, int, char * ));
 
-int main( argc, argv )
-int  argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int         err = 0, toterr;
     int         world_rank;

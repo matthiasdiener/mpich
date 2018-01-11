@@ -14,8 +14,6 @@
 static MPE_Log_BLOCK *MPE_Log_thisBlock = 0, *MPE_Log_firstBlock = 0;
 static int    MPE_Log_size = MPE_Log_BUF_SIZE;
 static int    MPE_Log_i    = MPE_Log_BUF_SIZE+1;
-static int    MPE_Log_hasBeenInit = 0;
-static int    MPE_Log_hasBeenClosed = 0;
 static int    MPE_Log_clockIsRunning = 0;
 static int    MPE_Log_isLockedOut = 0;
 static int    MPE_Log_AdjustedTimes = 0;

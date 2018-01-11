@@ -2,6 +2,7 @@
 #include "mpetools.h"
 #include "basex11.h"
 
+/* This is used to correct system header files without prototypes */
 #if defined(NEEDS_STDLIB_PROTOTYPES)
 #include "protofix.h"
 #endif
@@ -103,7 +104,7 @@ char **argv, *name, *val;
     if (idx < 0) return 0;
 
     if (idx + 1 >= *Argc) {
-	SETERRC(1,"Missing value for argument" );
+	fprintf( stderr, "Missing value for argument\n" );
 	return 0;
     }
 
@@ -126,7 +127,7 @@ XBWindow *XBWinCreate()
     XBWindow *w;
 
     w = NEW(XBWindow);
-    CHKPTRN(w);
+    /*CHKPTRN(w); */
 
 /* Initialize the structure */
     w->disp      = 0;
@@ -193,7 +194,7 @@ char     *display_name;
     XBWin->screen = DefaultScreen( XBWin->disp );
 
 /* ? should this set defaults? */
-    return ERR_NONE;
+    return 0;
 }
 
 /*
@@ -247,7 +248,7 @@ else {
 
 /* reset the number of colors from info on the display, the colormap */
 XBInitColors( XBWin, cmap, nc );
-return ERR_NONE;
+return 0;
 }
 
 /* 
@@ -267,7 +268,7 @@ gcvalues.foreground = fg;
 XBWin->gc.cur_pix   = fg;
 XBWin->gc.set = XCreateGC( XBWin->disp, RootWindow(XBWin->disp,XBWin->screen),
                               GCFunction | GCForeground, &gcvalues );
-return ERR_NONE;
+return 0;
 }
 
 /*
@@ -289,7 +290,7 @@ return ERR_NONE;
 int XBOpenWindow( XBWin )
 XBWindow *XBWin;
 {
-return ERR_NONE;
+return 0;
 }
 
 /*

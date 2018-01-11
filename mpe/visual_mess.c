@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <math.h>
 
+/* This is used to correct system header files without prototypes */
 #if defined(NEEDS_STDLIB_PROTOTYPES)
 #include "protofix.h"
 #endif
@@ -265,6 +266,7 @@ char *note;
   }
 
   if (!rq) {
+#define PRINT_PROBLEMS
 #ifdef PRINT_PROBLEMS
     fprintf( stderr, "Request not found in '%s'.\n", note );
 #endif

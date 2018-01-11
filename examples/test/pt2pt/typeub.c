@@ -12,9 +12,7 @@
  *      a structure is found.  From kalns@canidae.cps.msu.edu (modified to
  *      fit test structure).
  */
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
    MPI_Aint   	extent;
    int		blens[2];

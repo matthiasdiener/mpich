@@ -2,8 +2,7 @@
 #include <stdio.h>
 #include "test.h"
 
-int main(argc, argv)
-int argc; char **argv;
+int main( int argc, char **argv )
 {
   int rank, value, result;
 

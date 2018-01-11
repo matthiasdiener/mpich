@@ -1,8 +1,8 @@
 // -*- c++ -*-
 //
-// Copyright 1997, University of Notre Dame.
-// Authors: Andrew Lumsdaine, Michael P. McNally, Jeremy G. Siek,
-//          Jeffery M. Squyres.
+// Copyright 1997-1999, University of Notre Dame.
+// Authors:  Jeremy G. Siek, Michael P. McNally, Jeffery M. Squyres, 
+//           Andrew Lumsdaine
 //
 // This file is part of the Notre Dame C++ bindings for MPI
 //
@@ -107,6 +107,13 @@ class Comm : public Comm_Null {
   //  friend class PMPI::Comm;
 #else
 
+
+#if 0
+  // JGS, screw it. Between the friend differences, the
+  // function differences, and the :: problem with egcs
+  // this is not worth it. I'm just going to make the stuff
+  // these functions need public
+
 #if _MPIPP_USENAMESPACE_
   //JGS, when using namespaces, the :: are required. For some strange
   //reason they are not for nested classes.
@@ -135,6 +142,8 @@ class Comm : public Comm_Null {
 				 void *attribute_val_out, int *flag);
   friend int delete_attr_intercept(MPI_Comm comm, int keyval, 
 				   void *attribute_val, void *extra_state);
+#endif
+
 #endif
 
 #endif
@@ -361,9 +370,11 @@ private:
   static Status ignored_status;
 
 #if ! _MPIPP_PROFILING_
-  static map mpi_comm_map;
+public: // JGS hmmm, these used by errhandler_intercept
+        // should make it a friend
+  static Map mpi_comm_map;
   Errhandler* my_errhandler;
-  static map key_fn_map;
+  static Map key_fn_map;
 
   void init() {
     my_errhandler = (Errhandler*)0;

@@ -9,12 +9,8 @@
  * basic types
  */
 
-#define MAX_TYPES 12
-#if defined(__STDC__) 
-static int ntypes = 12;
-#else
-static int ntypes = 11;
-#endif
+#define MAX_TYPES 14
+static int ntypes;
 static MPI_Datatype BasicTypes[MAX_TYPES];
 static char         *(BasicTypesName[MAX_TYPES]);
 static int          BasicSizes[MAX_TYPES];
@@ -58,31 +54,35 @@ SetupBasicTypes()
     BasicSizes[8] = sizeof(float);
     BasicSizes[9] = sizeof(double);
 
+    ntypes = 10;
 #if defined (__STDC__)
 /* This matches the code in src/env/initutil.c 
    But HAVE_LONG_DOUBLE isn't part of the regular MPI definitions or
    make!
  */
-    BasicTypes[10] = MPI_LONG_DOUBLE;
+    BasicTypes[ntypes] = MPI_LONG_DOUBLE;
+    BasicTypesName[ntypes] = "MPI_LONG_DOUBLE";
 #ifdef HAVE_LONG_DOUBLE
-    BasicSizes[10] = sizeof(long double);
+    BasicSizes[ntypes] = sizeof(long double);
 #else
-    BasicSizes[10] = 2*sizeof(double);
+    BasicSizes[ntypes] = 2*sizeof(double);
 #endif
-    BasicTypes[11] = MPI_BYTE;
-    BasicSizes[11] = sizeof(unsigned char);
-    BasicTypesName[10] = "MPI_LONG_DOUBLE";
-    BasicTypesName[11] = "MPI_BYTE";
-#else
-    BasicTypes[10] = MPI_BYTE;
-    BasicSizes[10] = sizeof(unsigned char);
-    BasicTypesName[10] = "MPI_BYTE";
+    ntypes++;
+#endif
+    BasicTypes[ntypes] = MPI_BYTE;
+    BasicSizes[ntypes] = sizeof(unsigned char);
+    BasicTypesName[ntypes] = "MPI_BYTE";
+    ntypes++;
+
+#ifdef HAVE_LONG_LONG_INT
+    BasicTypes[ntypes] = MPI_LONG_LONG_INT;
+    BasicSizes[ntypes] = sizeof(long long);
+    BasicTypesName[ntypes] = "MPI_LONG_LONG_INT";
+    ntypes++;
 #endif
     }
 
-int main(argc, argv)
-int  argc;
-char **argv;
+int main( int argc, char **argv )
 {
 int      i, errs;
 int      size;

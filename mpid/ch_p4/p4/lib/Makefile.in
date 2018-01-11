@@ -74,14 +74,17 @@ libp4.a:$(P) $(P4_OBJ)
 	$(RANLIB) $@
 
 p4inmpi:$(P) $(P4_OBJ)
-	$(AR) ../../../../lib/$(MPIARCH)/ch_p4/lib$(MPILIBNAME).a $?
-	$(RANLIB) ../../../../lib/$(MPIARCH)/ch_p4/lib$(MPILIBNAME).a
+	$(AR) ../../../../build/$(MPIARCH)/ch_p4/lib/lib$(MPILIBNAME).a $?
+	$(RANLIB) ../../../../build/$(MPIARCH)/ch_p4/lib/lib$(MPILIBNAME).a
 
 p4mdeplibs:
 	@echo $(MDEP_LIBS)
 
 p4mdepcflags:
 	@echo $(MDEP_CFLAGS)
+
+p4mdepfflags:
+	@echo $(MDEP_FFLAGS)
 
 listener_p4:$(P) listener_p4.o $(P4_OBJ)
 	$(CC) $(CFLAGS) -o listener_p4 listener_p4.o $(LIBS)

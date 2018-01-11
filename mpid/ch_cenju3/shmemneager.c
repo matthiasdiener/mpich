@@ -11,8 +11,8 @@ static char cready = 0;
  */
 
 /* Prototype definitions */
-int MPID_CENJU3_Eagern_send ANSI_ARGS(( void *, int, int, int, int, int, int ));
-int MPID_CENJU3_Eagern_isend ANSI_ARGS(( void *, int, int, int, int, int, int,
+int MPID_CENJU3_Eagern_send ANSI_ARGS(( void *, int, int, int, int, int, MPID_Msgrep_t ));
+int MPID_CENJU3_Eagern_isend ANSI_ARGS(( void *, int, int, int, int, int, MPID_Msgrep_t,
 				     MPIR_SHANDLE * ));
 int MPID_CENJU3_Eagern_cancel_send ANSI_ARGS(( MPIR_SHANDLE * ));
 int MPID_CENJU3_Eagern_wait_send ANSI_ARGS(( MPIR_SHANDLE * ));
@@ -38,7 +38,8 @@ extern int MPID_CENJU3_Eagerb_unxrecv_start ANSI_ARGS(( MPIR_RHANDLE *, void * )
 int MPID_CENJU3_Eagern_isend( buf, len, src_lrank, tag, context_id, dest,
 			 msgrep, shandle )
 void *buf;
-int  len, tag, context_id, src_lrank, dest, msgrep;
+int  len, tag, context_id, src_lrank, dest;
+MPID_Msgrep_t msgrep;
 MPIR_SHANDLE *shandle;
 {
     VOLATILE int *destready = &(MPID_destready[dest].buf_ready);
@@ -75,7 +76,8 @@ MPIR_SHANDLE *shandle;
 int MPID_CENJU3_Eagern_send( buf, len, src_lrank, tag, context_id, dest,
 			 msgrep )
 void *buf;
-int  len, tag, context_id, src_lrank, dest, msgrep;
+int  len, tag, context_id, src_lrank, dest;
+MPID_Msgrep_t msgrep;
 {
     MPIR_SHANDLE shandle;
 

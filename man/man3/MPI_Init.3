@@ -1,4 +1,4 @@
-.TH MPI_Init 3 "2/2/1998" " " "MPI"
+.TH MPI_Init 3 "11/15/1998" " " "MPI"
 .SH NAME
 MPI_Init \-  Initialize the MPI execution environment 
 .SH SYNOPSIS
@@ -63,7 +63,8 @@ all systems support this argument; those that do not will ignore it.
 detected by MPI or a normally fatal signal).  This works only if MPICH
 was configured with 
 .I -mpedbg
-.
+.  CURRENTLY DISABLED.  If you have TotalView,
+-mpichtv or mpirun -tv will give you a better environment anyway.
 .PD 1
 
 .PD 0

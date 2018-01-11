@@ -12,9 +12,7 @@
 
 #define MAX_REQ 32
 
-int main(argc, argv)
-int argc;
-char** argv;
+int main( int argc, char **argv )
 {
     int rank, size;
     int i, j, count, err = 0, toterr;

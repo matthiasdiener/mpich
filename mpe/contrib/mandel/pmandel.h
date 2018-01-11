@@ -3,6 +3,7 @@
 #ifndef _PM_H_
 #define _PM_H_
 
+#include "mpe_graphics.h"
 #include "mpi.h"
 #include "mpe.h"
 #include "fract_gen.h"

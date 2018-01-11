@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.1.1.1 1997/09/17 20:39:23 gropp Exp $
+#  $Id: Makefile.in,v 1.4 1998/11/17 22:13:42 gropp Exp $
 #
 #  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -10,7 +10,6 @@
 ##### User configurable options #####
 
 ARCH        = @ARCH@
-COMM        = @COMM@
 DEVICE      = @DEVICE@
 MPIR_HOME   = @MPIR_HOME@
 INCLUDE_DIR = @INCLUDE_PATH@ -Impid/@DEVICE@ -Iinclude
@@ -24,8 +23,8 @@ ASMFILES_O  = @ASMFILES_O@
 
 ALL: default
 
-LIBNAME  = ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
-CFLAGS   = @CFLAGS@ $(OPTFLAGS) -I../.. -I../../include -I./ \
+LIBNAME  = ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a
+CFLAGS   = @CFLAGS@ $(OPTFLAGS) -I../.. -I../../include -I. \
 		-DMPI_$(ARCH) -DMPID_DEVICE_CODE @GETNAME_DEFS@ @DEVCFLAGS@ \
 	        @DEV_DEFS@
 # See mpid/ch_adi2/Makefile.in for a full list
@@ -59,7 +58,7 @@ clean:
 .o.s:
 	$(CC) $(CFLAGS) $(BASEOPT) -c -S $*.c $(MPI_PROFILE)
 
-../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
+../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
 	$(AR) $@ $?
 	$(RANLIB) $@
 

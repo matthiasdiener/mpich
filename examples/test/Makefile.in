@@ -23,8 +23,8 @@ FFLAGS = $(OPTFLAGS)
 LIBS = 
 # Use FLIBS to add any special libraries for Fortran programs
 FLIBS = 
-TESTDIRS = pt2pt coll topol env context profile io
-SUBDIRS = pt2pt coll topol env context profile io
+TESTDIRS = pt2pt coll topol env context profile 
+SUBDIRS = pt2pt coll topol env context profile 
 
 default: subdirs
 	@echo "Type \"make testing\" to compile and run tests"

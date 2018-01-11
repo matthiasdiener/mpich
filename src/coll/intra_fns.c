@@ -1,5 +1,5 @@
 /*
- *  $Id: intra_fns.c,v 1.4 1998/01/29 14:25:57 gropp Exp $
+ *  $Id: intra_fns.c,v 1.5 1998/09/15 15:48:16 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -873,7 +873,7 @@ struct MPIR_COMMUNICATOR *         comm;
                            recvcnts[i], 
                            recvtype->self,
                            i,
-                           MPIR_ALLTOALL_TAG,
+                           MPIR_ALLTOALLV_TAG,
                            comm->self,
                            &reqarray[2*i+1]))
           )
@@ -884,7 +884,7 @@ struct MPIR_COMMUNICATOR *         comm;
                            sendcnts[i], 
                            sendtype->self,
                            i,
-                           MPIR_ALLTOALL_TAG,
+                           MPIR_ALLTOALLV_TAG,
                            comm->self,
                            &reqarray[2*i]))
           )

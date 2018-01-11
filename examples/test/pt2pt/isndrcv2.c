@@ -1,9 +1,7 @@
 #include <stdio.h>
 #include "mpi.h"
 
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int rank, size;
     MPI_Request r1, r2;

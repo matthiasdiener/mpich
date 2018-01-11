@@ -524,10 +524,7 @@ count argument, datatype argument, tag, rank, buffer send and buffer recv\n" );
 }
 
 /* Allow -nolongdouble to suppress long double testing */
-int 
-main(argc, argv)
-    int argc;
-    char **argv;
+int main( int argc, char **argv )
 {
     int myrank, mysize;
     int rc, itemp, i;

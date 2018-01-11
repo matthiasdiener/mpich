@@ -15,7 +15,7 @@
  * NOT rely on system type to choose options; rather, it should use
  * HAVE_xxxx, with a configure script creating the HAVE_xxxx defines.
  */
-static char *rcsid = "$Header: /home/MPI/cvsMaster/mpich/mpid/server/serv_p4.c,v 1.12 1998/07/01 19:56:05 gropp Exp $";
+static char *rcsid = "$Header: /home/MPI/cvsMaster/mpich/mpid/server/serv_p4.c,v 1.13 1998/11/24 22:35:14 gropp Exp $";
 
 #include "server.h"
 
@@ -1408,7 +1408,7 @@ char *timestamp()
     long clock;
     struct tm *tmp;
 
-    clock = time(0L);
+    clock = time((time_t *)NULL);
     tmp = localtime(&clock);
     return asctime(tmp);
 }

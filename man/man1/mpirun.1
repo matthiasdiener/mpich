@@ -1,4 +1,4 @@
-.TH mpirun 1 "6/5/1998" " " "MPI Commands"
+.TH mpirun 1 "11/24/1998" " " "MPI Commands"
 .SH NAME
 mpirun \-  Run mpi programs 
 .SH DESCRIPTION
@@ -44,105 +44,129 @@ your machine, the default value is wrong, or you are using the p4 or
 execer devices.  The full list of options is
 
 .SH PARAMETERS
-The options for mpirun must come before the program you want to run
+The options for mpirun must come before the program you want to run and
+must be spelled out completely (no abreviations).  Unrecognized options
+will be silently ignored.
 
 mpirun [mpirun_options...] <progname> [options...]
 
 .PD 0
 .TP
-.B -arch <architecture>
-- specify the architecture (must have matching machines.<arch>
+.B -arch <architecture> 
+- 
+specify the architecture (must have matching machines.<arch>
 file in ${MPIR_HOME}/util/machines) if using the execer
 .PD 1
 .PD 0
 .TP
-.B -h      This help
-- .    -machine <machine name>
+.B -h      
+- This help
+.PD 1
+.PD 0
+.TP
+.B -machine <machine name> 
+- 
 use startup procedure for <machine name>
 .PD 1
 .PD 0
 .TP
-.B -machinefile <machine
-- file name>
+.B -machinefile <machine-file name> 
+- 
 Take the list of possible machines to run on from the
 file <machine-file name>
 .PD 1
 .PD 0
 .TP
-.B -np <np>
-- specify the number of processors to run on
+.B -np <np> 
+- 
+specify the number of processors to run on
 .PD 1
 .PD 0
 .TP
-.B -nolocal
-- do not run on the local machine (only works for 
+.B -nolocal 
+- 
+do not run on the local machine (only works for 
 p4 and ch_p4 jobs)
 .PD 1
 .PD 0
 .TP
-.B -stdin filename
-- Use filename as the standard input for the program.  This
+.B -stdin filename 
+- 
+Use filename as the standard input for the program.  This
 is needed for programs that must be run as batch jobs, such
 as some IBM SP systems and Intel Paragons using NQS (see 
 -paragontype below).
 .PD 1
 .PD 0
 .TP
-.B -t      Testing 
-- do not actually run, just print what would be
+.B -t      
+- Testing - do not actually run, just print what would be
 executed
 .PD 1
 .PD 0
 .TP
-.B -v      Verbose 
-- throw in some comments
+.B -v      
+- Verbose - throw in some comments
 .PD 1
 .PD 0
 .TP
-.B -dbx    Start the first process under dbx where possible
-- .    -gdb    Start the first process under gdb where possible
+.B -dbx    
+- Start the first process under dbx where possible
+.PD 1
+.PD 0
+.TP
+.B -gdb    
+- Start the first process under gdb where possible
 (on the Meiko, selecting either -dbx or -gdb starts prun
 under totalview instead)
 .PD 1
 .PD 0
 .TP
-.B -xxgdb  Start the first process under xxgdb where possible (
-- xdbx
+.B -xxgdb  
+- Start the first process under xxgdb where possible (-xdbx
 does not work)
 .PD 1
 .PD 0
 .TP
-.B -tv     Start under totalview
-- 
-Special Options for NEC - CENJU-3:
+.B -tv     
+- Start under totalview
+.PD 1
+
+.SH SPECIAL OPTIONS FOR NEC - CENJU-3
+
+.PD 0
+.TP
+.B -batch  
+- Excecute program as a batch job (using cjbr)
 .PD 1
 
 .PD 0
 .TP
-.B -batch  Excecute program as a batch job (using cjbr)
+.B -stdout filename 
 - 
+Use filename as the standard output for the program.
 .PD 1
 .PD 0
 .TP
-.B -stdout filename
-- Use filename as the standard output for the program.
+.B -stderr filename 
+- 
+Use filename as the standard error  for the program.
 .PD 1
+
+.SH SPECIAL OPTIONS FOR NEXUS DEVICE
+
 .PD 0
 .TP
-.B -stderr filename
-- Use filename as the standard error  for the program.
-Special Options for Nexus device:
-.PD 1
-.PD 0
-.TP
-.B -nexuspg filename
-- Use the given Nexus startup file instead of creating one.
+.B -nexuspg filename 
+- 
+Use the given Nexus startup file instead of creating one.
 Overrides -np and -nolocal, selects -leave_pg.
 .PD 1
 .PD 0
 .TP
-.B -nexusdb filename
-- Use the given Nexus resource database.
+.B -nexusdb filename 
+- 
+Use the given Nexus resource database.
 .PD 1
 
 .SH SPECIAL OPTIONS FOR WORKSTATION CLUSTERS
@@ -150,35 +174,41 @@ Overrides -np and -nolocal, selects -leave_pg.
 
 .PD 0
 .TP
-.B -e      Use execer to start the program on workstation
-- clusters
+.B -e     
+- Use execer to start the program on workstation
+clusters
 .PD 1
 .PD 0
 .TP
-.B -pg     Use a procgroup file to start the p4 programs, not execer
-- (default)
+.B -pg    
+- Use a procgroup file to start the p4 programs, not execer
+(default)
 .PD 1
 .PD 0
 .TP
-.B -leave_pg
-- Do not delete the P4 procgroup file after running
+.B -leave_pg 
+- 
+Do not delete the P4 procgroup file after running
 .PD 1
 .PD 0
 .TP
-.B -p4pg filename
-- Use the given p4 procgroup file instead of creating one.
+.B -p4pg filename 
+- 
+Use the given p4 procgroup file instead of creating one.
 Overrides -np and -nolocal, selects -leave_pg.
 .PD 1
 .PD 0
 .TP
-.B -tcppg filename
-- Use the given tcp procgroup file instead of creating one.
+.B -tcppg filename 
+- 
+Use the given tcp procgroup file instead of creating one.
 Overrides -np and -nolocal, selects -leave_pg.
 .PD 1
 .PD 0
 .TP
-.B -p4ssport num
-- Use the p4 secure server with port number num to start the
+.B -p4ssport num 
+- 
+Use the p4 secure server with port number num to start the
 programs.  If num is 0, use the value of the 
 environment variable MPI_P4SSPORT.  Using the server can
 speed up process startup.  If MPI_USEP4SSPORT as well as
@@ -190,38 +220,43 @@ mpirun the -p4ssport 0 parameters.
 
 .PD 0
 .TP
-.B -mvhome Move the executable to the home directory.  This 
-- is needed when all file systems are not cross-mounted
+.B -mvhome 
+- Move the executable to the home directory.  This 
+is needed when all file systems are not cross-mounted.
 Currently only used by anlspx
 .PD 1
 .PD 0
 .TP
-.B -mvback files
-- Move the indicated files back to the current directory.
+.B -mvback files 
+- 
+Move the indicated files back to the current directory.
 Needed only when using -mvhome; has no effect otherwise.
 .PD 1
 .PD 0
 .TP
-.B -maxtime min
-- Maximum job run time in minutes.  Currently used only
+.B -maxtime min 
+- 
+Maximum job run time in minutes.  Currently used only
 by anlspx.  Default value is 15 minutes
 .PD 1
 .PD 0
 .TP
-.B -nopoll Do not use a polling
-- mode communication.
+.B -nopoll 
+- Do not use a polling-mode communication.
 Available only on IBM SPx.
 .PD 1
 .PD 0
 .TP
-.B -mem value
-- This is the per node memory request (in Mbytes).  Needed for some
+.B -mem value 
+- 
+This is the per node memory request (in Mbytes).  Needed for some
 CM-5s.
 .PD 1
 .PD 0
 .TP
-.B -cpu time
-- This is the the hard cpu limit used for some CM-5s in
+.B -cpu time 
+- 
+This is the the hard cpu limit used for some CM-5s in
 minutes.
 .PD 1
 
@@ -229,8 +264,9 @@ minutes.
 
 .PD 0
 .TP
-.B -cac name
-- CAC for ANL scheduler.  Currently used only by anlspx.
+.B -cac name 
+- 
+CAC for ANL scheduler.  Currently used only by anlspx.
 If not provided will choose some valid CAC.
 .PD 1
 
@@ -238,24 +274,29 @@ If not provided will choose some valid CAC.
 
 .PD 0
 .TP
-.B -paragontype name
-- Selects one of default, mkpart, NQS, depending on how you want
+.B -paragontype name 
+- 
+Selects one of default, mkpart, NQS, depending on how you want
 to submit jobs to a Paragon.
 .PD 1
 
 .PD 0
 .TP
 .B -paragonname name 
-- Remote shells to name to run the job (using the -sz method) on 
+- 
+Remote shells to name to run the job (using the -sz method) on 
 a Paragon.
 .PD 1
 
 .PD 0
 .TP
-.B -paragonpn name
-- Name of partition to run on in a Paragon (using the -pn name 
+.B -paragonpn name 
+- 
+Name of partition to run on in a Paragon (using the -pn name 
 command-line argument)
 .PD 1
+
+.SH RETURN VALUE
 
 On exit, mpirun returns a status of zero unless mpirun detected a problem, in
 which case it returns a non-zero status (currently, all are one, but this

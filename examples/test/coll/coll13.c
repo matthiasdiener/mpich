@@ -15,9 +15,7 @@ From: hook@nas.nasa.gov (Edward C. Hook)
 #define EXIT_FAILURE 1
 #endif
 
-int main( argc, argv )
-int argc;
-char *argv[];
+int main( int argc, char *argv[] )
 {
     int rank, size;
     int chunk = 4096;

@@ -14,8 +14,9 @@ Initialize for logging
 int MPE_Init_log()
 </PRE>
 <H2>Notes</H2>
-Initializes the MPE logging package.  This must be called before any 
-ofthe other MPE logging routines.
+Initializes the MPE logging package.  This must be called before any of
+the other MPE logging routines.  It is collective over <TT>MPI_COMM_WORLD
+</TT>
 <P>
 <H2>See Also</H2>
  MPE_Finish_log

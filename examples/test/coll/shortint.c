@@ -2,9 +2,7 @@
 #include <stdio.h>
 typedef struct { short a; int b } s1;
 
-main( argc, argv )
-int argc;
-char **argv;
+main( int argc, char **argv )
 {
 s1 s[10], sout[10];
 int i, rank;

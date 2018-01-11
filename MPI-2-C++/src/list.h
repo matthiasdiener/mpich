@@ -4,7 +4,7 @@
 #ifndef LIST_H_
 #define LIST_H_
 
-#include "config.h"
+#include "mpi2c++_config.h"
 
 class List {
 public:

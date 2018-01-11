@@ -8,8 +8,6 @@
 #endif
 static int p4_timeout_value = TIMEOUT_VALUE;
 
-int p4_establish_all_conns ANSI_ARGS(( void ));
-
 int p4_has_timedout( flag )
 int flag;
 {
@@ -88,7 +86,9 @@ int dest_id;
     int dest_listener_con_fd;
     int my_listener, dest_listener;
     int new_listener_port, new_listener_fd;
+#   ifndef P4SYSV
     int oldmask;
+#   endif
     int num_tries;
 
 #   ifdef P4SYSV

@@ -1,0 +1,14 @@
+#! /bin/sh
+CONFIG_FILES="$*"
+export CONFIG_FILES
+# 
+# First, try the device/architecture specific config.status
+if [ -s #MPE_HOME#/config.status ] ; then 
+    CONFIG_HEADERS=""
+    export CONFIG_HEADERS
+    #MPE_HOME#/config.status
+else
+    echo "A config.status file is needed to perform a reconfig of a file"
+    exit 1
+fi
+

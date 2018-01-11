@@ -137,9 +137,9 @@ int        is_collective;
   
   myid = 0;		     /* for the single processor version */
   *handle            = 0;    /* In case of errors */
-  new		     = NEW(struct MPE_XGraph_s);    CHKPTRN(new);
+  new		     = NEW(struct MPE_XGraph_s);    /* CHKPTRN(new); */
   new->Cookie        = MPE_G_COOKIE;
-  new->xwin          = NEW(XBWindow);      CHKPTRN(new->xwin);
+  new->xwin          = NEW(XBWindow);      /* CHKPTRN(new->xwin); */
 
   /* These are used to capture the images into xwd files */
   new->capture_file  = 0;
@@ -862,7 +862,7 @@ MPE_Color color;
 }
 
 /*@
-   MPE_Draw_string - 
+   MPE_Draw_string - Draw a text string
 
   Input Parameters:
 + graph - MPE graphics handle
@@ -903,11 +903,9 @@ char *string;
   Input Parameters:
 + graph - MPE graphics handle
 - function - integer specifying one of the following:
-
-            'MPE_LOGIC_COPY' - no logic, just copy the pixel
-$	     'MPE_LOGIC_XOR' - xor the new pixel with the existing one
+.n            'MPE_LOGIC_COPY' - no logic, just copy the pixel
+.n	    'MPE_LOGIC_XOR'  - xor the new pixel with the existing one
 	     and many more... see 'mpe_graphics.h'
-
 @*/
 int MPE_Draw_logic( graph, function )
 MPE_XGraph graph;

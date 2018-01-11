@@ -9,9 +9,7 @@
    Check pack/unpack of mixed datatypes.
  */
 #define BUF_SIZE 100
-int main(argc, argv)
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int myrank;
     char buffer[BUF_SIZE];

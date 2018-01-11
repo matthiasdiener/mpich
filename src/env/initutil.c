@@ -1,5 +1,5 @@
 /*
- *  $Id: initutil.c,v 1.9 1998/07/01 19:56:11 gropp Exp $
+ *  $Id: initutil.c,v 1.13 1999/01/06 14:53:10 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -112,7 +112,7 @@ void *MPIR_F_MPI_BOTTOM = 0;
 void *MPIR_F_STATUS_IGNORE = 0;
 void *MPIR_F_STATUSES_IGNORE = 0;
 
-/*@
+/*
    MPIR_Init - Initialize the MPI execution environment
 
    Input Parameters:
@@ -121,11 +121,11 @@ void *MPIR_F_STATUSES_IGNORE = 0;
 
    See MPI_Init for the description of the input to this routine.
 
-   This routine is in a separate file form MPI_Init to allow profiling 
+   This routine is in a separate file from MPI_Init to allow profiling 
    libraries to not replace MPI_Init; without this, you can get errors
    from the linker about multiply defined libraries.
 
-@*/
+ */
 int MPIR_Init(argc,argv)
 int  *argc;
 char ***argv;
@@ -198,6 +198,10 @@ char ***argv;
 	/* Cause extra state to be remembered */
 	MPIR_being_debugged = 1;
 	
+	/* Link in the routine that contains info on the location of
+	   the message queue DLL */
+	MPIR_Msg_queue_export();
+
 	if (MPIR_proctable)
 	{
 	    for (i=0; i<MPID_MyWorldSize; i++)
@@ -284,7 +288,7 @@ char ***argv;
     MPIR_Errhandler_mark( MPI_ERRORS_ARE_FATAL, 1 );
     MPIR_COMM_WORLD->ref_count	   = 1;
     MPIR_COMM_WORLD->permanent	   = 1;
-    MPID_CommInit( (struct MPIR_COMMUNICATOR *)0, MPIR_COMM_WORLD );
+    (void)MPID_CommInit( (struct MPIR_COMMUNICATOR *)0, MPIR_COMM_WORLD );
 
     MPIR_Attr_create_tree ( MPIR_COMM_WORLD );
     MPIR_COMM_WORLD->comm_cache	   = 0;
@@ -395,7 +399,7 @@ char ***argv;
     MPIR_Errhandler_mark( MPI_ERRORS_ARE_FATAL, 1 );
     MPIR_COMM_SELF->ref_count	      = 1;
     MPIR_COMM_SELF->permanent	      = 1;
-    MPID_CommInit( MPIR_COMM_WORLD, MPIR_COMM_SELF );
+    (void)MPID_CommInit( MPIR_COMM_WORLD, MPIR_COMM_SELF );
     MPIR_Attr_create_tree ( MPIR_COMM_SELF );
     MPIR_COMM_SELF->comm_cache	      = 0;
     MPIR_Comm_make_coll ( MPIR_COMM_SELF, MPIR_INTRA );
@@ -466,6 +470,7 @@ char ***argv;
 			}
 		    }
 #endif
+#ifdef FOO
 #if defined(MPE_USE_EXTENSIONS) && !defined(MPI_NO_MPEDBG)
 		else if (strcmp((*argv)[i],"-mpedbg" ) == 0) {
 		    MPE_Errors_call_dbx_in_xterm( (*argv)[0], (char *)0 ); 
@@ -480,13 +485,18 @@ char ***argv;
 		    (*argv)[i] = 0;
 		    }
 #endif
-#ifdef MPID_HAS_PROC_INFO
+#endif
 		else if (strcmp((*argv)[i],"-mpichtv" ) == 0) {
 		    (*argv)[i] = 0; /* Eat it up so the user doesn't see it */
 
 		    /* Cause extra state to be remembered */
 		    MPIR_being_debugged = 1;
 
+/* As per Jim Cownie's request #3683; allows debugging even if this startup
+   code should not be used. */
+/* The real answer is to use a different definition for this, since
+   stop-when-starting-for-debugger is different from HAS_PROC_INFO */
+#ifdef MPID_HAS_PROC_INFO
 		    /* Check to see if we're not the master,
 		     * and wait for the debugger to attach if we're 
 		     * a slave. The debugger will reset the debug_gate.
@@ -505,6 +515,7 @@ char ***argv;
 				    &timeout );
 			}
 		    }
+#endif
 		}
 		else if (strcmp((*argv)[i],"-mpichksq") == 0) {
                   /* This tells us to Keep Send Queues so that we 
@@ -514,7 +525,6 @@ char ***argv;
 	          MPIR_being_debugged = 1;
 	        }
 	      
-#endif
 #ifdef MPIR_PTRDEBUG
 		else if (strcmp((*argv)[i],"-mpiptrs") == 0) {
 		    MPIR_Dump_Mem = 1;

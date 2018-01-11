@@ -1,12 +1,13 @@
 #  (C) 1993 by Argonne National Laboratory and Mississipi State University.
 #
 
-MPIR_HOME = @MPIR_HOME@
-OPTFLAGS  = @OPTFLAGS@
-CLINKER   = $(CC)
+MPE_DIR     = @MPE_HOME@
+OPTFLAGS    = @OPTFLAGS@
+CLINKER     = $(CC)
+INCLUDE_DIR = @INCLUDEDIR@ -I$(MPE_DIR)
 
 EXECS = wrappergen write_proto
-MPI_PROTO = '-DPROTO_FILE="$(MPIR_HOME)/profiling/wrappergen/mpi_proto"'
+MPI_PROTO = '-DPROTO_FILE="$(MPE_DIR)/profiling/wrappergen/mpi_proto"'
 
 CFLAGS = $(OPTFLAGS) $(INCLUDE_DIR)
 default: wrappergen

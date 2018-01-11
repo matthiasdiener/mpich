@@ -1,4 +1,4 @@
-/**\ --MPE_Log--
+[/**\ --MPE_Log--
 *  * mpe_log_merge.c - routines for performing a parallel merge of
 *  *                   all the data logged by each process
 *  *
@@ -60,6 +60,7 @@ FILE *fp;
 
   if (MPE_Log_procid == 0) {
       char title[101];
+#define FULL_TITLE
 #ifdef FULL_TITLE
       struct passwd *pw;
       int    ln;

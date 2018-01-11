@@ -11,9 +11,7 @@
 #include "protofix.h"
 #endif
 
-int main( argc, argv )
-int argc;
-char **argv;
+int main( int argc, char **argv )
 {
     int          nsize, n2size;
     MPI_Aint     nlb, nub, n2lb, n2ub;

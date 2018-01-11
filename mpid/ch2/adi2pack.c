@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2pack.c,v 1.2 1997/10/06 18:30:50 gropp Exp $
+ *  $Id: adi2pack.c,v 1.3 1998/11/28 22:08:52 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -139,6 +139,8 @@ MPID_Msg_pack_t msgact;
  * (dest/position) with total size maxcount bytes.  The next byte
  * to write is offset by position into dest.  This is a change from
  * MPICH 1.1.0 .
+ *
+ * Note also that msgrep is ignored.
  */
 void MPID_Pack( src, count, dtype_ptr, dest, maxcount, position, 
            comm_ptr, partner, msgrep, msgact, error_code )

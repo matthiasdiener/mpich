@@ -472,7 +472,7 @@ struct p4_procgroup *pg;
 	    p4_error("create_bm_processes listener fork", listener_pid);
 	if (listener_pid == 0)
 	{
-	    sprintf(whoami_p4, "bm_list_%d", getpid());
+	    sprintf(whoami_p4, "bm_list_%d", (int)getpid());
 	    /* Inside listener */
 	    p4_local = alloc_local_listener();
 	    l->listening_fd = listener_fd;

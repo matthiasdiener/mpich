@@ -1,5 +1,5 @@
 AC_INIT(src/comm.h)
-AC_CONFIG_HEADER(src/config.h)
+AC_CONFIG_HEADER(src/mpi2c++_config.h)
 
 #
 # Configure script for MPI C++ Bindings.
@@ -49,6 +49,7 @@ BALKY_LDFLAGS=
 # Compiler flags
 #
 
+NOOPT=
 OPTFLAGS="-O"
 EXAM_OPTFLAGS=$OPTFLAGS
 TEST_OPTFLAGS=$OPTFLAGS
@@ -78,13 +79,12 @@ FORCE_EXFLAGS=
 AC_CANONICAL_HOST
 case "$host" in
     *-hp-hpux*)
-        EXTRA_CXXFLAGS="-w"
+        EXTRA_CXXFLAGS="+W829"
         CXXFLAGS="$CXXFLAGS $EXTRA_CXXFLAGS"
 	EXFLAGS="+eh"
 
-        AC_DEFINE(BAD_INLINING, 1)
-
-        OPTFLAGS="+O1"
+        NOOPT="-Wl,+vnocompatwarnings"
+        OPTFLAGS="+O1 -Wl,+vnocompatwarnings"
         EXAM_OPTFLAGS=$OPTFLAGS
         TEST_OPTFLAGS=$OPTFLAGS
 
@@ -235,9 +235,14 @@ if test "$MPI_IMP" = "mpich"; then
 	mv1=`grep 'PATCHLEVEL_SUBMINOR' $WITHDIR/include/patchlevel.h | awk '{print $3}'`
 	MPICH_VERSION="$MPICH_VERSION.$mv1."
 
+	MPILIB_DIR=$WITHDIR/$MPICH_DEV
+
 	if test "$MPICH_VERSION" = "1.1.1."; then
 	    AC_DEFINE(MPICH111)
-	    AC_MSG_RESULT([1.1.1 (good)])
+	    AC_MSG_RESULT([1.1.1 (you should upgrade)])
+	elif test "$MPICH_VERSION" = "1.1.2."; then
+	    AC_DEFINE(MPICH112)
+	    AC_MSG_RESULT([1.1.2 (good)])
 	else
 	    AC_DEFINE(MPICH)
 	    AC_MSG_RESULT([unrecognized MPICH level -- good luck!])
@@ -253,14 +258,22 @@ if test "$MPI_IMP" = "mpich"; then
 	ARCH=`$WITHDIR/bin/tarch | sed s/-/_/g`
     fi
 
+    if test -d "$WITHDIR/lib"; then
+      MPICHLIBDIR=lib
+    elif test -d "$WITHDIR/build"; then
+      MPICHLIBDIR=build
+    else
+	AC_MSG_ERROR([could not find MPICH support for $ARCH])
+    fi
+
     if test ! "$MPICH_DEV" = ""; then
 	DEVICE=$MPICH_DEV
-    elif test -d "$WITHDIR/lib/$ARCH"; then
+    elif test -d "$WITHDIR/$MPICHLIBDIR/$ARCH"; then
 	echo "no MPICH device specified"
-	AC_MSG_CHECKING([checking for existing MPICH devices])
+	AC_MSG_CHECKING([for existing MPICH devices])
 	devices=""
-	for device in `/bin/ls $WITHDIR/lib/$ARCH`; do
-	    if test -d $WITHDIR/lib/$ARCH/$device; then
+	for device in `/bin/ls $WITHDIR/$MPICHLIBDIR/$ARCH`; do
+	    if test -d $WITHDIR/$MPICHLIBDIR/$ARCH/$device; then
 		devices="$device $devices"
 	    fi
 	done
@@ -286,32 +299,45 @@ if test "$MPI_IMP" = "mpich"; then
 		read DEVICE
 		DEVICE=`echo "$DEVICE" | sed -e 's/^[	]*//' -e 's/[	]*$//'`
 
-		if test ! -d "$WITHDIR/lib/$ARCH/$DEVICE"; then
+		if test ! -d "$WITHDIR/$MPICHLIBDIR/$ARCH/$DEVICE"; then
 		    echo "$DEVICE MPICH device not found"
 		    DEVICE=0
 		fi
 	    done
 	fi
-	MPICH_DEV=lib/$ARCH/$DEVICE
+	MPICH_DEV=$MPICHLIBDIR/$ARCH/$DEVICE
+
+	# #$%^$#%^$@%@#%@#$!!!!!!!
+	# Don't ask.  Trust us.
+	# (the directory structure for MPICH changed between 1.1.1 and 1.1.2
+	if test "$MPICH_VERSION" = "1.1.2."; then
+	    MPICH_DEV=$MPICH_DEV/lib
+	fi
     else
 	AC_MSG_ERROR([could not find MPICH support for $ARCH])
     fi
     
     ARCH=$OLD_ARCH
 
-    if test "$MPICH_VERSION" = "1.1.1."; then
+    if test "$MPICH_VERSION" = "1.1.2."; then
+        MPI_CXX=$WITHDIR/$MPICH_DEV/../bin/mpiCC
+        CXX=$MPI_CXX
+        MPI_LIBS="-lmpich"
+    elif test "$MPICH_VERSION" = "1.1.1."; then
         MPI_CXX=$WITHDIR/$MPICH_DEV/mpiCC
         CXX=$MPI_CXX
+        MPI_LIBS="-lmpich"
     else
-	MPI_CXXFLAGS="-I$WITHDIR/include"
-	MPI_LDFLAGS="-L$WITHDIR/$MPICH_DEV"
-
-	MPI_LIBS="-lmpi"
-	if test "$ARCH" != "IRIX"; then
-	    WANT_SOCKET_LIBS=1
-	fi
-	WANT_THREAD_LIBS=1
+        MPI_LIBS="-lmpi"
     fi
+    # JGS not sure were these should go
+    MPI_CXXFLAGS="-I$WITHDIR/include"
+    MPI_LDFLAGS="-L$WITHDIR/$MPICH_DEV"
+
+    if test "$ARCH" != "IRIX"; then
+      WANT_SOCKET_LIBS=1
+    fi
+    WANT_THREAD_LIBS=1
 
 fi
 
@@ -412,18 +438,34 @@ if test "$MPI_IMP" = "sgi" -o "$MPI_IMP" = "sgi64"; then
         AC_MSG_WARN([*** You are advised to get the latest version of SGI's MPI])
         AC_MSG_WARN([*** See http://www.sgi.com/Products/Evaluation/evaluation.html])
     else
+
+      IS20=`strings $LIBDIR/libmpi.so | grep "SGI MPI 2.0"`
+      if test "$IS20" != ""; then    
+        AC_DEFINE(SGI20)
+        AC_MSG_RESULT([2.0 ($SGIBIT) (you should upgrade)])
+        AC_MSG_WARN([*** You are advised to get the latest version of SGI's MPI])
+        AC_MSG_WARN([*** See http://www.sgi.com/Products/Evaluation/evaluation.html])
+      else
+
         IS30=`strings $LIBDIR/libmpi.so | grep "SGI MPI 3.0"`
         if test "$IS30" != ""; then
             AC_DEFINE(SGI30)
-            AC_MSG_RESULT([3.0 ($SGIBIT -- good)])
+            AC_MSG_RESULT([3.0 ($SGIBIT -- you should upgrade)])
         else
-            VER=`strings $LIBDIR/libmpi.so | grep "SGI MPI"`
-            AC_DEFINE(SGIUNKNOWN)
-            
-            AC_MSG_RESULT([Unknown version ($SGIBIT) -- $VER (good luck)])
-        fi
-    fi
 
+          IS31=`strings $LIBDIR/libmpi.so | grep "SGI MPI 3.1"`
+          if test "$IS31" != ""; then
+              AC_DEFINE(SGI30)
+              AC_MSG_RESULT([3.1 ($SGIBIT -- good)])
+          else
+              VER=`strings $LIBDIR/libmpi.so | grep "SGI MPI"`
+              AC_DEFINE(SGIUNKNOWN)
+              
+              AC_MSG_RESULT([Unknown version ($SGIBIT) -- $VER (good luck)])
+          fi
+        fi
+      fi
+    fi
     MPI_CXXFLAGS="$SGIFLAGS"
     MPI_LDFLAGS="$SGIFLAGS"
 fi
@@ -486,12 +528,15 @@ if test "$MPI_IMP" = "hp"; then
 	HPVER=`echo $HPSTR | cut -d. -f2-3`
         if test "$HPVER" = "01.02"; then
                 AC_DEFINE(HPUX0102)
-                AC_MSG_RESULT([1.2 (good)])
+                AC_MSG_RESULT([1.2 (you should upgrade)])
 	else
 		HPVER=`echo "$HPSTR" | sed -e "s/[[^0-9\.]]*//" | cut -c1-5`
                	if test "$HPVER" = "01.03"; then
 			AC_DEFINE(HPUX0103)
-			AC_MSG_RESULT([1.3 (cross your fingers)])
+			AC_MSG_RESULT([1.3 (good )])
+                elif test "$HPVER" = "01.05"; then
+                        AC_DEFINE(HPUX0105)
+                        AC_MSG_RESULT([1.5 (good)])
 		else
                 	AC_DEFINE(HPUNKNOWN)
                 	AC_MSG_RESULT([Unknown version -- $HPVER (good luck)])
@@ -524,7 +569,7 @@ if test "$MPI_IMP" = "supplied-topdir"; then
     fi
 
     MPI_CXXFLAGS="-I$MPIDIR/include"
-    MPI_LDFLAGS="-L$MPIDIR/lib"
+    MPI_LDFLAGS="-L$WITHDIR/$MPICHLIBDIR"
     MPI_LIBS="-lmpi"
     WANT_SOCKET_LIBS=1
 fi
@@ -599,10 +644,24 @@ AC_MSG_CHECKING([for compiler exception flags])
 if test "$FORCE_EXFLAGS" != ""; then
     EXFLAGS=$FORCE_EXFLAGS
 elif test "$GXX" = "yes"; then
-    EXFLAGS="-fhandle-exceptions"
+    CXXFLAGS_SAVE=$CXXFLAGS
+    CXXFLAGS="$CXXFLAGS -fexceptions"
+    AC_TRY_COMPILE(, [try { int i = 0; } catch(...) { int j = 2; }], HAPPY=1, HAPPY=0)
+
+    if test "$HAPPY" = "1"; then
+	EXFLAGS="-fexceptions";
+    else
+	CXXFLAGS="$CXXFLAGS_SAVE -fhandle-exceptions"
+	AC_TRY_COMPILE(, [try { int i = 0; } catch(...) { int j = 2; }], HAPPY=1, HAPPY=0)
+	if test "$HAPPY" = "1"; then
+	    EXFLAGS="-fhandle-exceptions";
+	fi
+    fi
+    AC_DEFINE(G_PLUS_PLUS, 1)
 elif test "$CXX" = "KCC" -o "$LAMHCP" = "KCC"; then
     EXFLAGS="-x"
 fi
+CXXFLAGS=$CXXFLAGS_SAVE
 
 EXCPTN_CXXFLAGS=$EXFLAGS
 CXXFLAGS="$EXFLAGS $CXXFLAGS"
@@ -618,9 +677,16 @@ fi
 # Check to see if this compiler can handle exceptions 
 #
 
+# Since our errhandling test in the testsuite fails
+# when compiling with g++ (both 2.8 and with egcs)
+# we'll specify no exceptions for g++
+
 AC_MSG_CHECKING([for throw/catch])
 AC_TRY_COMPILE(, int i=1; throw(i);, have_excep=yes, have_excep=no)
-if test "$have_excep" = "yes"; then
+if test "$GXX" = "yes"; then
+    AC_DEFINE(_MPIPP_USEEXCEPTIONS_, 0)
+    AC_MSG_RESULT([no (g++ exceptions broken)])
+elif test "$have_excep" = "yes"; then
     AC_DEFINE(_MPIPP_USEEXCEPTIONS_, 1)
     AC_MSG_RESULT([yes])
 else
@@ -700,7 +766,7 @@ fi
 # Override optimization flags, if supplied
 #
 
-AC_ARG_WITH(noopt,	[--without-opt		Compile with no optimization (for debugging)], OPTFLAGS="" TEST_OPTFLAGS="" EXAM_OPTFLAGS="")
+AC_ARG_WITH(noopt,	[--without-opt		Compile with no optimization (for debugging)], OPTFLAGS="$NOOPT" TEST_OPTFLAGS="$NOOPT" EXAM_OPTFLAGS="$NOOPT")
 AC_ARG_WITH(libopt,     [--with-libopt		Opt flags for use when compiling libmpi++.a], OPTFLAGS=$withval)
 AC_ARG_WITH(testopt,    [--with-testopt		Opt flags for use when compiling test suite], TEST_OPTFLAGS=$withval)
 AC_ARG_WITH(examopt,    [--with-examopt		Opt flags for use when compiling examples], EXAM_OPTFLAGS=$withval)
@@ -754,7 +820,13 @@ case "$host" in
             AC_MSG_WARN([overriding buggy AIX $INSTALL... ./install-sh -c])
             INSTALL="./install-sh -c"
         fi
+
+	AC_DEFINE(MPI2CPP_AIX, 1)
         ;;
+
+    *aix*)
+	AC_DEFINE(MPI2CPP_AIX, 1)
+	;;
 esac
 AC_PROG_RANLIB
 AC_CHECK_PROG(AR, ar, ar, ;)
@@ -772,7 +844,8 @@ AC_PATH_PROG(BINSH, sh)
 AC_MSG_CHECKING([for bool type])
 AC_TRY_COMPILE(#include <sys/types.h>
 #include <stdlib.h>
-, bool testme;, bool_found=yes, bool_found=no)
+, bool testme; testme = true; testme = false; testme = true ? false : true;
+, bool_found=yes, bool_found=no)
 if test "$bool_found" = "yes"; then
     AC_DEFINE(HAVE_BOOL, 1)
     BOOL_TYPE="bool"
@@ -840,20 +913,25 @@ AC_MSG_CHECKING([for signal declaration])
 AC_TRY_COMPILE(#include<signal.h>
 , 
 void handler(int sig, int code, struct sigcontext *scp, char *addr);
-signal(1, handler);, bsd_signal="yes", bsd_signal="no")
+signal(1, handler);
+  struct sigaction n;
+  n.sa_handler= (signal_handler) handler;
+  n.sa_mask= 0;
+  n.sa_flags= 0;
+, bsd_signal="yes", bsd_signal="no")
 if test "$bsd_signal" = "yes"; then
     AC_DEFINE(MPI2CPP_BSD_SIGNAL, 1)
     AC_MSG_RESULT([BSD])
 else
-
 #
 # Sanity check.  Make sure that it is SYSV
 #
 
-    AC_TRY_COMPILE(#include<signal.h>
+AC_TRY_COMPILE(#include<signal.h>
+void handler(int sig) {};
 , 
-void handler(int sig);
-signal(1, handler);, sysv_signal="yes", sysv_signal="no")
+signal(1, handler);
+, sysv_signal="yes", sysv_signal="no")
     if test "$sysv_signal" = "yes"; then
         AC_DEFINE(MPI2CPP_SYSV_SIGNAL, 1)
         AC_MSG_RESULT([SYSV])
@@ -863,7 +941,6 @@ signal(1, handler);, sysv_signal="yes", sysv_signal="no")
         exit
     fi
 fi
-
 
 #
 #  Check for namespaces
@@ -887,7 +964,8 @@ namespace N {
   extern const int global;
   class foo {
     //g++ does not like :: operator for global scope
-    friend void ::blah();
+    // but I think I can work around this
+    //    friend void ::blah();
   public:
     int foobar();
   };
@@ -1058,7 +1136,7 @@ fi
 
 AC_MSG_CHECKING([for optional C constants])
 AC_TRY_COMPILE(#include <mpi.h>
-, MPI_Datatype d = MPI_UNSIGNED_LONG_LONG;, c_found=yes, c_found=no)
+, MPI_Datatype d = MPI_UNSIGNED_LONG_LONG; MPI_Datatype d = MPI_LONG_LONG;, c_found=yes, c_found=no)
 if test "$c_found" = "yes"; then
     AC_DEFINE(OPTIONAL_C, 1)
     AC_MSG_RESULT([yes])
@@ -1072,6 +1150,10 @@ fi
 #
 
 AC_SUBST(VERSION)
+
+AC_SUBST(MPI_CXX)
+AC_SUBST(MPILIB_DIR)
+
 
 AC_SUBST(INSTALL)
 AC_SUBST(AR)

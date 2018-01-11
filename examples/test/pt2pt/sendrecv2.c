@@ -9,9 +9,7 @@
    It needs gcomm and dtype from mpich/tsuite, and can be run with 
    any number of processes > 1.
  */
-int main(argc, argv)
-int argc;
-char **argv;
+int main( int argc, char **argv)
 {
 MPI_Datatype *types;
 void         **inbufs, **outbufs;
