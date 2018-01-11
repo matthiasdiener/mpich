@@ -20,15 +20,19 @@ long g_nHosts = 1;
 int g_nNproc = 1;
 char g_pszAccount[100], g_pszPassword[100];
 bool g_bNoMPI = false;
-char g_pszExe[MAX_PATH] = "", g_pszArgs[MAX_PATH] = "", g_pszEnv[1024] = "";
+char g_pszExe[MAX_CMD_LENGTH] = "", g_pszArgs[MAX_CMD_LENGTH] = "", g_pszEnv[MAX_CMD_LENGTH] = "";
 char g_pszDir[MAX_PATH] = "";
-char g_pszExeOrig[MAX_PATH] = "";
-char g_pszFirstHost[100] = "";
+char g_pszExeOrig[MAX_CMD_LENGTH] = "";
+char g_pszFirstHost[MAX_HOST_LENGTH] = "";
 HANDLE g_hFinishedEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 HANDLE g_hConsoleOutputMutex = CreateMutex(NULL, FALSE, NULL);
-char g_pszIOHost[100];
+char g_pszIOHost[MAX_HOST_LENGTH];
 int g_nIOPort;
 bool g_bDoMultiColorOutput = true;
+bool g_bUseJobHost = false;
+char g_pszJobHost[MAX_HOST_LENGTH] = "";
+bool g_bUseJobMPDPwd = false;
+char g_pszJobHostMPDPwd[100];
 
 WORD g_ConsoleAttribute;
 WORD aConsoleColorAttribute[NUM_OUTPUT_COLORS] = {

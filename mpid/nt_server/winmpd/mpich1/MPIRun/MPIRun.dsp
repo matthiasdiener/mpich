@@ -100,6 +100,10 @@ SOURCE=.\global.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\job.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\LaunchProcess.cpp
 # End Source File
 # Begin Source File

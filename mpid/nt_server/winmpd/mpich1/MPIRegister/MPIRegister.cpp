@@ -38,7 +38,7 @@ void main(int argc, char *argv[])
 			index++;
 			ch = getch();
 		}
-		password[index] = 0;
+		password[index] = '\0';
 		
 		printf("\nconfirm: ");
 		fflush(stdout);
@@ -50,6 +50,8 @@ void main(int argc, char *argv[])
 			index++;
 			ch = getch();
 		}
+		confirm[index] = '\0';
+
 		if (strcmp(password, confirm) == 0)
 			done = true;
 		else

@@ -60,6 +60,14 @@ MPICH_BNR_API int BNR_Init( void );
 MPICH_BNR_API int BNR_Finalize( void );
 
 
+  /* ***
+ *** New functions used in mpid/ch_p4mpd/p4mpd/lib/p4_bm.c
+ *** */
+int BNR_Pre_init( void ( * ) ( char * ) );
+int BNR_Man_msgs_fd( int * );
+int BNR_Poke_peer( int, int, char * );
+
+
 /*******************************************************
  * Group management functions
  *

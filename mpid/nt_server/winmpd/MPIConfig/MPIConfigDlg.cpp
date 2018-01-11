@@ -10,12 +10,18 @@
 #include <tchar.h>
 #include "RegistrySettingsDialog.h"
 #include "PwdDialog.h"
+#include "qvs.h"
+#include "FindHostsDlg.h"
+#include "mpdutil.h"
+#include "ConnectToHost.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #endif
+
+#define DEFAULT_LAUNCH_TIMEOUT 7
 
 /////////////////////////////////////////////////////////////////////////////
 // CMPIConfigDlg dialog
@@ -26,11 +32,17 @@ CMPIConfigDlg::CMPIConfigDlg(CWnd* pParent /*=NULL*/)
     m_bNeedPassword = false;
     //{{AFX_DATA_INIT(CMPIConfigDlg)
     m_hostname = _T("");
-	m_domain = _T("");
-	m_static = _T("domain\r\nblank = default");
+	m_password = _T("");
+	m_bHostsChk = TRUE;
+	m_nLaunchTimeout = DEFAULT_LAUNCH_TIMEOUT;
+	m_bTempChk = FALSE;
+	m_pszTempDir = _T("C:\\");
+	m_bLaunchTimeoutChk = FALSE;
+	m_host_config = _T("");
+	m_bShowHostConfig = FALSE;
 	//}}AFX_DATA_INIT
     m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
-    m_hFindThread = NULL;
+    m_hSetBtnThread = NULL;
     m_nMinWidth = -1;
     m_nMinHeight = -1;
 }
@@ -39,19 +51,42 @@ void CMPIConfigDlg::DoDataExchange(CDataExchange* pDX)
 {
     CDialog::DoDataExchange(pDX);
     //{{AFX_DATA_MAP(CMPIConfigDlg)
-	DDX_Control(pDX, IDC_DOMAIN, m_domain_edit);
-	DDX_Control(pDX, IDC_STATIC_EDIT, m_static_edit);
+	DDX_Control(pDX, IDC_SET_ONE_BTN, m_set_one_btn);
+	DDX_Control(pDX, IDC_APPLY_ONE_STATIC, m_apply_one_static);
+	DDX_Control(pDX, IDC_SHOW_HOST_CHK, m_show_host_chk);
+	DDX_Control(pDX, IDC_HOST_CONFIG, m_host_config_edit);
+	DDX_Control(pDX, IDC_STOPLIGHT_YELLOW, m_stoplight_yellow);
+	DDX_Control(pDX, IDC_STOPLIGHT_GREEN, m_stoplight_green);
+	DDX_Control(pDX, IDC_STOPLIGHT_RED, m_stoplight_red);
+	DDX_Control(pDX, IDC_TIMEOUT_CHK, m_launch_chk);
+	DDX_Control(pDX, IDC_TEMP_CHK, m_temp_chk);
+	DDX_Control(pDX, IDC_HOSTS_CHK, m_hosts_chk);
+	DDX_Control(pDX, IDC_TWO_STATIC, m_two_static);
+	DDX_Control(pDX, IDC_THREE_STATIC, m_three_static);
+	DDX_Control(pDX, IDC_TEMP_STATIC, m_temp_static);
+	DDX_Control(pDX, IDC_PWD_STATIC, m_pwd_static);
+	DDX_Control(pDX, IDC_PHRASE_STATIC, m_phrase_static);
+	DDX_Control(pDX, IDC_ONE_STATIC, m_one_static);
+	DDX_Control(pDX, IDC_APPLY_STATIC, m_apply_static);
+	DDX_Control(pDX, IDC_TEMP_EDIT, m_TempEdit);
+	DDX_Control(pDX, IDC_LAUNCH_TIMEOUT, m_LaunchTimeoutEdit);
+	DDX_Control(pDX, IDC_PASSWORD, m_pwd_ctrl);
 	DDX_Control(pDX, IDOK, m_ok_btn);
 	DDX_Control(pDX, IDCANCEL, m_cancel_btn);
 	DDX_Control(pDX, IDC_EDIT_ADD_BTN, m_edit_add_btn);
     DDX_Control(pDX, IDC_HOST_LIST, m_host_list);
     DDX_Control(pDX, IDC_SET_BTN, m_set_btn);
-    DDX_Control(pDX, IDC_REFRESH_BTN, m_refresh_btn);
-    DDX_Control(pDX, IDC_FIND_BTN, m_find_btn);
-    DDX_Control(pDX, IDC_LIST, m_list);
     DDX_Text(pDX, IDC_HOSTNAME, m_hostname);
-	DDX_Text(pDX, IDC_DOMAIN, m_domain);
-	DDX_Text(pDX, IDC_STATIC_EDIT, m_static);
+	DDX_Text(pDX, IDC_PASSWORD, m_password);
+	DDX_Check(pDX, IDC_HOSTS_CHK, m_bHostsChk);
+	DDX_Text(pDX, IDC_LAUNCH_TIMEOUT, m_nLaunchTimeout);
+	DDV_MinMaxInt(pDX, m_nLaunchTimeout, 1, 1000);
+	DDX_Check(pDX, IDC_TEMP_CHK, m_bTempChk);
+	DDX_Text(pDX, IDC_TEMP_EDIT, m_pszTempDir);
+	DDX_Check(pDX, IDC_TIMEOUT_CHK, m_bLaunchTimeoutChk);
+	DDX_Text(pDX, IDC_HOST_CONFIG, m_host_config);
+	DDX_Check(pDX, IDC_SHOW_HOST_CHK, m_bShowHostConfig);
+	DDX_Control(pDX, IDC_DEFAULT_RADIO, m_default_radio);
 	//}}AFX_DATA_MAP
 }
 
@@ -59,13 +94,19 @@ BEGIN_MESSAGE_MAP(CMPIConfigDlg, CDialog)
 //{{AFX_MSG_MAP(CMPIConfigDlg)
 ON_WM_PAINT()
 ON_WM_QUERYDRAGICON()
-ON_BN_CLICKED(IDC_FIND_BTN, OnFindBtn)
-ON_BN_CLICKED(IDC_REFRESH_BTN, OnRefreshBtn)
 ON_BN_CLICKED(IDC_SET_BTN, OnSetBtn)
 ON_BN_CLICKED(IDC_EDIT_ADD_BTN, OnEditAddBtn)
 	ON_WM_VKEYTOITEM()
 	ON_WM_CLOSE()
 	ON_WM_SIZE()
+	ON_BN_CLICKED(IDC_PHRASE_RADIO, OnPhraseRadio)
+	ON_BN_CLICKED(IDC_DEFAULT_RADIO, OnDefaultPwdRadio)
+	ON_BN_CLICKED(IDC_TEMP_CHK, OnTempChk)
+	ON_BN_CLICKED(IDC_TIMEOUT_CHK, OnTimeoutChk)
+	ON_BN_CLICKED(IDC_SHOW_HOST_CHK, OnShowHostChk)
+	ON_LBN_SELCHANGE(IDC_HOST_LIST, OnSelchangeHostList)
+	ON_BN_CLICKED(IDC_SET_ONE_BTN, OnSetOneBtn)
+	ON_BN_CLICKED(IDC_SELECT_BTN, OnSelectBtn)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -106,6 +147,7 @@ void CMPIConfigDlg::ParseRegistry()
 
 BOOL CMPIConfigDlg::OnInitDialog()
 {
+    //HWND hWnd;
     CDialog::OnInitDialog();
     
     SetIcon(m_hIcon, TRUE);			// Set big icon
@@ -119,21 +161,25 @@ BOOL CMPIConfigDlg::OnInitDialog()
     m_nMinWidth = r.right;
     m_nMinHeight = r.bottom;
 
+    r1Static.SetInitialPosition(m_one_static.m_hWnd, RSR_STRETCH_BOTTOM);
     rList.SetInitialPosition(m_host_list.m_hWnd, RSR_STRETCH_BOTTOM);
-    rOk.SetInitialPosition(m_ok_btn.m_hWnd, RSR_ANCHOR_RIGHT);
-    rCancel.SetInitialPosition(m_cancel_btn.m_hWnd, RSR_ANCHOR_RIGHT);
-    rBox.SetInitialPosition(m_list.m_hWnd, RSR_STRETCH);
-    rFind.SetInitialPosition(m_find_btn.m_hWnd, RSR_MOVE);
-    rRefresh.SetInitialPosition(m_refresh_btn.m_hWnd, RSR_MOVE);
-    rDomain.SetInitialPosition(m_domain_edit.m_hWnd, RSR_ANCHOR_BOTTOM);
-    rStatic.SetInitialPosition(m_static_edit.m_hWnd, RSR_ANCHOR_BOTTOM);
+    rOk.SetInitialPosition(m_ok_btn.m_hWnd, RSR_MOVE);
+    rCancel.SetInitialPosition(m_cancel_btn.m_hWnd, RSR_MOVE);
+    rHostConfig.SetInitialPosition(m_host_config_edit.m_hWnd, RSR_STRETCH);
+
+    m_TempEdit.EnableWindow(FALSE);
+    m_LaunchTimeoutEdit.EnableWindow(FALSE);
+    m_host_config_edit.EnableWindow(FALSE);
+
+    m_default_radio.SetCheck(1);
+    m_pwd_ctrl.EnableWindow(FALSE);
+
+    SetRedLight();
 
     char host[100] = "";
     gethostname(host, 100);
     m_hostname = host;
     UpdateData(FALSE);
-
-    OnRefreshBtn();
 
     return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -172,319 +218,157 @@ HCURSOR CMPIConfigDlg::OnQueryDragIcon()
     return (HCURSOR) m_hIcon;
 }
 
-struct FindThreadSingleArg
-{
-    CListBox *list;
-    int i;
-    HWND hWnd;
-    int port;
-    char phrase[100];
-};
-
-HANDLE g_hMutex = CreateMutex(NULL, FALSE, NULL);
-
-int WriteString(int bfd, char *str)
-{
-    return beasy_send(bfd, str, strlen(str)+1);
-}
-
-bool ReadString(int bfd, char *str)
-{
-    int n;
-    do {
-	n = 0;
-	while (!n)
-	{
-	    n = bread(bfd, str, 1);
-	    if (n == SOCKET_ERROR)
-	    {
-		printf("ReadString[%d] failed, error %d\n", bget_fd(bfd), WSAGetLastError());
-		return false;
-	    }
-	}
-    } while (*str++ != '\0');
-    return true;
-}
-
-bool ConnectToHost(char *host, int port, char *pwd, int *pbfd)
-{
-    int bfd;
-    char str[100];
-    char phrase[100];
-    char *result;
-    
-    strcpy(phrase, pwd);
-    
-    if (beasy_create(&bfd, 0, INADDR_ANY) == SOCKET_ERROR)
-    {
-	printf("beasy_create failed: %d\n", WSAGetLastError());fflush(stdout);
-	return false;
-    }
-    //printf("connecting to %s:%d\n", host, arg->port);fflush(stdout);
-    if (beasy_connect(bfd, host, port) == SOCKET_ERROR)
-    {
-	printf("beasy_connect failed: %d\n", WSAGetLastError());fflush(stdout);
-	beasy_closesocket(bfd);
-	return false;
-    }
-    if (!ReadString(bfd, str))
-    {
-	printf("reading prepend string failed.\n");fflush(stdout);
-	beasy_closesocket(bfd);
-	return false;
-    }
-    strcat(phrase, str);
-    WaitForSingleObject(g_hMutex, INFINITE);
-    result = crypt(phrase, MPD_SALT_VALUE);
-    strcpy(str, result);
-    ReleaseMutex(g_hMutex);
-    if (WriteString(bfd, str) == SOCKET_ERROR)
-    {
-	printf("WriteString of the crypt string failed: %d\n", WSAGetLastError());fflush(stdout);
-	beasy_closesocket(bfd);
-	return false;
-    }
-    if (!ReadString(bfd, str))
-    {
-	printf("reading authentication result failed.\n");fflush(stdout);
-	beasy_closesocket(bfd);
-	return false;
-    }
-    if (strcmp(str, "SUCCESS"))
-    {
-	printf("authentication request failed.\n");fflush(stdout);
-	beasy_closesocket(bfd);
-	return false;
-    }
-    if (WriteString(bfd, "console") == SOCKET_ERROR)
-    {
-	printf("WriteString failed after attempting passphrase authentication: %d\n", WSAGetLastError());fflush(stdout);
-	beasy_closesocket(bfd);
-	return false;
-    }
-    //printf("connected\n");fflush(stdout);
-    *pbfd = bfd;
-    return true;
-}
-
-void FindThreadSingle(FindThreadSingleArg *arg)
-{
-    TCHAR host[100];
-    char str[100];
-    int bfd;
-    
-    if (arg->list->GetText(arg->i, host) == LB_ERR)
-    {
-	::PostMessage(arg->hWnd, WM_USER+1, arg->i, FALSE);
-	delete arg;
-	return;
-    }
-    
-    ::PostMessage(arg->hWnd, WM_USER+1, arg->i, TRUE);
-    
-    if (!ConnectToHost(host, arg->port, arg->phrase, &bfd))
-    {
-	::PostMessage(arg->hWnd, WM_USER+1, arg->i, FALSE);
-	delete arg;
-	return;
-    }
-    
-    if (WriteString(bfd, "version") == SOCKET_ERROR)
-    {
-	printf("WriteString failed after attempting passphrase authentication: %d\n", WSAGetLastError());fflush(stdout);
-	beasy_closesocket(bfd);
-	::PostMessage(arg->hWnd, WM_USER+1, arg->i, FALSE);
-	delete arg;
-	return;
-    }
-    if (!ReadString(bfd, str))
-    {
-	::PostMessage(arg->hWnd, WM_USER+1, arg->i, FALSE);
-	delete arg;
-	return;
-    }
-    WriteString(bfd, "done");
-    beasy_closesocket(bfd);
-    
-    ::PostMessage(arg->hWnd, WM_USER+1, -1, FALSE);
-    delete arg;
-}
-
-void CMPIConfigDlg::OnFindBtn() 
-{
-    HCURSOR hOldCursor = SetCursor( LoadCursor(NULL, IDC_WAIT) );
-    
-    m_find_btn.EnableWindow(FALSE);
-    m_refresh_btn.EnableWindow(FALSE);
-    m_set_btn.EnableWindow(FALSE);
-    m_edit_add_btn.EnableWindow(FALSE);
-    
-    DWORD count = m_list.GetCount();
-    m_num_threads = count;
-
-    if (count < 1)
-    {
-	SetCursor(hOldCursor);
-	return;
-    }
-
-    if (m_bNeedPassword)
-    {
-	CPwdDialog dlg;
-	dlg.DoModal();
-	if (dlg.m_bUseDefault)
-	    strcpy(m_pszPhrase, MPD_DEFAULT_PASSPHRASE);
-	else
-	    strcpy(m_pszPhrase, dlg.m_password);
-    }
-
-    for (DWORD i=0; i<count; i++)
-    {
-	DWORD dwThreadID;
-	FindThreadSingleArg *arg = new FindThreadSingleArg;
-	arg->hWnd = m_hWnd;
-	arg->list = &m_list;
-	arg->i = i;
-	arg->port = m_nPort;
-	if (strlen(m_pszPhrase) < 100)
-	    strcpy(arg->phrase, m_pszPhrase);
-	else
-	    arg->phrase[0] = '\0';
-	CloseHandle(CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)FindThreadSingle, arg, 0, &dwThreadID));
-    }
-    
-    SetCursor(hOldCursor);
-}
-
-#include <lmerr.h>
-#include <lmcons.h>
-#include <lmapibuf.h>
-#include <lmserver.h>
-
-#ifndef LMCSTR
-#define LMCSTR LPCWSTR
-#endif
-
-void CMPIConfigDlg::OnRefreshBtn() 
-{
-    DWORD num_read=0, total=0, size;
-    int index;
-    SERVER_INFO_100 *pBuf = NULL;
-    WCHAR wBuffer[1024] = L"";
-    char tBuf[100], tLocalHost[100];
-    DWORD ret_val;
-
-    UpdateData();
-
-    HCURSOR hOldCursor = SetCursor( LoadCursor(NULL, IDC_WAIT) );
-    
-    if (m_domain == "")
-    {
-	ret_val = NetServerEnum(
-	    NULL, 
-	    100,
-	    (LPBYTE*)&pBuf,
-	    MAX_PREFERRED_LENGTH,
-	    &num_read,
-	    &total,
-	    SV_TYPE_NT, 
-	    NULL,
-	    0);
-    }
-    else
-    {
-	WCHAR wDomain[100];
-	mbstowcs(wDomain, m_domain, 100);
-	ret_val = NetServerEnum(
-	    NULL, 
-	    100,
-	    (LPBYTE*)&pBuf,
-	    MAX_PREFERRED_LENGTH,
-	    &num_read,
-	    &total,
-	    SV_TYPE_NT, 
-	    (LMCSTR)wDomain,
-	    0);
-    }
-    
-    if (ret_val == NERR_Success)
-    {
-	size = 100;
-	GetComputerName(tLocalHost, &size);
-	m_list.ResetContent();
-	if (num_read == 0)
-	{
-	    m_list.InsertString(-1, tLocalHost);
-	    m_list.SetSel(0);
-	}
-	else
-	{
-	    index = -1;
-	    for (unsigned int i=0; i<num_read; i++)
-	    {
-		wcstombs(tBuf, (WCHAR*)pBuf[i].sv100_name, wcslen((WCHAR*)pBuf[i].sv100_name)+1);
-		ret_val = m_list.InsertString(-1, tBuf);
-		if (stricmp(tBuf, tLocalHost) == 0)
-		    index = ret_val;
-	    }
-	    if (index != -1)
-		m_list.SetSel(index);
-	}
-	NetApiBufferFree(pBuf);
-    }
-    else
-    {
-	sprintf(tBuf, "error: %d", ret_val);
-	MessageBox(tBuf, "Unable to retrieve network host names");
-    }
-    
-    SetCursor(hOldCursor);
-}
-
-void CMPIConfigDlg::OnSetBtn()
+void SetBtnThread(CMPIConfigDlg *pDlg)
 {
     int i;
-    int num_hosts = m_host_list.GetCount();
+    int num_hosts;
     char pszStr[4096];
     char hoststring[4096] = "";
     char host[100];
     int bfd;
+
+    num_hosts = pDlg->m_host_list.GetCount();
+    if (num_hosts == 0)
+    {
+	CloseHandle(pDlg->m_hSetBtnThread);
+	pDlg->m_hSetBtnThread = NULL;
+	return;
+    }
     
+    if (pDlg->m_bHostsChk == FALSE && pDlg->m_bTempChk == FALSE && pDlg->m_bLaunchTimeoutChk == FALSE)
+    {
+	CloseHandle(pDlg->m_hSetBtnThread);
+	pDlg->m_hSetBtnThread = NULL;
+	return;
+    }
+    
+    if (pDlg->m_bNeedPassword)
+    {
+	if (pDlg->m_bUseDefault)
+	    strcpy(pDlg->m_pszPhrase, MPD_DEFAULT_PASSPHRASE);
+	else
+	    strcpy(pDlg->m_pszPhrase, pDlg->m_password);
+    }
+
+    pDlg->SetYellowLight();
+
+    HCURSOR hOldCursor = SetCursor( LoadCursor(NULL, IDC_WAIT) );
+    PostMessage(pDlg->m_hWnd, WM_USER + 3, 0, 0);
+    
+    // Create the host list
+    QVS_Container qvs;
+    for (i=0; i<num_hosts; i++)
+    {
+	if (pDlg->m_host_list.GetText(i, host) == LB_ERR)
+	{
+	    pDlg->SetRedLight();
+	    SetCursor(hOldCursor);
+	    PostMessage(pDlg->m_hWnd, WM_USER + 4, 0, 0);
+	    CloseHandle(pDlg->m_hSetBtnThread);
+	    pDlg->m_hSetBtnThread = NULL;
+	    MessageBox(NULL, "GetText failed", "Error", MB_OK);
+	    return;
+	}
+	/*
+	strncat(hoststring, host, 4095 - strlen(hoststring));
+	if (i<num_hosts-1)
+	    strncat(hoststring, "|", 4095 - strlen(hoststring));
+	    */
+	qvs.encode_string(host);
+    }
+    qvs.output_encoded_string(hoststring, 4096);
+    
+    for (i=0; i<num_hosts; i++)
+    {
+	if (pDlg->m_host_list.GetText(i, host) == LB_ERR)
+	    continue;
+	
+	if (!ConnectToHost(host, pDlg->m_nPort, pDlg->m_pszPhrase, &bfd))
+	    continue;
+	
+	if (pDlg->m_bHostsChk)
+	{
+	    sprintf(pszStr, "lset hosts=%s", hoststring);
+	    WriteString(bfd, pszStr);
+	}
+	if (pDlg->m_bTempChk)
+	{
+	    sprintf(pszStr, "lset temp=%s", pDlg->m_pszTempDir);
+	    WriteString(bfd, pszStr);
+	}
+	if (pDlg->m_bLaunchTimeoutChk)
+	{
+	    sprintf(pszStr, "lset timeout=%d", pDlg->m_nLaunchTimeout);
+	    WriteString(bfd, pszStr);
+	}
+	WriteString(bfd, "done");
+	beasy_closesocket(bfd);
+    }
+
+    pDlg->SetGreenLight();
+
+    SetCursor(hOldCursor);
+    PostMessage(pDlg->m_hWnd, WM_USER + 4, 0, 0);
+
+    if (pDlg->m_bShowHostConfig)
+    {
+	PostMessage(pDlg->m_hWnd, WM_USER+2, 0, 0);
+    }
+
+    CloseHandle(pDlg->m_hSetBtnThread);
+    pDlg->m_hSetBtnThread = NULL;
+}
+
+#ifdef USE_SINGLE_THREADED_SET
+void CMPIConfigDlg::OnSetBtn()
+{
+    int i;
+    int num_hosts;
+    char pszStr[4096];
+    char hoststring[4096] = "";
+    char host[100];
+    int bfd;
+
+    UpdateData();
+
+    num_hosts = m_host_list.GetCount();
     if (num_hosts == 0)
 	return;
     
-    CRegistrySettingsDialog dlg;
-    if (dlg.DoModal() == IDCANCEL)
-	return;
-    
-    if (dlg.m_bHostsChk == FALSE && dlg.m_bTempChk == FALSE && dlg.m_bLaunchTimeoutChk == FALSE)
+    if (m_bHostsChk == FALSE && m_bTempChk == FALSE && m_bLaunchTimeoutChk == FALSE)
 	return;
     
     if (m_bNeedPassword)
     {
-	CPwdDialog dlg;
-	dlg.DoModal();
-	if (dlg.m_bUseDefault)
+	if (m_bUseDefault)
 	    strcpy(m_pszPhrase, MPD_DEFAULT_PASSPHRASE);
 	else
-	    strcpy(m_pszPhrase, dlg.m_password);
+	    strcpy(m_pszPhrase, m_password);
     }
+
+    SetYellowLight();
 
     HCURSOR hOldCursor = SetCursor( LoadCursor(NULL, IDC_WAIT) );
     
     // Create the host list
+    QVS_Container qvs;
     for (i=0; i<num_hosts; i++)
     {
 	if (m_host_list.GetText(i, host) == LB_ERR)
 	{
+	    SetRedLight();
 	    SetCursor(hOldCursor);
 	    MessageBox("GetText failed", "Error", MB_OK);
 	    return;
 	}
-	strcat(hoststring, host);
+	/*
+	strncat(hoststring, host, 4095 - strlen(hoststring));
 	if (i<num_hosts-1)
-	    strcat(hoststring, "|");
+	    strncat(hoststring, "|", 4095 - strlen(hoststring));
+	    */
+	qvs.encode_string(host);
     }
+    qvs.output_encoded_string(hoststring, 4096);
     
     for (i=0; i<num_hosts; i++)
     {
@@ -494,116 +378,153 @@ void CMPIConfigDlg::OnSetBtn()
 	if (!ConnectToHost(host, m_nPort, m_pszPhrase, &bfd))
 	    continue;
 	
-	if (dlg.m_bHostsChk)
+	if (m_bHostsChk)
 	{
 	    sprintf(pszStr, "lset hosts=%s", hoststring);
 	    WriteString(bfd, pszStr);
 	}
-	if (dlg.m_bTempChk)
+	if (m_bTempChk)
 	{
-	    sprintf(pszStr, "lset temp=%s", dlg.m_pszTempDir);
+	    sprintf(pszStr, "lset temp=%s", m_pszTempDir);
 	    WriteString(bfd, pszStr);
 	}
-	if (dlg.m_bLaunchTimeoutChk)
+	if (m_bLaunchTimeoutChk)
 	{
-	    sprintf(pszStr, "lset timeout=%d", dlg.m_nLaunchTimeout);
+	    sprintf(pszStr, "lset timeout=%d", m_nLaunchTimeout);
 	    WriteString(bfd, pszStr);
 	}
 	WriteString(bfd, "done");
 	beasy_closesocket(bfd);
     }
+
+    SetGreenLight();
+
     SetCursor(hOldCursor);
+
+    if (m_bShowHostConfig)
+	GetHostConfig(NULL);
+}
+#else
+void CMPIConfigDlg::OnSetBtn()
+{
+    DWORD dwThreadID;
+
+    UpdateData();
+    m_hSetBtnThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)SetBtnThread, this, 0, &dwThreadID);
+}
+#endif
+
+void CMPIConfigDlg::OnSetOneBtn() 
+{
+    int i;
+    char pszStr[4096];
+    char hoststring[4096] = "";
+    char host[100];
+    int bfd;
+    CString sHost;
+    int num_hosts;
+
+    UpdateData();
+
+    num_hosts = m_host_list.GetCount();
+    if (num_hosts == 0)
+	return;
+
+    if (m_bHostsChk == FALSE && m_bTempChk == FALSE && m_bLaunchTimeoutChk == FALSE)
+	return;
+    
+    int index = m_host_list.GetCurSel();
+    if (index == LB_ERR)
+	return;
+    m_host_list.GetText(index, sHost);
+
+    if (m_bNeedPassword)
+    {
+	if (m_bUseDefault)
+	    strcpy(m_pszPhrase, MPD_DEFAULT_PASSPHRASE);
+	else
+	    strcpy(m_pszPhrase, m_password);
+    }
+
+    SetYellowLight();
+
+    HCURSOR hOldCursor = SetCursor( LoadCursor(NULL, IDC_WAIT) );
+    
+    // Create the host list
+    QVS_Container qvs;
+    for (i=0; i<num_hosts; i++)
+    {
+	if (m_host_list.GetText(i, host) == LB_ERR)
+	{
+	    SetRedLight();
+	    SetCursor(hOldCursor);
+	    MessageBox("GetText failed", "Error", MB_OK);
+	    return;
+	}
+	qvs.encode_string(host);
+    }
+    qvs.output_encoded_string(hoststring, 4096);
+    
+    if (ConnectToHost(sHost, m_nPort, m_pszPhrase, &bfd))
+    {
+	if (m_bHostsChk)
+	{
+	    sprintf(pszStr, "lset hosts=%s", hoststring);
+	    WriteString(bfd, pszStr);
+	}
+	if (m_bTempChk)
+	{
+	    sprintf(pszStr, "lset temp=%s", m_pszTempDir);
+	    WriteString(bfd, pszStr);
+	}
+	if (m_bLaunchTimeoutChk)
+	{
+	    sprintf(pszStr, "lset timeout=%d", m_nLaunchTimeout);
+	    WriteString(bfd, pszStr);
+	}
+	WriteString(bfd, "done");
+	beasy_closesocket(bfd);
+    }
+    else
+    {
+	SetRedLight();
+	SetCursor(hOldCursor);
+	if (m_bShowHostConfig)
+	    GetHostConfig(NULL);
+	return;
+    }
+
+    SetGreenLight();
+
+    SetCursor(hOldCursor);
+
+    if (m_bShowHostConfig)
+	GetHostConfig(NULL);
 }
 
 LRESULT CMPIConfigDlg::WindowProc(UINT message, WPARAM wParam, LPARAM lParam) 
 {
-    if (message == WM_USER+1)
+    if (message == WM_USER + 2)
     {
-	if (lParam)
-	    m_list.SetSel((int)wParam, TRUE);
-	else
-	{
-	    if ((int)wParam != -1)
-		m_list.SetSel((int)wParam, FALSE);
-	    m_num_threads--;
-	    if (m_num_threads == 0)
-	    {
-		m_find_btn.EnableWindow();
-		m_refresh_btn.EnableWindow();
-		m_set_btn.EnableWindow();
-		m_edit_add_btn.EnableWindow();
-	    }
-	}
+	GetHostConfig(NULL);
     }
-    if (message == WM_CHAR)
+    if (message == WM_USER + 3)
     {
-	if (wParam == VK_RETURN)
-	{
-	    MessageBox("enter key pressed");
-	}
+	m_set_btn.EnableWindow(FALSE);
+	m_set_one_btn.EnableWindow(FALSE);
+	m_edit_add_btn.EnableWindow(FALSE);
+    }
+    if (message == WM_USER + 4)
+    {
+	m_set_btn.EnableWindow();
+	m_set_one_btn.EnableWindow();
+	m_edit_add_btn.EnableWindow();
     }
     return CDialog::WindowProc(message, wParam, lParam);
 }
 
-/*
-void CMPIConfigDlg::OnAddBtn() 
-{
-    // Parse list window and add to host list
-    int i;
-    int *iHosts;
-    int num_hosts = m_list.GetSelCount();
-    char host[100];
-    
-    UpdateData();
-
-    if (num_hosts == 0)
-	return;
-    
-    // Create the host list
-    iHosts = new int[num_hosts];
-    if (m_list.GetSelItems(num_hosts, iHosts) == LB_ERR)
-    {
-	MessageBox("GetSelItems failed", "Error", MB_OK);
-	return;
-    }
-    for (i=0; i<num_hosts; i++)
-    {
-	if (m_list.GetText(iHosts[i], host) == LB_ERR)
-	{
-	    MessageBox("GetText failed", "Error", MB_OK);
-	    return;
-	}
-	CString str;
-	int n = m_host_list.GetCount();
-	if (n != LB_ERR)
-	{
-	    bool bFound = false;
-	    for (int i=0; i<n; i++)
-	    {
-		m_host_list.GetText(i, str);
-		if (str.CompareNoCase(host) == 0)
-		{
-		    bFound = true;
-		    //break;
-		}
-	    }
-	    if (!bFound)
-	    {
-		m_host_list.InsertString(-1, host);
-	    }
-	}
-    }
-}
-*/
-
 void CMPIConfigDlg::OnEditAddBtn() 
 {
-    int i;
-    int *iHosts;
-    int num_hosts = m_list.GetSelCount();
-    char host[100];
-    
-    // Add hostname to host list
     UpdateData();
     
     if (m_hostname.GetLength() != 0)
@@ -629,44 +550,6 @@ void CMPIConfigDlg::OnEditAddBtn()
 	    }
 	}
     }
-
-    // Parse list window and add to host list
-    if (num_hosts == 0)
-	return;
-    
-    // Create the host list
-    iHosts = new int[num_hosts];
-    if (m_list.GetSelItems(num_hosts, iHosts) == LB_ERR)
-    {
-	MessageBox("GetSelItems failed", "Error", MB_OK);
-	return;
-    }
-    for (i=0; i<num_hosts; i++)
-    {
-	if (m_list.GetText(iHosts[i], host) == LB_ERR)
-	{
-	    MessageBox("GetText failed", "Error", MB_OK);
-	    return;
-	}
-	CString str;
-	int n = m_host_list.GetCount();
-	if (n != LB_ERR)
-	{
-	    bool bFound = false;
-	    for (int i=0; i<n; i++)
-	    {
-		m_host_list.GetText(i, str);
-		if (str.CompareNoCase(host) == 0)
-		{
-		    bFound = true;
-		}
-	    }
-	    if (!bFound)
-	    {
-		m_host_list.InsertString(-1, host);
-	    }
-	}
-    }
 }
 
 int CMPIConfigDlg::OnVKeyToItem(UINT nKey, CListBox* pListBox, UINT nIndex) 
@@ -681,6 +564,7 @@ int CMPIConfigDlg::OnVKeyToItem(UINT nKey, CListBox* pListBox, UINT nIndex)
 		m_host_list.DeleteString(index);
 		if (m_host_list.SetCurSel(index) == LB_ERR)
 		    m_host_list.SetCurSel(index-1);
+		SetRedLight();
 	    }
 	}
     }
@@ -689,6 +573,11 @@ int CMPIConfigDlg::OnVKeyToItem(UINT nKey, CListBox* pListBox, UINT nIndex)
 
 void CMPIConfigDlg::OnClose() 
 {
+    if (m_hSetBtnThread)
+    {
+	TerminateThread(m_hSetBtnThread, -1);
+	m_hSetBtnThread = NULL;
+    }
     bsocket_finalize();
 	CDialog::OnClose();
 }
@@ -696,33 +585,177 @@ void CMPIConfigDlg::OnClose()
 void CMPIConfigDlg::OnSize(UINT nType, int cx, int cy) 
 {
     CDialog::OnSize(nType, cx, cy);
-    
+
     if (nType != SIZE_MINIMIZED)
     {
-	/*
-	if (m_nMinWidth != -1)
+	if (m_nMinWidth <= cx || m_nMinHeight <= cy)
 	{
-	    if (cx < m_nMinWidth || cy < m_nMinHeight)
+	    if (cx < m_nMinWidth)
+		cx = m_nMinWidth;
+	    if (cy < m_nMinHeight)
+		cy = m_nMinHeight;
+
+	    r1Static.Resize(cx, cy);
+	    rList.Resize(cx, cy);
+	    rOk.Resize(cx, cy);
+	    rCancel.Resize(cx, cy);
+	    
+	    rHostConfig.Resize(cx, cy);
+	    
+	    Invalidate();
+	}
+    }
+}
+
+void CMPIConfigDlg::OnPhraseRadio() 
+{
+    m_bUseDefault = false;
+    m_pwd_ctrl.EnableWindow();
+    SetRedLight();
+}
+
+void CMPIConfigDlg::OnDefaultPwdRadio() 
+{
+    m_bUseDefault = true;
+    m_pwd_ctrl.EnableWindow(FALSE);
+    SetRedLight();
+}
+
+void CMPIConfigDlg::OnTempChk() 
+{
+    UpdateData();
+    
+    if (m_bTempChk)
+	m_TempEdit.EnableWindow();
+    else
+	m_TempEdit.EnableWindow(FALSE);
+
+    SetRedLight();
+}
+
+void CMPIConfigDlg::OnTimeoutChk() 
+{
+    UpdateData();
+    
+    if (m_bLaunchTimeoutChk)
+	m_LaunchTimeoutEdit.EnableWindow();
+    else
+	m_LaunchTimeoutEdit.EnableWindow(FALSE);
+
+    SetRedLight();
+}
+
+void CMPIConfigDlg::SetRedLight()
+{
+    m_stoplight_red.ShowWindow(SW_SHOW);
+    m_stoplight_yellow.ShowWindow(SW_HIDE);
+    m_stoplight_green.ShowWindow(SW_HIDE);
+}
+
+void CMPIConfigDlg::SetGreenLight()
+{
+    m_stoplight_red.ShowWindow(SW_HIDE);
+    m_stoplight_yellow.ShowWindow(SW_HIDE);
+    m_stoplight_green.ShowWindow(SW_SHOW);
+}
+
+void CMPIConfigDlg::SetYellowLight()
+{
+    m_stoplight_red.ShowWindow(SW_HIDE);
+    m_stoplight_yellow.ShowWindow(SW_SHOW);
+    m_stoplight_green.ShowWindow(SW_HIDE);
+}
+
+void CMPIConfigDlg::OnShowHostChk() 
+{
+    UpdateData();
+
+    m_host_config_edit.EnableWindow(m_bShowHostConfig);
+    if (m_bShowHostConfig)
+	GetHostConfig(NULL);
+}
+
+void CMPIConfigDlg::OnSelchangeHostList() 
+{
+    UpdateData();
+    if (m_bShowHostConfig)
+    {
+	CString host;
+	int index = m_host_list.GetCurSel();
+	if (index != LB_ERR)
+	{
+	    m_host_list.GetText(index, host);
+	    GetHostConfig(host);
+	}
+    }
+}
+
+void CMPIConfigDlg::GetHostConfig(const char *host)
+{
+    CString sHost;
+    int bfd;
+    char pszStr[MAX_CMD_LENGTH] = "mpd not installed";
+
+    UpdateData();
+
+    if (host == NULL)
+    {
+	int index = m_host_list.GetCurSel();
+	if (index == LB_ERR)
+	    return;
+	m_host_list.GetText(index, sHost);
+    }
+    else
+	sHost = host;
+
+    if (m_bNeedPassword)
+    {
+	if (m_bUseDefault)
+	    strcpy(m_pszPhrase, MPD_DEFAULT_PASSPHRASE);
+	else
+	    strcpy(m_pszPhrase, m_password);
+    }
+    
+    HCURSOR hOldCursor = SetCursor( LoadCursor(NULL, IDC_WAIT) );
+    
+    if (ConnectToHost(sHost, m_nPort, m_pszPhrase, &bfd))
+    {
+	WriteString(bfd, "config");
+	ReadString(bfd, pszStr);
+	WriteString(bfd, "done");
+	beasy_closesocket(bfd);
+	
+	m_host_config = sHost + ":\n";
+	m_host_config += pszStr;
+	m_host_config.Replace("\n", "\r\n");
+    }
+    else
+    {
+	m_host_config = sHost + ":\r\n" + pszStr;
+    }
+    
+    SetCursor(hOldCursor);
+    UpdateData(FALSE);
+}
+
+void CMPIConfigDlg::OnSelectBtn() 
+{
+    CFindHostsDlg dlg;
+    if (dlg.DoModal() == IDOK)
+    {
+	QVS_Container qvs;
+	char str[100];
+
+	m_host_list.ResetContent();
+
+	qvs.decode_string((char*)(LPCTSTR)dlg.m_encoded_hosts);
+	if (qvs.first(str, 100))
+	{
+	    m_host_list.AddString(str);
+	    while (qvs.next(str, 100))
 	    {
-		RECT r, r2;
-		r.left = 0;
-		r.top = 0;
-		r.right = m_nMinWidth;
-		r.bottom = m_nMinHeight;
-		AdjustWindowRect(&r, WS_CHILD, FALSE);
-		GetWindowRect(&r2);
-		MoveWindow(r2.left, r2.top, r.right-r.left, r.bottom-r.top, TRUE);
+		m_host_list.AddString(str);
 	    }
 	}
-	*/
-
-	rList.Resize(cx, cy);
-	rOk.Resize(cx, cy);
-	rCancel.Resize(cx, cy);
-	rBox.Resize(cx, cy);
-	rFind.Resize(cx, cy);
-	rRefresh.Resize(cx, cy);
-	rDomain.Resize(cx, cy);
-	rStatic.Resize(cx, cy);
     }
 }

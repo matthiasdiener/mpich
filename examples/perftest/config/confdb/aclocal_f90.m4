@@ -3,6 +3,7 @@ dnl Macros for Fortran 90
 dnl
 dnl We'd like to have a PAC_LANG_FORTRAN90 that worked with AC_TRY_xxx, but
 dnl that would require too many changes to autoconf macros.
+dnl
 AC_DEFUN(PAC_LANG_FORTRAN90,
 [AC_REQUIRE([PAC_PROG_F90])
 define([AC_LANG], [FORTRAN90])dnl
@@ -37,7 +38,7 @@ fi
 rm -f conftest*
 ifelse(NEED_POP,yes,[
 undefine([NEED_POP])
-AC_LANG_RESTORE)]
+AC_LANG_RESTORE])
 ])
 dnl
 dnl PAC_F90_MODULE_EXT(action if found,action if not found)
@@ -262,7 +263,16 @@ EOF
 fi
 AC_MSG_CHECKING([whether the Fortran 90 compiler ($F90 $F90FLAGS $LDFLAGS) works])
 AC_LANG_SAVE
-PAC_LANG_FORTRAN90
+# We cannot use _LANG_FORTRAN90 here because we will usually be executing this
+# test in the context of _PROG_F90, which is a require on _LANG_FORTRAN90.
+# Instead, we insert the necessary code from _LANG_FORTRAN90 here
+dnl PAC_LANG_FORTRAN90
+dnl define(ifdef([_AC_LANG],[_AC_LANG],[AC_LANG]), [FORTRAN90])dnl
+define([AC_LANG], [FORTRAN90])dnl
+ac_ext=$pac_cv_f90_ext
+ac_compile='${F90-f90} -c $F90FLAGS conftest.$ac_ext 1>&AC_FD_CC'
+ac_link='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&AC_FD_CC'
+cross_compiling=$pac_cv_prog_f90_cross
 cat >conftest.$ac_ext <<EOF
       program conftest
       end

@@ -340,7 +340,7 @@ int net_create_slave( int serv_port, int serv_fd, char *host, char *pgm,
 		  int argc = 4;
 		  char *argv[4];
 		  static char port_str[6];
-		  snprintf (port_str, 5, "%d", serv_port);
+		  snprintf (port_str, 6, "%d", serv_port);
 		  argv[1] = myhostname;
 		  argv[2] = port_str;
 		  rm_start (&argc, argv);

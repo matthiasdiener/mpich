@@ -46,7 +46,7 @@ RSC=rc.exe
 # ADD BASE F90 /compile_only /include:"Release/" /nologo /warn:nofileopt /winapp
 # ADD F90 /browser /compile_only /include:"Release/" /nologo /warn:nofileopt /winapp
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\bsocket" /I "..\mpd" /I "..\crypt" /I "..\resizer" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "HAVE_WINBCONF_H" /FR /Yu"stdafx.h" /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\bsocket" /I "..\mpd" /I "..\crypt" /I "..\resizer" /I "..\mpdutil" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "HAVE_WINBCONF_H" /FR /Yu"stdafx.h" /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -56,7 +56,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 /nologo /subsystem:windows /machine:I386
-# ADD LINK32 crypt.lib ws2_32.lib bsocket2.lib netapi32.lib resizer.lib /nologo /subsystem:windows /machine:I386 /libpath:"..\bsocket2\release" /libpath:"..\crypt\release" /libpath:"..\resizer\release"
+# ADD LINK32 mpdutil.lib crypt.lib ws2_32.lib bsocket2.lib netapi32.lib resizer.lib /nologo /subsystem:windows /machine:I386 /libpath:"..\bsocket2\release" /libpath:"..\crypt\release" /libpath:"..\resizer\release" /libpath:"..\mpdutil\release"
 
 !ELSEIF  "$(CFG)" == "MPIConfig - Win32 Debug"
 
@@ -74,7 +74,7 @@ LINK32=link.exe
 # ADD BASE F90 /check:bounds /compile_only /debug:full /include:"Debug/" /nologo /traceback /warn:argument_checking /warn:nofileopt /winapp
 # ADD F90 /browser /check:bounds /compile_only /debug:full /include:"Debug/" /nologo /traceback /warn:argument_checking /warn:nofileopt /winapp
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /Yu"stdafx.h" /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\bsocket" /I "..\mpd" /I "..\crypt" /I "..\resizer" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "HAVE_WINBCONF_H" /FR /Yu"stdafx.h" /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\bsocket" /I "..\mpd" /I "..\crypt" /I "..\resizer" /I "..\mpdutil" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "HAVE_WINBCONF_H" /FR /Yu"stdafx.h" /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -84,7 +84,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 crypt.lib ws2_32.lib bsocket2.lib netapi32.lib resizer.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"..\bsocket2\debug" /libpath:"..\crypt\debug" /libpath:"..\resizer\debug"
+# ADD LINK32 mpdutil.lib crypt.lib ws2_32.lib bsocket2.lib netapi32.lib resizer.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"..\bsocket2\debug" /libpath:"..\crypt\debug" /libpath:"..\resizer\debug" /libpath:"..\mpdutil\debug"
 
 !ENDIF 
 
@@ -95,6 +95,26 @@ LINK32=link.exe
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat;f90;for;f;fpp"
+# Begin Source File
+
+SOURCE=.\ConnectToHost.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\DomainDlg.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\FindHostsDlg.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\MPDConnectionOptionsDlg.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\MPICHConfigDlg.cpp
+# End Source File
 # Begin Source File
 
 SOURCE=.\MPIConfig.cpp
@@ -113,6 +133,10 @@ SOURCE=.\PwdDialog.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\qvs.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\RegistrySettingsDialog.cpp
 # End Source File
 # Begin Source File
@@ -126,6 +150,26 @@ SOURCE=.\StdAfx.cpp
 # PROP Default_Filter "h;hpp;hxx;hm;inl;fi;fd"
 # Begin Source File
 
+SOURCE=.\ConnectToHost.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\DomainDlg.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\FindHostsDlg.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\MPDConnectionOptionsDlg.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\MPICHConfigDlg.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\MPIConfig.h
 # End Source File
 # Begin Source File
@@ -135,6 +179,10 @@ SOURCE=.\MPIConfigDlg.h
 # Begin Source File
 
 SOURCE=.\PwdDialog.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\qvs.h
 # End Source File
 # Begin Source File
 
@@ -154,11 +202,39 @@ SOURCE=.\StdAfx.h
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 # Begin Source File
 
+SOURCE=.\res\bmdir.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\bmfile.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\green_bi.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\ico00001.ico
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\icon1.ico
+# End Source File
+# Begin Source File
+
 SOURCE=.\res\MPIConfig.ico
 # End Source File
 # Begin Source File
 
 SOURCE=.\res\MPIConfig.rc2
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\red_bitm.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\yellow_b.bmp
 # End Source File
 # End Group
 # End Target

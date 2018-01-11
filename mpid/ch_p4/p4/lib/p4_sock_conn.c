@@ -317,8 +317,7 @@ P4VOID request_connection(int dest_id)
 
 /* sig isn't used except to match the function prototypes for POSIX
    signal handlers */
-P4VOID handle_connection_interrupt( sig )
-int sig;
+P4VOID handle_connection_interrupt( int sig )
 {
     struct slave_listener_msg msg;
     int type;
@@ -332,25 +331,40 @@ int sig;
     listener_fd = p4_local->listener_fd;
 
 #ifdef USE_NONBLOCKING_LISTENER_SOCKETS
+    /* This parameter gives the number of attempts to read before 
+       deciding that something has gone wrong */
+    #define MAX_DRY_ITERATIONS 1000000
     /*
      * Must read non-blocking due to race conditions with using
      * signals as IPC mechanism.  See the fcntl near get_pipe where
      * these are created.
+     *
+     * However, this should not loop endlessly.  If a signal has been 
+     * delivered, the listener is trying to talk to us.  To catch
+     * failures in the listener or other logic (for example, not all of the
+     * listener_fd's were properly set in the 1.2.3 release of MPICH).
      */
-    for (;;) {
-	int cc = read(listener_fd, &msg, sizeof(msg));
-	if (cc == 0)
-	    p4_error("handle_connection_interrupt: EOF from listener", 0);
-	if (cc < 0) {
-	    if (errno == EAGAIN)
-		continue;
-	    p4_error("handle_connection_interrupt: read listener", cc);
+    { 
+	int it_count = 0;
+	for (;;) {
+	    int cc = read(listener_fd, &msg, sizeof(msg));
+	    if (cc == 0)
+		p4_error("handle_connection_interrupt: EOF from listener", 0);
+	    if (cc < 0) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+		    it_count ++;
+		    if (it_count > MAX_DRY_ITERATIONS) {
+			p4_error("handled_connection_interrupt: listener is not sending", -1 );
+		    }
+		    continue;
+		}
+		p4_error("handle_connection_interrupt: read listener", cc);
+	    }
+	    /* these should be atomic: AF_UNIX, AF_STREAM */
+	    if (cc != sizeof(msg))
+		p4_error("handle_connection_interrupt: short read from listener", 0);
+	    break;
 	}
-	/* these should be atomic: AF_UNIX, AF_STREAM */
-	if (cc != sizeof(msg))
-	    p4_error("handle_connection_interrupt: short read"
-	      " from listener", 0);
-	break;
     }
 #else
     if (net_recv(listener_fd, &msg, sizeof(msg)) == PRECV_EOF)
@@ -358,7 +372,7 @@ int sig;
 	p4_dprintf("OOPS: got eof in handle_connection_interrupt\n");
 	return;
     }
-#endif
+#endif /* USE_NONBLOCKING_LISTENER_SOCKETS */
     type = p4_n_to_i(msg.type);
     if (type != CONNECTION_REQUEST)
     {
@@ -434,6 +448,7 @@ int sig;
 }
 
 #else /* P4_WITH_MPD */
+/* This is the p4 *without* mpd branch */
 int establish_connection(int dest_id)
 {
     int myid = p4_get_my_id();
@@ -559,8 +574,7 @@ P4VOID request_connection(int dest_id)
 
 /* sig isn't used except to match the function prototypes for POSIX
    signal handlers */
-P4VOID handle_connection_interrupt( sig )
-int sig;
+P4VOID handle_connection_interrupt( int sig )
 {
     struct slave_listener_msg msg;
     int type;
@@ -585,14 +599,76 @@ int sig;
     p4_dprintfl(70, "Inside handle_connection_interrupt, listener_fd=%d\n",
 		listener_fd);
 
+#ifdef USE_NONBLOCKING_LISTENER_SOCKETS
+    /* This parameter gives the number of attempts to read before 
+       deciding that something has gone wrong */
+    #define MAX_DRY_ITERATIONS 1000000
+    /*
+     * Must read non-blocking due to race conditions with using
+     * signals as IPC mechanism.  See the fcntl near get_pipe where
+     * these are created.
+     *
+     * However, this should not loop endlessly.  If a signal has been 
+     * delivered, the listener is trying to talk to us.  To catch
+     * failures in the listener or other logic (for example, not all of the
+     * listener_fd's were properly set in the 1.2.3 release of MPICH).
+     */
+    { 
+	int it_count = 0;
+	for (;;) {
+	    int cc = read(listener_fd, &msg, sizeof(msg));
+	    if (cc == 0)
+		p4_error("handle_connection_interrupt: EOF from listener", 0);
+	    if (cc < 0) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+		    it_count ++;
+		    if (it_count > MAX_DRY_ITERATIONS) {
+			p4_error("handled_connection_interrupt: listener is not sending", -1 );
+		    }
+		    continue;
+		}
+		p4_error("handle_connection_interrupt: read listener", cc);
+	    }
+	    /* these should be atomic: AF_UNIX, AF_STREAM */
+	    if (cc != sizeof(msg))
+		p4_error("handle_connection_interrupt: short read from listener", 0);
+	    break;
+	}
+    }
+#else
     if (net_recv(listener_fd, &msg, sizeof(msg)) == PRECV_EOF)
     {
 	p4_dprintf("OOPS: got eof in handle_connection_interrupt\n");
 	in_handler = 0;
 	return;
     }
+#endif 
 
     type = p4_n_to_i(msg.type);
+
+    if (type == WAKEUP_SLAVE) {
+	/* Ignore and return.  This may be a poke for a message that
+	   we've already processed.  In case these wakeups have
+	   piled up, we try to read again, and then only if there is
+	   nothing, do we return */
+#ifdef USE_NONBLOCKING_LISTENER_SOCKETS
+	int cc;
+	while ((cc = read(listener_fd, &msg, sizeof(msg))) > 0) {
+	    if (cc != sizeof(msg))
+		p4_error("handle_connection_interrupt: short read from listener", 0);
+	    type = p4_n_to_i(msg.type);
+	    if (type != WAKEUP_SLAVE) break;
+	}
+	if (cc <= 0) {
+	    in_handler = 0;
+	    return;
+	}
+	/* Otherwise, drop through with the new message */
+#else
+	in_handler = 0;
+	return;
+#endif
+    }
 
     if (type == KILL_SLAVE) {
         msg.type = p4_i_to_n(IGNORE_THIS);

@@ -86,6 +86,8 @@ int main( int argc, char *argv[], char *envp[] )
     char *shmemkey, *shmemgrpsize, *shmemgrprank;
     char *myrinet_port_number;
     int version;
+    char  cli_pid_env[MAXLINE], co_program[MAXLINE];
+    int copgm_pid;
 
     sprintf( myid, "man_%s", getenv( "MPD_JRANK" ) );
 
@@ -474,6 +476,21 @@ int main( int argc, char *argv[], char *envp[] )
 	dclose(stderr_pipe_fds[1]);
 	dclose( man_client_msgs_fds[1] );
 
+	strcpy(co_program,getenv("MAN_CLI_COPGM"));
+	if ( co_program[0] ) {
+	    copgm_pid = fork();
+	    error_check( copgm_pid, "manager couldn't fork co_program" );
+	    if (copgm_pid == 0) {             /* child (co-processs) */
+		sprintf( myid, "coprocess_%d", myrank );
+		sprintf( cli_pid_env, "MAN_CLI_PID=%d", client_pid );
+		putenv( cli_pid_env );
+		/* MAN_CLI_MSHIP_HOST and PORT should already be in env */
+		rc = execvp( co_program, NULL );
+		mpdprintf(1, "failed to start coprocess: rc=%d\n", rc );
+		exit(0);  /* just in case */
+	    }
+	}
+
 	/* set up fdtable entries for client stdout and stderr */
 	client_stdout_idx = allocate_fdentry();
 	fdtable[client_stdout_idx].fd = stdout_pipe_fds[0];
@@ -631,7 +648,7 @@ void handle_con_stdin_input( int idx )
 	if ( stdintarget != myrank ) {
 	    mpd_stuff_arg( message, stuffed );
 	    mpdprintf( debug, "handle_con_stdin_input: sending :%s:\n", stuffed );
-	    sprintf( fwdbuf, "cmd=stdin torank=%d message=%s",  /* nl already on message */
+	    sprintf( fwdbuf, "cmd=stdin torank=%d message=%s\n",
 		     stdintarget, stuffed );
 	    write_line( rhs_idx, fwdbuf );
 	}
@@ -1177,6 +1194,10 @@ void handle_client_stderr_input( int idx )
 
 }
 
+#if defined(HAVE_STRSIGNAL) && defined(NEEDS_STRSIGNAL_DECL)
+extern char *strsignal(int);
+#endif
+
 void handle_client_msgs_input( int idx )
 {
     char buf[MAXLINE];
@@ -1219,7 +1240,7 @@ void handle_client_msgs_input( int idx )
 		       WEXITSTATUS(client_stat) );
 	    if ( WIFSIGNALED(client_stat) ) {
 #if defined(HAVE_STRSIGNAL)
-		sprintf( sigdesc, ": %s", ( char * ) strsignal(WTERMSIG(client_stat)) );
+		sprintf( sigdesc, ": %s", strsignal(WTERMSIG(client_stat)) );
 #else
 		sigdesc[0] = '\0';
 #endif
@@ -1560,7 +1581,7 @@ void handle_lhs_msgs_input( int idx )
 	    if ( myrank == torank || torank == -1 ) {
 		mpd_getval( "message", stuffed );
 		mpd_destuff_arg( stuffed, unstuffed );
-		strcat( unstuffed, "\n" );
+		/* strcat( unstuffed, "\n" );  added just before write_line */
 		send_msg( stdin_pipe_fds[1], unstuffed, strlen( unstuffed ) );
 	    }
 	}

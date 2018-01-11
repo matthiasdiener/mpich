@@ -6,6 +6,32 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static void PrintError(int error, char *msg, ...)
+{
+    int n;
+    va_list list;
+    HLOCAL str;
+    int num_bytes;
+
+    va_start(list, msg);
+    n = vprintf(msg, list);
+    va_end(list);
+    
+    num_bytes = FormatMessage(
+	FORMAT_MESSAGE_FROM_SYSTEM |
+	FORMAT_MESSAGE_ALLOCATE_BUFFER,
+	0,
+	error,
+	MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ),
+	(LPTSTR) &str,
+	0,0);
+    
+    printf("Error Text: %s", str);
+    fflush(stdout);
+    
+    LocalFree(str);
+}
+
 BOOL SetupCryptoClient()
 {
 	// Ensure that the default cryptographic client is set up.
@@ -23,7 +49,7 @@ BOOL SetupCryptoClient()
 		{
 			// Error creating key container!
 			nError = GetLastError();
-			printf("SetupCryptoClient:CryptAcquireContext(...) failed, error: %d\n", nError);
+			PrintError(nError, "SetupCryptoClient:CryptAcquireContext(...) failed, error: %d\n", nError);
 			return FALSE;
 		}
 	}
@@ -39,7 +65,7 @@ BOOL SetupCryptoClient()
 				// Error during CryptGenKey!
 				nError = GetLastError();
 				CryptReleaseContext(hProv, 0);
-				printf("SetupCryptoClient:CryptGenKey(...) failed, error: %d\n", nError);
+				PrintError(nError, "SetupCryptoClient:CryptGenKey(...) failed, error: %d\n", nError);
 				return FALSE;
 			}
 			else
@@ -51,7 +77,7 @@ BOOL SetupCryptoClient()
 		{
 			// Error during CryptGetUserKey!
 			CryptReleaseContext(hProv, 0);
-			printf("SetupCryptoClient:CryptGetUserKey(...) failed, error: %d\n", nError);
+			PrintError(nError, "SetupCryptoClient:CryptGetUserKey(...) failed, error: %d\n", nError);
 			return FALSE;
 		}
 	}
@@ -67,7 +93,7 @@ BOOL SetupCryptoClient()
 				// Error during CryptGenKey!
 				nError = GetLastError();
 				CryptReleaseContext(hProv, 0);
-				printf("SetupCryptoClient:CryptGenKey(...) failed, error: %d\n", nError);
+				PrintError(nError, "SetupCryptoClient:CryptGenKey(...) failed, error: %d\n", nError);
 				return FALSE;
 			}
 			else
@@ -79,7 +105,7 @@ BOOL SetupCryptoClient()
 		{
 			// Error during CryptGetUserKey!
 			CryptReleaseContext(hProv, 0);
-			printf("SetupCryptoClient:CryptGetUserKey(...) failed, error: %d\n", nError);
+			PrintError(nError, "SetupCryptoClient:CryptGetUserKey(...) failed, error: %d\n", nError);
 			return FALSE;
 		}
 	}
@@ -97,14 +123,14 @@ BOOL DeleteCurrentPasswordRegistryEntry()
 	if (RegOpenKeyEx(HKEY_CURRENT_USER, MPICHKEY, 0, KEY_ALL_ACCESS, &hRegKey) != ERROR_SUCCESS)
 	{
 		nError = GetLastError();
-		printf("DeleteCurrentPasswordRegistryEntry:RegOpenKeyEx(...) failed, error: %d\n", nError);
+		PrintError(nError, "DeleteCurrentPasswordRegistryEntry:RegOpenKeyEx(...) failed, error: %d\n", nError);
 		return FALSE;
 	}
 
 	if (RegDeleteValue(hRegKey, TEXT("Password")) != ERROR_SUCCESS)
 	{
 		nError = GetLastError();
-		printf("DeleteCurrentPasswordRegistryEntry:RegDeleteValue(...) failed, error: %d\n", nError);
+		PrintError(nError, "DeleteCurrentPasswordRegistryEntry:RegDeleteValue(...) failed, error: %d\n", nError);
 		RegCloseKey(hRegKey);
 		return FALSE;
 	}
@@ -112,7 +138,7 @@ BOOL DeleteCurrentPasswordRegistryEntry()
 	if (RegDeleteValue(hRegKey, TEXT("Account")) != ERROR_SUCCESS)
 	{
 		nError = GetLastError();
-		printf("DeleteCurrentPasswordRegistryEntry:RegDeleteValue(...) failed, error: %d\n", nError);
+		PrintError(nError, "DeleteCurrentPasswordRegistryEntry:RegDeleteValue(...) failed, error: %d\n", nError);
 		RegCloseKey(hRegKey);
 		return FALSE;
 	}
@@ -153,7 +179,7 @@ BOOL SavePasswordToRegistry(TCHAR *szAccount, TCHAR *szPassword, bool persistent
 			NULL) != ERROR_SUCCESS) 
 		{
 			nError = GetLastError();
-			printf("SavePasswordToRegistry:RegCreateKeyEx(...) failed, error: %d\n", nError);
+			PrintError(nError, "SavePasswordToRegistry:RegCreateKeyEx(...) failed, error: %d\n", nError);
 			return FALSE;
 		}
 	}
@@ -170,7 +196,7 @@ BOOL SavePasswordToRegistry(TCHAR *szAccount, TCHAR *szPassword, bool persistent
 			NULL) != ERROR_SUCCESS) 
 		{
 			nError = GetLastError();
-			printf("SavePasswordToRegistry:RegDeleteKey(...) failed, error: %d\n", nError);
+			PrintError(nError, "SavePasswordToRegistry:RegDeleteKey(...) failed, error: %d\n", nError);
 			return FALSE;
 		}
 	}
@@ -183,7 +209,7 @@ BOOL SavePasswordToRegistry(TCHAR *szAccount, TCHAR *szPassword, bool persistent
 			)!=ERROR_SUCCESS)
 	{
 		nError = GetLastError();
-		printf("SavePasswordToRegistry:RegSetValueEx(...) failed, error: %d\n", nError);
+		PrintError(nError, "SavePasswordToRegistry:RegSetValueEx(...) failed, error: %d\n", nError);
 		::RegCloseKey(hRegKey);
 		return FALSE;
 	}
@@ -227,7 +253,7 @@ BOOL SavePasswordToRegistry(TCHAR *szAccount, TCHAR *szPassword, bool persistent
 							if (::RegSetValueEx(hRegKey, _T("Password"), 0, REG_BINARY, pbBuffer, dwLength)!=ERROR_SUCCESS)
 							{
 								nError = GetLastError();
-								printf("SavePasswordToRegistry:RegSetValueEx(...) failed, error: %d\n", nError);
+								PrintError(nError, "SavePasswordToRegistry:RegSetValueEx(...) failed, error: %d\n", nError);
 								bResult = FALSE;
 							}
 							::RegCloseKey(hRegKey);
@@ -235,7 +261,7 @@ BOOL SavePasswordToRegistry(TCHAR *szAccount, TCHAR *szPassword, bool persistent
 						else
 						{
 							nError = GetLastError();
-							printf("SavePasswordToRegistry:CryptEncrypt(...) failed, error: %d\n", nError);
+							PrintError(nError, "SavePasswordToRegistry:CryptEncrypt(...) failed, error: %d\n", nError);
 							bResult = FALSE;
 						}
 						// Free memory.
@@ -244,7 +270,7 @@ BOOL SavePasswordToRegistry(TCHAR *szAccount, TCHAR *szPassword, bool persistent
 					else
 					{
 						nError = GetLastError();
-						printf("SavePasswordToRegistry:malloc(...) failed, error: %d\n", nError);
+						PrintError(nError, "SavePasswordToRegistry:malloc(...) failed, error: %d\n", nError);
 						bResult = FALSE;
 					}
 					CryptDestroyKey(hKey);  // Release provider handle.
@@ -253,7 +279,7 @@ BOOL SavePasswordToRegistry(TCHAR *szAccount, TCHAR *szPassword, bool persistent
 				{
 					// Error during CryptDeriveKey!
 					nError = GetLastError();
-					printf("SavePasswordToRegistry:CryptDeriveKey(...) failed, error: %d\n", nError);
+					PrintError(nError, "SavePasswordToRegistry:CryptDeriveKey(...) failed, error: %d\n", nError);
 					bResult = FALSE;
 				}
 			}
@@ -261,7 +287,7 @@ BOOL SavePasswordToRegistry(TCHAR *szAccount, TCHAR *szPassword, bool persistent
 			{
 				// Error during CryptHashData!
 				nError = GetLastError();
-				printf("SavePasswordToRegistry:CryptHashData(...) failed, error: %d\n", nError);
+				PrintError(nError, "SavePasswordToRegistry:CryptHashData(...) failed, error: %d\n", nError);
 				bResult = FALSE;
 			}
 			CryptDestroyHash(hHash); // Destroy session key.
@@ -270,7 +296,7 @@ BOOL SavePasswordToRegistry(TCHAR *szAccount, TCHAR *szPassword, bool persistent
 		{
 			// Error during CryptCreateHash!
 			nError = GetLastError();
-			printf("SavePasswordToRegistry:CryptCreateHash(...) failed, error: %d\n", nError);
+			PrintError(nError, "SavePasswordToRegistry:CryptCreateHash(...) failed, error: %d\n", nError);
 			bResult = FALSE;
 		}
 		CryptReleaseContext(hProv, 0);
@@ -304,7 +330,7 @@ BOOL ReadPasswordFromRegistry(TCHAR *szAccount, TCHAR *szPassword)
 				&dwLength)!=ERROR_SUCCESS)
 		{
 			nError = GetLastError();
-			//printf("ReadPasswordFromRegistry:RegQueryValueEx(...) failed, error: %d\n", nError);
+			//PrintError(nError, "ReadPasswordFromRegistry:RegQueryValueEx(...) failed, error: %d\n", nError);
 			::RegCloseKey(hRegKey);
 			return FALSE;
 		}
@@ -340,14 +366,14 @@ BOOL ReadPasswordFromRegistry(TCHAR *szAccount, TCHAR *szPassword)
 							if (!CryptDecrypt(hKey, 0, TRUE, 0, (BYTE *)szPassword, &dwLength))
 							{
 								nError = GetLastError();
-								//printf("ReadPasswordFromRegistry:CryptDecrypt(...) failed, error: %d\n", nError);
+								//PrintError(nError, "ReadPasswordFromRegistry:CryptDecrypt(...) failed, error: %d\n", nError);
 								bResult = FALSE;
 							}
 						}
 						else
 						{
 							nError = GetLastError();
-							//printf("ReadPasswordFromRegistry:RegQueryValueEx(...) failed, error: %d\n", nError);
+							//PrintError(nError, "ReadPasswordFromRegistry:RegQueryValueEx(...) failed, error: %d\n", nError);
 							bResult = FALSE;
 						}
 						CryptDestroyKey(hKey);  // Release provider handle.
@@ -356,7 +382,7 @@ BOOL ReadPasswordFromRegistry(TCHAR *szAccount, TCHAR *szPassword)
 					{
 						// Error during CryptDeriveKey!
 						nError = GetLastError();
-						//printf("ReadPasswordFromRegistry:CryptDeriveKey(...) failed, error: %d\n", nError);
+						//PrintError(nError, "ReadPasswordFromRegistry:CryptDeriveKey(...) failed, error: %d\n", nError);
 						bResult = FALSE;
 					}
 				}
@@ -364,7 +390,7 @@ BOOL ReadPasswordFromRegistry(TCHAR *szAccount, TCHAR *szPassword)
 				{
 					// Error during CryptHashData!
 					nError = GetLastError();
-					//printf("ReadPasswordFromRegistry:CryptHashData(...) failed, error: %d\n", nError);
+					//PrintError(nError, "ReadPasswordFromRegistry:CryptHashData(...) failed, error: %d\n", nError);
 					bResult = FALSE;
 				}
 				CryptDestroyHash(hHash); // Destroy session key.
@@ -373,7 +399,7 @@ BOOL ReadPasswordFromRegistry(TCHAR *szAccount, TCHAR *szPassword)
 			{
 				// Error during CryptCreateHash!
 				nError = GetLastError();
-				//printf("ReadPasswordFromRegistry:CryptCreateHash(...) failed, error: %d\n", nError);
+				//PrintError(nError, "ReadPasswordFromRegistry:CryptCreateHash(...) failed, error: %d\n", nError);
 				bResult = FALSE;
 			}
 			CryptReleaseContext(hProv, 0);
@@ -383,7 +409,7 @@ BOOL ReadPasswordFromRegistry(TCHAR *szAccount, TCHAR *szPassword)
 	else
 	{
 		nError = GetLastError();
-		//printf("ReadPasswordFromRegistry:RegOpenKeyEx(...) failed, error: %d\n", nError);
+		//PrintError(nError, "ReadPasswordFromRegistry:RegOpenKeyEx(...) failed, error: %d\n", nError);
 		bResult = FALSE;
 	}
 

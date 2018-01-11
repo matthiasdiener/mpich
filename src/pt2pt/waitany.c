@@ -1,5 +1,5 @@
 /*
- *  $Id: waitany.c,v 1.17 2002/01/04 22:42:26 gropp Exp $
+ *  $Id: waitany.c,v 1.18 2002/03/15 15:21:17 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -42,7 +42,7 @@ Input Parameters:
 Output Parameters:
 + index - index of handle for operation that completed (integer).  In the
 range '0' to 'count-1'.  In Fortran, the range is '1' to 'count'.
-- status - status object (Status) 
+- status - status object (Status).  May be 'MPI_STATUS_NULL'.
 
 Notes:
 If all of the requests are 'MPI_REQUEST_NULL', then 'index' is returned as 
@@ -91,10 +91,12 @@ int MPI_Waitany(
 
     if (i == count) {
 	/* MPI Standard 1.1 requires an empty status in this case */
- 	status->MPI_TAG	   = MPI_ANY_TAG;
-	status->MPI_SOURCE = MPI_ANY_SOURCE;
-	status->MPI_ERROR  = MPI_SUCCESS;
-	MPID_ZERO_STATUS_COUNT(status);
+        if (status) {
+	    status->MPI_TAG	   = MPI_ANY_TAG;
+	    status->MPI_SOURCE = MPI_ANY_SOURCE;
+	    status->MPI_ERROR  = MPI_SUCCESS;
+	    MPID_ZERO_STATUS_COUNT(status);
+	}
         *index             = MPI_UNDEFINED;
 	TR_POP;
 	return mpi_errno;
@@ -107,7 +109,8 @@ int MPI_Waitany(
 	    switch (request->handle_type) {
 	    case MPIR_SEND:
 		if (MPID_SendRequestCancelled(request)) {
-		    status->MPI_TAG = MPIR_MSG_CANCELLED; 
+		    if (status) 
+			status->MPI_TAG = MPIR_MSG_CANCELLED; 
 		    *index = i;
 		    done = 1;
 		}
@@ -125,13 +128,15 @@ int MPI_Waitany(
 		break;
 	    case MPIR_RECV:
 		if (request->rhandle.s.MPI_TAG == MPIR_MSG_CANCELLED) {
-		    status->MPI_TAG = MPIR_MSG_CANCELLED;
+		    if (status) 
+			status->MPI_TAG = MPIR_MSG_CANCELLED;
 		    MPID_RecvFree( array_of_requests[i] );
 		    *index = i;
 		    array_of_requests[i] = 0; 
 		    done = 1;
 		}
 		else {
+		    /* MPID_RecvIcomplete accepts null status */
 		    if (MPID_RecvIcomplete( request, status, &mpi_errno )) {
 			if (mpi_errno) 
 			    MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
@@ -154,7 +159,8 @@ int MPI_Waitany(
 		}
 		else {
 		    if (MPID_SendRequestCancelled(&request->persistent_shandle)) {
-			status->MPI_TAG = MPIR_MSG_CANCELLED; 
+			if (status) 
+			    status->MPI_TAG = MPIR_MSG_CANCELLED; 
 			*index = i;
 			done = 1;
 		    }
@@ -173,7 +179,8 @@ int MPI_Waitany(
 		else {
 		    if (request->persistent_rhandle.rhandle.s.MPI_TAG ==
 			MPIR_MSG_CANCELLED) {
-			status->MPI_TAG = MPIR_MSG_CANCELLED; 
+			if (status) 
+			    status->MPI_TAG = MPIR_MSG_CANCELLED; 
 			*index = i;
 			done = 1;
 		    }

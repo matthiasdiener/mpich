@@ -48,7 +48,11 @@ int bm_start(int *argc, char **argv)
 	p4_error("p4_initenv: alloc_local_bm failed\n", 0);
 
     MD_initenv();
+#ifdef CAN_DO_SWITCH_MSGS
     bm_switch_port = getswport(p4_global->my_host_name);
+#else
+    bm_switch_port = -1;
+#endif
     usc_init();
     init_usclock();
 
@@ -88,9 +92,10 @@ int p4_create_procgroup()
     return(0);
 }
 
-
-int p4_startup(pg)
-struct p4_procgroup *pg;
+/*
+ * Start both the listener and the local and remote processes.
+ */
+int p4_startup( struct p4_procgroup *pg )
 {
     int nslaves;
     int listener_port, listener_fd;
@@ -121,8 +126,6 @@ else {
          "Did not created new process group because isatty returned true\n" );
     }
 #endif
-
-
 
     procgroup_to_proctable(pg);
     if (pg->num_entries > 1)
@@ -248,7 +251,7 @@ else {
     return (0);
 }
 
-int create_bm_processes( struct p4_procgroup *pg)
+int create_bm_processes( struct p4_procgroup *pg )
 {
     struct p4_procgroup_entry *local_pg;
     int nslaves, end_1, end_2;
@@ -295,23 +298,23 @@ int create_bm_processes( struct p4_procgroup *pg)
 	csend((long) SYNC_MSG, &bm_msg, (long) sizeof(struct bm_rm_msg), 
 	      (long) i, (long) NODE_PID);
 	crecv(INITIAL_INFO, &bm_msg, (long) sizeof(struct bm_rm_msg));
-#       endif
+#       endif /* IPSC860 */
 #       if defined(CM5)
 	CMMD_send_noblock(i, SYNC_MSG, &bm_msg, sizeof(struct bm_rm_msg));
         CMMD_receive(CMMD_ANY_NODE, INITIAL_INFO, (void *) &bm_msg, sizeof(struct bm_rm_msg));
-#       endif
+#       endif /* CM5 */
 #       if defined(NCUBE)
 	nwrite(&bm_msg, sizeof(struct bm_rm_msg), i, SYNC_MSG, &unused_flag);
         from = NCUBE_ANY_NODE;
         type = INITIAL_INFO;
         nread(&bm_msg, sizeof(struct bm_rm_msg), &from, &type, &unused_flag);
-#       endif
+#       endif /* NCUBE */
 #       if defined(SP1_EUI)
 	mpc_bsend(&bm_msg, sizeof(struct bm_rm_msg), i, SYNC_MSG);
         from = ANY_P4TYPE_EUI;
         type = INITIAL_INFO;
         mpc_brecv(&bm_msg, sizeof(struct bm_rm_msg), &from, &type, &unused_flag);
-#       endif
+#       endif /*SP1_EUI */
 #       if defined(SP1_EUIH)
 	len = sizeof(struct bm_rm_msg);
 	type = SYNC_MSG;
@@ -320,7 +323,7 @@ int create_bm_processes( struct p4_procgroup *pg)
         type = INITIAL_INFO;
 	len  = sizeof(struct bm_rm_msg);
         mp_brecv(&bm_msg, &len, &from, &type, &unused_flag);
-#       endif
+#       endif /* SP1_EUIH */
 	port = p4_n_to_i(bm_msg.port);
 	slave_idx = p4_n_to_i(bm_msg.slave_idx);
 	slave_pid = p4_n_to_i(bm_msg.slave_pid);
@@ -346,6 +349,8 @@ int create_bm_processes( struct p4_procgroup *pg)
     }
 *****/
 #endif
+    /* The following creates the slaves for systems that use fork to 
+       create the *additional* processes (we're the initial process) */
     for (slave_idx = 1; slave_idx <= nslaves; slave_idx++)
     {
 	p4_dprintfl(20, "creating local slave %d of %d\n",slave_idx,nslaves);
@@ -364,9 +369,10 @@ int create_bm_processes( struct p4_procgroup *pg)
 #       endif
 	if (slave_pid < 0)
 	    p4_error("create_bm_processes fork", slave_pid);
-	else
+	else {
 	    if (slave_pid)
 		p4_dprintfl(10, "created local slave %d\n", slave_idx);
+	}
 	if (slave_pid == 0)	/* At this point, we are the slave. */
 	{
 	    sprintf(whoami_p4, "bm_slave_%d_%d", slave_idx, (int)getpid());
@@ -381,20 +387,20 @@ int create_bm_processes( struct p4_procgroup *pg)
 	    if (!(p4_global->local_communication_only))
 	    {
 #ifdef USE_NONBLOCKING_LISTENER_SOCKETS
-		/* Set the listener socket to be nonblocking.  Why? */
-		int cc = fcntl(end_1, F_SETFL, O_NONBLOCK);
-		if (cc < 0) {
+		/* Set the listener socket to be nonblocking.  */
+		int rc = p4_make_socket_nonblocking( end_1 );
+		if (rc < 0) {
 		    p4_error("create_bm_processes: set listener nonblocking",
-		      cc);
+			     rc);
 		}
-#endif
+#endif /* USE_NONBLOCKING_LISTENER_SOCKETS */
 		p4_local->listener_fd = end_1;
 #               if !defined(THREAD_LISTENER)
 		close(end_2);
 #               endif
 		close(listener_fd);
 	    }
-#           endif
+#           endif /* CAN_DO_SOCKET_MSGS */
 
 	    /* hang for a valid proctable.  Note that the master locks the
 	     slave lock before is starts creating the slave processes, so
@@ -412,7 +418,7 @@ int create_bm_processes( struct p4_procgroup *pg)
 #ifndef THREAD_LISTENER
 	    SIGNAL_P4(LISTENER_ATTN_SIGNAL, handle_connection_interrupt);
 #endif
-#endif
+#endif /* CAN_DO_SOCKET_MSGS */
 	    p4_local->my_id = p4_get_my_id_from_proc();
 #if defined(SUN_SOLARIS)
 /*****  Shyam code, removed by RL
@@ -435,7 +441,7 @@ int create_bm_processes( struct p4_procgroup *pg)
 		 }
 	    }
 *****/
-#endif
+#endif /* SUN_SOLARIS */
 	    setup_conntab();
 	    sprintf(whoami_p4, "p%d_%d", p4_local->my_id, (int)getpid());
 	    usc_init();
@@ -507,12 +513,26 @@ int create_bm_processes( struct p4_procgroup *pg)
 	get_pipe(&end_1, &end_2);
 	p4_local->listener_fd = end_1;
 	listener_info->slave_fd[0] = end_2;
+#ifdef USE_NONBLOCKING_LISTENER_SOCKETS
+	/* Set the listener socket to be nonblocking.  */
+	{
+	    int rc = p4_make_socket_nonblocking( end_1 );
+	    if (rc < 0) {
+		p4_error("create_bm_processes: set listener nonblocking",
+			 rc);
+	    }
+	}
+#endif /* USE_NONBLOCKING_LISTENER_SOCKETS */
 
+	/* Now, create the listener */
 	listener_pid = fork_p4();
-	if (listener_pid < 0)
+	if (listener_pid < 0) {
 	    p4_error("create_bm_processes listener fork", listener_pid);
+	}
 	if (listener_pid == 0)
 	{
+	    /* I am the listener */
+	    listener_info->slave_pid[0] = getppid();
 	    close(end_1);
 	    sprintf(whoami_p4, "bm_list_%d", (int)getpid());
 	    /* Inside listener */

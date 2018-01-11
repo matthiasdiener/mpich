@@ -75,6 +75,7 @@ protected:
 	afx_msg void OnRedirectChk();
 	afx_msg void OnRedirectBrowseBtn();
 	afx_msg void OnMapChk();
+	afx_msg void OnHelpBtn();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

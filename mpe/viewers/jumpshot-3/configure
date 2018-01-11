@@ -31,6 +31,12 @@ ac_help="$ac_help
                                      to set JAVA_LIBS and SWING_LIBS by hand.
                                      The default is enable=yes"
 ac_help="$ac_help
+--with-common-prefix=dir           - Set the installation prefix for 
+                                     the Jumpshot-2 viewer.  This allows
+				     a separate prefix for MPICH and for
+				     Jumpshot when they are installed 
+				     together"
+ac_help="$ac_help
 --with-java=JAVA_HOME              - The path of the top-level directory of 
                                      the Java installation.  If this option 
                                      or with-java2 is not given, configure
@@ -595,6 +601,18 @@ else
 fi
 
  
+# Check whether --with-common-prefix or --without-common-prefix was given.
+if test "${with_common_prefix+set}" = set; then
+  withval="$with_common_prefix"
+  :
+else
+  with_common_prefix=NONE
+fi
+
+
+if test "$with_common_prefix" != "NONE" ; then
+    prefix=$with_common_prefix
+fi 
 
 echo "Configuring Jumpshot-3 with $ac_configure_args"
 #
@@ -604,7 +622,7 @@ if test "X$srcdir" != "X." -a -s $srcdir/src/slog_api/Makefile.in ; then
 else
     
 echo $ac_n "checking for current directory name""... $ac_c" 1>&6
-echo "configure:608: checking for current directory name" >&5
+echo "configure:626: checking for current directory name" >&5
 top_srcdir_abs=$PWD
 if test "${top_srcdir_abs}" != "" -a -d "${top_srcdir_abs}" ; then 
     if test -r ${top_srcdir_abs}/.foo$$ ; then
@@ -702,7 +720,7 @@ fi
 MAKE=${MAKE:-make}
 
 echo $ac_n "checking gnumake""... $ac_c" 1>&6
-echo "configure:706: checking gnumake" >&5
+echo "configure:724: checking gnumake" >&5
 /bin/rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
@@ -728,7 +746,7 @@ str=""
 
 
 echo $ac_n "checking BSD 4.4 make""... $ac_c" 1>&6
-echo "configure:732: checking BSD 4.4 make" >&5
+echo "configure:750: checking BSD 4.4 make" >&5
 /bin/rm -f conftest
 cat > conftest <<.
 ALL:
@@ -752,7 +770,7 @@ str=""
 
 
 echo $ac_n "checking OSF V3 make""... $ac_c" 1>&6
-echo "configure:756: checking OSF V3 make" >&5
+echo "configure:774: checking OSF V3 make" >&5
 /bin/rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
@@ -776,7 +794,7 @@ str=""
 
 
 echo $ac_n "checking for virtual path format""... $ac_c" 1>&6
-echo "configure:780: checking for virtual path format" >&5
+echo "configure:798: checking for virtual path format" >&5
 rm -rf conftest*
 mkdir conftestdir
 cat >conftestdir/a.c <<EOF
@@ -836,7 +854,7 @@ if test -z "$JAVA_HOME" ; then
 #   Locate Java from user's PATH
     
 echo $ac_n "checking for Java in user's PATH""... $ac_c" 1>&6
-echo "configure:840: checking for Java in user's PATH" >&5
+echo "configure:858: checking for Java in user's PATH" >&5
 if test -n "$PATH" ; then
     JAVA_HOME=""
     Pac_USER_PATH=`echo $PATH | sed 's/:/ /g'`
@@ -868,7 +886,7 @@ if test -n "$PATH" ; then
             if test -n "${JAVA_HOME}" ; then
                 echo "$ac_t""found ${JAVA_HOME}" 1>&6
                 echo $ac_n "checking if ${JAVA_HOME}/bin/javac compiles""... $ac_c" 1>&6
-echo "configure:872: checking if ${JAVA_HOME}/bin/javac compiles" >&5
+echo "configure:890: checking if ${JAVA_HOME}/bin/javac compiles" >&5
                 
 pac_JC="${JAVA_HOME}/bin/javac"
 pac_JFLAGS=""
@@ -887,7 +905,7 @@ class conftest {
 EOF
 
     pac_jcompile='${pac_JC} ${pac_JFLAGS} conftest.java 1>&5'
-    if { (eval echo configure:891: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
+    if { (eval echo configure:909: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
         rm -rf conftest* ;  pac_java_working=yes 
     else
         rm -rf conftest* ;  pac_java_working=no  
@@ -899,7 +917,7 @@ EOF
                 else
                     echo "$ac_t""no" 1>&6
                     echo $ac_n "checking for working Java in user's PATH""... $ac_c" 1>&6
-echo "configure:903: checking for working Java in user's PATH" >&5
+echo "configure:921: checking for working Java in user's PATH" >&5
                     JAVA_HOME=""
                 fi
             fi
@@ -942,7 +960,7 @@ else { echo "configure: error: can not run $ac_config_sub" 1>&2; exit 1; }
 fi
 
 echo $ac_n "checking host system type""... $ac_c" 1>&6
-echo "configure:946: checking host system type" >&5
+echo "configure:964: checking host system type" >&5
 
 host_alias=$host
 case "$host_alias" in
@@ -1010,7 +1028,7 @@ if test -z "$subdir" ; then
 fi
 #
 echo $ac_n "checking for Java in known locations""... $ac_c" 1>&6
-echo "configure:1014: checking for Java in known locations" >&5
+echo "configure:1032: checking for Java in known locations" >&5
 reverse_dirs=""
 for dir in \
     /usr \
@@ -1077,7 +1095,7 @@ for dir in $reverse_dirs ; do
         if test -n "${JAVA_HOME}" ; then
             echo "$ac_t""found ${JAVA_HOME}" 1>&6
             echo $ac_n "checking if ${JAVA_HOME}/bin/javac compiles""... $ac_c" 1>&6
-echo "configure:1081: checking if ${JAVA_HOME}/bin/javac compiles" >&5
+echo "configure:1099: checking if ${JAVA_HOME}/bin/javac compiles" >&5
             
 pac_JC="${JAVA_HOME}/bin/javac"
 pac_JFLAGS=""
@@ -1096,7 +1114,7 @@ class conftest {
 EOF
 
     pac_jcompile='${pac_JC} ${pac_JFLAGS} conftest.java 1>&5'
-    if { (eval echo configure:1100: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
+    if { (eval echo configure:1118: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
         rm -rf conftest* ;  pac_java_working=yes 
     else
         rm -rf conftest* ;  pac_java_working=no  
@@ -1108,7 +1126,7 @@ EOF
             else
                 echo "$ac_t""no" 1>&6
                 echo $ac_n "checking for working Java in known locations""... $ac_c" 1>&6
-echo "configure:1112: checking for working Java in known locations" >&5
+echo "configure:1130: checking for working Java in known locations" >&5
                 JAVA_HOME=""
             fi
         fi
@@ -1147,7 +1165,7 @@ fi
 
 if test "$FOUND_ENV_JAVA_HOME" = "no" ; then
     echo $ac_n "checking if $JC compiles""... $ac_c" 1>&6
-echo "configure:1151: checking if $JC compiles" >&5
+echo "configure:1169: checking if $JC compiles" >&5
     if test -x "$JC" ; then
         
 pac_JC="$JC"
@@ -1167,7 +1185,7 @@ class conftest {
 EOF
 
     pac_jcompile='${pac_JC} ${pac_JFLAGS} conftest.java 1>&5'
-    if { (eval echo configure:1171: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
+    if { (eval echo configure:1189: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
         rm -rf conftest* ;  pac_java_working=yes 
     else
         rm -rf conftest* ;  pac_java_working=no  
@@ -1201,7 +1219,7 @@ fi
 
 for exe in "$RMIC" "$JAR" "$JVM" ; do
     echo $ac_n "checking if $exe exists""... $ac_c" 1>&6
-echo "configure:1205: checking if $exe exists" >&5
+echo "configure:1223: checking if $exe exists" >&5
     if test -x "$exe" ; then
         echo "$ac_t""yes" 1>&6
     else
@@ -1218,7 +1236,7 @@ fi
 done
 
 echo $ac_n "checking if $JC compiles Swing code""... $ac_c" 1>&6
-echo "configure:1222: checking if $JC compiles Swing code" >&5
+echo "configure:1240: checking if $JC compiles Swing code" >&5
 
 pac_JC="$JC"
 pac_JFLAGS=""
@@ -1240,7 +1258,7 @@ public static void main( String args[] )
 EOF
 
     pac_jcompile='${pac_JC} ${pac_JFLAGS} conftest.java 1>&5'
-    if { (eval echo configure:1244: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
+    if { (eval echo configure:1262: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
         rm -rf conftest* ;  pac_java_working=yes 
     else
         rm -rf conftest* ;  pac_java_working=no  
@@ -1270,7 +1288,7 @@ fi
 
 # Try to filter out the broken RMIC from JDK-1.2 pre-release
 echo $ac_n "checking if $RMIC generates stub""... $ac_c" 1>&6
-echo "configure:1274: checking if $RMIC generates stub" >&5
+echo "configure:1292: checking if $RMIC generates stub" >&5
 
 pac_RMIC="$RMIC"
 pac_JRFLAGS="-classpath $JAVA_LIBS:. -d . $JFLAGS"
@@ -1299,9 +1317,9 @@ public class conftest_rmic extends UnicastRemoteObject
 EOF
 
     pac_jcompile='${pac_JC} ${pac_JFLAGS} conftest_remote.java conftest_rmic.java 1>&5'
-    if { (eval echo configure:1303: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest_rmic.class ; then
+    if { (eval echo configure:1321: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest_rmic.class ; then
         pac_jrmic='${pac_RMIC} ${pac_JRFLAGS} conftest_rmic 1>&5'
-        if { (eval echo configure:1305: \"$pac_jrmic\") 1>&5; (eval $pac_jrmic) 2>&5; } && test -s conftest_rmic_Stub.class ; then
+        if { (eval echo configure:1323: \"$pac_jrmic\") 1>&5; (eval $pac_jrmic) 2>&5; } && test -s conftest_rmic_Stub.class ; then
             rm -rf conftest* ;  pac_java_working=yes 
         else
             rm -rf conftest* ;  pac_java_working=no  
@@ -1321,7 +1339,7 @@ fi
 # Filter out the version of JDK that causes problem
 if test "$enable_checkversion" = "yes" ; then
     echo $ac_n "checking for Java version""... $ac_c" 1>&6
-echo "configure:1325: checking for Java version" >&5
+echo "configure:1343: checking for Java version" >&5
     VERSION=`$JAVA_HOME/bin/java -fullversion 2>&1`
     case "$VERSION" in
 	*1.0*)
@@ -1384,7 +1402,7 @@ if test "$enable_internalswing" = "yes" ; then
     SWING_LIBRARIES=`echo $SWING_LIBS | sed 's/:/ /g'`
     for library in $SWING_LIBRARIES ; do
         echo $ac_n "checking for $library""... $ac_c" 1>&6
-echo "configure:1388: checking for $library" >&5
+echo "configure:1406: checking for $library" >&5
         if test -f "$library" ; then
             echo "$ac_t""yes" 1>&6
         else

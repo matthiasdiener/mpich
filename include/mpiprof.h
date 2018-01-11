@@ -166,6 +166,12 @@
 #define MPI_Info_set PMPI_Info_set
 #undef MPI_Init
 #define MPI_Init PMPI_Init
+#ifndef STRICT_MPI
+/* This is a special hack to catch inconsistent library and header 
+   versions */
+#undef MPI_Init_vcheck
+#define MPI_Init_vcheck PMPI_Init_vcheck
+#endif
 #undef MPI_Initialized
 #define MPI_Initialized PMPI_Initialized
 #undef MPI_Intercomm_create

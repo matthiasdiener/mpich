@@ -92,5 +92,6 @@
 #define HAVE_BOOL
 //#define HAVE_SHARED_PROCESS_READ
 //#define USE_GARBAGE_COLLECTING
+#define USE_LINGER_SOCKOPT
 
 #endif

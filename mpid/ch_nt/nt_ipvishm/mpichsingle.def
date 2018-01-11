@@ -1,6 +1,7 @@
 ;LIBRARY mpich
 
 EXPORTS
+	MPIR_F_MPI_BOTTOM
 	MPIOI_Type_block
 	MPIOI_Type_cyclic
 	MPIO_Test

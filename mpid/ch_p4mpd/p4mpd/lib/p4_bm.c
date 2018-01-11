@@ -126,9 +126,37 @@ char *msg;
 	}
     }
 
-    SYSCALL_P4(connection_fd, socket(AF_INET, SOCK_STREAM, 0));
-    if (connection_fd < 0)
-	p4_error("p4_peer_msg_handler socket", connection_fd);
+    connected = 0;
+    num_tries = 3;
+    while (!connected && num_tries) {
+	SYSCALL_P4(connection_fd, socket(AF_INET, SOCK_STREAM, 0));
+	if (connection_fd < 0)
+	    p4_error("p4_peer_msg_handler socket", connection_fd);
+	SYSCALL_P4(rc, connect(connection_fd, (struct sockaddr *) &sa,
+			       sizeof(struct sockaddr_in)));
+	if (rc < 0)
+	{
+	    close(connection_fd);
+	    p4_dprintfl( 077, "Connect failed; closed socket %d\n", connection_fd );
+	    if (--num_tries)
+	    {
+		p4_dprintfl(077,"p4_peer_msg_handler: connect to %s failed; will try %d more times \n",c_toipaddr,num_tries);
+		sleep(1);
+	    }
+	}
+	else
+	{
+	    connected = 1;
+	    p4_dprintfl(077,"p4_peer_msg_handler: connected to %s\n",c_toipaddr);
+	}
+
+    }
+    if ( ! connected)
+    {
+        p4_dprintf("p4_peer_msg_handler: failed connect to %s\n",c_toipaddr);
+        p4_error("failed to connnect",-1);
+    }
+
     flags = fcntl(connection_fd, F_GETFL, 0);
     if (flags < 0)
         p4_error("p4_bm fcntl1", flags); 
@@ -146,27 +174,6 @@ char *msg;
         p4_error("p4_bm fcntl2", flags); 
     optval = 1;
     SYSCALL_P4(rc, setsockopt(connection_fd,IPPROTO_TCP,TCP_NODELAY,(char *) &optval,sizeof(optval)));
-    connected = 0;
-    num_tries = 3;
-    while (!connected && num_tries) {
-	SYSCALL_P4(rc, connect(connection_fd, (struct sockaddr *) &sa,
-			       sizeof(struct sockaddr_in)));
-	if (rc < 0)
-	{
-	    p4_dprintfl( 077, "Connect failed; closed socket %d\n", connection_fd );
-	    if (--num_tries)
-	    {
-		p4_dprintfl(077,"p4_peer_msg_handler: connect to %s failed; will try %d more times \n",c_toipaddr,num_tries);
-		sleep(1);
-	    }
-	}
-	else
-	{
-	    connected = 1;
-	    p4_dprintfl(077,"p4_peer_msg_handler: connected to %s\n",c_toipaddr);
-	}
-
-    }
 
     p4_local->conntab[torank].type = CONN_REMOTE_EST;
     p4_local->conntab[torank].port = connection_fd;
@@ -680,15 +687,15 @@ struct p4_procgroup *pg;
 	    {
 	    struct hostent *hp = 
 		gethostbyname_p4(p4_global->proctable[ptidx].host_name);
-	    struct sockaddr_in *listener = 
+	    struct sockaddr_in *listener_sin = 
 		&p4_global->proctable[ptidx].sockaddr;
-	    bzero( (P4VOID*) listener, sizeof(struct sockaddr_in) );
-	    bcopy((P4VOID *) hp->h_addr, (P4VOID *)&listener->sin_addr, 
+	    bzero( (P4VOID*) listener_sin, sizeof(struct sockaddr_in) );
+	    bcopy((P4VOID *) hp->h_addr, (P4VOID *)&listener_sin->sin_addr, 
 		  hp->h_length);
-	    listener->sin_family = hp->h_addrtype;
+	    listener_sin->sin_family = hp->h_addrtype;
 	    /* Set a dummy port so that we can detect that the field
 	       has been initialized */
-	    listener->sin_port = 1;
+	    listener_sin->sin_port = 1;
 	    }
 #           endif
 	    ptidx++;

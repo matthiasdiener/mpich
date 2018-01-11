@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_testfs_wait.c,v 1.2 2001/08/01 15:29:43 rross Exp $    
+ *   $Id: ad_testfs_wait.c,v 1.3 2002/04/02 23:14:36 rross Exp $    
  *
  *   Copyright (C) 2001 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -16,8 +16,7 @@ void ADIOI_TESTFS_ReadComplete(ADIO_Request *request, ADIO_Status *status, int
     *error_code = MPI_SUCCESS;
 
     if (*request == ADIO_REQUEST_NULL) {
-	FPRINTF(stdout, "[%d/%d] ADIOI_TESTFS_ReadComplete called on ADIO_REQUEST_NULL\n", 
-	    myrank, nprocs);
+	FPRINTF(stdout, "[xx/xx] ADIOI_TESTFS_ReadComplete called on ADIO_REQUEST_NULL\n");
 	return;
     }
 
@@ -42,8 +41,7 @@ void ADIOI_TESTFS_WriteComplete(ADIO_Request *request, ADIO_Status *status, int
     *error_code = MPI_SUCCESS;
 
     if (*request == ADIO_REQUEST_NULL) {
-	FPRINTF(stdout, "[%d/%d] ADIOI_TESTFS_WriteComplete called on ADIO_REQUEST_NULL\n", 
-	    myrank, nprocs);
+	FPRINTF(stdout, "[xx/xx] ADIOI_TESTFS_WriteComplete called on ADIO_REQUEST_NULL\n");
 	return;
     }
 

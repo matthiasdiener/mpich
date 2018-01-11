@@ -86,3 +86,6 @@
 /* define if strtok_r requires a decl */
 #undef NEEDS_STRTOK_R_DECL
 
+/* define if strsignal requires a decl */
+#undef NEEDS_STRSIGNAL_DECL
+

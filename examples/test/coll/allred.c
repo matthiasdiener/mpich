@@ -12,16 +12,16 @@ int count, errcnt = 0, gerr = 0, size, rank;
 MPI_Comm comm;
 
 MPI_Comm comms[10];
-int      ncomm, i, world_rank;
+int      ncomm, ii, world_rank;
 
 MPI_Init( &argc, &argv );
 MPI_Comm_rank( MPI_COMM_WORLD, &world_rank );
 
 /* First tests */
 MakeComms( comms, 10, &ncomm, 0 );
-for (i=0; i<ncomm; i++) {
-if (world_rank == 0) printf( "Testing with communicator %d\n", i );
-comm = comms[i];
+for (ii=0; ii<ncomm; ii++) {
+if (world_rank == 0) printf( "Testing with communicator %d\n", ii );
+comm = comms[ii];
 
 
 MPI_Comm_size( comm, &size );

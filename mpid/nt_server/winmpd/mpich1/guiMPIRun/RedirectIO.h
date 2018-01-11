@@ -8,6 +8,8 @@
 #include <windows.h>
 */
 
+#define USE_LINGER_SOCKOPT
+
 struct RedirectIOArg
 {
     CGuiMPIRunView *pDlg;

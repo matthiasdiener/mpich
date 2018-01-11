@@ -1,5 +1,5 @@
 /*
- *  $Id: shmeminit.c,v 1.7 2001/06/22 22:28:22 gropp Exp $
+ *  $Id: shmeminit.c,v 1.8 2002/04/09 13:59:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -27,6 +27,8 @@
 /* Forward refs */
 int MPID_SHMEM_End ( MPID_Device * );
 int MPID_SHMEM_Abort ( struct MPIR_COMMUNICATOR *, int, char * );
+void MPID_SHMEM_Version_name( char * );
+
 extern MPID_Device *MPID_CH_InitMsgPass( int *, char ***, int, int );
 
 /* 

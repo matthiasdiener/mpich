@@ -86,6 +86,7 @@ prog: $(MAIN_OBJ) $(MAIN_EXE)
 slog_destlib: $(LIB_OBJ)
 	@if test "$(SLOG_DESTLIB)" != ""; then \
 	    $(AR) $(ARFLAGS) $(SLOG_DESTLIB) $? ; \
+	    $(RANLIB) $(SLOG_DESTLIB) ; \
 	fi
 
 rmlib:  

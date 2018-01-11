@@ -19,6 +19,7 @@ FindMPIRUN
 #
 runtests=1
 makeeach=0
+writesummaryfile=no
 quiet=0
 MAKE="@MAKE@"
 for arg in "$@" ; do
@@ -33,6 +34,10 @@ for arg in "$@" ; do
 	-small)
 	shift
 	makeeach=1
+	;;
+	-summaryfile=*)
+	writesummaryfile=yes
+	summaryfile=`echo A$arg | sed 's/A-summaryfile=//'`
 	;;
 	-quiet)
 	shift

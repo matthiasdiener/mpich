@@ -1,4 +1,4 @@
-.TH MPI_Cart_map 3 "11/14/2001" " " "MPI"
+.TH MPI_Cart_map 3 "3/28/2002" " " "MPI"
 .SH NAME
 MPI_Cart_map \-  Maps process to Cartesian topology information  
 .SH SYNOPSIS
@@ -20,21 +20,23 @@ int MPI_Cart_map (
 .PD 0
 .TP
 .B ndims 
-- number of dimensions of cartesian structure (integer) 
+- number of dimensions of Cartesian structure (integer) 
 .PD 1
 .PD 0
 .TP
 .B dims 
 - integer array of size 
 .I ndims
-specifying the number of processes in each coordinate direction 
+specifying the number of processes in 
+each coordinate direction 
 .PD 1
 .PD 0
 .TP
 .B periods 
 - logical array of size 
 .I ndims
-specifying the periodicity specification in each coordinate direction 
+specifying the periodicity 
+specification in each coordinate direction 
 .PD 1
 
 .SH OUTPUT PARAMETER
@@ -43,7 +45,8 @@ specifying the periodicity specification in each coordinate direction
 .B newrank 
 - reordered rank of the calling process; 
 .I MPI_UNDEFINED
-if calling process does not belong to grid (integer) 
+if 
+calling process does not belong to grid (integer) 
 .PD 1
 
 .SH NOTES FOR FORTRAN

@@ -1,5 +1,6 @@
 #include "GetStringOpt.h"
 #include "mpdimpl.h"
+#include "mpdutil.h"
 #include <winsock2.h>
 #include <windows.h>
 #include <stdio.h>
@@ -15,11 +16,11 @@ struct LaunchThreadStruct
     char pszHost[MAX_HOST_LENGTH];
     char pszSrcHost[MAX_HOST_LENGTH];
     char pszSrcId[10];
-    char pszEnv[4096];
+    char pszEnv[MAX_CMD_LENGTH];
     char pszDir[MAX_PATH];
     char pszCmd[MAX_CMD_LENGTH];
-    char pszAccount[25];
-    char pszPassword[25];
+    char pszAccount[40];
+    char pszPassword[300];
     char pszStdin[MAX_HOST_LENGTH];
     char pszStdout[MAX_HOST_LENGTH];
     char pszStderr[MAX_HOST_LENGTH];
@@ -62,33 +63,8 @@ LaunchThreadStruct::LaunchThreadStruct()
 
 void LaunchThreadStruct::Print()
 {
-    /*
-    printf("pszHost: '%s'\n", pszHost);
-    printf("pszSrcHost: '%s'\n", pszSrcHost);
-    printf("pszSrcId: '%s'\n", pszSrcId);
-    printf("pszEnv: '%s'\n", pszEnv);
-    printf("pszDir: '%s'\n", pszDir);
-    printf("pszCmd: '%s'\n", pszCmd);
-    printf("pszAccount: '%s'\n", pszAccount);
-    printf("pszPassword: ");
-    if (strlen(pszPassword) || strlen(pszAccount))
-	printf("***\n");
-    else
-	printf("\n");
-    printf("pszStdin: '%s'\n", pszStdin);
-    printf("pszStdout: '%s'\n", pszStdout);
-    printf("pszStderr: '%s'\n", pszStderr);
-
-    printf("nPid: %d\n", nPid);
-    printf("nKRank: %d\n", nKRank);
-    printf("pszError: '%s'\n", pszError);
-    printf("nExitCode: %d\n", nExitCode);
-    printf("hProcess: 0x%x\n", hProcess);
-    printf("hThread: 0x%x\n", hThread);
-    
-    printf("pNext: 0x%x\n", pNext);
-    */
     printf("LAUNCH:\n");
+    printf(" user: %s\n", pszAccount);
     printf(" %s(%s) -> %s %s\n", pszSrcHost, pszSrcId, pszHost, pszCmd);
     if (pszDir[0] != '\0')
     {
@@ -119,11 +95,12 @@ void LaunchThreadStruct::Print()
     }
     if (pszEnv[0] != '\0')
     {
-	char pszEnv2[4096];
+	char pszEnv2[MAX_CMD_LENGTH];
 	char pszCheck[100];
 	char *token;
 	int i,n;
-	strcpy(pszEnv2, pszEnv);
+	strncpy(pszEnv2, pszEnv, MAX_CMD_LENGTH);
+	pszEnv2[MAX_CMD_LENGTH-1] = '\0';
 
 	token = strstr(pszEnv2, "PMI_PWD=");
 	if (token != NULL)
@@ -177,6 +154,179 @@ void LaunchThreadStruct::Print()
 }
 
 LaunchThreadStruct *g_pProcessList = NULL;
+
+bool snprintf_update(char *&pszStr, int &length, char *pszFormat, ...)
+{
+    va_list list;
+    int n;
+
+    va_start(list, pszFormat);
+    n = _vsnprintf(pszStr, length, pszFormat, list);
+    va_end(list);
+
+    if (n < 0)
+    {
+	pszStr[length-1] = '\0';
+	length = 0;
+	return false;
+    }
+
+    pszStr = &pszStr[n];
+    length = length - n;
+
+    return true;
+}
+
+static void ProcessToString(LaunchThreadStruct *p, char *pszStr, int length)
+{
+    if (!snprintf_update(pszStr, length, "PROCESS:\n"))
+	return;
+    if (p->pszAccount[0] != '\0')
+    {
+	if (!snprintf_update(pszStr, length, " user: %s\n", p->pszAccount))
+	    return;
+    }
+    else
+    {
+	if (!snprintf_update(pszStr, length, " user: <single user mode>\n"))
+	    return;
+    }
+    if (!snprintf_update(pszStr, length, " %s(%s) -> %s %s\n", p->pszSrcHost, p->pszSrcId, p->pszHost, p->pszCmd))
+	return;
+    if (p->pszDir[0] != '\0')
+    {
+	if (!snprintf_update(pszStr, length, " dir: "))
+	    return;
+	int n = strlen(p->pszDir);
+	if (n > 70)
+	{
+	    char pszTemp[71];
+	    char *pszCur = p->pszDir;
+	    bool bFirst = true;
+	    while (n > 0)
+	    {
+		strncpy(pszTemp, pszCur, 70);
+		pszTemp[70] = '\0';
+		if (bFirst)
+		{
+		    if (!snprintf_update(pszStr, length, "%s\n", pszTemp))
+			return;
+		    bFirst = false;
+		}
+		else
+		{
+		    if (!snprintf_update(pszStr, length, "      %s\n", pszTemp))
+			return;
+		}
+		pszCur += 70;
+		n -= 70;
+	    }
+	}
+	else
+	{
+	    if (!snprintf_update(pszStr, length, "%s\n", p->pszDir))
+		return;
+	}
+    }
+    if (p->pszEnv[0] != '\0')
+    {
+	char pszEnv2[MAX_CMD_LENGTH];
+	char pszCheck[100];
+	char *token;
+	int i,n;
+	strncpy(pszEnv2, p->pszEnv, MAX_CMD_LENGTH);
+	pszEnv2[MAX_CMD_LENGTH-1] = '\0';
+
+	token = strstr(pszEnv2, "PMI_PWD=");
+	if (token != NULL)
+	{
+	    strncpy(pszCheck, &token[8], 100);
+	    pszCheck[99] = '\0';
+	    token = strtok(pszCheck, " '|\n");
+	    n = strlen(pszCheck);
+	    token = strstr(pszEnv2, "PMI_PWD=");
+	    token = &token[8];
+	    if (n > 0)
+	    {
+		if (pszCheck[n-1] == '\r' || pszCheck[n-1] == '\n')
+		    n--;
+		if (pszCheck[n-1] == '\r' || pszCheck[n-1] == '\n')
+		    n--;
+		for (i=0; i<n; i++)
+		    token[i] = '*';
+	    }
+	}
+
+	if (!snprintf_update(pszStr, length, " env: "))
+	    return;
+	n = strlen(pszEnv2);
+	if (n > 70)
+	{
+	    char pszTemp[71];
+	    char *pszCur = pszEnv2;
+	    bool bFirst = true;
+	    while (n > 0)
+	    {
+		strncpy(pszTemp, pszCur, 70);
+		pszTemp[70] = '\0';
+		if (bFirst)
+		{
+		    if (!snprintf_update(pszStr, length, "%s\n", pszTemp))
+			return;
+		    bFirst = false;
+		}
+		else
+		{
+		    if (!snprintf_update(pszStr, length, "      %s\n", pszTemp))
+			return;
+		}
+		pszCur += 70;
+		n -= 70;
+	    }
+	}
+	else
+	{
+	    if (!snprintf_update(pszStr, length, "%s\n", pszEnv2))
+		return;
+	}
+    }
+    if (!snprintf_update(pszStr, length, " stdin|out|err: %s|%s|%s\n", p->pszStdin, p->pszStdout, p->pszStderr))
+	return;
+    if (!snprintf_update(pszStr, length, " krank: %d\n", p->nKRank))
+	return;
+}
+
+void statProcessList(char *pszOutput, int length)
+{
+    HANDLE hProcessStructMutex;
+    LaunchThreadStruct *p;
+    int nBytesAvailable = length;
+
+    *pszOutput = '\0';
+    length--; // leave room for the null character
+
+    // lock the process list while using it
+    hProcessStructMutex = CreateMutex(NULL, FALSE, "mpdProcessStructMutex");
+    WaitForSingleObject(hProcessStructMutex, INFINITE);
+
+    if (g_pProcessList == NULL)
+    {
+	ReleaseMutex(hProcessStructMutex);
+	CloseHandle(hProcessStructMutex);
+	return;
+    }
+
+    p = g_pProcessList;
+    while (p)
+    {
+	ProcessToString(p, pszOutput, length);
+	length = length - strlen(pszOutput);
+	pszOutput = &pszOutput[strlen(pszOutput)];
+	p = p->pNext;
+    }
+    ReleaseMutex(hProcessStructMutex);
+    CloseHandle(hProcessStructMutex);
+}
 
 void RemoveProcessStruct(LaunchThreadStruct *p)
 {
@@ -504,7 +654,7 @@ void LaunchThread(LaunchThreadStruct *pArg)
     if (pArg->hProcess == INVALID_HANDLE_VALUE)
     {
 	Translate_Error(nError, pszError, pszStr);
-	sprintf(pszStr, "launched src=%s dest=%s id=%s error=LaunchProcess failed, %s", g_pszHost, pArg->pszSrcHost, pArg->pszSrcId, pszError);
+	_snprintf(pszStr, MAX_CMD_LENGTH, "launched src=%s dest=%s id=%s error=LaunchProcess failed, %s", g_pszHost, pArg->pszSrcHost, pArg->pszSrcId, pszError);
 	EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_LAUNCH_RESULT);
 	ResetSelect();
 	RemoveProcessStruct(pArg);
@@ -512,7 +662,7 @@ void LaunchThread(LaunchThreadStruct *pArg)
 	return;
     }
 
-    sprintf(pszStr, "launched pid=%d src=%s dest=%s id=%s", pArg->nPid, g_pszHost, pArg->pszSrcHost, pArg->pszSrcId);
+    _snprintf(pszStr, MAX_CMD_LENGTH, "launched pid=%d src=%s dest=%s id=%s", pArg->nPid, g_pszHost, pArg->pszSrcHost, pArg->pszSrcId);
     EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_LAUNCH_RESULT);
     ResetSelect();
 
@@ -548,7 +698,7 @@ void LaunchThread(LaunchThreadStruct *pArg)
     CloseHandle(pArg->hProcess);
     pArg->hProcess = NULL;
 
-    sprintf(pszStr, "exitcode code=%d src=%s dest=%s id=%s", pArg->nExitCode, g_pszHost, pArg->pszSrcHost, pArg->pszSrcId);
+    _snprintf(pszStr, MAX_CMD_LENGTH, "exitcode code=%d src=%s dest=%s id=%s", pArg->nExitCode, g_pszHost, pArg->pszSrcHost, pArg->pszSrcId);
     EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_EXITCODE);
     ResetSelect();
 
@@ -645,7 +795,7 @@ void Launch(char *pszStr)
     else
 	pArg->nKRank = 0;
     if (!GetStringOpt(pszStr, "h", pArg->pszHost))
-	strcpy(pArg->pszHost, g_pszHost);
+	strncpy(pArg->pszHost, g_pszHost, MAX_HOST_LENGTH);
     GetStringOpt(pszStr, "src", pArg->pszSrcHost);
     GetStringOpt(pszStr, "id", pArg->pszSrcId);
     GetStringOpt(pszStr, "e", pArg->pszEnv);
@@ -653,20 +803,21 @@ void Launch(char *pszStr)
     GetStringOpt(pszStr, "c", pArg->pszCmd);
     GetStringOpt(pszStr, "a", pArg->pszAccount);
     GetStringOpt(pszStr, "p", pArg->pszPassword);
+    DecodePassword(pArg->pszPassword);
     GetStringOpt(pszStr, "0", pArg->pszStdin);
     GetStringOpt(pszStr, "1", pArg->pszStdout);
     GetStringOpt(pszStr, "2", pArg->pszStderr);
     if (GetStringOpt(pszStr, "12", pszStr))
     {
-	strcpy(pArg->pszStdout, pszStr);
-	strcpy(pArg->pszStderr, pszStr);
+	strncpy(pArg->pszStdout, pszStr, MAX_HOST_LENGTH);
+	strncpy(pArg->pszStderr, pszStr, MAX_HOST_LENGTH);
 	pArg->bMergeOutErr = true;
     }
     if (GetStringOpt(pszStr, "012", pszStr))
     {
-	strcpy(pArg->pszStdin, pszStr);
-	strcpy(pArg->pszStdout, pszStr);
-	strcpy(pArg->pszStderr, pszStr);
+	strncpy(pArg->pszStdin, pszStr, MAX_HOST_LENGTH);
+	strncpy(pArg->pszStdout, pszStr, MAX_HOST_LENGTH);
+	strncpy(pArg->pszStderr, pszStr, MAX_HOST_LENGTH);
 	pArg->bMergeOutErr = true;
     }
 
@@ -705,13 +856,13 @@ void ConcatenateProcessesToString(char *pszStr)
     LaunchThreadStruct *p = g_pProcessList;
     if (p)
     {
-	sprintf(pszLine, "%s:\n", g_pszHost);
-	strcat(pszStr, pszLine);
+	_snprintf(pszLine, 4096, "%s:\n", g_pszHost);
+	strncat(pszStr, pszLine, MAX_CMD_LENGTH - 1 - strlen(pszStr));
     }
     while (p)
     {
-	sprintf(pszLine, "%04d : %s\n", p->nPid, p->pszCmd);
-	strcat(pszStr, pszLine);
+	_snprintf(pszLine, 4096, "%04d : %s\n", p->nPid, p->pszCmd);
+	strncat(pszStr, pszLine, MAX_CMD_LENGTH - 1 - strlen(pszStr));
 	p = p->pNext;
     }
     ReleaseMutex(hProcessStructMutex);

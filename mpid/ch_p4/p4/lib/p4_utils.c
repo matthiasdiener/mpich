@@ -14,7 +14,7 @@ extern char *getenv();
 static void beowulf_init(void);
 #endif
 
-void p4_post_init()
+void p4_post_init( void )
 {
     /* This routine can be called to do any further initialization after p4
        has itself been intialized. */
@@ -26,13 +26,13 @@ void p4_post_init()
 #endif
 }    
 
-char *p4_version()
+char *p4_version( void )
 {
     strcpy(hold_patchlevel,P4_PATCHLEVEL);
     return(hold_patchlevel);
 }
 
-char *p4_machine_type()
+char *p4_machine_type( void )
 {
     strcpy(hold_machine_type,P4_MACHINE_TYPE);
     return(hold_machine_type);
@@ -153,42 +153,39 @@ int p4_initenv(int *argc, char **argv)
     return (rc);
 }
 
-char *p4_shmalloc(n)
-int n;
+char *p4_shmalloc( int n )
 {
     char *rc;
 
     if ((rc = MD_shmalloc(n)) == NULL)
 	p4_dprintf("p4_shmalloc returning NULL; request = %d bytes\n\
 You can increase the amount of memory by setting the environment variable\n\
-P4_GLOBMEMSIZE (in bytes)\n",n);
+P4_GLOBMEMSIZE (in bytes); the current size is %d\n",n, globmemsize);
     return (rc);
 }
 
-P4VOID p4_shfree(p)
-P4VOID *p;
+P4VOID p4_shfree( P4VOID *p )
 {
     MD_shfree(p);
 }
 
-int p4_num_cluster_ids()
+int p4_num_cluster_ids( void )
 {
     return (p4_global->local_slave_count + 1);
 }
 
-int p4_num_total_ids()
+int p4_num_total_ids( void )
 {
     return (p4_global->num_in_proctable);
 }
 
-int p4_num_total_slaves()
+int p4_num_total_slaves( void )
 {
     return (p4_global->num_in_proctable - 1);
 }
 
 
-P4VOID p4_global_barrier(type)
-int type;
+P4VOID p4_global_barrier( int type )
 {
     int dummy[1];
 
@@ -197,8 +194,7 @@ int type;
 }
 
 
-P4VOID p4_get_cluster_masters(numids, ids)
-int *numids, ids[];
+P4VOID p4_get_cluster_masters( int *numids, int ids[] )
 {
     int node;
 
@@ -213,9 +209,7 @@ int *numids, ids[];
 }
 
 
-P4VOID p4_get_cluster_ids(start, end)
-int *start;
-int *end;
+P4VOID p4_get_cluster_ids( int *start, int *end )
 {
 
     *start = p4_global->low_cluster_id;
@@ -227,7 +221,7 @@ int *end;
  * indexing into the proctable until you find a hostname and a unix id
  * that are the same as yours.
  */
-int p4_get_my_id_from_proc()
+int p4_get_my_id_from_proc( void )
 {
     int i, my_unix_id;
     int n_match, match_id, best_match_id, best_match_nchars;
@@ -362,7 +356,7 @@ int p4_get_my_id_from_proc()
 	    {
 		char *p1 = pghp->h_name, *p2 = myname;
 		int  common_chars = 0;
-		while (*p1 && *p2 && *p1 == *p2) common_chars++;
+		while (*p1 && *p2 && *p1++ == *p2++) common_chars++;
 		if (common_chars > best_match_nchars) { 
 		    best_match_nchars = common_chars;
 		    best_match_id     = i;
@@ -415,12 +409,12 @@ int p4_get_my_id_from_proc()
     return (-2);
 }
 
-int p4_get_my_id()
+int p4_get_my_id( void )
 {
     return (p4_local->my_id);
 }
 
-int p4_get_my_cluster_id()
+int p4_get_my_cluster_id( void )
 {
 #   if (defined(IPSC860)  &&  !defined(IPSC860_SOCKETS))  ||  \
        (defined(CM5)      &&  !defined(CM5_SOCKETS))      ||  \
@@ -436,7 +430,7 @@ int p4_get_my_cluster_id()
 #   endif
 }
 
-P4BOOL p4_am_i_cluster_master()
+P4BOOL p4_am_i_cluster_master( void )
 {
     if (p4_local->my_id == LISTENER_ID)
 	return (0);
@@ -444,15 +438,13 @@ P4BOOL p4_am_i_cluster_master()
 	return (p4_global->proctable[p4_local->my_id].slave_idx == 0);
 }
 
-P4BOOL in_same_cluster(i, j)
-int i, j;
+P4BOOL in_same_cluster( int i, int j )
 {
     return (p4_global->proctable[i].group_id ==
 	    p4_global->proctable[j].group_id);
 }
 
-P4VOID p4_cluster_shmem_sync(cluster_shmem)
-P4VOID **cluster_shmem;
+P4VOID p4_cluster_shmem_sync( P4VOID **cluster_shmem )
 {
     int myid = p4_get_my_cluster_id();
 
@@ -499,9 +491,7 @@ typedef union header Header;
 static Header **freep;		/* pointer to pointer to start of free list */
 static p4_lock_t *shmem_lock;	/* Pointer to lock */
 
-P4VOID xx_init_shmalloc(memory, nbytes)
-char *memory;
-unsigned nbytes;
+P4VOID xx_init_shmalloc( char *memory, unsigned nbytes )
 /*
   memory points to a region of shared memory nbytes long.
   initialize the data structures needed to manage this memory
@@ -548,8 +538,7 @@ unsigned nbytes;
 
 }
 
-char *xx_shmalloc(nbytes)
-unsigned nbytes;
+char *xx_shmalloc( unsigned nbytes )
 {
     Header *p, *prevp;
     char *address = (char *) NULL;
@@ -593,8 +582,7 @@ unsigned nbytes;
     return address;
 }
 
-P4VOID xx_shfree(ap)
-char *ap;
+P4VOID xx_shfree( char *ap )
 {
     Header *bp, *p;
 
@@ -701,7 +689,7 @@ P4VOID setup_conntab()
 }
 
 #ifdef SYSV_IPC
-P4VOID remove_sysv_ipc()
+P4VOID remove_sysv_ipc( void )
 {
     int i;
     struct p4_global_data *g = p4_global;
@@ -779,8 +767,7 @@ static int n_slaves_left;
 #define TIMEOUT_VALUE_WAIT 60
 #endif
 P4VOID p4_accept_wait_timeout (int);
-P4VOID p4_accept_wait_timeout(sigval)
-int sigval;
+P4VOID p4_accept_wait_timeout(int sigval)
 {
     fprintf( stderr, 
 "Timeout in waiting for processes to exit, %d left.  This may be due to a defective\n\
@@ -1004,14 +991,14 @@ static int n_pids = 0;
 static int pid_list[P4_MAXPROCS];
 
 #ifdef SCYLD_BEOWULF
-int reset_fork_p4()
+int reset_fork_p4( void )
 {
     n_pids = 0;
     return 0;
 }
 #endif
 
-int fork_p4()
+int fork_p4( void )
 /*
   Wrapper round fork for sole purpose of keeping track of pids so 
   that can signal error conditions.  See zap_p4_processes.
@@ -1059,7 +1046,7 @@ int fork_p4()
     return pid;
 }
 
-P4VOID zap_p4_processes()
+P4VOID zap_p4_processes( void )
 {
     int n;
     
@@ -1073,7 +1060,7 @@ P4VOID zap_p4_processes()
     }
 }
 
-P4VOID zap_remote_p4_processes()
+P4VOID zap_remote_p4_processes( void )
 {
     int i;
     int my_id;
@@ -1193,9 +1180,9 @@ P4VOID get_qualified_hostname(char *str, int maxlen)
 }
 
 
+#ifdef CAN_DO_SWITCH_MSGS
 int getswport(char *hostname)
 {
-#ifdef CAN_DO_SWITCH_MSGS
     char local_host[MAXHOSTNAMELEN];
 
     if (strcmp(hostname, "local") == 0)
@@ -1228,13 +1215,12 @@ int getswport(char *hostname)
       return 20;
     if (strcmp(hostname,"mpp10") == 0)
       return 11;
-#endif
 
     return -1;
 }
+#endif
 
-P4BOOL same_data_representation(id1,id2)
-int id1, id2;
+P4BOOL same_data_representation( int id1, int id2 )
 {
     struct proc_info *p1 = &(p4_global->proctable[id1]);
     struct proc_info *p2 = &(p4_global->proctable[id2]);
@@ -1246,10 +1232,7 @@ int id1, id2;
  * the pid, and fills in the host and image names of the process with
  * the given rank.  Returns 0 if the rank is invalid.
  */
-int p4_proc_info(i, hostname, exename)
-int i;
-char **hostname;
-char **exename;
+int p4_proc_info(int i, char **hostname, char **exename)
 {
   if (((unsigned) i) >= p4_global->num_in_proctable)
     {
@@ -1259,7 +1242,15 @@ char **exename;
     else
     {
 	struct proc_info *p1 = &(p4_global->proctable[i]);
-	*hostname = p1->host_name;
+#ifdef SCYLD_BEOWULF
+	/* Allow kludgy forcing of all processes to appear on
+	* the master node for Scyld testing.
+	*/
+	if (getenv ("USE_BTRACE"))
+	    *hostname = "-1";
+        else
+#endif	
+	    *hostname = p1->host_name;
  
  	/* Get the executable name from the procgroup */
  	*exename = p4_local->procgroup->entries[i].slave_full_pathname;
@@ -1362,14 +1353,14 @@ static int clock_start_ms;
 static usc_time_t ustimer_start;
 static usc_time_t usrollover;
 
-P4VOID init_usclock()
+P4VOID init_usclock( void )
 {
     clock_start_ms = p4_clock();
     ustimer_start  = p4_ustimer();
     usrollover     = usc_rollover_val();
 }
 
-double p4_usclock()
+double p4_usclock( void )
 {
     int elapsed_ms, q;
     usc_time_t ustimer_end;
@@ -1440,11 +1431,18 @@ beowulf_init(void)
   pe = execer_pg->entries;
   execer_pg->num_entries = count;
   for (node = 0; node < count; node++) {
-    snprintf (pe->host_name, HOSTNAME_LEN, "%d", map[node]);
-    pe->numslaves_in_group = (node != 0);
-    strncpy(pe->slave_full_pathname, "self", 4);
-    strncpy(pe->username, pwent->pw_name, 10);
-    pe++;
+      int cnt;
+      snprintf (pe->host_name, HOSTNAME_LEN, "%d", map[node]);
+      pe->numslaves_in_group = (node != 0);
+      cnt = readlink ("/proc/self/exe", pe->slave_full_pathname, 
+		      sizeof (pe->slave_full_pathname));
+      if ((cnt == -1) ||
+	  (cnt == sizeof (pe->slave_full_pathname)))
+	  strncpy(pe->slave_full_pathname, "self", 4);
+      else
+	  pe->slave_full_pathname[cnt] = 0;
+      strncpy(pe->username, pwent->pw_name, 10);
+      pe++;
   }
 
   /* Need to move to rank 0 node. */

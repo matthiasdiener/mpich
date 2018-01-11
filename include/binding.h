@@ -149,7 +149,11 @@ double MPI_Wtick(void);
 double PMPI_Wtime(void);
 double PMPI_Wtick(void);
 #endif
+#ifndef MPI_Init
+/* Don't define if this is a macro used to define MPI_Init with a 
+   third, version, argument */
 int MPI_Init(int *, char ***);
+#endif
 int MPI_Init_thread(int *, char ***, int, int *);
 int MPI_Finalize(void);
 int MPI_Initialized(int *);
@@ -380,7 +384,10 @@ MPI_Fint PMPI_Info_c2f(MPI_Info);
 MPI_Info PMPI_Info_f2c(MPI_Fint);
 
 /* Wtime done above */
+#ifndef PMPI_Init
+/* See MPI_Init above */
 int PMPI_Init(int *, char ***);
+#endif
 int PMPI_Init_thread(int *, char ***, int, int *);
 int PMPI_Finalize(void);
 int PMPI_Initialized(int *);

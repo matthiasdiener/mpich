@@ -37,8 +37,10 @@ int main( int argc, char *argv[])
     {
     idx = 2;
     s = 333;
+#ifdef DEBUG
     fprintf(stdout, "%d start send (%d) to %d\n", my_id, s, idx);
     fflush(stdout);
+#endif
     MPI_Send(&s, 1, MPI_INT, idx, 0, MPI_COMM_WORLD);
 #ifdef DEBUG
     fprintf(stdout, "%d finished send to %d\n", my_id, idx);
@@ -54,14 +56,22 @@ int main( int argc, char *argv[])
     fflush(stdout);
 #endif
     MPI_Recv (&r, 1, MPI_INT, idx, 0, MPI_COMM_WORLD, &status );
+#ifdef DEBUG
     fprintf(stdout, "%d finished recv (%d) from %d\n", my_id, r, idx);
     fflush(stdout);
+#endif
     }
 
 #ifdef DBUG  
   fprintf(stdout, "%d Done ....\n",my_id);
   fflush(stdout);
 #endif  
+  MPI_Barrier( MPI_COMM_WORLD );
+  if (my_id == 0) {
+      /* If we reach here, we're done */
+      printf( " No Errors\n" );
+  }
+
   MPI_Finalize();
   return 0;
 }

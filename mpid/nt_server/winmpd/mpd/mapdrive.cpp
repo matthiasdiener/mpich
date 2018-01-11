@@ -287,7 +287,7 @@ bool MapDrive(char *pszDrive, char *pszShare, char *pszAccount, char *pszPasswor
     {
 	DriveMapStruct *p = new DriveMapStruct;
 	strcpy(p->pszDrive, pszDriveLetter);
-	strcpy(p->pszShare, pszShare);
+	strncpy(p->pszShare, pszShare, MAX_PATH);
 	p->hUser = hUser;
 	p->pNext = g_pDriveList;
 	g_pDriveList = p;
@@ -305,7 +305,7 @@ bool MapDrive(char *pszDrive, char *pszShare, char *pszAccount, char *pszPasswor
 	{
 	    DriveMapStruct *p = new DriveMapStruct;
 	    strcpy(p->pszDrive, pszDriveLetter);
-	    strcpy(p->pszShare, pszShare);
+	    strncpy(p->pszShare, pszShare, MAX_PATH);
 	    p->hUser = hUser;
 	    p->bUnmap = false; // don't unmap this drive since it was mapped outside mpd
 	    p->pNext = g_pDriveList;
@@ -345,7 +345,7 @@ bool MapDrive(char *pszDrive, char *pszShare, char *pszAccount, char *pszPasswor
 	{
 	    DriveMapStruct *p = new DriveMapStruct;
 	    strcpy(p->pszDrive, pszDriveLetter);
-	    strcpy(p->pszShare, pszShare);
+	    strncpy(p->pszShare, pszShare, MAX_PATH);
 	    p->hUser = hUser;
 	    p->bUnmap = false; // don't unmap this drive since it was mapped outside mpd
 	    p->pNext = g_pDriveList;

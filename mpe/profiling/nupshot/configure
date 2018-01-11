@@ -458,6 +458,10 @@ echo "$ac_t""yes" 1>&1
 fi
   :
 else
+  expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+  eval echo "configure:$expandcompile" >> config.log
+  echo "configure: failed program was:" >>config.log
+  cat confdefs.h >> config.log
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
@@ -495,6 +499,10 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+    eval echo "configure:$expandcompile" >> config.log
+    echo "configure: failed program was:" >>config.log
+    cat confdefs.h >> config.log
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
@@ -723,6 +731,10 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+    eval echo "configure:$expandcompile" >> config.log
+    echo "configure: failed program was:" >>config.log
+    cat confdefs.h >> config.log
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
@@ -877,6 +889,10 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+    eval echo "configure:$expandcompile" >> config.log
+    echo "configure: failed program was:" >>config.log
+    cat confdefs.h >> config.log
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
@@ -963,6 +979,10 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+    eval echo "configure:$expandcompile" >> config.log
+    echo "configure: failed program was:" >>config.log
+    cat confdefs.h >> config.log
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
@@ -1052,6 +1072,10 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+    eval echo "configure:$expandcompile" >> config.log
+    echo "configure: failed program was:" >>config.log
+    cat confdefs.h >> config.log
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
@@ -1128,6 +1152,10 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+    eval echo "configure:$expandcompile" >> config.log
+    echo "configure: failed program was:" >>config.log
+    cat confdefs.h >> config.log
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
@@ -1204,6 +1232,10 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+    eval echo "configure:$expandcompile" >> config.log
+    echo "configure: failed program was:" >>config.log
+    cat confdefs.h >> config.log
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
@@ -1865,6 +1897,10 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+    eval echo "configure:$expandcompile" >> config.log
+    echo "configure: failed program was:" >>config.log
+    cat confdefs.h >> config.log
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else

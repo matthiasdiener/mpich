@@ -3,6 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_INIT(mpd.c)
 AC_PREREQ(2.13)                 dnl needed for SHELL
 # Autoconf header:
+rm -f ${srcdir}/mpdconf.h mpdconf.h
 AC_CONFIG_HEADER(mpdconf.h)
 
 dnl Process configure arguments
@@ -127,14 +128,35 @@ AC_FUNC_VPRINTF
 AC_CHECK_FUNCS(getcwd gethostname gettimeofday putenv select socket strsignal strtok_r mkstemp)
 
 dnl Check whether you need to declare strtok_r (AIX and Solaris do)
-AC_MSG_CHECKING([whether strtok_r needs a declaration])
-AC_TRY_COMPILE([#include <string.h>],[
+if test "$ac_cv_func_strtok_r" = "yes" ; then
+    AC_MSG_CHECKING([whether strtok_r needs a declaration])
+    AC_TRY_COMPILE([#include <string.h>],[
 char *a, *c; const char *b; 
 char *tmp=strtok_r( a, b, &c );],needs_strtok_r=no,needs_strtok_r=yes)
-AC_MSG_RESULT($needs_strtok_r)
-if test "$needs_strtok_r" = "yes" ; then
-    AC_DEFINE(NEEDS_STRTOK_R_DECL,1,[define if strtok_r requires a decl])
+    AC_MSG_RESULT($needs_strtok_r)
+    if test "$needs_strtok_r" = "yes" ; then
+        AC_DEFINE(NEEDS_STRTOK_R_DECL,1,[define if strtok_r requires a decl])
+    fi
 fi
+dnl
+dnl Check whether you need to declare strsignal (most do)
+dnl We do this by trying to compile a program that uses strsignal
+dnl *incorrectly* and we see if the compiler catches it
+dnl
+if test "$ac_cv_func_strsignal" = "yes" ; then
+    AC_MSG_CHECKING([whether strsignal needs a declaration])
+    AC_TRY_COMPILE([#include <string.h>],[
+char *tmp=strsignal( "a", 1 );],needs_strsignal=yes,needs_signal=no)
+    AC_MSG_RESULT($needs_strsignal)
+    if test "$needs_strsignal" = "yes" ; then
+        AC_DEFINE(NEEDS_STRSIGNAL_DECL,1,[define if strsignal requires a decl])
+    fi
+fi
+dnl
+dnl Unfortunately, autoheader isn't sophisticated enough to handle
+dnl DEFINE_UNQUOTED.
+dnl PAC_FUNC_NEEDS_DECL([#include <unistd.h>],readlink)
+
 dnl Output:
 # Starting output
 MPD_HOME=`pwd`

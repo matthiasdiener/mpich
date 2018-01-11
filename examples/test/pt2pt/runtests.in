@@ -23,6 +23,7 @@ FindMPIRUN
 # If the programs are not available, run make.
 runtests=1
 makeeach=0
+writesummaryfile=no
 check_at_once=1
 quiet=0
 check_canrun=0
@@ -38,6 +39,10 @@ for arg in "$@" ; do
 	shift
 	margs=`echo $arg | sed 's/-margs=//'`
 	args="$args $margs"
+	;;
+	-summaryfile=*)
+	writesummaryfile=yes
+	summaryfile=`echo A$arg | sed 's/A-summaryfile=//'`
 	;;
 	-echo)
 	shift
@@ -79,6 +84,10 @@ for arg in "$@" ; do
 	;;
     esac
 done
+
+# Do this because we're writing the output while running
+savewritesummaryfile=$writesummaryfile
+writesummaryfile=no
 
 # If cannot run test, do that and exit
 if [ $check_canrun = 1 ] ; then
@@ -250,6 +259,10 @@ RunTest waitall 4 "*** Testing MPI_Waitall ***"
 
 RunTest waitall2 2 "*** Testing MPI_Waitall (order) ***"
 
+RunTest waitall3 4 "*** Testing MPI_Waitall (order-irecv) ***"
+
+RunTest waitall4 4 "*** Testing MPI_Waitall (order-isend) ***"
+
 RunTest waitany 4 "*** Testing MPI_Waitany ***"
 
 RunTest pack 2 "*** Testing MPI_Pack ***"
@@ -316,6 +329,7 @@ else
     fi
 fi
 #
+writesummaryfile=$savewritesummaryfile
 echo '*** Checking for differences from expected output ***'
 CheckAllOutput pt2pt.diff
 exit 0

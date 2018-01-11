@@ -10,13 +10,13 @@ struct MPIRunLaunchProcessArg
 {
     int i;
     char pszJobID[100];
-    char pszHost[100];
-    char pszEnv[MAX_PATH];
+    char pszHost[MAX_HOST_LENGTH];
+    char pszEnv[MAX_CMD_LENGTH];
     char pszDir[MAX_PATH];
-    char pszCmdLine[MAX_PATH];
+    char pszCmdLine[MAX_CMD_LENGTH];
     bool bLogon;
     char pszAccount[100];
-    char pszPassword[100];
+    char pszPassword[300];
     char pszIOHostPort[100];
     char pszPassPhrase[257];
     CGuiMPIRunView *pDlg;

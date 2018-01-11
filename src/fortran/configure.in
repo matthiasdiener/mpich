@@ -771,13 +771,18 @@ if test -n "$F90" -a "$enable_f90" != "no" ; then
 	            export F90 ; export MPIR_HOME ; export VPATH ; \
 	   	    export libbuild_dir ; export includebuild_dir ; \
 		    export MAKE ; F90LINKER="$F90LINKER" ; \
-		    export F90LINKER ; \
+		    export F90LINKER ; export F77 ; \
  	   	    $top_srcdir_val/f90modules/configure --with-mpich)
- 	F90_MODINCFLAG="`$MAKE -f ../../f90modules/Makefile f90modflag`"
-	F90MODINCSPEC="`$MAKE -f ../../f90modules/Makefile f90modspec`"
-        if test -z "$USER_SET_F90INC" -a -z "$F90INC" ; then 
-	    # This should use a test or try to get it from the f90module.
-	    F90INC=`$MAKE -f ../../f90modules/Makefile f90incflag`
+        if test ! -s ../../f90modules/Makefile ; then 
+	    # turn off f90
+	    F90=""
+	else		    
+ 	    F90_MODINCFLAG="`$MAKE -f ../../f90modules/Makefile f90modflag`"
+  	    F90MODINCSPEC="`$MAKE -f ../../f90modules/Makefile f90modspec`"
+            if test -z "$USER_SET_F90INC" -a -z "$F90INC" ; then 
+	        # This should use a test or try to get it from the f90module.
+	        F90INC=`$MAKE -f ../../f90modules/Makefile f90incflag`
+            fi
         fi
     fi
 else 

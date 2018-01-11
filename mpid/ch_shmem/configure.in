@@ -11,9 +11,65 @@ AC_CONFIG_HEADER(mpich-mpid.h)
 
 AC_CROSS_CHECK()
 
+AC_ARG_ENABLE(yield,
+[--enable-yield - Turn on use of process yield when waiting for a message.
+The default is yes.  The value allows a particular yield routine to be chosen.
+The choices include
+    yes - use the default (either POSIX sched_yield or none)
+    sched_yield - POSIX sched_yield
+    select - select with a zero timeout 
+    sginap - IRIX only function to yield
+    dynamic - chose between sched_yield, select, and none at runtime
+              with the environment variable MPICH_YIELD],
+,enable_yield=yes)
+
 # Solaris has -lthread containing mutex_init
 AC_CHECK_LIB(thread,mutex_init)
 
+AC_CHECK_HEADERS(sched.h)
+use_select_yield=no
+have_sched_yield=no
+case $enable_yield in
+    no)
+        # Do nothing
+	;;
+    yes|sched_yield)
+	# Solaris hides sched_yield in the rt library
+	AC_SEARCH_LIBS(sched_yield,rt,have_sched_yield=yes)
+	if test "$have_sched_yield" = "yes" ; then
+	    AC_DEFINE(USE_SCHED_YIELD,,[define to use POSIX sched_yield])
+	else
+	    # Hook to allow us to make this the alternate default
+            use_select_yield=no
+	fi
+	;;	
+    sginap)
+        AC_CHECK_FUNC(sginap,
+	AC_DEFINE(USE_SGINAP_YIELD,,[define to use sginap to yield]))
+        ;;
+    yield)
+        # AIX 4.2 has yield
+        AC_CHECK_FUNC(yield,
+	AC_DEFINE(USE_YIELD_YIELD,,[define to use yield to yield]))
+	;;
+    select)
+        # Assume that we can always use select
+        use_select_yield=yes
+	;;
+    dynamic)
+	AC_SEARCH_LIBS(sched_yield,rt,have_sched_yield=yes)
+	if test "$have_sched_yield" = "yes" ; then
+	    AC_DEFINE(USE_DYNAMIC_YIELD,,[define to dynamically select yield])
+	fi
+	;;
+    *)
+	AC_MSG_WARN([Unrecognized yield method $enable_yield])
+	;;
+esac
+if test "$use_select_yield" = "yes" ; then
+    AC_DEFINE(USE_SELECT_YIELD,,[define to use select to yield])
+fi
+#
 # Check for other lock routines
 # IRIX
 # usnewlock is a macro, so we need to use try_link

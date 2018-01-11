@@ -59,7 +59,7 @@ srcdir       = @srcdir@
 EXECS        = dbxtest dbxtest2 testlog clog_print clog2alog clog2slog
 
 # GETNAME_DEFS are needed by mpehname.c
-CFLAGS       = $(MPE_CFLAGS) $(MPE_GRAPHICS) $(INCLUDE_DIR) 
+CFLAGS       = $(MPE_CFLAGS) $(MPE_GRAPHICS) $(INCLUDE_DIR) @CFLAGS@
 CC_LDFLAGS   = $(LDFLAGS) $(MPE_CFLAGS)
 
 MPE_CSOURCES = $(MPEGRAPHICS_SOURCE) clog_sysio.c mpe_log.c clog.c \

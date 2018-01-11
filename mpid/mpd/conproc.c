@@ -39,6 +39,7 @@ void con_mpexec( )
     int  i, locc, envc, argc, n;
     int  first_at_console;
     char requested_jobid[10], requested_userid[10];
+    char co_program[MAXLINE], mship_host[80], mship_port[80];
 
     mpd_getval( "hostname", console_hostname );
     mpd_getval( "portnum", buf );
@@ -65,6 +66,9 @@ void con_mpexec( )
     mpd_getval( "username", username );
     mpd_getval( "requested_jobid", requested_jobid );
     mpd_getval( "requested_userid", requested_userid );
+    mpd_getval( "copgm", co_program );
+    mpd_getval( "mship_host", mship_host );
+    mpd_getval( "mship_port", mship_port );
 
     n = sscanf( requested_jobid, "%d", &jid ); /* look for optional request for jid */
     if ( n != 1 )
@@ -88,10 +92,12 @@ void con_mpexec( )
 	    "cmd=mpexec conhost=%s conport=%d rank=0 src=%s "
 	    "iotree=%d dest=anyone job=%d jobsize=%d prog=%s hopcount=0 gdb=%d "
 	    "tvdebug=%d line_labels=%d whole_lines=%d "
+            "copgm=%s mship_host=%s mship_port=%s "
 	    "shmemgrpsize=%d username=%s myrinet_job=%d ",
 	    console_hostname, console_portnum, myid, iotree, jid, numprocs, program,
-	    gdb, tvdebug, line_labels, whole_lines, shmemgrpsize,
-	    username, myrinet_job );
+	    gdb, tvdebug, line_labels, whole_lines, 
+	    co_program, mship_host, mship_port,
+	    shmemgrpsize, username, myrinet_job );
 
     /* now add other arguments, which are already in key=val form */
     if ( mpd_getval( "locc", buf ) )

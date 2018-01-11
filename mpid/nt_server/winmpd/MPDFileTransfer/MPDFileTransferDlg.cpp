@@ -394,10 +394,13 @@ void CMPDFileTransferDlg::OnConnect1Btn()
 	int i;
 	int nFolders, nFiles;
 	char pszStr[256], pszFile[256], pszLength[50];
+	char *pszEncoded;
 
 	m_tree1.DeleteAllItems();
 
-	sprintf(pszStr, "fileinit account=%s password=%s", m_pszAccount1, m_pszPassword1);
+	pszEncoded = EncodePassword(m_pszPassword1);
+	sprintf(pszStr, "fileinit account=%s password=%s", m_pszAccount1, pszEncoded);
+	if (pszEncoded != NULL) free(pszEncoded);
 	WriteString(m_bfd1, pszStr);
 
 	sprintf(pszStr, "getdir path=%s\\", m_pszRoot1);
@@ -503,10 +506,13 @@ void CMPDFileTransferDlg::OnConnect2Btn()
 	int i;
 	int nFolders, nFiles;
 	char pszStr[256], pszFile[256], pszLength[50];
+	char *pszEncoded;
 
 	m_tree2.DeleteAllItems();
 
-	sprintf(pszStr, "fileinit account=%s password=%s", m_pszAccount2, m_pszPassword2);
+	pszEncoded = EncodePassword(m_pszPassword2);
+	sprintf(pszStr, "fileinit account=%s password=%s", m_pszAccount2, pszEncoded);
+	if (pszEncoded != NULL) free(pszEncoded);
 	WriteString(m_bfd2, pszStr);
 
 	sprintf(pszStr, "getdir path=%s\\", m_pszRoot2);

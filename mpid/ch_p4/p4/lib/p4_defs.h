@@ -180,6 +180,7 @@ struct p4_queued_msg {
 #define CONNECTION_REQUEST   3
 #define IGNORE_THIS   4
 #define KILL_SLAVE   5
+#define WAKEUP_SLAVE 6
 
 struct slave_listener_msg {
     int type:32;

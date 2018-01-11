@@ -10,18 +10,20 @@
 #include <tchar.h>
 
 #define FORWARD_NPROC_THRESHOLD 3
+#define MAX_CMD_LENGTH  8192
+#define MAX_HOST_LENGTH 64
 
 struct HostNode
 {
-    TCHAR host[100];
-    TCHAR exe[MAX_PATH];
+    TCHAR host[MAX_HOST_LENGTH];
+    TCHAR exe[MAX_CMD_LENGTH];
     long nSMPProcs;
     HostNode *next;
 };
 
 struct ForwardHostStruct
 {
-    char pszHost[40];
+    char pszHost[MAX_CMD_LENGTH];
     int nPort;
 };
 

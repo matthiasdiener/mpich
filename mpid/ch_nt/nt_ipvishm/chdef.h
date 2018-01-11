@@ -44,6 +44,6 @@
 
 void MPID_NT_ipvishm_Init( int *, char *** );
 void MPID_NT_ipvishm_End(void);
-
+void MPID_NT_ipvishm_fixupdevpointers(MPID_Device *pDevice);
 
 #endif

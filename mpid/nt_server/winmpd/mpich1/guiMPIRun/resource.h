@@ -48,6 +48,7 @@
 #define IDC_REDIRECT_BROWSE_BTN         1035
 #define IDC_MAP_CHK                     1036
 #define IDC_DRIVEMAPPINGS               1037
+#define IDC_HELP_BTN                    1038
 #define ID_HELP_HELP                    32771
 
 // Next default values for new objects
@@ -57,7 +58,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        136
 #define _APS_NEXT_COMMAND_VALUE         32772
-#define _APS_NEXT_CONTROL_VALUE         1035
+#define _APS_NEXT_CONTROL_VALUE         1039
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

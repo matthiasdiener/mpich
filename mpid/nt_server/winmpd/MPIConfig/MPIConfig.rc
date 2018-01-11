@@ -67,36 +67,67 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDR_MAINFRAME           ICON    DISCARDABLE     "res\\MPIConfig.ico"
+IDI_ICON_NO             ICON    DISCARDABLE     "res\\icon1.ico"
+IDI_ICON_YES            ICON    DISCARDABLE     "res\\ico00001.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Dialog
 //
 
-IDD_MPICONFIG_DIALOG DIALOGEX 0, 0, 262, 198
+IDD_MPICONFIG_DIALOG DIALOGEX 0, 0, 528, 225
 STYLE WS_MINIMIZEBOX | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU | 
     WS_THICKFRAME
 EXSTYLE WS_EX_APPWINDOW
 CAPTION "MPI Configuration Tool"
-FONT 8, "MS Sans Serif", 0, 0, 0x1
+FONT 8, "MS Sans Serif"
 BEGIN
-    PUSHBUTTON      "&Find [1]",IDC_FIND_BTN,216,177,39,14
-    EDITTEXT        IDC_HOSTNAME,7,7,49,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "&Set [3]",IDC_SET_BTN,103,7,40,14
-    PUSHBUTTON      "&OK",IDOK,153,7,50,14
-    PUSHBUTTON      "&Cancel",IDCANCEL,205,7,50,14
-    LISTBOX         IDC_LIST,64,22,191,154,LBS_SORT | LBS_MULTIPLESEL | 
-                    LBS_NOINTEGRALHEIGHT | LBS_MULTICOLUMN | WS_VSCROLL | 
-                    WS_HSCROLL | WS_TABSTOP
-    PUSHBUTTON      "&Refresh",IDC_REFRESH_BTN,163,177,50,14
-    LISTBOX         IDC_HOST_LIST,7,19,49,172,LBS_SORT | 
+    EDITTEXT        IDC_HOSTNAME,11,17,51,14,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "&Add",IDC_EDIT_ADD_BTN,65,17,35,14
+    CONTROL         "HOSTS: Used by mpirun to determine hostnames for the -np option",
+                    IDC_HOSTS_CHK,"Button",BS_AUTOCHECKBOX | BS_MULTILINE | 
+                    WS_TABSTOP,158,22,173,23
+    CONTROL         "TEMP :",IDC_TEMP_CHK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,158,54,40,10
+    EDITTEXT        IDC_TEMP_EDIT,199,52,131,14,ES_AUTOHSCROLL
+    CONTROL         "Launch timeout in seconds:",IDC_TIMEOUT_CHK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,158,94,103,10
+    EDITTEXT        IDC_LAUNCH_TIMEOUT,273,93,57,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "&Apply",IDC_SET_BTN,355,93,40,14
+    GROUPBOX        "",IDC_PHRASE_STATIC,361,31,150,53,WS_GROUP
+    CONTROL         "",IDC_PHRASE_RADIO,"Button",BS_AUTORADIOBUTTON,367,43,
+                    10,8
+    EDITTEXT        IDC_PASSWORD,380,41,120,14,ES_PASSWORD | ES_AUTOHSCROLL
+    CONTROL         "I installed using the default passphrase",
+                    IDC_DEFAULT_RADIO,"Button",BS_AUTORADIOBUTTON,367,66,137,
+                    10
+    PUSHBUTTON      "&OK",IDOK,471,188,50,14
+    PUSHBUTTON      "&Cancel",IDCANCEL,471,204,50,14
+    LISTBOX         IDC_HOST_LIST,11,34,89,178,LBS_SORT | 
                     LBS_NOINTEGRALHEIGHT | LBS_WANTKEYBOARDINPUT | 
                     WS_VSCROLL | WS_TABSTOP
-    DEFPUSHBUTTON   "&Add [2]",IDC_EDIT_ADD_BTN,64,7,35,14
-    EDITTEXT        IDC_DOMAIN,116,177,44,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_STATIC_EDIT,64,177,49,17,ES_MULTILINE | 
-                    ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER | NOT 
-                    WS_TABSTOP
+    GROUPBOX        "1) Select the hosts to configure",IDC_ONE_STATIC,7,7,
+                    138,211
+    GROUPBOX        "2) Select the options to set",IDC_TWO_STATIC,151,7,186,
+                    110
+    LTEXT           "This directory is used for temporary files at process startup.  It must be read/write-able by all users",
+                    IDC_TEMP_STATIC,172,68,158,24
+    GROUPBOX        "3) Apply the options",IDC_THREE_STATIC,342,7,179,126
+    LTEXT           "Set the selected options",IDC_APPLY_STATIC,399,95,77,8
+    LTEXT           "Enter the password to connect to the remote mpd's",
+                    IDC_PWD_STATIC,353,19,165,12
+    CONTROL         133,IDC_STOPLIGHT_RED,"Static",SS_BITMAP,482,95,30,10
+    CONTROL         135,IDC_STOPLIGHT_GREEN,"Static",SS_BITMAP,482,95,30,10
+    CONTROL         134,IDC_STOPLIGHT_YELLOW,"Static",SS_BITMAP,482,95,30,10
+    CONTROL         "Show host configuration",IDC_SHOW_HOST_CHK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,151,125,92,10
+    EDITTEXT        IDC_HOST_CONFIG,151,136,313,82,ES_MULTILINE | 
+                    ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY | 
+                    WS_VSCROLL
+    PUSHBUTTON      "Apply &single",IDC_SET_ONE_BTN,355,111,47,14
+    LTEXT           "Set the selected options on the highlighted host only",
+                    IDC_APPLY_ONE_STATIC,408,113,106,16
+    PUSHBUTTON      "&Select",IDC_SELECT_BTN,105,17,35,14
 END
 
 IDD_SET_DIALOG DIALOG DISCARDABLE  0, 0, 186, 121
@@ -134,6 +165,189 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDOK,65,74,50,14
     LTEXT           "Enter the password to connect to the remote mpd's",
                     IDC_STATIC,7,7,165,12
+END
+
+IDD_FIND_HOSTS_DLG DIALOGEX 0, 0, 246, 140
+STYLE WS_POPUP | WS_CAPTION | WS_THICKFRAME
+CAPTION "Select hosts"
+MENU IDR_FIND_MENU
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "List1",IDC_DOMAIN_HOST_LIST,"SysListView32",LVS_LIST | 
+                    WS_BORDER | WS_TABSTOP,7,18,232,98
+    EDITTEXT        IDC_ENCODED_HOSTS,7,0,232,14,ES_AUTOHSCROLL | 
+                    ES_READONLY | NOT WS_BORDER,WS_EX_STATICEDGE
+    PUSHBUTTON      "&Ok",IDOK,135,119,50,14
+    PUSHBUTTON      "&Cancel",IDCANCEL,189,119,50,14
+    RTEXT           "",IDC_N_OF_M_STATIC,7,121,47,8
+    CONTROL         "Progress1",IDC_PROGRESS,"msctls_progress32",PBS_SMOOTH | 
+                    WS_BORDER,58,121,72,6
+END
+
+IDD_DOMAIN_DLG DIALOG DISCARDABLE  0, 0, 135, 47
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION
+CAPTION "Network Domain"
+FONT 8, "MS Sans Serif"
+BEGIN
+    EDITTEXT        IDC_DOMAIN_EDIT,7,26,66,14,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,78,7,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,78,26,50,14
+    LTEXT           "Enter a new domain: *blank for local",IDC_STATIC,7,7,66,
+                    18
+END
+
+IDD_CONNECTION_OPTIONS_DLG DIALOG DISCARDABLE  0, 0, 186, 105
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION
+CAPTION "MPD Connection Options"
+FONT 8, "MS Sans Serif"
+BEGIN
+    GROUPBOX        "",IDC_STATIC,7,3,100,41,WS_GROUP
+    CONTROL         "Default passphrase",IDC_DEFAULT_PASSPHRASE_RADIO,"Button",
+                    BS_AUTORADIOBUTTON,16,13,77,10
+    CONTROL         "",IDC_PASSPHRASE_RADIO,"Button",BS_AUTORADIOBUTTON,16,
+                    27,9,8
+    EDITTEXT        IDC_PASSPHRASE,30,24,64,14,ES_PASSWORD | ES_AUTOHSCROLL
+    GROUPBOX        "",IDC_STATIC,7,44,100,39,WS_GROUP
+    CONTROL         "Default port",IDC_DEFAULT_PORT_RADIO,"Button",
+                    BS_AUTORADIOBUTTON,16,52,53,10
+    CONTROL         "",IDC_PORT_RADIO,"Button",BS_AUTORADIOBUTTON,16,67,9,8
+    EDITTEXT        IDC_PORT,30,63,40,14,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,129,7,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,129,24,50,14
+    CONTROL         "Fast mpd connect attempt",IDC_FAST_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,88,98,10
+END
+
+IDD_CONFIG_DLG DIALOG DISCARDABLE  0, 0, 465, 298
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION
+CAPTION "MPICH Configuration"
+FONT 8, "MS Sans Serif"
+BEGIN
+    EDITTEXT        IDC_ADD_HOSTNAME,11,17,51,14,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "&Add",IDC_ADD_BTN,65,17,35,14
+    PUSHBUTTON      "&Select",IDC_SELECT_BTN,105,17,35,14
+    PUSHBUTTON      "v",IDC_TOGGLE_BTN,156,30,10,9
+    CONTROL         "hosts",IDC_HOSTS_CHK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,156,46,31,10
+    EDITTEXT        IDC_HOSTS_EDIT,189,44,127,14,ES_AUTOHSCROLL
+    CONTROL         "launch timeout .............................",
+                    IDC_LAUNCH_CHK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,156,
+                    63,119,10
+    EDITTEXT        IDC_LAUNCH_EDIT,276,61,40,14,ES_AUTOHSCROLL
+    CONTROL         "use job host .................................",
+                    IDC_USE_JOBHOST_CHK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,156,77,118,10
+    CONTROL         "yes",IDC_JOBHOST_YES,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,275,77,19,11
+    CONTROL         "no",IDC_JOBHOST_NO,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,297,77,19,11
+    LTEXT           "job host:",IDC_JOBHOST_STATIC,230,92,28,8
+    EDITTEXT        IDC_JOBHOST_EDIT,258,89,58,14,ES_AUTOHSCROLL
+    CONTROL         "job host mpd passphrase",IDC_USE_JOBHOST_PWD_CHK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,222,104,94,10
+    EDITTEXT        IDC_JOBHOST_PWD_EDIT,258,115,58,14,ES_PASSWORD | 
+                    ES_AUTOHSCROLL
+    CONTROL         "rank based colored output ..........",IDC_COLOR_CHK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,156,131,118,10
+    CONTROL         "yes",IDC_COLOR_YES,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,275,131,19,11
+    CONTROL         "no",IDC_COLOR_NO,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | 
+                    WS_TABSTOP,297,131,19,11
+    CONTROL         "logon dots during pwd decryption",IDC_DOTS_CHK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,156,144,120,10
+    CONTROL         "yes",IDC_DOTS_YES,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,276,144,19,11
+    CONTROL         "no",IDC_DOTS_NO,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | 
+                    WS_TABSTOP,297,144,19,11
+    CONTROL         "attempt to mimic local network drive mapping of the current directory",
+                    IDC_MAPPING_CHK,"Button",BS_AUTOCHECKBOX | BS_MULTILINE | 
+                    WS_TABSTOP,156,157,118,25
+    CONTROL         "yes",IDC_MAPPING_YES,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,275,163,19,11
+    CONTROL         "no",IDC_MAPPING_NO,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,297,163,19,11
+    CONTROL         "display system debug dialog when processes crash\r\n(applies to -localonly only)",
+                    IDC_POPUP_DEBUG_CHK,"Button",BS_AUTOCHECKBOX | 
+                    BS_MULTILINE | WS_TABSTOP,156,185,114,24
+    CONTROL         "yes",IDC_POPUP_DEBUG_YES,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,276,192,19,11
+    CONTROL         "no",IDC_POPUP_DEBUG_NO,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,297,192,19,11
+    LTEXT           "Enter the password to connect to the remote mpd's",
+                    IDC_MPD_PWD_STATIC,16,221,120,17
+    GROUPBOX        "",IDC_PHRASE_BOX_STATIC,15,238,125,53,WS_GROUP
+    CONTROL         "",IDC_MPD_PHRASE_RADIO,"Button",BS_AUTORADIOBUTTON,21,
+                    249,10,8
+    EDITTEXT        IDC_MPD_PHRASE,34,247,99,14,ES_PASSWORD | ES_AUTOHSCROLL
+    CONTROL         "I installed using the default passphrase",
+                    IDC_MPD_PHRASE_DEFAULT_RADIO,"Button",BS_AUTORADIOBUTTON | 
+                    BS_MULTILINE,21,266,79,18
+    PUSHBUTTON      "A&pply",IDC_APPLY_BTN,154,223,33,14
+    LTEXT           "Set the selected options",IDC_APPLY_STATIC,194,226,77,8
+    PUSHBUTTON      "Apply Single",IDC_APPLY_SINGLE_BTN,154,245,50,14
+    LTEXT           "Set the selected options on the highlighted host only",
+                    IDC_APPLY_SINGLE_STATIC,209,244,67,27
+    RTEXT           "",IDC_N_OF_M_STATIC,157,278,47,8
+    CONTROL         "Progress1",IDC_PROGRESS,"msctls_progress32",PBS_SMOOTH | 
+                    WS_BORDER,208,279,67,6
+    CONTROL         "Show host configuration",IDC_SHOW_CONFIG_CHK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,326,13,92,10
+    PUSHBUTTON      "v",IDC_HOST_TOGGLE_BTN,325,31,10,9
+    CONTROL         "",IDC_HOST_HOSTS_CHK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,326,47,12,8
+    EDITTEXT        IDC_HOST_HOSTS_EDIT,344,44,114,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_HOST_LAUNCH_CHK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,326,64,11,8
+    EDITTEXT        IDC_HOST_LAUNCH_EDIT,344,61,40,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_HOST_USE_JOBHOST_CHK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,326,78,11,8
+    CONTROL         "yes",IDC_HOST_JOBHOST_YES,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,344,77,19,11
+    CONTROL         "no",IDC_HOST_JOBHOST_NO,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,366,77,19,11
+    EDITTEXT        IDC_HOST_JOBHOST_EDIT,344,89,58,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_HOST_USE_JOBHOST_PWD_CHK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,344,104,12,8
+    EDITTEXT        IDC_HOST_JOBHOST_PWD_EDIT,344,115,58,14,ES_PASSWORD | 
+                    ES_AUTOHSCROLL
+    CONTROL         "",IDC_HOST_COLOR_CHK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,326,132,12,8
+    CONTROL         "yes",IDC_HOST_COLOR_YES,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,344,131,19,11
+    CONTROL         "no",IDC_HOST_COLOR_NO,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,367,131,19,11
+    CONTROL         "",IDC_HOST_DOTS_CHK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,326,145,12,8
+    CONTROL         "yes",IDC_HOST_DOTS_YES,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,344,144,19,11
+    CONTROL         "no",IDC_HOST_DOTS_NO,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,366,144,19,11
+    CONTROL         "",IDC_HOST_MAPPING_CHK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,326,165,12,8
+    CONTROL         "yes",IDC_HOST_MAPPING_YES,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,344,164,19,11
+    CONTROL         "no",IDC_HOST_MAPPING_NO,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,366,164,19,11
+    CONTROL         "",IDC_HOST_POPUP_DEBUG_CHK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,326,193,12,8
+    CONTROL         "yes",IDC_HOST_POPUP_DEBUG_YES,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,344,192,19,11
+    CONTROL         "no",IDC_HOST_POPUP_DEBUG_NO,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,365,192,19,11
+    PUSHBUTTON      "Modify",IDC_MODIFY_BTN,330,221,35,14
+    LTEXT           "Modify the selected options on the above host only",
+                    IDC_MODIFY_STATIC,368,219,90,18
+    PUSHBUTTON      "OK",IDOK,408,259,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,408,277,50,14
+    GROUPBOX        "1) Select the hosts to configure",IDC_ONE_STATIC,7,7,
+                    138,211
+    GROUPBOX        "2) Select the options to set and their values",
+                    IDC_TWO_STATIC,149,7,172,284
+    CTEXT           "",IDC_HOST_STATIC,345,26,113,8
+    CONTROL         "List1",IDC_HOST_LIST,"SysListView32",LVS_LIST | 
+                    LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | 
+                    WS_TABSTOP,12,34,129,181
+    CTEXT           "",IDC_HOST_MSG_STATIC,345,35,113,8
 END
 
 
@@ -194,9 +408,9 @@ BEGIN
     IDD_MPICONFIG_DIALOG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 255
+        RIGHTMARGIN, 521
         TOPMARGIN, 7
-        BOTTOMMARGIN, 191
+        BOTTOMMARGIN, 218
     END
 
     IDD_SET_DIALOG, DIALOG
@@ -214,8 +428,73 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 88
     END
+
+    IDD_FIND_HOSTS_DLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 239
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 133
+    END
+
+    IDD_DOMAIN_DLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 128
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 40
+    END
+
+    IDD_CONNECTION_OPTIONS_DLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 98
+    END
+
+    IDD_CONFIG_DLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 458
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 291
+    END
 END
 #endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_RED_BITMAP          BITMAP  DISCARDABLE     "res\\red_bitm.bmp"
+IDB_YELLOW_BITMAP       BITMAP  DISCARDABLE     "res\\yellow_b.bmp"
+IDB_GREEN_BITMAP        BITMAP  DISCARDABLE     "res\\green_bi.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_FIND_MENU MENU DISCARDABLE 
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&Load list",                  ID_FILE_LOADLIST
+        MENUITEM "&Save list",                  ID_FILE_SAVELIST
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",                       ID_FILE_EXIT
+    END
+    POPUP "&Action"
+    BEGIN
+        MENUITEM "&Scan hosts",                 ID_FILE_FINDHOSTS
+        MENUITEM "&Verify selected hosts",      ID_FILE_VERIFY
+        MENUITEM "&Change network domain",      ID_FILE_CHANGEDOMAIN
+        MENUITEM "Connection &Options",         ID_FILE_CONNECTIONOPTIONS
+    END
+END
 
 #endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////

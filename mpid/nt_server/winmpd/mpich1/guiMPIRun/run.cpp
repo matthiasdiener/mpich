@@ -170,9 +170,15 @@ void CGuiMPIRunView::GetHosts()
     {
 	strcpy(pHost->host, p->host);
 	if (m_bUseSlaveProcess)
-	    strcpy(pHost->exe, m_SlaveProcess);
+	{
+	    strncpy(pHost->exe, m_SlaveProcess, MAX_CMD_LENGTH);
+	    pHost->exe[MAX_CMD_LENGTH-1] = '\0';
+	}
 	else
-	    strcpy(pHost->exe, m_app);
+	{
+	    strncpy(pHost->exe, m_app, MAX_CMD_LENGTH);
+	    pHost->exe[MAX_CMD_LENGTH-1] = '\0';
+	}
 	pHost->nSMPProcs = 1;
 	if (n>1)
 	{
@@ -186,7 +192,8 @@ void CGuiMPIRunView::GetHosts()
     }
     if (m_bUseSlaveProcess && m_pHosts)
     {
-	strcpy(m_pHosts->exe, m_app);
+	strncpy(m_pHosts->exe, m_app, MAX_CMD_LENGTH);
+	m_pHosts->exe[MAX_CMD_LENGTH-1] = '\0';
     }
 
     // Delete the temporary host list
@@ -353,7 +360,7 @@ static void ExeToUnc(char *pszExe)
     DWORD dwLength;
     char pBuffer[4096];
     REMOTE_NAME_INFO *info = (REMOTE_NAME_INFO*)pBuffer;
-    char pszTemp[MAX_PATH];
+    char pszTemp[MAX_CMD_LENGTH];
     bool bQuoted = false;
     char *pszOriginal;
 
@@ -362,8 +369,10 @@ static void ExeToUnc(char *pszExe)
     if (*pszExe == '"')
     {
 	bQuoted = true;
-	strcpy(pszTemp, &pszExe[1]);
-	pszTemp[strlen(pszTemp)-1] = '\0';
+	strncpy(pszTemp, &pszExe[1], MAX_CMD_LENGTH);
+	pszTemp[MAX_CMD_LENGTH-1] = '\0';
+	if (pszTemp[strlen(pszTemp)-1] == '"')
+	    pszTemp[strlen(pszTemp)-1] = '\0';
 	pszExe = pszTemp;
     }
     dwLength = 4096;
@@ -411,9 +420,9 @@ static void SeparateCommand(CString pszApp, CString &pszExe, CString &pszArgs)
 {
     int n;
     CString str;
-    char pszTempExe[MAX_PATH], *namepart;
+    char pszTempExe[MAX_CMD_LENGTH], *namepart;
 
-    if (GetFullPathName(pszApp, MAX_PATH, pszTempExe, &namepart) == 0)
+    if (GetFullPathName(pszApp, MAX_CMD_LENGTH, pszTempExe, &namepart) == 0)
     {
 	pszArgs = "";
 	pszExe = pszApp;
@@ -460,7 +469,8 @@ static HostNode* ParseLineIntoHostNode(char * line)
     char *pChar, *pChar2;
     HostNode *node = NULL;
     
-    strcpy(buffer, line);
+    strncpy(buffer, line, 1024);
+    buffer[1023] = '\0';
     pChar = buffer;
     
     // Advance over white space
@@ -515,7 +525,8 @@ static HostNode* ParseLineIntoHostNode(char * line)
 	// Copy the executable
 	if (*pChar != '\0')
 	{
-	    strcpy(node->exe, pChar);
+	    strncpy(node->exe, pChar, MAX_CMD_LENGTH);
+	    node->exe[MAX_CMD_LENGTH-1] = '\0';
 	    ExeToUnc(node->exe);
 	}
     }
@@ -628,11 +639,11 @@ void RunJob(CGuiMPIRunView *pDlg)
     int i;
     int iproc = 0;
     char pszJobID[100];
-    char pszEnv[MAX_PATH] = "";
+    char pszEnv[MAX_CMD_LENGTH] = "";
     char pszDir[MAX_PATH] = ".";
     int nShmLow, nShmHigh;
     DWORD dwThreadID;
-    char pBuffer[MAX_PATH];
+    char pBuffer[MAX_CMD_LENGTH];
     char cMapDrive;
     CString pszMapShare;
     CString sAppOriginal;
@@ -686,7 +697,13 @@ void RunJob(CGuiMPIRunView *pDlg)
     if (pDlg->m_bNoMPI)
     {
 	if (pDlg->m_bUseCommonEnvironment && (pDlg->m_CommonEnvironment.GetLength() > 0))
-	    strcpy(pszEnv, pDlg->m_CommonEnvironment);
+	{
+	    if (_snprintf(pszEnv, MAX_CMD_LENGTH, "%s", pDlg->m_CommonEnvironment) < 0)
+	    {
+		// environment variables truncated
+		pszEnv[MAX_CMD_LENGTH-1] = '\0';
+	    }
+	}
 	else
 	    pszEnv[0] = '\0';
     }
@@ -694,13 +711,21 @@ void RunJob(CGuiMPIRunView *pDlg)
     {
 	if (pDlg->m_bUseCommonEnvironment && (pDlg->m_CommonEnvironment.GetLength() > 0))
 	{
-	    sprintf(pszEnv, "%s|MPICH_JOBID=%s|MPICH_NPROC=%d|MPICH_ROOTHOST=%s",
-		pDlg->m_CommonEnvironment, pszJobID, pDlg->m_nproc, pDlg->m_pHosts->host);
+	    if (_snprintf(pszEnv, MAX_CMD_LENGTH, "%s|MPICH_JOBID=%s|MPICH_NPROC=%d|MPICH_ROOTHOST=%s",
+		pDlg->m_CommonEnvironment, pszJobID, pDlg->m_nproc, pDlg->m_pHosts->host) < 0)
+	    {
+		// environment variables truncated
+		pszEnv[MAX_CMD_LENGTH-1] = '\0';
+	    }
 	}
 	else
 	{
-	    sprintf(pszEnv, "MPICH_JOBID=%s|MPICH_NPROC=%d|MPICH_ROOTHOST=%s",
-		pszJobID, pDlg->m_nproc, pDlg->m_pHosts->host);
+	    if (_snprintf(pszEnv, MAX_CMD_LENGTH, "MPICH_JOBID=%s|MPICH_NPROC=%d|MPICH_ROOTHOST=%s",
+		pszJobID, pDlg->m_nproc, pDlg->m_pHosts->host) < 0)
+	    {
+		// environment variables truncated
+		pszEnv[MAX_CMD_LENGTH-1] = '\0';
+	    }
 	}
     }
 
@@ -717,10 +742,10 @@ void RunJob(CGuiMPIRunView *pDlg)
 	}
 	else
 	{
-	    char pszTempExe[MAX_PATH] = ".", *namepart;
-	    if (GetFullPathName(sAppOriginal, MAX_PATH, pszTempExe, &namepart) > 0)
+	    char pszTempExe[MAX_CMD_LENGTH] = ".", *namepart;
+	    if (GetFullPathName(sAppOriginal, MAX_CMD_LENGTH, pszTempExe, &namepart) > 0)
 	    {
-		if (namepart - pszTempExe < MAX_PATH)
+		if (namepart - pszTempExe < MAX_CMD_LENGTH)
 		{
 		    strncpy(pszDir, pszTempExe, namepart - pszTempExe);
 		    pszDir[namepart - pszTempExe] = '\0';
@@ -729,9 +754,9 @@ void RunJob(CGuiMPIRunView *pDlg)
 	    else
 	    {
 		CString str = sAppOriginal.Left(pDlg->m_app.ReverseFind('\\'));
-		if (GetFullPathName(str, MAX_PATH, pszTempExe, &namepart) > 0)
+		if (GetFullPathName(str, MAX_CMD_LENGTH, pszTempExe, &namepart) > 0)
 		{
-		    if (namepart - pszTempExe < MAX_PATH)
+		    if (namepart - pszTempExe < MAX_CMD_LENGTH)
 		    {
 			strncpy(pszDir, pszTempExe, namepart - pszTempExe);
 			pszDir[namepart - pszTempExe] = '\0';
@@ -808,7 +833,8 @@ void RunJob(CGuiMPIRunView *pDlg)
     delete pArg;
 
     // Copy the io redirection thread stuff into the first forwarder entry
-    strcpy(pDlg->m_pForwardHost[0].pszHost, pDlg->m_pszIOHost);
+    strncpy(pDlg->m_pForwardHost[0].pszHost, pDlg->m_pszIOHost, MAX_HOST_LENGTH);
+    pDlg->m_pForwardHost[0].pszHost[MAX_HOST_LENGTH-1] = '\0';
     pDlg->m_pForwardHost[0].nPort = pDlg->m_nIOPort;
 
     // Launch the processes
@@ -830,18 +856,36 @@ void RunJob(CGuiMPIRunView *pDlg)
 		strcpy(arg->pszPassword, pDlg->m_Password);
 	    }
 	    if (strlen(pDlg->m_pHosts->exe) > 0)
-		strcpy(arg->pszCmdLine, pDlg->m_pHosts->exe);
+	    {
+		strncpy(arg->pszCmdLine, pDlg->m_pHosts->exe, MAX_CMD_LENGTH);
+		arg->pszCmdLine[MAX_CMD_LENGTH-1] = '\0';
+	    }
 	    else
-		strcpy(arg->pszCmdLine, pDlg->m_app);
+	    {
+		strncpy(arg->pszCmdLine, pDlg->m_app, MAX_CMD_LENGTH);
+		arg->pszCmdLine[MAX_CMD_LENGTH-1] = '\0';
+	    }
 	    strcpy(arg->pszDir, pszDir);
-	    strcpy(arg->pszEnv, pszEnv);
-	    strcpy(arg->pszHost, pDlg->m_pHosts->host);
+	    if (strlen(pszEnv) >= MAX_CMD_LENGTH)
+	    {
+		// environment variables truncated
+	    }
+	    strncpy(arg->pszEnv, pszEnv, MAX_CMD_LENGTH);
+	    arg->pszEnv[MAX_CMD_LENGTH-1] = '\0';
+	    strncpy(arg->pszHost, pDlg->m_pHosts->host, MAX_HOST_LENGTH);
+	    arg->pszHost[MAX_HOST_LENGTH-1] = '\0';
 	    strcpy(arg->pszJobID, pszJobID);
 	    
 	    if (pDlg->m_bNoMPI)
 	    {
 		if (pDlg->m_bUseCommonEnvironment)
-		    strcpy(arg->pszEnv, pDlg->m_CommonEnvironment);
+		{
+		    if (_snprintf(arg->pszEnv, MAX_CMD_LENGTH, "%s", pDlg->m_CommonEnvironment) < 0)
+		    {
+			// environment variables truncated
+			arg->pszEnv[MAX_CMD_LENGTH-1] = '\0';
+		    }
+		}
 		else
 		    arg->pszEnv[0] = '\0';
 	    }
@@ -852,8 +896,12 @@ void RunJob(CGuiMPIRunView *pDlg)
 		else
 		    sprintf(pBuffer, "MPICH_ROOTPORT=%d|MPICH_IPROC=%d|MPICH_SHM_LOW=%d|MPICH_SHM_HIGH=%d", pDlg->m_nRootPort, iproc, nShmLow, nShmHigh);
 		if (strlen(arg->pszEnv) > 0)
-		    strcat(arg->pszEnv, "|");
-		strcat(arg->pszEnv, pBuffer);
+		    strncat(arg->pszEnv, "|", MAX_CMD_LENGTH - 1 - strlen(arg->pszEnv));
+		if (strlen(pBuffer) + strlen(arg->pszEnv) >= MAX_CMD_LENGTH)
+		{
+		    // environment variables truncated
+		}
+		strncat(arg->pszEnv, pBuffer, MAX_CMD_LENGTH - 1 - strlen(arg->pszEnv));
 	    }
 	    pDlg->m_pProcessThread[iproc] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)MPIRunLaunchProcess, arg, 0, &dwThreadID);
 	    if (pDlg->m_pProcessThread[iproc] == NULL)

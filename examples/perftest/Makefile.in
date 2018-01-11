@@ -80,6 +80,7 @@ MPIF90 = @MPIF90@
 MPIRUN = @MPIRUN@
 MPIUNBOOT = @MPIUNBOOT@
 PACKAGE = @PACKAGE@
+RANLIB = @RANLIB@
 TESTCPP = @TESTCPP@
 VERSION = @VERSION@
 
@@ -210,6 +211,7 @@ $(ACLOCAL_M4):  configure.in  config/confdb/aclocal.m4 \
 		config/confdb/aclocal_make.m4 \
 		config/confdb/aclocal_mpi.m4 \
 		config/confdb/aclocal_perl.m4 \
+		config/confdb/aclocal_shl.m4 \
 		config/confdb/aclocal_web.m4
 	cd $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 

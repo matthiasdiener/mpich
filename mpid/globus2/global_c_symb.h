@@ -1,3 +1,4 @@
+#if 0
 #define mpi_file_close_	mpq_file_close_
 #define mpi_file_delete_	mpq_file_delete_
 #define mpi_file_get_amode_	mpq_file_get_amode_
@@ -526,3 +527,4 @@
 #define MPICHX_QOS_PARAMETERS	MPICHY_QOS_PARAMETERS
 #define mpipriv_	mpipriw_
 #define MPID_CH_Wtick	MPIE_CH_Wtick
+#endif

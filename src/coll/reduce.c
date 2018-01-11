@@ -1,5 +1,5 @@
 /*
- *  $Id: reduce.c,v 1.8 2001/11/14 19:50:13 ashton Exp $
+ *  $Id: reduce.c,v 1.9 2002/02/19 14:47:32 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -79,6 +79,7 @@ int MPI_Reduce ( void *sendbuf, void *recvbuf, int count,
     MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
     MPIR_TEST_DTYPE(datatype,dtype_ptr,comm_ptr,myname);
     MPIR_TEST_ALIAS(sendbuf,recvbuf);
+    MPIR_TEST_COUNT(count);
     if (mpi_errno)
 	return MPIR_ERROR(comm_ptr, mpi_errno, myname );
 #endif

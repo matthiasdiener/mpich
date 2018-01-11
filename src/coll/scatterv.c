@@ -1,5 +1,5 @@
 /*
- *  $Id: scatterv.c,v 1.12 2001/11/14 19:50:14 ashton Exp $
+ *  $Id: scatterv.c,v 1.14 2002/02/21 16:07:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -76,18 +76,27 @@ int MPI_Scatterv (
 
   TR_PUSH(myname);
   comm_ptr = MPIR_GET_COMM_PTR(comm);
-  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
+  rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
+
+#ifndef MPIR_NO_ERROR_CHECKING
+  MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr, myname);
+  MPIR_TEST_COUNT(recvcnt);
+  MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
+  if (mpi_errno)
+      return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
 
   /* Significant only at root */
   (void) MPIR_Comm_rank ( comm_ptr, &rank );
   if (rank == root) {
       stype_ptr = MPIR_GET_DTYPE_PTR(sendtype);
+#ifndef MPIR_NO_ERROR_CHECKING
       MPIR_TEST_DTYPE(sendtype,stype_ptr,comm_ptr, myname );
+      if (mpi_errno)
+	  return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
   }
   
-  rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
-  MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
-
   MPIR_ERROR_PUSH(comm_ptr);
   mpi_errno = comm_ptr->collops->Scatterv( sendbuf, sendcnts, displs, 
 					   stype_ptr, 

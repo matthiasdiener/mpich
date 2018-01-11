@@ -21,15 +21,18 @@ int MPI_Cart_map (
 <TABLE BORDER=0>
 <TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>comm </B></TD><TD VALIGN=TOP>input communicator (handle) 
 <BR></TD></TR>
-<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>ndims </B></TD><TD VALIGN=TOP>number of dimensions of cartesian structure (integer) 
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>ndims </B></TD><TD VALIGN=TOP>number of dimensions of Cartesian structure (integer) 
 <BR></TD></TR>
-<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>dims </B></TD><TD VALIGN=TOP>integer array of size <TT>ndims</TT> specifying the number of processes in each coordinate direction 
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>dims </B></TD><TD VALIGN=TOP>integer array of size <TT>ndims</TT> specifying the number of processes in 
+each coordinate direction 
 <BR></TD></TR>
-<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>periods </B></TD><TD VALIGN=TOP>logical array of size <TT>ndims</TT> specifying the periodicity specification in each coordinate direction 
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>periods </B></TD><TD VALIGN=TOP>logical array of size <TT>ndims</TT> specifying the periodicity 
+specification in each coordinate direction 
 <BR></TD></TR></TABLE>
 <P>
 <H2>Output Parameter</H2>
-<DL><DT><B>newrank </B> <DD> reordered rank of the calling process; <TT>MPI_UNDEFINED</TT> if calling process does not belong to grid (integer) 
+<DL><DT><B>newrank </B> <DD> reordered rank of the calling process; <TT>MPI_UNDEFINED</TT> if 
+calling process does not belong to grid (integer) 
 </DL>
 <P>
 <H2>Notes for Fortran</H2>

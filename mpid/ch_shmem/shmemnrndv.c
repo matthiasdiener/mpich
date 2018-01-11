@@ -60,7 +60,7 @@ MPIR_SHANDLE *shandle;
     
     DEBUG_PRINT_MSG("S About to get pkt for request to send");
     pkt = (MPID_PKT_GET_T *) MPID_SHMEM_GetSendPkt(0);
-    /* GetSendPkt hangs untill successful */
+    /* GetSendPkt hangs until successful */
     DEBUG_PRINT_MSG("S Starting Rndvb_isend");
 #ifdef MPID_PACK_CONTROL
     while (!MPID_PACKET_CHECK_OK(dest)) {  /* begin while !ok loop */
@@ -152,10 +152,7 @@ MPID_Msgrep_t msgrep;
  * received OR when an "cont get" packet is received.  (one ack entry
  * in the check-device routine)
  */
-int MPID_SHMEM_Rndvn_ack( in_pkt, from_grank )
-void  *in_pkt;
-int   from_grank;
-
+int MPID_SHMEM_Rndvn_ack( void *in_pkt, int from_grank )
 {  /* begin MPID_SHMEM_Rndvn_ack */
 
     MPID_PKT_GET_T *pkt = (MPID_PKT_GET_T *)in_pkt;
@@ -333,10 +330,8 @@ int   from_grank;
  * seen and the receive has been posted.  Note the use of a nonblocking
  * receiver BEFORE sending the ack.
  */
-int MPID_SHMEM_Rndvn_irecv( rhandle, from_grank, in_pkt )
-MPIR_RHANDLE *rhandle;
-int          from_grank;
-void         *in_pkt;
+int MPID_SHMEM_Rndvn_irecv( MPIR_RHANDLE *rhandle, int from_grank, 
+			    void *in_pkt )
 {
     MPID_PKT_GET_T *pkt = (MPID_PKT_GET_T *)in_pkt;
     int    msglen, err = MPI_SUCCESS;
@@ -403,19 +398,14 @@ void         *in_pkt;
 
 /* Save an unexpected message in rhandle.  This is the same as
    MPID_SHMEM_Rndvb_save except for the "push" function */
-int MPID_SHMEM_Rndvn_save( rhandle, from_grank, in_pkt )
-MPIR_RHANDLE *rhandle;
-int          from_grank;
-void         *in_pkt;
+int MPID_SHMEM_Rndvn_save( MPIR_RHANDLE *rhandle, int from_grank, 
+			   void *in_pkt )
 {
     MPID_PKT_GET_T   *pkt = (MPID_PKT_GET_T *)in_pkt;
+    int to, src;
 
-#ifdef MPID_PACK_CONTROL
-    if (MPID_PACKET_RCVD_GET(pkt->src)) {
-	MPID_SendProtoAck(pkt->to, pkt->src);
-    }
-    MPID_PACKET_ADD_RCVD(pkt->to, pkt->src);
-#endif
+    to = pkt->to;
+    src = pkt->src;
     DEBUG_PRINT_MSG("Saving info on unexpected message");
     rhandle->s.MPI_TAG	  = pkt->tag;
     rhandle->s.MPI_SOURCE = pkt->lrank;
@@ -423,9 +413,17 @@ void         *in_pkt;
     rhandle->s.count      = pkt->len;
     rhandle->is_complete  = 0;
     rhandle->from         = from_grank;
-    rhandle->partner      = pkt->to;
+    rhandle->partner      = to;
     rhandle->send_id      = pkt->send_id;
     MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)pkt );
+#ifdef MPID_PACK_CONTROL
+    /* This needs to happen after the FreeRecvPkt incase we need that
+       packet to send the ProtoAck back */
+    if (MPID_PACKET_RCVD_GET(src)) {
+	MPID_SendProtoAck(to, src);
+    }
+    MPID_PACKET_ADD_RCVD(to, src);
+#endif
     /* Need to set the push etc routine to complete this transfer */
     rhandle->push         = MPID_SHMEM_Rndvn_unxrecv_start;
     return 0;

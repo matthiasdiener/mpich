@@ -5,6 +5,7 @@
 #include "guiMPIRun.h"
 #include "AdvancedOptionsDlg.h"
 #include "DirDialog.h"
+#include "HelpDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -90,6 +91,7 @@ BEGIN_MESSAGE_MAP(CAdvancedOptionsDlg, CDialog)
 	ON_BN_CLICKED(IDC_REDIRECT_CHK, OnRedirectChk)
 	ON_BN_CLICKED(IDC_REDIRECT_BROWSE_BTN, OnRedirectBrowseBtn)
 	ON_BN_CLICKED(IDC_MAP_CHK, OnMapChk)
+	ON_BN_CLICKED(IDC_HELP_BTN, OnHelpBtn)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -317,4 +319,10 @@ void CAdvancedOptionsDlg::OnMapChk()
     {
 	m_map_edit.EnableWindow(FALSE);
     }
+}
+
+void CAdvancedOptionsDlg::OnHelpBtn() 
+{
+    CHelpDlg dlg;
+    dlg.DoModal();
 }

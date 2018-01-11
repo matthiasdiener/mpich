@@ -272,30 +272,42 @@ void         *in_pkt;
 }
 
 /* Save an unexpected message in rhandle */
-int MPID_SHMEM_Eagern_save( rhandle, from, in_pkt )
-MPIR_RHANDLE *rhandle;
-int          from;
-void         *in_pkt;
+int MPID_SHMEM_Eagern_save( MPIR_RHANDLE *rhandle, int from, void *in_pkt )
 {
     MPID_PKT_SEND_ADDRESS_T *pkt = (MPID_PKT_SEND_ADDRESS_T *)in_pkt;
+    int tag, lrank, to, len, src;
+    void *address;
 
     DEBUG_PRINT_MSG("R Starting Eagern_save");
+    tag	    = pkt->tag;
+    lrank   = pkt->lrank;
+    to	    = pkt->to;
+    len	    = pkt->len;
+    src	    = pkt->src;
+    address = pkt->address;
+
+
 #ifdef MPID_PACK_CONTROL
-    if (MPID_PACKET_RCVD_GET(pkt->src)) {
-	MPID_SendProtoAck(pkt->to, pkt->src);
+    if (MPID_PACKET_RCVD_GET(src)) {
+	MPID_SendProtoAckWithPacket(to, src, (MPID_PKT_T *)pkt);
     }
-    MPID_PACKET_ADD_RCVD(pkt->to, pkt->src);
+    else {
+	MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)pkt );
+    }
+    MPID_PACKET_ADD_RCVD(to, src);
+#else
+    MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)pkt );
 #endif
-    rhandle->s.MPI_TAG	  = pkt->tag;
-    rhandle->s.MPI_SOURCE = pkt->lrank;
+    rhandle->s.MPI_TAG	  = tag;
+    rhandle->s.MPI_SOURCE = lrank;
     rhandle->s.MPI_ERROR  = 0;
-    rhandle->partner      = pkt->to;
-    rhandle->s.count      = pkt->len;
+    rhandle->partner      = to;
+    rhandle->s.count      = len;
     rhandle->from         = from;
     rhandle->is_complete  = 0;
     /* Save the address */
 #ifdef LEAVE_IN_SHARED_MEM
-    rhandle->start        = pkt->address;
+    rhandle->start        = address;
 #else
     if (pkt->len > 0) {
 	rhandle->start	  = (void *)MALLOC( pkt->len );
@@ -307,13 +319,12 @@ void         *in_pkt;
 	    return 1;
 	}
 #ifdef MPID_FLOW_CONTROL
-	MPID_FLOW_MEM_READ(pkt->len,from);
+	MPID_FLOW_MEM_READ(len,from);
 #endif
-	MEMCPY( rhandle->start, pkt->address, pkt->len );
-	MPID_FreeGetAddress( pkt->address );
+	MEMCPY( rhandle->start, address, len );
+	MPID_FreeGetAddress( address );
     }
 #endif
-    MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)pkt );
     rhandle->push = MPID_SHMEM_Eagern_unxrecv_start;
     return 0;
 }

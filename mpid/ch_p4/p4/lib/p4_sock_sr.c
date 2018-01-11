@@ -202,8 +202,7 @@ int socket_close_conn( int fd )
    case, we need EINTR (interrupted system call) from the select to 
    just restart the call AFTER we've recomputed the read_fds.
  */
-struct p4_msg *socket_recv( is_blocking )
-int is_blocking;
+struct p4_msg *socket_recv( int is_blocking )
 {
 #ifdef THREAD_LISTENER
     struct slave_listener_msg msg;
@@ -332,8 +331,7 @@ int is_blocking;
     return (tmsg);
 }
 
-struct p4_msg *socket_recv_on_fd(fd)
-int fd;
+struct p4_msg *socket_recv_on_fd( int fd )
 {
     int n, data_type, msg_len = -1;
     struct p4_msg *tmsg;
@@ -367,12 +365,12 @@ int fd;
 	    break;
 /* End   bugfix, compute msg_len correct, Rolf Rabenseifner,04SEP97*/
 	  default:
-	    p4_error("socket_recv_on_fd: invalid data type %d\n", data_type);
+	    p4_error("socket_recv_on_fd: invalid data type =", data_type);
 	}
     }
 
     if (msg_len < 0)
-	p4_error("socket_recv_on_fd: failed to set msg_len %d\n", msg_len);
+	p4_error("socket_recv_on_fd: failed to set msg_len = ", msg_len);
     tmsg = alloc_p4_msg(msg_len);
     tmsg->type = p4_n_to_i(nmsg.msg_type);
     tmsg->to = p4_n_to_i(nmsg.to);
@@ -583,8 +581,7 @@ struct p4_msg *rmsg;
 }
 #endif
 
-P4VOID wait_for_ack(fd)
-int fd;
+P4VOID wait_for_ack( int fd )
 {
     struct p4_msg *ack;
 
@@ -600,8 +597,7 @@ int fd;
     p4_dprintfl(30, "received ack from %d\n", ack->from);
 }
 
-P4VOID send_ack(fd, to)
-int fd, to;
+P4VOID send_ack( int fd, int to )
 {
     struct p4_net_msg_hdr ack;
 

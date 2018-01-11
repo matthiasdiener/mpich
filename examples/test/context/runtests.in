@@ -24,6 +24,7 @@ test_mpi2=@HAS_MPI2@
 runtests=1
 quiet=0
 makeeach=0
+writesummaryfile=no
 MAKE="@MAKE@"
 for arg in "$@" ; do
     case $arg in 
@@ -33,6 +34,10 @@ for arg in "$@" ; do
         -margs=*)
 	margs=`echo $arg | sed 's/-margs=//'`
 	args="$args $margs"
+	;;
+	-summaryfile=*)
+	writesummaryfile=yes
+	summaryfile=`echo A$arg | sed 's/A-summaryfile=//'`
 	;;
 	-small)
 	makeeach=1

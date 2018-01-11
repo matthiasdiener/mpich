@@ -78,6 +78,9 @@ void PrintExtraOptions()
     printf("  set environment variables before launching the processes\n");
     printf("-logon\n");
     printf("  prompt for user account and password\n");
+    printf("-pwdfile filename\n");
+    printf("  read the account and password from the file specified\n");
+    printf("  put the account on the first line and the password the second\n");
     printf("-tcp\n");
     printf("  use tcp instead of shared memory on the local machine\n");
     printf("-getphrase\n");
@@ -92,6 +95,10 @@ void PrintExtraOptions()
     printf("  don't try to map the current directory on the remote nodes\n");
     printf("-nopopup_debug\n");
     printf("  disable the system popup dialog if the process crashes\n");
+    printf("-hosts n host1 host2 ... hostn\n");
+    printf("-hosts n host1 m1 host2 m2 ... hostn mn\n");
+    printf("  launch on the specified hosts\n");
+    printf("  the number of processes = m1 + m2 + ... + mn\n");
 }
 
 // Function name	: ConnectReadMPDRegistry
@@ -140,7 +147,7 @@ bool ConnectReadMPDRegistry(char *pszHost, int nPort, char *pszPassPhrase, char 
 // Argument         : char *name
 // Argument         : char *value
 // Argument         : DWORD *length = NULL
-bool ReadMPDRegistry(char *name, char *value, DWORD *length = NULL)
+bool ReadMPDRegistry(char *name, char *value, DWORD *length /*= NULL*/)
 {
     HKEY tkey;
     DWORD len, result;
@@ -203,7 +210,7 @@ bool GetHostsFromRegistry(HostNode **list)
 	return false;
     }
     */
-    
+/*    
     char *token = NULL;
     token = strtok(pszHosts, "|");
     if (token != NULL)
@@ -212,7 +219,8 @@ bool GetHostsFromRegistry(HostNode **list)
 	
 	// Make a list of the available nodes
 	l->next = NULL;
-	strcpy(l->host, token);
+	strncpy(l->host, token, MAX_HOST_LENGTH);
+	l->host[MAX_HOST_LENGTH-1] = '\0';
 	l->nSMPProcs = 1;
 	n = l;
 	while ((token = strtok(NULL, "|")) != NULL)
@@ -220,7 +228,8 @@ bool GetHostsFromRegistry(HostNode **list)
 	    n->next = new HostNode;
 	    n = n->next;
 	    n->next = NULL;
-	    strcpy(n->host, token);
+	    strncpy(n->host, token, MAX_HOST_LENGTH);
+	    n->host[MAX_HOST_LENGTH-1] = '\0';
 	    n->nSMPProcs = 1;
 	}
 	
@@ -231,6 +240,33 @@ bool GetHostsFromRegistry(HostNode **list)
     }
     
     //delete pszHosts;
+    return false;
+*/
+    QVS_Container *phosts;
+    phosts = new QVS_Container(pszHosts);
+    if (phosts->first(pszHosts, MAX_CMD_LENGTH))
+    {
+	HostNode *n, *l = new HostNode;
+	
+	l->next = NULL;
+	strncpy(l->host, pszHosts, MAX_HOST_LENGTH);
+	l->host[MAX_HOST_LENGTH-1] = '\0';
+	l->nSMPProcs = 1;
+	n = l;
+	while (phosts->next(pszHosts, MAX_CMD_LENGTH))
+	{
+	    n->next = new HostNode;
+	    n = n->next;
+	    n->next = NULL;
+	    strncpy(n->host, pszHosts, MAX_HOST_LENGTH);
+	    n->host[MAX_HOST_LENGTH-1] = '\0';
+	    n->nSMPProcs = 1;
+	}
+	*list = l;
+	delete phosts;
+	return true;
+    }
+    delete phosts;
     return false;
 }
 
@@ -248,8 +284,10 @@ bool GetAvailableHosts()
 	{
 	    // Insert the first host into the list
 	    g_pHosts = new HostNode;
-	    strcpy(g_pHosts->host, list->host);
-	    strcpy(g_pHosts->exe, g_pszExe);
+	    strncpy(g_pHosts->host, list->host, MAX_HOST_LENGTH);
+	    g_pHosts->host[MAX_HOST_LENGTH-1] = '\0';
+	    strncpy(g_pHosts->exe, g_pszExe, MAX_CMD_LENGTH);
+	    g_pHosts->exe[MAX_CMD_LENGTH-1] = '\0';
 	    g_pHosts->nSMPProcs = 1;
 	    g_pHosts->next = NULL;
 
@@ -263,8 +301,10 @@ bool GetAvailableHosts()
 		target->next = new HostNode;
 		target = target->next;
 		target->next = NULL;
-		strcpy(target->host, n->host);
-		strcpy(target->exe, g_pHosts->exe);
+		strncpy(target->host, n->host, MAX_HOST_LENGTH);
+		target->host[MAX_HOST_LENGTH-1] = '\0';
+		strncpy(target->exe, g_pHosts->exe, MAX_CMD_LENGTH);
+		target->exe[MAX_CMD_LENGTH-1] = '\0';
 		target->nSMPProcs = 1;
 		
 		n = n->next;
@@ -393,8 +433,10 @@ bool GetHostsFromFile(char *pszFileName)
     while (num_left)
     {
 	target->next = NULL;
-	strcpy(target->host, n->host);
-	strcpy(target->exe, g_pszExe);
+	strncpy(target->host, n->host, MAX_HOST_LENGTH);
+	target->host[MAX_HOST_LENGTH-1] = '\0';
+	strncpy(target->exe, g_pszExe, MAX_CMD_LENGTH);
+	target->exe[MAX_CMD_LENGTH-1] = '\0';
 	if (num_left <= n->nSMPProcs)
 	{
 	    target->nSMPProcs = num_left;
@@ -438,7 +480,8 @@ HostNode* ParseLineIntoHostNode(char * line)
     char *pChar, *pChar2;
     HostNode *node = NULL;
     
-    strcpy(buffer, line);
+    strncpy(buffer, line, 1024);
+    buffer[1023] = '\0';
     pChar = buffer;
     
     // Advance over white space
@@ -493,7 +536,8 @@ HostNode* ParseLineIntoHostNode(char * line)
 	// Copy the executable
 	if (*pChar != '\0')
 	{
-	    strcpy(node->exe, pChar);
+	    strncpy(node->exe, pChar, MAX_CMD_LENGTH);
+	    node->exe[MAX_CMD_LENGTH-1] = '\0';
 	    ExeToUnc(node->exe);
 	}
     }
@@ -528,7 +572,8 @@ int ParseConfigFile(char * filename)
 	    char *pChar = &buffer[4];
 	    while (isspace(*pChar))
 		pChar++;
-	    strcpy(g_pszExe, pChar);
+	    strncpy(g_pszExe, pChar, MAX_CMD_LENGTH);
+	    g_pszExe[MAX_CMD_LENGTH-1] = '\0';
 	    pChar = &g_pszExe[strlen(g_pszExe)-1];
 	    while (isspace(*pChar) && (pChar >= g_pszExe))
 	    {
@@ -545,7 +590,8 @@ int ParseConfigFile(char * filename)
 		char *pChar = &buffer[5];
 		while (isspace(*pChar))
 		    pChar++;
-		strcpy(g_pszArgs, pChar);
+		strncpy(g_pszArgs, pChar, MAX_CMD_LENGTH);
+		g_pszArgs[MAX_CMD_LENGTH-1] = '\0';
 		pChar = &g_pszArgs[strlen(g_pszArgs)-1];
 		while (isspace(*pChar) && (pChar >= g_pszArgs))
 		{
@@ -561,7 +607,13 @@ int ParseConfigFile(char * filename)
 		    char *pChar = &buffer[4];
 		    while (isspace(*pChar))
 			pChar++;
-		    strcpy(g_pszEnv, pChar);
+		    if (strlen(pChar) >= MAX_CMD_LENGTH)
+		    {
+			printf("Warning: environment variables truncated.\n");
+			fflush(stdout);
+		    }
+		    strncpy(g_pszEnv, pChar, MAX_CMD_LENGTH);
+		    g_pszEnv[MAX_CMD_LENGTH-1] = '\0';
 		    pChar = &g_pszEnv[strlen(g_pszEnv)-1];
 		    while (isspace(*pChar) && (pChar >= g_pszEnv))
 		    {
@@ -639,6 +691,60 @@ int ParseConfigFile(char * filename)
     }
     fclose(fin);
     return PARSE_SUCCESS;
+}
+
+// Function name	: GetAccountAndPasswordFromFile
+// Description	    : Attempts to read the password from a file.
+//                        upon failure it exits
+// Return type		: void 
+// Argument         : char pszFileName
+void GetAccountAndPasswordFromFile(char *pszFileName)
+{
+    char line[1024];
+    FILE *fin;
+
+    // open the file
+    fin = fopen(pszFileName, "r");
+    if (fin == NULL)
+    {
+	printf("Error, unable to open account file '%s'\n", pszFileName);
+	exit(0);
+    }
+
+    // read the account
+    if (!fgets(line, 1024, fin))
+    {
+	printf("Error, unable to read the account in '%s'\n", pszFileName);
+	exit(0);
+    }
+
+    // strip off the newline characters
+    while (strlen(line) && (line[strlen(line)-1] == '\r' || line[strlen(line)-1] == '\n'))
+	line[strlen(line)-1] = '\0';
+    if (strlen(line) == 0)
+    {
+	printf("Error, first line in password file must be the account name. (%s)\n", pszFileName);
+	exit(0);
+    }
+
+    // save the account
+    strcpy(g_pszAccount, line);
+
+    // read the password
+    if (!fgets(line, 1024, fin))
+    {
+	printf("Error, unable to read the password in '%s'\n", pszFileName);
+	exit(0);
+    }
+    // strip off the newline characters
+    while (strlen(line) && (line[strlen(line)-1] == '\r' || line[strlen(line)-1] == '\n'))
+	line[strlen(line)-1] = '\0';
+
+    // save the password
+    if (strlen(line))
+	strcpy(g_pszPassword, line);
+    else
+	g_pszPassword[0] = '\0';
 }
 
 // Function name	: GetAccountAndPassword
@@ -721,10 +827,13 @@ BOOL WINAPI CtrlHandlerRoutine(DWORD dwCtrlType)
 	return TRUE;
     }
 
+    if (g_bUseJobHost)
+	UpdateJobState("ABORTING");
+
     // Hit Ctrl-C once and I'll try to kill the remote processes
     if (g_bFirst)
     {
-	fprintf(stderr, "Soft break - attempting to kill processes\n(hit break again to do a hard abort)\n");
+	fprintf(stderr, "BREAK - attempting to kill processes\n(hit break again to do a hard abort)\n");
 	
 	// Signal all the threads to stop
 	SetEvent(g_hAbortEvent);
@@ -902,12 +1011,14 @@ bool CheckMapping(char *pszExe)
     DWORD dwLength;
     char pBuffer[4096];
     REMOTE_NAME_INFO *info = (REMOTE_NAME_INFO*)pBuffer;
-    char pszTemp[MAX_PATH];
+    char pszTemp[MAX_CMD_LENGTH];
 
     if (*pszExe == '"')
     {
-	strcpy(pszTemp, &pszExe[1]);
-	pszTemp[strlen(pszTemp)-1] = '\0';
+	strncpy(pszTemp, &pszExe[1], MAX_CMD_LENGTH);
+	pszTemp[MAX_CMD_LENGTH-1] = '\0';
+	if (pszTemp[strlen(pszTemp)-1] == '"')
+	    pszTemp[strlen(pszTemp)-1] = '\0';
 	pszExe = pszTemp;
     }
     dwLength = 4096;
@@ -942,12 +1053,14 @@ bool NeedToMap(char *pszFullPath, char *pDrive, char *pszShare)//, char *pszDir)
     DWORD dwLength;
     char pBuffer[4096];
     REMOTE_NAME_INFO *info = (REMOTE_NAME_INFO*)pBuffer;
-    char pszTemp[MAX_PATH];
+    char pszTemp[MAX_CMD_LENGTH];
 
     if (*pszFullPath == '"')
     {
-	strcpy(pszTemp, &pszFullPath[1]);
-	pszTemp[strlen(pszTemp)-1] = '\0';
+	strncpy(pszTemp, &pszFullPath[1], MAX_CMD_LENGTH);
+	pszTemp[MAX_CMD_LENGTH-1] = '\0';
+	if (pszTemp[strlen(pszTemp)-1] == '"')
+	    pszTemp[strlen(pszTemp)-1] = '\0';
 	pszFullPath = pszTemp;
     }
     dwLength = 4096;
@@ -984,7 +1097,7 @@ void ExeToUnc(char *pszExe)
     DWORD dwLength;
     char pBuffer[4096];
     REMOTE_NAME_INFO *info = (REMOTE_NAME_INFO*)pBuffer;
-    char pszTemp[MAX_PATH];
+    char pszTemp[MAX_CMD_LENGTH];
     bool bQuoted = false;
     char *pszOriginal;
 
@@ -993,8 +1106,10 @@ void ExeToUnc(char *pszExe)
     if (*pszExe == '"')
     {
 	bQuoted = true;
-	strcpy(pszTemp, &pszExe[1]);
-	pszTemp[strlen(pszTemp)-1] = '\0';
+	strncpy(pszTemp, &pszExe[1], MAX_CMD_LENGTH);
+	pszTemp[MAX_CMD_LENGTH-1] = '\0';
+	if (pszTemp[strlen(pszTemp)-1] == '"')
+	    pszTemp[strlen(pszTemp)-1] = '\0';
 	pszExe = pszTemp;
     }
     dwLength = 4096;
@@ -1031,6 +1146,33 @@ static void StripArgs(int &argc, char **&argv, int n)
     argc -= n;
 }
 
+static bool isnumber(char *str)
+{
+    int i, n = strlen(str);
+    for (i=0; i<n; i++)
+    {
+	if (!isdigit(str[i]))
+	    return false;
+    }
+    return true;
+}
+
+bool ReadMPDDefault(char *str)
+{
+    DWORD length = 100;
+    char value[100] = "no";
+
+    if (ReadMPDRegistry(str, value, &length))
+    {
+	if ((stricmp(value, "yes") == 0) ||
+	    (stricmp(value, "y") == 0) ||
+	    (stricmp(value, "1") == 0))
+	    return true;
+    }
+
+    return false;
+}
+
 // Function name	: main
 // Description	    : 
 // Return type		: void 
@@ -1041,12 +1183,12 @@ int  main(int argc, char *argv[])
     int i;
     int iproc = 0;
     char pszJobID[100];
-    char pszEnv[MAX_PATH] = "";
+    char pszEnv[MAX_CMD_LENGTH] = "";
     HANDLE *pThread = NULL;
     int nShmLow, nShmHigh;
     DWORD dwThreadID;
     bool bLogon = false;
-    char pBuffer[MAX_PATH];
+    char pBuffer[MAX_CMD_LENGTH];
     char phrase[MPD_PASSPHRASE_MAX_LENGTH + 1];// = MPD_DEFAULT_PASSPHRASE;
     bool bLogonDots = true;
     HANDLE hStdout;
@@ -1058,6 +1200,8 @@ int  main(int argc, char *argv[])
     bool bDoSMP;
     bool bPhraseNeeded;
     DWORD dwType;
+    bool bUsePwdFile = false;
+    char pszPwdFileName[MAX_PATH];
 
     if (argc < 2)
     {
@@ -1068,11 +1212,11 @@ int  main(int argc, char *argv[])
     SetConsoleCtrlHandler(CtrlHandlerRoutine, TRUE);
 
     // Set defaults
-    g_bDoMultiColorOutput = true;
+    g_bDoMultiColorOutput = !ReadMPDDefault("nocolor");
     bRunLocal = false;
     g_bNoMPI = false;
     bLogon = false;
-    bLogonDots = true;
+    bLogonDots = !ReadMPDDefault("nodots");
     GetCurrentDirectory(MAX_PATH, g_pszDir);
     bUseMachineFile = false;
     bDoSMP = true;
@@ -1080,6 +1224,24 @@ int  main(int argc, char *argv[])
     bPhraseNeeded = true;
     g_nHosts = 0;
     g_pHosts = NULL;
+    g_bNoDriveMapping = !ReadMPDDefault("nomapping");
+    if (ReadMPDDefault("nopopup_debug"))
+    {
+	SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+    }
+    if (ReadMPDDefault("usejobhost"))
+    {
+	DWORD length = MAX_HOST_LENGTH;
+	if (ReadMPDRegistry("jobhost", g_pszJobHost, &length))
+	{
+	    g_bUseJobHost = true;
+	    length = 100;
+	    if (ReadMPDRegistry("jobhostpwd", g_pszJobHostMPDPwd, &length))
+	    {
+		g_bUseJobMPDPwd = true;
+	    }
+	}
+    }
 
     // Parse mpirun options
     while (argv[1] && (argv[1][0] == '-' || argv[1][0] == '/'))
@@ -1105,7 +1267,7 @@ int  main(int argc, char *argv[])
 	    bRunLocal = true;
 	    if (argc > 2)
 	    {
-		if (isdigit(argv[2][0]))
+		if (isnumber(argv[2]))
 		{
 		    g_nHosts = atoi(argv[2]);
 		    if (g_nHosts < 1)
@@ -1162,12 +1324,96 @@ int  main(int argc, char *argv[])
 		printf("Error: no environment variables after -env option\n");
 		return 0;
 	    }
-	    strcpy(g_pszEnv, argv[2]);
+	    strncpy(g_pszEnv, argv[2], MAX_CMD_LENGTH);
+	    g_pszEnv[MAX_CMD_LENGTH-1] = '\0';
+	    if (strlen(argv[2]) >= MAX_CMD_LENGTH)
+	    {
+		printf("Warning: environment variables truncated.\n");
+	    }
 	    nArgsToStrip = 2;
 	}
 	else if (stricmp(&argv[1][1], "logon") == 0)
 	{
 	    bLogon = true;
+	}
+	else if (stricmp(&argv[1][1], "pwdfile") == 0)
+	{
+	    bUsePwdFile = true;
+	    if (argc < 3)
+	    {
+		printf("Error: no filename specified after -pwdfile option\n");
+		return 0;
+	    }
+	    strncpy(pszPwdFileName, argv[2], MAX_PATH);
+	    pszPwdFileName[MAX_PATH-1] = '\0';
+	    nArgsToStrip = 2;
+	}
+	else if (stricmp(&argv[1][1], "hosts") == 0)
+	{
+	    if (g_nHosts != 0)
+	    {
+		printf("Error: only one option is allowed to determine the number of processes.\n");
+		printf("       -hosts cannot be used with -np or -localonly\n");
+		return 0;
+	    }
+	    if (argc > 2)
+	    {
+		if (isnumber(argv[2]))
+		{
+		    g_nHosts = atoi(argv[2]);
+		    if (g_nHosts < 1)
+		    {
+			printf("Error: You must specify a number greater than 0 after -hosts.\n");
+			return 0;
+		    }
+		    nArgsToStrip = 2 + g_nHosts;
+		    int index = 3;
+		    for (i=0; i<g_nHosts; i++)
+		    {
+			if (index >= argc)
+			{
+			    printf("Error: missing host name after -hosts option.\n");
+			    return 0;
+			}
+			HostNode *pNode = new HostNode;
+			pNode->next = NULL;
+			pNode->nSMPProcs = 1;
+			pNode->exe[0] = '\0';
+			strcpy(pNode->host, argv[index]);
+			index++;
+			if (argc > index)
+			{
+			    if (isnumber(argv[index]))
+			    {
+				pNode->nSMPProcs = atoi(argv[index]);
+				index++;
+				nArgsToStrip++;
+			    }
+			}
+			if (g_pHosts == NULL)
+			{
+			    g_pHosts = pNode;
+			}
+			else
+			{
+			    HostNode *pIter = g_pHosts;
+			    while (pIter->next)
+				pIter = pIter->next;
+			    pIter->next = pNode;
+			}
+		    }
+		}
+		else
+		{
+		    printf("Error: You must specify the number of hosts after the -hosts option.\n");
+		    return 0;
+		}
+	    }
+	    else
+	    {
+		printf("Error: not enough arguments.\n");
+		return 0;
+	    }
 	}
 	else if (stricmp(&argv[1][1], "tcp") == 0)
 	{
@@ -1208,6 +1454,30 @@ int  main(int argc, char *argv[])
 	    PrintExtraOptions();
 	    return 0;
 	}
+	else if (stricmp(&argv[1][1], "jobhost") == 0)
+	{
+	    g_bUseJobHost = true;
+	    if (argc < 3)
+	    {
+		printf("Error: no host name specified after -jobhost option\n");
+		return 0;
+	    }
+	    strncpy(g_pszJobHost, argv[2], MAX_HOST_LENGTH);
+	    g_pszJobHost[MAX_HOST_LENGTH-1] = '\0';
+	    nArgsToStrip = 2;
+	}
+	else if (stricmp(&argv[1][1], "jobhostmpdpwd") == 0)
+	{
+	    g_bUseJobMPDPwd = true;
+	    if (argc < 3)
+	    {
+		printf("Error: no passphrase specified after -jobhostmpdpwd option\n");
+		return 0;
+	    }
+	    strncpy(g_pszJobHostMPDPwd, argv[2], 100);
+	    g_pszJobHostMPDPwd[99] = '\0';
+	    nArgsToStrip = 2;
+	}
 	else
 	{
 	    printf("Unknown option: %s\n", argv[1]);
@@ -1222,15 +1492,18 @@ int  main(int argc, char *argv[])
     }
 
     // The next argument is the executable or a configuration file
-    strcpy(g_pszExe, argv[1]);
+    strncpy(g_pszExe, argv[1], MAX_CMD_LENGTH);
+    g_pszExe[MAX_CMD_LENGTH-1] = '\0';
 
     // All the rest of the arguments are passed to the application
     g_pszArgs[0] = '\0';
     for (i = 2; i<argc; i++)
     {
-	strcat(g_pszArgs, argv[i]);
+	strncat(g_pszArgs, argv[i], MAX_CMD_LENGTH - 1 - strlen(g_pszArgs));
 	if (i < argc-1)
-	    strcat(g_pszArgs, " ");
+	{
+	    strncat(g_pszArgs, " ", MAX_CMD_LENGTH - 1 - strlen(g_pszArgs));
+	}
     }
 
     if (g_nHosts == 0)
@@ -1245,9 +1518,12 @@ int  main(int argc, char *argv[])
     }
 
     // Fix up the executable name
-    char pszTempExe[MAX_PATH], *namepart;
+    char pszTempExe[MAX_CMD_LENGTH], *namepart;
     if (g_pszExe[0] == '\\' && g_pszExe[1] == '\\')
-	strcpy(pszTempExe, g_pszExe);
+    {
+	strncpy(pszTempExe, g_pszExe, MAX_CMD_LENGTH);
+	pszTempExe[MAX_CMD_LENGTH-1] = '\0';
+    }
     else
 	GetFullPathName(g_pszExe, MAX_PATH, pszTempExe, &namepart);
     // Quote the executable in case there are spaces in the path
@@ -1258,14 +1534,15 @@ int  main(int argc, char *argv[])
     if (!bRunLocal && g_pHosts == NULL)
     {
 	// Save the original file name in case we end up running locally
-	strcpy(pszTempExe, g_pszExe);
+	strncpy(pszTempExe, g_pszExe, MAX_CMD_LENGTH);
+	pszTempExe[MAX_CMD_LENGTH-1] = '\0';
 
 	// Convert the executable to its unc equivalent. This negates
 	// the need to map network drives on remote machines just to locate
 	// the executable.
 	ExeToUnc(g_pszExe);
 
-	// If we are not running locally and the hosts haven't been setup with a configuration file,
+	// If we are not running locally and the hosts haven't been set up with a configuration file,
 	// create the host list now
 	if (bUseMachineFile)
 	{
@@ -1277,7 +1554,8 @@ int  main(int argc, char *argv[])
 	}
 	else if (!GetAvailableHosts())
 	{
-	    strcpy(g_pszExe, pszTempExe);
+	    strncpy(g_pszExe, pszTempExe, MAX_CMD_LENGTH);
+	    g_pszExe[MAX_CMD_LENGTH-1] = '\0';
 	    bRunLocal = true;
 	}
     }
@@ -1329,37 +1607,45 @@ int  main(int argc, char *argv[])
     }
 
     //dbg_printf("retrieving account information\n");
-    if (bLogon)
-	GetAccountAndPassword();
+    if (bUsePwdFile)
+    {
+	bLogon = true;
+	GetAccountAndPasswordFromFile(pszPwdFileName);
+    }
     else
     {
-	char pszTemp[10] = "no";
-	ReadMPDRegistry("SingleUser", pszTemp, NULL);
-	if (stricmp(pszTemp, "yes"))
+	if (bLogon)
+	    GetAccountAndPassword();
+	else
 	{
-	    if (bLogonDots)
+	    char pszTemp[10] = "no";
+	    ReadMPDRegistry("SingleUser", pszTemp, NULL);
+	    if (stricmp(pszTemp, "yes"))
 	    {
-		DWORD dwThreadId;
-		HANDLE hEvent, hDotThread;
-		hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-		hDotThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)PrintDots, hEvent, 0, &dwThreadId);
-		if (!ReadPasswordFromRegistry(g_pszAccount, g_pszPassword))
+		if (bLogonDots)
 		{
-		    SetEvent(hEvent);
-		    GetAccountAndPassword();
+		    DWORD dwThreadId;
+		    HANDLE hEvent, hDotThread;
+		    hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+		    hDotThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)PrintDots, hEvent, 0, &dwThreadId);
+		    if (!ReadPasswordFromRegistry(g_pszAccount, g_pszPassword))
+		    {
+			SetEvent(hEvent);
+			GetAccountAndPassword();
+		    }
+		    else
+			SetEvent(hEvent);
+		    CloseHandle(hDotThread);
 		}
 		else
-		    SetEvent(hEvent);
-		CloseHandle(hDotThread);
-	    }
-	    else
-	    {
-		if (!ReadPasswordFromRegistry(g_pszAccount, g_pszPassword))
 		{
-		    GetAccountAndPassword();
+		    if (!ReadPasswordFromRegistry(g_pszAccount, g_pszPassword))
+		    {
+			GetAccountAndPassword();
+		    }
 		}
+		bLogon = true;
 	    }
-	    bLogon = true;
 	}
     }
     
@@ -1374,7 +1660,7 @@ int  main(int argc, char *argv[])
 	n = n->next;
     }
     g_nNproc = nProc;
-    
+
     CreateJobID(pszJobID);
     
     // Set the environment variables common to all processes
@@ -1416,7 +1702,8 @@ int  main(int argc, char *argv[])
     }
     CloseHandle(hEvent);
 
-    strcpy(g_pForwardHost[0].pszHost, g_pszIOHost);
+    strncpy(g_pForwardHost[0].pszHost, g_pszIOHost, MAX_HOST_LENGTH);
+    g_pForwardHost[0].pszHost[MAX_HOST_LENGTH-1] = '\0';
     g_pForwardHost[0].nPort = g_nIOPort;
     //printf("io redirection: %s:%d\n", g_pForwardHost[0].pszHost, g_pForwardHost[0].nPort);fflush(stdout);
 
@@ -1429,6 +1716,7 @@ int  main(int argc, char *argv[])
 	for (int i = 0; i<g_pHosts->nSMPProcs; i++)
 	{
 	    MPIRunLaunchProcessArg *arg = new MPIRunLaunchProcessArg;
+	    arg->n = g_nNproc;
 	    sprintf(arg->pszIOHostPort, "%s:%d", g_pszIOHost, g_nIOPort);
 	    strcpy(arg->pszPassPhrase, phrase);
 	    arg->i = iproc;
@@ -1444,22 +1732,41 @@ int  main(int argc, char *argv[])
 		arg->pszPassword[0] = '\0';
 	    }
 	    if (strlen(g_pHosts->exe) > 0)
-		strcpy(arg->pszCmdLine, g_pHosts->exe);
+	    {
+		strncpy(arg->pszCmdLine, g_pHosts->exe, MAX_CMD_LENGTH);
+		arg->pszCmdLine[MAX_CMD_LENGTH-1] = '\0';
+	    }
 	    else
-		strcpy(arg->pszCmdLine, g_pszExe);
+	    {
+		strncpy(arg->pszCmdLine, g_pszExe, MAX_CMD_LENGTH);
+		arg->pszCmdLine[MAX_CMD_LENGTH-1] = '\0';
+	    }
 	    if (strlen(g_pszArgs) > 0)
 	    {
-		strcat(arg->pszCmdLine, " ");
-		strcat(arg->pszCmdLine, g_pszArgs);
+		strncat(arg->pszCmdLine, " ", MAX_CMD_LENGTH - 1 - strlen(arg->pszCmdLine));
+		strncat(arg->pszCmdLine, g_pszArgs, MAX_CMD_LENGTH - 1 - strlen(arg->pszCmdLine));
 	    }
 	    strcpy(arg->pszDir, g_pszDir);
-	    strcpy(arg->pszEnv, pszEnv);
-	    strcpy(arg->pszHost, g_pHosts->host);
+	    if (strlen(pszEnv) >= MAX_CMD_LENGTH)
+	    {
+		printf("Warning: environment variables truncated.\n");
+		fflush(stdout);
+	    }
+	    strncpy(arg->pszEnv, pszEnv, MAX_CMD_LENGTH);
+	    arg->pszEnv[MAX_CMD_LENGTH-1] = '\0';
+	    strncpy(arg->pszHost, g_pHosts->host, MAX_HOST_LENGTH);
+	    arg->pszHost[MAX_HOST_LENGTH-1] = '\0';
 	    strcpy(arg->pszJobID, pszJobID);
 
 	    if (g_bNoMPI)
 	    {
-		strcpy(arg->pszEnv, g_pszEnv);
+		if (strlen(g_pszEnv) >= MAX_CMD_LENGTH)
+		{
+		    printf("Warning: environment variables truncated.\n");
+		    fflush(stdout);
+		}
+		strncpy(arg->pszEnv, g_pszEnv, MAX_CMD_LENGTH);
+		arg->pszEnv[MAX_CMD_LENGTH-1] = '\0';
 	    }
 	    else
 	    {
@@ -1468,13 +1775,22 @@ int  main(int argc, char *argv[])
 		else
 		    sprintf(pBuffer, "MPICH_ROOTPORT=%d|MPICH_IPROC=%d|MPICH_SHM_LOW=%d|MPICH_SHM_HIGH=%d", g_nRootPort, iproc, nShmLow, nShmHigh);
 		if (strlen(arg->pszEnv) > 0)
-		    strcat(arg->pszEnv, "|");
-		strcat(arg->pszEnv, pBuffer);
+		    strncat(arg->pszEnv, "|", MAX_CMD_LENGTH - 1 - strlen(arg->pszEnv));
+		if (strlen(pBuffer) + strlen(arg->pszEnv) >= MAX_CMD_LENGTH)
+		{
+		    printf("Warning: environment variables truncated.\n");
+		    fflush(stdout);
+		}
+		strncat(arg->pszEnv, pBuffer, MAX_CMD_LENGTH - 1 - strlen(arg->pszEnv));
 		
 		if (strlen(g_pszEnv) > 0)
 		{
-		    strcat(arg->pszEnv, "|");
-		    strcat(arg->pszEnv, g_pszEnv);
+		    if (strlen(arg->pszEnv) + strlen(g_pszEnv) + 1 >= MAX_CMD_LENGTH)
+		    {
+			printf("Warning: environment variables truncated.\n");
+		    }
+		    strncat(arg->pszEnv, "|", MAX_CMD_LENGTH - 1 - strlen(arg->pszEnv));
+		    strncat(arg->pszEnv, g_pszEnv, MAX_CMD_LENGTH - 1 - strlen(arg->pszEnv));
 		}
 	    }
 	    //printf("creating MPIRunLaunchProcess thread\n");fflush(stdout);
@@ -1551,11 +1867,16 @@ int  main(int argc, char *argv[])
 		beasy_closesocket(g_pProcessSocket[i]);
 	    }
 	}
+	if (g_bUseJobHost)
+	    UpdateJobState("ABORTED");
 	ExitProcess(0);
     }
     // Note: If the user hits Ctrl-C between the above if statement and the following ResetEvent statement
     // nothing will happen and the user will have to hit Ctrl-C again.
     ResetEvent(g_hLaunchThreadsRunning);
+
+    if (g_bUseJobHost)
+	UpdateJobState("RUNNING");
 
     //printf("Waiting for exit codes\n");fflush(stdout);
     // Wait for the mpds to return the exit codes of all the processes
@@ -1578,6 +1899,9 @@ int  main(int argc, char *argv[])
     CloseHandle(g_hRedirectIOListenThread);
     beasy_closesocket(g_bfdStopIOSignalSocket);
     CloseHandle(g_hAbortEvent);
+
+    if (g_bUseJobHost)
+	UpdateJobState("FINISHED");
 
     if (g_bDoMultiColorOutput)
     {

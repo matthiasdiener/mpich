@@ -149,8 +149,11 @@ EOF
 	exit 1
 	;;
 	*)
-	echo "Unrecognized argument $arg ."
-	exit 1
+	if [ -n "$arg" ] ; then 
+	    # allow empty arguments
+            echo "Unrecognized argument $arg ."
+	    exit 1
+        fi
 	;;
     esac
     # If arg isn't appropriate for mpe, set it to null

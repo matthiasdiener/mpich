@@ -83,7 +83,9 @@ for arg in "$@" ; do
     case "$arg" in
 	-prefix=*)
 	    prefix=`echo $arg | sed -e 's/-prefix=//g'` 
-	    prefix_override=1
+	    if [ "$prefix" != "@prefix@" ] ; then
+  	        prefix_override=1
+	    fi
 	    ;;
 	-uninstall=*)
 	    UNINSTALLFILE=`echo A$arg | sed -e 's/A-uninstall=//g'` 
@@ -521,10 +523,18 @@ fi
 chmod u+x $UNINSTALLFILE
 
 # Install the log viewers
+# Don't set the prefix if the default is chosen.  This
+# lets us use --with-common-prefix with the viewers
 if [ $LOGVIEWERS = 1 ] ; then
+    if [ "$prefix_override" = "1" ] ; then
     ( cd $sbinbuild_dir/../viewers ; \
       ./sbin/install-viewers -prefix=$prefix -uninstall=$UNINSTALLFILE \
 	-mode=$MODE -xmode=$XMODE )
+    else
+    ( cd $sbinbuild_dir/../viewers ; \
+      ./sbin/install-viewers -uninstall=$UNINSTALLFILE \
+	-mode=$MODE -xmode=$XMODE )
+    fi
 fi
 
 if [ -s $examplesdir/Makefile ] ; then

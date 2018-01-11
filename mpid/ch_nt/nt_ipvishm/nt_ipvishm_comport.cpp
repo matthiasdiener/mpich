@@ -320,97 +320,105 @@ void CommPortThread(HANDLE hReadyEvent)
 				
 				if (remote_iproc >= 0 && remote_iproc < g_nNproc)
 				{
-					if (WaitForSingleObject(g_hAddSocketMutex, 0) == WAIT_OBJECT_0)
+				    if (WaitForSingleObject(g_hAddSocketMutex, 5000) == WAIT_TIMEOUT)
+					MakeErrMsg(1, "Accept connection attempt failed, wait for AddSocketMutex timed out");
+				    if (g_pProcTable[remote_iproc].hConnectLock == NULL)
+				    {
+					g_pProcTable[remote_iproc].hConnectLock = CreateMutex(NULL, FALSE, NULL);
+				    }
+				    ReleaseMutex(g_hAddSocketMutex);
+				    if (WaitForSingleObject(g_pProcTable[remote_iproc].hConnectLock, 0) == WAIT_OBJECT_0)
+				    {
+					if (g_pProcTable[remote_iproc].sock == INVALID_SOCKET)
 					{
-						if (g_pProcTable[remote_iproc].sock == INVALID_SOCKET)
-						{
-							add_socket_ack = 1;
-							if (SendBlocking(temp_socket, &add_socket_ack, 1, 0) == SOCKET_ERROR)
-								MakeErrMsg(WSAGetLastError(), "send add_socket_ack(1) failed for socket %d", remote_iproc);
-
-							// Insert the information in g_pProcTable
-							g_pProcTable[remote_iproc].sock_event = temp_event;
-							g_pProcTable[remote_iproc].sock = temp_socket;
-
-							// Associate the socket with the completion port
-							if (CreateIoCompletionPort((HANDLE)temp_socket, g_hCommPort, remote_iproc, g_NumCommPortThreads) == NULL)
-								nt_error("Unable to associate completion port with socket", GetLastError());
-
-							// Post the first read from the socket
-							g_pProcTable[remote_iproc].msg.ovl.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-							if (g_pProcTable[remote_iproc].msg.ovl.hEvent == NULL)
-								MakeErrMsg(GetLastError(), "CommPortThread:CreateEvent failed for %d event", remote_iproc);
-							g_pProcTable[remote_iproc].msg.state = NT_MSG_READING_TAG;
-							g_pProcTable[remote_iproc].msg.nRemaining = sizeof(int);
-							g_pProcTable[remote_iproc].msg.ovl.Offset = 0;
-							g_pProcTable[remote_iproc].msg.ovl.OffsetHigh = 0;
-							g_pProcTable[remote_iproc].msg.ovl.Internal = 0;
-							g_pProcTable[remote_iproc].msg.ovl.InternalHigh = 0;
-							if (!ReadFile((HANDLE)temp_socket, &(g_pProcTable[remote_iproc].msg.tag), sizeof(int), &(g_pProcTable[remote_iproc].msg.nRead), &(g_pProcTable[remote_iproc].msg.ovl)))
-							{
-								int error = GetLastError();
-								if (error != ERROR_IO_PENDING)
-									MakeErrMsg(error, "CommPortThread:First posted read from socket %d failed", remote_iproc);
-							}
-
-							DPRINTF(("process %d: socket accepted and inserted in location %d, no race condition\n", g_nIproc, remote_iproc));
-						}
-						else
-						{
-							add_socket_ack = 0;
-							if (SendBlocking(temp_socket, &add_socket_ack, 1, 0) == SOCKET_ERROR)
-								MakeErrMsg(WSAGetLastError(), "send add_socket_ack(0) failed for socket %d", remote_iproc);
-							NT_Tcp_closesocket(temp_socket, temp_event);
-
-							DPRINTF(("process %d: socket closed, valid socket already in location %d", g_nIproc, remote_iproc));
-						}
-						ReleaseMutex(g_hAddSocketMutex);
+					    add_socket_ack = 1;
+					    if (SendBlocking(temp_socket, &add_socket_ack, 1, 0) == SOCKET_ERROR)
+						MakeErrMsg(WSAGetLastError(), "send add_socket_ack(1) failed for socket %d", remote_iproc);
+					    
+					    // Insert the information in g_pProcTable
+					    g_pProcTable[remote_iproc].sock_event = temp_event;
+					    g_pProcTable[remote_iproc].sock = temp_socket;
+					    
+					    // Associate the socket with the completion port
+					    if (CreateIoCompletionPort((HANDLE)temp_socket, g_hCommPort, remote_iproc, g_NumCommPortThreads) == NULL)
+						nt_error("Unable to associate completion port with socket", GetLastError());
+					    
+					    // Post the first read from the socket
+					    g_pProcTable[remote_iproc].msg.ovl.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+					    if (g_pProcTable[remote_iproc].msg.ovl.hEvent == NULL)
+						MakeErrMsg(GetLastError(), "CommPortThread:CreateEvent failed for %d event", remote_iproc);
+					    g_pProcTable[remote_iproc].msg.state = NT_MSG_READING_TAG;
+					    g_pProcTable[remote_iproc].msg.nRemaining = sizeof(int);
+					    g_pProcTable[remote_iproc].msg.ovl.Offset = 0;
+					    g_pProcTable[remote_iproc].msg.ovl.OffsetHigh = 0;
+					    g_pProcTable[remote_iproc].msg.ovl.Internal = 0;
+					    g_pProcTable[remote_iproc].msg.ovl.InternalHigh = 0;
+					    if (!ReadFile((HANDLE)temp_socket, &(g_pProcTable[remote_iproc].msg.tag), sizeof(int), &(g_pProcTable[remote_iproc].msg.nRead), &(g_pProcTable[remote_iproc].msg.ovl)))
+					    {
+						int error = GetLastError();
+						if (error != ERROR_IO_PENDING)
+						    MakeErrMsg(error, "CommPortThread:First posted read from socket %d failed", remote_iproc);
+					    }
+					    
+					    DPRINTF(("process %d: socket accepted and inserted in location %d, no race condition\n", g_nIproc, remote_iproc));
 					}
 					else
 					{
-						if (g_nIproc > remote_iproc)
-						{
-							add_socket_ack = 1;
-							if (SendBlocking(temp_socket, &add_socket_ack, 1, 0) == SOCKET_ERROR)
-								MakeErrMsg(WSAGetLastError(), "send add_socket_ack(1) failed for socket %d", remote_iproc);
-						
-							// Insert the information in g_pProcTable
-							g_pProcTable[remote_iproc].sock_event = temp_event;
-							g_pProcTable[remote_iproc].sock = temp_socket;
-							
-							// Associate the socket with the completion port
-							if (CreateIoCompletionPort((HANDLE)temp_socket, g_hCommPort, remote_iproc, g_NumCommPortThreads) == NULL)
-								nt_error("Unable to associate completion port with socket", GetLastError());
-
-							// Post the first read from the socket
-							g_pProcTable[remote_iproc].msg.ovl.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-							if (g_pProcTable[remote_iproc].msg.ovl.hEvent == NULL)
-								MakeErrMsg(GetLastError(), "CommPortThread:CreateEvent failed for %d event", remote_iproc);
-							g_pProcTable[remote_iproc].msg.state = NT_MSG_READING_TAG;
-							g_pProcTable[remote_iproc].msg.nRemaining = sizeof(int);
-							g_pProcTable[remote_iproc].msg.ovl.Offset = 0;
-							g_pProcTable[remote_iproc].msg.ovl.OffsetHigh = 0;
-							g_pProcTable[remote_iproc].msg.ovl.Internal = 0;
-							g_pProcTable[remote_iproc].msg.ovl.InternalHigh = 0;
-							if (!ReadFile((HANDLE)temp_socket, &(g_pProcTable[remote_iproc].msg.tag), sizeof(int), &(g_pProcTable[remote_iproc].msg.nRead), &(g_pProcTable[remote_iproc].msg.ovl)))
-							{
-								int error = GetLastError();
-								if (error != ERROR_IO_PENDING)
-									MakeErrMsg(error, "CommPortThread:First posted read from socket %d failed", remote_iproc);
-							}
-
-							DPRINTF(("process %d: %d > %d, socket accepted and inserted in location %d\n", g_nIproc, g_nIproc, remote_iproc, remote_iproc));
-						}
-						else
-						{
-							add_socket_ack = 0;
-							if (SendBlocking(temp_socket, &add_socket_ack, 1, 0) == SOCKET_ERROR)
-								MakeErrMsg(1, "send add_socket_ack(0) failed for socket %d", remote_iproc);
-							NT_Tcp_closesocket(temp_socket, temp_event);
-
-							DPRINTF(("process %d: socket closed, %d > %d", g_nIproc, g_nIproc, remote_iproc));
-						}
+					    add_socket_ack = 0;
+					    if (SendBlocking(temp_socket, &add_socket_ack, 1, 0) == SOCKET_ERROR)
+						MakeErrMsg(WSAGetLastError(), "send add_socket_ack(0) failed for socket %d", remote_iproc);
+					    NT_Tcp_closesocket(temp_socket, temp_event);
+					    
+					    DPRINTF(("process %d: socket closed, valid socket already in location %d", g_nIproc, remote_iproc));
 					}
+
+					ReleaseMutex(g_pProcTable[remote_iproc].hConnectLock);
+				    }
+				    else
+				    {
+					if (g_nIproc > remote_iproc)
+					{
+					    add_socket_ack = 1;
+					    if (SendBlocking(temp_socket, &add_socket_ack, 1, 0) == SOCKET_ERROR)
+						MakeErrMsg(WSAGetLastError(), "send add_socket_ack(1) failed for socket %d", remote_iproc);
+					    
+					    // Insert the information in g_pProcTable
+					    g_pProcTable[remote_iproc].sock_event = temp_event;
+					    g_pProcTable[remote_iproc].sock = temp_socket;
+					    
+					    // Associate the socket with the completion port
+					    if (CreateIoCompletionPort((HANDLE)temp_socket, g_hCommPort, remote_iproc, g_NumCommPortThreads) == NULL)
+						nt_error("Unable to associate completion port with socket", GetLastError());
+					    
+					    // Post the first read from the socket
+					    g_pProcTable[remote_iproc].msg.ovl.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+					    if (g_pProcTable[remote_iproc].msg.ovl.hEvent == NULL)
+						MakeErrMsg(GetLastError(), "CommPortThread:CreateEvent failed for %d event", remote_iproc);
+					    g_pProcTable[remote_iproc].msg.state = NT_MSG_READING_TAG;
+					    g_pProcTable[remote_iproc].msg.nRemaining = sizeof(int);
+					    g_pProcTable[remote_iproc].msg.ovl.Offset = 0;
+					    g_pProcTable[remote_iproc].msg.ovl.OffsetHigh = 0;
+					    g_pProcTable[remote_iproc].msg.ovl.Internal = 0;
+					    g_pProcTable[remote_iproc].msg.ovl.InternalHigh = 0;
+					    if (!ReadFile((HANDLE)temp_socket, &(g_pProcTable[remote_iproc].msg.tag), sizeof(int), &(g_pProcTable[remote_iproc].msg.nRead), &(g_pProcTable[remote_iproc].msg.ovl)))
+					    {
+						int error = GetLastError();
+						if (error != ERROR_IO_PENDING)
+						    MakeErrMsg(error, "CommPortThread:First posted read from socket %d failed", remote_iproc);
+					    }
+					    
+					    DPRINTF(("process %d: %d > %d, socket accepted and inserted in location %d\n", g_nIproc, g_nIproc, remote_iproc, remote_iproc));
+					}
+					else
+					{
+					    add_socket_ack = 0;
+					    if (SendBlocking(temp_socket, &add_socket_ack, 1, 0) == SOCKET_ERROR)
+						MakeErrMsg(1, "send add_socket_ack(0) failed for socket %d", remote_iproc);
+					    NT_Tcp_closesocket(temp_socket, temp_event);
+					    
+					    DPRINTF(("process %d: socket closed, %d > %d", g_nIproc, g_nIproc, remote_iproc));
+					}
+				    }
 				}
 				else
 				{
@@ -443,10 +451,14 @@ int ConnectTo(int remote_iproc)
 	char ack = 0;
 	int ret_val;
 	BOOL opt = TRUE;
+	int optval;
 	int i=0;
 	HOSTENT *hostEnt;
 	unsigned long nic_addr = INADDR_ANY;
 	int error;
+#ifdef USE_LINGER_SOCKOPT
+	struct linger linger;
+#endif
 
 	if (remote_iproc < 0 || remote_iproc >= g_nNproc)
 	{
@@ -454,15 +466,33 @@ int ConnectTo(int remote_iproc)
 		return 0;
 	}
 
+	// acquire the global lock
 	if (WaitForSingleObject(g_hAddSocketMutex, 5000) == WAIT_TIMEOUT)
 		MakeErrMsg(1, "ConnectTo %d failed, wait for AddSocketMutex timed out", remote_iproc);
-
+	// if the socket already exists return true
 	if (g_pProcTable[remote_iproc].sock != INVALID_SOCKET)
 	{
 		ReleaseMutex(g_hAddSocketMutex);
 		return 1;
 	}
+	// else create an individual lock for this connection
+	if (g_pProcTable[remote_iproc].hConnectLock == NULL)
+	{
+	    g_pProcTable[remote_iproc].hConnectLock = CreateMutex(NULL, FALSE, NULL);
+	}
+	// now that the individual lock is guaranteed to exist, release the global lock
+	ReleaseMutex(g_hAddSocketMutex);
+	// wait for the individual lock
+	if (WaitForSingleObject(g_pProcTable[remote_iproc].hConnectLock, 5000) == WAIT_TIMEOUT)
+		MakeErrMsg(1, "ConnectTo %d failed, wait for hConnectLock timed out", remote_iproc);
+	// check to see if the socket has already been established
+	if (g_pProcTable[remote_iproc].sock != INVALID_SOCKET)
+	{
+		ReleaseMutex(g_pProcTable[remote_iproc].hConnectLock);
+		return 1;
+	}
 
+	// get the info necessary to connect to the remote rank
 	if (g_bUseBNR)
 	{
 		char pszKey[100], pszValue[100];
@@ -499,6 +529,11 @@ int ConnectTo(int remote_iproc)
 	if (temp_socket == INVALID_SOCKET)
 		nt_error("socket failed in ConnectTo", WSAGetLastError());
 
+	optval = 32*1024;
+	setsockopt(temp_socket, SOL_SOCKET, SO_RCVBUF, (char*)&optval, sizeof(int));
+	optval = 32*1024;
+	setsockopt(temp_socket, SOL_SOCKET, SO_SNDBUF, (char*)&optval, sizeof(int));
+
 	DPRINTF(("connecting to %s on %d\n", g_pProcTable[remote_iproc].host, g_pProcTable[remote_iproc].listen_port));
 	if (ret_val = NT_Tcp_connect(temp_socket, g_pProcTable[remote_iproc].host, g_pProcTable[remote_iproc].listen_port))
 		MakeErrMsg(ret_val, "NT_Tcp_connect failed in ConnectTo(%s:%d)", g_pProcTable[remote_iproc].host, g_pProcTable[remote_iproc].listen_port);
@@ -529,6 +564,13 @@ int ConnectTo(int remote_iproc)
 		else
 			nt_error("setsockopt failed in ConnectTo", error);
 	}
+
+#ifdef USE_LINGER_SOCKOPT
+	/* Set the linger on close option */
+	linger.l_onoff = 1 ;
+	linger.l_linger = 60;
+	setsockopt(temp_socket, SOL_SOCKET, SO_LINGER, (char*)&linger, sizeof(linger));
+#endif
 
 	if (WSAEventSelect(temp_socket, temp_event, FD_READ | FD_CLOSE) == SOCKET_ERROR)
 		nt_error("WSAEventSelect failed in ConnectTo", WSAGetLastError());
@@ -579,6 +621,7 @@ int ConnectTo(int remote_iproc)
 			Sleep(100);
 	}
 
-	ReleaseMutex(g_hAddSocketMutex);
+	ReleaseMutex(g_pProcTable[remote_iproc].hConnectLock);
+
 	return 1;
 }

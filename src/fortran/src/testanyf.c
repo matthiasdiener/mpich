@@ -108,7 +108,7 @@ FORTRAN_API void FORT_CALL mpi_testany_( MPI_Fint *count, MPI_Fint array_of_requ
 
     *__ierr = MPI_Testany((int)*count,lrequest,&lindex,&lflag,&c_status);
     if (*__ierr != MPI_SUCCESS) return;
-    if (lindex != -1) {
+    if (lindex != MPI_UNDEFINED) {
         if (lflag && !*__ierr) {
 	    array_of_requests[lindex] = MPI_Request_c2f(lrequest[lindex]);
         }

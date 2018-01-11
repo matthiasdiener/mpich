@@ -1,5 +1,5 @@
 /*
- *  $Id: chinit.c,v 1.2 2001/12/17 21:24:16 ashton Exp $
+ *  $Id: chinit.c,v 1.3 2002/04/17 21:02:58 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -41,8 +41,20 @@ extern char *getenv();
 
 /* Forward refs */
 int MPID_CH_End ( MPID_Device * );
+int MPID_CH_SHM_End( MPID_Device * );
 int MPID_CH_Abort ( struct MPIR_COMMUNICATOR *, int, char * );
 void MPID_CH_Version_name ( char * );
+int MPID_NT_ipvishm_is_shm( int );
+
+void MPID_NT_ipvishm_fixupdevpointers(MPID_Device *pDevice)
+{
+    int i;
+
+    /* pDevice has the tcp device settings.
+       pDevice->next hast the shm device settings. */
+    for (i=0; i<g_nNproc; i++)
+	MPID_devset->dev[i] = MPID_NT_ipvishm_is_shm(i) ? pDevice->next : pDevice;
+}
 
 /* 
     In addition, Chameleon processes many command-line arguments 
@@ -55,14 +67,17 @@ void MPID_CH_Version_name ( char * );
  */
 MPID_Device *MPID_CH_InitMsgPass( int *argc, char ***argv, int short_len, int long_len )
 {
-    MPID_Device *dev;
+    MPID_Device *dev, *dev_shm;
 	char pszTemp[100];
 	int nMPID_PKT_MAX_DATA_SIZE = MPID_PKT_MAX_DATA_SIZE;
-	int nMPID_PKT_DATA_LONG_LEN = 1024*20;
+	int nMPID_PKT_DATA_LONG_LEN = 1024*100;
+	int nMPID_PKT_DATA_LONG_LENshm = 1024*20;
 
     dev = (MPID_Device *)MALLOC( sizeof(MPID_Device) );
-    if (!dev) return 0;
+    dev_shm = (MPID_Device *)MALLOC( sizeof(MPID_Device) );
+    if (!dev || !dev_shm) return 0;
 
+    // get the environment variables for the short and long protocol break points
 	if (GetEnvironmentVariable("MPICH_SHORTLONGTHRESH", pszTemp, 100))
 	{
 		nMPID_PKT_MAX_DATA_SIZE = atoi(pszTemp);
@@ -74,6 +89,20 @@ MPID_Device *MPID_CH_InitMsgPass( int *argc, char ***argv, int short_len, int lo
 		nMPID_PKT_DATA_LONG_LEN = atoi(pszTemp);
 		if (nMPID_PKT_DATA_LONG_LEN < 0)
 			nMPID_PKT_DATA_LONG_LEN = 0;
+		nMPID_PKT_DATA_LONG_LENshm = nMPID_PKT_DATA_LONG_LEN;
+	}
+    // get the environment variables for the protocol specific long break point
+	if (GetEnvironmentVariable("MPICH_TCPLONGVLONGTHRESH", pszTemp, 100))
+	{
+		nMPID_PKT_DATA_LONG_LEN = atoi(pszTemp);
+		if (nMPID_PKT_DATA_LONG_LEN < 0)
+			nMPID_PKT_DATA_LONG_LEN = 0;
+	}
+	if (GetEnvironmentVariable("MPICH_SHMLONGVLONGTHRESH", pszTemp, 100))
+	{
+		nMPID_PKT_DATA_LONG_LENshm = atoi(pszTemp);
+		if (nMPID_PKT_DATA_LONG_LENshm < 0)
+			nMPID_PKT_DATA_LONG_LENshm = 0;
 	}
 
     /* The short protocol MUST be for messages no longer than 
@@ -92,8 +121,21 @@ MPID_Device *MPID_CH_InitMsgPass( int *argc, char ***argv, int short_len, int lo
     dev->check_device = MPID_CH_Check_incoming;
     dev->terminate    = MPID_CH_End;
     dev->abort	      = MPID_CH_Abort;
-    dev->next	      = 0;
+    //dev->next	      = 0;
+    dev->next         = dev_shm; // will this cause the dev_shm memory to be freed at finalize?
 
+    dev_shm->long_len     = short_len;
+    dev_shm->vlong_len    = nMPID_PKT_DATA_LONG_LENshm;
+    dev_shm->short_msg    = MPID_CH_Short_setup();
+    dev_shm->long_msg     = MPID_CH_Eagerb_setup();
+    dev_shm->vlong_msg    = MPID_NT_Rndvn_setup();
+    //dev_shm->vlong_msg    = MPID_NT_Rndvb_setup();
+    dev_shm->eager        = dev_shm->long_msg;
+    dev_shm->rndv         = dev_shm->vlong_msg;
+    dev_shm->check_device = MPID_CH_Check_incoming;
+    dev_shm->terminate    = MPID_CH_SHM_End;
+    dev_shm->abort	      = MPID_CH_Abort;
+    dev_shm->next	      = 0;
     /* Set the file for Debugging output.  The actual output is controlled
        by MPIDDebugFlag */
 //#ifdef MPID_DEBUG_ALL
@@ -145,6 +187,19 @@ int MPID_CH_Abort(
     fflush( stdout );
     /* Some systems (e.g., p4) can't accept a (char *)0 message argument. */
     SYexitall( "", code );
+    return 0;
+}
+
+int MPID_CH_SHM_End(MPID_Device *dev)
+{
+    DEBUG_PRINT_MSG("Entering MPID_CH_SHM_End\n");
+
+    (dev->short_msg->delete)( dev->short_msg );
+    (dev->long_msg->delete)( dev->long_msg );
+    (dev->vlong_msg->delete)( dev->vlong_msg );
+    FREE( dev );
+
+    DEBUG_PRINT_MSG("Leaving MPID_CH_End");
     return 0;
 }
 

@@ -103,7 +103,9 @@ void RedirectIOThread2(int abort_bfd)
     int client_bfd, child_abort_bfd = BFD_INVALID_SOCKET;
     int n, i;
     sockaddr addr;
+#ifdef USE_LINGER_SOCKOPT
     struct linger linger;
+#endif
     int len;
     BOOL b;
     char pBuffer[1024];
@@ -212,6 +214,7 @@ void RedirectIOThread2(int abort_bfd)
 			MessageBox(NULL, str, "Error", MB_OK);
 			break;
 		    }
+#ifdef USE_LINGER_SOCKOPT
 		    linger.l_onoff = 1;
 		    linger.l_linger = 60;
 		    if (bsetsockopt(client_bfd, SOL_SOCKET, SO_LINGER, (char*)&linger, sizeof(linger)) == SOCKET_ERROR)
@@ -223,6 +226,7 @@ void RedirectIOThread2(int abort_bfd)
 			beasy_closesocket(client_bfd);
 			break;
 		    }
+#endif
 		    b = TRUE;
 		    bsetsockopt(client_bfd, IPPROTO_TCP, TCP_NODELAY, (char*)&b, sizeof(BOOL));
 		    

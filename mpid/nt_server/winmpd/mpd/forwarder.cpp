@@ -3,11 +3,11 @@
 #include "mpdimpl.h"
 #include <stdio.h>
 
-#define dbg_printf err_printf
+/*#define dbg_printf err_printf*/
 
 struct ForwarderEntry
 {
-    char pszFwdHost[100];
+    char pszFwdHost[MAX_HOST_LENGTH];
     int nFwdPort;
     int nPort;
     int bfdStop;
@@ -24,6 +24,35 @@ struct ForwardIOThreadArg
 
 ForwarderEntry *g_pForwarderList = NULL;
 
+static void ForwarderToString(ForwarderEntry *p, char *pszStr, int length)
+{
+    if (!snprintf_update(pszStr, length, "FORWARDER:\n"))
+	return;
+    if (!snprintf_update(pszStr, length, " inport: %d\n outhost: %s:%d\n stop socket: %d\n",
+	p->nPort, p->pszFwdHost, p->nFwdPort, p->bfdStop))
+	return;
+}
+
+void statForwarders(char *pszOutput, int length)
+{
+    ForwarderEntry *p;
+
+    *pszOutput = '\0';
+    length--; // leave room for the null character
+
+    if (g_pForwarderList == NULL)
+	return;
+
+    p = g_pForwarderList;
+    while (p)
+    {
+	ForwarderToString(p, pszOutput, length);
+	length = length - strlen(pszOutput);
+	pszOutput = &pszOutput[strlen(pszOutput)];
+	p = p->pNext;
+    }
+}
+
 void ConcatenateForwardersToString(char *pszStr)
 {
     char pszLine[100];
@@ -33,8 +62,8 @@ void ConcatenateForwardersToString(char *pszStr)
     ForwarderEntry *p = g_pForwarderList;
     while (p)
     {
-	sprintf(pszLine, "%s:%d -> %s:%d\n", g_pszHost, p->nPort, p->pszFwdHost, p->nFwdPort);
-	strcat(pszStr, pszLine);
+	_snprintf(pszLine, 100, "%s:%d -> %s:%d\n", g_pszHost, p->nPort, p->pszFwdHost, p->nFwdPort);
+	strncat(pszStr, pszLine, MAX_CMD_LENGTH - 1 - strlen(pszStr));
 	p = p->pNext;
     }
     ReleaseMutex(hMutex);
@@ -378,7 +407,7 @@ int CreateIOForwarder(char *pszFwdHost, int nFwdPort)
     pEntry = new ForwarderEntry;
 
     // Save the forwardee stuff.  Used only by the forwarders command.
-    strcpy(pEntry->pszFwdHost, pszFwdHost);
+    strncpy(pEntry->pszFwdHost, pszFwdHost, MAX_HOST_LENGTH);
     pEntry->nFwdPort = nFwdPort;
 
     // Create a listener

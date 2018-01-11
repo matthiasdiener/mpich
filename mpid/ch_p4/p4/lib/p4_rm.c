@@ -287,8 +287,11 @@ P4VOID create_rm_processes(int nslaves, int bm_fd)
 
     rm_host[0] = '\0';
     get_qualified_hostname(rm_host,100);
+#ifdef CAN_DO_SWITCH_MSGS
     rm_switch_port = getswport(rm_host);
-
+#else
+    rm_switch_port = -1;
+#endif
     /* Send my info to the bm */
     bm_msg.type = p4_i_to_n(REMOTE_MASTER_INFO);
     bm_msg.slave_idx = p4_i_to_n(0);
@@ -364,13 +367,12 @@ P4VOID create_rm_processes(int nslaves, int bm_fd)
 #   if !defined(NO_LISTENER)
 	    {
 #ifdef USE_NONBLOCKING_LISTENER_SOCKETS
-	    int cc;
-		cc = fcntl(end_1, F_SETFL, O_NONBLOCK);
-		if (cc < 0) {
+		int rc = p4_make_socket_nonblocking( end_1 );
+		if (rc < 0) {
 		    p4_error("create_rm_processes: set listener nonblocking",
-		      cc);
+		      rc);
 		}
-#endif
+#endif /* USE_NONBLOCKING_LISTENER_SOCKETS */
 		p4_local->listener_fd = end_1;
 #           if !defined(THREAD_LISTENER)
 	    close(end_2);
@@ -454,6 +456,15 @@ P4VOID create_rm_processes(int nslaves, int bm_fd)
     get_pipe(&end_1, &end_2);
     p4_local->listener_fd = end_1;
     listener_info->slave_fd[0] = end_2;
+#ifdef USE_NONBLOCKING_LISTENER_SOCKETS
+    {
+	int rc = p4_make_socket_nonblocking( end_1 );
+	if (rc < 0) {
+	    p4_error("create_rm_processes: set listener nonblocking",
+		     rc);
+	}
+    }
+#endif /* USE_NONBLOCKING_LISTENER_SOCKETS */
 #   if !defined(NO_LISTENER) && !defined(THREAD_LISTENER)
     listener_pid = fork_p4();
     if (listener_pid == 0)
@@ -502,10 +513,11 @@ P4VOID create_rm_processes(int nslaves, int bm_fd)
     p4_create_thread( trc, thread_listener, 66 );
     /* NT version put the last arg of CreateThread into listener_pid */
     p4_dprintfl(50,"created listener thread\n");
-#   endif
-
+#   else
     p4_dprintfl(70, "created listener pid %d\n", listener_pid);
     g->listener_pid = listener_pid;
+#   endif
+
 #   endif  /* !IPSC860 etc */
     rm_flag = 1;  /* I am the remote master */
 }

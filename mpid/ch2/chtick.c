@@ -28,17 +28,24 @@
 void MPID_CH_Wtick( double *tick )
 {
     static double tickval = -1.0;
-#if defined(USING_POSIX_CLOCK)
-    struct timespec tp;
-    if (tickval < 0.0) {
-	clock_getres( CLOCK_REALTIME, &tp );
-	tickval = (double)(tp.tv_sec) + 1.0e-9 * (double)(tp.tv_nsec);
-    }
-#else
     double t1, t2;
     int    cnt;
     int    icnt;
 
+#if defined(USING_POSIX_CLOCK)
+    /* This isn't the right ifdef choice.  Wtime and Wtime should use
+       consistent clocks; with this test, wtime may use gettimeofday and
+       wtick may use clock_getres */
+    if (tickval < 0.0) {
+	struct timespec tp;
+	int rc;
+	rc = clock_getres( CLOCK_REALTIME, &tp );
+	/* May return -1 for unimplemented ! */
+	if (!rc) 
+	    tickval = (double)(tp.tv_sec) + 1.0e-9 * (double)(tp.tv_nsec);
+    }
+    /* Else drop through and use wtime */
+#endif
     if (tickval < 0.0) {
 	tickval = 1.0e6;
 	for (icnt=0; icnt<10; icnt++) {
@@ -52,6 +59,5 @@ void MPID_CH_Wtick( double *tick )
 		tickval = t2 - t1;
 	}
     }
-#endif
     *tick = tickval;
 }

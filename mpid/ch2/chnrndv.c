@@ -461,8 +461,7 @@ MPIR_SHANDLE *shandle;
 
 /* These wait for the "ack" and then change the wait routine on the
    handle */
-int MPID_CH_Rndvn_send_wait_ack( shandle )
-MPIR_SHANDLE *shandle;
+int MPID_CH_Rndvn_send_wait_ack( MPIR_SHANDLE *shandle )
 {
     DEBUG_PRINT_MSG("Waiting for Rndvn ack");
     DEBUG_PRINT_MSG("Entering while !shandle->is_complete");    

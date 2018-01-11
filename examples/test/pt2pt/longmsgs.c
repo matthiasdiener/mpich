@@ -2,6 +2,9 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 #define MIN_MESSAGE_LENGTH 256
 #define MAX_MESSAGE_LENGTH (16*1024*1024)
@@ -65,6 +68,32 @@ int main( int argc, char *argv[] )
 	printf("Expected exactly 2 MPI processes\n");
 	MPI_Abort( MPI_COMM_WORLD, 1 );
     }
+
+/* 
+   The following test allows this test to run on small-memory systems
+   that support the sysconf call interface.  This test keeps the test from
+   becoming swap-bound.  For example, on an old Linux system or a
+   Sony Playstation 2 (really!) 
+ */
+#if defined(HAVE_SYSCONF) && defined(_SC_PHYS_PAGES) && defined(_SC_PAGESIZE)
+    { 
+	long n_pages, pagesize;
+	int  actmsglen_max;
+	n_pages  = sysconf( _SC_PHYS_PAGES );
+	pagesize = sysconf( _SC_PAGESIZE );
+	if (n_pages > 0 && pagesize > 0 && 
+	    n_pages * pagesize < 4 * msglen_max) {
+	    /* Recompute msglen_max */
+	    while (n_pages * pagesize < 4 * msglen_max) msglen_max /= 2;
+	}
+	/* printf ( "before = %d\n", msglen_max ); */
+	MPI_Allreduce( &msglen_max, &actmsglen_max, 1, MPI_INT, 
+		       MPI_MIN, MPI_COMM_WORLD );
+	msglen_max = actmsglen_max;
+	/* printf ( "after = %d\n", msglen_max ); */
+    }
+#endif
+
     Master = (rank == 0);	
 
     if(Master)

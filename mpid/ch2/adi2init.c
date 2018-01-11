@@ -118,9 +118,12 @@ void MPID_Init( int *argc, char ***argv, void *config, int *error_code )
 	    *error_code = MPI_ERR_INTERN;
 	    return;
 	}
+#ifdef HAVE_WINDOWS_H
+	MPID_NT_ipvishm_fixupdevpointers(dev);
+#else
 	for (i = 0; i<np; i++) 
 	    MPID_devset->dev[i] = dev;
-
+#endif
 	MPID_devset->ndev_list   = 1;
 	MPID_devset->dev_list    = dev;
     }

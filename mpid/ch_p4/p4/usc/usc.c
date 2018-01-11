@@ -88,7 +88,7 @@ VOID usc_init()
 
 #if defined(SUN) || defined(HP) || defined(DEC5000) || \
     defined(SUN_SOLARIS) || defined(FREEBSD) || defined(LINUX) || \
-    defined(I86_SOLARIS) || \
+    defined(I86_SOLARIS) || defined(NETBSD) || \
     defined(BALANCE) || \
     defined(RS6000)  ||  defined(IBM3090) || \
     defined(NEXT) || defined(TITAN) || defined(GP_1000) || \
@@ -198,7 +198,7 @@ usc_time_t usc_MD_clock()
 
 #if defined(SUN) || defined(HP) || \
     defined(SUN_SOLARIS) || defined(FREEBSD) || defined(LINUX) || \
-    defined(I86_SOLARIS) || \
+    defined(I86_SOLARIS) || defined(NETBSD) || \
     defined(BALANCE) || \
     defined(RS6000) || defined(IBM3090) || \
     defined(NEXT) || defined(TITAN) || defined(TC1000) || \

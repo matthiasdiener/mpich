@@ -1567,7 +1567,7 @@ char *msg;
 	sendflags = TCMP_NOBLOCK;
     tcmpstat = tcmp_send(to, type, sendflags, len, msg);
     if (tcmpstat != TCMP_SUCCESS)
-	p4_error("bad status %d on tcmp_send",tcmpstat);
+	p4_error("bad status on tcmp_send = ",tcmpstat);
     return(0);
 }
 
@@ -1579,7 +1579,7 @@ struct p4_msg *MD_tcmp_recv()
 
     tcmpstat = tcmp_receive(TCMP_MATCH_ANY,&from,&type,TCMP_NOCOPY,&len,&msg);
     if (tcmpstat != TCMP_SUCCESS)
-	p4_error("bad tcmp status %d on receive", tcmpstat);
+	p4_error("bad tcmp status on receive = ", tcmpstat);
 
     return (msg);
 }
@@ -1630,7 +1630,7 @@ int data_representation( char *machine_type )
     return(-1);
 }
 
-#if defined(FREEBSD)
+#if defined(FREEBSD) && !defined(HAVE_XDR_FLOAT)
 /* As of release 1.1, FreeBSD leaves out the xdr_float.c files from
    /usr/lib/libc.a.  This is the source code from FreeBSD 1.1.  This
    has been tested, and seems to work well on all but NaN's */

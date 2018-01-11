@@ -1,6 +1,10 @@
 #! /bin/sh
 # set -x
 #
+if [ "$1" = "-echo" ] ; then 
+    set -x
+    shift
+fi
 #  Returns the arch of the machine. This file is from MPICH.
 #
 # First, try some special cases:
@@ -80,6 +84,14 @@ for LARCH in $ARCHLIST ; do
   	        SysName=`$UNAME -s`
   	        if [ "$SysName" = "SunOS" ] ; then
 	            FARCH="solaris86"
+                else
+		    # Try to get a short name (eliminate any numbers)
+		    # (include the hyphen for any subsequent tests.
+		    ShortSysName=`expr "$SysName" : "\([A-Za-z_-]*\)"`
+		    if [ "$ShortSysName" = "CYGWIN_NT" -o \
+			 "$ShortSysName" = "CYGWIN_NT-" ] ; then
+			FARCH="CYGWIN_NT"
+		    fi
 		fi
 	    fi
 	;;

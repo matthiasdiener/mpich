@@ -94,6 +94,10 @@ SOURCE=.\dbg_printf.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\getfile.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\GetOpt.cpp
 # End Source File
 # Begin Source File
@@ -106,7 +110,35 @@ SOURCE=.\mpdutil.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\mpdversion.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\putfile.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\qvs.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\read_write_string.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\strencode.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\Translate_Error.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\updatempd.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\updatempich.cpp
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -123,6 +155,10 @@ SOURCE=.\GetStringOpt.h
 # Begin Source File
 
 SOURCE=.\mpdutil.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\qvs.h
 # End Source File
 # Begin Source File
 

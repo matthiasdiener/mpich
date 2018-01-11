@@ -27,7 +27,7 @@ int MPD_Init( void (*peer_msg_handler)(char *) )
     char buf[MPD_MAXLINE];
     char execname[MPD_MAXLINE];
     static int firstcall = 1;
-    
+
     if ( firstcall )
 	firstcall = 0;
     else
@@ -54,14 +54,40 @@ int MPD_Init( void (*peer_msg_handler)(char *) )
     else
         mpdlib_myrank = -1;
     sprintf( mpdlib_myid, "cli_%d", mpdlib_myrank );
-    if ( ( p = getenv( "MAN_MSGS_FD" ) ) )
+    if ( ( p = getenv( "MAN_MSGS_FD" ) ) ) {
         mpdlib_man_msgs_fd = atoi( p );
+
+/* We can only use nonblocking listener sockets for the fd that is used in 
+   the P4 code for *READING* only.  Since this fd is used for both reading 
+   and writing, we cannot set this socket as nonblocking.
+
+   There remains a potential race condition in the listener code as a 
+   result, but we'll need a different solution than this one.
+*/
+#ifdef USE_NONBLOCKING_LISTENER_SOCKETS	
+	{
+	    long man_fdflags;
+	    if ( ( man_fdflags = fcntl( mpdlib_man_msgs_fd, F_GETFL, 0 ) ) < 0 ) {
+		MPD_Printf( 1, "F_GETFL error in MPD_Init\n" );
+		exit( -1 );
+	    }
+	    man_fdflags |= O_NONBLOCK;
+	    if ( fcntl( mpdlib_man_msgs_fd , F_SETFL, man_fdflags ) < 0 ) {
+		MPD_Printf( 1, "F_SETFL error in MPD_Init\n" );
+		exit( -1 );
+	    }
+	}
+#endif /* USE_NONBLOCKING_LISTENER_SOCKETS */	
+
+    }
     else
         mpdlib_man_msgs_fd = -1;
+
     if ( ( p = getenv( "CLIENT_LISTENER_FD" ) ) )
         mpdlib_peer_listen_fd = atoi( p );
     else
         mpdlib_peer_listen_fd = -1;
+
     MPD_Printf( mpdlib_debug, "MPD_Init: retrieved  from env rank=%d manfd=%d clifd=%d\n",
                mpdlib_myrank,mpdlib_man_msgs_fd,mpdlib_peer_listen_fd );
 
@@ -88,6 +114,7 @@ int MPD_Init( void (*peer_msg_handler)(char *) )
     return(0);
 }
 
+/* readlink is defined in unistd.h *only* if __USE_BSD is defined */
 static void mpdlib_getexecname( char * execname, size_t len )
 {
 #ifdef __linux

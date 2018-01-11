@@ -22,6 +22,7 @@ FindMPIRUN
 quiet=0
 runtests=1
 makeeach=0
+writesummaryfile=no
 MAKE="@MAKE@"
 for arg in "$@" ; do
     case $arg in 
@@ -31,6 +32,10 @@ for arg in "$@" ; do
         -margs=*)
 	margs=`echo $arg | sed 's/-margs=//'`
 	args="$args $margs"
+	;;
+	-summaryfile=*)
+	writesummaryfile=yes
+	summaryfile=`echo A$arg | sed 's/A-summaryfile=//'`
 	;;
 	-small)
 	makeeach=1
@@ -112,11 +117,11 @@ testfiles="$testfiles aborttest.out"
 MakeExe aborttest
 echo "*** Tests of MPI_Abort ***"
 echo "*** Tests of MPI_Abort ***" >> aborttest.out
-$PSPGM | grep $LOGNAME > aborttest.p1
+$PSPGM | grep $LOGNAME | grep -v grep > aborttest.p1
 $mpirun $args -np 2 ./aborttest $* < /dev/null > /dev/null 2>&1
 # allow some time for processes to exit
 sleep 5
-$PSPGM | grep $LOGNAME > aborttest.p2
+$PSPGM | grep $LOGNAME | grep -v grep > aborttest.p2
 # If there was a consistant format, we could process it ...
 ndiff="`cat aborttest.p1 | wc -l` - `cat aborttest.p2 | wc -l`"
 ndiff=`expr $ndiff`

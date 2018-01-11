@@ -90,6 +90,7 @@ struct NT_ipvishm_ProcEntry
 
 	SOCKET sock;					// Communication socket
 	WSAEVENT sock_event;			// Communication socket event
+	HANDLE hConnectLock;
 	int listen_port;				// Port where thread is listening for socket connections
 	int control_port;				// Port where thread is listening for control message socket connections
 

@@ -130,7 +130,7 @@ CAPTION "About guiMPIRun"
 FONT 8, "MS Sans Serif"
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,13,13,20,20
-    LTEXT           "guiMPIRun Version 1.2.3",IDC_STATIC,40,10,119,8,
+    LTEXT           "guiMPIRun Version 1.2.4",IDC_STATIC,40,10,119,8,
                     SS_NOPREFIX
     LTEXT           "Copyright (C) 2001",IDC_STATIC,40,25,119,8
     DEFPUSHBUTTON   "OK",IDOK,178,7,50,14,WS_GROUP
@@ -148,12 +148,12 @@ BEGIN
     PUSHBUTTON      "&Run",IDC_RUN_BTN,124,23,50,14
     PUSHBUTTON      "...",IDC_APP_BROWSE_BTN,427,7,12,12
     CONTROL         "&Any hosts",IDC_ANY_HOSTS_RADIO,"Button",
-                    BS_AUTORADIOBUTTON,385,42,47,10
-    CONTROL         "&Hosts",IDC_HOSTS_RADIO,"Button",BS_AUTORADIOBUTTON,385,
+                    BS_AUTORADIOBUTTON,378,42,47,10
+    CONTROL         "&Hosts",IDC_HOSTS_RADIO,"Button",BS_AUTORADIOBUTTON,378,
                     55,34,10
-    EDITTEXT        IDC_HOST_EDIT,385,65,46,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_HOST_EDIT,374,65,57,14,ES_AUTOHSCROLL
     DEFPUSHBUTTON   "V",IDC_ADD_HOST_BTN,432,65,10,14
-    LISTBOX         IDC_HOST_LIST,385,83,57,159,LBS_MULTIPLESEL | 
+    LISTBOX         IDC_HOST_LIST,374,83,68,159,LBS_MULTIPLESEL | 
                     LBS_NOINTEGRALHEIGHT | LBS_WANTKEYBOARDINPUT | 
                     WS_VSCROLL | WS_HSCROLL | WS_TABSTOP
     LTEXT           "Application:",IDC_STATIC,7,7,38,8
@@ -161,10 +161,10 @@ BEGIN
     LTEXT           "Output:",IDC_STATIC,7,39,24,8
     CONTROL         "",IDC_OUTPUT,"RICHEDIT",ES_MULTILINE | ES_AUTOVSCROLL | 
                     ES_AUTOHSCROLL | ES_WANTRETURN | WS_BORDER | WS_VSCROLL | 
-                    WS_HSCROLL | WS_TABSTOP,3,49,379,193
+                    WS_HSCROLL | WS_TABSTOP,3,49,367,193
     PUSHBUTTON      "&Break",IDC_BREAK_BTN,180,23,37,14
     PUSHBUTTON      "Advanced &Options",IDC_ADVANCED_BTN,353,23,72,14
-    PUSHBUTTON      "re&set",IDC_RESET_HOSTS_BTN,420,54,21,10
+    PUSHBUTTON      "re&set",IDC_RESET_HOSTS_BTN,413,54,26,10
 END
 
 IDD_USER_PWD_DLG DIALOG DISCARDABLE  0, 0, 186, 95
@@ -217,23 +217,24 @@ BEGIN
                     175,10
     EDITTEXT        IDC_DIRECTORY,18,185,146,14,ES_AUTOHSCROLL
     PUSHBUTTON      "...",IDC_DIR_BROWSE_BTN,168,185,11,14
-    DEFPUSHBUTTON   "OK",IDOK,7,240,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,61,240,50,14
-    CONTROL         "No &color output",IDC_NOCOLOR_CHK,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,7,65,10
     CONTROL         "Drive &mappings - drive:\\\\host\\share;drive:\\\\...",
                     IDC_MAP_CHK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,201,
                     177,10
     EDITTEXT        IDC_DRIVEMAPPINGS,19,214,160,14,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,7,240,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,61,240,50,14
+    PUSHBUTTON      "Help",IDC_HELP_BTN,129,240,50,14
+    CONTROL         "No &color output",IDC_NOCOLOR_CHK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,7,65,10
 END
 
-IDD_HELP_DLG DIALOG DISCARDABLE  0, 0, 334, 234
+IDD_HELP_DLG DIALOG DISCARDABLE  0, 0, 350, 234
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION
 CAPTION "Help"
 FONT 8, "MS Sans Serif"
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,147,213,50,14
-    CONTROL         "",IDC_HTML_STATIC,"Static",SS_ETCHEDFRAME,7,7,320,200
+    CONTROL         "",IDC_HTML_STATIC,"Static",SS_ETCHEDFRAME,7,7,336,200
+    DEFPUSHBUTTON   "OK",IDOK,150,213,50,14
 END
 
 
@@ -326,7 +327,7 @@ BEGIN
     IDD_HELP_DLG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 327
+        RIGHTMARGIN, 343
         TOPMARGIN, 7
         BOTTOMMARGIN, 227
     END
@@ -379,7 +380,7 @@ END
 STRINGTABLE DISCARDABLE 
 BEGIN
     ID_APP_ABOUT            "Display program information, version number and copyright\nAbout"
-    ID_APP_EXIT             "Quit the application; prompts to save documents\nExit"
+    ID_APP_EXIT             "Quit the application\nExit"
 END
 
 STRINGTABLE DISCARDABLE 
@@ -448,6 +449,11 @@ STRINGTABLE DISCARDABLE
 BEGIN
     AFX_IDS_SCRESTORE       "Restore the window to normal size"
     AFX_IDS_SCTASKLIST      "Activate Task List"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    ID_HELP_HELP            "Display help information\nHelp"
 END
 
 #endif    // English (U.S.) resources

@@ -20,6 +20,14 @@
  * For now, these use the "old" routines in src/dmpi.
  */
 
+/* Here is a prototype for the Error message routine.  See mpiimpl.h for 
+   the full version */
+#if defined(USE_STDARG) && !defined(USE_OLDSTYLE_STDARG)
+int MPIR_Err_setmsg( int, int, const char *, const char *, const char *, ... );
+#else
+int MPIR_Err_setmsg();
+#endif
+
 /*
  * Compute the msgrep and msgform for a message to OR FROM a particular
  * partner.  The partner is the GLOBAL RANK in COMM_WORLD, not the relative

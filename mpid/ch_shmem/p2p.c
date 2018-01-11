@@ -514,33 +514,80 @@ return (toc_read() * ((double) 0.000001));
 /*
    Yield to other processes (rather than spinning in place)
  */
-#if defined(USE_SELECT_YIELD)
+#if defined(HAVE_SCHED_YIELD) && (defined(USE_DYNAMIC_YIELD) || defined(USE_SCHED_YIELD))
+#include <sched.h>
 #endif
-void p2p_yield()
-{
 
-#if defined(MPI_IRIX)
-/* Multiprocessor IRIX machines may want to comment this out for lower
-   latency */
-sginap(0);
+#ifdef USE_DYNAMIC_YIELD
+void p2p_yield( void )
+{
+    static int first_call = 1;
+    static int kind = 1;
+
+    if (first_call) {
+	/* Get the yield style from the environment.  The default is 
+	   sched_yield */
+	char *name = getenv( "MPICH_YIELD" );
+	if (name) {
+	    if (strcmp( "sched_yield", name ) == 0) {
+		kind = 1;
+	    }
+	    else if (strcmp( "select", name ) == 0) {
+		kind = 2;
+	    }
+	    else if (strcmp( "none", name ) == 0) {
+		kind = 0;
+	    }
+	}
+    }
+    switch (kind) {
+    case 0: return;
+    case 1:
+	sched_yield();
+	break;
+    case 2: 
+    {
+	struct timeval tp;
+	/* fd_set readmask; */
+	tp.tv_sec  = 0;
+	tp.tv_usec = 0;
+	/* FD_ZERO(&readmask);
+	   FD_SET(1,&readmask); */
+	/*select( 2, (void *)&readmask, (void *)0, (void *)0, &tp ); */
+	select( 0, (void *)0, (void *)0, (void *)0, &tp );
+    }
+    break;
+    }
+}
+#else
+void p2p_yield( void )
+{
+#if defined(USE_SGINAP_YIELD)
+    /* Multiprocessor IRIX machines may want to comment this out for lower
+       latency */
+    sginap(0);
 
 #elif defined(USE_SCHED_YIELD)
-/* This is a proposed Solaris function; not currently available */
-sched_yield();
+    /* This is a POSIX function to yield the process */
+    sched_yield();
+#elif defined(USE_YIELD_YIELD)
+    yield();
 #elif defined(USE_SELECT_YIELD)
-/* Use a short select as a way to suggest to the OS to deschedule the 
-   process.  Solaris select hangs if count is zero, so we check fd 1  
-   This may not accomplish a process yield, depending on the OS.  
- */
-struct timeval tp;
-fd_set readmask;
-tp.tv_sec  = 0;
-tp.tv_usec = 100;
-FD_SET(1,&readmask);
-select( 1, (void *)&readmask, (void *)0, (void *)0, &tp );
+    /* Use a short select as a way to suggest to the OS to deschedule the 
+       process.  Solaris select hangs if count is zero, so we check fd 1  
+       This may not accomplish a process yield, depending on the OS.  
+    */
+    struct timeval tp;
+    /*    fd_set readmask; */
+    tp.tv_sec  = 0;
+    tp.tv_usec = 0;
+    /*FD_ZERO(&readmask);
+      FD_SET(1,&readmask); */
+    /*select( 2, (void *)&readmask, (void *)0, (void *)0, &tp ); */
+    select( 0, (void *)0, (void *)0, (void *)0, &tp );
 #endif
 }
-
+#endif
 
 #if defined(USE_XX_SHMALLOC)
 /* This is not machine dependent code but is only used on some machines */

@@ -338,16 +338,18 @@ do
        ;;
 
      -enable-boot | --enable-boot ) 
+       enable_boot=yes
        USE_BOOT=yes
        ;;
      -disable-boot | --disable-boot)
+       enable_boot=no
        USE_BOOT=no
        ;;
      -nobanner)
 	nobanner=1
 	;;
 
-     -echo )
+     -echo|--enable-echo|-enable-echo )
 	set -x 
         configure_echo=1
 	;;
@@ -426,8 +428,9 @@ AC_SUBST(top_srcdir)
 # resets top_srcdir to srcdir!
 # srcdir is the directory that contains SOURCE files.
 if test -z "$srcdir" -o "$srcdir" = "." ; then srcdir="$MPITEST_HOME" ; fi
-
+AC_SUBST(MPIPATH)
 if test -n "$mpichpath" ; then
+    MPIPATH=$mpichpath
     if test ! -x $mpichpath/mpicc -a -x $mpichpath/bin/mpicc ; then
         mpichpath="$mpichpath/bin"
     fi
@@ -439,6 +442,25 @@ if test -n "$mpichpath" ; then
 	MPICH_VERSION="MPICH"
     fi
     if test -z "$MPI_VERSION" ; then MPI_VERSION="MPICH" ; fi
+    if test -z "$DEVICE" ; then
+        # Try to find out if ch_p4mpd is in the path
+	test_device=`echo $mpichpath | sed -e 's/^.*\(ch_p4mpd\).*/\1/'`
+	if test "$test_device" = "$mpichpath" ; then
+	    if test -x "$mpichpath/mpdman" ; then
+	        test_device=ch_p4mpd
+	    fi
+	fi
+	if test "$test_device" = "ch_p4mpd" ; then
+	    DEVICE=ch_p4mpd
+	    if test "$enable_boot" != "no" ; then
+	        USE_BOOT=yes
+		if test -z "$MPIBOOT" ; then 
+		    MPIBOOT="$mpichpath/mpichboot"
+		    MPIUNBOOT="$mpichpath/mpichstop"
+		fi
+	    fi
+	fi
+    fi
     if test "$DEVICE" = "ch_p4mpd" ; then
 	MPIRUNARGS=""
 	MPIRUNMVBACK=""
@@ -586,6 +608,8 @@ AC_HAVE_FUNCS(sigaction)
 #
 AC_HAVE_FUNCS(sleep)
 #
+AC_HAVE_FUNCS(sysconf)
+#
 INCLUDE_PATH=""
 USER_INCLUDE_PATH=""
 USER_DEFS=""
@@ -669,6 +693,7 @@ fi
 # For now, just test mpiCC
 AC_SUBST(HAS_CXX)
 #
+
 if test "$USE_BOOT" != "yes" ; then
     MPIBOOT=""
     MPIUNBOOT=""

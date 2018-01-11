@@ -1,5 +1,5 @@
 /*
- *  $Id: shmemchkdev.c,v 1.4 1999/10/14 13:49:04 swider Exp $
+ *  $Id: shmemchkdev.c,v 1.7 2002/04/11 20:48:51 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -22,6 +22,8 @@
 /* packets, not packets, from one processor to another.                    */
 /***************************************************************************/
 
+#define MAX_CHECKDEVICE_NEST 10
+
 /* Check for incoming messages.
     Input Parameter:
 .   is_blocking - true if this routine should block until a message is
@@ -33,15 +35,15 @@
     incoming messages.  This makes the code a little lengthy, but each
     piece is relatively simple.
  */    
-int MPID_SHMEM_Check_incoming( dev, is_blocking )
-MPID_Device        *dev;
-MPID_BLOCKING_TYPE is_blocking;
+int MPID_SHMEM_Check_incoming( MPID_Device *dev, 
+			       MPID_BLOCKING_TYPE is_blocking )
 {
     MPID_PKT_T   *pkt;
     int          from_grank;
     MPIR_RHANDLE *rhandle;
     int          is_posted;
     int          err = MPI_SUCCESS;
+    static int nest_level = 0;
 
     DEBUG_PRINT_MSG("Entering check_incoming");
 
@@ -53,6 +55,10 @@ MPID_BLOCKING_TYPE is_blocking;
 	}
 	DEBUG_PRINT_MSG("Message is available!");
     }
+    if (nest_level++ > MAX_CHECKDEVICE_NEST) {
+	MPID_Abort( 0, 1, "MPI Internal", "Deep nest in Check_incoming" );
+    }
+    
     DEBUG_PRINT_MSG("Waiting for message to arrive");
     MPID_SHMEM_ReadControl( &pkt, 0, &from_grank );
     DEBUG_PRINT_PKT("R received message",pkt);
@@ -94,7 +100,7 @@ MPID_BLOCKING_TYPE is_blocking;
 		break;
 
 	    case MPID_PKT_SEND_ADDRESS:
-		DEBUG_TEST_FCN(dev->eager->recv,"dev->short->recv");
+		DEBUG_TEST_FCN(dev->eager->recv,"dev->eager->recv");
 		err = (*dev->eager->recv)( rhandle, from_grank, pkt );
 		break;
 
@@ -116,7 +122,7 @@ MPID_BLOCKING_TYPE is_blocking;
 		err = (*dev->short_msg->unex)( rhandle, from_grank, pkt );
 		break;
 	    case MPID_PKT_SEND_ADDRESS:
-		DEBUG_TEST_FCN(dev->eager->unex,"dev->short->unex");
+		DEBUG_TEST_FCN(dev->eager->unex,"dev->eager->unex");
 		err = (*dev->eager->unex)( rhandle, from_grank, pkt );
 		break;
 	    case MPID_PKT_REQUEST_SEND_GET:
@@ -166,6 +172,7 @@ MPID_BLOCKING_TYPE is_blocking;
 	/* Really should remember error in case subsequent events are 
 	   successful */
     }
+    nest_level--;
     DEBUG_PRINT_MSG("Exiting check_incoming");
     return err;
 }

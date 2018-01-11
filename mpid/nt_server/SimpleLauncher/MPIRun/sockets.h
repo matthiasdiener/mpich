@@ -4,6 +4,8 @@
 #include <winsock2.h>
 #include <windows.h>
 
+#define USE_LINGER_SOCKOPT
+
 int Simple_create_bind_socket(SOCKET *sock, WSAEVENT *event, int port=0, unsigned long addr=INADDR_ANY);
 int Simple_connect(SOCKET sock, char *host, int port);
 int Simple_closesocket(SOCKET sock, WSAEVENT event);

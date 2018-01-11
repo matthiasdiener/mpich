@@ -127,7 +127,7 @@ dnl accepted by 'configure'.
 dnl
 dnl See Also:
 dnl AC_CACHE_LOAD
-dnlD*/
+dnl D*/
 dnl Add this call to the other ARG_ENABLE calls.  Note that the values
 dnl set here are redundant; the LOAD_CACHE call relies on the way autoconf
 dnl initially processes ARG_ENABLE commands.
@@ -136,11 +136,21 @@ AC_ARG_ENABLE(cache,
 [--enable-cache  - Turn on configure caching],
 enable_cache="$enableval",enable_cache="notgiven")
 ])
+dnl/*D
+dnl PAC_SUBDIR_CACHE - Create a cache file before ac_output for subdirectory
+dnl configures.
+dnl 
+dnl Synopsis:
+dnl PAC_SUBDIR_CACHE
 dnl
+dnl Output Effects:
+dnl 	
 dnl Create a cache file before ac_output so that subdir configures don't
 dnl make mistakes. 
 dnl We can't use OUTPUT_COMMANDS to remove the cache file, because those
 dnl commands are executed *before* the subdir configures.
+dnl
+dnl D*/
 AC_DEFUN(PAC_SUBDIR_CACHE,[
 if test "$cache_file" = "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; then
     cache_file=$$conf.cache
@@ -445,6 +455,118 @@ if test "$pac_cv_mpi_f2c" = "yes" ; then
     AC_DEFINE(HAVE_MPI_F2C) 
 fi
 ])
+
+dnl
+dnl Fixes to bugs in AC_xxx macros
+dnl 
+dnl (AC_TRY_COMPILE is missing a newline after the end in the Fortran
+dnl branch; that has been fixed in-place)
+dnl
+dnl (AC_PROG_CC makes many dubious assumptions.  One is that -O is safe
+dnl with -g, even with gcc.  This isn't true; gcc will eliminate dead code
+dnl when -O is used, even if you added code explicitly for debugging 
+dnl purposes.  -O shouldn't do dead code elimination when -g is selected, 
+dnl unless a specific option is selected.  Unfortunately, there is no
+dnl documented option to turn off dead code elimination.
+dnl
+dnl
+dnl (AC_CHECK_HEADER and AC_CHECK_HEADERS both make the erroneous assumption
+dnl that the C-preprocessor and the C (or C++) compilers are the same program
+dnl and have the same search paths.  In addition, CHECK_HEADER looks for 
+dnl error messages to decide that the file is not available; unfortunately,
+dnl it also interprets messages such as "evaluation copy" and warning messages
+dnl from broken CPP programs (such as IBM's xlc -E, which often warns about 
+dnl "lm not a valid option").  Instead, we try a compilation step with the 
+dnl C compiler.
+dnl
+dnl AC_CONFIG_AUX_DIRS only checks for install-sh, but assumes other
+dnl values are present.  Also doesn't provide a way to override the
+dnl sources of the various configure scripts.  This replacement
+dnl version of AC_CONFIG_AUX_DIRS overcomes this.
+dnl Internal subroutine.
+dnl Search for the configuration auxiliary files in directory list $1.
+dnl We look only for install-sh, so users of AC_PROG_INSTALL
+dnl do not automatically need to distribute the other auxiliary files.
+dnl AC_CONFIG_AUX_DIRS(DIR ...)
+dnl Also note that since AC_CONFIG_AUX_DIR_DEFAULT calls this, there
+dnl isn't a easy way to fix it other than replacing it completely.
+dnl This fix applies to 2.13
+dnl/*D
+dnl AC_CONFIG_AUX_DIRS - Find the directory containing auxillery scripts
+dnl for configure
+dnl
+dnl Synopsis:
+dnl AC_CONFIG_AUX_DIRS( [ directories to search ] )
+dnl
+dnl Output Effect:
+dnl Sets 'ac_config_guess' to location of 'config.guess', 'ac_config_sub'
+dnl to location of 'config.sub', 'ac_install_sh' to the location of
+dnl 'install-sh' or 'install.sh', and 'ac_configure' to the location of a
+dnl Cygnus-style 'configure'.  Only 'install-sh' is guaranteed to exist,
+dnl since the other scripts are needed only by some special macros.
+dnl
+dnl The environment variable 'CONFIG_AUX_DIR', if set, overrides the
+dnl directories listed.  This is an extension to the 'autoconf' version of
+dnl this macro. 
+dnlD*/
+undefine([AC_CONFIG_AUX_DIRS])
+AC_DEFUN(AC_CONFIG_AUX_DIRS,
+[if test -f $CONFIG_AUX_DIR/install-sh ; then ac_aux_dir=$CONFIG_AUX_DIR 
+else
+ac_aux_dir=
+for ac_dir in $1; do
+  if test -f $ac_dir/install-sh; then
+    ac_aux_dir=$ac_dir
+    ac_install_sh="$ac_aux_dir/install-sh -c"
+    break
+  elif test -f $ac_dir/install.sh; then
+    ac_aux_dir=$ac_dir
+    ac_install_sh="$ac_aux_dir/install.sh -c"
+    break
+  fi
+done
+fi
+if test -z "$ac_aux_dir"; then
+  AC_MSG_ERROR([can not find install-sh or install.sh in $1])
+fi
+ac_config_guess=$ac_aux_dir/config.guess
+ac_config_sub=$ac_aux_dir/config.sub
+ac_configure=$ac_aux_dir/configure # This should be Cygnus configure.
+AC_PROVIDE([AC_CONFIG_AUX_DIR_DEFAULT])dnl
+])
+
+undefine([AC_CHECK_HEADER])
+AC_DEFUN(AC_CHECK_HEADER,
+[dnl Do the transliteration at runtime so arg 1 can be a shell variable.
+ac_safe=`echo "$1" | sed 'y%./+-%__p_%'`
+AC_MSG_CHECKING([for $1])
+AC_CACHE_VAL(ac_cv_header_$ac_safe,
+[cat >conftest.c<<EOF
+[#]line __oline__ "configure"
+#include "confdefs.h"
+#include <$1>
+int conftest() {return 0;}
+EOF
+ac_compile_for_cpp='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.c 1>&AC_FD_CC'
+if AC_TRY_EVAL(ac_compile_for_cpp); then
+    eval "ac_cv_header_$ac_safe=yes"
+else
+    eval "ac_cv_header_$ac_safe=no"
+    echo "configure: failed program was:" >&AC_FD_CC
+    cat conftest.c >&AC_FD_CC
+fi
+rm -f conftest*
+if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
+  AC_MSG_RESULT(yes)
+  ifelse([$2], , :, [$2])
+else
+  AC_MSG_RESULT(no)
+ifelse([$3], , , [$3
+])dnl
+fi
+])
+])
+
 
 dnl
 dnl This is a replacement for AC_PROG_CC that does not prefer gcc and
@@ -765,7 +887,7 @@ dnl
 dnl Synopsis:
 dnl PAC_C_PROTOTYPES([action if true],[action if false])
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_PROTOTYPES,[
 AC_CACHE_CHECK([if $CC supports function prototypes],
 pac_cv_c_prototypes,[
@@ -1204,6 +1326,8 @@ fi
 # (later configure macros look for the .o file, not just success from the
 # compiler, but they should not HAVE to
 #
+dnl --- insert 2.52 compatibility here ---
+dnl
 AC_DEFUN(PAC_PROG_CC_WORKS,
 [AC_PROG_CC_WORKS
 AC_MSG_CHECKING([whether the C compiler sets its return status correctly])
@@ -1403,23 +1527,24 @@ dnl
 dnl NOT TESTED
 AC_DEFUN(PAC_PROG_C_BROKEN_COMMON,[
 AC_MSG_CHECKING([whether global variables handled properly])
+AC_MSG_REQUIRE([AC_PROG_RANLIB])
 ac_cv_prog_cc_globals_work=no
 echo 'extern int a; int a;' > conftest1.c
 echo 'extern int a; int main( ){ return a; }' > conftest2.c
 if ${CC-cc} $CFLAGS -c conftest1.c >conftest.out 2>&1 ; then
-    if ${AR-ar} cr libconftest.a conftest1.o ; then
-        if ${RANLIB-:} libconftest.a ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a ; then
+    if ${AR-ar} cr libconftest.a conftest1.o >/dev/null 2>&1 ; then
+        if ${RANLIB-:} libconftest.a >/dev/null 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a >>conftest.out 2>&1 ; then
 		# Success!  C works
 		ac_cv_prog_cc_globals_work=yes
 	    else
 	        # Failure!  Do we need -fno-common?
-	        ${CC-cc} $CFLAGS -fno-common -c conftest1.c > conftest.out 2>&1
+	        ${CC-cc} $CFLAGS -fno-common -c conftest1.c >> conftest.out 2>&1
 		rm -f libconftest.a
 		${AR-ar} cr libconftest.a conftest1.o
 	        ${RANLIB-:} libconftest.a
-	        if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a ; then
-		    ac_cv_prob_cc_globals_work="needs -fno-common"
+	        if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a >> conftest.out 2>&1 ; then
+		    ac_cv_prog_cc_globals_work="needs -fno-common"
 		    CFLAGS="$CFLAGS -fno-common"
 		fi
 	    fi
@@ -1564,6 +1689,30 @@ pac_cv_c_struct_align=`cat ctest.out`
 rm -f ctest.out
 ])
 ])
+dnl
+dnl
+dnl/*D
+dnl PAC_FUNC_NEEDS_DECL - Set NEEDS_<funcname>_DECL if a declaration is needed
+dnl
+dnl Synopsis:
+dnl PAC_FUNC_NEEDS_DECL(headerfiles,funcname)
+dnl
+dnl Output Effect:
+dnl Sets 'NEEDS_<funcname>_DECL' if 'funcname' is not declared by the 
+dnl headerfiles.
+dnl D*/
+AC_DEFUN(PAC_FUNC_NEEDS_DECL,[
+AC_CACHE_CHECK([whether $2 needs a declaration],
+pac_cv_func_decl_$2,[
+AC_TRY_COMPILE([$1],[int a=$2(27,1.0,"foo");],
+pac_cv_func_decl_$2=yes,pac_cv_func_decl_$2=no)])
+if test "$pac_cv_func_decl_$2" = "yes" ; then
+changequote(, )dnl
+  ac_tr_func=NEEDS_`echo $1 | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`_DECL
+changequote([, ])dnl
+    AC_DEFINE_UNQUOTED($ac_tr_func,,[Define if $2 needs a declaration])
+fi
+])dnl
 
 AC_DEFUN(AM_IGNORE,[])
 
@@ -1572,6 +1721,7 @@ dnl Macros for Fortran 90
 dnl
 dnl We'd like to have a PAC_LANG_FORTRAN90 that worked with AC_TRY_xxx, but
 dnl that would require too many changes to autoconf macros.
+dnl
 AC_DEFUN(PAC_LANG_FORTRAN90,
 [AC_REQUIRE([PAC_PROG_F90])
 define([AC_LANG], [FORTRAN90])dnl
@@ -1606,7 +1756,7 @@ fi
 rm -f conftest*
 ifelse(NEED_POP,yes,[
 undefine([NEED_POP])
-AC_LANG_RESTORE)]
+AC_LANG_RESTORE])
 ])
 dnl
 dnl PAC_F90_MODULE_EXT(action if found,action if not found)
@@ -1831,7 +1981,16 @@ EOF
 fi
 AC_MSG_CHECKING([whether the Fortran 90 compiler ($F90 $F90FLAGS $LDFLAGS) works])
 AC_LANG_SAVE
-PAC_LANG_FORTRAN90
+# We cannot use _LANG_FORTRAN90 here because we will usually be executing this
+# test in the context of _PROG_F90, which is a require on _LANG_FORTRAN90.
+# Instead, we insert the necessary code from _LANG_FORTRAN90 here
+dnl PAC_LANG_FORTRAN90
+dnl define(ifdef([_AC_LANG],[_AC_LANG],[AC_LANG]), [FORTRAN90])dnl
+define([AC_LANG], [FORTRAN90])dnl
+ac_ext=$pac_cv_f90_ext
+ac_compile='${F90-f90} -c $F90FLAGS conftest.$ac_ext 1>&AC_FD_CC'
+ac_link='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&AC_FD_CC'
+cross_compiling=$pac_cv_prog_f90_cross
 cat >conftest.$ac_ext <<EOF
       program conftest
       end

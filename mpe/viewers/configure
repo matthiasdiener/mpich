@@ -12,6 +12,12 @@ ac_help=
 ac_default_prefix=/usr/local
 # Any additions from configure.in:
 ac_help="$ac_help
+--with-common-prefix=dir           - Set the installation prefix for 
+                                     the Jumpshot-2 viewer.  This allows
+				     a separate prefix for MPICH and for
+				     Jumpshot when they are installed 
+				     together"
+ac_help="$ac_help
 --enable-upshot                    - Build Upshot which is the ALOG viewer 
                                      if it exists.  The default is enable=yes."
 ac_help="$ac_help
@@ -535,6 +541,19 @@ fi
 
 
 
+# Check whether --with-common-prefix or --without-common-prefix was given.
+if test "${with_common_prefix+set}" = set; then
+  withval="$with_common_prefix"
+  :
+else
+  with_common_prefix=NONE
+fi
+
+
+if test "$with_common_prefix" != "NONE" ; then
+    prefix=$with_common_prefix
+fi 
+
 echo "Configuring MPE-LogViewers with $ac_configure_args"
 #
 # Find the home directory if not specified
@@ -543,7 +562,7 @@ if test "X$srcdir" != "X." -a -s $srcdir/bin/logviewer.in ; then
 else
     
 echo $ac_n "checking for current directory name""... $ac_c" 1>&6
-echo "configure:547: checking for current directory name" >&5
+echo "configure:566: checking for current directory name" >&5
 top_srcdir_abs=$PWD
 if test "${top_srcdir_abs}" != "" -a -d "${top_srcdir_abs}" ; then 
     if test -r ${top_srcdir_abs}/.foo$$ ; then
@@ -604,7 +623,7 @@ fi
 MAKE=${MAKE:-make}
 
 echo $ac_n "checking gnumake""... $ac_c" 1>&6
-echo "configure:608: checking gnumake" >&5
+echo "configure:627: checking gnumake" >&5
 /bin/rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
@@ -630,7 +649,7 @@ str=""
 
 
 echo $ac_n "checking BSD 4.4 make""... $ac_c" 1>&6
-echo "configure:634: checking BSD 4.4 make" >&5
+echo "configure:653: checking BSD 4.4 make" >&5
 /bin/rm -f conftest
 cat > conftest <<.
 ALL:
@@ -654,7 +673,7 @@ str=""
 
 
 echo $ac_n "checking OSF V3 make""... $ac_c" 1>&6
-echo "configure:658: checking OSF V3 make" >&5
+echo "configure:677: checking OSF V3 make" >&5
 /bin/rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
@@ -678,7 +697,7 @@ str=""
 
 
 echo $ac_n "checking for virtual path format""... $ac_c" 1>&6
-echo "configure:682: checking for virtual path format" >&5
+echo "configure:701: checking for virtual path format" >&5
 rm -rf conftest*
 mkdir conftestdir
 cat >conftestdir/a.c <<EOF

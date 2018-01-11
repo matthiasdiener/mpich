@@ -37,7 +37,8 @@ EXECS = overtake sendrecv isndrcv third fourth fifth sixth hvectest \
 	testsome getelm testall sndrcv nbtest nblock sendmany order hindexed \
 	commit cancel persist typecreate reqcreate sndrcvrep flood flood2 \
 	persist2 dataalign dtyperecv reqfree sndrcvrpl2 cancel2 cancel3 \
-	cancelmessages cancelibm sendorder exittest selfvsworld
+	cancelmessages cancelibm sendorder exittest selfvsworld waitall3 \
+	waitall4
 OTHEREXECS = testtypes secondf allpair systest send1 \
 		systest1 allpair2 bsendtest structf typebasef sendfort bcastf
 default: $(EXECS)
@@ -274,6 +275,9 @@ waitall: waitall.o
 waitall2: waitall2.o
 	$(CLINKER) $(OPTFLAGS) -o waitall2 waitall2.o $(LIBS)
 
+waitall3: waitall3.o
+	$(CLINKER) $(OPTFLAGS) -o waitall3 waitall3.o $(LIBS)
+
 commit: commit.o
 	$(CLINKER) $(OPTFLAGS) -o commit commit.o $(LIBS)
 
@@ -340,5 +344,7 @@ clean:
 
 .c.o:
 	$(CC) $(CFLAGS) -c $<
+.o:
+	${CLINKER} $(OPTFLAGS) -o $* $*.o $(LIBS)
 .f.o:
 	$(F77) $(FFLAGS) -c $<

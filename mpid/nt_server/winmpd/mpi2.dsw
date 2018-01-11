@@ -11,6 +11,42 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name bsocket2
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name crypt
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name mpdutil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name resizable
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "MPDUpdate"=.\MPDUpdate\MPDUpdate.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name bsocket2
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name mpdutil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name resizable
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name crypt
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -23,18 +59,15 @@ Package=<5>
 
 Package=<4>
 {{{
-}}}
-
-###############################################################################
-
-Project: "bnr"=.\bnr\bnr.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
+    Begin Project Dependency
+    Project_Dep_Name bsocket2
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name crypt
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name resizable
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -95,6 +128,18 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name bsocket2
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name dbs
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name mpdutil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name privileges
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -123,7 +168,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "privileges"=.\privileges\privileges.dsp - Package Owner=<4>
+Project: "privileges"=.\Privileges\privileges.dsp - Package Owner=<4>
 
 Package=<5>
 {{{

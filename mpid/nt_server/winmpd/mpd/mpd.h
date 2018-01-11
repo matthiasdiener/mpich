@@ -1,12 +1,12 @@
 #ifndef MPD_H
 #define MPD_H
 
-#define COPYRIGHT "Copyright 2001 Argonne National Lab"
+#define COPYRIGHT "Copyright 2002 Argonne National Lab"
 #define VERSION_RELEASE 1
 #define VERSION_MAJOR   2
-#define VERSION_MINOR   3
+#define VERSION_MINOR   4
 
-#define MAX_CMD_LENGTH	    1024
+#define MAX_CMD_LENGTH	    8192
 #define MAX_HOST_LENGTH	    64
 #define MPD_PASSPHRASE_MAX_LENGTH    256
 #define MPD_SALT_VALUE               "14"

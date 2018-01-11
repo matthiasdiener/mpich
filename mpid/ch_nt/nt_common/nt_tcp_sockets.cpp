@@ -1,4 +1,5 @@
 #include "nt_tcp_sockets.h"
+#include "nt_log.h"
 
 // Function name	: NT_Tcp_create_bind_socket
 // Description	    : 
@@ -9,6 +10,11 @@
 // Argument         : unsigned long addr
 int NT_Tcp_create_bind_socket(SOCKET *sock, WSAEVENT *event, int port /*=0*/, unsigned long addr /*=INADDR_ANY*/)
 {
+#ifdef USE_LINGER_SOCKOPT
+	struct linger linger;
+#endif
+	int optval, len;
+
 	// create the event
 	*event = WSACreateEvent();
 	if (*event == WSA_INVALID_EVENT)
@@ -28,6 +34,26 @@ int NT_Tcp_create_bind_socket(SOCKET *sock, WSAEVENT *event, int port /*=0*/, un
 	
 	if (bind(*sock, (SOCKADDR*)&sockAddr, sizeof(sockAddr)) == SOCKET_ERROR)
 		return WSAGetLastError();
+	
+#ifdef USE_LINGER_SOCKOPT
+	/* Set the linger on close option */
+	linger.l_onoff = 1 ;
+	linger.l_linger = 60;
+	setsockopt(*sock, SOL_SOCKET, SO_LINGER, (char*)&linger, sizeof(linger));
+#endif
+
+	len = sizeof(int);
+	if (!getsockopt(*sock, SOL_SOCKET, SO_RCVBUF, (char*)&optval, &len))
+	{
+	    optval = 32*1024;
+	    setsockopt(*sock, SOL_SOCKET, SO_RCVBUF, (char*)&optval, sizeof(int));
+	}
+	len = sizeof(int);
+	if (!getsockopt(*sock, SOL_SOCKET, SO_SNDBUF, (char*)&optval, &len))
+	{
+	    optval = 32*1024;
+	    setsockopt(*sock, SOL_SOCKET, SO_SNDBUF, (char*)&optval, sizeof(int));
+	}
 	
 	return 0;
 }
@@ -65,11 +91,30 @@ int NT_Tcp_connect(SOCKET sock, char *host, int port)
 	while (connect(sock, (SOCKADDR*)&sockAddr, sizeof(sockAddr)) == SOCKET_ERROR)
 	{
 		error = WSAGetLastError();
-		if( (error == WSAECONNREFUSED || error == WSAETIMEDOUT || error == WSAENETUNREACH)
-			&& (reps < 10) )
+		if( (error == WSAECONNREFUSED || error == WSAETIMEDOUT || error == WSAENETUNREACH || error == WSAEADDRINUSE)
+			&& (reps < 15) )
 		{
-			Sleep(200);
+			double d = (double)rand() / (double)RAND_MAX;
+			Sleep(200 + (int)(d*200));
 			reps++;
+			switch (error)
+			{
+			case WSAECONNREFUSED:
+			    LogMsg("WSAECONNREFUSED error, re-attempting connect");
+			    break;
+			case WSAETIMEDOUT:
+			    LogMsg("WSAETIMEDOUT error, re-attempting connect");
+			    break;
+			case WSAENETUNREACH:
+			    LogMsg("WSAENETUNREACH error, re-attempting connect");
+			    break;
+			case WSAEADDRINUSE:
+			    LogMsg("WSAEADDRINUSE error, re-attempting connect");
+			    break;
+			default:
+			    LogMsg("%d error, re-attempting connect");
+			    break;
+			}
 		}
 		else
 		{

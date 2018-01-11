@@ -35,14 +35,16 @@
 #include "service.h"
 #include <ntsecapi.h>
 
-bool interact = false;
+// global variables
+BOOL                    bDebug = FALSE;
+bool                    interact = false;
+bool                    bSetupRestart = true;
 
 // internal variables
-SERVICE_STATUS          ssStatus;       // current status of the service
-SERVICE_STATUS_HANDLE   sshStatusHandle;
-DWORD                   dwErr = 0;
-BOOL                    bDebug = FALSE;
-TCHAR                   szErr[256];
+static SERVICE_STATUS          ssStatus;       // current status of the service
+static SERVICE_STATUS_HANDLE   sshStatusHandle;
+static DWORD                   dwErr = 0;
+static TCHAR                   szErr[256];
 
 // internal function prototypes
 VOID WINAPI service_ctrl(DWORD dwCtrlCode);
@@ -343,6 +345,45 @@ VOID AddInfoToMessageLog(LPTSTR lpszMsg)
     }
 }
 
+//
+//  FUNCTION: Setup_Service_restart( SC_HANDLE schService )
+//
+//  PURPOSE: Setup the service to automatically restart if it has been down for 5 minutes
+//
+//  PARAMETERS:
+//    schService - service handle
+//
+//  RETURN VALUE:
+//    BOOL
+//
+//  COMMENTS:
+//    code provided by Bradley, Peter C. (MIS/CFD) [bradlepc@pweh.com]
+//
+static BOOL Setup_Service_restart( SC_HANDLE schService )
+{
+	SC_ACTION	actionList[3];
+	SERVICE_FAILURE_ACTIONS schActionOptions;
+
+	// The actions in this array are performed in order each time the service fails 
+	// within the specified reset period.
+	// This array attempts to restart mpd twice and then alloy it to stay dead.
+	actionList[0].Type = SC_ACTION_RESTART;
+	actionList[0].Delay = 0;
+	actionList[1].Type = SC_ACTION_RESTART;
+	actionList[1].Delay = 0;
+	actionList[2].Type = SC_ACTION_NONE;
+	actionList[2].Delay = 0;
+	
+	schActionOptions.dwResetPeriod = (DWORD) 300;  /* 5 minute reset */
+	schActionOptions.lpRebootMsg = NULL;
+	schActionOptions.lpCommand = NULL;
+	schActionOptions.cActions = (DWORD) (sizeof actionList / sizeof actionList[0]);
+	schActionOptions.lpsaActions = actionList;
+	
+	return ChangeServiceConfig2(schService,
+	                            SERVICE_CONFIG_FAILURE_ACTIONS,
+	                            &schActionOptions);
+}
 
 
 
@@ -473,6 +514,9 @@ void CmdInstallService(LPTSTR account, LPTSTR password)
 	
         if ( schService )
         {
+	    if (bSetupRestart)
+		Setup_Service_restart( schService );
+
 	    // Start the service
 	    if (StartService(schService, 0, NULL))
 		_tprintf(TEXT("%s installed.\n"), TEXT(SZSERVICEDISPLAYNAME) );

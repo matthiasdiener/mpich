@@ -70,21 +70,28 @@ runtest:
 # The make clean is directed into dev null to keep the testing as 
 # quiet as possible
 testing: runtest
+	@rm -f summary.xml
+	@echo "<?xml version='1.0' ?>" > summary.xml
+	@echo '<?xml-stylesheet href="er.xsl" type="text/xsl" ?>' >> summary.xml
+	@echo '<MPITESTRESULTS>' >> summary.xml
+	@echo "<DATE>`date`</DATE>" >> summary.xml
+	@echo "<MPISOURCE>@MPIPATH@</MPISOURCE>" >> summary.xml
 	@-for dir in $(TESTDIRS) ;\
 		do \
 			echo " " ;\
 			if [ ! -d $$dir -o ! -s $$dir/Makefile ] ; then \
 				continue ; fi ; \
 			echo Making testing in directory $$dir ;\
-			(cd $$dir; $(MAKE) testing TESTARGS="-small $(TESTARGS)" ; \
+			(cd $$dir; $(MAKE) testing TESTARGS="-small -summaryfile=../summary.xml $(TESTARGS)" ; \
 	                 $(MAKE) clean > /dev/null 2>&1 ) ;\
 			echo End of testing in directory $$dir ;\
 		done
 	@-if [ "@MPI_VERSION@" = "MPICH" ] ; then \
 	    echo "Running tests in directory command" ; \
-	    (cd command ; ./runtests ) ;\
+	    (cd command ; ./runtests -summaryfile=../summary.xml ) ;\
 	    echo "End of testing in directory command" ; \
 	fi
+	@echo '</MPITESTRESULTS>' >> summary.xml
 
 #
 # These tests require that the boot and unboot steps are programs, not

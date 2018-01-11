@@ -92,6 +92,8 @@ C     beginning of the common block.  The point-to-point and collective
 C     routines know about MPI_BOTTOM, but MPI_TYPE_STRUCT as yet does not.
 C
 C     MPI_STATUS_IGNORE and MPI_STATUSES_IGNORE are similar objects
+C     Until the underlying MPI library implements the C version of these
+C     (a null pointer), these are declared as arrays of MPI_STATUS_SIZE
 C
 C     The types MPI_INTEGER1,2,4 and MPI_REAL4,8 are OPTIONAL.
 C     Their values are zero if they are not available.  Note that
@@ -99,7 +101,9 @@ C     using these reduces the portability of code (though may enhance
 C     portability between Crays and other systems)
 C
       INTEGER MPI_TAG_UB, MPI_HOST, MPI_IO
-      INTEGER MPI_BOTTOM, MPI_STATUS_IGNORE, MPI_STATUSES_IGNORE
+      INTEGER MPI_BOTTOM
+      INTEGER MPI_STATUS_IGNORE(MPI_STATUS_SIZE)
+      INTEGER MPI_STATUSES_IGNORE(MPI_STATUS_SIZE)
       INTEGER MPI_INTEGER, MPI_REAL, MPI_DOUBLE_PRECISION 
       INTEGER MPI_COMPLEX, MPI_DOUBLE_COMPLEX,MPI_LOGICAL
       INTEGER MPI_CHARACTER, MPI_BYTE, MPI_2INTEGER, MPI_2REAL
@@ -151,17 +155,24 @@ C
       PARAMETER (MPI_COMPLEX8=0)
       PARAMETER (MPI_COMPLEX16=0)
       PARAMETER (MPI_COMPLEX32=0)
-
-      COMMON /MPIPRIV/ MPI_BOTTOM,MPI_STATUS_IGNORE,MPI_STATUSES_IGNORE      
 C
-C     Without this save, some Fortran implementations may make the common
-C     dynamic!
-C    
-C     For a Fortran90 module, we might replace /MPIPRIV/ with a simple
-C     SAVE MPI_BOTTOM
+C    This is now handled with either the "pointer" extension or this same
+C    code, appended at the end.
+C      COMMON /MPIPRIV/ MPI_BOTTOM,MPI_STATUS_IGNORE,MPI_STATUSES_IGNORE
+CC
+CC     Without this save, some Fortran implementations may make the common
+CC     dynamic!
+CC    
+CC     For a Fortran90 module, we might replace /MPIPRIV/ with a simple
+CC     SAVE MPI_BOTTOM
+CC
+C      SAVE /MPIPRIV/
 C
-      SAVE /MPIPRIV/
-
+C Intel compiler import specification
+CMS$ATTRIBUTES DLLIMPORT :: /MPIPRIV/
+C Visual Fortran import specification
+CDEC$ ATTRIBUTES DLLIMPORT :: /MPIPRIV/
+      COMMON /MPIPRIV/ MPI_BOTTOM,MPI_STATUS_IGNORE,MPI_STATUSES_IGNORE
       PARAMETER (MPI_MAX=100,MPI_MIN=101,MPI_SUM=102,MPI_PROD=103)
       PARAMETER (MPI_LAND=104,MPI_BAND=105,MPI_LOR=106,MPI_BOR=107)
       PARAMETER (MPI_LXOR=108,MPI_BXOR=109,MPI_MINLOC=110)
@@ -199,5 +210,5 @@ C
 C     The attribute copy/delete subroutines are symbols that can be passed
 C     to MPI routines
 C
-C      EXTERNAL MPI_NULL_COPY_FN, MPI_NULL_DELETE_FN, MPI_DUP_FN
-C
+      EXTERNAL MPI_NULL_COPY_FN, MPI_NULL_DELETE_FN, MPI_DUP_FN
+

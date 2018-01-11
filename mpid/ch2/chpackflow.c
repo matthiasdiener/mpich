@@ -1,5 +1,5 @@
 /*
- *  $Id: chpackflow.c,v 1.9 2001/11/12 23:20:53 ashton Exp $
+ *  $Id: chpackflow.c,v 1.12 2002/04/08 19:58:46 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -18,7 +18,7 @@ MPID_Packets MPID_pack_info;
 #endif
 
 /* Initialize packet flow struct and arrays */
-void MPID_PacketFlowSetup( ) 
+void MPID_PacketFlowSetup( void ) 
 {  /* begin MPID_PacketFlowSetup */
     int i;
 
@@ -73,9 +73,36 @@ void MPID_SendProtoAck( int me, int partner )
 #endif
 }  /* end MPID_SendProtoAck */
 
+#ifdef MPID_USE_SHMEM
+/* Send the flow control using an existing packet */
+void MPID_SendProtoAckWithPacket( int me, int partner, MPID_PKT_T *pkt )
+{  /* begin MPID_SendProtoAck */
+
+    MPID_PKT_FLOW_T *ack_pkt = (MPID_PKT_FLOW_T *)pkt;
+
+    MPID_PACKET_SUB_RCVD(me, partner);
+    DEBUG_PRINT_MSG("- Sending protocol ACK packet");
+
+    ack_pkt->mode = MPID_PKT_PROTO_ACK;
+    ack_pkt->lrank = me;
+    ack_pkt->to = partner;
+
+
+    MPID_SHMEM_SendControl( (MPID_PKT_T *)ack_pkt, sizeof(MPID_PKT_FLOW_T), 
+			    partner ); 
+
+#ifdef MPID_GET_LAST_PKT
+    total_pack_unacked++;
+#endif
+}  /* end MPID_SendProtoAckWithPacket */
+#endif
 
 /* Receive Protocol Ack or ACK protocol packet and send an ACK proto
-   packet. */
+   packet.
+   In the shared-memory device case We *REUSE* the packet, because 
+   we must not try to get a new packet since this routine may be called
+   from DeviceCheck, itself called within the "GetSendPkt" routine.
+*/
 void MPID_RecvProtoAck( MPID_PKT_T *in_pkt, int partner )
 {  /* begin MPID_RecvProtoAck */
     
@@ -106,23 +133,21 @@ void MPID_RecvProtoAck( MPID_PKT_T *in_pkt, int partner )
         MPID_PACKET_SUB_SENT(me, partner);
 
 #ifdef MPID_USE_SHMEM
-       new_ack_pkt = (MPID_PKT_FLOW_T *) MPID_SHMEM_GetSendPkt(0);
+	/*       new_ack_pkt = (MPID_PKT_FLOW_T *) MPID_SHMEM_GetSendPkt(0); */
+       new_ack_pkt = (MPID_PKT_FLOW_T *)in_pkt;
        new_ack_pkt->mode = MPID_PKT_ACK_PROTO; 
        new_ack_pkt->lrank = me;
        new_ack_pkt->to = partner; 
+       DEBUG_PRINT_MSG("- Sending ACK PROTO packet");
+       MPID_SHMEM_SendControl( (MPID_PKT_T *)new_ack_pkt, 
+			       sizeof(MPID_PKT_FLOW_T), partner );
+       /*        MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)in_pkt );*/
 #else
        new_ack_pkt.mode = MPID_PKT_ACK_PROTO; 
        new_ack_pkt.lrank = me;
        new_ack_pkt.to = partner; 
        MPID_PKT_PACK(&new_ack_pkt, sizeof(MPID_PKT_HEAD_T), partner );
-#endif
        DEBUG_PRINT_MSG("- Sending ACK PROTO packet");
-
-#ifdef MPID_USE_SHMEM
-       MPID_SHMEM_SendControl( (MPID_PKT_T *)new_ack_pkt, 
-			       sizeof(MPID_PKT_FLOW_T), partner );
-       MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)in_pkt );
-#else
        MPID_SendControl( &new_ack_pkt, sizeof(MPID_PKT_FLOW_T), partner );
 #endif
 

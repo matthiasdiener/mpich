@@ -619,7 +619,9 @@ int p4_wait_for_end()
 #ifndef THREAD_LISTENER
     struct slave_listener_msg msg;
 #endif
+#ifdef OLD_EXECER
     char job_filename[64];
+#endif
 
     /* p4_socket_stat is a routine that conditionally prints information
        about the socket status.  -p4sctrl stat=y must be selected */

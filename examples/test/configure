@@ -326,16 +326,18 @@ do
        ;;
 
      -enable-boot | --enable-boot ) 
+       enable_boot=yes
        USE_BOOT=yes
        ;;
      -disable-boot | --disable-boot)
+       enable_boot=no
        USE_BOOT=no
        ;;
      -nobanner)
 	nobanner=1
 	;;
 
-     -echo )
+     -echo|--enable-echo|-enable-echo )
 	set -x 
         configure_echo=1
 	;;
@@ -567,6 +569,7 @@ fi
 if test -z "$srcdir" -o "$srcdir" = "." ; then srcdir="$MPITEST_HOME" ; fi
 
 if test -n "$mpichpath" ; then
+    MPIPATH=$mpichpath
     if test ! -x $mpichpath/mpicc -a -x $mpichpath/bin/mpicc ; then
         mpichpath="$mpichpath/bin"
     fi
@@ -578,6 +581,25 @@ if test -n "$mpichpath" ; then
 	MPICH_VERSION="MPICH"
     fi
     if test -z "$MPI_VERSION" ; then MPI_VERSION="MPICH" ; fi
+    if test -z "$DEVICE" ; then
+        # Try to find out if ch_p4mpd is in the path
+	test_device=`echo $mpichpath | sed -e 's/^.*\(ch_p4mpd\).*/\1/'`
+	if test "$test_device" = "$mpichpath" ; then
+	    if test -x "$mpichpath/mpdman" ; then
+	        test_device=ch_p4mpd
+	    fi
+	fi
+	if test "$test_device" = "ch_p4mpd" ; then
+	    DEVICE=ch_p4mpd
+	    if test "$enable_boot" != "no" ; then
+	        USE_BOOT=yes
+		if test -z "$MPIBOOT" ; then 
+		    MPIBOOT="$mpichpath/mpichboot"
+		    MPIUNBOOT="$mpichpath/mpichstop"
+		fi
+	    fi
+	fi
+    fi
     if test "$DEVICE" = "ch_p4mpd" ; then
 	MPIRUNARGS=""
 	MPIRUNMVBACK=""
@@ -784,6 +806,10 @@ if eval $compile; then
   eval "ac_cv_ccworks=yes"
 
 else
+  expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+  eval echo "configure:$expandcompile" >> config.log
+  echo "configure: failed program was:" >>config.log
+  cat confdefs.h >> config.log
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
@@ -860,7 +886,7 @@ cat >conftest.f <<EOF
           end
 EOF
 /bin/rm -f conftest.out
-$F77 $FFLAGS -c conftest.f > conftest.out 2>&1
+$F77 $FFLAGS $OPTFLAGSF -c conftest.f > conftest.out 2>&1
 if test $? != 0 ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
@@ -1258,6 +1284,10 @@ if eval $compile; then
   eval "ac_cv_header_$ac_safe=yes"
 
 else
+  expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+  eval echo "configure:$expandcompile" >> config.log
+  echo "configure: failed program was:" >>config.log
+  cat confdefs.h >> config.log
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
@@ -1345,6 +1375,10 @@ if eval $compile; then
   eval "ac_cv_header_$ac_safe=yes"
 
 else
+  expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+  eval echo "configure:$expandcompile" >> config.log
+  echo "configure: failed program was:" >>config.log
+  cat confdefs.h >> config.log
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
@@ -1571,6 +1605,10 @@ if eval $compile; then
   ldok=1
 
 else
+  expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+  eval echo "configure:$expandcompile" >> config.log
+  echo "configure: failed program was:" >>config.log
+  cat confdefs.h >> config.log
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
@@ -1895,6 +1933,10 @@ if eval $compile; then
   eval "ac_cv_ccworks=yes"
 
 else
+  expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+  eval echo "configure:$expandcompile" >> config.log
+  echo "configure: failed program was:" >>config.log
+  cat confdefs.h >> config.log
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
@@ -1981,6 +2023,10 @@ if eval $compile; then
   eval "ac_cv_header_$ac_safe=yes"
 
 else
+  expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+  eval echo "configure:$expandcompile" >> config.log
+  echo "configure: failed program was:" >>config.log
+  cat confdefs.h >> config.log
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
@@ -2091,6 +2137,10 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+    eval echo "configure:$expandcompile" >> config.log
+    echo "configure: failed program was:" >>config.log
+    cat confdefs.h >> config.log
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
@@ -2179,6 +2229,102 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+    eval echo "configure:$expandcompile" >> config.log
+    echo "configure: failed program was:" >>config.log
+    cat confdefs.h >> config.log
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+done
+
+#
+for func in sysconf
+do
+trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for ${func}""... $ac_c"
+else
+echo $ac_n "checking for ${func}""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_${func}) || defined (__stub___${func})
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char ${func}(); ${func}();
+#endif
+ }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  {
+test -n "$verbose" && \
+echo "	defining ${trfunc}"
+echo "#define" ${trfunc} 1 >> confdefs.h
+DEFS="$DEFS -D${trfunc}=1"
+}
+
+
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+    eval echo "configure:$expandcompile" >> config.log
+    echo "configure: failed program was:" >>config.log
+    cat confdefs.h >> config.log
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
@@ -2296,6 +2442,10 @@ echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
+    expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+    eval echo "configure:$expandcompile" >> config.log
+    echo "configure: failed program was:" >>config.log
+    cat confdefs.h >> config.log
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else
@@ -2339,6 +2489,7 @@ fi
 # For now, just test mpiCC
 
 #
+
 if test "$USE_BOOT" != "yes" ; then
     MPIBOOT=""
     MPIUNBOOT=""
@@ -2398,6 +2549,7 @@ trap 'rm -f Makefile pt2pt/Makefile coll/Makefile topol/Makefile \
 	context/Makefile env/Makefile profile/Makefile ; exit 1' 1 3 15
 prefix='$prefix'
 top_srcdir='$top_srcdir'
+MPIPATH='$MPIPATH'
 VPATH='$VPATH'
 CC='$CC'
 HAS_CXX='$HAS_CXX'
@@ -2469,6 +2621,7 @@ $prsub
 $extrasub
 s%@prefix@%$prefix%g
 s%@top_srcdir@%$top_srcdir%g
+s%@MPIPATH@%$MPIPATH%g
 s%@VPATH@%$VPATH%g
 s%@CC@%$CC%g
 s%@HAS_CXX@%$HAS_CXX%g
@@ -2505,8 +2658,8 @@ s%@MPIF77@%$MPIF77%g
 s%@MPICPLUSPLUS@%$MPICPLUSPLUS%g
 s%@MPIRUN@%$MPIRUN%g
 s%@MPIRUNMVBACK@%$MPIRUNMVBACK%g
-s%@MPI_VERSION@%$MPI_VERSION%g
-s%@OPTFLAGS@%$OPTFLAGS%g" | sed -e "
+s%@MPI_VERSION@%$MPI_VERSION%g" | sed -e "
+s%@OPTFLAGS@%$OPTFLAGS%g
 s%@OPTFLAGSC@%$OPTFLAGSC%g
 s%@OPTFLAGSF@%$OPTFLAGSF%g
 s%@HAS_MPI2@%$HAS_MPI2%g

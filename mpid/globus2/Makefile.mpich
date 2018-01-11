@@ -18,6 +18,7 @@
 #
 
 include mpid/globus2/Makefile.mpich.header
+#include Makefile.mpich.header
 
 # removes duplicates...
 #
@@ -56,13 +57,13 @@ userlib:
 # Are the Globus libraries built for use with a vendor implementation of MPI?
 #
 globus_mpi_enabled:
-	@if test "X$(GLOBUS_MP)" = "Xmpi" ; then echo "yes"; else echo "no"; fi
+	@mpi=$(GLOBUS_MP); if test "X$${mpi}" = "Xmpi" ; then echo "yes"; else echo "no"; fi
 
 #
 # Are the Globus libraries multi-threaded?
 #
 globus_threads_enabled:
-	@if test "$(GLOBUS_THREADS)" = "none" ; then echo "no"; else echo "yes"; fi
+	@thr=$(GLOBUS_THREADS); if test "$${thr}" = "none" ; then echo "no"; else echo "yes"; fi
 
 #
 # Compiler, linkers, and flags
@@ -74,7 +75,7 @@ cflags:
 	@echo $(GLOBUS_CFLAGS) $(GLOBUS_INCLUDES) | $(MPICH_CLEANUP)
 
 base_cflags:
-	@echo $(GLOBUS_CFLAGS) | $(MPICH_CLEANUP)
+	@echo $(GLOBUS_CFLAGS) $(GLOBUS_INCLUDES) | $(MPICH_CLEANUP)
 
 clinker:
 	@echo $(GLOBUS_LD)
@@ -83,7 +84,7 @@ clinkerflags:
 	@echo $(GLOBUS_LDFLAGS) | $(MPICH_CLEANUP)
 
 base_clinkerflags:
-	@echo $(GLOBUS_LDFLAGS) | $(MPICH_CLEANUP)
+	@echo $(GLOBUS_LDFLAGS) $(GLOBUS_LIBS) | $(MPICH_CLEANUP)
 
 CC:
 	@echo $(GLOBUS_CXX)

@@ -1,59 +1,44 @@
 <html>
-<p>Main dialog options:</p>
-<p>Application:</p>
-<p>Type the full path to the mpi application here and any arguments.&nbsp; This 
-can be a local or shared location.&nbsp; eg &quot;c:\temp\myapp.exe arg1 arg2&quot; or 
-&quot;\\myserver\myshare\myapp.exe arg1 arg2&quot;.&nbsp; The local path must be valid on 
-all the nodes.</p>
-<p>Number of processes</p>
-<p>Select the number of processes you want to launch.</p>
-<p>Run</p>
-<p>Launch and start the application.</p>
-<p>Break</p>
-<p>Interrupt the application</p>
-<p>Any hosts</p>
-<p>Choose hosts from the list in a round robin fashion.</p>
-<p>Hosts</p>
-<p>Choose only the highlighted hosts from the list</p>
-<p>V button</p>
-<p>Add a host name to the list</p>
-<p>reset</p>
-<p>Reset the list of hosts to the list selected by MPIConfig</p>
-<p>Output</p>
-<p>The output of the application shows up here.&nbsp; Ctrl+C will copy the 
+Main window fields:<ul>
+  <li><b>Application:</b> <br>Enter the full path to the mpi application and any arguments.&nbsp; This 
+can be a local or shared location.&nbsp;The local path must be valid on all the 
+  nodes.<br>eg &quot;c:\temp\myapp.exe arg1 arg2&quot; or 
+&quot;\\myserver\myshare\myapp.exe arg1 arg2&quot;.&nbsp; </li>
+  <li><b>Number of processes:</b> <br>Select the number of processes you want to launch.</li>
+  <li><b>Run:</b> <br>Launch the mpich application.</li>
+  <li><b>Break:</b> <br>Kill the running application</li>
+  <li><b>Any hosts:</b> <br>Choose hosts from the list in a round robin fashion.</li>
+  <li><b>Hosts:</b> <br>Choose only the highlighted hosts from the list</li>
+  <li><b>V button:</b> <br>Add a host name to the list</li>
+  <li><b>reset:</b> <br>Reset the list of hosts to the list selected by MPIConfig</li>
+  <li><b>Output:</b> <br>The output of the application shows up here.&nbsp; Ctrl+C will copy the 
 output.&nbsp; You can also enter input here that will be sent to the root 
-process zero.</p>
-<p>Advanced Options:</p>
-<p>No color output</p>
-<p>The output will not be color coded according to the rank of the process</p>
-<p>No mpi</p>
-<p>Launch multiple processes that are not mpi applications - they never make any 
-MPI calls.</p>
-<p>Don't clear output on Run</p>
-<p>The output in the output window does not get erased when the Run button is 
-clicked</p>
-<p>Always prompt for password</p>
-<p>Don't use the saved account, prompt for user credentials every time Run is 
-selected.</p>
-<p>Redirect output to file</p>
-<p>Redirect the output of the mpi application to the specified file.&nbsp; The 
-contents of the file will be deleted each time Run is selected.</p>
-<p>Slave process</p>
-<p>Specify the path to a second executable to be launched for every process 
-except the root process zero.&nbsp; This is a quick way to launch a master/slave 
-application without using a configuration file.</p>
-<p>Environment <strong>&quot;var1=val1|var2=val2|var3=val3|...varn=valn&quot;</strong></p>
-<p>This will set the environment variables specified in the string before each 
-process is launched.&nbsp; Remember to quote the string so the command prompt doesn't 
-interpret the vertical bar as a pipe command.</p>
-<p>Working directory <strong>drive:\some\path</strong></p>
-<p>This sets the working directory for the launched processes.&nbsp; If this option 
-is not specified the current directory is used.</p>
-<p>Drive mappings<strong> drive:\\host\share</strong></p>
-<p>This option will map a drive on the hosts where the processes are launched.&nbsp; 
+process.</li>
+</ul>
+Advanced Options:<ul>
+  <li><b>No color output:</b> <br>The output will not be color coded according to the rank of the process</li>
+  <li><b>No mpi:</b> <br>Launch multiple processes that are not mpi applications - they never make any 
+MPI calls.</li>
+  <li><b>Don't clear output on Run:</b> <br>The output in the output window does not get erased when the Run button is 
+clicked</li>
+  <li><b>Always prompt for password:</b> <br>Don't use the saved account, prompt for user credentials every time Run is 
+selected.</li>
+  <li><b>Redirect output to file:</b> <br>Redirect the output of the mpi application to the specified file.&nbsp; The 
+contents of the file will be deleted each time Run is selected.</li>
+  <li><b>Slave process:</b> <br>Specify the path to a second executable to be launched for every process 
+except the root process.&nbsp; This is a quick way to launch a master/slave 
+application without using a configuration file.</li>
+  <li><b>Environment:</b> <strong>var1=val1|var2=val2|var3=val3|...varn=valn</strong><br>
+  This will set the environment variables specified in the string before each 
+  process is launched.</li>
+  <li><b>Working directory: </b> <strong>drive:\some\path </strong> <br>Set the working directory for the launched processes.&nbsp; If this option 
+is not specified the current directory is used.</li>
+  <li><b>Drive mappings</b><strong>: drive:\\host\share </strong> <br>This option will map a drive on the hosts where the processes are launched.&nbsp; 
 The mappings are removed after the processes exit.&nbsp; This option can be repeated 
-multiple times. example: y:\\myserver\myapps;z:\\myserver\myhome</p>
-<p>Use configuration file</p>
+multiple times separated by semi-colons. example: y:\\myserver\myapps;z:\\myserver\myhome</li>
+  <li><b>Use configuration file:</b> <br>Select a configuration file to specify more 
+  complicated launching preferences</li>
+</ul>
 <p><big>Configuration files</big>.</p>
 <p>The config file format is as follows: </p>
 <blockquote style="MARGIN-RIGHT: 0px">
@@ -65,9 +50,9 @@ multiple times. example: y:\\myserver\myapps;z:\\myserver\myhome</p>
 [dir drive:\some\path]
 [map drive:\\host\share]
 hosts
-hostA [#procs] [path\myapp.exe]
-hostB [#procs] [\\host\share\somepath\myapp2.exe]
-hostC [#procs]
+hostA [num_procs] [path\myapp.exe]
+hostB [num_procs] [\\host\share\somepath\myapp2.exe]
+hostC [num_procs]
 ...
 </pre>
   </font>

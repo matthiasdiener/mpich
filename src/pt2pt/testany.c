@@ -1,5 +1,5 @@
 /*
- *  $Id: testany.c,v 1.17 2002/01/04 22:42:26 gropp Exp $
+ *  $Id: testany.c,v 1.18 2002/03/15 15:21:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -45,7 +45,7 @@ Output Parameters:
 + index - index of operation that completed, or 'MPI_UNDEFINED'  if none 
   completed (integer) 
 . flag - true if one of the operations is complete (logical) 
-- status - status object (Status) 
+- status - status object (Status).  May be 'MPI_STATUS_NULL'.
 
 .N waitstatus
 
@@ -84,7 +84,8 @@ int MPI_Testany(
 	switch (request->handle_type) {
 	case MPIR_SEND:
 	    if (MPID_SendRequestCancelled(request)) {
-		status->MPI_TAG = MPIR_MSG_CANCELLED; 
+		if (status)
+		    status->MPI_TAG = MPIR_MSG_CANCELLED; 
 		*index = i;
 		found = 1;
 	    }
@@ -101,7 +102,8 @@ int MPI_Testany(
 	    break;
 	case MPIR_RECV:
 	    if (request->rhandle.s.MPI_TAG == MPIR_MSG_CANCELLED) {
-		status->MPI_TAG = MPIR_MSG_CANCELLED; 
+		if (status) 
+		    status->MPI_TAG = MPIR_MSG_CANCELLED; 
 		*index = i;
 		found = 1;
 	    }
@@ -110,7 +112,8 @@ int MPI_Testany(
 		    MPID_RecvIcomplete( request, (MPI_Status *)0, 
 					&mpi_errno )) {
 		    *index = i;
-		    *status = request->rhandle.s;
+		    if (status)
+			*status = request->rhandle.s;
 		    MPID_RecvFree( request );
 		    array_of_requests[i] = 0;
 		    found = 1;
@@ -120,7 +123,8 @@ int MPI_Testany(
 	case MPIR_PERSISTENT_SEND:
 	    if (!request->persistent_shandle.active) {
 		if (MPID_SendRequestCancelled(&request->persistent_shandle)) {
-		    status->MPI_TAG = MPIR_MSG_CANCELLED;
+		    if (status)
+			status->MPI_TAG = MPIR_MSG_CANCELLED;
 		    *index = i;
 		    found = 1;
 		}
@@ -138,7 +142,8 @@ int MPI_Testany(
 	    if (!request->persistent_rhandle.active) {
 		if (request->persistent_rhandle.rhandle.s.MPI_TAG ==
 		    MPIR_MSG_CANCELLED) {
-		    status->MPI_TAG = MPIR_MSG_CANCELLED;
+		    if (status)
+			status->MPI_TAG = MPIR_MSG_CANCELLED;
 		    *index = i;
 		    found = 1;
 		}
@@ -149,7 +154,8 @@ int MPI_Testany(
 		     MPID_RecvIcomplete( request, (MPI_Status *)0, 
 					 &mpi_errno )) {
 		*index = i;
-		*status = request->persistent_rhandle.rhandle.s;
+		if (status)
+		    *status = request->persistent_rhandle.rhandle.s;
 		request->persistent_rhandle.active = 0;
 		found = 1;
 	    }
@@ -158,10 +164,12 @@ int MPI_Testany(
     }
     if (nnull == count) {
 	/* MPI Standard 1.1 requires an empty status in this case */
-	status->MPI_TAG	   = MPI_ANY_TAG;
-	status->MPI_SOURCE = MPI_ANY_SOURCE;
-	status->MPI_ERROR  = MPI_SUCCESS;
-	MPID_ZERO_STATUS_COUNT(status);
+	if (status) {
+	    status->MPI_TAG	   = MPI_ANY_TAG;
+	    status->MPI_SOURCE = MPI_ANY_SOURCE;
+	    status->MPI_ERROR  = MPI_SUCCESS;
+	    MPID_ZERO_STATUS_COUNT(status);
+	}
 	*flag              = 1;
         *index             = MPI_UNDEFINED;
 	TR_POP;

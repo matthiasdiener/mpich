@@ -1,5 +1,5 @@
 /*
- *  $Id: dims_create.c,v 1.13 2001/11/14 20:10:53 ashton Exp $
+ *  $Id: dims_create.c,v 1.15 2002/04/24 19:34:34 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -152,7 +152,7 @@ static int getFirstBit(int inputInt, int *bitPositionPtr)
 ** largest, factors[numFactors - 1] will be the smallest).  In cases where 
 ** the number of prime factors is less than numFactors, remaining entries in 
 ** array factors will be set to 1.  When numFactors is less than the number of 
-** prime factors, the prime factors will be re-combined an resorted in such a 
+** prime factors, the prime factors will be re-combined and resorted in such a 
 ** way that the values in the output array are as close together as possible.  
 ** Factors are ordered from maximum to minimum value.  
 ** 
@@ -778,13 +778,13 @@ int MPI_Dims_create(
   freeNodes = nnodes;
   for (i=0; i<ndims; i++) {
 	if (dims[i]>0) {
-	    if (nnodes%dims[i] != 0) {
+	    if (freeNodes%dims[i] != 0) {
 		mpi_errno = MPIR_Err_setmsg( MPI_ERR_DIMS, 
 					     MPIR_ERR_DIMS_PARTITION, myname,
 			"Can not partition nodes as requested", (char *)0);
 		return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 	    }
-	  freeNodes /= dims[i];
+	    freeNodes /= dims[i];
 	}
   }
 

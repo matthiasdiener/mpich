@@ -51,7 +51,7 @@ LIB32=link.exe
 # ADD BASE F90 /include:"Release/"
 # ADD F90 /browser /compile_only /iface:nomixed_str_len_arg /iface:cref /include:"Release/" /threads
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_USRDLL" /D "NT_TCP_DLL_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /D "USE_FORT_MIXED_STR_LEN" /D "USE_FORT_STDCALL" /D "NDEBUG" /D "HAVE_FORTRAN_API" /D "FORTRAN_EXPORTS" /D "_WINDOWS" /D "_USRDLL" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "USE_MPI_INTERNALLY" /FR /YX /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /I "..\..\nt_server\winmpd\mpdutil" /I "..\..\nt_server\winmpd\bsocket2" /D "USE_FORT_MIXED_STR_LEN" /D "USE_FORT_STDCALL" /D "NDEBUG" /D "HAVE_FORTRAN_API" /D "FORTRAN_EXPORTS" /D "_WINDOWS" /D "_USRDLL" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "USE_MPI_INTERNALLY" /D "HAVE_WINBCONF_H" /FR /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409
@@ -61,12 +61,12 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /map /machine:I386 /libpath:"../../../lib"
+# ADD LINK32 crypt.lib bsocket2.lib mpdutil.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /map /machine:I386 /libpath:"../../../lib" /libpath:"..\..\nt_server\winmpd\mpdutil\release" /libpath:"..\..\nt_server\winmpd\bsocket2\release" /libpath:"..\..\nt_server\winmpd\crypt\release"
 # SUBTRACT LINK32 /force
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
 PostBuild_Desc=Copying mpich.dll to system32 directory
-PostBuild_Cmds=copy ..\..\..\lib\mpich.dll %SystemRoot%\system32\mpich.dll
+PostBuild_Cmds=copy ..\..\..\lib\mpich.dll %SystemRoot%\system32\mpich.dll	copy ..\nt_common\mpicherr.dll %SystemRoot%\system32\mpicherr.dll	copy ..\nt_common\mpicherr.dll ..\..\..\lib\mpicherr.dll
 # End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "mpich - Win32 Debug"
@@ -86,7 +86,7 @@ LIB32=link.exe
 # ADD BASE F90 /include:"Debug/"
 # ADD F90 /browser /compile_only /dbglibs /iface:nomixed_str_len_arg /iface:cref /include:"Debug/" /threads
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "_WINDOWS" /D "_DEBUG" /D "_MBCS" /D "_USRDLL" /D "NT_TCP_DLL_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /D "USE_FORT_MIXED_STR_LEN" /D "USE_FORT_STDCALL" /D "_DEBUG" /D "HAVE_FORTRAN_API" /D "FORTRAN_EXPORTS" /D "_WINDOWS" /D "_USRDLL" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "USE_MPI_INTERNALLY" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /I "..\..\nt_server\winmpd\mpdutil" /I "..\..\nt_server\winmpd\bsocket2" /D "USE_FORT_MIXED_STR_LEN" /D "USE_FORT_STDCALL" /D "_DEBUG" /D "HAVE_FORTRAN_API" /D "FORTRAN_EXPORTS" /D "_WINDOWS" /D "_USRDLL" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "USE_MPI_INTERNALLY" /D "HAVE_WINBCONF_H" /FR /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -96,7 +96,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /debug /machine:I386 /out:"../../../lib/mpichd.dll" /pdbtype:sept /libpath:"../../../lib"
+# ADD LINK32 crypt.lib bsocket2.lib mpdutil.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /debug /machine:I386 /out:"../../../lib/mpichd.dll" /pdbtype:sept /libpath:"../../../lib" /libpath:"..\..\nt_server\winmpd\mpdutil\debug" /libpath:"..\..\nt_server\winmpd\bsocket2\debug" /libpath:"..\..\nt_server\winmpd\crypt\debug"
 # SUBTRACT LINK32 /pdb:none /force
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
@@ -122,7 +122,7 @@ LIB32=link.exe
 # ADD BASE F90 /browser /compile_only /dbglibs /iface:nomixed_str_len_arg /iface:cref /include:"DebugCDECLStrLenEnd/" /threads
 # ADD F90 /browser /compile_only /dbglibs /iface:nomixed_str_len_arg /iface:cref /include:"DebugCDECLStrLenEnd/" /threads
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\nt_common" /I ".\\" /I "..\..\include" /I "..\..\src\fortran\include" /I "..\ch2" /I "..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /D "USE_FORT_STDCALL" /D "_DEBUG" /D "_WINDOWS" /D "_USRDLL" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /FR /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /D "_DEBUG" /D "HAVE_FORTRAN_API" /D "FORTRAN_EXPORTS" /D "_WINDOWS" /D "_USRDLL" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "USE_MPI_INTERNALLY" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /I "..\..\nt_server\winmpd\mpdutil" /I "..\..\nt_server\winmpd\bsocket2" /D "_DEBUG" /D "HAVE_FORTRAN_API" /D "FORTRAN_EXPORTS" /D "_WINDOWS" /D "_USRDLL" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "USE_MPI_INTERNALLY" /D "HAVE_WINBCONF_H" /FR /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -133,7 +133,7 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /debug /machine:I386 /out:"../../lib/mpichd.dll" /pdbtype:sept /libpath:"../../lib"
 # SUBTRACT BASE LINK32 /pdb:none /force
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /debug /machine:I386 /out:"DebugCDECLStrLenEnd/mpichdcn.dll" /pdbtype:sept /libpath:"../../../lib"
+# ADD LINK32 crypt.lib bsocket2.lib mpdutil.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /debug /machine:I386 /out:"DebugCDECLStrLenEnd/mpichdcn.dll" /pdbtype:sept /libpath:"../../../lib" /libpath:"..\..\nt_server\winmpd\mpdutil\debug" /libpath:"..\..\nt_server\winmpd\bsocket2\debug" /libpath:"..\..\nt_server\winmpd\crypt\debug"
 # SUBTRACT LINK32 /pdb:none /force
 
 !ELSEIF  "$(CFG)" == "mpich - Win32 ReleaseCDECLStrLenEnd"
@@ -154,7 +154,7 @@ LIB32=link.exe
 # ADD BASE F90 /browser /compile_only /iface:nomixed_str_len_arg /iface:cref /include:"ReleaseCDECLStrLenEnd/" /threads
 # ADD F90 /browser /compile_only /iface:nomixed_str_len_arg /iface:cref /include:"ReleaseCDECLStrLenEnd/" /threads
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /I "..\nt_common" /I ".\\" /I "..\..\include" /I "..\..\src\fortran\include" /I "..\ch2" /I "..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /D "NDEBUG" /D "_WINDOWS" /D "_USRDLL" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /FR /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /D "NDEBUG" /D "HAVE_FORTRAN_API" /D "FORTRAN_EXPORTS" /D "_WINDOWS" /D "_USRDLL" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "USE_MPI_INTERNALLY" /FR /YX /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /I "..\..\nt_server\winmpd\mpdutil" /I "..\..\nt_server\winmpd\bsocket2" /D "NDEBUG" /D "HAVE_FORTRAN_API" /D "FORTRAN_EXPORTS" /D "_WINDOWS" /D "_USRDLL" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "USE_MPI_INTERNALLY" /D "HAVE_WINBCONF_H" /FR /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /i "\mpich\include" /d "NDEBUG"
@@ -165,7 +165,7 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /map /machine:I386 /libpath:"../../lib"
 # SUBTRACT BASE LINK32 /force
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /map /machine:I386 /out:"ReleaseCDECLStrLenEnd/mpichcn.dll" /libpath:"../../../lib"
+# ADD LINK32 crypt.lib bsocket2.lib mpdutil.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /map /machine:I386 /out:"ReleaseCDECLStrLenEnd/mpichcn.dll" /libpath:"../../../lib" /libpath:"..\..\nt_server\winmpd\mpdutil\release" /libpath:"..\..\nt_server\winmpd\bsocket2\release"
 # SUBTRACT LINK32 /force
 
 !ELSEIF  "$(CFG)" == "mpich - Win32 DebugNoFortran"
@@ -186,7 +186,7 @@ LIB32=link.exe
 # ADD BASE F90 /browser /compile_only /dbglibs /iface:nomixed_str_len_arg /iface:cref /include:"mpich___Win32_DebugNoFortran/" /include:"Debug/" /threads
 # ADD F90 /browser /compile_only /dbglibs /iface:nomixed_str_len_arg /iface:cref /include:"DebugNoFortran/" /include:"Debug/" /threads
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /D "USE_FORT_MIXED_STR_LEN" /D "USE_FORT_STDCALL" /D "_DEBUG" /D "_WINDOWS" /D "_USRDLL" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "HAVE_FORTRAN_API" /D "FORTRAN_EXPORTS" /FR /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /D "_DEBUG" /D "MPID_NO_FORTRAN" /D "_WINDOWS" /D "_USRDLL" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "USE_MPI_INTERNALLY" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /I "..\..\nt_server\winmpd\mpdutil" /I "..\..\nt_server\winmpd\bsocket2" /D "_DEBUG" /D "MPID_NO_FORTRAN" /D "_WINDOWS" /D "_USRDLL" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "USE_MPI_INTERNALLY" /D "HAVE_WINBCONF_H" /FR /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -197,7 +197,7 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /debug /machine:I386 /out:"../../../lib/mpichd.dll" /pdbtype:sept /libpath:"../../../lib"
 # SUBTRACT BASE LINK32 /pdb:none /force
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /debug /machine:I386 /out:"../../../lib/mpichd.dll" /pdbtype:sept /libpath:"../../../lib"
+# ADD LINK32 crypt.lib bsocket2.lib mpdutil.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /debug /machine:I386 /out:"../../../lib/mpichd.dll" /pdbtype:sept /libpath:"../../../lib" /libpath:"..\..\nt_server\winmpd\mpdutil\debug" /libpath:"..\..\nt_server\winmpd\bsocket2\debug" /libpath:"..\..\nt_server\winmpd\crypt\debug"
 # SUBTRACT LINK32 /pdb:none /force
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
@@ -223,7 +223,7 @@ LIB32=link.exe
 # ADD BASE F90 /browser /compile_only /iface:nomixed_str_len_arg /iface:cref /include:"mpich___Win32_ReleaseNoFortran/" /include:"Release/" /threads
 # ADD F90 /browser /compile_only /iface:nomixed_str_len_arg /iface:cref /include:"ReleaseNoFortran/" /include:"Release/" /threads
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /D "USE_FORT_MIXED_STR_LEN" /D "USE_FORT_STDCALL" /D "NDEBUG" /D "_WINDOWS" /D "_USRDLL" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "HAVE_FORTRAN_API" /D "FORTRAN_EXPORTS" /FR /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /D "NDEBUG" /D "MPID_NO_FORTRAN" /D "_WINDOWS" /D "_USRDLL" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "USE_MPI_INTERNALLY" /FR /YX /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I "include" /I "..\nt_common" /I ".\\" /I "..\..\..\include" /I "..\..\..\src\fortran\include" /I "..\..\ch2" /I "..\..\util" /I "..\..\..\romio\include" /I "..\..\..\romio\adio\include" /I "..\..\nt_server\winmpd\mpdutil" /I "..\..\nt_server\winmpd\bsocket2" /D "NDEBUG" /D "MPID_NO_FORTRAN" /D "_WINDOWS" /D "_USRDLL" /D "_MBCS" /D "_WIN32_DCOM" /D "HAVE_STDLIB_H" /D "BUILDING_IN_MPICH" /D "HAVE_MPICHCONF_H" /D "USE_MPI_VERSIONS" /D "USE_MPI_INTERNALLY" /D "HAVE_WINBCONF_H" /FR /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /i "\mpich\include" /d "NDEBUG"
@@ -234,7 +234,7 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /map /machine:I386 /libpath:"../../../lib"
 # SUBTRACT BASE LINK32 /force
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /map /machine:I386 /libpath:"../../../lib"
+# ADD LINK32 crypt.lib bsocket2.lib mpdutil.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /map /machine:I386 /libpath:"../../../lib" /libpath:"..\..\nt_server\winmpd\mpdutil\release" /libpath:"..\..\nt_server\winmpd\bsocket2\release"
 # SUBTRACT LINK32 /force
 # Begin Special Build Tool
 SOURCE="$(InputPath)"

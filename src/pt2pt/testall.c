@@ -1,5 +1,5 @@
 /*
- *  $Id: testall.c,v 1.23 2001/11/14 20:10:04 ashton Exp $
+ *  $Id: testall.c,v 1.25 2002/03/15 18:51:55 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -37,7 +37,8 @@ Input Parameters:
 
 Output Parameters:
 + flag - (logical) 
-- array_of_statuses - array of status objects (array of Status) 
+- array_of_statuses - array of status objects (array of Status).  May be
+ 'MPI_STATUSES_NULL'.
 
 Notes:
   'flag' is true only if all requests have completed.  Otherwise, flag is
@@ -87,28 +88,27 @@ int MPI_Testall(
 	switch (request->handle_type) {
 	case MPIR_SEND:
 	    if (MPID_SendRequestCancelled(request)) {
-		array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED; 
-		array_of_statuses[i].MPI_ERROR = MPI_SUCCESS;
+		if (array_of_statuses) {
+		    array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED; 
+		    array_of_statuses[i].MPI_ERROR = MPI_SUCCESS;
+		}
 	        nready++; }
-	    else {
-	    if (!request->shandle.is_complete) {
+	    else if (!request->shandle.is_complete) {
 		if (MPID_SendIcomplete( request, &mpi_errno ))
 		    nready++;
 	    }
 	    else nready++;
-	    }
 	    break;
 	case MPIR_RECV:
 	    if (request->rhandle.s.MPI_TAG == MPIR_MSG_CANCELLED) {
-		array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED; 
+		if (array_of_statuses) 
+		    array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED; 
 	        nready++; }
-	    else {
-	    if (!request->rhandle.is_complete) {
+	    else if (!request->rhandle.is_complete) {
 		if (MPID_RecvIcomplete( request, (MPI_Status *)0, &mpi_errno ))
 		    nready++;
 	    }
 	    else nready++;
-	    }
 	    break;
 	case MPIR_PERSISTENT_SEND:
 	    if (request->persistent_shandle.active &&
@@ -128,8 +128,9 @@ int MPI_Testall(
 	    break;
 	}
 	if (mpi_errno) {
-	    MPIR_Set_Status_error_array( array_of_requests, count, i, 
-					 mpi_errno, array_of_statuses );
+	    if (array_of_statuses) 
+		MPIR_Set_Status_error_array( array_of_requests, count, i, 
+					     mpi_errno, array_of_statuses );
 	    mpi_errno = MPI_ERR_IN_STATUS;
 	    TR_POP;
 	    MPIR_RETURN(MPIR_COMM_WORLD, mpi_errno, myname );
@@ -137,28 +138,35 @@ int MPI_Testall(
     }
     *flag = (nready == count);
     /* Because a request may have completed with an error (such as 
-       MPI_ERR_TRUNCATE), we need to check here as well */
+       MPI_ERR_TRUNCATE), we need to check here as well.
+       Only if all are ready do we set complete the requests.  Fortunately,
+       the standard allows us to say that the values in array_of_statuses
+       is undefined if all requests are not ready. */
     if (nready == count) {
 	for (i=0; i<count; i++) {
 	    request = array_of_requests[i];
 	    if (!request) {
 		/* See MPI Standard, 3.7 */
-		array_of_statuses[i].MPI_TAG	= MPI_ANY_TAG;
-		array_of_statuses[i].MPI_SOURCE	= MPI_ANY_SOURCE;
-		array_of_statuses[i].MPI_ERROR	= MPI_SUCCESS;
-		array_of_statuses[i].count	= 0;
+		if (array_of_statuses) {
+		    array_of_statuses[i].MPI_TAG	= MPI_ANY_TAG;
+		    array_of_statuses[i].MPI_SOURCE	= MPI_ANY_SOURCE;
+		    array_of_statuses[i].MPI_ERROR	= MPI_SUCCESS;
+		    MPID_ZERO_STATUS_COUNT(&array_of_statuses[i]);
+		}
 		continue;
 	    }
 	    switch (request->handle_type) {
 	    case MPIR_SEND:
-		if (array_of_statuses[i].MPI_TAG != MPIR_MSG_CANCELLED) {
+		if ((array_of_statuses && 
+		    array_of_statuses[i].MPI_TAG != MPIR_MSG_CANCELLED) ||
+		    !MPID_SendRequestCancelled(request)) {
 		    MPIR_FORGET_SEND( &request->shandle );
 		    MPID_SendFree( array_of_requests[i] );
 		    array_of_requests[i] = 0;
 		}
 		break;
 	    case MPIR_RECV:
-		if (array_of_statuses[i].MPI_TAG != MPIR_MSG_CANCELLED) {
+		if (request->rhandle.s.MPI_TAG != MPIR_MSG_CANCELLED) {
 		    if (request->rhandle.s.MPI_ERROR) 
 			mpi_errno = request->rhandle.s.MPI_ERROR;
 /*
@@ -173,57 +181,66 @@ int MPI_Testall(
 		    mpi_errno = MPI_ERR_IN_STATUS;
 		}
  */
-		array_of_statuses[i] = request->rhandle.s;
-		MPID_RecvFree( array_of_requests[i] );
-		array_of_requests[i] = 0;
+		 
+		    if (array_of_statuses) 
+			array_of_statuses[i] = request->rhandle.s;
+		    MPID_RecvFree( array_of_requests[i] );
+		    array_of_requests[i] = 0;
 		}
 		break;
 	    case MPIR_PERSISTENT_SEND:
 		if (request->persistent_shandle.active) {
 		    /* array_of_statuses[i] =
 			request->persistent_shandle.shandle.s; */
-		    array_of_statuses[i].MPI_ERROR = 
-		       MPID_SendRequestErrval(&request->persistent_shandle.shandle);
+		    if (array_of_statuses)
+			array_of_statuses[i].MPI_ERROR = 
+			    MPID_SendRequestErrval(&request->persistent_shandle.shandle);
 		    request->persistent_shandle.active = 0;
 		}
 		else {
 		    /* See MPI Standard, 3.7 */
 		    /* Thanks to mechi@terra.co.il for this fix */
-		    if (MPID_SendRequestCancelled(&request->persistent_shandle))
-			array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED;
-		    else
-			array_of_statuses[i].MPI_TAG = MPI_ANY_TAG;
-
-		    array_of_statuses[i].MPI_SOURCE = MPI_ANY_SOURCE;
-		    array_of_statuses[i].MPI_ERROR  = MPI_SUCCESS;
-		    array_of_statuses[i].count	    = 0;
+		    if (array_of_statuses) {
+			if (MPID_SendRequestCancelled(&request->persistent_shandle))
+			    array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED;
+			else
+			    array_of_statuses[i].MPI_TAG = MPI_ANY_TAG;
+			
+			array_of_statuses[i].MPI_SOURCE = MPI_ANY_SOURCE;
+			array_of_statuses[i].MPI_ERROR  = MPI_SUCCESS;
+			MPID_ZERO_STATUS_COUNT(&array_of_statuses[i]);
+		    }
 		}
 		break;
 	    case MPIR_PERSISTENT_RECV:
 		if (request->persistent_rhandle.active) {
-		    array_of_statuses[i] = 
-			request->persistent_rhandle.rhandle.s;
+		    if (array_of_statuses) 
+			array_of_statuses[i] = 
+			    request->persistent_rhandle.rhandle.s;
 		    mpi_errno = request->persistent_rhandle.rhandle.s.MPI_ERROR;
 		    request->persistent_rhandle.active = 0;
 		}
 		else {
 		    /* See MPI Standard, 3.7 */
 		    /* Thanks to mechi@terra.co.il for this fix */
-		    if (request->persistent_rhandle.rhandle.s.MPI_TAG ==
-			MPIR_MSG_CANCELLED) 
-			array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED;
-		    else
-			array_of_statuses[i].MPI_TAG = MPI_ANY_TAG;
-
-		    array_of_statuses[i].MPI_SOURCE = MPI_ANY_SOURCE;
-		    array_of_statuses[i].MPI_ERROR  = MPI_SUCCESS;
-		    array_of_statuses[i].count	    = 0;
+		    if (array_of_statuses) {
+			if (request->persistent_rhandle.rhandle.s.MPI_TAG ==
+			    MPIR_MSG_CANCELLED) 
+			    array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED;
+			else
+			    array_of_statuses[i].MPI_TAG = MPI_ANY_TAG;
+			
+			array_of_statuses[i].MPI_SOURCE = MPI_ANY_SOURCE;
+			array_of_statuses[i].MPI_ERROR  = MPI_SUCCESS;
+			MPID_ZERO_STATUS_COUNT(&array_of_statuses[i]);
+		    }
 		}
 		break;
 	    }
 	    if (mpi_errno) {
-		MPIR_Set_Status_error_array( array_of_requests, count, i, 
-					     mpi_errno, array_of_statuses );
+		if (array_of_statuses) 
+		    MPIR_Set_Status_error_array( array_of_requests, count, i, 
+						mpi_errno, array_of_statuses );
 		mpi_errno = MPI_ERR_IN_STATUS;
 		TR_POP;
 		MPIR_RETURN(MPIR_COMM_WORLD, mpi_errno, myname );

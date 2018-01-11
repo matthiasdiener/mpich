@@ -317,7 +317,7 @@ dnl
 dnl Synopsis:
 dnl PAC_C_PROTOTYPES([action if true],[action if false])
 dnl
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_C_PROTOTYPES,[
 AC_CACHE_CHECK([if $CC supports function prototypes],
 pac_cv_c_prototypes,[
@@ -756,6 +756,8 @@ fi
 # (later configure macros look for the .o file, not just success from the
 # compiler, but they should not HAVE to
 #
+dnl --- insert 2.52 compatibility here ---
+dnl
 AC_DEFUN(PAC_PROG_CC_WORKS,
 [AC_PROG_CC_WORKS
 AC_MSG_CHECKING([whether the C compiler sets its return status correctly])
@@ -955,23 +957,24 @@ dnl
 dnl NOT TESTED
 AC_DEFUN(PAC_PROG_C_BROKEN_COMMON,[
 AC_MSG_CHECKING([whether global variables handled properly])
+AC_MSG_REQUIRE([AC_PROG_RANLIB])
 ac_cv_prog_cc_globals_work=no
 echo 'extern int a; int a;' > conftest1.c
 echo 'extern int a; int main( ){ return a; }' > conftest2.c
 if ${CC-cc} $CFLAGS -c conftest1.c >conftest.out 2>&1 ; then
-    if ${AR-ar} cr libconftest.a conftest1.o ; then
-        if ${RANLIB-:} libconftest.a ; then
-            if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a ; then
+    if ${AR-ar} cr libconftest.a conftest1.o >/dev/null 2>&1 ; then
+        if ${RANLIB-:} libconftest.a >/dev/null 2>&1 ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a >>conftest.out 2>&1 ; then
 		# Success!  C works
 		ac_cv_prog_cc_globals_work=yes
 	    else
 	        # Failure!  Do we need -fno-common?
-	        ${CC-cc} $CFLAGS -fno-common -c conftest1.c > conftest.out 2>&1
+	        ${CC-cc} $CFLAGS -fno-common -c conftest1.c >> conftest.out 2>&1
 		rm -f libconftest.a
 		${AR-ar} cr libconftest.a conftest1.o
 	        ${RANLIB-:} libconftest.a
-	        if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a ; then
-		    ac_cv_prob_cc_globals_work="needs -fno-common"
+	        if ${CC-cc} $CFLAGS -o conftest conftest2.c $LDFLAGS libconftest.a >> conftest.out 2>&1 ; then
+		    ac_cv_prog_cc_globals_work="needs -fno-common"
 		    CFLAGS="$CFLAGS -fno-common"
 		fi
 	    fi
@@ -1116,3 +1119,27 @@ pac_cv_c_struct_align=`cat ctest.out`
 rm -f ctest.out
 ])
 ])
+dnl
+dnl
+dnl/*D
+dnl PAC_FUNC_NEEDS_DECL - Set NEEDS_<funcname>_DECL if a declaration is needed
+dnl
+dnl Synopsis:
+dnl PAC_FUNC_NEEDS_DECL(headerfiles,funcname)
+dnl
+dnl Output Effect:
+dnl Sets 'NEEDS_<funcname>_DECL' if 'funcname' is not declared by the 
+dnl headerfiles.
+dnl D*/
+AC_DEFUN(PAC_FUNC_NEEDS_DECL,[
+AC_CACHE_CHECK([whether $2 needs a declaration],
+pac_cv_func_decl_$2,[
+AC_TRY_COMPILE([$1],[int a=$2(27,1.0,"foo");],
+pac_cv_func_decl_$2=yes,pac_cv_func_decl_$2=no)])
+if test "$pac_cv_func_decl_$2" = "yes" ; then
+changequote(, )dnl
+  ac_tr_func=NEEDS_`echo $1 | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`_DECL
+changequote([, ])dnl
+    AC_DEFINE_UNQUOTED($ac_tr_func,,[Define if $2 needs a declaration])
+fi
+])dnl

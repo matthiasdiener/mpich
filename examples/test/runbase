@@ -77,13 +77,21 @@ OutTime() {
 # Do an "on the fly" check for problems.
 # Checkout testname difffile 
 # difffile may be empty, in which case stdout is used.
+# If $writesummaryfile is yes, output the results to $summaryfile.
+# Use XML-style output for the summary file:
+# <MPITEST>
+# <NAME NAME="" STATUS="PASS"|"FAIL">
+# <TESTDIFF>
+#    text from different
+# </TESTDIFF>
+# </MPITEST>
 CheckOutput() {
     bfile=$1
     difffile=$2
+    fileok="no"
     if [ ! -s ${bfile}.out ] ; then
         echo "No output file ${bfile}.out!"
     else
-	fileok="no"
 	cmpfile=""
         # Handle Fortran systems that generate stop statements
         rm -f ${bfile}.tout
@@ -115,6 +123,29 @@ CheckOutput() {
 	        fi
             fi
 	    nodiff=0
+	fi
+	if [ "$writesummaryfile" = "yes" ] ; then
+	    if [ $fileok = "yes" ] ; then 
+	        passed=pass
+	    else
+		passed=fail
+	    fi
+	    cat >>$summaryfile <<EOF
+<MPITEST>
+<NAME>$bfile</NAME>
+<STATUS>$passed</STATUS>
+EOF
+	    if [ $fileok = "no" ] ; then
+	    echo "<TESTDIFF>" >> $summaryfile
+	    if [ ! -s ${bfile}.out ] ; then
+	        echo "No output file" >>$summaryfile
+	    else
+	        diff -b ${bfile}.tout $cmpfile | \
+		sed -e 's/</\&lt;/g' -e 's/>/\&gt;/g' >> $summaryfile
+	    fi
+	    echo "</TESTDIFF>" >> $summaryfile
+	    fi
+	    echo "</MPITEST>" >> $summaryfile
 	fi
         rm -f ${bfile}.tout
     fi

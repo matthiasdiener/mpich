@@ -4,10 +4,6 @@
 #include "bnr.h"
 #include "mpdlib.h"
 
-int BNR_Pre_init( void ( * ) ( char * ) );
-int BNR_Man_msgs_fd( int * );
-int BNR_Poke_peer( int, int, char * );
-
 BNR_Group bnr_allocate_group( int, int, int );
 void bnr_deallocate_group( BNR_Group * );
 

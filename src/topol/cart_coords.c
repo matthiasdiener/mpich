@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_coords.c,v 1.8 2001/11/14 20:10:51 ashton Exp $
+ *  $Id: cart_coords.c,v 1.9 2002/03/28 20:38:44 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -38,7 +38,8 @@ Input Parameters:
 - maxdims - length of vector 'coords' in the calling program (integer) 
 
 Output Parameter:
-. coords - integer array (of size 'ndims') containing the cartesian coordinates of specified process (integer) 
+. coords - integer array (of size 'ndims') containing the Cartesian 
+  coordinates of specified process (integer) 
 
 .N fortran
 

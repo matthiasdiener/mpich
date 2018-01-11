@@ -94,8 +94,27 @@
 /* Define if you have the strerror function.  */
 #undef HAVE_STRERROR
 
+/* Define if you have the <sched.h> header file.  */
+#undef HAVE_SCHED_H
+
 /* Define if you have the <signal.h> header file.  */
 #undef HAVE_SIGNAL_H
 
 /* Define if you have the thread library (-lthread).  */
 #undef HAVE_LIBTHREAD
+
+/* define to use POSIX sched_yield */
+#undef USE_SCHED_YIELD
+
+/* define to use sginap to yield */
+#undef USE_SGINAP_YIELD
+
+/* define to use yield to yield */
+#undef USE_YIELD_YIELD
+
+/* define to dynamically select yield */
+#undef USE_DYNAMIC_YIELD
+
+/* define to use select to yield */
+#undef USE_SELECT_YIELD
+

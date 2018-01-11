@@ -11,17 +11,20 @@
 #include <windows.h>
 #include <tchar.h>
 
+#define MAX_CMD_LENGTH  8192
+#define MAX_HOST_LENGTH	64
+
 struct HostNode
 {
-	TCHAR host[100];
-	TCHAR exe[MAX_PATH];
-	long nSMPProcs;
-	HostNode *next;
+    TCHAR host[100];
+    TCHAR exe[MAX_CMD_LENGTH];
+    long nSMPProcs;
+    HostNode *next;
 };
 
 struct ForwardHostStruct
 {
-    char pszHost[40];
+    char pszHost[MAX_HOST_LENGTH];
     int nPort;
 };
 
@@ -56,16 +59,20 @@ extern int g_nNproc;
 extern long g_nRootPort;
 extern TCHAR g_pszAccount[100], g_pszPassword[100];
 extern bool g_bNoMPI;
-extern char g_pszExe[MAX_PATH], g_pszArgs[MAX_PATH], g_pszEnv[1024];
+extern char g_pszExe[MAX_CMD_LENGTH], g_pszArgs[MAX_CMD_LENGTH], g_pszEnv[MAX_CMD_LENGTH];
 extern char g_pszDir[MAX_PATH];
-extern char g_pszExeOrig[MAX_PATH];
-extern char g_pszFirstHost[100];
+extern char g_pszExeOrig[MAX_CMD_LENGTH];
+extern char g_pszFirstHost[MAX_HOST_LENGTH];
 extern HANDLE g_hFinishedEvent;
 extern HANDLE g_hConsoleOutputMutex;
-extern char g_pszIOHost[100];
+extern char g_pszIOHost[MAX_HOST_LENGTH];
 extern int g_nIOPort;
 extern bool g_bDoMultiColorOutput;
 extern WORD g_ConsoleAttribute;
+extern bool g_bUseJobHost;
+extern char g_pszJobHost[MAX_HOST_LENGTH];
+extern bool g_bUseJobMPDPwd;
+extern char g_pszJobHostMPDPwd[100];
 
 #include <wincon.h>
 #define NUM_OUTPUT_COLORS 32

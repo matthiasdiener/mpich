@@ -67,11 +67,11 @@ int main( int argc, char *argv[] )
    */
   argc--; argv++;
   while (argc > 0) {
-    if (argv[0] && strcmp( argv[0], "-n" )) {
+    if (argv[0] && strcmp( argv[0], "-n" ) == 0) {
       argc++;
       n = atoi( argv[0] );
     }
-    else if (argv[0] && strcmp( argv[0], "-m" )) {
+    else if (argv[0] && strcmp( argv[0], "-m" ) == 0) {
       argc++;
       m = atoi( argv[0] );
     }
@@ -101,10 +101,13 @@ int main( int argc, char *argv[] )
     for (i=0; i<n; i++) {
       delay( 10 );
       MPI_Recv( &val, 1, MPI_INT, src, tag, comm, &status );
+      /* The messages are sent in order that matches the value of i; 
+	 if they are not received in order, this will show up in the
+	 value here */
       if (val != i) { 
 	if (err < 10) {
 	  fprintf( stdout, 
-   "Error in message order: message %d received when %d expected\n", val, i );
+   "Error in message order (single int): message %d received when %d expected\n", val, i );
 	}
 	err++;
       }
@@ -159,7 +162,7 @@ int main( int argc, char *argv[] )
   MPI_Comm_rank( MPI_COMM_WORLD, &rank );
   if (rank == 0) {
     if (toterr) printf( "Found %d errors\n", toterr );
-    else        printf( "No errors\n" );
+    else        printf( " No Errors\n" );
   }
 
   MPI_Barrier( MPI_COMM_WORLD );

@@ -1,5 +1,5 @@
 /*
- *  $Id: gatherv.c,v 1.12 2001/11/14 19:50:12 ashton Exp $
+ *  $Id: gatherv.c,v 1.13 2002/02/19 14:47:20 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -76,13 +76,6 @@ int MPI_Gatherv ( void *sendbuf, int sendcnt, MPI_Datatype sendtype,
 
   stype_ptr = MPIR_GET_DTYPE_PTR(sendtype);
 
-  /* rtype is significant only at root */
-  (void) MPIR_Comm_rank ( comm_ptr, &rank );
-  if (rank == root) {
-      rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
-      MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
-  }
-
 #ifndef MPIR_NO_ERROR_CHECKING
   MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr, myname);
   MPIR_TEST_COUNT(sendcnt);
@@ -90,6 +83,17 @@ int MPI_Gatherv ( void *sendbuf, int sendcnt, MPI_Datatype sendtype,
   if (mpi_errno)
       return MPIR_ERROR(comm_ptr, mpi_errno, myname );
 #endif
+
+  /* rtype is significant only at root */
+  (void) MPIR_Comm_rank ( comm_ptr, &rank );
+  if (rank == root) {
+      rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
+#ifndef MPIR_NO_ERROR_CHECKING
+      MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
+      if (mpi_errno)
+          return MPIR_ERROR(comm_ptr, mpi_errno, myname );
+#endif
+  }
 
   MPIR_ERROR_PUSH(comm_ptr);
   mpi_errno = comm_ptr->collops->Gatherv( sendbuf, sendcnt,  stype_ptr, 

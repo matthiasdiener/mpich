@@ -177,72 +177,100 @@ int p4_recv( int *req_type, int *req_from, char **msg, int *len_rcvd)
 
 struct p4_msg *recv_message( int *req_type, int *req_from )
 {
-
     p4_dprintfl( 99, "Starting recv_message for type = %d and sender = %d\n",
 		 *req_type, *req_from );
 #if  defined(CAN_DO_SOCKET_MSGS) && \
     !defined(CAN_DO_SHMEM_MSGS)  && \
     !defined(CAN_DO_CUBE_MSGS)   && \
-    !defined(CAN_DO_SWITCH_MSGS)
+    !defined(CAN_DO_SWITCH_MSGS) && \
+    !defined(CAN_DO_TCMP_MSGS)
 
     return (socket_recv( P4_TRUE ));
 
 #else
-
-    while (P4_TRUE)
     {
+	int i;
+#ifdef USE_YIELD
+	int cnt = 0;
+#define BACKOFF_LIMIT 8
+	/* If a yield method has been selected, yield after BACKOFF 
+	   cycles.  
+	   We also spin a few times on the shmem messages first,
+	   since communication here will be faster and the
+	   added latency of spinning on the shmem_msgs will
+	   be neglible for the other devices
+	*/
+#endif
+	while (P4_TRUE) {
 #       if defined(CAN_DO_SHMEM_MSGS)
-	if (shmem_msgs_available())
-	{
-	    return (shmem_recv());
-	}
+	    /* Optimally, this would spin for the round-trip time. 
+	       Figure that at 5 us, and a very conservative .1us per
+	       function call (in 2002, probably a gross overestimate),
+	       that suggests at least 50 iterations.  We'll try 50
+	       (that should be safe - shmem_msgs_available
+	       is a short routine).   This could be tuned for
+	       different platforms.
+	    */
+	    for (i=0; i<50; i++) {
+		if (shmem_msgs_available())
+		    {
+			return (shmem_recv());
+		    }
+	    }
 #       endif
 
 #       if defined(CAN_DO_EUI_MSGS)
-	return (MD_eui_recv());
+	    return (MD_eui_recv());
 #       endif
 
 #       if defined(CAN_DO_EUIH_MSGS)
-	if (MD_euih_msgs_available())
-	{
-	    return (MD_euih_recv());
-	}
+	    if (MD_euih_msgs_available())
+		{
+		    return (MD_euih_recv());
+		}
 #       endif
 
 #       if defined(CAN_DO_SOCKET_MSGS)
-	if (socket_msgs_available())
-	{
-	    return (socket_recv( P4_FALSE ));
-	}
+	    if (socket_msgs_available())
+		{
+		    return (socket_recv( P4_FALSE ));
+		}
 #       endif
 
 #       if defined(CAN_DO_CUBE_MSGS)
-	if (MD_cube_msgs_available())
-	{
-	    return (MD_cube_recv());
-	}
+	    if (MD_cube_msgs_available())
+		{
+		    return (MD_cube_recv());
+		}
 #       endif
 
 #       if defined(CAN_DO_SWITCH_MSGS)
-	if (p4_global->proctable[p4_local->my_id].switch_port != -1)
-	{
-	    int rc, len;
-	    if (rc = sw_probe(req_from, p4_local->my_id, req_type, &len))
-	    {
-		struct p4_msg *tmsg;
-		tmsg = alloc_p4_msg(len - sizeof(struct p4_msg) + sizeof(char *));
-		sw_recv(rc, tmsg);
-		p4_dprintfl(10, "p4_recv: received message from switch\n");
-		return (tmsg);
-	    }
-	}
+	    if (p4_global->proctable[p4_local->my_id].switch_port != -1)
+		{
+		    int rc, len;
+		    if (rc = sw_probe(req_from, p4_local->my_id, req_type, &len))
+			{
+			    struct p4_msg *tmsg;
+			    tmsg = alloc_p4_msg(len - sizeof(struct p4_msg) + sizeof(char *));
+			    sw_recv(rc, tmsg);
+			    p4_dprintfl(10, "p4_recv: received message from switch\n");
+			    return (tmsg);
+			}
+		}
 #       endif
 #       if defined(CAN_DO_TCMP_MSGS)
-	if (MD_tcmp_msgs_available(req_type,req_from))
-	{
-	    return (MD_tcmp_recv());
-	}
+	    if (MD_tcmp_msgs_available(req_type,req_from))
+		{
+		    return (MD_tcmp_recv());
+		}
 #       endif
+#       ifdef USE_YIELD
+	    if (cnt++ > BACKOFF_LIMIT) {
+		cnt = 0;
+		p4_yield();
+	    }
+#       endif
+	}
     }
 
 
@@ -630,3 +658,85 @@ P4VOID free_avail_quels()
     p4_unlock(&p4_global->avail_quel_lock);
 }
 
+/*
+ * This yield code is taken from p2p_yield in ch_shmem/p2p.c
+ */
+/*
+   Yield to other processes (rather than spinning in place)
+ */
+#ifdef USE_DYNAMIC_YIELD
+#ifdef HAVE_SCHED_H
+#include <sched.h>
+#endif
+void p4_yield( void )
+{
+    static int first_call = 1;
+    static int kind = 1;
+
+    if (first_call) {
+	/* Get the yield style from the environment.  The default is 
+	   sched_yield */
+	char *name = getenv( "MPICH_YIELD" );
+	if (name) {
+	    if (strcmp( "sched_yield", name ) == 0) {
+		kind = 1;
+	    }
+	    else if (strcmp( "select", name ) == 0) {
+		kind = 2;
+	    }
+	    else if (strcmp( "none", name ) == 0) {
+		kind = 0;
+	    }
+	}
+    }
+    switch (kind) {
+    case 0: return;
+    case 1:
+	sched_yield();
+	break;
+    case 2: 
+    {
+	struct timeval tp;
+	/*	fd_set readmask;  */
+	tp.tv_sec  = 0;
+	tp.tv_usec = 0;
+	/*	FD_ZERO(&readmask);
+		FD_SET(1,&readmask); */
+	/*select( 2, (void *)&readmask, (void *)0, (void *)0, &tp ); */
+	select( 0, (void *)0, (void *)0, (void *)0, &tp );
+    }
+    break;
+    }
+}
+#else
+#ifdef HAVE_SCHED_H
+#include <sched.h>
+#endif
+void p4_yield( void )
+{
+#if defined(USE_SGINAP_YIELD)
+    /* Multiprocessor IRIX machines may want to comment this out for lower
+       latency */
+    sginap(0);
+
+#elif defined(USE_SCHED_YIELD)
+    /* This is a POSIX function to yield the process */
+    sched_yield();
+#elif defined(USE_YIELD_YIELD)
+    yield();
+#elif defined(USE_SELECT_YIELD)
+    /* Use a short select as a way to suggest to the OS to deschedule the 
+       process.  Solaris select hangs if count is zero, so we check fd 1  
+       This may not accomplish a process yield, depending on the OS.  
+    */
+    struct timeval tp;
+    /* fd_set readmask; */
+    tp.tv_sec  = 0;
+    tp.tv_usec = 0;
+    /* FD_ZERO(&readmask);
+       FD_SET(1,&readmask); */
+    /*select( 2, (void *)&readmask, (void *)0, (void *)0, &tp ); */
+    select( 0, (void *)0, (void *)0, (void *)0, &tp );
+#endif
+}
+#endif

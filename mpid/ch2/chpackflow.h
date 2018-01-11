@@ -155,3 +155,8 @@ extern void MPID_PacketFlowSetup( void );
 extern void MPID_SendProtoAck( int, int );
 extern void MPID_RecvProtoAck( MPID_PKT_T *, int );
 extern void MPID_PackDelete( void );
+extern void MPID_FinishRecvPackets( MPID_Device * );
+#ifdef MPID_USE_SHMEM
+/* Send the flow control using an existing packet */
+extern void MPID_SendProtoAckWithPacket( int, int, MPID_PKT_T * );
+#endif

@@ -109,6 +109,7 @@ void CGuiMPIRunView::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_NPROC_SPIN, m_nproc_spin);
 	DDX_Control(pDX, IDC_BREAK_BTN, m_break_btn);
 	DDX_Control(pDX, IDC_ADD_HOST_BTN, m_add_btn);
+	DDX_Control(pDX, IDC_ANY_HOSTS_RADIO, m_any_hosts_btn);
     DDX_Control(pDX, IDC_HOST_EDIT, m_host_edit);
     DDX_Control(pDX, IDC_OUTPUT, m_output);
     DDX_Control(pDX, IDC_HOST_LIST, m_host_list);
@@ -165,6 +166,11 @@ void CGuiMPIRunView::OnInitialUpdate()
     GetParentFrame()->RecalcLayout();
     ResizeParentToFit();
 
+    RECT r;
+    GetClientRect(&r);
+    m_nMinWidth = r.right;
+    m_nMinHeight = r.bottom;
+
     rOutput.SetInitialPosition(m_output.m_hWnd, RSR_STRETCH);
     rHostList.SetInitialPosition(m_host_list.m_hWnd, RSR_ANCHOR_RIGHT_STRETCH);
     rAppCombo.SetInitialPosition(m_app_combo.m_hWnd, RSR_STRETCH_RIGHT);
@@ -184,6 +190,7 @@ void CGuiMPIRunView::OnInitialUpdate()
     DWORD nLength = 4096;
     if (ReadMPDRegistry("hosts", pszHosts, &nLength))
     {
+	/*
 	char *token = NULL;
 	token = strtok(pszHosts, "|");
 	if (token != NULL)
@@ -194,6 +201,18 @@ void CGuiMPIRunView::OnInitialUpdate()
 		m_host_list.InsertString(-1, token);
 	    }
 	}
+	*/
+	QVS_Container *phosts;
+	phosts = new QVS_Container(pszHosts);
+	if (phosts->first(pszHosts, 4096))
+	{
+	    m_host_list.InsertString(-1, pszHosts);
+	    while (phosts->next(pszHosts, 4096))
+	    {
+		m_host_list.InsertString(-1, pszHosts);
+	    }
+	}
+	delete phosts;
     }
     else
     {
@@ -213,6 +232,7 @@ void CGuiMPIRunView::OnInitialUpdate()
 	m_Phrase = MPD_DEFAULT_PASSPHRASE;
     }
 
+    m_any_hosts_btn.SetCheck(1);
     // Initially "any hosts" is selected, so the host list is disabled
     m_host_list.EnableWindow(FALSE);
     m_host_edit.EnableWindow(FALSE);
@@ -264,16 +284,19 @@ void CGuiMPIRunView::OnSize(UINT nType, int cx, int cy)
 {
     CFormView::OnSize(nType, cx, cy);
     
-    rOutput.Resize(cx, cy);
-    rHostList.Resize(cx, cy);
-    rAppCombo.Resize(cx, cy);
-    rAppBrowse.Resize(cx, cy);
-    rAnyHost.Resize(cx, cy);
-    rHost.Resize(cx, cy);
-    rHostEdit.Resize(cx, cy);
-    rAdd.Resize(cx, cy);
-    rAdvanced.Resize(cx, cy);
-    rReset.Resize(cx, cy);
+    if (m_nMinWidth < cx || m_nMinHeight < cy)
+    {
+	rOutput.Resize(cx, cy);
+	rHostList.Resize(cx, cy);
+	rAppCombo.Resize(cx, cy);
+	rAppBrowse.Resize(cx, cy);
+	rAnyHost.Resize(cx, cy);
+	rHost.Resize(cx, cy);
+	rHostEdit.Resize(cx, cy);
+	rAdd.Resize(cx, cy);
+	rAdvanced.Resize(cx, cy);
+	rReset.Resize(cx, cy);
+    }
 }
 
 void CGuiMPIRunView::OnDeltaposNprocSpin(NMHDR* pNMHDR, LRESULT* pResult) 
@@ -1079,6 +1102,7 @@ void CGuiMPIRunView::OnResetHostsBtn()
     DWORD nLength = 4096;
     if (ReadMPDRegistry("hosts", pszHosts, &nLength))
     {
+	/*
 	char *token = NULL;
 	token = strtok(pszHosts, "|");
 	if (token != NULL)
@@ -1089,6 +1113,18 @@ void CGuiMPIRunView::OnResetHostsBtn()
 		m_host_list.InsertString(-1, token);
 	    }
 	}
+	*/
+	QVS_Container *phosts;
+	phosts = new QVS_Container(pszHosts);
+	if (phosts->first(pszHosts, 4096))
+	{
+	    m_host_list.InsertString(-1, pszHosts);
+	    while (phosts->next(pszHosts, 4096))
+	    {
+		m_host_list.InsertString(-1, pszHosts);
+	    }
+	}
+	delete phosts;
     }
     else
     {

@@ -83,7 +83,45 @@ struct BFD_Buffer_struct {
 static BlockAllocator g_bfd_allocator;
 static int g_bbuflen = 1024;
 static int g_buf_pool_size = FD_SETSIZE;
-static int g_beasy_connection_attempts = 5;
+static int g_beasy_connection_attempts = 15;
+
+#ifdef HAVE_WINSOCK2_H
+static void log_warning(char *str, ...)
+{
+    char    szMsg[256] = "bsocket error";
+    HANDLE  hEventSource;
+    char   *lpszStrings[2];
+    char pszStr[4096];
+    va_list list;
+
+    // Write to a temporary string
+    va_start(list, str);
+    vsprintf(pszStr, str, list);
+    va_end(list);
+    
+    hEventSource = RegisterEventSource(NULL, "bsocket");
+    
+    lpszStrings[0] = szMsg;
+    lpszStrings[1] = pszStr;
+    
+    if (hEventSource != NULL) 
+    {
+	ReportEvent(hEventSource, /* handle of event source */
+	    EVENTLOG_WARNING_TYPE,  /* event type */
+	    0,                    /* event category */
+	    0,                    /* event ID */
+	    NULL,                 /* current user's SID */
+	    2,                    /* strings in lpszStrings */
+	    0,                    /* no bytes of raw data */
+	    (LPCTSTR*)lpszStrings,/* array of error strings */
+	    NULL);                /* no raw data */
+	
+	DeregisterEventSource(hEventSource);
+    }
+}
+#else
+#define log_warning()
+#endif
 
 /*@
    bget_fd - 
@@ -99,19 +137,56 @@ unsigned int bget_fd(int bfd)
 }
 
 /*@
-   bset - 
+   bset - bset
 
    Parameters:
-+  int bfd
--  bfd_set *s
++  int bfd - bfd
+-  bfd_set *s - set
 
    Notes:
 @*/
 void bset(int bfd, bfd_set *s)
 {
+    int i;
     FD_SET( bget_fd(bfd), & (s) -> set );
-    ((BFD_Buffer*)bfd) -> next = s->p;
-    s->p = (BFD_Buffer*)bfd;
+    for (i=0; i<s->n; i++)
+    {
+	if (s->p[i] == (BFD_Buffer*)bfd)
+	    return;
+    }
+    s->p[s->n] = (BFD_Buffer*)bfd;
+    s->n++;
+}
+
+/*@
+   bclr - blcr
+
+   Parameters:
++  int bfd - bfd
+-  bfd_set *s - set
+
+   Notes:
+@*/
+void bclr(int bfd, bfd_set *s)
+{
+    int i;
+    BFD_Buffer* p;
+
+    FD_CLR( bget_fd(bfd), & (s) -> set );
+
+    if (s->n == 0)
+	return;
+
+    p = (BFD_Buffer*)bfd;
+    for (i=0; i<s->n; i++)
+    {
+	if (s->p[i] == p)
+	{
+	    s->p[i] = s->p[s->n-1];
+	    s->n--;
+	    return;
+	}
+    }
 }
 
 /*@
@@ -120,7 +195,7 @@ bsocket_init -
   
     Notes:
 @*/
-static int g_bInitFinalize = 0;
+static int g_nInitRefCount = 0;
 int bsocket_init(void)
 {
     char *pszEnvVar;
@@ -129,8 +204,11 @@ int bsocket_init(void)
     WSADATA wsaData;
     int err;
     
-    if (g_bInitFinalize == 1)
+    if (g_nInitRefCount)
+    {
+	g_nInitRefCount++;
 	return 0;
+    }
 
     /* Start the Winsock dll */
     if ((err = WSAStartup(MAKEWORD(2, 0), &wsaData)) != 0)
@@ -153,7 +231,7 @@ int bsocket_init(void)
 
     g_bfd_allocator = BlockAllocInit(sizeof(BFD_Buffer) + g_bbuflen, g_buf_pool_size, g_buf_pool_size, malloc, free);
 
-    g_bInitFinalize = 1;
+    g_nInitRefCount++;
 
     return 0;
 }
@@ -166,7 +244,10 @@ bsocket_finalize -
 @*/
 int bsocket_finalize(void)
 {
-    if (g_bInitFinalize == 0)
+    g_nInitRefCount--;
+    if (g_nInitRefCount < 1)
+	g_nInitRefCount = 0;
+    else
 	return 0;
 
     BlockAllocFinalize(&g_bfd_allocator);
@@ -175,7 +256,6 @@ int bsocket_finalize(void)
     WSACleanup();
 #endif
 
-    g_bInitFinalize = 0;
     return 0;
 }
 
@@ -199,7 +279,7 @@ int bsocket(int family, int type, int protocol)
     if (pbfd == 0) 
     {
 	DBG_MSG(("ERROR in bsocket: BlockAlloc returned NULL"));
-	return -1;
+	return SOCKET_ERROR;
     }
     
     memset(pbfd, 0, sizeof(BFD_Buffer));
@@ -210,7 +290,7 @@ int bsocket(int family, int type, int protocol)
 	DBG_MSG("ERROR in bsocket: socket returned SOCKET_ERROR\n");
 	memset(pbfd, 0, sizeof(BFD_Buffer));
 	BlockFree(g_bfd_allocator, pbfd);
-	return -1;
+	return SOCKET_ERROR;
     }
     
     return (int)pbfd;
@@ -338,11 +418,37 @@ int bselect(int maxfds, bfd_set *readbfds, bfd_set *writebfds,
     int 	   nbfds;
     bfd_set        rcopy;
     BFD_Buffer     *p;
+    int            i;
 
     DBG_MSG("Enter bselect\n");
     
     if (readbfds)
+    {
+	nbfds = 0;
 	rcopy = *readbfds;
+	/* check to see if there are any bfds with buffered data */
+	for (i=0; i<readbfds->n; i++)
+	{
+	    p = readbfds->p[i];
+	    if (p->num_avail > 0 && (FD_ISSET(p->real_fd, &rcopy.set)))
+	    {
+		FD_SET((unsigned int)p->real_fd, &readbfds->set);
+		nbfds++;
+	    }
+	}
+	if (nbfds)
+	{
+	    /* buffered data is available, return it plus any writeable bfds */
+	    if (writebfds)
+	    {
+		maxfds = ((BFD_Buffer*)maxfds)->real_fd + 1;
+		i = select(maxfds, NULL, &writebfds->set, NULL, tv);
+		if (i != SOCKET_ERROR)
+		    nbfds += i;
+	    }
+	    return nbfds;
+	}
+    }
 
     maxfds = ((BFD_Buffer*)maxfds)->real_fd + 1;
     nbfds = select(maxfds, 
@@ -354,15 +460,17 @@ int bselect(int maxfds, bfd_set *readbfds, bfd_set *writebfds,
     
     if (readbfds)
     {
-	p =  readbfds->p;
-	while (p)
+	/* check to see if there are any bfds with buffered data that were not 
+	 * set readable by select
+	 */
+	for (i=0; i<readbfds->n; i++)
 	{
+	    p = readbfds->p[i];
 	    if (p->num_avail > 0 && (FD_ISSET(p->real_fd, &rcopy.set)) && !(FD_ISSET(p->real_fd, &readbfds->set)))
 	    {
 		FD_SET((unsigned int)p->real_fd, &readbfds->set);
 		nbfds++;
 	    }
-	    p = p->next;
 	}
     }
     
@@ -490,12 +598,12 @@ int bread(int bfd, char *ubuf, int len)
 	    pbfd->state = BFD_ERROR;
 	    pbfd->errval = 0;
 	}
-	else if (n == -1) 
+	else if (n == SOCKET_ERROR) 
 	{
 	    if ((errno != EINTR) || (errno != EAGAIN)) 
 	    {
 		pbfd->state = BFD_ERROR;
-		pbfd->errval = -1;
+		pbfd->errval = SOCKET_ERROR;
 	    }
 	    n = 0;
 	}
@@ -515,14 +623,16 @@ int bread(int bfd, char *ubuf, int len)
 	pbfd->state = BFD_ERROR;
 	pbfd->errval = 0;
     }
-    else if (n == -1) 
+    else if (n == SOCKET_ERROR) 
     {
 	if ((errno != EINTR) || (errno != EAGAIN)) 
 	{
 	    pbfd->state = BFD_ERROR;
-	    pbfd->errval = -1;
+	    pbfd->errval = SOCKET_ERROR;
 	}
-	return -1;
+	if (pbfd->num_avail)
+	    return pbfd->num_avail;
+	return SOCKET_ERROR;
     }
     
     pbfd->num_avail = n;
@@ -668,12 +778,12 @@ int breadv(int bfd, B_VECTOR *vec, int veclen)
     }
 #else
     n = readv(fd, &vec[i], veclen - i + 1);
-    if (n == -1) 
+    if (n == SOCKET_ERROR) 
     {
 	if ((errno != EINTR) || (errno != EAGAIN)) 
 	{
 	    pbfd->state = BFD_ERROR;
-	    pbfd->errval = -1;
+	    pbfd->errval = SOCKET_ERROR;
 	}
 	n = 0; /* Set this to zero so it can be added to num_read */
     }
@@ -800,7 +910,9 @@ int beasy_create(int *bfd, int port, unsigned long addr)
 {
     struct sockaddr_in sin;
     int optval = 1;
+#ifdef USE_LINGER_SOCKOPT
     struct linger linger;
+#endif
 
     /* Create a new bsocket */
     *bfd = bsocket(AF_INET, SOCK_STREAM, 0);
@@ -823,10 +935,12 @@ int beasy_create(int *bfd, int port, unsigned long addr)
     /* Set the no-delay option */
     bsetsockopt(*bfd, IPPROTO_TCP, TCP_NODELAY, (char *)&optval, sizeof(optval));
 
+#ifdef USE_LINGER_SOCKOPT
     /* Set the linger on close option */
     linger.l_onoff = 1 ;
     linger.l_linger = 60;
     bsetsockopt(*bfd, SOL_SOCKET, SO_LINGER, (char*)&linger, sizeof(linger));
+#endif
 
     return 0;
 }
@@ -847,7 +961,13 @@ int beasy_connect(int bfd, char *host, int port)
     int reps = 0;
     struct hostent *lphost;
     struct sockaddr_in sockAddr;
+#ifdef USE_LINGER_SOCKOPT
     struct linger linger;
+#endif
+#ifdef HAVE_WINSOCK2_H
+    /* use this array to make sure the warning only gets logged once */
+    BOOL bWarningLogged[4] = { FALSE, FALSE, FALSE, FALSE };
+#endif
     memset(&sockAddr,0,sizeof(sockAddr));
     
     sockAddr.sin_family = AF_INET;
@@ -869,12 +989,46 @@ int beasy_connect(int bfd, char *host, int port)
 #ifdef HAVE_WINSOCK2_H
 	error = WSAGetLastError();
 	srand(clock());
-	if( (error == WSAECONNREFUSED || error == WSAETIMEDOUT || error == WSAENETUNREACH)
+	if( (error == WSAECONNREFUSED || error == WSAETIMEDOUT || error == WSAENETUNREACH || error == WSAEADDRINUSE)
 	    && (reps < g_beasy_connection_attempts) )
 	{
 	    double d = (double)rand() / (double)RAND_MAX;
 	    Sleep(200 + (int)(d*200));
 	    reps++;
+	    switch (error)
+	    {
+	    case WSAECONNREFUSED:
+		if (!bWarningLogged[0])
+		{
+		    /*log_warning("WSAECONNREFUSED error, re-attempting bconnect(%s)", host);*/
+		    bWarningLogged[0] = TRUE;
+		}
+		break;
+	    case WSAETIMEDOUT:
+		if (!bWarningLogged[1])
+		{
+		    log_warning("WSAETIMEDOUT error, re-attempting bconnect(%s)", host);
+		    bWarningLogged[1] = TRUE;
+		}
+		break;
+	    case WSAENETUNREACH:
+		if (!bWarningLogged[2])
+		{
+		    log_warning("WSAENETUNREACH error, re-attempting bconnect(%s)", host);
+		    bWarningLogged[2] = TRUE;
+		}
+		break;
+	    case WSAEADDRINUSE:
+		if (!bWarningLogged[3])
+		{
+		    log_warning("WSAEADDRINUSE error, re-attempting bconnect(%s)", host);
+		    bWarningLogged[3] = TRUE;
+		}
+		break;
+	    default:
+		log_warning("%d error, re-attempting bconnect");
+		break;
+	    }
 	}
 	else
 	{
@@ -898,11 +1052,198 @@ int beasy_connect(int bfd, char *host, int port)
 #endif
     }
 
+#ifdef USE_LINGER_SOCKOPT
     /* Set the linger on close option */
     linger.l_onoff = 1 ;
     linger.l_linger = 60;
     bsetsockopt(bfd, SOL_SOCKET, SO_LINGER, (char*)&linger, sizeof(linger));
+#endif
 
+    return 0;
+}
+
+/*@
+   beasy_connect_quick - connect without retries
+
+   Parameters:
++  int bfd - bsocket
+.  char *host - hostname
+-  int port - port
+
+   Notes:
+@*/
+int beasy_connect_quick(int bfd, char *host, int port)
+{
+    struct hostent *lphost;
+    struct sockaddr_in sockAddr;
+#ifdef USE_LINGER_SOCKOPT
+    struct linger linger;
+#endif
+    memset(&sockAddr,0,sizeof(sockAddr));
+    
+    sockAddr.sin_family = AF_INET;
+    sockAddr.sin_addr.s_addr = inet_addr(host);
+    
+    if (sockAddr.sin_addr.s_addr == INADDR_NONE || sockAddr.sin_addr.s_addr == 0)
+    {
+	lphost = gethostbyname(host);
+	if (lphost != NULL)
+	    sockAddr.sin_addr.s_addr = ((struct in_addr *)lphost->h_addr)->s_addr;
+	else
+	    return SOCKET_ERROR;
+    }
+    
+    sockAddr.sin_port = htons((u_short)port);
+    
+    if (bconnect(bfd, (SOCKADDR*)&sockAddr, sizeof(sockAddr)) == SOCKET_ERROR)
+    {
+	return SOCKET_ERROR;
+    }
+
+#ifdef USE_LINGER_SOCKOPT
+    /* Set the linger on close option */
+    linger.l_onoff = 1 ;
+    linger.l_linger = 60;
+    bsetsockopt(bfd, SOL_SOCKET, SO_LINGER, (char*)&linger, sizeof(linger));
+#endif
+
+    return 0;
+}
+
+/*@
+   beasy_connect - connect
+
+   Parameters:
++  int bfd - bsocket
+.  char *host - hostname
+.  int port - port
+-  int seconds - timeout value in seconds
+
+   Notes:
+@*/
+int beasy_connect_timeout(int bfd, char *host, int port, int seconds)
+{
+#ifdef HAVE_WINSOCK2_H
+    BOOL b;
+#endif
+    clock_t start, current;
+    int error;
+    int reps = 0;
+    struct hostent *lphost;
+    struct sockaddr_in sockAddr;
+#ifdef USE_LINGER_SOCKOPT
+    struct linger linger;
+#endif
+#ifdef HAVE_WINSOCK2_H
+    /* use this array to make sure the warning only gets logged once */
+    BOOL bWarningLogged[4] = { FALSE, FALSE, FALSE, FALSE };
+#endif
+
+    start = clock();
+
+    memset(&sockAddr,0,sizeof(sockAddr));
+    
+    sockAddr.sin_family = AF_INET;
+    sockAddr.sin_addr.s_addr = inet_addr(host);
+    
+    if (sockAddr.sin_addr.s_addr == INADDR_NONE || sockAddr.sin_addr.s_addr == 0)
+    {
+	lphost = gethostbyname(host);
+	if (lphost != NULL)
+	    sockAddr.sin_addr.s_addr = ((struct in_addr *)lphost->h_addr)->s_addr;
+	else
+	    return SOCKET_ERROR;
+    }
+    
+    sockAddr.sin_port = htons((u_short)port);
+    
+    while (bconnect(bfd, (SOCKADDR*)&sockAddr, sizeof(sockAddr)) == SOCKET_ERROR)
+    {
+	current = clock();
+	if (((current - start) / CLOCKS_PER_SEC) > seconds)
+	{
+#ifdef HAVE_WINSOCK2_H
+	    WSASetLastError(WSAETIMEDOUT);
+#endif
+	    return SOCKET_ERROR;
+	}
+#ifdef HAVE_WINSOCK2_H
+	error = WSAGetLastError();
+	srand(clock());
+	if( (error == WSAECONNREFUSED || error == WSAETIMEDOUT || error == WSAENETUNREACH || error == WSAEADDRINUSE)
+	    && (reps < g_beasy_connection_attempts) )
+	{
+	    double d = (double)rand() / (double)RAND_MAX;
+	    Sleep(200 + (int)(d*200));
+	    reps++;
+	    switch (error)
+	    {
+	    case WSAECONNREFUSED:
+		if (!bWarningLogged[0])
+		{
+		    /*log_warning("WSAECONNREFUSED error, re-attempting bconnect(%s)", host);*/
+		    bWarningLogged[0] = TRUE;
+		}
+		break;
+	    case WSAETIMEDOUT:
+		if (!bWarningLogged[1])
+		{
+		    log_warning("WSAETIMEDOUT error, re-attempting bconnect(%s)", host);
+		    bWarningLogged[1] = TRUE;
+		}
+		break;
+	    case WSAENETUNREACH:
+		if (!bWarningLogged[2])
+		{
+		    log_warning("WSAENETUNREACH error, re-attempting bconnect(%s)", host);
+		    bWarningLogged[2] = TRUE;
+		}
+		break;
+	    case WSAEADDRINUSE:
+		if (!bWarningLogged[3])
+		{
+		    log_warning("WSAEADDRINUSE error, re-attempting bconnect(%s)", host);
+		    bWarningLogged[3] = TRUE;
+		}
+		break;
+	    default:
+		log_warning("%d error, re-attempting bconnect");
+		break;
+	    }
+	}
+	else
+	{
+	    return SOCKET_ERROR;
+	}
+#else
+	if( (errno == ECONNREFUSED || errno == ETIMEDOUT || errno == ENETUNREACH)
+	    && (reps < g_beasy_connection_attempts) )
+	{
+#ifdef HAVE_USLEEP
+	    usleep(200);
+#else
+	    sleep(0);
+#endif
+	    reps++;
+	}
+	else
+	{
+	    return SOCKET_ERROR;
+	}
+#endif
+    }
+
+#ifdef USE_LINGER_SOCKOPT
+    /* Set the linger on close option */
+    linger.l_onoff = 1 ;
+    linger.l_linger = 60;
+    bsetsockopt(bfd, SOL_SOCKET, SO_LINGER, (char*)&linger, sizeof(linger));
+#endif
+
+#ifdef HAVE_WINSOCK2_H
+    b = TRUE;
+    bsetsockopt(bfd, IPPROTO_TCP, TCP_NODELAY, (char*)&b, sizeof(BOOL));
+#endif
     return 0;
 }
 
@@ -919,7 +1260,9 @@ int beasy_accept(int bfd)
 #ifdef HAVE_WINSOCK2_H
     BOOL b;
 #endif
+#ifdef USE_LINGER_SOCKOPT
     struct linger linger;
+#endif
     struct sockaddr addr;
     int len;
     int client;
@@ -932,9 +1275,11 @@ int beasy_accept(int bfd)
 	return BFD_INVALID_SOCKET;
     }
 
+#ifdef USE_LINGER_SOCKOPT
     linger.l_onoff = 1;
     linger.l_linger = 60;
     bsetsockopt(client, SOL_SOCKET, SO_LINGER, (char*)&linger, sizeof(linger));
+#endif
 
 #ifdef HAVE_WINSOCK2_H
     b = TRUE;
@@ -1067,7 +1412,8 @@ int beasy_receive(int bfd, char *buffer, int len)
     num_received = bread(bfd, buffer, len);
     if (num_received == SOCKET_ERROR)
     {
-	return SOCKET_ERROR;
+	if ((errno != EINTR) || (errno != EAGAIN))
+	    return SOCKET_ERROR;
     }
     else
     {
@@ -1086,7 +1432,8 @@ int beasy_receive(int bfd, char *buffer, int len)
 	    num_received = bread(bfd, buffer, len);
 	    if (num_received == SOCKET_ERROR)
 	    {
-		return SOCKET_ERROR;
+		if ((errno != EINTR) || (errno != EAGAIN))
+		    return SOCKET_ERROR;
 	    }
 	    else
 	    {
@@ -1103,7 +1450,10 @@ int beasy_receive(int bfd, char *buffer, int len)
 	else
 	{
 	    if (ret_val == SOCKET_ERROR)
-		return SOCKET_ERROR;
+	    {
+		if ((errno != EINTR) || (errno != EAGAIN))
+		    return SOCKET_ERROR;
+	    }
 	}
     }
 
@@ -1130,7 +1480,8 @@ int beasy_receive_some(int bfd, char *buffer, int len)
     num_received = bread(bfd, buffer, len);
     if (num_received == SOCKET_ERROR)
     {
-	return SOCKET_ERROR;
+	if ((errno != EINTR) || (errno != EAGAIN))
+	    return SOCKET_ERROR;
     }
     else
     {
@@ -1147,7 +1498,8 @@ int beasy_receive_some(int bfd, char *buffer, int len)
 	num_received = bread(bfd, buffer, len);
 	if (num_received == SOCKET_ERROR)
 	{
-	    return SOCKET_ERROR;
+	    if ((errno != EINTR) || (errno != EAGAIN))
+		return SOCKET_ERROR;
 	}
 	else
 	{
@@ -1155,7 +1507,7 @@ int beasy_receive_some(int bfd, char *buffer, int len)
 	    {
 		/*printf("beasy_receive_some: socket closed\n");*/
 		/*bmake_blocking(bfd);*/
-		return 0;
+		return SOCKET_ERROR;
 	    }
 	    return num_received;
 	}
@@ -1209,7 +1561,8 @@ int beasy_receive_timeout(int bfd, char *buffer, int len, int timeout)
 	    num_received = bread(bfd, buffer, len);
 	    if (num_received == SOCKET_ERROR)
 	    {
-		return SOCKET_ERROR;
+		if ((errno != EINTR) || (errno != EAGAIN))
+		    return SOCKET_ERROR;
 	    }
 	    else
 	    {
@@ -1226,7 +1579,10 @@ int beasy_receive_timeout(int bfd, char *buffer, int len, int timeout)
 	else
 	{
 	    if (ret_val == SOCKET_ERROR)
-		return SOCKET_ERROR;
+	    {
+		if ((errno != EINTR) || (errno != EAGAIN))
+		    return SOCKET_ERROR;
+	    }
 	    else
 	    {
 		/*bmake_blocking(bfd);*/
@@ -1283,9 +1639,10 @@ int beasy_send(int bfd, char *buffer, int length)
     int total = length;
     
     num_written = write(((BFD_Buffer*)bfd)->real_fd, buffer, length);
-    if (num_received == SOCKET_ERROR)
+    if (num_written == SOCKET_ERROR)
     {
-	return SOCKET_ERROR;
+	if ((errno != EINTR) || (errno != EAGAIN))
+	    return SOCKET_ERROR;
     }
     else
     {
@@ -1304,7 +1661,8 @@ int beasy_send(int bfd, char *buffer, int length)
 	    num_written = write(((BFD_Buffer*)bfd)->real_fd, buffer, length);
 	    if (num_written == SOCKET_ERROR)
 	    {
-		return SOCKET_ERROR;
+		if ((errno != EINTR) || (errno != EAGAIN))
+		    return SOCKET_ERROR;
 	    }
 	    else
 	    {
@@ -1320,7 +1678,10 @@ int beasy_send(int bfd, char *buffer, int length)
 	else
 	{
 	    if (ret_val == SOCKET_ERROR)
-		return SOCKET_ERROR;
+	    {
+		if ((errno != EINTR) || (errno != EAGAIN))
+		    return SOCKET_ERROR;
+	    }
 	}
     }
     return total;
@@ -1360,7 +1721,8 @@ int beasy_error_to_string(int error, char *str, int length)
     LocalFree(str);
     strtok(str, "\r\n"); /* remove any CR/LF characters from the output */
 #else
-    sprintf(str, "error %d", error);
+    /*sprintf(str, "error %d", error);*/
+    strncpy(str, strerror(error), length);
 #endif
     return 0;
 }

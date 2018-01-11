@@ -1,4 +1,4 @@
-.TH MPI_Test 3 "11/14/2001" " " "MPI"
+.TH MPI_Test 3 "3/15/2002" " " "MPI"
 .SH NAME
 MPI_Test \-  Tests for the completion of a send or receive 
 .SH SYNOPSIS
@@ -25,7 +25,10 @@ int MPI_Test (
 .PD 0
 .TP
 .B status 
-- status object (Status) 
+- status object (Status).  May be 
+.I MPI_STATUS_NULL
+\&.
+
 .PD 1
 
 .SH NOTE ON STATUS FOR SEND OPERATIONS

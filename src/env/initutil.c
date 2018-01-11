@@ -1,5 +1,5 @@
 /*
- *  $Id: initutil.c,v 1.30 2002/01/04 15:52:29 gropp Exp $
+ *  $Id: initutil.c,v 1.32 2002/04/09 13:59:30 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -10,10 +10,7 @@
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
-#ifdef HAVE_WINDOWS_H
-/* for some reason this include was commented out.  I need it for a clean build on Windows */
 #include "cmnargs.h"
-#endif
 #include "sbcnst2.h"
 /* Error handlers in pt2pt */
 #include "mpipt2pt.h"
@@ -470,31 +467,6 @@ int MPIR_Init(int *argc, char ***argv)
 
 		    /* Cause extra state to be remembered */
 		    MPIR_being_debugged = 1;
-
-/* As per Jim Cownie's request #3683; allows debugging even if this startup
-   code should not be used. */
-/* The real answer is to use a different definition for this, since
-   stop-when-starting-for-debugger is different from HAS_PROC_INFO */
-#ifdef MPID_HAS_PROC_INFO
-		    /* Check to see if we're not the master,
-		     * and wait for the debugger to attach if we're 
-		     * a slave. The debugger will reset the debug_gate.
-		     * There is no code in the library which will do it !
-		     */
-		    if (MPID_MyWorldRank != 0) {
-			while (MPIR_debug_gate == 0) {
-			  /* Wait to be attached to, select avoids 
-			   * signaling and allows a smaller timeout than 
-			   * sleep(1)
-			   */
-			    struct timeval timeout;
-			    timeout.tv_sec  = 0;
-			    timeout.tv_usec = 250000;
-			    select( 0, (void *)0, (void *)0, (void *)0,
-				    &timeout );
-			}
-		    }
-#endif
 		}
 		else if (strcmp((*argv)[i],"-mpichksq") == 0) {
                   /* This tells us to Keep Send Queues so that we 
@@ -519,6 +491,31 @@ int MPIR_Init(int *argc, char ***argv)
 	/* Remove the null arguments */
 	MPID_ArgSqueeze( argc, *argv );
 	}
+
+/* As per Jim Cownie's request #3683; allows debugging even if this startup
+   code should not be used. */
+/* The real answer is to use a different definition for this, since
+   stop-when-starting-for-debugger is different from HAS_PROC_INFO */
+#ifdef MPID_HAS_PROC_INFO
+    /* Check to see if we're not the master,
+     * and wait for the debugger to attach if we're 
+     * a slave. The debugger will reset the debug_gate.
+     * There is no code in the library which will do it !
+     */
+    if (MPIR_being_debugged && MPID_MyWorldRank != 0) {
+	while (MPIR_debug_gate == 0) {
+	    /* Wait to be attached to, select avoids 
+	     * signaling and allows a smaller timeout than 
+	     * sleep(1)
+	     */
+	    struct timeval timeout;
+	    timeout.tv_sec  = 0;
+	    timeout.tv_usec = 250000;
+	    select( 0, (void *)0, (void *)0, (void *)0,
+		    &timeout );
+	}
+    }
+#endif
 
     /* barrier */
     MPIR_Has_been_initialized = 1;

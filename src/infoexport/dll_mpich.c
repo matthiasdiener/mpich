@@ -272,8 +272,8 @@ static group_t * find_or_create_group (mqs_process *proc,
 				       mqs_taddr_t table)
 {
   mpich_process_info *p_info = (mpich_process_info *)mqs_get_process_info (proc);
-  mqs_image * image          = mqs_get_image (proc);
-  mpich_image_info *i_info   = (mpich_image_info *)mqs_get_image_info (image);
+  /*  mqs_image * image          = mqs_get_image (proc); */
+  /*  mpich_image_info *i_info   = (mpich_image_info *)mqs_get_image_info (image); */
   int intsize = p_info->sizes.int_size;
   communicator_t *comm  = p_info->communicator_list;
   int *tr;

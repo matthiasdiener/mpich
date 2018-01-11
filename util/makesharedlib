@@ -71,7 +71,7 @@ if [ "$GetPathSpec" = "yes" ] ; then
         gcc) echo "-Wl,-rpath -Wl," ;;
 	freebsd|solaris) echo "-R" ;;
         rs6000|aix|aix-4) echo "-L" ;; # ???
-        irix|irix64|sgi) echo "-rpath " ;;
+        irix|irix64|irixn32|sgi) echo "-rpath " ;;
 	*) echo "" ;;
     esac
     exit 0

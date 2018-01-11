@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 #include "mpi.h"
 
 #define MAX_REQ 10000
@@ -19,10 +22,40 @@ int main( int argc, char **argv )
     MPI_Status  status;
     int *(b[MAX_REQ]);
     MPI_Datatype dtype;
+    int sendrank = 0, recvrank = 1;
 
     MPI_Init( &argc, &argv );
 
     dtype = MPI_INT;
+
+    MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+
+/* 
+   The following test allows this test to run on small-memory systems
+   that support the sysconf call interface.  This test keeps the test from
+   becoming swap-bound.  For example, on an old Linux system or a
+   Sony Playstation 2 (really!) 
+ */
+#if defined(HAVE_SYSCONF) && defined(_SC_PHYS_PAGES) && defined(_SC_PAGESIZE)
+    if (rank == sendrank) 
+    { 
+	long n_pages, pagesize;
+	int  msglen_max = max_req * buf_len * sizeof(int);
+	n_pages  = sysconf( _SC_PHYS_PAGES );
+	pagesize = sysconf( _SC_PAGESIZE );
+	/* printf( "Total mem = %ld\n", n_pages * pagesize ); */
+	if (n_pages > 0 && pagesize > 0 && 
+	    n_pages * pagesize < 4 * msglen_max) {
+	    /* Recompute msglen_max */
+	    while (n_pages * pagesize < 4 * msglen_max) {
+		buf_len /= 2;
+		msglen_max = max_req * buf_len * sizeof(int);
+	    }
+	}
+    }
+#else
+    /* printf( "No sysconf\n" ); */
+#endif
 
     /* Check command line args (allow usage even with one processor */
     argv++;
@@ -48,7 +81,6 @@ int main( int argc, char **argv )
 	argv++;
     }
     
-    MPI_Comm_rank( MPI_COMM_WORLD, &rank );
     MPI_Comm_size( MPI_COMM_WORLD, &size );
     if (size != 2) {
 	fprintf( stderr, "This program requires two processes\n" );
@@ -68,7 +100,7 @@ int main( int argc, char **argv )
 		     i, buf_len );
 	    MPI_Abort( MPI_COMM_WORLD, 2 );
 	}
-	if (rank != 0) break;
+	if (rank != sendrank) break;
 	for (j=0; j<buf_len; j++) {
 	    b[i][j] = i * buf_len + j;
 	}
@@ -76,9 +108,10 @@ int main( int argc, char **argv )
 
     /* Loop several times to capture resource leaks */
     for (loop=0; loop<max_loop; loop++) {
-	if (rank == 0) {
+	if (rank == sendrank) {
 	    for (i=0; i<max_req; i++) {
-		MPI_Isend( b[i], buf_len, dtype, 1, 0, MPI_COMM_WORLD, &r );
+		MPI_Isend( b[i], buf_len, dtype, recvrank, 0, 
+			   MPI_COMM_WORLD, &r );
 		MPI_Request_free( &r ); 
 	    }
 	    MPI_Barrier( MPI_COMM_WORLD );
@@ -87,7 +120,7 @@ int main( int argc, char **argv )
 	else {
 	    MPI_Barrier( MPI_COMM_WORLD );
 	    for (i=0; i<max_req; i++) {
-		MPI_Recv( b[0], buf_len, dtype, 0, 0, MPI_COMM_WORLD, 
+		MPI_Recv( b[0], buf_len, dtype, sendrank, 0, MPI_COMM_WORLD, 
 			  &status );
 		for (j=0; j<buf_len; j++) {
 		    if (b[0][j] != i * buf_len + j) {

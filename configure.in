@@ -40,9 +40,11 @@ print_dep() {
 Use the argument $2 instead of $1"
 }
 print_useenv() {
-    echo "Use the environment variable $2 instead of configure argument $1"
+    msg="$1"
+    msg=`echo "$msg" | sed -e 's/=\([^ ]*\) \(.*\)$/="\1 \2"/'`
+    echo "Use the environment variable $2 instead of configure argument $msg"
     found_old="$found_old
-Use the environment variable $2 instead of configure argument $1"
+Use the environment variable $2 instead of configure argument $msg"
 }
 print_other() {
     echo "Use $2 instead of $1"
@@ -346,6 +348,7 @@ Known architectures include (case is important)
         alpha     (Compaq alpha)
         CRAY      (CRAY XMP, YMP, C90, J90, T90)
         cray_t3d  (CRAY T3D)
+        CYGWIN_NT (PCs using Cygwin) 
         EWS_UX_V  (NEC EWS4800/360AD Series workstation.  Untested.)
         freebsd   (PC clones running FreeBSD)
         hpux      (HP UX)
@@ -837,7 +840,7 @@ do
 
 # This is should be an env variable
      -mpilibname=*)
-        print_useenv $arg "MPILIBNAME"
+        print_useenv "$arg" "MPILIBNAME"
 	MPILIBNAME=`echo A$arg|sed 's/A-*mpilibname=//'`
 	;;
 
@@ -977,27 +980,27 @@ do
         ;;
 
       -f90=*)
-        print_useenv $arg "F90"
+        print_useenv "$arg" "F90"
 	F90=`echo $arg|sed 's/-*f90=//'`
 	USERF90=1
 	;;
       -f90flags=*)
-        print_useenv $arg "F90FLAGS"
+        print_useenv "$arg" "F90FLAGS"
 	USER_SET_F90FLAGS=1
 	F90FLAGS=`echo $arg|sed 's/-*f90flags=//'`
 	;;
       -f90inc=*)
-        print_useenv $arg "F90INC"
+        print_useenv "$arg" "F90INC"
 	USER_SET_F90INC=1
 	F90INC=`echo $arg|sed 's/-*f90inc=//'`	
 	;;
       -f90linker=*)
-        print_useenv $arg "F90LINKER"
+        print_useenv "$arg" "F90LINKER"
 	USER_SET_F90LINKER=1
 	F90LINKER=`echo $arg|sed 's/-*f90linker=//'`
 	;;
       -f90libpath=*)
-        print_useenv $arg "F90LIB_PATH"
+        print_useenv "$arg" "F90LIB_PATH"
 	USER_SET_F90LIB_PATH=1
 	F90LIB_PATH=`echo $arg|sed 's/-*f90libpath=//'`
 	;;
@@ -1032,7 +1035,7 @@ do
         ;;
 
      -c++=* | --c++=*)
-       #dnl print_useenv $arg CPP_COMPILER and --enable-cxx
+       #dnl print_useenv "$arg" CPP_COMPILER and --enable-cxx
        # We use .. instead of \+\+ because \+ is interpreted differently
        # by various sed's
        package=`echo $arg|sed 's/-*c..=//'`
@@ -1050,19 +1053,19 @@ do
        echo Compiling C++ interface with $CPP_COMPILER ;;
 
      -cc=* | --cc=*)
-        print_useenv $arg CC
+        print_useenv "$arg" CC
 	CC=`echo $arg|sed 's/-*cc=//'`
 	USERCC=1
 	;;
 
      -fc=* | --fc=*)
-        print_useenv $arg FC
+        print_useenv "$arg" FC
 	FC=`echo $arg|sed 's/-*fc=//'`
 	USERF77=1
 	;;
 
      -f77=* | --f77=*)
-        print_useenv $arg FC
+        print_useenv "$arg" FC
 	FC=`echo $arg|sed 's/-*f77=//'`
 	USERF77=1
 	;;
@@ -1077,13 +1080,13 @@ do
 	;;
 
      -clinker=* | --clinker=*)
-        print_useenv $arg CLINKER
+        print_useenv "$arg" CLINKER
 	CLINKER=`echo $arg|sed 's/-*clinker=//'`
 	USERCLINKER=1
 	;;
 
      -c++linker=* | --c++linker=*)
-       print_useenv $arg CCLINKER
+       print_useenv "$arg" CCLINKER
        # We use .. instead of \+\+ because \+ is interpreted differently
        # by various sed's
 	CCLINKER=`echo $arg|sed 's/-*c..linker=//'`
@@ -1095,13 +1098,13 @@ do
 	;;
 
      -flinker=* | --flinker=*)
-        print_useenv $arg FLINKER
+        print_useenv "$arg" FLINKER
 	FLINKER=`echo $arg|sed 's/-*flinker=//'`
 	USERFLINKER=1
 	;;
 
       -rsh=*)
-        print_useenv $arg RSHCOMMAND
+        print_useenv "$arg" RSHCOMMAND
 	rshcommand=`echo A$arg|sed 's/A-rsh=//'`
 	;;
 
@@ -1135,14 +1138,14 @@ do
 	;;
     
      -cflags=* | --cflags=*)
-       print_useenv $arg CFLAGS
+       print_useenv "$arg" CFLAGS
        package="`echo $arg|sed 's/-*cflags=//'`"
        USER_CFLAGS="$package"
        ROMIO_CFLAGS="$package"
        CFLAGS="$CFLAGS $package" ;;
 
      -c++flags=* | --c++flags=*)
-       print_useenv $arg CCFLAGS
+       print_useenv "$arg" CCFLAGS
        # We use .. instead of \+\+ because \+ is interpreted differently
        # by various sed's
        package="`echo $arg|sed 's/-*c..flags=//'`"
@@ -1150,7 +1153,7 @@ do
        CCFLAGS="$CCFLAGS $package" ;;
 
      -fflags=* | --fflags=*)
-       print_useenv $arg FFLAGS
+       print_useenv "$arg" FFLAGS
        package="`echo $arg|sed 's/-*fflags=//'`"
        ROMIO_FFLAGS="$package"
        FFLAGS="$package" ;;
@@ -1170,7 +1173,7 @@ do
  
 # Another environment variable
      -make=* | --make=*)
-       print_useenv $arg MAKE
+       print_useenv "$arg" MAKE
        package=`echo $arg|sed 's/-*make=//'`
        MAKE="$package"
        export MAKE
@@ -1193,7 +1196,7 @@ do
 	NO_F90=1 ;;
 	
      -automountfix=* | --automountfix=*)
-        print_useenv $arg AUTOMOUNTFIX
+        print_useenv "$arg" AUTOMOUNTFIX
 	AUTOMOUNTFIX="`echo $arg | sed 's/-*automountfix=//'`"
 	;;
 
@@ -1739,6 +1742,8 @@ EOF
 	# (note that g++ doesn't work on some Solaris 2.7 (64bit) platforms)
         # Allow user to use CXX or CCC as an alternative for the compiler
 	for program in "$GXX" "$CXX" "$CCC" xlC g++ c++ aCC CC cxx ; do
+	    # Skip empty values
+	    if test -z "$program" ; then continue ; fi
 	    # Does program exist?
             AC_PROGRAM_CHECK(GXXTRIAL,$program,$program,)
   	    if test "$GXXTRIAL" = "xlC" -a "$DEVICE" = "ch_mpl" ; then
@@ -2034,7 +2039,7 @@ if test "$UseSharedLibs" = 1 -o "$debug_version" = 1 ; then
 	        # Also note that this overrides LD_RUN_PATH
 		# -R is used for RUNTIME linking (dlopen)
 	        #LDFLAGS="$LDFLAGS -R$libdir/shared"
-	    elif test $ARCH = "IRIX" -o $ARCH = "IRIX64" ; then
+	    elif test $ARCH = "IRIX" -o $ARCH = "IRIX64" -o $ARCH = "IRIXN32" ; then
 		# for testing only
 		SHAREDKIND=irix
             fi
@@ -3252,7 +3257,7 @@ AC_DEFINE(MPI_ADI2)
 # the few defines needed by mpi.h are included.
 CCFLAGS="$CCFLAGS $USER_CFLAGS"
 
-mpich_includes="-I$top_srcdir/include -I$includebuild_dir -I$rootbuild_dir/mpid/$DEVICE"
+mpich_includes="-I$top_srcdir/include -I$includebuild_dir -I$rootbuild_dir/mpid/$DEVICE -I$top_srcdir/mpid/util"
 if test "$top_srcdir" != "$rootbuild_dir" ; then
     mpich_includes="$mpich_includes -I$top_srcdir/mpid/$DEVICE"
 fi
@@ -3456,6 +3461,7 @@ if test "$NOF77" != 1 ; then
   fi
   # The test versions (e.g., TESTCC) are used for cross-compilation cases when
   # they allow programs to be built and run
+  # We need prefix and libdir for the mpif77 scripts
   # Export the F77_xxx and F90xxx incase they were set with the -nagxxx switch
   (cd src/fortran ; \
   export CC ;\
@@ -3515,7 +3521,7 @@ if test "$NOF77" != 1 ; then
   [${top_srcdir}/src/fortran/configure --with-mpichbuilding --with-mpich \
 	--with-flibname=$flibname $with_args $enable_args \
 	--with-fwrapname=$fwrapname \
-        --prefix=$prefix --sysconfdir=$sysconfdir] )
+        --prefix=$prefix --libdir=$libdir --sysconfdir=$sysconfdir] )
   if test $? != 0 ; then
       echo "Error configuring the Fortran subsystem!"
       echo "Turning off Fortran support"

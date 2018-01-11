@@ -1,5 +1,5 @@
 /*
- *  $Id: wait.c,v 1.7 2001/11/14 20:10:10 ashton Exp $
+ *  $Id: wait.c,v 1.8 2002/03/15 18:51:55 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -34,7 +34,7 @@ Input Parameter:
 . request - request (handle) 
 
 Output Parameter:
-. status - status object (Status) 
+. status - status object (Status) .  May be 'MPI_STATUS_NULL'.
 
 .N waitstatus
 

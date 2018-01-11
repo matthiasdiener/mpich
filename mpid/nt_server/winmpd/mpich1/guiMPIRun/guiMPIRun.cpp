@@ -143,6 +143,15 @@ void CGuiMPIRunApp::OnAppAbout()
 /////////////////////////////////////////////////////////////////////////////
 // CGuiMPIRunApp message handlers
 
+INT_PTR CALLBACK DialogProc(
+  HWND hwndDlg,  // handle to dialog box
+  UINT uMsg,     // message
+  WPARAM wParam, // first message parameter
+  LPARAM lParam  // second message parameter
+)
+{
+    return FALSE;
+}
 
 void CGuiMPIRunApp::OnHelp() 
 {

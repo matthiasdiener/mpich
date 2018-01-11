@@ -144,7 +144,7 @@ extern int MPID_DebugFlow;
      (pkt)->flow_info = MPID_flow_info[partner].mem_recvd;\
      MPID_flow_info[partner].mem_read -= (pkt)->flow_info; \
      MPID_flow_info[partner].mem_recvd = 0;
-#define MPID_FLOW_MEM_GET(pkt,partner)  \
+define MPID_FLOW_MEM_GET(pkt,partner)  \
      MPID_flow_info[partner].mem_use -= (pkt)->flow_info;
 
 #endif /* MPID_DEBUG_ALL */

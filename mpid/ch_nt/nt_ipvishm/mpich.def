@@ -1,10 +1,13 @@
 ;LIBRARY mpich
 
 EXPORTS
+	MPIR_F_MPI_BOTTOM
 	MPIOI_Type_block
 	MPIOI_Type_cyclic
 	MPIO_Test
 	MPIO_Wait
+	PMPIO_Test=MPIO_Test
+	PMPIO_Wait=MPIO_Wait
 	MPIR_Datatype_iscontig
 	MPIR_dup_fn
 	MPIR_null_copy_fn
@@ -282,10 +285,6 @@ EXPORTS
 	PMPI_Comm_get_name=MPI_Comm_get_name
 	MPI_Pcontrol
 	PMPI_Pcontrol=MPI_Pcontrol
-;	MPI_NULL_COPY_FN 
-;	PMPI_NULL_COPY_FN=MPI_NULL_COPY_FN 
-;	MPI_DUP_FN 
-;	PMPI_DUP_FN=MPI_DUP_FN 
 	MPI_Status_f2c
 	PMPI_Status_f2c=MPI_Status_f2c
 	MPI_Status_c2f
@@ -448,18 +447,12 @@ EXPORTS
 	MPIO_TEST=MPIO_Test
 	MPIO_WAIT=MPIO_Wait
 	MPIR_DATATYPE_ISCONTIG=MPIR_Datatype_iscontig
-	MPIR_DUP_FN=MPIR_dup_fn
-	MPIR_NULL_COPY_FN=MPIR_null_copy_fn
-	MPIR_NULL_DELETE_FN=MPIR_null_delete_fn
-	MPIR_STATUS_SET_BYTES=MPIR_Status_set_bytes
-
-;	MPI_SEND
-;	PMPI_SEND=MPI_SEND
 
 ;	_MPIO_TEST@16
 ;	_PMPIO_TEST@16=_MPIO_TEST@16
 ;	_MPIO_WAIT@12
 ;	_PMPIO_WAIT@12=_MPIO_WAIT@12
+
 	_MPI_ABORT@12
 	_PMPI_ABORT@12=_MPI_ABORT@12
 	_MPI_ADDRESS@12
@@ -878,10 +871,6 @@ EXPORTS
 	mpio_test__=MPIO_Test
 	mpio_wait__=MPIO_Wait
 	mpir_datatype_iscontig__=MPIR_Datatype_iscontig
-	mpir_dup_fn__=MPIR_dup_fn
-	mpir_null_copy_fn__=MPIR_null_copy_fn
-	mpir_null_delete_fn__=MPIR_null_delete_fn
-	mpir_status_set_bytes__=MPIR_Status_set_bytes
 
 ;	mpi_type_count__
 ;	mpi_init_thread__
@@ -889,8 +878,6 @@ EXPORTS
 ;	mpi_status_c2f__
 ;	mpi_file_f2c__
 ;	mpi_file_c2f__
-;	mpio_test__
-;	mpio_wait__
 
 	mpi_abort__
 	pmpi_abort__=mpi_abort__

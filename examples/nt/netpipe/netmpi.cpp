@@ -9,7 +9,7 @@
 #define  REPEAT 			1000
 int 	 g_NSAMP =			150;
 #define  PERT				3
-#define  LATENCYREPS		1000
+int      g_LATENCYREPS =		1000;
 #define  LONGTIME			1e99
 #define  CHARSIZE			8
 #define  PATIENCE			50
@@ -65,7 +65,10 @@ void SendTime(ArgStruct *p, double *t, int *rpt);
 void RecvTime(ArgStruct *p, double *t, int *rpt);
 int Establish(ArgStruct *p);
 int  CleanUp(ArgStruct *p);
-void task(char *cmdLine);
+double TestLatency(ArgStruct *p);
+double TestSyncTime(ArgStruct *p);
+void PrintOptions(void);
+int DetermineLatencyReps(ArgStruct *p);
 
 void PrintOptions()
 {
@@ -79,6 +82,8 @@ void PrintOptions()
 	printf("       -out outputfile\n");
 	printf("       -nocache\n");
 	printf("       -headtohead\n");
+	printf("       -pert\n");
+	printf("       -noprint\n");
 	printf("Requires exactly two processes\n");
 	printf("\n");
 }
@@ -100,6 +105,7 @@ void main(int argc, char *argv[])
 		detailflag = 0,				/* Set to examine the signature curve detail*/
 		bufszflag = 0,				/* Set to change the TCP socket buffer size */
 		pert,						/* Perturbation value						*/
+		ipert,
 		start = 1,					/* Starting value for signature curve 		*/
 		end = MAXINT,				/* Ending value for signature curve			*/
 		streamopt = 0,				/* Streaming mode flag						*/
@@ -119,6 +125,7 @@ void main(int argc, char *argv[])
 	short		port = DEFPORT;		/* Port number for connection 				*/
 	bool bNoCache = false;
 	bool bHeadToHead = false;
+	bool bSavePert = false;
 	
 	MPI_Init(&argc, &argv);
 	
@@ -139,6 +146,9 @@ void main(int argc, char *argv[])
 	GetOpt(argc, argv, "-end", &end);
 	bNoCache = GetOpt(argc, argv, "-nocache");
 	bHeadToHead = GetOpt(argc, argv, "-headtohead");
+	if (GetOpt(argc, argv, "-noprint"))
+	    printopt = 0;
+	bSavePert = GetOpt(argc, argv, "-pert");
 	
 	if (g_nIproc == 0)
 		strcpy(s, "Netpipe.out");
@@ -166,40 +176,9 @@ void main(int argc, char *argv[])
 		}
 	}
 	
-	args.bufflen = 1;
-	args.buff = (char *)malloc(args.bufflen);
-	args.buff1 = (char *)malloc(args.bufflen);
-	Sync(&args);
-	t0 = When();
-	t0 = When();
-	t0 = When();
-	t0 = When();
-	for (i = 0; i < LATENCYREPS; i++)
-	{
-		if (args.tr)
-		{
-			SendData(&args);
-			RecvData(&args);
-		}
-		else
-		{
-			RecvData(&args);
-			SendData(&args);
-		}
-	}
-	latency = (When() - t0)/(2 * LATENCYREPS);
-	free(args.buff);
-	free(args.buff1);
-	
-	t0 = When();
-	t0 = When();
-	t0 = When();
-	t0 = When();
-	t0 = When();
-	t0 = When();
-	for (i = 0; i < LATENCYREPS; i++)
-		Sync(&args);
-	synctime = (When() - t0)/LATENCYREPS;
+    latency = TestLatency(&args);
+    synctime = TestSyncTime(&args);
+
 	
 	
 	if (args.tr)
@@ -230,9 +209,9 @@ void main(int argc, char *argv[])
 			inc = ((nq % 2))? inc + inc: inc;
 		
 		/* This is a perturbation loop to test nearby values */
-		for (pert = (!detailflag && inc > PERT + 1)? -PERT: 0;
+		for (ipert = 0, pert = (!detailflag && inc > PERT + 1)? -PERT: 0;
 		pert <= PERT; 
-		n++, pert += (!detailflag && inc > PERT + 1)? PERT: PERT + 1)
+		ipert++, n++, pert += (!detailflag && inc > PERT + 1)? PERT: PERT + 1)
 		{
 			
 			/* Calculate howmany times to repeat the experiment. */
@@ -416,10 +395,13 @@ void main(int argc, char *argv[])
 			
 			if (args.tr)
 			{
+			    if (bSavePert)
+			    {
 				/* fprintf(out,"%lf\t%lf\t%d\t%d\t%lf\n", bwdata[n].t, bwdata[n].bps,
 				    bwdata[n].bits, bwdata[n].bits / 8, bwdata[n].variance); */
 				fprintf(out,"%d\t%lf\t%lf\n", bwdata[n].bits / 8, bwdata[n].bps, bwdata[n].t);
 				fflush(out);
+			    }
 			}
 			
 			free(memtmp);
@@ -431,7 +413,22 @@ void main(int argc, char *argv[])
 				fflush(stdout);
 			}
 		} /* End of perturbation loop */
-		
+		if (!bSavePert && args.tr)
+		{
+		    /* if we didn't save all of the perturbation loops, find the max and save it */
+		    int index = 1;
+		    double dmax = bwdata[n-1].bps;
+		    for (; ipert > 1; ipert--)
+		    {
+			if (bwdata[n-ipert].bps > dmax)
+			{
+			    index = ipert;
+			    dmax = bwdata[n-ipert].bps;
+			}
+		    }
+		    fprintf(out,"%d\t%f\t%f\n", bwdata[n-index].bits / 8, bwdata[n-index].bps, bwdata[n-index].t);
+		    fflush(out);
+		}
 	} /* End of main loop  */
 	
 	if (args.tr)
@@ -496,6 +493,103 @@ void Sync(ArgStruct *p)
 		MPI_Send(&ch, 1, MPI_BYTE, p->prot.nbor, 1, MPI_COMM_WORLD);
 		MPI_Recv(&ch, 1, MPI_BYTE, p->prot.nbor, 1, MPI_COMM_WORLD, &status);
 	}
+}
+
+int DetermineLatencyReps(ArgStruct *p)
+{
+    MPI_Status status;
+    double t0, duration = 0;
+    int reps = 1;
+    int i;
+
+    /* prime the send/receive pipes */
+    Sync(p);
+    Sync(p);
+    Sync(p);
+
+    /* test how long it takes to send n messages 
+     * where n = 1, 2, 4, 8, 16, 32, ...
+     */
+    while ( (duration < 0.1) ||
+	    (duration < 0.3 && reps < 1000))
+    {
+	t0 = When();
+	t0 = When();
+	t0 = When();
+	t0 = When();
+	for (i=0; i<reps; i++)
+	{
+	    Sync(p);
+	}
+	duration = When() - t0;
+	reps = reps * 2;
+
+	/* use duration from the root only */
+	if (p->prot.iproc == 0)
+	    MPI_Send(&duration, 1, MPI_DOUBLE, p->prot.nbor, 2, MPI_COMM_WORLD);
+	else
+	    MPI_Recv(&duration, 1, MPI_DOUBLE, p->prot.nbor, 2, MPI_COMM_WORLD, &status);
+    }
+
+    return reps;
+}
+
+double TestLatency(ArgStruct *p)
+{
+    double latency, t0;
+    int i;
+
+    g_LATENCYREPS = DetermineLatencyReps(p);
+    if (g_LATENCYREPS < 1024 && p->prot.iproc == 0)
+    {
+	printf("Using %d reps to determine latency\n", g_LATENCYREPS);
+	fflush(stdout);
+    }
+
+    p->bufflen = 1;
+    p->buff = (char *)malloc(p->bufflen);
+    p->buff1 = (char *)malloc(p->bufflen);
+    Sync(p);
+    t0 = When();
+    t0 = When();
+    t0 = When();
+    t0 = When();
+    for (i = 0; i < g_LATENCYREPS; i++)
+    {
+	if (p->tr)
+	{
+	    SendData(p);
+	    RecvData(p);
+	}
+	else
+	{
+	    RecvData(p);
+	    SendData(p);
+	}
+    }
+    latency = (When() - t0)/(2 * g_LATENCYREPS);
+    free(p->buff);
+    free(p->buff1);
+
+    return latency;
+}
+
+double TestSyncTime(ArgStruct *p)
+{
+    double synctime, t0;
+    int i;
+
+    t0 = When();
+    t0 = When();
+    t0 = When();
+    t0 = When();
+    t0 = When();
+    t0 = When();
+    for (i = 0; i < g_LATENCYREPS; i++)
+	Sync(p);
+    synctime = (When() - t0)/g_LATENCYREPS;
+
+    return synctime;
 }
 
 void SendRecvData(ArgStruct *p)

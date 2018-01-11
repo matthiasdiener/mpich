@@ -1,5 +1,5 @@
 /*
- *  $Id: sbcnst2.c,v 1.7 2001/11/12 23:34:10 ashton Exp $
+ *  $Id: sbcnst2.c,v 1.8 2002/03/07 15:33:51 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -24,8 +24,14 @@
 /* If you change this, you must change the format spec (%lx) to match */
 typedef long PointerInt;
 
-#define DEBUG
-#define DEBUG1
+/* Define DEBUG and DEBUG1 to track problems */
+/* DEBUG adds sentinals around the blocks and checks for overwrites.  It 
+   is always safe to use, but reduces performance */
+/* #define DEBUG */
+/* DEBUG1 looks for out-of-range pointers.  However, it is only an 
+   approximation and can give false positives.  *NEVER* leave this set; always
+   remove the definition when you are done debugging */
+/* #define DEBUG1 */
 
 /* Needed for MPI_Aint (int that is the size of void *) */
 #include "mpi.h"
@@ -153,6 +159,9 @@ void MPID_SBfree(
 {
     MPID_THREAD_DS_LOCK(sb)
 #ifdef DEBUG1
+	/* This test is only valid on systems that don't use the top bit 
+	   for some addressing purpose.  HPUX 11, for example, has user
+	   addresses with the top bit set */
     if ((MPI_Aint)ptr < 1024) {
 	printf( "Suspicious pointer %lx in MPID_SBfree\n", (PointerInt)ptr );
 	/* MPID_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER,  

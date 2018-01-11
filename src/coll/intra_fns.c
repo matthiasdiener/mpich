@@ -1,5 +1,5 @@
 /*
- *  $Id: intra_fns.c,v 1.17 2001/08/01 16:49:44 lacour Exp $
+ *  $Id: intra_fns.c,v 1.18 2002/04/12 22:51:34 thakur Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -557,14 +557,15 @@ static int intra_Scatter (
   /* Switch communicators to the hidden collective */
   comm = comm->comm_coll;
 
-  /* Get the size of the send type */
-  MPI_Type_extent ( sendtype->self, &extent );
-
   /* Lock for collective operation */
   MPID_THREAD_LOCK(comm->ADIctx,comm);
 
   /* If I'm the root, send messages to the rest of 'em */
   if ( rank == root ) {
+
+    /* Get the size of the send type */
+    MPI_Type_extent ( sendtype->self, &extent );
+
     for ( i=0; i<root; i++ ) {
 	mpi_errno = MPI_Send( (void *)((char *)sendbuf+i*sendcnt*extent), 
 			     sendcnt, sendtype->self, i, MPIR_SCATTER_TAG, comm->self);

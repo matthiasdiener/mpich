@@ -17,6 +17,7 @@ typedef struct {
 static sock_state_t *sock_state = 0;
 
 static void wakeup_slave(int idx);
+static void poke_slave(int idx );
 static int process_slave_message(int idx);
 static int process_connect_request(int listening_fd);
 
@@ -70,7 +71,17 @@ P4VOID listener( void )
 		for (i=0; i<listener_info->num; i++)
 		    if (sock_state[i].state == BUSY) {
 			p4_dprintfl(70, "wakeup slave %d from timeout\n", i);
-			wakeup_slave(i);
+			/* There is a race condition here.  If the 
+			   slave wakes up after having read the 
+			   previous message, then there won't be a message
+			   to read.  To handle this, instead of
+			   simply signaling the slave, we send a 
+			   WAKEUP_SLAVE message. */
+			/* A downside to this approach is that messages could
+			   pile up in some cases, but this is less likely
+			   and harmful than sending a signal without a message.
+			*/
+			poke_slave(i);
 		    }
 	    } else
 		p4_dprintfl(70, "select timeout\n");
@@ -120,7 +131,7 @@ lookup_slave_by_pid(int pid)
 	if (listener_info->slave_pid[i] == pid)
 	    return i;
     }
-    p4_error("lookup_slave_index_by_pid: %d not found", pid);
+    p4_error("lookup_slave_index_by_pid: pid not found = ", pid);
     return -1;
 }
 
@@ -129,7 +140,7 @@ lookup_slave_by_pid(int pid)
  * the destination slave.
  */
 static void
-message_to_slave(int idx, struct slave_listener_msg *msg)
+message_to_slave( int idx, struct slave_listener_msg *msg)
 {
     net_send(listener_info->slave_fd[idx], msg, sizeof(*msg), P4_FALSE);
     sock_state[idx].state = BUSY;
@@ -137,12 +148,25 @@ message_to_slave(int idx, struct slave_listener_msg *msg)
     wakeup_slave(idx);
 }
 
+/* 
+ * Send a wakeup message to a slave
+ */
+static void
+poke_slave( int idx )
+{
+    struct slave_listener_msg msg;
+    msg.type = p4_i_to_n(WAKEUP_SLAVE);
+    net_send(listener_info->slave_fd[idx], &msg, sizeof(msg), P4_FALSE);
+    wakeup_slave(idx);
+}
+
+
 /*
  * Send a signal to the process telling him to pay attention to the
  * pipe from the listener.
  */
 static void
-wakeup_slave(int idx)
+wakeup_slave( int idx )
 {
     if (kill(listener_info->slave_pid[idx], LISTENER_ATTN_SIGNAL) == -1) {
 	/* might have died on his own, okay */
@@ -412,10 +436,15 @@ P4VOID thread_listener( void )
       
       FD_ZERO(&read_fds);
       FD_SET(p4_global->listener_fd, &read_fds);
-      FD_SET(listener_info->slave_fd, &read_fds);
+      /* This version only works with single-slaves */ 
+      if (listener_info->num > 1) {
+	  p4_error( "Threaded listener does not support multiple slaves", 
+		    listener_info->num );
+      }
+      FD_SET(listener_info->slave_fd[0], &read_fds);
 
       nfds_in = p4_global->listener_fd;
-      if (listener_info->slave_fd > nfds_in) nfds_in = listener_info->slave_fd;
+      if (listener_info->slave_fd[0] > nfds_in) nfds_in = listener_info->slave_fd[0]; 
       nfds_in++;
       SYSCALL_P4(nfds, select(nfds_in, &read_fds, 0, 0, 0));
       if (nfds < 0)
@@ -494,11 +523,11 @@ P4VOID thread_listener( void )
 		  
 		  /* Send dummy message to P */
 		  p4_dprintfl(70,"TL: sending dummy msg on fd=%d\n",
-			      listener_info->slave_fd);
-		  net_send(listener_info->slave_fd, &msg, sizeof(msg), 
+			      listener_info->slave_fd[0]);
+		  net_send(listener_info->slave_fd[0], &msg, sizeof(msg), 
 			   P4_FALSE);
 		  p4_dprintfl(70,"TL: sent dummy msg on fd=%d\n",
-			      listener_info->slave_fd);
+			      listener_info->slave_fd[0]);
 	      }
 	      else {
 		  /* If the connection is in any other state, we've already
@@ -514,10 +543,10 @@ P4VOID thread_listener( void )
 	      break;
 	  }
       }
-      if (FD_ISSET(listener_info->slave_fd, &read_fds)) {
+      if (FD_ISSET(listener_info->slave_fd[0], &read_fds)) {
 	  p4_dprintfl( 70, "TL: connection request from slave\n" );
 	  /* Read this message */
-	  net_recv( listener_info->slave_fd, &msg, sizeof(msg) );
+	  net_recv( listener_info->slave_fd[0], &msg, sizeof(msg) );
 	  from   = p4_n_to_i(msg.from);
 	  to_pid = p4_n_to_i(msg.to_pid);
 	  to     = p4_n_to_i(msg.to);
@@ -548,11 +577,11 @@ P4VOID thread_listener( void )
 	      
 		  /* Send dummy message to P */
 		  p4_dprintfl(70,"TL: sending dummy msg on fd=%d\n",
-			      listener_info->slave_fd);
-		  net_send(listener_info->slave_fd, &msg, sizeof(msg), 
+			      listener_info->slave_fd[0]);
+		  net_send(listener_info->slave_fd[0], &msg, sizeof(msg), 
 			   P4_FALSE);
 		  p4_dprintfl(70,"TL: sent dummy msg on fd=%d\n",
-			      listener_info->slave_fd);
+			      listener_info->slave_fd[0]);
 	      }
 	      else {
 		  /* Otherwise, we need to wait for the connection to come

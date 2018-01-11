@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #endif
 
+#include "p4mpd/lib/p4_get_info.h"
+
 void MPID_Close_sockets(void);
 
 void MPID_Close_sockets(void)

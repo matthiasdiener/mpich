@@ -54,6 +54,7 @@ P4VOID dump_sockaddr ( char *, struct sockaddr_in *);
 P4VOID dump_sockinfo (char *, int);
 #endif
 void mpiexec_reopen_stdin(void);
+int p4_make_socket_nonblocking( int );
 P4VOID get_pipe (int *, int *)	;
 int getswport (char *);
 P4VOID handle_connection_interrupt (int);
@@ -119,6 +120,7 @@ struct p4_msg *shmem_recv (void);
 struct p4_msg *socket_recv (int);
 struct p4_msg *socket_recv_on_fd (int);
 struct p4_queued_msg *alloc_quel (void);
+void p4_yield( void );
 P4VOID free_avail_quels (void);
 P4VOID process_args (int *, char **)	;
 /* P4BOOL process_connect_request (int)	; */

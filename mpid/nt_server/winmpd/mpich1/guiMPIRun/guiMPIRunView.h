@@ -25,6 +25,7 @@ public:
     //{{AFX_DATA(CGuiMPIRunView)
 	enum { IDD = IDD_GUIMPIRUN_FORM };
 	CButton	m_reset_btn;
+	CButton m_any_hosts_btn;
     CButton	m_advanced_btn;
     CEdit	m_nproc_edit;
     CButton	m_run_btn;
@@ -126,6 +127,8 @@ public:
     HANDLE m_hRedirectRicheditThread;
 
     MapDriveNode *m_pDriveMapList;
+
+    int m_nMinWidth, m_nMinHeight;
     // Operations
 public:
     

@@ -1,4 +1,4 @@
-.TH MPI_Wait 3 "11/14/2001" " " "MPI"
+.TH MPI_Wait 3 "3/15/2002" " " "MPI"
 .SH NAME
 MPI_Wait \-  Waits for an MPI send or receive to complete 
 .SH SYNOPSIS
@@ -19,7 +19,10 @@ int MPI_Wait (
 .PD 0
 .TP
 .B status 
-- status object (Status) 
+- status object (Status) .  May be 
+.I MPI_STATUS_NULL
+\&.
+
 .PD 1
 
 .SH NOTE ON STATUS FOR SEND OPERATIONS

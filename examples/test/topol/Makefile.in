@@ -26,7 +26,7 @@ FFLAGS = $(OPTFLAGS) @FFLAGS@
 LIBS = @LIB_PATH@ @LIB_LIST@
 # Use FLIBS to add any special libraries for Fortran programs
 FLIBS = @FLIB_PATH@ @LIB_LIST@
-EXECS = cart cart2 graphtest cartmap cartorder
+EXECS = cart cart2 graphtest cartmap cartorder dims
 
 default: $(EXECS)
 
@@ -73,7 +73,11 @@ clean:
 	*.out topol.diff *.trace mpif.h ${srcdir}/*.o *.stdo
 	@-rm -f work.pc work.pcl
 
+.c:
+	$(CLINKER) $(OPTFLAGS) -o $* $< $(LIBS)
 .c.o:
 	$(CC) $(CFLAGS) -c $<
+.f:
+	$(FLINKER) $(OPTFLAGS) -o $* $< $(FLIBS)
 .f.o:
 	$(F77) $(FFLAGS) -c $<

@@ -109,6 +109,8 @@ extern void MPID_FinishCancelPackets ( MPID_Device * );
 
 extern void MPID_SHMEM_Print_internals( FILE *fp );
 
+/* This is used by MPID_getpid */
+extern int p2p_proc_info( int, char **, char ** );
 /* 
  * We can communicate some information to the device by way of attributes 
  * (communicator construction should have had info!).  The following 

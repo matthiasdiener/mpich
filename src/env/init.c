@@ -1,5 +1,5 @@
 /*
- *  $Id: init.c,v 1.11 2001/11/14 19:56:40 ashton Exp $
+ *  $Id: init.c,v 1.14 2002/04/08 23:12:19 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -11,15 +11,29 @@
    (perhaps because there is no Fortran compiler)
  */
 #include "mpiimpl.h"
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h> /* for exit() */
+#endif
 
 #ifdef HAVE_WEAK_SYMBOLS
 
+/* Undefing MPI_Init if mpi.h defined it to help catch library/headerfile
+   conflicts */
+#ifdef MPI_Init
+#undef MPI_Init
+#undef PMPI_Init
+#endif
+
 #if defined(HAVE_PRAGMA_WEAK)
 #pragma weak MPI_Init = PMPI_Init
+
+/* #pragma weak MPI_Init_vcheck = PMPI_Init_vcheck */
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
 #pragma _HP_SECONDARY_DEF PMPI_Init  MPI_Init
+/* #pragma _HP_SECONDARY_DEF PMPI_Init_vcheck  MPI_Init_vcheck */
 #elif defined(HAVE_PRAGMA_CRI_DUP)
 #pragma _CRI duplicate MPI_Init as PMPI_Init
+/* #pragma _CRI duplicate MPI_Init_vcheck as PMPI_Init_vcheck */
 /* end of weak pragmas */
 #endif
 
@@ -148,3 +162,18 @@ int MPI_Init(int *argc, char ***argv)
 {
     return MPIR_Init(argc,argv);
 }
+
+#ifdef FOO
+/* See the comments in mpi.h on this routine */
+int MPI_Init_vcheck( int *argc, char ***argv, char version[] )
+{
+    if (strncmp( version, MPICH_VERSION, 100 )) {
+	fprintf( stderr, 
+	 "Version of mpi.h (%s) does not match the MPICH library (%s)\n", 
+		 version, MPICH_VERSION );
+	exit(1);
+    }
+    return MPI_Init( argc, argv );
+}
+
+#endif

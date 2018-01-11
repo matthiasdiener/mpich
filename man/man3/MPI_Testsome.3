@@ -1,4 +1,4 @@
-.TH MPI_Testsome 3 "11/14/2001" " " "MPI"
+.TH MPI_Testsome 3 "3/15/2002" " " "MPI"
 .SH NAME
 MPI_Testsome \-  Tests for some given communications to complete 
 .SH SYNOPSIS
@@ -39,7 +39,10 @@ completed (array of integers)
 .TP
 .B array_of_statuses 
 - array of status objects for 
-operations that completed (array of Status) 
+operations that completed (array of Status).  May be 
+.I MPI_STATUSES_NULL
+\&.
+
 .PD 1
 
 .SH NOTE ON STATUS FOR SEND OPERATIONS

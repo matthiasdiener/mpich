@@ -156,36 +156,49 @@ MPIR_SHANDLE *shandle;
     return MPI_SUCCESS;
 }
 
-int MPID_SHMEM_Eagerb_recv_short( rhandle, from_grank, in_pkt )
-MPIR_RHANDLE *rhandle;
-int          from_grank;
-void         *in_pkt;
+int MPID_SHMEM_Eagerb_recv_short( MPIR_RHANDLE *rhandle, int from_grank, 
+				  void *in_pkt )
 {
     MPID_PKT_SHORT_T *pkt = (MPID_PKT_SHORT_T *)in_pkt;
     int          msglen;
     int          err = MPI_SUCCESS;
-    
-    msglen = pkt->len;
+    int          to, src, tag, lrank;
+    void         *buffer;
+
     DEBUG_PRINT_MSG("R Starting Eagerb_recv_short");
+    /* Extract values from pkt (we need to free it or even better, use
+       it to return the protocol ack).  This also *may* improve the
+       local code, since pkt is read into local variables and then 
+       freed. */
+    msglen = pkt->len;
+    to     = pkt->to;
+    src    = pkt->src;
+    tag    = pkt->tag;
+    lrank  = pkt->lrank;
+    buffer = pkt->buffer;
 #ifdef MPID_PACK_CONTROL
-    if (MPID_PACKET_RCVD_GET(pkt->src)) {
-	MPID_SendProtoAck(pkt->to, pkt->src);
+    if (MPID_PACKET_RCVD_GET(src)) {
+	MPID_SendProtoAckWithPacket(to, src, (MPID_PKT_T*)pkt);
     }
-    MPID_PACKET_ADD_RCVD(pkt->to, pkt->src);
+    else {
+	MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)pkt );
+    }
+    MPID_PACKET_ADD_RCVD(to, src);
+#else     
+    MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)pkt );
 #endif
 
-    rhandle->s.MPI_TAG	  = pkt->tag;
-    rhandle->s.MPI_SOURCE = pkt->lrank;
+    rhandle->s.MPI_TAG	  = tag;
+    rhandle->s.MPI_SOURCE = lrank;
     MPID_CHK_MSGLEN(rhandle,msglen,err);
     if (msglen > 0) {
-	MEMCPY( rhandle->buf, pkt->buffer, msglen ); 
+	MEMCPY( rhandle->buf, buffer, msglen ); 
     }
     rhandle->s.count      = msglen;
     rhandle->s.MPI_ERROR = err;
     if (rhandle->finish) {
 	(rhandle->finish)( rhandle );
     }
-    MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)pkt );
     rhandle->is_complete = 1;
 
     return err;
@@ -195,9 +208,8 @@ void         *in_pkt;
  * This routine is called when it is time to receive an unexpected
  * message
  */
-int MPID_SHMEM_Eagerb_unxrecv_start_short( rhandle, in_runex )
-MPIR_RHANDLE *rhandle;
-void         *in_runex;
+int MPID_SHMEM_Eagerb_unxrecv_start_short( MPIR_RHANDLE *rhandle, 
+					   void *in_runex )
 {
     MPIR_RHANDLE *runex = (MPIR_RHANDLE *)in_runex;
     int          msglen, err = 0;
@@ -230,48 +242,58 @@ void         *in_runex;
 }
 
 /* Save an unexpected message in rhandle */
-int MPID_SHMEM_Eagerb_save_short( rhandle, from, in_pkt )
-MPIR_RHANDLE *rhandle;
-int          from;
-void         *in_pkt;
+int MPID_SHMEM_Eagerb_save_short( MPIR_RHANDLE *rhandle, int from, 
+				  void *in_pkt )
 {
     MPID_PKT_SHORT_T   *pkt = (MPID_PKT_SHORT_T *)in_pkt;
+    int src, to, len, tag, lrank;
+    void *buffer;
 
     DEBUG_PRINT_MSG("R Starting Eagerb_save_short");
+    to  = pkt->to;
+    len = pkt->len;
+    buffer = pkt->buffer;
+    src = pkt->src;
+    tag = pkt->tag;
+    lrank = pkt->lrank;
+
 #ifdef MPID_PACK_CONTROL
-    if (MPID_PACKET_RCVD_GET(pkt->src)) {
-	MPID_SendProtoAck(pkt->to, pkt->src);
+    if (MPID_PACKET_RCVD_GET(src)) {
+	MPID_SendProtoAckWithPacket(to, src, (MPID_PKT_T*)pkt);
     }
-    MPID_PACKET_ADD_RCVD(pkt->to, pkt->src);
+    else {
+	MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)pkt );
+    }
+    MPID_PACKET_ADD_RCVD(to, src);
+#else     
+    MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)pkt );
 #endif
-    rhandle->s.MPI_TAG	  = pkt->tag;
-    rhandle->s.MPI_SOURCE = pkt->lrank;
+    rhandle->s.MPI_TAG	  = tag;
+    rhandle->s.MPI_SOURCE = lrank;
     rhandle->s.MPI_ERROR  = 0;
     rhandle->from         = from;
-    rhandle->partner      = pkt->to;
-    rhandle->s.count      = pkt->len;
+    rhandle->partner      = to;
+    rhandle->s.count      = len;
 
     /* Need to save msgrep for heterogeneous systems */
-    if (pkt->len > 0) {
-	rhandle->start	  = (void *)MALLOC( pkt->len );
+    if (len > 0) {
+	rhandle->start	  = (void *)MALLOC( len );
 	if (!rhandle->start) {
 	    rhandle->s.MPI_ERROR = MPI_ERR_INTERN;
 	    return 1;
 	}
-	MEMCPY( rhandle->start, pkt->buffer, pkt->len );
+	MEMCPY( rhandle->start, buffer, len );
     }
     rhandle->push = MPID_SHMEM_Eagerb_unxrecv_start_short;
-    MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)pkt );
     return 0;
 }
 
-void MPID_SHMEM_Eagerb_short_delete( p )
-MPID_Protocol *p;
+void MPID_SHMEM_Eagerb_short_delete( MPID_Protocol *p )
 {
     FREE( p );
 }
 
-MPID_Protocol *MPID_SHMEM_Short_setup()
+MPID_Protocol *MPID_SHMEM_Short_setup( void )
 {
     MPID_Protocol *p;
 

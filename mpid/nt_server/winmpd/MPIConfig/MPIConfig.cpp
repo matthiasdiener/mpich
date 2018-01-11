@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "MPIConfig.h"
 #include "MPIConfigDlg.h"
+#include "MPICHConfigDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -47,7 +48,8 @@ BOOL CMPIConfigApp::InitInstance()
 	Enable3dControlsStatic();	// Call this when linking to MFC statically
 #endif
 
-	CMPIConfigDlg dlg;
+	CMPICHConfigDlg dlg;
+	//CMPIConfigDlg dlg;
 	m_pMainWnd = &dlg;
 	int nResponse = dlg.DoModal();
 	if (nResponse == IDOK)

@@ -27,7 +27,31 @@ Package=<4>
 
 ###############################################################################
 
+Project: "guiMPIJob"=.\guiMPIJob\guiMPIJob.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "guiMPIRun"=.\guiMPIRun\guiMPIRun.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "mpijob"=.\mpijob\mpijob.dsp - Package Owner=<4>
 
 Package=<5>
 {{{

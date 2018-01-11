@@ -195,26 +195,39 @@ static void MakeArgs(char *pszCmd, char *pszArgs, char ***pppArgs)
 void RunLocal(bool bDoSMP)
 {
     DWORD size = 100;
-    char pszHost[100], pszCmdLine[MAX_PATH], error_msg[256], pszEnv[256], pszExtra[MAX_PATH];
+    char pszHost[MAX_HOST_LENGTH], pszCmdLine[MAX_CMD_LENGTH], error_msg[256], pszEnv[MAX_CMD_LENGTH], pszExtra[MAX_PATH];
     char *pEnv;
     int rootPort=0;
     HANDLE *hProcess = new HANDLE[g_nHosts];
     int i;
     char **ppArgs;
     char **ppArg;
+    int launchtimeout = 10;
+    char pszTimeout[20];
+    DWORD len = 20;
     
     GetComputerName(pszHost, &size);
     
+    if (ReadMPDRegistry("timeout", pszTimeout, &len))
+    {
+	launchtimeout = atoi(pszTimeout);
+	if (launchtimeout < 1)
+	    launchtimeout = 10;
+    }
+
     // Remove quotations
     if (g_pszExe[0] == '"')
     {
-	char pszTemp[MAX_PATH];
-	strcpy(pszTemp, &g_pszExe[1]);
+	char pszTemp[MAX_CMD_LENGTH];
+	strncpy(pszTemp, &g_pszExe[1], MAX_CMD_LENGTH);
+	pszTemp[MAX_CMD_LENGTH-1] = '\0';
 	strcpy(g_pszExe, pszTemp);
-	g_pszExe[strlen(g_pszExe)-1] = '\0';
+	if (g_pszExe[strlen(g_pszExe)-1] == '"')
+	    g_pszExe[strlen(g_pszExe)-1] = '\0';
     }
 
-    strcpy(pszCmdLine, g_pszExe);
+    strncpy(pszCmdLine, g_pszExe, MAX_CMD_LENGTH);
+    pszCmdLine[MAX_CMD_LENGTH-1] = '\0';
     MakeArgs(pszCmdLine, g_pszArgs, &ppArgs);
     
     if (strlen(g_pszDir))
@@ -282,7 +295,7 @@ void RunLocal(bool bDoSMP)
 	    }
 	    if (num_read == 0)
 	    {
-		if (clock() - cStart > 10 * CLOCKS_PER_SEC)
+		if (clock() - cStart > launchtimeout * CLOCKS_PER_SEC)
 		{
 		    printf("Wait for process 0 to write port to temporary file timed out\n");
 		    TerminateProcess(hProcess, 0);
@@ -364,7 +377,7 @@ void RunLocal(bool bDoSMP)
 void RunLocal(bool bDoSMP)
 {
     DWORD size = 100;
-    char pszHost[100], pszCmdLine[MAX_PATH], error_msg[256], pszEnv[256], pszExtra[MAX_PATH];
+    char pszHost[100], pszCmdLine[MAX_CMD_LENGTH], error_msg[256], pszEnv[MAX_CMD_LENGTH], pszExtra[MAX_PATH];
     STARTUPINFO saInfo;
     PROCESS_INFORMATION psInfo;
     char *pEnv;

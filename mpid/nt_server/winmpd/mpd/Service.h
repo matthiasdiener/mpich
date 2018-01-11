@@ -65,6 +65,7 @@ VOID CmdStartService();
 
 extern BOOL bDebug;
 extern bool interact;
+extern bool bSetupRestart;
 
 // rshd related routines
 void parseCommandLine (int *argc, char** argv[]);

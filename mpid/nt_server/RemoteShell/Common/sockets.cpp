@@ -10,6 +10,9 @@
 // Argument         : unsigned long addr
 int NT_create_bind_socket(SOCKET *sock, WSAEVENT *event, int port /*=0*/, unsigned long addr /*=INADDR_ANY*/)
 {
+#ifdef USE_LINGER_SOCKOPT
+	struct linger linger;
+#endif
 	// create the event
 	*event = WSACreateEvent();
 	if (*event == WSA_INVALID_EVENT)
@@ -30,6 +33,12 @@ int NT_create_bind_socket(SOCKET *sock, WSAEVENT *event, int port /*=0*/, unsign
 	if (bind(*sock, (SOCKADDR*)&sockAddr, sizeof(sockAddr)) == SOCKET_ERROR)
 		return WSAGetLastError();
 	
+#ifdef USE_LINGER_SOCKOPT
+	/* Set the linger on close option */
+	linger.l_onoff = 1 ;
+	linger.l_linger = 60;
+	setsockopt(*sock, SOL_SOCKET, SO_LINGER, (char*)&linger, sizeof(linger));
+#endif
 	return 0;
 }
 

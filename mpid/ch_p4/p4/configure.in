@@ -37,9 +37,13 @@ Usage: ${progname} -p4arch=ARCH_TYPE [-alog={on,off}] [-dprintfl={on,off}]
 		   [-p4device=device]
                    [-p4comm=shared]  [-listener_pathname="\<pathname\>"]
                    [-rsh=command] [-rshnol] [-cflags=flags] 
-                   [-enable-threaded-listener] [-disable-nothreaded-listener]
-                   [-dlast] [-listenersig=name] [--disable-nonblockread]
+                   [-dlast] [-listenersig=name] 
+                   [--enable-nonblockread]
+                   [--enable-threaded-listener] 
+                   [--enable-lazy-gethostbyname ] 
 		   [--enable-nonblocking-listener]
+		   [--enable-yield=method]
+                   [--disable-each of the options starting with enable]
 "
 RSHCOMMAND=
 MDEP_LIBS=
@@ -54,7 +58,8 @@ FC=${FC:-f77}
 threaded_listener=0
 userSet_threaded_listener=0
 enable_lazy_gethostbyname="no"
-enable_nonblocking_listener="no"
+enable_nonblocking_listener="yes"
+enable_yield=yes
 listener_sig=""
 cross_compiling=0
 # use modern socket code (EOF on socket can be distinquished from no-data)
@@ -180,6 +185,14 @@ case $arg in
    -disable-nonblocking-listener | --disable-nonblocking-listener )
         enable_nonblocking_listener=no
         ;;
+
+   -enable-yield|--enable-yield)
+        if test -z "$ac_optarg" ; then ac_optarg=yes ; fi
+	enable_yield=$ac_optarg
+	;;
+   -disable-yield|--disable-yield)
+	enable_yield=no
+	;;
 
    -*enable-*)
      # ignore unrecognized options
@@ -379,11 +392,20 @@ AC_MSG_RESULT(one!),AC_MSG_RESULT(two - whew))
 if test -n "$p4arch_HP"; then
     P4ARCH=HP
     RANLIB=true
-    libs_before="$LIBS"
-    AC_HAVE_LIBRARY(V3)
-    if test "$LIBS" = "$libs_before" ; then
-       echo "HP currently requires the System V Release 3 libraries (libV3.a)"
-       exit 1
+    # See if we need V3 for sighold
+    AC_FUNC_CHECK(sighold,sighold_in_libc=yes,sighold_in_libc=no)
+    if test $sighold_in_libc = "no" ; then
+        # See if it is in V3
+	save_LIBS="$LIBS"
+	LIBS="$LIBS -lV3"
+	AC_FUNC_CHECK(sighold,sighold_in_libV3=yes,sighold_in_libV3=no)
+	if test $sighold_in_libV3 = yes ; then
+	    # Call have_library just to force configure to add it to the
+	    # right places
+            AC_HAVE_LIBRARY(V3)
+        else
+            AC_MSG_ERROR([HP currently requires the System V Release 3 libraries (libV3.a)])
+        fi
     fi
     # nsl is required in HPUX 11 for the xdr routines
     AC_HAVE_LIBRARY(nsl)
@@ -440,9 +462,9 @@ if test -n "$p4arch_DEC5000"; then
 fi
 #						RS6000 workstation
 if test -n "$p4arch_RS6000"; then
-    if test $userSet_threaded_listener = 0 -a -z "$p4comm_shared" ; then
-	threaded_listener=1
-    fi
+#    if test $userSet_threaded_listener = 0 -a -z "$p4comm_shared" ; then
+#	threaded_listener=1
+#    fi
     P4ARCH=RS6000
     FC=xlf
     FLINKER=xlf
@@ -692,6 +714,41 @@ fi
 # Check for cross-compilation.
 AC_CROSS_CHECK()
 #
+# We must check for the threaded listener early because it selects 
+# POSIX source, which can change the results of the tests for headers and 
+# features.
+#
+if test $threaded_listener = 1 ; then
+    # Try to find a thread package
+    has_pthread=0
+    PAC_CHECK_HEADER(pthread.h,[AC_DEFINE(HAVE_PTHREAD_H)
+    has_pthread=1])
+    if test $has_pthread = 1 ; then
+        has_pthread=0
+        AC_HAVE_LIBRARY(pthread,has_pthread=1)
+        if test $has_pthread = 1 ; then
+            # Could also check for pthread_create
+	    AC_DEFINE(THREAD_LISTENER)
+	    AC_DEFINE(USE_PTHREADS)
+	    # We need this to ensure that things like errno are thread safe.
+	    AC_DEFINE(_POSIX_C_SOURCE,199506L)
+	    AC_DEFINE(_POSIX_SOURCE)
+	    # In order to use XDR, we may also need to define __EXTENSIONS__
+	    # or other awful things.
+            # __EXTENSIONS__ is needed for Solaris
+	    AC_DEFINE(__EXTENSIONS__)
+	    if test -n "$p4arch_LINUX"; then
+                # terrible hack for now: enable other features that we 
+		# expect on a LINUX platform
+                AC_DEFINE(_SVID_SOURCE)
+		AC_DEFINE(_BSD_SOURCE)
+            fi
+	    LIBS="$LIBS -lpthread"
+            echo "Using threaded listener"
+        fi
+    fi
+fi
+#
 # Look for netinet/in.h and sys/socketvar.h
 has_rpc_rpc=0
 PAC_CHECK_HEADERS(rpc/rpc.h,has_rpc_rpc=1)
@@ -794,6 +851,69 @@ AC_HAVE_LIBRARY(crypt,CRYPT_LIBS=-lcrypt)
 AC_HAVE_FUNCS(vprintf)
 PAC_CHECK_HEADERS(sys/uio.h)
 AC_HAVE_FUNCS(writev)
+
+#
+# Yield handling
+use_select_yield=no
+have_sched_yield=no
+use_yield=no
+# Test for sched_yield here since we need the answer in two places
+# Solaris hides sched_yield in the rt library
+PAC_CHECK_HEADERS(sched.h)
+AC_CHECK_FUNC(sched_yield,have_sched_yield=yes)
+if test "$have_sched_yield" = "no" ; then
+    # try with -lrt (Solaris)
+    save_LIBS="$LIBS"
+    LIBS="$LIBS -lrt"
+    AC_CHECK_FUNC(sched_yield,have_sched_yield=yes)
+    if test "$have_sched_yield" = "no" ; then
+        LIBS="$save_LIBS"
+    fi
+fi
+
+case $enable_yield in
+    no)
+        # Do nothing
+	;;
+    yes|sched_yield)
+	if test "$have_sched_yield" = "yes" ; then
+	    AC_DEFINE(USE_SCHED_YIELD,,[define to use POSIX sched_yield])
+	    use_yield=yes
+	else
+	    # Hook to allow us to make this the alternate default
+            use_select_yield=no
+	fi
+	;;	
+    sginap)
+        AC_CHECK_FUNC(sginap,
+	AC_DEFINE(USE_SGINAP_YIELD,,[define to use sginap to yield]))
+        ;;
+    yield)
+        # AIX 4.2 has yield
+        AC_CHECK_FUNC(yield,
+	AC_DEFINE(USE_YIELD_YIELD,,[define to use yield to yield]))
+	;;
+    select)
+        # Assume that we can always use select
+        use_select_yield=yes
+	use_yield=yes
+	;;
+    dynamic)
+	if test "$have_sched_yield" = "yes" ; then
+	    AC_DEFINE(USE_DYNAMIC_YIELD,,[define to dynamically select yield])
+	    use_yield=yes
+	fi
+	;;
+    *)
+	AC_MSG_WARN([Unrecognized yield method $enable_yield])
+	;;
+esac
+if test "$use_select_yield" = "yes" ; then
+    AC_DEFINE(USE_SELECT_YIELD,,[define to use select to yield])
+fi
+if test "$use_yield" = "yes" ; then
+    AC_DEFINE(USE_YIELD,,[define to yield in the communication calls])
+fi
 
 dnl #
 dnl # Check that nonblocking read works:
@@ -921,32 +1041,11 @@ return rc;}],use_unsigned_int)
 fi
 #
 #
-if test $threaded_listener = 1 ; then
-    # Try to find a thread package
-    has_pthread=0
-    PAC_CHECK_HEADER(pthread.h,[AC_DEFINE(HAVE_PTHREAD_H)
-    has_pthread=1])
-    if test $has_pthread = 1 ; then
-        has_pthread=0
-        AC_HAVE_LIBRARY(pthread,has_pthread=1)
-        if test $has_pthread = 1 ; then
-            # Could also check for pthread_create
-	    AC_DEFINE(THREAD_LISTENER)
-	    AC_DEFINE(USE_PTHREADS)
-	    # We need this to ensure that things like errno are thread safe.
-	    AC_DEFINE(_POSIX_C_SOURCE,199506L)
-	    AC_DEFINE(_POSIX_SOURCE)
-	    # In order to use XDR, we may also need to define __EXTENSIONS__
-	    # or other awful things.
-	    AC_DEFINE(__EXTENSIONS__)
-	    LIBS="$LIBS -lpthread"
-            echo "Using threaded listener"
-        fi
-    fi
-fi
 #
-# Some systems don't include support for xdr.  Check for it
-AC_HAVE_FUNCS(xdrmem_create)
+# Some systems don't include support for xdr.  Check for it.
+# Also, some versions of FreeBSD don't inlude xdr_float (later ones apparently
+# do).  Check for that as well.
+AC_HAVE_FUNCS(xdrmem_create xdr_float)
 AC_COMPILE_CHECK("XDR includes and functions",[#include <rpc/rpc.h>],[
 int a=1;
 ],HAS_XDR=1,HAS_XDR=0)

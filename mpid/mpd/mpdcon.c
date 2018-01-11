@@ -563,6 +563,9 @@ int mpdmpexec( int argc, char *argv[] )
     int whole_lines;
     char hostlist_patterns[128][PATSIZE], tempbuf[128], hostlist_buf[MAXLINE];
     char requested_jobid[10], requested_userid[10];
+    char co_program[MAXPATHLEN];
+    char mship_port_env[80], mship_fd_env[80], mship_nprocs_env[80];
+    int mship_port, mship_fd, mship_pid;
     FILE *jfp;
 
     machinefile[0]	= '\0';
@@ -570,6 +573,7 @@ int mpdmpexec( int argc, char *argv[] )
     requested_jobid[0]	= '\0';
     requested_userid[0]	= '\0';
     jobidfile[0]        = '\0';
+    co_program[0]       = '\0';
 
     if (argc < 3) {
 	printf( "usage: mpdmpexec -n numprocs [-l] "
@@ -671,6 +675,16 @@ int mpdmpexec( int argc, char *argv[] )
 	    strncpy( requested_userid, argv[optcount+1], 10 );
 	    optcount += 2;
 	}
+	else if ( strcmp ( argv[optcount], "-copgm" ) == 0 ) {
+	    if ( argv[optcount+1][0] == '-' ) {
+		fprintf( stderr, "no co-program specified after -copgm\n" );
+		return( -1 );
+	    }
+	    else {
+		strncpy( co_program, argv[optcount+1], MAXPATHLEN );
+		optcount += 2;
+	    }
+	}
 	else if ( strcmp( argv[optcount], "-mvhome" ) == 0 )
 	    optcount++;		/* ignore this argument */
 	else if ( strcmp( argv[optcount], "-mvback" ) == 0 )
@@ -737,15 +751,34 @@ int mpdmpexec( int argc, char *argv[] )
 	mergeprompts = jobsize;	   /* initially talking to all gdb's */
     }
 
+    if ( co_program[0] ) {
+	mship_fd = setup_network_socket( &mship_port );
+	mship_pid = fork();
+	if ( mship_pid == 0 ) {
+	    sprintf( mship_port_env,"CON_MSHIP_PORT=%d",mship_port );
+	    putenv( mship_port_env );
+	    sprintf( mship_fd_env,"CON_MSHIP_FD=%d",mship_fd );
+	    putenv( mship_fd_env );
+	    sprintf( mship_nprocs_env,"CON_MSHIP_NPROCS=%d",jobsize );
+	    putenv( mship_nprocs_env );
+	    rc = execvp( co_program, NULL );
+	    mpdprintf(1, "failed to start mother ship: rc=%d\n", rc );
+	    exit(0);  /* just in case */
+	}
+	close(mship_fd);
+    }
+
     sprintf( buf,
 	     "cmd=mpexec hostname=%s portnum=%d iotree=%d numprocs=%d "
 	     "executable=%s gdb=%d tvdebug=%d line_labels=%d shmemgrpsize=%d "
              "first_at_console=%d myrinet_job=%d "
              "whole_lines=%d "
+             "copgm=%s mship_host=%s mship_port=%d "
              "username=%s requested_jobid=%s requested_userid=%s ",
 	     myhostname, fdtable[listener_idx].portnum, iotree, jobsize,
 	     executable, gdb, tvdebug, line_labels, shmemgrpsize,
 	     first_at_console, myrinet_job, whole_lines,
+	     co_program,myhostname,mship_port,
              pwent->pw_name, requested_jobid, requested_userid );
     argcnt  = 0;
     envcnt  = 0;

@@ -109,7 +109,12 @@ void Resizer::Resize(int cx, int cy)
     if (m_Type & RSR_BOTTOM_PROPORTIONAL)
 	h = ((m_rRect.bottom * cy) / 100) - y;
 
-    MoveWindow(m_hWnd, x, y, w, h, TRUE);
+    if (m_hWnd != NULL)
+    {
+	MoveWindow(m_hWnd, x, y, w, h, TRUE);
+	InvalidateRect(m_hWnd, NULL, TRUE);
+	UpdateWindow(m_hWnd);
+    }
 }
 
 /*

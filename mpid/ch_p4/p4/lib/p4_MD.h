@@ -57,7 +57,7 @@
 #endif
 
 /* All SGIs ??? */
-#if defined(SGI_CH64) || defined(SGI_MP)
+#if defined(SGI_CH64) || defined(SGI_MP) || defined(SGI)
 /* Create a new session to work around kills that kill the process group */
 #define SET_NEW_PGRP
 #endif
@@ -753,7 +753,7 @@ static LPDWORD threadid;
 #include <pthread.h>
 typedef pthread_t p4_thread_t;
 #define p4_create_thread(threadhandle,routine,args) \
-    pthread_create( &threadhandle, NULL, routine, (void *)args )
+    pthread_create( &threadhandle, NULL, (void*(*)(void*))routine, (void *)args )
 #else
 /* No threads */
 #endif

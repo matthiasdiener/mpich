@@ -9,6 +9,19 @@ dnl
 dnl
 AC_INIT()
 
+dnl Place the viewers into the common prefix location
+AC_ARG_WITH(common-prefix,
+[--with-common-prefix=dir           - Set the installation prefix for 
+                                     the Jumpshot-2 viewer.  This allows
+				     a separate prefix for MPICH and for
+				     Jumpshot when they are installed 
+				     together],
+,with_common_prefix=NONE)
+
+if test "$with_common_prefix" != "NONE" ; then
+    prefix=$with_common_prefix
+fi 
+
 echo "Configuring MPE-LogViewers with $ac_configure_args"
 #
 # Find the home directory if not specified

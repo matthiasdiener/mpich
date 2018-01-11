@@ -460,7 +460,7 @@ static MPID_PKT_T *FreePkts[MPID_MAX_PROCS];
 static MPID_PKT_T *FreePktsTail[MPID_MAX_PROCS];
 static int to_free = 0;
 
-void MPID_SHMEM_FreeSetup()
+void MPID_SHMEM_FreeSetup( void )
 {
     int i;
     for (i=0; i<MPID_numids; i++) { 
@@ -469,7 +469,7 @@ void MPID_SHMEM_FreeSetup()
     }
 }
 
-void MPID_SHMEM_FlushPkts()
+void MPID_SHMEM_FlushPkts( void )
 {
     int i;
     MPID_PKT_T *pkt;
@@ -537,6 +537,7 @@ MPID_PKT_T *MPID_SHMEM_GetSendPkt( int nonblock )
 {
     MPID_PKT_T *inpkt=0;
     static MPID_PKT_T *localavail = 0;
+    static int nest_count = 0;
     int   freecnt=0;
 
 #ifdef MPID_DEBUG_SPECIAL
@@ -548,6 +549,8 @@ MPID_PKT_T *MPID_SHMEM_GetSendPkt( int nonblock )
     }
     else {
 	/* If there are no available packets, this code does a yield */
+	/* Return the packets that we have */
+	MPID_SHMEM_FlushPkts();
 	while (1) {
 	    if (MPID_lshmem.availPtr[MPID_myid]->head) {
 		/* Only lock if there is some hope */
@@ -575,7 +578,19 @@ MPID_PKT_T *MPID_SHMEM_GetSendPkt( int nonblock )
 	    freecnt++;
 	    p2p_yield();
 	    if ((freecnt % 8) == 0) {
+		/* There is an implementation bug in the flow control
+		   code that can cause MPID_DeviceCheck to call a 
+		   routine that calls this routine. When that happens, 
+		   we'll quickly drop into the same code, so we prefer
+		   to abort.  The test is here because if we find
+		   a free packet, it is ok to enter this routine, 
+		   just not ok to enter and then call DeviceCheck */
+		if (nest_count++ > 0) {
+		    MPID_Abort( 0, 1, "MPI Internal", 
+				"Nested call to GetSendPkt" );
+		}
 		MPID_DeviceCheck( MPID_NOTBLOCKING );
+		nest_count--;
 		/* Return the packets that we have */
 		MPID_SHMEM_FlushPkts();
 	    }

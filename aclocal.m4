@@ -601,6 +601,9 @@ dnl
 define(PAC_CORRECT_COMPILER,[
 AC_REQUIRE([AC_CROSS_CHECK])
 if test -z "$CCBUGS" ; then CCBUGS=ccbugs ; fi
+if test ! -d $CCBUGS -a -d ${top_srcdir}/$CCBUGS ; then
+    CCBUGS=${top_srcdir}/$CCBUGS
+fi
 if test -d $CCBUGS ; then 
     # Use "LTESTCC" as "local Test CC"
     if test -z "$TESTCC" ; then LTESTCC="$CC" ; else LTESTCC="$TESTCC" ; fi
@@ -610,7 +613,7 @@ if test -d $CCBUGS ; then
         cp $file conftest.c
         broken=1
         rm -f conftest.out conftest.rout
-        if eval $LTESTCC $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS >conftest.out 2>&1 ; then
+        if eval $LTESTCC $CFLAGS $OPTFLAGS -o conftest conftest.c $LDFLAGS $LIBS >conftest.out 2>&1 ; then
 	    if test -s conftest ; then
                 ./conftest 2>&1 1>conftest.rout
                 if test $? = 0 ; then
@@ -642,7 +645,7 @@ if test -d $CCBUGS ; then
         cp $file conftest.c
         nbroken=1
 	rm -f conftest.out conftest.rout
-        if eval $LTESTCC $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS >conftest.out 2>&1 ; then
+        if eval $LTESTCC $CFLAGS $OPTFLAGS -o conftest conftest.c $LDFLAGS $LIBS >conftest.out 2>&1 ; then
 	    if test -s conftest ; then
                 ./conftest 2>&1 1>conftest.rout
                 if test $? = 0 ; then
@@ -674,7 +677,7 @@ if test -d $CCBUGS ; then
         AC_MSG_CHECKING(`cat $CCBUGS/$CFILE.title`)
         cp $file conftest.c
 	echo "${CC-cc} $CFLAGS ... test for quotes in defn" >>config.log
-        if eval ${CC-cc} $CFLAGS \
+        if eval ${CC-cc} $CFLAGS $OPTFLAGS \
 	    -DCONFIGURE_ARGS_CLEAN="'"'"'-A -B'"'"'" -c \
 	    conftest.c $LIBS >> config.log 2>&1 ; then
 	    AC_MSG_RESULT(yes)
@@ -714,7 +717,7 @@ cat >conftest.f <<EOF
           end
 EOF
 /bin/rm -f conftest.out
-$F77 $FFLAGS -c conftest.f > conftest.out 2>&1
+$F77 $FFLAGS $OPTFLAGSF -c conftest.f > conftest.out 2>&1
 if test $? != 0 ; then
     AC_MSG_RESULT(no)
     echo "Fortran compiler returned non-zero return code"
@@ -1890,6 +1893,10 @@ if eval $compile; then
   $4
 ])
 ifelse([$5], , , [else
+  expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+  eval echo "configure:$expandcompile" >> config.log
+  echo "configure: failed program was:" >>config.log
+  cat confdefs.h >> config.log
   cat conftest.c >> config.log
   if test -s conftest.out ; then cat conftest.out >> config.log 
   else
@@ -1898,6 +1905,10 @@ ifelse([$5], , , [else
   $5
 ])dnl
    ifelse([$1], , , ifelse([$5], ,else) [AC_MSG_RESULT(no)]
+    expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+    eval echo "configure:$expandcompile" >> config.log
+    echo "configure: failed program was:" >>config.log
+    cat confdefs.h >> config.log
     cat conftest.c >> config.log
     if test -s conftest.out ; then cat conftest.out >> config.log 
     else

@@ -136,6 +136,7 @@ elif test "$ARCH" = "IRIX" ; then
   fi
 else
   # Note that this will change IRIXxxx to SGIxxx (i.e., IRIX32 to SGI32)
+  # It also makes Cygwin look like Linux, since both are GNU-based
   P4_ARCH=`echo $ARCH | sed \
 	    -e 's/sun4/SUN/g'              -e 's/intelnx/IPSC860/g'  \
 	    -e 's/IRIX/SGI/g'              -e 's/hpux/HP/g'          \
@@ -148,7 +149,8 @@ else
 	    -e 's/ksr/KSR/g'               -e 's/freebsd/FREEBSD/g'  \
 	    -e 's/cm5/CM5/g'               -e 's/meiko/MEIKO_CS2/g'  \
             -e 's/rs6000/RS6000/g'	   -e 's/symm_ptx/SYMMETRY_PTX/g' \
-            -e 's/sppux/HP/g'              -e 's/netbsd/NETBSD/g'`
+            -e 's/CYGWIN_NT/LINUX/g' \
+            -e 's/sppux/HP/g'              -e 's/netbsd/NETBSD/g'` 
 fi
 echo "Finished setting p4arch..."
 #

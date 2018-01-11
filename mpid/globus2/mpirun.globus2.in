@@ -37,7 +37,7 @@ createRslJob() {
 	    echo "   (jobtype=mpi)"
 	fi
 	echo "   (label=\"subjob $my_cnt\")"
-	if [ -z $GLOBUS_LOCATION ]; then
+	if [ -z "$GLOBUS_LOCATION" ]; then
             #
             # GLOBUS_LOCATION not defined ==> assuming using pre-globus v2.0
             #

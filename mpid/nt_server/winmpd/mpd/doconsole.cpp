@@ -3,450 +3,7 @@
 #include <stdio.h>
 #include "GetStringOpt.h"
 #include "Translate_Error.h"
-
-//#define CONSOLE_STR_LENGTH 10*MAX_CMD_LENGTH
-
-bool ReadStringMax(int bfd, char *str, int max)
-{
-    int n;
-    char *str_orig = str;
-    int count = 0;
-
-    PUSH_FUNC("ReadString");
-    //dbg_printf("reading from %d\n", bget_fd(bfd));
-    do {
-	/*
-	n = 0;
-	while (!n)
-	{
-	    n = bread(bfd, str, 1);
-	    if (n == SOCKET_ERROR)
-	    {
-		err_printf("ReadString[%d] failed, error %d\n", bget_fd(bfd), WSAGetLastError());
-		POP_FUNC();
-		return false;
-	    }
-	}
-	*/
-	n = beasy_receive(bfd, str, 1);
-	if (n == SOCKET_ERROR)
-	{
-	    err_printf("ReadString[%d] failed, error %d\n", bget_fd(bfd), WSAGetLastError());
-	    POP_FUNC();
-	    return false;
-	}
-	if (n == 0)
-	{
-	    err_printf("ReadString[%d] failed, socket closed\n", bget_fd(bfd));
-	    POP_FUNC();
-	    return false;
-	}
-	count++;
-	if (count == max && *str != '\0')
-	{
-	    *str = '\0';
-	    // truncate, read and discard all further characters of the string
-	    char ch;
-	    do {
-		/*
-		n = 0;
-		while (!n)
-		{
-		    n = bread(bfd, &ch, 1);
-		    if (n == SOCKET_ERROR)
-		    {
-			err_printf("ReadString[%d] failed, error %d\n", bget_fd(bfd), WSAGetLastError());
-			POP_FUNC();
-			return false;
-		    }
-		}
-		*/
-		n = beasy_receive(bfd, &ch, 1);
-		if (n == SOCKET_ERROR)
-		{
-		    err_printf("ReadString[%d] failed, error %d\n", bget_fd(bfd), WSAGetLastError());
-		    POP_FUNC();
-		    return false;
-		}
-		if (n == 0)
-		{
-		    err_printf("ReadString[%d] failed, socket closed\n", bget_fd(bfd));
-		    POP_FUNC();
-		    return false;
-		}
-	    } while (ch != '\0');
-	}
-    } while (*str++ != '\0');
-    //dbg_printf("read <%s>\n", str_orig);
-    //return strlen(str_orig);
-    POP_FUNC();
-    return true;
-}
-
-bool ReadString(int bfd, char *str)
-{
-    int n;
-    char *str_orig = str;
-
-    PUSH_FUNC("ReadString");
-    //dbg_printf("reading from %d\n", bget_fd(bfd));
-    do {
-	/*
-	n = 0;
-	while (!n)
-	{
-	    n = bread(bfd, str, 1);
-	    if (n == SOCKET_ERROR)
-	    {
-		err_printf("ReadString[%d] failed, error %d\n", bget_fd(bfd), WSAGetLastError());
-		POP_FUNC();
-		return false;
-	    }
-	}
-	*/
-	n = beasy_receive(bfd, str, 1);
-	if (n == SOCKET_ERROR)
-	{
-	    err_printf("ReadString[%d] failed, error %d\n", bget_fd(bfd), WSAGetLastError());
-	    POP_FUNC();
-	    return false;
-	}
-	if (n == 0)
-	{
-	    err_printf("ReadString[%d] failed, socket closed\n", bget_fd(bfd));
-	    POP_FUNC();
-	    return false;
-	}
-    } while (*str++ != '\0');
-    //dbg_printf("read <%s>\n", str_orig);
-    //return strlen(str_orig);
-    POP_FUNC();
-    return true;
-}
-
-bool ReadStringTimeout(int bfd, char *str, int timeout)
-{
-    int n;
-    char *str_orig = str;
-
-    PUSH_FUNC("ReadStringTimeout");
-    //dbg_printf("reading from %d\n", bget_fd(bfd));
-    do {
-	n = 0;
-	while (!n)
-	{
-	    n = beasy_receive_timeout(bfd, str, 1, timeout);
-	    if (n == SOCKET_ERROR)
-	    {
-		err_printf("ReadStringTimeout failed, error %d\n", WSAGetLastError());
-		POP_FUNC();
-		return false;
-	    }
-	    if (n == 0)
-	    {
-		POP_FUNC();
-		return false;
-	    }
-	}
-    } while (*str++ != '\0');
-    //dbg_printf("read <%s>\n", str_orig);
-    //return strlen(str_orig);
-    POP_FUNC();
-    return true;
-}
-
-int WriteString(int bfd, char *str)
-{
-    int ret_val;
-    PUSH_FUNC("WriteString");
-    if (strlen(str) >= MAX_CMD_LENGTH)
-    {
-	err_printf("WriteString: command too long, %d\n", strlen(str));
-	POP_FUNC();
-	return SOCKET_ERROR;
-    }
-    //dbg_printf("writing to %d, <%s>\n", bget_fd(bfd), str);
-    ret_val = beasy_send(bfd, str, strlen(str)+1);
-    POP_FUNC();
-    return ret_val;
-}
-
-#define TRANSFER_BUFFER_SIZE 20*1024
-
-bool PutFile(int bfd, char *pszInputStr)
-{
-    char pszFileName[MAX_PATH];
-    char pszRemoteFileName[MAX_PATH];
-    char pszReplace[10] = "yes";
-    char pszCreateDir[10] = "yes";
-    char pszStr[MAX_CMD_LENGTH];
-    FILE *fin;
-    int error;
-    int nLength;
-
-    // Parse the input string
-    if (!GetStringOpt(pszInputStr, "local", pszFileName))
-    {
-	printf("Error: no local file name specified (local=filename).\n");
-	return false;
-    }
-
-    if (!GetStringOpt(pszInputStr, "remote", pszRemoteFileName))
-    {
-	strcpy(pszRemoteFileName, pszFileName);
-    }
-
-    GetStringOpt(pszInputStr, "replace", pszReplace);
-    GetStringOpt(pszInputStr, "createdir", pszCreateDir);
-
-    // Open the file
-    fin = fopen(pszFileName, "rb");
-    if (fin == NULL)
-    {
-	error = GetLastError();
-	Translate_Error(error, pszStr);
-	printf("Unable to open local file:\nFile: '%s'\nError: %s\n", pszFileName, pszStr);
-	return false;
-    }
-
-    // Get the size
-    fseek(fin, 0, SEEK_END);
-    nLength = ftell(fin);
-    if (nLength == -1)
-    {
-	error = GetLastError();
-	Translate_Error(error, pszStr);
-	printf("Unable to determine the size of the local file:\nFile: '%s'\nError: %s\n", pszFileName, pszStr);
-	return false;
-    }
-
-    // Rewind back to the beginning
-    fseek(fin, 0, SEEK_SET);
-
-    // Send the putfile command
-    sprintf(pszStr, "putfile name=%s length=%d replace=%s createdir=%s", pszRemoteFileName, nLength, pszReplace, pszCreateDir);
-    WriteString(bfd, pszStr);
-
-    // Get the response
-    ReadString(bfd, pszStr);
-    if (strcmp(pszStr, "SEND") == 0)
-    {
-	// Send the data
-	char pBuffer[TRANSFER_BUFFER_SIZE];
-	int nNumRead;
-	while (nLength)
-	{
-	    nNumRead = min(nLength, TRANSFER_BUFFER_SIZE);
-	    nNumRead = fread(pBuffer, 1, nNumRead, fin);
-	    if (nNumRead < 1)
-	    {
-		printf("fread failed, %d\n", ferror(fin));
-		beasy_closesocket(bfd);
-		ExitProcess(0);
-	    }
-	    beasy_send(bfd, pBuffer, nNumRead);
-	    //printf("%d bytes sent\n", nNumRead);fflush(stdout);
-	    nLength -= nNumRead;
-	}
-
-	ReadString(bfd, pszStr);
-	//printf("%s\n", pszStr);
-	if (strcmp(pszStr, "SUCCESS") == 0)
-	{
-	    fclose(fin);
-	    return true;
-	}
-    }
-    else
-    {
-	printf("%s\n", pszStr);
-    }
-
-    fclose(fin);
-    return false;
-}
-
-static void GetFile(int bfd, char *pszInputStr)
-{
-    bool bReplace = true, bCreateDir = false;
-    char pszFileName[MAX_PATH];
-    char pszRemoteFileName[MAX_PATH];
-    char pszStr[256];
-    int nLength;
-    FILE *fout;
-    char pBuffer[TRANSFER_BUFFER_SIZE];
-    int nNumRead;
-    int nNumWritten;
-    bool bLocal = true, bRemote = true;
-
-    // Parse the string for parameters
-    if (GetStringOpt(pszInputStr, "replace", pszStr))
-    {
-	bReplace = (stricmp(pszStr, "yes") == 0);
-    }
-    if (GetStringOpt(pszInputStr, "createdir", pszStr))
-    {
-	bCreateDir = (stricmp(pszStr, "yes") == 0);
-    }
-    bLocal = GetStringOpt(pszInputStr, "local", pszFileName);
-    bRemote = GetStringOpt(pszInputStr, "remote", pszRemoteFileName);
-
-    if (!bLocal && !bRemote)
-    {
-	printf("Error: no file name provided\n");
-	return;
-    }
-    if (!bRemote)
-	strcpy(pszRemoteFileName, pszFileName);
-    if (!bLocal)
-	strcpy(pszFileName, pszRemoteFileName);
-
-    // Create the local file
-    //dbg_printf("creating file '%s'\n", pszFileName);
-    if (bCreateDir)
-    {
-	if (!TryCreateDir(pszFileName, pszStr))
-	{
-	    printf("Error: unable to create the directory, %s\n", pszStr);
-	    return;
-	}
-    }
-
-    if (!bReplace)
-    {
-	fout = fopen(pszFileName, "r");
-	if (fout != NULL)
-	{
-	    printf("Error: file exists\n");
-	    fclose(fout);
-	    return;
-	}
-	fclose(fout);
-    }
-
-    fout = fopen(pszFileName, "wb");
-
-    if (fout == NULL)
-    {
-	Translate_Error(GetLastError(), pszStr, "Error: Unable to open the file, ");
-	printf("%s\n", pszStr);
-	return;
-    }
-
-    // Send the getfile command
-    sprintf(pszStr, "getfile name=%s", pszRemoteFileName);
-    if (WriteString(bfd, pszStr) == SOCKET_ERROR)
-    {
-	Translate_Error(WSAGetLastError(), pszStr, "Error: Writing getfile command failed, ");
-	printf("%s\n", pszStr);
-	fclose(fout);
-	return;
-    }
-
-    if (!ReadString(bfd, pszStr))
-    {
-	printf("Error: failed to read the response from the getfile command.\n");
-	fclose(fout);
-	return;
-    }
-
-    nLength = atoi(pszStr);
-    if (nLength == -1)
-    {
-	if (!ReadString(bfd, pszStr))
-	{
-	    printf("Error: failed to read the error message from the getfile command.\n");
-	    fclose(fout);
-	    return;
-	}
-	printf("Error: %s\n", pszStr);
-	fclose(fout);
-	return;
-    }
-
-    while (nLength)
-    {
-	nNumRead = min(nLength, TRANSFER_BUFFER_SIZE);
-	if (beasy_receive(bfd, pBuffer, nNumRead) == SOCKET_ERROR)
-	{
-	    err_printf("ERROR: beasy_receive failed, error %d\n", WSAGetLastError());
-	    fclose(fout);
-	    DeleteFile(pszFileName);
-	    return;
-	}
-	nNumWritten = fwrite(pBuffer, 1, nNumRead, fout);
-	if (nNumWritten != nNumRead)
-	{
-	    err_printf("ERROR: received %d bytes but only wrote %d bytes\n", nNumRead, nNumWritten);
-	}
-	//dbg_printf("%d bytes read, %d bytes written\n", nNumRead, nNumWritten);
-	nLength -= nNumRead;
-    }
-
-    fclose(fout);
-
-    printf("SUCCESS\n");
-}
-
-static void GetDirectoryContents(int bfd, char *pszInputStr)
-{
-    int nFolders, nFiles;
-    char pszStr[MAX_PATH], pszLength[50];
-    int i;
-
-    if (WriteString(bfd, pszInputStr) == SOCKET_ERROR)
-    {
-	printf("writing '%s' command failed\n", pszInputStr);
-	return;
-    }
-
-    if (!ReadString(bfd, pszStr))
-    {
-	printf("Error: reading nFolders failed\n");
-	return;
-    }
-    if (strnicmp(pszStr, "ERROR", 5) == 0)
-    {
-	printf("%s\n", pszStr);
-	return;
-    }
-    nFolders = atoi(pszStr);
-
-    //printf("Folders:\n");
-    for (i=0; i<nFolders; i++)
-    {
-	if (!ReadString(bfd, pszStr))
-	{
-	    printf("Error: reading folder name failed\n");
-	    return;
-	}
-	printf("            %s\n", pszStr);
-    }
-
-    if (!ReadString(bfd, pszStr))
-    {
-	printf("Error: reading nFiles failed\n");
-	return;
-    }
-    nFiles = atoi(pszStr);
-
-    //printf("Files:\n");
-    for (i=0; i<nFiles; i++)
-    {
-	if (!ReadString(bfd, pszStr))
-	{
-	    printf("Error: reading file name failed\n");
-	    return;
-	}
-	if (!ReadString(bfd, pszLength))
-	{
-	    printf("Error: reading file length failed\n");
-	    return;
-	}
-	//printf("%s %s\n", pszStr, pszLength);
-	printf("%11s %s\n", pszLength, pszStr);
-    }
-}
+#include "mpdutil.h"
 
 static void GetPassword(char *question, char *account, char *password)
 {
@@ -499,7 +56,8 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
     }
     if (altphrase != NULL)
     {
-	strcpy(phrase, altphrase);
+	strncpy(phrase, altphrase, MPD_PASSPHRASE_MAX_LENGTH);
+	phrase[MPD_PASSPHRASE_MAX_LENGTH] = '\0';
     }
     else if (bAskPwd || !ReadMPDRegistry("phrase", phrase, false))
     {
@@ -526,6 +84,13 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
     if (!ReadString(bfd, str))
     {
 	printf("reading challenge string failed.\n");fflush(stdout);
+	beasy_closesocket(bfd);
+	POP_FUNC();
+	return;
+    }
+    if (strlen(phrase) + strlen(str) > MPD_PASSPHRASE_MAX_LENGTH)
+    {
+	printf("unable to process passphrase.\n");fflush(stdout);
 	beasy_closesocket(bfd);
 	POP_FUNC();
 	return;
@@ -571,12 +136,12 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
     printf("connected\n");fflush(stdout);
     while (gets(str))
     {
-	if ((strnicmp(str, "launch ", 7) == 0) ||
-	    (strnicmp(str, "getpid ", 7) == 0) || 
+	if ((strnicmp(str, "getpid ", 7) == 0) || 
 	    (strnicmp(str, "geterror ", 9) == 0) ||
 	    (strnicmp(str, "getexitcode ", 12) == 0) ||
 	    (strnicmp(str, "getexitcodewait ", 16) == 0) ||
 	    (stricmp(str, "version") == 0) ||
+	    (stricmp(str, "mpich version") == 0) ||
 	    (stricmp(str, "config") == 0) ||
 	    (strnicmp(str, "dbput ", 6) == 0) ||
 	    (strnicmp(str, "dbget ", 6) == 0) ||
@@ -595,6 +160,52 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	    (strnicmp(str, "mpich1readint ", 14) == 0) ||
 	    (strnicmp(str, "lget ", 5) == 0))
 	{
+	    if (WriteString(bfd, str) == SOCKET_ERROR)
+	    {
+		error = WSAGetLastError();
+		printf("writing '%s' failed, %d\n", str, error);
+		Translate_Error(error, str);
+		printf("%s\n", str);
+		fflush(stdout);
+		break;
+	    }
+	    if (ReadStringTimeout(bfd, str, 10))
+	    {
+		printf("%s\n", str);fflush(stdout);
+	    }
+	    else
+	    {
+		printf("timeout waiting for result to return.\n");fflush(stdout);
+	    }
+	}
+	else if (strnicmp(str, "launch ", 7) == 0)
+	{
+	    char pszPassword[100];
+	    if (GetStringOpt(str, "p", pszPassword))
+	    {
+		char pszStrTemp[300] = "";
+		char *pszEncoded, *pStr;
+		unsigned int i;
+		pszEncoded = EncodePassword(pszPassword);
+		if (pszEncoded != NULL)
+		{
+		    _snprintf(pszStrTemp, 300, " p=%s", pszEncoded);
+		    free(pszEncoded);
+		}
+		/* erase the original password */
+		pStr = strstr(str, "p=");
+		pStr = strstr(pStr, pszPassword);
+		for (i=0; i<strlen(pszPassword); i++)
+		    pStr[i] = ' ';
+		while (*pStr != '=')
+		    pStr--;
+		*pStr = ' ';
+		while (*pStr != 'p')
+		    pStr--;
+		*pStr = ' ';
+		/* append the encoded password */
+		strcat(str, pszStrTemp);
+	    }
 	    if (WriteString(bfd, str) == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();
@@ -692,7 +303,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	    char *token = strtok(&str[24], ",");
 	    while (token != NULL)
 	    {
-		sprintf(str2, "getexitcodewait %s", token);
+		_snprintf(str2, 100, "getexitcodewait %s", token);
 		if (WriteString(bfd, str2) == SOCKET_ERROR)
 		{
 		    error = WSAGetLastError();
@@ -777,7 +388,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	}
 	else if (strnicmp(str, "fileinit ", 9) == 0)
 	{
-	    char pszPassword[100];
+	    char pszPassword[100], *pszEncoded;
 	    if (!GetStringOpt(str, "password", pszPassword))
 	    {
 		char pszAccount[100];
@@ -788,7 +399,22 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		    break;
 		}
 		GetPassword(NULL, pszAccount, pszPassword);
-		sprintf(str, "fileinit account=%s password=%s", pszAccount, pszPassword);
+		pszEncoded = EncodePassword(pszPassword);
+		_snprintf(str, CONSOLE_STR_LENGTH, "fileinit account=%s password=%s", pszAccount, pszEncoded);
+		if (pszEncoded != NULL) free(pszEncoded);
+	    }
+	    else
+	    {
+		char pszAccount[100];
+		if (!GetStringOpt(str, "account", pszAccount))
+		{
+		    printf("password but no account specified\n");
+		    fflush(stdout);
+		    break;
+		}
+		pszEncoded = EncodePassword(pszPassword);
+		_snprintf(str, CONSOLE_STR_LENGTH, "fileinit account=%s password=%s", pszAccount, pszEncoded);
+		if (pszEncoded != NULL) free(pszEncoded);
 	    }
 	    if (WriteString(bfd, str) == SOCKET_ERROR)
 	    {
@@ -800,51 +426,15 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		break;
 	    }
 	}
-	/*
-	else if ((strnicmp(str, "map ", 4) == 0) ||
-	    	 (strnicmp(str, "unmap ", 6) == 0))
-	{
-	    char pszPassword[100];
-	    if (!GetStringOpt(str, "password", pszPassword))
-	    {
-		char pszAccount[100];
-		char pszStrTemp[200];
-		if (!GetStringOpt(str, "account", pszAccount))
-		{
-		    printf("no account and password specified\n");
-		    fflush(stdout);
-		    break;
-		}
-		GetPassword(NULL, pszAccount, pszPassword);
-		sprintf(pszStrTemp, " account=%s password=%s", pszAccount, pszPassword);
-		strcat(str, pszStrTemp);
-	    }
-	    if (WriteString(bfd, str) == SOCKET_ERROR)
-	    {
-		error = WSAGetLastError();
-		printf("writing map command failed, %d\n", error);
-		Translate_Error(error, str);
-		printf("%s\n", str);
-		fflush(stdout);
-		break;
-	    }
-	    if (ReadStringTimeout(bfd, str, 30)) // logon requests can take a long time
-	    {
-		printf("%s\n", str);fflush(stdout);
-	    }
-	    else
-	    {
-		printf("timeout waiting for result to return.\n");fflush(stdout);
-	    }
-	}
-	*/
 	else if (strnicmp(str, "map ", 4) == 0)
 	{
 	    char pszPassword[100];
+	    char pszAccount[100];
+	    char pszStrTemp[300];
+	    char *pszEncoded, *pStr;
+	    unsigned int i;
 	    if (!GetStringOpt(str, "password", pszPassword))
 	    {
-		char pszAccount[100];
-		char pszStrTemp[200];
 		if (!GetStringOpt(str, "account", pszAccount))
 		{
 		    printf("no account and password specified\n");
@@ -852,7 +442,42 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		    break;
 		}
 		GetPassword(NULL, pszAccount, pszPassword);
-		sprintf(pszStrTemp, " account=%s password=%s", pszAccount, pszPassword);
+		pszEncoded = EncodePassword(pszPassword);
+		if (pszEncoded != NULL)
+		{
+		    _snprintf(pszStrTemp, 300, " account=%s password=%s", pszAccount, pszEncoded);
+		    free(pszEncoded);
+		    strcat(str, pszStrTemp);
+		}
+	    }
+	    else
+	    {
+		if (!GetStringOpt(str, "account", pszAccount))
+		{
+		    printf("password but no account specified\n");
+		    fflush(stdout);
+		    break;
+		}
+		pszEncoded = EncodePassword(pszPassword);
+		if (pszEncoded != NULL)
+		{
+		    _snprintf(pszStrTemp, 300, " password=%s", pszEncoded);
+		    free(pszEncoded);
+		}
+		else
+		    pszStrTemp[0] = '\0';
+		/* erase the original password */
+		pStr = strstr(str, "password");
+		while (*pStr != '=')
+		{
+		    *pStr = ' ';
+		    pStr++;
+		}
+		*pStr = ' ';
+		pStr = strstr(pStr, pszPassword);
+		for (i=0; i<strlen(pszPassword); i++)
+		    pStr[i] = ' ';
+		/* append the encoded password */
 		strcat(str, pszStrTemp);
 	    }
 	    if (WriteString(bfd, str) == SOCKET_ERROR)
@@ -879,7 +504,8 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	    if (!GetStringOpt(str, "drive", pszDrive))
 	    {
 		char pszStrTemp[40];
-		sprintf(pszStrTemp, "unmap drive=%s", &str[6]);
+		_snprintf(pszStrTemp, 40, "unmap drive=%s", &str[6]);
+		pszStrTemp[39] = '\0';
 		strcpy(str, pszStrTemp);
 	    }
 	    if (WriteString(bfd, str) == SOCKET_ERROR)
@@ -936,6 +562,57 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	}
 	else if (stricmp(str, "print") == 0)
 	{
+	    if (WriteString(bfd, str) == SOCKET_ERROR)
+	    {
+		error = WSAGetLastError();
+		printf("writing '%s' failed, %d\n", str, error);
+		Translate_Error(error, str);
+		printf("%s\n", str);
+		fflush(stdout);
+		break;
+	    }
+	    if (ReadStringMax(bfd, str, CONSOLE_STR_LENGTH))
+	    {
+		printf("%s", str);fflush(stdout);
+	    }
+	    else
+	    {
+		printf("reading result failed\n");fflush(stdout);
+		break;
+	    }
+	}
+	else if (stricmp(str, "stat") == 0)
+	{
+	    strcpy(str, "stat param=help");
+	    if (WriteString(bfd, str) == SOCKET_ERROR)
+	    {
+		error = WSAGetLastError();
+		printf("writing '%s' failed, %d\n", str, error);
+		Translate_Error(error, str);
+		printf("%s\n", str);
+		fflush(stdout);
+		break;
+	    }
+	    if (ReadStringMax(bfd, str, CONSOLE_STR_LENGTH))
+	    {
+		printf("%s", str);fflush(stdout);
+	    }
+	    else
+	    {
+		printf("reading result failed\n");fflush(stdout);
+		break;
+	    }
+	}
+	else if (strnicmp(str, "stat ", 5) == 0)
+	{
+	    char pszParam[100];
+	    if (!GetStringOpt(str, "param", pszParam))
+	    {
+		char pszStrTemp[100];
+		_snprintf(pszStrTemp, 100, "stat param=%s", &str[5]);
+		pszStrTemp[99] = '\0';
+		strcpy(str, pszStrTemp);
+	    }
 	    if (WriteString(bfd, str) == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();

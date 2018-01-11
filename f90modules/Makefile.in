@@ -134,6 +134,8 @@ uninstall:
 # Use -traditional to get the integer*2 types if you perfer that
 # Use -types="integer8 real2" if you want to specify specific types
 mpi.$(F90SUFFIX): ${srcdir}/mpi1__type_s.f90
+	@-if [ ! -x ${srcdir}/CreateChoiceSrc ] ; then \
+		chmod +x ${srcdir}/CreateChoiceSrc ; fi
 	@( MAKE="@MAKE@" ; export MAKE ; \
 	${srcdir}/CreateChoiceSrc @CHOICE_TYPE@ @TYPELIST@ -f90suffix=@F90SUFFIX@ )
 

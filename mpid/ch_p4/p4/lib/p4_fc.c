@@ -66,7 +66,7 @@ p4_initfc()
     p4_dprintfl(30,"opening. . .\n");
     if ((i = ioctl(y,SFC_OPEN,fcopen)) != 0)
     {
-	p4_error("p4_initfc: open error: %d\n",errno); 
+	p4_error("p4_initfc: open error: ",errno); 
     }
     fd = fcopen->dcd;
     p4_dprintfl(30,"opened fd %d. . .\n",fd);
@@ -89,14 +89,14 @@ p4_initfc()
     }
     if ((i = ioctl(y,SFC_BIND,fcbind)) != 0)
     {
-	p4_error("p4_initfc: bind error: %d\n",errno); 
+	p4_error("p4_initfc: bind error: ",errno); 
     }
     p4_dprintfl(30,"listening for connection requests. . .\n");
     fclisten->dcd = fd;
     fclisten->backlog = 3;
     if ((i = ioctl(y,SFC_LISTEN,fclisten)) != 0)
     {
-	p4_error("p4_initfc: listen error: %d\n",errno); 
+	p4_error("p4_initfc: listen error: ",errno); 
     }
 
     /* establish all the connections */
@@ -118,7 +118,7 @@ p4_initfc()
 		if ((rc = ioctl(y,SFC_ACCEPT,fcaccept)) != 0
 		    && errno != ETIMEOUT)
 		{
-		    p4_error("p4_initfc: accept error: %d\n",errno); 
+		    p4_error("p4_initfc: accept error: ",errno); 
 		}
 	    } while (errno == ETIMEOUT);
 
@@ -151,7 +151,7 @@ p4_initfc()
 	    p4_dprintfl(30,"opening. . .\n");
 	    if ((rc = ioctl(y,SFC_OPEN,fcopen)) != 0)
 	    {
-		p4_error("p4_initfc: open error: %d\n",errno); 
+		p4_error("p4_initfc: open error: ",errno); 
 	    }
 	    fd = fcopen->dcd;
 	    p4_dprintfl(30,"opened fd %d. . .\n",fd);
@@ -270,7 +270,7 @@ char *msg;
     if ((rc = ioctl(y,SFC_WRITE,fcwrite)) != NOERROR)
     {
 	if (rc < 0 )
-	    p4_error("p4_sendfc error on header write was %d \n ",errno);
+	    p4_error("p4_sendfc error on header write was ",errno);
     }
 
     while (len > 0)
@@ -294,7 +294,7 @@ char *msg;
 	if ((rc = ioctl(y,SFC_WRITE,fcwrite)) != NOERROR)
 	{
 	    if (rc < 0 )
-		p4_error("error on data write was %d \n ",errno);
+		p4_error("error on data write was ",errno);
 	}
     }
     p4_dprintfl(30,"exiting p4_sendfc\n");

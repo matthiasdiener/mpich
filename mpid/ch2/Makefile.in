@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.4 1998/11/17 22:13:42 gropp Exp $
+#  $Id: Makefile.in,v 1.5 2002/04/05 15:19:25 gropp Exp $
 #
 #  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -27,7 +27,6 @@ LIBNAME  = ../../build/$(ARCH)/$(DEVICE)/lib/lib@MPILIBNAME@.a
 CFLAGS   = @CFLAGS@ $(OPTFLAGS) -I../.. -I../../include -I. \
 		-DMPI_$(ARCH) -DMPID_DEVICE_CODE @GETNAME_DEFS@ @DEVCFLAGS@ \
 	        @DEV_DEFS@
-# See mpid/ch_adi2/Makefile.in for a full list
 SOURCE   = adi2recv.c adi2send.c adi2init.c \
 	   chbeager.c chbrndv.c chdebug.c chrecv.c chshort.c \
 	   @DEVCFILES@

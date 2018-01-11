@@ -1,5 +1,5 @@
 /*
- *  $Id: test.c,v 1.7 2001/11/14 20:10:04 ashton Exp $
+ *  $Id: test.c,v 1.9 2002/03/15 18:51:55 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -34,7 +34,7 @@ Input Parameter:
 
 Output Parameter:
 + flag - true if operation completed (logical) 
-- status - status object (Status) 
+- status - status object (Status).  May be 'MPI_STATUS_NULL'.
 
 .N waitstatus
 
@@ -52,12 +52,22 @@ int MPI_Test (
 {
     int mpi_errno;
     MPIR_ERROR_DECL;
+    MPI_Status s;
 
     MPIR_ERROR_PUSH(MPIR_COMM_WORLD);
     /* We let Testall detect errors */
-    mpi_errno = MPI_Testall( 1, request, flag, status );
+    if (status) {
+	mpi_errno = MPI_Testall( 1, request, flag, status );
+    }
+    else {
+	mpi_errno = MPI_Testall( 1, request, flag, &s );
+    }
     MPIR_ERROR_POP(MPIR_COMM_WORLD);
-    if (mpi_errno == MPI_ERR_IN_STATUS) 
-	mpi_errno = status->MPI_ERROR;
+    if (mpi_errno == MPI_ERR_IN_STATUS) {
+	if (status) 
+	    mpi_errno = status->MPI_ERROR;
+	else
+	    mpi_errno = s.MPI_ERROR;
+    }
     MPIR_RETURN(MPIR_COMM_WORLD, mpi_errno, "MPI_TEST" );
 }

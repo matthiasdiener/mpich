@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_open.c,v 1.7 2001/12/03 17:11:47 rross Exp $    
+ *   $Id: ad_open.c,v 1.10 2002/02/26 23:06:02 ashton Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -20,7 +20,7 @@ ADIO_File ADIO_Open(MPI_Comm orig_comm,
 {
     ADIO_File fd;
     ADIO_cb_name_array array;
-    int orig_amode, err, rank, procs, i;
+    int orig_amode, err, rank, procs;
     char *value;
 #ifndef PRINT_ERR_MSG
     static char myname[] = "ADIO_OPEN";
@@ -62,7 +62,7 @@ ADIO_File ADIO_Open(MPI_Comm orig_comm,
     ADIOI_SetFunctions(fd);
 
 /* create and initialize info object */
-    fd->hints = ADIOI_Malloc(sizeof(struct ADIOI_Hints_struct));
+    fd->hints = (ADIOI_Hints *)ADIOI_Malloc(sizeof(struct ADIOI_Hints_struct));
     if (fd->hints == NULL) {
 	/* NEED TO HANDLE ENOMEM ERRORS */
     }
@@ -84,7 +84,7 @@ ADIO_File ADIO_Open(MPI_Comm orig_comm,
     MPI_Comm_rank(comm, &rank);
     if (rank == 0) {
 	MPI_Comm_size(comm, &procs);
-	tmp_ranklist = ADIOI_Malloc(sizeof(int) * procs);
+	tmp_ranklist = (int *) ADIOI_Malloc(sizeof(int) * procs);
 	if (tmp_ranklist == NULL) {
 	    /* NEED TO HANDLE ENOMEM ERRORS */
 	}
@@ -95,10 +95,8 @@ ADIO_File ADIO_Open(MPI_Comm orig_comm,
 
 	/* store the ranklist using the minimum amount of memory */
 	if (rank_ct > 0) {
-	    fd->hints->ranklist = ADIOI_Malloc(sizeof(int) * rank_ct);
-	    for (i=0; i < rank_ct; i++) {
-		fd->hints->ranklist[i] = tmp_ranklist[i];
-	    }
+	    fd->hints->ranklist = (int *) ADIOI_Malloc(sizeof(int) * rank_ct);
+	    memcpy(fd->hints->ranklist, tmp_ranklist, sizeof(int) * rank_ct);
 	}
 	ADIOI_Free(tmp_ranklist);
 	fd->hints->cb_nodes = rank_ct;

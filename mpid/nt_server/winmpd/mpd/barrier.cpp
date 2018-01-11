@@ -16,6 +16,49 @@ struct BarrierStruct
 
 BarrierStruct *g_pBarrierList;
 
+static void BarrierToString(BarrierStruct *p, char *pszStr, int length)
+{
+    struct bfdNode *pBfd;
+    if (!snprintf_update(pszStr, length, "BARRIER:\n"))
+	return;
+    if (!snprintf_update(pszStr, length, " name: %s\n count: %d\n in: %d\n", p->pszName, p->nCount, p->nCurIn))
+	return;
+    pBfd = p->pBfdList;
+    if (pBfd)
+    {
+	if (!snprintf_update(pszStr, length, " bfds: "))
+	    return;
+	while (pBfd)
+	{
+	    if (!snprintf_update(pszStr, length, "%d, ", pBfd->bfd))
+		return;
+	    pBfd = pBfd->pNext;
+	}
+	if (!snprintf_update(pszStr, length, "\n"))
+	    return;
+    }
+}
+
+void statBarrier(char *pszOutput, int length)
+{
+    BarrierStruct *p;
+
+    *pszOutput = '\0';
+    length--; // leave room for the null character
+
+    if (g_pBarrierList == NULL)
+	return;
+
+    p = g_pBarrierList;
+    while (p)
+    {
+	BarrierToString(p, pszOutput, length);
+	length = length - strlen(pszOutput);
+	pszOutput = &pszOutput[strlen(pszOutput)];
+	p = p->pNext;
+    }
+}
+
 static void DeleteBfdList(bfdNode *p)
 {
     if (p == NULL)
@@ -87,7 +130,8 @@ void SetBarrier(char *pszName, int nCount, int bfd)
     if (p == NULL)
     {
 	p = new BarrierStruct;
-	strcpy(p->pszName, pszName);
+	strncpy(p->pszName, pszName, 100);
+	p->pszName[99] = '\0';
 	p->nCount = nCount;
 	p->nCurIn = 1;
 	if (bfd != BFD_INVALID_SOCKET)

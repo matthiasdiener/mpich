@@ -7,6 +7,9 @@
 #include "Database.h"
 #include "bnrfunctions.h"
 #include <stdlib.h>
+#include "mpdutil.h"
+#undef FD_SETSIZE
+#include "bsocket.h"
 
 // Global variables
 int g_nLastRecvFrom = 0;
@@ -31,6 +34,22 @@ bool g_bUseDatabase = false;
 bool g_bUseBNR = false;
 Database g_Database;
 char g_pszJobID[100]="";
+
+extern "C" {
+int MPID_NT_ipvishm_is_shm( int );
+__declspec(dllexport) void GetMPICHVersion(char *str, int length);
+}
+
+// Function name	: GetMPICHVersion
+// Description	    : 
+// Return type		: void 
+// Argument         : char *str
+// Argument         : int length
+__declspec(dllexport) void GetMPICHVersion(char *str, int length)
+{
+    //_snprintf(str, length, "%d.%d.%d %s", VERSION_RELEASE, VERSION_MAJOR, VERSION_MINOR, __DATE__);
+    _snprintf(str, length, "%s %s", MPICH_VERSION, __DATE__);
+}
 
 // Function name	: PollShmemQueue
 // Description	    : 
@@ -221,6 +240,75 @@ static int GetLocalIPs(unsigned int *pIP, int max)
 	n++;
     }
     return n;
+}
+
+bool PutRootPortInMPDDatabase(char *str, int port, char *barrier_name)
+{
+	char phrase[100];
+	char dbname[100];
+	char pszStr[256];
+	int mpd_port;
+	int bfd;
+	char host[100];
+	DWORD length;
+
+	strcpy(pszStr, str);
+	str = strtok(pszStr, ":");
+	strcpy(dbname, str);
+	str = strtok(NULL, ":");
+	mpd_port = atoi(str);
+	str = strtok(NULL, ":");
+	strcpy(phrase, str);
+
+	bsocket_init();
+
+	length = 100;
+	GetComputerName(host, &length);
+	if (ConnectToMPD(host, mpd_port, phrase, &bfd))
+	{
+		return false;
+	}
+
+	sprintf(pszStr, "dbput name=%s key=port value=%d", dbname, port);
+	if (WriteString(bfd, pszStr) == SOCKET_ERROR)
+	{
+		printf("ERROR: Unable to write '%s' to socket[%d]\n", pszStr, bget_fd(bfd));
+		beasy_closesocket(bfd);
+		return false;
+	}
+	if (!ReadString(bfd, pszStr))
+	{
+		printf("ERROR: put failed: error %d", WSAGetLastError());
+		beasy_closesocket(bfd);
+		return false;
+	}
+
+	sprintf(pszStr, "barrier name=%s count=2", barrier_name);
+	if (WriteString(bfd, pszStr) == SOCKET_ERROR)
+	{
+		printf("ERROR: Unable to write the barrier command: error %d", WSAGetLastError());
+		beasy_closesocket(bfd);
+		return false;
+	}
+	if (!ReadString(bfd, pszStr))
+	{
+		printf("ERROR: Unable to read the result of the barrier command: error %d", WSAGetLastError());
+		beasy_closesocket(bfd);
+		return false;
+	}
+	if (strncmp(pszStr, "SUCCESS", 8))
+	{
+		printf("ERROR: barrier failed:\n%s", pszStr);
+		beasy_closesocket(bfd);
+		return false;
+	}
+
+	WriteString(bfd, "done");
+	beasy_closesocket(bfd);
+
+	bsocket_finalize();
+
+	return true;
 }
 
 // Function name	: MPID_NT_ipvishm_Init
@@ -446,6 +534,7 @@ void MPID_NT_ipvishm_Init( int *argc, char ***argv )
 		g_pProcTable[i].pid = 0;
 		g_pProcTable[i].sock = INVALID_SOCKET;
 		g_pProcTable[i].sock_event = NULL;
+		g_pProcTable[i].hConnectLock = NULL;
 		g_pProcTable[i].hValidDataEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 		g_pProcTable[i].shm = 0;
 		g_pProcTable[i].via = 0;
@@ -651,6 +740,11 @@ void MPID_NT_ipvishm_Init( int *argc, char ***argv )
 					UnmapViewOfFile(pMapping);
 					CloseHandle(hMapping);
 				}
+				else if (strnicmp(pszExtra, "mpd:", 4) == 0)
+				{
+					// use mpd to get the root port back to mpirun
+					PutRootPortInMPDDatabase(&pszExtra[4], g_pProcTable[0].control_port, g_pszJobID);
+				}
 				else
 				{
 					// Write the port number to the temporary file 
@@ -671,7 +765,7 @@ void MPID_NT_ipvishm_Init( int *argc, char ***argv )
 						int error = GetLastError();
 						LogMsg("WriteFile failed of the root control port, Error: %d", error);
 						CloseHandle(hFile);
-						AbortInit(error, "WriteFile failed of the root control port");
+						AbortInit(error, "WriteFile(%s, root port) failed", pszExtra);
 					}
 					CloseHandle(hFile);
 				}
@@ -871,6 +965,11 @@ void MPID_NT_ipvishm_End()
 	WSACleanup();
 }
 
+int MPID_NT_ipvishm_is_shm( int rank )
+{
+    return g_pProcTable[rank].shm;
+}
+
 // Function name	: nt_tcp_shm_proc_info
 // Description	    : fills hostname and exename with information for 
 //                    the i'th process and returns the process id of 
@@ -962,7 +1061,7 @@ void nt_error(char *string, int value)
 		BNR_Finalize();
 
 	WSACleanup();
-	ExitProcess(1);
+	ExitProcess(value);
 }
 
 // Function name	: NT_PIbsend
@@ -1012,13 +1111,17 @@ int NT_PIbsend(int type, void *buffer, int length, int to, int datatype)
 				if (!ConnectTo(to))
 					MakeErrMsg(1, "NT_PIbsend: Unable to connect to process %d", to);
 			}
-		
+
+			/*
 			if (SendBlocking(g_pProcTable[to].sock, (char*)&type, sizeof(int), 0) == SOCKET_ERROR)
 				nt_error("NT_PIbsend: send type failed.", WSAGetLastError());
 			if (SendBlocking(g_pProcTable[to].sock, (char*)&length, sizeof(int), 0) == SOCKET_ERROR)
 				nt_error("NT_PIbsend: send length failed", WSAGetLastError());
 			if (SendBlocking(g_pProcTable[to].sock, (char*)buffer, length, 0) == SOCKET_ERROR)
 				nt_error("NT_PIbsend: send buffer failed", WSAGetLastError());
+			*/
+			if (SendStreamBlocking(g_pProcTable[to].sock, (char*)buffer, length, type) == SOCKET_ERROR)
+				nt_error("NT_PIbsend: send msg failed.", WSAGetLastError());
 		}
 	}
 	DPRINTF(("type: %d, length: %d sent to %d\n", type, length, to));

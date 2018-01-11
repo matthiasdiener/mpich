@@ -114,6 +114,11 @@ fi
 AC_SUBST(MPIMODLIBNAMENC)
 
 dnl Checks for programs.
+dnl Check first for F77.  We need this to test that the F90 and F77 compilers
+dnl are compatible.
+save_FFLAGS="$FFLAGS"
+AC_PROG_F77
+FFLAGS="$save_FFLAGS"
 dnl If F90 is already defined, it will use that instead
 dnl AC_CHECK_PROGS(F90,f95 f90 xlf90)
 PAC_PROG_F90
@@ -278,6 +283,35 @@ else
 fi
 rm -f conftest*
 AC_SUBST(F90SUFFIX)
+
+dnl Check for consistent Fortran compilers
+rm -f conftest*
+cat >conftest.$F90SUFFIX <<EOF
+        program main
+        call Conf1_test()
+        end
+EOF
+
+cat >conftest1.f <<EOF
+        subroutine Conf1_test()
+        end
+EOF
+pac_cv_prog_f90_and_f77=no
+AC_MSG_CHECKING([whether Fortran 90 is compatible with Fortran 77])
+if AC_TRY_EVAL(ac_f90compile) ; then
+    f77test='$F77 -c conftest1.f'
+    if AC_TRY_EVAL(f77test) ; then
+        f90_f77link='$F90 -o conftest conftest.o conftest1.o'
+        if AC_TRY_EVAL(f90_f77link) ; then 
+	    pac_cv_prog_f90_and_f77=yes
+	fi
+    fi
+fi
+AC_MSG_RESULT($pac_cv_prog_f90_and_f77)
+if test "$pac_cv_prog_f90_and_f77" != "yes" ; then
+    AC_ERROR([Fortran 90 and Fortran 77 compilers are not compatible.
+They generate external symbol names that are different.])
+fi
 
 dnl Checks for libraries.
 

@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi.h,v 1.35 2001/11/14 20:13:18 ashton Exp $
+ *  $Id: mpi.h,v 1.37 2002/03/20 14:14:45 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -205,6 +205,7 @@ typedef int (MPI_Delete_function) ( MPI_Comm, int, void *, void * );
 #define MPI_VERSION    1
 #define MPI_SUBVERSION 2
 #define MPICH_NAME     1
+#define MPICH_VERSION "1.2.4"
 
 /********************** MPI-2 FEATURES BEGIN HERE ***************************/
 #define MPICH_HAS_C2F
@@ -663,6 +664,21 @@ int PMPI_Status_set_elements( MPI_Status *, MPI_Datatype, int );
 #if defined(HAVE_MPI_CPP) && !defined(MPICH_SKIP_MPICXX)
 #include "mpi++.h"
 #endif 
+#endif
+
+/* This is a special macro to let the MPI library check that a program 
+   was compiled with the same header file as an application.  Define 
+   STRICT_MPI
+   to keep MPI_Init from being redefined as a macro.
+
+   Unfortunately, this interfers with tools that make use of the
+   MPI profiling interface and define an implementation of MPI_Init.
+ */
+#ifdef FOO
+#ifndef STRICT_MPI
+#define MPI_Init( a, b ) MPI_Init_vcheck( a, b, MPICH_VERSION )
+#define PMPI_Init( a, b ) PMPI_Init_vcheck( a, b, MPICH_VERSION )
+#endif
 #endif
 
 #endif

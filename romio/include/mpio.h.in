@@ -1,5 +1,5 @@
 /* 
- *   $Id: mpio.h.in,v 1.10 2000/09/03 16:11:29 gropp Exp $    
+ *   $Id: mpio.h.in,v 1.13 2002/05/02 16:06:22 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -16,7 +16,7 @@
 extern "C" {
 #endif
 
-#define ROMIO_VERSION 102      /* Version 1.0.2 */
+#define ROMIO_VERSION 124 /* version 1.2.4 */
 
 /* define MPI-IO datatypes and constants */
 
@@ -399,11 +399,6 @@ int PMPI_Type_create_darray(int size, int rank, int ndims,
 /* Section 4.12.4 */
 MPI_File PMPI_File_f2c(MPI_Fint fh);
 MPI_Fint PMPI_File_c2f(MPI_File fh);
-
-/* Section 4.13.3 */
-int MPI_File_set_errhandler(MPI_File fh, MPI_Errhandler errhandler);
-int MPI_File_get_errhandler(MPI_File fh, MPI_Errhandler *errhandler);
-
 
 /* The foll. functions are required, because an MPIO_Request object
    is currently used for nonblocking I/O. These functions will go away

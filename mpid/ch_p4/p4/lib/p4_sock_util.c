@@ -377,6 +377,7 @@ P4VOID net_setup_listener(int backlog, int port, int *skt)
 	p4_error("net_setup_listener listen", -1);
 }
 
+/* This sets up the sockets but not the listener process */
 P4VOID net_setup_anon_listener(int backlog, int *port, int *skt)
 {
     int rc;
@@ -618,10 +619,7 @@ int net_conn_to_listener(char *hostname, int port, int num_tries)
     return (s);
 }
 
-int net_recv(fd, in_buf, size)
-int fd;
-P4VOID *in_buf;
-int size;
+int net_recv(int fd, P4VOID *in_buf, int size)
 {
     int recvd = 0;
     int n;
@@ -748,15 +746,11 @@ int size;
     return (recvd);
 }
 
-int net_send(fd, in_buf, size, flag)
-int fd;
-P4VOID *in_buf;
-int size;
-int flag;  
 /* flag --> fromid < toid; tie-breaker to avoid 2 procs rcving at same time */
 /* typically set false for small internal messages, esp. when ids may not */
 /*     yet be available */
 /* set true for user msgs which may be quite large */
+int net_send(int fd, P4VOID *in_buf, int size, int flag)
 {
     struct p4_msg *dmsg;
     int n, sent = 0;
@@ -1052,8 +1046,7 @@ int gethostname_p4(char *name,size_t len)
 #   endif
 }
 
-P4VOID get_inet_addr(addr)
-struct in_addr *addr;
+P4VOID get_inet_addr(struct in_addr *addr)
 {
     char hostname[100];
     struct hostent *hp;
@@ -1064,8 +1057,7 @@ struct in_addr *addr;
     bcopy(hp->h_addr, addr, hp->h_length);
 }
 
-P4VOID get_inet_addr_str(str)
-char *str;
+P4VOID get_inet_addr_str( char *str )
 {
     struct in_addr addr;
 
@@ -1178,8 +1170,7 @@ P4VOID dump_sockinfo( char *msg, int fd)
  * in the case of "-allstdin", i.e., where the user requested that the
  * same input be replicated into each process.
  */
-void
-mpiexec_reopen_stdin(void)
+void mpiexec_reopen_stdin(void)
 {
     char *host = getenv("MPIEXEC_STDIN_HOST");
     char *sport = getenv("MPIEXEC_STDIN_PORT");
@@ -1228,3 +1219,11 @@ mpiexec_reopen_stdin(void)
     close(fd);
 }
 
+int p4_make_socket_nonblocking( int fd )
+{
+    /* Set the socket to be nonblocking.  */
+    int rc, flags = fcntl( fd, F_GETFL, 0 );
+    flags |= O_NONBLOCK;
+    rc = fcntl( fd, F_SETFL, flags );
+    return rc;
+}

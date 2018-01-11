@@ -203,6 +203,7 @@ void sib_mpexec( void )		/* designed to work with process managers */
     char env_man_conport[80], env_man_conhost[MAXHOSTNMLEN], env_man_debug[80];
     char env_man_prebuildprinttree[80], env_gdb[80], env_tvdebug[80];
     char env_line_labels[80], env_whole_lines[80];
+    char env_co_program[80], env_mship_host[80], env_mship_port[80];
     char env_myrinet_port[80], env_version[80];
     char env_shmemkey[80], env_shmemgrpsize[80], env_shmemgrprank[80];
     int  man_listener_fd, last_man_listener_fd, man_listener_port, last_man_listener_port;
@@ -212,6 +213,8 @@ void sib_mpexec( void )		/* designed to work with process managers */
     char host0_next_mpd[MAXHOSTNMLEN];
     int  port0_next_mpd;
     int  hopcount, iotree, do_mpexec_here;
+    char co_program[80], mship_host[80];
+    int  mship_port;
 #if defined(ROOT_ENABLED)
     struct passwd *pwent;
 #endif
@@ -246,6 +249,10 @@ void sib_mpexec( void )		/* designed to work with process managers */
     mpd_getval( "username", username );
     mpd_getval( "myrinet_job", buf );
     myrinet_job = atoi( buf );
+    mpd_getval( "copgm", co_program );
+    mpd_getval( "mship_host", mship_host );
+    mpd_getval( "mship_port", buf );
+    mship_port = atoi( buf );
 
     if ( jobrank >= jobsize ) {
 	mpdprintf( debug, "mpexec jobstarted, jobrank=%d, jobsize=%d\n",
@@ -364,10 +371,12 @@ void sib_mpexec( void )		/* designed to work with process managers */
 	    "cmd=mpexec conhost=%s conport=%d host0=%s port0=%d prevhost=%s prevport=%d "
 	    "iotree=%d rank=%d src=%s dest=anyone job=%d jobsize=%d prog=%s hopcount=%d "
 	    "gdb=%d tvdebug=%d line_labels=%d whole_lines=%d "
+            "copgm=%s mship_host=%s mship_port=%d "
 	    "shmemgrpsize=%d username=%s myrinet_job=%d ",
 	    conhost, conport, host0_next_mpd, port0_next_mpd, myhostname,
 	    last_man_listener_port, iotree, jobrank + shmemgrpsize, src, jobid, jobsize,
 	    program, hopcount + 1, gdb, tvdebug, line_labels, whole_lines,
+	    co_program, mship_host, mship_port,
 	    shmemgrpsize, username, myrinet_job );
     /* no newline in above buffer because we are not finished adding things to it */
 
@@ -573,6 +582,12 @@ void sib_mpexec( void )		/* designed to work with process managers */
 	env[i++] = env_line_labels;
 	sprintf( env_whole_lines, "MAN_WHOLE_LINES=%d", whole_lines );
 	env[i++] = env_whole_lines;
+	sprintf( env_co_program, "MAN_CLI_COPGM=%s", co_program );
+	env[i++] = env_co_program;
+	sprintf( env_mship_host, "MAN_CLI_MSHIP_HOST=%s", mship_host );
+	env[i++] = env_mship_host;
+	sprintf( env_mship_port, "MAN_CLI_MSHIP_PORT=%d", mship_port );
+	env[i++] = env_mship_port;
 	env[i] = NULL;
 
 	proctable[cid].jobid    = jobid;

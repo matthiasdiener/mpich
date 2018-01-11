@@ -247,6 +247,9 @@ AC_ARG_WITH( mpilibs, [--with-mpilibs=MPI_LIBS            - compiler's full libr
 AC_ARG_WITH( f2cmpilibs, [--with-f2cmpilibs=F2CMPI_LIBS      - compiler's library flags for Fortran to C MPI wrapper library.  Using this option disables building of MPE's internal Fortran to C MPI library, --disable-f2cmpilib.  The library is needed for profiling MPI Fortran program.  e.g. "-lfmpich" when MPE is building with MPICH. ], F2CMPI_LIBS="$withval" ; enable_f2cmpilib=no )
 
 AC_PROG_CC
+AC_PROG_RANLIB
+dnl # Check for broken handling of common symbols
+dnl PAC_PROG_C_BROKEN_COMMON
 
 if test -d "$SLOG_HOME"; then
   #
@@ -783,7 +786,6 @@ fi
 #
 MPE_CFLAGS="$MPE_CFLAGS $COPTIONS"
 #
-AC_PROG_RANLIB
 AC_CHECK_PROG(AR, ar, ar, ;)
 #
 if test -z "$CLINKER" ; then CLINKER="$CC" ; fi

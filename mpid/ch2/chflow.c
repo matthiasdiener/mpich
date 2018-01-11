@@ -48,7 +48,9 @@ void MPID_RecvFlowPacket(
 	MPID_PKT_T *in_pkt,
 	int        partner)
 {
+#ifdef MPID_FLOW_CONTROL
     MPID_PKT_FLOW_T  *pkt = (MPID_PKT_FLOW_T *)in_pkt;
+#endif
 
     DEBUG_PRINT_MSG("- Receiving flow control packet");
     MPID_FLOW_MEM_GET(pkt,partner);

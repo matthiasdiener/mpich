@@ -19,6 +19,7 @@
 /* particular message.                                                     */
 /***************************************************************************/
 
+#define MAX_CHECKDEVICE_NEST 10
 /* Check for incoming messages.
     Input Parameter:
 .   is_blocking - true if this routine should block until a message is
@@ -33,6 +34,11 @@
 
     This is the message-passing version.  The shared-memory version is
     in chchkshdev.c .
+
+    Normally, this routine only calls the routines to process messages.
+    However, those routines will sometimes call this routine to handle
+    flow control (!), so we include a test to ensure that there is no 
+    cascading calls to this routine.  This uses the 'nest_level' call.
  */    
 int MPID_CH_Check_incoming( 
 	MPID_Device *dev,
@@ -43,6 +49,7 @@ int MPID_CH_Check_incoming(
     MPIR_RHANDLE *rhandle;
     int          is_posted;
     int          err = MPI_SUCCESS;
+    static int   nest_level = 0;
 
     DEBUG_PRINT_MSG("Entering check_incoming");
 
@@ -54,6 +61,14 @@ int MPID_CH_Check_incoming(
 	}
 	DEBUG_PRINT_MSG("Message is available!");
     }
+    /* There is an implementation bug in the flow control code that
+       can lead to an infinite nest of calls to this routine.
+       Rather than allow the code to hang, we abort if the nesting
+       level gets too deep */
+    if (nest_level++ > MAX_CHECKDEVICE_NEST) {
+	MPID_Abort( 0, 1, "MPI Internal", "Deep nest in Check_incoming" );
+    }
+
     DEBUG_PRINT_MSG("Waiting for message to arrive");
     MPID_PKT_WAIT();
     /* 
@@ -183,6 +198,7 @@ int MPID_CH_Check_incoming(
 	/* Really should remember error in case subsequent events are 
 	   successful */
     }
+    nest_level--;
     DEBUG_PRINT_MSG("Exiting check_incoming");
     return err;
 }

@@ -682,12 +682,22 @@ ${includebuild_dir}/mpichconf.h: mpichconf.h
 
 # Eventually, this should have preinstall as a source.
 # Allow make install MPIINSTALL_OPTS=-noman
+# Use the default prefix (no override) if possible; this 
+# simplifies the use of --with-common-prefix
 install: mpirun ./bin/mpiinstall
 	@if [ ! -x ./bin/mpiinstall ] ; then echo "No mpiinstall script!" ; fi
-	./bin/mpiinstall -prefix=$(PREFIX) ${MPIINSTALL_OPTS}
+	if [ "${PREFIX}" = "@PREFIX@" ] ; then \
+	    ./bin/mpiinstall ${MPIINSTALL_OPTS} ; \
+	else \
+	    ./bin/mpiinstall -prefix=$(PREFIX) ${MPIINSTALL_OPTS} ; \
+	fi
 
 installlib: mpirun ./bin/mpiinstall
-	./bin/mpiinstall -prefix=$(PREFIX) -libonly -device=$(DEVICE)
+	if [ "${PREFIX}" = "@PREFIX@" ] ; then \
+	   ./bin/mpiinstall -libonly -device=$(DEVICE) ; \
+	else \
+	   ./bin/mpiinstall -prefix=$(PREFIX) -libonly -device=$(DEVICE) ; \
+	fi
 
 #
 # Install adds ALL of the examples to the installation area

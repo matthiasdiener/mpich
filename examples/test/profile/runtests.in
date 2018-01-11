@@ -27,6 +27,7 @@ fi
 # If the programs are not available, run make.
 runtests=1
 makeeach=0
+writesummaryfile=no
 quiet=0
 check_at_once=1
 MAKE="@MAKE@"
@@ -38,6 +39,10 @@ for arg in "$@" ; do
         -margs=*)
 	margs=`echo $arg | sed 's/-margs=//'`
 	args="$args $margs"
+	;;
+	-summaryfile=*)
+	writesummaryfile=yes
+	summaryfile=`echo A$arg | sed 's/A-summaryfile=//'`
 	;;
 	-echo)
 	set -x

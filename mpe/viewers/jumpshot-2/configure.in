@@ -1,4 +1,4 @@
-#! /bin/sh
+dnl -*- Mode: shell-script;
 dnl
 dnl Caching is usually WRONG for systems with cross-mounted file systems
 dnl (the cache file may correspond to a different system).  Since configure
@@ -37,6 +37,17 @@ AC_ARG_ENABLE(checkversion,
                                      The default is enable=yes],
 , enable_checkversion=yes)
 
+AC_ARG_WITH(common-prefix,
+[--with-common-prefix=dir           - Set the installation prefix for 
+                                     the Jumpshot-2 viewer.  This allows
+				     a separate prefix for MPICH and for
+				     Jumpshot when they are installed 
+				     together],
+,with_common_prefix=NONE)
+
+if test "$with_common_prefix" != "NONE" ; then
+    prefix=$with_common_prefix
+fi 
 
 echo "Configuring Jumpshot-2 with $ac_configure_args"
 #
@@ -184,7 +195,7 @@ else
     if test -f "$JAVA_HOME/lib/classes.zip" ; then
         JAVA_LIBS="$JAVA_HOME/lib/rt.jar:$JAVA_HOME/lib/classes.zip:$JAVA_HOME/classes"
     else
-        AC_MSG_WARN([$JAVA_HOME/lib/classes.zip does NOT exist])
+        AC_MSG_WARN([$JAVA_HOME/lib/classes.zip does not exist])
         PAC_MSG_ERROR($enable_softerror, [JAVA_LIBS cannot be set, neither can CLASSPATH !])
     fi
 fi
