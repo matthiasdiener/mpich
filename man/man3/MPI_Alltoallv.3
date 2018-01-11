@@ -1,0 +1,78 @@
+.TH MPI_Alltoallv 3 "11/3/1994" " " "MPI"
+.SH NAME
+MPI_Alltoallv \- Sends data from all to all processes, with a displacement
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B sendbuf 
+- starting address of send buffer (choice) 
+.PD 1
+.PD 0
+.TP
+.B sendcounts 
+- integer array equal to the group size 
+specifying the number of elements to send to each processor 
+.PD 1
+.PD 0
+.TP
+.B sdispls 
+- integer array (of length group size). Entry 
+j  specifies the displacement (relative to sendbuf  from
+which to take the outgoing data destined for process  j  
+.PD 1
+.PD 0
+.TP
+.B sendtype 
+- data type of send buffer elements (handle) 
+.PD 1
+.PD 0
+.TP
+.B recvcounts 
+- integer array equal to the group size 
+specifying the maximum number of elements that can be received from
+each processor 
+.PD 1
+.PD 0
+.TP
+.B rdispls 
+- integer array (of length group size). Entry 
+i  specifies the displacement (relative to recvbuf  at
+which to place the incoming data from process  i  
+.PD 1
+.PD 0
+.TP
+.B recvtype 
+- data type of receive buffer elements (handle) 
+.PD 1
+.PD 0
+.TP
+.B comm 
+- communicator (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B recvbuf 
+- address of receive buffer (choice) 
+.PD 1
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Alltoallv ( sendbuf, sendcnts, sdispls, sendtype, 
+                    recvbuf, recvcnts, rdispls, recvtype, comm )
+void             *sendbuf;
+int              *sendcnts;
+int              *sdispls;
+MPI_Datatype      sendtype;
+void             *recvbuf;
+int              *recvcnts;
+int              *rdispls; 
+MPI_Datatype      recvtype;
+MPI_Comm          comm;
+
+.fi
+
+.SH LOCATION
+ alltoallv.c

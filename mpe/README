@@ -1,0 +1,8 @@
+This directory contains useful routines that are not part of MPI but that
+may be useful in writing and evaluating the performance of parallel programs.
+They include (so far)
+
+  timing routines
+  logging routines
+  real-time graphics routines
+  parallel I/O routines

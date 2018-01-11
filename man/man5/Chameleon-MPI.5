@@ -1,0 +1,30 @@
+.TH Chameleon-MPI 5 "10/10/1994" " " "ADI"
+.SH NAME
+Chameleon-MPI transport (device) implementation
+
+This simple Chameleon implementation is meant to work with
+most message passing systems and does not rely on large amounts
+of message buffering.  Messages are sent in one or two packets, depending
+on the length.  If the message is short (< MPID_PACKET_SIZE), then
+the header and message are placed into a single message and sent
+together.  Long messages are sent without copying the message by
+sending the header in a separate packet.
+
+This Chameleon implementation depends on adequate buffering by the
+message-passing system.  Because there is no asynchronous notification
+of messages in Chameleon (because most transport layers do not provide
+this important functionality), it is difficult to implement a
+packet-based system (i.e., one that divides messages into multiple
+packets and manages all buffering).
+
+.SH SOME RANDOM COMMENTS ON THE IMPLEMENTATION
+
+Many things could be done to improve the performance of the
+implementation.  These include
+
+.br
+       For a nonblocking receive of a long message that is not yet
+available, send a message to the source (if known) with
+a reserved message type and post a non-blocking receive for that
+type.  This can avoid an extra memory copy in some cases.
+The obvious race conditions must be handled.

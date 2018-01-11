@@ -1,0 +1,32 @@
+#! /bin/sh
+#
+# This script derives the nx routines from the Chameleon ones.  Some editing 
+# of the files may be required after this process, but the goal is to 
+# fully automate this process.
+#
+#/bin/cp ../chameleon/*.c .
+sed -e '/#define DEVICE_CHAMELEON/d' \
+    -e 's/MPID_CH/MPID_NX/g' \
+    -e 's/"Chameleon"/"Intel NX"/g' ../chameleon/dmch.h > dmnx.h
+sed -e 's/MPID_CH/MPID_NX/g' ../chameleon/mpid_bind.h > mpid_bind.h
+sed -e 's/MPID_CH/MPID_NX/g' ../chameleon/packets.h > packets.h
+../chameleon/rmhetero ../chameleon/chevent.c > nxevent.c
+../chameleon/rmhetero ../chameleon/chrecv.c  > nxrecv.c
+../chameleon/rmhetero ../chameleon/chsend.c  > nxsend.c
+../chameleon/rmhetero ../chameleon/chinit.c  > nxinit.c
+../chameleon/rmhetero ../chameleon/chprobe.c > nxprobe.c
+../chameleon/rmhetero ../chameleon/chsync.c  > nxsync.c
+chmod ug+w *.[ch]
+/home/gropp/tools.n/bin/inlinecomm -main -quiet -nx nxinit.c
+for file in nxevent.c nxrecv.c nxsend.c nxprobe.c nxsync.c dmnx.h \
+	packets.h ; do
+    /home/gropp/tools.n/bin/inlinecomm -quiet -nx $file
+done
+#
+# Change the names MPID_CH to MPID_NX
+/bin/rm -f .tmp
+for file in *.c ; do
+    sed -e 's/MPID_CH/MPID_NX/g' $file > .tmp
+    mv .tmp $file
+done
+

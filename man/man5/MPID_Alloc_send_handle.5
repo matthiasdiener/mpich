@@ -1,0 +1,25 @@
+.TH MPID_Alloc_send_handle 5 "10/10/1994" " " "ADI"
+.SH NAME
+MPID_Alloc_send_handle \- Allocates and initializes device send handle
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B ctx 
+- ADI context returned by MPID_Init
+.PD 1
+.PD 0
+.TP
+.B a 
+- Address of device send handle in API's send structure
+.PD 1
+
+.SH SYNOPSIS
+.nf
+void MPID_Alloc_send_handle( void * ctx, MPID_SHANDLE *mpid_send_handle )
+.fi
+
+.SH NOTES
+In systems where the device handle is statically allocated, this
+routine may be used to initialize the fields of that handle.  In
+particular, it may set fields such as "completed" to false.

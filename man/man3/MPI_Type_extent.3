@@ -1,0 +1,28 @@
+.TH MPI_Type_extent 3 "9/21/1994" " " "MPI"
+.SH NAME
+MPI_Type_extent \- Returns the extent of a datatype
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B datatype 
+- datatype (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B extent 
+- datatype extent (integer) 
+.PD 1
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Type_extent( datatype, extent )
+MPI_Datatype  datatype;
+MPI_Aint     *extent;
+
+.fi
+
+.SH LOCATION
+ type_extent.c

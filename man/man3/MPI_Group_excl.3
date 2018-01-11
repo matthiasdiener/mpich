@@ -1,0 +1,44 @@
+.TH MPI_Group_excl 3 "9/30/1994" " " "MPI"
+.SH NAME
+MPI_Group_excl \- Produces a group by reordering an existing group and taking
+only unlisted members
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B group 
+- group (handle) 
+.PD 1
+.PD 0
+.TP
+.B n 
+- number of elements in array ranks (integer) 
+.PD 1
+.PD 0
+.TP
+.B ranks 
+- array of integer ranks in group not to appear in newgroup 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B newgroup 
+- new group derived from above, preserving the order defined by  group (handle) 
+.PD 1
+
+.SH NOTE
+Currently, each of the ranks to exclude must be
+a valid rank in the group and all elements must be distinct or the
+function is erroneous.  This restriction is per the draft.
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Group_excl ( group, n, ranks, newgroup )
+MPI_Group group, *newgroup;
+int       n, *ranks;
+
+.fi
+
+.SH LOCATION
+ group_excl.c

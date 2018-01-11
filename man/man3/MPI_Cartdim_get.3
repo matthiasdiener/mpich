@@ -1,0 +1,30 @@
+.TH MPI_Cartdim_get 3 "8/10/1994" " " "MPI"
+.SH NAME
+MPI_Cartdim_get \- Retrieves Cartesian topology information associated with a
+communicator
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B comm 
+- communicator with cartesian structure (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B ndims 
+- number of dimensions of the cartesian structure (integer) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Cartdim_get ( comm, ndims )
+MPI_Comm  comm;
+int      *ndims;
+
+.fi
+
+.SH LOCATION
+ cartdim_get.c

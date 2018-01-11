@@ -1,0 +1,87 @@
+#! /bin/sh
+#
+# Run some of the tests.  If any arguments are provided, pass them to the
+# test programs.
+if [ -f pt2pt.out ] ; then
+	mv pt2pt.out pt2pt.out.orig
+fi
+
+# -mvhome is needed for the ANL SP, and is ignored by others
+args="-pg -mvhome"
+
+#
+echo '**** Testing MPI_Send and MPI_Recv ****'
+/bin/rm -f sendrecv-[012].out
+mpirun $args -np 2 sendrecv $* > sendrecv-2.out 2>&1
+echo "*** sendrecv ***" > pt2pt.out 
+cat sendrecv-[012].out >> pt2pt.out 
+#
+echo '**** Testing MPI_Isend and MPI_Irecv ****'
+/bin/rm -f isndrcv-[012].out
+mpirun $args -np 2 isndrcv $* > isndrcv-2.out 2>&1 
+echo "*** isndrcv ***" >> pt2pt.out 
+cat isndrcv-[012].out >> pt2pt.out 
+#
+echo '**** Verifying that messages are non-overtaking ****'
+mpirun $args -np 2 overtake $*
+echo "*** overtake ***" >> pt2pt.out
+cat overtake-[01].out >> pt2pt.out
+#
+echo '**** Checking the type routines ****'
+mpirun $args -np 2 typetest $*
+echo "*** typetest ***" >> pt2pt.out
+cat typetest-0.out >> pt2pt.out
+#
+echo '**** Running other various tests ****'
+echo '*** Testing Unexpected messages ***'
+echo "*** third ***" >> pt2pt.out
+mpirun $args -np 2 third $* >> pt2pt.out
+#
+echo '*** Testing Irecv/Isend/Wait ***'
+echo "*** fourth ***" >> pt2pt.out
+mpirun $args -np 4 fourth $* >> pt2pt.out
+#
+echo '*** Testing Irecv/Isend/Waitall ***'
+echo "*** fifth ***" >> pt2pt.out
+mpirun $args -np 4 fifth $* >> pt2pt.out
+#
+echo '*** Testing attribute manipulation ***'
+echo "*** sixth ***" >> pt2pt.out
+mpirun $args -np 2 sixth $* >> pt2pt.out
+#
+echo '*** Testing Vector type ***'
+echo "*** hvectest ***" >> pt2pt.out
+mpirun $args -np 2 hvectest $* >> pt2pt.out
+#
+echo '*** Testing struct type for vectors (MPI_UB) ***'
+echo "*** hvectest2 ***" >> pt2pt.out
+mpirun $args -np 2 hvectest2 $* >> pt2pt.out
+#
+echo '*** Testing Probe and Get_count ***'
+echo "*** probe ***" >> pt2pt.out
+mpirun $args -np 2 probe $* >> pt2pt.out
+#
+echo '*** Testing Iprobe and Get_count ***'
+echo "*** probe1 ***" >> pt2pt.out
+mpirun $args -np 2 probe1 $* >> pt2pt.out
+#
+echo '*** Testing MPI_Test ***'
+echo "*** testtest1 ***" >> pt2pt.out
+mpirun $args -np 2 testtest1 $* >> pt2pt.out
+#
+# Run Fortran tests ONLY if Fortran available
+if [ @HAS_FORTRAN@ = 1 ] ; then 
+    echo "FORTRAN TESTS" >> pt2pt.out
+    make fortran_tests
+    #
+    #echo "*** secondf ***" >> pt2pt.out
+    #mpirun $args -np 2 secondf $* >> pt2pt.out 
+    #
+    echo '*** Testing pt-2-pt from Fortran ***'
+    echo "*** allpair ***" >> pt2pt.out
+    mpirun $args -np 2 allpair $* >> pt2pt.out 
+    echo "END OF FORTRAN TESTS" >> pt2pt.out
+fi
+echo '*** Differences from expected output ***'
+diff -b pt2pt.out pt2pt.std
+exit 0

@@ -1,0 +1,14 @@
+DEVICE_INCLUDE = $(MPIR_HOME)/include/mpid.h
+ITOOLSDIR  = $(TOOLS_DIR)
+DDIR       = $(ITOOLSDIR)/libs/libsg/$(ARCH)/
+#DEVICE_MAIN = $(DDIR)/cmain$(COMM).o
+#DEVICE_MAINF = $(DDIR)/fmain$(COMM).o
+DEVICE_MAIN = 
+DEVICE_MAINF =
+#DEVICE_LIB = $(DDIR)/tools$(COMM).a $(DDIR)/tools.a $(DDIR)/system.a $(CLIB) \
+#	$(SLIB)
+DEVICE_LIB = -L$(DDIR) -lpecomm$(COMM) -lpetsc -lpecore $(CLIB) $(SLIB)
+
+include $(ITOOLSDIR)/bmake/$(ARCH).$(BOPT)$(PROFILE)
+include $(ITOOLSDIR)/bmake/$(ARCH)
+include $(ITOOLSDIR)/bmake/$(ARCH).$(COMM)

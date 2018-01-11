@@ -1,0 +1,23 @@
+.TH MPID_Myrank 5 "10/10/1994" " " "ADI"
+.SH NAME
+MPID_Myrank \- Provides the rank of the calling process
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B ctx 
+- ADI context returned by MPID_Init
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B rank 
+- rank, in the range 0 to Mysize-1 (see MPID_Mysize) of the calling
+process among all of the processes.
+.PD 1
+
+.SH SYNOPSIS
+.nf
+void MPID_Myrank( void * ctx, int *rank )
+.fi

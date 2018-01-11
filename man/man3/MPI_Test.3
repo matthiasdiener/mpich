@@ -1,0 +1,34 @@
+.TH MPI_Test 3 "7/12/1994" " " "MPI"
+.SH NAME
+MPI_Test - Tests for the completion of a send or receive
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B request 
+- communication request (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B flag 
+- true if operation completed (logical) 
+.PD 1
+.PD 0
+.TP
+.B status 
+- status object (Status) 
+.PD 1
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Test ( request, flag, status )
+MPI_Request  *request;
+int          *flag;
+MPI_Status   *status;
+
+.fi
+
+.SH LOCATION
+ test.c

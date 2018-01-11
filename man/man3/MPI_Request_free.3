@@ -1,0 +1,20 @@
+.TH MPI_Request_free 3 "10/24/1994" " " "MPI"
+.SH NAME
+MPI_Request_free \- Frees a communication request object
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B request 
+- communication request (handle) 
+.PD 1
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Request_free( request )
+MPI_Request *request;
+
+.fi
+
+.SH LOCATION
+ commreq_free.c

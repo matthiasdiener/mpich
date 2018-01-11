@@ -1,0 +1,28 @@
+.TH MPI_Error_class 3 "7/13/1994" " " "MPI"
+.SH NAME
+MPI_Error_class \- Converts an error code into an error class
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B errorcode 
+- Error code returned by an MPI routine 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B errorclass 
+- Error class associated with errorcode 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Error_class( errorcode, errorclass )
+int errorcode, *errorclass;
+
+.fi
+
+.SH LOCATION
+ errclass.c

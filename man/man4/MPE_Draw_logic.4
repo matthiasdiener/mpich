@@ -1,0 +1,31 @@
+.TH MPE_Draw_logic 4 "11/7/1994" " " "MPE"
+.SH NAME
+MPE_Draw_logic \- Sets logical operation for laying down new pixels
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B graph 
+- MPE graphics handle
+.PD 1
+.PD 0
+.TP
+.B function 
+- integer specifying one of the following:
+.PD 1
+MPE_LOGIC_COPY - no logic, just copy the pixel
+MPE_LOGIC_XOR - xor the new pixel with the existing one
+and many more... see mpe_graphics.h
+
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+int MPE_Draw_logic( graph, function )
+MPE_XGraph graph;
+int function;
+
+.fi
+
+.SH LOCATION
+ mpe_graphics.c

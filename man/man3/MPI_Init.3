@@ -1,0 +1,118 @@
+.TH MPI_Init 3 "11/8/1994" " " "MPI"
+.SH NAME
+MPI_Init \- Initialize the MPI execution environment
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B argc 
+- Pointer to the number of arguments 
+.PD 1
+.PD 0
+.TP
+.B argv 
+- Pointer to the argument vector
+.PD 1
+
+.SH COMMAND LINE ARGUMENTS
+MPI specifies no command-line arguments but does allow an MPI
+implementation to make use of them.
+
+.PD 0
+.TP
+.B -mpiqueue 
+- print out the state of the message queues when MPI_FINALIZE
+is called.  All processors print; the output may be hard to decipher.  This
+is intended as a debugging aid.
+.PD 1
+.PD 0
+.TP
+.B -mpiversion 
+- print out the version of the implementation (NOT of MPI),
+including the arguments that were used with configure.
+.PD 1
+
+.PD 0
+.TP
+.B -mpedbg 
+- Start a debugger in an xterm window if there is an error (either
+detected by MPI or a normally fatal signal).  This works only if MPICH
+was configured with -mpedbg.
+.PD 1
+
+.PD 0
+.TP
+.B -mpipktsize 
+nn - Set the message length where the ADI changed to 
+the long message protocol to nn.  This only works if MPICH was 
+configured with -var_pkt.
+.PD 1
+
+The following options are available only on the Chameleon device and
+devices built with debugging code.
+
+.PD 0
+.TP
+.B -mpichdebug 
+- Print out the Chameleon device operations
+.PD 1
+.PD 0
+.TP
+.B -mpichmemdebug 
+- (Chameleon device only) Print out a list of unreclaimed
+memory.  This requires that MPI be built with the -DMPIR_DEBUG_MEM
+switch.  This is intended for debugging the MPI implementation itself.
+.PD 1
+.PD 0
+.TP
+.B -mpichmsg 
+- Print out the number of messages 
+received, by category, when the program exits.
+.PD 1
+
+
+.SH NOTES
+Note that the Fortran binding for this routine has only the error return
+argument (MPI_INIT(ierror))
+
+Because the Fortran and C versions of MPI_Init are different, there is
+a restriction on who can call MPI_Init.  The version (Fortran or C) must
+match the main program.  That is, if the main program is in C, then
+the C version of MPI_Init must be called.  If the main program is in
+Fortran, the Fortran version must be called.
+
+On exit from this routine, all processes will have a copy of the argument
+list.  This is NOT REQUIRED by the MPI standard, and truely portable codes
+should not rely on it.  This is provided as a service by this
+implementation (an MPI implementation is allowed to distribute the
+command line arguments but is not required to).
+
+Command line arguments are not provided to Fortran programs.  More
+precisely, non-standard Fortran routines such as getarg and iargc
+have undefined behavior in MPI and in this implementation.
+
+.SH SIGNALS USED
+The MPI standard requires that all signals used be documented.  The MPICH
+implementation itself uses no signals, but some of the softare that MPICH
+relies on may use some signals.  The list below is partial and should
+be independantly checked if you (and any package that you use) depend
+on particular signals.
+
+.SH IBM POE/MPL FOR SP2
+SIGHUP, SIGINT, SIGQUIT, SIGFPE, SIGSEGV, SIGPIPE, SIGALRM, SIGTERM,
+SIGIO
+
+.SH -MPEDBG
+SIGQUIT, SIGILL, SIGFPE, SIGBUS, SIGSEGV, SIGSYS
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Init(argc,argv)
+int  *argc;
+char ***argv;
+
+.fi
+
+.SH LOCATION
+ init.c

@@ -1,0 +1,46 @@
+.TH MPI_Cart_get 3 "8/10/1994" " " "MPI"
+.SH NAME
+MPI_Cart_get \- Retrieves Cartesian topology information associated with a
+communicator
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B comm 
+- communicator with cartesian structure (handle) 
+.PD 1
+.PD 0
+.TP
+.B maxdims 
+- length of vectors  dims, periods , and  coords in the calling program (integer) 
+.PD 1
+
+.SH OUTPUT PARAMETERS
+.PD 0
+.TP
+.B dims 
+- number of processes for each cartesian dimension (array of integer) 
+.PD 1
+.PD 0
+.TP
+.B periods 
+- periodicity (true /false ) for each cartesian dimension (array of logical) 
+.PD 1
+.PD 0
+.TP
+.B coords 
+- coordinates of calling process in cartesian structure (array of integer) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Cart_get ( comm, maxdims, dims, periods, coords )
+MPI_Comm comm;
+int maxdims;
+int *dims, *periods, *coords;
+
+.fi
+
+.SH LOCATION
+ cart_get.c

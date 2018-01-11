@@ -1,0 +1,35 @@
+.TH MPI_Comm_create 3 "10/24/1994" " " "MPI"
+.SH NAME
+MPI_Comm_create \- Creates a new communicator
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B comm 
+- communicator (handle) 
+.PD 1
+.PD 0
+.TP
+.B group 
+- Group, which is a subset of the group of comm  (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B comm_out 
+- new communicator (handle) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Comm_create ( comm, group, comm_out )
+MPI_Comm  comm;
+MPI_Group group;
+MPI_Comm *comm_out;
+
+.fi
+
+.SH LOCATION
+ comm_create.c

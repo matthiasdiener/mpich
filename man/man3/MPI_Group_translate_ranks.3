@@ -1,0 +1,49 @@
+.TH MPI_Group_translate_ranks 3 "7/13/1994" " " "MPI"
+.SH NAME
+MPI_Group_translate_ranks \- Translates the ranks of processes in one group to
+those in another group
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B group1 
+- group1 (handle) 
+.PD 1
+.PD 0
+.TP
+.B n 
+- number of ranks in  ranks1 and ranks2  arrays (integer) 
+.PD 1
+.PD 0
+.TP
+.B ranks1 
+- array of zero or more valid ranks in group1 
+.PD 1
+.PD 0
+.TP
+.B group2 
+- group2 (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B ranks2 
+- array of corresponding ranks in group2,  MPI_UNDEFINED  when no 
+correspondence exists. 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Group_translate_ranks ( group_a, n, ranks_a, group_b, ranks_b )
+MPI_Group group_a;
+int n;
+int       *ranks_a;
+MPI_Group  group_b;
+int       *ranks_b;
+
+.fi
+
+.SH LOCATION
+ group_tranks.c

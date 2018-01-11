@@ -1,0 +1,21 @@
+.TH MPI_Type_commit 3 "9/29/1994" " " "MPI"
+.SH NAME
+MPI_Type_commit \- Commits the datatype
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B datatype 
+- datatype (handle) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Type_commit ( datatype )
+MPI_Datatype *datatype;
+
+.fi
+
+.SH LOCATION
+ type_commit.c

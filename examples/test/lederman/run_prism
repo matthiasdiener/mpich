@@ -1,0 +1,69 @@
+#!/bin/sh
+
+#set -x
+
+# check that got all arguments
+if [ $# -ne 13 ]
+then
+  echo "run_prism expects 13 arguments:"
+  echo "  1) program (of prism_test variety)"
+  echo "  2) # nodes to run on"
+  echo "  3) output directory"
+  echo "  4) datatype"
+  echo "  5) min msg size"
+  echo "  6) max msg size"
+  echo "  7) factor in msg size"
+  echo "  8) step in msg size"
+  echo "  9) # trials to average over"
+  echo "  10) # clock trials"
+  echo "  11 direction"
+  echo "  12) offset"
+  echo "  13) amount to vary"
+  exit 11
+fi
+
+program=$1
+shift
+num_nodes=$1
+shift
+out_dir=$1
+shift
+datatype=$1
+shift
+min_size=$1
+shift
+max_size=$1
+shift
+factor=$1
+shift
+step=$1
+shift
+num_trials=$1
+shift
+num_clock=$1
+shift
+direction=$1
+shift
+offset=$1
+shift
+vary=$1
+
+# make directory for output
+if [ -f $out_dir ]
+then
+  echo "***error***$dir file exists and is not a directory - quiting"
+  exit 12
+elif [ ! -d $out_dir ]
+then
+  mkdir $out_dir
+fi
+cd $out_dir
+
+echo ""
+echo "doing: time prism_test_tmp -np $num_nodes $datatype $min_size $max_size $factor $step $num_trials $num_clock $direction $offset $vary"
+
+cp $program prism_test_tmp
+time prism_test_tmp -np $num_nodes $datatype $min_size $max_size $factor $step $num_trials $num_clock $direction $offset $vary
+rm prism_test_tmp
+
+#echo "done - output in $out_dir/"

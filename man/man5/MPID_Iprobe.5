@@ -1,0 +1,45 @@
+.TH MPID_Iprobe 5 "10/10/1994" " " "ADI"
+.SH NAME
+MPID_Iprobe \- Returns whether a message of the specified type is
+available
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B ctx 
+- ADI context returned by MPID_Init
+.PD 1
+.PD 0
+.TP
+.B tag 
+- Message tag
+.PD 1
+.PD 0
+.TP
+.B source 
+- Message source (sending processor).  Measured in terms of
+rank of the communicator
+.PD 1
+.PD 0
+.TP
+.B context_id 
+- Context id value of communicator.
+.PD 1
+
+.SH OUTPUT PARAMETERS
+.PD 0
+.TP
+.B found 
+- Set to true if a message is available, false otherwise
+.PD 1
+.PD 0
+.TP
+.B status 
+- MPI status object; has values set if found is true
+.PD 1
+
+.SH SYNOPSIS
+.nf
+int MPID_Iprobe( void * ctx, int tag, int source, int context_id,
+int *found, MPI_Status *status )
+.fi

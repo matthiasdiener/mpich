@@ -1,0 +1,58 @@
+.TH MPI_Intercomm_merge 3 "10/24/1994" " " "MPI"
+.SH NAME
+MPI_Intercomm_merge \- Creates an intracommuncator from an intercommunicator
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B comm 
+- Intercommunicator
+.PD 1
+.PD 0
+.TP
+.B high 
+- Used to order the groups of the two intracommunicators within comm
+when creating the new communicator.  
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B comm_out 
+- Created intracommunicator
+.PD 1
+
+.SH ALGORITHM
+.PD 0
+.TP
+.B 1) 
+Allocate two contexts 
+.PD 1
+.PD 0
+.TP
+.B 2) 
+Local and remote group leaders swap high values
+.PD 1
+.PD 0
+.TP
+.B 3) 
+Determine the high value.
+.PD 1
+.PD 0
+.TP
+.B 4) 
+Merge the two groups and make the intra-communicator
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Intercomm_merge ( comm, high, comm_out )
+MPI_Comm  comm;
+int       high;
+MPI_Comm *comm_out;
+
+.fi
+
+.SH LOCATION
+ ic_merge.c

@@ -1,0 +1,59 @@
+.TH MPI_Unpack 3 "9/21/1994" " " "MPI"
+.SH NAME
+MPI_Unpack \- Unpack a datatype into contiguous memory
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B inbuf 
+- input buffer start (choice) 
+.PD 1
+.PD 0
+.TP
+.B insize 
+- size of input buffer, in bytes (integer) 
+.PD 1
+.PD 0
+.TP
+.B position 
+- current position in bytes (integer) 
+.PD 1
+.PD 0
+.TP
+.B outcount 
+- number of items to be unpacked (integer) 
+.PD 1
+.PD 0
+.TP
+.B datatype 
+- datatype of each output data item (handle) 
+.PD 1
+.PD 0
+.TP
+.B comm 
+- communicator for packed message (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B outbuf 
+- output buffer start (choice) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Unpack ( inbuf, insize, position, outbuf, outcount, type, comm )
+void         *inbuf;
+int           insize;
+int          *position;
+void         *outbuf;
+int           outcount;
+MPI_Datatype  type;
+MPI_Comm      comm;
+
+.fi
+
+.SH LOCATION
+ unpack.c

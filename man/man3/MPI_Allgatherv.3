@@ -1,0 +1,68 @@
+.TH MPI_Allgatherv 3 "7/26/1994" " " "MPI"
+.SH NAME
+MPI_Allgatherv \- Gathers data from all tasks and deliver it to all
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B sendbuf 
+- starting address of send buffer (choice) 
+.PD 1
+.PD 0
+.TP
+.B sendcount 
+- number of elements in send buffer (integer) 
+.PD 1
+.PD 0
+.TP
+.B sendtype 
+- data type of send buffer elements (handle) 
+.PD 1
+.PD 0
+.TP
+.B recvcounts 
+- integer array (of length group size) 
+containing the number of elements that are received from each process 
+.PD 1
+.PD 0
+.TP
+.B displs 
+- integer array (of length group size). Entry 
+i  specifies the displacement (relative to recvbuf ) at
+which to place the incoming data from process  i  
+.PD 1
+.PD 0
+.TP
+.B recvtype 
+- data type of receive buffer elements (handle) 
+.PD 1
+.PD 0
+.TP
+.B comm 
+- communicator (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B recvbuf 
+- address of receive buffer (choice) 
+.PD 1
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Allgatherv ( sendbuf, sendcount,  sendtype, 
+                     recvbuf, recvcounts, displs,   recvtype, comm )
+void             *sendbuf;
+int               sendcount;
+MPI_Datatype      sendtype;
+void             *recvbuf;
+int              *recvcounts;
+int              *displs;
+MPI_Datatype      recvtype;
+MPI_Comm          comm;
+
+.fi
+
+.SH LOCATION
+ allgatherv.c

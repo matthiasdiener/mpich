@@ -1,0 +1,68 @@
+.TH MPI_Gather 3 "9/29/1994" " " "MPI"
+.SH NAME
+MPI_Gather \- Gathers together values from a group of processes
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B sendbuf 
+- starting address of send buffer (choice) 
+.PD 1
+.PD 0
+.TP
+.B sendcount 
+- number of elements in send buffer (integer) 
+.PD 1
+.PD 0
+.TP
+.B sendtype 
+- data type of send buffer elements (handle) 
+.PD 1
+.PD 0
+.TP
+.B recvcount 
+- number of elements for any single receive (integer, 
+significant only at root) 
+.PD 1
+.PD 0
+.TP
+.B recvtype 
+- data type of recv buffer elements 
+(significant only at root) (handle) 
+.PD 1
+.PD 0
+.TP
+.B root 
+- rank of receiving process (integer) 
+.PD 1
+.PD 0
+.TP
+.B comm 
+- communicator (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B recvbuf 
+- address of receive buffer (choice, significant only at root) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Gather ( sendbuf, sendcnt, sendtype, recvbuf, recvcount, recvtype, 
+   root, comm )
+void             *sendbuf;
+int               sendcnt;
+MPI_Datatype      sendtype;
+void             *recvbuf;
+int               recvcount;
+MPI_Datatype      recvtype;
+int               root;
+MPI_Comm          comm;
+
+.fi
+
+.SH LOCATION
+ gather.c

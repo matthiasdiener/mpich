@@ -1,0 +1,42 @@
+.TH MPE_Draw_line 4 "11/7/1994" " " "MPE"
+.SH NAME
+MPE_Draw_line \- Draws a line on an X11 display
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B handle 
+- MPE graphics handle 
+.PD 1
+.PD 0
+.TP
+.B x1,y1 
+- pixel position of one end of the line to draw.  Coordinates are 
+upper-left origin (standard X11)
+.PD 1
+.PD 0
+.TP
+.B x2,y2 
+- pixel position of the other end of the line to draw.  Coordinates 
+are upper-left origin (standard X11)
+.PD 1
+.PD 0
+.TP
+.B color 
+- Color INDEX value.  See MPE_MakeColorArray.  By default, the colors
+.PD 1
+MPE_WHITE, MPE_BLACK, MPE_RED, MPE_YELLOW, MPE_GREEN, MPE_CYAN, and
+MPE_BLUE are defined.
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+int MPE_Draw_line( handle, x1, y1, x2, y2, color )
+MPE_XGraph handle;
+int        x1, y1, x2, y2;
+MPE_Color  color;
+
+.fi
+
+.SH LOCATION
+ mpe_graphics.c

@@ -1,0 +1,27 @@
+.TH MPID_Cancel 5 "10/10/1994" " " "ADI"
+.SH NAME
+MPID_Cancel \- Cancels a pending communication operation
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B ctx 
+- ADI context returned by MPID_Init
+.PD 1
+.PD 0
+.TP
+.B r 
+- pointer to an API message request 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+void MPID_Cancel( void * ctx, MPIR_CHANDLE *r )
+.fi
+
+.SH NOTES
+The actual freeing of internal space must be done with the appropriate
+MPID_FREE_SEND/RECV_HANDLE calls.
+
+This routine may have little effect.  If the message has already been
+delivered, it has no effect.

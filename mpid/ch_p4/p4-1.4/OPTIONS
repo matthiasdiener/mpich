@@ -1,0 +1,5 @@
+/* #define ALOG_TRACE */
+/* #define SYSV_IPC   */
+/* #define VENDOR_IPC */
+#define P4_DPRINTFL
+#define LISTENER_PATHNAME ""

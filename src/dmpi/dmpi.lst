@@ -1,0 +1,872 @@
+IBM AIX XL C Compiler  Version 01.03.0000.0000 --- dmpi.c 11/21/94 17:29:46
+ 
+>>>>> OPTIONS SECTION <<<<<
+ 
+***   Options In Effect   ***
+ 
+ ANSIALIAS     FOLD          LIST          MAF           RO
+ ROCONST       XCOFF
+ 
+ 
+>>>>> OBJECT SECTION, OPTIMIZATION <<<<<
+ 
+ GPR's set/used:   ssus ssss ssss s---  ---- ---- ---s ssss
+ FPR's set/used:   ssss ssss ssss ss--  ---- ---- ---- ----
+ CCR's set/used:   ss-- -sss
+     | 000000                           PDEF     DMPI_msg_arrived
+    0|                                  PROC     src,tag,context_id,dmpi_recv_handle,foundflag,gr3-gr7
+    0| 000000 stm      BF61FFEC   6     STM      #stack(gr1,-20)=gr27-gr31
+    0| 000004 cal      3BA60000   1     LR       gr29=gr6
+    0| 000008 cal      3B870000   1     LR       gr28=gr7
+    0| 00000C cal      3B650000   1     LR       gr27=gr5
+    0| 000010 mfspr    7C0802A6   1     LFLR     gr0=lr
+    0| 000014 cal      3BE30000   1     LR       gr31=gr3
+    0| 000018 st       90010008   1     ST4A     #stack(gr1,8)=gr0
+    0| 00001C stu      9421FFA0   1     ST4U     gr1,#stack(gr1,-96)=gr1
+    0| 000020 cal      3BC40000   1     LR       gr30=gr4
+   36| 000024 ai       30C10038   1     AI       gr6=gr1,56
+   36| 000028 cal      38E00001   1     LI       gr7=1
+   36| 00002C cal      391D0000   1     LR       gr8=gr29
+   36| 000030 bl       4BFFFFD1   0     CALL     gr3=MPIR_search_posted_queue,6,gr3-gr5,(int)",gr6,gr7,(struct_4195637*)",(struct_4195637*)",gr8,fcr",MPIR_search_posted_queue",gr1,cr
+   36| 000034 cror     4DEF7B82   1
+   38| 000038 l        80010038   2     L4A      gr0=found(gr1,56)
+   51| 00003C l        80620004   1     L4A      gr3=.MPIR_rhandles(gr2,0)
+   38| 000040 cmpi     2C000000   1     C4       cr0=gr0,0
+   51| 000044 l        80630000   1     L4Z      gr3=MPIR_rhandles(gr3,0)
+   40| 000048 cal      38000001   1     LI       gr0=1
+   38| 00004C bc       41820018   1     BT       CL.0,cr0,0x4/eq
+   40| 000050 st       901C0000   1     ST4A     (int)(gr28,0)=gr0
+   42| 000054 l        807D0000   1     L4Z      gr3=(struct_4195637*)(gr29,0)
+   44| 000058 st       93C30010   2     ST4A     (int)(gr3,16)=gr30
+   43| 00005C st       93E3000C   1     ST4A     (int)(gr3,12)=gr31
+   47| 000060 b        48000054   0     B        CL.83
+   47|                              CL.0:
+   51| 000064 bl       4BFFFF9D   1     CALL     gr3=MPIR_SBalloc,1,(void)",gr3,fcr",MPIR_SBalloc",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",lr",fcr",xer",ctr",fsr"
+   51| 000068 cror     4DEF7B82   1
+   50| 00006C st       907D0000   2     ST4Z     (struct_4195637*)(gr29,0)=gr3
+   57| 000070 l        80820008   1     L4A      gr4=.MPI_BYTE(gr2,0)
+   53| 000074 cal      38000001   1     LI       gr0=1
+   54| 000078 st       93E3000C   1     ST4A     (int)(gr3,12)=gr31
+   58| 00007C cal      3BE00000   1     LI       gr31=0
+   53| 000080 st       90030000   1     ST4A     (int)(gr3,0)=gr0
+   57| 000084 l        80040000   1     L4Z      gr0=MPI_BYTE(gr4,0)
+   56| 000088 st       93630008   1     ST4A     (int)(gr3,8)=gr27
+   57| 00008C st       90030018   1     ST4Z     (struct_4194440*)(gr3,24)=gr0
+   55| 000090 st       93C30010   1     ST4A     (int)(gr3,16)=gr30
+   58| 000094 st       93E30014   1     ST4A     (int)(gr3,20)=gr31
+   62| 000098 cal      38A00000   1     LI       gr5=0
+   60| 00009C st       93E3005C   1     ST4Z     (char*)(gr3,92)=gr31
+   62| 0000A0 l        809D0000   1     L4Z      gr4=(struct_4195637*)(gr29,0)
+   62| 0000A4 l        8062000C   1     L4A      gr3=.MPIR_unexpected_recvs(gr2,0)
+   62| 0000A8 bl       4BFFFF59   0     CALL     gr3=MPIR_enqueue,3,(struct_4195760)",gr3-gr5,fcr",MPIR_enqueue",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",lr",fcr",xer"
+   62| 0000AC cror     4DEF7B82   1
+   64| 0000B0 st       93FC0000   2     ST4A     (int)(gr28,0)=gr31
+   48|                              CL.83:
+   28| 0000B4 l        81810068   2     L4A      gr12=#stack(gr1,104)
+   28| 0000B8 ai       30210060   1     AI       gr1=gr1,96
+   28| 0000BC mtspr    7D8803A6   1     LLR      lr=gr12
+   28| 0000C0 lm       BB61FFEC   5     LM       gr27-gr31=#stack(gr1,-20)
+   28| 0000C4 bcr      4E800020   0     BA       lr
+     |               Tag Table
+     | 0000C8        00000000 00002041 80050500 00000000 000000C8 0010444D
+     | 0000E0        50495F6D 73675F61 72726976 6564
+     |               Instruction count           50
+     |               Straight-line exec time     60
+ GPR's set/used:   s--u sss- ---- ----  ---- ---- ---- ----
+ FPR's set/used:   ---- ---- ---- ----  ---- ---- ---- ----
+ CCR's set/used:   ---- ----
+     | 000000                           PDEF     DMPI_get_totallen
+    0|                                  PROC     handle,len,gr3,gr4
+   83| 0000F0 l        80A30018   2     L4Z      gr5=(struct_4194440*)(gr3,24)
+   83| 0000F4 l        80030034   1     L4A      gr0=(int)(gr3,52)
+   87| 0000F8 cal      38C00000   1     LI       gr6=0
+   83| 0000FC l        80A50024   1     L4A      gr5=(int)(gr5,36)
+   83| 000100 muls     7C0029D6   5     M        gr0=gr0,gr5,mq"
+   83| 000104 st       90040000   1     ST4A     (int)(gr4,0)=gr0
+   86| 000108 l        8083002C   1     L4Z      gr4=(void*)(gr3,44)
+   85| 00010C st       90030040   1     ST4A     (int)(gr3,64)=gr0
+   86| 000110 st       90830038   1     ST4Z     (char*)(gr3,56)=gr4
+   87| 000114 st       90C3003C   1     ST4A     (int)(gr3,60)=gr6
+   87|                              CL.82:
+   79| 000118 bcr      4E800020   1     BA       lr
+     |               Tag Table
+     | 00011C        00000000 00002040 00000200 00000000 0000002C 0011444D
+     | 000134        50495F67 65745F74 6F74616C 6C656E
+     |               Instruction count           11
+     |               Straight-line exec time     16
+ GPR's set/used:   s--u s--- ---- ----  ---- ---- ---- ----
+ FPR's set/used:   ---- ---- ---- ----  ---- ---- ---- ----
+ CCR's set/used:   ---- ----
+     | 000000                           PDEF     DMPI_put_totallen
+    0|                                  PROC     handle,len,gr3,gr4
+   97| 000144 l        8003002C   2     L4Z      gr0=(void*)(gr3,44)
+   96| 000148 st       90830040   1     ST4A     (int)(gr3,64)=gr4
+   98| 00014C cal      38800000   1     LI       gr4=0
+   97| 000150 st       90030038   1     ST4Z     (char*)(gr3,56)=gr0
+   98| 000154 st       9083003C   1     ST4A     (int)(gr3,60)=gr4
+   98|                              CL.81:
+   92| 000158 bcr      4E800020   1     BA       lr
+     |               Tag Table
+     | 00015C        00000000 00002040 00000200 00000000 00000018 0011444D
+     | 000174        50495F70 75745F74 6F74616C 6C656E
+     |               Instruction count            6
+     |               Straight-line exec time      7
+ GPR's set/used:   ss-s ssss ssss s---  ---- ---- ---- --ss
+ FPR's set/used:   ssss ssss ssss ss--  ---- ---- ---- ----
+ CCR's set/used:   ss-- -sss
+     | 000000                           PDEF     DMPI_get_into_contig
+    0|                                  PROC     handle,addr,maxlen,actlen,gr3-gr6
+    0| 000184 stm      BFC1FFF8   3     STM      #stack(gr1,-8)=gr30,gr31
+    0| 000188 cal      3BE30000   1     LR       gr31=gr3
+    0| 00018C cal      3BC60000   1     LR       gr30=gr6
+  150| 000190 l        80DF0038   1     L4Z      gr6=(char*)(gr31,56)
+  147| 000194 l        807F0018   1     L4Z      gr3=(struct_4194440*)(gr31,24)
+  150| 000198 cmpi     2C860000   1     C4       cr1=gr6,0
+  147| 00019C l        80C30024   1     L4A      gr6=(int)(gr3,36)
+  147| 0001A0 l        807F0034   1     L4A      gr3=(int)(gr31,52)
+  148| 0001A4 l        80FF003C   1     L4A      gr7=(int)(gr31,60)
+  147| 0001A8 muls     7C6331D6   4     M        gr3=gr3,gr6,mq"
+  147| 0001AC sf       7CC71810   1     S        gr6=gr3,gr7
+    0| 0001B0 mfspr    7C0802A6   1     LFLR     gr0=lr
+  153| 0001B4 cmp      7C062800   1     C4       cr0=gr6,gr5
+    0| 0001B8 st       90010008   1     ST4A     #stack(gr1,8)=gr0
+    0| 0001BC stu      9421FFB0   1     ST4U     gr1,#stack(gr1,-80)=gr1
+  151| 0001C0 cal      38600007   1     LI       gr3=7
+  150| 0001C4 bc       40860010   0     BF       CL.2,cr1,0x4/eq
+  139| 0001C8 lm       BBC10048   2     LM       gr30,gr31=#stack(gr1,72)
+  139| 0001CC ai       30210050   1     AI       gr1=gr1,80
+  139| 0001D0 bcr      4E800020   0     BA       lr
+  150|                              CL.2:
+  171| 0001D4 cal      38640000   2     LR       gr3=gr4
+  170| 0001D8 cal      38800000   1     LI       gr4=0
+  153| 0001DC bc       41800008   0     BT       CL.6,cr0,0x1/lt
+  153| 0001E0 cal      38C50000   1     LR       gr6=gr5
+  153|                              CL.6:
+  153| 0001E4 st       90DE0000   2     ST4A     (int)(gr30,0)=gr6
+  170| 0001E8 st       909F0028   1     ST4A     (int)(gr31,40)=gr4
+  171| 0001EC l        809F0038   1     L4Z      gr4=(char*)(gr31,56)
+  171| 0001F0 l        80BE0000   1     L4A      gr5=(int)(gr30,0)
+  171| 0001F4 bl       4BFFFE0D   0     CALL     gr3=memcpy,3,(void)",gr3-gr5,fcr",memcpy",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",lr",fcr",xer",ctr",fsr"
+  171| 0001F8 cror     4DEF7B82   1
+  177| 0001FC l        807E0000   2     L4A      gr3=(int)(gr30,0)
+  177| 000200 l        80BF0038   1     L4Z      gr5=(char*)(gr31,56)
+  178| 000204 l        809F003C   1     L4A      gr4=(int)(gr31,60)
+  177| 000208 a        7C632814   1     A        gr3=gr3,gr5
+  177| 00020C st       907F0038   1     ST4Z     (char*)(gr31,56)=gr3
+  178| 000210 l        80BE0000   1     L4A      gr5=(int)(gr30,0)
+  180| 000214 cal      38600000   1     LI       gr3=0
+  178| 000218 a        7C852014   1     A        gr4=gr5,gr4
+  178| 00021C st       909F003C   1     ST4A     (int)(gr31,60)=gr4
+  180|                              CL.3:
+  139| 000220 l        81810058   2     L4A      gr12=#stack(gr1,88)
+  139| 000224 ai       30210050   1     AI       gr1=gr1,80
+  139| 000228 mtspr    7D8803A6   1     LLR      lr=gr12
+  139| 00022C lm       BBC1FFF8   2     LM       gr30,gr31=#stack(gr1,-8)
+  139| 000230 bcr      4E800020   2     BA       lr
+     |               Tag Table
+     | 000234        00000000 00002041 80020400 00000000 000000B0 0014444D
+     | 00024C        50495F67 65745F69 6E746F5F 636F6E74 6967
+     |               Instruction count           44
+     |               Straight-line exec time     52
+ GPR's set/used:   s--s ssu- ---- ----  ---- ---- ---- ----
+ FPR's set/used:   ---- ---- ---- ----  ---- ---- ---- ----
+ CCR's set/used:   s--- ----
+     | 000000                           PDEF     DMPI_get_from_contig
+    0|                                  PROC     handle,addr,maxlen,actlen,gr3-gr6
+  193| 000260 l        80030038   2     L4Z      gr0=(char*)(gr3,56)
+  193| 000264 cmpi     2C000000   2     C4       cr0=gr0,0
+  193| 000268 bc       4082000C   3     BF       CL.7,cr0,0x4/eq
+  193| 00026C cal      38600007   1     LI       gr3=7
+  193| 000270 bcr      4E800020   2     BA       lr
+  193|                              CL.7:
+  195| 000274 st       90040000   2     ST4Z     (void*)(gr4,0)=gr0
+  196| 000278 l        80830018   1     L4Z      gr4=(struct_4194440*)(gr3,24)
+  196| 00027C l        80030034   1     L4A      gr0=(int)(gr3,52)
+  196| 000280 l        80840024   1     L4A      gr4=(int)(gr4,36)
+  196| 000284 muls     7C8021D6   5     M        gr4=gr0,gr4,mq"
+  197| 000288 cmp      7C042800   1     C4       cr0=gr4,gr5
+  196| 00028C st       90860000   1     ST4A     (int)(gr6,0)=gr4
+  197| 000290 bc       4081000C   2     BF       CL.10,cr0,0x2/gt
+  197| 000294 st       90A60000   1     ST4A     (int)(gr6,0)=gr5
+  197| 000298 cal      38850000   1     LR       gr4=gr5
+  197|                              CL.10:
+  198| 00029C l        80A30038   2     L4Z      gr5=(char*)(gr3,56)
+  199| 0002A0 l        8003003C   1     L4A      gr0=(int)(gr3,60)
+  198| 0002A4 a        7C842814   1     A        gr4=gr4,gr5
+  198| 0002A8 st       90830038   1     ST4Z     (char*)(gr3,56)=gr4
+  199| 0002AC l        80860000   1     L4A      gr4=(int)(gr6,0)
+  199| 0002B0 a        7C802014   2     A        gr4=gr0,gr4
+  199| 0002B4 st       9083003C   1     ST4A     (int)(gr3,60)=gr4
+  207| 0002B8 cal      38600000   1     LI       gr3=0
+  207|                              CL.8:
+  185| 0002BC bcr      4E800020   1     BA       lr
+     |               Tag Table
+     | 0002C0        00000000 00002040 00000400 00000000 00000060 0014444D
+     | 0002D8        50495F67 65745F66 726F6D5F 636F6E74 6967
+     |               Instruction count           24
+     |               Straight-line exec time     37
+ GPR's set/used:   s--u ssu- ---- ----  ---- ---- ---- ----
+ FPR's set/used:   ---- ---- ---- ----  ---- ---- ---- ----
+ CCR's set/used:   s--- ----
+     | 000000                           PDEF     DMPI_put_into_contig
+    0|                                  PROC     handle,addr,maxlen,actlen,gr3-gr6
+  219| 0002EC l        80030038   2     L4Z      gr0=(char*)(gr3,56)
+  219| 0002F0 st       90040000   2     ST4Z     (void*)(gr4,0)=gr0
+  220| 0002F4 l        80830018   1     L4Z      gr4=(struct_4194440*)(gr3,24)
+  220| 0002F8 l        8003004C   1     L4A      gr0=(int)(gr3,76)
+  220| 0002FC l        80840024   1     L4A      gr4=(int)(gr4,36)
+  220| 000300 muls     7C8021D6   5     M        gr4=gr0,gr4,mq"
+  221| 000304 cmp      7C042800   1     C4       cr0=gr4,gr5
+  220| 000308 st       90860000   1     ST4A     (int)(gr6,0)=gr4
+  221| 00030C bc       4081000C   2     BF       CL.12,cr0,0x2/gt
+  221| 000310 st       90A60000   1     ST4A     (int)(gr6,0)=gr5
+  221| 000314 cal      38850000   1     LR       gr4=gr5
+  221|                              CL.12:
+  222| 000318 l        80A30038   2     L4Z      gr5=(char*)(gr3,56)
+  223| 00031C l        8003003C   1     L4A      gr0=(int)(gr3,60)
+  222| 000320 a        7C842814   1     A        gr4=gr4,gr5
+  222| 000324 st       90830038   1     ST4Z     (char*)(gr3,56)=gr4
+  223| 000328 l        80860000   1     L4A      gr4=(int)(gr6,0)
+  223| 00032C a        7C802014   2     A        gr4=gr0,gr4
+  223| 000330 st       9083003C   1     ST4A     (int)(gr3,60)=gr4
+  223|                              CL.80:
+  213| 000334 bcr      4E800020   1     BA       lr
+     |               Tag Table
+     | 000338        00000000 00002040 00000400 00000000 0000004C 0014444D
+     | 000350        50495F70 75745F69 6E746F5F 636F6E74 6967
+     |               Instruction count           19
+     |               Straight-line exec time     28
+ GPR's set/used:   ss-s ssss ssss s---  ---- ---- ---- --ss
+ FPR's set/used:   ssss ssss ssss ss--  ---- ---- ---- ----
+ CCR's set/used:   ss-- -sss
+     | 000000                           PDEF     DMPI_put_from_contig
+    0|                                  PROC     handle,addr,maxlen,gr3-gr5
+    0| 000364 stm      BFC1FFF8   3     STM      #stack(gr1,-8)=gr30,gr31
+    0| 000368 cal      3BE30000   1     LR       gr31=gr3
+  240| 00036C l        807F0038   1     L4Z      gr3=(char*)(gr31,56)
+    0| 000370 mfspr    7C0802A6   1     LFLR     gr0=lr
+  237| 000374 l        80DF0040   1     L4A      gr6=(int)(gr31,64)
+    0| 000378 st       90010008   1     ST4A     #stack(gr1,8)=gr0
+   28| 00037C xoriu    6CA78000   1     XIU      gr7=gr5,0x8000
+  237| 000380 l        801F003C   1     L4A      gr0=(int)(gr31,60)
+    0| 000384 stu      9421FFB0   1     ST4U     gr1,#stack(gr1,-80)=gr1
+  237| 000388 sf       7C003010   1     S        gr0=gr6,gr0
+   28| 00038C xoriu    6C008000   1     XIU      gr0=gr0,0x8000
+   28| 000390 sf       7C003810   1     SUBEX    gr0,gr6=gr7,gr0
+   28| 000394 sfe      7CC73910   1
+   28| 000398 andc     7C003078   1     ANDC     gr0=gr0,gr6
+   28| 00039C sf       7FC02810   1     S        gr30=gr5,gr0
+  240| 0003A0 cal      38BE0000   1     LR       gr5=gr30
+  240| 0003A4 bl       4BFFFC5D   0     CALL     gr3=memcpy,3,gr3,(void)",gr4,gr5,fcr",memcpy",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",lr",fcr",xer",ctr",fsr"
+  240| 0003A8 cror     4DEF7B82   1
+  246| 0003AC l        809F003C   2     L4A      gr4=(int)(gr31,60)
+  245| 0003B0 l        801F0038   1     L4Z      gr0=(char*)(gr31,56)
+  246| 0003B4 a        7CBE2014   1     A        gr5=gr30,gr4
+  245| 0003B8 a        7C1E0014   1     A        gr0=gr30,gr0
+  248| 0003BC l        809F0018   1     L4Z      gr4=(struct_4194440*)(gr31,24)
+  245| 0003C0 st       901F0038   1     ST4Z     (char*)(gr31,56)=gr0
+  246| 0003C4 st       90BF003C   1     ST4A     (int)(gr31,60)=gr5
+  248| 0003C8 l        80040024   1     L4A      gr0=(int)(gr4,36)
+  247| 0003CC divs     7C0502D6  20     D4       gr0,mq=gr5,gr0
+  247| 0003D0 st       901F004C   1     ST4A     (int)(gr31,76)=gr0
+  247|                              CL.79:
+  230| 0003D4 l        81810058   2     L4A      gr12=#stack(gr1,88)
+  230| 0003D8 ai       30210050   1     AI       gr1=gr1,80
+  230| 0003DC mtspr    7D8803A6   1     LLR      lr=gr12
+  230| 0003E0 lm       BBC1FFF8   2     LM       gr30,gr31=#stack(gr1,-8)
+  230| 0003E4 bcr      4E800020   2     BA       lr
+     |               Tag Table
+     | 0003E8        00000000 00002041 80020300 00000000 00000084 0014444D
+     | 000400        50495F70 75745F66 726F6D5F 636F6E74 6967
+     |               Instruction count           33
+     |               Straight-line exec time     57
+ GPR's set/used:   ssus ssss ssss s---  ---- ---- ---- ----
+ FPR's set/used:   ssss ssss ssss ss--  ---- ---- ---- ----
+ CCR's set/used:   ss-- -sss
+     | 000000                           PDEF     DMPI_free_unexpected
+    0|                                  PROC     dmpi_recv_handle,gr3
+    0| 000414 mfspr    7C0802A6   2     LFLR     gr0=lr
+  258| 000418 l        80A20004   1     L4A      gr5=.MPIR_rhandles(gr2,0)
+    0| 00041C stu      9421FFC0   1     ST4U     gr1,#stack(gr1,-64)=gr1
+    0| 000420 st       90010048   1     ST4A     #stack(gr1,72)=gr0
+  258| 000424 cal      38830000   1     LR       gr4=gr3
+  258| 000428 l        80650000   1     L4Z      gr3=MPIR_rhandles(gr5,0)
+  258| 00042C bl       4BFFFBD5   0     CALL     MPIR_SBfree,2,(void)",gr3,(struct_4195637)",gr4,fcr",MPIR_SBfree",gr1,cr[01567],gr0",gr3"-gr12",fp0"-fp13",mc0"-mc63",mq",lr",fcr",xe
+  258| 000430 cror     4DEF7B82   1
+  258|                              CL.78:
+  255| 000434 l        81810048   2     L4A      gr12=#stack(gr1,72)
+  255| 000438 ai       30210040   1     AI       gr1=gr1,64
+  255| 00043C mtspr    7D8803A6   1     LLR      lr=gr12
+  255| 000440 bcr      4E800020   4     BA       lr
+     |               Tag Table
+     | 000444        00000000 00002041 80000100 00000000 00000030 0014444D
+     | 00045C        50495F66 7265655F 756E6578 70656374 6564
+     |               Instruction count           12
+     |               Straight-line exec time     16
+ GPR's set/used:   ssus ssss ssss s---  ---- ---- ---- ---s
+ FPR's set/used:   ssss ssss ssss ss--  ---- ---- ---- ----
+ CCR's set/used:   ss-- -sss
+     | 000000                           PDEF     MPIR_Send_setup
+    0|                                  PROC     request,gr3
+  270| 000470 l        80C30000   2     L4Z      gr6=(union_4194567*)(gr3,0)
+    0| 000474 mfspr    7C0802A6   1     LFLR     gr0=lr
+  271| 000478 l        8086000C   1     L4A      gr4=(int)(9,296):340:(gr6,12)
+    0| 00047C st       93E1FFFC   1     ST4A     #stack(gr1,-4)=gr31
+  271| 000480 cmpi     2C84FFFF   1     C4       cr1=gr4,-1
+    0| 000484 st       90010008   1     ST4A     #stack(gr1,8)=gr0
+    0| 000488 stu      9421FFB0   1     ST4U     gr1,#stack(gr1,-80)=gr1
+  267| 00048C cal      38000000   1     LI       gr0=0
+  267| 000490 cal      3BE00000   1     LI       gr31=0
+  273| 000494 cal      38800001   1     LI       gr4=1
+  271| 000498 bc       40860014   0     BF       CL.17,cr1,0x4/eq
+  262| 00049C l        83E1004C   1     L4A      gr31=#stack(gr1,76)
+  271| 0004A0 cal      38600000   1     LI       gr3=0
+  262| 0004A4 ai       30210050   1     AI       gr1=gr1,80
+  262| 0004A8 bcr      4E800020   0     BA       lr
+  271|                              CL.17:
+  278| 0004AC l        80A60018   2     L4Z      gr5=(struct_4194440*)(9,303):340:(gr6,24)
+  273| 0004B0 st       90860024   1     ST4A     (int)(9,296):340:(gr6,36)=gr4
+  278| 0004B4 l        8085000C   1     L4A      gr4=(int)(gr5,12)
+  319| 0004B8 l        80E30000   1     L4Z      gr7=(union_4194567*)(gr3,0)
+  278| 0004BC cmpi     2C840000   1     C4       cr1=gr4,0
+  307| 0004C0 l        80660034   1     L4A      gr3=(int)(9,296):340:(gr6,52)
+  318| 0004C4 cal      38830000   2     LR       gr4=gr3
+  278| 0004C8 bc       41860030   0     BT       CL.19,cr1,0x4/eq
+  307| 0004CC l        80850020   1     L4A      gr4=(int)(gr5,32)
+  311| 0004D0 st       90060038   1     ST4Z     (char*)(9,306):340:(gr6,56)=gr0
+  307| 0004D4 muls.    7C0321D7   4     M@R      gr0,cr0=gr3,gr4,mq"
+  308| 0004D8 l        8066002C   1     L4Z      gr3=(void*)(9,342):340:(gr6,44)
+  306| 0004DC st       90060060   1     ST4A     (int)(9,296):340:(gr6,96)=gr0
+  308| 0004E0 cmpi     2C830000   1     C4       cr1=gr3,0
+  308| 0004E4 bc       4081000C   0     BF       CL.23,cr0,0x2/gt
+  308| 0004E8 bc       40860008   3     BF       CL.23,cr1,0x4/eq
+  309| 0004EC cal      3BE00007   1     LI       gr31=7
+  309|                              CL.23:
+  310| 0004F0 st       9066005C   2     ST4Z     (void*)(9,342):340:(gr6,92)=gr3
+  313| 0004F4 b        48000048   0     B        CL.24
+  313|                              CL.19:
+  318| 0004F8 l        8006002C   2     L4Z      gr0=(void*)(9,342):340:(gr6,44)
+  319| 0004FC l        80C6000C   1     L4A      gr6=(int)(9,296):340:(gr6,12)
+  318| 000500 ai       30600000   1     LR       gr3=gr0
+  318| 000504 bl       4BFFFAFD   0     CALL     gr3=MPIR_PackMessage,5,gr3-gr7,fcr",MPIR_PackMessage",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",lr",fcr",xer",ctr",fsr"
+  318| 000508 cror     4DEF7B82   1
+  317| 00050C cmpi     2C830000   2     C4       cr1=gr3,0
+  317| 000510 cal      3BE30000   1     LR       gr31=gr3
+  321| 000514 l        80620030   1     L4A      gr3=.MPI_COMM_WORLD(gr2,0)
+  321| 000518 l        80020034   1     L4A      gr0=.+CONSTANT_AREA(gr2,0)
+  317| 00051C bc       41860020   0     BT       CL.24,cr1,0x4/eq
+  321| 000520 l        80630000   1     L4Z      gr3=MPI_COMM_WORLD(gr3,0)
+  321| 000524 ai       30C0002A   1     AI       gr6=gr0,42
+  321| 000528 cal      389F0000   1     LR       gr4=gr31
+  321| 00052C ai       30A00000   1     LR       gr5=gr0
+  321| 000530 cal      38E00141   1     LI       gr7=321
+  321| 000534 bl       4BFFFACD   0     CALL     gr3=MPIR_Error,5,(struct_4194510)",gr3-gr7,fcr",MPIR_Error",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",lr",fcr",xer",ctr
+  321| 000538 cror     4DEF7B82   1
+  315|                              CL.24:
+  333| 00053C cal      387F0000   2     LR       gr3=gr31
+  333|                              CL.18:
+  262| 000540 l        81810058   2     L4A      gr12=#stack(gr1,88)
+  262| 000544 l        83E1004C   1     L4A      gr31=#stack(gr1,76)
+  262| 000548 mtspr    7D8803A6   1     LLR      lr=gr12
+  262| 00054C ai       30210050   1     AI       gr1=gr1,80
+  262| 000550 bcr      4E800020   3     BA       lr
+     |               Tag Table
+     | 000554        00000000 00002041 80010100 00000000 000000E4 000F4D50
+     | 00056C        49525F53 656E645F 73657475 70
+     |               Instruction count           57
+     |               Straight-line exec time     64
+ GPR's set/used:   ss-s ssss ssss s---  ---- ---- ---- ----
+ FPR's set/used:   ssss ssss ssss ss--  ---- ---- ---- ----
+ CCR's set/used:   ss-- -sss
+     | 000000                           PDEF     MPIR_SendBufferFree
+    0|                                  PROC     request,gr3
+    0| 00057C mfspr    7C0802A6   2     LFLR     gr0=lr
+    0| 000580 stu      9421FFC0   1     ST4U     gr1,#stack(gr1,-64)=gr1
+    0| 000584 st       90010048   1     ST4A     #stack(gr1,72)=gr0
+  342| 000588 l        80630038   1     L4Z      gr3=(char*)(gr3,56)
+  342| 00058C bl       4BFFFA75   0     CALL     free,1,gr3,fcr",free",gr1,cr[01567],gr0",gr3"-gr12",fp0"-fp13",mc0"-mc63",mq",lr",fcr",xer",ctr",fsr"
+  342| 000590 cror     4DEF7B82   1
+  343| 000594 cal      38600000   2     LI       gr3=0
+  343|                              CL.26:
+  338| 000598 l        81810048   2     L4A      gr12=#stack(gr1,72)
+  338| 00059C ai       30210040   1     AI       gr1=gr1,64
+  338| 0005A0 mtspr    7D8803A6   1     LLR      lr=gr12
+  338| 0005A4 bcr      4E800020   4     BA       lr
+     |               Tag Table
+     | 0005A8        00000000 00002041 80000100 00000000 0000002C 00134D50
+     | 0005C0        49525F53 656E6442 75666665 72467265 65
+     |               Instruction count           11
+     |               Straight-line exec time     16
+ GPR's set/used:   ssus ssss ssss s---  ---- ---- ---- ---s
+ FPR's set/used:   ssss ssss ssss ss--  ---- ---- ---- ----
+ CCR's set/used:   ss-- -sss
+     | 000000                           PDEF     MPIR_Receive_setup
+    0|                                  PROC     request,gr3
+    0| 0005D4 mfspr    7C0802A6   2     LFLR     gr0=lr
+  355| 0005D8 l        80C30000   1     L4Z      gr6=(union_4194567*)(gr3,0)
+    0| 0005DC st       90010008   1     ST4A     #stack(gr1,8)=gr0
+  356| 0005E0 l        8006000C   1     L4A      gr0=(int)(11,296):299:(gr6,12)
+    0| 0005E4 st       93E1FFFC   1     ST4A     #stack(gr1,-4)=gr31
+  356| 0005E8 cmpi     2C80FFFF   1     C4       cr1=gr0,-1
+  352| 0005EC cal      39000000   1     LI       gr8=0
+    0| 0005F0 stu      9421FFB0   1     ST4U     gr1,#stack(gr1,-80)=gr1
+  352| 0005F4 cal      3BE00000   1     LI       gr31=0
+  357| 0005F8 cal      38000001   1     LI       gr0=1
+  356| 0005FC bc       40860014   0     BF       CL.28,cr1,0x4/eq
+  347| 000600 l        83E1004C   1     L4A      gr31=#stack(gr1,76)
+  356| 000604 cal      38600000   1     LI       gr3=0
+  347| 000608 ai       30210050   1     AI       gr1=gr1,80
+  347| 00060C bcr      4E800020   0     BA       lr
+  356|                              CL.28:
+  359| 000610 l        80A60018   2     L4Z      gr5=(struct_4194440*)(11,303):299:(gr6,24)
+  357| 000614 st       90060024   1     ST4A     (int)(11,296):299:(gr6,36)=gr0
+  359| 000618 l        8005000C   1     L4A      gr0=(int)(gr5,12)
+  372| 00061C l        80E30000   1     L4Z      gr7=(union_4194567*)(gr3,0)
+  359| 000620 cmpi     2C800000   1     C4       cr1=gr0,0
+  371| 000624 l        8006002C   1     L4Z      gr0=(void*)(11,342):299:(gr6,44)
+  371| 000628 l        80860034   1     L4A      gr4=(int)(11,296):299:(gr6,52)
+  360| 00062C ai       31200000   1     LR       gr9=gr0
+  371| 000630 ai       30600000   1     LR       gr3=gr0
+  362| 000634 cal      38040000   1     LR       gr0=gr4
+  359| 000638 bc       41860044   0     BT       CL.30,cr1,0x4/eq
+  362| 00063C cal      38650000   1     LR       gr3=gr5
+  360| 000640 st       91260068   1     ST4Z     (void*)(11,342):299:(gr6,104)=gr9
+  362| 000644 l        80630020   1     L4A      gr3=(int)(gr3,32)
+  366| 000648 st       91060038   1     ST4Z     (char*)(11,306):299:(gr6,56)=gr8
+  362| 00064C muls.    7C0019D7   4     M@R      gr0,cr0=gr0,gr3,mq"
+  361| 000650 st       9006006C   1     ST4A     (int)(11,296):299:(gr6,108)=gr0
+  363| 000654 bc       40810064   2     BF       CL.34,cr0,0x2/gt
+  364| 000658 l        8006002C   1     L4Z      gr0=(void*)(11,342):299:(gr6,44)
+  364| 00065C cmpi     2C800000   2     C4       cr1=gr0,0
+  363| 000660 bc       40860058   3     BF       CL.34,cr1,0x4/eq
+  365| 000664 cal      3BE00007   1     LI       gr31=7
+  382| 000668 cal      387F0000   1     LR       gr3=gr31
+  347| 00066C l        81810058   1     L4A      gr12=#stack(gr1,88)
+  347| 000670 l        83E1004C   1     L4A      gr31=#stack(gr1,76)
+  347| 000674 mtspr    7D8803A6   1     LLR      lr=gr12
+  369| 000678 b        48000050   0     B        CL.221
+  369|                              CL.30:
+  372| 00067C l        80C6000C   2     L4A      gr6=(int)(11,296):299:(gr6,12)
+  371| 000680 bl       4BFFF981   0     CALL     gr3=MPIR_SetupUnPackMessage,5,gr3-gr7,fcr",MPIR_SetupUnPackMessage",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",lr",fcr",
+  371| 000684 cror     4DEF7B82   1
+  370| 000688 cmpi     2C830000   2     C4       cr1=gr3,0
+  370| 00068C cal      3BE30000   1     LR       gr31=gr3
+  374| 000690 l        80620030   1     L4A      gr3=.MPI_COMM_WORLD(gr2,0)
+  374| 000694 l        80020034   1     L4A      gr0=.+CONSTANT_AREA(gr2,0)
+  370| 000698 bc       41860020   0     BT       CL.34,cr1,0x4/eq
+  374| 00069C l        80630000   1     L4Z      gr3=MPI_COMM_WORLD(gr3,0)
+  374| 0006A0 ai       30C0002A   1     AI       gr6=gr0,42
+  374| 0006A4 cal      389F0000   1     LR       gr4=gr31
+  374| 0006A8 ai       30A00031   1     AI       gr5=gr0,49
+  374| 0006AC cal      38E00176   1     LI       gr7=374
+  374| 0006B0 bl       4BFFF951   0     CALL     gr3=MPIR_Error,5,(struct_4194510)",gr3-gr7,fcr",MPIR_Error",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",lr",fcr",xer",ctr
+  374| 0006B4 cror     4DEF7B82   1
+  365|                              CL.34:
+  382| 0006B8 cal      387F0000   2     LR       gr3=gr31
+  347| 0006BC l        81810058   1     L4A      gr12=#stack(gr1,88)
+  347| 0006C0 l        83E1004C   1     L4A      gr31=#stack(gr1,76)
+  347| 0006C4 mtspr    7D8803A6   1     LLR      lr=gr12
+    0|                              CL.221:
+  347| 0006C8 ai       30210050   2     AI       gr1=gr1,80
+  347| 0006CC bcr      4E800020   0     BA       lr
+     |               Tag Table
+     | 0006D0        00000000 00002041 80010100 00000000 000000FC 00124D50
+     | 0006E8        49525F52 65636569 76655F73 65747570
+     |               Instruction count           63
+     |               Straight-line exec time     68
+ GPR's set/used:   ssus ssss ssss s---  ---- --ss ssss ssss
+ FPR's set/used:   ssss ssss ssss ss--  ---- ---- ---- ----
+ CCR's set/used:   ss-- -sss
+     | 000000                           PDEF     MPIR_PrintDatatype
+    0|                                  PROC     fp,count,type,in_offset,out_offset,gr3-gr7
+    0| 0006F8 stm      BEC1FFD8  11     STM      #stack(gr1,-40)=gr22-gr31
+    0| 0006FC cal      3AC60000   1     LR       gr22=gr6
+    0| 000700 cal      3B870000   1     LR       gr28=gr7
+  401| 000704 cmpi     2C160000   1     C4       cr0=gr22,0
+  396| 000708 cal      3B000000   1     LI       gr24=0
+  401| 00070C cmpi     2C9C0000   1     C4       cr1=gr28,0
+    0| 000710 mfspr    7C0802A6   1     LFLR     gr0=lr
+    0| 000714 cal      3B640000   1     LR       gr27=gr4
+    0| 000718 st       90010008   1     ST4A     #stack(gr1,8)=gr0
+    0| 00071C stu      9421FF90   1     ST4U     gr1,#stack(gr1,-112)=gr1
+  401| 000720 crnand   4C4231C2   0     CR_NAND  cr0=cr[01],0x4/eq ,0x4/eq ,0x4/eq
+    0| 000724 cal      3B450000   1     LR       gr26=gr5
+  397| 000728 cal      3AE00000   1     LI       gr23=0
+    0| 00072C cal      3B230000   1     LR       gr25=gr3
+  401| 000730 bc       41820014   0     BT       CL.40,cr0,0x4/eq
+  402| 000734 l        80020034   1     L4A      gr0=.+CONSTANT_AREA(gr2,0)
+  402| 000738 ai       3080005D   2     AI       gr4=gr0,93
+  402| 00073C bl       4BFFF8C5   0     CALL     gr3=fprintf,2,(struct_4195378)",gr3,gr4,fcr",fprintf",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",lr",fcr",xer",ctr",fsr"
+  402| 000740 cror     4DEF7B82   1
+  402|                              CL.40:
+  404| 000744 l        801A000C   2     L4A      gr0=(int)(gr26,12)
+  404| 000748 cmpi     2C000000   2     C4       cr0=gr0,0
+  404| 00074C bc       41820050   3     BT       CL.41,cr0,0x4/eq
+  405| 000750 l        83E20034   1     L4A      gr31=.+CONSTANT_AREA(gr2,0)
+  405| 000754 cal      38790000   1     LR       gr3=gr25
+  405| 000758 ai       309F007B   1     AI       gr4=gr31,123
+  405| 00075C bl       4BFFF8A5   0     CALL     gr3=fprintf,2,(struct_4195378)",gr3,gr4,fcr",fprintf",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",lr",fcr",xer",ctr",fsr"
+  405| 000760 cror     4DEF7B82   1
+  407| 000764 l        801A0024   2     L4A      gr0=(int)(gr26,36)
+  406| 000768 cal      38790000   1     LR       gr3=gr25
+  407| 00076C muls     7CE0D9D6   4     M        gr7=gr0,gr27,mq"
+  406| 000770 ai       309F008C   1     AI       gr4=gr31,140
+  406| 000774 cal      38BC0000   1     LR       gr5=gr28
+  406| 000778 cal      38D60000   1     LR       gr6=gr22
+  406| 00077C bl       4BFFF885   0     CALL     gr3=fprintf,5,(struct_4195378)",gr3-gr7,fcr",fprintf",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",lr",fcr",xer",ctr",fsr"
+  406| 000780 cror     4DEF7B82   1
+  389| 000784 l        81810078   2     L4A      gr12=#stack(gr1,120)
+  389| 000788 ai       30210070   1     AI       gr1=gr1,112
+  389| 00078C mtspr    7D8803A6   1     LLR      lr=gr12
+  408| 000790 cal      38600000   1     LI       gr3=0
+  389| 000794 lm       BAC1FFD8  10     LM       gr22-gr31=#stack(gr1,-40)
+  389| 000798 bcr      4E800020   0     BA       lr
+  404|                              CL.41:
+  412| 00079C l        80DA0000   2     L4A      gr6=(int)(gr26,0)
+  412| 0007A0 ai       3006FFF3   2     AI       gr0=gr6,-13
+  412| 0007A4 cmpli    28000001   1     CL4      cr0=gr0,1
+  412| 0007A8 ai       3006FFF1   1     AI       gr0=gr6,-15
+  412| 0007AC cmpli    28800001   1     CL4      cr1=gr0,1
+  412| 0007B0 bc       4081018C   1     BF       CL.84,cr0,0x10/lg
+  412| 0007B4 bc       40850060   3     BF       CL.85,cr1,0x10/lg
+  412| 0007B8 cmpi     2C06000C   2     C4       cr0=gr6,12
+  412| 0007BC cmpi     2C860011   2     C4       cr1=gr6,17
+  412| 0007C0 bc       4182001C   1     BT       CL.86,cr0,0x4/eq
+  412| 0007C4 bc       41860278   3     BT       CL.87,cr1,0x4/eq
+  488| 0007C8 cal      3AE00009   1     LI       gr23=9
+  493| 0007CC cal      38770000   1     LR       gr3=gr23
+  389| 0007D0 l        81810078   1     L4A      gr12=#stack(gr1,120)
+  389| 0007D4 ai       30210070   1     AI       gr1=gr1,112
+  488| 0007D8 b        480003B8   0     B        CL.217
+  412|                              CL.86:
+  416| 0007DC l        80020034   2     L4A      gr0=.+CONSTANT_AREA(gr2,0)
+  416| 0007E0 cal      38790000   1     LR       gr3=gr25
+  416| 0007E4 ai       308000A9   1     AI       gr4=gr0,169
+  416| 0007E8 bl       4BFFF819   0     CALL     gr3=fprintf,2,(struct_4195378)",gr3,gr4,fcr",fprintf",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",lr",fcr",xer",ctr",fsr"
+  416| 0007EC cror     4DEF7B82   1
+  417| 0007F0 l        801A003C   2     L4A      gr0=(int)(gr26,60)
+  417| 0007F4 l        80BA0050   1     L4Z      gr5=(struct_4194440*)(gr26,80)
+  417| 0007F8 muls     7C9B01D6   4     M        gr4=gr27,gr0,mq"
+  417| 0007FC cal      38790000   1     LR       gr3=gr25
+  417| 000800 cal      38D60000   1     LR       gr6=gr22
+  417| 000804 cal      38FC0000   1     LR       gr7=gr28
+  417| 000808 bl       4BFFFEF1   0     CALL     gr3=MPIR_PrintDatatype,5,(struct_4195378)",gr3-gr7,fcr",MPIR_PrintDatatype",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",l
+  417| 00080C cal      3AE30000   2     LR       gr23=gr3
+  419| 000810 b        48000374   0     B        CL.44
+  412|                              CL.85:
+  447| 000814 l        80020034   2     L4A      gr0=.+CONSTANT_AREA(gr2,0)
+  447| 000818 cal      38790000   1     LR       gr3=gr25
+  447| 00081C ai       308000C8   1     AI       gr4=gr0,200
+  447| 000820 bl       4BFFF7E1   0     CALL     gr3=fprintf,2,(struct_4195378)",gr3,gr4,fcr",fprintf",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",lr",fcr",xer",ctr",fsr"
+  447| 000824 cror     4DEF7B82   1
+  448| 000828 cmpi     2C1B0001   2     C4       cr0=gr27,1
+  448| 00082C bc       40810020   3     BF       CL.57,cr0,0x2/gt
+  449| 000830 l        80DA0030   2     L4A      gr6=(int)(gr26,48)
+  449| 000834 l        801A0024   1     L4A      gr0=(int)(gr26,36)
+  449| 000838 divs     7C0032D6  20     D4       gr0,mq=gr0,gr6
+  449| 00083C mfspr    7C0002A6   1     LFMQR    gr0=mq
+  449| 000840 sf       7C003010   2     S        gr0=gr6,gr0
+  449| 000844 divs     7C0032D6  19     D4       gr0,mq=gr0,gr6
+  449| 000848 mfspr    7F0002A6   1     LFMQR    gr24=mq
+  449|                              CL.57:
+  450| 00084C cmpi     2C9B0000   2     C4       cr1=gr27,0
+  450| 000850 cal      3BA00000   1     LI       gr29=0
+  450| 000854 bc       40850330   2     BF       CL.44,cr1,0x2/gt
+    0| 000858 l        801A003C   1     L4A      gr0=(int)(gr26,60)
+    0| 00085C l        80FA004C   1     L4Z      gr7=(int*)(gr26,76)
+    0| 000860 l        80BA0050   1     L4Z      gr5=(struct_4194440*)(gr26,80)
+  450|                              CL.58:
+  451| 000864 cmpi     2C000000   2     C4       cr0=gr0,0
+    0| 000868 cal      3BE00000   1     LI       gr31=0
+    0| 00086C cal      3BC00000   1     LI       gr30=0
+  453| 000870 cal      38790000   1     LR       gr3=gr25
+  451| 000874 bc       40810098   0     BF       CL.62,cr0,0x2/gt
+  453| 000878 cal      38D60000   1     LR       gr6=gr22
+  452| 00087C l        815A0048   1     L4Z      gr10=(int*)(gr26,72)
+    0| 000880 b        4800002C   0     B        CL.218
+    0|                              CL.211:
+    0| 000884 bc       4186001C   1     BT       CL.212,cr1,0x4/eq
+    0| 000888 lx       7D47F02E   3     L4A      gr10=(int)(gr7,gr30,0)
+    0| 00088C l        80C50024   1     L4A      gr6=(int)(gr5,36)
+    0| 000890 l        817A0034   1     L4A      gr11=(int)(gr26,52)
+    0| 000894 muls     7CC651D6   4     M        gr6=gr6,gr10,mq"
+    0| 000898 a        7CCB3014   1     A        gr6=gr11,gr6
+    0| 00089C a        7ED63014   1     A        gr22=gr22,gr6
+    0|                              CL.212:
+    0| 0008A0 ai       33DE0004   2     AI       gr30=gr30,4
+    0| 0008A4 cal      38D60000   1     LR       gr6=gr22
+  452| 0008A8 l        815A0048   1     L4Z      gr10=(int*)(gr26,72)
+    0|                              CL.218:
+  453| 0008AC lx       7C87F02E   2     L4A      gr4=(int)(gr7,gr30,0)
+  452| 0008B0 lx       7C0AF02E   1     L4A      gr0=(int)(gr10,gr30,0)
+    0| 0008B4 a        7CFC0014   2     A        gr7=gr28,gr0
+  453| 0008B8 bl       4BFFFE41   0     CALL     gr3=MPIR_PrintDatatype,5,(struct_4195378)",gr3-gr7,fcr",MPIR_PrintDatatype",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",l
+  453| 0008BC cmpi     2C030000   2     C4       cr0=gr3,0
+  456| 0008C0 ai       33FF0001   1     AI       gr31=gr31,1
+    0| 0008C4 cal      3AE30000   1     LR       gr23=gr3
+  453| 0008C8 cal      38790000   1     LR       gr3=gr25
+  453| 0008CC bc       408202B8   0     BF       CL.44,cr0,0x4/eq
+  456| 0008D0 l        801A003C   1     L4A      gr0=(int)(gr26,60)
+  458| 0008D4 l        80FA004C   1     L4Z      gr7=(int*)(gr26,76)
+  456| 0008D8 cmp      7C9F0000   1     C4       cr1=gr31,gr0
+  458| 0008DC l        80BA0050   1     L4Z      gr5=(struct_4194440*)(gr26,80)
+  451| 0008E0 mcrf     4C040000   0     LRCR     cr0=cr1
+  451| 0008E4 bc       4180FFA0   0     BT       CL.211,cr0,0x1/lt
+  456| 0008E8 bc       4186001C   2     BT       CL.63,cr1,0x4/eq
+  458| 0008EC lx       7D47F02E   1     L4A      gr10=(int)(gr7,gr30,0)
+  458| 0008F0 l        80C50024   1     L4A      gr6=(int)(gr5,36)
+  458| 0008F4 l        817A0034   1     L4A      gr11=(int)(gr26,52)
+  458| 0008F8 muls     7CC651D6   4     M        gr6=gr6,gr10,mq"
+  458| 0008FC a        7CCB3014   1     A        gr6=gr11,gr6
+  457| 000900 a        7ED63014   1     A        gr22=gr22,gr6
+  451|                              CL.63:
+    0| 000904 ai       33DE0004   2     AI       gr30=gr30,4
+  453| 000908 cal      38D60000   1     LR       gr6=gr22
+  451|                              CL.62:
+  450| 00090C ai       33BD0001   2     AI       gr29=gr29,1
+    0| 000910 rlinm    57E6103A   1     SLL4     gr6=gr31,2
+  460| 000914 lx       7D47302E   1     L4A      gr10=(int)(gr7,gr6,0)
+  461| 000918 l        80DA0020   1     L4A      gr6=(int)(gr26,32)
+  460| 00091C l        81650024   1     L4A      gr11=(int)(gr5,36)
+  461| 000920 a        7F9C3014   1     A        gr28=gr28,gr6
+  450| 000924 cmp      7C9DD800   1     C4       cr1=gr29,gr27
+  460| 000928 muls     7CCA59D6   4     M        gr6=gr10,gr11,mq"
+  460| 00092C a        7CD83014   1     A        gr6=gr24,gr6
+  460| 000930 a        7ED63014   1     A        gr22=gr22,gr6
+  450| 000934 bc       4184FF30   0     BT       CL.58,cr1,0x1/lt
+  463| 000938 b        4800024C   0     B        CL.44
+  412|                              CL.84:
+  424| 00093C l        80020034   2     L4A      gr0=.+CONSTANT_AREA(gr2,0)
+  424| 000940 cal      38790000   1     LR       gr3=gr25
+  424| 000944 ai       308000B7   1     AI       gr4=gr0,183
+  424| 000948 bl       4BFFF6B9   0     CALL     gr3=fprintf,2,(struct_4195378)",gr3,gr4,fcr",fprintf",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",lr",fcr",xer",ctr",fsr"
+  424| 00094C cror     4DEF7B82   1
+  425| 000950 cmpi     2C1B0001   2     C4       cr0=gr27,1
+  425| 000954 bc       40810020   3     BF       CL.46,cr0,0x2/gt
+  426| 000958 l        80DA0030   2     L4A      gr6=(int)(gr26,48)
+  426| 00095C l        801A0024   1     L4A      gr0=(int)(gr26,36)
+  426| 000960 divs     7C0032D6  20     D4       gr0,mq=gr0,gr6
+  426| 000964 mfspr    7C0002A6   1     LFMQR    gr0=mq
+  426| 000968 sf       7C003010   2     S        gr0=gr6,gr0
+  426| 00096C divs     7C0032D6  19     D4       gr0,mq=gr0,gr6
+  426| 000970 mfspr    7F0002A6   1     LFMQR    gr24=mq
+  426|                              CL.46:
+  428| 000974 cmpi     2C9B0000   2     C4       cr1=gr27,0
+  428| 000978 cal      3BC00000   1     LI       gr30=0
+  428| 00097C bc       40850208   2     BF       CL.44,cr1,0x2/gt
+    0| 000980 l        801A003C   1     L4A      gr0=(int)(gr26,60)
+    0| 000984 l        80BA0050   1     L4Z      gr5=(struct_4194440*)(gr26,80)
+    0| 000988 l        809A0044   1     L4A      gr4=(int)(gr26,68)
+  430| 00098C cmpi     2C000000   1     C4       cr0=gr0,0
+    0|                              CL.215:
+    0| 000990 cal      3BBC0000   2     LR       gr29=gr28
+    0| 000994 cal      3BE00000   1     LI       gr31=0
+  431| 000998 cal      38790000   1     LR       gr3=gr25
+  430| 00099C bc       40810074   0     BF       CL.51,cr0,0x2/gt
+  431| 0009A0 cal      38D60000   1     LR       gr6=gr22
+  431| 0009A4 cal      38FD0000   1     LR       gr7=gr29
+  431| 0009A8 bl       4BFFFD51   0     CALL     gr3=MPIR_PrintDatatype,5,(struct_4195378)",gr3-gr7,fcr",MPIR_PrintDatatype",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",l
+    0|                              CL.219:
+  431| 0009AC cmpi     2C030000   2     C4       cr0=gr3,0
+  435| 0009B0 ai       33FF0001   1     AI       gr31=gr31,1
+    0| 0009B4 cal      3AE30000   1     LR       gr23=gr3
+  431| 0009B8 cal      38790000   1     LR       gr3=gr25
+  431| 0009BC bc       408201C8   0     BF       CL.44,cr0,0x4/eq
+  435| 0009C0 l        801A003C   1     L4A      gr0=(int)(gr26,60)
+  434| 0009C4 l        80DA0040   1     L4A      gr6=(int)(gr26,64)
+  435| 0009C8 cmp      7C9F0000   1     C4       cr1=gr31,gr0
+  434| 0009CC a        7FA6E814   1     A        gr29=gr6,gr29
+  437| 0009D0 l        80BA0050   1     L4Z      gr5=(struct_4194440*)(gr26,80)
+  430| 0009D4 mcrf     4C040000   0     LRCR     cr0=cr1
+  435| 0009D8 bc       41860020   1     BT       CL.101,cr1,0x4/eq
+  437| 0009DC l        809A0044   1     L4A      gr4=(int)(gr26,68)
+  437| 0009E0 l        80C50024   1     L4A      gr6=(int)(gr5,36)
+  437| 0009E4 l        80FA0034   1     L4A      gr7=(int)(gr26,52)
+  437| 0009E8 muls     7CC431D6   4     M        gr6=gr4,gr6,mq"
+  437| 0009EC a        7CC63814   1     A        gr6=gr6,gr7
+  436| 0009F0 a        7ED63014   1     A        gr22=gr22,gr6
+    0| 0009F4 b        48000008   0     B        CL.52
+    0|                              CL.101:
+    0| 0009F8 l        809A0044   2     L4A      gr4=(int)(gr26,68)
+  430|                              CL.52:
+  431| 0009FC cal      38D60000   2     LR       gr6=gr22
+  431| 000A00 cal      38FD0000   1     LR       gr7=gr29
+  430| 000A04 bc       4080000C   0     BF       CL.51,cr0,0x1/lt
+  431| 000A08 bl       4BFFFCF1   0     CALL     gr3=MPIR_PrintDatatype,5,(struct_4195378)",gr3-gr7,fcr",MPIR_PrintDatatype",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",l
+    0| 000A0C b        4BFFFFA0   1     B        CL.219
+  430|                              CL.51:
+  428| 000A10 ai       33DE0001   2     AI       gr30=gr30,1
+  439| 000A14 l        80C50024   1     L4A      gr6=(int)(gr5,36)
+  440| 000A18 l        80FA0020   1     L4A      gr7=(int)(gr26,32)
+  428| 000A1C cmp      7C9ED800   1     C4       cr1=gr30,gr27
+  439| 000A20 muls     7CC431D6   4     M        gr6=gr4,gr6,mq"
+  439| 000A24 a        7CD83014   1     A        gr6=gr24,gr6
+  439| 000A28 a        7ED63014   1     A        gr22=gr22,gr6
+  440| 000A2C a        7F9C3814   1     A        gr28=gr28,gr7
+  428| 000A30 bc       40840154   0     BF       CL.44,cr1,0x1/lt
+  430| 000A34 cmpi     2C000000   1     C4       cr0=gr0,0
+    0| 000A38 b        4BFFFF58   0     B        CL.215
+  412|                              CL.87:
+  467| 000A3C l        80020034   2     L4A      gr0=.+CONSTANT_AREA(gr2,0)
+  467| 000A40 cal      38790000   1     LR       gr3=gr25
+  467| 000A44 ai       308000DA   1     AI       gr4=gr0,218
+  467| 000A48 bl       4BFFF5B9   0     CALL     gr3=fprintf,2,(struct_4195378)",gr3,gr4,fcr",fprintf",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",lr",fcr",xer",ctr",fsr"
+  467| 000A4C cror     4DEF7B82   1
+  468| 000A50 cmpi     2C1B0001   2     C4       cr0=gr27,1
+  468| 000A54 bc       40810020   3     BF       CL.68,cr0,0x2/gt
+  469| 000A58 l        80DA0030   2     L4A      gr6=(int)(gr26,48)
+  469| 000A5C l        801A0024   1     L4A      gr0=(int)(gr26,36)
+  469| 000A60 divs     7C0032D6  20     D4       gr0,mq=gr0,gr6
+  469| 000A64 mfspr    7C0002A6   1     LFMQR    gr0=mq
+  469| 000A68 sf       7C003010   2     S        gr0=gr6,gr0
+  469| 000A6C divs     7C0032D6  19     D4       gr0,mq=gr0,gr6
+  469| 000A70 mfspr    7F0002A6   1     LFMQR    gr24=mq
+  469|                              CL.68:
+  470| 000A74 cmpi     2C9B0000   2     C4       cr1=gr27,0
+  470| 000A78 cal      3BA00000   1     LI       gr29=0
+  470| 000A7C bc       40850108   2     BF       CL.44,cr1,0x2/gt
+    0| 000A80 l        801A003C   1     L4A      gr0=(int)(gr26,60)
+    0| 000A84 l        815A004C   1     L4Z      gr10=(int*)(gr26,76)
+    0| 000A88 l        80FA0054   1     L4Z      gr7=(struct_4194440**)(gr26,84)
+  471| 000A8C cmpi     2C000000   1     C4       cr0=gr0,0
+    0|                              CL.216:
+    0| 000A90 cal      3BE00000   2     LI       gr31=0
+    0| 000A94 cal      3BC00000   1     LI       gr30=0
+  473| 000A98 cal      38790000   1     LR       gr3=gr25
+  471| 000A9C bc       408100AC   0     BF       CL.73,cr0,0x2/gt
+  473| 000AA0 cal      38D60000   1     LR       gr6=gr22
+  472| 000AA4 l        817A0048   1     L4Z      gr11=(int*)(gr26,72)
+    0| 000AA8 b        48000034   0     B        CL.220
+    0|                              CL.208:
+    0| 000AAC bc       41860024   1     BT       CL.209,cr1,0x4/eq
+    0| 000AB0 lx       7CC7F02E   3     L4Z      gr6=(struct_4194440*)(gr7,gr30,0)
+    0| 000AB4 l        817A0038   1     L4Z      gr11=(int*)(gr26,56)
+    0| 000AB8 l        81860024   1     L4A      gr12=(int)(gr6,36)
+    0| 000ABC lx       7CCAF02E   1     L4A      gr6=(int)(gr10,gr30,0)
+    0| 000AC0 lx       7D6BF02E   1     L4A      gr11=(int)(gr11,gr30,0)
+    0| 000AC4 muls     7CCC31D6   4     M        gr6=gr12,gr6,mq"
+    0| 000AC8 a        7CC65814   1     A        gr6=gr6,gr11
+    0| 000ACC a        7ED63014   1     A        gr22=gr22,gr6
+    0|                              CL.209:
+    0| 000AD0 ai       33DE0004   2     AI       gr30=gr30,4
+    0| 000AD4 cal      38D60000   1     LR       gr6=gr22
+  472| 000AD8 l        817A0048   1     L4Z      gr11=(int*)(gr26,72)
+    0|                              CL.220:
+  474| 000ADC lx       7CA7F02E   2     L4Z      gr5=(struct_4194440*)(gr7,gr30,0)
+  472| 000AE0 lx       7C0BF02E   1     L4A      gr0=(int)(gr11,gr30,0)
+  473| 000AE4 lx       7C8AF02E   1     L4A      gr4=(int)(gr10,gr30,0)
+    0| 000AE8 a        7CFC0014   1     A        gr7=gr28,gr0
+  473| 000AEC bl       4BFFFC0D   0     CALL     gr3=MPIR_PrintDatatype,5,(struct_4195378)",gr3-gr7,fcr",MPIR_PrintDatatype",gr1,cr[01567],gr0",gr4"-gr12",fp0"-fp13",mc0"-mc63",mq",l
+  473| 000AF0 cmpi     2C030000   2     C4       cr0=gr3,0
+  476| 000AF4 ai       33FF0001   1     AI       gr31=gr31,1
+    0| 000AF8 cal      3AE30000   1     LR       gr23=gr3
+  473| 000AFC cal      38790000   1     LR       gr3=gr25
+  473| 000B00 bc       40820084   0     BF       CL.44,cr0,0x4/eq
+  476| 000B04 l        801A003C   1     L4A      gr0=(int)(gr26,60)
+  478| 000B08 l        80FA0054   1     L4Z      gr7=(struct_4194440**)(gr26,84)
+  476| 000B0C cmp      7C9F0000   1     C4       cr1=gr31,gr0
+  478| 000B10 l        815A004C   1     L4Z      gr10=(int*)(gr26,76)
+  471| 000B14 mcrf     4C040000   0     LRCR     cr0=cr1
+  471| 000B18 bc       4180FF94   0     BT       CL.208,cr0,0x1/lt
+  476| 000B1C bc       41860024   2     BT       CL.74,cr1,0x4/eq
+  478| 000B20 lx       7CC7F02E   1     L4Z      gr6=(struct_4194440*)(gr7,gr30,0)
+  479| 000B24 l        817A0038   1     L4Z      gr11=(int*)(gr26,56)
+  478| 000B28 l        81860024   1     L4A      gr12=(int)(gr6,36)
+  478| 000B2C lx       7CCAF02E   1     L4A      gr6=(int)(gr10,gr30,0)
+  479| 000B30 lx       7D6BF02E   1     L4A      gr11=(int)(gr11,gr30,0)
+  478| 000B34 muls     7CCC31D6   4     M        gr6=gr12,gr6,mq"
+  478| 000B38 a        7CC65814   1     A        gr6=gr6,gr11
+  477| 000B3C a        7ED63014   1     A        gr22=gr22,gr6
+  471|                              CL.74:
+    0| 000B40 ai       33DE0004   2     AI       gr30=gr30,4
+  473| 000B44 cal      38D60000   1     LR       gr6=gr22
+  471|                              CL.73:
+  470| 000B48 ai       33BD0001   2     AI       gr29=gr29,1
+    0| 000B4C rlinm    5406103A   1     SLL4     gr6=gr0,2
+    0| 000B50 ai       3166FFFC   1     AI       gr11=gr6,-4
+  482| 000B54 lx       7CC7582E   1     L4Z      gr6=(struct_4194440*)(gr7,gr11,0)
+  483| 000B58 l        819A0020   1     L4A      gr12=(int)(gr26,32)
+  470| 000B5C cmp      7C9DD800   1     C4       cr1=gr29,gr27
+  482| 000B60 l        80C60024   1     L4A      gr6=(int)(gr6,36)
+  481| 000B64 lx       7D6A582E   1     L4A      gr11=(int)(gr10,gr11,0)
+  483| 000B68 a        7F9C6014   1     A        gr28=gr28,gr12
+  481| 000B6C muls     7CCB31D6   4     M        gr6=gr11,gr6,mq"
+  481| 000B70 a        7CD83014   1     A        gr6=gr24,gr6
+  481| 000B74 a        7ED63014   1     A        gr22=gr22,gr6
+  470| 000B78 bc       4084000C   0     BF       CL.44,cr1,0x1/lt
+  471| 000B7C cmpi     2C000000   1     C4       cr0=gr0,0
+    0| 000B80 b        4BFFFF10   0     B        CL.216
+  412|                              CL.44:
+  493| 000B84 cal      38770000   2     LR       gr3=gr23
+  389| 000B88 l        81810078   1     L4A      gr12=#stack(gr1,120)
+  389| 000B8C ai       30210070   1     AI       gr1=gr1,112
+    0|                              CL.217:
+  389| 000B90 mtspr    7D8803A6   2     LLR      lr=gr12
+  389| 000B94 lm       BAC1FFD8  10     LM       gr22-gr31=#stack(gr1,-40)
+  389| 000B98 bcr      4E800020   0     BA       lr
+     |               Tag Table
+     | 000B9C        00000000 00002041 800A0500 00000000 000004A4 00124D50
+     | 000BB4        49525F50 72696E74 44617461 74797065
+     |               Instruction count          297
+     |               Straight-line exec time    495
+     |               Constant Area
+     | 000000        436F756C 64206E6F 74207061 636B206D 65737361 67652069
+     | 000018        6E204D50 49525F53 656E645F 73657475 7000646D 70692E63
+     | 000030        00436F75 6C64206E 6F742070 61636B20 6D657373 61676520
+     | 000048        696E204D 50495F52 65636569 76655F73 65747570 00436F6D
+     | 000060        6D616E64 7320746F 20756E70 61636B20 64617461 74797065
+     | 000078        3A0A0043 6F6E7469 67756F75 73207479 70653A00 20436F70
+     | 000090        79202564 203C2D20 25642066 6F722025 64206279 7465730A
+     | 0000A8        004D5049 525F434F 4E544947 3A0A004D 5049525F 28482956
+     | 0000C0        4543544F 523A0A00 4D504952 5F284829 494E4445 5845443A
+     | 0000D8        0A004D50 49525F28 48295354 52554354 3A0A00
+ 
+>>>>> FILE TABLE SECTION <<<<<
+ 
+ 
+                                       FILE CREATION        FROM
+FILE NO   FILENAME                    DATE       TIME       FILE    LINE
+     0    dmpi.c                      11/21/94   17:29:44
+     1    ../../include/mpiimpl.h     10/24/94   17:03:35      0      14
+     2    ../../include/mpi.h         11/21/94   14:51:26      1      14
+     3    ../../include/mpi_errno.h   06/27/94   08:06:31      2     145
+     4    ../../include/binding.h     11/21/94   14:42:12      2     148
+     5    ../../include/patchlevel.h  11/11/94   17:53:22      1      18
+     6    ../../include/dmpiatom.h    10/24/94   17:03:31      1      19
+     7    ../../include/mpi_bc.h      11/08/94   09:59:49      6     199
+     8    ../../include/mpi_errno.h   06/27/94   08:06:31      7      14
+     9    ../../include/mpi_bc.h      11/08/94   09:59:49      1      20
+    10    ../../include/mpir.h        11/08/94   10:00:07      1      21
+    11    /usr/include/stdio.h        08/22/93   09:39:33     10      10
+    12    /usr/include/standards.h    03/25/92   10:11:52     11      30
+    13    /usr/include/va_list.h      08/22/93   09:39:35     11     216
+    14    ../../mpid/ch_eui/mpid.h    09/20/94   15:04:57     10      15
+    15    ../../mpid/ch_eui/dmeui.h   11/06/94   18:10:31     14       8
+    16    ../../include/mpi.h         11/21/94   14:51:26     15      77
+    17    ../../include/dmpiatom.h    10/24/94   17:03:31     15      78
+    18    ../../include/mpi_ad.h      11/21/94   15:23:59      1      22
+    19    ../../mpid/ch_eui/mpid_bind.h
+                                      11/06/94   18:10:16      1      24
+    20    ../../include/mpiprof.h     08/26/94   23:05:39      1      37
+    21    ../../include/mpisys.h      04/13/94   13:30:38      0      15
+    22    ../../include/sbcnst.h      09/29/94   16:51:43     21      10
+ 
+ 
+>>>>> COMPILATION EPILOGUE SECTION <<<<<
+ 
+ 
+ XL C Language Summary of Diagnosed Conditions
+ 
+TOTAL   UNRECOVERABLE  SEVERE       ERROR     WARNING    INFORMATIONAL
+               (U)       (S)         (E)        (W)          (I)
+    0           0         0           0          0            0
+ 
+ 
+    Source records read.......................................     493
+    Compilation start.............................. 11/21/94  17:29:46
+    Compilation end................................ 11/21/94  17:29:53
+    Elapsed time..............................................00:00:07
+    Total cpu time............................................   2.240
+    Virtual cpu time..........................................   2.330
+1501-510  Compilation successful for file dmpi.c.
+1501-543  Object file created.

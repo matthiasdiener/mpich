@@ -1,0 +1,34 @@
+.TH MPI_Group_intersection 3 "9/30/1994" " " "MPI"
+.SH NAME
+MPI_Group_intersection \- Produces a group as the intersection of two existing
+groups
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B group1 
+- first group (handle) 
+.PD 1
+.PD 0
+.TP
+.B group2 
+- second group (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B newgroup 
+- intersection group (handle) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Group_intersection ( group1, group2, group_out )
+MPI_Group group1, group2, *group_out;
+
+.fi
+
+.SH LOCATION
+ group_inter.c

@@ -1,0 +1,34 @@
+.TH MPI_Waitall 3 "10/24/1994" " " "MPI"
+.SH NAME
+MPI_Waitall \- Waits for all given communications to complete
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B count 
+- lists length (integer) 
+.PD 1
+.PD 0
+.TP
+.B array_of_requests 
+- array of requests (array of handles) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B array_of_statuses 
+- array of status objects (array of Status) 
+.PD 1
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Waitall(count, array_of_requests, array_of_statuses )
+int         count;
+MPI_Request array_of_requests[];
+MPI_Status  array_of_statuses[];
+
+.fi
+
+.SH LOCATION
+ waitall.c

@@ -1,0 +1,32 @@
+#! /bin/sh
+#
+# This shell script updates the MPI version of the Chameleon performance
+# tests by copying them from the tools.n/comm/examples/perf directory
+#
+/bin/cp /home/gropp/tools.n/comm/examples/perf/*.c .
+/bin/cp /home/gropp/tools.n/comm/rate.c .
+/bin/cp /home/gropp/tools.n/system/getopts.c .
+/bin/cp /home/gropp/tools.n/testing/*.[ch] .
+chmod ug+w *.[ch]
+echo "Converting mpptest from Chameleon to MPI..."
+/home/gropp/tools.n/bin/inlinecomm -main -quiet -mpi mpptest.c
+/home/gropp/tools.n/bin/inlinecomm -main -quiet -mpi goptest.c
+for file in gopf.c grph.c ovlap.c pair.c pattern.c util.c getopts.c \
+	rate.c tstauto.c ; do
+    echo "Converting $file from Chameleon to MPI..."
+    /home/gropp/tools.n/bin/inlinecomm -quiet -mpi $file
+done
+for file in *.c ; do
+    echo "Replacing MPI comments with code in $file..."
+    /bin/rm -f .tmp1
+    sed -e 's%/\* #MPI_INIT# \*/%MPI_Init( \&argc, \&argv );%g' \
+        -e 's%/\* #MALLOC DECL# \*/%#if HAVE_STDLIB_H\
+#include <stdlib.h>\
+#endif%g' \
+	-e 's%/\* #MPI_FINALIZE# \*/%MPI_Finalize();%g' $file > .tmp1
+    /bin/rm -f $file
+    mv .tmp1 $file
+done
+#echo "Modify mpptest.c to contain an MPI_Init and MPI_Finalize"
+#echo "Modify all programs with malloc to declare it with stdlib.h or"
+#echo "an explicit declaration"

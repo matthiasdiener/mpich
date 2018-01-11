@@ -1,0 +1,37 @@
+.TH MPI_Group_compare 3 "7/13/1994" " " "MPI"
+.SH NAME
+MPI_Group_compare \- Compares two groups
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B group1 
+- group1 (handle) 
+.PD 1
+.PD 0
+.TP
+.B group2 
+- group2 (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B result 
+- integer which is MPI_IDENT if the order and members of
+the two groups are the same, MPI_SIMILAR if only the members are the same,
+and MPI_UNEQUAL otherwise
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Group_compare ( group1, group2, result )
+MPI_Group  group1;
+MPI_Group  group2;
+int       *result;
+
+.fi
+
+.SH LOCATION
+ group_compare.c

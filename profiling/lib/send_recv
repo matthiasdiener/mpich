@@ -1,0 +1,4 @@
+MPI_Send
+MPI_Recv
+MPI_Init
+MPI_Finalize

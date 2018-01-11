@@ -1,0 +1,25 @@
+.TH MPID_Reused_recv_handle 5 "10/10/1994" " " "ADI"
+.SH NAME
+MPID_Reused_recv_handle \- Reinitializes device recv handle
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B ctx 
+- ADI context returned by MPID_Init
+.PD 1
+.PD 0
+.TP
+.B a 
+- Address of device recv handle in API's send structure
+.PD 1
+
+.SH SYNOPSIS
+.nf
+void MPID_Reuse_recv_handle( MPID_RHANDLE *mpid_recv_handle )
+.fi
+
+.SH NOTES
+In systems where the device handle is statically allocated, this
+routine may be used to reset fields such as "completed" to false.
+This routine is used for persistent message-passing requests

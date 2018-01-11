@@ -1,0 +1,45 @@
+.TH MPE_Fill_rectangle 4 "11/7/1994" " " "MPE"
+.SH NAME
+MPE_Fill_rectangle \- Draws a filled rectangle on an X11 display
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B handle 
+- MPE graphics handle 
+.PD 1
+.PD 0
+.TP
+.B x,y 
+- pixel position of the upper left (low coordinate) corner of the 
+rectangle to draw.
+.PD 1
+.PD 0
+.TP
+.B w,h 
+- width and height of the rectangle
+.PD 1
+.PD 0
+.TP
+.B color 
+- Color INDEX value.  See MPE_MakeColorArray.  By default, the colors
+.PD 1
+MPE_WHITE, MPE_BLACK, MPE_RED, MPE_YELLOW, MPE_GREEN, MPE_CYAN, and
+MPE_BLUE are defined.
+
+.SH NOTES
+This uses the X11 definition of width and height, so you may want to
+add 1 to both of them.
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+int MPE_Fill_rectangle( handle, x, y, w, h, color )
+MPE_XGraph handle;
+int        x, y, w, h;
+MPE_Color  color;
+
+.fi
+
+.SH LOCATION
+ mpe_graphics.c

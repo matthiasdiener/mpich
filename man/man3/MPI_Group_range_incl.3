@@ -1,0 +1,47 @@
+.TH MPI_Group_range_incl 3 "9/30/1994" " " "MPI"
+.SH NAME
+MPI_Group_range_incl \- Creates a new group from ranges of ranks in an
+existing group
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B group 
+- group (handle) 
+.PD 1
+.PD 0
+.TP
+.B n 
+- number of triplets in array  ranges (integer) 
+.PD 1
+.PD 0
+.TP
+.B ranges 
+- a one-dimensional array of integer triplets, of the 
+form (first rank, last rank, stride) indicating ranks in
+group  or processes to be included in newgroup  
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B newgroup 
+- new group derived from above, in the 
+order defined by  ranges  (handle)  
+.PD 1
+
+.SH NOTE
+This implementation does not currently check to see that the list of
+ranges to include are valid ranks in the group.
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Group_range_incl ( group, n, ranges, newgroup )
+MPI_Group group, *newgroup;
+int       n, ranges[][3];
+
+.fi
+
+.SH LOCATION
+ group_rincl.c

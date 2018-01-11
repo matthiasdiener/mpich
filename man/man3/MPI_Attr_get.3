@@ -1,0 +1,41 @@
+.TH MPI_Attr_get 3 "7/13/1994" " " "MPI"
+.SH NAME
+MPI_Attr_get \- Retrieves attribute value by key
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B comm 
+- communicator to which attribute is attached (handle) 
+.PD 1
+.PD 0
+.TP
+.B keyval 
+- key value (integer) 
+.PD 1
+
+.SH OUTPUT PARAMETERS
+.PD 0
+.TP
+.B attribute_val 
+- attribute value, unless flag = false 
+.PD 1
+.PD 0
+.TP
+.B flag 
+-  true if an attribute value was extracted;  false if no attribute is associated with the key 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Attr_get ( comm, keyval, attr_value, flag )
+MPI_Comm comm;
+int keyval;
+void **attr_value;
+int *flag;
+
+.fi
+
+.SH LOCATION
+ attr_getval.c

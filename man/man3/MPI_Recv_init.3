@@ -1,0 +1,58 @@
+.TH MPI_Recv_init 3 "9/30/1994" " " "MPI"
+.SH NAME
+MPI_Recv_init \- Builds a handle for a receive
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B buf 
+- initial address of receive buffer (choice) 
+.PD 1
+.PD 0
+.TP
+.B count 
+- number of elements received (integer) 
+.PD 1
+.PD 0
+.TP
+.B datatype 
+- type of each element (handle) 
+.PD 1
+.PD 0
+.TP
+.B dest 
+- rank of source or MPI_ANY_SOURCE (integer) 
+.PD 1
+.PD 0
+.TP
+.B tag 
+- message tag or MPI_ANY_TAG (integer) 
+.PD 1
+.PD 0
+.TP
+.B comm 
+- communicator (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B request 
+- communication request (handle) 
+.PD 1
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Recv_init( buf, count, datatype, source, tag, comm, request )
+void         *buf;
+int          count;
+MPI_Request  *request;
+MPI_Datatype datatype;
+int          source;
+int          tag;
+MPI_Comm     comm;
+
+.fi
+
+.SH LOCATION
+ create_recv.c

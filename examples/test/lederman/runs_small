@@ -1,0 +1,164 @@
+#!/bin/sh
+
+#set -x
+
+# location of executable programs
+prog_dir=`pwd`
+# what to put before program name
+prog_prefix=$prog_dir/prism_test_
+out_name=out
+# master output directory
+out_dir=$prog_dir/$out_name
+# skew, gsynce programs to use
+prog_skew_ge="sk_mc_ge sk_pc_ge_re sk_pc_ge_rd"
+# broadcast, gsynce programs to use
+prog_bc_ge="bc_mc_ge bc_pc_ge_re bc_pc_ge_rd"
+# skew, no gsync programs to use
+prog_skew_gn="sk_mc_gn sk_pc_gn_re sk_pc_gn_rd"
+# broadcast, no gsync programs to use
+prog_bc_gn="bc_mc_gn bc_pc_gn_re bc_pc_gn_rd"
+
+# first try looping over all the different datatypes to see if the
+# routines work for this
+#datatype=      # datatype to use
+min_size=1      # minimum message size
+max_size=128      # maximum message size
+factor=100      # factor size input
+step=0          # step size input
+num_trials=1    # no. of trials to average over
+num_clock=0     # number of times to time clock - don't do if 0
+direction=1     # which dirction to do collective operation
+offset=0        # offset
+vary=1          # amount of different data to send in skew
+
+num_nodes=4     # number of nodes to do over
+trial=t1        # what to precede file names with
+
+for program in $prog_skew_ge $prog_bc_ge
+do
+  for datatype in 0 1 2 3 4 5 6 7 8 9 10 11
+  do
+    run_prism $prog_prefix$program $num_nodes $out_dir/$trial+$program+$datatype $datatype $min_size $max_size $factor $step $num_trials $num_clock $direction $offset $vary
+    echo "done - Output in $out_name/$trial+$program+$datatype"
+  done
+done
+
+# loop over varying number of nodes
+datatype=2      # datatype to use
+min_size=1      # minimum message size
+max_size=128      # maximum message size
+factor=100      # factor size input
+step=0          # step size input
+num_trials=1    # no. of trials to average over
+num_clock=0     # number of times to time clock - don't do if 0
+direction=1     # which dirction to do collective operation
+offset=0        # offset
+vary=1          # amount of different data to send in skew
+
+#num_nodes=     # number of nodes to do over
+trial=t2        # what to recede file names with
+
+for program in $prog_skew_ge $prog_bc_ge
+do
+  for num_nodes in 1 2 3 4 6 10 16
+  do
+    run_prism $prog_prefix$program $num_nodes $out_dir/$trial+$program+$datatype $datatype $min_size $max_size $factor $step $num_trials $num_clock $direction $offset $vary
+    echo "done - Output in $out_name/$trial+$program+$datatype"
+  done
+done
+
+# loop over offsets for skew
+datatype=2      # datatype to use
+min_size=1      # minimum message size
+max_size=128      # maximum message size
+factor=100      # factor size input
+step=0          # step size input
+num_trials=1    # no. of trials to average over
+num_clock=0     # number of times to time clock - don't do if 0
+direction=1     # which dirction to do collective operation
+#offset=        # offset
+vary=1          # amount of different data to send in skew
+
+num_nodes=4      # number of nodes to do over
+trial=t3        # what to recede file names with
+
+for program in $prog_skew_ge
+do
+  for offset in -12 -4 -1 0 1 2 5
+  do
+    run_prism $prog_prefix$program $num_nodes $out_dir/$trial+$program+$datatype $datatype $min_size $max_size $factor $step $num_trials $num_clock $direction $offset $vary
+    echo "done - Output in $out_name/$trial+$program+$datatype"
+  done
+done
+
+# loop over directions
+datatype=2      # datatype to use
+min_size=1      # minimum message size
+max_size=128      # maximum message size
+factor=100      # factor size input
+step=0          # step size input
+num_trials=1    # no. of trials to average over
+num_clock=0     # number of times to time clock - don't do if 0
+#direction=     # which dirction to do collective operation
+offset=0        # offset
+vary=1          # amount of different data to send in skew
+
+num_nodes=6      # number of nodes to do over
+trial=t4        # what to recede file names with
+
+for program in $prog_skew_ge $prog_bc_ge
+do
+  for direction in 0 1
+  do
+    run_prism $prog_prefix$program $num_nodes $out_dir/$trial+$program+$datatype $datatype $min_size $max_size $factor $step $num_trials $num_clock $direction $offset $vary
+    echo "done - Output in $out_name/$trial+$program+$datatype"
+  done
+done
+
+# try long message sizes.  do clock time check for this case for fun.
+datatype=1      # datatype to use
+min_size=1      # minimum message size
+max_size=100000 # maximum message size
+factor=100      # factor size input
+step=0          # step size input
+num_trials=1    # no. of trials to average over
+num_clock=1     # number of times to time clock - don't do if 0
+direction=1     # which dirction to do collective operation
+offset=0        # offset
+vary=1          # amount of different data to send in skew
+
+num_nodes=4      # number of nodes to do over
+trial=t5        # what to recede file names with
+
+for program in $prog_skew_ge $prog_bc_ge
+do
+    run_prism $prog_prefix$program $num_nodes $out_dir/$trial+$program+$datatype $datatype $min_size $max_size $factor $step $num_trials $num_clock $direction $offset $vary
+    echo "done - Output in $out_name/$trial+$program+$datatype"
+done
+
+# try programs where don't gsync.  Sometime codes make mistakes
+# when they don't enforce a barrier and get called one after another.
+# try for a few different # of nodes.  Make vary big so different
+# nodes take lots of different amounts of time to finish.
+datatype=1      # datatype to use
+min_size=1      # minimum message size
+max_size=128      # maximum message size
+factor=100      # factor size input
+step=0          # step size input
+num_trials=1    # no. of trials to average over
+num_clock=0     # number of times to time clock - don't do if 0
+direction=1     # which dirction to do collective operation
+offset=0        # offset
+vary=20          # amount of different data to send in skew
+
+#num_nodes=9      # number of nodes to do over
+trial=t6        # what to recede file names with
+
+for program in $prog_skew_gn $prog_bc_gn
+do
+  for num_nodes in 3 4
+  do
+    run_prism $prog_prefix$program $num_nodes $out_dir/$trial+$program+$datatype $datatype $min_size $max_size $factor $step $num_trials $num_clock $direction $offset $vary
+    echo "done - Output in $out_name/$trial+$program+$datatype"
+  done
+done

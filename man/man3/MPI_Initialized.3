@@ -1,0 +1,21 @@
+.TH MPI_Initialized 3 "9/29/1994" " " "MPI"
+.SH NAME
+MPI_Initialized \- Indicates whether MPI_Init has been called.
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B flag 
+- Flag is true if MPI_INIT has been called and false otherwise. 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Initialized( flag )
+int  *flag;
+
+.fi
+
+.SH LOCATION
+ initialize.c

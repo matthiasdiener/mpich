@@ -1,0 +1,36 @@
+.TH MPI_Errhandler_create 3 "11/1/1994" " " "MPI"
+.SH NAME
+MPI_Errhandler_create \- Creates an MPI-style errorhandler
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B function 
+- user defined error handling procedure 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B errhandler 
+- MPI error handler (handle) 
+.PD 1
+
+.SH NOTES
+The MPI Standard states that an implementation may make the output value
+(errhandler) simply the address of the function.  However, the action of
+MPI_Errhandler_free makes this impossible, since it is required to set the
+value of the argument to MPI_ERRHANDLER_NULL.  In addition, the actual
+error handler must remain until all communicators that use it are
+freed.
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Errhandler_create( function, errhandler )
+MPI_Handler_function *function;
+MPI_Errhandler       *errhandler;
+
+.fi
+
+.SH LOCATION
+ errcreate.c

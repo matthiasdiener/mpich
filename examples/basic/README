@@ -1,0 +1,25 @@
+
+This directory contains a few simple example programs and a Makefile that
+you can copy for your own application programs.  These programs are among the
+simplest that are distributed with mpich.  The Makefile is configured for
+a particular environment from Makefile.in by the configure command in the
+top-level mpich directory.
+
+cpi     - calculates the value of pi using numerical integration, in C
+
+fpi     - basically the same program in fortran
+
+cpilog  - cpi with explicit logging, requires mpe library
+
+systest - simple bandwidth benchmark
+
+To make these, type 
+
+  make
+
+To run any one of them, use
+
+  mpirun -np <number of processes> <program name>
+
+There is a symbolic link to mpirun in this directory.  Problems to
+mpi-bugs@mcs.anl.gov. 

@@ -1,0 +1,47 @@
+.TH MPI_Cart_map 3 "8/10/1994" " " "MPI"
+.SH NAME
+MPI_Cart_map \- Maps process to Cartesian topology information
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B comm 
+- input communicator (handle) 
+.PD 1
+.PD 0
+.TP
+.B ndims 
+- number of dimensions of cartesian structure (integer) 
+.PD 1
+.PD 0
+.TP
+.B dims 
+- integer array of size  ndims specifying the number of processes in each coordinate direction 
+.PD 1
+.PD 0
+.TP
+.B periods 
+- logical array of size  ndims specifying the periodicity specification in each coordinate direction 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B newrank 
+- reordered rank of the calling process; MPI_UNDEFINED if calling process does not belong to grid (integer) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Cart_map ( comm_old, ndims, dims, periods, newrank )
+MPI_Comm comm_old;
+int      ndims;
+int     *dims;
+int     *periods;
+int     *newrank;
+
+.fi
+
+.SH LOCATION
+ cart_map.c

@@ -1,0 +1,70 @@
+ALL: default
+##### User configurable options #####
+
+ARCH        = @ARCH@
+COMM        = @COMM@
+BOPT        = @BOPT@
+P4_DIR      = @P4_DIR@
+TOOLS_DIR   = @TOOLS_DIR@
+MPIR_HOME   = @MPIR_HOME@
+CC          = @CC@
+CLINKER     = @CLINKER@
+CCC         = @CPP_COMPILER@
+CCLINKER    = $(CCC)
+F77         = @F77@
+FLINKER     = @FLINKER@
+AR          = @AR@
+RANLIB      = @RANLIB@
+PROFILING   = $(PMPILIB)
+OPTFLAGS    = @OPTFLAGS@
+LIB_PATH    = @LIB_PATH@
+FLIB_PATH   = @FLIB_PATH@
+LIB_LIST    = @LIB_LIST@
+#
+INCLUDE_DIR = @USER_INCLUDE_PATH@ -I$(MPIR_HOME)/include
+DEVICE      = @DEVICE@
+
+### End User configurable options ###
+
+SHELL = /bin/sh
+
+CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
+CCFLAGS = $(CFLAGS)
+#FFLAGS = '-qdpc=e' 
+FFLAGS = @FFLAGS@ $(OPTFLAGS)
+MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a 
+MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
+LIBS = $(LIB_PATH) $(LIB_LIST)
+FLIBS = $(FLIB_PATH) $(LIB_LIST)
+LIBSPP = $(MPIPPLIB) $(LIBS)
+EXECS = timers baseattr errhand sigchk
+
+default: $(EXECS)
+
+testing: default $(MPIR_HOME)/util/mpirun
+	-runtests
+
+linktest: default clean
+
+all: testing
+
+timers: timers.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o timers $(DEVICE_MAIN) timers.o $(LIBS)
+baseattr: baseattr.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o baseattr $(DEVICE_MAIN) baseattr.o $(LIBS)
+baseattrf: baseattrf.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(FLINKER) $(OPTFLAGS) -o baseattrf $(DEVICE_MAIN) baseattrf.o $(LIBS)
+errhand: errhand.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o errhand $(DEVICE_MAIN) errhand.o $(LIBS)
+sigchk: sigchk.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o sigchk $(DEVICE_MAIN) sigchk.o $(LIBS)
+clean:
+	/bin/rm -f *.o *~ PI* $(EXECS) baseattrf core
+
+.c.o:
+	$(CC) $(CFLAGS) -c $*.c
+.f.o:
+	$(F77) $(FFLAGS) -c $*.f
+
+$(MPIR_HOME)/util/mpirun:
+	(cd $(MPIR_HOME) ; make mpirun )

@@ -1,0 +1,29 @@
+.TH MPI_Comm_group 3 "7/13/1994" " " "MPI"
+.SH NAME
+MPI_Comm_group \- Accesses the group associated with given communicator
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B comm 
+- Communicator
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B group 
+- Group in communicator
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Comm_group ( comm, group )
+MPI_Comm comm;
+MPI_Group *group;
+
+.fi
+
+.SH LOCATION
+ comm_group.c

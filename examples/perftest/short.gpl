@@ -1,0 +1,10 @@
+set terminal postscript eps
+set xlabel "Size (bytes)"
+set ylabel "time (us)"
+set title "Comm Perf for MPI (godzilla.mcs.anl.gov) on Not available type blocking"
+# Model complexity is (1.858460e-03 + n * 8.807002e-07)
+# startup = 1.86 msec and transfer rate = 1.14 Mbytes/sec
+plot 'short-data.gpl' using 4:5 with lines,\
+1858.459882+0.880700*x with dots
+clear
+exit

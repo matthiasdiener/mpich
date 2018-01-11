@@ -1,0 +1,42 @@
+.TH MPI_Graph_neighbors 3 "9/21/1994" " " "MPI"
+.SH NAME
+MPI_Graph_neighbors \- Returns the neighbors of a node associated
+with a graph topology
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B comm 
+- communicator with graph topology (handle) 
+.PD 1
+.PD 0
+.TP
+.B rank 
+- rank of process in group of comm (integer) 
+.PD 1
+.PD 0
+.TP
+.B maxneighbors 
+- size of array neighbors (integer) 
+.PD 1
+
+.SH OUTPUT PARAMETERS
+.PD 0
+.TP
+.B neighbors 
+- ranks of processes that are neighbors to specified process (array of integer) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Graph_neighbors ( comm, rank, maxneighbors, neighbors )
+MPI_Comm  comm;
+int       rank;
+int      maxneighbors;
+int      *neighbors;
+
+.fi
+
+.SH LOCATION
+ graph_nbr.c

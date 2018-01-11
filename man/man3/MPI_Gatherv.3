@@ -1,0 +1,79 @@
+.TH MPI_Gatherv 3 "9/29/1994" " " "MPI"
+.SH NAME
+MPI_Gatherv \- Gathers into specified locations from all processes in a group
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B sendbuf 
+- starting address of send buffer (choice) 
+.PD 1
+.PD 0
+.TP
+.B sendcount 
+- number of elements in send buffer (integer) 
+.PD 1
+.PD 0
+.TP
+.B sendtype 
+- data type of send buffer elements (handle) 
+.PD 1
+.PD 0
+.TP
+.B recvcounts 
+- integer array (of length group size) 
+containing the number of elements that are received from each process
+(significant only at root) 
+.PD 1
+.PD 0
+.TP
+.B displs 
+- integer array (of length group size). Entry 
+i  specifies the displacement relative to recvbuf  at
+which to place the incoming data from process  i  (significant only
+at root) 
+.PD 1
+.PD 0
+.TP
+.B recvtype 
+- data type of recv buffer elements 
+(significant only at root) (handle) 
+.PD 1
+.PD 0
+.TP
+.B root 
+- rank of receiving process (integer) 
+.PD 1
+.PD 0
+.TP
+.B comm 
+- communicator (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B recvbuf 
+- address of receive buffer (choice, significant only at root) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Gatherv ( sendbuf, sendcnt,  sendtype, 
+                  recvbuf, recvcnts, displs, recvtype, 
+                  root, comm )
+void             *sendbuf;
+int               sendcnt;
+MPI_Datatype      sendtype;
+void             *recvbuf;
+int              *recvcnts;
+int              *displs;
+MPI_Datatype      recvtype;
+int               root;
+MPI_Comm          comm;
+
+.fi
+
+.SH LOCATION
+ gatherv.c

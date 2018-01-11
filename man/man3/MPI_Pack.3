@@ -1,0 +1,59 @@
+.TH MPI_Pack 3 "9/1/1994" " " "MPI"
+.SH NAME
+MPI_Pack \- Packs a datatype into contiguous memory
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B inbuf 
+- input buffer start (choice) 
+.PD 1
+.PD 0
+.TP
+.B incount 
+- number of input data items (integer) 
+.PD 1
+.PD 0
+.TP
+.B datatype 
+- datatype of each input data item (handle) 
+.PD 1
+.PD 0
+.TP
+.B outcount 
+- output buffer size, in bytes (integer) 
+.PD 1
+.PD 0
+.TP
+.B position 
+- current position in buffer, in bytes (integer) 
+.PD 1
+.PD 0
+.TP
+.B comm 
+- communicator for packed message (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B outbuf 
+- output buffer start (choice) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Pack ( inbuf, incount, type, outbuf, outcount, position, comm )
+void         *inbuf;
+int           incount;
+MPI_Datatype  type;
+void         *outbuf;
+int           outcount;
+int          *position;
+MPI_Comm      comm;
+
+.fi
+
+.SH LOCATION
+ pack.c

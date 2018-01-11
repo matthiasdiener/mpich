@@ -1,0 +1,76 @@
+#! /bin/csh -f
+if ($#argv > 0) then
+    if ("$1" == "-help") then
+        echo "$0 file [ -rc ]"
+	echo "Extracts error messages from a install log file.  This script"
+	echo "is under construction and should not be counted on to be"
+	echo "perfect.  "
+	echo " "
+	echo "if -rc is set, there is no output.  Instead, the return code "
+	echo "is set to 0 if no errors were found, and to the number of "
+	echo "errors otherwise.  This may be used by scripts to determine"
+	echo "if the install completed correctly."
+        exit 1
+    endif
+endif
+#
+# rs6000 error strings:
+# "filename", line 000.00: 1506-000 (S/W/E) string.
+# Look for `"' as first character
+# ar: 0000-000 string
+# Look for "ar:" as leading string
+# Look for "xlc:" as leading string
+# Look for "digits- ERROR: (^[-0-9 ]*ERROR:)
+#
+# sun4 error strings:
+# "filename", line 000: string
+# Look for `"' as first character
+# Also,
+# Does filename: ddd: string: error
+# for cpp errors.  Look for "string:"
+#
+# Intel error strings:
+# PGC-...
+# Look for `PGC-' as leading string
+#
+# Convex (c2mp) error strings:
+# cc: ...
+#
+# Cray error strings:
+# cc-... cc: ...\n<message>\n
+# cft77-.. cf77: ...\n<message>\n
+#
+# IRIX error strings:
+# accom: ...
+# /usr..../...:
+#
+# 386BSD:
+# cc: ...
+# Error on line ... of ...:
+#
+set ISRC = 0
+set RC   = 0
+set LARCH = ""
+if ( -e bin/tarch ) set LARCH = `bin/tarch`
+if ($LARCH == cray) then
+    if ($ISRC) then
+        set RC = `egrep '^cc-[0-9]* cc:|^Make:|^ cft77-[0-9]* cf77:' $1 | wc -l`
+    else
+        egrep '^cc-[0-9]* cc:|^Make:|^ cft77-[0-9]* cf77:' $1
+    endif
+    exit($RC)
+endif
+if ($LARCH == "386BSD") then
+    if ($ISRC) then
+        set RC = `egrep '^"|^Error on line|^ar:|^mv:|^make:|^xlc:|^PGC\-|^[a-zA-Z0-9]*\.c: [1-9]|^cc:' $1 | wc -l`
+    else
+        egrep '^"|^Error on line|^ar:|^mv:|^make:|^xlc:|^PGC\-|^[a-zA-Z0-9]*\.c: [1-9]|^cc:' $1
+    endif
+    exit($RC)
+endif
+if ($ISRC) then
+    set RC = `egrep '^"|^accom:|^/usr.*:|^Error|^ar:|^mv:|^make:|^xlc:|^cfe:|^PGC\-|^[a-zA-Z0-9]*\.c: [1-9]|^cc:|^[-0-9 ]*ERROR:' $1 | wc -l`
+else
+    egrep '^"|^accom:|^/usr.*:|^Error|^ar:|^mv:|^make:|^xlc:|^cfe:|^PGC\-|^[a-zA-Z0-9]*\.c: [1-9]|^cc:|^[-0-9 ]*ERROR:' $1
+endif
+exit($RC)

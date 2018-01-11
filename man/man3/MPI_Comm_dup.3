@@ -1,0 +1,28 @@
+.TH MPI_Comm_dup 3 "10/24/1994" " " "MPI"
+.SH NAME
+MPI_Comm_dup \- Duplicates an existing communicator with all its cached
+information
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B comm 
+- communicator (handle) 
+Output Parameter:
+.PD 1
+.PD 0
+.TP
+.B newcomm 
+- copy of comm (handle) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Comm_dup ( comm, comm_out )
+MPI_Comm comm, *comm_out;
+
+.fi
+
+.SH LOCATION
+ comm_dup.c

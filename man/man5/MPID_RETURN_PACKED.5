@@ -1,0 +1,10 @@
+.TH MPID_RETURN_PACKED 5 "10/10/1994" " " "ADI"
+.SH NAME
+MPID_RETURN_PACKED \- Indicates that the ADI prefers to return a single
+buffer
+
+.SH NOTES
+This is a macro that indicates that the data will be returned in the
+data-area specified by the "start" field of the device handle.  If the
+message is not contiguous, the API is responsible for unpacking the
+message (with the routines MPIR_SetupUnPackMessage and MPIR_UnPackMessage)

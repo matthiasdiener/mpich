@@ -1,0 +1,47 @@
+.TH MPI_Type_vector 3 "10/24/1994" " " "MPI"
+.SH NAME
+MPI_Type_vector \- Creates a vector (strided) datatype
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B count 
+- number of blocks (nonnegative integer) 
+.PD 1
+.PD 0
+.TP
+.B blocklength 
+- number of elements in each block 
+(nonnegative integer) 
+.PD 1
+.PD 0
+.TP
+.B stride 
+- number of elements between start of each block (integer) 
+.PD 1
+.PD 0
+.TP
+.B oldtype 
+- old datatype (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B newtype 
+- new datatype (handle) 
+.PD 1
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Type_vector( count, blocklen, stride, old_type, newtype )
+int          count;
+int       blocklen;
+int       stride;
+MPI_Datatype old_type;
+MPI_Datatype *newtype;
+
+.fi
+
+.SH LOCATION
+ type_vec.c

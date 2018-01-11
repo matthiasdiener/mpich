@@ -1,0 +1,25 @@
+#! /bin/sh
+#
+# Run some of the tests.  If any arguments are provided, pass them to the
+# test programs.
+if [ -f env.out ] ; then
+	mv env.out env.out.orig
+fi
+
+args=-mr_pg
+
+echo "Tests of environment routines"
+echo "*** Timer tests ***"
+echo "Timer tests" >> env.out
+mpirun $args -np 1 timers $* >> env.out
+echo "*** Basic attributes ***"
+echo "Basic attributes test" >>env.out
+mpirun $args -np 1 baseattr $* >> env.out
+echo "*** Tests of error handling ***"
+echo "Error handling test" >>env.out
+mpirun $args -np 1 errhand $* >> env.out
+echo "Signal test" >>env.out
+mpirun $args -np 1 sigchk $* >> env.out
+echo '*** Differences from expected output ***'
+diff -b env.out env.std
+exit 0

@@ -1,0 +1,34 @@
+.TH MPI_Op_create 3 "11/21/1994" " " "MPI"
+.SH NAME
+MPI_Op_create \- Creates a user-defined combination function handle
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B function 
+- user defined function (function) 
+.PD 1
+.PD 0
+.TP
+.B commute 
+-  true if commutative;  false otherwise. 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B op 
+- operation (handle) 
+.PD 1
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Op_create( function, commute, op )
+MPI_User_function *function;
+int               commute;
+MPI_Op            *op;
+
+.fi
+
+.SH LOCATION
+ opcreate.c

@@ -1,0 +1,21 @@
+.TH MPID_Blocking_recv 5 "10/10/1994" " " "ADI"
+.SH NAME
+MPID_Blocking_recv \- Performs a blocking receive
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B ctx 
+- ADI context returned by MPID_Init
+.PD 1
+.PD 0
+.TP
+.B dmpi_recv_handle 
+- API's receive handle
+.PD 1
+
+.SH SYNOPSIS
+.nf
+int MPID_Blocking_recv( void * ctx, MPIR_RHANDLE *dmpi_recv_handle )
+.fi
+

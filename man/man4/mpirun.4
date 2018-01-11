@@ -1,0 +1,108 @@
+.TH mpirun 4 "8/8/1994" " " "MPE"
+.SH NAME
+mpirun \- Run mpi programs
+
+.SH DESCRIPTION
+"mpirun" is a shell script that attempts to hide the differences in
+starting jobs for various devices from the user. Mpirun attempts to
+determine what kind of machine it is running on and start the required
+number of jobs on that machine. On workstation clusters, if you are
+not using chameleon, you must supply a file that lists the different
+machines that mpirun can use to run remote jobs or specify this file
+every time you run mpirun with the -mr_machine file option. The default
+file is in util/machines/machines.<arch>.
+
+mpirun typically works like this
+.br
+.br
+mpirun -mr_np <number of processes> <program name and arguments>
+.br
+
+If mpirun can't determine what kind of machine you are on, and it
+is supported by the mpi implementation, you can the -mr_machine
+and -mr_arch options to tell it what kind of machine you are running
+on. The current valid values for mr_machine are
+
+.br
+             chameleon (including chameleon/pvm, chameleon/p4, etc...)
+.br
+             meiko     (the ch_p4 device on the meiko)
+.br
+             paragon   (the ch_nx device on a paragon not running NQS)
+.br
+             p4        (the ch_p4 device on a workstation cluster)
+.br
+             sp1       (ch_eui on ANL's sp1)
+.br
+             execer    (a custom script for starting ch_p4 programs
+without using a procgroup file. This script
+currently does not work well with interactive
+jobs)
+
+You should only have to specify mr_arch if mpirun does not recognize
+your machine, the default value is wrong, or you are using the p4 or
+execer devices.  The full list of options is
+
+.SH PARAMETERS
+.PD 0
+.TP
+.B -mr_h 
+This help
+.PD 1
+.PD 0
+.TP
+.B -mr_machine 
+<machine name>
+use startup procedure for <machine name>
+.PD 1
+.PD 0
+.TP
+.B -mr_machinefile 
+<machine-file name>
+Take the list of possible machines to run on from the"
+file <machine-file name>"
+.PD 1
+.PD 0
+.TP
+.B -mr_np 
+<np>
+specify the number of processors to run on
+.PD 1
+.PD 0
+.TP
+.B -mr_nolocal
+
+don't run on the local machine (only works for 
+.PD 1
+.PD 0
+.TP
+.B -mr_e 
+Use execer to start p4 programs on workstation
+clusters
+.PD 1
+.PD 0
+.TP
+.B -mr_pg 
+Use a procgroup file to start p4 programs, not execer
+(default)
+.PD 1
+.PD 0
+.TP
+.B -mr_keep_pg
+
+Don't delete the P4 procgroup file after running
+.PD 1
+.PD 0
+.TP
+.B -mr_t 
+Testing - do not actually run, just print what would be
+executed
+.PD 1
+.PD 0
+.TP
+.B -mr_v 
+Verbose - throw in some comments
+.PD 1
+
+.SH LOCATION
+ util/README

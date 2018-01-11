@@ -1,0 +1,46 @@
+.TH MPI_Group_incl 3 "9/30/1994" " " "MPI"
+.SH NAME
+MPI_Group_incl \- Produces a group by reordering an existing group and taking
+only listed members
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B group 
+- group (handle) 
+.PD 1
+.PD 0
+.TP
+.B n 
+- number of elements in array ranks (and size of newgroup ) (integer) 
+.PD 1
+.PD 0
+.TP
+.B ranks 
+- ranks of processes in group to appear in newgroup (array of 
+integers) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B newgroup 
+- new group derived from above, in the order defined by ranks 
+(handle) 
+.PD 1
+
+.SH NOTE
+This implementation does not currently check to see that the list of
+ranks to include are valid ranks in the group.
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Group_incl ( group, n, ranks, group_out )
+MPI_Group group, *group_out;
+int       n, *ranks;
+
+.fi
+
+.SH LOCATION
+ group_incl.c

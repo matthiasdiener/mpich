@@ -1,0 +1,36 @@
+.TH MPE_Draw_point 4 "11/7/1994" " " "MPE"
+.SH NAME
+MPE_Draw_point \- Draws a point on an X Windows display
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B handle 
+- MPE graphics handle 
+.PD 1
+.PD 0
+.TP
+.B x,y 
+- pixel position to draw.  Coordinates are upper-left origin (standard
+X11)
+.PD 1
+.PD 0
+.TP
+.B color 
+- Color INDEX value.  See MPE_Make_color_array.  By default,
+the colors MPE_WHITE, MPE_BLACK, MPE_RED, MPE_YELLOW,
+.PD 1
+MPE_GREEN, MPE_CYAN, and MPE_BLUE are defined.
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+int MPE_Draw_point( handle, x, y, color )
+MPE_XGraph handle;
+int        x, y;
+MPE_Color  color;
+
+.fi
+
+.SH LOCATION
+ mpe_graphics.c

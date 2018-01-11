@@ -1,0 +1,13 @@
+P4_HOME_DIR = ..
+INCLUDEDIR = $(P4_HOME_DIR)/include
+LIBDIR = $(P4_HOME_DIR)/lib
+LIBS = $(MDEP_LIBS)
+LIBLINK = ../bin
+
+default:	
+
+all:	
+
+realclean:	clean
+	$(RM) -f *.h Makefile
+

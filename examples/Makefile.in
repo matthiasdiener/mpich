@@ -1,0 +1,74 @@
+ALL: default
+##### User configurable options #####
+
+ARCH        = @ARCH@
+COMM        = @COMM@
+BOPT        = @BOPT@
+P4_DIR      = @P4_DIR@
+TOOLS_DIR   = @TOOLS_DIR@
+MPIR_HOME   = @MPIR_HOME@
+CC          = @CC@
+CLINKER     = $(CC)
+CCC         = @CPP_COMPILER@
+CCLINKER    = $(CCC)
+F77         = @F77@
+FLINKER     = $(F77)
+AR          = @AR@
+RANLIB      = @RANLIB@
+PROFILING   = $(PMPILIB)
+OPTFLAGS    = @OPTFLAGS@
+MPE_GRAPH   = @MPE_GRAPHICS@
+#
+INCLUDE_DIR = @USER_INCLUDE_PATH@ -I$(MPIR_HOME)/include 
+DEVICE      = @DEVICE@
+
+### End User configurable options ###
+
+CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPE_GRAPH)
+CCFLAGS = $(CFLAGS)
+#FFLAGS = '-qdpc=e' 
+FFLAGS = $(OPTFLAGS)
+MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a 
+MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
+LIBS = $(LIB_PATH) $(LIB_LIST)
+LIBSPP = $(MPIPPLIB) $(LIBS)
+# Were not ready to do contrib by default yet.
+SUBDIRS = test perftest
+TESTDIRS = test
+EXECS =
+
+default: subdirs
+
+subdirs:
+	@for dir in $(SUBDIRS) ;\
+		do \
+			echo " " ;\
+			echo Making in directory $$dir ;\
+			(cd $$dir; make) ;\
+		done
+
+testing:
+	@for dir in $(TESTDIRS) ;\
+		do \
+			echo " " ;\
+			echo Making tests in directory $$dir ;\
+			(cd $$dir; make testing) ;\
+		done
+
+linktest:
+	@for dir in $(SUBDIRS) ;\
+		do \
+			echo " " ;\
+			echo Making linktest in directory $$dir ;\
+			(cd $$dir; make linktest) ;\
+		done
+
+all: subdirs testing
+
+clean:
+	@for dir in $(SUBDIRS) ;\
+		do \
+			echo " " ;\
+			echo Making clean in directory $$dir ;\
+			(cd $$dir; make clean) ;\
+		done

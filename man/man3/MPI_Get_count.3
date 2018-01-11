@@ -1,0 +1,35 @@
+.TH MPI_Get_count 3 "10/24/1994" " " "MPI"
+.SH NAME
+MPI_Get_count \- Gets the number of "top level" elements
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B status 
+- return status of receive operation (Status) 
+.PD 1
+.PD 0
+.TP
+.B datatype 
+- datatype of each receive buffer element (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B count 
+- number of received elements (integer) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Get_count( status, datatype, count )
+MPI_Status   *status;
+MPI_Datatype datatype;
+int          *count;
+
+.fi
+
+.SH LOCATION
+ getcount.c

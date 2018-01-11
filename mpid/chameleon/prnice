@@ -1,0 +1,6 @@
+#! /bin/sh
+# 
+# Print in a nice form with the debugging/heterogeneous code removed
+for file in *.c packets.h dmch.h ; do
+    rmdebug $file | rmhetero | rmchameleon | enscript -b"$file" -2r
+done

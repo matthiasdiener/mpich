@@ -1,0 +1,658 @@
+
+
+		     Portable MPI Model Implementation
+
+
+This is a joint-effort project between Argonne (Bill Gropp and Rusty Lusk) and
+Mississippi State (Tony Skjellum and Nathan Doss).  Hubertus Franke of IBM has
+also made major contributions, as have Ed Karrels and Patrick Bridges 
+(student interns at ANL).  Of course the hardest work was getting the
+spec right, which was done by the MPI Forum as a whole.
+
+New in the November, 1994 release, there is a User's Guide which gives 
+detailed installation instructions and a tour of mpich's extra features.
+The "Quick Start" section of that guide (found in mpich/doc/guide.ps.Z) gives
+the following steps for installation and minimal testing:
+
+  Get mpich-*.tar.Z by anonymous ftp from info.mcs.anl.gov
+       in the directory pub/mpi.
+
+  zcat mpich-*.tar.Z | tar xvf -
+
+  cd mpich
+
+  configure -arch=sun4 -device=ch\_p4 (for example)
+
+  make
+
+  On workstation networks, or to run on a single workstation, edit
+    mpich/util/machines/machines.sun4 file to reflect your local host
+    names.  (sun4 is used here as an example; most other workstations are
+    supported as well.)  On parallel machines, this step is not needed.  See
+    the README file in the mpich/util/machines directory.
+
+  cd examples/basic
+
+  make cpi
+
+  mpirun -np 4 cpi
+
+
+Much of the following information now appears in the User's Guide.
+
+Status of the model implementation:
+
+Oct 26
+1.  The MPI ADI (low level interface that performs the actual message-passing)
+    has been reorganized and given additional flexibility.  See 
+    configure -usage for a short summary of available options.  At this time,
+    they are still undergoing testing.
+
+2.  The Meiko CS2 has been added as a "device".  This version uses the NX
+    compatibility library.  Untested.
+
+See the end of the file for a history of changes.  These document a number of
+features that are currently not described elsewhere (we ARE working on a 
+user's guide...)
+   
+The implementation gets its portability without giving up efficiency by being
+implemented in terms of an Abstract Device Interface (ADI).  The ADI itself is
+described in the paper mpiadi.ps.Z in the doc directory. (This is still a
+draft.)  The ADI is implemented on various parallel machines and workstation
+networks. It can be configured to use either p4, PVM 2.4, or PVM 3.x on
+networks.
+
+The purpose of this initial implementation is to advance the cause of MPI by:
+
+1.  demonstrating the implementability of MPI and contributing to shaking
+    down the specifications.
+
+2.  providing an avenue for applications to begin the porting process very
+    early.
+
+3.  providing a shortcut path for vendor implementations.  Vendors need
+    provide only the device part of the implementation.
+
+Longer-term goals are to provide a portable MPI implementation for
+heterogeneous networks of workstations and to motivate research into device
+abstractions for high-performance message-passing.
+
+The current implementation has the following limitations, as of 
+October 20, 1994.
+
+1.  Much of the code written so far is written for clarity and simplicity
+    rather than efficiency.  However, some functions have been tuned to
+    provide examples to vendors of how easy it is to improve the
+    performance.  Some performance results are presented in doc/perf.ps.Z
+
+2.  The code is not thoroughly or systematically tested.
+
+3.  There is a further list of things that need immediate attention in the
+    'todo' file in the top directory.
+
+4.  Heterogeneity is now partially supported.  Systems that differ only in
+    the ordering of the bytes (big endian versus little endian) are 
+    supported EXCEPT FOR MPI_PACK/MPI_UNPACK.  Full support using XDR is
+    under development.
+
+On the other hand, here are a few good aspects of the current state:
+
+1.  The Chameleon-p4 (and Chameleon-PVM) implementation is portable to
+    virtually any parallel machine and to heterogeneous networks of
+    workstations.  The implementation is not yet highly optimized but it is
+    not naive.  Most of the testing has been on networks of Suns and RS/6000's.
+
+2.  A major application (a nuclear-structure code from Argonne's Physics
+    Division) has been ported to MPI and runs on the IBM SP1.  Other
+    applications have been ported to the IBM version of MPI at IBM.
+
+
+What is here
+============
+
+This directory contains files releated to the Test Implemntation of the MPI
+(Message-Passing Interface) Draft Standard.  They are:
+
+mpich.Oct21.tar.Z    - the implementation itself, sufficient to run on the
+                       following machines: Intel NX (i860, Delta, Paragon), 
+	               IBM SP1 (using EUI or EUIH), Meiko CS-2, Ncube, 
+                       CM5 (using CMMD) and networks of workstations 
+                       (Sun, SGI, RS6000, ...)
+
+For other systems, or to run on top of PVM 2.4 or 3.x, you also need:
+
+chameleon-1.2.tar.Z  - the chameleon system, necessary to build and run the
+                       versions of the implementation that run on top of PVM.
+                       This is in pub/pdetools
+
+You do not need anything else if you are using either the various MPP versions
+(Intel Paragon, TMC CM5, IBM SP2) or the integrated version of p4
+(-device=ch_p4; see below).
+
+Installing MPI
+==============
+
+Create your mpi root directory (such as ~/mpitest ).  
+
+Ftp the files that you need to that directory.  In particular, on most 
+machines you only need the one file mpich.Oct21.tar.Z .
+
+Uncompress the files (uncompress mpich.Oct21.tar.Z etc) and untar them
+(tar xf mpich.Oct21.tar.Z etc) .  ("zcat mpich.Oct21.tar.Z | tar xf - "
+also works)
+
+To create the mpi implementation, uncompress and tar the distribution, which
+will give you a directory called mpich.  In this directory, you will run
+configure and then make.  To see the options for configure, say
+
+    configure -u
+
+To build the network version for sun4's running SunOS 4.x, give the command
+
+    configure -device=ch_p4 -arch=sun4
+    make
+
+To build the network version for sun4's running Solaris, give the command
+
+    configure -device=ch_p4 -arch=solaris
+    make
+
+For SGI's, use
+
+    configure -arch=IRIX -device=ch_p4
+    make
+
+To build for nX on an ipsc/2 or ipsc/860, use
+
+    configure -bopt=g -arch=intelnx -device=ch_nx
+    make
+
+To build for nX on a paragon, use
+
+    configure -bopt=g -arch=paragon -device=ch_nx
+    make
+
+To build for the Meiko CS-2, use
+
+    configure -arch=meiko -device=ch_p4
+    make
+
+To build for the Ncube, use
+
+    configure -arch=ncube -device=ch_nc
+    make
+    (We're not sure about the arch value)
+
+To build for the CM-5, use
+
+    configure -arch=sun4 -device=ch_cmmd
+    make
+    (Not extensively tested; bug reports encouraged)
+
+To build for SP1 using EUI-H (you must have EUI-H installed; configure
+will give you an error if you do not), give the command
+
+    configure -device=ch_eui -comm=ch_euih -arch=rs6000 
+    make
+
+To build for SP1, SP2, or rs6000's using EUI (or MPL), give the command
+
+    configure -device=ch_eui -comm=ch_eui -arch=rs6000 
+    make
+
+To build the Chameleon version for sun4's, using PVM 3.x, give the command
+
+    configure -bopt=g -comm=pvm3 -arch=sun4 -device=chameleon
+    make
+
+The Makefile contains some sample targets that run configure with the
+correct options for our installation; you may find these instructive.
+
+Some useful additional flags you can give to configure include:
+
+-mpe	Build the MPE extensions to mpi. These extensions no longer 
+	require having chameleon installed, and have been tested 
+	on numerous different machines.
+
+-nof77	Don't build the fortran interface. This option has only been
+	lightly tested, but should work.
+
+-prefix=<location>
+	Use <location> as the top-level directory to install MPI in
+	when installing. This option can also be set at install time
+	by specifiying PREFIX=<location> to the make install. 
+
+During the configure, you may need to supply the locations of the Chameleon
+(tools.core) installation and optionally the p4 or PVM installation.  These
+locations should be supplied as full path names.
+
+If you plan on using mpirun, make the file util/machines/machines.<arch> to
+be a list of machines that mpirun can use to run jobs. Example machine
+files are installed in util/machines.anl.
+
+After building a specific version as above, you can install it with
+
+    make install		  
+
+if you used -prefix at configure time, or,
+
+    make install PREFIX=/usr/local/mpi    (or whatever directory you like)
+
+if you did not, or want to override the configure-time selection.
+If you intend to leave MPI where you built it, you should NOT install it 
+(install is used only to move the necessary parts of a built MPICH to another
+location).
+
+The installed copy will have the include files, libraries, man pages, and a
+few other odds and ends, but not the whole source tree and examples.  There is
+a small examples directory for testing the installation and a
+location-independent Makefile built during installation, which users can copy
+and modify to compile and link against the installed copy.
+
+To rebuild a different version, say 
+
+    make clean
+
+to clean up everything, including the Makefiles constructed by configure,
+and then run configure again with the new options.
+
+Testing MPI
+===========
+The directory "examples/test" contains makefiles and scripts for testing 
+the implementation.  If you have set up mpirun (see "Running Programs" below)
+correctly, then
+
+cd examples/test
+make testing
+
+will run a variety of test programs.  
+
+If you have not setup mpirun, you can still use the test programs in these
+directories; you'll just have to write your own script to run them.  
+(And send mail to mpi-bugs describing what problems you had with mpirun.)
+
+Running Programs
+================
+
+How you start an MPI program depends on the type of device (the -device 
+option to configure).  You can also use mpirun to start jobs on many
+machines. Here are the choices:
+
+*** mpirun *** 
+
+"mpirun" is a shell script that attempts to hide the differences in
+starting jobs for various devices from the user. Mpirun attempts to
+determine what kind of machine it is running on and start the required
+number of jobs on that machine. On workstation clusters, if you are
+not using chameleon, you must supply a file that lists the different
+machines that mpirun can use to run remote jobs or specify this file
+every time you run mpirun with the -mr_machine file option. The default
+file is in util/machines/machines.<arch>.
+
+
+mpirun typically works like this:
+mpirun -mr_np <number of processes> <program name and arguments>
+
+If mpirun can't determine what kind of machine you are on, and it 
+is supported by the mpi implementation, you can the -mr_machine
+and -mr_arch options to tell it what kind of machine you are running
+on. The current valid values for mr_machine are:
+
+              chameleon (including chameleon/pvm, chameleon/p4, etc...)
+              meiko     (the ch_p4 device on the meiko)
+              paragon   (the ch_nx device on a paragon not running NQS)
+              p4        (the ch_p4 device on a workstation cluster)
+              sp1       (ch_eui on ANL's sp1)
+	      execer    (a custom script for starting ch_p4 programs
+			 without using a procgroup file. This script
+                         currently does not work well with interactive
+			 jobs)
+
+You should only have to specify mr_arch if mpirun does not recognize
+your machine, the default value is wrong, and you are using the p4 or
+execer devices. Other options include:
+
+    -mr_h   This help
+    -mr_machine <machine name>
+            use startup procedure for <machine name>
+    -mr_machinefile <machine-file name>
+	    Take the list of possible machines to run on from the"
+            file <machine-file name>"
+    -mr_np <np>
+            specify the number of processors to run on
+    -mr_nolocal
+            don't run on the local machine (only works for 
+    -mr_e   Use execer to start p4 programs on workstation
+            clusters
+    -mr_pg  Use a procgroup file to start p4 programs, not execer
+	    (default)
+    -mr_leave_pg
+            Don't delete the P4 procgroup file after running
+    -mr_t   Testing - do not actually run, just print what would be
+            executed
+    -mr_v   Verbose - thrown in some comments
+
+If you don't want to use mpirun, use the instructions below depending
+on which device you have configured your program:
+ 
+*** device=ch_p4 ***
+The processors are specified by a p4 procgroup file
+
+Procgroup files contain information about which machines a network of
+processes should run on.  
+
+A typical procgroup file looks like:
+
+local 0
+sun1.foo.edu 1 /home/me/myprog
+sun2.foo.edu 1 /home/me/myprog
+sun3.foo.edu 1 /home/me/myprog
+
+to run with 4 processes, one on the machine where the program is executed,
+(aloways called "local", and the others on the machines sun1, sun2, and sun3.
+The "local 0" means no second process on the local machine.
+
+To run, say on sun0, call the above file something like myprog.pg and do
+
+  myprog -p4pg myprog.pg
+
+More elaborate and flexible procgroup files are possible.  See the p4 manual
+for details.  Running on parallel machines often requires a procgroup file
+containing "local 15" (for 16 = 15 - 1 processes).  The job also will need
+to be started with the appropriate method for a parallel job on that system.
+
+*** device=ch_nx: ***
+Just start the job like any Intel NX program
+
+*** device=ch_eui ***
+Just start the job like any EUI-H or EUI program.  For example, in EUI-H
+
+/usr/lpp/euih/eui/cotb0 -b <programname> <number_of_nodes> <commandline args>
+
+*** device=chameleon ***
+Use the commandline arguments "-np <number_of_nodes>" with the program.
+For example, to run the program "first" with two processes, 
+
+    first -np 2
+
+In Chameleon, you can add the option "-trace" to get a trace of the
+communication operations. The option "-chdebug" gives more information on
+message contents as well. 
+p
+Follow the Chameleon installation instructions for specifying the available
+processes when using PVM or p4.
+
+Installing MPI for the Chameleon Device
+=======================================
+
+If you are using p4 with Chameleon, first make p4 with
+
+    cd p4-1.4
+    make P4ARCH=SUN		(for example)
+    cd ..
+
+To make chameleon, 
+
+    setenv P4DIR <the root directory for p4>
+    cd tools.core                            (the home of Chameleon)
+    bin/inscheck sun4 -libs g                (test that install will succeed)
+    bin/install sun4 -libs g >& make.log     (for example)
+    <Create a "hosts" or "pvmhosts"file>     (for P4 or PVM)
+      to create hosts file for P4...
+	cd comm
+	cp hosts.sample hosts
+        <Edit hosts>
+        cd ..
+    cd ..
+
+If you encounter any difficulties that seem to point to an incomplete 
+Chameleon installation, please send us the 'make.log' file.
+(see the readme in the top level Chameleon directory for more information, 
+particularly for the "hosts" file).  There is a sample hosts file in
+tools.core/comm/hosts.sample.
+
+If you need to clean and re-install Chameleon, use "make cleanall".
+
+(Note added in proof: Chameleon may have a configure-based installation
+by the time you read this.  Check the readme file in the top-level Chameleon
+directory.)
+
+Details of this Implementation 
+==============================
+
+The interesting stuff is in include/mpir.h and mpid/chameleon/mpid.h .  The
+implementation of the device-independent part is in src ; the device
+implementation (to the abstract device) in in mpid (currently, only the
+Chameleon "device" is implemented; a version of the device built directly on
+nx by Paul Pierce of intel is included, but is not quite finished).  Chameleon
+supports (directly) Intel NX, IBM EUI and EUI-H, TMC CMMD (Version 2 and
+greater), as well as p4, PVM, and PICL.
+
+Some notes on using Chameleon
+=============================
+
+There is a "readme" in ./chameleon that you should look at.
+For networks, chameleon uses a "hosts" file (in ./chameleon/comm/hosts )
+that contains the names of available machines as well as some limits on their
+use.  The file ./chameleon/comm/hosts.sample contains a sample hosts file.
+
+On parallel machines (like the i860 and CM-5), the hosts file is ignored.
+Instead, you must get your program loaded on the parallel machine.
+For example, to build and run the C examples for the i860, do:
+
+    cd mpi/examples_c
+    make BOPT=g ARCH=intelnx
+    getcube -t d1
+    load ring -np 2
+    waitcube
+    load twin -np 2
+    waitcube
+    relcube
+
+(you will have to build chameleon and mpi for the intelnx; this is necessary
+only if you use Chameleon instead of the native Intel NX port.  Note that you
+will still need to startup your program in whatever way is correct for your
+system; Intel Paragon users may need to use "pexec"; Intel Delta users need to
+use "mexec".)
+
+The PVM version is built much in the same way as the P4 version; just 
+do
+
+    setenv PVMDIR <root directory of PVM>
+
+before building chameleon.  Use "COMM=pvm" instead of "COMM=p4".  For PVM 3.x,
+use "COMM=pvm3"
+
+Problem reports to mpi-bugs@mcs.anl.gov
+ 
+
+
+
+----------------------------------------------------------------------------
+Previous "new features"
+----------------------------------------------------------------------------
+
+Sep 30
+1.  MPI Data structures now contain a token that is used to recognized an
+    invalid or incorrect object (for example, an uninitialized MPI_Request
+    given to MPI_Wait).  These won't catch everything, but they may help 
+    with such things as out-of-date mpif.h files used in Fortran programs,
+    and modules that need to be recompiled.
+
+2.  Fortran programs that use MPICH must be recompiled (the common blocks in
+    mpif.h have changed)
+
+3.  MPICH is now (nearly) 64 bit safe, at least from C.  
+
+4.  Configure works harder to identify which of many mutually incompatible
+    configurations are being built when running on SGIs.  A native shared
+    memory version of -device=ch_p4 is available by selecting -comm=shared.
+    This version works but needs additional work to get better performance.
+
+5.  The internal structure and the interface of the ADI has changed.  We hope
+    to have support for multiple protocols (not just eager) and multiple ADIs,
+    as well as support for systems with remote memory operations, in the next
+    major release.
+
+Sep 14
+1.  Our goal is a full MPI implementation, and it is complete.  This
+    release now includes both Fortran and C interfaces, for all of
+    point-to-point, collective, groups and contexts, topologies, and the
+    profiling interface.
+
+2.  The implementation is portable to all parallel machines and workstations
+    where either Chameleon, p4, or PVM run.  We have done most of our own
+    testing on Suns, RS6000's, and the SP1.  Minimal checkout has been done
+    on the Intel IPSC and Paragon, CM5, Ncube, IBM SP1, and on SGI's amd
+    FreeBSD.  Note that for MPPs, you do not need to install Chameleon, p4, 
+    or PVM; you can use the "native devices" for those systems.
+
+3.  We have introduced a version number (1.3, in include/patchlevel.h).  
+    The command line argument, -mpiversion, will display the current 
+    version.  Please send us the version number when reporting bugs.
+
+4.  A number of new devices have been implemented; when using these 
+    devices, it is not necessary to install Chameleon.  These include
+        ch_eui   - IBM EUI (for SPx) 
+        ch_nc    - nCUBE                
+        ch_cmmd  - CM5
+        ch_nx    - Intel NX
+        ch_p4    - p4
+    The `ch_p4' device uses a version of p4 that has been integrated with
+    MPI; when using this version, only the mpi library (and any relevent
+    system libraries, such as -lbsd or -lsocket) needs to be linked.
+    There is no need to separately obtain and install p4 (or Chameleon).
+    See below on using the ch_p4 device.
+
+5.  We have done some tuning since the last release, and the point-to-point
+    routines are fast.  There are graphs summarizing some of our comparisons
+    with other systems in the doc directory, in perf.ps.Z .  If
+    you find that this implementation of MPI is not at least 95% as fast as
+    what you are currently using on any machine or network, please let us know
+    and we will try to fix it.  (We are not yet at top speed on the Paragon,
+    due to having to layer on top of the Intel protocol, but are working on
+    it.)  The option -nodevdebug to configure removes rather extensive 
+    debugging code from the implementation and should be considered once
+    you are sure that the installation has been successful.  Other tuning
+    parameters are described with 'configure -usage'.
+
+6.  There is a library of add-ons we call MPE (for Multi-Processing
+    Environment) that is a first step toward getting some helpful parts of a
+    programming environment to go with MPI.  It includes a logging package and
+    a parallel simple graphics library (parallel in the sense that multiple
+    processes share an X display).  This stuff is found in the mpe
+    subdirectory.  Some of the examples demonstrate its use.
+
+7.  There is a Tcl/Tk version of upshot in profiling/upshot, for viewing
+    the log files produced with the MPE logging routines.  This is in 
+    profiling/upshot/bin ; upshot can now read (old) PICL trace files as well.
+    Sample tracefiles, both produced by the MPI/MPE profiling interface and
+    PICL (from the ParaGraph distribution) are in profiling/upshot/logfiles .
+    Some of these are compressed (with the Unix "compress" program); you 
+    will need to uncompress them before giving them to upshot.
+
+8.  There are many more examples, in the examples directory.  We have 
+    undertaken a reorganization of the examples, including the creating of
+    a test suite (in the directory examples/test).  This effort is still 
+    underway.  We are now putting programs that illustrate the use of MPI
+    into examples/contrib.  We solicit contributions.
+
+9.  There are man pages for all the MPI routines.  Put .../mpich/man in your
+    MANPATH (or see the script mpich/util/mpiman).
+
+10. There are some dubugging aids.  The command-line option -mpiqueue will
+    dump the receive queues at the time of MPI_Finalize, so you can see where
+    lost messages went.  The -chdebug option on the command line will enable
+    Chameleon tracing of events, which may be helpful (but only when using
+    the Chameleon device).
+
+New in the August 8, 1994 version:
+  
+  Various bug fixes 
+      Attributes in Fortran
+      MPI_Waitall
+      
+  Support for heterogenity between some systems
+      We support the transmission of contiguous data between processors that
+      have the same basic representations but use different byte orderings.
+      We encourage you to try these out and let us know of any problems.
+      The MPI_PACKED datatype, and MPI_PACK and MPI_UNPACK are not yet
+      supported for heterogeneous systems.  
+
+  Improved configuration (now detects strange Fortran external names, 64 bit
+  pointers, and the like).
+
+  Support for the DEC Alpha and other 64-bit systems
+
+  "New in the <previous release>" has been condensed in the README
+
+New in the July 22, 1994 version:
+
+  Native NCube and CMMD devices now exist and appear to work correctly
+  (-device=ch_nc and -device=ch_cmmd, respectively).  MPIRUN does not
+  yet run on these machines. Start MPI jobs on these machines like you
+  would start any other parallel job.
+
+  Compiling with MPE does not require having Chameleon or PETSc installed
+
+  MPIRUN has been greatly enhanced
+
+  Pathnames in installed shell scripts have been fixed
+
+New in the July 13, 1994 version:
+
+  Tested on the Meiko CS2 (configure -device=ch_p4 -arch=meiko)
+
+  Tested on the SGI Onyx
+
+  Enhanced upshot that can read ParaGraph log files
+
+  Better installation procedures (make install PREFIX=/usr/local/mpi).  The
+    examples subdirectory will contain a location-independent Makefile
+    that can be copied and modified for your programs.
+
+  Better support for sites without Fortran  (configure .... -nof77)
+
+  MPI executables built with the ch_p4 device can be started by the next
+    release of DQS, which is currently being tested.
+
+New in the late May, 1994 version:
+
+  MPI_NULL_FN does not exist.  Instead, you should use MPI_NULL_COPY_FN
+  or MPI_NULL_DELETE_FN as appropriate when creating keyval's using 
+  MPI_KEYVAL_CREATE.
+
+New in the April 12, 1994 version:
+
+  The switch "-nof77" to configure allows you to build a C-language only
+  version of MPI (for those of you without Fortran compilers). 
+
+  The toplevel Makefile contains some example targets for running 
+  configure and then building the MPI libraries.  One target, "anlall", 
+  is used at ANL to build the test versions.
+
+  The libraries are now in lib/$(ARCH)/$(COMM); this allows you to build
+  multiple transport layers for a given system (e.g., sun4 p4 and pvm3).
+  A word of warning; while we have run an MPI program with both PVM 2.4.2
+  and PVM 3.x, the PVM interfaces have not been extensively tested (we use
+  P4 for workstations and the native vendor message-passing for MPPs).
+
+  The "worker" interface has been eliminated; programs must start
+  with main.
+
+  An MPI "Reference card" is in mpich/util/functions.{dvi,ps} .
+
+  ANSI C prototypes are provided by default (included by mpi.h) for 
+  ANSI C compilers.
+
+New in the Feb 7, 1994 version:
+
+  The MPE (MultiProcessing Environment "helper" library has been begun, and
+  contains some simple timing routines.  Soon there will be logging routines.
+
+New in the Dec 3, 1993 version:
+
+  The installation has been completely changed, to use gnu autoconf.  (You
+  don't need autoconf;  rather, you will run the enclosed configure script,
+  which was generated with autoconf.)
+

@@ -1,0 +1,25 @@
+.TH MPID_Post_send_sync 5 "10/10/1994" " " "ADI"
+.SH NAME
+MPID_Post_send_sync \- Starts a send of a message with synchronous mode
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B ctx 
+- ADI context returned by MPID_Init
+.PD 1
+.PD 0
+.TP
+.B dmpi_recv_handle 
+- API's send handle
+.PD 1
+
+.SH SYNOPSIS
+.nf
+int MPID_Post_send_sync( void * ctx, MPIR_SHANDLE *dmpi_send_handle )
+.fi
+
+.SH NOTES
+This routine only begins the send.  MPID_Complete_send must be called
+to finish the send, even if it was a blocking operation.  This send
+will not complete until the destination BEGINS the matching receive.

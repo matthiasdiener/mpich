@@ -1,0 +1,49 @@
+.TH MPI_Graph_map 3 "8/10/1994" " " "MPI"
+.SH NAME
+MPI_Graph_map \- Maps process to graph topology information
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B comm 
+- input communicator (handle) 
+.PD 1
+.PD 0
+.TP
+.B nnodes 
+- number of graph nodes (integer) 
+.PD 1
+.PD 0
+.TP
+.B index 
+- integer array specifying the graph structure, see  MPI_GRAPH_CREATE 
+.PD 1
+.PD 0
+.TP
+.B edges 
+- integer array specifying the graph structure 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B newrank 
+- reordered rank of the calling process; MPI_UNDEFINED if the 
+calling process does not belong to graph (integer) 
+.PD 1
+
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Graph_map ( comm_old, nnodes, index, edges, newrank )
+MPI_Comm comm_old;
+int      nnodes;
+int     *index;
+int     *edges;
+int     *newrank;
+
+.fi
+
+.SH LOCATION
+ graph_map.c

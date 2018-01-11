@@ -1,0 +1,14 @@
+.TH MPE_Log_message 4 "11/1/1994" " " "MPE"
+.SH NAME
+MPE_Log_message \- log the sending or receiving of a message
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+static int MPE_Log_message( type, otherParty, tag, size )
+int type, otherParty, tag, size;
+
+.fi
+
+.SH LOCATION
+ mpe_log.c

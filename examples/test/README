@@ -1,0 +1,21 @@
+This directory contains a variety of different test codes 
+of different types. This directory and many of the files in
+it are e still undergoing active development and change. Please
+forgive (and report) any problems you have with these programs.
+
+The directories are as follows:
+
+pt2pt	-	Test cases that generally cover various point to point
+		routines, such as send, isend, probe, etc... The
+ 		README in this directory contains some additional 
+  		useful information about running the tests. The tests
+		in this directory are most complete.
+
+
+coll	-	Older test programs for various collective operations
+
+lederman-	A series of tests of various types written by Steve
+		Lederman
+
+
+Other directories and additional tests will be added in the future.

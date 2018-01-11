@@ -1,0 +1,10 @@
+#!/bin/csh
+# $1 is previous MPI P4;  $2 NEW (non-MPI) p4
+rm -rf $2/{README,CHANGES,DISCLAIMER}
+rm -rf $2/{contrib,contrib_f,doc,lib_f,messages_f,misc,monitors}
+cd $1
+cp Makefile ../$2
+foreach dir ([a-z]*)
+    cp $dir/makefile.proto ../$2/$dir
+end
+cd ..

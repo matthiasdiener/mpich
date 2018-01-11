@@ -1,0 +1,36 @@
+.TH MPI_Comm_compare 3 "9/13/1994" " " "MPI"
+.SH NAME
+MPI_Comm_compare \- Compares two communicators
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B comm1 
+- comm1 (handle) 
+.PD 1
+.PD 0
+.TP
+.B comm2 
+- comm2 (handle) 
+Output Parameter:
+.PD 1
+.PD 0
+.TP
+.B result 
+- integer which is MPI_IDENT if the contexts and groups are the
+same, MPI_CONGRUENT if different contexts but identical groups, MPI_SIMILAR
+if different contexts but similar groups, and MPI_UNEQUAL otherwise
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Comm_compare ( comm1, comm2, result )
+MPI_Comm  comm1;
+MPI_Comm  comm2;
+int       *result;
+
+.fi
+
+.SH LOCATION
+ comm_compare.c

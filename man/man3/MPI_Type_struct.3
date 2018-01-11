@@ -1,0 +1,49 @@
+.TH MPI_Type_struct 3 "11/1/1994" " " "MPI"
+.SH NAME
+MPI_Type_struct \- Creates a struct datatype
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B count 
+- number of blocks (integer) -- also number of 
+entries in arrays array_of_types ,
+array_of_displacements  and array_of_blocklengths  
+.PD 1
+.PD 0
+.TP
+.B blocklens 
+- number of elements in each block (array)
+.PD 1
+.PD 0
+.TP
+.B indices 
+- byte displacement of each block (array)
+.PD 1
+.PD 0
+.TP
+.B old_types 
+- type of elements in each block (array 
+of handles to datatype objects) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B newtype 
+- new datatype (handle) 
+.PD 1
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Type_struct( count, blocklens, indices, old_types, newtype )
+int           count;
+int        blocklens[];
+MPI_Aint      indices[];      
+MPI_Datatype  old_types[];
+MPI_Datatype *newtype;
+
+.fi
+
+.SH LOCATION
+ type_struct.c

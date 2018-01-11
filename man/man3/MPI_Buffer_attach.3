@@ -1,0 +1,53 @@
+.TH MPI_Buffer_attach 3 "11/3/1994" " " "MPI"
+.SH NAME
+MPI_Buffer_attach \- Attaches a user-defined buffer for sending
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B buffer 
+- initial buffer address (choice) 
+.PD 1
+.PD 0
+.TP
+.B size 
+- buffer size, in bytes (integer) 
+.PD 1
+
+.SH NOTES
+The size given should be the sum of the sizes of all outstanding Bsends that
+you intend to have, plus a few hundred bytes for each Bsend that you do.
+For the purposes of calculating size, you should use MPI_Pack_size.
+In other words, in the code
+.br
+    MPI_Buffer_attach( buffer, size );
+.br
+    MPI_Bsend( ..., count=20, datatype=type1,  ... );
+.br
+    ...
+.br
+    MPI_Bsend( ..., count=40, datatype=type2, ... );
+.br
+the value of 'size' in the MPI_Buffer_attach call should be greater than
+the value computed by
+.br
+.br
+    MPI_Pack_size( 20, type1, comm, &s1 );
+.br
+    MPI_Pack_size( 40, type2, comm, &s2 );
+.br
+    size = s1 + s2 + 2 * 100;
+.br
+    where we used an extra 100 bytes for each Bsend's information handle.
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Buffer_attach( buffer, size )
+void *buffer;
+int  size;
+
+.fi
+
+.SH LOCATION
+ bufattach.c

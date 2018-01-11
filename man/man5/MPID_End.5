@@ -1,0 +1,20 @@
+.TH MPID_End 5 "10/10/1994" " " "ADI"
+.SH NAME
+MPID_End \- Ends the operation of the ADI
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B ctx 
+- ADI context returned by MPID_Init
+.PD 1
+
+.SH SYNOPSIS
+.nf
+void MPID_End( void * ctx )
+.fi
+
+.SH NOTES
+This routine must be called at the end of the parallel part of a program.
+Normally, this is just before the program exits.  Once MPID_End is called,
+no other MPID routines, including MPID_Init, may be called.

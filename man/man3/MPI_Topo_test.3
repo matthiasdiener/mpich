@@ -1,0 +1,30 @@
+.TH MPI_Topo_test 3 "8/10/1994" " " "MPI"
+.SH NAME
+MPI_Topo_test \- Determines the type of topology (if any) associated with a
+communicator
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B comm 
+- communicator (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B top_type 
+- topology type of communicator  comm (choice) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Topo_test ( comm, top_type )
+MPI_Comm  comm;
+int      *top_type; 
+
+.fi
+
+.SH LOCATION
+ topo_test.c

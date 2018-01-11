@@ -1,0 +1,39 @@
+.TH MPE_Make_color_array 4 "11/7/1994" " " "MPE"
+.SH NAME
+MPE_Make_color_array \- Makes an array of color indices
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B handle 
+- MPE graphics handle
+.PD 1
+.PD 0
+.TP
+.B nc 
+- Number of colors
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B array 
+- Array of color indices
+.PD 1
+
+.SH NOTES
+The new colors for a uniform distribution in hue space and replace the
+existing colors EXCEPT for MPE_WHITE and MPE_BLACK.
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+int MPE_Make_color_array( handle, ncolors, array )
+MPE_XGraph handle;
+int        ncolors;
+MPE_Color  array[];
+
+.fi
+
+.SH LOCATION
+ mpe_graphics.c

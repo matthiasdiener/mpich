@@ -1,0 +1,20 @@
+Nupshot - preliminary version of new, faster Upshot
+
+The upshot in ../upshot is all written in Tcl.  Tcl is an interpreted,
+string-based language, and is thus not very fast with number crunching.
+Thus, that version of Upshot is pretty pokey.  Upshot is being mostly
+rewritten in C, so everything is much faster.  It is at a useable point
+in the development, so we thought we'd let some other people try it
+out.  It doesn't have much; no legend, no printing, to process numbers,
+alog-format logfiles only, but it will.  Feature suggestions (that are
+not already in the all-Tcl version of Upshot) are welcome, as are bug
+reports, of course.
+
+Be sure to specify -tcldir and -tkdir when running mpich/configure.
+Otherwise, the Nupshot compilation will fail.
+
+Send all comments/suggestions/bug reports to:
+
+Ed Karrels
+Argonne National Laboratory
+karrels@mcs.anl.gov

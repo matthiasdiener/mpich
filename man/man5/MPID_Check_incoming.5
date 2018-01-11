@@ -1,0 +1,26 @@
+.TH MPID_Check_incoming 5 "10/10/1994" " " "ADI"
+.SH NAME
+MPID_Check_incoming 
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B ctx 
+- ADI context returned by MPID_Init
+.PD 1
+.PD 0
+.TP
+.B blocking 
+- Indicates whether the operation is blocking or not.  The
+values MPID_BLOCKING and MPID_NOT_BLOCKING can be used.
+.PD 1
+
+.SH RETURNS
+-1 if nonblocking and no messages pending
+
+.SH SYNOPSIS
+.nf
+int MPID_Check_incoming( void * ctx, MPID_BLOCKING_TYPE blocking )
+.fi
+
+.SH NOTES
+This routine handles testing for a single incoming message.

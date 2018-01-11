@@ -1,0 +1,29 @@
+.TH MPI_Comm_remote_group 3 "7/13/1994" " " "MPI"
+.SH NAME
+MPI_Comm_remote_group \- Accesses the remote group associated with
+the given inter-communicator
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B comm 
+- Communicator
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B group 
+- remote group of communicator
+.PD 1
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Comm_remote_group ( comm, group )
+MPI_Comm comm;
+MPI_Group *group;
+
+.fi
+
+.SH LOCATION
+ comm_rgroup.c

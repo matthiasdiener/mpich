@@ -1,0 +1,47 @@
+##### User configurable options #####
+
+ARCH        = #ARCH#
+COMM        = #COMM#
+INSTALL_DIR = #INSTALL_DIR#
+CC          = #CC#
+F77         = #F77#
+OPTFLAGS    = #OPTFLAGS#
+#
+LIB_PATH    = -L$(INSTALL_DIR)/lib/$(ARCH)/$(COMM)
+FLIB_PATH   = #FLIB_PATH_LEADER#$(INSTALL_DIR)/lib/$(ARCH)/$(COMM)
+LIB_LIST    = #LIB_LIST#
+#
+INCLUDE_DIR = #INCLUDE_PATH# -I$(INSTALL_DIR)/include
+
+### End User configurable options ###
+
+CFLAGS  = #CFLAGS# $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
+FFLAGS = #FFLAGS# $(INCLUDE_DIR) $(OPTFLAGS)
+LIBS = $(LIB_PATH) $(LIB_LIST)
+FLIBS = $(FLIB_PATH) $(LIB_LIST)
+EXECS = pi3 cpi cpilog
+
+default: cpi pi3
+
+all: $(EXECS)
+
+cpi: cpi.o $(INSTALL_DIR)/include/mpi.h
+	$(CC) $(OPTFLAGS) -o cpi cpi.o \
+	$(LIB_PATH) $(LIB_LIST) -lm
+
+cpilog: cpilog.o $(INSTALL_DIR)/include/mpi.h $(INSTALL_DIR)/include/mpe.h
+	$(CC) $(OPTFLAGS) -o cpilog cpilog.o \
+	$(LIB_PATH) -lmpe $(LIB_LIST) -lm
+
+pi3: pi3.o $(INSTALL_DIR)/include/mpif.h
+	$(F77) $(OPTFLAGS) -o pi3 pi3.o $(FLIBS)
+
+
+clean:
+	/bin/rm -f *.o *~ PI* $(EXECS)
+
+.c.o:
+	$(CC) $(CFLAGS) -c $*.c
+.f.o:
+	$(F77) $(FFLAGS) -c $*.f
+

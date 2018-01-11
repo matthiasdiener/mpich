@@ -1,0 +1,60 @@
+.TH MPI_Alltoall 3 "11/3/1994" " " "MPI"
+.SH NAME
+MPI_Alltoall \- Sends data from all to all processes
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B sendbuf 
+- starting address of send buffer (choice) 
+.PD 1
+.PD 0
+.TP
+.B sendcount 
+- number of elements in send buffer (integer) 
+.PD 1
+.PD 0
+.TP
+.B sendtype 
+- data type of send buffer elements (handle) 
+.PD 1
+.PD 0
+.TP
+.B recvcount 
+- number of elements received from any process (integer) 
+.PD 1
+.PD 0
+.TP
+.B recvtype 
+- data type of receive buffer elements (handle) 
+.PD 1
+.PD 0
+.TP
+.B comm 
+- communicator (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B recvbuf 
+- address of receive buffer (choice) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Alltoall( sendbuf, sendcount, sendtype, 
+                  recvbuf, recvcnt, recvtype, comm )
+void             *sendbuf;
+int               sendcount;
+MPI_Datatype      sendtype;
+void             *recvbuf;
+int               recvcnt;
+MPI_Datatype      recvtype;
+MPI_Comm          comm;
+
+.fi
+
+.SH LOCATION
+ alltoall.c

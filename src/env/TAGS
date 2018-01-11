@@ -1,0 +1,103 @@
+
+abort.c,22
+int MPI_Abort(22,543
+
+abortf.c,23
+ void mpi_abort_(4,73
+
+errclass.c,28
+int MPI_Error_class(25,559
+
+errclassf.c,29
+ void mpi_error_class_(4,76
+
+errcreate.c,34
+int MPI_Errhandler_create(24,514
+
+errcreatef.c,35
+ void mpi_errhandler_create_(4,77
+
+errfree.c,32
+int MPI_Errhandler_free(21,435
+
+errfreef.c,33
+ void mpi_errhandler_free_(4,75
+
+errget.c,31
+int MPI_Errhandler_get(24,561
+
+errgetf.c,32
+ void mpi_errhandler_get_(4,74
+
+error_string.c,29
+int MPI_Error_string(25,593
+
+error_stringf.c,30
+ void mpi_error_string_(4,80
+
+errset.c,31
+int MPI_Errhandler_set(22,525
+
+errsetf.c,32
+ void mpi_errhandler_set_(4,74
+
+finalize.c,70
+#define DBGWORLD 12,264
+#define DBG(15,440
+int MPI_Finalize(20,519
+
+finalizef.c,26
+ void mpi_finalize_(4,76
+
+getpname.c,35
+int MPI_Get_processor_name(25,652
+
+getpnamef.c,36
+int mpi_get_processor_name_(18,401
+
+init.c,728
+#define DEBUG(21,497
+#define mpir_init_fdtes_ 24,560
+#define mpir_init_fcm_ 25,601
+#define mpir_init_fop_ 26,640
+#define mpir_init_flog_ 27,679
+#define mpir_init_bottom_ 28,719
+#define mpir_init_fdtes_ 32,786
+#define mpir_init_fcm_ 33,827
+#define mpir_init_fop_ 34,866
+#define mpir_init_flog_ 35,905
+#define mpir_init_bottom_ 36,945
+} MPI_FLOAT_INT_struct;MPI_FLOAT_INT_struct77,2206
+} MPI_DOUBLE_INT_struct;MPI_DOUBLE_INT_struct84,2345
+} MPI_LONG_INT_struct;MPI_LONG_INT_struct91,2485
+} MPI_SHORT_INT_struct;MPI_SHORT_INT_struct98,2620
+} MPI_LONG_DOUBLE_INT_struct;MPI_LONG_DOUBLE_INT_struct107,2917
+int MPI_Init(192,5675
+MPI_Datatype MPIR_Init_basic_datatype(508,18545
+void mpir_init_bottom_(537,19307
+
+initf.c,102
+#define mpir_iargc_ 17,361
+#define mpir_getarg_ 18,392
+#define DEBUG(22,461
+void mpi_init_(24,479
+
+initialize.c,28
+int MPI_Initialized(23,527
+
+initializef.c,29
+ void mpi_initialized_(4,78
+
+wtick.c,25
+double MPI_Wtick(20,436
+
+wtickf.c,49
+#define DEBUG_ALL4,70
+double  mpi_wtick_(7,116
+
+wtime.c,25
+double MPI_Wtime(25,616
+
+wtimef.c,49
+#define DEBUG_ALL4,70
+double  mpi_wtime_(7,116

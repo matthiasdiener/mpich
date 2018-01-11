@@ -1,0 +1,5 @@
+Recent changes to wrappergen
+ 
+Function names are no longer case insensitive.  No, I don't know why
+I initially decided to make them case insensitive.
+

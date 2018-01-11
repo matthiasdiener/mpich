@@ -1,0 +1,22 @@
+.TH MPID_Mysize 5 "10/10/1994" " " "ADI"
+.SH NAME
+MPID_Mysize \- Provides the number of processes
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B ctx 
+- ADI context returned by MPID_Init
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B size 
+- number of processes in the set of processes. 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+void MPID_Mysize( void * ctx, int *size )
+.fi

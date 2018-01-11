@@ -1,0 +1,3 @@
+This directory contains a translation to MPI by Tony Skjellum of the
+Mandelbrot program distributed with PVM.  xpx is used to view the generated
+graphics files.

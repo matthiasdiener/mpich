@@ -1,0 +1,48 @@
+#
+#  (C) 1993 by Argonne National Laboratory and Mississipi State University.
+#      All rights reserved.  See COPYRIGHT in top-level directory.
+#
+
+##### User configurable options #####
+
+ARCH        = @ARCH@
+COMM        = @COMM@
+BOPT        = @BOPT@
+P4_DIR      = @P4_DIR@
+TOOLS_DIR   = @TOOLS_DIR@
+MPIR_HOME   = @MPIR_HOME@
+CCC         = @CPP_COMPILER@
+CFLAGS	    = @CFLAGS@
+OPTFLAGS    = @OPTFLAGS@
+AR          = @AR@
+RANLIB      = @RANLIB@
+INCLUDE_DIR = @INCLUDE_PATH@ -I../../mpid/@DEVICE@ -I../../include
+
+### End User configurable options ###
+
+MPI_INCLUDE    = ../../include/mpi.h     ../../include/mpi_bc.h \
+                 ../../include/mpir.h    ../../include/mpi_ad.h \
+		 ../../include/mpisys.h  ../../include/mpi++.h \
+		 ../../include/binding.h ../../include/mpi++P.h
+
+CCFLAGS = $(CFLAGS) $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
+
+# default_all is the same as default, but without the RANLIB.  This
+# can speed up the build (ranlibs can take a LONG time).  profile_all 
+# is the same, but for the profile library
+default_all: global.o
+	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi++.a $?
+profile_all: 
+
+default: ../../lib/$(ARCH)/$(COMM)/libmpi++.a
+profile:
+
+global.o: global.C $(MPI_INCLUDE)
+	$(CCC) $(CCFLAGS) -c global.C
+
+../../lib/$(ARCH)/$(COMM)/libmpi++.a: global.o
+	$(AR) $@ $?
+	$(RANLIB) $@
+
+clean:
+	/bin/rm -f *.o *~

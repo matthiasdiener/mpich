@@ -1,0 +1,24 @@
+.TH MPI_Group_free 3 "9/13/1994" " " "MPI"
+.SH NAME
+MPI_Group_free \- Frees a group
+
+Input Parameter
+.PD 0
+.TP
+.B group 
+- group (handle) 
+.PD 1
+
+.SH NOTES
+On output, group is set to MPI_GROUP_NULL.
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Group_free ( group )
+MPI_Group *group;
+
+.fi
+
+.SH LOCATION
+ group_free.c

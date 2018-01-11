@@ -1,0 +1,105 @@
+.TH MPI_Intercomm_create 3 "10/24/1994" " " "MPI"
+.SH NAME
+MPI_Intercomm_create \- Creates an intercommuncator from two intracommunicators
+
+.SH INPUT PARAMTERS
+.PD 0
+.TP
+.B local_comm 
+- Local (intra)communicator
+.PD 1
+.PD 0
+.TP
+.B local_leader 
+- Rank in local_comm of leader (often 0)
+.PD 1
+.PD 0
+.TP
+.B peer_comm 
+- Remote (intra)communicator
+.PD 1
+.PD 0
+.TP
+.B remote_leader 
+- Rank in peer_comm of leader (often 0)
+.PD 1
+.PD 0
+.TP
+.B tag 
+- Message tag to use in constructing intercommunicator; if multiple
+.PD 1
+MPI_Intercomm_creates are being made, they should use different tags (more
+precisely, ensure that the local and remote leaders are using different
+tags for each MPI_intercomm_create).
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B comm_out 
+- Created intercommunicator
+.PD 1
+
+int MPI_Intercomm_create ( local_comm, local_leader, peer_comm,
+remote_leader, tag, comm_out )
+
+.SH ALGORITHM
+.PD 0
+.TP
+.B 1) 
+Allocate a send context, an inter-coll context, and an intra-coll context
+.PD 1
+.PD 0
+.TP
+.B 2) 
+Send "send_context" and lrank_to_grank list from local comm group 
+if I'm the local_leader.
+.PD 1
+.PD 0
+.TP
+.B 3) 
+If I'm the local leader, then wait on the posted sends and receives
+to complete.  Post the receive for the remote group information and
+wait for it to complete.
+.PD 1
+.PD 0
+.TP
+.B 4) 
+Broadcast information received from the remote leader.  
+.PD 1
+.PD 0
+.TP
+.B 5) 
+Create the inter_communicator from the information we now have.
+.PD 1
+.PD 0
+.TP
+.B An 
+inter-communicator ends up with three levels of communicators. 
+The inter-communicator returned to the user, a "collective" 
+inter-communicator that can be used for safe communications between
+local & remote groups, and a collective intra-communicator that can 
+be used to allocate new contexts during the merge and dup operations.
+.PD 1
+
+For the resulting inter-communicator, comm_out
+
+comm_out                       = inter-communicator
+comm_out->comm_coll            = "collective" inter-communicator
+comm_out->comm_coll->comm_coll = safe collective intra-communicator
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Intercomm_create ( local_comm, local_leader, peer_comm, 
+                           remote_leader, tag, comm_out )
+MPI_Comm  local_comm;
+int       local_leader;
+MPI_Comm  peer_comm;
+int       remote_leader;
+int       tag;
+MPI_Comm *comm_out;
+
+.fi
+
+.SH LOCATION
+ ic_create.c

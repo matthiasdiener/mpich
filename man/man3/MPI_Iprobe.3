@@ -1,0 +1,47 @@
+.TH MPI_Iprobe 3 "9/21/1994" " " "MPI"
+.SH NAME
+MPI_Iprobe \- Nonblocking test for a message
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B source 
+- source rank, or  MPI_ANY_SOURCE (integer) 
+.PD 1
+.PD 0
+.TP
+.B tag 
+- tag value or  MPI_ANY_TAG (integer) 
+.PD 1
+.PD 0
+.TP
+.B comm 
+- communicator (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B flag 
+- (logical) 
+.PD 1
+.PD 0
+.TP
+.B status 
+- status object (Status) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Iprobe( source, tag, comm, flag, status )
+int         source;
+int         tag;
+int         *flag;
+MPI_Comm    comm;
+MPI_Status  *status;
+
+.fi
+
+.SH LOCATION
+ iprobe.c

@@ -1,0 +1,49 @@
+.TH MPI_Group_range_excl 3 "9/30/1994" " " "MPI"
+.SH NAME
+MPI_Group_range_excl \- Produces a group by excluding ranges of processes from
+an existing group
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B group 
+- group (handle) 
+.PD 1
+.PD 0
+.TP
+.B n 
+- number of elements in array ranks (integer) 
+.PD 1
+.PD 0
+.TP
+.B ranges 
+- a one-dimensional 
+array of integer triplets of the
+form (first rank, last rank, stride), indicating the ranks in
+group  of processes to be excluded
+from the output group newgroup .  
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B newgroup 
+- new group derived from above, preserving the 
+order in group  (handle) 
+.PD 1
+
+.SH NOTE
+Currently, each of the ranks to exclude must be
+a valid rank in the group and all elements must be distinct or the
+function is erroneous.  This restriction is per the draft.
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Group_range_excl ( group, n, ranges, newgroup )
+MPI_Group group, *newgroup;
+int       n, ranges[][3];
+
+.fi
+
+.SH LOCATION
+ group_rexcl.c

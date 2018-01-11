@@ -1,0 +1,14 @@
+P4_HOME_DIR = ..
+INCLUDEDIR = $(P4_HOME_DIR)/include
+LIBDIR = $(P4_HOME_DIR)/lib
+
+LIBS = ../lib/libp4.a $(MDEP_LIBS) 
+
+default:$(P) 
+	
+all:$(P) 
+
+realclean: clean
+	$(RM) -f serv_p4 serv_p4 mergelogs adjlogs \
+		killiserv_p4 iserv_p4 killiserv_p4 \
+		listener_p4 Makefile P4Server.Log.*

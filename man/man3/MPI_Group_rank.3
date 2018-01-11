@@ -1,0 +1,30 @@
+.TH MPI_Group_rank 3 "7/13/1994" " " "MPI"
+.SH NAME
+MPI_Group_rank \- Returns the rank of this process in the given group
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B group 
+- group (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B rank 
+- rank of the calling process in group, or   MPI_UNDEFINED  if the 
+process is not a member (integer) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Group_rank ( group, rank )
+MPI_Group group;
+int *rank;
+
+.fi
+
+.SH LOCATION
+ group_rank.c

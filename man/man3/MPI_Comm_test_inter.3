@@ -1,0 +1,28 @@
+.TH MPI_Comm_test_inter 3 "7/13/1994" " " "MPI"
+.SH NAME
+MPI_Comm_test_inter \- Tests to see if a comm is an inter-communicator
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B comm 
+- communicator (handle) 
+Output Parameter:
+.PD 1
+.PD 0
+.TP
+.B flag 
+- (logical) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Comm_test_inter ( comm, flag )
+MPI_Comm  comm;
+int      *flag;
+
+.fi
+
+.SH LOCATION
+ comm_test_ic.c

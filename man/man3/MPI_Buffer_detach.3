@@ -1,0 +1,60 @@
+.TH MPI_Buffer_detach 3 "11/3/1994" " " "MPI"
+.SH NAME
+MPI_Buffer_detach \- Removes an existing buffer (for use in MPI_Bsend etc)
+
+.SH OUTPUT PARAMETERS
+.PD 0
+.TP
+.B buffer 
+- initial buffer address (choice) 
+.PD 1
+.PD 0
+.TP
+.B size 
+- buffer size, in bytes (integer) 
+.PD 1
+
+.SH NOTES
+The reason that MPI_Buffer_detach returns the address and size of the
+buffer being detached is to allow nested libraries to replace and restore
+the buffer.  For example, consider
+
+.br
+   int size, mysize, idummy;
+.br
+   void *ptr, *myptr, *dummy;     
+.br
+   MPI_Buffer_detach( &ptr, &size );
+.br
+   MPI_Buffer_attach( myptr, mysize );
+.br
+   ...
+.br
+   ... library code ...
+.br
+   ...
+.br
+   MPI_Buffer_detach( &dummy, &idummy );
+.br
+   MPI_Buffer_attach( ptr, size );
+.br
+This is much like the action of the Unix signal routine and has the same
+strengths (its simple) and weaknesses (it only works for nested usages).
+
+.SH NOTES FOR FORTRAN
+The Fortran binding for this routine is different.  Because Fortran
+does not have pointers, it is impossible to provide a way to use the
+output of this routine to exchange buffers.  In this case, only the
+size field is set.
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Buffer_detach( buffer, size )
+void **buffer;
+int  *size;
+
+.fi
+
+.SH LOCATION
+ buffree.c

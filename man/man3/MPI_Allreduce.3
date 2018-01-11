@@ -1,0 +1,53 @@
+.TH MPI_Allreduce 3 "7/26/1994" " " "MPI"
+.SH NAME
+MPI_Allreduce \- Combines values from all processes and distribute the result
+back to all processes
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B sendbuf 
+- starting address of send buffer (choice) 
+.PD 1
+.PD 0
+.TP
+.B count 
+- number of elements in send buffer (integer) 
+.PD 1
+.PD 0
+.TP
+.B datatype 
+- data type of elements of send buffer (handle) 
+.PD 1
+.PD 0
+.TP
+.B op 
+- operation (handle) 
+.PD 1
+.PD 0
+.TP
+.B comm 
+- communicator (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B recvbuf 
+- starting address of receive buffer (choice) 
+.PD 1
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Allreduce ( sendbuf, recvbuf, count, datatype, op, comm )
+void             *sendbuf;
+void             *recvbuf;
+int               count;
+MPI_Datatype      datatype;
+MPI_Op            op;
+MPI_Comm          comm;
+
+.fi
+
+.SH LOCATION
+ allreduce.c

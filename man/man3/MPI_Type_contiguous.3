@@ -1,0 +1,35 @@
+.TH MPI_Type_contiguous 3 "10/24/1994" " " "MPI"
+.SH NAME
+MPI_Type_contiguous \- Creates a contiguous datatype
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B count 
+- replication count (nonnegative integer) 
+.PD 1
+.PD 0
+.TP
+.B oldtype 
+- old datatype (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B newtype 
+- new datatype (handle) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Type_contiguous( count, old_type, newtype )
+int          count;
+MPI_Datatype old_type;
+MPI_Datatype *newtype;
+
+.fi
+
+.SH LOCATION
+ type_contig.c

@@ -1,0 +1,28 @@
+.TH MPI_Comm_rank 3 "7/13/1994" " " "MPI"
+.SH NAME
+MPI_Comm_rank \- Determines the rank of the calling process in the communicator
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B comm 
+- communicator (handle) 
+Output Parameter:
+.PD 1
+.PD 0
+.TP
+.B rank 
+- rank of the calling process in group of  comm  (integer) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Comm_rank ( comm, rank )
+MPI_Comm  comm;
+int      *rank;
+
+.fi
+
+.SH LOCATION
+ comm_rank.c

@@ -1,0 +1,21 @@
+.TH MPID_Test_recv 5 "10/10/1994" " " "ADI"
+.SH NAME
+MPID_Test_recv \- Tests for the completion of a recv request
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B ctx 
+- ADI context returned by MPID_Init
+.PD 1
+.PD 0
+.TP
+.B dmpi_recv_handle 
+- API's recv handle
+.PD 1
+
+.SH RETURN VALUE
+True (!= 0) if the request has completed, False (0) otherwise.
+
+.SH NOTES
+Unimplemented at present

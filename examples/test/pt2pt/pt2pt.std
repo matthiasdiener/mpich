@@ -1,0 +1,357 @@
+*** sendrecv ***
+[sendrecv]: Test 'Send-Receive Test, Type 0' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 1' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 2' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 3' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 4' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 5' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 6' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 7' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 8' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 9' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 10' Passed.
+[sendrecv]: Test 'Tag Selectivity Test' Passed.
+[sendrecv]: Test 'NULL Communicator Test' Passed.
+[sendrecv]: Test 'Invalid Count Test' Passed.
+[sendrecv]: Test 'Invalid Type Test' Passed.
+[sendrecv]: Test 'Invalid Tag Test' Passed.
+[sendrecv]: Test 'Invalid Destination Test' Passed.
+[sendrecv]: Test 'Invalid Buffer Test (send)' Passed.
+[sendrecv]: Test 'Invalid Buffer Test (recv)' Passed.
+For test suite 'sendrecv':
+Of 19 attempted tests, 19 passed, 0 failed.
+Message of count 0, type 0 received correctly.
+Message of count 500, type 0 received correctly.
+Message of count 1000, type 0 received correctly.
+Message of count 1500, type 0 received correctly.
+Message of count 2000, type 0 received correctly.
+Message of count 2500, type 0 received correctly.
+Message of count 3000, type 0 received correctly.
+Message of count 3500, type 0 received correctly.
+Message of count 4000, type 0 received correctly.
+Message of count 4500, type 0 received correctly.
+Message of count 5000, type 0 received correctly.
+Message of count 5500, type 0 received correctly.
+Message of count 6000, type 0 received correctly.
+Message of count 6500, type 0 received correctly.
+Message of count 7000, type 0 received correctly.
+Message of count 7500, type 0 received correctly.
+Message of count 8000, type 0 received correctly.
+Message of count 8500, type 0 received correctly.
+Message of count 9000, type 0 received correctly.
+Message of count 9500, type 0 received correctly.
+Message of count 0, type 1 received correctly.
+Message of count 500, type 1 received correctly.
+Message of count 1000, type 1 received correctly.
+Message of count 1500, type 1 received correctly.
+Message of count 2000, type 1 received correctly.
+Message of count 2500, type 1 received correctly.
+Message of count 3000, type 1 received correctly.
+Message of count 3500, type 1 received correctly.
+Message of count 4000, type 1 received correctly.
+Message of count 4500, type 1 received correctly.
+Message of count 5000, type 1 received correctly.
+Message of count 5500, type 1 received correctly.
+Message of count 6000, type 1 received correctly.
+Message of count 6500, type 1 received correctly.
+Message of count 7000, type 1 received correctly.
+Message of count 7500, type 1 received correctly.
+Message of count 8000, type 1 received correctly.
+Message of count 8500, type 1 received correctly.
+Message of count 9000, type 1 received correctly.
+Message of count 9500, type 1 received correctly.
+Message of count 0, type 2 received correctly.
+Message of count 500, type 2 received correctly.
+Message of count 1000, type 2 received correctly.
+Message of count 1500, type 2 received correctly.
+Message of count 2000, type 2 received correctly.
+Message of count 2500, type 2 received correctly.
+Message of count 3000, type 2 received correctly.
+Message of count 3500, type 2 received correctly.
+Message of count 4000, type 2 received correctly.
+Message of count 4500, type 2 received correctly.
+Message of count 5000, type 2 received correctly.
+Message of count 5500, type 2 received correctly.
+Message of count 6000, type 2 received correctly.
+Message of count 6500, type 2 received correctly.
+Message of count 7000, type 2 received correctly.
+Message of count 7500, type 2 received correctly.
+Message of count 8000, type 2 received correctly.
+Message of count 8500, type 2 received correctly.
+Message of count 9000, type 2 received correctly.
+Message of count 9500, type 2 received correctly.
+Message of count 0, type 3 received correctly.
+Message of count 500, type 3 received correctly.
+Message of count 1000, type 3 received correctly.
+Message of count 1500, type 3 received correctly.
+Message of count 2000, type 3 received correctly.
+Message of count 2500, type 3 received correctly.
+Message of count 3000, type 3 received correctly.
+Message of count 3500, type 3 received correctly.
+Message of count 4000, type 3 received correctly.
+Message of count 4500, type 3 received correctly.
+Message of count 5000, type 3 received correctly.
+Message of count 5500, type 3 received correctly.
+Message of count 6000, type 3 received correctly.
+Message of count 6500, type 3 received correctly.
+Message of count 7000, type 3 received correctly.
+Message of count 7500, type 3 received correctly.
+Message of count 8000, type 3 received correctly.
+Message of count 8500, type 3 received correctly.
+Message of count 9000, type 3 received correctly.
+Message of count 9500, type 3 received correctly.
+Message of count 0, type 4 received correctly.
+Message of count 500, type 4 received correctly.
+Message of count 1000, type 4 received correctly.
+Message of count 1500, type 4 received correctly.
+Message of count 2000, type 4 received correctly.
+Message of count 2500, type 4 received correctly.
+Message of count 3000, type 4 received correctly.
+Message of count 3500, type 4 received correctly.
+Message of count 4000, type 4 received correctly.
+Message of count 4500, type 4 received correctly.
+Message of count 5000, type 4 received correctly.
+Message of count 5500, type 4 received correctly.
+Message of count 6000, type 4 received correctly.
+Message of count 6500, type 4 received correctly.
+Message of count 7000, type 4 received correctly.
+Message of count 7500, type 4 received correctly.
+Message of count 8000, type 4 received correctly.
+Message of count 8500, type 4 received correctly.
+Message of count 9000, type 4 received correctly.
+Message of count 9500, type 4 received correctly.
+Message of count 0, type 5 received correctly.
+Message of count 500, type 5 received correctly.
+Message of count 1000, type 5 received correctly.
+Message of count 1500, type 5 received correctly.
+Message of count 2000, type 5 received correctly.
+Message of count 2500, type 5 received correctly.
+Message of count 3000, type 5 received correctly.
+Message of count 3500, type 5 received correctly.
+Message of count 4000, type 5 received correctly.
+Message of count 4500, type 5 received correctly.
+Message of count 5000, type 5 received correctly.
+Message of count 5500, type 5 received correctly.
+Message of count 6000, type 5 received correctly.
+Message of count 6500, type 5 received correctly.
+Message of count 7000, type 5 received correctly.
+Message of count 7500, type 5 received correctly.
+Message of count 8000, type 5 received correctly.
+Message of count 8500, type 5 received correctly.
+Message of count 9000, type 5 received correctly.
+Message of count 9500, type 5 received correctly.
+Message of count 0, type 6 received correctly.
+Message of count 500, type 6 received correctly.
+Message of count 1000, type 6 received correctly.
+Message of count 1500, type 6 received correctly.
+Message of count 2000, type 6 received correctly.
+Message of count 2500, type 6 received correctly.
+Message of count 3000, type 6 received correctly.
+Message of count 3500, type 6 received correctly.
+Message of count 4000, type 6 received correctly.
+Message of count 4500, type 6 received correctly.
+Message of count 5000, type 6 received correctly.
+Message of count 5500, type 6 received correctly.
+Message of count 6000, type 6 received correctly.
+Message of count 6500, type 6 received correctly.
+Message of count 7000, type 6 received correctly.
+Message of count 7500, type 6 received correctly.
+Message of count 8000, type 6 received correctly.
+Message of count 8500, type 6 received correctly.
+Message of count 9000, type 6 received correctly.
+Message of count 9500, type 6 received correctly.
+Message of count 0, type 7 received correctly.
+Message of count 500, type 7 received correctly.
+Message of count 1000, type 7 received correctly.
+Message of count 1500, type 7 received correctly.
+Message of count 2000, type 7 received correctly.
+Message of count 2500, type 7 received correctly.
+Message of count 3000, type 7 received correctly.
+Message of count 3500, type 7 received correctly.
+Message of count 4000, type 7 received correctly.
+Message of count 4500, type 7 received correctly.
+Message of count 5000, type 7 received correctly.
+Message of count 5500, type 7 received correctly.
+Message of count 6000, type 7 received correctly.
+Message of count 6500, type 7 received correctly.
+Message of count 7000, type 7 received correctly.
+Message of count 7500, type 7 received correctly.
+Message of count 8000, type 7 received correctly.
+Message of count 8500, type 7 received correctly.
+Message of count 9000, type 7 received correctly.
+Message of count 9500, type 7 received correctly.
+Message of count 0, type 8 received correctly.
+Message of count 500, type 8 received correctly.
+Message of count 1000, type 8 received correctly.
+Message of count 1500, type 8 received correctly.
+Message of count 2000, type 8 received correctly.
+Message of count 2500, type 8 received correctly.
+Message of count 3000, type 8 received correctly.
+Message of count 3500, type 8 received correctly.
+Message of count 4000, type 8 received correctly.
+Message of count 4500, type 8 received correctly.
+Message of count 5000, type 8 received correctly.
+Message of count 5500, type 8 received correctly.
+Message of count 6000, type 8 received correctly.
+Message of count 6500, type 8 received correctly.
+Message of count 7000, type 8 received correctly.
+Message of count 7500, type 8 received correctly.
+Message of count 8000, type 8 received correctly.
+Message of count 8500, type 8 received correctly.
+Message of count 9000, type 8 received correctly.
+Message of count 9500, type 8 received correctly.
+Message of count 0, type 9 received correctly.
+Message of count 500, type 9 received correctly.
+Message of count 1000, type 9 received correctly.
+Message of count 1500, type 9 received correctly.
+Message of count 2000, type 9 received correctly.
+Message of count 2500, type 9 received correctly.
+Message of count 3000, type 9 received correctly.
+Message of count 3500, type 9 received correctly.
+Message of count 4000, type 9 received correctly.
+Message of count 4500, type 9 received correctly.
+Message of count 5000, type 9 received correctly.
+Message of count 5500, type 9 received correctly.
+Message of count 6000, type 9 received correctly.
+Message of count 6500, type 9 received correctly.
+Message of count 7000, type 9 received correctly.
+Message of count 7500, type 9 received correctly.
+Message of count 8000, type 9 received correctly.
+Message of count 8500, type 9 received correctly.
+Message of count 9000, type 9 received correctly.
+Message of count 9500, type 9 received correctly.
+Message of count 0, type 10 received correctly.
+Message of count 500, type 10 received correctly.
+Message of count 1000, type 10 received correctly.
+Message of count 1500, type 10 received correctly.
+Message of count 2000, type 10 received correctly.
+Message of count 2500, type 10 received correctly.
+Message of count 3000, type 10 received correctly.
+Message of count 3500, type 10 received correctly.
+Message of count 4000, type 10 received correctly.
+Message of count 4500, type 10 received correctly.
+Message of count 5000, type 10 received correctly.
+Message of count 5500, type 10 received correctly.
+Message of count 6000, type 10 received correctly.
+Message of count 6500, type 10 received correctly.
+Message of count 7000, type 10 received correctly.
+Message of count 7500, type 10 received correctly.
+Message of count 8000, type 10 received correctly.
+Message of count 8500, type 10 received correctly.
+Message of count 9000, type 10 received correctly.
+Message of count 9500, type 10 received correctly.
+There should be seven error messages about invalid communicator
+count argument, datatype argument, tag, rank, buffer send and buffer recv
+0 -  File: send.c   Line: 49
+0 - Error in MPI_SEND : Invalid communicator
+0 -  File: send.c   Line: 49
+0 - Error in MPI_SEND : Invalid count argument
+0 -  File: send.c   Line: 49
+0 - Error in MPI_SEND : Invalid datatype argument
+0 -  File: send.c   Line: 49
+0 - Error in MPI_SEND : Invalid message tag
+0 -  File: send.c   Line: 49
+0 - Error in MPI_SEND : Invalid rank
+0 -  File: send.c   Line: 56
+0 - Error in MPI_SEND : Invalid buffer pointer
+0 -  File: recv.c   Line: 73
+0 - Error in MPI_RECV : Invalid buffer pointer
+*** isndrcv ***
+[isndrcv]: Test 'Send-Receive Test, Type 0' Passed.
+[isndrcv]: Test 'Send-Receive Test, Type 1' Passed.
+[isndrcv]: Test 'Send-Receive Test, Type 2' Passed.
+[isndrcv]: Test 'Send-Receive Test, Type 3' Passed.
+[isndrcv]: Test 'Send-Receive Test, Type 4' Passed.
+[isndrcv]: Test 'Send-Receive Test, Type 5' Passed.
+[isndrcv]: Test 'Send-Receive Test, Type 6' Passed.
+[isndrcv]: Test 'Send-Receive Test, Type 7' Passed.
+[isndrcv]: Test 'Send-Receive Test, Type 8' Passed.
+[isndrcv]: Test 'Send-Receive Test, Type 9' Passed.
+[isndrcv]: Test 'Send-Receive Test, Type 10' Passed.
+[isndrcv]: Test 'Tag Selectivity Test' Passed.
+[isndrcv]: Test 'NULL Communicator Test' Passed.
+[isndrcv]: Test 'Invalid Count Test' Passed.
+[isndrcv]: Test 'Invalid Type Test' Passed.
+[isndrcv]: Test 'Invalid Tag Test' Passed.
+[isndrcv]: Test 'Invalid Destination Test' Passed.
+For test suite 'isndrcv':
+Of 17 attempted tests, 17 passed, 0 failed.
+0 -  File: create_send.c   Line: 39
+0 - Error in MPI_SEND_INIT : Invalid communicator
+0 -  File: create_send.c   Line: 39
+0 - Error in MPI_SEND_INIT : Invalid count argument
+0 -  File: create_send.c   Line: 39
+0 - Error in MPI_SEND_INIT : Invalid datatype argument
+0 -  File: create_send.c   Line: 39
+0 - Error in MPI_SEND_INIT : Invalid message tag
+0 -  File: create_send.c   Line: 39
+0 - Error in MPI_SEND_INIT : Invalid rank
+*** overtake ***
+[overtake]: Test 'Overtaking Test (Normal Send   -> Normal Recieve)' Passed.
+[overtake]: Test 'Overtaking Test (Normal Send   ->  Async Receive)' Passed.
+[overtake]: Test 'Overtaking Test (Buffered Send -> Normal Recieve)' Passed.
+[overtake]: Test 'Overtaking Test (Buffered Send ->  Async Receive)' Passed.
+[overtake]: Test 'Overtaking Test (Async Send    -> Normal Receive)' Passed.
+[overtake]: Test 'Overtaking Test (Async Send    ->  Async Receive)' Passed.
+For test suite 'overtake':
+Of 6 attempted tests, 6 passed, 0 failed.
+*** typetest ***
+[typetest]: Test 'Complex Type Round Trip Test' Passed.
+[typetest]: Test 'Compatible Complex Type Round Trip Test' Passed.
+[typetest]: Test 'Type Free test' Passed.
+For test suite 'typetest':
+Of 3 attempted tests, 3 passed, 0 failed.
+*** third ***
+1 sent :First message, type 2001:
+1 sent :Second message, type 2002:
+Process 1 exiting
+Status info: source = 1, tag = 2002, count = 26
+0 received :Second message, type 2002:
+Status info: source = 1, tag = 2001, count = 25
+0 received :First message, type 2001:
+Process 0 exiting
+*** fourth ***
+*** fifth ***
+*** sixth ***
+Successful
+Successful
+*** hvectest ***
+Status info: source = 1, tag = 2001, count = 10
+Status info: source = 1, tag = 2001, count = 10
+Status info: source = 1, tag = 2001, count = 10
+Status info: source = 1, tag = 2001, count = 10
+Status info: source = 1, tag = 2001, count = 10
+Status info: source = 1, tag = 2001, count = 10
+*** hvectest2 ***
+Status info: source = 0, tag = 2001, count = 10
+Status info: source = 0, tag = 2001, count = 10
+Status info: source = 0, tag = 2001, count = 10
+Status info: source = 0, tag = 2001, count = 10
+Status info: source = 0, tag = 2001, count = 10
+Status info: source = 0, tag = 2001, count = 10
+*** probe ***
+About to receive
+About to send
+*** probe1 ***
+About to receive
+Received terminate message
+About to send
+About to send 'done'
+*** testtest1 ***
+Received terminate message
+About to send
+About to send 'done'
+FORTRAN TESTS
+*** allpair ***
+    Send
+    Rsend
+    Ssend
+    Isend
+    Irsend
+    Issend
+    Send_init
+    Rsend_init
+    Ssend_init
+    Sendrecv
+    Sendrecv_replace
+END OF FORTRAN TESTS

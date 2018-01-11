@@ -1,0 +1,63 @@
+.TH MPI_Reduce 3 "11/23/1994" " " "MPI"
+.SH NAME
+MPI_Reduce \- Reduces values on all processes to a single value
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B sendbuf 
+- address of send buffer (choice) 
+.PD 1
+.PD 0
+.TP
+.B count 
+- number of elements in send buffer (integer) 
+.PD 1
+.PD 0
+.TP
+.B datatype 
+- data type of elements of send buffer (handle) 
+.PD 1
+.PD 0
+.TP
+.B op 
+- reduce operation (handle) 
+.PD 1
+.PD 0
+.TP
+.B root 
+- rank of root process (integer) 
+.PD 1
+.PD 0
+.TP
+.B comm 
+- communicator (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B recvbuf 
+- address of receive buffer (choice, 
+significant only at root) 
+.PD 1
+
+.SH ALGORITHM
+This implementation currently uses a simple tree algorithm.
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Reduce ( sendbuf, recvbuf, count, datatype, op, root, comm )
+void             *sendbuf;
+void             *recvbuf;
+int               count;
+MPI_Datatype      datatype;
+MPI_Op            op;
+int               root;
+MPI_Comm          comm;
+
+.fi
+
+.SH LOCATION
+ reduce.c

@@ -1,0 +1,28 @@
+.TH MPID_Check_device 5 "10/10/1994" " " "ADI"
+.SH NAME
+MPID_Check_device \- Checks for pending operations, handles if found
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B blocking 
+- Indicates whether the operation is blocking or not.  The
+values MPID_BLOCKING and MPID_NOT_BLOCKING can be used.
+.PD 1
+.PD 0
+.TP
+.B ctx 
+- ADI context returned by MPID_Init
+.PD 1
+
+.SH SYNOPSIS
+.nf
+void MPID_Check_device( void * ctx, int blocking )
+.fi
+
+.SH NOTES
+This routine should be called by the API frequently IF the ADI requires
+it.  For example, if the ADI is not a separate thread and does not use
+signals to operate asynchronously.
+
+Some ADI routines may also use this to process pending ADI events.

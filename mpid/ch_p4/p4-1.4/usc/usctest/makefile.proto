@@ -1,0 +1,21 @@
+P4_HOME_DIR = ../..
+LIBDIR = $(P4_HOME_DIR)/lib
+LIBS =  $(MDEP_LIBS)
+INCLUDEDIR = /usr/include
+
+USER_CFLAGS = -I$(INCLUDEDIR) -D$(P4ARCH)
+
+default:
+
+usctest: usctest.o
+	$(CLINKER) $(CFLAGS) -o usctest usctest.o ../usc.o $(LIBS)
+
+usctest2: usctest2.o
+	$(CLINKER) $(CFLAGS) -o usctest2 usctest2.o ../usc.o $(LIBS)
+
+capcell: capcell.o
+	$(CLINKER) $(CFLAGS) -o capcell capcell.o ../usc.o $(LIBS)
+
+realclean:	clean
+	$(RM) -f *~ *.o usctest usctest2 capcell Makefile
+

@@ -1,0 +1,23 @@
+.TH MPI_Cancel 3 "9/21/1994" " " "MPI"
+.SH NAME
+MPI_Cancel \- Cancels a communication request
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B request 
+- communication request (handle) 
+.PD 1
+
+.SH NOTE
+Cancel has not been implemented yet.
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Cancel( request )
+MPI_Request *request;
+
+.fi
+
+.SH LOCATION
+ cancel.c

@@ -1,0 +1,35 @@
+#! /bin/sh
+#
+# This script derives the CMMD routines from the Chameleon ones.  Some editing 
+# of the files may be required after this process, but the goal is to 
+# fully automate this process.
+#
+/bin/cp ../chameleon/*.c .
+sed -e '/#define DEVICE_CHAMELEON/d' \
+    -e 's/MPID_CH/MPID_CMMD/g' \
+    -e 's%"Chameleon"%"TMC cm5/cmmd"%g' \
+    -e 's%/\* #CMMD DECLARATION# \*/%#include <cm/cmmd.h>%g' \
+	 ../chameleon/dmch.h > dmcmmd.h
+
+sed -e 's/MPID_CH/MPID_CMMD/g' ../chameleon/mpid_bind.h > mpid_bind.h
+sed -e 's/MPID_CH/MPID_CMMD/g' ../chameleon/packets.h > packets.h
+../chameleon/rmhetero ../chameleon/chevent.c > cmmdevent.c
+../chameleon/rmhetero ../chameleon/chrecv.c  > cmmdrecv.c
+../chameleon/rmhetero ../chameleon/chsend.c  > cmmdsend.c
+../chameleon/rmhetero ../chameleon/chinit.c  | \
+    sed -e 's%/\* #CMMD DECLARATION# \*/%#include <sys/file.h>%g' > cmmdinit.c
+../chameleon/rmhetero ../chameleon/chprobe.c > cmmdprobe.c
+../chameleon/rmhetero ../chameleon/chsync.c  > cmmdsync.c
+chmod ug+w *.[ch]
+/home/gropp/tools.n/bin/inlinecomm -main -quiet -cm5 cmmdinit.c
+for file in cmmdevent.c cmmdrecv.c cmmdsend.c cmmdprobe.c cmmdsync.c \
+	dmcmmd.h packets.h ; do
+    /home/gropp/tools.n/bin/inlinecomm -quiet -cm5 $file
+done
+#
+# Change the names MPID_CH to MPID_CMMD
+/bin/rm -f .tmp
+for file in *.c ; do
+    sed -e 's/MPID_CH/MPID_CMMD/g' $file > .tmp
+    mv .tmp $file
+done

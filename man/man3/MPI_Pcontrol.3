@@ -1,0 +1,25 @@
+.TH MPI_Pcontrol 3 "7/13/1994" " " "MPI"
+.SH NAME
+MPI_Pcontrol \- Controls profiling
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B level 
+- Profiling level 
+.PD 1
+
+.SH NOTES
+This routine provides a common interface for profiling control.  The
+interpretation of "level" and any other arguments is left to the
+profiling library.
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Pcontrol( level )
+int level;
+
+.fi
+
+.SH LOCATION
+ pcontrol.c

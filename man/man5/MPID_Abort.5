@@ -1,0 +1,25 @@
+.TH MPID_Abort 5 "10/10/1994" " " "ADI"
+.SH NAME
+MPID_Abort \- Terminates a parallel program
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B code 
+- Value to return to invocation environment as exit status
+.PD 1
+.PD 0
+.TP
+.B ctx 
+- ADI context returned by MPID_Init
+.PD 1
+
+.SH SYNOPSIS
+.nf
+void MPID_Abort( void * ctx, int code )
+.fi
+
+.SH NOTES
+This call terminates all processes in a parallel program.
+
+It is not always possible to return code as the status.

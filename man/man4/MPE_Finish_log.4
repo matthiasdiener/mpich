@@ -1,0 +1,17 @@
+.TH MPE_Finish_log 4 "11/1/1994" " " "MPE"
+.SH NAME
+MPE_Finish_log \- Send log to master, who writes it out
+
+.SH NOTES
+This routine dumps a logfile in alog format
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+int MPE_Finish_log( filename )
+char *filename;
+
+.fi
+
+.SH LOCATION
+ mpe_log.c

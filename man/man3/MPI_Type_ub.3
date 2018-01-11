@@ -1,0 +1,29 @@
+.TH MPI_Type_ub 3 "9/21/1994" " " "MPI"
+.SH NAME
+MPI_Type_ub \- Returns the upper bound of a datatype
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B datatype 
+- datatype (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B displacement 
+- displacement of upper bound from origin, 
+in bytes (integer) 
+.PD 1
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Type_ub ( datatype, displacement )
+MPI_Datatype  datatype;
+MPI_Aint      *displacement;
+
+.fi
+
+.SH LOCATION
+ type_ub.c

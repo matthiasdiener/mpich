@@ -1,0 +1,23 @@
+.TH MPI_Keyval_free 3 "11/8/1994" " " "MPI"
+.SH NAME
+MPI_Keyval_free \- Frees attribute key for communicator cache attribute
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B keyval 
+- Frees the integer key value (integer) 
+.PD 1
+
+.SH NOTE
+Key values are global (they can be used with any and all communicators)
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Keyval_free ( keyval )
+int *keyval;
+
+.fi
+
+.SH LOCATION
+ keyval_free.c

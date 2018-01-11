@@ -1,0 +1,5 @@
+#! /bin/sh
+#
+# Take the input file name and remove code for heterogeneous processing, 
+#  writing to stdout
+sed -e '/#HETERO_START#/,/#HETERO_END#/d' $1

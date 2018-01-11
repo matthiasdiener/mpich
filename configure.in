@@ -1,0 +1,1434 @@
+dnl This is an autoconf script.
+dnl To rebuild the `configure' script from this, execute the command
+dnl 	autoconf
+dnl in the directory containing this script.  You must have autoconf
+dnl version 1.4 or later.
+dnl
+dnl The following text appears in the resulting `configure' script,
+dnl explaining how to rebuild it.
+[#!/bin/sh
+# Guess values for system-dependent variables and create Makefiles.
+# Generated automatically using autoconf.
+# Copyright (C) 1991, 1992, 1993 Free Software Foundation, Inc.
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2, or (at your option)
+# any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+progname="`echo $0 | sed 's:^\./\./:\./:'`"
+usage_msg="
+Usage: ${progname} -arch=ARCH_TYPE -comm=COMM_TYPE -device=DEVICE
+		   [-devicedir=DEVICE_DIR] [-transportdir=TRANSPORT_DIR]
+                   [-prefix=INSTALL_DIR]  [-c++=C++_COMPILER]
+                   [-mpe] [-nof77] [-opt=OPTFLAGS] [-make=MAKEPGM]
+                   [-no_mpegraphics] [-no_short_longs]
+                   [-nodevdebug] [-use_rndv] [-pre_post] [-pre_alloc]
+		   [-var_pkt] [-pkt_size=LENGTH] [-compressed_pkt]
+                   [-limited_buffers] [-tiny_buffers] [-adi_collective]
+                   [-wish=WISH] [-tcldir=TCLDIR] [-tkdir=TKDIR]
+                   [-fortnames=FORTRANNAMES]
+where
+   ARCH_TYPE    = the type of machine that MPI is to be configured for
+   COMM_TYPE    = communications layer to be used
+   DEVICE       = communications device to be used
+   INSTALL_DIR  = directory where MPI will be installed (optional)
+   DEVICE_DIR   = directory that MPI's ADI code needs (optional)
+   TRANSPORT_DIR= directory that MPI's ADI code needs (optional)
+   C++_COMPILER = default is to use g++ (optional)
+   OPTFLAGS     = optimization flags to give the compilers (e.g. -g)
+   MAKEPGM      = version of make to use
+   LENGTH       = Length of message at which ADI switches from short
+                  to long message protocol
+   WISH         = Name of tcl/tk wish executable.  Configure will attempt
+                  to find a version of wish for you, but if there is
+                  no wish in your path or you need to use a different version,
+                  use this option.  Used only for the display tools.
+   TCLDIR       = Directory containing tcl.  Must have lib/libtcl.a and
+                  include/tcl.h .  Used only for nupshot.
+   TKDIR        = Directory containing tk 3.3 or later.  Must have lib/libtk.a
+                  and include/tk.h .  Used only for nupshot.  May be
+                  the same as TCLDIR.
+   FORTRANNAMES = Form of the Fortran names.  See below.
+
+One and only one 'arch', 'comm', and 'prefix' argument should be
+provided.  'arch' MUST be specified before 'comm'.
+
+If '-c++' is included as an option, then the C++ interface is also
+built.  By default, g++ is used as the c++ compiler.  THIS IS CURRENTLY
+UNSUPPORTED.
+
+If '-mpe' is included as an option, then the MPE 'helper' libraries will
+also be built.  If '-no_mpegraphics' is used, then the MPE routines that
+make use of X11 graphics will NOT be built; this is appropriate for
+systems that either do not have the X11 include files or that do not
+support X11 graphics (some message-passing systems can not interoperate
+with X11).
+
+The option '-mpedbg' enables the '-mpedbg' command line switch in MPI
+programs.  When used with an MPI program, the default error handler
+(i.e., MPI_COMM_WORLD's error handler) tries to start xterm's running
+dbx for each process that detects an error.  This option is intended
+primarily for workstation environments but should work on some MPPs
+(such as IBM SP2).
+
+The option '-nof77' prevents the compilation of routines that require a
+Fortran compiler.  If this option is selected, you may not use the
+Fortran interface to MPI.
+
+The option '-opt' allows you to specify options for the compilers (both
+C and Fortran).  For example, '-opt=-O' chooses optimized code
+generation on many systems.
+
+The option '-make' may be used to select an alternate make program.  For
+example, on FreeBSD systems, -make=gnumake may be required because of
+bugs in the system make.
+
+The option '-no_short_longs' may be used to suppress support for ANSI C
+types 'long long int' and 'long double' when they are the same size as
+'long' and 'double' respectively.  Some systems allow these long ANSI C
+types, but generate a warning message when they are used; this option
+may be used to suppress these messages (and support for these types).
+
+The option '-fortnames=FORTRANNAMES' allows you to specify the form of the
+Fortran names.  This is used primarily to generate names with and without 
+trailing underscores for those systems that support both.  Not yet 
+implemented.
+
+
+Special Tuning Options:
+
+There are a number of options for tuning the behavoir of the ADI
+(Abstract Device Interface) which is the low-level message-passing
+interface.  These should NOT be used unless you are sure you know what
+you are doing.
+
+The option '-nodevdebug' disables the debugging code in the MPI ADI
+code.  This should be used only when you are sure that everything is
+working correctly.  (This option is also present to remind benchmarkers
+that the low level code by default may contain debugging code.)  Note
+also that some of the device code (in mpid/*) has had the debugging code
+removed from the source code.
+
+The option '-use_rndv' directs MPICH to use a rendevous protocol rather
+than an eager protocol in sending messages.  This option is provided
+mostly for debugging purposes; a good default is provided for each
+system (not yet implemented)
+
+The option '-pre_post' directs MPICH to 'pre-post' a receive for
+incoming messages.  This can improve performance for some applications
+and make performance worse for others.  It is expected that the effect
+will often be small.  Not yet tested.
+
+The option '-pre_alloc' directs MPICH to 'pre-allocate' a message buffer
+into which incoming control data can be received.  With the p4 transport
+(with either -device=ch_p4 or -device=chameleon and -comm=p4), this may
+help reduce memory copy overhead.  -pre_alloc and -pre_post are mutually
+exclusive.  Not yet tested.
+
+The option '-var_pkt' allows you to set the message size at which MPICH
+changes from its short to long message protocol.
+
+The option '-compressed_pkt' allows you to choose a 'compressed' packet
+format; this slightly reduces the size of the message 'envelope', and,
+on systems with relatively slow communications, provide slightly better
+performance.  Not yet tested.
+
+The option '-pkt_size=LENGTH' allows you to choose the message length at
+which the ADI (Abstract Device Interface) switches from its short to
+long message format.
+
+The option '-limited_buffers' forces the ADI to be more conservative in
+its use of the underlying message-passing system's buffer space.  Some
+applications on some systems may need this; however, it can degrade
+performance.  The option '-tiny_buffers' is even more extreme; it is needed
+on systems that provide very small amounts on internal buffering.  Both
+of these options can be specified with a leading 'no' as in '-notiny_buffers'
+to override the choice for those systems that need them.
+
+The option '-adi_collective' allows the ADI to provide some collective
+operations in addition to the basic point-to-point operations.
+Currently, most systems do not support this option (it is ignored) and
+on the others it has not been extensively tested.
+
+
+Sample Configure Usage:
+
+To make for running on sun4's running SunOS with ch_p4 as the device,
+ and with the installation directory equal to the current directory:
+
+  ./configure -device=ch_p4 -arch=sun4
+  make
+
+Known devices are chameleon, 
+        ch_nx     (native Intel NX calls), 
+        ch_eui    (native IBM EUI or MPL calls),
+        ch_mpl    (synonym for ch_eui)
+        ch_nc     (native nCUBE calls, requires -arch=ncube),
+        ch_cmmd   (native TMC CM-5 CMMD calls), and
+        ch_p4     (p4)
+        ch_meiko  (For Meiko CS2, using NX compatibility library,
+                   the intent is to make this use Elan eventually)
+
+Known architectures include
+        sun4      (SUN OS 4.x)
+        solaris   (Solaris; probably 2.3 (untested))
+        hpux      (HP UX)
+        rs6000    (AIX for IBM RS6000)
+        sgi       (Silicon Graphics IRIX 4.x, 5.x or 6.x)
+        IRIX      (synonym for sgi)
+        alpha     (DEC alpha)
+        intelnx   (Intel i860 or Intel Delta)
+        paragon   (Intel Paragon)
+        meiko     (Meiko CS2)
+        CRAY      (CRAY XMP, YMP, C90)
+        cray_t3d  (CRAY T3D (untested))
+        freebsd   (PC clones running FreeBSD)
+        ksr       (Kendall Square KSR1 and KSR2)
+
+Special notes:
+For -arch=IRIX -device=ch_p4, setting -comm=shared will enable the shared
+memory implementation of the p4 code in the low-level device.
+
+Others may be recognized.
+"
+ARCH=""
+CPP_DIR=""
+LIB_PATH=""
+FLIB_PATH=""
+OPTFLAGS="-g"
+NOF77=0
+NOSHORTLONGS=0
+HAS_FORTRAN=1
+MPI_FOBJECTS="\$(MPI_FOBJECTS)"
+CFLAGS=""
+MPE_GRAPHICS="-DMPE_GRAPHICS"
+MPE_DIR=""
+MAKE=make
+P4_MDEPCFLAGS=""
+PREFIX=""
+DEVCFLAGS=""
+CONFIGURE_ARGS="$*"
+# This next variable is a version without quotes.
+# We could also consider `echo $a | sed -e 's/"/\\"/g'`
+CONFIGURE_ARGS_CLEAN=`echo $* | tr '"' ' '`
+echo "Configuring with args $CONFIGURE_ARGS"
+#
+# IS_HETERO is set if the device supports heterogeneous machines.
+# This requires additional coding, including checking for XDR
+IS_HETERO=0
+for arg
+do
+  # Handle --exec-prefix with a space before the argument.
+  if test x$next_exec_prefix = xyes; then exec_prefix=$arg; next_exec_prefix=
+  # Handle --host with a space before the argument.
+  elif test x$next_host = xyes; then next_host=
+  # Handle --prefix with a space before the argument.
+  elif test x$next_prefix = xyes; then prefix=$arg; next_prefix=
+  # Handle --srcdir with a space before the argument.
+  elif test x$next_srcdir = xyes; then srcdir=$arg; next_srcdir=
+  else
+    case $arg in
+     # For backward compatibility, also recognize exact --exec_prefix.
+     -exec-prefix=* | --exec_prefix=* | --exec-prefix=* | --exec-prefi=* | --exec-pref=* | --exec-pre=* | --exec-pr=* | --exec-p=* | --exec-=* | --exec=* | --exe=* | --ex=* | --e=*)
+	exec_prefix=`echo $arg | sed 's/[-a-z_]*=//'` ;;
+     -exec-prefix | --exec_prefix | --exec-prefix | --exec-prefi | --exec-pref | --exec-pre | --exec-pr | --exec-p | --exec- | --exec | --exe | --ex | --e)
+	next_exec_prefix=yes ;;
+
+     -prefix=* | --prefix=* | --prefi=* | --pref=* | --pre=* | --pr=* | --p=*)
+	PREFIX=`echo $arg | sed 's/[-a-z_]*=//'` ;;
+     -prefix | --prefix | --prefi | --pref | --pre | --pr | --p)
+	next_prefix=yes ;;
+
+     -srcdir=* | --srcdir=* | --srcdi=* | --srcd=* | --src=* | --sr=* | --s=*)
+	srcdir=`echo $arg | sed 's/[-a-z_]*=//'` ;;
+     -srcdir | --srcdir | --srcdi | --srcd | --src | --sr | --s)
+	next_srcdir=yes ;;
+
+     -arch=* | --arch=*)
+       package=`echo $arg|sed 's/-*arch=//'`
+       # Delete all the valid chars; see if any are left.
+       if test -n "`echo $package|sed 's/[-a-zA-Z0-9_]*//g'`"; then
+         echo "configure: $package: invalid architecture name" >&2; exit 1
+       fi
+       ARCH=`echo $package|sed s/-/_/g`
+       eval "arch_`echo $package|sed s/-/_/g`=1"
+       ;;
+
+     -bopt=* | --bopt=*)
+       package=`echo $arg|sed 's/-*bopt=//'`
+       # Delete all the valid chars; see if any are left.
+       if test -n "`echo $package|sed 's/[-a-zA-Z0-9_]*//g'`"; then
+         echo "configure: $package: invalid bopt value" >&2; exit 1
+       fi
+       BOPT=`echo $package|sed s/-/_/g`
+       eval "bopt_`echo $package|sed s/-/_/g`=1" ;;
+
+     -comm=* | --comm=*)
+       package=`echo $arg|sed 's/-*comm=//'`
+       # Delete all the valid chars; see if any are left.
+       if test -n "`echo $package|sed 's/[-a-zA-Z0-9_]*//g'`"; then
+         echo "configure: $package: invalid communications layer name" >&2; exit 1
+       fi
+       COMM=`echo $package|sed s/-/_/g`	
+       eval "comm_`echo $package|sed s/-/_/g`=1" 
+	;;
+
+     -device=* | --device=*)
+       package=`echo $arg|sed 's/-*device=//'`
+       # Delete all the valid chars; see if any are left.
+       if test -n "`echo $package|sed 's/[-a-zA-Z0-9_]*//g'`"; then
+         echo "configure: $package: invalid device name" >&2; exit 1
+       fi
+       DEVICE=$package    #|sed s/-/_/g`	
+       eval "device_$package=1" ;;
+
+     -devicedir=* | --devicedir=*)
+       package=`echo $arg|sed 's/-*devicedir=//'`
+       # Delete all the valid chars; see if any are left.
+       DEVICE_DIR=$package	
+	;;
+
+     -transportdir=* | --transportdir=*)
+       package=`echo $arg|sed 's/-*transportdir=//'`
+       # Delete all the valid chars; see if any are left.
+       TRANSPORT_DIR=$package
+	;;
+
+     -mpedbg | --mpedbg)
+	if test -z "$MPE_MPI_EXT_C" ; then
+	    DEFS="$DEFS -DMPE_USE_EXTENSIONS"
+        fi
+	MPE_MPI_EXT_C="$MPE_MPI_EXT_C dbxerr.c"
+	MPE_MPI_EXT_O="$MPE_MPI_EXT_O dbxerr.o"
+	;;
+
+     -nodevdebug | --nodevdebug)
+        NODEVDEBUG=1
+	DEVCFLAGS="$DEVCFLAGS -DMPID_DEBUG_NONE -DMPID_STAT_NONE"
+	;;
+
+     -no_short_longs | --no_short_longs)
+	NOSHORTLONGS=1
+	;;
+
+     -use_rndv | --use_rndv)
+        USERNDV=1
+	DEVCFLAGS="$DEVCFLAGS -DMPID_USE_RNDV"
+	;;
+
+     -pre_post | --pre_post)
+        PREPOST=1
+	DEVCFLAGS="$DEVCFLAGS -DMPID_PKT_PRE_POST"
+	;;
+
+     -pre_alloc | --pre_alloc)
+        PREALLOC=1
+	DEVCFLAGS="$DEVCFLAGS -DMPID_PKT_PREALLOC"
+	;;
+
+     -var_pkt | --var_pkt)
+        VARPKT=1
+	DEVCFLAGS="$DEVCFLAGS -DMPID_PKT_VAR_SIZE"
+	;;
+
+     -compressed_pkt | --compressed_pkt)
+	COMPRESSEDPKT=1
+	DEVCFLAGS="$DEVCFLAGS -DMPID_PKT_COMPRESSED"
+	;;
+
+     -pkt_size=* | --pkt_size=*)
+	pktsize=`echo $arg|sed 's/-*pktsize=//'`
+	PKTSIZE=$pktsize
+       	DEVCFLAGS="$DEVCFLAGS -DMPID_PKT_MAX_DATA_SIZE=$pktsize"
+	;;
+
+     -limited_buffers | --limited_buffers)
+	LIMITEDBUFFERS=1
+	DEVCFLAGS="$DEVCFLAGS -DMPID_LIMITED_BUFFERS"
+	;;
+
+     -tiny_buffers | --tiny_buffers)
+	TINYBUFFERS=1
+	DEVCFLAGS="$DEVCFLAGS -DMPID_TINY_BUFFERS"
+	;;
+
+     -nolimited_buffers | --nolimited_buffers)
+	LIMITEDBUFFERS=0
+	DEVCFLAGS="$DEVCFLAGS -DMPID_NO_LIMITED_BUFFERS"
+	;;
+
+     -notiny_buffers | --notiny_buffers)
+	TINYBUFFERS=0
+	DEVCFLAGS="$DEVCFLAGS -DMPID_NO_TINY_BUFFERS"
+	;;
+
+     -adi_collective | --adi_collective)
+	ADI_COLLECTIVE=1
+        DEVCFLAGS="$DEVCFLAGS -DMPID_USE_ADI_COLLECTIVE"
+	;;
+
+     -c++ | --c++)
+       CPP_DIR="src/c++"
+       CPP_COMPILER="g++"
+       echo Compiling C++ interface with g++ ;;
+
+     -c++=* | --c++=*)
+       package=`echo $arg|sed 's/-*c\+\+=//'`
+       # Delete all the valid chars; see if any are left.
+       if test -n "`echo $package|sed 's/[-a-zA-Z0-9_+]*//g'`"; then
+         echo "configure: $package: invalid c++ compiler name" >&2; exit 1
+       fi
+       CPP_DIR="src/c++"
+       CPP_COMPILER=`echo $package`		
+       echo Compiling C++ interface with $package ;;
+
+     -opt=* | --opt=*)
+       package="`echo $arg|sed 's/-*opt=//'`"
+       # Delete all the valid chars; see if any are left.
+       OPTFLAGS=$package ;;
+
+     -mpe | --mpe)
+       MPE_DIR="mpe"
+       echo "Make will build MPE routines" ;;
+ 
+     -no_mpegraphics | --no_mpegraphics)
+       MPE_GRAPHICS=""
+       echo "Make will not build MPE graphics routines" ;;
+
+     -make=* | --make=*)
+       package=`echo $arg|sed 's/-*make=//'`
+       MAKE="$package"
+	;;
+
+     -nof77 | --nof77)
+       echo "Don't build the Fortran interfaces (Not tested)"
+       NOF77=1
+       HAS_FORTRAN=0
+       CFLAGS="-DMPID_NO_FORTRAN $CFLAGS"
+       MPI_FOBJECTS="" ;;
+	
+     -wish=* | --wish=*)
+	wishloc="`echo $arg|sed 's/-*wish=//'`"
+       ;;
+
+     -tkdir=* | --tkdir=*)
+	TK_DIR="`echo $arg|sed 's/-*tkdir=//'`"
+       ;;
+
+     -tcldir=* | --tcldir=*)
+	TCL_DIR="`echo $arg|sed 's/-*tcldir=//'`"
+       ;;
+
+     -u | -usage | --usage | --usag | --usa | --us | --u)
+       (echo "${usage_msg}") >& 2
+       exit 1 ;;
+
+     -v | -verbose | --verbose | --verbos | --verbo | --verb | --ver | --ve | --v)
+       verbose=yes ;;
+
+     *) 
+	echo "Unrecognized configure option $arg"
+	;;
+    esac
+  fi
+done]
+
+dnl Finish the initalization
+AC_PREPARE()
+dnl
+dnl Define test for 64-bit pointers
+define(PAC_POINTER_64_BITS,
+[echo checking for pointers greater than 32 bits
+AC_TEST_PROGRAM([main() { exit(sizeof(void *) <=4); }],
+ AC_DEFINE(POINTER_64_BITS))
+])dnl
+define(PAC_INT_LT_POINTER,
+[echo checking for int large enough for pointers
+AC_TEST_PROGRAM([main() { exit(sizeof(int) >= sizeof(void*)); }],
+ AC_DEFINE(INT_LT_POINTER))
+])dnl
+dnl
+dnl Define the test for the long long int type
+define(PAC_LONG_LONG_INT,
+[AC_REQUIRE([AC_PROG_CC])dnl
+echo checking for long long int
+AC_TEST_PROGRAM([int main() {
+/* See long double test; this handles the possibility that long long int 
+   has the same problem on some systems */
+exit(sizeof(long long int) < sizeof(long)); }],
+AC_DEFINE(HAVE_LONG_LONG_INT))
+])dnl
+dnl
+dnl Define the test to look for wish (the tcl/tk windowing shell)
+dnl This is under development and is derived from the FINDX command
+dnl FIND_WISH looks in the path and in places that we've found wish.
+dnl It sets "wishloc" to the location that it found, or to the
+dnl empty string if it can't find wish.
+dnl Note that we need tk version 3.3 or later, so we don't check for the 
+dnl earlier versions
+define(PAC_FIND_WISH,[wishloc=""
+echo "checking for wish"
+# Look for wish in the path
+IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
+for dir in $PATH ; do 
+    if test -x $dir/wish ; then
+	wishloc=$dir/wish
+        break
+    fi
+done
+IFS="$saveifs"
+# Look for wish elsewhere
+if test -z "$wishloc" ; then
+for dir in \
+    /usr/local/bin \
+    /usr/local/tk-3.3/bin \
+    /opt/bin \
+    /usr/unsupported \
+    /usr/bin \
+    /bin ; do
+    if test -x $dir/wish ; then
+	wishloc=$dir/wish
+        break
+    fi
+done
+fi])dnl
+#
+#
+# record top-level directory (this one)
+# A problem.  Some systems use an NFS automounter.  This can generate
+# paths of the form /tmp_mnt/... . On SOME systems, that path is
+# not recognized, and you need to strip off the /tmp_mnt. On others, 
+# it IS recognized, so you need to leave it in.  Grumble.
+# The real problem is that OTHER nodes on the same MFS system may not
+# be able to find a directory based on a /tmp_mnt/... name.
+MPIR_TRIAL=$PWD
+#
+# First, test the PWD is sensible
+if test ! -r $MPIR_TRIAL/src/pt2pt/Makefile.in ; then
+    # PWD must be messed up
+    MPIR_TRIAL=`pwd`
+    if test ! -r $MPIR_TRIAL/src/pt2pt/Makefile.in ; then
+	echo "Cannot determine the root directory!"
+        exit 1
+    fi
+fi
+if test -z "$MPIR_TRIAL" ; then
+    MPIR_TRIAL=`pwd | sed -e 's%/tmp_mnt/%/%g'`
+    if test ! -d $MPIR_TRIAL ; then 
+        echo "Warning: your default path uses the automounter; this may"
+        echo "cause some problems if you use other NFS-connected systems."
+        MPIR_TRIAL=`pwd`
+    fi
+fi
+MPIR_HOME=$MPIR_TRIAL
+#
+dnl Set Default values of variables
+CC=${CC:-cc}
+F77=${FC:-f77}
+FLINKER=$F77
+AC_PROG_CC
+AC_PROG_INSTALL
+AC_PROG_RANLIB
+CLINKER=$CC
+AR="ar clr"
+# CPRP is the version of cp that accepts -r and -p arguments.
+# See CRAY below
+CPRP="cp"
+INCLUDE_PATH=""
+USER_INCLUDE_PATH=""
+USER_DEFS=""
+LIB_LIST="-lmpi"
+MPE_LIBS=""
+#
+# Check that a DEVICE was set
+if test ! -n "$DEVICE" ; then
+    echo "You must set a device type with -device=<value>"
+    exit
+fi
+#
+# Check that an ARCH was set
+if test ! -n "$ARCH" ; then
+    echo "You must set an architecture type with -arch=<value>"
+    exit
+fi
+if test -n "$arch_sgi" ; then
+    arch_IRIX=1
+    ARCH=IRIX
+fi
+
+if test -n "$arch_IRIX"; then
+   # Every version and machine under IRIX is incompatible with every other
+   # version.  This block of code replaces a generic "IRIX" arch value 
+   # with 
+   #  IRIX_<version>_<chip>
+   #  For example
+   #  IRIX_5_4400 (IRIX 5.x, using MIPS 4400)
+   osversion=`uname -r | sed 's/\..*//'`
+   cputype=`hinv -t cpu | cut -f 3 -d' '`
+   if test -z "$cputype" ; then
+	echo "Could not get cputype from hinv -t cpu command."
+	echo "Please send "
+	hinv -t cpu
+	hinv -t cpu | cut -f 3 -d' '
+	echo "to mpi-bugs@mcs.anl.gov"
+	exit 1
+   fi
+   echo "osversion and cputype"
+   # cputype may contain R4400, R2000A/R3000, or something else.  
+   # We may eventually need to look at it.
+   if test -z "$osversion" ; then
+	echo "Could not determine OS version.  Please send"
+        echo " "
+	uname -a
+	echo "to mpi-bugs@mcs.anl.gov"
+        exit 1
+   elif test $osversion = 4 ; then
+	# Nathan told us that things worked for IRIX 4 as well; 
+	# however, we need 'ar ts libname' (ranlib) on version 4 but 
+	# not the others
+        true
+   elif test $osversion = 5 ; then
+	true
+   elif test $osversion = 6 ; then
+	true
+   else 
+       echo "Could not recognize the version of IRIX (got $osversion)"
+       echo "MPICH knows about versions 4, 5 and 6; the version being"
+       echo "returned from uname -r is $osversion."
+       echo "Please send"
+       uname -a
+       hinv
+       echo "to mpi-bugs@mcs.anl.gov"
+       exit 1
+   fi
+   echo "getting cputype..."
+   OLD_ARCH=IRIX
+   IRIXARCH="$ARCH_$osversion"
+   # Now, handle the chip set
+   changequote(,)dnl
+   cputype=`echo $cputype | sed -e 's%.*/%%' -e 's/R//' | tr -d "[A-Z]" ""`
+   changequote([,])dnl
+   case $cputype in 
+	3000) ;;
+	4000) ;;
+	4400) ;;
+	4600) ;;
+	8000) ;;
+        *)
+	echo "Unexpected IRIX/MIPS chipset $cputype.  Please send the output"
+	echo " "
+        uname -a
+        hinv
+	echo " "
+        echo "to mpi-bugs@mcs.anl.gov"
+	exit 1
+	;;
+   esac
+   IRIXARCH="$IRIXARCH_$cputype"
+   echo "IRIX-specific architecture is $IRIXARCH"
+fi
+
+if test ! -d lib ; then 
+   mkdir lib
+fi
+if test ! -d lib/$ARCH ; then 
+   mkdir lib/$ARCH
+fi
+if test ! -d lib/$ARCH/$COMM ; then 
+   mkdir lib/$ARCH/$COMM
+fi
+
+# Check all of the devices first; they need to be known 
+# (especially chameleon) before doing the transport layer
+
+# check whether --device=chameleon was given
+if test -n "$device_chameleon"; then
+  if test "$DEVICE_DIR" = "" ; then
+   echo "-----------------------------------------------------"
+   echo "Please enter path of the chameleon directory:";
+   read path
+   echo "                                              "
+  else
+   path=$DEVICE_DIR
+  fi
+  TOOLS_DIR=$path
+  TOOLS_LIB_DIR="$path/libs/libs/$ARCH"
+  LIB_PATH="$LIB_PATH -L$TOOLS_LIB_DIR"
+  if test -s $TOOLS_LIB_DIR/tools$COMM.a ; then
+      echo "Please update to the most recent (1.2) release.  Previous"
+      echo "versions are incompatible with MPICH"
+      exit 1
+  elif test -s $TOOLS_LIB_DIR/libpecomm$COMM.a ; then
+      LIB_LIST="$LIB_LIST -lpecomm$(COMM) -lpetsc -lpecore"
+  else 
+      echo "Could not find Chameleon libraries in $path"
+  fi
+  INCLUDE_PATH="-I$TOOLS_DIR"
+  #
+  # the make_include should contain definitions of the DEVICE_LIB,
+  # DEVICE_MAIN, and DEVICE_MAINF, all of which may be NULL.
+  # This is mainly for compatibility with old MPI Makefiles.
+  # New ones probably shouldn't need or use this macro...
+  DEVICE_MAKE_INCLUDE="include $MPIR_HOME/mpid/chameleon/makeinclude"
+  DEVICE_OBJS=""
+  # In addition, the include lines for the build itself (but not for
+  # example programs) needs to at least include whether the system 
+  # supports heterogenity
+  if test -n "$comm_p4" -o -n "$comm_pvm" -o -n "$comm_pvm3" ; then
+      DEFS="$DEFS -DMPID_HAS_HETERO"
+      IS_HETERO=1
+  fi 
+  if test -n "$comm_eui" -o -n "$comm_mpl" ; then
+      CLINKER=mpcc
+      FLINKER=mpxlf
+      CONFIGURE_ARGS_CLEAN="`echo $CONFIGURE_ARGS_CLEAN | tr ' ' '_'`"
+  fi
+fi
+
+# 
+# Check for Unix Variants
+AC_AIX
+AC_MINIX
+#
+
+if test -n "$device_ch_nx"; then
+  CC=icc
+  F77=if77
+  GCC=""
+  CLINKER=icc
+  FLINKER=if77
+  # If this version of the intel compiler accepts the -nx flag, use it.
+  if icc -nx > /dev/null 2>&1 ; then
+    LIB_LIST="$LIB_LIST -nx"
+    CFLAGS="$CFLAGS -nx"
+  fi
+  #OPTFLAGS="-O"
+  AR="ar860 crl"
+  #RANLIB=true
+fi
+
+if test -n "$device_ch_nc"; then
+  CC=ncc
+  F77=nf77
+  GCC=""
+  CLINKER=ncc
+  FLINKER=nf77
+  AR="nar cr"
+  #RANLIB=true
+fi
+
+if test -n "$device_ch_cmmd"; then
+  CC=cc
+  # TMC Told us this should be f77	
+  F77=f77      
+  GCC=""
+  CLINKER="cmmd-ld -comp cc"
+  FLINKER="cmmd-ld -comp f77"
+  AR="ar cr"
+  #RANLIB=ranlib
+fi
+
+if test -n "$device_ch_meiko"; then
+  CC=cc
+  F77=f77
+  GCC=""
+  CLINKER=cc
+  FLINKER=f77
+  # Jim Cownie claims that -laio is no longer needed ...
+  if test -s /opt/MEIKOcs2/lib/libmpsc.a ; then
+      LIB_LIST="$LIB_LIST -L/opt/MEIKOcs2/lib -lmpsc -lew -lelan"
+  else
+      echo "Could not find the library /opt/MEIKOcs2/lib/libmpsc.a"
+      echo "Can not build MEIKO version"
+      exit 1
+  fi
+  #CFLAGS="$CFLAGS"
+  # This include is needed for the elan.h files
+  DEVCFLAGS="$DEVCFLAGS -I/opt/MEIKOcs2/include"
+  # These were recommended by Jim Cownie
+  if test -z "$OPTFLAGS" ; then
+      OPTFLAGS="-xcg92 -xO2"
+  fi
+  AR="ar cr"
+  #RANLIB=true
+fi
+
+#
+# -device gives the directory in mpid; -comm gives the directory in libs.
+# We require ch_euih as the COMM for the euih version
+# First, handle possible synonyms
+if test -n "$device_ch_mpl"; then
+    device_ch_eui=1
+fi
+if test -n "$comm_ch_mpl" ; then
+    comm_ch_eui=1
+fi
+if test -n "$device_ch_eui"; then
+  if test -n "$comm_ch_euih" ; then 
+     # This is for the Yorktown EUI-H (sometimes known as MPLp).
+     # We have no access to the Kingston version (MPLp).
+     CC="xlc -Deuih"
+     F77=xlf
+     GCC=""
+     CLINKER=xlc
+     FLINKER=xlf
+     AR="ar crl"
+     #RANLIB="ranlib"
+     if test -s /usr/lpp/euih/eui/eui.exp ; then
+         LIB_LIST="$LIB_LIST -bimport:/usr/lpp/euih/eui/eui.exp"
+     else
+         echo "You do not have the file /usr/lpp/euih/eui/eui.exp that"
+         echo "is required to use the -comm=ch_euih version of the"
+         echo "ADI device.  This is for use with the tb0 version of the"
+         echo "IBM-Yorktown EUI-H message-passing library."
+         exit 1
+     fi
+  else
+     # This is intended for the Standard POE/MPL version
+     CC=mpcc
+     F77=mpxlf
+     CONFIGURE_ARGS_CLEAN="`echo $CONFIGURE_ARGS_CLEAN | tr ' ' '_'`"
+     GCC=""
+     CLINKER=mpcc
+     FLINKER=mpxlf
+     AR="ar crl"
+     #RANLIB="ranlib"
+  fi
+fi
+
+if test -n "$device_ch_p4"; then
+  echo "About to do p4 device"
+#  INCLUDE_PATH="$INCLUDE_PATH -I$MPIR_HOME/mpid/ch_p4/p4-1.4/include"
+# This needs to get the other libraries as required for the specific
+# architecture.  
+#  LIB_LIST="$LIB_LIST -bimport:/usr/lpp/euih/eui/eui.exp"
+#
+# P4's arch specification is different from MPI's (sun4 vs. SUN, etc.)
+# Here we set P4_ARCH to the right value, which we deduce from $ARCH and $COMM
+# Note that the IRIX code further below may make further changes to 
+# P4_ARCH
+  if test "$ARCH" = "rs6000"; then
+    case $COMM in
+      euih)
+        P4_ARCH=SP1_EUIH ;;
+      eui)
+        P4_ARCH=SP1_EUI ;;
+      p4)
+        P4_ARCH=RS6000 ;;
+      *)
+        P4_ARCH=RS6000 ;;
+    esac
+  elif test "$ARCH" = "IRIX" ; then
+    P4_ARCH=SGI
+    if test $osversion = 6 ; then
+ 	P4_ARCH=SGI_CH
+	if test $cputype = 8000 ; then
+	    P4_ARCH=SGI_CH64
+	fi
+    elif test $osversion = 5 ; then 
+        P4_ARCH=SGI
+        if test "$COMM" = "shared" ; then
+	    P4_ARCH=SGI_MP
+	fi
+    fi  
+  else
+    P4_ARCH=`echo $ARCH | sed \
+	    -e 's/sun4/SUN/g'            -e 's/intelnx/IPSC860/g'  \
+	    -e 's/IRIX/SGI/g'            -e 's/hpux/HP/g'          \
+	    -e 's/solaris/SUN_SOLARIS/g' -e 's/c2mp/CONVEX/g'      \
+	    -e 's/alpha/ALPHA/g'         -e 's/dec5000/DEC5000/g'  \
+	    -e 's/NeXT/NEXT/g'           -e 's/paragon/PARAGON/g'  \
+	    -e 's/inteldelta/DELTA/g'    -e 's/symmetry/SYMMETRY/g'\
+	    -e 's/cray/CRAY/g'           -e 's/tc2000/TC_2000/g'   \
+	    -e 's/ksr/KSR/g'             -e 's/freebsd/FREEBSD/g'  \
+	    -e 's/cm5/CM5/g'             -e 's/meiko/MEIKO_CS2/g'  \
+            -e 's/rs6000/RS6000/g'`
+  fi
+echo "Done setting p4arch..."
+#
+# Make sure that the lib Makefile gets remade
+  (cd mpid/ch_p4/p4-1.4 ; rm -f lib/Makefile util/defs.MD ; $MAKE p4makefiles P4ARCH=$P4_ARCH )
+  P4_MDEPLIBS=`$MAKE -f mpid/ch_p4/p4-1.4/lib/Makefile p4mdeplibs | grep -v make`
+  LIB_LIST="$LIB_LIST $P4_MDEPLIBS"
+  #
+  P4_MDEPCFLAGS=`$MAKE -f mpid/ch_p4/p4-1.4/lib/Makefile p4mdepcflags | grep -v make`
+  if test -n "$P4_MDEPCFLAGS" ; then
+      CFLAGS="$CFLAGS $P4_MDEPCFLAGS"
+      # Note that USER_CFLAGS inherits all of CFLAGS.
+  fi
+  if test ! -d lib/$ARCH/ch_p4 ; then 
+      mkdir lib/$ARCH/ch_p4
+   fi 
+#   
+#   We need to change the makefile.protos in mpid/ch_p4/p4-1.4 to use
+#   the correct libraries
+#   if test -n "$COMM" ; then 
+#       COMM="ch_p4_$COMM"
+#   else
+       COMM="ch_p4"
+#   fi
+   if test ! -d lib/$ARCH/$COMM ; then 
+       mkdir lib/$ARCH/$COMM
+   fi 
+#   p4 library is intergrated with libmpi.a...
+#   LIB_PATH="$LIB_PATH -L$lib/$ARCH/$COMM"
+#   LIB_LIST="$LIB_LIST -lp4";
+   IS_HETERO=1
+fi
+
+if test -n "$arch_IRIX"; then
+   # We now have to look at  all sorts of things to determine the
+   # various flags.  We need to set both the CFLAGS and various options
+   # for the linkers (by setting CLINKER and FLINKER).
+   # The OS version and chipset were determined above so that they could
+   # be used to set the P4_ARCH if necessary.
+   if test $osversion = 4 ; then
+	# Nathan's tests showed that we needed this.
+	RANLIB="ar ts"
+   elif test $osversion = 5 ; then
+        # Turn off warnings about long doubles not being supported.
+        CFLAGS="$CFLAGS -woff 728"
+   elif test $osversion = 6 ; then
+#       these flags settings are handled by including MDEPCFLAGS from p4
+	if test $cputype = 8000 ; then
+#	    CFLAGS="$CFLAGS -64 -mips4"
+#	    FFLAGS="$FFLAGS -64 -mips4"
+	    CLINKER="$CC -64 -mips4"
+	    FLINKER="$F77 -64 -mips4"
+        else
+#	    CFLAGS="$CFLAGS -64 -mips3" 
+#	    FFLAGS="$FFLAGS -64 -mips3"
+	    CLINKER="$CC -64 -mips3 -non_shared"
+	    FLINKER="$F77 -64 -mips3 -non_shared"
+        fi
+	if test -n "$P4_MDEPCFLAGS" ; then
+  	    FFLAGS="$FFLAGS $P4_MDEPCFLAGS"
+        fi
+        # Warning flags are > 1000
+#       CFLAGS="$CFLAGS -woff 1152,1174,1184"
+#       1184 not in the p4 list
+        CFLAGS="$CFLAGS -woff 1184"
+   fi
+   echo "Messages about long doubles not being supported are being suppressed"
+   dnl AC_HAVE_ LIBRARY ( sun )
+fi
+
+# check whether --arch=intelnx was given
+# Use this for both i860 and Delta
+if test -n "$arch_intelnx"; then
+  CC=icc
+  F77=if77
+  GCC=""
+  CLINKER=icc
+  FLINKER=if77
+  AR="ar860 crl"
+  #RANLIB=true
+  # inteldelta is used to select the appropriate args to killproc...
+  DEVCFLAGS="$DEVCFLAGS -Dinteldelta"
+fi
+
+# check whether --arch=paragon was given
+if test -n "$arch_paragon"; then
+  CC=icc
+  F77=if77
+  GCC=""
+  CLINKER=icc
+  FLINKER=if77
+  #OPTFLAGS="-O"
+  AR="ar860 crl"
+  #RANLIB=true
+  #echo "If you get errors about killproc, uncomment this line"
+  #DEVCFLAGS="$DEVCFLAGS -DPARAGON_HAS_NO_KILLPROC"
+fi
+
+
+if test -n "$arch_CRAY"; then
+   # The Fortran compiler might be cf77
+   F77="cf77"
+   FLINKER="cf77"
+   # The CRAY cp doesn't even support -r (!!) but at least there 
+   # is a version that does work.
+   CPRP="/usr/ucb/cp"
+fi
+
+#
+# The T3D version is untested; this simply gives us a place to put the
+# information that we've uncovered about using the T3D.
+if test -n "$arch_cray_t3d"; then
+   # The Fortran compiler might be cf77
+   F77="cf77"
+   FLINKER="mppldr"
+   CLINKER="mppldr"
+   RANLIB=true
+   # The CRAY cp doesn't even support -r (!!) but at least there 
+   # is a version that does work.
+   CPRP="/usr/ucb/cp"
+fi
+
+# In default (pre-ANSI) mode, nested #if's cause most of the file to
+# be SILENTLY skipped.  
+if test -n "$arch_hpux" ; then
+    CFLAGS="$CFLAGS -Aa -D_POSIX_SOURCE -D_HPUX_SOURCE"
+    echo "HPUX C compiler is being forced into ANSI mode so that"
+    echo "severe bugs in HPUX CPP do not cause problems"
+    FFLAGS="$FFLAGS +U77"
+    echo "Some (?) HPUX Fortran compilers require the switch +U77"
+    echo "in order to correctly generate calls to getarg (used to get"
+    echo "command line arguments).  This is a bug in the HPUX f77 (since"
+    echo "calls to iargc ARE handled without this flag)."
+    #RANLIB="true"
+fi
+
+# check whether --comm=p4 was given
+if test -n "$comm_p4"; then
+  if test "$TRANSPORT_DIR" = "" ; then
+   echo "----------------------------------------------"
+   echo "Please enter the location of the P4 directory:";
+   read path
+   echo "                                              "
+  else 
+   path=$TRANSPORT_DIR
+  fi
+  # XXX - This macro should take into account $ARCH - unfortunatly,
+  # P4's arch specification is different from MPI's (sun4 vs. SUN, etc.)
+  # The macro below is a vain attempt to do the right thing.
+  P4_ARCH=`echo $ARCH | sed \
+	  -e 's/sun4/SUN/g'            -e 's/intelnx/IPSC860/g'  \
+	  -e 's/IRIX/SGI/g'            -e 's/hpux/HP/g'          \
+	  -e 's/solaris/SUN_SOLARIS/g' -e 's/c2mp/CONVEX/g'      \
+	  -e 's/alpha/ALPHA/g'         -e 's/dec5000/DEC5000/g'  \
+	  -e 's/NeXT/NEXT/g'           -e 's/paragon/PARAGON/g'  \
+	  -e 's/inteldelta/DELTA/g'    -e 's/symmetry/SYMMETRY/g'\
+	  -e 's/cray/CRAY/g'           -e 's/tc2000/TC_2000/g'   \
+          -e 's/ksr/KSR/g'             -e 's/freebsd/FREEBSD/g'  \
+	  -e 's/cm5/CM5/g'             -e 's/meiko/MEIKO_CS2/g'  \
+	  -e 's/rs6000/RS6000/g'`
+  P4_DIR=$path
+  if test -s $P4_DIR/$P4_ARCH/lib/libp4.a ; then
+      LIB_PATH="$LIB_PATH -L$P4_DIR/$P4_ARCH/lib";
+      LIB_LIST="$LIB_LIST -lp4";
+  else
+      echo "Could not find the library $P4_DIR/$P4_ARCH/lib/libp4.a"
+      echo "Please check the value of -transport_dir (=$TRANSPORT_DIR)."
+      exit 1
+  fi
+fi
+
+# check whether --comm=pvm3 was given
+if test -n "$comm_pvm3"; then
+  if test "$TRANSPORT_DIR" = "" ; then
+   echo "----------------------------------------------"
+   echo "Please enter the location of the pvm3 directory:";
+   read path
+   echo "                                              "
+  else
+   path=$TRANSPORT_DIR
+  fi 
+  PVM_ARCH=`echo $ARCH | sed -e s/sun4/SUN4/g \\
+  -e s/intelnx/I860/g\\
+  -e s/IRIX/SGI/g\\
+  -e s/rs6000/RIOS/g`
+  # XXX - This macro should take into account $ARCH - unfortunatly,
+  # PVM's arch specification is different from MPI's (sun4 vs. SUN4, 
+  # etc.)
+  # The macro below is a vain attempt to do the right thing.
+  LIB_PATH="$LIB_PATH -L$path/lib/$PVM_ARCH";
+  LIB_LIST="$LIB_LIST -lpvm3";
+fi
+
+# check whether --comm=pvm was given
+if test -n "$comm_pvm"; then
+  if test "$TRANSPORT_DIR" = "" ; then
+   echo "----------------------------------------------"
+   echo "Please enter the location of the pvm2.4.x directory:";
+   read path
+   echo "                                              "
+  else
+   path=$TRANSPORT_DIR
+  fi 
+  PVM_ARCH=`echo $ARCH | sed -e s/sun4/SUN4/g\\
+  -e s/intelnx/I860/g\\
+  -e s/IRIX/SGI/g\\
+  -e s/rs6000/RS6000/g`
+  # XXX - This macro should take into account $ARCH - unfortunatly,
+  # PVM's arch specification is different from MPI's (sun4 vs. SUN4, 
+  # etc.)
+  # The macro below is a vain attempt to do the right thing.
+  if test -s $path/src/$PVM_ARCH/libpvm.a ; then
+      LIB_PATH="$LIB_PATH -L$path/src/$PVM_ARCH";
+      LIB_LIST="$LIB_LIST -lpvm";
+  else
+      echo "Could not find the PVM library $path/src/$PVM_ARCH/libpvm.a"
+      echo "Make sure that you have specified the correct transport"
+      echo "directory and version of PVM (this entry is for PVM 2.4.x)."
+      exit 1
+  fi
+fi
+# check whether --comm=euih was given
+if test -n "$comm_euih" -a -z "$device_ch_eui" ; then
+  if test -s /usr/lpp/euih/eui/eui.exp ; then
+      LIB_LIST="$LIB_LIST -bimport:/usr/lpp/euih/eui/eui.exp";
+  else
+     echo "You do not have the file /usr/lpp/euih/eui/eui.exp that"
+     echo "is required to use the -comm=ch_euih version of the"
+     echo "ADI device.  This is for use with the tb0 version of the"
+     echo "IBM-Yorktown EUI-H message-passing library."
+     exit 1
+  fi
+fi
+
+#
+# Another gratuitous change for Solaris: Solaris 2.3 does not accept the "l"
+# option.  Sun must be eager to discourage people from porting to their
+# system.... 
+if test -n "$arch_solaris" -o -n "$arch_meiko"; then
+  AR="ar cr"
+  #RANLIB=true
+fi
+
+# 
+# Choose the "enhanced" compiler (will check the ANSI C version).
+# Only do this if the device is NOT ch_eui, in which case we've
+# already set the compilers (to either xlc/f or mpxlc/f)
+if test -n "$arch_rs6000" -a ! -n "$device_ch_eui" -a ! -n "$comm_eui" ; then
+  CC=xlc
+  F77=xlf
+  GCC=""
+  CLINKER=xlc
+  FLINKER=xlf
+fi
+cross_compiling=0
+AC_CROSS_CHECK()
+# 
+# Tests for X etc should go here ...
+#
+MPEGRAPHICS_SOURCE=""
+MPEGRAPHICS_OBJS=""
+MPEGRAPHICS_FSOURCE=""
+MPEGRAPHICS_FOBJS=""
+X_INC=""
+X_LIB=""
+
+if test -n "$MPE_DIR"; then
+  MPE_DIR="$MPIR_HOME/$MPE_DIR"
+  if test -n "$MPE_GRAPHICS"; then
+    # FIND_X doesn't always work correctly when cross compiling, so we
+    # try to be more careful and conservative
+    if test $cross_compiling = 0 ; then 
+       AC_FIND_X
+       if test -n "$no_x" ; then
+	  echo "Did not find X11 libraries and/or include files"
+       fi
+    else
+       # Try to compile a program with an include file.
+       # I didn't use HEADER_CHECK because I want to insist that the 
+       # code try to compile with the header
+       no_x=true
+       AC_COMPILE_CHECK([X11 headers],[#include <X11.h>],[main();],no_x="")
+       if test -z "$no_x" ; then 
+          # Try to link a simple X program
+          AC_HAVE_LIBRARY(X11,no_x="",no_x="")
+       fi
+       if test -n "$no_x" ; then
+         echo " "
+         echo "X11 is not used when cross compiling (because of the"
+         echo "difficulties in finding the correct libraries)"
+         echo " "
+       fi
+     fi
+  fi
+  if test -n "$MPE_GRAPHICS" -a -z "$no_x" ; then
+    MPE_LIBS="-lmpe -lX11 -lm"
+    MPEGRAPHICS_SOURCE="mpe_graphics.c xcolor.c xframe.c xinit.c xwmap.c xmouse.c"
+    MPEGRAPHICS_OBJS="mpe_graphics.o xcolor.o xframe.o xinit.o xwmap.o xmouse.o"
+    MPEGRAPHICS_FSOURCE="mpe_graphicsf.c"
+    MPEGRAPHICS_FOBJS="mpe_graphicsf.o"
+    if test -z "$x_includes" ; then
+      X_INC=""
+    else
+      X_INC="-I$x_includes"
+    fi
+    if test -z "$x_libraries" ; then
+      X_LIB=""
+    else
+      X_LIB="-L$x_libraries"
+      MPE_LIBS="$X_LIB -lmpe -lX11 -lm"
+    fi
+    # On the Meiko CS2, you have to add additional libraries to satisfy
+    # the externals needed by -X11.
+    if test -n "$arch_meiko" ; then
+        MPE_LIBS="$MPE_LIBS -lsocket -lnsl"
+    fi
+  else
+    MPE_GRAPHICS=""
+    MPE_LIBS="-lmpe"
+  fi
+else
+  MPE_GRAPHICS=""
+fi
+
+# Check that the Fortran compiler is actually available:
+AC_PROGRAM_CHECK(HAS_F77,$F77,1,0)
+if test $HAS_F77 = 0 -a $NOF77 = 0 ; then
+    NOF77=1
+    HAS_FORTRAN=0
+    CFLAGS="$CFLAGS -DMPID_NO_FORTRAN"
+    MPI_FOBJECTS="" 
+else
+   # Check for strange behavior of Fortran.  For example, some FreeBSD
+   # systems use f2c to implement f77, and the version of f2c that they 
+   # use generates TWO (!!!) trailing underscores
+   # Currently, WDEF is not used but could be...
+   #
+   # Eventually, we want to be able to override the choices here and
+   # force a particular form.  This is particularly useful in systems
+   # where a Fortran compiler option is used to force a particular
+   # external name format (rs6000 xlf, for example).
+   (cd src/env ; $F77 -c initfcmn.f > /dev/null 2>&1 )
+   if test $arch_CRAY ; then
+   # Cray doesn't accept -a ...
+   nameform=`strings src/env/initfcmn.o | grep -i mpir_init_fop | head -1`
+   else
+   nameform=`strings -a src/env/initfcmn.o | grep -i mpir_init_fop | head -1`
+   fi
+   /bin/rm -f src/env/initfcmn.o
+   case $nameform in 
+       MPIR_INIT_FOP | _MPIR_INIT_FOP)     
+	WDEF=-DFORTRANCAPS 
+	CFLAGS="$CFLAGS $WDEF"
+	;;
+       mpir_init_fop_ | _mpir_init_fop_)   
+	 # We don't set this in CFLAGS; it is a default case
+	WDEF=-DFORTRANUNDERSCORE ;;
+       mpir_init_fop | _mpir_init_fop)     
+	WDEF=-DFORTRANNOUNDERSCORE 
+	CFLAGS="$CFLAGS $WDEF"
+	;;
+           # Fortran no underscore is the "default" case for the wrappers; 
+	   # having this defined allows us to have an explicit test, 
+	   # particularly since the most common UNIX case is FORTRANUNDERSCORE
+       mpir_init_fop__ | _mpir_init_fop__)  
+	WDEF=-DFORTRANDOUBLEUNDERSCORE
+        CFLAGS="$CFLAGS $WDEF"
+        ;;
+       *)
+	echo "Unable to determine the form of Fortran external names"
+	echo "If you have problems linking, try using the -nof77 option"
+        echo "to configure and rebuild MPICH."
+	NOF77=1
+        HAS_FORTRAN=0
+        CFLAGS="$CFLAGS -DMPID_NO_FORTRAN"
+        MPI_FOBJECTS="" 
+	;;
+   esac
+fi
+#
+# Check for xdr available and properly installed (our FreeBSD machines
+# have incorrect xdr header files, for examples).  Currently, we just
+# set a dummy function body and see if rpc/xdr.h is available and
+# can be included.
+#
+# Just to complicate things, some systems have "xdr.h" that is complete
+# and can be used by itself; more frequently, xdr.h does NOT include
+# definitions that it requires!  rpc.h seems to be more reliable.
+#
+if test "$IS_HETERO" = 1 ; then
+    AC_COMPILE_CHECK("XDR includes and functions",[#include <rpc/rpc.h>],[
+    int a=1;
+    ],HAS_XDR=1,HAS_XDR=0)
+    if test "$HAS_XDR" = 1 ; then
+        DEFS="$DEFS -DHAS_XDR"
+    else 
+        echo "*XDR not available on this system*"
+    fi
+fi
+# Check for the functions that may be needed by the ADI to implement
+# Processor_name.  Save these defines in a special place.
+DEFS="$SAVEDEFS"
+DEFS=""
+AC_HAVE_FUNCS(getdomainname gethostname sysinfo uname)
+GETNAME_DEFS="$DEFS"
+DEFS="$SAVEDEFS"
+AC_STDC_HEADERS
+AC_HAVE_HEADERS(stdlib.h)
+#
+# Turn off F77
+# One problem with this is that some part of the ar will fail.  Lets hope
+# it isn't fatal.  We've tried to fix this by defining MPI_FOBJECTS
+# as the object files created from Fortran.
+if test $NOF77 = 1 ; then
+  F77=true
+  FLINKER=true
+fi
+dnl
+dnl Check for long pointers.  All such options are placed into DEFS (see
+dnl autoconf manual, AC_DEFINE)
+dnl
+PAC_POINTER_64_BITS()
+PAC_INT_LT_POINTER()
+dnl 
+dnl Do not test 
+if test "NOSHORTLONGS" = 0 ; then
+    dnl If not cross-compiling, we could dynamically check
+    AC_LONG_DOUBLE()dnl
+    PAC_LONG_LONG_INT()dnl
+fi
+dnl
+dnl Look for wish (the tcl/tk windowing shell; this is used by the new
+dnl Upshot
+dnl
+if test -z "$wishloc" ; then
+    PAC_FIND_WISH
+fi
+dnl
+dnl Set the location of the bitmaps
+
+dnl
+dnl Set the final choices of flags
+CFLAGS="$CFLAGS $DEFS"
+USER_CFLAGS="$CFLAGS $USER_DEFS"
+LIB_PATH="-L$MPIR_HOME/lib/$ARCH/$COMM $LIB_PATH"
+#
+# hpux's Fortran compiler f77 (but not the POSIX version fort77) does
+# not accept -L <dir> for library search path.
+FLIB_PATH_LEADER="-L"
+if test -n "$arch_hpux" -a "$F77" = "f77" ; then
+   FLIB_PATH=`echo $LIB_PATH | sed -e 's/-L/-Wl,-L,/g'`
+   FLIB_PATH_LEADER="-Wl,-L,"
+else
+   FLIB_PATH="$LIB_PATH"
+fi
+chmod g+w configure > /dev/null 2>&1
+dnl Substitute variables
+dnl Variables used in scripts only
+AC_SUBST(wishloc)dnl
+AC_SUBST(TK_DIR)dnl
+AC_SUBST(TCL_DIR)dnl
+AC_SUBST(BITMAP_DIR)dnl
+dnl Variables defined ONLY for the doc/port file:
+AC_SUBST(COMPRESSEDPKT)dnl
+AC_SUBST(CONFIGURE_ARGS)dnl
+AC_SUBST(CONFIGURE_ARGS_CLEAN)dnl
+AC_SUBST(NODEVDEBUG)dnl
+AC_SUBST(PKTSIZE)dnl
+AC_SUBST(PREALLOC)dnl
+AC_SUBST(PREPOST)dnl
+AC_SUBST(USERNDV)dnl
+AC_SUBST(VARPKT)dnl
+AC_SUBST(LIMITEDBUFFERS)dnl
+AC_SUBST(ADI_COLLECTIVE)dnl
+AC_SUBST(cross_compiling)dnl
+dnl Variables used by Makefile.in's:
+AC_SUBST(AR)dnl
+AC_SUBST(ARCH)dnl
+AC_SUBST(BOPT)dnl
+AC_SUBST(CC)dnl
+AC_SUBST(CFLAGS)dnl
+AC_SUBST(CLINKER)dnl
+AC_SUBST(COMM)dnl
+AC_SUBST(CPP_COMPILER)dnl
+AC_SUBST(CPP_DIR)dnl
+AC_SUBST(CPRP)dnl
+AC_SUBST(DEVCFLAGS)dnl
+AC_SUBST(DEVICE)dnl
+AC_SUBST(DEVICE_MAKE_INCLUDE)dnl
+AC_SUBST(F77)dnl
+AC_SUBST(FFLAGS)dnl
+AC_SUBST(FLIB_PATH)dnl
+AC_SUBST(FLIB_PATH_LEADER)dnl
+AC_SUBST(FLINKER)dnl
+AC_SUBST(GETNAME_DEFS)dnl
+AC_SUBST(HAS_FORTRAN)dnl
+AC_SUBST(INCLUDE_PATH)dnl
+AC_SUBST(LIB_LIST)dnl
+AC_SUBST(LIB_PATH)dnl
+AC_SUBST(MAKE)dnl
+AC_SUBST(MPEGRAPHICS_FOBJS)dnl
+AC_SUBST(MPEGRAPHICS_FSOURCE)dnl
+AC_SUBST(MPEGRAPHICS_OBJS)dnl
+AC_SUBST(MPEGRAPHICS_SOURCE)dnl
+AC_SUBST(MPE_DIR)dnl
+AC_SUBST(MPE_GRAPHICS)dnl
+AC_SUBST(MPE_LIBS)dnl
+AC_SUBST(MPE_MPI_EXT_C)dnl
+AC_SUBST(MPE_MPI_EXT_O)dnl
+AC_SUBST(MPIR_HOME)dnl
+AC_SUBST(MPI_FOBJECTS)dnl
+AC_SUBST(OPTFLAGS)dnl
+AC_SUBST(P4_ARCH)dnl
+AC_SUBST(P4_DIR)dnl
+dnl P4_MDEPCFLAGS now used only in doc/port.in
+AC_SUBST(P4_MDEPCFLAGS)dnl
+AC_SUBST(PREFIX)dnl
+AC_SUBST(RANLIB)dnl
+AC_SUBST(TOOLS_DIR)dnl
+AC_SUBST(USER_CFLAGS)dnl
+AC_SUBST(USER_INCLUDE_PATH)dnl
+AC_SUBST(X_INC)dnl
+AC_SUBST(X_LIB)dnl
+dnl End configuration file
+AC_OUTPUT(Makefile examples/Makefile examples/test/Makefile examples/test/pt2pt/Makefile examples/test/pt2pt/runtests examples/test/coll/Makefile examples/test/topol/Makefile examples/test/context/Makefile examples/test/context/runtests examples/test/env/Makefile examples/test/lederman/Makefile examples/contrib/usingmpi/Makefile examples/contrib/life/Makefile examples/contrib/nuclei/Makefile examples/contrib/C++/Makefile examples/perftest/Makefile mpid/chameleon/Makefile mpid/ch_cmmd/Makefile mpid/ch_nc/Makefile mpid/ch_nx/Makefile mpid/ch_eui/Makefile mpid/ch_p4/Makefile mpid/ch_meiko/Makefile src/pt2pt/Makefile src/coll/Makefile src/context/Makefile src/dmpi/Makefile src/env/Makefile src/topol/Makefile src/profile/Makefile src/util/Makefile src/c++/Makefile mpe/Makefile mpe/Makefile_nompi examples/contrib/Makefile examples/basic/Makefile profiling/wrappergen/Makefile profiling/examples/Makefile profiling/nupshot/Makefile mpe/contrib/mandel/Makefile)
+#
+# Configure insists on adding a line to the TOP of the file, making it 
+# unsuited to modifying shell scripts.  Here we strip the first line from
+# runtests
+(cd examples/test/pt2pt ; /bin/rm -f .run1 ; sed -e '1d' runtests > .run1 ; \
+ /bin/rm -f runtests ; /bin/mv .run1 runtests ; chmod a+x runtests )
+(cd examples/test/context ; /bin/rm -f .run1 ; sed -e '1d' runtests > .run1 ; \
+ /bin/rm -f runtests ; /bin/mv .run1 runtests ; chmod a+x runtests )
+#
+# If the test suite is part of the directory, generate its makefiles
+if test -d tsuite ; then
+    CONFIG_FILES="tsuite/Makefile tsuite/coll/Makefile tsuite/pt2pt/Makefile"
+    export CONFIG_FILES
+    ./config.status
+fi
+#
+# If the bugs directory is available, generate its makefiles
+if test -d bugs ; then
+    CONFIG_FILES="bugs/Makefile bugs/irecv/Makefile bugs/fort/Makefile bugs/sockperf/Makefile bugs/srleak/Makefile bugs/ssend/Makefile bugs/testsendrecv/Makefile"
+    export CONFIG_FILES
+    ./config.status
+fi
+#
+# If the xmpi directory is available, generate its files
+if test -d xmpi ; then 
+    CONFIG_FILES="xmpi/buildinfo.tcl"
+    export CONFIG_FILES
+    ./config.status
+fi
+#
+# If the doc/port.in file is available, generate it
+if test -f doc/port.in ; then
+    CONFIG_FILES="doc/port"
+    export CONFIG_FILES
+    ./config.status
+    (cd doc ; /bin/rm -f .run1 ; sed -e '1d' port > .run1 ; \
+    /bin/rm -f port ; /bin/mv .run1 port ; chmod a+x port )
+fi
+#
+# If the experimental devices are available, generate their makefiles
+if test -d mpid/ch_pvm3_3 ; then
+    CONFIG_FILES="mpid/ch_pvm3_3/Makefile"
+    export CONFIG_FILES
+    ./config.status
+fi
+#
+# Try to update the upshot script
+#if test -f profiling/upshot/bin/upshot.in
+#    CONFIG_FILES="profiling/upshot/bin/upshot"
+#    export CONFIG_FILES
+#    ./config.status
+#    (cd profiling/upshot/bin ; /bin/rm -f .run1 ; \
+#	sed -e '1d' upshot > .run1 ; \
+#    /bin/rm -f upshot ; /bin/mv .run1 upshot ; chmod a+x upshot )
+#fi

@@ -1,0 +1,53 @@
+.TH MPI_Scan 3 "11/23/1994" " " "MPI"
+.SH NAME
+MPI_Scan \- Computes the scan (partial reductions) of data on a collection of
+processes
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B sendbuf 
+- starting address of send buffer (choice) 
+.PD 1
+.PD 0
+.TP
+.B count 
+- number of elements in input buffer (integer) 
+.PD 1
+.PD 0
+.TP
+.B datatype 
+- data type of elements of input buffer (handle) 
+.PD 1
+.PD 0
+.TP
+.B op 
+- operation (handle) 
+.PD 1
+.PD 0
+.TP
+.B comm 
+- communicator (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B recvbuf 
+- starting address of receive buffer (choice) 
+.PD 1
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Scan ( sendbuf, recvbuf, count, datatype, op, comm )
+void             *sendbuf;
+void             *recvbuf;
+int               count;
+MPI_Datatype      datatype;
+MPI_Op            op;
+MPI_Comm          comm;
+
+.fi
+
+.SH LOCATION
+ scan.c

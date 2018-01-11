@@ -1,0 +1,57 @@
+.TH MPI_Cart_create 3 "9/30/1994" " " "MPI"
+.SH NAME
+MPI_Cart_create \- Makes a new communicator to which topology information
+has been attached
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B comm_old 
+- input communicator (handle) 
+.PD 1
+.PD 0
+.TP
+.B ndims 
+- number of dimensions of cartesian grid (integer) 
+.PD 1
+.PD 0
+.TP
+.B dims 
+- integer array of size ndims specifying the number of processes in each dimension 
+.PD 1
+.PD 0
+.TP
+.B periods 
+- logical array of size ndims specifying whether the grid is periodic (true ) or not (false ) in each dimension 
+.PD 1
+.PD 0
+.TP
+.B reorder 
+- ranking may be reordered (true ) or not (false ) (logical) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B comm_cart 
+- communicator with new cartesian topology (handle) 
+.PD 1
+
+.SH ALGORITHM
+We ignore the periods and reorder info currently.
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Cart_create ( comm_old, ndims, dims, periods, reorder, comm_cart )
+MPI_Comm  comm_old;
+int       ndims;     
+int      *dims;     
+int      *periods;
+int       reorder;
+MPI_Comm *comm_cart;
+
+.fi
+
+.SH LOCATION
+ cart_create.c

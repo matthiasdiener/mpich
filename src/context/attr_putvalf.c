@@ -1,0 +1,45 @@
+/* attr_putval.c */
+/* THIS IS A CUSTOM WRAPPER */
+
+#include "mpiimpl.h"
+
+#ifdef POINTER_64_BITS
+extern void *MPIR_ToPointer();
+extern int MPIR_FromPointer();
+extern void MPIR_RmPointer();
+#else
+#define MPIR_ToPointer(a) (a)
+#define MPIR_FromPointer(a) (int)(a)
+#define MPIR_RmPointer(a)
+#endif
+
+#ifdef MPI_BUILD_PROFILING
+#ifdef FORTRANCAPS
+#define mpi_attr_put_ PMPI_ATTR_PUT
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_attr_put_ pmpi_attr_put__
+#elif !defined(FORTRANUNDERSCORE)
+#define mpi_attr_put_ pmpi_attr_put
+#else
+#define mpi_attr_put_ pmpi_attr_put_
+#endif
+#else
+#ifdef FORTRANCAPS
+#define mpi_attr_put_ MPI_ATTR_PUT
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_attr_put_ mpi_attr_put__
+#elif !defined(FORTRANUNDERSCORE)
+#define mpi_attr_put_ mpi_attr_put
+#endif
+#endif
+
+ void mpi_attr_put_ ( comm, keyval, attr_value, __ierr )
+MPI_Comm comm;
+int *keyval;
+int *attr_value;
+int *__ierr;
+{
+*__ierr = MPI_Attr_put(
+	(MPI_Comm)MPIR_ToPointer( *((int*)comm)),
+		       *keyval,(void *)(*attr_value));
+}

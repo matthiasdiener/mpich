@@ -1,0 +1,20 @@
+.TH MPID_Dest_byte_order 5 "10/10/1994" " " "ADI"
+.SH NAME
+MPID_Dest_byte_order \- Returns the byte ordering desired by the
+destination
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B dest 
+- Absolute rank or destination
+.PD 1
+
+.SH RETURNS
+One of MPID_H_NONE, MPID_H_LSB, MPID_H_MSB, MPID_H_XDR
+
+.SH SYNOPSIS
+.nf
+int MPID_Dest_byte_order( int dest )
+.fi
+

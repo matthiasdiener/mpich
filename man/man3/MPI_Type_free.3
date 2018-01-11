@@ -1,0 +1,20 @@
+.TH MPI_Type_free 3 "9/21/1994" " " "MPI"
+.SH NAME
+MPI_Type_free \- Frees the datatype
+
+.SH INPUT PARAMETER
+.PD 0
+.TP
+.B datatype 
+- datatype that is freed (handle) 
+.PD 1
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Type_free ( datatype )
+MPI_Datatype *datatype;
+
+.fi
+
+.SH LOCATION
+ type_free.c

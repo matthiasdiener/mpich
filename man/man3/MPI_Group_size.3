@@ -1,0 +1,28 @@
+.TH MPI_Group_size 3 "7/13/1994" " " "MPI"
+.SH NAME
+MPI_Group_size \- Returns the size of a group
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B group 
+- group (handle) 
+Output Parameter:
+.PD 1
+.PD 0
+.TP
+.B size 
+- number of processes in the group (integer) 
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Group_size ( group, size )
+MPI_Group group;
+int *size;
+
+.fi
+
+.SH LOCATION
+ group_size.c

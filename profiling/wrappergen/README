@@ -1,0 +1,224 @@
+Profiling wrapper generator
+Wrappergen
+Written by Ed Karrels
+Copyright Argonne National Laboratory, 1994
+
+
+   The profiling wrapper generator (wrappergen) has been designed
+to complement the MPI profiling interface.  It allows the user to
+write any number of 'meta' wrappers which can be applied to any
+number of MPI functions.  Wrappers can be in separate files, and
+can nest properly, so that more than one layer of profiling may
+exist on inidividual functions.
+
+   Wrappergen needs three sources of input:
+
+     1.  A list of functions for which to generate wrappers.
+     2.  Declarations for the functions that are to be profiled.
+         For speed and parsing simplicity, a special format has
+         been used.  See the file PROTO.
+     3.  Wrapper definitions.
+
+The list of functions is simply a file of whitespace-separated function
+names.  If omitted, any 'forallfn' or 'fnall' macros will expand for
+every function in the declaration file.
+
+WRAPPER DEFINITIONS
+-------------------
+Wrapper definitions themselves consist of C code with special macros.
+Each macro is surrounded by the {{ }} escape sequence.  The following
+macros are recognized by wrappergen:
+
+  {{fileno}} 
+
+    An integral index representing which wrapper file the macro came
+    from.  This is useful when declaring file-global variables to
+    prevent name collisions.  It is suggested that all identifiers
+    declared outside functions end with _{{fileno}}.
+
+    For example:
+
+    static double overhead_time_{{fileno}};
+
+      might expand to:
+
+    static double overhead_time_0;
+
+
+  {{forallfn <function name escape> <function A> <function B> ... }}
+     ...
+  {{endforallfn}}
+
+    The code between {{forallfn}} and {{endforallfn}} is copied once
+    for every function profiled, except for the functions listed, replacing
+    the escape string specified by <function name escape> with the name
+    of each function.
+
+    For example:
+
+    {{forallfn fn_name}}static int {{fn_name}}_ncalls_{{fileno}};
+    {{endforallfn}}
+
+      might expand to:
+
+    static int MPI_Send_ncalls_1;
+    static int MPI_Recv_ncalls_1;
+    static int MPI_Bcast_ncalls_1;
+
+
+  {{foreachfn <function name escape> <function A> <function B> ... }}
+     ...
+  {{endforeachfn}}
+
+    Foreachfn is the same as forallfn except that wrappers are written
+    only the functions named explicitly.
+
+    {{forallfn fn_name mpi_send mpi_recv}}
+       static int {{fn_name}}_ncalls_{{fileno}};
+    {{endforallfn}}
+
+      might expand to:
+
+    static int MPI_Send_ncalls_2;
+
+    static int MPI_Recv_ncalls_2;
+
+
+  {{fnall <function name escape> <function A> <function B> ... }}
+    ...
+    {{callfn}}
+    ...
+  {{endfnall}}
+
+    Fnall defines a wrapper to be used on all functions except the
+    functions named.  Wrappergen will expand into a full function
+    definition in traditional C format.  The {{callfn}} macro tells
+    wrappergen where to insert the call to the function that is being
+    profiled.  There must be exactly one instance of the {{callfn}}
+    macro in each wrapper definition.  The macro specified by
+    <function name escape> will be replaced by the name of each function.
+    
+    Within a wrapper definition, extra macros are recognized.
+    
+    {{vardecl <type> <arg> <arg> ... }}
+
+      Use vardecl to declare variables within a wrapper definition.
+      If nested macros request variables through vardecl with the same
+      names, wrappergen will create unique names by adding consecutive
+      integers to the end of the requested name (var, var1, var2, ...)
+      until a unique name is created.  It is unwise to declare variables
+      manually in a wrapper definition, as variable names may clash with
+      other wrappers, and the variable declarations may occur later in the
+      code than statements from other wrappers, which is illegal in
+      classical and ANSI C.
+
+    {{<varname>}}
+
+      If a variable is declared through vardecl, the requested name for 
+      that variable (which may be different from the uniquified form that
+      will appear in the final code) becomes a temporary macro that will
+      expand to the uniquified form.
+
+      For example:
+
+      {{vardecl int i d}}
+
+        may expand to:
+
+      int i, d3;
+
+
+    {{<argname>}}
+
+      Suggested but not neccessary, a macro consisting of the name of
+      one of the arguments to the function being profiled will be
+      expanded to the name of the corresponding argument.  This
+      macro option serves little purpose other than asserting that
+      the function being profilied does indeed have an argument with
+      the given name.
+
+    {{<argnum>}}
+
+      Arguments to the function being profiled may also be referenced
+      by number, starting with 0 and increasing.
+
+    {{returnVal}}
+
+      ReturnVal expands to the variable that is used to hold the
+      return value of the function being profiled.
+
+    {{callfn}}
+
+      Callfn expands to the call of the function being profiled.
+      With nested wrapper definitions, this also represents the point
+      at which to insert the code for any inner nested functions.
+      The nesting order is determined by the order in which the wrappers
+      are encountered by wrappergen.  For example, if the two files
+      prof1.w and prof2.w each contain two wrappers for MPI_Send,
+      the profiling code produced when using both files will be
+      of the form:
+
+      int MPI_Send( args...)
+      arg declarations...
+      {
+         /*pre-callfn code from wrapper 1 from prof1.w */
+         /*pre-callfn code from wrapper 2 from prof1.w */
+         /*pre-callfn code from wrapper 1 from prof2.w */
+         /*pre-callfn code from wrapper 2 from prof2.w */
+
+         returnVal = MPI_Send( args... );
+
+         /*post-callfn code from wrapper 2 from prof2.w */
+         /*post-callfn code from wrapper 1 from prof2.w */
+         /*post-callfn code from wrapper 2 from prof1.w */
+         /*post-callfn code from wrapper 1 from prof1.w */
+
+         return returnVal;
+      }
+
+  
+
+  {{fn <function name escape>  <function A> <function B> ... }}
+    ...
+    {{callfn}}
+    ...
+  {{endfnall}}
+
+    Fn is identical to fnall except that it only generates wrappers
+    for functions named explicitly.
+
+  For example:
+
+    {{fn this_fn MPI_Send}}
+      {{vardecl int i}}
+      {{callfn}}
+      printf( "Call to {{this_fn}}.\n" );
+      printf( "{{i}} was not used.\n" );
+      printf( "The first argument to {{this_fn}} is {{0}}\n" );
+    {{endfn}}
+
+  will expand to:
+
+    int  MPI_Send( buf, count, datatype, dest, tag, comm )
+    void * buf;
+    int count;
+    MPI_Datatype datatype;
+    int dest;
+    int tag;
+    MPI_Comm comm;
+    {
+      int  returnVal;
+      int i;
+      returnVal = PMPI_Send( buf, count, datatype, dest, tag, comm );
+      printf( "Call to MPI_Send.\n" );
+      printf( "i was not used.\n" );
+      printf( "The first argument to MPI_Send is buf\n" );
+      return returnVal;
+    }
+
+A sample wrapper file is in sample.w and the corresponding output file
+is in sample.out.
+
+
+Ed Karrels
+karrels@mcs.anl.gov

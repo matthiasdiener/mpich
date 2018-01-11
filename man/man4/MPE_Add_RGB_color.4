@@ -1,0 +1,34 @@
+.TH MPE_Add_RGB_color 4 "11/7/1994" " " "MPE"
+.SH NAME
+MPE_Add_RGB_color \- Adds a color to the colormap given its RGB values
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B graph 
+- MPE graphics handle
+.PD 1
+.PD 0
+.TP
+.B red, 
+green, blue - color levels from 0 to 65535
+.PD 1
+.PD 0
+.TP
+.B mapping 
+- index of the new color
+.PD 1
+
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+int MPE_Add_RGB_color( graph, red, green, blue, mapping )
+MPE_XGraph graph;
+int red, green, blue;
+MPE_Color *mapping;
+
+.fi
+
+.SH LOCATION
+ mpe_graphics.c
