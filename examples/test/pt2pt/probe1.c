@@ -3,8 +3,9 @@
    server)
  */
 #include "mpi.h"
+#include "test.h"
 
-main(argc, argv) 
+int main(argc, argv) 
 int  argc;
 char **argv;
 {

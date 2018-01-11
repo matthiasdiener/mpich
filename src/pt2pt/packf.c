@@ -7,11 +7,7 @@
 #include <stdarg.h>
 #endif
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -57,7 +53,9 @@ va_list ap;
 va_start(ap, unknown);
 inbuf = unknown;
 if (_numargs() == NUMPARAMS+1) {
-	printf("Both or neither buffer parameters may be character buffers\n");
+    *__ierr = MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_ONE_CHAR, 
+			  "Error in MPI_SENDRECV" );
+    return;
 } else { if (_numargs() == NUMPARAMS+2) {
         buflen = 	va_arg(ap, int) /8;          /* This is in bits. */
 	incount =       va_arg (ap, int *);
@@ -110,8 +108,11 @@ if (_isfcd(outbuf)) {
 
 #endif
 #else
-
- void mpi_pack_ ( inbuf, incount, type, outbuf, outcount, position, comm, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_pack_ ANSI_ARGS(( void *, int *, MPI_Datatype, void *, int *, 
+			   int *, MPI_Comm, int * ));
+void mpi_pack_ ( inbuf, incount, type, outbuf, outcount, position, comm, 
+		 __ierr )
 void         *inbuf;
 int*incount;
 MPI_Datatype  type;
@@ -121,8 +122,9 @@ int          *position;
 MPI_Comm      comm;
 int *__ierr;
 {
-*__ierr = MPI_Pack(MPIR_F_PTR(inbuf),*incount,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(type) ),outbuf,*outcount,position,
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
+    *__ierr = MPI_Pack(MPIR_F_PTR(inbuf),*incount,
+		       (MPI_Datatype)MPIR_ToPointer( *(int*)(type) ),
+		       outbuf,*outcount,position,
+		       (MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
 }
 #endif

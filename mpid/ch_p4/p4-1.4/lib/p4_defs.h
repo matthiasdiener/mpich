@@ -1,6 +1,18 @@
 #ifndef _P4_DEFS_H_
 #define _P4_DEFS_H_
 
+/* The -n32 version of the SGI compiler complained about not making the
+   public/global values explicitly extern.  So we're using the same
+   approach used in p4_global.h .
+ */
+#ifndef PUBLIC
+#ifdef GLOBAL
+#define PUBLIC
+#else
+#define PUBLIC extern
+#endif
+#endif
+
 struct proc_info {
     int port;
     int switch_port;
@@ -53,8 +65,8 @@ struct p4_global_data {
     P4VOID *cluster_shmem;
     p4_barrier_monitor_t cluster_barrier;
     char application_id[16];
-} *p4_global;
-
+};
+PUBLIC struct p4_global_data *p4_global;
 
 struct connection {
     int type;
@@ -75,13 +87,14 @@ struct local_data {		/* local to each process */
     char *xdr_buff;
     XDR xdr_enc;
     XDR xdr_dec;
-} *p4_local;
+};
+PUBLIC struct local_data *p4_local;
 
 struct listener_data {
     int listening_fd;
     int slave_fd;
-} *listener_info;
-
+};
+PUBLIC struct listener_data *listener_info;
 
 /* this struct is similar to a p4_net_msg_hdr;  note that the sum of
    the sizes of the items up to the *msg is equal to some number of 
@@ -205,6 +218,12 @@ struct p4_brdcst_info_struct {
   int right_cluster;           /* Id of right child cluster master */
   int left_slave;              /* Id of left child slave           */
   int right_slave;             /* Id of right child slave          */
-} p4_brdcst_info;
+};
+PUBLIC struct p4_brdcst_info_struct p4_brdcst_info;
 
+/* This is used to control error behavior.  Use with extreme care; p4_error
+   aborts programs and this allows some uses to not call p4_error.  
+ */
+/* We make this extern so that we can initialize it in p4_error.c */
+extern int p4_hard_errors;
 #endif

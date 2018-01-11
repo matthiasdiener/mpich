@@ -28,12 +28,15 @@ DIRS     = $(MPIDIRS) mpid/$(DEVICE) @CPP_DIR@ @MPE_DIR@ \
            profiling/examples profiling/lib profiling/wrappergen
 # 
 # This is a list of the devices that are available
-DEVICES  = mpid/chameleon mpid/ch_nx mpid/ch_p4 mpid/ch_nc mpid/ch_cmmd \
-	   mpid/ch_eui mpid/meiko mpid/t3d mpid/ch_meiko mpid_ch_shmem \
-	   mpid/ch_tcp mpid/sgi mpid/nx
-OTHERDEVICES  = mpid/ch_nx mpid/ch_p4 mpid/ch_nc mpid/ch_cmmd mpid/ch_eui \
-		mpid/ch_meiko mpid/ch_shmem mpid/t3d \
-		mpid/sgi mpid/nx
+DEVICES  = mpid/ch2 \
+	   mpid/chameleon mpid/ch_nx mpid/ch_p4 mpid/ch_nc mpid/ch_cmmd \
+	   mpid/ch_mpl mpid/meiko mpid/t3d mpid/ch_meiko mpid_ch_shmem \
+	   mpid/ch_tcp mpid/sgi mpid/nx mpid/ch_nexus mpid/ch_lfshmem \
+	   mpid/ch_cenju3
+# Change this in util/maketar also
+OTHERDEVICES  = mpid/ch_nx mpid/ch_p4 mpid/ch_nc mpid/ch_cmmd mpid/ch_mpl \
+		mpid/ch_meiko mpid/ch_shmem mpid/ch_lfshmem mpid/t3d \
+		mpid/sgi mpid/nx mpid/ch_nexus mpid/ch_cenju3
 # 
 # Build the device FIRST in case the device include, used in mpiimpl.h, 
 # needs to be built (e.g., ch_p4 device)
@@ -117,7 +120,7 @@ report:
 	@echo "may be run to complete the testing.  This must be run"
 	@echo "in the foreground.  It will try to start Upshot and Nupshot."
 	@echo "It also does an installation into 'install_directory'"
-	
+
 
 #
 # Make sure that a failure during the make causes the make to stop at 
@@ -148,7 +151,7 @@ mpiflib: Makefile.in
 	  $(MAKE) wrapperlib ) ;\
 	  done
 	@RANLIB@ lib/$(LARCH)/$(COMM)/libfmpi.a
-	
+
 #
 # This target is used to remove the libraries for this configuration; this
 # can lead to better performance when rebuilding.
@@ -196,7 +199,7 @@ mpilibdebug:
 		@RANLIB@ lib/$(LARCH)/$(COMM)/libmpe.a ; fi
 	@if test -w lib/$(LARCH)/$(COMM)/libmpe_nompi.a ; then \
 		@RANLIB@ lib/$(LARCH)/$(COMM)/libmpe_nompi.a ; fi
-	
+
 
 profile:
 	@for dir in $(MPIDIRS) ;\
@@ -223,11 +226,12 @@ util/mpirun: util/mpirun.sh.in util/mpirun.pg.in util/mpirun.ch_p4.in
 	cat $$file | sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
 		-e "s%\#AUTOMOUNTFIX\#%@AUTOMOUNTFIX@%g" \
 		-e "s%\#EXECER_DIR\#%$(MPIR_HOME)/util%g" \
- 		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
+		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
 		-e "s%\#RSH_COMMAND\#%$(RSH_COMMAND)%g" \
 		-e "s%\#SYNCLOC\#%@SYNCLOC@%g" \
 		-e "s%\#CC\#%@CC@%g" \
 		-e "s%\#CLINKER\#%@CLINKER@%g" \
+	        -e "s%\#MPIRUN_BIN\#%lib/$(LARCH)/$(COMM)%g" \
 		-e "s%\#DEFAULT_MACHINE\#%$(DEFAULT_MACHINE)%g" \
 		-e "s%\#DEFAULT_ARCH\#%$(LARCH)%g" > $$bfile ; \
 	chmod 775 $$bfile ; \
@@ -237,7 +241,7 @@ util/mpirun: util/mpirun.sh.in util/mpirun.pg.in util/mpirun.ch_p4.in
 	mv mpirun.sh mpirun )
 #
 # If you change this, ALSO change it in the install target!
-mpireconfig: util/mpireconfig
+mpireconfig: util/mpireconfig config.status
 util/mpireconfig: util/mpireconfig.in
 	cat util/mpireconfig.in | sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
 			    -e "s%\#ARCH\#%$(LARCH)%g" \
@@ -295,42 +299,39 @@ serv_p4:
 	  cp ../bin/serv_p4 ../../../../lib/$(LARCH)/ch_p4 )
 	/bin/rm -f util/chp4_servs
 	cat util/chp4_servs.in | sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
- 		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
+		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
 		-e "s%\#RSH_COMMAND\#%$(RSH_COMMAND)%g" \
 		-e "s%\#DEFAULT_MACHINE\#%$(DEFAULT_MACHINE)%g" \
 		-e "s%\#DEFAULT_ARCH\#%$(LARCH)%g" > \
 		    util/chp4_servs ;\
 	chmod 775 util/chp4_servs
 	-cp util/chp4_servs lib/$(LARCH)/$(COMM)
+	-cp util/chkserv lib/$(LARCH)/$(COMM)
+	-cp util/chkmachine lib/$(LARCH)/$(COMM)
 
 #
 # Changed clean to not remove the library, only the object files
 #
 # Also, it should not remove the "executables"
 clean:
-	@if [ -d profiling/wrappergen ] ; then \
+	@-if [ -d profiling/wrappergen ] ; then \
 	    /bin/rm -f profiling/wrappergen/*.o ; fi
-	@if [ -s profiling/nupshot/Makefile ] ; then \
+	@-if [ -s profiling/nupshot/Makefile ] ; then \
 	    ( cd profiling/nupshot ; $(MAKE) clean ) ; fi
-	@if [ -d tsuite ] ; then \
+	@-if [ -d tsuite ] ; then \
 	    (cd tsuite ; $(MAKE) clean ) ; fi
-	@if [ -d bugs -a -s bugs/Makefile ] ; then \
+	@-if [ -d bugs -a -s bugs/Makefile ] ; then \
 	    (cd bugs ; $(MAKE) clean ) ; fi
 	@-for dir in $(DIRS) ;\
 	  do \
 	  echo cleaning $$dir ;\
 	  (cd $$dir; if [ -s Makefile ] ; then $(MAKE) clean ; fi ) ;\
 	  done
-	if [ -n "$(TOOLS_DIR)" ] ; then  \
-	    echo "cleaning mpid/chameleon" ; \
-	    (cd mpid/chameleon ; $(MAKE) clean )  ; fi
-#	@for dir in $(OTHERDEVICES) ; do echo cleaning $$dir ; \
-#		(cd $$dir ; $(MAKE) clean ) ; done
-	if [ -d mpid/chameleon ] ; then \
-	    /bin/rm -f mpid/chameleon/*.o ; fi
-	if [ -s mpid/ch_shmem/p2ptest/Makefile ] ; then \
+	-if [ -s mpid/ch_shmem/p2ptest/Makefile ] ; then \
 	    echo "cleaning mpid/ch_shmem/p2ptest" ; \
 	    (cd mpid/ch_shmem/p2ptest ; $(MAKE) clean ) ; fi
+	-if [ -d mpid/tests ] ; then \
+	    (cd mpid/tests ; $(MAKE) clean ) ; fi
 #
 # Realclean removes mpirun etc as well as the libraries.
 realclean: clean
@@ -340,6 +341,7 @@ realclean: clean
 	  		    profiling/upshot/bin/upshot
 	-/bin/rm -f lib/*/*/*.[oa]
 	-/bin/rm -f lib/*/*.[oa]
+	-/bin/rm -f ID
 	if [ -n "$(TOOLS_DIR)" ] ; then  \
 	    echo "cleaning mpid/chameleon" ; \
 	    (cd mpid/chameleon ; $(MAKE) clean )  ; fi
@@ -353,154 +355,116 @@ realclean: clean
 	  (cd $$dir; /bin/rm Makefile) ;\
 	  done
 	@/bin/rm Makefile
-	
+#
+# Make an ID database from a suitable subset of the sources
+# (Get mkid from sunsite if you want to use this)
+#
+ID: frc
+	find include src/coll src/context src/dmpi src/env src/pt2pt \
+		src/topol src/util \
+	mpid/ch2 mpid/$(DEVICE) mpid/util -name "*.[hc]" -print | mkid -v -
+
+frc:
+
 
 # Configure the Makefiles for some popular versions for ANL
-anlp4: configure
-	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=sun4 -comm=p4 -bopt=g -device=chameleon -var_pkt \
-	-devicedir=/home/gropp/tools.n -transportdir=/usr/local/p4-1.4 -mpe 
-	@-chmod g+ws lib lib/sun4 lib/sun4/p4 >/dev/null 2>&1
-anlp4pre: configure
-	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=sun4 -comm=p4 -bopt=g -device=chameleon -var_pkt \
-	-devicedir=/home/gropp/tools.n -transportdir=/usr/local/p4-1.4 -mpe \
-	-pre_alloc
-	@-chmod g+ws lib lib/sun4 lib/sun4/p4 >/dev/null 2>&1
 anlchp4: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=sun4 -device=ch_p4 -mpe -var_pkt -mpedbg -opt="-g"
+	configure -arch=sun4 -device=ch_p4 -var_pkt -opt="-g"
 	-cp config.status lib/sun4/ch_p4
 	@-chmod g+ws lib lib/sun4 lib/sun4/ch_p4 >/dev/null 2>&1
 anltcp: configure 
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=sun4 -device=ch_tcp -mpe -var_pkt -mpedbg -opt="-g"
+	configure -arch=sun4 -device=ch_tcp -var_pkt -opt="-g" -cc=gcc \
+	-devdebug -memdebug \
+	-cflags="-Wall -Wstrict-prototypes -Wmissing-prototypes -Dlint -DNEEDS_STDLIB_PROTOTYPES"
 	-cp config.status lib/sun4/ch_tcp
 	@-chmod g+ws lib lib/sun4 lib/sun4/ch_tcp >/dev/null 2>&1
 anlnexus: configure 
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=sun4 -device=ch_nexus -mpe -mpedbg -opt="-g" -cc=gcc
-	-cp config.status lib/sun4/ch_tcp
-	@-chmod g+ws lib lib/sun4 lib/sun4/ch_tcp >/dev/null 2>&1
-#
-# Start using rendevous for ch_p4.
+	configure -arch=sun4 -device=ch_nexus -opt="-g" -cc=gcc
+	-cp config.status lib/sun4/ch_nexus
+	@-chmod g+ws lib lib/sun4 lib/sun4/ch_nexus >/dev/null 2>&1
 anlchp4mem: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=sun4 -device=ch_p4 -mpe -var_pkt -mpedbg -memdebug \
-		-opt="-g" 
-	# -use_rndv
+	configure -arch=sun4 -device=ch_p4 -var_pkt -memdebug -opt="-g" 
 	-cp config.status lib/sun4/ch_p4
 	@-chmod g+ws lib lib/sun4 lib/sun4/ch_p4 >/dev/null 2>&1
-anlchp4rndv: configure
+#
+# This version turns on aggressive gcc checking.
+anlchp4chk: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=sun4 -device=ch_p4 -mpe -var_pkt -mpedbg -use_rndv \
-		-opt="-g"
+	configure -arch=sun4 -device=ch_p4 -var_pkt -memdebug -devdebug \
+	-opt=-g \
+	-cflags="-Wall -Wstrict-prototypes -Wmissing-prototypes -Dlint -DNEEDS_STDLIB_PROTOTYPES" \
+	-cc=gcc
 	-cp config.status lib/sun4/ch_p4
 	@-chmod g+ws lib lib/sun4 lib/sun4/ch_p4 >/dev/null 2>&1
-anlp4sgi: configure
-	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=IRIX -comm=p4 -bopt=g -device=chameleon \
-	-devicedir=/home/gropp/tools.n -transportdir=/usr/local/p4-1.4 -mpe \
-		-no_short_longs
-	-cp config.status lib/IRIX/p4
-	@-chmod g+ws lib lib/IRIX lib/IRIX/p4 >/dev/null 2>&1
 anlchp4sgi: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=IRIX -comm=ch_p4 -device=ch_p4 -mpe -no_short_longs
+	configure -arch=IRIX -comm=ch_p4 -device=ch_p4 -no_short_longs
 	@-chmod g+ws lib lib/IRIX lib/IRIX/ch_p4 >/dev/null 2>&1
 anlchp4alpha: configure
 	@if [ `umask` != 002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=alpha -comm=ch_p4 -device=ch_p4 -mpe \
-		-make=/usr/bin/make -no_short_longs -mpedbg
+	configure -arch=alpha -comm=ch_p4 -device=ch_p4 \
+		-make=/usr/bin/make -no_short_longs 
 	@-chmod g+ws lib lib/alpha lib/alpha/ch_p4 >/dev/null 2>&1
 anlchp4alphamem: configure
 	@if [ `umask` != 002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=alpha -comm=ch_p4 -device=ch_p4 -mpe \
-		-make=/usr/bin/make -no_short_longs -memdebug -mpedbg
+	configure -arch=alpha -comm=ch_p4 -device=ch_p4 \
+		-make=/usr/bin/make -no_short_longs -memdebug
 	@-chmod g+ws lib lib/alpha lib/alpha/ch_p4 >/dev/null 2>&1
 anlchp4fbsd: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=freebsd -device=ch_p4 -mpe -var_pkt -mpedbg -memdebug \
+	configure -arch=freebsd -device=ch_p4 -var_pkt -memdebug \
 		-opt="-g" 
 	-cp config.status lib/freebsd/ch_p4
 	@-chmod g+ws lib lib/freebsd lib/freebsd/ch_p4 >/dev/null 2>&1
 # RS6000 sh umask returns 3 digits, not four!
-anlp4ibm: configure
-	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
-		echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=rs6000 -comm=p4 -bopt=g -device=chameleon \
-	-devicedir=/home/gropp/tools.n -transportdir=/usr/local/p4-1.4a -mpe \
-	-no_short_longs
-	@-chmod g+ws lib lib/rs6000 lib/rs6000/p4 >/dev/null 2>&1
 anlchp4ibm: configure
 	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
 		echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=rs6000 -comm=ch_p4 -device=ch_p4 -mpe -no_short_longs \
+	configure -arch=rs6000 -comm=ch_p4 -device=ch_p4 -no_short_longs \
 		-opt="-O"
 	@-chmod g+ws lib lib/rs6000 lib/rs6000/p4 >/dev/null 2>&1
 anlshmemibm: configure
 	@if [ `umask` != 02 -a `umask` != 0002 ] ; then \
 		echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=rs6000 -device=ch_shmem -mpe -no_short_longs \
-		-opt="-O" -compressed_pkt -nodevdebug
+	configure -arch=rs6000 -device=ch_shmem -no_short_longs -opt="-O"
 	@-chmod g+ws lib lib/rs6000 lib/rs6000/ch_shmem >/dev/null 2>&1
-# euih is similar to the release 1 MPLp for the SP1.
-anleuih: configure
-	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
-		echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=rs6000 -comm=euih -bopt=O -device=chameleon \
-		-devicedir=/home/gropp/tools.n  -mpe -opt="-O" -nodevdebug
-	@-chmod g+ws lib lib/rs6000 lib/rs6000/euih >/dev/null 2>&1
-anlcheuih: configure
-	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
-		echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=rs6000 -device=ch_eui -comm=ch_euih -mpe -opt="-O" \
-		-no_mpegraphics -nodevdebug
-	@-chmod g+ws lib lib/rs6000 lib/rs6000/ch_euih >/dev/null 2>&1
-# mpi is for release 2 MPL for the SPx
-anlmpl: configure
-	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
-		echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=rs6000 -comm=eui -bopt=O -device=chameleon \
-	-devicedir=/home/gropp/tools.n  -mpe -opt="-O" -nodevdebug \
-		-no_short_longs -limited_buffers
-	@-chmod g+ws lib lib/rs6000 lib/rs6000/eui >/dev/null 2>&1
+# mpl is for release 2 MPL for the SPx
 anlchmpl: configure
 	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
 		echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=rs6000 -device=ch_eui -comm=ch_eui -mpe -opt="-g" \
-		-limited_buffers -nodevdebug -no_short_longs -pkt_size=64
-	@-chmod g+ws lib lib/rs6000 lib/rs6000/ch_eui >/dev/null 2>&1
+	configure -arch=rs6000 -device=ch_mpl -opt="-g" \
+		-no_short_longs 
+	@-chmod g+ws lib lib/rs6000 lib/rs6000/ch_mpl >/dev/null 2>&1
 anlchmplg: configure
 	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
 		echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=rs6000 -device=ch_eui -comm=ch_eui -mpe -opt="-g" \
-		-limited_buffers -no_short_longs -pkt_size=64 -mpedbg
-	@-chmod g+ws lib lib/rs6000 lib/rs6000/ch_eui >/dev/null 2>&1
-# This is for testing the rendevous code
-anlchmplrndv: configure
+	configure -arch=rs6000 -device=ch_mpl -opt="-g" \
+		-no_short_longs
+	@-chmod g+ws lib lib/rs6000 lib/rs6000/ch_mpl >/dev/null 2>&1
+#
+# ch_mpl-2 has the proper pkt_size, tiny_buffers, set in the chconfig.h file
+anlchmpl2: configure
 	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
 		echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=rs6000 -device=ch_eui -comm=ch_eui -mpe -opt="-g" \
-		-no_mpegraphics -use_rndv -no_short_longs
-	@-chmod g+ws lib lib/rs6000 lib/rs6000/ch_eui >/dev/null 2>&1
-anlpvm3: configure
-	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=sun4 -comm=pvm3 -bopt=g -device=chameleon \
-	    -devicedir=/home/gropp/tools.n -transportdir=/home/gropp/pvm3 -mpe
-	@-chmod g+ws lib lib/sun4 lib/sun4/pvm3 >/dev/null 2>&1
+	configure -arch=rs6000 -device=ch_mpl-2 -opt="-g" \
+		-no_short_longs
+	@-chmod g+ws lib lib/rs6000 lib/rs6000/ch_mpl >/dev/null 2>&1
 # This is intended to be cross-compiled on, say, a Sun
 anlnx: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=intelnx -comm=nx -device=ch_nx -mpe -no_mpegraphics \
-		-opt="-O" -nodevdebug
+	configure -arch=intelnx -comm=nx -device=ch_nx -no_mpegraphics \
+		-opt="-O"
 	@-chmod g+ws lib lib/intelnx lib/intelnx/nx >/dev/null 2>&1
 #
 # This version allows us to build a version for profiling
 anlchp4pg: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=sun4 -device=ch_p4 \
-		-mpe -opt="-pg -O" -nodevdebug -var_pkt -mpedbg
+		-opt="-pg -O" -var_pkt
 	-@chmod g+ws lib lib/sun4 lib/sun4/p4 >/dev/null 2>&1
 
 INSTALLDIR = /usr/local/mpi

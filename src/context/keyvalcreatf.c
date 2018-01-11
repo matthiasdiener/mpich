@@ -2,11 +2,7 @@
 /* CUSTOM WRAPPER */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (a)
 #define MPIR_RmPointer(a)
@@ -32,6 +28,17 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
+/* Prototype to suppress warnings about missing prototypes */
+#ifdef FORTRAN_SPECIAL_FUNCTION_PTR
+void mpi_keyval_create_ ANSI_ARGS(( MPI_Copy_function **, 
+				    MPI_Delete_function **, int *, void *,
+				    int * ));
+#else
+void mpi_keyval_create_ ANSI_ARGS(( MPI_Copy_function *, 
+				    MPI_Delete_function *, int *, void *,
+				    int * ));
+#endif
+
 void mpi_keyval_create_ ( copy_fn, delete_fn, keyval, extra_state, __ierr )
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
 MPI_Copy_function   **copy_fn;
@@ -42,11 +49,12 @@ MPI_Delete_function *delete_fn;
 #endif
 int                 *keyval;
 void                *extra_state;
-int *__ierr;
+int                 *__ierr;
 {
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
-*__ierr = MPIR_Keyval_create( *copy_fn, *delete_fn, keyval, extra_state, 1 );
+    *__ierr = MPIR_Keyval_create( *copy_fn, *delete_fn, keyval, 
+				  extra_state, 1 );
 #else
-*__ierr = MPIR_Keyval_create( copy_fn, delete_fn, keyval, extra_state, 1 );
+    *__ierr = MPIR_Keyval_create( copy_fn, delete_fn, keyval, extra_state, 1 );
 #endif
 }

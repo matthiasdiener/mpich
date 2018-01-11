@@ -72,8 +72,8 @@ proc EraseArrayElements {array_name idx_header} {
 
 
 
-proc GetTextSize {canvas} {
-   set id [$canvas create text 0 0 -text "W" -anchor nw]
+proc GetTextSize {canvas string} {
+   set id [$canvas create text 0 0 -text $string -anchor nw]
    set sz0 [$canvas bbox $id]
    $canvas delete $id
 
@@ -82,7 +82,8 @@ proc GetTextSize {canvas} {
    $canvas delete $id
 
    # return list: {width, height}
-   set width [expr [lindex $sz1 2]-[lindex $sz0 2]]
+   #set width [expr [lindex $sz1 2]-[lindex $sz0 2]]
+   set width [lindex $sz0 2]   
    set height [expr [lindex $sz1 3]-[lindex $sz0 3]]
    return [list $width $height]
 }

@@ -2,11 +2,7 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -32,14 +28,19 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_type_contiguous_( count, old_type, newtype, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_type_contiguous_ ANSI_ARGS(( int *, MPI_Datatype, MPI_Datatype *,
+				      int * ));
+
+void mpi_type_contiguous_( count, old_type, newtype, __ierr )
 int*count;
 MPI_Datatype old_type;
 MPI_Datatype *newtype;
 int *__ierr;
 {
-MPI_Datatype lnewtype = 0;
-*__ierr = MPI_Type_contiguous(*count,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(old_type) ),&lnewtype);
-*(int*)newtype = MPIR_FromPointer(lnewtype);
+    MPI_Datatype lnewtype = 0;
+    *__ierr = MPI_Type_contiguous(*count,
+			     (MPI_Datatype)MPIR_ToPointer( *(int*)(old_type) ),
+				  &lnewtype);
+    *(int*)newtype = MPIR_FromPointer(lnewtype);
 }

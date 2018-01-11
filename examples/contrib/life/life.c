@@ -18,7 +18,7 @@ MPI_Comm comm;
   int      i, j, k;
   int      mysize, sum ;
   int    **matrix, **temp, **addr ;
-  double   totaltime, starttime ;
+  double   totaltime, starttime, maxtime ;
 
   /* Determine size and my rank in communicator */
   MPI_Comm_size(comm, &size) ;
@@ -62,7 +62,7 @@ MPI_Comm comm;
   }
 
   /* Play the game of life for given number of iterations */
-  starttime = MPE_Wtime() ;
+  starttime = MPI_Wtime() ;
   for (k = 0; k < ntimes; k++) {
     MPI_Request      req[4];
     MPI_Status       status[4];
@@ -99,10 +99,18 @@ MPI_Comm comm;
     temp = addr ;
   }
 
+   /* free the memory dynamically for the matrix */
+   free(matrix); free(temp);
+   for (i = 0; i < mysize+2; i++) {
+     free(matrix[i]);
+     free(temp[i]);
+   }
+ 
+
   /* Return the average time taken/processor */
-  totaltime = MPE_Wtime() - starttime;
-  MPI_Reduce (&totaltime, &totaltime, 1, MPI_DOUBLE, MPI_SUM, 0, comm);
-  return (totaltime/(double)size);
+  totaltime = MPI_Wtime() - starttime;
+  MPI_Reduce (&totaltime, &maxtime, 1, MPI_DOUBLE, MPI_SUM, 0, comm);
+  return (maxtime/(double)size);
 }
 
 int main(argc, argv)

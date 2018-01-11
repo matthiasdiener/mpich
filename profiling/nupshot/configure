@@ -1,41 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 progname="`echo $0 | sed 's:^\./\./:\./:'`"
 print_error() {
     echo "*# $*" 2>&1 ;
@@ -552,9 +515,14 @@ else
     /usr/local/include \
     /usr/unsupported/include \
     /usr/x386/include \
+    /usr/local/X11R6/include \
+    /usr/local/X11R5/include \
+    /usr/local/x11r6/include \
     /usr/local/x11r5/include \
+    /usr/include/X11R6 \
     /usr/include/X11R5 \
     /usr/include/X11R4 \
+    /usr/X11R6/include \
     /usr/X11R5/include \
     /usr/X11/include \
     /usr/openwin/include \
@@ -643,9 +611,13 @@ else
   /usr/local/lib \
   /usr/unsupported/lib \
   /usr/x386/lib \
+  /usr/local/X11R6/lib \
+  /usr/local/X11R5/lib \
+  /usr/local/x11r6/lib \
   /usr/local/x11r5/lib \
   /usr/lib/X11 \
   /usr/lib/X11R4 \
+  /usr/X11R6/lib \
   /usr/X11R5/lib \
   /usr/X11/lib \
   /usr/openwin/lib \
@@ -1138,6 +1110,7 @@ for dir in \
     /opt/Tcl \
     /opt/local \
     /opt/local/tcl7.0 \
+    /Tools/tcl \
     /local/encap/tcl-7.1 ; do
     if test -r $dir/include/tcl.h -a -r $dir/lib/libtcl.a ; then
 	TCL_DIR=$dir
@@ -1203,6 +1176,7 @@ for dir in \
     /opt/Tcl \
     /opt/local \
     /opt/local/tk3.6 \
+    /Tools/tk \
     /local/encap/tk-3.4 $TCL_DIR ; do
     if test -r $dir/include/tk.h -a -r $dir/lib/libtk.a ; then
 	TK_DIR=$dir
@@ -1265,24 +1239,114 @@ else
 echo $ac_n "checking for version of TK""... $ac_c" 1>&1
 fi
 /bin/rm -f conftestval
-CFLAGSsave="$CFLAGS"
-CFLAGS="$CFLAGS -I$TK_DIR/include $XINCLUDES"
+#
+# Some systems have a separate tcl dir; since we need both tcl and tk
+# we include both directories
+if test -n "$TK_DIR" -a -n "$TCL_DIR" ; then
+  CFLAGSsave="$CFLAGS"
+  CFLAGS="$CFLAGS -I$TK_DIR/include -I$TCL_DIR/include $XINCLUDES"
+  
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking whether cross-compiling""... $ac_c"
+else
+echo $ac_n "checking whether cross-compiling""... $ac_c" 1>&1
+fi
+# If we cannot run a trivial program, we must be cross compiling.
 cat > conftest.c <<EOF
 #include "confdefs.h"
+main(){exit(0);}
+EOF
+eval $compile
+if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+
+else
+  cross_compiling=1;if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+fi
+rm -fr conftest*
+
+
+if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
+    
+    Pac_CV_NAME=0
+else
+    if test -n "$TESTCC" ; then
+      CCsav="$CC"
+      CC="$TESTCC"
+    fi
+    cat > conftest.c <<EOF
+#include "confdefs.h"
 #include "tk.h"
+#include <stdio.h>
 main() { FILE *fp = fopen( "conftestval", "w" ); 
 fprintf( fp, "%d.%d", TK_MAJOR_VERSION, TK_MINOR_VERSION );
 return 0; }
 EOF
-eval $compile
-if test -s conftest && (./conftest; exit) 2>/dev/null; then
-  TK_VERSION=`cat conftestval`
+    eval $compile
+    if test ! -s conftest ; then
+      echo "Could not build executable program:"
+      echo "${CC-cc} $CFLAGS conftest.c -o conftest $LIBS"
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS 
+    TK_VERSION="unavailable"
 
+    else
+      /bin/rm -f conftestout
+      if test -s conftest && (./conftest; exit) 2>conftestout; then
+          TK_VERSION=`cat conftestval`
+
+      else
+        echo "Execution of test program failed"
+        TK_VERSION="unavailable"
+
+        if test -s conftestout ; then
+            cat conftestout
+        fi
+      fi
+    fi
+  if test -n "$TESTCC" ; then
+        CC="$CCsav"
+  fi
+  rm -fr conftest*
+fi
+
+  CFLAGS="$CFLAGSsave"
+elif test -n "$wishloc" ; then
+  # It is possible to use a wish program with
+  # set tk_version [ string range $tk_patchLevel 0 2 ]
+  # puts stdout $tk_version
+  TK_VERSION="unavailable"
 else
   TK_VERSION="unavailable"
 fi
-rm -fr conftest*
-CFLAGS="$CFLAGSsave"
 if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""$TK_VERSION"
 else
@@ -1295,6 +1359,87 @@ if test "$TK_VERSION" != 3.6 ; then
     print_error "Aborting build of nupshot"
     exit 1
 fi
+#
+# Some damaged implementations of tk (SGI's is known to be one)
+# require an ADDITIONAL library, which may be in the TK lib directory OR
+# in the X directory.  This library is libXpm, it contains routines
+# like Xpm... which, as should be expected, are undocumented.
+# 
+if test -s $TK_DIR/lib/libXpm.a ; then
+    XPMLIB=-lXpm
+else
+    LIBS_save="${LIBS}"
+LIBS="${LIBS} -lXpm"
+have_lib=""
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for -lXpm""... $ac_c"
+else
+echo $ac_n "checking for -lXpm""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  rm -rf conftest*
+  have_lib="1"
+
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+rm -f conftest*
+LIBS="${LIBS_save}"
+if test -n "${have_lib}"; then
+   :; XPMLIB="-lXpm"
+else
+   :; 
+fi
+
+fi
+
 
 
 
@@ -1348,6 +1493,7 @@ CPP='$CPP'
 tk_ok='$tk_ok'
 XINCLUDES='$XINCLUDES'
 XLIBSW='$XLIBSW'
+XPMLIB='$XPMLIB'
 TCL_DIR='$TCL_DIR'
 TK_DIR='$TK_DIR'
 OPTFLAGS='$OPTFLAGS'
@@ -1384,6 +1530,7 @@ s%@CPP@%$CPP%g
 s%@tk_ok@%$tk_ok%g
 s%@XINCLUDES@%$XINCLUDES%g
 s%@XLIBSW@%$XLIBSW%g
+s%@XPMLIB@%$XPMLIB%g
 s%@TCL_DIR@%$TCL_DIR%g
 s%@TK_DIR@%$TK_DIR%g
 s%@OPTFLAGS@%$OPTFLAGS%g

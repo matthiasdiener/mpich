@@ -1,16 +1,19 @@
 /*
- *  $Id: type_contig.c,v 1.19 1996/01/03 19:03:16 gropp Exp $
+ *  $Id: type_contig.c,v 1.21 1996/07/17 18:04:00 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: type_contig.c,v 1.19 1996/01/03 19:03:16 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "sbcnst2.h"
+#define MPIR_SBalloc MPID_SBalloc
+/* pt2pt for MPIR_Type_dup */
+#include "mpipt2pt.h"
+#else
 #include "mpisys.h"
+#endif
 
 
 /*@
@@ -24,6 +27,12 @@ Output Parameter:
 . newtype - new datatype (handle) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TYPE
+.N MPI_ERR_COUNT
+.N MPI_ERR_EXHAUSTED
 @*/
 int MPI_Type_contiguous( count, old_type, newtype )
 int          count;
@@ -45,12 +54,15 @@ MPI_Datatype *newtype;
   /* Are we making a null datatype? */
   if (count == 0) {
       /* (*newtype) = MPI_DATATYPE_NULL; */
-      dteptr = (*newtype) = (MPI_Datatype) MPIR_SBalloc( MPIR_dtes );
+      MPIR_ALLOC(dteptr,(MPI_Datatype) MPIR_SBalloc( MPIR_dtes ),
+		 MPI_COMM_WORLD,MPI_ERR_EXHAUSTED,
+		 "Error in MPI_TYPE_CONTIGUOUS" );
+      *newtype = dteptr;		 
       MPIR_SET_COOKIE(dteptr,MPIR_DATATYPE_COOKIE)
       dteptr->dte_type    = MPIR_CONTIG;
-      dteptr->committed   = MPIR_NO;
-      dteptr->basic       = MPIR_FALSE;
-      dteptr->permanent   = MPIR_FALSE;
+      dteptr->committed   = 0;
+      dteptr->basic       = 0;
+      dteptr->permanent   = 0;
       dteptr->ref_count   = 1;
       dteptr->align       = 4;
       dteptr->stride      = 1;
@@ -73,12 +85,14 @@ MPI_Datatype *newtype;
       }
 
   /* Create and fill in the datatype */
-  dteptr = (*newtype) = (MPI_Datatype) MPIR_SBalloc( MPIR_dtes );
+  MPIR_ALLOC(dteptr,(MPI_Datatype) MPIR_SBalloc( MPIR_dtes ),MPI_COMM_WORLD,
+	     MPI_ERR_EXHAUSTED,"Error in MPI_TYPE_CONTIGUOUS");
+  *newtype = dteptr;
   MPIR_SET_COOKIE(dteptr,MPIR_DATATYPE_COOKIE)
   dteptr->dte_type    = MPIR_CONTIG;
-  dteptr->committed   = MPIR_NO;
-  dteptr->basic       = MPIR_FALSE;
-  dteptr->permanent   = MPIR_FALSE;
+  dteptr->committed   = 0;
+  dteptr->basic       = 0;
+  dteptr->permanent   = 0;
   dteptr->ref_count   = 1;
   dteptr->align       = old_type->align;
   dteptr->stride      = 1;
@@ -105,7 +119,7 @@ MPI_Datatype *newtype;
   /* Set the upper/lower bounds and the extent and size */
   dteptr->lb          = dteptr->old_type->lb;
   dteptr->has_lb      = dteptr->old_type->has_lb;
-  dteptr->extent      = dteptr->count * dteptr->old_type->extent;
+  dteptr->extent      = (MPI_Aint)dteptr->count * dteptr->old_type->extent;
   if (dteptr->old_type->has_ub) {
       dteptr->ub     = dteptr->old_type->ub;
       dteptr->has_ub = 1;
@@ -117,7 +131,7 @@ MPI_Datatype *newtype;
   /* The value for real_ub here is an overestimate, but getting the
      "best" value is a bit complicated.  Note that for count == 1,
       this formula gives old_type->real_ub, independent of real_lb. */
-  dteptr->real_ub     = dteptr->count * 
+  dteptr->real_ub     = (MPI_Aint)dteptr->count * 
       (dteptr->old_type->real_ub - dteptr->old_type->real_lb) + 
 	  dteptr->old_type->real_lb;
   return (mpi_errno);

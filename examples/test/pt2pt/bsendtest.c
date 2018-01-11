@@ -10,6 +10,8 @@
  */
 
 #include <stdio.h>
+/* Needed for malloc declaration */
+#include <stdlib.h>
 #include "test.h"
 #include "mpi.h"
 
@@ -19,8 +21,8 @@ static int src  = 0;
 static int dest = 1;
 
 /* Which tests to perform (not yet implemented) */
-static int Do_Buffer = 1;
-static int Do_Standard = 1;
+/* static int Do_Buffer = 1; */
+/* static int Do_Standard = 1; */
 
 void Generate_Data(buffer, buff_size)
 double *buffer;
@@ -38,15 +40,18 @@ int buff_size;
 {
     int i, j;
     MPI_Status Stat;
+    double     *b;
 
+    b = buffer;
     for (j = 0; j < 2; j++) {
 	/* Receive a long message */
-	MPI_Recv(buffer, (buff_size/2 - 10), MPI_DOUBLE, src, 
+	MPI_Recv(b, (buff_size/2 - 10), MPI_DOUBLE, src, 
 		 2000, MPI_COMM_WORLD, &Stat);
-	buffer += buff_size/2 - 10;
+	b += buff_size/2 - 10;
 	/* Followed by 10 short ones */
-	for (i = 0; i < 10; i++)
-	    MPI_Recv(buffer++, 1, MPI_DOUBLE, src, 2000, MPI_COMM_WORLD, &Stat);
+	for (i = 0; i < 10; i++) {
+	    MPI_Recv(b++, 1, MPI_DOUBLE, src, 2000, MPI_COMM_WORLD, &Stat);
+	}
     }
 }
 

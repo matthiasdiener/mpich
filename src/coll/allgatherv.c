@@ -1,13 +1,9 @@
 /*
- *  $Id: allgatherv.c,v 1.17 1995/12/21 22:16:27 gropp Exp $
+ *  $Id: allgatherv.c,v 1.19 1996/06/07 15:08:09 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
-
-#ifndef lint
-static char vcid[] = "$Id: allgatherv.c,v 1.17 1995/12/21 22:16:27 gropp Exp $";
-#endif /* lint */
 
 #include "mpiimpl.h"
 #include "coll.h"
@@ -31,7 +27,26 @@ which to place the incoming data from process  'i'
 Output Parameter:
 . recvbuf - address of receive buffer (choice) 
 
+Notes:
+ The MPI standard (1.0 and 1.1) says that 
+
+ The jth block of data sent from 
+ each proess is received by every process and placed in the jth block of the 
+ buffer 'recvbuf'.  
+
+ This is misleading; a better description is
+
+ The block of data sent from the jth process is received by every
+ process and placed in the jth block of the buffer 'recvbuf'.
+
+ This text was suggested by Rajeev Thakur.
+
 .N fortran
+
+.N Errors
+.N MPI_ERR_BUFFER
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
 @*/
 int MPI_Allgatherv ( sendbuf, sendcount,  sendtype, 
                      recvbuf, recvcounts, displs,   recvtype, comm )
@@ -45,13 +60,17 @@ MPI_Datatype      recvtype;
 MPI_Comm          comm;
 {
   int mpi_errno = MPI_SUCCESS;
+  MPIR_ERROR_DECL;
 
   /* Check for invalid arguments */
   if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,sendcount) ||
       MPIR_TEST_DATATYPE(comm,sendtype) || MPIR_TEST_DATATYPE(comm,recvtype))
       return MPIR_ERROR(comm, mpi_errno, "Error in MPI_ALLGATHERV" ); 
 
-  return comm->collops->Allgatherv( sendbuf, sendcount,  sendtype, 
-				   recvbuf,  recvcounts, displs,   
-				   recvtype, comm );
+  MPIR_ERROR_PUSH(comm)
+  mpi_errno = comm->collops->Allgatherv( sendbuf, sendcount,  sendtype, 
+					 recvbuf,  recvcounts, displs,   
+					 recvtype, comm );
+  MPIR_ERROR_POP(comm);
+  MPIR_RETURN(comm,mpi_errno,"Error in MPI_ALLGATHERV");
 }

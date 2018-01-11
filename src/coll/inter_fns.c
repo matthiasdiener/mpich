@@ -1,13 +1,9 @@
 /*
- *  $Id: inter_fns.c,v 1.1 1996/01/11 19:13:04 gropp Exp $
+ *  $Id: inter_fns.c,v 1.2 1996/04/12 15:39:27 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
-
-#ifndef lint
-static char vcid[] = "$Id: inter_fns.c,v 1.1 1996/01/11 19:13:04 gropp Exp $";
-#endif /* lint */
 
 #include "mpiimpl.h"
 #include "coll.h"
@@ -16,59 +12,42 @@ static char vcid[] = "$Id: inter_fns.c,v 1.1 1996/01/11 19:13:04 gropp Exp $";
  * Provide the collective ops structure for inter communicators.
  * Doing it this way (as a different set of functions) removes a test
  * from each collective call, and gets us back at least the cost of the
- * additional indirections and function call we have to provide the abstraction !
+ * additional indirections and function call we have to provide the 
+ * abstraction !
  *
  * Written by James Cownie (Meiko) 31 May 1995
  */
 
 /* Forward declarations */
-static int inter_Barrier ANSI_ARGS((MPI_Comm comm ));
-static int inter_Bcast ANSI_ARGS((void* buffer, int count, 
-				  MPI_Datatype datatype, int root, 
-				  MPI_Comm comm ));
-static int inter_Gather ANSI_ARGS((void* sendbuf, int sendcount, 
-				   MPI_Datatype sendtype, void* recvbuf, 
-				   int recvcount, MPI_Datatype recvtype, 
-				   int root, MPI_Comm comm)); 
-static int inter_Gatherv ANSI_ARGS((void* sendbuf, int sendcount, 
-				    MPI_Datatype sendtype, 
-				    void* recvbuf, int *recvcounts, 
-				    int *displs, MPI_Datatype recvtype, 
-				    int root, MPI_Comm comm)); 
-static int inter_Scatter ANSI_ARGS((void* sendbuf, int sendcount, 
-				    MPI_Datatype sendtype, 
-				    void* recvbuf, int recvcount, 
-				    MPI_Datatype recvtype, 
-				    int root, MPI_Comm comm));
-static int inter_Scatterv ANSI_ARGS((void* sendbuf, int *sendcounts, 
-				     int *displs, MPI_Datatype sendtype, 
-				     void* recvbuf, int recvcount, 
-				     MPI_Datatype recvtype, int root, 
-				     MPI_Comm comm));
-static int inter_Allgather ANSI_ARGS((void* sendbuf, int sendcount, 
-				      MPI_Datatype sendtype, 
-				      void* recvbuf, int recvcount, 
-				      MPI_Datatype recvtype, MPI_Comm comm));
-static int inter_Allgatherv ANSI_ARGS((void* sendbuf, int sendcount, MPI_Datatype sendtype, 
-				       void* recvbuf, int *recvcounts, int *displs, 
-				       MPI_Datatype recvtype, MPI_Comm comm));
-static int inter_Alltoall ANSI_ARGS((void* sendbuf, int sendcount, MPI_Datatype sendtype, 
-				     void* recvbuf, int recvcount, MPI_Datatype recvtype, 
-				     MPI_Comm comm));
-static int inter_Alltoallv ANSI_ARGS((void* sendbuf, int *sendcounts, int *sdispls, 
-				      MPI_Datatype sendtype, void* recvbuf, int *recvcounts, 
-				      int *rdispls, MPI_Datatype recvtype, MPI_Comm comm));
-static int inter_Reduce ANSI_ARGS((void* sendbuf, void* recvbuf, int count, 
-				   MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm));
-static int inter_Allreduce ANSI_ARGS((void* sendbuf, void* recvbuf, int count, 
-				      MPI_Datatype datatype, MPI_Op op, MPI_Comm comm));
-static int inter_Reduce_scatter ANSI_ARGS((void* sendbuf, void* recvbuf, int *recvcounts, 
-					   MPI_Datatype datatype, MPI_Op op, MPI_Comm comm));
-static int inter_Scan ANSI_ARGS((void* sendbuf, void* recvbuf, int count, 
-				 MPI_Datatype datatype, 
-				 MPI_Op op, MPI_Comm comm ));
+static int inter_Barrier ANSI_ARGS((MPI_Comm));
+static int inter_Bcast ANSI_ARGS((void*, int, MPI_Datatype, int, MPI_Comm));
+static int inter_Gather ANSI_ARGS((void*, int, MPI_Datatype, void*, 
+				   int, MPI_Datatype, int, MPI_Comm));
+static int inter_Gatherv ANSI_ARGS((void*, int, MPI_Datatype, void*, int *, 
+				    int *, MPI_Datatype, int, MPI_Comm)); 
+static int inter_Scatter ANSI_ARGS((void*, int, MPI_Datatype, void*, int, 
+				    MPI_Datatype, int, MPI_Comm));
+static int inter_Scatterv ANSI_ARGS((void*, int *, int *, MPI_Datatype, 
+				     void*, int, MPI_Datatype, int, MPI_Comm));
+static int inter_Allgather ANSI_ARGS((void*, int, MPI_Datatype, void*, int, 
+				      MPI_Datatype, MPI_Comm));
+static int inter_Allgatherv ANSI_ARGS((void*, int, MPI_Datatype, void*, int *,
+				       int *, MPI_Datatype, MPI_Comm));
+static int inter_Alltoall ANSI_ARGS((void*, int, MPI_Datatype, 
+				     void*, int, MPI_Datatype, MPI_Comm));
+static int inter_Alltoallv ANSI_ARGS((void*, int *, int *, 
+				      MPI_Datatype, void*, int *, 
+				      int *, MPI_Datatype, MPI_Comm));
+static int inter_Reduce ANSI_ARGS((void*, void*, int, 
+				   MPI_Datatype, MPI_Op, int, MPI_Comm));
+static int inter_Allreduce ANSI_ARGS((void*, void*, int, 
+				      MPI_Datatype, MPI_Op, MPI_Comm));
+static int inter_Reduce_scatter ANSI_ARGS((void*, void*, int *, 
+					   MPI_Datatype, MPI_Op, MPI_Comm));
+static int inter_Scan ANSI_ARGS((void*, void*, int, MPI_Datatype, 
+				 MPI_Op, MPI_Comm ));
 
-static MPIR_COLLOPS inter_collops = {
+static struct _MPIR_COLLOPS inter_collops = {
     inter_Barrier,
     inter_Bcast,
     inter_Gather, 
@@ -88,7 +67,7 @@ static MPIR_COLLOPS inter_collops = {
 				    */
 };
 
-MPIR_COLLOPS * MPIR_inter_collops = &inter_collops;
+MPIR_COLLOPS MPIR_inter_collops = &inter_collops;
 
 /* Now the functions, each one simply raises an error */
 static int inter_Barrier( comm )

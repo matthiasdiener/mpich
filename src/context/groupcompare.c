@@ -1,5 +1,5 @@
 /*
- *  $Id: groupcompare.c,v 1.2 1995/12/21 22:11:08 gropp Exp $
+ *  $Id: groupcompare.c,v 1.3 1996/04/12 14:12:08 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -21,6 +21,11 @@ the two groups are the same, 'MPI_SIMILAR' if only the members are the same,
 and 'MPI_UNEQUAL' otherwise
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_GROUP
+.N MPI_ERR_ARG
 @*/
 int MPI_Group_compare ( group1, group2, result )
 MPI_Group  group1;

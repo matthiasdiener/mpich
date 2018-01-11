@@ -2,11 +2,7 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -32,6 +28,15 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
+/* Prototype to suppress warnings about missing prototypes */
+#ifdef FORTRAN_SPECIAL_FUNCTION_PTR
+void mpi_errhandler_create_ ANSI_ARGS(( MPI_Handler_function **, 
+					MPI_Errhandler *, int * ));
+#else
+void mpi_errhandler_create_ ANSI_ARGS(( MPI_Handler_function *, 
+					MPI_Errhandler *, int * ));
+#endif
+
 void mpi_errhandler_create_( function, errhandler, __ierr )
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
 MPI_Handler_function **function;
@@ -41,11 +46,11 @@ MPI_Handler_function *function;
 MPI_Errhandler       *errhandler;
 int *__ierr;
 {
-MPI_Errhandler new;
+    MPI_Errhandler new;
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
-*__ierr = MPI_Errhandler_create( *function, &new );
+    *__ierr = MPI_Errhandler_create( *function, &new );
 #else
-*__ierr = MPI_Errhandler_create( function, &new );
+    *__ierr = MPI_Errhandler_create( function, &new );
 #endif
-*(int *)errhandler = MPIR_FromPointer(new);
+    *(int *)errhandler = MPIR_FromPointer(new);
 }

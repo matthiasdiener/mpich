@@ -1,14 +1,10 @@
 /*
- *  $Id: bufattach.c,v 1.8 1995/12/21 21:11:00 gropp Exp $
+ *  $Id: bufattach.c,v 1.9 1996/04/11 20:17:46 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-
-#ifndef lint
-static char vcid[] = "$Id: bufattach.c,v 1.8 1995/12/21 21:11:00 gropp Exp $";
-#endif /* lint */
 
 #include "mpiimpl.h"
 
@@ -42,15 +38,27 @@ the buffer for use by the BSEND routines in using the buffer.  This value
 is in 'mpi.h' (for C) and 'mpif.h' (for Fortran).
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_INTERN
+
+.seealso: MPI_Buffer_detach, MPI_Bsend
 @*/
 int MPI_Buffer_attach( buffer, size )
 void *buffer;
 int  size;
 {
-int mpi_errno;
+    int mpi_errno;
 
-if (mpi_errno = MPIR_SetBuffer( buffer, size ))
-    return MPIR_ERROR( (MPI_Comm)0, mpi_errno, "Error in MPI_BUFFER_ATTACH" );
-
-return MPI_SUCCESS;
+#ifdef MPI_ADI2
+    if ((mpi_errno = MPIR_BsendInitBuffer( buffer, size )))
+	return MPIR_ERROR( (MPI_Comm)0, mpi_errno, 
+			   "Error in MPI_BUFFER_ATTACH" );
+#else
+    if ((mpi_errno = MPIR_SetBuffer( buffer, size )))
+	return MPIR_ERROR( (MPI_Comm)0, mpi_errno, 
+			   "Error in MPI_BUFFER_ATTACH" );
+#endif
+    return MPI_SUCCESS;
 }

@@ -13,7 +13,15 @@ MPIR_HOME=#MPIR_HOME#
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
 fi
-MPIRUN_HOME=$MPIR_HOME/bin
+#
+# This is complicated by the fact that we want to use EITHER bin (for 
+# single device installations) or lib/#LARCH#/#DEVICE# for multiple
+# device installations.
+if [ "#MPIRUN_BIN#" = "#""MPIRUN_BIN""#" ] ; then 
+    MPIRUN_HOME=$MPIR_HOME/bin
+else
+    MPIRUN_HOME=$MPIR_HOME/#MPIRUN_BIN#
+fi
 #
 # Local routines
 #
@@ -99,6 +107,9 @@ case $machine in
 	# code
 	if [ -x $MPIRUN_HOME/mpirun.$device ] ; then
 	    mpirun_version=$MPIRUN_HOME/mpirun.$device
+	elif [ -x $MPIRUN_HOME/mpirun.$default_device ] ; then
+	    mpirun_version=$MPIRUN_HOME/mpirun.$default_device
+	    device=$default_device
 	else
 	    echo "Cannot find MPIRUN machine file for machine $machine"
 	    echo "and architecture $arch ."

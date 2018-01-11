@@ -1,5 +1,5 @@
 /*
- *  $Id: group_tranks.c,v 1.12 1995/12/21 22:10:58 gropp Exp $
+ *  $Id: group_tranks.c,v 1.13 1996/04/12 14:11:44 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -23,6 +23,12 @@ Output Parameter:
 correspondence exists. 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_GROUP
+.N MPI_ERR_ARG
+
 @*/
 int MPI_Group_translate_ranks ( group_a, n, ranks_a, group_b, ranks_b )
 MPI_Group group_a;

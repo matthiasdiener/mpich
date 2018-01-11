@@ -1,12 +1,18 @@
 /*
- *  $Id: cart_sub.c,v 1.19 1995/12/21 22:18:33 gropp Exp $
+ *  $Id: cart_sub.c,v 1.20 1996/04/12 15:53:03 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#include "mpitopo.h"
+#ifdef MPI_ADI2
+#include "sbcnst2.h"
+#define MPIR_SBalloc MPID_SBalloc
+#else
 #include "mpisys.h"
+#endif
 
 /*@
 
@@ -24,6 +30,12 @@ Output Parameter:
 process (handle) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TOPOLOGY
+.N MPI_ERR_COMM
+.N MPI_ERR_ARG
 @*/
 int MPI_Cart_sub ( comm, remain_dims, comm_new )
 MPI_Comm  comm;
@@ -38,6 +50,7 @@ MPI_Comm *comm_new;
   int key = 0;
   int mpi_errno = MPI_SUCCESS;
   MPIR_TOPOLOGY *topo, *new_topo;
+  static char myname[] = "Error in MPI_CART_SUB";
 
   /* Check for valid arguments */
   if ( MPIR_TEST_COMM(comm,comm)  ||
@@ -55,10 +68,10 @@ MPI_Comm *comm_new;
   /* Determine the remaining dimension total */
   ndims = topo->cart.ndims;
   for ( i=0; i<ndims; i++ )
-    if ( remain_dims[i] ) {
-      num_remain_dims++;
-      remain_total *= topo->cart.dims[i];
-	}
+      if ( remain_dims[i] ) {
+	  num_remain_dims++;
+	  remain_total *= topo->cart.dims[i];
+      }
 
   /* Check for special case */
   if ( num_remain_dims == 0 ) {
@@ -68,9 +81,9 @@ MPI_Comm *comm_new;
       mpi_errno = MPI_Comm_dup( MPI_COMM_SELF, comm_new );
       /* Eventually, we should attach some sort of 0-dimensional 
 	 cartesian topology to this */
-    return (mpi_errno);
+      return (mpi_errno);
   }
-
+  
   /* Split the old communicator */
   for ( i=0; i< ndims; i++ ) 
 	if ( remain_dims[i] ) {
@@ -83,12 +96,15 @@ MPI_Comm *comm_new;
 
   /* Store topology information in new communicator */
   if ( (*comm_new) != MPI_COMM_NULL ) {
-    new_topo = (MPIR_TOPOLOGY *) MPIR_SBalloc ( MPIR_topo_els );
+      MPIR_ALLOC(new_topo,(MPIR_TOPOLOGY *) MPIR_SBalloc ( MPIR_topo_els ),
+		 comm,MPI_ERR_EXHAUSTED,myname);
     MPIR_SET_COOKIE(&new_topo->cart,MPIR_CART_TOPOL_COOKIE)
     new_topo->cart.type           = MPI_CART;
     new_topo->cart.nnodes         = remain_total;
     new_topo->cart.ndims          = num_remain_dims;
-    new_topo->cart.dims           = (int *)MALLOC(sizeof(int)*3*num_remain_dims);
+    MPIR_ALLOC(new_topo->cart.dims,
+	(int *)MALLOC(sizeof(int)*3*num_remain_dims),
+	       comm,MPI_ERR_EXHAUSTED,myname);
     new_topo->cart.periods        = new_topo->cart.dims + num_remain_dims;
     new_topo->cart.position       = new_topo->cart.periods + num_remain_dims;
     for ( i=j=0; i<ndims; i++ )

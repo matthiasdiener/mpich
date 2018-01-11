@@ -8,13 +8,13 @@ double a;
     return (4.0 / (1.0 + a*a));
 }
 
-int main(argc,argv)
+void main(argc,argv)
 int argc;
 char *argv[];
 {
-    int done = 0, n, myid, numprocs, i, rc;
+    int done = 0, n, myid, numprocs, i;
     double PI25DT = 3.141592653589793238462643;
-    double mypi, pi, h, sum, x, a;
+    double mypi, pi, h, sum, x;
     double startwtime, endwtime;
     int  namelen;
     char processor_name[MPI_MAX_PROCESSOR_NAME];

@@ -1,7 +1,15 @@
-.TH MPE_Draw_points 4 "1/16/1996" " " "MPE"
+.TH MPE_Draw_points 4 "6/26/1996" " " "MPE"
 .SH NAME
-MPE_Draw_points \- Draws points on an X Windows display
-
+MPE_Draw_points \-  Draws points on an X Windows display  
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+int MPE_Draw_points( handle, points, npoints )
+MPE_XGraph handle;
+MPE_Point *points;
+int npoints;
+.fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP
@@ -19,16 +27,5 @@ MPE_Draw_points \- Draws points on an X Windows display
 - number of points to draw
 .PD 1
 
-.SH SYNOPSIS
-.nf
-#include <stdio.h>
-#include "mpe.h"
-int MPE_Draw_points( handle, points, npoints )
-MPE_XGraph handle;
-MPE_Point *points;
-int npoints;
-
-.fi
-
 .SH LOCATION
- mpe_graphics.c
+mpe_graphics.c

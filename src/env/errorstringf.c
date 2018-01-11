@@ -1,15 +1,11 @@
 /* error_string.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 #ifdef _CRAY
 #include "fortran.h"
 #endif
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -46,11 +42,15 @@ string = _fcdtocp(string_fcd);
 *__ierr = MPI_Error_string(*errorcode,string,resultlen);
 }
 #else
-void mpi_error_string_( errorcode, string, resultlen, __ierr )
+
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_error_string_ ANSI_ARGS(( int *, char *, int *, int *, int ));
+void mpi_error_string_( errorcode, string, resultlen, __ierr, d )
 int*errorcode, *resultlen;
 char *string;
 int *__ierr;
+int d;
 {
-*__ierr = MPI_Error_string(*errorcode,string,resultlen);
+    *__ierr = MPI_Error_string(*errorcode,string,resultlen);
 }
 #endif

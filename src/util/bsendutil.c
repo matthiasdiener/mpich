@@ -1,5 +1,5 @@
 /*
- *  $Id: bsendutil.c,v 1.6 1996/01/03 19:04:52 gropp Exp $
+ *  $Id: bsendutil.c,v 1.8 1996/06/07 15:12:34 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -53,15 +53,15 @@
  */
 
 
-#ifndef lint
-static char vcid[] = "$Id: bsendutil.c,v 1.6 1996/01/03 19:04:52 gropp Exp $";
-#endif /* lint */
+#ifdef MPI_ADI2
+#include "bsendutil2.c"
+#else
 
 /* #define DEBUG_BSEND */
 
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */ 
 static int DebugBsend = 0;
-#define DEBUG_PRINT(str) printf( "%s\n", str );
+#define DEBUG_PRINT(str) PRINTF( "%s\n", str );
 #else
 #define DEBUG_PRINT(str) 
 #endif                 /* #DEBUG_BSEND_END# */
@@ -106,6 +106,9 @@ typedef struct _bsenddata {
 static BSendData *Bsend = 0;
 static int BsendSize = 0;
 
+int MPIR_TestBufferPtr ANSI_ARGS(( BSendData *));
+BSendData *MPIR_MergeBlock ANSI_ARGS(( BSendData *));
+
 /*
    MPIR_SetBuffer - Set the buffer area for the buffered sends, and 
    initialize the internal data structures
@@ -124,7 +127,7 @@ if (Bsend)
 p	  = (BSendData *)bufp;
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
 if (DebugBsend) 
-    fprintf( stderr, "Initializing buffer to %d bytes at %x\n", size, 
+    FPRINTF( stderr, "Initializing buffer to %d bytes at %x\n", size, 
 	     (MPI_Aint) p );
 #endif                 /* #DEBUG_BSEND_END# */
 p->next	      = 0;
@@ -179,7 +182,7 @@ while (p) {
     if (p->req) {
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
 	if (DebugBsend) 
-	    fprintf( stderr, 
+	    FPRINTF( stderr, 
 		    "Waiting for release of buffer at %x with request %x\n",
 		     (MPI_Aint) p, (MPI_Aint)p->req );
 #endif                 /* #DEBUG_BSEND_END# */
@@ -217,7 +220,7 @@ if (tp && tp->req == MPI_REQUEST_NULL) {
     /* Merge with previous block */
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
     if (DebugBsend) 
-	fprintf( stderr, "Merging block at %x with next block\n", 
+	FPRINTF( stderr, "Merging block at %x with next block\n", 
 		 (MPI_Aint)tp );
 #endif                 /* #DEBUG_BSEND_END# */
     tp->next = b->next;
@@ -236,7 +239,7 @@ if (tp && tp->req == MPI_REQUEST_NULL) {
     /* Merge with next block */
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
     if (DebugBsend) 
-	fprintf( stderr, "Merging block at %x with previous block at %x\n", 
+	FPRINTF( stderr, "Merging block at %x with previous block at %x\n", 
 		 (MPI_Aint)tp, (MPI_Aint)b );
 #endif                 /* #DEBUG_BSEND_END# */
     b->next = tp->next;
@@ -269,6 +272,10 @@ BSendData  *b, *new;
 int        flag;
 MPI_Status status;
 
+#ifdef MPI_ADI2
+printf( "Not done - GetBuffer (Bsend)\n" );
+  MPI_Abort( MPI_COMM_WORLD, 1 );
+#else
 DEBUG_PRINT("Entering MPIR_GetBuffer")
 /* Round size to a multiple of 8 */
 if (size & 0x7) size += (8 - (size & 0x7));
@@ -286,7 +293,7 @@ while (b) {
 	   is not active, we don't do the test. */
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
 	if (DebugBsend)
-	    fprintf( stderr, "Testing for completion of block at %x\n",
+	    FPRINTF( stderr, "Testing for completion of block at %x\n",
 		     (MPI_Aint)b );
 #endif                 /* #DEBUG_BSEND_END# */
 	MPI_Test( &b->req, &flag, &status );
@@ -294,7 +301,7 @@ while (b) {
 	if (flag && !b->req) {
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
 	    if (DebugBsend)
-		fprintf( stderr, "Found completed bsend\n" );
+		FPRINTF( stderr, "Found completed bsend\n" );
 #endif                 /* #DEBUG_BSEND_END# */
 	    /* Done; merge the blocks and test again */
 	    b = MPIR_MergeBlock( b );
@@ -310,7 +317,7 @@ while (b) {
 	if (b->len > size + sizeof(BSendData) + 8) {
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
 	    if (DebugBsend)
-		fprintf( stderr, 
+		FPRINTF( stderr, 
 			"Found large block of size %d (need %d) at %x\n",
 			b->len, size, (MPI_Aint)b );
 #endif                 /* #DEBUG_BSEND_END# */
@@ -328,13 +335,16 @@ while (b) {
 	    }
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
 	if (DebugBsend)
-	    fprintf( stderr, 
+	    FPRINTF( stderr, 
                  "Creating bsend block at %x of size %d\n", 
 		    (MPI_Aint)b, size );
 #endif                 /* #DEBUG_BSEND_END# */
 	*bufp			 = (void *)(b+1);
 	/* Copy the request to the local area */
 	b->req			 = (MPI_Request) MPIR_SBalloc( MPIR_shandles );
+	if (!b->req) {
+	    return MPI_ERR_EXHAUSTED;
+	}
 	MEMCPY( b->req, rq, sizeof(MPIR_SHANDLE) );
 	/* Save the buffer address */
 	b->req->shandle.bufadd   = *bufp;
@@ -362,10 +372,11 @@ while (b) {
     }
 
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
-fprintf( stdout, "Could not find %d bytes in buffer\n", size );
+FPRINTF( stdout, "Could not find %d bytes in buffer\n", size );
 MPIR_BufferPrint();
 #endif                 /* #DEBUG_BSEND_END# */
 DEBUG_PRINT("Exiting MPIR_GetBuffer")
+#endif
 return MPI_ERR_USER_BUFFER_EXHAUSTED;
 }
 
@@ -381,6 +392,10 @@ BSendData *b;
 int       outcount, position = 0;
 MPIR_SHANDLE *brq;
 
+#ifdef MPI_ADI2
+printf( "Not done - PrepareBuffer (Bsend)\n" );
+  MPI_Abort( MPI_COMM_WORLD, 1 );
+#else
 DEBUG_PRINT("Entering MPIR_PrepareBuffer")
 b = (BSendData *)(rq->bsend);
 if (!b) {
@@ -425,6 +440,7 @@ if (b->next && MPIR_TestBufferPtr(b->next)) {
      "Error in BSEND data, corruption detected at data end of PrepareBuffer" );
     }
 DEBUG_PRINT("Exiting MPIR_PrepareBuffer")
+#endif
 }
 
 /* 
@@ -434,12 +450,20 @@ void MPIR_BsendPersistent( request, flag )
 MPI_Request request;
 int         flag;
 {
-MPIR_SHANDLE *req;
-BSendData *b;
+    MPIR_SHANDLE *req;
+    BSendData *b;
 
-b   = (BSendData *)request->shandle.bsend;
-req = (MPIR_SHANDLE *)b->req;
-req->persistent = flag;
+#ifdef MPI_ADI2
+    b   = (BSendData *)request->shandle.bsend;
+    if (flag) 
+	b->req->handle_type = MPIR_PERSISTENT_SEND;
+    else
+	b->req->handle_type = MPIR_SEND;
+#else
+    b   = (BSendData *)request->shandle.bsend;
+    req = (MPIR_SHANDLE *)b->req;
+    req->persistent = flag;
+#endif
 }
 
 /*
@@ -448,32 +472,35 @@ req->persistent = flag;
 int MPIR_DoBufferSend( shandle )
 MPIR_SHANDLE *shandle;
 {
-MPIR_SHANDLE *req;
-BSendData *b;
-int mpi_errno;
+    MPIR_SHANDLE *req;
+    BSendData *b;
 /* Find the local request */
 
-b = shandle->bsend;
-if (MPIR_TestBufferPtr(b)) {
-    /* Error in pointer after we've packed into it */
-    MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
-     "Error in BSEND area while trying to start communication" );
+#ifdef MPI_ADI2
+    printf( "Not done - DoBufferSend (Bsend)\n" );
+    MPI_Abort( MPI_COMM_WORLD, 1 );
+#else
+    b = shandle->bsend;
+    if (MPIR_TestBufferPtr(b)) {
+	/* Error in pointer after we've packed into it */
+	MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
+		    "Error in BSEND area while trying to start communication" );
     }
-req = (MPIR_SHANDLE *)b->req;
+    req = (MPIR_SHANDLE *)b->req;
 
 /* Need to prepare the buffer before sending.  This replaces MPIR_Send_setup
  */
 /* if (mpi_errno = MPIR_Send_setup( &req )) return mpi_errno; */
-req->active       = 1;
-MPIR_PrepareBuffer( req );
+    req->active       = 1;
+    MPIR_PrepareBuffer( req );
 
-MPID_Post_send( req->comm->ADIctx, req );
+    MPID_Post_send( req->comm->ADIctx, req );
 
 /* At this point, the shandle is done (but it is active) */
-shandle->active = 1;
-MPID_Set_completed( shandle->comm->ADIctx, (MPI_Request)shandle );
-
-return MPI_SUCCESS;
+    shandle->active = 1;
+    MPID_Set_completed( shandle->comm->ADIctx, (MPI_Request)shandle );
+#endif
+    return MPI_SUCCESS;
 }
 
 /* 
@@ -495,7 +522,7 @@ BSendData *b;
 DEBUG_PRINT("Entering MPIR_BufferFreeReq")
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
 if (DebugBsend)
-    fprintf( stderr, 
+    FPRINTF( stderr, 
 	    "Nulling Bsend request at %x\n", (MPI_Aint) b );
 #endif                 /* #DEBUG_BSEND_END# */
 if (!rq->bsend) return;
@@ -517,7 +544,7 @@ int MPIR_BufferPrint( )
 {
 BSendData *b;
 
-fprintf( stdout, "Printing buffer arena\n" );
+FPRINTF( stdout, "Printing buffer arena\n" );
 b = Bsend;
 while (b) {
     if (MPIR_TestBufferPtr(b)) {
@@ -525,11 +552,30 @@ while (b) {
 	MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
 		   "Error in BSEND data, corruption detected in PrintBuffer" );
 	}
-    fprintf( stdout, "%x : len = %d, req = %x\n", (MPI_Aint)b, b->len, 
+    FPRINTF( stdout, "%x : len = %d, req = %x\n", (MPI_Aint)b, b->len, 
 	    (MPI_Aint)(b->req) );
     b = b->next;
     }
-fprintf( stdout, "End of printing buffer arena\n" );
+FPRINTF( stdout, "End of printing buffer arena\n" );
 return 0;
 }
 #endif                 /* #DEBUG_BSEND_END# */
+#if defined(MPI_ADI2) && 0
+/* This routine is called by MPI_Start to start an persistent bsend */
+void MPIR_IbsendDatatype( comm, buf, count, datatype, src_lrank, tag, 
+			  context_id, dest_grank, request, error_code )
+MPI_Comm     comm;
+MPI_Datatype datatype;
+void         *buf;
+int          count, src_lrank, tag, context_id, dest_grank, *error_code;
+MPI_Request  request;
+{
+    /* The steps are */
+    /* Pack data as necessary into buffer */
+    /* init request */
+    /* use ISendContig to send the message */
+MPIR_DoBufferSend( request );
+}
+#endif
+
+#endif

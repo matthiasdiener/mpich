@@ -1,7 +1,14 @@
-.TH MPE_Get_mouse_press 4 "12/20/1995" " " "MPE"
+.TH MPE_Get_mouse_press 4 "6/6/1996" " " "MPE"
 .SH NAME
-MPE_Get_mouse_press \- Waits for mouse button press
-
+MPE_Get_mouse_press \-  Waits for mouse button press 
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+int MPE_Get_mouse_press( graph, x, y, button )
+MPE_XGraph graph;
+int *x, *y, *button;
+.fi
 .SH INPUT PARAMETER
 .PD 0
 .TP
@@ -32,15 +39,5 @@ until the mouse button is pressed inside this MPE window.
 When pressed, returns the coordinate relative to the upper right of
 this MPE window and the button that was pressed.
 
-.SH SYNOPSIS
-.nf
-#include <stdio.h>
-#include "mpe.h"
-MPE_Get_mouse_press( graph, x, y, button )
-MPE_XGraph graph;
-int *x, *y, *button;
-
-.fi
-
 .SH LOCATION
- xmouse.c
+xmouse.c

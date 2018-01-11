@@ -39,6 +39,7 @@ c                                 function to integrate
 
       sizetype   = 1
       sumtype    = 2
+      masternode = 0
       
  10   if ( myid .eq. 0 ) then
 

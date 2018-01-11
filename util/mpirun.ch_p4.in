@@ -6,7 +6,11 @@ fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
 fi
-MPIRUN_HOME=$MPIR_HOME/bin
+if [ "#MPIRUN_BIN#" = "#""MPIRUN_BIN""#" ] ; then 
+    MPIRUN_HOME=$MPIR_HOME/bin
+else
+    MPIRUN_HOME=$MPIR_HOME/#MPIRUN_BIN#
+fi
 if [ -z "$argsset" ] ; then
    . $MPIRUN_HOME/mpirun.args
    argsset=1
@@ -64,14 +68,18 @@ if [ -z "$p4pgfile"  ] ; then
     if [ $just_testing = 1 ] ; then
        echo "Procgroup file:"
        if [ $nolocal = 0 ] ; then
-	    echo "$HOST 0 $proginstance"
+	    echo "$MPI_HOST 0 $proginstance"
        else 
 	    echo "$machinehead 0 $proginstance"
             procNum=2
        fi
     else
        if [ $nolocal = 0 ] ; then
-	    echo "$HOST 0 $proginstance" > $p4pgfile
+	    if [ -z "$MPI_HOST" ] ; then
+		echo "No value for MPI_HOST!"
+	        exit 1
+	    fi
+	    echo "$MPI_HOST 0 $proginstance" > $p4pgfile
        else
 	    echo "$machinehead 0 $proginstance" > $p4pgfile
             procNum=2
@@ -100,71 +108,108 @@ if [ -z "$p4pgfile"  ] ; then
 fi
 #
 # On nfs systems, it is possible that a recently created executable may 
-# not be visable yet to other systems, causing problems when you attempt
+# not be visible yet to other systems, causing problems when you attempt
 # to start a job.  As a partial fix for this, we do a sync.  It would help,
 # of course, if NFS worked correctly.
 #
 #SYNCLOC# > /dev/null 2>&1
 #
-startpgm="eval"
+
+#
+# Handle debuggers
+#
+#startpgm="eval"
+startpgm="$prognamemain $cmdLineArgs -p4pg $p4pgfile"
 if [ "$debugger" != "" ] ; then
-    dbgfile=$PWD_TRIAL/PId$$
-    echo "Test" > $dbgfile
-    if [ -s $dbgfile ] ; then
-	/bin/rm -f $dbgfile
+    if [ "$debugger" = "totalview" ] ; then
+        if [ "$TOTALVIEW" = "" ] ; then
+	   TOTALVIEW="totalview"
+        fi
+        startpgm="$TOTALVIEW $prognamemain -a $cmdLineArgs -p4pg $p4pgfile -mpichtv"	        
     else
-        dbgfile=$HOME/PId$$
+        dbgfile=$PWD_TRIAL/PId$$
+        echo "Test" > $dbgfile
+        if [ -s $dbgfile ] ; then
+	    /bin/rm -f $dbgfile
+        else
+            dbgfile=$HOME/PId$$
+        fi
+        # If gdb has an equivalent, the documentation is well hidden.
+        #  - .gdbinit - and the documentation IS well hidden.  Fortunately,
+        # the .gbdinit file is read; gdb provides the -nx (instead of -x)
+        # command if you don't want to read the default init file.
+        if [ "$debugger" = "dbx" -a -r $HOME/.dbxinit ] ; then
+	    cat $HOME/.dbxinit > $dbgfile
+        fi
+        # Regretably, xxgdb does NOT provide this argument (even though it
+        # claims to).
+    #    if [ "$debugger" = "xxgdb" -a -r $HOME/.gdbinit ] ; then
+    #	cat $HOME/.gdbini > $dbgfile
+    #    fi
+        # handle USR1 pass for gdb; add an initial break 
+        if [ "$debugger" = "gdb" -o "$debugger" = "xxgdb" ] ; then
+	    echo "handle SIGUSR1 nostop pass" >> $dbgfile
+	    echo "br MPI_Init" >> $dbgfile
+	    echo "set args $cmdLineArgs -p4pg $p4pgfile" >> $dbgfile
+	    echo "run" >> $dbgfile
+        else 
+            echo "ignore USR1" >> $dbgfile
+            # This may not work, depending on when the symbol table is read.
+            # An alternative is to use the startup file to load the 
+            # program with "debug $prognamemain" ,followed with this, followed
+	    # with run command args.
+	    echo "debug $prognamemain" >> $dbgfile
+   	    echo "stop in MPI_Init" >> $dbgfile
+	    echo "run $cmdLineArgs -p4pg $p4pgfile" >> $dbgfile
+        fi
+    #	cat >> $dbgfile <<.
+    ## Use this command to start your programm:
+    #run  $cmdLineArgs -p4pg $p4pgfile
+    #.
+	    commandfile=`echo $commandfile | sed -e s@%f@$dbgfile@g`
+	    startpgm="$debugger $commandfile $prognamemain"
     fi
-    # If gdb has an equivalent, the documentation is well hidden.
-    #  - .gdbinit - and the documentation IS well hidden.  Fortunately,
-    # the .gbdinit file is read; gdb provides the -nx (instead of -x)
-    # command if you don't want to read the default init file.
-    if [ "$debugger" = "dbx" -a -r $HOME/.dbxinit ] ; then
-	cat $HOME/.dbxinit > $dbgfile
-    fi
-# handle USR1 pass for gdb; add an initial break 
-    if [ "$debugger" = "gdb" ] ; then
-	echo "handle USR1 nostop pass" >> $dbgfile
-	eco "br MPI_Init" >> $dbgfile
-    else 
-        echo "ignore USR1" >> $dbgfile
-	echo "stop in MPI_Init" >> $dbgfile
-    fi
-	cat >> $dbgfile <<.
-# Use this command to start your programm:
-run  $cmdLineArgs -p4pg $p4pgfile
-.
-	startpgm="$debugger $progname $commandfile $dbgfile"
 fi
 #
+# Pass to the program that the device is ch_p4
+#
+MPIRUN_DEVICE="ch_p4"
+export MPIRUN_DEVICE
+#
+# Build a suitable command for the whole thing
+#
 if [ $just_testing = 1 ] ; then
-  echo ""
-  if [ $nolocal = 1 ] ; then
-	echo $rshcmd $machinehead $prognamemain  $cmdLineArgs -p4pg "$p4pgfile"
-  else
-	echo $prognamemain $cmdLineArgs -p4pg "$p4pgfile"
-  fi
+  doitall="echo"
 else
-  if [ $nolocal = 1 ] ; then
-    if [ "$debugger" != "" ] ; then
-	  $rshcmd $machinehead $debugger $commandfile $dbgfile $prognamemain
-    else
-	  $rshcmd $machinehead $prognamemain $cmdLineArgs -p4pg "$p4pgfile"
-    fi
-  else
-    if [ "$debugger" != "" ] ; then
-	    $debugger $commandfile $dbgfile $prognamemain
-    else
-	    $prognamemain $cmdLineArgs -p4pg "$p4pgfile"
-    fi
-  fi # nolocal
+  doitall=""
+fi
+#
+# Add rsh'ery if requested
+#
+if [ $nolocal = 1 ] ; then
+    doitall="$doitall $rshcmd $machinehead"
+fi
+
+$doitall $startpgm
+
+#else
+#  if [ $nolocal = 1 ] ; then
+#    if [ "$debugger" != "" ] ; then
+#	  $rshcmd $machinehead $debugger $commandfile $prognamemain
+#    else
+#	  $rshcmd $machinehead $prognamemain $cmdLineArgs -p4pg "$p4pgfile"
+#    fi
+#  else
+#   if [ "$debugger" != "" ] ; then
+#	    $debugger $commandfile $prognamemain
+#    else
+#	    $prognamemain $cmdLineArgs -p4pg "$p4pgfile"
+#    fi
+#  fi # nolocal
+if [ $just_testing != 1 ] ; then
   if [ $leavePGFile = 1 ] ; then
 	echo "P4 procgroup file is $p4pgfile."
   else
     /bin/rm "$p4pgfile"
   fi
 fi #just testing
-
-
-
-

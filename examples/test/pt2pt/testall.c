@@ -1,6 +1,7 @@
 #include "mpi.h"
 #include <stdio.h>
 #include <memory.h>
+#include "dtypes.h"
 
 /* 
    Multiple completions
@@ -18,10 +19,10 @@ void         **inbufs, **outbufs;
 char         **names;
 int          *counts, *bytesize, ntype;
 MPI_Comm     comms[20];
-int          ncomm = 20, rank, np, partner, tag, count, source, size;
-int          i, j, k, err, world_rank, errloc;
+int          ncomm = 20, rank, np, partner, tag;
+int          i, j, k, err, world_rank;
 MPI_Status   status, statuses[2];
-int          flag, index, outcount, indices[2];
+int          flag;
 char         *obuf;
 MPI_Request  requests[2];
 
@@ -50,15 +51,13 @@ for (i=0; i<ncomm; i++) {
        sendrecv                              sendrecv
                                              irecv
        sendrecv                              sendrecv
-       testall  (should succeed)             wait
+                                             wait
+       sendrecv                              sendrecv
+       testall  (should succeed)                  
      */
     for (j=0; j<ntype; j++) {
 	if (world_rank == 0) 
 	    fprintf( stdout, "Testing type %s\n", names[j] );
-	/* This test does an irsend between both partners, with 
-	   a sendrecv after the irecv used to guarentee that the
-	   irsend has a matching receive
-	 */
         if (rank == 0) {
 	    /* Master */
 	    partner = np - 1;
@@ -92,6 +91,11 @@ for (i=0; i<ncomm; i++) {
 	    MPI_Sendrecv( MPI_BOTTOM, 0, MPI_INT, partner, ncomm+i, 
 			  MPI_BOTTOM, 0, MPI_INT, partner, ncomm+i, 
 			  comms[i], &status );
+	    MPI_Sendrecv( MPI_BOTTOM, 0, MPI_INT, partner, ncomm+i, 
+			  MPI_BOTTOM, 0, MPI_INT, partner, ncomm+i, 
+			  comms[i], &status );
+	    /* This should succeed, but may fail if the wait below is 
+	       still waiting */
 	    MPI_Testall( 2, requests, &flag, statuses );
 	    if (!flag) {
 		err++;
@@ -133,6 +137,9 @@ for (i=0; i<ncomm; i++) {
 				   names[j], j )) {
                 err++;
 		}
+	    MPI_Sendrecv( MPI_BOTTOM, 0, MPI_INT, partner, ncomm+i, 
+			  MPI_BOTTOM, 0, MPI_INT, partner, ncomm+i, 
+			  comms[i], &status );
 	    }
 	}
     }

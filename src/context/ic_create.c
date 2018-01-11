@@ -1,12 +1,16 @@
 /*
- *  $Id: ic_create.c,v 1.20 1995/12/21 22:11:12 gropp Exp $
+ *  $Id: ic_create.c,v 1.24 1996/06/26 19:27:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "mpimem.h"
+#else
 #include "mpisys.h"
+#endif
 
 /*@
 
@@ -24,6 +28,16 @@ Input Paramters:
 
 Output Parameter:
 . comm_out - Created intercommunicator
+
+Notes:
+  The MPI 1.1 Standard contains two mutually exclusive comments on the
+  input intracommunicators.  One says that their repective groups must be
+  disjoint; the other that the leaders can be the same process.  After
+  some discussion by the MPI Forum, it has been decided that the groups must
+  be disjoint.  Note that the `reason` given for this in the standard is
+  `not` the reason for this choice; rather, the `other` operations on 
+  intercommunicators (like 'MPI_Intercomm_merge') do not make sense if the
+  groups are not disjoint.
 
 .N fortran
 
@@ -49,6 +63,16 @@ Algorithm:
        comm_out->comm_coll            = "collective" inter-communicator
        comm_out->comm_coll->comm_coll = safe collective intra-communicator
 .ve
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_TAG
+.N MPI_ERR_EXHAUSTED
+.N MPI_ERR_RANK
+
+.seealso: MPI_Intercomm_merge, MPI_Comm_free, MPI_Comm_remote_group, 
+          MPI_Comm_remote_size
 @*/
 int MPI_Intercomm_create ( local_comm, local_leader, peer_comm, 
                            remote_leader, tag, comm_out )
@@ -67,19 +91,21 @@ MPI_Comm *comm_out;
   MPI_Comm         new_comm;
   MPI_Request      req[6];
   MPI_Status       status[6];
+  MPIR_ERROR_DECL;
+  static char myname[]="Error in MPI_INTERCOMM_CREATE";
 
   /* Check for valid arguments to function */
   if (MPIR_TEST_COMM(local_comm,local_comm) || 
       MPIR_TEST_SEND_TAG(local_comm,tag))
 	return MPIR_ERROR(MPI_COMM_WORLD, 
-			  mpi_errno, "Error in MPI_INTERCOMM_CREATE" );
+			  mpi_errno, myname );
 
   if (local_comm   == MPI_COMM_NULL)
-      return MPIR_ERROR( local_comm, mpi_errno, 
+      return MPIR_ERROR( local_comm, MPI_ERR_COMM, 
              "Local communicator is not valid in MPI_INTERCOMM_CREATE");
 
-  (void) MPI_Comm_size ( local_comm, &local_size );
-  (void) MPI_Comm_rank ( local_comm, &local_rank );
+  (void) MPIR_Comm_size ( local_comm, &local_size );
+  (void) MPIR_Comm_rank ( local_comm, &local_rank );
 
   if ( local_leader == local_rank ) {
     if (MPIR_TEST_COMM(local_comm,peer_comm) || 
@@ -87,12 +113,12 @@ MPI_Comm *comm_out;
       return MPIR_ERROR( local_comm, mpi_errno, 
              "Peer communicator is not valid in MPI_INTERCOMM_CREATE");
 
-    (void) MPI_Comm_size ( peer_comm,  &peer_size  );
-    (void) MPI_Comm_rank ( peer_comm,  &peer_rank  );
+    (void) MPIR_Comm_size ( peer_comm,  &peer_size  );
+    (void) MPIR_Comm_rank ( peer_comm,  &peer_rank  );
 
     if (((peer_rank     == MPI_UNDEFINED) && (mpi_errno = MPI_ERR_RANK)))
 	return MPIR_ERROR( local_comm, mpi_errno, 
-			   "Error in MPI_INTERCOMM_CREATE" );
+			   myname );
 
     if (((remote_leader >= peer_size)     && (mpi_errno = MPI_ERR_RANK)) || 
         ((remote_leader <  0)             && (mpi_errno = MPI_ERR_RANK)))
@@ -107,85 +133,113 @@ MPI_Comm *comm_out;
 
   /* Allocate send context, inter-coll context and intra-coll context */
   MPIR_Context_alloc ( local_comm, 3, &context );
+
   
   /* If I'm the local leader, then exchange information */
   if (local_rank == local_leader) {
+      MPIR_ERROR_PUSH(peer_comm);
 
-    /* Post the receives for the information from the remote_leader */
-    /* We don't post a receive for the remote group yet, because we */
-    /* don't know how big it is yet. */
-    MPI_Irecv (&remote_size, 1, MPI_INT, remote_leader, tag,
-               peer_comm, &(req[2]));
-    MPI_Irecv (&send_context, 1, MPIR_CONTEXT_TYPE, remote_leader,
-               tag, peer_comm, &(req[3]));
+      /* Post the receives for the information from the remote_leader */
+      /* We don't post a receive for the remote group yet, because we */
+      /* don't know how big it is yet. */
+      MPIR_CALL_POP(MPI_Irecv (&remote_size, 1, MPI_INT, remote_leader, tag,
+			       peer_comm, &(req[2])),peer_comm,myname);
+      MPIR_CALL_POP(MPI_Irecv (&send_context, 1, MPIR_CONTEXT_TYPE, 
+			       remote_leader,tag, peer_comm, &(req[3])),
+		    peer_comm,myname);
     
-    /* Send the lrank_to_grank table of the local_comm and an allocated */
-    /* context. Currently I use multiple messages to send this info.    */
-    /* Eventually, this will change(?) */
-    MPI_Isend (&local_size, 1, MPI_INT, remote_leader, tag, 
-               peer_comm, &(req[0]));
-    MPI_Isend (&context, 1, MPIR_CONTEXT_TYPE, remote_leader, 
-               tag, peer_comm, &(req[1]));
+      /* Send the lrank_to_grank table of the local_comm and an allocated */
+      /* context. Currently I use multiple messages to send this info.    */
+      /* Eventually, this will change(?) */
+      MPIR_CALL_POP(MPI_Isend (&local_size, 1, MPI_INT, remote_leader, tag, 
+               peer_comm, &(req[0])),peer_comm,myname);
+      MPIR_CALL_POP(MPI_Isend (&context, 1, MPIR_CONTEXT_TYPE, remote_leader, 
+               tag, peer_comm, &(req[1])),peer_comm,
+		    myname);
     
-    /* Wait on the communication requests to finish */
-    MPI_Waitall ( 4, req, status );
+      /* Wait on the communication requests to finish */
+      MPIR_CALL_POP(MPI_Waitall ( 4, req, status ),peer_comm,myname);
     
-    /* We now know how big the remote group is, so create it */
-    remote_group = MPIR_CreateGroup ( remote_size );
+      /* We now know how big the remote group is, so create it */
+      remote_group = MPIR_CreateGroup ( remote_size );
     
-    /* Post the receive for the group information */
-    MPI_Irecv (remote_group->lrank_to_grank, remote_size, MPI_INT,
-               remote_leader, tag, peer_comm, &(req[5]));
+      /* Post the receive for the group information */
+      MPIR_CALL_POP(MPI_Irecv (remote_group->lrank_to_grank, remote_size, 
+			       MPI_INT, remote_leader, tag, peer_comm, 
+			       &(req[5])),peer_comm,myname);
     
-    /* Send the local group info to the remote group */
-    MPI_Isend (local_comm->group->lrank_to_grank, local_size, MPI_INT,
-               remote_leader, tag, peer_comm, &(req[4]));
+      /* Send the local group info to the remote group */
+      MPIR_CALL_POP(MPI_Isend (local_comm->group->lrank_to_grank, local_size, 
+			       MPI_INT, remote_leader, tag, peer_comm, 
+			       &(req[4])),peer_comm,myname);
     
-    /* wait on the send and the receive for the group information */
-    MPI_Waitall ( 2, &(req[4]), &(status[4]) );
-   
-    /* Now we can broadcast the group information to the other local comm */
-    /* members. */
-    MPI_Bcast(&remote_size,1,MPI_INT,local_rank,local_comm);
-    MPI_Bcast(remote_group->lrank_to_grank, remote_size, MPI_INT,
-              local_rank, local_comm);
+      /* wait on the send and the receive for the group information */
+      MPIR_CALL_POP(MPI_Waitall ( 2, &(req[4]), &(status[4]) ),peer_comm,
+		    myname);
+      MPIR_ERROR_POP(peer_comm);
+
+      /* Now we can broadcast the group information to the other local comm */
+      /* members. */
+      MPIR_ERROR_PUSH(local_comm);
+      MPIR_CALL_POP(MPI_Bcast(&remote_size,1,MPI_INT,local_rank,local_comm),
+		    local_comm,myname);
+      MPIR_CALL_POP(MPI_Bcast(remote_group->lrank_to_grank, remote_size, 
+			      MPI_INT, local_rank, local_comm),local_comm,
+		    myname);
+      MPIR_ERROR_POP(local_comm);
   }
   /* Else I'm just an ordinary comm member, so receive the bcast'd */
   /* info about the remote group */
   else {
-	MPI_Bcast(&remote_size, 1, MPI_INT, local_leader,local_comm);
+      MPIR_ERROR_PUSH(local_comm);
+      MPIR_CALL_POP(MPI_Bcast(&remote_size, 1, MPI_INT, local_leader,
+			      local_comm),local_comm,myname);
     
-   	/* We now know how big the remote group is, so create it */
-	remote_group = MPIR_CreateGroup ( remote_size );
+      /* We now know how big the remote group is, so create it */
+      remote_group = MPIR_CreateGroup ( remote_size );
 	
-	/* Receive the group info */
-	MPI_Bcast(remote_group->lrank_to_grank, remote_size, MPI_INT, 
-			  local_leader, local_comm);
+      /* Receive the group info */
+      MPIR_CALL_POP(MPI_Bcast(remote_group->lrank_to_grank, remote_size, 
+			      MPI_INT, local_leader, local_comm),
+		    local_comm,myname );
+      MPIR_ERROR_POP(local_comm);
   }
 
+  MPIR_ERROR_PUSH(local_comm);
   /* Broadcast the send context */
-  MPI_Bcast(&send_context, 1, MPIR_CONTEXT_TYPE, local_leader, local_comm);
+  MPIR_CALL_POP(MPI_Bcast(&send_context, 1, MPIR_CONTEXT_TYPE, 
+			  local_leader, local_comm),local_comm,myname);
+  MPIR_ERROR_POP(local_comm);
 
   /* We all now have all the information necessary, start building the */
   /* inter-communicator */
-  new_comm = (*comm_out) = NEW(struct MPIR_COMMUNICATOR);
-  if (!new_comm) 
-	return MPIR_ERROR( local_comm, MPI_ERR_EXHAUSTED,
-				  "Out of space in MPI_INTERCOMM_CREATE" );
+  MPIR_ALLOC(new_comm,NEW(struct MPIR_COMMUNICATOR),local_comm, 
+	     MPI_ERR_EXHAUSTED,"Out of space in MPI_INTERCOMM_CREATE" );
+  *comm_out = new_comm;
   (void) MPIR_Comm_init( new_comm, local_comm, MPIR_INTER );
   new_comm->group = remote_group;
   (void) MPIR_Group_dup( local_comm->group, &(new_comm->local_group) );
-  if (mpi_errno = MPID_Comm_init( new_comm->ADIctx, local_comm, new_comm )) 
+#ifndef MPI_ADI2
+  if ((mpi_errno = MPID_Comm_init( new_comm->ADIctx, local_comm, new_comm )) )
       return mpi_errno;
+#endif
   new_comm->local_rank	   = new_comm->local_group->local_rank;
   new_comm->lrank_to_grank = new_comm->group->lrank_to_grank;
   new_comm->np             = new_comm->group->np;
   new_comm->send_context   = send_context;
   new_comm->recv_context   = context;
+  new_comm->comm_name      = 0;
+#ifdef MPI_ADI2
+  if ((mpi_errno = MPID_CommInit( local_comm, new_comm )) )
+      return mpi_errno;
+#endif
   (void) MPIR_Attr_create_tree ( new_comm );
 
   /* Build the collective inter-communicator */
   MPIR_Comm_make_coll( new_comm, MPIR_INTER );
+  
+  /* Remember it for the debugger */
+  MPIR_Comm_remember ( new_comm );
 
   /* Build the collective intra-communicator */
   MPIR_Comm_make_coll ( new_comm->comm_coll, MPIR_INTRA );

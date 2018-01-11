@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_group.c,v 1.11 1995/12/21 22:03:14 gropp Exp $
+ *  $Id: comm_group.c,v 1.12 1996/04/12 14:04:03 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -18,18 +18,23 @@ Output Parameter:
 . group - Group in communicator
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
 @*/
 int MPI_Comm_group ( comm, group )
 MPI_Comm comm;
 MPI_Group *group;
 {
-  int mpi_errno;
-  if ( MPIR_TEST_COMM(comm,comm) ) {
-    (*group) = MPI_GROUP_NULL;
-    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, "Error in MPI_COMM_GROUP" );
-  }
-  else {
-    MPIR_Group_dup( comm->local_group, group );
+    int mpi_errno;
+    if (MPIR_TEST_COMM(comm,comm) ) {
+	(*group) = MPI_GROUP_NULL;
+	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+			   "Error in MPI_COMM_GROUP" );
+    }
+    else {
+	(void) MPIR_Group_dup( comm->local_group, group );
 	return (MPI_SUCCESS);
-  }
+    }
 }

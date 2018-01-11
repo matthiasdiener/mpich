@@ -6,7 +6,9 @@
 #include "pmandel.h"
 #include "pm_genproc.h"
 
+#ifndef DEBUG
 #define DEBUG 0
+#endif
 #define MASTER_PROC 0
 #define DEBUG_ASSIGNMENTS 0
 

@@ -2,11 +2,7 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -34,11 +30,14 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_null_delete_fn_ ANSI_ARGS(( MPI_Comm, int *, void *, void * ));
+
 void mpi_null_delete_fn_ ( comm, keyval, attr, extra_state )
 MPI_Comm  comm;
 int       *keyval;
 void      *attr;
 void      *extra_state;
 {
-MPIR_null_delete_fn(comm,*keyval,attr,extra_state);
+    MPIR_null_delete_fn(comm,*keyval,attr,extra_state);
 }

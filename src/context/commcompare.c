@@ -1,5 +1,5 @@
 /*
- *  $Id: commcompare.c,v 1.2 1995/12/21 22:07:00 gropp Exp $
+ *  $Id: commcompare.c,v 1.3 1996/04/12 14:07:27 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -22,6 +22,9 @@ if different contexts but similar groups, and 'MPI_UNEQUAL' otherwise
 
 .N fortran
 
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
 @*/
 int MPI_Comm_compare ( comm1, comm2, result )
 MPI_Comm  comm1;

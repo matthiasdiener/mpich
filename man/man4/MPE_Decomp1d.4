@@ -1,11 +1,17 @@
-.TH MPE_Decomp1d 4 "9/28/1994" " " "MPE"
+.TH MPE_Decomp1d 4 "5/28/1996" " " "MPE"
 .SH NAME
-MPE_Decomp1d \- Compute a balanced decomposition of a 1-D array
-
+MPE_Decomp1d \-  Compute a balanced decomposition of a 1-D array 
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+int MPE_Decomp1d( n, size, rank, s, e )
+int n, size, rank, *s, *e;
+.fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP
-.B n 
+.B n  
 - Length of the array
 .PD 1
 .PD 0
@@ -25,14 +31,5 @@ MPE_Decomp1d \- Compute a balanced decomposition of a 1-D array
 .B s,e 
 - Array indices are s:e, with the original array considered as 1:n.  
 .PD 1
-.SH SYNOPSIS
-.nf
-#include <stdio.h>
-#include "mpe.h"
-int MPE_Decomp1d( n, size, rank, s, e )
-int n, size, rank, *s, *e;
-
-.fi
-
 .SH LOCATION
- decomp.c
+decomp.c

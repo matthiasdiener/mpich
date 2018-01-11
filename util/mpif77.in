@@ -28,29 +28,35 @@ for arg in "$@" ; do
         -o)
 	# Need to link
 	allargs="$allargs $arg"
-	linkargs="$linkargs $arg"
-	compileargs="$compileargs -c"
-	# Still need to add the target of the -o
-	gettinglinkarg=1
-	DoLink=1
+        if [ $HasDashC = 1 ] ; then
+            # Some BUT NOT ALL compilers support -o with -c.  Allow
+            # the user to make use of the feature, IF IT EXISTS.
+            compileargs="$compileargs $arg"	
+        else
+	    linkargs="$linkargs $arg"
+	    compileargs="$compileargs -c"
+	    # Still need to add the target of the -o
+	    gettinglinkarg=1
+	    DoLink=1
+        fi
 	;;
 	-mpilog)
 	if [ -n "@MPE_LIBS@" ] ; then
-		MPILOG="-lfmpi -llmpi"
+		MPILOG="-lf@MPILIBNAME@ -llmpi"
 	else
 	    echo "-mpilog requires the MPE libraries"
 	fi
 	;;
 	-mpitrace)
 	if [ -n "@MPE_LIBS@" ] ; then
-   	    MPILOG="-lfmpi -ltmpi"
+   	    MPILOG="-lf@MPILIBNAME@ -ltmpi"
 	else
 	    echo "-mpitrace requires the MPE libraries"
 	fi
 	;;
 	-mpianim)
 	if [ -n "@MPE_LIBS@" ] ; then
-	    MPILOG="-lfmpi -lampi @MPE_LIBS@ @X_LIB@"
+	    MPILOG="-lf@MPILIBNAME@ -lampi @MPE_LIBS@ @X_LIB@"
 	else
 	    echo "-mpianim requires the MPE libraries"
 	fi
@@ -90,15 +96,19 @@ for arg in "$@" ; do
 	;;
         *) allargs="$allargs $arg"
 	if [ -s "$arg" ] ; then
-	    ext=`expr "$arg" : '.*\(\..*\)`
+	    ext=`expr "$arg" : '.*\(\..*\)'`
 	    if [ "$ext" = ".f" ] ; then
 	        DoCompile=1
 	        compileargs="$compileargs $arg"
 	        fname=`basename $arg .f`
 	        linkobjs="$linkobjs $fname.o"
 	    elif [ "$ext" = ".o" ] ; then
-	        DoLink=1
-	        linkobjs="$linkobjs $arg"
+		if [ $HasDashC = 1 ] ; then
+	            compileargs="$compileargs $arg"
+                else
+	            DoLink=1
+	            linkobjs="$linkobjs $arg"
+                fi
 	    else
 	        compileargs="$compileargs $arg"
 	        linkargs="$linkargs $arg"
@@ -132,7 +142,7 @@ if [ $DoCompile = 1 ] ; then
 fi
 if [ $DoLink = 1 ] ; then
     if [ -n "$MPILOG" ] ; then
-        $Show @FLINKER@ $linkobjs @FLIB_PATH@ $MPILOG $linkargs -lpmpi @LIB_LIST@
+        $Show @FLINKER@ $linkobjs @FLIB_PATH@ $MPILOG $linkargs -lp@MPILIBNAME@ @LIB_LIST@
     else
         $Show @FLINKER@ $linkobjs $linkargs @FLIB_PATH@ @LIB_LIST@
     fi

@@ -3,6 +3,25 @@
 # -mvhome is needed for the ANL SP, and is ignored by others
 args="-pg -mvhome"
 #
+# Some people don't include "." in their path (! in case an ls trojan horse,
+# I guess - if someone does that to you, you have bigger problems).  This
+# code tests to see if you have a path to mpirun; if not, it tries ./mpirun.
+IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
+for dir in $PATH ; do 
+    if [ -x $dir/mpirun ] ; then
+        mpirun="mpirun"
+        break
+    fi
+done
+IFS="$saveifs"
+if [ -z "$mpirun" -a -x "./mpirun" ] ; then
+    mpirun=./mpirun
+fi
+if [ -z "$mpirun" ] ; then
+    echo "No mpirun in path.  Testing can not proceed."
+    exit 1
+fi
+#
 runtests=1
 makeeach=0
 MAKE="make"
@@ -60,7 +79,7 @@ testfiles="$testfiles barrier.out"
 MakeExe barrier
 echo '*** Barrier Test ***' >> barrier.out
 echo '**** Barrier Test ****'
-mpirun $args -np 4 -mvback "barrier-0.out" barrier $* >> barrier.out
+$mpirun $args -np 4 -mvback "barrier-0.out" barrier $* >> barrier.out 2>&1
 cat barrier-0.out >> barrier.out
 /bin/rm -f barrier-[01234].out
 echo '*** Barrier Test ***' >> barrier.out
@@ -71,9 +90,9 @@ testfiles="$testfiles bcast.out"
 MakeExe bcast
 echo '**** Broadcast Test ****'
 echo '*** Broadcast Test ***' >> bcast.out
-mpirun $args -np 4 \
+$mpirun $args -np 4 \
    -mvback "bcast-0.out bcast-1.out bcast-2.out bcast-3.out" \
-	bcast $* >> bcast.out
+	bcast $* >> bcast.out 2>&1
 cat bcast-[0123].out >> bcast.out
 /bin/rm -f bcast-[0123].out
 echo '*** Broadcast Test ***' >> bcast.out
@@ -84,7 +103,7 @@ testfiles="$testfiles coll1.out"
 MakeExe coll1
 echo '**** coll1 ****'
 echo '*** coll1 ***' >> coll1.out
-mpirun $args -np 4 coll1 $* >> coll1.out
+$mpirun $args -np 4 coll1 $* >> coll1.out 2>&1
 echo '*** coll1 ***' >> coll1.out
 CleanExe coll1
 
@@ -93,7 +112,7 @@ testfiles="$testfiles coll2.out"
 MakeExe coll2
 echo '**** coll2 ****'
 echo '*** coll2 ***' >> coll2.out
-mpirun $args -np 5 coll2 $* >> coll2.out
+$mpirun $args -np 5 coll2 $* >> coll2.out 2>&1
 echo '*** coll2 ***' >> coll2.out
 CleanExe coll2
 
@@ -102,7 +121,7 @@ testfiles="$testfiles coll3.out"
 MakeExe coll3
 echo '**** coll3 ****'
 echo '*** coll3 ***' >> coll3.out
-mpirun $args -np 5 coll3 $* >> coll3.out
+$mpirun $args -np 5 coll3 $* >> coll3.out 2>&1
 echo '*** coll3 ***' >> coll3.out
 CleanExe coll3
 
@@ -111,7 +130,7 @@ testfiles="$testfiles coll4.out"
 MakeExe coll4
 echo '**** coll4 ****'
 echo '*** coll4 ***' >> coll4.out
-mpirun $args -np 4 coll4 $* >> coll4.out
+$mpirun $args -np 4 coll4 $* >> coll4.out 2>&1
 echo '*** coll4 ***' >> coll4.out
 CleanExe coll4
 
@@ -120,7 +139,7 @@ testfiles="$testfiles coll5.out"
 MakeExe coll5
 echo '**** coll5 ****'
 echo '*** coll5 ***' >> coll5.out
-mpirun $args -np 4 coll5 $* >> coll5.out
+$mpirun $args -np 4 coll5 $* >> coll5.out 2>&1
 echo '*** coll5 ***' >> coll5.out
 CleanExe coll5
 
@@ -129,7 +148,7 @@ testfiles="$testfiles coll6.out"
 MakeExe coll6
 echo '**** coll6 ****'
 echo '*** coll6 ***' >> coll6.out
-mpirun $args -np 5 coll6 $* >> coll6.out
+$mpirun $args -np 5 coll6 $* >> coll6.out 2>&1
 echo '*** coll6 ***' >> coll6.out
 CleanExe coll6
 
@@ -138,7 +157,7 @@ testfiles="$testfiles coll7.out"
 MakeExe coll7
 echo '**** coll7 ****'
 echo '*** coll7 ***' >> coll7.out
-mpirun $args -np 5 coll7 $* >> coll7.out
+$mpirun $args -np 5 coll7 $* >> coll7.out 2>&1
 echo '*** coll7 ***' >> coll7.out
 CleanExe coll7
 
@@ -147,7 +166,7 @@ testfiles="$testfiles coll8.out"
 MakeExe coll8
 echo '**** coll8 ****'
 echo '*** coll8 ***' >> coll8.out
-mpirun $args -np 4 coll8 $* >> coll8.out
+$mpirun $args -np 4 coll8 $* >> coll8.out 2>&1
 echo '*** coll8 ***' >> coll8.out
 CleanExe coll8
 
@@ -156,7 +175,7 @@ testfiles="$testfiles coll9.out"
 MakeExe coll9
 echo '**** coll9 ****'
 echo '*** coll9 ***' >> coll9.out
-mpirun $args -np 4 coll9 $* >>  coll9.out
+$mpirun $args -np 4 coll9 $* >>  coll9.out 2>&1
 echo '*** coll9 ***' >> coll9.out
 CleanExe coll9
 
@@ -165,7 +184,7 @@ testfiles="$testfiles coll10.out"
 MakeExe coll10
 echo '**** coll10 ****'
 echo '*** coll10 ***' >> coll10.out
-mpirun -np 4 $args coll10 $* >> coll10.out
+$mpirun -np 4 $args coll10 $* >> coll10.out 2>&1
 echo '*** coll10 ***' >> coll10.out
 CleanExe coll10
 
@@ -174,7 +193,7 @@ testfiles="$testfiles coll11.out"
 MakeExe coll11
 echo '**** coll11 ****'
 echo '*** coll11 ***' >> coll11.out
-mpirun -np 4 $args coll11 $* >> coll11.out
+$mpirun -np 4 $args coll11 $* >> coll11.out 2>&1
 echo '*** coll11 ***' >> coll11.out
 CleanExe coll11
 
@@ -183,7 +202,7 @@ testfiles="$testfiles coll12.out"
 MakeExe coll12
 echo '**** coll12 ****'
 echo '*** coll12 ***' >> coll12.out
-mpirun -np 4 $args coll12 $* >> coll12.out
+$mpirun -np 4 $args coll12 $* >> coll12.out 2>&1
 echo '*** coll12 ***' >> coll12.out
 CleanExe coll12
 
@@ -193,7 +212,7 @@ MakeExe coll13
 echo '**** coll13 ****'
 echo '*** coll13 ***' >> coll13.out
 # coll13 is very picky about arguments
-mpirun -np 4 $args coll13 >> coll13.out
+$mpirun -np 4 $args coll13 >> coll13.out 2>&1
 echo '*** coll13 ***' >> coll13.out
 CleanExe coll13
 
@@ -202,7 +221,7 @@ testfiles="$testfiles grouptest.out"
 MakeExe grouptest
 echo '*** Grouptest ***'
 echo '*** grouptest ***' >> grouptest.out
-mpirun $args -np 4 grouptest  $* >> grouptest.out
+$mpirun $args -np 4 grouptest  $* >> grouptest.out 2>&1
 echo '*** grouptest ***' >> grouptest.out
 CleanExe grouptest
 
@@ -211,7 +230,7 @@ testfiles="$testfiles allred.out"
 MakeExe allred
 echo '*** Allred ***'
 echo '*** Allred ***' >> allred.out
-mpirun $args -np 4 allred  $* >> allred.out
+$mpirun $args -np 4 allred  $* >> allred.out 2>&1
 echo '*** Allred ***' >> allred.out
 CleanExe allred
 
@@ -220,7 +239,7 @@ testfiles="$testfiles scatterv.out"
 MakeExe scatterv
 echo '*** Scatterv ***'
 echo '*** Scatterv ***' >> scatterv.out
-mpirun $args -np 4 scatterv  $* >> scatterv.out
+$mpirun $args -np 4 scatterv  $* >> scatterv.out 2>&1
 echo '*** Scatterv ***' >> scatterv.out
 CleanExe scatterv
 
@@ -229,9 +248,18 @@ testfiles="$testfiles redscat.out"
 MakeExe redscat
 echo '*** Reduce_scatter ***'
 echo '*** Reduce_scatter ***' >> redscat.out
-mpirun $args -np 4 redscat  $* >> redscat.out
+$mpirun $args -np 4 redscat  $* >> redscat.out 2>&1
 echo '*** Reduce_scatter ***' >> redscat.out
 CleanExe redscat
+
+testfiles="$testfiles alltoallv.out"
+/bin/rm -f alltoallv.out
+MakeExe alltoallv
+echo '*** Alltoallv ***'
+echo '*** Alltoallv ***' >> alltoallv.out
+$mpirun $args -np 4 alltoallv  $* >> alltoallv.out 2>&1
+echo '*** Alltoallv ***' >> alltoallv.out
+CleanExe alltoallv
 
 #
 # Run Fortran tests ONLY if Fortran available
@@ -243,9 +271,18 @@ if [ 1 = 1 ] ; then
     MakeExe allredf
     echo '*** Testing allreduce from Fortran ***'
     echo '*** Testing allreduce from Fortran ***' >> allredf.out
-    mpirun $args -np 4 allredf "$@" >> allredf.out
+    $mpirun $args -np 4 allredf "$@" >> allredf.out 2>&1
     echo '*** Testing allreduce from Fortran ***' >> allredf.out
     CleanExe allredf
+    #
+    testfiles="$testfiles assocf.out"
+    /bin/rm -f assocf.out
+    MakeExe assocf
+    echo '*** Testing allreduce from Fortran (2) ***'
+    echo '*** Testing allreduce from Fortran (2) ***' >> assocf.out
+    $mpirun $args -np 4 assocf "$@" >> assocf.out 2>&1
+    echo '*** Testing allreduce from Fortran (2) ***' >> assocf.out
+    CleanExe assocf
     #
     echo "END OF FORTRAN TESTS"
 fi
@@ -259,8 +296,9 @@ else
     fi
 fi
 
-echo '*** Differences from expected output ***'
+echo '*** Checking for differences from expected output ***'
 /bin/rm -f coll.diff
+nodiff=1
 for file in $testfiles ; do
     stdfile=`basename $file .out`.std
     if [ -s $stdfile ] ; then
@@ -269,6 +307,7 @@ for file in $testfiles ; do
   	else
 	    echo "Differences in `basename $file .out`" >> coll.diff
 	    diff -b $file `basename $file .out`.std >> coll.diff
+	    nodiff=0
 	fi
     else
         echo "Can not find file $stdfile to compare against for test `basename $file .out`"
@@ -276,5 +315,7 @@ for file in $testfiles ; do
 done
 if [ -s coll.diff ] ; then
    cat coll.diff
+elif [ $nodiff = 1 ] ; then
+   echo "-- No differences found; test successful"
 fi
 exit 0

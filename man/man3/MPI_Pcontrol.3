@@ -1,7 +1,12 @@
-.TH MPI_Pcontrol 3 "12/21/1995" " " "MPI"
+.TH MPI_Pcontrol 3 "4/12/1996" " " "MPI"
 .SH NAME
-MPI_Pcontrol \- Controls profiling
-
+MPI_Pcontrol \-  Controls profiling 
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Pcontrol( level )
+int level;
+.fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP
@@ -38,13 +43,5 @@ All MPI objects (e.g.,
 ) are of type 
 .I INTEGER
 in Fortran.
-.SH SYNOPSIS
-.nf
-#include "mpi.h"
-int MPI_Pcontrol( level )
-int level;
-
-.fi
-
 .SH LOCATION
- pcontrol.c
+pcontrol.c

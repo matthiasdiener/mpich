@@ -32,13 +32,10 @@ int main( argc, argv )
 int argc;
 char **argv;
 {
-    int              rank, size, i;
-    MPI_Request      handle;
-    MPI_Status       status;
+    int              rank, size;
     int              data;
     int              errors=0;
     int              result = -100;
-    int              correct_result;
     MPI_Op           op;
 
     MPI_Init( &argc, &argv );

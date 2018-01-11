@@ -1,10 +1,14 @@
-.TH MPE_Iget_mouse_press 4 "12/20/1995" " " "MPE"
+.TH MPE_Iget_mouse_press 4 "6/6/1996" " " "MPE"
 .SH NAME
-MPE_Iget_mouse_press \- Checks for mouse button press
-Checks if the mouse button has been pressed inside this MPE window.
-If pressed, returns the coordinate relative to the upper right of
-this MPE window and the button that was pressed.
-
+MPE_Iget_mouse_press \-  Checks for mouse button press Checks if the mouse button has been pressed inside this MPE window. If pressed, returns the coordinate relative to the upper right of this MPE window and the button that was pressed. 
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+int MPE_Iget_mouse_press( graph, x, y, button, wasPressed )
+MPE_XGraph graph;
+int *x, *y, *button, *wasPressed;
+.fi
 .SH INPUT PARAMETER
 .PD 0
 .TP
@@ -34,15 +38,5 @@ this MPE window and the button that was pressed.
 - 1 if the button was pressed, 0 if not
 .PD 1
 
-.SH SYNOPSIS
-.nf
-#include <stdio.h>
-#include "mpe.h"
-int MPE_Iget_mouse_press( graph, x, y, button, wasPressed )
-MPE_XGraph graph;
-int *x, *y, *button, *wasPressed;
-
-.fi
-
 .SH LOCATION
- xmouse.c
+xmouse.c

@@ -68,9 +68,11 @@ point a, b;
 
 
 
-void DrawScreen_0( procid, np ) {
+void DrawScreen_0( procid, np ) 
+int procid, np;
+{
   int width, procNum, radius;
-  double x, y, angle;
+  double angle;
 
   readyToDraw_0 = 0;
 
@@ -234,30 +236,8 @@ static int procid_1;
 **
 */
 
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
 void ProcessWaitTest_1 ( request, status, note )
-MPI_Request *request;
+MPI_Request request;
 MPI_Status *status;
 char *note;
 {
@@ -401,9 +381,9 @@ MPI_Request * request;
   returnVal = PMPI_Bsend_init( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-    if (newrq = (request_list*) malloc(sizeof( request_list ))) {
+    if ((newrq = (request_list*) malloc(sizeof( request_list )))) {
       MPI_Type_size( datatype, &typesize3 );
-      newrq->request = request;
+      newrq->request = *request;
       newrq->status = RQ_SEND;
       newrq->size = count * typesize3;
       newrq->tag = tag;
@@ -423,7 +403,7 @@ MPI_Request * request;
   request_list *rq;
 
   
-  rq_find( requests_head_1, request, rq );
+  rq_find( requests_head_1, *request, rq );
   if (rq) rq->status |= RQ_CANCEL;
   /* be sure to check on the Test or Wait if it was really cancelled */
   
@@ -440,7 +420,7 @@ MPI_Request * request;
 
   /* The request may have completed, may have not.  */
   /* We'll assume it didn't. */
-  rq_remove( requests_head_1, request );
+  rq_remove( requests_head_1, *request );
   
   returnVal = PMPI_Request_free( request );
 
@@ -465,8 +445,8 @@ MPI_Request * request;
   returnVal = PMPI_Recv_init( buf, count, datatype, source, tag, comm, request );
 
   if (source != MPI_PROC_NULL && returnVal == MPI_SUCCESS) {
-    if (newrq1 = (request_list*) malloc(sizeof( request_list ))) {
-      newrq1->request = request;
+    if ((newrq1 = (request_list*) malloc(sizeof( request_list )))) {
+      newrq1->request = *request;
       newrq1->status = RQ_RECV;
       newrq1->next = 0;
       rq_add( requests_head_1, requests_tail_1, newrq1 );
@@ -496,9 +476,9 @@ MPI_Request * request;
   returnVal = PMPI_Send_init( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-    if (newrq = (request_list*) malloc(sizeof( request_list ))) {
+    if ((newrq = (request_list*) malloc(sizeof( request_list )))) {
       MPI_Type_size( datatype, &typesize3 );
-      newrq->request = request;
+      newrq->request = *request;
       newrq->status = RQ_SEND;
       newrq->size = count * typesize3;
       newrq->tag = tag;
@@ -531,9 +511,9 @@ MPI_Request * request;
   returnVal = PMPI_Ibsend( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-    if (newrq = (request_list*) malloc(sizeof( request_list ))) {
+    if ((newrq = (request_list*) malloc(sizeof( request_list )))) {
       MPI_Type_size( datatype, &typesize3 );
-      newrq->request = request;
+      newrq->request = *request;
       newrq->status = RQ_SEND;
       newrq->size = count * typesize3;
       newrq->tag = tag;
@@ -563,8 +543,8 @@ MPI_Request * request;
   returnVal = PMPI_Irecv( buf, count, datatype, source, tag, comm, request );
 
   if (source != MPI_PROC_NULL && returnVal == MPI_SUCCESS) {
-    if (newrq1 = (request_list*) malloc(sizeof( request_list ))) {
-      newrq1->request = request;
+    if ((newrq1 = (request_list*) malloc(sizeof( request_list )))) {
+      newrq1->request = *request;
       newrq1->status = RQ_RECV;
       newrq1->next = 0;
       rq_add( requests_head_1, requests_tail_1, newrq1 );
@@ -594,9 +574,9 @@ MPI_Request * request;
   returnVal = PMPI_Irsend( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-    if (newrq = (request_list*) malloc(sizeof( request_list ))) {
+    if ((newrq = (request_list*) malloc(sizeof( request_list )))) {
       MPI_Type_size( datatype, &typesize3 );
-      newrq->request = request;
+      newrq->request = *request;
       newrq->status = RQ_SEND;
       newrq->size = count * typesize3;
       newrq->tag = tag;
@@ -629,9 +609,9 @@ MPI_Request * request;
   returnVal = PMPI_Isend( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-    if (newrq = (request_list*) malloc(sizeof( request_list ))) {
+    if ((newrq = (request_list*) malloc(sizeof( request_list )))) {
       MPI_Type_size( datatype, &typesize3 );
-      newrq->request = request;
+      newrq->request = *request;
       newrq->status = RQ_SEND;
       newrq->size = count * typesize3;
       newrq->tag = tag;
@@ -664,9 +644,9 @@ MPI_Request * request;
   returnVal = PMPI_Issend( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-    if (newrq = (request_list*) malloc(sizeof( request_list ))) {
+    if ((newrq = (request_list*) malloc(sizeof( request_list )))) {
       MPI_Type_size( datatype, &typesize3 );
-      newrq->request = request;
+      newrq->request = *request;
       newrq->status = RQ_SEND;
       newrq->size = count * typesize3;
       newrq->tag = tag;
@@ -748,9 +728,9 @@ MPI_Request * request;
   returnVal = PMPI_Rsend_init( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-    if (newrq = (request_list*) malloc(sizeof( request_list ))) {
+    if ((newrq = (request_list*) malloc(sizeof( request_list )))) {
       MPI_Type_size( datatype, &typesize3 );
-      newrq->request = request;
+      newrq->request = *request;
       newrq->status = RQ_SEND;
       newrq->size = count * typesize3;
       newrq->tag = tag;
@@ -896,9 +876,9 @@ MPI_Request * request;
   returnVal = PMPI_Ssend_init( buf, count, datatype, dest, tag, comm, request );
 
   if (dest != MPI_PROC_NULL) {
-    if (newrq = (request_list*) malloc(sizeof( request_list ))) {
+    if ((newrq = (request_list*) malloc(sizeof( request_list )))) {
       MPI_Type_size( datatype, &typesize3 );
-      newrq->request = request;
+      newrq->request = *request;
       newrq->status = RQ_SEND;
       newrq->size = count * typesize3;
       newrq->tag = tag;
@@ -917,12 +897,13 @@ int * flag;
 MPI_Status * status;
 {
   int   returnVal;
+  MPI_Request lreq = *request;
 
   
   returnVal = PMPI_Test( request, flag, status );
 
   if (*flag) 
-    ProcessWaitTest_1( request, status, "MPI_Test" );
+    ProcessWaitTest_1( lreq, status, "MPI_Test" );
 
   return returnVal;
 }
@@ -936,14 +917,14 @@ MPI_Status * array_of_statuses;
   int  returnVal;
   int i3;
 
-  
+  /* NEEDS WORK */
   
   returnVal = PMPI_Testall( count, array_of_requests, flag, array_of_statuses );
 
   if (*flag) {
     for (i3=0; i3 < count; i3++) {
-      ProcessWaitTest_1( &array_of_requests[i3],
-				  &array_of_statuses[i3],
+      ProcessWaitTest_1( array_of_requests[i3], /* WRONG */
+				  &array_of_statuses[i3],  
 				  "MPI_Testall" );
     }
   }
@@ -960,11 +941,12 @@ MPI_Status * status;
 {
   int  returnVal;
 
+  /* NEEDS WORK */
   
   returnVal = PMPI_Testany( count, array_of_requests, index, flag, status );
 
   if (*flag) 
-    ProcessWaitTest_1( &array_of_requests[*index],
+    ProcessWaitTest_1( array_of_requests[*index], /* WRONG */
 			        status, "MPI_Testany" );
 
   return returnVal;
@@ -980,13 +962,13 @@ MPI_Status * array_of_statuses;
   int  returnVal;
   int i2;
 
-  
+    /* NEEDS WORK */
   
   returnVal = PMPI_Testsome( incount, array_of_requests, outcount, array_of_indices, array_of_statuses );
 
   for (i2=0; i2 < *outcount; i2++) {
-    ProcessWaitTest_1( &array_of_requests
-			          [array_of_indices[i2]],
+    ProcessWaitTest_1( array_of_requests
+			          [array_of_indices[i2]], /* WRONG */
 			        &array_of_statuses
 			          [array_of_indices[i2]],
 			        "MPI_Testsome" );
@@ -1000,11 +982,11 @@ MPI_Request * request;
 MPI_Status * status;
 {
   int   returnVal;
-
+  MPI_Request lreq = *request;
   
   returnVal = PMPI_Wait( request, status );
 
-  ProcessWaitTest_1( request, status, "MPI_Wait" );
+  ProcessWaitTest_1( lreq, status, "MPI_Wait" );
 
   return returnVal;
 }
@@ -1017,13 +999,14 @@ MPI_Status * array_of_statuses;
   int  returnVal;
   int i1;
 
+  /* NEEDS WORK */
   
 /* fprintf( stderr, "MPI_Waitall call on %d\n", procid_1 ); */
   
   returnVal = PMPI_Waitall( count, array_of_requests, array_of_statuses );
 
   for (i1=0; i1 < count; i1++) {
-    ProcessWaitTest_1( &array_of_requests[i1],
+    ProcessWaitTest_1( array_of_requests[i1], /* WRONG */
 			        &array_of_statuses[i1],
 			        "MPI_Waitall" );
   }
@@ -1039,11 +1022,11 @@ MPI_Status * status;
 {
   int  returnVal;
 
-
-  
+  /* NEEDS WORK */
+ 
   returnVal = PMPI_Waitany( count, array_of_requests, index, status );
 
-  ProcessWaitTest_1( &array_of_requests[*index], status,
+  ProcessWaitTest_1( array_of_requests[*index] /* WRONG */, status,
 			      "MPI_Waitany" );
 
   return returnVal;
@@ -1059,14 +1042,13 @@ MPI_Status * array_of_statuses;
   int  returnVal;
   int i;
 
-  
-
+  /* NEEDS WORK */
   
   returnVal = PMPI_Waitsome( incount, array_of_requests, outcount, array_of_indices, array_of_statuses );
 
   for (i=0; i < *outcount; i++) {
-    ProcessWaitTest_1( &array_of_requests
-			          [array_of_indices[i]],
+    ProcessWaitTest_1( array_of_requests
+			          [array_of_indices[i]], /* WRONG */
 			        &array_of_statuses
 			          [array_of_indices[i]],
 			        "MPI_Waitsome" );

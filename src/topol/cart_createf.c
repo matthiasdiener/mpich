@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_createf.c,v 1.9 1995/05/09 18:56:11 gropp Exp $
+ *  $Id: cart_createf.c,v 1.11 1996/06/07 15:08:52 gropp Exp $
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  * Custom Fortran wrapper
@@ -7,11 +7,11 @@
 
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifdef MPI_ADI2
+#include "mpifort.h"
+#endif
+
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) a
 #define MPIR_FromPointer(a) (int)a
 #define MPIR_RmPointer(a)
@@ -42,6 +42,9 @@ MPI_Cart_create - Make a new communicator to which topology information
                   has been attached
 
 */
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_cart_create_ ANSI_ARGS(( MPI_Comm, int *, int *, int *, int *, 
+				  MPI_Comm *, int * ));
 
 void mpi_cart_create_ ( comm_old, ndims, dims, periods, reorder, comm_cart, 
 		      ierr ) 

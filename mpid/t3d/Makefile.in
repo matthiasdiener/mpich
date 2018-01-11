@@ -19,7 +19,6 @@ RANLIB      = @RANLIB@
 LINTFLAGS   = -v -u
 CC          = @CC@
 ASM         = @ASM@
-ASMFILES_O  = @ASMFILES_O@
 
 ### End User configurable options ###
 
@@ -30,8 +29,8 @@ CFLAGS      = @CFLAGS@ @OPTFLAGS@ $(COPT) $(OPT) -I../.. -I../../include -I. \
               -DMPID_DEVICE_CODE @DEVCFLAGS@
 SOURCES     = t3dcoll.c   t3dinit.c   t3drecv.c   t3dsync.c  \
               t3devent.c  t3dprobe.c  t3dsend.c   t3ddebug.c
+ASMFILES_O  = shmem_stack.o get_stack.o set_stack.o
 OBJECTS     = $(SOURCES:.c=.o) $(ASMFILES_O)
-
 
 ALL: default
 

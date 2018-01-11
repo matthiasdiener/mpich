@@ -245,9 +245,11 @@ if test "${WG_TRIAL}" != "" -a -d "${WG_TRIAL}" ; then
     else
 	echo "test" > ${WG_TRIAL}/.foo$$
 	if test ! -r .foo$$ ; then
+            /bin/rm -f ${WG_TRIAL}/.foo$$
 	    WG_TRIAL=
+        else
+ 	    /bin/rm -f ${WG_TRIAL}/.foo$$
 	fi
-	/bin/rm -f ${WG_TRIAL}/.foo$$
     fi
 fi
 if test "${WG_TRIAL}" = "" ; then
@@ -320,9 +322,11 @@ if test "${MPIR_HOME}" != "" -a -d "${MPIR_HOME}" ; then
     else
 	echo "test" > ${MPIR_HOME}/.foo$$
 	if test ! -r .foo$$ ; then
+            /bin/rm -f ${MPIR_HOME}/.foo$$
 	    MPIR_HOME=
+        else
+ 	    /bin/rm -f ${MPIR_HOME}/.foo$$
 	fi
-	/bin/rm -f ${MPIR_HOME}/.foo$$
     fi
 fi
 if test "${MPIR_HOME}" = "" ; then
@@ -699,16 +703,40 @@ CARCH=$ARCH
 
 if test -z "$USERCC" ; then
 case $CARCH in 
+   cenju3) CC=/usr/necccs/bin/cc
+           F77=/usr/necccs/bin/f77
+           ASM=/usr/necccs/bin/as
+           if test ! -x $CC ; then
+              CC=cc
+              F77=f77
+              ASM=as
+           fi
+           DEVCFLAGS="$DEVCFLAGS -O -Kmips2"
+           MPILIBNAME=mpich
+           ASMFILES_O=get_stack.o
+           if test -z "$USERFLINKER" ; then
+               FLINKER=cjf77
+           fi
+           if test -z "$USERFLINKER" ; then
+               CLINKER=cjcc
+           fi
+          ;;
    intelnx|paragon) CC=icc ; GCC="" 
 	  # If this version of the intel compiler accepts the -nx flag, use it.
   	  if icc -nx > /dev/null 2>&1 ; then
-	    	    CFLAGS="$CFLAGS -nx"
+	    # For some reason the lib list was commented out; we need
+	    # it to link with if we use the NX routines
+	    LIB_LIST="$LIB_LIST -nx"
+	    CFLAGS="$CFLAGS -nx"
 	  fi
 	;;
    cm5) CC=cc ; GCC="" ;   if test -z "$USERCLINKER" ; then
 		      CLINKER="cmmd-ld -comp $CC"
 		  fi ;;
-   cray_t3d)        CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3d" ; GCC="" 
+   cray_t3d)        
+	# Some Cray's require -Ccray-t3d instead of -Tcray-t3d.  
+        # We have no diagnostic for this behavior yet.
+                    CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3d" ; GCC="" 
                     if test -z "$USERCLINKER" ; then 
 	            CLINKER="$CC -Tcray-t3d" ; fi ;;
    hpux) if test "`which ${CC-cc}`" = "/usr/convex/bin/cc" ; then 
@@ -835,25 +863,25 @@ echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
 fi
 ac_prog_where=""
 if test -n "$CCval"; then
-  ac_cv_prog_CCval="$CCval" # Let the user override the test.
+  ac_pg_CCval="$CCval" # Let the user override the test.
 else
   ac_first_char=`expr "xlC" : "\(.\)"`
   if test "$ac_first_char" = "/" -a -x "xlC" ; then
-       ac_cv_prog_CCval="xlC"
+       ac_pg_CCval="xlC"
        ac_prog_where=xlC
   else
       IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
       for ac_dir in $PATH; do
         test -z "$ac_dir" && ac_dir=.
         if test -f $ac_dir/$ac_word; then
-          ac_cv_prog_CCval="xlC"
+          ac_pg_CCval="xlC"
           ac_prog_where=$ac_dir/$ac_word
           break
         fi
       done
       IFS="$ac_save_ifs"
   fi
-fi;CCval="$ac_cv_prog_CCval"
+fi;CCval="$ac_pg_CCval"
 if test -n "$ac_prog_where" ; then
   if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""found $ac_prog_where ($CCval)"
@@ -902,25 +930,25 @@ echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
 fi
 ac_prog_where=""
 if test -n "$CCval"; then
-  ac_cv_prog_CCval="$CCval" # Let the user override the test.
+  ac_pg_CCval="$CCval" # Let the user override the test.
 else
   ac_first_char=`expr "mpCC" : "\(.\)"`
   if test "$ac_first_char" = "/" -a -x "mpCC" ; then
-       ac_cv_prog_CCval="mpCC"
+       ac_pg_CCval="mpCC"
        ac_prog_where=mpCC
   else
       IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
       for ac_dir in $PATH; do
         test -z "$ac_dir" && ac_dir=.
         if test -f $ac_dir/$ac_word; then
-          ac_cv_prog_CCval="mpCC"
+          ac_pg_CCval="mpCC"
           ac_prog_where=$ac_dir/$ac_word
           break
         fi
       done
       IFS="$ac_save_ifs"
   fi
-fi;CCval="$ac_cv_prog_CCval"
+fi;CCval="$ac_pg_CCval"
 if test -n "$ac_prog_where" ; then
   if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""found $ac_prog_where ($CCval)"
@@ -967,25 +995,25 @@ echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
 fi
 ac_prog_where=""
 if test -n "$CCval"; then
-  ac_cv_prog_CCval="$CCval" # Let the user override the test.
+  ac_pg_CCval="$CCval" # Let the user override the test.
 else
   ac_first_char=`expr "xlc" : "\(.\)"`
   if test "$ac_first_char" = "/" -a -x "xlc" ; then
-       ac_cv_prog_CCval="xlc"
+       ac_pg_CCval="xlc"
        ac_prog_where=xlc
   else
       IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
       for ac_dir in $PATH; do
         test -z "$ac_dir" && ac_dir=.
         if test -f $ac_dir/$ac_word; then
-          ac_cv_prog_CCval="xlc"
+          ac_pg_CCval="xlc"
           ac_prog_where=$ac_dir/$ac_word
           break
         fi
       done
       IFS="$ac_save_ifs"
   fi
-fi;CCval="$ac_cv_prog_CCval"
+fi;CCval="$ac_pg_CCval"
 if test -n "$ac_prog_where" ; then
   if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""found $ac_prog_where ($CCval)"
@@ -1034,25 +1062,25 @@ echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
 fi
 ac_prog_where=""
 if test -n "$CCval"; then
-  ac_cv_prog_CCval="$CCval" # Let the user override the test.
+  ac_pg_CCval="$CCval" # Let the user override the test.
 else
   ac_first_char=`expr "mpcc" : "\(.\)"`
   if test "$ac_first_char" = "/" -a -x "mpcc" ; then
-       ac_cv_prog_CCval="mpcc"
+       ac_pg_CCval="mpcc"
        ac_prog_where=mpcc
   else
       IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
       for ac_dir in $PATH; do
         test -z "$ac_dir" && ac_dir=.
         if test -f $ac_dir/$ac_word; then
-          ac_cv_prog_CCval="mpcc"
+          ac_pg_CCval="mpcc"
           ac_prog_where=$ac_dir/$ac_word
           break
         fi
       done
       IFS="$ac_save_ifs"
   fi
-fi;CCval="$ac_cv_prog_CCval"
+fi;CCval="$ac_pg_CCval"
 if test -n "$ac_prog_where" ; then
   if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""found $ac_prog_where ($CCval)"
@@ -1111,25 +1139,25 @@ echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
 fi
 ac_prog_where=""
 if test -n "$CCval"; then
-  ac_cv_prog_CCval="$CCval" # Let the user override the test.
+  ac_pg_CCval="$CCval" # Let the user override the test.
 else
   ac_first_char=`expr "$p" : "\(.\)"`
   if test "$ac_first_char" = "/" -a -x "$p" ; then
-       ac_cv_prog_CCval="$p"
+       ac_pg_CCval="$p"
        ac_prog_where=$p
   else
       IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
       for ac_dir in $PATH; do
         test -z "$ac_dir" && ac_dir=.
         if test -f $ac_dir/$ac_word; then
-          ac_cv_prog_CCval="$p"
+          ac_pg_CCval="$p"
           ac_prog_where=$ac_dir/$ac_word
           break
         fi
       done
       IFS="$ac_save_ifs"
   fi
-fi;CCval="$ac_cv_prog_CCval"
+fi;CCval="$ac_pg_CCval"
 if test -n "$ac_prog_where" ; then
   if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""found $ac_prog_where ($CCval)"
@@ -1192,25 +1220,25 @@ echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
 fi
 ac_prog_where=""
 if test -n "$CCval"; then
-  ac_cv_prog_CCval="$CCval" # Let the user override the test.
+  ac_pg_CCval="$CCval" # Let the user override the test.
 else
   ac_first_char=`expr "$p" : "\(.\)"`
   if test "$ac_first_char" = "/" -a -x "$p" ; then
-       ac_cv_prog_CCval="$p"
+       ac_pg_CCval="$p"
        ac_prog_where=$p
   else
       IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
       for ac_dir in $PATH; do
         test -z "$ac_dir" && ac_dir=.
         if test -f $ac_dir/$ac_word; then
-          ac_cv_prog_CCval="$p"
+          ac_pg_CCval="$p"
           ac_prog_where=$ac_dir/$ac_word
           break
         fi
       done
       IFS="$ac_save_ifs"
   fi
-fi;CCval="$ac_cv_prog_CCval"
+fi;CCval="$ac_pg_CCval"
 if test -n "$ac_prog_where" ; then
   if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""found $ac_prog_where ($CCval)"
@@ -1269,25 +1297,25 @@ echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
 fi
 ac_prog_where=""
 if test -n "$CCval"; then
-  ac_cv_prog_CCval="$CCval" # Let the user override the test.
+  ac_pg_CCval="$CCval" # Let the user override the test.
 else
   ac_first_char=`expr "$p" : "\(.\)"`
   if test "$ac_first_char" = "/" -a -x "$p" ; then
-       ac_cv_prog_CCval="$p"
+       ac_pg_CCval="$p"
        ac_prog_where=$p
   else
       IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
       for ac_dir in $PATH; do
         test -z "$ac_dir" && ac_dir=.
         if test -f $ac_dir/$ac_word; then
-          ac_cv_prog_CCval="$p"
+          ac_pg_CCval="$p"
           ac_prog_where=$ac_dir/$ac_word
           break
         fi
       done
       IFS="$ac_save_ifs"
   fi
-fi;CCval="$ac_cv_prog_CCval"
+fi;CCval="$ac_pg_CCval"
 if test -n "$ac_prog_where" ; then
   if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""found $ac_prog_where ($CCval)"
@@ -1603,9 +1631,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking for IRIX cputype""... $ac_c"
+echo $ac_n "checking for IRIX cpumodel""... $ac_c"
 else
-echo $ac_n "checking for IRIX cputype""... $ac_c" 1>&1
+echo $ac_n "checking for IRIX cpumodel""... $ac_c" 1>&1
 fi
             cputype=`hinv -t cpu | tail -1 | cut -f 3 -d' '`
    if test -z "$cputype" ; then
@@ -1643,10 +1671,31 @@ fi
        print_error "to mpi-bugs@mcs.anl.gov"
        exit 1
    fi
-   if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""getting cputype"
+   if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
 else
-echo "$ac_t""getting cputype" 1>&1
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for cputype""... $ac_c"
+else
+echo $ac_n "checking for cputype""... $ac_c" 1>&1
 fi
    OLD_ARCH=IRIX
    IRIXARCH="$ARCH_$osversion"
@@ -1656,7 +1705,9 @@ fi
 	4000) ;;
 	4400) ;;
 	4600) ;;
+	5000) ;;
 	8000) ;;
+	10000);;
         *)
 	print_error "Unexpected IRIX/MIPS chipset $cputype.  Please send the output"
 	print_error " "
@@ -1874,7 +1925,6 @@ trap 'rm -f Makefile; exit 1' 1 3 15
 CC='$CC'
 RANLIB='$RANLIB'
 CPP='$CPP'
-CCval='$CCval'
 ARCH='$ARCH'
 CFLAGS='$CFLAGS'
 CLINKER='$CLINKER'
@@ -1911,7 +1961,6 @@ $extrasub
 s%@CC@%$CC%g
 s%@RANLIB@%$RANLIB%g
 s%@CPP@%$CPP%g
-s%@CCval@%$CCval%g
 s%@ARCH@%$ARCH%g
 s%@CFLAGS@%$CFLAGS%g
 s%@CLINKER@%$CLINKER%g

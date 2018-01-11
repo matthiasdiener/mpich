@@ -39,10 +39,15 @@ P4VOID listener()
 	    p4_dprintfl(70, "got fd=%d listening_fd=%d slave_fd=%d\n",
 			fd, l->listening_fd, l->slave_fd);
 
+	    /* We use |= to insure that after the loop, we haven't lost
+	       any "done" messages. 
+	       There really are some nasty race conditions here, and all
+	       this does is cause us to NOT lose a "DIE" message
+	     */
 	    if (fd == l->listening_fd)
-		done = process_connect_request(fd);
+		done |= process_connect_request(fd);
 	    else
-		done = process_slave_message(fd);
+		done |= process_slave_message(fd);
 	    fd++;
 	}
     }

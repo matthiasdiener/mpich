@@ -1,17 +1,17 @@
 /*
- *  $Id: opfree.c,v 1.11 1995/12/21 22:17:17 gropp Exp $
+ *  $Id: opfree.c,v 1.12 1996/04/12 15:40:11 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: opfree.c,v 1.11 1995/12/21 22:17:17 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "mpimem.h"
+#else
 #include "mpisys.h"
-#include "coll.h"
+#endif
+#include "mpiops.h"
 
 /*@
   MPI_Op_free - Frees a user-defined combination function handle
@@ -23,6 +23,13 @@ Notes:
 'op' is set to 'MPI_OP_NULL' on exit.
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_PERM_OP
+
+.seealso: MPI_Op_create
 @*/
 int MPI_Op_free( op )
 MPI_Op  *op;

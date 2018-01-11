@@ -1,16 +1,6 @@
 /* pcontrol.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
-
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
 
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
@@ -32,9 +22,12 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_pcontrol_( level, __ierr )
-int*level;
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_pcontrol_ ANSI_ARGS(( int *, int * ));
+
+void mpi_pcontrol_( level, __ierr )
+int *level;
 int *__ierr;
 {
-*__ierr = MPI_Pcontrol(*level);
+    *__ierr = MPI_Pcontrol(*level);
 }

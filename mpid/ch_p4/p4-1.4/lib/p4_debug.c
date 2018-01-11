@@ -1,5 +1,9 @@
 #include <stdio.h>
+#if defined(USE_STDARG)
+#include <stdarg.h>
+#else
 #include <varargs.h>
+#endif
 #include "p4.h"
 #include "p4_sys.h"
 
@@ -28,7 +32,26 @@ P4VOID p4_dprintf(fmt, a, b, c, d, e, f, g, h, i)
 }
 
 #else
+#if defined(USE_STDARG)
+P4VOID p4_dprintf( char *fmt, ... )
+{
+    va_list ap;
 
+    va_start( ap, fmt );
+    printf("%s: ", whoami_p4);
+    if (p4_global)
+	printf("(%f) ", p4_usclock());
+    else
+	printf("(-) " );
+#ifdef VPRINTF
+    vprintf(fmt, ap);
+#else
+    _doprnt(fmt, ap, stdout);
+#endif
+    va_end(ap);
+    fflush(stdout);
+}
+#else
 P4VOID p4_dprintf(fmt, va_alist)
 char *fmt;
 va_dcl
@@ -49,7 +72,7 @@ va_dcl
     va_end(ap);
     fflush(stdout);
 }
-
+#endif
 #endif
 
 #if defined(DELTA)  ||  defined(NCUBE)  ||  defined(LINUX)
@@ -64,7 +87,28 @@ P4VOID p4_dprintfl(level, fmt, a, b, c, d, e, f, g, h, i)
 }
 
 #else
+#if defined(USE_STDARG)
+P4VOID p4_dprintfl(int level, char *fmt, ...)
+{
+    va_list ap;
 
+    va_start( ap, fmt );
+    if (level > debug_level)
+	return;
+    printf("%d: %s: ", level, whoami_p4);
+    if (p4_global)
+	printf("(%f) ", p4_usclock());
+    else
+	printf("(-) " );
+#ifdef VPRINTF
+    vprintf(fmt, ap);
+#else
+    _doprnt(fmt, ap, stdout);
+#endif
+    va_end(ap);
+    fflush(stdout);
+}
+#else
 P4VOID p4_dprintfl(level, fmt, va_alist)
 int level;
 char *fmt;
@@ -88,7 +132,7 @@ va_dcl
     va_end(ap);
     fflush(stdout);
 }
-
+#endif
 #endif 
 
 P4VOID dump_global(level)

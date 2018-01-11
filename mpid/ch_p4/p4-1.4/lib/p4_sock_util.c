@@ -56,6 +56,8 @@ int skt;
     /* For the environment variables to work, the user really needs to
        set them in their .cshrc file (otherwise, the spawned processes
        may not get the correct values).
+
+       Rumor has it that 0x40000 is a good size for AIX 4.x
      */
     if (size <= 0)
     {
@@ -399,20 +401,24 @@ int port, num_tries;
     return (s);
 }
 
-int net_recv(fd, buf, size)
+int net_recv(fd, in_buf, size)
 int fd;
-char *buf;
+P4VOID *in_buf;
 int size;
 {
     int recvd = 0;
-    int n,n1 = 0;
+    int n;
     int read_counter = 0;
     int block_counter = 0;
     int eof_counter = 0;
+    char *buf = (char *)in_buf;
+#ifdef P4SYSV
+    int n1 = 0;
     struct timeval tv;
     fd_set read_fds;
     int rc;
     char tempbuf[1];
+#endif
 
     p4_dprintfl( 99, "Beginning net_recv of %d on fd %d\n", size, fd );
     while (recvd < size)
@@ -485,8 +491,11 @@ int size;
 #endif
 		continue;
 	    }
-	    else
+	    else {
+		/* A closed socket can cause this to happen. */
+		printf( "net_recv failed for fd = %d\n", fd );
 		p4_error("net_recv read, errno = ", errno);
+	    }
 	}
 	recvd += n;
     }
@@ -496,9 +505,9 @@ int size;
     return (recvd);
 }
 
-int net_send(fd, buf, size, flag)
+int net_send(fd, in_buf, size, flag)
 int fd;
-char *buf;
+P4VOID *in_buf;
 int size;
 int flag;  
 /* flag --> fromid < toid; tie-breaker to avoid 2 procs rcving at same time */
@@ -511,6 +520,7 @@ int flag;
     int write_counter = 0;
     int block_counter = 0;
     int trial_size = size;
+    char *buf = (char *)in_buf;
 
     /* trial_size lets us back off from sending huge messages in a single
        write without making many expensive calls to socket_msgs_available

@@ -51,12 +51,12 @@ stateData *State_Create()
   ListCreate( state_data->defs.list, stateDefInfo, 10 );
   ListCreate( state_data->list, stateInfo, 100 );
 
-  state_data->stacks = 0;
-  state_data->idx_start = 0;
-  state_data->idx_end = 0;
+  state_data->stacks	     = 0;
+  state_data->idx_start	     = 0;
+  state_data->idx_end	     = 0;
   state_data->idx_proc_start = 0;
-  state_data->idx_proc_end = 0;
-  state_data->draw.fn_list = 0;
+  state_data->idx_proc_end   = 0;
+  state_data->draw.fn_list   = 0;
 
   return state_data;
 }
@@ -136,7 +136,8 @@ char *color, *bitmap, *name;
   }
 
     /* no instances yet */
-  stateDef.ninst = 0;
+  stateDef.ninst     = 0;
+  stateDef.is_active = 0;
 
     /* add this state definition to the list */
   ListAddItem( state_data->defs.list, stateDefInfo, stateDef );
@@ -150,16 +151,17 @@ stateData *state_data;
 int n;
 char **color, **bitmap, **name;
 {
-  stateDefInfo *def;
+    stateDefInfo *def;
 
     /* create temporary pointer to the state definitions we want */
-  def = ListHeadPtr( state_data->defs.list, stateDefInfo ) + n;
+    def	    = ListHeadPtr( state_data->defs.list, stateDefInfo ) + n;
 
-  *color = def->color;
-  *bitmap = def->bitmap;
-  *name = def->name;
+    *color  = def->color;
+    *bitmap = def->bitmap;
+    *name   = def->name;
 
-  return 0;
+    if (def->is_active) return 0;
+    else return 1;
 }
 
   /* Change a state definition */
@@ -258,6 +260,9 @@ double time;
     ListAddItem( state_data->list, stateInfo, info );
       /* add one to the # of instances of this state */
     ListItem( state_data->defs.list, stateDefInfo, stateType ).ninst++;
+      /* make the state active */
+    ListItem( state_data->defs.list, stateDefInfo, stateType ).is_active = 1;
+
     /*
       State_Draw( state_data, ListSize( state_data->list, stateInfo )-1 );
     */
@@ -990,13 +995,13 @@ int idx;
 #endif
 
   if (idx != -1) {
-    info = ListHeadPtr( state_data->list, stateInfo ) + idx;
-    type = info->type;
-    proc = info->proc;
-    startTime = info->startTime;
-    endTime = info->endTime;
-    parent = info->parent;
-    firstChild = info->firstChild;
+    info	 = ListHeadPtr( state_data->list, stateInfo ) + idx;
+    type	 = info->type;
+    proc	 = info->proc;
+    startTime	 = info->startTime;
+    endTime	 = info->endTime;
+    parent	 = info->parent;
+    firstChild	 = info->firstChild;
     overlapLevel = info->overlapLevel;
   } else {
       /* index -1 signifies that the last of the state events has

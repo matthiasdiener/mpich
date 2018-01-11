@@ -6,9 +6,8 @@ int xdr_send(type, from, to, msg, len, data_type, ack_req)
 char *msg;
 int type, from, to, len, data_type, ack_req;
 {
-    int done = 0;
     int nbytes_written = 0;
-    int flag, sent, fd, myid, rc, n, nfds;
+    int flag, fd, myid;
     struct p4_net_msg_hdr nmsg;
     XDR *xdr_enc;
     xdrproc_t xdr_proc;
@@ -107,8 +106,7 @@ char *msg;
 {
     int fd, flag;
     int sent = 0;
-    int done = 0;
-    int nleft, rc, n, nfds;
+    int n;
     struct p4_net_msg_hdr nmsg;
 
     p4_dprintfl(20, "sending msg of type %d from %d to %d via socket\n",type,from,to);
@@ -134,6 +132,7 @@ char *msg;
 #ifdef OLD_SEND_CODE
     while (sent < len)
     {
+	int nleft;
 	if ((len - sent) > SOCK_BUFF_SIZE)
 	    nleft = SOCK_BUFF_SIZE;
 	else
@@ -187,7 +186,7 @@ int fd;
 struct p4_msg *socket_recv( is_blocking )
 int is_blocking;
 {
-    int i, fd, nfds;
+    int    i, fd, nfds;
     struct p4_msg *tmsg = NULL;
     P4BOOL found = FALSE;
     struct timeval tv;
@@ -211,7 +210,13 @@ int is_blocking;
 		nactive++;
 	    }
 	}
-	if (!nactive)
+	/* If there is only one process, there will NEVER be any active
+	   connections.  
+	   Question: does this cover the case of multiple processes but
+	   little communication between them, since the connections
+	   are established dynamically? 
+	 */
+	if (!nactive && p4_global->num_in_proctable > 1)
 	{
 	    /* If we read a "close" and there are no connections left, 
 	       silently exit */

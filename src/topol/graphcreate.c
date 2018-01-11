@@ -1,12 +1,18 @@
 /*
- *  $Id: graphcreate.c,v 1.2 1995/12/21 22:19:04 gropp Exp $
+ *  $Id: graphcreate.c,v 1.3 1996/04/12 15:54:07 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#include "mpitopo.h"
+#ifdef MPI_ADI2
+#include "sbcnst2.h"
+#define MPIR_SBalloc MPID_SBalloc
+#else
 #include "mpisys.h"
+#endif
 
 /*@
 
@@ -27,6 +33,12 @@ Algorithm:
 We ignore the 'reorder' info currently.
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TOPOLOGY
+.N MPI_ERR_COMM
+.N MPI_ERR_ARG
 @*/
 int MPI_Graph_create ( comm_old, nnodes, index, edges, reorder, comm_graph )
 MPI_Comm  comm_old;
@@ -38,7 +50,7 @@ MPI_Comm *comm_graph;
 {
   int range[1][3];
   MPI_Group group_old, group;
-  int i, rank, num_ranks = 1;
+  int i, num_ranks = 1;
   int mpi_errno = MPI_SUCCESS;
   int flag, size;
   MPIR_TOPOLOGY *topo;
@@ -80,20 +92,23 @@ MPI_Comm *comm_graph;
 
   /* Store topology information in new communicator */
   if ( (*comm_graph) != MPI_COMM_NULL ) {
-    topo = (MPIR_TOPOLOGY *) MPIR_SBalloc ( MPIR_topo_els );
-    MPIR_SET_COOKIE(&topo->graph,MPIR_GRAPH_TOPOL_COOKIE)
-    topo->graph.type       = MPI_GRAPH;
-    topo->graph.nnodes     = nnodes;
-    topo->graph.nedges     = index[nnodes-1];
-    topo->graph.index      = (int *)MALLOC(sizeof(int)*(nnodes+index[nnodes-1]));
-    topo->graph.edges      = topo->graph.index + nnodes;
-    for ( i=0; i<nnodes; i++ )
-      topo->graph.index[i] = index[i];
-    for ( i=0; i<index[nnodes-1]; i++ )
-      topo->graph.edges[i] = edges[i];
+      MPIR_ALLOC(topo,(MPIR_TOPOLOGY *) MPIR_SBalloc ( MPIR_topo_els ),
+		 comm_old,MPI_ERR_EXHAUSTED,"Error in MPI_GRAPH_CREATE");
+      MPIR_SET_COOKIE(&topo->graph,MPIR_GRAPH_TOPOL_COOKIE)
+	  topo->graph.type       = MPI_GRAPH;
+      topo->graph.nnodes     = nnodes;
+      topo->graph.nedges     = index[nnodes-1];
+      MPIR_ALLOC(topo->graph.index,
+		 (int *)MALLOC(sizeof(int)*(nnodes+index[nnodes-1])),
+		 comm_old,MPI_ERR_EXHAUSTED,"Error in MPI_GRAPH_CREATE");
+      topo->graph.edges      = topo->graph.index + nnodes;
+      for ( i=0; i<nnodes; i++ )
+	  topo->graph.index[i] = index[i];
+      for ( i=0; i<index[nnodes-1]; i++ )
+	  topo->graph.edges[i] = edges[i];
 
-    /* cache topology information */
-    MPI_Attr_put ( (*comm_graph), MPIR_TOPOLOGY_KEYVAL, (void *)topo );
+      /* cache topology information */
+      MPI_Attr_put ( (*comm_graph), MPIR_TOPOLOGY_KEYVAL, (void *)topo );
   }
   return (mpi_errno);
 }

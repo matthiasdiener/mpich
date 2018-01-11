@@ -143,6 +143,9 @@ if test $noperf = 0 ; then
    if test "$plotonly" = 0 ; then
 	curdir=`pwd`
 	cd $testdir
+	# Remove the data files in case we fail
+	/bin/rm -rf long.gpl long.err 
+	/bin/rm -rf short.gpl short.err 
 	/bin/rm -f maketst.log 
  	$MAKE mpptest goptest > maketst.log 2>&1
 	
@@ -160,13 +163,11 @@ if test $noperf = 0 ; then
 	    fi
 	    exit 1
 	fi
-	/bin/rm -rf short.gpl short.err 
 	mpirun -np 2 -mvhome -mvback mppout.gpl -arch=@ARCH@ mpptest -gnuplot \
 		-tgoal 0.1 -auto -givdy > short.gpl 2>short.err
 	RefineGnuplotfile "short"
 	#
         # Don't use the auto feature for long data.
-	/bin/rm -rf long.gpl long.err 
 	mpirun -np 2 -mvhome -mvback mppout.gpl -arch=@ARCH@ mpptest -gnuplot \
 	   -tgoal 0.2 -reps 25 -size 16384 65536 2048 \
 		-givedy > long.gpl 2>long.err

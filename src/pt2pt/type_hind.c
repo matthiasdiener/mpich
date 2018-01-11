@@ -1,16 +1,19 @@
 /*
- *  $Id: type_hind.c,v 1.18 1995/12/21 21:36:16 gropp Exp $
+ *  $Id: type_hind.c,v 1.20 1996/07/17 18:04:00 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: type_hind.c,v 1.18 1995/12/21 21:36:16 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "sbcnst2.h"
+#define MPIR_SBalloc MPID_SBalloc
+/* pt2pt for MPIR_Type_dup */
+#include "mpipt2pt.h"
+#else
 #include "mpisys.h"
+#endif
 
 /*@
     MPI_Type_hindexed - Creates an indexed datatype with offsets in bytes
@@ -28,6 +31,11 @@ Output Parameter:
 
 Also see the discussion for MPI_Type_indexed about the 'indices' in Fortran.
 
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TYPE
+.N MPI_ERR_COUNT
+.N MPI_ERR_EXHAUSTED
 @*/
 int MPI_Type_hindexed( count, blocklens, indices, old_type, newtype )
 int           count;
@@ -37,7 +45,7 @@ MPI_Datatype  old_type;
 MPI_Datatype *newtype;
 {
   MPI_Datatype  dteptr;
-  MPI_Aint      ub, lb, high, low, real_ub, real_lb, real_init;
+  MPI_Aint      ub, lb, high, low, real_ub, real_lb;
   int           i, mpi_errno = MPI_SUCCESS;
   int           total_count;
   
@@ -48,7 +56,7 @@ MPI_Datatype *newtype;
    ( (old_type->dte_type == MPIR_UB) && (mpi_errno = MPI_ERR_TYPE) )  ||
    ( (old_type->dte_type == MPIR_LB) && (mpi_errno = MPI_ERR_TYPE) ) )
 	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno,
-					  "Error in MPI_TYPE_INDEXED" );
+					  "Error in MPI_TYPE_HINDEXED" );
 	
   /* Are we making a null datatype? */
   total_count = 0;
@@ -59,16 +67,15 @@ MPI_Datatype *newtype;
       }
 
   /* Create and fill in the datatype */
-  dteptr = (*newtype) = (MPI_Datatype) MPIR_SBalloc( MPIR_dtes );
-  if (!dteptr) 
-      return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-			 "Out of space in MPI_TYPE_HVECTOR" );
+  MPIR_ALLOC(dteptr,(MPI_Datatype) MPIR_SBalloc( MPIR_dtes ),
+	     MPI_COMM_WORLD, MPI_ERR_EXHAUSTED,"Error in MPI_TYPE_HINDEXED");
+  *newtype = dteptr;
   MPIR_SET_COOKIE(dteptr,MPIR_DATATYPE_COOKIE)
   dteptr->dte_type    = MPIR_HINDEXED;
-  dteptr->committed   = MPIR_NO;
-  dteptr->basic       = MPIR_FALSE;
-  dteptr->permanent   = MPIR_FALSE;
-  dteptr->is_contig   = MPIR_FALSE;
+  dteptr->committed   = 0;
+  dteptr->basic       = 0;
+  dteptr->permanent   = 0;
+  dteptr->is_contig   = 0;
   dteptr->ref_count   = 1;
   dteptr->align       = old_type->align;
   dteptr->old_type    = (MPI_Datatype)MPIR_Type_dup (old_type);
@@ -84,7 +91,8 @@ MPI_Datatype *newtype;
       return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
 			 "Out of space in MPI_TYPE_HINDEXED" );
   low                 = indices[0];
-  high                = indices[0] + (blocklens[0] * old_type->extent);
+  high                = indices[0] + 
+      ((MPI_Aint)blocklens[0] * old_type->extent);
   real_lb             = indices[0];
   real_ub             = real_lb;
   for (i = 0; i < count; i++)  {
@@ -102,7 +110,8 @@ MPI_Datatype *newtype;
 	}
 	if (indices[i] < real_lb) real_lb = indices[i];
 	if (indices[i] + 
-	   (blocklens[i] * (old_type->real_ub - old_type->real_lb)) > real_ub)
+	  ((MPI_Aint)blocklens[i] * (old_type->real_ub - old_type->real_lb)) >
+	real_ub)
 	    real_ub = indices[i] + 
 	   (blocklens[i] * (old_type->real_ub - old_type->real_lb));
 

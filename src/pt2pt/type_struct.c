@@ -1,16 +1,19 @@
 /*
- *  $Id: type_struct.c,v 1.26 1995/12/21 21:41:19 gropp Exp $
+ *  $Id: type_struct.c,v 1.29 1996/06/07 15:07:30 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: type_struct.c,v 1.26 1995/12/21 21:41:19 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "sbcnst2.h"
+#define MPIR_SBalloc MPID_SBalloc
+/* pt2pt for MPIR_Type_dup */
+#include "mpipt2pt.h"
+#else
 #include "mpisys.h"
+#endif
 
 /*@
     MPI_Type_struct - Creates a struct datatype
@@ -55,6 +58,13 @@ for the structure foo
 .ve
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TYPE
+.N MPI_ERR_COUNT
+.N MPI_ERR_EXHAUSTED
+.N MPI_ERR_OTHER
 @*/
 int MPI_Type_struct( count, blocklens, indices, old_types, newtype )
 int           count;
@@ -65,10 +75,10 @@ MPI_Datatype *newtype;
 {
   MPI_Datatype    dteptr;
   MPI_Aint        ub, lb, high, low, real_ub, real_lb, real_init;
-  MPIR_BOOL       high_init = MPIR_NO, low_init = MPIR_NO;
+  int             high_init = 0, low_init = 0;
   int             i, mpi_errno = MPI_SUCCESS;
-  int             ub_marker, lb_marker;
-  MPIR_BOOL       ub_found = MPIR_NO, lb_found = MPIR_NO;
+  MPI_Aint        ub_marker, lb_marker;
+  MPI_Aint        ub_found = 0, lb_found = 0;
   int             size, total_count;
 
   /* Check for bad arguments */
@@ -100,16 +110,15 @@ MPI_Datatype *newtype;
   }
     
   /* Create and fill in the datatype */
-  dteptr = (*newtype) = (MPI_Datatype) MPIR_SBalloc( MPIR_dtes );
-  if (!dteptr) 
-      return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-			 "Out of space in MPI_TYPE_STRUCT" );
+  MPIR_ALLOC(dteptr,(MPI_Datatype) MPIR_SBalloc( MPIR_dtes ),MPI_COMM_WORLD, 
+	     MPI_ERR_EXHAUSTED, "Out of space in MPI_TYPE_STRUCT" );
+  *newtype = dteptr;
   MPIR_SET_COOKIE(dteptr,MPIR_DATATYPE_COOKIE)
   dteptr->dte_type    = MPIR_STRUCT;
-  dteptr->committed   = MPIR_NO;
-  dteptr->basic       = MPIR_FALSE;
-  dteptr->permanent   = MPIR_FALSE;
-  dteptr->is_contig   = MPIR_FALSE;
+  dteptr->committed   = 0;
+  dteptr->basic       = 0;
+  dteptr->permanent   = 0;
+  dteptr->is_contig   = 0;
   dteptr->ref_count   = 1;
   dteptr->count       = count;
   dteptr->elements    = 0;
@@ -142,7 +151,7 @@ MPI_Datatype *newtype;
 	      }
 	  else {
 	      ub_marker = indices[i];
-	      ub_found  = MPIR_YES;
+	      ub_found  = 1;
 	      }
 	  }
       else if ( old_types[i]->dte_type == MPIR_LB ) {
@@ -152,7 +161,7 @@ MPI_Datatype *newtype;
 	      }
 	  else {
 	      lb_marker = indices[i];
-	      lb_found  = MPIR_YES;
+	      lb_found  = 1;
 	      }
 	  }
       else {
@@ -171,20 +180,20 @@ MPI_Datatype *newtype;
 	  /* Next, check to see if datatype has an MPI_LB or MPI_UB
 	     within it... */
 	  if (old_types[i]->has_ub) {
-	      ub_found = MPIR_YES;
+	      ub_found  = 1;
 	      ub_marker = old_types[i]->ub;
 	      }
 	  if (old_types[i]->has_lb) {
-	      lb_found = MPIR_YES;
+	      lb_found  = 1;
 	      lb_marker = old_types[i]->lb;
 	      }
 	  /* Get the ub/lb from the datatype (if a MPI_UB or MPI_LB was
 	     found, then these values will be ignored). */
 	  ub = indices[i] + (blocklens[i] * old_types[i]->extent) ;
 	  lb = indices[i];
-	  if (!high_init) { high = ub; high_init = MPIR_YES; }
+	  if (!high_init) { high = ub; high_init = 1; }
 	  else if (ub > high) high = ub;
-	  if (!low_init ) { low  = lb; low_init  = MPIR_YES; }
+	  if (!low_init ) { low  = lb; low_init  = 1; }
 	  else if (lb < low) low = lb;
 	  if (ub > lb) {
 	      if ( high < ub ) high = ub;

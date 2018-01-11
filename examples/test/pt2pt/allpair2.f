@@ -316,6 +316,10 @@ c
          call msg_check( recv_buf, prev, tag, count, statuses,
      $           TEST_SIZE, 'irsend and irecv' )
 
+C
+C        In case the send didn't complete yet.
+         call MPI_Waitall( 2, requests, statuses, ierr )
+
       else
 
          call MPI_Irecv(recv_buf, TEST_SIZE, MPI_REAL,

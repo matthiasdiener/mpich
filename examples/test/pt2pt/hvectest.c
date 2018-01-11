@@ -12,7 +12,7 @@ int main( argc, argv )
 int argc;
 char **argv;
 {
-    int rank, size, to, from, tag, count, np, i;
+    int rank, size, to, from, tag, count, i;
     int src, dest;
     int st_source, st_tag, st_count;
     int errcnt = 0;
@@ -34,8 +34,7 @@ char **argv;
     MPI_Type_vector( 10, 1, 10, MPI_DOUBLE, &rowtype );
     MPI_Type_commit( &rowtype );
     /* First test: send a row */
-    if (rank == src)
-    {
+    if (rank == src) {
 	to     = dest;
 	count  = 1;
 	tag    = 2001;
@@ -49,8 +48,7 @@ char **argv;
 #endif
     }
 
-    if (rank == dest)
-    {
+    if (rank == dest) {
 	tag   = MPI_ANY_TAG;
 	count = 10;		
 	from  = MPI_ANY_SOURCE;

@@ -1,16 +1,15 @@
 /*
- *  $Id: issend.c,v 1.7 1995/12/21 21:13:01 gropp Exp $
+ *  $Id: issend.c,v 1.9 1996/06/26 19:27:12 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 
-#ifndef lint
-static char vcid[] = "$Id: issend.c,v 1.7 1995/12/21 21:13:01 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "reqalloc.h"
+#endif
 
 /*@
     MPI_Issend - Starts a nonblocking synchronous send
@@ -27,6 +26,15 @@ Output Parameter:
 . request - communication request (handle) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_TAG
+.N MPI_ERR_RANK
+.N MPI_ERR_EXHAUSTED
 @*/
 int MPI_Issend( buf, count, datatype, dest, tag, comm, request )
 void             *buf;
@@ -37,12 +45,37 @@ int              tag;
 MPI_Comm         comm;
 MPI_Request      *request;
 {
+#ifdef MPI_ADI2
+    int mpi_errno;
+
+    if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,count) ||
+	MPIR_TEST_DATATYPE(comm,datatype) || MPIR_TEST_SEND_TAG(comm,tag) ||
+	MPIR_TEST_SEND_RANK(comm,dest)) 
+	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_ISSEND" );
+
+    MPIR_ALLOC(*request,(MPI_Request) MPID_SendAlloc(),
+	       comm,MPI_ERR_EXHAUSTED,"Error in MPI_ISSEND" );
+    MPID_Request_init( (&(*request)->shandle), MPIR_SEND );
+
+    MPIR_REMEMBER_SEND((&(*request)->shandle), buf, count, datatype, dest, tag, comm);
+
+    if (dest == MPI_PROC_NULL) {
+	(*request)->shandle.is_complete = 1;
+	return MPI_SUCCESS;
+    }
+    /* This COULD test for the contiguous homogeneous case first .... */
+    MPID_IssendDatatype( comm, buf, count, datatype, comm->local_rank, tag, 
+			 comm->send_context, comm->lrank_to_grank[dest], 
+			 *request, &mpi_errno );
+    if (mpi_errno) return MPIR_ERROR( comm, mpi_errno, "Error in MPI_ISSEND" );
+    return MPI_SUCCESS;
+#else
     int err;
     if (dest != MPI_PROC_NULL)
     {
         /* We'll let MPI_Ssend_init find the errors */
-        if (err = 
-        MPI_Ssend_init( buf, count, datatype, dest, tag, comm, request ))
+        if ((err = 
+        MPI_Ssend_init( buf, count, datatype, dest, tag, comm, request )))
 	    return err;
 	(*request)->shandle.persistent = 0;
 	return MPI_Start( request );
@@ -51,12 +84,13 @@ MPI_Request      *request;
 	/*
 	   This must create a completed request so that we can wait on it
 	 */
-	if (err = 
-	    MPI_Send_init( buf, count, datatype, dest, tag, comm, request ))
+	if ((err = 
+	    MPI_Send_init( buf, count, datatype, dest, tag, comm, request )))
 	    return err;
 	MPID_Set_completed( comm->ADIctx, *request );
 	(*request)->shandle.persistent = 0;
 	(*request)->shandle.active     = 1;
 	}
     return MPI_SUCCESS;
+#endif
 }

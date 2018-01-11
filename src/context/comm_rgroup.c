@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_rgroup.c,v 1.6 1995/12/21 22:03:28 gropp Exp $
+ *  $Id: comm_rgroup.c,v 1.7 1996/04/12 14:04:49 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -19,19 +19,23 @@ Output Parameter:
 . group - remote group of communicator
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
 @*/
 int MPI_Comm_remote_group ( comm, group )
 MPI_Comm comm;
 MPI_Group *group;
 {
-  int mpi_errno;
-  if (MPIR_TEST_COMM(comm,comm)) {
-    (*group) = MPI_GROUP_NULL;
-    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
-		       "Error in MPI_COMM_REMOTE_GROUP" );
-  }
-  else {
-    MPIR_Group_dup( comm->group, group );
+    int mpi_errno;
+    if (MPIR_TEST_COMM(comm,comm)) {
+	(*group) = MPI_GROUP_NULL;
+	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+			   "Error in MPI_COMM_REMOTE_GROUP" );
+    }
+    else {
+	(void)MPIR_Group_dup( comm->group, group );
 	return (MPI_SUCCESS);
-  }
+    }
 }

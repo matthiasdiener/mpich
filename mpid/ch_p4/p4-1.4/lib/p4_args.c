@@ -11,9 +11,9 @@
 
 static char pgm[100];		/* Used to keep argv[0] for the usage cmd. */
 
-static P4VOID usage();
-static P4VOID print_version_info();
-static P4VOID strip_out_args();
+static P4VOID usage ANSI_ARGS((void));
+static P4VOID print_version_info ANSI_ARGS((void));
+static P4VOID strip_out_args ANSI_ARGS((char **, int*, int *, int));
 
 
 P4VOID process_args(argc,argv)

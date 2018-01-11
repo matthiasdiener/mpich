@@ -1,0 +1,17 @@
+#! /bin/sh
+#
+# Make a tar file for the test suite
+#
+set -x
+cd /tmp
+/bin/rm -rf mpich-test
+cp -rp /home/MPI/mpich/examples/test mpich-test
+cd mpich-test
+find . -name 'RCS' -exec /bin/rm -rf \{\} \;
+cd ..
+tar cf - mpich-test | compress > mpich-test.tar.Z
+tar cf - mpich-test | gzip > mpich-test.tar.gz
+rm -f /home/ftp/pub/mpi-test/mpich-test.*
+cp mpich-test.tar.Z /home/ftp/pub/mpi/mpi-test
+cp mpich-test.tar.gz /home/ftp/pub/mpi/mpi-test
+/bin/rm -rf mpich-test

@@ -166,14 +166,14 @@ char *host;
 char *pgm;
 char *username;
 {
-    char hostname[100];
     struct net_initial_handshake hs;
     char myhost[100];
     struct net_message_t msg;
-    char remote_shell[64];
+    char remote_shell[128];
     char serv_port_c[64];
     int connection_fd, success, rc;
     int slave_fd, master_pid;
+    int fcntl_flags;
 
 #   if defined(LINUX)
     char *am_slave_c = "\\-p4amslave";
@@ -224,13 +224,19 @@ char *username;
 	if (rc < -1)
 	{
 	    extern char *start_prog_error;
-
 	    p4_dprintfl(20,"Warning from secure server: %s\n", start_prog_error);
 	}
 	else if (rc == 0)
 	    p4_dprintfl(10, "created remote slave on %s via server\n",host);
 	/*****************************************/
-
+	
+	else {
+	    /* A -1 is failure, not warning */
+	    extern char *start_prog_error;
+	    p4_dprintfl( 20, 
+			 "Failed to connect to secure server: %s\n",
+			 start_prog_error );
+	}
 #       else
 
 	rc = -1;
@@ -240,6 +246,7 @@ char *username;
 
     if (rc <= -1)
     {
+#ifdef USE_OLD_SERVER
 	/* try to connect to (old) server */
 	connection_fd = net_conn_to_listener(host, UNRESERVED_PORT, 1);
 
@@ -264,19 +271,23 @@ char *username;
 	    p4_dprintfl(10, "created remote slave on %s via old server\n",host);
 	}
 	else
+#endif /* USE_OLD_SERVER */
 	{
+#if defined(HAS_RSHCOMMAND)
+	    strcpy( remote_shell, RSHCOMMAND )
+#endif
 #if defined(DELTA)
 	    p4_dprintf("delta cannot create remote processes\n");
 #else
 	    p4_dprintfl(20, "creating remote slave on %s via remote shell\n",host);
-#ifdef P4BSD
+#if defined(P4BSD) && !defined(HAS_RSHCOMMAND)
 	    strcpy(remote_shell, "rsh");
 #endif
 
 /* RL - added || defined(RS6000) to get around afs problems.  In earlier
    versions of AIX we could not use rsh since rsh was the restricted
    shell, which has been renamed Rsh  */
-#ifdef P4SYSV
+#if defined(P4SYSV) && !defined(HAS_RSHCOMMAND)
 #    if defined(TITAN) || defined(SGI) || defined(SUN_SOLARIS) || defined(RS6000)
 	    strcpy(remote_shell, "rsh");
 #    else
@@ -295,7 +306,11 @@ char *username;
 	    if (rc == 0)
 	    {
 		rc = execlp(remote_shell, remote_shell,
-			    host, "-l", username, "-n", pgm,
+			    host, 
+#if !defined(RSH_HAS_NO_L)
+			    "-l", username, 
+#endif
+			    "-n", pgm,
 			    myhost, serv_port_c, am_slave_c, NULL);
 		/* host,"-n","cluster","5",pgm,myhost,serv_port_c,0); for butterfly */
 		if (rc < 0)
@@ -330,6 +345,28 @@ char *username;
     alarm( TIMEOUT_VALUE );
 #endif
     slave_fd		  = net_accept(serv_fd);
+    /* 
+       Thanks to Laurie Costello (lmc@cray.com) for this fix.  This 
+       helps systems with broken rsh/rexec that don't properly use
+       fd_set in their code; this closes FDs that would otherwise
+       be held open when fork/exec is done to start remote jobs. 
+     */
+    /* Some systems (like NeXT) don't define a name for the bit, 
+       though they accept it */
+#ifndef FD_CLOEXEC
+#define FD_CLOEXEC 0x1
+#endif
+    fcntl_flags = fcntl(slave_fd, F_GETFD);
+    if (fcntl_flags == -1) {
+        p4_dprintfl(10, "fcntl F_GETFD failed for fd %d\n", slave_fd);
+    } else {
+        fcntl_flags |= FD_CLOEXEC;
+        if (fcntl(slave_fd, F_SETFD, fcntl_flags) < 0) {
+            p4_dprintfl(10, "fcntl for close on exec failed for fd %d\n", 
+			slave_fd);
+        }
+    }
+
     /* Go back to default handling of alarms */
     curhostname		  = 0;
     child_pid		  = 0;

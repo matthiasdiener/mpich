@@ -95,6 +95,7 @@ char** argv;
   if (locId == 0)
       printf( "Test complete\n" );
   MPI_Finalize() ;
+  return 0;
 }
 
 

@@ -1,19 +1,17 @@
 /*
- *  $Id: sbcnst.c,v 1.15 1995/09/13 21:44:30 gropp Exp $
+ *  $Id: sbcnst.c,v 1.17 1996/06/07 15:12:34 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
-
-#ifndef lint
-static char vcid[] = "$Id: sbcnst.c,v 1.15 1995/09/13 21:44:30 gropp Exp $";
-#endif
 
 #include <stdio.h>
 #define _SBCNSTDEF
 #include "mpiimpl.h"
 #include "mpisys.h"
 
+#ifndef MPI_ADI2
+/* ADI2 version in mpid/util/sbcnst2.c */
 /* #define DEBUG */
 
 /*
@@ -69,7 +67,7 @@ typedef struct {
             sizeincr;            /* # of blocks to allocate when more needed */
     } MPIR_SBHeader;
 
-void MPIR_SBiAllocate();
+void MPIR_SBiAllocate ANSI_ARGS(( MPIR_SBHeader *, int, int ));
 
 MPIR_SBHeader *MPIR_SBinit( bsize, nb, nbincr )
 int bsize, nb, nbincr;
@@ -133,7 +131,7 @@ char     *p, *p2;
 int      i, headeroffset, n;
 MPIR_SBiAlloc *header;
 
-/* printf( "Allocating %d blocks of size %d\n", nb, bsize ); */
+/* PRINTF( "Allocating %d blocks of size %d\n", nb, bsize ); */
 /* Double-align block */
 headeroffset    = (sizeof(MPIR_SBiAlloc) + sizeof(double) - 1) / sizeof(double);
 headeroffset    *= sizeof(double);
@@ -212,7 +210,7 @@ if (p->sentinal_2 != 0xbeeffeed) {
 sb->avail = (MPIR_SBblock *)(p->next);
 sb->nballoc++;
 sb->nbfree--;
-/* printf( "Allocating a block at address %x\n", (char *)p ); */
+/* PRINTF( "Allocating a block at address %x\n", (char *)p ); */
 MPID_THREAD_DS_UNLOCK(sb)
 return (void *)p;
 }	
@@ -271,7 +269,7 @@ char *first, *last;
 
 MPID_THREAD_DS_LOCK(sb)
 b = sb->blocks;
-/* printf( "Releasing a block at address %x\n", (char *)ptr ); */
+/* PRINTF( "Releasing a block at address %x\n", (char *)ptr ); */
 while (b) {
     first = ((char *)b) + sizeof(MPIR_SBiAlloc) - 1;
     last  = first + b->nbytes - 1;
@@ -356,4 +354,5 @@ while (p) {
     p     = p->next;
     }
 }
+#endif
 #endif

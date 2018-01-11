@@ -8,8 +8,6 @@ int argc;
 char **argv;
 {
     int              rank, size, i,j;
-    MPI_Request      handle;
-    MPI_Status       status;
     int              table[MAX_PROCESSES][MAX_PROCESSES];
     int              errors=0;
     int              participants;

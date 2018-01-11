@@ -1,13 +1,9 @@
 /*
- *  $Id: barrier.c,v 1.19 1995/12/21 22:16:47 gropp Exp $
+ *  $Id: barrier.c,v 1.20 1996/04/12 14:15:10 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
-
-#ifndef lint
-static char vcid[] = "$Id: barrier.c,v 1.19 1995/12/21 22:16:47 gropp Exp $";
-#endif /* lint */
 
 #include "mpiimpl.h"
 #include "coll.h"
@@ -31,23 +27,25 @@ communicator.  We can modifiy this to use "blocks" at a later time
 (see 'MPI_Bcast').
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
 @*/
 int MPI_Barrier ( comm )
 MPI_Comm comm;
 {
   int        mpi_errno = MPI_SUCCESS;
+  MPIR_ERROR_DECL;
 
   /* Check for valid communicator before use */
   if ( MPIR_TEST_COMM(comm,comm) )
     return MPIR_ERROR(comm, mpi_errno, "Error in MPI_BARRIER");
 
-#ifdef MPID_Barrier
-  if (comm->ADIBarrier) {
-      MPID_Barrier( comm->ADIctx, comm );
-      return MPI_SUCCESS;
-      }
-#endif
-  return comm->collops->Barrier(comm);
+  MPIR_ERROR_PUSH(comm);
+  mpi_errno = comm->collops->Barrier(comm);
+  MPIR_ERROR_POP(comm);
+  MPIR_RETURN(comm,mpi_errno,"Error in MPI_BARRIER");
 }
 
 

@@ -24,7 +24,10 @@
 #endif
 #endif
 
- void mpi_buffer_detach_( buffer, size, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_buffer_detach_ ANSI_ARGS(( void **, int *, int * ));
+
+void mpi_buffer_detach_( buffer, size, __ierr )
 void **buffer;
 int  *size;
 int *__ierr;

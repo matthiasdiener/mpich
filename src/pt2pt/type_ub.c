@@ -1,16 +1,14 @@
 /*
- *  $Id: type_ub.c,v 1.9 1996/01/03 19:03:31 gropp Exp $
+ *  $Id: type_ub.c,v 1.10 1996/04/11 20:26:05 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: type_ub.c,v 1.9 1996/01/03 19:03:31 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
+#ifndef MPI_ADI2
 #include "mpisys.h"
+#endif
 
 
 /*@
@@ -24,6 +22,11 @@ Output Parameter:
                              in bytes (integer) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TYPE
+.N MPI_ERR_ARG
 @*/
 int MPI_Type_ub ( datatype, displacement )
 MPI_Datatype  datatype;

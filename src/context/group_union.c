@@ -1,12 +1,16 @@
 /*
- *  $Id: group_union.c,v 1.17 1995/12/21 22:11:03 gropp Exp $
+ *  $Id: group_union.c,v 1.18 1996/04/12 14:11:52 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "mpimem.h"
+#else
 #include "mpisys.h"
+#endif
 
 /*@
 
@@ -20,6 +24,13 @@ Output Parameter:
 . newgroup - union group (handle) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_GROUP
+.N MPI_ERR_EXHAUSTED
+
+.seealso: MPI_Group_free
 @*/
 int MPI_Group_union ( group1, group2, group_out )
 MPI_Group group1, group2, *group_out;
@@ -49,22 +60,23 @@ MPI_Group group1, group2, *group_out;
   }
   
   /* Create the new group */
-  new_group = (*group_out) = NEW(struct MPIR_GROUP);
-  if(!new_group)
-	return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-					  "Out of space in MPI_GROUP_UNION" );
+  MPIR_ALLOC(new_group,NEW(struct MPIR_GROUP),MPI_COMM_WORLD, 
+	     MPI_ERR_EXHAUSTED, "Out of space in MPI_GROUP_UNION" );
+  *group_out		= new_group;
   MPIR_SET_COOKIE(new_group,MPIR_GROUP_COOKIE)
-  new_group->ref_count     = 1;
-  new_group->permanent     = 0;
-  new_group->local_rank    = group1->local_rank;
-  new_group->set_mark      = (int *)0;
+  new_group->ref_count	= 1;
+  new_group->permanent	= 0;
+  new_group->local_rank	= group1->local_rank;
+  new_group->set_mark	= (int *)0;
   
   /* Set the number in the union */
   n = group1->np + group2->np;
 
   /* Allocate set marking space for group2 if necessary */
-  if (group2->set_mark == NULL)
-    group2->set_mark = (int *) MALLOC( group2->np * sizeof(int) );
+  if (group2->set_mark == NULL) {
+      MPIR_ALLOC(group2->set_mark,(int *) MALLOC( group2->np * sizeof(int) ),
+		 MPI_COMM_WORLD,MPI_ERR_EXHAUSTED,"Error in MPI_GROUP_UNION");
+  }
 
   /* Mark the union */
   for ( j=0; j<group2->np; j++ ) {
@@ -79,11 +91,9 @@ MPI_Group group1, group2, *group_out;
   
   /* Alloc the memory */
   new_group->np             = n;
-  new_group->lrank_to_grank = (int *) MALLOC( n * sizeof(int) );
-  if (!new_group->lrank_to_grank) {
-	return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-					  "Out of space in MPI_GROUP_UNION" );
-  }
+  MPIR_ALLOC(new_group->lrank_to_grank,(int *) MALLOC( n * sizeof(int) ),
+	     MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+	     "Out of space in MPI_GROUP_UNION" );
   
   /* Fill in the space */
   n = group1->np;
@@ -94,14 +104,18 @@ MPI_Group group1, group2, *group_out;
   
   /* Find the local rank only if local rank not defined in group 1 */
   if ( new_group->local_rank == MPI_UNDEFINED ) {
-    MPID_Myrank(MPI_COMM_WORLD->ADIctx,&global_rank);
-    for( i=group1->np; i<new_group->np; i++ )
-      if ( global_rank == new_group->lrank_to_grank[i] ) {
-        new_group->local_rank = i;
-        break;
-      }
+#ifdef MPI_ADI2
+      global_rank = MPID_MyWorldRank;
+#else
+      MPID_Myrank(MPI_COMM_WORLD->ADIctx,&global_rank);
+#endif      
+      for( i=group1->np; i<new_group->np; i++ )
+	  if ( global_rank == new_group->lrank_to_grank[i] ) {
+	      new_group->local_rank = i;
+	      break;
+	  }
   }
-
+  
   /* Determine the previous and next powers of 2 */
   MPIR_Powers_of_2 ( new_group->np, &(new_group->N2_next), &(new_group->N2_prev) );
 

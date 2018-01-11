@@ -7,20 +7,18 @@
 ARCH        = @ARCH@
 MAKE        = @MAKE@
 COMM        = @COMM@
-BOPT        = @BOPT@
 MPIR_HOME   = @MPIR_HOME@
-CC          = @CC@
-CLINKER     = @CLINKER@
-F77         = @F77@
+CC          = @MPIR_HOME@/lib/@ARCH@/@COMM@/mpicc
+CLINKER     = $(CC)
+F77         = @MPIR_HOME@/lib/@ARCH@/@COMM@/mpif77
+FLINKER     = $(F77)
 AR          = @AR@
 RANLIB      = @RANLIB@
-INCLUDE_DIR = @INCLUDE_PATH@ -I$(MPIR_HOME)/include @X_INC@
-DEVICE      = @DEVICE@
-OPTFLAGS    = @OPTFLAGS@
+INCLUDE_DIR = @X_INC@
+OPTFLAGS    = 
 MPE_GRAPH   = @MPE_GRAPHICS@
-LIB_PATH    = @LIB_PATH@ @X_LIB@
-# On the meiko, you need to add -lsocket to LIB_LIST
-LIB_LIST    = @LIB_LIST@
+LIB_PATH    = @X_LIB@
+LIB_LIST    = 
 
 MPEGRAPHICS_SOURCE = @MPEGRAPHICS_SOURCE@
 MPEGRAPHICS_OBJS   = @MPEGRAPHICS_OBJS@
@@ -32,7 +30,7 @@ SHELL = /bin/sh
 EXECS = dbxtest dbxtest2
 
 # GETNAME_DEFS are needed by mpehname.c
-CFLAGS = @CFLAGS@ @MPE_CFLAGS@ @GETNAME_DEFS@ \
+CFLAGS = @MPE_CFLAGS@ @GETNAME_DEFS@ \
 	$(OPTFLAGS) $(INCLUDE_DIR) $(MPIPROFILE) \
 	-DMPI_$(ARCH) $(MPE_GRAPH)
 
@@ -94,10 +92,12 @@ manpages:
 	$(MPIR_HOME)/util/doc2lt $(MPE_CSOURCES) >> $(MPIR_HOME)/rsummpe.tmp
 
 wwwpages:
-	../util/doctext -html -mpath ../www/www4 -ext 4 -I pubinc \
+	../util/doctext -html -mpath ../www/www4 -ext html -I pubinc \
 	   -index ../www.index -jumpfile ../jumpfile.list \
+	   -mapref $(MPIR_HOME)/util/mpis.cit \
 	   -indexdir "http:/www.mcs.anl.gov/mpi/man" -heading MPE \
-		$(MPE_CSOURCES)
+		-quotefmt ../util/fortnotes ../util/errnotes \
+	$(MPE_CSOURCES)
 
 
 mpe_log.o: mpe_log.h mpe_log.c mpe_log_genproc.c mpe_log_genproc.h \
@@ -112,16 +112,16 @@ $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libtmpi.a: trc_wrappers.o
 	$(RANLIB) $@
 #	-/bin/rm -f $?
 
-$(MPIR_HOME)/lib/$(ARCH)/$(COMM)/liblmpi.a: log_wrappers.o mpe_plog.o
+$(MPIR_HOME)/lib/$(ARCH)/$(COMM)/liblmpi.a: log_wrap.o mpe_plog.o
 	$(AR) $@ $?
 	$(RANLIB) $@
 #	-/bin/rm -f $?
 
 #
 # Some compilers (particularly on Suns) can't seem to handle this 
-#log1_wrappers.o: log_wrappers.c
-#	$(CC) $(CFLAGS) -c -DFIRST_HALF log_wrappers.c
-#	/bin/mv log_wrappers.o log1_wrappers.o
+#log1_wrappers.o: log_wrap.c
+#	$(CC) $(CFLAGS) -c -DFIRST_HALF log_wrap.c
+#	/bin/mv log_wrap.o log1_wrap.o
 
 $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libampi.a: visual_mess.c
 	if [ -n "@MPE_GRAPHICS@" ] ; then \
@@ -129,7 +129,7 @@ $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libampi.a: visual_mess.c
 	$(AR) $@ visual_mess.o ; \
 	$(RANLIB) $@ ; fi
 #	-/bin/rm -f $?
-	
+
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c
 

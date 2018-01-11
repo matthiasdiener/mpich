@@ -13,8 +13,10 @@ set defaultFile ~/.upshot.defaults
 #
 # Get the version.  If you KNOW the version, you can just do, e.g., 
 #    set tk_version 4.1
-set err [ catch { expr { #TK_VERSION# + 0 } } tk_version ]
-if { $err != 0 } { set tk_version 3.6 } 
+# Remove the patch info from the patchLevel
+set tk_version [ string range $tk_patchLevel 0 2 ]
+#set err [ catch { expr { #TK_VERSION# + 0 } } tk_version ]
+#if { $err != 0 } { set tk_version 3.6 } 
 
 proc SetGlobalVars {} {
    global reqWidth procWidth incDraw numDHashMarks numSHashMarks

@@ -1,7 +1,13 @@
-.TH MPI_Attr_delete 3 "12/21/1995" " " "MPI"
+.TH MPI_Attr_delete 3 "5/6/1996" " " "MPI"
 .SH NAME
-MPI_Attr_delete \- Deletes attribute value associated with a key
-
+MPI_Attr_delete \-  Deletes attribute value associated with a key 
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Attr_delete ( comm, keyval )
+MPI_Comm comm;
+int      keyval;
+.fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP
@@ -36,14 +42,40 @@ All MPI objects (e.g.,
 ) are of type 
 .I INTEGER
 in Fortran.
-.SH SYNOPSIS
-.nf
-#include "mpi.h"
-int MPI_Attr_delete ( comm, keyval )
-MPI_Comm comm;
-int      keyval;
 
-.fi
+.SH ERRORS
 
+All MPI routines (except 
+.I MPI_Wtime
+and 
+.I MPI_Wtick
+) return an error value;
+C routines as the value of the function and Fortran routines in the last
+argument.  Before the value is returned, the current MPI error handler is
+called.  By default, this error handler aborts the MPI job.  The error handler
+may be changed with 
+.I MPI_Errhandler_set
+; the predefined error handler
+.I MPI_ERRORS_RETURN
+may be used to cause error values to be returned.
+Note that MPI does 
+.B not
+guarentee that an MPI program can continue past
+an error.
+
+.PD 0
+.TP
+.B MPI_ERR_COMM 
+- Invalid communicator.  A common error is to use a null
+communicator in a call (not even allowed in 
+.I MPI_Comm_rank
+).
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_ARG 
+- This error class is associated with an error code that 
+indicates that an attempt was made to free one of the permanent keys.
+.PD 1
 .SH LOCATION
- attr_delval.c
+attr_delval.c

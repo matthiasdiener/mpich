@@ -1,12 +1,16 @@
 #! /bin/sh
 if [ "$MPIR_HOME" = "" ] ; then 
-    MPIR_HOME=/home/gropp/mpich
+    MPIR_HOME=/Net/antireo/antireo9/MPI/mpich
 fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
 fi
-EXECER=/home/gropp/mpich/util/execer
-MPIRUN_HOME=$MPIR_HOME/bin
+EXECER=/Net/antireo/antireo9/MPI/mpich/util/execer
+if [ "lib/sun4/ch_p4" = "#""MPIRUN_BIN""#" ] ; then 
+    MPIRUN_HOME=$MPIR_HOME/bin
+else
+    MPIRUN_HOME=$MPIR_HOME/lib/sun4/ch_p4
+fi
 MEIKO_RUN=prun
 SP1_RUN=/usr/lpp/euih/eui/cotb0
 jobid=$$
@@ -14,7 +18,7 @@ progname=
 fake_progname=
 np=1
 arch=
-default_arch='IRIX'
+default_arch='sun4'
 machine='ch_p4'
 default_device='ch_p4'
 execer_machine=1
@@ -28,6 +32,8 @@ nolocal=0
 leavePGFile=0
 p4pgfile=
 tcppgfile=
+nexuspgfile=
+nexusdbfile=
 p4ssport=
 just_testing=0
 machineFile=
@@ -39,6 +45,9 @@ mvhome=0
 mvback=
 narch=0
 stdinfile=
+stdoutfile=
+stderrfile=
+batch=
 Show=eval
 # Kind of paragon submisstion (default/mkpart/nqs)
 paragon_type="default"
@@ -78,7 +87,8 @@ cat <<EOF
 
     -machinefile <machine-file name>
             Take the list of possible machines to run on from the
-            file <machine-file name>
+            file <machine-file name>.  This is a list of all available
+            machines; use -np <np> to request a specific number of machines.
     -np <np>
             specify the number of processors to run on
     -nolocal
@@ -96,6 +106,27 @@ cat <<EOF
     -gdb    Start the first process under gdb where possible
              (on the Meiko, selecting either -dbx or -gdb starts prun
              under totalview instead)
+    -xxgdb  Start the first process under xxgdb where possible (-xdbx
+            does not work)
+    -tv     Start under totalview
+	          
+      Special Options for NEC - CENJU-3:
+
+    -batch  Excecute program as a batch job (using cjbr)
+
+    -stdout filename
+            Use filename as the standard output for the program.
+    -stderr filename
+            Use filename as the standard error  for the program.
+	          
+      Special Options for Nexus device:
+  
+    -nexuspg filename
+	    Use the given Nexus startup file instead of creating one.
+	    Overrides -np and -nolocal, selects -leave_pg.
+    
+    -nexusdb filename
+	    Use the given Nexus resource database.
 
     Special Options for Workstation Clusters:
 
@@ -177,7 +208,7 @@ command is
 
     $0 -arch sun4 -np 2 -arch rs6000 -np 3 program.%a
 
-If instead the execuables are in different directories; for example, 
+If instead the executables are in different directories; for example, 
 /tmp/me/sun4 and /tmp/me/rs6000, then the command is
 
     $0 -arch sun4 -np 2 -arch rs6000 -np 3 /tmp/me/%a/program
@@ -232,6 +263,16 @@ while [ 1 -le $# ] ; do
 	stdinfile="$1"
 	shift
 	;;
+    -stdout)
+        # Name of a file to use for standard output.
+        stdoutfile="$1"
+        shift
+        ;;
+    -stderr)
+        # Name of a file to use for standard error.
+        stderrfile="$1"
+        shift
+        ;;
     -nolocal)
         nolocal=1
 	;;	
@@ -249,6 +290,22 @@ while [ 1 -le $# ] ; do
       	;;
     -leave_pg|-keep_pg)
       	leavePGFile=1
+	;;
+    -batch)
+        batch=1
+        ;;
+    -nexuspg)
+	if [ $np -gt 1 ] ; then
+	    echo "-nexuspg and -np are mutally exlusive; -np $np being ignored."
+	    np=1
+	fi
+	nexuspgfile="$1"
+	shift
+	leavePGFile=1
+	;;
+    -nexusdb)
+	nexusdbfile="$1"
+	shift
 	;;
     -p4pg)
       	if [ $np -gt  1 ] ; then
@@ -295,13 +352,22 @@ while [ 1 -le $# ] ; do
       	just_testing=1
 	Show=echo
 	;;
+    -tv|-totalview)
+        debugger="totalview"
+	;;
     -dbx)
       	debugger="dbx"
- 	commandfile="-sr"
+ 	commandfile="-sr %f"
+	# For some systems, commandfile="-c %f" will ALMOST work (it
+        # will leave the file behind)
       	;;
     -gdb)
       	debugger="gdb"
-      	commandfile="-x"
+      	commandfile="-x %f"
+	;;
+    -xxgdb)
+      	debugger="xxgdb"
+      	commandfile="--command=%f"
 	;;
     -nopoll)
 	polling_mode=0
@@ -336,7 +402,7 @@ echo "mem: Memory requested ($mem MB/node) greater than maximum available ($max_
 	echo "default_device = $default_device"
 	echo "machine	     = $machine"
 	;;
-    -usage|-help|-?)
+    -usage|-help|-\?)
       	# Accept these for help until the program name is provided.
       	if [ "$progname" = "" ] ; then
 	   if [ "$hasprinthelp" = "1" ] ; then
@@ -425,6 +491,10 @@ fi
 #
 # Note that PWD may ALSO be damaged, so we need to sed PWD as well...
 #
+# We should move this to the point in the code where it needs to know a
+# particular filename, since this will fail if the directory is not
+# writable by the user.
+# 
 if [ -n "sed -e s@/tmp_mnt/@/@g" ] ; then
     PWDtest=`pwd | sed -e s@/tmp_mnt/@/@g`
     if [ ! -d $PWDtest ] ; then
@@ -433,10 +503,14 @@ if [ -n "sed -e s@/tmp_mnt/@/@g" ] ; then
     if [ -n "$PWD" ] ; then
 	# Use a process-specific filename
         /bin/rm -f $PWDtest/.mpirtmp$$ $PWD/.mpirtmp$$
-        echo "test" > $PWD/.mpirtmp$$
-        if [ ! -s $PWDtest/.mpirtmp$$ ] ; then
-	    /bin/rm -f $PWD/.mpirtmp$$
-            PWD=$PWDtest
+        if `eval "echo test > $PWD/.mpirtmp$$" 2>/dev/null` ; then
+            if [ ! -s $PWDtest/.mpirtmp$$ ] ; then
+	        /bin/rm -f $PWD/.mpirtmp$$
+                PWD=$PWDtest
+	    fi
+	else
+	    # Current directory is not writable.  Hope for the best
+            PWD=$PWDtest        
         fi
         /bin/rm -f $PWDtest/.mpirtmp$$ $PWD/.mpirtmp$$
     else 
@@ -469,7 +543,7 @@ fi
 # devices
 #
 if [ "$arch" = "" ] ; then
-  arch=`$MPIRUN_HOME/tarch`
+  arch=`$MPIR_HOME/bin/tarch`
 fi
 
 archlist="$arch"
@@ -579,19 +653,21 @@ fi
 
 # Get value of host if necessary
 if [ "$machine" = p4 -o "$machine" = execer -o "$machine" = ch_tcp -o \
-	"$machine" = sgi_mp -o "$machine" = ch_p4 ] ; then
-  if [ "$HOST" = "" ] ;  then
-    HOST=""
+	"$machine" = sgi_mp -o "$machine" = ch_p4 -o \
+	"$machine" = ch_p4-2 -o "$machine" = ch_nexus -o \
+        "$machine" = nexus ] ; then
+  if [ "$MPI_HOST" = "" ] ;  then
+    MPI_HOST=""
     if [ "$arch" = "ipsc860" ] ; then
-	HOST=`hostname`
+	MPI_HOST=`hostname`
     else
         # Which is not supported in many sh's
 #	HOSTNAMEPGM="`which hostname | head -1`"
-#        if [ -x "$HOSTNAMEPGM" ] ; then HOST="`hostname`" ; fi
-	HOST=`hostname`
+#        if [ -x "$HOSTNAMEPGM" ] ; then MPI_HOST="`hostname`" ; fi
+	MPI_HOST=`hostname`
     fi
     # Note that uname -n may not produce a usable hostname.  Any suggestions?
-    if [ "$HOST" = "" ] ; then HOST="`uname -n`" ; fi
+    if [ "$MPI_HOST" = "" ] ; then MPI_HOST="`uname -n`" ; fi
   fi
   #
   # We don't need this for most systems; for the moment, we'll suppress the

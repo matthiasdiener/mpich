@@ -5,9 +5,6 @@ DEFS = @DEFS@
 
 ARCH        = @ARCH@
 COMM        = @COMM@
-BOPT        = @BOPT@
-P4_DIR      = @P4_DIR@
-TOOLS_DIR   = @TOOLS_DIR@
 MPIR_HOME   = @MPIR_HOME@
 CC          = @CC@
 F77         = @F77@
@@ -24,14 +21,15 @@ LIB_LIST    = @LIB_LIST@
 
 SHELL = /bin/sh
 
-LIBS	  = $(LIB_PATH) $(LIB_LIST)
-FLIBS	  = $(FLIB_PATH) $(LIB_LIST)
+#LIBS	  = $(LIB_PATH) $(LIB_LIST)
+#FLIBS	  = $(FLIB_PATH) $(LIB_LIST)
 
-CFLAGS = -g -DMPI_$(ARCH)
+CFLAGS = -g -DMPI_$(ARCH) @CFLAGS@ @DEVCFLAGS@ @DEV_DEFS@
 
 RM = /bin/rm
 
-P2POBJ = p2p.o p2p_mon.o
+P2POBJ = ../p2p.o 
+#p2p_mon.o
 
 all:	tst
 

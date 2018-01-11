@@ -1,16 +1,16 @@
 /*
- *  $Id: dmpipk.c,v 1.22 1995/12/21 22:02:09 gropp Exp $
+ *  $Id: dmpipk.c,v 1.24 1996/06/07 15:12:29 gropp Exp $
  *
  *  (C) 1994 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: dmpipk.c,v 1.22 1995/12/21 22:02:09 gropp Exp $";
-#endif
-
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "mpidmpi.h"
+#else
 #include "mpisys.h"
+#endif
 
 /* 
    This file contains the first pass at routines to pack and unpack datatypes
@@ -140,7 +140,7 @@ else {
 	    inbuf  += blen;
 	    }
 	outbuf -= stride;
-	outbuf += 1;
+	outbuf += blen;
 	}
     }
 }
@@ -153,6 +153,7 @@ MPI_Datatype datatype;
 return datatype->size * count;
 }
 
+#ifndef MPI_ADI2
 /*
     These routines pack/unpack data for messages.  They KNOW how the 
     message request areas are arranged, and how the send/receive routines
@@ -180,7 +181,7 @@ MPI_Request  request;
 
   if (datatype->dte_type == MPIR_PACKED) {
       /* Data requires no further modification */
-      /* printf( "Packing packed data!\n" ); */
+      /* PRINTF( "Packing packed data!\n" ); */
       /* Mark this data appropriately and indicate that it is packed in the 
          request 
        */
@@ -281,7 +282,7 @@ int mpi_errno = MPI_SUCCESS;
 int dest_len;
 
 /* Use generic unpack */
-/* printf( "Using generic unpack\n" ); */
+/* PRINTF( "Using generic unpack\n" ); */
 /* Need to update act_count to bytes WRITTEN */
 if (datatype->dte_type == MPIR_PACKED) {
     /* Data requires no further modification */
@@ -297,4 +298,4 @@ else {
 FREE( request->chandle.bufpos );
 return mpi_errno;
 }
-
+#endif

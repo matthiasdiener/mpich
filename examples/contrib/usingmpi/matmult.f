@@ -17,6 +17,11 @@ c************************************************************************
       call MPI_INIT( ierr )
       call MPI_COMM_RANK( MPI_COMM_WORLD, myid, ierr )
       call MPI_COMM_SIZE( MPI_COMM_WORLD, numprocs, ierr )
+      if (numprocs .lt. 2) then
+         print *, "Must have at least 2 processes!"
+         call MPI_ABORT( MPI_COMM_WORLD, 1 )
+         stop
+      endif
       print *, "Process ", myid, " of ", numprocs, " is alive"
 
       rowtype  = 1

@@ -5,11 +5,11 @@
 #define MINVAL(a,b) (((a)<(b)) ? (a) : (b))
 #define ABSVAL(a)   (((a)>=0 ) ? (a) : -(a))
 
-static P4VOID init_p4_brdcst_info();
+static P4VOID init_p4_brdcst_info ANSI_ARGS((void));
 
 int p4_broadcastx(type, data, data_len, data_type)
 int type;
-char *data;
+P4VOID *data;
 int data_len, data_type;
 /*
   Broadcast my data to all other processes.
@@ -18,10 +18,10 @@ int data_len, data_type;
 */
 {
     int status = 0;
-    struct p4_msg *tmsg;
 
 #if defined(NCUBE)
     int req_type, req_from;
+    struct p4_msg *tmsg;
 
     status = send_message(type, p4_get_my_id(), 0xffff, data, data_len,
 		          data_type, FALSE, FALSE);
@@ -52,7 +52,7 @@ int data_len, data_type;
 }
 
 int subtree_broadcast_p4(type, from, data, data_len, data_type)
-char *data;
+P4VOID *data;
 int type, from, data_len, data_type;
 /*
   Broadcast message to processes in my subtree.
@@ -62,7 +62,6 @@ int type, from, data_len, data_type;
 */
 {
     int status = 0;
-    int size;
     int nodes[4], i;
 
     init_p4_brdcst_info();
@@ -94,7 +93,7 @@ int type, from, data_len, data_type;
     return status;
 }
 
-static P4VOID init_p4_brdcst_info()
+static P4VOID init_p4_brdcst_info ANSI_ARGS((void))
 /*
   Construct tree connections for cluster-master and slave
   processes and insert into global structure
@@ -204,11 +203,11 @@ static P4VOID init_p4_brdcst_info()
 
 int p4_global_op(type, x, nelem, size, op, data_type)
 int type;
-char *x;
+P4VOID *x;
 int nelem;
 int size;
 int data_type;
-P4VOID(*op) ();
+P4VOID(*op) ANSI_ARGS((char *, char *, int));
 /* see userman for more details */
 {
     int me = p4_get_my_id();

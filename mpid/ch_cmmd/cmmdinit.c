@@ -18,14 +18,14 @@ int __NUMNODES, __MYPROCID  ;
 
 
 /*
- *  $Id: chinit.c,v 1.38 1995/12/21 22:24:16 gropp Exp gropp $
+ *  $Id: chinit.c,v 1.39 1996/01/11 18:34:40 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chinit.c,v 1.38 1995/12/21 22:24:16 gropp Exp gropp $";
+static char vcid[] = "$Id: chinit.c,v 1.39 1996/01/11 18:34:40 gropp Exp gropp $";
 #endif
 
 /* 
@@ -45,7 +45,7 @@ static char vcid[] = "$Id: chinit.c,v 1.38 1995/12/21 22:24:16 gropp Exp gropp $
 
 #include <sys/file.h>
 
-void (*MPID_ErrorHandler)() = MPID_DefaultErrorHandler;
+void (*MPID_ErrorHandler) ANSI_ARGS((int,char*)) = MPID_DefaultErrorHandler;
 /* For tracing channel operations by ADI underlayer */
 FILE *MPID_TRACE_FILE = 0;
 

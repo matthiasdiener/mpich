@@ -1,9 +1,9 @@
 proc Procnums_Create {win log} {
    global bw color procnums
-
-
-   set display_gap 40
-
+   global mainwin
+  
+   # set display_gap 40
+   set a_little_extra 10
 
    set canvas $win.c
 
@@ -17,7 +17,29 @@ proc Procnums_Create {win log} {
    # set textWidth [lindex $textSize 0]
    # set nchars [expr int(log10($np)) + 1]
    # set width [expr ($nchars+1)*$textWidth]
-   set procnums($win,width) [GetDefault display_left_gap $display_gap]
+   # set procnums($win,width) [GetDefault display_left_gap $display_gap]
+   # set the fieldwidth based on the widest text width
+   #    start with a minimum width
+   set name "123"
+   set textWidth [lindex [GetTextSize $canvas $name] 0]
+   # get each process name and find size of the widest one
+   for {set i 0} {$i < $np} {incr i} {
+     set name [$log getprocessdef $i]
+     set thisWidth [lindex [GetTextSize $canvas $name] 0]
+     if {$thisWidth > $textWidth} {set textWidth $thisWidth}
+   }
+   set display_gap [expr $textWidth + $a_little_extra]
+   set procnums($win,width) $display_gap
+   # got to be able to get this value from elsewhere, too
+   # (this seems truly gross but don't see how else to find the top frame)
+   set mainParent [winfo parent [winfo parent [winfo parent $win]]]
+   set mainwin($mainParent,procWidth) $display_gap
+
+   # adjust the timescale to account for new width of process name widget
+   # the fudge factor experimentally determined from what I see onscreen
+   set display_gap [expr $display_gap + 9]
+   $mainParent.bottom.left_gap configure -width $display_gap
+
 
    # $canvas configure -width $width -bg $color(bg)
    $canvas configure -width $procnums($win,width) -relief sunken
@@ -105,8 +127,9 @@ proc Procnums_Set {win log total_units window_units \
       
       for {set i 0} {$i < $np} {incr i} {
 	 set y [expr $i * $spacing + $offset]
+ 	 set name [$log getprocessdef $i]
 	 set procnums($win,id,$i) [$canvas create text \
-	       [expr $procnums($win,width) - $margin] $y -text $i -anchor e \
+ 	       [expr $procnums($win,width) - $margin] $y -text $name -anchor e \
 	       -fill $color(fg) -tags color_fg]
 	    #  -font $font
       }

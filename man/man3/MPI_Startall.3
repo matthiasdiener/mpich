@@ -1,7 +1,13 @@
-.TH MPI_Startall 3 "12/21/1995" " " "MPI"
+.TH MPI_Startall 3 "4/11/1996" " " "MPI"
 .SH NAME
-MPI_Startall \- Starts a collection of requests
-
+MPI_Startall \-  Starts a collection of requests  
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Startall( count, array_of_requests )
+int count;
+MPI_Request array_of_requests[];
+.fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP
@@ -36,14 +42,5 @@ All MPI objects (e.g.,
 ) are of type 
 .I INTEGER
 in Fortran.
-.SH SYNOPSIS
-.nf
-#include "mpi.h"
-int MPI_Startall( count, array_of_requests )
-int count;
-MPI_Request array_of_requests[];
-
-.fi
-
 .SH LOCATION
- startall.c
+startall.c

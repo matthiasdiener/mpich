@@ -19,15 +19,10 @@
 [isndrcv]: Test 'Invalid Destination Test' Passed.
 For test suite 'isndrcv':
 Of 18 attempted tests, 18 passed, 0 failed.
-0 -  File: create_send.c   Line: 41
-0 - Error in MPI_SEND_INIT : Invalid communicator
-0 -  File: create_send.c   Line: 41
-0 - Error in MPI_SEND_INIT : Invalid count argument
-0 -  File: create_send.c   Line: 41
-0 - Error in MPI_SEND_INIT : Invalid datatype argument
-0 -  File: create_send.c   Line: 41
-0 - Error in MPI_SEND_INIT : Invalid message tag
-0 -  File: create_send.c   Line: 41
-0 - Error in MPI_SEND_INIT : Invalid rank
+0 - Error in MPI_ISEND : Invalid communicator
+0 - Error in MPI_ISEND : Invalid count argument
+0 - Error in MPI_ISEND : Invalid datatype argument
+0 - Error in MPI_ISEND : Invalid message tag -1
+0 - Error in MPI_ISEND : Invalid rank 300
 All processes completed test
 **** Testing MPI_Isend and MPI_Irecv ****

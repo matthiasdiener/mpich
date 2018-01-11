@@ -22,7 +22,7 @@ struct head_trace_buf *head;
 int pid,event,data1;
 char *data2;
 {
-	int xx_i, xx_j, found;
+	int xx_i, found;
 	struct trace_buf *buf;
 
 	if (xx_alog_status >> 1) {
@@ -98,7 +98,7 @@ struct head_trace_buf *head;
 	temp = head->xx_list;
 	for(xx_i = 0; xx_i< head->max_size; xx_i++)
 		if ((temp->ALOG_table[xx_i].event < 0) && (temp->ALOG_table[xx_i].event >= (-11)))
-			fprintf(fp,"%d %d %d %d %u %u %s\n",
+			fprintf(fp,"%d %d %d %d %lu %lu %s\n",
 				temp->ALOG_table[xx_i].event,
 				temp->ALOG_table[xx_i].id,
 				temp->ALOG_table[xx_i].task_id,
@@ -144,7 +144,7 @@ int xx_j, xx_k;
 	for(xx_i = xx_j; xx_i < xx_k; xx_i++)
 		if ((buf->ALOG_table[xx_i].id != (-1)) && 
 		    ((buf->ALOG_table[xx_i].event >= 0) || (buf->ALOG_table[xx_i].event < (-11)))) 
-			fprintf(fp,"%d %d %d %d %u %u %s\n",
+			fprintf(fp,"%d %d %d %d %lu %lu %s\n",
 				buf->ALOG_table[xx_i].event,
 				buf->ALOG_table[xx_i].id,
 				buf->ALOG_table[xx_i].task_id,

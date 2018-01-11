@@ -1,17 +1,15 @@
 /*
- *  $Id: iprobe.c,v 1.10 1995/12/21 21:12:42 gropp Exp $
+ *  $Id: iprobe.c,v 1.11 1996/04/11 20:19:17 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 
-#ifndef lint
-static char vcid[] = "$Id: ";
-#endif /* lint */
-
 #include "mpiimpl.h"
+#ifndef MPI_ADI2
 #include "mpisys.h"
+#endif
 
 /*@
     MPI_Iprobe - Nonblocking test for a message
@@ -26,6 +24,13 @@ Output Parameter:
 . status - status object (Status) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_TAG
+.N MPI_ERR_RANK
+
 @*/
 int MPI_Iprobe( source, tag, comm, flag, status )
 int         source;
@@ -45,6 +50,10 @@ MPI_Status  *status;
 	status->count	   = 0;
 	return MPI_SUCCESS;
 	}
+#ifdef MPI_ADI2
+    MPID_Iprobe( comm, tag, comm->recv_context, source, flag, &mpi_errno, 
+		 status );
+#else
 
 #ifdef MPID_NEEDS_WORLD_SRC_INDICES
     MPID_Iprobe( comm->ADIctx, 
@@ -56,6 +65,7 @@ MPI_Status  *status;
 		 tag, 
 		 source, 
 		 comm->recv_context, flag, status );
+#endif
 #endif
     return MPI_SUCCESS;
 }

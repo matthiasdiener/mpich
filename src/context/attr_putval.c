@@ -1,11 +1,14 @@
 /*
- *  $Id: attr_putval.c,v 1.20 1995/12/21 22:02:51 gropp Exp $
+ *  $Id: attr_putval.c,v 1.22 1996/05/06 15:05:52 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "attr.h" 
+#endif
 
 /*@
 
@@ -30,6 +33,12 @@ If an attribute is already present, the delete function (specified when the
 corresponding keyval was created) will be called.
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_KEYVAL
+.N MPI_ERR_PERM_KEY
 
 .seealso MPI_Attr_get, MPI_Keyval_create, MPI_Attr_delete
 @*/
@@ -61,6 +70,8 @@ void     *attr_value;
   if (attr == (MPIR_HBT_node *)0) {
 	(void) MPIR_HBT_new_node ( keyval, attr_value, &attr );
 	(void) MPIR_HBT_insert ( comm->attr_cache, attr );
+	/* Every update to the attr_key must be counted! */
+	attr_key->ref_count ++;
   }
   else {
       /* 
@@ -69,15 +80,22 @@ void     *attr_value;
 	 can cause the delete routine to be called.  Under 
 	 MPI_ATTR_PUT, however, the delete routine IS called.
        */
-	if ( attr_key->delete_fn != (int(*)())0 ) {
-	    if (attr_key->FortranCalling) 
-		(void) attr_key->delete_fn(comm, keyval, &attr->value,
+	if ( attr_key->delete_fn.c_delete_fn ) {
+	    if (attr_key->FortranCalling) {
+		MPI_Aint  invall = (MPI_Aint)attr->value;
+		int inval = (int)invall;
+		(void) (*attr_key->delete_fn.f77_delete_fn)(comm, 
+					   &keyval, &inval,
 					   attr_key->extra_state );
+		attr->value = (void *)(MPI_Aint)inval;
+	    }
 	    else
-		(void) attr_key->delete_fn(comm, keyval, attr->value,
+		(void) (*attr_key->delete_fn.c_delete_fn)(comm, keyval, 
+					   attr->value,
 					   attr_key->extra_state );
 	    }
 	attr->value = attr_value;
   }
   return (mpi_errno);
 }
+

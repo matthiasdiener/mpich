@@ -7,11 +7,7 @@
 #include <stdarg.h>
 #endif
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -57,7 +53,9 @@ va_list         ap;
 va_start(ap, unknown);
 inbuf = unknown;
 if (_numargs() == NUMPARAMS+1) {
-	printf("Either both or neither buffers must be of type character.\n");
+    *__ierr = MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_ONE_CHAR, 
+			  "Error in MPI_UNPACK" );
+    return;
 }
 if (_numargs() == NUMPARAMS+2) {
         buflen = va_arg(ap, int) / 8;           /* The length is in bits. */
@@ -107,7 +105,12 @@ if (_isfcd(outbuf)) {
 
 #endif
 #else
- void mpi_unpack_ ( inbuf, insize, position, outbuf, outcount, type, comm, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_unpack_ ANSI_ARGS(( void *, int *, int *, void *, int *, MPI_Datatype,
+			     MPI_Comm, int * ));
+
+void mpi_unpack_ ( inbuf, insize, position, outbuf, outcount, type, comm, 
+		   __ierr )
 void         *inbuf;
 int*insize;
 int          *position;
@@ -117,8 +120,8 @@ MPI_Datatype  type;
 MPI_Comm      comm;
 int *__ierr;
 {
-*__ierr = MPI_Unpack(inbuf,*insize,position,MPIR_F_PTR(outbuf),*outcount,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(type) ),
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
+    *__ierr = MPI_Unpack(inbuf,*insize,position,MPIR_F_PTR(outbuf),*outcount,
+			 (MPI_Datatype)MPIR_ToPointer( *(int*)(type) ),
+			 (MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
 }
 #endif

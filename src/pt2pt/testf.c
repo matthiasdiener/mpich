@@ -2,6 +2,10 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
+#ifdef MPI_ADI2
+#include "mpifort.h"
+#endif
+
 #ifdef POINTER_64_BITS
 extern void *MPIR_ToPointer();
 extern int MPIR_FromPointer();
@@ -32,17 +36,20 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_test_ ( request, flag, status, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_test_ ANSI_ARGS(( MPI_Request *, int *, MPI_Status *, int * ));
+
+void mpi_test_ ( request, flag, status, __ierr )
 MPI_Request  *request;
 int          *flag;
 MPI_Status   *status;
 int *__ierr;
 {
-MPI_Request lrequest = (MPI_Request) MPIR_ToPointer(*(int*)request);
-*__ierr = MPI_Test( &lrequest,flag,status);
-if (lrequest == MPI_REQUEST_NULL) {
-    MPIR_RmPointer(*(int*)request);
-    *(int*)request = 0;
+    MPI_Request lrequest = (MPI_Request) MPIR_ToPointer(*(int*)request);
+    *__ierr = MPI_Test( &lrequest,flag,status);
+    if (lrequest == MPI_REQUEST_NULL) {
+	MPIR_RmPointer(*(int*)request);
+	*(int*)request = 0;
     }
-*flag = MPIR_TO_FLOG(*flag);
+    *flag = MPIR_TO_FLOG(*flag);
 }

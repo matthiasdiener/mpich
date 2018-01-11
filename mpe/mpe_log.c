@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include "mpi.h"
+#include "mpe.h"
 
 #define DEBUG 0
 #define DEBUG_FORMATRECORD 0
@@ -36,6 +37,21 @@
 #include "mpiprof.h"
 #endif
 
+/* 
+ * Here are some prototypes for the functions declared in these files
+ */
+#if DEBUG
+void PrintSomeInts ANSI_ARGS(( FILE *, int *, int ));
+void PrintBlockLinks ANSI_ARGS(( FILE * ));
+void PrintRecode ANSI_ARGS(( FILE *, MPE_Log_HEADER * ));
+void PrintBlockChain ANSI_ARGS(( FILE *, MPE_Log_BLOCK * ));
+#endif
+void MPE_Log_adjtime1 ANSI_ARGS(( void ));
+int MPE_Log_FindSkew ANSI_ARGS(( double *, double * ));
+void MPE_Log_ApplyTimeCorrection ANSI_ARGS(( double, double ));
+int MPE_Log_adjusttimes ANSI_ARGS(( void ));
+int MPE_Log_adjust_time_origin ANSI_ARGS(( void ));
+
 #include "mpe_log.h"
 #include "mpe_log_genproc.h"
 
@@ -48,7 +64,9 @@
 @*/
 int MPE_Init_log()
 {
+#if DEBUG
   char fn[40];
+#endif
 
   if (!MPE_Log_hasBeenInit || MPE_Log_hasBeenClosed) {
     MPI_Comm_rank( MPI_COMM_WORLD, &MPE_Log_procid ); /* get process ID */
@@ -66,7 +84,7 @@ int MPE_Init_log()
       /* set MPE_Log as not being not closed, Startlog is not required */
     MPI_Barrier( MPI_COMM_WORLD );
     MPE_Log_init_clock();
-    MPE_Log_event(MPE_Log_EVENT_SYNC,0,0);	/* log a 'sync' event */
+    MPE_Log_event(MPE_Log_EVENT_SYNC,0,(char *)0);   /* log a 'sync' event */
   }
   return MPE_Log_OK;
 }
@@ -111,7 +129,6 @@ int MPE_Describe_state( start, end, name, color )
 int start, end;
 char *name, *color;
 {
-  int  lnc, lnn, ln4;
   char buf[150];
   MPE_Log_HEADER *b;
   MPE_Log_VFIELD *v;
@@ -241,7 +258,6 @@ char *string;
 {
   MPE_Log_HEADER *b;
   MPE_Log_VFIELD *v;
-  char c;
   int str_len,	    /* length of the string */
       str_store;    /* # of ints needed to store the string */
 
@@ -328,7 +344,7 @@ char *filename;
     MPE_Log_isLockedOut = 1;
     MPI_Barrier(MPI_COMM_WORLD );
     MPE_Log_isLockedOut = 0;
-    MPE_Log_event(MPE_Log_EVENT_SYNC,0,0);	/* log a 'sync' event */
+    MPE_Log_event(MPE_Log_EVENT_SYNC,0,(char *)0);  /* log a 'sync' event */
     MPE_Log_isLockedOut = 1;
     MPE_Log_thisBlock->size = MPE_Log_i;
 #if DEBUG
@@ -341,11 +357,14 @@ char *filename;
 	/* Adjust the times ONLY if the timer is not global */
 	MPE_Log_adjusttimes();
 	}
+    else {
+	MPE_Log_adjust_time_origin();
+	}
 #if DEBUG
     fprintf( debug_file, "parallel merge\n" );
       fflush( debug_file );
 #endif
-    if (returnStatus=MPE_Log_ParallelMerge( filename )) 
+    if ((returnStatus=MPE_Log_ParallelMerge( filename ))) 
       return returnStatus;
     MPE_Log_hasBeenClosed = 1;
   }

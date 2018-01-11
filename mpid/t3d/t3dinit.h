@@ -42,12 +42,20 @@
 #define T3D_NUM_PES t3d_num_pes
 #define T3D_HOSTNAME_LEN 64
 
+
+#define IS_8BYTE_ALIGNED(addr)                    ( ! ( (int)(addr) & 0x7) )
+#define IS_4BYTE_ALIGNED(addr)                    ( ! ( (int)(addr) & 0x3) )
+
+#define T3D_MEMCPY( target, source, bytes )  memcpy( target, source, bytes )
+
 /***************************************************************************
   Global variables defined in t3dinit.c
  ***************************************************************************/
-extern char  t3d_hostname[];
-extern int   t3d_myid;
-extern int   t3d_num_pes;
-extern long *t3d_heap_limit;
+extern char       t3d_hostname[];
+extern int        t3d_myid;
+extern int        t3d_num_pes;
+extern char      *t3d_heap_limit;
+extern int        modified_stack;
+extern char      *save_stack;
 
 #endif

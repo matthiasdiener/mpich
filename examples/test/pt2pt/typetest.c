@@ -48,7 +48,6 @@ int argc;
 char **argv;
 {
     int rank, size, ret; 
-    char *Current_Test = NULL;
     MPI_Status Status;
     MPI_Datatype struct1_t, struct2_t, struct3_t, struct4_t, struct4a_t,
 	astruct1_t, carray_t;

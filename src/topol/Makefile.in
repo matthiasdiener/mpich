@@ -8,8 +8,6 @@
 ARCH        = @ARCH@
 COMM        = @COMM@
 BOPT        = @BOPT@
-P4_DIR      = @P4_DIR@
-TOOLS_DIR   = @TOOLS_DIR@
 MPIR_HOME   = @MPIR_HOME@
 CC          = @CC@
 F77         = @F77@
@@ -29,9 +27,10 @@ MPI_INCLUDE    = ../../include/mpi.h ../../include/mpi_bc.h \
                  ../../include/mpir.h ../../include/mpi_ad.h \
 		 ../../include/mpisys.h
 DEVICE_LIB = 
-CFLAGS = @CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPIPROFILE)
+CFLAGS = @CFLAGS@ $(OPTFLAGS) @OPTFLAGSC@ $(INCLUDE_DIR) \
+	-DMPI_$(ARCH) $(MPIPROFILE)
 
-LIBS = ../../lib/$(ARCH)/$(COMM)/libmpi.a $(DEVICE_LIB)
+LIBS = ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $(DEVICE_LIB)
 
 MPI_CSOURCES = topo_test.c graphdimsget.c graph_get.c cartdim_get.c \
               cart_get.c dims_create.c cart_map.c graph_map.c cart_create.c \
@@ -39,10 +38,7 @@ MPI_CSOURCES = topo_test.c graphdimsget.c graph_get.c cartdim_get.c \
               graph_nbr.c cart_shift.c cart_sub.c topo_util.c
 
 # wrappers for routines with Fortran LOGICAL type being made by hand
-MPI_TSOURCES = topo_test.c graphdimsget.c graph_get.c cartdim_get.c \
-              dims_create.c graph_map.c \
-              cart_rank.c cart_coords.c graphnbrcnt.c \
-              graph_nbr.c 
+MPI_TSOURCES =  
 
 MPI_COBJECTS = topo_test.o graphdimsget.o graph_get.o cartdim_get.o \
               cart_get.o dims_create.o cart_map.o graph_map.o cart_create.o \
@@ -59,9 +55,9 @@ MPI_WOBJECTS = topo_testf.o graphdimsgtf.o graph_getf.o cartdim_getf.o \
               graphcreatef.o cart_rankf.o cart_coordsf.o graphnbrcntf.o \
               graph_nbrf.o cart_shiftf.o cart_subf.o
 
-default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
+default: ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
 
-profile: ../../lib/$(ARCH)/$(COMM)/libpmpi.a
+profile: ../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a
 
 MPI_SOURCES = $(MPI_CSOURCES) $(MPI_WSOURCES)
 MPI_OBJECTS = $(MPI_COBJECTS) $(MPI_WOBJECTS)
@@ -70,12 +66,12 @@ MPI_OBJECTS = $(MPI_COBJECTS) $(MPI_WOBJECTS)
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
 default_all: $(MPI_OBJECTS)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $?
+	$(AR) ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $?
 profile_all: $(MPI_OBJECTS)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libpmpi.a $?
+	$(AR) ../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a $?
 wrapperlib: $(MPI_WOBJECTS)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libfmpi.a $?	
-	
+	$(AR) ../../lib/$(ARCH)/$(COMM)/libf@MPILIBNAME@.a $?	
+
 # Move longname-wrappers to shorter names
 wrappers:
 	../../util/bfort -ferr -mpi -mnative -mapptr -ptrprefix MPIR_ \
@@ -86,14 +82,17 @@ manpages:
 	../../util/doctext -mpath ../../man/man3 -ext 3 -I pubinc \
 	   -index ../../www.index -jumpfile ../../jumpfile.list \
 	   -indexdir "http:/www.mcs.anl.gov/mpi/www/www3" -heading MPI \
-		-quotefmt ../../util/fortnotes $(MPI_CSOURCES)
+		-quotefmt ../../util/fortnotes ../../util/errnotes \
+		$(MPI_CSOURCES)
 	../../util/doc2lt $(MPI_CSOURCES) >> ../../rsum.tmp
 
 wwwpages:
-	../../util/doctext -html -mpath ../../www/www3 -ext 3 -I pubinc \
+	../../util/doctext -html -mpath ../../www/www3 -I pubinc \
 	   -index ../../www.index -jumpfile ../../jumpfile.list \
+	   -mapref $(MPIR_HOME)/util/mpis.cit \
 	   -indexdir "http:/www.mcs.anl.gov/mpi/www/www3" -heading MPI \
-		-quotefmt ../../util/fortnotes $(MPI_CSOURCES)
+		-quotefmt ../../util/fortnotes ../../util/errnotes \
+		$(MPI_CSOURCES)
 
 source_names:
 	@echo $(MPI_CSOURCES)
@@ -103,11 +102,11 @@ $(MPI_OBJECTS) :  $(MPI_INCLUDE)
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c
 
-../../lib/$(ARCH)/$(COMM)/libmpi.a: $(MPI_OBJECTS) 
+../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
 	-$(AR) $@ $?
 	$(RANLIB) $@
 
-../../lib/$(ARCH)/$(COMM)/libpmpi.a: $(MPI_OBJECTS) 
+../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a: $(MPI_OBJECTS) 
 	-$(AR) $@ $?
 	$(RANLIB) $@
 

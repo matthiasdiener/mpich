@@ -1,15 +1,15 @@
 **** Testing MPI_Send and MPI_Recv ****
-[sendrecv]: Test 'Send-Receive Test, Type 0' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 1' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 2' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 3' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 4' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 5' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 6' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 7' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 8' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 9' Passed.
-[sendrecv]: Test 'Send-Receive Test, Type 10' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 0 (MPI_CHAR)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 1 (MPI_SHORT)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 2 (MPI_INT)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 3 (MPI_LONG)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 4 (MPI_UNSIGNED_CHAR)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 5 (MPI_UNSIGNED_SHORT)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 6 (MPI_UNSIGNED)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 7 (MPI_UNSIGNED_LONG)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 8 (MPI_FLOAT)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 9 (MPI_DOUBLE)' Passed.
+[sendrecv]: Test 'Send-Receive Test, Type 10 (MPI_BYTE)' Passed.
 [sendrecv]: Test 'Tag Selectivity Test' Passed.
 [sendrecv]: Test 'NULL Communicator Test' Passed.
 [sendrecv]: Test 'Invalid Count Test' Passed.
@@ -243,21 +243,13 @@ Message of count 9000, type 10 received correctly.
 Message of count 9500, type 10 received correctly.
 There should be eight error messages about invalid communicator
 count argument, datatype argument, tag, rank, buffer send and buffer recv
-0 -  File: send.c   Line: 58
 0 - Error in MPI_SEND : Invalid communicator
-0 -  File: send.c   Line: 58
 0 - Error in MPI_SEND : Invalid count argument
-0 -  File: send.c   Line: 58
 0 - Error in MPI_SEND : Invalid datatype argument
-0 -  File: send.c   Line: 58
-0 - Error in MPI_SEND : Invalid message tag
-0 -  File: send.c   Line: 58
-0 - Error in MPI_SEND : Invalid message tag
-0 -  File: send.c   Line: 58
-0 - Error in MPI_SEND : Invalid rank
-0 -  File: send.c   Line: 97
+0 - Error in MPI_SEND : Invalid message tag -2
+0 - Error in MPI_SEND : Invalid message tag -1
+0 - Error in MPI_SEND : Invalid rank 300
 0 - Error in MPI_SEND : Invalid buffer pointer
-0 -  File: recv.c   Line: 86
 0 - Error in MPI_RECV : Invalid buffer pointer
 All processes completed test
 **** Testing MPI_Send and MPI_Recv ****

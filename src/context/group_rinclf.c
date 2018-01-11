@@ -20,11 +20,7 @@
    message, you'll need to copy the "ranges" array into a temporary.
  */
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -50,14 +46,18 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_group_range_incl_ ANSI_ARGS(( MPI_Group, int *, int [][3],
+				       MPI_Group *, int * ));
+
 void mpi_group_range_incl_ ( group, n, ranges, newgroup, __ierr )
 MPI_Group group, *newgroup;
 int       *n;
 int       ranges[][3];
 int       *__ierr;
 {
-MPI_Group lgroup;
-*__ierr = MPI_Group_range_incl(
+    MPI_Group lgroup;
+    *__ierr = MPI_Group_range_incl(
 	(MPI_Group)MPIR_ToPointer(*((int*)group)),*n,ranges,&lgroup);
-*(int*)newgroup = MPIR_FromPointer(lgroup);
+    *(int*)newgroup = MPIR_FromPointer(lgroup);
 }

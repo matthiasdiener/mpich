@@ -1,7 +1,9 @@
+#include "mpe.h"
+
 #if defined(HAVE_UNAME)
 #include <sys/utsname.h>
 #endif
-#if defined(HAVE_SYSINFO)
+#if defined(HAVE_SYS_SYSTEMINFO)
 #include <sys/systeminfo.h>
 #endif
 
@@ -26,7 +28,7 @@ char *name;
     l = strlen(name);
     name[l++] = '.';
     name[l] = 0;  /* In case we have neither SYSINFO or GETDOMAINNAME */
-#if defined(HAVE_SYSINFO)
+#if defined(HAVE_SYSINFO) && defined(SI_SRPC_DOMAIN)
     sysinfo( SI_SRPC_DOMAIN,name+l,nlen-l);
 #elif defined(HAVE_GETDOMAINNAME)
     getdomainname( name+l, nlen - l );

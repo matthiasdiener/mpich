@@ -19,8 +19,8 @@ static int src  = 0;
 static int dest = 1;
 
 /* Which tests to perform (not yet implemented) */
-static int Do_Buffer = 1;
-static int Do_Standard = 1;
+/* static int Do_Buffer = 1; */
+/* static int Do_Standard = 1; */
 
 void Generate_Data(buffer, buff_size)
 double *buffer;
@@ -104,8 +104,7 @@ int argc;
 char **argv;
 {
     int rank; /* My Rank (0 or 1) */
-    double buffer[SIZE], tmpbuffer[SIZE+100], *tmpbuf;
-    int tsize;
+    double buffer[SIZE];
     char *Current_Test = NULL;
 
     MPI_Init(&argc, &argv);
@@ -127,6 +126,7 @@ char **argv;
 	    Test_Failed(Current_Test);
 	else
 	    Test_Passed(Current_Test);
+	Test_Waitforall( );
 
 	MPI_Finalize();
 	{

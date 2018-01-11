@@ -9,7 +9,7 @@
 *  * All work funded by Argonne National Laboratory
 \**/
 
-static MPE_Log_BLOCK *bblock = 0, *btail = 0;
+/* static MPE_Log_BLOCK *bblock = 0, *btail = 0; */
 
 static MPE_Log_BLOCK *MPE_Log_thisBlock = 0, *MPE_Log_firstBlock = 0;
 static int    MPE_Log_size = MPE_Log_BUF_SIZE;
@@ -23,12 +23,14 @@ static int    MPE_Log_AdjustedTimes = 0;
 static int    MPE_Log_procid;
 static double MPE_Log_tinit;	/* starting time */
 
+#if DEBUG
 static FILE *debug_file;
+#endif
 
 /* need to put doubles at non-aligned locations */
 #define MOVEDBL( dest, src ) {memcpy( dest, src, sizeof( double ) );}
 
-MPE_Log_BLOCK *MPE_Log_GetBuf()
+MPE_Log_BLOCK *MPE_Log_GetBuf ANSI_ARGS((void))
   /* get another block of memory (or the first block) */
 {
   MPE_Log_BLOCK *newBlock;
@@ -45,7 +47,7 @@ fflush( debug_file );
 }
 
 
-MPE_Log_BLOCK *MPE_Log_Flush ()
+MPE_Log_BLOCK *MPE_Log_Flush ANSI_ARGS((void))
 {
   if (MPE_Log_thisBlock) {
     MPE_Log_thisBlock->next = MPE_Log_GetBuf();
@@ -101,7 +103,7 @@ MPE_Log_PrintTimes()
 
 /* This routine is called by the MPE_Log initialization routine to
    set the 0-point for the clocks */		    
-int MPE_Log_init_clock()
+int MPE_Log_init_clock ANSI_ARGS((void))
 {
   if (!MPE_Log_clockIsRunning) {
     MPE_Log_tinit = MPI_Wtime();
@@ -140,7 +142,7 @@ char *str;
 
 
 #if DEBUG
-PrintSomeInts( outf, ptr, n )
+void PrintSomeInts( outf, ptr, n )
 FILE *outf;
 int *ptr, n;
 {
@@ -150,7 +152,7 @@ int *ptr, n;
 
 
 
-PrintBlockLinks( outf )
+void PrintBlockLinks( outf )
 FILE *outf;
 {
   MPE_Log_BLOCK *thisBlock;
@@ -167,7 +169,7 @@ FILE *outf;
   }
 }
 
-PrintRecord( outf, recHdr )
+void PrintRecord( outf, recHdr )
 FILE *outf;
 MPE_Log_HEADER *recHdr;
 {
@@ -196,7 +198,7 @@ MPE_Log_HEADER *recHdr;
 }
 
 
-PrintBlockChain( outf, firstBlock )
+void PrintBlockChain( outf, firstBlock )
 FILE *outf;
 MPE_Log_BLOCK *firstBlock;
 {

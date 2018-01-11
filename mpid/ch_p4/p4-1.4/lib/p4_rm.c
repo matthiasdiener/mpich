@@ -27,10 +27,16 @@ char **argv;
     char *s,*bm_host;
     extern char whoami_p4[];
     struct net_initial_handshake hs;
-    struct slave_listener_msg lmsg;
+/*     struct slave_listener_msg lmsg; */
     struct bm_rm_msg msg;
-    int type, len, rc, i, numslaves;
-    int unused_flag, conn_retries;
+    int type, rc, i, numslaves;
+#if defined(SP1_EUIH)
+    int len;
+#endif
+#if defined(NCUBE)
+    int unused_flag;
+#endif
+    int conn_retries;
     struct p4_global_data *g;
     char outfile[128];
 

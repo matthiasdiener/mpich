@@ -1,8 +1,7 @@
-.TH Constants 3 "9/8/1995" " " "MPI"
+.TH Constants 3 "5/19/1996" " " "MPI"
 .SH NAME
-Constants \- Meaning of MPI
-.I s defined constants
-
+Constants \-  Meaning of MPI
+.I s defined constants 
 .SH DATA TYPES
 Note that the Fortran types should only be used in Fortran programs,
 and the C types should only be used in C programs.  For example,
@@ -33,7 +32,7 @@ INTEGER
 .PD 1
 .PD 0
 .TP
-.B MPI_INT 
+.B MPI_INT   
 - int
 .PD 1
 .PD 0
@@ -73,14 +72,13 @@ INTEGER
 .PD 1
 .PD 0
 .TP
-.B MPI_LONG_DOUBLE 
+.B MPI_LONG_DOUBLE  
 - long double (some systems may not implement)
 .PD 1
 
 The following are datatypes for the MPI functions 
 MPI_MAXLOC
 .I  and
-
 MPI_MINLOC
 .I .
 .PD 0
@@ -92,7 +90,7 @@ struct { float, int }
 .PD 1
 .PD 0
 .TP
-.B MPI_LONG_INT 
+.B MPI_LONG_INT  
 - 
 struct { long, int }
 .I 
@@ -106,14 +104,14 @@ struct { double, int }
 .PD 1
 .PD 0
 .TP
-.B MPI_SHORT_INT 
+.B MPI_SHORT_INT  
 - 
 struct { short, int }
 .I 
 .PD 1
 .PD 0
 .TP
-.B MPI_2INT 
+.B MPI_2INT       
 - 
 struct { int, int }
 .I 
@@ -221,14 +219,14 @@ if supported
 .PD 1
 .PD 0
 .TP
-.B MPI_REAL4 
+.B MPI_REAL4    
 - 
 .I real*4
 if supported
 .PD 1
 .PD 0
 .TP
-.B MPI_REAL8 
+.B MPI_REAL8    
 - 
 .I real*8
 if supported
@@ -248,7 +246,7 @@ two elements of the same Fortran type.
 .PD 1
 .PD 0
 .TP
-.B MPI_2REAL 
+.B MPI_2REAL    
 - 
 .I REAL, REAL
 .PD 1
@@ -309,7 +307,7 @@ in Fortran
 .PD 1
 .PD 0
 .TP
-.B MPI_CONGRUENT 
+.B MPI_CONGRUENT  
 - (only for 
 .I MPI_COMM_COMPARE
 ) The groups are identical
@@ -406,6 +404,58 @@ the first is found)
 - return the maximum and the location
 .PD 1
 
+.SH NOTES ON COLLECTIVE OPERATIONS
+
+The reduction functions (
+.I MPI_Op
+) do not return an error value.  As a result,
+if the functions detect an error, all they can do is either call 
+.I MPI_Abort
+or silently skip the problem.  Thus, if you change the error handler from
+.I MPI_ERRORS_ARE_FATAL
+to something else, for example, 
+.I MPI_ERRORS_RETURN
+,
+then no error may be indicated.
+
+The reason for this is the performance problems in ensuring that
+all collective routines return the same error value.
+
+Note that not all datatypes are valid for these functions.  For example,
+.I MPI_COMPLEX
+is not valid for 
+.I MPI_MAX
+and 
+.I MPI_MIN
+.  In addition, the MPI
+1.1 standard did not include the C types 
+.I MPI_CHAR
+and 
+.I MPI_UNSIGNED_CHAR
+among the lists of arithmetic types for operations like 
+.I MPI_SUM
+.  However,
+since the C type 
+.I char
+is an integer type (like 
+.I short
+), it should have been
+included.  The MPI Forum will probably include 
+.I char
+and 
+.I unsigned char
+as a clarification to MPI 1.1; until then, users are advised that MPI
+implementations may not accept 
+.I MPI_CHAR
+and 
+.I MPI_UNSIGNED_CHAR
+as valid
+datatypes for 
+.I MPI_SUM
+, 
+.I MPI_PROD
+, etc.  MPICH does allow these datatypes.
+
 .SH PERMANENT KEY VALUES
 These are the same in C and Fortran
 
@@ -435,27 +485,27 @@ is globally synchronized.
 .SH NULL OBJECTS
 .PD 0
 .TP
-.B MPI_COMM_NULL 
+.B MPI_COMM_NULL   
 - Null communicator
 .PD 1
 .PD 0
 .TP
-.B MPI_OP_NULL 
+.B MPI_OP_NULL     
 - Null operation
 .PD 1
 .PD 0
 .TP
-.B MPI_GROUP_NULL 
+.B MPI_GROUP_NULL     
 - Null group
 .PD 1
 .PD 0
 .TP
-.B MPI_DATATYPE_NULL 
+.B MPI_DATATYPE_NULL  
 - Null datatype
 .PD 1
 .PD 0
 .TP
-.B MPI_REQUEST_NULL 
+.B MPI_REQUEST_NULL   
 - Null request
 .PD 1
 .PD 0
@@ -473,13 +523,13 @@ is globally synchronized.
 .PD 1
 .PD 0
 .TP
-.B MPI_MAX_ERROR_STRING 
+.B MPI_MAX_ERROR_STRING   
 - Maximum length of string return by
 .I MPI_ERROR_STRING
 .PD 1
 .PD 0
 .TP
-.B MPI_UNDEFINED 
+.B MPI_UNDEFINED  
 - Used by many routines to indicated undefined or unknown
 integer value
 .PD 1
@@ -504,7 +554,7 @@ outstanding message
 .PD 1
 .PD 0
 .TP
-.B MPI_PROC_NULL 
+.B MPI_PROC_NULL  
 - This rank may be used to send or receive from no-one.
 .PD 1
 .PD 0
@@ -514,24 +564,24 @@ outstanding message
 .PD 1
 .PD 0
 .TP
-.B MPI_ANY_TAG	
+.B MPI_ANY_TAG	 
 - In a receive, accept a message with any tag value.
 .PD 1
 .PD 0
 .TP
-.B MPI_BOTTOM 
+.B MPI_BOTTOM     
 - May be used to indicate the bottom of the address space
 .PD 1
 
 .SH TOPOLOGY TYPES
 .PD 0
 .TP
-.B MPI_GRAPH 
+.B MPI_GRAPH  
 - General graph
 .PD 1
 .PD 0
 .TP
-.B MPI_CART 
+.B MPI_CART   
 - Cartesian grid
 .PD 1
 
@@ -620,190 +670,113 @@ and
 .PD 1
 MPI routine in C and through last argument in Fortran)
 
-.SH MPI ERROR CODES
+.SH MPI ERROR CLASSES
 .PD 0
 .TP
-.B MPI_SUCCESS 
+.B MPI_SUCCESS               
 - Successful return code 
 .PD 1
 .PD 0
 .TP
-.B MPI_ERR_EXHAUSTED 
-- Memory exhausted 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_TAG 
-- Invalid tag argument 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_COMM_NULL 
-- NULL communicator argument 
-passed to function 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_COMM_INTER 
-- Intercommunicator is not allowed 
-in function 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_COMM_INTRA 
-- Intracommunicator is not allowed 
-in function 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_ARG 
-- Invalid argument 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_BUFFER 
+.B MPI_ERR_BUFFER            
 - Invalid buffer pointer 
 .PD 1
 .PD 0
 .TP
-.B MPI_ERR_COUNT 
+.B MPI_ERR_COUNT             
 - Invalid count argument 
 .PD 1
 .PD 0
 .TP
-.B MPI_ERR_TYPE 
+.B MPI_ERR_TYPE              
 - Invalid datatype argument 
 .PD 1
 .PD 0
 .TP
-.B MPI_ERR_ROOT 
-- Invalid root 
+.B MPI_ERR_TAG               
+- Invalid tag argument 
 .PD 1
 .PD 0
 .TP
-.B MPI_ERR_OP 
-- Invalid operation 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_ERRORCODE 
-- Invalid error code 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_GROUP 
-- Null group passed to function 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_RANK 
-- Invalid rank 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_TOPOLOGY 
-- Invalid topology 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_DIMS 
-- Illegal dimension argument 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_NULL 
-- Null parameter 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_UNKNOWN 
-- Unknown error 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_REQUEST 
-- illegal mpi_request handle 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_LIMIT 
-- limit reached 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_INTERN 
-- internal error code    
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_NOMATCH 
-- no recv posted for ready send 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_TRUNCATE 
-- message truncated on receive 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_BAD_ARGS 
-- Invalid arguments
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_INIT 
-- MPI_INIT already called 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_PERM_KEY 
-- Can
-.I t free a perm key 
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_BUFFER_EXISTS 
-- Buffer already attached
-.PD 1
-.PD 0
-.TP
-.B MPI_ERR_COMM 
+.B MPI_ERR_COMM              
 - Invalid communicator 
 .PD 1
 .PD 0
 .TP
-.B MPI_ERR_PERM_TYPE 
-- Can
-t free a perm type 
+.B MPI_ERR_RANK              
+- Invalid rank 
 .PD 1
 .PD 0
 .TP
-.B MPI_ERR_PERM_OP 
-- Can
-.I t free a permanent operator 
+.B MPI_ERR_ROOT              
+- Invalid root 
 .PD 1
 .PD 0
 .TP
-.B MPI_ERR_IN_STATUS 
-- Look in status for error value 
+.B MPI_ERR_GROUP             
+- Null group passed to function 
 .PD 1
 .PD 0
 .TP
-.B MPI_ERR_PRE_INIT 
-- MPI_INIT has not been called 
+.B MPI_ERR_OP                
+- Invalid operation 
 .PD 1
 .PD 0
 .TP
-.B MPI_ERR_OTHER 
+.B MPI_ERR_TOPOLOGY          
+- Invalid topology 
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_DIMS              
+- Illegal dimension argument 
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_ARG               
+- Invalid argument 
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_UNKNOWN           
+- Unknown error 
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_TRUNCATE          
+- message truncated on receive 
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_OTHER             
 - Other error; use Error_string 
 .PD 1
 .PD 0
 .TP
-.B MPI_ERR_LASTCODE 
-- Last error class -- always at end 
+.B MPI_ERR_INTERN            
+- internal error code    
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_IN_STATUS         
+- Look in status for error value 
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_PENDING           
+- Pending request
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_REQUEST           
+- illegal mpi_request handle 
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_LASTCODE          
+- Last error code -- always at end 
 .PD 1
 
 
-
 .SH LOCATION
- mpiconsts.txt
+mpiconsts.txt

@@ -1,0 +1,26 @@
+#! /bin/sh
+# courtesy of Jarek Nieplocha, to clean ipc's
+# Modified by Bill Gropp to apply only to calling user
+ipccmd=ipcrm
+for arg in "$@" ; do
+   case $arg in
+	-help|-u|-us*|-h)
+	echo "cleanipcs [-show] [-echo]"
+	exit 1
+	;;
+	-echo)
+	set -x
+	;;
+	-show)
+	ipccmd=echo
+	;;
+	*)
+	if [ -n "$arg" ] ; then
+  	    echo "Unrecognized argument $arg"
+	    exit 1
+	fi
+	;;
+   esac
+done
+#
+$ipccmd `ipcs | awk '{if ((($1 == "m") || ($1 == "s")) && ($5 == "'$LOGNAME'")) print sprintf("-%s %s",$1,$2) }'`

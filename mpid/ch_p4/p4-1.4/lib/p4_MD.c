@@ -69,72 +69,100 @@ int memsize;
     else
 	nsegs = memsize / segsize + 1;
     size = nsegs * segsize;
-    if ((sysv_shmid[0] = shmget(getpid(),segsize,IPC_CREAT|0600)) == -1)
-    {
-	p4_error("OOPS: shmget failed\n",sysv_shmid[0]);
-    }
-    if ((mem = (char *)shmat(sysv_shmid[0],NULL,0)) == (char *)-1)
-    {
-    switch (errno) {
-	case EACCES: 
-	fprintf( stderr, 
+    /* Try first to get a single section of memeory.  If that doesn't work,
+       try to piece it together */
+    if ((sysv_shmid[0] = shmget(getpid(),size,IPC_CREAT|0600))) {
+	if ((mem = (char *)shmat(sysv_shmid[0],NULL,0)) == (char *)-1) {
+	    switch (errno) {
+	    case EACCES: 
+		fprintf( stderr, 
 "shmat called failed:\n\
 This process is not allowed to create shared memory.n\
 See your system administrator\n" );
-	break;
+		break;
 	
-	case EMFILE:
-	fprintf( stderr, 
+	    case EMFILE:
+		fprintf( stderr, 
 "shmat called failed:\n\
 This process is not allowed to create any more shared memory regions\n\
 See your system administrator\n");
-	break;
-	default:
-	perror( "Reason " );
-	break;
+		break;
+	    default:
+		perror( "Reason " );
+		break;
+	    }
+	    p4_error("OOPS: shmat failed ",(int)mem);
 	}
-	p4_error("OOPS: shmat failed ",mem);
     }
-    sysv_num_shmids++;
-    nsegs--;
-    pmem = mem;
-    for (i=1; i <= nsegs; i++)
-    {
-	if ((sysv_shmid[i] = shmget(i+getpid(),segsize,IPC_CREAT|0600)) == -1)
+    else {
+	/* Piece it together */
+	if ((sysv_shmid[0] = shmget(getpid(),segsize,IPC_CREAT|0600)) == -1)
 	{
-	    p4_error("OOPS: shmget failed\n",sysv_shmid[i]);
+	    p4_error("OOPS: shmget failed\n",sysv_shmid[0]);
 	}
-        if ((tmem = (char *)shmat(sysv_shmid[i],pmem+segsize,0)) == (char *)-1)
-        {
-            if ((tmem = (char *)shmat(sysv_shmid[i],pmem-segsize,0)) == (char *)-1)
-            {
-		switch (errno) {
-		    case EACCES: 
-		    fprintf( stderr, 
+	if ((mem = (char *)shmat(sysv_shmid[0],NULL,0)) == (char *)-1)
+	{
+	    switch (errno) {
+	    case EACCES: 
+		fprintf( stderr, 
 "shmat called failed:\n\
 This process is not allowed to create shared memory.n\
 See your system administrator\n" );
-		    break;
-		    
-		    case EMFILE:
-		    fprintf( stderr, 
+		break;
+	
+	    case EMFILE:
+		fprintf( stderr, 
 "shmat called failed:\n\
 This process is not allowed to create any more shared memory regions\n\
 See your system administrator\n");
-		    break;
-		    default:
-		    perror( "Reason " );
-		    break;
-		    }
-                p4_error("OOPS: shmat failed for segment ", i);
-            }
-	    else
-	    {
-		mem = tmem;
+		break;
+	    default:
+		perror( "Reason " );
+		break;
 	    }
-        }
+	    p4_error("OOPS: shmat failed ",(int)mem);
+	}
 	sysv_num_shmids++;
-	pmem = tmem;
+	nsegs--;
+	pmem = mem;
+	for (i=1; i <= nsegs; i++)
+	{
+	    if ((sysv_shmid[i] = shmget(i+getpid(),segsize,IPC_CREAT|0600)) == -1)
+	    {
+		p4_error("OOPS: shmget failed\n",sysv_shmid[i]);
+	    }
+	    if ((tmem = (char *)shmat(sysv_shmid[i],pmem+segsize,0)) == (char *)-1)
+	    {
+		if ((tmem = (char *)shmat(sysv_shmid[i],pmem-segsize,0)) == (char *)-1)
+		{
+		    switch (errno) {
+		    case EACCES: 
+			fprintf( stderr, 
+"shmat called failed:\n\
+This process is not allowed to create shared memory.n\
+See your system administrator\n" );
+			break;
+			
+		    case EMFILE:
+			fprintf( stderr, 
+"shmat called failed:\n\
+This process is not allowed to create any more shared memory regions\n\
+See your system administrator\n");
+			break;
+		    default:
+			perror( "Reason " );
+			break;
+		    }
+		    p4_error("OOPS: shmat failed for segment ", i);
+		}
+		else
+		{
+		    mem = tmem;
+		}
+	    }
+	    sysv_num_shmids++;
+	    pmem = tmem;
+	}
     }
     xx_init_shmalloc(mem,size);
 #endif
@@ -1271,7 +1299,7 @@ char **argv;
 /* endif for ifdef ipsc860 or cm5 */
 #endif 
 
-MD_set_reference_time()
+P4VOID MD_set_reference_time()
 {
 /* We want MD_clock to deal with small numbers */
 
@@ -1455,7 +1483,7 @@ MD_lock_t *L;
     sem_lock[0].sem_num = L->semnum;
     if (semop(L->semid,&sem_lock[0],1) < 0)
     {
-        p4_error("OOPS: semop lock failed\n",*L);
+        p4_error("OOPS: semop lock failed\n",(int)L->semid);
     }
 }
 
@@ -1465,7 +1493,7 @@ MD_lock_t *L;
     sem_unlock[0].sem_num = L->semnum;
     if (semop(L->semid,&sem_unlock[0],1) < 0)
     {
-        p4_error("OOPS: semop unlock failed\n",L);
+        p4_error("OOPS: semop unlock failed\n",(int)L);
     }
 }
 #endif
@@ -1568,6 +1596,7 @@ char *machine_type;
     if (strcmp(machine_type, "SUN386I") == 0)         return 2;
     if (strcmp(machine_type, "LINUX") == 0)           return 2;
     if (strcmp(machine_type, "FREEBSD") == 0)         return 2;
+    if (strcmp(machine_type, "I86_SOLARIS") == 0)     return 2;
     if (strcmp(machine_type, "DEC5000") == 0)         return 3;
     if (strcmp(machine_type, "IBM3090") == 0)         return 4;
     if (strcmp(machine_type, "TITAN") == 0)           return 5;

@@ -1,11 +1,12 @@
 /*
- *  $Id: graphnbrcnt.c,v 1.2 1995/12/21 22:19:18 gropp Exp $
+ *  $Id: graphnbrcnt.c,v 1.3 1996/04/12 15:56:36 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#include "mpitopo.h"
 
 /*@
 
@@ -20,6 +21,13 @@ Output Parameter:
 . nneighbors - number of neighbors of specified process (integer) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TOPOLOGY
+.N MPI_ERR_COMM
+.N MPI_ERR_ARG
+.N MPI_ERR_RANK
 @*/
 int MPI_Graph_neighbors_count ( comm, rank, nneighbors )
 MPI_Comm  comm;

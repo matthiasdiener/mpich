@@ -38,7 +38,7 @@ char **argv;
 
     p4_local = alloc_local_bm();
     if (p4_local == NULL)
-	p4_error("p4_initenv: alloc_local_bm failed\n", NULL);
+	p4_error("p4_initenv: alloc_local_bm failed\n", 0);
 
     MD_initenv();
     bm_switch_port = getswport(p4_global->my_host_name);
@@ -82,11 +82,8 @@ int p4_create_procgroup()
 int p4_startup(pg)
 struct p4_procgroup *pg;
 {
-    int i, nslaves, unused_flag;
+    int nslaves;
     int listener_port, listener_fd;
-    struct bm_rm_msg bm_msg;
-    struct p4_procgroup_entry *local_pg;
-    int len, to, type;
 
     p4_dprintfl(90,"entering p4_startup\n");
 
@@ -154,6 +151,12 @@ else {
 
 #   if defined(IPSC860)  ||  defined(CM5)     ||  defined(NCUBE)  \
                          ||  defined(SP1_EUI) ||  defined(SP1_EUIH)
+     {
+    struct bm_rm_msg bm_msg;
+    struct p4_procgroup_entry *local_pg;
+    int len, to, type;
+    int i, unused_flag;
+
     /* send initial info and proctable to local slaves */
     /* must use p4_i_to_n procs because node slave 
        does not know if the msg is forwarded from bm */
@@ -198,6 +201,7 @@ else {
 #       endif
 	p4_dprintfl(90,"sent initinfo to slave %d of %d\n",i,nslaves);
     }
+     }   /* End of local declarations */
 #   endif
 
     p4_global->low_cluster_id = 
@@ -229,11 +233,15 @@ struct p4_procgroup *pg;
 {
     struct p4_procgroup_entry *local_pg;
     struct listener_data *l;
-    int i, nslaves, end_1, end_2;
+    int nslaves, end_1, end_2;
     int slave_pid, listener_pid;
     int slave_idx, listener_fd;
-    int port, switch_port, from, type, len, unused_flag;
+#   if defined(IPSC860)  ||  defined(CM5)  ||  defined(NCUBE)  ||  defined(SP1_EUI) || defined(SP1_EUIH)
+    /* Message passing systems require additional information */
     struct bm_rm_msg bm_msg;
+    int i;
+    int port, switch_port, type, len, from, unused_flag
+#endif
 
     p4_dprintfl(90,"entering create_bm_processes\n");
     local_pg = &(pg->entries[0]);

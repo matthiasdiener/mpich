@@ -1,12 +1,8 @@
 /* attr_delval.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -32,11 +28,14 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_attr_delete_ ( comm, keyval, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_attr_delete_ ANSI_ARGS(( MPI_Comm, int *, int * ));
+
+void mpi_attr_delete_ ( comm, keyval, __ierr )
 MPI_Comm comm;
 int*keyval;
 int *__ierr;
 {
-*__ierr = MPI_Attr_delete(
+    *__ierr = MPI_Attr_delete(
 	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),*keyval);
 }

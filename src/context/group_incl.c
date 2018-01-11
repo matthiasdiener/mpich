@@ -1,12 +1,16 @@
 /*
- *  $Id: group_incl.c,v 1.15 1995/12/21 22:07:22 gropp Exp $
+ *  $Id: group_incl.c,v 1.16 1996/04/12 14:09:53 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "mpimem.h"
+#else
 #include "mpisys.h"
+#endif
 
 /*@
 
@@ -28,6 +32,14 @@ This implementation does not currently check to see that the list of
 ranks to ensure that there are no duplicates.
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_GROUP
+.N MPI_ERR_ARG
+.N MPI_ERR_EXHAUSTED
+
+.seealso: MPI_Group_free
 @*/
 int MPI_Group_incl ( group, n, ranks, group_out )
 MPI_Group group, *group_out;
@@ -44,7 +56,7 @@ int       n, *ranks;
 
   /* Check for a EMPTY input group or EMPTY sized new group */
   if ( (group == MPI_GROUP_EMPTY) || (n <= 0) ) {
-    MPIR_Group_dup ( MPI_GROUP_EMPTY, group_out );
+      (void) MPIR_Group_dup ( MPI_GROUP_EMPTY, group_out );
     return (mpi_errno);
   }
 
@@ -62,21 +74,18 @@ int       n, *ranks;
       }
 
   /* Create the new group */
-  new_group = (*group_out)  = NEW(struct MPIR_GROUP);
-  if (!new_group) 
-	return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-					  "Out of space in MPI_GROUP_INCL" );
+  MPIR_ALLOC(new_group,NEW(struct MPIR_GROUP),MPI_COMM_WORLD, 
+	     MPI_ERR_EXHAUSTED, "Out of space in MPI_GROUP_INCL" );
+  *group_out = new_group;
   MPIR_SET_COOKIE(new_group,MPIR_GROUP_COOKIE)
   new_group->ref_count      = 1;
   new_group->local_rank     = MPI_UNDEFINED;
   new_group->permanent      = 0;
   new_group->set_mark       = (int *)0;
   new_group->np             = n;
-  new_group->lrank_to_grank = (int *) MALLOC( n * sizeof(int) );
-  if (!new_group->lrank_to_grank) {
-	return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-					  "Out of space in MPI_GROUP_INCL" );
-  }
+  MPIR_ALLOC(new_group->lrank_to_grank,(int *) MALLOC( n * sizeof(int) ),
+	     MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+	     "Out of space in MPI_GROUP_INCL" );
 
   /* Fill in the lrank_to_grank list */
   for (i=0; i<n; i++) {

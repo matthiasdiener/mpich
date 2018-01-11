@@ -16,7 +16,7 @@ char *argv[];
   int num_procs,my_id,flag;
   int buf[SIZE][SIZE];
   MPI_Status status;
-  MPI_Request handle, handle2, handle3;
+  MPI_Request handle;
 
   MPI_Init(&argc,&argv);
   MPI_Comm_size(MPI_COMM_WORLD,&num_procs);
@@ -28,8 +28,8 @@ char *argv[];
      flag = 0;
      while (flag == 0) {
         MPI_Test (&handle, &flag, &status);
-        printf("%d Wait for completition flag = %d handle = %d ....\n",
-               my_id, flag, handle);
+        printf("%d Wait for completition flag = %d handle = %ld ....\n",
+               my_id, flag, (long) handle);
      }
   }
   else if (my_id == 0 ) {
@@ -39,6 +39,7 @@ char *argv[];
   printf("%d Done ....\n",my_id);
 
   MPI_Finalize();
+  return 0;
 }
 
 

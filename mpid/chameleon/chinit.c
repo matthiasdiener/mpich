@@ -1,12 +1,12 @@
 /*
- *  $Id: chinit.c,v 1.39 1996/01/11 18:34:40 gropp Exp $
+ *  $Id: chinit.c,v 1.40 1996/04/12 16:56:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chinit.c,v 1.39 1996/01/11 18:34:40 gropp Exp $";
+static char vcid[] = "$Id: chinit.c,v 1.40 1996/04/12 16:56:41 gropp Exp $";
 #endif
 
 /* 
@@ -26,7 +26,7 @@ static char vcid[] = "$Id: chinit.c,v 1.39 1996/01/11 18:34:40 gropp Exp $";
 #include "system/system.h"
 /* #CMMD DECLARATION# */
 
-void (*MPID_ErrorHandler)() = MPID_DefaultErrorHandler;
+void (*MPID_ErrorHandler) ANSI_ARGS((int,char*)) = MPID_DefaultErrorHandler;
 /* For tracing channel operations by ADI underlayer */
 FILE *MPID_TRACE_FILE = 0;
 

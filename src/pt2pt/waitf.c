@@ -32,7 +32,10 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_wait_ ( request, status, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_wait_ ANSI_ARGS(( MPI_Request *, MPI_Status *, int * ));
+
+void mpi_wait_ ( request, status, __ierr )
 MPI_Request  *request;
 MPI_Status   *status;
 int *__ierr;

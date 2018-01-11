@@ -9,6 +9,10 @@ linkargs=
 linkobjs=
 gettinglinkarg=0
 HasDashC=0
+if [ -z "@CCC@" -o -z "@CCLINKER@" ] ; then
+    echo "No C++ compiler and linker specified when MPICH configured."
+    exit 1
+fi
 for arg in "$@" ; do
 #    echo procssing arg $arg
     # Special processing for -o name
@@ -28,11 +32,17 @@ for arg in "$@" ; do
         -o)
 	# Need to link
 	allargs="$allargs $arg"
-	linkargs="$linkargs $arg"
-	compileargs="$compileargs -c"
-	# Still need to add the target of the -o
-	gettinglinkarg=1
-	DoLink=1
+        if [ $HasDashC = 1 ] ; then
+            # Some BUT NOT ALL compilers support -o with -c.  Allow
+            # the user to make use of the feature, IF IT EXISTS.
+            compileargs="$compileargs $arg"	
+        else
+	    linkargs="$linkargs $arg"
+	    compileargs="$compileargs -c"
+	    # Still need to add the target of the -o
+	    gettinglinkarg=1
+	    DoLink=1
+        fi
 	;;
 	-mpilog)
 	if [ -n "@MPE_LIBS@" ] ; then
@@ -90,15 +100,19 @@ for arg in "$@" ; do
 	;;
         *) allargs="$allargs $arg"
 	if [ -s "$arg" ] ; then
-	    ext=`expr "$arg" : '.*\(\..*\)`
+	    ext=`expr "$arg" : '.*\(\..*\)'`
 	    if [ "$ext" = ".C" ] ; then
 	        DoCompile=1
 	        compileargs="$compileargs $arg"
 	        fname=`basename $arg .C`
 	        linkobjs="$linkobjs $fname.o"
 	    elif [ "$ext" = ".o" ] ; then
-	        DoLink=1
-	        linkobjs="$linkobjs $arg"
+		if [ $HasDashC = 1 ] ; then
+	            compileargs="$compileargs $arg"
+                else
+	            DoLink=1
+	            linkobjs="$linkobjs $arg"
+                fi
 	    else
 	        compileargs="$compileargs $arg"
 	        linkargs="$linkargs $arg"
@@ -125,9 +139,9 @@ if [ $DoCompile = 1 ] ; then
 fi
 if [ $DoLink = 1 ] ; then
     if [ -n "$MPILOG" ] ; then
-        $Show @CCLINKER@ $linkobjs @LIB_PATH@ -lmpi++ $MPILOG $linkargs -lpmpi @LIB_LIST@
+        $Show @CCLINKER@ $linkobjs @LIB_PATH@ -l@MPILIBNAME@++ $MPILOG $linkargs -lp@MPILIBNAME@ @LIB_LIST@
     else
-        $Show @CCLINKER@ $linkobjs $linkargs @LIB_PATH@ -lmpi++ @LIB_LIST@
+        $Show @CCLINKER@ $linkobjs $linkargs @LIB_PATH@ -l@MPILIBNAME@++ @LIB_LIST@
     fi
     status=$?
 fi

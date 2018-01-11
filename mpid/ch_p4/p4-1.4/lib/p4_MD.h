@@ -12,6 +12,14 @@
 #define P4_MACHINE_TYPE "SUN"
 #endif
 
+/*  An I86_SOLARIS is SUN_SOLARIS in every way except P4_MACHINE_TYPE */
+#if defined(I86_SOLARIS)
+#define SUN_SOLARIS
+#define HP
+#undef P4_MACHINE_TYPE
+#define P4_MACHINE_TYPE "I86_SOLARIS"
+#endif
+
 #if defined(ALPHA)
 #define DEC5000
 #undef P4_MACHINE_TYPE
@@ -36,14 +44,16 @@
 #define P4_MACHINE_TYPE "RS6000"
 #endif
 
-#if defined(SGI_MP) || defined(SGI_CH) || defined (SGI_CH64)
+#if defined(SGI_MP) || defined(SGI_CH) || defined (SGI_CH64) || \
+    defined(SGI_CH32)
 #define SGI
 #define VENDOR_IPC
 #undef P4_MACHINE_TYPE
 #define P4_MACHINE_TYPE "SGI"
 #endif
 
-#if defined(SGI_CH64)
+/* All SGIs ??? */
+#if defined(SGI_CH64) || defined(SGI_MP)
 /* Create a new session to work around kills that kill the process group */
 #define SET_NEW_PGRP
 #endif
@@ -161,7 +171,11 @@
    you do
    SIGNAL_WITH_OLD_P4(SIGFOO,newfcn,oldfcn=(cast))
  */
-#if defined(HAVE_SIGACTION) && defined(SA_RESETHAND)
+#if defined(HAVE_SIGACTION)
+
+/* Here is the most reliable version.  Systems that don't provide
+   SA_RESETHAND are basically broken at a deep level. */
+#if defined(SA_RESETHAND)
 #define SIGNAL_WITH_OLD_P4(signame,sigf,oldsigf) {\
 struct sigaction oldact;\
 sigaction( signame, (struct sigaction *)0, &oldact );\
@@ -178,6 +192,26 @@ oldact.sa_handler = sigf;\
 oldact.sa_flags   = oldact.sa_flags & ~(SA_RESETHAND);\
 sigaddset( &oldact.sa_mask, signame );\
 sigaction( signame, &oldact, (struct sigaction *)0 );}
+
+#else
+/* If SA_RESETHAND is not defined, we hope that by masking off the
+   signal we're catching that it won't deliver that signal to SIG_DFL
+ */
+#define SIGNAL_WITH_OLD_P4(signame,sigf,oldsigf) {\
+struct sigaction oldact;\
+sigaction( signame, (struct sigaction *)0, &oldact );\
+oldsigf oldact.sa_handler;\
+oldact.sa_handler = sigf;\
+sigaddset( &oldact.sa_mask, signame );\
+sigaction( signame, &oldact, (struct sigaction *)0 );}
+
+#define SIGNAL_P4(signame,sigf) {\
+struct sigaction oldact;\
+sigaction( signame, (struct sigaction *)0, &oldact );\
+oldact.sa_handler = sigf;\
+sigaddset( &oldact.sa_mask, signame );\
+sigaction( signame, &oldact, (struct sigaction *)0 );}
+#endif
 
 #else
 #ifdef P4SYSV
@@ -642,7 +676,7 @@ static unsigned int allocated = 0;
 typedef unsigned long p4_usc_time_t;
 
 /* Bill says take this out, 12/22/94
-extern P4VOID exit();
+extern P4VOID exit ANSI_ARGS((int));
 */
 
 #define P4_MAXPROCS 256

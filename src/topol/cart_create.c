@@ -1,12 +1,18 @@
 /*
- *  $Id: cart_create.c,v 1.17 1995/12/21 22:18:08 gropp Exp $
+ *  $Id: cart_create.c,v 1.18 1996/04/12 15:42:24 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#include "mpitopo.h"
+#ifdef MPI_ADI2
+#include "sbcnst2.h"
+#define MPIR_SBalloc MPID_SBalloc
+#else
 #include "mpisys.h"
+#endif
 
 /*ARGSUSED*/
 
@@ -31,6 +37,12 @@ Algorithm:
 We ignore 'reorder' info currently.
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TOPOLOGY
+.N MPI_ERR_DIMS
+.N MPI_ERR_ARG
 @*/
 int MPI_Cart_create ( comm_old, ndims, dims, periods, reorder, comm_cart )
 MPI_Comm  comm_old;
@@ -86,18 +98,20 @@ MPI_Comm *comm_cart;
 
   /* Store topology information in new communicator */
   if ( (*comm_cart) != MPI_COMM_NULL ) {
-    topo = (MPIR_TOPOLOGY *) MPIR_SBalloc ( MPIR_topo_els );
-    MPIR_SET_COOKIE(&topo->cart,MPIR_CART_TOPOL_COOKIE)
-    topo->cart.type         = MPI_CART;
-    topo->cart.nnodes       = num_ranks;
-    topo->cart.ndims        = ndims;
-    topo->cart.dims         = (int *)MALLOC( sizeof(int) * 3 * ndims );
-    topo->cart.periods      = topo->cart.dims + ndims;
-    topo->cart.position     = topo->cart.periods + ndims;
-    for ( i=0; i<ndims; i++ ) {
-      topo->cart.dims[i]    = dims[i];
-      topo->cart.periods[i] = periods[i];
-    }
+      MPIR_ALLOC(topo,(MPIR_TOPOLOGY *) MPIR_SBalloc ( MPIR_topo_els ),
+		 comm_old,MPI_ERR_EXHAUSTED,"Error in MPI_CART_CREATE");
+      MPIR_SET_COOKIE(&topo->cart,MPIR_CART_TOPOL_COOKIE)
+	  topo->cart.type         = MPI_CART;
+      topo->cart.nnodes       = num_ranks;
+      topo->cart.ndims        = ndims;
+      MPIR_ALLOC(topo->cart.dims,(int *)MALLOC( sizeof(int) * 3 * ndims ),
+		 comm_old,MPI_ERR_EXHAUSTED,"Error in MPI_CART_CREATE");
+      topo->cart.periods      = topo->cart.dims + ndims;
+      topo->cart.position     = topo->cart.periods + ndims;
+      for ( i=0; i<ndims; i++ ) {
+	  topo->cart.dims[i]    = dims[i];
+	  topo->cart.periods[i] = periods[i];
+      }
 
     /* Compute my position */
     MPIR_Comm_rank ( (*comm_cart), &rank );

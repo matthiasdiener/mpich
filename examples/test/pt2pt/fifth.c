@@ -1,11 +1,11 @@
 #include "mpi.h"
+#include "test.h"
 
 int main( argc, argv )
 int argc;
 char **argv;
 {
     int rank, np, data = 777;
-    int st_source, st_tag, st_count;
     MPI_Request handle[4];
     MPI_Status status[4];
 

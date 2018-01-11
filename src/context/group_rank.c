@@ -1,5 +1,5 @@
 /*
- *  $Id: group_rank.c,v 1.11 1995/12/21 22:07:30 gropp Exp $
+ *  $Id: group_rank.c,v 1.12 1996/04/12 14:11:20 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -19,6 +19,12 @@ Output Parameter:
 process is not a member (integer) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_GROUP
+.N MPI_ERR_ARG
+
 @*/
 int MPI_Group_rank ( group, rank )
 MPI_Group group;

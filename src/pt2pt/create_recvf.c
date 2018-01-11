@@ -7,11 +7,7 @@
 #include <stdarg.h>
 #endif
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -102,7 +98,11 @@ if (_isfcd(buf)) {
 
 #endif
 #else
- void mpi_recv_init_( buf, count, datatype, source, tag, comm, request, __ierr )
+
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_recv_init_ ANSI_ARGS(( void *, int *, MPI_Datatype, int *, int *, 
+				MPI_Comm, MPI_Request *, int * ));
+void mpi_recv_init_( buf, count, datatype, source, tag, comm, request, __ierr )
 void         *buf;
 int*count;
 MPI_Request  *request;
@@ -112,10 +112,12 @@ int*tag;
 MPI_Comm     comm;
 int *__ierr;
 {
-MPI_Request lrequest;
-*__ierr = MPI_Recv_init(MPIR_F_PTR(buf),*count,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),*source,*tag,
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),&lrequest);
-*(int*)request = MPIR_FromPointer( lrequest );
+    MPI_Request lrequest;
+    *__ierr = MPI_Recv_init(MPIR_F_PTR(buf),*count,
+			    (MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),
+			    *source,*tag,
+			    (MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),
+			    &lrequest);
+    *(int*)request = MPIR_FromPointer( lrequest );
 }
 #endif

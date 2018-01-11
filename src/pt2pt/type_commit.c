@@ -1,16 +1,14 @@
 /*
- *  $Id: type_commit.c,v 1.18 1995/12/21 21:35:57 gropp Exp $
+ *  $Id: type_commit.c,v 1.22 1996/07/17 18:04:00 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: type_commit.c,v 1.18 1995/12/21 21:35:57 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
+#ifndef MPI_ADI2
 #include "mpisys.h"
+#endif
 
 /*@
     MPI_Type_commit - Commits the datatype
@@ -19,6 +17,10 @@ Input Parameter:
 . datatype - datatype (handle) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TYPE
 @*/
 int MPI_Type_commit ( datatype )
 MPI_Datatype *datatype;
@@ -42,11 +44,12 @@ MPI_Datatype *datatype;
 	   size == extent.  Because of this, using the simple test of
 	   size == extent as a filter is not useful.
 	   */
-	int j, offset, is_contig;
+	int          j, is_contig;
+	MPI_Aint     offset;
 	MPI_Datatype type = *datatype;
-	if (type->size == type->extent) {
+	if ((MPI_Aint)type->size == type->extent) {
 	switch (type->dte_type) {
-	    case MPIR_STRUCT:
+	case MPIR_STRUCT:
 	    offset    = type->indices[0];
 	    /* If the initial offset is not 0, then mark as non-contiguous.
 	       This is because many of the quick tests for valid buffers
@@ -55,17 +58,26 @@ MPI_Datatype *datatype;
 	    is_contig = (offset == 0);
 	    for (j=0;is_contig && j<type->count-1; j++) {
 		if (!type->old_types[j]->is_contig) { is_contig = 0; break; }
-		if (offset + type->old_types[j]->extent * type->blocklens[j] !=
+		if (offset + 
+		   type->old_types[j]->extent * (MPI_Aint)type->blocklens[j] !=
 		    type->indices[j+1]) { is_contig = 0; break; }
-		offset += type->old_types[j]->extent * type->blocklens[j];
+		offset += type->old_types[j]->extent * 
+		    (MPI_Aint)type->blocklens[j];
 		}
 	    if (!type->old_types[type->count-1]->is_contig) is_contig = 0;
 	    if (is_contig) {
 		type->is_contig = 1;
-		type->old_type  = type->old_types[0];
-		/* printf( "Making structure type contiguous..." ); */
+		type->old_type  = 0;
+		/* If we don't set to null, then the code in type_contig.c
+		   will use the extent of type->old_types[0] */
+		/* type->old_type  = type->old_types[0]; */
+		/* PRINTF( "Making structure type contiguous..." ); */
 		/* Should free all old structure members ... */
 		}
+	    break;
+	default:
+	    /* Just to indicate that we want all the other types to be 
+	       ignored */
 	    break;
 	    }
 	}
@@ -73,7 +85,7 @@ MPI_Datatype *datatype;
     }
     /* Nothing else to do yet */
 
-    (*datatype)->committed = MPIR_YES;
+    (*datatype)->committed = 1;
 
     return MPI_SUCCESS;
 }

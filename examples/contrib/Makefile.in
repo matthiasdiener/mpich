@@ -25,23 +25,25 @@ LIB_LIST    = @LIB_LIST@
 INCLUDE_DIR = @USER_INCLUDE_PATH@ -I$(MPIR_HOME)/include 
 DEVICE      = @DEVICE@
 
+all: $(EXECS)
+
 ### End User configurable options ###
 SHELL	= /bin/sh
 CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
 CCFLAGS = $(CFLAGS)
 #FFLAGS = '-qdpc=e' 
 FFLAGS = @FFLAGS@ $(OPTFLAGS)
-MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a 
-MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
+MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a 
+MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@++.a
 LIBS = $(LIB_PATH) $(LIB_LIST)
 LIBSPP = $(MPIPPLIB) $(LIBS)
-EXECS  = dcmplx isendtst structtest dbltest names particles topologies
-OBJS   = dcmplx.o isendtst.o structtest.o  names.o particles.o topologies.o
+EXECS  = dcmplx isendtst dbltest names particles topologies
+OBJS   = dcmplx.o isendtst.o names.o particles.o topologies.o
 
-dcmplx: dcmplx.o $(MPILIB)
+dcmplx: mpif.h dcmplx.o $(MPILIB)
 	$(FLINKER) $(OPTFLAGS) -o dcmplx dcmplx.o $(LIBS)
 
-dbltest: dbltest.o $(MPILIB)
+dbltest: mpif.h dbltest.o $(MPILIB)
 	$(FLINKER) $(OPTFLAGS) -o dbltest dbltest.o $(LIBS)
 
 isendtst: isendtst.o $(MPILIB)
@@ -58,6 +60,20 @@ particles: particles.o $(MPILIB)
 
 topologies: topologies.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o topologies topologies.o $(LIBS)
+
+#
+# Some systems have no test for a symbolic link and return false for
+# a link that exists
+mpif.h: $(MPIR_HOME)/include/mpif.h
+	if test \! -f mpif.h ; then \
+	    /bin/rm -f mpif.h ; \
+	    ln -s $(MPIR_HOME)/include/mpif.h . ; \
+	fi
+
+.c.o:
+	$(CC) $(CFLAGS) -c $*.c
+.f.o:
+	$(F77) $(FFLAGS) -c $*.f
 
 clean:
 	/bin/rm -f $(EXECS) $(OBJS)

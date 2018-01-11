@@ -2,11 +2,11 @@
 /* Custom Fortran interface file  */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifdef MPI_ADI2
+#include "mpifort.h"
+#endif
+
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) a
 #define MPIR_FromPointer(a) (int)a
 #define MPIR_RmPointer(a)
@@ -32,7 +32,11 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_iprobe_( source, tag, comm, flag, status, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_iprobe_ ANSI_ARGS(( int *, int *, MPI_Comm, int *, MPI_Status *,
+			     int * ));
+
+void mpi_iprobe_( source, tag, comm, flag, status, __ierr )
 int*source;
 int*tag;
 int         *flag;
@@ -40,7 +44,7 @@ MPI_Comm    comm;
 MPI_Status  *status;
 int *__ierr;
 {
-*__ierr = MPI_Iprobe(*source,*tag,
-	(MPI_Comm)MPIR_ToPointer(*((int*)comm)),flag,status);
-*flag = MPIR_TO_FLOG(*flag);
+    *__ierr = MPI_Iprobe(*source,*tag,
+			 (MPI_Comm)MPIR_ToPointer(*((int*)comm)),flag,status);
+    *flag = MPIR_TO_FLOG(*flag);
 }

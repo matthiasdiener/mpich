@@ -1,7 +1,13 @@
-.TH MPI_Errhandler_create 3 "12/21/1995" " " "MPI"
+.TH MPI_Errhandler_create 3 "4/11/1996" " " "MPI"
 .SH NAME
-MPI_Errhandler_create \- Creates an MPI-style errorhandler
-
+MPI_Errhandler_create \-  Creates an MPI-style errorhandler 
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Errhandler_create( function, errhandler )
+MPI_Handler_function *function;
+MPI_Errhandler       *errhandler;
+.fi
 .SH INPUT PARAMETER
 .PD 0
 .TP
@@ -49,14 +55,37 @@ All MPI objects (e.g.,
 ) are of type 
 .I INTEGER
 in Fortran.
-.SH SYNOPSIS
-.nf
-#include "mpi.h"
-int MPI_Errhandler_create( function, errhandler )
-MPI_Handler_function *function;
-MPI_Errhandler       *errhandler;
 
-.fi
+.SH ERRORS
 
+All MPI routines (except 
+.I MPI_Wtime
+and 
+.I MPI_Wtick
+) return an error value;
+C routines as the value of the function and Fortran routines in the last
+argument.  Before the value is returned, the current MPI error handler is
+called.  By default, this error handler aborts the MPI job.  The error handler
+may be changed with 
+.I MPI_Errhandler_set
+; the predefined error handler
+.I MPI_ERRORS_RETURN
+may be used to cause error values to be returned.
+Note that MPI does 
+.B not
+guarentee that an MPI program can continue past
+an error.
+
+.PD 0
+.TP
+.B MPI_SUCCESS 
+- No error; MPI routine completed successfully.
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_INTERN 
+- This error is returned when some part of the MPICH 
+implementation is unable to acquire memory.  
+.PD 1
 .SH LOCATION
- errcreate.c
+errcreate.c

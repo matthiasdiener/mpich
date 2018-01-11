@@ -1,7 +1,12 @@
-.TH MPI_Error_class 3 "12/21/1995" " " "MPI"
+.TH MPI_Error_class 3 "4/11/1996" " " "MPI"
 .SH NAME
-MPI_Error_class \- Converts an error code into an error class
-
+MPI_Error_class \-  Converts an error code into an error class 
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Error_class( errorcode, errorclass )
+int errorcode, *errorclass;
+.fi
 .SH INPUT PARAMETER
 .PD 0
 .TP
@@ -39,13 +44,5 @@ All MPI objects (e.g.,
 ) are of type 
 .I INTEGER
 in Fortran.
-.SH SYNOPSIS
-.nf
-#include "mpi.h"
-int MPI_Error_class( errorcode, errorclass )
-int errorcode, *errorclass;
-
-.fi
-
 .SH LOCATION
- errclass.c
+errclass.c

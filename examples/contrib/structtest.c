@@ -4,6 +4,8 @@
 #define SIZE 100
 
 /* This is basically example 3.33 (p. 77) from the standard. */
+/* This test uses "type_count", which has been removed from the standard
+ */
 
 struct Partstruct {
   int class;     /* Particle class */
@@ -41,6 +43,7 @@ doit()
   MPI_Type_extent(Particletype,&extent);
   MPI_Type_size(Particletype,&size);
   MPI_Type_count(Particletype,&count);
+   -- MPI_Type_count removed from MPI --
   MPI_Type_lb(Particletype,&lb);
   MPI_Type_ub(Particletype,&ub);
 

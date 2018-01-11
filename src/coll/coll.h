@@ -1,4 +1,4 @@
-/* 	$Id: coll.h,v 1.8 1995/08/29 16:07:47 gropp Exp $	 */
+/* 	$Id: coll.h,v 1.9 1996/04/12 15:37:06 gropp Exp $	 */
 
 
 /*
@@ -7,6 +7,7 @@ coll.h - Defines used for point to point communications within
          collective operations.
 
 */
+#include "mpicoll.h"
 
 /* Various operations */
 #ifndef MPIR_MIN
@@ -25,17 +26,25 @@ coll.h - Defines used for point to point communications within
    This only works for when the send and receive types are the same.
    We will require something different (a combination of MPIR_Pack2 and
    MPIR_Unpack2, perhaps?) for the data-movement operations (e.g., MPI_Gather).
+   
+   In addition, the pack/unpack routines can be used only for contiguous
+   copies, in which case we can just use memcpy.  But in that case, we
+   need to handle non-contiguous data.  We should probably introduce a
+   memcpy( dest, src, count, datatype ) routine for this...
  */ 
-#ifndef MPIR_USE_SENDRECV
-#define MPIR_COPYSELF( src, count, datatype, dest, tag, rank, comm ) \
-{int _outlen, _totlen; \
-mpi_errno = MPIR_Pack2( src, count, datatype, (void (*)())0, (void*)0, \
-		        dest, &_outlen, &_totlen );}
-#else
+#if 1 || defined(MPIR_USE_SENDRECV)
 #define MPIR_COPYSELF( src, count, datatype, dest, tag, rank, comm ) \
 {MPI_Status _status;\
 mpi_errno = MPI_Sendrecv ( (void *)(src), count, datatype, rank, tag, \
 	       (void *)(dest), count, datatype, rank, tag, comm, &_status );}
+#else
+#define MPIR_COPYSELF( src, count, datatype, dest, tag, rank, comm ) \
+{int _outlen, _totlen; \
+mpi_errno = MPIR_Pack2( src, count, datatype, \
+			(int (*) ANSI_ARGS((unsigned char *, unsigned char *, \
+					    MPI_Datatype, int, void *)))0, \
+			(void*)0, dest, &_outlen, &_totlen );}
+
 #endif
 
 /* 

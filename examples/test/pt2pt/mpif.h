@@ -1,1 +1,1 @@
-/home/gropp/mpich/include/mpif.h
+../../../include/mpif.h

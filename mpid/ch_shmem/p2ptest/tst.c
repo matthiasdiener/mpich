@@ -1,5 +1,9 @@
 #include "p2p.h"
 
+/* Stub for p2p externals */
+int MPID_myid = 0;
+int MPID_DebugFlag = 1;
+
 main()
 {
     p2p_lock_t *mylock;

@@ -53,9 +53,21 @@ extern struct head_trace_buf *xx_buf_head;
  * Function declarations 
  */
 
-VOID xx_write(), xx_dump(), xx_dump_aux(),
-     xx_user(), xx_user1(), xx_alog_setup();
-int  xx_getbuf();
+#ifndef ANSI_ARGS
+#if defined(__STDC__) || defined(__cplusplus)
+#define ANSI_ARGS(a) a
+#else
+#define ANSI_ARGS(a) ()
+#endif
+#endif
+
+VOID xx_write ANSI_ARGS((struct head_trace_buf *,int,int,int, char *)), 
+     xx_dump ANSI_ARGS((struct head_trace_buf *)), 
+     xx_dump_aux ANSI_ARGS((struct trace_buf *, FILE *, int, int)),
+     xx_user ANSI_ARGS((struct head_trace_buf *, int)), 
+     xx_user1 ANSI_ARGS((struct head_trace_buf *, int)), 
+     xx_alog_setup ANSI_ARGS((int,int));
+int  xx_getbuf ANSI_ARGS((struct head_trace_buf *));
 
 
 #ifdef ALOG_TRACE

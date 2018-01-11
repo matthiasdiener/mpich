@@ -38,12 +38,11 @@ typedef struct {
 /* 
    Generate the header 
  */
-static MPE_Log_GenerateHeader( fp )
+static void MPE_Log_GenerateHeader( fp )
 FILE *fp;
 {
-  int nevents, neventTypes, buf[2], work[2], numProcs, totalnevents,
+  int nevents, neventTypes, numProcs, totalnevents,
       totalneventTypes;
-  unsigned long ubuf[4], uwork[4];
   double startTime, endTime, minimumTime, maximumTime;
   MPI_Comm_size(MPI_COMM_WORLD,&numProcs);
 
@@ -71,8 +70,8 @@ FILE *fp;
     /* These need to be integers (for upshot) and made smaller */
     /* ALL processors should perform a uniform shift to make the mintime
        0 */
-    fprintf( fp, "-6 0 0 0 0 %.0lf\n", minimumTime*1000000 );
-    fprintf( fp, "-7 0 0 0 0 %.0lf\n", maximumTime*1000000 );
+    fprintf( fp, "-6 0 0 0 0 %.0f\n", minimumTime*1000000 );
+    fprintf( fp, "-7 0 0 0 0 %.0f\n", maximumTime*1000000 );
     fprintf( fp, "-8 0 0 1 0 0\n" );  /* timer cycles */
     fprintf( fp, "-11 %d 0 0 0 0\n", MPE_Log_procid);  /* 0 rollovers */
   }
@@ -227,15 +226,15 @@ int procid, *rec;
       fprintf( fp, "%d %d 0 0 %s\n", i[0], i[1], str );
       /* State events are special - they have two data values  */
     else if (hdr->event == LOG_MESG_SEND || hdr->event == LOG_MESG_RECV)
-      fprintf( fp, "0 %d 0 %.0lf %d %d\n", i[0],
+      fprintf( fp, "0 %d 0 %.0f %d %d\n", i[0],
 	       temp_time*1000000, i[1], i[2] );
       /* Sends and receives need 3:  otherParty, tag, size*/
     else
-	fprintf( fp, "0 %d 0 %.0lf %s\n", 
+	fprintf( fp, "0 %d 0 %.0f %s\n", 
 		i[0], temp_time*1000000, str );
   }  /* if (left>0) */
   else
-    fprintf( fp, "0 0 0 %.0lf\n", temp_time*1000000);
+    fprintf( fp, "0 0 0 %.0f\n", temp_time*1000000);
 }
 
 
@@ -395,7 +394,7 @@ int      *srcs;
 static MPE_Log_BLOCK *MPE_Log_Sort( readBlock )
 MPE_Log_BLOCK *readBlock;
 {
-  MPE_Log_BLOCK *newLogHeadBlk, *newLogBlk, *readBlk, *tmpBlk;
+  MPE_Log_BLOCK *newLogHeadBlk, *newLogBlk, *readBlk;
   MPE_Log_HEADER *readRecHdr, *newRecHdr;
   int i;			/* # of ints read from the input block */
   int n;			/* # of ints in this block */
@@ -428,10 +427,10 @@ int procid, np, *lchild, *rchild, *parent, *am_left;
 }
 
 
-static MPE_Log_ParallelMerge( filename )
+static int MPE_Log_ParallelMerge( filename )
      char *filename;
 {
-  int      srcs, lchild, rchild, parent, tlast, np, mtype, am_left;
+  int      srcs, lchild, rchild, parent, np, mtype, am_left;
   MPE_Log_MBuf *ba, *bb, *bc, *bout;
   FILE *fp;
   void MPE_Log_FlushOutput();
@@ -586,7 +585,6 @@ double *startTime, *endTime;
   MPE_Log_HEADER   *ap;
   int               ne, net;
   double            ttest;
-  double           *t;
   
   ne  = 0;
   net = 0;

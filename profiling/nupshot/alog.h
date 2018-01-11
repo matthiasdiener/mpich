@@ -96,6 +96,11 @@ Formats for reserved types:
       Data: message tag
       Comment: color message name
 
+  -15 Process definition
+      Define a name for each process
+      Process: the process number
+      Comment: name
+ 
   -100 Synchronization event
        Sync events are used internally to sychronize timers on the various
        processes.  They do not appear in the logfiles.

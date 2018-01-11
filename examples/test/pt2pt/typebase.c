@@ -55,20 +55,20 @@ SetupBasicTypes()
     BasicSizes[9] = sizeof(double);
 
 #if defined (__STDC__)
-    if (MPI_LONG_DOUBLE) {
-	BasicTypes[10] = MPI_LONG_DOUBLE;
-	BasicSizes[10] = sizeof(long double);
-	BasicTypes[11] = MPI_BYTE;
-	BasicSizes[11] = sizeof(unsigned char);
-	BasicTypesName[10] = "MPI_LONG_DOUBLE";
-	BasicTypesName[11] = "MPI_BYTE";
-	}
-    else {
-	ntypes = 11;
-	BasicTypes[10] = MPI_BYTE;
-	BasicSizes[10] = sizeof(unsigned char);
-	BasicTypesName[10] = "MPI_BYTE";
-	}
+/* This matches the code in src/env/initutil.c 
+   But HAVE_LONG_DOUBLE isn't part of the regular MPI definitions or
+   make!
+ */
+    BasicTypes[10] = MPI_LONG_DOUBLE;
+#ifdef HAVE_LONG_DOUBLE
+    BasicSizes[10] = sizeof(long double);
+#else
+    BasicSizes[10] = 2*sizeof(double);
+#endif
+    BasicTypes[11] = MPI_BYTE;
+    BasicSizes[11] = sizeof(unsigned char);
+    BasicTypesName[10] = "MPI_LONG_DOUBLE";
+    BasicTypesName[11] = "MPI_BYTE";
 #else
     BasicTypes[10] = MPI_BYTE;
     BasicSizes[10] = sizeof(unsigned char);
@@ -98,13 +98,24 @@ for (i=0; i<ntypes; i++) {
     MPI_Type_ub( BasicTypes[i], &ub );
     if (size != extent) {
 	errs++;
-	printf( "size (%d) != extent (%d) for basic type %s\n", size, extent,
-	       BasicTypesName[i] );
+	printf( "size (%d) != extent (%ld) for basic type %s\n", size, 
+		(long) extent, BasicTypesName[i] );
 	}
     if (size != BasicSizes[i]) {
+#ifdef __STDC__
+	if (BasicTypes[i] == MPI_LONG_DOUBLE) {
+	    /* Try alternate value (in case HAVE_LONG_DOUBLE not defined) */
+	    if (sizeof(double)*2 != BasicSizes[i]) {
+		errs++;
+		printf( "size(%d) != C size (%d) for basic type %s\n", size, 
+			BasicSizes[i], BasicTypesName[i] );
+	    }
+	}
+#else
 	errs++;
 	printf( "size(%d) != C size (%d) for basic type %s\n", size, 
 	       BasicSizes[i], BasicTypesName[i] );
+#endif
 	}
     if (lb != 0) {
 	errs++;

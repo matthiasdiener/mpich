@@ -1,0 +1,544 @@
+	./runtests 
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c overtake.c
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c test.c
+	mpCC -g -o overtake overtake.o test.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c sendrecv.c
+	mpCC -g -o sendrecv sendrecv.o test.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c isndrcv.c
+	mpCC -g -o isndrcv isndrcv.o test.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c third.c
+	mpCC -g -o third third.o test.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c fourth.c
+	mpCC -g -o fourth fourth.o test.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c fifth.c
+	mpCC -g -o fifth fifth.o test.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c sixth.c
+	mpCC -g -o sixth sixth.o test.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c hvectest.c
+	mpCC -g -o hvectest hvectest.o test.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c hvectest2.c
+	mpCC -g -o hvectest2 hvectest2.o test.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c hvec.c
+	mpCC -g -o hvec hvec.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c probe.c
+	mpCC -g -o probe probe.o test.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c probe1.c
+	mpCC -g -o probe1 probe1.o test.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c testtest1.c
+	mpCC -g -o testtest1 testtest1.o test.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c ssendtest.c
+	mpCC -g -o ssendtest ssendtest.o test.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c ssendtest2.c
+	mpCC -g -o ssendtest2 ssendtest2.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c typetest.c
+	mpCC -g -o typetest typetest.o test.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c dtypelife.c
+	mpCC -g -o dtypelife dtypelife.o test.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c issendtest.c
+	mpCC -g -o issendtest issendtest.o test.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c issendinit.c
+	mpCC -g -o issendinit issendinit.o test.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+0706-317 ERROR: Unresolved or undefined symbols detected:
+		 Symbols in error (followed by references) are
+		 dumped to the load map.
+		 The -bloadmap:<filename> option will create a load map.
+.MPID_Request_free
+The error code from the last failed command is 8.
+
+Make Quitting.
+**** Testing MPI Point-to-point routines ****
+**** Testing MPI_Send and MPI_Recv ****
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c sendrecv2.c
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c dtypes.c
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c gcomm.c
+	mpCC -g -o sendrecv2 sendrecv2.o dtypes.o gcomm.o \
+			 -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+**** Testing MPI_Send and MPI_Recv (2) ****
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c sendrecv3.c
+	mpCC -g -o sendrecv3 sendrecv3.o dtypes.o gcomm.o \
+			 -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+**** Testing MPI_Send and MPI_Recv (3) ****
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c sendrecv4.c
+	mpCC -g -o sendrecv4 sendrecv4.o dtypes.o gcomm.o \
+			 -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+**** Testing MPI_Send and MPI_Recv (4) ****
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c bsendtest.c
+	mpCC -g -o bsendtest bsendtest.o test.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+**** Testing MPI_Bsend and MPI_Recv (4) ****
+**** Testing MPI_Isend and MPI_Irecv ****
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c irsend.c
+	mpCC -g -o irsend irsend.o dtypes.o gcomm.o \
+			 -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+**** Testing MPI_Irsend ****
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c irsendinit.c
+	mpCC -g -o irsendinit irsendinit.o dtypes.o gcomm.o \
+			 -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+0706-317 ERROR: Unresolved or undefined symbols detected:
+		 Symbols in error (followed by references) are
+		 dumped to the load map.
+		 The -bloadmap:<filename> option will create a load map.
+.MPID_Request_free
+The error code from the last failed command is 8.
+
+Make Quitting.
+**** Testing MPI_Rsend_init ****
+Differences in irsendinit.out
+2,4c2,123
+< Missing: program name
+< Program irsendinit either does not exist, is not 
+< executable, or is an erroneous argument to mpirun.
+---
+> Testing type Basic type MPI_CHAR
+> Testing type Basic type MPI_SHORT
+> Testing type Basic type MPI_INT
+> Testing type Basic type MPI_LONG
+> Testing type Basic type MPI_UNSIGNED_CHAR
+> Testing type Basic type MPI_UNSIGNED_SHORT
+> Testing type Basic type MPI_UNSIGNED
+> Testing type Basic type MPI_UNSIGNED_LONG
+> Testing type Basic type MPI_FLOAT
+> Testing type Basic type MPI_DOUBLE
+> Testing type Basic type MPI_BYTE
+> Testing type Contig type MPI_CHAR
+> Testing type Contig type MPI_SHORT
+> Testing type Contig type MPI_INT
+> Testing type Contig type MPI_LONG
+> Testing type Contig type MPI_UNSIGNED_CHAR
+> Testing type Contig type MPI_UNSIGNED_SHORT
+> Testing type Contig type MPI_UNSIGNED
+> Testing type Contig type MPI_UNSIGNED_LONG
+> Testing type Contig type MPI_FLOAT
+> Testing type Contig type MPI_DOUBLE
+> Testing type Contig type MPI_BYTE
+> Testing type Vector type MPI_CHAR
+> Testing type Vector type MPI_SHORT
+> Testing type Vector type MPI_INT
+> Testing type Vector type MPI_LONG
+> Testing type Vector type MPI_UNSIGNED_CHAR
+> Testing type Vector type MPI_UNSIGNED_SHORT
+> Testing type Vector type MPI_UNSIGNED
+> Testing type Vector type MPI_UNSIGNED_LONG
+> Testing type Vector type MPI_FLOAT
+> Testing type Vector type MPI_DOUBLE
+> Testing type Vector type MPI_BYTE
+> Testing type Index type MPI_CHAR
+> Testing type Index type MPI_SHORT
+> Testing type Index type MPI_INT
+> Testing type Index type MPI_LONG
+> Testing type Index type MPI_UNSIGNED_CHAR
+> Testing type Index type MPI_UNSIGNED_SHORT
+> Testing type Index type MPI_UNSIGNED
+> Testing type Index type MPI_UNSIGNED_LONG
+> Testing type Index type MPI_FLOAT
+> Testing type Index type MPI_DOUBLE
+> Testing type Index type MPI_BYTE
+> Testing type Struct type char-double
+> Testing type Struct type double-char
+> Testing type Struct type unsigned-double
+> Testing type Struct type float-long
+> Testing type Struct type unsigned char-char
+> Testing type Struct type unsigned short-double
+> Testing type Struct (MPI_UB) type MPI_CHAR
+> Testing type Struct (MPI_UB) type MPI_SHORT
+> Testing type Struct (MPI_UB) type MPI_INT
+> Testing type Struct (MPI_UB) type MPI_LONG
+> Testing type Struct (MPI_UB) type MPI_UNSIGNED_CHAR
+> Testing type Struct (MPI_UB) type MPI_UNSIGNED_SHORT
+> Testing type Struct (MPI_UB) type MPI_UNSIGNED
+> Testing type Struct (MPI_UB) type MPI_UNSIGNED_LONG
+> Testing type Struct (MPI_UB) type MPI_FLOAT
+> Testing type Struct (MPI_UB) type MPI_DOUBLE
+> Testing type Struct (MPI_UB) type MPI_BYTE
+> Testing type Basic type MPI_CHAR
+> Testing type Basic type MPI_SHORT
+> Testing type Basic type MPI_INT
+> Testing type Basic type MPI_LONG
+> Testing type Basic type MPI_UNSIGNED_CHAR
+> Testing type Basic type MPI_UNSIGNED_SHORT
+> Testing type Basic type MPI_UNSIGNED
+> Testing type Basic type MPI_UNSIGNED_LONG
+> Testing type Basic type MPI_FLOAT
+> Testing type Basic type MPI_DOUBLE
+> Testing type Basic type MPI_BYTE
+> Testing type Contig type MPI_CHAR
+> Testing type Contig type MPI_SHORT
+> Testing type Contig type MPI_INT
+> Testing type Contig type MPI_LONG
+> Testing type Contig type MPI_UNSIGNED_CHAR
+> Testing type Contig type MPI_UNSIGNED_SHORT
+> Testing type Contig type MPI_UNSIGNED
+> Testing type Contig type MPI_UNSIGNED_LONG
+> Testing type Contig type MPI_FLOAT
+> Testing type Contig type MPI_DOUBLE
+> Testing type Contig type MPI_BYTE
+> Testing type Vector type MPI_CHAR
+> Testing type Vector type MPI_SHORT
+> Testing type Vector type MPI_INT
+> Testing type Vector type MPI_LONG
+> Testing type Vector type MPI_UNSIGNED_CHAR
+> Testing type Vector type MPI_UNSIGNED_SHORT
+> Testing type Vector type MPI_UNSIGNED
+> Testing type Vector type MPI_UNSIGNED_LONG
+> Testing type Vector type MPI_FLOAT
+> Testing type Vector type MPI_DOUBLE
+> Testing type Vector type MPI_BYTE
+> Testing type Index type MPI_CHAR
+> Testing type Index type MPI_SHORT
+> Testing type Index type MPI_INT
+> Testing type Index type MPI_LONG
+> Testing type Index type MPI_UNSIGNED_CHAR
+> Testing type Index type MPI_UNSIGNED_SHORT
+> Testing type Index type MPI_UNSIGNED
+> Testing type Index type MPI_UNSIGNED_LONG
+> Testing type Index type MPI_FLOAT
+> Testing type Index type MPI_DOUBLE
+> Testing type Index type MPI_BYTE
+> Testing type Struct type char-double
+> Testing type Struct type double-char
+> Testing type Struct type unsigned-double
+> Testing type Struct type float-long
+> Testing type Struct type unsigned char-char
+> Testing type Struct type unsigned short-double
+> Testing type Struct (MPI_UB) type MPI_CHAR
+> Testing type Struct (MPI_UB) type MPI_SHORT
+> Testing type Struct (MPI_UB) type MPI_INT
+> Testing type Struct (MPI_UB) type MPI_LONG
+> Testing type Struct (MPI_UB) type MPI_UNSIGNED_CHAR
+> Testing type Struct (MPI_UB) type MPI_UNSIGNED_SHORT
+> Testing type Struct (MPI_UB) type MPI_UNSIGNED
+> Testing type Struct (MPI_UB) type MPI_UNSIGNED_LONG
+> Testing type Struct (MPI_UB) type MPI_FLOAT
+> Testing type Struct (MPI_UB) type MPI_DOUBLE
+> Testing type Struct (MPI_UB) type MPI_BYTE
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c testsome.c
+	mpCC -g -o testsome testsome.o dtypes.o gcomm.o \
+			 -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+**** Testing MPI_Testsome/Testany/Waitsome ****
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c testall.c
+	mpCC -g -o testall testall.o dtypes.o gcomm.o \
+			 -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+**** Testing MPI_Testall ****
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c sndrcv.c
+	mpCC -g -o sndrcv sndrcv.o dtypes.o gcomm.o \
+			 -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+**** Testing MPI_Sendrecv ****
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c getelm.c
+	mpCC -g -o getelm getelm.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+**** Testing MPI_Get_elements ****
+**** Verifying that messages are non-overtaking ****
+**** Verifying ssend ****
+**** Verifying ssend (2) ****
+**** Verifying Issend ****
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c typebase.c
+	mpCC -g -o typebase typebase.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+**** Checking the type (sizes) routines ****
+**** Checking the type routines ****
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c typeub.c
+	mpCC -g -o typeub typeub.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+**** Checking the type routines: MPI_UB ****
+**** Checking the type routines: MPI_Type_free ****
+*** Testing Unexpected messages ***
+*** Testing Irecv/Isend/Wait ***
+*** Testing Irecv/Isend/Waitall ***
+*** Testing attribute manipulation ***
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c nblock.c
+	mpCC -g -o nblock nblock.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+*** Testing Isend/Irecv (large numbers) ***
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c nbtest.c
+	mpCC -g -o nbtest nbtest.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+*** Testing Isend/Probe/Recv (large numbers) ***
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c sendmany.c
+	mpCC -g -o sendmany sendmany.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+*** Testing Send (many procs) ***
+Differences in sendmany.out
+14,21c14,16
+< ERROR: 0031-250  task 1: Terminated
+< ERROR: 0031-250  task 2: Terminated
+< ERROR: 0031-250  task 3: Terminated
+< ERROR: 0031-250  task 5: Terminated
+< ERROR: 0031-250  task 6: Terminated
+< ERROR: 0031-250  task 7: Terminated
+< ERROR: 0031-250  task 4: Terminated
+< ERROR: 0031-250  task 0: Terminated
+---
+> length = 16384  
+> length = 32768  
+> length = 65536  
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c order.c
+	mpCC -g -o order order.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+*** Testing Recv ordering ***
+Differences in order.out
+3,35d2
+< [0] Unexpected queue:
+< [0] 212c6138 context_id = 0, tag = 0(ffffffff), src = 4(ffffffff)
+< [0] 212c62c8 context_id = 0, tag = 0(ffffffff), src = 4(ffffffff)
+< [0] 212c6458 context_id = 0, tag = 0(ffffffff), src = 2(ffffffff)
+< [0] 212c65e8 context_id = 0, tag = 0(ffffffff), src = 6(ffffffff)
+< [0] 212c6778 context_id = 0, tag = 0(ffffffff), src = 2(ffffffff)
+< [0] 212c6908 context_id = 0, tag = 0(ffffffff), src = 6(ffffffff)
+< [0] 212c6a98 context_id = 0, tag = 0(ffffffff), src = 5(ffffffff)
+< [0] 212c5f88 context_id = 0, tag = 0(ffffffff), src = 5(ffffffff)
+< 4 at [212c6c28], id = 0 chshort.c[149]
+< 32 at [212c5f88], id = 0 queue.c[118]
+< 120 at [212c6b58], id = 0 queue.c[356]
+< 4 at [212c6b08], id = 0 chshort.c[149]
+< 32 at [212c6a98], id = 0 queue.c[118]
+< 120 at [212c69c8], id = 0 queue.c[356]
+< 4 at [212c6978], id = 0 chshort.c[149]
+< 32 at [212c6908], id = 0 queue.c[118]
+< 120 at [212c6838], id = 0 queue.c[356]
+< 4 at [212c67e8], id = 0 chshort.c[149]
+< 32 at [212c6778], id = 0 queue.c[118]
+< 120 at [212c66a8], id = 0 queue.c[356]
+< 4 at [212c6658], id = 0 chshort.c[149]
+< 32 at [212c65e8], id = 0 queue.c[118]
+< 120 at [212c6518], id = 0 queue.c[356]
+< 4 at [212c64c8], id = 0 chshort.c[149]
+< 32 at [212c6458], id = 0 queue.c[118]
+< 120 at [212c6388], id = 0 queue.c[356]
+< 4 at [212c6338], id = 0 chshort.c[149]
+< 32 at [212c62c8], id = 0 queue.c[118]
+< 120 at [212c61f8], id = 0 queue.c[356]
+< 4 at [212c61a8], id = 0 chshort.c[149]
+< 32 at [212c6138], id = 0 queue.c[118]
+< 120 at [212c6068], id = 0 queue.c[356]
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c trunc.c
+	mpCC -g -o trunc trunc.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+*** Testing Message trunction ***
+*** Testing Vector type ***
+*** Testing struct type for vectors (MPI_UB) ***
+*** Testing Type_Hvector ***
+*** Testing Probe and Get_count ***
+*** Testing Iprobe and Get_count ***
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c self.c
+	mpCC -g -o self self.o test.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+*** Testing send to self ***
+*** Testing MPI_Test ***
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c persistent.c
+	mpCC -g -o persistent persistent.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+*** Testing MPI_Recv_init ***
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c waitall.c
+	mpCC -g -o waitall waitall.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+*** Testing MPI_Waitall ***
+	mpCC -DMPI_ADI2 -I../../mpid/ch2 -DFORTRANNOUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -g  -I/sphome/gropp/mpich/include  -DMPI_rs6000 -c pack.c
+	mpCC -g -o pack pack.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2   -lmpi 
+*** Testing MPI_Pack ***
+FORTRAN TESTS
+	mpxlf -g -c allpair.f
+** allpair   === End of Compilation 1 ===
+** test_pair   === End of Compilation 2 ===
+** msg_check   === End of Compilation 3 ===
+** rq_check   === End of Compilation 4 ===
+** init_test_data   === End of Compilation 5 ===
+** clear_test_data   === End of Compilation 6 ===
+** verify_test_data   === End of Compilation 7 ===
+1501-510  Compilation successful for file allpair.f.
+	mpxlf -g -o allpair allpair.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2  -lmpi 
+*** Testing pt-2-pt from Fortran ***
+	mpxlf -g -c allpair2.f
+** allpair2   === End of Compilation 1 ===
+** test_pair   === End of Compilation 2 ===
+** msg_check   === End of Compilation 3 ===
+** rq_check   === End of Compilation 4 ===
+** init_test_data   === End of Compilation 5 ===
+** clear_test_data   === End of Compilation 6 ===
+** verify_test_data   === End of Compilation 7 ===
+1501-510  Compilation successful for file allpair2.f.
+	mpxlf -g -o allpair2 allpair2.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2  -lmpi 
+*** Testing pt-2-pt from Fortran (many calls) ***
+	mpxlf -g -c structf.f
+** bustit   === End of Compilation 1 ===
+1501-510  Compilation successful for file structf.f.
+	mpxlf -g -o structf structf.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2  -lmpi 
+*** Testing Type_struct from Fortran ***
+	mpxlf -g -c send1.f
+** test   === End of Compilation 1 ===
+1501-510  Compilation successful for file send1.f.
+	mpxlf -g -o send1 send1.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2  -lmpi 
+*** Testing pt-2-pt from Fortran (2) ***
+	mpxlf -g -c pingpong.f
+** pong   === End of Compilation 1 ===
+1501-510  Compilation successful for file pingpong.f.
+	mpxlf -g -o pingpong pingpong.o -L/sphome/gropp/mpich/lib/rs6000/ch_mpl-2  -lmpi 
+*** Testing pt-2-pt from Fortran (3) ***
+Can not find file pingpong.std to compare against for test pingpong
+END OF FORTRAN TESTS
+*** Checking for differences from expected output ***
+Can not find file pingpong.std to compare against for test pingpong
+Differences in irsendinit
+2,4c2,123
+< Missing: program name
+< Program irsendinit either does not exist, is not 
+< executable, or is an erroneous argument to mpirun.
+---
+> Testing type Basic type MPI_CHAR
+> Testing type Basic type MPI_SHORT
+> Testing type Basic type MPI_INT
+> Testing type Basic type MPI_LONG
+> Testing type Basic type MPI_UNSIGNED_CHAR
+> Testing type Basic type MPI_UNSIGNED_SHORT
+> Testing type Basic type MPI_UNSIGNED
+> Testing type Basic type MPI_UNSIGNED_LONG
+> Testing type Basic type MPI_FLOAT
+> Testing type Basic type MPI_DOUBLE
+> Testing type Basic type MPI_BYTE
+> Testing type Contig type MPI_CHAR
+> Testing type Contig type MPI_SHORT
+> Testing type Contig type MPI_INT
+> Testing type Contig type MPI_LONG
+> Testing type Contig type MPI_UNSIGNED_CHAR
+> Testing type Contig type MPI_UNSIGNED_SHORT
+> Testing type Contig type MPI_UNSIGNED
+> Testing type Contig type MPI_UNSIGNED_LONG
+> Testing type Contig type MPI_FLOAT
+> Testing type Contig type MPI_DOUBLE
+> Testing type Contig type MPI_BYTE
+> Testing type Vector type MPI_CHAR
+> Testing type Vector type MPI_SHORT
+> Testing type Vector type MPI_INT
+> Testing type Vector type MPI_LONG
+> Testing type Vector type MPI_UNSIGNED_CHAR
+> Testing type Vector type MPI_UNSIGNED_SHORT
+> Testing type Vector type MPI_UNSIGNED
+> Testing type Vector type MPI_UNSIGNED_LONG
+> Testing type Vector type MPI_FLOAT
+> Testing type Vector type MPI_DOUBLE
+> Testing type Vector type MPI_BYTE
+> Testing type Index type MPI_CHAR
+> Testing type Index type MPI_SHORT
+> Testing type Index type MPI_INT
+> Testing type Index type MPI_LONG
+> Testing type Index type MPI_UNSIGNED_CHAR
+> Testing type Index type MPI_UNSIGNED_SHORT
+> Testing type Index type MPI_UNSIGNED
+> Testing type Index type MPI_UNSIGNED_LONG
+> Testing type Index type MPI_FLOAT
+> Testing type Index type MPI_DOUBLE
+> Testing type Index type MPI_BYTE
+> Testing type Struct type char-double
+> Testing type Struct type double-char
+> Testing type Struct type unsigned-double
+> Testing type Struct type float-long
+> Testing type Struct type unsigned char-char
+> Testing type Struct type unsigned short-double
+> Testing type Struct (MPI_UB) type MPI_CHAR
+> Testing type Struct (MPI_UB) type MPI_SHORT
+> Testing type Struct (MPI_UB) type MPI_INT
+> Testing type Struct (MPI_UB) type MPI_LONG
+> Testing type Struct (MPI_UB) type MPI_UNSIGNED_CHAR
+> Testing type Struct (MPI_UB) type MPI_UNSIGNED_SHORT
+> Testing type Struct (MPI_UB) type MPI_UNSIGNED
+> Testing type Struct (MPI_UB) type MPI_UNSIGNED_LONG
+> Testing type Struct (MPI_UB) type MPI_FLOAT
+> Testing type Struct (MPI_UB) type MPI_DOUBLE
+> Testing type Struct (MPI_UB) type MPI_BYTE
+> Testing type Basic type MPI_CHAR
+> Testing type Basic type MPI_SHORT
+> Testing type Basic type MPI_INT
+> Testing type Basic type MPI_LONG
+> Testing type Basic type MPI_UNSIGNED_CHAR
+> Testing type Basic type MPI_UNSIGNED_SHORT
+> Testing type Basic type MPI_UNSIGNED
+> Testing type Basic type MPI_UNSIGNED_LONG
+> Testing type Basic type MPI_FLOAT
+> Testing type Basic type MPI_DOUBLE
+> Testing type Basic type MPI_BYTE
+> Testing type Contig type MPI_CHAR
+> Testing type Contig type MPI_SHORT
+> Testing type Contig type MPI_INT
+> Testing type Contig type MPI_LONG
+> Testing type Contig type MPI_UNSIGNED_CHAR
+> Testing type Contig type MPI_UNSIGNED_SHORT
+> Testing type Contig type MPI_UNSIGNED
+> Testing type Contig type MPI_UNSIGNED_LONG
+> Testing type Contig type MPI_FLOAT
+> Testing type Contig type MPI_DOUBLE
+> Testing type Contig type MPI_BYTE
+> Testing type Vector type MPI_CHAR
+> Testing type Vector type MPI_SHORT
+> Testing type Vector type MPI_INT
+> Testing type Vector type MPI_LONG
+> Testing type Vector type MPI_UNSIGNED_CHAR
+> Testing type Vector type MPI_UNSIGNED_SHORT
+> Testing type Vector type MPI_UNSIGNED
+> Testing type Vector type MPI_UNSIGNED_LONG
+> Testing type Vector type MPI_FLOAT
+> Testing type Vector type MPI_DOUBLE
+> Testing type Vector type MPI_BYTE
+> Testing type Index type MPI_CHAR
+> Testing type Index type MPI_SHORT
+> Testing type Index type MPI_INT
+> Testing type Index type MPI_LONG
+> Testing type Index type MPI_UNSIGNED_CHAR
+> Testing type Index type MPI_UNSIGNED_SHORT
+> Testing type Index type MPI_UNSIGNED
+> Testing type Index type MPI_UNSIGNED_LONG
+> Testing type Index type MPI_FLOAT
+> Testing type Index type MPI_DOUBLE
+> Testing type Index type MPI_BYTE
+> Testing type Struct type char-double
+> Testing type Struct type double-char
+> Testing type Struct type unsigned-double
+> Testing type Struct type float-long
+> Testing type Struct type unsigned char-char
+> Testing type Struct type unsigned short-double
+> Testing type Struct (MPI_UB) type MPI_CHAR
+> Testing type Struct (MPI_UB) type MPI_SHORT
+> Testing type Struct (MPI_UB) type MPI_INT
+> Testing type Struct (MPI_UB) type MPI_LONG
+> Testing type Struct (MPI_UB) type MPI_UNSIGNED_CHAR
+> Testing type Struct (MPI_UB) type MPI_UNSIGNED_SHORT
+> Testing type Struct (MPI_UB) type MPI_UNSIGNED
+> Testing type Struct (MPI_UB) type MPI_UNSIGNED_LONG
+> Testing type Struct (MPI_UB) type MPI_FLOAT
+> Testing type Struct (MPI_UB) type MPI_DOUBLE
+> Testing type Struct (MPI_UB) type MPI_BYTE
+Differences in sendmany
+14,21c14,16
+< ERROR: 0031-250  task 1: Terminated
+< ERROR: 0031-250  task 2: Terminated
+< ERROR: 0031-250  task 3: Terminated
+< ERROR: 0031-250  task 5: Terminated
+< ERROR: 0031-250  task 6: Terminated
+< ERROR: 0031-250  task 7: Terminated
+< ERROR: 0031-250  task 4: Terminated
+< ERROR: 0031-250  task 0: Terminated
+---
+> length = 16384  
+> length = 32768  
+> length = 65536  
+Differences in order
+3,35d2
+< [0] Unexpected queue:
+< [0] 212c6138 context_id = 0, tag = 0(ffffffff), src = 4(ffffffff)
+< [0] 212c62c8 context_id = 0, tag = 0(ffffffff), src = 4(ffffffff)
+< [0] 212c6458 context_id = 0, tag = 0(ffffffff), src = 2(ffffffff)
+< [0] 212c65e8 context_id = 0, tag = 0(ffffffff), src = 6(ffffffff)
+< [0] 212c6778 context_id = 0, tag = 0(ffffffff), src = 2(ffffffff)
+< [0] 212c6908 context_id = 0, tag = 0(ffffffff), src = 6(ffffffff)
+< [0] 212c6a98 context_id = 0, tag = 0(ffffffff), src = 5(ffffffff)
+< [0] 212c5f88 context_id = 0, tag = 0(ffffffff), src = 5(ffffffff)
+< 4 at [212c6c28], id = 0 chshort.c[149]
+< 32 at [212c5f88], id = 0 queue.c[118]
+< 120 at [212c6b58], id = 0 queue.c[356]
+< 4 at [212c6b08], id = 0 chshort.c[149]
+< 32 at [212c6a98], id = 0 queue.c[118]
+< 120 at [212c69c8], id = 0 queue.c[356]
+< 4 at [212c6978], id = 0 chshort.c[149]
+< 32 at [212c6908], id = 0 queue.c[118]
+< 120 at [212c6838], id = 0 queue.c[356]
+< 4 at [212c67e8], id = 0 chshort.c[149]
+< 32 at [212c6778], id = 0 queue.c[118]
+< 120 at [212c66a8], id = 0 queue.c[356]
+< 4 at [212c6658], id = 0 chshort.c[149]
+< 32 at [212c65e8], id = 0 queue.c[118]
+< 120 at [212c6518], id = 0 queue.c[356]
+< 4 at [212c64c8], id = 0 chshort.c[149]
+< 32 at [212c6458], id = 0 queue.c[118]
+< 120 at [212c6388], id = 0 queue.c[356]
+< 4 at [212c6338], id = 0 chshort.c[149]
+< 32 at [212c62c8], id = 0 queue.c[118]
+< 120 at [212c61f8], id = 0 queue.c[356]
+< 4 at [212c61a8], id = 0 chshort.c[149]
+< 32 at [212c6138], id = 0 queue.c[118]
+< 120 at [212c6068], id = 0 queue.c[356]

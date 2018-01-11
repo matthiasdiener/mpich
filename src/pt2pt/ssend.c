@@ -1,14 +1,10 @@
 /*
- *  $Id: ssend.c,v 1.6 1995/12/21 21:26:45 gropp Exp $
+ *  $Id: ssend.c,v 1.7 1996/04/11 20:22:07 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-
-#ifndef lint
-static char vcid[] = "$Id: ssend.c,v 1.6 1995/12/21 21:26:45 gropp Exp $";
-#endif /* lint */
 
 #include "mpiimpl.h"
 
@@ -24,6 +20,14 @@ Input Parameters:
 . comm - communicator (handle) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_TAG
+.N MPI_ERR_RANK
 @*/
 int MPI_Ssend( buf, count, datatype, dest, tag, comm )
 void             *buf;
@@ -34,14 +38,15 @@ MPI_Comm         comm;
     int         mpi_errno = MPI_SUCCESS;
     MPI_Request handle;
     MPI_Status  status;
+    MPIR_ERROR_DECL;
+    static char myname[] = "Error in MPI_Ssend";
 
     if (dest != MPI_PROC_NULL)
     {
-        
-	mpi_errno = MPI_Issend( buf, count, datatype, dest, tag, comm, 
-			        &handle );
-	if (!mpi_errno)
-	    mpi_errno = MPI_Wait( &handle, &status );
+	MPIR_ERROR_PUSH(comm);
+	MPIR_CALL_POP(MPI_Issend( buf, count, datatype, dest, tag, comm, 
+			        &handle ),comm,myname);
+	MPIR_CALL_POP(MPI_Wait( &handle, &status ),comm,myname);
     }
     return mpi_errno;
 }

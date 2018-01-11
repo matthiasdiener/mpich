@@ -1,7 +1,15 @@
-.TH MPE_Fill_rectangle 4 "1/16/1996" " " "MPE"
+.TH MPE_Fill_rectangle 4 "6/26/1996" " " "MPE"
 .SH NAME
-MPE_Fill_rectangle \- Draws a filled rectangle on an X11 display
-
+MPE_Fill_rectangle \-  Draws a filled rectangle on an X11 display  
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+int MPE_Fill_rectangle( handle, x, y, w, h, color )
+MPE_XGraph handle;
+int        x, y, w, h;
+MPE_Color  color;
+.fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP
@@ -33,16 +41,5 @@ By default, the colors
 .SH NOTES
 This uses the X11 definition of width and height, so you may want to
 add 1 to both of them.
-.SH SYNOPSIS
-.nf
-#include <stdio.h>
-#include "mpe.h"
-int MPE_Fill_rectangle( handle, x, y, w, h, color )
-MPE_XGraph handle;
-int        x, y, w, h;
-MPE_Color  color;
-
-.fi
-
 .SH LOCATION
- mpe_graphics.c
+mpe_graphics.c

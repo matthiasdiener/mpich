@@ -1,12 +1,16 @@
 /*
- *  $Id: group_diff.c,v 1.17 1995/12/21 22:07:05 gropp Exp $
+ *  $Id: group_diff.c,v 1.18 1996/04/12 14:07:48 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "mpimem.h"
+#else
 #include "mpisys.h"
+#endif
 
 
 /*@
@@ -21,6 +25,13 @@ Output Parameter:
 . newgroup - difference group (handle) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_GROUP
+.N MPI_ERR_EXHAUSTED
+
+.seealso: MPI_Group_free
 @*/
 int MPI_Group_difference ( group1, group2, group_out )
 MPI_Group group1, group2, *group_out;
@@ -37,7 +48,7 @@ MPI_Group group1, group2, *group_out;
 
   /* Check for EMPTY groups */
   if ( group1 == MPI_GROUP_EMPTY ) {
-    MPIR_Group_dup ( MPI_GROUP_EMPTY, group_out );
+    (void) MPIR_Group_dup ( MPI_GROUP_EMPTY, group_out );
     return (mpi_errno);
   }
   if ( group2 == MPI_GROUP_EMPTY ) {
@@ -46,10 +57,9 @@ MPI_Group group1, group2, *group_out;
   }
   
   /* Create the new group */
-  new_group = (*group_out) = NEW(struct MPIR_GROUP);
-  if(!new_group)
-	return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-					  "Out of space in MPI_GROUP_DIFF" );
+  MPIR_ALLOC(new_group,NEW(struct MPIR_GROUP),MPI_COMM_WORLD, 
+	     MPI_ERR_EXHAUSTED, "Out of space in MPI_GROUP_DIFF" );
+  *group_out = new_group;
   MPIR_SET_COOKIE(new_group,MPIR_GROUP_COOKIE)
   new_group->ref_count     = 1;
   new_group->local_rank    = MPI_UNDEFINED;
@@ -61,10 +71,9 @@ MPI_Group group1, group2, *group_out;
 
   /* Allocate set marking space for group1 if necessary */
   if (group1->set_mark == NULL) {
-    group1->set_mark = (int *) MALLOC( group1->np * sizeof(int) );
-    if (!group1->set_mark) 
-	  return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-						"Out of space in MPI_GROUP_DIFFERENCE" );
+      MPIR_ALLOC(group1->set_mark,(int *) MALLOC( group1->np * sizeof(int) ),
+		 MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+		 "Out of space in MPI_GROUP_DIFFERENCE" );
   }
 
   /* Mark the difference */
@@ -81,17 +90,15 @@ MPI_Group group1, group2, *group_out;
   /* If there is a null intersection */
   if ( n <= 0 ) {
 	FREE( new_group );
-	MPIR_Group_dup ( MPI_GROUP_EMPTY, group_out );
+	(void) MPIR_Group_dup ( MPI_GROUP_EMPTY, group_out );
 	return (mpi_errno);
   }
 
   /* Alloc memory for lrank_to_grank array */
   new_group->np             = n;
-  new_group->lrank_to_grank = (int *) MALLOC( n * sizeof(int) );
-  if (!new_group->lrank_to_grank) {
-      return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-			 "Out of space in MPI_GROUP_DIFFERENCE" );
-      }
+  MPIR_ALLOC(new_group->lrank_to_grank,(int *) MALLOC( n * sizeof(int) ),
+	     MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+	     "Out of space in MPI_GROUP_DIFFERENCE" );
     
   /* Fill in the space */
   for ( n=0, i=0; i<group1->np; i++ ) 
@@ -99,7 +106,11 @@ MPI_Group group1, group2, *group_out;
       new_group->lrank_to_grank[n++] = group1->lrank_to_grank[i];
 
   /* Find the local rank */
+#ifdef MPI_ADI2
+  global_rank = MPID_MyWorldRank;
+#else
   MPID_Myrank ( MPI_COMM_WORLD->ADIctx, &global_rank );
+#endif
   for( i=0; i<new_group->np; i++ )
     if ( global_rank == new_group->lrank_to_grank[i] ) {
       new_group->local_rank = i;

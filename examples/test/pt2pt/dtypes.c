@@ -21,6 +21,7 @@
 #include "mpi.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include "dtypes.h"
 
 /* 
    Arrays types, inbufs, outbufs, and counts are allocated by the
@@ -267,16 +268,16 @@ char *typename;
 {
 int errloc, world_rank;
 
-if (errloc = CheckData( inbuf, outbuf, size_bytes )) {
+if ((errloc = CheckData( inbuf, outbuf, size_bytes ))) {
     char *p1, *p2;
     MPI_Comm_rank( MPI_COMM_WORLD, &world_rank );
     fprintf( stderr, 
-	    "Error in data with type %s (type %d on %d) at byte %d\n", 
-	    typename, typenum, world_rank, errloc - 1 );
+	    "Error in data with type %s (type %d on %d) at byte %d of %d\n", 
+	    typename, typenum, world_rank, errloc - 1, size_bytes );
     p1 = (char *)inbuf;
     p2 = (char *)outbuf;
     fprintf( stderr, 
-	    "Got %x expected %x\n", p1[errloc-1], p2[errloc-1] );
+	    "Got %x expected %x\n", p2[errloc-1], p1[errloc-1] );
 #if 0
     MPIR_PrintDatatypeUnpack( stderr, counts[j], types[j], 
 			     0, 0 );

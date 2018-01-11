@@ -11,7 +11,8 @@ set -x
 device=ch_p4
 mpihome=../..
 rshcmd=rsh
-programs="sendchar sendshort sendvector"
+#programs="sendchar sendshort sendvector sendstruct"
+programs="sendchar"
 mypwd=`pwd`
 # Fixup for brain-dead automounters
 mypwd=`echo $mypwd | sed s%/tmp_mnt%%g`
@@ -19,7 +20,7 @@ mypwd=`echo $mypwd | sed s%/tmp_mnt%%g`
 # arch1 is local, arch2 is remote
 arch1=sun4
 arch2=freebsd
-name2=screech
+name2=owl
 #
 # Build local versions
 for pgm in $programs ; do
@@ -34,6 +35,7 @@ done
 #
 # Run the programs
 for pgm in $programs ; do
-    $mpihome/lib/$arch1/$device/mpirun -v \
+    $mpihome/lib/$arch1/$device/mpirun -echo \
 		-arch $arch1 -np 2 -arch $arch2 -np 2 $pgm.%a
 done
+

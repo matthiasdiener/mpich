@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_testic.c,v 1.3 1995/12/21 22:06:55 gropp Exp $
+ *  $Id: comm_testic.c,v 1.4 1996/04/12 14:06:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -18,17 +18,22 @@ Output Parameter:
 . flag - (logical) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_ARG
 @*/
 int MPI_Comm_test_inter ( comm, flag )
 MPI_Comm  comm;
 int      *flag;
 {
-  int mpi_errno = MPI_SUCCESS;
+    int mpi_errno = MPI_SUCCESS;
 
-  if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_ARG(flag) )
+    if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_ARG(flag) )
 	return MPIR_ERROR( comm, mpi_errno, "Error in MPI_COMM_TEST_INTER" );
   
-  *flag = (comm->comm_type == MPIR_INTER);
+    *flag = (comm->comm_type == MPIR_INTER);
 
-  return (mpi_errno);
+    return (mpi_errno);
 }

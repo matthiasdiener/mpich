@@ -12,7 +12,15 @@ pt2pt	-	Test cases that generally cover various point to point
 		in this directory are most complete.
 
 
-coll	-	Older test programs for various collective operations
+coll	-	Test programs for various collective operations
+
+context -       Test programs for context operations
+
+env     -       Test programs for the environment routines
+
+profile -       Test program(s) for MPI_Pcontrol
+
+topol   -       Test programs for the topology routines
 
 lederman-	A series of tests of various types written by Steve
 		Lederman
@@ -24,3 +32,18 @@ To run the test, but not leave the executables around, do (in this directory)
 
   make TESTARGS=-small testing >& testing.out
 
+If you are NOT using the MPICH implementation, see the script "setuptests" in
+this directory.  Change the definitions near the top of this script to 
+conform to your MPI system and then execute it; it will create Makefile's and
+scripts (called runtests).  Then use "make testing" to run the tests.
+
+You will probably also have to provide an "mpirun" program or script.
+This has roughly the form
+
+     mpirun -mvhome -np n -mvback "string" programname programargs
+
+The options -mvhome and -mvback "string" can be ignored; they are needed only
+on systems that do not share file systems with the system running the runtests
+script (yes, there is one such system).  The option "-np n" specifies that
+"n" processes are needed.  Note that this is not always a power of 2; systems
+must be prepared to accept any (small) value of n.

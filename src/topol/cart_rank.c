@@ -1,11 +1,12 @@
 /*
- *  $Id: cart_rank.c,v 1.17 1995/12/21 22:18:21 gropp Exp $
+ *  $Id: cart_rank.c,v 1.18 1996/04/12 15:43:23 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#include "mpitopo.h"
 
 /*@
 
@@ -21,6 +22,12 @@ Output Parameter:
 . rank - rank of specified process (integer) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TOPOLOGY
+.N MPI_ERR_RANK
+.N MPI_ERR_ARG
 @*/
 int MPI_Cart_rank ( comm, coords, rank )
 MPI_Comm comm;
@@ -34,7 +41,7 @@ int *rank;
 
   /* Check for valid arguments */
   if (MPIR_TEST_COMM(comm,comm) ||
-      ((rank == (int *)0) &&(mpi_errno = MPI_ERR_BUFFER)))
+      ((rank == (int *)0) &&(mpi_errno = MPI_ERR_ARG)))
       return MPIR_ERROR( comm, mpi_errno, "Error in MPI_CART_RANK" );
 
   /* Get topology information from the communicator */

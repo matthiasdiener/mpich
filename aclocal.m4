@@ -12,7 +12,7 @@ dnl
 define(PAC_TEST_PROGRAM,
 [AC_PROVIDE([$0])
 AC_REQUIRE([AC_CROSS_CHECK])
-if test $cross_compiling = 1 -a -z "$TESTCC" ; then
+if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
     ifelse([$4], , ,$4)
     Pac_CV_NAME=0
 else
@@ -44,9 +44,9 @@ EOF
             cat conftestout
         fi
       fi
-    if test -n "$TESTCC" ; then
-        CC="$CCsav"
     fi
+  if test -n "$TESTCC" ; then
+        CC="$CCsav"
   fi
   rm -fr conftest*
 fi
@@ -124,6 +124,29 @@ AC_TEST_PROGRAM([int main() {
    has the same problem on some systems */
 exit(sizeof(long long int) < sizeof(long)); }],
 AC_DEFINE(HAVE_LONG_LONG_INT)AC_MSG_RESULT(yes),AC_MSG_RESULT(no))
+])dnl
+dnl
+dnl The AC_LONG_DOUBLE macro is junk because it assumes that the
+dnl long double type is valid in the language!  In other words, that
+dnl the compiler is ANSI C
+dnl
+define(PAC_LONG_DOUBLE,
+[AC_REQUIRE([AC_PROG_CC])dnl
+AC_MSG_CHECKING([for long double])
+if test -n "$GCC"; then
+AC_DEFINE(HAVE_LONG_DOUBLE)
+AC_MSG_RESULT(yes)
+else
+AC_COMPILE_CHECK(,,long double a;return 0;,ldok=1,ldok=0)
+if test $ldok = 1 ; then
+AC_TEST_PROGRAM([int main() {
+/* On Ultrix 4.3 cc, long double is 4 and double is 8.  */
+exit(sizeof(long double) < sizeof(double)); }],
+AC_DEFINE(HAVE_LONG_DOUBLE)AC_MSG_RESULT(yes),AC_MSG_RESULT(no))
+else
+AC_MSG_RESULT(no)
+fi
+fi
 ])dnl
 dnl
 dnl PAC_HAVE_VOLATILE
@@ -230,6 +253,7 @@ for dir in \
     /opt/Tcl \
     /opt/local \
     /opt/local/tcl7.0 \
+    /Tools/tcl \
     /local/encap/tcl-7.1 ; do
     if test -r $dir/include/tcl.h -a -r $dir/lib/libtcl.a ; then
 	TCL_DIR=$dir
@@ -262,6 +286,7 @@ for dir in \
     /opt/Tcl \
     /opt/local \
     /opt/local/tk3.6 \
+    /Tools/tk \
     /local/encap/tk-3.4 $TCL_DIR ; do
     if test -r $dir/include/tk.h -a -r $dir/lib/libtk.a ; then
 	TK_DIR=$dir
@@ -289,6 +314,7 @@ dnl
 define(PAC_FIND_USER_LIB,[
 AC_MSG_CHECKING([for library $1])
 pac_lib_file=""
+pac_lib_dir=""
 for dir in $2 \
     /usr \
     /usr/local \
@@ -416,6 +442,18 @@ if test -z "$ac_echo_test" -a AC_FD_MSG = 1 ; then
 echo $ac_n "checking $1""... $ac_c"
 else
 echo $ac_n "checking $1""... $ac_c" 1>&AC_FD_MSG
+fi])dnl
+dnl
+dnl AC_MSG(msg)
+dnl generates "msg..." (no newline)
+define(AC_MSG,[dnl
+if test -z "$ac_echo_n" ; then
+AC_PROG_ECHO_N
+fi
+if test -z "$ac_echo_test" -a AC_FD_MSG = 1 ; then
+echo $ac_n "$1""... $ac_c"
+else
+echo $ac_n "$1""... $ac_c" 1>&AC_FD_MSG
 fi])dnl
 dnl
 dnl AC_CHECKING(FEATURE-DESCRIPTION)
@@ -692,25 +730,29 @@ dnl
 dnl An UNDOCUMENTED FEATURE is that if VARIABLE is already set, this
 dnl routine DOES NOTHING!
 dnl
+dnl An evil feature of the configure commands is that the 'variables' seem
+dnl to get added to the SUBST list automatically.  I've disabled this 
+dnl by NOT using ac_cv_prog_$1 which the configure code seems to use to
+dnl do this.
+dnl 
 define(PAC_PROGRAM_CHECK,
 [# Extract the first word of "$2", so it can be a program name with args.
 set dummy $2; ac_word=[$]2
 AC_MSG_CHECKING([for $ac_word])
-dnl AC_CACHE_VAL(ac_cv_prog_$1,[
 ac_prog_where=""
 if test -n "[$]$1"; then
-  ac_cv_prog_$1="[$]$1" # Let the user override the test.
+  ac_pg_$1="[$]$1" # Let the user override the test.
 else
   ac_first_char=`expr "$2" : "\(.\)"`
   if test "$ac_first_char" = "/" -a -x "$2" ; then
-       ac_cv_prog_$1="$3"
+       ac_pg_$1="$3"
        ac_prog_where=$2
   else
       IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
       for ac_dir in $PATH; do
         test -z "$ac_dir" && ac_dir=.
         if test -f $ac_dir/$ac_word; then
-          ac_cv_prog_$1="$3"
+          ac_pg_$1="$3"
           ac_prog_where=$ac_dir/$ac_word
           break
         fi
@@ -719,17 +761,17 @@ else
   fi
 dnl If no 4th arg is given, leave the cache variable unset,
 dnl so AC_CHECK_PROGS will keep looking.
-ifelse([$4], , , [  test -z "[$]ac_cv_prog_$1" && ac_cv_prog_$1="$4"
+ifelse([$4], , , [  test -z "[$]ac_pg_$1" && ac_pg_$1="$4"
 ])dnl
-fi;dnl])dnl
-$1="$ac_cv_prog_$1"
+fi;dnl
+$1="$ac_pg_$1"
 if test -n "$ac_prog_where" ; then
   AC_MSG_RESULT(found $ac_prog_where ([$]$1))
   ifelse([$5], , , [ $5=$ac_prog_where ] )
 else
   AC_MSG_RESULT(no)
 fi
-AC_SUBST($1)dnl
+dnl AC_SUBST($1)dnl
 ])dnl
 dnl
 dnl PAC_PROGRAMS_CHECK is like PAC_PROGRAM_CHECK, but with
@@ -753,7 +795,7 @@ dnl The cache variable name.
 define(<<AC_CV_NAME>>, translit(ac_cv_sizeof_$1, [ *], [_p]))dnl
 changequote([, ])dnl
 dnl Can only do this test if not cross-compiling (and TESTCC not defined)
-if test $cross_compiling = 1 -a -z "$TESTCC" ; then
+if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
     echo "Cannot check for size of $1 when cross-compiling"
     AC_CV_NAME=0
 else
@@ -901,6 +943,24 @@ dnl
 define(PAC_GET_CC,[
 if test -z "$USERCC" ; then
 case $1 in 
+   cenju3) CC=/usr/necccs/bin/cc
+           F77=/usr/necccs/bin/f77
+           ASM=/usr/necccs/bin/as
+           if test ! -x $CC ; then
+              CC=cc
+              F77=f77
+              ASM=as
+           fi
+           DEVCFLAGS="$DEVCFLAGS -O -Kmips2"
+           MPILIBNAME=mpich
+           ASMFILES_O=get_stack.o
+           if test -z "$USERFLINKER" ; then
+               FLINKER=cjf77
+           fi
+           if test -z "$USERFLINKER" ; then
+               CLINKER=cjcc
+           fi
+          ;;
    intelnx|paragon) CC=icc ; GCC="" 
 	  # If this version of the intel compiler accepts the -nx flag, use it.
   	  if icc -nx > /dev/null 2>&1 ; then
@@ -913,7 +973,10 @@ case $1 in
    cm5) CC=cc ; GCC="" ;   if test -z "$USERCLINKER" ; then
 		      CLINKER="cmmd-ld -comp $CC"
 		  fi ;;
-   cray_t3d)        CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3d" ; GCC="" 
+   cray_t3d)        
+	# Some Cray's require -Ccray-t3d instead of -Tcray-t3d.  
+        # We have no diagnostic for this behavior yet.
+                    CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3d" ; GCC="" 
                     if test -z "$USERCLINKER" ; then 
 	            CLINKER="$CC -Tcray-t3d" ; fi ;;
    hpux) if test "`which ${CC-cc}`" = "/usr/convex/bin/cc" ; then 
@@ -1007,6 +1070,9 @@ case $1 in
       ;;
 esac
 fi
+dnl if test -n "$CC" ; then
+dnl    PAC_PROGRAM_CHECK(HAS_CC,$CC,1,0)
+dnl fi
 if test -z "$USERCLINKER" -a -z "$CLINKER" ; then
     CLINKER="$CC"
 fi
@@ -1066,8 +1132,71 @@ case $1 in
    if test -z "$USERFLINKER" ; then
        FLINKER="$F77 -Ccray-t3d"
    fi
-
    ;;
+#
+#  SX4 Floating Point formats
+#
+#  float = float0 : Conforms IEEE 754 standard.
+#                   C:       sizeof (int)     = 4; sizeof (float) = 4
+#                   FORTRAN: sizeof (INTEGER) = 4; sizeof (REAL)  = 4
+#
+#  float = float1 : IBM  floating point format
+#                   C:       sizeof (int)     = 4; sizeof (float) = 4
+#                   FORTRAN: sizeof (INTEGER) = 4; sizeof (REAL)  = 4
+#
+#  float = float2 : CRAY floating point format
+#                   C:       sizeof (int)     = 4; sizeof (float) = 8
+#                   FORTRAN: sizeof (INTEGER) = 8; sizeof (REAL)  = 8
+#                   !!! Will not work for FORTRAN and MPICH !!!
+#
+#  float = float2_int64 : CRAY floating point format
+#                   C:       sizeof (int)     = 8; sizeof (float) = 8
+#                   FORTRAN: sizeof (INTEGER) = 8; sizeof (REAL)  = 8
+#
+   SX_4_float0 | SX_4_float1 | SX_4_float2 | SX_4_float2_int64)
+         float=`expr $CARCH : 'SX_4_\(float.\).*'`
+         if test "$CARCH" = "SX_4_$float" ; then
+             sx4int=int32
+         else
+             sx4int=int64
+         fi
+#
+         arch_SX_4=1
+         echo "Generating MPICH for floating point format \`\`$float''"
+#
+         if test "$sx4int" = "int64" ; then
+            echo "                 and sizeof (int) = 64"
+         elif test "$float" = "float2" ; then
+            cat << EOF
+***********************************************************************
+*
+*   WARNING:
+*
+*   MPICH is generated for floating point format \`\`float2'' without
+*         expanding C int's to 64 bits.
+*         This version will not run together with FORTRAN codes.
+*
+***********************************************************************
+EOF
+         fi
+#
+         CC="cc"; ASM="as -h $float"
+         OPTFLAGSC="-h2 -pvctl,nomsg"
+         CFLAGS="-h$float -DCHAR_PTR_IS_ADDRESS"
+         FFLAGS="-$float"
+#
+         if test -z "$USERCLINKER" ; then
+            CLINKER="f77 -$float"; fi
+         if test -z "$USERFLINKER" ; then
+            FLINKER="f77 -$float"; fi
+#
+         if test "$sx4int" = "int64" ; then
+            CFLAGS="$CFLAGS -hint64"
+            CLINKER="$CLINKER -Wl'-int64'"
+            FLINKER="$FLINKER -Wl'-int64'"
+         fi
+    ;;
+
    hpux) 
     # This may eliminate the need for +U77 ....
     if test "`which $F77`" != "/usr/convex/bin/fc" ; then 
@@ -1222,19 +1351,24 @@ EOF
 dnl
 dnl ------------------------------------------------------------------------
 dnl
+dnl AR = name with args to create/add to archive
+dnl As input, ARLOCAL is the arg that should be use for using the local 
+dnl directory
+dnl ARNAME = just name
+dnl ARARGS = just args
 define(PAC_GET_AR,[
 if test -z "$USERAR" ; then
 case $1 in 
-   intelnx|paragon|i860) AR="ar860 crl" ;;
-   cm5) AR="ar cr"
+   intelnx|paragon|i860) AR="ar860 crl" ; ARNAME="ar860" ; ARARGS="crl" ;;
+   cm5) AR="ar cr" ; ARNAME="ar" ; ARARGS="cr"
    ;;
-   meiko|solaris) AR="ar cr"
+   meiko|solaris) AR="ar cr" ; ARNAME="ar" ; ARARGS="cr" 
    ;;
-   ncube) AR="nar cr" ;;
+   ncube) AR="nar cr" ; ARNAME="nar" ; ARARGS="cr" ;;
 esac
 fi
 if test -z "$AR" ; then 
-    AR="ar cr$ARLOCAL"
+    AR="ar cr$ARLOCAL" ; ARNAME="ar" ; ARARGS="cr$ARLOCAL" 
 fi
 ])dnl
 dnl --------------------------------------------------------
@@ -1247,7 +1381,7 @@ define(PAC_FIND_X11,[
    if test -z "$USERXLIB" ; then 
     # The user has specified the libraries/include paths; pick them up 
     # below....
-    if test $cross_compiling = 0 ; then 
+    if test -z "$cross_compiling" -o "$cross_compiling" = 0 ; then 
        AC_FIND_X()
        if test -n "$no_x" ; then
 	  print_error "Did not find X11 libraries and/or include files"
@@ -1282,7 +1416,79 @@ define(PAC_FIND_X11,[
    if test -n "$x_includes" ; then
        XINCLUDES="-I$x_includes"
    fi
+   if test -z "$no_x" ; then
+       # may STILL not have x if the include files aren't around
+       if test -n "$x_includes" ; then
+           f_test=$x_includes/X11/Xlib.h
+       else
+           f_test=/usr/include/X11/Xlib.h
+       fi
+       if test ! -f $f_test ; then
+           no_x=yes
+	   print_error "X11 include files were not found in $f_test!"
+       fi
+   fi
 ])dnl
+dnl
+dnl --------------------------------------------------------
+dnl Internal subroutine of AC_FIND_X.  We had to update this because it
+dnl did not know about R6.
+define([AC_FIND_X_DIRECT],
+[echo checking for X include and library files directly
+AC_TEST_CPP([#include <X11/Intrinsic.h>], no_x=,
+  for dir in \
+    /usr/local/include \
+    /usr/unsupported/include \
+    /usr/x386/include \
+    /usr/local/X11R6/include \
+    /usr/local/X11R5/include \
+    /usr/local/x11r6/include \
+    /usr/local/x11r5/include \
+    /usr/include/X11R6 \
+    /usr/include/X11R5 \
+    /usr/include/X11R4 \
+    /usr/X11R6/include \
+    /usr/X11R5/include \
+    /usr/X11/include \
+    /usr/openwin/include \
+    /usr/openwin/share/include \
+    /usr/lpp/Xamples/include \
+    ; \
+  do
+    if test -r $dir/X11/Intrinsic.h; then
+      x_includes=$dir; no_x=
+      break
+    fi
+  done)
+
+# Check for the libraries.  First see if replacing the `include' by
+# `lib' works.
+AC_HAVE_LIBRARY(Xt, no_x=,
+for dir in `echo "$x_includes" | sed s/include/lib/` \
+  /usr/local/lib \
+  /usr/unsupported/lib \
+  /usr/x386/lib \
+  /usr/local/X11R6/lib \
+  /usr/local/X11R5/lib \
+  /usr/local/x11r6/lib \
+  /usr/local/x11r5/lib \
+  /usr/lib/X11 \
+  /usr/lib/X11R4 \
+  /usr/X11R6/lib \
+  /usr/X11R5/lib \
+  /usr/X11/lib \
+  /usr/openwin/lib \
+  /usr/lpp/Xamples/lib \
+  ; \
+do
+  for extension in a so sl; do
+    if test -r $dir/libXt.$extension; then
+      x_libraries=$dir; no_x=
+      break 2
+    fi
+  done
+done)])dnl
+dnl
 dnl --------------------------------------------------------
 dnl Test for the VERSION of tk.  There are major changes between 3.6 and 4.0
 dnl (in particular, the type Tk_ColorModel disappeared
@@ -1296,15 +1502,27 @@ dnl
 define(PAC_TK_VERSION,[
 AC_MSG_CHECKING(for version of TK)
 /bin/rm -f conftestval
-CFLAGSsave="$CFLAGS"
-CFLAGS="$CFLAGS -I$TK_DIR/include $XINCLUDES"
-PAC_TEST_PROGRAM([#include "tk.h"
+#
+# Some systems have a separate tcl dir; since we need both tcl and tk
+# we include both directories
+if test -n "$TK_DIR" -a -n "$TCL_DIR" ; then
+  CFLAGSsave="$CFLAGS"
+  CFLAGS="$CFLAGS -I$TK_DIR/include -I$TCL_DIR/include $XINCLUDES"
+  PAC_TEST_PROGRAM([#include "tk.h"
 #include <stdio.h>
 main() { FILE *fp = fopen( "conftestval", "w" ); 
 fprintf( fp, "%d.%d", TK_MAJOR_VERSION, TK_MINOR_VERSION );
 return 0; }],
-TK_VERSION=`cat conftestval`,TK_VERSION="unavailable")
-CFLAGS="$CFLAGSsave"
+  TK_VERSION=`cat conftestval`,TK_VERSION="unavailable")
+  CFLAGS="$CFLAGSsave"
+elif test -n "$wishloc" ; then
+  # It is possible to use a wish program with
+  # set tk_version [ string range $tk_patchLevel 0 2 ]
+  # puts stdout $tk_version
+  TK_VERSION="unavailable"
+else
+  TK_VERSION="unavailable"
+fi
 AC_MSG_RESULT($TK_VERSION)
 ])dnl
 dnl
@@ -1340,6 +1558,42 @@ ifelse([$5], , , [else
   $5
 ])dnl
    ifelse([$1], , , ifelse([$5], ,else) [AC_MSG_RESULT(no)])
+fi
+rm -f conftest*]
+)dnl
+dnl
+dnl This version compiles an entire function; used to check for
+dnl things like varargs done correctly
+dnl
+dnl PAC_COMPILE_CHECK_FUNC(msg,function,if_true,if_false)
+dnl
+define(PAC_COMPILE_CHECK_FUNC,
+[AC_PROVIDE([$0])dnl
+ifelse([$1], , , [AC_MSG_CHECKING(for $1)]
+)dnl
+if test ! -f confdefs.h ; then
+    AC_MSG_RESULT("!! SHELL ERROR !!")
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+[$2]
+EOF
+dnl Don't try to run the program, which would prevent cross-configuring.
+if eval $compile; then
+  ifelse([$1], , , [AC_MSG_RESULT(yes)])
+  ifelse([$3], , :, [rm -rf conftest*
+  $3
+])
+ifelse([$4], , , [else
+  rm -rf conftest*
+  $4
+])dnl
+   ifelse([$1], , , ifelse([$4], ,else) [AC_MSG_RESULT(no)])
 fi
 rm -f conftest*]
 )dnl
@@ -1460,9 +1714,11 @@ if test "${$1}" != "" -a -d "${$1}" ; then
     else
 	echo "test" > ${$1}/.foo$$
 	if test ! -r .foo$$ ; then
+            /bin/rm -f ${$1}/.foo$$
 	    $1=
+        else
+ 	    /bin/rm -f ${$1}/.foo$$
 	fi
-	/bin/rm -f ${$1}/.foo$$
     fi
 fi
 if test "${$1}" = "" ; then
@@ -1561,7 +1817,7 @@ if test -n "$arch_IRIX"; then
      fi
    fi
 
-   AC_MSG_CHECKING(for IRIX cputype)
+   AC_MSG_CHECKING(for IRIX cpumodel)
    dnl The tail -1 is necessary for multiple processor SGI boxes
    dnl We might use this to detect SGI multiprocessors and recommend
    dnl -comm=shared
@@ -1603,7 +1859,7 @@ if test -n "$arch_IRIX"; then
        print_error "to mpi-bugs@mcs.anl.gov"
        exit 1
    fi
-   AC_MSG_RESULT(getting cputype)
+   AC_MSG_CHECKING(for cputype)
    OLD_ARCH=IRIX
    IRIXARCH="$ARCH_$osversion"
    dnl Now, handle the chip set
@@ -1615,7 +1871,9 @@ if test -n "$arch_IRIX"; then
 	4000) ;;
 	4400) ;;
 	4600) ;;
+	5000) ;;
 	8000) ;;
+	10000);;
         *)
 	print_error "Unexpected IRIX/MIPS chipset $cputype.  Please send the output"
 	print_error " "
@@ -1806,4 +2064,139 @@ else
     AC_MSG_RESULT(none)
 fi
 fi
+])dnl
+dnl
+dnl This is drawn from version 2; it understands g++ as well as gcc
+dnl define(AC_FD_CC, 5)dnl
+define(AC_FD_CC, 2)dnl
+dnl [#] AC_FD_CC compiler messages saved in config.log
+dnl if test "$silent" = yes; then
+dnl  exec AC_FD_MSG>/dev/null
+dnl else
+dnl   exec AC_FD_MSG>&1
+dnl fi
+dnl exec AC_FD_CC>./config.log
+dnl AC_TRY_LINK(INCLUDES, FUNCTION-BODY,
+dnl             ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND])
+define(AC_TRY_LINK,
+[cat > conftest.$ac_ext <<EOF
+dnl This sometimes fails to find confdefs.h, for some reason.
+dnl [#]line __oline__ "[$]0"
+dnl [#]line __oline__ "configure"
+#include "confdefs.h"
+[$1]
+int main() { return 0; }
+int t() {
+[$2]
+; return 0; }
+EOF
+if eval $ac_link; then
+  ifelse([$3], , :, [rm -rf conftest*
+  $3])
+ifelse([$4], , , [else
+  rm -rf conftest*
+  $4
+])dnl
+fi
+rm -f conftest*]
+)dnl
+dnl
+define([AC_CHECK_FUNC],
+[AC_MSG_CHECKING([for $1])
+dnl AC_CACHE_VAL(ac_cv_func_$1,[
+AC_TRY_LINK(
+[#include <ctype.h> /* Arbitrary system header to define __stub macros. */
+#ifdef __cplusplus
+extern "C" { char $1(); };
+#else
+char $1();
+#endif],
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_$1) || defined (__stub___$1)
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+[$1();
+#endif
+], eval "ac_cv_func_$1=yes", eval "ac_cv_func_$1=no")dnl        ])dnl
+if eval "test \"`echo '$ac_cv_func_'$1`\" = yes"; then
+  AC_MSG_RESULT(yes)
+  ifelse([$2], , :, [$2])
+else
+  AC_MSG_RESULT(no)
+ifelse([$3], , , [$3
+])dnl
+fi
+])dnl
+dnl PAC_LANG_C()
+define(PAC_LANG_C,
+[define([AC_LANG], [C])dnl
+ac_ext=c
+# CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='${CC-cc} $CFLAGS $CPPFLAGS conftest.$ac_ext -c 1>&AC_FD_CC 2>&AC_FD_CC'
+ac_link='${CC-cc} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext -o conftest $LIBS 1>&AC_FD_CC 2>&AC_FD_CC'
+])dnl
+dnl
+dnl PAC_LANG_CPLUSPLUS()
+define(PAC_LANG_CPLUSPLUS,
+[define([AC_LANG], [CPLUSPLUS])dnl
+ac_ext=C
+# CXXFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='${CXX-gcc} $CXXFLAGS $CPPFLAGS conftest.$ac_ext -c 1>&AC_FD_CC 2>&AC_FD_CC'
+ac_link='${CXX-gcc} $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext -o conftest $LIBS 1>&AC_FD_CC 2>&AC_FD_CC'
+])dnl
+dnl
+dnl Fortran extensions
+dnl
+dnl PAC_FORTRAN_HAS_POINTER(action-if-true,action-if-false)
+dnl
+dnl Checks that you can do
+dnl
+dnl integer M
+dnl pointer (MPTR,M)
+dnl data MPTR/0/
+dnl 
+dnl if F77_VERBOSE defined, prints why it failed to find
+dnl pointer
+dnl
+define(PAC_FORTRAN_HAS_POINTER,[
+AC_MSG_CHECKING(Fortran has pointer declaration)
+cat > conftest.f <<EOF
+        program main
+        integer M
+        pointer (MPTR,M)
+        data MPTR/0/
+        end
+EOF
+/bin/rm -f conftest.out
+$F77 $FFLAGS -c conftest.f > conftest.out 2>&1
+if test $? != 0 ; then
+    AC_MSG_RESULT(no)
+    if test -n "$F77_VERBOSE" ; then
+        echo "Fortran compiler returned non-zero return code"
+        if test -s conftest.out ; then
+	    echo "Output from test was"
+            cat conftest.out
+        fi
+    fi
+    ifelse([$2],,:,[$2])
+elif test ! -s conftest.o ; then
+    AC_MSG_RESULT(no)
+    if test -n "$F77_VERBOSE" ; then
+        echo "Fortran compiler did not produce object file"
+        if test -s conftest.out ; then
+	    echo "Output from test was"
+            cat conftest.out
+        fi
+    fi
+    ifelse([$2],,:,[$2])
+else    
+    AC_MSG_RESULT(yes)
+    ifelse([$1],,:,[$1])
+fi
+rm -f conftest* 
 ])dnl

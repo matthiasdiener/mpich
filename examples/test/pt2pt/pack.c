@@ -5,7 +5,7 @@
    Check pack/unpack of mixed datatypes.
  */
 #define BUF_SIZE 100
-main(argc, argv)
+int main(argc, argv)
 int argc;
 char **argv;
 {
@@ -22,6 +22,10 @@ char **argv;
 
     src	   = 0;
     dest   = 1;
+
+    src	   = 1;
+    dest   = 0;
+
     errcnt = 0;
     if (myrank == src)
 	{

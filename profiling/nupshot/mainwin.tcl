@@ -32,7 +32,7 @@
 #   totalUnits, windowUnits - saved for scrollbars, these depict the
 #      ratio between the time span visible and the total length of the
 #      logfile
-
+#   procWidth - width of process names widget
 
 
 proc NewWin {win is_root_win {logfile {}}} {

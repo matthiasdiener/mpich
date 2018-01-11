@@ -3,11 +3,15 @@
 
 typedef long P4_Aint;
 
-#ifndef NEXT
-extern P4VOID exit();
+#if !defined(NEXT) && !defined(HAVE_STDLIB_H)
+/* Note Sun 4.1.3 defines exit as int exit(int), even though DOCUMENTED as
+   void exit(int).  Try to use the definition in stdlib.h instead */
+extern P4VOID exit ANSI_ARGS((int));
 #endif
 
 static int interrupt_caught = 0; /* True if an interrupt was caught */
+
+int p4_hard_errors = 1;
 
 #if defined(ENCORE) || defined(SYMMETRY) || defined(TITAN) || \
     defined(SGI)    || defined(GP_1000)  || defined(TC_2000) || defined(SUN_SOLARIS)
@@ -15,16 +19,29 @@ static int interrupt_caught = 0; /* True if an interrupt was caught */
 #else
 #define P4_HANDLER_TYPE P4VOID
 #endif
+#if defined(__STDC__) 
+#define HANDLER_ARG int
+#else
+#define HANDLER_ARG
+#endif
 
-static P4_HANDLER_TYPE (*prev_sigint_handler) () = NULL;
-static P4_HANDLER_TYPE (*prev_sigsegv_handler) () = NULL;
-static P4_HANDLER_TYPE (*prev_sigbus_handler) () = NULL;
-static P4_HANDLER_TYPE (*prev_sigfpe_handler) () = NULL;
-static P4_HANDLER_TYPE (*prev_err_handler) () = NULL;
-static int err_sig, err_code;
+#if defined(HAVE_FOUR_ARG_SIGS)
+#define HANDLER_ARGS int,int,int,int
+#else
+#define HANDLER_ARGS int
+#endif
+
+static P4_HANDLER_TYPE (*prev_sigint_handler) ANSI_ARGS((HANDLER_ARGS)) = NULL;
+static P4_HANDLER_TYPE (*prev_sigsegv_handler) ANSI_ARGS((HANDLER_ARGS)) = NULL;
+static P4_HANDLER_TYPE (*prev_sigbus_handler) ANSI_ARGS((HANDLER_ARGS)) = NULL;
+static P4_HANDLER_TYPE (*prev_sigfpe_handler) ANSI_ARGS((HANDLER_ARGS)) = NULL;
+static P4_HANDLER_TYPE (*prev_err_handler) ANSI_ARGS((HANDLER_ARGS)) = NULL;
+static int err_sig;
+#if defined(HAVE_FOUR_ARG_SIGS)
+static int                err_code;
 static struct sigcontext *err_scp;
-static char *err_addr;
-
+static char              *err_addr;
+#endif
 
 int p4_soft_errors(onoff)
 int onoff;
@@ -93,7 +110,7 @@ int value;
 	    prev_err_handler = NULL;
 	    break;
 	}
-	if (prev_err_handler == (P4_HANDLER_TYPE (*) ()) NULL)
+	if (prev_err_handler == (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))) NULL)
 	{
 	    /* return to default handling of the interrupt by the OS */
 	    SIGNAL_P4(value,SIG_DFL); 
@@ -104,7 +121,11 @@ int value;
 	}
 	else
 	{
+#if defined(HAVE_FOUR_ARG_SIGS)
 	    (*prev_err_handler) (err_sig, err_code, err_scp, err_addr);
+#else
+	    (*prev_err_handler) (err_sig);
+#endif
 	}
     }
     else
@@ -119,16 +140,23 @@ int value;
 
 /* static P4_HANDLER_TYPE sig_err_handler(sig, code, scp, addr) */
 
+#if defined(HAVE_FOUR_ARG_SIGS)
 static P4VOID sig_err_handler(sig, code, scp, addr)
 int sig, code;
 struct sigcontext *scp;
 char *addr;
+#else
+static P4VOID sig_err_handler(sig)
+int sig;
+#endif
 {
     interrupt_caught = 1;
     err_sig = sig;
+#if defined(HAVE_FOUR_ARG_SIGS)
     err_code = code;
     err_scp = scp;
     err_addr = addr;
+#endif
     if (sig == 11)
 	p4_error("interrupt SIGSEGV", sig);
     else if (sig == 10)
@@ -149,17 +177,12 @@ char *addr;
 */
 P4VOID trap_sig_errs()
 {
-    P4_HANDLER_TYPE (*rc) ();
+    P4_HANDLER_TYPE (*rc) ANSI_ARGS((HANDLER_ARGS));
 
-#if defined(__STDC__) 
-#define HANDLER_ARG int
-#else
-#define HANDLER_ARG
-#endif
-/*     rc = (P4_HANDLER_TYPE (*) (HANDLER_ARG))  */
+/*     rc = (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))  */
 	SIGNAL_WITH_OLD_P4(SIGINT, sig_err_handler,
-                           rc= (P4_HANDLER_TYPE (*) (HANDLER_ARG)));
-    if (rc == (P4_HANDLER_TYPE (*) (HANDLER_ARG)) -1)
+                           rc= (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))));
+    if (rc == (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))) -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGINT);
     if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
 	prev_sigint_handler = rc;
@@ -168,27 +191,33 @@ P4VOID trap_sig_errs()
  * it for shmem stuff 
 */
 #ifdef CAN_HANDLE_SIGSEGV
-/*     rc = (P4_HANDLER_TYPE (*) (HANDLER_ARG))  */
+/*     rc = (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS)))  */
 	SIGNAL_WITH_OLD_P4(SIGSEGV, sig_err_handler, 
-                           rc= (P4_HANDLER_TYPE (*) (HANDLER_ARG)));
+                           rc= (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))));
     if ((P4_Aint) rc == -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGSEGV);
     if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
 	prev_sigsegv_handler = rc;
 #endif
 
-/*    rc = (P4_HANDLER_TYPE (*) (HANDLER_ARG))  */
+/*    rc = (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS)))  */
 	SIGNAL_WITH_OLD_P4(SIGBUS, sig_err_handler,
-                 rc= (P4_HANDLER_TYPE (*) (HANDLER_ARG)));
+                 rc= (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))));
     if ((P4_Aint) rc == -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGBUS);
     if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
 	prev_sigbus_handler = rc;
-/*    rc = (P4_HANDLER_TYPE (*) (HANDLER_ARG)) */
+/*    rc = (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))) */
 	SIGNAL_WITH_OLD_P4(SIGFPE, sig_err_handler,
-                           rc= (P4_HANDLER_TYPE (*) (HANDLER_ARG)));
+                           rc= (P4_HANDLER_TYPE (*) ANSI_ARGS((HANDLER_ARGS))));
     if ((P4_Aint) rc == -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGFPE);
     if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
 	prev_sigfpe_handler = rc;
+}
+
+P4VOID p4_set_hard_errors( flag )
+int flag;
+{
+    p4_hard_errors = flag;
 }

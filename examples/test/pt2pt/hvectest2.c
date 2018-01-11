@@ -6,22 +6,23 @@
 
 #include "mpi.h"
 #include <stdio.h>
+#include "test.h"
 /* #define SHOWMSG */
 
 void ClearArray( a, n, v )
 double *a, v;
 int    n;
 {
-int i;
-for (i=0; i<n; i++) a[i] = v;
+    int i;
+    for (i=0; i<n; i++) a[i] = v;
 }
 
 void SetArray( a, n )
 double *a;
 int    n;
 {
-int i;
-for (i=0; i<n; i++) a[i] = (double)i;
+    int i;
+    for (i=0; i<n; i++) a[i] = (double)i;
 }
 
 /* 
@@ -33,7 +34,7 @@ int main( argc, argv )
 int argc;
 char **argv;
 {
-    int rank, size, to, from, tag, count, np, i;
+    int rank, size, to, from, tag, count, i;
     int src, dest;
     int st_source, st_tag, st_count;
     int errcnt = 0;

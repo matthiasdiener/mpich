@@ -1,7 +1,18 @@
-.TH MPI_Irecv 3 "12/21/1995" " " "MPI"
+.TH MPI_Irecv 3 "6/7/1996" " " "MPI"
 .SH NAME
-MPI_Irecv \- Begins a nonblocking receive
-
+MPI_Irecv \-  Begins a nonblocking receive 
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Irecv( buf, count, datatype, source, tag, comm, request )
+void             *buf;
+int              count;
+MPI_Datatype     datatype;
+int              source;
+int              tag;
+MPI_Comm         comm;
+MPI_Request      *request;
+.fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP
@@ -63,19 +74,5 @@ All MPI objects (e.g.,
 ) are of type 
 .I INTEGER
 in Fortran.
-.SH SYNOPSIS
-.nf
-#include "mpi.h"
-int MPI_Irecv( buf, count, datatype, source, tag, comm, request )
-void             *buf;
-int              count;
-MPI_Datatype     datatype;
-int              source;
-int              tag;
-MPI_Comm         comm;
-MPI_Request      *request;
-
-.fi
-
 .SH LOCATION
- irecv.c
+irecv.c

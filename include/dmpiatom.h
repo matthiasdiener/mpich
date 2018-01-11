@@ -1,5 +1,5 @@
 /*
- *  $Id: dmpiatom.h,v 1.40 1995/12/21 22:25:06 gropp Exp $
+ *  $Id: dmpiatom.h,v 1.44 1996/07/05 15:36:32 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -10,7 +10,6 @@
 #ifndef _DMPIATOM_INCLUDE
 #define _DMPIATOM_INCLUDE
 
-/* SGI change... */
 #include "mpi.h"
 
 /*****************************************************************************
@@ -53,55 +52,50 @@ typedef struct _MPIR_HBT {
   unsigned int   height;
   int            ref_count;
   MPIR_HBT_node *root;
-} MPIR_HBT;
+} *MPIR_HBT;
 #define MPIR_HBT_COOKIE 0x03b7c007
 
-typedef struct  {
-  MPIR_COOKIE                    /* Cookie to help detect valid items */
-  int  (*copy_fn)();
-  int  (*delete_fn)();
-  void  *extra_state;
-  int    FortranCalling;        /* Used to indicate whether Fortran or
-				   C calling conventions are used for
-				   copy_fn (attribute_in is passed by 
-				   value in C, must be passed by reference
-				   in Fortran); the underlying code
-				   must also understand what a 
-				   Fortran logical looks like */
-  int    ref_count;
-  int    permanent;             /* Used to mark the permanent attributes of
-				   MPI_COMM_WORLD */
-} MPIR_Attr_key;
-#define MPIR_ATTR_COOKIE 0xa774c003
-
-extern int MPIR_TOPOLOGY_KEYVAL;  /* Keyval for topology information */
-
-#define MPIR_GRAPH_TOPOL_COOKIE 0x0101beaf
-typedef struct {
-  int type;
-  MPIR_COOKIE
-  int nnodes;
-  int nedges;
-  int *index;
-  int *edges;
-} MPIR_GRAPH_TOPOLOGY;
-
-#define MPIR_CART_TOPOL_COOKIE 0x0102beaf
-typedef struct {
-  int type;
-  MPIR_COOKIE
-  int nnodes;
-  int ndims;
-  int *dims;
-  int *periods;
-  int *position;
-} MPIR_CART_TOPOLOGY;
+/*
+ * In order to provide better compile time error checking for the 
+ * implementation, we use a union to store the actual copy/delete functions
+ * for the different languages
+ */
+#ifndef ANSI_ARGS
+#if defined(__STDC__) || defined(__cplusplus)
+#define ANSI_ARGS(a) a
+#else
+#define ANSI_ARGS(a) ()
+#endif
+#endif
 
 typedef union {
-  int type;
-  MPIR_GRAPH_TOPOLOGY  graph;
-  MPIR_CART_TOPOLOGY   cart;
-} MPIR_TOPOLOGY;
+    int (*c_copy_fn) ANSI_ARGS(( MPI_Comm, int, void *, void *, void *, 
+				 int * ));
+    int (*f77_copy_fn) ANSI_ARGS(( MPI_Comm, int *, int *, int *, int *, 
+				   int * ));
+} MPIR_Copy_fn;
+typedef union {
+    int (*c_delete_fn) ANSI_ARGS(( MPI_Comm, int, void *, void * ));
+    int (*f77_delete_fn) ANSI_ARGS(( MPI_Comm, int *, int *, void * ));
+} MPIR_Delete_fn;
+
+typedef struct  {
+    MPIR_COOKIE                    /* Cookie to help detect valid items */
+    MPIR_Copy_fn copy_fn;
+    MPIR_Delete_fn delete_fn;
+    void  *extra_state;
+    int    FortranCalling;        /* Used to indicate whether Fortran or
+				     C calling conventions are used for
+				     copy_fn (attribute_in is passed by 
+				     value in C, must be passed by reference
+				     in Fortran); the underlying code
+				     must also understand what a 
+				     Fortran logical looks like */
+    int    ref_count;
+    int    permanent;             /* Used to mark the permanent attributes of
+				     MPI_COMM_WORLD */
+} MPIR_Attr_key;
+#define MPIR_ATTR_COOKIE 0xa774c003
 
 #define MPIR_GROUP_COOKIE 0xea01beaf
 struct MPIR_GROUP {
@@ -144,55 +138,13 @@ typedef enum { MPIR_INTRA=1, MPIR_INTER } MPIR_COMM_TYPE;
 #undef ANSI_ARGS
 #endif
 
-#if defined(__STDC__)
+#if defined(__STDC__) || defined(__cplusplus)
 #define ANSI_ARGS(a) a
 #else
 #define ANSI_ARGS(a) ()
 #endif
 
-/*
- * Collective operations (this allows choosing either an implementation
- * in terms of point-to-point, or a special version exploiting special
- * facilities, in a communicator by communicator fashion).
- */
-typedef struct MPIR_COLLOPS {
-    int (*Barrier) ANSI_ARGS((MPI_Comm comm ));
-    int (*Bcast) ANSI_ARGS((void* buffer, int count, MPI_Datatype datatype, int root, 
-		 MPI_Comm comm ));
-    int (*Gather) ANSI_ARGS((void* sendbuf, int sendcount, MPI_Datatype sendtype, 
-		  void* recvbuf, int recvcount, MPI_Datatype recvtype, 
-		  int root, MPI_Comm comm)); 
-    int (*Gatherv) ANSI_ARGS((void* sendbuf, int sendcount, MPI_Datatype sendtype, 
-		   void* recvbuf, int *recvcounts, int *displs, 
-		   MPI_Datatype recvtype, int root, MPI_Comm comm)); 
-    int (*Scatter) ANSI_ARGS((void* sendbuf, int sendcount, MPI_Datatype sendtype, 
-		   void* recvbuf, int recvcount, MPI_Datatype recvtype, 
-		   int root, MPI_Comm comm));
-    int (*Scatterv) ANSI_ARGS((void* sendbuf, int *sendcounts, int *displs, 
-		    MPI_Datatype sendtype, void* recvbuf, int recvcount, 
-		    MPI_Datatype recvtype, int root, MPI_Comm comm));
-    int (*Allgather) ANSI_ARGS((void* sendbuf, int sendcount, MPI_Datatype sendtype, 
-		     void* recvbuf, int recvcount, MPI_Datatype recvtype, 
-		     MPI_Comm comm));
-    int (*Allgatherv) ANSI_ARGS((void* sendbuf, int sendcount, MPI_Datatype sendtype, 
-		      void* recvbuf, int *recvcounts, int *displs, 
-		      MPI_Datatype recvtype, MPI_Comm comm));
-    int (*Alltoall) ANSI_ARGS((void* sendbuf, int sendcount, MPI_Datatype sendtype, 
-		    void* recvbuf, int recvcount, MPI_Datatype recvtype, 
-		    MPI_Comm comm));
-    int (*Alltoallv) ANSI_ARGS((void* sendbuf, int *sendcounts, int *sdispls, 
-		     MPI_Datatype sendtype, void* recvbuf, int *recvcounts, 
-		     int *rdispls, MPI_Datatype recvtype, MPI_Comm comm));
-    int (*Reduce) ANSI_ARGS((void* sendbuf, void* recvbuf, int count, 
-		  MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm));
-    int (*Allreduce) ANSI_ARGS((void* sendbuf, void* recvbuf, int count, 
-		     MPI_Datatype datatype, MPI_Op op, MPI_Comm comm));
-    int (*Reduce_scatter) ANSI_ARGS((void* sendbuf, void* recvbuf, int *recvcounts, 
-			  MPI_Datatype datatype, MPI_Op op, MPI_Comm comm));
-    int (*Scan) ANSI_ARGS((void* sendbuf, void* recvbuf, int count, MPI_Datatype datatype, 
-		MPI_Op op, MPI_Comm comm ));
-    int ref_count;     /* So we can share it */
-} MPIR_COLLOPS;
+typedef struct _MPIR_COLLOPS *MPIR_COLLOPS;
 
 /*
    The local_rank field is used to reduce unnecessary memory references
@@ -211,6 +163,7 @@ typedef struct MPIR_COLLOPS {
 #define MPIR_COMM_COOKIE 0xea02beaf
 struct MPIR_COMMUNICATOR {
     MPIR_COOKIE                   /* Cookie to help detect valid item */
+    /* Most common data from group is cached here */
     int           np;             /* size of (remote) group */
     int           local_rank;     /* rank in local_group of this process */
     int           *lrank_to_grank;/* mapping for group */
@@ -218,6 +171,8 @@ struct MPIR_COMMUNICATOR {
     MPIR_CONTEXT   recv_context;  /* context to recv messages */
     void          *ADIctx;        /* Context (if any) for abstract device */
 
+    /* This stuff is needed for the communicator implemenation, but less
+       often than the above items */
     MPIR_COMM_TYPE comm_type;	  /* inter or intra */
     MPI_Group     group;	  /* group associated with communicator */
     MPI_Group     local_group;    /* local group */
@@ -225,7 +180,10 @@ struct MPIR_COMMUNICATOR {
 
     int            ref_count;     /* number of references to communicator */
     void          *comm_cache;	  /* Hook for communicator cache */
-    MPIR_HBT      *attr_cache;    /* Hook for attribute cache */
+    MPIR_HBT      attr_cache;     /* Hook for attribute cache */
+    int           use_return_handler;   /* Allows us to override error_handler
+					   when the MPI implementation
+					   calls MPI routines */
     struct MPIR_Errhandler *error_handler;  /* Error handler structure */
     int            permanent;      /* Is this a permanent object? */
     void          *mutex;          /* Local for threaded versions */
@@ -243,28 +201,43 @@ struct MPIR_COMMUNICATOR {
        communicator */
     /*** END HETEROGENEOUS ONLY ***/
 
-    /* This would be a good place to cache data that is often needed, 
-       such as the rank of the process that holds this communicator in
-       the local group 
-     */
-
-    /* Needed for ADI-supported collective operations. These are ignored
-       if the ADI doesn't support the operation; otherwise, they are
-       null if the operation is not supported on this communicator and 
-       non-null otherwise.  */
+    /* These are used to support collective operations in this context */
+    void          *adiCollCtx;
+    MPIR_COLLOPS  collops;
+#ifndef MPI_ADI2
     void          *ADIBarrier;
     void          *ADIReduce;
     void          *ADIScan;
     void          *ADIBcast;
     void          *ADICollect;
 
-    void          *adiCollCtx;
-    MPIR_COLLOPS  *collops;
+    /* These are only required to allow debuggers a way to locate
+     * all of the communicators in the code, and provide a print name
+     * for each. (The user may be able to set this name, at some point).
+     */
+    struct MPIR_COMMUNICATOR *comm_next; /* A chain through all 
+					    communicators */
+    char 		     *comm_name; /* A print name for this 
+					    communicator */
+#endif
 };
 
+/*
+ * The list of all communicators in the program.
+ */
+typedef struct _MPIR_Comm_list {
+  int	 	   	sequence_number;
+  struct MPIR_COMMUNICATOR * comm_first;
+} MPIR_Comm_list ;
+
+extern MPIR_Comm_list MPIR_All_communicators;
+
+#ifdef FOO
+/* not a bad idea, but not used consistently */
 typedef enum {
   MPIR_NO = 0, MPIR_YES
 } MPIR_BOOL;
+#endif
 
 /* 
    MPIR_FORT_INT is a special integer type for systems where sizeof(int) !=
@@ -284,11 +257,14 @@ typedef enum {
 } MPIR_NODETYPE;
 
 /* These are used by some of the datatype routines */
+#ifdef FOO
 #ifndef MPIR_TRUE
 #define MPIR_TRUE  1
 #define MPIR_FALSE 0
 #endif
+#endif
 
+/* These are used in the Group manipulation routines */
 #define MPIR_UNMARKED 0
 #define MPIR_MARKED   1
 

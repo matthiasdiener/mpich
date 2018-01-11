@@ -1,7 +1,11 @@
-.TH MPI_Wtime 3 "12/21/1995" " " "MPI"
+.TH MPI_Wtime 3 "4/11/1996" " " "MPI"
 .SH NAME
-MPI_Wtime \- Returns an elapsed time on the calling processor
-
+MPI_Wtime \-  Returns an elapsed time on the calling processor 
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+double MPI_Wtime()
+.fi
 .SH RETURN VALUE
 Time in seconds since an arbitrary time in the past.
 
@@ -12,17 +16,20 @@ See
 to determine the resolution of 
 .I MPI_WTIME
 .
+If the attribute 
+.I MPI_WTIME_IS_GLOBAL
+is defined and true, then the
+value is synchronized across all processes in 
+.I MPI_COMM_WORLD
+.
 
 .SH NOTES FOR FORTRAN
 This is a function, declared as 
 .I DOUBLE PRECISION MPI_WTIME()
 in Fortran.
-.SH SYNOPSIS
-.nf
-#include "mpi.h"
-double MPI_Wtime()
 
-.fi
-
+.SH SEE ALSO
+also: MPI_Wtick, MPI_Attr_get
+.br
 .SH LOCATION
- wtime.c
+wtime.c

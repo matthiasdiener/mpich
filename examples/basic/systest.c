@@ -1,5 +1,7 @@
 #include "mpi.h"
 #include <stdio.h>
+/* stdlib is needed for declaring malloc */
+#include <stdlib.h>
 
 #define MAX2(a,b) (((a)>(b)) ? (a) : (b))
 

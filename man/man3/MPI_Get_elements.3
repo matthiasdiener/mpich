@@ -1,8 +1,14 @@
-.TH MPI_Get_elements 3 "1/11/1996" " " "MPI"
+.TH MPI_Get_elements 3 "4/11/1996" " " "MPI"
 .SH NAME
-MPI_Get_elements \- Returns the number of basic elements
-in a datatype
-
+MPI_Get_elements \-  Returns the number of basic elements in a datatype 
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Get_elements ( status, datatype, elements )
+MPI_Status    *status;
+MPI_Datatype  datatype;
+int          *elements;
+.fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP
@@ -44,15 +50,40 @@ All MPI objects (e.g.,
 ) are of type 
 .I INTEGER
 in Fortran.
-.SH SYNOPSIS
-.nf
-#include "mpi.h"
-int MPI_Get_elements ( status, datatype, elements )
-MPI_Status    *status;
-MPI_Datatype  datatype;
-int          *elements;
 
-.fi
+.SH ERRORS
+
+All MPI routines (except 
+.I MPI_Wtime
+and 
+.I MPI_Wtick
+) return an error value;
+C routines as the value of the function and Fortran routines in the last
+argument.  Before the value is returned, the current MPI error handler is
+called.  By default, this error handler aborts the MPI job.  The error handler
+may be changed with 
+.I MPI_Errhandler_set
+; the predefined error handler
+.I MPI_ERRORS_RETURN
+may be used to cause error values to be returned.
+Note that MPI does 
+.B not
+guarentee that an MPI program can continue past
+an error.
+
+.PD 0
+.TP
+.B MPI_SUCCESS 
+- No error; MPI routine completed successfully.
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_TYPE 
+- Invalid datatype argument.  May be an uncommitted 
+.PD 1
+MPI_Datatype (see 
+.I MPI_Type_commit
+).
 
 .SH LOCATION
- getelements.c
+getelements.c

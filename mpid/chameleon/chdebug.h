@@ -7,7 +7,7 @@
 {if (MPID_DebugFlag) {\
     fprintf( MPID_DEBUG_FILE, \
 	    "[%d]R About to copy to %d from %d (n=%d) (%s:%d)...\n", \
-	    MPID_MyWorldRank, a, b, c, __FILE__, __LINE__ );\
+	MPID_MyWorldRank, (MPI_Aint)a, (MPI_Aint)b, c, __FILE__, __LINE__ );\
     fflush( MPID_DEBUG_FILE ); }\
 memcpy( a, b, c );}
 

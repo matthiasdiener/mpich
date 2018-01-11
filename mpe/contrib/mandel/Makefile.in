@@ -4,36 +4,23 @@ ALL: default
 ARCH        = @ARCH@
 MAKE        = @MAKE@
 COMM        = @COMM@
-BOPT        = @BOPT@
-P4_DIR      = @P4_DIR@
-TOOLS_DIR   = @TOOLS_DIR@
 MPIR_HOME   = @MPIR_HOME@
-CC          = @CC@
-CLINKER     = @CLINKER@
-CCC         = @CPP_COMPILER@
-CCLINKER    = $(CCC)
-F77         = @FLINKER@
+CC          = @MPIR_HOME@/lib/@ARCH@/@COMM@/mpicc
+CLINKER     = $(CC)
+F77         = @MPIR_HOME@/lib/@ARCH@/@COMM@/mpif77
 FLINKER     = $(F77)
-AR          = @AR@
-RANLIB      = @RANLIB@
-#PROFILING   = $(PROF_DIR)/$(PROF_FILE) $(PROF_LIB)
-OPTFLAGS    = @OPTFLAGS@
+INCLUDE_DIR = -I@MPE_DIR@ @X_INC@
+OPTFLAGS    = 
+MPE_GRAPH   = @MPE_GRAPHICS@
 MPE_LIBS    = @MPE_LIBS@
 MPE_DIR     = @MPE_DIR@
-PROF_LIB    = -lpmpi
-PROF_DIR    = $(MPIR_HOME)/profiling/lib
-PROF_FILE   = time_wrappers.o
-LIB_PATH    = @LIB_PATH@ @X_LIB@
-# On the meiko, you need to add -lsocket to LIB_LIST
-LIB_LIST    = $(PROFILING) @LIB_LIST@
-INCLUDE_DIR = @USER_INCLUDE_PATH@ -I$(MPIR_HOME)/include -I@MPE_DIR@ @X_INC@
-DEVICE      = @DEVICE@
-MPE_GRAPH   = @MPE_GRAPHICS@
+LIB_PATH    = @X_LIB@
+LIB_LIST    = 
 
 ### End User configurable options ###
 
 PROFLIB =
-CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPE_GRAPH)
+CFLAGS  = $(OPTFLAGS) $(MPE_GRAPH)
 CCFLAGS = $(CFLAGS)
 LIBS = $(LIB_PATH) $(PROFLIB) $(LIB_LIST)
 EXECS = pmandel
@@ -62,3 +49,8 @@ clean:
 	$(CC) $(CFLAGS) -c $*.c
 .f.o:
 	$(F77) $(FFLAGS) -c $*.f
+
+lint:
+	lint -chv @USER_CFLAGS@ $(MPE_GRAPH) \
+		$(INCLUDE_DIR) pmandel.c \
+		pm_genproc.c fract_gen.c pm_separate_rect.c lists.c args.c

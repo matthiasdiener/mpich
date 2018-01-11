@@ -1,5 +1,5 @@
 /*
- *  $Id: mpir.h,v 1.50 1996/01/03 19:08:34 gropp Exp $
+ *  $Id: mpir.h,v 1.53 1996/06/26 19:28:38 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -17,6 +17,21 @@
 #include "dmpi.h"
 #include "dm.h"
 
+#ifndef ANSI_ARGS
+#if defined(__STDC__) || defined(__cplusplus)
+#define ANSI_ARGS(a) a
+#else
+#define ANSI_ARGS(a) ()
+#endif
+#endif
+
+#ifndef VOLATILE
+#if defined(__STDC__) || defined(__cplusplus)
+#define VOLATILE volatile
+#else
+#define VOLATILE
+#endif
+#endif
 /*****************************************************************************
 *                           MPIR DATA STRUCTURES                             *
 *****************************************************************************/
@@ -30,7 +45,7 @@
 struct MPIR_DATATYPE {
     MPIR_NODETYPE dte_type; /* type of datatype element this is */
     MPIR_COOKIE             /* Cookie to help detect valid item */
-    MPIR_BOOL    committed; /* whether committed or not */
+    int          committed; /* whether committed or not */
     int          is_contig; /* whether entirely contiguous */
     int              basic; /* Is this a basic type */
     int          permanent; /* Is this a permanent type */
@@ -186,7 +201,7 @@ typedef struct {
 
 /* This is an "extension" handle and is NOT part of the MPI standard.
    Defining it, however, introduces no problems with the standard, and
-   it allows us to easily extent the request types.
+   it allows us to easily extend the request types.
 
    Note that this is not yet compatible with the essential fields of
    MPIR_COMMON.
@@ -197,12 +212,12 @@ typedef struct {
     int         completer;      /* index of routine to complete, 
 				   or 0 if done */
     int         active;
-    int         (*create_ureq)();
-    int         (*free_ureq)();
-    int         (*wait_ureq)();
-    int         (*test_ureq)();
-    int         (*start_ureq)();
-    int         (*cancel_ureq)();
+    int         (*create_ureq) ANSI_ARGS((MPI_Request));
+    int         (*free_ureq)   ANSI_ARGS((MPI_Request));
+    int         (*wait_ureq)   ANSI_ARGS((MPI_Request));
+    int         (*test_ureq)   ANSI_ARGS((MPI_Request));
+    int         (*start_ureq)  ANSI_ARGS((MPI_Request));
+    int         (*cancel_ureq) ANSI_ARGS((MPI_Request));
     void        *private_data;
 } MPIR_UHANDLE;
 
@@ -279,6 +294,7 @@ typedef struct _MPIR_FDTEL {    /* flat datatype elements */
     struct _MPIR_FDTEL *next;   /* pointer to next element */
 } MPIR_FDTEL;
 
+
 /*****************************************************************************
 *                                GLOBAL DATA                                 *
 *****************************************************************************/
@@ -301,9 +317,11 @@ extern MPIR_QHDR MPIR_unexpected_recvs;
 /* Predefined function tables for collective routines, the device
  * can also use its own, but these are the defaults.
  */
+#ifdef FOO
+defined in mpicoll.h
 extern MPIR_COLLOPS * MPIR_inter_collops;   /* Simply raises appropriate error */
 extern MPIR_COLLOPS * MPIR_intra_collops;   /* Do the business using pt2pt     */
-
+#endif
 /* MPIR routines are defined in mpiimpl.h */
 
 /* MPIR process id (from device) */
@@ -384,14 +402,19 @@ typedef char *MPID_FCHAR_T;
 /* Encoded in the sender's native format */
 #define MPIR_MSGREP_SENDER	2
 
-/* Formats to use.  This is a little different from the above; these
+/* 
+   Formats to use.  This is a little different from the above; these
    specify the actual conversion to perform 
 
    These are not the final forms, since we'll eventually want to allow
    forms that do swap-and-extend etc., but for now, these are ok.
+
+   To aid in debugging, we make the non-XDR form different in value.
+   Currently, these are used in src/dmpi/dmpi.c dmpipk.c and pkutil.c for
+   the "destination type"
  */
-#define MPIR_MSGFORM_XDR 2
-#define MPIR_MSGFORM_SWAP 1
+#define MPIR_MSGFORM_XDR 1
+#define MPIR_MSGFORM_SWAP 10
 #define MPIR_MSGFORM_OK 0
 
 /*

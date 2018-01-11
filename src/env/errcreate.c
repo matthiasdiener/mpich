@@ -1,16 +1,17 @@
 /*
- *  $Id: errcreate.c,v 1.7 1995/12/21 21:56:46 gropp Exp $
+ *  $Id: errcreate.c,v 1.8 1996/04/11 20:27:58 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: errcreate.c,v 1.7 1995/12/21 21:56:46 gropp Exp $";
-#endif
-
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "sbcnst2.h"
+#define MPIR_SBalloc MPID_SBalloc
+#else
 #include "mpisys.h"
+#endif
 
 /*@
   MPI_Errhandler_create - Creates an MPI-style errorhandler
@@ -30,22 +31,25 @@ error handler must remain until all communicators that use it are
 freed.
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_EXHAUSTED
 @*/
 int MPI_Errhandler_create( function, errhandler )
 MPI_Handler_function *function;
 MPI_Errhandler       *errhandler;
 {
-MPI_Errhandler new;
+    MPI_Errhandler new;
 
-new = (MPI_Errhandler) MPIR_SBalloc( MPIR_errhandlers );
-if (!new) 
-	return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-					  "Error in MPI_ERRHANDLER_CREATE" );
+    MPIR_ALLOC(new,(MPI_Errhandler) MPIR_SBalloc( MPIR_errhandlers ),
+	       MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+			   "Error in MPI_ERRHANDLER_CREATE" );
 
-MPIR_SET_COOKIE(new,MPIR_ERRHANDLER_COOKIE);
-new->routine   = function;
-new->ref_count = 1;
+    MPIR_SET_COOKIE(new,MPIR_ERRHANDLER_COOKIE);
+    new->routine   = function;
+    new->ref_count = 1;
 
-*errhandler = new;
-return MPI_SUCCESS;
+    *errhandler = new;
+    return MPI_SUCCESS;
 }

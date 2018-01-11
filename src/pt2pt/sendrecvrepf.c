@@ -7,11 +7,7 @@
 #include <stdarg.h>
 #endif
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -41,7 +37,7 @@ extern void MPIR_RmPointer();
 #ifdef _TWO_WORD_FCD
 #define NUMPARAMS 10
 
- void mpi_sendrecv_replace_( void *unknown, ...)
+void mpi_sendrecv_replace_( void *unknown, ...)
 {
 void         	*buf;
 int		*count,*dest,*sendtag,*source,*recvtag;
@@ -74,7 +70,7 @@ __ierr =        va_arg(ap, int *);
 
 #else
 
- void mpi_sendrecv_replace_( buf, count, datatype, dest, sendtag, 
+void mpi_sendrecv_replace_( buf, count, datatype, dest, sendtag, 
      source, recvtag, comm, status, __ierr )
 void         *buf;
 int*count,*dest,*sendtag,*source,*recvtag;
@@ -95,7 +91,11 @@ if (_isfcd(buf)) {
 
 #endif
 #else
- void mpi_sendrecv_replace_( buf, count, datatype, dest, sendtag, 
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_sendrecv_replace_ ANSI_ARGS(( void *, int *, MPI_Datatype, int *,
+				       int *, int *, int *, MPI_Comm, 
+				       MPI_Status *, int * ));
+void mpi_sendrecv_replace_( buf, count, datatype, dest, sendtag, 
      source, recvtag, comm, status, __ierr )
 void         *buf;
 int*count,*dest,*sendtag,*source,*recvtag;
@@ -104,8 +104,10 @@ MPI_Comm      comm;
 MPI_Status   *status;
 int *__ierr;
 {
-*__ierr = MPI_Sendrecv_replace(MPIR_F_PTR(buf),*count,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),*dest,*sendtag,*source,*recvtag,
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),status);
+    *__ierr = MPI_Sendrecv_replace(MPIR_F_PTR(buf),*count,
+			     (MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),
+				   *dest,*sendtag,*source,*recvtag,
+				   (MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),
+				   status);
 }
 #endif

@@ -1,12 +1,12 @@
 /* ictest.c */
 #include "mpi.h"
 
-main( argc, argv )
+int main( argc, argv )
      int argc;
      char **argv;
 {
   int size, rank, key, his_key, lrank;
-  MPI_Comm myComm, myComm2;
+  MPI_Comm myComm;
   MPI_Comm myFirstComm;
   MPI_Comm mySecondComm;
   int errors = 0, sum_errors;

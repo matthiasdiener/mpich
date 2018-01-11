@@ -1,16 +1,15 @@
 /*
- *  $Id: bsend.c,v 1.12 1995/12/21 21:10:50 gropp Exp $
+ *  $Id: bsend.c,v 1.14 1996/05/06 15:09:09 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 
-#ifndef lint
-static char vcid[] = "$Id: bsend.c,v 1.12 1995/12/21 21:10:50 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "reqalloc.h"
+#endif
 
 /*@
     MPI_Bsend - Basic send with user-specified buffering
@@ -28,8 +27,22 @@ This send is provided as a convenience function; it allows the user to
 send messages without worring about where they are buffered (because the
 user `must` have provided buffer space with 'MPI_Buffer_attach').  
 
-The buffer space can not be reused unless you are certain that the message
-has been received (not just that it should have been received).  In C, you can 
+In deciding how much buffer space to allocate, remember that the buffer space 
+is not available for reuse by subsequent 'MPI_Bsend's unless you are certain 
+that the message
+has been received (not just that it should have been received).  For example,
+this code does not allocate enough buffer space
+.vb
+    MPI_Buffer_attach( b, n*sizeof(double) + MPI_BSEND_OVERHEAD );
+    for (i=0; i<m; i++) {
+        MPI_Bsend( buf, n, MPI_DOUBLE, ... );
+    }
+.ve
+because only enough buffer space is provided for a single send, and the
+loop may start a second 'MPI_Bsend' before the first is done making use of the
+buffer.  
+
+In C, you can 
 force the messages to be delivered by 
 .vb
     MPI_Buffer_detach( &b, &n );
@@ -39,6 +52,14 @@ force the messages to be delivered by
 delivered.)
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_RANK
+.N MPI_ERR_TAG
 
 .seealso: MPI_Buffer_attach, MPI_Ibsend, MPI_Bsend_init
 @*/
@@ -51,6 +72,8 @@ MPI_Comm         comm;
     MPI_Request handle;
     MPI_Status  status;
     int         mpi_errno = MPI_SUCCESS;
+    MPIR_ERROR_DECL;
+    static char myname[] = "Error in MPI_Bsend";
 
     if (dest != MPI_PROC_NULL)
     {
@@ -63,15 +86,33 @@ MPI_Comm         comm;
 	    MPIR_TEST_SEND_RANK(comm,dest) || MPIR_TEST_SEND_TAG(comm,tag))
 	    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_Bsend" );
 
-	if (mpi_errno = 
-	    MPI_Ibsend( buf, count, datatype, dest, tag, comm, &handle )) 
-	    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_Bsend" );
-	    
+#ifdef MPI_ADI2
+	/* 
+	   ? BsendDatatype?
+	   MPID_BsendContig( comm, buf, len, src_lrank, tag, context_id,
+	   dest_grank, msgrep, &mpi_errno );
+	   if (!mpi_errno) return MPI_SUCCESS;
+	   if (mpi_errno != MPIR_ERR_MAY_BLOCK) 
+	   return MPIR_ERROR( comm, mpi_errno, "Error in MPI_Bsend" );
+	 */
+#endif
+	MPIR_ERROR_PUSH(comm);
+	/* We don't use MPIR_CALL_POP so that we can free the handle */
+	if ((mpi_errno = MPI_Ibsend( buf, count, datatype, dest, tag, comm, 
+				  &handle ))) {
+	    MPIR_ERROR_POP(comm);
+#ifdef MPI_ADI2
+	    MPID_SendFree( handle );
+#endif
+	    return MPIR_ERROR(comm,mpi_errno,myname);
+	}
+
 	/* This Wait only completes the transfer of data into the 
 	   buffer area.  The test/wait in util/bsendutil.c completes
 	   the actual transfer 
 	 */
-	mpi_errno = MPI_Wait( &handle, &status );
+	MPIR_CALL_POP(MPI_Wait( &handle, &status ),comm,myname);
+	MPIR_ERROR_POP(comm);
     }
     return mpi_errno;
 }

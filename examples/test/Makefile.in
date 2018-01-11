@@ -1,39 +1,30 @@
 ALL: default
 ##### User configurable options #####
 
-ARCH        = @ARCH@
-COMM        = @COMM@
-BOPT        = @BOPT@
-P4_DIR      = @P4_DIR@
-TOOLS_DIR   = @TOOLS_DIR@
 MPIR_HOME   = @MPIR_HOME@
-CC          = @CC@
-CLINKER     = @CLINKER@
-CCC         = @CPP_COMPILER@
+CC          = @MPICC@
+CLINKER     = @MPICC@
+CCC         = @MPICPLUSPLUS@
 CCLINKER    = $(CCC)
-F77         = @F77@
-FLINKER     = @FLINKER@
-AR          = @AR@
-RANLIB      = @RANLIB@
-PROFILING   = $(PMPILIB)
+F77         = @MPIF77@
+FLINKER     = @MPIF77@
 OPTFLAGS    = @OPTFLAGS@
-INCLUDE_DIR = @USER_INCLUDE_PATH@ -I$(MPIR_HOME)/include 
-DEVICE      = @DEVICE@
+MAKE        = @MAKE@
 
 ### End User configurable options ###
 
 SHELL = /bin/sh
 
-CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
+PROFLIB =
+CFLAGS  = $(OPTFLAGS) 
 CCFLAGS = $(CFLAGS)
-#FFLAGS = '-qdpc=e' 
-FFLAGS = @FFLAGS@ $(OPTFLAGS)
-MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a 
-MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
-LIBS = $(MPILIB) $(DEVICE_LIB)
-LIBSPP = $(MPIPPLIB) $(LIBS)
-TESTDIRS = pt2pt coll topol env context 
-SUBDIRS = pt2pt coll topol env context
+FFLAGS = $(OPTFLAGS)
+# Use LIBS to add any special libraries for C programs
+LIBS = 
+# Use FLIBS to add any special libraries for Fortran programs
+FLIBS = 
+TESTDIRS = pt2pt coll topol env context profile
+SUBDIRS = pt2pt coll topol env context profile
 
 default: subdirs
 	@echo "Type \"make testing\" to compile and run tests"
@@ -86,7 +77,8 @@ clean:
 	/bin/rm -f test.log *.diff sendchar.sun4 sendchar.freebsd \
 		sendshort.sun4 sendshort.freebsd *.o \
 		sendvector.sun4 sendvector.freebsd \
-	        sendchar sendshort sendvector
+		sendstruct.sun4 sendstruct.freebsd \
+	        sendchar sendshort sendvector sendstruct
 	@for dir in $(SUBDIRS) ;\
 		do \
 			echo " " ;\
@@ -94,5 +86,6 @@ clean:
 			(cd $$dir; $(MAKE) clean) ;\
 		done
 
-$(MPIR_HOME)/util/mpirun:
-	(cd $(MPIR_HOME) ; $(MAKE) mpirun )
+# MPICH specific
+#$(MPIR_HOME)/util/mpirun:
+#	(cd $(MPIR_HOME) ; $(MAKE) mpirun )

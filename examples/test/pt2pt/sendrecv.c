@@ -16,8 +16,8 @@
 #include <stdlib.h>
 #include "mpi.h"
 
-static int src;
-static int dest;
+static int src = 1;
+static int dest = 0;
 
 static int do_test1 = 1;
 static int do_test2 = 1;
@@ -32,6 +32,7 @@ static int ntypes = 11;
 static MPI_Datatype BasicTypes[MAX_TYPES];
 
 static int maxbufferlen = 10000;
+static char *(BasicNames[MAX_TYPES]);
 
 void 
 AllocateBuffers(bufferspace, buffertypes, num_types, bufferlen)
@@ -63,8 +64,11 @@ AllocateBuffers(bufferspace, buffertypes, num_types, bufferlen)
 	else if (buffertypes[i] == MPI_DOUBLE)
 	    bufferspace[i] = malloc(bufferlen * sizeof(double));
 #if defined(__STDC__) 
-	else if (MPI_LONG_DOUBLE && buffertypes[i] == MPI_LONG_DOUBLE)
-	    bufferspace[i] = malloc(bufferlen * sizeof(long double));
+	else if (MPI_LONG_DOUBLE && buffertypes[i] == MPI_LONG_DOUBLE) {
+	    int dlen;
+	    MPI_Type_size( MPI_LONG_DOUBLE, &dlen );
+	    bufferspace[i] = malloc(bufferlen * dlen);
+	}
 #endif
 	else if (buffertypes[i] == MPI_BYTE)
 	    bufferspace[i] = malloc(bufferlen * sizeof(unsigned char));
@@ -127,7 +131,7 @@ CheckBuffer(bufferspace, buffertype, bufferlen)
     MPI_Datatype buffertype; 
     int bufferlen;
 {
-    int i, j;
+    int j;
     char valerr[256];
     valerr[0] = 0;
     for (j = 0; j < bufferlen; j++) {
@@ -203,22 +207,22 @@ CheckBuffer(bufferspace, buffertype, bufferlen)
 void 
 SetupBasicTypes()
 {
-    BasicTypes[0] = MPI_CHAR;
-    BasicTypes[1] = MPI_SHORT;
-    BasicTypes[2] = MPI_INT;
-    BasicTypes[3] = MPI_LONG;
-    BasicTypes[4] = MPI_UNSIGNED_CHAR;
-    BasicTypes[5] = MPI_UNSIGNED_SHORT;
-    BasicTypes[6] = MPI_UNSIGNED;
-    BasicTypes[7] = MPI_UNSIGNED_LONG;
-    BasicTypes[8] = MPI_FLOAT;
-    BasicTypes[9] = MPI_DOUBLE;
-    BasicTypes[10] = MPI_BYTE;
+    BasicTypes[0] = MPI_CHAR;        BasicNames[0] = "MPI_CHAR" ;
+    BasicTypes[1] = MPI_SHORT;       BasicNames[1] = "MPI_SHORT";
+    BasicTypes[2] = MPI_INT;         BasicNames[2] = "MPI_INT"  ;
+    BasicTypes[3] = MPI_LONG;        BasicNames[3] = "MPI_LONG" ;
+    BasicTypes[4] = MPI_UNSIGNED_CHAR; BasicNames[4] = "MPI_UNSIGNED_CHAR";
+    BasicTypes[5] = MPI_UNSIGNED_SHORT; BasicNames[5] = "MPI_UNSIGNED_SHORT";
+    BasicTypes[6] = MPI_UNSIGNED;    BasicNames[6] = "MPI_UNSIGNED";
+    BasicTypes[7] = MPI_UNSIGNED_LONG; BasicNames[7] = "MPI_UNSIGNED_LONG";
+    BasicTypes[8] = MPI_FLOAT;       BasicNames[8] = "MPI_FLOAT";
+    BasicTypes[9] = MPI_DOUBLE;      BasicNames[9] = "MPI_DOUBLE";
+    BasicTypes[10] = MPI_BYTE;       BasicNames[10] = "MPI_BYTE";
     /* By making the BYTE type LAST, we make it easier to handle heterogeneous
        systems that may not support all of the types */
 #if defined (__STDC__)
     if (MPI_LONG_DOUBLE) {
-	BasicTypes[11] = MPI_LONG_DOUBLE;
+	BasicTypes[11] = MPI_LONG_DOUBLE; BasicNames[11] = "MPI_LONG_DOUBLE";
 	}
     else {
 	ntypes = 11;
@@ -231,7 +235,7 @@ void
 SenderTest1()
 {
     void *bufferspace[MAX_TYPES];
-    int Curr_Type, i, j;
+    int i, j;
 
     AllocateBuffers(bufferspace, BasicTypes, ntypes, maxbufferlen);
     FillBuffers(bufferspace, BasicTypes, ntypes, maxbufferlen);
@@ -248,7 +252,7 @@ void
 ReceiverTest1()
 {
     void *bufferspace[MAX_TYPES];
-    int Curr_Type, i, j;
+    int i, j;
     char message[81];
     MPI_Status Stat;
     int dummy, passed;
@@ -297,15 +301,16 @@ ReceiverTest1()
 		passed = 0;
 	    } else if(CheckBuffer(bufferspace[i], BasicTypes[i], j)) {
 		fprintf(stderr, 
-	       "*** Incorrect Message received (type = %d, count = %d). ***\n",
-			i, j );
+	       "*** Incorrect Message received (type = %d (%s), count = %d). ***\n",
+			i, BasicNames[i], j );
 		Test_Failed(message);
 		passed = 0;
 	    } else fprintf(stderr, 
-	       "Message of count %d, type %d received correctly.\n", j, i);
+	       "Message of count %d, type %d received correctly.\n", 
+			   j, i );
 	}
-	sprintf(message, "Send-Receive Test, Type %d",
-		i);
+	sprintf(message, "Send-Receive Test, Type %d (%s)",
+		i, BasicNames[i] );
 	if (passed) 
 	    Test_Passed(message);
 	else 
@@ -395,13 +400,17 @@ ReceiverTest2()
 void
 SenderTest3()
 {
+    int ibuf[10];
+
+    /* A receive test might not fail until it is triggered... */
+    MPI_Send( ibuf, 10, MPI_INT, dest, 15, MPI_COMM_WORLD);
+
     return;
 }
 
 void
 ReceiverTest3()
 {
-    int err_code;
     int buffer[20];
     MPI_Datatype bogus_type = MPI_DATATYPE_NULL;
     MPI_Status status;
@@ -476,25 +485,31 @@ count argument, datatype argument, tag, rank, buffer send and buffer recv\n" );
 	Test_Passed("Invalid Buffer Test (send)");
 
     /* A receive test might not fail until it is triggered... */
-    if (MPI_Recv((void *)0, 10, MPI_INT, dest,
-		 1, MPI_COMM_WORLD, &status) == MPI_SUCCESS){
+    if (MPI_Recv((void *)0, 10, MPI_INT, src,
+		 15, MPI_COMM_WORLD, &status) == MPI_SUCCESS){
 	Test_Failed("Invalid Buffer Test (recv)");
     }
     else
 	Test_Passed("Invalid Buffer Test (recv)");
 
+    /* Just to keep things happy, see if there is a message to receive */
+    { int flag, ibuf[10];
 
-
+    MPI_Iprobe( src, 15, MPI_COMM_WORLD, &flag, &status );
+    if (flag) 
+	MPI_Recv( ibuf, 10, MPI_INT, src, 15, MPI_COMM_WORLD, &status );
+    }
     return;
 }
 
+/* Allow -nolongdouble to suppress long double testing */
 int 
 main(argc, argv)
     int argc;
     char **argv;
 {
     int myrank, mysize;
-    int rc, itemp;
+    int rc, itemp, i;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
@@ -508,20 +523,41 @@ main(argc, argv)
 	exit(-1);
     }
 
+    /* Check for no long double */
+    for (i=1; i<argc; i++) {
+	if (argv[i] && strcmp( "-nolongdouble", argv[i] ) == 0) {
+	    if (ntypes == 12) ntypes = 11;
+	}
+    }
+
     /* Get the min of the basic types */
     itemp = ntypes;
     MPI_Allreduce( &itemp, &ntypes, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD );
 
     /* dest writes out the received stats; for the output to be
        consistant (with the final check), it should be procees 0 */
-    if (argc > 1 && argv[1] && strcmp( "-alt", argv[1] ) == 0) {
-	dest = 1;
-	src  = 0;
+    for (i=1; i<argc; i++) {
+	if (argv[i] && strcmp( "-alt", argv[i] ) == 0) {
+	    dest = 1;
+	    src  = 0;
+	} 
+	else if (argv[i] && strcmp( "-nolongdouble", argv[i] ) == 0) {
+	    ntypes = 11;
 	}
-    else {
-	src  = 1;
-	dest = 0;
+	else if (argv[i] && strcmp( "-test1", argv[i] ) == 0) {
+	    do_test2 = do_test3 = 0;
 	}
+	else if (argv[i] && strcmp( "-test2", argv[i] ) == 0) {
+	    do_test1 = do_test3 = 0;
+	}
+	else if (argv[i] && strcmp( "-test3", argv[i] ) == 0) {
+	    do_test2 = do_test1 = 0;
+	}
+	else {
+	    printf( "Unrecognized argument %s\n", argv[i] );
+	}
+    }
+
     /* Turn stdout's buffering to line buffered so it mixes right with
        stderr in output files. (hopefully) */
     setvbuf(stdout, NULL, _IOLBF, 0);
@@ -547,12 +583,11 @@ main(argc, argv)
     }
     if (myrank == dest) {
 	rc = Summarize_Test_Results();
-	Test_Finalize();
     }
     else {
-	Test_Finalize();
 	rc = 0;
     }
+    Test_Finalize();
     Test_Waitforall( );
     MPI_Finalize();
     return rc;

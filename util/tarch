@@ -6,8 +6,10 @@
 # First, try some special cases:
 if [ -d "/dev/elan" ] ; then
   FARCH="meiko"
-elif [ -s /usr/bin/uxpm ] ; then
+elif [ -f /usr/bin/uxpm ] && /usr/bin/uxpm ; then
   FARCH="UXPM"
+elif [ -f /usr/bin/uxpv ] && /usr/bin/uxpv ; then
+  FARCH="uxpv"
 fi
 if [ -n "$FARCH" ] ; then
     echo $FARCH

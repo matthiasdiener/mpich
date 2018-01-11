@@ -3,6 +3,11 @@
 # This shell script updates the MPI version of the Chameleon performance
 # tests by copying them from the tools.n/comm/examples/perf directory
 #
+#
+echo The mpptest code has now diverged from the old PETSc 1 version.
+echo The MPI version is now the official version.
+exit 1
+#
 /bin/cp /home/gropp/tools.n/comm/examples/perf/*.c .
 /bin/cp /home/gropp/tools.n/comm/rate.c .
 /bin/cp /home/gropp/tools.n/system/getopts.c .

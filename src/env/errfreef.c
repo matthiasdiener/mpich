@@ -36,8 +36,11 @@ void mpi_errhandler_free_( errhandler, __ierr )
 MPI_Errhandler *errhandler;
 int *__ierr;
 {
-MPI_Errhandler old;
-old = (MPI_Errhandler)MPIR_ToPointer( *errhandler );
-*__ierr = MPI_Errhandler_free( &old );
-*(int *)errhandler = MPI_ERRHANDLER_NULL;
+    MPI_Errhandler old;
+    old = (MPI_Errhandler)MPIR_ToPointer( *(int*)errhandler );
+    *__ierr = MPI_Errhandler_free( &old );
+    if (!old) {
+	MPIR_RmPointer( *(int*)errhandler );
+    }
+    *(int *)errhandler = MPI_ERRHANDLER_NULL;
 }

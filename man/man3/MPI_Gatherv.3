@@ -1,7 +1,22 @@
-.TH MPI_Gatherv 3 "12/21/1995" " " "MPI"
+.TH MPI_Gatherv 3 "4/12/1996" " " "MPI"
 .SH NAME
-MPI_Gatherv \- Gathers into specified locations from all processes in a group
-
+MPI_Gatherv \-  Gathers into specified locations from all processes in a group 
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Gatherv ( sendbuf, sendcnt,  sendtype, 
+                  recvbuf, recvcnts, displs, recvtype, 
+                  root, comm )
+void             *sendbuf;
+int               sendcnt;
+MPI_Datatype      sendtype;
+void             *recvbuf;
+int              *recvcnts;
+int              *displs;
+MPI_Datatype      recvtype;
+int               root;
+MPI_Comm          comm;
+.fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP
@@ -88,23 +103,53 @@ All MPI objects (e.g.,
 ) are of type 
 .I INTEGER
 in Fortran.
-.SH SYNOPSIS
-.nf
-#include "mpi.h"
-int MPI_Gatherv ( sendbuf, sendcnt,  sendtype, 
-                  recvbuf, recvcnts, displs, recvtype, 
-                  root, comm )
-void             *sendbuf;
-int               sendcnt;
-MPI_Datatype      sendtype;
-void             *recvbuf;
-int              *recvcnts;
-int              *displs;
-MPI_Datatype      recvtype;
-int               root;
-MPI_Comm          comm;
 
-.fi
+.SH ERRORS
 
+All MPI routines (except 
+.I MPI_Wtime
+and 
+.I MPI_Wtick
+) return an error value;
+C routines as the value of the function and Fortran routines in the last
+argument.  Before the value is returned, the current MPI error handler is
+called.  By default, this error handler aborts the MPI job.  The error handler
+may be changed with 
+.I MPI_Errhandler_set
+; the predefined error handler
+.I MPI_ERRORS_RETURN
+may be used to cause error values to be returned.
+Note that MPI does 
+.B not
+guarentee that an MPI program can continue past
+an error.
+
+.PD 0
+.TP
+.B MPI_SUCCESS 
+- No error; MPI routine completed successfully.
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_COMM 
+- Invalid communicator.  A common error is to use a null
+communicator in a call (not even allowed in 
+.I MPI_Comm_rank
+).
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_TYPE 
+- Invalid datatype argument.  May be an uncommitted 
+.PD 1
+MPI_Datatype (see 
+.I MPI_Type_commit
+).
+.PD 0
+.TP
+.B MPI_ERR_BUFFER 
+- Invalid buffer pointer.  Usually a null buffer where
+one is not valid.
+.PD 1
 .SH LOCATION
- gatherv.c
+gatherv.c

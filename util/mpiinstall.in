@@ -19,6 +19,8 @@ MODE=0664
 XMODE=0775
 # Uninstall filename
 UNINSTALLFILE="util/mpiuninstall"
+# If we're doing -libonly, we may want a different file....
+#
 # dirlist is used to uninstall empty directories at the end
 dirlist=""
 #
@@ -38,6 +40,8 @@ for arg in "$@" ; do
 	-nonupshot)nonupshot=1 ;;
 	-cpnupshot)cpnupshot=1 ;;
 	-noman) noman=1 ;;
+	-device=*) DEVICE=`echo A$arg | sed -e 's/A-device=//g'` 
+	           COMM=$DEVICE ;;
 	-manpath=*)MPIMANPATH=`echo $arg | sed -e 's/-manpath=//g'` ;;
 	-libonly) libonly=1 ;;
 	-t) Show=echo
@@ -59,6 +63,7 @@ for arg in "$@" ; do
 	echo "-cpnupshot   - Do not build nupshot; install the one in"
 	echo "               profiling/nupshot - WARNING - read the "
 	echo "               installation manual first!"
+	echo "-device=name - Select a different device type to install"
 	exit 1
 	;;
 	*)
@@ -70,6 +75,23 @@ done
 if [ -z "$APREFIX" ] ; then
     APREFIX=$PREFIX
 fi
+#
+# Update some fields that contain the build root directory
+# These work by extracting the syntax for specifying the library, and then
+# adding the correct destination to it.
+NFLIB_PATH=`echo "@FLIB_PATH@" | \
+	sed -e "s%^\([^/ ]*\)/[^ ]*%\1$PREFIX/lib/$ARCH/$COMM%g"`
+NFINC=`echo "@FINC@" | \
+	sed -e "s%^\([^/ ]*\)/[^ ]*%\1$PREFIX/include%g"`
+#
+# Remove old uninstall file
+/bin/rm -f $UNINSTALLFILE
+cat > $UNINSTALLFILE <<EOF
+#! /bin/sh
+set -x
+EOF
+chmod +x $UNINSTALLFILE
+#
 #
 # We could use install, but install is too different and too hard to 
 # test.  So here are the routines to copy file, make directories, and 
@@ -91,6 +113,10 @@ if [ -f $dest ] ; then
     echo "$dest exists; not changed"
 elif [ -d $1 ] ; then
     echo ">>> $1 is a directory; not copied <<<"
+    errs=`expr $errs + 1`
+    if [ $failmode = "hard" ] ; then exit 1 ; fi
+elif [ ! -f $1 ] ; then 
+    echo "**File $1 does not exist (or is not a regular file)!"
     errs=`expr $errs + 1`
     if [ $failmode = "hard" ] ; then exit 1 ; fi
 else
@@ -178,11 +204,14 @@ else
 	-e "s%\#INCLUDE_PATH\#%@INCLUDE_PATH@%g" \
 	-e "s%\#INSTALL_DIR\#%$PREFIX%g" \
 	-e "s%\#LIB_LIST\#%@LIB_LIST@%g" \
+	-e "s%\#MPIRUN_BIN\#%lib/$ARCH/$COMM%g" \
         -e "s%\#MPIR_HOME\#%$PREFIX%g" \
 	-e "s%\#OPTFLAGS\#%@OPTFLAGS@%g" \
 	-e "s%\#PREFIX\#%$PREFIX%g" \
 	-e "s%\#RSH_COMMAND\#%$RSH_COMMAND%g" \
 	-e "s%\#SYNCLOC\#%@SYNCLOC@%g" \
+	-e "s%\#TK_VERSION\#%@TK_VERSION@%g" \
+	-e "s%\#MPILIBNAME\#%@MPILIBNAME@%g" \
 	-e "s%\#wishloc\#%@wishloc@%g" \
 	$1 > $dest
         rc=$?
@@ -219,8 +248,11 @@ fi
 # This has a few more fields than FixupFile
 #
 FixupFileWithAt() {
+    # Change the FIRST libpath to the new form.  This allows 
+    # the LIB_PATH to contain multiple names, as long as the MPICH libpath
+    # is first
     NLIBPATH=`echo "@LIB_PATH@" | \
-	sed -e "s%^\([^/]*\)/.*\$%\1$PREFIX/lib/$ARCH/$COMM%g"`
+	sed -e "s%^\([^/ ]*\)/[^ ]*%\1$PREFIX/lib/$ARCH/$COMM%g"`
 if [ -d $2 ] ; then
     dest=$2/`basename $1`
 else
@@ -235,7 +267,7 @@ else
         sed \
 	-e "s%[@]ARCH[@]%$ARCH%g" \
 	-e "s%[@]AUTOMOUNTFIX[@]%@AUTOMOUNTFIX@%g" \
-	-e "s%[@]FINC[@]%@FINC@%g" \
+	-e "s%[@]FINC[@]%$NFINC%g" \
         -e "s%[@]BITMAP_DIR[@]%$PREFIX/lib/bitmaps%g" \
 	-e "s%[@]CC[@]%@CC@%g" \
 	-e "s%[@]CCC[@]%@CCC@%g" \
@@ -250,7 +282,7 @@ else
 	-e "s%[@]F77[@]%@F77@%g" \
 	-e "s%[@]FFLAGS[@]%@FFLAGS@%g" \
 	-e "s%[@]FLIB_PATH_LEADER[@]%@FLIB_PATH_LEADER@%g" \
-	-e "s%[@]FLIB_PATH[@]%@FLIB_PATH@%g" \
+	-e "s%[@]FLIB_PATH[@]%$NFLIB_PATH%g" \
 	-e "s%[@]FLINKER[@]%@FLINKER@%g" \
 	-e "s%[@]INCLUDE_PATH[@]%@INCLUDE_PATH@%g" \
 	-e "s%[@]INSTALL_DIR[@]%$PREFIX%g" \
@@ -258,6 +290,7 @@ else
 	-e "s%[@]LIB_LIST[@]%@LIB_LIST@%g" \
 	-e "s%[@]MPE_LIBS[@]%@MPE_LIBS@%g" \
         -e "s%[@]MPIR_HOME[@]%$PREFIX%g" \
+        -e "s%[@]MPILIBNAME[@]%@MPILIBNAME@%g" \
 	-e "s%[@]OPTFLAGS[@]%@OPTFLAGS@%g" \
 	-e "s%[@]PREFIX[@]%$PREFIX%g" \
 	-e "s%[@]RSH_COMMAND[@]%$RSH_COMMAND%g" \
@@ -296,9 +329,9 @@ fi
 # End of routines
 #
 ##############################################################################
-if [ ! -s lib/$ARCH/$COMM/libmpi.a ] ; then 
+if [ ! -s lib/$ARCH/$COMM/lib@MPILIBNAME@.a ] ; then 
     echo "You must make MPI before installing it!"
-    echo "Could not find lib/$ARCH/$COMM/libmpi.a !"
+    echo "Could not find lib/$ARCH/$COMM/lib@MPILIBNAME@.a !"
     exit 1
 fi
 if [ ! -n "$PREFIX" ] ; then 
@@ -341,17 +374,22 @@ if [ -z "$libonly" ] ; then
         FixupFile profiling/upshot/bin/upshot.in $PREFIX/bin/upshot $XMODE
         #
         # Should clean nupshot sources  (*.c/h) 
-        if [ -n "@TCL_DIR@" -a -z "$cpnupshot" ] ; then 
+        if [ -n "@TCL_DIR@" -a -z "$cpnupshot" -a -n "@TK_DIR@" -a \
+	   "@TK_VERSION@" = "3.6" ] ; then 
             echo "Attempting to build nupshot... "
             $Show $CPRP -r profiling/nupshot $PREFIX
+	    echo "/bin/rm -rf $PREFIX/nupshot" >> $UNINSTALLFILE
             $Show "(cd $PREFIX/nupshot ; \
 	        if configure -tcldir=@TCL_DIR@ -tkdir=@TK_DIR@ ; then \
 	        $MAKE clean ; $MAKE ; \
     	        mv nupshot ../bin ; $MAKE clean ; fi )"
+	    echo "/bin/rm -f $PREFIX/bin/nupshot" >> $UNINSTALLFILE
 	elif [ -n "$cpnupshot" -a -f profiling/nupshot ] ; then 
             $Show $CPRP -r profiling/nupshot $PREFIX
+	    echo "/bin/rm -rf $PREFIX/nupshot" >> $UNINSTALLFILE
             $Show "(cd $PREFIX/nupshot ; \
 	        mv nupshot ../bin ; $MAKE clean )"
+	    echo "/bin/rm -f $PREFIX/bin/nupshot" >> $UNINSTALLFILE
         fi
     fi
     #
@@ -371,6 +409,13 @@ if [ -z "$libonly" ] ; then
         CopyFile $PREFIX/bin/$bfile $PREFIX/lib/$ARCH/$COMM $XMODE
     done
     $Show mv $PREFIX/bin/mpirun.sh $PREFIX/bin/mpirun
+    echo "/bin/rm -f $PREFIX/bin/mpirun" >> $UNINSTALLFILE
+    $Show mv $PREFIX/lib/$ARCH/$COMM/mpirun.sh $PREFIX/lib/$ARCH/$COMM/mpirun
+    echo "/bin/rm -f $PREFIX/lib/$ARCH/$COMM/mpirun" >> $UNINSTALLFILE
+    if [ ! -r $PREFIX/lib/$ARCH/$COMM/tarch ] ; then
+	( cd $PREFIX/lib/$ARCH/$COMM ; 	ln -s ../../../bin/tarch tarch )
+        echo "/bin/rm -f $PREFIX/lib/$ARCH/$COMM/tarch" >> $UNINSTALLFILE
+    fi
     #
     $Show /bin/rm -f $PREFIX/bin/mpireconfig
     echo "Creating mpireconfig from util/mpireconfig.in"
@@ -400,11 +445,15 @@ else
         FixupFile $file $PREFIX/lib/$ARCH/$COMM/$bfile $XMODE
     done
     $Show mv $PREFIX/lib/$ARCH/$COMM/mpirun.sh $PREFIX/lib/$ARCH/$COMM/mpirun
+    if [ ! -r $PREFIX/lib/$ARCH/$COMM/tarch ] ; then
+	( cd $PREFIX/lib/$ARCH/$COMM ; 	ln -s ../../../bin/tarch tarch )
+        echo "/bin/rm -f $PREFIX/lib/$ARCH/$COMM/tarch" >> $UNINSTALLFILE
+    fi
     FixupFileWithAt util/mpicc.in $PREFIX/lib/$ARCH/$COMM/mpicc $XMODE
     if [ -n "@CCC@" ] ; then
         FixupFileWithAt util/mpiCC.in $PREFIX/lib/$ARCH/$COMM/mpiCC $XMODE
     fi
-    FixupFileWithAt util/mpif7.in $PREFIX/lib/$ARCH/$COMM/mpif77 $XMODE
+    FixupFileWithAt util/mpif77.in $PREFIX/lib/$ARCH/$COMM/mpif77 $XMODE
     FixupFile util/mpireconfig.in $PREFIX/lib/$ARCH/$COMM/mpireconfig $XMODE
 fi
 #
@@ -412,11 +461,14 @@ fi
 # P4 server
 if [ "$DEVICE" = "ch_p4" ] ; then 
     echo "Attempting to build ch_p4 secure server"
-    $Show "( cd mpid/ch_p4/p4-1.4/servers ; make serv_p4 ; cd ../bin ; \
-            CopyFile serv_p4 $PREFIX/bin $XMODE ; )" 
+    $Show "( cd mpid/ch_p4/p4-1.4/servers ; make serv_p4 ; )" 
+    $Show CopyFile mpid/ch_p4/p4-1.4/bin/serv_p4 $PREFIX/bin $XMODE
+    $Show CopyFile $PREFIX/bin/serv_p4 $PREFIX/lib/$ARCH/$COMM $XMODE
     $Show /bin/rm -f util/chp4_servs
     FixupFile util/chp4_servs.in $PREFIX/util/chp4_servs $XMODE
     CopyFile $PREFIX/util/chp4_servs $PREFIX/lib/$ARCH/$COMM $XMODE
+    CopyFile util/chkserv $PREFIX/util/chkserv $XMODE
+    CopyFile $PREFIX/util/chkserv $PREFIX/lib/$ARCH/$COMM $XMODE
 fi
 #
 if [ -z "$libonly" ] ; then
@@ -454,12 +506,13 @@ done
 # Other files in lib need to be updated...
 #
 # Documentation
+# Note that we're not doing the www pages yet.
 if [ -z "$noman" -a -z "$libonly" ] ; then 
     if [ -z "$MPIMANPATH" ] ; then
         MPIMANPATH=$PREFIX/man
     fi
     CopyFile man/mandesc $MPIMANPATH
-    for dir in man3 man4 man5 ; do
+    for dir in man1 man3 man4 man5 ; do
        MkDir $MPIMANPATH/$dir
         for file in man/$dir/* ; do 
 	    CopyFile $file $MPIMANPATH/$dir
@@ -477,21 +530,31 @@ fi
 #
 # Updating the config.status file is trickier, since we need to edit
 # the directories that might have contained the original path.
+# It is important to update the CORRECT file, in the case that we are doing
+# a -libonly installation on a previously constructed version.
 #
 if [ $just_testing = 0 ] ; then
-    cat config.status | sed -e "s%MPIR_HOME=.*\$%MPIR_HOME='$PREFIX'%g" \
-    -e "s%^LIB_PATH=\([^/]*\)/.*\$%LIB_PATH=\1$PREFIX/lib/$ARCH/$COMM'%g" \
-    -e "s%^FLIB_PATH=\([^/]*\)/.*\$%FLIB_PATH=\1$PREFIX/lib/$ARCH/$COMM'%g" \
+    cat lib/$ARCH/$COMM/config.status | \
+	sed -e "s%MPIR_HOME=.*\$%MPIR_HOME='$PREFIX'%g" \
+    -e "s%^LIB_PATH=\([^/ ]*\)/[^ ']*%LIB_PATH=\1$PREFIX/lib/$ARCH/$COMM%g" \
+    -e "s%^FLIB_PATH=\([^/ ]*\)/[^ ']*%FLIB_PATH=\1$PREFIX/lib/$ARCH/$COMM%g" \
 		-e "s%MPE_DIR=.*\$%MPE_DIR='$PREFIX/mpe'%g" \
+    -e "s%^MPICC=\([^/ ]*\)/.*\$%MPICC=$PREFIX/lib/$ARCH/$COMM/mpicc%g" \
+    -e "s%^MPIF77=\([^/ ]*\)/.*\$%MPIF77=$PREFIX/lib/$ARCH/$COMM/mpif77%g" \
+    -e "s%^MPICPLUSPLUS=\([^/ ]*\)/.*\$%MPICPLUSPLUS=$PREFIX/lib/$ARCH/$COMM/mpiCC%g" \
 		        > $PREFIX/lib/$ARCH/$COMM/config.status 
     echo "/bin/rm -f $PREFIX/lib/$ARCH/$COMM/config.status" >> $UNINSTALLFILE
     chmod $XMODE $PREFIX/lib/$ARCH/$COMM/config.status 
 else 
 cat <<.
-cat config.status | sed -e "s%MPIR_HOME=.*\$%MPIR_HOME='$PREFIX'%g" \
-    -e "s%^LIB_PATH=\([^/]*\)/.*\$%LIB_PATH=\1$PREFIX/lib/$ARCH/$COMM'%g" \
-    -e "s%^FLIB_PATH=\([^/]*\)/.*\$%FLIB_PATH=\1$PREFIX/lib/$ARCH/$COMM'%g" \
+cat lib/$ARCH/$COMM/config.status | \
+	sed -e "s%MPIR_HOME=.*\$%MPIR_HOME='$PREFIX'%g" \
+    -e "s%^LIB_PATH=\([^/ ]*\)/[^ ']*%LIB_PATH=\1$PREFIX/lib/$ARCH/$COMM%g" \
+    -e "s%^FLIB_PATH=\([^/ ]*\)/[^ ']*%FLIB_PATH=\1$PREFIX/lib/$ARCH/$COMM%g" \
 		-e "s%MPE_DIR=.*\$%MPE_DIR='$PREFIX/mpe'%g" \
+    -e "s%^MPICC=\([^/ ]*\)/.*\$%MPICC=$PREFIX/lib/$ARCH/$COMM/mpicc%g" \
+    -e "s%^MPIF77=\([^/ ]*\)/.*\$%MPIF77=$PREFIX/lib/$ARCH/$COMM/mpif77%g" \
+    -e "s%^MPICPLUSPLUS=\([^/ ]*\)/.*\$%MPICPLUSPLUS=$PREFIX/lib/$ARCH/$COMM/mpiCC%g" \
 		        > $PREFIX/lib/$ARCH/$COMM/config.status
     chmod $XMODE $PREFIX/lib/$ARCH/$COMM/config.status 
 .
@@ -501,6 +564,7 @@ if [ -z "$libonly" ] ; then
     #
     $Show /bin/rm -f $PREFIX/examples/mpif.h
     $Show ln -s $PREFIX/include/mpif.h $PREFIX/examples/mpif.h
+    echo "/bin/rm -f $PREFIX/examples/mpif.h" >> $UNINSTALLFILE
 fi
 #
 # Example programs
@@ -511,6 +575,8 @@ Savevar=$PREFIX
 PREFIX=$APREFIX
 #FixupFile installtest/makefile.proto $PREFIX/examples/Makefile
 (cd $PREFIX/examples ; $PREFIX/lib/$ARCH/$COMM/mpireconfig Makefile )
+echo "(cd $PREFIX/examples ; $MAKE clean)" >> $UNINSTALLFILE
+echo "/bin/rm -f $PREFIX/examples/Makefile" >> $UNINSTALLFILE
 PREFIX=$Savevar
 CopyFile $PREFIX/examples/Makefile $PREFIX/lib/$ARCH/$COMM/Makefile.sample
 CopyFile installtest/cpi.c $PREFIX/examples
@@ -521,6 +587,7 @@ CopyFile installtest/README $PREFIX/examples
 # Test build the examples
 $Show "(cd $PREFIX/examples ; /bin/rm -f mpirun ; \
 	  ln -s ../bin/mpirun mpirun )"
+echo "/bin/rm -f $PREFIX/examples/mpirun" >> $UNINSTALLFILE
 #
 echo "About to run installation test..."
 $Show "(cd $PREFIX/examples; $MAKE)"
@@ -528,13 +595,17 @@ $Show "(cd $PREFIX/examples; $MAKE)"
 # Use the alternate method, using mpif77 and mpicc
 $Show "(cd $PREFIX/examples ; $MAKE clean ; $MAKE alternate)"
 #
+echo "/bin/rm -f $PREFIX/mpiuninstall" >> $UNINSTALLFILE
 # Add the directory removes to the UNINSTALL file
 for dir in $dirlist ; do
     echo "rmdir $dir" >> $UNINSTALLFILE
 done
 #
+cp $UNINSTALLFILE $PREFIX/mpiuninstall
+#
 echo installed $ARCH/$COMM/$DEVICE MPI in $PREFIX
-
+echo $PREFIX/mpiuninstall may be used to remove the installation.
+#
 if [ $errs -gt 0 ] ; then
     rc=1
 else

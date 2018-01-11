@@ -1,16 +1,17 @@
 /*
- *  $Id: type_ind.c,v 1.19 1995/12/21 21:36:25 gropp Exp $
+ *  $Id: type_ind.c,v 1.20 1996/04/11 20:25:32 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: type_ind.c,v 1.19 1995/12/21 21:36:25 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "sbcnst2.h"
+#define MPIR_SBalloc MPID_SBalloc
+#else
 #include "mpisys.h"
+#endif
 
 /*@
     MPI_Type_indexed - Creates an indexed datatype
@@ -49,6 +50,10 @@ consider declaring the Fortran array with a zero origin
     integer a(0:99)
 .ve
 
+.N Errors
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_EXHAUSTED
 @*/
 int MPI_Type_indexed( count, blocklens, indices, old_type, newtype )
 int           count;
@@ -57,10 +62,10 @@ int 	      indices[];
 MPI_Datatype  old_type;
 MPI_Datatype *newtype;
 {
-  MPI_Datatype  dteptr;
-  MPI_Aint      ub, lb, high, low, tmp;
+  MPI_Aint      *hindices;
   int           i, mpi_errno = MPI_SUCCESS;
   int           total_count;
+  MPIR_ERROR_DECL;
 
   /* Check for bad arguments */
   MPIR_GET_REAL_DATATYPE(old_type)
@@ -73,23 +78,42 @@ MPI_Datatype *newtype;
 	
   /* Are we making a null datatype? */
   total_count = 0;
-  for (i=0; i<count; i++)
+  for (i=0; i<count; i++) {
       total_count += blocklens[i];
+      if (blocklens[i] < 0) {
+	  return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_ARG,
+			     "Invalid blocklens in MPI_TYPE_INDEXED" );
+      }
+  }
   if (total_count == 0) {
       return MPI_Type_contiguous( 0, MPI_INT, newtype );
       }
 
+  /* Generate a call to MPI_Type_hindexed instead.  This means allocating
+     a temporary displacement array, multiplying all displacements
+     by extent(old_type), and using that */
+  MPIR_ALLOC(hindices,(MPI_Aint *)MALLOC(count*sizeof(MPI_Aint)),
+	     MPI_COMM_WORLD,MPI_ERR_EXHAUSTED,"Error in MPI_TYPE_INDEXED");
+  for (i=0; i<count; i++) {
+      hindices[i] = (MPI_Aint)indices[i] * old_type->extent;
+  }
+  MPIR_ERROR_PUSH(MPI_COMM_WORLD);
+  mpi_errno = MPI_Type_hindexed( count, blocklens, hindices, old_type, 
+				 newtype );
+  MPIR_ERROR_POP(MPI_COMM_WORLD);
+  FREE(hindices);
+  MPIR_RETURN(MPI_COMM_WORLD,mpi_errno, "Error in MPI_TYPE_INDEXED");
+#ifdef FOO
   /* Create and fill in the datatype */
-  dteptr = (*newtype) = (MPI_Datatype) MPIR_SBalloc( MPIR_dtes );
-  if (!dteptr) 
-      return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-			 "Out of space in MPI_TYPE_HVECTOR" );
+  MPIR_ALLOC(dteptr,(MPI_Datatype) MPIR_SBalloc( MPIR_dtes ), MPI_COMM_WORLD, 
+	     MPI_ERR_EXHAUSTED, "Out of space in MPI_TYPE_INDEXED" );
+  *newtype = dteptr;
   MPIR_SET_COOKIE(dteptr,MPIR_DATATYPE_COOKIE)
   dteptr->dte_type    = MPIR_INDEXED;
-  dteptr->committed   = MPIR_NO;
-  dteptr->basic       = MPIR_FALSE;
-  dteptr->permanent   = MPIR_FALSE;
-  dteptr->is_contig   = MPIR_FALSE;
+  dteptr->committed   = 0;
+  dteptr->basic       = 0;
+  dteptr->permanent   = 0;
+  dteptr->is_contig   = 0;
   dteptr->ref_count   = 1;
   dteptr->align       = old_type->align;
   dteptr->old_type    = (MPI_Datatype)MPIR_Type_dup (old_type);
@@ -148,4 +172,5 @@ MPI_Datatype *newtype;
   dteptr->elements   = dteptr->elements * old_type->elements;
 
   return (mpi_errno);
+#endif
 }

@@ -1,32 +1,25 @@
 /*
- *  $Id: finalize.c,v 1.31 1996/01/03 19:04:05 gropp Exp $
+ *  $Id: finalize.c,v 1.34 1996/06/07 15:12:21 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "reqalloc.h"
+#define MPIR_SBdestroy MPID_SBdestroy
+#else
 #include "mpisys.h"
-
 extern int MPIR_Print_queues;
+#endif
+
 #define DBG(a)
 
 /*
   Function to un-initialize topology code 
  */
-extern void MPIR_Topology_finalize();
-
-/* 
- * Routine to free a datatype
- */
-void MPIR_Free_perm_type( type )
-MPI_Datatype *type;
-{
-if (!type || !(*type)) return;
-(*type)->permanent = MPIR_NO;
-MPI_Type_free( type );
-}
-
+extern void MPIR_Topology_finalize ANSI_ARGS((void));
 
 /*@
    MPI_Finalize - Terminates MPI execution environment
@@ -43,18 +36,23 @@ int MPI_Finalize()
 {
 
     void *ADIctx;
-    DBG(fprintf( stderr, "Entering system finalize\n" ); fflush(stderr);)
+    DBG(FPRINTF( stderr, "Entering system finalize\n" ); fflush(stderr);)
 
     /* Complete any remaining buffered sends first */
     { void *a; int b;
+#ifdef MPI_ADI2
+    MPIR_BsendRelease( &a, &b );
+#else
     MPIR_FreeBuffer( &a, &b );
+#endif
     }	  
 
+#ifndef MPI_ADI2
     /*  Dump final status of queues */
     if (MPIR_Print_queues) {
 	int i, np, rank;
-	MPI_Comm_rank( MPI_COMM_WORLD, &rank );
-	MPI_Comm_size( MPI_COMM_WORLD, &np );
+	(void) MPIR_Comm_rank( MPI_COMM_WORLD, &rank );
+	(void) MPIR_Comm_size( MPI_COMM_WORLD, &np );
 	for (i=0 ; i<np; i++) {
 	    MPI_Barrier( MPI_COMM_WORLD );
 	    if (i == rank) {
@@ -72,6 +70,7 @@ int MPI_Finalize()
 		}
 	    }
 	}
+#endif
 
 #ifdef MPID_END_NEEDS_BARRIER
     MPI_Barrier( MPI_COMM_WORLD );
@@ -90,7 +89,7 @@ int MPI_Finalize()
     /* Like the basic datatypes, the predefined operators are in 
        permanent storage */
 #ifdef FOO
-    DBG(fprintf( stderr, "About to free operators\n" ); fflush( stderr );)
+    DBG(FPRINTF( stderr, "About to free operators\n" ); fflush( stderr );)
     MPI_Op_free( &MPI_MAX );
     MPI_Op_free( &MPI_MIN );
     MPI_Op_free( &MPI_SUM );
@@ -108,7 +107,9 @@ int MPI_Finalize()
     /* Free allocated space */
     /* Note that permanent datatypes are now stored in static storage
        so that we can not free them. */
-    DBG(fprintf( stderr, "About to free dtes\n" ); fflush( stderr );)
+    DBG(FPRINTF( stderr, "About to free dtes\n" ); fflush( stderr ););
+    MPIR_Free_dtes();
+#ifdef FOOBAR
     MPIR_Free_perm_type( &MPI_REAL );
     MPIR_Free_perm_type( &MPI_DOUBLE_PRECISION );
 /*     MPI_Type_free( &MPIR_complex_dte );
@@ -148,20 +149,20 @@ int MPI_Finalize()
 #if defined(HAVE_LONG_LONG_INT)
   /*  MPI_Type_free( &MPI_LONG_LONG_INT ); */
 #endif
-
-    DBG(fprintf( stderr, "About to free COMM_WORLD\n" ); fflush( stderr );)
+#endif
+    DBG(FPRINTF( stderr, "About to free COMM_WORLD\n" ); fflush( stderr );)
 
     MPI_Comm_free ( &MPI_COMM_WORLD );
 
-    DBG(fprintf( stderr, "About to free COMM_SELF\n" ); fflush( stderr );)
+    DBG(FPRINTF( stderr, "About to free COMM_SELF\n" ); fflush( stderr );)
 
     MPI_Comm_free ( &MPI_COMM_SELF );
 
-    DBG(fprintf( stderr, "About to free GROUP_EMPTY\n" ); fflush( stderr );)
+    DBG(FPRINTF( stderr, "About to free GROUP_EMPTY\n" ); fflush( stderr );)
 
     MPI_Group_free ( &MPI_GROUP_EMPTY );
 
-    DBG(fprintf(stderr,"About to free permanent keyval's\n");fflush(stderr);)
+    DBG(FPRINTF(stderr,"About to free permanent keyval's\n");fflush(stderr);)
 	  
     MPI_Keyval_free( &MPI_TAG_UB );
     MPI_Keyval_free( &MPI_HOST );
@@ -172,32 +173,54 @@ int MPI_Finalize()
     MPI_Keyval_free( &MPIR_IO );
     MPI_Keyval_free( &MPIR_WTIME_IS_GLOBAL );
 
-    /* Tell device that we are done.  We place this here to allow
-       the device to tell us about any memory leaks, since MPIR_SB... will
-       free the storage even if it has not been deallocated by MPIR_SBfree. 
-     */
-    DBG(fprintf( stderr, "About to close device\n" ); fflush( stderr );)
-
-    MPID_END( ADIctx );
-
-    DBG(fprintf( stderr, "About to free SBstuff\n" ); fflush( stderr );)
-
     MPI_Errhandler_free( &MPI_ERRORS_RETURN );
     MPI_Errhandler_free( &MPI_ERRORS_ARE_FATAL );
     MPI_Errhandler_free( &MPIR_ERRORS_WARN );
 
+#ifdef MPI_ADI2
+#ifdef MPID_HAS_PROC_INFO
+    /* Release any space we allocated for the proc table */
+    if (MPIR_proctable != 0)
+	FREE(MPIR_proctable);
+#endif
+#endif
+    /* Tell device that we are done.  We place this here to allow
+       the device to tell us about any memory leaks, since MPIR_SB... will
+       free the storage even if it has not been deallocated by MPIR_SBfree. 
+     */
+    DBG(FPRINTF( stderr, "About to close device\n" ); fflush( stderr );)
+
+#ifdef MPI_ADI2
+    MPID_End();
+#else
+    MPID_END( ADIctx );
+#endif
+
+    DBG(FPRINTF( stderr, "About to free SBstuff\n" ); fflush( stderr );)
+
     MPIR_SBdestroy( MPIR_dtes );
+#ifndef MPI_ADI2
     MPIR_SBdestroy( MPIR_qels );
+#endif
+#ifdef FOO
     MPIR_SBdestroy( MPIR_fdtels );
+#endif
     MPIR_SBdestroy( MPIR_shandles );
     MPIR_SBdestroy( MPIR_rhandles );
 
-    MPIR_SBdestroy( MPIR_hbts );
-    MPIR_SBdestroy( MPIR_hbt_els );
-    MPIR_SBdestroy( MPIR_topo_els );
+    MPIR_HBT_Free();
+    MPIR_Topology_Free();
 
 #ifdef MPIR_MEMDEBUG
+#ifndef MPI_ADI2
     MPIR_trdump( stdout );
+#endif
+    /* 
+       This dumps the number of Fortran pointers still in use.  For this 
+       to be useful, we should delete all of the one that were allocated
+       by the initutil.c routine.  Instead, we just set a "highwatermark"
+       for the initial values.
+     */
     MPIR_UsePointer( stdout );
 #endif    
     /* barrier */

@@ -1,17 +1,16 @@
 /*
- *  $Id: getelements.c,v 1.6 1996/01/11 18:30:29 gropp Exp $
+ *  $Id: getelements.c,v 1.7 1996/04/11 20:18:42 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: getelements.c,v 1.6 1996/01/11 18:30:29 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "mpidmpi.h"
+#else
 #include "mpisys.h"
-
+#endif
 /*@
   MPI_Get_elements - Returns the number of basic elements
                      in a datatype
@@ -24,6 +23,11 @@ Output Parameter:
 . count - number of received basic elements (integer) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TYPE
+
 @*/
 int MPI_Get_elements ( status, datatype, elements )
 MPI_Status    *status;
@@ -69,11 +73,20 @@ int          *elements;
 
 	 Why isn't this correct?
        */
-      count = 1 + (datatype->size / srclen);
+      if (datatype->size > 0)
+	  count = 1 + (srclen / datatype->size);
+      else {
+	  *elements = srclen ? MPI_UNDEFINED : 0;
+	  return MPI_SUCCESS;
+      }
       *elements = 0;
+      used_len  = 0;
       MPIR_Unpack2( (char *)&i_dummy, count, datatype, 
 		    MPIR_Elementcnt, (void *)elements, (char *)&i_dummy,
 		    srclen, &destlen, &used_len );
+      /* If anything is left, return undefined */
+      if (used_len != srclen)
+	  *elements = MPI_UNDEFINED;
       }
   }
   else

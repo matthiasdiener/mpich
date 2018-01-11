@@ -11,7 +11,7 @@
 #define ANSI_ARGS(a) ()
 #endif
 
-extern void MPID_CMMD_Abort ANSI_ARGS(( ));
+extern void MPID_CMMD_Abort ANSI_ARGS(( int ));
 extern void MPID_CMMD_Myrank ANSI_ARGS(( int * )), 
             MPID_CMMD_Mysize ANSI_ARGS(( int * )), 
             MPID_CMMD_End ANSI_ARGS((void));
@@ -27,14 +27,22 @@ extern int MPID_CMMD_post_send ANSI_ARGS(( MPIR_SHANDLE * )),
            MPID_CMMD_post_recv ANSI_ARGS(( MPIR_RHANDLE * )),
            MPID_CMMD_blocking_recv ANSI_ARGS(( MPIR_RHANDLE *)), 
            MPID_CMMD_complete_recv ANSI_ARGS(( MPIR_RHANDLE *));
+extern int MPID_CMMD_Test_send ANSI_ARGS((MPIR_SHANDLE *));
+extern int MPID_CMMD_Test_recv_push ANSI_ARGS((MPIR_RHANDLE *));
+
 extern void MPID_CMMD_check_device ANSI_ARGS(( int )), 
    MPID_CMMD_Probe ANSI_ARGS(( int, int, int, MPI_Status * ));
 extern int MPID_CMMD_Iprobe ANSI_ARGS(( int, int, int, int *, MPI_Status * ));
 extern int MPID_CMMD_Cancel ANSI_ARGS((MPIR_COMMON *)); 
 extern int MPID_CMMD_check_incoming ANSI_ARGS((MPID_BLOCKING_TYPE));
 
+extern MPID_CMMD_Comm_init ANSI_ARGS((MPI_Comm, MPI_Comm));
 extern void MPID_SetSpaceDebugFlag ANSI_ARGS(( int ));
 extern void MPID_SetDebugFile ANSI_ARGS(( char * ));
+
+extern int MPID_CMMD_init_hetero ANSI_ARGS(( int *, char *** ));
+extern int MPID_CMMD_Dest_byte_order ANSI_ARGS(( int ));
+extern int MPID_CMMD_Comm_msgrep ANSI_ARGS(( MPI_Comm ));
 
 #ifndef MPID_CMMD_Wtime
 extern double MPID_CMMD_Wtime ANSI_ARGS((void));
@@ -91,6 +99,8 @@ extern int MPID_CMMD_Do_get ANSI_ARGS(( MPIR_RHANDLE *, int, MPID_PKT_GET_T * ))
 
 extern void MPID_CMMD_Get_print_pkt ANSI_ARGS((FILE *, MPID_PKT_T *));
 extern void MPID_CMMD_Print_pkt_data ANSI_ARGS((char *, char *, int ));
+
+extern int MPID_CMMD_Hetero_free ANSI_ARGS((void));
 
 #endif /* MPID_DEVICE_CODE */
 #endif /* _MPID_BIND */

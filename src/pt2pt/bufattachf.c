@@ -1,16 +1,12 @@
 /* bufattach.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 #ifdef _CRAY
 #include <fortran.h>
 #include <stdarg.h>
 #endif
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -75,11 +71,14 @@ if (_isfcd(buffer)) {
 
 #endif
 #else
- void mpi_buffer_attach_( buffer, size, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_buffer_attach_ ANSI_ARGS(( void *, int *, int * ));
+
+void mpi_buffer_attach_( buffer, size, __ierr )
 void *buffer;
 int*size;
 int *__ierr;
 {
-*__ierr = MPI_Buffer_attach(buffer,*size);
+    *__ierr = MPI_Buffer_attach(buffer,*size);
 }
 #endif

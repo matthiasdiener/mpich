@@ -65,12 +65,11 @@ void T3D_Set_recv_debug_flag( int f );
 void T3D_Set_msg_debug_flag( int f );
 int T3D_Get_msg_debug_flag( );
 void T3D_Print_msg_debug( );
-int T3D_Recv_packet ( T3D_PKT_T **pkt );
-void T3D_Reuse_buf( int buf );
+int T3D_Recv_packet ( volatile T3D_PKT_T **pkt );
 void T3D_Init_recv_code( );
-int T3D_Process_unexpected( MPIR_RHANDLE *dmpi_recv_handle , MPIR_RHANDLE *dmpi_unexpected );
-int T3D_Copy_body( MPIR_RHANDLE *dmpi_recv_handle , int from, T3D_PKT_T *pkt );
-int T3D_Copy_body_unex( MPIR_RHANDLE *dmpi_recv_handle , int from, T3D_PKT_T *pkt );
+int T3D_Copy_unexpected( MPIR_RHANDLE *dmpi_recv_handle );
+int T3D_Process_packet( MPIR_RHANDLE *dmpi_recv_handle , int from, T3D_PKT_T *pkt );
+int T3D_Process_unex_packet( MPIR_RHANDLE *dmpi_recv_handle , int from, T3D_PKT_T *pkt );
 int T3D_Check_incoming( int blocking );
 int T3D_Post_recv(  MPIR_RHANDLE *dmpi_recv_handle );
 int T3D_Complete_recv(  MPIR_RHANDLE *dmpi_recv_handle );
@@ -87,6 +86,10 @@ int T3D_Post_send(  MPIR_SHANDLE *dmpi_send_handle );
 int T3D_Blocking_send( MPIR_SHANDLE *dmpi_send_handle );
 int T3D_Complete_send(  MPIR_SHANDLE *dmpi_send_handle );
 int T3D_Test_send( MPIR_SHANDLE *dmpi_send_handle );
+void T3D_Process_long_sends();
+MPIR_QEL *T3D_enqueue( MPIR_QHDR *header, MPIR_COMMON *object, MPIR_QEL_TYPE object_type);
+void T3D_dequeue( MPIR_QHDR *header, MPIR_QEL *p);
+
 
 /* Prototypes for t3dsync.c */
 void T3D_Set_sync_debug_flag( int f );

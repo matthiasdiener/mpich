@@ -1,14 +1,10 @@
 /*
- *  $Id: buffree.c,v 1.9 1995/12/21 21:11:05 gropp Exp $
+ *  $Id: buffree.c,v 1.10 1996/04/11 20:17:52 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-
-#ifndef lint
-static char vcid[] = "$Id: buffree.c,v 1.9 1995/12/21 21:11:05 gropp Exp $";
-#endif /* lint */
 
 #include "mpiimpl.h"
 
@@ -55,8 +51,11 @@ int MPI_Buffer_detach( bufferptr, size )
 void *bufferptr;
 int  *size;
 {
-MPIR_FreeBuffer( (void **)bufferptr, size );
-
-return MPI_SUCCESS;
+#ifdef MPI_ADI2
+    MPIR_BsendRelease( (void **)bufferptr, size );
+#else
+    MPIR_FreeBuffer( (void **)bufferptr, size );
+#endif
+    return MPI_SUCCESS;
 }
 

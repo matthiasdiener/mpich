@@ -1,13 +1,13 @@
 /* startall.c */
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
-#include "mpisys.h"
-
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
+#ifdef MPI_ADI2
+#include "mpimem.h"
 #else
+#include "mpisys.h"
+#endif
+
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -33,21 +33,31 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_startall_( count, array_of_requests, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_startall_ ANSI_ARGS(( int *, MPI_Request [], int * ));
+
+void mpi_startall_( count, array_of_requests, __ierr )
 int*count;
 MPI_Request array_of_requests[];
 int *__ierr;
 {
 #ifdef POINTER_64_BITS
-int i;
-MPI_Request *r = (MPI_Request*)MALLOC(sizeof(MPI_Request)* *count);
-for (i=0; i<*count; i++) {
-    r[i] = MPIR_ToPointer( *((int *)(array_of_requests)+i) );
+    int i;
+    MPI_Request *r;
+
+    r = (MPI_Request*)MALLOC(sizeof(MPI_Request)* *count);
+    if (!r) {
+	MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_EXHAUSTED,"Error in MPI_STARTALL");
+	*__ierr = MPI_ERR_EXHAUSTED;
+	return;
     }
-*__ierr = MPI_Startall(*count,r);
-FREE( r );
+    for (i=0; i<*count; i++) {
+	r[i] = MPIR_ToPointer( *((int *)(array_of_requests)+i) );
+    }
+    *__ierr = MPI_Startall(*count,r);
+    FREE( r );
 #else
-*__ierr = MPI_Startall(*count,array_of_requests);
+    *__ierr = MPI_Startall(*count,array_of_requests);
 #endif
 }
 

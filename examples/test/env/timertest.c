@@ -5,7 +5,6 @@ int main(argc, argv)
 int argc;
 char **argv;
 {
-    int    err = 0;
     double t1, t2;
     double tick;
     int    i;
@@ -27,4 +26,6 @@ char **argv;
     fprintf( stderr, "MPI_Wtick gave: (%10.8f)\n", tick );
 
     MPI_Finalize( );
+
+    return 0;
 }

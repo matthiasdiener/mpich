@@ -4,6 +4,7 @@
  */
 
 #include "mpi.h"
+#include "mpe.h"
 #include <sys/types.h>
 #include <fcntl.h>
 #include <string.h>

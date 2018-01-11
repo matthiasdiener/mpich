@@ -1,7 +1,15 @@
-.TH MPI_Testsome 3 "1/11/1996" " " "MPI"
+.TH MPI_Testsome 3 "6/26/1996" " " "MPI"
 .SH NAME
-MPI_Testsome \- Tests for some given communications to complete
-
+MPI_Testsome \-  Tests for some given communications to complete 
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Testsome( incount, array_of_requests, outcount, array_of_indices, 
+    array_of_statuses )
+int         incount, *outcount, array_of_indices[];
+MPI_Request array_of_requests[];
+MPI_Status  array_of_statuses[];
+.fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP
@@ -55,16 +63,61 @@ All MPI objects (e.g.,
 ) are of type 
 .I INTEGER
 in Fortran.
-.SH SYNOPSIS
-.nf
-#include "mpi.h"
-int MPI_Testsome( incount, array_of_requests, outcount, array_of_indices, 
-    array_of_statuses )
-int         incount, *outcount, array_of_indices[];
-MPI_Request array_of_requests[];
-MPI_Status  array_of_statuses[];
 
-.fi
+.SH ERRORS
+
+All MPI routines (except 
+.I MPI_Wtime
+and 
+.I MPI_Wtick
+) return an error value;
+C routines as the value of the function and Fortran routines in the last
+argument.  Before the value is returned, the current MPI error handler is
+called.  By default, this error handler aborts the MPI job.  The error handler
+may be changed with 
+.I MPI_Errhandler_set
+; the predefined error handler
+.I MPI_ERRORS_RETURN
+may be used to cause error values to be returned.
+Note that MPI does 
+.B not
+guarentee that an MPI program can continue past
+an error.
+
+.PD 0
+.TP
+.B MPI_SUCCESS 
+- No error; MPI routine completed successfully.
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_IN_STATUS 
+- The actual error value is in the 
+.I MPI_Status
+argument.
+This error class is returned only from the multiple-completion routines
+(
+.I MPI_Testall
+, 
+.I MPI_Testany
+, 
+.I MPI_Testsome
+, 
+.I MPI_Waitall
+, 
+.I MPI_Waitany
+,
+and 
+.I MPI_Waitsome
+).  The field 
+.I MPI_ERROR
+in the status argument
+contains the error value or 
+.I MPI_SUCCESS
+(no error and complete) or
+.I MPI_ERR_PENDING
+to indicate that the request has not completed.
+.PD 1
 
 .SH LOCATION
- testsome.c
+testsome.c

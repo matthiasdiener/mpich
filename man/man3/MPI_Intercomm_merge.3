@@ -1,7 +1,14 @@
-.TH MPI_Intercomm_merge 3 "12/21/1995" " " "MPI"
+.TH MPI_Intercomm_merge 3 "6/26/1996" " " "MPI"
 .SH NAME
-MPI_Intercomm_merge \- Creates an intracommuncator from an intercommunicator
-
+MPI_Intercomm_merge \-  Creates an intracommuncator from an intercommunicator 
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Intercomm_merge ( comm, high, comm_out )
+MPI_Comm  comm;
+int       high;
+MPI_Comm *comm_out;
+.fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP
@@ -46,35 +53,53 @@ All MPI objects (e.g.,
 in Fortran.
 
 .SH ALGORITHM
-.PD 0
-.TP
-.B 1) 
-Allocate two contexts 
-.PD 1
-.PD 0
-.TP
-.B 2) 
-Local and remote group leaders swap high values
-.PD 1
-.PD 0
-.TP
-.B 3) 
-Determine the high value.
-.PD 1
-.PD 0
-.TP
-.B 4) 
-Merge the two groups and make the intra-communicator
-.PD 1
-.SH SYNOPSIS
-.nf
-#include "mpi.h"
-int MPI_Intercomm_merge ( comm, high, comm_out )
-MPI_Comm  comm;
-int       high;
-MPI_Comm *comm_out;
+1) Allocate two contexts 
+2) Local and remote group leaders swap high values
+3) Determine the high value.
+4) Merge the two groups and make the intra-communicator
 
-.fi
+.SH ERRORS
 
+All MPI routines (except 
+.I MPI_Wtime
+and 
+.I MPI_Wtick
+) return an error value;
+C routines as the value of the function and Fortran routines in the last
+argument.  Before the value is returned, the current MPI error handler is
+called.  By default, this error handler aborts the MPI job.  The error handler
+may be changed with 
+.I MPI_Errhandler_set
+; the predefined error handler
+.I MPI_ERRORS_RETURN
+may be used to cause error values to be returned.
+Note that MPI does 
+.B not
+guarentee that an MPI program can continue past
+an error.
+
+.PD 0
+.TP
+.B MPI_SUCCESS 
+- No error; MPI routine completed successfully.
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_COMM 
+- Invalid communicator.  A common error is to use a null
+communicator in a call (not even allowed in 
+.I MPI_Comm_rank
+).
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_INTERN 
+- This error is returned when some part of the MPICH 
+implementation is unable to acquire memory.  
+.PD 1
+
+.SH SEE ALSO
+MPI_Intercomm_create, MPI_Comm_free
+.br
 .SH LOCATION
- ic_merge.c
+ic_merge.c

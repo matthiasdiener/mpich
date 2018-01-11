@@ -1,0 +1,143 @@
+#! /bin/sh
+#
+# This just assembles the tar file in /tmp
+# You can change the name with -name= and add directories with -add=
+#
+OTHERDEVICES="mpid/ch_nx mpid/ch_p4 mpid/ch_nc mpid/ch_cmmd mpid/ch_mpl \
+		mpid/ch_meiko mpid/ch_shmem mpid/ch_lfshmem mpid/t3d \
+		mpid/sgi mpid/nx mpid/ch_nexus mpid/ch_cenju3"
+MAKE=make
+MPIR_HOME=/home/MPI/mpich
+relname=1.0.13
+if [ -s $MPIR_HOME/relname ] ; then
+    relname=`cat $MPIR_HOME/relname`
+fi
+tarname=mpich
+extrafiles=""
+cleanonly=0
+for arg in "$@" ; do
+    case $arg in 
+	-name=* )
+	tarname="`echo $arg|sed -e 's/-name=//'`"
+	;;
+
+	-add=* )
+	extrafiles="$extrafiles `echo A$arg | sed -e 's/A-add=//'`"
+	;;
+
+	-cleanonly )
+	cleanonly=1
+	;;
+
+	-echo )
+	set -x
+	;;
+
+	*)
+	if test -n "$arg" ; then
+   	    echo "port: Unknown argument ($arg)"
+	    exit 1
+        fi
+	;;
+    esac
+done
+# 
+cd $MPIR_HOME
+#
+# First, clean out the various files.
+$MAKE clean
+for dir in $OTHERDEVICES ; 
+     do echo cleaning $dir
+     (cd $dir ; if [ -s Makefile ] ; then $MAKE clean ; fi ) 
+done
+if [ -s mpid/ch_p4/p4-1.4/Makefile ] ; then \
+	    (cd  mpid/ch_p4/p4-1.4 ; $MAKE realclean ) ; fi
+(cd doc ; $MAKE distrib )
+if [ ! -s Xclude ] ; then 
+    find . -name RCS -print | sed -e 's%^./%%g' > Xclude 
+fi
+#
+if [ $cleanonly = 1 ] ; then
+    exit 0
+fi
+#
+/bin/rm -rf /tmp/$tarname /tmp/mpich-tmp /tmp/mpifoo.tar
+# This relies on bin being a link to util.
+#tar cXf Xclude /tmp/mpifoo.tar 
+# SGI versions of tar don't support X (eXclude); use the following line instead
+#tar cf /tmp/mpifoo.tar 
+tar cXf Xclude /tmp/mpifoo.tar \
+ COPYRIGHT README \
+ Makefile.in configure aclocal.m4 bin ptx_ifile \
+ doc/functions.ps.Z doc/perf.ps.Z doc/guide.ps.Z doc/install.ps.Z \
+ doc/port.in doc/portbuild.in doc/portperf.in doc/porttest.in \
+ doc/latexinfo.sty doc/epsf.sty doc/epsf.tex doc/doc.bib \
+ doc/docgather doc/portrun doc/docmake \
+ ref/adiman.ps.Z ref/mpiman.ps.Z \
+ configure.in examples include man mpe ccbugs \
+ mpid/ch2 mpid/util mpid/tests \
+ mpid/ch_nx mpid/chameleon mpid/ch_p4 \
+ mpid/ch_mpl mpid/ch_cmmd mpid/ch_nc mpid/ch_meiko mpid/ch_shmem \
+ mpid/meiko mpid/t3d mpid/nx mpid/ch_nexus mpid/ch_lfshmem mpid/ch_cenju3 \
+ mpid/NewDevice mpid/updatedev \
+ installtest src util/mandesc util/finderrors util/insttest \
+ util/mpirun.* util/mpireconfig.in util/execer util/machines \
+ util/mpiman.in util/upshot util/tarch util/tdevice \
+ util/mpicc.in util/mpiCC.in util/mpif77.in util/mpiinstall.in \
+ util/tstmachines.in util/chp4_servs.in util/cleanipcs \
+ util/maketar util/chkserv util/chkmachine profiling
+#
+# Untar into /tmp, remove stuff we don't want in the full file
+curdir=`pwd`
+mkdir /tmp/mpich-tmp
+cd /tmp/mpich-tmp
+tar xf ../mpifoo.tar 
+rm ../mpifoo.tar
+# Remove using explicit mpich-tmp just for added safety.
+cd /tmp
+/bin/rm -rf mpich-tmp/mpe/contrib/mandel/*.log \
+	      mpich-tmp/profiling/nupshot/tl \
+	      mpich-tmp/profiling/nupshot/samples \
+	      mpich-tmp/profiling/upshot/bin/upshot \
+	      mpich-tmp/profiling/upshot/bin/upshot.old \
+	      mpich-tmp/profiling/upshot/logfiles \
+	      mpich-tmp/util/machines/machines.* \
+	      mpich-tmp/mpe/Makefile_nompi
+mkdir mpich-tmp/profiling/upshot/logfiles
+cp $MPIR_HOME/profiling/upshot/logfiles/fft.trf \
+	mpich-tmp/profiling/upshot/logfiles
+cp $MPIR_HOME/profiling/upshot/logfiles/sam_hyp.16.log \
+	mpich-tmp/profiling/upshot/logfiles
+cp $MPIR_HOME/profiling/upshot/logfiles/states.c \
+	mpich-tmp/profiling/upshot/logfiles
+cp $MPIR_HOME/util/machines/machines.sample mpich-tmp/util/machines
+find mpich-tmp \( -name 'RCS' -o -name '*.o' -o -name '#*#' -o \
+              -name '*~' -o -name 'mputil.mp*' \) -print | \
+	sed 's%^%/bin/rm -rf %g' | sh
+find mpich-tmp/examples -name '*.pg' -exec /bin/rm \{\} \;
+find mpich-tmp/mpe -name '*.pg' -exec /bin/rm \{\} \;
+find mpich-tmp/mpe -name 'Makefile' -exec /bin/rm \{\} \;
+find mpich-tmp/examples -name 'Makefile' -exec /bin/rm \{\} \;
+find mpich-tmp/src -name 'Makefile' -exec /bin/rm \{\} \;
+find mpich-tmp/profiling -name 'Makefile' -exec /bin/rm \{\} \;
+#
+# Remove the 'LOCAL' information from the main Makefile, if present.
+sed -e 's/mpi: Makefile.in/mpi:/g' \
+    -e '/^## LOCAL START/,/^## LOCAL END/d' \
+	/tmp/mpich-tmp/Makefile.in > /tmp/mpich-tmp/tmp
+/bin/rm -f /tmp/mpich-tmp/Makefile.in
+/bin/mv /tmp/mpich-tmp/tmp /tmp/mpich-tmp/Makefile.in
+#
+# We should have clean out these names, but check to be sure
+find /tmp/mpich-tmp -name '#*#' -print
+# This requires prune.
+find /tmp/mpich-tmp -name 'lib' -prune -o -name '*.o' -print 
+#
+# Finally, compress the file
+cd /tmp
+mv /tmp/mpich-tmp /tmp/$tarname
+tar cof - $tarname | compress > /tmp/$tarname-$relname.tar.Z
+tar cof - $tarname | gzip > /tmp/$tarname-$relname.tar.gz
+/bin/rm -rf /tmp/$tarname /tmp/mpifoo.tar 
+echo "Tar file is in /tmp/$tarname-$relname.tar.Z"
+echo "Tar file is in /tmp/$tarname-$relname.tar.gz"

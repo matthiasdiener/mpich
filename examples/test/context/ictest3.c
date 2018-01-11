@@ -9,14 +9,14 @@
 #include "mpi.h"
 #include <stdio.h>
 
-main( argc, argv )
+int main( argc, argv )
      int argc;
      char **argv;
 {
-  int size, rank, key, his_key, lrank, rsize, result;
+  int size, rank, key, lrank, rsize, result;
   MPI_Comm myFirstComm;
   MPI_Comm mySecondComm;
-  MPI_Comm newComm, peerComm, remComm;
+  MPI_Comm newComm, peerComm;
   MPI_Group rgroup, lgroup, igroup;
   int errors = 0, sum_errors;
   int flag;

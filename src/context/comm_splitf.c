@@ -2,11 +2,7 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -32,14 +28,17 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_comm_split_ ( comm, color, key, comm_out, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_comm_split_ ANSI_ARGS(( MPI_Comm, int *, int *, MPI_Comm *, int * ));
+
+void mpi_comm_split_ ( comm, color, key, comm_out, __ierr )
 MPI_Comm  comm;
 int*color,*key;
 MPI_Comm *comm_out;
 int *__ierr;
 {
-MPI_Comm lcomm;
-*__ierr = MPI_Comm_split(
+    MPI_Comm lcomm;
+    *__ierr = MPI_Comm_split(
 	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),*color,*key,&lcomm);
-*(int*)comm_out = MPIR_FromPointer(lcomm);
+    *(int*)comm_out = MPIR_FromPointer(lcomm);
 }

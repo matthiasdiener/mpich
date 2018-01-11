@@ -1,16 +1,14 @@
 /*
- *  $Id: type_extent.c,v 1.7 1995/12/21 21:36:05 gropp Exp $
+ *  $Id: type_extent.c,v 1.8 1996/04/11 20:24:49 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: type_extent.c,v 1.7 1995/12/21 21:36:05 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
+#ifndef MPI_ADI2
 #include "mpisys.h"
+#endif
 
 
 /*@
@@ -23,6 +21,10 @@ Output Parameter:
 . extent - datatype extent (integer) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TYPE
 @*/
 int MPI_Type_extent( datatype, extent )
 MPI_Datatype  datatype;

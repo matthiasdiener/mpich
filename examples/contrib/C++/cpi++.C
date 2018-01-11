@@ -1,8 +1,9 @@
 /*
- * $Id: cpi++.C,v 1.1 1994/06/16 16:17:15 bridges Exp $
+ * $Id: cpi++.C,v 1.2 1996/03/08 21:02:41 gropp Exp $
  */
 
 #include <mpi++.h>
+#include <stdio.h>
 #include <math.h>
 
 double f(double a)

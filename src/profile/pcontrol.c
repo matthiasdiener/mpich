@@ -1,20 +1,16 @@
 /*
- *  $Id: pcontrol.c,v 1.6 1995/12/21 22:19:43 gropp Exp $
+ *  $Id: pcontrol.c,v 1.7 1996/04/12 15:57:08 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
-
-#ifndef lint
-static char vcid[] = "$Id: pcontrol.c,v 1.6 1995/12/21 22:19:43 gropp Exp $";
-#endif
 
 #include "mpiimpl.h"
 
 #ifdef __STDC__
 int MPI_Pcontrol( const int level, ... )
 {
-return MPI_SUCCESS;
+    return MPI_SUCCESS;
 }
 #else
 /*@
@@ -33,6 +29,6 @@ return MPI_SUCCESS;
 int MPI_Pcontrol( level )
 int level;
 {
-return MPI_SUCCESS;
+    return MPI_SUCCESS;
 }
 #endif

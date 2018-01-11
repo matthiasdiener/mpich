@@ -1,12 +1,8 @@
 /* getcount.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -32,12 +28,16 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_get_count_( status, datatype, count, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_get_count_ ANSI_ARGS(( MPI_Status *, MPI_Datatype, int *, int * ));
+
+void mpi_get_count_( status, datatype, count, __ierr )
 MPI_Status   *status;
 MPI_Datatype datatype;
 int          *count;
 int *__ierr;
 {
-*__ierr = MPI_Get_count(status,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),count);
+    *__ierr = MPI_Get_count(status,
+			    (MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),
+			    count);
 }

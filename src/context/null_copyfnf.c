@@ -2,11 +2,11 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifdef MPI_ADI2
+#include "mpifort.h"
+#endif
+
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -34,6 +34,10 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_null_copy_fn_ ANSI_ARGS(( MPI_Comm, int *, void *, void *, void *,
+				   int * ));
+
 void mpi_null_copy_fn_ ( comm, keyval, extra_state, attr_in, attr_out, flag )
 MPI_Comm  comm;
 int       *keyval;
@@ -42,8 +46,8 @@ void      *attr_in;
 void      *attr_out;
 int       *flag;
 {
-/* Note the we actually need to fix the comm argument, except that the
-   null function doesn't use it */
-MPIR_null_copy_fn(comm,*keyval,extra_state,attr_in,attr_out,flag);
-*flag = MPIR_TO_FLOG(*flag);
+    /* Note the we actually need to fix the comm argument, except that the
+       null function doesn't use it */
+    MPIR_null_copy_fn(comm,*keyval,extra_state,attr_in,attr_out,flag);
+    *flag = MPIR_TO_FLOG(*flag);
 }

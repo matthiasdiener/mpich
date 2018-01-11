@@ -7,11 +7,7 @@
 #include <stdarg.h>
 #endif
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -41,7 +37,7 @@ extern void MPIR_RmPointer();
 #ifdef _TWO_WORD_FCD
 #define NUMPARAMS 8
 
- void mpi_send_init_( void *unknown, ...)
+void mpi_send_init_( void *unknown, ...)
 {
 void          *buf;
 int*count;
@@ -76,7 +72,7 @@ __ierr =        va_arg(ap, int *);
 
 #else
 
- void mpi_send_init_( buf, count, datatype, dest, tag, comm, request, __ierr )
+void mpi_send_init_( buf, count, datatype, dest, tag, comm, request, __ierr )
 void          *buf;
 int*count;
 MPI_Datatype  datatype;
@@ -101,7 +97,9 @@ if (_isfcd(buf)) {
 
 #endif
 #else
-
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_send_init_ ANSI_ARGS(( void *, int *, MPI_Datatype, int *, int *, 
+				MPI_Comm, MPI_Request *, int * ));
 void mpi_send_init_( buf, count, datatype, dest, tag, comm, request, __ierr )
 void          *buf;
 int*count;
@@ -112,11 +110,13 @@ MPI_Comm      comm;
 MPI_Request   *request;
 int *__ierr;
 {
-MPI_Request lrequest;
-*__ierr = MPI_Send_init(MPIR_F_PTR(buf),*count,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),*dest,*tag,
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),&lrequest);
-*(int*)request = MPIR_FromPointer( lrequest );
+    MPI_Request lrequest;
+    *__ierr = MPI_Send_init(MPIR_F_PTR(buf),*count,
+			    (MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),
+			    *dest,*tag,
+			    (MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),
+			    &lrequest);
+    *(int*)request = MPIR_FromPointer( lrequest );
 }
 #endif
 

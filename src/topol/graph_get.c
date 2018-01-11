@@ -1,11 +1,12 @@
 /*
- *  $Id: graph_get.c,v 1.7 1995/12/21 22:18:49 gropp Exp $
+ *  $Id: graph_get.c,v 1.8 1996/04/12 15:53:42 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#include "mpitopo.h"
 
 /*@
 
@@ -22,6 +23,12 @@ Output Parameter:
 . edges - array of integers containing the graph structure 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TOPOLOGY
+.N MPI_ERR_COMM
+.N MPI_ERR_ARG
 @*/
 int MPI_Graph_get ( comm, maxindex, maxedges, index, edges )
 MPI_Comm comm;
@@ -33,7 +40,8 @@ int *index, *edges;
   int mpi_errno = MPI_SUCCESS;
   MPIR_TOPOLOGY *topo;
 
-  if (MPIR_TEST_COMM(comm,comm))
+  if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_ARG(index) ||
+      MPIR_TEST_ARG(edges) )
       return MPIR_ERROR( comm, mpi_errno, "Error in MPI_GRAPH_GET" );
 
   /* Get topology information from the communicator */

@@ -1,7 +1,15 @@
-.TH MPE_Fill_circle 4 "1/16/1996" " " "MPE"
+.TH MPE_Fill_circle 4 "6/26/1996" " " "MPE"
 .SH NAME
-MPE_Fill_circle \- Fills a circle
-
+MPE_Fill_circle \-  Fills a circle 
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+int MPE_Fill_circle( graph, centerx, centery, radius, color )
+MPE_XGraph graph;
+int centerx, centery, radius;
+MPE_Color color;
+.fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP
@@ -28,16 +36,5 @@ MPE_Fill_circle \- Fills a circle
 .B color 
 - color of the circle
 .PD 1
-.SH SYNOPSIS
-.nf
-#include <stdio.h>
-#include "mpe.h"
-int MPE_Fill_circle( graph, centerx, centery, radius, color )
-MPE_XGraph graph;
-int centerx, centery, radius;
-MPE_Color color;
-
-.fi
-
 .SH LOCATION
- mpe_graphics.c
+mpe_graphics.c

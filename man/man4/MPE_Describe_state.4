@@ -1,10 +1,6 @@
-.TH MPE_Describe_state 4 "8/22/1995" " " "MPE"
+.TH MPE_Describe_state 4 "6/6/1996" " " "MPE"
 .SH NAME
-MPE_Describe_state \- Create log record describing a state
-
-.SH NOTES
-Adds string containing a state def to the logfile.  The format of the
-def is (LOG_STATE_DEF) 0 sevent eevent 0 0 "color" "name".
+MPE_Describe_state \-  Create log record describing a state 
 .SH SYNOPSIS
 .nf
 #include <stdio.h>
@@ -12,8 +8,9 @@ def is (LOG_STATE_DEF) 0 sevent eevent 0 0 "color" "name".
 int MPE_Describe_state( start, end, name, color )
 int start, end;
 char *name, *color;
-
 .fi
-
+.SH NOTES
+Adds string containing a state def to the logfile.  The format of the
+def is (LOG_STATE_DEF) 0 sevent eevent 0 0 "color" "name".
 .SH LOCATION
- mpe_log.c
+mpe_log.c

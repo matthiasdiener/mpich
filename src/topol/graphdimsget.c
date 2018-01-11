@@ -1,11 +1,12 @@
 /*
- *  $Id: graphdimsget.c,v 1.2 1995/12/21 22:19:13 gropp Exp $
+ *  $Id: graphdimsget.c,v 1.3 1996/04/12 15:56:28 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#include "mpitopo.h"
 
 /*@
 
@@ -20,6 +21,12 @@ Output Parameter:
 . nedges - number of edges in graph (integer) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TOPOLOGY
+.N MPI_ERR_COMM
+.N MPI_ERR_ARG
 @*/
 int MPI_Graphdims_get ( comm, nnodes, nedges )
 MPI_Comm  comm;
@@ -29,7 +36,8 @@ int              *nedges;
   int mpi_errno, flag;
   MPIR_TOPOLOGY *topo;
 
-  if ( MPIR_TEST_COMM(comm,comm) )
+  if ( MPIR_TEST_COMM(comm,comm) || MPIR_TEST_ARG(nnodes) || 
+       MPIR_TEST_ARG(nedges) )
     return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
 		       "Error in MPI_GRAPHDIMS_GET" );
 

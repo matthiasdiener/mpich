@@ -20,8 +20,10 @@
 
 
 typedef struct stateDefInfo_ {
-  char *name, *color, *bitmap;
-  int ninst;			/* # of instances of this state */
+    char *name, *color, *bitmap;
+    int ninst;			/* # of instances of this state */
+    int is_active;              /* Allows all uses of this state to be turned
+				   off */
 } stateDefInfo;
 
 

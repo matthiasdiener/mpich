@@ -27,22 +27,9 @@
   API include files
  ***************************************************************************/
 #include "mpi.h"
+#include "mpir.h"
 #include "dmpiatom.h"
-
-
-/***************************************************************************
-  ADI include files
- ***************************************************************************/
-#include "t3doptions.h"
-#include "t3ddebug.h"
-#include "t3dinit.h"
-#include "t3dcoll.h"
-#include "t3devent.h"
-#include "t3dprobe.h"
-#include "t3drecv.h"
-#include "t3dsend.h"
-#include "t3dsync.h"
-
+#include "mpi_errno.h"
 
 /***************************************************************************
   Various type definitions
@@ -77,7 +64,7 @@ typedef enum { MPID_NOTBLOCKING = 0, MPID_BLOCKING } MPID_BLOCKING_TYPE;
 #define MPID_Clr_completed(ctx, request)  ((request)->chandle.completer = 1) 
 #define MPID_Ctx( request )                (request)->chandle.comm->ADIctx
 #define MPID_Set_completed( ctx, request ) (request)->chandle.completer = 0 
-/*#define MPID_Test_request( ctx, request ) ((request)->chandle.completer == 0)*/
+
 #define MPID_Test_request( ctx, request ) \
     ( (request)->chandle.handle_type == MPIR_SEND ? \
         T3D_Test_send(&(request)->shandle) : \
@@ -92,15 +79,39 @@ typedef enum { MPID_NOTBLOCKING = 0, MPID_BLOCKING } MPID_BLOCKING_TYPE;
 
      The ..reuse.. versions are for persistant handles (e.g., MPI_Send_init)
  ***************************************************************************/
-#define MPID_Alloc_send_handle( ctx, a )  \
-   (a)->remote_long_buffer    = (char *)0;\
-   (a)->remote_long_completed = (char *)0;\
-   (a)->header_sent           = 0; 
-#define MPID_Alloc_recv_handle( ctx, a )  {(a)->temp  = 0;}
-#define MPID_Free_send_handle( ctx, a )  
-#define MPID_Free_recv_handle( ctx, a )   if ((a)->temp  ) {FREE((a)->temp);}
-#define MPID_Reuse_send_handle( ctx, a ) 
-#define MPID_Reuse_recv_handle( ctx, a )  {(a)->temp  = 0;}
+#define MPID_Alloc_send_handle( ctx, a )                                    \
+{									    \
+   (a)->body_sent                       = 0;                                \
+   (a)->long_send_info.target_buffer    = (char *)0;			    \
+   (a)->long_send_info.target_completer = (char *)0;			    \
+   (a)->long_send_info.length           = -1;                               \
+}
+
+#define MPID_Alloc_recv_handle( ctx, a )                                    \
+{  (a)->temp                = (char *)0; 				    \
+   (a)->needs_copy          = 0;					    \
+   (a)->sync_recv_completed = (char *)0;				    \
+   (a)->mode                = -1;                                           \
+}
+
+#define MPID_Free_send_handle( ctx, a )	
+#define MPID_Free_recv_handle( ctx, a )
+#define MPID_Reuse_send_handle( ctx, a )                                    \
+{                                                                           \
+   (a)->body_sent                       = 0;                                \
+   (a)->long_send_info.target_buffer    = (char *)0;			    \
+   (a)->long_send_info.target_completer = (char *)0;			    \
+   (a)->long_send_info.length           = -1;                               \
+}
+
+    
+#define MPID_Reuse_recv_handle( ctx, a )                                    \
+{  (a)->temp                = (char *)0; 				    \
+   (a)->needs_copy          = 0;					    \
+   (a)->sync_recv_completed = (char *)0;				    \
+   (a)->mode                = -1;                                           \
+}
+
 #define MPID_Set_send_is_nonblocking( ctx, a, v ) (a)->is_non_blocking = v
 #define MPID_Set_recv_is_nonblocking( ctx, a, v ) (a)->is_non_blocking = v
 
@@ -108,7 +119,6 @@ typedef enum { MPID_NOTBLOCKING = 0, MPID_BLOCKING } MPID_BLOCKING_TYPE;
 /* This device prefers that the data be prepacked (at least for now) */
 #define MPID_PACK_IN_ADVANCE
 #define MPID_RETURN_PACKED
-
 
 
 /****************************************************************************
@@ -119,31 +129,53 @@ typedef enum { MPID_NOTBLOCKING = 0, MPID_BLOCKING } MPID_BLOCKING_TYPE;
 #define T3D_FALSE 0
 #endif
 
+typedef struct {
+  void *target_buffer;     /* location of remote buffer         */
+  void *target_completer;  /* location of remote completer flag */
+  int   completer_value;   /* completer flag value to send      */
+  int   length;            /* how much to send                  */
+} T3D_Long_Send_Info;
+
+extern struct _MPIR_QEL;
 
 /****************************************************************************
   Device send and receive handles
  ***************************************************************************/
 typedef struct {
-    int    is_non_blocking;
-    void  *pkt;
-    int    mode;
-    int    sid;
-    void  *start;
-    int    bytes_as_contig;
-    int    header_sent;
-    char  *remote_long_buffer;
-    char  *remote_long_completed;
-    char  *local_completed;
+    int                 is_non_blocking;
+    int                 mode;
+    void               *start;
+    int                 bytes_as_contig;
+    int                 body_sent;
+    T3D_Long_Send_Info  long_send_info;
+    struct _MPIR_QEL   *p;
 } MPID_SHANDLE;
 
 typedef struct {
-    int    is_non_blocking;
-    char  *temp;
-    int    mode;
-    int    from;
-    void  *start;
-    int    bytes_as_contig;
-    char  *remote_completed;
+    int          is_non_blocking;
+    void        *temp;
+    int          mode;
+    int          from;
+    void        *start;
+    int          bytes_as_contig;
+    int          needs_copy;
+    char        *sync_recv_completed;
+    void        *dmpi_unexpected;
 } MPID_RHANDLE;
+
+/***************************************************************************
+  ADI include files
+ ***************************************************************************/
+#include "t3doptions.h"
+#include "t3ddebug.h"
+#include "t3dinit.h"
+#include "t3dcoll.h"
+#include "t3devent.h"
+#include "t3dprobe.h"
+#include "t3drecv.h"
+#include "t3dsend.h"
+#include "t3dsync.h"
+
+extern char *get_stack();
 
 #endif

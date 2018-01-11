@@ -1,12 +1,12 @@
 /* initialize.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifdef MPI_ADI2
+#include "mpifort.h"
+#endif
+
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -31,12 +31,13 @@ extern void MPIR_RmPointer();
 #define mpi_initialized_ mpi_initialized
 #endif
 #endif
-
- void mpi_initialized_( flag, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_initialized_ ANSI_ARGS(( int *, int * ));
+void mpi_initialized_( flag, __ierr )
 int  *flag;
 int *__ierr;
 {
-int lflag;
-*__ierr = MPI_Initialized(&lflag);
-*flag = MPIR_TO_FLOG(lflag);
+    int lflag;
+    *__ierr = MPI_Initialized(&lflag);
+    *flag = MPIR_TO_FLOG(lflag);
 }

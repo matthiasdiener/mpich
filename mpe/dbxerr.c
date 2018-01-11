@@ -1,4 +1,5 @@
 #include "mpi.h"
+#include "mpe.h"
 
 /*
    Handler prints warning messsage and starts the specified debugger.
@@ -10,7 +11,9 @@
 #include <stdio.h>
 #if HAVE_STDLIB_H || STDC_HEADERS
 #include <stdlib.h>
+/* stdlib has free, malloc, and getenv */
 #else
+extern char *getenv ANSI_ARGS(( const char * ));
 #ifdef __STDC__
 extern void	free(/*void * */);
 extern void	*malloc(/*size_t*/);
@@ -19,6 +22,27 @@ extern char *malloc();
 extern int free();
 #endif
 #endif
+
+#ifndef DBX_NAME
+#ifdef MPI_IRIX
+#define DBX_NAME "/bin/dbx"
+#else
+#define DBX_NAME "/usr/ucb/dbx"
+#endif
+#endif
+
+#ifdef HAVE_UNISTD_H
+/* Unix stuff not part of C stdlib */
+/* WARNING: INTEL I860 VERSION OF UNISTD IS UNGUARDED AGAINST
+   MULTIPLE INCLUSTION AND CONTAINS ALMOST NOTHING EXCEPT REDEFINITIONS
+   OF SEEK_SET,CUR,END.  THIS WILL GENERATE WARNING MESSAGES THAT CAN
+   BE IGNORED.
+ */
+#include <unistd.h>
+#endif
+
+/* Prototypes for local routines */
+char *MPER_Copy_string ANSI_ARGS(( char * ));
 
 #if (defined(__STDC__) || defined(__cpluscplus))
 #define MPIR_USE_STDARG
@@ -62,7 +86,13 @@ int child, i;
   if (child) { /* I am the parent will run the debugger */
     char  **args, pid[10];
     args = (char **)malloc( (5 + nbaseargs) * sizeof(char *) );
+    /* PETSc has discovered that many systems DON'T want a sigstop. They
+     are described here */
+#if !defined(MPI_rs6000) && !defined(MPI_solaris) && \
+    !defined(MPI_IRIX) && !defined(MPI_IRIX64) && !defined(MPI_freebsd) && \
+    !defined(MPI_LINUX)
     kill(child,SIGSTOP);
+#endif
     sprintf(pid,"%d",child); 
     if (nbaseargs > 0) {
 	for (i=0; i<nbaseargs; i++) {
@@ -131,7 +161,6 @@ void MPE_Errors_to_dbx( MPI_Comm *comm, int * code, ... )
   char *string, *file;
   int  *line;
   va_list Argp;
-  int child;
 
   va_start( Argp, code );
   string = va_arg(Argp,char *);
@@ -146,7 +175,6 @@ char     *string, *file;
 {
   char buf[MPI_MAX_ERROR_STRING];
   int  myid, result_len; 
-  int child;
 #endif
 
   if (MPI_COMM_WORLD) MPI_Comm_rank( MPI_COMM_WORLD, &myid );
@@ -193,7 +221,7 @@ if (args) {
 	baseargs[i] = args[i];
     }
 else if (!dbg) {
-    dbg = "/usr/ucb/dbx";
+    dbg = DBX_NAME;
     }
 
 if (!pgm) {
@@ -228,7 +256,6 @@ char **args;
 
 /* By default, we use the name of the root node */
 if (!display) {
-    extern char *getenv();
     display = getenv( "DISPLAY" );
     if (!display || display[0] == ':') {
 	display = (char *)malloc( 100 );
@@ -258,7 +285,6 @@ int  myid, str_len;
 if (!display) {
     MPI_Comm_rank( MPI_COMM_WORLD, &myid );
     if (myid == 0) {
-	extern char *getenv();
 	display = getenv( "DISPLAY" );
 	if (!display || display[0] == ':') {
 	    display = (char *)malloc( 100);
@@ -281,9 +307,12 @@ args[3] = MPER_Copy_string( "-e" );
 #if defined(MPI_hpux)
 args[4] = MPER_Copy_string( "xdb" );
 #else
-args[4] = MPER_Copy_string( "/usr/ucb/dbx" );
+args[4] = MPER_Copy_string( DBX_NAME );
 #endif
+#ifndef MPI_IRIX
+/* No program name in IRIX */
 args[5] = MPER_Copy_string( pgm );
+#endif
 args[6] = 0;
 
 MPE_Errors_call_debugger( pgm, (char *)0, args );
@@ -304,15 +333,21 @@ static char *SIGNAME[] = { "Unknown", "HUP", "INT", "QUIT", "ILL",
 . code,scp,addr - see the signal man page
 */
 #ifdef MPI_sun4
+#define SIG_HANDLER_PROTOTYPE int, int, struct sigcontext *, char *
+void MPE_DefaultHandler ANSI_ARGS(( SIG_HANDLER_PROTOTYPE ));
 void MPE_DefaultHandler( sig, code, scp, addr )
 int               sig, code;
 struct sigcontext *scp;
 char              *addr;
 #elif defined(MPI_IRIX)
+#define SIG_HANDLER_PROTOTYPE int, int, struct sigcontext *
+void MPE_DefaultHandler ANSI_ARGS(( SIG_HANDLER_PROTOTYPE ));
 void MPE_DefaultHandler( sig, code, scp )
 int               sig, code;
 struct sigcontext *scp;
 #else
+#define SIG_HANDLER_PROTOTYPE
+void MPE_DefaultHandler ANSI_ARGS(( SIG_HANDLER_PROTOTYPE ));
 void MPE_DefaultHandler( sig, code )
 int               sig, code;
 #endif
@@ -347,14 +382,20 @@ MPE_Start_debugger( );
 @*/
 void MPE_Signals_call_debugger()
 {
-signal( SIGQUIT, (void (*)())MPE_DefaultHandler );
-signal( SIGILL,  (void (*)())MPE_DefaultHandler );
-signal( SIGFPE,  (void (*)())MPE_DefaultHandler );
-signal( SIGBUS,  (void (*)())MPE_DefaultHandler );
-signal( SIGSEGV, (void (*)())MPE_DefaultHandler );
+signal( SIGQUIT, (void (*)ANSI_ARGS((SIG_HANDLER_PROTOTYPE)))
+	MPE_DefaultHandler );
+signal( SIGILL,  (void (*)ANSI_ARGS((SIG_HANDLER_PROTOTYPE)))
+	MPE_DefaultHandler );
+signal( SIGFPE,  (void (*)ANSI_ARGS((SIG_HANDLER_PROTOTYPE)))
+	MPE_DefaultHandler );
+signal( SIGBUS,  (void (*)ANSI_ARGS((SIG_HANDLER_PROTOTYPE)))
+	MPE_DefaultHandler );
+signal( SIGSEGV, (void (*)ANSI_ARGS((SIG_HANDLER_PROTOTYPE)))
+	MPE_DefaultHandler );
 #ifdef SIGSYS
 /* LINUX doesn't have SIGSYS! */
-signal( SIGSYS,  (void (*)())MPE_DefaultHandler );
+signal( SIGSYS,  (void (*)ANSI_ARGS((SIG_HANDLER_PROTOTYPE)))
+	MPE_DefaultHandler );
 #endif
 }
 
@@ -364,10 +405,11 @@ signal( SIGSYS,  (void (*)())MPE_DefaultHandler );
 void MPE_Errors_call_dbx_in_xterm( pgm, display )
 char *pgm, *display;
 {
-fprintf( stderr, "This system does not support SIGSTOP, needed to implement\n\
+    fprintf( stderr, 
+	     "This system does not support SIGSTOP, needed to implement\n\
 calling of the debugger from a this program.\n" );
 }
-MPE_Signals_call_debugger()
+void MPE_Signals_call_debugger()
 {
 }
 

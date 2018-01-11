@@ -1,7 +1,14 @@
-.TH MPE_Num_colors 4 "1/16/1996" " " "MPE"
+.TH MPE_Num_colors 4 "6/26/1996" " " "MPE"
 .SH NAME
-MPE_Num_colors \- Gets the number of available colors
-
+MPE_Num_colors \-  Gets the number of available colors 
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+int MPE_Num_colors( handle, nc )
+MPE_XGraph handle;
+int        *nc;
+.fi
 .SH INPUT PARAMETER
 .PD 0
 .TP
@@ -15,15 +22,5 @@ MPE_Num_colors \- Gets the number of available colors
 .B nc 
 - Number of colors available on the display.
 .PD 1
-.SH SYNOPSIS
-.nf
-#include <stdio.h>
-#include "mpe.h"
-int MPE_Num_colors( handle, nc )
-MPE_XGraph handle;
-int        *nc;
-
-.fi
-
 .SH LOCATION
- mpe_graphics.c
+mpe_graphics.c

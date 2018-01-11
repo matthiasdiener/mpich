@@ -2,11 +2,11 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifdef MPI_ADI2
+#include "mpifort.h"
+#endif
+
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) a
 #define MPIR_FromPointer(a) (int)a
 #define MPIR_RmPointer(a)
@@ -32,7 +32,10 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_cart_map_ ( comm_old, ndims, dims, periods, newrank, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_cart_map_ ANSI_ARGS(( MPI_Comm, int *, int *, int *, int *, int * ));
+
+void mpi_cart_map_ ( comm_old, ndims, dims, periods, newrank, __ierr )
 MPI_Comm comm_old;
 int*ndims;
 int     *dims;

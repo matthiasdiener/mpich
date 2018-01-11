@@ -2,6 +2,7 @@
     LINUX
     FREEBSD
     SUN_SOLARIS
+    I86_SOLARIS
     CONVEX
     HP
     ALPHA
@@ -14,8 +15,11 @@
     TITAN
     SGI
     SGI6
+    SGI32
+    SGIN32
     SGI_MP
     SGI_CH
+    SGI_CH32
     SGI_CH64
     NEXT
     FX8
@@ -39,3 +43,4 @@
     NCUBE
     MEIKO_CS2
     UXPM
+    UXPV

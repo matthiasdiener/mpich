@@ -1,14 +1,10 @@
 /*
- *  $Id: scatter.c,v 1.23 1995/12/21 22:17:36 gropp Exp $
+ *  $Id: scatter.c,v 1.24 1996/04/12 15:40:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-
-#ifndef lint
-static char vcid[] = "$Id: scatter.c,v 1.23 1995/12/21 22:17:36 gropp Exp $";
-#endif /* lint */
 
 #include "mpiimpl.h"
 #include "coll.h"
@@ -33,6 +29,13 @@ Output Parameter:
 . recvbuf - address of receive buffer (choice) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_BUFFER
 @*/
 int MPI_Scatter ( sendbuf, sendcnt, sendtype, 
 		  recvbuf, recvcnt, recvtype, 
@@ -47,12 +50,15 @@ int               root;
 MPI_Comm          comm;
 {
   int        mpi_errno = MPI_SUCCESS;
-  
+  MPIR_ERROR_DECL;  
 
   if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_DATATYPE(comm,sendtype)) 
       return MPIR_ERROR(comm,mpi_errno,"Error in MPI_SCATTER" );
 
-  return comm->collops->Scatter(sendbuf, sendcnt, sendtype, 
+  MPIR_ERROR_PUSH(comm);
+  mpi_errno = comm->collops->Scatter(sendbuf, sendcnt, sendtype, 
 				recvbuf, recvcnt, recvtype, 
 				root, comm );
+  MPIR_ERROR_POP(comm);
+  MPIR_RETURN(comm,mpi_errno,"Error in MPI_SCATTER");
 }

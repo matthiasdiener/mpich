@@ -1,42 +1,28 @@
 ALL: default
 ##### User configurable options #####
 
-ARCH        = @ARCH@
-COMM        = @COMM@
-BOPT        = @BOPT@
-P4_DIR      = @P4_DIR@
-TOOLS_DIR   = @TOOLS_DIR@
 MPIR_HOME   = @MPIR_HOME@
-CC          = @CC@
-CLINKER     = @CLINKER@
-CCC         = @CPP_COMPILER@
+CC          = @MPICC@
+CLINKER     = @MPICC@
+CCC         = @MPICPLUSPLUS@
 CCLINKER    = $(CCC)
-F77         = @F77@
-FLINKER     = @FLINKER@
-AR          = @AR@
-RANLIB      = @RANLIB@
-PROFILING   = $(PMPILIB)
+F77         = @MPIF77@
+FLINKER     = @MPIF77@
 OPTFLAGS    = @OPTFLAGS@
-LIB_PATH    = @LIB_PATH@
-FLIB_PATH   = @FLIB_PATH@
-LIB_LIST    = @LIB_LIST@
-#
-INCLUDE_DIR = @USER_INCLUDE_PATH@ -I$(MPIR_HOME)/include
-DEVICE      = @DEVICE@
 
 ### End User configurable options ###
 
 SHELL = /bin/sh
 
-CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
+PROFLIB =
+CFLAGS  = $(OPTFLAGS) 
 CCFLAGS = $(CFLAGS)
-FFLAGS = @FFLAGS@ $(OPTFLAGS)
-MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a 
-MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
-LIBS = $(LIB_PATH) $(LIB_LIST)
-FLIBS = $(FLIB_PATH) $(LIB_LIST)
-LIBSPP = $(MPIPPLIB) $(LIBS)
-EXECS = timers baseattr errhand sigchk timertest
+FFLAGS = $(OPTFLAGS)
+# Use LIBS to add any special libraries for C programs
+LIBS = 
+# Use FLIBS to add any special libraries for Fortran programs
+FLIBS = 
+EXECS = timers baseattr errhand sigchk timertest init
 
 default: $(EXECS)
 
@@ -49,17 +35,19 @@ linktest: default clean
 
 all: testing
 
-timers: timers.o test.o $(MPILIB)
+init: init.o
+	$(CLINKER) $(OPTFLAGS) -o init init.o $(LIBS)
+timers: timers.o test.o
 	$(CLINKER) $(OPTFLAGS) -o timers timers.o test.o $(LIBS)
-timertest: timertest.o test.o $(MPILIB)
+timertest: timertest.o test.o
 	$(CLINKER) $(OPTFLAGS) -o timertest timertest.o test.o $(LIBS)
-baseattr: baseattr.o test.o $(MPILIB)
+baseattr: baseattr.o test.o
 	$(CLINKER) $(OPTFLAGS) -o baseattr baseattr.o test.o $(LIBS)
-baseattrf: baseattrf.o $(MPILIB)
+baseattrf: baseattrf.o
 	$(FLINKER) $(OPTFLAGS) -o baseattrf baseattrf.o $(LIBS)
-errhand: errhand.o test.o $(MPILIB)
+errhand: errhand.o test.o
 	$(CLINKER) $(OPTFLAGS) -o errhand errhand.o test.o $(LIBS)
-sigchk: sigchk.o test.o $(MPILIB)
+sigchk: sigchk.o test.o
 	$(CLINKER) $(OPTFLAGS) -o sigchk sigchk.o test.o $(LIBS)
 clean:
 	/bin/rm -f *.o *~ PI* $(EXECS) baseattrf core *.out *.orig env.diff \
@@ -70,5 +58,6 @@ clean:
 .f.o:
 	$(F77) $(FFLAGS) -c $*.f
 
-$(MPIR_HOME)/util/mpirun:
-	(cd $(MPIR_HOME) ; make mpirun )
+# MPICH specific
+#$(MPIR_HOME)/util/mpirun:
+#	(cd $(MPIR_HOME) ; make mpirun )

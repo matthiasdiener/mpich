@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_size.c,v 1.14 1995/12/21 22:06:44 gropp Exp $
+ *  $Id: comm_size.c,v 1.15 1996/04/12 14:06:12 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -22,18 +22,24 @@ Notes:
    'MPI_COMM_NULL' is `not` considered a valid argument to this function.
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_ARG
 @*/
 int MPI_Comm_size ( comm, size )
 MPI_Comm comm;
 int *size;
 {
-  int mpi_errno;
-  if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_ARG(size) ) {
-    if (size) (*size) = MPI_UNDEFINED;
-    return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, "Error in MPI_COMM_SIZE" );
-  }
-  else 
-    (*size) = comm->local_group->np;
+    int mpi_errno;
+    if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_ARG(size) ) {
+	if (size) (*size) = MPI_UNDEFINED;
+	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+			   "Error in MPI_COMM_SIZE" );
+    }
+    else 
+	(*size) = comm->local_group->np;
 
-  return (MPI_SUCCESS);
+    return (MPI_SUCCESS);
 }

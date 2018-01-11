@@ -1,0 +1,1 @@
+../ch2/adi2mpack.c

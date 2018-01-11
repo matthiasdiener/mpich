@@ -50,10 +50,9 @@ int MPE_Log_FindSkew( Skew, Goff )
 double  *Skew, *Goff;
 {
   int               xx_i, *bp, n;
-  double            sync_start, sync_end, temp_time, sk, goff, time, gt;
+  double            sync_start, sync_end, temp_time;
   double            proc0_times[2];
   int               found_first = 0, nsync = 0;
-  int               xx_save;
   MPE_Log_BLOCK        *bl;
   MPE_Log_HEADER       *ap;
 
@@ -110,7 +109,6 @@ double  sk, goff;
 {
   int               xx_i, *bp, n;
   double            temp_time, adjustedTime;
-  int               xx_save;
   MPE_Log_BLOCK     *bl;
   MPE_Log_HEADER    *ap;
   
@@ -148,7 +146,6 @@ fprintf( debug_file, "adjust2 time %10.5lf to %10.5lf\n",
 */
 void MPE_Log_adjtime2()
 {
-  int     i;	
   double  sk, goff;
 
   /* Set the defaults, just in case */
@@ -161,8 +158,6 @@ void MPE_Log_adjtime2()
 
 int MPE_Log_adjusttimes()
 {
-  int xx_save;
-
   if (MPE_Log_AdjustedTimes) return 0;
 
   MPE_Log_adjtime1();
@@ -172,3 +167,15 @@ int MPE_Log_adjusttimes()
   return 0;
 }
 
+/* This shifts ALL times by the minimum time value on ALL processors */
+int MPE_Log_adjust_time_origin()
+{
+    double t1;
+    /* Compute the MPE_Log_tinit time */
+    t1 = MPE_Log_tinit;
+
+    MPI_Allreduce( &t1, &MPE_Log_tinit, 1, MPI_DOUBLE, MPI_MIN, 
+		   MPI_COMM_WORLD );
+    MPE_Log_adjtime1();
+    return 0;
+}

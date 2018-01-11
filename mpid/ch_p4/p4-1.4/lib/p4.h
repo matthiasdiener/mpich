@@ -9,7 +9,11 @@
 #endif
 
 /* for xdr  -  includes netinet/in.h and sys/types.h */
+/* HP-UX does not properly guard rpc/rpc.h from multiple inclusion */
+#if !defined(INCLUDED_RPC_RPC_H)
 #include <rpc/rpc.h>      
+#define INCLUDED_RPC_RPC_H
+#endif
 /* Some systems DO NOT include netinet! */
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
@@ -29,6 +33,22 @@
 #include "p4_mon.h"
 #include "p4_sr.h"
 
+#define HOSTNAME_LEN 64
+
+struct p4_procgroup_entry {
+    char host_name[HOSTNAME_LEN];
+    int numslaves_in_group;
+    char slave_full_pathname[256];
+    char username[10];
+};
+
+#define P4_MAX_PROCGROUP_ENTRIES 256
+struct p4_procgroup {
+    struct p4_procgroup_entry entries[P4_MAX_PROCGROUP_ENTRIES];
+    int num_entries;
+};
+
+/* Provide prototypes for the functions */
 #include "p4_funcs.h"
 
 #ifndef P4_DPRINTFL
@@ -40,20 +60,5 @@
 #include "usc.h"
 #define p4_ustimer() usc_clock()
 #define p4_usrollover() usc_MD_rollover_val
-
-#define HOSTNAME_LEN 64
-
-struct p4_procgroup_entry {
-    char host_name[HOSTNAME_LEN];
-    int numslaves_in_group;
-    char slave_full_pathname[100];
-    char username[10];
-};
-
-#define P4_MAX_PROCGROUP_ENTRIES 256
-struct p4_procgroup {
-    struct p4_procgroup_entry entries[P4_MAX_PROCGROUP_ENTRIES];
-    int num_entries;
-};
 
 #endif

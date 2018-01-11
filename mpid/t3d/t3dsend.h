@@ -1,5 +1,5 @@
 /*
- *  $Id: t3dsend.h,v 1.4 1995/09/15 02:00:48 bright Exp $
+ *  $Id: t3dsend.h,v 1.5 1995/09/15 19:19:24 bright Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -23,26 +23,41 @@
 #define MPID_Complete_send(ctx,shandle)   T3D_Complete_send(shandle)
 #define MPID_Test_send(ctx,shandle)       T3D_Test_send(shandle)
 
-#define T3D_MSG_LEN_64( len ) ( len / 8 ) + ( ( len % 8 ) ? 1 : 0 )
-#define T3D_MSG_LEN_32( len ) ( len / 4 ) + ( ( len % 4 ) ? 1 : 0 )
+#define T3D_MSG_LEN_64( len ) ( ( (len) / 8 ) + ( ( (len) % 8 ) ? 1 : 0 ) )
+#define T3D_MSG_LEN_32( len ) ( ( (len) / 4 ) + ( ( (len) % 4 ) ? 1 : 0 ) )
 
-#define T3D_LONG_SEND( target, source, len, dest )                          \
-                                                                            \
-  if ( ((int)target & 0x7) || ((int)source & 0x7)) {                        \
-    /* Do 32-bit aligned send */                                            \
-    shmem_put32( (short *)target,                                           \
-		         (short *)source,                                   \
-		T3D_MSG_LEN_32( len ),                                      \
-		dest );                                                     \
-  }                                                                         \
-  else {                                                                    \
-    /* Do 64-bit aligned send */                                            \
-	       shmem_put( (long *)target,                                   \
-			 (long *)source,                                    \
-			 T3D_MSG_LEN_64( len ),                             \
-			 dest );                                            \
-   }
+#define T3D_CHECK_TARGET( target, length )                                  \
+{									    \
+   int   tpl = (int)target + length;                                        \
+   int   tml = (int)target - length;                                        \
+									    \
+   save_stack = get_stack();                                                \
+   modified_stack = 0;                                                      \
+/*   if (DebugFlag) { */         					    \
+/*     T3D_Printf("Current stack = 0x%x\n",save_stack); */                  \
+/*     T3D_Printf("Current heap  = 0x%x\n",t3d_heap_limit); */		    \
+/*     T3D_Printf("Sending %d bytes to 0x%x\n",length,target); */	    \
+/*   } */                                                                   \
+   if ( (tml < (int)save_stack) && (tpl > (int)t3d_heap_limit ) )           \
+     if ( abs( (int)save_stack - tml ) < abs( tpl - (int)t3d_heap_limit ) ){\
+       shmem_stack( (void *)tml );                                          \
+       modified_stack = 1;                                                  \
+/*       if (DebugFlag) */                                                  \
+/*         T3D_Printf("New stack = 0x%x\n",get_stack()); */                 \
+     }                                                                      \
+     else {                                                                 \
+       malloc_brk( (char *)(tpl) );                                         \
+       t3d_heap_limit = (char *)sbrk( 0 );				    \
+/*       if (DebugFlag) */						    \
+/*         T3D_Printf("New heap     = 0x%x\n",t3d_heap_limit); */    	    \
+     }									    \
+}
 
-extern T3D_Buf_Status *t3d_dest_bufs;
+#define T3D_RESET_STACK                                                     \
+{                                                                           \
+   if ( modified_stack ) set_stack( save_stack );                           \
+}
+
+extern volatile T3D_Buf_Status *t3d_dest_bufs;
 
 #endif

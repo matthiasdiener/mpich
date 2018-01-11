@@ -10,6 +10,14 @@
 #define MPE_DRAG_FIXED_RECT 8
 /* this shouldn't be in mpe_graphics.h because the user shouldn't use it */
 
+static int ConvertCoords ANSI_ARGS(( int, int, int, int, int, double,
+				     int *, int *, int *, int * ));
+static int DrawDragVisual ANSI_ARGS(( int, MPE_XGraph, int, int, int, int, 
+				      double ));
+static int MPE_Get_drag_region2 ANSI_ARGS(( MPE_XGraph, int, int, 
+					    int *, int *, int *, int *, 
+					    double ));
+
 /*@
   MPE_Get_mouse_press - Waits for mouse button press
 
@@ -28,7 +36,7 @@
   this MPE window and the button that was pressed.
 
 @*/
-MPE_Get_mouse_press( graph, x, y, button )
+int MPE_Get_mouse_press( graph, x, y, button )
 MPE_XGraph graph;
 int *x, *y, *button;
 {
@@ -390,8 +398,8 @@ int *pressx, *pressy, *releasex, *releasey, button, dragVisual;
 			      releasex, releasey, 1.0 );
 }
 
-int MPE_Get_drag_region_fixratio( graph, button, ratio, pressx, pressy, releasex,
-			      releasey )
+int MPE_Get_drag_region_fixratio( graph, button, ratio, pressx, pressy, 
+				  releasex, releasey )
 MPE_XGraph graph;
 double ratio;
 int *pressx, *pressy, *releasex, *releasey, button;

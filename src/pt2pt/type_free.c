@@ -1,16 +1,15 @@
 /*
- *  $Id: type_free.c,v 1.15 1995/12/21 21:36:09 gropp Exp $
+ *  $Id: type_free.c,v 1.16 1996/04/11 20:25:05 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: type_free.c,v 1.15 1995/12/21 21:36:09 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
-#include "mpisys.h"
+#ifdef MPI_ADI2
+/* pt2pt for MPIR_Type_free */
+#include "mpipt2pt.h"
+#endif
 
 #ifndef MPIR_TRUE
 #define MPIR_TRUE  1
@@ -24,6 +23,11 @@ Input Parameter:
 . datatype - datatype that is freed (handle) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TYPE
+.N MPI_ERR_ARG
 @*/
 int MPI_Type_free ( datatype )
 MPI_Datatype *datatype;

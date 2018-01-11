@@ -1,11 +1,12 @@
 /*
- *  $Id: cart_get.c,v 1.8 1995/12/21 22:18:12 gropp Exp $
+ *  $Id: cart_get.c,v 1.9 1996/04/12 15:43:04 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#include "mpitopo.h"
 
 /*@
 
@@ -25,6 +26,11 @@ Output Parameters:
 (array of integer) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TOPOLOGY
+.N MPI_ERR_COMM
 @*/
 int MPI_Cart_get ( comm, maxdims, dims, periods, coords )
 MPI_Comm comm;

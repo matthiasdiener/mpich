@@ -1,22 +1,22 @@
-/* @
+/*
     third - test program that tests queueing by sending messages with various
             tags, receiving them in particular order.
-@ */
+ */
 
 #include "mpi.h"
+#include "test.h"
 
 /* Define VERBOSE to get printed output */
 int main( argc, argv )
 int argc;
 char **argv;
 {
-    int rank, size, to, from, tag, count, np, i;
+    int rank, size, to, from, tag, count;
     int src, dest, waiter;
     int st_count;
 #ifdef VERBOSE
     int st_source, st_tag;
 #endif
-    MPI_Request handle;
     MPI_Status status;
     char data[100];
     MPI_Request rq[2];

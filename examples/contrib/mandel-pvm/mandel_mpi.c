@@ -4,8 +4,9 @@
  * Mandelbrot calculator. Calculates strips from the requested region,
  * concanenates strips, and writes to file.
  *
- * Usage: mandel_mpi width height x1 y1 x2 y2 filename ( mandel_mpi 256 256
- * -2.0 -2.0 2.0 2.0 whole_mandelbrot )
+ * Usage: mandel_mpi width height x1 y1 x2 y2 filename ( 
+ * mandel_mpi 256 256 -2.0 -2.0 2.0 2.0 whole_mandelbrot 
+ * )
  *
  * last revision: 15 Feb 1993 
  *                25 Jan 1993 Anthony Skjellum tony@cs.msstate.edu

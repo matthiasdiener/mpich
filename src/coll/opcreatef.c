@@ -1,12 +1,9 @@
 /* opcreate.c */
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
+#include "mpifort.h"
 
-#ifdef INT_LT_POINTER
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef INT_LT_POINTER
 #define MPIR_ToPointer(a) a
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -32,7 +29,15 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_op_create_( function, commute, op, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+#ifdef  FORTRAN_SPECIAL_FUNCTION_PTR
+void mpi_op_create_ ANSI_ARGS(( MPI_User_function **, int *, MPI_Op *, 
+				int * ));
+#else
+void mpi_op_create_ ANSI_ARGS(( MPI_User_function *, int *, MPI_Op *, int * ));
+#endif
+
+void mpi_op_create_( function, commute, op, __ierr )
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
 MPI_User_function **function;
 #else
@@ -42,11 +47,11 @@ int               *commute;
 MPI_Op            *op;
 int               *__ierr;
 {
-MPI_Op lop;
+    MPI_Op lop;
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
-*__ierr = MPI_Op_create(*function,MPIR_FROM_FLOG(*commute),&lop);
+    *__ierr = MPI_Op_create(*function,MPIR_FROM_FLOG(*commute),&lop);
 #else
-*__ierr = MPI_Op_create(function,MPIR_FROM_FLOG(*commute),&lop);
+    *__ierr = MPI_Op_create(function,MPIR_FROM_FLOG(*commute),&lop);
 #endif
-*(int*)op = MPIR_FromPointer( lop );
+    *(int*)op = MPIR_FromPointer( lop );
 }

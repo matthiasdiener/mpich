@@ -2,12 +2,9 @@
 /* THIS IS A CUSTOM WRAPPER */
 
 #include "mpiimpl.h"
+#include "mpifort.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -33,6 +30,9 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_attr_get_ ANSI_ARGS(( MPI_Comm, int *, int *, int *, int * ));
+
 void mpi_attr_get_ ( comm, keyval, attr_value, found, __ierr )
 MPI_Comm comm;
 int *keyval;
@@ -40,23 +40,23 @@ int *attr_value;
 int *found;
 int *__ierr;
 {
-void *vval;
+    void *vval;
 
-*__ierr = MPI_Attr_get(
+    *__ierr = MPI_Attr_get(
 	(MPI_Comm)MPIR_ToPointer( *((int*)comm)),
-	 *keyval,&vval,found);
+	*keyval,&vval,found);
 
-/* Convert attribute value to integer.  This code handles the case
-   where sizeof(int) < sizeof(void *), and the value was stored as a
-   void * 
- */
-if (*__ierr || *found == 0)
-    *attr_value = 0;
-else {
-    MPI_Aint lvval = (MPI_Aint)vval;
-    *attr_value = (int)lvval;
+    /* Convert attribute value to integer.  This code handles the case
+       where sizeof(int) < sizeof(void *), and the value was stored as a
+       void * 
+     */
+    if (*__ierr || *found == 0)
+	*attr_value = 0;
+    else {
+	MPI_Aint lvval = (MPI_Aint)vval;
+	*attr_value = (int)lvval;
     }
 
-*found = MPIR_TO_FLOG(*found);
-return;
+    *found = MPIR_TO_FLOG(*found);
+    return;
 }

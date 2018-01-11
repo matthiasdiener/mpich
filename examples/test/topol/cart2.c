@@ -2,18 +2,17 @@
 
 #define NUM_DIMS 2
 
-main( argc, argv )
+int main( argc, argv )
 int argc;
 char **argv;
 {
     int              rank, size, i;
     int              dims[NUM_DIMS];
     int              periods[NUM_DIMS];
-    int              coords[NUM_DIMS];
     int              new_coords[NUM_DIMS];
     int              new_new_coords[NUM_DIMS];
     int              reorder = 1;
-    MPI_Comm comm_cart, new_comm;
+    MPI_Comm         comm_cart;
 
     MPI_Init( &argc, &argv );
 
@@ -36,4 +35,6 @@ char **argv;
     MPI_Comm_free( &comm_cart );
     Test_Waitforall( );
     MPI_Finalize();
+    
+    return 0;
 }

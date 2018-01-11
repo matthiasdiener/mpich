@@ -1,16 +1,18 @@
 /*
- *  $Id: sendrecv_rep.c,v 1.8 1995/12/21 21:26:40 gropp Exp $
+ *  $Id: sendrecv_rep.c,v 1.10 1996/07/17 18:04:00 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: sendrecv_rep.c,v 1.8 1995/12/21 21:26:40 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "mpimem.h"
+/* pt2pt for MPIR_Unpack */
+#include "mpipt2pt.h"
+#else
 #include "mpisys.h"
+#endif
 
 /*@
     MPI_Sendrecv_replace - Sends and receives using a single buffer
@@ -29,6 +31,17 @@ Output Parameters:
 . status - status object (Status) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_TAG
+.N MPI_ERR_RANK
+.N MPI_ERR_TRUNCATE
+.N MPI_ERR_EXHAUSTED
+
 @*/
 int MPI_Sendrecv_replace( buf, count, datatype, dest, sendtag, 
 			  source, recvtag, comm, status )
@@ -43,6 +56,8 @@ MPI_Status   *status;
     void         *rbuf;
     MPI_Status   status_array[2];
     MPI_Request  req[2];
+    MPIR_ERROR_DECL;
+    static char myname[] = "Error in MPI_SENDRECV_REPLACE";
 
     /* Check for invalid arguments */
     if ( MPIR_TEST_COMM(comm,comm) || MPIR_TEST_DATATYPE(comm,datatype) ||
@@ -55,23 +70,24 @@ MPI_Status   *status;
        do this is if contiguous, then as here, else use pack/unpack
        to send contiguous data... 
      */
+    MPIR_ERROR_PUSH(comm);
+
+    MPIR_GET_REAL_DATATYPE(datatype);
     if (count == 0 || datatype->is_contig) {
 	buflen = datatype->extent * count;
-	if (mpi_errno = MPI_Isend ( buf,  count, datatype, dest,   
-			       sendtag, comm, &req[0] )) return mpi_errno;
+	MPIR_CALL_POP(MPI_Isend ( buf,  count, datatype, dest,   
+			       sendtag, comm, &req[0] ),comm,myname);
 	if (buflen > 0) {
-	    rbuf = (void *)MALLOC( buflen );
-	    if (!rbuf) {
-		return MPIR_ERROR( comm, MPI_ERR_EXHAUSTED, 
+	    MPIR_ALLOC_POP(rbuf,(void *)MALLOC( buflen ),
+			   comm, MPI_ERR_EXHAUSTED, 
 				  "Error in MPI_SENDRECV_REPL" );
-		}
 	    }
 	else
 	    rbuf = (void *)0;
 	
-	if (mpi_errno = MPI_Irecv ( rbuf, count, datatype, source, 
-			    recvtag, comm, &req[1] )) return mpi_errno;
-	mpi_errno = MPI_Waitall ( 2, req, status_array );
+	MPIR_CALL_POP(MPI_Irecv ( rbuf, count, datatype, source, 
+			    recvtag, comm, &req[1] ),comm,myname);
+	MPIR_CALL_POP(MPI_Waitall ( 2, req, status_array ),comm,myname);
 	if (rbuf) {
 	    memcpy( buf, rbuf, buflen );
 	    FREE( rbuf );
@@ -79,34 +95,45 @@ MPI_Status   *status;
 	(*status) = status_array[1];
 	}
     else {
-	int position;
+	int dest_len, act_len, position;
 	/* non-contiguous data will be packed and unpacked */
-	MPI_Pack_size( count, datatype, comm, &buflen );
+	MPIR_CALL_POP(MPI_Pack_size( count, datatype, comm, &buflen ),
+		      comm,myname);
 	if (buflen > 0) {
-	    rbuf = (void *)MALLOC( buflen );
-	    if (!rbuf) {
-		return MPIR_ERROR( comm, MPI_ERR_EXHAUSTED, 
+	    MPIR_ALLOC_POP(rbuf,(void *)MALLOC( buflen ),
+			   comm, MPI_ERR_EXHAUSTED, 
 				  "Error in MPI_SENDRECV_REPL" );
-		}
 	    }
 	else
 	    rbuf = (void *)0;
 
 	position = 0;
-	MPI_Pack( buf, count, datatype, rbuf, buflen, &position, comm );
+	MPIR_CALL_POP(MPI_Pack( buf, count, datatype, rbuf, buflen, 
+				&position, comm ),comm,myname);
 	mpi_errno = MPI_Sendrecv_replace( rbuf, buflen, MPI_PACKED, dest, 
 					  sendtag, source, recvtag, comm, 
 					  status );
 	if (mpi_errno) {
 	    if (rbuf) FREE( rbuf );
-	    return mpi_errno;
+	    return MPIR_ERROR(comm,mpi_errno,myname);
 	    }
-	position = 0;
-	MPI_Unpack( rbuf, buflen, &position, buf, count, datatype, comm );
+	/* We need to use MPIR_Unpack because we need the DESTINATION 
+	   length */
+	act_len	 = 0;
+	dest_len = 0;
+#ifdef MPI_ADI2
+	MPIR_Unpack( comm, rbuf, buflen, count, datatype, 
+		     MPID_Msgrep_from_comm(comm), buf, &act_len, &dest_len );
+#else
+	MPIR_Unpack( comm, rbuf, buflen, count, datatype, comm->msgrep, 
+		     buf, &act_len, &dest_len );
+#endif
 	if (rbuf) {
 	    FREE( rbuf );
 	    }
-	/* Still need to update status value? */
+	/* Need to update the count field to reflect the number of UNPACKED
+	   bytes */
+	status->count = dest_len;
 	}
     return mpi_errno;
 }

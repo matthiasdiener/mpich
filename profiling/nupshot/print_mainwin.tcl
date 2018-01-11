@@ -30,7 +30,7 @@ proc Print_MainWin_Dialog {log id} {
 
 
 proc Print_MainWin {log id pwin} {
-   global mainwin color printOpts
+   global mainwin color printOpts procnums
 
    LookBusy $pwin
    update
@@ -51,8 +51,8 @@ proc Print_MainWin {log id pwin} {
    set bg_rect [$pc create rect 0 0 0 0 -outline "" -fill $bg]
 
    set legend_height [Legend_Squeeze $id.legend]
-   set left_gap [GetDefault display_left_gap 40]
-
+   # set left_gap [GetDefault display_left_gap 40]
+   set left_gap $mainwin($id,procWidth)
    set y [expr $legend_height + 2]
    set display_width [winfo width $id.displays]
    set display_list [$id.displays list]

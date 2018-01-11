@@ -1,5 +1,5 @@
 /*
- *  $Id: t3ddebug.h,v 1.5 1995/09/15 02:00:52 bright Exp $
+ *  $Id: t3ddebug.h,v 1.6 1995/09/15 19:19:28 bright Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.

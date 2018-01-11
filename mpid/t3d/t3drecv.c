@@ -1,12 +1,12 @@
 /*
- *  $Id: t3drecv.c,v 1.9 1995/07/24 19:08:12 bright Exp $
+ *  $Id: t3drecv.c,v 1.10 1995/09/15 19:19:19 bright Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
-
+ 
 #ifndef lint
-static char vcid[] = "$Id: t3drecv.c,v 1.9 1995/07/24 19:08:12 bright Exp $";
+static char vcid[] = "$Id: t3drecv.c,v 1.10 1995/09/15 19:19:19 bright Exp $";
 #endif
 
 #include "mpid.h"
@@ -54,12 +54,12 @@ static char vcid[] = "$Id: t3drecv.c,v 1.9 1995/07/24 19:08:12 bright Exp $";
  *      Test for clompletion of a receive.
  */
 
-#include "t3dsend.h"
-
 /****************************************************************************
   Global variables
  ***************************************************************************/
-T3D_PKT_T   *t3d_recv_bufs;
+#pragma _CRI cache_align t3d_recv_bufs
+volatile T3D_PKT_T   *t3d_recv_bufs;
+extern MPIR_QHDR      T3D_long_sends;
 
 /***************************************************************************
    T3D_Set_debug_flag
@@ -81,6 +81,11 @@ int f;
     T3D_Set_sync_debug_flag( f );
 }
 
+/* FORTRAN equivalent */
+void T3D_SET_RECV_DEBUG_FLAG()
+{
+    DebugFlag = 1;
+}
 
 /***************************************************************************
    T3D_Set_msg_debug_flag
@@ -113,19 +118,16 @@ void T3D_Print_msg_debug()
   T3D_Recv_packet
  ***************************************************************************/
 int T3D_Recv_packet ( pkt )
-T3D_PKT_T **pkt;
+volatile T3D_PKT_T **pkt;
 {
-    int         i;
-    static int  start = 0;
-    int         end;
-    int         twice;
+    static int  last=0;
+    int         i,start,buf_num;
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
     if (DebugFlag) {
         T3D_Printf("T3D_Recv_packet\n");
     }
 #   endif
-
 
     /* clear pkt */
     (*pkt) = (T3D_PKT_T *)0;
@@ -136,96 +138,35 @@ T3D_PKT_T **pkt;
     }
 #   endif
 
-    for ( i=start; i<t3d_num_pes; i++ ) {
-      if ( i == t3d_myid ) continue;
-      if ( ((*pkt) = &t3d_recv_bufs[i])->head.status ) {
-#         if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+    buf_num = start = ( i = last + 1 ) % t3d_num_pes;
+    do {
+      if ( buf_num != T3D_MY_PE )
+	if ( t3d_recv_bufs[buf_num].head.status != T3D_BUF_AVAIL ) {
+	  *pkt = &t3d_recv_bufs[buf_num];
+#       if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
 	  if (DebugFlag) {
-            T3D_Printf("T3D_Recv_packet-got message\n");
-            T3D_Printf("message contents\n");
-	    T3D_Printf("  from       = %d\n",i);
-	    T3D_Printf("  status     = %d\n",t3d_recv_bufs[i].head.status);
-	    T3D_Printf("  mode       = %d\n",t3d_recv_bufs[i].head.mode);
-	    T3D_Printf("  context id = %d\n",t3d_recv_bufs[i].head.context_id);
-	    T3D_Printf("  lrank      = %d\n",t3d_recv_bufs[i].head.lrank);
-	    T3D_Printf("  tag        = %d\n",t3d_recv_bufs[i].head.tag);
-	    T3D_Printf("  length     = %d\n",t3d_recv_bufs[i].head.len);
-             }
-#         endif
-	start = i + 1;
-	return i;
-      }
-    }
-    
-    if ( start ) 
-      for ( i=0; i<start; i++ ) {
-      if ( i == t3d_myid ) continue;
-	if ( ((*pkt) = &t3d_recv_bufs[i])->head.status ) {
-#         if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-	  if (DebugFlag) {
-            T3D_Printf("T3D_Recv_packet-got message\n");
-            T3D_Printf("message contents\n");
-	    T3D_Printf("  from       = %d\n",i);
-	    T3D_Printf("  status     = %d\n",t3d_recv_bufs[i].head.status);
-	    T3D_Printf("  mode       = %d\n",t3d_recv_bufs[i].head.mode);
-	    T3D_Printf("  context id = %d\n",t3d_recv_bufs[i].head.context_id);
-	    T3D_Printf("  lrank      = %d\n",t3d_recv_bufs[i].head.lrank);
-	    T3D_Printf("  tag        = %d\n",t3d_recv_bufs[i].head.tag);
-	    T3D_Printf("  length     = %d\n",t3d_recv_bufs[i].head.len);
-             }
-#         endif
-	  start = i + 1;
-	  return i;
+	    T3D_Printf("T3D_Recv_packet-got message\n");
+	    T3D_Printf("message contents\n");
+	    T3D_Printf("  from       = %d\n",buf_num);
+	    T3D_Printf("  status     = %d\n",t3d_recv_bufs[buf_num].head.status);
+	    T3D_Printf("  mode       = %d\n",t3d_recv_bufs[buf_num].head.mode);
+	    T3D_Printf("  context id = %d\n",t3d_recv_bufs[buf_num].head.context_id);
+	    T3D_Printf("  lrank      = %d\n",t3d_recv_bufs[buf_num].head.lrank);
+	    T3D_Printf("  tag        = %d\n",t3d_recv_bufs[buf_num].head.tag);
+	    T3D_Printf("  length     = %d\n",t3d_recv_bufs[buf_num].head.len);
+	  }
+#       endif
+	  return ( last = buf_num );
 	}
-    }
+      last = buf_num = ++i % t3d_num_pes;
+    } while ( buf_num != start );
 
     return (-1);
 
 } /* T3D_Recv_packet */
 
-
 /****************************************************************************
-  T3D_Reuse_buf
-
-  Description
-    This returns a used buffer to the device.
- ***************************************************************************/
-void T3D_Reuse_buf(buf_num)
-int buf_num;
-{
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Reuse_buf-clearing buffer #%d\n",buf_num);
-    }
-#   endif
-
-  t3d_recv_bufs[buf_num].head.status = T3D_BUF_AVAIL;
-
-} /* T3D_Reuse_buf */
-
-
-/***************************************************************************
-   T3D_Init_recv_code
-
-   Description:
-     This routine is called by the initialization code to preform any 
-     receiver initializations, such as preallocating or pre-posting a 
-     control-message buffer
- ***************************************************************************/
-void T3D_Init_recv_code()
-{
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Init_recv_code\n");
-    }
-#   endif
-
-}
-
-
-/****************************************************************************
-  T3D_Process_unexpected
+  T3D_Copy_unexpected
 
   Description 
     This code is called when a receive finds that the message has
@@ -233,389 +174,269 @@ void T3D_Init_recv_code()
     code stores the information about the message (source, tag,
     length) and copies the message into the receiver's buffer.
  ***************************************************************************/
-int T3D_Process_unexpected( dmpi_recv_handle, dmpi_unexpected )
-MPIR_RHANDLE *dmpi_recv_handle, *dmpi_unexpected;
-{
-    MPID_RHANDLE *mpid_recv_handle;
-    MPID_RHANDLE *mpid_recv_handle_unex;
-    int err = MPI_SUCCESS;
-    int completed = 0;
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Process_unexpected\n");
-    }
-#   endif
-
-    /* Copy relevant data to recv_handle */
-    mpid_recv_handle           = &dmpi_recv_handle->dev_rhandle;
-    mpid_recv_handle_unex      = &dmpi_unexpected->dev_rhandle;
-    dmpi_recv_handle->source   = dmpi_unexpected->source;
-    dmpi_recv_handle->tag      = dmpi_unexpected->tag;
-    dmpi_recv_handle->totallen = dmpi_unexpected->totallen;
-
-    /* Copy the message (if there is any data) */
-    if (mpid_recv_handle_unex->bytes_as_contig > 0) {
-        memcpy( mpid_recv_handle->start, mpid_recv_handle_unex->temp,
-                mpid_recv_handle_unex->bytes_as_contig );
-    }
-
-    /* if synchronous, then update remote send completed flag */
-    if ( (mpid_recv_handle_unex->mode == T3D_PKT_SHORT_SYNC) ||
-	 (mpid_recv_handle_unex->mode == T3D_PKT_LONG_SYNC)    )  {
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Process_unexpected-setting send completed flag at 0x%x\n",
-                    mpid_recv_handle_unex->remote_completed );
-    }
-#   endif
-
-      shmem_put( (long *)mpid_recv_handle_unex->remote_completed,
-		 (long *)&completed,
-		 1,
-		 mpid_recv_handle_unex->from );
-    }
-
-    /* Free temporary space used to store unexpected message */
-    if (mpid_recv_handle_unex->temp) {
-        T3D_FREE( mpid_recv_handle_unex->temp );
-        mpid_recv_handle_unex->temp = 0;
-      }
-    
-    /* Let the soft layer know the send has completed */
-    DMPI_mark_recv_completed(dmpi_recv_handle);
-
-    /* Recover dmpi_unexpected. */
-    DMPI_free_unexpected( dmpi_unexpected );
-
-    return (err);
-
-} /* T3D_Process_unexpected */
-
-
-/****************************************************************************
-  T3D_Copy_body_short
-
-  Description
-    Copy short message from device space to user space.
- ***************************************************************************/
-int T3D_Copy_body_short(dmpi_recv_handle, pkt)
+int T3D_Copy_unexpected( dmpi_recv_handle )
 MPIR_RHANDLE *dmpi_recv_handle;
-T3D_PKT_T    *pkt;
 {
-    MPID_RHANDLE *mpid_recv_handle;
-    int err    = MPI_SUCCESS;
-    int msglen = pkt->head.len;
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Copy_body_short\n");
-    }
-#   endif
-
-    mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
-
-    if ( dmpi_recv_handle->dev_rhandle.bytes_as_contig < msglen ) {
-      err = MPI_ERR_TRUNCATE;
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-      if ( DebugFlag) {
-        T3D_Printf("Received a truncated message.\n");
-      }
-#   endif
-
-      msglen = dmpi_recv_handle->dev_rhandle.bytes_as_contig;
-    }
-
-    /* Copy message if needed and mark the receive as completed */
-    if ( msglen > 0) 
-        memcpy( dmpi_recv_handle->dev_rhandle.start, pkt->short_pkt.buffer,
-                msglen ); 
-
-    return (err);
-
-} /* T3D_Copy_body_short */
-
-
-/****************************************************************************
-  T3D_Copy_body_long
-
-  Description
-    Copy long message packet from device space to user space.
- ***************************************************************************/
-int T3D_Copy_body_long(dmpi_recv_handle, pkt)
-MPIR_RHANDLE *dmpi_recv_handle;
-T3D_PKT_T    *pkt;
-{
+    MPID_RHANDLE *mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
+    MPIR_RHANDLE *dmpi_unexpected  = (MPIR_RHANDLE *)mpid_recv_handle->dmpi_unexpected;
+    MPID_RHANDLE *mpid_unexpected  = &dmpi_unexpected->dev_rhandle;
     int           err = MPI_SUCCESS;
-    MPID_RHANDLE *mpid_recv_handle;
-    char         *ptrs[2];
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Copy_body_long\n");
-    }
-#   endif
-
-    /* initialize mpid handle */
-    mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
-
-    mpid_recv_handle->bytes_as_contig = pkt->head.len;
-    mpid_recv_handle->mode            = pkt->head.mode; 
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Copy_body_long-sending back long buffer ptr\n");
-    }
-#   endif
-
-    /* 
-      The dmpi_recv_handle should all be ready if message expected, and
-      buffer of appropriate length will have been allocated and be pointed
-      to by mpid_recv_handle->start
-    */
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("recv buffer location  = 0x%x\n",pkt->long_pkt.buffer);
-	T3D_Printf("recv buffer ptr value = 0x%x\n",mpid_recv_handle->start);
-	
-        T3D_Printf("completed location  = 0x%x\n",(pkt->long_pkt.buffer + 1 ));
-	T3D_Printf("completed value     = 0x%x\n",&(dmpi_recv_handle->completer));   
-    }
-#   endif
-
-    ptrs[0] = (char *)mpid_recv_handle->start;
-    ptrs[1] = (char *)&(dmpi_recv_handle->completer);
-
-    /* 
-       Send back to the sending pe (at the location specified in pkt->long.buffer)
-       the location of the buffer on this pe to write into and the location of the
-       completed flag on this pe.
-    */
-    shmem_put( (long *)pkt->long_pkt.buffer, 
-               (long *)ptrs,
-                2, 
-                mpid_recv_handle->from );
-
-    return (err);
-
-} /* T3D_Copy_body_long */
-
-/****************************************************************************
-  T3D_Copy_body_short_sync
-
-  Description
-    Copy short message from device space to user space for synchrounous send.
- ***************************************************************************/
-int T3D_Copy_body_short_sync(dmpi_recv_handle, pkt)
-MPIR_RHANDLE *dmpi_recv_handle;
-T3D_PKT_T    *pkt;
-{
-    MPID_RHANDLE *mpid_recv_handle;
-    int err       = MPI_SUCCESS;
-    int msglen    = pkt->head.len;
-    int completed = 0;
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Copy_body_short_sync\n");
-    }
-#   endif
-
-    mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
-
-    if ( dmpi_recv_handle->dev_rhandle.bytes_as_contig < msglen ) {
-      err = MPI_ERR_TRUNCATE;
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-      if ( DebugFlag) {
-        T3D_Printf("Received a truncated message.\n");
-      }
-#   endif
-
-      msglen = dmpi_recv_handle->dev_rhandle.bytes_as_contig;
-    }
-
-    /* Copy message if needed and mark the receive as completed */
-    if ( msglen > 0) 
-        memcpy( dmpi_recv_handle->dev_rhandle.start, pkt->short_pkt.buffer,
-                msglen ); 
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-      if ( DebugFlag) {
-        T3D_Printf("Sending completed flag to sender at 0x%x\n",
-                   pkt->short_sync_pkt.local_send_completed );
-      }
-#   endif
-
-    /* Inform sender that receive is completed */
-    shmem_put( (long *)pkt->short_sync_pkt.local_send_completed,
-	       (long *)&completed,
-	       1,
-	       dmpi_recv_handle->dev_rhandle.from );
-
-    return (err);
-
-} /* T3D_Copy_body_short_sync */
-
-/****************************************************************************
-  T3D_Copy_body_long_sync
-
-  Description
-    Copy long message packet from device space to user space for a
-    synchronous send
- ***************************************************************************/
-int T3D_Copy_body_long_sync(dmpi_recv_handle, pkt)
-MPIR_RHANDLE *dmpi_recv_handle;
-T3D_PKT_T    *pkt;
-{
-    int           err = MPI_SUCCESS;
-    MPID_RHANDLE *mpid_recv_handle;
-    char         *ptrs[2];
     int           completed = 0;
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
     if (DebugFlag) {
-        T3D_Printf("T3D_Copy_body_long_sync\n");
+        T3D_Printf("T3D_Copy_unexpected\n");
     }
 #   endif
 
+    /* Copy relevant data to recv_handle */
+    dmpi_recv_handle->source   = dmpi_unexpected->source;
+    dmpi_recv_handle->tag      = dmpi_unexpected->tag;
+    if (mpid_unexpected->bytes_as_contig <= mpid_recv_handle->bytes_as_contig)
+        dmpi_recv_handle->totallen = mpid_unexpected->bytes_as_contig;
+    else
+    {
+        dmpi_recv_handle->totallen = mpid_recv_handle->bytes_as_contig;
+        err = dmpi_recv_handle->errval = MPI_ERR_TRUNCATE;
+    }
 
-    /* initialize mpid handle */
-    mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
-
-    mpid_recv_handle->bytes_as_contig  = pkt->head.len;
-    mpid_recv_handle->mode             = pkt->head.mode; 
-    mpid_recv_handle->remote_completed = pkt->long_sync_pkt.local_send_completed;
+    mpid_recv_handle->bytes_as_contig = dmpi_recv_handle->totallen;
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
     if (DebugFlag) {
-        T3D_Printf("T3D_Copy_body_long_sync-sending back long buffer ptr\n");
+	T3D_Printf(" unexpected =\n");
+	T3D_Printf("   temp        = 0x%x\n",mpid_unexpected->temp);
+	T3D_Printf("   mode        = %d\n",  mpid_unexpected->mode);
+	T3D_Printf("   from        = %d\n",  mpid_unexpected->from);
+	T3D_Printf("   bytes       = %d\n",  mpid_unexpected->bytes_as_contig);
+	T3D_Printf(" posted =\n");
+	T3D_Printf("   mode        = %d\n",  mpid_recv_handle->mode);
+	T3D_Printf("   from        = %d\n",  mpid_recv_handle->from);
+	T3D_Printf("   start       = 0x%x\n",mpid_recv_handle->start);
+	T3D_Printf("   bytes       = %d\n",  mpid_recv_handle->bytes_as_contig);
     }
 #   endif
 
-    /* 
-      The dmpi_recv_handle should all be ready if message expected, and
-      buffer of appropriate length will have been allocated and be pointed
-      to by mpid_recv_handle->start
-    */
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("recv buffer location  = 0x%x\n",pkt->long_sync_pkt.buffer);
-	T3D_Printf("recv buffer ptr value = 0x%x\n",mpid_recv_handle->start);
+    if ( (mpid_unexpected->mode == T3D_PKT_SHORT_SYNC) ||
+	 (mpid_unexpected->mode == T3D_PKT_LONG_SYNC )    ) {
 	
-        T3D_Printf("completed location  = 0x%x\n",(pkt->long_sync_pkt.buffer + 1 ));
-	T3D_Printf("completed value     = 0x%x\n",&(dmpi_recv_handle->completer));   
+#     if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+      if (DebugFlag) {
+	T3D_Printf("  Sending send completed flag to 0x%x\n",
+		   mpid_unexpected->sync_recv_completed );
+      }
+#     endif
+
+      T3D_CHECK_TARGET( mpid_unexpected->sync_recv_completed, 8 ); 
+
+      shmem_put( (long *)mpid_unexpected->sync_recv_completed,
+		 (long *)&completed,
+		 1,
+		 mpid_unexpected->from );
+
+      T3D_RESET_STACK;
+
     }
-#   endif
-
-    ptrs[0] = (char *)mpid_recv_handle->start;
-    ptrs[1] = (char *)&(dmpi_recv_handle->completer);
-
-    /* 
-       Send back to the sending pe (at the location specified in pkt->long.buffer)
-       the location of the buffer on this pe to write into and the location of the
-       completed flag on this pe.
-    */
-    shmem_put( (long *)pkt->long_sync_pkt.buffer, 
-               (long *)ptrs,
-                2, 
-                mpid_recv_handle->from );
-
-    /* message hasn't been received yet, so can't send send completed flag back
-       to source */
-
-    /* Better do this before we look for more messages */
-    T3D_Reuse_buf( mpid_recv_handle->from );
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
     if (DebugFlag) {
-        T3D_Printf("T3D_Copy_body_long_sync-waiting for completion of send\n");
+      T3D_Printf("  Copying from temp buffer\n");
+      T3D_Printf("     start = 0x%x\n",mpid_recv_handle->start);
+      T3D_Printf("     temp  = 0x%x\n",mpid_unexpected->temp);
     }
 #   endif
 
-    while( dmpi_recv_handle->completer )
-      T3D_Check_incoming( MPID_NOTBLOCKING );
+    if ( mpid_recv_handle->bytes_as_contig > 0 ) { 
+      T3D_MEMCPY( mpid_recv_handle->start,
+		  mpid_unexpected->temp,
+		  mpid_recv_handle->bytes_as_contig );
+    }
 
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-      if ( DebugFlag) {
-        T3D_Printf("T3D_Copy_body_long_sync-Sending completed flag to sender at 0x%x\n",
-                   mpid_recv_handle->remote_completed );
-      }
-#   endif
-
-      /* Inform sender that receive is completed */
-    shmem_put( (long *)dmpi_recv_handle->dev_rhandle.remote_completed,
-	      (long *)&completed,
-	      1,
-	      mpid_recv_handle->from );
-
-    DMPI_mark_recv_completed( dmpi_recv_handle );
-
+    /* Free temporary space used to store unexpected message */
+    if (mpid_unexpected->temp != (void *)NULL) {
+      T3D_FREE( mpid_unexpected->temp );
+      mpid_unexpected->temp = 0;
+    }
+    
+    /* Let the soft layer know the recv has completed */
+    DMPI_mark_recv_completed(dmpi_recv_handle);
+    
+    /* Recover unexpected handle. */
+    DMPI_free_unexpected( dmpi_unexpected );
+    
     return (err);
 
-} /* T3D_Copy_body_long_sync */
+} /* T3D_Copy_unexpected */
 
 /****************************************************************************
-  T3D_Copy_body
+  T3D_Process_unex_packet
 
   Description
-    Code to handle copying the body of a packet to user space.
+    Process an unexpected message
  ***************************************************************************/
-int T3D_Copy_body(dmpi_recv_handle, from, pkt)
+int T3D_Process_unex_packet(dmpi_recv_handle, from, pkt )
 MPIR_RHANDLE *dmpi_recv_handle;
 int           from;
 T3D_PKT_T    *pkt;
 {
-    int            err        = MPI_SUCCESS;
-    T3D_Buf_Status buf_status = T3D_BUF_AVAIL;
+    T3D_Long_Send_Info  t3d_long_send_info;
+    int                 err              = MPI_SUCCESS;
+    T3D_Buf_Status      buf_status       = T3D_BUF_AVAIL;
+    MPID_RHANDLE       *mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
+    long               *long_send_info_target; 
+    int                 msglen;
+    int                 buf_loc;
+
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
     if (DebugFlag) {
-        T3D_Printf("T3D_Copy_body\n");
+        T3D_Printf("T3D_Process_unex_packet\n");
     }
 #   endif
 
-    dmpi_recv_handle->source   = pkt->head.lrank;
-    dmpi_recv_handle->tag      = pkt->head.tag;
-    dmpi_recv_handle->totallen = pkt->head.len;
-    dmpi_recv_handle->dev_rhandle.from = from; 
+    /* Copy relevant info from packet to device handle */
+    dmpi_recv_handle->source          = pkt->head.lrank;
+    dmpi_recv_handle->tag             = pkt->head.tag;
+    dmpi_recv_handle->totallen        = pkt->head.len;
+    
+    mpid_recv_handle->from            = from; 
+    mpid_recv_handle->mode            = pkt->head.mode; 
+    mpid_recv_handle->bytes_as_contig = dmpi_recv_handle->totallen;
+
+    if ( mpid_recv_handle->bytes_as_contig > 0) {
+        if ( (mpid_recv_handle->temp =
+	      (char *)T3D_MALLOC( mpid_recv_handle->bytes_as_contig ) ) == (char *)NULL ) {
+	    T3D_Printf("Memory allocation error\n");
+	    T3D_Abort( T3D_ERR_MEMORY );
+	}
+    }
 
     switch( pkt->head.mode ) {
-    case T3D_PKT_SHORT:
-      err = T3D_Copy_body_short( dmpi_recv_handle, pkt );
-      DMPI_mark_recv_completed( dmpi_recv_handle );
-      break;
-    case T3D_PKT_LONG:
-      err = T3D_Copy_body_long( dmpi_recv_handle, pkt );
-      break;
+    
     case T3D_PKT_SHORT_SYNC:
-      err = T3D_Copy_body_short_sync( dmpi_recv_handle, pkt );
+
+#     if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+      if (DebugFlag) {
+	T3D_Printf("   Processing short synchronous packet\n");
+      }
+#     endif
+
+      /* save location of recv completed flag */
+      while ( pkt->short_sync_pkt.local_send_completed == (char *)NULL );
+      mpid_recv_handle->sync_recv_completed = pkt->short_sync_pkt.local_send_completed;
+
+      if ( mpid_recv_handle->bytes_as_contig > 0 ) {
+	buf_loc = T3D_BUFFER_LENGTH - T3D_MSG_LEN_32(mpid_recv_handle->bytes_as_contig) * 4;
+	T3D_MEMCPY( mpid_recv_handle->temp,
+		    &(pkt->short_sync_pkt.buffer[buf_loc]),
+		    mpid_recv_handle->bytes_as_contig );
+      }
+        
       DMPI_mark_recv_completed( dmpi_recv_handle );
+
       break;
+      
+    case T3D_PKT_SHORT:
+
+#     if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+      if (DebugFlag) {
+	T3D_Printf("   Processing short packet\n");
+      }
+#     endif
+
+      if ( mpid_recv_handle->bytes_as_contig > 0 ) {
+	buf_loc = T3D_BUFFER_LENGTH - T3D_MSG_LEN_32(mpid_recv_handle->bytes_as_contig) * 4;
+	T3D_MEMCPY( mpid_recv_handle->temp,
+		    &(pkt->short_pkt.buffer[buf_loc]),
+		    mpid_recv_handle->bytes_as_contig );
+      }
+      
+      DMPI_mark_recv_completed( dmpi_recv_handle );
+
+      break;
+      
     case T3D_PKT_LONG_SYNC:
-      err = T3D_Copy_body_long_sync( dmpi_recv_handle, pkt );
+    case T3D_PKT_LONG:
+
+
+      if ( pkt->head.mode == T3D_PKT_LONG_SYNC ) {
+
+#     if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+      if (DebugFlag) {
+	T3D_Printf("   Processing long synchronous packet\n");
+      }
+#     endif
+
+	/* save location of recv completed flag */
+	while ( pkt->long_sync_pkt.local_send_completed == (char *)NULL );
+	mpid_recv_handle->sync_recv_completed = pkt->long_sync_pkt.local_send_completed;
+	t3d_long_send_info.completer_value = -1;
+	long_send_info_target = (long *)pkt->long_sync_pkt.long_send_info_target;
+      }
+      else {
+
+#     if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+      if (DebugFlag) {
+	T3D_Printf("   Processing long packet\n");
+      }
+#     endif
+
+	t3d_long_send_info.completer_value = 0;
+	long_send_info_target = (long *)pkt->long_pkt.long_send_info_target;
+      }
+
+      t3d_long_send_info.target_buffer    = mpid_recv_handle->temp;
+      t3d_long_send_info.target_completer = (char *)&dmpi_recv_handle->completer;
+      t3d_long_send_info.length           = mpid_recv_handle->bytes_as_contig;
+
+
+      T3D_CHECK_TARGET( long_send_info_target,
+		        sizeof( T3D_Long_Send_Info ) );
+
+      msglen = T3D_MSG_LEN_64( sizeof(T3D_Long_Send_Info) );
+ 
+      shmem_put( long_send_info_target,
+		 (long *)&t3d_long_send_info,
+		 msglen,
+		 mpid_recv_handle->from );
+
+      T3D_RESET_STACK;
+      
+#     if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+      if (DebugFlag) {
+        T3D_Printf("Sent long_send_info to 0x%x\n",long_send_info_target);
+	T3D_Printf("long_send_info =\n");
+	T3D_Printf("  target_buffer     = 0x%x\n",t3d_long_send_info.target_buffer   );
+	T3D_Printf("  target_completer  = 0x%x\n",t3d_long_send_info.target_completer);
+	T3D_Printf("  completer_value   = %d\n",  t3d_long_send_info.completer_value );
+	T3D_Printf("  length            = %d\n",  t3d_long_send_info.length          );
+      }
+#     endif
+
       break;
+      
     default:
-#       if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-        if (DebugFlag) {
-            T3D_Printf("Unknown Packet Type in T3D_Copy_body\n");
-        }
-#       endif
+
+#     if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+      if (DebugFlag) {
+          T3D_Printf("Unknown Packet Type in T3D_Process_unex_packet\n");
+      }
+#     endif
+
       err = MPI_ERR_UNKNOWN;
+
       break;
+
     }
 
     /* Give the buffer back to the device to be used again */
-    T3D_Reuse_buf(from);
-
+    t3d_recv_bufs[ from ].short_sync_pkt.local_send_completed =
+    t3d_recv_bufs[ from ].long_sync_pkt.local_send_completed  = (char *)NULL;
+    t3d_recv_bufs[ from ].head.status = T3D_BUF_AVAIL;
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
     if (DebugFlag) {
-        T3D_Printf("T3D_Copy_body-freeing remote send buffer #%d at 0x%x\n",
+        T3D_Printf("T3D_Process_unex_packet-freeing remote send buffer #%d at 0x%x\n",
                     T3D_MY_PE,&t3d_dest_bufs[T3D_MY_PE]);
     }
 #   endif
@@ -628,305 +449,230 @@ T3D_PKT_T    *pkt;
 
     return (err);
 
-} /* T3D_Copy_body */
-
+} /* T3D_Process_unex_packet */
 
 /****************************************************************************
-  T3D_Copy_body_unex_short
+  T3D_Process_packet
 
   Description
-    Copies short message into user space even thought a recv has not been 
-    posted.
+    Process an expected message
  ***************************************************************************/
-int T3D_Copy_body_unex_short( dmpi_recv_handle, pkt )
-MPIR_RHANDLE  *dmpi_recv_handle;
-T3D_PKT_T     *pkt;
+int T3D_Process_packet(dmpi_recv_handle, from, pkt )
+MPIR_RHANDLE *dmpi_recv_handle;
+int           from;
+T3D_PKT_T    *pkt;
 {
-    MPID_RHANDLE *mpid_recv_handle;
+    T3D_Long_Send_Info  t3d_long_send_info;
+    int                 err              = MPI_SUCCESS;
+    T3D_Buf_Status      buf_status       = T3D_BUF_AVAIL;
+    MPID_RHANDLE       *mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
+    int                 completed        = 0;
+    long               *long_send_info_target;
+    int                 msglen;
+    int                 buf_loc;
+
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
     if (DebugFlag) {
-        T3D_Printf("T3D_Copy_body_unex_short\n");
+        T3D_Printf("T3D_Process_packet\n");
     }
 #   endif
 
-    /* initialize mpid handle */
-    mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
-    mpid_recv_handle->bytes_as_contig = pkt->head.len;
+    /* Copy relevant info from packet to device handle */
+    dmpi_recv_handle->source          = pkt->head.lrank;
+    dmpi_recv_handle->tag             = pkt->head.tag;
+
+    if (mpid_recv_handle->bytes_as_contig >= pkt->head.len)
+        dmpi_recv_handle->totallen = pkt->head.len;
+    else
+    {
+        dmpi_recv_handle->totallen = mpid_recv_handle->bytes_as_contig;
+        err = dmpi_recv_handle->errval = MPI_ERR_TRUNCATE;
+    }
+ 
+    mpid_recv_handle->from            = from; 
     mpid_recv_handle->mode            = pkt->head.mode; 
+    mpid_recv_handle->bytes_as_contig = dmpi_recv_handle->totallen;
 
-    if ( pkt->head.len > 0 ) {
-      mpid_recv_handle->temp          = (char *)T3D_MALLOC(pkt->head.len);
-
-      if ( ! mpid_recv_handle->temp ) {
-        T3D_Error("Memory allocation error for unexpected long message\n");
-      }
-
-      /* Copy packet contents into temporary buffer */
-      memcpy( mpid_recv_handle->temp, pkt->short_pkt.buffer, pkt->head.len );
-    }
-
-    return (MPI_SUCCESS);
-
-} /* T3D_Copy_body_unex_short */
-
-
-/****************************************************************************
-  T3D_Copy_body_unex_long
-
-  Description
-    Copies long message into user space even thought a recv has not been 
-    posted.
- ***************************************************************************/
-int T3D_Copy_body_unex_long( dmpi_recv_handle, pkt )
-MPIR_RHANDLE  *dmpi_recv_handle;
-T3D_PKT_T     *pkt;
-{
-    int           err = MPI_SUCCESS;
-    int          *completed;
-    MPID_RHANDLE *mpid_recv_handle;
-    char         *send_buffer_ptr;
-    char         *ptrs[2];
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Copy_body_unex_long\n");
-    }
-#   endif
-
-    /* initialize mpid handle */
-    mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
-
-    mpid_recv_handle->bytes_as_contig = pkt->head.len;
-    mpid_recv_handle->mode            = pkt->head.mode; 
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Copy_body_unex_long allocating %d bytes\n",pkt->head.len);
-    }
-#   endif
-
-    mpid_recv_handle->temp          = (char *)T3D_MALLOC(pkt->head.len);
-
-    if ( ! mpid_recv_handle->temp ) {
-      T3D_Error("Memory allocation error for unexpected long message\n");
-    }
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Copy_body_unex_long-&dmpi_recv_handle = 0x%x\n",&dmpi_recv_handle);
-        T3D_Printf("T3D_Copy_body_unex_long-sending back long buffer ptr\n");
-    }
-#   endif
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("recv buffer location  = 0x%x\n",pkt->long_pkt.buffer);
-        T3D_Printf("recv buffer ptr value = 0x%x\n",mpid_recv_handle->temp);
-
-        T3D_Printf("completed location  = 0x%x\n",pkt->long_pkt.buffer + 1 );
-        T3D_Printf("completed value     = 0x%x\n",&(dmpi_recv_handle->completer));
-    }
-#   endif
-
-    /* 
-       Send back to the sending pe (at the location specified in pkt->long.buffer)
-       the location of the buffer on this pe to write into and the location of
-       the completed flag on this pe.
-    */
-
-    ptrs[0] = (char *)mpid_recv_handle->temp;
-    ptrs[1] = (char *)&(dmpi_recv_handle->completer);
-
-    shmem_put( (long *)pkt->long_pkt.buffer, 
-               (long *)ptrs,
-                2, 
-                mpid_recv_handle->from );
-
-    return (err);
-
-} /* T3D_Copy_body_unex_long */
-
-/****************************************************************************
-  T3D_Copy_body_unex_short_sync
-
-  Description
-    Copies short message into user space even thought a recv has not been 
-    posted.
- ***************************************************************************/
-int T3D_Copy_body_unex_short_sync( dmpi_recv_handle, pkt )
-MPIR_RHANDLE  *dmpi_recv_handle;
-T3D_PKT_T     *pkt;
-{
-    MPID_RHANDLE *mpid_recv_handle;
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Copy_body_unex_short_sync\n");
-    }
-#   endif
-
-    /* initialize mpid handle */
-    mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
-    mpid_recv_handle->bytes_as_contig = pkt->head.len;
-    mpid_recv_handle->mode            = pkt->head.mode; 
-    mpid_recv_handle->remote_completed = pkt->short_sync_pkt.local_send_completed;
-
-    if ( pkt->head.len > 0 ) {
-      mpid_recv_handle->temp          = (char *)T3D_MALLOC(pkt->head.len);
-
-      if ( ! mpid_recv_handle->temp ) {
-        T3D_Error("Memory allocation error for unexpected long message\n");
-      }
-
-      /* Copy packet contents into temporary buffer */
-      memcpy( mpid_recv_handle->temp, pkt->short_sync_pkt.buffer, pkt->head.len );
-    }
-
-    return (MPI_SUCCESS);
-
-} /* T3D_Copy_body_unex_short_sync */
-
-
-/****************************************************************************
-  T3D_Copy_body_unex_long_sync
-
-  Description
-    Copies long message into user space even thought a recv has not been 
-    posted.
- ***************************************************************************/
-int T3D_Copy_body_unex_long_sync( dmpi_recv_handle, pkt )
-MPIR_RHANDLE  *dmpi_recv_handle;
-T3D_PKT_T     *pkt;
-{
-    int           err = MPI_SUCCESS;
-    int          *completed;
-    MPID_RHANDLE *mpid_recv_handle;
-    char         *send_buffer_ptr;
-    char         *ptrs[2];
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Copy_body_unex_long_sync\n");
-    }
-#   endif
-
-    /* initialize mpid handle */
-    mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
-
-    mpid_recv_handle->bytes_as_contig = pkt->head.len;
-    mpid_recv_handle->mode            = pkt->head.mode; 
-    mpid_recv_handle->remote_completed = pkt->long_sync_pkt.local_send_completed;
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Copy_body_unex_long_sync allocating %d bytes\n",pkt->head.len);
-    }
-#   endif
-
-    mpid_recv_handle->temp          = (char *)T3D_MALLOC(pkt->head.len);
-
-    if ( ! mpid_recv_handle->temp ) {
-      T3D_Error("Memory allocation error for unexpected long message\n");
-    }
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Copy_body_unex_long_sync-&dmpi_recv_handle = 0x%x\n",&dmpi_recv_handle);
-        T3D_Printf("T3D_Copy_body_unex_long_sync-sending back long buffer ptr\n");
-    }
-#   endif
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("recv buffer location  = 0x%x\n",pkt->long_sync_pkt.buffer);
-        T3D_Printf("recv buffer ptr value = 0x%x\n",mpid_recv_handle->temp);
-
-        T3D_Printf("completed location  = 0x%x\n",pkt->long_sync_pkt.buffer + 1 );
-        T3D_Printf("completed value     = 0x%x\n",&(dmpi_recv_handle->completer));
-    }
-#   endif
-
-    /* 
-       Send back to the sending pe (at the location specified in pkt->long.buffer)
-       the location of the buffer on this pe to write into and the location of
-       the completed flag on this pe.
-    */
-
-    ptrs[0] = (char *)mpid_recv_handle->temp;
-    ptrs[1] = (char *)&(dmpi_recv_handle->completer);
-
-    shmem_put( (long *)pkt->long_sync_pkt.buffer, 
-               (long *)ptrs,
-                2, 
-                mpid_recv_handle->from );
-
-    return (err);
-
-} /* T3D_Copy_body_unex_long_sync */
-
-
-/****************************************************************************
-  T3D_Copy_body_unex
-
-  Description
-    Copies message into user space even thought a recv has not been posted.
- ***************************************************************************/
-int T3D_Copy_body_unex( dmpi_recv_handle, from, pkt )
-MPIR_RHANDLE  *dmpi_recv_handle;
-int            from;
-T3D_PKT_T     *pkt;
-{
-    int            err        = MPI_SUCCESS;
-    T3D_Buf_Status buf_status = T3D_BUF_AVAIL;
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Copy_body_unex\n");
-    }
-#   endif
-
-    dmpi_recv_handle->source   = pkt->head.lrank;
-    dmpi_recv_handle->tag      = pkt->head.tag;
-    dmpi_recv_handle->totallen = pkt->head.len;
-
-    dmpi_recv_handle->dev_rhandle.from = from; 
 
     switch( pkt->head.mode ) {
-    case T3D_PKT_SHORT:
-      err = T3D_Copy_body_unex_short( dmpi_recv_handle, pkt );
-      DMPI_mark_recv_completed(dmpi_recv_handle);
-      break;
-    case T3D_PKT_LONG:
-      err = T3D_Copy_body_unex_long( dmpi_recv_handle, pkt );
-      break;
+    
     case T3D_PKT_SHORT_SYNC:
-      err = T3D_Copy_body_unex_short_sync( dmpi_recv_handle, pkt );
-      DMPI_mark_recv_completed(dmpi_recv_handle);
+
+#     if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+      if (DebugFlag) {
+          T3D_Printf("   Processing short synchronous packet\n");
+      }
+#     endif
+
+      while ( pkt->short_sync_pkt.local_send_completed == (char *)NULL );
+      mpid_recv_handle->sync_recv_completed = pkt->short_sync_pkt.local_send_completed;
+
+      
+#     if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+      if (DebugFlag) {
+	T3D_Printf("  sending recv completed flag to sender\n");
+      }
+#     endif
+
+      /* let sender know we are receiving */
+      T3D_CHECK_TARGET( mpid_recv_handle->sync_recv_completed, 8 );
+	  
+      shmem_put( (long *)mpid_recv_handle->sync_recv_completed,
+		 (long *)&completed,
+		 1,
+		 mpid_recv_handle->from );
+
+      T3D_RESET_STACK;
+
+      if ( mpid_recv_handle->bytes_as_contig > 0 ) {
+	buf_loc = T3D_BUFFER_LENGTH - T3D_MSG_LEN_32(mpid_recv_handle->bytes_as_contig) * 4;
+	T3D_MEMCPY( mpid_recv_handle->start,
+		    &(pkt->short_sync_pkt.buffer[buf_loc]),
+		    mpid_recv_handle->bytes_as_contig );
+      }
+      
+      DMPI_mark_recv_completed( dmpi_recv_handle );
+
       break;
+
+    case T3D_PKT_SHORT:
+
+#     if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+      if (DebugFlag) {
+          T3D_Printf("   Processing short packet\n");
+      }
+#     endif
+
+      if ( mpid_recv_handle->bytes_as_contig > 0 ) {
+	buf_loc = T3D_BUFFER_LENGTH - T3D_MSG_LEN_32(mpid_recv_handle->bytes_as_contig) * 4;
+	T3D_MEMCPY( mpid_recv_handle->start,
+		    &(pkt->short_pkt.buffer[buf_loc]),
+		    mpid_recv_handle->bytes_as_contig );
+      }
+      
+      DMPI_mark_recv_completed( dmpi_recv_handle );
+
+      break;
+      
     case T3D_PKT_LONG_SYNC:
-      err = T3D_Copy_body_unex_long_sync( dmpi_recv_handle, pkt );
+
+    case T3D_PKT_LONG:
+
+      if ( pkt->head.mode == T3D_PKT_LONG_SYNC ) {
+
+#     if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+      if (DebugFlag) {
+          T3D_Printf("   Processing long synchronous packet\n");
+      }
+#     endif
+
+	while ( pkt->long_sync_pkt.local_send_completed == (char *)NULL );
+	mpid_recv_handle->sync_recv_completed = pkt->long_sync_pkt.local_send_completed;
+	t3d_long_send_info.completer_value = -1;
+	long_send_info_target = (long *)pkt->long_sync_pkt.long_send_info_target;
+      }
+      else {
+
+#     if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+      if (DebugFlag) {
+          T3D_Printf("   Processing long packet\n");
+      }
+#     endif
+
+	t3d_long_send_info.completer_value = 0;
+	long_send_info_target = (long *)pkt->long_pkt.long_send_info_target;
+      }
+
+      /* Hopefully we didn't match this up with a posted recv of length 0 */
+      if ( mpid_recv_handle->bytes_as_contig > 0 ) {
+
+	if ( IS_4BYTE_ALIGNED(mpid_recv_handle->start) &&
+	    ((mpid_recv_handle->bytes_as_contig % 4) == 0) ) {
+	  mpid_recv_handle->temp = mpid_recv_handle->start;
+
+#        if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+         if (DebugFlag) {
+           T3D_Printf("   buffer is aligned and length is multiple of 4\n");
+       	 }
+#        endif
+
+	}
+	else {
+
+#        if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+         if (DebugFlag) {
+           T3D_Printf("   buffer not aligned or length not multiple of 4\n");
+	 }
+#        endif
+
+	  if ( (mpid_recv_handle->temp = (void *)T3D_MALLOC( mpid_recv_handle->bytes_as_contig))
+	      == (void *)NULL ) {
+	    T3D_Printf("Memory allocation error\n");
+	    T3D_Abort( T3D_ERR_MEMORY );
+	  }
+	  mpid_recv_handle->needs_copy = 1;
+	  t3d_long_send_info.completer_value--;
+	}
+      }
+      else {
+	DMPI_mark_recv_completed( dmpi_recv_handle );
+      }
+
+      t3d_long_send_info.target_buffer    = mpid_recv_handle->temp;
+      t3d_long_send_info.target_completer = (char *)&dmpi_recv_handle->completer;
+      t3d_long_send_info.length           = mpid_recv_handle->bytes_as_contig;
+
+      T3D_CHECK_TARGET( long_send_info_target,
+		        sizeof( T3D_Long_Send_Info ) );
+
+      msglen = T3D_MSG_LEN_64(sizeof( T3D_Long_Send_Info ));
+
+      shmem_put( long_send_info_target,
+		 (long *)&t3d_long_send_info,
+		 msglen, 
+		 mpid_recv_handle->from );
+
+      T3D_RESET_STACK;
+      
+#     if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+      if (DebugFlag) {
+	T3D_Printf("Sent long_send_info to 0x%x\n",long_send_info_target);
+	T3D_Printf("long_send_info =\n");
+	T3D_Printf("  target_buffer     = 0x%x\n",t3d_long_send_info.target_buffer   );
+	T3D_Printf("  target_completer  = 0x%x\n",t3d_long_send_info.target_completer);
+	T3D_Printf("  completer_value   = %d\n",  t3d_long_send_info.completer_value );
+	T3D_Printf("  length            = %d\n",  t3d_long_send_info.length          );
+      }
+#     endif
+
       break;
+
     default:
-#       if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-        if (DebugFlag) {
-            T3D_Printf("Unknown Packet Type in T3D_Copy_body_unex\n");
-        }
-#       endif
+
+#     if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+      if (DebugFlag) {
+          T3D_Printf("Unknown Packet Type in T3D_Process_packet\n");
+      }
+#     endif
+
       err = MPI_ERR_UNKNOWN;
+
       break;
+
     }
+
+    /* Give the buffer back to the device to be used again */
+    t3d_recv_bufs[ from ].short_sync_pkt.local_send_completed =
+    t3d_recv_bufs[ from ].long_sync_pkt.local_send_completed  = (char *)NULL;
+    t3d_recv_bufs[ from ].head.status = T3D_BUF_AVAIL;
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
     if (DebugFlag) {
-        T3D_Printf("T3D_Copy_body-freeing remote send buffer #%d at 0x%x\n",
+        T3D_Printf("T3D_Process_packet-freeing remote send buffer #%d at 0x%x\n",
                     T3D_MY_PE,&t3d_dest_bufs[T3D_MY_PE]);
     }
 #   endif
-
-    /* Give the buffer back to the device to be used again */
-    T3D_Reuse_buf(from);
-
 
     /* Tell sending pe that sending buffer is ready for another send */
     shmem_put( (long *)&t3d_dest_bufs[T3D_MY_PE], 
@@ -935,7 +681,8 @@ T3D_PKT_T     *pkt;
                 from );
 
     return (err);
-} /* T3D_Copy_body_unex */
+
+} /* T3D_Process_packet */
 
 
 /****************************************************************************
@@ -958,7 +705,7 @@ int blocking;
     T3D_PKT_T       *pkt;
     MPIR_RHANDLE    *dmpi_recv_handle;
     int              is_posted;
-    int              err = MPI_SUCCESS;
+    int              err     = MPI_SUCCESS;
     int              buf_num = -1;
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
@@ -981,19 +728,20 @@ int blocking;
     }
 #   endif
 
-
     /* Is the message expected or not? 
        This routine RETURNS a dmpi_recv_handle, creating one if the message 
        is unexpected (is_posted == 0) */
-    DMPI_msg_arrived( pkt->head.lrank, pkt->head.tag, 
+
+
+    /* Add it with global source, because that's what you look for it with */
+    DMPI_msg_arrived( buf_num, pkt->head.tag, 
                       pkt->head.context_id, 
                       &dmpi_recv_handle, &is_posted );
-    if (is_posted) {
-        err = T3D_Copy_body( dmpi_recv_handle, buf_num, (T3D_PKT_T *)pkt );
-    }
-    else {
-        err = T3D_Copy_body_unex( dmpi_recv_handle, buf_num, (T3D_PKT_T *)pkt );
-    }
+
+    if ( is_posted )
+      T3D_Process_packet( dmpi_recv_handle, buf_num, (T3D_PKT_T *)pkt );
+    else
+      T3D_Process_unex_packet( dmpi_recv_handle, buf_num, (T3D_PKT_T *)pkt );
 
     return (err);
 
@@ -1007,8 +755,9 @@ int blocking;
 int T3D_Post_recv( dmpi_recv_handle ) 
 MPIR_RHANDLE *dmpi_recv_handle;
 {
+    MPID_RHANDLE *mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
     MPIR_RHANDLE *dmpi_unexpected;
-    int          found, err;
+    int           found;
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
     if (DebugFlag) {
@@ -1016,71 +765,73 @@ MPIR_RHANDLE *dmpi_recv_handle;
     }
 #   endif
 
-    /* Check to see if the message has already been received. */
+    /* Check the unexpected queue to see if message has arrived */
     DMPI_search_unexpected_queue( dmpi_recv_handle->source,
-                                  dmpi_recv_handle->tag,
-                                  dmpi_recv_handle->contextid,
-                                  &found, 1, &dmpi_unexpected );
+		                  dmpi_recv_handle->tag,
+				  dmpi_recv_handle->contextid,
+				  &found, 1, 
+				  &dmpi_unexpected );
 
-    /* If found, move it to the expected queue */
-    if (found) {
+    if ( found ) {
 
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+#     if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
       if (DebugFlag) {
-	T3D_Printf("T3D_Post_recv-message found but not completed\n");
+        T3D_Printf("   Found it in the unexpected queue\n");
       }
-#   endif
+#     endif
 
-       while ( dmpi_unexpected->completer )
-	 T3D_Check_incoming( MPID_NOTBLOCKING );
+      mpid_recv_handle->dmpi_unexpected = dmpi_unexpected;
 
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+      mpid_recv_handle->mode = T3D_UNEXPECTED_RECV;
+
+#     if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
       if (DebugFlag) {
-        T3D_Printf("T3D_Post_recv-message found is now complete\n");
+        T3D_Printf("   Checking for completion of unexpected msg\n");
       }
-#   endif
+#     endif
 
-      return(T3D_Process_unexpected(dmpi_recv_handle, dmpi_unexpected));
-    }
+      if (dmpi_unexpected->completer <= 0 ) {
 
-    /* If it's not found, enqueue the posted receive */ 
+#       if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+        if (DebugFlag) {
+          T3D_Printf("   unexpected recv is complete\n");
+        }
+#       endif
+
+        T3D_Copy_unexpected( dmpi_recv_handle );
+
+        return dmpi_recv_handle->errval;
+
+      }
+      else  {
+
+#         if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+          if (DebugFlag) {
+              T3D_Printf("   unexpected recv is not complete\n");
+          }
+#         endif
+
+      }
+    } 
     else {
-        /* Add to the posted receive queue */
-	MPIR_enqueue( &MPIR_posted_recvs, (MPIR_COMMON *)dmpi_recv_handle, 
-	               MPIR_QRHANDLE );
+    /* if it's not found, look for it */
+
+#     if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+      if (DebugFlag) {
+        T3D_Printf("   Didn't find it in the unexpected queue\n");
+      }
+#     endif
+
+      MPIR_enqueue( &MPIR_posted_recvs, (MPIR_COMMON *)dmpi_recv_handle, 
+		    MPIR_QRHANDLE );
+
+      T3D_Check_incoming( MPID_NOTBLOCKING );
     }
-
-    /* Drain incoming packets */
-    T3D_Check_incoming( MPID_NOTBLOCKING );
-
-    /* Note that at this point, the message MAY be here by is_available is
-       still zero.  This is ok, since is_available is intended as an
-       optimization */
 
     /* Return is_available instead??? */
     return MPI_SUCCESS;
 
 }  /* T3D_Post_recv */
-
-
-/***************************************************************************
-   T3D_Complete_recv
-
-   Description
-     This routine completes a particular receive.  It does this by processing
-     incoming messages until the indicated message is received.
-
-     For fairness, we may want a version with an array of handles.
- ***************************************************************************/
-int T3D_Complete_recv( dmpi_recv_handle ) 
-MPIR_RHANDLE *dmpi_recv_handle;
-{
-
-    while( dmpi_recv_handle->completer )
-       T3D_Check_incoming( MPID_NOTBLOCKING );
-
-    return MPI_SUCCESS;
-}
 
 
 /***************************************************************************
@@ -1096,12 +847,165 @@ MPIR_RHANDLE *dmpi_recv_handle;
     }
 #   endif
 
-   T3D_Post_recv( dmpi_recv_handle );
-   T3D_Complete_recv( dmpi_recv_handle );
+    T3D_Post_recv( dmpi_recv_handle );
+    
+    T3D_Complete_recv( dmpi_recv_handle );
 
-   return MPI_SUCCESS;
+    return dmpi_recv_handle->errval;
 
 } /* T3D_Blocking_recv */
+
+
+/***************************************************************************
+   T3D_Complete_recv
+
+   Description
+     This routine completes a particular receive.  It does this by processing
+     incoming messages until the indicated message is received.
+
+     For fairness, we may want a version with an array of handles.
+ ***************************************************************************/
+int T3D_Complete_recv( dmpi_recv_handle ) 
+MPIR_RHANDLE *dmpi_recv_handle;
+{
+
+    MPID_RHANDLE *mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
+    MPIR_RHANDLE *dmpi_unexpected;
+    int           found            = 0;
+    int           completed        = 0;
+    
+
+#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+    if (DebugFlag) {
+        T3D_Printf("Complete recv\n");
+    }
+#   endif
+
+    if ( T3D_long_sends.currlen ) T3D_Process_long_sends();
+
+    if ( dmpi_recv_handle->completer != 0 ) {
+
+      /* short message not found when posted, but could be here now */
+      if (mpid_recv_handle->mode == -1 ) { /* not been processed */
+
+#       if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+	if (DebugFlag) {
+	  T3D_Printf("  Posted recv hasn't been processed\n");
+	  T3D_Printf("  Checking the unexpected queue\n");
+	}
+#         endif
+
+	/* Check to see if the message has already been received. */
+	DMPI_search_unexpected_queue( dmpi_recv_handle->source,
+				     dmpi_recv_handle->tag,
+				     dmpi_recv_handle->contextid,
+				     &found, 1, 
+				     &dmpi_unexpected );
+
+	if ( found ) {
+
+#         if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+	  if (DebugFlag) {
+	    T3D_Printf("   Found it in the unexpected queue\n");
+	  }
+#         endif
+
+	  mpid_recv_handle->dmpi_unexpected = dmpi_unexpected;
+
+	  mpid_recv_handle->mode = T3D_UNEXPECTED_RECV;
+	}
+	else {
+
+#         if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+	  if (DebugFlag) {
+	    T3D_Printf("   Didn't find it in the unexpected queue\n");
+	  }
+#         endif
+
+	}
+
+      }
+
+      if ( mpid_recv_handle->mode == T3D_UNEXPECTED_RECV ) {
+
+#         if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+	  if (DebugFlag) {
+            T3D_Printf("   Waiting for completion of unexpected msg\n");
+          }
+#         endif
+
+	  dmpi_unexpected = mpid_recv_handle->dmpi_unexpected;
+
+          while( (volatile)dmpi_unexpected->completer > 0 )
+            T3D_Check_incoming( MPID_NOTBLOCKING );
+
+#         if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+          if (DebugFlag) {
+            T3D_Printf("   unexpected recv is complete\n");
+          }
+#         endif
+
+	  T3D_Copy_unexpected(dmpi_recv_handle);
+
+          return dmpi_recv_handle->errval;
+
+	}
+
+      while( (volatile)dmpi_recv_handle->completer > 0 ) {
+	T3D_Check_incoming( MPID_NOTBLOCKING );
+	if ( T3D_long_sends.currlen ) T3D_Process_long_sends();
+      }
+
+      if ( dmpi_recv_handle->completer < 0 ) {
+
+	if ( mpid_recv_handle->mode == T3D_PKT_SHORT_SYNC ||
+	     mpid_recv_handle->mode == T3D_PKT_LONG_SYNC     ) {
+	
+	  T3D_CHECK_TARGET( mpid_recv_handle->sync_recv_completed, 8 );
+
+	  shmem_put( (long *)mpid_recv_handle->sync_recv_completed,
+		     (long *)&completed,
+		     1,
+		     mpid_recv_handle->from );
+      
+          T3D_RESET_STACK;
+
+	}
+
+	if ( mpid_recv_handle->needs_copy ) {
+
+#         if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+	  if (DebugFlag) {
+	    T3D_Printf("   Copying to misaligned buffer\n");
+	    T3D_Printf("      start = 0x%x\n",mpid_recv_handle->start);
+	    T3D_Printf("      temp  = 0x%x\n",mpid_recv_handle->temp);
+	  }
+#         endif
+
+	  memcpy( mpid_recv_handle->start,
+		  mpid_recv_handle->temp,
+		  mpid_recv_handle->bytes_as_contig );
+
+	  T3D_FREE( mpid_recv_handle->temp );
+
+	}
+
+	DMPI_mark_recv_completed( dmpi_recv_handle );
+
+      }
+    }
+
+#  if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+   if (DebugFlag) {
+     if ( dmpi_recv_handle->completer == 0 )
+       T3D_Printf("  Message recv is complete\n");
+     else
+       T3D_Printf("  Message recv is not complete\n");
+   }
+#  endif
+
+    return dmpi_recv_handle->errval;
+}
 
 
 /***************************************************************************
@@ -1114,14 +1018,143 @@ int T3D_Test_recv( dmpi_recv_handle )
 MPIR_RHANDLE *dmpi_recv_handle;
 {
 
+    MPID_RHANDLE *mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
+    MPIR_RHANDLE *dmpi_unexpected;
+    int           found            = 0;
+    int           completed        = 0;
+
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
     if (DebugFlag) {
         T3D_Printf("T3D_Test_recv\n");
     }
 #   endif
 
+
+    if ( dmpi_recv_handle->completer != 0 ) {
+
+      if ( T3D_long_sends.currlen ) T3D_Process_long_sends();
+
+      /* short message not found when posted, but could be here now */
+      if (mpid_recv_handle->mode == -1 ) { /* not been processed */
+
+#       if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+	if (DebugFlag) {
+	  T3D_Printf("  Posted recv hasn't been processed\n");
+	  T3D_Printf("  Checking the unexpected queue\n");
+	}
+#         endif
+
+	/* Probe unexpected queue to see if message has arrived */
+	DMPI_search_unexpected_queue( dmpi_recv_handle->source,
+				     dmpi_recv_handle->tag,
+				     dmpi_recv_handle->contextid,
+				     &found, 1, 
+				     &dmpi_unexpected );
+
+	if ( found ) {
+
+#         if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+	  if (DebugFlag) {
+	    T3D_Printf("   Found it in the unexpected queue\n");
+	  }
+#         endif
+
+	  mpid_recv_handle->dmpi_unexpected = dmpi_unexpected;
+
+	  mpid_recv_handle->mode = T3D_UNEXPECTED_RECV;
+	}
+	else {
+ 
+#         if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+	  if (DebugFlag) {
+	    T3D_Printf("   Didn't find it in the unexpected queue\n");
+	  }
+#         endif
+        }
+      }
+
+      /* Is this recv waiting on an unpected msg to complete? */
+      if ( mpid_recv_handle->mode == T3D_UNEXPECTED_RECV ) {
+	
+#       if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+	if (DebugFlag) {
+	  T3D_Printf("   Checking for completion of unexpected msg\n");
+	}
+#       endif
+
+	dmpi_unexpected = mpid_recv_handle->dmpi_unexpected;
+
+	if ( dmpi_unexpected->completer <= 0 ) {
+
+#         if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+          if (DebugFlag) {
+            T3D_Printf("   unexpected recv is complete\n");
+          }
+#         endif
+
+          T3D_Copy_unexpected( dmpi_recv_handle );
+
+	  return ( dmpi_recv_handle->completer == 0 );
+
+        }
+	else  {
+
+#         if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+          if (DebugFlag) {
+            T3D_Printf("   unexpected recv is not complete\n");
+          }
+#         endif
+
+	  return 0;
+        } 
+      }
+	
+      if ( dmpi_recv_handle->completer < 0 ) {
+
+	if ( mpid_recv_handle->mode == T3D_PKT_SHORT_SYNC ||
+	     mpid_recv_handle->mode == T3D_PKT_LONG_SYNC     ) {
+	
+	  T3D_CHECK_TARGET( mpid_recv_handle->sync_recv_completed, 8 );
+
+	  shmem_put( (long *)mpid_recv_handle->sync_recv_completed,
+		     (long *)&completed,
+		     1,
+		     mpid_recv_handle->from );
+
+	  T3D_RESET_STACK;
+
+	}
+
+	if ( mpid_recv_handle->needs_copy ) {
+
+#         if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+	  if (DebugFlag) {
+	    T3D_Printf("   Copying to misaligned buffer\n");
+	    T3D_Printf("      start = 0x%x\n",mpid_recv_handle->start);
+	    T3D_Printf("      temp  = 0x%x\n",mpid_recv_handle->temp);
+	  }
+#         endif
+
+	  memcpy( mpid_recv_handle->start,
+		  mpid_recv_handle->temp,
+		  mpid_recv_handle->bytes_as_contig );
+	  
+	  T3D_FREE( mpid_recv_handle->temp );
+	}
+
+	DMPI_mark_recv_completed( dmpi_recv_handle );
+      }
+    }
+
+
+#  if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
+   if (DebugFlag) {
+     if ( dmpi_recv_handle->completer == 0 )
+       T3D_Printf("  Message recv is complete\n");
+     else
+       T3D_Printf("  Message recv is not complete\n");
+   }
+#  endif
+
     return ( dmpi_recv_handle->completer == 0 );
 }
-
-
-

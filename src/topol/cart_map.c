@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_map.c,v 1.7 1995/12/21 22:18:17 gropp Exp $
+ *  $Id: cart_map.c,v 1.8 1996/04/12 15:43:18 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -21,6 +21,12 @@ Output Parameter:
 . newrank - reordered rank of the calling process; 'MPI_UNDEFINED' if calling process does not belong to grid (integer) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_DIMS
+.N MPI_ERR_ARG
 @*/
 int MPI_Cart_map ( comm_old, ndims, dims, periods, newrank )
 MPI_Comm comm_old;

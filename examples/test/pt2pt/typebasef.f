@@ -64,7 +64,7 @@ C
       if (errcnt .gt. 0) then
          print *, "Found ", errcnt, " errors in testing Fortran types"
       else
-         print *, " Found no errors in basic Fortran 
+         print *, " Found no errors in basic Fortran "
       endif
 C
       call mpi_finalize(ierr)

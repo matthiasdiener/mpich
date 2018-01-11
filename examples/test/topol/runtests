@@ -6,6 +6,25 @@
 # -mvhome is needed for the ANL SP, and is ignored by others
 args="-pg -mvhome"
 #
+# Some people don't include "." in their path (! in case an ls trojan horse,
+# I guess - if someone does that to you, you have bigger problems).  This
+# code tests to see if you have a path to mpirun; if not, it tries ./mpirun.
+IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
+for dir in $PATH ; do 
+    if [ -x $dir/mpirun ] ; then
+        mpirun="mpirun"
+        break
+    fi
+done
+IFS="$saveifs"
+if [ -z "$mpirun" -a -x "./mpirun" ] ; then
+    mpirun=./mpirun
+fi
+if [ -z "$mpirun" ] ; then
+    echo "No mpirun in path.  Testing can not proceed."
+    exit 1
+fi
+#
 # If the programs are not available, run make.
 #
 runtests=1
@@ -63,7 +82,7 @@ testfiles="$testfiles cart.out"
 MakeExe cart
 echo '**** Testing MPI_Cart_create etc ****' >> cart.out
 echo '**** Testing MPI_Cart_create etc ****' 
-mpirun $args -np 4 cart $* >> cart.out 2>&1
+$mpirun $args -np 4 cart $* >> cart.out 2>&1
 echo '**** Testing MPI_Cart_create etc ****' >> cart.out
 CleanExe cart
 #
@@ -72,16 +91,34 @@ testfiles="$testfiles cart2.out"
 MakeExe cart2
 echo '**** Testing MPI_Cart_coords etc ****' >> cart2.out
 echo '**** Testing MPI_Cart_coords etc ****' 
-mpirun $args -np 4 cart2 $* >> cart2.out 2>&1
+$mpirun $args -np 4 cart2 $* >> cart2.out 2>&1
 echo '**** Testing MPI_Cart_coords etc ****' >> cart2.out
 CleanExe cart2
+#
+testfiles="$testfiles cartmap.out"
+/bin/rm -f cartmap.out
+MakeExe cartmap
+echo '**** Testing MPI_Cart_map etc ****' >> cartmap.out
+echo '**** Testing MPI_Cart_map etc ****' 
+$mpirun $args -np 4 cartmap $* >> cartmap.out 2>&1
+echo '**** Testing MPI_Cart_map etc ****' >> cartmap.out
+CleanExe cartmap
+#
+testfiles="$testfiles cartorder.out"
+/bin/rm -f cartorder.out
+MakeExe cartorder
+echo '**** Testing MPI_Cart_create etc (2) ****' >> cartorder.out
+echo '**** Testing MPI_Cart_create etc (2) ****' 
+$mpirun $args -np 4 cartorder $* >> cartorder.out 2>&1
+echo '**** Testing MPI_Cart_create etc (2) ****' >> cartorder.out
+CleanExe cartorder
 #
 testfiles="$testfiles graphtest.out"
 /bin/rm -f graphtest.out
 MakeExe graphtest
 echo '**** Testing MPI_Graph_create etc ****' >> graphtest.out
 echo '**** Testing MPI_Graph_create etc ****' 
-mpirun $args -np 4 graphtest $* >> graphtest.out 2>&1
+$mpirun $args -np 4 graphtest $* >> graphtest.out 2>&1
 echo '**** Testing MPI_Graph_create etc ****' >> graphtest.out
 CleanExe graphtest
 #
@@ -95,7 +132,7 @@ if [ 1 = 1 ] ; then
     MakeExe cartf
     echo '*** Testing cart from Fortran ***'
     echo '*** Testing cart from Fortran ***' >> cartf.out
-    mpirun $args -np 4 cartf "$@" >> cartf.out
+    $mpirun $args -np 4 cartf "$@" >> cartf.out
     echo '*** Testing cart from Fortran ***' >> cartf.out
     CleanExe
     #
@@ -104,7 +141,7 @@ if [ 1 = 1 ] ; then
     MakeExe cart1f
     echo '*** Testing cart1 from Fortran ***'
     echo '*** Testing cart1 from Fortran ***' >> cart1f.out
-    mpirun $args -np 4 cart1f "$@" >> cart1f.out
+    $mpirun $args -np 4 cart1f "$@" >> cart1f.out
     echo '*** Testing cart1 from Fortran ***' >> cart1f.out
     CleanExe
     #
@@ -113,7 +150,7 @@ if [ 1 = 1 ] ; then
     MakeExe cart2f
     echo '*** Testing cart2 from Fortran ***'
     echo '*** Testing cart2 from Fortran ***' >> cart2f.out
-    mpirun $args -np 4 cart2f "$@" >> cart2f.out
+    $mpirun $args -np 4 cart2f "$@" >> cart2f.out
     echo '*** Testing cart2 from Fortran ***' >> cart2f.out
     CleanExe
     #
@@ -122,7 +159,7 @@ if [ 1 = 1 ] ; then
     MakeExe twod
     echo '*** Testing twod from Fortran ***'
     echo '*** Testing twod from Fortran ***' >> twod.out
-    mpirun $args -np 2 twod "$@" >> twod.out
+    $mpirun $args -np 2 twod "$@" >> twod.out
     echo '*** Testing twod from Fortran ***' >> twod.out
     CleanExe
 fi
@@ -131,8 +168,9 @@ else
     testfiles=*.out
 fi
 #
-echo '*** Differences from expected output ***'
+echo '*** Checking for differences from expected output ***'
 /bin/rm -f topol.diff
+nodiff=1
 for file in $testfiles ; do
     stdfile=`basename $file .out`.std
     if [ -s $stdfile ] ; then
@@ -141,6 +179,7 @@ for file in $testfiles ; do
         else
 	    echo "Differences in `basename $file .out`" >> topol.diff
 	    diff -b $file `basename $file .out`.std >> topol.diff
+	    nodiff=0
 	fi
     else
         echo "Can not find file $stdfile to compare against for test `basename $file .out`"
@@ -148,5 +187,7 @@ for file in $testfiles ; do
 done
 if [ -s topol.diff ] ; then
    cat topol.diff
+elif [ $nodiff = 1 ] ; then
+   echo "-- No differences found; test successful"
 fi
 exit 0

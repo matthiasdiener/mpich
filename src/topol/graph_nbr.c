@@ -1,11 +1,12 @@
 /*
- *  $Id: graph_nbr.c,v 1.15 1995/12/21 22:18:59 gropp Exp $
+ *  $Id: graph_nbr.c,v 1.16 1996/04/12 15:53:59 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#include "mpitopo.h"
 
 #ifndef MPIR_MIN
 #define MPIR_MIN(a,b) ((a)>(b)?(b):(a))
@@ -26,6 +27,13 @@ Output Parameters:
  (array of integer) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TOPOLOGY
+.N MPI_ERR_COMM
+.N MPI_ERR_ARG
+.N MPI_ERR_RANK
 @*/
 int MPI_Graph_neighbors ( comm, rank, maxneighbors, neighbors )
 MPI_Comm  comm;

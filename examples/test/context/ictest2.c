@@ -7,12 +7,12 @@
 #include "mpi.h"
 #include <stdio.h>
 
-main( argc, argv )
+int main( argc, argv )
      int argc;
      char **argv;
 {
-  int size, rank, key, his_key, lrank, rsize, result;
-  MPI_Comm myComm, myComm2;
+  int size, rank, key, lrank, rsize, result;
+  MPI_Comm myComm;
   MPI_Comm myFirstComm;
   MPI_Comm mySecondComm;
   MPI_Comm evenComm, oddComm, remComm;

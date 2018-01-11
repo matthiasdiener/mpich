@@ -1,5 +1,5 @@
 /*
- *  $Id: mpiimpl.h,v 1.24 1996/01/11 18:35:24 gropp Exp $
+ *  $Id: mpiimpl.h,v 1.28 1996/07/17 18:06:07 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -16,18 +16,75 @@
 /* The rest of these contain the details of the structures that are not 
    user-visible */ 
 #include "patchlevel.h"
+
+/* For debugging, use PRINTF, FPRINTF, SPRINTF.  This allows us to 
+   grep for printf to find stray error messages that should be handled with
+   the error message facility (errorstring/errmsg)
+   */
+#define PRINTF printf
+#define FPRINTF fprintf
+#define SPRINTF sprintf
+
+#ifdef MPI_ADI2
+/* The device knows a lot about communicators, requests, etc. */
+#include "mpid.h"
+#include "sendq.h"
+/* Anything the device does NOT know about is included here */
+/* FROM MPIR.H */
+/* memory management for fixed-size blocks */
+extern void *MPIR_errhandlers;  /* sbcnst Error handlers */
+
+/* MPIR_F_MPI_BOTTOM is the address of the Fortran MPI_BOTTOM value */
+extern void *MPIR_F_MPI_BOTTOM;
+
+/* MPIR_F_PTR checks for the Fortran MPI_BOTTOM and provides the value 
+   MPI_BOTTOM if found 
+   See src/pt2pt/addressf.c for why MPIR_F_PTR(a) is just (a)
+*/
+/*  #define MPIR_F_PTR(a) (((a)==(MPIR_F_MPI_BOTTOM))?MPI_BOTTOM:a) */
+#define MPIR_F_PTR(a) (a)
+
+/* End of FROM MPIR.H */
+/* FROM MPI_BC.H */
+/* Value of tag in status for a cancelled message */
+/* #define MPIR_MSG_CANCELLED (-3) */
+
+/* This is the only global state in MPI */
+extern int MPIR_Has_been_initialized;
+/* End of FROM MPI_BC.H */
+
+/* FROM DMPIATOM.H, used in group_diff, group_excl, group_inter,
+   group_rexcl, group_union */
+/* These are used in the Group manipulation routines */
+#define MPIR_UNMARKED 0
+#define MPIR_MARKED   1
+/* End of FROM DMPIATOM.H */
+
+/* Old-style thread macros */
+#define MPID_THREAD_LOCK(a,b) MPID_THREAD_DS_LOCK(b)
+#define MPID_THREAD_UNLOCK(a,b) MPID_THREAD_DS_UNLOCK(b)
+#define MPID_THREAD_LOCK_INIT(a,b) MPID_THREAD_DS_LOCK_INIT(b)
+#define MPID_THREAD_LOCK_FINISH(a,b) MPID_THREAD_DS_LOCK_FREE(b)
+
+/* 
+   Some code prototypes want FILE * .  We should limit these to
+   the ones that need them. 
+ */
+#include <stdio.h>
+#else
 #include "dmpiatom.h"
 #include "mpi_bc.h"
 #include "dmpi.h"
 #include "mpir.h"
 #include "mpi_ad.h"
 #include "mpid.h"
+#endif
 
 /* This handles the case of sizeof(int) < sizeof(void*). */
-#ifdef INT_LT_POINTER
-extern void *MPIR_ToPointer();
-extern int  MPIR_FromPointer();
-extern void MPIR_RmPointer();
+#if defined(INT_LT_POINTER) && !defined(MPI_ADI2)
+extern void *MPIR_ToPointer ANSI_ARGS(());
+extern int  MPIR_FromPointer ANSI_ARGS(());
+extern void MPIR_RmPointer   ANSI_ARGS(());
 #endif
 /* 
    mpiprof contains the renamings for the profiling interface.  For it to
@@ -87,137 +144,152 @@ extern void MPIR_RmPointer();
    used to help us ensure that the code has no obvious bugs (i.e., mismatched
    args) 
  */
-#ifdef __STDC__
 /* coll */
+extern void MPIR_MAXF ANSI_ARGS( ( void *, void *, int *, MPI_Datatype * ) );
+extern void MPIR_MINF ANSI_ARGS( ( void *, void *, int *, MPI_Datatype * ) );
+extern void MPIR_SUM ANSI_ARGS( ( void *, void *, int *, MPI_Datatype * ) );
+extern void MPIR_PROD ANSI_ARGS( ( void *, void *, int *, MPI_Datatype * ) );
+extern void MPIR_LAND ANSI_ARGS( ( void *, void *, int *, MPI_Datatype * ) );
+extern void MPIR_BAND ANSI_ARGS( ( void *, void *, int *, MPI_Datatype * ) );
+extern void MPIR_LOR ANSI_ARGS( ( void *, void *, int *, MPI_Datatype * ) );
+extern void MPIR_BOR ANSI_ARGS( ( void *, void *, int *, MPI_Datatype * ) );
+extern void MPIR_LXOR ANSI_ARGS( ( void *, void *, int *, MPI_Datatype * ) );
+extern void MPIR_BXOR ANSI_ARGS( ( void *, void *, int *, MPI_Datatype * ) );
+extern void MPIR_MAXLOC ANSI_ARGS( ( void *, void *, int *, MPI_Datatype * ) );
+extern void MPIR_MINLOC ANSI_ARGS( ( void *, void *, int *, MPI_Datatype * ) );
 
 /* context */
-int MPIR_Attr_copy_node( MPI_Comm, MPI_Comm, MPIR_HBT_node * );
-int MPIR_Attr_copy_subtree ( MPI_Comm, MPI_Comm, MPIR_HBT *, MPIR_HBT_node * );
-int MPIR_Attr_copy( MPI_Comm, MPI_Comm );
-int MPIR_Attr_free_node( MPI_Comm, MPIR_HBT_node * );
-int MPIR_Attr_free_subtree( MPI_Comm, MPIR_HBT_node * );
-int MPIR_Attr_free_tree( MPI_Comm );
-int MPIR_Attr_dup_tree( MPI_Comm, MPI_Comm );
-int MPIR_Attr_create_tree( MPI_Comm );
-int MPIR_Keyval_create ( MPI_Copy_function   *, MPI_Delete_function *, 
-			int *, void *, int );
-int MPIR_Comm_make_coll( MPI_Comm, MPIR_COMM_TYPE );
-int MPIR_Comm_N2_prev( MPI_Comm, int * );
-int MPIR_Dump_comm( MPI_Comm );
-int MPIR_Intercomm_high( MPI_Comm, int * );
-MPI_Group MPIR_CreateGroup( int );
-void MPIR_FreeGroup( MPI_Group );
-void MPIR_SetToIdentity( MPI_Group );
+#ifdef FOO
+int MPIR_Attr_copy_node ANSI_ARGS( ( MPI_Comm, MPI_Comm, MPIR_HBT_node * ) );
+int MPIR_Attr_copy_subtree  ANSI_ARGS( ( MPI_Comm, MPI_Comm, MPIR_HBT *, 
+					 MPIR_HBT_node * ) );
+int MPIR_Attr_free_node ANSI_ARGS( ( MPI_Comm, MPIR_HBT_node * ) );
+int MPIR_Attr_free_subtree ANSI_ARGS( ( MPI_Comm, MPIR_HBT_node * ) );
+#endif
+void MPIR_Attr_make_perm ANSI_ARGS(( int ));
+int MPIR_Attr_copy ANSI_ARGS( ( MPI_Comm, MPI_Comm ) );
+int MPIR_Attr_free_tree ANSI_ARGS( ( MPI_Comm ) );
+int MPIR_Attr_dup_tree ANSI_ARGS( ( MPI_Comm, MPI_Comm ) );
+int MPIR_Attr_create_tree ANSI_ARGS( ( MPI_Comm ) );
+int MPIR_Keyval_create ANSI_ARGS( ( MPI_Copy_function *, 
+				    MPI_Delete_function *, 
+				    int *, void *, int ) );
+int MPIR_Comm_make_coll ANSI_ARGS( ( MPI_Comm, MPIR_COMM_TYPE ) );
+int MPIR_Comm_N2_prev ANSI_ARGS( ( MPI_Comm, int * ) );
+int MPIR_Dump_comm ANSI_ARGS( ( MPI_Comm ) );
+int MPIR_Intercomm_high ANSI_ARGS( ( MPI_Comm, int * ) );
+MPI_Group MPIR_CreateGroup ANSI_ARGS( ( int ) );
+void MPIR_FreeGroup ANSI_ARGS( ( MPI_Group ) );
+void MPIR_SetToIdentity ANSI_ARGS( ( MPI_Group ) );
+void MPIR_Comm_remember ANSI_ARGS( ( MPI_Comm ) );
+void MPIR_Comm_forget   ANSI_ARGS( ( MPI_Comm ) );
+int  MPIR_Comm_set_name ANSI_ARGS( ( MPI_Comm, char * ) );
+int  MPIR_Comm_get_name ANSI_ARGS( ( MPI_Comm, char **) );
 #ifndef MPIR_Group_dup
 /* If it's not a macro, then it must be a function */
-int MPIR_Group_dup( MPI_Group, MPI_Group * );
+int MPIR_Group_dup ANSI_ARGS( ( MPI_Group, MPI_Group * ) );
 #endif
-int MPIR_Dump_group( MPI_Group );
-int MPIR_Dump_ranks( int, int * );
-int MPIR_Dump_ranges( int, int * );
-int MPIR_Powers_of_2( int, int *, int * );
-int MPIR_Group_N2_prev( MPI_Group, int * );
-int MPIR_Sort_split_table( int, int, int *, int *, int * );
-int MPIR_Context_alloc( MPI_Comm, int, MPIR_CONTEXT * );
-int MPIR_Context_dealloc( MPI_Comm, int, MPIR_CONTEXT );
-int MPIR_dup_fn ( MPI_Comm, int, void *, void *, void *, int * );
+int MPIR_Dump_group ANSI_ARGS( ( MPI_Group ) );
+int MPIR_Dump_ranks ANSI_ARGS( ( int, int * ) );
+int MPIR_Dump_ranges ANSI_ARGS( ( int, int * ) );
+int MPIR_Powers_of_2 ANSI_ARGS( ( int, int *, int * ) );
+int MPIR_Group_N2_prev ANSI_ARGS( ( MPI_Group, int * ) );
+int MPIR_Sort_split_table ANSI_ARGS( ( int, int, int *, int *, int * ) );
+int MPIR_Context_alloc ANSI_ARGS( ( MPI_Comm, int, MPIR_CONTEXT * ) );
+int MPIR_Context_dealloc ANSI_ARGS( ( MPI_Comm, int, MPIR_CONTEXT ) );
+int MPIR_dup_fn  ANSI_ARGS( ( MPI_Comm, int, void *, void *, void *, int * ) );
+int MPIR_Comm_init  ANSI_ARGS( ( MPI_Comm, MPI_Comm, MPIR_COMM_TYPE ) );
 
 /* pt2pt */
-int MPIR_Pack ( MPI_Comm, int, void *, int, MPI_Datatype, void *, int, int *);
-int MPIR_Pack_size ( int, MPI_Datatype, MPI_Comm, int, int *);
-int MPIR_Unpack( MPI_Comm, void *, int, int, MPI_Datatype, int, 
-		 void *, int *, int * );
-int MPIR_UnPackMessage( char *, int, MPI_Datatype, int, MPI_Request, int * );
-int MPIR_Type_free( MPI_Datatype * );
-void MPIR_Type_free_struct( MPI_Datatype );
-MPI_Datatype MPIR_Type_dup( MPI_Datatype );
-int MPIR_Type_permanent( MPI_Datatype );
-void MPIR_Type_get_limits( MPI_Datatype, MPI_Aint *, MPI_Aint *);
-int MPIR_Send_init( void *, int, MPI_Datatype, int, int, MPI_Comm, 
-		     MPI_Request, MPIR_Mode, int );
+#ifndef MPI_ADI2
+#include "mpipt2pt.h"
+#endif
 
 /* dmpi */
-void MPIR_BSwap_N_inplace( unsigned char *, int, int );
-void MPIR_BSwap_short_inplace( unsigned char *, int );
-void MPIR_BSwap_int_inplace( unsigned char *, int );
-void MPIR_BSwap_long_inplace( unsigned char *, int );
-void MPIR_BSwap_float_inplace( unsigned char *, int );
-void MPIR_BSwap_double_inplace( unsigned char *, int );
-void MPIR_BSwap_long_double_inplace( unsigned char *, int );
-void MPIR_BSwap_N_copy( unsigned char *, unsigned char *, int, int );
-void MPIR_BSwap_short_copy( unsigned char *, unsigned char *, int );
-void MPIR_BSwap_int_copy( unsigned char *, unsigned char *, int );
-void MPIR_BSwap_long_copy( unsigned char *, unsigned char *, int );
-void MPIR_BSwap_float_copy( unsigned char *, unsigned char *, int );
-void MPIR_BSwap_double_copy( unsigned char *, unsigned char *, int );
-void MPIR_BSwap_long_double_copy( unsigned char *, unsigned char *, int );
-
-int MPIR_Type_swap_copy( unsigned char *, unsigned char *, MPI_Datatype, 
-			  int, void * );
-void MPIR_Type_swap_inplace( unsigned char *, MPI_Datatype, int );
-int MPIR_Type_XDR_encode( unsigned char *, unsigned char *, MPI_Datatype, 
-			  int, void * );
-int MPIR_Type_XDR_decode( unsigned char *, int, MPI_Datatype, int, 
-			  unsigned char *, int, int *, int *, void * );
-int MPIR_Type_convert_copy( MPI_Comm, void *, int, void *, MPI_Datatype, 
-			   int, int, int * );
-int MPIR_Comm_needs_conversion( MPI_Comm );
-int MPIR_Dest_needs_converstion( int );
-void MPIR_Pack_Hvector( MPI_Comm, char *, int, MPI_Datatype, int, char * );
-void MPIR_UnPack_Hvector( char *, int, MPI_Datatype, int, char * );
-int MPIR_HvectorLen( int, MPI_Datatype );
-int MPIR_PackMessage( char *, int, MPI_Datatype, int, int, MPI_Request );
-int MPIR_EndPackMessage( MPI_Request );
-int MPIR_SetupUnPackMessage( char *, int, MPI_Datatype, int, MPI_Request );
-int MPIR_Receive_setup( MPI_Request * );
-int MPIR_Send_setup( MPI_Request * );
-int MPIR_SendBufferFree( MPI_Request );
-
-int MPIR_Elementcnt( char *, int, MPI_Datatype, int, char *, int, 
-		     int *, int *, void * );
-void DMPI_msg_arrived( int, int, MPIR_CONTEXT, MPIR_RHANDLE **, int * );
-void DMPI_free_unexpected( MPIR_RHANDLE      * );
+#ifndef MPI_ADI2
+#include "mpidmpi.h"
+#endif
 
 /* env */
-MPI_Datatype MPIR_Init_basic_datatype( MPIR_NODETYPE, int );
-void MPIR_Op_setup( MPI_User_function, int, int, MPI_Op );
+int MPIR_Init ANSI_ARGS( ( int *, char *** ) );
+void MPIR_Op_setup ANSI_ARGS( ( MPI_User_function *, int, int, MPI_Op ) );
+void MPIR_Breakpoint ANSI_ARGS(( void ));
+int MPIR_GetErrorMessage ANSI_ARGS(( int, char *, char ** ));
+void MPIR_Init_dtes ANSI_ARGS(( void ));
+void MPIR_Free_dtes ANSI_ARGS(( void ));
 
 /* topol */
-int MPIR_Topology_copy_fn( MPI_Comm, int, void *, void *, void *, int * );
-int MPIR_Topology_delete_fn( MPI_Comm, int, void *, void * );
+void MPIR_Topology_Init ANSI_ARGS((void));
+void MPIR_Topology_Free ANSI_ARGS((void));
 
 /* util */
 /*
-void *MPIR_SBalloc( void * );
-void MPIR_SBfree( void *, void * );
+void *MPIR_SBalloc ANSI_ARGS( ( void * ) );
+void MPIR_SBfree ANSI_ARGS( ( void *, void * ) );
  */
-void MPIR_dump_rhandle( MPIR_RHANDLE );
-void MPIR_dump_shandle( MPIR_SHANDLE );
-void MPIR_dump_queue( MPIR_QHDR * );
-int MPIR_enqueue( MPIR_QHDR *, MPIR_COMMON *, MPIR_QEL_TYPE );
-int MPIR_dequeue( MPIR_QHDR *, void * );
-int MPIR_search_posted_queue( int, int, MPIR_CONTEXT, int *, int, 
-			     MPIR_RHANDLE ** );
-int MPIR_search_unexpected_queue( int, int, MPIR_CONTEXT, int *, int, 
-				 MPIR_RHANDLE ** );
-int MPIR_dump_dte( MPI_Datatype, int );
-int MPIR_flatten_dte( MPI_Datatype, MPIR_FDTEL **, MPIR_FDTEL ***, int * );
-int MPIR_dump_flat_dte( MPIR_FDTEL * );
-int MPIR_Tab( int );
-void MPIR_ArgSqueeze( int *, char ** );
-
-int  MPIR_SetBuffer( void *, int );
-void MPIR_FreeBuffer( void **, int *);
-void MPIR_PrepareBuffer( MPIR_SHANDLE * );
-int MPIR_GetBuffer( int, MPI_Request, void *, int, MPI_Datatype, void ** );
-void MPIR_BufferFreeReq( MPIR_SHANDLE * );
-
-
+#ifndef MPI_ADI2
+void MPIR_dump_rhandle ANSI_ARGS( ( MPIR_RHANDLE ) );
+void MPIR_dump_shandle ANSI_ARGS( ( MPIR_SHANDLE ) );
+void MPIR_dump_queue ANSI_ARGS( ( MPIR_QHDR * ) );
+int MPIR_enqueue ANSI_ARGS( ( MPIR_QHDR *, MPIR_COMMON *, MPIR_QEL_TYPE ) );
+int MPIR_dequeue ANSI_ARGS( ( MPIR_QHDR *, void * ) );
+int MPIR_search_posted_queue ANSI_ARGS( ( int, int, MPIR_CONTEXT, int *, int, 
+			     MPIR_RHANDLE ** ) );
+int MPIR_search_unexpected_queue ANSI_ARGS( ( int, int, MPIR_CONTEXT, int *, 
+					      int, MPIR_RHANDLE ** ) );
+int MPIR_flatten_dte ANSI_ARGS( ( MPI_Datatype, MPIR_FDTEL **, MPIR_FDTEL ***, int * ) );
+int MPIR_dump_flat_dte ANSI_ARGS( ( MPIR_FDTEL * ) );
+int MPIR_Tab ANSI_ARGS( ( int ) );
+void MPIR_ArgSqueeze ANSI_ARGS( ( int *, char ** ) );
 #else
-extern MPI_Group MPIR_CreateGroup();
-extern MPI_Datatype MPIR_Type_dup();
-int MPIR_Elementcnt();
+int MPIR_dump_dte ANSI_ARGS(( MPI_Datatype, int ));
 #endif
+
+#ifdef MPI_ADI2
+int MPIR_BsendInitBuffer ANSI_ARGS( ( void *, int ) );
+void MPIR_BsendRelease ANSI_ARGS( ( void **, int * ) );
+int MPIR_BsendBufferPrint ANSI_ARGS( ( void ) );
+int MPIR_BsendAlloc ANSI_ARGS( ( int, MPI_Request, void ** ) );
+void MPIR_BsendCopyData ANSI_ARGS(( MPIR_SHANDLE *, MPI_Comm, void *, int, 
+				    MPI_Datatype, void **, int * ) );
+void MPIR_BsendPersistent ANSI_ARGS( ( MPI_Request, int ) );
+void MPIR_BsendFreeReq ANSI_ARGS( ( MPIR_SHANDLE * ) );
+void MPIR_IbsendDatatype ANSI_ARGS(( MPI_Comm, void *, int, MPI_Datatype, 
+				     int, int, int, int, MPI_Request, int * ));
+#else
+int  MPIR_SetBuffer ANSI_ARGS( ( void *, int ) );
+void MPIR_FreeBuffer ANSI_ARGS( ( void **, int *) );
+void MPIR_PrepareBuffer ANSI_ARGS( ( MPIR_SHANDLE * ) );
+int MPIR_GetBuffer ANSI_ARGS( ( int, MPI_Request, void *, int, MPI_Datatype, 
+				void ** ) );
+void MPIR_BufferFreeReq ANSI_ARGS( ( MPIR_SHANDLE * ) );
+void MPIR_BsendPersistent ANSI_ARGS( ( MPI_Request, int ) );
+int MPIR_DoBufferSend ANSI_ARGS( ( MPIR_SHANDLE * ) );
+int MPIR_BufferPrint ANSI_ARGS( ( void ) );
+#endif
+
+void MPIR_HBT_Free ANSI_ARGS((void));
+void MPIR_HBT_Init ANSI_ARGS((void));
+#ifdef FOO
+int MPIR_HBT_new_tree ANSI_ARGS( ( MPIR_HBT ** ) );
+int MPIR_HBT_new_node ANSI_ARGS( ( int, void *, MPIR_HBT_node ** ) );
+int MPIR_HBT_free_node ANSI_ARGS( ( MPIR_HBT_node * ) );
+int MPIR_HBT_free_subtree ANSI_ARGS( ( MPIR_HBT_node * ) );
+int MPIR_HBT_free_tree ANSI_ARGS( ( MPIR_HBT * ) );
+int MPIR_HBT_lookup ANSI_ARGS( ( MPIR_HBT *, int, MPIR_HBT_node ** ) );
+int MPIR_HBT_insert ANSI_ARGS( ( MPIR_HBT *, MPIR_HBT_node * ) );
+int MPIR_HBT_delete ANSI_ARGS( ( MPIR_HBT *, int, MPIR_HBT_node ** ) );
+#endif
+
+/* We are switching to a single form for the prototypes, using the
+   ANSI_ARGS forms */
+void *MPIR_ToPointer ANSI_ARGS(( int ));
+int  MPIR_FromPointer ANSI_ARGS((void *));
+void MPIR_RmPointer ANSI_ARGS(( int ));
+int MPIR_UsePointer ANSI_ARGS((FILE *));
+void MPIR_PointerPerm ANSI_ARGS(( int ));
+void MPIR_Comm_collops_init ANSI_ARGS(( MPI_Comm, MPIR_COMM_TYPE ));
+
 
 #endif
 

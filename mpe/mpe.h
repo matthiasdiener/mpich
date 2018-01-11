@@ -4,6 +4,14 @@
 #ifndef _MPE_INCLUDE
 #define _MPE_INCLUDE
 
+#ifndef ANSI_ARGS
+#if defined(__STDC__) || defined(__cplusplus)
+#define ANSI_ARGS(a) a
+#else
+#define ANSI_ARGS(a) ()
+#endif
+#endif
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -31,17 +39,35 @@ extern "C" {
 
 #endif
 
-#if defined(__STDC__) || defined(__cplusplus)
-void MPE_Seq_begin( MPI_Comm, int );
-void MPE_Seq_end( MPI_Comm, int );
-double MPE_Wtime( void );
-double MPE_Ptime( void );
+void MPE_Seq_begin ANSI_ARGS(( MPI_Comm, int ));
+void MPE_Seq_end   ANSI_ARGS(( MPI_Comm, int ));
+
+int MPE_DelTag     ANSI_ARGS(( MPI_Comm, int, void *, void * ));
+int MPE_GetTags    ANSI_ARGS(( MPI_Comm, int, MPI_Comm *, int * ));
+int MPE_ReturnTags ANSI_ARGS(( MPI_Comm, int, int ));
+int MPE_TagsEnd    ANSI_ARGS(( void ));
+
+void MPE_IO_Stdout_to_file ANSI_ARGS(( char *, int ));
+
+void MPE_GetHostName       ANSI_ARGS(( char *, int ));
+
+double MPE_Wtime   ANSI_ARGS(( void ));
+double MPE_Ptime   ANSI_ARGS(( void ));
+
+void MPE_Start_debugger ANSI_ARGS(( void ));
+#if (defined(__STDC__) || defined(__cpluscplus))
+void MPE_Errors_to_dbx ANSI_ARGS(( MPI_Comm *, int *, ... ));
 #else
-void MPE_Seq_begin( );
-void MPE_Seq_end( );
-double MPE_Wtime( );
-double MPE_Ptime( );
+void MPE_Errors_to_dbx ANSI_ARGS(( MPI_Comm *, int *, char *, char *, int * ));
 #endif
+void MPE_Errors_call_debugger ANSI_ARGS(( char *, char *, char ** ));
+void MPE_Errors_call_xdbx     ANSI_ARGS(( char *, char * ));
+void MPE_Errors_call_dbx_in_xterm ANSI_ARGS(( char *, char * ));
+void MPE_Signals_call_debugger ANSI_ARGS(( void ));
+
+int MPE_Decomp1d ANSI_ARGS(( int, int, int, int *, int * ));
+
+void MPE_Comm_global_rank ANSI_ARGS(( MPI_Comm, int, int * ));
 
 #if defined(__cplusplus)
 };

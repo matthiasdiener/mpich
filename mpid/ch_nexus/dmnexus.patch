@@ -1,0 +1,13 @@
+20c20
+< #define MPIDTRANSPORT "Intel NEXUS"
+---
+> #define MPIDTRANSPORT "NEXUS"
+51,52c51,52
+< #include "tools.h"
+< #include "comm/comm.h"
+---
+> typedef long ASYNCRecvId_t;
+> typedef long ASYNCSendId_t;
+59a60,61
+> typedef long ASYNCRecvId_t;
+> typedef long ASYNCSendId_t;

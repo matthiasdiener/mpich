@@ -1,17 +1,25 @@
 /*
- *  $Id: errorstring.c,v 1.8 1996/01/29 21:22:12 gropp Exp $
+ *  $Id: errorstring.c,v 1.10 1996/06/07 15:12:21 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 
-#ifndef lint
-static char vcid[] = "$Id: errorstring.c,v 1.8 1996/01/29 21:22:12 gropp Exp $";
-#endif /* lint */
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#else
 #include "mpisys.h"
+#endif
 
+/*
+ *                ************ IMPORTANT NOTE *************
+ * The messages in this file are synchronized with the ones in
+ * mpich.en_US (English/United States) and need to be changed together.
+ * Also note that the numbering of messages is CRITICAL to the messages in
+ * the file.  
+ *                *****************************************
+ */
 /*@
    MPI_Error_string - Return a string for a given error code
 
@@ -34,8 +42,12 @@ char *string;
 {
 int error_case = errorcode & ~MPIR_ERR_CLASS_MASK;
 int mpi_errno = MPI_SUCCESS;
+char *newmsg;
+
 /* 
    error_case contains any additional details on the cause of the error.
+   error_args can be used to indicate the presence of additional information.
+   
  */
 
 string[0] = 0;
@@ -72,7 +84,7 @@ switch (errorcode & MPIR_ERR_CLASS_MASK) {
 	    }
 	break;
     case MPI_ERR_TAG:
-	strcpy( string, "Invalid message tag" );
+	strcpy( string, "Invalid message tag %d" );
 	break;
     case MPI_ERR_COMM:
 	strcpy( string, "Invalid communicator" );
@@ -90,7 +102,7 @@ switch (errorcode & MPIR_ERR_CLASS_MASK) {
 	    }
 	break;
     case MPI_ERR_RANK:
-        strcpy( string, "Invalid rank" );
+        strcpy( string, "Invalid rank %d" );
 	break;
     case MPI_ERR_ROOT:
 	strcpy( string, "Invalid root" );
@@ -133,6 +145,10 @@ switch (errorcode & MPIR_ERR_CLASS_MASK) {
 	    strcat( string, ": Can not free permanent MPI_Op" );
 	    error_case = 0;
 	    }
+	else if (error_case == MPIR_ERR_PERM_GROUP) {
+	    strcat( string, ": Can not free permanent MPI_Group" );
+	    error_case = 0;
+	    }
 	else if (error_case == MPIR_ERR_FORTRAN_ADDRESS_RANGE) {
 	    strcat( string, 
 ": Address of location given to MPI_ADDRESS does not fit in Fortran integer" );
@@ -172,6 +188,36 @@ switch (errorcode & MPIR_ERR_CLASS_MASK) {
 		   "MPI_INIT must be called before other MPI routines" );
 	    error_case = 0;
 	    }
+	else if (error_case == MPIR_ERR_MPIRUN) {
+	    strcpy( string, 
+	     "MPIRUN chose the wrong device %s; program needs device %s" );
+	    error_case = 0;
+	}
+	else if (error_case == MPIR_ERR_BAD_INDEX) {
+	    strcpy( string, "Could not convert index %d into a pointer\n\
+The index may be an incorrect argument.\n\
+Possible sources of this problem are a missing \"include 'mpif.h'\",\n\
+a misspelled MPI object (e.g., MPI_COM_WORLD instead of MPI_COMM_WORLD)\n\
+or a misspelled user variable for an MPI object (e.g., \n\
+com instead of comm)." );
+	    error_case = 0;
+	}
+	else if (error_case == MPIR_ERR_INDEX_EXHAUSTED) {
+	    strcpy( string, "Pointer conversions exhausted\n\
+Too many MPI objects may have been passed to/from Fortran\n\
+without being freed" );
+	    error_case = 0;
+	}
+	else if (error_case == MPIR_ERR_INDEX_FREED) {
+	    strcpy( string, 
+		    "Error in recovering Fortran pointer; already freed" );
+	    error_case = 0;
+	}
+	else if (error_case == MPIR_ERR_BUFFER_TOO_SMALL) {
+	    strcpy( string,
+		    "Specified buffer is smaller than MPI_BSEND_OVERHEAD" );
+	    error_case = 0;
+	}
 	else {
 	    strcpy( string, "Unclassified error" );
 	    }
@@ -182,6 +228,19 @@ switch (errorcode & MPIR_ERR_CLASS_MASK) {
 	    strcat( string, ": Out of internal memory" );
 	    error_case = 0;
 	    }
+	else if (error_case == MPIR_ERR_ONE_CHAR) {
+	    strcat( string, 
+": Cray restriction: Either both or neither buffers must be of type character" );
+	    error_case = 0;
+	}
+	else if (error_case == MPIR_ERR_MSGREP_SENDER) {
+	    strcat( string, "WARNING - sender format not ready!" );
+	    error_case = 0;
+	}
+	else if (error_case == MPIR_ERR_MSGREP_UNKNOWN) {
+	    strcat( string, "WARNING - unrecognized msgrep %d" );
+	    error_case = 0;
+	}
 	break;
     case MPI_ERR_IN_STATUS:
 	strcpy( string, "Error code is in status" );
@@ -205,7 +264,15 @@ switch (errorcode & MPIR_ERR_CLASS_MASK) {
 if (error_case != 0) {
     /* Unrecognized error case */
     strcat( string, ": unrecognized error code in error class" );
+    mpi_errno = MPI_ERR_ARG;
     }
+
+/* Now we have the default message.  Try to get a better one */
+MPIR_GetErrorMessage( errorcode, string, &newmsg );
+
+if (newmsg) {
+    strcpy( string, newmsg );
+}
 
 *resultlen = strlen( string );
 return mpi_errno;

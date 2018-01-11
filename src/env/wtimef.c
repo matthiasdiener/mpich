@@ -22,7 +22,10 @@
 #endif
 #endif
 
+/* Prototype to suppress warnings about missing prototypes */
+double mpi_wtime_ ANSI_ARGS(( void ));
+
 double  mpi_wtime_()
 {
-return MPI_Wtime();
+    return MPI_Wtime();
 }

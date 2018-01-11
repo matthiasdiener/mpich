@@ -6,31 +6,63 @@
 # -mvhome is needed for the ANL SP, and is ignored by others
 args="-pg -mvhome"
 #
+# Some people don't include "." in their path (! in case an ls trojan horse,
+# I guess - if someone does that to you, you have bigger problems).  This
+# code tests to see if you have a path to mpirun; if not, it tries ./mpirun.
+IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
+for dir in $PATH ; do 
+    if [ -x $dir/mpirun ] ; then
+        mpirun="mpirun"
+        break
+    fi
+done
+IFS="$saveifs"
+if [ -z "$mpirun" -a -x "./mpirun" ] ; then
+    mpirun=./mpirun
+fi
+if [ -z "$mpirun" ] ; then
+    echo "No mpirun in path.  Testing can not proceed."
+    exit 1
+fi
+#
 # If the programs are not available, run make.
 runtests=1
 makeeach=0
+check_at_once=1
 MAKE="@MAKE@"
+# Using shifts should  remove args from the list.
 for arg in "$@" ; do
     case $arg in 
 	-checkonly)
+	shift
 	runtests=0
 	;;
         -margs=*)
+	shift
 	margs=`echo $arg | sed 's/-margs=//'`
 	args="$args $margs"
 	;;
 	-echo)
+	shift
 	set -x
 	;;
 	-small)
+	shift
 	makeeach=1
 	;;
+	-atend)
+	shift
+	check_at_once=0
+	;;
 	-help|-u)
-	echo "runtests [-checkonly] [-margs='...']"
+	shift
+	echo "runtests [-checkonly] [-margs='...'] [-atend]"
 	echo "run tests in this directory.  If -checkonly set, just run"
 	echo "the differences check (do NO rerun the test programs)."
 	echo "If -margs is used, these options are passed to mpirun."
 	echo "If -small is used, the examples are built, run, and deleted."
+	echo "If -atend is used, the success of the tests is checked only"
+	echo "at the end of the test rather than also after each test."
 	exit 1
 	;;
 	*)
@@ -54,6 +86,34 @@ CleanExe() {
 	/bin/rm -f $1 $1.o
     fi
 }
+# Do an "on the fly" check for problems.
+CheckOutput() {
+  if [ $check_at_once = 1 ] ; then
+    stdfile=$1.std
+    if [ ! -s $1.out ] ; then
+        echo "No output file $1.out!"
+    elif [ -s $stdfile ] ; then
+        stdfile2=${stdfile}2
+        if diff -b $1.out $stdfile > /dev/null ; then
+	    true
+	elif [ -s $stdfile2 ] ; then 
+	    # check for alternate in case configuration has fewer datatypes
+	    if diff -b $1.out $stdfile2 > /dev/null ; then
+	        true
+            else
+	        echo "Differences in $1.out"
+	        diff -b $1.out $stdfile
+	        nodiff=0
+	    fi
+        else
+	    echo "Differences in $1.out"
+	    diff -b $1.out $stdfile
+	fi
+    else
+        echo "Can not find file $stdfile to compare against for test $1"
+    fi
+  fi
+}
 ## RunTest program-name marker-text outputfile programargs
 #RunTest() {
 #    testfiles="$testfiles $3"
@@ -61,7 +121,7 @@ CleanExe() {
 #    MakeExe $1
 #    echo "$2"
 #    echo "$2" >> $3
-#    mpirun $args -np 2 $1 "$4" >> $3 2>&1
+#    $mpirun $args -np 2 $1 "$4" >> $3 2>&1
 #    echo "$2" >> $3
 #    CleanExe $1
 #}   
@@ -81,10 +141,11 @@ MakeExe sendrecv
 echo '**** Testing MPI_Send and MPI_Recv ****' >> sendrecv.out
 echo '**** Testing MPI_Send and MPI_Recv ****' 
 /bin/rm -f sendrecv-[012].out
-mpirun $args -np 2 -mvback "sendrecv-0.out sendrecv-1.out" sendrecv "$@" >> sendrecv-2.out 2>&1
+$mpirun $args -np 2 -mvback "sendrecv-0.out sendrecv-1.out" sendrecv "$@" >> sendrecv-2.out 2>&1
 cat sendrecv-[012].out >> sendrecv.out
 /bin/rm -f sendrecv-[012].out
 echo '**** Testing MPI_Send and MPI_Recv ****' >> sendrecv.out
+CheckOutput sendrecv
 CleanExe sendrecv
 #
 testfiles="$testfiles sendrecv2.out"
@@ -92,8 +153,9 @@ testfiles="$testfiles sendrecv2.out"
 MakeExe sendrecv2
 echo '**** Testing MPI_Send and MPI_Recv (2) ****' >> sendrecv2.out
 echo '**** Testing MPI_Send and MPI_Recv (2) ****' 
-mpirun $args -np 2 sendrecv2 "$@" >> sendrecv2.out 2>&1
+$mpirun $args -np 2 sendrecv2 "$@" >> sendrecv2.out 2>&1
 echo '**** Testing MPI_Send and MPI_Recv (2) ****' >> sendrecv2.out
+CheckOutput sendrecv2
 CleanExe sendrecv2
 #
 testfiles="$testfiles sendrecv3.out"
@@ -101,8 +163,9 @@ testfiles="$testfiles sendrecv3.out"
 MakeExe sendrecv3
 echo '**** Testing MPI_Send and MPI_Recv (3) ****' >> sendrecv3.out
 echo '**** Testing MPI_Send and MPI_Recv (3) ****' 
-mpirun $args -np 2 sendrecv3 "$@" >> sendrecv3.out 2>&1
+$mpirun $args -np 2 sendrecv3 "$@" >> sendrecv3.out 2>&1
 echo '**** Testing MPI_Send and MPI_Recv (3) ****' >> sendrecv3.out
+CheckOutput sendrecv3
 CleanExe sendrecv3
 #
 testfiles="$testfiles sendrecv4.out"
@@ -110,8 +173,9 @@ testfiles="$testfiles sendrecv4.out"
 MakeExe sendrecv4
 echo '**** Testing MPI_Send and MPI_Recv (4) ****' >> sendrecv4.out
 echo '**** Testing MPI_Send and MPI_Recv (4) ****' 
-mpirun $args -np 2 sendrecv4 "$@" >> sendrecv4.out 2>&1
+$mpirun $args -np 2 sendrecv4 "$@" >> sendrecv4.out 2>&1
 echo '**** Testing MPI_Send and MPI_Recv (4) ****' >> sendrecv4.out
+CheckOutput sendrecv4
 CleanExe sendrecv4
 #
 testfiles="$testfiles bsendtest.out"
@@ -119,8 +183,9 @@ testfiles="$testfiles bsendtest.out"
 MakeExe bsendtest
 echo '**** Testing MPI_Bsend and MPI_Recv (4) ****' >> bsendtest.out
 echo '**** Testing MPI_Bsend and MPI_Recv (4) ****' 
-mpirun $args -np 2 -mvback "bsendtest-0.out bsendtest-1.out" bsendtest "$@" >> bsendtest.out 2>&1
+$mpirun $args -np 2 -mvback "bsendtest-0.out bsendtest-1.out" bsendtest "$@" >> bsendtest.out 2>&1
 echo '**** Testing MPI_Bsend and MPI_Recv (4) ****' >> bsendtest.out
+CheckOutput bsendtest
 CleanExe bsendtest
 #
 testfiles="$testfiles isndrcv.out"
@@ -129,10 +194,11 @@ MakeExe isndrcv
 echo '**** Testing MPI_Isend and MPI_Irecv ****'
 echo '**** Testing MPI_Isend and MPI_Irecv ****' >> isndrcv.out
 /bin/rm -f isndrcv-[012].out
-mpirun $args -np 2 -mvback "isndrcv-0.out isndrcv-1.out" isndrcv "$@" > isndrcv-2.out 2>&1 
+$mpirun $args -np 2 -mvback "isndrcv-0.out isndrcv-1.out" isndrcv "$@" > isndrcv-2.out 2>&1 
 cat isndrcv-[012].out >> isndrcv.out
 /bin/rm -f isndrcv-[012].out
 echo '**** Testing MPI_Isend and MPI_Irecv ****' >> isndrcv.out
+CheckOutput isndrcv
 CleanExe isndrcv
 #
 testfiles="$testfiles irsend.out"
@@ -140,17 +206,29 @@ testfiles="$testfiles irsend.out"
 MakeExe irsend
 echo '**** Testing MPI_Irsend ****' >> irsend.out
 echo '**** Testing MPI_Irsend ****' 
-mpirun $args -np 2 irsend "$@" >> irsend.out 2>&1
+$mpirun $args -np 2 irsend "$@" >> irsend.out 2>&1
 echo '**** Testing MPI_Irsend ****' >> irsend.out
+CheckOutput irsend
 CleanExe irsend
+#
+testfiles="$testfiles irsendinit.out"
+/bin/rm -f irsendinit.out
+MakeExe irsendinit
+echo '**** Testing MPI_Rsend_init ****' >> irsendinit.out
+echo '**** Testing MPI_Rsend_init ****' 
+$mpirun $args -np 2 irsendinit "$@" >> irsendinit.out 2>&1
+echo '**** Testing MPI_Rsend_init ****' >> irsendinit.out
+CheckOutput irsendinit
+CleanExe irsendinit
 #
 testfiles="$testfiles testsome.out"
 /bin/rm -f testsome.out
 MakeExe testsome
 echo '**** Testing MPI_Testsome/Testany/Waitsome ****' >> testsome.out
 echo '**** Testing MPI_Testsome/Testany/Waitsome ****' 
-mpirun $args -np 2 testsome "$@" >> testsome.out 2>&1
+$mpirun $args -np 2 testsome "$@" >> testsome.out 2>&1
 echo '**** Testing MPI_Testsome/Testany/Waitsome ****' >> testsome.out
+CheckOutput testsome
 CleanExe testsome
 #
 testfiles="$testfiles testall.out"
@@ -158,17 +236,39 @@ testfiles="$testfiles testall.out"
 MakeExe testall
 echo '**** Testing MPI_Testall ****' >> testall.out
 echo '**** Testing MPI_Testall ****' 
-mpirun $args -np 2 testall "$@" >> testall.out 2>&1
+$mpirun $args -np 2 testall "$@" >> testall.out 2>&1
 echo '**** Testing MPI_Testall ****' >> testall.out
+CheckOutput testall
 CleanExe testall
+#
+testfiles="$testfiles cancel.out"
+/bin/rm -f cancel.out
+MakeExe cancel
+echo '**** Checking MPI_Cancel ****'
+echo '**** Checking MPI_Cancel ****' >> cancel.out
+$mpirun $args -np 2 cancel "$@" >> cancel.out 2>&1
+echo '**** Checking MPI_Cancel ****' >> cancel.out
+CheckOutput cancel
+CleanExe cancel
+#
+testfiles="$testfiles sndrcv.out"
+/bin/rm -f sndrcv.out
+MakeExe sndrcv
+echo '**** Testing MPI_Sendrecv ****' >> sndrcv.out
+echo '**** Testing MPI_Sendrecv ****' 
+$mpirun $args -np 2 sndrcv "$@" >> sndrcv.out 2>&1
+echo '**** Testing MPI_Sendrecv ****' >> sndrcv.out
+CheckOutput sndrcv
+CleanExe sndrcv
 #
 testfiles="$testfiles getelm.out"
 /bin/rm -f getelm.out
 MakeExe getelm
 echo '**** Testing MPI_Get_elements ****' >> getelm.out
 echo '**** Testing MPI_Get_elements ****' 
-mpirun $args -np 2 getelm "$@" >> getelm.out 2>&1
+$mpirun $args -np 2 getelm "$@" >> getelm.out 2>&1
 echo '**** Testing MPI_Get_elements ****' >> getelm.out
+CheckOutput getelm
 CleanExe getelm
 #
 testfiles="$testfiles overtake.out"
@@ -177,10 +277,11 @@ MakeExe overtake
 echo '**** Verifying that messages are non-overtaking ****'
 echo '**** Verifying that messages are non-overtaking ****' >> overtake.out
 /bin/rm -f overtake-[01].out
-mpirun $args -np 2 -mvback "overtake-0.out overtake-1.out" overtake "$@" >> overtake.out 2>&1
+$mpirun $args -np 2 -mvback "overtake-0.out overtake-1.out" overtake "$@" >> overtake.out 2>&1
 cat overtake-[01].out >> overtake.out
 /bin/rm -f overtake-[01].out
 echo '**** Verifying that messages are non-overtaking ****' >> overtake.out
+CheckOutput overtake
 CleanExe overtake
 #
 testfiles="$testfiles ssendtest.out"
@@ -188,17 +289,39 @@ testfiles="$testfiles ssendtest.out"
 MakeExe ssendtest
 echo '**** Verifying ssend ****'
 echo '**** Verifying ssend ****' >> ssendtest.out
-mpirun $args -np 2 -mvback "ssendtest-1.out" ssendtest "$@" >> ssendtest.out 2>&1
+$mpirun $args -np 2 -mvback "ssendtest-1.out" ssendtest "$@" >> ssendtest.out 2>&1
 echo '**** Verifying ssend ****' >> ssendtest.out
+CheckOutput ssendtest
 CleanExe ssendtest
+#
+testfiles="$testfiles ssendtest2.out"
+/bin/rm -f ssendtest2.out
+MakeExe ssendtest2
+echo '**** Verifying ssend (2) ****'
+echo '**** Verifying ssend (2) ****' >> ssendtest2.out
+$mpirun $args -np 2 -mvback "ssendtest2-1.out" ssendtest2 "$@" >> ssendtest2.out 2>&1
+echo '**** Verifying ssend (2) ****' >> ssendtest2.out
+CheckOutput ssendtest2
+CleanExe ssendtest2
+#
+testfiles="$testfiles issendtest.out"
+/bin/rm -f issendtest.out
+MakeExe issendtest
+echo '**** Verifying Issend ****'
+echo '**** Verifying Issend ****' >> issendtest.out
+$mpirun $args -np 2 -mvback "issendtest-1.out" issendtest "$@" >> issendtest.out 2>&1
+echo '**** Verifying Issend ****' >> issendtest.out
+CheckOutput issendtest
+CleanExe issendtest
 #
 testfiles="$testfiles typebase.out"
 /bin/rm -f typebase.out
 MakeExe typebase
 echo '**** Checking the type (sizes) routines ****'
 echo '**** Checking the type (sizes) routines ****' >> typebase.out
-mpirun $args -np 1 typebase "$@" >> typebase.out 2>&1
+$mpirun $args -np 1 typebase "$@" >> typebase.out 2>&1
 echo '**** Checking the type (sizes) routines ****' >> typebase.out
+CheckOutput typebase
 CleanExe typebase
 #
 testfiles="$testfiles typetest.out"
@@ -207,12 +330,13 @@ MakeExe typetest
 echo '**** Checking the type routines ****'
 echo '**** Checking the type routines ****' >> typetest.out
 /bin/rm -f typetest-[01].out
-mpirun $args -np 2 -mvback "typetest-0.out typetest-1.out" typetest "$@" >> typetest.out 2>&1
+$mpirun $args -np 2 -mvback "typetest-0.out typetest-1.out" typetest "$@" >> typetest.out 2>&1
 if [ -s typetest-0.out ] ; then
     cat typetest-0.out >> typetest.out
 fi
 /bin/rm -f typetest-[01].out
 echo '**** Checking the type routines ****' >> typetest.out
+CheckOutput typetest
 CleanExe typetest
 #
 testfiles="$testfiles typeub.out"
@@ -220,17 +344,39 @@ testfiles="$testfiles typeub.out"
 MakeExe typeub
 echo '**** Checking the type routines: MPI_UB ****'
 echo '**** Checking the type routines: MPI_UB ****' >> typeub.out
-mpirun $args -np 2 typeub "$@" >> typeub.out 2>&1
+$mpirun $args -np 2 typeub "$@" >> typeub.out 2>&1
 echo '**** Checking the type routines: MPI_UB ****' >> typeub.out
+CheckOutput typeub
 CleanExe typeub
+#
+testfiles="$testfiles dtypelife.out"
+/bin/rm -f dtypelife.out
+MakeExe dtypelife
+echo '**** Checking the type routines: MPI_Type_free ****'
+echo '**** Checking the type routines: MPI_Type_free ****' >> dtypelife.out
+$mpirun $args -np 2 dtypelife "$@" >> dtypelife.out 2>&1
+echo '**** Checking the type routines: MPI_Type_free ****' >> dtypelife.out
+CheckOutput dtypelife
+CleanExe dtypelife
+#
+testfiles="$testfiles commit.out"
+/bin/rm -f commit.out
+MakeExe commit
+echo '**** Checking the type routines: MPI_Type_commit ****'
+echo '**** Checking the type routines: MPI_Type_commit ****' >> commit.out
+$mpirun $args -np 1 commit "$@" >> commit.out 2>&1
+echo '**** Checking the type routines: MPI_Type_commit ****' >> commit.out
+CheckOutput commit
+CleanExe commit
 #
 testfiles="$testfiles third.out"
 /bin/rm -f third.out
 MakeExe third
 echo '*** Testing Unexpected messages ***'
 echo '*** Testing Unexpected messages ***' >> third.out
-mpirun $args -np 2 third "$@" >> pt2pt.out >> third.out 2>&1
+$mpirun $args -np 2 third "$@" >> pt2pt.out >> third.out 2>&1
 echo '*** Testing Unexpected messages ***' >> third.out
+CheckOutput third
 CleanExe third
 #
 testfiles="$testfiles fourth.out"
@@ -238,8 +384,9 @@ testfiles="$testfiles fourth.out"
 MakeExe fourth
 echo '*** Testing Irecv/Isend/Wait ***'
 echo '*** Testing Irecv/Isend/Wait ***' >> fourth.out
-mpirun $args -np 4 fourth "$@" >> fourth.out 2>&1
+$mpirun $args -np 4 fourth "$@" >> fourth.out 2>&1
 echo '*** Testing Irecv/Isend/Wait ***' >> fourth.out
+CheckOutput fourth
 CleanExe fourth
 #
 testfiles="$testfiles fifth.out"
@@ -247,8 +394,9 @@ testfiles="$testfiles fifth.out"
 MakeExe fifth
 echo '*** Testing Irecv/Isend/Waitall ***'
 echo '*** Testing Irecv/Isend/Waitall ***' >> fifth.out
-mpirun $args -np 4 fifth "$@" >> fifth.out 2>&1
+$mpirun $args -np 4 fifth "$@" >> fifth.out 2>&1
 echo '*** Testing Irecv/Isend/Waitall ***' >> fifth.out
+CheckOutput fifth
 CleanExe fifth
 #
 testfiles="$testfiles sixth.out"
@@ -256,17 +404,69 @@ testfiles="$testfiles sixth.out"
 MakeExe sixth
 echo '*** Testing attribute manipulation ***'
 echo '*** Testing attribute manipulation ***' >> sixth.out
-mpirun $args -np 2 sixth "$@" >> sixth.out 2>&1
+$mpirun $args -np 2 sixth "$@" >> sixth.out 2>&1
 echo '*** Testing attribute manipulation ***' >> sixth.out
+CheckOutput sixth
 CleanExe sixth
+#
+testfiles="$testfiles nblock.out"
+/bin/rm -f nblock.out
+MakeExe nblock
+echo '*** Testing Isend/Irecv (large numbers) ***'
+echo '*** Testing Isend/Irecv (large numbers) ***' >> nblock.out
+$mpirun $args -np 4 nblock "$@" >> nblock.out 2>&1
+echo '*** Testing Isend/Irecv (large numbers) ***' >> nblock.out
+CheckOutput nblock
+CleanExe nblock
+#
+testfiles="$testfiles nbtest.out"
+/bin/rm -f nbtest.out
+MakeExe nbtest
+echo '*** Testing Isend/Probe/Recv (large numbers) ***'
+echo '*** Testing Isend/Probe/Recv (large numbers) ***' >> nbtest.out
+$mpirun $args -np 4 nbtest "$@" >> nbtest.out 2>&1
+echo '*** Testing Isend/Probe/Recv (large numbers) ***' >> nbtest.out
+CheckOutput nbtest
+CleanExe nbtest
+#
+testfiles="$testfiles sendmany.out"
+/bin/rm -f sendmany.out
+MakeExe sendmany
+echo '*** Testing Send (many procs) ***'
+echo '*** Testing Send (many procs) ***' >> sendmany.out
+$mpirun $args -np 8 sendmany "$@" >> sendmany.out 2>&1
+echo '*** Testing Send (many procs) ***' >> sendmany.out
+CheckOutput sendmany
+CleanExe sendmany
+#
+testfiles="$testfiles order.out"
+/bin/rm -f order.out
+MakeExe order
+echo '*** Testing Recv ordering ***'
+echo '*** Testing Recv ordering ***' >> order.out
+$mpirun $args -np 2 order "$@" >> order.out 2>&1
+echo '*** Testing Recv ordering ***' >> order.out
+CheckOutput order
+CleanExe order
+#
+testfiles="$testfiles trunc.out"
+/bin/rm -f trunc.out
+MakeExe trunc
+echo '*** Testing Message trunction ***'
+echo '*** Testing Message trunction ***' >> trunc.out
+$mpirun $args -np 2 trunc "$@" >> trunc.out 2>&1
+echo '*** Testing Message trunction ***' >> trunc.out
+CheckOutput trunc
+CleanExe trunc
 #
 testfiles="$testfiles hvectest.out"
 /bin/rm -f hvectest.out
 MakeExe hvectest
 echo '*** Testing Vector type ***'
 echo '*** Testing Vector type ***' >> hvectest.out
-mpirun $args -np 2 hvectest "$@" >> hvectest.out 2>&1
+$mpirun $args -np 2 hvectest "$@" >> hvectest.out 2>&1
 echo '*** Testing Vector type ***' >> hvectest.out
+CheckOutput hvectest
 CleanExe hvectest
 #
 testfiles="$testfiles hvectest2.out"
@@ -274,17 +474,39 @@ testfiles="$testfiles hvectest2.out"
 MakeExe hvectest2
 echo '*** Testing struct type for vectors (MPI_UB) ***'
 echo '*** Testing struct type for vectors (MPI_UB) ***' >> hvectest2.out
-mpirun $args -np 2 hvectest2 "$@" >> hvectest2.out 2>&1
+$mpirun $args -np 2 hvectest2 "$@" >> hvectest2.out 2>&1
 echo '*** Testing struct type for vectors (MPI_UB) ***' >> hvectest2.out
+CheckOutput hvectest2
 CleanExe hvectest2
+#
+testfiles="$testfiles hvec.out"
+/bin/rm -f hvec.out
+MakeExe hvec
+echo '*** Testing Type_Hvector ***'
+echo '*** Testing Type_Hvector ***' >> hvec.out
+$mpirun $args -np 2 hvec "$@" >> hvec.out 2>&1
+echo '*** Testing Type_Hvector ***' >> hvec.out
+CheckOutput hvec
+CleanExe hvec
+#
+testfiles="$testfiles hindexed.out"
+/bin/rm -f hindexed.out
+MakeExe hindexed
+echo '*** Testing Type_Hindexed ***'
+echo '*** Testing Type_Hindexed ***' >> hindexed.out
+$mpirun $args -np 1 hindexed "$@" >> hindexed.out 2>&1
+echo '*** Testing Type_Hindexed ***' >> hindexed.out
+CheckOutput hindexed
+CleanExe hindexed
 #
 testfiles="$testfiles probe.out"
 /bin/rm -f probe.out
 MakeExe probe
 echo '*** Testing Probe and Get_count ***'
 echo '*** Testing Probe and Get_count ***' >> probe.out
-mpirun $args -np 2 probe "$@" >> probe.out 2>&1
+$mpirun $args -np 2 probe "$@" >> probe.out 2>&1
 echo '*** Testing Probe and Get_count ***' >> probe.out
+CheckOutput probe
 CleanExe probe
 #
 testfiles="$testfiles probe1.out"
@@ -292,8 +514,9 @@ testfiles="$testfiles probe1.out"
 MakeExe probe1
 echo '*** Testing Iprobe and Get_count ***'
 echo '*** Testing Iprobe and Get_count ***' >> probe1.out
-mpirun $args -np 2 probe1 "$@" >> probe1.out 2>&1
+$mpirun $args -np 2 probe1 "$@" >> probe1.out 2>&1
 echo '*** Testing Iprobe and Get_count ***' >> probe1.out
+CheckOutput probe1
 CleanExe probe1
 #
 testfiles="$testfiles self.out"
@@ -301,8 +524,9 @@ testfiles="$testfiles self.out"
 MakeExe self
 echo '*** Testing send to self ***' 
 echo '*** Testing send to self ***' >> self.out
-mpirun $args -np 1 self "$@" >> self.out 2>&1
+$mpirun $args -np 1 self "$@" >> self.out 2>&1
 echo '*** Testing send to self  ***' >> self.out
+CheckOutput self
 CleanExe self
 #
 #
@@ -311,8 +535,9 @@ testfiles="$testfiles testtest1.out"
 MakeExe testtest1
 echo '*** Testing MPI_Test ***' 
 echo '*** Testing MPI_Test ***' >> testtest1.out
-mpirun $args -np 2 testtest1 "$@" >> testtest1.out 2>&1
+$mpirun $args -np 2 testtest1 "$@" >> testtest1.out 2>&1
 echo '*** Testing MPI_Test ***' >> testtest1.out
+CheckOutput testtest1
 CleanExe testtest1
 #
 testfiles="$testfiles persistent.out"
@@ -320,8 +545,9 @@ testfiles="$testfiles persistent.out"
 MakeExe persistent
 echo '*** Testing MPI_Recv_init ***' 
 echo '*** Testing MPI_Recv_init ***' >> persistent.out
-mpirun $args -np 4 persistent "$@" >> persistent.out 2>&1
+$mpirun $args -np 4 persistent "$@" >> persistent.out 2>&1
 echo '*** Testing MPI_Recv_init ***' >> persistent.out
+CheckOutput persistent
 CleanExe persistent
 #
 testfiles="$testfiles waitall.out"
@@ -329,8 +555,9 @@ testfiles="$testfiles waitall.out"
 MakeExe waitall
 echo '*** Testing MPI_Waitall ***' 
 echo '*** Testing MPI_Waitall ***' >> waitall.out
-mpirun $args -np 4 waitall "$@" >> waitall.out 2>&1
+$mpirun $args -np 4 waitall "$@" >> waitall.out 2>&1
 echo '*** Testing MPI_Waitall ***' >> waitall.out
+CheckOutput waitall
 CleanExe waitall
 #
 testfiles="$testfiles pack.out"
@@ -338,8 +565,9 @@ testfiles="$testfiles pack.out"
 MakeExe pack
 echo '*** Testing MPI_Pack ***' 
 echo '*** Testing MPI_Pack ***' >> pack.out
-mpirun $args -np 2 pack "$@" >> pack.out 2>&1
+$mpirun $args -np 2 pack "$@" >> pack.out 2>&1
 echo '*** Testing MPI_Pack ***' >> pack.out
+CheckOutput pack
 CleanExe pack
 #
 # Run Fortran tests ONLY if Fortran available
@@ -347,15 +575,16 @@ if [ @HAS_FORTRAN@ = 1 ] ; then
     echo "FORTRAN TESTS"
     #
     #echo "*** secondf ***" >> pt2pt.out
-    #mpirun $args -np 2 secondf "$@" >> pt2pt.out 2>&1
+    #$mpirun $args -np 2 secondf "$@" >> pt2pt.out 2>&1
     #
     testfiles="$testfiles allpair.out"
     /bin/rm -f allpair.out
     MakeExe allpair
     echo '*** Testing pt-2-pt from Fortran ***'
     echo '*** Testing pt-2-pt from Fortran ***' >> allpair.out
-    mpirun $args -np 2 allpair "$@" >> allpair.out 2>&1
+    $mpirun $args -np 2 allpair "$@" >> allpair.out 2>&1
     echo '*** Testing pt-2-pt from Fortran ***' >> allpair.out
+    CheckOutput allpair
     CleanExe allpair
     #
     testfiles="$testfiles allpair2.out"
@@ -363,8 +592,9 @@ if [ @HAS_FORTRAN@ = 1 ] ; then
     MakeExe allpair2
     echo '*** Testing pt-2-pt from Fortran (many calls) ***'
     echo '*** Testing pt-2-pt from Fortran  (many calls) ***' >> allpair2.out
-    mpirun $args -np 2 allpair2 "$@" >> allpair2.out 2>&1
+    $mpirun $args -np 2 allpair2 "$@" >> allpair2.out 2>&1
     echo '*** Testing pt-2-pt from Fortran  (many calls) ***' >> allpair2.out
+    CheckOutput allpair2
     CleanExe allpair2
     #
     testfiles="$testfiles structf.out"
@@ -378,12 +608,33 @@ if [ @HAS_FORTRAN@ = 1 ] ; then
     # panic (!!) in this case.  Since both behaviors represent broken
     # operating systems, we test for ARCH=IRIX64 
     if [ "@ARCH@" = "IRIX64" ] ; then 
-      mpirun $args -np 2 structf "$@" >> structf.out 2>&1 < /dev/null
+      $mpirun $args -np 2 structf "$@" >> structf.out 2>&1 < /dev/null
     else
-      mpirun $args -np 2 structf "$@" >> structf.out 2>&1
+      $mpirun $args -np 2 structf "$@" >> structf.out 2>&1
     fi
     echo '*** Testing Type_struct from Fortran ***' >> structf.out
+    CheckOutput structf
     CleanExe structf
+    #
+    testfiles="$testfiles send1.out"
+    /bin/rm -f send1.out
+    MakeExe send1
+    echo '*** Testing pt-2-pt from Fortran (2) ***'
+    echo '*** Testing pt-2-pt from Fortran (2) ***' >> send1.out
+    $mpirun $args -np 2 send1 "$@" >> send1.out 2>&1
+    echo '*** Testing pt-2-pt from Fortran (2) ***' >> send1.out
+    CheckOutput send1
+    CleanExe send1
+    #
+#    testfiles="$testfiles pingpong.out"
+#    /bin/rm -f pingpong.out
+#    MakeExe pingpong
+#    echo '*** Testing pt-2-pt from Fortran (3) ***'
+#    echo '*** Testing pt-2-pt from Fortran (3) ***' >> pingpong.out
+#    $mpirun $args -np 2 pingpong "$@" >> pingpong.out 2>&1
+#    echo '*** Testing pt-2-pt from Fortran (3) ***' >> pingpong.out
+#    CheckOutput pingpong
+#    CleanExe pingpong
     #
     echo "END OF FORTRAN TESTS"
 fi
@@ -397,8 +648,9 @@ else
     fi
 fi
 #
-echo '*** Differences from expected output ***'
+echo '*** Checking for differences from expected output ***'
 /bin/rm -f pt2pt.diff
+nodiff=1
 for file in $testfiles ; do
     stdfile=`basename $file .out`.std
     # if basename is sendrecv or isndrcv, then we may want to test 
@@ -415,17 +667,22 @@ for file in $testfiles ; do
             else
 	        echo "Differences in `basename $file .out`" >> pt2pt.diff
 	        diff -b $file $stdfile >> pt2pt.diff
+	        nodiff=0
 	    fi
         else
 	    echo "Differences in `basename $file .out`" >> pt2pt.diff
 	    diff -b $file $stdfile >> pt2pt.diff
+	    nodiff=0
 	fi
     else
         echo "Can not find file $stdfile to compare against for test `basename $file .out`"
+	nodiff=0
     fi
 done
 if [ -s pt2pt.diff ] ; then
    cat pt2pt.diff
+elif [ $nodiff = 1 ] ; then
+   echo "-- No differences found; test successful"
 fi
 exit 0
 

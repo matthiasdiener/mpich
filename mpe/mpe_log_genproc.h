@@ -19,6 +19,17 @@
 #define LOG_MESG_SEND -101
 #define LOG_MESG_RECV -102
 
+/* I got this trick from the Tcl implementation */
+#ifdef _ANSI_ARGS_
+#undef _ANSI_ARGS_
+#endif
+
+#if defined(__STDC__) || defined(__cplusplus)
+#define _ANSI_ARGS_(x) x
+#else
+#define _ANSI_ARGS_(x) ()
+#endif
+
 typedef struct _MPE_Log_BLOCK {
   struct _MPE_Log_BLOCK *next;
   int size;
@@ -139,26 +150,17 @@ while (readBlk) {		/* loop through the linked list of blocks */ \
 }
 
 #define MPE_Log_MBUF_SIZE MPE_Log_BUF_SIZE*2
-typedef struct {
+
+typedef struct _MPE_Log_MBuf {
   int    *p, *plast;		 /* Pointers to current and last+1 entries */
   int    buf[MPE_Log_MBUF_SIZE]; /* Holds blog buffer plus some */
   double t;			 /* Time of current entry */
-  int    (*reload)();		 /* routine and context used to reload buf */
+  int    (*reload) _ANSI_ARGS_(( struct _MPE_Log_MBuf *, int * ));
+    /* routine and context used to reload buf */
   void   *reload_ctx;
 } MPE_Log_MBuf;
 
-/* I got this trick from the Tcl implementation */
-#ifdef _ANSI_ARGS_
-#undef _ANSI_ARGS_
-#endif
-
-#ifdef __STDC__
-#define _ANSI_ARGS_(x) x
-#else
-#define _ANSI_ARGS_(x) ()
-#endif
-
-static MPE_Log_GenerateHeader _ANSI_ARGS_(( FILE *fp ));
+static void MPE_Log_GenerateHeader _ANSI_ARGS_(( FILE *fp ));
 static void MPE_Log_Output _ANSI_ARGS_(( MPE_Log_MBuf *inBuffer, MPE_Log_MBuf
 				    *outBuffer, int mesgtag, int *srcs,
 				    FILE *fp, int parent ));

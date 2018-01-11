@@ -40,7 +40,9 @@ c------------------------------------------------------------------------------
 
       call MPI_Comm_rank( MPI_COMM_WORLD, rank, ierr )
       call MPI_Comm_size( MPI_COMM_WORLD, size, ierr )
+C      print *, ' about to do dup'
       call MPI_Comm_dup( MPI_COMM_WORLD, dupcom, ierr )
+C      print *, ' did dup'
       next = rank + 1
       if (next .ge. size) next = 0
 

@@ -54,7 +54,7 @@ extern void MPIR_RmPointer();
 #ifdef _TWO_WORD_FCD
 #define NUMPARAMS  3
 
- void mpi_address_( void *unknown, ...)
+void mpi_address_( void *unknown, ...)
 {
 void *location;
 int*address;
@@ -94,21 +94,24 @@ if (_isfcd(location)) {
 #endif
 #else
 
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_address_ ANSI_ARGS(( void *, int *, int * ));
+
 void mpi_address_( location, address, __ierr )
 void     *location;
 int      *address;
 int      *__ierr;
 {
-MPI_Aint a, b;
-*__ierr = MPI_Address( location, &a );
-if (*__ierr != MPI_SUCCESS) return;
+    MPI_Aint a, b;
+    *__ierr = MPI_Address( location, &a );
+    if (*__ierr != MPI_SUCCESS) return;
 
-b = a - (MPI_Aint)MPIR_F_MPI_BOTTOM;
-*address = (int)( b );
-if ((MPI_Aint)*address - b != 0) {
-    *__ierr = MPIR_ERROR( MPI_COMM_WORLD,     
-			  MPI_ERR_ARG | MPIR_ERR_FORTRAN_ADDRESS_RANGE, 
-			 "Error in MPI_ADDRESS" );
+    b = a - (MPI_Aint)MPIR_F_MPI_BOTTOM;
+    *address = (int)( b );
+    if (((MPI_Aint)*address) - b != 0) {
+	*__ierr = MPIR_ERROR( MPI_COMM_WORLD,     
+			      MPI_ERR_ARG | MPIR_ERR_FORTRAN_ADDRESS_RANGE, 
+			      "Error in MPI_ADDRESS" );
     }
 }
 #endif

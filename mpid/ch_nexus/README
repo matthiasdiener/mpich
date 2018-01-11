@@ -1,0 +1,12 @@
+This is a multi-protocol device that uses the Nexus run-time system
+communication primitives.  See
+http://www.mcs.anl.gov/people/geisler/projects/mpi.html for more
+information.
+
+When you compile a program using this program, be sure to include the
+nexus header files and to link with the nexus library.
+
+An experimental version that uses threads is under way.  You can add an
+EXPERIMENTAL define to the make of this device to try it out.  It is
+not supported, but please send bugs/fixes/suggestions to me at
+geisler@mcs.anl.gov.

@@ -1,3 +1,5 @@
+/* This code was generated automatically from an older Chameleon program */
+
 int __NUMNODES, __MYPROCID  ;
 
 
@@ -31,7 +33,7 @@ void *OverlapInit();
 
 double (*GetPairFunction())();
 double (*GetGOPFunction())();
-
+double memcpy_rate();
 void RunATest();
 
 /* Overlap testing */
@@ -41,7 +43,9 @@ double round_trip_b_overlap();
 /* Routine to generate graphics context */
 void *SetupGraph();
 
+/* Prototypes */
 double RunSingleTest();
+void time_function();
 
 /* These statics (globals) are used to estimate the parameters in the
    basic (s + rn) complexity model
@@ -94,6 +98,11 @@ static int    AutoReps = 0;
 static int sizelist[MAX_SIZE_LIST];
 static int nsizes = 0;
 
+/* We wish to control the TOTAL amount of time that the test takes.
+   We could do this with gettimeofday or clock or something, but fortunately
+   the MPI timer is an elapsed timer */
+static double max_run_time = 15.0*60.0;
+static double start_time = 0.0;
 
 /* These are used to contain results for a single test */
 typedef struct {
@@ -126,177 +135,195 @@ double      x;
 TwinResults *result;
 TwinTest    *ctx;
 {
-double t, mean_time;
-int    len = (int)x, k;
-int    reps = ctx->reps;
-int    flag, iwork;
-double tmax, tmean;
+    double t, mean_time;
+    int    len = (int)x, k;
+    int    reps = ctx->reps;
+    int    flag, iwork;
+    double tmax, tmean;
+    int    rank;
 
-if (AutoReps) {
-    reps = GetRepititions( ctx->t1, ctx->t2, ctx->len1, ctx->len2, len, reps );
+    if (AutoReps) {
+	reps = GetRepititions( ctx->t1, ctx->t2, ctx->len1, ctx->len2, 
+			       len, reps );
     }
 
-t = RunSingleTest( ctx->f, reps, len, ctx->msgctx, &tmax, &tmean );
+    t = RunSingleTest( ctx->f, reps, len, ctx->msgctx, &tmax, &tmean );
 
-mean_time	   = t / reps;              /* take average over trials */
-result->t	   = t;
-result->len	   = x;
-result->reps	   = reps;
-result->mean_time  = mean_time;
-result->smean_time = tmean;
-result->max_time   = tmax;
-if (mean_time > 0.0) 
-    result->rate      = ((double)len) / mean_time;
-else
-    result->rate      = 0.0;
+    mean_time	   = t / reps;              /* take average over trials */
+    result->t	   = t;
+    result->len	   = x;
+    result->reps	   = reps;
+    result->mean_time  = mean_time;
+    result->smean_time = tmean;
+    result->max_time   = tmax;
+    if (mean_time > 0.0) 
+	result->rate      = ((double)len) / mean_time;
+    else
+	result->rate      = 0.0;
 
-/* Save the most recent timing data */
-ctx->t1     = ctx->t2;
-ctx->len1   = ctx->len2;
-ctx->t2     = mean_time;
-ctx->len2   = len;
+    /* Save the most recent timing data */
+    ctx->t1     = ctx->t2;
+    ctx->len1   = ctx->len2;
+    ctx->t2     = mean_time;
+    ctx->len2   = len;
  
-sumlen     += len;
-sumtime    += mean_time;
-sumlen2    += ((double)len) * ((double)len);
-sumlentime += mean_time * len;
-sumtime2   += mean_time * mean_time;
-ntest      ++;
+    sumlen     += len;
+    sumtime    += mean_time;
+    sumlen2    += ((double)len) * ((double)len);
+    sumlentime += mean_time * len;
+    sumtime2   += mean_time * mean_time;
+    ntest      ++;
 
-/* We need to insure that everyone gets the same result */
-MPI_Bcast(&result->rate, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
-return result->rate;
+    /* We need to insure that everyone gets the same result */
+    MPI_Bcast(&result->rate, sizeof(double), MPI_BYTE, 0, MPI_COMM_WORLD );
+
+    /* Check for max time exceeded */
+    MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+    if (rank == 0 && MPI_Wtime() - start_time > max_run_time) {
+	fprintf( stderr, "Exceeded %f seconds, aborting\n", max_run_time );
+	MPI_Abort( MPI_COMM_WORLD, 1 );
+    }
+    return result->rate;
 }
 
 int main(argc,argv)
 int argc;
 char *argv[];
 {
-int    dist;
-double (* f)();
-void *MsgCtx = 0; /* This is the context of the message-passing operation */
-void *outctx;
-void (*ChangeDist)() = 0;
-int  reps,proc1,proc2,len,error_flag,distance_flag,distance;
-double t;
-int  first,last,incr, svals[3];
-int      autosize = 0, autodx;
-double   autorel  = 0.02;
-char     units[32];         /* Name of units of length */
+    int    dist;
+    double (* f)();
+    void *MsgCtx = 0; /* This is the context of the message-passing operation */
+    void *outctx;
+    void (*ChangeDist)() = 0;
+    int  reps,proc1,proc2,len,error_flag,distance_flag,distance;
+    double t;
+    int  first,last,incr, svals[3];
+    int      autosize = 0, autodx;
+    double   autorel  = 0.02;
+    char     units[32];         /* Name of units of length */
 
-MPI_Init( &argc, &argv );
-MPI_Comm_size( MPI_COMM_WORLD, &__NUMNODES );
-MPI_Comm_rank( MPI_COMM_WORLD, &__MYPROCID );
-;
-strcpy( protocol_name, "blocking" );
-strcpy( units, "(bytes)" );
+    MPI_Init( &argc, &argv );
+    MPI_Comm_size( MPI_COMM_WORLD, &__NUMNODES );
+    MPI_Comm_rank( MPI_COMM_WORLD, &__MYPROCID );
+    ;
+    strcpy( protocol_name, "blocking" );
+    strcpy( units, "(bytes)" );
 
-if (SYArgHasName( &argc, argv, 1, "-help" )) {
-  return PrintHelp( argv );
-  }
+    if (SYArgHasName( &argc, argv, 1, "-help" )) {
+	return PrintHelp( argv );
+    }
 
-if (__NUMNODES < 2) {
-    fprintf( stderr, "Must run mpptest with at least 2 nodes\n" );
-    return 1;
+    if (__NUMNODES < 2) {
+	fprintf( stderr, "Must run mpptest with at least 2 nodes\n" );
+	return 1;
     }
 
 /* Get the output context */
-outctx = SetupGraph( &argc, argv );
-if (SYArgHasName( &argc, argv, 1, "-noinfo" ))    doinfo    = 0;
+    outctx = SetupGraph( &argc, argv );
+    if (SYArgHasName( &argc, argv, 1, "-noinfo" ))    doinfo    = 0;
 
-reps          = DEFAULT_REPS;
-proc1         = 0;
-proc2         = __NUMNODES-1;
-error_flag    = 0;
-distance_flag = 0;
-svals[0]      = 0;
-svals[1]      = 1024;
-svals[2]      = 32;
+    reps          = DEFAULT_REPS;
+    proc1         = 0;
+    proc2         = __NUMNODES-1;
+    error_flag    = 0;
+    distance_flag = 0;
+    svals[0]      = 0;
+    svals[1]      = 1024;
+    svals[2]      = 32;
 
-if (SYArgHasName( &argc, argv, 1, "-distance" ))  distance_flag++;
-SYArgGetIntVec( &argc, argv, 1, "-size", 3, svals );
-nsizes = SYArgGetIntList( &argc, argv, 1, "-sizelist", MAX_SIZE_LIST, 
-                          sizelist );
+    if (SYArgHasName( &argc, argv, 1, "-distance" ))  distance_flag++;
+    SYArgGetIntVec( &argc, argv, 1, "-size", 3, svals );
+    nsizes = SYArgGetIntList( &argc, argv, 1, "-sizelist", MAX_SIZE_LIST, 
+			      sizelist );
 
-SYArgGetInt(    &argc, argv, 1, "-reps", &reps );
-if (SYArgHasName( &argc, argv, 1, "-autoreps" ))  AutoReps  = 1;
-if (SYArgGetDouble( &argc, argv, 1, "-tgoal", &Tgoal )) {
-    AutoReps = 1;
-    if (TgoalMin > 0.1 * Tgoal) TgoalMin = 0.1 * Tgoal;
+    SYArgGetInt(    &argc, argv, 1, "-reps", &reps );
+    if (SYArgHasName( &argc, argv, 1, "-autoreps" ))  AutoReps  = 1;
+    if (SYArgGetDouble( &argc, argv, 1, "-tgoal", &Tgoal )) {
+	AutoReps = 1;
+	if (TgoalMin > 0.1 * Tgoal) TgoalMin = 0.1 * Tgoal;
     }
-SYArgGetDouble( &argc, argv, 1, "-rthresh", &repsThresh );
+    SYArgGetDouble( &argc, argv, 1, "-rthresh", &repsThresh );
 
-SYArgGetInt( &argc, argv, 1, "-sample_reps", &minreps );
+    SYArgGetInt( &argc, argv, 1, "-sample_reps", &minreps );
 
-autosize = SYArgHasName( &argc, argv, 1, "-auto" );
-if (autosize) {
-    autodx = 4;
-    SYArgGetInt( &argc, argv, 1, "-autodx", &autodx );
-    autorel = 0.02;
-    SYArgGetDouble( &argc, argv, 1, "-autorel", &autorel );
+    autosize = SYArgHasName( &argc, argv, 1, "-auto" );
+    if (autosize) {
+	autodx = 4;
+	SYArgGetInt( &argc, argv, 1, "-autodx", &autodx );
+	autorel = 0.02;
+	SYArgGetDouble( &argc, argv, 1, "-autorel", &autorel );
     }
 
 /* Pick the general test based on the presence of an -gop, -overlap, -bisect
    or no arg */
-SetPattern( &argc, argv );
-if (SYArgHasName( &argc, argv, 1, "-gop")) {
-    f      = GetGOPFunction( &argc, argv, protocol_name, units );
-    MsgCtx = GOPInit( &argc, argv );
+    SetPattern( &argc, argv );
+    if (SYArgHasName( &argc, argv, 1, "-gop")) {
+	f      = GetGOPFunction( &argc, argv, protocol_name, units );
+	MsgCtx = GOPInit( &argc, argv );
     }
-else if (SYArgHasName( &argc, argv, 1, "-bisect" )) {
-    f = GetPairFunction( &argc, argv, protocol_name );
-    dist = 1;
-    SYArgGetInt( &argc, argv, 1, "-bisectdist", &dist );
-    MsgCtx     = BisectInit( dist );
-    ChangeDist = BisectChange;
-    strcat( protocol_name, "-bisect" );
-    if (SYArgHasName( &argc, argv, 1, "-debug" ))
-	PrintPairInfo( MsgCtx );
-    TimeScale = 0.5;
-    RateScale = (double) __NUMNODES; /* * (2 * 0.5) */
+    else if (SYArgHasName( &argc, argv, 1, "-bisect" )) {
+	f = GetPairFunction( &argc, argv, protocol_name );
+	dist = 1;
+	SYArgGetInt( &argc, argv, 1, "-bisectdist", &dist );
+	MsgCtx     = BisectInit( dist );
+	ChangeDist = BisectChange;
+	strcat( protocol_name, "-bisect" );
+	if (SYArgHasName( &argc, argv, 1, "-debug" ))
+	    PrintPairInfo( MsgCtx );
+	TimeScale = 0.5;
+	RateScale = (double) __NUMNODES; /* * (2 * 0.5) */
     }
-else if (SYArgHasName( &argc, argv, 1, "-overlap" )) {
-    int MsgSize;
-    char cbuf[32];
-    if (SYArgHasName( &argc, argv, 1, "-sync" )) {
-	f = round_trip_b_overlap;
-	strcpy( protocol_name, "blocking" );
+    else if (SYArgHasName( &argc, argv, 1, "-overlap" )) {
+	int MsgSize;
+	char cbuf[32];
+	if (SYArgHasName( &argc, argv, 1, "-sync" )) {
+	    f = round_trip_b_overlap;
+	    strcpy( protocol_name, "blocking" );
 	}
-    else {  /* Assume -async */
-	f = round_trip_nb_overlap;
-	strcpy( protocol_name, "nonblocking" );
+	else {  /* Assume -async */
+	    f = round_trip_nb_overlap;
+	    strcpy( protocol_name, "nonblocking" );
 	}
-    MsgSize = 0;
-    SYArgGetInt( &argc, argv, 1, "-overlapmsgsize", &MsgSize );
-    MsgCtx  = OverlapInit( proc1, proc2, MsgSize );
-    /* Compute floating point lengths if requested */
-    if (SYArgHasName( &argc, argv, 1, "-overlapauto")) {
-	OverlapSizes( MsgSize >= 0 ? MsgSize : 0, svals, MsgCtx );
+	MsgSize = 0;
+	SYArgGetInt( &argc, argv, 1, "-overlapmsgsize", &MsgSize );
+	MsgCtx  = OverlapInit( proc1, proc2, MsgSize );
+	/* Compute floating point lengths if requested */
+	if (SYArgHasName( &argc, argv, 1, "-overlapauto")) {
+	    OverlapSizes( MsgSize >= 0 ? MsgSize : 0, svals, MsgCtx );
 	}
-    strcat( protocol_name, "-overlap" );
-    if (MsgSize >= 0) {
-	sprintf( cbuf, "-%d bytes", MsgSize );
+	strcat( protocol_name, "-overlap" );
+	if (MsgSize >= 0) {
+	    sprintf( cbuf, "-%d bytes", MsgSize );
 	}
+	else {
+	    strcpy( cbuf, "-no msgs" );
+	}
+	strcat( protocol_name, cbuf );
+	TimeScale = 0.5;
+	RateScale = 2.0;
+    }
+    else if (SYArgHasName( &argc, argv, 1, "-memcpy" )) {
+	f = memcpy_rate;
+	MsgCtx     = 0;
+	ChangeDist = 0;
+	strcpy( protocol_name, "memcpy" );
+	TimeScale = 1.0;
+	RateScale = 1.0;
+    }
     else {
-	strcpy( cbuf, "-no msgs" );
-	}
-    strcat( protocol_name, cbuf );
-    TimeScale = 0.5;
-    RateScale = 2.0;
+	/* Pair by default */
+	f = GetPairFunction( &argc, argv, protocol_name );
+	MsgCtx = PairInit( proc1, proc2 );
+	ChangeDist = PairChange;
+	if (SYArgHasName( &argc, argv, 1, "-debug" ))
+	    PrintPairInfo( MsgCtx );
+	TimeScale = 0.5;
+	RateScale = 2.0;
     }
-else {
-    f = GetPairFunction( &argc, argv, protocol_name );
-    MsgCtx = PairInit( proc1, proc2 );
-    ChangeDist = PairChange;
-    if (SYArgHasName( &argc, argv, 1, "-debug" ))
-	PrintPairInfo( MsgCtx );
-    TimeScale = 0.5;
-    RateScale = 2.0;
-    }
-first = svals[0];
-last  = svals[1];
-incr  = svals[2];
-if (incr == 0) incr = 1;
+    first = svals[0];
+    last  = svals[1];
+    incr  = svals[2];
+    if (incr == 0) incr = 1;
 
 /*
    Finally, we are ready to run the tests.  We want to report times as
@@ -314,35 +341,37 @@ if (incr == 0) incr = 1;
 
  */
 
+    start_time = MPI_Wtime();
+
 /* If the distance flag is set, we look at a range of distances.  Otherwise,
    we just use the first and last processor */
-if (doinfo && __MYPROCID == 0) {
-    HeaderGraph( outctx, protocol_name, (char *)0, units );
+    if (doinfo && __MYPROCID == 0) {
+	HeaderGraph( outctx, protocol_name, (char *)0, units );
     }
-if(distance_flag) {
-    for(distance=1;distance<GetMaxIndex();distance++) {
-	proc2 = GetNeighbor( 0, distance, 0 );
-	if (ChangeDist)
-	    (*ChangeDist)( distance, MsgCtx );
-	time_function(reps,first,last,incr,proc1,proc2,f,outctx,
-		      autosize,autodx,autorel,MsgCtx);
-	ClearTimes();
+    if(distance_flag) {
+	for(distance=1;distance<GetMaxIndex();distance++) {
+	    proc2 = GetNeighbor( 0, distance, 0 );
+	    if (ChangeDist)
+		(*ChangeDist)( distance, MsgCtx );
+	    time_function(reps,first,last,incr,proc1,proc2,f,outctx,
+			  autosize,autodx,autorel,MsgCtx);
+	    ClearTimes();
 	}
     }
-else{
-    time_function(reps,first,last,incr,proc1,proc2,f,outctx,
-                  autosize,autodx,autorel,MsgCtx);
+    else{
+	time_function(reps,first,last,incr,proc1,proc2,f,outctx,
+		      autosize,autodx,autorel,MsgCtx);
     }
 
 /* 
    Generate the "end of page".  This allows multiple distance graphs on the
    same plot 
  */
-if (doinfo && __MYPROCID == 0) 
-    EndPageGraph( outctx );
+    if (doinfo && __MYPROCID == 0) 
+	EndPageGraph( outctx );
 
-MPI_Finalize();
-return 0;
+    MPI_Finalize();
+    return 0;
 }
 
 /* 
@@ -371,7 +400,7 @@ return 0;
          message sizes used.
 .  msgctx - Context to pass through to operation routine
  */
-time_function(reps,first,last,incr,proc1,proc2,f,outctx,
+void time_function(reps,first,last,incr,proc1,proc2,f,outctx,
               autosize,autodx,autorel,msgctx)
 int    reps,first,last,incr,proc1,proc2,autosize,autodx;
 double autorel;
@@ -379,88 +408,86 @@ double (* f)();
 void   *outctx;
 void   *msgctx;
 {
-  int    len,distance,myproc;
-  int    k;
-  double mean_time,rate;
-  double t;
-  double s, r;
-  double T1, T2;
-  int    Len1, Len2;
-  int    flag, iwork;
+    int    len,distance,myproc;
+    double mean_time;
+    double s, r;
+    double T1, T2;
+    int    Len1, Len2;
 
-  myproc   = __MYPROCID;
-  distance = ((proc1)<(proc2)?(proc2)-(proc1):(proc1)-(proc2));
+    myproc   = __MYPROCID;
+    distance = ((proc1)<(proc2)?(proc2)-(proc1):(proc1)-(proc2));
 
-  /* Run test, using either the simple direct test or the automatic length
+    /* Run test, using either the simple direct test or the automatic length
      test */
-  ntest = 0;
-  if (autosize) {
-      int    maxvals = 256, nvals, i;
-      int    dxmax;
-      TwinTest ctx;
-      TwinResults *results;
+    ntest = 0;
+    if (autosize) {
+	int    maxvals = 256, nvals, i;
+	int    dxmax;
+	TwinTest ctx;
+	TwinResults *results;
       
-      /* We should really set maxvals as 2+(last-first)/autodx */
-      results	 = (TwinResults *)malloc((unsigned)(maxvals * sizeof(TwinResults) ));
-      if (!results)exit(1);;
-      ctx.reps	 = reps;
-      ctx.f	 = f;
-      ctx.msgctx = msgctx;
-      ctx.proc1	 = proc1;
-      ctx.proc2	 = proc2;
-      ctx.t1	 = 0.0;
-      ctx.t2	 = 0.0;
-      ctx.len1	 = 0;
-      ctx.len2	 = 0;
+	/* We should really set maxvals as 2+(last-first)/autodx */
+	results	 = (TwinResults *)malloc((unsigned)
+					 (maxvals * sizeof(TwinResults) ));
+	if (!results)exit(1);;
+	ctx.reps	 = reps;
+	ctx.f	 = f;
+	ctx.msgctx = msgctx;
+	ctx.proc1	 = proc1;
+	ctx.proc2	 = proc2;
+	ctx.t1	 = 0.0;
+	ctx.t2	 = 0.0;
+	ctx.len1	 = 0;
+	ctx.len2	 = 0;
 
-      /* We need to pick a better minimum resolution */
-      dxmax = (last - first) / 16;
-      /* make dxmax a multiple of 4 */
-      dxmax = (dxmax & ~0x3);
-      if (dxmax < 4) dxmax = 4;
+	/* We need to pick a better minimum resolution */
+	dxmax = (last - first) / 16;
+	/* make dxmax a multiple of 4 */
+	dxmax = (dxmax & ~0x3);
+	if (dxmax < 4) dxmax = 4;
       
-      nvals = TSTAuto1d( (double)first, (double)last, (double)autodx,
-			 (double)dxmax, autorel, 1.0e-10, 
-			 results, sizeof(TwinResults),
-			 maxvals, GeneralF, &ctx );
-      if (myproc == 0) {
-	  TSTRSort( results, sizeof(TwinResults), nvals );
-	  for (i = 0; i < nvals; i++) {
-	      DataoutGraph( outctx, proc1, proc2, distance, 
-			  (int)results[i].len, results[i].t * TimeScale,
-			   results[i].mean_time * TimeScale, 
-			   results[i].rate * RateScale, 
-			   results[i].smean_time * TimeScale, 
-			   results[i].max_time * TimeScale );
-	      }
-	  }
-      free(results );
-      }
-  else {
-      T1 = 0;
-      T2 = 0;
-      if (nsizes) {
-	  int i;
-	  for (i=0; i<nsizes; i++) {
-	      len = sizelist[i];
-	      RunATest( len, &Len1, &Len2, &T1, &T2, &reps, f, 
-		       myproc, proc1, proc2, distance, outctx, msgctx );
-	      }
-	  }
-      else {
-	  for(len=first;len<=last;len+=incr){
-	      RunATest( len, &Len1, &Len2, &T1, &T2, &reps, f, 
-		       myproc, proc1, proc2, distance, outctx, msgctx );
+	nvals = TSTAuto1d( (double)first, (double)last, (double)autodx,
+			   (double)dxmax, autorel, 1.0e-10, 
+			   results, sizeof(TwinResults),
+			   maxvals, GeneralF, &ctx );
+	if (myproc == 0) {
+	    TSTRSort( results, sizeof(TwinResults), nvals );
+	    for (i = 0; i < nvals; i++) {
+		DataoutGraph( outctx, proc1, proc2, distance, 
+			      (int)results[i].len, results[i].t * TimeScale,
+			      results[i].mean_time * TimeScale, 
+			      results[i].rate * RateScale, 
+			      results[i].smean_time * TimeScale, 
+			      results[i].max_time * TimeScale );
+	    }
+	}
+	free(results );
+    }
+    else {
+	T1 = 0;
+	T2 = 0;
+	if (nsizes) {
+	    int i;
+	    for (i=0; i<nsizes; i++) {
+		len = sizelist[i];
+		RunATest( len, &Len1, &Len2, &T1, &T2, &reps, f, 
+			  myproc, proc1, proc2, distance, outctx, msgctx );
+	    }
+	}
+	else {
+	    for(len=first;len<=last;len+=incr){
+		RunATest( len, &Len1, &Len2, &T1, &T2, &reps, f, 
+			  myproc, proc1, proc2, distance, outctx, msgctx );
 	      
-	      }
-	  }
-      }
+	    }
+	}
+    }
 /* Generate C.It output */
-if (doinfo && myproc == 0) {
-    RateoutputGraph( outctx, 
-		    sumlen, sumtime, sumlentime, sumlen2, sumtime2, 
-		    ntest, &s, &r );
-    DrawGraph( outctx, first, last, s, r );
+    if (doinfo && myproc == 0) {
+	RateoutputGraph( outctx, 
+			 sumlen, sumtime, sumlentime, sumlen2, sumtime2, 
+			 ntest, &s, &r );
+	DrawGraph( outctx, first, last, s, r );
     }
 
 }
@@ -479,29 +506,29 @@ double *T1, *T2;
 double (*f)();
 void   *outctx, *msgctx;
 {
-double mean_time, t, rate;
-double tmax, tmean;
+    double mean_time, t, rate;
+    double tmax, tmean;
 
-if (AutoReps) {
-    *reps = GetRepititions( *T1, *T2, *Len1, *Len2, len, *reps );
+    if (AutoReps) {
+	*reps = GetRepititions( *T1, *T2, *Len1, *Len2, len, *reps );
     }
-t = RunSingleTest( f, *reps, len, msgctx, &tmax, &tmean );
-mean_time = t;
-mean_time = mean_time / *reps;  /* take average over trials */
-if (mean_time > 0.0) 
-    rate      = ((double)len)/mean_time;
-else 
-    rate      = 0.0;
-if(myproc==0) {
-    DataoutGraph( outctx, proc1, proc2, distance, len, 
-	       t * TimeScale, mean_time * TimeScale, 
-	       rate * RateScale, tmean * TimeScale, tmax * TimeScale );
+    t = RunSingleTest( f, *reps, len, msgctx, &tmax, &tmean );
+    mean_time = t;
+    mean_time = mean_time / *reps;  /* take average over trials */
+    if (mean_time > 0.0) 
+	rate      = ((double)len)/mean_time;
+    else 
+	rate      = 0.0;
+    if(myproc==0) {
+	DataoutGraph( outctx, proc1, proc2, distance, len, 
+		      t * TimeScale, mean_time * TimeScale, 
+		      rate * RateScale, tmean * TimeScale, tmax * TimeScale );
     }
 
-*T1   = *T2;
-*Len1 = *Len2;
-*T2   = mean_time;
-*Len2 = len;
+    *T1   = *T2;
+    *Len1 = *Len2;
+    *T2   = mean_time;
+    *Len2 = len;
 }
 
 /*
@@ -512,21 +539,21 @@ int ComputeGoodReps( t1, len1, t2, len2, len )
 double t1, t2;
 int    len1, len2, len;
 {
-double s, r;
-int    reps;
+    double s, r;
+    int    reps;
 
-r = (t2 - t1) / (len2 - len1);
-s = t1 - r * len1;
+    r = (t2 - t1) / (len2 - len1);
+    s = t1 - r * len1;
 
-if (s <= 0.0) s = 0.0;
-reps = Tgoal / (s + r * len );
+    if (s <= 0.0) s = 0.0;
+    reps = Tgoal / (s + r * len );
  
-if (reps < 1) reps = 1;
+    if (reps < 1) reps = 1;
 
 /*
 printf( "Reps = %d (%d,%d,%d)\n", reps, len1, len2, len ); fflush( stdout );
  */
-return reps;
+    return reps;
 }
 
 
@@ -570,47 +597,54 @@ int    reps;
 void   *msgctx;
 double *tmaxtime, *tmean;
 {
-int    flag, k, iwork, natmin;
-double t, tmin, mean_time, tmax, tsum;
+    int    flag, k, iwork, natmin;
+    double t, tmin, mean_time, tmax, tsum;
+    int    rank;
 
+    flag   = 0;
+    tmin   = 1.0e+38;
+    tmax   = tsum = 0.0;
+    natmin = 0;
 
-flag   = 0;
-tmin   = 1.0e+38;
-tmax   = tsum = 0.0;
-natmin = 0;
-
-for (k=0; k<minreps && flag == 0; k++) {
-    t = (* f) (reps,len,msgctx);
-    if (__MYPROCID == 0) {
-	tsum += t;
-	if (t > tmax) tmax = t;
-	if (t < tmin) {
-	    tmin   = t;
-	    natmin = 0;
+    for (k=0; k<minreps && flag == 0; k++) {
+	t = (* f) (reps,len,msgctx);
+	if (__MYPROCID == 0) {
+	    tsum += t;
+	    if (t > tmax) tmax = t;
+	    if (t < tmin) {
+		tmin   = t;
+		natmin = 0;
 	    }
-	else if (minThreshTest < k && tmin * (1.0 + repsThresh) > t) {
-	    /* This time is close to the minimum; use this to decide
-	       that we've gotten close enough */
-	    natmin++;
-	    if (natmin >= NatThresh) 
-		flag = 1;
+	    else if (minThreshTest < k && tmin * (1.0 + repsThresh) > t) {
+		/* This time is close to the minimum; use this to decide
+		   that we've gotten close enough */
+		natmin++;
+		if (natmin >= NatThresh) 
+		    flag = 1;
 	    }
 	}
-    MPI_Allreduce(&flag, &iwork, 1, MPI_INT,MPI_SUM,MPI_COMM_WORLD );
-memcpy(&flag,&iwork,(1)*sizeof(int));;
+	MPI_Allreduce(&flag, &iwork, 1, MPI_INT,MPI_SUM,MPI_COMM_WORLD );
+	flag = iwork;
+
+	/* Check for max time exceeded */
+	MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+	if (rank == 0 && MPI_Wtime() - start_time > max_run_time) {
+	    fprintf( stderr, "Exceeded %f seconds, aborting\n", max_run_time );
+	    MPI_Abort( MPI_COMM_WORLD, 1 );
+	}
     }
 
-mean_time  = tmin / reps;
-sumlen     += len;
-sumtime    += mean_time;
-sumlen2    += ((double)len)*((double)len);
-sumlentime += mean_time * len;
-sumtime2   += mean_time * mean_time;
-ntest      ++;
+    mean_time  = tmin / reps;
+    sumlen     += len;
+    sumtime    += mean_time;
+    sumlen2    += ((double)len)*((double)len);
+    sumlentime += mean_time * len;
+    sumtime2   += mean_time * mean_time;
+    ntest      ++;
 
-if (tmaxtime) *tmaxtime = tmax / reps;
-if (tmean)    *tmean    = (tsum / reps ) / k;
-return tmin;
+    if (tmaxtime) *tmaxtime = tmax / reps;
+    if (tmean)    *tmean    = (tsum / reps ) / k;
+    return tmin;
 }
 
 int PrintHelp( argv ) 

@@ -18,6 +18,7 @@ int sscanf( char *, const char *, ... );
 #include "events.h"
 #include "states.h"
 #include "msgs.h"
+#include "procs.h"
 #include "log.h"
 #include "alog.h"
 #include "alog_int.h"
@@ -157,6 +158,8 @@ logFile *log;
       switch (lineData.type) {
       case ALOG_NP:
 	log->np = lineData.data;
+	/* initialize process name table now that we know # processes */
+        Process_DataInit( log->processes, log->np );
 	break;
       case ALOG_START_TIME:
 	log->starttime = lineData.timestamp;
@@ -174,7 +177,10 @@ logFile *log;
       case ALOG_STATE_DEF:
 	StateDef( log->states, alog, &lineData );
 	break;
-      }
+      case ALOG_PROCESS_DEF:
+ 	Process_SetDef( log->processes, lineData.process, lineData.comment );
+  	break;
+        }  
     }
   }
 

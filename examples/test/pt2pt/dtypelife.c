@@ -28,13 +28,9 @@ int argc;
 char **argv;
 {
     int rank; /* My Rank (0 or 1) */
-    int tag, count, i;
+    int tag, count, i, errcnt = 0;
     MPI_Request handle;
-    int act_size = 0;
-    int flag;
     double data[100];
-    double t0;
-    char *Current_Test = NULL;
     MPI_Status status;
     MPI_Datatype rowtype;
 
@@ -54,15 +50,29 @@ char **argv;
 	MPI_Recv( (void *)0, 0, MPI_INT, dest, tag+1, 
 		  MPI_COMM_WORLD, &status );
 	MPI_Wait( &handle, &status );
+	/* Check for correct data */
+	for (i = 0; i < 10; i++) if (data[i*10] != i*10) {
+	    errcnt++;
+	    fprintf( stderr, 
+		    "[%d](rcv row-row) %d'th element = %f, should be %f\n",
+		     rank, i, data[i*10], 10.0*i );
+	    }
 
     } else if (rank == dest) {
+	MPI_Ssend( (void *)0, 0, MPI_INT, src, tag+1, MPI_COMM_WORLD );
+	/* By using an Ssend first, we make sure that the Irecv doesn't
+	   match until after the type has been freed */
 	MPI_Isend( data, count, rowtype, src, tag, MPI_COMM_WORLD, 
 		  &handle );
 	MPI_Type_free( &rowtype );
-	MPI_Send( (void *)0, 0, MPI_INT, src, tag+1, MPI_COMM_WORLD );
 	MPI_Wait( &handle, &status );
 	}
 
+    i = errcnt;
+    MPI_Allreduce( &i, &errcnt, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
+    if (errcnt > 0) {
+	printf( "Found %d errors in the run\n", errcnt );
+	}
     Test_Waitforall( );
     MPI_Finalize();
 

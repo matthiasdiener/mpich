@@ -1,1 +1,0 @@
-../usc/usc_sys.h

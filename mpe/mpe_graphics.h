@@ -7,6 +7,14 @@ typedef int MPI_Comm;
 #include "mpi.h"
 #endif
 
+#ifndef ANSI_ARGS
+#if defined(__STDC__) || defined(__cplusplus)
+#define ANSI_ARGS(a) a
+#else
+#define ANSI_ARGS(a) ()
+#endif
+#endif
+
 /* See colornames in baseclr.h */
 typedef enum { MPE_WHITE = 0, MPE_BLACK = 1, MPE_RED = 2, MPE_YELLOW = 3, 
 	       MPE_GREEN = 4, MPE_CYAN = 5, MPE_BLUE = 6, MPE_MAGENTA = 7,
@@ -61,6 +69,7 @@ extern int MPE_logicArray[];
 #include "mpetools.h"
 #include "basex11.h"
 
+typedef struct MPE_XGraph_s *MPE_XGraph;
 struct MPE_XGraph_s {
   int      Cookie;
   XBWindow *xwin;
@@ -83,9 +92,9 @@ struct MPE_XGraph_s {
      an event_routine structure, that has (user routine) and (next).
    */
   long     input_mask;          /* Input mask of enabled events */
-  int      (*event_routine)();  /* Routine to call for events */
+    /* Routine to call for events */
+  int      (*event_routine) ANSI_ARGS(( MPE_XGraph, XEvent * ));  
 };
-typedef struct MPE_XGraph_s *MPE_XGraph;
 #define MPE_G_COOKIE 0xfeeddada
 
 #define MPE_XEVT_IDLE_MASK 0
@@ -106,47 +115,61 @@ typedef struct MPE_Point_ {
 #define MPE_GRAPH_INDEPDENT  0
 #define MPE_GRAPH_COLLECTIVE 1
 
-/* I got this trick from the Tcl implementation */
-#ifdef _ANSI_ARGS_
-#undef _ANSI_ARGS_
-#endif
-
-#ifdef __STDC__
-#define _ANSI_ARGS_(x) x
-#else
-#define _ANSI_ARGS_(x) ()
-#endif
-
-extern int MPE_Open_graphics _ANSI_ARGS_(( MPE_XGraph *handle, MPI_Comm comm, 
+extern int MPE_Open_graphics ANSI_ARGS(( MPE_XGraph *handle, MPI_Comm comm, 
 	   char *display, int x, int y, int w, int h, int is_collective ));
 
-extern int MPE_Get_mouse_press _ANSI_ARGS_(( MPE_XGraph graph,
+extern int MPE_Get_mouse_press ANSI_ARGS(( MPE_XGraph graph,
            int *x, int *y, int *button ));
 
-extern int MPE_Get_drag_region _ANSI_ARGS_(( MPE_XGraph graph, int button,
-           int dragVisual, int *pressx, int *pressy, int *releasex,
-	   int *releasey ));
-
-extern int MPE_Draw_point _ANSI_ARGS_(( MPE_XGraph handle, int x, int y,
+extern int MPE_Draw_point ANSI_ARGS(( MPE_XGraph handle, int x, int y,
 	   MPE_Color color ));
 
-extern int MPE_Draw_line _ANSI_ARGS_(( MPE_XGraph handle, int x1, int y1,
+extern int MPE_Draw_line ANSI_ARGS(( MPE_XGraph handle, int x1, int y1,
 	   int x2, int y2, MPE_Color color ));
 
-extern int MPE_Draw_circle _ANSI_ARGS_(( MPE_XGraph handle, int centerx,
+extern int MPE_Draw_circle ANSI_ARGS(( MPE_XGraph handle, int centerx,
 	   int centery, int radius, MPE_Color color ));
 
-extern int MPE_Fill_rectangle _ANSI_ARGS_(( MPE_XGraph handle, int x, int y,
+extern int MPE_Fill_rectangle ANSI_ARGS(( MPE_XGraph handle, int x, int y,
 	   int w, int h, MPE_Color color ));
 
-extern int MPE_Update _ANSI_ARGS_(( MPE_XGraph handle ));
+extern int MPE_Update ANSI_ARGS(( MPE_XGraph handle ));
 
-extern int MPE_Num_colors _ANSI_ARGS_(( MPE_XGraph handle, int *nc ));
+extern int MPE_Num_colors ANSI_ARGS(( MPE_XGraph handle, int *nc ));
 
-extern int MPE_Make_color_array _ANSI_ARGS_(( MPE_XGraph handle, int ncolors, 
+extern int MPE_Make_color_array ANSI_ARGS(( MPE_XGraph handle, int ncolors, 
 	   MPE_Color array[] ));
 
-extern int MPE_Close_graphics _ANSI_ARGS_(( MPE_XGraph *handle ));
+extern int MPE_Close_graphics ANSI_ARGS(( MPE_XGraph *handle ));
+
+extern int MPE_CaptureFile ANSI_ARGS(( MPE_XGraph, char *, int ));
+
+extern int MPE_Draw_points ANSI_ARGS(( MPE_XGraph, MPE_Point *, int ));
+
+extern int MPE_Fill_circle ANSI_ARGS(( MPE_XGraph, int, int, int, MPE_Color ));
+
+extern int MPE_Draw_logic  ANSI_ARGS(( MPE_XGraph, int ));
+
+extern int MPE_Line_thickness ANSI_ARGS(( MPE_XGraph, int ));
+
+extern int MPE_Draw_dashes ANSI_ARGS(( MPE_XGraph, int ));
+
+extern int MPE_Dash_offset ANSI_ARGS(( MPE_XGraph, int ));
+
+extern int MPE_Add_RGB_color ANSI_ARGS(( MPE_XGraph, int, int, int, 
+					 MPE_Color * ));
+
+extern int MPE_Xerror ANSI_ARGS(( int, char * ));
+
+/* xmouse */
+extern int MPE_Get_mouse_press ANSI_ARGS(( MPE_XGraph, int *, int *, int * ));
+extern int MPE_Iget_mouse_press ANSI_ARGS(( MPE_XGraph, int *, int *, int *,
+					    int * ));
+extern int MPE_Get_drag_region ANSI_ARGS(( MPE_XGraph, int, int, 
+					   int *, int *, int *, int * ));
+extern int MPE_Get_drag_region_fixratio ANSI_ARGS(( MPE_XGraph, int, double, 
+						    int *, int *, 
+						    int *, int * ));
 
 #endif
 

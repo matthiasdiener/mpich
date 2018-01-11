@@ -69,6 +69,8 @@ proc Legend_Create {frame log width} {
 	    -stipple $stipple
 
       button $canvas.b$i -text $name -command "Hist_Open $log $stateno"
+#     Can use "bind" to turn states on/off
+#      bind   $canvas.b$i <2> "StateToggleActive $stateno"
       $canvas create window [expr $boxWidth+$spcBtwnBoxLbl] \
 	    [expr $ycor+$boxMiddle] -window $canvas.b$i \
 	    -tags [list legend l_$i color_fg] -anchor w
@@ -145,6 +147,20 @@ proc Legend_Resize {frame givenWidth} {
    # thisLine = {0 1 2... (which states are in this line)}
    set thisLine {}
 
+      # The following trick is to keep the legend from
+      # taking up the entire vertical space when there are dozens,
+      # maybe hundreds, of different event names.  If there are too
+      # many, then show none at all so it will be obvious to the
+      # user that something is different.  Thanks to Dennis Cottel
+      # (dennis@nosc.mil) for this change.
+
+   set maxStates 30
+   if {$legend($frame,nstates) > $maxStates} {
+      set legend($frame,nstates) 0
+      set marginVert 0
+      set vert 0
+   }
+     
       # count through the list of states depicted, not every state type
       # some state types might not have ever been used, and should
       # not be depicted

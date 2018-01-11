@@ -1,7 +1,13 @@
-.TH MPE_Update 4 "1/16/1996" " " "MPE"
+.TH MPE_Update 4 "6/26/1996" " " "MPE"
 .SH NAME
-MPE_Update \- Updates an X11 display
-
+MPE_Update \-  Updates an X11 display 
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+int MPE_Update( handle )
+MPE_XGraph handle;
+.fi
 .SH INPUT PARAMETER
 .PD 0
 .TP
@@ -13,14 +19,5 @@ MPE_Update \- Updates an X11 display
 Only after an 'MPE_Update' can you count on seeing the results of MPE
 drawing routines.  This is caused by the buffering of graphics requests
 for improved performance.
-.SH SYNOPSIS
-.nf
-#include <stdio.h>
-#include "mpe.h"
-int MPE_Update( handle )
-MPE_XGraph handle;
-
-.fi
-
 .SH LOCATION
- mpe_graphics.c
+mpe_graphics.c

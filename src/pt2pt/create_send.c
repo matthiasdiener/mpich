@@ -1,12 +1,16 @@
 /*
- *  $Id: create_send.c,v 1.18 1995/12/21 21:12:07 gropp Exp $
+ *  $Id: create_send.c,v 1.20 1996/06/07 15:07:30 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "reqalloc.h"
+#else
 #include "mpisys.h"
+#endif
 
 /*@
     MPI_Send_init - Builds a handle for a standard send
@@ -22,6 +26,17 @@ Output Parameter:
 . request - communication request (handle) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_RANK
+.N MPI_ERR_TAG
+.N MPI_ERR_COMM
+.N MPI_ERR_EXHAUSTED
+
+.seealso: MPI_Start, MPI_Request_free
 @*/
 int MPI_Send_init( buf, count, datatype, dest, tag, comm, request )
 void          *buf;
@@ -33,21 +48,45 @@ MPI_Comm      comm;
 MPI_Request   *request;
 {
     int         mpi_errno;
+#ifdef MPI_ADI2
+    MPIR_PSHANDLE *shandle;
+#else
     MPI_Request handleptr;
+#endif
 
     if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,count) ||
 	MPIR_TEST_DATATYPE(comm,datatype) || MPIR_TEST_SEND_TAG(comm,tag) ||
 	MPIR_TEST_SEND_RANK(comm,dest)) 
 	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_SEND_INIT" );
 
+#ifdef MPI_ADI2
+    MPIR_ALLOC(*request,(MPI_Request)MPID_PSendAlloc(),
+	       comm,MPI_ERR_EXHAUSTED,"Error in MPI_SEND_INIT" );
+    shandle = &(*request)->persistent_shandle;
+    MPID_Request_init( &(shandle->shandle), MPIR_PERSISTENT_SEND );
+    /* Save the information about the operation, being careful with
+       ref-counted items */
+    MPIR_GET_REAL_DATATYPE(datatype)
+    datatype->ref_count++;
+    shandle->perm_datatype = datatype;
+    shandle->perm_tag	   = tag;
+    shandle->perm_dest	   = dest;
+    shandle->perm_count	   = count;
+    shandle->perm_buf	   = buf;
+    comm->ref_count++;
+    shandle->perm_comm	   = comm;
+    shandle->active	   = 0;
+    shandle->send          = MPID_IsendDatatype;
+    /* dest of MPI_PROC_NULL handled in start */
+#else
     /* See MPI_TYPE_FREE.  A free can not happen while the datatype may
        be in use.  Thus, a nonblocking operation increments the
        reference count */
     MPIR_GET_REAL_DATATYPE(datatype)
     datatype->ref_count++;
-    *request                        = 
-	(MPI_Request) MPIR_SBalloc( MPIR_shandles );
-    handleptr                       = *request;
+    MPIR_ALLOC(handleptr,(MPI_Request) MPIR_SBalloc( MPIR_shandles ),comm,
+	       MPI_ERR_EXHAUSTED,"Error in MPI_SEND_INIT");
+    *request = handleptr;
     MPIR_SET_COOKIE(&handleptr->shandle,MPIR_REQUEST_COOKIE)
     handleptr->type                 = MPIR_SEND;
     if (dest == MPI_PROC_NULL) {
@@ -76,7 +115,6 @@ MPI_Request   *request;
     MPID_Alloc_send_handle(comm->ADIctx, &((handleptr)->shandle.dev_shandle));
     MPID_Set_send_is_nonblocking( comm->ADIctx, 
 				 &((handleptr)->shandle.dev_shandle), 1 );
-
+#endif
     return MPI_SUCCESS;
 }
-

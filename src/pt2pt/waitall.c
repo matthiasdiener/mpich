@@ -1,16 +1,17 @@
 /*
- *  $Id: waitall.c,v 1.32 1996/01/11 18:31:03 gropp Exp $
+ *  $Id: waitall.c,v 1.35 1996/06/26 19:27:12 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 
-#ifndef lint
-static char vcid[] = "$Id: waitall.c,v 1.32 1996/01/11 18:31:03 gropp Exp $";
-#endif /* lint */
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "reqalloc.h"
+#else
 #include "mpisys.h"
+#endif
 
 /*@
     MPI_Waitall - Waits for all given communications to complete
@@ -23,6 +24,11 @@ Output Parameter:
 . array_of_statuses - array of status objects (array of Status) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_REQUEST
+.N MPI_ERR_ARG
 @*/
 int MPI_Waitall(count, array_of_requests, array_of_statuses )
 int         count;
@@ -31,8 +37,9 @@ MPI_Status  array_of_statuses[];
 {
     int i;
     MPI_Request request;
-    int mpi_errno = MPI_SUCCESS, mpi_lerr;
-    
+    int mpi_errno = MPI_SUCCESS;
+
+#ifdef MPI_ADI2
     /* NOTE:
        This implementation will not work correctly if the device requires
        messages to be received in some particular order.  In that case, 
@@ -48,7 +55,94 @@ MPI_Status  array_of_statuses[];
         /* Skip over null handles.  We need this for handles generated
            when MPI_PROC_NULL is the source or destination of an operation */
         request = array_of_requests[i];
-	/*fprintf( stderr, "[%d] processing request %d = %x\n", MPIR_tid, i, 
+	/*FPRINTF( stderr, "[%d] processing request %d = %x\n", MPIR_tid, i, 
+		 request ); */
+        if (!request) {
+	    /* See MPI Standard, 3.7 */
+	    array_of_statuses[i].MPI_TAG    = MPI_ANY_TAG;
+	    array_of_statuses[i].MPI_SOURCE = MPI_ANY_SOURCE;
+	    array_of_statuses[i].MPI_ERROR  = MPI_SUCCESS;
+	    array_of_statuses[i].count	    = 0;
+	    continue;
+	    }
+
+	if ( request->handle_type == MPIR_SEND ) {
+	    MPID_SendComplete( request, &mpi_errno );
+	    if (mpi_errno) 
+		MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+			    "Could not complete send in MPI_WAITALL");
+	    MPIR_FORGET_SEND( &request->shandle );
+	    MPID_SendFree( array_of_requests[i] );
+	    array_of_requests[i]    = 0;
+	}
+	else if (request->handle_type == MPIR_PERSISTENT_SEND) {
+	    if (!request->persistent_shandle.active) {
+                /* See MPI Standard, 3.7 */
+		array_of_statuses[i].MPI_TAG	= MPI_ANY_TAG;
+		array_of_statuses[i].MPI_SOURCE	= MPI_ANY_SOURCE;
+		array_of_statuses[i].MPI_ERROR	= MPI_SUCCESS;
+		array_of_statuses[i].count	= 0;
+		continue;
+	    }
+	    MPID_SendComplete( request, &mpi_errno );
+	    if (mpi_errno) 
+		MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+			    "Could not complete send in MPI_WAITALL");
+	    request->persistent_shandle.active = 0;
+	}
+    }
+
+    /* Process all pending receives... */
+    for (i = 0; i < count; i++)
+    {
+        /* Skip over null handles.  We need this for handles generated
+           when MPI_PROC_NULL is the source or destination of an operation
+           Note that the send loop has already set the status array entries */
+        request = array_of_requests[i];
+	/*FPRINTF( stderr, "[%d] processing request %d = %x\n", MPIR_tid, i, 
+		 request );*/
+        if (!request) continue;
+
+	if ( request->handle_type == MPIR_RECV ) {
+	    /*FPRINTF( stderr, "[%d] receive request %d\n", MPIR_tid, i );*/
+	    /* Old code does test first */
+	    MPID_RecvComplete( request, &array_of_statuses[i], &mpi_errno );
+	    if (mpi_errno) mpi_errno = MPI_ERR_IN_STATUS;
+	    MPID_RecvFree( array_of_requests[i] );
+	    array_of_requests[i] = 0;
+	}
+	else if (request->handle_type == MPIR_PERSISTENT_RECV) {
+	    if (!request->persistent_rhandle.active) {
+		array_of_statuses[i].MPI_TAG    = MPI_ANY_TAG;
+		array_of_statuses[i].MPI_SOURCE = MPI_ANY_SOURCE;
+		array_of_statuses[i].MPI_ERROR  = MPI_SUCCESS;
+		array_of_statuses[i].count	    = 0;
+		continue;
+	    }
+	    MPID_RecvComplete( request, &array_of_statuses[i], &mpi_errno );
+	    if (mpi_errno) mpi_errno = MPI_ERR_IN_STATUS;
+	    request->persistent_rhandle.active = 0;
+	}
+    }
+    
+#else    
+    int mpi_lerr;
+    /* NOTE:
+       This implementation will not work correctly if the device requires
+       messages to be received in some particular order.  In that case, 
+       this routine needs to try and complete the messages in ANY order.
+       In particular, many systems need the sends completed before the
+       receives.
+
+       The same is true for testall.c .
+     */
+    /* Process all pending sends... */
+    for (i = 0; i < count; i++)
+    {
+        /* Skip over null handles.  We need this for handles generated
+           when MPI_PROC_NULL is the source or destination of an operation */
+        request = array_of_requests[i];
+	/*FPRINTF( stderr, "[%d] processing request %d = %x\n", MPIR_tid, i, 
 		 request ); */
         if (!request || !request->chandle.active ) {
 	    /* See MPI Standard, 3.7 */
@@ -74,7 +168,7 @@ MPI_Status  array_of_statuses[];
 	      if (--request->chandle.datatype->ref_count <= 0) {
 		  MPIR_Type_free( &request->chandle.datatype );
 		  }
-	      /*fprintf( stderr, "[%d] freeing request %d\n", MPIR_tid, i );*/
+	      /*FPRINTF( stderr, "[%d] freeing request %d\n", MPIR_tid, i );*/
 	      MPI_Request_free( &array_of_requests[i] );
 	      /* sets array_of_requests[i]    = NULL; */
 	      }
@@ -90,12 +184,12 @@ MPI_Status  array_of_statuses[];
            when MPI_PROC_NULL is the source or destination of an operation
            Note that the send loop has already set the status array entries */
         request = array_of_requests[i];
-	/*fprintf( stderr, "[%d] processing request %d = %x\n", MPIR_tid, i, 
+	/*FPRINTF( stderr, "[%d] processing request %d = %x\n", MPIR_tid, i, 
 		 request );*/
         if (!request || !request->chandle.active ) continue;
 
 	if ( request->type == MPIR_RECV ) {
-	    /*fprintf( stderr, "[%d] receive request %d\n", MPIR_tid, i );*/
+	    /*FPRINTF( stderr, "[%d] receive request %d\n", MPIR_tid, i );*/
 	    if (! MPID_Test_request( MPID_Ctx( request ), request )) {
 		/* Need to trap error messages, particularly truncated 
 		   data */
@@ -105,7 +199,7 @@ MPI_Status  array_of_statuses[];
 		    array_of_statuses[i].MPI_ERROR = mpi_lerr;
 		    mpi_errno = MPI_ERR_IN_STATUS;
 		    }
-		/*fprintf( stderr, "[%d] did complete receive\n", MPIR_tid );*/
+		/*FPRINTF( stderr, "[%d] did complete receive\n", MPIR_tid );*/
 		}
 	    if (request->rhandle.errval) {
 		array_of_statuses[i].MPI_ERROR  = request->rhandle.errval;
@@ -116,7 +210,7 @@ MPI_Status  array_of_statuses[];
 	    array_of_statuses[i].count		= request->rhandle.totallen;
 #ifdef MPID_RETURN_PACKED
 	    if (request->rhandle.bufpos) {
-		/*fprintf( stderr, "[%d] doing unpack from %d\n", 
+		/*FPRINTF( stderr, "[%d] doing unpack from %d\n", 
 			 MPIR_tid, array_of_statuses[i].MPI_SOURCE );*/
 		mpi_lerr = MPIR_UnPackMessage( request->rhandle.bufadd, 
 					       request->rhandle.count, 
@@ -134,7 +228,7 @@ MPI_Status  array_of_statuses[];
 		if (--request->chandle.datatype->ref_count <= 0) {
 		    MPIR_Type_free( &request->chandle.datatype );
 		    }
-		/*fprintf( stderr, "[%d] freeing request %d\n", MPIR_tid, i );*/
+		/*FPRINTF( stderr, "[%d] freeing request %d\n", MPIR_tid, i );*/
 		MPI_Request_free( &array_of_requests[i] );
 		/* sets array_of_requests[i]    = NULL; */
 		}
@@ -143,15 +237,9 @@ MPI_Status  array_of_statuses[];
 		}
 	    }
     }
+#endif
     if (mpi_errno) {
 	return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, "Error in MPI_WAITALL");
 	}
     return mpi_errno;
 }
-
-
-
-
-
-
-

@@ -48,10 +48,11 @@ char *pct_done;
   log->states = State_Create();
   log->events = Event_Create();
   log->msgs   = Msg_Create();
+  log->processes = Process_Create();  
   log->pct_done = pct_done;
 
   if (!log->filename || !log->cmdname || !log->states || !log->events ||
-      !log->msgs) {
+      !log->msgs || !log->processes) {
     Tcl_AppendResult( interp, "out of memory opening logfile", (char*)0 );
     return 0;
   }
@@ -98,6 +99,7 @@ logFile *log;
   Event_Close( log->events );
   State_Close( log->states );
   Msg_Close( log->msgs );
+  Process_Close( log->processes );
   free( (char*)log );
 
   return TCL_OK;
@@ -313,6 +315,25 @@ double *sendTime, *recvTime;
 		  sendTime, recvTime, size );
 }
 
+
+  /* Process-handling stuff */
+
+int Log_GetProcessDef( log, def_num, name )
+logFile *log;
+int def_num;
+char **name;
+{
+  return Process_GetDef( log->processes, def_num, name );
+}
+
+
+int Log_SetProcessDef( log, def_num, name )
+logFile *log;
+int def_num;
+char *name;
+{
+  return Process_SetDef( log->processes, def_num, name );
+}
 
 
 /* Tcl hooks */
@@ -544,10 +565,12 @@ char **argv;
 	    != TCL_OK) {
 	  return TCL_ERROR;
 	}
-	Log_GetStateDef( log, idx, &name, &color, &bitmap );
-	Tcl_AppendElement( interp, name );
-	Tcl_AppendElement( interp, color );
-	Tcl_AppendElement( interp, bitmap );
+	/* If the state is not active, don't do anythin */
+	if (!Log_GetStateDef( log, idx, &name, &color, &bitmap )) {
+	    Tcl_AppendElement( interp, name );
+	    Tcl_AppendElement( interp, color );
+	    Tcl_AppendElement( interp, bitmap );
+	}
 	return TCL_OK;
       }
 
@@ -590,6 +613,19 @@ char **argv;
       }
       Tcl_AppendElement( interp, color );
       return TCL_OK;
+
+    case 'p':
+      if (strcmp( argv[1], "getprocessdef" ) == 0) {
+        if (ConvertArgs( interp, "<logfile> getprocessdef <idx>",
+			"2 d", argc, argv, &idx )
+	    != TCL_OK) {
+	  return TCL_ERROR;
+        }
+        Log_GetProcessDef( log, idx, &name );
+        Tcl_AppendResult( interp, name, (char *) NULL ); /* not a list elt */
+        return TCL_OK;
+      } else
+        goto unrecognized_cmd;
 
     default:
       goto unrecognized_cmd;
@@ -635,6 +671,16 @@ char **argv;
 	}
 	Log_SetMsgDef( log, idx, name, tag, color );
 	return TCL_OK;
+  
+      case 'p':
+	if (strcmp( argv[1], "setprocessdef" )) goto unrecognized_cmd;
+	if (ConvertArgs( interp, "<logfile> setprocessdef <idx> <name>",
+			 "2 is", argc, argv, &idx, &name )
+	    != TCL_OK) {
+	  return TCL_ERROR;
+	}
+	Log_SetProcessDef( log, idx, name );
+	return TCL_OK;
 
       default:
 	goto unrecognized_cmd;
@@ -652,6 +698,7 @@ char **argv;
 		    "neventdefs, geteventdef, seteventdef, ",
 		    "nevents, getevent, ",
 		    "nstatedefs, getstatedef, setstatedef, ",
+ 		    "getprocessdef, setprocessdef, ",
 		    "nstates, nstatetypeinst, getstate, ",
 		    "nmsgdefs, getmsgdef, setmsgdef, ",
 		    "nmsgs, getmsg.", (char*)0 );

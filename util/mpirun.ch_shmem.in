@@ -5,12 +5,23 @@ fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
 fi
-MPIRUN_HOME=$MPIR_HOME/bin
+if [ "#MPIRUN_BIN#" = "#""MPIRUN_BIN""#" ] ; then 
+    MPIRUN_HOME=$MPIR_HOME/bin
+else
+    MPIRUN_HOME=$MPIR_HOME/#MPIRUN_BIN#
+fi
 if [ "$argsset" = "" ] ; then
    . $MPIRUN_HOME/mpirun.args
    argsset=1
 fi
 # ch_shmem device
+#
+# Pass to mpirun that this is a shared memory device.  Since there
+# may be several, try using the default value.
+# This may not be what we want....
+MPIRUN_DEVICE=$default_device
+export MPIRUN_DEVICE
+#
 if [ "$debugger" != "" ] ; then 
       cat > $PWD_TRIAL/PId$$ <<.
 run -np $np $cmdLineArgs

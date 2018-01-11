@@ -1,12 +1,16 @@
 /*
- *  $Id: group_rincl.c,v 1.16 1995/12/21 22:07:39 gropp Exp $
+ *  $Id: group_rincl.c,v 1.17 1996/04/12 14:11:31 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "mpimem.h"
+#else
 #include "mpisys.h"
+#endif
 
 /*@
 
@@ -29,6 +33,13 @@ This implementation does not currently check to see that the list of
 ranges to include are valid ranks in the group.
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_GROUP
+.N MPI_ERR_EXHAUSTED
+
+.seealso: MPI_Group_free
 @*/
 int MPI_Group_range_incl ( group, n, ranges, newgroup )
 MPI_Group group, *newgroup;
@@ -45,8 +56,8 @@ int       n, ranges[][3];
 
   /* Check for a EMPTY input group or EMPTY sized new group */
   if ( (group == MPI_GROUP_EMPTY) || (n <= 0) ) {
-    MPIR_Group_dup ( MPI_GROUP_EMPTY, newgroup );
-    return (mpi_errno);
+      (void) MPIR_Group_dup ( MPI_GROUP_EMPTY, newgroup );
+      return (mpi_errno);
   }
   
   /* Determine the number of ranks that will be included */
@@ -57,26 +68,23 @@ int       n, ranges[][3];
 
   /* Check for np == 0 ranks to include */
   if ( np <=0 ) {
-    MPIR_Group_dup ( MPI_GROUP_EMPTY, newgroup );
-    return (mpi_errno);
+      (void) MPIR_Group_dup ( MPI_GROUP_EMPTY, newgroup );
+      return (mpi_errno);
   }
 
   /* Create the new group */
-  new_group = (*newgroup)   = NEW(struct MPIR_GROUP);
-  if (!new_group) 
-	return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-				  "Out of space in MPI_GROUP_RANGE_INCL" );
+  MPIR_ALLOC(new_group,NEW(struct MPIR_GROUP),MPI_COMM_WORLD, 
+	     MPI_ERR_EXHAUSTED, "Out of space in MPI_GROUP_RANGE_INCL" );
+  *newgroup = new_group;
   MPIR_SET_COOKIE(new_group,MPIR_GROUP_COOKIE)
   new_group->ref_count      = 1;
   new_group->permanent      = 0;
   new_group->local_rank     = MPI_UNDEFINED;
   new_group->set_mark       = (int *)0;
   new_group->np             = np;
-  new_group->lrank_to_grank = (int *) MALLOC( np * sizeof(int) );
-  if (!new_group->lrank_to_grank) {
-	return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-				  "Out of space in MPI_GROUP_RANGE_INCL" );
-  }
+  MPIR_ALLOC(new_group->lrank_to_grank,(int *) MALLOC( np * sizeof(int) ),
+	     MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+	     "Out of space in MPI_GROUP_RANGE_INCL" );
 
   /* Fill in the lrank_to_grank list */
   k = 0;

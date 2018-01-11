@@ -1,188 +1,219 @@
 ALL: default
 ##### User configurable options #####
 
-ARCH        = @ARCH@
-COMM        = @COMM@
 MPIR_HOME   = @MPIR_HOME@
-CC          = @CC@
-CLINKER     = @CLINKER@
-CCC         = @CPP_COMPILER@
+CC          = @MPICC@
+CLINKER     = @MPICC@
+CCC         = @MPICPLUSPLUS@
 CCLINKER    = $(CCC)
-F77         = @F77@
-FLINKER     = @FLINKER@
-AR          = @AR@
-RANLIB      = @RANLIB@
-PROFILING   = $(PMPILIB)
+F77         = @MPIF77@
+FLINKER     = @MPIF77@
 OPTFLAGS    = @OPTFLAGS@
-LIB_PATH    = @LIB_PATH@
-FLIB_PATH   = @FLIB_PATH@
-LIB_LIST    = @LIB_LIST@
-#
-INCLUDE_DIR = @USER_INCLUDE_PATH@ -I$(MPIR_HOME)/include 
-DEVICE      = @DEVICE@
 
 ### End User configurable options ###
 
 SHELL = /bin/sh
 
 PROFLIB =
-CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
+CFLAGS  = $(OPTFLAGS) 
 CCFLAGS = $(CFLAGS)
-FFLAGS = @FFLAGS@ $(OPTFLAGS)
-MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a 
-MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
-LIBS = $(LIB_PATH) $(PROFLIB) $(LIB_LIST)
-FLIBS = $(FLIB_PATH) $(LIB_LIST)
-LIBSPP = $(MPIPPLIB) $(LIBS)
+FFLAGS = $(OPTFLAGS)
+# Use LIBS to add any special libraries for C programs
+LIBS = 
+# Use FLIBS to add any special libraries for Fortran programs
+FLIBS = 
 EXECS = overtake sendrecv isndrcv third fourth fifth sixth hvectest \
-	hvectest2 probe probe1 testtest1 ssendtest typetest\
-	dtypelife issendtest relrank inull typeub irecvtest htmsg \
+	hvectest2 hvec probe probe1 testtest1 ssendtest ssendtest2 typetest\
+	dtypelife issendtest issendinit relrank nullproc trunc \
+	typeub irecvtest htmsg \
 	isendtest self sendrecv2 sendrecv3 sendrecv4 persistent waitall \
-	pack bsendtest typebase irsend testsome getelm testall
-OTHEREXECS = testtypes secondf allpair systest \
-		systest1 allpair2 bsendtest nbtest nblock \
-	        structf typebasef
+	pack bsendtest typebase irsend irsendinit \
+	testsome getelm testall sndrcv nbtest nblock sendmany order hindexed \
+	commit cancel
+OTHEREXECS = testtypes secondf allpair systest send1 \
+		systest1 allpair2 bsendtest structf typebasef 
 default: $(EXECS)
 
 #
 # Note that runtests builds the executables as required
-testing: $(MPIR_HOME)/util/mpirun
+testing: 
 	  -./runtests $(TESTARGS)
 
 linktest: overtake secondf clean
 
 all: testing
 
-fortran_tests: secondf allpair allpair2 structf typebasef
+fortran_tests: secondf allpair allpair2 structf typebasef send1 pingpong
 
-overtake: overtake.o test.o $(MPILIB)
+overtake: overtake.o test.o
 	$(CLINKER) $(OPTFLAGS) -o overtake overtake.o test.o $(LIBS)
 
-bsendtest: bsendtest.o test.o $(MPILIB)
+bsendtest: bsendtest.o test.o
 	$(CLINKER) $(OPTFLAGS) -o bsendtest bsendtest.o test.o $(LIBS)
 
-relrank: relrank.o test.o $(MPILIB)
+relrank: relrank.o test.o
 	$(CLINKER) $(OPTFLAGS) -o relrank relrank.o test.o $(LIBS)
 
-sendrecv: sendrecv.o test.o $(MPILIB)
+sendrecv: sendrecv.o test.o
 	$(CLINKER) $(OPTFLAGS) -o sendrecv sendrecv.o test.o $(LIBS)
 
-persistent: persistent.o $(MPILIB)
+persistent: persistent.o
 	$(CLINKER) $(OPTFLAGS) -o persistent persistent.o $(LIBS)
 
-sendrecv2: sendrecv2.o dtypes.o gcomm.o $(MPILIB)
+sendrecv2: sendrecv2.o dtypes.o gcomm.o
 	$(CLINKER) $(OPTFLAGS) -o sendrecv2 sendrecv2.o dtypes.o gcomm.o \
-		 $(LIBS)
+		$(LIBS)
 
-sendrecv3: sendrecv3.o dtypes.o gcomm.o $(MPILIB)
+sendrecv3: sendrecv3.o dtypes.o gcomm.o
 	$(CLINKER) $(OPTFLAGS) -o sendrecv3 sendrecv3.o dtypes.o gcomm.o \
-		 $(LIBS)
+		$(LIBS)
 
-sendrecv4: sendrecv4.o dtypes.o gcomm.o $(MPILIB)
+sendrecv4: sendrecv4.o dtypes.o gcomm.o
 	$(CLINKER) $(OPTFLAGS) -o sendrecv4 sendrecv4.o dtypes.o gcomm.o \
-		 $(LIBS)
+		$(LIBS)
 
-irsend: irsend.o dtypes.o gcomm.o $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o irsend irsend.o dtypes.o gcomm.o \
-		 $(LIBS)
+irsend: irsend.o dtypes.o gcomm.o
+	$(CLINKER) $(OPTFLAGS) -o irsend irsend.o dtypes.o gcomm.o $(LIBS)
 
-testsome: testsome.o dtypes.o gcomm.o $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o testsome testsome.o dtypes.o gcomm.o \
-		 $(LIBS)
+irsendinit: irsendinit.o dtypes.o gcomm.o
+	$(CLINKER) $(OPTFLAGS) -o irsendinit irsendinit.o dtypes.o gcomm.o \
+		$(LIBS)
 
-testall: testall.o dtypes.o gcomm.o $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o testall testall.o dtypes.o gcomm.o \
-		 $(LIBS)
+testsome: testsome.o dtypes.o gcomm.o
+	$(CLINKER) $(OPTFLAGS) -o testsome testsome.o dtypes.o gcomm.o $(LIBS)
 
-getelm: getelm.o $(MPILIB)
+testall: testall.o dtypes.o gcomm.o
+	$(CLINKER) $(OPTFLAGS) -o testall testall.o dtypes.o gcomm.o $(LIBS)
+
+sndrcv: sndrcv.o dtypes.o gcomm.o
+	$(CLINKER) $(OPTFLAGS) -o sndrcv sndrcv.o dtypes.o gcomm.o $(LIBS)
+
+getelm: getelm.o 
 	$(CLINKER) $(OPTFLAGS) -o getelm getelm.o $(LIBS)
 
-self: self.o test.o $(MPILIB)
+self: self.o test.o
 	$(CLINKER) $(OPTFLAGS) -o self self.o test.o $(LIBS)
 
-typeub: typeub.o test.o $(MPILIB)
+typeub: typeub.o test.o
 	$(CLINKER) $(OPTFLAGS) -o typeub typeub.o $(LIBS)
 
-isndrcv: isndrcv.o test.o $(MPILIB)
+isndrcv: isndrcv.o test.o
 	$(CLINKER) $(OPTFLAGS) -o isndrcv isndrcv.o test.o $(LIBS)
 
-inull: inull.o test.o $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o inull inull.o test.o $(LIBS)
+nullproc: nullproc.o test.o
+	$(CLINKER) $(OPTFLAGS) -o nullproc nullproc.o test.o $(LIBS)
 
-typetest: typetest.o test.o $(MPILIB)
+trunc: trunc.o
+	$(CLINKER) $(OPTFLAGS) -o trunc trunc.o $(LIBS)
+
+typetest: typetest.o test.o
 	$(CLINKER) $(OPTFLAGS) -o typetest typetest.o test.o $(LIBS)
 
-typebase: typebase.o $(MPILIB)
+typebase: typebase.o
 	$(CLINKER) $(OPTFLAGS) -o typebase typebase.o $(LIBS)
 
-ssendtest: ssendtest.o test.o $(MPILIB)
+ssendtest: ssendtest.o test.o
 	$(CLINKER) $(OPTFLAGS) -o ssendtest ssendtest.o test.o $(LIBS)
 
-issendtest: issendtest.o test.o $(MPILIB)
+ssendtest2: ssendtest2.o
+	$(CLINKER) $(OPTFLAGS) -o ssendtest2 ssendtest2.o $(LIBS)
+
+issendtest: issendtest.o test.o
 	$(CLINKER) $(OPTFLAGS) -o issendtest issendtest.o test.o $(LIBS)
 
-testtypes: testtypes.o test.o $(MPILIB)
+issendinit: issendinit.o test.o
+	$(CLINKER) $(OPTFLAGS) -o issendinit issendinit.o test.o $(LIBS)
+
+testtypes: testtypes.o test.o
 	$(CLINKER) $(OPTFLAGS) -o testtypes testtypes.o test.o $(LIBS)
 
-dtypelife: dtypelife.o test.o $(MPILIB)
+dtypelife: dtypelife.o test.o
 	$(CLINKER) $(OPTFLAGS) -o dtypelife dtypelife.o test.o $(LIBS)
 
-htmsg: htmsg.o $(MPILIB)
+htmsg: htmsg.o
 	$(CLINKER) $(OPTFLAGS) -o htmsg htmsg.o $(LIBS)
 
-isendtest: isendtest.o $(MPILIB)
+isendtest: isendtest.o
 	$(CLINKER) $(OPTFLAGS) -o isendtest isendtest.o $(LIBS)
 
-third: third.o test.o $(MPILIB)
+third: third.o test.o
 	$(CLINKER) $(OPTFLAGS) -o third third.o test.o $(LIBS)
 
-fourth: fourth.o test.o $(MPILIB)
+fourth: fourth.o test.o
 	$(CLINKER) $(OPTFLAGS) -o fourth fourth.o test.o $(LIBS)
 
-fifth: fifth.o test.o $(MPILIB)
+fifth: fifth.o test.o
 	$(CLINKER) $(OPTFLAGS) -o fifth fifth.o test.o $(LIBS)
 
-sixth: sixth.o test.o $(MPILIB)
+sixth: sixth.o test.o
 	$(CLINKER) $(OPTFLAGS) -o sixth sixth.o test.o $(LIBS)
 
-probe: probe.o test.o $(MPILIB)
+probe: probe.o test.o
 	$(CLINKER) $(OPTFLAGS) -o probe probe.o test.o $(LIBS)
 
-nblock: nblock.o $(MPILIB)
+nblock: nblock.o 
 	$(CLINKER) $(OPTFLAGS) -o nblock nblock.o $(LIBS)
 
-pack: pack.o $(MPILIB)
+sendmany: sendmany.o 
+	$(CLINKER) $(OPTFLAGS) -o sendmany sendmany.o $(LIBS)
+
+order: order.o
+	$(CLINKER) $(OPTFLAGS) -o order order.o $(LIBS)
+
+pack: pack.o
 	$(CLINKER) $(OPTFLAGS) -o pack pack.o $(LIBS)
 
-probe1: probe1.o test.o $(MPILIB)
+probe1: probe1.o test.o
 	$(CLINKER) $(OPTFLAGS) -o probe1 probe1.o test.o $(LIBS)
 
-testtest1: testtest1.o test.o $(MPILIB)
+testtest1: testtest1.o test.o 
 	$(CLINKER) $(OPTFLAGS) -o testtest1 testtest1.o test.o $(LIBS)
 
-hvectest: hvectest.o test.o $(MPILIB)
+hvectest: hvectest.o test.o
 	$(CLINKER) $(OPTFLAGS) -o hvectest hvectest.o test.o $(LIBS)
 
-hvectest2: hvectest2.o test.o $(MPILIB)
+hvectest2: hvectest2.o test.o
 	$(CLINKER) $(OPTFLAGS) -o hvectest2 hvectest2.o test.o $(LIBS)
 
-irecvtest: irecvtest.o test.o $(MPILIB)
+hvec: hvec.o
+	$(CLINKER) $(OPTFLAGS) -o hvec hvec.o $(LIBS)
+
+hindexed: hindexed.o 
+	$(CLINKER) $(OPTFLAGS) -o hindexed hindexed.o $(LIBS)
+
+irecvtest: irecvtest.o test.o
 	$(CLINKER) $(OPTFLAGS) -o irecvtest irecvtest.o test.o $(LIBS)
 
-nbtest: nbtest.o $(MPILIB)
+nbtest: nbtest.o
 	$(CLINKER) $(OPTFLAGS) -o nbtest nbtest.o $(LIBS)
 
-waitall: waitall.o $(MPILIB)
+waitall: waitall.o
 	$(CLINKER) $(OPTFLAGS) -o waitall waitall.o $(LIBS)
+
+commit: commit.o
+	$(CLINKER) $(OPTFLAGS) -o commit commit.o $(LIBS)
+
+cancel: cancel.o
+	$(CLINKER) $(OPTFLAGS) -o cancel cancel.o $(LIBS)
 
 secondf: mpif.h secondf.o
 	$(FLINKER) $(OPTFLAGS) -o secondf secondf.o $(FLIBS)
-allpair: mpif.h allpair.o
+
+allpair: mpif.h allpair.o 
 	$(FLINKER) $(OPTFLAGS) -o allpair allpair.o $(FLIBS)
+
 allpair2: mpif.h allpair2.o
 	$(FLINKER) $(OPTFLAGS) -o allpair2 allpair2.o $(FLIBS)
+
 structf: mpif.h structf.o
 	$(FLINKER) $(OPTFLAGS) -o structf structf.o $(FLIBS)
+
+send1: mpif.h send1.o
+	$(FLINKER) $(OPTFLAGS) -o send1 send1.o $(FLIBS)
+
+pingpong: mpif.h pingpong.o
+	$(FLINKER) $(OPTFLAGS) -o pingpong pingpong.o $(FLIBS)
+
 typebasef: mpif.h typebasef.o
 	$(FLINKER) $(OPTFLAGS) -o typebasef typebasef.o $(FLIBS)
 
@@ -208,5 +239,6 @@ clean:
 .f.o:
 	$(F77) $(FFLAGS) -c $*.f
 
-$(MPIR_HOME)/util/mpirun:
-	(cd $(MPIR_HOME) ; make mpirun )
+# This is MPICH specific
+#$(MPIR_HOME)/util/mpirun:
+#	(cd $(MPIR_HOME) ; make mpirun )

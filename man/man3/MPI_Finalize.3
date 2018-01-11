@@ -1,7 +1,11 @@
-.TH MPI_Finalize 3 "1/3/1996" " " "MPI"
+.TH MPI_Finalize 3 "6/7/1996" " " "MPI"
 .SH NAME
-MPI_Finalize \- Terminates MPI execution environment
-
+MPI_Finalize \-  Terminates MPI execution environment 
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Finalize()
+.fi
 .SH NOTES
 All processes must call this routine before exiting.  The number of
 processes running 
@@ -35,12 +39,5 @@ All MPI objects (e.g.,
 ) are of type 
 .I INTEGER
 in Fortran.
-.SH SYNOPSIS
-.nf
-#include "mpi.h"
-int MPI_Finalize()
-
-.fi
-
 .SH LOCATION
- finalize.c
+finalize.c

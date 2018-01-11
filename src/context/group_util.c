@@ -1,12 +1,16 @@
 /*
- *  $Id: group_util.c,v 1.20 1996/01/18 20:15:02 lusk Exp $
+ *  $Id: group_util.c,v 1.21 1996/04/12 14:11:58 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "mpimem.h"
+#else
 #include "mpisys.h"
+#endif
 
 
 MPI_Group MPIR_CreateGroup( np )
@@ -58,7 +62,11 @@ MPI_Group g;
   for (i=0; i<np; i++) 
     g->lrank_to_grank[i] = i;
 
+#ifdef MPI_ADI2
+  g->local_rank = MPID_MyWorldRank;
+#else
   MPID_Myrank(MPI_COMM_WORLD->ADIctx,&(g->local_rank));
+#endif
   if (g->local_rank >= np)
     g->local_rank = MPI_UNDEFINED;
 }
@@ -88,9 +96,9 @@ int MPIR_Dump_group ( group )
 MPI_Group group;
 {
   int i, rank;
-  MPI_Comm_rank ( MPI_COMM_WORLD, &rank );
+  (void)MPIR_Comm_rank ( MPI_COMM_WORLD, &rank );
 
-  printf ( "\t[%d] group       = %d\n", rank, group );
+  printf ( "\t[%d] group       = %ld\n", rank, (long)group );
   if (group != NULL) {
     printf ( "\t[%d] np          = %d\n", rank, group->np );
     printf ( "\t[%d] local rank  = %d\n", rank, group->local_rank );

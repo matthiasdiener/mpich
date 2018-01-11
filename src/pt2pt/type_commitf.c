@@ -2,11 +2,7 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -32,10 +28,12 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_type_commit_ ( datatype, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_type_commit_ ANSI_ARGS(( MPI_Datatype *, int * ));
+void mpi_type_commit_ ( datatype, __ierr )
 MPI_Datatype *datatype;
 int *__ierr;
 {
-MPI_Datatype ldatatype = (MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) );
-*__ierr = MPI_Type_commit( &ldatatype );
+    MPI_Datatype ldatatype = (MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) );
+    *__ierr = MPI_Type_commit( &ldatatype );
 }

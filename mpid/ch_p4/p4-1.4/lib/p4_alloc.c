@@ -24,7 +24,7 @@ struct local_data *alloc_local_bm()
 #   ifdef CAN_DO_XDR
     if ((l->xdr_buff = (char *) p4_malloc(XDR_BUFF_LEN)) == NULL)
     {
-	p4_error("OOPS: alloc_local_bm: unable to malloc xdr_buff\n",NULL);
+	p4_error("OOPS: alloc_local_bm: unable to malloc xdr_buff\n",0);
     }
     xdrmem_create(&(l->xdr_enc), l->xdr_buff, XDR_BUFF_LEN, XDR_ENCODE);
     xdrmem_create(&(l->xdr_dec), l->xdr_buff, XDR_BUFF_LEN, XDR_DECODE);
@@ -56,7 +56,7 @@ struct local_data *alloc_local_rm()
 #   ifdef CAN_DO_XDR
     if ((l->xdr_buff = (char *) p4_malloc(XDR_BUFF_LEN)) == NULL)
     {
-	p4_error("OOPS: alloc_local_rm: unable to malloc xdr_buff\n",NULL);
+	p4_error("OOPS: alloc_local_rm: unable to malloc xdr_buff\n",0);
     }
     xdrmem_create(&(l->xdr_enc), l->xdr_buff, XDR_BUFF_LEN, XDR_ENCODE);
     xdrmem_create(&(l->xdr_dec), l->xdr_buff, XDR_BUFF_LEN, XDR_DECODE);
@@ -101,7 +101,7 @@ struct local_data *alloc_local_slave()
     {
         if ((l->xdr_buff = (char *) p4_malloc(XDR_BUFF_LEN)) == NULL)
         {
-	    p4_error("OOPS: alloc_local_slave: unable to malloc xdr_buff\n",NULL);
+	    p4_error("OOPS: alloc_local_slave: unable to malloc xdr_buff\n",0);
         }
         xdrmem_create(&(l->xdr_enc), l->xdr_buff, XDR_BUFF_LEN, XDR_ENCODE);
         xdrmem_create(&(l->xdr_dec), l->xdr_buff, XDR_BUFF_LEN, XDR_DECODE);
@@ -158,9 +158,8 @@ P4VOID p4_print_avail_buffs()
 struct p4_msg *alloc_p4_msg(msglen)
 int msglen;
 {
-    struct p4_msg *rmsg = NULL, **trailer;
+    struct p4_msg *rmsg = NULL;
     int i, rounded, buff_len;
-    P4BOOL found;
 
     p4_dprintfl(40, "allocating a buffer for message of size %d\n", msglen);
 
@@ -196,6 +195,8 @@ int msglen;
 	{
 
 #if defined(IPSC860)
+	    P4BOOL found;
+	    struct p4_msg **trailer;
 	    rmsg = p4_global->avail_buffs[i].buff;
 	    trailer = &(p4_global->avail_buffs[i].buff);
 	    found = FALSE;

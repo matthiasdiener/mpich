@@ -1,11 +1,10 @@
-#ifndef lint
-static char vcid[] = "$Id: tr.c,v 1.1 1996/01/11 19:13:09 gropp Exp $";
-#endif
-
 #include <stdio.h>
 #include <string.h>
 #include "mpiimpl.h"
 #include "mpisys.h"
+
+#ifndef MPI_ADI2
+/* ADI2 version in mpid/util/tr2.c */
 
 #if HAVE_STDLIB_H || STDC_HEADERS
 #include <stdlib.h>
@@ -23,8 +22,7 @@ extern int free();
 #endif
 
 #undef TRSPACE
-
-/*D
+/*
     MPIR_trspace - Routines for tracing space usage
 
     Description:
@@ -36,7 +34,7 @@ extern int free();
     are built on top of malloc and free, and can be used together with
     them as long as any space allocated with MPIR_trmalloc is only freed with
     MPIR_trfree.
- D*/
+ */
 
 /* HEADER_DOUBLES is the number of doubles in a trSPACE header */
 /* We have to be careful about alignment rules here */
@@ -113,7 +111,7 @@ unsigned int     nsize;
 int              l;
 
 if (world_rank < 0 && MPIR_Has_been_initialized == 1) {
-    MPI_Comm_rank( MPI_COMM_WORLD, &world_rank );
+    (void) MPIR_Comm_rank( MPI_COMM_WORLD, &world_rank );
     }
 if (TRdebugLevel > 0) {
     char buf[256];
@@ -197,7 +195,7 @@ nend = (unsigned long *)(ahead + head->size);
 if (*nend != COOKIE_VALUE) {
     if (*nend == ALREADY_FREED) {
 	fprintf( stderr, 
-  "[%d] Block [id=%d(%d)] at address %lx was already freed\n", 
+  "[%d] Block [id=%d(%lu)] at address %lx was already freed\n", 
 		world_rank, head->id, head->size, a + sizeof(TrSPACE) );
 	head->fname[TR_FNAME_LEN-1]	  = 0;  /* Just in case */
 	head->freed_fname[TR_FNAME_LEN-1] = 0;  /* Just in case */
@@ -212,7 +210,7 @@ if (*nend != COOKIE_VALUE) {
     else {
 	/* Damaged tail */
 	fprintf( stderr, 
-"[%d] Block [id=%d(%d)] at address %lx is corrupted (probably write past end)\n", 
+"[%d] Block [id=%d(%lu)] at address %lx is corrupted (probably write past end)\n", 
 		world_rank, head->id, head->size, a );
 	head->fname[TR_FNAME_LEN-1]= 0;  /* Just in case */
 	fprintf( stderr, 
@@ -236,7 +234,7 @@ else
 if (head->next)
     head->next->prev = head->prev;
 if (TRlevel & TR_FREE)
-    fprintf( stderr, "Freeing %d bytes at %lx\n", 
+    fprintf( stderr, "Freeing %lu bytes at %lx\n", 
 	             head->size, a + sizeof(TrSPACE) );
 free( a );
 }
@@ -295,7 +293,7 @@ while (head) {
 	errs++;
 	head->fname[TR_FNAME_LEN-1]= 0;  /* Just in case */
 	fprintf( stderr, 
-"[%d] Block [id=%d(%d)] at address %lx is corrupted (probably write past end)\n", 
+"[%d] Block [id=%d(%lu)] at address %lx is corrupted (probably write past end)\n", 
 	     world_rank, head->id, head->size, a );
 	fprintf( stderr, 
 		"[%d] Block allocated in %s[%d]\n", 
@@ -335,7 +333,7 @@ int     id;
 if (fp == 0) fp = stderr;
 head = TRhead;
 while (head) {
-    fprintf( fp, "%d at [%lx], id = ", 
+    fprintf( fp, "%lu at [%lx], id = ", 
 	     head->size, head + sizeof(TrSPACE) );
     if (head->id >= 0) {
 	head->fname[TR_FNAME_LEN-1] = 0;
@@ -570,7 +568,7 @@ head = (TRSPACE *)(pa - sizeof(TrSPACE));
 if (head->cookie != COOKIE_VALUE) {
     /* Damaged header */
     fprintf( stderr, "Block at address %lx is corrupted; cannot realloc;\n\
-may be block not allocated with MPIR_trmalloc or MALLOC\n", pa );
+may be block not allocated with MPIR_trmalloc or MALLOC\n", (long)pa );
     return 0;
     }
 
@@ -696,3 +694,4 @@ while (head) {
     }
 fflush( fp );
 }
+#endif

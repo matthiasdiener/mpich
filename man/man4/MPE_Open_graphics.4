@@ -1,7 +1,18 @@
-.TH MPE_Open_graphics 4 "1/16/1996" " " "MPE"
+.TH MPE_Open_graphics 4 "6/26/1996" " " "MPE"
 .SH NAME
-MPE_Open_graphics \- (collectively) opens an X Windows display
-
+MPE_Open_graphics \-  (collectively) opens an X Windows display 
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+int MPE_Open_graphics( handle, comm, display, x, y, w, h, is_collective )
+MPE_XGraph *handle;
+MPI_Comm   comm;
+char       display[MPI_MAX_PROCESSOR_NAME+4];
+int        x, y;
+int        w, h;
+int        is_collective;
+.fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP
@@ -48,19 +59,5 @@ X window server allows.  Not yet implemented.
 This is a collective routine.  All processes in the given communicator
 must call it, and it has the same semantics as 'MPI_Barrier' (that is,
 other collective operations can not cross this routine).
-.SH SYNOPSIS
-.nf
-#include <stdio.h>
-#include "mpe.h"
-int MPE_Open_graphics( handle, comm, display, x, y, w, h, is_collective )
-MPE_XGraph *handle;
-MPI_Comm   comm;
-char       display[MPI_MAX_PROCESSOR_NAME+4];
-int        x, y;
-int        w, h;
-int        is_collective;
-
-.fi
-
 .SH LOCATION
- mpe_graphics.c
+mpe_graphics.c

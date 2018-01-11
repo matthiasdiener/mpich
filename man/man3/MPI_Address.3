@@ -1,7 +1,13 @@
-.TH MPI_Address 3 "12/21/1995" " " "MPI"
+.TH MPI_Address 3 "6/7/1996" " " "MPI"
 .SH NAME
-MPI_Address \- Gets the address of a location in memory
-
+MPI_Address \-  Gets the address of a location in memory   
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Address( location, address)
+void     *location;
+MPI_Aint *address;
+.fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP
@@ -47,14 +53,5 @@ All MPI objects (e.g.,
 ) are of type 
 .I INTEGER
 in Fortran.
-.SH SYNOPSIS
-.nf
-#include "mpi.h"
-int MPI_Address( location, address)
-void     *location;
-MPI_Aint *address;
-
-.fi
-
 .SH LOCATION
- address.c
+address.c

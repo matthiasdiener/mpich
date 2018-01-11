@@ -4,66 +4,49 @@ ALL: default
 SHELL       = /bin/sh
 ARCH        = @ARCH@
 COMM        = @COMM@
-BOPT        = @BOPT@
-P4_DIR      = @P4_DIR@
-TOOLS_DIR   = @TOOLS_DIR@
 MPIR_HOME   = @MPIR_HOME@
-CC          = @CC@
-CLINKER     = @CLINKER@
-CCC         = @CPP_COMPILER@
+CC          = @MPIR_HOME@/lib/@ARCH@/@COMM@/mpicc
+CLINKER     = $(CC)
+F77         = @MPIR_HOME@/lib/@ARCH@/@COMM@/mpif77
+FLINKER     = $(F77)
+CCC         = @MPIR_HOME@/lib/@ARCH@/@COMM@/mpiCC
 CCLINKER    = $(CCC)
-F77         = @F77@
-FLINKER     = @FLINKER@
 AR          = @AR@
 RANLIB      = @RANLIB@
 PROFILING   = $(PMPILIB)
-OPTFLAGS    = @OPTFLAGS@
+OPTFLAGS    = 
 MPE_LIBS    = @MPE_LIBS@
 MPE_DIR     = @MPE_DIR@
-LIB_PATH    = @LIB_PATH@
-FLIB_PATH   = @FLIB_PATH@
-LIB_LIST    = @LIB_LIST@
 MPE_GRAPH   = @MPE_GRAPHICS@
 #
-INCLUDE_DIR = @USER_INCLUDE_PATH@ -I$(MPIR_HOME)/include 
-DEVICE      = @DEVICE@
 
 ### End User configurable options ###
 
-CFLAGS	  = @CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH) 
+CFLAGS	  = $(OPTFLAGS) 
 CFLAGSMPE = $(CFLAGS) -I$(MPE_DIR) $(MPE_GRAPH)
 CCFLAGS	  = $(CFLAGS)
 #FFLAGS	  = '-qdpc=e' 
-FFLAGS	  = @FFLAGS@ $(OPTFLAGS)
-MPILIB	  = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a 
-MPIPPLIB  = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
-LIBS	  = $(LIB_PATH) $(LIB_LIST)
-FLIBS	  = $(FLIB_PATH) $(LIB_LIST)
-LIBSPP	  = $(MPIPPLIB) $(LIBS)
+FFLAGS	  = $(OPTFLAGS)
 EXECS	  = cpi systest fpi cpilog srtest
 
 default: $(EXECS)
 
 all: default
 
-fpi: fpi.o $(MPIR_HOME)/include/mpif.h $(MPILIB)
-	$(FLINKER) $(OPTFLAGS) -o fpi fpi.o $(FLIBS)
+fpi: fpi.o $(MPIR_HOME)/include/mpif.h
+	$(FLINKER) $(OPTFLAGS) -o fpi fpi.o
 
-cpi: cpi.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o cpi cpi.o \
-	$(LIB_PATH) $(LIB_LIST) -lm
+cpi: cpi.o $(MPIR_HOME)/include/mpir.h
+	$(CLINKER) $(OPTFLAGS) -o cpi cpi.o -lm
 
-cpilog: cpilog.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o cpilog cpilog.o \
-	$(LIB_PATH) ${MPE_LIBS} $(LIB_LIST) -lm
+cpilog: cpilog.o $(MPIR_HOME)/include/mpir.h
+	$(CLINKER) $(OPTFLAGS) -o cpilog cpilog.o -lmpe -lm
 
-srtest: srtest.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o srtest srtest.o \
-	$(LIB_PATH) $(LIB_LIST) -lm
+srtest: srtest.o $(MPIR_HOME)/include/mpir.h
+	$(CLINKER) $(OPTFLAGS) -o srtest srtest.o -lm
 
-systest: systest.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o systest systest.o \
-	$(LIB_PATH) $(LIB_LIST) -lm
+systest: systest.o $(MPIR_HOME)/include/mpir.h
+	$(CLINKER) $(OPTFLAGS) -o systest systest.o -lm
 
 clean:
 	/bin/rm -f *.o *~ PI* $(EXECS)

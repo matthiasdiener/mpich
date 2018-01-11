@@ -749,9 +749,11 @@ int ipd_ptype_add(ipd_ptype_list_t *ipd_plist,long ptype,long item,long offset);
 			flick(); \
 		} \
 		if (st != -1) {\
+ /* This area is now write protected in nxlib.c{}_setptype() \
 		    if (ipd_ptype_add(&ipd_plist, ptype, 1, 0) == 1) { \
 			ipd_msg_info.num_ptypes++; \
 		    } \
+ */ \
 		    if (mcmsg_ptype_range_high == ptype-1) { \
 			mcmsg_ptype_range_high = ptype; \
 		    } else if (mcmsg_ptype_range_low == ptype+1) { \
@@ -1622,20 +1624,17 @@ MPID_NX_Comm_init(MPI_Comm mpi_comm,MPI_Comm newcomm)
 
 #ifdef ICCLIB
 /* if iCC_comm is not yet cached in mpi_comm, create & cache it */
-	if (mpi_comm == MPI_COMM_WORLD) {
+	if (newcomm == MPI_COMM_WORLD) {
 		MPI_COMM_WORLD->adiCollCtx = (void *)iCC_g_COMM_WORLD;
 		return (MPI_SUCCESS);
 	} 
-	if (mpi_comm == MPI_COMM_SELF) {
+	if (newcomm == MPI_COMM_SELF) {
 		MPI_COMM_SELF->adiCollCtx = (void *)iCC_g_COMM_SELF;
 		return (MPI_SUCCESS);
 	}
 	if (mpi_comm = (MPI_Comm)0) {
                 return(MPIR_ERROR(mpi_comm,MPI_ERR_COMM,"Error in Comm_init"));
         }
-	if (newcomm == MPI_COMM_WORLD || newcomm == MPI_COMM_SELF) {
-		return(MPI_SUCCESS);
-	}
 	icc_comm = iCC_g_COMM_WORLD;
 	if((stat = iCC_g_Comm_group(icc_comm, &icc_group)) != iCC_g_OK) {
 		return(MPIR_ERROR(mpi_comm,ICC2MPI_Error(stat),

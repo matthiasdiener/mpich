@@ -1,11 +1,10 @@
 /*
- *  $Id: abort.c,v 1.8 1995/12/21 21:56:37 gropp Exp $
+ *  $Id: abort.c,v 1.9 1996/04/11 20:27:44 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 #include "mpiimpl.h"
-#include "mpisys.h"
 
 /*@
    MPI_Abort - Terminates MPI execution environment
@@ -24,11 +23,15 @@ int MPI_Abort( comm, errorcode )
 MPI_Comm         comm;
 int              errorcode;
 {
-MPID_ABORT( comm->ADIctx, errorcode );
+#ifdef MPI_ADI2
+    MPID_Abort( comm, errorcode, "MPI Abort by user", (char *)0 );
+#else
+    MPID_ABORT( comm->ADIctx, errorcode );
+#endif
 
 /* If for some reason we get here, force an abort */
-abort( );
+    abort( );
 
 /* This keeps lint happy */
-return MPI_ERR_UNKNOWN;
+    return MPI_ERR_UNKNOWN;
 }

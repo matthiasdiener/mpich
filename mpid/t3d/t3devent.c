@@ -54,8 +54,8 @@ int T3D_Check_device( blocking )
     }
 #   endif
 
-    T3D_Check_incoming( MPID_NOTBLOCKING );
-
+    T3D_Check_incoming( blocking );
+ 
 }
 
 /***************************************************************************

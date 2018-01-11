@@ -8,7 +8,7 @@
  *      a structure is found.  From kalns@canidae.cps.msu.edu (modified to
  *      fit test structure).
  */
-main( argc, argv )
+int main( argc, argv )
 int argc;
 char **argv;
 {
@@ -28,7 +28,7 @@ char **argv;
    MPI_Type_extent( type1, &extent );
    extent1 = 5 * sizeof(int);
    if (extent != extent1) {
-       printf("extent(type1)=%d\n",extent);
+       printf("extent(type1)=%ld\n",(long)extent);
        }
 
    blens[0]=1;
@@ -45,7 +45,7 @@ char **argv;
    MPI_Type_commit( &type2 );
    MPI_Type_extent( type2, &extent );
    if (extent != extent2) {
-       printf("extent(type2)=%d\n",extent);
+       printf("extent(type2)=%ld\n",(long)extent);
        }
 
   /*	monkey with the extent again, making it 4
@@ -62,7 +62,7 @@ char **argv;
 
    MPI_Type_extent( type3, &extent );
    if (extent != extent3) {
-       printf("extent(type3)=%d\n",extent);
+       printf("extent(type3)=%ld\n",(long)extent);
        }
 
    MPI_Type_free( &type1 );

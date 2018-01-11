@@ -8,11 +8,7 @@
 
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -38,12 +34,16 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_cart_shift_ ANSI_ARGS(( MPI_Comm, int *, int *, int *, 
+				 int *, int * ));
+
 void mpi_cart_shift_( comm, direction, shift, source, dest, ierr )
 MPI_Comm         comm;
 int              *direction; 
 int              *shift;
 int              *source, *dest, *ierr;
 {
-*ierr =     MPI_Cart_shift( (MPI_Comm)MPIR_ToPointer(*(int*)comm), 
-		    *direction, *shift, source, dest );
+    *ierr =     MPI_Cart_shift( (MPI_Comm)MPIR_ToPointer(*(int*)comm), 
+				*direction, *shift, source, dest );
 }

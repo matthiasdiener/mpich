@@ -1,15 +1,15 @@
 /*
- *  $Id: wtick.c,v 1.5 1995/12/21 21:58:07 gropp Exp $
+ *  $Id: wtick.c,v 1.6 1996/04/11 20:31:04 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 
-#ifndef lint
-static char vcid[] = "$Id: wtick.c,v 1.5 1995/12/21 21:58:07 gropp Exp $";
-#endif /* lint */
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "mpid_time.h"
+#endif
 
 /*@
   MPI_Wtick - Returns the resolution of MPI_Wtime
@@ -23,5 +23,11 @@ static char vcid[] = "$Id: wtick.c,v 1.5 1995/12/21 21:58:07 gropp Exp $";
 @*/
 double MPI_Wtick()
 {
-return MPID_WTICK( MPI_COMM_WORLD->ADIctx );
+#ifdef MPI_ADI2
+    double t1;
+    MPID_Wtick( &t1 );
+    return t1;
+#else
+    return MPID_WTICK( MPI_COMM_WORLD->ADIctx );
+#endif
 }

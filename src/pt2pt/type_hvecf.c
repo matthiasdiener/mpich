@@ -2,11 +2,7 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -32,6 +28,10 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_type_hvector_ ANSI_ARGS(( int *, int *, int *, MPI_Datatype,
+				   MPI_Datatype *, int * ));
+
 void mpi_type_hvector_( count, blocklen, stride, old_type, newtype, __ierr )
 int          *count;
 int          *blocklen;
@@ -40,10 +40,11 @@ MPI_Datatype old_type;
 MPI_Datatype *newtype;
 int          *__ierr;
 {
-MPI_Datatype lnewtype = 0;
-MPI_Aint     c_stride = (MPI_Aint)*stride;
+    MPI_Datatype lnewtype = 0;
+    MPI_Aint     c_stride = (MPI_Aint)*stride;
 
-*__ierr = MPI_Type_hvector(*count,*blocklen,c_stride,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(old_type) ),&lnewtype);
-*(int*)newtype = MPIR_FromPointer(lnewtype);
+    *__ierr = MPI_Type_hvector(*count,*blocklen,c_stride,
+			     (MPI_Datatype)MPIR_ToPointer( *(int*)(old_type) ),
+			       &lnewtype);
+    *(int*)newtype = MPIR_FromPointer(lnewtype);
 }

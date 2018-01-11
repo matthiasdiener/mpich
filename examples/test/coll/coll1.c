@@ -7,8 +7,6 @@ int argc;
 char **argv;
 {
     int              rank, size, i;
-    MPI_Request      handle;
-    MPI_Status       status;
     int             *table;
     int              errors=0;
     MPI_Aint         address;

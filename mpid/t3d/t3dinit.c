@@ -63,16 +63,19 @@ static char vcid[] = "$Id: t3dinit.c,v 1.6 1995/06/07 06:34:26 bright Exp $";
 #include <time.h>
 #include <string.h>
 #include <unistd.h>
-#include "t3drecv.h"
 #include <signal.h>
 
 /****************************************************************************
   Global variables
  ***************************************************************************/
+#pragma _CRI cache_align t3d_hostname, t3d_myid, t3d_num_pes, t3d_heap_limit 
 char  t3d_hostname[T3D_HOSTNAME_LEN];
 int   t3d_myid;
 int   t3d_num_pes;
-long *t3d_heap_limit;
+char *t3d_heap_limit;
+int   modified_stack;
+char *save_stack;
+MPIR_QHDR T3D_long_sends;
 
 /****************************************************************************
   Local variables
@@ -232,7 +235,7 @@ void *T3D_Init( argc, argv )
 int  *argc;
 char ***argv;
 {
-    int        i, numprocs;
+    int        i,numprocs;
     int        size;
     T3D_PKT_T *pkt;
 
@@ -246,33 +249,36 @@ char ***argv;
     t3d_myid           = _my_pe();
     t3d_num_pes        = _num_pes();
     t3d_reference_time = (double)rtclock();
-    t3d_heap_limit     = sbreak( 0 );
-
+    t3d_heap_limit     = sbrk( 0 ); 
+    
     /* Look for a subset number */
     numprocs = t3d_num_pes;
+
     for (i=1; i<*argc; i++) {
-	if (strcmp( (*argv)[i], "-np" ) == 0) {
-	    /* Need to remove both args and check for missing value for -np */
-	    if (i + 1 == *argc) {
-		fprintf( stderr, 
-		    "Missing argument to -np for number of processes\n" );
-		exit( 1 );
-		}
-	    numprocs = atoi( (*argv)[i+1] );
-	    (*argv)[i] = 0;
-	    (*argv)[i+1] = 0;
-	    MPIR_ArgSqueeze( argc, *argv );
-	    break;
-	    }
+      if (strcmp( (*argv)[i], "-np" ) == 0) {
+	/* Need to remove both args and check for missing value for -np */
+	if (i + 1 == *argc) {
+	  fprintf( stderr, 
+		  "Missing argument to -np for number of processes\n" );
+	  exit( 1 );
 	}
+	numprocs = atoi( (*argv)[i+1] );
+	(*argv)[i] = 0;
+	(*argv)[i+1] = 0;
+	MPIR_ArgSqueeze( argc, *argv );
+	break;
+      }
+    }
+
     if (numprocs <= 0 || numprocs > t3d_num_pes) {
-	fprintf( stderr, 
-		"Invalid number of processes (%d) invalid\n", numprocs );
-	exit( 1 );
-	}
+      fprintf( stderr, 
+	      "Invalid number of processes (%d) invalid\n", numprocs );
+      exit( 1 );
+    }
+
     t3d_num_pes = numprocs;
 
-    shmem_set_cache_inv();
+    shmem_set_cache_inv(); 
 
     size = sizeof( T3D_PKT_T ) * t3d_num_pes;
 
@@ -285,13 +291,17 @@ char ***argv;
     for ( i=0; i<t3d_num_pes; i++ ) 
       t3d_dest_bufs[i] = t3d_recv_bufs[i].head.status = T3D_BUF_AVAIL;
 
+    T3D_long_sends.first  = T3D_long_sends.last    = NULL;
+    T3D_long_sends.maxlen = T3D_long_sends.currlen = 0;
+
     barrier();
 
     if (t3d_myid >= numprocs) {
-	/* Turn off these processes */
-	T3D_End();
-	exit(0);
-	}
+      /* Turn off these processes */
+      T3D_End();
+      exit(0);
+    }
+
 
     return ((void *)0);
 }
@@ -316,6 +326,7 @@ int code;
     globalexit(1);
     /* Just in case ... */
     abort();
+
 }
 
 /***************************************************************************
@@ -385,4 +396,3 @@ void T3D_Version_name( name )
        defined in mpich/src/init.c to be 128 characters long */
     (void)sprintf( name, "T3D Device Driver, Version 0.0" );
 }
-

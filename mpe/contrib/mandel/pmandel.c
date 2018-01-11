@@ -11,13 +11,27 @@
 
 #include "pm_genproc.h"
 
+#ifndef DEBUG
 #define DEBUG 0
+#endif
 
 FILE *debug_file;
 
 MPI_Datatype winspecs_type, flags_type, NUM_type, rect_type;
 
-main( argc, argv )
+/* Forward refs */
+#ifndef ANSI_ARGS
+#if defined(__STDC__) || defined(__cplusplus)
+#define ANSI_ARGS(a) a
+#else
+#define ANSI_ARGS(a) ()
+#endif
+#endif
+void DrawImage           ANSI_ARGS(( MPE_XGraph, Winspecs *, Flags * ));
+void ProcessArgsFromFile ANSI_ARGS(( MPE_XGraph, Winspecs *, Flags *));
+int DragZoom             ANSI_ARGS(( MPE_XGraph, Flags *));
+
+int main( argc, argv )
 int argc;
 char **argv;
 {
@@ -25,8 +39,9 @@ char **argv;
   Winspecs winspecs;
   Flags flags;
   MPE_XGraph graph;
+#if DEBUG
   char fileName[50];
-  MPI_Status status;
+#endif
 
   if (IsArgPresent( &argc, argv, "-h" )) {
     PrintHelp( argv[0] );
@@ -126,13 +141,13 @@ char **argv;
   MPI_Finalize();
 }
 
-ProcessArgsFromFile( graph, winspecs, oldFlags )
+void ProcessArgsFromFile( graph, winspecs, oldFlags )
 MPE_XGraph graph;
 Winspecs *winspecs;
 Flags *oldFlags;
 {
   Flags newFlags;
-  char line[1024], *copy, *tok, **argv;
+  char line[1025], *copy, *tok, **argv;
   int doOneMore, ndrawn, myid, argc;
   xpand_list_Strings *argList;
   FILE *inf;
@@ -143,8 +158,8 @@ Flags *oldFlags;
   fprintf( stderr, "%d going into PAFF\n", myid );
 #endif
 
-  if (!myid) {
-    if (!strcmp( oldFlags->inf, "-" )) {
+  if (myid == 0) {
+    if (!oldFlags->inf || strcmp( oldFlags->inf, "-" ) == 0) {
       inf = stdin;
     } else {
       inf = fopen( oldFlags->inf, "r" );
@@ -155,6 +170,10 @@ Flags *oldFlags;
 	MPI_Bcast( &doOneMore, 1, MPI_INT, 0, MPI_COMM_WORLD );
       }
     }
+
+#if DEBUG
+    fprintf( stderr, "%d opened input file\n", myid );
+#endif
 
     ndrawn = 0;
 
@@ -193,10 +212,15 @@ Flags *oldFlags;
 
   } else {
     MPI_Bcast( &doOneMore, 1, MPI_INT, 0, MPI_COMM_WORLD );
+    argc = 0;
+    argv = 0;
     while (doOneMore) {
+#if DEBUG
+	fprintf( stderr, "%d About to do one more loop\n", myid );
+#endif
       newFlags = *oldFlags;
       GetFlags( &argc, argv, winspecs, &newFlags );
-      DrawImage( graph, winspecs, newFlags );
+      DrawImage( graph, winspecs, &newFlags );
       MPI_Bcast( &doOneMore, 1, MPI_INT, 0, MPI_COMM_WORLD );
     }
   }
@@ -204,12 +228,12 @@ Flags *oldFlags;
 #if DEBUG
   fprintf( stderr, "%d exiting PAFF\n", myid );
 #endif
-
+return 0;
 }
 
 
 
-DrawImage( graph, winspecs, flags )
+void DrawImage( graph, winspecs, flags )
 MPE_XGraph graph;
 Winspecs *winspecs;
 Flags *flags;
@@ -226,14 +250,20 @@ Flags *flags;
   /* helpful when starting up debuggers */
 
   if (flags->inf) {
+#if DEBUG
+      fprintf( stderr, "%d about to process args from file\n", myid );
+#endif
     ProcessArgsFromFile( graph, winspecs, flags );
   } else {
     
     drawAnother = 0;
     
     do {
+#if DEBUG
+	fprintf( stderr, "%d in drawing loop\n", myid );
+#endif
       MPE_INIT_LOG();
-      if (!myid) {
+      if (myid == 0) {
 	MPE_Fill_rectangle( graph, 0, 0, winspecs->width, winspecs->height,
 			   MPE_WHITE );
 	fprintf( stderr, "Drawing region -rmin %.17lf -imin %.17lf -rmax %.17lf -imax %.17lf\n",

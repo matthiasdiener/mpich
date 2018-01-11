@@ -4,6 +4,7 @@
 # build of MPICH has taken place
 #
 installloc=$HOME/mpitmp
+nox=0
 for arg in "$@" ; do
     case $arg in 
 	-echo) set -x ;;
@@ -12,11 +13,14 @@ for arg in "$@" ; do
 	installloc=`echo A$arg | sed -e 's/A-prefix=//g'`
 	;;
 
+	-nox) nox=1 ;;
 	-help|-u|-usage)
-	echo "insttest [ -prefix=directory ]"
+	echo "insttest [ -prefix=directory ] [ -nox ]"
 	echo "Install and perform basic test on MPICH installation"
 	echo "Note: this must not run as batch, as it tries to start up"
 	echo "the nupshot and upshot programs."
+	echo " "
+	echo "Set -nox if nupshot/upshot are not to be tested."
 	exit 1
 	;;
 
@@ -26,6 +30,10 @@ for arg in "$@" ; do
 	;;
     esac
 done
+# Check that DISPLAY is valid first
+if [ $nox = 0 -a -z "$DISPLAY" ] ; then 
+    echo "Need to set DISPLAY before testing upshot/nupshot"
+fi
 #
 make install PREFIX=$installloc
 if [ $? != 0 ] ; then

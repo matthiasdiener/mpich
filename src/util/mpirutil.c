@@ -1,21 +1,23 @@
 /*
- *  $Id: mpirutil.c,v 1.18 1995/09/13 21:44:14 gropp Exp $
+ *  $Id: mpirutil.c,v 1.21 1996/06/07 15:12:34 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 
-#ifndef lint
-static char vcid[] = "$Id: mpirutil.c,v 1.18 1995/09/13 21:44:14 gropp Exp $";
-#endif /* lint */
-
 /* mpir helper routines
 */
 
 #include "mpiimpl.h"
+#ifndef MPI_ADI2
 #include "mpisys.h"
+#endif
 
+
+int MPIR_Tab ANSI_ARGS(( int ));
+
+#ifndef MPI_ADI2
 void MPIR_dump_rhandle(handle)
 MPIR_RHANDLE handle;
 {
@@ -36,7 +38,9 @@ MPIR_SHANDLE handle;
     printf("  completed   = %d\n", handle.completer);
     printf("  datatype    = "); MPIR_dump_dte(handle.datatype,0);
 }
+#endif
 
+#ifndef MPI_ADI2
 /*
    Queueing unexpected messages and searching for them requires particular
    care because of the three cases:
@@ -68,6 +72,9 @@ MPIR_SHANDLE handle;
    using not providing a fair delivers (starving some sources); this 
    should be fixed by the ADI or underlying message-passing system rather
    than by this level of MPI routine.
+
+   There are no longer any send queues, and hence only receive queues
+   are of interest.  We'll leave this in in case we need it for cancel (!)
  */
 void MPIR_dump_queue(header)
 MPIR_QHDR *header;
@@ -76,7 +83,8 @@ MPIR_QHDR *header;
 
     if (!header) return;
     printf("first = 0x%x, last = 0x%x, maxlen = %d, currlen = %d\n",
-	   header->first, header->last, header->maxlen, header->currlen );
+	   (long)header->first, (long)header->last, 
+	   header->maxlen, header->currlen );
     p = header->first;
     while ( p )
     {
@@ -109,6 +117,11 @@ MPIR_QEL_TYPE object_type;
 	header->maxlen++;
 
     p           = (MPIR_QEL *) MPIR_SBalloc( MPIR_qels );
+    if (!p) {
+	MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_EXHAUSTED,
+		   "Allocating message queue");
+	MPI_Abort( MPI_COMM_WORLD, 1 );
+    }
     p->ptr      = (void *)object;
     /* Store the selection criteria is an easy-to-get place */
     p->context_id = object->contextid;
@@ -306,6 +319,7 @@ int                   flag;
     }
 return MPI_SUCCESS;
 }
+#endif
 
 int MPIR_dump_dte( dte, indent )
 MPI_Datatype  dte;
@@ -315,88 +329,141 @@ int           indent;
 
     switch (dte->dte_type)
     {
-      case MPIR_INT:
+    case MPIR_INT:
 	MPIR_Tab( indent );
 	printf( "int\n" );
 	break;
-      case MPIR_FLOAT:
+    case MPIR_UINT:
+	MPIR_Tab( indent );
+	printf( "unsigned\n" );
+	break;
+    case MPIR_FLOAT:
 	MPIR_Tab( indent );
 	printf( "float\n" );
 	break;
-      case MPIR_DOUBLE:
+    case MPIR_DOUBLE:
 	MPIR_Tab( indent );
 	printf( "double\n" );
 	break;
-      case MPIR_BYTE:
+    case MPIR_BYTE:
 	MPIR_Tab( indent );
 	printf( "byte\n" );
 	break;
-      case MPIR_CHAR:
+    case MPIR_PACKED:
+	MPIR_Tab( indent );
+	printf( "packed\n" );
+	break;
+    case MPIR_CHAR:
 	MPIR_Tab( indent );
 	printf( "char\n" );
 	break;
-      case MPIR_LONG:
+    case MPIR_UCHAR:
+	MPIR_Tab( indent );
+	printf( "unsigned char\n" );
+	break;
+    case MPIR_ULONG:
+	MPIR_Tab( indent );
+	printf( "unsigned long\n" );
+	break;
+    case MPIR_LONG:
 	MPIR_Tab( indent );
 	printf( "long\n" );
 	break;
-      case MPIR_SHORT:
+    case MPIR_SHORT:
 	MPIR_Tab( indent );
 	printf( "short\n" );
 	break;
-      case MPIR_CONTIG:
+    case MPIR_USHORT:
+	MPIR_Tab( indent );
+	printf( "unsigned short\n" );
+	break;
+    case MPIR_CONTIG:
 	MPIR_Tab( indent );
 	printf( "contig, count = %d\n", dte->count );
 	MPIR_dump_dte( dte->old_type, indent + 2 );
 	break;
-      case MPIR_VECTOR:
+    case MPIR_VECTOR:
 	MPIR_Tab( indent );
-	printf( "vector, count = %d, stride = %d, blocklen = %d\n",
-	       dte->count, dte->stride, dte->blocklen );
+	printf( "vector, count = %d, stride = %ld, blocklen = %d\n",
+	       dte->count, (long)dte->stride, dte->blocklen );
 	MPIR_dump_dte( dte->old_type, indent + 2 );
 	break;
-      case MPIR_HVECTOR:
+    case MPIR_HVECTOR:
 	MPIR_Tab( indent );
-	printf( "hvector, count = %d, stride = %d, blocklen = %d\n",
-	       dte->count, dte->stride, dte->blocklen );
+	printf( "hvector, count = %d, stride = %ld, blocklen = %d\n",
+	       dte->count, (long)dte->stride, dte->blocklen );
 	MPIR_dump_dte( dte->old_type, indent + 2 );
 	break;
-      case MPIR_INDEXED:
+    case MPIR_INDEXED:
 	MPIR_Tab( indent );
 	printf( "indexed, count = %d\n", dte->count );
 	MPIR_dump_dte( dte->old_type, indent + 2 );
 	for ( i = 0; i < dte->count; i++)
 	{
 	    MPIR_Tab( indent + 4 );
-	    printf("index = %d, blocklen = %d\n",
+	    printf("index = %ld, blocklen = %d\n",
 		   dte->indices[i], dte->blocklens[i] );
 	}
 	break;
-      case MPIR_HINDEXED:
+    case MPIR_HINDEXED:
 	MPIR_Tab( indent );
 	printf( "hindexed, count = %d\n", dte->count );
 	MPIR_dump_dte( dte->old_type, indent + 2 );
 	for ( i = 0; i < dte->count; i++)
 	{
 	    MPIR_Tab( indent + 4 );
-	    printf("index = %d, blocklen = %d\n",
+	    printf("index = %ld, blocklen = %d\n",
 		   dte->indices[i], dte->blocklens[i] );
 	}
 	break;
-      case MPIR_STRUCT:
+    case MPIR_STRUCT:
 	MPIR_Tab( indent );
 	printf( "struct, count = %d\n", dte->count );
 	for ( i = 0; i < dte->count; i++)
 	{
 	    MPIR_Tab( indent + 2 );
-	    printf("index = %d, blocklen = %d\n",
+	    printf("index = %ld, blocklen = %d\n",
 		   dte->indices[i], dte->blocklens[i] );
 	    MPIR_dump_dte( dte->old_types[i], indent + 2 );
 	}
+	break;
+    case MPIR_COMPLEX:
+	MPIR_Tab( indent );
+	printf( "complex\n" );
+	break;
+    case MPIR_DOUBLE_COMPLEX:
+	MPIR_Tab( indent );
+	printf( "double complex\n" );
+	break;
+    case MPIR_LONGDOUBLE:
+	MPIR_Tab( indent );
+	printf( "long double\n" );
+	break;
+    case MPIR_LONGLONGINT:
+	MPIR_Tab( indent );
+	printf( "long long int\n" );
+	break;
+    case MPIR_LOGICAL:
+	MPIR_Tab( indent );
+	printf( "logical (Fortran)\n" );
+	break;
+    case MPIR_FORT_INT:
+	MPIR_Tab( indent );
+	printf( "INTEGER (Fortran)\n" );
+	break;
+    case MPIR_UB:
+	MPIR_Tab( indent );
+	printf( "UB\n" );
+	break;
+    case MPIR_LB:
+	MPIR_Tab( indent );
+	printf( "LB\n" );
 	break;
     }
 return MPI_SUCCESS;
 }
 
+#ifdef FOO
 /* adds to singly-linked list of flat datatype elements, returns pointer to
    head and to "next" pointer in last element, for appending.  Updates 
    current displacement.
@@ -410,7 +477,7 @@ int           *disp;
     MPIR_FDTEL *p, **q, **r;
 
 /*
-    printf("entering flatten dte, dte type = %d, count = %d\n",
+    PRINTF("entering flatten dte, dte type = %d, count = %d\n",
 	   dte->dte_type, dte->count);
 */
     switch (dte->dte_type)
@@ -471,6 +538,8 @@ MPIR_FDTEL *fdte;
     return MPI_SUCCESS;
 }
 
+#endif
+
 int MPIR_Tab( n  )
 int n;
 {
@@ -481,6 +550,7 @@ int n;
     return MPI_SUCCESS;
 }
 
+#ifndef MPI_ADI2
 /*
    MPIR_ArgSqueeze - Remove all null arguments from an arg vector; 
    update the number of arguments.
@@ -503,3 +573,4 @@ while (j < argc) {
 if (!argv[i-1]) i--;
 *Argc = i;
 }
+#endif

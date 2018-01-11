@@ -1,7 +1,13 @@
-.TH MPI_Test_cancelled 3 "12/21/1995" " " "MPI"
+.TH MPI_Test_cancelled 3 "6/7/1996" " " "MPI"
 .SH NAME
-MPI_Test_cancelled \- Tests to see if a request was canceled
-
+MPI_Test_cancelled \-  Tests to see if a request was cancelled 
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Test_cancelled( status, flag )
+MPI_Status *status;
+int        *flag;
+.fi
 .SH INPUT PARAMETER
 .PD 0
 .TP
@@ -38,14 +44,5 @@ All MPI objects (e.g.,
 ) are of type 
 .I INTEGER
 in Fortran.
-.SH SYNOPSIS
-.nf
-#include "mpi.h"
-int MPI_Test_cancelled( status, flag )
-MPI_Status *status;
-int        *flag;
-
-.fi
-
 .SH LOCATION
- testcancel.c
+testcancel.c

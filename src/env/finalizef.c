@@ -1,12 +1,8 @@
 /* finalize.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -31,9 +27,11 @@ extern void MPIR_RmPointer();
 #define mpi_finalize_ mpi_finalize
 #endif
 #endif
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_finalize_ ANSI_ARGS(( int * ));
 
- void mpi_finalize_(__ierr )
+void mpi_finalize_(__ierr )
 int *__ierr;
 {
-*__ierr = MPI_Finalize();
+    *__ierr = MPI_Finalize();
 }

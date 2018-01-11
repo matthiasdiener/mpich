@@ -15,6 +15,11 @@
  *	Jan 1991  Manchek  manchek@CS.UTK.EDU.
  *	Mar 1991  Added framing window for pix and lut, handles expose, lut
  *	          does rubberline.
+ *
+ *      Mar 1995  Note that the XStoreColors may FAIL depending on your
+ *      display type and the current state of resources (e.g., if Netscape
+ *      has already consumed all available colors).  If you fix this, please
+ *      let us know. - William Gropp (gropp@mcs.anl.gov)
  */
 
 
@@ -83,7 +88,7 @@ u_long rmsk, gmsk, bmsk;
 int rshf, gshf, bshf;
 int nomap = 0;		/* not using a colormap */
 Colormap cmap;		/* default colormap */
-int ctes[NPV];		/* colormap indices given to us */
+unsigned long ctes[NPV];/* colormap indices given to us */
 XImage *img;		/* image to display */
 char *ribuf;		/* raw image buffer */
 char *imbuf;		/* displayed image buffer */

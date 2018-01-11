@@ -72,7 +72,6 @@ int argc;
 char **argv;
 {
     int rank, size, myrow, mycol, nx, ny, stride, cnt, i, j, errs, tot_errs;
-    MPI_Status status;
     double    *sendbuf, *recvbuf;
     MPI_Datatype vec, block, types[2];
     MPI_Aint displs[2];
@@ -142,7 +141,7 @@ char **argv;
     SetData( sendbuf, recvbuf, nx, ny, myrow, mycol, dims[0], dims[1] );
     MPI_Scatterv( sendbuf, sendcounts, scdispls, block, 
 		  recvbuf, nx * ny, MPI_DOUBLE, 0, comm2d );
-    if(errs = CheckData( recvbuf, nx, ny, myrow, mycol, dims[0] )) {
+    if((errs = CheckData( recvbuf, nx, ny, myrow, mycol, dims[0] ))) {
 	fprintf( stdout, "Failed to transfer data\n" );
 	}
     MPI_Allreduce( &errs, &tot_errs, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );

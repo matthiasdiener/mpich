@@ -1,7 +1,13 @@
-.TH MPI_Type_ub 3 "1/3/1996" " " "MPI"
+.TH MPI_Type_ub 3 "4/11/1996" " " "MPI"
 .SH NAME
-MPI_Type_ub \- Returns the upper bound of a datatype
-
+MPI_Type_ub \-  Returns the upper bound of a datatype 
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Type_ub ( datatype, displacement )
+MPI_Datatype  datatype;
+MPI_Aint      *displacement;
+.fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP
@@ -39,14 +45,47 @@ All MPI objects (e.g.,
 ) are of type 
 .I INTEGER
 in Fortran.
-.SH SYNOPSIS
-.nf
-#include "mpi.h"
-int MPI_Type_ub ( datatype, displacement )
-MPI_Datatype  datatype;
-MPI_Aint      *displacement;
 
-.fi
+.SH ERRORS
 
+All MPI routines (except 
+.I MPI_Wtime
+and 
+.I MPI_Wtick
+) return an error value;
+C routines as the value of the function and Fortran routines in the last
+argument.  Before the value is returned, the current MPI error handler is
+called.  By default, this error handler aborts the MPI job.  The error handler
+may be changed with 
+.I MPI_Errhandler_set
+; the predefined error handler
+.I MPI_ERRORS_RETURN
+may be used to cause error values to be returned.
+Note that MPI does 
+.B not
+guarentee that an MPI program can continue past
+an error.
+
+.PD 0
+.TP
+.B MPI_SUCCESS 
+- No error; MPI routine completed successfully.
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_TYPE 
+- Invalid datatype argument.  May be an uncommitted 
+.PD 1
+MPI_Datatype (see 
+.I MPI_Type_commit
+).
+.PD 0
+.TP
+.B MPI_ERR_ARG 
+- Invalid argument.  Some argument is invalid and is not
+identified by a specific error class (e.g., 
+.I MPI_ERR_RANK
+).
+.PD 1
 .SH LOCATION
- type_ub.c
+type_ub.c

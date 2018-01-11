@@ -25,9 +25,9 @@ char *start_prog_error;
 extern int errno;
 extern char *sys_errlist[];
 
-static int connect_to_server();
-static void send_string();
-static void recv_string();
+static int connect_to_server ANSI_ARGS((char *));
+static void send_string ANSI_ARGS((int,char *));
+static void recv_string ANSI_ARGS((int,char *,int));
 
 int start_slave(host, username, prog, port, am_slave, pw_hook)
 char *host, *username, *prog, *am_slave;
@@ -279,7 +279,7 @@ char *buf;
 
 static struct sgttyb orig_tty;
 
-static int echo_off()
+static int echo_off ANSI_ARGS((void))
 {
     struct sgttyb tty_new;
 
@@ -297,15 +297,17 @@ static int echo_off()
 	fprintf(stderr, "iotcl TIOCSETP failed: %s\n", sys_errlist[errno]);
 	return -1;
     }
+    return 0;
 }
 
-static int echo_on()
+static int echo_on ANSI_ARGS((void))
 {
     if (ioctl(0, TIOCSETP, &orig_tty) < 0)
     {
 	fprintf(stderr, "iotcl TIOCSETP failed: %s\n", sys_errlist[errno]);
 	return -1;
     }
+    return 0;
 }
 
 #else
@@ -314,7 +316,7 @@ static int echo_on()
 
 struct termio tty_orig;
 
-static int echo_off()
+static int echo_off ANSI_ARGS((void))
 {
     struct termio tty_new;
 
@@ -336,7 +338,7 @@ static int echo_off()
     return (0);
 }
 
-static int echo_on()
+static int echo_on ANSI_ARGS((void))
 {
     if (ioctl(0, TCSETA, &tty_orig) < 0)
     {

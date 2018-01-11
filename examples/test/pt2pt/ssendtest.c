@@ -77,6 +77,14 @@ char **argv;
             MPI_Recv( buffer, 0, MPI_INT, src, 0, MPI_COMM_WORLD, &status );
             t0 = MPI_Wtime();
             flag = 0;
+	    /* This test depends on a working wtime.  Make a simple check */
+	    if (t0 == 0 && MPI_Wtime() == 0) {
+		fprintf( stderr, 
+		 "MPI_WTIME is returning 0; a working value is needed\n\
+for this test.\n" );
+		Test_Failed(Current_Test);
+		MPI_Abort( MPI_COMM_WORLD, 1 );
+	    }
             while (MPI_Wtime() - t0 < MAX_TIME) {
                 MPI_Iprobe( src, 2, MPI_COMM_WORLD, &flag, &status );
                 if (flag) {

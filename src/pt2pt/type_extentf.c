@@ -2,11 +2,7 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -32,13 +28,17 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_type_extent_( datatype, extent, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_type_extent_ ANSI_ARGS(( MPI_Datatype, int *, int * ));
+
+void mpi_type_extent_( datatype, extent, __ierr )
 MPI_Datatype  datatype;
 int *extent;
 int *__ierr;
 {
-MPI_Aint c_extent;
-*__ierr = MPI_Type_extent(
+    MPI_Aint c_extent;
+    *__ierr = MPI_Type_extent(
 	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),&c_extent);
-*extent = (int)c_extent;
+    /* Really should check for truncation, ala mpi_address_ */
+    *extent = (int)c_extent;
 }

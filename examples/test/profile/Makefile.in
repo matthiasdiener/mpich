@@ -1,0 +1,65 @@
+ALL: default
+##### User configurable options #####
+
+MPIR_HOME   = @MPIR_HOME@
+CC          = @MPICC@
+CLINKER     = @MPICC@
+CCC         = @MPICPLUSPLUS@
+CCLINKER    = $(CCC)
+F77         = @MPIF77@
+FLINKER     = @MPIF77@
+OPTFLAGS    = @OPTFLAGS@
+
+### End User configurable options ###
+
+SHELL = /bin/sh
+
+PROFLIB =
+CFLAGS  = $(OPTFLAGS) 
+CCFLAGS = $(CFLAGS)
+FFLAGS = $(OPTFLAGS)
+# Use LIBS to add any special libraries for C programs
+LIBS = 
+# Use FLIBS to add any special libraries for Fortran programs
+FLIBS = 
+EXECS = ptest
+OTHEREXECS = 
+default: $(EXECS)
+
+#
+# Note that runtests builds the executables as required
+testing: 
+	  -./runtests $(TESTARGS)
+
+all: testing
+
+fortran_tests: 
+
+ptest: ptest.o 
+	$(CLINKER) $(OPTFLAGS) -o ptest ptest.o $(LIBS)
+
+#
+# Some systems have no test for a symbolic link and return false for
+# a link that exists
+mpif.h: $(MPIR_HOME)/include/mpif.h
+	if test \! -f mpif.h ; then \
+	    /bin/rm -f mpif.h ; \
+	    ln -s $(MPIR_HOME)/include/mpif.h . ; \
+	fi
+
+#
+# Make sure that we remove executables for specific architectures
+clean:
+	/bin/rm -f *.o *~ PI* $(EXECS) *.out core profile.diff $(OTHEREXECS)
+	for file in $(EXECS) Makefile ; do \
+	   /bin/rm -f $$file.sun4 $$file.alpha $$file.IRIX $$file.freebsd ;\
+	done
+
+.c.o:
+	$(CC) $(CFLAGS) -c $*.c
+.f.o:
+	$(F77) $(FFLAGS) -c $*.f
+
+# MPICH specific
+#$(MPIR_HOME)/util/mpirun:
+#	(cd $(MPIR_HOME) ; $(MAKE) mpirun )

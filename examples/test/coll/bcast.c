@@ -13,7 +13,6 @@ int argc;
 char **argv;
 {
     int rank, size, ret, passed, i, *test_array;
-    MPI_Status Status;
 
     /* Set up MPI */
     MPI_Init(&argc, &argv);

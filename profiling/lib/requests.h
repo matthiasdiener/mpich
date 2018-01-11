@@ -2,9 +2,9 @@
 #define REQUESTS
 
 typedef struct request_list_ {
-  MPI_Request *request;
-  int status, size, tag, otherParty;
-  struct request_list_ *next;
+    MPI_Request request;
+    int         status, size, tag, otherParty;
+    struct request_list_ *next;
 } request_list;
 
 #define RQ_SEND    0x1
@@ -17,11 +17,11 @@ typedef struct request_list_ {
 **
 */
 
-#define rq_remove( head, requestPtr ) { \
+#define rq_remove( head, rq ) { \
   request_list *ptr, *last; \
   ptr = head; \
   last = 0; \
-  while (ptr && (ptr->request != requestPtr)) { \
+  while (ptr && (ptr->request != rq)) { \
     last = ptr; \
     ptr = ptr->next; \
   } \
@@ -40,8 +40,8 @@ typedef struct request_list_ {
     tail->next = rq; \
   }}
 
-#define rq_find( head, requestPtr, rq ) { \
+#define rq_find( head, req, rq ) { \
   rq = head; \
-  while (rq && (rq->request != requestPtr)) rq = rq->next; }
+  while (rq && (rq->request != req)) rq = rq->next; }
 
 #endif

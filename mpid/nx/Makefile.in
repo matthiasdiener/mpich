@@ -24,8 +24,8 @@ SHELL       = /bin/sh
 ### End User configurable options ###
 
 ALL: default
-	
-LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
+
+LIBNAME  = ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
 CFLAGS   = @CFLAGS@ $(OPTFLAGS) -I../.. -I../../include -I./ \
 		-DMPID_DEVICE_CODE @DEVCFLAGS@
 SOURCE   = nxpriv.c
@@ -33,13 +33,13 @@ SOURCEC  = $(SOURCE)
 SOURCEF  =
 MPI_OBJECTS = nxpriv.o
 
-default: $(ICCLIB) ../../lib/$(ARCH)/$(COMM)/libmpi.a
+default: $(ICCLIB) ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
 
 # default_all is the same as default, but without the RANLIB.  This
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
 default_all: $(MPI_OBJECTS) $(ICCLIB)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $(MPI_OBJECTS)
+	$(AR) ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $(MPI_OBJECTS)
 profile_all: $(MPI_OBJECTS) $(ICCLIB)
 	$(AR) ../../lib/$(ARCH)/$(COMM)/libpmpi.a $(MPI_OBJECTS)
 	@ if test -d iCClib; \
@@ -53,7 +53,7 @@ clean:
 .c.o:
 	$(CC) $(CFLAGS) $(BASEOPT) -c $*.c $(MPI_PROFILE)
 
-../../lib/$(ARCH)/$(COMM)/libmpi.a: $(MPI_OBJECTS) 
+../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
 	$(AR) $@ $?
 	$(RANLIB) $@
 
@@ -65,4 +65,4 @@ iCClib:
 		ar x /usr/lib/libjmc.a ;\
 		ar x /usr/lib/libkmath.a dcopy.o; \
 		ar x /usr/lib/libkmath.a scopy.o; \
-		$(AR) ../../../lib/$(ARCH)/$(COMM)/libmpi.a *.o ; fi
+		$(AR) ../../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a *.o ; fi

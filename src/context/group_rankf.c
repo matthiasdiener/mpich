@@ -1,12 +1,8 @@
 /* group_rank.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -32,11 +28,14 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_group_rank_ ( group, rank, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_group_rank_ ANSI_ARGS(( MPI_Group, int *, int * ));
+
+void mpi_group_rank_ ( group, rank, __ierr )
 MPI_Group group;
 int *rank;
 int *__ierr;
 {
-*__ierr = MPI_Group_rank(
+    *__ierr = MPI_Group_rank(
 	(MPI_Group)MPIR_ToPointer( *(int*)(group) ),rank);
 }

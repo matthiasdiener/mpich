@@ -2,11 +2,11 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifdef MPI_ADI2
+#include "mpifort.h"
+#endif
+
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) a
 #define MPIR_FromPointer(a) (int)a
 #define MPIR_RmPointer(a)
@@ -32,20 +32,24 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_graph_create_ ( comm_old, nnodes, index, edges, reorder, comm_graph,
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_graph_create_ ANSI_ARGS(( MPI_Comm, int *, int *, int *, int *,
+				   MPI_Comm *, int * ));
+
+void mpi_graph_create_ ( comm_old, nnodes, index, edges, reorder, comm_graph,
 			 __ierr )
 MPI_Comm  comm_old;
-int*nnodes;
+int      *nnodes;
 int      *index;
 int      *edges;
-int*reorder;
+int      *reorder;
 MPI_Comm *comm_graph;
-int *__ierr;
+int      *__ierr;
 {
-MPI_Comm lcomm_graph;
-*__ierr = MPI_Graph_create(
+    MPI_Comm lcomm_graph;
+    *__ierr = MPI_Graph_create(
 	(MPI_Comm)MPIR_ToPointer(*((int*)comm_old)),*nnodes,index,edges,
         MPIR_FROM_FLOG(*reorder),&lcomm_graph);
-if (*__ierr == 0)
-    *(int *)comm_graph = MPIR_FromPointer( lcomm_graph );
+    if (*__ierr == 0)
+	*(int *)comm_graph = MPIR_FromPointer( lcomm_graph );
 }

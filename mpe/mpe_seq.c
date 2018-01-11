@@ -1,4 +1,5 @@
 #include "mpi.h"
+#include "mpe.h"
 #ifndef NULL
 #define NULL (void *)0
 #endif

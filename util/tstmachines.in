@@ -140,12 +140,15 @@ errcnt=0
 errls=0
 livelist=""
 printedheader=""
+#
+# Get the output form to expect from ls.
+tstout=`ls $myprog`
 for machine in $list ; do
     if [ $verbose = 1 ] ; then 
 	echo "Trying ls on $machine ..."
     fi
     output=`$rsh $machine -n ls $myprog 2>&1`
-    if [ "$output" != "$myprog" ] ; then
+    if [ "$output" != "$tstout" ] ; then
 	if [ -z "$printedheader" ] ; then
 	    echo "Errors while trying to run ls $myprog"
 	    printedheader=1

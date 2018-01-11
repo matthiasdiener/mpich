@@ -1,9 +1,19 @@
+/* We need strings before string for systems that have both (index is in 
+   strings but not string) */
+#if defined(HAVE_STRINGS_H)
+#include <strings.h>
+#else
+#if defined(HAVE_STRING_H)
+#include <string.h>
+#else
 #ifdef P4BSD
 #include <strings.h>
 #endif
 #ifdef P4SYSV
 #include <string.h>
 #endif
+#endif /* STRINGS_H */
+#endif /* STRING_H */
 
 #include "p4_patchlevel.h"
 #include "p4_sock_util.h"    
@@ -24,9 +34,9 @@ extern char *sys_errlist[];
 
 #define LISTENER_ID (-99)
 
+#include "p4_defs.h"
 #include "p4_sys_funcs.h"
 
-#include "p4_defs.h"
 #include "p4_macros.h"
 
 #include "p4_globals.h"

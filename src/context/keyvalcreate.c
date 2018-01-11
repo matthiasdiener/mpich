@@ -1,12 +1,12 @@
 /*
- *  $Id: keyvalcreate.c,v 1.2 1995/12/21 22:11:30 gropp Exp $
+ *  $Id: keyvalcreate.c,v 1.3 1996/04/12 16:55:17 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#include "mpisys.h"
+
 /*@
 
 MPI_Keyval_create - Generates a new attribute key
@@ -29,6 +29,11 @@ This should not be a problem for most users; only programers using both
 Fortran and C in the same program need to be sure that they follow this rule.
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_EXHAUSTED
+.N MPI_ERR_ARG
 @*/
 int MPI_Keyval_create ( copy_fn, delete_fn, keyval, extra_state )
 MPI_Copy_function   *copy_fn;
@@ -36,6 +41,6 @@ MPI_Delete_function *delete_fn;
 int                 *keyval;
 void                *extra_state;
 {
-return MPIR_Keyval_create( copy_fn, delete_fn, keyval, extra_state, 0 );
+    return MPIR_Keyval_create( copy_fn, delete_fn, keyval, extra_state, 0 );
 }
 

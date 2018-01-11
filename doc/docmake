@@ -8,4 +8,4 @@ bibtex doc1
 latex doc1 < /dev/null
 bibtex doc1
 latex doc1 < /dev/null
-dvips
+dvips doc1

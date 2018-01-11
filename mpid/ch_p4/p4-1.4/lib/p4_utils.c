@@ -139,7 +139,7 @@ int n;
 }
 
 P4VOID p4_shfree(p)
-char *p;
+P4VOID *p;
 {
     MD_shfree(p);
 }
@@ -204,7 +204,9 @@ int p4_get_my_id_from_proc()
     int i, my_unix_id;
     struct proc_info *pi;
     struct hostent *myhp, *pghp;
+#ifdef SGI
     struct hostent myh;			/* 7/12/95, bri@sgi.com */
+#endif
 
 #   if (defined(IPSC860)  &&  !defined(IPSC860_SOCKETS))  ||  \
        (defined(CM5)      &&  !defined(CM5_SOCKETS))      ||  \
@@ -568,13 +570,39 @@ P4VOID remove_sysv_ipc()
 }
 #endif
 
+/* This routine is called if the wait fails to complete quickly */
+#include <sys/time.h>
+#ifndef TIMEOUT_VALUE_WAIT 
+#define TIMEOUT_VALUE_WAIT 60
+#endif
+P4VOID p4_accept_wait_timeout ANSI_ARGS((int));
+P4VOID p4_accept_wait_timeout(sigval)
+int sigval;
+{
+    fprintf( stderr, 
+"Timeout in waiting for processes to exit.  This may be due to a defective\n\
+rsh program (Some versions of Kerberos rsh have been observed to have this\n\
+problem).\n\
+This is not a problem with P4 or MPICH but a problem with the operating\n\
+environment.  For many applications, this problem will only slow down\n\
+process termination.\n" );
+
+/* Why is p4_error commented out?  On some systems (like FreeBSD), we
+   need to to kill the generated rsh processes.
+ */
+
+/*
+p4_error( "Timeout in waiting for processes to exit.  This may be due to a defective rsh", 0 );
+ */
+/* exit(1); */
+}
+
 int p4_wait_for_end()
 {
     int status;
     int i, n_forked_slaves, pid;
     struct slave_listener_msg msg;
     char job_filename[64];
-    struct p4_msg *mptr;
 
     ALOG_LOG(p4_local->my_id,END_USER,0,"");
     ALOG_OUTPUT;
@@ -582,6 +610,7 @@ int p4_wait_for_end()
 #   if defined(IPSC860)
     for (i=0; i < NUMAVAILS; i++)
     {
+	struct p4_msg *mptr;
 	mptr = p4_global->avail_buffs[i].buff;
 	while (mptr)
 	{
@@ -603,7 +632,33 @@ int p4_wait_for_end()
     free_avail_buffs();
 
     /* Wait for all forked processes except listener to die */
+    /* Some implementations of RSH can fail to terminate.  To work around
+       this, we add a relatively short timeout (note that, at least in
+       MPI programs, by the time we reach this point, everyone
+       should have started to exit.
+
+       The bug in those rsh version is in NOT using fd_set and the 
+       macros for manipluating fd_set in the call to select.  These
+       rsh's are assuming that fd's are all <= 31, and silently fail
+       when they are not.
+       */
     p4_dprintfl(90, "enter wait_for_end nfpid=%d\n",p4_global->n_forked_pids);
+    SIGNAL_P4(SIGALRM,p4_accept_wait_timeout);
+#ifndef CRAY
+    {
+    struct itimerval timelimit;
+    struct timeval tval;
+    struct timeval tzero;
+    tval.tv_sec		  = TIMEOUT_VALUE_WAIT;
+    tval.tv_usec	  = 0;
+    tzero.tv_sec	  = 0;
+    tzero.tv_usec	  = 0;
+    timelimit.it_interval = tzero;       /* Only one alarm */
+    timelimit.it_value	  = tval;
+    setitimer( ITIMER_REAL, &timelimit, 0 );
+#else
+    alarm( TIMEOUT_VALUE_WAIT );
+#endif
     if (p4_local->listener_fd == (-1))
         n_forked_slaves = p4_global->n_forked_pids;
     else
@@ -611,8 +666,20 @@ int p4_wait_for_end()
     for (i = 0; i < n_forked_slaves; i++)
     {
 	pid = wait(&status);
+	if (pid < 0) {
+	    p4_dprintfl( 90, "wait returned error (EINTR?)\n" );
+	    break;
+	    }
 	p4_dprintfl(90, "detected that proc %d died \n", pid);
     }
+#ifndef CRAY
+    timelimit.it_value	  = tzero;   /* Turn off timer */
+    setitimer( ITIMER_REAL, &timelimit, 0 );
+    }
+#else
+    alarm( 0 );
+#endif
+    SIGNAL_P4(SIGALRM,SIG_DFL);
 
 #   if defined(CAN_DO_SOCKET_MSGS)
     /* Tell all of the established connections that we are going away */
@@ -637,6 +704,10 @@ int p4_wait_for_end()
 	/* Make sure that no further reads are possible for the LISTENER
 	   on this FD */
 	close( p4_local->listener_fd );
+	/* This wait is potentially an infinite loop.  We can 
+	   fix this with either an alarm (to terminate it) or by using
+	   a nonblocking wait call and a loop.
+	 */
 	pid = wait(&status);
 	p4_dprintfl(90, "detected that proc %d died \n", pid);
     }
@@ -662,16 +733,16 @@ int p4_wait_for_end()
     if (p4_local->procgroup) 
 	p4_free(p4_local->procgroup);
     p4_free(p4_local->conntab);
-    p4_shfree(p4_local->queued_messages->m.qs);
+    p4_shfree((P4VOID *)(p4_local->queued_messages->m.qs));
     p4_free(p4_local->queued_messages);
     p4_free(p4_local->xdr_buff);
     p4_free(p4_local);
     free_avail_quels();		/* (in p4_global)  */
 
     for (i = 0; i < P4_MAX_MSG_QUEUES; i++) 
-	p4_shfree(p4_global->shmem_msg_queues[i].m.qs);
-    p4_shfree(p4_global->cluster_barrier.m.qs);
-    p4_shfree(p4_global);
+	p4_shfree((P4VOID *)(p4_global->shmem_msg_queues[i].m.qs));
+    p4_shfree((P4VOID *)(p4_global->cluster_barrier.m.qs));
+    p4_shfree((P4VOID *)(p4_global));
 
 #   if defined(SYSV_IPC)
     remove_sysv_ipc();
@@ -787,9 +858,9 @@ char *str;
 int getswport(hostname)
 char *hostname;
 {
+#ifdef CAN_DO_SWITCH_MSGS
     char local_host[256];
 
-#ifdef CAN_DO_SWITCH_MSGS
     if (strcmp(hostname, "local") == 0)
     {
 	local_host[0] = '\0';
@@ -826,6 +897,7 @@ char *hostname;
 }
 
 P4BOOL same_data_representation(id1,id2)
+int id1, id2;
 {
     struct proc_info *p1 = &(p4_global->proctable[id1]);
     struct proc_info *p2 = &(p4_global->proctable[id2]);
@@ -833,8 +905,29 @@ P4BOOL same_data_representation(id1,id2)
     return (data_representation(p1->machine_type) == data_representation(p2->machine_type));
 }
 
+/* Given rank and a place to put the hostname, returns the pid and the
+ * hostname of the process with the given rank.  Returns 0 if the rank is
+ * invalid.
+ */
+int p4_proc_info(i, hostname)
+int i;
+char **hostname;
+{
+    if (((unsigned) i) >= p4_global->num_in_proctable)
+    {
+	*hostname = 0;
+	return(0);
+    }
+    else
+    {
+	struct proc_info *p1 = &(p4_global->proctable[i]);
+	*hostname = p1->host_name;
+	return(p1->unix_id);
+    }
+}
+	       
 
-put_execer_port(port)
+P4VOID put_execer_port(port)
 int port;
 {
     int fd;
@@ -855,7 +948,7 @@ int port;
     close(fd);
 }
 
-get_execer_port(master_hostname)
+int get_execer_port(master_hostname)
 char *master_hostname;
 {
     int port, num_read, sleep_time, status;
@@ -903,7 +996,7 @@ P4VOID init_usclock()
 
 double p4_usclock()
 {
-    int elapsed_ms, q, r;
+    int elapsed_ms, q;
     usc_time_t ustimer_end;
     double rc, roll, beginning, end;
 
@@ -928,3 +1021,5 @@ double p4_usclock()
 
     return(rc);
 }
+
+

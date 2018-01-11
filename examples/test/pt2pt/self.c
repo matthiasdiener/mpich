@@ -16,11 +16,11 @@ int           dest = 0, sendtag = 2;
     MPI_Request       req[2];
 
     MPI_Init( &argc, &argv );
-    if (mpi_errno = MPI_Irecv ( recvbuf, recvcount, MPI_INT,
-			    source, recvtag, MPI_COMM_WORLD, &req[1] )) 
+    if ((mpi_errno = MPI_Irecv ( recvbuf, recvcount, MPI_INT,
+			    source, recvtag, MPI_COMM_WORLD, &req[1] ))) 
 	return mpi_errno;
-    if (mpi_errno = MPI_Isend ( sendbuf, sendcount, MPI_INT, dest,   
-			    sendtag, MPI_COMM_WORLD, &req[0] )) 
+    if ((mpi_errno = MPI_Isend ( sendbuf, sendcount, MPI_INT, dest,   
+			    sendtag, MPI_COMM_WORLD, &req[0] ))) 
 	return mpi_errno;
 
     fprintf( stdout, "[%d] Starting waitall\n", 0 );

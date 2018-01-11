@@ -1,41 +1,27 @@
 ALL: default
 ##### User configurable options #####
 
-ARCH        = @ARCH@
-COMM        = @COMM@
-BOPT        = @BOPT@
-P4_DIR      = @P4_DIR@
-TOOLS_DIR   = @TOOLS_DIR@
 MPIR_HOME   = @MPIR_HOME@
-CC          = @CC@
-CLINKER     = @CLINKER@
-CCC         = @CPP_COMPILER@
+CC          = @MPICC@
+CLINKER     = @MPICC@
+CCC         = @MPICPLUSPLUS@
 CCLINKER    = $(CCC)
-F77         = @F77@
-FLINKER     = @FLINKER@
-AR          = @AR@
-RANLIB      = @RANLIB@
-PROFILING   = $(PMPILIB)
+F77         = @MPIF77@
+FLINKER     = @MPIF77@
 OPTFLAGS    = @OPTFLAGS@
-LIB_PATH    = @LIB_PATH@
-FLIB_PATH   = @FLIB_PATH@
-LIB_LIST    = @LIB_LIST@
-#
-INCLUDE_DIR = @USER_INCLUDE_PATH@ -I$(MPIR_HOME)/include
-DEVICE      = @DEVICE@
 
 ### End User configurable options ###
 
 SHELL = /bin/sh
 
-CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
+PROFLIB =
+CFLAGS  = $(OPTFLAGS) 
 CCFLAGS = $(CFLAGS)
-FFLAGS = @FFLAGS@ $(OPTFLAGS)
-MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a 
-MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
-LIBS = $(LIB_PATH) $(LIB_LIST)
-FLIBS = $(FLIB_PATH) $(LIB_LIST)
-LIBSPP = $(MPIPPLIB) $(LIBS)
+FFLAGS = $(OPTFLAGS)
+# Use LIBS to add any special libraries for C programs
+LIBS = 
+# Use FLIBS to add any special libraries for Fortran programs
+FLIBS = 
 EXECS = attrtest attrt ictest ictest2 ictest3 grouptest
 
 default: $(EXECS)
@@ -51,19 +37,19 @@ linktest: default clean
 
 all: testing
 
-attrtest: mpif.h attrtest.o $(MPILIB)
+attrtest: mpif.h attrtest.o
 	$(FLINKER) $(OPTFLAGS) -o attrtest attrtest.o $(FLIBS)
 
-attrt: attrt.o test.o $(MPILIB)
+attrt: attrt.o test.o
 	$(CLINKER) $(OPTFLAGS) -o attrt attrt.o test.o $(LIBS)
 
-ictest: ictest.o $(MPILIB)
+ictest: ictest.o
 	$(CLINKER) $(OPTFLAGS) -o ictest ictest.o $(LIBS)
-ictest2: ictest2.o $(MPILIB)
+ictest2: ictest2.o
 	$(CLINKER) $(OPTFLAGS) -o ictest2 ictest2.o $(LIBS)
-ictest3: ictest3.o $(MPILIB)
+ictest3: ictest3.o
 	$(CLINKER) $(OPTFLAGS) -o ictest3 ictest3.o $(LIBS)
-grouptest: grouptest.o $(MPILIB)
+grouptest: grouptest.o
 	$(CLINKER) $(OPTFLAGS) -o grouptest grouptest.o $(LIBS)
 
 mpif.h: $(MPIR_HOME)/include/mpif.h

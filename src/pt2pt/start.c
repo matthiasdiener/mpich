@@ -1,16 +1,14 @@
 /*
- *  $Id: start.c,v 1.20 1996/01/08 19:47:30 gropp Exp $
+ *  $Id: start.c,v 1.22 1996/06/07 15:07:30 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: start.c,v 1.20 1996/01/08 19:47:30 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
+#ifndef MPI_ADI2
 #include "mpisys.h"
+#endif
 
 /* NOTES 
    We mark all sends and receives as non-blocking because that is safe here;
@@ -25,18 +23,76 @@ Input Parameter:
 . request - communication request (handle) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_REQUEST
+
 @*/
 int MPI_Start( request )
 MPI_Request *request;
 {
-    int req_type;
     int mpi_errno = MPI_SUCCESS;
+#ifdef MPI_ADI2
+    MPIR_PSHANDLE *pshandle;
+    MPIR_PRHANDLE *prhandle;
+#else
+    int req_type;
     MPIR_SHANDLE *shandle;
     MPIR_RHANDLE *rhandle;
+#endif
 
     if (MPIR_TEST_REQUEST(MPI_COMM_WORLD,*request))
 	return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, "Error in MPI_START" );
 
+#ifdef MPI_ADI2
+    switch ((*request)->handle_type) {
+    case MPIR_PERSISTENT_SEND:
+	pshandle = &(*request)->persistent_shandle;
+	if (pshandle->perm_dest == MPI_PROC_NULL) {
+	    pshandle->active	          = 1;
+	    pshandle->shandle.is_complete = 1;
+	    return MPI_SUCCESS;
+	}
+	/* Since there are many send modes, we save the routine to
+	   call in the handle */
+	(*pshandle->send)( pshandle->perm_comm, pshandle->perm_buf, 
+			  pshandle->perm_count, pshandle->perm_datatype, 
+			  pshandle->perm_comm->local_rank, 
+			  pshandle->perm_tag, 
+			  pshandle->perm_comm->send_context, 
+			  pshandle->perm_comm->lrank_to_grank[
+			      pshandle->perm_dest], 
+			  *request, &mpi_errno );
+	if (mpi_errno) 
+	    return MPIR_ERROR( pshandle->perm_comm, mpi_errno, 
+			       "Error in MPI_START" );
+	pshandle->active	 = 1;
+	break;
+    case MPIR_PERSISTENT_RECV:
+	prhandle = &(*request)->persistent_rhandle;
+	if (prhandle->perm_source == MPI_PROC_NULL) {
+	    prhandle->active		   = 1;
+	    prhandle->rhandle.is_complete  = 1;
+	    prhandle->rhandle.s.MPI_TAG	   = MPI_ANY_TAG;
+	    prhandle->rhandle.s.MPI_SOURCE = MPI_PROC_NULL;
+	    prhandle->rhandle.s.count	   = 0;
+	    return MPI_SUCCESS;
+	}
+	MPID_IrecvDatatype( prhandle->perm_comm, prhandle->perm_buf, 
+			    prhandle->perm_count, prhandle->perm_datatype, 
+			    prhandle->perm_source, prhandle->perm_tag, 
+			    prhandle->perm_comm->recv_context, 
+			    *request, &mpi_errno );
+	if (mpi_errno) 
+	    return MPIR_ERROR( prhandle->perm_comm, mpi_errno, 
+			       "Error in MPI_START" );
+	prhandle->active = 1;
+	break;
+    default:
+	return MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_REQUEST,"Error in MPI_START");
+    }
+#else
     req_type = (*request)->type;
 
     if (req_type == MPIR_SEND) {
@@ -88,6 +144,7 @@ MPI_Request *request;
     else
 	mpi_errno = MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_INTERN,
 		   "Bad request type in MPI_START");
+#endif
     return mpi_errno;
 }
 

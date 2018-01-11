@@ -1,5 +1,0 @@
-SHELL=/bin/sh
-ALL:
-	@(dir=`pwd` ; cd .. ; make -f $$dir/conftest SUB)
-SUB:
-	@echo "a"

@@ -1,17 +1,13 @@
 /*
- *  $Id: scan.c,v 1.30 1995/12/21 22:17:29 gropp Exp $
+ *  $Id: scan.c,v 1.31 1996/04/12 15:40:32 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: scan.c,v 1.30 1995/12/21 22:17:29 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
-#include "mpisys.h"
 #include "coll.h"
+#include "mpiops.h"
 
 /*@
 
@@ -29,6 +25,16 @@ Output Parameter:
 . recvbuf - starting address of receive buffer (choice) 
 
 .N fortran
+
+.N collops
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_BUFFER
+.N MPI_ERR_BUFFER_ALIAS
 @*/
 int MPI_Scan ( sendbuf, recvbuf, count, datatype, op, comm )
 void             *sendbuf;
@@ -39,6 +45,7 @@ MPI_Op            op;
 MPI_Comm          comm;
 {
   int        mpi_errno = MPI_SUCCESS;
+  MPIR_ERROR_DECL;
 
   /* Check for invalid arguments */
   if ( MPIR_TEST_COMM(comm,comm) || MPIR_TEST_OP(comm,op) ||
@@ -48,5 +55,9 @@ MPI_Comm          comm;
   /* See the overview in Collection Operations for why this is ok */
   if (count == 0) return MPI_SUCCESS;
 
-  return comm->collops->Scan(sendbuf, recvbuf, count, datatype, op, comm );
+  MPIR_ERROR_PUSH(comm);
+  mpi_errno = comm->collops->Scan(sendbuf, recvbuf, count, datatype, 
+				  op, comm );
+  MPIR_ERROR_POP(comm);
+  MPIR_RETURN(comm,mpi_errno,"Error in MPI_SCAN");
 }

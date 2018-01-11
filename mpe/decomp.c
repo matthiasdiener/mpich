@@ -1,4 +1,5 @@
 #include "mpi.h"
+#include "mpe.h"
 /*
   This file contains a routine for producing a decomposition of a 1-d array
   when given a number of processors.  It may be used in "direct" product
@@ -18,15 +19,15 @@
 int MPE_Decomp1d( n, size, rank, s, e )
 int n, size, rank, *s, *e;
 {
-int nlocal, deficit;
+    int nlocal, deficit;
 
-nlocal	= n / size;
-*s	= rank * nlocal + 1;
-deficit	= n % size;
-*s	= *s + ((rank < deficit) ? rank : deficit);
-if (rank < deficit) nlocal++;
-*e      = *s + nlocal - 1;
-if (*e > n || rank == size-1) *e = n;
-return MPI_SUCCESS;
+    nlocal	= n / size;
+    *s	= rank * nlocal + 1;
+    deficit	= n % size;
+    *s	= *s + ((rank < deficit) ? rank : deficit);
+    if (rank < deficit) nlocal++;
+    *e      = *s + nlocal - 1;
+    if (*e > n || rank == size-1) *e = n;
+    return MPI_SUCCESS;
 }
 

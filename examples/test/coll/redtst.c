@@ -1,5 +1,7 @@
 #include <mpi.h>
-main(argc, argv)
+#include <stdio.h>
+
+int main(argc, argv)
 int argc; char **argv;
 {
   int rank, value, result;
@@ -14,4 +16,6 @@ int argc; char **argv;
 
   Test_Waitforall( );
   MPI_Finalize ();
+
+  return 0;
 }

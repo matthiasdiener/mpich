@@ -7,11 +7,7 @@
 #include <stdarg.h>
 #endif
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -60,7 +56,10 @@ va_list         ap;
 va_start(ap, unknown);
 sendbuf = unknown;
 if (_numargs() == NUMPARAMS+1) {
-	printf("Either both or neither buffer may be of type character\n");
+    /* Note that we can't set __ierr because we don't know where it is! */
+    (void) MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_ONE_CHAR, 
+			  "Error in MPI_SENDRECV" );
+    return;
 }
 if (_numargs() == NUMPARAMS+2) {
         buflen = va_arg(ap, int ) / 8;         /* The length is in bits. */
@@ -123,7 +122,12 @@ if (_isfcd(recvbuf)) {
 
 #endif
 #else
- void mpi_sendrecv_( sendbuf, sendcount, sendtype, dest, sendtag, 
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_sendrecv_ ANSI_ARGS(( void *, int *, MPI_Datatype, int *, int *,
+			       void *, int *, MPI_Datatype, int *, int *,
+			       MPI_Comm, MPI_Status *, int * ));
+
+void mpi_sendrecv_( sendbuf, sendcount, sendtype, dest, sendtag, 
                   recvbuf, recvcount, recvtype, source, recvtag, 
                   comm, status, __ierr )
 void         *sendbuf;
@@ -138,10 +142,12 @@ MPI_Comm      comm;
 MPI_Status   *status;
 int *__ierr;
 {
-*__ierr = MPI_Sendrecv(MPIR_F_PTR(sendbuf),*sendcount,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(sendtype) ),*dest,*sendtag,
-         MPIR_F_PTR(recvbuf),*recvcount,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(recvtype) ),*source,*recvtag,
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),status);
+    *__ierr = MPI_Sendrecv(MPIR_F_PTR(sendbuf),*sendcount,
+			   (MPI_Datatype)MPIR_ToPointer( *(int*)(sendtype) ),
+			   *dest,*sendtag,
+			   MPIR_F_PTR(recvbuf),*recvcount,
+			   (MPI_Datatype)MPIR_ToPointer( *(int*)(recvtype) ),
+			   *source,*recvtag,
+			   (MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),status);
 }
 #endif

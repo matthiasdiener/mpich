@@ -1,8 +1,3 @@
-#ifndef lint
-static char vcid[] = "$Id: xwmap.c,v 1.2 1995/12/21 22:21:32 gropp Exp $";
-#endif
-
-
 #include "mpetools.h"
 #include "basex11.h"
 
@@ -12,7 +7,7 @@ static char vcid[] = "$Id: xwmap.c,v 1.2 1995/12/21 22:21:32 gropp Exp $";
  */
 int XB_wait_map( XBWin, ExposeRoutine )
 XBWindow *XBWin;
-void     (*ExposeRoutine)();
+void     (*ExposeRoutine) ANSI_ARGS(( XBWindow *, int, int, int, int ));
 {
 XEvent  event;
 int     w, h;

@@ -147,7 +147,10 @@ int dest_id;
     return;
 }
 
-P4VOID handle_connection_interrupt()
+/* sig isn't used except to match the function prototypes for POSIX
+   signal handlers */
+P4VOID handle_connection_interrupt( sig )
+int sig;
 {
     struct slave_listener_msg msg;
     int type;

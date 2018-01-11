@@ -1,12 +1,8 @@
 /* keyval_free.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -32,9 +28,12 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_keyval_free_ ( keyval, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_keyval_free_ ANSI_ARGS(( int *, int * ));
+
+void mpi_keyval_free_ ( keyval, __ierr )
 int *keyval;
 int *__ierr;
 {
-*__ierr = MPI_Keyval_free(keyval);
+    *__ierr = MPI_Keyval_free(keyval);
 }

@@ -51,9 +51,12 @@ p4inmpi:
 	  echo making p4 in directory $$dir ;\
 	  (cd $$dir; $(MAKE) $(MFLAGS) default) ;\
 	  done 
-	(cd lib;  $(MAKE) $(MFLAGS) MPIARCH=$(MPIARCH) p4inmpi; cd ..)
-	(cd alog; $(MAKE) $(MFLAGS) MPIARCH=$(MPIARCH) p4inmpi; cd ..)
-	(cd usc;  $(MAKE) $(MFLAGS) MPIARCH=$(MPIARCH) p4inmpi; cd ..)
+	(cd lib;  $(MAKE) $(MFLAGS) MPIARCH=$(MPIARCH) \
+		MPILIBNAME=$(MPILIBNAME) p4inmpi; cd ..)
+	(cd alog; $(MAKE) $(MFLAGS) MPIARCH=$(MPIARCH) \
+		MPILIBNAME=$(MPILIBNAME) p4inmpi; cd ..)
+	(cd usc;  $(MAKE) $(MFLAGS) MPIARCH=$(MPIARCH) \
+		MPILIBNAME=$(MPILIBNAME) p4inmpi; cd ..)
 
 p4links:
 #	@if [ -f lib/p4_config.h ] ;\

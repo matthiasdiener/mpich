@@ -1,6 +1,7 @@
 #include "mpi.h"
 #include <stdio.h>
 #include <memory.h>
+#include "dtypes.h"
 
 /* 
    Multiple completions
@@ -18,8 +19,8 @@ void         **inbufs, **outbufs;
 char         **names;
 int          *counts, *bytesize, ntype;
 MPI_Comm     comms[20];
-int          ncomm = 20, rank, np, partner, tag, count, source, size;
-int          i, j, k, err, world_rank, errloc;
+int          ncomm = 20, rank, np, partner, tag;
+int          i, j, k, err, world_rank;
 MPI_Status   status, statuses[2];
 int          flag, index, outcount, indices[2];
 char         *obuf;

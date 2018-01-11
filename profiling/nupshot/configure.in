@@ -249,6 +249,18 @@ if test "$TK_VERSION" != 3.6 ; then
     print_error "Aborting build of nupshot"
     exit 1
 fi
+#
+# Some damaged implementations of tk (SGI's is known to be one)
+# require an ADDITIONAL library, which may be in the TK lib directory OR
+# in the X directory.  This library is libXpm, it contains routines
+# like Xpm... which, as should be expected, are undocumented.
+# 
+if test -s $TK_DIR/lib/libXpm.a ; then
+    XPMLIB=-lXpm
+else
+    AC_HAVE_LIBRARY(Xpm, XPMLIB="-lXpm")
+fi
+AC_SUBST(XPMLIB)
 AC_SUBST(TCL_DIR)
 AC_SUBST(TK_DIR)
 

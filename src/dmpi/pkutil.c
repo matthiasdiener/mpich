@@ -1,6 +1,9 @@
-#ifndef LINT
-static char vcid[] = "$Id: pkutil.c,v 1.9 1996/01/20 15:38:47 gropp Exp $";
-#endif
+/*
+ *  $Id: pkutil.c,v 1.13 1996/07/17 18:04:13 gropp Exp $
+ *
+ *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
+ *      See COPYRIGHT in top-level directory.
+ */
 
 /* 
    This file contains the top-level routines for packing and unpacking general
@@ -40,13 +43,51 @@ static char vcid[] = "$Id: pkutil.c,v 1.9 1996/01/20 15:38:47 gropp Exp $";
  */
 
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#ifdef malloc
+#undef malloc
+#undef free
+#undef calloc
+#endif
+#endif
+
+#ifdef MPI_ADI2
+#include "mpidmpi.h"
+#define MPIR_Type_XDR_encode MPID_Type_XDR_encode
+#define MPIR_Type_XDR_decode MPID_Type_XDR_decode
+#define MPIR_Mem_XDR_Init    MPID_Mem_XDR_Init
+#define MPIR_Mem_XDR_Free    MPID_Mem_XDR_Free
+
+int MPIR_Type_XDR_encode ANSI_ARGS(( unsigned char *, unsigned char *, MPI_Datatype, 
+			  int, void * ));
+int MPIR_Type_XDR_decode ANSI_ARGS(( unsigned char *, int, MPI_Datatype, int, 
+			  unsigned char *, int, int *, int *, void * ));
+
+#endif
 #ifdef MPID_HAS_HETERO
 #ifdef HAS_XDR
 #include "rpc/rpc.h"
-int MPIR_Type_XDR_encode();
-int MPIR_Type_XDR_decode();
+int MPIR_Mem_XDR_Init ANSI_ARGS((char *, int, enum xdr_op, XDR * ));
+int MPIR_Mem_XDR_Free ANSI_ARGS((XDR *));
 #endif
-int MPIR_Type_swap_copy();
+int MPIR_Type_swap_copy ANSI_ARGS((unsigned char *, unsigned char *,
+				   MPI_Datatype, int, void *));
+#endif
+
+#ifdef MPI_ADI2
+#define MPIR_MSGFORM_XDR MPID_MSG_XDR
+#define MPIR_MSGFORM_OK  MPID_MSG_OK
+/* Need to determine swap form? */
+#define MPIR_MSGFORM_SWAP -1
+
+#define MPIR_MSGREP_SENDER MPID_MSGREP_SENDER
+#define MPIR_MSGREP_XDR    MPID_MSGREP_XDR
+#define MPIR_MSGREP_RECEIVER MPID_MSGREP_RECEIVER
+
+#define MPIR_Type_swap_copy MPID_Type_swap_copy
+#define MPIR_Mem_convert_len MPID_Mem_convert_len
+int MPIR_Type_swap_copy ANSI_ARGS((unsigned char *, unsigned char *,
+				   MPI_Datatype, int, void *));
 #endif
 
 /*
@@ -63,6 +104,7 @@ int MPIR_Type_swap_copy();
    The same would be true for code that truncated 8 byte longs to 4 bytes.
  */
 
+#ifndef MPI_ADI2
 /* 
     A point-to-point version can also use the general pack2 by also detecting
 
@@ -79,7 +121,8 @@ MPI_Datatype type;
 void *dest;
 int  *totlen;
 {
-int (*packcontig)() = 0;
+int (*packcontig) ANSI_ARGS((unsigned char *, unsigned char *, MPI_Datatype, 
+			     int, void * )) = 0;
 void *packctx = 0;
 int err;
 int outlen;
@@ -122,6 +165,7 @@ if (packcontig == MPIR_Type_XDR_encode)
 #endif
 return err;
 }
+#endif
 
 /* Unpack may need to know more about whether the buffer is packed in some
    particular format.
@@ -139,11 +183,18 @@ int MPIR_Unpack ( comm, src, srcsize, count, type, msgrep, dest, act_len,
 		  dest_len )
 MPI_Comm     comm;
 void         *src, *dest;
-int          srcsize, count, msgrep;
+int          srcsize, count;
+#ifdef MPI_ADI2
+MPID_Msgrep_t msgrep;
+#else
+int          msgrep;
+#endif
 MPI_Datatype type;
 int          *act_len, *dest_len;
 {
-int (*unpackcontig)() = 0;
+int (*unpackcontig) ANSI_ARGS((unsigned char *, int, MPI_Datatype, int, 
+			       unsigned char *, int, int *, int *, 
+			       void *)) = 0;
 void *unpackctx = 0;
 int err, used_len;
 #ifdef HAS_XDR
@@ -212,6 +263,7 @@ return MPIR_Pack2( sbuf, count, type, packcontig, packctx, dbuf, &outlen, &totle
 #endif
 #endif
 
+#ifndef MPI_ADI2
 /*+
     MPIR_Pack_size - Returns the exact amount of space needed to 
 	                 pack a message (well, almost; returns
@@ -232,6 +284,9 @@ MPIR_GET_REAL_DATATYPE(type)
      MPIR_Pack, except that it can handle, through dest_type, 
      specific formats for specific destinations. 
    */
+if(dest_type > MPIR_MSGREP_SENDER) 
+    /* Dest type is SWAP (a MSGFORM, not MSGREP).  Change to receiver rep */
+    dest_type = MPIR_MSGREP_RECEIVER;
 #ifdef MPID_HAS_HETERO
   (*size) = MPIR_Mem_convert_len( dest_type, type, incount );
 #else
@@ -239,6 +294,7 @@ MPIR_GET_REAL_DATATYPE(type)
 #endif
 return MPI_SUCCESS;
 }
+#endif
 
 /* 
    Input Parameters:
@@ -266,7 +322,8 @@ char         *buf;
 int          count;
 MPI_Datatype type;
 char         *dest;
-int          (*packcontig)();
+int          (*packcontig) ANSI_ARGS((unsigned char *, unsigned char *, 
+				      MPI_Datatype, int, void *));
 void         *packctx;
 int          *outlen, *totlen;
 {
@@ -288,7 +345,8 @@ int          *outlen, *totlen;
 	  return MPI_SUCCESS;
 	  }
       else if (type->basic) {
-	  len = (*packcontig)( dest, buf, type, count, packctx );
+	  len = (*packcontig)( (unsigned char *)dest, (unsigned char *)buf, 
+			       type, count, packctx );
 	  if (len < 0) {
 	      /* This may happen when an XDR routine fails */
 	      MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
@@ -332,9 +390,9 @@ int          *outlen, *totlen;
 	for (i=0; i<count; i++) {
 	  buf = tmp_buf;
 	  for (j=0; j<type->count; j++) {
-	      if (mpi_errno = MPIR_Pack2 ( buf, type->blocklen, 
+	      if ((mpi_errno = MPIR_Pack2 ( buf, type->blocklen, 
 					  type->old_type, packcontig, packctx,
-					  dest, outlen, totlen )) break;
+					  dest, outlen, totlen ))) break;
 	      buf      += (type->stride);
 	      dest     += *outlen;
 	      myoutlen += *outlen;
@@ -350,10 +408,10 @@ int          *outlen, *totlen;
 	for (i=0; i<count; i++) {
 	    for (j=0;j<type->count; j++) {
 		tmp_buf  = buf + type->indices[j];
-		if (mpi_errno = MPIR_Pack2 (tmp_buf, type->blocklens[j], 
+		if ((mpi_errno = MPIR_Pack2 (tmp_buf, type->blocklens[j], 
 					    type->old_type, 
 					    packcontig, packctx, 
-					    dest, outlen, totlen)) break;
+					    dest, outlen, totlen))) break;
 		dest	 += *outlen;
 		myoutlen += *outlen;
 	  }
@@ -367,10 +425,10 @@ int          *outlen, *totlen;
 	for (i=0; i<count; i++) {
 	  for (j=0;j<type->count; j++) {
 		tmp_buf  = buf + type->indices[j];
-		if (mpi_errno = MPIR_Pack2(tmp_buf,type->blocklens[j],
+		if ((mpi_errno = MPIR_Pack2(tmp_buf,type->blocklens[j],
 					   type->old_types[j], 
 					   packcontig, packctx, 
-					   dest, outlen, totlen)) break;
+					   dest, outlen, totlen))) break;
 		dest	 += *outlen;
 		myoutlen += *outlen;
 	  }
@@ -413,7 +471,9 @@ int MPIR_Unpack2 ( src, count, type, unpackcontig, unpackctx, dest, srclen,
 		   dest_len, used_len )
 char         *src, *dest;
 int          count, srclen;
-int          (*unpackcontig)();
+int          (*unpackcontig) ANSI_ARGS((unsigned char *, int, MPI_Datatype, 
+					int, unsigned char *, int, int *, 
+					int *, void *));
 void         *unpackctx;
 MPI_Datatype type;
 int          *dest_len;
@@ -423,7 +483,6 @@ int          *used_len;
   int mpi_errno = MPI_SUCCESS;
   char *tmp_buf;
   int  len, srcreadlen, destlen;
-  int  mysrclen = 0;
 
   if (MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,type))
 	return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, 
@@ -449,12 +508,13 @@ int          *used_len;
       else if (type->basic) {
 	  /* This requires a basic type so that the size is correct */
 	  /* Need to check the element size argument... */
-	  mpi_errno = (*unpackcontig)( src, count, type, type->size, dest, 
-				       srclen, 
+	  mpi_errno = (*unpackcontig)( (unsigned char *)src, count, type, 
+				       type->size, 
+				       (unsigned char *)dest, srclen, 
 				       &srcreadlen, &destlen, unpackctx );
 	  *dest_len += destlen;
 	  *used_len  = srcreadlen;
-	  return MPI_SUCCESS;
+	  return mpi_errno;
 	  }
       }
 
@@ -488,10 +548,10 @@ int          *used_len;
 	  dest = tmp_buf;
 	  for (j=0; j<type->count; j++) {
 	      len = 0;
-	      if (mpi_errno = MPIR_Unpack2 (src, type->blocklen, 
+	      if ((mpi_errno = MPIR_Unpack2 (src, type->blocklen, 
 					    type->old_type, 
 					    unpackcontig, unpackctx, 
-					    dest, srclen, dest_len, &len ))
+					    dest, srclen, dest_len, &len )))
 		  return mpi_errno;
 	      dest	 += (type->stride);
 	      src	 += len;
@@ -509,11 +569,11 @@ int          *used_len;
 	    for (j=0;j<type->count; j++) {
 		tmp_buf  = dest + type->indices[j];
 		len      = 0;
-		if (mpi_errno = MPIR_Unpack2 (src, type->blocklens[j], 
+		if ((mpi_errno = MPIR_Unpack2 (src, type->blocklens[j], 
 					      type->old_type, 
 					      unpackcontig, unpackctx,
 					      tmp_buf, srclen, dest_len, 
-					      &len )) 
+					      &len )) )
 		    return mpi_errno;
 		src	  += len;
 		srclen    -= len;
@@ -526,16 +586,16 @@ int          *used_len;
   /* Struct type */
   case MPIR_STRUCT:
 	for (i=0; i<count; i++) {
-	    /* printf( ".struct.[%d]\n", i ); */
+	    /* PRINTF( ".struct.[%d]\n", i ); */
 	    for (j=0;j<type->count; j++) {
 		tmp_buf  = dest + type->indices[j];
 		len      = 0;
-		if (mpi_errno = MPIR_Unpack2(src,type->blocklens[j],
+		if ((mpi_errno = MPIR_Unpack2(src,type->blocklens[j],
 					     type->old_types[j], 
 					     unpackcontig, unpackctx, 
 					     tmp_buf, srclen, dest_len,
-					     &len )) {
-		    /* printf( ".!error return %d\n", mpi_errno ); */
+					     &len ))) {
+		    /* PRINTF( ".!error return %d\n", mpi_errno ); */
 		    return mpi_errno;
 		    }
 		src	  += len;
@@ -562,14 +622,16 @@ int          *used_len;
  */
 int MPIR_Elementcnt( src, num, datatype, inbytes, dest, srclen, srcreadlen, 
 		     destlen, ctx )
-char         *dest, *src;
-MPI_Datatype datatype;
-int          num, inbytes, srclen, *srcreadlen, *destlen;
-void         *ctx;
+unsigned char *dest, *src;
+MPI_Datatype  datatype;
+int           num, inbytes, srclen, *srcreadlen, *destlen;
+void          *ctx;
 {
 int len = datatype->size * num;
 int *totelm = (int *)ctx;
 
+/* PRINTF( "Counting datatype of size %d (srclen = %d)\n", 
+	datatype->size, srclen ); */
 if (*totelm >= 0) {
     /* Once we decide on undefined, don't change it */
     if (len > srclen) {
@@ -601,16 +663,18 @@ static FILE *datatype_fp = 0;
 static char *i_offset, *o_offset;
 static char i_dummy;
 
+/* The interface makes these unsigned chars */
 int MPIR_Printcontig( dest, src, datatype, num, ctx )
-char         *dest, *src;
+unsigned char         *dest, *src;
 MPI_Datatype datatype;
 int          num;
 void         *ctx;
 {
 int len = datatype->size * num;
 
+/* gcc doesn't like subtracting from a POINTER to unsigned(!) */
 fprintf( datatype_fp, "Copy %x <- %x for %d bytes\n", 
-	 dest-o_offset, src-i_offset, len );
+	 ((char *)dest)-o_offset, ((char *)src)-i_offset, len );
 return len;
 }
 
@@ -629,7 +693,7 @@ return len;
 
 int MPIR_Printcontig2a( src, num, datatype, inbytes, dest, srclen, 
 		       srcreadlen, destlen, ctx )
-char         *dest, *src;
+unsigned char *dest, *src;
 MPI_Datatype datatype;
 int          num, inbytes, srclen, *srcreadlen, *destlen;
 void         *ctx;
@@ -637,7 +701,7 @@ void         *ctx;
 int len = datatype->size * num;
 
 fprintf( datatype_fp, "Copy %x <- %x for %d bytes\n", 
-	 dest-o_offset, src-i_offset, len );
+	 (char *)dest-o_offset, (char *)src-i_offset, len );
 *srcreadlen = len;
 *destlen    = len;
 return MPI_SUCCESS;

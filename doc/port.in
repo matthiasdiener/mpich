@@ -123,9 +123,9 @@ to the $systemname system.  The MPI standard is given in
 \cite{mpi-forum:final}; an introduction to using MPI may be found in
 \cite{usingmpi}. 
 
-The MPICH implementation relies on a abstract device interface (ADI) for its
-portability.  There are many possible implementation of this device; the one
-used in this effort was @DEVICE@.
+The MPICH implementation \cite{gropp-lusk-doss-skjellum:mpich} relies on a
+abstract device interface (ADI) for its portability.  There are many possible
+implementation of this device; the one used in this effort was @DEVICE@.
 
 \section{Configuration}
 This version of MPICH was configured with arguments {\tt @CONFIGURE_ARGS@}.
@@ -599,6 +599,8 @@ fi
 ############################################################################
 if test $noperf = 0 ; then
     @MPIR_HOME@/doc/portperf -file=$filebase $echoarg
+else
+    /bin/rm -f ${filebase}perf.tex
 fi
 # In case we add the data later.
 cat >> $filename <<.
@@ -609,6 +611,9 @@ cat >> $filename <<.
 ############################################################################
 if test $dotest = 1 ; then
     @MPIR_HOME@/doc/porttest -file=$filebase $echoarg
+else
+    # Make sure that there is no old file left over
+    /bin/rm -f ${filebase}test.tex
 fi
 cat >> $filename <<.
 \readfile{${fileroot}test.tex}

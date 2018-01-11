@@ -1,5 +1,5 @@
 /*
- *  $Id: chdebug.c,v 1.5 1996/01/08 19:51:41 gropp Exp $
+ *  $Id: chdebug.c,v 1.6 1996/04/12 16:56:34 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: chdebug.c,v 1.5 1996/01/08 19:51:41 gropp Exp $";
+static char vcid[] = "$Id: chdebug.c,v 1.6 1996/04/12 16:56:34 gropp Exp $";
 #endif /* lint */
 
 #include "mpid.h"
@@ -212,5 +212,5 @@ fprintf( stdout, "[%d]* dmpi_send_contents:\n\
 		 dmpi_send_handle->buflen, dmpi_send_handle->count,
 		 dmpi_send_handle->totallen, dmpi_send_handle->mode, 
 		 dmpi_send_handle->lrank, 
-		 dmpi_send_handle->dev_shandle.recv_handle );
+		 (MPI_Aint)dmpi_send_handle->dev_shandle.recv_handle );
 }

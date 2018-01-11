@@ -30,6 +30,8 @@ char **argv;
 	    MPI_Wait( &rq, &status );
 	    if (status.MPI_SOURCE != status.MPI_TAG) {
 		printf( "Error in received message (source and tag)\n" );
+		printf( "Source was %d and tag was %d\n",
+			status.MPI_SOURCE, status.MPI_TAG );
 		}
 	    MPI_Get_count( &status, MPI_DOUBLE, &actlen );
 	    expected_len = (status.MPI_SOURCE < 10) ? status.MPI_SOURCE * 10 :

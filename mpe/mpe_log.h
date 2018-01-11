@@ -35,13 +35,13 @@
 #undef _ANSI_ARGS_
 #endif
 
-#ifdef __STDC__
+#if defined(__STDC__) || defined(__cplusplus)
 #define _ANSI_ARGS_(x) x
 #else
 #define _ANSI_ARGS_(x) ()
 #endif
 
-int MPE_Init_log();
+int MPE_Init_log _ANSI_ARGS_((void));
   /* call before calling any other logging functions */
 
 int MPE_Describe_state _ANSI_ARGS_(( int start, int end, char *name,
@@ -51,7 +51,7 @@ int MPE_Describe_state _ANSI_ARGS_(( int start, int end, char *name,
 int MPE_Describe_event _ANSI_ARGS_(( int event, char *name));
   /* create event description lines */
 
-int MPE_Start_log ();
+int MPE_Start_log _ANSI_ARGS_((void));
   /* set timer to 0 */
 
 int MPE_Log_event _ANSI_ARGS_(( int event, int data, char *string ));
@@ -63,7 +63,7 @@ int MPE_Log_send _ANSI_ARGS_(( int receiver, int tag, int size ));
 int MPE_Log_receive _ANSI_ARGS_(( int sender, int tag, int size ));
   /* log the receiving of a message */
 
-int MPE_Stop_log();
+int MPE_Stop_log _ANSI_ARGS_((void));
   /* stop logging events */
 
 int MPE_Finish_log _ANSI_ARGS_(( char *filename ));

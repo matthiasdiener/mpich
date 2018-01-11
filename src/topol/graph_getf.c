@@ -1,12 +1,8 @@
 /* graph_get.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -32,12 +28,16 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_graph_get_ ( comm, maxindex, maxedges, index, edges, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_graph_get_ ANSI_ARGS(( MPI_Comm, int *, int *, int *, int *, int * ));
+
+void mpi_graph_get_ ( comm, maxindex, maxedges, index, edges, __ierr )
 MPI_Comm comm;
-int*maxindex,*maxedges;
+int *maxindex,*maxedges;
 int *index, *edges;
 int *__ierr;
 {
-*__ierr = MPI_Graph_get(
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),*maxindex,*maxedges,index,edges);
+    *__ierr = MPI_Graph_get(
+	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),*maxindex,*maxedges,
+	index,edges);
 }

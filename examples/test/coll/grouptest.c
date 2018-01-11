@@ -1,7 +1,7 @@
-/* 	$Id: grouptest.c,v 1.10 1995/02/06 22:21:39 gropp Exp $	 */
+/* 	$Id: grouptest.c,v 1.11 1996/06/26 19:26:32 gropp Exp $	 */
 
 #ifndef lint
-static char vcid[] = "$Id: grouptest.c,v 1.10 1995/02/06 22:21:39 gropp Exp $";
+static char vcid[] = "$Id: grouptest.c,v 1.11 1996/06/26 19:26:32 gropp Exp $";
 #endif /* lint */
 #include "mpi.h"
 
@@ -13,12 +13,10 @@ int argc;
 char **argv;
 {
     int rank, size, i;
-    MPI_Group group1, group2, group3, groupall, groupunion, groupintersection,
-              newgroup;
+    MPI_Group group1, group2, group3, groupall, groupunion, newgroup;
     MPI_Comm newcomm;
     int ranks1[100], ranks2[100], ranks3[100];
     int nranks1=0, nranks2=0, nranks3=0;
-    int grouprank;
 
     MPI_Init( &argc, &argv );
     MPI_Barrier( MPI_COMM_WORLD );
@@ -67,5 +65,3 @@ char **argv;
     MPI_Finalize();
     return 0;
 }
-
-

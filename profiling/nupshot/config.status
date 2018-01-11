@@ -23,6 +23,7 @@ CPP='cc -E'
 tk_ok='1'
 XINCLUDES=' -I/usr/local/X11R5/include'
 XLIBSW='-L/usr/local/X11R5/lib -lX11'
+XPMLIB=''
 TCL_DIR='/usr/local/tcl7.3-tk3.6'
 TK_DIR='/usr/local/tcl7.3-tk3.6'
 OPTFLAGS=''
@@ -57,6 +58,7 @@ s%@CPP@%$CPP%g
 s%@tk_ok@%$tk_ok%g
 s%@XINCLUDES@%$XINCLUDES%g
 s%@XLIBSW@%$XLIBSW%g
+s%@XPMLIB@%$XPMLIB%g
 s%@TCL_DIR@%$TCL_DIR%g
 s%@TK_DIR@%$TK_DIR%g
 s%@OPTFLAGS@%$OPTFLAGS%g

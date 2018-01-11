@@ -1,5 +1,5 @@
 /*
- *  $Id: dmch.h,v 1.43 1996/01/11 18:35:15 gropp Exp $
+ *  $Id: dmch.h,v 1.44 1996/04/12 16:56:46 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -451,8 +451,16 @@ if ((dmpi_recv_handle)->dev_rhandle.bytes_as_contig < (msglen)) {\
 
 #endif /* MPID_DEVICE_CODE */
 
-extern void (*MPID_ErrorHandler)();
-extern void MPID_DefaultErrorHandler();
+#ifndef ANSI_ARGS
+#if defined(__STDC__) || defined(__cplusplus)
+#define ANSI_ARGS(a) a
+#else
+#define ANSI_ARGS(a) ()
+#endif
+#endif
+
+extern void (*MPID_ErrorHandler)ANSI_ARGS((int,char*));
+extern void MPID_DefaultErrorHandler ANSI_ARGS((int,char*));
 
 /* For heterogeneous support 
    This provides information on how data should be communicated to 

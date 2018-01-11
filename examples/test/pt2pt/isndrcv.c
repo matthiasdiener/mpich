@@ -61,8 +61,11 @@ int bufferlen;
 	else if (buffertypes[i] == MPI_DOUBLE)
 	    bufferspace[i] = malloc(bufferlen * sizeof(double));
 #if defined(__STDC__)
-	else if (MPI_LONG_DOUBLE && buffertypes[i] == MPI_LONG_DOUBLE)
-	    bufferspace[i] = malloc(bufferlen * sizeof(long double));
+	else if (MPI_LONG_DOUBLE && buffertypes[i] == MPI_LONG_DOUBLE) {
+	    int dlen;
+	    MPI_Type_size( MPI_LONG_DOUBLE, &dlen );
+	    bufferspace[i] = malloc(bufferlen * dlen);
+	}
 #endif
 	else if (buffertypes[i] == MPI_BYTE)
 	    bufferspace[i] = malloc(bufferlen * sizeof(unsigned char));
@@ -125,7 +128,7 @@ void *bufferspace;
 MPI_Datatype buffertype; 
 int bufferlen;
 {
-    int i, j;
+    int j;
     for (j = 0; j < bufferlen; j++) {
 	if (buffertype == MPI_CHAR) {
 	    if (((char *)bufferspace)[j] != (char)j)
@@ -202,7 +205,7 @@ void
 SenderTest1()
 {
     void *bufferspace[MAX_TYPES];
-    int Curr_Type, i, j;
+    int i, j;
     int act_send;
     MPI_Request *requests = 
 	(MPI_Request *)malloc(sizeof(MPI_Request) * ntypes * 
@@ -232,7 +235,7 @@ void
 ReceiverTest1()
 {
     void *bufferspace[MAX_TYPES];
-    int Curr_Type, i, j;
+    int i, j;
     char message[81];
     MPI_Status Stat;
     MPI_Request Req;
@@ -364,11 +367,13 @@ SenderTest3()
 void
 ReceiverTest3()
 {
-    int err_code;
     int buffer[20];
     MPI_Datatype bogus_type = NULL;
     MPI_Request Req;
+#if 0
     MPI_Status Stat;
+    int err_code;
+#endif
     MPI_Errhandler_set(MPI_COMM_WORLD, MPIR_ERRORS_WARN);
 
     if (MPI_Isend(buffer, 20, MPI_INT, dest,
@@ -437,6 +442,18 @@ char **argv;
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
     MPI_Comm_size(MPI_COMM_WORLD, &mysize);
+
+    /* dest writes out the received stats; for the output to be
+       consistant (with the final check), it should be procees 0 */
+    if (argc > 1 && argv[1] && strcmp( "-alt", argv[1] ) == 0) {
+	dest = 1;
+	src  = 0;
+	}
+    else {
+	src  = 1;
+	dest = 0;
+	}
+
     Test_Init("isndrcv", myrank);
     SetupBasicTypes();
 

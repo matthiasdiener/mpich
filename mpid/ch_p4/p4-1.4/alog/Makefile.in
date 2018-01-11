@@ -67,8 +67,8 @@ $(LIBDIR)/libp4.a:  $(ALOG_OBJ)
 #	$(RANLIB) $@
 
 p4inmpi:$(P) $(ALOG_OBJ)
-	$(AR) ../../../../lib/$(MPIARCH)/ch_p4/libmpi.a $?
-	$(RANLIB) ../../../../lib/$(MPIARCH)/ch_p4/libmpi.a
+	$(AR) ../../../../lib/$(MPIARCH)/ch_p4/lib$(MPILIBNAME).a $?
+	$(RANLIB) ../../../../lib/$(MPIARCH)/ch_p4/lib$(MPILIBNAME).a
 
 mergelogs: alog_evntdfs.h mergelogs.o
 	$(CLINKER)  $(CFLAGS) -o mergelogs mergelogs.o

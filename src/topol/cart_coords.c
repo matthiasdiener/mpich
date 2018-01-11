@@ -1,11 +1,12 @@
 /*
- *  $Id: cart_coords.c,v 1.14 1995/12/21 22:18:04 gropp Exp $
+ *  $Id: cart_coords.c,v 1.15 1996/04/12 15:42:14 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#include "mpitopo.h"
 
 /*@
 
@@ -21,6 +22,14 @@ Output Parameter:
 . coords - integer array (of size 'ndims') containing the cartesian coordinates of specified process (integer) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TOPOLOGY
+.N MPI_ERR_RANK
+.N MPI_ERR_DIMS
+.N MPI_ERR_ARG
+
 @*/
 int MPI_Cart_coords ( comm, rank, maxdims, coords )
 MPI_Comm  comm;
@@ -28,7 +37,7 @@ int       rank;
 int       maxdims;
 int      *coords;
 {
-  int i, *dims, flag;
+  int i, flag;
   int mpi_errno = MPI_SUCCESS;
   MPIR_TOPOLOGY *topo;
   int nnodes;

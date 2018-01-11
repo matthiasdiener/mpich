@@ -1,0 +1,24 @@
+gcc -g -Wall -Wstrict-prototypes -Wmissing-prototypes -I../../ch2 -DMPI_ADI2 -I../../mpid/ch2 -o sendrecv sendrecv.o test.o -L/home/gropp/mpich/lib/sun4/ch_p4-2  -lmpi
+ld: Undefined symbol 
+   _p4_global_op 
+   _p4_num_total_slaves 
+   _p4_get_my_id 
+   _MPID_Comm_free 
+   _MPID_Comm_init 
+   _p4_create_procgroup 
+   _MPID_Mem_XDR_Len 
+   _MPID_THREAD_DS_INIT 
+   _MPID_THREAD_DS_FREE 
+   _p4_error 
+   _send_message 
+   _p4_broadcastx 
+   _p4_wait_for_end 
+   _p4_int_max_op 
+   _p4_msg_free 
+   _p4_recv 
+   _p4_messages_available 
+   _MPID_Type_swap_copy 
+   _p4_initenv 
+collect2: ld returned 2 exit status
+*** Error code 1
+make: Fatal error: Command failed for target `sendrecv'

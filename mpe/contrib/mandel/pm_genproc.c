@@ -7,7 +7,9 @@
 #include "mpe.h"
 #include "pmandel.h"
 
+#ifndef DEBUG
 #define DEBUG 0
+#endif
 #define DEBUG_POINTS 0
 
 /* I used the line:
@@ -188,7 +190,7 @@ Flags *flags;
 
   MPI_Comm_rank( MPI_COMM_WORLD, &myid );
 
-  if (!myid) {
+  if (myid == 0) {
     GetStringArg( argc, argv, "-l", &(flags->logfile) );
     GetStringArg( argc, argv, "-i", &(flags->inf) );
       /* if reading from input file, disable zooming */
@@ -254,12 +256,19 @@ Flags *flags;
     strLens[0] = (flags->logfile) ? strlen(flags->logfile)+1 : 0;
     strLens[1] = (flags->inf)     ? strlen(flags->inf)+1     : 0;
     strLens[2] = (flags->outf)    ? strlen(flags->outf)+1    : 0;
-  }
+  } /* End of myid == 0 */
 
+#if DEBUG
+     fprintf( stderr, "%d about to broadcast flags info\n", myid );
+#endif
   MPI_Bcast( flags, 1, flags_type, 0, MPI_COMM_WORLD );
 
+#if DEBUG
+  fprintf (stderr, "%d about to broadcast string lengths\n", myid );
+#endif
   MPI_Bcast( strLens, 3, MPI_INT, 0, MPI_COMM_WORLD );
-  if (myid!=0) {
+
+  if (myid != 0) {
     flags->logfile = (strLens[0]) ?
       (char *)malloc( strLens[0] * sizeof( char ) ) : 0;
     flags->inf = (strLens[1]) ?
@@ -267,6 +276,9 @@ Flags *flags;
     flags->outf = (strLens[2]) ?
       (char *)malloc( strLens[2] * sizeof( char ) ) : 0;
   }
+#if DEBUG
+  fprintf( stderr, "%d about to broadcast strings\n", myid );
+#endif
   if (strLens[0]) 
     MPI_Bcast( flags->logfile, strLens[0], MPI_CHAR, 0, MPI_COMM_WORLD );
   if (strLens[1]) 

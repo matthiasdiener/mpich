@@ -7,11 +7,7 @@
 #include <stdarg.h>
 #endif
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -58,8 +54,10 @@ va_list         ap;
 va_start(ap, unknown);
 sendbuf = unknown;
 if (_numargs() == NUMPARAMS+1) {
-        printf("Both parameters must be of type character or neither.\n");
-        return;
+    /* Note that we can't set __ierr because we don't know where it is! */
+    (void) MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_ONE_CHAR, 
+			  "Error in MPI_ALLGATHERV" );
+    return;
 }
 if (_numargs() == NUMPARAMS+2) {
         buflen = va_arg(ap, int) /8;          /* This is in bits. */
@@ -115,8 +113,13 @@ if (_isfcd(recvbuf)) {
 
 #endif
 #else
- void mpi_allgatherv_ ( sendbuf, sendcount,  sendtype, 
-                     recvbuf, recvcounts, displs,   recvtype, comm, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_allgatherv_ ANSI_ARGS(( void *, int *, MPI_Datatype,
+				 void *, int *, int *, MPI_Datatype,
+				 MPI_Comm, int * ));
+
+void mpi_allgatherv_ ( sendbuf, sendcount,  sendtype, 
+		       recvbuf, recvcounts, displs,   recvtype, comm, __ierr )
 void             *sendbuf;
 int*sendcount;
 MPI_Datatype      sendtype;
@@ -127,10 +130,10 @@ MPI_Datatype      recvtype;
 MPI_Comm          comm;
 int *__ierr;
 {
-*__ierr = MPI_Allgatherv(MPIR_F_PTR(sendbuf),*sendcount,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(sendtype) ),
-        MPIR_F_PTR(recvbuf),recvcounts,displs,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(recvtype) ),
-	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
+    *__ierr = MPI_Allgatherv(MPIR_F_PTR(sendbuf),*sendcount,
+			     (MPI_Datatype)MPIR_ToPointer( *(int*)(sendtype) ),
+			     MPIR_F_PTR(recvbuf),recvcounts,displs,
+			     (MPI_Datatype)MPIR_ToPointer( *(int*)(recvtype) ),
+			     (MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
 }
 #endif

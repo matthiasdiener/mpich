@@ -25,7 +25,7 @@ struct p4_procgroup *read_procgroup()
     FILE *fp;
     char buf[1024], *s;
     struct p4_procgroup_entry *pe;
-    int i, group_id, pt_index, n;
+    int n;
     struct p4_procgroup *pg;
     struct passwd *pwent;
     char *logname; 
@@ -34,6 +34,7 @@ struct p4_procgroup *read_procgroup()
     p4_dprintfl(90,"entering read_procgroup pgfname=%s\n",procgroup_file);
 
     pg = p4_alloc_procgroup();
+    if (!pg) return 0;
 
 #   if defined(CM5)  ||  defined(NCUBE)
     logname = '\0';
@@ -42,10 +43,15 @@ struct p4_procgroup *read_procgroup()
 #   endif
 
     if ((fp = fopen(procgroup_file, "r")) == NULL) {
-	char tmp[1300];
-	sprintf( tmp, "open error on procgroup file (%s)", procgroup_file );
-	p4_error(tmp,NULL);
+	if (p4_hard_errors) {
+	    char tmp[1300];
+	    sprintf( tmp, 
+		     "open error on procgroup file (%s)", procgroup_file );
+	    p4_error(tmp,0);
 	}
+	/* In case p4_error doesn't return or p4_hard_errors not set */
+	return 0;
+    }
 
     pe = pg->entries;
 

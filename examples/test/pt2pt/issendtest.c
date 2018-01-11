@@ -1,12 +1,11 @@
 /*
  * Program to test that the "synchronous send" semantics
  * of point to point communications in MPI is (probably) satisfied. 
- * Two messages are send in one order; the destination uses MPI_Iprobe
- * to look for the SECOND message before doing a receive on the first.
- * To give a finite-termination, a fixed amount of time is used for
- * the Iprobe test.
+ * This uses tests on the completions of the SENDS (unlike the MPI_Ssend
+ * test) since the Issends return "immediately" but can not complete
+ * until the matching receive begins.
  *
- * This program has been patterned off of "overtake.s"
+ * This program has been patterned off of "overtake.c"
  *
  *				William Gropp
  *				gropp@mcs.anl.gov
@@ -49,27 +48,18 @@ char **argv;
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+    Current_Test = "Issend waits for recv";
     if (rank == src) { 
+	Test_Init("issendtest", rank);
 	Generate_Data(buffer, SIZE);
 	MPI_Recv( buffer, 0, MPI_INT, dest, 0, MPI_COMM_WORLD, &status );
 	MPI_Send( buffer, 0, MPI_INT, dest, 0, MPI_COMM_WORLD );
 	MPI_Issend( buffer, act_size, MPI_INT, dest, 1, MPI_COMM_WORLD, &r1 );
 	MPI_Issend( buffer, act_size, MPI_INT, dest, 2, MPI_COMM_WORLD, &r2 );
-	MPI_Wait( &r1, &status );
-	MPI_Wait( &r2, &status );
-	Test_Waitforall( );
-	MPI_Finalize();
-
-    } else if (rank == dest) {
-	Test_Init("overtake", rank);
-	/* Test 1 */
-	Current_Test = "Overtaking Test (Normal Send   -> Normal Recieve)";
-	MPI_Send( buffer, 0, MPI_INT, src, 0, MPI_COMM_WORLD );
-	MPI_Recv( buffer, 0, MPI_INT, src, 0, MPI_COMM_WORLD, &status );
 	t0 = MPI_Wtime();
 	flag = 0;
 	while (MPI_Wtime() - t0 < MAX_TIME) {
-	    MPI_Iprobe( src, 2, MPI_COMM_WORLD, &flag, &status );
+	    MPI_Test( &r1, &flag, &status );
 	    if (flag) {
 		Test_Failed(Current_Test);
 		break;
@@ -77,9 +67,11 @@ char **argv;
 	    }
 	if (!flag) 
 	    Test_Passed(Current_Test);
-	MPI_Recv( buffer, act_size, MPI_INT, src, 1, MPI_COMM_WORLD, &status );
-	MPI_Recv( buffer, act_size, MPI_INT, src, 2, MPI_COMM_WORLD, &status );
-
+	MPI_Wait( &r2, &status );
+	MPI_Sendrecv( MPI_BOTTOM, 0, MPI_INT, dest, 13,
+		      MPI_BOTTOM, 0, MPI_INT, dest, 13,
+		      MPI_COMM_WORLD, &status );
+	MPI_Wait( &r1, &status );
 	Test_Waitforall( );
 	MPI_Finalize();
 	{
@@ -88,6 +80,19 @@ char **argv;
 	    Test_Finalize();
 	    return rval;
 	}
+
+    } else if (rank == dest) {
+	/* Test 1 */
+	MPI_Send( buffer, 0, MPI_INT, src, 0, MPI_COMM_WORLD );
+	MPI_Recv( buffer, 0, MPI_INT, src, 0, MPI_COMM_WORLD, &status );
+	MPI_Recv( buffer, act_size, MPI_INT, src, 2, MPI_COMM_WORLD, &status );
+	MPI_Sendrecv( MPI_BOTTOM, 0, MPI_INT, src, 13,
+		      MPI_BOTTOM, 0, MPI_INT, src, 13,
+		      MPI_COMM_WORLD, &status );
+	MPI_Recv( buffer, act_size, MPI_INT, src, 1, MPI_COMM_WORLD, &status );
+
+	Test_Waitforall( );
+	MPI_Finalize();
     } else {
 	fprintf(stderr, "*** This program uses exactly 2 processes! ***\n");
 	exit(-1);
@@ -95,6 +100,3 @@ char **argv;
 
     return 0;
 }
-
-
-

@@ -1,11 +1,15 @@
 #! /bin/sh
 if [ "$MPIR_HOME" = "" ] ; then 
-    MPIR_HOME=/home/gropp/mpich
+    MPIR_HOME=/Net/antireo/antireo9/MPI/mpich
 fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
 fi
-MPIRUN_HOME=$MPIR_HOME/bin
+if [ "lib/sun4/ch_p4" = "#""MPIRUN_BIN""#" ] ; then 
+    MPIRUN_HOME=$MPIR_HOME/bin
+else
+    MPIRUN_HOME=$MPIR_HOME/lib/sun4/ch_p4
+fi
 if [ "$argsset" = "" ] ; then
    . $MPIRUN_HOME/mpirun.args
    argsset=1
@@ -86,11 +90,17 @@ export MP_PROCS
 export MP_INFOLEVEL
 export MP_HOLD_STDIN
 export MP_PULSE
+# For MPI_INIT
+MPIRUN_DEVICE=ch_mpl
+export MPIRUN_DEVICE
+#
 if [ $polling_mode = 0 ] ; then
    MP_CSS_INTERRUPT=YES
    export MP_CSS_INTERRUPT
 fi
 /bin/rm -f /sphome/$LOGNAME/job.output.$$
+# Wait for no-zero-sized SPnodes file
+while test \! -s \$MP_HOSTFILE ; do sleep 1 ; done
 if [ $mpirun_verbose = 1 ] ; then
     echo "About to run poe ... " >> /sphome/$LOGNAME/job.output.$$
 fi

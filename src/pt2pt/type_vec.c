@@ -1,16 +1,14 @@
 /*
- *  $Id: type_vec.c,v 1.11 1995/12/21 21:41:33 gropp Exp $
+ *  $Id: type_vec.c,v 1.13 1996/07/17 18:04:00 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: type_vec.c,v 1.11 1995/12/21 21:41:33 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
+#ifndef MPI_ADI2
 #include "mpisys.h"
+#endif
 
 /*@
     MPI_Type_vector - Creates a vector (strided) datatype
@@ -35,6 +33,7 @@ MPI_Datatype old_type;
 MPI_Datatype *newtype;
 {
   int           mpi_errno = MPI_SUCCESS;
+  MPIR_ERROR_DECL;
 
   /* Check for bad arguments */
   MPIR_GET_REAL_DATATYPE(old_type)
@@ -47,11 +46,18 @@ MPI_Datatype *newtype;
 					  "Error in MPI_TYPE_VECTOR" );
 	
   /* Handle the case where blocklen & stride make a contiguous type */
-  if ( (blocklen == stride) ||
-	   (count    == 1) )
-	return MPI_Type_contiguous ( count * blocklen, old_type, newtype );
+  MPIR_ERROR_PUSH(MPI_COMM_WORLD);
 
+  if ( (blocklen == stride) || (count    == 1) ) {
+	MPIR_CALL_POP(MPI_Type_contiguous ( 
+	    count * blocklen, old_type, newtype ),MPI_COMM_WORLD,
+		      "Error in MPI_TYPE_VECTOR");
+  }
   /* Reduce this to the hvector case */
-  return MPI_Type_hvector ( count, blocklen, stride * old_type->extent,
+  
+  mpi_errno = MPI_Type_hvector ( count, blocklen, 
+				 (MPI_Aint)stride * old_type->extent,
 						    old_type, newtype );
+  MPIR_ERROR_POP(MPI_COMM_WORLD);
+  MPIR_RETURN(MPI_COMM_WORLD,mpi_errno,"Error in MPI_TYPE_VECTOR");
 }

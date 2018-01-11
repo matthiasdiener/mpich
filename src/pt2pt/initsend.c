@@ -5,15 +5,11 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: initsend.c,v 1.13 1995/12/21 21:12:37 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
-#include "mpisys.h"
 
 /* This initializes the fields of a request structure */
-
+#ifndef MPI_ADI2
+#include "mpisys.h"
 int MPIR_Send_init( buf, count, datatype, dest, tag, comm, request, mode,
 		    nonblocking )
 void          *buf;
@@ -58,3 +54,4 @@ int           nonblocking;
 				 nonblocking );
 return MPI_SUCCESS;
 }
+#endif

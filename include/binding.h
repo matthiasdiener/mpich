@@ -221,6 +221,216 @@ int MPI_NULL_DELETE_FN ( MPI_Comm comm, int keyval, void *attr,
 			 void *extra_state );
 int MPI_DUP_FN ( MPI_Comm comm, int keyval, void *extra_state, void *attr_in,
 		 void *attr_out, int *flag );
+
+/* Here are the bindings of the profiling routines */
+#if !defined(MPI_BUILD_PROFILING)
+int PMPI_Send(void* buf, int count, MPI_Datatype datatype, int dest, int tag, 
+	     MPI_Comm comm);
+int PMPI_Recv(void* buf, int count, MPI_Datatype datatype, int source, 
+	     int tag, MPI_Comm comm, MPI_Status *status);
+int PMPI_Get_count(MPI_Status *status, MPI_Datatype datatype, int *count);
+int PMPI_Bsend(void* buf, int count, MPI_Datatype datatype, int dest, int tag, 
+	      MPI_Comm comm);
+int PMPI_Ssend(void* buf, int count, MPI_Datatype datatype, int dest, int tag, 
+	      MPI_Comm comm);
+int PMPI_Rsend(void* buf, int count, MPI_Datatype datatype, int dest, int tag, 
+	      MPI_Comm comm);
+int PMPI_Buffer_attach( void* buffer, int size);
+int PMPI_Buffer_detach( void* buffer, int* size);
+int PMPI_Isend(void* buf, int count, MPI_Datatype datatype, int dest, int tag, 
+	      MPI_Comm comm, MPI_Request *request);
+int PMPI_Ibsend(void* buf, int count, MPI_Datatype datatype, int dest, 
+	       int tag, MPI_Comm comm, MPI_Request *request);
+int PMPI_Issend(void* buf, int count, MPI_Datatype datatype, int dest, 
+	       int tag, MPI_Comm comm, MPI_Request *request);
+int PMPI_Irsend(void* buf, int count, MPI_Datatype datatype, int dest, 
+	       int tag, MPI_Comm comm, MPI_Request *request);
+int PMPI_Irecv(void* buf, int count, MPI_Datatype datatype, int source, 
+	      int tag, MPI_Comm comm, MPI_Request *request);
+int PMPI_Wait(MPI_Request *request, MPI_Status *status);
+int PMPI_Test(MPI_Request *request, int *flag, MPI_Status *status);
+int PMPI_Request_free(MPI_Request *request);
+int PMPI_Waitany(int, MPI_Request *, int *, MPI_Status *);
+int PMPI_Testany(int, MPI_Request *, int *, int *, MPI_Status *);
+int PMPI_Waitall(int count, MPI_Request *array_of_requests, 
+		MPI_Status *array_of_statuses);
+int PMPI_Testall(int count, MPI_Request *array_of_requests, int *flag, 
+		MPI_Status *array_of_statuses);
+int PMPI_Waitsome(int incount, MPI_Request *array_of_requests, int *outcount, 
+		 int *array_of_indices, MPI_Status *array_of_statuses);
+int PMPI_Testsome(int incount, MPI_Request *array_of_requests, int *outcount, 
+		 int *array_of_indices, MPI_Status *array_of_statuses);
+int PMPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag, 
+	       MPI_Status *status);
+int PMPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status);
+int PMPI_Cancel(MPI_Request *request);
+int PMPI_Test_cancelled(MPI_Status *status, int *flag);
+int PMPI_Send_init(void* buf, int count, MPI_Datatype datatype, int dest, 
+		  int tag, MPI_Comm comm, MPI_Request *request);
+int PMPI_Bsend_init(void* buf, int count, MPI_Datatype datatype, int dest, 
+		   int tag, MPI_Comm comm, MPI_Request *request);
+int PMPI_Ssend_init(void* buf, int count, MPI_Datatype datatype, int dest, 
+		   int tag, MPI_Comm comm, MPI_Request *request);
+int PMPI_Rsend_init(void* buf, int count, MPI_Datatype datatype, int dest, 
+		   int tag, MPI_Comm comm, MPI_Request *request);
+int PMPI_Recv_init(void* buf, int count, MPI_Datatype datatype, int source, 
+		  int tag, MPI_Comm comm, MPI_Request *request);
+int PMPI_Start(MPI_Request *request);
+int PMPI_Startall(int count, MPI_Request *array_of_requests);
+int PMPI_Sendrecv(void *sendbuf, int sendcount, MPI_Datatype sendtype, 
+		 int dest, int sendtag, void *recvbuf, int recvcount, 
+		 MPI_Datatype recvtype, int source, int recvtag, 
+		 MPI_Comm comm, MPI_Status *status);
+int PMPI_Sendrecv_replace(void* buf, int count, MPI_Datatype datatype, 
+			 int dest, int sendtag, int source, int recvtag, 
+			 MPI_Comm comm, MPI_Status *status);
+int PMPI_Type_contiguous(int count, MPI_Datatype oldtype, 
+			MPI_Datatype *newtype);
+int PMPI_Type_vector(int count, int blocklength, int stride, 
+		    MPI_Datatype oldtype, MPI_Datatype *newtype);
+int PMPI_Type_hvector(int count, int blocklength, MPI_Aint stride, 
+		     MPI_Datatype oldtype, MPI_Datatype *newtype);
+int PMPI_Type_indexed(int count, int *array_of_blocklengths, 
+		     int *array_of_displacements, MPI_Datatype oldtype, 
+		     MPI_Datatype *newtype);
+int PMPI_Type_hindexed(int count, int *array_of_blocklengths, 
+		      MPI_Aint *array_of_displacements, MPI_Datatype oldtype, 
+		      MPI_Datatype *newtype);
+int PMPI_Type_struct(int count, int *array_of_blocklengths, 
+		    MPI_Aint *array_of_displacements, 
+		    MPI_Datatype *array_of_types, MPI_Datatype *newtype);
+int PMPI_Address(void* location, MPI_Aint *address);
+int PMPI_Type_extent(MPI_Datatype datatype, MPI_Aint *extent);
+
+/* See the 1.1 version of the Standard; I think that the standard is in 
+   error; however, it is the standard */
+/* int PMPI_Type_size(MPI_Datatype datatype, MPI_Aint *size); */
+int PMPI_Type_size(MPI_Datatype datatype, int *size);
+int PMPI_Type_count(MPI_Datatype datatype, int *count);
+int PMPI_Type_lb(MPI_Datatype datatype, MPI_Aint* displacement);
+int PMPI_Type_ub(MPI_Datatype datatype, MPI_Aint* displacement);
+int PMPI_Type_commit(MPI_Datatype *datatype);
+int PMPI_Type_free(MPI_Datatype *datatype);
+int PMPI_Get_elements(MPI_Status *status, MPI_Datatype datatype, int *count);
+int PMPI_Pack(void* inbuf, int incount, MPI_Datatype datatype, void *outbuf, 
+	     int outsize, int *position,  MPI_Comm comm);
+int PMPI_Unpack(void* inbuf, int insize, int *position, void *outbuf, 
+	       int outcount, MPI_Datatype datatype, MPI_Comm comm);
+int PMPI_Pack_size(int incount, MPI_Datatype datatype, MPI_Comm comm, 
+		  int *size);
+int PMPI_Barrier(MPI_Comm comm );
+int PMPI_Bcast(void* buffer, int count, MPI_Datatype datatype, int root, 
+	      MPI_Comm comm );
+int PMPI_Gather(void* sendbuf, int sendcount, MPI_Datatype sendtype, 
+	       void* recvbuf, int recvcount, MPI_Datatype recvtype, 
+	       int root, MPI_Comm comm); 
+int PMPI_Gatherv(void* sendbuf, int sendcount, MPI_Datatype sendtype, 
+		void* recvbuf, int *recvcounts, int *displs, 
+		MPI_Datatype recvtype, int root, MPI_Comm comm); 
+int PMPI_Scatter(void* sendbuf, int sendcount, MPI_Datatype sendtype, 
+		void* recvbuf, int recvcount, MPI_Datatype recvtype, 
+		int root, MPI_Comm comm);
+int PMPI_Scatterv(void* sendbuf, int *sendcounts, int *displs, 
+		 MPI_Datatype sendtype, void* recvbuf, int recvcount, 
+		 MPI_Datatype recvtype, int root, MPI_Comm comm);
+int PMPI_Allgather(void* sendbuf, int sendcount, MPI_Datatype sendtype, 
+		  void* recvbuf, int recvcount, MPI_Datatype recvtype, 
+		  MPI_Comm comm);
+int PMPI_Allgatherv(void* sendbuf, int sendcount, MPI_Datatype sendtype, 
+		   void* recvbuf, int *recvcounts, int *displs, 
+		   MPI_Datatype recvtype, MPI_Comm comm);
+int PMPI_Alltoall(void* sendbuf, int sendcount, MPI_Datatype sendtype, 
+		 void* recvbuf, int recvcount, MPI_Datatype recvtype, 
+		 MPI_Comm comm);
+int PMPI_Alltoallv(void* sendbuf, int *sendcounts, int *sdispls, 
+		  MPI_Datatype sendtype, void* recvbuf, int *recvcounts, 
+		  int *rdispls, MPI_Datatype recvtype, MPI_Comm comm);
+int PMPI_Reduce(void* sendbuf, void* recvbuf, int count, 
+	       MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm);
+int PMPI_Op_create(MPI_User_function *, int, MPI_Op *);
+int PMPI_Op_free( MPI_Op *);
+int PMPI_Allreduce(void* sendbuf, void* recvbuf, int count, 
+		  MPI_Datatype datatype, MPI_Op op, MPI_Comm comm);
+int PMPI_Reduce_scatter(void* sendbuf, void* recvbuf, int *recvcounts, 
+		       MPI_Datatype datatype, MPI_Op op, MPI_Comm comm);
+int PMPI_Scan(void* sendbuf, void* recvbuf, int count, MPI_Datatype datatype, 
+	     MPI_Op op, MPI_Comm comm );
+int PMPI_Group_size(MPI_Group group, int *size);
+int PMPI_Group_rank(MPI_Group group, int *rank);
+int PMPI_Group_translate_ranks (MPI_Group group1, int n, int *ranks1, 
+			       MPI_Group group2, int *ranks2);
+int PMPI_Group_compare(MPI_Group group1, MPI_Group group2, int *result);
+int PMPI_Comm_group(MPI_Comm comm, MPI_Group *group);
+int PMPI_Group_union(MPI_Group group1, MPI_Group group2, MPI_Group *newgroup);
+int PMPI_Group_intersection(MPI_Group group1, MPI_Group group2, 
+			   MPI_Group *newgroup);
+int PMPI_Group_difference(MPI_Group group1, MPI_Group group2, 
+			 MPI_Group *newgroup);
+int PMPI_Group_incl(MPI_Group group, int n, int *ranks, MPI_Group *newgroup);
+int PMPI_Group_excl(MPI_Group group, int n, int *ranks, MPI_Group *newgroup);
+int PMPI_Group_range_incl(MPI_Group group, int n, int ranges[][3], 
+			 MPI_Group *newgroup);
+int PMPI_Group_range_excl(MPI_Group group, int n, int ranges[][3], 
+			 MPI_Group *newgroup);
+int PMPI_Group_free(MPI_Group *group);
+int PMPI_Comm_size(MPI_Comm comm, int *size);
+int PMPI_Comm_rank(MPI_Comm comm, int *rank);
+int PMPI_Comm_compare(MPI_Comm comm1, MPI_Comm comm2, int *result);
+int PMPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm);
+int PMPI_Comm_create(MPI_Comm comm, MPI_Group group, MPI_Comm *newcomm);
+int PMPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm);
+int PMPI_Comm_free(MPI_Comm *comm);
+int PMPI_Comm_test_inter(MPI_Comm comm, int *flag);
+int PMPI_Comm_remote_size(MPI_Comm comm, int *size);
+int PMPI_Comm_remote_group(MPI_Comm comm, MPI_Group *group);
+int PMPI_Intercomm_create(MPI_Comm local_comm, int local_leader, 
+			 MPI_Comm peer_comm, int remote_leader, 
+			 int tag, MPI_Comm *newintercomm);
+int PMPI_Intercomm_merge(MPI_Comm intercomm, int high, MPI_Comm *newintracomm);
+int PMPI_Keyval_create(MPI_Copy_function *copy_fn, 
+		      MPI_Delete_function *delete_fn, 
+		      int *keyval, void* extra_state);
+int PMPI_Keyval_free(int *keyval);
+int PMPI_Attr_put(MPI_Comm comm, int keyval, void* attribute_val);
+int PMPI_Attr_get(MPI_Comm comm, int keyval, void *attribute_val, int *flag);
+int PMPI_Attr_delete(MPI_Comm comm, int keyval);
+int PMPI_Topo_test(MPI_Comm comm, int *status);
+int PMPI_Cart_create(MPI_Comm comm_old, int ndims, int *dims, int *periods,
+		    int reorder, MPI_Comm *comm_cart);
+int PMPI_Dims_create(int nnodes, int ndims, int *dims);
+int PMPI_Graph_create(MPI_Comm, int, int *, int *, int, MPI_Comm *);
+int PMPI_Graphdims_get(MPI_Comm comm, int *nnodes, int *nedges);
+int PMPI_Graph_get(MPI_Comm, int, int, int *, int *);
+int PMPI_Cartdim_get(MPI_Comm comm, int *ndims);
+int PMPI_Cart_get(MPI_Comm comm, int maxdims, int *dims, int *periods,
+		 int *coords);
+int PMPI_Cart_rank(MPI_Comm comm, int *coords, int *rank);
+int PMPI_Cart_coords(MPI_Comm comm, int rank, int maxdims, int *coords);
+int PMPI_Graph_neighbors_count(MPI_Comm comm, int rank, int *nneighbors);
+int PMPI_Graph_neighbors(MPI_Comm comm, int rank, int maxneighbors,
+			int *neighbors);
+int PMPI_Cart_shift(MPI_Comm comm, int direction, int disp, 
+		   int *rank_source, int *rank_dest);
+int PMPI_Cart_sub(MPI_Comm comm, int *remain_dims, MPI_Comm *newcomm);
+int PMPI_Cart_map(MPI_Comm comm, int ndims, int *dims, int *periods, 
+		 int *newrank);
+int PMPI_Graph_map(MPI_Comm, int, int *, int *, int *);
+int PMPI_Get_processor_name(char *name, int *result_len);
+int PMPI_Errhandler_create(MPI_Handler_function *function, 
+			  MPI_Errhandler *errhandler);
+int PMPI_Errhandler_set(MPI_Comm comm, MPI_Errhandler errhandler);
+int PMPI_Errhandler_get(MPI_Comm comm, MPI_Errhandler *errhandler);
+int PMPI_Errhandler_free(MPI_Errhandler *errhandler);
+int PMPI_Error_string(int errorcode, char *string, int *result_len);
+int PMPI_Error_class(int errorcode, int *errorclass);
+/* Wtime done above */
+int PMPI_Init(int *argc, char ***argv);
+int PMPI_Finalize(void);
+int PMPI_Initialized(int *flag);
+int PMPI_Abort(MPI_Comm comm, int errorcode);
+int PMPI_Pcontrol(const int level, ...);
+#endif  /* MPI_BUILD_PROFILING */
+
 #else 
 extern double MPI_Wtime();
 extern double MPI_Wtick();

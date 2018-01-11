@@ -1,5 +1,5 @@
 /*
- *  $Id: group_free.c,v 1.14 1995/12/21 22:07:16 gropp Exp $
+ *  $Id: group_free.c,v 1.15 1996/04/12 14:09:43 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -18,8 +18,12 @@ Input Parameter
 Notes:
 On output, group is set to 'MPI_GROUP_NULL'.
 
-
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_ARG
+.N MPI_ERR_PERM_GROUP
 @*/
 int MPI_Group_free ( group )
 MPI_Group *group;
@@ -38,7 +42,7 @@ MPI_Group *group;
   /* We can't free permanent objects unless finalize has been called */
   if  ( ( (*group)->permanent == 1 ) && (*group)->ref_count <= 1 && 
           (MPIR_Has_been_initialized == 1) )
-	return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_PERM_KEY,
+	return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_PERM_GROUP,
 					  "Error in MPI_GROUP_FREE" );
 
   /* Free group */

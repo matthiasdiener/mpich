@@ -182,8 +182,6 @@ char **msg;
 struct p4_msg *recv_message(req_type,req_from)
 int *req_type, *req_from;
 {
-    int rc, len;
-    struct p4_msg *tmsg;
 
     p4_dprintfl( 99, "Starting recv_message for type = %d and sender = %d\n",
 		 *req_type, *req_from );
@@ -233,8 +231,10 @@ int *req_type, *req_from;
 #       if defined(CAN_DO_SWITCH_MSGS)
 	if (p4_global->proctable[p4_local->my_id].switch_port != -1)
 	{
+	    int rc, len;
 	    if (rc = sw_probe(req_from, p4_local->my_id, req_type, &len))
 	    {
+		struct p4_msg *tmsg;
 		tmsg = alloc_p4_msg(len - sizeof(struct p4_msg) + sizeof(char *));
 		sw_recv(rc, tmsg);
 		p4_dprintfl(10, "p4_recv: received message from switch\n");
@@ -285,14 +285,14 @@ P4BOOL p4_any_messages_available()
 P4BOOL p4_messages_available(req_type, req_from)
 int *req_type, *req_from;
 {
-    int found, len;
+    int found;
     struct p4_msg *tmsg;
 
     ALOG_LOG(p4_local->my_id,END_USER,0,"");
     ALOG_LOG(p4_local->my_id,BEGIN_WAIT,1,"");
 
     found = FALSE;
-    if (tmsg = search_p4_queue(*req_type, *req_from, 0))
+    if ((tmsg = search_p4_queue(*req_type, *req_from, 0)))
     {
 	found = TRUE;
 	*req_type = tmsg->type;
@@ -350,6 +350,7 @@ int *req_type, *req_from;
 #if defined(CAN_DO_SWITCH_MSGS)
     if (!found && (p4_global->proctable[p4_local->my_id].switch_port != -1))
     {
+	int len;
 	if (sw_probe(req_from, p4_local->my_id, req_type, &len))
 	    found = TRUE;
     }
@@ -403,7 +404,7 @@ struct p4_msg_queue *hdr;
 
 int send_message(type, from, to, msg, len, data_type, ack_req, p4_buff_ind)
 char *msg;
-int type, to, len, data_type;
+int type, from, to, len, data_type;
 P4BOOL ack_req, p4_buff_ind;
 {
     struct p4_msg *tmsg;
@@ -524,7 +525,6 @@ struct p4_msg *get_tmsg(type,from,to,msg,len,data_type,ack_req,p4_buff_ind)
 char *msg;
 int type, from, to, len, data_type, ack_req, p4_buff_ind;
 {
-    int i;
     struct p4_msg *tmsg;
 
     if (p4_buff_ind)
@@ -541,11 +541,11 @@ int type, from, to, len, data_type, ack_req, p4_buff_ind;
 	}
 	bcopy(msg, (char *) &(tmsg->msg), len);
     }
-    tmsg->type = type;
-    tmsg->from = from;
-    tmsg->to = to;
-    tmsg->len = len;
-    tmsg->ack_req = ack_req;
+    tmsg->type	    = type;
+    tmsg->from	    = from;
+    tmsg->to	    = to;
+    tmsg->len	    = len;
+    tmsg->ack_req   = ack_req;
     tmsg->data_type = data_type;
     return (tmsg);
 }

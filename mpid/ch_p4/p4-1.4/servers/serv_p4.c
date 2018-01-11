@@ -22,14 +22,25 @@
 #include <sys/wait.h>
 #endif
 
-extern char *inet_ntoa();	/* from <arpa/inet.h> */
+#ifndef ANSI_ARGS
+#if defined(__STDC__) || defined(__cplusplus)
+#define ANSI_ARGS(a) a
+#else
+#define ANSI_ARGS(a) ()
+#endif
+#endif
 
+extern char *inet_ntoa ANSI_ARGS(( struct in_addr ));  /* from <arpa/inet.h> */
+
+#ifdef FOO
+/* These are in p4_sys.h, done better */
 #ifdef P4BSD
 #include <strings.h>
 #endif
 
 #ifdef P4SYSV
 #include <string.h>
+#endif
 #endif
 
 #if defined(SYMMETRY)
@@ -64,9 +75,12 @@ extern char *optarg;
 #define notice3(a,b,c) {sprintf(tmpbuf, a, b,c); notice(tmpbuf);}
 #define failure2(a,b) {sprintf(tmpbuf, a, b); failure(tmpbuf);}
 
+/* extern char *crypt ANSI_ARGS(( const char *, const char * )); */
 extern char *crypt();
-
+#ifndef HAVE_STRERROR
 extern char *sys_errlist[];
+#define strerror(n) sys_errlist[n]
+#endif
 extern int errno;
 
 char tmpbuf[1024];
@@ -74,29 +88,56 @@ char *fromhost;
 
 char logfile[1024];
 FILE *logfile_fp;
+int   logfile_fd;
 
 #define DEFAULT_PORT 753
 
 int daemon_mode;
 int daemon_port;
-int debug;
+int daemon_pid;     /* pid of parent */
+int stdfd_closed = 0;
+int debug = 0;
 
 char *this_username;
 int this_uid;
 
-void doit();
-void execute();
-int getline();
-void failure();
-void notice();
-int net_accept();
-void net_setup_listener();
-void net_setup_anon_listener();
-void error_check();
-char *timestamp();
+void doit                    ANSI_ARGS((int));
+void execute                 ANSI_ARGS(( char *, char *, int, int, 
+					 struct hostent * ));
+int getline                  ANSI_ARGS(( char *, int ));
+void failure                 ANSI_ARGS(( char * ));
+void notice                  ANSI_ARGS(( char * ));
+int net_accept               ANSI_ARGS(( int ));
+void net_setup_listener      ANSI_ARGS(( int, int, int * ));
+void net_setup_anon_listener ANSI_ARGS(( int, int *, int *));
+void error_check             ANSI_ARGS(( int, char * ));
+char *timestamp              ANSI_ARGS(( void ));
 
-char *save_string();
-static int connect_to_listener();
+char *save_string            ANSI_ARGS(( char * ));
+static int connect_to_listener ANSI_ARGS(( struct hostent *, int ));
+void reaper ANSI_ARGS(( int ));
+int main ANSI_ARGS(( int, char ** ));
+
+/*
+ * Notes on the use of file descriptors (fds)
+ *
+ * This code uses the <stdio> routines to read/write data to the
+ * connected socket.  This simplifies much of the code.  However,
+ * using stdin/out/err is a problem, since in various modes we may
+ * close those units (for example, in order to start the server with
+ * rsh but have the rsh return when the server starts, it is necessary
+ * to close stdin/out/err).  
+ *
+ * Thus, instead of relying on particular 
+ * unit numbers for stdin/out/err, we set (change) these values.
+ */
+
+int stdin_fd	= 0;
+FILE *stdin_fp	= stdin;
+int stdout_fd	= 1;
+FILE *stdout_fp	= stdout;
+int stderr_fd	= 2;
+FILE *stderr_fp	= stderr;
 
 void reaper(sigval)
 int sigval;
@@ -105,13 +146,16 @@ int sigval;
     wait(&i);
 }
 
-main(argc, argv)
+int main(argc, argv)
 int argc;
 char **argv;
 {
     int c;
     struct sockaddr_in name;
     int namelen;
+    int pid;
+
+    daemon_pid = getpid();
 
     if (getuid() == 0)
     {
@@ -131,7 +175,7 @@ char **argv;
     else
 	daemon_mode = 0;
     
-    while ((c = getopt(argc, argv, "Ddp:l:")) != EOF)
+    while ((c = getopt(argc, argv, "Ddop:l:")) != EOF)
     {
 	switch (c)
 	{
@@ -142,7 +186,24 @@ char **argv;
 	case 'd':
 	    daemon_mode++;
 	    break;
-
+	    
+	case 'o':
+	    /* Orphan mode; I'd use -detach, but old-fashioned getopt wants
+	       single letter names */
+	    daemon_mode++;
+	    close(0);
+	    close(1);
+	    close(2);
+	    stdfd_closed = 1;
+	    pid = fork();
+	    if (pid < 0) {
+		/* We've closed stderr! */
+		exit(1);
+	    }
+	    else if (pid > 0) exit(0);
+	    /* We're the child, so we continue on */
+	    daemon_pid = getpid();
+	    break;
 	case 'p':
 	    daemon_port = atoi(optarg);
 	    break;
@@ -153,7 +214,8 @@ char **argv;
 
 	case '?':
 	default:
-	    fprintf(stderr, "Usage: %s [-d] [-D] [-p port] [-l logfile]\n",argv[0]);
+	    fprintf(stderr, "\
+Usage: %s [-d] [-D] [-p port] [-l logfile] [-o]\n",argv[0]);
 	    exit(1);
 	}
     }
@@ -162,27 +224,41 @@ char **argv;
     {
 	if (getuid() != 0)
 	{
-	    printf("Cannot open logfile, disabling logging\n");
+	    fprintf( stdout_fp, "Cannot open logfile, disabling logging\n");
 	    logfile_fp = fopen("/dev/null", "w");
+	    
 	}
 	else
 	{
-	    fprintf(stderr, "Cannot open logfile %s: %s\n",
-		    logfile, sys_errlist[errno]);
+	    fprintf( stderr, "Cannot open logfile %s: %s\n",
+		    logfile, strerror(errno));
 	    exit(1);
 	}
     }
-    else
-	printf("Logging to %s\n", logfile);
+    else {
+	if (!stdfd_closed)
+	    fprintf( stdout_fp, "Logging to %s\n", logfile);
+    }
+    logfile_fd = fileno( logfile_fp );
 
     setbuf(logfile_fp, NULL);
+    
+    fprintf( logfile_fp, "%s pid=%d starting at %s, logfile fd is %d\n",
+	    argv[0], getpid(), timestamp(), logfile_fd );
+	     
+    fflush( logfile_fp );
 
-    fprintf(logfile_fp, "%s pid=%d starting at %s",
-	    argv[0], getpid(), timestamp());
+    if (stdfd_closed) {
+	/* redirect stdout and stderr to logfile */
+	dup2( logfile_fd, 1 );
+	dup2( logfile_fd, 2 );
+    }
 
     if (daemon_mode)
     {
-	int port, lfd, fd, pid;
+	int lfd, /* lfd is listener fd */
+	    fd,  /* fd is accepted connection fd */
+            pid; /* pid of child when forking a process to handle connection */
 
 	signal(SIGCHLD, reaper);
 
@@ -195,16 +271,23 @@ char **argv;
 	    net_setup_listener(2, daemon_port, &lfd);
 	}
 
-	if (debug || daemon_port != DEFAULT_PORT)
-	    printf("Listening on %d\n", daemon_port);
+	fprintf( logfile_fp, "Listening on port %d\n", daemon_port );
+
+	if ((debug || daemon_port != DEFAULT_PORT) && !stdfd_closed)
+	    fprintf( stdout_fp, "Listening on %d\n", daemon_port);
 	    
 	if (!debug)
 	{
+	    /* Create an orphan process and exit.  This is for
+	       root use only (debug set to 1 if getuid() != 0) 
+	       NOTE: Since changes in handling of fd's, this code
+	       may no longer work.
+	     */
 	    if (fork())
 		exit(0);
 
 	    for (fd = 0; fd < 10; fd++)
-		if (fd != lfd && fd != fileno(logfile_fp))
+		if (fd != lfd && fd != logfile_fd)
 		    close(fd);
 	    
 #ifdef P4SYSV
@@ -235,42 +318,68 @@ char **argv;
 
 	while (1)
 	{
+	    /* Wait for a new connection attempt */
 	    fd = net_accept(lfd);
 
 	    pid = fork();
 
 	    if (pid < 0)
 	    {
-		fprintf(logfile_fp, "Fork failed: %s\n",
-			sys_errlist[errno]);
+		fprintf( logfile_fp, "Fork failed: %s\n",
+			 strerror(errno));
 		exit(pid);
 	    }
 	    if (pid == 0)
 	    {
+		fprintf( logfile_fp, 
+		 "Started subprocess for connection at %s with pid %d\n", 
+			 timestamp(), getpid() );
 #if defined(HP)
 		(void) setpgrp();
 #else
-		int ttyfd = open("/dev/tty",O_RDWR);
-		if (ttyfd >= 0)
 		{
+		    int ttyfd = open("/dev/tty",O_RDWR);
+		    if (ttyfd >= 0)
+		    {
 #    if !defined(CRAY)
-		    ioctl(ttyfd, TIOCNOTTY, 0);
+			ioctl(ttyfd, TIOCNOTTY, 0);
 #    endif
-		    close(ttyfd);
+			close(ttyfd);
+		    }
 		}
 #endif
-		close(0);
-		close(1);
-		close(2);
-		close(lfd);
-		
-		dup2(fd, 0);
-		dup2(fd, 1);
-		dup2(fileno(logfile_fp), 2);
-
-		doit(0);
+		/* Make stdin/stdout refer to fd */
+		if (stdfd_closed) {
+		    stdin_fp  = fdopen( fd, "r" );
+		    stdout_fp = fdopen( fd, "a" );
+		    stderr_fp = logfile_fp;
+		    if (stdin_fp == NULL || stdout_fp == NULL) {
+			fprintf( logfile_fp, 
+				 "Could not fdopen stdin or out\n" );
+			exit(1);
+		    }
+		    close(lfd);
+		    
+		    doit(fd);
+		}
+		else {
+		    close(0);
+		    dup2(fd, 0);
+		    close(1);
+		    dup2(fd, 1);
+		    close(2);
+ 		    dup2( logfile_fd, 2);
+		    close(lfd);
+		    
+		    doit(0);
+		}
 		exit(0);
 	    }
+	    /* We can't close the new fd until we're sure that the fork has 
+	       successfully started */
+	    /* What we REALLY want to do is close the fd when the child exits
+	     */
+	    /* sleep(2); */
 	    close(fd);
 	}
     }
@@ -281,6 +390,9 @@ char **argv;
 	
 }
 
+/* This is called (possibly in a subprocess) to process create p4-process
+ * requests.
+ */
 void doit(fd)
 int fd;
 {
@@ -305,24 +417,24 @@ int fd;
     pw = getpwuid(this_uid);
     if (pw == NULL)
     {
-	fprintf(logfile_fp, "Cannot get pw entry for user %d\n", this_uid);
+	fprintf( logfile_fp, "Cannot get pw entry for user %d\n", this_uid);
 	exit(1);
     }
     this_username = save_string(pw->pw_name);
 
     if (this_uid != 0)
-	fprintf(logfile_fp, "WARNING: Not run as root\n");
+	fprintf( logfile_fp, "WARNING: Not run as root\n");
 
-    setbuf(stdout, NULL);
+    setbuf(stdout_fp, NULL);
 
-    fprintf(logfile_fp, "Got connection at %s", timestamp());
+    fprintf( logfile_fp, "Got connection at %s", timestamp());
 
     namelen = sizeof(name);
 
     if (getpeername(fd, (struct sockaddr *) &name, &namelen) != 0)
     {
-	fprintf(logfile_fp, "getpeername failed: %s\n",
-		sys_errlist[errno]);
+	fprintf( logfile_fp, "getpeername failed: %s\n",
+		 strerror(errno));
 	exit(1);
     }
 
@@ -353,14 +465,16 @@ int fd;
     user_home = pw->pw_dir;
     superuser = (pw->pw_uid == 0);
 
+    fprintf( logfile_fp, "Starting ruserok at %s\n", timestamp() );
     valid = ruserok(fromhost, superuser, client_user, server_user);
+    fprintf( logfile_fp, "Completed ruserok at %s\n", timestamp() );
 
     if (valid != 0)
     {
 	char user_pw[80];
 	char *xpw;
 	
-	printf("Password\n");
+	fprintf( stdout_fp, "Password\n");
 	if (!getline(user_pw, sizeof(user_pw)))
 	    failure("No server user");
 
@@ -368,17 +482,50 @@ int fd;
 	if (strcmp(pw->pw_passwd, xpw) != 0)
 	    failure("Invalid password");
 
-	printf("Proceed\n");
+	fprintf( stdout_fp, "Proceed\n");
     }
     else
-	printf("Proceed\n");
+	fprintf( stdout_fp, "Proceed\n");
+    /* Make sure that the proceed message is delivered */
+    fflush( stdout_fp );
 
     sprintf(tmpbuf, "authenticated client_id=%s server_id=%s\n",
 	    client_user, server_user);
     notice(tmpbuf);
 
+    /* 
+       At this point, we have an authenticated user.  We could accept
+       additional commands beyond just "start program".  For example,
+       we could accept "exit", which would allow simpler management of
+       the servers.  (Note that we'd have to kill the parent, since we're
+       probably just a forked child).
+     */
+
+    /* Get the program to execute */
     if (!getline(pgm, sizeof(pgm)))
 	failure("No pgm");
+
+    /* Check for key words:
+       %id (give id)
+       %run (run program)
+       %exit (exit)
+     */
+    if (strcmp( pgm, "%id" ) == 0) {
+	fprintf( stdout_fp, "Port %d for client %s and server user %s\n", 
+		daemon_port, client_user, server_user );
+	exit(0);
+    }
+    else if (strcmp( pgm, "%run" ) == 0) {
+	/* Just get the program */
+	if (!getline(pgm, sizeof(pgm)))
+	    failure("No pgm");
+    }
+    else if (strcmp( pgm, "%exit" ) == 0) {
+	kill( daemon_pid, SIGINT );
+	sleep(1);
+	kill( daemon_pid, SIGQUIT );
+	exit(1);
+    }
 
     if (!getline(pgm_args, sizeof(pgm_args)))
 	failure("No pgm args");
@@ -392,11 +539,11 @@ int fd;
     {
 #if defined(HP) && !defined(SUN_SOLARIS)
 	if (setresuid(-1, pw->pw_uid, -1) != 0)
-	    failure2("setresuid failed: %s", sys_errlist[errno]);
+	    failure2("setresuid failed: %s", strerror(errno));
 #else
 #ifndef _AIX
 	if (seteuid(pw->pw_uid) != 0)
-	    failure2("seteuid failed: %s", sys_errlist[errno]);
+	    failure2("seteuid failed: %s", strerror(errno));
 #endif
 #endif
     }
@@ -412,10 +559,10 @@ int fd;
 	int reader_pid;
 	
 	if (pipe(reader_pipe) < 0)
-	    failure2("reader pipe failed: %s", sys_errlist[errno]);
+	    failure2("reader pipe failed: %s", strerror(errno));
 
 	if ((reader_pid = fork()) < 0)
-	    failure2("reader fork failed: %s", sys_errlist[errno]);
+	    failure2("reader fork failed: %s", strerror(errno));
 
 	notice2("got reader pid %d", reader_pid);
 
@@ -426,11 +573,13 @@ int fd;
 	    close(reader_pipe[0]);
 #if defined(SUN_SOLARIS)
 	    if (setuid(pw->pw_uid) != 0)
-	      failure2("cannot setuid: %s", sys_errlist[errno]);
+	      failure2("cannot setuid: %s", strerror(errno));
 	    if (seteuid(pw->pw_uid) != 0)
-	      failure2("cannot seteuid: %s", sys_errlist[errno]);
+	      failure2("cannot seteuid: %s", strerror(errno));
 #else	
-	    if (setreuid(pw->pw_uid, pw->pw_uid) != 0)
+	    /* We can only call setreuid if we are root; otherwise we
+	       get EPERM */
+	    if (this_uid == 0 && setreuid(pw->pw_uid, pw->pw_uid) != 0)
 		exit(1);
 #endif
 
@@ -463,23 +612,28 @@ int fd;
 	{
 	    close(reader_pipe[1]);
 	    fp = fdopen(reader_pipe[0], "r");
+	    if (!fp) {
+		fprintf( logfile_fp, 
+			 "Could not get FILE for reader_pipe fd\n" );
+	    }
 	}
     }
 
 #else
     fp = fopen(filename,"r");
-#endif
+#endif /* _AIX */
 
     if (fp != (FILE *) NULL)
     {
 	char *s1, *s2;
 	
-	if (fstat(fileno(fp), &statbuf) != 0)
+	if (fstat( fileno(fp), &statbuf) != 0)
 	    failure2("cannot stat %s", filename);
 	
 	if (statbuf.st_mode & 077)
 	    failure(".p4apps readable by others");
 	
+	/* fprintf( logfile_fp, "Trying to find program %s\n", pgm ); */
 	while (fgets(progline, sizeof(progline), fp) != NULL)
 	{
 	    s1 = progline;
@@ -492,6 +646,7 @@ int fd;
 	    while (*s2 && !isspace(*s2))
 		s2++;
 	    *s2 = 0;
+	    /* fprintf( logfile_fp, "Checking %s\n", s1 ); */
 	    if (strcmp(pgm, s1) == 0)
 	    {
 		valid = 1;
@@ -594,35 +749,35 @@ struct hostent *hp;
     args[nargs] = NULL;
 
     if (pipe(p) != 0)
-	failure2("Cannot create pipe: %s", sys_errlist[errno]);
+	failure2("Cannot create pipe: %s", strerror(errno));
 
     rd = p[0];
     wr = p[1];
 
     if (fcntl(wr, F_SETFD, 1) != 0)
-	failure2("fcntl F_SETFD failed: %s", sys_errlist[errno]);
+	failure2("fcntl F_SETFD failed: %s", strerror(errno));
 
     if (this_uid == 0)
     {
 #if defined(HP) && !defined(SUN_SOLARIS)
 	if (setresuid(uid, uid, -1) != 0)
-	    failure2("cannot setresuid: %s", sys_errlist[errno]);
+	    failure2("cannot setresuid: %s", strerror(errno));
 #else
 	if (seteuid(0) != 0)
-	    failure2("cannot seteuid: %s", sys_errlist[errno]);
+	    failure2("cannot seteuid: %s", strerror(errno));
 #if defined(SUN_SOLARIS)
 	if (setuid(uid) != 0)
-	    failure2("cannot setuid: %s", sys_errlist[errno]);
+	    failure2("cannot setuid: %s", strerror(errno));
 #else	
 	if (setreuid(uid, uid) != 0)
-	    failure2("cannot setreuid: %s", sys_errlist[errno]);
+	    failure2("cannot setreuid: %s", strerror(errno));
 #endif
 #endif
     }
     
     pid = fork();
     if (pid < 0)
-	failure2("fork failed: %s", sys_errlist[errno]);
+	failure2("fork failed: %s", strerror(errno));
 
     if (pid == 0)
     {
@@ -645,12 +800,12 @@ struct hostent *hp;
 	strcpy(tempbuf,"writing this to stdout_fd");
 	write(stdout_fd,tempbuf,strlen(tempbuf)+1);
 	strcpy(tempbuf,"writing this to real stdout");
-	write(stdout,tempbuf,strlen(tempbuf)+1);
+	write(stdout_fd,tempbuf,strlen(tempbuf)+1);
 	*****/
 
 	if (execv(pgm, args) != 0)
 	{
-	    sprintf(tmpbuf, "Exec failed: %s\n", sys_errlist[errno]);
+	    sprintf(tmpbuf, "Exec failed: %s\n", strerror(errno));
 	    write(wr, tmpbuf, strlen(tmpbuf));
 	    exit(0);
 	}
@@ -667,7 +822,7 @@ struct hostent *hp;
 	
 	failure2("child failed: %s", buf);
     }
-    printf("Success: Child %d started\n", pid);
+    fprintf( stdout_fp, "Success: Child %d started\n", pid);
     notice2("Child %d started", pid);
 }
 
@@ -677,7 +832,7 @@ int len;
 {
     char *s;
     
-    if (fgets(str,  len, stdin) == NULL)
+    if (fgets(str,  len, stdin_fp) == NULL)
 	return 0;
 
     if ((s = index(str, '\n')) != NULL)
@@ -691,8 +846,8 @@ int len;
 void failure(s)
 char *s;
 {
-    printf("Failure <%s>: %s\n", fromhost, s);
-    fprintf(logfile_fp, "Failure <%s>: %s\n", fromhost, s);
+    fprintf( stdout_fp, "Failure <%s>: %s\n", fromhost, s);
+    fprintf( logfile_fp, "Failure <%s>: %s\n", fromhost, s);
     fflush(logfile_fp);
     exit(1);
 }
@@ -700,7 +855,7 @@ char *s;
 void notice(s)
 char *s;
 {
-    fprintf(logfile_fp, "Notice <%s>: %s\n", fromhost, s);
+    fprintf( logfile_fp, "Notice <%s>: %s\n", fromhost, s);
     fflush(logfile_fp);
 }
 
@@ -792,7 +947,7 @@ char *str;
     {
 	fprintf(logfile_fp, "%s: %s\n",
 		str,
-		sys_errlist[errno]);
+		strerror(errno));
 	exit(1);
     }
 }

@@ -8,8 +8,6 @@
 ARCH        = @ARCH@
 COMM        = @COMM@
 BOPT        = @BOPT@
-P4_DIR      = @P4_DIR@
-TOOLS_DIR   = @TOOLS_DIR@
 MPIR_HOME   = @MPIR_HOME@
 CC          = @CC@
 F77         = @F77@
@@ -28,16 +26,16 @@ MPI_INCLUDE    = ../../include/mpi.h ../../include/mpi_bc.h \
                  ../../include/mpir.h ../../include/mpi_ad.h \
 		 ../../include/mpisys.h ./coll.h
 DEVICE_LIB = 
-CFLAGS = @CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)  $(MPIPROFILE)
+CFLAGS = @CFLAGS@ $(OPTFLAGS) @OPTFLAGSC@ $(INCLUDE_DIR) \
+	-DMPI_$(ARCH)  $(MPIPROFILE)
 
-LIBS = ../../lib/$(ARCH)/$(COMM)/libmpi.a $(DEVICE_LIB)
+LIBS = ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $(DEVICE_LIB)
 MPI_CSOURCES = barrier.c bcast.c gather.c gatherv.c scatter.c scatterv.c \
                allgather.c allgatherv.c alltoall.c alltoallv.c reduce.c \
                allreduce.c red_scat.c scan.c global_ops.c \
-	       opcreate.c opfree.c reduceutil.c intra_fns.c inter_fns.c
+	       opcreate.c opfree.c oputil.c intra_fns.c inter_fns.c
 
-MPI_TSOURCES = barrier.c \
-               global_ops.c 
+MPI_TSOURCES = global_ops.c 
 
 MPI_WSOURCES = barrierf.c bcastf.c gatherf.c gathervf.c scatterf.c scattervf.c\
                allgatherf.c allgathervf.c alltoallf.c alltoallvf.c reducef.c \
@@ -47,29 +45,29 @@ MPI_WSOURCES = barrierf.c bcastf.c gatherf.c gathervf.c scatterf.c scattervf.c\
 MPI_COBJECTS = barrier.o bcast.o gather.o gatherv.o scatter.o scatterv.o \
                allgather.o allgatherv.o alltoall.o alltoallv.o reduce.o \
                allreduce.o red_scat.o scan.o global_ops.o \
-	       opcreate.o opfree.o reduceutil.o intra_fns.o inter_fns.o
+	       opcreate.o opfree.o oputil.o intra_fns.o inter_fns.o
 
 MPI_WOBJECTS = barrierf.o bcastf.o gatherf.o gathervf.o scatterf.o scattervf.o\
                allgatherf.o allgathervf.o alltoallf.o alltoallvf.o reducef.o \
                allreducef.o red_scatf.o scanf.o \
 	       opcreatef.o opfreef.o
 
-default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
+default: ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
 
 MPI_SOURCES = $(MPI_CSOURCES) $(MPI_WSOURCES)
 MPI_OBJECTS = $(MPI_COBJECTS) $(MPI_WOBJECTS)
 
-profile: ../../lib/$(ARCH)/$(COMM)/libpmpi.a
+profile: ../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a
 
 # default_all is the same as default, but without the RANLIB.  This
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
 default_all: $(MPI_OBJECTS)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $?
+	$(AR) ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $?
 profile_all: $(MPI_OBJECTS)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libpmpi.a $?
+	$(AR) ../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a $?
 wrapperlib: $(MPI_WOBJECTS)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libfmpi.a $?	
+	$(AR) ../../lib/$(ARCH)/$(COMM)/libf@MPILIBNAME@.a $?	
 wrappers:
 	../../util/bfort -ferr -mpi -mnative -mapptr -ptrprefix MPIR_ \
 		-anyname -I pubinc $(MPI_TSOURCES)	
@@ -78,14 +76,17 @@ manpages:
 	../../util/doctext -mpath ../../man/man3 -ext 3 -I pubinc \
 	   -index ../../www.index -jumpfile ../../jumpfile.list \
 	   -indexdir "http:/www.mcs.anl.gov/mpi/www/www3" -heading MPI \
-		-quotefmt ../../util/fortnotes $(MPI_CSOURCES)
+		-quotefmt ../../util/fortnotes ../../util/errnotes \
+		$(MPI_CSOURCES)
 	../../util/doc2lt $(MPI_CSOURCES) >> ../../rsum.tmp
 
 wwwpages:
-	../../util/doctext -html -mpath ../../www/www3 -ext 3 -I pubinc \
+	../../util/doctext -html -mpath ../../www/www3 -I pubinc \
 	   -index ../../www.index -jumpfile ../../jumpfile.list \
+	   -mapref $(MPIR_HOME)/util/mpis.cit \
 	   -indexdir "http:/www.mcs.anl.gov/www/www3" -heading MPI \
-		-quotefmt ../../util/fortnotes $(MPI_CSOURCES)
+		-quotefmt ../../util/fortnotes ../../util/errnotes \
+		$(MPI_CSOURCES)
 
 source_names:
 	@echo $(MPI_CSOURCES)
@@ -95,15 +96,15 @@ $(MPI_OBJECTS) :  $(MPI_INCLUDE)
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c
 
-../../lib/$(ARCH)/$(COMM)/libmpi.a: $(MPI_OBJECTS) 
+../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
 	$(AR) $@ $?
 	$(RANLIB) $@
 
-../../lib/$(ARCH)/$(COMM)/libpmpi.a: $(MPI_OBJECTS) 
+../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a: $(MPI_OBJECTS) 
 	$(AR) $@ $?
 	$(RANLIB) $@
 
-../../lib/$(ARCH)/$(COMM)/libfmpi.a: $(MPI_WOBJECTS) 
+../../lib/$(ARCH)/$(COMM)/libf@MPILIBNAME@.a: $(MPI_WOBJECTS) 
 	$(AR) $@ $?
 	$(RANLIB) $@
 

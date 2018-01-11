@@ -8,8 +8,6 @@
 ARCH        = @ARCH@
 COMM        = @COMM@
 BOPT        = @BOPT@
-P4_DIR      = @P4_DIR@
-TOOLS_DIR   = @TOOLS_DIR@
 MPIR_HOME   = @MPIR_HOME@
 CCC         = @CPP_COMPILER@
 CFLAGS	    = @CFLAGS@
@@ -31,16 +29,16 @@ CCFLAGS = $(CFLAGS) $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
 default_all: global.o
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi++.a $?
+	$(AR) ../../lib/$(ARCH)/$(COMM)/lib@MPILIBBAME@++.a $?
 profile_all: 
 
-default: ../../lib/$(ARCH)/$(COMM)/libmpi++.a
+default: ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@++.a
 profile:
 
 global.o: global.C $(MPI_INCLUDE)
 	$(CCC) $(CCFLAGS) -c global.C
 
-../../lib/$(ARCH)/$(COMM)/libmpi++.a: global.o
+../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@++.a: global.o
 	$(AR) $@ $?
 	$(RANLIB) $@
 

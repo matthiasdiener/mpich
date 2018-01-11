@@ -18,11 +18,10 @@ done
 
 trap 'rm -f Makefile lib/Makefile alog/Makefile usc/Makefile usc/usctest/Makefile messages/Makefile include/Makefile lib_f/Makefile contrib/Makefile contrib_f/Makefile bin/Makefile doc/Makefile messages_f/Makefile misc/Makefile monitors/Makefile servers/Makefile; exit 1' 1 3 15
 RANLIB='ranlib'
-CPP='cc -E'
 P4ARCH='SUN'
 MAKE='make'
 CC='cc'
-DEFS=' -DHAVE_NETINET_IN_H=1 -DHAVE_SYS_SOCKETVAR_H=1 -DHAVE_SIGACTION=1'
+DEFS=' -DHAVE_STDLIB_H=1 -DHAVE_UNISTD_H=1 -DHAVE_STRING_H=1 -DHAVE_STRINGS_H=1 -DHAVE_SIGACTION=1'
 CFLAGS=''
 FC='f77'
 CLINKER='cc'
@@ -31,19 +30,21 @@ AR='ar lruv'
 RM='/bin/rm'
 P4_OBJ='$(P4_COMM_OBJ) $(P4_SOCK_OBJ) $(P4_SHMEM_OBJ)'
 MDEP_LIBS=''
-MDEP_CFLAGS=''
+CRYPT_LIBS=''
+MDEP_CFLAGS=' '
 MDEP_FFLAGS=''
 MDEP_LFLAGS=''
 OPTFLAGS='-g'
-P4_CONFIGURED_TIME='Thu Feb  1 17:32:27 CST 1996'
+P4_CONFIGURED_TIME='Sat Jul 27 08:35:32 CDT 1996'
 DEFINE_ALOG='#undef ALOG_TRACE'
 DEFINE_SYSV_IPC='#undef SYSV_IPC'
 DEFINE_VENDOR_IPC='#undef VENDOR_IPC'
 DEFINE_P4_DPRINTFL='#define P4_DPRINTFL'
 LISTENER_PATHNAME=''
+RSHCOMMAND=''
 LIBS=''
 srcdir='.'
-DEFS=' -DHAVE_NETINET_IN_H=1 -DHAVE_SYS_SOCKETVAR_H=1 -DHAVE_SIGACTION=1'
+DEFS=' -DHAVE_STDLIB_H=1 -DHAVE_UNISTD_H=1 -DHAVE_STRING_H=1 -DHAVE_STRINGS_H=1 -DHAVE_SIGACTION=1'
 prefix=''
 exec_prefix=''
 prsub=''
@@ -67,7 +68,6 @@ for file in .. ${CONFIG_FILES}; do if test "x$file" != x..; then
 $prsub
 $extrasub
 s%@RANLIB@%$RANLIB%g
-s%@CPP@%$CPP%g
 s%@P4ARCH@%$P4ARCH%g
 s%@MAKE@%$MAKE%g
 s%@CC@%$CC%g
@@ -80,6 +80,7 @@ s%@AR@%$AR%g
 s%@RM@%$RM%g
 s%@P4_OBJ@%$P4_OBJ%g
 s%@MDEP_LIBS@%$MDEP_LIBS%g
+s%@CRYPT_LIBS@%$CRYPT_LIBS%g
 s%@MDEP_CFLAGS@%$MDEP_CFLAGS%g
 s%@MDEP_FFLAGS@%$MDEP_FFLAGS%g
 s%@MDEP_LFLAGS@%$MDEP_LFLAGS%g
@@ -90,6 +91,7 @@ s%@DEFINE_SYSV_IPC@%$DEFINE_SYSV_IPC%g
 s%@DEFINE_VENDOR_IPC@%$DEFINE_VENDOR_IPC%g
 s%@DEFINE_P4_DPRINTFL@%$DEFINE_P4_DPRINTFL%g
 s%@LISTENER_PATHNAME@%$LISTENER_PATHNAME%g
+s%@RSHCOMMAND@%$RSHCOMMAND%g
 s%@LIBS@%$LIBS%g
 s%@srcdir@%$srcdir%g
 s%@DEFS@%$DEFS%

@@ -1,5 +1,6 @@
 #include <mpi.h>
 #include <stdio.h>
+#include "dtypes.h"
 
 /*
    This program is from mpich/tsuite/pt2pt and should be changed there only.
@@ -15,7 +16,7 @@ void         **inbufs, **outbufs;
 char         **names;
 int          *counts, *bytesize, ntype;
 MPI_Comm     comms[20];
-int          ncomm = 20, rank, np, partner, tag, count, source, size;
+int          ncomm = 20, rank, np, partner, tag, count;
 int          i, j, k, err, world_rank, errloc;
 MPI_Status   status;
 char         *obuf;
@@ -67,7 +68,7 @@ for (i=0; i<ncomm; i++) {
 			 status.MPI_SOURCE, partner, names[j] );
                 err++;
                 }
-            if (errloc = CheckData( inbufs[j], outbufs[j], bytesize[j] )) {
+            if ((errloc = CheckData( inbufs[j], outbufs[j], bytesize[j] ))) {
 		char *p1, *p2;
 		fprintf( stderr, 
                   "Error in data with type %s (type %d on %d) at byte %d\n", 

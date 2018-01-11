@@ -14,6 +14,9 @@
  */
 
 #include "mpi.h"
+#include "mpe.h"
+/* For malloc */
+#include <stdlib.h>
 
 static int MPE_Tag_keyval = MPI_KEYVAL_INVALID;
 
@@ -61,14 +64,14 @@ MPI_Comm comm_in, *comm_out;
 int      ntags, *first_tag;
 {
 int mpe_errno = MPI_SUCCESS;
-int tagval, *tagvalp, *maxval, flag;
+int *tagvalp, *maxval, flag;
 
 if (MPE_Tag_keyval == MPI_KEYVAL_INVALID) {
     MPI_Keyval_create( MPI_NULL_COPY_FN, MPE_DelTag, 
 		       &MPE_Tag_keyval, (void *)0 );
     }
 
-if (mpe_errno = MPI_Attr_get( comm_in, MPE_Tag_keyval, &tagvalp, &flag ))
+if ((mpe_errno = MPI_Attr_get( comm_in, MPE_Tag_keyval, &tagvalp, &flag )))
     return mpe_errno;
 
 if (!flag) {
@@ -120,7 +123,7 @@ int      first_tag, ntags;
 {
 int *tagvalp, flag, mpe_errno;
 
-if (mpe_errno = MPI_Attr_get( comm, MPE_Tag_keyval, &tagvalp, &flag ))
+if ((mpe_errno = MPI_Attr_get( comm, MPE_Tag_keyval, &tagvalp, &flag )))
     return mpe_errno;
 
 if (!flag) {
@@ -145,7 +148,8 @@ return MPI_SUCCESS;
 @*/
 int MPE_TagsEnd()
 {
-MPI_Keyval_free( &MPE_Tag_keyval );
-MPE_Tag_keyval = MPI_KEYVAL_INVALID;
+    MPI_Keyval_free( &MPE_Tag_keyval );
+    MPE_Tag_keyval = MPI_KEYVAL_INVALID;
+    return 0;
 }
 

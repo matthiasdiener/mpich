@@ -1,13 +1,9 @@
 /*
- *  $Id: sendrecv.c,v 1.11 1996/01/12 22:24:40 gropp Exp $
+ *  $Id: sendrecv.c,v 1.13 1996/06/07 15:07:30 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
-
-#ifndef lint
-static char vcid[] = "$Id: sendrecv.c,v 1.11 1996/01/12 22:24:40 gropp Exp $";
-#endif /* lint */
 
 #include "mpiimpl.h"
 
@@ -30,8 +26,16 @@ Output Parameters:
 . recvbuf - initial address of receive buffer (choice) 
 . status - status object (Status).  This refers to the receive operation.
   
-
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_TAG
+.N MPI_ERR_RANK
+
 @*/
 int MPI_Sendrecv( sendbuf, sendcount, sendtype, dest, sendtag, 
                   recvbuf, recvcount, recvtype, source, recvtag, 
@@ -50,9 +54,10 @@ MPI_Status   *status;
     int               mpi_errno = MPI_SUCCESS;
     MPI_Status        status_array[2];
     MPI_Request       req[2];
+    MPIR_ERROR_DECL;
+    static char myname[] = "Error in MPI_SENDRECV";
 
     /* Let the Isend/Irecv check arguments */
-
     /* Comments on this:
        We can probably do an Irecv/Send/Wait on Irecv (blocking send)
        but what we really like to do is "send if odd, recv if even, 
@@ -69,14 +74,18 @@ MPI_Status   *status;
        an abort or message, then that will occur in the called routine.
        Thus, this code need not call the error handler AGAIN.
      */
-    if (mpi_errno = MPI_Irecv ( recvbuf, recvcount, recvtype,
-			    source, recvtag, comm, &req[1] )) return mpi_errno;
-    if (mpi_errno = MPI_Isend ( sendbuf, sendcount, sendtype, dest,   
-			    sendtag, comm, &req[0] )) return mpi_errno;
-    /* fprintf( stderr, "[%d] Starting waitall\n", MPIR_tid );*/
-    mpi_errno = MPI_Waitall ( 2, req, status_array );
-    /*fprintf( stderr, "[%d] Ending waitall\n", MPIR_tid );*/
+
+    MPIR_ERROR_PUSH(comm);
+    MPIR_CALL_POP(MPI_Irecv ( recvbuf, recvcount, recvtype,
+		    source, recvtag, comm, &req[1] ),comm,myname);
+    MPIR_CALL_POP(MPI_Isend ( sendbuf, sendcount, sendtype, dest,   
+			    sendtag, comm, &req[0] ),comm,myname);
+    /* FPRINTF( stderr, "[%d] Starting waitall\n", MPIR_tid );*/
+    MPIR_CALL_POP(MPI_Waitall ( 2, req, status_array ),comm,myname);
+    MPIR_ERROR_POP(comm);
+    /*FPRINTF( stderr, "[%d] Ending waitall\n", MPIR_tid );*/
 
     (*status) = status_array[1];
     return (mpi_errno);
 }
+

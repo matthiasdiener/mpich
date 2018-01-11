@@ -30,6 +30,8 @@
 #define ALOG_UNUSED0       -12
   /* what happened to -12? */
 #define ALOG_STATE_DEF     -13
+ /* define msg type as -14 */
+#define ALOG_PROCESS_DEF   -15
 #define ALOG_SYNC          -100
 #define ALOG_MESG_SEND     -101
 #define ALOG_MESG_RECV     -102

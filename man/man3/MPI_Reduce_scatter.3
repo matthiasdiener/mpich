@@ -1,7 +1,17 @@
-.TH MPI_Reduce_scatter 3 "12/21/1995" " " "MPI"
+.TH MPI_Reduce_scatter 3 "4/12/1996" " " "MPI"
 .SH NAME
-MPI_Reduce_scatter \- Combines values and scatters the results
-
+MPI_Reduce_scatter \-  Combines values and scatters the results 
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Reduce_scatter ( sendbuf, recvbuf, recvcnts, datatype, op, comm )
+void             *sendbuf;
+void             *recvbuf;
+int              *recvcnts;
+MPI_Datatype      datatype;
+MPI_Op            op;
+MPI_Comm          comm;
+.fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP
@@ -60,18 +70,101 @@ All MPI objects (e.g.,
 ) are of type 
 .I INTEGER
 in Fortran.
-.SH SYNOPSIS
-.nf
-#include "mpi.h"
-int MPI_Reduce_scatter ( sendbuf, recvbuf, recvcnts, datatype, op, comm )
-void             *sendbuf;
-void             *recvbuf;
-int              *recvcnts;
-MPI_Datatype      datatype;
-MPI_Op            op;
-MPI_Comm          comm;
 
-.fi
+.SH NOTES ON COLLECTIVE OPERATIONS
 
+The reduction functions (
+.I MPI_Op
+) do not return an error value.  As a result,
+if the functions detect an error, all they can do is either call 
+.I MPI_Abort
+or silently skip the problem.  Thus, if you change the error handler from
+.I MPI_ERRORS_ARE_FATAL
+to something else, for example, 
+.I MPI_ERRORS_RETURN
+,
+then no error may be indicated.
+
+The reason for this is the performance problems in ensuring that
+all collective routines return the same error value.
+
+.SH ERRORS
+
+All MPI routines (except 
+.I MPI_Wtime
+and 
+.I MPI_Wtick
+) return an error value;
+C routines as the value of the function and Fortran routines in the last
+argument.  Before the value is returned, the current MPI error handler is
+called.  By default, this error handler aborts the MPI job.  The error handler
+may be changed with 
+.I MPI_Errhandler_set
+; the predefined error handler
+.I MPI_ERRORS_RETURN
+may be used to cause error values to be returned.
+Note that MPI does 
+.B not
+guarentee that an MPI program can continue past
+an error.
+
+.PD 0
+.TP
+.B MPI_SUCCESS 
+- No error; MPI routine completed successfully.
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_COMM 
+- Invalid communicator.  A common error is to use a null
+communicator in a call (not even allowed in 
+.I MPI_Comm_rank
+).
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_COUNT 
+- Invalid count argument.  Count arguments must be 
+non-negative; a count of zero is often valid.
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_TYPE 
+- Invalid datatype argument.  May be an uncommitted 
+.PD 1
+MPI_Datatype (see 
+.I MPI_Type_commit
+).
+.PD 0
+.TP
+.B MPI_ERR_BUFFER 
+- Invalid buffer pointer.  Usually a null buffer where
+one is not valid.
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_OP 
+- Invalid operation.  MPI operations (objects of type 
+.I MPI_Op
+)
+must either be one of the predefined operations (e.g., 
+.I MPI_SUM
+) or
+created with 
+.I MPI_Op_create
+.
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_BUFFER 
+- This error class is associcated with an error code that
+indicates that two buffer arguments are 
+.B aliased
+; that is, the 
+describe overlapping storage (often the exact same storage).  This
+is prohibited in MPI (because it is prohibited by the Fortran 
+standard, and rather than have a separate case for C and Fortran, the
+.PD 1
+MPI Forum adopted the more restrictive requirements of Fortran).
 .SH LOCATION
- red_scat.c
+red_scat.c

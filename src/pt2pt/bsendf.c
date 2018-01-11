@@ -6,11 +6,7 @@
 #include <stdarg.h>
 #endif
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -88,7 +84,11 @@ if (_isfcd(buf)) {
 
 #endif
 #else
- void mpi_bsend_( buf, count, datatype, dest, tag, comm, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_bsend_ ANSI_ARGS(( void *, int *, MPI_Datatype, int *, int *, 
+			    MPI_Comm, int * ));
+
+void mpi_bsend_( buf, count, datatype, dest, tag, comm, __ierr )
 void             *buf;
 int*count,*dest,*tag;
 MPI_Datatype     datatype;

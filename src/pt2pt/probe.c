@@ -1,17 +1,15 @@
 /*
- *  $Id: probe.c,v 1.16 1995/12/21 21:15:14 gropp Exp $
+ *  $Id: probe.c,v 1.17 1996/04/11 20:21:10 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 
-#ifndef lint
-static char vcid[] = "$Id: probe.c,v 1.16 1995/12/21 21:15:14 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
+#ifndef MPI_ADI2
 #include "mpisys.h"
+#endif
 
 /*@
     MPI_Probe - Blocking test for a message
@@ -25,6 +23,12 @@ Output Parameter:
 . status - status object (Status) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_TAG
+.N MPI_ERR_RANK
 @*/
 int MPI_Probe( source, tag, comm, status )
 int         source;
@@ -43,6 +47,10 @@ MPI_Status  *status;
 	status->count	   = 0;
 	return MPI_SUCCESS;
 	}
+#ifdef MPI_ADI2
+    MPID_Probe( comm, tag, comm->recv_context, source, &mpi_errno, status );
+    MPIR_RETURN(comm,mpi_errno,"Error in MPI_PROBE");
+#else
 #ifdef MPID_NEEDS_WORLD_SRC_INDICES
     MPID_Probe( comm->ADIctx, tag, 
 	        (source >= 0) ? (comm->lrank_to_grank[source])  : source,
@@ -53,4 +61,5 @@ MPI_Status  *status;
 	        comm->recv_context, status );
 #endif
     return MPI_SUCCESS;
+#endif
 }

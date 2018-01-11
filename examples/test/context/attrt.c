@@ -12,11 +12,11 @@ int main(argc, argv)
 int argc;
 char **argv;
 {
-MPI_Init( &argc, &argv );
-test_communicators();
-Test_Waitforall( );
-MPI_Finalize();
-return 0;
+    MPI_Init( &argc, &argv );
+    test_communicators();
+    Test_Waitforall( );
+    MPI_Finalize();
+    return 0;
 }
 
 int copy_fn(oldcomm, keyval, extra_state,
@@ -152,7 +152,7 @@ if (lo_comm != MPI_COMM_NULL) {
 	}
 
     if (value != world_rank) {
-	printf( "dup_comm key_1 value incorrect: %d\n", value );
+	printf( "dup_comm key_1 value incorrect: %ld\n", (long)value );
 	MPI_Abort(MPI_COMM_WORLD, 3005 );
 	}
 
@@ -256,5 +256,7 @@ c        MPI_Keyval_free(&key_2 )
         MPI_Comm_free( &lo_comm );
         MPI_Comm_free( &dup_comm );
 	}
+
+     return 0;
 }
 

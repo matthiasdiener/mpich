@@ -1,7 +1,14 @@
-.TH MPE_Seq_begin 4 "12/20/1995" " " "MPE"
+.TH MPE_Seq_begin 4 "5/28/1996" " " "MPE"
 .SH NAME
-MPE_Seq_begin \- Begins a sequential section of code.
-
+MPE_Seq_begin \-  Begins a sequential section of code.   
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+void MPE_Seq_begin( comm, ng )
+MPI_Comm comm;
+int      ng;
+.fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP
@@ -10,7 +17,7 @@ MPE_Seq_begin \- Begins a sequential section of code.
 .PD 1
 .PD 0
 .TP
-.B ng 
+.B ng   
 - Number in group.  This many processes are allowed to execute
 at the same time.  Usually one.  
 .PD 1
@@ -20,27 +27,14 @@ at the same time.  Usually one.
 to
 be executed by the processes in rank order.  Typically, this is done
 with
-.nf
-  MPE_Seq_begin( comm, 1 );
-  <code to be executed sequentially>
-  MPE_Seq_end( comm, 1 );
-.fi
-
+MPE_Seq_begin( comm, 1 );
+<code to be executed sequentially>
+MPE_Seq_end( comm, 1 );
 Often, the sequential code contains output statements (e.g., 'printf') to
 be executed.  Note that you may need to flush the I/O buffers before
 calling 'MPE_Seq_end'; also note that some systems do not propagate I/O in
 any
 order to the controling terminal (in other words, even if you flush the
 output, you may not get the data in the order that you want).
-.SH SYNOPSIS
-.nf
-#include <stdio.h>
-#include "mpe.h"
-void MPE_Seq_begin( comm, ng )
-MPI_Comm comm;
-int      ng;
-
-.fi
-
 .SH LOCATION
- mpe_seq.c
+mpe_seq.c

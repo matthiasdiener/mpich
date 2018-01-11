@@ -19,12 +19,12 @@
 #define CORAL      14
 #define GRAY       15
 
-#ifndef lint
+/* Had a "ifndef lint around this, but that is wrong for using gcc with
+   string checking and -Dlint to remove the "vcid" not used */
 static char *(colornames[]) = { "white", "black", "red", "yellow", "green", 
 			      "cyan", "blue", "magenta", "aquamarine",
 			      "forestgreen", "orange", "marroon", "brown",
 			      "pink", "coral", "gray" };
-#endif
 
 /*I "xtools/baseclr.h" I*/
 
@@ -40,5 +40,10 @@ static char *(colornames[]) = { "white", "black", "red", "yellow", "green",
     int      color; 
  */
 #define XBPixFromInteger(win,color) (win)->cmapping[color]
+
+/* Prototypes */
+Colormap XBCreateColormap ANSI_ARGS(( Display *, int, Visual * ));
+int XBHlsToRgb ANSI_ARGS(( int, int, int, 
+			  unsigned char *, unsigned char *, unsigned char * ));
 
 #endif

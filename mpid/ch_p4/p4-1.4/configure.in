@@ -35,7 +35,9 @@ progname="`echo $0 | sed 's:^\./\./:\./:'`"
 usage_msg="
 Usage: ${progname} -p4arch=ARCH_TYPE [-alog={on,off}] [-dprintfl={on,off}]
                    [-p4comm=shared]  [-listener_pathname="\<pathname\>"]
+                   [-rsh=command] [-rshnol] [-cflags=flags]
 "
+RSHCOMMAND=
 OPTFLAGS="-g"
 USERCC=0
 CC=${CC:-cc}
@@ -70,6 +72,16 @@ case $arg in
      p4dprintfl=`echo $arg|sed 's/-dprintfl=//'`
      echo Setting p4dprintfl to $p4dprintfl
      ;;
+  -rsh=*)
+     RSHCOMMAND=`echo A$arg|sed 's/A-rsh=//'`
+     echo Setting RSHCOMMAND to $RSHCOMMAND
+     ;;
+   -rshnol)
+     RSHNOL=1
+     ;;
+  -cflags=*)
+     USER_CFLAGS="`echo A$arg|sed 's/A-*cflags=//'`"
+     ;;
   -listener_pathname=*)
      p4listener_pathname=`echo $arg|sed 's/-listener_pathname=//'`
      echo Setting p4listener_pathname to $p4listener_pathname
@@ -93,8 +105,12 @@ case $arg in
      SOCKSIZE="`echo $arg|sed 's/-*socksize=//'`"
      ;;
    *)
-     echo "Invalid p4 configure option $arg"
-     (echo "${usage_msg}") >& 2
+     # Allow null args
+     if test -n "$arg" ; then
+         echo "Invalid p4 configure option $arg"
+         (echo "${usage_msg}") >& 2
+         exit 1;
+     fi
      ;;
 esac
 done
@@ -113,7 +129,10 @@ MDEP_CFLAGS=
 MDEP_FFLAGS=
 MDEP_LFLAGS=
 P4_OBJ="\$(P4_COMM_OBJ) \$(P4_SOCK_OBJ) \$(P4_SHMEM_OBJ)"
-P4_CONFIGURED_TIME="`date`"
+#
+# date might include various quotes.  Just to be safe, remove anything
+# other than letters, numbers, space, and colon.
+P4_CONFIGURED_TIME="`date | sed -e 's/[^a-zA-Z0-9: ]//g'`"
 DEFINE_ALOG="#undef ALOG_TRACE"
 DEFINE_SYSV_IPC="#undef SYSV_IPC"
 DEFINE_VENDOR_IPC="#undef VENDOR_IPC"
@@ -160,10 +179,29 @@ AR="ar ruv"
 RANLIB=true
 if test -n "$p4comm_shared"; then
   DEFINE_VENDOR_IPC="#define VENDOR_IPC"
+  AC_HAVE_LIBRARY(thread,MDEP_LIBS="$MDEP_LIBS -lthread")
 fi
 AC_HAVE_LIBRARY(socket,MDEP_LIBS=-lsocket)
 AC_HAVE_LIBRARY(nsl,MDEP_LIBS="$MDEP_LIBS -lnsl")
-AC_HAVE_LIBRARY(thread,MDEP_LIBS="$MDEP_LIBS -lthread")
+AC_MSG_CHECKING(for how many arguments gettimeofday takes)
+AC_TEST_PROGRAM([#include <sys/time.h>
+main() {struct timeval tp;
+gettimeofday(&tp);return 0;}],
+MDEP_CFLAGS="$MDEP_CFLAGS -DUSE_WIERDGETTIMEOFDAY"
+AC_MSG_RESULT(one!),AC_MSG_RESULT(two - whew))
+dnl #MDEP_LIBS = /usr/ucblib/libucb.a -lsocket -lnsl  # for fortran
+fi
+#						Intel x86 running Solaris
+if test -n "$p4arch_I86_SOLARIS"; then
+P4ARCH=I86_SOLARIS
+AR="ar ruv"
+RANLIB=true
+if test -n "$p4comm_shared"; then
+  DEFINE_VENDOR_IPC="#define VENDOR_IPC"
+  AC_HAVE_LIBRARY(thread,MDEP_LIBS="$MDEP_LIBS -lthread")
+fi
+AC_HAVE_LIBRARY(socket,MDEP_LIBS=-lsocket)
+AC_HAVE_LIBRARY(nsl,MDEP_LIBS="$MDEP_LIBS -lnsl")
 AC_MSG_CHECKING(for how many arguments gettimeofday takes)
 AC_TEST_PROGRAM([#include <sys/time.h>
 main() {struct timeval tp;
@@ -282,7 +320,31 @@ if test -n "$p4arch_SGI"; then
     P4ARCH=SGI
     RANLIB=true
     AC_HAVE_LIBRARY(sun,MDEP_LIBS=-lsun)
-    MDEP_CFLAGS=-cckr
+    dnl    MDEP_CFLAGS=-cckr
+    if test -n "$p4comm_shared"; then
+      DEFINE_VENDOR_IPC="#define VENDOR_IPC"
+    fi
+fi
+#
+# Force 32-bit objects
+if test -n "$p4arch_SGI32"; then
+    P4ARCH=SGI
+    RANLIB=true
+    AC_HAVE_LIBRARY(sun,MDEP_LIBS=-lsun)
+    MDEP_CFLAGS="-32 -woff 1552,1174"
+    MDEP_FFLAGS="-32 -woff 1552,1174"
+    if test -n "$p4comm_shared"; then
+      DEFINE_VENDOR_IPC="#define VENDOR_IPC"
+    fi
+fi
+#
+# Force 32-bit objects (other way)
+if test -n "$p4arch_SGIN32"; then
+    P4ARCH=SGI
+    RANLIB=true
+    AC_HAVE_LIBRARY(sun,MDEP_LIBS=-lsun)
+    MDEP_CFLAGS="-n32 -woff 1552,1174"
+    MDEP_FFLAGS="-n32 -woff 1552,1174"
     if test -n "$p4comm_shared"; then
       DEFINE_VENDOR_IPC="#define VENDOR_IPC"
     fi
@@ -306,6 +368,8 @@ if test -n "$p4arch_SGI_MP"; then
     P4ARCH=SGI_MP
     RANLIB=true
     AC_HAVE_LIBRARY(sun,MDEP_LIBS=-lsun)
+    AC_HAVE_FUNCS(setsid)
+    AC_HAVE_FUNCS(isatty)
     MDEP_CFLAGS=-cckr
     if test -n "$p4comm_shared"; then
       DEFINE_VENDOR_IPC="#define VENDOR_IPC"
@@ -315,8 +379,22 @@ fi
 if test -n "$p4arch_SGI_CH"; then
     P4ARCH=SGI_CH
     RANLIB=true
-    MDEP_CFLAGS="-cckr -64 -mips3 -non_shared -woff 1552,1174"
-    MDEP_FFLAGS="-cckr -64 -mips3 -non_shared -woff 1552,1174"
+    AC_HAVE_FUNCS(setsid)
+    AC_HAVE_FUNCS(isatty)
+    MDEP_CFLAGS="-cckr -64 -mips3 -woff 1552,1174" # -non_shared
+    MDEP_FFLAGS="-cckr -64 -mips3 -woff 1552,1174" # -non_shared
+    if test -n "$p4comm_shared"; then
+       DEFINE_VENDOR_IPC="#define VENDOR_IPC"
+    fi
+fi
+#						SGI Challenge Series
+if test -n "$p4arch_SGI_CH32"; then
+    P4ARCH=SGI_CH
+    RANLIB=true
+    AC_HAVE_FUNCS(setsid)
+    AC_HAVE_FUNCS(isatty)
+    MDEP_CFLAGS="-n32 -woff 1552,1174"
+    MDEP_FFLAGS="-n32 -woff 1552,1174"
     if test -n "$p4comm_shared"; then
        DEFINE_VENDOR_IPC="#define VENDOR_IPC"
     fi
@@ -325,8 +403,8 @@ fi
 if test -n "$p4arch_SGI_CH64"; then
     P4ARCH=SGI_CH64
     RANLIB=true
-    dnl MDEP_CFLAGS="-cckr -64 -mips4 -non_shared -woff 1552,1174"
-    dnl MDEP_FFLAGS="-cckr -64 -mips4 -non_shared -woff 1552,1174"
+    dnl MDEP_CFLAGS="-cckr -64 -mips4 -woff 1552,1174"# -non_shared
+    dnl MDEP_FFLAGS="-cckr -64 -mips4 -woff 1552,1174"# -non_shared
     MDEP_CFLAGS="-cckr -64 -mips4 -woff 1552,1174"
     MDEP_FFLAGS="-cckr -64 -mips4 -woff 1552,1174"
     AC_HAVE_FUNCS(setsid)
@@ -337,6 +415,14 @@ if test -n "$p4arch_SGI_CH64"; then
 fi
 #                                              UXPM (MPIS chip)
 if test -n "$p4arch_UXPM"; then
+    # Make it think that it is an IRIX v5 SGI
+    P4ARCH=SGI
+    RANLIB=true
+    MDEP_LIBS="-lsocket -lnsl"
+    MDEP_CFLAGS="-DNEEDS_NETINET"
+fi
+#                                              UXPV  (Fujitsu VX,VPP300,VPP700)
+if test -n "$p4arch_UXPV"; then
     # Make it think that it is an IRIX v5 SGI
     P4ARCH=SGI
     RANLIB=true
@@ -383,14 +469,59 @@ fi
 AC_CROSS_CHECK()
 #
 # Look for netinet/in.h and sys/socketvar.h
-AC_HAVE_HEADERS(netinet/in.h)
-AC_HAVE_HEADERS(sys/socketvar.h)
+PAC_CHECK_HEADERS(netinet/in.h)
+PAC_CHECK_HEADERS(sys/socketvar.h)
+PAC_CHECK_HEADERS(stdlib.h)
+PAC_CHECK_HEADERS(unistd.h)
+PAC_CHECK_HEADER(stdarg.h,[AC_DEFINE(HAVE_STDARG_H)
+havestdarg=1])
+PAC_CHECK_HEADERS(string.h)
+PAC_CHECK_HEADERS(strings.h)
+#
+# It isn't enough to check for stdarg.  Even gcc doesn't get it right;
+# on some systems, the gcc version of stdio.h loads stdarg.h WITH THE WRONG
+# OPTIONS (causing it to choose the OLD STYLE va_start etc).
+#
+if test -n "$havestdarg" ; then
+    PAC_COMPILE_CHECK_FUNC(stdarg is correct,[
+/* DEC Alpha compiler by default does NOT define __STDC__ but DOES
+   accept prototypes */
+#if !defined(__STDC__)
+'bad text'
+#endif
+#include <stdio.h>
+#include <stdarg.h>
+int func( int a, ... ){
+int b;
+va_list ap;
+va_start( ap, a );
+b = va_arg(ap, int);
+printf( "%d-%d\n", a, b );
+va_end(ap);
+fflush(stdout);
+return 0;
+}
+int main() { func( 1, 2 ); return 0;}],AC_DEFINE(USE_STDARG))
+fi
 #
 # Look for sigaction routine (instead of signal)
 AC_HAVE_FUNCS(sigaction)
+# strerror is prefered over extern char *sys_errlist[];
+AC_HAVE_FUNCS(strerror)
+AC_HAVE_LIBRARY(crypt,CRYPT_LIBS=-lcrypt)
+
+if test -n "$RSHCOMMAND" ; then
+    AC_DEFINE(HAS_RSHCOMMAND)
+fi
+if test -n "$RSHNOL" ; then
+    AC_DEFINE(RSH_HAS_NO_L)
+fi
 #
 # We do NOT add the CFLAGS and DEFS to the MDEP_CFLAGS because they are 
-# used ONLY in building the p4 package itself.
+# used ONLY in building the p4 package itself.  However, we add USER_CFLAGS
+# which were specified on the configure
+#
+MDEP_CFLAGS="$USER_CFLAGS $MDEP_CFLAGS"
 #
 # Set the sock_buff_size variable through the "optflags" variable
 if test -n "$SOCKSIZE" ; then
@@ -411,6 +542,7 @@ AC_SUBST(RANLIB)dnl
 AC_SUBST(RM)dnl
 AC_SUBST(P4_OBJ)dnl
 AC_SUBST(MDEP_LIBS)dnl
+AC_SUBST(CRYPT_LIBS)dnl
 AC_SUBST(MDEP_CFLAGS)dnl
 AC_SUBST(MDEP_FFLAGS)dnl
 AC_SUBST(MDEP_LFLAGS)dnl
@@ -421,6 +553,7 @@ AC_SUBST(DEFINE_SYSV_IPC)dnl
 AC_SUBST(DEFINE_VENDOR_IPC)dnl
 AC_SUBST(DEFINE_P4_DPRINTFL)dnl
 AC_SUBST(LISTENER_PATHNAME)dnl
+AC_SUBST(RSHCOMMAND)dnl
 AC_OUTPUT(Makefile lib/Makefile alog/Makefile usc/Makefile usc/usctest/Makefile messages/Makefile include/Makefile lib_f/Makefile contrib/Makefile contrib_f/Makefile bin/Makefile doc/Makefile messages_f/Makefile misc/Makefile monitors/Makefile servers/Makefile)
 dnl 
 dnl This code removes that stupid first line placed by ac_output

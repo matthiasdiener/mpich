@@ -1,13 +1,9 @@
 /*
- *  $Id: bcast.c,v 1.27 1995/12/21 22:16:51 gropp Exp $
+ *  $Id: bcast.c,v 1.29 1996/06/07 15:08:09 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
-
-#ifndef lint
-static char vcid[] = "$Id: bcast.c,v 1.27 1995/12/21 22:16:51 gropp Exp $";
-#endif /* lint */
 
 #include "mpiimpl.h"
 #include "coll.h"
@@ -36,6 +32,14 @@ algorithm.  The value should be adjusted to determine the most
 efficient value on different machines.
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_BUFFER
+.N MPI_ERR_ROOT
 @*/
 int MPI_Bcast ( buffer, count, datatype, root, comm )
 void             *buffer;
@@ -44,22 +48,20 @@ MPI_Datatype      datatype;
 int               root;
 MPI_Comm          comm;
 {
-  MPI_Status status;
-  int        rank, size, src, dst;
-  int        n, N, surfeit, N2_prev, N2_next, N_rank;
-  int        participants, my_block, my_offset;
-  int        mpi_errno = MPI_SUCCESS;
-  int        bsize;
-  int        int_n;
-  int        flag;
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_ERROR_DECL;
 
-  /* Check for invalid arguments */
-  if ( MPIR_TEST_COMM(comm,comm) ||
-   ( (root            <  0)          && (mpi_errno = MPI_ERR_ROOT) )) 
-    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_BCAST" );
+    /* Check for invalid arguments */
+    if ( MPIR_TEST_COMM(comm,comm) ||
+	 ( (root            <  0)          &&
+	     (MPIR_ERROR_PUSH_ARG(&root),mpi_errno = MPI_ERR_ROOT) )) 
+	return MPIR_ERROR( comm, mpi_errno, "Error in MPI_BCAST" );
 
-  /* See the overview in Collection Operations for why this is ok */
-  if (count == 0) return MPI_SUCCESS;
-
-  return comm->collops->Bcast(buffer, count, datatype, root, comm);
+    /* See the overview in Collection Operations for why this is ok */
+    if (count == 0) return MPI_SUCCESS;
+    
+    MPIR_ERROR_PUSH(comm);
+    mpi_errno = comm->collops->Bcast(buffer, count, datatype, root, comm);
+    MPIR_ERROR_POP(comm);
+    MPIR_RETURN(comm,mpi_errno,"Error in MPI_BCAST");
 }

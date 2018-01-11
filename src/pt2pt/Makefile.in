@@ -8,8 +8,6 @@
 ARCH        = @ARCH@
 COMM        = @COMM@
 BOPT        = @BOPT@
-P4_DIR      = @P4_DIR@
-TOOLS_DIR   = @TOOLS_DIR@
 MPIR_HOME   = @MPIR_HOME@
 CC          = @CC@
 F77         = @F77@
@@ -29,9 +27,10 @@ MPI_INCLUDE    = ../../include/mpi.h ../../include/mpi_bc.h \
                  ../../include/mpir.h ../../include/mpi_ad.h \
 		 ../../include/mpisys.h 
 DEVICE_LIB = 
-CFLAGS = @CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPIPROFILE)
+CFLAGS = @CFLAGS@ @OPTFLAGSC@ $(OPTFLAGS) $(INCLUDE_DIR) \
+	-DMPI_$(ARCH) $(MPIPROFILE)
 
-LIBS = ../../lib/$(ARCH)/$(COMM)/libmpi.a $(DEVICE_LIB)
+LIBS = ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $(DEVICE_LIB)
 
 MPI_CSOURCES = mperror.c isend.c irecv.c wait.c test.c \
                address.c cancel.c commreq_free.c probe.c \
@@ -41,7 +40,7 @@ MPI_CSOURCES = mperror.c isend.c irecv.c wait.c test.c \
 	       bsend.c ssend.c rsend.c bufattach.c buffree.c \
 	       ibsend.c issend.c irsend.c \
 	       waitsome.c testsome.c testcancel.c bsend_init.c \
-	       rsend_init.c ssend_init.c \
+	       rsend_init.c ssend_init.c sendutil.c \
 	       startall.c initsend.c initrecv.c \
 	       type_commit.c type_contig.c \
 	       type_extent.c type_free.c type_hind.c \
@@ -49,21 +48,14 @@ MPI_CSOURCES = mperror.c isend.c irecv.c wait.c test.c \
 	       type_struct.c type_ub.c type_util.c \
 	       type_vec.c getelements.c pack_size.c pack.c unpack.c
 
-# Remove the routines with Fortran LOGICALs from MPI_CSOURCES
-# Remove the routines that create or free MPI_Request objects
-# Remove the routines that create or free MPI_Datatype objects
-# Remove the routines that use MPI_Aint.
-MPI_TSOURCES = mperror.c \
-               cancel.c probe.c \
-	       getcount.c \
-	       type_util.c \
-	       getelements.c pack_size.c
+# All done by hand now
+MPI_TSOURCES =
 
 MPI_WSOURCES = isendf.c irecvf.c waitf.c testf.c \
 	       addressf.c cancelf.c commreqfreef.c probef.c \
 	       startf.c testanyf.c waitallf.c sendf.c recvf.c \
 	       sendrecvf.c iprobef.c testallf.c waitanyf.c create_recvf.c \
-	       create_sendf.c sendredv_repf.c getcountf.c \
+	       create_sendf.c sendrecvrepf.c getcountf.c \
 	       bsendf.c ssendf.c rsendf.c bufattachf.c buffreef.c \
 	       ibsendf.c issendf.c irsendf.c waitsomef.c testsomef.c \
 	       testcancelf.c bsend_initf.c rsend_initf.c ssend_initf.c \
@@ -83,7 +75,7 @@ MPI_COBJECTS = isend.o irecv.o wait.o test.o mperror.o \
 	       bsend.o ssend.o rsend.o bufattach.o buffree.o \
 	       ibsend.o issend.o irsend.o waitsome.o testsome.o \
 	       testcancel.o bsend_init.o rsend_init.o ssend_init.o \
-	       startall.o initsend.o initrecv.o \
+	       startall.o initsend.o initrecv.o sendutil.o \
 	       type_commit.o type_contig.o \
 	       type_extent.o type_free.o type_hind.o \
 	       type_hvec.o type_ind.o type_lb.o type_size.o \
@@ -108,23 +100,23 @@ MPI_WOBJECTS = isendf.o irecvf.o waitf.o testf.o \
 MPI_SOURCES = $(MPI_CSOURCES) $(MPI_WSOURCES)
 MPI_OBJECTS = $(MPI_COBJECTS) $(MPI_WOBJECTS)
 
-default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
+default: ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
 
 # default_all is the same as default, but without the RANLIB.  This
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
 default_all: $(MPI_OBJECTS)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $?
+	$(AR) ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $?
 profile_all: $(MPI_OBJECTS)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libpmpi.a $?
+	$(AR) ../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a $?
 wrapperlib: $(MPI_WOBJECTS)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libfmpi.a $?	
-	
-default_conly: $(MPI_COBJECTS)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $?
-	$(RANLIB) ../../lib/$(ARCH)/$(COMM)/libmpi.a
+	$(AR) ../../lib/$(ARCH)/$(COMM)/libf@MPILIBNAME@.a $?	
 
-profile: ../../lib/$(ARCH)/$(COMM)/libpmpi.a
+default_conly: $(MPI_COBJECTS)
+	$(AR) ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $?
+	$(RANLIB) ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
+
+profile: ../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a
 
 wrappers:
 	../../util/bfort -ferr -mpi -mnative -mapptr -ptrprefix MPIR_ \
@@ -134,14 +126,17 @@ manpages:
 	../../util/doctext -mpath ../../man/man3 -ext 3 -I pubinc \
 	   -index ../../www.index -jumpfile ../../jumpfile.list \
 	   -indexdir "http:/www.mcs.anl.gov/mpi/www/www3" -heading MPI \
-		-quotefmt ../../util/fortnotes $(MPI_CSOURCES)
+		-quotefmt ../../util/fortnotes ../../util/errnotes \
+		$(MPI_CSOURCES)
 	../../util/doc2lt $(MPI_CSOURCES) >> ../../rsum.tmp
 
 wwwpages:
-	../../util/doctext -html -mpath ../../www/www3 -ext 3 -I pubinc \
+	../../util/doctext -html -mpath ../../www/www3 -I pubinc \
 	   -index ../../www.index -jumpfile ../../jumpfile.list \
+	   -mapref $(MPIR_HOME)/util/mpis.cit \
 	   -indexdir "http:/www.mcs.anl.gov/mpi/www/www3" -heading MPI \
-		-quotefmt ../../util/fortnotes $(MPI_CSOURCES)
+		-quotefmt ../../util/fortnotes ../../util/errnotes \
+		$(MPI_CSOURCES)
 
 source_names:
 	@echo $(MPI_CSOURCES)
@@ -151,11 +146,11 @@ $(MPI_OBJECTS) :  $(MPI_INCLUDE)
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c
 
-../../lib/$(ARCH)/$(COMM)/libmpi.a: $(MPI_OBJECTS) 
+../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a: $(MPI_OBJECTS) 
 	$(AR) $@ $?
 	$(RANLIB) $@
 
-../../lib/$(ARCH)/$(COMM)/libpmpi.a: $(MPI_OBJECTS) 
+../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a: $(MPI_OBJECTS) 
 	$(AR) $@ $?
 	$(RANLIB) $@
 

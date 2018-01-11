@@ -1,106 +1,95 @@
 ALL: default
 ##### User configurable options #####
 
-ARCH        = @ARCH@
-COMM        = @COMM@
-BOPT        = @BOPT@
-P4_DIR      = @P4_DIR@
-TOOLS_DIR   = @TOOLS_DIR@
 MPIR_HOME   = @MPIR_HOME@
-CC          = @CC@
-CLINKER     = @CLINKER@
-CCC         = @CPP_COMPILER@
+CC          = @MPICC@
+CLINKER     = @MPICC@
+CCC         = @MPICPLUSPLUS@
 CCLINKER    = $(CCC)
-F77         = @F77@
-FLINKER     = @FLINKER@
-AR          = @AR@
-RANLIB      = @RANLIB@
-PROFILING   = $(PMPILIB)
+F77         = @MPIF77@
+FLINKER     = @MPIF77@
 OPTFLAGS    = @OPTFLAGS@
-LIB_PATH    = @LIB_PATH@
-FLIB_PATH   = @FLIB_PATH@
-LIB_LIST    = @LIB_LIST@
-#
-INCLUDE_DIR = @USER_INCLUDE_PATH@ -I$(MPIR_HOME)/include
-DEVICE      = @DEVICE@
 
 ### End User configurable options ###
 
 SHELL = /bin/sh
 
 PROFLIB =
-CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
+CFLAGS  = $(OPTFLAGS)
 CCFLAGS = $(CFLAGS)
-FFLAGS = @FFLAGS@ $(OPTFLAGS)
-MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a 
-MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
-LIBS = $(LIB_PATH) $(PROFLIB) $(LIB_LIST)
-FLIBS = $(FLIB_PATH) $(LIB_LIST)
-LIBSPP = $(MPIPPLIB) $(LIBS)
+FFLAGS = $(OPTFLAGS)
+# Use LIBS to add any special libraries for C programs
+LIBS = 
+# Use FLIBS to add any special libraries for Fortran programs
+FLIBS = 
 EXECS = coll1 coll2 coll3 coll4 coll5 coll6 coll7 coll8 coll9 \
 	coll10 coll11 coll12 coll13 bcastbug bcastbug2 grouptest redtst \
-	barrier bcast allred scatterv allredf redscat
+	barrier bcast allred scatterv allredf redscat alltoallv assocf
 
 default: $(EXECS)
 
 #
 # Note that runtests builds the executables as required
-testing: $(MPIR_HOME)/util/mpirun
+testing: 
 	-./runtests $(TESTARGS)
 
 linktest: default clean
 
 all: testing
 
-fortran_tests: allredf
+fortran_tests: allredf assocf
 
-coll1: coll1.o test.o $(MPILIB)
+coll1: coll1.o test.o
 	$(CLINKER) $(OPTFLAGS) -o coll1 coll1.o test.o $(LIBS)
-coll2: coll2.o test.o $(MPILIB)
+coll2: coll2.o test.o
 	$(CLINKER) $(OPTFLAGS) -o coll2 coll2.o test.o $(LIBS)
-coll3: coll3.o test.o $(MPILIB)
+coll3: coll3.o test.o
 	$(CLINKER) $(OPTFLAGS) -o coll3 coll3.o test.o $(LIBS)
-coll4: coll4.o test.o $(MPILIB)
+coll4: coll4.o test.o
 	$(CLINKER) $(OPTFLAGS) -o coll4 coll4.o test.o $(LIBS)
-coll5: coll5.o test.o $(MPILIB)
+coll5: coll5.o test.o
 	$(CLINKER) $(OPTFLAGS) -o coll5 coll5.o test.o $(LIBS)
-coll6: coll6.o test.o $(MPILIB)
+coll6: coll6.o test.o
 	$(CLINKER) $(OPTFLAGS) -o coll6 coll6.o test.o $(LIBS)
-coll7: coll7.o test.o $(MPILIB)
+coll7: coll7.o test.o
 	$(CLINKER) $(OPTFLAGS) -o coll7 coll7.o test.o $(LIBS)
-coll8: coll8.o test.o $(MPILIB)
+coll8: coll8.o test.o
 	$(CLINKER) $(OPTFLAGS) -o coll8 coll8.o test.o $(LIBS)
-coll9: coll9.o test.o $(MPILIB)
+coll9: coll9.o test.o 
 	$(CLINKER) $(OPTFLAGS) -o coll9 coll9.o test.o $(LIBS)
-coll10: coll10.o test.o $(MPILIB)
+coll10: coll10.o test.o 
 	$(CLINKER) $(OPTFLAGS) -o coll10 coll10.o test.o $(LIBS)
-coll11: coll11.o test.o $(MPILIB)
+coll11: coll11.o test.o 
 	$(CLINKER) $(OPTFLAGS) -o coll11 coll11.o test.o $(LIBS)
-coll12: coll12.o test.o $(MPILIB)
+coll12: coll12.o test.o
 	$(CLINKER) $(OPTFLAGS) -o coll12 coll12.o test.o $(LIBS)
-coll13: coll13.o $(MPILIB)
+coll13: coll13.o 
 	$(CLINKER) $(OPTFLAGS) -o coll13 coll13.o $(LIBS)
-bcastbug2: bcastbug2.o test.o $(MPILIB)
+bcastbug2: bcastbug2.o test.o 
 	$(CLINKER) $(OPTFLAGS) -o bcastbug2 bcastbug2.o test.o $(LIBS)
-bcastbug: bcastbug.o test.o $(MPILIB)
+bcastbug: bcastbug.o test.o
 	$(CLINKER) $(OPTFLAGS) -o bcastbug bcastbug.o test.o $(LIBS)
-grouptest: grouptest.o $(MPILIB)
+grouptest: grouptest.o
 	$(CLINKER) $(OPTFLAGS) -o grouptest grouptest.o test.o $(LIBS)
-redtst: redtst.o test.o $(MPILIB)
+redtst: redtst.o test.o
 	$(CLINKER) $(OPTFLAGS) -o redtst redtst.o test.o $(LIBS)
 barrier: barrier.o test.o
 	$(CLINKER) $(OPTFLAGS) -o barrier barrier.o test.o $(LIBS)
 bcast: bcast.o test.o
 	$(CLINKER) $(OPTFLAGS) -o bcast bcast.o test.o $(LIBS)
-allred: allred.o $(MPILIB) ../pt2pt/gcomm.o
-	$(CLINKER) $(OPTFLAGS) -o allred allred.o ../pt2pt/gcomm.o -lm $(LIBS)
-scatterv: scatterv.o $(MPILIB) 
-	$(CLINKER) $(OPTFLAGS) -o scatterv scatterv.o -lm $(LIBS)
-redscat: redscat.o $(MPILIB) 
-	$(CLINKER) $(OPTFLAGS) -o redscat redscat.o -lm $(LIBS)
+allred: allred.o ../pt2pt/gcomm.o
+	$(CLINKER) $(OPTFLAGS) -o allred allred.o ../pt2pt/gcomm.o $(LIBS) -lm
+scatterv: scatterv.o
+	$(CLINKER) $(OPTFLAGS) -o scatterv scatterv.o $(LIBS) -lm
+redscat: redscat.o
+	$(CLINKER) $(OPTFLAGS) -o redscat redscat.o $(LIBS) -lm
+alltoallv: alltoallv.o
+	$(CLINKER) $(OPTFLAGS) -o alltoallv alltoallv.o $(LIBS) -lm
 
-allredf: mpif.h allredf.o $(MPILIB)
+allredf: mpif.h allredf.o
 	$(FLINKER) $(OPTFLAGS) -o allredf allredf.o $(FLIBS)
+assocf: mpif.h assocf.o 
+	$(FLINKER) $(OPTFLAGS) -o assocf assocf.o $(FLIBS)
 
 ../pt2pt/gcomm.o:
 	(cd ../pt2pt ; make gcomm.o )
@@ -119,6 +108,6 @@ clean:
 	$(CC) $(CFLAGS) -c $*.c
 .f.o:
 	$(F77) $(FFLAGS) -c $*.f
-
-$(MPIR_HOME)/util/mpirun:
-	(cd $(MPIR_HOME) ; make mpirun )
+#
+#$(MPIR_HOME)/util/mpirun:
+#	(cd $(MPIR_HOME) ; make mpirun )

@@ -1,14 +1,10 @@
 /*
- *  $Id: send.c,v 1.22 1995/12/21 21:26:25 gropp Exp $
+ *  $Id: send.c,v 1.24 1996/06/07 15:07:30 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-
-#ifndef lint
-static char vcid[] = "$Id: send.c,v 1.22 1995/12/21 21:26:25 gropp Exp $";
-#endif /* lint */
 
 #include "mpiimpl.h"
 
@@ -35,6 +31,14 @@ This routine may block until the message is received.
 
 .N fortran
 
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_TAG
+.N MPI_ERR_RANK
+
 .seealso: MPI_Isend, MPI_Bsend
 @*/
 int MPI_Send( buf, count, datatype, dest, tag, comm )
@@ -44,8 +48,10 @@ MPI_Datatype     datatype;
 MPI_Comm         comm;
 {
     int          mpi_errno = MPI_SUCCESS;
+#ifndef MPI_ADI2
     MPIR_SHANDLE shandle;
     MPI_Request  request;
+#endif
 
     if (dest == MPI_PROC_NULL) 
 	return mpi_errno;
@@ -57,6 +63,15 @@ MPI_Comm         comm;
 	MPIR_TEST_SEND_RANK(comm,dest)) 
 	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_SEND" );
 
+#ifdef MPI_ADI2
+    if (dest == MPI_PROC_NULL) return MPI_SUCCESS;
+
+    /* This COULD test for the contiguous homogeneous case first .... */
+    MPID_SendDatatype( comm, buf, count, datatype, comm->local_rank, tag, 
+		       comm->send_context, comm->lrank_to_grank[dest], 
+		       &mpi_errno );
+    MPIR_RETURN(comm, mpi_errno, "Error in MPI_SEND" );
+#else
     request = (MPI_Request)&shandle;
 
     request->type      = MPIR_SEND;
@@ -106,6 +121,7 @@ MPI_Comm         comm;
 #endif
     shandle.datatype->ref_count--;
     return mpi_errno;
+#endif
 }
 
 

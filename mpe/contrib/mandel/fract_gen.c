@@ -7,7 +7,9 @@
 #include "pmandel.h"
 #include "fract_gen.h"
 
+#ifndef DEBUG
 #define DEBUG 0
+#endif
 
 static NUM rmin, rmax, imin, imax;
 static int xmin, xmax, ymin, ymax;

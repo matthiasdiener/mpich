@@ -1,12 +1,20 @@
 .TH MPE_Print_datatype_unpack_action 4 "11/17/1995" " " "MPE"
 .SH NAME
-MPE_Print_datatype_unpack_action \- Prints the operations performed in an
-unpack of a datatype
-
+MPE_Print_datatype_unpack_action \-  Prints the operations performed in an  unpack of a datatype 
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+int MPE_Print_datatype_unpack_action( fp, count, type, in_offset, out_offset )
+FILE         *fp;
+int          count;
+MPI_Datatype type;
+int          in_offset, out_offset;
+.fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP
-.B fp 
+.B fp  
 - FILE pointer for output
 .PD 1
 .PD 0
@@ -29,17 +37,5 @@ unpack of a datatype
 .SH NOTES
 This prints on the selected file the operations that the MPICH
 implementation will take when unpacking a buffer.
-.SH SYNOPSIS
-.nf
-#include <stdio.h>
-#include "mpe.h"
-int MPE_Print_datatype_unpack_action( fp, count, type, in_offset, out_offset )
-FILE         *fp;
-int          count;
-MPI_Datatype type;
-int          in_offset, out_offset;
-
-.fi
-
 .SH LOCATION
- examine.c
+examine.c

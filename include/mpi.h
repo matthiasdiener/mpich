@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi.h,v 1.50 1996/01/08 19:52:29 gropp Exp $
+ *  $Id: mpi.h,v 1.51 1996/07/05 15:36:32 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -199,8 +199,12 @@ typedef struct {
 
 /* Must be able to hold any valid address.  64 bit machines may need
    to change this */
+#if (defined(_SX) && !defined(_LONG64))
+/* NEC SX-4 in some modes needs this */
+typedef long long MPI_Aint
+#else
 typedef long MPI_Aint;
-
+#endif
 
 #if (defined(__STDC__) || defined(__cplusplus))
 typedef void (MPI_Handler_function)( MPI_Comm *, int *, ... );

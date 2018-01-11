@@ -1,7 +1,14 @@
-.TH MPI_Comm_compare 3 "12/21/1995" " " "MPI"
+.TH MPI_Comm_compare 3 "4/12/1996" " " "MPI"
 .SH NAME
-MPI_Comm_compare \- Compares two communicators
-
+MPI_Comm_compare \-  Compares two communicators 
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Comm_compare ( comm1, comm2, result )
+MPI_Comm  comm1;
+MPI_Comm  comm2;
+int       *result;
+.fi
 .SH INPUT PARAMETERS
 .PD 0
 .TP
@@ -53,15 +60,38 @@ All MPI objects (e.g.,
 .I INTEGER
 in Fortran.
 
-.SH SYNOPSIS
-.nf
-#include "mpi.h"
-int MPI_Comm_compare ( comm1, comm2, result )
-MPI_Comm  comm1;
-MPI_Comm  comm2;
-int       *result;
+.SH ERRORS
 
-.fi
+All MPI routines (except 
+.I MPI_Wtime
+and 
+.I MPI_Wtick
+) return an error value;
+C routines as the value of the function and Fortran routines in the last
+argument.  Before the value is returned, the current MPI error handler is
+called.  By default, this error handler aborts the MPI job.  The error handler
+may be changed with 
+.I MPI_Errhandler_set
+; the predefined error handler
+.I MPI_ERRORS_RETURN
+may be used to cause error values to be returned.
+Note that MPI does 
+.B not
+guarentee that an MPI program can continue past
+an error.
 
+.PD 0
+.TP
+.B MPI_SUCCESS 
+- No error; MPI routine completed successfully.
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_ARG 
+- Invalid argument.  Some argument is invalid and is not
+identified by a specific error class (e.g., 
+.I MPI_ERR_RANK
+).
+.PD 1
 .SH LOCATION
- commcompare.c
+commcompare.c

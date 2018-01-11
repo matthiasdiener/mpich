@@ -1,12 +1,19 @@
 /*
- *  $Id: type_util.c,v 1.14 1995/12/21 21:41:28 gropp Exp $
+ *  $Id: type_util.c,v 1.15 1996/04/11 20:26:11 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "sbcnst2.h"
+#define MPIR_SBfree MPID_SBfree
+/* pt2pt for MPIR_Type_xxx */
+#include "mpipt2pt.h"
+#else
 #include "mpisys.h"
+#endif
 
 #ifndef MPIR_TRUE
 #define MPIR_TRUE  1
@@ -40,7 +47,7 @@ int MPIR_Type_permanent ( datatype )
 MPI_Datatype datatype;
 {
   if (datatype)
-    datatype->permanent = MPIR_YES;
+    datatype->permanent = 1;
   return (MPI_SUCCESS);
 }
 
@@ -173,4 +180,15 @@ MPI_Aint *lb, *ub;
     MPIR_GET_REAL_DATATYPE(dtype)
     *lb = dtype->lb;
     *ub = dtype->ub;
+}
+
+/* 
+ * Routine to free a datatype
+ */
+void MPIR_Free_perm_type( type )
+MPI_Datatype *type;
+{
+if (!type || !(*type)) return;
+(*type)->permanent = 0;
+MPI_Type_free( type );
 }

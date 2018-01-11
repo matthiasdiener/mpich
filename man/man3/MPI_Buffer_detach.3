@@ -1,7 +1,13 @@
-.TH MPI_Buffer_detach 3 "12/21/1995" " " "MPI"
+.TH MPI_Buffer_detach 3 "4/11/1996" " " "MPI"
 .SH NAME
-MPI_Buffer_detach \- Removes an existing buffer (for use in MPI_Bsend etc)
-
+MPI_Buffer_detach \-  Removes an existing buffer (for use in MPI_Bsend etc) 
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Buffer_detach( bufferptr, size )
+void *bufferptr;
+int  *size;
+.fi
 .SH OUTPUT PARAMETERS
 .PD 0
 .TP
@@ -21,18 +27,15 @@ returns the address and size of the
 buffer being detached is to allow nested libraries to replace and restore
 the buffer.  For example, consider
 
-.nf
-    int size, mysize, idummy;
-    void *ptr, *myptr, *dummy;     
-    MPI_Buffer_detach( &ptr, &size );
-    MPI_Buffer_attach( myptr, mysize );
-    ...
-    ... library code ...
-    ...
-    MPI_Buffer_detach( &dummy, &idummy );
-    MPI_Buffer_attach( ptr, size );
-.fi
-
+int size, mysize, idummy;
+void *ptr, *myptr, *dummy;     
+MPI_Buffer_detach( &ptr, &size );
+MPI_Buffer_attach( myptr, mysize );
+...
+... library code ...
+...
+MPI_Buffer_detach( &dummy, &idummy );
+MPI_Buffer_attach( ptr, size );
 
 This is much like the action of the Unix signal routine and has the same
 strengths (it is simple) and weaknesses (it only works for nested usages).
@@ -73,14 +76,5 @@ argument is declared as
 , it is
 really the address of a void pointer.  See the rationale in the
 standard for more details.
-.SH SYNOPSIS
-.nf
-#include "mpi.h"
-int MPI_Buffer_detach( bufferptr, size )
-void *bufferptr;
-int  *size;
-
-.fi
-
 .SH LOCATION
- buffree.c
+buffree.c

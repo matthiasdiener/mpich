@@ -7,8 +7,6 @@
 ARCH        = @ARCH@
 COMM        = @COMM@
 BOPT        = @BOPT@
-P4_DIR      = @P4_DIR@
-TOOLS_DIR   = @TOOLS_DIR@
 MPIR_HOME   = @MPIR_HOME@
 CC          = @CC@
 F77         = @F77@
@@ -26,20 +24,21 @@ MPI_INCLUDE    = ../../include/mpi.h ../../include/mpi_bc.h \
                  ../../include/mpir.h ../../include/mpi_ad.h \
 		 ../../include/mpisys.h 
 DEVICE_LIB = 
-CFLAGS = @CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPIPROFILE)
-FFLAGS = @FFLAGS@ $(OPTFLAGS)
-LIBS = ../../lib/$(ARCH)/$(COMM)/libmpi.a $(DEVICE_LIB)
-MPI_FOBJECTS = farg.o initfcmn.o
-MPI_COBJECTS = abort.o init.o initutil.o finalize.o initialize.o \
-	errorstring.o \
+CFLAGS = @CFLAGS@ $(OPTFLAGS) @OPTFLAGSC@ $(INCLUDE_DIR) -DMPI_$(ARCH) \
+	$(MPIPROFILE)
+FFLAGS = @FFLAGS@ $(OPTFLAGS) @OPTFLAGSF@
+LIBS = ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $(DEVICE_LIB)
+MPI_FOBJECTS = farg.o initfcmn.o initfdte.o
+MPI_COBJECTS = abort.o debugutil.o init.o initutil.o finalize.o initialize.o \
+	errorstring.o initdte.o \
 	getpname.o errcreate.o errset.o errget.o errfree.o errclass.o \
-	wtime.o wtick.o 
-MPI_FSOURCES = farg.f initfcmn.f
-MPI_CSOURCES = abort.c init.c initutil.c \
-	finalize.c initialize.c errorstring.c \
+	wtime.o wtick.o errmsg.o
+MPI_FSOURCES = farg.f initfcmn.f initfdte.f
+MPI_CSOURCES = abort.c debugutil.c init.c initutil.c \
+	finalize.c initialize.c errorstring.c initdte.c \
 	getpname.c errcreate.c errset.c errget.c errfree.c errclass.c \
-	wtime.c wtick.c
-MPI_TSOURCES = abort.c finalize.c errclass.c 
+	wtime.c wtick.c errmsg.c
+MPI_TSOURCES = errclass.c 
 MPI_WSOURCES = abortf.c finalizef.c errclassf.c
 MPI_WOBJECTS = initializef.o abortf.o initf.o finalizef.o errorstringf.o \
 	getpnamef.o errcreatef.o errsetf.o errgetf.o errfreef.o errclassf.o \
@@ -48,21 +47,21 @@ MPI_WOBJECTS = initializef.o abortf.o initf.o finalizef.o errorstringf.o \
 MPI_SOURCES = $(MPI_CSOURCES) $(MPI_WSOURCES)
 MPI_OBJECTS = $(MPI_COBJECTS) $(MPI_WOBJECTS)
 
-default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
+default: ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
 
-profile: ../../lib/$(ARCH)/$(COMM)/libpmpi.a
+profile: ../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a
 
 wrapperlib: $(MPI_WOBJECTS)
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libfmpi.a $?	
+	$(AR) ../../lib/$(ARCH)/$(COMM)/libf@MPILIBNAME@.a $?	
 
 # default_all is the same as default, but without the RANLIB.  This
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
 default_all: $(MPI_OBJECTS) @MPI_FOBJECTS@ @MPE_MPI_EXT_O@
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $?
+	$(AR) ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $?
 profile_all: $(MPI_OBJECTS) @MPI_FOBJECTS@
-	$(AR) ../../lib/$(ARCH)/$(COMM)/libpmpi.a $?
-	
+	$(AR) ../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a $?
+
 $(MPI_OBJECTS) :  $(MPI_INCLUDE)
 $(MPI_FOBJECTS) :  $(MPI_INCLUDE)
 
@@ -74,14 +73,17 @@ manpages:
 	../../util/doctext -mpath ../../man/man3 -ext 3 -I pubinc \
 	   -index ../../www.index -jumpfile ../../jumpfile.list \
 	   -indexdir "http:/www.mcs.anl.gov/mpi/www/www3" -heading MPI \
-		-quotefmt ../../util/fortnotes $(MPI_CSOURCES)
+		-quotefmt ../../util/fortnotes ../../util/errnotes \
+		$(MPI_CSOURCES)
 	../../util/doc2lt $(MPI_CSOURCES) >> ../../rsum.tmp
 
 wwwpages:
-	../../util/doctext -html -mpath ../../www/www3 -ext 3 -I pubinc \
+	../../util/doctext -html -mpath ../../www/www3 -I pubinc \
 	   -index ../../www.index -jumpfile ../../jumpfile.list \
+	   -mapref $(MPIR_HOME)/util/mpis.cit \
 	   -indexdir "http:/www.mcs.anl.gov/mpi/www/www3" -heading MPI \
-		-quotefmt ../../util/fortnotes $(MPI_CSOURCES)
+		-quotefmt ../../util/fortnotes ../../util/errnotes \
+		$(MPI_CSOURCES)
 
 source_names:
 	@echo $(MPI_CSOURCES)
@@ -90,25 +92,43 @@ source_names:
 # This gives -mpiversion the ability to echo the configuration arguments.
 initutil.o: initutil.c
 	$(CC) $(CFLAGS) -c -DCONFIGURE_ARGS_CLEAN='"@CONFIGURE_ARGS_CLEAN@"' \
+	-DMPIRUN_MACHINE='"@DEFAULT_MACHINE@"' \
+	-DMPIRUN_DEVICE='"@DEVICE@"' \
 	initutil.c
-	
+
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c
 .f.o:
 	$(F77) $(FFLAGS) -c $*.f
 
-# GETNAME_DEFS are needed by mpehname.c
-mpehname.o: mpehname.c
-	$(CC) $(CFLAGS) @GETNAME_DEFS@ -c mpehname.c 
+# Always compile this with -g
+# Warning: some systems might not support -g.  We'll deal with that when
+# we have to.  We use the part of CFLAGS that does not include the
+# optimization switches.
+debugutil.o: debugutil.c
+	$(CC) -g @CFLAGS@ $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPIPROFILE) -c $<
 
-../../lib/$(ARCH)/$(COMM)/libmpi.a: \
+# GETNAME_DEFS are needed by mpehname.c; these need mpe includes
+mpehname.o: mpehname.c
+	$(CC) $(CFLAGS) @GETNAME_DEFS@ -c -I../../mpe mpehname.c 
+dbxerr.o: dbxerr.c
+	$(CC) $(CFLAGS) @GETNAME_DEFS@ -c -I../../mpe dbxerr.c 
+# errmsg needs to know about NLS definitions.
+errmsg.o: errmsg.c
+	$(CC) $(CFLAGS) @NLS_DEFS@ -c errmsg.c
+
+../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a: \
 		$(MPI_OBJECTS) @MPI_FOBJECTS@ @MPE_MPI_EXT_O@
 	$(AR) $@ $?
 	$(RANLIB) $@
 
-../../lib/$(ARCH)/$(COMM)/libpmpi.a: $(MPI_OBJECTS) @MPI_FOBJECTS@
+../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a: $(MPI_OBJECTS) @MPI_FOBJECTS@
 	$(AR) $@ $?
 	$(RANLIB) $@
-
+tstmsg:
+	$(CC) $(CFLAGS) -DTEST_MSGS @NSL_DEFS@ -c errmsg.c
+	@CLINKER@ -o errmsg errmsg.o \
+		../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
+	/bin/rm -f errmsg.o
 clean:
-	/bin/rm -f *.o *~ 
+	/bin/rm -f *.o *~ errmsg

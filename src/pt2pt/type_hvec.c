@@ -1,16 +1,19 @@
 /*
- *  $Id: type_hvec.c,v 1.19 1995/12/21 21:36:20 gropp Exp $
+ *  $Id: type_hvec.c,v 1.20 1996/04/11 20:25:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: type_hvec.c,v 1.19 1995/12/21 21:36:20 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "sbcnst2.h"
+#define MPIR_SBalloc MPID_SBalloc
+/* pt2pt for MPIR_Type_dup */
+#include "mpipt2pt.h"
+#else
 #include "mpisys.h"
+#endif
 
 /*@
     MPI_Type_hvector - Creates a vector (strided) datatype with offset in bytes
@@ -26,6 +29,13 @@ Output Parameter:
 . newtype - new datatype (handle) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TYPE
+.N MPI_ERR_COUNT
+.N MPI_ERR_ARG
+.N MPI_ERR_EXHAUSTED
 @*/
 int MPI_Type_hvector( count, blocklen, stride, old_type, newtype )
 int          count;
@@ -58,16 +68,15 @@ MPI_Datatype *newtype;
 	return MPI_Type_contiguous ( count * blocklen, old_type, newtype );
 
   /* Create and fill in the datatype */
-  dteptr = (*newtype) = (MPI_Datatype) MPIR_SBalloc( MPIR_dtes );
-  if (!dteptr) 
-      return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-			 "Out of space in MPI_TYPE_HVECTOR" );
+  MPIR_ALLOC(dteptr,(MPI_Datatype) MPIR_SBalloc( MPIR_dtes ),MPI_COMM_WORLD, 
+	     MPI_ERR_EXHAUSTED, "Out of space in MPI_TYPE_HVECTOR" );
+  *newtype = dteptr;
   MPIR_SET_COOKIE(dteptr,MPIR_DATATYPE_COOKIE)
   dteptr->dte_type    = MPIR_HVECTOR;
-  dteptr->committed   = MPIR_NO;
-  dteptr->basic       = MPIR_FALSE;
-  dteptr->permanent   = MPIR_FALSE;
-  dteptr->is_contig   = MPIR_FALSE;
+  dteptr->committed   = 0;
+  dteptr->basic       = 0;
+  dteptr->permanent   = 0;
+  dteptr->is_contig   = 0;
   dteptr->ref_count   = 1;
   dteptr->align       = old_type->align;
   dteptr->elements    = count * blocklen * old_type->elements;

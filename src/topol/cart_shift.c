@@ -1,11 +1,12 @@
 /*
- *  $Id: cart_shift.c,v 1.16 1995/12/21 22:18:28 gropp Exp $
+ *  $Id: cart_shift.c,v 1.17 1996/04/12 15:52:58 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#include "mpitopo.h"
 
 /*@
 
@@ -26,6 +27,12 @@ The 'direction' argument is in the range '[0,n-1]' for an n-dimensional
 Cartesian mesh.
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TOPOLOGY
+.N MPI_ERR_COMM
+.N MPI_ERR_ARG
 @*/
 int MPI_Cart_shift ( comm, direction, displ, source, dest )
 MPI_Comm  comm;
@@ -34,7 +41,7 @@ int       displ;
 int      *source;
 int      *dest;
 {
-  int i, rank, size, flag;
+  int rank, size, flag;
   int source_position, dest_position, save_position, periodic;
   int mpi_errno = MPI_SUCCESS;
   MPIR_TOPOLOGY *topo;

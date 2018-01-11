@@ -1,15 +1,14 @@
 /*
- *  $Id: attr_getval.c,v 1.16 1995/12/21 22:02:45 gropp Exp $
+ *  $Id: attr_getval.c,v 1.17 1996/04/12 13:40:22 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: attr_getval.c,v 1.16 1995/12/21 22:02:45 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "attr.h"
+#endif
 
 /*@C
 
@@ -37,6 +36,11 @@ Notes for C:
 
     The 'attr_value' in Fortran is a pointer to a Fortran integer, not
     a pointer to a 'void *'.  
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_KEYVAL
 @*/
 int MPI_Attr_get ( comm, keyval, attr_value, flag )
 MPI_Comm comm;
@@ -53,11 +57,11 @@ int *flag;
 		  
   MPIR_HBT_lookup(comm->attr_cache, keyval, &attr);
   if ( attr == (MPIR_HBT_node *)0 ) {
-	(*flag) = MPIR_FALSE;
+	(*flag) = 0;
 	(*(void **)attr_value) = (void *)0; 
   }
   else {
-	(*flag) = MPIR_TRUE;
+	(*flag) = 1;
 	(*(void **)attr_value) = attr->value;
   }
   return(mpi_errno);

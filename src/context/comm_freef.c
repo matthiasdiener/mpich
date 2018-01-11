@@ -2,11 +2,7 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -32,16 +28,17 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_comm_free_ ( comm, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_comm_free_ ANSI_ARGS(( MPI_Comm *, int * ));
+
+void mpi_comm_free_ ( comm, __ierr )
 MPI_Comm *comm;
 int *__ierr;
 {
-MPI_Comm lcomm = (MPI_Comm)MPIR_ToPointer( *(int*)comm );
-*__ierr = MPI_Comm_free( &lcomm );
-*(int*)comm = 0;
+    MPI_Comm lcomm = (MPI_Comm)MPIR_ToPointer( *(int*)comm );
+    *__ierr = MPI_Comm_free( &lcomm );
+    if (!lcomm) {
+	MPIR_RmPointer( *(int*)(comm) );
+	*(int*)comm = 0;
+    }
 }
-
-/* 
-   We actually need to remove the pointer from the mapping if the ref
-   count is zero... 
- */

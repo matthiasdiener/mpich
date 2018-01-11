@@ -1,5 +1,5 @@
 /*
- *  $Id: dims_create.c,v 1.11 1996/01/03 19:06:24 gropp Exp $
+ *  $Id: dims_create.c,v 1.14 1996/06/07 15:08:52 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -10,15 +10,24 @@
  * Date:     1/19/94
 */
 
-#include "mpiimpl.h"
-#include "mpisys.h"
 #include <stdio.h>
 #include <math.h>
+#include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "mpimem.h"
+#else
+#include "mpisys.h"
+#endif
 
 /* Guess at the 1/bth root of a */
 /*#define MPIR_guess(a,b)  ((a)/(b))*/
 /*#define MPIR_guess(a,b)  pow((a),(1.0/(b))*/
 #define MPIR_guess(a,b)  MPIR_root((a),(b))
+
+/* Prototype to suppress warnings about missing prototypes */
+int MPIR_root ANSI_ARGS((double, double));
+static int getFirstBit ANSI_ARGS(( int, int * ));
+static int factorAndCombine ANSI_ARGS(( int, int, int * ));
  
 /* Simple function to make a guess at the root of a number */
 #define ROOT_ITERS 10
@@ -57,7 +66,7 @@ double x_in, n_in ;
   }
  
   if (guess > 0)
-    return (guess) ;
+    return (int)(guess) ;
   else
     return (1);
 }
@@ -206,7 +215,7 @@ int *factors;
     BranchInfo *searchTree, bestBranch;
     int *primeFactors;
     int status, i, j, maxNumFactors, t, k, n, q, r, testing;
-    int numPrimeFactors, newFactor, factorCount, insertIndex;
+    int numPrimeFactors, factorCount, insertIndex;
     int numPrimeLeft;
     double nthRoot, distance, minDistance;
 
@@ -254,7 +263,7 @@ int *factors;
     primeFactors = (int *)CALLOC(maxNumFactors, sizeof(int));
     if (primeFactors == ((int *)NULL))
         {
-        status = MPI_SUCCESS;
+        status = MPI_ERR_EXHAUSTED;
         return(status);
         }
 
@@ -712,7 +721,6 @@ int *dims;
 {
   int i, *newDims, newNdims;
   int testProduct, freeNodes, stat, ii;
-  int mpi_errno = MPI_SUCCESS;
 
   /* Check for wacky input values. */
   if ((nnodes <= 0) || (ndims <= 0))

@@ -1,18 +1,38 @@
 /*
- *  $Id: topo_util.c,v 1.5 1996/01/08 19:49:53 gropp Exp $
+ *  $Id: topo_util.c,v 1.6 1996/04/12 15:56:50 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#include "mpitopo.h"
+#ifdef MPI_ADI2
+#include "sbcnst2.h"
+#define MPIR_SBinit MPID_SBinit
+#define MPIR_SBfree MPID_SBfree
+#define MPIR_SBalloc MPID_SBalloc
+#define MPIR_SBdestroy MPID_SBdestroy
+#else
 #include "mpisys.h"
-
+#endif
 /* 
    Keyval for topologies.
  */
 int MPIR_TOPOLOGY_KEYVAL = MPI_KEYVAL_INVALID;
 
+/* 
+   Topology implementation uses small blocks; for efficiency, these are
+   managed with the small-block allocator
+ */
+void MPIR_Topology_Init()
+{
+    MPIR_topo_els   = MPIR_SBinit( sizeof( MPIR_TOPOLOGY ),  4,  4);
+}
+void MPIR_Topology_Free()
+{
+    MPIR_SBdestroy( MPIR_topo_els );
+}
 /*
   MPIR_Topology_copy_fn - copies topology information.
  */
@@ -26,6 +46,9 @@ int      *flag;
   MPIR_TOPOLOGY *old_topo = (MPIR_TOPOLOGY *) attr_in;
   MPIR_TOPOLOGY *new_topo = (MPIR_TOPOLOGY *) MPIR_SBalloc ( MPIR_topo_els );
 
+  if (!new_topo)
+      return MPI_ERR_EXHAUSTED;
+
   /* Copy topology info */
   new_topo->type = old_topo->type;
   if (old_topo->type == MPI_CART) {
@@ -34,6 +57,7 @@ int      *flag;
     new_topo->cart.nnodes        = old_topo->cart.nnodes; 
     new_topo->cart.ndims = ndims = old_topo->cart.ndims;
     new_topo->cart.dims          = (int *)MALLOC( sizeof(int) * 3 * ndims );
+    if (!new_topo) return MPI_ERR_EXHAUSTED;
     new_topo->cart.periods       = new_topo->cart.dims + ndims;
     new_topo->cart.position      = new_topo->cart.periods + ndims;
     for ( i=0; i<ndims; i++ ) {
@@ -52,6 +76,7 @@ int      *flag;
     index = old_topo->graph.index;
     new_topo->graph.index         = 
       (int *)MALLOC(sizeof(int) * (nnodes + index[nnodes-1]) );
+    if (!new_topo->graph.index) return MPI_ERR_EXHAUSTED;
     new_topo->graph.edges         = new_topo->graph.index + nnodes;
     for ( i=0; i<nnodes; i++ )
       new_topo->graph.index[i]    = old_topo->graph.index[i];

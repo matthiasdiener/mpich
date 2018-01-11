@@ -30,6 +30,7 @@ int sscanf( char*, const char *, ... );
 #include "events.h"
 #include "states.h"
 #include "msgs.h"
+#include "procs.h"
 #include "log.h"
 #include "picl.h"
 
@@ -739,6 +740,7 @@ piclData *picl;
    Event_DataInit( picl->log->events, np );
    State_DataInit( picl->log->states, np );
    Msg_DataInit( picl->log->msgs, np );
+   Process_DataInit( picl->log->processes, np );
 
       /* allocate storage area for process mode info */
    picl->mode = (procMode*)malloc( sizeof(procMode) * np );

@@ -8,20 +8,13 @@ int main(argc, argv)
 int argc;
 char **argv;
 {
-int    err = 0;
-int host, tagub, hasio;
-void *v;
-int  flag;
-int  vval;
-int  rank, size;
+    MPI_Init( &argc, &argv );
 
-MPI_Init( &argc, &argv );
+    Test_errorhandling();
 
-Test_errorhandling();
-
-Test_Waitforall( );
-MPI_Finalize();
-return 0;
+    Test_Waitforall( );
+    MPI_Finalize();
+    return 0;
 }
 
 static int a_errors, b_errors;

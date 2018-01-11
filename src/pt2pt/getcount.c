@@ -1,13 +1,9 @@
 /*
- *  $Id: getcount.c,v 1.11 1995/12/21 21:12:12 gropp Exp $
+ *  $Id: getcount.c,v 1.12 1996/04/11 20:18:35 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
-
-#ifndef lint
-static char vcid[] = "$Id: getcount.c,v 1.11 1995/12/21 21:12:12 gropp Exp $";
-#endif /* lint */
 
 #include "mpiimpl.h"
 
@@ -23,9 +19,15 @@ Output Parameter:
   
 Notes:
 If the size of the datatype is zero, this routine will return a count of
-zero.  
+zero.  If the amount of data in 'status' is not an exact multiple of the 
+size of 'datatype' (so that 'count' would not be integral), a 'count' of
+'MPI_UNDEFINED' is returned instead.
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TYPE
 @*/
 int MPI_Get_count( status, datatype, count )
 MPI_Status   *status;

@@ -23,8 +23,8 @@ static int src  = 0;
 static int dest = 1;
 
 /* Which tests to perform (not yet implemented) */
-static int Do_Buffer = 1;
-static int Do_Standard = 1;
+/* static int Do_Buffer = 1; */
+/* static int Do_Standard = 1; */
 
 void Generate_Data(buffer, buff_size)
 double *buffer;

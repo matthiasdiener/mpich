@@ -83,7 +83,7 @@ else
     echo "$defport $serverloc" | awk '{ if (NR==1) { PORT=$1;SERV=$2;} else {
 	if (substr($1,1,1) != "#" && machine[$1]=="") {
 	    machine[$1]=PORT;
-	    printf( "#RSH_COMMAND# %s %s -d -p %s &\n", $1, SERV, PORT );
+	    printf( "#RSH_COMMAND# %s %s -o -p %s &\n", $1, SERV, PORT );
 	    printf( "echo starting %s on %s with %s\n", SERV, $1, PORT );
 	}}}' - $filename | $do_script
 fi

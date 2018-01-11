@@ -1,15 +1,9 @@
 /*
- *  $Id: global_ops.c,v 1.33 1995/12/21 22:17:08 gropp Exp $
+ *  $Id: global_ops.c,v 1.36 1996/06/07 15:08:09 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
-
-
-#ifndef lint
-static char vcid[] = "$Id: global_ops.c,v 1.33 1995/12/21 22:17:08 gropp Exp $";
-#endif /* lint */
-
 
 /* 
 
@@ -19,6 +13,7 @@ Global Compute Operations
 
 #include "mpiimpl.h"
 #include "coll.h"
+#include "mpifort.h"
 
 typedef struct { 
   float re;
@@ -76,6 +71,19 @@ MPI_Datatype *type;
   case MPIR_USHORT: {
     unsigned short *a = (unsigned short *)inoutvec; 
     unsigned short *b = (unsigned short *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_MAX(a[i],b[i]);
+    break;
+  }
+  case MPIR_CHAR: {
+    char *a = (char *)inoutvec; char *b = (char *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_MAX(a[i],b[i]);
+    break;
+  }
+  case MPIR_UCHAR: {
+    unsigned char *a = (unsigned char *)inoutvec; 
+    unsigned char *b = (unsigned char *)invec;
     for ( i=0; i<len; i++ )
       a[i] = MPIR_MAX(a[i],b[i]);
     break;
@@ -158,6 +166,19 @@ MPI_Datatype *type;
       a[i] = MPIR_MIN(a[i],b[i]);
     break;
   }
+  case MPIR_CHAR: {
+    char *a = (char *)inoutvec; char *b = (char *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_MIN(a[i],b[i]);
+    break;
+  }
+  case MPIR_UCHAR: {
+    unsigned char *a = (unsigned char *)inoutvec; 
+    unsigned char *b = (unsigned char *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_MIN(a[i],b[i]);
+    break;
+  }
   case MPIR_FLOAT: {
     float *a = (float *)inoutvec; float *b = (float *)invec;
     for ( i=0; i<len; i++ )
@@ -233,6 +254,19 @@ MPI_Datatype *type;
   case MPIR_USHORT: {
     unsigned short *a = (unsigned short *)inoutvec; 
     unsigned short *b = (unsigned short *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LSUM(a[i],b[i]);
+    break;
+  }
+  case MPIR_CHAR: {
+    char *a = (char *)inoutvec; char *b = (char *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LSUM(a[i],b[i]);
+    break;
+  }
+  case MPIR_UCHAR: {
+    unsigned char *a = (unsigned char *)inoutvec; 
+    unsigned char *b = (unsigned char *)invec;
     for ( i=0; i<len; i++ )
       a[i] = MPIR_LSUM(a[i],b[i]);
     break;
@@ -328,6 +362,19 @@ MPI_Datatype *type;
   case MPIR_USHORT: {
     unsigned short *a = (unsigned short *)inoutvec; 
     unsigned short *b = (unsigned short *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LPROD(a[i],b[i]);
+    break;
+  }
+  case MPIR_CHAR: {
+    char *a = (char *)inoutvec; char *b = (char *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LPROD(a[i],b[i]);
+    break;
+  }
+  case MPIR_UCHAR: {
+    unsigned char *a = (unsigned char *)inoutvec; 
+    unsigned char *b = (unsigned char *)invec;
     for ( i=0; i<len; i++ )
       a[i] = MPIR_LPROD(a[i],b[i]);
     break;
@@ -433,6 +480,19 @@ MPI_Datatype *type;
       a[i] = MPIR_LLAND(a[i],b[i]);
     break;
   }
+  case MPIR_CHAR: {
+    char *a = (char *)inoutvec; char *b = (char *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LLAND(a[i],b[i]);
+    break;
+  }
+  case MPIR_UCHAR: {
+    unsigned char *a = (unsigned char *)inoutvec; 
+    unsigned char *b = (unsigned char *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LLAND(a[i],b[i]);
+    break;
+  }
   case MPIR_FLOAT: {
     float *a = (float *)inoutvec; float *b = (float *)invec;
     for ( i=0; i<len; i++ )
@@ -530,6 +590,19 @@ MPI_Datatype *type;
       a[i] = MPIR_LBAND(a[i],b[i]);
     break;
   }
+  case MPIR_CHAR: {
+    char *a = (char *)inoutvec; char *b = (char *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LBAND(a[i],b[i]);
+    break;
+  }
+  case MPIR_UCHAR: {
+    unsigned char *a = (unsigned char *)inoutvec; 
+    unsigned char *b = (unsigned char *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LBAND(a[i],b[i]);
+    break;
+  }
   case MPIR_BYTE: {
     unsigned char *a = (unsigned char *)inoutvec; 
     unsigned char *b = (unsigned char *)invec;
@@ -593,6 +666,19 @@ MPI_Datatype *type;
   case MPIR_USHORT: {
     unsigned short *a = (unsigned short *)inoutvec; 
     unsigned short *b = (unsigned short *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LLOR(a[i],b[i]);
+    break;
+  }
+  case MPIR_CHAR: {
+    char *a = (char *)inoutvec; char *b = (char *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LLOR(a[i],b[i]);
+    break;
+  }
+  case MPIR_UCHAR: {
+    unsigned char *a = (unsigned char *)inoutvec; 
+    unsigned char *b = (unsigned char *)invec;
     for ( i=0; i<len; i++ )
       a[i] = MPIR_LLOR(a[i],b[i]);
     break;
@@ -693,6 +779,19 @@ MPI_Datatype *type;
       a[i] = MPIR_LBOR(a[i],b[i]);
     break;
   }
+  case MPIR_CHAR: {
+    char *a = (char *)inoutvec; char *b = (char *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LBOR(a[i],b[i]);
+    break;
+  }
+  case MPIR_UCHAR: {
+    unsigned char *a = (unsigned char *)inoutvec; 
+    unsigned char *b = (unsigned char *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LBOR(a[i],b[i]);
+    break;
+  }
   case MPIR_BYTE: {
     unsigned char *a = (unsigned char *)inoutvec; 
     unsigned char *b = (unsigned char *)invec;
@@ -756,6 +855,19 @@ MPI_Datatype *type;
   case MPIR_USHORT: {
     unsigned short *a = (unsigned short *)inoutvec; 
     unsigned short *b = (unsigned short *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LLXOR(a[i],b[i]);
+    break;
+  }
+  case MPIR_CHAR: {
+    char *a = (char *)inoutvec; char *b = (char *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LLXOR(a[i],b[i]);
+    break;
+  }
+  case MPIR_UCHAR: {
+    unsigned char *a = (unsigned char *)inoutvec; 
+    unsigned char *b = (unsigned char *)invec;
     for ( i=0; i<len; i++ )
       a[i] = MPIR_LLXOR(a[i],b[i]);
     break;
@@ -858,6 +970,19 @@ MPI_Datatype *type;
       a[i] = MPIR_LBXOR(a[i],b[i]);
     break;
   }
+  case MPIR_CHAR: {
+    char *a = (char *)inoutvec; char *b = (char *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LBXOR(a[i],b[i]);
+    break;
+  }
+  case MPIR_UCHAR: {
+    unsigned char *a = (unsigned char *)inoutvec; 
+    unsigned char *b = (unsigned char *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LBXOR(a[i],b[i]);
+    break;
+  }
   case MPIR_BYTE: {
     unsigned char *a = (unsigned char *)inoutvec; 
     unsigned char *b = (unsigned char *)invec;
@@ -917,7 +1042,7 @@ MPI_Datatype *type;
   MPI_Datatype dtype = *type;
   MPIR_GET_REAL_DATATYPE(dtype)
 
-  if ((*type)->dte_type == MPIR_STRUCT) {
+  if ((dtype)->dte_type == MPIR_STRUCT) {
     /* Perform the operation based on the type of the first type in */
     /* struct */
     switch ((dtype)->old_types[0]->dte_type) {
@@ -1044,6 +1169,18 @@ MPI_Datatype *type;
     }
     case MPIR_SHORT: {
       short *a = (short *)inoutvec; short *b = (short *)invec;
+      for ( i=0; i<len; i+=2 ) {
+        if (a[i] == b[i])
+          a[i+1] = MPIR_MIN(a[i+1],b[i+1]);
+        else if (a[i] < b[i]) {
+          a[i]   = b[i];
+          a[i+1] = b[i+1];
+        }
+      }
+      break;
+    }
+    case MPIR_CHAR: {
+      char *a = (char *)inoutvec; char *b = (char *)invec;
       for ( i=0; i<len; i+=2 ) {
         if (a[i] == b[i])
           a[i+1] = MPIR_MIN(a[i+1],b[i+1]);
@@ -1240,6 +1377,18 @@ MPI_Datatype *type;
     }
     case MPIR_SHORT: {
       short *a = (short *)inoutvec; short *b = (short *)invec;
+      for ( i=0; i<len; i+=2 ) {
+        if (a[i] == b[i])
+          a[i+1] = MPIR_MIN(a[i+1],b[i+1]);
+        else if (a[i] > b[i]) {
+          a[i]   = b[i];
+          a[i+1] = b[i+1];
+        }
+      }
+      break;
+    }
+    case MPIR_CHAR: {
+      char *a = (char *)inoutvec; char *b = (char *)invec;
       for ( i=0; i<len; i+=2 ) {
         if (a[i] == b[i])
           a[i+1] = MPIR_MIN(a[i+1],b[i+1]);

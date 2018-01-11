@@ -1,6 +1,7 @@
 
 #include <mpi++.h>
 #include <iostream.h>
+#include <stdio.h>
 
 extern void   srand48(long);
 extern double drand48(void);

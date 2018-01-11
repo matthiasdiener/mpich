@@ -1,12 +1,8 @@
 /* comm_rank.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -32,11 +28,14 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_comm_rank_ ( comm, rank, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_comm_rank_ ANSI_ARGS(( MPI_Comm, int *, int * ));
+
+void mpi_comm_rank_ ( comm, rank, __ierr )
 MPI_Comm  comm;
 int      *rank;
 int *__ierr;
 {
-*__ierr = MPI_Comm_rank(
+    *__ierr = MPI_Comm_rank(
 	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),rank);
 }

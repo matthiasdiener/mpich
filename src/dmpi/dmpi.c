@@ -1,22 +1,22 @@
 /*
- *  $Id: dmpi.c,v 1.33 1996/01/03 19:04:40 gropp Exp $
+ *  $Id: dmpi.c,v 1.36 1996/07/17 18:04:13 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: dmpi.c,v 1.33 1996/01/03 19:04:40 gropp Exp $";
-#endif /* lint */
-
 /*  dmpi.c - routines in mpir that are called by the device */
 
 #include "dmpi.h"
 #include "mpiimpl.h"
+#ifndef MPI_ADI2
 #include "mpisys.h"
+#endif
 
 #define MPIR_MIN(a,b) (a) < (b) ? (a) : (b)
 #define DEVICE_PREFERS_MEMCPY 1
+
+#ifndef MPI_ADI2
 
 /* called by device when a message arrives.  Returns 1 if there is posted
  * receive, 0 otherwise.
@@ -25,7 +25,6 @@ static char vcid[] = "$Id: dmpi.c,v 1.33 1996/01/03 19:04:40 gropp Exp $";
  * posted-receive queues on the device.  If it is operating asynchronously
  * with the user code, the device must provide the necessary locking mechanism.
  */
-
 void DMPI_msg_arrived( src, tag, context_id, dmpi_recv_handle, foundflag )
 int               src, tag, *foundflag;
 MPIR_CONTEXT      context_id;
@@ -50,13 +49,13 @@ MPIR_RHANDLE      **dmpi_recv_handle;
     else
     {
 	/* allocate handle and put in unexpected queue */
-	*dmpi_recv_handle       = 
-	    ( MPIR_RHANDLE * ) MPIR_SBalloc ( MPIR_rhandles );
-	handleptr         	= *dmpi_recv_handle;
+	handleptr = ( MPIR_RHANDLE * ) MPIR_SBalloc ( MPIR_rhandles );
 	if (!handleptr) {
 	    MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
 		        "Could not dynamically allocate internal handle" );
-	    }
+	    MPI_Abort( MPI_COMM_WORLD, 1 );
+	}
+	*dmpi_recv_handle       = handleptr;
 	handleptr->handle_type  = MPIR_RECV;
 	handleptr->source 	= src;
 	handleptr->tag  	= tag;
@@ -68,7 +67,7 @@ MPIR_RHANDLE      **dmpi_recv_handle;
 	
 	MPID_THREAD_DS_LOCK(&MPIR_unexpected_recvs);	
 	MPIR_enqueue( &MPIR_unexpected_recvs, (void * ) *dmpi_recv_handle,
-                      MPIR_QSHANDLE );
+                      MPIR_QRHANDLE );
 	MPID_THREAD_DS_UNLOCK(&MPIR_unexpected_recvs);
 	*foundflag = 0;
     }
@@ -96,6 +95,8 @@ int      dest;
      ourselves), we must use a "sender-side" or "cannonical-form" 
      representations.  Since we don't yet have "sender-side", choose the
      cannonical form, which is XDR.
+
+     This is for ADI-1 only.
    */
   if (dest < 0) {
       if (comm->msgrep != 0) 
@@ -121,9 +122,7 @@ int
 MPIR_Comm_needs_conversion(comm)
 MPI_Comm comm;
 {
-  int i;
-
-  if (comm->msgrep) return 2;
+  if (comm->msgrep) return MPIR_MSGFORM_XDR;
 #ifdef FOO
   for (i = 0; i < comm->local_group->np; i++) {
     if (MPIR_Dest_needs_conversion(comm,comm->local_group->lrank_to_grank[i]))
@@ -213,10 +212,10 @@ if (shandle->datatype->dte_type == MPIR_PACKED) {
 	 non-contiguous cases, we need to allocate space and call
 	 the packing routines.  
        */
-      if (mpi_errno = 
+      if ((mpi_errno = 
 	  MPIR_PackMessage(shandle->bufadd, shandle->count, 
 			   shandle->datatype, shandle->dest, dest_type, 
-			   *request )) {
+			   *request ))) {
 	  MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
 		     "Could not pack message in MPIR_Send_setup" );
 	  }
@@ -304,10 +303,10 @@ MPI_Request *request;
       /* This is OK but not optimal, as this will use MPI_Pack_size
 	 to allocate the buffer; pack_size will use the most
 	 pessimistic value */
-      if (mpi_errno = 
+      if ((mpi_errno = 
 	  MPIR_SetupUnPackMessage( rhandle->bufadd, rhandle->count, 
 				   rhandle->datatype, rhandle->source, 
-				   *request )) {
+				   *request ))) {
 	  MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
 	     "Could not setup unpack area for message in MPIR_Receive_setup" );
 	  }
@@ -367,7 +366,7 @@ MPI_Request *request;
 	else
 	    rhandle->bufpos = 0;
 	rhandle->dev_rhandle.start = rhandle->bufpos;
-	/* printf( "Receive buffer size is %d for count of %d\n", 
+	/* PRINTF( "Receive buffer size is %d for count of %d\n", 
 	         rhandle->dev_rhandle.bytes_as_contig, rhandle->count ); */
     } else 
 #endif
@@ -375,3 +374,4 @@ MPI_Request *request;
 
   return mpi_errno;
 }
+#endif

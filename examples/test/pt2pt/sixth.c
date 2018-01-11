@@ -4,6 +4,7 @@
 #else
 extern char *malloc();
 #endif
+#include "test.h"
 
 typedef struct _table {
   int references;
@@ -63,7 +64,7 @@ int main ( argc, argv )
 int argc;
 char **argv;
 {
-  int i, rank, size;
+  int rank, size;
   Table *table;
   MPI_Comm new_comm;
   int table_key;
@@ -106,4 +107,5 @@ char **argv;
   MPI_Keyval_free ( &table_key );
   Test_Waitforall( );
   MPI_Finalize();
+  return 0;
 }

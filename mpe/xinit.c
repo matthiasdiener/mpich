@@ -1,7 +1,3 @@
-#ifndef lint
-static char vcid[] = "$Id: xinit.c,v 1.7 1995/12/21 22:21:16 gropp Exp $";
-#endif
-
 #include <stdio.h>
 #include "mpetools.h"
 #include "basex11.h"
@@ -19,6 +15,10 @@ static char vcid[] = "$Id: xinit.c,v 1.7 1995/12/21 22:21:16 gropp Exp $";
  */
 
 
+static void ArgSqueeze ANSI_ARGS(( int *, char ** ));
+static int ArgFindName ANSI_ARGS(( int, char **, char * ));
+static int ArgGetString ANSI_ARGS(( int *, char **, int, char *, 
+				    char *, int ));
 /*
    ArgSqueeze - Remove all null arguments from an arg vector; 
    update the number of arguments.
@@ -27,19 +27,19 @@ static void ArgSqueeze( Argc, argv )
 int  *Argc;
 char **argv;
 {
-int argc, i, j;
+    int argc, i, j;
     
 /* Compress out the eliminated args */
-argc = *Argc;
-j    = 0;
-i    = 0;
-while (j < argc) {
-    while (argv[j] == 0 && j < argc) j++;
-    if (j < argc) argv[i++] = argv[j++];
+    argc = *Argc;
+    j    = 0;
+    i    = 0;
+    while (j < argc) {
+	while (argv[j] == 0 && j < argc) j++;
+	if (j < argc) argv[i++] = argv[j++];
     }
 /* Back off the last value if it is null */
-if (!argv[i-1]) i--;
-*Argc = i;
+    if (!argv[i-1]) i--;
+    *Argc = i;
 }
 
 
@@ -59,12 +59,12 @@ int  argc;
 char **argv;
 char *name;
 {
-int  i;
+    int  i;
 
-for (i=0; i<argc; i++) {
-    if (strcmp( argv[i], name ) == 0) return i;
+    for (i=0; i<argc; i++) {
+	if (strcmp( argv[i], name ) == 0) return i;
     }
-return -1;
+    return -1;
 }
 
 
@@ -85,23 +85,23 @@ static int ArgGetString( Argc, argv, rflag, name, val, vallen )
 int  *Argc, rflag, vallen;
 char **argv, *name, *val;
 {
-int idx;
+    int idx;
 
-idx = ArgFindName( *Argc, argv, name );
-if (idx < 0) return 0;
+    idx = ArgFindName( *Argc, argv, name );
+    if (idx < 0) return 0;
 
-if (idx + 1 >= *Argc) {
-    SETERRC(1,"Missing value for argument" );
-    return 0;
+    if (idx + 1 >= *Argc) {
+	SETERRC(1,"Missing value for argument" );
+	return 0;
     }
 
-strncpy( val, argv[idx+1], vallen );
-if (rflag) {
-    argv[idx]   = 0;
-    argv[idx+1] = 0;
-    ArgSqueeze( Argc, argv );
+    strncpy( val, argv[idx+1], vallen );
+    if (rflag) {
+	argv[idx]   = 0;
+	argv[idx+1] = 0;
+	ArgSqueeze( Argc, argv );
     }
-return 1;
+    return 1;
 }
 
 
@@ -111,28 +111,28 @@ return 1;
   */
 XBWindow *XBWinCreate()
 {
-XBWindow *w;
+    XBWindow *w;
 
-w = NEW(XBWindow);
-CHKPTRN(w);
+    w = NEW(XBWindow);
+    CHKPTRN(w);
 
 /* Initialize the structure */
-w->disp      = 0;
-w->screen    = 0;
-w->win       = 0;
-w->gc.set    = 0;
-w->vis       = 0;
-w->numcolors = 0;
-w->maxcolors = 0;
-w->cmap      = 0;
-w->foreground= 0;
-w->background= 0;
-w->x         = 0;
-w->y         = 0;
-w->w         = 0;
-w->h         = 0;
-w->drw       = 0;
-return w;
+    w->disp      = 0;
+    w->screen    = 0;
+    w->win       = 0;
+    w->gc.set    = 0;
+    w->vis       = 0;
+    w->numcolors = 0;
+    w->maxcolors = 0;
+    w->cmap      = 0;
+    w->foreground= 0;
+    w->background= 0;
+    w->x         = 0;
+    w->y         = 0;
+    w->w         = 0;
+    w->h         = 0;
+    w->drw       = 0;
+    return w;
 }
 
 /* 
@@ -145,7 +145,8 @@ void XBWinDestroy( w )
 XBWindow *w;
 {
 /* Should try to recover X resources ... */
-FREE( w );
+/* Needs to close window ! */
+    FREE( w );
 }
 
 /* Thanks to Hubertus Franke */
@@ -161,26 +162,26 @@ int XBOpenDisplay( XBWin, display_name )
 XBWindow *XBWin;
 char     *display_name;
 {
-int i;
-if (display_name && display_name[0] == 0)
-    display_name = 0;
+    int i;
+    if (display_name && display_name[0] == 0)
+	display_name = 0;
 
-for (i=0; i<MAX_TRY; i++) {
-    XBWin->disp = XOpenDisplay( display_name );
-    if (!XBWin->disp) {
-	if (i < MAX_TRY) { sleep(1); continue; }
+    for (i=0; i<MAX_TRY; i++) {
+	XBWin->disp = XOpenDisplay( display_name );
+	if (!XBWin->disp) {
+	    if (i < MAX_TRY) { sleep(1); continue; }
 	}
-    else 
-	break;
+	else 
+	    break;
     }
-if (!XBWin->disp) 
-    return ERR_CAN_NOT_OPEN_DISPLAY;
+    if (!XBWin->disp) 
+	return ERR_CAN_NOT_OPEN_DISPLAY;
 
 /* Set the default screen */
-XBWin->screen = DefaultScreen( XBWin->disp );
+    XBWin->screen = DefaultScreen( XBWin->disp );
 
 /* ? should this set defaults? */
-return ERR_NONE;
+    return ERR_NONE;
 }
 
 /*
@@ -240,7 +241,7 @@ return ERR_NONE;
 /* 
    XBSetGC - set the GC structure in the base window
    */
-XBSetGC( XBWin, fg )
+int XBSetGC( XBWin, fg )
 XBWindow *XBWin;
 PixVal   fg;
 {
@@ -378,7 +379,8 @@ XMapWindow( XBWin->disp, XBWin->win );
 
 /* some window systems are cruel and interfere with the placement of
    windows.  We wait here for the window to be created or to die */
-if (XB_wait_map( XBWin, (void (*)())0 )) {
+if (XB_wait_map( XBWin, 
+		 (void (*)ANSI_ARGS(( XBWindow *, int, int, int, int )))0 )) {
     XBWin->win    = (Window)0;
     return 0;
     }
@@ -422,19 +424,19 @@ int  *Argc, flag;
 char **argv;
 int  *px, *py, *pw, *ph;
 {
-char         val[128];
-int          vallen;
-int          st, xx, yy;
-unsigned int ww, hh;
+    char         val[128];
+    int          vallen;
+    int          st, xx, yy;
+    unsigned int ww, hh;
 
-vallen = 128;
-if (ArgGetString( Argc, argv, flag, "-geometry", val, vallen )) {
-    /* value is of form wxh+x+y */
-    st  = XParseGeometry( val, &xx, &yy, &ww, &hh );
-    if (st & XValue)        *px = xx;
-    if (st & YValue)        *py = yy;
-    if (st & WidthValue)    *pw = (int)ww;
-    if (st & HeightValue)   *ph = (int)hh;
+    vallen = 128;
+    if (ArgGetString( Argc, argv, flag, "-geometry", val, vallen )) {
+	/* value is of form wxh+x+y */
+	st  = XParseGeometry( val, &xx, &yy, &ww, &hh );
+	if (st & XValue)        *px = xx;
+	if (st & YValue)        *py = yy;
+	if (st & WidthValue)    *pw = (int)ww;
+	if (st & HeightValue)   *ph = (int)hh;
     }
 }
 
@@ -460,7 +462,7 @@ int  *Argc, flag;
 char **argv, *dname;
 int  dlen;
 {
-ArgGetString( Argc, argv, flag, "-display", dname, dlen );
+    ArgGetString( Argc, argv, flag, "-display", dname, dlen );
 }
 
 
@@ -469,25 +471,28 @@ XBWindow *mywindow;
 char     *host, *name;
 int      x, y, nx, ny, nc;
 {
-if (XBOpenDisplay( mywindow, host )) {
-    fprintf( stderr, "Could not open display\n" );
-    return 1;
+    if (XBOpenDisplay( mywindow, host )) {
+	fprintf( stderr, "Could not open display\n" );
+	return 1;
     }
-if (XBSetVisual( mywindow, 1, (Colormap)0, nc )) {
-    fprintf( stderr, "Could not set visual to default\n" );
-    return 1;
+    if (XBSetVisual( mywindow, 1, (Colormap)0, nc )) {
+	fprintf( stderr, "Could not set visual to default\n" );
+	return 1;
     }
-if (XBOpenWindow( mywindow )) {
-    fprintf( stderr, "Could not open the window\n" );
-    return 1;
+    if (XBOpenWindow( mywindow )) {
+	fprintf( stderr, "Could not open the window\n" );
+	return 1;
     }
-if (XBDisplayWindow( mywindow, name, x, y, nx, ny, (PixVal)0 )) {
-    fprintf( stderr, "Could not display window\n" );
-    return 1;
+/* Use cmapping[0] for the background */
+    if (XBDisplayWindow( mywindow, name, x, y, nx, ny, 
+			 mywindow->cmapping[0])) {
+	fprintf( stderr, "Could not display window\n" );
+	return 1;
     }
-XBSetGC( mywindow, mywindow->cmapping[1] );
-XBClearWindow(mywindow,0,0,mywindow->w,mywindow->h);
-return 0;
+/* Set the foreground */
+    XBSetGC( mywindow, mywindow->cmapping[1] );
+    XBClearWindow(mywindow,0,0,mywindow->w,mywindow->h);
+    return 0;
 }
 
 /* 
@@ -516,8 +521,8 @@ char     *host, *name;
 int      x, y, nx, ny;
 {
 /* Just to be careful, clear mywindow */
-MEMSET( mywindow, 0, sizeof(XBWindow) );
-return XBiQuickWindow( mywindow, host, name, x, y, nx, ny, 0 );
+    MEMSET( mywindow, 0, sizeof(XBWindow) );
+    return XBiQuickWindow( mywindow, host, name, x, y, nx, ny, 0 );
 }
 
 /* 
@@ -528,28 +533,28 @@ XBWindow *mywindow;
 char     *host;
 Window   win;
 {
-Window       root;
-int          d;
-unsigned int ud;
+    Window       root;
+    int          d;
+    unsigned int ud;
 
-if (XBOpenDisplay( mywindow, host )) {
-    fprintf( stderr, "Could not open display\n" );
-    return 1;
+    if (XBOpenDisplay( mywindow, host )) {
+	fprintf( stderr, "Could not open display\n" );
+	return 1;
     }
-if (XBSetVisual( mywindow, 1, (Colormap)0, 0 )) {
-    fprintf( stderr, "Could not set visual to default\n" );
-    return 1;
+    if (XBSetVisual( mywindow, 1, (Colormap)0, 0 )) {
+	fprintf( stderr, "Could not set visual to default\n" );
+	return 1;
     }
 
-mywindow->win = win;
-XGetGeometry( mywindow->disp, mywindow->win, &root, 
-              &d, &d, 
-	      (unsigned int *)&mywindow->w, (unsigned int *)&mywindow->h,
-              &ud, &ud );
-mywindow->x = mywindow->y = 0;
+    mywindow->win = win;
+    XGetGeometry( mywindow->disp, mywindow->win, &root, 
+		  &d, &d, 
+		  (unsigned int *)&mywindow->w, (unsigned int *)&mywindow->h,
+		  &ud, &ud );
+    mywindow->x = mywindow->y = 0;
 
-XBSetGC( mywindow, mywindow->cmapping[1] );
-return 0;
+    XBSetGC( mywindow, mywindow->cmapping[1] );
+    return 0;
 }
 
 /* 
@@ -570,11 +575,11 @@ return 0;
 void XBFlush( XBWin )
 XBWindow *XBWin;
 {
-if (XBWin->drw) {
-    XCopyArea( XBWin->disp, XBWin->drw, XBWin->win, XBWin->gc.set, 0, 0, 
-	       XBWin->w, XBWin->h, XBWin->x, XBWin->y );
+    if (XBWin->drw) {
+	XCopyArea( XBWin->disp, XBWin->drw, XBWin->win, XBWin->gc.set, 0, 0, 
+		   XBWin->w, XBWin->h, XBWin->x, XBWin->y );
     }
-XFlush( XBWin->disp );
+    XFlush( XBWin->disp );
 }
 
 /* 
@@ -588,10 +593,10 @@ void XBSetWindowLabel( XBwin, label )
 XBWindow *XBwin;
 char     *label;
 {
-  XTextProperty prop;
-  XGetWMName(XBwin->disp,XBwin->win,&prop);
-  prop.value = (unsigned char *)label; prop.nitems = (long) strlen(label);
-  XSetWMName(XBwin->disp,XBwin->win,&prop);
+    XTextProperty prop;
+    XGetWMName(XBwin->disp,XBwin->win,&prop);
+    prop.value = (unsigned char *)label; prop.nitems = (long) strlen(label);
+    XSetWMName(XBwin->disp,XBwin->win,&prop);
 }
 
 /*
@@ -613,13 +618,13 @@ void XBCaptureWindowToFile( XBWin, fname )
 XBWindow *XBWin;
 char     *fname;
 {
-char cmdbuf[1024];
+    char cmdbuf[1024];
 
 #ifdef HAVE_SYSTEM
-sprintf( cmdbuf, "xwd -id %d > %s\n", XBWin->win, fname );
-system( cmdbuf );
+    sprintf( cmdbuf, "xwd -id %ld > %s\n", (long)XBWin->win, fname );
+    system( cmdbuf );
 #else
-fprintf( stderr, "This machine does not support the system call\n\
+    fprintf( stderr, "This machine does not support the system call\n\
 which is needed by XBCaptureWindowToFile\n" );
 #endif
 }

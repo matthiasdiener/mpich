@@ -1,103 +1,90 @@
-.TH mpicc 1 "1/3/1996" " " "MPI Comman"
+.TH mpicc 1 "7/26/1996" " " "MPI Commands"
 .SH NAME
-mpicc \- Compiles and links MPI programs written in C
-
+mpicc \-  Compiles and links MPI programs written in C 
 .SH DESCRIPTION
 This command can be used to compile and link MPI programs written in
 C.  It provides the options and any special libraries that are
 needed to compile and link MPI programs.
 
 It is important to use this command (or a 
-Makefile
-.I  processed with
-
-mpireconfig
-.I ) particularly when linking programs, as it provides
+.I Makefile
+processed with
+.I mpireconfig
+) particularly when linking programs, as it provides
 the necessary libraries.  It can also simplify the use of the MPE
 profiling libraries, through the use of the 
--mpilog
-.I , 
--mpitrace
-.I ,
+.I -mpilog
+, 
+.I -mpitrace
+,
 and 
--mpianim
-.I  commands.
+.I -mpianim
+commands.
 
 .SH COMMAND LINE ARGUMENTS
 .PD 0
 .TP
-.B -mpilog 
+.B -mpilog    
 - Build version that generate MPE log files
 .PD 1
 .PD 0
 .TP
-.B -mpitrace 
+.B -mpitrace  
 - Build version that generates traces
 .PD 1
 .PD 0
 .TP
-.B -mpianim 
+.B -mpianim   
 - Build version that generates real-time
 animation
 .PD 1
 .PD 0
 .TP
-.B -show 
+.B -show      
 - Show the commands that would be used without
 runnning them
 .PD 1
 .PD 0
 .TP
-.B -help 
+.B -help      
 - Give short help
 .PD 1
 .PD 0
 .TP
-.B -echo 
+.B -echo      
 - Show exactly what this program is doing.
 This option should normally not be used.
 .PD 1
 .PD 0
 .TP
-.B others 
+.B others     
 - are passed to the compiler or linker.  For example, 
--c
-.I 
+.I -c
 causes files to be compiled, 
--g
-.I  selects compilation with debugging
+.I -g
+selects compilation with debugging
 on most systems, and 
--o name
-.I  causes linking with the output
+.I -o name
+causes linking with the output
 executable given the name 
-name
-.I .
+.I name
+.
 .PD 1
 
 .SH EXAMPLES
 To compile a single file 
-foo.c
-.I , use
-.nf
-   mpicc -c foo.c 
-.fi
-
+.I foo.c
+, use
+mpicc -c foo.c 
 
 To link the output and make an executable, use
-.nf
-   mpicc -o foo foo.o
-.fi
-
+mpicc -o foo foo.o
 Combining compilation and linking in a single command
-.nf
-   mpicc -o foo foo.c
-.fi
-
+mpicc -o foo foo.c
 is a convenient way to build simple programs.
 
 .SH SEE ALSO
- mpif77, mpireconfig
+mpif77, mpireconfig
 .br
-
 .SH LOCATION
- util/README
+util/README

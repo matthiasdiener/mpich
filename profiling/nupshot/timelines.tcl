@@ -318,12 +318,12 @@ proc Timeline_SetZoomPt {win x y} {
 
 
 proc Timeline_Copy {win dest_canvas x y} {
-   global timeline color
+   global timeline color procnums
 
    $win.pn copy $dest_canvas $x $y
 
-   set left_gap [GetDefault display_left_gap 40]
-
+   # set left_gap [GetDefault display_left_gap 40]
+   set left_gap $procnums($win.pn,width)
    set canvas $win.c
 
    set left [$canvas canvasx 0]

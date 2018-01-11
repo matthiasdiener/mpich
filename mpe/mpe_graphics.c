@@ -36,8 +36,9 @@ static xpand_list_Int *Int_CreateList();
 #endif
 
 /* Forward refs */
-static void SortPoints();
-static int Int_AddItem();
+static void SortPoints ANSI_ARGS(( MPE_Point *, int, XPoint **, MPE_Color **,
+				   int **, int * ));
+static int Int_AddItem ANSI_ARGS(( xpand_list_Int *, int ));
 
 int MPE_buttonArray[] = {
   Button1,
@@ -114,9 +115,11 @@ int        is_collective;
 
   Window     win;
   MPE_XGraph new;
+#ifdef FOO
   XFontStruct **font_info;
   XGCValues  values;
   char       fontname[128];
+#endif
   int        myid, numprocs, namelen, successful;
   
   myid = 0;		     /* for the single processor version */
@@ -147,7 +150,9 @@ int        is_collective;
 #endif
 
   if (!display) {
+#ifndef MPE_NOMPI
     int str_len;
+#endif
 
 #if DEBUG
     fprintf( stderr, "[%d] Guessing at display name.\n", myid );
@@ -248,13 +253,14 @@ int        is_collective;
 #ifdef FOO
   /* set a default font */
   strcpy(fontname,"fixed");
-  if ((*font_info = XLoadQueryFont( display, fontname )) == NULL)
+  if ((*font_info = XLoadQueryFont( new->xwin->disp, fontname )) == NULL)
   {
       fprintf( stderr, "Could not open %s font\n", fontname );
       exit(1);
   }
   values.font = (*font_info)->fid;
-  XChangeGC( display, new->xwin->gc.set, GCFont, &values );
+  XChangeGC( new->xwin->disp, new->xwin->gc.set, GCFont, &values );
+  fprintf("successfully set default font\n");
 #endif
 
   if (!successful) {
@@ -384,7 +390,7 @@ MPE_Point *points;
 int npoints;
 {
   XPoint *sortedPoints;
-  int *colorRanges, ncolors, colorNum, n, i;
+  int *colorRanges, ncolors, colorNum, n;
   MPE_Color *colorList;
 
   if (handle->Cookie != MPE_G_COOKIE) {
@@ -394,11 +400,12 @@ int npoints;
 
 #if 0
   /* temporary debug */
+  {int i;
   fprintf( stderr, "MPE_Draw_points\n" );
   for (i=0; i<npoints; i++) {
     fprintf( stderr, "%d. (%d %d) %d\n", i, points[i].x, points[i].y,
 	     points[i].c );
-  }
+  }}
 #endif
     
 
@@ -655,10 +662,10 @@ MPE_XGraph handle;
       char cmdbuf[1024];
       if ((handle->capture_num % handle->capture_freq) == 0) {
 	  /* This will need to be configured for the location of xwd ... */
-	  sprintf( cmdbuf, "%sxwd -display %s -id %d > %s%.3d.xwd\n", 
+	  sprintf( cmdbuf, "%sxwd -display %s -id %ld > %s%.3d.xwd\n", 
 		   "/usr/local/X11R5/bin/", 
 		   handle->display_name, 
-		   handle->xwin->win, handle->capture_file, 
+		   (long) handle->xwin->win, handle->capture_file, 
 		   handle->capture_cnt++ );
 	  system( cmdbuf );
 	  }
@@ -840,7 +847,6 @@ MPE_Color color;
   return MPE_Xerror( returnVal, "MPE_FillCircle" );
 }
 
-#ifdef FOO
 /*@
    MPE_Draw_string - 
 
@@ -848,8 +854,8 @@ MPE_Color color;
 . graph - MPE graphics handle
 . x - x-coordinate of the origin of the string
 . y - y-coordinate of the origin of the string
-. string - text string to be drawn
 . color - color of the text
+. string - text string to be drawn
 @*/
 int MPE_Draw_string( graph, x, y, color, string )
 MPE_XGraph graph;
@@ -864,12 +870,17 @@ char *string;
     return MPE_ERR_BAD_ARGS;
   }
 
+  printf("color = %d, string = %s\n",(int) color, string);
+
   XBSetPixVal( graph->xwin, graph->xwin->cmapping[color] );
   returnVal = XDrawString( graph->xwin->disp, XBDrawable(graph->xwin),
-		        graph->xwin->gc.set, string, strlen(string) );
+		        graph->xwin->gc.set, x, y, string, strlen(string) );
+/* from mail
+  returnVal = XDrawString( graph->xwin->disp, graph->xwin->win,
+		        graph->xwin->gc.set, x, y, string, strlen(string) );
+*/
   return MPE_Xerror( returnVal, "MPE_DrawString" );
 }
-#endif
 
 
 /*@
@@ -878,7 +889,8 @@ char *string;
   Input Parameters:
 . graph - MPE graphics handle
 . function - integer specifying one of the following:
-$             'MPE_LOGIC_COPY' - no logic, just copy the pixel
+
+            'MPE_LOGIC_COPY' - no logic, just copy the pixel
 $	     'MPE_LOGIC_XOR' - xor the new pixel with the existing one
 	     and many more... see 'mpe_graphics.h'
 
@@ -923,7 +935,7 @@ int thickness;
 
 
 
-MPE_Draw_dashes( graph, dashlen )
+int MPE_Draw_dashes( graph, dashlen )
 MPE_XGraph graph;
 int dashlen;
 {
@@ -945,7 +957,7 @@ int dashlen;
 }
 
 
-MPE_Dash_offset( graph, offset )
+int MPE_Dash_offset( graph, offset )
 MPE_XGraph graph;
 int offset;
 {
@@ -975,7 +987,6 @@ MPE_XGraph graph;
 int red, green, blue;
 MPE_Color *mapping;
 {
-  int returnVal;
   XColor colordef;
 
   if (graph->Cookie != MPE_G_COOKIE) {
@@ -1001,7 +1012,7 @@ MPE_Color *mapping;
 
 
 
-MPE_Xerror( returnVal, functionName )
+int MPE_Xerror( returnVal, functionName )
 int returnVal;
 char *functionName;
 {
@@ -1029,6 +1040,10 @@ char *functionName;
       fprintf( stderr, "'BadValue' error in call to %s\n", functionName );
       return returnVal;
     default:
+/*
+      fprintf( stderr, "Unknown error %d in call to %s\n",
+	       returnVal, functionName );
+*/
       return returnVal;
     }
   } else {

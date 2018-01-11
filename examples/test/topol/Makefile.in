@@ -1,42 +1,28 @@
 ALL: default
 ##### User configurable options #####
 
-ARCH        = @ARCH@
-COMM        = @COMM@
-BOPT        = @BOPT@
-P4_DIR      = @P4_DIR@
-TOOLS_DIR   = @TOOLS_DIR@
 MPIR_HOME   = @MPIR_HOME@
-CC          = @CC@
-CLINKER     = @CLINKER@
-CCC         = @CPP_COMPILER@
+CC          = @MPICC@
+CLINKER     = @MPICC@
+CCC         = @MPICPLUSPLUS@
 CCLINKER    = $(CCC)
-F77         = @F77@
-FLINKER     = @FLINKER@
-AR          = @AR@
-RANLIB      = @RANLIB@
-PROFILING   = $(PMPILIB)
+F77         = @MPIF77@
+FLINKER     = @MPIF77@
 OPTFLAGS    = @OPTFLAGS@
-LIB_PATH    = @LIB_PATH@
-FLIB_PATH   = @FLIB_PATH@
-LIB_LIST    = @LIB_LIST@
-#
-INCLUDE_DIR = @USER_INCLUDE_PATH@ -I$(MPIR_HOME)/include 
-DEVICE      = @DEVICE@
 
 ### End User configurable options ###
 
 SHELL = /bin/sh
 
-CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
+PROFLIB =
+CFLAGS  = $(OPTFLAGS) 
 CCFLAGS = $(CFLAGS)
-FFLAGS = @FFLAGS@ $(OPTFLAGS)
-MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a 
-MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
-LIBS = $(LIB_PATH) $(LIB_LIST)
-FLIBS = $(FLIB_PATH) $(LIB_LIST)
-LIBSPP = $(MPIPPLIB) $(LIBS)
-EXECS = cart cart2 graphtest
+FFLAGS = $(OPTFLAGS)
+# Use LIBS to add any special libraries for C programs
+LIBS = 
+# Use FLIBS to add any special libraries for Fortran programs
+FLIBS = 
+EXECS = cart cart2 graphtest cartmap cartorder
 
 default: $(EXECS)
 
@@ -51,23 +37,31 @@ all: testing
 
 fortran_tests: cartf twod cart1f cart2f
 
-cart: cart.o test.o $(MPILIB)
+cart: cart.o test.o
 	$(CLINKER) $(OPTFLAGS) -o cart cart.o test.o $(LIBS)
 
-cart2: cart2.o test.o $(MPILIB)
+cartmap: cartmap.o
+	$(CLINKER) $(OPTFLAGS) -o cartmap cartmap.o $(LIBS)
+
+cartorder: cartorder.o test.o
+	$(CLINKER) $(OPTFLAGS) -o cartorder cartorder.o test.o $(LIBS)
+
+cart2: cart2.o test.o
 	$(CLINKER) $(OPTFLAGS) -o cart2 cart2.o test.o $(LIBS)
 
-graphtest: graphtest.o $(MPILIB)
+graphtest: graphtest.o
 	$(CLINKER) $(OPTFLAGS) -o graphtest graphtest.o $(LIBS)
 
-cartf: mpif.h cartf.o $(MPILIB)
+cartf: mpif.h cartf.o
 	$(FLINKER) $(OPTFLAGS) -o cartf cartf.o $(FLIBS)
-cart1f: mpif.h cart1f.o $(MPILIB)
+
+cart1f: mpif.h cart1f.o
 	$(FLINKER) $(OPTFLAGS) -o cart1f cart1f.o $(FLIBS)
-cart2f: mpif.h cart2f.o $(MPILIB)
+
+cart2f: mpif.h cart2f.o
 	$(FLINKER) $(OPTFLAGS) -o cart2f cart2f.o $(FLIBS)
 
-twod: mpif.h twod.o $(MPILIB)
+twod: mpif.h twod.o
 	$(FLINKER) $(OPTFLAGS) -o twod twod.o $(FLIBS)
 
 #

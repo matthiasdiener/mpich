@@ -7,7 +7,11 @@ fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
 fi
-MPIRUN_HOME=$MPIR_HOME/bin
+if [ "#MPIRUN_BIN#" = "#""MPIRUN_BIN""#" ] ; then 
+    MPIRUN_HOME=$MPIR_HOME/bin
+else
+    MPIRUN_HOME=$MPIR_HOME/#MPIRUN_BIN#
+fi
 if [ -z "$argsset" ] ; then
    . $MPIRUN_HOME/mpirun.args
    argsset=1
@@ -30,7 +34,7 @@ if [ -z "$tcppgfile"  ] ; then
     prognamemain=$proginstance
     cnt=1
     listport=`expr 5000 + $$ + $cnt`
-    echo hostname=$HOST progname=$proginstance listport=$listport progargs=\"$cmdLineArgs\" > $tcppgfile
+    echo hostname=$MPI_HOST progname=$proginstance listport=$listport progargs=\"$cmdLineArgs\" > $tcppgfile
     for machine in $machinelist ; do 
 	archval=`echo $archuselist | cut -d' ' -f$cnt`
 	cnt=`expr $cnt + 1`
@@ -71,6 +75,11 @@ run  $cmdLineArgs -p4pg $p4pgfile
 	startpgm="$debugger $progname $commandfile $PWD_TRIAL/PId$$"
 fi
 #
+#
+# Pass to the program that the device is ch_p4
+#
+MPIRUN_DEVICE="ch_tcp"
+export MPIRUN_DEVICE
 if [ $just_testing = 1 ] ; then
   echo ""
   if [ $nolocal = 1 ] ; then

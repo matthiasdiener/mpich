@@ -1,16 +1,11 @@
 /*
- *  $Id: alltoallv.c,v 1.23 1995/12/21 22:16:41 gropp Exp $
+ *  $Id: alltoallv.c,v 1.24 1996/04/12 14:15:04 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: alltoallv.c,v 1.23 1995/12/21 22:16:41 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
-#include "mpisys.h"
 #include "coll.h"
 
 /*@
@@ -38,6 +33,12 @@ Output Parameter:
 . recvbuf - address of receive buffer (choice) 
 
 .N fortran
+
+.N Errors
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_BUFFER
 @*/
 int MPI_Alltoallv ( sendbuf, sendcnts, sdispls, sendtype, 
                     recvbuf, recvcnts, rdispls, recvtype, comm )
@@ -52,12 +53,17 @@ MPI_Datatype      recvtype;
 MPI_Comm          comm;
 {
   int        mpi_errno = MPI_SUCCESS;
+  MPIR_ERROR_DECL;
   
   /* Check for invalid arguments */
   if ( MPIR_TEST_COMM(comm,comm) || MPIR_TEST_DATATYPE(comm,sendtype) ||
        MPIR_TEST_DATATYPE(comm,recvtype))
 	return MPIR_ERROR(comm, mpi_errno, "Error in MPI_ALLTOALLV" ); 
 
-  return comm->collops->Alltoallv( sendbuf, sendcnts, sdispls, sendtype, 
-                    recvbuf, recvcnts, rdispls, recvtype, comm );
+  MPIR_ERROR_PUSH(comm);
+  mpi_errno = comm->collops->Alltoallv( sendbuf, sendcnts, sdispls, sendtype, 
+					recvbuf, recvcnts, rdispls, recvtype, 
+					comm );
+  MPIR_ERROR_POP(comm);
+  MPIR_RETURN(comm,mpi_errno,"Error in MPI_ALLTOALLV");
 }

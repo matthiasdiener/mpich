@@ -165,9 +165,9 @@ p4_askfor_monitor_t *af;
 int p4_askfor(af, nprocs, getprob_fxn, problem, reset_fxn)
 p4_askfor_monitor_t *af;
 int nprocs;
-int (*getprob_fxn) ();
+int (*getprob_fxn) ANSI_ARGS((P4VOID *));
 P4VOID *problem;
-P4VOID(*reset_fxn) ();
+P4VOID(*reset_fxn) ANSI_ARGS((void));
 {
     int rc;
 
@@ -222,7 +222,7 @@ P4VOID(*reset_fxn) ();
 
 P4VOID p4_update(af, putprob_fxn, problem)
 p4_askfor_monitor_t *af;
-int (*putprob_fxn) ();
+int (*putprob_fxn) ANSI_ARGS((P4VOID *));
 P4VOID *problem;
 {
     p4_menter(&(af->m));
@@ -252,7 +252,7 @@ p4_askfor_monitor_t *af;
 }
 
 int p4_create(fxn)
-int (*fxn) ();
+int (*fxn) ANSI_ARGS((void));
 {
     int rc;
 

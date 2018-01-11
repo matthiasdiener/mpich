@@ -1,12 +1,8 @@
 /* comm_size.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
+#ifndef POINTER_64_BITS
 #define MPIR_ToPointer(a) (a)
 #define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
@@ -32,11 +28,14 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_comm_size_ ( comm, size, __ierr )
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_comm_size_ ANSI_ARGS(( MPI_Comm, int *, int * ));
+
+void mpi_comm_size_ ( comm, size, __ierr )
 MPI_Comm comm;
 int *size;
 int *__ierr;
 {
-*__ierr = MPI_Comm_size(
+    *__ierr = MPI_Comm_size(
 	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),size);
 }

@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include "mpi.h"
+#include <stdio.h>
 #include <math.h>
 
 double f(a)
@@ -12,14 +12,20 @@ int main(argc,argv)
 int argc;
 char *argv[];
 {
-    int done = 0, n, myid, numprocs, i, rc;
+    int done = 0, n, myid, numprocs, i;
     double PI25DT = 3.141592653589793238462643;
-    double mypi, pi, h, sum, x, a;
+    double mypi, pi, h, sum, x;
     double startwtime, endwtime;
+    int  namelen;
+    char processor_name[MPI_MAX_PROCESSOR_NAME];
 
     MPI_Init(&argc,&argv);
     MPI_Comm_size(MPI_COMM_WORLD,&numprocs);
     MPI_Comm_rank(MPI_COMM_WORLD,&myid);
+    MPI_Get_processor_name(processor_name,&namelen);
+
+    fprintf(stderr,"Process %d on %s\n",
+	    myid, processor_name);
 
     n = 0;
     while (!done)
@@ -61,6 +67,8 @@ char *argv[];
         }
     }
     MPI_Finalize();
+
+    return 0;
 }
 
             

@@ -22,7 +22,10 @@
 #endif
 #endif
 
+/* Prototype to suppress warnings about missing prototypes */
+double mpi_wtick_ ANSI_ARGS(( void ));
+
 double  mpi_wtick_()
 {
-return MPI_Wtick();
+    return MPI_Wtick();
 }

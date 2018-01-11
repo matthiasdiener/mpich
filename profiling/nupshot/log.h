@@ -87,6 +87,13 @@
     return all the info on a given message in the form:
       {<type> <sender> <receiver> <sendTime> <recvTime> <size>}
 
+ <logfile> getprocessdef <idx>
+    return the definition of the indicated process type (indexed starting at 0)
+    in the form {name}.
+
+ <logfile> setprocessdef <idx> <name>
+    change the given message type definition
+
  I would like to add:
 
  For adjusting for process-clock difference errors:
@@ -116,6 +123,7 @@
 #include "events.h"
 #include "states.h"
 #include "msgs.h"
+#include "procs.h"
 
 
 typedef enum logFormat_ {
@@ -143,7 +151,7 @@ typedef struct logFile {
   stateData *states;		/* info about states */
   eventData *events;		/* info about standalone events */
   msgData *msgs;		/* info about messages */
-
+  processData *processes;	/* info about processes */
   char *pct_done;		/* percent-done widget name */
 				/* The percent-done widget will be set */
 				/* up before the logfile is opened */
@@ -223,8 +231,8 @@ double Log_EndTime ARGS(( logFile * ));
 int Log_Np ARGS(( logFile * ));
 
 /*
-   Map these data collection calls to Event_, State_, or Msg_ calls.
-   If char*'s are returned, don't free them and don't change them.
+   Map these data collection calls to Event_, State_, Msg_, or Process_
+   calls. If char*'s are returned, don't free them and don't change them.
 */
 int Log_NeventDefs    ARGS(( logFile *log ));
 int Log_GetEventDef   ARGS(( logFile *log, int def_num, char **name ));
@@ -254,6 +262,8 @@ int Log_Nmsgs         ARGS(( logFile *log ));
 int Log_GetMsg        ARGS(( logFile *log, int n, int *type, int *sender,
 			     int *recver, double *sendTime,
 			     double *recvTime, int *size ));
+int Log_GetProcessDef ARGS(( logFile *log, int n, char **name ));
+int Log_SetProcessDef ARGS(( logFile *log, int n, char *name ));
 
 
 #endif

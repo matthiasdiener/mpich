@@ -1,0 +1,980 @@
+ 
+Making testing in directory pt2pt
+./runtests 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c overtake.c
+overtake.c:30: warning: function declaration isn't a prototype
+overtake.c:40: warning: function declaration isn't a prototype
+overtake.c:57: warning: function declaration isn't a prototype
+overtake.c:75: warning: function declaration isn't a prototype
+overtake.c:98: warning: function declaration isn't a prototype
+overtake.c:119: warning: function declaration isn't a prototype
+overtake.c:140: warning: function declaration isn't a prototype
+overtake.c: In function `Check_Data':
+overtake.c:149: warning: implicit declaration of function `fprintf'
+overtake.c: At top level:
+overtake.c:157: warning: function declaration isn't a prototype
+overtake.c:167: warning: function declaration isn't a prototype
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c test.c
+test.c: In function `Test_Printf':
+test.c:36: warning: implicit declaration of function `vfprintf'
+test.c: In function `Test_Message':
+test.c:57: warning: implicit declaration of function `fprintf'
+test.c:58: warning: implicit declaration of function `fflush'
+test.c: In function `Test_Finalize':
+test.c:96: warning: implicit declaration of function `fclose'
+test.c: In function `Test_Waitforall':
+test.c:114: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o overtake overtake.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c sendrecv.c
+sendrecv.c:39: warning: function declaration isn't a prototype
+sendrecv.c:80: warning: function declaration isn't a prototype
+sendrecv.c:90: warning: function declaration isn't a prototype
+sendrecv.c:130: warning: function declaration isn't a prototype
+sendrecv.c: In function `CheckBuffer':
+sendrecv.c:198: warning: implicit declaration of function `fprintf'
+sendrecv.c: At top level:
+sendrecv.c:209: warning: function declaration isn't a prototype
+sendrecv.c:236: warning: function declaration isn't a prototype
+sendrecv.c:253: warning: function declaration isn't a prototype
+sendrecv.c:329: warning: function declaration isn't a prototype
+sendrecv.c:351: warning: function declaration isn't a prototype
+sendrecv.c: In function `ReceiverTest2':
+sendrecv.c:391: warning: implicit declaration of function `strncpy'
+sendrecv.c: At top level:
+sendrecv.c:402: warning: function declaration isn't a prototype
+sendrecv.c:413: warning: function declaration isn't a prototype
+sendrecv.c:508: warning: function declaration isn't a prototype
+sendrecv.c: In function `main':
+sendrecv.c:557: warning: implicit declaration of function `printf'
+sendrecv.c:563: warning: implicit declaration of function `setvbuf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o sendrecv sendrecv.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c isndrcv.c
+isndrcv.c:36: warning: function declaration isn't a prototype
+isndrcv.c:77: warning: function declaration isn't a prototype
+isndrcv.c:87: warning: function declaration isn't a prototype
+isndrcv.c:127: warning: function declaration isn't a prototype
+isndrcv.c:177: warning: function declaration isn't a prototype
+isndrcv.c:206: warning: function declaration isn't a prototype
+isndrcv.c:236: warning: function declaration isn't a prototype
+isndrcv.c: In function `ReceiverTest1':
+isndrcv.c:258: warning: implicit declaration of function `fprintf'
+isndrcv.c: At top level:
+isndrcv.c:291: warning: function declaration isn't a prototype
+isndrcv.c:313: warning: function declaration isn't a prototype
+isndrcv.c: In function `ReceiverTest2':
+isndrcv.c:352: warning: implicit declaration of function `strncpy'
+isndrcv.c: At top level:
+isndrcv.c:363: warning: function declaration isn't a prototype
+isndrcv.c:369: warning: function declaration isn't a prototype
+isndrcv.c:437: warning: function declaration isn't a prototype
+isndrcv.c: In function `main':
+isndrcv.c:468: warning: implicit declaration of function `setvbuf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o isndrcv isndrcv.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c third.c
+third.c:11: warning: function declaration isn't a prototype
+third.c: In function `main':
+third.c:41: warning: implicit declaration of function `sleep'
+third.c:44: warning: implicit declaration of function `sprintf'
+third.c:72: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o third third.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c fourth.c
+fourth.c:5: warning: function declaration isn't a prototype
+fourth.c: In function `main':
+fourth.c:18: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o fourth fourth.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c fifth.c
+fifth.c:5: warning: function declaration isn't a prototype
+fifth.c: In function `main':
+fifth.c:18: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o fifth fifth.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c sixth.c
+sixth.c:17: warning: function declaration isn't a prototype
+sixth.c:34: warning: function declaration isn't a prototype
+sixth.c:48: warning: function declaration isn't a prototype
+sixth.c:64: warning: function declaration isn't a prototype
+sixth.c: In function `main':
+sixth.c:105: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o sixth sixth.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c hvectest.c
+hvectest.c:12: warning: function declaration isn't a prototype
+hvectest.c: In function `main':
+hvectest.c:62: warning: implicit declaration of function `printf'
+hvectest.c:70: warning: implicit declaration of function `fprintf'
+hvectest.c:296: warning: implicit declaration of function `Test_Waitforall'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o hvectest hvectest.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c hvectest2.c
+hvectest2.c:13: warning: function declaration isn't a prototype
+hvectest2.c:21: warning: function declaration isn't a prototype
+hvectest2.c:34: warning: function declaration isn't a prototype
+hvectest2.c: In function `main':
+hvectest2.c:103: warning: implicit declaration of function `printf'
+hvectest2.c:111: warning: implicit declaration of function `fprintf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o hvectest2 hvectest2.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c hvec.c
+hvec.c:9: warning: function declaration isn't a prototype
+hvec.c:20: warning: function declaration isn't a prototype
+hvec.c: In function `ilist1':
+hvec.c:26: warning: implicit declaration of function `printf'
+hvec.c: At top level:
+hvec.c:34: warning: function declaration isn't a prototype
+hvec.c:53: warning: function declaration isn't a prototype
+hvec.c:72: warning: function declaration isn't a prototype
+hvec.c:110: warning: function declaration isn't a prototype
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o hvec hvec.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c probe.c
+probe.c:9: warning: function declaration isn't a prototype
+probe.c: In function `main':
+probe.c:45: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o probe probe.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c probe1.c
+probe1.c:9: warning: function declaration isn't a prototype
+probe1.c: In function `main':
+probe1.c:54: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o probe1 probe1.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c testtest1.c
+testtest1.c:10: warning: function declaration isn't a prototype
+testtest1.c: In function `main':
+testtest1.c:60: warning: implicit declaration of function `printf'
+testtest1.c:66: warning: implicit declaration of function `fprintf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o testtest1 testtest1.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c ssendtest.c
+ssendtest.c:27: warning: function declaration isn't a prototype
+ssendtest.c:37: warning: function declaration isn't a prototype
+ssendtest.c: In function `main':
+ssendtest.c:54: warning: implicit declaration of function `fprintf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o ssendtest ssendtest.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c ssendtest2.c
+ssendtest2.c:45: warning: function declaration isn't a prototype
+ssendtest2.c: In function `main':
+ssendtest2.c:67: warning: implicit declaration of function `printf'
+ssendtest2.c:67: warning: implicit declaration of function `fflush'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o ssendtest2 ssendtest2.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c typetest.c
+typetest.c:47: warning: function declaration isn't a prototype
+typetest.c: In function `main':
+typetest.c:77: warning: implicit declaration of function `printf'
+typetest.c:89: warning: implicit declaration of function `fprintf'
+typetest.c:89: warning: implicit declaration of function `fflush'
+typetest.c:199: warning: implicit declaration of function `MPIR_PrintDatatypePack'
+typetest.c:201: warning: implicit declaration of function `MPIR_PrintDatatypeUnpack'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o typetest typetest.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c dtypelife.c
+dtypelife.c:17: warning: function declaration isn't a prototype
+dtypelife.c:27: warning: function declaration isn't a prototype
+dtypelife.c: In function `main':
+dtypelife.c:56: warning: implicit declaration of function `fprintf'
+dtypelife.c:74: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o dtypelife dtypelife.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c issendtest.c
+issendtest.c:26: warning: function declaration isn't a prototype
+issendtest.c:36: warning: function declaration isn't a prototype
+issendtest.c: In function `main':
+issendtest.c:97: warning: implicit declaration of function `fprintf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o issendtest issendtest.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c issendinit.c
+issendinit.c:27: warning: function declaration isn't a prototype
+issendinit.c:37: warning: function declaration isn't a prototype
+issendinit.c: In function `main':
+issendinit.c:97: warning: implicit declaration of function `fprintf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o issendinit issendinit.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c relrank.c
+relrank.c:10: warning: function declaration isn't a prototype
+relrank.c: In function `main':
+relrank.c:31: warning: implicit declaration of function `fprintf'
+relrank.c:55: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o relrank relrank.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c nullproc.c
+nullproc.c:10: warning: function declaration isn't a prototype
+nullproc.c: In function `main':
+nullproc.c:49: warning: implicit declaration of function `fprintf'
+nullproc.c:94: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o nullproc nullproc.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c trunc.c
+trunc.c:12: warning: function declaration isn't a prototype
+trunc.c: In function `main':
+trunc.c:50: warning: implicit declaration of function `SetupRecvBuf'
+trunc.c:52: warning: implicit declaration of function `CheckRecvErr'
+trunc.c:105: warning: implicit declaration of function `printf'
+trunc.c: At top level:
+trunc.c:114: warning: function declaration isn't a prototype
+trunc.c:123: warning: function declaration isn't a prototype
+trunc.c: In function `CheckRecvErr':
+trunc.c:138: warning: implicit declaration of function `fprintf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o trunc trunc.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c typeub.c
+typeub.c:12: warning: function declaration isn't a prototype
+typeub.c: In function `main':
+typeub.c:31: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o typeub typeub.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c irecvtest.c
+irecvtest.c:26: warning: function declaration isn't a prototype
+irecvtest.c:37: warning: function declaration isn't a prototype
+irecvtest.c:54: warning: function declaration isn't a prototype
+irecvtest.c:75: warning: function declaration isn't a prototype
+irecvtest.c: In function `Check_Data':
+irecvtest.c:84: warning: implicit declaration of function `fprintf'
+irecvtest.c:86: warning: implicit declaration of function `fflush'
+irecvtest.c: At top level:
+irecvtest.c:93: warning: function declaration isn't a prototype
+irecvtest.c:103: warning: function declaration isn't a prototype
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o irecvtest irecvtest.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c htmsg.c
+htmsg.c:9: warning: function declaration isn't a prototype
+htmsg.c: In function `main':
+htmsg.c:35: warning: implicit declaration of function `fprintf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o htmsg htmsg.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c isendtest.c
+isendtest.c:13: warning: function declaration isn't a prototype
+isendtest.c: In function `main':
+isendtest.c:31: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o isendtest isendtest.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c self.c
+self.c:4: warning: function declaration isn't a prototype
+self.c: In function `main':
+self.c:26: warning: implicit declaration of function `fprintf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o self self.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c sendrecv2.c
+sendrecv2.c:11: warning: function declaration isn't a prototype
+sendrecv2.c: In function `main':
+sendrecv2.c:31: warning: implicit declaration of function `MakeComms'
+sendrecv2.c:42: warning: implicit declaration of function `fprintf'
+sendrecv2.c:93: warning: implicit declaration of function `FreeComms'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c dtypes.c
+dtypes.c: In function `CheckDataAndPrint':
+dtypes.c:274: warning: implicit declaration of function `fprintf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c gcomm.c
+gcomm.c:10: warning: function declaration isn't a prototype
+gcomm.c:68: warning: function declaration isn't a prototype
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o sendrecv2 sendrecv2.o dtypes.o gcomm.o \
+	
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c sendrecv3.c
+sendrecv3.c:15: warning: function declaration isn't a prototype
+sendrecv3.c: In function `main':
+sendrecv3.c:38: warning: implicit declaration of function `MakeComms'
+sendrecv3.c:47: warning: implicit declaration of function `fprintf'
+sendrecv3.c:141: warning: implicit declaration of function `FreeComms'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o sendrecv3 sendrecv3.o dtypes.o gcomm.o \
+	
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c sendrecv4.c
+sendrecv4.c:14: warning: function declaration isn't a prototype
+sendrecv4.c: In function `main':
+sendrecv4.c:37: warning: implicit declaration of function `MakeComms'
+sendrecv4.c:48: warning: implicit declaration of function `fprintf'
+sendrecv4.c:127: warning: implicit declaration of function `FreeComms'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o sendrecv4 sendrecv4.o dtypes.o gcomm.o \
+	
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c persistent.c
+persistent.c:5: warning: function declaration isn't a prototype
+persistent.c: In function `main':
+persistent.c:19: warning: implicit declaration of function `fprintf'
+persistent.c:28: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o persistent persistent.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c waitall.c
+waitall.c:16: warning: function declaration isn't a prototype
+waitall.c: In function `main':
+waitall.c:62: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o waitall waitall.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c pack.c
+pack.c:9: warning: function declaration isn't a prototype
+pack.c: In function `main':
+pack.c:57: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o pack pack.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c bsendtest.c
+bsendtest.c:28: warning: function declaration isn't a prototype
+bsendtest.c:38: warning: function declaration isn't a prototype
+bsendtest.c:59: warning: function declaration isn't a prototype
+bsendtest.c:82: warning: function declaration isn't a prototype
+bsendtest.c:113: warning: function declaration isn't a prototype
+bsendtest.c: In function `Check_Data':
+bsendtest.c:122: warning: implicit declaration of function `fprintf'
+bsendtest.c: At top level:
+bsendtest.c:130: warning: function declaration isn't a prototype
+bsendtest.c:140: warning: function declaration isn't a prototype
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o bsendtest bsendtest.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c typebase.c
+typebase.c:23: warning: function declaration isn't a prototype
+typebase.c:80: warning: function declaration isn't a prototype
+typebase.c: In function `main':
+typebase.c:101: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o typebase typebase.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c irsend.c
+irsend.c:13: warning: function declaration isn't a prototype
+irsend.c: In function `main':
+irsend.c:36: warning: implicit declaration of function `MakeComms'
+irsend.c:47: warning: implicit declaration of function `fprintf'
+irsend.c:138: warning: implicit declaration of function `FreeComms'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o irsend irsend.o dtypes.o gcomm.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c irsendinit.c
+irsendinit.c:16: warning: function declaration isn't a prototype
+irsendinit.c: In function `main':
+irsendinit.c:40: warning: implicit declaration of function `MakeComms'
+irsendinit.c:51: warning: implicit declaration of function `fprintf'
+irsendinit.c:150: warning: implicit declaration of function `FreeComms'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o irsendinit irsendinit.o dtypes.o gcomm.o \
+	
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c testsome.c
+testsome.c:14: warning: function declaration isn't a prototype
+testsome.c: In function `main':
+testsome.c:37: warning: implicit declaration of function `MakeComms'
+testsome.c:63: warning: implicit declaration of function `fprintf'
+testsome.c:156: warning: implicit declaration of function `FreeComms'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o testsome testsome.o dtypes.o gcomm.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c getelm.c
+getelm.c:14: warning: function declaration isn't a prototype
+getelm.c: In function `main':
+getelm.c:53: warning: implicit declaration of function `fprintf'
+getelm.c:114: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o getelm getelm.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c testall.c
+testall.c:14: warning: function declaration isn't a prototype
+testall.c: In function `main':
+testall.c:37: warning: implicit declaration of function `MakeComms'
+testall.c:60: warning: implicit declaration of function `fprintf'
+testall.c:151: warning: implicit declaration of function `FreeComms'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o testall testall.o dtypes.o gcomm.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c sndrcv.c
+sndrcv.c:14: warning: function declaration isn't a prototype
+sndrcv.c: In function `main':
+sndrcv.c:34: warning: implicit declaration of function `MakeComms'
+sndrcv.c:49: warning: implicit declaration of function `fprintf'
+sndrcv.c:122: warning: implicit declaration of function `FreeComms'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o sndrcv sndrcv.o dtypes.o gcomm.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c nbtest.c
+nbtest.c:14: warning: function declaration isn't a prototype
+nbtest.c: In function `main':
+nbtest.c:40: warning: implicit declaration of function `fprintf'
+nbtest.c:92: warning: implicit declaration of function `printf'
+nbtest.c:93: warning: implicit declaration of function `fflush'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o nbtest nbtest.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c nblock.c
+nblock.c:11: warning: function declaration isn't a prototype
+nblock.c: In function `main':
+nblock.c:26: warning: implicit declaration of function `fprintf'
+nblock.c:60: warning: implicit declaration of function `printf'
+nblock.c:62: warning: implicit declaration of function `fflush'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o nblock nblock.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c sendmany.c
+sendmany.c:15: warning: function declaration isn't a prototype
+sendmany.c: In function `main':
+sendmany.c:69: warning: implicit declaration of function `printf'
+sendmany.c:70: warning: implicit declaration of function `fflush'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o sendmany sendmany.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c order.c
+order.c:6: warning: function declaration isn't a prototype
+order.c: In function `main':
+order.c:30: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o order order.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c hindexed.c
+hindexed.c:16: warning: function declaration isn't a prototype
+hindexed.c: In function `main':
+hindexed.c:77: warning: implicit declaration of function `fprintf'
+hindexed.c:100: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o hindexed hindexed.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c commit.c
+commit.c:11: warning: function declaration isn't a prototype
+commit.c: In function `main':
+commit.c:42: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o commit commit.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c cancel.c
+cancel.c:11: warning: function declaration isn't a prototype
+cancel.c: In function `main':
+cancel.c:26: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o cancel cancel.o 
+**** Testing MPI Point-to-point routines ****
+**** Testing MPI_Send and MPI_Recv ****
+**** Testing MPI_Send and MPI_Recv (2) ****
+**** Testing MPI_Send and MPI_Recv (3) ****
+**** Testing MPI_Send and MPI_Recv (4) ****
+**** Testing MPI_Bsend and MPI_Recv (4) ****
+**** Testing MPI_Isend and MPI_Irecv ****
+**** Testing MPI_Irsend ****
+**** Testing MPI_Rsend_init ****
+**** Testing MPI_Testsome/Testany/Waitsome ****
+**** Testing MPI_Testall ****
+**** Checking MPI_Cancel ****
+**** Testing MPI_Sendrecv ****
+**** Testing MPI_Get_elements ****
+**** Verifying that messages are non-overtaking ****
+**** Verifying ssend ****
+**** Verifying ssend (2) ****
+**** Verifying Issend ****
+**** Checking the type (sizes) routines ****
+**** Checking the type routines ****
+**** Checking the type routines: MPI_UB ****
+**** Checking the type routines: MPI_Type_free ****
+**** Checking the type routines: MPI_Type_commit ****
+*** Testing Unexpected messages ***
+*** Testing Irecv/Isend/Wait ***
+*** Testing Irecv/Isend/Waitall ***
+*** Testing attribute manipulation ***
+*** Testing Isend/Irecv (large numbers) ***
+*** Testing Isend/Probe/Recv (large numbers) ***
+*** Testing Send (many procs) ***
+*** Testing Recv ordering ***
+*** Testing Message trunction ***
+*** Testing Vector type ***
+*** Testing struct type for vectors (MPI_UB) ***
+*** Testing Type_Hvector ***
+*** Testing Type_Hindexed ***
+*** Testing Probe and Get_count ***
+*** Testing Iprobe and Get_count ***
+*** Testing send to self ***
+*** Testing MPI_Test ***
+*** Testing MPI_Recv_init ***
+*** Testing MPI_Waitall ***
+*** Testing MPI_Pack ***
+FORTRAN TESTS
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -c allpair.f
+allpair.f:
+ MAIN allpair:
+	test_pair:
+	msg_check:
+	rq_check:
+	init_test_data:
+	clear_test_data:
+	verify_test_data:
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -o allpair allpair.o 
+*** Testing pt-2-pt from Fortran ***
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -c allpair2.f
+allpair2.f:
+ MAIN allpair2:
+	test_pair:
+	msg_check:
+	rq_check:
+	init_test_data:
+	clear_test_data:
+	verify_test_data:
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -o allpair2 allpair2.o 
+*** Testing pt-2-pt from Fortran (many calls) ***
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -c structf.f
+structf.f:
+ MAIN bustit:
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -o structf structf.o 
+*** Testing Type_struct from Fortran ***
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -c send1.f
+send1.f:
+ MAIN test:
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -o send1 send1.o 
+*** Testing pt-2-pt from Fortran (2) ***
+END OF FORTRAN TESTS
+*** Checking for differences from expected output ***
+-- No differences found; test successful
+/bin/rm -f *.o *~ PI* overtake sendrecv isndrcv third fourth fifth sixth hvectest  hvectest2 hvec probe probe1 testtest1 ssendtest ssendtest2 typetest dtypelife issendtest issendinit relrank nullproc trunc  typeub irecvtest htmsg  isendtest self sendrecv2 sendrecv3 sendrecv4 persistent waitall  pack bsendtest typebase irsend irsendinit  testsome getelm testall sndrcv nbtest nblock sendmany order hindexed  commit cancel *.out core pt2pt.diff testtypes secondf allpair systest send1  systest1 allpair2 bsendtest structf typebasef
+for file in overtake sendrecv isndrcv third fourth fifth sixth hvectest  hvectest2 hvec probe probe1 testtest1 ssendtest ssendtest2 typetest dtypelife issendtest issendinit relrank nullproc trunc  typeub irecvtest htmsg  isendtest self sendrecv2 sendrecv3 sendrecv4 persistent waitall  pack bsendtest typebase irsend irsendinit  testsome getelm testall sndrcv nbtest nblock sendmany order hindexed  commit cancel Makefile ; do \
+   /bin/rm -f $file.sun4 $file.alpha $file.IRIX $file.freebsd ;\
+done
+ 
+Making testing in directory coll
+./runtests 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c coll1.c
+coll1.c:6: warning: function declaration isn't a prototype
+coll1.c: In function `main':
+coll1.c:56: warning: implicit declaration of function `Test_Waitforall'
+coll1.c:59: warning: implicit declaration of function `printf'
+coll1.c:11: warning: unused variable `status'
+coll1.c:10: warning: unused variable `handle'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c test.c
+test.c:19: warning: function declaration isn't a prototype
+test.c:31: warning: no previous prototype for `Test_Printf'
+test.c: In function `Test_Printf':
+test.c:35: warning: implicit declaration of function `vfprintf'
+test.c: At top level:
+test.c:54: warning: function declaration isn't a prototype
+test.c: In function `Test_Message':
+test.c:56: warning: implicit declaration of function `fprintf'
+test.c:57: warning: implicit declaration of function `fflush'
+test.c: At top level:
+test.c:61: warning: function declaration isn't a prototype
+test.c:70: warning: function declaration isn't a prototype
+test.c:78: warning: function declaration isn't a prototype
+test.c:93: warning: function declaration isn't a prototype
+test.c: In function `Test_Finalize':
+test.c:95: warning: implicit declaration of function `fclose'
+test.c: At top level:
+test.c:104: warning: function declaration isn't a prototype
+test.c: In function `Test_Waitforall':
+test.c:113: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o coll1 coll1.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c coll2.c
+coll2.c:7: warning: function declaration isn't a prototype
+coll2.c: In function `main':
+coll2.c:29: warning: implicit declaration of function `fprintf'
+coll2.c:64: warning: implicit declaration of function `Test_Waitforall'
+coll2.c:67: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o coll2 coll2.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c coll3.c
+coll3.c:7: warning: function declaration isn't a prototype
+coll3.c: In function `main':
+coll3.c:26: warning: implicit declaration of function `fprintf'
+coll3.c:74: warning: implicit declaration of function `printf'
+coll3.c:82: warning: implicit declaration of function `Test_Waitforall'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o coll3 coll3.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c coll4.c
+coll4.c:6: warning: function declaration isn't a prototype
+coll4.c: In function `main':
+coll4.c:41: warning: implicit declaration of function `Test_Waitforall'
+coll4.c:44: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o coll4 coll4.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c coll5.c
+coll5.c:6: warning: function declaration isn't a prototype
+coll5.c: In function `main':
+coll5.c:46: warning: implicit declaration of function `Test_Waitforall'
+coll5.c:49: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o coll5 coll5.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c coll6.c
+coll6.c:7: warning: function declaration isn't a prototype
+coll6.c: In function `main':
+coll6.c:26: warning: implicit declaration of function `fprintf'
+coll6.c:70: warning: implicit declaration of function `printf'
+coll6.c:78: warning: implicit declaration of function `Test_Waitforall'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o coll6 coll6.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c coll7.c
+coll7.c:7: warning: function declaration isn't a prototype
+coll7.c: In function `main':
+coll7.c:23: warning: implicit declaration of function `fprintf'
+coll7.c:55: warning: implicit declaration of function `Test_Waitforall'
+coll7.c:58: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o coll7 coll7.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c coll8.c
+coll8.c:4: warning: function declaration isn't a prototype
+coll8.c: In function `main':
+coll8.c:34: warning: implicit declaration of function `Test_Waitforall'
+coll8.c:37: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o coll8 coll8.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c coll9.c
+coll9.c:4: warning: function declaration isn't a prototype
+coll9.c:13: warning: function declaration isn't a prototype
+coll9.c: In function `main':
+coll9.c:37: warning: implicit declaration of function `Test_Waitforall'
+coll9.c:40: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o coll9 coll9.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c coll10.c
+coll10.c:13: warning: function declaration isn't a prototype
+coll10.c: In function `assoc':
+coll10.c:21: warning: implicit declaration of function `fprintf'
+coll10.c: At top level:
+coll10.c:32: warning: function declaration isn't a prototype
+coll10.c: In function `main':
+coll10.c:54: warning: implicit declaration of function `printf'
+coll10.c:55: warning: implicit declaration of function `Test_Waitforall'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o coll10 coll10.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c coll11.c
+coll11.c:5: warning: function declaration isn't a prototype
+coll11.c:23: warning: function declaration isn't a prototype
+coll11.c: In function `assoc':
+coll11.c:31: warning: implicit declaration of function `fprintf'
+coll11.c: At top level:
+coll11.c:41: warning: function declaration isn't a prototype
+coll11.c: In function `main':
+coll11.c:103: warning: implicit declaration of function `printf'
+coll11.c:105: warning: implicit declaration of function `Test_Waitforall'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o coll11 coll11.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c coll12.c
+coll12.c:8: warning: function declaration isn't a prototype
+coll12.c: In function `main':
+coll12.c:40: warning: implicit declaration of function `printf'
+coll12.c:14: warning: unused variable `ranks'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o coll12 coll12.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c coll13.c
+coll13.c:18: warning: function declaration isn't a prototype
+coll13.c: In function `main':
+coll13.c:40: warning: implicit declaration of function `fprintf'
+coll13.c:48: warning: implicit declaration of function `perror'
+coll13.c:73: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o coll13 coll13.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c bcastbug.c
+bcastbug.c:6: warning: function declaration isn't a prototype
+bcastbug.c: In function `main':
+bcastbug.c:30: warning: implicit declaration of function `Test_Waitforall'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o bcastbug bcastbug.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c bcastbug2.c
+bcastbug2.c:6: warning: function declaration isn't a prototype
+bcastbug2.c: In function `main':
+bcastbug2.c:18: warning: implicit declaration of function `printf'
+bcastbug2.c:26: warning: implicit declaration of function `Test_Waitforall'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o bcastbug2 bcastbug2.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c grouptest.c
+grouptest.c:12: warning: function declaration isn't a prototype
+grouptest.c: In function `main':
+grouptest.c:64: warning: implicit declaration of function `Test_Waitforall'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o grouptest grouptest.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c redtst.c
+redtst.c:5: warning: function declaration isn't a prototype
+redtst.c: In function `main':
+redtst.c:14: warning: implicit declaration of function `printf'
+redtst.c:17: warning: implicit declaration of function `Test_Waitforall'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o redtst redtst.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c barrier.c
+barrier.c:18: warning: function declaration isn't a prototype
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o barrier barrier.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c bcast.c
+bcast.c:12: warning: function declaration isn't a prototype
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o bcast bcast.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c allred.c
+allred.c:8: warning: function declaration isn't a prototype
+allred.c: In function `main':
+allred.c:21: warning: implicit declaration of function `MakeComms'
+allred.c:23: warning: implicit declaration of function `printf'
+allred.c:46: warning: implicit declaration of function `fprintf'
+allred.c:2453: warning: implicit declaration of function `FreeComms'
+(cd ../pt2pt ; make gcomm.o )
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c gcomm.c
+gcomm.c:10: warning: function declaration isn't a prototype
+gcomm.c:68: warning: function declaration isn't a prototype
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o allred allred.o ../pt2pt/gcomm.o  -lm
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c scatterv.c
+scatterv.c:17: warning: function declaration isn't a prototype
+scatterv.c:41: warning: function declaration isn't a prototype
+scatterv.c: In function `CheckData':
+scatterv.c:56: warning: implicit declaration of function `printf'
+scatterv.c: At top level:
+scatterv.c:71: warning: function declaration isn't a prototype
+scatterv.c: In function `main':
+scatterv.c:145: warning: implicit declaration of function `fprintf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o scatterv scatterv.o  -lm
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -c allredf.f
+allredf.f:
+ MAIN main:
+	ibxorval1:
+	ibxorsol1:
+	ibxandval:
+	ibxandval1:
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -o allredf allredf.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c redscat.c
+redscat.c:15: warning: function declaration isn't a prototype
+redscat.c: In function `main':
+redscat.c:29: warning: implicit declaration of function `malloc'
+redscat.c:42: warning: implicit declaration of function `fprintf'
+redscat.c:48: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o redscat redscat.o  -lm
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c alltoallv.c
+alltoallv.c:19: warning: function declaration isn't a prototype
+alltoallv.c: In function `main':
+alltoallv.c:37: warning: implicit declaration of function `malloc'
+alltoallv.c:40: warning: implicit declaration of function `fprintf'
+alltoallv.c:80: warning: implicit declaration of function `free'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o alltoallv alltoallv.o  -lm
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -c assocf.f
+assocf.f:
+ MAIN allreduce:
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -o assocf assocf.o 
+**** Testing MPI Collective routines ****
+**** Barrier Test ****
+**** Broadcast Test ****
+**** coll1 ****
+**** coll2 ****
+**** coll3 ****
+**** coll4 ****
+**** coll5 ****
+**** coll6 ****
+**** coll7 ****
+**** coll8 ****
+**** coll9 ****
+**** coll10 ****
+**** coll11 ****
+**** coll12 ****
+**** coll13 ****
+*** Grouptest ***
+*** Allred ***
+*** Scatterv ***
+*** Reduce_scatter ***
+*** Alltoallv ***
+FORTRAN TESTS
+*** Testing allreduce from Fortran ***
+*** Testing allreduce from Fortran (2) ***
+END OF FORTRAN TESTS
+*** Checking for differences from expected output ***
+Differences in assocf
+Binary files assocf.out and assocf.std differ
+/bin/rm -f *.o *~ PI* coll1 coll2 coll3 coll4 coll5 coll6 coll7 coll8 coll9  coll10 coll11 coll12 coll13 bcastbug bcastbug2 grouptest redtst  barrier bcast allred scatterv allredf redscat alltoallv assocf core *.out coll.diff
+ 
+Making testing in directory topol
+./runtests 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c cart.c
+cart.c:6: warning: function declaration isn't a prototype
+cart.c: In function `main':
+cart.c:102: warning: implicit declaration of function `Test_Waitforall'
+cart.c:103: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c test.c
+test.c:19: warning: function declaration isn't a prototype
+test.c:31: warning: no previous prototype for `Test_Printf'
+test.c: In function `Test_Printf':
+test.c:35: warning: implicit declaration of function `vfprintf'
+test.c: At top level:
+test.c:54: warning: function declaration isn't a prototype
+test.c: In function `Test_Message':
+test.c:56: warning: implicit declaration of function `fprintf'
+test.c:57: warning: implicit declaration of function `fflush'
+test.c: At top level:
+test.c:61: warning: function declaration isn't a prototype
+test.c:70: warning: function declaration isn't a prototype
+test.c:78: warning: function declaration isn't a prototype
+test.c:93: warning: function declaration isn't a prototype
+test.c: In function `Test_Finalize':
+test.c:95: warning: implicit declaration of function `fclose'
+test.c: At top level:
+test.c:104: warning: function declaration isn't a prototype
+test.c: In function `Test_Waitforall':
+test.c:113: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o cart cart.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c cart2.c
+cart2.c:6: warning: function declaration isn't a prototype
+cart2.c: In function `main':
+cart2.c:36: warning: implicit declaration of function `Test_Waitforall'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o cart2 cart2.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c graphtest.c
+graphtest.c:20: warning: function declaration isn't a prototype
+graphtest.c:21: warning: function declaration isn't a prototype
+graphtest.c:24: warning: function declaration isn't a prototype
+graphtest.c: In function `main':
+graphtest.c:66: warning: implicit declaration of function `printf'
+graphtest.c: At top level:
+graphtest.c:153: warning: function declaration isn't a prototype
+graphtest.c:180: warning: function declaration isn't a prototype
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o graphtest graphtest.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c cartmap.c
+cartmap.c:10: warning: function declaration isn't a prototype
+cartmap.c: In function `main':
+cartmap.c:46: warning: implicit declaration of function `fprintf'
+cartmap.c:50: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o cartmap cartmap.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c cartorder.c
+cartorder.c:14: warning: function declaration isn't a prototype
+cartorder.c: In function `main':
+cartorder.c:60: warning: implicit declaration of function `fprintf'
+cartorder.c:118: warning: implicit declaration of function `Test_Waitforall'
+cartorder.c:119: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o cartorder cartorder.o test.o 
+**** Testing MPI_Cart_create etc ****
+**** Testing MPI_Cart_coords etc ****
+**** Testing MPI_Cart_map etc ****
+**** Testing MPI_Cart_create etc (2) ****
+**** Testing MPI_Graph_create etc ****
+FORTRAN TESTS
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -c cartf.f
+cartf.f:
+ MAIN main:
+	mpe_decomp1d:
+	exchng2:
+	prv:
+	setupv:
+	checkval:
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -o cartf cartf.o 
+*** Testing cart from Fortran ***
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -c cart1f.f
+cart1f.f:
+ MAIN main:
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -o cart1f cart1f.o 
+*** Testing cart1 from Fortran ***
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -c cart2f.f
+cart2f.f:
+ MAIN main:
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -o cart2f cart2f.o 
+*** Testing cart2 from Fortran ***
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -c twod.f
+twod.f:
+ MAIN main:
+	sweep2d:
+	exchng2:
+	diff2d:
+	twodinit:
+	mpe_decomp1d:
+	fnd2dnbrs:
+	fnd2ddecomp:
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -o twod twod.o 
+*** Testing twod from Fortran ***
+./mpirun: 26805 Bus error
+*** Checking for differences from expected output ***
+Differences in twod
+2,4d1
+< p0_26805:  p4_error: interrupt SIGBUS: 10
+< p0_26805:  p4_error: interrupt SIGINT: 2
+< bm_list_26806:  p4_error: interrupt SIGINT: 2
+/bin/rm -f *.o *~ core PI* cart cart2 graphtest cartmap cartorder cartf twod cart1f cart2f topol.diff
+ 
+Making testing in directory env
+./runtests 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c timers.c
+timers.c:5: warning: function declaration isn't a prototype
+timers.c: In function `main':
+timers.c:18: warning: implicit declaration of function `fprintf'
+timers.c:25: warning: implicit declaration of function `sleep'
+timers.c:45: warning: implicit declaration of function `Test_Waitforall'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c test.c
+test.c:19: warning: function declaration isn't a prototype
+test.c:31: warning: no previous prototype for `Test_Printf'
+test.c: In function `Test_Printf':
+test.c:35: warning: implicit declaration of function `vfprintf'
+test.c: At top level:
+test.c:54: warning: function declaration isn't a prototype
+test.c: In function `Test_Message':
+test.c:56: warning: implicit declaration of function `fprintf'
+test.c:57: warning: implicit declaration of function `fflush'
+test.c: At top level:
+test.c:61: warning: function declaration isn't a prototype
+test.c:70: warning: function declaration isn't a prototype
+test.c:78: warning: function declaration isn't a prototype
+test.c:93: warning: function declaration isn't a prototype
+test.c: In function `Test_Finalize':
+test.c:95: warning: implicit declaration of function `fclose'
+test.c: At top level:
+test.c:104: warning: function declaration isn't a prototype
+test.c: In function `Test_Waitforall':
+test.c:113: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o timers timers.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c baseattr.c
+baseattr.c:5: warning: function declaration isn't a prototype
+baseattr.c: In function `main':
+baseattr.c:20: warning: implicit declaration of function `fprintf'
+baseattr.c:45: warning: implicit declaration of function `Test_Waitforall'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o baseattr baseattr.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c errhand.c
+errhand.c:8: warning: function declaration isn't a prototype
+errhand.c: In function `main':
+errhand.c:13: warning: implicit declaration of function `Test_errorhandling'
+errhand.c:15: warning: implicit declaration of function `Test_Waitforall'
+errhand.c: At top level:
+errhand.c:23: warning: function declaration isn't a prototype
+errhand.c: In function `Test_errorhandling':
+errhand.c:44: warning: implicit declaration of function `printf'
+errhand.c: At top level:
+errhand.c:138: warning: no previous prototype for `error_handler'
+errhand.c:158: warning: no previous prototype for `handler_a'
+errhand.c:180: warning: no previous prototype for `handler_b'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o errhand errhand.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c sigchk.c
+sigchk.c:11: warning: function declaration isn't a prototype
+sigchk.c: In function `SYiCheckSig':
+sigchk.c:15: warning: function declaration isn't a prototype
+sigchk.c:18: warning: function declaration isn't a prototype
+sigchk.c:19: warning: function declaration isn't a prototype
+sigchk.c:19: warning: function declaration isn't a prototype
+sigchk.c:22: warning: implicit declaration of function `fprintf'
+sigchk.c: At top level:
+sigchk.c:34: warning: function declaration isn't a prototype
+sigchk.c:167: warning: function declaration isn't a prototype
+sigchk.c: In function `main':
+sigchk.c:171: warning: implicit declaration of function `MPI_Init'
+sigchk.c:173: warning: implicit declaration of function `Test_Waitforall'
+sigchk.c:174: warning: implicit declaration of function `MPI_Finalize'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o sigchk sigchk.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c timertest.c
+timertest.c:5: warning: function declaration isn't a prototype
+timertest.c: In function `main':
+timertest.c:15: warning: implicit declaration of function `fprintf'
+timertest.c:21: warning: implicit declaration of function `sleep'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o timertest timertest.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c init.c
+init.c:5: warning: function declaration isn't a prototype
+init.c: In function `main':
+init.c:24: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o init init.o 
+*** Timer tests ***
+*** MPI_Initialized tests ***
+*** Basic attributes ***
+*** Tests of error handling ***
+*** Tests of signals used ***
+*** Checking for differences from expected output ***
+Differences in sigchk
+2,8d1
+< Some signals have been changed.  This is not an error
+< but rather is a warning that user programs should not redefine the signals
+< listed here
+< Signal SIGINT has been changed
+< Signal SIGFPE has been changed
+< Signal SIGBUS has been changed
+< Signal SIGSEGV has been changed
+/bin/rm -f *.o *~ PI* timers baseattr errhand sigchk timertest init baseattrf core *.out *.orig env.diff \
+argstest
+ 
+Making testing in directory context
+./runtests 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -c attrtest.f
+attrtest.f:
+ MAIN main:
+	fazcreate:
+	fazdelete:
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpif77 -g -o attrtest attrtest.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c attrt.c
+attrt.c:12: warning: function declaration isn't a prototype
+attrt.c: In function `main':
+attrt.c:16: warning: implicit declaration of function `test_communicators'
+attrt.c:17: warning: implicit declaration of function `Test_Waitforall'
+attrt.c: At top level:
+attrt.c:24: warning: function declaration isn't a prototype
+attrt.c:38: warning: function declaration isn't a prototype
+attrt.c: In function `delete_fn':
+attrt.c:45: warning: implicit declaration of function `printf'
+attrt.c: At top level:
+attrt.c:52: warning: function declaration isn't a prototype
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c test.c
+test.c:19: warning: function declaration isn't a prototype
+test.c:31: warning: no previous prototype for `Test_Printf'
+test.c: In function `Test_Printf':
+test.c:35: warning: implicit declaration of function `vfprintf'
+test.c: At top level:
+test.c:54: warning: function declaration isn't a prototype
+test.c: In function `Test_Message':
+test.c:56: warning: implicit declaration of function `fprintf'
+test.c:57: warning: implicit declaration of function `fflush'
+test.c: At top level:
+test.c:61: warning: function declaration isn't a prototype
+test.c:70: warning: function declaration isn't a prototype
+test.c:78: warning: function declaration isn't a prototype
+test.c:93: warning: function declaration isn't a prototype
+test.c: In function `Test_Finalize':
+test.c:95: warning: implicit declaration of function `fclose'
+test.c: At top level:
+test.c:104: warning: function declaration isn't a prototype
+test.c: In function `Test_Waitforall':
+test.c:113: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o attrt attrt.o test.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c ictest.c
+ictest.c:5: warning: function declaration isn't a prototype
+ictest.c: In function `main':
+ictest.c:42: warning: implicit declaration of function `printf'
+ictest.c:72: warning: control reaches end of non-void function
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o ictest ictest.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c ictest2.c
+ictest2.c:11: warning: function declaration isn't a prototype
+ictest2.c: In function `main':
+ictest2.c:49: warning: implicit declaration of function `printf'
+ictest2.c:79: warning: implicit declaration of function `fflush'
+ictest2.c:164: warning: control reaches end of non-void function
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o ictest2 ictest2.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c ictest3.c
+ictest3.c:13: warning: function declaration isn't a prototype
+ictest3.c: In function `main':
+ictest3.c:48: warning: implicit declaration of function `printf'
+ictest3.c:190: warning: control reaches end of non-void function
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o ictest3 ictest3.o 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c grouptest.c
+grouptest.c:22: warning: function declaration isn't a prototype
+grouptest.c: In function `main':
+grouptest.c:46: warning: implicit declaration of function `fprintf'
+grouptest.c:152: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o grouptest grouptest.o 
+*** Testing attributes from Fortran ***
+*** Testing attributes ***
+*** Testing Groups ***
+*** Testing Intercommunicators ***
+*** Testing Intercommunicators (3) ***
+*** Checking for differences from expected output ***
+-- No differences found; test successful
+/bin/rm -f *.o *~ PI* attrtest attrt ictest ictest2 ictest3 grouptest core *.out context.diff
+ 
+Making testing in directory profile
+./runtests 
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -c ptest.c
+ptest.c:7: warning: function declaration isn't a prototype
+ptest.c: In function `main':
+ptest.c:13: warning: implicit declaration of function `printf'
+/Net/antireo/antireo9/MPI/mpich/lib/sun4/ch_p4/mpicc -g -o ptest ptest.o 
+**** Testing MPI Profiling routines ****
+**** Testing MPI_Pcontrol ****
+*** Checking for differences from expected output ***
+-- No differences found; test successful
+/bin/rm -f *.o *~ PI* ptest *.out core profile.diff 
+for file in ptest Makefile ; do \
+   /bin/rm -f $file.sun4 $file.alpha $file.IRIX $file.freebsd ;\
+done

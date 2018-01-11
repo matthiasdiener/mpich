@@ -1,16 +1,15 @@
 /*
- *  $Id: startall.c,v 1.6 1995/12/21 21:35:35 gropp Exp $
+ *  $Id: startall.c,v 1.7 1996/04/11 20:22:35 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-#ifndef lint
-static char vcid[] = "$Id: startall.c,v 1.6 1995/12/21 21:35:35 gropp Exp $";
-#endif /* lint */
-
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#else
 #include "mpisys.h"
+#endif
 
 /*@
   MPI_Startall - Starts a collection of requests 
@@ -25,10 +24,16 @@ int MPI_Startall( count, array_of_requests )
 int count;
 MPI_Request array_of_requests[];
 {
-int i;
-int mpi_errno;
-for (i=0; i<count; i++)
-    if (mpi_errno = MPI_Start( array_of_requests + i )) return mpi_errno;
+    int i;
+    int mpi_errno;
+    MPIR_ERROR_DECL;
 
-return MPI_SUCCESS;
+    MPIR_ERROR_PUSH(MPI_COMM_WORLD);
+    for (i=0; i<count; i++) {
+	MPIR_CALL_POP(MPI_Start( array_of_requests + i ),
+		      MPI_COMM_WORLD,"Error in MPI_STARTALL");
+    }
+
+    MPIR_ERROR_POP(MPI_COMM_WORLD);
+    return MPI_SUCCESS;
 }

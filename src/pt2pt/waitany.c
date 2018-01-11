@@ -1,16 +1,16 @@
 /*
- *  $Id: waitany.c,v 1.20 1996/01/11 18:31:15 gropp Exp $
+ *  $Id: waitany.c,v 1.22 1996/06/26 19:27:12 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
-
-#ifndef lint
-static char vcid[] = "$Id: waitany.c,v 1.20 1996/01/11 18:31:15 gropp Exp $";
-#endif /* lint */
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "reqalloc.h"
+#else
 #include "mpisys.h"
+#endif
 
 /*@
     MPI_Waitany - Waits for any specified send or receive to complete
@@ -25,6 +25,11 @@ range '0' to 'count-1'.  In Fortran, the range is '1' to 'count'.
 . status - status object (Status) 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_REQUEST
+.N MPI_ERR_ARG
 @*/
 int MPI_Waitany(count, array_of_requests, index, status )
 int         count;
@@ -33,10 +38,97 @@ int         *index;
 MPI_Status  *status;
 {
     int i, mpi_errno = MPI_SUCCESS;
+    int done;
     MPI_Request request;
 
     *index = MPI_UNDEFINED;
 
+#ifdef MPI_ADI2
+    /* Check for all requests either null or inactive persistent */
+    for (i=0; i < count; i++) {
+	request = array_of_requests[i];
+	if (!request) continue;
+	if (request->handle_type == MPIR_PERSISTENT_SEND) {
+	    if (request->persistent_shandle.active) break;
+	}
+	else if (request->handle_type == MPIR_PERSISTENT_RECV) {
+	    if (request->persistent_rhandle.active) break;
+	}
+	else 
+	    break;
+    }
+    if (i == count) {
+	/* MPI Standard 1.1 requires an empty status in this case */
+ 	status->MPI_TAG	   = MPI_ANY_TAG;
+	status->MPI_SOURCE = MPI_ANY_SOURCE;
+	status->MPI_ERROR  = MPI_SUCCESS;
+	status->count	   = 0;
+	return mpi_errno;
+	}
+    done = 0;
+    while (!done) {
+	for (i=0; !done && i<count; i++) {
+	    request = array_of_requests[i];
+	    if (!request) continue;
+	    switch (request->handle_type) {
+	    case MPIR_SEND:
+		if (MPID_SendIcomplete( request, &mpi_errno )) {
+		    if (mpi_errno) 
+			MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+				    "Could not complete send in MPI_WAITANY");
+		    MPIR_FORGET_SEND( &request->shandle );
+		    MPID_SendFree( array_of_requests[i] );
+		    *index = i;
+		    array_of_requests[i] = 0;
+		    done = 1;
+		}
+		break;
+	    case MPIR_RECV:
+		if (MPID_RecvIcomplete( request, status, &mpi_errno )) {
+		    if (mpi_errno) 
+			MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+				    "Could not complete recv in MPI_WAITANY");
+		    MPID_RecvFree( array_of_requests[i] );
+		    *index = i;
+		    array_of_requests[i] = 0;
+		    done = 1;
+		}
+		break;
+	    case MPIR_PERSISTENT_SEND:
+		if (request->persistent_shandle.active) {
+		    if (MPID_SendIcomplete( request, &mpi_errno )) {
+			if (mpi_errno) 
+			    MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+				    "Could not complete send in MPI_WAITANY");
+			request->persistent_shandle.active = 0;
+			*index = i;
+			done = 1;
+		    }
+		}
+		break;
+	    case MPIR_PERSISTENT_RECV:
+		if (request->persistent_rhandle.active) {
+		    if (MPID_RecvIcomplete( request, status, &mpi_errno )) {
+			if (mpi_errno) 
+			    MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+				    "Could not complete recv in MPI_WAITANY");
+			request->persistent_rhandle.active = 0;
+			*index = i;
+			done   = 1;
+		    }
+		}
+		break;
+	    }
+	}
+	if (!done) {
+	    /* Do a NON blocking check */
+	    MPID_DeviceCheck( MPID_NOTBLOCKING );
+	}
+	else 
+	    break;
+    }
+    return mpi_errno;
+#else
     /* Check for the trivial case of nothing to do. */
     for (i=0; i<count; i++) {
 	if (array_of_requests[i] && array_of_requests[i]->chandle.active) 
@@ -128,7 +220,5 @@ MPI_Status  *status;
         /* MPID_Check_device( MPI_COMM_WORLD->ADIctx, MPID_BLOCKING ); */
 	MPID_Check_device( MPI_COMM_WORLD->ADIctx, MPID_NOTBLOCKING );
 	}
+#endif
 }
-
-
-

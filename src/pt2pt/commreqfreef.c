@@ -32,20 +32,23 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
+/* Prototype to suppress warnings about missing prototypes */
+void mpi_request_free_ ANSI_ARGS(( MPI_Request *, int * ));
+
 void mpi_request_free_( request, __ierr )
 MPI_Request *request;
 int *__ierr;
 {
-MPI_Request lrequest = (MPI_Request) MPIR_ToPointer(*(int*)request);
-*__ierr = MPI_Request_free( &lrequest );
+    MPI_Request lrequest = (MPI_Request) MPIR_ToPointer(*(int*)request);
+    *__ierr = MPI_Request_free( &lrequest );
 /* 
    We actually need to remove the pointer from the mapping if the ref
    count is zero.  We do that by checking to see if lrequest was set to
    NULL.
  */
-if (!lrequest) {
-    MPIR_RmPointer( *(int*)request );
+    if (!lrequest) {
+	MPIR_RmPointer( *(int*)request );
     }
-*(int*)request = 0;
+    *(int*)request = 0;
 
 }

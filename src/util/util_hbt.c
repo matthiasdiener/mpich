@@ -1,5 +1,5 @@
 /*
- *  $Id: util_hbt.c,v 1.5 1994/07/13 15:55:51 lusk Exp $
+ *  $Id: util_hbt.c,v 1.6 1996/04/11 20:32:33 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -12,21 +12,30 @@
 */
 
 #include "mpiimpl.h"
+#ifdef MPI_ADI2
+#include "attr.h"
+#include "sbcnst2.h"
+#define MPIR_SBinit MPID_SBinit
+#define MPIR_SBfree MPID_SBfree
+#define MPIR_SBalloc MPID_SBalloc
+#define MPIR_SBdestroy MPID_SBdestroy
+#else
 #include "mpisys.h"
+#endif
 
 /*===========================================================================*
   Interface for height balanced trees
 
- int MPIR_HBT_new_tree  ( MPIR_HBT **tree ) 
- int MPIR_HBT_free_tree ( MPIR_HBT *tree )
+ int MPIR_HBT_new_tree  ( MPIR_HBT *tree ) 
+ int MPIR_HBT_free_tree ( MPIR_HBT tree )
  int MPIR_HBT_free_subtree ( MPIR_HBT_node *node )
 
  int MPIR_HBT_new_node  ( int keyval, void *value, MPIR_HBT_node **node_out ) 
  int MPIR_HBT_free_node ( MPIR_HBT_node *node )
 
- int MPIR_HBT_lookup ( MPIR_HBT *tree, int keyval, MPIR_HBT_node **node )
- int MPIR_HBT_insert ( MPIR_HBT *tree, MPIR_HBT_node *node )
- int MPIR_HBT_delete ( MPIR_HBT *tree, int keyval )
+ int MPIR_HBT_lookup ( MPIR_HBT tree, int keyval, MPIR_HBT_node **node )
+ int MPIR_HBT_insert ( MPIR_HBT tree, MPIR_HBT_node *node )
+ int MPIR_HBT_delete ( MPIR_HBT tree, int keyval )
 
  *===========================================================================*/
 
@@ -63,17 +72,37 @@
 
 /*===========================================================================*/
 
-/*+
+void *MPIR_hbts;   /* sbcnst height balanced tree roots for cacheing */
+void *MPIR_hbt_els;/* sbcnst height balanced tree nodes for cacheing */
 
+/*+
+  For efficient allocation of tree elements, this package uses the fast fixed
+  block allocators.  This routine initializes the allocators.
++*/
+void MPIR_HBT_Init()
+{
+    MPIR_hbts       = MPIR_SBinit( sizeof( struct _MPIR_HBT ), 5, 5 );
+    MPIR_hbt_els    = MPIR_SBinit( sizeof( MPIR_HBT_node ), 20, 20);
+}
+
+void MPIR_HBT_Free()
+{
+    MPIR_SBdestroy( MPIR_hbts );
+    MPIR_SBdestroy( MPIR_hbt_els );
+}
+
+/*+
 
 MPIR_HBT_new_tree -
 
 +*/
 int MPIR_HBT_new_tree ( tree_out )
-MPIR_HBT **tree_out;
+MPIR_HBT *tree_out;
 {
-  MPIR_HBT *new_tree;
-  new_tree = (*tree_out) = (MPIR_HBT *) MPIR_SBalloc ( MPIR_hbts );
+  MPIR_HBT new_tree;
+  new_tree = (*tree_out) = (MPIR_HBT) MPIR_SBalloc ( MPIR_hbts );
+  if (!new_tree)
+      return MPI_ERR_EXHAUSTED;
   new_tree->root = (MPIR_HBT_node *)0;
   new_tree->height = 0;
   return (MPI_SUCCESS);
@@ -92,6 +121,8 @@ MPIR_HBT_node **node_out;
   MPIR_HBT_node *new_node;
 
   new_node = (*node_out) = (MPIR_HBT_node *) MPIR_SBalloc (MPIR_hbt_els);
+  if (!new_node)
+      return MPI_ERR_EXHAUSTED;
   new_node->keyval       = keyval;
   new_node->value        = value;
   new_node->balance      = MPIR_BALANCED;
@@ -135,9 +166,9 @@ MPIR_HBT_free_tree -
 
 +*/
 int MPIR_HBT_free_tree ( tree )
-MPIR_HBT *tree;
+MPIR_HBT tree;
 {
-  if ( tree != (MPIR_HBT *)0 ) {
+  if ( tree != (MPIR_HBT)0 ) {
     if ( tree->root != (MPIR_HBT_node *)0 )
       (void) MPIR_HBT_free_subtree ( tree->root );
     MPIR_SBfree ( MPIR_hbts, tree );
@@ -151,8 +182,8 @@ MPIR_HBT_lookup( -
 
 +*/
 int MPIR_HBT_lookup( tree, keyval, node_out )
-MPIR_HBT *tree;
-int keyval;
+MPIR_HBT      tree;
+int           keyval;
 MPIR_HBT_node **node_out;
 {
   int test;
@@ -177,7 +208,7 @@ MPIR_HBT_insert( -
 
 +*/
 int MPIR_HBT_insert( tree, node )
-MPIR_HBT *tree;
+MPIR_HBT      tree;
 MPIR_HBT_node *node;
 {
   MPIR_HBT_node *temp, *inserted, *rebalance_son, *rebalance, *rebalance_father;
@@ -335,8 +366,8 @@ MPIR_HBT_delete -
 
 +*/
 int MPIR_HBT_delete(tree, keyval, node_out)
-MPIR_HBT *tree;
-int keyval;
+MPIR_HBT      tree;
+int           keyval;
 MPIR_HBT_node **node_out;
 {
   /* The stack keeps elements from root to the node to be deleted.         */

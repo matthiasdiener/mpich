@@ -1,5 +1,5 @@
 /*
- *  $Id: graph_map.c,v 1.7 1995/12/21 22:18:54 gropp Exp $
+ *  $Id: graph_map.c,v 1.8 1996/04/12 15:53:51 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -22,6 +22,12 @@ Output Parameter:
 calling process does not belong to graph (integer) 
  
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_TOPOLOGY
+.N MPI_ERR_COMM
+.N MPI_ERR_ARG
 @*/
 int MPI_Graph_map ( comm_old, nnodes, index, edges, newrank )
 MPI_Comm comm_old;
@@ -30,8 +36,6 @@ int     *index;
 int     *edges;
 int     *newrank;
 {
-  int i;
-  int nranks;
   int rank;
   int mpi_errno = MPI_SUCCESS;
 

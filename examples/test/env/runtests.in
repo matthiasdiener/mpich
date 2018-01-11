@@ -6,6 +6,25 @@
 # -mvhome is needed for the ANL SP, and is ignored by others
 args="-pg -mvhome"
 #
+# Some people don't include "." in their path (! in case an ls trojan horse,
+# I guess - if someone does that to you, you have bigger problems).  This
+# code tests to see if you have a path to mpirun; if not, it tries ./mpirun.
+IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
+for dir in $PATH ; do 
+    if [ -x $dir/mpirun ] ; then
+        mpirun="mpirun"
+        break
+    fi
+done
+IFS="$saveifs"
+if [ -z "$mpirun" -a -x "./mpirun" ] ; then
+    mpirun=./mpirun
+fi
+if [ -z "$mpirun" ] ; then
+    echo "No mpirun in path.  Testing can not proceed."
+    exit 1
+fi
+#
 runtests=1
 makeeach=0
 MAKE="@MAKE@"
@@ -61,16 +80,25 @@ testfiles="$testfiles timers.out"
 MakeExe timers
 echo "*** Timer tests ***"
 echo "*** Timer tests ***" >> timers.out
-mpirun $args -np 1 timers $* >> timers.out
+$mpirun $args -np 1 timers $* >> timers.out
 echo "*** Timer tests ***" >> timers.out
 CleanExe timers
+
+testfiles="$testfiles init.out"
+/bin/rm -f init.out
+MakeExe init
+echo "*** MPI_Initialized tests ***"
+echo "*** MPI_Initialized tests ***" >> init.out
+$mpirun $args -np 2 ./init $* >> init.out
+echo "*** MPI_Initialized tests ***" >> init.out
+CleanExe init
 
 testfiles="$testfiles baseattr.out"
 /bin/rm -f baseattr.out
 MakeExe baseattr
 echo "*** Basic attributes ***"
 echo "*** Basic attributes ***" >> baseattr.out
-mpirun $args -np 1 baseattr $* >> baseattr.out
+$mpirun $args -np 1 baseattr $* >> baseattr.out
 echo "*** Basic attributes ***" >> baseattr.out
 CleanExe baseattr
 
@@ -79,7 +107,7 @@ testfiles="$testfiles errhand.out"
 MakeExe errhand
 echo "*** Tests of error handling ***" 
 echo "*** Tests of error handling ***" >>errhand.out
-mpirun $args -np 1 errhand $* >> errhand.out
+$mpirun $args -np 1 errhand $* >> errhand.out
 echo "*** Tests of error handling ***" >>errhand.out
 CleanExe errhand
 
@@ -88,7 +116,7 @@ testfiles="$testfiles sigchk.out"
 MakeExe sigchk
 echo "*** Tests of signals used ***"
 echo "*** Tests of signals used ***" >> sigchk.out
-mpirun $args -np 1 sigchk $* >> sigchk.out
+$mpirun $args -np 1 sigchk $* >> sigchk.out
 echo "*** Tests of signals used ***" >> sigchk.out
 CleanExe sigchk
 
@@ -102,8 +130,9 @@ else
 fi
 
 #
-echo '*** Differences from expected output ***'
+echo '*** Checking for differences from expected output ***'
 /bin/rm -f env.diff
+nodiff=1
 for file in $testfiles ; do
     stdfile=`basename $file .out`.std
     if [ -s $stdfile ] ; then
@@ -112,6 +141,7 @@ for file in $testfiles ; do
         else
 	    echo "Differences in `basename $file .out`" >> env.diff
 	    diff -b $file `basename $file .out`.std >> env.diff
+	    nodiff=0
 	fi
     else
         echo "Can not find file $stdfile to compare against for test `basename $file .out`"
@@ -119,5 +149,7 @@ for file in $testfiles ; do
 done
 if [ -s env.diff ] ; then
    cat env.diff
+elif [ $nodiff = 1 ] ; then
+   echo "-- No differences found; test successful"
 fi
 exit 0

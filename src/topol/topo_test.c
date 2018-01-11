@@ -1,11 +1,12 @@
 /*
- *  $Id: topo_test.c,v 1.8 1995/12/21 22:19:25 gropp Exp $
+ *  $Id: topo_test.c,v 1.9 1996/04/12 15:56:42 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
+#include "mpitopo.h"
 
 /*@
 
@@ -16,9 +17,16 @@ Input Parameter:
 . comm - communicator (handle) 
 
 Output Parameter:
-. top_type - topology type of communicator 'comm' (choice) 
+. top_type - topology type of communicator 'comm' (choice).
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_ARG
+
+.seealso: MPI_Graph_create, MPI_Cart_create
 @*/
 int MPI_Topo_test ( comm, top_type )
 MPI_Comm  comm;

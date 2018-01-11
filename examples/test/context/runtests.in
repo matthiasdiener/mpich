@@ -6,6 +6,25 @@
 # -mvhome is needed for the ANL SP, and is ignored by others
 args="-pg -mvhome"
 #
+# Some people don't include "." in their path (! in case an ls trojan horse,
+# I guess - if someone does that to you, you have bigger problems).  This
+# code tests to see if you have a path to mpirun; if not, it tries ./mpirun.
+IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
+for dir in $PATH ; do 
+    if [ -x $dir/mpirun ] ; then
+        mpirun="mpirun"
+        break
+    fi
+done
+IFS="$saveifs"
+if [ -z "$mpirun" -a -x "./mpirun" ] ; then
+    mpirun=./mpirun
+fi
+if [ -z "$mpirun" ] ; then
+    echo "No mpirun in path.  Testing can not proceed."
+    exit 1
+fi
+#
 #
 runtests=1
 makeeach=0
@@ -66,7 +85,7 @@ if [ @HAS_FORTRAN@ = 1 ] ; then
     MakeExe attrtest
     echo '*** Testing attributes from Fortran ***'
     echo '*** Testing attributes from Fortran ***' >> attrf.out
-    mpirun $args -np 2 attrtest $* >> attr.out 2>&1
+    $mpirun $args -np 2 attrtest $* >> attr.out 2>&1
     echo '*** Testing attributes from Fortran ***' >> attrf.out
     CleanExe attrtest
 fi
@@ -76,7 +95,7 @@ testfiles="$testfiles attr.out"
 MakeExe attrt
 echo '*** Testing attributes ***'
 echo '*** Testing attributes ***' >> attr.out
-mpirun $args -np 2 attrt $* >> attr.out 2>&1
+$mpirun $args -np 2 attrt $* >> attr.out 2>&1
 echo '*** Testing attributes ***' >> attr.out
 CleanExe attrt
 
@@ -85,7 +104,7 @@ testfiles="$testfiles grouptest.out"
 MakeExe grouptest
 echo '*** Testing Groups ***'
 echo '*** Testing Groups ***' >> grouptest.out
-mpirun $args -np 4 grouptest $* >> grouptest.out 2>&1
+$mpirun $args -np 4 grouptest $* >> grouptest.out 2>&1
 echo '*** Testing Groups ***' >> grouptest.out
 CleanExe grouptest
 
@@ -94,7 +113,7 @@ testfiles="$testfiles ictest.out"
 MakeExe ictest
 echo '*** Testing Intercommunicators ***'
 echo '*** Testing Intercommunicators ***' >> ictest.out
-mpirun $args -np 4 ictest $* >> ictest.out 2>&1
+$mpirun $args -np 4 ictest $* >> ictest.out 2>&1
 echo '*** Testing Intercommunicators ***' >> ictest.out
 CleanExe ictest
 
@@ -111,7 +130,7 @@ CleanExe ictest
 #MakeExe ictest2
 #echo '*** Testing Intercommunicators (2) ***'
 #echo '*** Testing Intercommunicators (2) ***' >> ictest2.out
-#mpirun $args -np 4 ictest2 $* >> ictest2.out 2>&1
+#$mpirun $args -np 4 ictest2 $* >> ictest2.out 2>&1
 #echo '*** Testing Intercommunicators (2) ***' >> ictest2.out
 #CleanExe ictest2
 
@@ -120,7 +139,7 @@ testfiles="$testfiles ictest3.out"
 MakeExe ictest3
 echo '*** Testing Intercommunicators (3) ***'
 echo '*** Testing Intercommunicators (3) ***' >> ictest3.out
-mpirun $args -np 4 ictest3 $* >> ictest3.out 2>&1
+$mpirun $args -np 4 ictest3 $* >> ictest3.out 2>&1
 echo '*** Testing Intercommunicators (3) ***' >> ictest3.out
 CleanExe ictest3
 
@@ -129,8 +148,9 @@ else
     testfiles=`echo *.out`
 fi
 
-echo '*** Differences from expected output ***'
+echo '*** Checking for differences from expected output ***'
 /bin/rm -f context.diff
+nodiff=1
 for file in $testfiles ; do
     stdfile=`basename $file .out`.std
     if [ -s $stdfile ] ; then
@@ -139,6 +159,7 @@ for file in $testfiles ; do
         else
 	    echo "Differences in `basename $file .out`" >> context.diff
 	    diff -b $file `basename $file .out`.std >> context.diff
+	    nodiff=0
 	fi
     else
         echo "Can not find file $stdfile to compare against for test `basename $file .out`"
@@ -146,5 +167,7 @@ for file in $testfiles ; do
 done
 if [ -s context.diff ] ; then
    cat context.diff
+elif [ $nodiff = 1 ] ; then
+   echo "-- No differences found; test successful"
 fi
 exit 0

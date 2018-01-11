@@ -4,14 +4,14 @@
 # This directory was configured as follows,
 # on host godzilla.mcs.anl.gov:
 #
-# configure 
+# configure -opt=-g
 
 for arg
 do
   case "$arg" in
     -recheck | --recheck | --rechec | --reche | --rech | --rec | --re | --r)
-    echo running ${CONFIG_SHELL-/bin/sh} configure 
-    exec ${CONFIG_SHELL-/bin/sh} configure  ;;
+    echo running ${CONFIG_SHELL-/bin/sh} configure -opt=-g
+    exec ${CONFIG_SHELL-/bin/sh} configure -opt=-g ;;
     *) echo "Usage: config.status --recheck" 2>&1; exit 1 ;;
   esac
 done

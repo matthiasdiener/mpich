@@ -1,12 +1,12 @@
- /*
- *  $Id: t3dsend.c,v 1.8 1995/09/15 02:00:59 bright Exp $
+/*
+ *  $Id: t3dsend.c,v 1.9 1995/09/15 19:19:30 bright Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: t3dsend.c,v 1.8 1995/09/15 02:00:59 bright Exp $";
+static char vcid[] = "$Id: t3dsend.c,v 1.9 1995/09/15 19:19:30 bright Exp $";
 #endif
 
 #include "mpid.h"
@@ -50,7 +50,10 @@ static char vcid[] = "$Id: t3dsend.c,v 1.8 1995/09/15 02:00:59 bright Exp $";
 /****************************************************************************
   Global variables
  ***************************************************************************/
-T3D_Buf_Status *t3d_dest_bufs;
+#pragma _CRI cache_align  t3d_dest_bufs
+/* #pragma _CRI suppress     t3d_dest_bufs */
+volatile T3D_Buf_Status  *t3d_dest_bufs;
+extern MPIR_QHDR T3D_long_sends;
 
 /***************************************************************************
    T3D_Set_send_debug_flag
@@ -62,6 +65,12 @@ int f;
     DebugFlag = f;
 }
 
+/* FORTRAN equivalent */
+void T3D_SET_SEND_DEBUG_FLAG()
+{
+    DebugFlag = 1;
+}
+
 /****************************************************************************
   T3D_Post_send_long_sync
  ***************************************************************************/
@@ -71,9 +80,10 @@ MPID_SHANDLE *mpid_send_handle;
 int           len;
 {
     /* Send a long message */
-    T3D_PKT_LONG_SYNC_T *pkt;
-    int             dest = dmpi_send_handle->dest;
-    int             msglen;
+    T3D_PKT_LONG_SYNC_T *pkt,*dummy=0;
+    int                  dest = dmpi_send_handle->dest;
+    int                  msglen;
+    char                *target;
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {
@@ -82,8 +92,10 @@ int           len;
     }
 #   endif
 
+    mpid_send_handle->mode        = T3D_PKT_LONG_SYNC;
+
     /* Wait for send buffer to be available */
-    while( t3d_dest_bufs[dest] != T3D_BUF_AVAIL )
+    while( (volatile)t3d_dest_bufs[dest] != T3D_BUF_AVAIL )
       T3D_Check_incoming( MPID_NOTBLOCKING );
 
     t3d_dest_bufs[dest] = T3D_BUF_IN_USE;
@@ -95,29 +107,17 @@ int           len;
 #   endif
 
     /* Fill in the packet information */
-        pkt                      = (T3D_PKT_LONG_SYNC_T *)&t3d_recv_bufs[t3d_myid];
-        pkt->status             = T3D_BUF_IN_USE;
-        pkt->mode                = T3D_PKT_LONG_SYNC;
-        pkt->context_id          = dmpi_send_handle->contextid;
-        pkt->lrank               = dmpi_send_handle->lrank;
-        pkt->tag                 = dmpi_send_handle->tag;
-        pkt->len                 = len;
-        pkt->local_send_completed = (char *)&(dmpi_send_handle->completer);
-        pkt->buffer     = (char *)&(mpid_send_handle->remote_long_buffer);
+    pkt                        = (T3D_PKT_LONG_SYNC_T *)&t3d_recv_bufs[t3d_myid];
+    pkt->mode                  = T3D_PKT_LONG_SYNC;
+    pkt->context_id            = dmpi_send_handle->contextid;
+    pkt->lrank                 = dmpi_send_handle->lrank;
+    pkt->tag                   = dmpi_send_handle->tag;
+    pkt->len                   = len;
+    pkt->status                = T3D_BUF_IN_USE;
+    pkt->long_send_info_target = &mpid_send_handle->long_send_info;
+    pkt->local_send_completed  = (char *)&(dmpi_send_handle->completer);
 
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
-    if (DebugFlag) {
-        T3D_Printf("mpid_send_handle->remote_long_buffer    = 0x%x\n",
-                    mpid_send_handle->remote_long_buffer);
-        T3D_Printf("mpid_send_handle  remote_long_completed = 0x%x\n",
-                    mpid_send_handle->remote_long_buffer + 1);
-    }
-#   endif
-
-        /* We don't give it an ID */
-        mpid_send_handle->sid = 0;
-
-        msglen = T3D_MSG_LEN_64( sizeof(T3D_PKT_LONG_SYNC_T) );
+    msglen = T3D_MSG_LEN_64( sizeof(T3D_PKT_HEAD_SIZE_T) );
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {
@@ -131,16 +131,15 @@ int           len;
 	T3D_Printf("  tag        = %d\n",pkt->tag);
 	T3D_Printf("  length     = %d\n",pkt->len);
 	T3D_Printf("  completed  = 0x%x\n",pkt->local_send_completed);
- 	T3D_Printf("  &rmt_buf   = 0x%x\n",pkt->buffer);
-	T3D_Printf("  &rmt_comp  = 0x%x\n",pkt->buffer+1);
+	T3D_Printf("  lsit       = 0x%x\n",pkt->long_send_info_target);
     }
 #   endif
 
         /* Send the packet */
-        shmem_put( (long *)&t3d_recv_bufs[T3D_MY_PE],
-                   (long *)pkt,
-                    msglen,
-                    dest );
+    shmem_put((long *)&(pkt->local_send_completed),
+	      (long *)&(pkt->local_send_completed),
+	      msglen,
+	      dest );
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {
@@ -148,26 +147,9 @@ int           len;
     }
 #   endif
 
-    mpid_send_handle->header_sent = 1;
-    mpid_send_handle->mode        = T3D_PKT_LONG_SYNC;
-
-    T3D_Complete_send( dmpi_send_handle );
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Post_send_long_sync-waiting for completion by receiver\n");
-    }
-#   endif
-
-    /* Wait for send completed flag to be set by receiver */
-    while( dmpi_send_handle->completer )
-      T3D_Check_incoming( MPID_NOTBLOCKING );
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Post_send_long_sync-send completed by receiver\n");
-    }
-#   endif
+    /* Queue up the long send request */
+    mpid_send_handle->p =
+      T3D_enqueue( &T3D_long_sends, (MPIR_COMMON *)dmpi_send_handle, MPIR_QSHANDLE );
 
     return (MPI_SUCCESS);
     
@@ -185,8 +167,9 @@ int           len;
 {
     /* Send a short message */
     T3D_PKT_SHORT_SYNC_T *pkt;
-    int              dest = dmpi_send_handle->dest;
-    int              msglen;
+    int                   dest = dmpi_send_handle->dest;
+    int                   msglen;
+    int                   buf_loc;
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {
@@ -195,8 +178,10 @@ int           len;
     }
 #   endif
 
+    mpid_send_handle->mode = T3D_PKT_SHORT_SYNC;
+
     /* Wait for send buffer to be available */
-    while( t3d_dest_bufs[dest] != T3D_BUF_AVAIL )
+    while( (volatile)t3d_dest_bufs[dest] != T3D_BUF_AVAIL )
       T3D_Check_incoming( MPID_NOTBLOCKING );
 
     t3d_dest_bufs[dest] = T3D_BUF_IN_USE;
@@ -210,22 +195,31 @@ int           len;
 
     /* These references are ordered to match the order they appear in the 
        structure */
-    pkt             = (T3D_PKT_SHORT_SYNC_T *)&t3d_recv_bufs[t3d_myid];
-    pkt->status     = T3D_BUF_IN_USE;
-    pkt->mode       = T3D_PKT_SHORT_SYNC; 
-    pkt->context_id = dmpi_send_handle->contextid;
-    pkt->lrank      = dmpi_send_handle->lrank;
-    pkt->tag        = dmpi_send_handle->tag;
-    pkt->len        = len;
+    pkt                       = (T3D_PKT_SHORT_SYNC_T *)&t3d_recv_bufs[t3d_myid];
+    pkt->mode                 = T3D_PKT_SHORT_SYNC; 
+    pkt->context_id           = dmpi_send_handle->contextid;
+    pkt->lrank                = dmpi_send_handle->lrank;
+    pkt->tag                  = dmpi_send_handle->tag;
+    pkt->len                  = len;
+    pkt->status               = T3D_BUF_IN_USE;
     pkt->local_send_completed = (char *)&(dmpi_send_handle->completer);
 
-    /* Copy the message to the send space */
-    memcpy( pkt->buffer, mpid_send_handle->start, len );
-
-    /* We don't give it an ID */
-    mpid_send_handle->sid = 0;
-
-    msglen = T3D_MSG_LEN_64( (sizeof(T3D_PKT_HEAD_T) + len) );
+    if (0 < len) {
+      buf_loc = T3D_BUFFER_LENGTH - T3D_MSG_LEN_32(len) * 4;
+      T3D_MEMCPY(&(pkt->buffer[buf_loc]),mpid_send_handle->start,len);
+      msglen = T3D_MSG_LEN_32(sizeof(T3D_PKT_HEAD_SIZE_T)) + T3D_MSG_LEN_32(len);
+      shmem_put32((long *)&(pkt->buffer[buf_loc]),
+		  (long *)&(pkt->buffer[buf_loc]),
+		  msglen,
+		  dest );
+    }
+    else {
+      msglen = T3D_MSG_LEN_64( sizeof(T3D_PKT_HEAD_SIZE_T) );
+      shmem_put((long*)&(pkt->local_send_completed),
+		(long*)&(pkt->local_send_completed),
+		msglen,
+		dest);
+    }
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {
@@ -239,40 +233,12 @@ int           len;
 	T3D_Printf("  tag        = %d\n",pkt->tag);
 	T3D_Printf("  length     = %d\n",pkt->len);
 	T3D_Printf("  completed  = 0x%x\n",pkt->local_send_completed);
-    }
-#   endif
-
-    /* Send the packet */
-    shmem_put( (long *)&t3d_recv_bufs[T3D_MY_PE], 
-               (long *)pkt,
-                msglen,
-                dest );
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
-    if (DebugFlag) {
         T3D_Printf("T3D_Post_send_short_sync-short packet sent\n");
-    }
-#   endif
-
-    mpid_send_handle->header_sent = 1;
-    mpid_send_handle->mode = T3D_PKT_SHORT_SYNC;
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
-    if (DebugFlag) {
         T3D_Printf("T3D_Post_send_short_sync-waiting for completion by receiver\n");
     }
 #   endif
 
-    /* Wait for send completed flag to be set by receiver */
-    while( dmpi_send_handle->completer )
-      T3D_Check_incoming( MPID_NOTBLOCKING );
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Post_send_short_sync-send completed by receiver\n");
-    }
-#   endif
-
+    mpid_send_handle->body_sent = 1;
 
     return (MPI_SUCCESS);
 
@@ -298,15 +264,7 @@ MPIR_SHANDLE *dmpi_send_handle;
     len              = mpid_send_handle->bytes_as_contig;
     dest = dmpi_send_handle->dest;
 
-    mpid_send_handle->local_completed = (char *)&(dmpi_send_handle->completer);
-
-/* Is this possible ?? 
-    if (dest == T3D_MY_PE) 
-        return(T3D_Post_send_local(dmpi_send_handle, mpid_send_handle,
-                                   len));
-*/
-
-    if ( len > T3D_BUFFER_LENGTH )
+    if ( len >= T3D_BUFFER_LENGTH )
       return(T3D_Post_send_long_sync(dmpi_send_handle, mpid_send_handle, len));
     else
       return(T3D_Post_send_short_sync(dmpi_send_handle, mpid_send_handle, len));
@@ -344,6 +302,7 @@ int           len;
     T3D_PKT_LONG_T *pkt;
     int             dest = dmpi_send_handle->dest;
     int             msglen;
+    char           *target;
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {
@@ -352,8 +311,10 @@ int           len;
     }
 #   endif
 
+    mpid_send_handle->mode = T3D_PKT_LONG;
+
     /* Wait for send buffer to be available */
-    while( t3d_dest_bufs[dest] != T3D_BUF_AVAIL )
+    while( (volatile)t3d_dest_bufs[dest] != T3D_BUF_AVAIL )
       T3D_Check_incoming( MPID_NOTBLOCKING );
 
     t3d_dest_bufs[dest] = T3D_BUF_IN_USE;
@@ -365,28 +326,16 @@ int           len;
 #   endif
 
     /* Fill in the packet information */
-        pkt                      = (T3D_PKT_LONG_T *)&t3d_recv_bufs[t3d_myid];
-        pkt->status             = T3D_BUF_IN_USE;
-        pkt->mode                = T3D_PKT_LONG;
-        pkt->context_id          = dmpi_send_handle->contextid;
-        pkt->lrank               = dmpi_send_handle->lrank;
-        pkt->tag                 = dmpi_send_handle->tag;
-        pkt->len                 = len;
-        pkt->buffer     = (char *)&(mpid_send_handle->remote_long_buffer);
+    pkt                        = (T3D_PKT_LONG_T *)&t3d_recv_bufs[t3d_myid];
+    pkt->mode                  = T3D_PKT_LONG;
+    pkt->context_id            = dmpi_send_handle->contextid;
+    pkt->lrank                 = dmpi_send_handle->lrank;
+    pkt->tag                   = dmpi_send_handle->tag;
+    pkt->len                   = len;
+    pkt->status                = T3D_BUF_IN_USE;
+    pkt->long_send_info_target = &mpid_send_handle->long_send_info;
 
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
-    if (DebugFlag) {
-        T3D_Printf("mpid_send_handle->remote_long_buffer    = 0x%x\n",
-                    mpid_send_handle->remote_long_buffer);
-        T3D_Printf("mpid_send_handle  remote_long_completed = 0x%x\n",
-                    mpid_send_handle->remote_long_buffer + 1);
-    }
-#   endif
-
-        /* We don't give it an ID */
-        mpid_send_handle->sid = 0;
-
-        msglen = T3D_MSG_LEN_64( sizeof(T3D_PKT_LONG_T) );
+    msglen = T3D_MSG_LEN_64( sizeof(T3D_PKT_HEAD_SIZE_T) ) - 1;
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {
@@ -399,16 +348,15 @@ int           len;
 	T3D_Printf("  lrank      = %d\n",pkt->lrank);
 	T3D_Printf("  tag        = %d\n",pkt->tag);
 	T3D_Printf("  length     = %d\n",pkt->len);
- 	T3D_Printf("  &rmt_buf   = 0x%x\n",pkt->buffer);
-	T3D_Printf("  &rmt_comp  = 0x%x\n",pkt->buffer+1);
+	T3D_Printf("  lsit       = 0x%x\n",pkt->long_send_info_target);
     }
 #   endif
 
-        /* Send the packet */
-        shmem_put( (long *)&t3d_recv_bufs[T3D_MY_PE],
-                   (long *)pkt,
-                    msglen,
-                    dest );
+    /* Send the packet */
+    shmem_put((long *)&(pkt->long_send_info_target),
+	      (long *)&(pkt->long_send_info_target),
+	      msglen,
+	      dest );
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {
@@ -416,11 +364,9 @@ int           len;
     }
 #   endif
 
-    mpid_send_handle->header_sent = 1;
-
-    T3D_Complete_send( dmpi_send_handle );
-
-    DMPI_mark_send_completed( dmpi_send_handle );
+    /* Queue up the long send request */
+    mpid_send_handle->p =
+      T3D_enqueue( &T3D_long_sends, (MPIR_COMMON *)dmpi_send_handle, MPIR_QSHANDLE );
 
     return (MPI_SUCCESS);
     
@@ -440,16 +386,19 @@ int           len;
     T3D_PKT_SHORT_T *pkt;
     int              dest = dmpi_send_handle->dest;
     int              msglen;
+    int              buf_loc;
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {
-        T3D_Printf("T3D_Post_send_long-waiting for send buffer #%d at 0x%x\n",
+        T3D_Printf("T3D_Post_send_short-waiting for send buffer #%d at 0x%x\n",
                     dest, &t3d_dest_bufs[dest] );
     }
 #   endif
 
+    mpid_send_handle->mode = T3D_PKT_SHORT;
+
     /* Wait for send buffer to be available */
-    while( t3d_dest_bufs[dest] != T3D_BUF_AVAIL )
+    while( (volatile)t3d_dest_bufs[dest] != T3D_BUF_AVAIL )
       T3D_Check_incoming( MPID_NOTBLOCKING );
 
     t3d_dest_bufs[dest] = T3D_BUF_IN_USE;
@@ -460,24 +409,32 @@ int           len;
     }
 #   endif
 
-
     /* These references are ordered to match the order they appear in the 
        structure */
     pkt             = (T3D_PKT_SHORT_T *)&t3d_recv_bufs[t3d_myid];
-    pkt->status     = T3D_BUF_IN_USE;
     pkt->mode       = T3D_PKT_SHORT; 
     pkt->context_id = dmpi_send_handle->contextid;
     pkt->lrank      = dmpi_send_handle->lrank;
     pkt->tag        = dmpi_send_handle->tag;
     pkt->len        = len;
+    pkt->status     = T3D_BUF_IN_USE;
 
-    /* Copy the message to the send space */
-    memcpy( pkt->buffer, mpid_send_handle->start, len );
-
-    /* We don't give it an ID */
-    mpid_send_handle->sid = 0;
-
-    msglen = T3D_MSG_LEN_64( (sizeof(T3D_PKT_HEAD_T) + len) );
+    if (0 < len) {
+      buf_loc = T3D_BUFFER_LENGTH - 4*T3D_MSG_LEN_32( len ); 
+      msglen = T3D_MSG_LEN_32(sizeof(T3D_PKT_HEAD_SIZE_T)) + T3D_MSG_LEN_32(len);
+      T3D_MEMCPY(&(pkt->buffer[buf_loc]),mpid_send_handle->start,len);
+      shmem_put32((long *)&(pkt->buffer[buf_loc]),
+		  (long *)&(pkt->buffer[buf_loc]),
+		  msglen,
+		  dest );
+    }
+    else {
+      msglen = T3D_MSG_LEN_64( sizeof(T3D_PKT_HEAD_SIZE_T) ) - 2;
+      shmem_put((long*)&(pkt->mode),
+	        (long*)&(pkt->mode),
+	        msglen,
+	        dest);
+    }
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {
@@ -490,22 +447,11 @@ int           len;
 	T3D_Printf("  lrank      = %d\n",pkt->lrank);
 	T3D_Printf("  tag        = %d\n",pkt->tag);
 	T3D_Printf("  length     = %d\n",pkt->len);
-    }
-#   endif
-
-    /* Send the packet */
-    shmem_put( (long *)&t3d_recv_bufs[T3D_MY_PE], 
-               (long *)pkt,
-                msglen,
-                dest );
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
-    if (DebugFlag) {
         T3D_Printf("T3D_Post_send_short-short packet sent\n");
     }
 #   endif
 
-    mpid_send_handle->header_sent = 1;
+    mpid_send_handle->body_sent = 1;
 
     /* Mark the send as completed. */
     DMPI_mark_send_completed( dmpi_send_handle );
@@ -532,6 +478,7 @@ MPID_SHANDLE *mpid_send_handle;
 int           len;
 {
     MPIR_RHANDLE    *dmpi_recv_handle;
+    MPID_RHANDLE    *mpid_recv_handle;
     int              is_posted;
     int              err = MPI_SUCCESS;
 
@@ -541,47 +488,49 @@ int           len;
     }
 #   endif
 
-    DMPI_msg_arrived( dmpi_send_handle->lrank, dmpi_send_handle->tag, 
+    DMPI_msg_arrived( t3d_myid, dmpi_send_handle->tag, 
                       dmpi_send_handle->contextid, 
                       &dmpi_recv_handle, &is_posted );
 
     if (is_posted) {
 
-        dmpi_recv_handle->totallen = len;
+      dmpi_recv_handle->source   = dmpi_send_handle->lrank;
+      dmpi_recv_handle->tag      = dmpi_send_handle->tag;
+      dmpi_recv_handle->totallen = len;
         
-        /* Copy message if needed and mark the receive as completed */
-        if (len > 0) 
-            memcpy( dmpi_recv_handle->dev_rhandle.start, 
-                    dmpi_send_handle->dev_shandle.start,
-                    len ); 
-        DMPI_mark_recv_completed(dmpi_recv_handle);
+      /* Copy message if needed and mark the receive as completed */
+      if (len > 0) 
+	T3D_MEMCPY( dmpi_recv_handle->dev_rhandle.start, 
+		    dmpi_send_handle->dev_shandle.start,
+		    len ); 
+      
+      DMPI_mark_recv_completed(dmpi_recv_handle);
 
-	/* Mark the send as completed. */
-	DMPI_mark_send_completed( dmpi_send_handle );
+      /* Mark the send as completed. */
+      DMPI_mark_send_completed( dmpi_send_handle );
 
-        return (err);
+      return (err);
     }
     else {
-
-        MPID_RHANDLE *mpid_recv_handle;
-        char         *address;
         
         /* initialize mpid handle */
         mpid_recv_handle                  = &dmpi_recv_handle->dev_rhandle;
-        mpid_recv_handle->bytes_as_contig = len;
+        mpid_recv_handle->from            = t3d_myid;
         mpid_recv_handle->mode            = 0;   
-        mpid_recv_handle->from            = T3D_UNDEFINED;
+        mpid_recv_handle->bytes_as_contig = len;
         
         /* copy the message */
         if (len > 0) {
-            mpid_recv_handle->temp = (char *)T3D_MALLOC(len);
-            if ( ! mpid_recv_handle->temp )
-                T3D_Error("Out of memory for unexpected messages\n");
-            memcpy( mpid_recv_handle->temp, 
-                    dmpi_send_handle->dev_shandle.start, 
-                    len );
+         if ( (mpid_recv_handle->temp = (void *)T3D_MALLOC(len)) !=
+	   (void *)NULL ) { 
+	   T3D_MEMCPY( mpid_recv_handle->temp,
+	               dmpi_send_handle->dev_shandle.start, 
+		       len );
+	}
+	 else 
+	   T3D_Error("Out of memory for unexpected messages\n");
         }
-        mpid_send_handle->header_sent = 1;
+
         DMPI_mark_recv_completed(dmpi_recv_handle);
 
 	/* Mark the send as completed. */
@@ -602,9 +551,7 @@ int           len;
 int T3D_Post_send( dmpi_send_handle ) 
 MPIR_SHANDLE *dmpi_send_handle;
 {
-    MPID_SHANDLE *mpid_send_handle;
-    int           len;
-    int           dest;
+    MPID_SHANDLE *mpid_send_handle = &dmpi_send_handle->dev_shandle;
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {
@@ -612,21 +559,18 @@ MPIR_SHANDLE *dmpi_send_handle;
     }
 #   endif
 
-    mpid_send_handle = &dmpi_send_handle->dev_shandle;
-    len              = mpid_send_handle->bytes_as_contig;
-
-    dest = dmpi_send_handle->dest;
-
     /* Message to me */
-    if (dest == T3D_MY_PE) 
+    if ( dmpi_send_handle->dest == T3D_MY_PE ) 
         return(T3D_Post_send_local(dmpi_send_handle, mpid_send_handle,
-                                   len));
+                                   mpid_send_handle->bytes_as_contig));
 
     /* Handle the cases for various length messages */
-    if ( len > T3D_BUFFER_LENGTH )
-      return(T3D_Post_send_long(dmpi_send_handle, mpid_send_handle, len));
+    if ( mpid_send_handle->bytes_as_contig >= T3D_BUFFER_LENGTH )
+      return(T3D_Post_send_long(dmpi_send_handle, mpid_send_handle, 
+				mpid_send_handle->bytes_as_contig));
     else
-      return(T3D_Post_send_short(dmpi_send_handle, mpid_send_handle, len));
+      return(T3D_Post_send_short(dmpi_send_handle, mpid_send_handle, 
+				 mpid_send_handle->bytes_as_contig));
 
 } /* T3D_Post_send */
 
@@ -649,9 +593,9 @@ MPIR_SHANDLE *dmpi_send_handle;
     if ((stat = T3D_Post_send( dmpi_send_handle )) != MPI_SUCCESS)
         return (stat);
 
-    T3D_Complete_send( dmpi_send_handle );
-
-    DMPI_mark_send_completed( dmpi_send_handle );
+    if ( dmpi_send_handle->completer != 0 ) {
+       T3D_Complete_send( dmpi_send_handle );
+    }
 
     return (MPI_SUCCESS);
 }
@@ -664,109 +608,129 @@ int T3D_Complete_send( dmpi_send_handle )
 MPIR_SHANDLE *dmpi_send_handle;
 {
     MPID_SHANDLE *mpid_send_handle = &(dmpi_send_handle->dev_shandle);
-    int           completed        = 0;
-    char         *target,*stackptr,*heapptr;
-    int           numbytes,msglen;
-
+    void         *tmp_start;
+    int           msglen;
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {
         T3D_Printf("T3D_Complete_send\n");
     }
 #   endif
-  
-    /* Short message needs no completion */
-    if ( mpid_send_handle->bytes_as_contig < T3D_BUFFER_LENGTH ) {
+
+    if ( ( dmpi_send_handle->completer != 0 ) && ( ! mpid_send_handle->body_sent ) ) {
+
+      if ( ((mpid_send_handle->mode == T3D_PKT_LONG)     ||
+	    (mpid_send_handle->mode == T3D_PKT_LONG_SYNC)   ) &&
+	    (mpid_send_handle->body_sent == 0)                   ) {
+
+#       if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
+	if (DebugFlag) {
+	  T3D_Printf("   Waiting for long send info\n");
+	}
+#       endif
+
+	while ( (volatile)mpid_send_handle->long_send_info.length == -1 )
+	  T3D_Check_incoming( MPID_NOTBLOCKING );
+	
+#        if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
+	if (DebugFlag) {
+	  T3D_Printf("   long send info =\n");
+	  T3D_Printf("     target buffer    = 0x%x\n",
+		     mpid_send_handle->long_send_info.target_buffer );
+	  T3D_Printf("     target completer = 0x%x\n",
+		     mpid_send_handle->long_send_info.target_completer );
+	  T3D_Printf("     completer value  = %d\n",
+		     mpid_send_handle->long_send_info.completer_value );
+	  T3D_Printf("     length           = %d\n",
+		     mpid_send_handle->long_send_info.length        );
+	}
+#       endif
+
+
+	if ( mpid_send_handle->long_send_info.length > 0 ) {
+
+	  if ( IS_4BYTE_ALIGNED(mpid_send_handle->start) ) {
+	    tmp_start = mpid_send_handle->start;
+	  }
+	  else {
+	    if ( ( tmp_start = malloc(mpid_send_handle->long_send_info.length) ) ==
+		 (void *)NULL ) {
+	      T3D_Error("malloc() failed\n");
+	      T3D_Abort(1);
+	    }
+	    memcpy( tmp_start,
+		    mpid_send_handle->start,
+		    mpid_send_handle->long_send_info.length );
+	  }
+
+	  T3D_CHECK_TARGET( mpid_send_handle->long_send_info.target_buffer,
+			    mpid_send_handle->long_send_info.length );
+
+
+          msglen = T3D_MSG_LEN_32(mpid_send_handle->long_send_info.length);
+
+	  shmem_put32( (short *)mpid_send_handle->long_send_info.target_buffer,
+		       (short *)tmp_start,
+		       msglen,
+		       dmpi_send_handle->dest );
+
+	  T3D_RESET_STACK;
+
+	  if ( tmp_start != mpid_send_handle->start )
+	    T3D_FREE( tmp_start );
+
+#       if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
+	if (DebugFlag) {
+	  T3D_Printf("   msglen = %d\n",msglen);
+	  T3D_Printf("   Sending completed flag\n");
+	}
+#       endif
+
+	T3D_CHECK_TARGET( mpid_send_handle->long_send_info.target_completer, 8 );
+
+	shmem_put( (long *)mpid_send_handle->long_send_info.target_completer,
+		   (long *)&mpid_send_handle->long_send_info.completer_value,
+		   1,
+		   dmpi_send_handle->dest );
+
+	T3D_RESET_STACK;
+
+	}
+
+	mpid_send_handle->body_sent = 1;
+
+	if ( mpid_send_handle->mode == T3D_PKT_LONG ) {
+	    DMPI_mark_send_completed( dmpi_send_handle );
+	    T3D_dequeue( &T3D_long_sends, mpid_send_handle->p ); 
+	}
+      }
+      else {
+	DMPI_mark_send_completed( dmpi_send_handle );
+	T3D_dequeue( &T3D_long_sends, mpid_send_handle->p ); 
+      }
+
+
+
 #     if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
       if (DebugFlag) {
-        T3D_Printf("T3D_Complete_send-short buffer needs no completing\n");
+	  T3D_Printf("   Waiting for send completed at 0x%x\n",
+		      &dmpi_send_handle->completer);
       }
-#   endif
-      return MPI_SUCCESS;
-    }
-    
-    /* Long message might need to be completed */
-    if ( dmpi_send_handle->completer ) {
+#     endif
 
-#     if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
-      if (DebugFlag) {
-        T3D_Printf("T3D_Complete_send-long buffer needs completing\n");
-      }
-#   endif
-        
-      /* If send needs to be completed, wait for pointer to remote buffer */
-      while ( (mpid_send_handle->remote_long_buffer    == (char *)NULL) ||
-              (mpid_send_handle->remote_long_completed == (char *)NULL)    )
-        T3D_Check_incoming( MPID_NOTBLOCKING );
-     
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
-    if (DebugFlag) {
-        T3D_Printf("sending long buffer to 0x%x\n",mpid_send_handle->remote_long_buffer);
     }
-#   endif
 
-      stackptr = (char *)&msglen;
-      heapptr  = (char *)t3d_heap_limit;
-      target   = mpid_send_handle->remote_long_buffer;
-      numbytes = mpid_send_handle->bytes_as_contig;
+      /* wait for synchronous reply */
+      while( (volatile)dmpi_send_handle->completer > 0 )
+	T3D_Check_incoming( MPID_NOTBLOCKING );
+
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {
-        T3D_Printf("T3D_Complete_send - stack    = 0x%x\n",stackptr);
-	T3D_Printf("                    heap     = 0x%x\n",heapptr );
-	T3D_Printf("                    target   = 0x%x\n",target  );
-	T3D_Printf("                    bytes    = %d\n",numbytes  );
+        T3D_Printf("   Send is complete\n");
     }
 #   endif
 
-      if ( ( (target-numbytes) < stackptr ) && ( (target+numbytes) > heapptr  ) ) {
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
-         if (DebugFlag) {
-	   T3D_Printf("T3D_Complete_send-detected invalid target address\n");
-	 }
-#   endif
-	 /* check target to see if it is less than the stack and greater than the heap */
-	 if ( (stackptr - (target-numbytes) ) < ((target+numbytes) - heapptr) ) {
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
-	   if (DebugFlag) {
-	   }
-#   endif
-           /* stack variable, so extend the stack */
-           shmem_stack( (void *)(target - numbytes) );
-	 }
-	 else {
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
-	   if (DebugFlag) {
-	     T3D_Printf("T3D_Complete_send-extending heap\n");
-	   }
-#   endif
-
-	   /* heap variable, so extend the heap and get new limit */
-	   malloc_brk( (char *)target + numbytes );
-	   t3d_heap_limit = sbreak( 0 ); 
-	 }
-       }
-      
-      /* Send into remote long buffer */
-      T3D_LONG_SEND( mpid_send_handle->remote_long_buffer,
-		     mpid_send_handle->start,
-		     mpid_send_handle->bytes_as_contig,
-		     dmpi_send_handle->dest );
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
-    if (DebugFlag) {
-        T3D_Printf("sending completed to 0x%x\n",mpid_send_handle->remote_long_completed);
-    }
-#   endif
-
-      /* Notify remote receive handle of send completion */
-      shmem_put( (long *)mpid_send_handle->remote_long_completed,
-                 (long *)&completed,
-                  1,
-                  dmpi_send_handle->dest );
-
-
-    }
 
     return (MPI_SUCCESS);
       
@@ -782,12 +746,204 @@ MPIR_SHANDLE *dmpi_send_handle;
 int T3D_Test_send( dmpi_send_handle )
 MPIR_SHANDLE *dmpi_send_handle;
 {
+
+    MPID_SHANDLE *mpid_send_handle = &dmpi_send_handle->dev_shandle;
+    void         *tmp_start;
+    int           msglen;
+
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {
         T3D_Printf("T3D_Test_send\n");
     }
 #   endif
 
+    if ( (dmpi_send_handle->completer != 0) && (! mpid_send_handle->body_sent) ) {
+
+      if ( ((mpid_send_handle->mode == T3D_PKT_LONG)     ||
+	    (mpid_send_handle->mode == T3D_PKT_LONG_SYNC)   ) &&
+	   ((mpid_send_handle->body_sent == 0)            &&
+	    (mpid_send_handle->long_send_info.length != -1) ) ) {
+
+#       if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
+	if (DebugFlag) {
+	  T3D_Printf("   long send info =\n");
+	  T3D_Printf("     target buffer    = 0x%x\n",
+		     mpid_send_handle->long_send_info.target_buffer );
+	  T3D_Printf("     target completer = 0x%x\n",
+		     mpid_send_handle->long_send_info.target_completer );
+	  T3D_Printf("     completer value  = %d\n",
+		     mpid_send_handle->long_send_info.completer_value );
+	  T3D_Printf("     length           = %d\n",  
+		     mpid_send_handle->long_send_info.length        );
+	}
+#       endif
+
+	if ( mpid_send_handle->long_send_info.length > 0 ) {
+
+	  if ( IS_4BYTE_ALIGNED(mpid_send_handle->start) ) {
+	    tmp_start = mpid_send_handle->start;
+	  }
+	  else {
+	    if ( ( tmp_start = malloc(mpid_send_handle->long_send_info.length) ) ==
+		 (void *)NULL ) {
+	      T3D_Error("malloc() failed\n");
+	      T3D_Abort(1);
+	    }
+	    memcpy( tmp_start,
+		    mpid_send_handle->start,
+		    mpid_send_handle->long_send_info.length );
+	  }
+
+	  T3D_CHECK_TARGET( mpid_send_handle->long_send_info.target_buffer,
+			    mpid_send_handle->long_send_info.length );
+	 
+	  msglen = T3D_MSG_LEN_32(mpid_send_handle->long_send_info.length);
+
+	  shmem_put32( (short *)mpid_send_handle->long_send_info.target_buffer,
+		       (short *)mpid_send_handle->start,
+		       msglen,
+		       dmpi_send_handle->dest );
+
+	  T3D_RESET_STACK;
+
+	  if ( tmp_start != mpid_send_handle->start )
+	    T3D_FREE( tmp_start );
+
+#         if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
+	  if (DebugFlag) {
+	    T3D_Printf("   msglen = %d\n",msglen);
+	    T3D_Printf("   Sending completed flag to 0x%x\n",
+		        mpid_send_handle->long_send_info.target_completer);
+	  }
+#         endif
+
+	  T3D_CHECK_TARGET( mpid_send_handle->long_send_info.target_completer, 8 );
+	  
+	  shmem_put( (long *)mpid_send_handle->long_send_info.target_completer,
+		     (long *)&mpid_send_handle->long_send_info.completer_value,
+		     1,
+		     dmpi_send_handle->dest );
+
+	  T3D_RESET_STACK;
+
+	  mpid_send_handle->body_sent = 1;
+
+	  if ( mpid_send_handle->mode == T3D_PKT_LONG ) {
+	    DMPI_mark_send_completed( dmpi_send_handle );
+	    T3D_dequeue( &T3D_long_sends, mpid_send_handle->p );
+	  }
+        }	
+	else {
+	  DMPI_mark_send_completed( dmpi_send_handle );
+	  T3D_dequeue( &T3D_long_sends, mpid_send_handle->p );
+        }	
+	  
+      } 
+
+    }
+
+#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
+    if (DebugFlag) {
+      if ( dmpi_send_handle->completer == 0 )
+	T3D_Printf("  Send is complete\n");
+      else 
+	T3D_Printf("  Send is not complete\n");
+      }
+#   endif
+
     return ( dmpi_send_handle->completer == 0 );
+
+}
+
+/***************************************************************************
+   T3D_Process_long_sends
+
+   Description:
+
+ ***************************************************************************/
+void T3D_Process_long_sends()
+{
+  MPIR_SHANDLE *dmpi_send_handle;
+  MPIR_QHDR    *queue = &T3D_long_sends;
+  MPIR_QEL     *p;
+
+# if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
+  if (DebugFlag) {
+    T3D_Printf("T3D_Process_long_sends()\n");
+  }
+# endif
+
+  p = queue->first;
+
+  if (p) { 
+    /* get the next send handle */
+    dmpi_send_handle = ( MPIR_SHANDLE * ) p->ptr;
+
+    /* try to complete it */
+#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
+    if (DebugFlag) {
+      T3D_Printf("   Calling T3D_Test_send()\n");
+    }
+#   endif
+
+    T3D_Test_send( dmpi_send_handle );
+
+  }
+}
+
+/* borrowed from MPIR_enqueue() */
+MPIR_QEL *T3D_enqueue(header, object, object_type)
+MPIR_QHDR     *header;
+MPIR_COMMON   *object;
+MPIR_QEL_TYPE object_type;
+{
+
+    MPIR_QEL      *p;
+
+    header->currlen++;
+    if (header->currlen > header->maxlen)
+	header->maxlen++;
+
+    p          = (MPIR_QEL *) MPIR_SBalloc( MPIR_qels );
+    if (!p) {
+	fprintf( stderr, "Out of memory !\n" );
+	MPI_Abort( MPI_COMM_WORLD, 1 );
+    }
+    p->ptr      = (void *)object;
+    p->qel_type = object_type;
+
+    if (header->first == NULL)
+    {
+	header->first	    = header->last = p;
+	p->prev		    = p->next      = NULL;
+    }
+    else
+    {
+	p->prev            = header->last;
+	p->next            = NULL;
+	header->last->next = p;
+	header->last       = p;
+    }
+return p; 
+}
+
+/* borrowed from MPIR_dequeue() */
+void T3D_dequeue(header, p)
+MPIR_QHDR *header;
+MPIR_QEL  *p;
+{
+
+    if ( p->next != NULL )
+      p->next->prev = p->prev;
+    else
+      header->last  = p->prev;
+
+    if ( p->prev != NULL )
+      p->prev->next = p->next;
+    else
+      header->first = p->next;
+    header->currlen--;
+    MPIR_SBfree( MPIR_qels, p );/* free queue element */
+  	    
 }
 

@@ -1,13 +1,9 @@
 /*
- *  $Id: gather.c,v 1.24 1995/12/21 22:16:55 gropp Exp $
+ *  $Id: gather.c,v 1.25 1996/04/12 15:39:08 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
-
-#ifndef lint
-static char vcid[] = "$Id: gather.c,v 1.24 1995/12/21 22:16:55 gropp Exp $";
-#endif /* lint */
 
 #include "mpiimpl.h"
 #include "coll.h"
@@ -31,6 +27,13 @@ Output Parameter:
 . recvbuf - address of receive buffer (choice, significant only at 'root') 
 
 .N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+.N MPI_ERR_COUNT
+.N MPI_ERR_TYPE
+.N MPI_ERR_BUFFER
 @*/
 int MPI_Gather ( sendbuf, sendcnt, sendtype, recvbuf, recvcount, recvtype, 
 		 root, comm )
@@ -44,12 +47,16 @@ int               root;
 MPI_Comm          comm;
 {
   int        mpi_errno = MPI_SUCCESS;
+  MPIR_ERROR_DECL;
 
   if ( MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,sendcnt) ||
        MPIR_TEST_DATATYPE(comm,sendtype) ) 
     return MPIR_ERROR(comm, mpi_errno, "Error in MPI_GATHER" );
 
-  return comm->collops->Gather(sendbuf, sendcnt, sendtype, 
+  MPIR_ERROR_PUSH(comm);
+  mpi_errno = comm->collops->Gather(sendbuf, sendcnt, sendtype, 
 			       recvbuf, recvcount, recvtype, 
 			       root, comm );
+  MPIR_ERROR_POP(comm);
+  MPIR_RETURN(comm,mpi_errno,"Error in MPI_GATHER");
 }

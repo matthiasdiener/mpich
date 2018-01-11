@@ -1,21 +1,16 @@
 /*
- *  $Id: init.c,v 1.85 1995/12/21 21:57:25 gropp Exp $
+ *  $Id: init.c,v 1.86 1996/04/11 20:29:58 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 
-#ifndef lint
-static char vcid[] = "$Id: init.c,v 1.85 1995/12/21 21:57:25 gropp Exp $";
-#endif /* lint */
-
 /* 
    define MPID_NO_FORTRAN if the Fortran interface is not to be supported
    (perhaps because there is no Fortran compiler)
  */
 #include "mpiimpl.h"
-#include "mpisys.h"
 
 /*@
    MPI_Init - Initialize the MPI execution environment
@@ -131,10 +126,13 @@ static char vcid[] = "$Id: init.c,v 1.85 1995/12/21 21:57:25 gropp Exp $";
    'SIGIO', 'SIGALRM', and 'SIGPIPE'.  For example, using 'SIGIO' and 
    'SIGPIPE' may prevent X11 routines from working.  
 
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_INIT
 @*/
 int MPI_Init(argc,argv)
 int  *argc;
 char ***argv;
 {
-return MPIR_Init(argc,argv);
+    return MPIR_Init(argc,argv);
 }
