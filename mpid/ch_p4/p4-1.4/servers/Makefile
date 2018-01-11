@@ -52,7 +52,7 @@ all: serv_p4 example_configs iserv_p4 killiserv_p4
 example_configs: inetd.entry services.entry
 
 serv_p4: serv_p4.o
-	$(CLINKER) $(CFLAGS) -o serv_p4 serv_p4.o
+	$(CLINKER) $(CFLAGS) -o serv_p4 serv_p4.o $(MDEP_LIBS)
 	/bin/mv serv_p4 ../bin
 
 iserv_p4:$(P)  iserv_p4.o

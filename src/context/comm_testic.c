@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_testic.c,v 1.1 1995/04/23 18:00:57 gropp Exp $
+ *  $Id: comm_testic.c,v 1.2 1995/06/21 03:05:58 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -26,11 +26,7 @@ int      *flag;
   if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_ARG(flag) )
 	return MPIR_ERROR( comm, mpi_errno, "Error in MPI_COMM_TEST_INTER" );
   
-  /* Set the flag */
-  if (comm->comm_type == MPIR_INTER)
-	(*flag) = 1; 
-  else
-	(*flag) = 0; 
+  *flag = (comm->comm_type == MPIR_INTER);
 
   return (mpi_errno);
 }

@@ -40,8 +40,10 @@ EXECS = timers baseattr errhand sigchk timertest
 
 default: $(EXECS)
 
-testing: default $(MPIR_HOME)/util/mpirun
-	-runtests
+#
+# Note that runtests builds the executables as required
+testing: $(MPIR_HOME)/util/mpirun
+	-./runtests $(TESTARGS)
 
 linktest: default clean
 

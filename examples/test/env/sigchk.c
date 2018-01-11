@@ -1,5 +1,5 @@
 #ifndef lint
-static char vcid[] = "$Id: sigchk.c,v 1.2 1995/04/05 16:16:31 gropp Exp gropp $";
+static char vcid[] = "$Id: sigchk.c,v 1.3 1995/07/26 16:58:38 gropp Exp $";
 #endif
 
 /* This file provides routines to check for the use of signals by software */

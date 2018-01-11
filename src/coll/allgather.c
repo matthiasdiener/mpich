@@ -1,12 +1,12 @@
 /*
- *  $Id: allgather.c,v 1.18 1995/05/16 18:10:23 gropp Exp $
+ *  $Id: allgather.c,v 1.19 1995/06/21 03:08:25 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: allgather.c,v 1.18 1995/05/16 18:10:23 gropp Exp $";
+static char vcid[] = "$Id: allgather.c,v 1.19 1995/06/21 03:08:25 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -37,9 +37,7 @@ int               recvcount;
 MPI_Datatype      recvtype;
 MPI_Comm          comm;
 {
-  int size, rank, root;
   int mpi_errno = MPI_SUCCESS;
-  int flag;
 
   /* Check for invalid arguments */
   if ( MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,sendcount) ||
@@ -48,24 +46,8 @@ MPI_Comm          comm;
        MPIR_TEST_DATATYPE(comm,recvtype)) 
       return MPIR_ERROR( comm, mpi_errno, "Error in MPI_ALLGATHER" ); 
   
-  /* Check for intra-communicator */
-  MPI_Comm_test_inter ( comm, &flag );
-  if (flag) 
-    return MPIR_ERROR(comm, MPI_ERR_COMM,
-			  "Inter-communicator invalid in MPI_ALLGATHER");
-
-  /* Get the size of the communicator */
-  MPI_Comm_size ( comm, &size );
-
-  /* Do a gather for each process in the communicator */
-  /* This is a sorry way to do this, but for now ... */
-  for (root=0; root<size; root++) {
-    mpi_errno = MPI_Gather(sendbuf,sendcount,sendtype,
-			   recvbuf,recvcount,recvtype,root,comm);
-    if (mpi_errno) break;
-    }
-
-  return (mpi_errno);
+  return comm->collops->Allgather( sendbuf, sendcount, sendtype,
+				  recvbuf, recvcount, recvtype, comm );
 }
 
 

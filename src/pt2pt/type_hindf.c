@@ -32,16 +32,42 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_type_hindexed_( count, blocklens, indices, old_type, newtype, __ierr )
+void mpi_type_hindexed_( count, blocklens, indices, old_type, newtype, __ierr )
 int*count;
 int           blocklens[];
-MPI_Aint      indices[];
+int           indices[];
 MPI_Datatype  old_type;
 MPI_Datatype *newtype;
 int *__ierr;
 {
 MPI_Datatype lnewtype = 0;
-*__ierr = MPI_Type_hindexed(*count,blocklens,indices,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(old_type) ),&lnewtype);
-*(int*)newtype = MPIR_FromPointer(lnewtype);
+MPI_Aint     *c_indices;
+int          i;
+
+if (*count > 0) {
+    /* We really only need to do this when 
+       sizeof(MPI_Aint) != sizeof(INTEGER) */
+    c_indices = (MPI_Aint *) MALLOC( *count * sizeof(MPI_Aint) );
+    if (!c_indices) {
+	*__ierr =  MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+			      "Out of space in MPI_TYPE_HINDEXED" );
+	return;
+	}
+    for (i=0; i<*count; i++) {
+	c_indices[i] = (MPI_Aint) indices[i];
+	}
+    *__ierr = MPI_Type_hindexed(*count,blocklens,c_indices,
+			   (MPI_Datatype)MPIR_ToPointer( *(int*)(old_type) ),
+				&lnewtype);
+    *(int*)newtype = MPIR_FromPointer(lnewtype);
+    FREE( c_indices );
+    }
+else if (*count == 0) {
+    *__ierr = MPI_SUCCESS;
+    *(int*)newtype = 0;
+    }
+else {
+    *__ierr = MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_COUNT,
+			       	  "Negative count in MPI_TYPE_HINDEXED" );
+    }
 }

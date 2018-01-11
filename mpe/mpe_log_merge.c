@@ -10,7 +10,9 @@
 *  * All work funded by Argonne National Laboratory
 \**/
 
+#ifndef MPE_HAS_PROCID
 extern int MPE_Log_procid;
+#endif
 
 static MPE_Log_BLOCK *readBlock;
    /* this is used for flexibility with the b->reload stuff. */
@@ -567,6 +569,7 @@ fprintf( stderr, "[%d] ba->t = %lf, bb->t = %lf, bc->t = %lf\n",
 #if DEBUG
   fprintf( debug_file, "Done with barrier\n" ); fflush(debug_file);
 #endif
+return 0;
 }
 
 

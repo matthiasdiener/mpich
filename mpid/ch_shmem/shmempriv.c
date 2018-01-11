@@ -5,7 +5,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: shmempriv.c,v 1.6 1995/05/25 22:25:16 gropp Exp $";
+static char vcid[] = "$Id: shmempriv.c,v 1.8 1995/07/26 16:56:53 gropp Exp $";
 #endif
 
 #include "mpid.h"
@@ -14,7 +14,20 @@ static char vcid[] = "$Id: shmempriv.c,v 1.6 1995/05/25 22:25:16 gropp Exp $";
 MPID_SHMEM_globmem *MPID_shmem = 0;
 int                 MPID_myid = -1;
 int                 MPID_numids = 0;
-VOLATILE MPID_PKT_T *MPID_local = 0, **MPID_incoming = 0;
+MPID_PKT_T          *MPID_local = 0;
+VOLATILE MPID_PKT_T **MPID_incoming = 0;
+
+int MPID_GetIntParameter( name, defval )
+char *name;
+int  defval;
+{
+extern char *getenv();
+char *p = getenv( name );
+
+if (p) 
+    return atoi(p);
+return defval;
+}
 
 void MPID_SHMEM_init( argc, argv )
 int  *argc;
@@ -45,9 +58,14 @@ if (numprocs <= 0 || numprocs > MPID_MAX_PROCS) {
     fprintf( stderr, "Invalid number of processes (%d) invalid\n", numprocs );
     exit( 1 );
     }
-memsize = MPID_MAX_SHMEM;
+/* The environment variable MPI_GLOBMEMSIZE may be used to select memsize */
+memsize = MPID_GetIntParameter( "MPI_GLOBMEMSIZE", MPID_MAX_SHMEM );
+/*
 if (memsize < sizeof(MPID_SHMEM_globmem) + numprocs * 65536)
     memsize = sizeof(MPID_SHMEM_globmem) + numprocs * 65536;
+ */
+if (memsize < sizeof(MPID_SHMEM_globmem) + numprocs * 128)
+    memsize = sizeof(MPID_SHMEM_globmem) + numprocs * 128;
 p2p_init( numprocs, memsize );
 
 MPID_shmem = p2p_shmalloc( sizeof( MPID_SHMEM_globmem ) );
@@ -65,11 +83,11 @@ cnt	      = 0;    /* allocated packets */
 pkts_per_proc = MPID_SHMEM_MAX_PKTS / numprocs;
 
 for (i=0; i<numprocs; i++) {
-    MPID_shmem->incoming[i]     = 0;
-    MPID_shmem->incomingtail[i] = 0;
+    MPID_shmem->incoming[i].head     = 0;
+    MPID_shmem->incoming[i].tail     = 0;
 
     /* Setup the avail list of packets */
-    MPID_shmem->avail[i] = MPID_shmem->pool + cnt;
+    MPID_shmem->avail[i].head = MPID_shmem->pool + cnt;
     for (j=0; j<pkts_per_proc-1; j++) {
 	MPID_shmem->pool[cnt+j].head.next = 
 	  ((MPID_PKT_T *)MPID_shmem->pool) + cnt + j + 1;
@@ -82,13 +100,16 @@ for (i=0; i<numprocs; i++) {
     }
 
 MPID_numids = numprocs;
+
+/* Above this point, there was a single process.  After the p2p_create_procs
+   call, there are more */
 p2p_create_procs( numprocs - 1 );
 
 p2p_lock( &MPID_shmem->globlock );
 MPID_myid = MPID_shmem->globid++;
 p2p_unlock( &MPID_shmem->globlock );
 
-MPID_incoming = MPID_shmem->incoming + MPID_myid;
+MPID_incoming = &MPID_shmem->incoming[MPID_myid].head;
 }
 
 void MPID_SHMEM_finalize()
@@ -113,13 +134,11 @@ p2p_cleanup();
  */
 #define BACKOFF_LMT 1048576
 /* 
-   If this is set, then packets are not allocated and are just passed back 
-   from the readcontrol routine.  If not, packets are created on the call 
-   stack and copied from a shared-memory packet.
+   This version assumes that the packets are dynamically allocated (not off of
+   the stack).  This lets us use packets that live in shared memory.
 
-   NOTE THE DIFFERENCES IN BINDINGS
+   NOTE THE DIFFERENCES IN BINDINGS from the usual versions.
  */
-#ifdef MPID_PKT_DYNAMIC_RECV
 int MPID_SHMEM_ReadControl( pkt, size, from )
 MPID_PKT_T **pkt;
 int        size, *from;
@@ -132,27 +151,27 @@ if (MPID_local) {
     MPID_local = MPID_local->head.next;
     }
 else {
-    if (!MPID_shmem->incoming[MPID_myid]) {
+    if (!MPID_shmem->incoming[MPID_myid].head) {
 	/* This code tries to let other processes get to run.  If there
 	   are more physical processors than processes, then a simple
-	   while (!MPID_shmem->incoming[MPID_myid]);
+	   while (!MPID_shmem->incoming[MPID_myid].head);
 	   might be better */
 	backoff = 1;
-	while (!MPID_shmem->incoming[MPID_myid]) {
+	while (!MPID_shmem->incoming[MPID_myid].head) {
 	    cnt	    = backoff;
 	    while (cnt--) ;
 	    backoff = 2 * backoff;
 	    if (backoff > BACKOFF_LMT) backoff = BACKOFF_LMT;
-	    if (MPID_shmem->incoming[MPID_myid]) break;
+	    if (MPID_shmem->incoming[MPID_myid].head) break;
 	    p2p_yield();
 	    }
 	}
-    /* This code could drain the ENTIRE list into a local list */
+    /* This code drains the ENTIRE list into a local list */
     p2p_lock( &MPID_shmem->incominglock[MPID_myid] );
     inpkt          = (MPID_PKT_T *) *MPID_incoming;
     MPID_local     = inpkt->head.next;
     *MPID_incoming = 0;
-    MPID_shmem->incomingtail[MPID_myid] = 0;
+    MPID_shmem->incoming[MPID_myid].tail = 0;
     p2p_unlock( &MPID_shmem->incominglock[MPID_myid] );
     }
 
@@ -174,73 +193,19 @@ src = (*pkt).head.src;
 
 MPID_TRACE_CODE_PKT("Freepkt",-1,pkt);
 p2p_lock( &MPID_shmem->availlock[src] );
-pkt->head.next       = (MPID_PKT_T *)MPID_shmem->avail[src];
-MPID_shmem->avail[src] = pkt;
+pkt->head.next       = (MPID_PKT_T *)MPID_shmem->avail[src].head;
+MPID_shmem->avail[src].head = pkt;
 p2p_unlock( &MPID_shmem->availlock[src] );
 }
-
-#else
-int MPID_SHMEM_ReadControl( pkt, size, from )
-MPID_PKT_T *pkt;
-int        size, *from;
-{
-MPID_PKT_T *inpkt;
-int        src;
-int        backoff, cnt;
-
-if (MPID_local) {
-    inpkt      = (MPID_PKT_T *)MPID_local;
-    MPID_local = MPID_local->head.next;
-    }
-else {
-    if (!MPID_shmem->incoming[MPID_myid]) {
-	/* This code tries to let other processes get to run.  If there
-	   are more physical processors than processes, then a simple
-	   while (!MPID_shmem->incoming[MPID_myid]);
-	   might be better */
-	backoff = 1;
-	while (!MPID_shmem->incoming[MPID_myid]) {
-	    cnt	    = backoff;
-	    while (cnt--) ;
-	    backoff = 2 * backoff;
-	    if (backoff > BACKOFF_LMT) backoff = BACKOFF_LMT;
-	    if (MPID_shmem->incoming[MPID_myid]) break;
-	    p2p_yield();
-	    }
-	}
-    /* This code could drain the ENTIRE list into a local list */
-    p2p_lock( &MPID_shmem->incominglock[MPID_myid] );
-    inpkt          = (MPID_PKT_T *) *MPID_incoming;
-    MPID_local     = inpkt->head.next;
-    *MPID_incoming = 0;
-    MPID_shmem->incomingtail[MPID_myid] = 0;
-    p2p_unlock( &MPID_shmem->incominglock[MPID_myid] );
-    }
-
-/* Eventually, we'll arrange to deliver the address of the packet */
-MEMCPY( pkt, inpkt, (inpkt->head).pkt_len ); 
-
-src = (*inpkt).head.src;
-
-MPID_TRACE_CODE_PKT("Read/freepkt",src,inpkt);
-
-p2p_lock( &MPID_shmem->availlock[src] );
-inpkt->head.next       = (MPID_PKT_T *)MPID_shmem->avail[src];
-MPID_shmem->avail[src] = inpkt;
-p2p_unlock( &MPID_shmem->availlock[src] );
-
-*from = src;
-
-return MPI_SUCCESS;
-}
-#endif
 
 /* 
    If this is set, then packets are allocated, then set, then passed to the
    sendcontrol routine.  If not, packets are created on the call stack and
-   then copied to a shared-memory packet
+   then copied to a shared-memory packet.
+
+   We should probably make "localavail" global, then we can use a macro
+   to allocate packets as long as there is a local supply of them.
  */
-#ifdef MPID_PKT_DYNAMIC_SEND
 MPID_PKT_T *MPID_SHMEM_GetSendPkt()
 {
 MPID_PKT_T *inpkt;
@@ -255,8 +220,8 @@ else {
     do {
         p2p_lock( &MPID_shmem->availlock[MPID_myid] );
         inpkt			     = 
-	  (MPID_PKT_T *)MPID_shmem->avail[MPID_myid];
-        MPID_shmem->avail[MPID_myid] = 0;
+	  (MPID_PKT_T *)MPID_shmem->avail[MPID_myid].head;
+        MPID_shmem->avail[MPID_myid].head = 0;
         p2p_unlock( &MPID_shmem->availlock[MPID_myid] );
 #ifdef MPID_DEBUG_ALL
 	if (!inpkt)
@@ -286,64 +251,17 @@ pkt->head.src     = MPID_myid;
 pkt->head.next    = 0;           /* Should already be true */
 
 p2p_lock( &MPID_shmem->incominglock[dest] );
-tail = (MPID_PKT_T *)MPID_shmem->incomingtail[dest];
+tail = (MPID_PKT_T *)MPID_shmem->incoming[dest].tail;
 if (tail) 
     tail->head.next = pkt;
 else
-    MPID_shmem->incoming[dest] = pkt;
+    MPID_shmem->incoming[dest].head = pkt;
 
-MPID_shmem->incomingtail[dest] = pkt;
+MPID_shmem->incoming[dest].tail = pkt;
 p2p_unlock( &MPID_shmem->incominglock[dest] );
 
 return MPI_SUCCESS;
 }
-#else
-int MPID_SHMEM_SendControl( pkt, size, dest )
-MPID_PKT_T *pkt;
-int        size, dest;
-{
-MPID_PKT_T *inpkt;
-MPID_PKT_T *tail;
-static MPID_PKT_T *localavail = 0;
-
-
-/* Place the actual length into the packet */
-pkt->head.pkt_len = size;
-
-if (localavail) {
-    inpkt      = localavail;
-    localavail = inpkt->head.next;
-    }
-else {
-    /* WARNING: THIS CODE DOES A SLEEP 
-       IF THERE ARE NO AVAILABLE LOCAL PACKETS */
-    do {
-        p2p_lock( &MPID_shmem->availlock[MPID_myid] );
-        inpkt			     = 
-	  (MPID_PKT_T *)MPID_shmem->avail[MPID_myid];
-        localavail                   = inpkt->head.next;
-        MPID_shmem->avail[MPID_myid] = 0;
-        p2p_unlock( &MPID_shmem->availlock[MPID_myid] );
-        } while (!inpkt && (sleep(1),1));
-    }
-MPID_TRACE_CODE_PKT("Sendpkt",dest,inpkt);
-MEMCPY( inpkt, pkt, size );
-inpkt->head.next = 0;
-inpkt->head.src  = MPID_myid;
-
-p2p_lock( &MPID_shmem->incominglock[dest] );
-tail = (MPID_PKT_T *)MPID_shmem->incomingtail[dest];
-if (tail) 
-    tail->head.next = inpkt;
-else
-    MPID_shmem->incoming[dest] = inpkt;
-
-MPID_shmem->incomingtail[dest] = inpkt;
-p2p_unlock( &MPID_shmem->incominglock[dest] );
-
-return MPI_SUCCESS;
-}
-#endif
 
 #ifdef HAVE_UNAME
 #include <sys/utsname.h>

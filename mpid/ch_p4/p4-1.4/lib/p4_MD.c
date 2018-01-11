@@ -106,7 +106,12 @@ int memsize;
 
 #if defined(SGI)  &&  defined(VENDOR_IPC)
        
-    strcpy(p4_sgi_shared_arena_filename,"/tmp/shared_arena_");
+/*
+ *   strcpy(p4_sgi_shared_arena_filename,"/tmp/shared_arena_");
+ */
+
+    strcpy(p4_sgi_shared_arena_filename,"/usr/tmp/p4_shared_arena_");	/* 7/12/95, bri@sgi.com */
+
     sprintf(&(p4_sgi_shared_arena_filename[strlen(p4_sgi_shared_arena_filename)]),"%d",getpid());
 
     if (usconfig(CONF_INITUSERS,P4_MAX_MSG_QUEUES) == -1)

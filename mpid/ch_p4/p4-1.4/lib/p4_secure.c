@@ -190,12 +190,20 @@ char *host;
     struct hostent *hostent;
     struct sockaddr_in addr;
 
+#ifdef SGI
+    extern P4VOID net_set_sockbuf_size(int size, int skt);	/* 7/12/95, bri@sgi.com */
+#endif
+
     SYSCALL_P4(conn, socket(AF_INET, SOCK_STREAM, 0));
     if (conn < 0)
     {
 	start_prog_error = sys_errlist[errno];
 	return -1;
     }
+
+#ifdef SGI
+    net_set_sockbuf_size(-1,conn);	/* 7/12/95, bri@sgi.com */
+#endif
 
     hostent = gethostbyname_p4(host);
 

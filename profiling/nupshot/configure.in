@@ -225,77 +225,30 @@ AC_HAVE_LIBRARY(nsl, [LIBS="$LIBS -lnsl"])
 
 # Look for Tcl
 if test -z "$TCL_DIR" ; then
-echo Looking for Tcl
-for dir in \
-    /usr \
-    /usr/local \
-    /usr/local/tcl7.3 \
-    /usr/local/tcl7.3-tk3.6 \
-    /usr/local/tcl7.0 \
-    /usr/local/tcl7.0-tk3.3 \
-    $HOME/tcl \
-    $HOME/tcl7.3 \
-    /opt/local \
-    /opt/local/tcl7.0 \
-    /local/encap/tcl-7.1 ; do
-    if test -r $dir/include/tcl.h -a -r $dir/lib/libtcl.a ; then
-	TCL_DIR=$dir
-	break
-    fi
-done
+   PAC_FIND_TCL
 fi
-if test -z "$TCL_DIR" ; then
-echo Could not find Tcl in
-echo   /usr 
-echo   /usr/local
-echo   /usr/local/tcl7.3
-echo   /usr/local/tcl7.3-tk3.6
-echo   /usr/local/tcl7.0
-echo   /usr/local/tcl7.0-tk3.3
-echo   $HOME/tcl
-echo   $HOME/tcl7.3
-echo Please specify the directory that contains include/tcl.h
-echo and lib/libtcl.a with the -tcldir= option.
-exit
+if test -z "$TCL_DIR" ; then 
+    print_error "Could not find libraries for TCL (needed for Upshot)"
+    print_error "Please specify them with the -tcldir=path option."
+    print_error "Aborting build of nupshot"
+    exit 1
+fi
+if test -z "$TK_DIR" ; then 
+    print_error "Could not find libraries for TK (needed for Upshot)"
+    print_error "Please specify them with the -tkdir=path option."
+    print_error "Aborting build of nupshot"
+    exit 1
+fi
+PAC_TK_VERSION
+if test "$TK_VERSION" != 3.6 ; then
+    print_error "This version of nupshot requires tk 3.6  The version in"
+    print_error "$TK_DIR seems to be version $TK_VERSION."
+    print_error "Aborting build of nupshot"
+    exit 1
 fi
 AC_SUBST(TCL_DIR)
-
-# Look for Tk
-if test -z "$TK_DIR" ; then
-echo Looking for Tk
-for dir in \
-    /usr \
-    /usr/local \
-    /usr/local/tk3.6 \
-    /usr/local/tcl7.3-tk3.6 \
-    /usr/local/tk3.3 \
-    /usr/local/tcl7.0-tk3.3 \
-    $HOME/tcl \
-    $HOME/tcl7.3 \
-    /opt/local \
-    /opt/local/tk3.6 \
-    /local/encap/tk-3.4 ; do
-    if test -r $dir/include/tk.h -a -r $dir/lib/libtk.a ; then
-	TK_DIR=$dir
-	break
-    fi
-done
-fi
-if test -z "$TK_DIR" ; then
-echo Could not find Tk in
-echo    /usr
-echo    /usr/local
-echo    /usr/local/tk3.6
-echo    /usr/local/tcl7.3-tk3.6
-echo    /usr/local/tk3.3
-echo    /usr/local/tcl7.0-tk3.3
-echo    $HOME/tcl
-echo    $HOME/tcl7.3
-echo Please specify the directory that contains include/tk.h
-echo and lib/libtk.a with the -tkdir= option.
-exit
-fi
 AC_SUBST(TK_DIR)
+
 
 AC_SUBST(OPTFLAGS)
 

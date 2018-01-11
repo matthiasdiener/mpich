@@ -8,6 +8,22 @@
 #include <stdio.h>
 /* #define SHOWMSG */
 
+void ClearArray( a, n, v )
+double *a, v;
+int    n;
+{
+int i;
+for (i=0; i<n; i++) a[i] = v;
+}
+
+void SetArray( a, n )
+double *a;
+int    n;
+{
+int i;
+for (i=0; i<n; i++) a[i] = (double)i;
+}
+
 /* 
    This test requires that the MPI implementation support predefined 
    MPI_Datatypes in static initializers (i.e., they must be compile time
@@ -325,19 +341,4 @@ char **argv;
     return 0;
 }
 
-int ClearArray( a, n, v )
-double *a, v;
-int    n;
-{
-int i;
-for (i=0; i<n; i++) a[i] = v;
-}
-
-int SetArray( a, n )
-double *a;
-int    n;
-{
-int i;
-for (i=0; i<n; i++) a[i] = (double)i;
-}
 

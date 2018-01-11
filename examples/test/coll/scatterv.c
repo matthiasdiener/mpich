@@ -12,6 +12,61 @@
    can be split with MPI_Dims_create.
 
  */
+
+int SetData( sendbuf, recvbuf, nx, ny, myrow, mycol, nrow, ncol )
+double *sendbuf, *recvbuf;
+int    nx, ny, myrow, mycol, nrow, ncol;
+{
+int coldim, i, j, m, k;
+double *p;
+
+if (myrow == 0 && mycol == 0) {
+    coldim = nx * nrow;
+    for (j=0; j<ncol; j++) 
+	for (i=0; i<nrow; i++) {
+	    p = sendbuf + i * nx + j * (ny * coldim);
+	    for (m=0; m<ny; m++) {
+		for (k=0; k<nx; k++) {
+		    p[k] = 1000 * j + 100 * i + m * nx + k;
+		    }
+		p += coldim;
+		}
+	    }
+    }
+for (i=0; i<nx*ny; i++) 
+    recvbuf[i] = -1.0;
+}
+
+int CheckData( recvbuf, nx, ny, myrow, mycol, nrow )
+double *recvbuf;
+int    nx, ny, myrow, mycol, nrow;
+{
+int coldim, m, k;
+double *p, val;
+int errs = 0;
+
+coldim = nx;
+p      = recvbuf;
+for (m=0; m<ny; m++) {
+    for (k=0; k<nx; k++) {
+	val = 1000 * mycol + 100 * myrow + m * nx + k;
+	if (p[k] != val) {
+	    errs++;
+	    if (errs < 10) {
+		printf( 
+		   "Error in (%d,%d) [%d,%d] location, got %f expected %f\n", 
+		        m, k, myrow, mycol, p[k], val );
+		}
+	    else if (errs == 10) {
+		printf( "Too many errors; suppressing printing\n" );
+		}
+	    }
+	}
+    p += coldim;
+    }
+return errs;
+}
+
 int main( argc, argv )
 int argc;
 char **argv;
@@ -108,57 +163,4 @@ char **argv;
     return errs;
 }
 
-int SetData( sendbuf, recvbuf, nx, ny, myrow, mycol, nrow, ncol )
-double *sendbuf, *recvbuf;
-int    nx, ny, myrow, mycol, nrow, ncol;
-{
-int coldim, i, j, m, k;
-double *p;
-
-if (myrow == 0 && mycol == 0) {
-    coldim = nx * nrow;
-    for (j=0; j<ncol; j++) 
-	for (i=0; i<nrow; i++) {
-	    p = sendbuf + i * nx + j * (ny * coldim);
-	    for (m=0; m<ny; m++) {
-		for (k=0; k<nx; k++) {
-		    p[k] = 1000 * j + 100 * i + m * nx + k;
-		    }
-		p += coldim;
-		}
-	    }
-    }
-for (i=0; i<nx*ny; i++) 
-    recvbuf[i] = -1.0;
-}
-
-int CheckData( recvbuf, nx, ny, myrow, mycol, nrow )
-double *recvbuf;
-int    nx, ny, myrow, mycol, nrow;
-{
-int coldim, m, k;
-double *p, val;
-int errs = 0;
-
-coldim = nx;
-p      = recvbuf;
-for (m=0; m<ny; m++) {
-    for (k=0; k<nx; k++) {
-	val = 1000 * mycol + 100 * myrow + m * nx + k;
-	if (p[k] != val) {
-	    errs++;
-	    if (errs < 10) {
-		printf( 
-		   "Error in (%d,%d) [%d,%d] location, got %f expected %f\n", 
-		        m, k, myrow, mycol, p[k], val );
-		}
-	    else if (errs == 10) {
-		printf( "Too many errors; suppressing printing\n" );
-		}
-	    }
-	}
-    p += coldim;
-    }
-return errs;
-}
 

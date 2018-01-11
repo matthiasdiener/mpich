@@ -55,6 +55,17 @@ RefineGnuplotfile() {
     fi
     }
 
+Bverbatim() {
+cat >>$1 <<.
+\begin{verbatim}
+.
+}
+Everbatim() {
+cat >>$1 <<.
+\end{verbatim}
+.
+}
+
 # Remove the old filename
 /bin/rm -f $filename
 if test -z "@MPE_DIR@" ; then 
@@ -96,49 +107,88 @@ if test $noperf = 0 ; then
  	if test ! -x mpptest ; then 
 	    echo "Failed to build performance test program!" >> $filename
 	    echo "Output of \\code{make mpptest goptest} is" >> $filename
-	    cat >> $filename <<.
-\begin{verbatim}
-.
+	    Bverbatim $filename
 	    cat maketst.log >> $filename
-	    cat >> $filename <<.
-\end{verbatim}
-.
+	    Everbatim $filename
 	    exit 1
 	fi
+	/bin/rm -rf short.gpl short.err 
 	mpirun -np 2 -mvhome -mvback mppout.gpl -arch=@ARCH@ mpptest -gnuplot \
-		-tgoal 0.1 -auto -givdy > short.gpl
+		-tgoal 0.1 -auto -givdy > short.gpl 2>short.err
 	RefineGnuplotfile "short"
 	#
+	/bin/rm -rf long.gpl long.err 
 	mpirun -np 2 -mvhome -mvback mppout.gpl -arch=@ARCH@ mpptest -gnuplot \
-	   -tgoal 0.2 -auto -reps 25 -size 16384 65536 1024 -givedy > long.gpl
+	   -tgoal 0.2 -auto -reps 25 -size 16384 65536 1024 -givedy \
+		> long.gpl 2>long.err
 	RefineGnuplotfile "long"
 	#
 	# The collective routines need to aggregate over several values of
 	# -np ... 
-	/bin/rm -f sync.gpl sync.out
-	for np in 2 4 8 16 ; do
-	    mpirun -np $np -mvhome -mvback mppout.gpl -arch=@ARCH@ goptest \
-			-gnuplot -sync > sync.gpl
-	    cat mppout.gpl >> sync.out
-	done
-        mv sync.out mppout.gpl
-	RefineGnuplotfile "sync"
-	#
-	mpirun -np 4 -mvhome -mvback mppout.gpl -arch=@ARCH@ goptest -gnuplot \
-		-dsum > dsum4.gpl
-	RefineGnuplotfile "dsum4"
-	mpirun -np 8 -mvhome -mvback mppout.gpl -arch=@ARCH@ goptest -gnuplot \
-		-dsum > dsum8.gpl
-	RefineGnuplotfile "dsum8"
-	#
-	mpirun -np 4 -mvhome -mvback mppout.gpl -arch=@ARCH@ mpptest -gnuplot \
-		-bisect -givedy > bisect.gpl
-	RefineGnuplotfile "bisect"
+#	/bin/rm -f sync.gpl sync.out
+#	for np in 2 4 8 16 ; do
+#	    mpirun -np $np -mvhome -mvback mppout.gpl -arch=@ARCH@ goptest \
+#			-gnuplot -sync > sync.gpl
+#	    cat mppout.gpl >> sync.out
+#	done
+#        mv sync.out mppout.gpl
+#	RefineGnuplotfile "sync"
+#	#
+#	mpirun -np 4 -mvhome -mvback mppout.gpl -arch=@ARCH@ goptest -gnuplot \
+#		-dsum > dsum4.gpl
+#	RefineGnuplotfile "dsum4"
+#	mpirun -np 8 -mvhome -mvback mppout.gpl -arch=@ARCH@ goptest -gnuplot \
+#		-dsum > dsum8.gpl
+#	RefineGnuplotfile "dsum8"
+#	#
+#	mpirun -np 4 -mvhome -mvback mppout.gpl -arch=@ARCH@ mpptest -gnuplot \
+#		-bisect -givedy > bisect.gpl
+#	RefineGnuplotfile "bisect"
 	cd $curdir
     fi
+    # 
+    # Test that we generated the data.  If not, try to determine why
+    #
     if test ! -s examples/perftest/short-data.gpl -o \
             ! -s examples/perftest/long-data.gpl ; then
 	echo "Could not generate the performance test data!" >> $filename
+	if test -s examples/perftest/short.gpl ; then 
+	    echo "The output from the short message test was" >> $filename
+	    Bverbatim $filename
+	    cat examples/perftest/short.gpl >> $filename
+	    Everbatim $filename
+	else
+	    echo "There was no output from the short message test!" >> \
+		$filename
+	fi
+	if test -s examples/perftest/long.gpl ; then 
+	    echo "The output from the long message test was" >> $filename
+	    Bverbatim $filename
+	    cat examples/perftest/long.gpl >> $filename
+	    Everbatim $filename
+	else
+	    echo "There was no output from the long message test!" >> \
+		$filename
+	fi
+        echo \
+	"The output of the make to build the performance test program was" \
+			>> $filename
+    	Bverbatim $filename
+   	cat examples/perftest/maketst.log >> $filename
+    	Everbatim $filename
+    	if test -s examples/perftest/short.err ; then
+	    echo "The error output of short message test was" >> $filename
+            Bverbatim $filename
+	    cat examples/perftest/short.err >>$filename
+  	    Everbatim $filename
+    	fi
+    	if test -s examples/perftest/long.err ; then
+	    echo "The error output of long message test was" >> $filename
+            Bverbatim $filename
+	    cat examples/perftest/long.err >>$filename
+  	    Everbatim $filename
+    	fi
+        exit 0
     elif test -f "$gnuplotloc" ; then
         (cd examples/perftest ; \
 	/bin/rm -f short.eps long.eps ; \

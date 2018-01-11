@@ -31,7 +31,7 @@ SOURCEC  = $(SOURCE)
 SOURCEF  =
 MPI_OBJECTS = shmemevent.o shmemrecv.o shmemsend.o shmeminit.o shmemprobe.o \
 	      shmemsync.o p2p.o shmempriv.o shmemcoll.o shmemget.o \
-              $(ASMFILES_O)
+              cnxQuerySC.o $(ASMFILES_O)
 
 default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
 

@@ -1,12 +1,12 @@
 /*
- *  $Id: unpack.c,v 1.13 1995/05/09 19:00:53 gropp Exp $
+ *  $Id: unpack.c,v 1.14 1995/07/31 14:45:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: unpack.c,v 1.13 1995/05/09 19:00:53 gropp Exp $";
+static char vcid[] = "$Id: unpack.c,v 1.14 1995/07/31 14:45:41 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -58,7 +58,7 @@ MPI_Comm      comm;
   /* Figure the pad and adjust position */
   (*position) += pad;
   mpi_errno = MPIR_Unpack( comm, 
-			  (char *)inbuf + (*position), size - *position, 
+			  (char *)inbuf + (*position), insize - *position, 
 			  outcount, type, 0, outbuf, &actlen );
   if (mpi_errno) MPIR_ERROR(comm,mpi_errno,"Error in MPI_UNPACK" );
   (*position) += actlen;

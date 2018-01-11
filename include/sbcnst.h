@@ -1,5 +1,5 @@
 /*
- *  $Id: sbcnst.h,v 1.10 1995/05/11 17:49:07 gropp Exp $
+ *  $Id: sbcnst.h,v 1.11 1995/06/21 03:14:13 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -18,7 +18,7 @@ extern void *MPIR_SBinit( int, int, int ),
 #else
 extern void *MPIR_SBinit(), MPIR_SBfree(), MPIR_SBiAllocate(), 
             *MPIR_SBalloc(), MPIR_SBPrealloc();
-#endif
+#endif /* __STDC__ */
 #endif
 
 #define SBinit BUGGG%
@@ -28,9 +28,13 @@ extern void *MPIR_SBinit(), MPIR_SBfree(), MPIR_SBiAllocate(),
 #define SBPrealloc BUGGG%
 
 /* Chameleon/PETSc includes memory tracing functions that can be used
-   to track storage leaks.  */
+   to track storage leaks.  This code chooses that or the copy that 
+   has been placed into mpich/util/tr.c 
+ */
 #ifndef MALLOC
+
 #if defined(DEVICE_CHAMELEON) && defined(MPIR_DEBUG_MEM)
+/* Use Chameleon/PETSC version of MALLOC/FREE */
 #define MALLOC(a)    trmalloc((unsigned int)(a),__LINE__,__FILE__)
 #define CALLOC(a,b)  trcalloc((unsigned int)(a),(unsigned)(b),__LINE__,__FILE__)
 #define FREE(a)      trfree((char *)(a),__LINE__,__FILE__)
@@ -43,6 +47,7 @@ extern void *MPIR_SBinit(), MPIR_SBfree(), MPIR_SBiAllocate(),
 #define MPIR_SBdestroy(a)
 
 #elif defined(MPIR_MEMDEBUG)
+/* Use MPI tr version of MALLOC/FREE */
 extern void *MPIR_trmalloc(), MPIR_trfree(), *MPIR_trcalloc();
 #define MALLOC(a)    MPIR_trmalloc((unsigned)(a),__LINE__,__FILE__)
 #define CALLOC(a,b)  \
@@ -77,9 +82,9 @@ extern void *calloc();
 extern char *malloc();
 extern char *calloc();
 /* extern int free(); */
-#endif
-#endif
-#endif
+#endif /* __STDC__ */
+#endif /* HAVE_STDLIB_H || STDC_HEADERS */
+#endif /* !defined(P4_INCLUDED) */
 
 #define MALLOC(a)    malloc((unsigned)(a))
 #define CALLOC(a,b)  calloc((unsigned)(a),(unsigned)(b))

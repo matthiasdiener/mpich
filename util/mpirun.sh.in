@@ -55,6 +55,9 @@ case $machine in
     ch_meiko|meiko)
 	. $MPIRUN_HOME/mpirun.meiko
 	;;
+    cray_t3d|t3d)
+ 	. $MPIRUN_HOME/mpirun.t3d
+	;;
     ch_nc)
 	. $MPIRUN_HOME/mpirun.ch_nc
 	;;
@@ -73,7 +76,7 @@ case $machine in
     execer)
 	. $MPIRUN_HOME/mpirun.execer
 	;;
-    ch_shmem)
+    ch_shmem|ch_spp|sgi_mp|smp|convex_spp)
 	. $MPIRUN_HOME/mpirun.ch_shmem
     	;;
     ksr|sgi_mp|symm_ptx)
@@ -92,8 +95,13 @@ case $machine in
 	if [ -x $MPIRUN_HOME/mpirun.$device ] ; then
 	    . $MPIRUN_HOME/mpirun.$device
 	else
-	    echo "Cannot find MPIRUN machine file for $arch,$machine"
-	    echo "(Looking for $MPIRUN_HOME/mpirun.$device)"
+	    echo "Cannot find MPIRUN machine file for machine $machine"
+	    echo "and architecture $arch ."
+            if [ -n "$device" ] ; then
+	        echo "(Looking for $MPIRUN_HOME/mpirun.$device)"
+	    else
+	        echo "(No device specified.)"
+            fi
 	    # . $MPIRUN_HOME/mpirun.default
 	    exit 1
 	fi

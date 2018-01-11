@@ -5,16 +5,20 @@
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
-#include "dmshmem.h"
+#ifndef MPID_INCL
+#define MPID_INCL
+
+/*#include "dmshmem.h"*/
+#include "mpiimpl.h"
 
 #ifdef MPID_DEVICE_CODE
 /* Any thing that is specific to the device version */
-#include "mpi_bc.h"
+/*#include "mpi_bc.h"*/
 /* dmpi.h includes mpir.h which includes mpid.h to pick up the device 
    definitions.  This undef/define pair keeps mpir from including mpid! */
-#undef MPID_DEVICE_CODE
-#include "dmpi.h"
-#define MPID_DEVICE_CODE
+/*#undef MPID_DEVICE_CODE*/
+/*#include "dmpi.h"*/
+/*#define MPID_DEVICE_CODE*/
 
 /* Assert shared memory for the collective operations */
 #define MPID_HAS_SHARED_MEM
@@ -36,7 +40,9 @@
 
 #include "p2p.h"
 #include "packets.h"
+extern MPID_PKT_T *MPID_SHMEM_GetSendPkt();
+
+#endif
 
 #include "mpid_bind.h"
-extern MPID_PKT_T *MPID_SHMEM_GetSendPkt();
 #endif

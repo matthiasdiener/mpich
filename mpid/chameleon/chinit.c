@@ -1,12 +1,12 @@
 /*
- *  $Id: chinit.c,v 1.33 1995/05/25 22:24:06 gropp Exp $
+ *  $Id: chinit.c,v 1.35 1995/07/25 02:40:55 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chinit.c,v 1.33 1995/05/25 22:24:06 gropp Exp $";
+static char vcid[] = "$Id: chinit.c,v 1.35 1995/07/25 02:40:55 gropp Exp $";
 #endif
 
 /* 
@@ -318,7 +318,7 @@ return (void *)0;
 void MPID_CH_Abort( code )
 int code;
 {
-fprintf( stderr, "Aborting program!\n" );
+fprintf( stderr, "[%d] Aborting program!\n", MPID_MyWorldRank );
 fflush( stderr );
 fflush( stdout );
 SYexitall( (char *)0, code );
@@ -364,7 +364,7 @@ sprintf( name, "ADI version %4.2f - transport %s", MPIDPATCHLEVEL,
 }
 
 #ifndef MPID_CH_Wtime
-#if defined(USE_GETTIMEOFDAY)
+#if defined(HAVE_GETTIMEOFDAY)
 #include <sys/types.h>
 #include <sys/time.h>
 #endif
@@ -434,7 +434,7 @@ int  code;
 char *str;
 {
 if (str) 
-    fprintf( stderr, "%s\n", str );
+    fprintf( stderr, "[%d] %s\n", MPID_MyWorldRank, str );
 MPID_CH_Abort( code );
 }
 

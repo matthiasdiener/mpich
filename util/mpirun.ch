@@ -1,7 +1,7 @@
 #! /bin/sh
 #
 if [ "$MPIR_HOME" = "" ] ; then 
-    MPIR_HOME=/home/MPI/mpich
+    MPIR_HOME=/tmp_mnt/Net/alriga/alriga9/MPI/mpich
 fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
@@ -12,8 +12,4 @@ if [ "$argsset" = "" ] ; then
    argsset=1
 fi
 #
-if [ $just_testing = 1 ] ; then
-  echo $progname -np $np $cmdLineArgs
-else
-  $progname -np $np $cmdLineArgs
-fi
+$Show $progname -np $np $cmdLineArgs

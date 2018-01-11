@@ -12,8 +12,4 @@ if [ "$argsset" = "" ] ; then
    argsset=1
 fi
 #
-if [ $just_testing = 1 ] ; then
-  echo $progname -np $np $cmdLineArgs
-else
-  $progname -np $np $cmdLineArgs
-fi
+$Show $progname -np $np $cmdLineArgs

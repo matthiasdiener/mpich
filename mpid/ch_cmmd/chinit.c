@@ -1,12 +1,12 @@
 /*
- *  $Id: chinit.c,v 1.32 1995/05/09 21:09:17 gropp Exp $
+ *  $Id: chinit.c,v 1.33 1995/05/25 22:24:06 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chinit.c,v 1.32 1995/05/09 21:09:17 gropp Exp $";
+static char vcid[] = "$Id: chinit.c,v 1.33 1995/05/25 22:24:06 gropp Exp gropp $";
 #endif
 
 /* 
@@ -364,26 +364,26 @@ sprintf( name, "ADI version %4.2f - transport %s", MPIDPATCHLEVEL,
 }
 
 #ifndef MPID_CMMD_Wtime
-#if defined(USE_GETTIMEOFDAY)
+#if defined(HAVE_GETTIMEOFDAY)
 #include <sys/types.h>
 #include <sys/time.h>
 #endif
 /* I don't know what the correct includes are for the other versions... */
 double MPID_CMMD_Wtime()
 {
-#ifdef USE_GETTIMEOFDAY
+#ifdef HAVE_GETTIMEOFDAY
     struct timeval tp;
     struct timezone tzp;
 
     gettimeofday(&tp,&tzp);
     return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
-#elif USE_BSDGETTIMEOFDAY
+#elif defined(USE_BSDGETTIMEOFDAY)
     struct timeval tp;
     struct timezone tzp;
 
     BSDgettimeofday(&tp,&tzp);
     return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
-#elif USE_WIERDGETTIMEOFDAY
+#elif defined(USE_WIERDGETTIMEOFDAY)
     /* This is for Solaris, where they decided to change the CALLING
        SEQUENCE OF gettimeofday! */
     struct timeval tp;

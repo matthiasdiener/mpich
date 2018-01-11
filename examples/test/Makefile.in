@@ -54,12 +54,19 @@ linktest:
 			(cd $$dir; $(MAKE) linktest) ;\
 		done
 
+#
+# This also cleans the files after the testing to keep the
+# total size down.  You can use TESTARGS to pass arguments to the
+# test program; for example, 
+# make TESTARGS="-small"
+# to run in "small" mode (build executable, run, remove executable)
 testing: $(MPIR_HOME)/util/mpirun
 	@-for dir in $(TESTDIRS) ;\
 		do \
 			echo " " ;\
 			echo Making testing in directory $$dir ;\
-			(cd $$dir; $(MAKE) testing) ;\
+			(cd $$dir; $(MAKE) testing TESTARGS=$(TESTARGS) ; \
+	                 $(MAKE) clean ) ;\
 		done
 
 clean:

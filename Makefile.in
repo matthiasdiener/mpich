@@ -23,15 +23,18 @@ MPIDIRS  = src/pt2pt src/env src/dmpi src/util src/context src/coll \
 DIRS     = $(MPIDIRS) mpid/$(DEVICE) @CPP_DIR@ @MPE_DIR@ \
 	   examples examples/basic examples/test/pt2pt examples/test/coll \
 	   examples/test/topol examples/test/context \
+	   examples/test/env examples/test \
 	   examples/contrib examples/perftest \
            profiling/examples profiling/lib profiling/wrappergen
 # 
 # This is a list of the devices that are available
 DEVICES  = mpid/chameleon mpid/ch_nx mpid/ch_p4 mpid/ch_nc mpid/ch_cmmd \
 	   mpid/ch_eui mpid/meiko mpid/t3d mpid/ch_meiko mpid_ch_shmem \
-	   mpid/ch_tcp mpid/ch_spp
+	   mpid/ch_tcp mpid/ch_spp mpid/sgi
 OTHERDEVICES  = mpid/ch_nx mpid/ch_p4 mpid/ch_nc mpid/ch_cmmd mpid/ch_eui \
-		mpid/ch_meiko mpid/ch_shmem mpid/t3d mpid/ch_spp
+		mpid/ch_meiko mpid/ch_shmem mpid/t3d \
+		mpid/ch_spp mpid/sgi
+# mpid/ch_tcp 
 # 
 # Build the device FIRST in case the device include, used in mpiimpl.h, 
 # needs to be built (e.g., ch_p4 device)
@@ -48,6 +51,7 @@ mpi:
 	$(MAKE) clean
 	$(MAKE) rmlib
 	$(MAKE) mpilib
+	$(MAKE) mpiflib
 	@echo "Testing that MPI applications can be linked..."
 	$(MAKE) linktest
 	$(MAKE) clean
@@ -80,7 +84,7 @@ mpilib: Makefile.in
 	  echo " " ;\
 	  echo making mpir in directory $$dir ;\
 	  (cd $$dir; \
-	  $(MAKE) default_all ) ;\
+	  $(MAKE) default_all ;) ;\
 	  done
 	@RANLIB@ lib/$(ARCH)/$(COMM)/libmpi.a
 	@if test -w lib/$(ARCH)/$(COMM)/libmpi++.a ; then \
@@ -89,6 +93,16 @@ mpilib: Makefile.in
 		@RANLIB@ lib/$(ARCH)/$(COMM)/libmpe.a ; fi
 	@if test -w lib/$(ARCH)/$(COMM)/libmpe_nompi.a ; then \
 		@RANLIB@ lib/$(ARCH)/$(COMM)/libmpe_nompi.a ; fi
+
+mpiflib: Makefile.in
+	@for dir in $(MPIDIRS) ;\
+	  do \
+	  echo " " ;\
+	  echo making mpir in directory $$dir ;\
+	  (cd $$dir; \
+	  $(MAKE) wrapperlib ) ;\
+	  done
+	@RANLIB@ lib/$(ARCH)/$(COMM)/libfmpi.a
 	
 #
 # This target is used to remove the libraries for this configuration; this
@@ -156,8 +170,9 @@ mpirun: util/mpirun
 
 #
 # If you change this, ALSO change it in the install target!
-util/mpirun: util/mpirun.in
-	-(cd util ; for file in mpirun.in mpirun.*.in tstmachines.in ; do \
+# Note that the csh version is no longer built
+util/mpirun: util/mpirun.sh.in
+	-(cd util ; for file in mpirun.*.in tstmachines.in ; do \
 	bfile=`basename $$file .in` ; \
 	/bin/rm -f $$bfile ; \
 	cat $$file | sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
@@ -168,7 +183,8 @@ util/mpirun: util/mpirun.in
 		-e "s%\#DEFAULT_ARCH\#%$(ARCH)%g" > $$bfile ; \
 	chmod 775 $$bfile ; \
 	/bin/rm -f ../lib/$(ARCH)/$(COMM)/$$bfile ; \
-	cp $$bfile ../lib/$(ARCH)/$(COMM) ; done )
+	cp $$bfile ../lib/$(ARCH)/$(COMM) ; done ; \
+	mv mpirun.sh mpirun )
 #
 # If you change this, ALSO change it in the install target!
 mpireconfig: util/mpireconfig
@@ -214,7 +230,7 @@ profiling/upshot/bin/upshot: profiling/upshot/bin/upshot.in
 nupshot:
 	(cd profiling/nupshot; \
 	if [ ! -s Makefile ] ; then \
-	    configure ; fi ; \
+	    configure -tcldir=@TCL_DIR@ -tkdir=@TK_DIR@ ; fi ; \
 	$(MAKE) )
 
 #
@@ -236,6 +252,7 @@ serv_p4:
 # Changed clean to not remove the library, only the object files
 clean:
 	@/bin/rm -f *~ *.ln util/mpirun util/mpireconfig util/tstmachines \
+			    util/mpicc util/mpif77 \
 			    installtest/Makefile \
 	  		    profiling/upshot/bin/upshot
 	@if [ -d profiling/wrappergen ] ; then \
@@ -294,22 +311,24 @@ anlp4pre: configure
 	@-chmod g+ws lib lib/sun4 lib/sun4/p4 >/dev/null 2>&1
 anlchp4: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=sun4 -device=ch_p4 -mpe -var_pkt -mpedbg
+	configure -arch=sun4 -device=ch_p4 -mpe -var_pkt -mpedbg -opt="-g"
 	-cp config.status lib/sun4/ch_p4
 	@-chmod g+ws lib lib/sun4 lib/sun4/ch_p4 >/dev/null 2>&1
 anltcp: configure 
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=sun4 -device=ch_tcp -mpe -var_pkt -mpedbg
+	configure -arch=sun4 -device=ch_tcp -mpe -var_pkt -mpedbg -opt="-g"
 	-cp config.status lib/sun4/ch_tcp
 	@-chmod g+ws lib lib/sun4 lib/sun4/ch_tcp >/dev/null 2>&1
 anlchp4mem: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=sun4 -device=ch_p4 -mpe -var_pkt -mpedbg -memdebug
+	configure -arch=sun4 -device=ch_p4 -mpe -var_pkt -mpedbg -memdebug \
+		-opt="-g"
 	-cp config.status lib/sun4/ch_p4
 	@-chmod g+ws lib lib/sun4 lib/sun4/ch_p4 >/dev/null 2>&1
 anlchp4rndv: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=sun4 -device=ch_p4 -mpe -var_pkt -mpedbg -use_rndv
+	configure -arch=sun4 -device=ch_p4 -mpe -var_pkt -mpedbg -use_rndv \
+		-opt="-g"
 	-cp config.status lib/sun4/ch_p4
 	@-chmod g+ws lib lib/sun4 lib/sun4/ch_p4 >/dev/null 2>&1
 anlp4sgi: configure
@@ -344,7 +363,8 @@ anlp4ibm: configure
 anlchp4ibm: configure
 	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
 		echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=rs6000 -comm=ch_p4 -device=ch_p4 -mpe -no_short_longs
+	configure -arch=rs6000 -comm=ch_p4 -device=ch_p4 -mpe -no_short_longs \
+		-opt="-O"
 	@-chmod g+ws lib lib/rs6000 lib/rs6000/p4 >/dev/null 2>&1
 # euih is similar to the release 1 MPLp for the SP1.
 anleuih: configure
@@ -370,14 +390,14 @@ anlmpl: configure
 anlchmpl: configure
 	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
 		echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=rs6000 -device=ch_eui -comm=ch_eui -mpe -opt="-O" \
-		-limited_buffers -nodevdebug -no_short_longs
+	configure -arch=rs6000 -device=ch_eui -comm=ch_eui -mpe -opt="-g" \
+		-limited_buffers -nodevdebug -no_short_longs -pkt_size=64
 	@-chmod g+ws lib lib/rs6000 lib/rs6000/ch_eui >/dev/null 2>&1
 anlchmplg: configure
 	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
 		echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=rs6000 -device=ch_eui -comm=ch_eui -mpe -opt="-g" \
-		-limited_buffers -no_short_longs -mpedbg
+		-limited_buffers -no_short_longs -pkt_size=64 -mpedbg
 	@-chmod g+ws lib lib/rs6000 lib/rs6000/ch_eui >/dev/null 2>&1
 # This is for testing the rendevous code
 anlchmplrndv: configure
@@ -412,6 +432,8 @@ INSTALLDIR = /usr/local/mpi
 # is not standard.
 #
 install:
+	@if [ ! -s lib/$(ARCH)/$(COMM)/libmpi.a ] ; then \
+	    echo "You must make MPI before installing it!" ; exit 1 ; fi
 	@if [ ! -n "$(PREFIX)" ] ; then \
 	  echo "Set an installation location with --prefix=<location>";\
 	  echo "during configure or PREFIX=<location> during make install.";\
@@ -454,15 +476,17 @@ install:
 		$(PREFIX)/bin/upshot
 	chmod 755 $(PREFIX)/bin/upshot
 	#
-	# Should clean upshot sources  (*.c/h) 
+	# Should clean nupshot sources  (*.c/h) 
 	-if [ -n "@TCL_DIR@" ] ; then \
 	    $(CPRP) -r profiling/nupshot $(PREFIX) ; \
-	    (cd $(PREFIX)/nupshot ; configure ; $(MAKE) clean ; $(MAKE) ; \
-	    mv nupshot ../bin ) ; \
+	    (cd $(PREFIX)/nupshot ; \
+		configure -tcldir=@TCL_DIR@ -tkdir=@TK_DIR@ ; \
+		$(MAKE) clean ; $(MAKE) ; \
+	    	mv nupshot ../bin ) ; \
 	fi
 	#
 	# mpirun et al.
-	-(cd util ; for file in mpirun.in mpirun.*.in tstmachines.in ; do \
+	-(cd util ; for file in mpirun.*.in tstmachines.in ; do \
 	bfile=`basename $$file .in` ; \
 	cat $$file | sed -e "s%\#MPIR_HOME\#%$(PREFIX)%g" \
 		-e "s%\#EXECER_DIR\#%$(PREFIX)/util%g" \
@@ -472,7 +496,8 @@ install:
 		-e "s%\#DEFAULT_ARCH\#%$(ARCH)%g" > $(PREFIX)/bin/$$bfile ; \
 	chmod 775 $(PREFIX)/bin/$$bfile ; \
 	/bin/rm -f $(PREFIX)/lib/$(ARCH)/$(COMM)/$$bfile ; \
-	cp $(PREFIX)/bin/$$bfile $(PREFIX)/lib/$(ARCH)/$(COMM) ; done )
+	cp $(PREFIX)/bin/$$bfile $(PREFIX)/lib/$(ARCH)/$(COMM) ; done ; \
+	mv mpirun.sh mpirun )
 	/bin/rm -f $(PREFIX)/bin/mpireconfig
 	cat util/mpireconfig.in | sed -e "s%\#MPIR_HOME\#%$(PREFIX)%g" \
 		    -e "s%\#ARCH\#%$(ARCH)%g" \
@@ -486,7 +511,7 @@ install:
 	# 
 	# P4 server
 	-if [ "$(DEVICE)" = "ch_p4" ] ; then \
-	( cd mpid/ch_p4/p4-1.4/servers ; make serv_p4 ; \
+	( cd mpid/ch_p4/p4-1.4/servers ; make serv_p4 ; cd ../bin ; \
 	  cp serv_p4 $(PREFIX)/bin ; chmod a+x $(PREFIX)/bin/serv_p4 ; ) \
 	fi
 	/bin/rm -f util/chp4_servs
@@ -567,7 +592,9 @@ install:
 			        > $(PREFIX)/config.status
 	/bin/rm -f $(PREFIX)/examples/mpif.h
 	ln -s $(PREFIX)/include/mpif.h $(PREFIX)/examples/mpif.h
-	-chmod -R ug+rw $(PREFIX)
+	# We should never do wildcarded permission changes.  As necessary,
+	# do them as the files are moved.
+	#-chmod -R ug+rw $(PREFIX)
 	echo "About to run installation test..."
 	(cd $(PREFIX)/examples; $(MAKE))
 	@echo installed $(ARCH)/$(COMM)/$(DEVICE) MPI in $(PREFIX)
@@ -596,5 +623,19 @@ installlib:
 	@if [ ! -d $(PREFIX)/mpid/$(DEVICE) ] ; then \
 	    mkdir $(PREFIX)/mpid/$(DEVICE) ; fi
 #	-cp mpid/$(DEVICE)/*.h $(PREFIX)/mpid/$(DEVICE)
-	-chmod -R ug+rw $(PREFIX)
+#       We need to be more careful about permissions
+#	-chmod -R ug+rw $(PREFIX)
 	@echo installed $(ARCH)/$(COMM)/$(DEVICE) MPI in $(PREFIX)
+
+#
+# Install adds ALL of the examples to the installation area
+# This is an initial version.
+install-all: install
+	-$(CPRP) -r examples $(PREFIX)
+	# Update the makefiles
+	(cd $(PREFIX)/examples ; for dir in `find -type d -print` ; do \
+		(cd $$dir ; \
+		if [ -s Makefile.in ] ; then \
+		    $(PREFIX)/lib/$(ARCH)/$(COMM)/mpireconfig Makefile ; \
+		fi ) )
+

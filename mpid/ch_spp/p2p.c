@@ -25,8 +25,8 @@ unsigned int numNodes;
                           |MAP_VARIABLE|CNX_MAP_BLOCK_SHARED, 
                           -1, (off_t) 0);
 
-fprintf(stderr,"memsize = %#x, address = %#x\n",
-      memsize,p2p_start_shared_area);
+/*fprintf(stderr,"memsize = %#x, address = %#x\n",
+      memsize,p2p_start_shared_area);*/
 
   if (p2p_start_shared_area == (caddr_t)-1)
   {
@@ -82,7 +82,7 @@ void *p2p_shmalloc( unsigned int size, cnx_node_t node )
   void *p;
 
   p = (void *) xx_shmalloc(size, node);
-printf("p2p_shmalloc size = %#x node = %d address = %#x\n", size, node, p);
+/*printf("p2p_shmalloc size = %#x node = %d address = %#x\n", size, node, p); */
   return (p);
 }
 
@@ -261,7 +261,7 @@ unsigned int numNodes;
             /* One header consumed already */
     (region[i] + 1)->s.size = nunits - 1; 
     p2p_lock_init(p2p_shmem_lock[i]);                /* Initialize the lock */
-fprintf(stderr, "blockFreePtr[i] = %#x *blockFreePtr[i] = %#x\n", blockFreePtr[i], *blockFreePtr[i]);
+/*fprintf(stderr, "blockFreePtr[i] = %#x *blockFreePtr[i] = %#x\n", blockFreePtr[i], *blockFreePtr[i]); */
   }
   region[numNodes] = (Header *)(memory + nbytes);
 }

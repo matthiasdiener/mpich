@@ -12,7 +12,10 @@ char **argv;
 {
     int rank, size, to, from, tag, count, np, i;
     int src, dest, waiter;
-    int st_source, st_tag, st_count;
+    int st_count;
+#ifdef VERBOSE
+    int st_source, st_tag;
+#endif
     MPI_Request handle;
     MPI_Status status;
     char data[100];
@@ -63,26 +66,28 @@ char **argv;
 
 	tag   = 2002;
 	MPI_Recv(data, count, MPI_CHAR, from, tag, MPI_COMM_WORLD, &status ); 
-	st_source = status.MPI_SOURCE;
-	st_tag    = status.MPI_TAG;
+
 	MPI_Get_count( &status, MPI_CHAR, &st_count );
 	if (st_count != strlen("Second message, type 2002") + 1) {
 	    printf( "Received wrong length!\n" );
 	    }
 #ifdef VERBOSE	
+	st_source = status.MPI_SOURCE;
+	st_tag    = status.MPI_TAG;
 	printf( "Status info: source = %d, tag = %d, count = %d\n",
 	        st_source, st_tag, st_count );
 	printf( "%d received :%s:\n", rank, data);
 #endif
 	tag   = 2001;
 	MPI_Recv(data, count, MPI_CHAR, from, tag, MPI_COMM_WORLD, &status ); 
-	st_source = status.MPI_SOURCE;
-	st_tag    = status.MPI_TAG;
+
 	MPI_Get_count( &status, MPI_CHAR, &st_count );
 	if (st_count != strlen("First message, type 2001") + 1) {
 	    printf( "Received wrong length!\n" );
 	    }
 #ifdef VERBOSE	
+	st_source = status.MPI_SOURCE;
+	st_tag    = status.MPI_TAG;\
 	printf( "Status info: source = %d, tag = %d, count = %d\n",
 	        st_source, st_tag, st_count );
 	printf( "%d received :%s:\n", rank, data);

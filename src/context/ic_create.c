@@ -1,5 +1,5 @@
 /*
- *  $Id: ic_create.c,v 1.18 1995/05/09 18:51:40 gropp Exp $
+ *  $Id: ic_create.c,v 1.19 1995/06/21 03:06:55 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -67,6 +67,11 @@ MPI_Comm *comm_out;
   MPI_Comm         new_comm;
   MPI_Request      req[6];
   MPI_Status       status[6];
+
+  /**** There seem to be some validity checks missing here.
+   **** I'd expect to see something like
+   **** MPIR_TEST_COMM(local_comm,local_comm)
+   ****/
 
   /* Check for valid arguments to function */
   (void) MPI_Comm_size ( local_comm, &local_size );

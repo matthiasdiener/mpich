@@ -1,11 +1,11 @@
 #! /bin/sh
 if [ "$MPIR_HOME" = "" ] ; then 
-    MPIR_HOME=/home/MPI/mpich
+    MPIR_HOME=/tmp_mnt/Net/alriga/alriga9/MPI/mpich
 fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
 fi
-EXECER=/home/MPI/mpich/util/execer
+EXECER=/tmp_mnt/Net/alriga/alriga9/MPI/mpich/util/execer
 MPIRUN_HOME=$MPIR_HOME/util
 MEIKO_RUN=prun
 SP1_RUN=/usr/lpp/euih/eui/cotb0
@@ -14,7 +14,7 @@ progname=
 fake_progname=
 np=1
 arch=
-default_arch='alpha'
+default_arch='sun4'
 machine=''
 default_device='ch_p4'
 execer_machine=1
@@ -37,6 +37,9 @@ rshcmd=rsh
 mvhome=0
 mvback=
 narch=0
+Show=eval
+# Kind of paragon submisstion (default/mkpart/nqs)
+paragon_type="default"
 Machines="chameleon meiko paragon p4 sp1 ibmspx anlspx ksr sgi_mp ipsc860 inteldelta cray_t3d execer smp symm_ptx"
 max_time=15
 #
@@ -184,13 +187,13 @@ while [ 1 -le $# ] ; do
       	use_execer=1
 	;;
     -pg)
-      	use_execer= 0
+      	use_execer=0
       	;;
     -leave_pg|-keep_pg)
       	leavePGFile=1
 	;;
     -p4pg)
-      	if [ $np .gt.  1 ] ; then
+      	if [ $np -gt  1 ] ; then
 	    echo "-p4pg and -np are mutually exclusive; -np $np being ignored."
             np=1
 	fi
@@ -201,15 +204,20 @@ while [ 1 -le $# ] ; do
     -p4ssport)
       	p4ssport="$1"
 	shift
-        if [ $p4ssport == "0" && "$MPI_P4SSPORT" != "" ] ; then
+        if [ $p4ssport = "0" && "$MPI_P4SSPORT" != "" ] ; then
 	    p4ssport=$MPI_P4SSPORT
       	fi
+	;;
+    -paragontype)
+	paragon_type="$1"
+	shift
 	;;
     -v)
        	mpirun_verbose=1
 	;;
     -t)
       	just_testing=1
+	Show=echo
 	;;
     -dbx)
       	debugger="dbx"
@@ -313,22 +321,44 @@ if [ "$debugger" = "dbx" -a "$arch" = "alpha" ] ; then
 fi
 #
 # Fill out relative program pathnames
-
+#
 # Get the current directory
+# Note that PWD may NOT be `pwd` if an explicit "cd", outside of the csh
+# shell, is used.  A downside of this is that PWD may have a more reasonable
+# version of the path.  To try and fix this, we create a test file and see
+# if it is accessible from PWD and pwd; if so, we take the PWD value
+# 
+# Why can't automounters work!???!!
+#
+# For those unfamiliar with the problem, the automounter creates
+# paths like /tmp_mnt/.... .  But if you try to open a file with that path, 
+# and the ACTUAL path has not been accessed before, the automounter fails
+# to mount the partition.  In otherwords, the automounter is so mind-bogglingly
+# stupid as to not recognize its OWN MOUNTS.  Network computing indeed.
+#
+PWDtest=`pwd | sed -e 's%/tmp_mnt/%/%g'`
+if [ ! -d $PWDtest ] ; then
+    PWDtest=`pwd`
+fi
+if [ -n "$PWD" ] ; then
+    /bin/rm -f $PWDtest/.mpirtmp $PWD/.mpirtmp
+    echo "test" > $PWD/.mpirtmp
+    if [ ! -s $PWDtest/.mpirtmp ] ; then
+        PWD=$PWDtest
+    fi
+    /bin/rm -f $PWDtest/.mpirtmp $PWD/.mpirtmp
+else 
+    PWD=$PWDtest
+fi
+#
 if [ "$PWD" != "" ] ; then
     PWD_TRIAL=$PWD
 else
-    PWD_TRIAL= `pwd`
+    PWD_TRIAL=$PWDtest
 fi
-if [ "$PWD_TRIAL" != "" ] ; then
-    PWD_TRIAL=`pwd | sed -e 's%/tmp_mnt/%/%g'`
-    if [ ! -d $PWD_TRIAL ] ; then 
-        echo "Warning: your default path uses the automounter; this may"
-        echo "cause some problems if you use other NFS-connected systems."
-        PWD_TRIAL=`pwd`
-    fi
-fi
-
+# The test for PWD_TRIAL usable is within the p4/execer/tcp test (since that
+# is where it matters)
+#
 tail=`echo $progname | sed 's/\/.*//'` 
 if  [ "$tail" = "" ] ; then
   #echo Absolute path, don't need to change anything
@@ -336,19 +366,6 @@ if  [ "$tail" = "" ] ; then
 else
   #echo Relative path
   progname="$PWD_TRIAL/$progname"
-fi
-
-# Get value of host
-if [ "$HOST" = "" ] ;  then
-    HOST=""
-    if [ $arch = "ipsc860" ] ; then
-	HOST=`hostname`
-    else
-	HOSTNAMEPGM="`which hostname | head -1`"
-        if [ -e "$HOSTNAMEPGM" ] ; then HOST= "`hostname`" ; fi
-    fi
-    # Note that uname -n may not produce a usable hostname.  Any suggestions?
-    if [ "$HOST" = "" ] ; then HOST = "`uname -n`" ; fi
 fi
 
 #
@@ -362,11 +379,11 @@ fi
 
 archlist="$arch"
 case $arch in 
-    HP-UX) archlist= "hpux hp9000s700 hp9000s735 HP-UX" 
+    HP-UX) archlist="hpux hp9000s700 hp9000s735 HP-UX" 
 	;;
-    IRIX|sgi|SGI) archlist= "IRIX sgi"
+    IRIX|sgi|SGI) archlist="IRIX sgi"
 	;;
-    i386|symm_ptx) archlist= "i386 symm_ptx"
+    i386|symm_ptx) archlist="i386 symm_ptx"
 	;;
     IP19|IP21) archlist="sgi_mp IP19 IP21"
 	arch="sgi_mp"
@@ -439,6 +456,36 @@ if [ "$machine" = "" ] ; then
       ;;
   esac
 fi
+
+# Get value of host if necessary
+if [ "$machine" = p4 -o "$machine" = execer -o "$machine" = tcp ] ; then
+  if [ "$HOST" = "" ] ;  then
+    HOST=""
+    if [ "$arch" = "ipsc860" ] ; then
+	HOST=`hostname`
+    else
+        # Which is not supported in many sh's
+#	HOSTNAMEPGM="`which hostname | head -1`"
+#        if [ -e "$HOSTNAMEPGM" ] ; then HOST="`hostname`" ; fi
+	HOST=`hostname`
+    fi
+    # Note that uname -n may not produce a usable hostname.  Any suggestions?
+    if [ "$HOST" = "" ] ; then HOST="`uname -n`" ; fi
+  fi
+  #
+  # We don't need this for most systems; for the moment, we'll suppress the
+  # message about the automounter unless we're using ch_p4 or ch_tcp. 
+  #
+  if [ "$PWD_TRIAL" != "" ] ; then
+    PWD_TRIAL=`pwd | sed -e 's%/tmp_mnt/%/%g'`
+    if [ ! -d $PWD_TRIAL ] ; then 
+        echo "Warning: your default path uses the automounter; this may"
+        echo "cause some problems if you use other NFS-connected systems."
+        PWD_TRIAL=`pwd`
+    fi
+  fi
+fi
+
 
 if [ $mpirun_verbose = 1 ] ; then
   cnt=1

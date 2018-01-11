@@ -2,6 +2,49 @@
 
 	  Information from previous README's, of historical interest
 
+                         Changes since Version 1.0.8
+
+1.  Improved support for heterogeneous systems with different data lengths
+    (more remains to be done).  Unified much of the code to pack and 
+    unpack datatypes.  Note that MPICH has used a "sender converts" 
+    approach since 1994 in preference to XDR (which is still used in
+    some cases).  Extensions to this mechanism will further reduce the
+    usage of XDR in heterogeneous systems.
+
+2.  Fixes to mpireconfig and upshot when installing a distribution.
+
+3.  Added new profiling libraries for tracing, log file generation, and
+    realtime animation.  See the Users Guide.
+
+4.  Shortened some filenames to 12 characters (plus extension); this helps
+    Cray YMPs that corrupt their object libraries when presented with an
+    otherwise valid filename with more than 12 characters.
+
+5.  Added a native Meiko CS-2 device (thanks to Jim Cownie).
+
+6.  Updated (in part) to conform to clarifications of the MPI Forum.  This
+    includes:
+
+    Changed behavior when empty lists of requests are given to TESTxxx/WAITxxx
+
+    Many MPI pre-defined datatypes are now compile-time constants (all will
+    be soon).
+
+    Some man pages have been updated to clarify the definition.  See 
+    in particular MPI_Cart_shift and MPI_Bsend.
+
+    A new constant, MPI_BUFFER_OVERHEAD, can be used with MPI_BUFFER_ATTACH.
+
+7.  Some bugs in the code for the CM5 MAY have been fixed; we no longer 
+    have access to any CM5 so we can't test it (NPAC CM5 is no longer 
+    accessible, and accounts on the Los Alamos CM5 are limited to 
+    Los Alamos grand challenge projects and industrial partners).  
+
+8.  Bugs in the Intel Paragaon version have been fixed, particularly those
+    in the handling of nonblocking operations.
+    
+9.  Many additions to the test suite.
+
 March, 1995 (1.0.8)
 New in the 1.0.8 release are separate Users and Installation guides.  
 

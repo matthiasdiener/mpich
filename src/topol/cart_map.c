@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_map.c,v 1.5 1994/12/15 17:35:51 gropp Exp $
+ *  $Id: cart_map.c,v 1.6 1995/06/21 03:17:51 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -45,7 +45,7 @@ int     *newrank;
     nranks *= dims[i];
 
   /* Am I in this range? */
-  MPI_Comm_rank ( comm_old, &rank );
+  MPIR_Comm_rank ( comm_old, &rank );
   if ( rank < nranks )
     (*newrank) = rank;
   else

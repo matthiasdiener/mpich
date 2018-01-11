@@ -1,5 +1,5 @@
 /*
- *  $Id: ic_merge.c,v 1.10 1995/05/09 18:51:48 gropp Exp $
+ *  $Id: ic_merge.c,v 1.12 1995/07/25 02:46:32 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -46,10 +46,10 @@ MPI_Comm *comm_out;
   MPI_Comm_test_inter ( comm, &flag );
   if (!flag) 
     return MPIR_ERROR(comm, MPI_ERR_COMM,
-					  "Intra-communicator invalid in MPI_INTERCOMM_MERGE");
+		         "Intra-communicator invalid in MPI_INTERCOMM_MERGE");
 
   /* Get my rank in the local group */
-  (void) MPI_Comm_rank ( comm, &rank );
+  (void) MPIR_Comm_rank ( comm, &rank );
 
   /* Make the new communicator */
   new_comm =  NEW(struct MPIR_COMMUNICATOR);
@@ -58,7 +58,8 @@ MPI_Comm *comm_out;
                       "Out of space in MPI_COMM_CREATE" );
   (void) MPIR_Comm_init( new_comm, comm, MPIR_INTRA );
   (void) MPIR_Attr_create_tree ( new_comm );
-  
+  MPIR_Comm_collops_init( new_comm, MPIR_INTRA);
+
   /* Get the high value for our side */
   MPIR_Intercomm_high ( comm, &high );
 

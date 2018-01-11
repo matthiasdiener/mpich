@@ -4,7 +4,7 @@
 ARCH        = @ARCH@
 COMM        = @COMM@
 CC          = @CC@
-CLINKER     = @CC@
+CLINKER     = @CLINKER@
 MPIR_HOME   = @MPIR_HOME@
 OPTFLAGS    = @OPTFLAGS@
 #

@@ -1,12 +1,12 @@
 /*
- *  $Id: chinit.c,v 1.32 1995/05/09 21:09:17 gropp Exp $
+ *  $Id: chinit.c,v 1.35 1995/07/25 02:40:55 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chinit.c,v 1.32 1995/05/09 21:09:17 gropp Exp $";
+static char vcid[] = "$Id: chinit.c,v 1.35 1995/07/25 02:40:55 gropp Exp $";
 #endif
 
 /* 
@@ -174,7 +174,7 @@ return (void *)0;
 void MPID_SHMEM_Abort( code )
 int code;
 {
-fprintf( stderr, "Aborting program!\n" );
+fprintf( stderr, "[%d] Aborting program!\n", MPID_MyWorldRank );
 fflush( stderr );
 fflush( stdout );
 SYexitall( (char *)0, code );
@@ -220,7 +220,7 @@ sprintf( name, "ADI version %4.2f - transport %s", MPIDPATCHLEVEL,
 }
 
 #ifndef MPID_SHMEM_Wtime
-#if defined(USE_GETTIMEOFDAY)
+#if defined(HAVE_GETTIMEOFDAY)
 #include <sys/types.h>
 #include <sys/time.h>
 #endif
@@ -233,13 +233,13 @@ double MPID_SHMEM_Wtime()
 
     gettimeofday(&tp,&tzp);
     return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
-#elif USE_BSDGETTIMEOFDAY
+#elif defined(USE_BSDGETTIMEOFDAY)
     struct timeval tp;
     struct timezone tzp;
 
     BSDgettimeofday(&tp,&tzp);
     return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
-#elif USE_WIERDGETTIMEOFDAY
+#elif defined(USE_WIERDGETTIMEOFDAY)
     /* This is for Solaris, where they decided to change the CALLING
        SEQUENCE OF gettimeofday! */
     struct timeval tp;
@@ -290,7 +290,7 @@ int  code;
 char *str;
 {
 if (str) 
-    fprintf( stderr, "%s\n", str );
+    fprintf( stderr, "[%d] %s\n", MPID_MyWorldRank, str );
 MPID_SHMEM_Abort( code );
 }
 

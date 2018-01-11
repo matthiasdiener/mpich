@@ -25,10 +25,12 @@ ALL: default
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
 CFLAGS   =  -nx -DFORTRANUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -DHAVE_NICE=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
 		-DMPID_DEVICE_CODE  -DMPID_DEBUG_NONE -DMPID_STAT_NONE -Dinteldelta
-SOURCE   = nxevent.c nxrecv.c nxsend.c nxinit.c nxprobe.c nxsync.c nxrndv.c
+SOURCE   = nxevent.c nxrecv.c nxsend.c nxinit.c nxprobe.c nxsync.c nxrndv.c \
+	   nxdebug.c
 SOURCEC  = $(SOURCE)
 SOURCEF  =
-MPI_OBJECTS = nxevent.o nxrecv.o nxsend.o nxinit.o nxprobe.o nxsync.o nxrndv.o
+MPI_OBJECTS = nxevent.o nxrecv.o nxsend.o nxinit.o nxprobe.o nxsync.o \
+		nxrndv.o nxdebug.o
 
 default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
 

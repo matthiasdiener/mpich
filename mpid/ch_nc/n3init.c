@@ -4,14 +4,14 @@ int __NUMNODES, __MYPROCID ,__N3LEN,__N3FROM,__N3TYPE,__N3FLAG ;extern double am
 
 
 /*
- *  $Id: chinit.c,v 1.32 1995/05/09 21:09:17 gropp Exp $
+ *  $Id: chinit.c,v 1.34 1995/06/30 17:35:45 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chinit.c,v 1.32 1995/05/09 21:09:17 gropp Exp $";
+static char vcid[] = "$Id: chinit.c,v 1.34 1995/06/30 17:35:45 gropp Exp gropp $";
 #endif
 
 /* 
@@ -179,7 +179,7 @@ return (void *)0;
 void MPID_N3_Abort( code )
 int code;
 {
-fprintf( stderr, "Aborting program!\n" );
+fprintf( stderr, "[%d] Aborting program!\n", MPID_MyWorldRank );
 fflush( stderr );
 fflush( stdout );
 exit((char *)0);
@@ -225,26 +225,26 @@ sprintf( name, "ADI version %4.2f - transport %s", MPIDPATCHLEVEL,
 }
 
 #ifndef MPID_N3_Wtime
-#if defined(USE_GETTIMEOFDAY)
+#if defined(HAVE_GETTIMEOFDAY)
 #include <sys/types.h>
 #include <sys/time.h>
 #endif
 /* I don't know what the correct includes are for the other versions... */
 double MPID_N3_Wtime()
 {
-#ifdef USE_GETTIMEOFDAY
+#ifdef HAVE_GETTIMEOFDAY
     struct timeval tp;
     struct timezone tzp;
 
     gettimeofday(&tp,&tzp);
     return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
-#elif USE_BSDGETTIMEOFDAY
+#elif defined(USE_BSDGETTIMEOFDAY)
     struct timeval tp;
     struct timezone tzp;
 
     BSDgettimeofday(&tp,&tzp);
     return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
-#elif USE_WIERDGETTIMEOFDAY
+#elif defined(USE_WIERDGETTIMEOFDAY)
     /* This is for Solaris, where they decided to change the CALLING
        SEQUENCE OF gettimeofday! */
     struct timeval tp;
@@ -295,7 +295,7 @@ int  code;
 char *str;
 {
 if (str) 
-    fprintf( stderr, "%s\n", str );
+    fprintf( stderr, "[%d] %s\n", MPID_MyWorldRank, str );
 MPID_N3_Abort( code );
 }
 

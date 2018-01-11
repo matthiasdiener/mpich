@@ -1,5 +1,5 @@
 /*
- *  $Id: graph_map.c,v 1.5 1994/12/15 17:37:21 gropp Exp $
+ *  $Id: graph_map.c,v 1.6 1995/06/21 03:18:19 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -42,7 +42,7 @@ int     *newrank;
     return MPIR_ERROR( comm_old, mpi_errno, "Error in MPI_GRAPH_MAP" );
   
   /* Am I in this topology? */
-  MPI_Comm_rank ( comm_old, &rank );
+  MPIR_Comm_rank ( comm_old, &rank );
   if ( rank < nnodes )
     (*newrank) = rank;
   else

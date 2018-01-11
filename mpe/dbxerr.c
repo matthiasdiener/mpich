@@ -70,6 +70,10 @@ int child, i;
 	    }
 #ifdef DBX_IS_OSF
 	args[i++] = "-pid";
+#elif defined(MPI_hpux)
+	args[i++] = "-P";
+#elif defined(MPI_IRIX)
+	args[i++] = "-p";
 #endif
 	args[i++] = pid;
 	args[i++] = 0;
@@ -80,6 +84,10 @@ int child, i;
 	args[i++] = debugger; args[i++] = program; 
 #ifdef DBX_IS_OSF
 	args[i++] = "-pid";
+#elif defined(MPI_hpux)
+	args[i++] = "-P";
+#elif defined(MPI_IRIX)
+	args[i++] = "-p";
 #endif
 	args[i++] = pid; args[i++] = 0;
     }
@@ -90,7 +98,11 @@ int child, i;
     }
   }
   else { /* I am the child, continue with user code */
+#if defined(MPI_hpux)
+      while(1); /* HP cannot attach to sleeper */
+#else
     sleep(10);
+#endif
 #ifdef DBX_IS_OSF
     /* Need to stop the child so that the debugger will respond.  Wierd that
        you need this */
@@ -258,7 +270,11 @@ args[0] = MPER_Copy_string( "xterm" );
 args[1] = MPER_Copy_string( "-display" );
 args[2] = MPER_Copy_string( display );
 args[3] = MPER_Copy_string( "-e" );
+#if defined(MPI_hpux)
+args[4] = MPER_Copy_string( "xdb" );
+#else
 args[4] = MPER_Copy_string( "/usr/ucb/dbx" );
+#endif
 args[5] = MPER_Copy_string( pgm );
 args[6] = 0;
 

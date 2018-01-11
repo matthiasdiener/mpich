@@ -1,5 +1,5 @@
 /* opfree.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
 #ifdef POINTER_64_BITS
@@ -36,5 +36,10 @@ extern void MPIR_RmPointer();
 MPI_Op  *op;
 int *__ierr;
 {
-*__ierr = MPI_Op_free(op);
+MPI_Op lop = (MPI_Op) MPIR_ToPointer( *(int*)op );
+*__ierr = MPI_Op_free(&lop);
+if (!lop) {
+    MPIR_RmPointer( *(int*)op );
+    }
+*(int*)op = 0;
 }

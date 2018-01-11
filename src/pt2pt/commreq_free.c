@@ -1,5 +1,5 @@
 /*
- *  $Id: commreq_free.c,v 1.13 1994/12/15 16:49:02 gropp Exp $
+ *  $Id: commreq_free.c,v 1.14 1995/07/25 02:53:58 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -18,35 +18,37 @@ int MPI_Request_free( request )
 MPI_Request *request;
 {
     int mpi_errno = MPI_SUCCESS;
+    MPI_Request rq;
 
     if (MPIR_TEST_ARG(request) || MPIR_TEST_REQUEST(MPI_COMM_WORLD,*request))
 	return MPIR_ERROR(MPI_COMM_WORLD,mpi_errno,
 			  "Error in MPI_REQUEST_FREE" );
 
-    if ((*request)->chandle.persistent) {
-	if (--(*request)->chandle.datatype->ref_count <= 1) {
-	    MPIR_Type_free( &(*request)->chandle.datatype );
+    rq = *request;
+    if (rq->chandle.persistent) {
+	if (--rq->chandle.datatype->ref_count <= 1) {
+	    MPIR_Type_free( &rq->chandle.datatype );
 	    }
 	/* Note: if this persistent request is ACTIVE, we must wait 
 	   until it completes before freeing it; that free must take 
 	   place within the wait */
 	}
 
-    if ((*request)->type == MPIR_SEND)
+    if (rq->type == MPIR_SEND)
     {
-        if ((*request)->shandle.mode == MPIR_MODE_BUFFERED) 
-	    MPIR_BufferFreeReq( &(*request)->shandle );
-	MPID_Free_send_handle( (*request)->shandle.comm->ADIctx, 
-			       &((*request)->shandle.dev_shandle));
-	MPIR_SET_COOKIE(&(*request)->shandle,0);
-	MPIR_SBfree( MPIR_shandles, *request );
+        if (rq->shandle.mode == MPIR_MODE_BUFFERED) 
+	    MPIR_BufferFreeReq( &rq->shandle );
+	MPID_Free_send_handle( rq->shandle.comm->ADIctx, 
+			       &(rq->shandle.dev_shandle));
+	MPIR_SET_COOKIE(&rq->shandle,0);
+	MPIR_SBfree( MPIR_shandles, rq );
     }
-    else if ((*request)->type == MPIR_RECV)
+    else if (rq->type == MPIR_RECV)
     {
-	MPID_Free_recv_handle( (*request)->rhandle.comm->ADIctx, 
-			       &((*request)->rhandle.dev_rhandle));
-	MPIR_SET_COOKIE(&(*request)->rhandle,0);
-	MPIR_SBfree( MPIR_rhandles, *request );
+	MPID_Free_recv_handle( rq->rhandle.comm->ADIctx, 
+			       &(rq->rhandle.dev_rhandle));
+	MPIR_SET_COOKIE(&rq->rhandle,0);
+	MPIR_SBfree( MPIR_rhandles, rq );
     }
     else
 	mpi_errno = MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_INTERN, 

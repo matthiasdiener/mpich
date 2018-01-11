@@ -42,6 +42,10 @@ while [ $curarch -le $narch ] ; do
     eval archlist=$"archlist$curarch"
     if [ -z "$archlist" ] ; then archlist=$arch ; fi
     eval np=$"np$curarch"
+    if [ -z "$np" ] ; then 
+	echo "Warning: unspecified -np value for $arch"
+	np=1
+    fi
     if [ $clearMachineFile = 1 ] ; then machineFile="" ; fi
     #
     # Get default machine file

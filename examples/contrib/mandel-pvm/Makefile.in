@@ -41,3 +41,5 @@ OBJS   = mandel_mpi.o
 mandel_mpi: mandel_mpi.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o mandel_mpi mandel_mpi.o $(LIBS)
 
+xpx: xpx.c
+	$(CC) -o xpx xpx.c -lX11 -lm

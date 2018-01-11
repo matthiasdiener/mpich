@@ -19,6 +19,7 @@ static int    MPE_Log_hasBeenClosed = 0;
 static int    MPE_Log_clockIsRunning = 0;
 static int    MPE_Log_isLockedOut = 0;
 static int    MPE_Log_AdjustedTimes = 0;
+#define MPE_HAS_PROCID
 static int    MPE_Log_procid;
 static double MPE_Log_tinit;	/* starting time */
 

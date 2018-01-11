@@ -2528,30 +2528,6 @@ MPI_Datatype * newtype;
   return returnVal;
 }
 
-int   MPI_Type_count( datatype, count )
-MPI_Datatype datatype;
-int * count;
-{
-  int   returnVal;
-  int llrank;
-
-/*
-    MPI_Type_count - prototyping replacement for MPI_Type_count
-    Trace the beginning and ending of MPI_Type_count.
-*/
-
-  
-  PMPI_Comm_rank( MPI_COMM_WORLD, &llrank );
-  printf( "[%d] Starting MPI_Type_count...\n", llrank ); fflush( stdout );
-  
-  returnVal = PMPI_Type_count( datatype, count );
-
-  printf( "[%d] Ending MPI_Type_count\n", llrank ); fflush( stdout );
-
-
-  return returnVal;
-}
-
 int  MPI_Type_extent( datatype, extent )
 MPI_Datatype datatype;
 MPI_Aint * extent;

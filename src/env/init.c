@@ -1,5 +1,5 @@
 /*
- *  $Id: init.c,v 1.76 1995/06/02 03:28:07 gropp Exp $
+ *  $Id: init.c,v 1.80 1995/07/31 14:51:53 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: init.c,v 1.76 1995/06/02 03:28:07 gropp Exp $";
+static char vcid[] = "$Id: init.c,v 1.80 1995/07/31 14:51:53 gropp Exp $";
 #endif /* lint */
 
 /* 
@@ -286,6 +286,12 @@ extern void MPIR_Topology_init();
    precisely, non-standard Fortran routines such as getarg and iargc 
    have undefined behavior in MPI and in this implementation.
 
+   The MPI standard does not say what a program can do before an MPI_INIT or
+   after an MPI_FINALIZE.  In the MPICH implementation, you should do
+   as little as possible.  In particular, avoid anything that changes the
+   external state of the program, such as opening files, reading standard
+   input or writing to standard output.
+
    Signals used:
    The MPI standard requires that all signals used be documented.  The MPICH
    implementation itself uses no signals, but some of the softare that MPICH
@@ -372,51 +378,100 @@ char ***argv;
     if (sizeof(int) == MPIR_FSIZE_R) {
 	MPI_INTEGER          = MPI_INT;
 	}
+    else if (sizeof(long) == MPIR_FSIZE_R) {
+        MPI_INTEGER          = MPI_LONG;
+        }
     else {
 	MPI_INTEGER          = MPIR_Init_basic_datatype( MPIR_FORT_INT, 
 							 MPIR_FSIZE_R );
 	}
+    MPIR_Setup_datatype( MPI_DOUBLE, MPIR_DOUBLE, sizeof(double) );
+#if !defined(MPID_NO_FORTRAN)
+    /* 
+       Check for consistent definition of ints in the interfaces.
+       If we get this message, we need to make changes in all of the 
+       Fortran wrappers (replacing int types and adding casts)
+     */
+    if (sizeof(int) != MPIR_FSIZE_R) {
+	fprintf( stderr, 
+	    "WARNING: Fortran integers are different in size from C ints\n" );
+	}
+#endif
     MPIR_Setup_datatype( &MPIR_I_LOGICAL, MPIR_LOGICAL, MPIR_FSIZE_R );
     MPIR_Setup_datatype( MPI_FLOAT, MPIR_FLOAT, sizeof(float) );
     /* Hunt for Fortran real size */
     if (sizeof(float) == MPIR_FSIZE_R) {
 	MPI_REAL		     = MPIR_Init_basic_datatype( MPIR_FLOAT, 
 							       sizeof(float) );
+	MPIR_Setup_datatype( &MPIR_I_COMPLEX, MPIR_COMPLEX, 2 * MPIR_FSIZE_R );
+	MPIR_I_COMPLEX.align  = MPIR_FSIZE_R;
+
+	MPI_Type_contiguous ( 2, MPI_FLOAT, &MPIR_2real_dte );
+	MPI_Type_commit ( &MPIR_2real_dte );
+	MPIR_Type_permanent ( MPIR_2real_dte );
 	}
     else if (sizeof(double) == MPIR_FSIZE_R) {
 	MPI_REAL		     = MPIR_Init_basic_datatype( MPIR_DOUBLE, 
 							      sizeof(double) );
+	MPIR_Setup_datatype( &MPIR_I_COMPLEX, MPIR_DOUBLE_COMPLEX, 
+			     2 * MPIR_FSIZE_R );
+	MPIR_I_COMPLEX.align  = MPIR_FSIZE_R;
+
+	MPI_Type_contiguous ( 2, MPI_DOUBLE, &MPIR_2real_dte );
+	MPI_Type_commit ( &MPIR_2real_dte );
+	MPIR_Type_permanent ( MPIR_2real_dte );
 	}
     else {
 	/* we'll have a problem with the reduce/scan ops */
 	MPI_REAL		     = MPIR_Init_basic_datatype( MPIR_FLOAT, 
 							      MPIR_FSIZE_R );
+	MPIR_Setup_datatype( &MPIR_I_COMPLEX, MPIR_COMPLEX, 2 * MPIR_FSIZE_R );
+	MPIR_I_COMPLEX.align  = MPIR_FSIZE_R;
+
+	MPI_Type_contiguous ( 2, MPI_FLOAT, &MPIR_2real_dte );
+	MPI_Type_commit ( &MPIR_2real_dte );
+	MPIR_Type_permanent ( MPIR_2real_dte );
 	}
 
-    MPIR_Setup_datatype( MPI_DOUBLE, MPIR_DOUBLE, sizeof(double) );
+    /* Note that dcomplex is needed for src/pt2pt/pack_size.c */
     if (sizeof(double) == MPIR_FSIZE_D) {
 	MPI_DOUBLE_PRECISION = MPIR_Init_basic_datatype( MPIR_DOUBLE, 
 							   sizeof( double ) );
+	MPIR_Setup_datatype( &MPIR_I_DCOMPLEX, MPIR_DOUBLE_COMPLEX, 
+			    2 * MPIR_FSIZE_D );
+	MPIR_I_DCOMPLEX.align = MPIR_FSIZE_D;
+
+	MPI_Type_contiguous ( 2, MPI_DOUBLE, &MPIR_2double_dte );
+	MPI_Type_commit ( &MPIR_2double_dte );
+	MPIR_Type_permanent ( MPIR_2double_dte );
 	}
 #if defined(HAVE_LONG_DOUBLE)
     else if (sizeof(long double) == MPIR_FSIZE_D) {
 	MPI_DOUBLE_PRECISION = MPIR_Init_basic_datatype( 
 					    MPIR_LONGDOUBLE, MPIR_FSIZE_D );
+	/* These aren't correct (we need a ldcomplex datatype in 
+	   global_ops.c */
+	MPIR_Setup_datatype( &MPIR_I_DCOMPLEX, MPIR_DOUBLE_COMPLEX, 
+			    2 * MPIR_FSIZE_D );
+	MPIR_I_DCOMPLEX.align = MPIR_FSIZE_D;
+
+	MPI_Type_contiguous ( 2, MPI_DOUBLE_PRECISION, &MPIR_2double_dte );
+	MPI_Type_commit ( &MPIR_2double_dte );
+	MPIR_Type_permanent ( MPIR_2double_dte );
 	}
 #endif
     else {
 	/* we'll have a problem with the reduce/scan ops */
 	MPI_DOUBLE_PRECISION = MPIR_Init_basic_datatype( MPIR_DOUBLE, 
 							   MPIR_FSIZE_D );
+	MPIR_Setup_datatype( &MPIR_I_DCOMPLEX, MPIR_DOUBLE_COMPLEX, 
+			    2 * MPIR_FSIZE_D );
+	MPIR_I_DCOMPLEX.align = MPIR_FSIZE_D;
+
+	MPI_Type_contiguous ( 2, MPI_DOUBLE, &MPIR_2double_dte );
+	MPI_Type_commit ( &MPIR_2double_dte );
+	MPIR_Type_permanent ( MPIR_2double_dte );
 	}
-    /* These also need to use the proper types for the floating-point
-       types */
-    MPIR_Setup_datatype( &MPIR_I_COMPLEX, MPIR_COMPLEX, 2 * MPIR_FSIZE_R );
-    MPIR_I_COMPLEX.align  = MPIR_FSIZE_R;
-    /* Note that dcomplex is needed for src/pt2pt/pack_size.c */
-    MPIR_Setup_datatype( &MPIR_I_DCOMPLEX, MPIR_DOUBLE_COMPLEX, 
-			 2 * MPIR_FSIZE_D );
-    MPIR_I_DCOMPLEX.align = MPIR_FSIZE_D;
 
     MPIR_Setup_datatype( MPI_LONG, MPIR_LONG, sizeof(long) );
     MPIR_Setup_datatype( MPI_SHORT, MPIR_SHORT, sizeof(short) );
@@ -448,18 +503,10 @@ char ***argv;
 #endif
 
     /* Initialize C and FORTRAN types for MINLOC and MAXLOC */
-    MPI_Type_contiguous ( 2, MPI_FLOAT, &MPIR_2real_dte );
-    MPI_Type_commit ( &MPIR_2real_dte );
-    MPIR_Type_permanent ( MPIR_2real_dte );
-
-    MPI_Type_contiguous ( 2, MPI_DOUBLE, &MPIR_2double_dte );
-    MPI_Type_commit ( &MPIR_2double_dte );
-    MPIR_Type_permanent ( MPIR_2double_dte );
-
     MPI_Type_contiguous ( 2, &MPIR_I_COMPLEX, &MPIR_2complex_dte );
     MPI_Type_commit ( &MPIR_2complex_dte );
     MPIR_Type_permanent ( MPIR_2complex_dte );
-
+    
     MPI_Type_contiguous ( 2, &MPIR_I_DCOMPLEX, &MPIR_2dcomplex_dte );
     MPI_Type_commit ( &MPIR_2dcomplex_dte );
     MPIR_Type_permanent ( MPIR_2dcomplex_dte );
@@ -468,8 +515,8 @@ char ***argv;
     MPI_Type_contiguous ( 2, MPI_INT, &temptype );
     MPIR_Setup_complex_datatype( temptype, MPI_2INT );
 
-    /* This assumes that sizeof(double) == sizeof(double precision) */
-    if (sizeof(int) != sizeof(double)/2) {
+    /* Note Fortran requires sizeof(INTEGER) == sizeof(REAL) */
+    if (sizeof(int) != MPIR_FSIZE_R) {
 	MPI_Type_contiguous ( 2, MPI_INTEGER, &MPI_2INTEGER );
 	MPI_Type_commit ( &MPI_2INTEGER );
 	MPIR_Type_permanent ( MPI_2INTEGER );
@@ -609,9 +656,11 @@ char ***argv;
     DEBUG(printf("[%d] About to setup message queues\n", MPIR_tid);)
     MPIR_posted_recvs.first        = MPIR_posted_recvs.last        = NULL;
     MPIR_posted_recvs.maxlen       = MPIR_posted_recvs.currlen     = 0; 
+    MPID_THREAD_DS_LOCK_INIT(&MPIR_posted_recvs)
 
     MPIR_unexpected_recvs.first    = MPIR_unexpected_recvs.last    = NULL;
     MPIR_unexpected_recvs.maxlen   = MPIR_unexpected_recvs.currlen = 0;
+    MPID_THREAD_DS_LOCK_INIT(&MPIR_unexpected_recvs)
 
     /* Create Error handlers */
     MPI_Errhandler_create( MPIR_Errors_are_fatal, &MPI_ERRORS_ARE_FATAL );
@@ -883,9 +932,9 @@ char ***argv;
 #endif
 		}
 	    }
+	/* Remove the null arguments */
+	MPIR_ArgSqueeze( argc, *argv );
 	}
-    /* Remove the null arguments */
-    MPIR_ArgSqueeze( argc, *argv );
 
     /* barrier */
     MPIR_Has_been_initialized = 1;

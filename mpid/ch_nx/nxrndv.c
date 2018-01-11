@@ -6,7 +6,7 @@
 
 
 /*
- *  $Id$
+ *  $Id: chrndv.c,v 1.1 1995/06/28 23:01:10 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -14,7 +14,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id$";
+static char vcid[] = "$Id: chrndv.c,v 1.1 1995/06/28 23:01:10 gropp Exp $";
 #endif /* lint */
 
 #include "mpid.h"
@@ -26,61 +26,14 @@ static char vcid[] = "$Id$";
  */
 
 /* Here are some definitions to simplify debugging */
-#ifdef MPID_DEBUG_ALL
-                          /* #DEBUG_START# */
-#ifdef MEMCPY
-#undef MEMCPY
-#endif
-#define MEMCPY(a,b,c)\
-{if (MPID_DebugFlag) {\
-    fprintf( MPID_DEBUG_FILE, \
-	    "[%d]R About to copy to %d from %d (n=%d) (%s:%d)...\n", \
-	    MPID_MyWorldRank, a, b, c, __FILE__, __LINE__ );\
-    fflush( MPID_DEBUG_FILE ); }\
-memcpy( a, b, c );}
-
-#define DEBUG_PRINT_RECV_PKT(pkt)\
-    {if (MPID_DebugFlag) {\
-	fprintf( MPID_DEBUG_FILE,\
-"[%d]R rcvd msg for tag = %d, source = %d, ctx = %d, len = %d, mode = ", \
-	       MPID_MyWorldRank, MPID_PKT_RECV_GET(pkt,head.tag), from, \
-	       MPID_PKT_RECV_GET(pkt,head.context_id), \
-	       MPID_PKT_RECV_GET(pkt,head.len) );\
-	MPID_Print_mode( MPID_DEBUG_FILE, MPID_PKT_RECV_ADDR(pkt) );\
-	fprintf( MPID_DEBUG_FILE, "(%s:%d)\n", __FILE__, __LINE__ );\
-	fflush( MPID_DEBUG_FILE );\
-	}}
-
-#define DEBUG_PRINT_MSG(msg)\
-{if (MPID_DebugFlag) {\
-    fprintf( MPID_DEBUG_FILE, "[%d]%s (%s:%d)\n", \
-	    MPID_MyWorldRank, msg, __FILE__, __LINE__ );\
-    fflush( MPID_DEBUG_FILE );}}
-     
-                          /* #DEBUG_END# */
-#else
-#define DEBUG_PRINT_PKT(pkt)
-#define DEBUG_PRINT_MSG(msg)
-
-#endif
-
-/***************************************************************************/
-/* This variable controls debugging output                                 */
-/***************************************************************************/
-extern int MPID_DebugFlag;
-
+#include "mpiddebug.h"
 /***************************************************************************/
 
 /***************************************************************************/
 /* These are used to keep track of the number and kinds of messages that   */
 /* are received                                                            */
 /***************************************************************************/
-#ifndef MPID_STAT_NONE
-extern int MPID_n_short,         /* short messages */
-           MPID_n_long,          /* long messages */
-           MPID_n_unexpected,    /* unexpected messages */
-           MPID_n_syncack;       /* Syncronization acknowledgments */
-#endif
+#include "mpidstat.h"
 /***************************************************************************/
 
 /***************************************************************************/
@@ -99,8 +52,8 @@ MPID_PKT_GALLOC
 
 #ifdef MPID_USE_RNDV
 /* 
-    In the Rendevous version of this, it sends a request back to the
-    sender for the data...
+    In the Rendevous version of this, we must send a request back to the
+    sender for the data. ???
  */
 int MPID_NX_Copy_body_long_rndv( dmpi_recv_handle, pkt, from )
 MPIR_RHANDLE *dmpi_recv_handle;
@@ -113,12 +66,7 @@ int          msglen, err = MPI_SUCCESS;
 mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
 msglen           = pkt->head.len;
 
-/* Check for truncation */
-if (dmpi_recv_handle->dev_rhandle.bytes_as_contig < msglen) {
-    err = MPI_ERR_TRUNCATE;
-    (*MPID_ErrorHandler)( 1, "Truncated message"  );
-    msglen = dmpi_recv_handle->dev_rhandle.bytes_as_contig;
-    }
+MPID_NXK_MSGLEN(dmpi_recv_handle,msglen,err)
 dmpi_recv_handle->totallen = msglen;
 MPID_KEEP_STAT(MPID_n_long++;)
 MPID_RecvFromChannel( mpid_recv_handle->start, msglen, from );
@@ -318,12 +266,7 @@ MPID_PKT_SEND_DECL(MPID_PKT_OK_TO_SEND_T,pkt);
 MPID_RHANDLE *mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
 int          err;
 
-/* Check for truncation */
-if (dmpi_recv_handle->dev_rhandle.bytes_as_contig < msglen) {
-    err = MPI_ERR_TRUNCATE;
-    (*MPID_ErrorHandler)( 1, "Truncated message"  );
-    msglen = dmpi_recv_handle->dev_rhandle.bytes_as_contig;
-    }
+MPID_NXK_MSGLEN(dmpi_recv_handle,msglen,err)
 dmpi_recv_handle->totallen = msglen;
 
 MPID_PKT_SEND_ALLOC(MPID_PKT_OK_TO_SEND,pkt);
@@ -436,20 +379,10 @@ MPID_PKT_SEND_SET(pkt,context_id,dmpi_send_handle->contextid);
 MPID_PKT_SEND_SET(pkt,lrank,dmpi_send_handle->lrank);
 MPID_PKT_SEND_SET(pkt,tag,dmpi_send_handle->tag);
 MPID_PKT_SEND_SET(pkt,len,len);
+MPID_PKT_SEND_SET_HETERO(pkt,dmpi_send_handle->msgrep)
 dest           = dmpi_send_handle->dest;
 
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (MPID_DebugFlag) {
-    printf( 
- "[%d]S Starting a send of tag = %d, len = %d, ctx = %d, dest = %d, mode=",
-	    MPID_MyWorldRank, MPID_PKT_SEND_GET(pkt,tag), 
-	    MPID_PKT_SEND_GET(pkt,len), MPID_PKT_SEND_GET(pkt,context_id), 
-	    dest );
-    MPID_Print_mode( stdout, (MPID_PKT_T*)MPID_PKT_SEND_ADDR(pkt) );
-    fprintf( stdout, "(%s:%d)\n", __FILE__, __LINE__ );
-    fflush( stdout );
-    }
-#endif                  /* #DEBUG_END# */
+DEBUG_PRINT_SEND_PKT("S Starting a send",ptk)
 
 MPID_PKT_PACK( MPID_PKT_SEND_ADDR(pkt), sizeof(MPID_PKT_HEAD_T), dest );
 
@@ -536,30 +469,6 @@ while (!MPID_Test_handle(dmpi_recv_handle)) {
     }
 }
 
-
-/* Request packets are only defined if MPID_USE_RNDV is */
-MPID_NX_Rndv_print_pkt( fp, pkt )
-FILE *fp;
-MPID_PKT_T *pkt;
-{
-if (pkt->head.mode != MPID_PKT_OK_TO_SEND) {
-    fprintf( fp, "\
-\tlen        = %d\n\
-\ttag        = %d\n\
-\tcontext_id = %d\n\
-\tlrank      = %d\n\
-\tsend_id    = %d\n\
-\tsend_hndl  = %d\n\
-\tmode       = ", 
-	pkt->head.len, pkt->head.tag, pkt->head.context_id, pkt->head.lrank,
-	pkt->request_pkt.send_id, pkt->request_pkt.send_handle );
-    }
-else {
-    fprintf( fp, "\
-\tsend_id    = %d\n\
-\trecv_hndl  = %d\n\
-\tmode       = ", 
-	pkt->sendok_pkt.send_id, pkt->sendok_pkt.recv_handle );
-    }
-}
 #endif
+
+

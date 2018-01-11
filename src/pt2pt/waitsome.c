@@ -1,5 +1,5 @@
 /*
- *  $Id: waitsome.c,v 1.19 1995/05/16 18:11:34 gropp Exp $
+ *  $Id: waitsome.c,v 1.20 1995/07/25 02:48:22 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: waitsome.c,v 1.19 1995/05/16 18:11:34 gropp Exp $";
+static char vcid[] = "$Id: waitsome.c,v 1.20 1995/07/25 02:48:22 gropp Exp $";
 #endif /* lint */
 #include "mpiimpl.h"
 #include "mpisys.h"
@@ -116,8 +116,13 @@ MPI_Status  array_of_statuses[];
 		    }
 		}
 	    }
+	/* See the comments in MPI_WAITANY (waitany.c).  This isn't 
+	   a safe call */
+	/*
 	if (nfound == 0) 
 	    MPID_Check_device( MPI_COMM_WORLD->ADIctx, MPID_BLOCKING );
+	     */
+	    MPID_Check_device( MPI_COMM_WORLD->ADIctx, MPID_NOTBLOCKING );
 
 	}
     *outcount = nfound;

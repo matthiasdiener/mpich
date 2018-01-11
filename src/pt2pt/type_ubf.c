@@ -1,5 +1,5 @@
 /* type_ub.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
 #ifdef POINTER_64_BITS
@@ -32,11 +32,13 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_type_ub_ ( datatype, displacement, __ierr )
+void mpi_type_ub_ ( datatype, displacement, __ierr )
 MPI_Datatype  datatype;
-MPI_Aint      *displacement;
-int *__ierr;
+int           *displacement;
+int           *__ierr;
 {
+MPI_Aint c_displacement;
 *__ierr = MPI_Type_ub(
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),displacement);
+	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),&c_displacement);
+*displacement = (int)c_displacement;
 }

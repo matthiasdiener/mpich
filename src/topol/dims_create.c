@@ -1,5 +1,5 @@
 /*
- *  $Id: dims_create.c,v 1.8 1994/12/15 17:36:34 gropp Exp $
+ *  $Id: dims_create.c,v 1.9 1995/07/25 02:44:35 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -721,7 +721,7 @@ int *dims;
   newNdims = 0;                        /* number of zero values in dims[] */
   for (i=0; i<ndims; i++) {
 	if (dims[i]<0)
-	  return MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_BAD_ARGS,
+	  return MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_DIMS,
 			    "Invalid args to MPI_DIMS_CREATE");
 	if (dims[i]==0)
 	  newNdims++;
@@ -735,7 +735,7 @@ int *dims;
 		testProduct *= dims[i];
 	  }
 	  if (testProduct != nnodes)
-		return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_BAD_ARGS, 
+		return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_DIMS, 
 				 "Tensor product size does not match nnodes");
 	  else
 		return(MPI_SUCCESS);
@@ -746,7 +746,7 @@ int *dims;
   for (i=0; i<ndims; i++) {
 	if (dims[i]>0) {
 	  if (nnodes%dims[i] != 0)
-		return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_BAD_ARGS, 
+		return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_DIMS,
 				 "Can not partition nodes as requested");
 	  freeNodes /= dims[i];
 	}

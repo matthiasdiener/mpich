@@ -9,6 +9,7 @@ extern char *sys_errlist[];
 
 /*
  *    Utility routines for socket hacking in p4:
+ *        P4VOID net_set_sockbuf_size(size, skt)
  *        P4VOID net_setup_listener(backlog, port, skt)
  *        P4VOID net_setup_anon_listener(backlog, port, skt)
  *        int net_accept(skt)
@@ -33,6 +34,54 @@ extern char *sys_errlist[];
  *    forking off the listener.
  */
 
+P4VOID net_set_sockbuf_size(size, skt)	/* 7/12/95, bri@sgi.com */
+int size;
+int skt;
+{
+    int rc;
+    char *env_value;
+    int sockbufsize,rsz,ssz,status,dummy;
+    extern char *getenv();
+
+    /*
+     * Need big honking socket buffers for fast honking networks.  It
+     * would be nice if these would "autotune" for the underlying network,
+     * but until then, we'll let the user specify socket send/recv buffer
+     * sizes with P4_SOCKBUFSIZE.
+     *
+     */
+
+#ifdef CAN_DO_SETSOCKOPT
+
+    if (size <= 0)
+    {
+	    env_value = getenv("P4_SOCKBUFSIZE");
+	    if (env_value) size = atoi(env_value);
+    }
+
+    if (size > 0)
+    {
+	    	/* Set Send & Receive Socket Buffers */
+
+	    SYSCALL_P4(rc, setsockopt(skt,SOL_SOCKET,SO_SNDBUF,&size,sizeof(size)));
+	    if (rc < 0) p4_error("net_set_sockbuf_size socket", skt);
+	    SYSCALL_P4(rc, setsockopt(skt,SOL_SOCKET,SO_RCVBUF,&size,sizeof(size)));
+	    if (rc < 0) p4_error("net_set_sockbuf_size socket", skt);
+
+	    	/* Fetch Back the Newly Set Sizes */
+
+            dummy = sizeof(ssz);
+            rc = getsockopt(skt,SOL_SOCKET,SO_SNDBUF,&ssz,&dummy);
+            dummy = sizeof(rsz);
+            rc = getsockopt(skt,SOL_SOCKET,SO_RCVBUF,&rsz,&dummy);
+
+	    p4_dprintfl(80,
+			"net_set_sockbuf_size: skt %d, new sizes = [%d,%d]\n",
+			skt,ssz,rsz);
+    }
+
+#endif
+}
 
 P4VOID net_setup_listener(backlog, port, skt)
 int backlog;
@@ -45,6 +94,11 @@ int *skt;
     SYSCALL_P4(*skt, socket(AF_INET, SOCK_STREAM, 0));
     if (*skt < 0)
 	p4_error("net_setup_listener socket", *skt);
+
+#ifdef SGI
+    net_set_sockbuf_size(-1,*skt);     /* 7/12/95, bri@sgi.com */
+#endif
+
 #ifdef CAN_DO_SETSOCKOPT
     SYSCALL_P4(rc,setsockopt(*skt, IPPROTO_TCP, TCP_NODELAY, (char *) &optval, sizeof(optval)));
 #endif
@@ -74,6 +128,11 @@ int *skt;
     SYSCALL_P4(*skt, socket(AF_INET, SOCK_STREAM, 0));
     if (*skt < 0)
 	p4_error("net_setup_anon_listener socket", *skt);
+
+#ifdef SGI
+    net_set_sockbuf_size(-1,*skt);	/* 7/12/95, bri@sgi.com */
+#endif
+
 #ifdef CAN_DO_SETSOCKOPT
     SYSCALL_P4(rc, setsockopt(*skt, IPPROTO_TCP, TCP_NODELAY, (char *) &optval, sizeof(optval)));
 #endif
@@ -119,6 +178,11 @@ int skt;
 	    gotit = 1;
 	p4_dprintfl(60, "net_accept - got accept\n");
     }
+
+#ifdef SGI
+    net_set_sockbuf_size(-1,skt2);     /* 7/12/95, bri@sgi.com */
+#endif
+
 #ifdef CAN_DO_SETSOCKOPT
     SYSCALL_P4(rc, setsockopt(skt2, IPPROTO_TCP, TCP_NODELAY, (char *) &optval, sizeof(optval)));
 #endif
@@ -221,6 +285,10 @@ int port, num_tries;
 	SYSCALL_P4(s, socket(AF_INET, SOCK_STREAM, 0));
 	if (s < 0)
 	    p4_error("net_conn_to_listener socket", s);
+
+#ifdef SGI
+        net_set_sockbuf_size(-1,s);    /* 7/12/95, bri@sgi.com */
+#endif
 
 #       ifdef CAN_DO_SETSOCKOPT
 	SYSCALL_P4(rc, setsockopt(s,IPPROTO_TCP,TCP_NODELAY,(char *) &optval,sizeof(optval)));

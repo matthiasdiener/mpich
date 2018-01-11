@@ -1,5 +1,5 @@
 /*
- *  $Id: dmpiatom.h,v 1.37 1995/05/09 17:44:48 gropp Exp $
+ *  $Id: dmpiatom.h,v 1.39 1995/06/30 17:34:13 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -10,17 +10,21 @@
 #ifndef _DMPIATOM_INCLUDE
 #define _DMPIATOM_INCLUDE
 
+/* SGI change... */
+#include "mpi.h"
+
 /*****************************************************************************
 *                           MPI ATOMIC DATA STRUCTURES                       *
 *****************************************************************************/
 
 /*****************************************************************************
-*  We place "cookies into the data structures to improve error detection and *
+*  We place "cookies" into the data structures to improve error detection and*
 *  reporting of invalid objects.  In order to make this flexible, the        *
 *  cookies are defined as macros.                                            *
 *  If MPIR_HAS_COOKIES is not defined, then the "cookie" fields are not      *
 *  set or tested                                                             *
 *****************************************************************************/
+
 #define MPIR_HAS_COOKIES
 #ifdef MPIR_HAS_COOKIES
 #define MPIR_COOKIE unsigned long cookie;
@@ -31,7 +35,7 @@
 #endif
 /****************************************************************************/
 
-/* insure that this is at least 32 bits */
+/* Ensure that this is at least 32 bits */
 typedef unsigned long MPIR_uint32;
 
 typedef struct _MPIR_HBT_node {
@@ -136,6 +140,60 @@ typedef unsigned long MPIR_CONTEXT;
 
 typedef enum { MPIR_INTRA=1, MPIR_INTER } MPIR_COMM_TYPE;
 
+#ifdef ANSI_ARGS
+#undef ANSI_ARGS
+#endif
+
+#if defined(__STDC__)
+#define ANSI_ARGS(a) a
+#else
+#define ANSI_ARGS(a) ()
+#endif
+
+/*
+ * Collective operations (this allows choosing either an implementation
+ * in terms of point-to-point, or a special version exploiting special
+ * facilities, in a communicator by communicator fashion).
+ */
+typedef struct MPIR_COLLOPS {
+    int (*Barrier) ANSI_ARGS((MPI_Comm comm ));
+    int (*Bcast) ANSI_ARGS((void* buffer, int count, MPI_Datatype datatype, int root, 
+		 MPI_Comm comm ));
+    int (*Gather) ANSI_ARGS((void* sendbuf, int sendcount, MPI_Datatype sendtype, 
+		  void* recvbuf, int recvcount, MPI_Datatype recvtype, 
+		  int root, MPI_Comm comm)); 
+    int (*Gatherv) ANSI_ARGS((void* sendbuf, int sendcount, MPI_Datatype sendtype, 
+		   void* recvbuf, int *recvcounts, int *displs, 
+		   MPI_Datatype recvtype, int root, MPI_Comm comm)); 
+    int (*Scatter) ANSI_ARGS((void* sendbuf, int sendcount, MPI_Datatype sendtype, 
+		   void* recvbuf, int recvcount, MPI_Datatype recvtype, 
+		   int root, MPI_Comm comm));
+    int (*Scatterv) ANSI_ARGS((void* sendbuf, int *sendcounts, int *displs, 
+		    MPI_Datatype sendtype, void* recvbuf, int recvcount, 
+		    MPI_Datatype recvtype, int root, MPI_Comm comm));
+    int (*Allgather) ANSI_ARGS((void* sendbuf, int sendcount, MPI_Datatype sendtype, 
+		     void* recvbuf, int recvcount, MPI_Datatype recvtype, 
+		     MPI_Comm comm));
+    int (*Allgatherv) ANSI_ARGS((void* sendbuf, int sendcount, MPI_Datatype sendtype, 
+		      void* recvbuf, int *recvcounts, int *displs, 
+		      MPI_Datatype recvtype, MPI_Comm comm));
+    int (*Alltoall) ANSI_ARGS((void* sendbuf, int sendcount, MPI_Datatype sendtype, 
+		    void* recvbuf, int recvcount, MPI_Datatype recvtype, 
+		    MPI_Comm comm));
+    int (*Alltoallv) ANSI_ARGS((void* sendbuf, int *sendcounts, int *sdispls, 
+		     MPI_Datatype sendtype, void* recvbuf, int *recvcounts, 
+		     int *rdispls, MPI_Datatype recvtype, MPI_Comm comm));
+    int (*Reduce) ANSI_ARGS((void* sendbuf, void* recvbuf, int count, 
+		  MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm));
+    int (*Allreduce) ANSI_ARGS((void* sendbuf, void* recvbuf, int count, 
+		     MPI_Datatype datatype, MPI_Op op, MPI_Comm comm));
+    int (*Reduce_scatter) ANSI_ARGS((void* sendbuf, void* recvbuf, int *recvcounts, 
+			  MPI_Datatype datatype, MPI_Op op, MPI_Comm comm));
+    int (*Scan) ANSI_ARGS((void* sendbuf, void* recvbuf, int count, MPI_Datatype datatype, 
+		MPI_Op op, MPI_Comm comm ));
+    int ref_count;     /* So we can share it */
+} MPIR_COLLOPS;
+
 /*
    The local_rank field is used to reduce unnecessary memory references
    when doing send/receives.  It must equal local_group->local_rank.
@@ -146,6 +204,9 @@ typedef enum { MPIR_INTRA=1, MPIR_INTER } MPIR_COMM_TYPE;
 
    These have been ordered so that the most common elements are 
    near the top, in hopes of improving cache utilization.
+
+   For a normal intra-communicator the group and local_group are identical
+   The group differs from the local_group only in an inter-communicator
  */
 #define MPIR_COMM_COOKIE 0xea02beaf
 struct MPIR_COMMUNICATOR {
@@ -187,6 +248,9 @@ struct MPIR_COMMUNICATOR {
     void          *ADIScan;
     void          *ADIBcast;
     void          *ADICollect;
+
+    void          *adiCollCtx;
+    MPIR_COLLOPS  *collops;
 };
 
 typedef enum {
@@ -219,5 +283,5 @@ typedef enum {
 #define MPIR_UNMARKED 0
 #define MPIR_MARKED   1
 
-#include "mpi_bc.h"
+/* #include "mpi_bc.h" */
 #endif

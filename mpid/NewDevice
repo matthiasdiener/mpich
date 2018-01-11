@@ -5,20 +5,32 @@
 # tools).
 #
 set do_raw = 0
+set dev = $1
 while ($#argv > 0) 
     switch ($1)
-    case -help:
-    echo "NewDevice [ -raw ]"
-    echo "Make a new device.  If -raw is used, does NOT process as"
-    echo "Chameleon code"
-    exit 0
+    case -echo:
+    set echo
+    shift
     breaksw
+
+    case -help:
+    echo "NewDevice [ -raw ] name"
+    echo "Make a new device.  If -raw is used, does NOT process as"
+    echo "Chameleon code.  The name of the new device will be"
+    echo "ch_<name>.  That is, 'NewDevice foo' will create a ch_foo"
+    echo "directory with an initial set of files."
+    exit 1
+    breaksw
+
     case -raw:
     shift
     set do_raw = 1
     breaksw
+
     default:
     echo "Building new device $1"
+    set dev = $1
+    shift
     breaksw
     endsw
 end
@@ -26,29 +38,36 @@ end
 # MAY be different from the Chameleon version;
 # For -raw, we use the shared memory code (ch_shmem)
 umask 2
-if (! -d ch_$1) mkdir ch_$1
-chmod g+ws ch_$1
-cd ch_$1
-set Upcase = `echo $1 | tr '[a-z]' '[A-Z]'`
+if (! -d ch_$dev) mkdir ch_$dev
+chmod g+ws ch_$dev
+cd ch_$dev
+set Upcase = `echo $dev | tr '[a-z]' '[A-Z]'`
 if ($do_raw == 1) then
- sed -e "s/shmem/$1/g" -e "s/SHMEM/$Upcase/g" ../ch_shmem/makeshmem > make$1
- sed "s/SHMEM/$Upcase/g" ../ch_shmem/dmshmem.h > dm$1.h
- sed "s/shmem/$1/g" ../ch_shmem/mpid.h > mpid.h
- sed "s/shmem/$1/g" ../ch_shmem/makeinclude > makeinclude
- sed "s/shmem/$1/g" ../ch_shmem/Makefile.in > Makefile.in
+ sed -e "s/shmem/$dev/g" -e "s/SHMEM/$Upcase/g" \
+	../ch_shmem/makeshmem > make$dev
+ sed "s/SHMEM/$Upcase/g" ../ch_shmem/dmshmem.h > dm$dev.h
+ sed -e "s/shmem/$dev/g" -e "s/SHMEM/$Upcase/g" ../ch_shmem/mpid.h > mpid.h
+ sed "s/shmem/$dev/g" ../ch_shmem/makeinclude > makeinclude
+ sed -e "s/shmem/$dev/g" -e 's/p2p..//g' -e 's/shops2..//'g \
+		../ch_shmem/Makefile.in > Makefile.in
+ cat >${dev}priv.c <<.
+/* This file contains the implementation of routines private to this device */
+.
+ echo "You will need to take a careful look at mpid.h, where there are many"
+ echo "special cases set for the internal packet data structure."
 else
- sed -e "s/nx/$1/g" -e "s/NX/$Upcase/g" ../ch_nx/makenx > make$1
- sed "s/NX/$Upcase/g" ../ch_nx/dmnx.h > dm$1.h
- sed "s/nx/$1/g" ../ch_nx/mpid.h > mpid.h
- sed "s/nx/$1/g" ../ch_nx/makeinclude > makeinclude
- sed "s/nx/$1/g" ../ch_nx/Makefile.in > Makefile.in
+ sed -e "s/nx/$dev/g" -e "s/NX/$Upcase/g" ../ch_nx/makenx > make$dev
+ sed "s/NX/$Upcase/g" ../ch_nx/dmnx.h > dm$dev.h
+ sed "s/nx/$dev/g" ../ch_nx/mpid.h > mpid.h
+ sed "s/nx/$dev/g" ../ch_nx/makeinclude > makeinclude
+ sed "s/nx/$dev/g" ../ch_nx/Makefile.in > Makefile.in
 endif
- chmod a+x make$1
- make$1
+ chmod a+x make$dev
+ make$dev
 echo "You need to look at the files"
-echo "channel.h, make$1, and mpid.h"
+echo "channel.h, make$dev, and mpid.h"
 if ($do_raw == 1) then
-    echo "Also, the file $1priv.c must be replaced."
+    echo "Also, the file ${dev}priv.c must be replaced."
 endif
 #
 # You will need to edit makeinclude and Makefile.in by hand; you may also
@@ -58,5 +77,5 @@ endif
 # (mpich/configure.in).  Also modify mpich/Makefile.in so that an example
 # configure line for this device is present.  Modify the mpich/README to
 # include the device in the list.
-echo "You can add your new device to mpirun by creating an mpirun.$1.in file"
+echo "You can add your new device to mpirun by creating an mpirun.$dev.in file"
 echo "in mpich/util ."

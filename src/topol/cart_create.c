@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_create.c,v 1.14 1995/03/05 20:21:12 gropp Exp $
+ *  $Id: cart_create.c,v 1.16 1995/07/25 02:43:56 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -18,8 +18,10 @@ MPI_Cart_create - Makes a new communicator to which topology information
 Input Parameters:
 . comm_old - input communicator (handle) 
 . ndims - number of dimensions of cartesian grid (integer) 
-. dims - integer array of size ndims specifying the number of processes in each dimension 
-. periods - logical array of size ndims specifying whether the grid is periodic (true ) or not (false ) in each dimension 
+. dims - integer array of size ndims specifying the number of processes in 
+  each dimension 
+. periods - logical array of size ndims specifying whether the grid is 
+  periodic (true) or not (false) in each dimension 
 . reorder - ranking may be reordered (true ) or not (false ) (logical) 
 
 Output Parameter:
@@ -68,10 +70,10 @@ MPI_Comm *comm_cart;
   }
 
   /* Is the old communicator big enough? */
-  MPI_Comm_size (comm_old, &size);
+  MPIR_Comm_size (comm_old, &size);
   if (num_ranks > size) 
 	return MPIR_ERROR(comm_old, MPI_ERR_ARG, 
-					  "Topology size too big in MPI_CART_CREATE");
+				  "Topology size too big in MPI_CART_CREATE");
 	
   /* Make new comm */
   range[0][0] = 0; range[0][1] = num_ranks - 1; range[0][2] = 1;
@@ -97,7 +99,7 @@ MPI_Comm *comm_cart;
     }
 
     /* Compute my position */
-    MPI_Comm_rank ( (*comm_cart), &rank );
+    MPIR_Comm_rank ( (*comm_cart), &rank );
     for ( i=0; i < ndims; i++ ) {
       num_ranks = num_ranks / dims[i];
       topo->cart.position[i]  = rank / num_ranks;

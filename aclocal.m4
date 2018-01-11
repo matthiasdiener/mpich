@@ -1,25 +1,35 @@
 dnl
 dnl Define test for 64-bit pointers
 define(PAC_POINTER_64_BITS,
-[echo checking for pointers greater than 32 bits
+[AC_MSG_CHECKING([for pointers greater than 32 bits])
 AC_TEST_PROGRAM([main() { exit(sizeof(void *) <=4); }],
- AC_DEFINE(POINTER_64_BITS)AC_MSG_RESULT(yes))
+ AC_DEFINE(POINTER_64_BITS)AC_MSG_RESULT(yes),AC_MSG_RESULT(no))
 ])dnl
 define(PAC_INT_LT_POINTER,
-[echo checking for int large enough for pointers
+[AC_MSG_CHECKING([for int large enough for pointers])
 AC_TEST_PROGRAM([main() { exit(sizeof(int) >= sizeof(void*)); }],
- AC_DEFINE(INT_LT_POINTER)AC_MSG_RESULT(no))
+ AC_DEFINE(INT_LT_POINTER)AC_MSG_RESULT(no),AC_MSG_RESULT(yes))
 ])dnl
 dnl
 dnl Define the test for the long long int type
 define(PAC_LONG_LONG_INT,
 [AC_REQUIRE([AC_PROG_CC])dnl
-echo checking for long long int
+AC_MSG_CHECKING([for long long int])
 AC_TEST_PROGRAM([int main() {
 /* See long double test; this handles the possibility that long long int 
    has the same problem on some systems */
 exit(sizeof(long long int) < sizeof(long)); }],
-AC_DEFINE(HAVE_LONG_LONG_INT)AC_MSG_RESULT(yes))
+AC_DEFINE(HAVE_LONG_LONG_INT)AC_MSG_RESULT(yes),AC_MSG_RESULT(no))
+])dnl
+dnl
+dnl PAC_HAVE_VOLATILE
+dnl 
+dnl Defines HAS_VOLATILE if the C compiler accepts "volatile" 
+dnl
+define(PAC_HAVE_VOLATILE,
+[AC_MSG_CHECKING([for volatile])
+AC_COMPILE_CHECK(,[volatile int a;],main();,
+AC_DEFINE(HAS_VOLATILE)AC_MSG_RESULT(yes))
 ])dnl
 dnl
 dnl Define the test to look for wish (the tcl/tk windowing shell)
@@ -30,7 +40,7 @@ dnl empty string if it can't find wish.
 dnl Note that we need tk version 3.3 or later, so we don't check for the 
 dnl earlier versions
 define(PAC_FIND_WISH,[wishloc=""
-echo "checking for wish"
+AC_MSG_CHECKING([for wish])
 # Look for wish in the path
 IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
 for dir in $PATH ; do 
@@ -45,10 +55,21 @@ if test -z "$wishloc" ; then
 for dir in \
     /usr/local/bin \
     /usr/local/tk-3.3/bin \
+    /usr/local/tcl7.3-tk3.6/bin \
+    /usr/local/tcl7.0/bin \
+    /usr/local/tcl7.0-tk3.3/bin \
+    /usr/contrib/bin \
+    /usr/contrib/tk3.6/bin \
+    /usr/contrib/tcl7.3-tk3.6/bin \
+    /usr/contrib/tk3.3/bin \
+    /usr/contrib/tcl7.0-tk3.3/bin \
+    $HOME/tcl/bin \
+    $HOME/tcl7.3/bin \
     /opt/bin \
     /usr/unsupported \
     /usr/bin \
-    /bin ; do
+    /bin \
+    /local/encap/tcl-7.1/bin ; do
     if test -x $dir/wish ; then
 	wishloc=$dir/wish
         break
@@ -57,11 +78,13 @@ done
 fi
 if test -n "$wishloc" ; then 
   AC_MSG_RESULT(found $wishloc)
+else
+  AC_MSG_RESULT(no)
 fi])dnl
 define(PAC_FIND_TCL,[
 # Look for Tcl
 if test -z "$TCL_DIR" ; then
-echo checking for Tcl
+AC_MSG_CHECKING([for Tcl])
 for dir in \
     /usr \
     /usr/local \
@@ -69,8 +92,13 @@ for dir in \
     /usr/local/tcl7.3-tk3.6 \
     /usr/local/tcl7.0 \
     /usr/local/tcl7.0-tk3.3 \
-    ~/tcl \
-    ~/tcl7.3 \
+    /usr/contrib \
+    /usr/contrib/tk3.6 \
+    /usr/contrib/tcl7.3-tk3.6 \
+    /usr/contrib/tk3.3 \
+    /usr/contrib/tcl7.0-tk3.3 \
+    $HOME/tcl \
+    $HOME/tcl7.3 \
     /opt/local \
     /opt/local/tcl7.0 \
     /local/encap/tcl-7.1 ; do
@@ -81,11 +109,13 @@ for dir in \
 done
 fi
 if test -n "$TCL_DIR" ; then 
-  AC_MSG_RESULT(found $TCL_DIR)
+  AC_MSG_RESULT(found $TCL_DIR/include/tcl.h and $TCL_DIR/lib/libtcl.a)
+else
+  AC_MSG_RESULT(no)
 fi
-# Look for Tk
+# Look for Tk (look in tcl dir if the code is nowhere else)
 if test -z "$TK_DIR" ; then
-echo checking for Tk
+AC_MSG_CHECKING([for Tk])
 for dir in \
     /usr \
     /usr/local \
@@ -93,11 +123,16 @@ for dir in \
     /usr/local/tcl7.3-tk3.6 \
     /usr/local/tk3.3 \
     /usr/local/tcl7.0-tk3.3 \
-    ~/tcl \
-    ~/tcl7.3 \
+    /usr/contrib \
+    /usr/contrib/tk3.6 \
+    /usr/contrib/tcl7.3-tk3.6 \
+    /usr/contrib/tk3.3 \
+    /usr/contrib/tcl7.0-tk3.3 \
+    $HOME/tcl \
+    $HOME/tcl7.3 \
     /opt/local \
     /opt/local/tk3.6 \
-    /local/encap/tk-3.4 ; do
+    /local/encap/tk-3.4 $TCL_DIR ; do
     if test -r $dir/include/tk.h -a -r $dir/lib/libtk.a ; then
 	TK_DIR=$dir
 	break
@@ -105,7 +140,9 @@ for dir in \
 done
 fi
 if test -n "$TK_DIR" ; then 
-  AC_MSG_RESULT(found $TK_DIR)
+  AC_MSG_RESULT(found $TK_DIR/include/tk.h and $TK_DIR/lib/libtk.a)
+else
+  AC_MSG_RESULT(no)
 fi
 ])
 dnl
@@ -116,9 +153,30 @@ dnl
 dnl ### Printing messages
 dnl
 dnl
+dnl Check whether to use -n, \c, or newline-tab to separate
+dnl checking messages from result messages.
+dnl Idea borrowed from dist 3.0.
+dnl Internal use only.
+define(AC_PROG_ECHO_N,
+ac_echo_n=yes
+[if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+])
 dnl AC_MSG_CHECKING(FEATURE-DESCRIPTION)
 define(AC_FD_MSG,1)
 define(AC_MSG_CHECKING,dnl
+if test -z "$ac_echo_n" ; then
+AC_PROG_ECHO_N
+fi
 [echo $ac_n "checking $1""... $ac_c" 1>&AC_FD_MSG])
 dnl
 dnl AC_CHECKING(FEATURE-DESCRIPTION)
@@ -217,7 +275,7 @@ if test -d ccbugs ; then
         if test $broken = 1 ; then 
 	    cat ccbugs/$CFILE.txt | sed 's/^/\*\#/g' 
         fi
-	/bin/rm -f conftest conftest.[co]
+	/bin/rm -f conftest conftest.c conftest.o 
     done
     # 
     # Now, try the warnings.  Note that this just does compiles, not runs
@@ -267,7 +325,7 @@ if test -n "[$]$1"; then
   ac_cv_prog_$1="[$]$1" # Let the user override the test.
 else
   ac_first_char=`expr "$2" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x $2 ; then
+  if test "$ac_first_char" = "/" -a -x "$2" ; then
        ac_cv_prog_$1="$3"
        ac_prog_where=$2
   else
@@ -307,18 +365,19 @@ define(<<AC_CV_NAME>>, translit(ac_cv_sizeof_$1, [ *], [_p]))dnl
 changequote([, ])dnl
 dnl Can only do this test if not cross-compiling
 if test $cross_compiling = 1 ; then
-    echo "Can not check for size of $1 when cross-compiling"
+    echo "Cannot check for size of $1 when cross-compiling"
     AC_CV_NAME=0
 else
 AC_MSG_CHECKING(size of $1)
 AC_TEST_PROGRAM([#include <stdio.h>
 main()
 {
-  FILE *f=fopen("conftestval", "w");
+  FILE *f=fopen("cftestval", "w");
   if (!f) exit(1);
   fprintf(f, "%d\n", sizeof($1));
   exit(0);
-}], AC_CV_NAME=`cat conftestval`,AC_CV_NAME=0)
+}], AC_CV_NAME=`cat cftestval`,AC_CV_NAME=0)
+rm -f cftestval
 if test "$AC_CV_NAME" = 0 ; then
 AC_MSG_RESULT($1 unsupported)
 else
@@ -342,6 +401,9 @@ dnl It is really BSD 4.4 make, and can't handle 'include'.  For some
 dnl systems, this can be fatal; there is no fix (other than removing this
 dnl aleged make).
 dnl
+dnl It is the OSF V3 make, and can't handle a comment in a block of targe
+dnl code.  There is no acceptable fix.
+dnl
 dnl This assumes that "MAKE" holds the name of the make program.  If it
 dnl determines that it is an improperly built gnumake, it adds
 dnl --no-print-directorytries to the symbol MAKE.
@@ -361,7 +423,11 @@ if test "$str" != "success" ; then
     if test "$str" = "success" ; then
         MAKE="$MAKE --no-print-directory"
 	AC_MSG_RESULT(yes using --no-print-directory)
+    else
+	AC_MSG_RESULT(no)
     fi
+else
+    AC_MSG_RESULT(no)
 fi
 /bin/rm -f conftest
 str=""
@@ -387,6 +453,33 @@ if test "$str" != "success" ; then
     echo "Using this so-called make may cause problems when building programs."
     echo "You should consider using gnumake instead."
     ifelse([$1],,[$1])
+else
+    AC_MSG_RESULT(no - whew)
+fi
+str=""
+])
+dnl
+dnl PAC_MAKE_IS_OSF([true text])
+dnl
+define(PAC_MAKE_IS_OSF,[
+AC_MSG_CHECKING(OSF V3 make)
+/bin/rm -f conftest
+cat > conftest <<.
+SHELL=/bin/sh
+ALL:
+	@# This is a valid comment!
+	@echo "success"
+.
+str=`$MAKE -f conftest 2>&1`
+/bin/rm -f conftest 
+if test "$str" != "success" ; then
+    AC_MSG_RESULT(Found OSF V3 make)
+    echo "The OSF V3 make does not allow comments in target code."
+    echo "Using this make may cause problems when building programs."
+    echo "You should consider using gnumake instead."
+    ifelse([$1],,[$1])
+else
+    AC_MSG_RESULT(no)
 fi
 str=""
 ])
@@ -451,3 +544,27 @@ dnl              /usr/local/lang/SC2.0.1/libF77.a -lm \
 dnl              /usr/local/lang/SC2.0.1/libm.a \
 dnl              /usr/local/lang/SC2.0.1/libansi.a
 dnl
+dnl AIX requires -bI:/usr/lpp/xlf/lib/lowsys.exp
+dnl --------------------------------------------------------
+dnl Test for the VERSION of tk.  There are major changes between 3.6 and 4.0
+dnl (in particular, the type Tk_ColorModel disappeared
+dnl  Put result into TK_VERSION (as, e.g., 3.6 or 4.0).  Should test version
+dnl as STRING, since we don't control the changes between versions, and 
+dnl only versions that we know should be tested.
+dnl Note that this may be important ONLY if you include tk.h .
+dnl
+dnl TK_LIB and XINCLUDES must be defined
+dnl
+define(PAC_TK_VERSION,
+AC_MSG_CHECKING(for version of TK)
+[/bin/rm -f conftestval
+CFLAGSsave="$CFLAGS"
+CFLAGS="$CFLAGS -I$TK_DIR/include $XINCLUDES"
+AC_TEST_PROGRAM([#include "tk.h"
+main() { FILE *fp = fopen( "conftestval", "w" ); 
+fprintf( fp, "%d.%d", TK_MAJOR_VERSION, TK_MINOR_VERSION );
+return 0; }],
+TK_VERSION=`cat conftestval`,TK_VERSION="unavailable")
+CFLAGS="$CFLAGSsave"
+AC_MSG_RESULT($TK_VERSION)
+])dnl

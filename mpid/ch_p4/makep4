@@ -11,6 +11,8 @@ sed -e '/#define DEVICE_CHAMELEON/d' \
 sed -e 's/MPID_CH/MPID_P4/g' ../chameleon/mpid_bind.h > mpid_bind.h
 sed -e 's/MPID_CH/MPID_P4/g' ../chameleon/packets.h > packets.h
 sed -e 's/MPID_CH/MPID_P4/g' ../chameleon/channel.h > channel.h
+sed -e 's/MPID_CH/MPID_P4/g' ../chameleon/mpiddebug.h > mpiddebug.h
+sed -e 's/MPID_CH/MPID_P4/g' ../chameleon/mpidstat.h > mpidstat.h
 mv chevent.c p4event.c
 mv chrecv.c  p4recv.c
 mv chsend.c  p4send.c
@@ -20,10 +22,11 @@ mv chsync.c  p4sync.c
 mv chcoll.c  p4coll.c 
 mv chrndv.c  p4rndv.c 
 mv chget.c   p4get.c 
+mv chdebug.c p4debug.c 
 chmod ug+w *.[ch]
 /home/gropp/tools.n/bin/inlinecomm -main -quiet -p4 p4init.c
 for file in p4event.c p4recv.c p4send.c p4probe.c p4sync.c p4coll.c dmp4.h \
-	p4rndv.c p4get.c packets.h channel.h ; do
+	p4rndv.c p4get.c p4debug.c packets.h channel.h ; do
     /home/gropp/tools.n/bin/inlinecomm -quiet -p4 $file
 done
 #

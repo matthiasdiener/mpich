@@ -9,6 +9,8 @@ sed -e '/#define DEVICE_CHAMELEON/d' \
     -e 's/"Chameleon"/"SHMEM"/g' ../chameleon/dmch.h > dmshmem.h
 sed -e 's/MPID_CH/MPID_SHMEM/g' ../chameleon/mpid_bind.h > mpid_bind.h
 sed -e 's/MPID_CH/MPID_SHMEM/g' ../chameleon/packets.h > packets.h
+sed -e 's/MPID_CH/MPID_SHMEM/g' ../chameleon/mpiddebug.h > mpiddebug.h
+sed -e 's/MPID_CH/MPID_SHMEM/g' ../chameleon/mpidstat.h > mpidstat.h
 ../chameleon/rmhetero ../chameleon/chevent.c > shmemevent.c
 ../chameleon/rmhetero ../chameleon/chrecv.c  > shmemrecv.c
 ../chameleon/rmhetero ../chameleon/chsend.c  > shmemsend.c
@@ -19,11 +21,12 @@ sed -e 's/MPID_CH/MPID_SHMEM/g' ../chameleon/packets.h > packets.h
 ../chameleon/rmhetero ../chameleon/chcoll.c  > shmemcoll.c
 ../chameleon/rmhetero ../chameleon/chrndv.c  > shmemrndv.c
 ../chameleon/rmhetero ../chameleon/chget.c  > shmemget.c
+../chameleon/rmhetero ../chameleon/chdebug.c  > shmemdebug.c
 chmod ug+w shmemevent.c shmemrecv.c shmemsend.c shmeminit.c shmemprobe.c \
-	   shmemsync.c shmempkt.c shmemrndv.c shmemget.c \
+	   shmemsync.c shmempkt.c shmemrndv.c shmemget.c shmemdebug.c \
 	   dmshmem.h mpid_bind.h packets.h shmemcoll.c
 #
-# Update the few Chameleon calls remaining (not yet done)
+# Update the few Chameleon calls remaining 
 # shmeminit
 sed -e 's/PIiInit( argc, argv )/MPID_SHMEM_init( argc, *argv );/g' \
     -e 's/PIiFinish()/MPID_SHMEM_finalize()/g' \

@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_dup.c,v 1.27 1995/05/03 19:46:12 gropp Exp $
+ *  $Id: comm_dup.c,v 1.28 1995/06/21 03:04:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -67,7 +67,7 @@ MPI_Comm comm, *comm_out;
 	MPIR_Context_alloc ( intra_comm, 3, &recv_context );
 
 	/* If I'm the local leader, then swap context info */
-	MPI_Comm_rank ( intra_comm, &rank );
+	MPIR_Comm_rank ( intra_comm, &rank );
 	if (rank == 0) {
 	  MPI_Status status;
 	  

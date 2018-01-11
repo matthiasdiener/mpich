@@ -1,4 +1,4 @@
-.TH MPI_Get_count 3 "12/15/1994" " " "MPI"
+.TH MPI_Get_count 3 "7/24/1995" " " "MPI"
 .SH NAME
 MPI_Get_count \- Gets the number of "top level" elements
 
@@ -21,6 +21,9 @@ MPI_Get_count \- Gets the number of "top level" elements
 - number of received elements (integer) 
 .PD 1
 
+.SH NOTES
+If the size of the datatype is zero, this routine will return a count of
+zero.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

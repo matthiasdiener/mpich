@@ -172,6 +172,6 @@ void Ring()       /* Time passing a message round a ring */
 	lenbuf *= 2;
     }
     if (me == 0)
-	printf("clock resolution in seconds: %f\n", MPI_Wtick());
+	printf("clock resolution in seconds: %10.8f\n", MPI_Wtick());
     free(buffer);
 }

@@ -644,13 +644,14 @@ c------------------------------------------------------------------------------
       include 'mpif.h'
       integer n
       real    recv_buf(n)
-      integer source, tag, count, status(MPI_STATUS_SIZE)
+      integer source, tag, count, rank, status(MPI_STATUS_SIZE)
       character*(*) name
 
       integer ierr, recv_src, recv_tag, recv_count
 
       recv_src = status(MPI_SOURCE)
       recv_tag = status(MPI_TAG)
+      call MPI_Comm_rank( MPI_COMM_WORLD, rank, ierr )
       call MPI_Get_count(status, MPI_REAL, recv_count, ierr)
 
       if (recv_src .ne. source) then
@@ -744,7 +745,7 @@ c------------------------------------------------------------------------------
 
       do 20 i = count + 1, n
          if (buf(i) .ne. 0.) then
-            print 100, buf(i), i, TEST_SIZE, name
+            print 100, buf(i), i, n, name
             call MPI_Abort(MPI_COMM_WORLD, 109, ierr)
             endif
  20       continue

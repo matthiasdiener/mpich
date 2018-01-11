@@ -421,7 +421,8 @@ if (found) {
     }
 
 /* Add to the posted receive queue */
-MPIR_enqueue( &MPIR_posted_recvs, dmpi_recv_handle, MPIR_QRHANDLE );
+MPIR_enqueue( &MPIR_posted_recvs, (MPIR_COMMON *)dmpi_recv_handle, 
+	      MPIR_QRHANDLE );
 MPID_THREAD_UNLOCK(0,0)
 
 /* If we got here, the message is not yet available */

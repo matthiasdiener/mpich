@@ -34,11 +34,10 @@ LIBS = ../../lib/$(ARCH)/$(COMM)/libmpi.a $(DEVICE_LIB)
 MPI_CSOURCES = barrier.c bcast.c gather.c gatherv.c scatter.c scatterv.c \
                allgather.c allgatherv.c alltoall.c alltoallv.c reduce.c \
                allreduce.c red_scat.c scan.c global_ops.c \
-	       opcreate.c opfree.c reduceutil.c
+	       opcreate.c opfree.c reduceutil.c intra_fns.c inter_fns.c
 
 MPI_TSOURCES = barrier.c \
-               global_ops.c \
-	       opfree.c
+               global_ops.c 
 
 MPI_WSOURCES = barrierf.c bcastf.c gatherf.c gathervf.c scatterf.c scattervf.c\
                allgatherf.c allgathervf.c alltoallf.c alltoallvf.c reducef.c \
@@ -48,7 +47,7 @@ MPI_WSOURCES = barrierf.c bcastf.c gatherf.c gathervf.c scatterf.c scattervf.c\
 MPI_COBJECTS = barrier.o bcast.o gather.o gatherv.o scatter.o scatterv.o \
                allgather.o allgatherv.o alltoall.o alltoallv.o reduce.o \
                allreduce.o red_scat.o scan.o global_ops.o \
-	       opcreate.o opfree.o reduceutil.o
+	       opcreate.o opfree.o reduceutil.o intra_fns.o inter_fns.o
 
 MPI_WOBJECTS = barrierf.o bcastf.o gatherf.o gathervf.o scatterf.o scattervf.o\
                allgatherf.o allgathervf.o alltoallf.o alltoallvf.o reducef.o \
@@ -69,7 +68,8 @@ default_all: $(MPI_OBJECTS)
 	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $?
 profile_all: $(MPI_OBJECTS)
 	$(AR) ../../lib/$(ARCH)/$(COMM)/libpmpi.a $?
-	
+wrapperlib: $(MPI_WOBJECTS)
+	$(AR) ../../lib/$(ARCH)/$(COMM)/libfmpi.a $?	
 wrappers:
 	../../util/bfort -ferr -mpi -mnative -mapptr -ptrprefix MPIR_ \
 		-anyname -I pubinc $(MPI_TSOURCES)	
@@ -97,6 +97,10 @@ $(MPI_OBJECTS) :  $(MPI_INCLUDE)
 	$(RANLIB) $@
 
 ../../lib/$(ARCH)/$(COMM)/libpmpi.a: $(MPI_OBJECTS) 
+	$(AR) $@ $?
+	$(RANLIB) $@
+
+../../lib/$(ARCH)/$(COMM)/libfmpi.a: $(MPI_WOBJECTS) 
 	$(AR) $@ $?
 	$(RANLIB) $@
 

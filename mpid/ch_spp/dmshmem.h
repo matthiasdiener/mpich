@@ -239,7 +239,8 @@ typedef struct {
 #define MPID_Blocking_send_ready(ctx, dmpi_send_handle) \
     MPID_SHMEM_Blocking_send(dmpi_send_handle)
 #define MPID_Test_send( ctx, dmpi_send_handle ) \
-    ((dmpi_send_handle)->completer == 0)
+    ((dmpi_send_handle)->completer == 0 ? \
+     1 : MPID_SHMEM_Test_send( dmpi_send_handle ))
 
 #define MPID_Post_recv(ctx,dmpi_recv_handle ) \
     MPID_SHMEM_post_recv(dmpi_recv_handle ) 
@@ -249,6 +250,9 @@ typedef struct {
     MPID_SHMEM_complete_recv(dmpi_recv_handle) 
 #define MPID_Test_recv( ctx, dmpi_recv_handle ) \
     ((dmpi_recv_handle)->completer == 0)
+
+/*    ((dmpi_recv_handle)->completer == 0 ? \
+        1 : MPID_SHMEM_Test_recv_push( dmpi_recv_handle ))  */
 
 /* This is a generic test for completion.  Note that it takes a request.
    It returns true for completed, false if not */
@@ -288,6 +292,22 @@ typedef struct {
 #define MPID_THREAD_UNLOCK(ctx,comm)
 #define MPID_THREAD_LOCK_INIT(ctx,comm)
 #define MPID_THREAD_LOCK_FINISH(ctx,comm)
+
+/* These four are for locking individual data-structures.  The data-structure
+   should contain something like
+   typedef struct {
+      MPID_THREAD_DS_LOCK_DECLARE
+      other stuff
+      } foo;
+   and then use
+   foo *p;
+   MPID_THREAD_DS_LOCK(p)
+   MPID_THREAD_DS_UNLOCK(p)
+ */
+#define MPID_THREAD_DS_LOCK_DECLARE
+#define MPID_THREAD_DS_LOCK_INIT(p)
+#define MPID_THREAD_DS_LOCK(p)
+#define MPID_THREAD_DS_UNLOCK(p)
 
 /* 
    Context and Communicator operations

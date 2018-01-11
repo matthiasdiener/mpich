@@ -1,6 +1,6 @@
 # Generated automatically from Makefile.in by configure.
 #
-#  $Id: Makefile.in,v 1.14 1994/10/26 22:17:24 gropp Exp $
+#  $Id: Makefile.in,v 1.16 1995/07/25 02:41:04 gropp Exp $
 #
 #  (C) 1993 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -27,10 +27,10 @@ LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
 CFLAGS   = $(COPT) $(OPT) -I$(ITOOLSDIR) -I../.. -I../../include -I./ \
 	-DMPID_DEVICE_CODE  -DMPID_PKT_VAR_SIZE
 LDIR     = $(ITOOLSDIR)/libs/libs$(BOPT)$(PROFILE)/$(ARCH)
-SOURCE   = chevent.c chrecv.c chsend.c chinit.c chprobe.c chsync.c
+SOURCE   = chevent.c chrecv.c chsend.c chinit.c chprobe.c chsync.c chdebug.c
 SOURCEC  = $(SOURCE)
 SOURCEF  =
-MPI_OBJECTS = chevent.o chrecv.o chsend.o chinit.o chprobe.o chsync.o
+MPI_OBJECTS = chevent.o chrecv.o chsend.o chinit.o chprobe.o chsync.o chdebug.o
 
 #$(LIBNAME)($(OBJS)): mpid.h dmch.h ../../include/mpir.h
 
@@ -73,3 +73,6 @@ wwwpages:
 ../../lib/$(ARCH)/$(COMM)/libmpi.a: $(MPI_OBJECTS) 
 	$(AR) cr $@ $?
 	$(RANLIB) $@
+
+chtest: chtest.c
+	$(CC) -o chtest chtest.o 

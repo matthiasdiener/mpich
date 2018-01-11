@@ -63,6 +63,12 @@ are given below.
 # Run the tests...
 ############################################################################
 (cd examples/test ; make testing > test.log 2>&1 ) 
+if test ! -s examples/test/test.log ; then
+    echo "No testing file!  Tests must not have run." >>$filename
+    exit 0
+else 
+echo " " >>$filename
+fi
 ############################################################################
 # Check the output...
 ############################################################################
@@ -71,22 +77,43 @@ if test -s examples/test/pt2pt/pt2pt.diff ; then
     write_beginex
     cat examples/test/pt2pt/pt2pt.diff >> $filename
     echo "\\end{example}" >> $filename
+else
+    echo "No problems detected in the point-to-point tests." >> $filename
 fi
+echo  " " >>$filename
 if test -s examples/test/coll/coll.diff ; then
     echo "Errors detected in the collective tests:" >> $filename
     write_beginex
     cat examples/test/coll/coll.diff >> $filename
     echo "\\end{example}" >> $filename
+else
+    echo "No problems detected in the collective tests." >> $filename
 fi
+echo  " " >>$filename
 if test -s examples/test/context/context.diff ; then
     echo "Errors detected in the context/communicator tests:" >> $filename
     write_beginex
     cat examples/test/context/context.diff >> $filename
     echo "\\end{example}" >> $filename
+else
+    echo "No problems detected in the context tests." >> $filename
 fi
+echo  " " >>$filename
 if test -s examples/test/env/env.diff ; then
     echo "Errors detected in the environment tests:" >> $filename
     write_beginex
     cat examples/test/env/env.diff >> $filename
     echo "\\end{example}" >> $filename
+else
+    echo "No problems detected in the environment tests." >> $filename
 fi
+echo  " " >>$filename
+if test -s examples/test/topol/topol.diff ; then
+    echo "Errors detected in the topology tests:" >> $filename
+    write_beginex
+    cat examples/test/topol/topol.diff >> $filename
+    echo "\\end{example}" >> $filename
+else
+    echo "No problems detected in the topology tests." >> $filename
+fi
+echo  " " >>$filename

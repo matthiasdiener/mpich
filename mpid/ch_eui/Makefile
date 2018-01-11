@@ -16,21 +16,21 @@ INCLUDE_DIR =  -Impid/ch_eui -Iinclude
 CC          = mpCC
 AR          = ar crl
 RANLIB      = ranlib
-OPTFLAGS    = -O
+OPTFLAGS    = -g
 
 ### End User configurable options ###
 
 ALL: default
 
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
-CFLAGS   =  -DFORTRANNOUNDERSCORE  -D_ALL_SOURCE=1  -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -DHAVE_SYSTEM=1 -DHAVE_NICE=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
-		-DMPID_DEVICE_CODE -DIBMMPL  -DMPID_LIMITED_BUFFERS -DMPID_DEBUG_NONE -DMPID_STAT_NONE
+CFLAGS   =  -DFORTRANNOUNDERSCORE  -DMPE_USE_EXTENSIONS=1 -D_ALL_SOURCE=1  -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -DHAVE_SYSTEM=1 -DHAVE_NICE=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
+		-DMPID_DEVICE_CODE -DIBMMPL  -DMPID_LIMITED_BUFFERS -DMPID_PKT_MAX_DATA_SIZE=64
 SOURCE   = euievent.c euirecv.c euisend.c euiinit.c euiprobe.c euisync.c \
-	   euirndv.c euicoll.c
+	   euirndv.c euicoll.c euidebug.c
 SOURCEC  = $(SOURCE)
 SOURCEF  =
 MPI_OBJECTS = euievent.o euirecv.o euisend.o euiinit.o euiprobe.o euisync.o \
-	      euirndv.o euicoll.o
+	      euirndv.o euicoll.o euidebug.o
 
 default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
 

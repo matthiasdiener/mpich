@@ -1,4 +1,4 @@
-.TH MPI_Bcast 3 "5/16/1995" " " "MPI"
+.TH MPI_Bcast 3 "6/20/1995" " " "MPI"
 .SH NAME
 MPI_Bcast \- Broadcasts a message from the process with rank "root" to
 all other processes of the group.
@@ -31,15 +31,14 @@ all other processes of the group.
 .PD 1
 
 .SH ALGORITHM
-This function uses a tree-like algorithm to broadcast
-the message to blocks of processes.  A linear algorithm
-is then used to broadcast the message from the first
-process in a block to all other processes.
-MPIR_BCAST_BLOCK_SIZE determines the size of blocks.  If
-this is set to 1, then this function is equivalent to
-using a pure tree algorithm.  If it is set to the
-size of the group or greater, it is a pure linear algorithm.
-The value should be adjusted to determine the most
+If the underlying device does not take responsibility, this function
+uses a tree-like algorithm to broadcast the message to blocks of
+processes.  A linear algorithm is then used to broadcast the message
+from the first process in a block to all other processes.
+MPIR_BCAST_BLOCK_SIZE determines the size of blocks.  If this is set
+to 1, then this function is equivalent to using a pure tree algorithm.
+If it is set to the size of the group or greater, it is a pure linear
+algorithm.  The value should be adjusted to determine the most
 efficient value on different machines.
 
 .SH SYNOPSIS

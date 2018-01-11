@@ -1,5 +1,5 @@
 /* type_size.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
 #ifdef POINTER_64_BITS
@@ -32,11 +32,13 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_type_size_ ( datatype, size, __ierr )
+void mpi_type_size_ ( datatype, size, __ierr )
 MPI_Datatype  datatype;
-MPI_Aint     *size;
-int *__ierr;
+int           *size;
+int           *__ierr;
 {
+MPI_Aint c_size;
 *__ierr = MPI_Type_size(
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),size);
+	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ), &c_size);
+*size = (int)c_size;
 }

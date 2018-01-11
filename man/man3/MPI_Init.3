@@ -1,4 +1,4 @@
-.TH MPI_Init 3 "6/9/1995" " " "MPI"
+.TH MPI_Init 3 "7/31/1995" " " "MPI"
 .SH NAME
 MPI_Init \- Initialize the MPI execution environment
 
@@ -104,6 +104,12 @@ command line arguments but is not required to).
 Command line arguments are not provided to Fortran programs.  More
 precisely, non-standard Fortran routines such as getarg and iargc
 have undefined behavior in MPI and in this implementation.
+
+The MPI standard does not say what a program can do before an MPI_INIT or
+after an MPI_FINALIZE.  In the MPICH implementation, you should do
+as little as possible.  In particular, avoid anything that changes the
+external state of the program, such as opening files, reading standard
+input or writing to standard output.
 
 .SH SIGNALS USED
 The MPI standard requires that all signals used be documented.  The MPICH

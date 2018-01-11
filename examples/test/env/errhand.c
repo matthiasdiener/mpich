@@ -125,6 +125,7 @@ if (test_abort) then
 #endif
 
 MPI_Comm_free( &dup_comm_world );
+return 0;
 }
 
 

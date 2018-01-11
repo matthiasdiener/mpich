@@ -1,12 +1,12 @@
 /*
- *  $Id: opfree.c,v 1.9 1994/12/15 17:32:13 gropp Exp $
+ *  $Id: opfree.c,v 1.10 1995/07/25 02:45:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: opfree.c,v 1.9 1994/12/15 17:32:13 gropp Exp $";
+static char vcid[] = "$Id: opfree.c,v 1.10 1995/07/25 02:45:26 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -34,7 +34,7 @@ MPI_Op  *op;
 
   /* We can't free permanent objects unless finalize has been called */
   if  ( ( (*op)->permanent == 1 ) && (MPIR_Has_been_initialized == 1) )
-	return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_PERM_KEY,
+	return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_PERM_OP,
 					  "Error in MPI_OP_FREE" );
 
   /* Free the op */

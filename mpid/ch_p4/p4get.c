@@ -4,7 +4,7 @@
 
 
 /*
- *  $Id$
+ *  $Id: chget.c,v 1.1 1995/06/28 23:01:09 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -12,7 +12,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id$";
+static char vcid[] = "$Id: chget.c,v 1.1 1995/06/28 23:01:09 gropp Exp gropp $";
 #endif /* lint */
 
 #include "mpid.h"
@@ -24,61 +24,14 @@ static char vcid[] = "$Id$";
  */
 
 /* Here are some definitions to simplify debugging */
-#ifdef MPID_DEBUG_ALL
-                          /* #DEBUG_START# */
-#ifdef MEMCPY
-#undef MEMCPY
-#endif
-#define MEMCPY(a,b,c)\
-{if (MPID_DebugFlag) {\
-    fprintf( MPID_DEBUG_FILE, \
-	    "[%d]R About to copy to %d from %d (n=%d) (%s:%d)...\n", \
-	    MPID_MyWorldRank, a, b, c, __FILE__, __LINE__ );\
-    fflush( MPID_DEBUG_FILE ); }\
-memcpy( a, b, c );}
-
-#define DEBUG_PRINT_RECV_PKT(pkt)\
-    {if (MPID_DebugFlag) {\
-	fprintf( MPID_DEBUG_FILE,\
-"[%d]R rcvd msg for tag = %d, source = %d, ctx = %d, len = %d, mode = ", \
-	       MPID_MyWorldRank, MPID_PKT_RECV_GET(pkt,head.tag), from, \
-	       MPID_PKT_RECV_GET(pkt,head.context_id), \
-	       MPID_PKT_RECV_GET(pkt,head.len) );\
-	MPID_Print_mode( MPID_DEBUG_FILE, MPID_PKT_RECV_ADDR(pkt) );\
-	fprintf( MPID_DEBUG_FILE, "(%s:%d)\n", __FILE__, __LINE__ );\
-	fflush( MPID_DEBUG_FILE );\
-	}}
-
-#define DEBUG_PRINT_MSG(msg)\
-{if (MPID_DebugFlag) {\
-    fprintf( MPID_DEBUG_FILE, "[%d]%s (%s:%d)\n", \
-	    MPID_MyWorldRank, msg, __FILE__, __LINE__ );\
-    fflush( MPID_DEBUG_FILE );}}
-     
-                          /* #DEBUG_END# */
-#else
-#define DEBUG_PRINT_PKT(pkt)
-#define DEBUG_PRINT_MSG(msg)
-
-#endif
-
-/***************************************************************************/
-/* This variable controls debugging output                                 */
-/***************************************************************************/
-extern int MPID_DebugFlag;
-
+#include "mpiddebug.h"
 /***************************************************************************/
 
 /***************************************************************************/
 /* These are used to keep track of the number and kinds of messages that   */
 /* are received                                                            */
 /***************************************************************************/
-#ifndef MPID_STAT_NONE
-extern int MPID_n_short,         /* short messages */
-           MPID_n_long,          /* long messages */
-           MPID_n_unexpected,    /* unexpected messages */
-           MPID_n_syncack;       /* Syncronization acknowledgments */
-#endif
+#include "mpidstat.h"
 
 /***************************************************************************/
 /* Some operations are completed in several stages.  To ensure that a      */
@@ -97,7 +50,6 @@ extern int MPID_n_pending;  /* Number of uncompleted split requests */
 MPID_PKT_GALLOC
 
 
-/* Now the long messages.  Only if using the get protocol */
 #ifdef MPID_USE_GET
 
 /*
@@ -256,11 +208,7 @@ int            from;
 int msglen, err;
 
 msglen = pkt->len;
-if (dmpi_recv_handle->dev_rhandle.bytes_as_contig < msglen) {
-    err = MPI_ERR_TRUNCATE;
-    (*MPID_ErrorHandler)( 1, "Truncated message"  );
-    msglen = dmpi_recv_handle->dev_rhandle.bytes_as_contig;
-    }
+MPID_P4K_MSGLEN(dmpi_recv_handle,msglen,err)
 dmpi_recv_handle->totallen = msglen;
 pkt->recv_id = (MPID_Aint) dmpi_recv_handle;
 err = MPID_P4_Do_get_to_mem( dmpi_recv_handle->dev_rhandle.start, from, pkt );
@@ -412,25 +360,8 @@ MPID_PKT_SEND_SET(pkt,address,
 MPID_PKT_SEND_SET(pkt,len_avail,len_actual);
 MPID_PKT_SEND_SET(pkt,cur_offset,0);
 
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (MPID_DebugFlag) {
-    printf( 
- "[%d]S Starting a send of tag = %d, len = %d, ctx = %d, dest = %d, mode=",
-	    MPID_MyWorldRank, MPID_PKT_SEND_GET(pkt,tag), 
-	    MPID_PKT_SEND_GET(pkt,len), MPID_PKT_SEND_GET(pkt,context_id), 
-	    dest );
-    MPID_Print_mode( stdout, (MPID_PKT_T*)MPID_PKT_SEND_ADDR(pkt) );
-    fprintf( stdout, "(%s:%d)\n", __FILE__, __LINE__ );
-    printf( 
-	   "[%d]S Getting data from mpid->start, first int is %d (%s:%d)\n",
-	   MPID_MyWorldRank, *(int *)mpid_send_handle->start, 
-	   __FILE__, __LINE__ );
-    printf( "[%d]S Sending extra-long message (%s:%d)...\n", 
-	    MPID_MyWorldRank, __FILE__, __LINE__ );
-    MPID_Print_packet( stdout, (MPID_PKT_T*)MPID_PKT_SEND_ADDR(pkt) );
-    fflush( stdout );
-    }
-#endif                  /* #DEBUG_END# */
+DEBUG_PRINT_SEND_PKT("S Starting a send",pkt)
+DEBUG_PRINT_LONG_MSG("S Sending extra-long message",pkt)
 MPID_SENDCONTROL( mpid_send_handle, MPID_PKT_SEND_ADDR(pkt), 
 		  sizeof(MPID_PKT_GET_T), dest );
 
@@ -470,25 +401,8 @@ MPID_PKT_SEND_SET(pkt,cur_offset,0);
 MPID_PKT_SEND_SET(pkt,sync_id,
 		  MPID_P4_Get_Sync_Id( dmpi_send_handle, mpid_send_handle ));
 
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (MPID_DebugFlag) {
-    printf( 
-"[%d]S Starting a sync send of tag = %d, len = %d, ctx = %d, dest = %d, mode=",
-	    MPID_MyWorldRank, MPID_PKT_SEND_GET(pkt,tag), 
-	    MPID_PKT_SEND_GET(pkt,len), MPID_PKT_SEND_GET(pkt,context_id), 
-	    dest );
-    MPID_Print_mode( stdout, (MPID_PKT_T*)MPID_PKT_SEND_ADDR(pkt) );
-    fprintf( stdout, "(%s:%d)\n", __FILE__, __LINE__ );
-    printf( 
-	   "[%d]S Getting data from mpid->start, first int is %d (%s:%d)\n",
-	   MPID_MyWorldRank, *(int *)mpid_send_handle->start, 
-	   __FILE__, __LINE__ );
-    printf( "[%d]S Sending extra-long message (%s:%d)...\n", 
-	    MPID_MyWorldRank, __FILE__, __LINE__ );
-    MPID_Print_packet( stdout, (MPID_PKT_T*)MPID_PKT_SEND_ADDR(pkt) );
-    fflush( stdout );
-    }
-#endif                  /* #DEBUG_END# */
+DEBUG_PRINT_SEND_PKT("S Starting a sync send",pkt)
+DEBUG_PRINT_LONG_MSG("S Sending extra-long message",pkt)
 MPID_SendControlBlock( MPID_PKT_SEND_ADDR(pkt), sizeof(MPID_PKT_GET_T), dest );
 
 /* Remember that we await a reply */
@@ -573,21 +487,3 @@ return MPI_SUCCESS;
 }
 
 #endif
-MPID_P4_Get_print_pkt( fp, pkt )
-FILE       *fp;
-MPID_PKT_T *pkt;
-{
-fprintf( fp, "\
-\tlen        = %d\n\
-\ttag        = %d\n\
-\tcontext_id = %d\n\
-\tlrank      = %d\n\
-\tcur_offset = %d\n\
-\tlen_avail  = %d\n\
-\tsend_id    = %d\n\
-\trecv_id    = %d\n\
-\tmode       = ", 
-	pkt->head.len, pkt->head.tag, pkt->head.context_id, pkt->head.lrank,
-	pkt->get_pkt.cur_offset, pkt->get_pkt.len_avail, pkt->get_pkt.send_id,
-	pkt->get_pkt.recv_id );
-}

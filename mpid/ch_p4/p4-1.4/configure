@@ -542,6 +542,35 @@ fi
 
 MDEP_CFLAGS=-cckr
 fi
+if test -n "$p4arch_SGI6"; then
+P4ARCH=SGI
+RANLIB=true
+LIBS_save="${LIBS}"
+LIBS="${LIBS} -lsun"
+have_lib=""
+echo checking for -lsun
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  rm -rf conftest*
+  have_lib="1"
+
+fi
+rm -f conftest*
+LIBS="${LIBS_save}"
+if test -n "${have_lib}"; then
+   :; MDEP_LIBS=-lsun
+else
+   :; 
+fi
+
+MDEP_CFLAGS="-cckr -woff 1552,1174"
+MDEP_FFLAGS="-cckr -woff 1552,1174"
+fi
 if test -n "$p4arch_SGI_MP"; then
 P4ARCH=SGI_MP
 RANLIB=true
@@ -581,6 +610,13 @@ P4ARCH=SGI_CH64
 RANLIB=true
 MDEP_CFLAGS="-cckr -64 -mips4 -woff 1552,1174"
 MDEP_FFLAGS="-cckr -64 -mips4 -woff 1552,1174"
+fi
+if test -n "$p4arch_UXPM"; then
+# Make it think that it is an IRIX v5 SGI
+P4ARCH=SGI
+RANLIB=true
+MDEP_LIBS="-lsocket -lnsl"
+MDEP_CFLAGS="-DNEEDS_NETINET"
 fi
 if test -n "$p4arch_SYMMETRY"; then
 P4ARCH=SYMMETRY

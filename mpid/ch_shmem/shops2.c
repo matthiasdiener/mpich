@@ -113,9 +113,9 @@ void *vbar;
 {
     MPID_Fastbar *bar = (MPID_Fastbar *)vbar;
 
-    p2p_shfree( bar->phase );
-    p2p_shfree( bar->value );
-    p2p_shfree( bar->lvalue );
+    p2p_shfree( (char *)(bar->phase) );
+    p2p_shfree( (char *)(bar->value) );
+    p2p_shfree( (char *)(bar->lvalue) );
     FREE( bar );
 }
 

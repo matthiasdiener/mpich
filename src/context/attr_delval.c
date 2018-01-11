@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_delval.c,v 1.16 1994/12/15 16:20:25 gropp Exp $
+ *  $Id: attr_delval.c,v 1.17 1995/07/25 02:45:55 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -51,7 +51,10 @@ int      keyval;
 	MPIR_HBT_delete(comm->attr_cache, keyval, &attr);
 	if ( attr != (MPIR_HBT_node *)0 ) 
 	  (void) MPIR_HBT_free_node ( attr );
-  }
+	}
+  else 
+      return MPIR_ERROR( comm, MPI_ERR_OTHER, 
+		  "Error in MPI_ATTR_DELETE: key not in communicator" );
 
   return(mpi_errno);
 }

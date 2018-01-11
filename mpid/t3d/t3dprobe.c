@@ -1,5 +1,5 @@
 /*
- *  $Id: t3dprobe.c,v 1.2 1995/06/07 06:39:12 bright Exp $
+ *  $Id: t3dprobe.c,v 1.3 1995/06/11 05:42:57 bright Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -88,7 +88,6 @@ int T3D_Probe( tag, source, context_id, status )
     while (1) {
         (void)T3D_Iprobe( tag, source, context_id, &found, status );
         if (found) break;
-/*        T3D_Check_incoming( MPID_BLOCKING ); */
     }
     return MPI_SUCCESS; 
 }

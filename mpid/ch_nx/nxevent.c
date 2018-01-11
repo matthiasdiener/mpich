@@ -6,14 +6,14 @@
 
 
 /*
- *  $Id: chevent.c,v 1.12 1995/05/09 19:08:15 gropp Exp $
+ *  $Id: chevent.c,v 1.13 1995/06/30 17:35:50 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chevent.c,v 1.12 1995/05/09 19:08:15 gropp Exp $";
+static char vcid[] = "$Id: chevent.c,v 1.13 1995/06/30 17:35:50 gropp Exp $";
 #endif
 
 #include "mpid.h"
@@ -47,7 +47,7 @@ MPIR_SHANDLE *sh;
 MPID_SHANDLE *sdh;
 #endif
 	
-/* Once completed, the cancel fails because the message has already
+/* Once completed, the cancel "fails" because the message has already
    been delivered */
 if (MPID_Test_handle( r )) return MPI_SUCCESS;
 
@@ -78,7 +78,7 @@ switch (r->handle_type) {
            message.  Cancel the send in that event. */
         sdh = &sh->dev_shandle;
         if (sdh->is_non_blocking && sdh->sid) {
-            msgcancel(sdh->sid );
+	    MPID_CancelSendChannel( sdh->sid );
             sdh->sid = 0;
             }
 #endif        

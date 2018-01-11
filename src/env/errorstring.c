@@ -1,5 +1,5 @@
 /*
- *  $Id: errorstring.c,v 1.2 1995/05/09 18:57:29 gropp Exp $
+ *  $Id: errorstring.c,v 1.3 1995/07/25 02:47:58 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: errorstring.c,v 1.2 1995/05/09 18:57:29 gropp Exp $";
+static char vcid[] = "$Id: errorstring.c,v 1.3 1995/07/25 02:47:58 gropp Exp $";
 #endif /* lint */
 #include "mpiimpl.h"
 #include "mpisys.h"
@@ -31,6 +31,7 @@ int  errorcode, *resultlen;
 char *string;
 {
 int error_case = errorcode & ~MPIR_ERR_CLASS_MASK;
+int mpi_errno = MPI_SUCCESS;
 /* 
    error_case contains any additional details on the cause of the error.
    The first such examples are for MPI_ERR_TYPE (invalid datatype) 
@@ -105,6 +106,9 @@ switch (errorcode & MPIR_ERR_CLASS_MASK) {
     case MPI_ERR_NULL:
         strcpy( string, "Null parameter" );
 	break;
+    case MPI_ERR_REQUEST:
+	strcpy( string, "Illegal mpi_request handle" );
+	break;
     case MPI_ERR_UNKNOWN:
 	strcpy( string, "Unknown error" );
 	break;
@@ -123,6 +127,11 @@ switch (errorcode & MPIR_ERR_CLASS_MASK) {
     case MPI_ERR_PERM_TYPE:
 	strcpy( string, "Can not free permanent data type" );
 	break;
+    case MPI_ERR_PERM_OP:
+	strcpy( string, "Can not free permanent MPI_Op" );
+	break;
+/*	    strcpy( string, "Can not free permanent MPI_Errorhandler" );
+ */
     case MPI_ERR_BUFFER_EXISTS:
 	strcpy( string,
 		"Can not attach buffer when a buffer already exists" );
@@ -136,13 +145,20 @@ switch (errorcode & MPIR_ERR_CLASS_MASK) {
     case MPI_ERR_COMM:
 	strcpy( string, "Invalid communicator" );
 	break;
+    case MPI_ERR_PRE_INIT:
+	strcpy( string, "MPI_INIT must be called before other MPI routines" );
+	break;
     case MPI_ERR_OTHER:
 	strcpy( string, "Unclassified error" );
 	break;
     default:
 	strcpy( string, "Unexpected error value!" );
+	*resultlen = strlen( string );
+	mpi_errno = MPI_ERR_ARG;
+	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+			   "Error in MPI_ERROR_STRING" );
         break;
     }
 *resultlen = strlen( string );
-return MPI_SUCCESS;
+return mpi_errno;
 }

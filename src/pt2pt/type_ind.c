@@ -1,12 +1,12 @@
 /*
- *  $Id: type_ind.c,v 1.17 1995/06/01 20:49:03 gropp Exp $
+ *  $Id: type_ind.c,v 1.18 1995/07/25 02:49:07 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_ind.c,v 1.17 1995/06/01 20:49:03 gropp Exp $";
+static char vcid[] = "$Id: type_ind.c,v 1.18 1995/07/25 02:49:07 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -52,9 +52,8 @@ MPI_Datatype *newtype;
   for (i=0; i<count; i++)
       total_count += blocklens[i];
   if (total_count == 0) {
-      (*newtype) = MPI_DATATYPE_NULL;
-      return (mpi_errno);
-  }
+      return MPI_Type_contiguous( 0, MPI_INT, newtype );
+      }
 
   /* Create and fill in the datatype */
   dteptr = (*newtype) = (MPI_Datatype) MPIR_SBalloc( MPIR_dtes );

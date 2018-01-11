@@ -244,6 +244,14 @@ RANLIB=true
 AC_HAVE_LIBRARY(sun,MDEP_LIBS=-lsun)
 MDEP_CFLAGS=-cckr
 fi
+dnl						SGI workstations, IRIX 6
+if test -n "$p4arch_SGI6"; then
+P4ARCH=SGI
+RANLIB=true
+AC_HAVE_LIBRARY(sun,MDEP_LIBS=-lsun)
+MDEP_CFLAGS="-cckr -woff 1552,1174"
+MDEP_FFLAGS="-cckr -woff 1552,1174"
+fi
 dnl						SGI multiprocessors, like Onyx
 if test -n "$p4arch_SGI_MP"; then
 P4ARCH=SGI_MP
@@ -266,6 +274,14 @@ dnl MDEP_CFLAGS="-cckr -64 -mips4 -non_shared -woff 1552,1174"
 dnl MDEP_FFLAGS="-cckr -64 -mips4 -non_shared -woff 1552,1174"
 MDEP_CFLAGS="-cckr -64 -mips4 -woff 1552,1174"
 MDEP_FFLAGS="-cckr -64 -mips4 -woff 1552,1174"
+fi
+dnl                                              UXPM (MPIS chip)
+if test -n "$p4arch_UXPM"; then
+# Make it think that it is an IRIX v5 SGI
+P4ARCH=SGI
+RANLIB=true
+MDEP_LIBS="-lsocket -lnsl"
+MDEP_CFLAGS="-DNEEDS_NETINET"
 fi
 dnl                                              Symmetry with Dynix
 if test -n "$p4arch_SYMMETRY"; then

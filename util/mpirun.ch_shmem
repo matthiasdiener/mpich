@@ -1,6 +1,6 @@
 #! /bin/sh
 if [ "$MPIR_HOME" = "" ] ; then 
-    MPIR_HOME=/home/MPI/mpich
+    MPIR_HOME=/tmp_mnt/Net/alriga/alriga9/MPI/mpich
 fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
@@ -11,19 +11,11 @@ if [ "$argsset" = "" ] ; then
    argsset=1
 fi
 # ch_shmem device
-if [ $just_testing != "" ]  then
-  if [ "$debugger" != "" ] then
-      echo $debugger $progname
-  else
-      echo $progname $cmdLineArgs -np $np
-  fi
-else
-  if [ "$debugger" != "" ] ; then 
+if [ "$debugger" != "" ] ; then 
       cat > $PWD_TRIAL/PId$$ <<.
 run -np $np $cmdLineArgs
 .
-      $debugger $progname $commandfile $PWD_TRIAL/PId$$
-  else
-      $progname $cmdLineArgs -np $np
-  fi
+      $Show $debugger $progname $commandfile $PWD_TRIAL/PId$$
+else
+      $Show $progname $cmdLineArgs -np $np
 fi

@@ -1,5 +1,5 @@
 /*
- *  $Id: waitany.c,v 1.17 1995/05/16 18:11:31 gropp Exp $
+ *  $Id: waitany.c,v 1.18 1995/07/25 02:48:30 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: waitany.c,v 1.17 1995/05/16 18:11:31 gropp Exp $";
+static char vcid[] = "$Id: waitany.c,v 1.18 1995/07/25 02:48:30 gropp Exp $";
 #endif /* lint */
 #include "mpiimpl.h"
 #include "mpisys.h"
@@ -77,7 +77,7 @@ MPI_Status  *status;
 		  if (request->shandle.bufpos && 
 		      (mpi_errno = MPIR_SendBufferFree( request ))){
 		    MPIR_ERROR( MPI_COMM_NULL, mpi_errno, 
-			       "Could not free allocated send buffer in MPI_WAITANY" );
+		      "Could not free allocated send buffer in MPI_WAITANY" );
 		  }
 #endif
 
@@ -99,7 +99,19 @@ MPI_Status  *status;
 	    }
 	/* If nothing was ready, do a blocking wait on the device for 
 	   anything to arrive; we'll then re-check the requests */
-	MPID_Check_device( MPI_COMM_WORLD->ADIctx, MPID_BLOCKING );
+	/* THIS ISN'T CORRECT.  If we are waiting for a SEND to complete,
+	   and the SEND needs ONLY for the the non-blocking operation
+	   to finish, THEN we must NOT do a blocking test here.  Do this
+	   ONLY for uncompleted RECEIVES (and even here, if the receive
+	   is in progress (non-blocking), this might not be the correct
+	   thing to do) */
+	/* The easiest thing to do to fix this is to just busy wait.  
+	   This is also the "thread-safe" thing to do */
+	/* Somehow, this change caused some of the tests to fail (to 
+           become none terminating.  ???? */
+								  
+        /* MPID_Check_device( MPI_COMM_WORLD->ADIctx, MPID_BLOCKING ); */
+	MPID_Check_device( MPI_COMM_WORLD->ADIctx, MPID_NOTBLOCKING );
 	}
 }
 

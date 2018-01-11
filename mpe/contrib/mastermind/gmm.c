@@ -555,7 +555,7 @@ master()
   MPE_Log_event(3,0,"");
 #endif
     MPI_Send(initial_tasks, j, MPI_GUESST, 
-	     worker, TASK, MPI_COMM_WORLD, &status);
+	     worker, TASK, MPI_COMM_WORLD);
 #ifdef LOGGING
   MPE_Log_event(4,0,"");
 #endif

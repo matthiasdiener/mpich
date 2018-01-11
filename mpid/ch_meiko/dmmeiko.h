@@ -6,7 +6,7 @@
 
 
 /*
- *  $Id: dmch.h,v 1.35 1995/05/09 19:08:53 gropp Exp $
+ *  $Id: dmch.h,v 1.36 1995/06/30 17:35:18 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -70,8 +70,8 @@ extern int __NUMNODES, __MYPROCID;
 
 #endif /* MPID_DEVICE_CODE */
 
-#include "mpi.h"
-#include "dmpiatom.h"
+/* #include "mpi.h" */
+/* #include "dmpiatom.h" */
 
 /* Undefine MPID_DEBUG_ALL to remove the debugging code from the device 
    In order to READ the device code without the debugging statements,
@@ -261,7 +261,15 @@ typedef struct {
 /* This is a generic test for completion.  Note that it takes a request.
    It returns true for completed, false if not */
 #define MPID_Ctx( request ) (request)->chandle.comm->ADIctx
-#define MPID_Test_request( ctx, request ) ((request)->chandle.completer == 0)
+/* This is a generic test for completion.  Note that it takes a request.
+ * It returns true for completed, false if not. If the request is complete,
+ * it finishes up all the device processing for the request.
+ */
+#define MPID_Test_request( ctx, request ) \
+    ( (request)->chandle.handle_type == MPIR_SEND ? \
+        MPID_MEIKO_Test_send(&(request)->shandle) : \
+        MPID_MEIKO_Test_recv_push(&(request)->rhandle))
+/* I'm suspicious of test_handle... */
 #define MPID_Test_handle( dmpi_handle ) ((dmpi_handle)->completer == 0)
 #define MPID_Clr_completed( ctx, request ) \
     (request)->chandle.completer = 1
@@ -293,11 +301,28 @@ typedef struct {
 #define MPID_Mysize( ctx, size ) MPID_MEIKO_Mysize( size )
 
 /* thread locking.  Single-thread devices will make these empty 
-   declarations */
+   declarations.  The first 4 are for communicator-based locks
+*/
 #define MPID_THREAD_LOCK(ctx,comm)
 #define MPID_THREAD_UNLOCK(ctx,comm)
 #define MPID_THREAD_LOCK_INIT(ctx,comm)
 #define MPID_THREAD_LOCK_FINISH(ctx,comm)
+
+/* These four are for locking individual data-structures.  The data-structure
+   should contain something like
+   typedef struct {
+      MPID_THREAD_DS_LOCK_DECLARE
+      other stuff
+      } foo;
+   and then use
+   foo *p;
+   MPID_THREAD_DS_LOCK(p)
+   MPID_THREAD_DS_UNLOCK(p)
+ */
+#define MPID_THREAD_DS_LOCK_DECLARE
+#define MPID_THREAD_DS_LOCK_INIT(p)
+#define MPID_THREAD_DS_LOCK(p)
+#define MPID_THREAD_DS_UNLOCK(p)
 
 /* 
    Context and Communicator operations
@@ -337,7 +362,7 @@ typedef struct {
 
 #ifdef MPID_DEVICE_CODE
 /* Device-only information */
-#include "../../include/dmpiatom.h"
+/* #include "../../include/dmpiatom.h" */
 
 /* Some systems have special, customized memcpy routines (for example,
    using the floating point registers and 8 byte load/stores).  This macro
@@ -347,7 +372,19 @@ typedef struct {
 #endif
 
 extern FILE *MPID_DEBUG_FILE;
-/* End of code included only when building the ADI routines */
+
+/* Common macro for checking the actual length (msglen) against the
+   declared max length in a handle (dmpi_recv_handle).  
+   Resets msglen if it is too long; also sets err to MPI_ERR_TRUNCATE.
+   This will set the error field to be added to a handle "soon" 
+   (Check for truncation)
+ */
+#define MPID_MEIKOK_MSGLEN(dmpi_recv_handle,msglen,err) \
+if ((dmpi_recv_handle)->dev_rhandle.bytes_as_contig < (msglen)) {\
+    err = MPI_ERR_TRUNCATE;\
+    (*MPID_ErrorHandler)( 1, "Truncated message"  );\
+    msglen = (dmpi_recv_handle)->dev_rhandle.bytes_as_contig;\
+    }
 
 /* 
    These macros control the conversion of packet information to a standard
@@ -386,6 +423,8 @@ extern FILE *MPID_DEBUG_FILE;
 #define MPID_CMPL_RECV_GET  3
 #define MPID_CMPL_RECV_RNDV 4
 /* sync */
+
+/* End of code included only when building the ADI routines */
 
 #endif /* MPID_DEVICE_CODE */
 
@@ -430,6 +469,8 @@ extern MPID_H_TYPE MPID_byte_order;
 extern int MPID_IS_HETERO;
 #define MPID_Dest_byte_order(dest) MPID_MEIKO_Dest_byte_order(dest)
 #endif 
+
+#include "mpiimpl.h"
 
 #endif /* DMCH_INCLUDED */
 

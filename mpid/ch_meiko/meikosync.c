@@ -6,20 +6,20 @@
 
 
 /*
- *  $Id: chsync.c,v 1.15 1995/03/28 19:26:41 gropp Exp $
+ *  $Id: chsync.c,v 1.16 1995/06/30 17:35:24 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vc[] = "$Id: chsync.c,v 1.15 1995/03/28 19:26:41 gropp Exp $";
+static char vc[] = "$Id: chsync.c,v 1.16 1995/06/30 17:35:24 gropp Exp $";
 #endif
 
 #include "mpid.h"
 
 
-extern int MPID_DebugFlag;
+#include "mpiddebug.h"
 
 /*
    This file contains routines to keep track of synchronous send messages;
@@ -144,17 +144,7 @@ MPID_PKT_SEND_ALLOC(MPID_PKT_SYNC_ACK_T,pkt);
 MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_SYNC_ACK);
 MPID_PKT_SEND_SET(pkt,sync_id,sync_id);
 
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (MPID_DebugFlag) {
-    printf( 
-   "[%d]SYNC Starting a send of tag = %d, dest = %d, mode=",
-	    MPID_MyWorldRank, MPID_PT2PT_TAG, from );
-    MPID_Print_mode( stdout, (MPID_PKT_T *)MPID_PKT_SEND_ADDR(pkt) );
-    fprintf( stdout, "(%s:%d)\n", __FILE__, __LINE__ );
-    MPID_Print_packet( stdout, (MPID_PKT_T *)MPID_PKT_SEND_ADDR(pkt) );
-    fflush( stdout );
-    }
-#endif                  /* #DEBUG_END# */
+DEBUG_PRINT_BASIC_SEND_PKT("SYNC Starting a send",pkt)
 MPID_SendControl( MPID_PKT_SEND_ADDR(pkt), sizeof(MPID_PKT_SYNC_ACK_T), from );
 }
 
@@ -180,6 +170,8 @@ while (cur) {
 }
 
 #else
+/* We can use the address of the request as the sync-id */
+
 MPID_Aint MPID_MEIKO_Get_Sync_Id( dmpi_handle, mpid_handle )
 MPIR_SHANDLE *dmpi_handle;
 MPID_SHANDLE *mpid_handle;
@@ -236,17 +228,7 @@ MPID_PKT_SEND_ALLOC(MPID_PKT_SYNC_ACK_T,pkt);
 MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_SYNC_ACK);
 MPID_PKT_SEND_SET(pkt,sync_id,sync_id);
 
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (MPID_DebugFlag) {
-    printf( 
-   "[%d]SYNC Starting a send of tag = %d, dest = %d, mode=",
-	    MPID_MyWorldRank, MPID_PT2PT_TAG, from );
-    MPID_Print_mode( stdout, (MPID_PKT_T *)MPID_PKT_SEND_ADDR(pkt) );
-    fprintf( stdout, "(%s:%d)\n", __FILE__, __LINE__ );
-    MPID_Print_packet( stdout, (MPID_PKT_T *)MPID_PKT_SEND_ADDR(pkt) );
-    fflush( stdout );
-    }
-#endif                  /* #DEBUG_END# */
+DEBUG_PRINT_BASIC_SEND_PKT("SYNC Starting a send",pkt)
 MPID_SendControl( MPID_PKT_SEND_ADDR(pkt), sizeof(MPID_PKT_SYNC_ACK_T), from );
 }
 

@@ -1,6 +1,7 @@
 ALL: default
 ##### User configurable options #####
 
+SHELL       = /bin/sh
 ARCH        = @ARCH@
 COMM        = @COMM@
 BOPT        = @BOPT@
@@ -39,13 +40,13 @@ MPIPPLIB  = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
 LIBS	  = $(LIB_PATH) $(LIB_LIST)
 FLIBS	  = $(FLIB_PATH) $(LIB_LIST)
 LIBSPP	  = $(MPIPPLIB) $(LIBS)
-EXECS	  = fpi cpi cpilog systest srtest
+EXECS	  = fpi cpi cpilog systest
 
 default: $(EXECS)
 
 all: default
 
-fpi: fpi.o $(MPIR_HOME)/include/mpif.h
+fpi: fpi.o $(MPIR_HOME)/include/mpif.h $(MPILIB)
 	$(FLINKER) $(OPTFLAGS) -o fpi fpi.o $(FLIBS)
 
 cpi: cpi.o $(MPIR_HOME)/include/mpir.h $(MPILIB)

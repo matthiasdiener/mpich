@@ -42,7 +42,7 @@ for arg in "$@" ; do
 done
 
 MakeExe() {
-    if [ $makeeach = 1 -o ! -x $1 ] ; then
+    if [ ! -x $1 ] ; then
 	make $1
     fi
 }
@@ -54,7 +54,7 @@ CleanExe() {
 
 # If the programs are not available, run make.
 if [ ! -x sendrecv -a $makeeach = 0 ] ; then
-    make 
+    make default
 fi
 
 testfiles=""
@@ -118,7 +118,7 @@ MakeExe overtake
 echo '**** Verifying that messages are non-overtaking ****'
 echo '**** Verifying that messages are non-overtaking ****' >> overtake.out
 /bin/rm -f overtake-[01].out
-mpirun $args -np 2 -mvback "overtake-0.out overtake-1.out" overtake "$@" >> overtake.out
+mpirun $args -np 2 -mvback "overtake-0.out overtake-1.out" overtake "$@" >> overtake.out 2>&1
 cat overtake-[01].out >> overtake.out
 /bin/rm -f overtake-[01].out
 echo '**** Verifying that messages are non-overtaking ****' >> overtake.out
@@ -129,7 +129,7 @@ testfiles="$testfiles ssendtest.out"
 MakeExe ssendtest
 echo '**** Verifying ssend ****'
 echo '**** Verifying ssend ****' >> ssendtest.out
-mpirun $args -np 2 ssendtest "$@" >> ssendtest.out
+mpirun $args -np 2 ssendtest "$@" >> ssendtest.out 2>&1
 echo '**** Verifying ssend ****' >> ssendtest.out
 CleanExe ssendtest
 #
@@ -139,7 +139,7 @@ MakeExe typetest
 echo '**** Checking the type routines ****'
 echo '**** Checking the type routines ****' >> typetest.out
 /bin/rm -f typetest-[01].out
-mpirun $args -np 2 -mvback typetest-0.out typetest "$@" >> typetest.out
+mpirun $args -np 2 -mvback typetest-0.out typetest "$@" >> typetest.out 2>&1
 cat typetest-0.out >> typetest.out
 /bin/rm -f typetest-[01].out
 echo '**** Checking the type routines ****' >> typetest.out
@@ -150,7 +150,7 @@ testfiles="$testfiles typeub.out"
 MakeExe typeub
 echo '**** Checking the type routines: MPI_UB ****'
 echo '**** Checking the type routines: MPI_UB ****' >> typeub.out
-mpirun $args -np 2 typeub "$@" >> typeub.out
+mpirun $args -np 2 typeub "$@" >> typeub.out 2>&1
 echo '**** Checking the type routines: MPI_UB ****' >> typeub.out
 CleanExe typeub
 #
@@ -159,7 +159,7 @@ testfiles="$testfiles third.out"
 MakeExe third
 echo '*** Testing Unexpected messages ***'
 echo '*** Testing Unexpected messages ***' >> third.out
-mpirun $args -np 2 third "$@" >> pt2pt.out >> third.out
+mpirun $args -np 2 third "$@" >> pt2pt.out >> third.out 2>&1
 echo '*** Testing Unexpected messages ***' >> third.out
 CleanExe third
 #
@@ -168,7 +168,7 @@ testfiles="$testfiles fourth.out"
 MakeExe fourth
 echo '*** Testing Irecv/Isend/Wait ***'
 echo '*** Testing Irecv/Isend/Wait ***' >> fourth.out
-mpirun $args -np 4 fourth "$@" >> fourth.out
+mpirun $args -np 4 fourth "$@" >> fourth.out 2>&1
 echo '*** Testing Irecv/Isend/Wait ***' >> fourth.out
 CleanExe fourth
 #
@@ -177,7 +177,7 @@ testfiles="$testfiles fifth.out"
 MakeExe fifth
 echo '*** Testing Irecv/Isend/Waitall ***'
 echo '*** Testing Irecv/Isend/Waitall ***' >> fifth.out
-mpirun $args -np 4 fifth "$@" >> fifth.out
+mpirun $args -np 4 fifth "$@" >> fifth.out 2>&1
 echo '*** Testing Irecv/Isend/Waitall ***' >> fifth.out
 CleanExe fifth
 #
@@ -186,7 +186,7 @@ testfiles="$testfiles sixth.out"
 MakeExe sixth
 echo '*** Testing attribute manipulation ***'
 echo '*** Testing attribute manipulation ***' >> sixth.out
-mpirun $args -np 2 sixth "$@" >> sixth.out
+mpirun $args -np 2 sixth "$@" >> sixth.out 2>&1
 echo '*** Testing attribute manipulation ***' >> sixth.out
 CleanExe sixth
 #
@@ -195,7 +195,7 @@ testfiles="$testfiles hvectest.out"
 MakeExe hvectest
 echo '*** Testing Vector type ***'
 echo '*** Testing Vector type ***' >> hvectest.out
-mpirun $args -np 2 hvectest "$@" >> hvectest.out
+mpirun $args -np 2 hvectest "$@" >> hvectest.out 2>&1
 echo '*** Testing Vector type ***' >> hvectest.out
 CleanExe hvectest
 #
@@ -204,7 +204,7 @@ testfiles="$testfiles hvectest2.out"
 MakeExe hvectest2
 echo '*** Testing struct type for vectors (MPI_UB) ***'
 echo '*** Testing struct type for vectors (MPI_UB) ***' >> hvectest2.out
-mpirun $args -np 2 hvectest2 "$@" >> hvectest2.out
+mpirun $args -np 2 hvectest2 "$@" >> hvectest2.out 2>&1
 echo '*** Testing struct type for vectors (MPI_UB) ***' >> hvectest2.out
 CleanExe hvectest2
 #
@@ -213,7 +213,7 @@ testfiles="$testfiles probe.out"
 MakeExe probe
 echo '*** Testing Probe and Get_count ***'
 echo '*** Testing Probe and Get_count ***' >> probe.out
-mpirun $args -np 2 probe "$@" >> probe.out
+mpirun $args -np 2 probe "$@" >> probe.out 2>&1
 echo '*** Testing Probe and Get_count ***' >> probe.out
 CleanExe probe
 #
@@ -222,7 +222,7 @@ testfiles="$testfiles probe1.out"
 MakeExe probe1
 echo '*** Testing Iprobe and Get_count ***'
 echo '*** Testing Iprobe and Get_count ***' >> probe1.out
-mpirun $args -np 2 probe1 "$@" >> probe1.out
+mpirun $args -np 2 probe1 "$@" >> probe1.out 2>&1
 echo '*** Testing Iprobe and Get_count ***' >> probe1.out
 CleanExe probe1
 #
@@ -231,7 +231,7 @@ testfiles="$testfiles self.out"
 MakeExe self
 echo '*** Testing send to self ***' 
 echo '*** Testing send to self ***' >> self.out
-mpirun $args -np 1 self "$@" >> self.out
+mpirun $args -np 1 self "$@" >> self.out 2>&1
 echo '*** Testing send to self  ***' >> self.out
 CleanExe self
 #
@@ -241,7 +241,7 @@ testfiles="$testfiles testtest1.out"
 MakeExe testtest1
 echo '*** Testing MPI_Test ***' 
 echo '*** Testing MPI_Test ***' >> testtest1.out
-mpirun $args -np 2 testtest1 "$@" >> testtest1.out
+mpirun $args -np 2 testtest1 "$@" >> testtest1.out 2>&1
 echo '*** Testing MPI_Test ***' >> testtest1.out
 CleanExe testtest1
 #
@@ -250,23 +250,32 @@ testfiles="$testfiles persistent.out"
 MakeExe persistent
 echo '*** Testing MPI_Recv_init ***' 
 echo '*** Testing MPI_Recv_init ***' >> persistent.out
-mpirun $args -np 4 persistent "$@" >> persistent.out
+mpirun $args -np 4 persistent "$@" >> persistent.out 2>&1
 echo '*** Testing MPI_Recv_init ***' >> persistent.out
 CleanExe persistent
+#
+testfiles="$testfiles waitall.out"
+/bin/rm -f waitall.out
+MakeExe waitall
+echo '*** Testing MPI_Waitall ***' 
+echo '*** Testing MPI_Waitall ***' >> waitall.out
+mpirun $args -np 4 waitall "$@" >> waitall.out 2>&1
+echo '*** Testing MPI_Waitall ***' >> waitall.out
+CleanExe waitall
 #
 # Run Fortran tests ONLY if Fortran available
 if [ 1 = 1 ] ; then 
     echo "FORTRAN TESTS"
     #
     #echo "*** secondf ***" >> pt2pt.out
-    #mpirun $args -np 2 secondf "$@" >> pt2pt.out 
+    #mpirun $args -np 2 secondf "$@" >> pt2pt.out 2>&1
     #
     testfiles="$testfiles allpair.out"
     /bin/rm -f allpair.out
     MakeExe allpair
     echo '*** Testing pt-2-pt from Fortran ***'
     echo '*** Testing pt-2-pt from Fortran ***' >> allpair.out
-    mpirun $args -np 2 allpair "$@" >> allpair.out
+    mpirun $args -np 2 allpair "$@" >> allpair.out 2>&1
     echo '*** Testing pt-2-pt from Fortran ***' >> allpair.out
     CleanExe allpair
     #
@@ -275,7 +284,7 @@ if [ 1 = 1 ] ; then
     MakeExe allpair2
     echo '*** Testing pt-2-pt from Fortran (many calls) ***'
     echo '*** Testing pt-2-pt from Fortran  (many calls) ***' >> allpair2.out
-    mpirun $args -np 2 allpair2 "$@" >> allpair2.out
+    mpirun $args -np 2 allpair2 "$@" >> allpair2.out 2>&1
     echo '*** Testing pt-2-pt from Fortran  (many calls) ***' >> allpair2.out
     CleanExe allpair2
     echo "END OF FORTRAN TESTS"

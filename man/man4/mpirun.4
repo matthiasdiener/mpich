@@ -1,4 +1,4 @@
-.TH mpirun 4 "8/8/1994" " " "MPE"
+.TH mpirun 4 "6/20/1995" " " "MPE"
 .SH NAME
 mpirun \- Run mpi programs
 
@@ -7,32 +7,42 @@ mpirun \- Run mpi programs
 starting jobs for various devices from the user. Mpirun attempts to
 determine what kind of machine it is running on and start the required
 number of jobs on that machine. On workstation clusters, if you are
-not using chameleon, you must supply a file that lists the different
+not using Chameleon, you must supply a file that lists the different
 machines that mpirun can use to run remote jobs or specify this file
-every time you run mpirun with the -mr_machine file option. The default
+every time you run mpirun with the -machine file option. The default
 file is in util/machines/machines.<arch>.
 
 mpirun typically works like this
-.br
-.br
-mpirun -mr_np <number of processes> <program name and arguments>
-.br
+.nf
+ mpirun -np <number of processes> <program name and arguments>
+.fi
+
 
 If mpirun can't determine what kind of machine you are on, and it
-is supported by the mpi implementation, you can the -mr_machine
-and -mr_arch options to tell it what kind of machine you are running
-on. The current valid values for mr_machine are
+is supported by the mpi implementation, you can the -machine
+and -arch options to tell it what kind of machine you are running
+on. The current valid values for machine are
 
 .br
              chameleon (including chameleon/pvm, chameleon/p4, etc...)
 .br
-             meiko     (the ch_p4 device on the meiko)
+             meiko     (the meiko device on the meiko)
 .br
              paragon   (the ch_nx device on a paragon not running NQS)
 .br
              p4        (the ch_p4 device on a workstation cluster)
 .br
-             sp1       (ch_eui on ANL's sp1)
+             ibmspx    (ch_eui for IBM SP2)
+.br
+             anlspx    (ch_eui for ANL's SPx)
+.br
+             ksr       (ch_p4 for KSR 1 and 2)
+.br
+             sgi_mp    (ch_shmem for SGI multiprocessors)
+.br
+             cray_t3d  (t3d for Cray T3D)
+.br
+             smp       (ch_shmem for SMPs)
 .br
              execer    (a custom script for starting ch_p4 programs
 without using a procgroup file. This script
@@ -44,65 +54,146 @@ your machine, the default value is wrong, or you are using the p4 or
 execer devices.  The full list of options is
 
 .SH PARAMETERS
+The options for mpirun must come before the program you want to run
+
+mpirun [mpirun_options...] <progname> [options...]
+
 .PD 0
 .TP
-.B -mr_h 
+.B -arch 
+<architecture>
+specify the architecture (must have matching machines.<arch>
+file in ${MPIR_HOME}/util/machines) if using the execer
+.PD 1
+.PD 0
+.TP
+.B -h 
 This help
 .PD 1
 .PD 0
 .TP
-.B -mr_machine 
+.B -machine 
 <machine name>
 use startup procedure for <machine name>
 .PD 1
 .PD 0
 .TP
-.B -mr_machinefile 
+.B -machinefile 
 <machine-file name>
-Take the list of possible machines to run on from the"
-file <machine-file name>"
+Take the list of possible machines to run on from the
+file <machine-file name>
 .PD 1
 .PD 0
 .TP
-.B -mr_np 
+.B -np 
 <np>
 specify the number of processors to run on
 .PD 1
 .PD 0
 .TP
-.B -mr_nolocal
+.B -nolocal
 
 don't run on the local machine (only works for 
+p4 and ch_p4 jobs)
 .PD 1
 .PD 0
 .TP
-.B -mr_e 
-Use execer to start p4 programs on workstation
+.B -e 
+Use execer to start the program on workstation
 clusters
 .PD 1
 .PD 0
 .TP
-.B -mr_pg 
-Use a procgroup file to start p4 programs, not execer
+.B -pg 
+Use a procgroup file to start the p4 programs, not execer
 (default)
 .PD 1
 .PD 0
 .TP
-.B -mr_keep_pg
+.B -leave_pg
 
 Don't delete the P4 procgroup file after running
 .PD 1
 .PD 0
 .TP
-.B -mr_t 
+.B -p4pg 
+filename
+Use the given p4 procgroup file instead of creating one.
+Overrides -np and -nolocal, selects -leave_pg.
+.PD 1
+.PD 0
+.TP
+.B -p4ssport 
+num
+Use the p4 secure server with port number num to start the
+programs.  If num is 0, use the value of the 
+environment variable MPI_P4SSPORT.  Using the server can
+speed up process startup.  If MPI_USEP4SSPORT as well as
+.PD 1
+MPI_P4SSPORT are set, then that has the effect of giving
+mpirun the -p4ssport 0 parameters.
+.PD 0
+.TP
+.B -t 
 Testing - do not actually run, just print what would be
 executed
 .PD 1
 .PD 0
 .TP
-.B -mr_v 
+.B -v 
 Verbose - throw in some comments
 .PD 1
+.PD 0
+.TP
+.B -dbx 
+Start the first process under dbx where possible
+.PD 1
+.PD 0
+.TP
+.B -gdb 
+Start the first process under gdb where possible
+(on the Meiko, selecting either -dbx or -gdb starts prun
+under totalview instead)
+.PD 1
+.PD 0
+.TP
+.B -nopoll 
+Do not use a polling-mode communication.
+Available only on IBM SPx.
+.PD 1
+.PD 0
+.TP
+.B -mvhome 
+Move the executable to the home directory.  This 
+is needed when all file systems are not cross-mounted
+Currently only used by anlspx
+.PD 1
+.PD 0
+.TP
+.B -mvback 
+files
+.PD 1
+Move the indicated files back to the current directory.
+Needed only when using -mvhome; has no effect otherwise.
+.PD 0
+.TP
+.B -maxtime 
+min
+.PD 1
+Maximum job run time in minutes.  Currently used only
+by anlspx.  Default value is $max_time
+.PD 0
+.TP
+.B -cac 
+name
+CAC for ANL scheduler.  Currently used only by anlspx.
+If not provided will choose some valid CAC.
+.PD 1
+
+On exit, mpirun returns a status of zero unless mpirun detected a problem, in
+which case it returns a non-zero status (currently, all are one, but this
+may change in the future).
+
 
 .SH LOCATION
  util/README

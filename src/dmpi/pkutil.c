@@ -1,5 +1,5 @@
 #ifndef LINT
-static char vcid[] = "$Id$";
+static char vcid[] = "$Id: pkutil.c,v 1.3 1995/07/31 14:45:59 gropp Exp $";
 #endif
 
 /* 
@@ -106,7 +106,12 @@ return err;
 }
 
 /* Unpack may need to know more about whether the buffer is packed in some
-   particular format */
+   particular format.
+   srcsize is size of src in bytes on input.
+   act_len is final len out output.  
+   Normally unchanged; if on input it does not specify enough data 
+   for (count,type), then it may less than count*(size)
+*/
 int MPIR_Unpack ( comm, src, srcsize, count, type, msgrep, dest, act_len )
 MPI_Comm     comm;
 void         *src, *dest;
@@ -116,7 +121,7 @@ int          *act_len;
 {
 int (*unpackcontig)() = 0;
 void *unpackctx = 0;
-int err, dest_len;
+int err, dest_len, used_len;
 #ifdef HAS_XDR
 XDR xdr_ctx;
 #endif
@@ -136,8 +141,9 @@ XDR xdr_ctx;
     }
 #endif
 dest_len = 0;
+used_len = 0;
 err = MPIR_Unpack2( (char *)src, count, type, unpackcontig, unpackctx, 
-		    (char *)dest, act_len, &dest_len );
+		    (char *)dest, srcsize, &dest_len, &used_len );
 *act_len = dest_len;
 #ifdef HAS_XDR
 if (unpackcontig == MPIR_Type_XDR_decode) 
@@ -254,6 +260,13 @@ int          *outlen, *totlen;
 	  }
       else if (type->basic) {
 	  len = (*packcontig)( dest, buf, type, count, packctx );
+	  if (len < 0) {
+	      /* This may happen when an XDR routine fails */
+	      MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
+			 "Error in converting data to network form" );
+	      /* If we continue, send no data */
+	      len = 0;
+	      }
 	  *outlen = len;
 	  *totlen += len;
 	  return MPI_SUCCESS;
@@ -354,15 +367,28 @@ int          *outlen, *totlen;
 
    This code is used in dmpi/dmpipk.c to unpack data from a device that
    only supports contiguous messages.
+
+   Input Parameters:
+   src - source buffer
+   srclen - size of input buffer
+   count,type - number of items of type to be read
+   unpackcontig,unpackctx - routine to move data from src to dest.  If null,
+        memcpy is used 
+   dest - destination buffer
+   
+   Output Parameters:
+   dest_len - Number of bytes written to dest.  
+   used_len - Number of bytes consumed in src
  */
 int MPIR_Unpack2 ( src, count, type, unpackcontig, unpackctx, dest, srclen, 
-		   dest_len )
+		   dest_len, used_len )
 char         *src, *dest;
-int          count, *srclen;
+int          count, srclen;
 int          (*unpackcontig)();
 void         *unpackctx;
 MPI_Datatype type;
 int          *dest_len;
+int          *used_len;
 {
   int i,j;
   int mpi_errno = MPI_SUCCESS;
@@ -378,7 +404,10 @@ int          *dest_len;
   if (type->is_contig) {
       if (!unpackcontig) {
 	  len	     = type->size * count;
-	  *srclen    = len;
+	  /* If the length is greater than supplied, process only what is
+	     available */
+	  if (len > srclen) len = srclen;
+	  *used_len  = len;
 	  *dest_len += len;
 	  if (len == 0) {
 	      return mpi_errno;
@@ -391,9 +420,10 @@ int          *dest_len;
       else if (type->basic) {
 	  /* This requires a basic type so that the size is correct */
 	  /* Need to check the element size argument... */
-	  *srclen = (*unpackcontig)( src, count, type, type->size, dest, 
+	  len = (*unpackcontig)( src, count, type, type->size, dest, 
 				     unpackctx );
-	  *dest_len += *srclen;
+	  *dest_len += len;
+	  *used_len  = len;
 	  return MPI_SUCCESS;
 	  }
       }
@@ -405,7 +435,7 @@ int          *dest_len;
   case MPIR_CONTIG:
 	mpi_errno = MPIR_Unpack2 ( src, count * type->count, type->old_type, 
 				   unpackcontig, unpackctx, dest, srclen, 
-				   dest_len  );
+				   dest_len, used_len );
 	break;
 
   /* Vector types */
@@ -417,8 +447,9 @@ int          *dest_len;
 	    {
 	    if (type->old_type->is_contig && !unpackcontig) {
 		MPIR_UnPack_Hvector( src, count, type, -1, dest );
-		*srclen	   = count * type->size;
-		*dest_len += *srclen;
+		len	   = count * type->size;
+		*dest_len += len;
+		*used_len = len;
 	        return MPI_SUCCESS;
 		}
 	    }
@@ -426,58 +457,63 @@ int          *dest_len;
 	for (i=0; i<count; i++) {
 	  dest = tmp_buf;
 	  for (j=0; j<type->count; j++) {
-		if (mpi_errno = MPIR_Unpack2 (src, type->blocklen, 
-					      type->old_type, 
-					      unpackcontig, unpackctx, 
-					      dest, srclen, dest_len )) 
-		    return mpi_errno;
-		dest	 += (type->stride);
-		src	 += *srclen;
-		mysrclen += *srclen;
-	  }
+	      len = 0;
+	      if (mpi_errno = MPIR_Unpack2 (src, type->blocklen, 
+					    type->old_type, 
+					    unpackcontig, unpackctx, 
+					    dest, srclen, dest_len, &len ))
+		  return mpi_errno;
+	      dest	 += (type->stride);
+	      src	 += len;
+	      srclen     -= len;
+	      *used_len  += len;
+	      }
 	  tmp_buf += type->extent;
-	}
-	*srclen = mysrclen;
+	  }
 	break;
-
+	
   /* Indexed types */
   case MPIR_INDEXED:
   case MPIR_HINDEXED:
 	for (i=0; i<count; i++) {
 	    for (j=0;j<type->count; j++) {
 		tmp_buf  = dest + type->indices[j];
+		len      = 0;
 		if (mpi_errno = MPIR_Unpack2 (src, type->blocklens[j], 
 					      type->old_type, 
 					      unpackcontig, unpackctx,
-					      tmp_buf, srclen, dest_len )) 
+					      tmp_buf, srclen, dest_len, 
+					      &len )) 
 		    return mpi_errno;
-		src	 += *srclen;
-		mysrclen += *srclen;
+		src	  += len;
+		srclen    -= len;
+		*used_len += len;
 		}
 	    dest += type->extent;
 	    }
-	*srclen = mysrclen;
 	break;
 
   /* Struct type */
   case MPIR_STRUCT:
 	for (i=0; i<count; i++) {
 	    /* printf( ".struct.[%d]\n", i ); */
-	  for (j=0;j<type->count; j++) {
+	    for (j=0;j<type->count; j++) {
 		tmp_buf  = dest + type->indices[j];
+		len      = 0;
 		if (mpi_errno = MPIR_Unpack2(src,type->blocklens[j],
 					     type->old_types[j], 
 					     unpackcontig, unpackctx, 
-					     tmp_buf, srclen, dest_len )) {
+					     tmp_buf, srclen, dest_len,
+					     &len )) {
 		    /* printf( ".!error return %d\n", mpi_errno ); */
 		    return mpi_errno;
 		    }
-		src	 += *srclen;
-		mysrclen += *srclen;
-	  }
-	  dest += type->extent;
-	}
-	*srclen = mysrclen;
+		src	  += len;
+		srclen    -= len;
+		*used_len += len;
+		}
+	    dest += type->extent;
+	    }
 	break;
 
   default:
@@ -557,14 +593,17 @@ int          count;
 MPI_Datatype type;
 int          in_offset, out_offset;
 {
-int srclen, destlen;
-char *src, *dest;
+int      srclen, destlen, used_len;
+char     *src, *dest;
+MPI_Aint size;
 
 datatype_fp = fp ? fp : stdout;
 i_offset = (char *)0;
 o_offset = (char *)0;
 src      = (char *)in_offset;
 dest     = (char *)out_offset;
+MPI_Type_size( type, &size );
+srclen   = count * size;
 if (!in_offset) {
     i_offset = &i_dummy;
     src      = i_offset;
@@ -574,5 +613,5 @@ if (!out_offset) {
     dest     = o_offset;
     }
 MPIR_Unpack2( src, count, type, MPIR_Printcontig2, (void *)0, dest, 
-	      &srclen, &destlen );
+	      srclen, &destlen, &used_len );
 }

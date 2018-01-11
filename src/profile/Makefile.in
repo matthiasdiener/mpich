@@ -35,6 +35,7 @@ MPI_OBJECTS = pcontrol.o
 MPI_SOURCES = pcontrol.c
 MPI_CSOURCES = pcontrol.c
 MPI_WSOURCES = pcontrolf.c
+MPI_WOBJECTS = pcontrolf.o
 
 default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
 
@@ -49,6 +50,8 @@ default_all: $(MPI_OBJECTS)
 	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $?
 profile_all: $(MPI_OBJECTS)
 	$(AR) ../../lib/$(ARCH)/$(COMM)/libpmpi.a $?
+wrapperlib: $(MPI_WOBJECTS)
+	$(AR) ../../lib/$(ARCH)/$(COMM)/libfmpi.a $?	
 	
 wrappers:
 	-/bin/rm -f $(MPI_WSOURCES)

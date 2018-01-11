@@ -40,7 +40,7 @@ for arg in "$@" ; do
 done
 
 MakeExe() {
-    if [ $makeeach = 1 -o ! -x $1 ] ; then
+    if [ ! -x $1 ] ; then
 	make $1
     fi
 }
@@ -51,7 +51,7 @@ CleanExe() {
 }
 
 if [ ! -x cart -a $makeeach = 0 ] ; then
-    make 
+    make default
 fi
 
 testfiles=""

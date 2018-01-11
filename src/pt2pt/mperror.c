@@ -1,5 +1,5 @@
 /*
- *  $Id: mperror.c,v 1.21 1995/03/24 14:49:31 gropp Exp $
+ *  $Id: mperror.c,v 1.22 1995/07/25 02:52:44 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -135,7 +135,8 @@ char     *string, *file;
   if (!handler) {
       /* Fatal error, probably a call before MPI_Init */
       fprintf( stderr, "Fatal error; unknown error handler\n\
-May be MPI call before MPI_INIT.  Error message is %s\n", string );
+May be MPI call before MPI_INIT.  Error message is %s and code is %d\n", 
+	      string, code );
       return code;
       }
 

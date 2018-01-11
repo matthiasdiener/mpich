@@ -27,12 +27,13 @@ CFLAGS   = @CFLAGS@ $(OPTFLAGS) -I../.. -I../../include -I./ \
 		-DMPI_$(ARCH) -DMPID_DEVICE_CODE @GETNAME_DEFS@ @DEVCFLAGS@ \
 	        @DEV_DEFS@
 SOURCE   = shmemevent.c shmemrecv.c shmemsend.c shmeminit.c shmemprobe.c \
-	   shmemsync.c p2p.c shmempriv.c shops2.c shmemcoll.c shmemget.c
+	   shmemsync.c p2p.c shmempriv.c shops2.c shmemcoll.c shmemget.c \
+	   shmemdebug.c 
 SOURCEC  = $(SOURCE)
 SOURCEF  =
 MPI_OBJECTS = shmemevent.o shmemrecv.o shmemsend.o shmeminit.o shmemprobe.o \
 	      shmemsync.o p2p.o shmempriv.o shops2.o shmemcoll.o shmemget.o \
-              $(ASMFILES_O)
+	      shmemdebug.o $(ASMFILES_O)
 
 default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
 

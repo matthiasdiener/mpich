@@ -11,8 +11,4 @@ if [ "$argsset" = "" ] ; then
    argsset=1
 fi
 # Untested.  Only does the interactive (non-NQS submission)
-if [ $just_testing = 1 ] ; then
-    echo $progname -npes $np $cmdLineArgs
-else
-    $progname -npes $np $cmdLineArgs
-fi
+$Show $progname -npes $np $cmdLineArgs

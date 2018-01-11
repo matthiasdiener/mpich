@@ -1,6 +1,6 @@
 #! /bin/sh
 if [ "$MPIR_HOME" = "" ] ; then 
-    MPIR_HOME=/home/MPI/mpich
+    MPIR_HOME=/tmp_mnt/Net/alriga/alriga9/MPI/mpich
 fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
@@ -10,8 +10,37 @@ if [ "$argsset" = "" ] ; then
    . $MPIRUN_HOME/mpirun.args
    argsset=1
 fi
-if [ $just_testing = 1 ] ; then
-  echo $progname -sz $np $cmdLineArgs
-else
-  $progname -sz $np $cmdLineArgs
-fi
+# Handle NQS, no default partition, and default partition Paragons
+case $paragon_type in
+    mkpart)
+    # 2 = SIGINT and 3 = SIGQUIT, we hope
+    trap "rmpart ${LOGNAME}$$" 2 3
+    $Show mkpart -sz $np ${LOGNAME}$$
+    $Show $progname -pn ${LOGNAME}$$ $cmdLineArgs
+    $Show rmpart ${LOGNAME}$$
+    trap 2 3
+    ;;
+
+    nqs|NQS)
+    cat >>NQS$$ <<.
+#! /bin/sh
+mkpart -sz $np ${LOGNAME}$$
+$progname -pn ${LOGNAME}$$
+rmpart ${LOGNAME}$$
+/bin/rm -f `pwd`/NQS$$
+.
+    chmod a+x NQS$$
+    $Show qsub -lP $np -lT ${max_time}:0 `pwd`/NQS$$
+    echo "Job has been SUBMITTED to NQS,  Use qstat to see if"
+    echo "it has run"
+    ;;
+
+    default)
+    $Show $progname -sz $np $cmdLineArgs
+    ;;
+
+    *)
+    echo "Unrecongnized Paragon run type $paragon_type"
+    exit 1
+    ;;
+esac

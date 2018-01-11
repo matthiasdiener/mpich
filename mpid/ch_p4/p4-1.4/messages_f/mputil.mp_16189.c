@@ -1,1 +1,0 @@
-int mpmondata=0;

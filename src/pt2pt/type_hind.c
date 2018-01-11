@@ -1,12 +1,12 @@
 /*
- *  $Id: type_hind.c,v 1.16 1995/06/01 20:50:57 gropp Exp $
+ *  $Id: type_hind.c,v 1.17 1995/07/25 02:51:59 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_hind.c,v 1.16 1995/06/01 20:50:57 gropp Exp $";
+static char vcid[] = "$Id: type_hind.c,v 1.17 1995/07/25 02:51:59 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -36,7 +36,7 @@ MPI_Datatype  old_type;
 MPI_Datatype *newtype;
 {
   MPI_Datatype  dteptr;
-  MPI_Aint      ub, lb, high, low;
+  MPI_Aint      ub, lb, high, low, real_ub, real_lb, real_init;
   int           i, mpi_errno = MPI_SUCCESS;
   int           total_count;
   
@@ -53,9 +53,8 @@ MPI_Datatype *newtype;
   for (i=0; i<count; i++)
       total_count += blocklens[i];
   if (total_count == 0) {
-      (*newtype) = MPI_DATATYPE_NULL;
-      return (mpi_errno);
-  }
+      return MPI_Type_contiguous( 0, MPI_INT, newtype );
+      }
 
   /* Create and fill in the datatype */
   dteptr = (*newtype) = (MPI_Datatype) MPIR_SBalloc( MPIR_dtes );
@@ -84,6 +83,8 @@ MPI_Datatype *newtype;
 			 "Out of space in MPI_TYPE_HINDEXED" );
   low                 = indices[0];
   high                = indices[0] + (blocklens[0] * old_type->extent);
+  real_lb             = indices[0];
+  real_ub             = real_lb;
   for (i = 0; i < count; i++)  {
 	dteptr->indices[i]    = indices[i];
 	dteptr->blocklens[i]  = blocklens[i];
@@ -97,6 +98,12 @@ MPI_Datatype *newtype;
 	  if ( high < lb ) high = lb;
 	  if ( low  > ub ) low  = ub;
 	}
+	if (indices[i] < real_lb) real_lb = indices[i];
+	if (indices[i] + 
+	   (blocklens[i] * (old_type->real_ub - old_type->real_lb)) > real_ub)
+	    real_ub = indices[i] + 
+	   (blocklens[i] * (old_type->real_ub - old_type->real_lb));
+
 	dteptr->elements     += blocklens[i];
   }
 
@@ -109,8 +116,10 @@ MPI_Datatype *newtype;
       dteptr->ub = old_type->ub;
   else
       dteptr->ub = high;
-  dteptr->extent = high - low;
-  dteptr->size	 = dteptr->elements * old_type->size;
+  dteptr->extent  = high - low;
+  dteptr->size	  = dteptr->elements * old_type->size;
+  dteptr->real_ub = real_ub;
+  dteptr->real_lb = real_lb;
 
   /* 
     dteptr->elements contains the number of elements in the top level

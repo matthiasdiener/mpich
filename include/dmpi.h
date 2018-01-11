@@ -1,5 +1,5 @@
 /*
- *  $Id: dmpi.h,v 1.7 1995/03/05 20:23:25 gropp Exp $
+ *  $Id: dmpi.h,v 1.8 1995/06/30 17:33:57 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 /* mpir version of device interface */
 
-#include "mpir.h"
+/* #include "mpir.h" */
 
 #ifndef _DMPI_INCLUDE
 #define _DMPI_INCLUDE

@@ -42,9 +42,11 @@ int               *commute;
 MPI_Op            *op;
 int               *__ierr;
 {
+MPI_Op lop;
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
-*__ierr = MPI_Op_create(*function,MPIR_FROM_FLOG(*commute),op);
+*__ierr = MPI_Op_create(*function,MPIR_FROM_FLOG(*commute),&lop);
 #else
-*__ierr = MPI_Op_create(function,MPIR_FROM_FLOG(*commute),op);
+*__ierr = MPI_Op_create(function,MPIR_FROM_FLOG(*commute),&lop);
 #endif
+*(int*)op = MPIR_FromPointer( lop );
 }

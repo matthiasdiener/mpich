@@ -1,12 +1,12 @@
 /*
- *  $Id: t3drecv.c,v 1.6 1995/06/07 06:45:58 bright Exp $
+ *  $Id: t3drecv.c,v 1.9 1995/07/24 19:08:12 bright Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: t3drecv.c,v 1.6 1995/06/07 06:45:58 bright Exp $";
+static char vcid[] = "$Id: t3drecv.c,v 1.9 1995/07/24 19:08:12 bright Exp $";
 #endif
 
 #include "mpid.h"
@@ -64,7 +64,7 @@ T3D_PKT_T   *t3d_recv_bufs;
 /***************************************************************************
    T3D_Set_debug_flag
  ***************************************************************************/
-static int DebugFlag = 1;
+static int DebugFlag = 0;
 void T3D_Set_debug_flag( f )
 int f;
 {
@@ -247,17 +247,6 @@ MPIR_RHANDLE *dmpi_recv_handle, *dmpi_unexpected;
     }
 #   endif
 
-    /* Can't copy a message until we know it has been completed */
-
-    if ( ! dmpi_unexpected->completer ) {
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Process_unexpected-moving from unexpected queue\n");
-    }
-#   endif
-
- 
     /* Copy relevant data to recv_handle */
     mpid_recv_handle           = &dmpi_recv_handle->dev_rhandle;
     mpid_recv_handle_unex      = &dmpi_unexpected->dev_rhandle;
@@ -274,40 +263,31 @@ MPIR_RHANDLE *dmpi_recv_handle, *dmpi_unexpected;
     /* if synchronous, then update remote send completed flag */
     if ( (mpid_recv_handle_unex->mode == T3D_PKT_SHORT_SYNC) ||
 	 (mpid_recv_handle_unex->mode == T3D_PKT_LONG_SYNC)    )  {
+
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
     if (DebugFlag) {
         T3D_Printf("T3D_Process_unexpected-setting send completed flag at 0x%x\n",
                     mpid_recv_handle_unex->remote_completed );
     }
 #   endif
+
       shmem_put( (long *)mpid_recv_handle_unex->remote_completed,
 		 (long *)&completed,
 		 1,
 		 mpid_recv_handle_unex->from );
     }
+
     /* Free temporary space used to store unexpected message */
     if (mpid_recv_handle_unex->temp) {
         T3D_FREE( mpid_recv_handle_unex->temp );
         mpid_recv_handle_unex->temp = 0;
-    }
+      }
     
     /* Let the soft layer know the send has completed */
     DMPI_mark_recv_completed(dmpi_recv_handle);
 
     /* Recover dmpi_unexpected. */
     DMPI_free_unexpected( dmpi_unexpected );
-
-    }
-    else {
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Process_unexpected-can't move from unexpected queue\n");
-    }
-#   endif
-
-      err = -1;
-    }
 
     return (err);
 
@@ -324,6 +304,7 @@ int T3D_Copy_body_short(dmpi_recv_handle, pkt)
 MPIR_RHANDLE *dmpi_recv_handle;
 T3D_PKT_T    *pkt;
 {
+    MPID_RHANDLE *mpid_recv_handle;
     int err    = MPI_SUCCESS;
     int msglen = pkt->head.len;
 
@@ -333,17 +314,19 @@ T3D_PKT_T    *pkt;
     }
 #   endif
 
+    mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
+
     if ( dmpi_recv_handle->dev_rhandle.bytes_as_contig < msglen ) {
       err = MPI_ERR_TRUNCATE;
+
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
       if ( DebugFlag) {
         T3D_Printf("Received a truncated message.\n");
       }
 #   endif
+
       msglen = dmpi_recv_handle->dev_rhandle.bytes_as_contig;
     }
-
-    dmpi_recv_handle->totallen = msglen;
 
     /* Copy message if needed and mark the receive as completed */
     if ( msglen > 0) 
@@ -375,21 +358,17 @@ T3D_PKT_T    *pkt;
     }
 #   endif
 
-
     /* initialize mpid handle */
     mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
 
     mpid_recv_handle->bytes_as_contig = pkt->head.len;
     mpid_recv_handle->mode            = pkt->head.mode; 
 
-    dmpi_recv_handle->totallen        = pkt->head.len;
-
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
     if (DebugFlag) {
         T3D_Printf("T3D_Copy_body_long-sending back long buffer ptr\n");
     }
 #   endif
-
 
     /* 
       The dmpi_recv_handle should all be ready if message expected, and
@@ -434,6 +413,7 @@ int T3D_Copy_body_short_sync(dmpi_recv_handle, pkt)
 MPIR_RHANDLE *dmpi_recv_handle;
 T3D_PKT_T    *pkt;
 {
+    MPID_RHANDLE *mpid_recv_handle;
     int err       = MPI_SUCCESS;
     int msglen    = pkt->head.len;
     int completed = 0;
@@ -444,17 +424,19 @@ T3D_PKT_T    *pkt;
     }
 #   endif
 
+    mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
+
     if ( dmpi_recv_handle->dev_rhandle.bytes_as_contig < msglen ) {
       err = MPI_ERR_TRUNCATE;
+
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
       if ( DebugFlag) {
         T3D_Printf("Received a truncated message.\n");
       }
 #   endif
+
       msglen = dmpi_recv_handle->dev_rhandle.bytes_as_contig;
     }
-
-    dmpi_recv_handle->totallen = msglen;
 
     /* Copy message if needed and mark the receive as completed */
     if ( msglen > 0) 
@@ -508,14 +490,11 @@ T3D_PKT_T    *pkt;
     mpid_recv_handle->mode             = pkt->head.mode; 
     mpid_recv_handle->remote_completed = pkt->long_sync_pkt.local_send_completed;
 
-    dmpi_recv_handle->totallen        = pkt->head.len;
-
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
     if (DebugFlag) {
         T3D_Printf("T3D_Copy_body_long_sync-sending back long buffer ptr\n");
     }
 #   endif
-
 
     /* 
       The dmpi_recv_handle should all be ready if message expected, and
@@ -574,7 +553,6 @@ T3D_PKT_T    *pkt;
 	      1,
 	      mpid_recv_handle->from );
 
-
     DMPI_mark_recv_completed( dmpi_recv_handle );
 
     return (err);
@@ -601,7 +579,10 @@ T3D_PKT_T    *pkt;
     }
 #   endif
 
-    dmpi_recv_handle->dev_rhandle.from = from;
+    dmpi_recv_handle->source   = pkt->head.lrank;
+    dmpi_recv_handle->tag      = pkt->head.tag;
+    dmpi_recv_handle->totallen = pkt->head.len;
+    dmpi_recv_handle->dev_rhandle.from = from; 
 
     switch( pkt->head.mode ) {
     case T3D_PKT_SHORT:
@@ -639,7 +620,6 @@ T3D_PKT_T    *pkt;
     }
 #   endif
 
-
     /* Tell sending pe that sending buffer is ready for another send */
     shmem_put( (long *)&t3d_dest_bufs[T3D_MY_PE], 
                (long *)&buf_status, 
@@ -670,13 +650,10 @@ T3D_PKT_T     *pkt;
     }
 #   endif
 
-
     /* initialize mpid handle */
     mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
     mpid_recv_handle->bytes_as_contig = pkt->head.len;
     mpid_recv_handle->mode            = pkt->head.mode; 
-
-    dmpi_recv_handle->totallen        = pkt->head.len;
 
     if ( pkt->head.len > 0 ) {
       mpid_recv_handle->temp          = (char *)T3D_MALLOC(pkt->head.len);
@@ -717,14 +694,11 @@ T3D_PKT_T     *pkt;
     }
 #   endif
 
-
     /* initialize mpid handle */
     mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
 
     mpid_recv_handle->bytes_as_contig = pkt->head.len;
     mpid_recv_handle->mode            = pkt->head.mode; 
-   
-    dmpi_recv_handle->totallen        = pkt->head.len;
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
     if (DebugFlag) {
@@ -792,14 +766,11 @@ T3D_PKT_T     *pkt;
     }
 #   endif
 
-
     /* initialize mpid handle */
     mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
     mpid_recv_handle->bytes_as_contig = pkt->head.len;
     mpid_recv_handle->mode            = pkt->head.mode; 
     mpid_recv_handle->remote_completed = pkt->short_sync_pkt.local_send_completed;
-
-    dmpi_recv_handle->totallen        = pkt->head.len;
 
     if ( pkt->head.len > 0 ) {
       mpid_recv_handle->temp          = (char *)T3D_MALLOC(pkt->head.len);
@@ -840,17 +811,12 @@ T3D_PKT_T     *pkt;
     }
 #   endif
 
-
     /* initialize mpid handle */
     mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
 
     mpid_recv_handle->bytes_as_contig = pkt->head.len;
     mpid_recv_handle->mode            = pkt->head.mode; 
     mpid_recv_handle->remote_completed = pkt->long_sync_pkt.local_send_completed;
-   
-    dmpi_recv_handle->totallen        = pkt->head.len;
-    dmpi_recv_handle->source          = mpid_recv_handle->from;
-    dmpi_recv_handle->tag             = pkt->head.tag;
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
     if (DebugFlag) {
@@ -920,7 +886,11 @@ T3D_PKT_T     *pkt;
     }
 #   endif
 
-    dmpi_recv_handle->dev_rhandle.from = from;
+    dmpi_recv_handle->source   = pkt->head.lrank;
+    dmpi_recv_handle->tag      = pkt->head.tag;
+    dmpi_recv_handle->totallen = pkt->head.len;
+
+    dmpi_recv_handle->dev_rhandle.from = from; 
 
     switch( pkt->head.mode ) {
     case T3D_PKT_SHORT:
@@ -997,7 +967,6 @@ int blocking;
     }
 #   endif
 
-
     /* If nonblocking and no headers available, exit */
     if (blocking == MPID_NOTBLOCKING) {
         if ((buf_num = T3D_Recv_packet((T3D_PKT_T **)&pkt)) < 0) return (-1);
@@ -1055,24 +1024,30 @@ MPIR_RHANDLE *dmpi_recv_handle;
 
     /* If found, move it to the expected queue */
     if (found) {
+
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
       if (DebugFlag) {
 	T3D_Printf("T3D_Post_recv-message found but not completed\n");
       }
 #   endif
+
        while ( dmpi_unexpected->completer )
 	 T3D_Check_incoming( MPID_NOTBLOCKING );
+
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
       if (DebugFlag) {
         T3D_Printf("T3D_Post_recv-message found is now complete\n");
       }
 #   endif
+
       return(T3D_Process_unexpected(dmpi_recv_handle, dmpi_unexpected));
     }
+
     /* If it's not found, enqueue the posted receive */ 
     else {
         /* Add to the posted receive queue */
-        MPIR_enqueue( &MPIR_posted_recvs, dmpi_recv_handle, MPIR_QRHANDLE );
+	MPIR_enqueue( &MPIR_posted_recvs, (MPIR_COMMON *)dmpi_recv_handle, 
+	               MPIR_QRHANDLE );
     }
 
     /* Drain incoming packets */
@@ -1081,7 +1056,6 @@ MPIR_RHANDLE *dmpi_recv_handle;
     /* Note that at this point, the message MAY be here by is_available is
        still zero.  This is ok, since is_available is intended as an
        optimization */
-
 
     /* Return is_available instead??? */
     return MPI_SUCCESS;
@@ -1101,43 +1075,6 @@ MPIR_RHANDLE *dmpi_recv_handle;
 int T3D_Complete_recv( dmpi_recv_handle ) 
 MPIR_RHANDLE *dmpi_recv_handle;
 {
-    MPIR_RHANDLE    *dmpi_unexpected;
-    int              found, tag, source, context_id;
-    int              err = MPI_SUCCESS;
-
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Complete_recv\n");
-    }
-#   endif
-/*
-    if ( dmpi_recv_handle->completer ) {
-
-      tag        = dmpi_recv_handle->tag;
-      context_id = dmpi_recv_handle->contextid;
-      source     = dmpi_recv_handle->source;
-    
-      DMPI_search_unexpected_queue( source, tag, context_id, 
-				   &found, 1, &dmpi_unexpected );
-      if (found) {
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-	if (DebugFlag) {
-	  T3D_Printf("T3D_Complete_recv-message found but not complete\n");
-	}
-#   endif
-        while ( dmpi_unexpected->completer)
-	  T3D_Check_incoming( MPID_NOTBLOCKING );
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-	if (DebugFlag) {
-	  T3D_Printf("T3D_Complete_recv-message found is now complete\n");
-	}
-#   endif
-	return T3D_Process_unexpected(dmpi_recv_handle,dmpi_unexpected);
-      }
-    }
-    
-    T3D_Blocking_recv( dmpi_recv_handle );
-*/
 
     while( dmpi_recv_handle->completer )
        T3D_Check_incoming( MPID_NOTBLOCKING );
@@ -1152,14 +1089,6 @@ MPIR_RHANDLE *dmpi_recv_handle;
 int T3D_Blocking_recv( dmpi_recv_handle ) 
 MPIR_RHANDLE *dmpi_recv_handle;
 {
-    T3D_PKT_T       *pkt;
-    MPIR_RHANDLE    *dmpi_unexpected, *dmpi_save_recv_handle;
-    int              found, is_posted, tag, source, context_id;
-    int              tagmask, srcmask;
-    int              ptag, pcid, plrk;   /* Values from packet */
-    int              err = MPI_SUCCESS;
-    int              buf_num;
-    int              completed = 0;
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
     if (DebugFlag) {
@@ -1167,96 +1096,10 @@ MPIR_RHANDLE *dmpi_recv_handle;
     }
 #   endif
 
-    
-    /* At this time, check to see if the message has already been received */
-    tag        = dmpi_recv_handle->tag;
-    context_id = dmpi_recv_handle->contextid;
-    source     = dmpi_recv_handle->source;
-    
-    DMPI_search_unexpected_queue( source, tag, context_id, 
-                                  &found, 1, &dmpi_unexpected );
-    if (found) {
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-	T3D_Printf("T3D_Blocking_recv-message found but not complete\n");
-      }
-#   endif
-        while ( dmpi_unexpected->completer)
-	  T3D_Check_incoming( MPID_NOTBLOCKING );
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-	T3D_Printf("T3D_Blocking_recv-message found is now complete\n");
-      }
-#   endif
-	return T3D_Process_unexpected(dmpi_recv_handle,dmpi_unexpected);
-    }
+   T3D_Post_recv( dmpi_recv_handle );
+   T3D_Complete_recv( dmpi_recv_handle );
 
-    /* If we got here, the message is not yet available */
-    dmpi_save_recv_handle = dmpi_recv_handle;
-    if (tag == MPI_ANY_TAG) {
-        tagmask = 0;
-        tag     = 0;
-    }
-    else
-        tagmask = ~0;
-    if (source == MPI_ANY_SOURCE) {
-        srcmask = 0;
-        source  = 0;
-    }
-    else
-        srcmask = ~0;
-
-    /* While the message has not been received ... */
-    while (dmpi_save_recv_handle->completer) {
-
-        /* get a packet */
-        if ((buf_num = T3D_Recv_packet(&pkt)) >= 0) {
-
-          /* process it */
-          ptag = pkt->head.tag;
-          plrk = pkt->head.lrank;
-          pcid = pkt->head.context_id;
-
-          /* We should check the size here for internal errors .... */
-
-          /* If the packet contains the message we're looking for */
-          if (pcid            == context_id && 
-             (ptag & tagmask) == tag        &&
-             (plrk & srcmask) == source        ) {
-            /* Found the message I'm waiting for(it wasn't queued) */
-            is_posted                = 1;
-            dmpi_recv_handle         = dmpi_save_recv_handle;
-            dmpi_recv_handle->tag    = ptag;
-            dmpi_recv_handle->source = plrk;
-          }
-          /* If the packet doesn't contain the message we're looking for */
-          else 
-
-            DMPI_msg_arrived( plrk, ptag, pcid,
-                              &dmpi_recv_handle, &is_posted );
-
-          /* Copy the body of the message into user space */
-          if (is_posted) {
-            err = T3D_Copy_body( dmpi_recv_handle, buf_num, pkt);
-          }
-          else {
-            err = T3D_Copy_body_unex( dmpi_recv_handle, buf_num, pkt );
-          }
-        }
-    }
-    
-    if ( (dmpi_recv_handle->dev_rhandle.mode == T3D_PKT_SHORT_SYNC ) ||
-	 (dmpi_recv_handle->dev_rhandle.mode == T3D_PKT_LONG_SYNC  )    )  {
-#   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
-    if (DebugFlag) {
-        T3D_Printf("T3D_Blocking_recv-sending completed flag back to sender at 0x%x\n",
-                   dmpi_recv_handle->dev_rhandle.remote_completed );
-    }
-#   endif
-  }
-
-    
-    return (err);
+   return MPI_SUCCESS;
 
 } /* T3D_Blocking_recv */
 
@@ -1270,13 +1113,14 @@ MPIR_RHANDLE *dmpi_recv_handle;
 int T3D_Test_recv( dmpi_recv_handle )
 MPIR_RHANDLE *dmpi_recv_handle;
 {
+
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_RECV)
     if (DebugFlag) {
         T3D_Printf("T3D_Test_recv\n");
     }
 #   endif
 
-    return ( T3D_Complete_recv( dmpi_recv_handle ) );
+    return ( dmpi_recv_handle->completer == 0 );
 }
 
 

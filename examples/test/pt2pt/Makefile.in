@@ -40,11 +40,13 @@ LIBSPP = $(MPIPPLIB) $(LIBS)
 EXECS = overtake sendrecv isndrcv third fourth fifth sixth hvectest \
 	hvectest2 probe probe1 testtest1 testtypes ssendtest typetest\
 	secondf dtypelife issendtest relrank inull typeub irecvtest htmsg \
-	isendtest self sendrecv2 sendrecv3 sendrecv4 persistent
+	isendtest self sendrecv2 sendrecv3 sendrecv4 persistent waitall
 default: $(EXECS)
 
-testing: default $(MPIR_HOME)/util/mpirun
-	  -runtests
+#
+# Note that runtests builds the executables as required
+testing: $(MPIR_HOME)/util/mpirun
+	  -./runtests $(TESTARGS)
 
 linktest: overtake secondf clean
 
@@ -127,6 +129,9 @@ sixth: sixth.o test.o $(MPILIB)
 probe: probe.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o probe probe.o test.o $(LIBS)
 
+nblock: nblock.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o nblock nblock.o $(LIBS)
+
 probe1: probe1.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o probe1 probe1.o test.o $(LIBS)
 
@@ -142,6 +147,12 @@ hvectest2: hvectest2.o test.o $(MPILIB)
 irecvtest: irecvtest.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o irecvtest irecvtest.o test.o $(LIBS)
 
+nbtest: nbtest.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o nbtest nbtest.o $(LIBS)
+
+waitall: waitall.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o waitall waitall.o $(LIBS)
+
 secondf: mpif.h secondf.o
 	$(FLINKER) $(OPTFLAGS) -o secondf secondf.o $(FLIBS)
 allpair: mpif.h allpair.o
@@ -149,8 +160,12 @@ allpair: mpif.h allpair.o
 allpair2: mpif.h allpair2.o
 	$(FLINKER) $(OPTFLAGS) -o allpair2 allpair2.o $(FLIBS)
 
+#
+# Some systems have no test for a symbolic link and return false for
+# a link that exists
 mpif.h: $(MPIR_HOME)/include/mpif.h
 	if test \! -f mpif.h ; then \
+	    /bin/rm -f mpif.h ; \
 	    ln -s $(MPIR_HOME)/include/mpif.h . ; \
 	fi
 
@@ -158,7 +173,7 @@ mpif.h: $(MPIR_HOME)/include/mpif.h
 # Make sure that we remove executables for specific architectures
 clean:
 	/bin/rm -f *.o *~ PI* $(EXECS) *.out secondf allpair core systest \
-		systest1 allpair2 bsendtest pt2pt.diff
+		systest1 allpair2 bsendtest pt2pt.diff nbtest nblock
 	for file in $(EXECS) Makefile ; do \
 	   /bin/rm -f $$file.sun4 $$file.alpha $$file.IRIX $$file.freebsd ;\
 	done

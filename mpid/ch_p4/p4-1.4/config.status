@@ -2,7 +2,7 @@
 # Generated automatically by configure.
 # Run this file to recreate the current configuration.
 # This directory was configured as follows,
-# on host donner.mcs.anl.gov:
+# on host godzilla.mcs.anl.gov:
 #
 # ./configure -p4arch=SUN -p4make=make -opt=-g
 
@@ -33,7 +33,7 @@ MDEP_CFLAGS=''
 MDEP_FFLAGS=''
 MDEP_LFLAGS=''
 OPTFLAGS='-g'
-P4_CONFIGURED_TIME='Fri Jun  9 17:24:14 CDT 1995'
+P4_CONFIGURED_TIME='Tue Aug  1 16:46:07 CDT 1995'
 DEFINE_ALOG='#undef ALOG_TRACE'
 DEFINE_SYSV_IPC='#undef SYSV_IPC'
 DEFINE_VENDOR_IPC='#undef VENDOR_IPC'

@@ -1,5 +1,5 @@
 /*
- *  $Id: global_ops.c,v 1.30 1995/05/12 22:31:59 gropp Exp $
+ *  $Id: global_ops.c,v 1.31 1995/07/25 02:45:08 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: global_ops.c,v 1.30 1995/05/12 22:31:59 gropp Exp $";
+static char vcid[] = "$Id: global_ops.c,v 1.31 1995/07/25 02:45:08 gropp Exp $";
 #endif /* lint */
 
 
@@ -446,7 +446,8 @@ MPI_Datatype *type;
 #endif
   case MPIR_LOGICAL: {
       /* Assume that C int == Fortran int for now */
-      int *a = (int *)inoutvec; int *b = (int *)invec;
+      MPIR_FORT_INT_T *a = (MPIR_FORT_INT_T *)inoutvec; 
+      MPIR_FORT_INT_T *b = (MPIR_FORT_INT_T *)invec;
       for (i=0; i<len; i++) 
 	  a[i] = MPIR_TO_FLOG(MPIR_LLAND(MPIR_FROM_FLOG(a[i]),
 					 MPIR_FROM_FLOG(b[i])));
@@ -472,7 +473,13 @@ MPI_Datatype *type;
   int i, len = *Len;
 
   switch ((*type)->dte_type) {
-  /* case MPIR_LOGICAL: */
+  case MPIR_LOGICAL: {
+    MPIR_FORT_INT_T *a = (MPIR_FORT_INT_T *)inoutvec; 
+    MPIR_FORT_INT_T *b = (MPIR_FORT_INT_T *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LBAND(a[i],b[i]);
+    break;
+  }
   case MPIR_INT: {
     int *a = (int *)inoutvec; int *b = (int *)invec;
     for ( i=0; i<len; i++ )
@@ -598,8 +605,8 @@ MPI_Datatype *type;
   }
 #endif
   case MPIR_LOGICAL: {
-      /* Assume that C int == Fortran int for now */
-      int *a = (int *)inoutvec; int *b = (int *)invec;
+      MPIR_FORT_INT_T *a = (MPIR_FORT_INT_T *)inoutvec; 
+      MPIR_FORT_INT_T *b = (MPIR_FORT_INT_T *)invec;
       for (i=0; i<len; i++) 
 	  a[i] = MPIR_TO_FLOG(MPIR_LLOR(MPIR_FROM_FLOG(a[i]),
 					MPIR_FROM_FLOG(b[i])));
@@ -625,7 +632,13 @@ MPI_Datatype *type;
   int i, len = *Len;
 
   switch ((*type)->dte_type) {
-  /* case MPIR_LOGICAL: */
+  case MPIR_LOGICAL: {
+    MPIR_FORT_INT_T *a = (MPIR_FORT_INT_T *)inoutvec; 
+    MPIR_FORT_INT_T *b = (MPIR_FORT_INT_T *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LBOR(a[i],b[i]);
+    break;
+  }
   case MPIR_INT: {
     int *a = (int *)inoutvec; int *b = (int *)invec;
     for ( i=0; i<len; i++ )
@@ -691,7 +704,6 @@ MPI_Datatype *type;
   int i, len = *Len;
 
   switch ((*type)->dte_type) {
-  /* case MPIR_LOGICAL: */
   case MPIR_INT: {
     int *a = (int *)inoutvec; int *b = (int *)invec;
     for ( i=0; i<len; i++ )
@@ -753,7 +765,8 @@ MPI_Datatype *type;
 #endif
   case MPIR_LOGICAL: {
       /* Assume that C int == Fortran int for now */
-      int *a = (int *)inoutvec; int *b = (int *)invec;
+      MPIR_FORT_INT_T *a = (MPIR_FORT_INT_T *)inoutvec; 
+      MPIR_FORT_INT_T *b = (MPIR_FORT_INT_T *)invec;
       for (i=0; i<len; i++) 
 	  a[i] = MPIR_TO_FLOG(MPIR_LLXOR(MPIR_FROM_FLOG(a[i]),
 					 MPIR_FROM_FLOG(b[i])));
@@ -779,7 +792,13 @@ MPI_Datatype *type;
   int i, len = *Len;
 
   switch ((*type)->dte_type) {
-  /* case MPIR_LOGICAL */
+  case MPIR_LOGICAL: {
+    MPIR_FORT_INT_T *a = (MPIR_FORT_INT_T *)inoutvec; 
+    MPIR_FORT_INT_T *b = (MPIR_FORT_INT_T *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LBXOR(a[i],b[i]);
+    break;
+      }
   case MPIR_INT: {
     int *a = (int *)inoutvec; int *b = (int *)invec;
     for ( i=0; i<len; i++ )

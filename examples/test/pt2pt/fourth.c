@@ -16,7 +16,7 @@ char **argv;
     if (np < 4) {
       MPI_Finalize();
       printf( "4 processors or more required, %d done\n", rank );
-      return(0);
+      return(1);
     }
 
     if (rank == 0) {
@@ -61,4 +61,5 @@ char **argv;
     }
     Test_Waitforall( );
     MPI_Finalize();
+    return(0);
 }

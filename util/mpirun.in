@@ -11,6 +11,8 @@
 #
 # THIS PROGRAM IS OBSOLETE.  SEE mpirun.*.in, PARTICULARLY mpirun.sh.in .
 #
+# DO NOT MAKE CHANGES TO THIS FILE!!!!!!!!!!!
+#
 #set verbose
 set MPIR_HOME = #MPIR_HOME#
 set EXECER = #EXECER_DIR#/execer
@@ -43,6 +45,9 @@ set rmcommandfile=""
 set rshcmd=#RSH_COMMAND#
 set mvhome=0
 set mvback=''
+#
+# Kind of paragon submisstion (default/mkpart/nqs)
+set paragon_type="default"
 set Machines = "chameleon meiko paragon p4 sp1 ibmspx anlspx ksr sgi_mp ipsc860 inteldelta cray_t3d execer smp symm_ptx"
 set max_time = 15
 #
@@ -128,6 +133,10 @@ while ("$j" <= "$#argv")
       if ($p4ssport == "0" && $?MPI_P4SSPORT) then
 	set p4ssport = $MPI_P4SSPORT
       endif
+      breaksw
+    case -paragontype:
+      @ j++
+      set paragon_type = "$argv[$j]"
       breaksw
     case -mr_v:
     case -v:
@@ -293,6 +302,7 @@ if ("$arch" == "") then
       breaksw
     case "cray":
     case "CRAY Y-MP":
+    case "CRAY J90":
       set arch="CRAY"
       breaksw
     case alpha:
@@ -849,7 +859,12 @@ $PWD_LOCAL/PIrun
 C
 .
 	set JID = `/usr/local/bin/getjid`
+        onintr sprm
 	spwait
+        goto spok
+sprm:
+	sprelease $JID
+spok:
 	if ($rmhome == 1) then
 	   /bin/rm /sphome/$LOGNAME/$localpgm
 	endif
@@ -859,17 +874,61 @@ C
         endif
 	if (-e /sphome/$LOGNAME/job.output) then 
 	    cat /sphome/$LOGNAME/job.output
-	else
-	    echo "No output file!  Job did not run! "
+	# Note that there is no good way to identify problems with the run
+	# now...
+#	else
+#	    echo "mpirun: No output file!  Job did not run! "
 	endif
     endif
     breaksw
   case paragon:
+    # Handle NQS, no default partition, and default partition Paragons
+    switch ($paragon_type)
+    case mkpart:
+    if ($just_testing) then
+      echo mkpart -sz $np ${LOGNAME}$$
+      echo $progname -pn ${LOGNAME}$$ $cmdLineArgs
+      echo rmpart ${LOGNAME}$$
+    else
+      onintr rmpart
+      mkpart -sz $np ${LOGNAME}$$
+      $progname -pn ${LOGNAME}$$ $cmdLineArgs
+rmpart:
+      onintr
+      rmpart ${LOGNAME}$$
+    endif
+    breaksw
+
+    case nqs:
+    cat >>NQS$$ <<.
+mkpart -sz $np ${LOGNAME}$$
+$progname -pn ${LOGNAME}$$
+rmpart ${LOGNAME}$$
+/bin/rm -f `pwd`/NQS$$
+.
+    chmod a+x NQS$$
+    if ($just_testing) then 
+	echo qsub -lP $np -lT ${max_time}:0 `pwd`/NQS$$
+    else
+	qsub -lP $np -lT ${max_time}:0 `pwd`/NQS$$
+    endif
+    echo "Job has been SUBMITTED to NQS,  Use qstat to see if"
+    echo "it has run"
+    breaksw
+
+    case default:
     if ($just_testing) then
       echo $progname -sz $np $cmdLineArgs
     else
       $progname -sz $np $cmdLineArgs
     endif
+
+    default:
+	echo "Unrecongnized Paragon run type $paragon_type"
+	exit 1
+    endsw
+    
+
     breaksw
   case inteldelta:
     # This script must actually be run ON the Delta (more accurately, 

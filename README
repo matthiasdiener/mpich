@@ -2,7 +2,8 @@
 
 		      Portable MPI Model Implementation
 
-			Version 1.0.9 (June ?, 1995)
+			Version 1.0.10 (July 31, 1995)
+
 
 This is a joint-effort project between Argonne (Bill Gropp and Rusty Lusk) and
 Mississippi State (Tony Skjellum and Nathan Doss).  Hubertus Franke of IBM has
@@ -15,6 +16,9 @@ the following steps for installation and minimal testing:
 
   Get mpich.tar.Z by anonymous ftp from info.mcs.anl.gov
        in the directory pub/mpi.
+
+  (If this file is too big, you can get it in pieces from the subdirectory
+   mpisplit.)
 
   zcat mpich.tar.Z | tar xvf -
 
@@ -36,48 +40,31 @@ the following steps for installation and minimal testing:
 
   mpirun -np 4 cpi
 
-                         Changes since Version 1.0.8
+			Changes since Version 1.0.9 
 
-1.  Improved support for heterogeneous systems with different data lengths
-    (more remains to be done).  Unified much of the code to pack and 
-    unpack datatypes.  Note that MPICH has used a "sender converts" 
-    approach since 1994 in preference to XDR (which is still used in
-    some cases).  Extensions to this mechanism will further reduce the
-    usage of XDR in heterogeneous systems.
+1.  Some fixes for Cray T3D (-device=t3d) for MPI_Test and friends
 
-2.  Fixes to mpireconfig and upshot when installing a distribution.
+2.  Fix for CM-5 CMMD (but untested as we don't have access to a CM-5)
 
-3.  Added new profiling libraries for tracing, log file generation, and
-    realtime animation.  See the Users Guide.
+3.  Improvements in thread locking for device writers (see
+    mpid/chameleon/dmch.h)  (More work is still needed)
 
-4.  Shortened some filenames to 12 characters (plus extension); this helps
-    Cray YMPs that corrupt their object libraries when presented with an
-    otherwise valid filename with more than 12 characters.
+4.  Reorganized include files (internal only; user MPI programs are unchanged)
+    thanks to SGI.
 
-5.  Added a native Meiko CS-2 device (thanks to Jim Cownie).
+5.  Internal reorganization of collective code to allow easier optimization
+    by vendors (thanks to Meiko)
 
-6.  Updated (in part) to conform to clarifications of the MPI Forum.  This
-    includes:
+6.  New version of mpirun (using sh instead of csh) is easier to add devices 
+    to; also has limited ablitity to manage heterogeneous runs.
 
-    Changed behavior when empty lists of requests are given to TESTxxx/WAITxxx
+7.  New commands mpicc and mpif77 make it easier to run simple programs.
+    They also provide simplified interfaces to the MPE profiling libraries
 
-    Many MPI pre-defined datatypes are now compile-time constants (all will
-    be soon).
+8.  Now runs on AIX SMPs.
 
-    Some man pages have been updated to clarify the definition.  See 
-    in particular MPI_Cart_shift and MPI_Bsend.
-
-    A new constant, MPI_BUFFER_OVERHEAD, can be used with MPI_BUFFER_ATTACH.
-
-7.  Some bugs in the code for the CM5 MAY have been fixed; we no longer 
-    have access to any CM5 so we can't test it (NPAC CM5 is no longer 
-    accessible, and accounts on the Los Alamos CM5 are limited to 
-    Los Alamos grand challenge projects and industrial partners).  
-
-8.  Bugs in the Intel Paragaon version have been fixed, particularly those
-    in the handling of nonblocking operations.
-    
-9.  Many additions to the test suite.
+9. On-line buglist at MPICH home page
+   http://www.mcs.anl.gov/mpi/mpich/index.html 
 
 What is here
 ============
@@ -97,13 +84,13 @@ mpich.tar.Z          - the implementation itself, sufficient to run on the
                        are the actual releases.
                        New releases are indicated by a change in the last 
                        number; the value when this readme was written
-                       was 8 (as in 1.0.8).
+                       was 10 (as in 1.0.10).
 
 For other systems, or to run on top of PVM 2.4 or 3.x, you also need:
 
 chameleon-1.2.tar.Z  - the chameleon system, necessary to build and run the
                        versions of the implementation that run on top of PVM.
-                       This is in pub/pdetools
+                       This is in pub/pdetools.  
 
 You do not need anything else if you are using either the various MPP versions
 (Intel Paragon, TMC CM5, IBM SP2) or the integrated version of p4
@@ -111,7 +98,7 @@ You do not need anything else if you are using either the various MPP versions
 
 Also of interest for workstation clusters is
 
-sut-1.0.*.tar.Z       - Scalable Unix Commands.  This provides versions of
+sut.tar.Z             - Scalable Unix Commands.  This provides versions of
                         common Unix commands, such as ls or ps, that run 
                         in parallel on a selection of machines.  This is
                         a prototype under development and is a Ptools
@@ -145,6 +132,9 @@ On many systems, you can now just say:
 This will try to pick an appropriate set of options.  On platforms that
 do cross-compilation (e.g., CM5, Paragon, or SP2 front ends), it is necessary
 to give the specific device and architecture.  These are described below.
+While MPICH is building, register your copy so that you can receive
+notification about future releases.  Information on registering is provided
+when you run configure.
 
 To build the network version for sun4's running SunOS 4.x, give the command
 
@@ -170,6 +160,7 @@ For a Convex Exemplar, use
 
     configure -arch=hpux -device=ch_shmem
     make
+    (a native ch_spp version will be in 1.0.11).
 
 For a Sun multiprocessor, use
 
@@ -191,11 +182,16 @@ To build for the Meiko CS-2, use
     configure -arch=meiko -device=meiko
     make
 
+To build for UNICOS on a CRAY C90, CRAY Y-MP, or CRAY J90
+(This will use TCP sockets for communication.)
+
+    configure -device=ch_p4 -arch=cray
+    make
+
 To build for the Ncube, use
 
     configure -arch=ncube -device=ch_nc
     make
-    (We're not sure about the arch value)
 
 To build for the CM-5, use
 
@@ -203,15 +199,9 @@ To build for the CM-5, use
     make
     (Not extensively tested; bug reports encouraged)
 
-To build for SP1 using EUI-H (you must have EUI-H installed; configure
-will give you an error if you do not), give the command
-
-    configure -device=ch_eui -comm=ch_euih -arch=rs6000 
-    make
-
 To build for SP1, SP2, or rs6000's using EUI (or MPL), give the command
 
-    configure -device=ch_mpl -comm=ch_mpl -arch=rs6000 
+    configure -device=ch_mpl -arch=rs6000 
     make
 
 To build the Chameleon version for sun4's, using PVM 3.x, give the command

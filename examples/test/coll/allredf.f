@@ -20,6 +20,7 @@ C       Declare work areas
 C
 	call MPI_INIT( ierr )
 
+	errcnt = 0
 	comm = MPI_COMM_WORLD
 	call MPI_COMM_RANK( comm, rank, ierr )
 	world_rank = rank

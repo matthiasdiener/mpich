@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_shift.c,v 1.14 1995/05/09 18:56:29 gropp Exp $
+ *  $Id: cart_shift.c,v 1.15 1995/06/21 03:18:00 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -55,14 +55,14 @@ int      *dest;
     return MPIR_ERROR( comm, mpi_errno, "Error in MPI_CART_SHIFT" );
   
   /* Check the case for a 0 displacement */
-  MPI_Comm_rank (comm, &rank);
+  MPIR_Comm_rank (comm, &rank);
   if (displ == 0) {
     (*source) = (*dest) = rank;
     return (mpi_errno);
   }
 
   /* Get ready for shifting */
-  MPI_Comm_size (comm, &size);
+  MPIR_Comm_size (comm, &size);
   periodic = topo->cart.periods[direction];
   save_position = source_position = dest_position = 
       topo->cart.position[direction];

@@ -1,5 +1,5 @@
 /* type_extent.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
 #ifdef POINTER_64_BITS
@@ -34,9 +34,11 @@ extern void MPIR_RmPointer();
 
  void mpi_type_extent_( datatype, extent, __ierr )
 MPI_Datatype  datatype;
-MPI_Aint     *extent;
+int *extent;
 int *__ierr;
 {
+MPI_Aint c_extent;
 *__ierr = MPI_Type_extent(
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),extent);
+	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),&c_extent);
+*extent = (int)c_extent;
 }

@@ -68,7 +68,7 @@ char **argv;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    for (i=1; i<=argc; i++) {
+    for (i=1; i<argc; i++) {
 	if (argv[i] && strcmp("-alt",argv[i]) == 0) {
 	    master_rank = 1;
 	    slave_rank  = 0;

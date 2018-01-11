@@ -1,5 +1,5 @@
 /*
- *  $Id: bsend_init.c,v 1.20 1995/05/09 18:11:04 gropp Exp $
+ *  $Id: bsend_init.c,v 1.21 1995/07/25 02:54:43 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -40,7 +40,7 @@ MPI_Request   *request;
     if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,count) ||
 	MPIR_TEST_DATATYPE(comm,datatype) || 
 	MPIR_TEST_SEND_RANK(comm,dest) || MPIR_TEST_SEND_TAG(comm,tag))
-	MPIR_ERROR( comm, mpi_errno, "Error in MPI_Bsend_init" );
+	return MPIR_ERROR( comm, mpi_errno, "Error in MPI_Bsend_init" );
     
     /* See MPI_TYPE_FREE.  A free can not happen while the datatype may
        be in use.  Thus, a nonblocking operation increments the
@@ -73,7 +73,7 @@ MPI_Request   *request;
     MPI_Pack_size( count, datatype, comm, &psize );
     if (mpi_errno = 
 	MPIR_GetBuffer( psize, handleptr, buf, count, datatype, &bufp )) 
-	MPIR_ERROR( comm, mpi_errno, "Error in MPI_Bsend_init" );
+	return MPIR_ERROR( comm, mpi_errno, "Error in MPI_Bsend_init" );
 
     handleptr->shandle.bufadd       = bufp;
     handleptr->shandle.count        = count;

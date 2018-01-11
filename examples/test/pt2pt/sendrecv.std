@@ -278,7 +278,7 @@ count argument, datatype argument, tag, rank, buffer send and buffer recv
 0 - Error in MPI_SEND : Invalid rank
 0 -  File: send.c   Line: 94
 0 - Error in MPI_SEND : Invalid buffer pointer
-0 -  File: recv.c   Line: 79
+0 -  File: recv.c   Line: 83
 0 - Error in MPI_RECV : Invalid buffer pointer
 All processes completed test
 **** Testing MPI_Send and MPI_Recv ****

@@ -1,12 +1,12 @@
 /*
- *  $Id: type_hvec.c,v 1.17 1995/06/01 20:52:35 gropp Exp $
+ *  $Id: type_hvec.c,v 1.18 1995/07/25 02:49:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_hvec.c,v 1.17 1995/06/01 20:52:35 gropp Exp $";
+static char vcid[] = "$Id: type_hvec.c,v 1.18 1995/07/25 02:49:16 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -46,9 +46,8 @@ MPI_Datatype *newtype;
 
   /* Are we making a null datatype? */
   if (count*blocklen == 0) {
-      (*newtype) = MPI_DATATYPE_NULL;
-      return (mpi_errno);
-  }
+      return MPI_Type_contiguous( 0, MPI_INT, newtype );
+      }
 	
   /* Handle the case where blocklen & stride make a contiguous type */
   if ( ((blocklen * old_type->extent) == stride) ||
@@ -81,6 +80,10 @@ MPI_Datatype *newtype;
   if (dteptr->extent < 0) {
 	dteptr->ub     = old_type->lb;
 	dteptr->lb     = dteptr->ub + dteptr->extent;
+	dteptr->real_ub= old_type->real_lb;
+	dteptr->real_lb= dteptr->real_ub + 
+	    ((count-1) * stride) + 
+		(blocklen * (old_type->real_ub - old_type->real_lb));
 	dteptr->extent = -dteptr->extent;
   }
   else {
@@ -89,6 +92,9 @@ MPI_Datatype *newtype;
 	    dteptr->ub = old_type->ub;
 	else
 	    dteptr->ub = dteptr->lb + dteptr->extent;
+	dteptr->real_lb = old_type->real_lb;
+	dteptr->real_ub = dteptr->real_lb + ((count-1) * stride) + 
+		(blocklen * (old_type->real_ub - old_type->real_lb));  
   }
   dteptr->size        = count * blocklen * dteptr->old_type->size;
   

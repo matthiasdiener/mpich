@@ -1,12 +1,12 @@
  /*
- *  $Id: t3dsend.c,v 1.6 1995/06/07 06:46:12 bright Exp $
+ *  $Id: t3dsend.c,v 1.7 1995/06/11 05:42:52 bright Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: t3dsend.c,v 1.6 1995/06/07 06:46:12 bright Exp $";
+static char vcid[] = "$Id: t3dsend.c,v 1.7 1995/06/11 05:42:52 bright Exp $";
 #endif
 
 #include "mpid.h"
@@ -55,7 +55,7 @@ T3D_Buf_Status *t3d_dest_bufs;
 /***************************************************************************
    T3D_Set_send_debug_flag
  ***************************************************************************/
-static int DebugFlag = 1;   /* Set to 0 for no debug output */
+static int DebugFlag = 0;   /* Set to 0 for no debug output */
 void T3D_Set_send_debug_flag( f )
 int f;
 {
@@ -792,6 +792,6 @@ MPIR_SHANDLE *dmpi_send_handle;
     }
 #   endif
 
-    return (! (int)dmpi_send_handle->completer);
+    return ( dmpi_send_handle->completer == 0 );
 }
 

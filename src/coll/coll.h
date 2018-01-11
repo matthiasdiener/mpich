@@ -1,4 +1,4 @@
-/* 	$Id: coll.h,v 1.6 1994/06/07 21:29:44 gropp Exp $	 */
+/* 	$Id: coll.h,v 1.7 1995/07/25 02:44:51 gropp Exp $	 */
 
 
 /*
@@ -14,6 +14,28 @@ coll.h - Defines used for point to point communications within
 #endif
 #ifndef MPIR_MAX
 #define MPIR_MAX(a,b) (((b)>(a))?(b):(a))
+#endif
+
+/* One common case is copy-to-self.  A PORTABLE way to do this is to use
+   MPI_Sendrecv; however, the routine MPIR_Pack2 (in src/dmpi) provides the
+   same operation for general datatypes.  To make it easy to switch between
+   these two approaches, we define MPIR_COPYSELF
+   Note that we provide a tag/comm/rank argument for the sendrecv case.
+   
+   This only works for when the send and receive types are the same.
+   We will require something different (a combination of MPIR_Pack2 and
+   MPIR_Unpack2, perhaps?) for the data-movement operations (e.g., MPI_Gather).
+ */ 
+#ifndef MPIR_USE_SENDRECV
+#define MPIR_COPYSELF( src, count, datatype, dest, tag, rank, comm ) \
+{int _outlen, _totlen; \
+mpi_errno = MPIR_Pack2( src, count, datatype, (void (*)())0, (void*)0, \
+		        dest, &_outlen, &_totlen );}
+#else
+#define MPIR_COPYSELF( src, count, datatype, dest, tag, rank, comm ) \
+{MPI_Status _status;\
+mpi_errno = MPI_Sendrecv ( (void *)(src), count, datatype, rank, tag, \
+	       (void *)(dest), count, datatype, rank, tag, comm, &_status );}
 #endif
 
 /* 

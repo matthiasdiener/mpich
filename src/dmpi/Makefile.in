@@ -33,6 +33,7 @@ CFLAGS = @CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPIPROFILE)
 LIBS = ../../lib/$(ARCH)/$(COMM)/libmpi.a $(DEVICE_LIB)
 MPI_SOURCES = dmpi.c dmpipk.c bswap.c pkutil.c
 MPI_OBJECTS = dmpi.o dmpipk.o bswap.o pkutil.o
+MPI_WOBJECTS =
 
 default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
 
@@ -63,6 +64,9 @@ wwwpages:
 	   -index ../../www.index -jumpfile ../../jumpfile.list \
 	   -indexdir "http:/www.mcs.anl.gov/mpi/man" -heading MPI \
 		$(MPI_CSOURCES)
+wrapperlib: $(MPI_WOBJECTS)
+	if [ "$(MPI_WOBJECTS)" != "" ] ; then \
+	$(AR) ../../lib/$(ARCH)/$(COMM)/libfmpi.a $?	; fi
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

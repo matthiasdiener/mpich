@@ -110,7 +110,7 @@ It took $hours $mins to build the MPI libraries.
         cat doc/doc1make.log >> $filename
         echo "\\end{verbatim}"   >> $filename
     else
-        echo "\\par Make detected no errors during the build." >> $filename
+        echo "Make detected no errors during the build." >> $filename
     fi
     if test $makefailed = 1 ; then
         echo "The make failed to complete." >> $filename

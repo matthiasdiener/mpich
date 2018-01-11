@@ -1,5 +1,5 @@
 /*
- *  $Id: ptrcvt.c,v 1.6 1995/05/09 18:56:56 gropp Exp $
+ *  $Id: ptrcvt.c,v 1.7 1995/06/21 03:04:04 gropp Exp $
  *
  *  (C) 1994 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,17 @@
 
 /* 
    This file contains routines to convert to and from pointers
+
+   There is another approach that can be used on some systems.  This is
+   to identify the 32bit range that is used by pointers, and to do the
+   appropriate masks/shifts to make these valid integers.  This requires
+   that the pointers actually lie in some 4 GB part of a 64 bit 
+   integer, and that this segment is known in advance.  Because ensuring
+   that the conditions are upheld requires friendly relations with the
+   OS and runtime library developers, we cannot make use of this 
+   in the portable system, but it may be valuable for specific ports.
+
+   Thanks to Jim Cownie for this suggestion.
  */
 
 #include <stdio.h>

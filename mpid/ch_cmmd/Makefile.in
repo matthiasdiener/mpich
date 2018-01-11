@@ -25,11 +25,12 @@ default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
 CFLAGS   = @CFLAGS@ $(OPTFLAGS) -I../.. -I../../include -I./ \
 	-DMPID_DEVICE_CODE @DEVCFLAGS@
-SOURCE   = cmmdevent.c cmmdrecv.c cmmdsend.c cmmdinit.c cmmdprobe.c cmmdsync.c
+SOURCE   = cmmdevent.c cmmdrecv.c cmmdsend.c cmmdinit.c cmmdprobe.c \
+	   cmmdsync.c cmmddebug.c
 SOURCEC  = $(SOURCE)
 SOURCEF  =
 MPI_OBJECTS = cmmdevent.o cmmdrecv.o cmmdsend.o cmmdinit.o cmmdprobe.o \
-	      cmmdsync.o
+	      cmmdsync.o cmmddebug.o
 
 # default_all is the same as default, but without the RANLIB.  This
 # can speed up the build (ranlibs can take a LONG time).  profile_all 

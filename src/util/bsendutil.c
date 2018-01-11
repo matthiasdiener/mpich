@@ -1,5 +1,5 @@
 /*
- *  $Id: bsendutil.c,v 1.3 1995/05/09 18:56:52 gropp Exp $
+ *  $Id: bsendutil.c,v 1.4 1995/07/25 02:46:58 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: bsendutil.c,v 1.3 1995/05/09 18:56:52 gropp Exp $";
+static char vcid[] = "$Id: bsendutil.c,v 1.4 1995/07/25 02:46:58 gropp Exp $";
 #endif /* lint */
 
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
@@ -183,11 +183,12 @@ b = Bsend;
 while (b) {
     if (MPIR_TestBufferPtr(b)) {
 	/* Error in pointer */
-	MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
+	return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
 		   "Error in BSEND data, corruption detected in GetBuffer" );
 	}
-    if (b->req != MPI_REQUEST_NULL) {
-	/* Test for completion; merge if necessary */
+    if (b->req != MPI_REQUEST_NULL && b->req->shandle.active) {
+	/* Test for completion; merge if necessary.  If the request
+	   is not active, we don't do the test. */
 	/* Should probably test ONLY if it was a blocking bsend; otherwise,
 	   require the user to do the wait */
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
@@ -219,16 +220,17 @@ while (b) {
 			"Found large block of size %d (need %d) at %x\n",
 			b->len, size, (MPI_Aint)b );
 #endif                 /* #DEBUG_BSEND_END# */
-	    new	      = (BSendData *)(((char *)b) + sizeof(BSendData) + size);
-	    new->next = b->next;
+	    new			       = (BSendData *)(((char *)b) + 
+						 sizeof(BSendData) + size);
+	    new->next		       = b->next;
 	    if (b->next) b->next->prev = new;
-	    new->prev = b;
-	    b->next   = new;
-	    new->len = b->len - size - sizeof(BSendData);
-	    new->req = MPI_REQUEST_NULL;
-	    new->HeadCookie = BSEND_HEAD_COOKIE;
-	    new->TailCookie = BSEND_TAIL_COOKIE;
-	    b->len   = size;
+	    new->prev		       = b;
+	    b->next		       = new;
+	    new->len		       = b->len - size - sizeof(BSendData);
+	    new->req		       = MPI_REQUEST_NULL;
+	    new->HeadCookie	       = BSEND_HEAD_COOKIE;
+	    new->TailCookie	       = BSEND_TAIL_COOKIE;
+	    b->len		       = size;
 	    }
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
 	if (DebugBsend)
@@ -267,8 +269,10 @@ BSendData *b;
 int       outcount, position = 0;
 
 b = (BSendData *)(rq->bsend);
-if (!b) 
+if (!b) {
     MPIR_ERROR( rq->comm, MPI_ERR_OTHER, "Error in BSEND data" );
+    return;
+    }
 if (MPIR_TestBufferPtr(b)) {
     /* Error in pointer */
     MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
@@ -313,6 +317,7 @@ if (DebugBsend)
     fprintf( stderr, 
 	    "Nulling Bsend request at %x\n", (MPI_Aint) b );
 #endif                 /* #DEBUG_BSEND_END# */
+if (!rq->bsend) return;
 b      = (BSendData *)(rq->bsend);
 if (MPIR_TestBufferPtr(b)) {
     /* Error in pointer */

@@ -1,5 +1,5 @@
 /*
- *  $Id: mpiimpl.h,v 1.15 1995/05/16 18:07:12 gropp Exp $
+ *  $Id: mpiimpl.h,v 1.17 1995/06/30 17:34:30 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -18,10 +18,15 @@
 #include "patchlevel.h"
 #include "dmpiatom.h"
 #include "mpi_bc.h"
+/* SGI change */
+#include "dmpi.h"
 #include "mpir.h"
 #include "mpi_ad.h"
+/* SGI change */
+#include "mpid.h"
 /* mpid_bind.h has the bindings for the ADI routines. */
-#include "mpid_bind.h"
+/* SGI removed this? */
+/* #include "mpid_bind.h" */
 
 /* This handles the case of sizeof(int) < sizeof(void*). */
 #ifdef INT_LT_POINTER
@@ -57,6 +62,27 @@ extern void MPIR_RmPointer();
 
 #endif
 
+#if 1
+
+/* Provide a variety of macroed versions of communicator enquiry
+ * functions for use inside the implementation. This should remove
+ * a fair amount of overhead, given that we had already checked the 
+ * communicator on entering the outermost MPI function.
+ */
+#define MPIR_Group_dup(s,r) ((*(r) = (s)), \
+			     (((s) == MPI_GROUP_NULL) || (s)->ref_count++), \
+			     MPI_SUCCESS)
+#define MPIR_Comm_size(comm, size) ((*(size) = (comm)->local_group->np),MPI_SUCCESS)
+#define MPIR_Comm_rank(comm, size) ((*(size) = (comm)->local_rank),MPI_SUCCESS)
+#else
+/* If you are really paranoid you may want the additional checking provided
+ * by the externally callable routines. If so change the #if above, and
+ * you'll get back to using the more expensive versions.
+ */
+#define MPIR_Comm_size MPI_Comm_size
+#define MPIR_Comm_rank MPI_Comm_rank
+#endif
+
 /* Here are bindings for some of the INTERNAL MPICH routines.  These are
    used to help us ensure that the code has no obvious bugs (i.e., mismatched
    args) 
@@ -82,7 +108,10 @@ int MPIR_Intercomm_high( MPI_Comm, int * );
 MPI_Group MPIR_CreateGroup( int );
 void MPIR_FreeGroup( MPI_Group );
 void MPIR_SetToIdentity( MPI_Group );
+#ifndef MPIR_Group_dup
+/* If it's not a macro, then it must be a function */
 int MPIR_Group_dup( MPI_Group, MPI_Group * );
+#endif
 int MPIR_Dump_group( MPI_Group );
 int MPIR_Dump_ranks( int, int * );
 int MPIR_Dump_ranges( int, int * );

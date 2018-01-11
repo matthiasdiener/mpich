@@ -1,4 +1,4 @@
-.TH MPI_Barrier 3 "12/15/1994" " " "MPI"
+.TH MPI_Barrier 3 "6/20/1995" " " "MPI"
 .SH NAME
 MPI_Barrier \- Blocks until all process have reached this routine.
 
@@ -15,9 +15,10 @@ the call returns at any process only after all group members
 have entered the call.
 
 .SH ALGORITHM
-A tree-like or combine algorithm is used to broadcast a message
-to all members of the communicator.  We can modifiy this to
-use "blocks" at a later time (see MPI_Bcast).
+If the underlying device cannot do better, a tree-like or combine
+algorithm is used to broadcast a message wto all members of the
+communicator.  We can modifiy this to use "blocks" at a later time
+(see MPI_Bcast).
 
 .SH SYNOPSIS
 .nf

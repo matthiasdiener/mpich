@@ -120,7 +120,14 @@
     defined(SGI)             || defined(CRAY)         || \
     defined(HP)              || defined(SYMMETRY_PTX)
 
+#ifndef SGI
+/* Recommended by SGI to NOT set */
 #define CAN_DO_SETSOCKOPT
+#endif
+
+#ifdef NEEDS_NETINET
+#include <netinet/in.h>
+#endif
 
 #endif
 
@@ -595,7 +602,9 @@ extern P4VOID exit();
 #include <sys/systeminfo.h>
 #endif
 
-#define MEMDEBUG
+/* Note that defining MEMDEBUG fails on HPs unless the ANSI option is 
+   selected in the compiler */
+/* #define MEMDEBUG */
 
 #if defined(MEMDEBUG)
 

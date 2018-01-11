@@ -33,7 +33,10 @@ cat <<.
 Usage: ${progname} -arch=ARCH_TYPE -comm=COMM_TYPE -device=DEVICE
 		   [-devicedir=DEVICE_DIR] [-transportdir=TRANSPORT_DIR]
                    [-prefix=INSTALL_DIR]  [-c++=C++_COMPILER]
+                   [-cc=C_COMPILER] [-fc=FORTRAN_COMPILER]
                    [-mpe] [-nof77] [-f90nag] [-opt=OPTFLAGS] [-make=MAKEPGM]
+                   [-cflags=CFLAGS] [-fflags=FFLAGS]
+                   [-optcc=C_OPTFLAGS] [-optf77=F77_OPTFLAGS]
                    [-no_mpegraphics] [-no_short_longs] [-memdebug]
                    [-x11_lib=X11LIB] [-x11_inc=X11INC]
                    [-mpedbg] 
@@ -53,6 +56,8 @@ where
    TRANSPORT_DIR= directory that MPI's ADI code needs (optional)
    C++_COMPILER = default is to use g++ (optional)
    OPTFLAGS     = optimization flags to give the compilers (e.g. -g)
+   CFLAGS       = flags to give C compiler
+   FFLAGS       = flags to give Fortran compiler
    MAKEPGM      = version of make to use
    LENGTH       = Length of message at which ADI switches from short
                   to long message protocol
@@ -80,7 +85,7 @@ If '-mpe' is included as an option, then the MPE 'helper' libraries will
 also be built.  If '-no_mpegraphics' is used, then the MPE routines that
 make use of X11 graphics will NOT be built; this is appropriate for
 systems that either do not have the X11 include files or that do not
-support X11 graphics (some message-passing systems can not interoperate
+support X11 graphics (some message-passing systems cannot interoperate
 with X11).
 
 The option '-mpedbg' enables the '-mpedbg' command line switch in MPI
@@ -100,7 +105,8 @@ NeXTs.
 
 The option '-opt' allows you to specify options for the compilers (both
 C and Fortran).  For example, '-opt=-O' chooses optimized code
-generation on many systems.
+generation on many systems.  '-optcc' and '-optf77' allow you to specify
+options for just the C or Fortran compilers
 
 The option '-make' may be used to select an alternate make program.  For
 example, on FreeBSD systems, -make=gnumake may be required because of
@@ -199,11 +205,13 @@ Known devices are chameleon,
         ch_eui    (native IBM EUI or MPL calls),
         ch_mpl    (synonym for ch_eui)
         ch_nc     (native nCUBE calls, requires -arch=ncube),
-        ch_cmmd   (native TMC CM-5 CMMD calls), and
+        ch_cmmd   (native TMC CM-5 CMMD calls), 
         ch_p4     (p4)
-        ch_meiko  (for Meiko CS2, using NX compatibility library), and
+        ch_meiko  (for Meiko CS2, using NX compatibility library),
+        ch_shmem  (for shared memory systems, such as SMPs), 
 	ch_spp    (for the Convex Exemplar)
-        meiko     (for Meiko CS2, using elan tport library).
+        meiko     (for Meiko CS2, using elan tport library), and
+	t3d	  (for the Cray T3D, using Cray shmem library).
 
 Known architectures include (case is important)
         sun4      (SUN OS 4.x)
@@ -217,8 +225,8 @@ Known architectures include (case is important)
         intelnx   (Intel i860 or Intel Delta)
         paragon   (Intel Paragon)
         meiko     (Meiko CS2)
-        CRAY      (CRAY XMP, YMP, C90)
-        cray_t3d  (CRAY T3D (untested))
+        CRAY      (CRAY XMP, YMP, C90, J90, T90)
+        cray_t3d  (CRAY T3D)
         freebsd   (PC clones running FreeBSD)
 	LINUX     (PC clones running LINUX)
         ksr       (Kendall Square KSR1 and KSR2)
@@ -226,8 +234,11 @@ Known architectures include (case is important)
         UXPM      (UXP/M. Untested.)
 
 Special notes:
-For -arch=IRIX -device=ch_p4, setting -comm=shared will enable the shared
-memory implementation of the p4 code in the low-level device.
+
+For SGI (-arch=IRIX) multiprocessors running the ch_p4 device, use -comm=ch_p4
+to disable the use of the shared-memory p4 communication device, and
+-comm=shared to enable the shared-memory p4 communication device.  The default
+is to enable the shared-memory communication device.
 
 Others may be recognized.
 .
@@ -237,7 +248,8 @@ ARCH=""
 CPP_DIR=""
 LIB_PATH=""
 FLIB_PATH=""
-OPTFLAGS="-g"
+OPTFLAGS=""
+OPTFLAGSF=""
 NOF77=0
 AR_LOCAL=l
 NOSHORTLONGS=0
@@ -249,6 +261,8 @@ F77IARGC="iargc()"
 F90UNIX="C"
 MPI_FOBJECTS="\$(MPI_FOBJECTS)"
 CFLAGS=""
+#
+# By not setting FFLAGS, we get the values from the environment
 MPE_GRAPHICS="-DMPE_GRAPHICS"
 MPE_DIR=""
 MAKE=make
@@ -264,7 +278,14 @@ CONFIGURE_ARGS_CLEAN=`echo $* | tr '"' ' '`
 if test -n "$CONFIGURE_ARGS" ; then 
     echo "Configuring with args $CONFIGURE_ARGS"
 fi
+# 
 MPIVERSION=`cat include/patchlevel.h | awk '{print $3}' | sed -e 's/\.[0-9]//' | tr '\012' '.'`
+# Also check for exp version by looking for "mpich-exp" in the directory
+# path
+mpidirname=`pwd | sed -e 's%^.*/mpich-exp$%FOUND%g'`
+if test "$mpidirname" = "FOUND" ; then
+    MPIVERSION="$MPIVERSION (experimental)"
+fi
 echo "Configuring MPICH Version $MPIVERSION"
 #
 # IS_HETERO is set if the device supports heterogeneous machines.
@@ -475,10 +496,30 @@ do
 	USERCC=1
 	;;
 
+     -fc=* | --fc=*)
+	FC=`echo $arg|sed 's/-*fc=//'`
+	USERF77=1
+	;;
+
      -opt=* | --opt=*)
        package="`echo $arg|sed 's/-*opt=//'`"
-       # Delete all the valid chars; see if any are left.
-       OPTFLAGS=$package ;;
+       OPTFLAGS="$package" ;;
+
+     -optcc=* | --optcc=*)
+       package="`echo $arg|sed 's/-*optcc=//'`"
+       OPTFLAGSC="$package" ;;
+
+     -optf77=* | --optf77=*)
+       package="`echo $arg|sed 's/-*optf7=//'`"
+       OPTFLAGSF="$package" ;;
+
+     -cflags=* | --cflags=*)
+       package="`echo $arg|sed 's/-*cflags=//'`"
+       CFLAGS="$package" ;;
+
+     -fflags=* | --fflags=*)
+       package="`echo $arg|sed 's/-*fflags=//'`"
+       FFLAGS="$package" ;;
 
      -mpe | --mpe)
        MPE_DIR="mpe"
@@ -542,6 +583,17 @@ done]
 
 dnl Finish the initalization
 AC_PREPARE()
+if test ! -f .mpich ; then
+  print_error " "
+  print_error You should register your copy of MPICH with us by sending mail
+  print_error to majordomo@mcs.anl.gov containing the message
+  print_error subscribe mpi-users
+  print_error This will allow us to notify you of new releases of MPICH.
+  print_error " "
+  print_error "You can also check the MPICH home page at "
+  print_error "http://www.mcs.anl.gov/mpi/mpich/index.html"
+  print_error " "
+fi
 #
 # There are definitions in aclocal.m4 that must be in the same directory
 # as this configure file for autoconf to properly build configure.
@@ -620,7 +672,7 @@ MPIR_HOME=$MPIR_TRIAL
 #
 if test ! -n "$ARCH" -a -x util/tarch ; then
     echo "Trying to guess architecture ..."
-    ARCH=`util/tarch`
+    ARCH=`./util/tarch`
     if test -z "$ARCH" ; then
        print_error "Error: Couldn't guess target architecture, you must"
        print_error "       set an architecture type with -arch=<value>"
@@ -697,6 +749,7 @@ MPE_LIBS=""
 # Fixup for make
 PAC_MAKE_IS_GNUMAKE
 PAC_MAKE_IS_BSD44
+PAC_MAKE_IS_OSF
 #
 # Check that a DEVICE was set
 if test -z "$DEVICE" ; then
@@ -713,6 +766,8 @@ fi
 # Set comm from device?
 if test -z "$COMM" ; then
     COMM=$DEVICE
+    # Remember that COMM set as default, not explicitly, 7/13/95, bri@sgi.com
+    default_comm=1
 fi
 # If some extensions are set, mark the defs
 if test -n "$MPE_MPI_EXT_C" ; then
@@ -733,6 +788,34 @@ if test -n "$arch_IRIX"; then
    #  For example
    #  IRIX_5_4400 (IRIX 5.x, using MIPS 4400)
    osversion=`uname -r | sed 's/\..*//'`
+
+   # Get SGI processor count by quick hack
+   # 7/13/95, bri@sgi.com
+   cpucount=`hinv | grep '[0-9]* [0-9]* MHZ IP[0-9]* Proc' | cut -f 1 -d' '`
+   if test "$cpucount" = "" ; then
+     cpucount=`hinv | grep 'Processor [0-9]*:' | wc -l | sed -e 's/ //g'`
+   fi
+   if test "$cpucount" = "" ; then
+     print_error "Could not determine cpucount."
+     print_error "Please send "
+     hinv
+     print_error "to mpi-bugs@mcs.anl.gov"
+     exit 1
+   fi
+   echo "IRIX processor count is $cpucount"
+
+   # Set -comm=shared if IRIX MP & COMM=ch_p4 & COMM not explicitly set
+   # 7/13/95 bri@sgi.com
+   if test $cpucount -gt 1 ; then
+     if test "$COMM" = "ch_p4" ; then
+       if test "$default_comm" = "1" ; then
+         echo "IRIX multiprocessor & p4, setting -comm=shared"
+         echo "  (configure with -comm=ch_p4 to disable shared memory)"
+         COMM="shared"
+       fi
+     fi
+   fi
+
    # The tail -1 is necessary for multiple processor SGI boxes
    # We might use this to detect SGI multiprocessors and recommend
    # -comm=shared
@@ -794,7 +877,7 @@ if test -n "$arch_IRIX"; then
  	print_error " " 
         print_error "to mpi-bugs@mcs.anl.gov" 
 	print_error "MPICH will continue and assume that the cputype is"
-        print_error "compatible with a MIPS 4400 processor"
+        print_error "compatible with a MIPS 4400 processor."
  	print_error " " 
         cputype=4400
 	;;
@@ -939,6 +1022,7 @@ if test -n "$device_ch_nc"; then
 fi
 
 if test -n "$device_ch_cmmd"; then
+  DEFAULT_MACHINE="ch_cmmd"
   if test -z "$USERCC" ; then
      CC=cc
   fi
@@ -963,6 +1047,7 @@ fi
 # Unless the user told us, we try apcc, cc, pgcc in that order
 #
 if test -n "$device_ch_meiko"; then
+  DEFAULT_MACHINE="meiko"
   if test -z "$USERCC" ; then
       # /opt/SUNWspro/bin/cc,/opt/apogee/bin/apcc,/opt/PGI/bin/cc,
       # /opt/gcc/bin/gcc
@@ -994,7 +1079,7 @@ if test -n "$device_ch_meiko"; then
       LIB_LIST="$LIB_LIST -L/opt/MEIKOcs2/lib -lmpsc -lew -lelan"
   else
       print_error "Could not find the library /opt/MEIKOcs2/lib/libmpsc.a"
-      print_error "Can not build MEIKO version"
+      print_error "Cannot build MEIKO version"
       exit 1
   fi
   #CFLAGS="$CFLAGS"
@@ -1010,6 +1095,7 @@ if test -n "$device_ch_meiko"; then
 fi
 
 if test -n "$device_meiko"; then
+  DEFAULT_MACHINE="meiko"
   if test -z "$USERCC" ; then
       if test -x "/opt/SUNWspro/bin/cc" ; then
           CC="cc -g -xcg92"
@@ -1035,7 +1121,7 @@ if test -n "$device_meiko"; then
       LIB_LIST="$LIB_LIST -L/opt/MEIKOcs2/lib -lew -lelan"
   else
       print_error "Could not find the library /opt/MEIKOcs2/lib/libew.a"
-      print_error "Can not build MEIKO version"
+      print_error "Cannot build MEIKO version"
       exit 1
   fi
   #CFLAGS="$CFLAGS"
@@ -1049,35 +1135,9 @@ if test -n "$device_meiko"; then
   AR="ar cr"
   #RANLIB=true
 fi
-
-# We require ch_euih as the COMM for the euih version
+#
 if test -n "$device_ch_eui"; then
-  if test -n "$comm_ch_euih" ; then 
-     # This is for the Yorktown EUI-H (sometimes known as MPLp).
-     # We have no access to the Kingston version (MPLp).
-     if test -z "$USERCC" ; then
-         CC="xlc -Deuih"
-     fi
-     if test -z "$USERF77" ; then
-         F77=xlf
-     fi
-     GCC=""
-     CLINKER=$CC
-     FLINKER=$F77
-     AR="ar cr$AR_LOCAL"
-     #RANLIB="ranlib"
-     if test -s /usr/lpp/euih/eui/eui.exp ; then
-         LIB_LIST="$LIB_LIST -bimport:/usr/lpp/euih/eui/eui.exp"
-     else
-         print_error "You do not have the file /usr/lpp/euih/eui/eui.exp that"
-         print_error "is required to use the -comm=ch_euih version of the"
-         print_error "ADI device.  This is for use with the tb0 version of the"
-         print_error "IBM-Yorktown EUI-H message-passing library."
-         exit 1
-     fi
-  else
      # This is intended for the Standard POE/MPL version
-     # May want to select mpCC instead
      if test -z "$USERCC" ; then
 	 CCval=
          AC_PROGRAMS_CHECK(CCval,mpCC mpcc "$CC")
@@ -1102,7 +1162,25 @@ if test -n "$device_ch_eui"; then
      FLINKER=$F77
      AR="ar cr$AR_LOCAL"
      #RANLIB="ranlib"
-  fi
+fi
+#
+if test -n "$device_ch_spp" ; then
+   DEFAULT_MACHINE="convex_spp"
+   if test -z "$USERCC" ; then
+	CC="/usr/convex/bin/cc"
+	CLINKER="/usr/convex/bin/cc"
+   fi
+   if test -z "$USERF77" ; then
+       	F77="/usr/convex/bin/fc"
+       	FLINKER="/usr/convex/bin/fc"
+   fi
+   if test -z "$OPTFLAGS" ; then
+	# If optimization is turned on, the wrong code is generated for
+	# some operations with unsigned chars.
+	OPTFLAGS=-O0
+   fi
+   #  
+   LIB_LIST="$LIB_LIST -lcnx_syscall /lib/libail.sl"
 fi
 #
 # Shared-memory (processes) device.  Only need to set mpirun default machine.
@@ -1112,6 +1190,7 @@ if test -n "$device_ch_shmem" ; then
    SAVEDEFS="$DEFS"
    DEFS=""
    AC_HAVE_FUNCS(mmap)
+   PAC_HAVE_VOLATILE
    if test -z "$arch_solaris" -a -z "$arch_IRIX" ; then
        AC_HAVE_FUNCS(gettimeofday)
    fi
@@ -1124,7 +1203,6 @@ if test -n "$device_ch_p4"; then
 #  INCLUDE_PATH="$INCLUDE_PATH -I$MPIR_HOME/mpid/ch_p4/p4-1.4/include"
 # This needs to get the other libraries as required for the specific
 # architecture.  
-#  LIB_LIST="$LIB_LIST -bimport:/usr/lpp/euih/eui/eui.exp"
 #
 # P4's arch specification is different from MPI's (sun4 vs. SUN, etc.)
 # Here we set P4_ARCH to the right value, which we deduce from $ARCH and $COMM
@@ -1132,8 +1210,6 @@ if test -n "$device_ch_p4"; then
 # P4_ARCH
   if test "$ARCH" = "rs6000"; then
     case $COMM in
-      euih)
-        P4_ARCH=SP1_EUIH ;;
       eui)
         P4_ARCH=SP1_EUI ;;
       p4)
@@ -1141,6 +1217,23 @@ if test -n "$device_ch_p4"; then
       *)
         P4_ARCH=RS6000 ;;
     esac
+
+########################################################################
+#
+# Document the IRIX p4 parameter selection a bit, 7/13/95, bri@sgi.com
+#
+#       OS      COMM    CPU             P4_ARCH         DEFAULT_MACHINE
+#       --      ----    ---             -------         ---------------
+#       6.x     shared  R8000           SGI_CH64        sgi_mp
+#       6.x     shared  *               SGI_CH
+#       6.x     *       R8000           SGI             sgi
+#       6.x     *       *               SGI
+#       5.x     shared  *               SGI_MP          sgi_mp
+#       5.x     *       *               SGI
+#       *       *       *               SGI
+#
+########################################################################
+
   elif test "$ARCH" = "IRIX" ; then
     P4_ARCH=SGI
     if test $osversion = 6 ; then
@@ -1151,10 +1244,10 @@ if test -n "$device_ch_p4"; then
 	        DEFAULT_MACHINE="sgi_mp"
 	    fi
 	else
-     	    P4_ARCH=SGI
+     	    P4_ARCH=SGI6
 	    if test $cputype = 8000 ; then
-	        P4_ARCH=SGI
-	        DEFAULT_MACHINE="sgi"
+	        P4_ARCH=SGI6
+	        #DEFAULT_MACHINE="sgi"
 	    fi
 	fi
     elif test $osversion = 5 ; then 
@@ -1271,6 +1364,8 @@ fi
 # check whether --arch=intelnx was given
 # Use this for both i860 and Delta
 if test -n "$arch_intelnx"; then
+  DEFAULT_MACHINE="i860"
+  # We need a way to identify the Delta
   if test -z "$USERCC" ; then
       CC=icc
   fi
@@ -1293,6 +1388,7 @@ fi
 
 # check whether --arch=paragon was given
 if test -n "$arch_paragon"; then
+  DEFAULT_MACHINE="paragon"
   if test -z "$USERCC" ; then
       CC=icc
   fi
@@ -1330,6 +1426,9 @@ if test -n "$arch_CRAY"; then
    fi
    # It might be better to use AR="bld qvz" than the regular ar clr
    DEVCFLAGS="$DEVCFLAGS -DMPID_FLOAT_CRAY"
+   # We might want to add
+   # -DMPIR_FORT_INT_T=long
+   # to the defines.
 fi
 
 #
@@ -1371,17 +1470,29 @@ if test -n "$arch_cray_t3d"; then
        print_error "switches are not supported."
    fi
    ASMFILES_O=shmem_stack.o
-   ASM="/mpp/bin/cam"
+   # Some users needed /mpp/bin/asm
+   if test -s /mpp/bin/cam ; then 
+        ASM="/mpp/bin/cam"
+   elif test -s /mpp/bin/asm ; then
+	ASM="/mpp/bin/asm"
+   else
+        print_error Cannot find assembler needed to build MPICH
+        print_error Neither /mpp/bin/cam nor /mpp/bin/asm is available
+        exit 1
+   fi
+
 fi
 
 # In default (pre-ANSI) mode, nested #if's cause most of the file to
 # be SILENTLY skipped.  
 if test -n "$arch_hpux" ; then
-    if test -n "$device_ch_shmem" ; then
+    if test -n "$device_ch_shmem" -o -n "$device_ch_spp" ; then
     ASMFILES_O="amem.o"
     fi
     # Reset the CFLAGS only if gcc not selected
-    if test "$CC" != "gcc" ; then 
+    if test "`which ${CC-cc}`" = "/usr/convex/bin/cc" ; then 
+        CFLAGS="$CFLAGS -or none -U_REENTRANT -D_POSIX_SOURCE -D_HPUX_SOURCE"
+    elif test "$CC" != "gcc" ; then 
         CFLAGS="$CFLAGS -Aa -D_POSIX_SOURCE -D_HPUX_SOURCE"
 	# Alternate...
 	# -Ae is extended -Aa (only on some PA RISC systems)
@@ -1407,7 +1518,16 @@ if test -n "$arch_hpux" ; then
 	fi
     fi
     # This may eliminate the need for +U77 ....
-    F77GETARG=["call igetarg(i,s,len(s))"]
+    if test "`which $F77`" != "/usr/convex/bin/fc" ; then 
+        F77GETARG=["call igetarg(i,s,len(s))"]
+	# mgates reports that the +T option makes MPICH work on some HPUX
+	# platforms.  The documentation for +T is truely scary; it seems
+	# to imply that without it, a Fortran program will NOT run correctly.
+	FFLAGS="$FFLAGS +T"
+    else
+        # The Convex compiler needs to have optimization messages suppressed
+        FFLAGS="$FFLAGS -or none"
+    fi
     # We can also remove +U77 and -lU77 from the p4 lib/defs.all file.
     # Note that +U77 is not available for all systems
 #    FFLAGS="$FFLAGS +U77"
@@ -1425,6 +1545,9 @@ if test -n "$arch_UXPM" ; then
     # This asserts that Fortran passes functions by passing the address of the
     # pointer to the function.
     AC_DEFINE(FORTRAN_SPECIAL_FUNCTION_PTR)
+    # Suggested values for these are
+    #CFLAGS=-O
+    #FFLAGS=-Oe,-U -Aabe
 fi
 
 if test -n "$arch_alpha" ; then
@@ -1461,10 +1584,9 @@ if test -n "$comm_p4"; then
       LIB_PATH="$LIB_PATH -L$P4_DIR/$P4_ARCH/lib";
       LIB_LIST="$LIB_LIST -lp4";
   else
-      # Check for the alternate rs6000 paths (i.e., SP2, SP1, SP1_EUIH, 
-      # SP1_EUI)
+      # Check for the alternate rs6000 paths (i.e., SP2, SP1SP1_EUI)
       if test $P4_ARCH = "RS6000" ; then
-	  for P4_ARCH in SP2 SP1 SP1_EUIH SP1_EUI ; do
+	  for P4_ARCH in SP2 SP1 SP1_EUI ; do
 	     if test -s $P4_DIR/$P4_ARCH/lib/libp4.a ; then
       		LIB_PATH="$LIB_PATH -L$P4_DIR/$P4_ARCH/lib";
                 LIB_LIST="$LIB_LIST -lp4";
@@ -1534,19 +1656,6 @@ if test -n "$comm_pvm"; then
       exit 1
   fi
 fi
-# check whether --comm=euih was given
-if test -n "$comm_euih" -a -z "$device_ch_eui" ; then
-  if test -s /usr/lpp/euih/eui/eui.exp ; then
-      LIB_LIST="$LIB_LIST -bimport:/usr/lpp/euih/eui/eui.exp";
-  else
-     print_error "You do not have the file /usr/lpp/euih/eui/eui.exp that"
-     print_error "is required to use the -comm=ch_euih version of the"
-     print_error "ADI device.  This is for use with the tb0 version of the"
-     print_error "IBM-Yorktown EUI-H message-passing library."
-     exit 1
-  fi
-fi
-
 #
 # Another gratuitous change for Solaris: Solaris 2.3 does not accept the "l"
 # option.  Sun must be eager to discourage people from porting to their
@@ -1661,7 +1770,9 @@ AC_PROGRAMS_CHECK(RSH_COMMAND,remsh rsh)
 # Check that the Fortran compiler is actually available:
 if test $NOF77 = 0 ; then
     HAS_F77=
-    PAC_PROGRAM_CHECK(HAS_F77,$F77,1,0)
+    if test -n "$F77" ; then
+        PAC_PROGRAM_CHECK(HAS_F77,$F77,1,0)
+    fi
 else
     HAS_F77=0
 fi
@@ -2052,6 +2163,8 @@ AC_SUBST(MPIR_HOME)dnl
 AC_SUBST(MPI_FOBJECTS)dnl
 AC_SUBST(MEMDEBUG)dnl
 AC_SUBST(OPTFLAGS)dnl
+AC_SUBST(OPTFLAGSC)dnl
+AC_SUBST(OPTFLAGSF)dnl
 AC_SUBST(P4_ARCH)dnl
 AC_SUBST(P4_DIR)dnl
 AC_SUBST(RHS_COMMAND)dnl
@@ -2071,7 +2184,7 @@ AC_SUBST(F77IARGC)dnl
 AC_SUBST(F77GETARG)dnl
 AC_SUBST(F90UNIX)dnl
 # End configuration file
-AC_OUTPUT(Makefile examples/Makefile examples/test/Makefile examples/test/pt2pt/Makefile examples/test/pt2pt/runtests examples/test/coll/Makefile examples/test/coll/runtests examples/test/topol/Makefile examples/test/topol/runtests examples/test/context/Makefile examples/test/context/runtests examples/test/env/Makefile examples/test/lederman/Makefile examples/contrib/usingmpi/Makefile examples/contrib/life/Makefile examples/contrib/nuclei/Makefile examples/contrib/C++/Makefile examples/contrib/mandel-pvm/Makefile examples/perftest/Makefile src/pt2pt/Makefile src/coll/Makefile src/context/Makefile src/dmpi/Makefile src/env/Makefile src/topol/Makefile src/profile/Makefile src/util/Makefile src/c++/Makefile mpe/Makefile mpe/Makefile_nompi examples/contrib/Makefile examples/basic/Makefile profiling/wrappergen/Makefile profiling/examples/Makefile profiling/nupshot/Makefile profiling/lib/Makefile mpe/contrib/mandel/Makefile mpe/contrib/mastermind/Makefile mpe/contrib/life/Makefile mpe/test/Makefile src/env/farg.f)
+AC_OUTPUT(Makefile examples/Makefile examples/test/Makefile examples/test/pt2pt/Makefile examples/test/pt2pt/runtests examples/test/coll/Makefile examples/test/coll/runtests examples/test/topol/Makefile examples/test/topol/runtests examples/test/context/Makefile examples/test/context/runtests examples/test/env/Makefile examples/test/lederman/Makefile examples/contrib/usingmpi/Makefile examples/contrib/life/Makefile examples/contrib/nuclei/Makefile examples/contrib/C++/Makefile examples/contrib/mandel-pvm/Makefile examples/perftest/Makefile src/pt2pt/Makefile src/coll/Makefile src/context/Makefile src/dmpi/Makefile src/env/Makefile src/topol/Makefile src/profile/Makefile src/util/Makefile src/c++/Makefile mpe/Makefile mpe/Makefile_nompi examples/contrib/Makefile examples/basic/Makefile profiling/wrappergen/Makefile profiling/examples/Makefile profiling/nupshot/Makefile profiling/lib/Makefile mpe/contrib/mandel/Makefile mpe/contrib/mastermind/Makefile mpe/contrib/life/Makefile mpe/test/Makefile src/env/farg.f util/mpicc util/mpif77 )
 #
 # Configure JUST the correct device file
 CONFIG_FILES=mpid/$DEVICE/Makefile
@@ -2079,7 +2192,7 @@ if test -n "$device_ch_shmem" ; then
     CONFIG_FILES="$CONFIG_FILES mpid/ch_shmem/p2ptest/Makefile"
 fi
 if test -n "$device_ch_tcp" ; then
-    (cd mpid/ch_tcp/p3; configure )
+    (cd mpid/ch_tcp/p3; /bin/rm -f config.log config.cache ; configure )
 fi
 export CONFIG_FILES
 ./config.status
@@ -2091,6 +2204,13 @@ CONFIG_FILES=
 for dir in pt2pt coll context topol ; do 
  (cd examples/test/$dir ; /bin/rm -f .run1 ; sed -e '1d' runtests > .run1 ; \
  /bin/rm -f runtests ; /bin/mv .run1 runtests ; chmod a+x runtests )
+done
+#
+# mpicc and mpif77 scripts
+for src in mpicc mpif77 ; do 
+  (cd util ; /bin/rm -f .run1 ;  sed -e '1d' $src > .run1 ; \
+  /bin/rm -f $src ; /bin/mv .run1 $src ; chmod a+x $src ; \
+  cp $src ../lib/$ARCH/$COMM ) 
 done
 #
 # Ditto for the src/env/farg.f file
@@ -2116,7 +2236,7 @@ fi
 #
 # If the bugs directory is available, generate its makefiles
 if test -d bugs ; then
-    CONFIG_FILES="bugs/Makefile bugs/irecv/Makefile bugs/fort/Makefile bugs/sockperf/Makefile bugs/srleak/Makefile bugs/ssend/Makefile bugs/testsendrecv/Makefile"
+    CONFIG_FILES="bugs/Makefile bugs/irecv/Makefile bugs/fort/Makefile bugs/sockperf/Makefile bugs/srleak/Makefile bugs/ssend/Makefile bugs/testsendrecv/Makefile bugs/wait/Makefile"
     export CONFIG_FILES
     ./config.status
 fi
@@ -2124,6 +2244,13 @@ fi
 # If the xmpi directory is available, generate its files
 if test -d xmpi ; then 
     CONFIG_FILES="xmpi/buildinfo.tcl"
+    export CONFIG_FILES
+    ./config.status
+fi
+#
+# If the mpich-ibm testsuite is available, generate its files
+if test -d examples/test/mpitc ; then
+    CONFIG_FILES="examples/test/mpitc examples/test/mpitc/ccl examples/test/mpitc/comm examples/test/mpitc/dtyp examples/test/mpitc/env examples/test/mpitc/group examples/test/mpitc/pt2pt examples/test/mpitc/topo"
     export CONFIG_FILES
     ./config.status
 fi

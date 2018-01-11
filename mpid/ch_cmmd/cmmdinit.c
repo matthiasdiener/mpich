@@ -9,14 +9,14 @@ int __NUMNODES, __MYPROCID  ;
 
 
 /*
- *  $Id: chinit.c,v 1.32 1995/05/09 21:09:17 gropp Exp $
+ *  $Id: chinit.c,v 1.34 1995/06/30 17:35:45 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chinit.c,v 1.32 1995/05/09 21:09:17 gropp Exp $";
+static char vcid[] = "$Id: chinit.c,v 1.34 1995/06/30 17:35:45 gropp Exp gropp $";
 #endif
 
 /* 
@@ -128,13 +128,13 @@ int MPID_n_pending     = 0;         /* Number of uncompleted split requests */
 /*****************************************************************************
   Here begin the interface routines themselves
  *****************************************************************************/
-void MPID_CMMD_Myrank( rank )
+void MPID_CH_Myrank( rank )
 int *rank;
 {
 *rank = MPID_MyWorldRank;
 }
 
-void MPID_CMMD_Mysize( size )
+void MPID_CH_Mysize( size )
 int *size;
 {
 *size = MPID_WorldSize;
@@ -148,7 +148,7 @@ int *size;
 
     This version currently returns null, as all data is static.
  */
-void *MPID_CMMD_Init( argc, argv )
+void *MPID_CH_Init( argc, argv )
 int  *argc;
 char ***argv;
 {
@@ -178,8 +178,8 @@ DEBUG(fprintf(MPID_DEBUG_FILE,"[%d] Finished init\n", MPID_MyWorldRank );)
 
 
 /* Initialize any data structures in the send and receive handlers */
-MPID_CMMD_Init_recv_code();
-MPID_CMMD_Init_send_code();
+MPID_CH_Init_recv_code();
+MPID_CH_Init_send_code();
 
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
 DEBUG(fprintf(MPID_DEBUG_FILE,"[%d] leaving chinit\n", MPID_MyWorldRank );)
@@ -188,16 +188,16 @@ DEBUG(fprintf(MPID_DEBUG_FILE,"[%d] leaving chinit\n", MPID_MyWorldRank );)
 return (void *)0;
 }
 
-void MPID_CMMD_Abort( code )
+void MPID_CH_Abort( code )
 int code;
 {
-fprintf( stderr, "Aborting program!\n" );
+fprintf( stderr, "[%d] Aborting program!\n", MPID_MyWorldRank );
 fflush( stderr );
 fflush( stdout );
 CMMD_error("Exiting...\n");exit(code );
 }
 
-void MPID_CMMD_End()
+void MPID_CH_End()
 {
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
 if (MPID_DebugFlag) {
@@ -206,7 +206,7 @@ if (MPID_DebugFlag) {
     }
 #endif                  /* #DEBUG_END# */
 /* Finish off any pending transactions */
-MPID_CMMD_Complete_pending();
+MPID_CH_Complete_pending();
 
 if (MPID_GetMsgDebugFlag()) {
     MPID_PrintMsgDebug();
@@ -222,41 +222,41 @@ if (DebugSpace)
 ;
 }
 
-void MPID_CMMD_Node_name( name, len )
+void MPID_CH_Node_name( name, len )
 char *name;
 int  len;
 {
 sprintf(name,"%d",__MYPROCID);
 }
 
-void MPID_CMMD_Version_name( name )
+void MPID_CH_Version_name( name )
 char *name;
 {
 sprintf( name, "ADI version %4.2f - transport %s", MPIDPATCHLEVEL, 
 	 MPIDTRANSPORT );
 }
 
-#ifndef MPID_CMMD_Wtime
-#if defined(USE_GETTIMEOFDAY)
+#ifndef MPID_CH_Wtime
+#if defined(HAVE_GETTIMEOFDAY)
 #include <sys/types.h>
 #include <sys/time.h>
 #endif
 /* I don't know what the correct includes are for the other versions... */
-double MPID_CMMD_Wtime()
+double MPID_CH_Wtime()
 {
-#ifdef USE_GETTIMEOFDAY
+#ifdef HAVE_GETTIMEOFDAY
     struct timeval tp;
     struct timezone tzp;
 
     gettimeofday(&tp,&tzp);
     return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
-#elif USE_BSDGETTIMEOFDAY
+#elif defined(USE_BSDGETTIMEOFDAY)
     struct timeval tp;
     struct timezone tzp;
 
     BSDgettimeofday(&tp,&tzp);
     return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
-#elif USE_WIERDGETTIMEOFDAY
+#elif defined(USE_WIERDGETTIMEOFDAY)
     /* This is for Solaris, where they decided to change the CALLING
        SEQUENCE OF gettimeofday! */
     struct timeval tp;
@@ -275,7 +275,7 @@ double MPID_CMMD_Wtime()
    could be returned.
    It makes several separate stabs at computing the tickvalue.
 */
-double MPID_CMMD_Wtick()
+double MPID_CH_Wtick()
 {
 static double tickval = -1.0;
 double t1, t2;
@@ -286,8 +286,8 @@ if (tickval < 0.0) {
     tickval = 1.0e6;
     for (icnt=0; icnt<10; icnt++) {
 	cnt = 1000;
-	t1  = MPID_CMMD_Wtime();
-	while (cnt-- && (t2 = MPID_CMMD_Wtime()) <= t1) ;
+	t1  = MPID_CH_Wtime();
+	while (cnt-- && (t2 = MPID_CH_Wtime()) <= t1) ;
 	if (cnt && t2 - t1 < tickval)
 	    tickval = t2 - t1;
 	}
@@ -295,7 +295,7 @@ if (tickval < 0.0) {
 return tickval;
 }
 
-void MPID_CMMD_Error_handler( r )
+void MPID_CH_Error_handler( r )
 void (*r)();
 {
 if (r)
@@ -309,11 +309,11 @@ int  code;
 char *str;
 {
 if (str) 
-    fprintf( stderr, "%s\n", str );
-MPID_CMMD_Abort( code );
+    fprintf( stderr, "[%d] %s\n", MPID_MyWorldRank, str );
+MPID_CH_Abort( code );
 }
 
-int MPID_CMMD_Dest_byte_order( dest )
+int MPID_CH_Dest_byte_order( dest )
 int dest;
 {
 if (MPID_IS_HETERO)
@@ -329,7 +329,7 @@ else
 
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
 
-MPID_CMMD_Print_pkt_data( msg, address, len )
+MPID_CH_Print_pkt_data( msg, address, len )
 char *msg;
 char *address;
 int  len;

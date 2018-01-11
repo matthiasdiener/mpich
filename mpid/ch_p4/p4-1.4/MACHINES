@@ -13,6 +13,7 @@
     IBM3090
     TITAN
     SGI
+    SGI6
     SGI_MP
     SGI_CH
     SGI_CH64
@@ -37,3 +38,4 @@
     CM5
     NCUBE
     MEIKO_CS2
+    UXPM

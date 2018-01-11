@@ -73,6 +73,8 @@ default_all: $(MPI_OBJECTS)
 	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $?
 profile_all: $(MPI_OBJECTS)
 	$(AR) ../../lib/$(ARCH)/$(COMM)/libpmpi.a $?
+wrapperlib: $(MPI_WOBJECTS)
+	$(AR) ../../lib/$(ARCH)/$(COMM)/libfmpi.a $?	
 	
 # Move longname-wrappers to shorter names
 wrappers:

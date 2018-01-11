@@ -42,8 +42,10 @@ default: $(EXECS)
 
 fortran_tests: attrtest
 
-testing: default
-	runtests 
+#
+# Note that runtests builds the executables as required
+testing: 
+	-./runtests $(TESTARGS)
 
 linktest: default clean
 
@@ -60,6 +62,7 @@ ictest: ictest.o $(MPILIB)
 
 mpif.h: $(MPIR_HOME)/include/mpif.h
 	if test \! -f mpif.h ; then \
+	    /bin/rm -f mpif.h ; \
 	    ln -s $(MPIR_HOME)/include/mpif.h . ; \
 	fi
 

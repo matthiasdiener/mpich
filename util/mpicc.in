@@ -1,0 +1,110 @@
+#! /bin/sh
+DoLink=0
+DoCompile=0
+MPILOG=
+Show=eval
+allargs=
+compileargs=
+linkargs=
+gettinglinkarg=0
+for arg in "$@" ; do
+#    echo procssing arg $arg
+    # Special processing for -o name
+    if [ $gettinglinkarg = 1 ] ; then
+	linkargs="$linkargs $arg"
+	gettinglinkarg=0
+	continue
+    fi
+    case "$arg" in 
+        -o)
+	# Need to link
+	allargs="$allargs $arg"
+	linkargs="$linkargs $arg"
+	compileargs="$compileargs -c"
+	# Still need to add the target of the -o
+	gettinglinkarg=1
+	DoLink=1
+	;;
+	-mpilog)
+	MPILOG=-llmpi
+	;;
+	-mpitrace)
+	MPILOG=-ltmpi
+	;;
+	-mpianim)
+	MPILOG="-lampi @MPE_LIBS@ @X_LIB@"
+	;;
+	-echo)
+	set -x
+	;;
+	-show)
+	Show=echo
+	;;
+	-help)
+	echo "This is a program to compile or link MPI programs"
+	echo "In addition, the following special options are supported"
+	echo "    -mpilog    - Build version that generate MPE log files"
+	echo "    -mpitrace  - Build version that generates traces"
+	echo "    -mpianim   - Build version that generates real-time"
+	echo "                 animation"
+	echo "    -show      - Show the commands that would be used without"
+	echo "                 runnning them"
+	echo "    -help      - Give this help"
+	echo "    -echo      - Show exactly what this program is doing."
+	echo "                 This option should normally not be used."
+	echo "This should be used just like the usual C compiler"
+	echo "For example,"
+	echo "   $0 -c foo.c "
+	echo "and"
+	echo "   $0 -o foo foo.o"
+	echo "Combining compilation and linking in a single command"
+	echo "   $0 -o foo foo.c"
+	echo "may not work on some systems, and is not recommended."
+	exit 1
+	;;
+        *\"*) 
+	allargs="$allargs `echo $arg | sed 's/\"/\\\"/g'`"
+	compileargs="$compileargs `echo $arg | sed 's/\"/\\\"/g'`"
+	linkargs="$linkargs `echo $arg | sed 's/\"/\\\"/g'`"
+	;;
+        *) allargs="$allargs $arg"
+	if [ -s "$arg" ] ; then
+	    ext=`expr "$arg" : '.*\(\..*\)`
+	    if [ "$ext" = ".c" ] ; then
+	        DoCompile=1
+	        compileargs="$compileargs $arg"
+	        fname=`basename $arg .c`
+	        linkargs="$linkargs $fname.o"
+	    elif [ "$ext" = ".o" ] ; then
+	        DoLink=1
+	        linkargs="$linkargs $arg"
+	    else
+	        compileargs="$compileargs $arg"
+	        linkargs="$linkargs $arg"
+	    fi
+	else
+            compileargs="$compileargs $arg"
+	    linkargs="$linkargs $arg"
+	fi
+	;;
+    esac
+done
+#
+status=0
+if [ $DoCompile = 1 ] ; then 
+    $Show @CC@ @CFLAGS@ @OPTFLAGS@ -DMPI_@ARCH@ -I@MPIR_HOME@/include \
+	$compileargs
+    status=$?
+    if [ $status != 0 ] ; then 
+	exit $status
+    fi
+fi
+if [ $DoLink = 1 ] ; then
+    if [ -n "$MPILOG" ] ; then
+        $Show @CLINKER@ $linkargs @LIB_PATH@ $MPILOG -lpmpi @LIB_LIST@
+    else
+        $Show @CLINKER@ $linkargs @LIB_PATH@ @LIB_LIST@
+    fi
+    status=$?
+fi
+exit $status

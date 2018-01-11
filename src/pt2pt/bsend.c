@@ -1,5 +1,5 @@
 /*
- *  $Id: bsend.c,v 1.9 1995/05/12 18:01:44 gropp Exp $
+ *  $Id: bsend.c,v 1.10 1995/07/25 02:54:59 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: bsend.c,v 1.9 1995/05/12 18:01:44 gropp Exp $";
+static char vcid[] = "$Id: bsend.c,v 1.10 1995/07/25 02:54:59 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -52,15 +52,25 @@ MPI_Comm         comm;
 
     if (dest != MPI_PROC_NULL)
     {
+        /* We should let Ibsend find the errors, but
+	   we will soon add a special case for faster Bsend and we'll
+	   need these tests then 
+	 */
         if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_COUNT(comm,count) ||
 	    MPIR_TEST_DATATYPE(comm,datatype) || 
 	    MPIR_TEST_SEND_RANK(comm,dest) || MPIR_TEST_SEND_TAG(comm,tag))
-	    MPIR_ERROR( comm, mpi_errno, "Error in MPI_Bsend" );
+	    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_Bsend" );
 
-	MPI_Ibsend( buf, count, datatype, dest, tag, comm, &handle );
+	if (mpi_errno = 
+	    MPI_Ibsend( buf, count, datatype, dest, tag, comm, &handle )) 
+	    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_Bsend" );
+	    
 	/* This Wait is WRONG, but there isn't a good place to put it.
 	   One approach would be for other waits to test the buffered
 	   send list if it is non-empty ... 
+
+	   (or have other "check_device"s do this.  We need a routine 
+	   in util/bsendutil.c for this).
          */
 	mpi_errno = MPI_Wait( &handle, &status );
     }

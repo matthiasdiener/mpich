@@ -77,10 +77,10 @@
  */
 #ifdef MPID_USE_SEND_BLOCK
 #define MPID_SENDCONTROL(mpid_send_handle,pkt,len,dest) \
-if (mpid_send_handle->is_non_blocking) \
-    MPID_SendControl( pkt, len, dest );\
-else \
-    MPID_SendControlBlock( pkt, len, dest );
+if (mpid_send_handle->is_non_blocking) {\
+    MPID_SendControl( pkt, len, dest );}\
+else {\
+    MPID_SendControlBlock( pkt, len, dest );}
 #else
 #define MPID_SENDCONTROL(mpid_send_handle,pkt,len,dest) \
 MPID_SendControl( pkt, len, dest )
@@ -105,6 +105,8 @@ MPID_SendControl( pkt, len, dest )
      MPID_TRACE_CODE("EWRecvFrom",channel);}
 #define MPID_RecvStatus( id ) \
     msgdone((id) )
+#define MPID_CancelRecvChannel( id ) \
+    msgcancel((id) )
 
 /* Note that these use the tag based on the SOURCE, not the channel
    See MPID_SendChannel */
@@ -119,6 +121,31 @@ MPID_SendControl( pkt, len, dest )
 /* Test the channel operation */
 #define MPID_TSendChannel( id ) \
     msgdone((id) )
+#define MPID_CancelSendChannel( id ) \
+    msgcancel((id) )
+
+/* If nonblocking sends are defined, the MPID_SendData command uses them;
+   otherwise, the blocking version is used.
+   These rely on dmpi_send_handle and mpid_send_handle 
+ */
+#ifndef PI_NO_NSEND
+#define MPID_SendData( buf, size, channel, mpid_send_handle ) \
+if (mpid_send_handle->is_non_blocking) {\
+    MPID_ISendChannel( address, len, dest, mpid_send_handle->sid );\
+    dmpi_send_handle->completer=MPID_CMPL_SEND_NB;\
+    }\
+else \
+    {\
+    mpid_send_handle->sid = 0;\
+    MPID_SendChannel( address, len, dest );\
+    DMPI_mark_send_completed( dmpi_send_handle );\
+    }
+#else
+#define MPID_SendData( buf, size, channel, mpid_send_handle ) \
+    mpid_send_handle->sid = 0;\
+    MPID_SendChannel( address, len, dest );\
+    DMPI_mark_send_completed( dmpi_send_handle );
+#endif
 
 /*
    We also need an abstraction for out-of-band operations.  These could

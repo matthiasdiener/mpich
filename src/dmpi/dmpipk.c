@@ -1,12 +1,12 @@
 /*
- *  $Id: dmpipk.c,v 1.17 1995/05/11 17:45:39 gropp Exp $
+ *  $Id: dmpipk.c,v 1.18 1995/07/31 14:37:46 gropp Exp $
  *
  *  (C) 1994 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: dmpipk.c,v 1.17 1995/05/11 17:45:39 gropp Exp $";
+static char vcid[] = "$Id: dmpipk.c,v 1.18 1995/07/31 14:37:46 gropp Exp $";
 #endif
 
 #include "mpiimpl.h"
@@ -46,7 +46,7 @@ c = count1;
    element.
  */
 if (blen == 4 && ((MPI_Aint)buf & 0x3) == 0 && (stride & 0x3) == 0 && 
-    sizeof(int) == 4) {
+    sizeof(int) == 4 && ((MPI_Aint)outbuf & 0x3) == 0) {
     register int *outb = (int *)outbuf, *inb = (int *)buf;
     stride = stride >> 2;
     for (j=0; j<count; j++) {
@@ -60,7 +60,7 @@ if (blen == 4 && ((MPI_Aint)buf & 0x3) == 0 && (stride & 0x3) == 0 &&
 	}
     }
 else if (blen == 8 && ((MPI_Aint)buf & 0x7) == 0 && (stride & 0x7) == 0 && 
-	 sizeof(double) == 8) {
+	 sizeof(double) == 8 && ((MPI_Aint)outbuf & 0x7) == 0) {
     register double *outb = (double *)outbuf, *inb = (double *)buf;
     stride = stride >> 3;
     for (j=0; j<count; j++) {
@@ -105,7 +105,7 @@ int          j;
    last element */
 c = count1;
 if (blen == 4 && ((MPI_Aint)inbuf & 0x3) == 0 && (stride & 0x3) == 0 && 
-    sizeof(int) == 4) {
+    sizeof(int) == 4 && ((MPI_Aint)outbuf & 0x3) == 0 ) {
     register int *outb = (int *)outbuf, *inb = (int *)inbuf;
     stride = stride >> 2;
     for (j=0; j<count; j++) {
@@ -119,7 +119,7 @@ if (blen == 4 && ((MPI_Aint)inbuf & 0x3) == 0 && (stride & 0x3) == 0 &&
 	}
     }
 else if (blen == 8 && ((MPI_Aint)inbuf & 0x7) == 0 && (stride & 0x7) == 0 && 
-	 sizeof(double) == 8) {
+	 sizeof(double) == 8 && ((MPI_Aint)outbuf & 0x7) == 0) {
     register double *outb = (double *)outbuf, *inb = (double *)inbuf;
     stride = stride >> 3;
     for (j=0; j<count; j++) {

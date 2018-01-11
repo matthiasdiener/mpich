@@ -1,5 +1,8 @@
 #ifndef __MPI_BINDINGS
 #define __MPI_BINDINGS
+
+#include "mpi.h"
+
 #if defined(__STDC__) || defined(__cplusplus)
 int MPI_Send(void* buf, int count, MPI_Datatype datatype, int dest, int tag, 
 	     MPI_Comm comm);
@@ -78,6 +81,8 @@ int MPI_Type_struct(int count, int *array_of_blocklengths,
 		    MPI_Datatype *array_of_types, MPI_Datatype *newtype);
 int MPI_Address(void* location, MPI_Aint *address);
 int MPI_Type_extent(MPI_Datatype datatype, MPI_Aint *extent);
+/* See the 1.1 version of the Standard; I think that the standard is in 
+   error, and I've left the MPI_Aint in here. */
 int MPI_Type_size(MPI_Datatype datatype, MPI_Aint *size);
 /* int MPI_Type_count(MPI_Datatype datatype, int *count); */
 int MPI_Type_lb(MPI_Datatype datatype, MPI_Aint* displacement);

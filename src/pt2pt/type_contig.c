@@ -1,12 +1,12 @@
 /*
- *  $Id: type_contig.c,v 1.16 1995/06/01 20:50:39 gropp Exp $
+ *  $Id: type_contig.c,v 1.17 1995/07/25 02:59:43 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_contig.c,v 1.16 1995/06/01 20:50:39 gropp Exp $";
+static char vcid[] = "$Id: type_contig.c,v 1.17 1995/07/25 02:59:43 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -42,9 +42,33 @@ MPI_Datatype *newtype;
 	
   /* Are we making a null datatype? */
   if (count == 0) {
-      (*newtype) = MPI_DATATYPE_NULL;
+      /* (*newtype) = MPI_DATATYPE_NULL; */
+      dteptr = (*newtype) = (MPI_Datatype) MPIR_SBalloc( MPIR_dtes );
+      MPIR_SET_COOKIE(dteptr,MPIR_DATATYPE_COOKIE)
+      dteptr->dte_type    = MPIR_CONTIG;
+      dteptr->committed   = MPIR_NO;
+      dteptr->basic       = MPIR_FALSE;
+      dteptr->permanent   = MPIR_FALSE;
+      dteptr->ref_count   = 1;
+      dteptr->align       = 4;
+      dteptr->stride      = 1;
+      dteptr->blocklen    = 1;
+      dteptr->is_contig   = 1;
+      dteptr->elements    = 0;
+      dteptr->has_ub      = 0;
+      dteptr->has_lb      = 0;
+      dteptr->count       = 0;
+      dteptr->lb          = 0;
+      dteptr->has_lb      = 0;
+      dteptr->extent      = 0;
+      dteptr->ub          = 0;
+      dteptr->has_ub      = 0;
+      dteptr->size        = 0;
+      dteptr->real_lb     = 0;
+      dteptr->real_ub     = 0;
+      dteptr->old_type    = (MPI_Datatype)MPIR_Type_dup (old_type);
       return (mpi_errno);
-  }
+      }
 
   /* Create and fill in the datatype */
   dteptr = (*newtype) = (MPI_Datatype) MPIR_SBalloc( MPIR_dtes );
@@ -87,6 +111,10 @@ MPI_Datatype *newtype;
   else 
       dteptr->ub          = dteptr->lb + dteptr->extent;
   dteptr->size        = (dteptr->count * dteptr->old_type->size);
-  
+  dteptr->real_lb     = dteptr->old_type->real_lb;
+  /* The value for real_ub here is an overestimate, but getting the
+     "best" value is a bit complicated */
+  dteptr->real_ub     = dteptr->count * 
+      (dteptr->old_type->real_ub - dteptr->old_type->real_lb);
   return (mpi_errno);
 }

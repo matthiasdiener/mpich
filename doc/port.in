@@ -72,7 +72,7 @@ done
 # systems (e.g., SGI,AIX), echo "\\\t" in the sh shell will generate the 
 # characters \t.  On others (e.g., Sun4), echo "\\\t" generates \\t and
 # echo "\t" and "\\t" both generate \t.  Putting the "\" into a variable
-# doesn't help either...
+# doesn't help either...  Neither does using '...' instead of "...".
 ############################################################################
 ############################################################################
 /bin/rm -f $filename
@@ -208,13 +208,19 @@ Users compiling with C must add the include path {\tt @USER_INCLUDE_PATH@}.
 .
 fi
 cat >> $filename <<.
-C programs are linked by using the arguments {\tt @LIB_PATH@ @LIB_LIST@} with 
-the C linker {\tt @CLINKER@}.
+C programs are linked by using the arguments
+\begin{verbatim}
+@LIB_PATH@ @LIB_LIST@
+\end{verbatim}
+with the C linker {\tt @CLINKER@}.
 .
 if test "@HAS_FORTRAN@" = 1 ; then
     cat >> $filename <<.
 Fortran programs are linked by using the arguments 
-{\tt @FLIB_PATH@ @LIB_LIST@} with the Fortran linker {\tt @FLINKER@}.   
+\begin{verbatim}
+@FLIB_PATH@ @LIB_LIST@
+\end{verbatim} 
+with the Fortran linker {\tt @FLINKER@}.   
 .
 fi
 if test -n "$configlog" ; then
@@ -222,7 +228,7 @@ if test -n "$configlog" ; then
 The output of configure (only the exceptional lines are shown) was 
 \begin{example}
 .
-    egrep -v '^checking ' $configlog | egrep -v '^creating' >> $filename
+    egrep -v '^[Cc]hecking ' $configlog | egrep -v '^[Cc]reating' >> $filename
     cat >> $filename <<.
 \end{example}
 .
@@ -408,10 +414,16 @@ linked with {\tt @MPE_LIBS@} in addition to the MPI libraries.
 	    echo " " >> $filename
 	    echo "The MPE libraries" >> $filename
 	    if test -n "@X_INC@" ; then 
-	        echo "used {\\tt @X_INC@} for the X11 includes" >> $filename
+		cat >> $filename <<.
+used {\tt @X_INC@} for the X11 includes
+.
 	    fi
             if test -n "@X_LIB@" ; then
-	        echo "and {\\tt @X_LIB@} for the X11 libraries." >> $filename
+		cat >> $filename <<.
+and {\tt @X_LIB@} for the X11 libraries.
+.
+	    else 
+		echo "."
 	    fi
 	fi        
     else

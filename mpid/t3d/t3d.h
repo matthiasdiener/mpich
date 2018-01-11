@@ -1,5 +1,5 @@
 /*
- *  $Id: t3d.h,v 1.3 1995/06/07 06:48:49 bright Exp $
+ *  $Id: t3d.h,v 1.5 1995/07/24 05:12:10 bright Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -58,10 +58,30 @@ typedef enum { MPID_NOTBLOCKING = 0, MPID_BLOCKING } MPID_BLOCKING_TYPE;
 #define MPID_THREAD_LOCK_INIT(ctx,comm)
 #define MPID_THREAD_LOCK_FINISH(ctx,comm)
 
+/* These four are for locking individual data-structures.  The data-structure
+   should contain something like
+   typedef struct {
+      MPID_THREAD_DS_LOCK_DECLARE
+      other stuff
+      } foo;
+   and then use
+   foo *p;
+   MPID_THREAD_DS_LOCK(p)
+   MPID_THREAD_DS_UNLOCK(p)
+ */
+#define MPID_THREAD_DS_LOCK_DECLARE
+#define MPID_THREAD_DS_LOCK_INIT(p)
+#define MPID_THREAD_DS_LOCK(p)
+#define MPID_THREAD_DS_UNLOCK(p)
+
 #define MPID_Clr_completed(ctx, request)  ((request)->chandle.completer = 1) 
 #define MPID_Ctx( request )                (request)->chandle.comm->ADIctx
 #define MPID_Set_completed( ctx, request ) (request)->chandle.completer = 0 
-#define MPID_Test_request( ctx, request ) ((request)->chandle.completer == 0)
+/*#define MPID_Test_request( ctx, request ) ((request)->chandle.completer == 0)*/
+#define MPID_Test_request( ctx, request ) \
+    ( (request)->chandle.handle_type == MPIR_SEND ? \
+        T3D_Test_send(&(request)->shandle) : \
+        T3D_Test_recv(&(request)->rhandle))
 
 /***************************************************************************
   MPID routines to access send/recv handles.

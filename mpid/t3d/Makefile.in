@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.3 1995/06/07 06:09:14 bright Exp $
+#  $Id: Makefile.in,v 1.5 1995/06/16 19:51:14 bright Exp $
 #
 #  (C) 1993 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -28,7 +28,7 @@ SHELL = /bin/sh
 LIBNAME     = ../../lib/$(ARCH)/$(COMM)/libmpi.a
 CFLAGS      = @CFLAGS@ @OPTFLAGS@ $(COPT) $(OPT) -I../.. -I../../include -I. \
               -DMPID_DEVICE_CODE @DEVCFLAGS@
-SOURCES     = t3dcoll.c   t3dinit.c   t3drecv.c   t3dsync.c \
+SOURCES     = t3dcoll.c   t3dinit.c   t3drecv.c   t3dsync.c  \
               t3devent.c  t3dprobe.c  t3dsend.c   t3ddebug.c
 OBJECTS     = $(SOURCES:.c=.o) $(ASMFILES_O)
 

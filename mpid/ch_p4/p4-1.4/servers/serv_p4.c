@@ -389,7 +389,7 @@ int fd;
 
     if (this_uid == 0)
     {
-#if defined(HP)
+#if defined(HP) && !defined(SUN_SOLARIS)
 	if (setresuid(-1, pw->pw_uid, -1) != 0)
 	    failure2("setresuid failed: %s", sys_errlist[errno]);
 #else
@@ -423,8 +423,15 @@ int fd;
 	    int fd;
 	    
 	    close(reader_pipe[0]);
+#if defined(SUN_SOLARIS)
+	    if (setuid(pw->pw_uid) != 0)
+	      failure2("cannot setuid: %s", sys_errlist[errno]);
+	    if (seteuid(pw->pw_uid) != 0)
+	      failure2("cannot seteuid: %s", sys_errlist[errno]);
+#else	
 	    if (setreuid(pw->pw_uid, pw->pw_uid) != 0)
 		exit(1);
+#endif
 
 	    if ((fd = open(filename, O_RDONLY)) >= 0)
 	    {
@@ -596,15 +603,19 @@ struct hostent *hp;
 
     if (this_uid == 0)
     {
-#if defined(HP)
+#if defined(HP) && !defined(SUN_SOLARIS)
 	if (setresuid(uid, uid, -1) != 0)
 	    failure2("cannot setresuid: %s", sys_errlist[errno]);
 #else
 	if (seteuid(0) != 0)
 	    failure2("cannot seteuid: %s", sys_errlist[errno]);
-	
+#if defined(SUN_SOLARIS)
+	if (setuid(uid) != 0)
+	    failure2("cannot setuid: %s", sys_errlist[errno]);
+#else	
 	if (setreuid(uid, uid) != 0)
 	    failure2("cannot setreuid: %s", sys_errlist[errno]);
+#endif
 #endif
     }
     

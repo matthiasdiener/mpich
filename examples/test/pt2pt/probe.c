@@ -8,7 +8,7 @@ main(argc, argv)
 int  argc;
 char **argv;
 {
-int data, to, from, tag , len, maxlen, np, myid, src, dest;
+int data, to, from, tag, maxlen, np, myid, src, dest;
 MPI_Status status;
 
 MPI_Init( &argc, &argv );
@@ -28,7 +28,6 @@ else {
 
 if (myid == src) {
     to   = dest;
-    len  = 1;
     tag  = 2000;
 #ifdef VERBOSE    
     printf( "About to send\n" );

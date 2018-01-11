@@ -1,12 +1,12 @@
 /*
- *  $Id: dmpi.c,v 1.29 1995/05/11 17:44:06 gropp Exp $
+ *  $Id: dmpi.c,v 1.30 1995/06/30 17:37:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: dmpi.c,v 1.29 1995/05/11 17:44:06 gropp Exp $";
+static char vcid[] = "$Id: dmpi.c,v 1.30 1995/06/30 17:37:16 gropp Exp $";
 #endif /* lint */
 
 /*  dmpi.c - routines in mpir that are called by the device */
@@ -34,10 +34,10 @@ MPIR_RHANDLE      **dmpi_recv_handle;
     int          found;
     MPIR_RHANDLE *handleptr;
 
-    MPID_THREAD_LOCK(0,0);	
+    MPID_THREAD_DS_LOCK(&MPIR_posted_recvs)
     MPIR_search_posted_queue( src, tag, context_id, &found, 1, 
 			      dmpi_recv_handle);
-    MPID_THREAD_UNLOCK(0,0);
+    MPID_THREAD_DS_UNLOCK(&MPIR_posted_recvs);
     if ( found )
     {
 	*foundflag = 1;	
@@ -66,10 +66,10 @@ MPIR_RHANDLE      **dmpi_recv_handle;
 	MPID_Alloc_recv_handle( handleptr->comm->ADIctx,
 			        &(handleptr->dev_rhandle) );
 	
-	MPID_THREAD_LOCK(0,0);	
+	MPID_THREAD_DS_LOCK(&MPIR_unexpected_recvs);	
 	MPIR_enqueue( &MPIR_unexpected_recvs, (void * ) *dmpi_recv_handle,
                       MPIR_QSHANDLE );
-	MPID_THREAD_UNLOCK(0,0);
+	MPID_THREAD_DS_UNLOCK(&MPIR_unexpected_recvs);
 	*foundflag = 0;
     }
 }

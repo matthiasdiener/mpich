@@ -103,7 +103,6 @@ static int MPI_Test_cancelled_stateid_0,MPI_Test_cancelled_ncalls_0=0;
 static int MPI_Testsome_stateid_0,MPI_Testsome_ncalls_0=0;
 static int MPI_Type_commit_stateid_0,MPI_Type_commit_ncalls_0=0;
 static int MPI_Type_contiguous_stateid_0,MPI_Type_contiguous_ncalls_0=0;
-static int MPI_Type_count_stateid_0,MPI_Type_count_ncalls_0=0;
 static int MPI_Type_extent_stateid_0,MPI_Type_extent_ncalls_0=0;
 static int MPI_Type_free_stateid_0,MPI_Type_free_ncalls_0=0;
 static int MPI_Type_hindexed_stateid_0,MPI_Type_hindexed_ncalls_0=0;
@@ -1902,9 +1901,6 @@ int  MPI_Finalize(  )
     MPE_Describe_state( MPI_Type_contiguous_stateid_0*2,
 	                            MPI_Type_contiguous_stateid_0*2+1,
       				    "MPI_Type_contiguous", ":" );
-    MPE_Describe_state( MPI_Type_count_stateid_0*2,
-	                            MPI_Type_count_stateid_0*2+1,
-      				    "MPI_Type_count", ":" );
     MPE_Describe_state( MPI_Type_extent_stateid_0*2,
 	                            MPI_Type_extent_stateid_0*2+1,
       				    "MPI_Type_extent", ":" );
@@ -2144,7 +2140,6 @@ char *** argv;
   MPI_Testsome_stateid_0 = stateid++;
   MPI_Type_commit_stateid_0 = stateid++;
   MPI_Type_contiguous_stateid_0 = stateid++;
-  MPI_Type_count_stateid_0 = stateid++;
   MPI_Type_extent_stateid_0 = stateid++;
   MPI_Type_free_stateid_0 = stateid++;
   MPI_Type_hindexed_stateid_0 = stateid++;
@@ -3339,30 +3334,6 @@ MPI_Datatype * newtype;
 
   MPE_Log_event( MPI_Type_contiguous_stateid_0*2+1,
 	         MPI_Type_contiguous_ncalls_0, (char *)0 );
-
-
-  return returnVal;
-}
-
-int   MPI_Type_count( datatype, count )
-MPI_Datatype datatype;
-int * count;
-{
-  int   returnVal;
-
-/*
-    MPI_Type_count - prototyping replacement for MPI_Type_count
-    Log the beginning and ending of the time spent in MPI_Type_count calls.
-*/
-
-  ++MPI_Type_count_ncalls_0;
-  MPE_Log_event( MPI_Type_count_stateid_0*2,
-	         MPI_Type_count_ncalls_0, (char *)0 );
-  
-  returnVal = PMPI_Type_count( datatype, count );
-
-  MPE_Log_event( MPI_Type_count_stateid_0*2+1,
-	         MPI_Type_count_ncalls_0, (char *)0 );
 
 
   return returnVal;

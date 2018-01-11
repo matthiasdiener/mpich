@@ -166,8 +166,14 @@ typedef enum { MPID_PKT_SHORT=0, MPID_PKT_LONG=1, MPID_PKT_SHORT_SYNC=2,
    
 #ifdef MPID_HAS_HETERO
 #define MPID_PKT_XDR_DECL int has_xdr:32;
+#define MPID_PKT_SEND_SET_HETERO(pkt,msgrep) \
+if (msgrep == MPIR_MSGREP_XDR) \
+    MPID_PKT_SEND_SET(pkt,has_xdr,MPID_MODE_XDR);\
+else \
+    MPID_PKT_SEND_SET(pkt,has_xdr,0);
 #else
 #define MPID_PKT_XDR_DECL 
+#define MPID_PKT_SEND_SET_HETERO(pkt,msgrep) 
 #endif
 
 /*
@@ -217,7 +223,7 @@ typedef enum { MPID_PKT_SHORT=0, MPID_PKT_LONG=1, MPID_PKT_SHORT_SYNC=2,
     unsigned lrank:11;           /* Local rank in sending context */   \
     MPID_PKT_LEN_DECL            /* size of packets in bytes */        \
     MPID_PKT_LINK_DECL           /* link to 'next' packet    */        \
-    MPID_PKT_SRC_DECL            /* Source of packet */                \
+    MPID_PKT_SRC_DECL            /* Source of packet in COMM_WORLD system */ \
     int      tag:32;             /* tag is full sizeof(int) */         \
     int      len:32;             /* Length of DATA */                  \
     MPID_PKT_XDR_DECL

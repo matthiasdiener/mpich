@@ -17,7 +17,7 @@
    If MPID_TRACE_FILE is set, we write information on the operation (both
    start and end) to the given file.  In order to simplify the code, we
    use the macro MPID_TRACE_CODE(name,channel).  Other implementations
-   of channel.h are encourage to provide the trace calls; note that as macros,
+   of channel.h are encouraged to provide the trace calls; note that as macros,
    they can be completely removed at compile time for more 
    performance-critical systems.
 
@@ -26,31 +26,82 @@
 
 #define MPID_MAX_PROCS 32
 #define MPID_MAX_SHMEM 4194304
-#define MPID_SHMEM_MAX_PKTS 128
-#ifdef __STDC__
+#define MPID_SHMEM_MAX_PKTS (4*MPID_MAX_PROCS)
+#if HAS_VOLATILE || defined(__STDC__)
 #define VOLATILE volatile
 #else
 #define VOLATILE
 #endif
+
+/*
+   Notes on the shared data.
+
+   Some of the data may be pointers to shared memory where the POINTERS
+   should reside in local memory (for increased efficiency).
+
+   In particularly, the structure MPID_SHMEM_globmem is allocated out of
+   shared memory and contains various thinks like the locks.  However, we
+   don't want to find the ADDRESS of a lock by looking through some 
+   shared memory.  
+   Note also that we want all changable data to be on separate cache lines.
+
+   Thus, we want to replace 
+     VOLATILE MPID_PKT_T *(a[MPID_MAX_PROCS]);
+   by
+     VOLATILE MPID_PKT_PTR_T (a[MPID_MAX_PROCS])
+   where
+      typedef union { MPID_PTK_T *pkt ; PAD } MPID_PKT_PTR_T ;
+   where the PAD is char pad[sizeof-cachline].
+
+   In addition, we want to put data that is guarded together into the
+   same cache-line.  However, we may not want to put the locks on the same
+   cache-line, since other processes may be attempting to acquire the
+   locks.
+
+   Note that there are two structures.  A Queue, for messages (required
+   message ordering), and a Stack, for available message packets.
+
+ */
+
+#ifndef MPID_CACHE_LINE_SIZE
+#define MPID_CACHE_LINE_SIZE 128
+#define MPID_CACHE_LINE_LOG_SIZE 7
+#endif
+typedef struct {
+    VOLATILE MPID_PKT_T *head;
+    VOLATILE MPID_PKT_T *tail;
+    char                pad[MPID_CACHE_LINE_SIZE - 2 * sizeof(MPID_PKT_T *)];
+    } MPID_SHMEM_Queue;
+
+typedef struct {
+    VOLATILE MPID_PKT_T *head;
+    char                pad[MPID_CACHE_LINE_SIZE - 1 * sizeof(MPID_PKT_T *)];
+    } MPID_SHMEM_Stack;
+
 typedef struct {
     /* locks may need to be aligned, so keep at front (p2p_shmalloc provides
        16-byte alignment for each allocated block) */
     p2p_lock_t availlock[MPID_MAX_PROCS];    /* locks on avail list */
-    p2p_lock_t incominglock[MPID_MAX_PROCS]; /* locks on 
-							 incoming list */
+    p2p_lock_t incominglock[MPID_MAX_PROCS]; /* locks on incoming list */
     p2p_lock_t globlock;
-    VOLATILE int        globid;           /* Used to get my id in the world */
-    VOLATILE MPID_PKT_T *(avail[MPID_MAX_PROCS]);     /* Availlist for each */
-    VOLATILE MPID_PKT_T *(incoming[MPID_MAX_PROCS]);  /* Incoming messages */
-    VOLATILE MPID_PKT_T *(incomingtail[MPID_MAX_PROCS]);   /* Tails of 
-							      incoming msgs */
+    MPID_SHMEM_Queue    incoming[MPID_MAX_PROCS];     /* Incoming messages */
+    MPID_SHMEM_Stack    avail[MPID_MAX_PROCS];        /* Avail pkts */
+
     VOLATILE MPID_PKT_T pool[MPID_SHMEM_MAX_PKTS];    /* Preallocated pkts */
+
+    /* We put globid last because it may otherwise upset the cache alignment
+       of the arrays */
+    VOLATILE int        globid;           /* Used to get my id in the world */
     } MPID_SHMEM_globmem;	
 
 extern MPID_SHMEM_globmem *MPID_shmem;
 extern int                 MPID_myid;
 extern int                 MPID_numids;
-extern VOLATILE MPID_PKT_T *MPID_local, **MPID_incoming;
+extern MPID_PKT_T          *MPID_local;       /* Local pointer to arrived
+						 packets; it is only
+						 accessed by the owner */
+extern VOLATILE MPID_PKT_T **MPID_incoming;   /* pointer to my incoming 
+						 queue HEAD */
 
 #define PI_NO_NSEND
 #define PI_NO_NRECV

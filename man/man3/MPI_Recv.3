@@ -1,4 +1,4 @@
-.TH MPI_Recv 3 "5/16/1995" " " "MPI"
+.TH MPI_Recv 3 "6/21/1995" " " "MPI"
 .SH NAME
 MPI_Recv \- Basic receive
 
@@ -18,7 +18,7 @@ MPI_Recv \- Basic receive
 .PD 0
 .TP
 .B count 
-- number of elements in receive buffer (integer) 
+- maximum number of elements in receive buffer (integer) 
 .PD 1
 .PD 0
 .TP
@@ -40,6 +40,10 @@ MPI_Recv \- Basic receive
 .B comm 
 - communicator (handle) 
 .PD 1
+
+.SH NOTES
+The 'count' argument indicates the maximum length of a message; the actual
+number can be determined with MPI_Get_count.
 
 .SH SYNOPSIS
 .nf

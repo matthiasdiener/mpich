@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_split.c,v 1.35 1995/05/09 18:51:28 gropp Exp $
+ *  $Id: comm_split.c,v 1.36 1995/06/21 03:05:47 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -67,8 +67,8 @@ MPI_Comm *comm_out;
   }
 
   /* Create and initialize split table. */
-  (void) MPI_Comm_size ( comm, &size );
-  (void) MPI_Comm_rank ( comm, &rank );
+  (void) MPIR_Comm_size ( comm, &size );
+  (void) MPIR_Comm_rank ( comm, &rank );
   table = (int *) CALLOC ( 2 * 3 * size, sizeof(int) );
   table_in = table + (3 * size);
   if (!table) 

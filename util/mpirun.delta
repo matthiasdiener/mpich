@@ -1,6 +1,6 @@
 #! /bin/sh
 if [ "$MPIR_HOME" = "" ] ; then 
-    MPIR_HOME=/home/MPI/mpich
+    MPIR_HOME=/tmp_mnt/Net/alriga/alriga9/MPI/mpich
 fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
@@ -16,9 +16,4 @@ fi
 # If the rsh fails, check your permissions.
 # A similiar script could be used on Intel i860 systems
 # UNTESTED
-if [ $just_testing = 1 ] ; then
-  echo '$rshcmd delta1 mexec -t"'"$np"'" -f ' $progname $cmdLineArgs
-else
-  $rshcmd delta1 mexec -t"$np" -f $progname $cmdLineArgs
-fi
-
+$Show '$rshcmd delta1 mexec -t"'"$np"'" -f ' $progname $cmdLineArgs

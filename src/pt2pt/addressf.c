@@ -32,10 +32,24 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_address_( location, address, __ierr )
+/*
+   This code is a little subtle.  By making all addresses relative 
+   to MPIR_F_MPI+ BOTTOM, we can all ways add a computed address to the Fortran
+   MPI_BOTTOM to get the correct address.  In addition, this can fix 
+   problems on systems where Fortran integers are too short for addresses,
+   since often, addresses will be within 2 GB of each other, and making them
+   relative to MPIR_F_MPI_BOTTOM makes the relative addresses fit into
+   a Fortran integer.
+
+   (Note that ALL addresses in MPI are relative; an absolute address is
+   just one that is relative to MPI_BOTTOM.)
+ */
+void mpi_address_( location, address, __ierr )
 void     *location;
-MPI_Aint *address;
-int *__ierr;
+int      *address;
+int      *__ierr;
 {
-*__ierr = MPI_Address(MPIR_F_PTR(location),address);
+MPI_Aint a;
+*__ierr = MPI_Address( location, &a );
+*address = (int)( a - (MPI_Aint)MPIR_F_MPI_BOTTOM);
 }

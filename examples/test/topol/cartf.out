@@ -1,4 +1,8 @@
 *** Testing cart from Fortran ***
-Dims:   2  2
-Total errors =   0
+# The maximum space allocated was 5992 bytes [0]
+# The maximum space allocated was 5992 bytes [0]
+# The maximum space allocated was 5992 bytes [0]
+ Dims:   2  2
+ Total errors =   0
+# The maximum space allocated was 4956 bytes [0]
 *** Testing cart from Fortran ***

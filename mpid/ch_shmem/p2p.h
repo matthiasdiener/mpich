@@ -33,10 +33,39 @@ typedef int p2p_lock_t[4];
 
 #elif defined(HAVE_MMAP)
 
-typedef msemaphore p2p_lock_t;
-#define p2p_lock_init(l) msem_init(l, MSEM_UNLOCKED)
-#define p2p_lock(l)      msem_lock(l, 0)
-#define p2p_unlock(l )   msem_unlock(l, 0)
+#ifndef MPID_CACHE_LINE_SIZE
+#define MPID_CACHE_LINE_SIZE 128
+#define MPID_CACHE_LINE_LOG_SIZE 7
+#endif
+
+/* Place each lock on its own cache line.  We probably really want two
+   lock types - one on its own line, and one within another structure */
+typedef struct { msemaphore lock; 
+		 char pad[MPID_CACHE_LINE_SIZE - sizeof(msemaphore)]; }
+        p2p_lock_t;
+/* An alternative to this is to ALLOCATE these on separate cache lines,
+   but this is simpler for now */
+#define p2p_lock_init(l) msem_init(&(l)->lock, MSEM_UNLOCKED)
+#define p2p_lock(l)      msem_lock(&(l)->lock, 0)
+#define p2p_unlock(l )   msem_unlock(&(l)->lock, 0)
+
+/* typedef msemaphore p2p_lock_t; */
+/*#define p2p_lock_init(l) msem_init(l, MSEM_UNLOCKED)
+* #define p2p_lock(l)      msem_lock(l, 0)
+* #define p2p_unlock(l )   msem_unlock(l, 0) */
+
+#elif defined(HAVE_SHMAT)
+	 typedef struct { int semid;  int semnum; }   MD_lock_t;
+#        include <sys/ipc.h>
+#        include <sys/shm.h>
+#        include <sys/sem.h>
+
+         static struct sembuf sem_lock[1] = {
+             0, -1, 0
+         };
+         static struct sembuf sem_unlock[1] = {
+             0, 1, 0
+         };
 
 #endif
 
@@ -113,6 +142,8 @@ P2P_EXTERN char p2p_sgi_shared_arena_filename[64];
 
 void *p2p_shmalloc ANSI_ARGS((int));
 double p2p_wtime ANSI_ARGS((void));
-
+void p2p_init ANSI_ARGS((int,int));
+void p2p_shfree ANSI_ARGS((char *));
+void p2p_cleanup ANSI_ARGS((void));
 #endif
 

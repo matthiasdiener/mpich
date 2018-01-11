@@ -19,3 +19,8 @@ lederman-	A series of tests of various types written by Steve
 
 
 Other directories and additional tests will be added in the future.
+
+To run the test, but not leave the executables around, do (in this directory)
+
+  make TESTARGS=-small testing >& testing.out
+

@@ -1,5 +1,5 @@
 /*
- *  $Id: type_util.c,v 1.11 1995/06/01 20:50:46 gropp Exp $
+ *  $Id: type_util.c,v 1.12 1995/07/25 02:48:50 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -151,4 +151,25 @@ if (dtype->dte_type == MPIR_STRUCT) {
 
 /* Free the datatype structure */
 MPIR_SET_COOKIE(dtype,0);
+}
+
+/*
+   This routine returns the "real" lb and ub, ignoring any explicitly set 
+   TYPE_LB or TYPE_UB.  This is needed when allocating space for a 
+   datatype that includes all of the "holes" (note that MPI_TYPE_SIZE
+   gives only the number of bytes that the selected elements occupy).
+   This is needed for some of the collective routines.
+
+   STILL NEEDS TO BE IMPLEMENTED IN THE TYPE ROUTINES
+ */
+int MPIR_Type_get_limits( dtype, lb, ub )
+MPI_Datatype dtype;
+MPI_Aint *lb, *ub;
+{
+/*
+    *lb = dtype->real_lb;
+    *ub = dtype->real_ub;
+ */
+    *lb = dtype->lb;
+    *ub = dtype->ub;
 }

@@ -1,5 +1,5 @@
 /*
- *  $Id: chrecv.c,v 1.39 1995/05/11 17:48:47 gropp Exp $
+ *  $Id: chrecv.c,v 1.39 1995/05/11 17:48:47 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: chrecv.c,v 1.39 1995/05/11 17:48:47 gropp Exp $";
+static char vcid[] = "$Id: chrecv.c,v 1.39 1995/05/11 17:48:47 gropp Exp gropp $";
 #endif /* lint */
 
 #include "mpid.h"
@@ -50,61 +50,14 @@ static char vcid[] = "$Id: chrecv.c,v 1.39 1995/05/11 17:48:47 gropp Exp $";
  */
 
 /* Here are some definitions to simplify debugging */
-#ifdef MPID_DEBUG_ALL
-                          /* #DEBUG_START# */
-#ifdef MEMCPY
-#undef MEMCPY
-#endif
-#define MEMCPY(a,b,c)\
-{if (MPID_DebugFlag) {\
-    fprintf( MPID_DEBUG_FILE, \
-	    "[%d]R About to copy to %d from %d (n=%d) (%s:%d)...\n", \
-	    MPID_MyWorldRank, a, b, c, __FILE__, __LINE__ );\
-    fflush( MPID_DEBUG_FILE ); }\
-memcpy( a, b, c );}
-
-#define DEBUG_PRINT_RECV_PKT(pkt)\
-    {if (MPID_DebugFlag) {\
-	fprintf( MPID_DEBUG_FILE,\
-"[%d]R rcvd msg for tag = %d, source = %d, ctx = %d, len = %d, mode = ", \
-	       MPID_MyWorldRank, MPID_PKT_RECV_GET(pkt,head.tag), from, \
-	       MPID_PKT_RECV_GET(pkt,head.context_id), \
-	       MPID_PKT_RECV_GET(pkt,head.len) );\
-	MPID_Print_mode( MPID_DEBUG_FILE, MPID_PKT_RECV_ADDR(pkt) );\
-	fprintf( MPID_DEBUG_FILE, "(%s:%d)\n", __FILE__, __LINE__ );\
-	fflush( MPID_DEBUG_FILE );\
-	}}
-
-#define DEBUG_PRINT_MSG(msg)\
-{if (MPID_DebugFlag) {\
-    fprintf( MPID_DEBUG_FILE, "[%d]%s (%s:%d)\n", \
-	    MPID_MyWorldRank, msg, __FILE__, __LINE__ );\
-    fflush( MPID_DEBUG_FILE );}}
-     
-                          /* #DEBUG_END# */
-#else
-#define DEBUG_PRINT_PKT(pkt)
-#define DEBUG_PRINT_MSG(msg)
-
-#endif
-
-/***************************************************************************/
-/* This variable controls debugging output                                 */
-/***************************************************************************/
-extern int MPID_DebugFlag;
-
+#include "mpiddebug.h"
 /***************************************************************************/
 
 /***************************************************************************/
 /* These are used to keep track of the number and kinds of messages that   */
 /* are received                                                            */
 /***************************************************************************/
-#ifndef MPID_STAT_NONE
-extern int MPID_n_short,         /* short messages */
-           MPID_n_long,          /* long messages */
-           MPID_n_unexpected,    /* unexpected messages */
-           MPID_n_syncack;       /* Syncronization acknowledgments */
-#endif
+#include "mpidstat.h"
 /***************************************************************************/
 
 /***************************************************************************/
@@ -141,12 +94,7 @@ int          err = MPI_SUCCESS;
 MPID_KEEP_STAT(MPID_n_short++;)
 
 msglen = pkt->head.len;
-/* Check for truncation */
-if (dmpi_recv_handle->dev_rhandle.bytes_as_contig < msglen) {
-    err = MPI_ERR_TRUNCATE;
-    (*MPID_ErrorHandler)( 1, "Truncated message"  );
-    msglen = dmpi_recv_handle->dev_rhandle.bytes_as_contig;
-    }
+MPID_CMMDK_MSGLEN(dmpi_recv_handle,msglen,err)
 dmpi_recv_handle->totallen = msglen;
 if (msglen > 0) 
     MEMCPY( dmpi_recv_handle->dev_rhandle.start, pktbuf, msglen ); 
@@ -165,16 +113,7 @@ int err;
 err = MPID_CMMD_Copy_body_short( dmpi_recv_handle, pkt, 
 			       pkt->short_sync_pkt.buffer );
 
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (MPID_DebugFlag) {
-    fprintf( MPID_DEBUG_FILE,
-	    "[%d]SYNC Returning sync to %d with mode ", MPID_MyWorldRank,
-	   from );
-    MPID_Print_mode( MPID_DEBUG_FILE, pkt );
-    fprintf( MPID_DEBUG_FILE, "(%s:%d)\n", __FILE__, __LINE__ );
-    fflush( MPID_DEBUG_FILE );
-    }
-#endif                  /* #DEBUG_END# */
+DEBUG_PRINT_SYNCACK(0,pkt)
 MPID_KEEP_STAT(MPID_n_syncack++;)
 MPID_SyncReturnAck( pkt->short_sync_pkt.sync_id, from );
 
@@ -199,14 +138,10 @@ mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
 msglen           = pkt->head.len;
 
 /* Check for truncation */
-if (dmpi_recv_handle->dev_rhandle.bytes_as_contig < msglen) {
-    err = MPI_ERR_TRUNCATE;
-    (*MPID_ErrorHandler)( 1, "Truncated message"  );
-    msglen = dmpi_recv_handle->dev_rhandle.bytes_as_contig;
-    /* We really must receive the message in two parts; the
-       part that we can store, and the part that we discard.
-       This case is not yet handled. */
-    }
+MPID_CMMDK_MSGLEN(dmpi_recv_handle,msglen,err)
+/* Note that if we truncate, We really must receive the message in two parts; 
+   the part that we can store, and the part that we discard.
+   This case is not yet handled. */
 dmpi_recv_handle->totallen = msglen;
 MPID_KEEP_STAT(MPID_n_long++;)
 MPID_RecvFromChannel( mpid_recv_handle->start, msglen, from );
@@ -239,16 +174,7 @@ int err;
 
 err = MPID_CMMD_Copy_body_long( dmpi_recv_handle, pkt, from );
 
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (MPID_DebugFlag) {
-    fprintf( MPID_DEBUG_FILE,
-	   "[%d]SYNC Returning sync to %d with mode ", MPID_MyWorldRank,
-	   from );
-    MPID_Print_mode( MPID_DEBUG_FILE, pkt );
-    fprintf( MPID_DEBUG_FILE, "(%s:%d)\n", __FILE__, __LINE__ );
-    fflush( MPID_DEBUG_FILE );
-    }
-#endif                  /* #DEBUG_END# */
+DEBUG_PRINT_SYNCACK(0,pkt)
 MPID_KEEP_STAT(MPID_n_syncack++;)
 MPID_SyncReturnAck( pkt->long_sync_pkt.sync_id, from );
 
@@ -724,47 +650,32 @@ else {
 #endif
 MPID_PKT_UNPACK( MPID_PKT_RECV_ADDR(pkt), sizeof(MPID_PKT_HEAD_T), from );
 
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (MPID_DebugFlag) {
-    fprintf( MPID_DEBUG_FILE,
-   "[%d]R received message (%s:%d)\n", MPID_MyWorldRank, __FILE__, __LINE__ );
-    MPID_Print_packet( MPID_DEBUG_FILE, MPID_PKT_RECV_ADDR(pkt) );
-    }
-#endif                  /* #DEBUG_END# */
+DEBUG_PRINT_PKT("R received message",pkt)
 
 /* Separate the incoming messages from control messages */
 if (MPID_PKT_IS_MSG(MPID_PKT_RECV_GET(pkt,head.mode))) {
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-    if (MPID_DebugFlag) {
-	fprintf( MPID_DEBUG_FILE,
-"[%d]R rcvd msg for tag = %d, source = %d, ctx = %d, len = %d, mode = ", 
-	       MPID_MyWorldRank, MPID_PKT_RECV_GET(pkt,head.tag), from, 
-	       MPID_PKT_RECV_GET(pkt,head.context_id), 
-	       MPID_PKT_RECV_GET(pkt,head.len) );
-	MPID_Print_mode( MPID_DEBUG_FILE, MPID_PKT_RECV_ADDR(pkt) );
-	fprintf( MPID_DEBUG_FILE, "(%s:%d)\n", __FILE__, __LINE__ );
-	fflush( MPID_DEBUG_FILE );
-	}
-#endif                  /* #DEBUG_END# */
+    DEBUG_PRINT_RECV_PKT("R rcvd msg",pkt)
+
 /* Is the message expected or not? 
    This routine RETURNS a dmpi_recv_handle, creating one if the message 
    is unexpected (is_posted == 0) */
-DMPI_msg_arrived( MPID_PKT_RECV_GET(pkt,head.lrank), 
-		  MPID_PKT_RECV_GET(pkt,head.tag), 
-		  MPID_PKT_RECV_GET(pkt,head.context_id), 
-                  &dmpi_recv_handle, &is_posted );
+	DMPI_msg_arrived( MPID_PKT_RECV_GET(pkt,head.lrank), 
+			  MPID_PKT_RECV_GET(pkt,head.tag), 
+			  MPID_PKT_RECV_GET(pkt,head.context_id), 
+			  &dmpi_recv_handle, &is_posted );
 #ifdef MPID_HAS_HETERO          /* #HETERO_START# */
 /* Look for XDR bit */
-if (MPID_PKT_HAS_XDR(MPID_PKT_RECV_ADDR(pkt))) 
-    dmpi_recv_handle->msgrep = MPIR_MSGREP_XDR;
-else
-    dmpi_recv_handle->msgrep = MPIR_MSGREP_RECEIVER;
+    if (MPID_PKT_HAS_XDR(MPID_PKT_RECV_ADDR(pkt))) 
+	dmpi_recv_handle->msgrep = MPIR_MSGREP_XDR;
+    else
+	dmpi_recv_handle->msgrep = MPIR_MSGREP_RECEIVER;
 #endif                          /* #HETERO_END# */
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (MPID_DebugFlag) {
-    fprintf( MPID_DEBUG_FILE, "[%d]R msg was %s (%s:%d)\n", MPID_MyWorldRank, 
-	    is_posted ? "posted" : "unexpected", __FILE__, __LINE__ );
-    }
+    if (MPID_DebugFlag) {
+	fprintf( MPID_DEBUG_FILE, "[%d]R msg was %s (%s:%d)\n", 
+		MPID_MyWorldRank, 
+		is_posted ? "posted" : "unexpected", __FILE__, __LINE__ );
+	}
 #endif                  /* #DEBUG_END# */
     if (is_posted) {
 	/* We should check the size here for internal errors .... */
@@ -1014,15 +925,7 @@ while (!MPID_Test_handle(dmpi_save_recv_handle)) {
 	plrk = MPID_PKT_RECV_GET(pkt,head.lrank);
 	pcid = MPID_PKT_RECV_GET(pkt,head.context_id);
 	/* We should check the size here for internal errors .... */
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-	if (MPID_DebugFlag) {
-	    fprintf( MPID_DEBUG_FILE,
-      "[%d]R received message for tag = %d, source = %d, ctx = %d (%s:%d)\n", 
-		   MPID_MyWorldRank, ptag, from, pcid, __FILE__, __LINE__ );
-	    MPID_Print_packet( MPID_DEBUG_FILE, MPID_PKT_RECV_ADDR(pkt) );
-	    fflush( MPID_DEBUG_FILE );
-	    }
-#endif                  /* #DEBUG_END# */
+	DEBUG_PRINT_FULL_RECV_PKT("R received message",pkt)
 	if (pcid == context_id        && 
 	    (ptag & tagmask) == tag   &&
 	    (plrk & srcmask) == source) {

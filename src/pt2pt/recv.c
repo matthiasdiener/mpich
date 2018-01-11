@@ -1,5 +1,5 @@
 /*
- *  $Id: recv.c,v 1.30 1995/05/16 18:10:55 gropp Exp $
+ *  $Id: recv.c,v 1.31 1995/06/21 15:37:58 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: recv.c,v 1.30 1995/05/16 18:10:55 gropp Exp $";
+static char vcid[] = "$Id: recv.c,v 1.31 1995/06/21 15:37:58 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -19,11 +19,15 @@ Output Parameter:
 . status - status object (Status) 
 
 Input Parameters:
-. count - number of elements in receive buffer (integer) 
+. count - maximum number of elements in receive buffer (integer) 
 . datatype - datatype of each receive buffer element (handle) 
 . source - rank of source (integer) 
 . tag - message tag (integer) 
 . comm - communicator (handle) 
+
+Notes:
+The 'count' argument indicates the maximum length of a message; the actual 
+number can be determined with MPI_Get_count.  
 
 @*/
 int MPI_Recv( buf, count, datatype, source, tag, comm, status )

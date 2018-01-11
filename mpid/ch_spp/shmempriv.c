@@ -39,15 +39,15 @@ void MPID_SHMEM_init( int  *argc, char **argv )
     allowOversub = (envVarBuf[0] == 'Y') || (envVarBuf[0] == 'y');
   
   MPID_SPP_getSCTopology(&myNode, &numNodes, &totalCPUs, numCPUs);
-  printf("my node id: %d\n", myNode);
+/*  printf("my node id: %d\n", myNode);
   printf("number of nodes = %d\n", numNodes);
-  printf("total number of cpus = %d\n", totalCPUs);
+  printf("total number of cpus = %d\n", totalCPUs); 
   for (i=0; i<numNodes; i++)
   {
     printf("number of cpus in node[%d]: %d\n", i, numCPUs[i]);
   }
   fflush(stdout);
-
+*/
   numprocs = 0;
   for (i=1; i<*argc; i++)
   {
@@ -81,12 +81,12 @@ void MPID_SHMEM_init( int  *argc, char **argv )
   if (numCPUs[myNode] == 0)
     myNode = p2p_migrateInitialProcess(myNode, numNodes, numCPUs);
    
-  for (i=0; i<numNodes; i++)
+/*  for (i=0; i<numNodes; i++)
   {
     printf("number of cpus in node[%d]: %d\n", i, numCPUs[i]);
   }
   fflush(stdout);
-  
+  */
   memsize = MPID_MAX_SHMEM;
   if (envVarBuf = getenv("MPI_GLOBMEMSIZE")) memsize = atoi(envVarBuf);
   if (memsize < sizeof(MPID_SHMEM_pktmem) + numprocs * 65536)
@@ -163,7 +163,7 @@ void MPID_SHMEM_init( int  *argc, char **argv )
   
   MPID_shmem->globid = MPID_numids = numprocs;
   p2p_create_procs( numprocs, procNode,  &MPID_myid );
-fprintf(stderr, "MPID_myid = %d\n", MPID_myid);
+/* fprintf(stderr, "MPID_myid = %d\n", MPID_myid);*/
   
   MPID_incoming = MPID_pktPtr.incomingPtr[MPID_myid];
 }
@@ -175,7 +175,7 @@ void MPID_SHMEM_finalize()
   /* Wait for everyone to finish */
   p2p_lock( &MPID_shmem->globlock );
   MPID_shmem->globid--;
-printf("MPID_myid = %d MPID_shmem->globid = %d\n", MPID_myid, MPID_shmem->globid);
+/*printf("MPID_myid = %d MPID_shmem->globid = %d\n", MPID_myid, MPID_shmem->globid);*/
 fflush(stdout);
   p2p_unlock( &MPID_shmem->globlock );
   while (MPID_shmem->globid) ;
@@ -431,7 +431,8 @@ int MPID_SHMEM_SendControl( MPID_PKT_T *pkt, int size, dest )
 #ifdef HAVE_SYSINFO
 #include <sys/systeminfo.h>
 #endif
-void SY_GetHostName( int nlen, char *name )
+void SY_GetHostName( char *name, int nlen )
+/* void SY_GetHostName( int nlen, char *name ) */
 {
 #if defined(HAVE_GETHOSTNAME)
   gethostname(name, nlen);

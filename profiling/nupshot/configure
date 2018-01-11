@@ -1,4 +1,21 @@
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 progname="`echo $0 | sed 's:^\./\./:\./:'`"
 print_error() {
     echo "*# $*" 2>&1 ;
@@ -723,7 +740,10 @@ fi
 
 # Look for Tcl
 if test -z "$TCL_DIR" ; then
-echo Looking for Tcl
+   
+# Look for Tcl
+if test -z "$TCL_DIR" ; then
+echo checking for Tcl
 for dir in \
     /usr \
     /usr/local \
@@ -742,25 +762,12 @@ for dir in \
     fi
 done
 fi
-if test -z "$TCL_DIR" ; then
-echo Could not find Tcl in
-echo   /usr 
-echo   /usr/local
-echo   /usr/local/tcl7.3
-echo   /usr/local/tcl7.3-tk3.6
-echo   /usr/local/tcl7.0
-echo   /usr/local/tcl7.0-tk3.3
-echo   $HOME/tcl
-echo   $HOME/tcl7.3
-echo Please specify the directory that contains include/tcl.h
-echo and lib/libtcl.a with the -tcldir= option.
-exit
+if test -n "$TCL_DIR" ; then 
+  echo "$ac_t""found $TCL_DIR" 1>&1
 fi
-
-
 # Look for Tk
 if test -z "$TK_DIR" ; then
-echo Looking for Tk
+echo checking for Tk
 for dir in \
     /usr \
     /usr/local \
@@ -779,20 +786,50 @@ for dir in \
     fi
 done
 fi
-if test -z "$TK_DIR" ; then
-echo Could not find Tk in
-echo    /usr
-echo    /usr/local
-echo    /usr/local/tk3.6
-echo    /usr/local/tcl7.3-tk3.6
-echo    /usr/local/tk3.3
-echo    /usr/local/tcl7.0-tk3.3
-echo    $HOME/tcl
-echo    $HOME/tcl7.3
-echo Please specify the directory that contains include/tk.h
-echo and lib/libtk.a with the -tkdir= option.
-exit
+if test -n "$TK_DIR" ; then 
+  echo "$ac_t""found $TK_DIR" 1>&1
 fi
+
+fi
+if test -z "$TCL_DIR" ; then 
+    print_error "Could not find libraries for TCL (needed for Upshot)"
+    print_error "Please specify them with the -tcldir=path option."
+    exit 1
+fi
+if test -z "$TK_DIR" ; then 
+    print_error "Could not find libraries for TK (needed for Upshot)"
+    print_error "Please specify them with the -tkdir=path option."
+    exit 1
+fi
+echo $ac_n "checking for version of TK""... $ac_c" 1>&1
+/bin/rm -f conftestval
+CFLAGSsave="$CFLAGS"
+CFLAGS="$CFLAGS -I$TK_DIR/include $XINCLUDES"
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include "tk.h"
+main() { FILE *fp = fopen( "conftestval", "w" ); 
+fprintf( fp, "%d.%d", TK_MAJOR_VERSION, TK_MINOR_VERSION );
+return 0; }
+EOF
+eval $compile
+if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  TK_VERSION=`cat conftestval`
+
+else
+  TK_VERSION="unavailable"
+fi
+rm -fr conftest*
+CFLAGS="$CFLAGSsave"
+echo "$ac_t""$TK_VERSION" 1>&1
+
+if test "$TK_VERSION" != 3.6 ; then
+    print_error "This version of nupshot requires tk 3.6  The version in"
+    print_error "$TK_DIR seems to be version $TK_VERSION."
+    exit 1
+fi
+
+
 
 
 

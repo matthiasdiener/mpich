@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_util.c,v 1.33 1995/05/09 18:51:35 gropp Exp $
+ *  $Id: comm_util.c,v 1.35 1995/07/25 02:46:14 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,6 +7,11 @@
 #include "mpiimpl.h"
 #include "mpisys.h"
 
+#ifdef __STDC__
+int MPIR_Comm_collops_init(MPI_Comm, MPIR_COMM_TYPE);
+#else
+int MPIR_Comm_collops_init();
+#endif
 /*
 
 MPIR_Comm_make_coll - make a hidden collective communicator
@@ -47,9 +52,15 @@ MPIR_COMM_TYPE comm_type;
   new_comm->local_rank     = new_comm->local_group->local_rank;
   new_comm->lrank_to_grank = new_comm->group->lrank_to_grank;
   new_comm->np             = new_comm->group->np;
+  new_comm->collops        = NULL;
 
   new_comm->comm_coll       = new_comm;  /* a circular reference to myself */
   comm->comm_coll           = new_comm;
+
+  /* Place the same operations on both the input (comm) communicator and
+     the private copy (new_comm) */
+  MPIR_Comm_collops_init( new_comm, comm_type);
+  MPIR_Comm_collops_init( comm, comm_type);
 
   /* The MPID_Comm_init routine needs the size of the local group, and
      reads it from the new_comm structure */
@@ -83,7 +94,7 @@ MPI_Comm comm;
 {
   int  rank;
 
-  MPI_Comm_rank ( MPI_COMM_WORLD, &rank );
+  MPIR_Comm_rank ( MPI_COMM_WORLD, &rank );
 
   printf("[%d] ----- Dumping communicator -----\n", rank );
   if (comm->comm_type == MPIR_INTRA) {
@@ -118,7 +129,7 @@ int      *high;
   MPI_Comm   intra = inter->comm_coll;
   int        rank, rhigh;
 
-  MPI_Comm_rank ( comm, &rank );
+  MPIR_Comm_rank ( comm, &rank );
 
   /* Node 0 determines high value */
   if (rank == 0) {
@@ -167,5 +178,23 @@ MPIR_COMM_TYPE comm_type;
   MPI_Errhandler_set( new_comm, comm->error_handler );
   new_comm->ref_count       = 1;
   new_comm->permanent       = 0;
+  new_comm->collops         = NULL;
   return(MPI_SUCCESS);
+}
+
+/* Init the collective ops functions.
+ * Default to the ones MPIR provides.
+ */
+
+int MPIR_Comm_collops_init( comm, comm_type )
+MPI_Comm comm;
+MPIR_COMM_TYPE comm_type;
+{  
+    comm->collops = (comm_type == MPIR_INTRA) ? MPIR_intra_collops :
+                                                MPIR_inter_collops ;
+    /* Here, we know that these collops are static, but it is still
+     * useful to keep the ref count, because it avoids explicit checks
+     * when we free them 
+     */
+    comm->collops->ref_count++;
 }

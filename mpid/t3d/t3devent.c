@@ -1,11 +1,11 @@
 /*
- *  $Id: t3devent.c,v 1.3 1995/06/07 06:23:34 bright Exp $
+ *  $Id: t3devent.c,v 1.5 1995/06/12 19:16:40 bright Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 #ifndef lint
-static char SCCSid[] = "$Id: t3devent.c,v 1.3 1995/06/07 06:23:34 bright Exp $";
+static char SCCSid[] = "$Id: t3devent.c,v 1.5 1995/06/12 19:16:40 bright Exp $";
 #endif
 
 #include "mpid.h"
@@ -54,7 +54,7 @@ int T3D_Check_device( blocking )
     }
 #   endif
 
-  T3D_Check_incoming( blocking );
+    T3D_Check_incoming( MPID_NOTBLOCKING );
 
 }
 

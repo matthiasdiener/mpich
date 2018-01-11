@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi_bc.h,v 1.22 1994/11/08 15:59:48 gropp Exp $
+ *  $Id: mpi_bc.h,v 1.24 1995/06/30 17:34:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -11,12 +11,13 @@
 #define _MPI_INCLUDE_BC
 
 /* assorted defined constants */
-#include "mpi_errno.h"              /* Error codes */
+/* #include "mpi_errno.h"   */           /* Error codes */
 
 /* Generic error handling code.  This handles inserting the file and line
    number (in MPI) where the error occured.  In addition, it
    checks the error handler and calls the appropriate one.  Finally, 
-   it returns the errorcode as its value */
+   it returns the errorcode as its value.
+ */
 #define MPIR_ERROR(comm,code,string) \
     MPIR_Error( comm, code, string, __FILE__, __LINE__ )
 

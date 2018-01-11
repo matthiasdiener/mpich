@@ -26,6 +26,8 @@ extern void MPIR_RmPointer();
 #else
 #ifdef FORTRANCAPS
 #define mpi_testsome_ MPI_TESTSOME
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_testsome_ mpi_testsome__
 #elif !defined(FORTRANUNDERSCORE)
 #define mpi_testsome_ mpi_testsome
 #endif

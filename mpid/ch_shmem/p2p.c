@@ -4,8 +4,9 @@
 
 #define p2p_dprintf printf
 
+/* Note that SHMAT not yet supported */
 #if !defined(MPI_solaris) && !defined(MPI_IRIX) && !defined(MPI_hpux) && \
-    !defined(HAVE_MMAP)
+    !defined(HAVE_MMAP) && !defined(HAVE_SHMAT)
     ??? shmem device not defined for this architecture  
 #endif
 
@@ -65,9 +66,8 @@ int memsize;
 			PROT_READ|PROT_WRITE|PROT_EXEC,
 			MAP_SHARED, 
 			p2p_shared_map_fd, (off_t) 0);
-#endif
 
-#if defined(MPI_hpux) || defined(HAVE_MMAP)
+#elif defined(MPI_hpux) || defined(HAVE_MMAP)
     p2p_start_shared_area = (char *) mmap((caddr_t) 0, memsize,
 			PROT_READ|PROT_WRITE|PROT_EXEC,
 			MAP_SHARED|MAP_ANONYMOUS|MAP_VARIABLE, 
@@ -76,6 +76,7 @@ int memsize;
     /* fprintf(stderr,"memsize = %d, address = 0x%x\n",
 	    memsize,p2p_start_shared_area); */
 
+#elif defined(HAVE_SHMAT)
 #endif
 
     if (p2p_start_shared_area == (caddr_t)-1)
@@ -85,7 +86,8 @@ int memsize;
 		  memsize);
     }
     xx_init_shmalloc(p2p_start_shared_area,memsize);
-#endif
+#endif /* USE_XX_SHMALLOC */
+
 
 }
 
@@ -113,9 +115,8 @@ int size;
 
 #if defined(MPI_IRIX)
     p = usmalloc(size,p2p_sgi_usptr);
-#endif
 
-#if defined(USE_XX_SHMALLOC)
+#elif defined(USE_XX_SHMALLOC)
     p = (void *) xx_shmalloc(size);
 #endif
 
@@ -128,9 +129,8 @@ char *ptr;
 
 #if defined(MPI_IRIX)
     usfree(ptr,p2p_sgi_usptr);
-#endif
 
-#if  defined(USE_XX_SHMALLOC)
+#elif defined(USE_XX_SHMALLOC)
   (void) xx_shfree(ptr);
 #endif
 
@@ -168,10 +168,148 @@ p2p_lock_t *L;
 }
 **********/
 #endif /* MPID_CACHE_ALIGN */
-#endif /* MPI_IRIX */
+#elif defined(HAVE_SHMAT)
+/* This is the SYSV_IPC from p4.  It is here because, under AIX 4.x, it
+   was suggested that shmat would be faster than mmap */
+
+/* Currently unedited!!!*/
+int init_sysv_semset(setnum)
+int setnum;
+{
+    int i, semid;
+#   if defined(SUN_SOLARIS)
+    union semun{
+      int val;
+      struct semid_ds *buf;
+      ushort *array;
+      } arg;
+#   else
+#   if defined(IBM3090) || defined(RS6000) ||    \
+       defined(TITAN)  || defined(DEC5000) ||    \
+       defined(HP) || defined(KSR)  
+    int arg;
+#   else
+    union semun arg;
+#   endif
+#endif
+
+#   if defined(SUN_SOLARIS)
+    arg.val = 1;
+#   else
+#   if defined(IBM3090) || defined(RS6000) ||    \
+       defined(TITAN)  || defined(DEC5000) ||    \
+       defined(HP) || defined(KSR) 
+    arg = 1;
+#   else
+    arg.val = 1;
+#   endif
+#   endif
+
+    if ((semid = semget(getpid()+setnum,10,IPC_CREAT|0600)) < 0)
+    {
+	p4_error("semget failed for setnum=%d\n",setnum);
+    }
+    for (i=0; i < 10; i++)
+    {
+	if (semctl(semid,i,SETVAL,arg) == -1)
+	{
+	    p4_error("semctl setval failed\n",-1);
+	}
+    }
+    return(semid);
+}
+
+void MD_lock_init(L)
+MD_lock_t *L;
+{
+int setnum;
+
+    MD_lock(&(p4_global->slave_lock));
+    setnum = p4_global->sysv_next_lock / 10;
+    if (setnum > P4_MAX_SYSV_SEMIDS)
+    {
+	p4_error("exceeding max num of p4 semids\n",P4_MAX_SYSV_SEMIDS);
+    }
+    if (p4_global->sysv_next_lock % 10 == 0)
+    {
+	p4_global->sysv_semid[setnum] = init_sysv_semset(setnum);
+	p4_global->sysv_num_semids++;
+    }
+    L->semid  = p4_global->sysv_semid[setnum];
+    L->semnum = p4_global->sysv_next_lock - (setnum * 10);
+    p4_global->sysv_next_lock++;
+    MD_unlock(&(p4_global->slave_lock));
+}
 
 
-p2p_cleanup()
+void MD_lock(L)
+MD_lock_t *L;
+{
+    sem_lock[0].sem_num = L->semnum;
+    if (semop(L->semid,&sem_lock[0],1) < 0)
+    {
+        p4_error("OOPS: semop lock failed\n",*L);
+    }
+}
+
+void MD_unlock(L)
+MD_lock_t *L;
+{
+    sem_unlock[0].sem_num = L->semnum;
+    if (semop(L->semid,&sem_unlock[0],1) < 0)
+    {
+        p4_error("OOPS: semop unlock failed\n",L);
+    }
+}
+
+void MD_init_shmem()
+{
+    int i,nsegs;
+    unsigned size, segsize = P2_SYSV_SHM_SEGSIZE;
+    char *mem, *tmem, *pmem;
+
+    if (memsize  &&  (memsize % P4_SYSV_SHM_SEGSIZE) == 0)
+	nsegs = memsize / segsize;
+    else
+	nsegs = memsize / segsize + 1;
+    size = nsegs * segsize;
+    if ((sysv_shmid[0] = shmget(getpid(),segsize,IPC_CREAT|0600)) == -1)
+    {
+	p4_error("OOPS: shmget failed\n",sysv_shmid[0]);
+    }
+    if ((mem = (char *)shmat(sysv_shmid[0],NULL,0)) == (char *)-1)
+    {
+	p4_error("OOPS: shmat failed\n",mem);
+    }
+    sysv_num_shmids++;
+    nsegs--;
+    pmem = mem;
+    for (i=1; i <= nsegs; i++)
+    {
+	if ((sysv_shmid[i] = shmget(i+getpid(),segsize,IPC_CREAT|0600)) == -1)
+	{
+	    p4_error("OOPS: shmget failed\n",sysv_shmid[i]);
+	}
+        if ((tmem = (char *)shmat(sysv_shmid[i],pmem+segsize,0)) == (char *)-1)
+        {
+            if ((tmem = (char *)shmat(sysv_shmid[i],pmem-segsize,0)) == (char *)-1)
+            {
+                p4_error("OOPS: shmat failed\n",tmem);
+            }
+	    else
+	    {
+		mem = tmem;
+	    }
+        }
+	sysv_num_shmids++;
+	pmem = tmem;
+    }
+    xx_init_shmalloc(mem,size);
+}
+#endif /* MPI_IRIX etc */
+
+
+void p2p_cleanup()
 {
  
 #if defined(MPI_IRIX)
@@ -304,9 +442,13 @@ sginap(0);
   Then call xx_shmalloc() and xx_shfree() as usual.
 */
 
+#ifdef MPID_CACHE_LINE_SIZE
+#define ALIGNMENT (2*MPID_CACHE_LINE_SIZE)
+#define LOG_ALIGN (MPID_CACHE_LINE_LOG_SIZE+1)
+#else
 #define LOG_ALIGN 6
 #define ALIGNMENT (1 << LOG_ALIGN)
-
+#endif
 /* ALIGNMENT is assumed below to be bigger than sizeof(p2p_lock_t) +
    sizeof(Header *), so do not reduce LOG_ALIGN below 4 */
 

@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_sub.c,v 1.16 1994/12/15 17:34:16 gropp Exp $
+ *  $Id: cart_sub.c,v 1.18 1995/07/25 02:44:25 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -61,7 +61,12 @@ MPI_Comm *comm_new;
 
   /* Check for special case */
   if ( num_remain_dims == 0 ) {
-    (*comm_new) = MPI_COMM_NULL;
+      /* In this case, we consider this a 0-dimensional point.  In this
+	 case, we make EACH member of the communicator a separate 
+	 new communicator (basically a dup of comm_self) */
+      mpi_errno = MPI_Comm_dup( MPI_COMM_SELF, comm_new );
+      /* Eventually, we should attach some sort of 0-dimensional 
+	 cartesian topology to this */
     return (mpi_errno);
   }
 
@@ -93,7 +98,7 @@ MPI_Comm *comm_new;
       }
   
     /* Compute my position */
-    MPI_Comm_rank ( (*comm_new), &rank );
+    MPIR_Comm_rank ( (*comm_new), &rank );
     for ( i=0; i < num_remain_dims; i++ ) {
       remain_total = remain_total / new_topo->cart.dims[i];
       new_topo->cart.position[i]  = rank / remain_total;

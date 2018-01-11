@@ -1,12 +1,12 @@
 /*
- *  $Id: sbcnst.c,v 1.12 1995/03/05 23:01:43 gropp Exp $
+ *  $Id: sbcnst.c,v 1.14 1995/07/25 02:46:40 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: sbcnst.c,v 1.12 1995/03/05 23:01:43 gropp Exp $";
+static char vcid[] = "$Id: sbcnst.c,v 1.14 1995/07/25 02:46:40 gropp Exp $";
 #endif
 
 #include <stdio.h>
@@ -61,8 +61,9 @@ typedef struct {
 
 /* Context for fixed-block allocator */
 typedef struct {
-    MPIR_SBiAlloc *blocks;	         /* allocated storage */
-    MPIR_SBblock  *avail;             /* fixed blocks (of size sizeb) to provide */
+    MPID_THREAD_DS_LOCK_DECLARE  /* Lock variable for thread locking */
+    MPIR_SBiAlloc *blocks;	 /* allocated storage */
+    MPIR_SBblock  *avail;        /* fixed blocks (of size sizeb) to provide */
     int     nbfree, nballoc,     /* blocks free and in use */
             sizeb,               /* sizes in bytes */
             sizeincr;            /* # of blocks to allocate when more needed */
@@ -83,6 +84,7 @@ if (!head) {
    MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, "Not enough space" );
    return 0;
    }
+MPID_THREAD_DS_LOCK_INIT(head)
 head->nbfree   = 0;
 head->nballoc  = 0;
 head->sizeb    = bsize;
@@ -108,7 +110,7 @@ void MPIR_SBfree( sb, ptr )
 MPIR_SBHeader *sb;
 void     *ptr;
 {
-MPID_THREAD_LOCK(0,0);
+MPID_THREAD_DS_LOCK(sb)
 ((MPIR_SBblock *)ptr)->next = (char *)(sb->avail);
 sb->avail              = (MPIR_SBblock *)ptr;
 #ifdef DEBUG
@@ -117,7 +119,7 @@ sb->avail              = (MPIR_SBblock *)ptr;
 #endif
 sb->nbfree++;
 sb->nballoc--;
-MPID_THREAD_UNLOCK(0,0);
+MPID_THREAD_DS_UNLOCK(sb)
 }
 
 /*
@@ -189,12 +191,12 @@ MPIR_SBHeader *sb;
 {
 MPIR_SBblock *p;
 
-MPID_THREAD_LOCK(0,0);	
+MPID_THREAD_DS_LOCK(sb)
 if (!sb->avail) {
     MPIR_SBiAllocate( sb, sb->sizeb, sb->sizeincr );   /* nbincr instead ? */
     if (!sb->avail) {
 	MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, "Not enough space" );
-	MPID_THREAD_UNLOCK(0,0);
+	MPID_THREAD_DS_UNLOCK(sb)
 	return 0;
 	}
     }
@@ -211,7 +213,7 @@ sb->avail = (MPIR_SBblock *)(p->next);
 sb->nballoc++;
 sb->nbfree--;
 /* printf( "Allocating a block at address %x\n", (char *)p ); */
-MPID_THREAD_UNLOCK(0,0);
+MPID_THREAD_DS_UNLOCK(sb)
 return (void *)p;
 }	
 
@@ -247,15 +249,15 @@ MPIR_SBHeader *sb;
 {
 MPIR_SBiAlloc *p, *pn;
 
-MPID_THREAD_LOCK(0,0);	
+MPID_THREAD_DS_LOCK(sb)
 p = sb->blocks;
 while (p) {
     pn = p->next;
     FREE( p );
     p = pn;
     }
+MPID_THREAD_DS_UNLOCK(sb)
 FREE( sb );
-MPID_THREAD_UNLOCK(0,0);
 }
 
 /* Decrement the use count for the block containing p */
@@ -267,7 +269,7 @@ char *p = (char *)ptr;
 MPIR_SBiAlloc *b;
 char *first, *last;
 
-MPID_THREAD_LOCK(0,0);	
+MPID_THREAD_DS_LOCK(sb)
 b = sb->blocks;
 /* printf( "Releasing a block at address %x\n", (char *)ptr ); */
 while (b) {
@@ -279,7 +281,7 @@ while (b) {
 	}
     b = b->next;
     }
-MPID_THREAD_UNLOCK(0,0);
+MPID_THREAD_DS_UNLOCK(sb)
 }
 
 /* Release any unused chuncks */
@@ -288,7 +290,7 @@ MPIR_SBHeader *sb;
 {
 MPIR_SBiAlloc *b, *bnext, *bprev = 0;
 
-MPID_THREAD_LOCK(0,0);	
+MPID_THREAD_DS_LOCK(sb)
 b = sb->blocks;
 while (b) {
     bnext = b->next;
@@ -302,7 +304,7 @@ while (b) {
 	bprev = b;
     b = bnext;
     }
-MPID_THREAD_UNLOCK(0,0);
+MPID_THREAD_DS_UNLOCK(sb)
 }
 
 /* Print the allocated blocks */
@@ -324,7 +326,7 @@ MPIR_SBHeader *sb;
 {
 MPIR_SBblock *p, *pnext;
 	
-MPID_THREAD_LOCK(0,0);	
+MPID_THREAD_DS_LOCK(sb)
 p         = sb->avail;
 while (p) {
     pnext = (MPIR_SBblock *)(p->next);
@@ -333,7 +335,7 @@ while (p) {
     MPIR_SBrelease( sb, p );
     p     = pnext;
     }
-MPID_THREAD_UNLOCK(0,0);
+MPID_THREAD_DS_UNLOCK(sb)
 }
 
 #ifdef DEBUG
@@ -353,4 +355,5 @@ while (p) {
 	}
     p     = p->next;
     }
+}
 #endif

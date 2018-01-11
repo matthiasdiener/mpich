@@ -270,7 +270,7 @@ char *username;
 	    {
 		rc = execlp(remote_shell, remote_shell,
 			    host, "-l", username, "-n", pgm,
-			    myhost, serv_port_c, am_slave_c, 0);
+			    myhost, serv_port_c, am_slave_c, NULL);
 		/* host,"-n","cluster","5",pgm,myhost,serv_port_c,0); for butterfly */
 		if (rc < 0)
 		    p4_error("net_create_slave: execlp", rc);

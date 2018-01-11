@@ -248,6 +248,22 @@ typedef struct {
 #define MPID_THREAD_LOCK_INIT(ctx,comm)
 #define MPID_THREAD_LOCK_FINISH(ctx,comm)
 
+/* These four are for locking individual data-structures.  The data-structure
+   should contain something like
+   typedef struct {
+      MPID_THREAD_DS_LOCK_DECLARE
+      other stuff
+      } foo;
+   and then use
+   foo *p;
+   MPID_THREAD_DS_LOCK(p)
+   MPID_THREAD_DS_UNLOCK(p)
+ */
+#define MPID_THREAD_DS_LOCK_DECLARE
+#define MPID_THREAD_DS_LOCK_INIT(p)
+#define MPID_THREAD_DS_LOCK(p)
+#define MPID_THREAD_DS_UNLOCK(p)
+
 /* 
    Context and Communicator operations
  */
@@ -261,18 +277,9 @@ typedef struct {
    Code needs to be inserted into Comm_init and Comm_free to make these
    provide any benefit.  This is still under development.
  */
-#ifdef MPID_USE_ADI_COLLECTIVE
+#if MPID_HAS_COLLECTIVE
 #define MPID_Comm_init(ctx,comm,newcomm) MPID_MEIKO_Comm_init(comm,newcomm)
 #define MPID_Comm_free(ctx,comm) MPID_MEIKO_Comm_free(comm)
-#define MPID_Barrier(ctx,comm) MPID_MEIKO_Barrier(comm)
-/* See mpich/src/coll/reduceutil.c and reduce.c; defining MPID_Reduce
-   make reduceutil use MPID_Reduce_xxx_xxx */
-#define MPID_Reduce
-#define MPID_Reduce_sum_int(ctx,send,recv,comm) \
-      MPID_MEIKO_Reduce_sum_int(send,recv,comm)
-#define MPID_Reduce_sum_double(ctx,send,recv,comm) \
-      MPID_MEIKO_Reduce_sum_double(send,recv,comm)
-/* Others as they are determined */
 #else
 #define MPID_Comm_init(ctx,comm,newcomm) MPI_SUCCESS
 #define MPID_Comm_free(ctx,comm) MPI_SUCCESS

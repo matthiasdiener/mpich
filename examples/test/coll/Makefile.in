@@ -43,8 +43,10 @@ EXECS = coll1 coll2 coll3 coll4 coll5 coll6 coll7 coll8 coll9 \
 
 default: $(EXECS)
 
-testing: default $(MPIR_HOME)/util/mpirun
-	runtests
+#
+# Note that runtests builds the executables as required
+testing: $(MPIR_HOME)/util/mpirun
+	-./runtests $(TESTARGS)
 
 linktest: default clean
 
@@ -105,6 +107,7 @@ allredf: mpif.h allredf.o $(MPILIB)
 
 mpif.h: $(MPIR_HOME)/include/mpif.h
 	if test \! -f mpif.h ; then \
+	    /bin/rm -f mpif.h ; \
 	    ln -s $(MPIR_HOME)/include/mpif.h . ; \
 	fi
 clean:

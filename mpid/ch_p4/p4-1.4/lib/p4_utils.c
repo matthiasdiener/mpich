@@ -22,7 +22,10 @@ int *argc;
 char **argv;
 {
     int i, rc;
+    char *env_value;
+    int p4_globmemsize;
     P4BOOL am_slave = FALSE;
+    extern char *getenv();
 
     /*****
     char hname[100];
@@ -34,8 +37,13 @@ char **argv;
 
     sprintf(whoami_p4, "xm_%d", getpid());
 
+    p4_globmemsize = GLOBMEMSIZE;		/* 7/12/95, bri@sgi.com */
+    env_value = getenv("P4_GLOBMEMSIZE");	/* 7/12/95, bri@sgi.com */
+    if (env_value)				/* 7/12/95, bri@sgi.com */
+	    p4_globmemsize = atoi(env_value);	/* 7/12/95, bri@sgi.com */
+    globmemsize = p4_globmemsize;		/* 7/12/95, bri@sgi.com */
+
     logging_flag = FALSE;
-    globmemsize = GLOBMEMSIZE;
     sserver_port = 753;
     process_args(argc,argv);
 
@@ -195,6 +203,7 @@ int p4_get_my_id_from_proc()
     int i, my_unix_id;
     struct proc_info *pi;
     struct hostent *myhp, *pghp;
+    struct hostent myh;			/* 7/12/95, bri@sgi.com */
 
 #   if (defined(IPSC860)  &&  !defined(IPSC860_SOCKETS))  ||  \
        (defined(CM5)      &&  !defined(CM5_SOCKETS))      ||  \
@@ -206,7 +215,12 @@ int p4_get_my_id_from_proc()
     my_unix_id = getpid();
     if (p4_local->my_id == LISTENER_ID)
 	return (LISTENER_ID);
+#ifdef SGI
+    myh = *gethostbyname_p4(p4_global->my_host_name);	/* 7/12/95, bri@sgi.com */
+    myhp = &myh;					/* 7/12/95, bri@sgi.com */
+#else
     myhp = gethostbyname_p4(p4_global->my_host_name);
+#endif
 
     for (pi = p4_global->proctable, i = 0; i < p4_global->num_in_proctable; i++, pi++)
     {

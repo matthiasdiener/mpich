@@ -78,8 +78,11 @@ printf( "#RSH_COMMAND# %s %c(ps auxww | grep serv_p4 | grep -v grep | grep -v #R
      $do_script .tmp
      /bin/rm -f .tmp
 else
+    # Using machine[$1] == "" allows use to capture duplicates in the
+    # list of machines before starting servers on them
     echo "$defport $serverloc" | awk '{ if (NR==1) { PORT=$1;SERV=$2;} else {
-	if (substr($1,1,1) != "#") {
+	if (substr($1,1,1) != "#" && machine[$1]=="") {
+	    machine[$1]=PORT;
 	    printf( "#RSH_COMMAND# %s %s -d -p %s &\n", $1, SERV, PORT );
 	    printf( "echo starting %s on %s with %s\n", SERV, $1, PORT );
 	}}}' - $filename | $do_script

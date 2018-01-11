@@ -1,5 +1,5 @@
 /*
- *  $Id: mpir.h,v 1.43 1995/06/01 20:53:57 gropp Exp $
+ *  $Id: mpir.h,v 1.46 1995/07/25 02:41:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -7,12 +7,16 @@
 
 /* include file for the MPIR implementation of MPI */
 
-#include <stdio.h>
 
 #ifndef _MPIR_INCLUDE
 #define _MPIR_INCLUDE
 
-#include "mpid.h"
+#include <stdio.h>
+#include "mpi.h"
+#include "mpi_bc.h"
+#include "dmpi.h"
+#include "dm.h"
+/* #include "mpid.h" */
 
 /*****************************************************************************
 *                           MPIR DATA STRUCTURES                             *
@@ -27,7 +31,8 @@ struct MPIR_DATATYPE {
     int          is_contig; /* whether entirely contiguous */
     int              basic; /* Is this a basic type */
     int          permanent; /* Is this a permanent type */
-    int             ub, lb; /* upper/lower bound of type */
+    MPI_Aint        ub, lb; /* upper/lower bound of type */
+    MPI_Aint real_ub, real_lb; /* values WITHOUT TYPE_UB/TYPE_LB */
     int             has_ub; /* Indicates that the datatype has a TYPE_UB */
     int             has_lb; /* Indicates that the datatype has a TYPE_LB */
     int             extent; /* extent of this datatype */
@@ -231,6 +236,7 @@ typedef struct {        /* header for queues of things like handles */
     MPIR_QEL *deliv_last;   /* last in delivery order */
     int      currlen;       /* current length */
     int      maxlen;        /* maximum since beginning of run */
+    MPID_THREAD_DS_LOCK_DECLARE   /* Used for controlling access by threads */
 } MPIR_QHDR;
 
 /* >>>> is this still in use <<<< */
@@ -259,6 +265,12 @@ extern void *MPIR_topo_els;/* sbcnst topology elements */
 extern MPIR_QHDR MPIR_posted_recvs;
 extern MPIR_QHDR MPIR_unexpected_recvs;
 
+/* Predefined function tables for collective routines, the device
+ * can also use its own, but these are the defaults.
+ */
+extern MPIR_COLLOPS * MPIR_inter_collops;   /* Simply raises appropriate error */
+extern MPIR_COLLOPS * MPIR_intra_collops;   /* Do the business using pt2pt     */
+
 /* MPIR routines are defined in mpiimpl.h */
 
 /* MPIR process id (from device) */
@@ -280,8 +292,35 @@ extern int MPIR_F_TRUE, MPIR_F_FALSE;
 extern void *MPIR_F_MPI_BOTTOM;
 
 /* MPIR_F_PTR checks for the Fortran MPI_BOTTOM and provides the value 
-   MPI_BOTTOM if found */
-#define MPIR_F_PTR(a) (((a)==(MPIR_F_MPI_BOTTOM))?MPI_BOTTOM:a)
+   MPI_BOTTOM if found 
+   See src/pt2pt/addressf.c for why MPIR_F_PTR(a) is just (a)
+*/
+/*  #define MPIR_F_PTR(a) (((a)==(MPIR_F_MPI_BOTTOM))?MPI_BOTTOM:a) */
+#define MPIR_F_PTR(a) (a)
+
+/*  
+ * These are hooks for Fortran characters.
+ * MPID_FCHAR_T is the type of a Fortran character argument
+ * MPID_FCHAR_LARG is the "other" argument that some Fortran compilers use
+ * MPID_FCHAR_STR gives the pointer to the characters
+ */
+#ifdef MPID_CHARACTERS_ARE_CRAYPVP
+typedef <whatever> MPID_FCHAR_T;
+#define MPID_FCHAR_STR(a) (a)->characters   <or whatever>
+#define MPID_FCHAR_LARG(d) 
+#else
+typedef char *MPID_FCHAR_T;
+#define MPID_FCHAR_STR(a) a
+#define MPID_FCHAR_LARG(d) ,d
+#endif
+
+/*
+ * This allows us to define the C type that corresponds to a Fortran
+ * integer with e.g., -DMPIR_FORT_INT_T=long
+ */
+#ifndef MPIR_FORT_INT_T
+#define MPIR_FORT_INT_T int
+#endif
 
 /* 
    Message tag ranges.  This may be overridden in mpid.h .

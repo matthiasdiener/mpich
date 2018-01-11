@@ -52,13 +52,12 @@ MPI_CSOURCES = mperror.c isend.c irecv.c wait.c test.c \
 # Remove the routines with Fortran LOGICALs from MPI_CSOURCES
 # Remove the routines that create or free MPI_Request objects
 # Remove the routines that create or free MPI_Datatype objects
+# Remove the routines that use MPI_Aint.
 MPI_TSOURCES = mperror.c \
                cancel.c probe.c \
 	       getcount.c \
 	       bufattach.c \
-	       type_extent.c \
-	       type_lb.c type_size.c \
-	       type_ub.c type_util.c \
+	       type_util.c \
 	       getelements.c pack_size.c
 
 MPI_WSOURCES = isendf.c irecvf.c waitf.c testf.c \
@@ -119,6 +118,8 @@ default_all: $(MPI_OBJECTS)
 	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $?
 profile_all: $(MPI_OBJECTS)
 	$(AR) ../../lib/$(ARCH)/$(COMM)/libpmpi.a $?
+wrapperlib: $(MPI_WOBJECTS)
+	$(AR) ../../lib/$(ARCH)/$(COMM)/libfmpi.a $?	
 	
 default_conly: $(MPI_COBJECTS)
 	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $?

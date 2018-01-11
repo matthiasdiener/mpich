@@ -32,16 +32,18 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_type_hvector_( count, blocklen, stride, old_type, newtype, __ierr )
-int*count;
-int*blocklen;
-MPI_Aint*stride;
+void mpi_type_hvector_( count, blocklen, stride, old_type, newtype, __ierr )
+int          *count;
+int          *blocklen;
+int          *stride;
 MPI_Datatype old_type;
 MPI_Datatype *newtype;
-int *__ierr;
+int          *__ierr;
 {
 MPI_Datatype lnewtype = 0;
-*__ierr = MPI_Type_hvector(*count,*blocklen,*stride,
+MPI_Aint     c_stride = (MPI_Aint)*stride;
+
+*__ierr = MPI_Type_hvector(*count,*blocklen,c_stride,
 	(MPI_Datatype)MPIR_ToPointer( *(int*)(old_type) ),&lnewtype);
 *(int*)newtype = MPIR_FromPointer(lnewtype);
 }

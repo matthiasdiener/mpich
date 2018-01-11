@@ -1,12 +1,12 @@
 /*
- *  $Id: getcount.c,v 1.8 1994/12/15 17:10:49 gropp Exp $
+ *  $Id: getcount.c,v 1.10 1995/07/25 02:54:17 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: getcount.c,v 1.8 1994/12/15 17:10:49 gropp Exp $";
+static char vcid[] = "$Id: getcount.c,v 1.10 1995/07/25 02:54:17 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -21,6 +21,9 @@ Input Parameters:
 Output Parameter:
 . count - number of received elements (integer) 
   
+Notes:
+If the size of the datatype is zero, this routine will return a count of
+zero.  
 @*/
 int MPI_Get_count( status, datatype, count )
 MPI_Status   *status;
@@ -33,10 +36,19 @@ int          *count;
 			   "Error in MPI_GET_COUNT" );
 
   /* Check for correct number of bytes */
-  if ((status->count % (datatype->size)) != 0)
-	(*count) = MPI_UNDEFINED;
-  else
-	(*count) = status->count / (datatype->size);
+  if (datatype->size == 0) {
+      if (status->count > 0)
+	  (*count) = MPI_UNDEFINED;
+      else
+	  /* This is ambiguous */
+	  (*count) = 0;
+      }
+  else {
+      if ((status->count % (datatype->size)) != 0)
+	  (*count) = MPI_UNDEFINED;
+      else
+	  (*count) = status->count / (datatype->size);
+      }
 
   return (MPI_SUCCESS);
 }

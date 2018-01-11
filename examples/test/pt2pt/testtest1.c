@@ -9,7 +9,7 @@ main(argc, argv)
 int  argc;
 char **argv;
 {
-int data, to, from, tag, len, maxlen, np, myid, flag, dest, src;
+int data, to, from, tag, maxlen, np, myid, flag, dest, src;
 MPI_Status status, status1;
 MPI_Request request;
 
@@ -30,7 +30,6 @@ else {
 
 if (myid == src) {
     to   = dest;
-    len  = 1;
     tag = 2000;
     data = 100;
 #ifdef VERBOSE
