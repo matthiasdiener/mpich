@@ -13,7 +13,7 @@
 
 static int debugmask;
 
-acquire_lock(ip)
+MPID_SHMEM__acquire_lock(ip)
 #ifdef USE_VOL
 	int * volatile ip;
 #else
@@ -36,27 +36,14 @@ printf("trying to acquire lock %x\n", ip);
 #ifdef USE_VOL
 		while (!(*ip)) count++;
 #else
-		while (!__read32(ip)) count++;
+		while (!MPID_SHMEM__read32(ip)) count++;
 #endif
-		if (__ldcws32(ip))
+		if (MPID_SHMEM__ldcws32(ip))
 			break;
 	}
 	if (debugmask & SEM) {
 printf("Lock %x acquired after %d polls\n", ip, count);
 	}
 /* printf("%d: acquired_lock, ip %x *ip %x\n", getpid(), ip, *ip); */
-	return 0;
-}
-
-release_lock(ip)
-	int *ip;
-{
-
-/* printf("%d: releasing_lock, ip %x *ip %x\n", getpid(), ip, *ip);*/
-	if (debugmask & SEM) {
-printf("Releasing lock %x\n", ip);
-	}
-	*ip = 1;
-/* printf("%d: released_lock, ip %x *ip %x\n", getpid(), ip, *ip); */
 	return 0;
 }

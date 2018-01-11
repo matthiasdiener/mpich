@@ -1,5 +1,5 @@
 /*
- *  $Id: bsend_init.c,v 1.21 1995/07/25 02:54:43 gropp Exp $
+ *  $Id: bsend_init.c,v 1.22 1995/09/13 21:46:53 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -69,13 +69,6 @@ MPI_Request   *request;
     handleptr->shandle.mode         = MPIR_MODE_BUFFERED;
     handleptr->shandle.datatype     = datatype;
 
-    /* Using pack size should guarentee us enough space */
-    MPI_Pack_size( count, datatype, comm, &psize );
-    if (mpi_errno = 
-	MPIR_GetBuffer( psize, handleptr, buf, count, datatype, &bufp )) 
-	return MPIR_ERROR( comm, mpi_errno, "Error in MPI_Bsend_init" );
-
-    handleptr->shandle.bufadd       = bufp;
     handleptr->shandle.count        = count;
     handleptr->shandle.persistent   = 1;
 #ifdef MPID_HAS_HETERO
@@ -85,6 +78,19 @@ MPI_Request   *request;
 			    &((handleptr)->shandle.dev_shandle));
     MPID_Set_send_is_nonblocking( comm->ADIctx, 
 				 &((handleptr)->shandle.dev_shandle), 1 );
+
+    /* Using pack size should guarentee us enough space.
+       We do this as the last option since this is actually creating an
+       internal request which is a copy of the external on (except that
+       it is a "regular" send) */
+    MPI_Pack_size( count, datatype, comm, &psize );
+    if (mpi_errno = 
+	MPIR_GetBuffer( psize, handleptr, buf, count, datatype, &bufp )) 
+	return MPIR_ERROR( comm, mpi_errno, "Error in MPI_Bsend_init" );
+    /* **** */
+    handleptr->shandle.bufadd       = bufp;
+    /* **** */
+    handleptr->shandle.bufadd       = 0;
 
     return MPI_SUCCESS;
 }

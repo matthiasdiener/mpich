@@ -102,6 +102,7 @@ char **argv;
     MPI_Comm_free( &comm_temp );
     MPI_Comm_free( &comm_cart );
     Test_Waitforall( );
-    MPI_Finalize();
     if (errors) printf( "[%d] done with %d ERRORS!\n", rank,errors );
+    MPI_Finalize();
+    return 0;
 }

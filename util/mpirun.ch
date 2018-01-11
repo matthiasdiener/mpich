@@ -1,12 +1,12 @@
 #! /bin/sh
 #
 if [ "$MPIR_HOME" = "" ] ; then 
-    MPIR_HOME=/tmp_mnt/Net/alriga/alriga9/MPI/mpich
+    MPIR_HOME=/home/MPI/mpich
 fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
 fi
-MPIRUN_HOME=$MPIR_HOME/util
+MPIRUN_HOME=$MPIR_HOME/bin
 if [ "$argsset" = "" ] ; then
    . $MPIRUN_HOME/mpirun.args
    argsset=1

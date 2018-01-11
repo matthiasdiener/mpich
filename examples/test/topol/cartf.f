@@ -44,8 +44,12 @@ c     &            nbrtop, nbrbottom
         call MPI_Cart_get( comm2d, 2, dims, periods, coords, ierr )
         call MPE_DECOMP1D( nx, dims(1), coords(1), sx, ex )
         call MPE_DECOMP1D( ny, dims(2), coords(2), sy, ey )
+c
+c       Fortran allows print to include * and , in the output!
+c       So, we use an explicit Format
         if ( myid .eq. 0 )
-     &    print *, " Dims: ", dims(1), dims(2)
+     &    print 10, dims(1), dims(2)
+ 10     format( " Dims: ", i4, i4 )
 c        print *, "Process ", myid, " has coords of ", coords
 c        print *, "Process ", myid, " has sx,ex/sy,ey ", sx, ex, sy, ey
         call MPI_TYPE_VECTOR( ey-sy+3, 1, ex-sx+3,
@@ -166,10 +170,12 @@ c        write (*,*) 'setupv: ', myid, sx, ex, sy, ey
         do j = sy,ey
             k = j * 1000.0
             do i = sx,ex
-                v(i,j)   = i + k
+                v(i,j)    = i + k
+                v(i,sy-1) = 0
+                v(i,ey+1) = 0
             enddo
-c           v(   0,j) = -j
-c           v(ex+1,j) = -j * 10
+            v(sx-1,j) = 0
+            v(ex+1,j) = 0
         enddo
         return
         end

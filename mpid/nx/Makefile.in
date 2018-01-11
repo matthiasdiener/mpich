@@ -1,0 +1,68 @@
+#
+#  $Id: Makefile.in,v 1.1.1.2 1995/05/18 11:16:27 jim Exp $
+#
+#  (C) 1993 by Argonne National Laboratory and Mississipi State University.
+#      All rights reserved.  See COPYRIGHT in top-level directory.
+#
+##### User configurable options #####
+
+ARCH        = @ARCH@
+COMM        = @COMM@
+DEVICE      = @DEVICE@
+BOPT        = @BOPT@
+MPIR_HOME   = @MPIR_HOME@
+INCLUDE_DIR = @INCLUDE_PATH@ -Impid/@DEVICE@ -Iinclude
+
+CC          = @CC@
+AR          = @AR@
+RANLIB      = @RANLIB@
+OPTFLAGS    = @OPTFLAGS@
+ICCLIB      = @ICCLIB@
+
+SHELL       = /bin/sh
+
+### End User configurable options ###
+
+ALL: default
+	
+LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
+CFLAGS   = @CFLAGS@ $(OPTFLAGS) -I../.. -I../../include -I./ \
+		-DMPID_DEVICE_CODE @DEVCFLAGS@
+SOURCE   = nxpriv.c
+SOURCEC  = $(SOURCE)
+SOURCEF  =
+MPI_OBJECTS = nxpriv.o
+
+default: $(ICCLIB) ../../lib/$(ARCH)/$(COMM)/libmpi.a
+
+# default_all is the same as default, but without the RANLIB.  This
+# can speed up the build (ranlibs can take a LONG time).  profile_all 
+# is the same, but for the profile library
+default_all: $(MPI_OBJECTS) $(ICCLIB)
+	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $?
+profile_all: $(MPI_OBJECTS) $(ICCLIB)
+	$(AR) ../../lib/$(ARCH)/$(COMM)/libpmpi.a $?
+	@ if test -d iCClib; \
+	then cd iCClib ;\
+		$(AR) ../../../lib/$(ARCH)/$(COMM)/libpmpi.a *.o ; \
+	fi
+
+clean:
+	/bin/rm -r -f *~ $(MPI_OBJECTS) $(ICCLIB)
+
+.c.o:
+	$(CC) $(CFLAGS) $(BASEOPT) -c $*.c $(MPI_PROFILE)
+
+../../lib/$(ARCH)/$(COMM)/libmpi.a: $(MPI_OBJECTS) 
+	$(AR) $@ $?
+	$(RANLIB) $@
+
+iCClib:
+	-if test -n "@ICCLIB@" ; then \
+		if test ! -d iCClib ; then 
+		mkdir iCClib ; fi ; \
+		cd iCClib ;\
+		ar x /usr/lib/libjmc.a ;\
+		ar x /usr/lib/libkmath.a dcopy.o; \
+		ar x /usr/lib/libkmath.a scopy.o; \
+		$(AR) ../../../lib/$(ARCH)/$(COMM)/libmpi.a *.o ; fi

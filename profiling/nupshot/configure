@@ -16,6 +16,11 @@
 
 
 
+
+
+
+
+
 progname="`echo $0 | sed 's:^\./\./:\./:'`"
 print_error() {
     echo "*# $*" 2>&1 ;
@@ -311,7 +316,30 @@ done
 #--------------------------------------------------------------------
 
 echo checking for sys/select.h
-echo checking for fd_set
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for fd_set""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 #include <sys/types.h>
@@ -319,6 +347,7 @@ int main() { exit(0); }
 int t() { fd_set readMask, writeMask; }
 EOF
 if eval $compile; then
+  echo "$ac_t""yes" 1>&1
   :
 else
   rm -rf conftest*
@@ -349,6 +378,7 @@ DEFS="$DEFS -DNO_FD_SET=1"
 fi
 rm -f conftest*
 
+    echo "$ac_t""no" 1>&1
 fi
 rm -f conftest*
 
@@ -508,7 +538,30 @@ rm -f conftest*
 LIBS_save="${LIBS}"
 LIBS="${LIBS} -lXt"
 have_lib=""
-echo checking for -lXt
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for -lXt""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 
@@ -516,9 +569,11 @@ int main() { exit(0); }
 int t() { main(); }
 EOF
 if eval $compile; then
+  echo "$ac_t""yes" 1>&1
   rm -rf conftest*
   have_lib="1"
 
+   else echo "$ac_t""no" 1>&1
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -602,7 +657,30 @@ else
     LIBS_save="${LIBS}"
 LIBS="${LIBS} -lX11"
 have_lib=""
-echo checking for -lX11
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for -lX11""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 
@@ -610,9 +688,11 @@ int main() { exit(0); }
 int t() { main(); }
 EOF
 if eval $compile; then
+  echo "$ac_t""yes" 1>&1
   rm -rf conftest*
   have_lib="1"
 
+   else echo "$ac_t""no" 1>&1
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -635,7 +715,30 @@ if test "$XLIBSW" = nope ; then
     LIBS_save="${LIBS}"
 LIBS="${LIBS} -lXwindow"
 have_lib=""
-echo checking for -lXwindow
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for -lXwindow""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 
@@ -643,9 +746,11 @@ int main() { exit(0); }
 int t() { main(); }
 EOF
 if eval $compile; then
+  echo "$ac_t""yes" 1>&1
   rm -rf conftest*
   have_lib="1"
 
+   else echo "$ac_t""no" 1>&1
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -671,7 +776,30 @@ fi
 LIBS_save="${LIBS}"
 LIBS="${LIBS} -lXbsd"
 have_lib=""
-echo checking for -lXbsd
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for -lXbsd""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 
@@ -679,9 +807,11 @@ int main() { exit(0); }
 int t() { main(); }
 EOF
 if eval $compile; then
+  echo "$ac_t""yes" 1>&1
   rm -rf conftest*
   have_lib="1"
 
+   else echo "$ac_t""no" 1>&1
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -694,7 +824,30 @@ fi
 LIBS_save="${LIBS}"
 LIBS="${LIBS} -lsocket"
 have_lib=""
-echo checking for -lsocket
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for -lsocket""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 
@@ -702,9 +855,11 @@ int main() { exit(0); }
 int t() { main(); }
 EOF
 if eval $compile; then
+  echo "$ac_t""yes" 1>&1
   rm -rf conftest*
   have_lib="1"
 
+   else echo "$ac_t""no" 1>&1
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -717,7 +872,30 @@ fi
 LIBS_save="${LIBS}"
 LIBS="${LIBS} -lnsl"
 have_lib=""
-echo checking for -lnsl
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for -lnsl""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 
@@ -725,9 +903,11 @@ int main() { exit(0); }
 int t() { main(); }
 EOF
 if eval $compile; then
+  echo "$ac_t""yes" 1>&1
   rm -rf conftest*
   have_lib="1"
 
+   else echo "$ac_t""no" 1>&1
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -743,7 +923,22 @@ if test -z "$TCL_DIR" ; then
    
 # Look for Tcl
 if test -z "$TCL_DIR" ; then
-echo checking for Tcl
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for Tcl""... $ac_c" 1>&1
 for dir in \
     /usr \
     /usr/local \
@@ -751,8 +946,14 @@ for dir in \
     /usr/local/tcl7.3-tk3.6 \
     /usr/local/tcl7.0 \
     /usr/local/tcl7.0-tk3.3 \
+    /usr/contrib \
+    /usr/contrib/tk3.6 \
+    /usr/contrib/tcl7.3-tk3.6 \
+    /usr/contrib/tk3.3 \
+    /usr/contrib/tcl7.0-tk3.3 \
     $HOME/tcl \
     $HOME/tcl7.3 \
+    /opt/Tcl \
     /opt/local \
     /opt/local/tcl7.0 \
     /local/encap/tcl-7.1 ; do
@@ -763,11 +964,28 @@ for dir in \
 done
 fi
 if test -n "$TCL_DIR" ; then 
-  echo "$ac_t""found $TCL_DIR" 1>&1
+  echo "$ac_t""found $TCL_DIR/include/tcl.h and $TCL_DIR/lib/libtcl.a" 1>&1
+else
+  echo "$ac_t""no" 1>&1
 fi
-# Look for Tk
+# Look for Tk (look in tcl dir if the code is nowhere else)
 if test -z "$TK_DIR" ; then
-echo checking for Tk
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for Tk""... $ac_c" 1>&1
 for dir in \
     /usr \
     /usr/local \
@@ -775,11 +993,17 @@ for dir in \
     /usr/local/tcl7.3-tk3.6 \
     /usr/local/tk3.3 \
     /usr/local/tcl7.0-tk3.3 \
+    /usr/contrib \
+    /usr/contrib/tk3.6 \
+    /usr/contrib/tcl7.3-tk3.6 \
+    /usr/contrib/tk3.3 \
+    /usr/contrib/tcl7.0-tk3.3 \
     $HOME/tcl \
     $HOME/tcl7.3 \
+    /opt/Tcl \
     /opt/local \
     /opt/local/tk3.6 \
-    /local/encap/tk-3.4 ; do
+    /local/encap/tk-3.4 $TCL_DIR ; do
     if test -r $dir/include/tk.h -a -r $dir/lib/libtk.a ; then
 	TK_DIR=$dir
 	break
@@ -787,19 +1011,38 @@ for dir in \
 done
 fi
 if test -n "$TK_DIR" ; then 
-  echo "$ac_t""found $TK_DIR" 1>&1
+  echo "$ac_t""found $TK_DIR/include/tk.h and $TK_DIR/lib/libtk.a" 1>&1
+else
+  echo "$ac_t""no" 1>&1
 fi
 
 fi
 if test -z "$TCL_DIR" ; then 
     print_error "Could not find libraries for TCL (needed for Upshot)"
     print_error "Please specify them with the -tcldir=path option."
+    print_error "Aborting build of nupshot"
     exit 1
 fi
 if test -z "$TK_DIR" ; then 
     print_error "Could not find libraries for TK (needed for Upshot)"
     print_error "Please specify them with the -tkdir=path option."
+    print_error "Aborting build of nupshot"
     exit 1
+fi
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
 fi
 echo $ac_n "checking for version of TK""... $ac_c" 1>&1
 /bin/rm -f conftestval
@@ -826,6 +1069,7 @@ echo "$ac_t""$TK_VERSION" 1>&1
 if test "$TK_VERSION" != 3.6 ; then
     print_error "This version of nupshot requires tk 3.6  The version in"
     print_error "$TK_DIR seems to be version $TK_VERSION."
+    print_error "Aborting build of nupshot"
     exit 1
 fi
 

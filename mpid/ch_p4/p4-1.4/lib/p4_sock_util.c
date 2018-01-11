@@ -95,7 +95,7 @@ int *skt;
     if (*skt < 0)
 	p4_error("net_setup_listener socket", *skt);
 
-#ifdef SGI
+#ifdef SGI_TEST
     net_set_sockbuf_size(-1,*skt);     /* 7/12/95, bri@sgi.com */
 #endif
 
@@ -129,7 +129,7 @@ int *skt;
     if (*skt < 0)
 	p4_error("net_setup_anon_listener socket", *skt);
 
-#ifdef SGI
+#ifdef SGI_TEST
     net_set_sockbuf_size(-1,*skt);	/* 7/12/95, bri@sgi.com */
 #endif
 
@@ -179,20 +179,23 @@ int skt;
 	p4_dprintfl(60, "net_accept - got accept\n");
     }
 
-#ifdef SGI
+#ifdef SGI_TEST
     net_set_sockbuf_size(-1,skt2);     /* 7/12/95, bri@sgi.com */
 #endif
 
 #ifdef CAN_DO_SETSOCKOPT
     SYSCALL_P4(rc, setsockopt(skt2, IPPROTO_TCP, TCP_NODELAY, (char *) &optval, sizeof(optval)));
-#endif
+
     sockbuffsize = SOCK_BUFF_SIZE;
-    /******************
+
+#ifdef SET_SOCK_BUF_SIZE
       if (setsockopt(skt2,SOL_SOCKET,SO_RCVBUF,(char *)&sockbuffsize,sizeof(sockbuffsize)))
       p4_dprintf("net_accept: setsockopt rcvbuf failed\n");
       if (setsockopt(skt2,SOL_SOCKET,SO_SNDBUF,(char *)&sockbuffsize,sizeof(sockbuffsize)))
       p4_dprintf("net_accept: setsockopt sndbuf failed\n");
-      ******************/
+#endif
+
+#endif
     /* Peter Krauss suggested eliminating these lines for HPs  */
     flags = fcntl(skt2, F_GETFL, 0);
     if (flags < 0)
@@ -286,7 +289,7 @@ int port, num_tries;
 	if (s < 0)
 	    p4_error("net_conn_to_listener socket", s);
 
-#ifdef SGI
+#ifdef SGI_TEST
         net_set_sockbuf_size(-1,s);    /* 7/12/95, bri@sgi.com */
 #endif
 
@@ -346,6 +349,8 @@ int size;
     int eof_counter = 0;
     struct timeval tv;
     fd_set read_fds;
+    int rc;
+    char tempbuf[1];
 
     p4_dprintfl( 99, "Beginning net_recv of %d on fd %d\n", size, fd );
     while (recvd < size)
@@ -354,6 +359,7 @@ int size;
 
 	SYSCALL_P4(n, read(fd, buf + recvd, size - recvd));
 	if (n == 0)		/* maybe EOF, maybe not */
+#if defined(P4SYSV)
 	{
 	    eof_counter++;
 
@@ -363,13 +369,33 @@ int size;
 	    FD_SET(fd, &read_fds);
 	    SYSCALL_P4(n1, select(fd+1, &read_fds, 0, 0, &tv));
 	    if (n1 == 1  &&  FD_ISSET(fd, &read_fds))
-		continue;
+	    {
+		rc = recv(fd, tempbuf, 1, MSG_PEEK);
+		if (rc == -1)
+		{
+		    /* -1 indicates ewouldblock (eagain) (check errno) */
+		    p4_error("net_recv recv:  got -1", -1);
+		}
+		if (rc == 0)	/* if eof */
+		{
+		    /* eof; a process has closed its socket; may have died */
+		    p4_error("net_recv recv:  EOF on socket", read_counter);
+		}
+		else
+		    continue;
+	    }
 	    sleep(1);
 	    if (eof_counter < 5)
 		continue;
 	    else
-		p4_error("net_recv read:  EOF on socket", read_counter);
+		p4_error("net_recv read:  probable EOF on socket", read_counter);
 	}
+#else
+	{
+	    /* Except on SYSV, n == 0 is EOF */
+	    p4_error("net_recv read:  probable EOF on socket", read_counter);
+        }
+#endif
 	if (n < 0)
 	{
 #           if defined(HP)
@@ -379,6 +405,18 @@ int size;
 #           endif
 	    {
 		block_counter++;
+		/* Consider doing a select here to wait for more data
+		   to arrive.  This may give better performance, 
+		   particularly when the system is actively involved in
+		   trying to get the message to us
+		 */
+#ifdef FOO
+		tv.tv_sec = 5;
+		tv.tv_usec = 0;
+		FD_ZERO(&read_fds);
+		FD_SET(fd, &read_fds);
+		SYSCALL_P4(n1, select(fd+1, &read_fds, 0, 0, &tv));
+#endif
 		continue;
 	    }
 	    else
@@ -404,13 +442,20 @@ int flag;
     int n, sent = 0;
     int write_counter = 0;
     int block_counter = 0;
+    int trial_size = size;
 
+    /* trial_size lets us back off from sending huge messages in a single
+       write without making many expensive calls to socket_msgs_available
+       (select).  But we have to set it large enough to let us do
+       long writes (since each write is itself expensive).
+       The backoff size should not be shorter than the socket_buffer_size.
+     */
     p4_dprintfl( 99, "Starting net_send of %d on fd %d\n", size, fd );
     while (sent < size)
     {
 	write_counter++;		/* for debugging */
-
-	SYSCALL_P4(n, write(fd, buf + sent, size - sent));
+	if (size - sent < trial_size) trial_size = size - sent;
+	SYSCALL_P4(n, write(fd, buf + sent, trial_size));
 	if (n < 0)
 	{
 #           if defined(HP)
@@ -422,12 +467,23 @@ int flag;
 		block_counter++;
 		if (flag)
 		{
-		    if (socket_msgs_available())
-		    {
-			dmsg = socket_recv();
-			queue_p4_message(dmsg, p4_local->queued_messages);
+		    /* First, try sending the message in shorter bursts */
+		    if (trial_size > 16 * SOCK_BUFF_SIZE) 
+			trial_size = trial_size / 2;
+		    else {
+			/* Someone may be writing to us ... */
+			if (socket_msgs_available())
+			    {
+			    dmsg = socket_recv( FALSE );
+			    /* close of a connection may return a null msg */
+			    if (dmsg) 
+				queue_p4_message(dmsg, 
+						 p4_local->queued_messages);
+			    /* Reset the trial_size to the amount remaining */
+			    trial_size = size - sent;
+			    }
+			}
 		    }
-		}
 		continue;
 	    }
 	    else

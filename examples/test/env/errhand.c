@@ -32,9 +32,9 @@ char errstring[MPI_MAX_ERROR_STRING];
 MPI_Comm dup_comm_world, dummy;
 MPI_Errhandler errhandler_a, errhandler_b, errhandler, old_handler;
 #ifdef __STDC__
-void handler_a( MPI_Comm *, int * ), 
-     handler_b( MPI_Comm *, int * ), 
-     error_handler( MPI_Comm *, int * );
+void handler_a( MPI_Comm *, int *, ... ), 
+     handler_b( MPI_Comm *, int *, ... ), 
+     error_handler( MPI_Comm *, int *, ... );
 #else
 void handler_a(), handler_b(), error_handler();
 #endif
@@ -135,9 +135,13 @@ return 0;
   deal with the varargs stuff the C handlers can.
  
  */
+#ifdef __STDC__
+void error_handler(MPI_Comm *comm, int *err, ...)
+#else
 void error_handler(comm, err)
 MPI_Comm *comm;
 int *err;
+#endif
 {
 int class;
 int resultlen;
@@ -151,9 +155,13 @@ printf( "(errhandler) %d : %s\n", class, string );
   Error handler A, used for save/restore testing.
  */
 
+#ifdef __STDC__
+void handler_a( MPI_Comm *comm, int *err, ...)
+#else
 void handler_a(comm, err)
 MPI_Comm *comm; 
 int      *err;
+#endif
 {
 int class;
 
@@ -169,9 +177,13 @@ a_errors++;
   Error handler B, used for save/restore testing.
  */
 
+#ifdef __STDC__
+void handler_b(MPI_Comm *comm, int *err, ...)
+#else
 void handler_b(comm, err)
 MPI_Comm *comm;
 int      *err;
+#endif
 {
 int class;
 

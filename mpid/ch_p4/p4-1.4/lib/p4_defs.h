@@ -191,6 +191,7 @@ struct bm_rm_msg {
 #define P4_ACK_REQ_MASK   1     /* Masks define bits set for requests */
 #define P4_ACK_REPLY_MASK 2
 #define P4_BROADCAST_MASK 4
+#define P4_CLOSE_MASK     8
 
 struct p4_brdcst_info_struct {
 /*

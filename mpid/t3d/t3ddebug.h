@@ -1,5 +1,5 @@
 /*
- *  $Id: t3ddebug.h,v 1.4 1995/07/24 05:12:05 bright Exp $
+ *  $Id: t3ddebug.h,v 1.5 1995/09/15 02:00:52 bright Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -27,7 +27,7 @@
   MPID_DEBUG_ALL
     If this macro is defined, all debugging statements are included.
  ***************************************************************************/
-#define MPID_DEBUG_ALL
+/*#define MPID_DEBUG_ALL*/
 
 
 /***************************************************************************

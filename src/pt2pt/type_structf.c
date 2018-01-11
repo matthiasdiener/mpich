@@ -1,6 +1,7 @@
 /* type_struct.c */
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
+#include "mpisys.h"
 
 #ifdef POINTER_64_BITS
 #include "mpisys.h"
@@ -37,7 +38,14 @@ void mpi_type_struct_( count, blocklens, indices, old_types, newtype, __ierr )
 int           *count;
 int           blocklens[];
 int           indices[];      
+#ifdef POINTER_64_BITS
+/* If old_types is an ARRAY of MPI_Datatype, then if pointers and Fortran 
+   integers are different lengths, this code will be confused.
+ */
+int           old_types[];
+#else
 MPI_Datatype  old_types[];
+#endif
 MPI_Datatype  *newtype;
 int           *__ierr;
 {

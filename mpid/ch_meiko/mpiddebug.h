@@ -32,7 +32,8 @@ memcpy( a, b, c );}
     {if (MPID_DebugFlag) {\
 	fprintf( MPID_DEBUG_FILE,\
 		"[%d]%s ", MPID_MyWorldRank, msg );\
-	MPID_Print_packet( stdout, (MPID_PKT_T *)MPID_PKT_SEND_ADDR(pkt) );\
+	MPID_Print_packet( MPID_DEBUG_FILE, \
+			  (MPID_PKT_T *)MPID_PKT_SEND_ADDR(pkt) );\
 	fprintf( MPID_DEBUG_FILE, "(%s:%d)\n", __FILE__, __LINE__ );\
 	fflush( MPID_DEBUG_FILE );\
 	}}
@@ -46,7 +47,8 @@ memcpy( a, b, c );}
 	       MPID_PKT_SEND_GET(pkt,len) );\
 	MPID_Print_mode( MPID_DEBUG_FILE, MPID_PKT_SEND_ADDR(pkt) );\
 	fprintf( MPID_DEBUG_FILE, "(%s:%d)\n", __FILE__, __LINE__ );\
-	MPID_Print_packet( stdout, (MPID_PKT_T *)MPID_PKT_SEND_ADDR(pkt) );\
+	MPID_Print_packet( MPID_DEBUG_FILE,\
+			  (MPID_PKT_T *)MPID_PKT_SEND_ADDR(pkt) );\
 	fflush( MPID_DEBUG_FILE );\
 	}}
 
@@ -77,7 +79,8 @@ memcpy( a, b, c );}
 	       MPID_PKT_RECV_GET(pkt,head.len) );\
 	MPID_Print_mode( MPID_DEBUG_FILE, MPID_PKT_RECV_ADDR(pkt) );\
 	fprintf( MPID_DEBUG_FILE, "(%s:%d)\n", __FILE__, __LINE__ );\
-	MPID_Print_packet( stdout, (MPID_PKT_T *)MPID_PKT_SEND_ADDR(pkt) );\
+	MPID_Print_packet( MPID_DEBUG_FILE,\
+			  (MPID_PKT_T *)MPID_PKT_SEND_ADDR(pkt) );\
 	fflush( MPID_DEBUG_FILE );\
 	}}
 
@@ -105,14 +108,15 @@ if (MPID_DebugFlag) {\
 
 #define DEBUG_PRINT_LONG_MSG(msg,pkt)     \
 if (MPID_DebugFlag) {\
-    printf( \
+    fprintf( MPID_DEBUG_FILE, \
 	   "[%d]S Getting data from mpid->start, first int is %d (%s:%d)\n",\
 	   MPID_MyWorldRank, *(int *)mpid_send_handle->start, \
 	   __FILE__, __LINE__ );\
-    printf( "[%d]%s (%s:%d)...\n", \
+    fprintf( MPID_DEBUG_FILE, "[%d]%s (%s:%d)...\n", \
 	    MPID_MyWorldRank, msg, __FILE__, __LINE__ );\
-    MPID_Print_packet( stdout, (MPID_PKT_T*)MPID_PKT_SEND_ADDR(pkt) );\
-    fflush( stdout );\
+    MPID_Print_packet( MPID_DEBUG_FILE, \
+		      (MPID_PKT_T*)MPID_PKT_SEND_ADDR(pkt) );\
+    fflush( MPID_DEBUG_FILE );\
     }
 
 #else

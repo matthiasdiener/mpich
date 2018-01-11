@@ -614,6 +614,17 @@ int p4_wait_for_end()
     }
 
 #   if defined(CAN_DO_SOCKET_MSGS)
+    /* Tell all of the established connections that we are going away */
+    for (i = 0; i < p4_global->num_in_proctable; i++)
+    {
+	if (p4_local->conntab[i].type == CONN_REMOTE_EST)
+	{
+	    socket_close_conn( p4_local->conntab[i].port );
+	    /* We could wait for the partner to close; but this should be
+	       enough */
+	    p4_local->conntab[i].type = CONN_REMOTE_CLOSED;
+	}
+    }
     /* Tell the listener to die and wait for him to do so */
     if (p4_local->listener_fd != (-1))
     {

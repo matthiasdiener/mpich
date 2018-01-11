@@ -19,7 +19,7 @@ format that can be converted into man, LaTeX, and WWW pages.
       This simple Chameleon implementation is meant to work with
       most message passing systems and does not rely on large amounts
       of message buffering.  Messages are sent in one or two packets, depending
-      on the length.  If the message is short (< MPID_PKT_DATA_SIZE), then
+      on the length.  If the message is short (< 'MPID_PKT_DATA_SIZE'), then
       the header and message are placed into a single message and sent
       together.  Long messages are sent without copying the message by
       sending the header in a separate packet. 
@@ -35,24 +35,175 @@ format that can be converted into man, LaTeX, and WWW pages.
 
       There are many things that can be done to improve the performance of
       the implementation of the ADI on various platforms.  Some of these 
-      have been added to the current implementation with ifdef's (see the
+      have been added to the current implementation with ifdef''s (see the
       MPICH configure for more discussion of what is currently available).
       
 D*/
 
 /*D
-    MPID_Check_device - Checks for pending operations, handles if found
+    ADI - Abstract Device Interface for MPICH
+
+    The ADI is a common interface for interprocess communication that is used
+    by MPICH to implement the MPI standard.  The ADI defines a number of
+    routines for implementing point-to-point messaging, as well as a number 
+    of service routines (initialization, timers, etc).  In addition,
+    the ADI can be defined with optional capabilities that can be exploited
+    through the use of special macros.  The ADI is responsible for handling
+    many of the details of point-to-point messaging, including unexpected
+    messages and the various MPI send modes.
+
+    An important ADI is the Chameleon "channel" ADI; this is described in 
+    a separate report.  This "channel" ADI implements the full ADI using
+    relatively simple stream or channel operations.  There are a number of
+    macros that control details and options for the operation of this
+    implementation of the ADI.
+
+    
+D*/
+
+/*D 
+     ADI Parameters - Compile-time parameters for the ADI
+
+     The ADI makes use of a number of compile-time parameters both to decide
+     what to do and to indicate to the MPICH code what capabilities it has.
+     In addition, specific implementations of the ADI also make use of
+     compile-time parameters.  They are all documented here.
+
+     Parameters for the ADI:
+     These parmeters apply to any ADI, independant of implementation.
+
+.    MPID_CAN_SEND_CONTIG - Obsolete; ignored
+.    MPID_HAS_HETERO - If set, environment is heterogeneous
+.    MPID_DEVICE_CODE - If set, indicates compiling the ADI itself.  Should
+     NOT be set when compiling the routines in mpich/src/* .
+.    MPID_NEEDS_WORLD_SRC_INDICES - If set, indicates that the Probe routines
+     need "rank in world" instead of "rank in communicator".  This is used in
+     mpid/meiko . 
+.    MPID_PACK_IN_ADVANCE	- If set, asks the MPI routines to give the
+     ADI only contiguous data.  Currently, all devices set this.
+.    MPID_RETURN_PACKED - Receive counterpart of 'MPID_PACK_IN_ADVANCE'
+
+     Parameters for the Chameleon version of the ADI:
+     These parameters apply to the version of the ADI in mpid/chameleon, and
+     to the ones derived from it (mpid/ch_*).
+
+.    MPID_DEBUG_ALL - If set, include code (switchable at runtime) for
+      debugging 
+.    MPID_HAS_SHARED_MEM - If set, environment has shared memory.  
+     Intended only for collective routines
+.    MPID_H_INC - Used to protect include file if included twice
+.    MPID_HAS_DEBUG - If set, ADI has some debugging features
+.    MPID_LIMITED_BUFFERS - Indicates an underlying message-passing system
+     with small buffers (like IBM MPL); causes the ADI to be more aggressive
+     about polling for incoming messages 
+.    MPID_TEST_SYNC - For debugging only (of synchronous messages)
+.    MPID_TINY_BUFFERS -If set, underlying message passing system has
+     essentially no buffering (this is more strict that 'MPID_LIMITED_BUFFERS')
+.    MPID_USE_GET - If set, use shared memory operations
+.    MPID_USE_SEND_BLOCK - If set, use a special send routine that may block
+     when possible. Used in mpid/ch_cmmd to conserve tports.
+
+     Parameters for the channel version of the ADI:
+     The following all refer to the "channel" interface and control details of
+     the message packets that are sent.
+
+.    MPID_CACHE_ALIGN - Used for shared memory; requests that shared memory
+       locks be cached aligned 
+.    MPID_PKT_DEF - Protects include file
+.    MPID_PKT_DYNAMIC_RECV,MPID_PKT_DYNAMIC_SEND - 
+     These two indicate whether send/receive routines take address of packet or
+     packet.  Used only in the shared memory version
+.    MPID_PKT_GALLOC - If set, provides a global allocation of a packet
+.    MPID_PKT_GET_NEEDS_ACK - If set, the shared-memory "get" operation
+     requires an acknowledgement (for example, if a single address space is
+     used) 
+.    MPID_ADI_MUST_SENDSELF - If set, the ADI handles the case of sending a 
+     message from one process to the same process with special code, bypassing
+     the channel interface code.
+
+     
+     Packet Features:
+These provide optional declarations in a packet for the length of a packet,
+a link (shared memory), and the source (sending process).  Used in shared
+memory and raw tcp.  The "INCLUDE" versions define DECL/SET/GET versions.
+.    MPID_PKT_INCLUDE_LEN - Include a packet size field ('int pkt_len:32') 
+in the packet definition
+.    MPID_PKT_INCLUDE_LINK - Include a link field ('union _MPID_PKT_T *next')
+in the packet definition
+.    MPID_PKT_INCLUDE_SRC - Include a source in 'MPI_COMM_WORLD' field ('int
+src:32') in the packet definition.
+.    MPID_PKT_LEN_DECL - Appears in the packet definition; contains the actual
+     declaration (if any).  For internal use only.
+.    MPID_PKT_LINK_DECL - Appears in the packet definition; contains the actual
+     declaration (if any).  For internal use only.
+.    MPID_PKT_SRC_DECL - Appears in the packet definition; contains the actual
+     declaration (if any).  For internal use only.
+
+.    MPID_PKT_PRIVATE - Used to add "private" data at the `top` of the packet.
+     Used in some shared memory versions.
+
+.    MPID_PKT_XDR_DECL - Used to define a flag for heterogeneous support
+     (message is using XDR) 
+D*/
+
+/*D
+     Threads in the ADI - Support for multithreaded applications
+
+  MPI is thread-friendly in that the MPI specification does not specify 
+  anything that is not thread safe.  However, the MPI specification does not
+  mandate any particular thread support.  It is our intent that the MPICH 
+  ADI provide a thread-safe version; this section details the current
+  state of that interface.  This is currently untested.
+
+  Communicator-based locks:
+  Some operations on a communicator must be single threaded.  These
+  macros can be defined to provide the appropriate locks.
+  The first parameter ('ctx') is the ADI context (often ignored); the
+  second is the communictor to lock.
+
+. MPID_THREAD_LOCK(ctx,comm) - Lock a thread in a communicator
+. MPID_THREAD_UNLOCK(ctx,comm) - Unlock a thread in a communicator
+. MPID_THREAD_LOCK_INIT(ctx,comm) - Initialize a thread in a communicator
+. MPID_THREAD_LOCK_FINISH(ctx,comm) - Free a thread in a communicator
+
+  Datastructure-based locks:
+  These four are for locking individual data-structures.  The data-structure
+   should contain something like
+.vb
+   typedef struct {
+      MPID_THREAD_DS_LOCK_DECLARE
+      other stuff
+      } foo;
+.ve
+   and then use
+.vb
+   foo *p;
+   MPID_THREAD_DS_LOCK(p)
+   MPID_THREAD_DS_UNLOCK(p)
+.ve
+
+. MPID_THREAD_DS_LOCK_DECLARE - The declaration of the lock
+. MPID_THREAD_DS_LOCK_INIT(p) - Initializes the lock for datastructure 'p'
+. MPID_THREAD_DS_LOCK(p) - Lock datastructure 'p'
+. MPID_THREAD_DS_UNLOCK(p) - Unlock datastructure 'p'
+ 
+  Be very careful that thread locks are not nested or that nesting is handled
+  carefully (for example, with a nest level).
+D*/
+
+/*D
+    MPID_Check_device - Checks for pending operations and handles if found.
 
     Input Parameter:
 .   blocking - Indicates whether the operation is blocking or not.  The
-               values MPID_BLOCKING and MPID_NOT_BLOCKING can be used.
-.   ctx      - ADI context returned by MPID_Init
+               values 'MPID_BLOCKING' and 'MPID_NOT_BLOCKING' can be used.
+.   ctx      - ADI context returned by 'MPID_Init'
 
     Synopsis:
     void MPID_Check_device( void * ctx, int blocking )
 
     Notes:
-    This routine should be called by the API frequently IF the ADI requires
+    This routine should be called by the API frequently `if` the ADI requires
     it.  For example, if the ADI is not a separate thread and does not use
     signals to operate asynchronously.  
 
@@ -60,7 +211,7 @@ D*/
 D*/
 
 /*D
-    MPID_Cancel - Cancels a pending communication operation
+    MPID_Cancel - Cancels a pending communication operation.
 
     Input Parameter:
 .   ctx      - ADI context returned by MPID_Init
@@ -71,7 +222,7 @@ D*/
 
     Notes:
     The actual freeing of internal space must be done with the appropriate
-    MPID_FREE_SEND/RECV_HANDLE calls.  
+    'MPID_FREE_SEND/RECV_HANDLE' calls.  
 
     This routine may have little effect.  If the message has already been
     delivered, it has no effect.  
@@ -81,11 +232,11 @@ D*/
     MPID_Myrank - Provides the rank of the calling process
 
     Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
+.   ctx      - ADI context returned by 'MPID_Init'
 	
     Output Parameter:
-.   rank - rank, in the range 0 to Mysize-1 (see MPID_Mysize) of the calling
-    process among all of the processes.
+.   rank - rank, in the range 0 to 'Mysize-1' (see 'MPID_Mysize') of the
+    calling process among all of the processes.
 
     Synopsis:
     void MPID_Myrank( void * ctx, int *rank )
@@ -95,7 +246,7 @@ D*/
     MPID_Mysize - Provides the number of processes
 
     Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
+.   ctx      - ADI context returned by 'MPID_Init'
 
     Output Parameter:
 .   size - number of processes in the set of processes. 
@@ -119,7 +270,7 @@ D*/
 
     Notes:
     If called from a C program with main(argc,argv), the correct calling
-    sequence is MPID_Init(&argc,&argv).
+    sequence is 'MPID_Init(&argc,&argv)'.
 
     This routine may (or may not) also initialize the parallel processes 
     themselves.  That is, when this routine is called, it may create the
@@ -138,7 +289,7 @@ D*/
 .ve
 
     The pointer returned by this routine may be null; it is provided to allow
-    for multiple, simultaneous ADI's.  For example, if the pointer returned
+    for multiple, simultaneous ADIs.  For example, if the pointer returned
     contains a structure with pointers to the ADI routines, and the macros
     for the operations choose the actual function from this structure, then
     a single user-application can easily switch between ADIs, depending,
@@ -152,7 +303,7 @@ D*/
     This is a macro that is defined when the ADI supports heterogeneous
     processing elements.  APIs that are to operate in a heterogeneous
     environment need to ensure that message are properly prepared.
-    See also ????? (heterogeneous support), MPID_IS_HETERO
+    See also the discussion on heterogeneous support, 'MPID_IS_HETERO'
 D*/
 
 /*D
@@ -162,10 +313,10 @@ D*/
     This is a global variable that can be used to determine if an ADI
     that could contain heterogeneous processors actually does.  For example,
     if the ADI can connect disimilar workstations but the active collection
-    contains only similar workstations, then MPID_HAS_HETERO would be 
-    defined, but MPID_IS_HETERO would be false.
+    contains only similar workstations, then 'MPID_HAS_HETERO' would be 
+    defined, but 'MPID_IS_HETERO' would be false.
 
-    See also ??? (heterogeneous support)
+    See also the discussion on heterogeneous support.
 D*/
 
 /*D
@@ -173,14 +324,14 @@ D*/
     processes
 
     Notes:
-    This structure is undergoing development.   See MPID_Dest_byte_order.
+    This structure is undergoing development.   See 'MPID_Dest_byte_order'.
 D*/
 
 /*D
    MPID_Dest_byte_order - Gives the byte ordering of the destination process
 
    Input Parameter:
-.  dest - Rank in MPI_COMM_WORLD of the destination process
+.  dest - Rank in 'MPI_COMM_WORLD' of the destination process
 
    Return Value:
    One of 
@@ -195,7 +346,7 @@ D*/
 
     Input Parameter:
 .   code - Value to return to invocation environment as exit status
-.   ctx      - ADI context returned by MPID_Init
+.   ctx      - ADI context returned by 'MPID_Init'
 
     Synopsis:
     void MPID_Abort( void * ctx, int code )
@@ -210,22 +361,22 @@ D*/
     MPID_End - Ends the operation of the ADI
 
     Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
+.   ctx      - ADI context returned by 'MPID_Init'
 
     Synopsis:
     void MPID_End( void * ctx )
 
     Notes:
     This routine must be called at the end of the parallel part of a program.
-    Normally, this is just before the program exits.  Once MPID_End is called,
-    no other MPID routines, including MPID_Init, may be called.
+    Normally, this is just before the program exits.  Once 'MPID_End' 
+    is called, no other MPID routines, including 'MPID_Init', may be called.
 D*/
 
 /*D
-    MPID_Node_name - Provides the name of the processor
+    MPID_Node_name - Provides the name of the processor.
 
     Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
+.   ctx      - ADI context returned by 'MPID_Init'
 .   len  - Length of "name" argument
 
     Output Parameter:
@@ -237,10 +388,10 @@ D*/
 D*/
 
 /*D
-    MPID_Wtime - Returns the time, relative to some arbitrary point
+    MPID_Wtime - Returns the time, relative to some arbitrary point.
 
     Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
+.   ctx      - ADI context returned by 'MPID_Init'
 
     Synopsis:
     double MPID_Wtime( void * ctx )
@@ -248,21 +399,43 @@ D*/
     Notes:
     This routine may return a different value on eacy processor even 
     when called at the same "time".  The only quantity that is meaningful
-    is the difference between two results of MPID_Wtime.  The resolution 
-    of this time is provide by MPID_Wtick; while MPID_Wtime should provide
+    is the difference between two results of 'MPID_Wtime'.  The resolution 
+    of this time is provide by 'MPID_Wtick'; while 'MPID_Wtime' should provide
     a high-resolution time, this is not required or guarenteed. 
 
     The time measured is elapsed or wall-clock time, not CPU time.
+
+    This may also be provided as a macro in the file 'dm.h'.
 D*/
 
 /*D
-    MPID_Wtick - Returns the resolution of the timer MPID_Wtime
+    MPID_Wtick - Returns the resolution of the timer 'MPID_Wtime'
 
     Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
+.   ctx      - ADI context returned by 'MPID_Init'
 
     Synopsis:
     double MPID_Wtick( void * ctx )
+
+D*/
+
+/*D
+    MPID_Wtime_is_global - Returns the resolution of the timer 'MPID_Wtime'
+
+    Return value:
+    True (1) if the value from 'MPID_Wtime' is synchronized on all processes, 
+    False (0) otherwise.  
+
+    Synopsis:
+    int MPID_Wtime_is_global( void )
+
+    Notes:
+    This is often implemented with a definition
+.vb
+#define MPID_Wtime_is_global() 1
+.ve
+    If this is not defined, it is assumed that 'MPID_Wtime' is not 
+    synchronized.
 
 D*/
 
@@ -271,7 +444,7 @@ D*/
                   available
 
     Input Parameters:
-.   ctx      - ADI context returned by MPID_Init
+.   ctx      - ADI context returned by 'MPID_Init'
 .   tag - Message tag
 .   source - Message source (sending processor).  Measured in terms of
              rank of the communicator
@@ -284,6 +457,14 @@ D*/
     Synopsis:
     int MPID_Iprobe( void * ctx, int tag, int source, int context_id, 
                      int *found, MPI_Status *status )
+
+    Notes:
+    Since this routine does not have a communicator argument, there is
+    no easy way to convert the 'source' argument from the value here (local to
+    the communicator that 'context_id' belongs to) and to the source relative
+    to 'MPI_COMM_WORLD'.  To force 'source' to be relative to 'MPI_COMM_WORLD'
+    instead of the communicator, the ADI should define
+    'MPID_NEEDS_WORLD_SRC_INDICES' in 'dm.h'.
 D*/
 
 /*D
@@ -291,7 +472,7 @@ D*/
                  not available.
 
     Input Parameters:
-.   ctx      - ADI context returned by MPID_Init
+.   ctx      - ADI context returned by 'MPID_Init'
 .   tag - Message tag
 .   source - Message source (sending processor).  Measured in terms of
              rank of the communicator
@@ -303,13 +484,21 @@ D*/
     Synopsis:
     int MPID_Probe( void * ctx, int tag, int source, int context_id, 
                      MPI_Status *status )
+
+    Notes:
+    Since this routine does not have a communicator argument, there is
+    no easy way to convert the 'source' argument from the value here (local to
+    the communicator that 'context_id' belongs to) and to the source relative
+    to 'MPI_COMM_WORLD'.  To force 'source' to be relative to 'MPI_COMM_WORLD'
+    instead of the communicator, the ADI should define
+    'MPID_NEEDS_WORLD_SRC_INDICES' in 'dm.h'.
 D*/
 
 /*D
     MPID_Init_communicator - Initializes a new communictors
 
     Input Parameters:
-.   ctx      - ADI context returned by MPID_Init
+.   ctx      - ADI context returned by 'MPID_Init'
 .   comm     - MPI Communicator
 
     Synopsis:
@@ -320,7 +509,7 @@ D*/
 
     This interface is intended to let the ADI optimize for various collective
     operations by detecting whether special features are available.
-    Note that MPI_Pack is a collective operation in the sense that the
+    Note that 'MPI_Pack' is a collective operation in the sense that the
     result must be valid for all members of a communicator; by letting the
     ADI initialize a communicator, it can pre-determine if, for example,
     all members use the same data-representation. 
@@ -350,21 +539,26 @@ D*/
     vendor-provided message-passing interfaces.
 
     In the receive code, there are routines to extract the data from short
-    and long messages (MPID_extract_short, MPID_extract_long).  In addition,
-    nonblocking versions of the long message version (MPID_nextract_long,
-    MPID_wextract_long) are also available.
+    and long messages ('MPID_Copy_body_short', 'MPID_Copy_body_long').  
 
-    In the send code, the routines are MPID_post_send_short and
-    MPID_post_send_long.  MPID_post_send_long may use nonblocking operations.
+    In the send code, the routines are 'MPID_post_send_short' and
+    'MPID_post_send_long'.  'MPID_post_send_long' may use nonblocking
+    operations. 
+
+    Notes:
+    A future version might provide nonblocking versions of the extract
+    long message version  ('MPID_nextract_long', 'MPID_wextract_long') instead
+    of simply 'MPID_Copy_body_long'.
+
 D*/
 
 /*D
     MPID_Check_incoming
 
     Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
+.   ctx      - ADI context returned by 'MPID_Init'
 .   blocking - Indicates whether the operation is blocking or not.  The
-               values MPID_BLOCKING and MPID_NOT_BLOCKING can be used.
+               values 'MPID_BLOCKING' and 'MPID_NOT_BLOCKING' can be used.
 
     Returns:
     -1 if nonblocking and no messages pending
@@ -374,14 +568,16 @@ D*/
 
     Notes:
     This routine handles testing for a single incoming message.
+    For people interested in active messages, this routine is essentially
+    the handler for the incoming active messages.
 D*/
 
 /*D
     MPID_Blocking_recv - Performs a blocking receive
 
    Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
-.  dmpi_recv_handle - API's receive handle
+.   ctx      - ADI context returned by 'MPID_Init'
+.  dmpi_recv_handle - API''s receive handle
    
    Synopsis:
    int MPID_Blocking_recv( void * ctx, MPIR_RHANDLE *dmpi_recv_handle ) 
@@ -389,11 +585,11 @@ D*/
 D*/
 
 /*D
-    MPID_Blocking_send - Performs a blocking send
+    MPID_Blocking_send - Performs a blocking send.
 
    Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
-.  dmpi_send_handle - API's send handle
+.   ctx      - ADI context returned by 'MPID_Init'
+.  dmpi_send_handle - API''s send handle
    
    Synopsis:
    int MPID_Blocking_send( void * ctx, MPIR_SHANDLE *dmpi_send_handle ) 
@@ -404,14 +600,14 @@ D*/
     MPID_Blocking_send_ready - Performs a ready blocking send
 
    Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
-.  dmpi_send_handle - API's send handle
+.   ctx      - ADI context returned by 'MPID_Init'
+.  dmpi_send_handle - API''s send handle
    
    Synopsis:
    int MPID_Blocking_send_ready( void * ctx, MPIR_SHANDLE *dmpi_send_handle ) 
 
    Notes:
-   This may be implemented as MPID_Blocking_send
+   This may be implemented as 'MPID_Blocking_send'
 
 D*/
 
@@ -419,8 +615,8 @@ D*/
     MPID_Alloc_send_handle - Allocates and initializes device send handle
 
     Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
-.   a - Address of device send handle in API's send structure
+.   ctx      - ADI context returned by 'MPID_Init'
+.   a - Address of device send handle in API''s send structure
 
     Synopsis:
     void MPID_Alloc_send_handle( void * ctx, MPID_SHANDLE *mpid_send_handle )
@@ -435,8 +631,8 @@ D*/
     MPID_Alloc_recv_handle - Allocates and initializes device recv handle
 
     Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
-.   a - Address of device recv handle in API's send structure
+.   ctx      - ADI context returned by 'MPID_Init'
+.   a - Address of device recv handle in API''s send structure
 
     Synopsis:
     void MPID_Alloc_recv_handle( void * ctx, MPID_SHANDLE *mpid_recv_handle )
@@ -451,8 +647,8 @@ D*/
     MPID_Free_send_handle - Frees device send handle
 
     Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
-.   a - Address of device send handle in API's send structure
+.   ctx      - ADI context returned by 'MPID_Init'
+.   a - Address of device send handle in API''s send structure
 
     Synopsis:
     void MPID_Free_send_handle( void * ctx, MPID_SHANDLE *mpid_send_handle )
@@ -467,8 +663,8 @@ D*/
     MPID_Free_recv_handle - Frees device recv handle
 
     Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
-.   a - Address of device recv handle in API's recv structure
+.   ctx      - ADI context returned by 'MPID_Init'
+.   a - Address of device recv handle in API''s recv structure
 
     Synopsis:
     void MPID_Free_recv_handle( void * ctx, MPID_RHANDLE *mpid_recv_handle )
@@ -483,8 +679,8 @@ D*/
     MPID_Reuse_send_handle - Reinitializes device send handle
 
     Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
-.   a - Address of device send handle in API's send structure
+.   ctx      - ADI context returned by 'MPID_Init'
+.   a - Address of device send handle in API''s send structure
 
     Synopsis:
     void MPID_Reuse_send_handle( void * ctx, MPID_SHANDLE *mpid_send_handle )
@@ -499,8 +695,8 @@ D*/
     MPID_Reuse_recv_handle - Reinitializes device recv handle
 
     Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
-.   a - Address of device recv handle in API's send structure
+.   ctx      - ADI context returned by 'MPID_Init'
+.   a - Address of device recv handle in API''s send structure
 
     Synopsis:
     void MPID_Reuse_recv_handle( void * ctx, MPID_RHANDLE *mpid_recv_handle )
@@ -515,14 +711,14 @@ D*/
     MPID_Post_send - Starts a send of a message 
 
    Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
-.  dmpi_recv_handle - API's send handle
+.   ctx      - ADI context returned by 'MPID_Init'
+.  dmpi_recv_handle - API''s send handle
    
    Synopsis:
    int MPID_Post_send( void * ctx, MPIR_SHANDLE *dmpi_send_handle ) 
 
    Notes:
-   This routine only begins the send.  MPID_Complete_send must be called
+   This routine only begins the send.  'MPID_Complete_send' must be called
    to finish the send, even if it was a blocking operation
 D*/
 
@@ -530,76 +726,149 @@ D*/
     MPID_Post_send_sync - Starts a send of a message with synchronous mode
 
    Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
-.  dmpi_recv_handle - API's send handle
+.   ctx      - ADI context returned by 'MPID_Init'
+.  dmpi_recv_handle - API''s send handle
    
    Synopsis:
    int MPID_Post_send_sync( void * ctx, MPIR_SHANDLE *dmpi_send_handle ) 
 
    Notes:
-   This routine only begins the send.  MPID_Complete_send must be called
+   This routine only begins the send.  'MPID_Complete_send' must be called
    to finish the send, even if it was a blocking operation.  This send
-   will not complete until the destination BEGINS the matching receive.
+   will not complete until the destination `begins` the matching receive.
 D*/
 
 /*D
     MPID_Post_send_ready - Starts a send of a message with ready mode
 
    Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
-.  dmpi_recv_handle - API's send handle
+.   ctx      - ADI context returned by 'MPID_Init'
+.  dmpi_recv_handle - API''s send handle
    
    Synopsis:
    int MPID_Post_send_ready( void * ctx, MPIR_SHANDLE *dmpi_send_handle ) 
 
    Notes:
-   This routine only begins the send.  MPID_Complete_send must be called
+   This routine only begins the send.  'MPID_Complete_send' must be called
    to finish the send, even if it was a blocking operation.  The matching
    receive should already be posted.
 
-   It is legal to implement this with MPID_Post_send.
+   It is legal to implement this with 'MPID_Post_send'.
 D*/
 
 /*D
-    MPID_Complete_send - Completes a send of a message
+    MPID_Complete_send - Completes a send of a message.
 
    Input Parameter:
 .   ctx      - ADI context returned by MPID_Init
-.  dmpi_send_handle - API's send handle
+.  dmpi_send_handle - API''s send handle
 
    Synopsis:
    int MPID_Complete_send( void * ctx, MPIR_SHANDLE *dmpi_send_handle )
 
    Notes:
-   This routine completes a send begun with MPID_Post_send.
+   This routine completes a send begun with 'MPID_Post_send',
+   'MPID_Post_send_ready', or 'MPID_Post_send_sync'.
 D*/
 
 /*D
-   MPID_Test_send - Tests for the completion of a send request
+    MPID_Complete_recv - Completes a receive of a message.
 
    Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
-.  dmpi_send_handle - API's send handle
+.   ctx      - ADI context returned by 'MPID_Init'
+.  dmpi_recv_handle - API''s receive handle
+
+   Synopsis:
+   int MPID_Complete_recv( void * ctx, MPIR_RHANDLE *dmpi_recv_handle )
+
+   Notes:
+   This routine completes a send begun with 'MPID_Post_recv'.
+D*/
+
+/*D
+   MPID_Test_send - Tests for the completion of a send request.
+
+   Input Parameter:
+.   ctx      - ADI context returned by 'MPID_Init'
+.  dmpi_send_handle - API''s send handle
 
    Return value:
    True (!= 0) if the request has completed, False (0) otherwise.
 
    Notes:
-   Unimplemented at present
+   This routine must return true if the request either has completed
+   or would complete if 'MPID_Check_device' were called.  In other words,
+   it must be possible to have a loop 
+.vb
+       while (!MPID_Test_send( ctx, request )) ;
+.ve
+   that will terminate when the message has been sent, without requiring an
+   explicit call to another ADI routine.
 D*/
 
 /*D
-   MPID_Test_recv - Tests for the completion of a recv request
+   MPID_Test_request - Tests a request for completion.
 
    Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
-.  dmpi_recv_handle - API's recv handle
+.   ctx      - ADI context returned by 'MPID_Init'
+.   request  - MPI_Request handle to test.
 
    Return value:
    True (!= 0) if the request has completed, False (0) otherwise.
 
    Notes:
-   Unimplemented at present
+   This routine must return true if the request either has completed
+   or would complete if 'MPID_Check_device' were called.  In other words,
+   it must be possible to have a loop 
+.vb
+       while (!MPID_Test_request( ctx, request )) ;
+.ve
+   that will terminate when the message has been sent or received, without
+   requiring an explicit call to another ADI routine.
+   
+D*/
+
+/*D
+   MPID_Clr_completed - Mark a request as not completed
+
+   Input Parameter:
+.   ctx      - ADI context returned by 'MPID_Init'
+.   request  - MPI_Request handle to set.
+
+   Notes:
+   This is used within the Chameleon ADI implementation only
+D*/
+
+/*D
+   MPID_Set_completed - Mark a request as completed
+
+   Input Parameter:
+.   ctx      - ADI context returned by 'MPID_Init'
+.   request  - MPI_Request handle to set.
+
+   Notes:
+   This is used within the Chameleon ADI implementation only
+D*/
+
+/*D
+   MPID_Test_recv - Tests for the completion of a receive request.
+
+   Input Parameter:
+.   ctx      - ADI context returned by 'MPID_Init'
+.  dmpi_recv_handle - API''s recv handle
+
+   Return value:
+   True (!= 0) if the request has completed, False (0) otherwise.
+
+   Notes:
+   This routine must return true if the request either has completed
+   or would complete if 'MPID_Check_device' were called.  In other words,
+   it must be possible to have a loop 
+.vb
+       while (!MPID_Test_recv( ctx, request )) ;
+.ve
+   that will terminate when the message arrives, without requiring an
+   explicit call to another ADI routine.
 D*/
 
 /*D
@@ -621,11 +890,11 @@ D*/
     This is a macro that indicates that the data will be provided in the 
     data-area specified by the "start" field of the device handle.  If the
     message is not contiguous, the API is responsible for packing the 
-    message (it may use MPIR_PackMessage and MPIR_EndPackMessage).
+    message (it may use 'MPIR_Pack').
 
     More advanced ADI implementations may inform the calling routines (the 
     API code) that the ADI can handle more complicated data, such as
-    MPID_DOES_STRIDED.  The exact interface for this has not been
+    'MPID_DOES_STRIDED'.  The exact interface for this has not been
     determined.
 D*/
 
@@ -634,7 +903,7 @@ D*/
 	ADI
 
     Input Parameter:
-.   ctx      - ADI context returned by MPID_Init
+.   ctx      - ADI context returned by 'MPID_Init'
 
     Output Parameter:
 .   name - Name of the version of the ADI.  Must be a string of at least
@@ -653,7 +922,7 @@ D*/
 .   dest - Absolute rank or destination
 
     Returns:
-    One of MPID_H_NONE, MPID_H_LSB, MPID_H_MSB, MPID_H_XDR
+    One of 'MPID_H_NONE', 'MPID_H_LSB', 'MPID_H_MSB', 'MPID_H_XDR'
 
     Synopsis:
     int MPID_Dest_byte_order( int dest )
@@ -677,17 +946,17 @@ D*/
 .   MPID_Barrier - Barrier
 .   MPID_Reduce_op_type - Reduction (op == sum, prod, etc, type = double, 
     int, etc).  Define MPID_Reduce if ANY are defined
-.   MPID_Scan_op_type - Scan reduction.  Define MPID_Scan if ANY are 
+.   MPID_Scan_op_type - Scan reduction.  Define 'MPID_Scan' if `any` are 
     defined.
 .   MPID_Bcast - Broadcast (1 to all)
 .   MPID_AlltoAll - All to all
 
-    These routines all handle a SINGLE ELEMENT, since this is an
+    These routines all handle a `single element`, since this is an
     important and common case.  
 
     Since these may require the creation of special data structures, the
-    ADI routine MPID_Comm_init must be called before these may be used.
-    MPID_Comm_free must be called when a communicator is destroyed to
+    ADI routine 'MPID_Comm_init' must be called before these may be used.
+    'MPID_Comm_free' must be called when a communicator is destroyed to
     ensure that any resources are returned.
 
     All of these "routines" are actually macros, allowing the API code
@@ -704,7 +973,7 @@ D*/
 .ve
    
     Not yet decided: are the reduction and scan reduced to a single root 
-    or to all (I'd prefer to all).
+    or to all (I''d prefer to all).
 D*/
 
 /*D 
@@ -712,7 +981,7 @@ D*/
     processes
 
     Input Parameters:
-.   ctx      - ADI context returned by MPID_Init
+.   ctx      - ADI context returned by 'MPID_Init'
 .   sendbuf  - Contribution from each process
 .   comm     - MPI Communicator
 
@@ -730,7 +999,7 @@ D*/
     processes
 
     Input Parameters:
-.   ctx      - ADI context returned by MPID_Init
+.   ctx      - ADI context returned by 'MPID_Init'
 .   sendbuf  - Contribution from each process
 .   comm     - MPI Communicator
 
@@ -747,7 +1016,7 @@ D*/
     MPID_Barrier - Performs a barrier synchronization
 
     Input Parameters:
-.   ctx      - ADI context returned by MPID_Init
+.   ctx      - ADI context returned by 'MPID_Init'
 .   comm     - MPI Communicator
 
     Synopsis:
@@ -755,10 +1024,10 @@ D*/
 D*/    
 
 /*D
-    MPID_Comm_init - Initializes the ADI's use of a communicator
+    MPID_Comm_init - Initializes the ADI''s use of a communicator
 
     Input Parameters:
-.   ctx      - ADI context returned by MPID_Init
+.   ctx      - ADI context returned by 'MPID_Init'
 .   parent   - MPI Communicator of parent
 .   comm     - MPI Communicator
 
@@ -767,17 +1036,18 @@ D*/
 
     Notes:
     This routine is responsible for initializing any data areas needed 
-    to perform any ADI-supported collective operations (such as MPID_Barrier).
+    to perform any ADI-supported collective operations (such as
+    'MPID_Barrier'). 
     In addition, this routine is collective in the parent communicator.
-    If the parent is NULL, comm must be MPI_COMM_WORLD and all
+    If the parent is 'NULL', comm must be 'MPI_COMM_WORLD' and all
     processes must call this routine.
 D*/
 
 /*D
-    MPID_Comm_free - Frees the ADI's use of a communicator
+    MPID_Comm_free - Frees the ADI''s use of a communicator.
 
     Input Parameters:
-.   ctx      - ADI context returned by MPID_Init
+.   ctx      - ADI context returned by 'MPID_Init'
 .   comm     - MPI Communicator
 
     Synopsis:
@@ -785,5 +1055,68 @@ D*/
 
     Notes:
     This routine is responsible for freeing any data areas needed 
-    to perform any ADI-supported collective operations (such as MPID_Barrier).
+    to perform any ADI-supported collective operations (such as
+    'MPID_Barrier'). 
+D*/
+
+/*D 
+   Packet implementation - Describes the packets used the the Chameleon 
+   and Channel implementations of the ADI
+
+   Overview:
+   The Chameleon and Channel implementations send message in `packets`
+   containing either header information, data, or both.
+
+   The design here is fairly general, allowing both eager and reluctant 
+   (rendevous) protocols for each of the MPI modes.  Some simplification can
+   be achieved if, for example, the MPI Synchronous mode is only implemented
+   with the reluctant protocol.
+
+   This is discussed in more detain in `Creating a new MPICH device using the
+   Channel interface`, and is included here to give a quick summary of the 
+   approach.
+
+   Eager:
+   In the eager protocol, the message data is sent without first asking the
+   destination node (for example, to check on buffer space).  In order to 
+   achieve better use of the underlying message-passing systems, there are
+   two major categories: long and short.  In a short message, the message
+   data and message envelope (context, tag, lrank) are sent together.
+   In a long message, the data is sent separately from the envelope (avoiding
+   any data copies).  If the MPI mode is Synchronous or Ready, then 
+   some additional information is included.
+   In the synchronous case, it is necessary for the receiver to tell the
+   sender when the receive has started (but see Rendevous below); this
+   is done with the 'MPID_PKT_SYNC_ACK'.
+   In the ready case, if the matching receive is `not` available, then an
+   error message can be sent back to the sender with 'MPID_PKT_READY_ERROR'.
+
+   In the long message case, the `sender` may use nonblocking send operation.
+   On some systems, it may be necessary to ask the sender to execute an 
+   MPI_Wait-like operation on the nonblocking send in order to get a 
+   matching receive to complete.  On these systems, the macro
+   'MPID_WSEND_BEFORE_WRECV' is defined, and the MPI_Wait on the
+   send is requested with the 'MPID_PKT_COMPLETE_SEND' packet.  (The systems
+   that require this tend to use rendevous or reluctant protocols for long 
+   messages).  `THIS IS UNUSED`.
+
+   Rendevous:
+   In the Rendevous protocol, a `long` send is not begun until the receiver
+   oks it.  The request is made with 'MPID_PKT_REQUEST_SEND', and 
+   is acknowledged with 'MPID_PKT_OK_TO_SEND'.  Note that a message-passing
+   implementation may make use of a "ready-receiver" send once the 
+   'OK_TO_SEND' has been received.  Also note that the rendevous protocol
+   handles standard and synchronous sends identically; no separate 'SYNC_ACK'
+   packet is required.  
+
+   Depending on the system, it may or may not be advantageous to compress
+   the size of the data in the packet.  If the macro 'MPID_PKT_COMPRESSED'
+   is defined, then the envelope data is encoded into 2 fewer ints.
+
+   Get:
+   The `get` protocol is used on shared memory systems.  The behavior of 
+   this protocol is very much like the `rendevous` protocol, except that the
+   packets contain information needed to access the data directly from 
+   memory shared by the sender and the receiver (thus requiring a different
+   packet type).
 D*/

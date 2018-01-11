@@ -796,7 +796,7 @@ char *str;
     }
 }
 
-
+#include <time.h>
 char *timestamp()
 {
     long clock;

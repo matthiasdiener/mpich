@@ -1,5 +1,5 @@
 /*
- *  $Id: ptrcvt.c,v 1.7 1995/06/21 03:04:04 gropp Exp $
+ *  $Id: ptrcvt.c,v 1.8 1995/09/13 21:44:25 gropp Exp $
  *
  *  (C) 1994 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -58,6 +58,7 @@ if (DoInit) {
     }
 if (idx < 0 || idx >= MAX_PTRS) {
     fprintf( stderr, "Could not convert index %d into a pointer\n", idx );
+    fprintf( stderr, "The index may be an incorrect argument\n" );
     exit(1);
     }
 if (idx == 0) return (void *)0;
@@ -84,6 +85,8 @@ if (avail) {
     }
 /* This isn't the right thing to do, but it isn't too bad */
 fprintf( stderr, "Pointer conversions exhausted\n" );
+fprintf( stderr, "Too many MPI objects may have been passed to/from Fortran\n\
+without being freed\n" );
 exit(1);
 /* Some systems may complain here about the lack of a return.  */
 return 0;
@@ -99,6 +102,7 @@ if (DoInit) {
     }
 if (idx < 0 || idx >= MAX_PTRS) {
     fprintf( stderr, "Could not convert index %d into a pointer\n", idx );
+    fprintf( stderr, "The index may be an incorrect argument\n" );
     exit(1);
     }
 if (idx == 0) return;

@@ -5,10 +5,19 @@ fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
 fi
-MPIRUN_HOME=$MPIR_HOME/util
+MPIRUN_HOME=$MPIR_HOME/bin
 if [ "$argsset" = "" ] ; then
    . $MPIRUN_HOME/mpirun.args
    argsset=1
 fi
-echo "ch_cmmd not supported"
+# ch_cmmd device (direct run version)
+# The -np line is used to select a subset of the allocated nodes.
+#if [ "$debugger" != "" ] ; then 
+#      cat > $PWD_TRIAL/PId$$ <<.
+#run -np $np $cmdLineArgs
+#.
+#      $Show $debugger $progname $commandfile $PWD_TRIAL/PId$$
+#else
+      $Show $progname $cmdLineArgs -np $np
+#fi
 exit 1

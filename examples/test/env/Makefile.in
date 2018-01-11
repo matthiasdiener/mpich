@@ -62,7 +62,8 @@ errhand: errhand.o test.o $(MPILIB)
 sigchk: sigchk.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o sigchk sigchk.o test.o $(LIBS)
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) baseattrf core *.out *.orig env.diff
+	/bin/rm -f *.o *~ PI* $(EXECS) baseattrf core *.out *.orig env.diff \
+	argstest
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

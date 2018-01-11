@@ -43,7 +43,8 @@ char *argv[];
 				chunk = atoi(argv[++i]);
 				break;
 			default:
-				fprintf(stderr,"Huh ? %c ?\n",argv[i][1]);
+				fprintf(stderr,"Unrecognized argument %s\n",
+					argv[i]);
 				exit(EXIT_FAILURE);
 		}
 	}
@@ -69,8 +70,11 @@ char *argv[];
 	status = MPI_Alltoall(sb,chunk,MPI_INT,rb,chunk,MPI_INT,
 			      MPI_COMM_WORLD);
 
+	/* fputs("Before MPI_Allreduce\n",stdout); */
 	MPI_Allreduce( &status, &gstatus, 1, MPI_INT, MPI_SUM, 
 		       MPI_COMM_WORLD );
+
+	/* fputs("After MPI_Allreduce\n",stdout); */
 	if (rank == 0)
 	    printf("all_to_all returned %d\n",gstatus);
 

@@ -40,7 +40,7 @@ MPIPPLIB  = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
 LIBS	  = $(LIB_PATH) $(LIB_LIST)
 FLIBS	  = $(FLIB_PATH) $(LIB_LIST)
 LIBSPP	  = $(MPIPPLIB) $(LIBS)
-EXECS	  = fpi cpi cpilog systest
+EXECS	  = cpi systest fpi cpilog
 
 default: $(EXECS)
 

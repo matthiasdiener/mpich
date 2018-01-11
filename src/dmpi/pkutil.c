@@ -1,5 +1,5 @@
 #ifndef LINT
-static char vcid[] = "$Id: pkutil.c,v 1.3 1995/07/31 14:45:59 gropp Exp $";
+static char vcid[] = "$Id: pkutil.c,v 1.6 1995/09/18 21:08:53 gropp Exp $";
 #endif
 
 /* 
@@ -27,11 +27,13 @@ static char vcid[] = "$Id: pkutil.c,v 1.3 1995/07/31 14:45:59 gropp Exp $";
 
    The contiguous unpack routine is
 
-   int unpackcontig( dest, src, datatype, num, inbytes, unpackctx )
+   int unpackcontig( dest, src, datatype, num, inbytes, srclen, destlen, 
+                     unpackctx )
    num items of MPI type datatype are unpacked from src into dest, with the
-   number of bytes consumed from dest being returned.  inbytes is the 
+   number of bytes consumed from dest being set in destlen.  inbytes is the 
    number of bytes available in dest, and is used for detecting buffer 
-   overruns.
+   overruns.  srclen is the number of bytes consumed from src.  The return
+   value is the MPI error code
  */
 
 #include "mpiimpl.h"
@@ -108,20 +110,26 @@ return err;
 /* Unpack may need to know more about whether the buffer is packed in some
    particular format.
    srcsize is size of src in bytes on input.
-   act_len is final len out output.  
+   act_len is amount of data consumed (used to increment the "position"
+   value in MPI_Unpack.
    Normally unchanged; if on input it does not specify enough data 
    for (count,type), then it may less than count*(size)
+   
+   dest_len is the amount of data written to dest; this is needed to 
+   keep things like status.count updated.
+   
 */
-int MPIR_Unpack ( comm, src, srcsize, count, type, msgrep, dest, act_len )
+int MPIR_Unpack ( comm, src, srcsize, count, type, msgrep, dest, act_len,
+		  dest_len )
 MPI_Comm     comm;
 void         *src, *dest;
-int          srcsize, count;
+int          srcsize, count, msgrep;
 MPI_Datatype type;
-int          *act_len;
+int          *act_len, *dest_len;
 {
 int (*unpackcontig)() = 0;
 void *unpackctx = 0;
-int err, dest_len, used_len;
+int err, used_len;
 #ifdef HAS_XDR
 XDR xdr_ctx;
 #endif
@@ -140,11 +148,11 @@ XDR xdr_ctx;
 #endif
     }
 #endif
-dest_len = 0;
-used_len = 0;
+*dest_len = 0;
+used_len  = 0;
 err = MPIR_Unpack2( (char *)src, count, type, unpackcontig, unpackctx, 
-		    (char *)dest, srcsize, &dest_len, &used_len );
-*act_len = dest_len;
+		    (char *)dest, srcsize, dest_len, &used_len );
+*act_len = used_len;
 #ifdef HAS_XDR
 if (unpackcontig == MPIR_Type_XDR_decode) 
     MPIR_Mem_XDR_Free( &xdr_ctx ); 
@@ -393,7 +401,7 @@ int          *used_len;
   int i,j;
   int mpi_errno = MPI_SUCCESS;
   char *tmp_buf;
-  int  len;
+  int  len, srcreadlen, destlen;
   int  mysrclen = 0;
 
   if (MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,type))
@@ -420,10 +428,10 @@ int          *used_len;
       else if (type->basic) {
 	  /* This requires a basic type so that the size is correct */
 	  /* Need to check the element size argument... */
-	  len = (*unpackcontig)( src, count, type, type->size, dest, 
-				     unpackctx );
-	  *dest_len += len;
-	  *used_len  = len;
+	  mpi_errno = (*unpackcontig)( src, count, type, type->size, dest, 
+				     &srcreadlen, &destlen, unpackctx );
+	  *dest_len += destlen;
+	  *used_len  = srcreadlen;
 	  return MPI_SUCCESS;
 	  }
       }
@@ -561,6 +569,22 @@ fprintf( datatype_fp, "Copy %x <- %x for %d bytes\n",
 return len;
 }
 
+int MPIR_Printcontig2a( src, num, datatype, inbytes, dest, srclen, destlen,
+		       ctx )
+char         *dest, *src;
+MPI_Datatype datatype;
+int          num, inbytes, *srclen, *destlen;
+void         *ctx;
+{
+int len = datatype->size * num;
+
+fprintf( datatype_fp, "Copy %x <- %x for %d bytes\n", 
+	 dest-o_offset, src-i_offset, len );
+*srclen = len;
+*destlen = len;
+return MPI_SUCCESS;
+}
+
 int MPIR_PrintDatatypePack( fp, count, type, in_offset, out_offset )
 FILE         *fp;
 int          count;
@@ -585,6 +609,7 @@ if (!out_offset) {
     }
 MPIR_Pack2( src, count, type, MPIR_Printcontig, (void *)0, dest, 
 	    &outlen, &totlen );
+return MPI_SUCCESS;
 }
 
 int MPIR_PrintDatatypeUnpack( fp, count, type, in_offset, out_offset )
@@ -612,6 +637,7 @@ if (!out_offset) {
     o_offset = &i_dummy;
     dest     = o_offset;
     }
-MPIR_Unpack2( src, count, type, MPIR_Printcontig2, (void *)0, dest, 
+MPIR_Unpack2( src, count, type, MPIR_Printcontig2a, (void *)0, dest, 
 	      srclen, &destlen, &used_len );
+return MPI_SUCCESS;
 }

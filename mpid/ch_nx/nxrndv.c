@@ -6,7 +6,7 @@
 
 
 /*
- *  $Id: chrndv.c,v 1.1 1995/06/28 23:01:10 gropp Exp $
+ *  $Id: chrndv.c,v 1.3 1995/09/18 21:13:02 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -14,7 +14,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: chrndv.c,v 1.1 1995/06/28 23:01:10 gropp Exp $";
+static char vcid[] = "$Id: chrndv.c,v 1.3 1995/09/18 21:13:02 gropp Exp $";
 #endif /* lint */
 
 #include "mpid.h"
@@ -138,6 +138,7 @@ if (mpid_recv_handle->bytes_as_contig < dmpi_recv_handle->totallen) {
     mpid_recv_handle_unex->bytes_as_contig = mpid_recv_handle->bytes_as_contig;
     dmpi_recv_handle->totallen		   = mpid_recv_handle->bytes_as_contig;
     err					   = MPI_ERR_TRUNCATE;
+    dmpi_recv_handle->errval               = MPI_ERR_TRUNCATE;
     (*MPID_ErrorHandler)( 1, "Truncated message"  );
     }
 
@@ -416,6 +417,8 @@ MPIR_SHANDLE *dmpi_send_handle;
 {
 MPID_SHANDLE *mpid_send_handle;
 
+DEBUG_PRINT_MSG("S Starting Send_rndv")
+
 mpid_send_handle = &dmpi_send_handle->dev_shandle;
 /* If we have rendevous send, then we may need to first wait until the
    message has been requested; then wait on the send to complete... */
@@ -430,8 +433,7 @@ if (mpid_send_handle->sid)  {
     (void)MPID_NX_check_incoming( MPID_NOTBLOCKING );
     MPID_NX_isend_wait( dmpi_send_handle );
     }
-#endif
-#if defined(PI_NO_NSEND)
+#else
 /* This test lets us 'complete' a rendevous send when there is no nonblocking
    send. */
 if (mpid_send_handle->sid) {
@@ -445,11 +447,13 @@ while (!MPID_Test_handle(dmpi_send_handle)) {
        or for a incremental get */
     (void)MPID_NX_check_incoming( MPID_BLOCKING );
     }
+DEBUG_PRINT_MSG("S Ending send_rndv")
 }
 
 int MPID_NX_Cmpl_recv_rndv( dmpi_recv_handle )
 MPIR_RHANDLE *dmpi_recv_handle;
 {
+DEBUG_PRINT_MSG("Starting cmpl_recv_rndv")
  /*  && !defined(PI_NO_NRECV) */
 /* This will not work on stream devices unless we can guarentee that this
    message is the next one in the pipe.  Otherwise, we need a loop that
@@ -467,6 +471,7 @@ if (!MPID_Test_handle(dmpi_recv_handle) && dmpi_recv_handle->dev_rhandle.rid) {
 while (!MPID_Test_handle(dmpi_recv_handle)) {
     (void)MPID_NX_check_incoming( MPID_BLOCKING );
     }
+DEBUG_PRINT_MSG("Exiting cmpl_recv_rndv")
 }
 
 #endif

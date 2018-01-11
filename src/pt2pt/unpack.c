@@ -1,12 +1,12 @@
 /*
- *  $Id: unpack.c,v 1.14 1995/07/31 14:45:41 gropp Exp $
+ *  $Id: unpack.c,v 1.16 1995/09/18 15:39:44 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: unpack.c,v 1.14 1995/07/31 14:45:41 gropp Exp $";
+static char vcid[] = "$Id: unpack.c,v 1.16 1995/09/18 15:39:44 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -37,7 +37,8 @@ int           outcount;
 MPI_Datatype  type;
 MPI_Comm      comm;
 {
-  int size, pad, mpi_errno = MPI_SUCCESS, actlen;
+  int size, mpi_errno = MPI_SUCCESS, actlen;
+  int msgrep = 0, dest_len;
 
   /* NOT ENOUGH ERROR CHECKING AT PRESENT */
   if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_DATATYPE(comm,type) ||
@@ -45,21 +46,24 @@ MPI_Comm      comm;
       ( (*position < 0 ) && (mpi_errno = MPI_ERR_ARG) ) ) 
       return MPIR_ERROR(comm,mpi_errno,"Error in MPI_UNPACK" );
   
-  /* What kind of padding is necessary? */
-  /* is this bogus? */
-  pad = (type->align - ((*position) % type->align)) % type->align;
-
   /* Is the inbuf big enough for the type that's being unpacked? */
+  /* 
+    We can't use this test because Pack_size is not exact but is rather
+    an upper bound.
   MPIR_Pack_size ( outcount, type, comm, &size );
-  if (((*position) + pad + size) > insize)
+  if (((*position) + size) > insize)
 	return MPIR_ERROR(comm, MPI_ERR_LIMIT, 
 				       "Input buffer too small in MPI_UNPACK");
-
-  /* Figure the pad and adjust position */
-  (*position) += pad;
+   */
+#ifdef MPID_HAS_HETERO
+  /* Does this buffer require special handling? */
+  if (MPID_IS_HETERO == 1 && MPIR_Comm_needs_conversion(comm)) {
+      msgrep = MPIR_MSGREP_XDR;
+      }
+#endif  
   mpi_errno = MPIR_Unpack( comm, 
 			  (char *)inbuf + (*position), insize - *position, 
-			  outcount, type, 0, outbuf, &actlen );
+			  outcount, type, msgrep, outbuf, &actlen, &dest_len );
   if (mpi_errno) MPIR_ERROR(comm,mpi_errno,"Error in MPI_UNPACK" );
   (*position) += actlen;
   return (mpi_errno);

@@ -9,16 +9,18 @@
 # -noperf               Do not run performance tests
 # -file=name            Output LaTeX file (default is doc/doc1.tex)
 # -plotonly             Run gnuplot only to create output files
-author="`whoami`"
+# -testdir=dir          Location of output files from mpptest runs
+author="$LOGNAME"
 nomake=0
 noperf=0
 plotonly=0
 filename="doc/doc1perf.tex"
 fileroot="doc1"
+testdir=examples/perftest
 for arg in "$@" ; do
     case $arg in 
 	-author=* )
-	author="`echo $arg|sed 's/-author=//'`"
+	author="`echo $arg|sed -e 's/-author=//' -e 's/_/ /'`"
 	;;
 	-file=* )
 	filebase=`echo $arg|sed 's/-file=//'`
@@ -33,6 +35,12 @@ for arg in "$@" ; do
 	;;
 	-plotonly )
 	plotonly=1
+	;;
+	-testdir=* )
+	testdir="`echo a$arg|sed -e 's/a-testdir=//'`"
+	;;
+	-echo)
+	set -x
 	;;
 	*)
 	if test -n "$arg" ; then
@@ -89,6 +97,15 @@ fi
 # Performance of the system
 ############################################################################
 #
+# Put the header in in case there were problems.
+cat >> $filename <<.
+\section{Performance}
+The performance of a message passing system is often measured in terms of the
+bandwidth and latency for a point-to-point message.  This section reports the
+performance of the MPICH version of MPI for a simple ping-pong test between
+two nodes.  The time reported is one-half the round-trip time.  
+.
+
 ############################################################################
 # Run the performance tests
 ############################################################################
@@ -100,16 +117,22 @@ if test $noperf = 0 ; then
     # We can generate the output graphs...
    if test "$plotonly" = 0 ; then
 	curdir=`pwd`
-	cd examples/perftest
+	cd $testdir
 	/bin/rm -f maketst.log 
  	make mpptest goptest > maketst.log 2>&1
 	
  	if test ! -x mpptest ; then 
+	    echo " " >> $filename
 	    echo "Failed to build performance test program!" >> $filename
-	    echo "Output of \\code{make mpptest goptest} is" >> $filename
-	    Bverbatim $filename
-	    cat maketst.log >> $filename
-	    Everbatim $filename
+	    if test -s maketst.log ; then
+	        echo "Output of \\code{make mpptest goptest} is" >> $filename
+	        Bverbatim $filename
+	        cat maketst.log >> $filename
+	        Everbatim $filename
+	    else
+		echo "No output from \\code{make mpptest goptest}!" >> \
+			$filename
+	    fi
 	    exit 1
 	fi
 	/bin/rm -rf short.gpl short.err 
@@ -117,10 +140,11 @@ if test $noperf = 0 ; then
 		-tgoal 0.1 -auto -givdy > short.gpl 2>short.err
 	RefineGnuplotfile "short"
 	#
+        # Don't use the auto feature for long data.
 	/bin/rm -rf long.gpl long.err 
 	mpirun -np 2 -mvhome -mvback mppout.gpl -arch=@ARCH@ mpptest -gnuplot \
-	   -tgoal 0.2 -auto -reps 25 -size 16384 65536 1024 -givedy \
-		> long.gpl 2>long.err
+	   -tgoal 0.2 -reps 25 -size 16384 65536 2048 \
+		-givedy > long.gpl 2>long.err
 	RefineGnuplotfile "long"
 	#
 	# The collective routines need to aggregate over several values of
@@ -149,48 +173,54 @@ if test $noperf = 0 ; then
     # 
     # Test that we generated the data.  If not, try to determine why
     #
-    if test ! -s examples/perftest/short-data.gpl -o \
-            ! -s examples/perftest/long-data.gpl ; then
+    if test ! -s $testdir/short-data.gpl -o \
+            ! -s $testdir/long-data.gpl ; then
+	echo " " >> $filename
 	echo "Could not generate the performance test data!" >> $filename
-	if test -s examples/perftest/short.gpl ; then 
+	if test -s $testdir/short.gpl ; then 
 	    echo "The output from the short message test was" >> $filename
 	    Bverbatim $filename
-	    cat examples/perftest/short.gpl >> $filename
+	    cat $testdir/short.gpl >> $filename
 	    Everbatim $filename
 	else
 	    echo "There was no output from the short message test!" >> \
 		$filename
 	fi
-	if test -s examples/perftest/long.gpl ; then 
+	if test -s $testdir/long.gpl ; then 
 	    echo "The output from the long message test was" >> $filename
 	    Bverbatim $filename
-	    cat examples/perftest/long.gpl >> $filename
+	    cat $testdir/long.gpl >> $filename
 	    Everbatim $filename
 	else
 	    echo "There was no output from the long message test!" >> \
 		$filename
 	fi
-        echo \
+	if test -s $testdir/maketst.log ; then
+            echo \
 	"The output of the make to build the performance test program was" \
 			>> $filename
-    	Bverbatim $filename
-   	cat examples/perftest/maketst.log >> $filename
-    	Everbatim $filename
-    	if test -s examples/perftest/short.err ; then
+    	    Bverbatim $filename
+   	    cat $testdir/maketst.log >> $filename
+    	    Everbatim $filename
+	else
+	    echo "There was no output from the make of mpptest!" >> $filename
+	    echo "My current directory is \\code{`pwd`}." >> $filename
+	fi
+    	if test -s $testdir/short.err ; then
 	    echo "The error output of short message test was" >> $filename
             Bverbatim $filename
-	    cat examples/perftest/short.err >>$filename
+	    cat $testdir/short.err >>$filename
   	    Everbatim $filename
     	fi
-    	if test -s examples/perftest/long.err ; then
+    	if test -s $testdir/long.err ; then
 	    echo "The error output of long message test was" >> $filename
             Bverbatim $filename
-	    cat examples/perftest/long.err >>$filename
+	    cat $testdir/long.err >>$filename
   	    Everbatim $filename
     	fi
         exit 0
     elif test -f "$gnuplotloc" ; then
-        (cd examples/perftest ; \
+        (cd $testdir ; \
 	/bin/rm -f short.eps long.eps ; \
         gnuplot short.gpl > short.eps ; \
         gnuplot long.gpl > long.eps ; \
@@ -203,25 +233,20 @@ if test "$plotonly" = 1 ; then
 fi
 #
 # Extract the performance numbers
-if test -s examples/perftest/short.gpl ; then
-    latency="`grep 'startup' examples/perftest/short.gpl | cut -d' ' -f 4,5`"
+if test -s $testdir/short.gpl ; then
+    latency="`grep 'startup' $testdir/short.gpl | cut -d' ' -f 4,5`"
     latency="For short messages, the latency is $latency."
 else
     latency=""
 fi
-if test -s examples/perftest/long.gpl ; then
-    rate="`grep 'startup' examples/perftest/long.gpl | cut -d' ' -f 10,11`"
+if test -s $testdir/long.gpl ; then
+    rate="`grep 'startup' $testdir/long.gpl | cut -d' ' -f 10,11`"
     rate="For long messages, the transfer rate is $rate."
 else
     rate=""
 fi
 
 cat >> $filename <<.
-\section{Performance}
-The performance of a message passing system is often measured in terms of the
-bandwidth and latency for a point-to-point message.  This section reports the
-performance of the MPICH version of MPI for a simple ping-pong test between
-two nodes.  The time reported is one-half the round-trip time.  
 Figure \ref{fig-short} shows the performance for short messages.  The dashed
 line represents a least-squares (or linear regression) fit to the data with
 model \(s + r x\), where \(x\) is the length of the message in bytes, \(s\)
@@ -242,7 +267,7 @@ In Figure \ref{fig-long} we show the time taken by messages of intermediate
 length.  These results give a better idea of the effective bandwidth for many
 applications.  $rate
 Care should, however, be taken when using these results, since
-some systems do not reach there full (asymptotic) bandwidth until very large
+some systems do not reach their full (asymptotic) bandwidth until very large
 messages are used. 
 In addition, these results measure only the performance of the MPICH
 implementation of MPI, not the achievable performance of the MPI standard.

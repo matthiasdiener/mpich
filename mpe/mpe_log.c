@@ -321,6 +321,7 @@ int MPE_Finish_log( filename )
 char *filename;
 {
   int returnStatus;
+  int *is_globalp, flag;
 
   if (!MPE_Log_hasBeenInit) return MPE_Log_NOT_INITIALIZED;
   if (!MPE_Log_hasBeenClosed) {
@@ -335,7 +336,11 @@ char *filename;
     PrintBlockChain( debug_file, MPE_Log_firstBlock );
       fflush( debug_file );
 #endif
-    MPE_Log_adjusttimes();
+    MPI_Attr_get( MPI_COMM_WORLD, MPI_WTIME_IS_GLOBAL, &is_globalp, &flag );
+    if (!flag || (is_globalp && !*is_globalp)) {
+	/* Adjust the times ONLY if the timer is not global */
+	MPE_Log_adjusttimes();
+	}
 #if DEBUG
     fprintf( debug_file, "parallel merge\n" );
       fflush( debug_file );

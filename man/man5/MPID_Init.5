@@ -1,4 +1,4 @@
-.TH MPID_Init 5 "10/10/1994" " " "ADI"
+.TH MPID_Init 5 "8/23/1995" " " "ADI"
 .SH NAME
 MPID_Init \- Initializes the ADI
 
@@ -24,7 +24,9 @@ void *MPID_Init( int *argc, char ***argv )
 
 .SH NOTES
 If called from a C program with main(argc,argv), the correct calling
-sequence is MPID_Init(&argc,&argv).
+sequence is 
+.I MPID_Init(&argc,&argv)
+.
 
 This routine may (or may not) also initialize the parallel processes
 themselves.  That is, when this routine is called, it may create the
@@ -34,31 +36,17 @@ processes is specified, is specific to any particular implementation
 and environment.
 
 As an example, the Chameleon version of the ADI has these properties
-.PD 0
-.TP
-.B Transport_ 
-Layer  -            MPID_Init starts processes
-.PD 1
-.br
-.PD 0
-.TP
-.B p4,pvm,EUIH 
--                 yes
-.PD 1
-.PD 0
-.TP
-.B Paragon 
--                       depends on Paragon 
-.PD 1
-.PD 0
-.TP
-.B Intel_ 
-i860,Delta,CM5,POE -   no
-.PD 1
-.br
+.nf
+   Transport Layer             -   MPID_Init starts processes
+   ---------------------------------------------------------------
+   p4, pvm, EUIH               -   yes
+   Paragon                     -   depends on Paragon 
+   Intel i860, Delta, CM5, POE -   no
+.fi
+
 
 The pointer returned by this routine may be null; it is provided to allow
-for multiple, simultaneous ADI's.  For example, if the pointer returned
+for multiple, simultaneous ADIs.  For example, if the pointer returned
 contains a structure with pointers to the ADI routines, and the macros
 for the operations choose the actual function from this structure, then
 a single user-application can easily switch between ADIs, depending,

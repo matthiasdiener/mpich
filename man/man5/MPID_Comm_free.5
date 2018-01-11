@@ -1,0 +1,29 @@
+.TH MPID_Comm_free 5 "8/23/1995" " " "ADI"
+.SH NAME
+MPID_Comm_free \- Frees the ADI''s use of a communicator.
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B ctx 
+- ADI context returned by 
+.I MPID_Init
+
+.PD 1
+.PD 0
+.TP
+.B comm 
+- MPI Communicator
+.PD 1
+
+.SH SYNOPSIS
+.nf
+void MPID_Comm_free( void *ctx, MPI_Comm comm )
+.fi
+
+.SH NOTES
+This routine is responsible for freeing any data areas needed
+to perform any ADI-supported collective operations (such as
+
+.I MPID_Barrier
+).

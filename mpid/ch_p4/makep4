@@ -4,35 +4,29 @@
 # of the files may be required after this process, but the goal is to 
 # fully automate this process.
 #
-/bin/cp ../chameleon/*.c .
 sed -e '/#define DEVICE_CHAMELEON/d' \
-    -e 's/MPID_CH/MPID_P4/g' \
+    -e 's/MPID_CH_/MPID_P4_/g' \
     -e 's/"Chameleon"/"p4"/g' ../chameleon/dmch.h > dmp4.h
-sed -e 's/MPID_CH/MPID_P4/g' ../chameleon/mpid_bind.h > mpid_bind.h
-sed -e 's/MPID_CH/MPID_P4/g' ../chameleon/packets.h > packets.h
-sed -e 's/MPID_CH/MPID_P4/g' ../chameleon/channel.h > channel.h
-sed -e 's/MPID_CH/MPID_P4/g' ../chameleon/mpiddebug.h > mpiddebug.h
-sed -e 's/MPID_CH/MPID_P4/g' ../chameleon/mpidstat.h > mpidstat.h
-mv chevent.c p4event.c
-mv chrecv.c  p4recv.c
-mv chsend.c  p4send.c
-mv chinit.c  p4init.c
-mv chprobe.c p4probe.c
-mv chsync.c  p4sync.c
-mv chcoll.c  p4coll.c 
-mv chrndv.c  p4rndv.c 
-mv chget.c   p4get.c 
-mv chdebug.c p4debug.c 
+sed -e 's/MPID_CH_/MPID_P4_/g' ../chameleon/mpid_bind.h > mpid_bind.h
+sed -e 's/MPID_CH_/MPID_P4_/g' ../chameleon/packets.h > packets.h
+sed -e 's/MPID_CH_/MPID_P4_/g' ../chameleon/channel.h > channel.h
+sed -e 's/MPID_CH_/MPID_P4_/g' ../chameleon/mpiddebug.h > mpiddebug.h
+sed -e 's/MPID_CH_/MPID_P4_/g' ../chameleon/mpidstat.h > mpidstat.h
+for file in event hetero recv send init probe sync rndv coll debug ; do 
+    ../chameleon/rmget ../chameleon/ch$file.c | \
+	../chameleon/rmchameleon > p4$file.c
+    chmod ug+w p4$file.c
+done
 chmod ug+w *.[ch]
 /home/gropp/tools.n/bin/inlinecomm -main -quiet -p4 p4init.c
 for file in p4event.c p4recv.c p4send.c p4probe.c p4sync.c p4coll.c dmp4.h \
-	p4rndv.c p4get.c p4debug.c packets.h channel.h ; do
+	p4rndv.c p4debug.c p4hetero.c packets.h channel.h ; do
     /home/gropp/tools.n/bin/inlinecomm -quiet -p4 $file
 done
 #
 # Change the names MPID_CH to MPID_P4
 /bin/rm -f .tmp
-for file in *.c ; do
-    sed -e 's/MPID_CH/MPID_P4/g' $file > .tmp
+for file in p4*.c ; do
+    sed -e 's/MPID_CH_/MPID_P4_/g' $file > .tmp
     mv .tmp $file
 done

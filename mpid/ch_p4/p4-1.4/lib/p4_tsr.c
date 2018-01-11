@@ -192,7 +192,7 @@ int *req_type, *req_from;
     !defined(CAN_DO_CUBE_MSGS)   && \
     !defined(CAN_DO_SWITCH_MSGS)
 
-    return (socket_recv());
+    return (socket_recv( TRUE ));
 
 #else
 
@@ -219,7 +219,7 @@ int *req_type, *req_from;
 #       if defined(CAN_DO_SOCKET_MSGS)
 	if (socket_msgs_available())
 	{
-	    return (socket_recv());
+	    return (socket_recv( FALSE ));
 	}
 #       endif
 
@@ -317,15 +317,17 @@ int *req_type, *req_from;
 #   if defined(CAN_DO_SOCKET_MSGS)
     while (!found && socket_msgs_available())
     {
-	tmsg = socket_recv();
-	if (((tmsg->type == *req_type) || (*req_type == -1)) &&
-	    ((tmsg->from == *req_from) || (*req_from == -1)))
-	{
-	    found = TRUE;
-	    *req_type = tmsg->type;
-	    *req_from = tmsg->from;
-	}
-	queue_p4_message(tmsg, p4_local->queued_messages);
+	tmsg = socket_recv( FALSE );
+	if (tmsg) {
+	    if (((tmsg->type == *req_type) || (*req_type == -1)) &&
+		((tmsg->from == *req_from) || (*req_from == -1)))
+		{
+		found	  = TRUE;
+		*req_type = tmsg->type;
+		*req_from = tmsg->from;
+		}
+	    queue_p4_message(tmsg, p4_local->queued_messages);
+	    }
     }
 #   endif
 
@@ -357,6 +359,19 @@ int *req_type, *req_from;
     if (!found && MD_tcmp_msgs_available(req_from,req_type))
 	found = TRUE;
 #endif
+
+    if (!found) {
+	int i;
+	/* See if a connection has died ... */
+	for (i = 0; i < p4_global->num_in_proctable; i++)
+	    {
+	    if (p4_local->conntab[i].type == CONN_REMOTE_DYING) {
+		/* We need to detect that some are down... */
+		p4_error( "Found a dead connection while looking for messages",
+			   i );
+		}
+	    }
+	}
 
     ALOG_LOG(p4_local->my_id,END_WAIT,1,"");
     ALOG_LOG(p4_local->my_id,BEGIN_USER,0,"");

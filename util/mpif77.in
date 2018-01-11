@@ -1,5 +1,5 @@
 #! /bin/sh
-DoLink=0
+DoLink=1
 DoCompile=0
 MPILOG=
 Show=eval
@@ -7,6 +7,7 @@ allargs=
 compileargs=
 linkargs=
 gettinglinkarg=0
+HasDashC=0
 for arg in "$@" ; do
 #    echo procssing arg $arg
     # Special processing for -o name
@@ -16,6 +17,13 @@ for arg in "$@" ; do
 	continue
     fi
     case "$arg" in 
+	-c)
+	# If -c is NOT specified, then we need to perform a link step.
+	allargs="$allargs $arg"
+	compileargs="$compileargs $arg"
+	DoLink=0
+	HasDashC=1
+	;;
         -o)
 	# Need to link
 	allargs="$allargs $arg"
@@ -90,9 +98,20 @@ for arg in "$@" ; do
     esac
 done
 #
+# Take care of mpif.h; try to add the link if necessary
+finc="@FINC@"
+if [ -z "$finc" ] ; then
+    if [ ! -f mpif.h ] ; then
+        echo "Adding a symbolic link for mpif.h"
+	$Show ln -s @MPIR_HOME@/include/mpif.h mpif.h
+    fi
+fi
 status=0
 if [ $DoCompile = 1 ] ; then 
-    $Show @F77@ @FFLAGS@ @OPTFLAGS@ $compileargs
+    if [ $HasDashC != 1 ] ; then
+        compileargs="-c $compileargs"
+    fi
+    $Show @F77@ $finc @FFLAGS@ @OPTFLAGS@ $compileargs
     status=$?
     if [ $status != 0 ] ; then 
 	exit $status

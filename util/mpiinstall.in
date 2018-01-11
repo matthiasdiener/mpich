@@ -1,0 +1,448 @@
+#! /bin/sh
+#
+# This is a script to install mpi.  It can be called from the top-level 
+# Makefile or directly.  Note that this script needs to be built by configure.
+#
+ARCH=@ARCH@
+COMM=@COMM@
+PREFIX=@PREFIX@
+DEVICE=@DEVICE@
+CPRP=@CPRP@
+MAKE="@MAKE@"
+RSH_COMMAND=@RSH_COMMAND@
+DEFAULT_MACHINE=@DEFAULT_MACHINE@
+# File access mode
+MODE=0664
+XMODE=0775
+Show=eval
+just_testing=0
+for arg in "$@" ; do
+    case "$arg" in 
+	-echo) set -x ;;
+	-mode=*) MODE=`echo $arg | sed -e 's/-mode=//g'` ;;
+	-xmode=*)XMODE=`echo $arg | sed -e 's/-xmode=//g'` ;;
+	-prefix=*)PREFIX=`echo $arg | sed -e 's/-prefix=//g'` ;;
+	-aprefix=*)APREFIX=`echo $arg | sed -e 's/-aprefix=//g'` ;;
+	-nonupshot)nonupshot=1 ;;
+	-cpnupshot)cpnupshot=1 ;;
+	-noman) noman=1 ;;
+	-manpath=*)MPIMANPATH=`echo $arg | sed -e 's/-manpath=//g'` ;;
+	-libonly) libonly=1 ;;
+	-t) Show=echo
+	    just_testing=1
+	    ;;
+	-help|-u|-usage)
+	echo "Install MPICH into $PREFIX."
+	echo "-mode=nnnn   - mode for regular files.  Default is $MODE ."
+	echo "-xmode=nnnn  - mode for execuables and directories.  Default is $XMODE ."
+	echo "-prefix=path - Destination directory."
+	echo "-aprefix=path- Path to use in sample files.  Default is same"
+	echo "               as prefix."
+	echo "-t           - Try only; do no installation."
+	echo "-libonly     - Install only the libraries; this is "
+	echo "               appropriate for installing a second device."
+	echo "-manpath=path- Set an alternate path for the man pages"
+	echo "-noman       - Do not install the man pages."
+	echo "-nonupshot   - Do not try to build or install nupshot."
+	echo "-cpnupshot   - Do not build nupshot; install the one in"
+	echo "               profiling/nupshot - WARNING - read the "
+	echo "               installation manual first!"
+	exit 1
+	;;
+	*)
+	echo "Unrecognized argument $arg ."
+	exit 1
+	;;
+    esac
+done
+if [ -z "$APREFIX" ] ; then
+    APREFIX=$PREFIX
+fi
+#
+# We could use install, but install is too different and too hard to 
+# test.  So here are the routines to copy file, make directories, and 
+# replace #...# and @...@ in files
+CP=cp
+#
+CopyFile() {
+if [ -z "$3" ] ; then
+    mode=$MODE
+else
+    mode=$3
+fi
+if [ -d $2 ] ; then
+    dest=$2/`basename $1`
+else
+    dest=$2
+fi
+if [ -f $dest ] ; then
+    echo "$dest exists; not changed"
+elif [ -d $1 ] ; then
+    echo ">>> $1 is a directory; not copied <<<"
+else
+    echo "Copying $1 to $dest"
+    $Show $CP $1 $dest
+    $Show chmod $mode $dest
+fi
+}
+
+#
+# A version of copy file that preserves file dates
+CopyFileP() {
+    CP="$CPRP -p"
+    CopyFile $1 $2 $3
+    CP=cp
+}
+
+MkDir() {
+if [ ! -d $1 ] ; then
+    echo "Creating directory $1"
+    $Show mkdir $1
+    $Show chmod $XMODE $1
+fi
+}
+#
+# Fixup files that need #...# replaced
+#
+FixupFile() {
+if [ -d $2 ] ; then
+    dest=$2/`basename $1`
+else
+    dest=$2
+fi
+if [ -f $dest ] ; then
+    echo "$dest exists; not changed"
+elif [ -d $1 ] ; then
+    echo "$1 is a directory; not copied"
+else
+    if [ $just_testing = 0 ] ; then
+        sed \
+	-e "s%\#ARCH\#%$ARCH%g" \
+	-e "s%\#AUTOMOUNTFIX\#%@AUTOMOUNTFIX@%g" \
+        -e "s%\#BITMAP_DIR\#%$PREFIX/lib/bitmaps%g" \
+	-e "s%\#CC\#%@CC@%g" \
+	-e "s%\#CFLAGS\#%@CFLAGS@%g" \
+	-e "s%\#CLINKER\#%@CLINKER@%g" \
+	-e "s%\#COMM\#%$COMM%g" \
+	-e "s%\#DEFAULT_ARCH\#%$ARCH%g" \
+	-e "s%\#DEFAULT_DEVICE\#%$DEVICE%g" \
+	-e "s%\#DEFAULT_MACHINE\#%$DEFAULT_MACHINE%g" \
+       	-e "s%\#EXECER_DIR\#%$PREFIX/util%g" \
+	-e "s%\#F77\#%@F77@%g" \
+	-e "s%\#FFLAGS\#%@FFLAGS@%g" \
+	-e "s%\#FLIB_PATH_LEADER\#%@FLIB_PATH_LEADER@%g" \
+	-e "s%\#FLINKER\#%@FLINKER@%g" \
+	-e "s%\#INCLUDE_PATH\#%@INCLUDE_PATH@%g" \
+	-e "s%\#INSTALL_DIR\#%$PREFIX%g" \
+	-e "s%\#LIB_LIST\#%@LIB_LIST@%g" \
+        -e "s%\#MPIR_HOME\#%$PREFIX%g" \
+	-e "s%\#OPTFLAGS\#%@OPTFLAGS@%g" \
+	-e "s%\#PREFIX\#%$PREFIX%g" \
+	-e "s%\#RSH_COMMAND\#%$RSH_COMMAND%g" \
+	-e "s%\#SYNCLOC\#%@SYNCLOC@%g" \
+	-e "s%\#wishloc\#%@wishloc@%g" \
+	$1 > $dest
+    else
+	echo "Fixup $1.in and copy to $dest"
+    fi
+fi
+if [ -z "$3" ] ; then
+    mode=$MODE
+else
+    mode=$3
+fi
+$Show chmod $mode $2
+}
+
+#
+# This is a version of FixupFile that handles @...@ instead of #...#.
+# This is a little trickier, since this file itself is processed by
+# with @...@ replacements.  We take advantage of the fact that [char] 
+# matches the same things as char.
+# This has a few more fields than FixupFile
+#
+FixupFileWithAt() {
+    NLIBPATH=`echo "@LIB_PATH@" | \
+	sed -e "s%^\([^/]*\)/.*\$%\1$PREFIX/lib/$ARCH/$COMM%g"`
+if [ -d $2 ] ; then
+    dest=$2/`basename $1`
+else
+    dest=$2
+fi
+if [ -f $dest ] ; then
+    echo "$dest exists; not changed"
+elif [ -d $1 ] ; then
+    echo "$1 is a directory; not copied"
+else
+    if [ $just_testing = 0 ] ; then
+        sed \
+	-e "s%[@]ARCH[@]%$ARCH%g" \
+	-e "s%[@]AUTOMOUNTFIX[@]%@AUTOMOUNTFIX@%g" \
+	-e "s%[@]FINC[@]%@FINC@%g" \
+        -e "s%[@]BITMAP_DIR[@]%$PREFIX/lib/bitmaps%g" \
+	-e "s%[@]CC[@]%@CC@%g" \
+	-e "s%[@]CFLAGS[@]%@CFLAGS@%g" \
+	-e "s%[@]CLINKER[@]%@CLINKER@%g" \
+	-e "s%[@]COMM[@]%$COMM%g" \
+	-e "s%[@]DEFAULT_ARCH[@]%$ARCH%g" \
+	-e "s%[@]DEFAULT_DEVICE[@]%$DEVICE%g" \
+	-e "s%[@]DEFAULT_MACHINE[@]%$DEFAULT_MACHINE%g" \
+       	-e "s%[@]EXECER_DIR[@]%$PREFIX/util%g" \
+	-e "s%[@]F77[@]%@F77@%g" \
+	-e "s%[@]FFLAGS[@]%@FFLAGS@%g" \
+	-e "s%[@]FLIB_PATH_LEADER[@]%@FLIB_PATH_LEADER@%g" \
+	-e "s%[@]FLIB_PATH[@]%@FLIB_PATH@%g" \
+	-e "s%[@]FLINKER[@]%@FLINKER@%g" \
+	-e "s%[@]INCLUDE_PATH[@]%@INCLUDE_PATH@%g" \
+	-e "s%[@]INSTALL_DIR[@]%$PREFIX%g" \
+	-e "s%[@]LIB_PATH[@]%$NLIBPATH%g" \
+	-e "s%[@]LIB_LIST[@]%@LIB_LIST@%g" \
+	-e "s%[@]MPE_LIBS[@]%@MPE_LIBS@%g" \
+        -e "s%[@]MPIR_HOME[@]%$PREFIX%g" \
+	-e "s%[@]OPTFLAGS[@]%@OPTFLAGS@%g" \
+	-e "s%[@]PREFIX[@]%$PREFIX%g" \
+	-e "s%[@]RSH_COMMAND[@]%$RSH_COMMAND%g" \
+	-e "s%[@]SYNCLOC[@]%@SYNCLOC@%g" \
+	-e "s%[@]wishloc[@]%@wishloc@%g" \
+	-e "s%[@]X_LIB[@]%@X_LIB@%g" \
+	$1 > $dest
+    else
+	echo "Fixup $1.in and copy to $dest"
+    fi
+fi
+if [ -z "$3" ] ; then
+    mode=$MODE
+else
+    mode=$3
+fi
+$Show chmod $mode $2
+}
+
+##############################################################################
+#
+# End of routines
+#
+##############################################################################
+if [ ! -s lib/$ARCH/$COMM/libmpi.a ] ; then 
+    echo "You must make MPI before installing it!"
+    echo "Could not find lib/$ARCH/$COMM/libmpi.a !"
+    exit 1
+fi
+if [ ! -n "$PREFIX" ] ; then 
+  echo "Set an installation location with -prefix=<location> ."
+  exit 1
+fi
+echo "Install into $PREFIX on the $ARCH with $COMM"
+if [ -d $PREFIX ] ; then
+    echo "using existing directory $PREFIX"
+else
+    MkDir $PREFIX 
+fi
+
+MkDir $PREFIX/lib
+MkDir $PREFIX/lib/$ARCH
+MkDir $PREFIX/lib/$ARCH/$COMM
+MkDir $PREFIX/lib/bitmaps
+MkDir $PREFIX/util
+MkDir $PREFIX/util/machines
+MkDir $PREFIX/include
+#MkDir $PREFIX/mpid
+#MkDir $PREFIX/mpid/$DEVICE
+MkDir $PREFIX/examples
+MkDir $PREFIX/bin
+MkDir $PREFIX/man
+MkDir $PREFIX/doc
+if [ -z "$libonly" ] ; then
+    CopyFile util/tarch $PREFIX/bin $XMODE
+    CopyFile util/tdevice $PREFIX/bin $XMODE
+    #
+    # mpiman
+    $Show /bin/rm -f $PREFIX/bin/mpiman
+    FixupFile util/mpiman.in $PREFIX/bin/mpiman $XMODE
+    CopyFile $PREFIX/bin/mpiman $PREFIX/lib/$ARCH/$COMM $XMODE
+    #
+    # Upshot and Nupshot
+    # Do Upshot/Nupshot early in case there is a problem.
+    if [ -z "$nonupshot" ] ; then 
+        $Show /bin/rm -f $PREFIX/bin/upshot
+        FixupFile profiling/upshot/bin/upshot.in $PREFIX/bin/upshot $XMODE
+        #
+        # Should clean nupshot sources  (*.c/h) 
+        if [ -n "@TCL_DIR@" -a -z "$cpnupshot" ] ; then 
+            echo "Attempting to build nupshot... "
+            $Show $CPRP -r profiling/nupshot $PREFIX
+            $Show "(cd $PREFIX/nupshot ; \
+	        if configure -tcldir=@TCL_DIR@ -tkdir=@TK_DIR@ ; then \
+	        $MAKE clean ; $MAKE ; \
+    	        mv nupshot ../bin ; $MAKE clean ; fi )"
+	elif [ -n "$cpnupshot" -a -f profiling/nupshot ] ; then 
+            $Show $CPRP -r profiling/nupshot $PREFIX
+            $Show "(cd $PREFIX/nupshot ; \
+	        mv nupshot ../bin ; $MAKE clean )"
+        fi
+    fi
+    #
+    # mpirun et al.  This would be a good place to identify 
+    # "partial" mpirun installations
+    # mpirun.sh.in requires:
+    #     mpirun.args.in
+    #     mpirun.<device>.in (some variations are mapped to different
+    #                         devices)
+    # ch_p4, execer also use
+    #     mpirun.pg.in
+    for file in util/mpirun.*.in util/tstmachines.in ; do
+        bfile=`basename $file .in`
+        echo "Creating $PREFIX/bin/$bfile from $file"
+        FixupFile $file $PREFIX/bin/$bfile $XMODE
+        $Show /bin/rm -f $PREFIX/lib/$ARCH/$COMM/$bfile 
+        CopyFile $PREFIX/bin/$bfile $PREFIX/lib/$ARCH/$COMM $XMODE
+    done
+    $Show mv $PREFIX/bin/mpirun.sh $PREFIX/bin/mpirun
+    #
+    $Show /bin/rm -f $PREFIX/bin/mpireconfig
+    echo "Creating mpireconfig from util/mpireconfig.in"
+    FixupFile util/mpireconfig.in $PREFIX/bin/mpireconfig $XMODE
+    CopyFile $PREFIX/bin/mpireconfig $PREFIX/lib/$ARCH/$COMM $XMODE
+    $Show /bin/rm -f $PREFIX/bin/execer
+    CopyFile util/execer $PREFIX/bin/execer $XMODE
+    #
+    # mpicc, mpif77
+    FixupFileWithAt util/mpicc.in $PREFIX/bin/mpicc $XMODE
+    CopyFile $PREFIX/bin/mpicc $PREFIX/lib/$ARCH/$COMM $XMODE
+    FixupFileWithAt util/mpif77.in $PREFIX/bin/mpif77 $XMODE
+    CopyFile $PREFIX/bin/mpif77 $PREFIX/lib/$ARCH/$COMM $XMODE
+else
+    # libonly
+    #
+    # mpirun et al.
+    for file in util/mpirun.*.in util/tstmachines.in ; do
+        bfile=`basename $file .in`
+        echo "Creating $PREFIX/lib/$ARCH/$COMM/$bfile from $file"
+        FixupFile $file $PREFIX/lib/$ARCH/$COMM/$bfile $XMODE
+    done
+    $Show mv $PREFIX/lib/$ARCH/$COMM/mpirun.sh $PREFIX/lib/$ARCH/$COMM/mpirun
+    FixupFileWithAt util/mpicc.in $PREFIX/lib/$ARCH/$COMM/mpicc $XMODE
+    FixupFileWithAt util/mpif7.in $PREFIX/lib/$ARCH/$COMM/mpif77 $XMODE
+    FixupFile util/mpireconfig.in $PREFIX/lib/$ARCH/$COMM/mpireconfig $XMODE
+fi
+#
+# 
+# P4 server
+if [ "$DEVICE" = "ch_p4" ] ; then 
+    echo "Attempting to build ch_p4 secure server"
+    $Show "( cd mpid/ch_p4/p4-1.4/servers ; make serv_p4 ; cd ../bin ; \
+            CopyFile serv_p4 $PREFIX/bin $XMODE ; )" 
+    $Show /bin/rm -f util/chp4_servs
+    FixupFile util/chp4_servs.in $PREFIX/util/chp4_servs $XMODE
+    CopyFile $PREFIX/util/chp4_servs $PREFIX/lib/$ARCH/$COMM $XMODE
+fi
+#
+if [ -z "$libonly" ] ; then
+    #
+    # Machines database
+    #	if [ ! -d $PREFIX/util/machines.anl ] ; then \
+    #	    mkdir $PREFIX/util/machines.anl ; fi
+    #	$CPRP -r util/machines $PREFIX/util/machines.anl
+    for file in util/machines/* ; do
+        $Show CopyFile $file $PREFIX/util/machines
+    done
+    for file in profiling/upshot/bitmaps/* ; do 
+        $Show CopyFile $file $PREFIX/lib/bitmaps
+    done
+    #
+    # Include files
+    CopyFile include/mpi.h $PREFIX/include
+    CopyFile include/mpi++.h $PREFIX/include
+    CopyFile include/mpi++P.h $PREFIX/include
+    CopyFile include/mpif.h $PREFIX/include
+    CopyFile include/mpi_errno.h $PREFIX/include
+    CopyFile include/binding.h $PREFIX/include
+    CopyFile include/patchlevel.h $PREFIX/include
+    CopyFile mpe/mpe.h $PREFIX/include
+    CopyFile mpe/mpe_graphics.h $PREFIX/include
+    CopyFile mpe/mpe_log.h $PREFIX/include
+    CopyFile mpe/basex11.h $PREFIX/include
+fi
+#
+# Libaries
+for file in lib/$ARCH/$COMM/*.a ; do
+    $Show CopyFileP $file $PREFIX/lib/$ARCH/$COMM
+done
+# Other files in lib need to be updated...
+#
+# Documentation
+if [ -z "$noman" -a -z "$libonly" ] ; then 
+    if [ -z "$MPIMANPATH" ] ; then
+        MPIMANPATH=$PREFIX/man
+    fi
+    CopyFile man/mandesc $MPIMANPATH
+    for dir in man3 man4 man5 ; do
+       MkDir $MPIMANPATH/$dir
+        for file in man/$dir/* ; do 
+	    CopyFile $file $MPIMANPATH/$dir
+        done
+    done
+fi
+if [ -z "$libonly" ] ; then
+    for file in adiman.ps.Z functions.ps.Z guide.ps.Z install.ps.Z \
+	mpiman.ps.Z  ; do
+        CopyFile doc/$file $PREFIX/doc
+    done
+    #$Show $CPRP -r doc $PREFIX
+    CopyFile ref/adiman.ps.Z $PREFIX/doc
+    CopyFile ref/mpiman.ps.Z $PREFIX/doc
+fi
+#
+# Updating the config.status file is trickier, since we need to edit
+# the directories that might have contained the original path.
+#
+if [ $just_testing = 0 ] ; then
+    cat config.status | sed -e "s%MPIR_HOME=.*\$%MPIR_HOME='$PREFIX'%g" \
+    -e "s%^LIB_PATH=\([^/]*\)/.*\$%LIB_PATH=\1$PREFIX/lib/$ARCH/$COMM'%g" \
+    -e "s%^FLIB_PATH=\([^/]*\)/.*\$%FLIB_PATH=\1$PREFIX/lib/$ARCH/$COMM'%g" \
+		-e "s%MPE_DIR=.*\$%MPE_DIR='$PREFIX/mpe'%g" \
+		        > $PREFIX/lib/$ARCH/$COMM/config.status 
+    chmod $XMODE $PREFIX/lib/$ARCH/$COMM/config.status 
+else 
+cat <<.
+cat config.status | sed -e "s%MPIR_HOME=.*\$%MPIR_HOME='$PREFIX'%g" \
+    -e "s%^LIB_PATH=\([^/]*\)/.*\$%LIB_PATH=\1$PREFIX/lib/$ARCH/$COMM'%g" \
+    -e "s%^FLIB_PATH=\([^/]*\)/.*\$%FLIB_PATH=\1$PREFIX/lib/$ARCH/$COMM'%g" \
+		-e "s%MPE_DIR=.*\$%MPE_DIR='$PREFIX/mpe'%g" \
+		        > $PREFIX/lib/$ARCH/$COMM/config.status
+    chmod $XMODE $PREFIX/lib/$ARCH/$COMM/config.status 
+.
+fi
+if [ -z "$libonly" ] ; then
+    $Show CopyFile $PREFIX/lib/$ARCH/$COMM/config.status $PREFIX
+    #
+    $Show /bin/rm -f $PREFIX/examples/mpif.h
+    $Show ln -s $PREFIX/include/mpif.h $PREFIX/examples/mpif.h
+fi
+#
+# Example programs
+CopyFile installtest/Makefile.in $PREFIX/examples
+#
+# This SHOULD use mpireconfig...
+Savevar=$PREFIX
+PREFIX=$APREFIX
+#FixupFile installtest/makefile.proto $PREFIX/examples/Makefile
+(cd $PREFIX/examples ; $PREFIX/lib/$ARCH/$COMM/mpireconfig Makefile )
+PREFIX=$Savevar
+CopyFile $PREFIX/examples/Makefile $PREFIX/lib/$ARCH/$COMM/Makefile.sample
+CopyFile installtest/cpi.c $PREFIX/examples
+CopyFile installtest/pi3.f $PREFIX/examples
+CopyFile installtest/cpilog.c $PREFIX/examples
+CopyFile installtest/README $PREFIX/examples
+#
+# Test build the examples
+$Show "(cd $PREFIX/examples ; /bin/rm -f mpirun ; \
+	  ln -s ../bin/mpirun mpirun )"
+#
+echo "About to run installation test..."
+$Show "(cd $PREFIX/examples; $MAKE)"
+#
+# Use the alternate method, using mpif77 and mpicc
+$Show "(cd $PREFIX/examples ; $MAKE clean ; $MAKE alternate)"
+
+echo installed $ARCH/$COMM/$DEVICE MPI in $PREFIX

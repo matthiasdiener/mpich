@@ -8,14 +8,14 @@
 
 
 /*
- *  $Id: chsend.c,v 1.34 1995/06/30 17:35:28 gropp Exp $
+ *  $Id: chsend.c,v 1.36 1995/09/18 21:12:01 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chsend.c,v 1.34 1995/06/30 17:35:28 gropp Exp $";
+static char vcid[] = "$Id: chsend.c,v 1.36 1995/09/18 21:12:01 gropp Exp gropp $";
 #endif
 
 #include "mpid.h"
@@ -67,7 +67,53 @@ void MPID_CMMD_Init_send_code()
    the (basically opaque) mpi handle
  */
 
-/* Send a short (single packet message) */
+#ifdef FOO
+/* Send a short (single packet message) 
+   dest is the GLOBAL rank of the destination (some of the debug 
+   macros expect dest) 
+*/
+int MPID_CMMD_send_short( buf, len, tag, context_id, lrank_sender, dest,
+		        msgrep ) 
+void *buf;
+int  len, tag, context_id, lrank_sender, dest, msgrep;
+{
+MPID_PKT_SEND_DECL(MPID_PKT_SHORT_T,pkt);
+
+MPID_PKT_SEND_ALLOC(MPID_PKT_SHORT_T,pkt);
+/* These references are ordered to match the order they appear in the 
+   structure */
+MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_SHORT);
+MPID_PKT_SEND_SET(pkt,context_id,context_id);
+MPID_PKT_SEND_SET(pkt,lrank,lrank_sender);
+MPID_PKT_SEND_SET(pkt,tag,tag);
+MPID_PKT_SEND_SET(pkt,len,len);
+MPID_PKT_SEND_SET_HETERO(pkt,msgrep)
+
+DEBUG_PRINT_SEND_PKT("S Sending contig",pkt)
+
+MPID_PKT_PACK( MPID_PKT_SEND_ADDR(pkt), sizeof(MPID_PKT_HEAD_T), dest );
+
+if (len > 0) {
+    MEMCPY( MPID_PKT_SEND_GET(pkt,buffer), buf, len );
+    DEBUG_PRINT_PKT_DATA("S Getting data from mpid->start",pkt)
+    }
+/* Always use a blocking send for short messages.
+   (May fail with systems that do not provide adequate
+   buffering.  These systems should switch to non-blocking sends)
+ */
+DEBUG_PRINT_SEND_PKT("S Sending message in a single packet",pkt)
+
+MPID_SendControlBlock( MPID_PKT_SEND_ADDR(pkt), 
+		       len + sizeof(MPID_PKT_HEAD_T), dest );
+
+MPID_PKT_SEND_FREE(pkt);
+
+DEBUG_PRINT_MSG("S Sent contig message in a single packet")
+
+return MPI_SUCCESS;
+}
+#endif
+
 int MPID_CMMD_post_send_short( dmpi_send_handle, mpid_send_handle, len ) 
 MPIR_SHANDLE *dmpi_send_handle;
 MPID_SHANDLE *mpid_send_handle;
@@ -118,7 +164,7 @@ return MPI_SUCCESS;
 }
 
 /* Long message */
-#ifdef MPID_USE_GET
+#ifdef MPID_USE_GET               
 #elif !defined(MPID_USE_RNDV)
 /* Message-passing or channel version of send long message */
 int MPID_CMMD_post_send_long_eager( dmpi_send_handle, mpid_send_handle, len ) 
@@ -159,20 +205,23 @@ MPID_SendData( address, len, dest, mpid_send_handle )
 MPID_PKT_SEND_FREE(pkt);
 return MPI_SUCCESS;
 }
-#endif
+#endif                        
 
-#ifndef PI_NO_NSEND
+#ifndef PI_NO_NSEND           
 MPID_CMMD_Cmpl_send_nb( dmpi_send_handle )
 MPIR_SHANDLE *dmpi_send_handle;
 {
 MPID_SHANDLE *mpid_send_handle = &dmpi_send_handle->dev_shandle;
+
+DEBUG_PRINT_MSG("Starting Cmpl_send_nb")
 if (mpid_send_handle->sid)  {
     /* Before we do the wait, try to clear all pending messages */
     (void)MPID_CMMD_check_incoming( MPID_NOTBLOCKING );
     MPID_CMMD_isend_wait( dmpi_send_handle );
     }
+DEBUG_PRINT_MSG("Exiting Cmpl_send_nb")
 }
-#endif
+#endif                        
 
 /*
    We should really:
@@ -181,7 +230,9 @@ if (mpid_send_handle->sid)  {
    b) ALWAYS use the rndv code
 
    This will require calling the appropriate test and unexpected
-   message routines.
+   message routines.  Note that this may fail for zero-length messages,
+   unless force synchronous messages to deliver a message with no data
+   (this may require a special message pkt).
  */
 #ifndef MPID_USE_RNDV
 int MPID_CMMD_post_send_sync_short( dmpi_send_handle, mpid_send_handle, len ) 
@@ -234,7 +285,7 @@ return MPI_SUCCESS;
 }
 
 /* Long message */
-#ifdef MPID_USE_GET
+#ifdef MPID_USE_GET               
 #else
 int MPID_CMMD_post_send_sync_long_eager( dmpi_send_handle, mpid_send_handle, 
 				       len ) 
@@ -272,19 +323,21 @@ dmpi_send_handle->completer = MPID_CMPL_SEND_SYNC;
 
 return MPI_SUCCESS;
 }
-#endif
+#endif                          
 
-int MPID_CMMD_Cmpl_send_sync( dmpi_send_handle )
+void MPID_CMMD_Cmpl_send_sync( dmpi_send_handle )
 MPIR_SHANDLE *dmpi_send_handle;
 {
 MPID_SHANDLE *mpid_send_handle = &dmpi_send_handle->dev_shandle;
-#ifndef PI_NO_NSEND
+
+DEBUG_PRINT_MSG("S Starting send_sync")
+#ifndef PI_NO_NSEND            
 if (mpid_send_handle->sid)  {
     /* Before we do the wait, try to clear all pending messages */
     (void)MPID_CMMD_check_incoming( MPID_NOTBLOCKING );
     MPID_CMMD_isend_wait( dmpi_send_handle );
     }
-#endif
+#endif                         
 
 DEBUG_PRINT_MSG("S Entering complete send while loop")
 while (!MPID_Test_handle(dmpi_send_handle)) {
@@ -294,8 +347,10 @@ while (!MPID_Test_handle(dmpi_send_handle)) {
     (void)MPID_CMMD_check_incoming( MPID_BLOCKING );
     }
 DEBUG_PRINT_MSG("S Exiting complete send")
+DEBUG_PRINT_MSG("S Exiting send_sync")
 }
 #else   /* non-rndv sync send */
+                                          
 int MPID_CMMD_post_send_sync_long_eager( dmpi_send_handle, mpid_send_handle, 
 				       len ) 
 MPIR_SHANDLE *dmpi_send_handle;
@@ -304,6 +359,7 @@ int len;
 {
 MPID_CMMD_post_send_long_rndv( dmpi_send_handle, mpid_send_handle, len );
 }
+                                           
 int MPID_CMMD_post_send_sync_short( dmpi_send_handle, mpid_send_handle, len ) 
 MPIR_SHANDLE *dmpi_send_handle;
 MPID_SHANDLE *mpid_send_handle;
@@ -312,6 +368,89 @@ int len;
 MPID_CMMD_post_send_long_rndv( dmpi_send_handle, mpid_send_handle, len );
 }
 #endif  /* else of non-rndv sync send */
+
+#ifdef MPID_ADI_MUST_SENDSELF
+/****************************************************************************
+  MPID_CMMD_Post_send_local
+
+  Description
+    Some low-level devices do not support sending a message to yourself.  
+    This function notifies the soft layer that a message has arrived,
+    then copies the body of the message the dmpi handle.  Currently,
+    we post (copy) the sent message directly to the unexpected message
+    queue or the expected message queue.
+
+  This code was taken from mpid/t3d/t3dsend.c 
+
+  This code is relatively untested.  If the matching receive has not
+  been posted, it copies the message rather than defering the copy.
+  This may cause problems for some rendevous-based implementations.
+ ***************************************************************************/
+int MPID_CMMD_Post_send_local( dmpi_send_handle, mpid_send_handle, len )
+MPIR_SHANDLE *dmpi_send_handle;
+MPID_SHANDLE *mpid_send_handle;
+int           len;
+{
+    MPIR_RHANDLE    *dmpi_recv_handle;
+    int              is_posted;
+    int              err = MPI_SUCCESS;
+
+    DEBUG_PRINT_MSG("S Send to self")
+
+    DMPI_msg_arrived( dmpi_send_handle->lrank, dmpi_send_handle->tag, 
+                      dmpi_send_handle->contextid, 
+                      &dmpi_recv_handle, &is_posted );
+
+    if (is_posted) {
+
+        dmpi_recv_handle->totallen = len;
+        
+        /* Copy message if needed and mark the receive as completed */
+        if (len > 0) 
+            MEMCPY( dmpi_recv_handle->dev_rhandle.start, 
+                    dmpi_send_handle->dev_shandle.start,
+                    len ); 
+        DMPI_mark_recv_completed(dmpi_recv_handle);
+
+	/* Mark the send as completed. */
+	DMPI_mark_send_completed( dmpi_send_handle );
+
+        return (err);
+    }
+    else {
+
+        MPID_RHANDLE *mpid_recv_handle;
+        char         *address;
+        
+        /* initialize mpid handle */
+        mpid_recv_handle                  = &dmpi_recv_handle->dev_rhandle;
+        mpid_recv_handle->bytes_as_contig = len;
+        mpid_recv_handle->mode            = 0;   
+        /* This could be -1 to indicate message from self */
+        mpid_recv_handle->from            = MPID_MyWorldRank; 
+        
+        /* copy the message */
+        if (len > 0) {
+            mpid_recv_handle->temp = (char *)malloc(len);
+            if ( ! mpid_recv_handle->temp ) {
+		(*MPID_ErrorHandler)( 1, 
+			 "No more memory for storing unexpected messages"  );
+			     return MPI_ERR_EXHAUSTED; 
+		}
+            MEMCPY( mpid_recv_handle->temp, 
+                    dmpi_send_handle->dev_shandle.start, 
+                    len );
+        }
+        DMPI_mark_recv_completed(dmpi_recv_handle);
+
+	/* Mark the send as completed. */
+	DMPI_mark_send_completed( dmpi_send_handle );
+
+        return (err);
+    }
+
+} /* MPID_CMMD_Post_send_local */
+#endif
 
 /*
    This sends the data.
@@ -324,22 +463,39 @@ MPIR_SHANDLE *dmpi_send_handle;
 MPID_SHANDLE *mpid_send_handle;
 int         actual_len, rc;
 
+DEBUG_PRINT_MSG("S Entering post send")
+
 mpid_send_handle = &dmpi_send_handle->dev_shandle;
 actual_len       = mpid_send_handle->bytes_as_contig;
 
-DEBUG_PRINT_MSG("S Entering post send")
+#ifdef MPID_ADI_MUST_SENDSELF
+{int dest;
 
-/* Eventually, we'd like to make this more dynamic */
+dest = dmpi_send_handle->dest;
+if (dest == MPID_MyWorldRank) {
+    return MPID_CMMD_Post_send_local( dmpi_send_handle, mpid_send_handle, 
+				    actual_len );
+    }
+ }
+#endif
+
+/* Eventually, we'd like to make this more dynamic.  We'd need to
+   with a multiprotocol channel interface, perhaps using some 
+   "channel profile" in the description of that particular interface.
+   If we can stick to ADI multiprotocol level, then we don't need to
+   do anything here, since the "channel profile" will be part of the 
+   's */
 if (actual_len > MPID_PKT_DATA_SIZE) 
 #ifdef MPID_USE_GET
     rc = MPID_CMMD_post_send_long_get( dmpi_send_handle, mpid_send_handle, 
 				   actual_len );
-#elif defined(MPID_USE_RNDV)
+#elif defined(MPID_USE_RNDV)              
     rc = MPID_CMMD_post_send_long_rndv( dmpi_send_handle, mpid_send_handle, 
 				      actual_len );
 #else
     rc = MPID_CMMD_post_send_long_eager( dmpi_send_handle, mpid_send_handle, 
 				       actual_len );
+                                          
 #endif
 else
     rc = MPID_CMMD_post_send_short( dmpi_send_handle, mpid_send_handle, 
@@ -363,15 +519,16 @@ mpid_send_handle = &dmpi_send_handle->dev_shandle;
 actual_len       = mpid_send_handle->bytes_as_contig;
 
 if (actual_len > MPID_PKT_DATA_SIZE) 
-#ifdef MPID_USE_RNDV
-    rc = MPID_CMMD_post_send_long_rndv( dmpi_send_handle, mpid_send_handle, 
-				      actual_len );
-#elif defined(MPID_USE_GET)
+#if defined(MPID_USE_GET)
     rc = MPID_CMMD_post_send_sync_long_get( dmpi_send_handle, mpid_send_handle, 
 					  actual_len );
+#elif defined(MPID_USE_RNDV)      
+    rc = MPID_CMMD_post_send_long_rndv( dmpi_send_handle, mpid_send_handle, 
+				      actual_len );
 #else
     rc = MPID_CMMD_post_send_sync_long_eager( dmpi_send_handle, 
 					    mpid_send_handle, actual_len );
+                                  
 #endif
 else
     rc = MPID_CMMD_post_send_sync_short( dmpi_send_handle, mpid_send_handle, 
@@ -383,9 +540,55 @@ MPID_DRAIN_INCOMING;
 return rc;
 }
 
+#ifdef FOO
+/* 
+   This version does NOT use the request handles; instead, it
+   dispatches the data directly.  Intended for contiguous messages
+   on homogeneous systems.
+ */
+int MPID_CMMD_Contig_blocking_send( buf, len, tag, context_id, lrank_sender, 
+				  grank_dest, msgrep )
+void *buf;
+int  len, tag, context_id, lrank_sender, grank_dest, msgrep;
+{
+int rc;
+
+#ifdef MPID_ADI_MUST_SENDSELF
+fprintf( stderr, "Send to self Unsupported at this time\n" );
+#endif
+
+if (len <= MPID_PKT_DATA_SIZE) 
+    rc = MPID_CMMD_send_short( buf, len, tag, context_id, lrank_sender, 
+			     grank_dest, msgrep );
+else 
+#ifdef MPID_USE_GET
+    rc = MPID_CMMD_send_long_get( buf, len, tag, context_id, lrank_sender, 
+			        grank_dest, msgrep );
+#ifdef FOO
+#elif defined(MPID_USE_RNDV)              
+    rc = MPID_CMMD_send_long_rndv( buf, len, tag, context_id, lrank_sender, 
+			         grank_dest, msgrep);
+#else
+    rc = MPID_CMMD_send_long_eager( buf, len, tag, context_id, lrank_sender, 
+				  grank_dest, msgrep);
+                                          
+#endif
+#else
+.... unsupported ... (part of  FOO)
+#endif
+
+/* Poke the device in case there is data ... */
+DEBUG_PRINT_MSG("S Draining incoming...")
+MPID_DRAIN_INCOMING;
+
+return rc;
+}
+#endif
+/* Note that this routine is usually inlined by dm.h */
 int MPID_CMMD_Blocking_send( dmpi_send_handle )
 MPIR_SHANDLE *dmpi_send_handle;
 {
+DEBUG_PRINT_MSG("S Entering blocking send")
 #ifdef MPID_LIMITED_BUFFERS
 /* Force the use of non-blocking operations so that head-to-head operations
    can complete when there is an IRECV posted */
@@ -397,8 +600,10 @@ dmpi_send_handle->dev_shandle.is_non_blocking = 0;
 MPID_CMMD_post_send( dmpi_send_handle );
 MPID_CMMD_complete_send( dmpi_send_handle );
 #endif
+DEBUG_PRINT_MSG("S Exiting blocking send")
 return MPI_SUCCESS;
 }
+
 
 /*
   Chameleon gets no asynchronous notice that the message has been complete,
@@ -408,6 +613,8 @@ int MPID_CMMD_isend_wait( dmpi_send_handle )
 MPIR_SHANDLE *dmpi_send_handle;
 {
 MPID_SHANDLE *mpid_send_handle;
+
+DEBUG_PRINT_MSG("S Starting isend_wait")
 
 /* Wait on the message */
 #ifndef PI_NO_NSEND
@@ -430,13 +637,16 @@ if (mpid_send_handle->sid) {
     mpid_send_handle->sid = 0;
 #endif
     }
-#endif
+#endif /* PI_NO_NSEND */
 if (dmpi_send_handle->mode != MPIR_MODE_SYNCHRONOUS) {
     DMPI_mark_send_completed( dmpi_send_handle );
     }
 
+DEBUG_PRINT_MSG("S Exiting isend_wait")
+
 return MPI_SUCCESS;
 }
+
 
 /*
   We have to be careful here.  If the wait would block because a matching
@@ -462,21 +672,16 @@ switch (dmpi_send_handle->completer) {
     case 0: 
          /* Message already completed */
          break;
-#ifdef MPID_USE_RNDV
+#ifdef MPID_USE_RNDV                   
     case MPID_CMPL_SEND_RNDV:
 	 MPID_CMMD_Cmpl_send_rndv( dmpi_send_handle );
          break;
-#endif
-#ifdef MPID_USE_GET
-    case MPID_CMPL_SEND_GET:
-	 MPID_CMMD_Cmpl_send_get( dmpi_send_handle );
-         break;
-#endif
-#ifndef PI_NO_NSEND
+#endif                                 
+#ifndef PI_NO_NSEND                    
     case MPID_CMPL_SEND_NB:
 	 MPID_CMMD_Cmpl_send_nb( dmpi_send_handle );
          break;
-#endif
+#endif                                 
 #ifndef MPID_USE_RNDV
     case MPID_CMPL_SEND_SYNC:
 	 /* Also does non-blocking sync sends */
@@ -501,9 +706,9 @@ return MPI_SUCCESS;
 int MPID_CMMD_Test_send( dmpi_send_handle )
 MPIR_SHANDLE *dmpi_send_handle;
 {
-#ifdef MPID_USE_RNDV
+#ifdef MPID_USE_RNDV                           
 MPID_CMMD_Test_send_rndv( dmpi_send_handle );
-#endif
+#endif                                         
 #ifndef PI_NO_NSEND
 if (!MPID_Test_handle(dmpi_send_handle) &&
     dmpi_send_handle->dev_shandle.sid && 
@@ -518,7 +723,7 @@ if (!MPID_Test_handle(dmpi_send_handle) &&
 	return 0;
     /* return MPID_TSendChannel( dmpi_send_handle->dev_shandle.sid ) ; */
     }
-#endif
+#endif                                         
 /* Need code for GET? */
 return MPID_Test_handle(dmpi_send_handle);
 }
@@ -528,12 +733,15 @@ return MPID_Test_handle(dmpi_send_handle);
 
    Note: We should make it illegal here to receive anything put
    things like DONE_GET and COMPLETE_SEND.
+
+   Something to fix: I've seen MPID_n_pending < 0!
  */
 int MPID_CMMD_Complete_pending()
 {
-while (MPID_n_pending) {
+DEBUG_PRINT_MSG( "Starting Complete_pending")
+while (MPID_n_pending > 0) {
     (void)MPID_CMMD_check_incoming( MPID_BLOCKING );
     }
+DEBUG_PRINT_MSG( "Exiting Complete_pending")
 return MPI_SUCCESS;
 }
-

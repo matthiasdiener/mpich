@@ -131,6 +131,29 @@ int rm_fd, rm_num;
     }
 }
 
+/* This routine is called if the net_accept fails to complete quickly */
+#include <sys/time.h>
+#ifndef TIMEOUT_VALUE 
+#define TIMEOUT_VALUE 300
+#endif
+static char *curhostname = 0;
+static char errbuf[256];
+static int  child_pid = 0;
+P4VOID p4_accept_timeout()
+{
+if (child_pid) {
+    kill( child_pid, SIGQUIT );
+    }
+if (curhostname) {
+    sprintf( errbuf, "Timeout in making connection to remote process on %s", 
+	    curhostname );
+    p4_error( errbuf, 0 );
+    }
+else {
+    p4_error( "Timeout in making connection to remote process", 0 );
+    }
+exit(1);
+}
 
 /*
  *	Run the slave pgm on host; returns the file descriptor of the
@@ -265,7 +288,9 @@ char *username;
 #endif
 
 	    sprintf(serv_port_c, "%d", serv_port);
-	    rc = fork_p4();
+	    /* We should remember ALL of the children's pid's so we can 
+	       forcibly stop them if necessary */
+	    child_pid = rc = fork_p4();
 	    if (rc == 0)
 	    {
 		rc = execlp(remote_shell, remote_shell,
@@ -281,7 +306,32 @@ char *username;
 #endif
 	}
     }
-    slave_fd = net_accept(serv_fd);
+    /* WDG - There is a chance that we'll hang here forever.  Thus, we set a 
+       timeout that causes the whole job to fail if we don't get a timely
+       response from the created process.  See MPIBUGS #989; I got a traceback 
+       showing this exact problem. 
+     */
+    curhostname = host;
+    SIGNAL_P4(SIGALRM,p4_accept_timeout);
+    {
+    struct itimerval timelimit;
+    struct timeval tval;
+    struct timeval tzero;
+    tval.tv_sec		  = TIMEOUT_VALUE;
+    tval.tv_usec	  = 0;
+    tzero.tv_sec	  = 0;
+    tzero.tv_usec	  = 0;
+    timelimit.it_interval = tzero;       /* Only one alarm */
+    timelimit.it_value	  = tval;
+    setitimer( ITIMER_REAL, &timelimit, 0 );
+    slave_fd		  = net_accept(serv_fd);
+    /* Go back to default handling of alarms */
+    curhostname		  = 0;
+    child_pid		  = 0;
+    timelimit.it_value	  = tzero;   /* Turn off timer */
+    setitimer( ITIMER_REAL, &timelimit, 0 );
+    SIGNAL_P4(SIGALRM,SIG_DFL);
+    }
 
     hs.pid = (int) htonl(getpid());
     hs.rm_num = 0;   /* To make Insight etc happy */

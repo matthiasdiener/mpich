@@ -18,7 +18,13 @@ elif test "$ARCH" = "alpha" ; then
 elif test "$ARCH" = "freebsd" ; then
   DEVICE="ch_p4"
 elif test "$ARCH" = "hpux" ; then
-  DEVICE="ch_p4"
+  # Suggested by Gary Applegate (bigapple@wagner.convex.com)
+  # Another possibility is to look at /lib/libail.sl
+  if test -f /bin/sysinfo ; then
+      DEVICE="ch_spp"
+  else
+      DEVICE="ch_p4"
+  fi
 elif test "$ARCH" = "rs6000" ; then
   DEVICE="ch_p4"
 

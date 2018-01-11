@@ -24,7 +24,7 @@ if ("$LARCH" == "") then
         else if ("$LARCH" == "HP-UX") then
 	    set LARCH = "hpux"
         else if ("$LARCH" == "IRIX64") then
-	    set LARCH = "IRIX"
+	    set LARCH = "IRIX64"
         else if ("$LARCH" == "Linux") then
             true
         else if ("$LARCH" != "IRIX") then 
@@ -34,6 +34,16 @@ if ("$LARCH" == "") then
         set LARCH = `/usr/local/bin/arch`
     else
         set LARCH = "unknown"
+    endif
+endif
+if ("$LARCH" == "i586" || "$LARCH" == "i486") then
+    # Arch is telling us the HARDWARE architecture when we want the SYSTEM
+    # architecture
+    if (-e /bin/uname) then
+	set TA = `/bin/uname -s`
+        if ("$TA" == "Linux") then
+	    set LARCH = "LINUX"
+        endif
     endif
 endif
 #

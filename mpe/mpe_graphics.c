@@ -36,7 +36,7 @@ static xpand_list_Int *Int_CreateList();
 #endif
 
 /* Forward refs */
-static SortPoints();
+static void SortPoints();
 static int Int_AddItem();
 
 int MPE_buttonArray[] = {
@@ -65,6 +65,16 @@ int MPE_logicArray[] = {
   GXnand,			/* !src || !dst */
   GXset				/* 1 */
 }; 
+
+#ifndef ANSI_ARGS
+#if defined(__STDC__)
+#define ANSI_ARGS(a) a
+#else
+#define ANSI_ARGS(a) ()
+#endif
+#endif
+
+void SetBackingStoreBitGrav ANSI_ARGS((MPE_XGraph));
   
 
 /*@
@@ -104,6 +114,9 @@ int        is_collective;
 
   Window     win;
   MPE_XGraph new;
+  XFontStruct **font_info;
+  XGCValues  values;
+  char       fontname[128];
   int        myid, numprocs, namelen, successful;
   
   myid = 0;		     /* for the single processor version */
@@ -228,6 +241,18 @@ int        is_collective;
 	   display, myid );
 #endif
 
+#ifdef FOO
+  /* set a default font */
+  strcpy(fontname,"fixed");
+  if ((*font_info = XLoadQueryFont( display, fontname )) == NULL)
+  {
+      fprintf( stderr, "Could not open %s font\n", fontname );
+      exit(1);
+  }
+  values.font = (*font_info)->fid;
+  XChangeGC( display, new->xwin->gc.set, GCFont, &values );
+#endif
+
   if (!successful) {
 #ifndef MPE_NOMPI
     char myname[MPI_MAX_PROCESSOR_NAME];
@@ -246,7 +271,7 @@ int        is_collective;
 }
 
 
-SetBackingStoreBitGrav( graph )
+void SetBackingStoreBitGrav( graph )
 MPE_XGraph graph;
 {
   XSetWindowAttributes attrib;
@@ -422,7 +447,7 @@ int npoints;
 
 
 
-static SortPoints( lista, a, listb, colorList, boundaryPoints, ncolors )
+static void SortPoints( lista, a, listb, colorList, boundaryPoints, ncolors )
 MPE_Point *lista;
 XPoint **listb;
 MPE_Color **colorList;
@@ -804,6 +829,36 @@ MPE_Color color;
   return MPE_Xerror( returnVal, "MPE_FillCircle" );
 }
 
+#ifdef FOO
+/*@
+   MPE_Draw_string - 
+
+  Input Parameters:
+. graph - MPE graphics handle
+. x - x-coordinate of the origin of the string
+. y - y-coordinate of the origin of the string
+. string - text string to be drawn
+. color - color of the text
+@*/
+int MPE_Draw_string( graph, x, y, color, string )
+MPE_XGraph graph;
+int x, y;
+MPE_Color color;
+char *string;
+{
+  int returnVal;
+
+  if (graph->Cookie != MPE_G_COOKIE) {
+    fprintf( stderr, "Handle argument is incorrect or corrupted\n" );
+    return MPE_ERR_BAD_ARGS;
+  }
+
+  XBSetPixVal( graph->xwin, graph->xwin->cmapping[color] );
+  returnVal = XDrawString( graph->xwin->disp, XBDrawable(graph->xwin),
+		        graph->xwin->gc.set, string, strlen(string) );
+  return MPE_Xerror( returnVal, "MPE_DrawString" );
+}
+#endif
 
 
 /*@

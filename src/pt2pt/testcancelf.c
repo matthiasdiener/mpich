@@ -7,32 +7,32 @@ extern void *MPIR_ToPointer();
 extern int MPIR_FromPointer();
 extern void MPIR_RmPointer();
 #else
-#define MPIR_ToPointer(a) a
-#define MPIR_FromPointer(a) (int)a
+#define MPIR_ToPointer(a) (a)
+#define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
 #endif
 
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
-#define mpi_testcancelled_ PMPI_TESTCANCELLED
+#define mpi_test_cancelled_ PMPI_TEST_CANCELLED
 #elif defined(FORTRANDOUBLEUNDERSCORE)
-#define mpi_testcancelled_ pmpi_testcancelled__
+#define mpi_test_cancelled_ pmpi_test_cancelled__
 #elif !defined(FORTRANUNDERSCORE)
-#define mpi_testcancelled_ pmpi_testcancelled
+#define mpi_test_cancelled_ pmpi_test_cancelled
 #else
-#define mpi_testcancelled_ pmpi_testcancelled_
+#define mpi_test_cancelled_ pmpi_test_cancelled_
 #endif
 #else
 #ifdef FORTRANCAPS
-#define mpi_testcancelled_ MPI_TEST_CANCELLED
+#define mpi_test_cancelled_ MPI_TEST_CANCELLED
 #elif defined(FORTRANDOUBLEUNDERSCORE)
-#define mpi_testcancelled_ mpi_test_cancelled__
+#define mpi_test_cancelled_ mpi_test_cancelled__
 #elif !defined(FORTRANUNDERSCORE)
 #define mpi_test_cancelled_ mpi_test_cancelled
 #endif
 #endif
 
- void mpi_test_cancelled_( status, flag, __ierr )
+void mpi_test_cancelled_( status, flag, __ierr )
 MPI_Status*status;
 int        *flag;
 int *__ierr;

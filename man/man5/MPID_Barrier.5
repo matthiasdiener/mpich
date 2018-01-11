@@ -1,0 +1,22 @@
+.TH MPID_Barrier 5 "8/23/1995" " " "ADI"
+.SH NAME
+MPID_Barrier \- Performs a barrier synchronization
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B ctx 
+- ADI context returned by 
+.I MPID_Init
+
+.PD 1
+.PD 0
+.TP
+.B comm 
+- MPI Communicator
+.PD 1
+
+.SH SYNOPSIS
+.nf
+void MPID_Barrier( void *ctx, MPI_Comm comm )
+.fi

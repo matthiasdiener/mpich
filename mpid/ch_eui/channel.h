@@ -38,11 +38,11 @@
 
 #define MPID_RecvAnyControl( pkt, size, from ) \
     { MPID_TRACE_CODE("BRecvAny",-1);\
-      {__EUIFROM=-1;__EUITYPE=MPID_PT2PT_TAG;mpc_brecv(pkt,size,&__EUIFROM,&__EUITYPE,&__EUILEN);}; *(from) = __EUIFROM;\
+      {__EUIFROM=-1;__EUITYPE=MPID_PT2PT_TAG;mpc_brecv(pkt,size,&__EUIFROM,&__EUITYPE,(size_t*)&__EUILEN);}; *(from) = __EUIFROM;\
       MPID_TRACE_CODE("ERecvAny",*(from));}
 #define MPID_RecvFromChannel( buf, size, channel ) \
     { MPID_TRACE_CODE("BRecvFrom",channel);\
-      {__EUIFROM=-1;__EUITYPE=MPID_PT2PT2_TAG(channel);mpc_brecv(buf,size,&__EUIFROM,&__EUITYPE,&__EUILEN);};\
+      {__EUIFROM=-1;__EUITYPE=MPID_PT2PT2_TAG(channel);mpc_brecv(buf,size,&__EUIFROM,&__EUITYPE,(size_t*)&__EUILEN);};\
       MPID_TRACE_CODE("ERecvFrom",channel);}
 #define MPID_ControlMsgAvail( ) \
     (__EUIFROM=-1,__EUITYPE=MPID_PT2PT_TAG,mp_probe(&__EUIFROM,&__EUITYPE,&__EUILEN),(__EUILEN>=0))

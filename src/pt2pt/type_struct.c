@@ -1,12 +1,12 @@
 /*
- *  $Id: type_struct.c,v 1.24 1995/07/25 02:48:59 gropp Exp $
+ *  $Id: type_struct.c,v 1.25 1995/09/13 21:47:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_struct.c,v 1.24 1995/07/25 02:48:59 gropp Exp $";
+static char vcid[] = "$Id: type_struct.c,v 1.25 1995/09/13 21:47:29 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -168,11 +168,11 @@ MPI_Datatype *newtype;
 	  /* Next, check to see if datatype has an MPI_LB or MPI_UB
 	     within it... */
 	  if (old_types[i]->has_ub) {
-	      ub_found = 1;
+	      ub_found = MPIR_YES;
 	      ub_marker = old_types[i]->ub;
 	      }
 	  if (old_types[i]->has_lb) {
-	      lb_found = 1;
+	      lb_found = MPIR_YES;
 	      lb_marker = old_types[i]->lb;
 	      }
 	  /* Get the ub/lb from the datatype (if a MPI_UB or MPI_LB was

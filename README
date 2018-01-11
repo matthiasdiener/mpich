@@ -2,7 +2,7 @@
 
 		      Portable MPI Model Implementation
 
-			Version 1.0.10 (July 31, 1995)
+			Version 1.0.11 (September 29, 1995)
 
 
 This is a joint-effort project between Argonne (Bill Gropp and Rusty Lusk) and
@@ -18,7 +18,13 @@ the following steps for installation and minimal testing:
        in the directory pub/mpi.
 
   (If this file is too big, you can get it in pieces from the subdirectory
-   mpisplit.)
+   mpisplit.  If you are in Europe, look at 
+
+    ftp://ftp.rus.uni-stuttgart.de/pub/parallelrechner/MPI/ARGONNE
+    ftp://ftp.jussieu.fr/pub9/parallel/standards/mpi/anl
+    ftp://ftp.ibp.fr/pub9/parallel/standards/mpi/anl
+ 
+  )
 
   zcat mpich.tar.Z | tar xvf -
 
@@ -40,31 +46,46 @@ the following steps for installation and minimal testing:
 
   mpirun -np 4 cpi
 
-			Changes since Version 1.0.9 
+  The installation and user's guides (in doc/install.ps.Z and guide.ps.Z) 
+  contain helpful information on diagnosing problems; please check there 
+  before sending mail to mpi-bugs (see below on how to submit bug reports).
 
-1.  Some fixes for Cray T3D (-device=t3d) for MPI_Test and friends
 
-2.  Fix for CM-5 CMMD (but untested as we don't have access to a CM-5)
+			Changes since Version 1.0.10
 
-3.  Improvements in thread locking for device writers (see
-    mpid/chameleon/dmch.h)  (More work is still needed)
+1.  Fixes for the installation process (now uses the program util/mpiinstall).
 
-4.  Reorganized include files (internal only; user MPI programs are unchanged)
-    thanks to SGI.
+2.  Access to the global clock provided on IBM SP2.
 
-5.  Internal reorganization of collective code to allow easier optimization
-    by vendors (thanks to Meiko)
+3.  mpirun now handles heterogeneous systems.
 
-6.  New version of mpirun (using sh instead of csh) is easier to add devices 
-    to; also has limited ablitity to manage heterogeneous runs.
+4.  A number of problems with MPI_Pack and MPI_Unpack have been fixed.
 
-7.  New commands mpicc and mpif77 make it easier to run simple programs.
-    They also provide simplified interfaces to the MPE profiling libraries
+5.  Fixes for the CM-5.
 
-8.  Now runs on AIX SMPs.
+6.  Some performance improvements to the ch_shmem device.
 
-9. On-line buglist at MPICH home page
-   http://www.mcs.anl.gov/mpi/mpich/index.html 
+7.  A native NX version that works for all but synchronous sends is included
+    as -device=nx.
+
+8.  mpicc and mpif77 have been improved.  
+
+9.  For workstation networks, the script 'tstmachines' provides a more 
+    comprehensive test.
+
+10. Many new comments in the installation and users guides.
+
+11. The ch_p4 device is more robust in the presence of network failures;
+    now it will terminate with an error message instead of hanging.
+
+                               Known problems
+
+    On Cray PVP (XMP,YMP,C90) and Cray T3D, character data is not supported
+    from Fortran.  This causes  examples/test/pt2pt/structf to fail; we
+    hope to have a fix in the next release.
+
+    Don't forget to check the on-line buglist at MPICH home page
+    http://www.mcs.anl.gov/mpi/mpich/index.html 
 
 What is here
 ============
@@ -158,23 +179,22 @@ For an SGI Challenge or Power Challenge, using shared-memory for messages, use
 
 For a Convex Exemplar, use
 
-    configure -arch=hpux -device=ch_shmem
+    configure -arch=hpux -device=ch_spp
     make
-    (a native ch_spp version will be in 1.0.11).
 
-For a Sun multiprocessor, use
+For a Sun multiprocessor (Solaris), use
 
     configure -arch=solaris -device=ch_shmem
     make
 
 To build for nX on an ipsc/2 or ipsc/860, use
 
-    configure -bopt=g -arch=intelnx -device=ch_nx
+    configure -arch=intelnx -device=ch_nx
     make
 
 To build for nX on a paragon, use
 
-    configure -bopt=g -arch=paragon -device=ch_nx
+    configure -arch=paragon -device=ch_nx
     make
 
 To build for the Meiko CS-2, use
@@ -304,7 +324,7 @@ mpirun -mr_np <number of processes> <program name and arguments>
 If mpirun can't determine what kind of machine you are on, and it 
 is supported by the mpi implementation, you can the -mr_machine
 and -mr_arch options to tell it what kind of machine you are running
-on. The current valid values for mr_machine are:
+on. The current valid values for mr_machine include:
 
               chameleon (including chameleon/pvm, chameleon/p4, etc...)
               meiko     (the ch_meiko device on the meiko)
@@ -474,8 +494,26 @@ do
 before building chameleon.  Use "COMM=pvm" instead of "COMM=p4".  For PVM 3.x,
 use "COMM=pvm3"
 
-Problem reports to mpi-bugs@mcs.anl.gov
- 
+Please send problem reports to mpi-bugs@mcs.anl.gov.  Please include:
+
+     The version of MPICH (e.g., 1.0.10)
+
+     The output of running your program with the -mpiversion argument
+     (e.g., mpirun -np 1 a.out -mpiversion)
+
+     The output of 
+	uname -a
+     for your system.  If you are on an SGI system, also
+	hinv
+
+     If the problem is with a script like configure or mpirun, run the
+     script with the -echo argument 
+     (e.g., mpirun -echo -np 4 a.out )
+
+     If you are using a network of workstations, also send the output of
+     bin/tstmachines or util/tstmachines.
+
+     
 
 
 

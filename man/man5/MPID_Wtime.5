@@ -1,12 +1,14 @@
-.TH MPID_Wtime 5 "10/10/1994" " " "ADI"
+.TH MPID_Wtime 5 "8/23/1995" " " "ADI"
 .SH NAME
-MPID_Wtime \- Returns the time, relative to some arbitrary point
+MPID_Wtime \- Returns the time, relative to some arbitrary point.
 
 .SH INPUT PARAMETER
 .PD 0
 .TP
 .B ctx 
-- ADI context returned by MPID_Init
+- ADI context returned by 
+.I MPID_Init
+
 .PD 1
 
 .SH SYNOPSIS
@@ -17,8 +19,18 @@ double MPID_Wtime( void * ctx )
 .SH NOTES
 This routine may return a different value on eacy processor even
 when called at the same "time".  The only quantity that is meaningful
-is the difference between two results of MPID_Wtime.  The resolution
-of this time is provide by MPID_Wtick; while MPID_Wtime should provide
+is the difference between two results of 
+.I MPID_Wtime
+.  The resolution
+of this time is provide by 
+.I MPID_Wtick
+; while 
+.I MPID_Wtime
+ should provide
 a high-resolution time, this is not required or guarenteed.
 
 The time measured is elapsed or wall-clock time, not CPU time.
+
+This may also be provided as a macro in the file 
+.I dm.h
+.

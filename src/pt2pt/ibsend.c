@@ -1,5 +1,5 @@
 /*
- *  $Id: ibsend.c,v 1.8 1995/03/05 20:15:32 gropp Exp $
+ *  $Id: ibsend.c,v 1.10 1995/09/13 21:47:09 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: ibsend.c,v 1.8 1995/03/05 20:15:32 gropp Exp $";
+static char vcid[] = "$Id: ibsend.c,v 1.10 1995/09/13 21:47:09 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -35,23 +35,24 @@ int              tag;
 MPI_Comm         comm;
 MPI_Request      *request;
 {
-    int mpi_errno;
-    if (dest != MPI_PROC_NULL)
-    {
-        /* We'll let MPI_Bsend_init find the errors */
-        if (mpi_errno = 
-        MPI_Bsend_init( buf, count, datatype, dest, tag, comm, request ))
-	    return mpi_errno;
-	(*request)->shandle.persistent = 0;
+    int err;
+    
+    /* We'll let MPI_Bsend_init routine detect the errors */
+    err = MPI_Bsend_init( buf, count, datatype, dest, tag, comm, request );
+    if (err)
+	return err;
+    
+    (*request)->shandle.persistent = 0;
+    MPIR_BsendPersistent( *request, 0 );
+
+    if (dest != MPI_PROC_NULL) {
 	return MPI_Start( request );
-    }
-    else {
-	if (mpi_errno = 
-	    MPI_Send_init( buf, count, datatype, dest, tag, comm, request ))
-	    return mpi_errno;
-	MPID_Set_completed( comm->ADIctx, *request );
-	(*request)->shandle.persistent = 0;
-	(*request)->shandle.active     = 1;
 	}
+
+    /*
+       This must create a completed request so that we can wait on it
+     */
+    MPID_Set_completed( comm->ADIctx, *request );
+    (*request)->shandle.active     = 1;
     return MPI_SUCCESS;
 }

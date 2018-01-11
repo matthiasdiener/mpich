@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_util.c,v 1.35 1995/07/25 02:46:14 gropp Exp $
+ *  $Id: comm_util.c,v 1.36 1995/09/13 21:43:49 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,11 +7,7 @@
 #include "mpiimpl.h"
 #include "mpisys.h"
 
-#ifdef __STDC__
-int MPIR_Comm_collops_init(MPI_Comm, MPIR_COMM_TYPE);
-#else
-int MPIR_Comm_collops_init();
-#endif
+void MPIR_Comm_collops_init ANSI_ARGS((MPI_Comm, MPIR_COMM_TYPE));
 /*
 
 MPIR_Comm_make_coll - make a hidden collective communicator
@@ -186,7 +182,7 @@ MPIR_COMM_TYPE comm_type;
  * Default to the ones MPIR provides.
  */
 
-int MPIR_Comm_collops_init( comm, comm_type )
+void MPIR_Comm_collops_init( comm, comm_type )
 MPI_Comm comm;
 MPIR_COMM_TYPE comm_type;
 {  

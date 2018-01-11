@@ -47,6 +47,7 @@ PUBLIC int euih_mynode;
 #endif
 
 #if defined(SGI)  &&  defined(VENDOR_IPC)
+#include <sys/param.h>
 PUBLIC usptr_t *p4_sgi_usptr;
-PUBLIC char p4_sgi_shared_arena_filename[64];
+PUBLIC char p4_sgi_shared_arena_filename[MAXPATHLEN];
 #endif

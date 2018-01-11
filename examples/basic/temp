@@ -1,9 +1,0 @@
-(dbx) run -job_id 1234  -my_nodenum 0 -execer_id PDQS -master_host donner -my_hostname donner -my_numprocs 1 -total_numnodes 2 -remote_info donner  0 1 /home/lusk/mpich/examples/basic/srtest juju 1 1 /home/lusk/mpich/examples/basic/srtest 
-get_conntab_idx_p3(conntab = 0x1, rank = 226288), line 733 in "/Net/alriga/alriga9/MPI/mpich/mpid/ch_tcp/p3/p3_utils.c"
-p3_is_connected(conntab = 0x1, dest_rank = 226288), line 292 in "/Net/alriga/alriga9/MPI/mpich/mpid/ch_tcp/p3/p3_interface.c"
-MPID_TCP_post_send_short(dmpi_send_handle = 0xf7fff1dc, mpid_send_handle = 0xf7fff22c, len = 12), line 152 in "/Net/alriga/alriga9/MPI/mpich/mpid/ch_tcp/tcpsend.c"
-MPID_TCP_post_send(dmpi_send_handle = 0xf7fff1dc), line 443 in "/Net/alriga/alriga9/MPI/mpich/mpid/ch_tcp/tcpsend.c"
-MPID_TCP_Blocking_send(dmpi_send_handle = 0xf7fff1dc), line 494 in "/Net/alriga/alriga9/MPI/mpich/mpid/ch_tcp/tcpsend.c"
-MPI_Send(buf = 0xf7fff2b8, count = 12, datatype = 0x2e710, dest = 1, tag = 99, comm = 0x42b08), line 95 in "/Net/alriga/alriga9/MPI/mpich/src/pt2pt/send.c"
-main(argc = 1, argv = 0xf7fff52c), line 22 in "/Net/alriga/alriga9/MPI/mpich/examples/basic/srtest.c"
-(dbx) 

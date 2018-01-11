@@ -1,12 +1,12 @@
  /*
- *  $Id: t3dsend.c,v 1.7 1995/06/11 05:42:52 bright Exp $
+ *  $Id: t3dsend.c,v 1.8 1995/09/15 02:00:59 bright Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: t3dsend.c,v 1.7 1995/06/11 05:42:52 bright Exp $";
+static char vcid[] = "$Id: t3dsend.c,v 1.8 1995/09/15 02:00:59 bright Exp $";
 #endif
 
 #include "mpid.h"
@@ -117,7 +117,7 @@ int           len;
         /* We don't give it an ID */
         mpid_send_handle->sid = 0;
 
-        msglen = T3D_MSG_LEN( sizeof(T3D_PKT_LONG_SYNC_T) );
+        msglen = T3D_MSG_LEN_64( sizeof(T3D_PKT_LONG_SYNC_T) );
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {
@@ -225,7 +225,7 @@ int           len;
     /* We don't give it an ID */
     mpid_send_handle->sid = 0;
 
-    msglen = T3D_MSG_LEN( (sizeof(T3D_PKT_HEAD_T) + len) );
+    msglen = T3D_MSG_LEN_64( (sizeof(T3D_PKT_HEAD_T) + len) );
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {
@@ -386,7 +386,7 @@ int           len;
         /* We don't give it an ID */
         mpid_send_handle->sid = 0;
 
-        msglen = T3D_MSG_LEN( sizeof(T3D_PKT_LONG_T) );
+        msglen = T3D_MSG_LEN_64( sizeof(T3D_PKT_LONG_T) );
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {
@@ -477,7 +477,7 @@ int           len;
     /* We don't give it an ID */
     mpid_send_handle->sid = 0;
 
-    msglen = T3D_MSG_LEN( (sizeof(T3D_PKT_HEAD_T) + len) );
+    msglen = T3D_MSG_LEN_64( (sizeof(T3D_PKT_HEAD_T) + len) );
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {
@@ -699,9 +699,6 @@ MPIR_SHANDLE *dmpi_send_handle;
               (mpid_send_handle->remote_long_completed == (char *)NULL)    )
         T3D_Check_incoming( MPID_NOTBLOCKING );
      
-
-      msglen = T3D_MSG_LEN( mpid_send_handle->bytes_as_contig );
-
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {
         T3D_Printf("sending long buffer to 0x%x\n",mpid_send_handle->remote_long_buffer);
@@ -751,11 +748,10 @@ MPIR_SHANDLE *dmpi_send_handle;
        }
       
       /* Send into remote long buffer */
-      shmem_put( (long *)mpid_send_handle->remote_long_buffer,
-                 (long *)mpid_send_handle->start,
-                  msglen,
-                  dmpi_send_handle->dest );
-
+      T3D_LONG_SEND( mpid_send_handle->remote_long_buffer,
+		     mpid_send_handle->start,
+		     mpid_send_handle->bytes_as_contig,
+		     dmpi_send_handle->dest );
 
 #   if defined(MPID_DEBUG_ALL) || defined(MPID_DEBUG_SEND)
     if (DebugFlag) {

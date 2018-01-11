@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.16 1995/07/25 02:41:04 gropp Exp $
+#  $Id: Makefile.in,v 1.17 1995/09/18 21:11:23 gropp Exp $
 #
 #  (C) 1993 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -26,10 +26,12 @@ LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
 CFLAGS   = $(COPT) $(OPT) -I$(ITOOLSDIR) -I../.. -I../../include -I./ \
 	-DMPID_DEVICE_CODE @DEVCFLAGS@
 LDIR     = $(ITOOLSDIR)/libs/libs$(BOPT)$(PROFILE)/$(ARCH)
-SOURCE   = chevent.c chrecv.c chsend.c chinit.c chprobe.c chsync.c chdebug.c
+SOURCE   = chevent.c chrecv.c chsend.c chinit.c chprobe.c chsync.c chdebug.c \
+	chhetero.c
 SOURCEC  = $(SOURCE)
 SOURCEF  =
-MPI_OBJECTS = chevent.o chrecv.o chsend.o chinit.o chprobe.o chsync.o chdebug.o
+MPI_OBJECTS = chevent.o chrecv.o chsend.o chinit.o chprobe.o chsync.o \
+		chdebug.o chhetero.o
 
 #$(LIBNAME)($(OBJS)): mpid.h dmch.h ../../include/mpir.h
 
@@ -54,10 +56,10 @@ profile_all:
 manpages:
 	$(MPIR_HOME)/util/doctext -mpath $(MPIR_HOME)/man/man5 \
 	 -ext 5 -I pubinc -index $(MPIR_HOME)/www.mpe.index \
-	 -jumpfile $(MPIR_HOME)/jumpfile.list -nolocation \
+	 -jumpfile $(MPIR_HOME)/jumpfile.list -nolocation -quotefmt \
 	   -indexdir "http:/www.mcs.anl.gov/mpi/man" -heading ADI readme
 	$(MPIR_HOME)/util/doctext -latex -mpath $(MPIR_HOME)/ref/ref5 \
-	 -ext 5 -I pubinc -nolocation -heading ADI readme
+	 -ext 5 -I pubinc -nolocation -quotefmt -heading ADI readme
 	$(MPIR_HOME)/util/doc2lt readme >> $(MPIR_HOME)/rsumadi.tmp
 
 wwwpages:

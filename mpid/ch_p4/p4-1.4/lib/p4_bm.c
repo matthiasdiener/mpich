@@ -107,6 +107,16 @@ struct p4_procgroup *pg;
 		    listener_port, listener_fd);
 	p4_global->proctable[0].port = listener_port;
 	SIGNAL_P4(LISTENER_ATTN_SIGNAL, handle_connection_interrupt);
+#ifdef NEED_SIGACTION
+#ifdef SA_RESETHAND
+{
+struct sigaction oldact;
+sigaction( LISTENER_ATTN_SIGNAL, (struct sigaction *)0, &oldact );
+oldact.sa_flags = oldact.sa_flags & ~(SA_RESETHAND);
+sigaction( LISTENER_ATTN_SIGNAL, &oldact, (struct sigaction *)0 );
+}
+#endif
+#endif
     }
 #   endif
 
@@ -317,6 +327,16 @@ struct p4_procgroup *pg;
 		close(listener_fd);
 	    }
 	    SIGNAL_P4(LISTENER_ATTN_SIGNAL, handle_connection_interrupt);
+#ifdef NEED_SIGACTION
+#ifdef SA_RESETHAND
+	    {
+	    struct sigaction oldact;
+	    sigaction( LISTENER_ATTN_SIGNAL, (struct sigaction *)0, &oldact );
+	    oldact.sa_flags = oldact.sa_flags & ~(SA_RESETHAND);
+	    sigaction( LISTENER_ATTN_SIGNAL, &oldact, (struct sigaction *)0 );
+	    }
+#endif
+#endif
 #           endif
 
 	    /* hang for a valid proctable */

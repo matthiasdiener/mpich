@@ -1,6 +1,6 @@
-.TH MPID_Complete_send 5 "10/10/1994" " " "ADI"
+.TH MPID_Complete_send 5 "8/23/1995" " " "ADI"
 .SH NAME
-MPID_Complete_send \- Completes a send of a message
+MPID_Complete_send \- Completes a send of a message.
 
 .SH INPUT PARAMETER
 .PD 0
@@ -11,7 +11,9 @@ MPID_Complete_send \- Completes a send of a message
 .PD 0
 .TP
 .B dmpi_send_handle 
-- API's send handle
+- API
+.I 
+s send handle
 .PD 1
 
 .SH SYNOPSIS
@@ -20,4 +22,11 @@ int MPID_Complete_send( void * ctx, MPIR_SHANDLE *dmpi_send_handle )
 .fi
 
 .SH NOTES
-This routine completes a send begun with MPID_Post_send.
+This routine completes a send begun with 
+.I MPID_Post_send
+,
+
+.I MPID_Post_send_ready
+, or 
+.I MPID_Post_send_sync
+.

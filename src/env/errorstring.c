@@ -1,5 +1,5 @@
 /*
- *  $Id: errorstring.c,v 1.3 1995/07/25 02:47:58 gropp Exp $
+ *  $Id: errorstring.c,v 1.4 1995/09/13 21:46:20 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: errorstring.c,v 1.3 1995/07/25 02:47:58 gropp Exp $";
+static char vcid[] = "$Id: errorstring.c,v 1.4 1995/09/13 21:46:20 gropp Exp $";
 #endif /* lint */
 #include "mpiimpl.h"
 #include "mpisys.h"
@@ -157,7 +157,6 @@ switch (errorcode & MPIR_ERR_CLASS_MASK) {
 	mpi_errno = MPI_ERR_ARG;
 	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
 			   "Error in MPI_ERROR_STRING" );
-        break;
     }
 *resultlen = strlen( string );
 return mpi_errno;

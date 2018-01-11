@@ -7,14 +7,14 @@ int __NUMNODES, __MYPROCID ,__P4LEN,__P4TYPE,__P4FROM,__P4GLOBALTYPE ;extern voi
 
 
 /*
- *  $Id: chinit.c,v 1.34 1995/06/30 17:35:45 gropp Exp gropp $
+ *  $Id: chinit.c,v 1.37 1995/09/18 21:11:44 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chinit.c,v 1.34 1995/06/30 17:35:45 gropp Exp gropp $";
+static char vcid[] = "$Id: chinit.c,v 1.37 1995/09/18 21:11:44 gropp Exp $";
 #endif
 
 /* 
@@ -34,10 +34,6 @@ static char vcid[] = "$Id: chinit.c,v 1.34 1995/06/30 17:35:45 gropp Exp gropp $
 
 /* #CMMD DECLARATION# */
 
-MPID_INFO *MPID_procinfo = 0;
-MPID_H_TYPE MPID_byte_order;
-static char *(ByteOrderName[]) = { "None", "LSB", "MSB", "XDR" };
-int MPID_IS_HETERO = 0;
 void (*MPID_ErrorHandler)() = MPID_DefaultErrorHandler;
 /* For tracing channel operations by ADI underlayer */
 FILE *MPID_TRACE_FILE = 0;
@@ -69,23 +65,34 @@ return MPID_PKT_MAX_DATA_SIZE;
 static int DebugSpace = 0;
 int MPID_DebugFlag = 0;
 
-MPID_SetSpaceDebugFlag( flag )
+void MPID_SetSpaceDebugFlag( flag )
 int flag;
 {
 DebugSpace = flag;
-#ifdef CHAMELEON_COMM   /* #CHAMELEON_START# */
-/* This file may be used to generate non-Chameleon versions */
-if (flag) {
-    /* Check the validity of the malloc arena on every use of trmalloc/free */
-    ;
-    }
-#endif                  /* #CHAMELEON_END# */
 }
 void MPID_SetDebugFlag( ctx, f )
 void *ctx;
 int f;
 {
 MPID_DebugFlag = f;
+}
+void MPID_SetDebugFile( name )
+char *name;
+{
+char filename[1024];
+
+if (strcmp( name, "-" ) == 0) {
+    MPID_DEBUG_FILE = stdout;
+    return;
+    }
+if (strchr( name, '%' )) {
+    sprintf( filename, name, MPID_MyWorldRank );
+    MPID_DEBUG_FILE = fopen( filename, "w" );
+    }
+else
+    MPID_DEBUG_FILE = fopen( name, "w" );
+
+if (!MPID_DEBUG_FILE) MPID_DEBUG_FILE = stdout;
 }
 void MPID_Set_tracefile( name )
 char *name;
@@ -150,11 +157,6 @@ void *MPID_P4_Init( argc, argv )
 int  *argc;
 char ***argv;
 {
-#ifdef MPID_HAS_HETERO     /* #HETERO_START# */
-int  i, use_xdr;
-char *work;
-#endif                     /* #HETERO_END# */
-
 /* Set the file for Debugging output.  The actual output is controlled
    by MPIDDebugFlag */
 if (MPID_DEBUG_FILE == 0) MPID_DEBUG_FILE = stdout;
@@ -212,146 +214,9 @@ DEBUG(fprintf(MPID_DEBUG_FILE,"[%d] Finished init\n", MPID_MyWorldRank );)
 ;
 #endif
 
-#ifdef MPID_HAS_HETERO           /* #HETERO_START# */
-/* Eventually, this will also need to check for word sizes, so that systems
-   with 32 bit ints can interoperate with 64 bit ints, etc. 
-   We can check just the basic signed types: short, int, long, float, double 
-   Eventually, we should probably also check the long long and long double
-   types.
-   We do this by collecting an array of word sizes, with each processor
-   contributing the 5 lengths.  This is combined with the "byte order"
-   field.
-
-   We still need to identify IEEE and non-IEEE systems.  Perhaps we'll
-   just use a field from configure (only CRAY vector systems are non IEEE
-   of the systems we interact with).
- */
-/*
-   We look for the argument -mpixdr to force use of XDR for debugging and
-   timing comparision.
- */
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-DEBUG(fprintf(MPID_DEBUG_FILE,
-              "[%d] Checking for heterogeneous systems...\n", 
-	      MPID_MyWorldRank );)
-#endif                  /* #DEBUG_END# */
-MPID_procinfo = (MPID_INFO *)malloc(MPID_WorldSize * sizeof(MPID_INFO) );
-if (!(MPID_procinfo))exit(1);;
-for (i=0; i<MPID_WorldSize; i++) {
-    MPID_procinfo[i].byte_order	 = MPID_H_NONE;
-    MPID_procinfo[i].short_size	 = 0;
-    MPID_procinfo[i].int_size	 = 0;
-    MPID_procinfo[i].long_size	 = 0;
-    MPID_procinfo[i].float_size	 = 0;
-    MPID_procinfo[i].double_size = 0;
-    MPID_procinfo[i].float_type  = 0;
-    }
-/* Set my byte ordering and convert if necessary.  */
-
-/* Set the floating point type.  IEEE is 0, Cray is 2, others as we add them
-   (MPID_FLOAT_TYPE?) Not yet set: VAX floating point,
-   IBM 360/370 floating point, and other. */
-#ifdef MPID_FLOAT_CRAY
-MPID_procinfo[MPID_MyWorldRank].float_type = 2;
-#endif
-use_xdr = 0;
-/* printf ("Checking args for -mpixdr\n" ); */
-for (i=1; i<*argc; i++) {
-    /* printf( "Arg[%d] is %s\n", i, (*argv)[i] ? (*argv)[i] : "<NULL>" ); */
-    if ((*argv)[i] && strcmp( (*argv)[i], "-mpixdr" ) == 0) {
-	/* printf( "Found -mpixdr\n" ); */
-	use_xdr = 1;
-	break;
-	}
-    }
-if (use_xdr) 
-    MPID_byte_order = MPID_H_XDR;
-else {
-    i = SY_GetByteOrder();
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-DEBUG(fprintf(MPID_DEBUG_FILE,"[%d] Byte order is %d\n",MPID_MyWorldRank, i );)
-#endif                  /* #DEBUG_END# */
-    if (i == 1)      MPID_byte_order = MPID_H_LSB;
-    else if (i == 2) MPID_byte_order = MPID_H_MSB;
-    else             MPID_byte_order = MPID_H_XDR;
-    }
-MPID_procinfo[MPID_MyWorldRank].byte_order  = MPID_byte_order;
-MPID_procinfo[MPID_MyWorldRank].short_size  = sizeof(short);
-MPID_procinfo[MPID_MyWorldRank].int_size    = sizeof(int);
-MPID_procinfo[MPID_MyWorldRank].long_size   = sizeof(long);
-MPID_procinfo[MPID_MyWorldRank].float_size  = sizeof(float);
-MPID_procinfo[MPID_MyWorldRank].double_size = sizeof(double);
-
-/* Everyone uses the same format (MSB) */
-/* This should use network byte order OR the native collective operation 
-   with heterogeneous support */
-/* if (i == 1) 
-    SY_ByteSwapInt((int*)&MPID_procinfo[MPID_MyWorldRank].byte_order,1 );
- */
-/* Get everyone else's */
-work = (char *)malloc(MPID_WorldSize * sizeof(MPID_INFO) );
-if (!(work ))exit(1);;
-/* ASSUMES MPID_INFO is ints */
-p4_global_op(__P4GLOBALTYPE,MPID_procinfo,7 * MPID_WorldSize,sizeof(int),p4_int_max_op,P4INT);
-free(work );
-
-/* See if they are all the same and different from XDR*/
-MPID_IS_HETERO = MPID_procinfo[0].byte_order == MPID_H_XDR;
-for (i=1; i<MPID_WorldSize; i++) {
-    if (MPID_procinfo[0].byte_order  != MPID_procinfo[i].byte_order ||
-	MPID_procinfo[i].byte_order  == MPID_H_XDR ||
-	MPID_procinfo[0].short_size  != MPID_procinfo[i].short_size ||
-	MPID_procinfo[0].int_size    != MPID_procinfo[i].int_size ||
-	MPID_procinfo[0].long_size   != MPID_procinfo[i].long_size ||
-	MPID_procinfo[0].float_size  != MPID_procinfo[i].float_size ||
-	MPID_procinfo[0].double_size != MPID_procinfo[i].double_size ||
-	MPID_procinfo[0].float_type  != MPID_procinfo[i].float_type) {
-    	MPID_IS_HETERO = 1;
-	break;
-        }
-    }
-/* 
-   When deciding to use XDR, we need to check for size as well (if 
-   [myid].xxx_size != [j].xxx_size, set [j].byte_order = XDR).  Note that 
-   this is reflexive; if j decides that i needs XDR, i will also decide that
-   j needs XDR;
- */
-if (MPID_IS_HETERO) {
-    for (i=0; i<MPID_WorldSize; i++) {
-	if (i == MPID_MyWorldRank) continue;
-	if (MPID_procinfo[MPID_MyWorldRank].short_size  != 
-	    MPID_procinfo[i].short_size ||
-	    MPID_procinfo[MPID_MyWorldRank].int_size    != 
-	    MPID_procinfo[i].int_size ||
-	    MPID_procinfo[MPID_MyWorldRank].long_size   != 
-	    MPID_procinfo[i].long_size ||
-	    MPID_procinfo[MPID_MyWorldRank].float_size  != 
-	    MPID_procinfo[i].float_size ||
-	    MPID_procinfo[MPID_MyWorldRank].double_size != 
-	    MPID_procinfo[i].double_size ||
-	    MPID_procinfo[MPID_MyWorldRank].float_type !=
-	    MPID_procinfo[i].float_type) {
-	    MPID_procinfo[i].byte_order = MPID_H_XDR;
-	    }
-	}
-    }
-#ifdef FOO
-if (MPID_IS_HETERO && MPID_MyWorldRank == 0) {
-    printf( "Warning: heterogenity only partially supported\n" );
-    printf( "Ordering short int long float double sizes float-type\n" );
-    for (i=0; i<MPID_WorldSize; i++) {
-	printf( "<%d> %s %d %d %d %d %d %d\n", i,
-	        ByteOrderName[MPID_procinfo[i].byte_order],
-	        MPID_procinfo[i].short_size, 
-	        MPID_procinfo[i].int_size, 
-	        MPID_procinfo[i].long_size, 
-	        MPID_procinfo[i].float_size, 
-	        MPID_procinfo[i].double_size,
-	        MPID_procinfo[i].float_type );
-	}
-    }
-#endif
-#endif                  /* #HETERO_END# */
+#ifdef MPID_HAS_HETERO /* #HETERO_START# */
+MPID_P4_init_hetero( argc, argv );
+#endif                 /* #HETERO_END# */
 
 /* Initialize any data structures in the send and receive handlers */
 MPID_P4_Init_recv_code();
@@ -364,6 +229,10 @@ DEBUG(fprintf(MPID_DEBUG_FILE,"[%d] leaving chinit\n", MPID_MyWorldRank );)
 return (void *)0;
 }
 
+/* Barry Smith suggests that this indicate who is aborting the program.
+   There should probably be a separate argument for whether it is a 
+   user requested or internal abort.
+ */
 void MPID_P4_Abort( code )
 int code;
 {
@@ -387,12 +256,9 @@ MPID_P4_Complete_pending();
 if (MPID_GetMsgDebugFlag()) {
     MPID_PrintMsgDebug();
     }
-if (MPID_procinfo) 
-    free(MPID_procinfo );
-#ifdef CHAMELEON_COMM       /* #CHAMELEON_START# */
-if (DebugSpace)
-    ;
-#endif                      /* #CHAMELEON_END# */
+#ifdef MPID_HAS_HETERO /* #HETERO_START# */
+MPID_P4_Hetero_free();
+#endif                 /* #HETERO_END# */
 /* We should really generate an error or warning message if there 
    are uncompleted operations... */
 p4_wait_for_end();
@@ -487,99 +353,8 @@ if (str)
 MPID_P4_Abort( code );
 }
 
-int MPID_P4_Dest_byte_order( dest )
-int dest;
-{
-if (MPID_IS_HETERO)
-    return MPID_procinfo[dest].byte_order;
-else 
-    return MPID_H_NONE;
-}
-
-
-#ifdef MPID_HAS_HETERO       /* #HETERO_START# */
-/* This routine is ensure that the elements in the packet HEADER can
-   be read by the receiver without further processing (unless XDR is
-   used, in which case we use network byte order)
-   This routine is defined ONLY for heterogeneous systems
-
-   Note that different packets have different lengths and layouts; 
-   this makes the conversion more troublesome.  I'm still thinking
-   about how to do this.
- */
-#include <sys/types.h>
-#include <netinet/in.h>
-MPID_P4_Pkt_pack( pkt, size, dest )
-MPID_PKT_T *pkt;
-int        size, dest;
-{
-int i;
-unsigned int *d;
-if (MPID_IS_HETERO &&
-    MPID_procinfo[dest].byte_order != MPID_byte_order) {
-    
-    if (MPID_procinfo[dest].byte_order == MPID_H_XDR ||
-	MPID_byte_order == MPID_H_XDR) {
-	d = (unsigned int *)pkt;
-	for (i=0; i<size/sizeof(int); i++) {
-	    *d = htonl(*d);
-	    d++;
-	    }
-	}
-    else {
-	/* Need to swap to receiver's order.  We ALWAYS reorder at the
-	   sender's end (this is because a message can be received with 
-	   MPI_Recv instead of MPI_Recv/MPI_Unpack, and hence requires us 
-	   to use a format that matches the receiver's ordering without 
-	   requiring a user-unpack.  */
-	SY_ByteSwapInt((int*)pkt,size / sizeof(int) );
-	}
-    }
-}
-MPID_P4_Pkt_unpack( pkt, size, from )
-MPID_PKT_T *pkt;
-int        size, from;
-{
-int i;
-unsigned int *d;
-if (MPID_IS_HETERO &&
-    MPID_procinfo[from].byte_order != MPID_byte_order) {
-    
-    if (MPID_procinfo[from].byte_order == MPID_H_XDR ||
-	MPID_byte_order == MPID_H_XDR) {
-	d = (unsigned int *)pkt;
-	for (i=0; i<size/sizeof(int); i++) {
-	    *d = ntohl(*d);
-	    d++;
-	    }
-	}
-    }
-}
-#endif                       /* #HETERO_END# */
-
 
 /* We also need an "ErrorsReturn" and a sensible error return strategy */
-
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-
-MPID_P4_Print_pkt_data( msg, address, len )
-char *msg;
-char *address;
-int  len;
-{
-int i; char *aa = (char *)address;
-
-if (msg)
-    printf( "[%d]%s\n", MPID_MyWorldRank, msg );
-if (len < 78 && address) {
-    for (i=0; i<len; i++) {
-	printf( "%x", aa[i] );
-	}
-    printf( "\n" );
-    }
-fflush( stdout );
-}
-#endif                  /* #DEBUG_END# */
 
 /*
    Data about messages

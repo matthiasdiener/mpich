@@ -6,7 +6,7 @@
 
 
 /*
- *  $Id: chdebug.c,v 1.1 1995/06/28 23:01:09 gropp Exp $
+ *  $Id: chdebug.c,v 1.3 1995/09/18 21:11:31 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -14,7 +14,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: chdebug.c,v 1.1 1995/06/28 23:01:09 gropp Exp $";
+static char vcid[] = "$Id: chdebug.c,v 1.3 1995/09/18 21:11:31 gropp Exp $";
 #endif /* lint */
 
 #include "mpid.h"
@@ -94,7 +94,7 @@ fputs( "\n", fp );
 return MPI_SUCCESS;
 }
 
-MPID_MEIKO_Get_print_pkt( fp, pkt )
+void MPID_MEIKO_Get_print_pkt( fp, pkt )
 FILE       *fp;
 MPID_PKT_T *pkt;
 {
@@ -184,3 +184,20 @@ if (modename) {
 return MPI_SUCCESS;
 }
     
+void MPID_MEIKO_Print_pkt_data( msg, address, len )
+char *msg;
+char *address;
+int  len;
+{
+int i; char *aa = (char *)address;
+
+if (msg)
+    printf( "[%d]%s\n", MPID_MyWorldRank, msg );
+if (len < 78 && address) {
+    for (i=0; i<len; i++) {
+	printf( "%x", aa[i] );
+	}
+    printf( "\n" );
+    }
+fflush( stdout );
+}

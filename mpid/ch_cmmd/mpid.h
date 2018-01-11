@@ -7,18 +7,11 @@
 
 #ifndef MPID_INCL
 #define MPID_INCL
-/* #include "dmcmmd.h" */
 
 #include "mpiimpl.h"
 
 #ifdef MPID_DEVICE_CODE
 /* Any thing that is specific to the device version */
-/* #include "mpi_bc.h" */
-/* dmpi.h includes mpir.h which includes mpid.h to pick up the device 
-   definitions.  This undef/define pair keeps mpir from including mpid! */
-/* #undef MPID_DEVICE_CODE */
-/*#include "dmpi.h"*/
-/*#define MPID_DEVICE_CODE*/
 
 /* Use CMMD_Send_block instead of CMMD_Send_noblock */
 #define MPID_USE_SEND_BLOCK

@@ -35,12 +35,14 @@ CFLAGS = @CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) $(MPIPROFILE) -DMPI_$(ARCH) \
 	 $(MPE_GRAPH)
 
 MPE_CSOURCES = timers.c  $(MPEGRAPHICS_SOURCE) mpe_log.c decomp.c \
-	       mpe_seq.c examine.c privtags.c
-MPE_TSOURCES = $(MPEGRAPHICS_SOURCE) decomp.c mpe_seq.c dbxerr.c
+	       mpe_seq.c examine.c privtags.c getgrank.c
+MPE_TSOURCES = decomp.c mpe_seq.c dbxerr.c getgrank.c
 MPE_COBJECTS = timers.o  $(MPEGRAPHICS_OBJS) mpe_log.o decomp.o mpe_seq.o \
-		dbxerr.o examine.o privtags.o
-MPE_WSOURCES = $(MPEGRAPHICS_FSOURCE) mpe_logf.c decompf.c mpe_seqf.c
-MPE_WOBJECTS = timersf.o $(MPEGRAPHICS_FOBJS) mpe_logf.o decompf.o mpe_seqf.o
+		dbxerr.o examine.o privtags.o getgrank.o
+MPE_WSOURCES = $(MPEGRAPHICS_FSOURCE) mpe_logf.c decompf.c mpe_seqf.c \
+	       getgrankf.c
+MPE_WOBJECTS = timersf.o $(MPEGRAPHICS_FOBJS) mpe_logf.o decompf.o mpe_seqf.o \
+		getgrankf.o
 
 MPE_SOURCES = $(MPE_CSOURCES) $(MPE_WSOURCES)
 MPE_OBJECTS = $(MPE_COBJECTS) $(MPE_WOBJECTS)
@@ -63,9 +65,8 @@ default: $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpe.a \
 
 profile:
 wrappers:
-	-/bin/rm -f $(MPI_WSOURCES)
 	$(MPIR_HOME)/util/bfort -ferr -mpi -mnative -mapptr -ptrprefix MPIR_ \
-		-I pubinc $(MPE_TSOURCES)
+		-anyname -I pubinc $(MPE_TSOURCES)
 
 #
 # It is tempting here to use ... libmpe.a($(MPE_OBJECTS)) as the dependency,
@@ -79,7 +80,7 @@ $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpe.a: $(MPE_OBJECTS)
 
 $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpe_nompi.a:  $(MPEGRAPHICS_SOURCE)
 	@if [ "$(MPEGRAPHICS_SOURCE)" != "" ] ; then \
-	make -f Makefile_nompi $@ ; \
+	    $(MAKE) -f Makefile_nompi $@ ; \
 	fi
 manpages:
 	$(MPIR_HOME)/util/doctext -mpath $(MPIR_HOME)/man/man4 \

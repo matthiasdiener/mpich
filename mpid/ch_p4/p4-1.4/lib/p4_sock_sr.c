@@ -147,13 +147,32 @@ char *msg;
     return (sent);
 }
 
+int socket_close_conn( fd )
+int fd;
+{
+    struct p4_net_msg_hdr nmsg;
+
+    /* Most of this is ignored */
+    nmsg.msg_type = p4_i_to_n(0);
+    nmsg.to = p4_i_to_n(0);
+    nmsg.from = p4_i_to_n(0);
+    nmsg.msg_len = p4_i_to_n(0);
+    nmsg.ack_req = p4_i_to_n(P4_CLOSE_MASK);
+    nmsg.data_type = p4_i_to_n(0);
+
+    net_send(fd, &nmsg, sizeof(struct p4_net_msg_hdr), FALSE );
+
+    return 0;
+}
+
 /*
    This code introduces some subtle problems.  The timeout on the select 
    is needed to catch changes in the established connections, but in this
    case, we need EINTR (interrupted system call) from the select to 
    just restart the call AFTER we've recomputed the read_fds.
  */
-struct p4_msg *socket_recv()
+struct p4_msg *socket_recv( is_blocking )
+int is_blocking;
 {
     int i, fd, nfds;
     struct p4_msg *tmsg = NULL;
@@ -161,10 +180,12 @@ struct p4_msg *socket_recv()
     struct timeval tv;
     fd_set read_fds;
     int    nactive;
+    int    found_cmd = 0;
+    int    timeout_sec = 9;
 
     while (!found)
     {
-	tv.tv_sec = 9;
+	tv.tv_sec = timeout_sec;
 	tv.tv_usec = 0;  /* RMB */
 	FD_ZERO(&read_fds);
 	nactive = 0;
@@ -179,16 +200,22 @@ struct p4_msg *socket_recv()
 	}
 	if (!nactive)
 	{
+	    /* If we read a "close" and there are no connections left, 
+	       silently exit */
+	    if (found_cmd) return 0;
+
 	    /* There are no active connections! If this is because
 	       the active connections have all died, then we should exit.
 	       Question: what if one connection has died "irregularly"? */
-	    p4_dprintf("Bailing out\n");
+	    p4_dprintf(
+"Trying to receive a message when there are no connections; Bailing out\n");
             p4_wait_for_end();
 	    exit(0);
 	}
 	/* Run select; if interrupted, get read_fds (in case a connection
 	   has occurred) and restart the connection */
 	nfds = select(p4_global->max_connections, &read_fds, 0, 0, &tv);
+	timeout_sec = 9;
 	if (nfds == -1 && errno == EINTR) continue;
 
 	if (nfds)
@@ -206,10 +233,32 @@ struct p4_msg *socket_recv()
 			{
 			    send_ack(fd, tmsg->from);
 			}
+			if (tmsg->ack_req & P4_CLOSE_MASK) 
+			{
+			    p4_dprintfl(20,"Received close connection on %d\n",
+					i );
+			    p4_local->conntab[i].type = CONN_REMOTE_CLOSED;
+			    /* Discard the message */
+			    free_p4_msg( tmsg );
+			    tmsg      = 0;
+			    found     = FALSE;
+			    /* Remember that we found a command (see
+			       code above for no connections) */
+			    found_cmd = TRUE;
+			    /* Note that if we called this because we
+			       found a message available, we may want
+			       to return a "no more messages" without
+			       doing a long wait. 
+			     */
+			    timeout_sec = 0;
+			}
 		    }
 		}
 	    }
 	}
+	else
+	    if (found_cmd && !is_blocking) break;
+
     }
     return (tmsg);
 }
@@ -272,6 +321,7 @@ int fd;
 P4BOOL socket_msgs_available()
 {
     int i, fd;
+    int ndown = 0;
 
     for (i = 0; i < p4_global->num_in_proctable; i++)
     {
@@ -283,6 +333,11 @@ P4BOOL socket_msgs_available()
 		return (TRUE);
 	    }
 	}
+	else if (p4_local->conntab[i].type == CONN_REMOTE_DYING) {
+	    /* We need to detect that some are down... */
+	    ndown++;
+	    /* Now, what to do ? */
+	    }
     }
     return (FALSE);
 }

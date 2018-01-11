@@ -29,7 +29,7 @@ dnl
 define(PAC_HAVE_VOLATILE,
 [AC_MSG_CHECKING([for volatile])
 AC_COMPILE_CHECK(,[volatile int a;],main();,
-AC_DEFINE(HAS_VOLATILE)AC_MSG_RESULT(yes))
+AC_DEFINE(HAS_VOLATILE)AC_MSG_RESULT(yes),AC_MSG_RESULT(no))
 ])dnl
 dnl
 dnl Define the test to look for wish (the tcl/tk windowing shell)
@@ -65,8 +65,10 @@ for dir in \
     /usr/contrib/tcl7.0-tk3.3/bin \
     $HOME/tcl/bin \
     $HOME/tcl7.3/bin \
+    /opt/Tcl/bin \
     /opt/bin \
     /usr/unsupported \
+    /usr/unsupported/bin \
     /usr/bin \
     /bin \
     /local/encap/tcl-7.1/bin ; do
@@ -99,6 +101,7 @@ for dir in \
     /usr/contrib/tcl7.0-tk3.3 \
     $HOME/tcl \
     $HOME/tcl7.3 \
+    /opt/Tcl \
     /opt/local \
     /opt/local/tcl7.0 \
     /local/encap/tcl-7.1 ; do
@@ -130,6 +133,7 @@ for dir in \
     /usr/contrib/tcl7.0-tk3.3 \
     $HOME/tcl \
     $HOME/tcl7.3 \
+    /opt/Tcl \
     /opt/local \
     /opt/local/tk3.6 \
     /local/encap/tk-3.4 $TCL_DIR ; do
@@ -264,7 +268,7 @@ if test -d ccbugs ; then
     if test -z "$TESTCC" ; then TESTCC="$CC" ; fi
     for file in ccbugs/ccfail*.c ; do
         CFILE=`basename $file .c`
-        echo `cat ccbugs/$CFILE.title`
+        AC_MSG_CHECKING(`cat ccbugs/$CFILE.title`)
         cp $file conftest.c
         broken=1
         if eval $TESTCC $CFLAGS -o conftest conftest.c $LIBS >/dev/null 2>&1 ; then
@@ -273,7 +277,10 @@ if test -d ccbugs ; then
 	    fi
         fi
         if test $broken = 1 ; then 
+	    AC_MSG_RESULT(no)
 	    cat ccbugs/$CFILE.txt | sed 's/^/\*\#/g' 
+	else
+	    AC_MSG_RESULT(yes)
         fi
 	/bin/rm -f conftest conftest.c conftest.o 
     done
@@ -281,13 +288,15 @@ if test -d ccbugs ; then
     # Now, try the warnings.  Note that this just does compiles, not runs
     for file in ccbugs/ccwarn*.c ; do
         CFILE=`basename $file .c`
-        echo `cat ccbugs/$CFILE.title`
+        AC_MSG_CHECKING(`cat ccbugs/$CFILE.title`)
         cp $file conftest.c
         if eval $CC $CFLAGS \
 	    -DCONFIGURE_ARGS_CLEAN="'"'"'-A -B'"'"'" -c \
 	    conftest.c $LIBS > /dev/null 2>&1 ; then
+	    AC_MSG_RESULT(yes)
 	    true 
 	else
+	    AC_MSG_RESULT(no)
 	    cat ccbugs/$CFILE.txt | sed 's/^/\*\#/g' 
 	    if test "$CFILE" = "ccwarn1" ; then
 	       CONFIGURE_ARGS_CLEAN="`echo $CONFIGURE_ARGS_CLEAN | tr ' ' '_'`"
@@ -307,7 +316,10 @@ fi
 dnl
 dnl
 dnl PAC_PROGRAM_CHECK(VARIABLE, PROG-TO-CHECK-FOR, VALUE-IF-FOUND
-dnl               [, VALUE-IF-NOT-FOUND])
+dnl               [, VALUE-IF-NOT-FOUND [,FULL-PATH-IF-FOUND])
+dnl
+dnl The variable named by FULL-PATH-IF-FOUND will be set to the
+dnl full path for the program
 dnl
 dnl A fault with the routine in autoconf is that if PROG-TO-CHECK-FOR
 dnl already has a path, it will FAIL!
@@ -348,6 +360,7 @@ fi;dnl])dnl
 $1="$ac_cv_prog_$1"
 if test -n "$ac_prog_where" ; then
   AC_MSG_RESULT(found $ac_prog_where ([$]$1))
+  ifelse([$5], , , [ $5=$ac_prog_where ] )
 else
   AC_MSG_RESULT(no)
 fi
@@ -494,18 +507,29 @@ dnl are used:
 dnl
 dnl (Not yet present)
 dnl
-dnl PAC_GET_CC
-dnl Uses USERCC, CC, CLINKER, ARCH, arch_xxx.  Looks for special versions
+dnl PAC_GET_CC(arch)
+dnl Uses USERCC, CC, USERCLINKER, CLINKER, LIB_LIST.  
+dnl Looks for special versions
 dnl of C compilers, particularly cross compilers.  May also set some
 dnl compile flags.  Clears GCC if it sets CC.  Calls "print_error" for
 dnl error messages
 dnl
 define(PAC_GET_CC,[
 if test -z "$USERCC" ; then
-case $ARCH in 
-   intelnx|paragon) CC=icc ; CLINKER=$CC ; GCC="" ;;
-   cray_t3d)        CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3d" 
-	            CLINKER="$CC -Tcray-t3d" ;;
+case $1 in 
+   intelnx|paragon) CC=icc ; GCC="" 
+	  # If this version of the intel compiler accepts the -nx flag, use it.
+  	  if icc -nx > /dev/null 2>&1 ; then
+	    dnl LIB_LIST="$LIB_LIST -nx"
+	    CFLAGS="$CFLAGS -nx"
+	  fi
+	;;
+   cm5) CC=cc ; GCC="" ;   if test -z "$USERCLINKER" ; then
+		      CLINKER="cmmd-ld -comp $CC"
+		  fi ;;
+   cray_t3d)        CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3d" ; GCC="" 
+                    if test -z "$USERCLINKER" ; then 
+	            CLINKER="$CC -Tcray-t3d" ; fi ;;
    hpux) if test "$CC != "gcc" ; then
             CFLAGS="$CFLAGS -Aa -D_POSIX_SOURCE -D_HPUX_SOURCE"
 	    # Alternate...
@@ -533,7 +557,42 @@ case $ARCH in
          fi 
 	 ;;
     alpha)   CFLAGS="$CFLAGS -DDBX_IS_OSF" ;;
+    convex_spp)  CC="/usr/convex/bin/cc" ;;
+    ibmpoe)
+         dnl This is intended for the Standard POE/MPL version
+	 CCval=
+         AC_PROGRAMS_CHECK(CCval,mpCC mpcc "$CC")
+         if test -n "$CCval" ; then
+	    CC=$CCval
+	    if test "$CC" = mpcc ; then 
+	        TESTCC=xlc
+	    elif test "$CC" = mpCC ; then
+        	TESTCC=xlC
+	    fi
+         else
+            printerror "Could not find mpCC or mpcc!"
+	    exit 1
+         fi
+    ;;
+    meiko) 
+      dnl /opt/SUNWspro/bin/cc,/opt/apogee/bin/apcc,/opt/PGI/bin/cc,
+      dnl /opt/gcc/bin/gcc
+      CCval=''
+      AC_PROGRAMS_CHECK(CCval,cc apcc pgcc gcc)
+      if test -z "$CCval" ; then
+          print_error "Could not find a C compiler"
+	  exit 1
+      elif test "$CCVal" = "cc" ; then
+          CC="cc -g -xcg92"
+      else
+	  CC=$CCval
+      fi
+	;;
+    ncube)   CC=ncc ;;
 esac
+fi
+if test -z "$USERCLINKER" -a -z "$CLINKER" ; then
+    CLINKER="$CC"
 fi
 ])
 dnl
@@ -568,3 +627,322 @@ TK_VERSION=`cat conftestval`,TK_VERSION="unavailable")
 CFLAGS="$CFLAGSsave"
 AC_MSG_RESULT($TK_VERSION)
 ])dnl
+dnl
+dnl Redefine these to use msg_checking/result
+dnl Also, test for broken LINUX shells
+dnl
+define([AC_COMPILE_CHECK],
+[AC_PROVIDE([$0])dnl
+ifelse([$1], , , [AC_MSG_CHECKING(for $1)]
+)dnl
+if test ! -f confdefs.h ; then
+    AC_MSG_RESULT("!! SHELL ERROR !!")
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+[$2]
+int main() { exit(0); }
+int t() { [$3] }
+EOF
+dnl Don't try to run the program, which would prevent cross-configuring.
+if eval $compile; then
+  ifelse([$1], , , [AC_MSG_RESULT(yes)])
+  ifelse([$4], , :, [rm -rf conftest*
+  $4
+])
+ifelse([$5], , , [else
+  rm -rf conftest*
+  $5
+])dnl
+   ifelse([$1], , , ifelse([$5], ,else) [AC_MSG_RESULT(no)])
+fi
+rm -f conftest*]
+)dnl
+dnl
+dnl Append SH style definitions to a file
+dnl To generate a site file (for MAKE), use PAC_APPEND_FILE.  This allows
+dnl you to use configure to create a likely site file.
+dnl
+dnl PAC_APPEND_FILE(varname,varvalue,file)
+dnl Example: PAC_APPEND_FILE("CC",$CC,"make.site")
+dnl
+define(PAC_APPEND_FILE,[
+if test "$3" = "-" ; then echo "$1=$2" ; else echo "$1=$2" >> $3 ; fi
+])
+dnl
+dnl See if Fortran compiler accepts -Idirectory flag
+dnl 
+dnl PAC_FORTRAN_HAS_INCDIR(true-action,false-action)
+dnl
+dnl Fortran compiler is F77 and is passed FFLAGS
+dnl
+define(PAC_FORTRAN_HAS_INCDIR,[
+AC_MSG_CHECKING([for Fortran include argument])
+cat > conftest.f <<EOF
+       program main
+       include 'mpif.h'
+       end
+EOF
+if $F77 $FFLAGS -c -Iinclude conftest.f > /dev/null 2>&1 ; then
+    ifelse($1,,true,$1)
+    AC_MSG_RESULT([supports -I])
+else
+    ifelse($2,,true,$2)
+    AC_MSG_RESULT([does NOT support -I])
+fi
+/bin/rm -f conftest.f
+])
+dnl
+dnl Check that signal semantics work correctly
+dnl
+define(PAC_SIGNALS_WORK,[
+AC_MSG_CHECKING([that signals work correctly])
+cat >conftest.c <<EOF
+#include <signal.h>
+static int rc = 0, irc = 1, maxcnt=5;
+void handler( sig )
+int sig;
+{
+void (*oldsig)();
+oldsig = signal( SIGUSR1, handler );
+if (oldsig != handler) rc = 1;
+irc = 0;
+}
+int main(argc, argv)
+int argc;
+char **argv;
+{
+(void)signal( SIGUSR1, handler );
+kill( getpid(), SIGUSR1 );
+while (irc && maxcnt) { sleep(1); maxcnt--;}
+return rc;
+}
+EOF
+if eval $CC $CFLAGS -o conftest conftest.c > /dev/null 2>&1 ; then
+    if ./conftest ; then
+	AC_MSG_RESULT(yes)
+    else
+	AC_MSG_RESULT(Signals reset when used!)
+	print_error Signals reset when used!
+    fi
+else
+    AC_MSG_RESULT(Could not compile test program!)
+fi
+/bin/rm -f conftest conftest.c conftest.o
+])
+
+dnl
+dnl
+dnl record top-level directory (this one)
+dnl A problem.  Some systems use an NFS automounter.  This can generate
+dnl paths of the form /tmp_mnt/... . On SOME systems, that path is
+dnl not recognized, and you need to strip off the /tmp_mnt. On others, 
+dnl it IS recognized, so you need to leave it in.  Grumble.
+dnl The real problem is that OTHER nodes on the same NFS system may not
+dnl be able to find a directory based on a /tmp_mnt/... name.
+dnl
+dnl It is WRONG to use $PWD, since that is maintained only by the C shell,
+dnl and if we use it, we may find the 'wrong' directory.  To test this, we
+dnl try writing a file to the directory and then looking for it in the 
+dnl current directory.  Life would be so much easier if the NFS automounter
+dnl worked correctly.
+dnl
+dnl PAC_GETWD(varname [, filename ] )
+dnl 
+dnl Set varname to current directory.  Use filename (relative to current
+dnl directory) if provided to double check.
+dnl
+dnl Need a way to use "automounter fix" for this.
+dnl
+define(PAC_GETWD,[
+AC_MSG_CHECKING(for current directory name)
+$1=$PWD
+if test "${$1}" != "" -a -d "${$1}" ; then 
+    if test -r ${$1}/.foo ; then
+        /bin/rm -f ${$1}/.foo
+	/bin/rm -f .foo
+    fi
+    if test -r ${$1}/.foo -o -r .foo ; then
+	$1=
+    else
+	echo "test" > ${$1}/.foo
+	if test ! -r .foo ; then
+	    $1=
+	fi
+	/bin/rm -f ${$1}/.foo
+    fi
+fi
+if test "${$1}" = "" ; then
+    $1=`pwd | sed -e 's%/tmp_mnt/%/%g'`
+fi
+dnl
+dnl First, test the PWD is sensible
+ifelse($2,,,
+if test ! -r ${$1}/$2 ; then
+    dnl PWD must be messed up
+    $1=`pwd`
+    if test ! -r ${$1}/$2 ; then
+	print_error "Cannot determine the root directory!" 
+        exit 1
+    fi
+    $1=`pwd | sed -e 's%/tmp_mnt/%/%g'`
+    if test ! -d ${$1} ; then 
+        print_error "Warning: your default path uses the automounter; this may"
+        print_error "cause some problems if you use other NFS-connected systems."
+        $1=`pwd`
+    fi
+fi)
+if test -z "${$1}" ; then
+    $1=`pwd | sed -e 's%/tmp_mnt/%/%g'`
+    if test ! -d ${$1} ; then 
+        print_error "Warning: your default path uses the automounter; this may"
+        print_error "cause some problems if you use other NFS-connected systems."
+        $1=`pwd`
+    fi
+fi
+AC_MSG_RESULT(${$1})
+])
+dnl
+dnl
+dnl 
+define(PAC_GET_SPECIAL_SYSTEM_INFO,[
+dnl
+dnl We should provide a way to specify a particular IRIX version, rather 
+dnl than requiring the this code to figure everything out.
+dnl In particular, there are IRIX-like systems that do not have the 'hinv'
+dnl command.
+dnl
+if test -n "$arch_IRIX"; then
+   AC_MSG_CHECKING(for IRIX OS version)
+   dnl Every version and machine under IRIX is incompatible with every other
+   dnl version.  This block of code replaces a generic "IRIX" arch value 
+   dnl with 
+   dnl  IRIX_<version>_<chip>
+   dnl  For example
+   dnl  IRIX_5_4400 (IRIX 5.x, using MIPS 4400)
+   osversion=`uname -r | sed 's/\..*//'`
+   dnl Note that we need to allow brackets here, so we briefly turn off 
+   dnl the macro quotes
+   changequote(,)dnl
+   dnl Get the second field (looking for 6.1)
+   osvminor=`uname -r | sed 's/[0-9]\.\([0-9]*\)\..*/\1/'`
+   AC_MSG_RESULT($osversion)
+   dnl Get SGI processor count by quick hack
+   dnl 7/13/95, bri@sgi.com
+   AC_MSG_CHECKING(for IRIX cpucount)
+   cpucount=`hinv | grep '[0-9]* [0-9]* MHZ IP[0-9]* Proc' | cut -f 1 -d' '`
+   if test "$cpucount" = "" ; then
+     cpucount=`hinv | grep 'Processor [0-9]*:' | wc -l | sed -e 's/ //g'`
+   fi
+   changequote([,])dnl
+   if test "$cpucount" = "" ; then
+     print_error "Could not determine cpucount."
+     print_error "Please send "
+     hinv
+     print_error "to mpi-bugs@mcs.anl.gov"
+     exit 1
+   fi
+   AC_MSG_RESULT($cpucount)
+
+   dnl 
+   dnl Check for fast SGI device
+   if test -d mpid/sgi -a "$osversion" -ge 6 -a "$osvminor" -ge 1 -a \
+	`uname -s` = "IRIX64" ; then
+	if test -z "$device_sgi" ; then
+	    echo "Consider using -device=sgi for SGI arrays"
+	fi
+   elif test -n "$device_sgi" ; then
+	print_error "The sgi device requires IRIX64 and version 6.1 or later"
+        exit 1
+   fi
+   dnl
+   dnl Set -comm=shared if IRIX MP & COMM=ch_p4 & COMM not explicitly set
+   dnl 7/13/95 bri@sgi.com
+   if test $cpucount -gt 1 ; then
+     if test "$COMM" = "ch_p4" ; then
+       if test "$default_comm" = "1" ; then
+         echo "IRIX multiprocessor & p4, setting -comm=shared"
+         echo "  (configure with -comm=ch_p4 to disable shared memory)"
+         COMM="shared"
+       fi
+     fi
+   fi
+
+   AC_MSG_CHECKING(for IRIX cputype)
+   dnl The tail -1 is necessary for multiple processor SGI boxes
+   dnl We might use this to detect SGI multiprocessors and recommend
+   dnl -comm=shared
+   cputype=`hinv -t cpu | tail -1 | cut -f 3 -d' '`
+   if test -z "$cputype" ; then
+	print_error "Could not get cputype from hinv -t cpu command."
+	print_error "Please send "
+	hinv -t cpu 2>&1
+	hinv -t cpu | cut -f 3 -d' ' 2>&1
+	print_error "to mpi-bugs@mcs.anl.gov" 
+	exit 1
+   fi
+   AC_MSG_RESULT($cputype)
+   dnl echo "checking for osversion and cputype"
+   dnl cputype may contain R4400, R2000A/R3000, or something else.  
+   dnl We may eventually need to look at it.
+   if test -z "$osversion" ; then
+	print_error "Could not determine OS version.  Please send" 
+        print_error " " 
+	uname -a
+	print_error "to mpi-bugs@mcs.anl.gov" 
+        exit 1
+   elif test $osversion = 4 ; then
+	dnl Nathan told us that things worked for IRIX 4 as well; 
+	dnl however, we need 'ar ts libname' (ranlib) on version 4 but 
+	dnl not the others
+        true
+   elif test $osversion = 5 ; then
+	true
+   elif test $osversion = 6 ; then
+	true
+   else 
+       print_error "Could not recognize the version of IRIX (got $osversion)"
+       print_error "MPICH knows about versions 4, 5 and 6; the version being"
+       print_error "returned from uname -r is $osversion."
+       print_error "Please send"
+       uname -a 2>&1
+       hinv 2>&1
+       print_error "to mpi-bugs@mcs.anl.gov"
+       exit 1
+   fi
+   AC_MSG_RESULT(getting cputype)
+   OLD_ARCH=IRIX
+   IRIXARCH="$ARCH_$osversion"
+   dnl Now, handle the chip set
+   changequote(,)dnl
+   cputype=`echo $cputype | sed -e 's%.*/%%' -e 's/R//' | tr -d "[A-Z]"`
+   changequote([,])dnl
+   case $cputype in 
+	3000) ;;
+	4000) ;;
+	4400) ;;
+	4600) ;;
+	8000) ;;
+        *)
+	print_error "Unexpected IRIX/MIPS chipset $cputype.  Please send the output"
+	print_error " "
+        uname -a 2>&1
+        hinv 2>&1 
+ 	print_error " " 
+        print_error "to mpi-bugs@mcs.anl.gov" 
+	print_error "MPICH will continue and assume that the cputype is"
+        print_error "compatible with a MIPS 4400 processor."
+ 	print_error " " 
+        cputype=4400
+	;;
+   esac
+   AC_MSG_RESULT($cputype)
+   IRIXARCH="$IRIXARCH_$cputype"
+   echo "IRIX-specific architecture is $IRIXARCH"
+fi
+])

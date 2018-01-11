@@ -1,4 +1,4 @@
-.TH MPID_IS_HETERO 5 "10/10/1994" " " "ADI"
+.TH MPID_IS_HETERO 5 "8/23/1995" " " "ADI"
 .SH NAME
 MPID_IS_HETERO \- Indicates that heterogeneous processors are present
 
@@ -6,7 +6,11 @@ MPID_IS_HETERO \- Indicates that heterogeneous processors are present
 This is a global variable that can be used to determine if an ADI
 that could contain heterogeneous processors actually does.  For example,
 if the ADI can connect disimilar workstations but the active collection
-contains only similar workstations, then MPID_HAS_HETERO would be
-defined, but MPID_IS_HETERO would be false.
+contains only similar workstations, then 
+.I MPID_HAS_HETERO
+ would be
+defined, but 
+.I MPID_IS_HETERO
+ would be false.
 
-See also ??? (heterogeneous support)
+See also the discussion on heterogeneous support.

@@ -5,10 +5,8 @@
    provide a good fit with conventional message-passing systems and with 
    other more direct systems (e.g., sockets), I've defined a set of
    connection macros that are here translated into Chameleon message-passing
-   calls.  These are somewhat complicated by the need to provide access to
-   non-blocking operations
-
-   These are not yet fully integrated into the code.  
+   calls or into other, data-channel transfers.  These are somewhat 
+   complicated by the need to provide access to non-blocking operations
 
    This file is designed for use with the portable shared memory code from
    p2p.
@@ -61,12 +59,37 @@
    Note that there are two structures.  A Queue, for messages (required
    message ordering), and a Stack, for available message packets.
 
+   Finally, note that while the array of message queues and stacks itself is
+   in shared memory, their locations in the shared memory do not change (for
+   example, the location of the queue data structure for process 12 does
+   not move).  Because of that, we do not want to access the elements of
+   these structures by first dereferencing MPID_shmem (the pointer to the
+   general structure), rather, we want to keep a local COPY of the locations
+   in MPID_shmem and use those instead.  It is true that on some systems,
+   the cache architecture will do this for us, but my making this explicit,
+   we avoid any performance surprises (at least about this).  The local
+   copy is kept in MPID_lshmem;
  */
 
+/* 
+   For many systems, it is important to align data structures on 
+   cache lines, and to insure that separate structures are in
+   different cache lines.  Currently, the largest cache line that we've seen
+   is 128 bytes, so we pick that as the default.
+ */
 #ifndef MPID_CACHE_LINE_SIZE
 #define MPID_CACHE_LINE_SIZE 128
 #define MPID_CACHE_LINE_LOG_SIZE 7
 #endif
+/* 
+   The shared datastructures.  These are padded to be on different
+   cachelines.  The queue is aranged so that the head and tail pointers
+   are on the same cacheline .
+   It might be useful to put the locks for the datastructure in the same
+   structure.  Then again, if one process is doing while(!head), this
+   could slow down another process that is trying to lock the queue or
+   stack.
+ */
 typedef struct {
     VOLATILE MPID_PKT_T *head;
     VOLATILE MPID_PKT_T *tail;
@@ -79,8 +102,18 @@ typedef struct {
     } MPID_SHMEM_Stack;
 
 typedef struct {
+    int          size;           /* Size of barrier */
+    VOLATILE int phase;          /* Used to indicate the phase of this 
+				    barrier; only process 0 can change */
+    VOLATILE int cnt1, cnt2;     /* Used to perform counts */
+    } MPID_SHMEM_Barrier_t;
+/*
+   This is the global area of memory; when this structure is allocated,
+   we have the initial shared memory
+ */
+typedef struct {
     /* locks may need to be aligned, so keep at front (p2p_shmalloc provides
-       16-byte alignment for each allocated block) */
+       16-byte alignment for each allocated block).       */
     p2p_lock_t availlock[MPID_MAX_PROCS];    /* locks on avail list */
     p2p_lock_t incominglock[MPID_MAX_PROCS]; /* locks on incoming list */
     p2p_lock_t globlock;
@@ -92,16 +125,40 @@ typedef struct {
     /* We put globid last because it may otherwise upset the cache alignment
        of the arrays */
     VOLATILE int        globid;           /* Used to get my id in the world */
+    MPID_SHMEM_Barrier_t barrier;         /* Used for barriers */
     } MPID_SHMEM_globmem;	
 
-extern MPID_SHMEM_globmem *MPID_shmem;
-extern int                 MPID_myid;
-extern int                 MPID_numids;
-extern MPID_PKT_T          *MPID_local;       /* Local pointer to arrived
+/* 
+   This is a LOCAL copy of the ADDRESSES of objects in MPID_shmem.
+   We can use
+    MPID_lshmem.incomingPtr[src]->head
+   instead of
+    MPID_shmem->incoming[src].head
+   The advantage of this is that the dereference (->) is not done on the
+   same address (MPID_shmem) that all other processors must also use.
+ */
+typedef struct {
+    /* locks may need to be aligned, so keep at front (p2p_shmalloc provides
+       16-byte alignment for each allocated block).       */
+    p2p_lock_t *availlockPtr[MPID_MAX_PROCS];    /* locks on avail list */
+    p2p_lock_t *incominglockPtr[MPID_MAX_PROCS]; /* locks on incoming list */
+    MPID_SHMEM_Queue    *incomingPtr[MPID_MAX_PROCS];  /* Incoming messages */
+    MPID_SHMEM_Stack    *availPtr[MPID_MAX_PROCS];     /* Avail pkts */
+#ifdef FOO
+    MPID_SHMEM_Queue    *my_incoming;                  /* My incoming queue */
+    MPID_SHMEM_Stack    *my_avail;                     /* My avail stack */
+#endif
+    } MPID_SHMEM_lglobmem;	
+
+extern MPID_SHMEM_globmem  *MPID_shmem;
+extern MPID_SHMEM_lglobmem  MPID_lshmem;
+extern int                  MPID_myid;
+extern int                  MPID_numids;
+extern MPID_PKT_T           *MPID_local;      /* Local pointer to arrived
 						 packets; it is only
 						 accessed by the owner */
 extern VOLATILE MPID_PKT_T **MPID_incoming;   /* pointer to my incoming 
-						 queue HEAD */
+						 queue HEAD (really?) */
 
 #define PI_NO_NSEND
 #define PI_NO_NRECV

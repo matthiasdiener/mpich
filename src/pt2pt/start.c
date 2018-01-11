@@ -1,12 +1,12 @@
 /*
- *  $Id: start.c,v 1.17 1995/05/09 18:59:14 gropp Exp $
+ *  $Id: start.c,v 1.18 1995/09/13 21:47:17 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: start.c,v 1.17 1995/05/09 18:59:14 gropp Exp $";
+static char vcid[] = "$Id: start.c,v 1.18 1995/09/13 21:47:17 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -40,23 +40,24 @@ MPI_Request *request;
 
     if (req_type == MPIR_SEND) {
 	/* I really should allow MPIR_SEND_SETUP_BUFFER here ... */
-	if (mpi_errno = MPIR_Send_setup(request)) return mpi_errno;
+	/* Buffered send has special buffer setup requirements... */
 	shandle = &(*request)->shandle;
 	/* device will post the send */
 	switch (shandle->mode) {
 	    case MPIR_MODE_STANDARD:
+	    if (mpi_errno = MPIR_Send_setup(request)) return mpi_errno;
 	    MPID_Post_send( shandle->comm->ADIctx, shandle );
 	    break;
 	    case MPIR_MODE_SYNCHRONOUS:
+	    if (mpi_errno = MPIR_Send_setup(request)) return mpi_errno;
 	    MPID_Post_send_sync( shandle->comm->ADIctx, shandle );
 	    break;
 	    case MPIR_MODE_READY:
+	    if (mpi_errno = MPIR_Send_setup(request)) return mpi_errno;
 	    MPID_Post_send_ready( shandle->comm->ADIctx, shandle );
 	    break;
 	    case MPIR_MODE_BUFFERED:
-	    /* Need to prepare the buffer before sending */
-	    MPIR_PrepareBuffer( shandle );
-	    MPID_Post_send( shandle->comm->ADIctx, shandle );
+	    if (mpi_errno = MPIR_DoBufferSend( shandle )) return mpi_errno;
 	    break;
 	    default:
 	    return 

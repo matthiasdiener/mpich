@@ -1,3 +1,12 @@
+
+
+
+
+
+
+
+
+
 int __NUMNODES, __MYPROCID  ;
 
 
@@ -9,14 +18,14 @@ int __NUMNODES, __MYPROCID  ;
 
 
 /*
- *  $Id: chinit.c,v 1.34 1995/06/30 17:35:45 gropp Exp gropp $
+ *  $Id: chinit.c,v 1.37 1995/09/18 21:11:44 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chinit.c,v 1.34 1995/06/30 17:35:45 gropp Exp gropp $";
+static char vcid[] = "$Id: chinit.c,v 1.37 1995/09/18 21:11:44 gropp Exp $";
 #endif
 
 /* 
@@ -36,10 +45,6 @@ static char vcid[] = "$Id: chinit.c,v 1.34 1995/06/30 17:35:45 gropp Exp gropp $
 
 #include <sys/file.h>
 
-MPID_INFO *MPID_procinfo = 0;
-MPID_H_TYPE MPID_byte_order;
-static char *(ByteOrderName[]) = { "None", "LSB", "MSB", "XDR" };
-int MPID_IS_HETERO = 0;
 void (*MPID_ErrorHandler)() = MPID_DefaultErrorHandler;
 /* For tracing channel operations by ADI underlayer */
 FILE *MPID_TRACE_FILE = 0;
@@ -71,23 +76,34 @@ return MPID_PKT_MAX_DATA_SIZE;
 static int DebugSpace = 0;
 int MPID_DebugFlag = 0;
 
-MPID_SetSpaceDebugFlag( flag )
+void MPID_SetSpaceDebugFlag( flag )
 int flag;
 {
 DebugSpace = flag;
-#ifdef CHAMELEON_COMM   /* #CHAMELEON_START# */
-/* This file may be used to generate non-Chameleon versions */
-if (flag) {
-    /* Check the validity of the malloc arena on every use of trmalloc/free */
-    ;
-    }
-#endif                  /* #CHAMELEON_END# */
 }
 void MPID_SetDebugFlag( ctx, f )
 void *ctx;
 int f;
 {
 MPID_DebugFlag = f;
+}
+void MPID_SetDebugFile( name )
+char *name;
+{
+char filename[1024];
+
+if (strcmp( name, "-" ) == 0) {
+    MPID_DEBUG_FILE = stdout;
+    return;
+    }
+if (strchr( name, '%' )) {
+    sprintf( filename, name, MPID_MyWorldRank );
+    MPID_DEBUG_FILE = fopen( filename, "w" );
+    }
+else
+    MPID_DEBUG_FILE = fopen( name, "w" );
+
+if (!MPID_DEBUG_FILE) MPID_DEBUG_FILE = stdout;
 }
 void MPID_Set_tracefile( name )
 char *name;
@@ -128,13 +144,13 @@ int MPID_n_pending     = 0;         /* Number of uncompleted split requests */
 /*****************************************************************************
   Here begin the interface routines themselves
  *****************************************************************************/
-void MPID_CH_Myrank( rank )
+void MPID_CMMD_Myrank( rank )
 int *rank;
 {
 *rank = MPID_MyWorldRank;
 }
 
-void MPID_CH_Mysize( size )
+void MPID_CMMD_Mysize( size )
 int *size;
 {
 *size = MPID_WorldSize;
@@ -148,11 +164,10 @@ int *size;
 
     This version currently returns null, as all data is static.
  */
-void *MPID_CH_Init( argc, argv )
+void *MPID_CMMD_Init( argc, argv )
 int  *argc;
 char ***argv;
 {
-
 /* Set the file for Debugging output.  The actual output is controlled
    by MPIDDebugFlag */
 if (MPID_DEBUG_FILE == 0) MPID_DEBUG_FILE = stdout;
@@ -160,6 +175,29 @@ if (MPID_DEBUG_FILE == 0) MPID_DEBUG_FILE = stdout;
 
 __NUMNODES = CMMD_partition_size();
 __MYPROCID = CMMD_self_address();
+{int numprocs=__NUMNODES, i;
+char **Argv = *(argv );
+for (i=1; i<*(argc); i++) {
+    if (strcmp( Argv[i], "-np" ) == 0) {
+	/* Need to remove both args and check for missing value for -np */
+	if (i + 1 == *(argc)) {
+	    fprintf( stderr, 
+		    "Missing argument to -np for number of processes\n" );
+	    exit( 1 );
+	    }
+	numprocs = atoi( Argv[i+1] );
+	Argv[i] = 0;
+	Argv[i+1] = 0;
+	MPIR_ArgSqueeze( argc, argv  );
+	break;
+	}
+    }
+if (numprocs <= 0 || numprocs > __NUMNODES) {
+    fprintf( stderr, "Invalid number of processes (%d) invalid\n", numprocs );
+    exit( 1 );
+    }
+CMMD_reset_partition_size( numprocs ); __NUMNODES = numprocs;
+}
 CMMD_fset_io_mode( stdout, CMMD_independent );
 CMMD_fset_io_mode( stdin, CMMD_independent );
 fcntl( fileno(stdout), F_SETFL, O_APPEND );
@@ -178,8 +216,8 @@ DEBUG(fprintf(MPID_DEBUG_FILE,"[%d] Finished init\n", MPID_MyWorldRank );)
 
 
 /* Initialize any data structures in the send and receive handlers */
-MPID_CH_Init_recv_code();
-MPID_CH_Init_send_code();
+MPID_CMMD_Init_recv_code();
+MPID_CMMD_Init_send_code();
 
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
 DEBUG(fprintf(MPID_DEBUG_FILE,"[%d] leaving chinit\n", MPID_MyWorldRank );)
@@ -188,7 +226,11 @@ DEBUG(fprintf(MPID_DEBUG_FILE,"[%d] leaving chinit\n", MPID_MyWorldRank );)
 return (void *)0;
 }
 
-void MPID_CH_Abort( code )
+/* Barry Smith suggests that this indicate who is aborting the program.
+   There should probably be a separate argument for whether it is a 
+   user requested or internal abort.
+ */
+void MPID_CMMD_Abort( code )
 int code;
 {
 fprintf( stderr, "[%d] Aborting program!\n", MPID_MyWorldRank );
@@ -197,7 +239,7 @@ fflush( stdout );
 CMMD_error("Exiting...\n");exit(code );
 }
 
-void MPID_CH_End()
+void MPID_CMMD_End()
 {
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
 if (MPID_DebugFlag) {
@@ -206,43 +248,37 @@ if (MPID_DebugFlag) {
     }
 #endif                  /* #DEBUG_END# */
 /* Finish off any pending transactions */
-MPID_CH_Complete_pending();
+MPID_CMMD_Complete_pending();
 
 if (MPID_GetMsgDebugFlag()) {
     MPID_PrintMsgDebug();
     }
-if (MPID_procinfo) 
-    free(MPID_procinfo );
-#ifdef CHAMELEON_COMM       /* #CHAMELEON_START# */
-if (DebugSpace)
-    ;
-#endif                      /* #CHAMELEON_END# */
 /* We should really generate an error or warning message if there 
    are uncompleted operations... */
 ;
 }
 
-void MPID_CH_Node_name( name, len )
+void MPID_CMMD_Node_name( name, len )
 char *name;
 int  len;
 {
 sprintf(name,"%d",__MYPROCID);
 }
 
-void MPID_CH_Version_name( name )
+void MPID_CMMD_Version_name( name )
 char *name;
 {
 sprintf( name, "ADI version %4.2f - transport %s", MPIDPATCHLEVEL, 
 	 MPIDTRANSPORT );
 }
 
-#ifndef MPID_CH_Wtime
+#ifndef MPID_CMMD_Wtime
 #if defined(HAVE_GETTIMEOFDAY)
 #include <sys/types.h>
 #include <sys/time.h>
 #endif
 /* I don't know what the correct includes are for the other versions... */
-double MPID_CH_Wtime()
+double MPID_CMMD_Wtime()
 {
 #ifdef HAVE_GETTIMEOFDAY
     struct timeval tp;
@@ -275,7 +311,7 @@ double MPID_CH_Wtime()
    could be returned.
    It makes several separate stabs at computing the tickvalue.
 */
-double MPID_CH_Wtick()
+double MPID_CMMD_Wtick()
 {
 static double tickval = -1.0;
 double t1, t2;
@@ -286,8 +322,8 @@ if (tickval < 0.0) {
     tickval = 1.0e6;
     for (icnt=0; icnt<10; icnt++) {
 	cnt = 1000;
-	t1  = MPID_CH_Wtime();
-	while (cnt-- && (t2 = MPID_CH_Wtime()) <= t1) ;
+	t1  = MPID_CMMD_Wtime();
+	while (cnt-- && (t2 = MPID_CMMD_Wtime()) <= t1) ;
 	if (cnt && t2 - t1 < tickval)
 	    tickval = t2 - t1;
 	}
@@ -295,7 +331,7 @@ if (tickval < 0.0) {
 return tickval;
 }
 
-void MPID_CH_Error_handler( r )
+void MPID_CMMD_Error_handler( r )
 void (*r)();
 {
 if (r)
@@ -310,43 +346,11 @@ char *str;
 {
 if (str) 
     fprintf( stderr, "[%d] %s\n", MPID_MyWorldRank, str );
-MPID_CH_Abort( code );
+MPID_CMMD_Abort( code );
 }
-
-int MPID_CH_Dest_byte_order( dest )
-int dest;
-{
-if (MPID_IS_HETERO)
-    return MPID_procinfo[dest].byte_order;
-else 
-    return MPID_H_NONE;
-}
-
-
 
 
 /* We also need an "ErrorsReturn" and a sensible error return strategy */
-
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-
-MPID_CH_Print_pkt_data( msg, address, len )
-char *msg;
-char *address;
-int  len;
-{
-int i; char *aa = (char *)address;
-
-if (msg)
-    printf( "[%d]%s\n", MPID_MyWorldRank, msg );
-if (len < 78 && address) {
-    for (i=0; i<len; i++) {
-	printf( "%x", aa[i] );
-	}
-    printf( "\n" );
-    }
-fflush( stdout );
-}
-#endif                  /* #DEBUG_END# */
 
 /*
    Data about messages

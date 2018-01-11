@@ -1,0 +1,15 @@
+#! /bin/sh
+#
+# This script is a sample for running doc/port
+#
+configure "$@" >&config.log
+doc/port -noperf -config=config.log
+#
+# Test that mpirun etc works
+(cd examples/basic ; make cpi ; mpirun -np 2 cpi ; \
+if [ $? != 0 ] ; then echo "Error from mpirun" ; exit 1; fi )
+(cd examples/test ; make testing_save >test.log 2>&1 )
+doc/porttest -testsdone
+doc/portperf
+doc/docgather
+

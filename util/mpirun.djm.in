@@ -1,0 +1,18 @@
+#! /bin/sh
+# 
+# Thanks to Stephen Saroff
+# Minnesota Supercomputer Ctr.
+#
+if [ "$MPIR_HOME" = "" ] ; then 
+    MPIR_HOME=#MPIR_HOME#
+fi
+if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
+    MPIR_HOME=`pwd`/..
+fi
+MPIRUN_HOME=$MPIR_HOME/util
+if [ "$argsset" = "" ] ; then
+   . $MPIRUN_HOME/mpirun.args
+   argsset=1
+fi
+jrun -export -hard_cpu $cpu -hard_memory $mem -nproc $np -execute $progname $cmdLineArgs
+

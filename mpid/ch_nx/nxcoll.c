@@ -6,14 +6,14 @@
 
 
 /*
- *  $Id: chcoll.c,v 1.5 1995/03/28 19:26:00 gropp Exp $
+ *  $Id: chcoll.c,v 1.6 1995/08/11 00:23:42 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chcoll.c,v 1.5 1995/03/28 19:26:00 gropp Exp $";
+static char vcid[] = "$Id: chcoll.c,v 1.6 1995/08/11 00:23:42 gropp Exp $";
 #endif
 
 /* 
@@ -47,6 +47,8 @@ int MPID_NX_Comm_init( comm, newcomm )
 MPI_Comm comm, newcomm;
 {
 newcomm->ADIBarrier = MPID_NX_Init_barrier( newcomm->local_group->np, 1 );
+/* Once the processes are created, this may need a broadcast; should be
+   part of INIT_BARRIER */
 newcomm->ADIReduce  = newcomm->ADIBarrier;
 newcomm->ADIScan    = 0;
 newcomm->ADIBcast   = newcomm->ADIBarrier;
@@ -94,9 +96,9 @@ MPI_Comm comm, newcomm;
 if (newcomm->comm->local_group->np == __NUMNODES) {
     newcomm->ADIBarrier = (void *)newcomm;
     newcomm->ADIReduce  = (void *)newcomm;
-    newcomm->ADIScan    = (void *)newcomm;
-    newcomm->ADIBcast   = (void *)newcomm;
-    newcomm->ADICollect = (void *)newcomm;
+    newcomm->ADIScan    = (void *)0;
+    newcomm->ADIBcast   = (void *)0;
+    newcomm->ADICollect = (void *)0;
     }
 else {
     newcomm->ADIBarrier = 0;
@@ -124,8 +126,8 @@ int *sendbuf, *recvbuf;
 MPI_Comm comm;
 {
 int d;
-gisum(sendbuf,1,&d);
 *recvbuf = *sendbuf;
+gisum(recvbuf,1,&d);
 }
 
 void MPID_NX_Reduce_sum_double( sendbuf, recvbuf, comm )
@@ -133,8 +135,8 @@ double *sendbuf, *recvbuf;
 MPI_Comm comm;
 {
 double d;
-gdsum(sendbuf,1,&d);
 *recvbuf = *sendbuf;
+gdsum(recvbuf,1,&d);
 }
 
 #else

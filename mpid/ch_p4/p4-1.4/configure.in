@@ -75,6 +75,9 @@ case $arg in
      p4listener_pathname=`echo $arg|sed 's/-listener_pathname=//'`
      echo Setting p4listener_pathname to $p4listener_pathname
      ;;
+  -echo)
+     set -x
+     ;;
   -u | -usage)
      (echo "${usage_msg}") >& 2
      exit 1
@@ -87,12 +90,19 @@ case $arg in
      CC=`echo $arg|sed 's/-*cc=//'`
      USERCC=1
      ;;
+   -socksize=*|--socksize=*)
+     SOCKSIZE="`echo $arg|sed 's/-*socksize=//'`"
+     ;;
    *)
      echo "Invalid p4 configure option $arg"
      (echo "${usage_msg}") >& 2
      ;;
 esac
 done
+if test -z "$p4arch" ; then
+    echo "You must set a P4 architecture with -p4arch=name"
+    exit 1
+fi
 P4ARCH="unknown"
 MAKE=make
 CLINKER=$CC
@@ -156,6 +166,10 @@ if test -n "$p4arch_HP"; then
 P4ARCH=HP
 RANLIB=true
 AC_HAVE_LIBRARY(V3,MDEP_LIBS=-lV3)
+if test -z "$MDEP_LIBS" ; then
+    echo "HP currently requires the System V Release 3 libraries (libV3.a)"
+    exit 1
+fi
 AC_HAVE_LIBRARY(U77,MDEP_LIBS="$MDEP_LIBS -lU77")
 dnl MDEP_LIBS="-lV3 -lU77"
 dnl -lV3 is for sighold, etc.
@@ -326,6 +340,12 @@ fi
 #
 # Look for netinet/in.h and sys/socketvar.h
 AC_HAVE_HEADERS(netinet/in.h sys/socketvar.h)
+#
+# Set the sock_buff_size variable through the "optflags" variable
+if test -n "$SOCKSIZE" ; then
+    OPTFLAGS="$OPTFLAGS -DSET_SOCK_BUFF_SIZE -DSOCK_BUFF_SIZE=$SOCKSIZE"
+fi
+#
 dnl Variables used by Makefile.in's:
 AC_SUBST(P4ARCH)dnl
 AC_SUBST(MAKE)dnl

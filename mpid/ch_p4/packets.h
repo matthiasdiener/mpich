@@ -120,49 +120,7 @@ typedef enum { MPID_PKT_SHORT=0, MPID_PKT_LONG=1, MPID_PKT_SHORT_SYNC=2,
 	       MPID_PKT_COMPLETE_SEND=15, MPID_PKT_COMPLETE_RECV=16 }
     MPID_Pkt_t;
 
-/* Comments on packets */
-/* The design here is fairly general, allowing both eager and reluctant 
-   (rendevous) protocols for each of the MPI modes.  Some simplification can
-   be achieved if, for example, the MPI Synchronous mode is only implemented
-   with the reluctant protocol.
-
-   Eager:
-   In the eager protocol, the message data is sent without first asking the
-   destination node (for example, to check on buffer space).  In order to 
-   achieve better use of the underlying message-passing systems, there are
-   two major categories: long and short.  In a short message, the message
-   data and message envelope (context, tag, lrank) are sent together.
-   In a long message, the data is sent separately from the envelope (avoiding
-   any data copies).  If the MPI mode is Synchronous or Ready, then 
-   some additional information is included.
-   In the synchronous case, it is necessary for the receiver to tell the
-   sender when the receive has started (but see Rendevous below); this
-   is done with the MPID_PKT_SYNC_ACK.
-   In the ready case, if the matching receive is NOT available, then an
-   error message can be sent back to the sender with MPID_PKT_READY_ERROR.
-
-   In the long message case, the SENDER may use monblocking send operation.
-   On some systems, it may be necessary to ask the sender to execute an 
-   MPI_Wait-like operation on the nonblocking send in order to get a 
-   matching receive to complete.  On these systems, the macro
-   MPID_WSEND_BEFORE_WRECV is defined, and the MPI_Wait on the
-   send is requested with the MPID_PKT_COMPLETE_SEND packet.  (The systems
-   that require this tend to use rendevous or reluctant protocols for long 
-   messages).
-
-   Rendevous:
-   In the Rendevous protocol, a LONG send is not begun until the receiver
-   oks it.  The request is made with MPID_PKT_REQUEST_SEND, and 
-   is acknowledged with MPID_PKT_OK_TO_SEND.  Note that a message-passing
-   implementation may make use of a "ready-receiver" send once the 
-   OK_TO_SEND has been received.  Also note that the rendevous protocol
-   handles standard and synchronous sends identically; no separate SYNC_ACK
-   packet is required.  
-
-   Depending on the system, it may or may not be advantageous to compress
-   the size of the data in the packet.  If the macro MPID_PKT_COMPRESSED
-   is defined, then the envelope data is encoded into 2 ints.
- */
+/* Comments on packets - see the readme */
    
 #ifdef MPID_HAS_HETERO
 #define MPID_PKT_XDR_DECL int has_xdr:32;
@@ -210,36 +168,32 @@ else \
 #endif
 
 #ifdef MPID_PKT_COMPRESSED
+/* Note that context_id and lrank may be unused; they are present in 
+   case they are needed to fill out the word */
 #define MPID_PKT_MODE  \
-    MPID_PKT_PRIVATE   \
-    unsigned mode:5;   \
-    MPID_PKT_LEN_DECL  \
-    MPID_PKT_LINK_DECL \
-    MPID_PKT_SRC_DECL
-#define MPID_PKT_BASIC \
     MPID_PKT_PRIVATE   \
     unsigned mode:5;             /* Contains MPID_Pkt_t */             \
     unsigned context_id:16;      /* Context_id */                      \
     unsigned lrank:11;           /* Local rank in sending context */   \
     MPID_PKT_LEN_DECL            /* size of packets in bytes */        \
     MPID_PKT_LINK_DECL           /* link to 'next' packet    */        \
-    MPID_PKT_SRC_DECL            /* Source of packet in COMM_WORLD system */ \
+    MPID_PKT_SRC_DECL            /* Source of packet in COMM_WORLD system */ 
+#define MPID_PKT_BASIC \
+    MPID_PKT_MODE      \
     int      tag:32;             /* tag is full sizeof(int) */         \
     int      len:32;             /* Length of DATA */                  \
     MPID_PKT_XDR_DECL
 #else
+/* We'd like to use MPID_Pkt_t, but as an enum, we can't specify the length 
+   (!!) */
 #define MPID_PKT_MODE  \
     MPID_PKT_PRIVATE   \
-    MPID_Pkt_t mode;   \
+    int         mode:32;   \
     MPID_PKT_LEN_DECL  \
     MPID_PKT_LINK_DECL \
     MPID_PKT_SRC_DECL
 #define MPID_PKT_BASIC \
-    MPID_PKT_PRIVATE           \
-    MPID_Pkt_t  mode;          \
-    MPID_PKT_LEN_DECL          \
-    MPID_PKT_LINK_DECL         \
-    MPID_PKT_SRC_DECL          \
+    MPID_PKT_MODE      \
     int         context_id:32; \
     int         lrank:32;      \
     int         tag:32;        \
@@ -354,11 +308,13 @@ typedef struct {
     MPID_PKT_BASIC
     MPID_Aint    send_id;       /* Id sent by SENDER, identifies MPI_Request */
     MPID_Aint    recv_id;       /* Used by receiver for partial gets */
+    void         *address;      /* Location of data ON SENDER */
+    /* The following support partial sends */
     int          len_avail;     /* Actual length available */
     int          cur_offset;    /* Offset (for sender to use) */
+    /* The following supports synchronous sends */
     MPID_Aint    sync_id;       /* Sync id; we should use send_id instead.
 				   This is just to get started */
-    void         *address;      /* Location of data ON SENDER */
     } MPID_PKT_GET_T;
 /* Get done is the same type with a different mode */
 
@@ -373,15 +329,12 @@ typedef union _MPID_PKT_T {
     MPID_PKT_SHORT_T         short_pkt;
     MPID_PKT_SHORT_SYNC_T    short_sync_pkt;
     MPID_PKT_SHORT_READY_T   short_ready_pkt;
-#ifdef MPID_USE_RNDV
     MPID_PKT_REQUEST_SEND_T  request_pkt;
     MPID_PKT_REQUEST_SEND_T  request_ready_pkt;
     MPID_PKT_OK_TO_SEND_T    sendok_pkt;
-#else
     MPID_PKT_LONG_T          long_pkt;
     MPID_PKT_LONG_SYNC_T     long_sync_pkt;
     MPID_PKT_LONG_READY_T    long_ready_pkt;
-#endif
     MPID_PKT_SYNC_ACK_T      sync_ack_pkt;
     MPID_PKT_COMPLETE_SEND_T send_pkt;
     MPID_PKT_COMPLETE_RECV_T recv_pkt;

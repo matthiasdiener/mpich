@@ -691,6 +691,10 @@ master()
     }
 
 #ifdef USE_GRAPHICS
+  /* just testing
+  MPE_Draw_string (handle, 15, 15, MPE_BLACK, "Hello, world!" );
+  */
+
   printf("Any key to exit\n");
   scanf("%c",&i);
 #endif

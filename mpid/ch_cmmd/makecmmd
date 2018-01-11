@@ -6,30 +6,30 @@
 #
 # Remove old files
 FILELIST="cmmdevent.c cmmdrecv.c cmmdsend.c cmmdprobe.c cmmdsync.c \
-	cmmdrndv.c cmmddebug.c dmcmmd.h packets.h channel.h"
+	cmmdrndv.c cmmddebug.c cmmdinit.c dmcmmd.h packets.h channel.h"
 for file in $FILELIST ; do
     /bin/rm -f $file
 done
 sed -e '/#define DEVICE_CHAMELEON/d' \
-    -e 's/MPID_CH/MPID_CMMD/g' \
+    -e 's/MPID_CH_/MPID_CMMD_/g' \
     -e 's%"Chameleon"%"TMC cm5/cmmd"%g' \
     -e 's%/\* #CMMD DECLARATION# \*/%#include <cm/cmmd.h>%g' \
 	 ../chameleon/dmch.h > dmcmmd.h
 
-sed -e 's/MPID_CH/MPID_CMMD/g' ../chameleon/mpid_bind.h > mpid_bind.h
-sed -e 's/MPID_CH/MPID_CMMD/g' ../chameleon/packets.h > packets.h
-sed -e 's/MPID_CH/MPID_CMMD/g' ../chameleon/channel.h > channel.h
-sed -e 's/MPID_CH/MPID_CMMD/g' ../chameleon/mpiddebug.h > mpiddebug.h
-sed -e 's/MPID_CH/MPID_CMMD/g' ../chameleon/mpidstat.h > mpidstat.h
-../chameleon/rmhetero ../chameleon/chevent.c > cmmdevent.c
-../chameleon/rmhetero ../chameleon/chrecv.c  > cmmdrecv.c
-../chameleon/rmhetero ../chameleon/chsend.c  > cmmdsend.c
+sed -e 's/MPID_CH_/MPID_CMMD_/g' ../chameleon/mpid_bind.h > mpid_bind.h
+sed -e 's/MPID_CH_/MPID_CMMD_/g' ../chameleon/packets.h > packets.h
+sed -e 's/MPID_CH_/MPID_CMMD_/g' ../chameleon/channel.h > channel.h
+sed -e 's/MPID_CH_/MPID_CMMD_/g' ../chameleon/mpiddebug.h > mpiddebug.h
+sed -e 's/MPID_CH_/MPID_CMMD_/g' ../chameleon/mpidstat.h > mpidstat.h
+for file in event recv send probe sync rndv debug ; do 
+    ../chameleon/rmhetero ../chameleon/ch$file.c | ../chameleon/rmget | \
+	../chameleon/rmchameleon > cmmd$file.c
+    chmod ug+w cmmd$file.c
+done
+
 ../chameleon/rmhetero ../chameleon/chinit.c  | \
-    sed -e 's%/\* #CMMD DECLARATION# \*/%#include <sys/file.h>%g' > cmmdinit.c
-../chameleon/rmhetero ../chameleon/chprobe.c > cmmdprobe.c
-../chameleon/rmhetero ../chameleon/chsync.c  > cmmdsync.c
-../chameleon/rmhetero ../chameleon/chrndv.c  > cmmdrndv.c
-../chameleon/rmhetero ../chameleon/chdebug.c  > cmmddebug.c
+    sed -e 's%/\* #CMMD DECLARATION# \*/%#include <sys/file.h>%g' | \
+	../chameleon/rmget | ../chameleon/rmchameleon > cmmdinit.c
 chmod ug+w *.[ch]
 /home/gropp/tools.n/bin/inlinecomm -main -quiet -cm5 cmmdinit.c
 for file in $FILELIST ; do
@@ -39,7 +39,7 @@ done
 # Change the names MPID_CH to MPID_CMMD
 /bin/rm -f .tmp
 for file in $FILELIST ; do
-    sed -e 's/MPID_CH/MPID_CMMD/g' $file > .tmp
+    sed -e 's/MPID_CH_/MPID_CMMD_/g' $file > .tmp
     mv .tmp $file
     chmod a-w $file
 done

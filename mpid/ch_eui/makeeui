@@ -4,38 +4,29 @@
 # of the files may be required after this process, but the goal is to 
 # fully automate this process.
 #
-/bin/cp ../chameleon/*.c .
 sed -e '/#define DEVICE_CHAMELEON/d' \
-    -e 's/MPID_CH/MPID_EUI/g' \
+    -e 's/MPID_CH_/MPID_EUI_/g' \
     -e 's%"Chameleon"%"IBM EUI/EUIH"%g' ../chameleon/dmch.h > dmeui.h
-sed -e 's/MPID_CH/MPID_EUI/g' ../chameleon/mpid_bind.h > mpid_bind.h
-sed -e 's/MPID_CH/MPID_EUI/g' ../chameleon/packets.h > packets.h
-sed -e 's/MPID_CH/MPID_EUI/g' ../chameleon/channel.h > channel.h
-sed -e 's/MPID_CH/MPID_EUI/g' ../chameleon/mpiddebug.h > mpiddebug.h
-sed -e 's/MPID_CH/MPID_EUI/g' ../chameleon/mpidstat.h > mpidstat.h
-mv chevent.c euievent.c
-mv chrecv.c  euirecv.c
-mv chsend.c  euisend.c
-mv chinit.c  euiinit.c
-mv chprobe.c euiprobe.c
-mv chsync.c  euisync.c
-mv chrndv.c  euirndv.c
-mv chcoll.c  euicoll.c
-mv chdebug.c euidebug.c
-mv chtest.c  euitest.c
-mv chtest2.c euitest2.c
-mv chtest3.c euitest3.c
+sed -e 's/MPID_CH_/MPID_EUI_/g' ../chameleon/mpid_bind.h > mpid_bind.h
+sed -e 's/MPID_CH_/MPID_EUI_/g' ../chameleon/packets.h > packets.h
+sed -e 's/MPID_CH_/MPID_EUI_/g' ../chameleon/channel.h > channel.h
+sed -e 's/MPID_CH_/MPID_EUI_/g' ../chameleon/mpiddebug.h > mpiddebug.h
+sed -e 's/MPID_CH_/MPID_EUI_/g' ../chameleon/mpidstat.h > mpidstat.h
+for file in event recv send init probe sync rndv coll debug ; do 
+    ../chameleon/rmhetero ../chameleon/ch$file.c | ../chameleon/rmget | \
+	../chameleon/rmchameleon > eui$file.c
+    chmod ug+w eui$file.c
+done
 chmod ug+w *.[ch]
 /home/gropp/tools.n/bin/inlinecomm -main -quiet -euih euiinit.c
 for file in euievent.c euirecv.c euisend.c euiprobe.c euisync.c dmeui.h \
-	euirndv.c euicoll.c euidebug.c euitest.c euitest1.c euitest2.c \
-	euitest3.c packets.h channel.h ; do
+	euirndv.c euicoll.c euidebug.c packets.h channel.h ; do
     /home/gropp/tools.n/bin/inlinecomm -quiet -euih $file
 done
 #
 # Change the names MPID_CH to MPID_EUI
 /bin/rm -f .tmp
-for file in *.c ; do
-    sed -e 's/MPID_CH/MPID_EUI/g' $file > .tmp
+for file in eui*.c ; do
+    sed -e 's/MPID_CH_/MPID_EUI_/g' $file > .tmp
     mv .tmp $file
 done

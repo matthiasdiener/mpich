@@ -1,5 +1,5 @@
 /*
- *  $Id: mpir.h,v 1.46 1995/07/25 02:41:26 gropp Exp $
+ *  $Id: mpir.h,v 1.48 1995/08/11 00:22:24 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -66,6 +66,8 @@ typedef struct {
     int         tag;
     int         completer;      /* index of routine to complete, 
 				   or 0 if done */
+    int         errval;         /* Holds any error code; 0 for none */
+
     MPI_Datatype datatype;
     MPI_Comm    comm;           /* The communicator this request is 
 				   on. Needed for MPI_Start in
@@ -96,6 +98,8 @@ typedef struct {
     int         tag;        /* tag */
     int         completer;      /* index of routine to complete, 
 				   or 0 if done */
+    int         errval;         /* Holds any error code; 0 for none */
+
     MPI_Datatype datatype;  /* basic or derived datatype */
     MPI_Comm    comm;
     int         persistent;
@@ -128,6 +132,8 @@ typedef struct {
     int         tag;        /* tag */
     int         completer;      /* index of routine to complete, 
 				   or 0 if done */
+    int         errval;         /* Holds any error code; 0 for none */
+
     MPI_Datatype datatype;  /* basic or derived datatype */
     MPI_Comm    comm;
     int         persistent;
@@ -277,6 +283,7 @@ extern MPIR_COLLOPS * MPIR_intra_collops;   /* Do the business using pt2pt     *
 extern int MPIR_tid;
 
 /* Fortran logical values */
+#ifndef _CRAY
 extern int MPIR_F_TRUE, MPIR_F_FALSE;
 #define MPIR_TO_FLOG(a) ((a) ? MPIR_F_TRUE : MPIR_F_FALSE)
 /* 
@@ -287,6 +294,13 @@ extern int MPIR_F_TRUE, MPIR_F_FALSE;
    system.
  */
 #define MPIR_FROM_FLOG(a) ( (a) == MPIR_F_TRUE ? 1 : 0 )
+
+#else
+/* CRAY Vector processors only; these are defined in /usr/include/fortran.h 
+   Thanks to lmc@cray.com */
+#define MPIR_TO_FLOG(a) (_btol(a))
+#define MPIR_FROM_FLOG(a) ( _ltob(&(a)) )    /*(a) must be a pointer */
+#endif
 
 /* MPIR_F_MPI_BOTTOM is the address of the Fortran MPI_BOTTOM value */
 extern void *MPIR_F_MPI_BOTTOM;

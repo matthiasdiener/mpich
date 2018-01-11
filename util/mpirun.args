@@ -1,12 +1,12 @@
 #! /bin/sh
 if [ "$MPIR_HOME" = "" ] ; then 
-    MPIR_HOME=/tmp_mnt/Net/alriga/alriga9/MPI/mpich
+    MPIR_HOME=/home/MPI/mpich
 fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
 fi
-EXECER=/tmp_mnt/Net/alriga/alriga9/MPI/mpich/util/execer
-MPIRUN_HOME=$MPIR_HOME/util
+EXECER=/home/MPI/mpich/util/execer
+MPIRUN_HOME=$MPIR_HOME/bin
 MEIKO_RUN=prun
 SP1_RUN=/usr/lpp/euih/eui/cotb0
 jobid=$$
@@ -14,7 +14,7 @@ progname=
 fake_progname=
 np=1
 arch=
-default_arch='sun4'
+default_arch='alpha'
 machine=''
 default_device='ch_p4'
 execer_machine=1
@@ -41,7 +41,9 @@ Show=eval
 # Kind of paragon submisstion (default/mkpart/nqs)
 paragon_type="default"
 Machines="chameleon meiko paragon p4 sp1 ibmspx anlspx ksr sgi_mp ipsc860 inteldelta cray_t3d execer smp symm_ptx"
+# Usage limits
 max_time=15
+max_mem=32
 #
 # polling_mode is for systems that can select between polling and 
 # interrupt-driven operation.  Currently, only IBM POE is so supported
@@ -55,7 +57,7 @@ mpirun [mpirun_options...] <progname> [options...]
   mpirun_options:
     -arch <architecture>
             specify the architecture (must have matching machines.<arch>
-            file in ${MPIR_HOME}/util/machines) if using the execer
+            file in ${MPIR_HOME}/bin/machines) if using the execer
     -h      This help
     -machine <machine name>
             use startup procedure for <machine name>
@@ -107,17 +109,33 @@ cat <<EOF
             Needed only when using -mvhome; has no effect otherwise.
     -maxtime min
             Maximum job run time in minutes.  Currently used only
-            by anlspx.  Default value is $max_time
+            by anlspx.  Default value is $max_time minutes.
     -cac name
             CAC for ANL scheduler.  Currently used only by anlspx.
             If not provided will choose some valid CAC.
+
+    -mem value
+	   This is the per node memory request (in Mbytes).  Needed for some
+           CM-5s. ( Default $max_mem. )
+
+    -cpu time
+	   This is the the hard cpu limit used for some CM-5s in
+	   minutes. (Default $maxtime minutes.)
+
+    -paragontype name
+           Selects one of default, mkpart, NQS, depending on how you want
+           to submit jobs to a Paragon.
+
+    -paragonname name 
+           Remote shells to name to run the job (using the -sz method) on 
+           a Paragon.
 
 On exit, mpirun returns a status of zero unless mpirun detected a problem, in
 which case it returns a non-zero status (currently, all are one, but this 
 may change in the future).
 
 Multiple architectures may be handled by giving multiple -arch and -np 
-argument.  For example, to run a program on 2 sun4s and 3 rs6000s, with 
+arguments.  For example, to run a program on 2 sun4s and 3 rs6000s, with 
 the local machine being a sun4, use
 
     $0 -arch sun4 -np 2 -arch rs6000 -np 3 program
@@ -133,6 +151,12 @@ If instead the execuables are in different directories; for example,
 /tmp/me/sun4 and /tmp/me/rs6000, then the command is
 
     $0 -arch sun4 -np 2 -arch rs6000 -np 3 /tmp/me/%a/program
+
+It is important to specify the architecture with -arch BEFORE specifying
+the number of processors.  Also, the FIRST -arch command must refer to the
+processor on which the job will be started.  Specifically, if -nolocal is 
+NOT specified, then the first -arch must refer to the processor from which
+mpirun is running.
 
 This is incompletely implemented currently.
 
@@ -168,6 +192,7 @@ while [ 1 -le $# ] ; do
 	;;
     -machinefile)
         machineFile="$1"
+	eval machineFile$narch="$1"
 	shift
 	;;
     -device)
@@ -212,6 +237,11 @@ while [ 1 -le $# ] ; do
 	paragon_type="$1"
 	shift
 	;;
+    -paragonname)
+	paragon_type=crossrun
+	pgonname="$1"
+	shift
+	;;
     -v)
        	mpirun_verbose=1
 	;;
@@ -230,8 +260,17 @@ while [ 1 -le $# ] ; do
     -nopoll)
 	polling_mode=0
 	;;
-    -maxtime)
+    -maxtime|=cpu)
         max_time="$1"
+	shift
+	;;
+    -mem)
+	mem="$1"
+	if [ $mem -gt $max_mem ];then
+echo "mem: Memory requested ($mem MB/node) greater than maximum available ($max_mem MB/node).  Exiting."
+	    exit 1
+	fi
+	shift
 	;;
     -mvhome)
         mvhome=1
@@ -247,6 +286,9 @@ while [ 1 -le $# ] ; do
     -echo)
 	# this is for debugging
 	set -x
+	echo "default_arch   = $default_arch"
+	echo "default_device = $default_device"
+	echo "machine	     = $machine"
 	;;
     -usage|-help|-?)
       	# Accept these for help until the program name is provided.
@@ -303,7 +345,7 @@ if [ "$progname" = "" ] ; then
   echo "Missing: program name"
   if [ "$fake_progname" != "" ] ; then
       echo "Program $fake_progname either does not exist, is not "
-      echo "executable, or it an erroneous argument to mpirun."
+      echo "executable, or is an erroneous argument to mpirun."
   fi
   exit 1
 fi
@@ -336,22 +378,28 @@ fi
 # to mount the partition.  In otherwords, the automounter is so mind-bogglingly
 # stupid as to not recognize its OWN MOUNTS.  Network computing indeed.
 #
-PWDtest=`pwd | sed -e 's%/tmp_mnt/%/%g'`
-if [ ! -d $PWDtest ] ; then
-    PWDtest=`pwd`
-fi
-if [ -n "$PWD" ] ; then
-    /bin/rm -f $PWDtest/.mpirtmp $PWD/.mpirtmp
-    echo "test" > $PWD/.mpirtmp
-    if [ ! -s $PWDtest/.mpirtmp ] ; then
+# Note that PWD may ALSO be damaged, so we need to sed PWD as well...
+#
+if [ -n "sed -e s@/tmp_mnt/@/@g" ] ; then
+    PWDtest=`pwd | sed -e s@/tmp_mnt/@/@g`
+    if [ ! -d $PWDtest ] ; then
+        PWDtest=`pwd`
+    fi
+    if [ -n "$PWD" ] ; then
+        /bin/rm -f $PWDtest/.mpirtmp $PWD/.mpirtmp
+        echo "test" > $PWD/.mpirtmp
+        if [ ! -s $PWDtest/.mpirtmp ] ; then
+            PWD=$PWDtest
+        fi
+        /bin/rm -f $PWDtest/.mpirtmp $PWD/.mpirtmp
+    else 
         PWD=$PWDtest
     fi
-    /bin/rm -f $PWDtest/.mpirtmp $PWD/.mpirtmp
-else 
-    PWD=$PWDtest
+else
+    PWD=`pwd`
 fi
 #
-if [ "$PWD" != "" ] ; then
+if [ -n "$PWD" ] ; then
     PWD_TRIAL=$PWD
 else
     PWD_TRIAL=$PWDtest
@@ -385,12 +433,21 @@ case $arch in
 	;;
     i386|symm_ptx) archlist="i386 symm_ptx"
 	;;
-    IP19|IP21) archlist="sgi_mp IP19 IP21"
-	arch="sgi_mp"
+    IP19|IP21) archlist="IRIX IP19 IP21"
+	arch="IRIX"
+	# Was sgi_mp instead of IRIX
 	;;
     ipsc860|i860|ipsc)
       	arch="ipsc860"
       	archlist="ipsc860 i860 ipsc"
+	;;
+    freebsd|386BSD)
+	arch="386BSD"
+	archlist="386BSD freebsd"
+	;;
+    hpux|hp9000s700)
+	arch="hpux"
+	archlist="hpux hp9000s700"
 	;;
 esac
 
@@ -415,6 +472,7 @@ if [ "$machine" = "" ] ; then
     
     rs6000)
       # This only works on the ANL sp system
+      # -e for "exists" isn't available on all systems
       echo `hostname` | grep spnode > /dev/null
       if [ $? = 0 ] ; then
         # This is the correct version to use once we're on a node
@@ -427,9 +485,9 @@ if [ "$machine" = "" ] ; then
 	machine="p4"
       elif [ "$default_device" = "ch_p4" -a $use_execer = 1 ] ; then
 	machine="execer"
-      elif [ -e /usr/lpp/euih/eui ] ; then
+      elif [ -d /usr/lpp/euih ] ; then
         machine="sp1"
-      elif [ -e /usr/bin/poe -o -e /usr/lpp/poe/bin/poe ] ; then
+      elif [ -x /usr/bin/poe -o -x /usr/lpp/poe/bin/poe ] ; then
         # should work for other users
         machine="ibmspx"
       else
@@ -458,7 +516,8 @@ if [ "$machine" = "" ] ; then
 fi
 
 # Get value of host if necessary
-if [ "$machine" = p4 -o "$machine" = execer -o "$machine" = tcp ] ; then
+if [ "$machine" = p4 -o "$machine" = execer -o "$machine" = tcp -o \
+	"$machine" = sgi_mp -o "$machine" = ch_p4 ] ; then
   if [ "$HOST" = "" ] ;  then
     HOST=""
     if [ "$arch" = "ipsc860" ] ; then
@@ -466,7 +525,7 @@ if [ "$machine" = p4 -o "$machine" = execer -o "$machine" = tcp ] ; then
     else
         # Which is not supported in many sh's
 #	HOSTNAMEPGM="`which hostname | head -1`"
-#        if [ -e "$HOSTNAMEPGM" ] ; then HOST="`hostname`" ; fi
+#        if [ -x "$HOSTNAMEPGM" ] ; then HOST="`hostname`" ; fi
 	HOST=`hostname`
     fi
     # Note that uname -n may not produce a usable hostname.  Any suggestions?
@@ -489,7 +548,7 @@ fi
 
 if [ $mpirun_verbose = 1 ] ; then
   cnt=1
-  if [ $narch > 1 ] ; then
+  if [ $narch -gt 1 ] ; then
       while [ $cnt -le $narch ] ; do
         eval mp=$"np$cnt"
         eval archm=$"arch$cnt"

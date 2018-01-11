@@ -16,10 +16,16 @@ char *argv[];
     double PI25DT = 3.141592653589793238462643;
     double mypi, pi, h, sum, x, a;
     double startwtime, endwtime;
+    int  namelen;
+    char processor_name[MPI_MAX_PROCESSOR_NAME];
 
     MPI_Init(&argc,&argv);
     MPI_Comm_size(MPI_COMM_WORLD,&numprocs);
     MPI_Comm_rank(MPI_COMM_WORLD,&myid);
+    MPI_Get_processor_name(processor_name,&namelen);
+
+    fprintf(stderr,"Process %d on %s\n",
+	    myid, processor_name);
 
     n = 0;
     while (!done)

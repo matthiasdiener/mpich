@@ -7,7 +7,7 @@
 # -nomake               Do not run make
 # -noperf               Do not run performance tests
 # -file=name            Output LaTeX file (default is doc/doc1.tex)
-author="`whoami`"
+author="$LOGNAME"
 nomake=0
 noperf=0
 filename="doc/doc1test.tex"
@@ -21,7 +21,7 @@ write_beginex() {
 for arg in "$@" ; do
     case $arg in 
 	-author=* )
-	author="`echo $arg|sed 's/-author=//'`"
+	author="`echo $arg|sed -e 's/-author=//' -e 's/_/ /'`"
 	;;
 	-file=* )
 	filebase=`echo $arg|sed 's/-file=//'`
@@ -32,6 +32,21 @@ for arg in "$@" ; do
 	;;
  	-noperf )
 	noperf=1
+	;;
+	-testsdone)
+	testfile="done"
+	;;
+	-echo)
+	set -x
+	;;
+	-help)
+	echo "doc/porttest [ -testsdone ]"
+	echo "Create the tests part of the port document.  If -testsdone"
+	echo "is given, then"
+	echo "   make testing_save > test.log 2>&1"
+	echo "has been run in examples/test."
+	echo "This script should be run from the MPICH root directory."
+	exit 1
 	;;
 	*)
 	if test -n "$arg" ; then 
@@ -60,58 +75,60 @@ are given below.
 #examples/test/coll/coll.diff, context/context.diff, env/env.diff, 
 #pt2pt/pt2pt.diff
 ############################################################################
-# Run the tests...
+# Run the tests if necessary.
 ############################################################################
-(cd examples/test ; make testing > test.log 2>&1 ) 
+if test -z "$testfile" ; then
+    (cd examples/test ; make testing_save > test.log 2>&1 ) 
+fi
 if test ! -s examples/test/test.log ; then
     echo "No testing file!  Tests must not have run." >>$filename
     exit 0
 else 
-echo " " >>$filename
+    echo " " >>$filename
 fi
 ############################################################################
 # Check the output...
 ############################################################################
-if test -s examples/test/pt2pt/pt2pt.diff ; then
+if test -s examples/test/pt2pt.diff ; then
     echo "Errors detected in the point-to-point tests:" >> $filename
     write_beginex
-    cat examples/test/pt2pt/pt2pt.diff >> $filename
+    cat examples/test/pt2pt.diff >> $filename
     echo "\\end{example}" >> $filename
 else
     echo "No problems detected in the point-to-point tests." >> $filename
 fi
 echo  " " >>$filename
-if test -s examples/test/coll/coll.diff ; then
+if test -s examples/test/coll.diff ; then
     echo "Errors detected in the collective tests:" >> $filename
     write_beginex
-    cat examples/test/coll/coll.diff >> $filename
+    cat examples/test/coll.diff >> $filename
     echo "\\end{example}" >> $filename
 else
     echo "No problems detected in the collective tests." >> $filename
 fi
 echo  " " >>$filename
-if test -s examples/test/context/context.diff ; then
+if test -s examples/test/context.diff ; then
     echo "Errors detected in the context/communicator tests:" >> $filename
     write_beginex
-    cat examples/test/context/context.diff >> $filename
+    cat examples/test/context.diff >> $filename
     echo "\\end{example}" >> $filename
 else
     echo "No problems detected in the context tests." >> $filename
 fi
 echo  " " >>$filename
-if test -s examples/test/env/env.diff ; then
+if test -s examples/test/env.diff ; then
     echo "Errors detected in the environment tests:" >> $filename
     write_beginex
-    cat examples/test/env/env.diff >> $filename
+    cat examples/test/env.diff >> $filename
     echo "\\end{example}" >> $filename
 else
     echo "No problems detected in the environment tests." >> $filename
 fi
 echo  " " >>$filename
-if test -s examples/test/topol/topol.diff ; then
+if test -s examples/test/topol.diff ; then
     echo "Errors detected in the topology tests:" >> $filename
     write_beginex
-    cat examples/test/topol/topol.diff >> $filename
+    cat examples/test/topol.diff >> $filename
     echo "\\end{example}" >> $filename
 else
     echo "No problems detected in the topology tests." >> $filename

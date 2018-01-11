@@ -73,6 +73,37 @@ int buff_size;
     }
 }
 
+void Buffered_Test_Ibsend(buffer, buff_size)
+double *buffer;
+int buff_size;
+{
+    int i, j;
+    void *bbuffer;
+    int  size;
+    int  cnt;
+    MPI_Request req[20];
+    MPI_Status  statuses[20];
+
+    for (j = 0; j < 2; j++) {
+	/* send a long message */
+	cnt = 0;
+	MPI_Ibsend(buffer, (buff_size/2 - 10), MPI_DOUBLE, dest, 2000, 
+		 MPI_COMM_WORLD, &req[cnt++]);
+	buffer += buff_size/2 - 10;
+	/* Followed by 10 short ones */
+	for (i = 0; i < 10; i++)
+	    MPI_Ibsend(buffer++, 1, MPI_DOUBLE, 
+		      dest, 2000, MPI_COMM_WORLD, &req[cnt++]);
+	/* Wait for these to finish (should finish immediately) */
+	MPI_Waitall( cnt, req, statuses );
+
+        /* Force this set of Bsends to complete; this may take longer than
+	   the Waitall */
+        MPI_Buffer_detach( &bbuffer, &size );
+        MPI_Buffer_attach( bbuffer, size );
+    }
+}
+
 int Check_Data(buffer, buff_size)
 double *buffer;
 int buff_size;
@@ -123,28 +154,38 @@ char **argv;
 	    }
         MPI_Buffer_attach( tmpbuffer, bsize + MPI_BSEND_OVERHEAD );
 	Buffered_Test_Send(buffer, SIZE);
+	Buffered_Test_Ibsend(buffer, SIZE);
 	MPI_Buffer_detach( &tmpbuf, &tsize );
 	Test_Waitforall( );
 	MPI_Finalize();
 
     } else if (rank == dest) {
-	Test_Init("overtake", rank);
+	Test_Init("bsendtest", rank);
 	/* Test 3 */
 	Current_Test = "Overtaking Test (Buffered Send -> Normal Recieve)";
 	Clear_Buffer(buffer, SIZE);
+	/* For Bsend */
 	Normal_Test_Recv(buffer, SIZE);
+	if (Check_Data(buffer, SIZE))
+	    Test_Failed(Current_Test);
+	else
+	    Test_Passed(Current_Test);
 
+	/* For Ibsend */
+	Current_Test = "Overtaking Test (Buffered Isend -> Normal Recieve)";
+	Clear_Buffer(buffer, SIZE);
+	Normal_Test_Recv(buffer, SIZE);
 	if (Check_Data(buffer, SIZE))
 	    Test_Failed(Current_Test);
 	else
 	    Test_Passed(Current_Test);
 
 	Test_Waitforall( );
-	MPI_Finalize();
 	{
 	    int rval = Summarize_Test_Results(); /* Returns number of tests;
 						    that failed */
 	    Test_Finalize();
+	    MPI_Finalize();
 	    return rval;
 	}
     } else {

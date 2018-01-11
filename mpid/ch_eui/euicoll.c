@@ -3,14 +3,14 @@
 
 #define PI_NO_MSG_SEMANTICS
 /*
- *  $Id: chcoll.c,v 1.5 1995/03/28 19:26:00 gropp Exp $
+ *  $Id: chcoll.c,v 1.6 1995/08/11 00:23:42 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chcoll.c,v 1.5 1995/03/28 19:26:00 gropp Exp $";
+static char vcid[] = "$Id: chcoll.c,v 1.6 1995/08/11 00:23:42 gropp Exp $";
 #endif
 
 /* 
@@ -44,6 +44,8 @@ int MPID_EUI_Comm_init( comm, newcomm )
 MPI_Comm comm, newcomm;
 {
 newcomm->ADIBarrier = MPID_EUI_Init_barrier( newcomm->local_group->np, 1 );
+/* Once the processes are created, this may need a broadcast; should be
+   part of INIT_BARRIER */
 newcomm->ADIReduce  = newcomm->ADIBarrier;
 newcomm->ADIScan    = 0;
 newcomm->ADIBcast   = newcomm->ADIBarrier;
@@ -91,9 +93,9 @@ MPI_Comm comm, newcomm;
 if (newcomm->comm->local_group->np == __NUMNODES) {
     newcomm->ADIBarrier = (void *)newcomm;
     newcomm->ADIReduce  = (void *)newcomm;
-    newcomm->ADIScan    = (void *)newcomm;
-    newcomm->ADIBcast   = (void *)newcomm;
-    newcomm->ADICollect = (void *)newcomm;
+    newcomm->ADIScan    = (void *)0;
+    newcomm->ADIBcast   = (void *)0;
+    newcomm->ADICollect = (void *)0;
     }
 else {
     newcomm->ADIBarrier = 0;
@@ -113,7 +115,7 @@ return MPI_SUCCESS;
 void MPID_EUI_Barrier( comm ) 
 MPI_Comm comm;
 {
-mp_sync(&__ALLGRP);
+mpc_sync(ALLGRP);
 }
 
 void MPID_EUI_Reduce_sum_int( sendbuf, recvbuf, comm )
@@ -121,9 +123,9 @@ int *sendbuf, *recvbuf;
 MPI_Comm comm;
 {
 int d;
-{int _size = 1*sizeof(int);
-       mp_combine(sendbuf,sendbuf,i_vadd,&_size,&__ALLGRP);};
 *recvbuf = *sendbuf;
+{int _size = 1*sizeof(int);
+       mpc_combine(recvbuf,recvbuf,i_vadd,_size,ALLGRP);};
 }
 
 void MPID_EUI_Reduce_sum_double( sendbuf, recvbuf, comm )
@@ -131,9 +133,9 @@ double *sendbuf, *recvbuf;
 MPI_Comm comm;
 {
 double d;
-{int _size=(1)*sizeof(double);
-       mp_combine(sendbuf,sendbuf,&_size,d_vadd,&__ALLGRP);};
 *recvbuf = *sendbuf;
+{int _size=(1)*sizeof(double);
+       mpc_combine(recvbuf,recvbuf,_size,d_vadd,ALLGRP);};
 }
 
 #else

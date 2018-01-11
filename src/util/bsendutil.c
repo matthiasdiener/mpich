@@ -1,28 +1,82 @@
 /*
- *  $Id: bsendutil.c,v 1.4 1995/07/25 02:46:58 gropp Exp $
+ *  $Id: bsendutil.c,v 1.5 1995/09/13 21:44:04 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
+ *
+ * The handling of nonblocking bsend operations needs some work.  Currently,
+ * There is a single request for a nonblocking bsend operation, and this can
+ * cause problems when we try to complete a nonblocking bsend operation, becase
+ * both we and the user may have a copy of the same request.  
+ *
+ * The solution to this is a little complicated.  Note that the MPI standard
+ * requires that you can free an active request (just like the other MPI
+ * objects, freeing an object just decrements its reference count; anything
+ * that makes an object "active" increments its reference count).  
+ * So, one solution is to implement this reference count, and then make
+ * use of it here (so that MPI_TEST will execute the Free and set the 
+ * pointer to NULL, but the actual free won't happen until the ref count is
+ * set to zero).
+ *
+ * But to really do this, we need have some way to complete a nonblocking
+ * operation even though the user will never again call it with a WAIT
+ * or TEST call.  
+ *
+ * As a short term fix, we ONLY call MPI_TEST in this code for blocking
+ * BSENDs; this is safe, because the ONLY copy of the request is here.
+ * Thus, the test on whether to check a request includes a check on the
+ * blocking nature.  Note also that the routine called to free a request
+ * calls a special routine (MPIR_BufferFreeReq), so we can keep the
+ * information here properly updated.
+ *
+ * Another approach, which I discussed with Hubertus, would be to alloc a
+ * new request, have the buffer point at that, and copy all of the relavent
+ * details into the given buffer.
+ *
+ * The "best" thing to do depends on how you interpret the various flavors
+ * of buffered send:
+ *    Method 1.  Bsend, Ibsend, and Bsend_init/Start all copy the data
+ *    into a buffer; when the data is copied, the routines return.  In this
+ *    case, both Ibsend and Bsend_init/Start should indicate that the 
+ *    send has completed, since the data INPUT to these routines has 
+ *    been copied and my now be re-used.  (There is, thank goodness, no
+ *    Ibs(ync)send).  Note that in this case, the user's request and the
+ *    internal request are VERY different.
+ *    
+ *    Method 2.  Ibsend and Bsend_init would not complete coping data into
+ *    the buffer until a later time.  This may be intended for systems with
+ *    special move engines that operate asynchronously; some mechanism
+ *    would be required to determine completion.  
+ *
+ * My choice is to copy the request and mark the "users" request as completed
+ * when the data has been moved.
  */
 
 
 #ifndef lint
-static char vcid[] = "$Id: bsendutil.c,v 1.4 1995/07/25 02:46:58 gropp Exp $";
+static char vcid[] = "$Id: bsendutil.c,v 1.5 1995/09/13 21:44:04 gropp Exp $";
 #endif /* lint */
 
-#ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
+/* #define DEBUG_BSEND */
+
+#ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */ 
 static int DebugBsend = 0;
+#define DEBUG_PRINT(str) printf( "%s\n", str );
+#else
+#define DEBUG_PRINT(str) 
 #endif                 /* #DEBUG_BSEND_END# */
 
 #include "mpiimpl.h"
+#include "mpisys.h"
+#ifndef MEMCPY
+#define MEMCPY(a,b,n) memcpy(a,b,n)
+#endif
 
 /* 
    This file contains the code for managing the "Buffered" sends (with 
    a user-provided buffer).  This uses the simple buffer scheme described 
    in the MPI standard.
- */
 
-/*
    Because the data in this list is sensitive, and because we could easily
    overwrite the data if we are not careful, I've added "Cookies" around the
    data.
@@ -32,7 +86,13 @@ static int DebugBsend = 0;
 typedef struct _bsenddata {
     long              HeadCookie;
     struct _bsenddata *next, *prev;
-    MPI_Request       req;
+    MPI_Request       req;             /* This is the actual request that
+					  is used to send the message; 
+					  note that this is a POINTER to the
+					  appropriate structure.  It is
+					  ALSO not the user's request,
+					  in the case that a nonblocking
+					  buffered send is used. */
     int               len;
     /* Information about the data to send, for persistent, nonblocking
        requests */
@@ -46,12 +106,17 @@ typedef struct _bsenddata {
 static BSendData *Bsend = 0;
 static int BsendSize = 0;
 
+/*
+   MPIR_SetBuffer - Set the buffer area for the buffered sends, and 
+   initialize the internal data structures
+ */
 int MPIR_SetBuffer( bufp, size )
 void *bufp;
 int  size;
 {
 BSendData *p;
 
+DEBUG_PRINT("Starting MPIR_SetBuffer")
 if (size < sizeof(BSendData)) 
     return MPI_ERR_OTHER;  /* Buffer too small */
 if (Bsend)
@@ -71,9 +136,14 @@ p->TailCookie = BSEND_TAIL_COOKIE;
 BsendSize     = size;
 Bsend	      = p;
 
+DEBUG_PRINT("Exiting MPIR_SetBuffer" )
 return MPI_SUCCESS;
 }
 
+/*
+    Tests that a buffer area has not been corrupted by checking sentinals
+    at the head and tail of a buffer area.
+ */
 int MPIR_TestBufferPtr( b )
 BSendData *b;
 {
@@ -81,6 +151,16 @@ return (b->HeadCookie != BSEND_HEAD_COOKIE ||
 	b->TailCookie != BSEND_TAIL_COOKIE);
 }
 
+/* 
+   Free a buffer (MPI_BUFFER_DETACH).  Note that this will wait to
+   complete any pending operations.
+
+   This routine is called by MPI_Finalize to make sure than any pending
+   operations are completed.
+
+   When called, it returns the current buffer and size in its arguments
+   (both are output).
+ */
 void MPIR_FreeBuffer( buf, size )
 void **buf;
 int  *size;
@@ -88,6 +168,7 @@ int  *size;
 BSendData *p = Bsend;
 MPI_Status status;
 
+DEBUG_PRINT("Entering MPIR_FreeBuffer")
 /* If we are using the buffer, we must first wait on all pending messages */
 while (p) {
     if (MPIR_TestBufferPtr(p)) {
@@ -98,8 +179,9 @@ while (p) {
     if (p->req) {
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
 	if (DebugBsend) 
-	    fprintf( stderr, "Waiting for release of buffer at %x\n",
-		     (MPI_Aint) p );
+	    fprintf( stderr, 
+		    "Waiting for release of buffer at %x with request %x\n",
+		     (MPI_Aint) p, (MPI_Aint)p->req );
 #endif                 /* #DEBUG_BSEND_END# */
 	MPI_Wait( &p->req, &status );
 	}
@@ -109,15 +191,20 @@ while (p) {
 *size	  = BsendSize;
 Bsend	  = 0;
 BsendSize = 0;
+DEBUG_PRINT("Exiting MPIR_FreeBuffer")
 }
 
-/* Merge b with any previous or next empty blocks.  Return the block to use
-   next */
+/* 
+   This is an internal routine for merging bsend buffer blocks.
+   Merge b with any previous or next empty blocks.  Return the block to use
+   next 
+*/
 BSendData *MPIR_MergeBlock( b )
 BSendData *b;
 {
 BSendData *tp, *nextb;
 
+DEBUG_PRINT("Entering MPIR_MergeBlock" )
 nextb = b;
 tp    = b->prev;
 if (tp && MPIR_TestBufferPtr(tp)) {
@@ -149,13 +236,14 @@ if (tp && tp->req == MPI_REQUEST_NULL) {
     /* Merge with next block */
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
     if (DebugBsend) 
-	fprintf( stderr, "Merging block at %x with previous block\n", 
-		 (MPI_Aint)tp );
+	fprintf( stderr, "Merging block at %x with previous block at %x\n", 
+		 (MPI_Aint)tp, (MPI_Aint)b );
 #endif                 /* #DEBUG_BSEND_END# */
     b->next = tp->next;
     if (tp->next) tp->next->prev = b->prev;
     b->len += tp->len + sizeof(BSendData);
     }
+DEBUG_PRINT("Exiting MPIR_MergeBlock")
 return nextb;
 }
 
@@ -164,6 +252,10 @@ return nextb;
    MPI_Request; the output is a pointer to the allocated buffer space.
    It also holds all of the information needed to pack the data, in 
    the event that this is a persistent, non-blocking, buffered send (!).
+
+   Note that this must be called ONLY after all other fields in the 
+   incoming request are set.  This routine will modify the request
+   by marking it as completed.
  */
 int MPIR_GetBuffer( size, rq, buf, count, datatype, bufp )
 int          size;
@@ -177,6 +269,7 @@ BSendData  *b, *new;
 int        flag;
 MPI_Status status;
 
+DEBUG_PRINT("Entering MPIR_GetBuffer")
 /* Round size to a multiple of 8 */
 if (size & 0x7) size += (8 - (size & 0x7));
 b = Bsend;
@@ -186,18 +279,19 @@ while (b) {
 	return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
 		   "Error in BSEND data, corruption detected in GetBuffer" );
 	}
+    /* Note that since the request in the bsend data is private, we can
+       always execute this test */
     if (b->req != MPI_REQUEST_NULL && b->req->shandle.active) {
 	/* Test for completion; merge if necessary.  If the request
 	   is not active, we don't do the test. */
-	/* Should probably test ONLY if it was a blocking bsend; otherwise,
-	   require the user to do the wait */
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
 	if (DebugBsend)
 	    fprintf( stderr, "Testing for completion of block at %x\n",
 		     (MPI_Aint)b );
 #endif                 /* #DEBUG_BSEND_END# */
 	MPI_Test( &b->req, &flag, &status );
-	if (flag) {
+	/* If completed and not persistant, remove */
+	if (flag && !b->req) {
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
 	    if (DebugBsend)
 		fprintf( stderr, "Found completed bsend\n" );
@@ -238,36 +332,56 @@ while (b) {
                  "Creating bsend block at %x of size %d\n", 
 		    (MPI_Aint)b, size );
 #endif                 /* #DEBUG_BSEND_END# */
-	*bufp		     = (void *)(b+1);
-	b->req		     = rq;
-	b->buf		     = buf;
-	b->count	     = count;
-	b->datatype	     = datatype;
-	rq->shandle.bsend    = (void *)b;
+	*bufp			 = (void *)(b+1);
+	/* Copy the request to the local area */
+	b->req			 = (MPI_Request) MPIR_SBalloc( MPIR_shandles );
+	MEMCPY( b->req, rq, sizeof(MPIR_SHANDLE) );
+	/* Save the buffer address */
+	b->req->shandle.bufadd   = *bufp;
+
+	/* These may no longer be needed */
+	b->buf			 = buf;
+	b->count		 = count;
+	b->datatype		 = datatype;
+	/* These may no longer be needed (to here) */
+
+	/* Mark in the request (user's) where the corresponding bsend 
+	   area is */
+	rq->shandle.bsend	 = (void *)b;
+	/* Also remember in the bsend request */
+	b->req->shandle.bsend	 = (void *)b;
 	/* Change the datatype and size, since we're going to use MPI_PACK */
-	rq->shandle.datatype = MPI_PACKED;
-	rq->shandle.count    = size;
+	b->req->shandle.datatype = MPI_PACKED;
+	b->req->shandle.count	 = size;
+	/* The mode of the actual operation is just SEND */
+	b->req->shandle.mode     = MPIR_MODE_STANDARD;
+	DEBUG_PRINT("Exiting MPIR_GetBuffer")
 	return MPI_SUCCESS;
 	}
     b = b->next;
     }
 
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
+fprintf( stdout, "Could not find %d bytes in buffer\n", size );
 MPIR_BufferPrint();
 #endif                 /* #DEBUG_BSEND_END# */
+DEBUG_PRINT("Exiting MPIR_GetBuffer")
 return MPI_ERR_BUFFER | MPIR_ERR_USER_BUFFER_EXHAUSTED;
 }
 
 /* 
    This routine actually transfers the data from the users buffer to the
-   internal buffer
+   internal buffer.  A bsend area must already exist for it, and be
+   marked by bine set in the rq->bsend field (see the MPIR_SHANDLE structure).
  */
 void MPIR_PrepareBuffer( rq )
 MPIR_SHANDLE *rq;
 {
 BSendData *b;
 int       outcount, position = 0;
+MPIR_SHANDLE *brq;
 
+DEBUG_PRINT("Entering MPIR_PrepareBuffer")
 b = (BSendData *)(rq->bsend);
 if (!b) {
     MPIR_ERROR( rq->comm, MPI_ERR_OTHER, "Error in BSEND data" );
@@ -278,22 +392,28 @@ if (MPIR_TestBufferPtr(b)) {
     MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
 	       "Error in BSEND data, corruption detected in PrepareBuffer" );
     }
+/* This really should be the same as rq now... */
+brq = (MPIR_SHANDLE *)b->req;
+if (rq != brq) {
+    MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER,
+	       "Error in BSEND data; requests do not match" );
+    }
 outcount = b->len;
-MPI_Pack( b->buf, b->count, b->datatype, rq->bufadd, outcount, &position, 
-	  rq->comm );
-rq->dev_shandle.start = rq->bufadd;
+MPI_Pack( b->buf, b->count, b->datatype, brq->bufadd, outcount, &position, 
+	  brq->comm );
+brq->dev_shandle.start = brq->bufadd;
 /* Make sure that the msgrep is correct */
 #ifdef MPID_HAS_HETERO
     if ((MPID_IS_HETERO == 1) && 
 	MPIR_Comm_needs_conversion(rq->comm))
-	rq->msgrep = MPIR_MSGREP_XDR;
+	brq->msgrep = MPIR_MSGREP_XDR;
     else 
-	rq->msgrep = MPIR_MSGREP_SENDER;
+	brq->msgrep = MPIR_MSGREP_SENDER;
 #endif
 
 /* The number of bytes actually taken is returned in position */
-rq->count			= position;
-rq->dev_shandle.bytes_as_contig	= position;
+brq->count			 = position;
+brq->dev_shandle.bytes_as_contig = position;
 if (MPIR_TestBufferPtr(b)) {
     /* Error in pointer after we've packed into it */
     MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
@@ -304,14 +424,75 @@ if (b->next && MPIR_TestBufferPtr(b->next)) {
     MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
      "Error in BSEND data, corruption detected at data end of PrepareBuffer" );
     }
+DEBUG_PRINT("Exiting MPIR_PrepareBuffer")
 }
 
-/* Mark a request as free in the Buffer code */
+/* 
+   Set the persistant flag for a request
+ */
+void MPIR_BsendPersistent( request, flag )
+MPI_Request request;
+int         flag;
+{
+MPIR_SHANDLE *req;
+BSendData *b;
+
+b   = (BSendData *)request->shandle.bsend;
+req = (MPIR_SHANDLE *)b->req;
+req->persistent = flag;
+}
+
+/*
+ * Perform the actual send, putting the data into the buffer
+ */
+int MPIR_DoBufferSend( shandle )
+MPIR_SHANDLE *shandle;
+{
+MPIR_SHANDLE *req;
+BSendData *b;
+int mpi_errno;
+/* Find the local request */
+
+b = shandle->bsend;
+if (MPIR_TestBufferPtr(b)) {
+    /* Error in pointer after we've packed into it */
+    MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER, 
+     "Error in BSEND area while trying to start communication" );
+    }
+req = (MPIR_SHANDLE *)b->req;
+
+/* Need to prepare the buffer before sending.  This replaces MPIR_Send_setup
+ */
+/* if (mpi_errno = MPIR_Send_setup( &req )) return mpi_errno; */
+req->active       = 1;
+MPIR_PrepareBuffer( req );
+
+MPID_Post_send( req->comm->ADIctx, req );
+
+/* At this point, the shandle is done (but it is active) */
+shandle->active = 1;
+MPID_Set_completed( shandle->comm->ADIctx, (MPI_Request)shandle );
+
+return MPI_SUCCESS;
+}
+
+/* 
+   Mark a request as free in the Buffer code 
+   This is called only in MPI_Request_free (commreq_free.c)
+
+   Note that we never want a USER call to free an INTERNAL buffer request.
+   We do this by marking the request used by these routines as a regular
+   send (MPIR_SEND) which it is.
+
+   We may actually not need this routine, since we handle the case internally
+   in the get/merge code.
+ */
 void MPIR_BufferFreeReq( rq )
 MPIR_SHANDLE *rq;
 {
 BSendData *b;
 
+DEBUG_PRINT("Entering MPIR_BufferFreeReq")
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
 if (DebugBsend)
     fprintf( stderr, 
@@ -325,15 +506,18 @@ if (MPIR_TestBufferPtr(b)) {
 	       "Error in BSEND data, corruption detected in FreeBuffer" );
     }
 b->req = MPI_REQUEST_NULL;
+DEBUG_PRINT("Exiting MPIR_BufferFreeReq")
 }
 
-
-
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
+/* 
+ * This is a debugging routine 
+ */
 int MPIR_BufferPrint( )
 {
 BSendData *b;
 
+fprintf( stdout, "Printing buffer arena\n" );
 b = Bsend;
 while (b) {
     if (MPIR_TestBufferPtr(b)) {
@@ -345,6 +529,7 @@ while (b) {
 	    (MPI_Aint)(b->req) );
     b = b->next;
     }
+fprintf( stdout, "End of printing buffer arena\n" );
 return 0;
 }
 #endif                 /* #DEBUG_BSEND_END# */

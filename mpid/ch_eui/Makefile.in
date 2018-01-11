@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.3 1994/04/01 23:34:00 gropp Exp $
+#  $Id: Makefile.in,v 1.1 1995/08/09 15:49:32 gropp Exp gropp $
 #
 #  (C) 1993 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -23,13 +23,13 @@ ALL: default
 
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
 CFLAGS   = @CFLAGS@ $(OPTFLAGS) -I../.. -I../../include -I./ \
-		-DMPID_DEVICE_CODE -DIBMMPL @DEVCFLAGS@
+		-DMPID_DEVICE_CODE -DIBMMPL @DEVCFLAGS@ -DHAVE_GETTIMEOFDAY
 SOURCE   = euievent.c euirecv.c euisend.c euiinit.c euiprobe.c euisync.c \
 	   euirndv.c euicoll.c euidebug.c
 SOURCEC  = $(SOURCE)
 SOURCEF  =
 MPI_OBJECTS = euievent.o euirecv.o euisend.o euiinit.o euiprobe.o euisync.o \
-	      euirndv.o euicoll.o euidebug.o
+	      euirndv.o euicoll.o euidebug.o gclock.o read_clock.o
 
 default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
 
@@ -40,7 +40,7 @@ default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
 # gclock/read_clock may give access to the global clock; we are allowed
 # only to distribute objects for these.
 #
-default_all: $(MPI_OBJECTS) gclock.o read_clock.o
+default_all: $(MPI_OBJECTS) 
 	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $?
 profile_all: 
 

@@ -63,7 +63,7 @@ clean:
 configure:
 	autoheader
 	autoconf
-    
+
 cleanconfigure:
 	$(RM) -f p3_configure.h.in configure 
 	$(RM) -f config.cache config.status config.log

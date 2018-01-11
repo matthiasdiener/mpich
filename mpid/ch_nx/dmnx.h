@@ -6,14 +6,15 @@
 
 
 /*
- *  $Id: dmch.h,v 1.36 1995/06/30 17:35:18 gropp Exp gropp $
+ *  $Id: dmch.h,v 1.39 1995/09/18 21:12:06 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 /* 
-   These are the Chameleon-specific macros.
+   These are the Chameleon-specific macros.  This file may have been
+   instanced for particular systems.
 
    See the readme file for details
  */
@@ -69,9 +70,6 @@ extern int __NUMNODES, __MYPROCID;typedef void *ProcSet;
 
 #endif /* MPID_DEVICE_CODE */
 
-/* #include "mpi.h" */
-/* #include "dmpiatom.h" */
-
 /* Undefine MPID_DEBUG_ALL to remove the debugging code from the device 
    In order to READ the device code without the debugging statements,
    see the script rmdebug.
@@ -123,7 +121,7 @@ typedef enum { MPID_NOTBLOCKING = 0, MPID_BLOCKING } MPID_BLOCKING_TYPE;
 
 /*
    Another option would be for the device handle to contain the initial
-   packet.  I have NOT do this so as to keep down the size of the device
+   packet.  I have NOT done this so as to keep down the size of the device
    handle (since I want relatively large packets).  It also helps hide
    the precise form of the packet from the upper layers.
 
@@ -176,10 +174,12 @@ typedef struct {
 				       completed */
     MPID_RNDV_T   recv_handle;      /* Holds 'transfer' handle for RNDV 
 				       operations */
+#ifdef FOO
     void          *pkt;             /* Some systems will require use of
 				       non-blocking sends; in these systems,
 				       the packets need to be allocated
 				       and managed */
+#endif
     } MPID_SHANDLE;
 
 typedef struct {
@@ -237,8 +237,18 @@ typedef struct {
     MPID_NX_post_send_sync(dmpi_send_handle) 
 #define MPID_Complete_send(ctx,dmpi_send_handle) \
     MPID_NX_complete_send(dmpi_send_handle) 
+
+/* The current definition of Blocking send is just post/complete UNLESS
+   LIMITED_BUFFERS defined */
+#if defined(MPID_LIMITED_BUFFERS)
 #define MPID_Blocking_send(ctx, dmpi_send_handle) \
     MPID_NX_Blocking_send(dmpi_send_handle)
+#else
+#define MPID_Blocking_send(ctx, dmpi_send_handle) \
+MPID_Post_send( ctx, dmpi_send_handle );\
+MPID_Complete_send( ctx, dmpi_send_handle );
+#endif
+
 #define MPID_Blocking_send_ready(ctx, dmpi_send_handle) \
     MPID_NX_Blocking_send(dmpi_send_handle)
 #define MPID_Test_send( ctx, dmpi_send_handle ) \
@@ -268,7 +278,8 @@ typedef struct {
     ( (request)->chandle.handle_type == MPIR_SEND ? \
         MPID_NX_Test_send(&(request)->shandle) : \
         MPID_NX_Test_recv_push(&(request)->rhandle))
-/* I'm suspicious of test_handle... */
+/* I'm suspicious of test_handle... Is it used anywhere? mpid/meiko doesn't
+   this so....*/
 #define MPID_Test_handle( dmpi_handle ) ((dmpi_handle)->completer == 0)
 #define MPID_Clr_completed( ctx, request ) \
     (request)->chandle.completer = 1
@@ -361,7 +372,6 @@ typedef struct {
 
 #ifdef MPID_DEVICE_CODE
 /* Device-only information */
-/* #include "../../include/dmpiatom.h" */
 
 /* Some systems have special, customized memcpy routines (for example,
    using the floating point registers and 8 byte load/stores).  This macro
@@ -381,7 +391,8 @@ extern FILE *MPID_DEBUG_FILE;
 #define MPID_NXK_MSGLEN(dmpi_recv_handle,msglen,err) \
 if ((dmpi_recv_handle)->dev_rhandle.bytes_as_contig < (msglen)) {\
     err = MPI_ERR_TRUNCATE;\
-    (*MPID_ErrorHandler)( 1, "Truncated message"  );\
+    dmpi_recv_handle->errval = MPI_ERR_TRUNCATE;\
+    (*MPID_ErrorHandler)( 1, "Truncated message (in CHK_MSGLEN)"  );\
     msglen = (dmpi_recv_handle)->dev_rhandle.bytes_as_contig;\
     }
 
@@ -390,8 +401,8 @@ if ((dmpi_recv_handle)->dev_rhandle.bytes_as_contig < (msglen)) {\
    representation.  On homogeneous systems, these do nothing.
  */
 #ifdef MPID_HAS_HETERO
-#define MPID_PKT_PACK(pkt,size,dest) MPID_NX_Pkt_pack(pkt,size,dest)
-#define MPID_PKT_UNPACK(pkt,size,src) MPID_NX_Pkt_unpack(pkt,size,src)
+#define MPID_PKT_PACK(pkt,size,dest) MPID_NX_Pkt_pack((MPID_PKT_T*)(pkt),size,dest)
+#define MPID_PKT_UNPACK(pkt,size,src) MPID_NX_Pkt_unpack((MPID_PKT_T*)(pkt),size,src)
 #else
 #define MPID_PKT_PACK(pkt,size,dest) 
 #define MPID_PKT_UNPACK(pkt,size,src) 
@@ -406,7 +417,7 @@ if ((dmpi_recv_handle)->dev_rhandle.bytes_as_contig < (msglen)) {\
     while (MPID_NX_check_incoming( MPID_NOTBLOCKING ) != -1) ;
 #ifdef MPID_TINY_BUFFERS 
 #define MPID_DRAIN_INCOMING_FOR_TINY(is_non_blocking) \
-{if (is_non_blocking) MPID_DRAIN_INCOMING;}
+{if (is_non_blocking) {MPID_DRAIN_INCOMING;}}
 #else
 #define MPID_DRAIN_INCOMING_FOR_TINY(is_non_blocking)
 #endif

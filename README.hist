@@ -2,6 +2,28 @@
 
 	  Information from previous README's, of historical interest
 
+			Changes since Version 1.0.9 
+
+1.  Some fixes for Cray T3D (-device=t3d) for MPI_Test and friends
+
+2.  Fix for CM-5 CMMD (but untested as we don't have access to a CM-5)
+
+3.  Improvements in thread locking for device writers (see
+    mpid/chameleon/dmch.h)  (More work is still needed)
+
+4.  Reorganized include files (internal only; user MPI programs are unchanged)
+    thanks to SGI.
+
+5.  Internal reorganization of collective code to allow easier optimization
+    by vendors (thanks to Meiko)
+
+6.  New version of mpirun (using sh instead of csh) is easier to add devices 
+    to; also has limited ablitity to manage heterogeneous runs.
+
+7.  New commands mpicc and mpif77 make it easier to run simple programs.
+    They also provide simplified interfaces to the MPE profiling libraries
+
+8.  Now runs on AIX SMPs.
                          Changes since Version 1.0.8
 
 1.  Improved support for heterogeneous systems with different data lengths

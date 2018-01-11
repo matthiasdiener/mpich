@@ -7,14 +7,14 @@ int __NUMNODES, __MYPROCID  ;extern double MPID_get_nsec_clock();
 
 
 /*
- *  $Id: chinit.c,v 1.34 1995/06/30 17:35:45 gropp Exp gropp $
+ *  $Id: chinit.c,v 1.37 1995/09/18 21:11:44 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chinit.c,v 1.34 1995/06/30 17:35:45 gropp Exp gropp $";
+static char vcid[] = "$Id: chinit.c,v 1.37 1995/09/18 21:11:44 gropp Exp $";
 #endif
 
 /* 
@@ -34,10 +34,6 @@ static char vcid[] = "$Id: chinit.c,v 1.34 1995/06/30 17:35:45 gropp Exp gropp $
 
 /* #CMMD DECLARATION# */
 
-MPID_INFO *MPID_procinfo = 0;
-MPID_H_TYPE MPID_byte_order;
-static char *(ByteOrderName[]) = { "None", "LSB", "MSB", "XDR" };
-int MPID_IS_HETERO = 0;
 void (*MPID_ErrorHandler)() = MPID_DefaultErrorHandler;
 /* For tracing channel operations by ADI underlayer */
 FILE *MPID_TRACE_FILE = 0;
@@ -69,7 +65,7 @@ return MPID_PKT_MAX_DATA_SIZE;
 static int DebugSpace = 0;
 int MPID_DebugFlag = 0;
 
-MPID_SetSpaceDebugFlag( flag )
+void MPID_SetSpaceDebugFlag( flag )
 int flag;
 {
 DebugSpace = flag;
@@ -86,6 +82,24 @@ void *ctx;
 int f;
 {
 MPID_DebugFlag = f;
+}
+void MPID_SetDebugFile( name )
+char *name;
+{
+char filename[1024];
+
+if (strcmp( name, "-" ) == 0) {
+    MPID_DEBUG_FILE = stdout;
+    return;
+    }
+if (strchr( name, '%' )) {
+    sprintf( filename, name, MPID_MyWorldRank );
+    MPID_DEBUG_FILE = fopen( filename, "w" );
+    }
+else
+    MPID_DEBUG_FILE = fopen( name, "w" );
+
+if (!MPID_DEBUG_FILE) MPID_DEBUG_FILE = stdout;
 }
 void MPID_Set_tracefile( name )
 char *name;
@@ -150,7 +164,6 @@ void *MPID_MEIKO_Init( argc, argv )
 int  *argc;
 char ***argv;
 {
-
 /* Set the file for Debugging output.  The actual output is controlled
    by MPIDDebugFlag */
 if (MPID_DEBUG_FILE == 0) MPID_DEBUG_FILE = stdout;
@@ -179,6 +192,10 @@ DEBUG(fprintf(MPID_DEBUG_FILE,"[%d] leaving chinit\n", MPID_MyWorldRank );)
 return (void *)0;
 }
 
+/* Barry Smith suggests that this indicate who is aborting the program.
+   There should probably be a separate argument for whether it is a 
+   user requested or internal abort.
+ */
 void MPID_MEIKO_Abort( code )
 int code;
 {
@@ -202,8 +219,6 @@ MPID_MEIKO_Complete_pending();
 if (MPID_GetMsgDebugFlag()) {
     MPID_PrintMsgDebug();
     }
-if (MPID_procinfo) 
-    free(MPID_procinfo );
 #ifdef CHAMELEON_COMM       /* #CHAMELEON_START# */
 if (DebugSpace)
     ;
@@ -302,40 +317,8 @@ if (str)
 MPID_MEIKO_Abort( code );
 }
 
-int MPID_MEIKO_Dest_byte_order( dest )
-int dest;
-{
-if (MPID_IS_HETERO)
-    return MPID_procinfo[dest].byte_order;
-else 
-    return MPID_H_NONE;
-}
-
-
-
 
 /* We also need an "ErrorsReturn" and a sensible error return strategy */
-
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-
-MPID_MEIKO_Print_pkt_data( msg, address, len )
-char *msg;
-char *address;
-int  len;
-{
-int i; char *aa = (char *)address;
-
-if (msg)
-    printf( "[%d]%s\n", MPID_MyWorldRank, msg );
-if (len < 78 && address) {
-    for (i=0; i<len; i++) {
-	printf( "%x", aa[i] );
-	}
-    printf( "\n" );
-    }
-fflush( stdout );
-}
-#endif                  /* #DEBUG_END# */
 
 /*
    Data about messages

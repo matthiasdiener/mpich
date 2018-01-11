@@ -374,7 +374,8 @@ ReceiverTest2()
 		    "*** Incorrect Count returned, Count = %d. ***\n", 
 		    dummy);
 	    Test_Failed(message);
-	} else if((errloc = CheckBuffer(buffer, MPI_INT, maxbufferlen))) {
+	} else if((errloc = 
+		   CheckBuffer((void*)buffer, MPI_INT, maxbufferlen))) {
 	    fprintf(stderr, 
 		    "*** Incorrect Message received at %d (tag=%d). ***\n",
 		    errloc-1, i);

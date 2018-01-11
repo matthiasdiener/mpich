@@ -28,22 +28,31 @@
 #define MPID_MAX_NODES 16
 #define MPID_MAX_PROCS_PER_NODE 8
 #define MPID_MAX_PROCS MPID_MAX_NODES*MPID_MAX_PROCS_PER_NODE
-#define MPID_MAX_SHMEM 16777216
-#define MPID_SHMEM_MAX_PKTS_PER_NODE 128
+#define MPID_MAX_SPP 16777216
+#define MPID_SPP_MAX_PKTS_PER_NODE 128
 #else
 #define MPID_MAX_PROCS 32
-#define MPID_MAX_SHMEM 4194304
-#define MPID_SHMEM_MAX_PKTS 128
+#define MPID_MAX_SPP 4194304
+#define MPID_SPP_MAX_PKTS 128
 #endif
-#ifdef __STDC__
+#if HAS_VOLATILE || defined(__STDC__)
 #define VOLATILE volatile
 #else
 #define VOLATILE
 #endif
+
+typedef struct {
+    int          size;           /* Size of barrier */
+    VOLATILE int phase;          /* Used to indicate the phase of this 
+				    barrier; only process 0 can change */
+    VOLATILE int cnt1, cnt2;     /* Used to perform counts */
+    } MPID_SHMEM_Barrier_t;
+
 typedef struct {
     p2p_lock_t globlock;                   /* protects mods to globid */
     VOLATILE int        globid;           /* Used to get my id in the world */
-    } MPID_SHMEM_globmem;	
+    MPID_SHMEM_Barrier_t barrier;         /* Used for barriers */
+    } MPID_SPP_globmem;	
 
 typedef struct {
     p2p_lock_t *availlockPtr[MPID_MAX_PROCS];    /* locks on avail list */
@@ -53,7 +62,7 @@ typedef struct {
     VOLATILE MPID_PKT_T **incomingPtr[MPID_MAX_PROCS];  /* Incoming messages */
     VOLATILE MPID_PKT_T **incomingtailPtr[MPID_MAX_PROCS];   /* Tails of 
 							      incoming msgs */
-    } MPID_SHMEM_ptrmem;	
+    } MPID_SPP_ptrmem;	
 
 typedef struct {
     /* locks may need to be aligned, so keep at front (p2p_shmalloc provides
@@ -65,12 +74,12 @@ typedef struct {
     VOLATILE MPID_PKT_T *incoming[MPID_MAX_PROCS_PER_NODE];  /* Incoming messages */
     VOLATILE MPID_PKT_T *incomingtail[MPID_MAX_PROCS_PER_NODE];   /* Tails of 
 							      incoming msgs */
-    VOLATILE MPID_PKT_T pool[MPID_SHMEM_MAX_PKTS_PER_NODE];    /* Preallocated pkts */
-    } MPID_SHMEM_pktmem;	
+    VOLATILE MPID_PKT_T pool[MPID_SPP_MAX_PKTS_PER_NODE];    /* Preallocated pkts */
+    } MPID_SPP_pktmem;	
 
-extern MPID_SHMEM_globmem *MPID_shmem;
-extern MPID_SHMEM_ptrmem MPID_shmemptr;
-extern MPID_SHMEM_pktmem *MPID_pktmem;
+extern MPID_SPP_globmem *MPID_shmem;
+extern MPID_SPP_ptrmem MPID_shmemptr;
+extern MPID_SPP_pktmem *MPID_pktmem;
 extern int                 MPID_myid;
 extern int                 MPID_numids;
 extern VOLATILE MPID_PKT_T *MPID_local, **MPID_incoming;
@@ -84,7 +93,7 @@ extern VOLATILE MPID_PKT_T *MPID_local, **MPID_incoming;
 
 #define MPID_RecvAnyControl( pkt, size, from ) \
     { MPID_TRACE_CODE("BRecvAny",-1);\
-      MPID_SHMEM_ReadControl( pkt, size, from );\
+      MPID_SPP_ReadControl( pkt, size, from );\
       MPID_TRACE_CODE_PKT("ERecvAny",*(from),\
 			  MPID_PKT_RECV_GET(*(pkt),head.mode));}
 #define MPID_RecvFromChannel( buf, size, channel ) \
@@ -96,7 +105,7 @@ extern VOLATILE MPID_PKT_T *MPID_local, **MPID_incoming;
 #define MPID_SendControl( pkt, size, channel ) \
     { MPID_TRACE_CODE_PKT("BSendControl",channel,\
 			  MPID_PKT_SEND_GET((MPID_PKT_T*)(pkt),head.mode));\
-      MPID_SHMEM_SendControl( pkt, size, channel );\
+      MPID_SPP_SendControl( pkt, size, channel );\
       MPID_TRACE_CODE("ESendControl",channel);}
 #define MPID_SendChannel( buf, size, channel ) \
     { MPID_TRACE_CODE("BSend",channel);\

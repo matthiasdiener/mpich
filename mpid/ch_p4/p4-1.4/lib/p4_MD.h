@@ -120,9 +120,11 @@
     defined(SGI)             || defined(CRAY)         || \
     defined(HP)              || defined(SYMMETRY_PTX)
 
-#ifndef SGI
-/* Recommended by SGI to NOT set */
 #define CAN_DO_SETSOCKOPT
+
+/* If SGI, select features suggested by SGI */
+#ifdef SGI
+#define SGI_TEST
 #endif
 
 #ifdef NEEDS_NETINET
@@ -155,6 +157,15 @@
 #define SIGNAL_P4 signal
 #endif
 
+#if defined(LINUX) || defined(RS6000) 
+/* These should actually use sigaction INSTEAD of signal; that's for later.
+   This is for systems that make the signals "one-shot", so you can have
+   race conditions if you expect your handler to always handle the signals.
+
+   Other systems my need this but I'll add them as I test it.
+ */
+#define NEED_SIGACTION
+#endif
 
 #ifndef P4BOOL
 #define P4BOOL int

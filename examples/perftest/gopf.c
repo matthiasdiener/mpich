@@ -101,26 +101,6 @@ extern void gscattersetR();
 strcpy( test_name, "sync" );
 
 /* Get information on the actual problem to run */
-if (SYArgGetInt( argc, argv, 1, "-rr", &rrsize )) {
-    ;
-    }
-if (SYArgHasName( argc, argv, 1, "-ring" )) {
-    if (__MYPROCID == 0)
-	fprintf( stderr, "Ring not yet supported\n" );
-    return 0;
-    /*    ; */
-    }
-if (SYArgHasName( argc, argv, 1, "-line" )) {
-    ;
-    ;
-    }
-if (SYArgHasName( argc, argv, 1, "-fast" )) {
-    ;
-    ;
-    ;
-    }
-if (SYArgHasName( argc, argv, 1, "-tree" ))
-    ;
 
 /* Choose the operations */
 if (SYArgHasName( argc, argv, 1, "-dsum" )) {
@@ -246,18 +226,6 @@ PrintGOPHelp()
   fprintf( stderr, 
 	  "-pset n-m            : processor set consisting of nodes n to m" );
 
-  fprintf( stderr, "\nCollective communication algorithms:\n" );
-  fprintf( stderr, 
-   "-rr n   : use a ready-receiver version for messages n bytes or longer\n" );
-  fprintf( stderr, 
-   "          (many operations do not yet have rr versions)\n" );
-  fprintf( stderr, "-ring   : use a ring algorithm\n" );
-  fprintf( stderr, "-tree   : use a tree algorithm\n" );
-  fprintf( stderr, "-line   : use a linear algorithm\n" );
-  fprintf( stderr, "\nOptions for collective algorithms\n" );
-  fprintf( stderr, "-pkt len stride cnt : use packets of length len\n" );
-  fprintf( stderr, 
-         "-fast               : use a (possibly) contention-free tree\n" );
 }
 
 /*****************************************************************************

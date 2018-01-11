@@ -1,6 +1,12 @@
-.TH MPI_Finalize 3 "5/9/1995" " " "MPI"
+.TH MPI_Finalize 3 "9/29/1995" " " "MPI"
 .SH NAME
 MPI_Finalize \- Terminates MPI execution environment
+
+.SH NOTES
+All processes must call this routine before exiting.  The number of
+processes running `after` this routine is called is undefined;
+it is best not to perform much more than a 'return rc' after calling
+'MPI_Finalize'.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

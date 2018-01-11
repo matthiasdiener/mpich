@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi.h,v 1.45 1995/05/09 17:44:52 gropp Exp $
+ *  $Id: mpi.h,v 1.47 1995/09/13 21:35:59 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 
-/* Results of the compare operations */
+ /* Results of the compare operations */
 /* These should stay ordered */
 #define MPI_IDENT     0
 #define MPI_CONGRUENT 1
@@ -103,9 +103,9 @@ extern MPI_Op MPI_MAX, MPI_MIN, MPI_SUM, MPI_PROD, MPI_LAND, MPI_BAND,
 
 /* Permanent key values */
 /* C Versions (return pointer to value) */
-extern int MPI_TAG_UB, MPI_HOST, MPI_IO;
+extern int MPI_TAG_UB, MPI_HOST, MPI_IO, MPI_WTIME_IS_GLOBAL;
 /* Fortran Versions (return value) */
-extern int MPIR_TAG_UB, MPIR_HOST, MPIR_IO;
+extern int MPIR_TAG_UB, MPIR_HOST, MPIR_IO, MPIR_WTIME_IS_GLOBAL;
 
 /* Define some null objects */
 #define MPI_COMM_NULL      ((MPI_Comm)0)

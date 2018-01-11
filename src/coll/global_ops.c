@@ -1,5 +1,5 @@
 /*
- *  $Id: global_ops.c,v 1.31 1995/07/25 02:45:08 gropp Exp $
+ *  $Id: global_ops.c,v 1.32 1995/08/11 00:20:08 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: global_ops.c,v 1.31 1995/07/25 02:45:08 gropp Exp $";
+static char vcid[] = "$Id: global_ops.c,v 1.32 1995/08/11 00:20:08 gropp Exp $";
 #endif /* lint */
 
 
@@ -1056,6 +1056,21 @@ MPI_Datatype *type;
       }
       break;
     }
+#if defined(HAVE_LONG_DOUBLE)
+    case MPIR_LONGDOUBLE: {
+      long double *a = (long double *)inoutvec;
+      long double *b = (long double *)invec;
+      for ( i=0; i<len; i+=2 ) {
+        if (a[i] == b[i])
+          a[i+1] = MPIR_MIN(a[i+1],b[i+1]);
+        else if (a[i] < b[i]) {
+          a[i]   = b[i];
+          a[i+1] = b[i+1];
+        }
+      }
+      break;
+    }
+#endif
     default: 
       MPIR_ERROR(MPI_COMM_WORLD, MPI_ERR_OP|MPIR_ERR_NOT_DEFINED, 
                  "MAXLOC operation not supported on type");
@@ -1235,6 +1250,21 @@ MPI_Datatype *type;
       }
       break;
     }
+#ifdef HAVE_LONG_DOUBLE
+    case MPIR_LONGDOUBLE: {
+      long double *a = (long double *)inoutvec;
+      long double *b = (long double *)invec;
+      for ( i=0; i<len; i+=2 ) {
+        if (a[i] == b[i])
+          a[i+1] = MPIR_MIN(a[i+1],b[i+1]);
+        else if (a[i] > b[i]) {
+          a[i]   = b[i];
+          a[i+1] = b[i+1];
+        }
+      }
+      break;
+    }
+#endif
     default: 
       MPIR_ERROR(MPI_COMM_WORLD, MPI_ERR_OP|MPIR_ERR_NOT_DEFINED, 
                  "MINLOC operation not supported on type");

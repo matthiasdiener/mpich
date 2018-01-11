@@ -1,4 +1,4 @@
-.TH MPI_Init 3 "7/31/1995" " " "MPI"
+.TH MPI_Init 3 "9/29/1995" " " "MPI"
 .SH NAME
 MPI_Init \- Initialize the MPI execution environment
 
@@ -56,13 +56,26 @@ configured with -var_pkt.
 .PD 1
 
 The following options are available only on the Chameleon device and
-devices built with debugging code.
+devices built with debugging code.  Normally, these should only be used
+by MPICH implementors when debugging new ports.
 
 .PD 0
 .TP
 .B -mpichdebug 
 - Print out the Chameleon device operations
 .PD 1
+.PD 0
+.TP
+.B -mpidbfile 
+filename - Like mpichdebug, but sends the output to the
+specified file.  If the filename contains a '%d', then that part of
+the filename is replaced with the rank in 'MPI_COMM_WORLD'.  For example,
+.PD 1
+.nf
+   -mpidbfile log.%d 
+.fi
+
+writes to 'log.0', 'log.1', etc.
 .PD 0
 .TP
 .B -mpichmemdebug 
@@ -133,6 +146,9 @@ SIGUSR1
 
 .SH INTEL PARAGON (CH_NX DEVICE)
 SIGUSR2
+
+.SH SHARED MEMORY (CH_SHMEM DEVICE)
+SIGCHLD
 
 Note that if you are using software that needs the same signals, you may
 find that there is no way to use that software with the MPI implementation.

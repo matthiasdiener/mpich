@@ -69,8 +69,20 @@ testing: $(MPIR_HOME)/util/mpirun
 	                 $(MAKE) clean ) ;\
 		done
 
+#
+# This is a version of testing, but it saves the "diff" files in the top 
+# level directory
+testing_save: $(MPIR_HOME)/util/mpirun
+	@-for dir in $(TESTDIRS) ;\
+		do \
+			echo " " ;\
+			echo Making testing in directory $$dir ;\
+			(cd $$dir; $(MAKE) testing TESTARGS=$(TESTARGS) ; \
+	                 cp $$dir.diff .. ; $(MAKE) clean ) ;\
+		done
+
 clean:
-	/bin/rm -f test.log
+	/bin/rm -f test.log *.diff
 	@for dir in $(SUBDIRS) ;\
 		do \
 			echo " " ;\

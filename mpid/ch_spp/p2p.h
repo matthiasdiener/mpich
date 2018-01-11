@@ -14,8 +14,8 @@ int getSCTopology(cnx_node_t *, unsigned int *, unsigned int *, unsigned int *);
  
 typedef int p2p_lock_t[4];
 #define p2p_lock_init(l) { *((int*)(l)) = 1; }
-#define p2p_lock(l)      acquire_lock(l)
-#define p2p_unlock(l)    release_lock(l)
+#define p2p_lock(l)      MPID_SPP__acquire_lock(l)
+#define p2p_unlock(l)    MPID_SPP__release_lock(l)
 
 /* following is for POSIX std versions of Unix */
 #include <unistd.h>
@@ -32,6 +32,6 @@ typedef int p2p_lock_t[4];
 
 void *p2p_shmalloc ANSI_ARGS((unsigned int, cnx_node_t));
 double p2p_wtime ANSI_ARGS((void));
-
+void p2p_setpgrp ANSI_ARGS((void));
 #endif
 

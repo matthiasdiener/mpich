@@ -30,10 +30,10 @@ DIRS     = $(MPIDIRS) mpid/$(DEVICE) @CPP_DIR@ @MPE_DIR@ \
 # This is a list of the devices that are available
 DEVICES  = mpid/chameleon mpid/ch_nx mpid/ch_p4 mpid/ch_nc mpid/ch_cmmd \
 	   mpid/ch_eui mpid/meiko mpid/t3d mpid/ch_meiko mpid_ch_shmem \
-	   mpid/ch_tcp mpid/ch_spp mpid/sgi
+	   mpid/ch_tcp mpid/ch_spp mpid/sgi mpid/nx
 OTHERDEVICES  = mpid/ch_nx mpid/ch_p4 mpid/ch_nc mpid/ch_cmmd mpid/ch_eui \
 		mpid/ch_meiko mpid/ch_shmem mpid/t3d \
-		mpid/ch_spp mpid/sgi
+		mpid/ch_spp mpid/sgi mpid/nx
 # mpid/ch_tcp 
 # 
 # Build the device FIRST in case the device include, used in mpiimpl.h, 
@@ -57,6 +57,7 @@ mpi:
 	$(MAKE) clean
 	$(MAKE) profile
 	$(MAKE) clean
+	/bin/rm -f util/mpirun
 	$(MAKE) mpirun
 	$(MAKE) mpireconfig
 	$(MAKE) mpiman
@@ -69,6 +70,24 @@ mpi:
 	@echo "ch_p4 device.  Other devices do not need that file)."
 	@echo " "
 	@echo "Send bugs and comments to mpi-bugs@mcs.anl.gov"
+	@echo "With any bug report, please send"
+	@echo "     The version of MPICH (e.g., 1.0.10)"
+	@echo " "
+	@echo "The output of running your program with the -mpiversion argument"
+	@echo "(e.g., mpirun -np 1 a.out -mpiversion)"
+	@echo " "
+	@echo "The output of "
+	@echo "        uname -a"
+	@echo "for your system.  If you are on an SGI system, also"
+	@echo "	       hinv"
+	@echo " "
+	@echo "If the problem is with a script like configure or mpirun, run the"
+	@echo "script with the -echo argument "
+	@echo "(e.g., mpirun -echo -np 4 a.out )"
+	@echo " "
+	@echo "If you are using a network of workstations, also send the output of"
+	@echo "bin/tstmachines or util/tstmachines."
+
 
 examples: util/mpirun
 	( cd examples ; $(MAKE) default )
@@ -164,7 +183,7 @@ profile:
 	@RANLIB@ lib/$(ARCH)/$(COMM)/libpmpi.a
 
 #
-# Make mpirun from mpirun.in
+# Make mpirun from mpirun.*.in
 #
 mpirun: util/mpirun
 
@@ -176,9 +195,13 @@ util/mpirun: util/mpirun.sh.in
 	bfile=`basename $$file .in` ; \
 	/bin/rm -f $$bfile ; \
 	cat $$file | sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
+		-e "s%\#AUTOMOUNTFIX\#%@AUTOMOUNTFIX@%g" \
 		-e "s%\#EXECER_DIR\#%$(MPIR_HOME)/util%g" \
  		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
 		-e "s%\#RSH_COMMAND\#%$(RSH_COMMAND)%g" \
+		-e "s%\#SYNCLOC\#%@SYNCLOC@%g" \
+		-e "s%\#CC\#%@CC@%g" \
+		-e "s%\#CLINKER\#%@CLINKER@%g" \
 		-e "s%\#DEFAULT_MACHINE\#%$(DEFAULT_MACHINE)%g" \
 		-e "s%\#DEFAULT_ARCH\#%$(ARCH)%g" > $$bfile ; \
 	chmod 775 $$bfile ; \
@@ -220,12 +243,16 @@ upshot: profiling/upshot/bin/upshot
 #
 # Update the install if you change this!
 profiling/upshot/bin/upshot: profiling/upshot/bin/upshot.in
-	/bin/rm -f profiling/upshot/bin/upshot
+	if [ -z "@wishloc@" ] ; then \
+	    echo "Upshot requires the tk wish shell" ; \
+	else \
+	/bin/rm -f profiling/upshot/bin/upshot ; \
 	cat profiling/upshot/bin/upshot.in | sed \
 	  -e "s%\#wishloc\#%@wishloc@%g" \
 	  -e "s%\#BITMAP_DIR\#%$(MPIR_HOME)/profiling/upshot/bitmaps%g" > \
 	    profiling/upshot/bin/upshot;\
-	chmod 775 profiling/upshot/bin/upshot
+	chmod 775 profiling/upshot/bin/upshot ; \
+	fi
 
 nupshot:
 	(cd profiling/nupshot; \
@@ -250,14 +277,12 @@ serv_p4:
 
 #
 # Changed clean to not remove the library, only the object files
+#
+# Also, it should not remove the "executables"
 clean:
-	@/bin/rm -f *~ *.ln util/mpirun util/mpireconfig util/tstmachines \
-			    util/mpicc util/mpif77 \
-			    installtest/Makefile \
-	  		    profiling/upshot/bin/upshot
 	@if [ -d profiling/wrappergen ] ; then \
 	    /bin/rm -f profiling/wrappergen/*.o ; fi
-	@if [ -d profiling/nupshot ] ; then \
+	@if [ -s profiling/nupshot/Makefile ] ; then \
 	    ( cd profiling/nupshot ; $(MAKE) clean ) ; fi
 	@if [ -d tsuite ] ; then \
 	    (cd tsuite ; $(MAKE) clean ) ; fi
@@ -278,8 +303,13 @@ clean:
 	if [ -s mpid/ch_shmem/p2ptest/Makefile ] ; then \
 	    echo "cleaning mpid/ch_shmem/p2ptest" ; \
 	    (cd mpid/ch_shmem/p2ptest ; $(MAKE) clean ) ; fi
-
+#
+# Realclean removes mpirun etc as well as the libraries.
 realclean: clean
+	@/bin/rm -f *~ *.ln util/mpirun util/mpireconfig util/tstmachines \
+			    util/mpicc util/mpif77 util/mpiinstall \
+			    installtest/Makefile \
+	  		    profiling/upshot/bin/upshot
 	-/bin/rm -f lib/*/*/*.[oa]
 	-/bin/rm -f lib/*/*.[oa]
 	if [ -n "$(TOOLS_DIR)" ] ; then  \
@@ -366,6 +396,12 @@ anlchp4ibm: configure
 	configure -arch=rs6000 -comm=ch_p4 -device=ch_p4 -mpe -no_short_longs \
 		-opt="-O"
 	@-chmod g+ws lib lib/rs6000 lib/rs6000/p4 >/dev/null 2>&1
+anlshmemibm: configure
+	@if [ `umask` != 02 -a `umask` != 0002 ] ; then \
+		echo "Set umask 2 first!" ; exit 1; fi
+	configure -arch=rs6000 -device=ch_shmem -mpe -no_short_longs \
+		-opt="-O" -compressed_pkt -nodevdebug
+	@-chmod g+ws lib lib/rs6000 lib/rs6000/ch_shmem >/dev/null 2>&1
 # euih is similar to the release 1 MPLp for the SP1.
 anleuih: configure
 	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
@@ -430,202 +466,13 @@ INSTALLDIR = /usr/local/mpi
 # The install target really needs to use some for of 'install' program that
 # will create directories, set modes and owners, etc.  Alas, such a function
 # is not standard.
-#
-install:
-	@if [ ! -s lib/$(ARCH)/$(COMM)/libmpi.a ] ; then \
-	    echo "You must make MPI before installing it!" ; exit 1 ; fi
-	@if [ ! -n "$(PREFIX)" ] ; then \
-	  echo "Set an installation location with --prefix=<location>";\
-	  echo "during configure or PREFIX=<location> during make install.";\
-	  exit 1;\
-	fi
-	@echo "Install into $(PREFIX) on the $(ARCH) with $(COMM)
-	@if [ -d $(PREFIX) ] ;\
-	then\
-	    echo 'using existing directory $(PREFIX)' ;\
-	else\
-	    mkdir $(PREFIX) ;\
-	fi
-	@if [ ! -d $(PREFIX)/lib ] ; then mkdir $(PREFIX)/lib ; fi
-	@if [ ! -d $(PREFIX)/lib/$(ARCH) ] ; then \
-	    mkdir $(PREFIX)/lib/$(ARCH) ; fi
-	@if [ ! -d $(PREFIX)/lib/$(ARCH)/$(COMM) ] ; then \
-	    mkdir $(PREFIX)/lib/$(ARCH)/$(COMM) ; fi
-	@if [ ! -d $(PREFIX)/util ] ; then mkdir $(PREFIX)/util ; fi
-	@if [ ! -d $(PREFIX)/include ] ; then \
-	    mkdir $(PREFIX)/include ; fi
-	@if [ ! -d $(PREFIX)/mpid ] ; then mkdir $(PREFIX)/mpid ; fi
-	@if [ ! -d $(PREFIX)/mpid/$(DEVICE) ] ; then \
-	    mkdir $(PREFIX)/mpid/$(DEVICE) ; fi
-	@if [ ! -d $(PREFIX)/examples ] ; then mkdir $(PREFIX)/examples; fi
-	@if [ ! -d $(PREFIX)/bin ] ; then mkdir $(PREFIX)/bin; fi
-	cp util/tarch $(PREFIX)/bin
-	cp util/tdevice $(PREFIX)/bin
-	#
-	# mpiman
-	/bin/rm -f $(PREFIX)/bin/mpiman
-	cat util/mpiman.in \
-	    | sed -e "s%\#INSTALL_DIR\#%$(PREFIX)%g" > $(PREFIX)/bin/mpiman
-	chmod 755 $(PREFIX)/bin/mpiman
-	#
-	# Upshot and Nupshot
-	/bin/rm -f $(PREFIX)/bin/upshot
-	cat profiling/upshot/bin/upshot.in | sed  \
-		-e "s%\#wishloc\#%@wishloc@%g" \
-	  	-e "s%\#BITMAP_DIR\#%$(PREFIX)/lib/bitmaps%g" > \
-		$(PREFIX)/bin/upshot
-	chmod 755 $(PREFIX)/bin/upshot
-	#
-	# Should clean nupshot sources  (*.c/h) 
-	-if [ -n "@TCL_DIR@" ] ; then \
-	    $(CPRP) -r profiling/nupshot $(PREFIX) ; \
-	    (cd $(PREFIX)/nupshot ; \
-		configure -tcldir=@TCL_DIR@ -tkdir=@TK_DIR@ ; \
-		$(MAKE) clean ; $(MAKE) ; \
-	    	mv nupshot ../bin ) ; \
-	fi
-	#
-	# mpirun et al.
-	-(cd util ; for file in mpirun.*.in tstmachines.in ; do \
-	bfile=`basename $$file .in` ; \
-	cat $$file | sed -e "s%\#MPIR_HOME\#%$(PREFIX)%g" \
-		-e "s%\#EXECER_DIR\#%$(PREFIX)/util%g" \
- 		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
-		-e "s%\#RSH_COMMAND\#%$(RSH_COMMAND)%g" \
-		-e "s%\#DEFAULT_MACHINE\#%$(DEFAULT_MACHINE)%g" \
-		-e "s%\#DEFAULT_ARCH\#%$(ARCH)%g" > $(PREFIX)/bin/$$bfile ; \
-	chmod 775 $(PREFIX)/bin/$$bfile ; \
-	/bin/rm -f $(PREFIX)/lib/$(ARCH)/$(COMM)/$$bfile ; \
-	cp $(PREFIX)/bin/$$bfile $(PREFIX)/lib/$(ARCH)/$(COMM) ; done ; \
-	mv mpirun.sh mpirun )
-	/bin/rm -f $(PREFIX)/bin/mpireconfig
-	cat util/mpireconfig.in | sed -e "s%\#MPIR_HOME\#%$(PREFIX)%g" \
-		    -e "s%\#ARCH\#%$(ARCH)%g" \
-		    -e "s%\#PREFIX\#%$(PREFIX)%g" \
-		    -e "s%\#COMM\#%$(COMM)%g" > \
-		    $(PREFIX)/bin/mpireconfig ; \
-	chmod 775 $(PREFIX)/bin/mpireconfig
-	/bin/rm -f $(PREFIX)/bin/execer
-	cp util/execer $(PREFIX)/bin/execer
-	chmod 755 $(PREFIX)/bin/execer
-	# 
-	# P4 server
-	-if [ "$(DEVICE)" = "ch_p4" ] ; then \
-	( cd mpid/ch_p4/p4-1.4/servers ; make serv_p4 ; cd ../bin ; \
-	  cp serv_p4 $(PREFIX)/bin ; chmod a+x $(PREFIX)/bin/serv_p4 ; ) \
-	fi
-	/bin/rm -f util/chp4_servs
-	cat util/chp4_servs.in | sed -e "s%\#MPIR_HOME\#%$(PREFIX)%g" \
- 		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
-		-e "s%\#RSH_COMMAND\#%$(RSH_COMMAND)%g" \
-		-e "s%\#DEFAULT_MACHINE\#%$(DEFAULT_MACHINE)%g" \
-		-e "s%\#DEFAULT_ARCH\#%$(ARCH)%g" > \
-		    $(PREFIX)/util/chp4_servs ;\
-	chmod 775 $(PREFIX)/util/chp4_servs
-	-cp $(PREFIX)/util/chp4_servs $(PREFIX)/lib/$(ARCH)/$(COMM)
-	#
-	# Machines database
-#	@if [ ! -d $(PREFIX)/util/machines.anl ] ; then \
-#	    mkdir $(PREFIX)/util/machines.anl ; fi
-#	$(CPRP) -r util/machines $(PREFIX)/util/machines.anl
-	$(CPRP) -r util/machines $(PREFIX)/util/machines
-	$(CPRP) -r profiling/upshot/bitmaps $(PREFIX)/lib/bitmaps
-	#
-	# Include files
-	cp include/mpi.h $(PREFIX)/include
-	cp include/mpi++.h $(PREFIX)/include
-	cp include/mpi++P.h $(PREFIX)/include
-	cp include/mpif.h $(PREFIX)/include
-	cp include/mpi_errno.h $(PREFIX)/include
-	cp include/binding.h $(PREFIX)/include
-	cp include/patchlevel.h $(PREFIX)/include
-	cp mpe/mpe.h $(PREFIX)/include
-	cp mpe/mpe_graphics.h $(PREFIX)/include
-	cp mpe/mpe_log.h $(PREFIX)/include
-	cp mpe/basex11.h $(PREFIX)/include
-	(cd $(PREFIX)/include ; chmod ug+rw mpi.h mpi++.h mpi++P.h mpif.h \
-	mpi_errno.h binding.h patchlevel.h mpe.h mpe_graphics.h mpe_log.h \
-	basex11.h )
-	#
-	# Libaries
-	$(CPRP) -p lib/$(ARCH)/$(COMM)/* $(PREFIX)/lib/$(ARCH)/$(COMM)
-	#
-	# Documentation
-	$(CPRP) -r man $(PREFIX)
-	$(CPRP) -r doc $(PREFIX)
-	cp ref/adiman.ps.Z $(PREFIX)/doc
-	cp ref/mpiman.ps.Z $(PREFIX)/doc
-	#
-	# Example programs
-	cp installtest/Makefile.in $(PREFIX)/examples
-	chmod ug+wr $(PREFIX)/examples/Makefile.in
-	#
-	# This SHOULD use mpireconfig...
-	@cat installtest/makefile.proto | sed \
-		-e "s%\#ARCH\#%@ARCH@%g" \
-		-e "s%\#COMM\#%@COMM@%g" \
-		-e "s%\#INSTALL_DIR\#%$(PREFIX)%g" \
-		-e "s%\#CC\#%@CC@%g" \
-		-e "s%\#CLINKER\#%@CLINKER@%g" \
-		-e "s%\#F77\#%@F77@%g" \
-		-e "s%\#FLINKER\#%@FLINKER@%g" \
-		-e "s%\#OPTFLAGS\#%@OPTFLAGS@%g" \
-		-e "s%\#LIB_LIST\#%@LIB_LIST@%g" \
-		-e "s%\#FLIB_PATH_LEADER\#%@FLIB_PATH_LEADER@%g" \
-		-e "s%\#INCLUDE_PATH\#%@INCLUDE_PATH@%g" \
-		-e "s%\#FFLAGS\#%@FFLAGS@%g" \
-		-e "s%\#CFLAGS\#%@CFLAGS@%g" > installtest/Makefile
-	cp installtest/cpi.c $(PREFIX)/examples
-	cp installtest/pi3.f $(PREFIX)/examples
-	cp installtest/cpilog.c $(PREFIX)/examples
-	cp installtest/Makefile $(PREFIX)/examples
-	(cd $(PREFIX)/examples ; chmod ug+rw Makefile cpi.c pi3.f cpilog.c \
-	Makefile )
-	#
-	# Test build the examples
-	(cd $(PREFIX)/examples ; /bin/rm -f mpirun ; \
-	  ln -s ../bin/mpirun mpirun )
-	cat config.status | sed -e "s%MPIR_HOME=.*$$%MPIR_HOME='$(PREFIX)'%g" \
-  -e "s%^LIB_PATH=\([^/]*\)/.*$$%LIB_PATH=\1$(PREFIX)/lib/$(ARCH)/$(COMM)'%g" \
--e "s%^FLIB_PATH=\([^/]*\)/.*$$%FLIB_PATH=\1$(PREFIX)/lib/$(ARCH)/$(COMM)'%g" \
-			-e "s%MPE_DIR=.*$$%MPE_DIR='$(PREFIX)/mpe'%g" \
-			        > $(PREFIX)/config.status
-	/bin/rm -f $(PREFIX)/examples/mpif.h
-	ln -s $(PREFIX)/include/mpif.h $(PREFIX)/examples/mpif.h
-	# We should never do wildcarded permission changes.  As necessary,
-	# do them as the files are moved.
-	#-chmod -R ug+rw $(PREFIX)
-	echo "About to run installation test..."
-	(cd $(PREFIX)/examples; $(MAKE))
-	@echo installed $(ARCH)/$(COMM)/$(DEVICE) MPI in $(PREFIX)
+# Note that clean removes mpirun (!) so we need to make sure that it is
+# around before doing the instal
+install: mpirun util/mpiinstall
+	util/mpiinstall -prefix=$(PREFIX)
 
-
-installlib:
-	@if [ ! -n "$(PREFIX)" ]; then \
-	  echo "Set an installation location with --prefix=<location>"; \ 
-	  echo "during configure or PREFIX=<location> during make installlib."; \
-	  exit 1; \
-	fi
-	@echo "Install new libs into $(PREFIX) for $(ARCH)/$(COMM)"
-	@if [ -d $(PREFIX) ] ;\
-	then\
-	    echo 'using existing directory $(PREFIX)' ;\
-	else\
-	    mkdir $(PREFIX) ;\
-	fi
-	@if [ ! -d $(PREFIX)/lib ] ; then mkdir $(PREFIX)/lib ; fi
-	@if [ ! -d $(PREFIX)/lib/$(ARCH) ] ; then \
-	    mkdir $(PREFIX)/lib/$(ARCH) ; fi
-	@if [ ! -d $(PREFIX)/lib/$(ARCH)/$(COMM) ] ; then \
-	    mkdir $(PREFIX)/lib/$(ARCH)/$(COMM) ; fi
-	-$(CPRP) -p lib/$(ARCH)/$(COMM)/* $(PREFIX)/lib/$(ARCH)/$(COMM)
-	@if [ ! -d $(PREFIX)/mpid ] ; then mkdir $(PREFIX)/mpid ; fi
-	@if [ ! -d $(PREFIX)/mpid/$(DEVICE) ] ; then \
-	    mkdir $(PREFIX)/mpid/$(DEVICE) ; fi
-#	-cp mpid/$(DEVICE)/*.h $(PREFIX)/mpid/$(DEVICE)
-#       We need to be more careful about permissions
-#	-chmod -R ug+rw $(PREFIX)
-	@echo installed $(ARCH)/$(COMM)/$(DEVICE) MPI in $(PREFIX)
+installlib: mpirun util/mpiinstall
+	util/mpiinstall -prefix-$(PREFIX) -libonly
 
 #
 # Install adds ALL of the examples to the installation area
@@ -633,9 +480,13 @@ installlib:
 install-all: install
 	-$(CPRP) -r examples $(PREFIX)
 	# Update the makefiles
-	(cd $(PREFIX)/examples ; for dir in `find -type d -print` ; do \
-		(cd $$dir ; \
-		if [ -s Makefile.in ] ; then \
-		    $(PREFIX)/lib/$(ARCH)/$(COMM)/mpireconfig Makefile ; \
-		fi ) )
+	(cd $(PREFIX)/examples ; \
+		$(PREFIX)/lib/$(ARCH)/$(COMM)/mpireconfig Makefile ; \
+		for dir in `find -type d -print` ; do \
+			(cd $$dir ; \
+			if [ -s Makefile.in ] ; then \
+			$(PREFIX)/lib/$(ARCH)/$(COMM)/mpireconfig Makefile ; \
+			fi ) ; \
+		done \
+	)
 

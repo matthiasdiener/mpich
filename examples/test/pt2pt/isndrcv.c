@@ -337,7 +337,7 @@ ReceiverTest2()
 		    "*** Incorrect Count returned, Count = %d. ***\n", 
 		    dummy);
 	    Test_Failed(message);
-	} else if(CheckBuffer(buffer, MPI_INT, stdbufferlen)) {
+	} else if(CheckBuffer( (void *)buffer, MPI_INT, stdbufferlen)) {
 	    fprintf(stderr, "*** Incorrect Message received. ***\n");
 	    Test_Failed(message);
 	    passed = 0;

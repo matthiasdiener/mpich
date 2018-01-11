@@ -2,4 +2,8 @@
 #
 # Take the input file name and remove code for heterogeneous processing, 
 #  writing to stdout
-sed -e '/#HETERO_START#/,/#HETERO_END#/d' $1
+if [ -n "$1" ] ; then 
+    sed -e '/#HETERO_START#/,/#HETERO_END#/d' $1
+else
+    sed -e '/#HETERO_START#/,/#HETERO_END#/d'
+fi

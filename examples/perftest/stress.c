@@ -232,11 +232,10 @@ int EachToAllNB( pattern, size )
 int pattern;
 int size;
 {
-int sender, dest, tag, from, err=0, bufmsize, actsize, bufsize;
+int sender, dest, tag, from, err=0, bufmsize, actsize, bufsize, i;
 char *sbuffer, *rbuffer;
 MPI_Request *sid;
 MPI_Request *rid;
-int i;
 
 sbuffer = (char *)malloc((unsigned)(__NUMNODES * size * sizeof(long) ));  if (!sbuffer)return 0;;
 rbuffer = (char *)malloc((unsigned)(__NUMNODES * size * sizeof(long) ));  if (!rbuffer)return 0;;

@@ -1,0 +1,12 @@
+#! /bin/sh
+#
+# Take the input file name and remove code for shared memory
+# (MPID_USE_GET) processing, 
+#  writing to stdout
+if [ -n "$1" ] ; then 
+    sed -e '/#GET_START#/,/#GET_END#/d' -e 's%/\*#NONGET_START#\*/%%g' \
+	-e 's%/\*#NONGET_END#\*/%%g' $1
+else
+    sed -e '/#GET_START#/,/#GET_END#/d' -e 's%/\*#NONGET_START#\*/%%g' \
+	-e 's%/\*#NONGET_END#\*/%%g'
+fi

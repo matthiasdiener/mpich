@@ -1,7 +1,7 @@
 **** Testing MPI_Cart_coords etc ****
-# The maximum space allocated was 2192 bytes [0]
-# The maximum space allocated was 2192 bytes [0]
-# The maximum space allocated was 2192 bytes [0]
+# The maximum space allocated was 2296 bytes [0]
+# The maximum space allocated was 2296 bytes [0]
+# The maximum space allocated was 2296 bytes [0]
 All processes completed test
-# The maximum space allocated was 2192 bytes [0]
+# The maximum space allocated was 2296 bytes [0]
 **** Testing MPI_Cart_coords etc ****

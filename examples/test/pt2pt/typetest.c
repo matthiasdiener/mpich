@@ -8,6 +8,9 @@
 #include "test.h"
 #include "mpi.h"
 #include <string.h>
+/* CM5 users need to comment out the next include (memory.h) because 
+   of an error in the CM5 include file (memory.h is inconsistent with
+   string.h) */
 #include <memory.h>
 
 struct struct1 {
@@ -297,9 +300,12 @@ return message.");
 	Test_Waitforall( );
     }
 
+    if (rank == master_rank) { 	
+	(void)Summarize_Test_Results();
+	Test_Finalize();
+	}
+
     MPI_Finalize();
-    (void)Summarize_Test_Results();
-    Test_Finalize();
 
 return 0;
 }

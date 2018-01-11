@@ -5,18 +5,23 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: shmempriv.c,v 1.8 1995/07/26 16:56:53 gropp Exp $";
+static char vcid[] = "$Id: shmempriv.c,v 1.11 1995/09/29 22:34:39 gropp Exp $";
 #endif
 
 #include "mpid.h"
 
 /* MPID_shmem is not volatile but its contents are */
 MPID_SHMEM_globmem *MPID_shmem = 0;
+/* LOCAL copy of some of MPID_shmem */
+MPID_SHMEM_lglobmem MPID_lshmem;
 int                 MPID_myid = -1;
 int                 MPID_numids = 0;
 MPID_PKT_T          *MPID_local = 0;
 VOLATILE MPID_PKT_T **MPID_incoming = 0;
 
+/*
+   Get an integer from the environment; otherwise, return defval.
+ */
 int MPID_GetIntParameter( name, defval )
 char *name;
 int  defval;
@@ -77,21 +82,36 @@ if (!MPID_shmem) {
 
 /* Initialize the shared memory */
 MPID_shmem->globid = 0;
+
+MPID_shmem->barrier.phase = 1;
+MPID_shmem->barrier.cnt1  = numprocs;
+MPID_shmem->barrier.cnt2  = 0;
+MPID_shmem->barrier.size  = numprocs;
+
 p2p_lock_init( &MPID_shmem->globlock );
 cnt	      = 0;    /* allocated packets */
 /* The following is rough if numprocs doesn't divide the MAX_PKTS */
 pkts_per_proc = MPID_SHMEM_MAX_PKTS / numprocs;
 
 for (i=0; i<numprocs; i++) {
+    /* setup the local copy of the addresses of objects in MPID_shmem */
+    MPID_lshmem.availlockPtr[i]	   = &MPID_shmem->availlock[i];
+    MPID_lshmem.incominglockPtr[i] = &MPID_shmem->incominglock[i];
+    MPID_lshmem.incomingPtr[i]	   = &MPID_shmem->incoming[i];
+    MPID_lshmem.availPtr[i]	   = &MPID_shmem->avail[i];
+
+    /* Initialize the shared memory data structures */
     MPID_shmem->incoming[i].head     = 0;
     MPID_shmem->incoming[i].tail     = 0;
 
     /* Setup the avail list of packets */
     MPID_shmem->avail[i].head = MPID_shmem->pool + cnt;
-    for (j=0; j<pkts_per_proc-1; j++) {
+    for (j=0; j<pkts_per_proc; j++) {
 	MPID_shmem->pool[cnt+j].head.next = 
 	  ((MPID_PKT_T *)MPID_shmem->pool) + cnt + j + 1;
+	MPID_shmem->pool[cnt+j].head.src = i;
 	}
+    /* Clear the last "next" pointer */
     MPID_shmem->pool[cnt+pkts_per_proc-1].head.next = 0;
     cnt += pkts_per_proc;
 
@@ -103,24 +123,84 @@ MPID_numids = numprocs;
 
 /* Above this point, there was a single process.  After the p2p_create_procs
    call, there are more */
+p2p_setpgrp();
 p2p_create_procs( numprocs - 1 );
 
 p2p_lock( &MPID_shmem->globlock );
 MPID_myid = MPID_shmem->globid++;
 p2p_unlock( &MPID_shmem->globlock );
+MPID_SHMEM_FreeSetup();
 
 MPID_incoming = &MPID_shmem->incoming[MPID_myid].head;
 }
 
+void MPID_SHMEM_lbarrier()
+{
+VOLATILE int *cnt, *cntother;
+
+/* Figure out which counter to decrement */
+if (MPID_shmem->barrier.phase == 1) {
+    cnt	     = &MPID_shmem->barrier.cnt1;
+    cntother = &MPID_shmem->barrier.cnt2;
+    }
+else {
+    cnt	     = &MPID_shmem->barrier.cnt2;
+    cntother = &MPID_shmem->barrier.cnt1;
+    }
+
+/* Decrement it atomically */
+p2p_lock( &MPID_shmem->globlock );
+*cnt = *cnt - 1;
+p2p_unlock( &MPID_shmem->globlock );
+    
+/* Wait for everyone to to decrement it */
+while ( *cnt ) p2p_yield();
+
+/* If process 0, change phase. Reset the OTHER counter*/
+if (MPID_myid == 0) {
+    MPID_shmem->barrier.phase = ! MPID_shmem->barrier.phase;
+    *cntother = MPID_shmem->barrier.size;
+    }
+else 
+    while (! *cntother) p2p_yield();
+}
+
 void MPID_SHMEM_finalize()
 {
+VOLATILE int *globid;
+
 fflush(stdout);
 fflush(stderr);
-/* Wait for everyone to finish */
+
+/* There is a potential race condition here if we want to catch
+   exiting children.  We should probably have each child indicate a successful
+   termination rather than this simple count.  To reduce this race condition,
+   we'd like to perform an MPI barrier before clearing the signal handler.
+
+   However, in the current code, MPID_xxx_End is called after most of the
+   MPI system is deactivated.  Thus, we use a simple count-down barrier.
+   Eventually, we the fast barrier routines.
+ */
+/* MPI_Barrier( MPI_COMM_WORLD ); */
+MPID_SHMEM_lbarrier();
+p2p_clear_signal();
+
+/* Wait for everyone to finish 
+   We can NOT simply use MPID_shmem->globid here because there is always the 
+   possibility that some process is already exiting before another process
+   has completed starting (and we've actually seen this behavior).
+   Instead, we perform an additional MPI Barrier.
+*/
+MPID_SHMEM_lbarrier();
+/* MPI_Barrier( MPI_COMM_WORLD ); */
+#ifdef FOO
+globid = &MPID_shmem->globid;
 p2p_lock( &MPID_shmem->globlock );
 MPID_shmem->globid--;
 p2p_unlock( &MPID_shmem->globlock );
-while (MPID_shmem->globid) ;
+/* Note that this forces all jobs to spin until everyone has exited */
+while (*globid) p2p_yield(); /* MPID_shmem->globid) ; */
+#endif
 
 p2p_cleanup();
 }
@@ -132,7 +212,8 @@ p2p_cleanup();
   This routine maintains and internal list of elements; this allows it to
   read from that list without locking it.
  */
-#define BACKOFF_LMT 1048576
+/* #define BACKOFF_LMT 1048576 */
+#define BACKOFF_LMT 1024
 /* 
    This version assumes that the packets are dynamically allocated (not off of
    the stack).  This lets us use packets that live in shared memory.
@@ -151,28 +232,37 @@ if (MPID_local) {
     MPID_local = MPID_local->head.next;
     }
 else {
-    if (!MPID_shmem->incoming[MPID_myid].head) {
-	/* This code tries to let other processes get to run.  If there
+    if (!MPID_lshmem.incomingPtr[MPID_myid]->head) {
+	/* This code tries to let other processes run.  If there
 	   are more physical processors than processes, then a simple
-	   while (!MPID_shmem->incoming[MPID_myid].head);
-	   might be better */
+	       while (!MPID_shmem->incoming[MPID_myid].head);
+	   might be better.
+	   We might also want to do
+
+	       VOLATILE MPID_PKT_T *msg_ptr = 
+	           &MPID_shmem->incoming[MPID_myid].head;
+	       while (!*msg_ptr) { .... }
+
+	   This code should be tuned with vendor help, since it depends
+	   on fine details of the hardware and system.
+	   */
 	backoff = 1;
-	while (!MPID_shmem->incoming[MPID_myid].head) {
+	while (!MPID_lshmem.incomingPtr[MPID_myid]->head) {
 	    cnt	    = backoff;
 	    while (cnt--) ;
 	    backoff = 2 * backoff;
 	    if (backoff > BACKOFF_LMT) backoff = BACKOFF_LMT;
-	    if (MPID_shmem->incoming[MPID_myid].head) break;
+	    if (MPID_lshmem.incomingPtr[MPID_myid]->head) break;
 	    p2p_yield();
 	    }
 	}
     /* This code drains the ENTIRE list into a local list */
-    p2p_lock( &MPID_shmem->incominglock[MPID_myid] );
+    p2p_lock( MPID_lshmem.incominglockPtr[MPID_myid] );
     inpkt          = (MPID_PKT_T *) *MPID_incoming;
     MPID_local     = inpkt->head.next;
     *MPID_incoming = 0;
-    MPID_shmem->incoming[MPID_myid].tail = 0;
-    p2p_unlock( &MPID_shmem->incominglock[MPID_myid] );
+    MPID_lshmem.incomingPtr[MPID_myid]->tail = 0;
+    p2p_unlock( MPID_lshmem.incominglockPtr[MPID_myid] );
     }
 
 /* Deliver this packet to the caller */
@@ -180,22 +270,62 @@ else {
 
 *from = (*inpkt).head.src;
 
-MPID_TRACE_CODE_PKT("Readpkt",*from,inpkt);
+MPID_TRACE_CODE_PKT("Readpkt",*from,(*inpkt).head.mode);
 
 return MPI_SUCCESS;
+}
+
+
+/*
+   Rather than free recv packets every time, we accumulate a few
+   and then return them in a group.  
+
+   This is useful when a processes sends several messages to the same
+   destination.
+   
+   This keeps a list for each possible processor, and returns them
+   all when MAX_PKTS_FREE are available FROM ANY SOURCE.
+ */
+#define MAX_PKTS_FREE 10
+static MPID_PKT_T *FreePkts[MPID_MAX_PROCS];
+static MPID_PKT_T *FreePktsTail[MPID_MAX_PROCS];
+static int to_free = 0;
+
+void MPID_SHMEM_FreeSetup()
+{
+int i;
+for (i=0; i<MPID_numids; i++) FreePkts[i] = 0;
 }
 void MPID_SHMEM_FreeRecvPkt( pkt )
 MPID_PKT_T *pkt;
 {
-int        src;
+int        src, i;
+MPID_PKT_T *tail;
 
-src = (*pkt).head.src;
+MPID_TRACE_CODE_PKT("Freepkt",-1,(pkt->head.mode));
 
-MPID_TRACE_CODE_PKT("Freepkt",-1,pkt);
-p2p_lock( &MPID_shmem->availlock[src] );
-pkt->head.next       = (MPID_PKT_T *)MPID_shmem->avail[src].head;
-MPID_shmem->avail[src].head = pkt;
-p2p_unlock( &MPID_shmem->availlock[src] );
+src	       = pkt->head.src;
+pkt->head.next = FreePkts[src];
+/* Set the tail if we're the first */
+if (!FreePkts[src])
+    FreePktsTail[src] = pkt;
+FreePkts[src]  = pkt;
+to_free++;
+
+if (to_free >= MAX_PKTS_FREE) {
+    for (i=0; i<MPID_numids; i++) {
+	if (pkt = FreePkts[i]) {
+	    tail			  = FreePktsTail[i];
+	    p2p_lock( MPID_lshmem.availlockPtr[i] );
+	    tail->head.next		  = 
+		(MPID_PKT_T *)MPID_lshmem.availPtr[i]->head;
+	    MPID_lshmem.availPtr[i]->head = pkt;
+	    p2p_unlock( MPID_lshmem.availlockPtr[i] );
+	    FreePkts[i] = 0;
+	    }
+	}
+    to_free = 0;
+    }
 }
 
 /* 
@@ -205,6 +335,14 @@ p2p_unlock( &MPID_shmem->availlock[src] );
 
    We should probably make "localavail" global, then we can use a macro
    to allocate packets as long as there is a local supply of them.
+
+   For example, just
+       extern MPID_PKT_T *MPID_localavail = 0;
+   and the
+   #define ...GetSendPkt(inpkt) \
+   {if (MPID_localavail) {inpkt= MPID_localavail; \
+   MPID_localavail=inpkt->head.next;}else inpkt = routine();\
+   inpkt->head.next = 0;}
  */
 MPID_PKT_T *MPID_SHMEM_GetSendPkt()
 {
@@ -215,24 +353,23 @@ if (localavail) {
     inpkt      = localavail;
     }
 else {
-    /* WARNING: THIS CODE DOES A SLEEP 
-       IF THERE ARE NO AVAILABLE LOCAL PACKETS */
+    /* If there are no available packets, this code does a yield */
     do {
-        p2p_lock( &MPID_shmem->availlock[MPID_myid] );
+        p2p_lock( MPID_lshmem.availlockPtr[MPID_myid] );
         inpkt			     = 
-	  (MPID_PKT_T *)MPID_shmem->avail[MPID_myid].head;
-        MPID_shmem->avail[MPID_myid].head = 0;
-        p2p_unlock( &MPID_shmem->availlock[MPID_myid] );
+	  (MPID_PKT_T *)MPID_lshmem.availPtr[MPID_myid]->head;
+        MPID_lshmem.availPtr[MPID_myid]->head = 0;
+        p2p_unlock( MPID_lshmem.availlockPtr[MPID_myid] );
 #ifdef MPID_DEBUG_ALL
 	if (!inpkt)
 	    MPID_TRACE_CODE("No freePkt",-1);
 #endif
-        } while (!inpkt && (sleep(1),1));
+        } while (!inpkt && (p2p_yield(),1));
     }
 localavail	 = inpkt->head.next;
 inpkt->head.next = 0;
 
-MPID_TRACE_CODE_PKT("Allocsendpkt",-1,inpkt);
+MPID_TRACE_CODE_PKT("Allocsendpkt",-1,inpkt->head.mode);
 
 return inpkt;
 }
@@ -244,24 +381,55 @@ int        size, dest;
 MPID_PKT_T *tail;
 
 /* Place the actual length into the packet */
-MPID_TRACE_CODE_PKT("Sendpkt",dest,pkt);
+MPID_TRACE_CODE_PKT("Sendpkt",dest,pkt->head.mode);
 
 pkt->head.pkt_len = size;
 pkt->head.src     = MPID_myid;
 pkt->head.next    = 0;           /* Should already be true */
 
-p2p_lock( &MPID_shmem->incominglock[dest] );
-tail = (MPID_PKT_T *)MPID_shmem->incoming[dest].tail;
+p2p_lock( MPID_lshmem.incominglockPtr[dest] );
+tail = (MPID_PKT_T *)MPID_lshmem.incomingPtr[dest]->tail;
 if (tail) 
     tail->head.next = pkt;
 else
-    MPID_shmem->incoming[dest].head = pkt;
+    MPID_lshmem.incomingPtr[dest]->head = pkt;
 
-MPID_shmem->incoming[dest].tail = pkt;
-p2p_unlock( &MPID_shmem->incominglock[dest] );
+MPID_lshmem.incomingPtr[dest]->tail = pkt;
+p2p_unlock( MPID_lshmem.incominglockPtr[dest] );
 
 return MPI_SUCCESS;
 }
+
+#if 0 && defined(MPI_cspp)
+#include <sys/cnx_sysinfo.h>
+#include <sys/cnx_pattr.h>
+void SY_GetHostName( name, nlen )
+int  nlen;
+char *name;
+{
+cnx_is_target_t target;
+char  p[1024], *addr = p;
+struct pattributes pattrib;
+
+/* This sets the target to get process info for my process */
+cnx_sysinfo_target_process( &target, getpid() );
+
+/* An id of CNX_IS_PROCESS_BASIC_INFO gets information on the process, but 
+   not the location of the process */
+cnx_sysinfo( id, target, addr, nel, lel, elavail );
+
+/* Get the subcomplex id into pattrib.pattr_scid */
+cnx_getpattr( getpid(), CNX_PATTR_SCID, &pattrib );
+
+/* Now that we have the subcomplex id, we use sysinfo to get more info about 
+   it (but can we get the information about a SINGLE node, or does this
+   tell us about the whole subcomplex? 
+  */
+cnx_sysinfo_target_( &target, pattrib.pattr_scid );
+cnx_sysinfo( CNS_IS_SCNODE_BASIC_INFO, &scnode_info, .... );
+scnode_info.node , .physical_node, cpus[CNX_MAX_CPUS_PER_NODE]
+}
+#else
 
 #ifdef HAVE_UNAME
 #include <sys/utsname.h>
@@ -299,7 +467,7 @@ char *name;
 #endif
   }
 }
-
+#endif
 /* 
    Return the address the destination (dest) should use for getting the 
    data at in_addr.  len is INOUT; it starts as the length of the data

@@ -4,23 +4,35 @@
 # to make sure that it is accessible and can run programs.  This is only
 # a partial test
 #
+verbose=0
 rsh="#RSH_COMMAND#"
 # Could use #DEFAULT_ARCH#
 # and #DEFAULT_DEVICE# to see if we should check....
 for arg in "$@" ; do
     case $arg in 
         -echo) set -x ;;
+	-v) verbose=1 ;;
         -help) cat <<.
+Usage: 
+     tstmachines [ -echo ] [ -v ] architecture
 Tests that you can run remote shells with $rsh on the systems in 
 your machines file and that executables are all cross-mounted.  To run this
 test, you must be able to create files in the current directory.
+
+If there are problems with some of the machines, this test may take several
+minutes per problem machine.  
 .
         exit 1 
 	;;
         *) arch=$arg ;;
     esac
 done
+#
 MPIR_HOME="#MPIR_HOME#"
+if [ -z "$arch" ] ; then
+    arch=`$MPIR_HOME/bin/tarch`
+fi
+#
 machineFile="${MPIR_HOME}/util/machines/machines.${arch}"
 if [ ! -f $machineFile ] ; then
     echo "Cannot read list of nodes $machineFile"
@@ -30,32 +42,104 @@ list=`cat $machineFile | sed -e '/\#/d' | tr -s '\012' ' '`
 /bin/rm -f foo
 echo "A test" > foo
 # Use same mechanism as in mpirun to get the value of pwd...
+if [ -n "#AUTOMOUNTFIX#" ] ; then
+    PWDtest=`pwd | #AUTOMOUNTFIX#`
+    if [ ! -d $PWDtest ] ; then
+        PWDtest=`pwd`
+    fi
+    if [ -n "$PWD" ] ; then
+        /bin/rm -f $PWDtest/.mpirtmp $PWD/.mpirtmp
+        echo "test" > $PWD/.mpirtmp
+        if [ ! -s $PWDtest/.mpirtmp ] ; then
+            PWD=$PWDtest
+        fi
+        /bin/rm -f $PWDtest/.mpirtmp $PWD/.mpirtmp
+    else 
+        PWD=$PWDtest
+    fi
+else
+    PWD=`pwd`
+fi
+#
 if [ -n "$PWD" ] ; then
     PWD_TRIAL=$PWD
 else
+    PWD_TRIAL=$PWDtest
+fi
+if [ ! -d $PWD_TRIAL ] ; then 
+    echo "Warning: your default path uses the automounter; this may"
+    echo "cause some problems if you use other NFS-connected systems."
     PWD_TRIAL=`pwd`
 fi
-if [ -n "$PWD_TRIAL" ] ; then
-    PWD_TRIAL=`echo $PWD_TRIAL | sed -e 's%/tmp_mnt/%/%g'`
-    if [ ! -d $PWD_TRIAL ] ; then 
-        echo "Warning: your default path uses the automounter; this may"
-        echo "cause some problems if you use other NFS-connected systems."
-        PWD_TRIAL=`pwd`
-    fi
-fi
+#
+# First try running ls
 myprog=$PWD_TRIAL/foo
 errcnt=0
+livelist=""
+printedheader=""
 for machine in $list ; do
+    if [ $verbose = 1 ] ; then 
+	echo "Trying ls on $machine ..."
+    fi
     output=`$rsh $machine ls $myprog 2>&1`
     if [ "$output" != "$myprog" ] ; then
+	if [ -z "$printedheader" ] ; then
+	    echo "Errors while trying to run ls $myprog"
+	    printedheader=1
+	fi
 	echo "Unexpected response from $machine:"
         echo "--> $output"
 	errcnt=`expr $errcnt + 1`
+    else
+	livelist="$livelist $machine"
     fi
 done
 /bin/rm -f foo
+#
+# Now, try running a simple program
+/bin/rm -f tstfoo.c 
+cat >tstfoo.c <<.
+main(){return 0;}
+.
+#CC# -c tstfoo.c
+#CLINKER# -o tstfoo tstfoo.o
+if [ ! -x tstfoo ] ; then
+    echo "Could not build a sample program using #CC# and #CLINKER#!"
+    exit 1
+fi
+myprog=$PWD_TRIAL/tstfoo
+list="$livelist"
+livelist=""
+printedheader=""
+for machine in $list ; do
+    if [ $verbose = 1 ] ; then 
+	echo "Trying user program on $machine ..."
+    fi
+    output=`$rsh $machine $myprog 2>&1`
+    if [ "$output" != "" ] ; then
+	if [ -z "$printedheader" ] ; then
+	    echo "Errors while trying to run a simple C program"
+	    printedheader=1
+	fi
+	echo "Unexpected response from $machine:"
+        echo "--> $output"
+	errcnt=`expr $errcnt + 1`
+    else
+	livelist="$livelist $machine"
+    fi
+done
+/bin/rm -f tstfoo tstfoo.c tstfoo.o
 if [ $errcnt -gt 0 ] ; then
+    echo " "
     echo "$errcnt errors were encountered while testing the machines list for $arch"
+    if [ -n "$livelist" ] ; then
+	echo "Only these machines seem to be available"
+	for machine in $livelist ; do
+	    echo "    $machine"
+	done
+    else
+	echo "No machines seem to be available!"
+    fi
     exit 1
 fi
 exit 0

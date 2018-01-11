@@ -74,6 +74,11 @@ int child, i;
 	args[i++] = "-P";
 #elif defined(MPI_IRIX)
 	args[i++] = "-p";
+#elif defined(MPI_rs6000)
+	/* Note that rs6000 dbx PROHIBITS passing the name of the program(!),
+	   at least in some versions! If one of the "baseargs" is
+           the program name, we're dead.  Sigh. */
+	args[i++] = "-a";
 #endif
 	args[i++] = pid;
 	args[i++] = 0;
@@ -88,6 +93,11 @@ int child, i;
 	args[i++] = "-P";
 #elif defined(MPI_IRIX)
 	args[i++] = "-p";
+#elif defined(MPI_rs6000)
+	/* Note that rs6000 dbx PROHIBITS passing the name of the program(!),
+	   at least in some versions! */
+	i--;      /* Back up over the program name */
+	args[i++] = "-a";
 #endif
 	args[i++] = pid; args[i++] = 0;
     }

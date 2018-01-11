@@ -8,14 +8,14 @@
 # -nomake               Do not run make
 # -noperf               Do not run performance tests
 # -file=name            Output LaTeX file (default is doc/doc1.tex)
-author="`whoami`"
+author="$LOGNAME"
 nomake=0
 noperf=0
 filename="doc/doc1make.tex"
 for arg in "$@" ; do
     case $arg in 
 	-author=* )
-	author="`echo $arg|sed 's/-author=//'`"
+	author="`echo $arg|sed -e 's/-author=//' -e 's/_/ /'`"
 	;;
 	-file=* )
 	filebase=`echo $arg|sed 's/-file=//'`
@@ -26,6 +26,9 @@ for arg in "$@" ; do
 	;;
  	-noperf )
 	noperf=1
+	;;
+	-echo)
+	set -x
 	;;
 	*)
 	if test -n "$arg" ; then
@@ -94,7 +97,7 @@ fi
 if test $nomake = 0 ; then 
     cat >>$filename <<.
 \section{Building MPICH}
-MPICH was built using the @MAKE@ program.
+MPICH was built using the \code{@MAKE@} program.
 It took $hours $mins to build the MPI libraries.
 .
     #

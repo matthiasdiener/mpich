@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_util.c,v 1.19 1995/05/09 18:50:44 gropp Exp $
+ *  $Id: attr_util.c,v 1.20 1995/09/18 15:41:17 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -33,7 +33,10 @@ MPIR_HBT_node *node;
   attr_key->ref_count ++;
   if (attr_key->copy_fn != (int (*)())0) {
       if (attr_key->FortranCalling) {
-          int inval = (int)node->value;
+	  /* The following code attempts to suppress warnings about 
+	     converting an int, stored in a void *, back to an int. */
+	  MPI_Aint  invall = (MPI_Aint)node->value;
+          int inval = (int)invall;
           mpi_errno = (*(attr_key->copy_fn))(&comm, &node->keyval, 
                                              attr_key->extra_state,
                                              &inval, 
@@ -124,7 +127,8 @@ MPIR_HBT_node *node;
       attr_key->ref_count --;
     if ( attr_key->delete_fn != (int (*)())0 ) {
 	if (attr_key->FortranCalling) {
-	    int inval = (int)node->value;
+	    MPI_Aint  invall = (MPI_Aint)node->value;
+	    int inval = (int)invall;
 	    (void ) (*(attr_key->delete_fn))(&comm, &node->keyval, 
 					     &inval, 
 					     attr_key->extra_state);

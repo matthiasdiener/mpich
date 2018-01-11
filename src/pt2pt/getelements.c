@@ -1,12 +1,12 @@
 /*
- *  $Id: getelements.c,v 1.3 1995/07/25 22:23:42 gropp Exp $
+ *  $Id: getelements.c,v 1.4 1995/09/18 15:39:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: getelements.c,v 1.3 1995/07/25 22:23:42 gropp Exp $";
+static char vcid[] = "$Id: getelements.c,v 1.4 1995/09/18 15:39:26 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -18,7 +18,7 @@ static char vcid[] = "$Id: getelements.c,v 1.3 1995/07/25 22:23:42 gropp Exp $";
    See src/dmpi/pkutil.c (routine MPIR_PrintDatatypeUnpack) for an 
    example of its use.
 
-   This assumes that this is called only for primative datatypes.
+   This assumes that this is called only for primitive datatypes.
  */
 int MPIR_Elementcount( src, num, datatype, inbytes, dest, ctx )
 char         *dest, *src;
@@ -85,6 +85,8 @@ int          *elements;
 	 items.  It could be ceil(status->count/datatype->size) .
 	 Alternately, we could check that used_len >= srclen - epsilon
 	 (in case there isn't enough for the last item).
+
+	 Why isn't this correct?
        */
       MPIR_Unpack2( (char *)&i_dummy, count, datatype, 
 		    MPIR_Elementcnt, (void *)elements, (char *)&i_dummy,

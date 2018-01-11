@@ -19,10 +19,12 @@
 #define NET_DONE 2
 #define NET_RESPONSE 3
 
+#ifndef SOCK_BUFF_SIZE
 #if defined(SP1)
 #define SOCK_BUFF_SIZE 16384
 #else
 #define SOCK_BUFF_SIZE 4096
+#endif
 #endif
 
 #define UNRESERVED_PORT 5001

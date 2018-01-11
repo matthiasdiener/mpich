@@ -1,24 +1,24 @@
 # Generated automatically from Makefile.in by configure.
 
-DEFS =   -DHAVE_STDLIB_H=1 -DHAVE_SYSTEM=1 -DHAVE_NICE=1
+DEFS =  -D_ALL_SOURCE=1 -DSTDC_HEADERS=1  -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -DHAVE_SYSTEM=1 -DHAVE_NICE=1
 
 ##### User configurable options #####
 
-ARCH        = sun4
+ARCH        = rs6000
 COMM        = ch_shmem
 BOPT        = 
 P4_DIR      = 
 TOOLS_DIR   = 
-MPIR_HOME   = /home/MPI/mpich
-CC          = cc
-F77         = f77
+MPIR_HOME   = /home/gropp/mpich
+CC          = xlC
+F77         = xlf
 AR          = ar crl
 RANLIB      = ranlib
 INCLUDE_DIR =  -I../../mpid/ch_shmem -I../../include
 DEVICE      = ch_shmem
-OPTFLAGS    = 
-LIB_PATH    = -L/home/MPI/mpich/lib/sun4/ch_shmem 
-FLIB_PATH   = -L/home/MPI/mpich/lib/sun4/ch_shmem 
+OPTFLAGS    = -O
+LIB_PATH    = -L/home/gropp/mpich/lib/rs6000/ch_shmem 
+FLIB_PATH   = -L/home/gropp/mpich/lib/rs6000/ch_shmem 
 LIB_LIST    = -lmpi
 
 ### End User configurable options ###
@@ -64,7 +64,7 @@ clean:
 configure:
 	autoheader
 	autoconf
-    
+
 cleanconfigure:
 	$(RM) -f p3_configure.h.in configure 
 	$(RM) -f config.cache config.status config.log

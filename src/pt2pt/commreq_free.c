@@ -1,5 +1,5 @@
 /*
- *  $Id: commreq_free.c,v 1.14 1995/07/25 02:53:58 gropp Exp $
+ *  $Id: commreq_free.c,v 1.15 1995/09/13 21:47:01 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -36,8 +36,10 @@ MPI_Request *request;
 
     if (rq->type == MPIR_SEND)
     {
+    /*
         if (rq->shandle.mode == MPIR_MODE_BUFFERED) 
 	    MPIR_BufferFreeReq( &rq->shandle );
+     */
 	MPID_Free_send_handle( rq->shandle.comm->ADIctx, 
 			       &(rq->shandle.dev_shandle));
 	MPIR_SET_COOKIE(&rq->shandle,0);

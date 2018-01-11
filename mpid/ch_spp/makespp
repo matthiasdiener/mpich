@@ -1,0 +1,55 @@
+#! /bin/sh
+#
+# This script derives the shmem routines from the Chameleon ones.  Some editing 
+# of the files may be required after this process, but the goal is to 
+# fully automate this process.
+#
+# THIS IS A SPECIAL, CUSTOMIZED VERSION THAT DOES NOT REPLACE THE "INIT" FILE.
+#
+sed -e '/#define DEVICE_CHAMELEON/d' \
+    -e 's/MPID_CH_/MPID_SPP_/g' \
+    -e 's/"Chameleon"/"SPP"/g' ../chameleon/dmch.h > dmspp.h
+sed -e 's/MPID_CH_/MPID_SPP_/g' ../chameleon/mpid_bind.h > mpid_bind.h
+sed -e 's/MPID_CH_/MPID_SPP_/g' ../chameleon/packets.h > packets.h
+sed -e 's/MPID_CH_/MPID_SPP_/g' ../chameleon/mpiddebug.h > mpiddebug.h
+sed -e 's/MPID_CH_/MPID_SPP_/g' ../chameleon/mpidstat.h > mpidstat.h
+# Note that we do NOT include chcoll.c or chinit in the list
+for file in event recv send probe sync get debug ; do 
+    ../chameleon/rmhetero ../chameleon/ch$file.c | ../chameleon/rmnonget | \
+	../chameleon/rmchameleon > spp$file.c
+    chmod ug+w spp$file.c
+done
+chmod ug+w dmspp.h mpid_bind.h packets.h 
+#
+# Update the few Chameleon calls remaining (not yet done)
+# shmeminit
+#sed -e 's/PIiInit( argc, argv )/MPID_SPP_init( argc, *argv );/g' \
+#    -e 's/PIiFinish()/MPID_SPP_finalize()/g' \
+#    -e 's%#include "system/system.h"%%g' \
+#    -e 's%/\* #CMMD DECLARATION# \*/%%g' \
+#    -e 's/PINodeName/SY_GetHostName/g' \
+#    -e 's/SYSetResourceClockOff()//g' \
+#    -e 's/SYGetElapsedTime()/p2p_wtime()/g' \
+#    -e 's/MPID_SPP_WTIME()/MPID_WTIME((void*)0)/g' \
+#    -e 's/MPID_CH_WTIME()/MPID_WTIME((void *)0)/g' \
+#		sppinit.c > .tmp	
+#mv .tmp shmeminit.c
+#
+# dmspp.h
+sed -e 's%#include "comm/comm.h"%#include "p2p.h"%g' \
+    -e 's%#include "system/system.h"%%g' \
+    -e 's%#include "system/time/usec.h"%%g' \
+    -e 's/#include "tools.h"/#include <stdio.h>/g' \
+    -e 's/ASYNCSendId_t/int/g' \
+    -e 's/ASYNCRecvId_t/int/g' dmspp.h > .tmp
+mv .tmp dmspp.h
+#
+# Change the names MPID_CH to MPID_SPP
+/bin/rm -f .tmp
+for file in spp*.c ; do
+    if [ "$file" = shmempriv.c ] ; then
+        continue 
+    fi
+    sed -e 's/MPID_CH_/MPID_SPP_/g' $file > .tmp
+    mv .tmp $file
+done

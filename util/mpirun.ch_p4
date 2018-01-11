@@ -1,34 +1,38 @@
 #! /bin/sh
 #
-if [ "$MPIR_HOME" = "" ] ; then 
-    MPIR_HOME=/tmp_mnt/Net/alriga/alriga9/MPI/mpich
+if [ -z "$MPIR_HOME" ] ; then 
+    MPIR_HOME=/home/MPI/mpich
 fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
 fi
-MPIRUN_HOME=$MPIR_HOME/util
-if [ "$argsset" = "" ] ; then
+MPIRUN_HOME=$MPIR_HOME/bin
+if [ -z "$argsset" ] ; then
    . $MPIRUN_HOME/mpirun.args
    argsset=1
 fi
 #
-if [ "$MPI_P4SSPORT" != "" ] ; then
+if [ -n "$MPI_P4SSPORT" ] ; then
     if [ "$MPI_USEP4SSPORT" = "yes" -o "$MPI_USEP4SSPORT" = "YES" ] ; then
         p4ssport=$MPI_P4SSPORT
     fi
 fi
 # Make sure that the application is in the .p4apps file.  Note that 
 # progname is already an absolute path
-if [ "$p4ssport" != "" ] ; then
-    if [ -e ~/.p4apps ] ; then
-        grep $progname ~/.p4apps > /dev/null 2>&1
+if [ -n "$p4ssport" ] ; then
+    if [ -z "$HOME" ] ; then
+	echo "Cannot determine location of home directory (in HOME)"
+	exit 1
+    fi
+    if [ -r $HOME/.p4apps ] ; then
+        grep $progname $HOME/.p4apps > /dev/null 2>&1
         if [ $? != 0 ] ; then 
-	    echo "$progname" >> ~/.p4apps
-            chmod 600 ~/.p4apps
+	    echo "$progname" >> $HOME/.p4apps
+            chmod 600 $HOME/.p4apps
 	fi
     else
-	echo "$progname" >> ~/.p4apps
-        chmod 600 ~/.p4apps
+	echo "$progname" >> $HOME/.p4apps
+        chmod 600 $HOME/.p4apps
     fi
     cmdLineArgs="$cmdLineArgs -p4ssport $p4ssport"
 fi
@@ -43,10 +47,11 @@ fi
 # "hostname".  For example, a system with a DEC Gigiswitch, Myricom 
 # network, or IP over the IBM SP2 switch (HPS).
 prognamemain=$progname
-if [ "$p4pgfile" = "" ] ; then
+if [ -z "$p4pgfile"  ] ; then
     p4pgfile="$PWD_TRIAL/PI$$"
     procNum=1
-    archval=`echo $archuselist | cut -d' ' -f1`
+#    archval=`echo $archuselist | cut -d' ' -f1`
+    archval=$archlocal
     proginstance=`echo $progname | sed "s/%a/$archval/g"`
     prognamemain=$proginstance
     if [ $just_testing = 1 ] ; then
@@ -92,12 +97,12 @@ fi
 # to start a job.  As a partial fix for this, we do a sync.  It would help,
 # of course, if NFS worked correctly.
 #
-sync > /dev/null 2>&1
+/usr/sbin/sync > /dev/null 2>&1
 #
 startpgm="eval"
 if [ "$debugger" != "" ] ; then
     # If gdb has an equivalent, the documentation is well hidden.
-    if [ $debugger = dbx -a -r $HOME/.dbxinit ] ; then
+    if [ "$debugger" = "dbx" -a -r $HOME/.dbxinit ] ; then
 	cat $HOME/.dbxinit > $PWD_TRIAL/PId$$
     fi
 	cat >> $PWD_TRIAL/PId$$ <<.

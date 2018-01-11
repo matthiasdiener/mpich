@@ -547,7 +547,8 @@ proc ExitUpshot {} {
 }
 
 proc CloseFile win {
-   displays, display_left_gap, display widget width
+   # Where did these come from?!
+   # displays, display_left_gap, display widget width
 
    destroy $win
 }

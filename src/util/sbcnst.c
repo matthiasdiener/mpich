@@ -1,12 +1,12 @@
 /*
- *  $Id: sbcnst.c,v 1.14 1995/07/25 02:46:40 gropp Exp $
+ *  $Id: sbcnst.c,v 1.15 1995/09/13 21:44:30 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: sbcnst.c,v 1.14 1995/07/25 02:46:40 gropp Exp $";
+static char vcid[] = "$Id: sbcnst.c,v 1.15 1995/09/13 21:44:30 gropp Exp $";
 #endif
 
 #include <stdio.h>
@@ -332,7 +332,7 @@ while (p) {
     pnext = (MPIR_SBblock *)(p->next);
     sb->avail = pnext;
     sb->nbfree--;
-    MPIR_SBrelease( sb, p );
+    MPIR_SBrelease( sb, (void *)p );
     p     = pnext;
     }
 MPID_THREAD_DS_UNLOCK(sb)

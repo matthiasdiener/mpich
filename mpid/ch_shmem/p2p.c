@@ -4,13 +4,7 @@
 
 #define p2p_dprintf printf
 
-/* Note that SHMAT not yet supported */
-#if !defined(MPI_solaris) && !defined(MPI_IRIX) && !defined(MPI_hpux) && \
-    !defined(HAVE_MMAP) && !defined(HAVE_SHMAT)
-    ??? shmem device not defined for this architecture  
-#endif
-
-#if defined(MPI_solaris)
+#if defined(HAVE_MMAP)
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -19,18 +13,28 @@ void *xx_shmalloc();
 void xx_shfree();
 void xx_init_shmalloc();
 
-#endif
-
-#if defined(MPI_hpux) || defined(HAVE_MMAP)
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-
-void *xx_shmalloc();
-void xx_shfree();
-void xx_init_shmalloc();
+#elif defined(HAVE_SHMAT)
+void *MD_init_shmem();
 
 #endif
+
+/* This is a process group, used to help clean things up when a process dies 
+   It turns out that this causes strange failures when running a program
+   under another program, like a debugger or mpirun.  Until this is
+   resolved, I'm ifdef'ing this out.
+ */
+static int MPID_SHMEM_ppid = 0;
+void
+p2p_setpgrp()
+{
+#ifdef FOO
+   MPID_SHMEM_ppid = getpid();
+   if(setpgid(MPID_SHMEM_ppid,MPID_SHMEM_ppid)) {
+       perror("failure in p2p_setpgrp");
+       exit(-1);
+   }
+#endif
+}
 
 void p2p_init(maxprocs,memsize)
 int maxprocs;
@@ -48,26 +52,25 @@ int memsize;
 	p2p_error("p2p_init: usconfig failed: cannot map shared arena\n",
 		  memsize);
     if (usconfig(CONF_ARENATYPE,US_SHAREDONLY) == -1)
-	p2p_error("p2p_init: usconfig failed: cannot make shared-only\n");
+	p2p_error("p2p_init: usconfig failed: cannot make shared-only\n",0);
     p2p_sgi_usptr = usinit(p2p_sgi_shared_arena_filename);
     if (p2p_sgi_usptr == NULL)
 	p2p_error("p2p_init: usinit failed: can't map shared arena\n",memsize);
 
 #endif
 
-/* USE_XX_SHMALLOC is defined in p2p.h for MPI_solaris and MPI_hpux */
 #if defined(USE_XX_SHMALLOC)
 
     caddr_t p2p_start_shared_area;
     static int p2p_shared_map_fd;
-#if defined(MPI_solaris)    
+#if defined(MPI_solaris) || defined(MPI_sun4)
     p2p_shared_map_fd = open("/dev/zero", O_RDWR);
     p2p_start_shared_area = (char *) mmap((caddr_t) 0, memsize,
 			PROT_READ|PROT_WRITE|PROT_EXEC,
 			MAP_SHARED, 
 			p2p_shared_map_fd, (off_t) 0);
 
-#elif defined(MPI_hpux) || defined(HAVE_MMAP)
+#elif defined(HAVE_MMAP)
     p2p_start_shared_area = (char *) mmap((caddr_t) 0, memsize,
 			PROT_READ|PROT_WRITE|PROT_EXEC,
 			MAP_SHARED|MAP_ANONYMOUS|MAP_VARIABLE, 
@@ -77,6 +80,7 @@ int memsize;
 	    memsize,p2p_start_shared_area); */
 
 #elif defined(HAVE_SHMAT)
+    p2p_start_shared_area = MD_init_shmem(&memsize);
 #endif
 
     if (p2p_start_shared_area == (caddr_t)-1)
@@ -87,8 +91,88 @@ int memsize;
     }
     xx_init_shmalloc(p2p_start_shared_area,memsize);
 #endif /* USE_XX_SHMALLOC */
+}
 
+/* 
+   The create_procs routine keeps track of the processes (stores the
+   rc from fork) and is prepared to kill the children if it
+   receives a SIGCHLD.  One problem is making sure that the kill code
+   isn't invoked during a normal shutdown.  This is handled by turning
+   off the signals while in the rundown part of the code; this introduces
+   a race condition in failures that I'm not prepared for yet.
+ */
+#ifndef MPID_MAX_PROCS
+#define MPID_MAX_PROCS 32
+#endif
+static int MPID_child_pid[MPID_MAX_PROCS];
+static int MPID_numprocs = 0;
 
+#include <sys/types.h>
+#include <signal.h>
+#include <sys/wait.h>
+/* Set SIGCHLD handler */
+static int MPID_child_status = 0;
+#ifndef RETSIGTYPE
+#define RETSIGTYPE void
+#endif
+/* Define standard signals if SysV version is loaded */
+#if !defined(SIGCHLD) && defined(SIGCLD)
+#define SIGCHLD SIGCLD
+#endif
+
+/* POSIX/Solaris handlers seem to have a single argument ... */
+#ifdef MPI_solaris
+void MPID_handle_child( sig )
+int               sig;
+#else
+RETSIGTYPE MPID_handle_child( sig, code, scp )
+int               sig, code;
+struct sigcontext *scp;
+#endif
+/* Some systems have an additional char *addr 
+   */
+{
+int prog_stat, pid;
+int i, j;
+
+/* Really need to block further signals until done ... */
+/* fprintf( stderr, "Got SIGCHLD...\n" ); */
+pid	   = waitpid( (pid_t)(-1), &prog_stat, WNOHANG );
+if (MPID_numprocs && pid && (WIFEXITED(prog_stat) || WIFSIGNALED(prog_stat))) {
+#ifdef MPID_DEBUG_ALL
+    if (MPID_DebugFlag) printf("Got signal for child %d (exited)... \n", pid );
+#endif
+    /* The child has stopped. Remove it from the jobs array */
+    for (i = 0; i<MPID_numprocs; i++) {
+	if (MPID_child_pid[i] == pid) {
+	    MPID_child_pid[i] = 0;
+	    if (WIFEXITED(prog_stat)) {
+		MPID_child_status |= WEXITSTATUS(prog_stat);
+		}
+	    /* If we're not exiting, cause an abort. */
+	    if (WIFSIGNALED(prog_stat)) {
+		p2p_error( "Child process died unexpectedly from signal", 
+			   WTERMSIG(prog_stat) );
+	        }
+	    else
+		p2p_error( "Child process exited unexpectedly", i );
+	    break;
+	    }
+	}
+    /* Child may already have been deleted by Leaf exit; we should
+       use conn->state to record it rather than zeroing it */
+    /* 
+    if (i == MPID_numprocs) {
+	fprintf( stderr, "Received signal from unknown child!\n" );
+	}
+	 */
+    }
+/* Re-enable signals */
+}
+
+void p2p_clear_signal()
+{
+(void)signal( SIGCHLD, SIG_IGN );
 }
 
 void p2p_create_procs(numprocs)
@@ -96,16 +180,31 @@ int numprocs;
 {
     int i, rc;
 
+    (void) signal( SIGCHLD, MPID_handle_child );
     for (i = 0; i < numprocs; i++)
     {
 	if ((rc = fork()) == -1)
 	{
 	    p2p_error("p2p_init: fork failed\n",(-1));
 	}
-	else if (rc == 0)
+	else if (rc == 0) {
+#ifdef FOO
+	    if(setpgid(0,MPID_SHMEM_ppid)) {
+		p2p_error("p2p_init: failure in setpgid\n",(-1));
+		exit(-1);
+		}	    
+#endif
 	    return;
+	    }
+	else {
+	    /* Save pid of child so that we can detect child exit */
+	    MPID_child_pid[i] = rc;
+	    MPID_numprocs     = i+1;
+	    }
+	    
     }
 }
+
 
 
 void *p2p_shmalloc(size)
@@ -138,21 +237,14 @@ char *ptr;
 
 
 #if defined(MPI_IRIX)
-
-/* p2p_lock and p2p_unlock are defined in p2p.h for IRIX */
-
-/* p2p_lock_init, p2p_lock, and  p2p_unlock 
-   are defined in p2p.h for solaris 
-*/
-
-#ifdef MPID_CACHE_ALIGN
+/* this is the spinlock method */
+#if 0 && defined(MPID_CACHE_ALIGN)
 void p2p_lock_init(L) 
 p2p_lock_t *L;
 { 
     (*L).lock = usnewlock(p2p_sgi_usptr);
 }
 #else
-/* this is the spinlock method */
 void p2p_lock_init(L) 
 p2p_lock_t *L;
 { 
@@ -168,52 +260,51 @@ p2p_lock_t *L;
 }
 **********/
 #endif /* MPID_CACHE_ALIGN */
-#elif defined(HAVE_SHMAT)
-/* This is the SYSV_IPC from p4.  It is here because, under AIX 4.x, it
+
+#elif defined(HAVE_SEMOP)
+/* This is the SYSV_IPC from p4.  This is needed under SunOS 4.x, since 
+   SunOS has no mutex/msem routines */
+/* The shmat code is present because, under AIX 4.x, it
    was suggested that shmat would be faster than mmap */
 
 /* Currently unedited!!!*/
-int init_sysv_semset(setnum)
+int MD_init_sysv_semset(setnum)
 int setnum;
 {
     int i, semid;
-#   if defined(SUN_SOLARIS)
+#   if defined(MPI_solaris)
     union semun{
       int val;
       struct semid_ds *buf;
       ushort *array;
       } arg;
-#   else
-#   if defined(IBM3090) || defined(RS6000) ||    \
-       defined(TITAN)  || defined(DEC5000) ||    \
-       defined(HP) || defined(KSR)  
+#   elif defined(MPI_ibm3090) || defined(MPI_rs6000) ||    \
+       defined(MPI_dec5000) ||    \
+       defined(MPI_hpux) || defined(MPI_ksr)  
     int arg;
 #   else
     union semun arg;
 #   endif
-#endif
 
-#   if defined(SUN_SOLARIS)
+#   if defined(MPI_solaris)
     arg.val = 1;
-#   else
-#   if defined(IBM3090) || defined(RS6000) ||    \
-       defined(TITAN)  || defined(DEC5000) ||    \
-       defined(HP) || defined(KSR) 
+#   elif defined(MPI_ibm3090) || defined(MPI_rs6000) ||    \
+       defined(MPI_dec5000) ||    \
+       defined(MPI_hpux) || defined(MPI_ksr) 
     arg = 1;
 #   else
     arg.val = 1;
 #   endif
-#   endif
 
     if ((semid = semget(getpid()+setnum,10,IPC_CREAT|0600)) < 0)
     {
-	p4_error("semget failed for setnum=%d\n",setnum);
+	p2p_error("semget failed for setnum=%d\n",setnum);
     }
     for (i=0; i < 10; i++)
     {
 	if (semctl(semid,i,SETVAL,arg) == -1)
 	{
-	    p4_error("semctl setval failed\n",-1);
+	    p2p_error("semctl setval failed\n",-1);
 	}
     }
     return(semid);
@@ -224,11 +315,12 @@ MD_lock_t *L;
 {
 int setnum;
 
+/* Is p4_global in shared memory or not?   */
     MD_lock(&(p4_global->slave_lock));
     setnum = p4_global->sysv_next_lock / 10;
     if (setnum > P4_MAX_SYSV_SEMIDS)
     {
-	p4_error("exceeding max num of p4 semids\n",P4_MAX_SYSV_SEMIDS);
+	p2p_error("exceeding max num of p4 semids\n",P4_MAX_SYSV_SEMIDS);
     }
     if (p4_global->sysv_next_lock % 10 == 0)
     {
@@ -248,7 +340,7 @@ MD_lock_t *L;
     sem_lock[0].sem_num = L->semnum;
     if (semop(L->semid,&sem_lock[0],1) < 0)
     {
-        p4_error("OOPS: semop lock failed\n",*L);
+        p2p_error("OOPS: semop lock failed\n",*L);
     }
 }
 
@@ -258,28 +350,34 @@ MD_lock_t *L;
     sem_unlock[0].sem_num = L->semnum;
     if (semop(L->semid,&sem_unlock[0],1) < 0)
     {
-        p4_error("OOPS: semop unlock failed\n",L);
+        p2p_error("OOPS: semop unlock failed\n",L);
     }
 }
+#endif
 
-void MD_init_shmem()
+#if defined(MPI_IRIX)
+#elif defined(HAVE_MMAP)
+#elif defined(HAVE_SHMAT)
+void *MD_init_shmem(memsize)
+int *memsize;
 {
     int i,nsegs;
     unsigned size, segsize = P2_SYSV_SHM_SEGSIZE;
     char *mem, *tmem, *pmem;
 
-    if (memsize  &&  (memsize % P4_SYSV_SHM_SEGSIZE) == 0)
-	nsegs = memsize / segsize;
+    if (*memsize  &&  (*memsize % P2_SYSV_SHM_SEGSIZE) == 0)
+	nsegs = *memsize / segsize;
     else
-	nsegs = memsize / segsize + 1;
+	nsegs = *memsize / segsize + 1;
     size = nsegs * segsize;
+    *memsize = size;
     if ((sysv_shmid[0] = shmget(getpid(),segsize,IPC_CREAT|0600)) == -1)
     {
-	p4_error("OOPS: shmget failed\n",sysv_shmid[0]);
+	p2p_error("OOPS: shmget failed\n",sysv_shmid[0]);
     }
     if ((mem = (char *)shmat(sysv_shmid[0],NULL,0)) == (char *)-1)
     {
-	p4_error("OOPS: shmat failed\n",mem);
+	p2p_error("OOPS: shmat failed\n",mem);
     }
     sysv_num_shmids++;
     nsegs--;
@@ -288,13 +386,13 @@ void MD_init_shmem()
     {
 	if ((sysv_shmid[i] = shmget(i+getpid(),segsize,IPC_CREAT|0600)) == -1)
 	{
-	    p4_error("OOPS: shmget failed\n",sysv_shmid[i]);
+	    p2p_error("OOPS: shmget failed\n",sysv_shmid[i]);
 	}
         if ((tmem = (char *)shmat(sysv_shmid[i],pmem+segsize,0)) == (char *)-1)
         {
             if ((tmem = (char *)shmat(sysv_shmid[i],pmem-segsize,0)) == (char *)-1)
             {
-                p4_error("OOPS: shmat failed\n",tmem);
+                p2p_error("OOPS: shmat failed\n",tmem);
             }
 	    else
 	    {
@@ -304,11 +402,13 @@ void MD_init_shmem()
 	sysv_num_shmids++;
 	pmem = tmem;
     }
-    xx_init_shmalloc(mem,size);
+    return mem;
 }
 #endif /* MPI_IRIX etc */
 
 
+/* Cleanup is the NORMAL termination code; it may be called in abormal
+   termination as well */
 void p2p_cleanup()
 {
  
@@ -316,11 +416,6 @@ void p2p_cleanup()
     unlink(p2p_sgi_shared_arena_filename);
 #endif
 
-#if defined(MPI_solaris)
-#endif
-
-#if defined(MPI_hpux) || defined(HAVE_MMAP)
-#endif
 }
 
 /*****
@@ -364,14 +459,20 @@ va_dcl
 
 *****/
 
-p2p_error(string,value)
+void p2p_error(string,value)
 char * string;
 int value;
 {
     printf("%s %d\n",string, value);
-    printf("p2p_error is not fully cleaning up at present\n");
+    /* printf("p2p_error is not fully cleaning up at present\n"); */
     p2p_cleanup();
-    exit(99);
+    /* We need to do an abort to make sure that the children get killed */
+#ifdef FOO
+    if (MPID_SHMEM_ppid) 
+	kill( -MPID_SHMEM_ppid, SIGKILL );
+#endif
+    abort();
+    /* exit(99); */
 }
 #include <sys/time.h>
 
@@ -417,13 +518,17 @@ void p2p_yield()
 {
 
 #if defined(MPI_IRIX)
+/* Multiprocessor IRIX machines may want to comment this out for lower
+   latency */
 sginap(0);
-#endif
 
-#if defined(MPI_solaris)
-#endif
-
-#if defined(MPI_hpux) || defined(HAVE_MMAP)
+#elif defined(USE_SELECT_YIELD)
+/* Use a short select as a way to suggest to the OS to deschedule the 
+   process */
+struct timeval tp;
+tp.tv_sec  = 0;
+tp.tv_usec = 10;
+select( 0, (void *)0, (void *)0, (void *)0, &tp );
 #endif
 }
 
@@ -521,16 +626,13 @@ unsigned nbytes;
     Header *p, *prevp;
     char *address = (char *) NULL;
     unsigned nunits;
-#if defined(MPI_hpux)
-    int msemsize = sizeof(struct msemaphore);
-#elif defined(HAVE_MMAP)
-    int msemsize = sizeof(msemaphore);
-#endif
+    int msemsize = sizeof(MPID_msemaphore);
 
     /* Force entire routine to be single threaded */
     (void) p2p_lock(p2p_shmem_lock);
 
-#if defined(MPI_hpux) || defined(HAVE_MMAP)
+#if defined(MPI_hpux) || defined(HAVE_MSEM_INIT)
+    /* Why? */
     nbytes += msemsize;
 #endif
 
@@ -566,12 +668,6 @@ unsigned nbytes;
 
     if (address == NULL)
 	p2p_dprintf("xx_shmalloc: returning NULL; requested %d bytes\n",nbytes);
-/*
-#if defined(MPI_hpux)
-    while (((int)address % msemsize) != 0)
-	address++;
-#endif
-*/
     return address;
 }
 
@@ -616,6 +712,7 @@ char *ap;
 #endif
 
 #if defined(MPI_hpux)
-/* interface to hpux locks by Dan Golan */
+/* interface to hpux locks by Dan Golan of Convex Computer 
+   (Putting this here is easier than editing the Makefile) */
 #include "mem.c"
 #endif

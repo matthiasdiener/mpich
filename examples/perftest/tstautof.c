@@ -17,12 +17,12 @@ extern void __RmPointer();
 #elif !defined(FORTRANUNDERSCORE) && !defined(FORTRANDOUBLEUNDERSCORE)
 #define tstauto1d_ tstauto1d
 #endif
- int  tstauto1d_( xmin, xmax, dxmin, dxmax, 
+int  tstauto1d_( xmin, xmax, dxmin, dxmax, 
                rtol, atol, results, rsize, rmax, fcn, fcnctx)
-double*xmin,*xmax,*dxmin,*dxmax,*rtol,*atol, (*fcn)();
-int*rsize,*rmax;
+double *xmin, *xmax, *dxmin, *dxmax, *rtol, *atol, (*fcn)();
+int    *rsize, *rmax;
 char   *results;
-void   *fcnctx;   
+void   *fcnctx;
 {
 return TSTAuto1d(*xmin,*xmax,*dxmin,*dxmax,*rtol,*atol,results,*rsize,*rmax,fcn,fcnctx);
 }
@@ -31,9 +31,9 @@ return TSTAuto1d(*xmin,*xmax,*dxmin,*dxmax,*rtol,*atol,results,*rsize,*rmax,fcn,
 #elif !defined(FORTRANUNDERSCORE) && !defined(FORTRANDOUBLEUNDERSCORE)
 #define tstrsort_ tstrsort
 #endif
- void  tstrsort_( results, rsize, rcnt)
+void  tstrsort_( results, rsize, rcnt)
 char *results;
-int*rsize,*rcnt;
+int  *rsize, *rcnt;
 {
 TSTRSort(results,*rsize,*rcnt);
 }

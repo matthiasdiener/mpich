@@ -1,5 +1,5 @@
 /*
- *  $Id: chrecv.c,v 1.41 1995/07/25 02:40:34 gropp Exp gropp $
+ *  $Id: chrecv.c,v 1.44 1995/09/18 21:11:55 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: chrecv.c,v 1.41 1995/07/25 02:40:34 gropp Exp gropp $";
+static char vcid[] = "$Id: chrecv.c,v 1.44 1995/09/18 21:11:55 gropp Exp $";
 #endif /* lint */
 
 #include "mpid.h"
@@ -94,7 +94,7 @@ int          err = MPI_SUCCESS;
 MPID_KEEP_STAT(MPID_n_short++;)
 
 msglen = pkt->head.len;
-MPID_SHMEMK_MSGLEN(dmpi_recv_handle,msglen,err)
+MPID_CHK_MSGLEN(dmpi_recv_handle,msglen,err)
 dmpi_recv_handle->totallen = msglen;
 if (msglen > 0) 
     MEMCPY( dmpi_recv_handle->dev_rhandle.start, pktbuf, msglen ); 
@@ -120,67 +120,8 @@ MPID_SyncReturnAck( pkt->short_sync_pkt.sync_id, from );
 return err;
 }
 
-/* Now the long messages.  Only if not using the Rendevous protocol */
-#ifndef MPID_USE_RNDV
-/* 
-    In the Rendevous version of this, it sends a request back to the
-    sender for the data...
- */
-static int MPID_SHMEM_Copy_body_long( dmpi_recv_handle, pkt, from )
-MPIR_RHANDLE *dmpi_recv_handle;
-MPID_PKT_T   *pkt;
-int          from;
-{
-MPID_RHANDLE *mpid_recv_handle;
-int          msglen, err = MPI_SUCCESS;
-
-mpid_recv_handle = &dmpi_recv_handle->dev_rhandle;
-msglen           = pkt->head.len;
-
-/* Check for truncation */
-MPID_SHMEMK_MSGLEN(dmpi_recv_handle,msglen,err)
-/* Note that if we truncate, We really must receive the message in two parts; 
-   the part that we can store, and the part that we discard.
-   This case is not yet handled. */
-dmpi_recv_handle->totallen = msglen;
-MPID_KEEP_STAT(MPID_n_long++;)
-MPID_RecvFromChannel( mpid_recv_handle->start, msglen, from );
-DMPI_mark_recv_completed(dmpi_recv_handle);
-
-return err;
-}
-
-/* For the eventual case of non-blocking recv */
-int MPID_SHMEM_Cmpl_recv_nb( dmpi_recv_handle )
-MPIR_RHANDLE *dmpi_recv_handle;
-{
-}
-
-int MPID_SHMEM_Cmpl_recv_sync( dmpi_recv_handle )
-MPIR_RHANDLE *dmpi_recv_handle;
-{
-/* ??? */
-while (!MPID_Test_handle(dmpi_recv_handle)) {
-    (void)MPID_SHMEM_check_incoming( MPID_BLOCKING );
-    }
-}
-
-static int MPID_SHMEM_Copy_body_sync_long( dmpi_recv_handle, pkt, from )
-MPIR_RHANDLE *dmpi_recv_handle;
-MPID_PKT_T   *pkt;
-int          from;
-{
-int err;
-
-err = MPID_SHMEM_Copy_body_long( dmpi_recv_handle, pkt, from );
-
-DEBUG_PRINT_SYNCACK(0,pkt)
-MPID_KEEP_STAT(MPID_n_syncack++;)
-MPID_SyncReturnAck( pkt->long_sync_pkt.sync_id, from );
-
-return err;
-}
-#endif
+/* Now the long messages.  Only if not using the Rendevous protocol (
+   actually, this is eager only) */
 
 /*
    This code is called when a receive finds that the message has already 
@@ -206,100 +147,6 @@ return err;
    one for MPID_USE_RNDV, and one without rendevous.  Make sure that you
    change the correct one (and both if there is a common problem!).
  */
-#if !defined(MPID_USE_RNDV) && !defined(MPID_USE_GET)
-/* This is the unexpected receive code for NON RENDEVOUS.
-   The message has been received but is still in the unexpected message heap 
- */
-int MPID_SHMEM_Process_unexpected( dmpi_recv_handle, dmpi_unexpected )
-MPIR_RHANDLE *dmpi_recv_handle, *dmpi_unexpected;
-{
-MPID_RHANDLE *mpid_recv_handle;
-MPID_RHANDLE *mpid_recv_handle_unex;
-int err = MPI_SUCCESS;
-
-MPID_KEEP_STAT(MPID_n_unexpected++;)
-
-DEBUG_PRINT_MSG("R Found message in unexpected queue")
-
-/* It is possible that the message has not yet arrived.  We may even want
-   to go get it.  Test for that case */
-MPID_SHMEM_complete_recv( dmpi_unexpected );
-
-/* Copy relevant data to recv_handle */
-mpid_recv_handle	   = &dmpi_recv_handle->dev_rhandle;
-mpid_recv_handle_unex	   = &dmpi_unexpected->dev_rhandle;
-dmpi_recv_handle->source   = dmpi_unexpected->source;
-dmpi_recv_handle->tag	   = dmpi_unexpected->tag;
-dmpi_recv_handle->totallen = mpid_recv_handle_unex->bytes_as_contig;
-#ifdef MPID_HAS_HETERO
-dmpi_recv_handle->msgrep   = dmpi_unexpected->msgrep;
-#endif
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (MPID_DebugFlag) {
-    fprintf( MPID_DEBUG_FILE,
-	    "[%d]R Found message in temp area of %d bytes (%s:%d)...\n", 
-	    MPID_MyWorldRank, mpid_recv_handle_unex->bytes_as_contig,
-	    __FILE__, __LINE__ );
-    fflush( MPID_DEBUG_FILE );
-    }
-#endif                  /* #DEBUG_END# */
-/* Error test on length of message */
-if (mpid_recv_handle->bytes_as_contig < dmpi_recv_handle->totallen) {
-    mpid_recv_handle_unex->bytes_as_contig = mpid_recv_handle->bytes_as_contig;
-    dmpi_recv_handle->totallen = mpid_recv_handle->bytes_as_contig;
-    err = MPI_ERR_TRUNCATE;
-    (*MPID_ErrorHandler)( 1, "Truncated message"  );
-    }
-
-if (mpid_recv_handle_unex->bytes_as_contig > 0) {
-    MEMCPY( mpid_recv_handle->start, mpid_recv_handle_unex->temp,
-	   mpid_recv_handle_unex->bytes_as_contig );
-    }
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (MPID_DebugFlag) {
-    fprintf( MPID_DEBUG_FILE,
-  "[%d]R Copied message out of temp area; send mode is %x (%s:%d)..\n", 
-	    MPID_MyWorldRank, mpid_recv_handle_unex->mode, 
-	    __FILE__, __LINE__ );
-    fflush( MPID_DEBUG_FILE );
-    }
-#endif                  /* #DEBUG_END# */
-
-if (mpid_recv_handle_unex->temp) {
-    FREE( mpid_recv_handle_unex->temp );
-    mpid_recv_handle_unex->temp = 0;      /* In case of a cancel */
-    }
-
-/* Return the synchronization message */
-if (MPIR_MODE_IS_SYNC(mpid_recv_handle_unex)) {
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-    if (MPID_DebugFlag) {
-	fprintf( MPID_DEBUG_FILE,
-       "[%d]SYNC Returning sync for %x to %d for rcv of unxpcted (%s:%d)\n", 
-	       MPID_MyWorldRank,
-	        mpid_recv_handle_unex->mode, mpid_recv_handle_unex->from,
-	        __FILE__, __LINE__ );
-	fflush( MPID_DEBUG_FILE );
-	}
-#endif                  /* #DEBUG_END# */
-    MPID_KEEP_STAT(MPID_n_syncack++;)
-    MPID_SyncReturnAck( mpid_recv_handle_unex->send_id, 
-		        mpid_recv_handle_unex->from );
-    }
-
-DMPI_mark_recv_completed(dmpi_recv_handle);
-
-/* Recover dmpi_unexpected.  This is ok even for the rendevous protocol 
-   since all of the information needed has been transfered into 
-   dmpi_recv_handle. 
- */
-DMPI_free_unexpected( dmpi_unexpected );
-
-DEBUG_PRINT_MSG("R Leaving 'process unexpected'")
-
-return err;
-}
-#endif
 
 /*
    Post a receive.
@@ -334,7 +181,11 @@ if (MPID_DebugFlag) {
     }
 #endif                  /* #DEBUG_END# */
 /* At this time, we check to see if the message has already been received.
-   (this is a macro that checks first to see if the queue is empty) */
+   (this is a macro that checks first to see if the queue is empty)
+   Note that we can not have any thread receiving a message while 
+   checking the queues.  Thus, the general thread-locks here are needed.
+   Note that the queues have their own locks (whcih are redundent in this
+   case).   */
 MPID_THREAD_LOCK(0,0)
 DMPI_search_unexpected_queue( dmpi_recv_handle->source, 
 		   dmpi_recv_handle->tag, dmpi_recv_handle->contextid, 
@@ -342,14 +193,9 @@ DMPI_search_unexpected_queue( dmpi_recv_handle->source,
 if (found) {
     MPID_THREAD_UNLOCK(0,0)
     DEBUG_PRINT_MSG("R found in unexpected queue")
-#ifdef MPID_USE_RNDV
-    return MPID_SHMEM_Process_unexpected_rndv( dmpi_recv_handle, 
-					    dmpi_unexpected );
-#elif defined(MPID_USE_GET)
+#if defined(MPID_USE_GET)
     return MPID_SHMEM_Process_unexpected_get( dmpi_recv_handle, 
 					    dmpi_unexpected );
-#else
-    return MPID_SHMEM_Process_unexpected( dmpi_recv_handle, dmpi_unexpected );
 #endif
     }
 
@@ -393,17 +239,7 @@ switch (pkt->head.mode) {
     DMPI_mark_recv_completed(dmpi_recv_handle);
     break;
 
-#ifdef MPID_USE_RNDV
-    case MPID_PKT_REQUEST_SEND:
-    case MPID_PKT_REQUEST_SEND_READY:
-    /* Send back an OK to send */
-    DEBUG_PRINT_MSG("Acking request to send")
-    MPID_SHMEM_Ack_Request( dmpi_recv_handle, from, pkt->request_pkt.send_id,
-			 pkt->head.len );
-    /* Note that in this case we do not mark the transfer as completed */
-    dmpi_recv_handle->completer = MPID_CMPL_RECV_RNDV;
-    break;
-#elif defined(MPID_USE_GET)
+#if defined(MPID_USE_GET)                    
     case MPID_PKT_DO_GET:
     MPID_SHMEM_Do_get( dmpi_recv_handle, from, (MPID_PKT_GET_T *)pkt );
     /* We can't clear the packet here, since the packet address was 
@@ -425,23 +261,12 @@ switch (pkt->head.mode) {
     /* Done_get sets the completer field */
     break;
 
-#else
-    case MPID_PKT_LONG_READY:
-    case MPID_PKT_LONG:
-#ifdef MPID_USE_RNDV
-    err = MPID_SHMEM_Copy_body_long_rndv( dmpi_recv_handle, pkt, from );
-#else
-    err = MPID_SHMEM_Copy_body_long( dmpi_recv_handle, pkt, from );
-#endif
-    DMPI_mark_recv_completed(dmpi_recv_handle);
-    break;
-
-    case MPID_PKT_LONG_SYNC:
-    /* sync_id  = pkt.long_sync_pkt.sync_id; */
-    err = MPID_SHMEM_Copy_body_sync_long( dmpi_recv_handle, pkt, from );
-    DMPI_mark_recv_completed(dmpi_recv_handle);
-    break;
-#endif
+#else                                        
+#endif                                       
+                                             
+    default:
+    fprintf( stderr, "Internal Error! Unrecognized packet type %d\n", 
+	    pkt->head.mode );
     }
 
 return err;
@@ -469,6 +294,10 @@ return err;
 			 "No more memory for storing unexpected messages"  );\
 	    return MPI_ERR_EXHAUSTED; }
 
+/* 
+   This should probably be labeled the "eager" algorithm, and split into
+   parts (one to chrndv, one to chget, etc.).
+ */
 int MPID_SHMEM_Copy_body_unex( dmpi_recv_handle, pkt, from )
 MPIR_RHANDLE *dmpi_recv_handle;
 MPID_PKT_T   *pkt;
@@ -512,15 +341,9 @@ switch (pkt->head.mode) {
 	DMPI_mark_recv_completed(dmpi_recv_handle);
 	break;
 
-#ifdef MPID_USE_RNDV
-    case MPID_PKT_REQUEST_SEND:
-    case MPID_PKT_REQUEST_SEND_READY:
-	/* Save the send id.  In this case, there is no data. */
-	DEBUG_PRINT_MSG("Save request to send id")
-	dmpi_recv_handle->dev_rhandle.send_id = pkt->request_pkt.send_id;
-	dmpi_recv_handle->totallen	      = pkt->request_pkt.len;
-	break;
+#ifdef MPID_USE_RNDV                             
 #elif defined(MPID_USE_GET)
+                                              
     case MPID_PKT_DO_GET_SYNC:
 	mpid_recv_handle->mode	  = (int)MPIR_MODE_SYNCHRONOUS;
 	mpid_recv_handle->send_id = pkt->get_pkt.sync_id;
@@ -537,30 +360,11 @@ switch (pkt->head.mode) {
 	    }
 	else
 	    dmpi_recv_handle->completer = MPID_CMPL_RECV_GET;
-	break;
 	    
 	/* Can't do the clear here, since the packet isn't given back */
 	/* MPID_PKT_RECV_CLR(pkt); */
 	break;
-
-#else
-    case MPID_PKT_LONG_SYNC:
-	/* Note that the sync_id may be a full address */
-	mpid_recv_handle->mode	  = (int)MPIR_MODE_SYNCHRONOUS;
-	mpid_recv_handle->send_id = pkt->long_sync_pkt.sync_id;
-	MPIDGETMEM(msglen);
-	MPID_KEEP_STAT(MPID_n_long++;)
-	MPID_RecvFromChannel( address, msglen, from );
-	/* completed means that the data is available  */
-	DMPI_mark_recv_completed(dmpi_recv_handle);
-	break;
-    case MPID_PKT_LONG_READY:
-    case MPID_PKT_LONG:
-	MPIDGETMEM(msglen);
-	MPID_KEEP_STAT(MPID_n_long++;)
-	MPID_RecvFromChannel( address, msglen, from );
-	DMPI_mark_recv_completed(dmpi_recv_handle);
-	break;
+                                              
 #endif
     }
 mpid_recv_handle->temp            = address;
@@ -612,37 +416,19 @@ MPIR_RHANDLE *dmpi_recv_handle;
 int          is_posted;
 int          err = MPI_SUCCESS;
 
+DEBUG_PRINT_MSG("Entering check_incoming")
+
 /* If nonblocking and no headers available, exit */
 #ifndef pvm3
 if (is_blocking == MPID_NOTBLOCKING) {
-    if (!MPID_PKT_CHECK()) return -1;
+    if (!MPID_PKT_CHECK()) {
+	DEBUG_PRINT_MSG("Leaving check_incoming (no messages)")
+	return -1;
+	}
+    DEBUG_PRINT_MSG("Message is available!")
     }
+DEBUG_PRINT_MSG("Waiting for message to arrive")
 MPID_PKT_WAIT();
-#else   /* #PVM3_START# */
-/* pvm3.0 doesn't have a real probe, but what they do have meets the 
-   semantics that we need here, though it is somewhat painful... 
-   All this to save  the user a single routine call in the case where
-   a probe is immediately followed by a recv.  Heaven help you if you
-   use the probe to decide to call some other code to process the 
-   message... 
-
-   Later versions of PVM 3 may have a proper probe; if someone needs it,
-   please send mail to mpi-bugs@mcs.anl.gov
-*/
-{
-int bufid, bytes, msgtype; 
-if (is_blocking == MPID_NOTBLOCKING) {
-    if ((bufid = pvm_nrecv( -1, MPID_PT2PT_TAG )) <= 0) return -1;
-    /* If we found a message, we now have to receive it */
-    pvm_bufinfo( bufid, &bytes, &msgtype, &__PVMFROMTID );
-    pvm_upkint( (int *)&pkt, bytes / sizeof(int), 1 );
-    __PVMFROM = -1;
-    }
-else {
-    /* For the blocking case, we can use the existing code ... */
-    MPID_PKT_WAIT();
-    }
-}       /* #PVM3_END# */
 #endif
 MPID_PKT_UNPACK( MPID_PKT_RECV_ADDR(pkt), sizeof(MPID_PKT_HEAD_T), from );
 
@@ -675,40 +461,12 @@ if (MPID_PKT_IS_MSG(MPID_PKT_RECV_GET(pkt,head.mode))) {
 					  MPID_PKT_RECV_ADDR(pkt), 
 				     MPID_PKT_RECV_GET(pkt,short_pkt.buffer) );
 	    break;
-#ifdef MPID_USE_RNDV
-	case MPID_PKT_REQUEST_SEND:
-	case MPID_PKT_REQUEST_SEND_READY:
-	    /* Send back an OK to send, with a tag value and 
-	       a posted recv */
-	    DEBUG_PRINT_MSG("Acking request to send for posted msg")
-	    MPID_SHMEM_Ack_Request( dmpi_recv_handle, from, 
-				 MPID_PKT_RECV_GET(pkt,request_pkt.send_id),
-				 MPID_PKT_RECV_GET(pkt,head.len) );
-	    dmpi_recv_handle->completer = MPID_CMPL_RECV_RNDV;
-	break;
-#else
-	case MPID_PKT_LONG_READY:
-	case MPID_PKT_LONG:
-#ifdef MPID_USE_RNDV
-	    err = MPID_SHMEM_Copy_body_long_rndv( dmpi_recv_handle, 
-					       MPID_PKT_RECV_ADDR(pkt), from );
-#else
-	    err = MPID_SHMEM_Copy_body_long( dmpi_recv_handle, 
-					  MPID_PKT_RECV_ADDR(pkt), from );
-#endif
-	    break;
-	case MPID_PKT_LONG_SYNC:
-	    err = MPID_SHMEM_Copy_body_sync_long( dmpi_recv_handle, 
-					       MPID_PKT_RECV_ADDR(pkt), 
-					       from );
-	    break;
-#endif
 	case MPID_PKT_SHORT_SYNC:
 	    err = MPID_SHMEM_Copy_body_sync_short( dmpi_recv_handle, 
 					        MPID_PKT_RECV_ADDR(pkt), 
 					        from );
 	    break;
-#ifdef MPID_USE_GET
+#ifdef MPID_USE_GET                    
         case MPID_PKT_DO_GET:
 	    MPID_SHMEM_Do_get( dmpi_recv_handle, from, 
 			    (MPID_PKT_GET_T *)MPID_PKT_RECV_ADDR(pkt) );
@@ -724,7 +482,7 @@ if (MPID_PKT_IS_MSG(MPID_PKT_RECV_GET(pkt,head.mode))) {
 	    MPID_SyncReturnAck( 
 	       ((MPID_PKT_GET_T*)MPID_PKT_RECV_ADDR(pkt))->sync_id, from );
 	    break;
-#endif
+#endif                                    
 	default:
 	    fprintf( stderr, 
 		    "[%d] Internal error: msg packet discarded (%s:%d)\n",
@@ -745,24 +503,17 @@ else {
 	break;
 	case MPID_PKT_COMPLETE_RECV:
 	break;
-#ifdef MPID_USE_RNDV
-	case MPID_PKT_OK_TO_SEND:
-	DEBUG_PRINT_MSG("Responding to Ack for request to send")
-	MPID_SHMEM_Do_Request( MPID_PKT_RECV_GET(pkt,sendok_pkt.recv_handle), 
-			    from, MPID_PKT_RECV_GET(pkt,sendok_pkt.send_id) );
-	break;
-#endif
 	case MPID_PKT_READY_ERROR:
 	break;
 
-#ifdef MPID_USE_GET
+#ifdef MPID_USE_GET                            
         case MPID_PKT_DONE_GET:
         MPID_SHMEM_Done_get( MPID_PKT_RECV_ADDR(pkt), from );
         break;
 	case MPID_PKT_CONT_GET:
 	MPID_SHMEM_Cont_get( MPID_PKT_RECV_ADDR(pkt), from );
 	break;
-#endif
+#endif                                         
 
 	default:
 	fprintf( stdout, "[%d] Mode %d is unknown (internal error) %s:%d!\n", 
@@ -772,6 +523,7 @@ else {
     /* Really should remember error incase subsequent events are successful */
     }
 MPID_PKT_RECV_FREE(pkt);
+DEBUG_PRINT_MSG("Exiting check_incoming")
 return err;
 }
 
@@ -797,27 +549,19 @@ DEBUG_PRINT_MSG("Starting complete recv")
 while (dmpi_recv_handle->completer == 1) {
     (void)MPID_SHMEM_check_incoming( MPID_BLOCKING );
     }
+DEBUG_PRINT_MSG("Switching on completer")
 switch (dmpi_recv_handle->completer) {
     case 0:
     break;
-#ifdef MPID_USE_RNDV
-    case MPID_CMPL_RECV_RNDV:
-    MPID_SHMEM_Cmpl_recv_rndv( dmpi_recv_handle );
-    break;
-#endif
-#ifndef MPID_USE_RNDV
-    case MPID_CMPL_RECV_NB:
-    MPID_SHMEM_Cmpl_recv_nb( dmpi_recv_handle );
-    break;
-#endif
-#ifdef MPID_USE_GET    
+#ifdef MPID_USE_GET                                 
     case MPID_CMPL_RECV_GET:
     /* Process messages until the message completes */
+    DEBUG_PRINT_MSG("Complete get")
     while (dmpi_recv_handle->completer) {
 	(void)MPID_SHMEM_check_incoming( MPID_BLOCKING );
 	}
     break;
-#endif
+#endif                                              
     default:
     /* Eventually, should be stderr */
     fprintf( stdout, "[%d]* Unknown recv completion mode of %d, tag = %d\n", 
@@ -825,18 +569,13 @@ switch (dmpi_recv_handle->completer) {
 	     dmpi_recv_handle->tag );
     break;
     }
-DEBUG_PRINT_MSG("Completed recv")
+DEBUG_PRINT_MSG("Completed recv (exiting complete recv)")
 return MPI_SUCCESS;
 }
 
 int MPID_SHMEM_Test_recv_push( dmpi_recv_handle )
 MPIR_RHANDLE *dmpi_recv_handle;
 {
-#ifdef MPID_USE_RNDV
-if (dmpi_recv_handle->completer == MPID_CMPL_RECV_RNDV) {
-    return MPID_SHMEM_Test_recv_rndv( dmpi_recv_handle );
-    }
-#endif
 /* If completer is 0, the message is complete.  */
 return (dmpi_recv_handle->completer == 0);
 }
@@ -880,14 +619,9 @@ source	   = dmpi_recv_handle->source;
 DMPI_search_unexpected_queue( source, tag, context_id, 
 		   &found, 1, &dmpi_unexpected );
 if (found) {
-#ifdef MPID_USE_RNDV
-    return MPID_SHMEM_Process_unexpected_rndv( dmpi_recv_handle, 
-					    dmpi_unexpected );
-#elif defined(MPID_USE_GET)
+#if defined(MPID_USE_GET)
     return MPID_SHMEM_Process_unexpected_get( dmpi_recv_handle, 
 					    dmpi_unexpected );
-#else
-    return MPID_SHMEM_Process_unexpected( dmpi_recv_handle, dmpi_unexpected );
 #endif
     }
 
@@ -942,17 +676,9 @@ while (!MPID_Test_handle(dmpi_save_recv_handle)) {
 	    if (dmpi_recv_handle == dmpi_save_recv_handle) {
 		MPID_PKT_RECV_FREE(pkt);
 		
-#ifdef MPID_USE_RNDV
-	    /* In the special case that we have received the message that
-	       we are looking for, but it was sent with the Rendevous
-	       send, we need to wait for the message to complete */
-		if (!MPID_Test_handle(dmpi_recv_handle) && 
-		    dmpi_recv_handle->dev_rhandle.rid) 
-		    MPID_SHMEM_complete_recv( dmpi_recv_handle );
-#endif
-#ifdef MPID_USE_GET
+#ifdef MPID_USE_GET                               
 		MPID_SHMEM_complete_recv( dmpi_recv_handle );
-#endif
+#endif                                            
 		return err;
 		}
 	    }
@@ -970,15 +696,7 @@ while (!MPID_Test_handle(dmpi_save_recv_handle)) {
 	    break;
 	    case MPID_PKT_COMPLETE_RECV:
 	    break;
-#ifdef MPID_USE_RNDV
-	    case MPID_PKT_OK_TO_SEND:
-	    /* Lookup send handle, respond with data */
-	    MPID_SHMEM_Do_Request( MPID_PKT_RECV_GET(pkt,sendok_pkt.recv_handle), 
-			        from, 
-			        MPID_PKT_RECV_GET(pkt,sendok_pkt.send_id) );
-	    break;
-#endif
-#ifdef MPID_USE_GET
+#ifdef MPID_USE_GET                             
 	    case MPID_PKT_DONE_GET:
 	    /* This means that the send that this is a 
 	       reply to has completed */
@@ -987,7 +705,7 @@ while (!MPID_Test_handle(dmpi_save_recv_handle)) {
 	    case MPID_PKT_CONT_GET:
 	    MPID_SHMEM_Cont_get( MPID_PKT_RECV_ADDR(pkt), from );
 	    break;
-#endif
+#endif                                          
 	    case MPID_PKT_READY_ERROR:
 	    break;
 	    default:

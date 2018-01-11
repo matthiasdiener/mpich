@@ -12,7 +12,10 @@
 #                       could cause problems
 # -config=filename      File containing the output of configure
 # -sysname=name         Use instead of @ARCH@
-author="`whoami`"
+#
+# Some systems don't have whoami.  Use $LOGNAME instead
+#author="`whoami`"
+author="$LOGNAME"
 nomake=0
 noperf=0
 dotest=0
@@ -23,7 +26,7 @@ fileroot="doc1"
 for arg in "$@" ; do
     case $arg in 
 	-author=* )
-	author="`echo $arg|sed 's/-author=//'`"
+	author="`echo $arg|sed -e 's/-author=//' -e 's/_/ /'`"
 	;;
 
 	-file=* )
@@ -51,6 +54,11 @@ for arg in "$@" ; do
 
  	-dotest )
 	dotest=1
+	;;
+
+	-echo)
+	set -x
+	echoarg="-echo"
 	;;
 
 	*)
@@ -130,7 +138,20 @@ if test -z "@CFLAGS@" -o "@CFLAGS@" = " " ; then
    cflags=""
 fi
 cat >> $filename <<.
-The C compiler used was {\tt @CC@}$cflags.
+The C compiler used was {\tt @CC@}.
+.
+if test -n "@CFLAGS@" ; then
+     cat >> $filename <<.
+     The C compiler required the special C flags
+
+\begin{flushleft}
+\tt
+@CFLAGS@
+\end{flushleft}
+
+.
+fi
+cat >> $filename <<.
 The linker for C programs is {\tt @CLINKER@}.
 .
 if test "@cross_compiling@" = 1 ; then
@@ -180,7 +201,9 @@ The program and options used were {\tt @AR@}.
 .
 fi
 if test "@RANLIB@" = "true" ; then
-echo "This system does not use {\\tt ranlib}" >> $filename
+    cat >> $filename <<.
+This system does not use {\\tt ranlib}.
+.
 fi
 if test "@CPRP@" != "cp" ; then
     cat >> $filename <<.
@@ -340,13 +363,15 @@ fi
 # Information on specific devices
 ############################################################################
 if test "@DEVICE@" = "ch_p4" ; then 
-    echo " " >> $filename
-    echo "This version of the ADI uses p4 \cite{p4-paper}." >> $filename
+    cat >> $filename <<.
+This version of the ADI uses p4 \cite{p4-paper}.
+To p4, the name of the architecture of this system is {\tt @P4_ARCH@}.
+.
     if test -n "@P4_MDEPCFLAGS@" ; then
-        echo "with CFLAGS = {\\tt @P4_MDEPCFLAGS@}." >> $filename
+	cat >>$filename <<.
+This device uses the special compile flags CFLAGS = {\\tt @P4_MDEPCFLAGS@}.
+.
     fi
-    echo "To p4, the name of the architecture of this system is" >> $filename
-    echo "{\\tt @P4_ARCH@}." >> $filename
 fi
 #
 #
@@ -380,7 +405,9 @@ if test "@DEVICE@" = "chameleon" ; then
     if test -n "@COMM@" ; then 
         echo "The COMM=@COMM@ transport layer was used." >> $filename
         if test "@COMM@" = "p4" ; then
-	echo "The directory for p4 used was {\\tt @P4_DIR@}." >> $filename 
+	    cat >>$filename <<.
+	    The directory for p4 used was {\\tt @P4_DIR@}.
+.
 	fi
     else
         echo "The native MPP transport layer was used." >> $filename
@@ -445,6 +472,12 @@ variables not described elsewhere and their values.
 \begin{description}
 \item[MPIR_HOME]@MPIR_HOME@\\\\
 Location of MPICH
+\item[AUTOMOUNTFIX]\code{@AUTOMOUNTFIX@}\\\\
+Fix for automounters
+\item[SYNCLOC]\file{@SYNCLOC@}\\\\
+Location of \file{sync} program
+\item[RSH_COMMAND]\file{@RSH_COMMAND@}\\\\
+Remote shell program (if needed)
 .
 #
 if test -n "@PREFIX@" ; then
@@ -482,6 +515,62 @@ cat >> $filename <<.
 \readfile{${fileroot}make.tex}
 .
 #
+# Special case for p4: see if we can build the server
+if test "@DEVICE@" = "ch_p4" ; then
+    make serv_p4  > serv_p4.log 2>&1
+    if [ $? != 0 ] ; then 
+	cat >> $filename <<EOF
+\subsection{P4 startup server}
+The make of the P4 server, used to speed job startup, failed.  The make output
+was
+\begin{verbatim}
+EOF
+	cat serv_p4.log >> $filename
+	cat >> $filename <<EOF
+\end{verbatim}
+This may not be a serious problem; some systems do not support the P4 server.
+On these systems, MPICH will use the remote shell command \code{@RSH_COMMAND@}
+to start remote jobs.
+EOF
+    else
+	cat >> $filename <<EOF
+\subsection{P4 startup server}
+The make of the P4 server, used to speed job startup, succeeded.  The
+script, \file{chp4_servs}, may be used to start the servers.  Using the server
+is optional, but can significantly speed job startup.  See the
+installation and users guides for more information.
+EOF
+    fi
+fi
+# Special case for p4: if we're going to run the tests or the performance
+# tests, try tstmachines
+if test $noperf = 0 -o $dotest = 1 ; then
+    if test "@DEVICE@" = "ch_p4" ; then
+	if test -x @MPIR_HOME@/lib/@ARCH@/ch_p4/tstmachines ; then 
+	    /bin/rm -f .tmp
+	    if @MPIR_HOME@/lib/@ARCH@/ch_p4/tstmachines > .tmp 2>&1 ; then
+		true
+	    else 
+		cat >>$filename <<EOF
+\section{Test of Network Setup}
+The script \code{lib/@ARCH@/ch_p4/tstmachines} has detected some problems
+with your list of machines.  The output of this program was
+\begin{verbatim}
+EOF
+		cat .tmp >>$filename
+		cat >>$filename <<EOF
+\end{verbatim}
+
+Because this will cause problems with the execution of the performance tests
+and the correctness tests, they will not be performed.
+EOF
+		dotest=0
+		noperf=1
+	    fi
+	fi
+    fi
+fi
+#
 ############################################################################
 # Performance of the system
 ############################################################################
@@ -490,8 +579,9 @@ cat >> $filename <<.
 # Run the performance tests
 ############################################################################
 if test $noperf = 0 ; then
-    @MPIR_HOME@/doc/portperf -file=$filebase
+    @MPIR_HOME@/doc/portperf -file=$filebase $echoarg
 fi
+# In case we add the data later.
 cat >> $filename <<.
 \readfile{${fileroot}perf.tex}
 .
@@ -499,7 +589,7 @@ cat >> $filename <<.
 # Run the correctness
 ############################################################################
 if test $dotest = 1 ; then
-    @MPIR_HOME@/doc/porttest -file=$filebase
+    @MPIR_HOME@/doc/porttest -file=$filebase $echoarg
 fi
 cat >> $filename <<.
 \readfile{${fileroot}test.tex}

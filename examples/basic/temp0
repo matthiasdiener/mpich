@@ -1,6 +1,0 @@
-srtest -job_id 1234  -my_nodenum 0  \
-    -execer_id PDQS -master_host donner.mcs.anl.gov  \
-    -my_hostname donner.mcs.anl.gov \
-    -my_numprocs 1 -total_numnodes 2 -p3dbg 00 \
-    -remote_info donner.mcs.anl.gov 0 1 /Net/alriga/alriga9/MPI/mpich/examples/basic/srtest \
-                 juju.mcs.anl.gov 1 1 /Net/alriga/alriga9/MPI/mpich/examples/basic/srtest

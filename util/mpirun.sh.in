@@ -13,7 +13,7 @@ MPIR_HOME=#MPIR_HOME#
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
 fi
-MPIRUN_HOME=$MPIR_HOME/util
+MPIRUN_HOME=$MPIR_HOME/bin
 #
 # Local routines
 #
@@ -42,58 +42,60 @@ argsset=1
 #
 # Jump to the correct code for the device (by pseudo machine)
 #
+mpirun_version=""
 case $machine in
     ch_cmmd)
-	. $MPIRUN_HOME/mpirun.ch_cmmd
+	mpirun_version=$MPIRUN_HOME/mpirun.ch_cmmd
 	;;
     ibmspx|ch_eui|ch_mpl)
-	. $MPIRUN_HOME/mpirun.ch_mpl
+	mpirun_version=$MPIRUN_HOME/mpirun.ch_mpl
 	;;
     anlspx)
-	. $MPIRUN_HOME/mpirun.anlspx
+	mpirun_version=$MPIRUN_HOME/mpirun.anlspx
 	;;
     ch_meiko|meiko)
-	. $MPIRUN_HOME/mpirun.meiko
+	mpirun_version=$MPIRUN_HOME/mpirun.meiko
 	;;
     cray_t3d|t3d)
- 	. $MPIRUN_HOME/mpirun.t3d
+	mpirun_version=$MPIRUN_HOME/mpirun.t3d
 	;;
     ch_nc)
-	. $MPIRUN_HOME/mpirun.ch_nc
+	mpirun_version=$MPIRUN_HOME/mpirun.ch_nc
 	;;
-    paragon|ch_nx)
-	. $MPIRUN_HOME/mpirun.paragon
+    paragon|ch_nx|nx)
+	mpirun_version=$MPIRUN_HOME/mpirun.paragon
 	;;
     inteldelta)
-	. $MPIRUN_HOME/mpirun.delta
+	mpirun_version=$MPIRUN_HOME/mpirun.delta
 	;;
     i860|ipsc860)
-	. $MPIRUN_HOME/mpirun.i860
+	mpirun_version=$MPIRUN_HOME/mpirun.i860
 	;;
-    p4|ch_p4)
-	. $MPIRUN_HOME/mpirun.ch_p4
+    p4|ch_p4|sgi_mp)
+	mpirun_version=$MPIRUN_HOME/mpirun.ch_p4
 	;;
     execer)
-	. $MPIRUN_HOME/mpirun.execer
+	mpirun_version=$MPIRUN_HOME/mpirun.execer
 	;;
-    ch_shmem|ch_spp|sgi_mp|smp|convex_spp)
-	. $MPIRUN_HOME/mpirun.ch_shmem
+    ch_shmem|ch_spp|smp|convex_spp)
+	# sgi_mp is reserved for the p4 version
+	mpirun_version=$MPIRUN_HOME/mpirun.ch_shmem
     	;;
-    ksr|sgi_mp|symm_ptx)
-	. $MPIRUN_HOME/mpirun.p4shmem
+    ksr|symm_ptx)
+	mpirun_version=$MPIRUN_HOME/mpirun.p4shmem
 	;;
     ch_tcp)
-	. $MPIRUN_HOME/mpirun.execer
+	mpirun_version=$MPIRUN_HOME/mpirun.execer
 	;;
     chameleon)
-	. $MPIRUN_HOME/mpirun.ch
+	mpirun_version=$MPIRUN_HOME/mpirun.ch
 	;;
     *)    
 	#
 	# This allows us to add a device without changing the base mpirun
 	# code
 	if [ -x $MPIRUN_HOME/mpirun.$device ] ; then
-	    . $MPIRUN_HOME/mpirun.$device
+	    mpirun_version=$MPIRUN_HOME/mpirun.$device
 	else
 	    echo "Cannot find MPIRUN machine file for machine $machine"
 	    echo "and architecture $arch ."
@@ -107,5 +109,16 @@ case $machine in
 	fi
   	;;
 esac
+if [ -n "$mpirun_version" ] ; then
+    if [ -x $mpirun_version ] ; then
+        . $mpirun_version
+    else
+       	echo "$mpirun_version is not available."
+	    exit 1
+    fi
+else
+    echo "No mpirun script for this configuration!"
+    exit 1
+fi
 exit 0
 

@@ -4,7 +4,7 @@
 
 
 /*
- *  $Id: chprobe.c,v 1.9 1995/05/09 19:08:27 gropp Exp $
+ *  $Id: chprobe.c,v 1.10 1995/09/18 21:11:51 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -16,6 +16,7 @@ static char vcid[] = "$Id";
 #endif /* lint */
 
 #include "mpid.h"
+#include "mpiddebug.h"
 
 /*
    Implement probe by checking the unexpected receive queue.
@@ -27,6 +28,7 @@ MPI_Status *status;
 {
 MPIR_RHANDLE *dmpi_unexpected;
 
+DEBUG_PRINT_MSG("Entering Iprobe")
 /* At this time, we check to see if the message has already been received */
 DMPI_search_unexpected_queue( source, tag, context_id, 
 			      found, 0, &dmpi_unexpected );
@@ -46,6 +48,7 @@ if (*found) {
     status->MPI_SOURCE	   = d->source;
     status->MPI_TAG	   = d->tag; 
     }
+DEBUG_PRINT_MSG("Exiting Iprobe")
 return MPI_SUCCESS;
 }
 
@@ -55,10 +58,13 @@ int tag, source, context_id;
 MPI_Status *status;
 {
 int found;
+
+DEBUG_PRINT_MSG("Entering Probe")
 while (1) {
     MPID_P4_Iprobe( tag, source, context_id, &found, status );
     if (found) break;
     /* Wait for a message */
     MPID_P4_check_incoming( MPID_BLOCKING );
     }
+DEBUG_PRINT_MSG("Exiting Probe")
 }

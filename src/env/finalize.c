@@ -1,5 +1,5 @@
 /*
- *  $Id: finalize.c,v 1.27 1995/05/09 18:57:47 gropp Exp $
+ *  $Id: finalize.c,v 1.29 1995/09/29 22:35:13 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -18,12 +18,23 @@ extern void MPIR_Topology_finalize();
 
 /*@
    MPI_Finalize - Terminates MPI execution environment
+
+   Notes:
+   All processes must call this routine before exiting.  The number of
+   processes running `after` this routine is called is undefined; 
+   it is best not to perform much more than a 'return rc' after calling
+   'MPI_Finalize'.
 @*/
 int MPI_Finalize()
 {
 
     void *ADIctx;
     DBG(fprintf( stderr, "Entering system finalize\n" ); fflush(stderr);)
+
+    /* Complete any remaining buffered sends first */
+    { void *a; int b;
+    MPIR_FreeBuffer( &a, &b );
+    }	  
 
     /*  Dump final status of queues */
     if (MPIR_Print_queues) {
@@ -138,9 +149,11 @@ int MPI_Finalize()
     MPI_Keyval_free( &MPI_TAG_UB );
     MPI_Keyval_free( &MPI_HOST );
     MPI_Keyval_free( &MPI_IO );
+    MPI_Keyval_free( &MPI_WTIME_IS_GLOBAL );
     MPI_Keyval_free( &MPIR_TAG_UB );
     MPI_Keyval_free( &MPIR_HOST );
     MPI_Keyval_free( &MPIR_IO );
+    MPI_Keyval_free( &MPIR_WTIME_IS_GLOBAL );
 
     /* Tell device that we are done.  We place this here to allow
        the device to tell us about any memory leaks, since MPIR_SB... will
@@ -148,13 +161,13 @@ int MPI_Finalize()
      */
     DBG(fprintf( stderr, "About to close device\n" ); fflush( stderr );)
 
-    MPI_Errhandler_free( &MPI_ERRORS_RETURN );
-    MPI_Errhandler_free( &MPI_ERRORS_ARE_FATAL );
-    MPI_Errhandler_free( &MPIR_ERRORS_WARN );
-
     MPID_END( ADIctx );
 
     DBG(fprintf( stderr, "About to free SBstuff\n" ); fflush( stderr );)
+
+    MPI_Errhandler_free( &MPI_ERRORS_RETURN );
+    MPI_Errhandler_free( &MPI_ERRORS_ARE_FATAL );
+    MPI_Errhandler_free( &MPIR_ERRORS_WARN );
 
     MPIR_SBdestroy( MPIR_dtes );
     MPIR_SBdestroy( MPIR_qels );

@@ -6,6 +6,7 @@ jobid=5555  # default
 dbx=0
 j=1
 line=0
+islocal=0
 for arg in "$@" ; do
     case $arg in 
       -echo)
@@ -21,6 +22,9 @@ for arg in "$@" ; do
         eval arch$line=`echo $arg | sed 's/-arch=//'`
         echo -arch not yet implemented
         ;;
+      -islocal)
+	islocal=1
+	;;
       -host=*)
         line=`expr $line + 1`
         eval repeat$line=1  
@@ -131,17 +135,25 @@ run $remotecmd
 #	  echo backgrounding on $host
 #	  echo remotecmd: $remotecmd
 	  if [ $dbx = 1 ] ; then
-	      rsh $host xterm -display $MYDISPLAY -e /usr/ucb/dbx $pgm -sr ~/.exs$i
+	      if [ $islocal = 1 ] ; then
+	          xterm -display $MYDISPLAY -e /usr/ucb/dbx $pgm -sr ~/.exs$i
+	      else
+	      rsh -n $host xterm -display $MYDISPLAY -e /usr/ucb/dbx $pgm -sr ~/.exs$i
+	      fi
           else
-	      rsh $host $remotecmd
+	      if [ $islocal = 1 ] ; then
+		  $remotecmd
+	      else
+	          rsh -n $host $remotecmd
+	      fi
 	  fi
         else
 #	  echo backgrounding on $host
 #	  echo remotecmd: $remotecmd
 	  if [ $dbx = 1 ] ; then
-	      rsh $host xterm -display $MYDISPLAY -e /usr/ucb/dbx $pgm -sr ~/.exs$i &
+	      rsh -n $host xterm -display $MYDISPLAY -e /usr/ucb/dbx $pgm -sr ~/.exs$i &
 	  else
-              rsh $host $remotecmd &
+              rsh -n $host $remotecmd &
           fi
 	fi
 #	echo ""

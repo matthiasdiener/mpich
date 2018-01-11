@@ -1,5 +1,5 @@
 #! /bin/sh
-DoLink=0
+DoLink=1
 DoCompile=0
 MPILOG=
 Show=eval
@@ -7,6 +7,7 @@ allargs=
 compileargs=
 linkargs=
 gettinglinkarg=0
+HasDashC=0
 for arg in "$@" ; do
 #    echo procssing arg $arg
     # Special processing for -o name
@@ -16,6 +17,13 @@ for arg in "$@" ; do
 	continue
     fi
     case "$arg" in 
+	-c)
+	# If -c is NOT specified, then we need to perform a link step.
+	allargs="$allargs $arg"
+	compileargs="$compileargs $arg"
+	DoLink=0
+	HasDashC=1
+	;;
         -o)
 	# Need to link
 	allargs="$allargs $arg"
@@ -92,6 +100,9 @@ done
 #
 status=0
 if [ $DoCompile = 1 ] ; then 
+    if [ $HasDashC != 1 ] ; then
+        compileargs="-c $compileargs"
+    fi
     $Show @CC@ @CFLAGS@ @OPTFLAGS@ -DMPI_@ARCH@ -I@MPIR_HOME@/include \
 	$compileargs
     status=$?

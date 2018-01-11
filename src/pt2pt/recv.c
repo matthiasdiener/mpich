@@ -1,5 +1,5 @@
 /*
- *  $Id: recv.c,v 1.31 1995/06/21 15:37:58 gropp Exp $
+ *  $Id: recv.c,v 1.32 1995/09/18 15:29:37 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,14 +7,14 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: recv.c,v 1.31 1995/06/21 15:37:58 gropp Exp $";
+static char vcid[] = "$Id: recv.c,v 1.32 1995/09/18 15:29:37 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
 /*@
     MPI_Recv - Basic receive
 
-Output Parameter:
+Output Parameters:
 . buf - initial address of receive buffer (choice) 
 . status - status object (Status) 
 

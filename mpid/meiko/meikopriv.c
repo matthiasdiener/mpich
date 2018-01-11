@@ -23,7 +23,7 @@ typedef struct
    int             proc;           /* Who am I ?                      */
    int             nproc;          /* How many TOTAL processes ?      */
    EW_TPORT       *tport;          /* What we actually use for moving messages */
-   int		   mclock0;        /* The epoch                       */
+   double          clockDelta;     /* add to local clock for the epoch */
    EW_GROUP       *group;          /* The group with everyone in      */
 } MEIKO_STATE;
 
@@ -93,11 +93,12 @@ void *MPID_MEIKO_Init ( int * Argc, char *** Argv )
 
     ew_tportGrowDescs (meiko_state.tport, 0, 0); /* allocate min # tport rx/tx descs */
 
-    ew_gsync (meikoGroup);	/* sync the nodes */
+    ew_gsync (meikoGroup);      /* sync the nodes */
 
-    /* Store start time AFTER gsync, so mclock will look similar on all nodes */
+    /* get local-to-global clock delta, referenced to NOW on meikoGroup member 0 */
+
     elan_t_clock (ew_ctx, &tv);
-    meiko_state.mclock0 = tv.tv_sec + tv.tv_nsec * 1.0e-9;
+    meiko_state.clockDelta = ew_getDeltaT (meikoGroup, -(tv.tv_sec + tv.tv_nsec * 1.0e-9));
 
     return (void *)&meiko_state;
 }
@@ -160,7 +161,7 @@ double MPID_MEIKO_Wtime()
 
     elan_t_clock (ew_ctx, &tv);
     
-    return (tv.tv_sec + tv.tv_nsec * 1.0e-9 - meiko_state.mclock0);
+    return (tv.tv_sec + tv.tv_nsec * 1.0e-9 + meiko_state.clockDelta);
 }
 
 void MPID_MEIKO_Abort( int errno  )

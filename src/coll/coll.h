@@ -1,4 +1,4 @@
-/* 	$Id: coll.h,v 1.7 1995/07/25 02:44:51 gropp Exp $	 */
+/* 	$Id: coll.h,v 1.8 1995/08/29 16:07:47 gropp Exp $	 */
 
 
 /*
@@ -43,11 +43,18 @@ mpi_errno = MPI_Sendrecv ( (void *)(src), count, datatype, rank, tag, \
    
    For most systems, a size of 1 is optimal.  The claim has been made that
    for the SP1, 3 is better.
+   
+   NOTE THAT THIS MUST BE DISABLED FOR HETEROGENEOUS SYSTEMS
  */
+#if defined(MPID_HAS_HETERO)
+#define MPIR_BCAST_BLOCK_SIZE 1
+#else
 #if defined(MPI_rs6000)
-#define MPIR_BCAST_BLOCK_SIZE 3
+/* #define MPIR_BCAST_BLOCK_SIZE 3 */
+#define MPIR_BCAST_BLOCK_SIZE 1
 #else
 #define MPIR_BCAST_BLOCK_SIZE 1
+#endif
 #endif
 
 /* Tags for point to point operations which implement collective operations */

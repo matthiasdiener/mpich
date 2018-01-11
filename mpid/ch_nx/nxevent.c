@@ -6,17 +6,18 @@
 
 
 /*
- *  $Id: chevent.c,v 1.13 1995/06/30 17:35:50 gropp Exp $
+ *  $Id: chevent.c,v 1.14 1995/09/18 21:11:36 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chevent.c,v 1.13 1995/06/30 17:35:50 gropp Exp $";
+static char vcid[] = "$Id: chevent.c,v 1.14 1995/09/18 21:11:36 gropp Exp $";
 #endif
 
 #include "mpid.h"
+#include "mpiddebug.h"
 
 /* 
    This file contains routines to see if the "device" wants to do anything
@@ -25,10 +26,12 @@ static char vcid[] = "$Id: chevent.c,v 1.13 1995/06/30 17:35:50 gropp Exp $";
 void MPID_NX_check_device( blocking )
 int blocking;
 {
+DEBUG_PRINT_MSG("Entering check device")
 if (blocking)
     (void) MPID_NX_check_incoming( MPID_BLOCKING );
 else 
     while (MPID_NX_check_incoming( MPID_NOTBLOCKING ) != -1);
+DEBUG_PRINT_MSG("Exiting check device")
 }
 
 /* 

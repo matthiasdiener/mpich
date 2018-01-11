@@ -1,5 +1,5 @@
 /*
- *  $Id: type_util.c,v 1.12 1995/07/25 02:48:50 gropp Exp $
+ *  $Id: type_util.c,v 1.13 1995/09/18 15:36:54 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -162,7 +162,7 @@ MPIR_SET_COOKIE(dtype,0);
 
    STILL NEEDS TO BE IMPLEMENTED IN THE TYPE ROUTINES
  */
-int MPIR_Type_get_limits( dtype, lb, ub )
+void MPIR_Type_get_limits( dtype, lb, ub )
 MPI_Datatype dtype;
 MPI_Aint *lb, *ub;
 {

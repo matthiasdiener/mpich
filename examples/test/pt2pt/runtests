@@ -41,16 +41,29 @@ for arg in "$@" ; do
     esac
 done
 
+# MakeExe program-name
 MakeExe() {
     if [ ! -x $1 ] ; then
 	make $1
     fi
 }
+# CleanExe program-name
 CleanExe() {
     if [ $makeeach = 1 ] ; then
 	/bin/rm -f $1 $1.o
     fi
 }
+## RunTest program-name marker-text outputfile programargs
+#RunTest() {
+#    testfiles="$testfiles $3"
+#    /bin/rm -f $3
+#    MakeExe $1
+#    echo "$2"
+#    echo "$2" >> $3
+#    mpirun $args -np 2 $1 "$4" >> $3 2>&1
+#    echo "$2" >> $3
+#    CleanExe $1
+#}   
 
 # If the programs are not available, run make.
 if [ ! -x sendrecv -a $makeeach = 0 ] ; then
@@ -100,6 +113,15 @@ mpirun $args -np 2 sendrecv4 "$@" >> sendrecv4.out 2>&1
 echo '**** Testing MPI_Send and MPI_Recv (4) ****' >> sendrecv4.out
 CleanExe sendrecv4
 #
+testfiles="$testfiles bsendtest.out"
+/bin/rm -f bsendtest.out
+MakeExe bsendtest
+echo '**** Testing MPI_Bsend and MPI_Recv (4) ****' >> bsendtest.out
+echo '**** Testing MPI_Bsend and MPI_Recv (4) ****' 
+mpirun $args -np 2 -mvback "bsendtest-0.out bsendtest-1.out" bsendtest "$@" >> bsendtest.out 2>&1
+echo '**** Testing MPI_Bsend and MPI_Recv (4) ****' >> bsendtest.out
+CleanExe bsendtest
+#
 testfiles="$testfiles isndrcv.out"
 /bin/rm -f isndrcv.out
 MakeExe isndrcv
@@ -129,7 +151,7 @@ testfiles="$testfiles ssendtest.out"
 MakeExe ssendtest
 echo '**** Verifying ssend ****'
 echo '**** Verifying ssend ****' >> ssendtest.out
-mpirun $args -np 2 ssendtest "$@" >> ssendtest.out 2>&1
+mpirun $args -np 2 -mvback "ssendtest-1.out" ssendtest "$@" >> ssendtest.out 2>&1
 echo '**** Verifying ssend ****' >> ssendtest.out
 CleanExe ssendtest
 #
@@ -140,7 +162,9 @@ echo '**** Checking the type routines ****'
 echo '**** Checking the type routines ****' >> typetest.out
 /bin/rm -f typetest-[01].out
 mpirun $args -np 2 -mvback typetest-0.out typetest "$@" >> typetest.out 2>&1
-cat typetest-0.out >> typetest.out
+if [ -s typetest-0.out ] ; then
+    cat typetest-0.out >> typetest.out
+fi
 /bin/rm -f typetest-[01].out
 echo '**** Checking the type routines ****' >> typetest.out
 CleanExe typetest
@@ -263,6 +287,15 @@ mpirun $args -np 4 waitall "$@" >> waitall.out 2>&1
 echo '*** Testing MPI_Waitall ***' >> waitall.out
 CleanExe waitall
 #
+testfiles="$testfiles pack.out"
+/bin/rm -f pack.out
+MakeExe pack
+echo '*** Testing MPI_Pack ***' 
+echo '*** Testing MPI_Pack ***' >> pack.out
+mpirun $args -np 2 pack "$@" >> pack.out 2>&1
+echo '*** Testing MPI_Pack ***' >> pack.out
+CleanExe pack
+#
 # Run Fortran tests ONLY if Fortran available
 if [ 1 = 1 ] ; then 
     echo "FORTRAN TESTS"
@@ -287,6 +320,16 @@ if [ 1 = 1 ] ; then
     mpirun $args -np 2 allpair2 "$@" >> allpair2.out 2>&1
     echo '*** Testing pt-2-pt from Fortran  (many calls) ***' >> allpair2.out
     CleanExe allpair2
+    #
+    testfiles="$testfiles structf.out"
+    /bin/rm -f structf.out
+    MakeExe structf
+    echo '*** Testing Type_struct from Fortran ***'
+    echo '*** Testing Type_struct from Fortran ***' >> structf.out
+    mpirun $args -np 2 structf "$@" >> structf.out 2>&1
+    echo '*** Testing Type_struct from Fortran ***' >> structf.out
+    CleanExe structf
+    #
     echo "END OF FORTRAN TESTS"
 fi
 #
@@ -330,3 +373,4 @@ if [ -s pt2pt.diff ] ; then
    cat pt2pt.diff
 fi
 exit 0
+

@@ -5,7 +5,7 @@ fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
 fi
-MPIRUN_HOME=$MPIR_HOME/util
+MPIRUN_HOME=$MPIR_HOME/bin
 if [ "$argsset" = "" ] ; then
    . $MPIRUN_HOME/mpirun.args
    argsset=1
@@ -59,9 +59,9 @@ else
     localpgm=$progname
     PWD_LOCAL=$PWD_TRIAL
 fi
-/bin/rm -f $PWD_LOCAL/PIrun
-/bin/rm -f /sphome/$LOGNAME/job.output
-cat >$PWD_LOCAL/PIrun <<.
+/bin/rm -f $PWD_LOCAL/PIrun.$$
+/bin/rm -f /sphome/$LOGNAME/job.output.$$
+cat >$PWD_LOCAL/PIrun.$$ <<.
 #! /bin/sh
 JID=\`/usr/local/bin/getjid\`
 trap "sprelease \$JID"
@@ -84,20 +84,23 @@ if [ $polling_mode = 0 ] ; then
    MP_CSS_INTERRUPT=YES
    export MP_CSS_INTERRUPT
 fi
-/bin/rm -f /sphome/$LOGNAME/job.output
+/bin/rm -f /sphome/$LOGNAME/job.output.$$
 if [ $mpirun_verbose = 1 ] ; then
-    echo "About to run poe ... " >> /sphome/$LOGNAME/job.output
+    echo "About to run poe ... " >> /sphome/$LOGNAME/job.output.$$
 fi
-poe $localpgm $cmdLineArgs >> /sphome/$LOGNAME/job.output 2>&1
+poe $localpgm $cmdLineArgs >> /sphome/$LOGNAME/job.output.$$ 2>&1
 if [ $mpirun_verbose = 1 ] ; then
-    echo "Poe exited ..." >> /sphome/$LOGNAME/job.output
+    echo "Poe exited ..." >> /sphome/$LOGNAME/job.output.$$
 fi
+# Attempt to fix file cache problems
+#SYNCLOC#
+sleep 2
 sprelease \$JID
 exit 0
 .
 #
 # End of script for running progrma
-chmod a+x $PWD_LOCAL/PIrun
+chmod a+x $PWD_LOCAL/PIrun.$$
 # Determine CAC
 if [ "$CAC" = "" ] ; then
    CAC=`whatcac | head -1 | cut -d' ' -f 9 | sed -e s/\"//g -e s/://`
@@ -110,11 +113,12 @@ if [ $just_testing = 1 ] ; then
     echo B
     echo M
     echo n
-    echo $PWD_LOCAL/PIrun
+    echo $PWD_LOCAL/PIrun.$$
     echo 
     echo C
     echo .
-    echo spwait
+    echo JID=\`/usr/local/bin/getjid\`
+    echo spwait \$JID
     if [ $rmhome = 1 ] ; then
 	echo "/bin/rm /sphome/$LOGNAME/$localpgm"
     fi
@@ -124,40 +128,59 @@ if [ $just_testing = 1 ] ; then
 else
     # Send output to /dev/null in case we're trying to 
     # use this to match up output
-    JID=`/usr/local/bin/getjid`
-    if [ "$JID" != "" ] ; then 
-	echo "Can not start SP job while one is in the queue"
-	echo "Job $JID was found"
-	exit 1
-    fi
-    #JID=`sptest -cac $CAC -min $max_time -nodes $np -batch -mpl -us \
-    #	-path $PWD_LOCAL/PIrun -noemail` 
-    spsubmit -nomail <<. > /dev/null 2>&1
-$CAC
-$max_time
-$np
-B
-M
-n
-$PWD_LOCAL/PIrun
-
-C
-.
-    JID=`/usr/local/bin/getjid`
+    #JID=`/usr/local/bin/getjid`
+    #if [ "$JID" != "" ] ; then 
+    #	echo "Can not start SP job while one is in the queue"
+    #	echo "Job $JID was found"
+    #	exit 1
+    #fi
+    # 
+    # I've had lots of problems with files not being present that I'm going
+    # to chalk up to NFS problems.  To work around this, I'm going to 
+    # add some sleeps and syncs
+    #SYNCLOC# > /dev/null 2>&1
+    sleep 2
+    JID=`sptest -cac $CAC -min $max_time -nodes $np -batch -mpl -us \
+    	-path $PWD_LOCAL/PIrun.$$ -noemail` 
+#    spsubmit -nomail <<. > /dev/null 2>&1
+#$CAC
+#$max_time
+#$np
+#B
+#M
+#n
+#$PWD_LOCAL/PIrun.$$
+#
+#C
+#.
+#    JID=`/usr/local/bin/getjid`
     trap "sprelease ${JID}" 2 3
-    spwait
+    # There may be some filesystem race condition in spwait
+    # THIS IS FIXED IN THE MOST RECENT ANL CODE; IF YOU HAVE TROUBLE,
+    # GET A NEW VERSION OF spq and spwait
+    #SYNCLOC# > /dev/null 2>&1
+    spwait $JID
     trap 2 3
+    # 
+    # I've had lots of problems with files not being present (or not being
+    # written!) that I'm going to chalk up to NFS problems.  To work around 
+    # this, I'm going to add some sleeps and syncs 
+    # (sleeps removed now that spwait works!)
+    #SYNCLOC# > /dev/null 2>&1
     if [ $rmhome = 1 ] ; then
 	/bin/rm /sphome/$LOGNAME/$localpgm
     fi
-    /bin/rm -f /sphome/$LOGNAME/SPnodes.$JID
+    /bin/rm -f /sphome/$LOGNAME/SPnodes.$JID /sphome/$LOGNAME/PIrun.$$ 
     if [ "$mvback" != "" ] ; then
 	(cd $PWD_LOCAL ; for file in $mvback ; do \
-	if [ -s $file ] ; then cp $file $PWD_TRIAL ; /bin/rm $file ; \
+	if [ -f $file ] ; then cp $file $PWD_TRIAL ; /bin/rm $file ; \
 	fi ; done )
     fi
-    if [ -s /sphome/$LOGNAME/job.output ] ; then 
-	cat /sphome/$LOGNAME/job.output
+    if [ -s /sphome/$LOGNAME/job.output.$$ ] ; then 
+	# Try a touch to synchronize file caches... Sigh... 
+	touch /sphome/$LOGNAME/job.output.$$
+	cat /sphome/$LOGNAME/job.output.$$
+	/bin/rm -f /sphome/$LOGNAME/job.output.$$
     # Note that there is no good way to identify problems with the run
     # now...
 #    else

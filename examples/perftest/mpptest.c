@@ -226,6 +226,8 @@ if (SYArgGetDouble( &argc, argv, 1, "-tgoal", &Tgoal )) {
     }
 SYArgGetDouble( &argc, argv, 1, "-rthresh", &repsThresh );
 
+SYArgGetInt( &argc, argv, 1, "-sample_reps", &minreps );
+
 autosize = SYArgHasName( &argc, argv, 1, "-auto" );
 if (autosize) {
     autodx = 4;
@@ -624,10 +626,12 @@ combinations of\n\
   -async       NonBlocking sends/receives\n\
   -force       Ready-receiver (with a null message)\n\
   -persistant  Persistant communication (only with MPI)\n\
+  -vector      Data is separated by constant stride (only with MPI)\n\
 \n\
   Message data:\n\
   -cachesize n Perform test so that cached data is NOT reused\n\
 \n\
+  -vstride n   For -vector, set the stride between elements\n\
   Message pattern:\n\
   -roundtrip   Roundtrip messages         (default)\n\
   -head        Head-to-head messages\n\
@@ -662,6 +666,8 @@ combinations of\n\
                -autoreps\n\
   -rthresh d   Fractional threshold used to determine when minimum time\n\
                has been found.  The default is 0.05.\n\
+  -sample_reps n   Number of times a full test is run inorder to find the\n\
+               minimum average time.  The default is 30\n\
 \n" );
 fprintf( stderr, "  -gop [ options ]:\n" );
 PrintGOPHelp();

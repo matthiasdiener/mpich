@@ -1,5 +1,10 @@
 #! /bin/sh
 #
 # Take the input file name and remove Chameleon statements, writing to stdout
-sed -e '/#PVM3_START#/,/#PVM3_END#/d' \
+if [ -n "$1" ] ; then
+    sed -e '/#PVM3_START#/,/#PVM3_END#/d' \
 	-e '/#CHAMELEON_START#/,/#CHAMELEON_END#/d' $1
+else
+    sed -e '/#PVM3_START#/,/#PVM3_END#/d' \
+	-e '/#CHAMELEON_START#/,/#CHAMELEON_END#/d'
+fi

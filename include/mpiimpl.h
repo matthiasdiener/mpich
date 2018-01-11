@@ -1,5 +1,5 @@
 /*
- *  $Id: mpiimpl.h,v 1.17 1995/06/30 17:34:30 gropp Exp $
+ *  $Id: mpiimpl.h,v 1.20 1995/09/18 21:09:17 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -18,15 +18,10 @@
 #include "patchlevel.h"
 #include "dmpiatom.h"
 #include "mpi_bc.h"
-/* SGI change */
 #include "dmpi.h"
 #include "mpir.h"
 #include "mpi_ad.h"
-/* SGI change */
 #include "mpid.h"
-/* mpid_bind.h has the bindings for the ADI routines. */
-/* SGI removed this? */
-/* #include "mpid_bind.h" */
 
 /* This handles the case of sizeof(int) < sizeof(void*). */
 #ifdef INT_LT_POINTER
@@ -126,12 +121,13 @@ int MPIR_dup_fn ( MPI_Comm *, int *, void *, void *, void *, int * );
 int MPIR_Pack ( MPI_Comm, void *, int, MPI_Datatype, void *, int, int *);
 int MPIR_Pack_size ( int, MPI_Datatype, MPI_Comm, int *);
 int MPIR_Unpack( MPI_Comm, void *, int, int, MPI_Datatype, int, 
-		 void *, int * );
+		 void *, int *, int * );
 int MPIR_UnPackMessage( char *, int, MPI_Datatype, int, MPI_Request, int * );
 int MPIR_Type_free( MPI_Datatype * );
 void MPIR_Type_free_struct( MPI_Datatype );
 MPI_Datatype MPIR_Type_dup( MPI_Datatype );
 int MPIR_Type_permanent( MPI_Datatype );
+void MPIR_Type_get_limits( MPI_Datatype, MPI_Aint *, MPI_Aint *);
 int MPIR_Send_init( void *, int, MPI_Datatype, int, int, MPI_Comm, 
 		     MPI_Request, MPIR_Mode, int );
 
@@ -157,7 +153,7 @@ void MPIR_Type_swap_inplace( unsigned char *, MPI_Datatype, int );
 int MPIR_Type_XDR_encode( unsigned char *, unsigned char *, MPI_Datatype, 
 			  int, void * );
 int MPIR_Type_XDR_decode( unsigned char *, int, MPI_Datatype, int, 
-			  unsigned char *, void * );
+			  unsigned char *, int *, int *, void * );
 int MPIR_Type_convert_copy( MPI_Comm, void *, int, void *, MPI_Datatype, 
 			   int, int, int * );
 int MPIR_Comm_needs_conversion( MPI_Comm );
@@ -172,6 +168,9 @@ int MPIR_Receive_setup( MPI_Request * );
 int MPIR_Send_setup( MPI_Request * );
 int MPIR_SendBufferFree( MPI_Request );
 
+void DMPI_msg_arrived( int, int, MPIR_CONTEXT, MPIR_RHANDLE **, int * );
+void DMPI_free_unexpected( MPIR_RHANDLE      * );
+
 /* env */
 MPI_Datatype MPIR_Init_basic_datatype( MPIR_NODETYPE, int );
 
@@ -184,9 +183,9 @@ int MPIR_Topology_delete_fn( MPI_Comm *, int *, void *, void * );
 void *MPIR_SBalloc( void * );
 void MPIR_SBfree( void *, void * );
  */
-int MPIR_dump_rhandle( MPIR_RHANDLE );
-int MPIR_dump_shandle( MPIR_SHANDLE );
-int MPIR_dump_queue( MPIR_QHDR * );
+void MPIR_dump_rhandle( MPIR_RHANDLE );
+void MPIR_dump_shandle( MPIR_SHANDLE );
+void MPIR_dump_queue( MPIR_QHDR * );
 int MPIR_enqueue( MPIR_QHDR *, MPIR_COMMON *, MPIR_QEL_TYPE );
 int MPIR_dequeue( MPIR_QHDR *, void * );
 int MPIR_search_posted_queue( int, int, MPIR_CONTEXT, int *, int, 

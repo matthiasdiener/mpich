@@ -48,7 +48,8 @@ COBJECTS = timelines.o mtn.o msgs.o states.o events.o \
 CSOURCES = timelines.c mtn.c msgs.c states.c events.c alog.c picl.c log.c \
 	   time_lbl.c hist.c cvt_args.c tclptr.c tkAppInit.c \
 	   vis.c str_dup.c bitmaps.c colors.c proc_varargs.c stats.c \
-	   nupshot.c tkColor.c tkCanvas.c tkCanvLine.c tkRectOval.c tkBitmap.c
+	   nupshot.c \
+	   tkColor.c tkCanvas.c tkCanvLine.c tkRectOval.c tkBitmap.c
 
 CHEADERS = timelines.h mtn.h msgs.h states.h events.h alog.h picl.h log.h \
 	   time_lbl.h hist.h cvt_args.h tclptr.h \

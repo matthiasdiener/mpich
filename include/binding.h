@@ -177,7 +177,7 @@ int MPI_Cart_create(MPI_Comm comm_old, int ndims, int *dims, int *periods,
 		    int reorder, MPI_Comm *comm_cart);
 int MPI_Dims_create(int nnodes, int ndims, int *dims);
 int MPI_Graph_create(MPI_Comm, int, int *, int *, int, MPI_Comm *);
-int MPI_Graphdims_Get(MPI_Comm comm, int *nnodes, int *nedges);
+int MPI_Graphdims_get(MPI_Comm comm, int *nnodes, int *nedges);
 int MPI_Graph_get(MPI_Comm, int, int, int *, int *);
 int MPI_Cartdim_get(MPI_Comm comm, int *ndims);
 int MPI_Cart_get(MPI_Comm comm, int maxdims, int *dims, int *periods,

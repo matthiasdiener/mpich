@@ -23,6 +23,7 @@ extern int __NUMNODES, __MYPROCID;static MPI_Status _mpi_status;static int _n, _
    -wy i n    windows in y, my # and total #
    -lastwindow generate the wait/new page.
  */
+typedef enum { GRF_X, GRF_EPS, GRF_PS } OutputForm;
 typedef struct {
     FILE *fp, *fpdata;
     char *fname2;
@@ -37,6 +38,7 @@ typedef struct {
     /* Information about the graph */
     int wxi, wxn, wyi, wyn, is_lastwindow;
     int givedy;
+    OutputForm output_type;
     } GraphData;
 
 void PrintGraphHelp( )
@@ -45,6 +47,8 @@ fprintf( stderr, "\n\
 Output\n\
   -cit         Generate data for CIt (default)\n\
   -gnuplot     Generate data for GNUPLOT\n\
+  -gnuploteps  Generate data for GNUPLOT in Encapsulated Postscript\n\
+  -gnuplotps   Generate data for GNUPLOT in Postscript\n\
   -givedy      Give the range of data measurements\n\
   -fname filename             (default is stdout)\n\
                (opened for append, not truncated)\n\
@@ -257,6 +261,14 @@ char *protocol_name, *title_string, *units;
 {
 char archname[20], hostname[256], date[30];
 
+switch (ctx->output_type) {
+    case GRF_EPS:
+    fprintf( ctx->fp, "set terminal postscript eps\n" );
+    break;
+    case GRF_PS:
+    fprintf( ctx->fp, "set terminal postscript\n" );
+    break;
+    }
 fprintf( ctx->fp, "set xlabel \"Size %s\"\n", units );
 fprintf( ctx->fp, "set ylabel \"time (us)\"\n" );
 strcpy(archname,"MPI" );
@@ -326,13 +338,16 @@ int     first, last, nsizes, *sizelist;
 double  s, r;
 {
 int i;
+
+fprintf( ctx->fp, "plot " );
 for (i=0; i<nsizes; i++) {
 #ifdef GNUVERSION_HAS_BOXES
-    fprintf( ctx->fp, "plot '%s' using 1:%d with boxes,\\\n\
-'%s' using 1:%d with lines,\\\n", ctx->fname2, i+2, ctx->fname2, i+2 );
+    fprintf( ctx->fp, "'%s' using 1:%d title '%d' with boxes%s\n\
+'%s' using 1:%d with lines,\\\n", ctx->fname2, i+2, sizelist[i], 
+	    ctx->fname2, i+2, (i == nsizes-1) ? "" : ",\\" );
 #else
-    fprintf( ctx->fp, "plot '%s' using 1:%d with lines,\\\n", 
-	     ctx->fname2, i+2 );
+    fprintf( ctx->fp, "'%s' using 1:%d title '%d' with lines%s\n", 
+	     ctx->fname2, i+2, sizelist[i], (i == nsizes-1) ? "" : ",\\" );
 #endif
     }
 }
@@ -343,8 +358,12 @@ for (i=0; i<nsizes; i++) {
 void EndPageGnuplot( ctx )
 GraphData *ctx;
 {
-if (ctx->is_lastwindow)
-    fprintf( ctx->fp, "pause -1 \"Press <return> to continue\"\nclear\n" );
+if (ctx->is_lastwindow) {
+    if (ctx->output_type == GRF_X) 
+	fprintf( ctx->fp, "pause -1 \"Press <return> to continue\"\nclear\n" );
+    else
+	fprintf( ctx->fp, "exit\n" );
+    }
 }
 
 /* Common operations */
@@ -389,16 +408,27 @@ void *SetupGraph( argc, argv )
 int *argc;
 char **argv;
 {
-GraphData *new;
-char     filename[1024];
-int      wsize[2];
-int      isgnu;
-int      givedy;
+GraphData  *new;
+char       filename[1024];
+int        wsize[2];
+int        isgnu;
+int        givedy;
+OutputForm output_type = GRF_X;
 
 new = (GraphData *)malloc(sizeof(GraphData));    if (!new)return 0;;
 
 filename[0] = 0;
 isgnu = SYArgHasName( argc, argv, 1, "-gnuplot" );
+if (!isgnu) {
+    if (isgnu = SYArgHasName( argc, argv, 1, "-gnuploteps" )) {
+	output_type = GRF_EPS;
+	};
+    }
+if (!isgnu) {
+    if (isgnu = SYArgHasName( argc, argv, 1, "-gnuplotps" )) {
+	output_type = GRF_PS;
+	};
+    }
 if (SYArgHasName( argc, argv, 1, "-cit" )) isgnu = 0;
 if (SYArgGetString( argc, argv, 1, "-fname", filename, 1024 ) &&
     __MYPROCID == 0) {
@@ -429,6 +459,7 @@ if (SYArgGetIntVec( argc, argv, 1, "-wy", 2, wsize )) {
 new->is_lastwindow = SYArgHasName( argc, argv, 1, "-lastwindow" );
 if (new->wxn == 1 && new->wyn == 1) new->is_lastwindow = 1;
 
+new->output_type = output_type;
 if (!isgnu) {
     new->header	    = HeaderCIt;
     new->dataout    = DataoutGraph;
@@ -449,7 +480,20 @@ else {
     new->draw	    = DrawGnuplot;
     new->drawgop    = DrawGopGnuplot;
     new->endpage    = EndPageGnuplot;
-    sprintf( filename2, "%s.gpl", (filename[0] ? filename : "mppout" ) );
+    if (filename[0]) {
+	/* Try to remove the extension, if any, from the filename */
+	char *p;
+	strcpy( filename2, filename );
+	p = filename2 + strlen(filename2) - 1;
+	while (p > filename2 && *p != '.') p--;
+	if (p > filename2)
+	    strcpy( p, ".gpl" );
+	else
+	    strcat( filename2, ".gpl" );
+	}
+    else {
+	strcpy( filename2, "mppout.gpl" );
+	}
     new->fpdata	    = fopen( filename2, "a" );
     if (!new->fpdata) {
 	fprintf( stderr, "Could not open file %s\n\

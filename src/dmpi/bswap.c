@@ -49,6 +49,7 @@ void          *ctx;
 {
   int len = t->size * N;
 
+  /* Some compilers issue warnings for using sizeof(...) as an int (!) */
   switch (t->dte_type) {
       case MPIR_CHAR:
       case MPIR_UCHAR:
@@ -58,25 +59,25 @@ void          *ctx;
       break;
       case MPIR_SHORT:
       case MPIR_USHORT:
-      MPIR_BSwap_N_copy( d, s, sizeof(short), N );
+      MPIR_BSwap_N_copy( d, s, (int)sizeof(short), N );
       break;
       case MPIR_INT:
       case MPIR_UINT:
-      MPIR_BSwap_N_copy( d, s, sizeof(int), N );
+      MPIR_BSwap_N_copy( d, s, (int)sizeof(int), N );
       break;
       case MPIR_LONG:
       case MPIR_ULONG:
-      MPIR_BSwap_N_copy( d, s, sizeof(long), N );
+      MPIR_BSwap_N_copy( d, s, (int)sizeof(long), N );
       break;
       case MPIR_FLOAT:
-      MPIR_BSwap_N_copy( d, s, sizeof(float), N );
+      MPIR_BSwap_N_copy( d, s, (int)sizeof(float), N );
       break;
       case MPIR_DOUBLE:
-      MPIR_BSwap_N_copy( d, s, sizeof(double), N );
+      MPIR_BSwap_N_copy( d, s, (int)sizeof(double), N );
       break;
 #ifdef HAVE_LONG_DOUBLE
       case MPIR_LONGDOUBLE:
-      MPIR_BSwap_N_copy( d, s, sizeof(long double), N );
+      MPIR_BSwap_N_copy( d, s, (int)sizeof(long double), N );
       break;
 #endif
       /* Does not handle Fortran int/float/double */
@@ -102,25 +103,25 @@ int N;
       break;
       case MPIR_SHORT:
       case MPIR_USHORT:
-      MPIR_BSwap_N_inplace( b, sizeof(short), N );
+      MPIR_BSwap_N_inplace( b, (int)sizeof(short), N );
       break;
       case MPIR_INT:
       case MPIR_UINT:
-      MPIR_BSwap_N_inplace( b, sizeof(int), N );
+      MPIR_BSwap_N_inplace( b, (int)sizeof(int), N );
       break;
       case MPIR_LONG:
       case MPIR_ULONG:
-      MPIR_BSwap_N_inplace( b, sizeof(long), N );
+      MPIR_BSwap_N_inplace( b, (int)sizeof(long), N );
       break;
       case MPIR_FLOAT:
-      MPIR_BSwap_N_inplace( b, sizeof(float), N );
+      MPIR_BSwap_N_inplace( b, (int)sizeof(float), N );
       break;
       case MPIR_DOUBLE:
-      MPIR_BSwap_N_inplace( b, sizeof(double), N );
+      MPIR_BSwap_N_inplace( b, (int)sizeof(double), N );
       break;
 #ifdef HAVE_LONG_DOUBLE
       case MPIR_LONGDOUBLE:
-      MPIR_BSwap_N_inplace( b, sizeof(long double), N );
+      MPIR_BSwap_N_inplace( b, (int)sizeof(long double), N );
       break;
 #endif
       /* Does not handle Fortran int/float/double */
@@ -179,12 +180,14 @@ enum xdr_op xdr_dir;
 XDR  *xdr_ctx;
 {
 xdrmem_create(xdr_ctx, buf, size, xdr_dir );
+return MPI_SUCCESS;
 }
 
 int MPIR_Mem_XDR_Free( xdr_ctx )
 XDR *xdr_ctx;
 {
 xdr_destroy( xdr_ctx );
+return MPI_SUCCESS;
 }
 
 /* 
@@ -200,7 +203,7 @@ xdr_destroy( xdr_ctx );
 /* CHANGE: This routine used to return success or failure (the value of
    which was ignored).  It has been changed to return
    number of bytes in dest (if successful)
-   -1 if error
+   MPI_ERR_INTERN if error
  */
 int MPIR_Mem_XDR_Encode(d, s, t, N, elsize, xdr_ctx) 
 unsigned char *d, *s;    /* dest, source */
@@ -219,7 +222,7 @@ XDR           *xdr_ctx;
     total = xdr_getpos( xdr_ctx );
     for (i=0; i<N; i++) {
 	rval = t( xdr_ctx, s );
-	if (!rval) return -1;
+	if (!rval) return MPI_ERR_INTERN;
 	s += elsize;
 	}
     total = xdr_getpos( xdr_ctx ) - total;
@@ -248,11 +251,20 @@ XDR           *xdr_ctx;
     return total;
 }
 
-int MPIR_Mem_XDR_Decode(d, s, t, N, size, act_bytes, xdr_ctx ) 
+/* 
+ * We need to return two different lengths:
+ * Length advanced in the destination (N * size) (destlen)
+ * Length advanced in the source (N * xdrsize)   (srclen)
+ * Note that we don't just use N * <appropriate size> because if act_bytes
+ * is shorter than N * xdrsize, we'll stop early.
+ */
+int MPIR_Mem_XDR_Decode(d, s, t, N, size, act_bytes, srclen, destlen, 
+			xdr_ctx ) 
 unsigned char *d, *s;    /* dest and source */
 xdrproc_t     t;         /* type */
 int           N, size;   /* count and element size */
 int           act_bytes; /* Number of bytes in message */
+int           *srclen, *destlen;
 XDR           *xdr_ctx;
 { 
     int rval = 1;
@@ -261,9 +273,10 @@ XDR           *xdr_ctx;
     
     if (!xdr_ctx) {
 	fprintf( stderr, "NULL XDR CONTEXT!\n" );
-	return -1;
+	return MPI_ERR_INTERN;
 	}
     total = 0;
+    *srclen  = xdr_getpos(xdr_ctx);
     for (i=0; i<N; i++) {
 	rval = t( xdr_ctx, d );
 	/* Break if at end of buffer or error */
@@ -271,15 +284,18 @@ XDR           *xdr_ctx;
 	total += size;
 	d    += size;
 	}
-    /* ? how to return error ? */
-    return total;
+    *destlen = total;
+    *srclen  = xdr_getpos(xdr_ctx) - *srclen;
+    /* if (!rval) error; */
+    return MPI_SUCCESS;
 }
 
 /* Special byte version */
-int MPIR_Mem_XDR_ByteDecode(d, s, N, act_bytes, xdr_ctx ) 
+int MPIR_Mem_XDR_ByteDecode(d, s, N, act_bytes, srclen, destlen, xdr_ctx ) 
 unsigned char *d, *s;    /* dest and source */
 int           N;         /* count */
 int           act_bytes; /* Number of bytes in message */
+int           *srclen, *destlen;
 XDR           *xdr_ctx;
 { 
     int rval = 1;
@@ -288,7 +304,7 @@ XDR           *xdr_ctx;
     
     if (!xdr_ctx) {
 	fprintf( stderr, "NULL XDR CONTEXT!\n" );
-	return -1;
+	return MPI_ERR_INTERN;
 	}
 
     total = xdr_getpos( xdr_ctx );
@@ -296,9 +312,10 @@ XDR           *xdr_ctx;
     /* printf( "xdr_len in decode is %d with a size of %d\n", xdr_len, N ); */
     rval = xdr_opaque( xdr_ctx, (char *)d, xdr_len );
     /* printf( "after decode, xdr_len = %d\n", xdr_len ); */
-    total += xdr_len;
-    if (!rval) return -total;
-    return total;
+    *srclen = xdr_getpos( xdr_ctx ) - total;
+    *destlen = N;
+    if (!rval) return MPI_ERR_INTERN;
+    return MPI_SUCCESS;
 }
 
 
@@ -315,43 +332,43 @@ void          *ctx;
 
   switch (t->dte_type) {
       case MPIR_CHAR:
-      len = MPIR_Mem_XDR_Encode(d, s, xdr_char, N, sizeof(char), xdr_ctx);
+      len = MPIR_Mem_XDR_Encode(d, s, xdr_char, N, (int)sizeof(char), xdr_ctx);
       break;
       case MPIR_UCHAR:
-      len = MPIR_Mem_XDR_Encode(d, s, xdr_u_char, N, sizeof(unsigned char), xdr_ctx);
+      len = MPIR_Mem_XDR_Encode(d, s, xdr_u_char, N, (int)sizeof(unsigned char), xdr_ctx);
       break;
       case MPIR_BYTE:
       case MPIR_PACKED:
       len = MPIR_Mem_XDR_ByteEncode(d, s, N, xdr_ctx);
       break;
       case MPIR_SHORT:
-      len = MPIR_Mem_XDR_Encode(d, s, xdr_short, N, sizeof(short), xdr_ctx);
+      len = MPIR_Mem_XDR_Encode(d, s, xdr_short, N, (int)sizeof(short), xdr_ctx);
       break;
       case MPIR_USHORT:
-      len = MPIR_Mem_XDR_Encode(d, s, xdr_u_short, N, sizeof(unsigned short), xdr_ctx);
+      len = MPIR_Mem_XDR_Encode(d, s, xdr_u_short, N, (int)sizeof(unsigned short), xdr_ctx);
       break;
       case MPIR_INT:
-      len = MPIR_Mem_XDR_Encode(d, s, xdr_int, N, sizeof(int), xdr_ctx);
+      len = MPIR_Mem_XDR_Encode(d, s, xdr_int, N, (int)sizeof(int), xdr_ctx);
       break;
       case MPIR_UINT:
-      len = MPIR_Mem_XDR_Encode(d, s, xdr_u_int, N, sizeof(unsigned int), xdr_ctx);
+      len = MPIR_Mem_XDR_Encode(d, s, xdr_u_int, N, (int)sizeof(unsigned int), xdr_ctx);
       break;
       case MPIR_LONG:
-      len = MPIR_Mem_XDR_Encode(d, s, xdr_long, N, sizeof(long), xdr_ctx);
+      len = MPIR_Mem_XDR_Encode(d, s, xdr_long, N, (int)sizeof(long), xdr_ctx);
       break;
       case MPIR_ULONG:
-      len = MPIR_Mem_XDR_Encode(d, s, xdr_u_long, N, sizeof(unsigned long), xdr_ctx);
+      len = MPIR_Mem_XDR_Encode(d, s, xdr_u_long, N, (int)sizeof(unsigned long), xdr_ctx);
       break;
       case MPIR_FLOAT:
-      len = MPIR_Mem_XDR_Encode(d, s, xdr_float, N, sizeof(float), xdr_ctx);
+      len = MPIR_Mem_XDR_Encode(d, s, xdr_float, N, (int)sizeof(float), xdr_ctx);
       break;
       case MPIR_DOUBLE:
-      len = MPIR_Mem_XDR_Encode(d, s, xdr_double, N, sizeof(double), xdr_ctx);
+      len = MPIR_Mem_XDR_Encode(d, s, xdr_double, N, (int)sizeof(double), xdr_ctx);
       break;
       case MPIR_LONGDOUBLE:
       MPIR_ERROR(MPI_COMM_NULL, MPI_ERR_TYPE, 
           "Unfortuantely, XDR does not support the long double type. Sorry.");
-      len = MPIR_Mem_XDR_Encode(d, s, xdr_char, N, sizeof(char));
+      len = MPIR_Mem_XDR_Encode(d, s, xdr_char, N, (int)sizeof(char));
       break;
       default:
 	  len = 0;
@@ -367,81 +384,98 @@ return len;
 /* 
    act_bytes is the number of bytes provided on input, and size of destination
    on output.
+
+   Returns error code.
+   Number of bytes read from s is set in srclen; number of bytes
+   stored in d is set in destlen.
+   Needs to return the other as well.
  */
-int MPIR_Type_XDR_decode(s, N, t, elm_size, d, ctx )
+int MPIR_Type_XDR_decode(s, N, t, elm_size, d, srclen, destlen, ctx )
 unsigned char *d, *s;
 MPI_Datatype  t;
-int           N, elm_size;
+int           N, elm_size, *srclen, *destlen;
 void          *ctx;
 {
-  int act_len, act_size;
+  int act_size;
+  int mpi_errno = MPI_SUCCESS;
   XDR *xdr_ctx = (XDR *)ctx;
+
   /* printf( "Decoding %d items of type %d\n", N, t->dte_type ); */
   if (N == 0 || t->size == 0) {
       return 0;
       }
 
   /* The assumption in unpack is that the user does not exceed the limits of
-     the input buffer */
+     the input buffer THIS IS A BAD ASSUMPTION! */
   act_size = 12 * (N + 1);
   switch (t->dte_type) {
       case MPIR_CHAR:
-      act_len = MPIR_Mem_XDR_Decode(d, s, xdr_char, N, sizeof(char), 
-				    act_size, xdr_ctx );
+      mpi_errno = MPIR_Mem_XDR_Decode(d, s, xdr_char, N, (int)sizeof(char), 
+				    act_size, srclen, destlen, xdr_ctx );
       break;
       case MPIR_UCHAR:
-      act_len = MPIR_Mem_XDR_Decode(d, s, xdr_u_char, N, 
-				    sizeof(unsigned char), act_size, xdr_ctx  );    
+      mpi_errno = MPIR_Mem_XDR_Decode(d, s, xdr_u_char, N, 
+				      (int)sizeof(unsigned char), act_size, 
+				      srclen, destlen, xdr_ctx  );    
       break;
       case MPIR_BYTE:
       case MPIR_PACKED:
-      act_len = MPIR_Mem_XDR_ByteDecode(d, s, N, act_size, xdr_ctx  );
+      mpi_errno = MPIR_Mem_XDR_ByteDecode(d, s, N, act_size, srclen, destlen, 
+					  xdr_ctx  );
       break;
       case MPIR_SHORT:
-      act_len = MPIR_Mem_XDR_Decode(d, s, xdr_short, N, sizeof(short), act_size, xdr_ctx  );
+      mpi_errno = MPIR_Mem_XDR_Decode(d, s, xdr_short, N, (int)sizeof(short), 
+				      act_size, srclen, destlen, xdr_ctx  );
       break;
       case MPIR_USHORT:
-      act_len = MPIR_Mem_XDR_Decode(d, s, xdr_u_short, N, 
-				    sizeof(unsigned short), act_size, xdr_ctx  );
+      mpi_errno = MPIR_Mem_XDR_Decode(d, s, xdr_u_short, N, 
+				      (int)sizeof(unsigned short), act_size, 
+				      srclen, destlen, xdr_ctx  );
       break;
       case MPIR_INT:
-      act_len = MPIR_Mem_XDR_Decode(d, s, xdr_int, N, sizeof(int), act_size, xdr_ctx  );
+      mpi_errno = MPIR_Mem_XDR_Decode(d, s, xdr_int, N, (int)sizeof(int), act_size,
+				      srclen, destlen, xdr_ctx  );
       break;
       case MPIR_UINT:
-      act_len = MPIR_Mem_XDR_Decode(d, s, xdr_u_int, N, sizeof(unsigned int), 
-				    act_size, xdr_ctx  );
+      mpi_errno = MPIR_Mem_XDR_Decode(d, s, xdr_u_int, N, 
+				      (int)sizeof(unsigned int), act_size, 
+				      srclen, destlen, xdr_ctx  );
       break;
       case MPIR_LONG:
-      act_len = MPIR_Mem_XDR_Decode(d, s, xdr_long, N, sizeof(long), act_size, xdr_ctx  );
+      mpi_errno = MPIR_Mem_XDR_Decode(d, s, xdr_long, N, (int)sizeof(long), 
+				      act_size, srclen, destlen, xdr_ctx  );
       break;
       case MPIR_ULONG:
-      act_len = MPIR_Mem_XDR_Decode(d, s, xdr_u_long, N, 
-				    sizeof(unsigned long), act_size, xdr_ctx  );
+      mpi_errno = MPIR_Mem_XDR_Decode(d, s, xdr_u_long, N, 
+				      (int)sizeof(unsigned long), act_size, 
+				      srclen, destlen, xdr_ctx  );
       break;
       case MPIR_FLOAT:
-      act_len = MPIR_Mem_XDR_Decode(d, s, xdr_float, N, sizeof(float), act_size, xdr_ctx  );
+      mpi_errno = MPIR_Mem_XDR_Decode(d, s, xdr_float, N, (int)sizeof(float), 
+				      act_size, srclen, destlen, xdr_ctx  );
       break;
       case MPIR_DOUBLE:
-      act_len = MPIR_Mem_XDR_Decode(d, s, xdr_double, N, sizeof(double), 
-				    act_size, xdr_ctx  );
+      mpi_errno = MPIR_Mem_XDR_Decode(d, s, xdr_double, N, (int)sizeof(double), 
+				    act_size, srclen, destlen, xdr_ctx  );
       break;
       case MPIR_LONGDOUBLE:
       MPIR_ERROR(MPI_COMM_NULL, MPI_ERR_TYPE, 
           "Unfortuantely, XDR does not support the long double type. Sorry.");
-      act_len = MPIR_Mem_XDR_Decode(d, s, xdr_char, N, sizeof(char), act_size, xdr_ctx  );
+      mpi_errno = MPIR_Mem_XDR_Decode(d, s, xdr_char, N, (int)sizeof(char), 
+				      act_size, srclen, destlen, xdr_ctx  );
       break;
       default:
-	  act_len = 0;
+      *srclen  = 0;
+      *destlen = 0;
       MPIR_ERROR(MPI_COMM_NULL, MPI_ERR_INTERN, 
 		 "Tried to decode unsupported type");
       break;
       }
-  if (act_len < 0) {
-      act_len = - act_len;
+  if (mpi_errno) {
       MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_INTERN,
 		 "Error converting data sent with XDR" );
       }
-return act_len;
+return mpi_errno;
 }
 
 #endif
@@ -467,7 +501,7 @@ int dbufsize, count, dest, *decode;
       XDR xdr_ctx;
       *decode = MPIR_MSGREP_XDR;
       MPIR_Mem_XDR_Init( dbuf, dbufsize, XDR_ENCODE, &xdr_ctx );
-      len = MPIR_Type_XDR_encode(dbuf, sbuf, type, count, &xdr_ctx);
+      len = MPIR_Type_XDR_encode(dbuf, sbuf, type, count, (void *)&xdr_ctx);
       MPIR_Mem_XDR_Free( &xdr_ctx ); 
       if (len < 0) {
 	  MPIR_ERROR( comm, MPI_ERR_OTHER, 

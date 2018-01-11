@@ -1,5 +1,5 @@
 /*
- *  $Id: chget.c,v 1.3 1995/07/31 14:48:18 gropp Exp $
+ *  $Id: chget.c,v 1.6 1995/09/29 22:34:07 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -7,18 +7,24 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: chget.c,v 1.3 1995/07/31 14:48:18 gropp Exp $";
+static char vcid[] = "$Id: chget.c,v 1.6 1995/09/29 22:34:07 gropp Exp $";
 #endif /* lint */
 
 #include "mpid.h"
 
 /* 
-  This file contains the routines to handle trnasfering messages with 
+  This file contains the routines to handle transfering messages with 
   a "get" or "put" protocol (only get enabled so far).
+
+  Some parts of this code reflect early attempts at a single copy model;
+  this model will be handled in the future with a separate set of
+  similar but not identical routines.
 
  */
 
-/* Here are some definitions to simplify debugging */
+/***************************************************************************/
+/* Here are some definitions to simplify debugging                         */
+/***************************************************************************/
 #include "mpiddebug.h"
 /***************************************************************************/
 
@@ -59,17 +65,13 @@ MPID_PKT_GALLOC
 
    dmpi_unexpected is the handle of the data found in the unexpected queue.
 
-   In the case that the rendevous protocol is being used for long messages,
-   we must begin the process of transfering the message.  Note that
-   in this case, the message may not be completely transfered until
-   we wait on the completion of the message.
+   If the message was long, it may not have all been delivered.  In that
+   case, we ask for the rest of the message to be delivered.  
 
-   Note that in the Rendevous case, this routine may not set the
-   completed field, since it the data may still be on its way.
-   Because the Rendevous code is a rather different way of handling the
-   processing of unexpected messages, there are two versions of this routine,
-   one for MPID_USE_RNDV, and one without rendevous.  Make sure that you
-   change the correct one (and both if there is a common problem!).
+   There could really be an "eager" and "rendevous" version of this routine.
+   See the respective routines for a description of their protocols.
+
+   Currently, this code is IDENTICAL to the eager process_unexpected
  */
 int MPID_CH_Process_unexpected_get( dmpi_recv_handle, dmpi_unexpected )
 MPIR_RHANDLE *dmpi_recv_handle, *dmpi_unexpected;
@@ -104,12 +106,16 @@ if (MPID_DebugFlag) {
 /* Error test on length of message */
 if (mpid_recv_handle->bytes_as_contig < dmpi_recv_handle->totallen) {
     mpid_recv_handle_unex->bytes_as_contig = mpid_recv_handle->bytes_as_contig;
-    dmpi_recv_handle->totallen = mpid_recv_handle->bytes_as_contig;
-    err = MPI_ERR_TRUNCATE;
-    (*MPID_ErrorHandler)( 1, "Truncated message"  );
+    dmpi_recv_handle->totallen		   = mpid_recv_handle->bytes_as_contig;
+    err					   = MPI_ERR_TRUNCATE;
+    dmpi_recv_handle->errval		   = MPI_ERR_TRUNCATE;
+    (*MPID_ErrorHandler)( 1, 
+		 "Truncated message (in processing unexpected(get))"  );
     }
 
 if (mpid_recv_handle_unex->bytes_as_contig > 0) {
+    /* This works for now because we did a complete_recv at the beginning.
+       It would be better to decide on eager/rendevous and do that instead */
     MEMCPY( mpid_recv_handle->start, mpid_recv_handle_unex->temp,
 	   mpid_recv_handle_unex->bytes_as_contig );
     }
@@ -194,6 +200,53 @@ return MPI_SUCCESS;
     track of whether the packet should be free; perhaps by inlining the 
     "DO_GET" code (then we can use the MPID_PKT_RECV_CLR(pkt) call).
     Left as an exercise for the reader.
+
+    Details:
+    Short messsages are sent in the usual way, by putting them into the 
+    packet itself.  The packet is returned to the sender's avail stack
+    with the macro MPID_PKT_SEND_FREE.  
+
+    Long messages are sent in parts.  In the simplest situation, 
+    Sender                            Receiver
+    (xxx_post_send_long)
+    MPID_PKT_DO_GET
+    Increment MPID_n_pending
+                                      (MPID_xx_do_get, do_get_mem)
+                                      receives, processes. 
+				      Always return an MPID_PKT_DONE_GET
+                                      (even if not done, i.e., in the
+				      case of a partial send).  We
+				      put the address of the dmpi_recv_handle
+				      into the packet (recv_id field).
+    (MPID_xx_done_get)				     
+    If all of the data has not been
+       sent, setup the next bunch of
+       data and send an MPID_PKT_CONT_GET
+       packet.  
+    else
+       decrement MPID_n_pending
+                                      (MPID_xxx_cont_get) 
+				      (if needed)
+				      Copy the data, send a 
+				      MPID_PKT_DONE_GET message pack
+				      with updated info how much
+				      data has been copied.
+
+    There are some ways to reduce the number of messages that are sent; 
+    for now, we're assuming that the long messages are long enough to
+    hide the overhead.  This isn't actually a good assumption, but
+    we need to simplify some of the receive code before we can 
+    cleanly handle a leaner protocol.
+
+    Note on MPID_CMPL_RECV_GET (completer for get's)
+    This is simply a blocking loop over check_incoming until the completer
+    field is set to clear (0), since completion happens by receiving 
+    additional packets.
+
+    Note the while it might seem unnecessary in the two-copy case (copy into
+    and out of shared memory) to send an "I'm done" message to the sender, 
+    this will allow us to have the sender maintain their own memory pool and
+    to do the return without any shared locks (in the memory pool).
  */
 int MPID_CH_Do_get( dmpi_recv_handle, from, pkt )
 MPIR_RHANDLE   *dmpi_recv_handle;
@@ -211,13 +264,13 @@ err = MPID_CH_Do_get_to_mem( dmpi_recv_handle->dev_rhandle.start, from, pkt );
 if (pkt->cur_offset >= pkt->len) {
     DMPI_mark_recv_completed(dmpi_recv_handle);
 #ifdef MPID_DEBUG_ALL /* #DEBUG_START# */
-if (MPID_DebugFlag) {
-    fprintf( MPID_DEBUG_FILE, 
-	     "[%d] Do Get completed read of data (tag = %d, left = %d)\n", 
-	     MPID_MyWorldRank, dmpi_recv_handle->tag,
-	    pkt->len - pkt->cur_offset );
-    fflush( MPID_DEBUG_FILE );
-    }
+    if (MPID_DebugFlag) {
+	fprintf( MPID_DEBUG_FILE, 
+		"[%d] Do Get completed read of data (tag = %d, left = %d)\n", 
+		MPID_MyWorldRank, dmpi_recv_handle->tag,
+		pkt->len - pkt->cur_offset );
+	fflush( MPID_DEBUG_FILE );
+	}
 #endif                /* #DEBUG_END# */
     }
 else
@@ -225,14 +278,15 @@ else
 return err;
 }
 
+/* This should REUSE the packet passed in rather than allocating a new one.
+   But we always want to use the "dynamic send" version. 
+ */
 int MPID_CH_Do_get_to_mem( address, from, pkt )
 void           *address;
 MPID_PKT_GET_T *pkt;
 int            from;
 {
-#if defined(MPID_PKT_DYNAMIC_RECV)
 MPID_PKT_SEND_DECL(MPID_PKT_GET_T,tpkt);
-#endif
 
 MEMCPY( address, pkt->address, pkt->len_avail );
 
@@ -242,16 +296,11 @@ pkt->cur_offset += pkt->len_avail;
 if (pkt->len - pkt->cur_offset > 0) {
 #endif
 
-#if defined(MPID_PKT_DYNAMIC_RECV)
 MPID_PKT_SEND_ALLOC(MPID_PKT_GET_T,tpkt);
 MEMCPY( MPID_PKT_SEND_ADDR(tpkt), pkt, sizeof(MPID_PKT_GET_T) );
 MPID_PKT_SEND_SET(tpkt,mode,MPID_PKT_DONE_GET);
 MPID_SendControl( MPID_PKT_SEND_ADDR(tpkt), sizeof(MPID_PKT_GET_T), from );
 MPID_PKT_SEND_FREE(tpkt);
-#else
-pkt->mode = MPID_PKT_DONE_GET;
-MPID_SendControl( pkt, sizeof(MPID_PKT_GET_T), from );
-#endif
 
 #ifdef MPID_DEBUG_ALL /* #DEBUG_START# */
 if (MPID_DebugFlag) {
@@ -272,6 +321,8 @@ else {
 #endif
 
 /* NOTE IF WE SEND THE PACKET BACK, WE MUST NOT FREE IT!!! IN THE RECV CODE */
+/* Note that if we are copying data into the shared area, we do not ever
+   need the ack.  On the other hand, direct mapping REQUIRES the ack */
 
 return MPI_SUCCESS;
 }
@@ -318,10 +369,10 @@ address = (char *)(dmpi_recv_handle->dev_rhandle.start);
 if (!address) {
     DEBUG_PRINT_MSG("R Cont-get for unexpected receive")
     address = (char *)dmpi_recv_handle->dev_rhandle.temp;
-    }
-if (!address) {
-    fprintf( stderr, "Internal error! Null buffer for receive data\n" );
-    exit(1);
+    if (!address) {
+	fprintf( stderr, "Internal error! Null buffer for receive data\n" );
+	exit(1);
+	}
     }
 err = MPID_CH_Do_get_to_mem( address + pkt->cur_offset, from, pkt );
 if (pkt->cur_offset >= pkt->len) {
@@ -333,6 +384,53 @@ return err;
 /* 
    Send-side operations
  */
+#ifdef FOO
+/*
+   Long sends may be split operations, even when in "blocking" mode.
+   Thus, there needs to be some sort of "handle" that can be used
+   to complete the send.  Undetermined at present.
+ */
+int MPID_CH_send_long_get( buf, len, tag, context_id, lrank_sender, 
+				  grank_dest, msgrep )
+void *buf;
+int  len, tag, context_id, lrank_sender, grank_dest, msgrep;
+{
+int len_actual;
+MPID_PKT_SEND_DECL(MPID_PKT_GET_T,pkt);
+
+MPID_PKT_SEND_ALLOC(MPID_PKT_GET_T,pkt);
+MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_DO_GET);
+/* ????? what to use for send_id ???. */
+MPID_PKT_SEND_SET(pkt,send_id,(MPID_Aint) dmpi_send_handle);
+MPID_PKT_SEND_SET(pkt,recv_id,0);
+MPID_PKT_SEND_SET(pkt,context_id,context_id);
+MPID_PKT_SEND_SET(pkt,lrank,lrank_sender);
+MPID_PKT_SEND_SET(pkt,tag,tag);
+MPID_PKT_SEND_SET(pkt,len,len);
+len_actual     = len;
+MPID_PKT_SEND_SET(pkt,address,
+	  MPID_SetupGetAddress( buf, &len_actual, grank_dest ));
+MPID_PKT_SEND_SET(pkt,len_avail,len_actual);
+MPID_PKT_SEND_SET(pkt,cur_offset,0);
+
+DEBUG_PRINT_SEND_PKT("S Starting a send",pkt)
+DEBUG_PRINT_LONG_MSG("S Sending extra-long message",pkt)
+MPID_SendControlBlock( MPID_PKT_SEND_ADDR(pkt), 
+		       sizeof(MPID_PKT_GET_T), grank_dest );
+
+/* Remember that we await a reply */
+MPID_n_pending++;
+
+MPID_PKT_SEND_FREE(pkt);
+/* Message isn't completed until we receive the DONE_GET packet for this
+   data */
+/* Spin and process */
+dmpi_send_handle->completer = MPID_CMPL_SEND_GET;
+
+return MPI_SUCCESS;
+}
+#endif
+
 int MPID_CH_post_send_long_get( dmpi_send_handle, mpid_send_handle, len ) 
 MPIR_SHANDLE *dmpi_send_handle;
 MPID_SHANDLE *mpid_send_handle;
@@ -413,7 +511,11 @@ return MPI_SUCCESS;
 
 /* 
   Handle the ack for a Send/GET.  Mark the send as completed, and 
-  free the get memory.
+  free the get memory.  This is used ONLY to process a packet of type
+  MPID_PKT_DONE_GET.  Note that when we send a packet and expect a return
+  of this type, we increment MPID_n_pending.  This allows us to make sure
+  that we process all messages before exiting.  This is the ONLY routine that
+  decrements MPID_n_pending.
  */
 int MPID_CH_Done_get( pkt, from )
 MPID_PKT_GET_T *pkt;
@@ -449,6 +551,7 @@ if (pkt->cur_offset < pkt->len) {
 #endif                  /* #DEBUG_END# */
 
     /* Now, get a new packet and send it back */
+    /* SHOULD JUST RETURN THE PACKET THAT WE HAVE! */
     MPID_PKT_SEND_ALLOC(MPID_PKT_GET_T,tpkt);
     MEMCPY( MPID_PKT_SEND_ADDR(tpkt), pkt, sizeof(MPID_PKT_GET_T) );
     MPID_PKT_SEND_SET(tpkt,len_avail,m);
@@ -463,6 +566,11 @@ if (pkt->cur_offset < pkt->len) {
 else {
     /* Remember that we have finished this transaction */
     MPID_n_pending--;
+    if (MPID_n_pending < 0) {
+	fprintf( stdout, 
+		"[%d] Internal error in processing messages; pending<0\n", 
+		MPID_MyWorldRank );
+	}
 #if defined(MPID_PKT_GET_NEEDS_ACK)
     MPID_FreeGetAddress( pkt->address );
     pkt->address = 0;
@@ -477,9 +585,11 @@ return MPI_SUCCESS;
 int MPID_CH_Cmpl_send_get( dmpi_send_handle )
 MPIR_SHANDLE *dmpi_send_handle;
 {
+DEBUG_PRINT_MSG("Entering complete send")
 while (!MPID_Test_handle(dmpi_send_handle)) {
-    (void)MPID_CH_check_incoming( MPID_BLOCKING );
+    (void)MPID_CH_check_incoming( MPID_BLOCKING ) ;
     }
+DEBUG_PRINT_MSG("Exiting complete send")
 return MPI_SUCCESS;
 }
 

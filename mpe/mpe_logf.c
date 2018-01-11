@@ -41,7 +41,7 @@ extern void MPIR_RmPointer();
 #define mpe_describe_state_ mpe_describe_state
 #define mpe_describe_event_ mpe_describe_event
 #define mpe_log_event_ mpe_log_event
-#define mpe_finish_log mpe_finish_log
+#define mpe_finish_log_ mpe_finish_log
 #endif
 
 /* 

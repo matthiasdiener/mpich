@@ -5,28 +5,23 @@
 # fully automate this process.
 #
 sed -e '/#define DEVICE_CHAMELEON/d' \
-    -e 's/MPID_CH/MPID_SHMEM/g' \
+    -e 's/MPID_CH_/MPID_SHMEM_/g' \
     -e 's/"Chameleon"/"SHMEM"/g' ../chameleon/dmch.h > dmshmem.h
-sed -e 's/MPID_CH/MPID_SHMEM/g' ../chameleon/mpid_bind.h > mpid_bind.h
-sed -e 's/MPID_CH/MPID_SHMEM/g' ../chameleon/packets.h > packets.h
-sed -e 's/MPID_CH/MPID_SHMEM/g' ../chameleon/mpiddebug.h > mpiddebug.h
-sed -e 's/MPID_CH/MPID_SHMEM/g' ../chameleon/mpidstat.h > mpidstat.h
-../chameleon/rmhetero ../chameleon/chevent.c > shmemevent.c
-../chameleon/rmhetero ../chameleon/chrecv.c  > shmemrecv.c
-../chameleon/rmhetero ../chameleon/chsend.c  > shmemsend.c
-../chameleon/rmhetero ../chameleon/chinit.c  > shmeminit.c
-../chameleon/rmhetero ../chameleon/chprobe.c > shmemprobe.c
-../chameleon/rmhetero ../chameleon/chsync.c  > shmemsync.c
-../chameleon/rmhetero ../chameleon/chpkt.c   > shmempkt.c
-../chameleon/rmhetero ../chameleon/chcoll.c  > shmemcoll.c
-../chameleon/rmhetero ../chameleon/chrndv.c  > shmemrndv.c
-../chameleon/rmhetero ../chameleon/chget.c  > shmemget.c
-../chameleon/rmhetero ../chameleon/chdebug.c  > shmemdebug.c
-chmod ug+w shmemevent.c shmemrecv.c shmemsend.c shmeminit.c shmemprobe.c \
-	   shmemsync.c shmempkt.c shmemrndv.c shmemget.c shmemdebug.c \
-	   dmshmem.h mpid_bind.h packets.h shmemcoll.c
+sed -e 's/MPID_CH_/MPID_SHMEM_/g' ../chameleon/mpid_bind.h > mpid_bind.h
+sed -e 's/MPID_CH_/MPID_SHMEM_/g' ../chameleon/packets.h > packets.h
+sed -e 's/MPID_CH_/MPID_SHMEM_/g' ../chameleon/mpiddebug.h > mpiddebug.h
+sed -e 's/MPID_CH_/MPID_SHMEM_/g' ../chameleon/mpidstat.h > mpidstat.h
+# Note that we do NOT include chcoll.c  in the list
+for file in event recv send init probe sync get debug ; do 
+    ../chameleon/rmhetero ../chameleon/ch$file.c | ../chameleon/rmnonget | \
+	../chameleon/rmchameleon > shmem$file.c
+    chmod ug+w shmem$file.c
+done
+chmod ug+w dmshmem.h mpid_bind.h packets.h 
 #
 # Update the few Chameleon calls remaining 
+# Also, change MPID_SHMEM_WTIME to MPID_WTIME, incase MPID_WTIME is 
+# inlined
 # shmeminit
 sed -e 's/PIiInit( argc, argv )/MPID_SHMEM_init( argc, *argv );/g' \
     -e 's/PIiFinish()/MPID_SHMEM_finalize()/g' \
@@ -35,6 +30,8 @@ sed -e 's/PIiInit( argc, argv )/MPID_SHMEM_init( argc, *argv );/g' \
     -e 's/PINodeName/SY_GetHostName/g' \
     -e 's/SYSetResourceClockOff()//g' \
     -e 's/SYGetElapsedTime()/p2p_wtime()/g' \
+    -e 's/MPID_SHMEM_WTIME()/MPID_WTIME((void*)0)/g' \
+    -e 's/MPID_CH_WTIME()/MPID_WTIME((void *)0)/g' \
 		shmeminit.c > .tmp	
 mv .tmp shmeminit.c
 #
@@ -53,6 +50,6 @@ for file in shmem*.c ; do
     if [ "$file" = shmempriv.c ] ; then
         continue 
     fi
-    sed -e 's/MPID_CH/MPID_SHMEM/g' $file > .tmp
+    sed -e 's/MPID_CH_/MPID_SHMEM_/g' $file > .tmp
     mv .tmp $file
 done

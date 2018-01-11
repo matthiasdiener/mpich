@@ -72,20 +72,56 @@ static int intra_Scan ANSI_ARGS((void* sendbuf, void* recvbuf, int count,
 				 MPI_Datatype datatype, 
 				 MPI_Op op, MPI_Comm comm ));
 
+/* I don't really want to to this this way, but for now... */
 static MPIR_COLLOPS intra_collops =  {
+#ifdef MPID_Barrier
+    MPID_FN_Barrier,
+#else
     intra_Barrier,
+#endif
+#ifdef MPID_Bcast
+    MPID_FN_Bcast,
+#else
     intra_Bcast,
+#endif
     intra_Gather, 
     intra_Gatherv, 
     intra_Scatter,
     intra_Scatterv,
+#ifdef MPID_Allgather
+    MPID_FN_Allgather,
+#else
     intra_Allgather,
+#endif
+#ifdef MPID_Allgatherv
+    MPID_FN_Allgatherv,
+#else
     intra_Allgatherv,
+#endif
     intra_Alltoall,
     intra_Alltoallv,
+#ifdef MPID_Reduce
+    MPID_FN_Reduce,
+#else
     intra_Reduce,
+#endif
+#ifdef MPID_Allreduce
+    MPID_FN_Allreduce,
+#else
     intra_Allreduce,
+#endif
+#ifdef MPID_Reduce_scatter
+    MPID_FN_Reduce_scatter,
+#else
     intra_Reduce_scatter,
+#endif
+#ifdef FOO
+#ifdef MPID_Reduce_scatterv
+    MPID_FN_Reduce_scatterv,
+#else
+    intra_Reduce_scatterv,
+#endif
+#endif
     intra_Scan,
     1                              /* Giving it a refcount of 1 ensures it
 				    * won't ever get freed.

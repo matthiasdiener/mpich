@@ -190,7 +190,7 @@ char *host;
     struct hostent *hostent;
     struct sockaddr_in addr;
 
-#ifdef SGI
+#ifdef SGI_TEST
     extern P4VOID net_set_sockbuf_size(int size, int skt);	/* 7/12/95, bri@sgi.com */
 #endif
 
@@ -201,7 +201,7 @@ char *host;
 	return -1;
     }
 
-#ifdef SGI
+#ifdef SGI_TEST
     net_set_sockbuf_size(-1,conn);	/* 7/12/95, bri@sgi.com */
 #endif
 

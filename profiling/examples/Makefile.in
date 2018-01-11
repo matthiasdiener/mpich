@@ -55,10 +55,15 @@ all: default
 # inconsistant behavior, we can't use include to simplify the creation 
 # of makefiles
 #
- # include $(MPIR_HOME)/profiling/lib/Makefile.timing
- # include $(MPIR_HOME)/profiling/lib/Makefile.logging
- # include $(MPIR_HOME)/profiling/lib/Makefile.vismess
- # include $(MPIR_HOME)/profiling/lib/Makefile.allprof
+# Just to make things interesting, some makes (FreeBSD, for one) complain
+# if the comments do not START in column 1.  I've also changed include to
+# -include- just to head off any other problems
+#
+# -include- $(MPIR_HOME)/profiling/lib/Makefile.timing
+# -include- $(MPIR_HOME)/profiling/lib/Makefile.logging
+# -include- $(MPIR_HOME)/profiling/lib/Makefile.vismess
+# -include- $(MPIR_HOME)/profiling/lib/Makefile.allprof
+#
 # The following is the contents of $(MPIR_HOME)/profiling/lib/Makefile.logging
 # If you think that this is ridiculous, then contact the BSD 4.4 people and
 # ask them to conform to existing practice.

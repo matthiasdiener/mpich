@@ -36,7 +36,7 @@ static xpand_list_Int *Int_CreateList();
 #endif
 
 /* Forward refs */
-static SortPoints();
+static void SortPoints();
 static int Int_AddItem();
 
 int MPE_buttonArray[] = {
@@ -65,6 +65,16 @@ int MPE_logicArray[] = {
   GXnand,			/* !src || !dst */
   GXset				/* 1 */
 }; 
+
+#ifndef ANSI_ARGS
+#if defined(__STDC__)
+#define ANSI_ARGS(a) a
+#else
+#define ANSI_ARGS(a) ()
+#endif
+#endif
+
+void SetBackingStoreBitGrav ANSI_ARGS((MPE_XGraph));
   
 
 /*@
@@ -153,6 +163,7 @@ int        is_collective;
 	display = (char *)malloc( 100 );
 	gethostname( display, 100 );
 #else
+	display = (char *)malloc( MPI_MAX_PROCESSOR_NAME );
 	MPI_Get_processor_name( display, &namelen );
 #endif
 
@@ -245,7 +256,7 @@ int        is_collective;
 }
 
 
-SetBackingStoreBitGrav( graph )
+void SetBackingStoreBitGrav( graph )
 MPE_XGraph graph;
 {
   XSetWindowAttributes attrib;
@@ -310,7 +321,9 @@ int        freq;
     X11)
 .   color - Color INDEX value.  See MPE_Make_color_array.  By default,
             the colors MPE_WHITE, MPE_BLACK, MPE_RED, MPE_YELLOW,
-	    MPE_GREEN, MPE_CYAN, and MPE_BLUE are defined.
+	    MPE_GREEN, MPE_CYAN, MPE_BLUE, MPE_MAGENTA, MPE_AQUAMARINE, 
+            MPE_FORESTGREEN, MPE_ORANGE, MPE_VIOLET, MPE_BROWN, MPE_PINK, 
+            MPE_CORAL and MPE_GRAY  are defined.
 @*/
 int MPE_Draw_point( handle, x, y, color )
 MPE_XGraph handle;
@@ -419,7 +432,7 @@ int npoints;
 
 
 
-static SortPoints( lista, a, listb, colorList, boundaryPoints, ncolors )
+static void SortPoints( lista, a, listb, colorList, boundaryPoints, ncolors )
 MPE_Point *lista;
 XPoint **listb;
 MPE_Color **colorList;
@@ -768,6 +781,37 @@ MPE_Color color;
 		        graph->xwin->gc.set, centerx-radius, centery-radius, 
 		        radius*2, radius*2, 0, 360*64 );
   return MPE_Xerror( returnVal, "MPE_DrawCircle" );
+}
+
+
+
+/*@
+   MPE_Fill_circle - Fills a circle
+
+  Input Parameters:
+. graph - MPE graphics handle
+. centerx - horizontal center point of the circle
+. centery - vertical center point of the circle
+. radius - radius of the circle
+. color - color of the circle
+@*/
+int MPE_Fill_circle( graph, centerx, centery, radius, color )
+MPE_XGraph graph;
+int centerx, centery, radius;
+MPE_Color color;
+{
+  int returnVal;
+
+  if (graph->Cookie != MPE_G_COOKIE) {
+    fprintf( stderr, "Handle argument is incorrect or corrupted\n" );
+    return MPE_ERR_BAD_ARGS;
+  }
+
+  XBSetPixVal( graph->xwin, graph->xwin->cmapping[color] );
+  returnVal = XFillArc( graph->xwin->disp, XBDrawable(graph->xwin),
+		        graph->xwin->gc.set, centerx-radius, centery-radius, 
+		        radius*2, radius*2, 0, 360*64 );
+  return MPE_Xerror( returnVal, "MPE_FillCircle" );
 }
 
 

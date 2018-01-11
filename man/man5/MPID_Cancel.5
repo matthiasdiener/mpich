@@ -1,6 +1,6 @@
-.TH MPID_Cancel 5 "10/10/1994" " " "ADI"
+.TH MPID_Cancel 5 "8/23/1995" " " "ADI"
 .SH NAME
-MPID_Cancel \- Cancels a pending communication operation
+MPID_Cancel \- Cancels a pending communication operation.
 
 .SH INPUT PARAMETER
 .PD 0
@@ -21,7 +21,9 @@ void MPID_Cancel( void * ctx, MPIR_CHANDLE *r )
 
 .SH NOTES
 The actual freeing of internal space must be done with the appropriate
-MPID_FREE_SEND/RECV_HANDLE calls.
+
+.I MPID_FREE_SEND/RECV_HANDLE
+ calls.
 
 This routine may have little effect.  If the message has already been
 delivered, it has no effect.

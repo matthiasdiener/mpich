@@ -1,5 +1,5 @@
 /*
- *  $Id: mpirutil.c,v 1.17 1995/04/11 19:09:16 gropp Exp $
+ *  $Id: mpirutil.c,v 1.18 1995/09/13 21:44:14 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: mpirutil.c,v 1.17 1995/04/11 19:09:16 gropp Exp $";
+static char vcid[] = "$Id: mpirutil.c,v 1.18 1995/09/13 21:44:14 gropp Exp $";
 #endif /* lint */
 
 /* mpir helper routines
@@ -16,7 +16,7 @@ static char vcid[] = "$Id: mpirutil.c,v 1.17 1995/04/11 19:09:16 gropp Exp $";
 #include "mpiimpl.h"
 #include "mpisys.h"
 
-MPIR_dump_rhandle(handle)
+void MPIR_dump_rhandle(handle)
 MPIR_RHANDLE handle;
 {
     printf("  handle type = %d\n", handle.handle_type);
@@ -26,7 +26,7 @@ MPIR_RHANDLE handle;
     printf("  datatype    = "); MPIR_dump_dte(handle.datatype,0);
 }
 
-MPIR_dump_shandle(handle)
+void MPIR_dump_shandle(handle)
 MPIR_SHANDLE handle;
 {
     printf("  handle type = %d\n", handle.handle_type);
@@ -69,7 +69,7 @@ MPIR_SHANDLE handle;
    should be fixed by the ADI or underlying message-passing system rather
    than by this level of MPI routine.
  */
-MPIR_dump_queue(header)
+void MPIR_dump_queue(header)
 MPIR_QHDR *header;
 {
     MPIR_QEL *p;

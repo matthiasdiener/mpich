@@ -13,6 +13,7 @@ char **argv;
     int              table[MAX_PROCESSES][MAX_PROCESSES];
     int              errors=0;
     int              participants;
+    MPI_Comm         testcomm;
 
     MPI_Init( &argc, &argv );
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );
@@ -21,12 +22,16 @@ char **argv;
     /* A maximum of MAX_PROCESSES processes can participate */
     if ( size > MAX_PROCESSES ) participants = MAX_PROCESSES;
     else              participants = size;
+    /* Set the particpants so that it divides the MAX_PROCESSES */
+    while (MAX_PROCESSES % participants) participants--;
+    /* Create the communicator */
+    MPI_Comm_split( MPI_COMM_WORLD, rank < participants, rank, &testcomm );
+
     if (MAX_PROCESSES % participants) {
 	fprintf( stderr, "Number of processors must divide %d\n",
 		MAX_PROCESSES );
 	MPI_Abort( MPI_COMM_WORLD, 1 );
 	}
-    /* while (MAX_PROCESSES % participants) participants--; */
     if ( (rank < participants) ) {
 
       /* Determine what rows are my responsibility */
@@ -46,7 +51,7 @@ char **argv;
       for (i=0; i<participants; i++)
 	MPI_Gather(&table[begin_row][0], send_count, MPI_INT, 
 		   &table[0][0],         recv_count, MPI_INT, i, 
-		   MPI_COMM_WORLD);
+		   testcomm );
 
       /* Everybody should have the same table now,  */
       /* This test does not in any way guarantee there are no errors */
@@ -57,6 +62,7 @@ char **argv;
       }
     } 
 
+    MPI_Comm_free( &testcomm );
     Test_Waitforall( );
     MPI_Finalize();
     if (errors)

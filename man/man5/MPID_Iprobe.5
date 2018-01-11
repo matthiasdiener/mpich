@@ -1,4 +1,4 @@
-.TH MPID_Iprobe 5 "10/10/1994" " " "ADI"
+.TH MPID_Iprobe 5 "8/23/1995" " " "ADI"
 .SH NAME
 MPID_Iprobe \- Returns whether a message of the specified type is
 available
@@ -7,7 +7,9 @@ available
 .PD 0
 .TP
 .B ctx 
-- ADI context returned by MPID_Init
+- ADI context returned by 
+.I MPID_Init
+
 .PD 1
 .PD 0
 .TP
@@ -43,3 +45,25 @@ rank of the communicator
 int MPID_Iprobe( void * ctx, int tag, int source, int context_id,
 int *found, MPI_Status *status )
 .fi
+
+.SH NOTES
+Since this routine does not have a communicator argument, there is
+no easy way to convert the 
+.I source
+ argument from the value here (local to
+the communicator that 
+.I context_id
+ belongs to) and to the source relative
+to 
+.I MPI_COMM_WORLD
+.  To force 
+.I source
+ to be relative to 
+.I MPI_COMM_WORLD
+
+instead of the communicator, the ADI should define
+
+.I MPID_NEEDS_WORLD_SRC_INDICES
+ in 
+.I dm.h
+.

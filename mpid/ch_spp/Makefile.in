@@ -25,13 +25,13 @@ ALL: default
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
 CFLAGS   = @CFLAGS@ $(OPTFLAGS) -I../.. -I../../include -I./ \
 		-DMPI_$(ARCH) -DMPID_DEVICE_CODE @GETNAME_DEFS@ @DEVCFLAGS@
-SOURCE   = shmemevent.c shmemrecv.c shmemsend.c shmeminit.c shmemprobe.c \
-	   shmemsync.c p2p.c shmempriv.c shmemcoll.c shmemget.c
+SOURCE   = sppevent.c spprecv.c sppsend.c sppinit.c sppprobe.c \
+	   sppsync.c p2p.c spppriv.c sppcoll.c sppget.c sppdebug.c
 SOURCEC  = $(SOURCE)
 SOURCEF  =
-MPI_OBJECTS = shmemevent.o shmemrecv.o shmemsend.o shmeminit.o shmemprobe.o \
-	      shmemsync.o p2p.o shmempriv.o shmemcoll.o shmemget.o \
-              cnxQuerySC.o $(ASMFILES_O)
+MPI_OBJECTS = sppevent.o spprecv.o sppsend.o sppinit.o sppprobe.o \
+	      sppsync.o p2p.o spppriv.o sppcoll.o sppget.o \
+              sppdebug.o cnxQuerySC.o $(ASMFILES_O)
 
 default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
 

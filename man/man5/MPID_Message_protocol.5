@@ -1,4 +1,4 @@
-.TH MPID_Message_protocol 5 "10/10/1994" " " "ADI"
+.TH MPID_Message_protocol 5 "8/23/1995" " " "ADI"
 .SH NAME
 MPID_Message_protocol \- Describes the message prototcol used by the
 Chameleon ADI
@@ -9,9 +9,30 @@ long messages may be sent separately, in-order to make best use of
 vendor-provided message-passing interfaces.
 
 In the receive code, there are routines to extract the data from short
-and long messages (MPID_extract_short, MPID_extract_long).  In addition,
-nonblocking versions of the long message version (MPID_nextract_long,
-MPID_wextract_long) are also available.
+and long messages (
+.I MPID_Copy_body_short
+, 
+.I MPID_Copy_body_long
+).
 
-In the send code, the routines are MPID_post_send_short and
-MPID_post_send_long.  MPID_post_send_long may use nonblocking operations.
+In the send code, the routines are 
+.I MPID_post_send_short
+ and
+
+.I MPID_post_send_long
+.  
+.I MPID_post_send_long
+ may use nonblocking
+operations.
+
+.SH NOTES
+A future version might provide nonblocking versions of the extract
+long message version  (
+.I MPID_nextract_long
+, 
+.I MPID_wextract_long
+) instead
+of simply 
+.I MPID_Copy_body_long
+.
+

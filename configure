@@ -17,6 +17,12 @@
 
 
 
+
+
+
+
+
+
 #!/bin/sh
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf.
@@ -45,9 +51,11 @@ Usage: ${progname} -arch=ARCH_TYPE -comm=COMM_TYPE -device=DEVICE
 		   [-devicedir=DEVICE_DIR] [-transportdir=TRANSPORT_DIR]
                    [-prefix=INSTALL_DIR]  [-c++=C++_COMPILER]
                    [-cc=C_COMPILER] [-fc=FORTRAN_COMPILER]
+                   [-clinker=C_LINKER] [-flinker=FORTRAN_LINKER]
                    [-mpe] [-nof77] [-f90nag] [-opt=OPTFLAGS] [-make=MAKEPGM]
                    [-cflags=CFLAGS] [-fflags=FFLAGS]
                    [-optcc=C_OPTFLAGS] [-optf77=F77_OPTFLAGS]
+                   [-lib=LIBRARY]
                    [-no_mpegraphics] [-no_short_longs] [-memdebug]
                    [-x11_lib=X11LIB] [-x11_inc=X11INC]
                    [-mpedbg] 
@@ -57,7 +65,7 @@ Usage: ${progname} -arch=ARCH_TYPE -comm=COMM_TYPE -device=DEVICE
                    [-adi_coll_world]
                    [-wish=WISH] [-tcldir=TCLDIR] [-tkdir=TKDIR]
                    [-fortnames=FORTRANNAMES]
-                   [-ar_nolocal]
+                   [-ar_nolocal] [-automountfix=AUTOMOUNTFIX]
 where
    ARCH_TYPE    = the type of machine that MPI is to be configured for
    COMM_TYPE    = communications layer to be used
@@ -84,6 +92,7 @@ where
    FORTRANNAMES = Form of the Fortran names.  See below.
    X11LIB       = Full path name for libX11.a
    X11INC       = Full path name for X11.h
+   AUTOMOUNTFIX = Command to fix automounters
 
 One and only one 'arch', 'comm', and 'prefix' argument should be
 provided.  'arch' MUST be specified before 'comm'.
@@ -92,12 +101,19 @@ If '-c++' is included as an option, then the C++ interface is also
 built.  By default, g++ is used as the c++ compiler.  THIS IS CURRENTLY
 UNSUPPORTED.
 
+You can select a different C and Fortran compiler by using the '-cc' and 'fc'
+switches.  The environment variables 'CC' and 'FC' can also provide values
+for these but their settings may be overridden by the configure script.
+Using '-cc=\$CC -fc=\$FC' will force configure to use those compilers.
+
 If '-mpe' is included as an option, then the MPE 'helper' libraries will
 also be built.  If '-no_mpegraphics' is used, then the MPE routines that
 make use of X11 graphics will NOT be built; this is appropriate for
 systems that either do not have the X11 include files or that do not
 support X11 graphics (some message-passing systems cannot interoperate
-with X11).
+with X11).  The options -x11_inc and -x11_lib may be used to specify the
+locations of the X11 include files and libraries in the event that configure
+cannot find them (they should both be specified in that case).
 
 The option '-mpedbg' enables the '-mpedbg' command line switch in MPI
 programs.  When used with an MPI program, the default error handler
@@ -119,6 +135,10 @@ C and Fortran).  For example, '-opt=-O' chooses optimized code
 generation on many systems.  '-optcc' and '-optf77' allow you to specify
 options for just the C or Fortran compilers
 
+The option '-lib' allows you to specify the location of a library that
+may be needed by a particular device.   Most devices do NOT need this
+option; check the installation instructions for those that might.
+
 The option '-make' may be used to select an alternate make program.  For
 example, on FreeBSD systems, -make=gnumake may be required because of
 bugs in the system make.
@@ -131,8 +151,16 @@ may be used to suppress these messages (and support for these types).
 
 The option '-fortnames=FORTRANNAMES' allows you to specify the form of the
 Fortran names.  This is used primarily to generate names with and without 
-trailing underscores for those systems that support both.  Not yet 
-implemented.
+trailing underscores for those systems that support both.  Possible values 
+are 
+    FORTRANNAMES value     if Fortran MPI_SEND looks like
+    DOUBLEUNDERSCORE       mpi_send__
+    UNDERSCORE             mpi_send_
+    CAPS                   MPI_SEND
+    NOUNDERSCORE           mpi_send
+This option should normally NOT be used; configure determines what the Fortran
+compiler generates.  This can be used to override that choice.
+
 
 The option '-ar_nolocal' prevents the library archive command from attempting
 to use the local directory for temporary space.  This option should be used
@@ -222,6 +250,7 @@ Known devices are chameleon,
         ch_shmem  (for shared memory systems, such as SMPs), 
 	ch_spp    (for the Convex Exemplar)
         meiko     (for Meiko CS2, using elan tport library), and
+	nx        (for Intel Paragon),
 	t3d	  (for the Cray T3D, using Cray shmem library).
 
 Known architectures include (case is important)
@@ -232,6 +261,7 @@ Known architectures include (case is important)
         sgi       (Silicon Graphics IRIX 4.x, 5.x or 6.x)
         sgi5      (Silicon Graphics IRIX 5.x on R4400's, for the MESHINE)
         IRIX      (synonym for sgi)
+        IRIX64    (IRIX with 64bit objects)
         alpha     (DEC alpha)
         intelnx   (Intel i860 or Intel Delta)
         paragon   (Intel Paragon)
@@ -272,6 +302,8 @@ F77IARGC="iargc()"
 F90UNIX="C"
 MPI_FOBJECTS="\$(MPI_FOBJECTS)"
 CFLAGS=""
+# We use @ because configure uses %
+AUTOMOUNTFIX='sed -e s@/tmp_mnt/@/@g'
 #
 # By not setting FFLAGS, we get the values from the environment
 MPE_GRAPHICS="-DMPE_GRAPHICS"
@@ -466,6 +498,11 @@ do
 	DEVCFLAGS="$DEVCFLAGS -DMPID_NO_TINY_BUFFERS"
 	;;
 
+	# This is for p4 (and p3?)
+      -socksize=*|--socksize=*)
+   	SOCKSIZE="`echo $arg|sed 's/-*socksize=//'`"
+     	;;
+
      -adi_collective | --adi_collective)
 	ADI_COLLECTIVE=1
 	;;
@@ -511,6 +548,29 @@ do
 	FC=`echo $arg|sed 's/-*fc=//'`
 	USERF77=1
 	;;
+
+     -fortnames=*)
+	# Valid values are
+	# FORTRANDOUBLEUNDERSCORE
+	# FORTRANUNDERSCORE
+	# FORTRANCAPS
+	# FORTRANNOUNDERSCORE
+	FORTRANNAMES="FORTRAN`echo $arg|sed 's/-*fortnames=//'`"
+	;;
+
+     -clinker=* | --clinker=*)
+	CLINKER=`echo $arg|sed 's/-*clinker=//'`
+	USERCLINKER=1
+	;;
+
+     -flinker=* | --flinker=*)
+	FLINKER=`echo $arg|sed 's/-*flinker=//'`
+	USERFLINKER=1
+	;;
+
+     -lib=* | --lib=*)
+       package="`echo $arg|sed 's/-*lib=//'`"
+       USERLIB="$package" ;;
 
      -opt=* | --opt=*)
        package="`echo $arg|sed 's/-*opt=//'`"
@@ -573,6 +633,10 @@ do
      -tcldir=* | --tcldir=*)
 	TCL_DIR="`echo $arg|sed 's/-*tcldir=//'`"
        ;;
+
+     -automountfix=* | --automountfix=*)
+	AUTOMOUNTFIX="`echo $arg | sed 's/-*automountfix=//'`"
+	;;
 
      -echo )
 	set -x 
@@ -757,6 +821,9 @@ if test -n "$arch_sgi" ; then
     arch_IRIX=1
     ARCH=IRIX
 fi
+if test -n "$arch_IRIX64" ; then
+    arch_IRIX=1
+fi
 if test -n "$arch_sgi5" ; then
     arch_IRIX5=1
     ARCH=IRIX
@@ -790,12 +857,16 @@ fi
 #
 # Set Default values of variables
 CC=${CC:-cc}
-CLINKER=$CC
+if test -z "$CLINKER" ; then
+    CLINKER=$CC
+fi
 F77=${FC:-f77}
 if test -n "$FC" ; then
     USERF77=1
 fi
-FLINKER=$F77
+if test -z "$FLINKER" ; then
+    FLINKER=$F77
+fi
 #
 # First, check for the basic CC and Ranlib 
 if test -z "$USERCC" ; then
@@ -1065,14 +1136,17 @@ if test -n "$arch_IRIX"; then
    #  For example
    #  IRIX_5_4400 (IRIX 5.x, using MIPS 4400)
    osversion=`uname -r | sed 's/\..*//'`
-
+   # Note that we need to allow brackets here, so we briefly turn off 
+   # the macro quotes
+      # Get the second field (looking for 6.1)
+   osvminor=`uname -r | sed 's/[0-9]\.\([0-9]*\)\..*/\1/'`
    # Get SGI processor count by quick hack
    # 7/13/95, bri@sgi.com
-   cpucount=`hinv | grep '0-9* 0-9* MHZ IP0-9* Proc' | cut -f 1 -d' '`
+   cpucount=`hinv | grep '[0-9]* [0-9]* MHZ IP[0-9]* Proc' | cut -f 1 -d' '`
    if test "$cpucount" = "" ; then
-     cpucount=`hinv | grep 'Processor 0-9*:' | wc -l | sed -e 's/ //g'`
+     cpucount=`hinv | grep 'Processor [0-9]*:' | wc -l | sed -e 's/ //g'`
    fi
-   if test "$cpucount" = "" ; then
+      if test "$cpucount" = "" ; then
      print_error "Could not determine cpucount."
      print_error "Please send "
      hinv
@@ -1081,6 +1155,18 @@ if test -n "$arch_IRIX"; then
    fi
    echo "IRIX processor count is $cpucount"
 
+   # 
+   # Check for fast SGI device
+   if test -d mpid/sgi -a "$osversion" -ge 6 -a "$osvminor" -ge 1 -a \
+	`uname -s` = "IRIX64" ; then
+	if test -z "$device_sgi" ; then
+	    echo "Consider using -device=sgi for SGI arrays"
+	fi
+   elif test -n "$device_sgi" ; then
+	print_error "The sgi device requires IRIX64 and version 6.1 or later"
+        exit 1
+   fi
+   #
    # Set -comm=shared if IRIX MP & COMM=ch_p4 & COMM not explicitly set
    # 7/13/95 bri@sgi.com
    if test $cpucount -gt 1 ; then
@@ -1371,8 +1457,12 @@ if test -n "$device_ch_nx"; then
       F77=if77
   fi
   GCC=""
-  CLINKER=$CC
-  FLINKER=$F77
+  if test -z "$USERCLINKER" ; then
+      CLINKER="$CC"
+  fi
+  if test -z "$USERFLINKER" ; then
+      FLINKER="$F77"
+  fi
   # If this version of the intel compiler accepts the -nx flag, use it.
   if icc -nx > /dev/null 2>&1 ; then
     LIB_LIST="$LIB_LIST -nx"
@@ -1381,6 +1471,35 @@ if test -n "$device_ch_nx"; then
   #OPTFLAGS="-O"
   AR="ar860 crl"
   #RANLIB=true
+fi
+
+if test -n "$device_nx"; then
+  DEFAULT_MACHINE="paragon"
+  if test -z "$USERCC" ; then
+      CC=icc
+  fi
+  if test -z "$USERF77" ; then
+      F77=if77
+  fi
+  GCC=""
+  if test -z "$USERCLINKER" ; then
+      CLINKER="$CC"
+  fi
+  if test -z "$USERFLINKER" ; then
+      FLINKER="$F77"
+  fi
+  # If this version of the intel compiler accepts the -nx flag, use it.
+  if icc -nx > /dev/null 2>&1 ; then
+    LIB_LIST="$LIB_LIST -nx"
+    CFLAGS="$CFLAGS -nx"
+  fi
+  # Check for fast collective routines
+  if test  -r /usr/lib/libjmc.a; then
+    CFLAGS="$CFLAGS -DICCLIB"
+    ICCLIB="iCClib"
+  fi
+  #OPTFLAGS="-O"
+  AR="ar860 crl"
 fi
 
 if test -n "$device_ch_shmem"; then
@@ -1403,8 +1522,12 @@ if test -n "$device_ch_nc"; then
      F77=nf77
   fi
   GCC=""
-  CLINKER=$CC
-  FLINKER=$F77
+  if test -z "$USERCLINKER" ; then
+      CLINKER=$CC
+  fi
+  if test -z "$USERFLINKER" ; then
+      FLINKER=$F77
+  fi
   AR="nar cr"
   #RANLIB=true
 fi
@@ -1419,8 +1542,12 @@ if test -n "$device_ch_cmmd"; then
      F77=f77      
   fi
   GCC=""
-  CLINKER="cmmd-ld -comp $CC"
-  FLINKER="cmmd-ld -comp $F77"
+  if test -z "$USERCLINKER" ; then
+      CLINKER="cmmd-ld -comp $CC"
+  fi
+  if test -z "$USERFLINKER" ; then
+      FLINKER="cmmd-ld -comp $F77"
+  fi
   AR="ar cr"
   #RANLIB=ranlib
 fi
@@ -1502,8 +1629,12 @@ done
       fi
   fi
   GCC=""
-  CLINKER="$CC"
-  FLINKER="$F77"
+  if test -z "$USERCLINKER" ; then
+      CLINKER=$CC
+  fi
+  if test -z "$USERFLINKER" ; then
+      FLINKER=$F77
+  fi
   # Jim Cownie claims that -laio is no longer needed ...
   if test -s /opt/MEIKOcs2/lib/libmpsc.a ; then
       LIB_LIST="$LIB_LIST -L/opt/MEIKOcs2/lib -lmpsc -lew -lelan"
@@ -1545,8 +1676,12 @@ if test -n "$device_meiko"; then
       fi
   fi
   GCC=""
-  CLINKER="$CC"
-  FLINKER="$F77"
+  if test -z "$USERCLINKER" ; then
+      CLINKER=$CC
+  fi
+  if test -z "$USERFLINKER" ; then
+      FLINKER=$F77
+  fi
   if test -s /opt/MEIKOcs2/lib/libew.a ; then
       LIB_LIST="$LIB_LIST -L/opt/MEIKOcs2/lib -lew -lelan"
   else
@@ -1604,13 +1739,17 @@ done
 	    exit 1
          fi
      fi
-     CLINKER=$CC
      CONFIGURE_ARGS_CLEAN="`echo $CONFIGURE_ARGS_CLEAN | tr ' ' '_'`"
      GCC=""
      if test -z "$USERF77" ; then
          F77=mpxlf
      fi
-     FLINKER=$F77
+     if test -z "$USERCLINKER" ; then
+         CLINKER=$CC
+     fi
+     if test -z "$USERFLINKER" ; then
+         FLINKER=$F77
+     fi
      AR="ar cr$AR_LOCAL"
      #RANLIB="ranlib"
 fi
@@ -1619,17 +1758,71 @@ if test -n "$device_ch_spp" ; then
    DEFAULT_MACHINE="convex_spp"
    if test -z "$USERCC" ; then
 	CC="/usr/convex/bin/cc"
-	CLINKER="/usr/convex/bin/cc"
    fi
    if test -z "$USERF77" ; then
        	F77="/usr/convex/bin/fc"
-       	FLINKER="/usr/convex/bin/fc"
+   fi
+   if test -z "$USERCLINKER" ; then
+      CLINKER=$CC
+   fi
+   if test -z "$USERFLINKER" ; then
+      FLINKER=$F77
    fi
    if test -z "$OPTFLAGS" ; then
 	# If optimization is turned on, the wrong code is generated for
 	# some operations with unsigned chars.
 	OPTFLAGS=-O0
    fi
+   if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for volatile""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+volatile int a;
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  
+  rm -rf conftest*
+  
+{
+test -n "$verbose" && \
+echo "	defining HAS_VOLATILE"
+echo "#define" HAS_VOLATILE 1 >> confdefs.h
+DEFS="$DEFS -DHAS_VOLATILE=1"
+}
+echo "$ac_t""yes" 1>&1
+
+else
+  rm -rf conftest*
+  echo "$ac_t""no" 1>&1
+   
+fi
+rm -f conftest*
+
+
    #  
    LIB_LIST="$LIB_LIST -lcnx_syscall /lib/libail.sl"
 fi
@@ -1643,7 +1836,30 @@ if test -n "$device_ch_shmem" ; then
    for func in mmap
 do
 trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
-echo checking for ${func}
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for ${func}""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 #include <ctype.h>
@@ -1661,6 +1877,7 @@ extern char ${func}(); ${func}();
  }
 EOF
 if eval $compile; then
+  echo "$ac_t""yes" 1>&1
   rm -rf conftest*
   {
 test -n "$verbose" && \
@@ -1670,6 +1887,243 @@ DEFS="$DEFS -D${trfunc}=1"
 }
 
 
+   else echo "$ac_t""no" 1>&1
+fi
+rm -f conftest*
+done
+
+   for func in msem_init
+do
+trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for ${func}""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_${func}) || defined (__stub___${func})
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char ${func}(); ${func}();
+#endif
+ }
+EOF
+if eval $compile; then
+  echo "$ac_t""yes" 1>&1
+  rm -rf conftest*
+  {
+test -n "$verbose" && \
+echo "	defining ${trfunc}"
+echo "#define" ${trfunc} 1 >> confdefs.h
+DEFS="$DEFS -D${trfunc}=1"
+}
+
+
+   else echo "$ac_t""no" 1>&1
+fi
+rm -f conftest*
+done
+
+   for func in mutex_init
+do
+trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for ${func}""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_${func}) || defined (__stub___${func})
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char ${func}(); ${func}();
+#endif
+ }
+EOF
+if eval $compile; then
+  echo "$ac_t""yes" 1>&1
+  rm -rf conftest*
+  {
+test -n "$verbose" && \
+echo "	defining ${trfunc}"
+echo "#define" ${trfunc} 1 >> confdefs.h
+DEFS="$DEFS -D${trfunc}=1"
+}
+
+
+   else echo "$ac_t""no" 1>&1
+fi
+rm -f conftest*
+done
+
+   for func in shmat
+do
+trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for ${func}""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_${func}) || defined (__stub___${func})
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char ${func}(); ${func}();
+#endif
+ }
+EOF
+if eval $compile; then
+  echo "$ac_t""yes" 1>&1
+  rm -rf conftest*
+  {
+test -n "$verbose" && \
+echo "	defining ${trfunc}"
+echo "#define" ${trfunc} 1 >> confdefs.h
+DEFS="$DEFS -D${trfunc}=1"
+}
+
+
+   else echo "$ac_t""no" 1>&1
+fi
+rm -f conftest*
+done
+
+   for func in semop
+do
+trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for ${func}""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_${func}) || defined (__stub___${func})
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char ${func}(); ${func}();
+#endif
+ }
+EOF
+if eval $compile; then
+  echo "$ac_t""yes" 1>&1
+  rm -rf conftest*
+  {
+test -n "$verbose" && \
+echo "	defining ${trfunc}"
+echo "#define" ${trfunc} 1 >> confdefs.h
+DEFS="$DEFS -D${trfunc}=1"
+}
+
+
+   else echo "$ac_t""no" 1>&1
 fi
 rm -f conftest*
 done
@@ -1689,7 +2143,77 @@ else
 fi
 
 fi
+echo $ac_n "checking for return type of signal handlers""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <sys/types.h>
+#include <signal.h>
+#ifdef signal
+#undef signal
+#endif
+extern void (*signal ()) ();
+int main() { exit(0); }
+int t() { int i; }
+EOF
+if eval $compile; then
+  echo "$ac_t""yes" 1>&1
+  rm -rf conftest*
+  
+{
+test -n "$verbose" && \
+echo "	defining" RETSIGTYPE to be void
+echo "#define" RETSIGTYPE void >> confdefs.h
+DEFS="$DEFS -DRETSIGTYPE=void"
+}
+
+
+else
+  rm -rf conftest*
+  
+{
+test -n "$verbose" && \
+echo "	defining" RETSIGTYPE to be int
+echo "#define" RETSIGTYPE int >> confdefs.h
+DEFS="$DEFS -DRETSIGTYPE=int"
+}
+
+    echo "$ac_t""no" 1>&1
+fi
+rm -f conftest*
+
+
+   if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
 echo $ac_n "checking for volatile""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 volatile int a;
@@ -1697,6 +2221,7 @@ int main() { exit(0); }
 int t() { main(); }
 EOF
 if eval $compile; then
+  
   rm -rf conftest*
   
 {
@@ -1707,15 +2232,152 @@ DEFS="$DEFS -DHAS_VOLATILE=1"
 }
 echo "$ac_t""yes" 1>&1
 
+else
+  rm -rf conftest*
+  echo "$ac_t""no" 1>&1
+   
 fi
 rm -f conftest*
 
+
+   
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking that signals work correctly""... $ac_c" 1>&1
+cat >conftest.c <<EOF
+#include <signal.h>
+static int rc = 0, irc = 1, maxcnt=5;
+void handler( sig )
+int sig;
+{
+void (*oldsig)();
+oldsig = signal( SIGUSR1, handler );
+if (oldsig != handler) rc = 1;
+irc = 0;
+}
+int main(argc, argv)
+int argc;
+char **argv;
+{
+(void)signal( SIGUSR1, handler );
+kill( getpid(), SIGUSR1 );
+while (irc && maxcnt) { sleep(1); maxcnt--;}
+return rc;
+}
+EOF
+if eval $CC $CFLAGS -o conftest conftest.c > /dev/null 2>&1 ; then
+    if ./conftest ; then
+	echo "$ac_t""yes" 1>&1
+    else
+	echo "$ac_t""Signals reset when used!" 1>&1
+	print_error Signals reset when used!
+    fi
+else
+    echo "$ac_t""Could not compile test program!" 1>&1
+fi
+/bin/rm -f conftest conftest.c conftest.o
+
+   for ac_hdr in unistd.h
+do
+ac_safe=`echo "$ac_hdr" | tr '[a-z]./' '[A-Z]__'`
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <$ac_hdr>
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  
+  rm -rf conftest*
+  eval "ac_cv_header_$ac_safe=yes"
+
+else
+  rm -rf conftest*
+  eval "ac_cv_header_$ac_safe=no"
+   
+fi
+rm -f conftest*
+if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
+  echo "$ac_t""yes" 1>&1
+    ac_tr_hdr=HAVE_`echo $ac_hdr | tr '[a-z]./' '[A-Z]__'`
+  
+{
+test -n "$verbose" && \
+echo "	defining $ac_tr_hdr"
+echo "#define" $ac_tr_hdr 1 >> confdefs.h
+DEFS="$DEFS -D$ac_tr_hdr=1"
+}
+ 
+else
+  echo "$ac_t""no" 1>&1
+fi
+done
 
    if test -z "$arch_solaris" -a -z "$arch_IRIX" ; then
        for func in gettimeofday
 do
 trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
-echo checking for ${func}
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for ${func}""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 #include <ctype.h>
@@ -1733,6 +2395,7 @@ extern char ${func}(); ${func}();
  }
 EOF
 if eval $compile; then
+  echo "$ac_t""yes" 1>&1
   rm -rf conftest*
   {
 test -n "$verbose" && \
@@ -1742,6 +2405,7 @@ DEFS="$DEFS -D${trfunc}=1"
 }
 
 
+   else echo "$ac_t""no" 1>&1
 fi
 rm -f conftest*
 done
@@ -1787,6 +2451,9 @@ if test -n "$device_ch_p4"; then
 #
 ########################################################################
 
+  elif test "$ARCH" = "IRIX64" ; then
+    P4_ARCH=SGI_CH64
+    DEFAULT_MACHINE="sgi_mp"
   elif test "$ARCH" = "IRIX" ; then
     P4_ARCH=SGI
     if test $osversion = 6 ; then
@@ -1827,19 +2494,23 @@ echo "Done setting p4arch..."
 #
 echo "Configuring p4 subsystem..."
 # Make sure that the lib Makefile gets remade
+  if test -n "$SOCKSIZE" ; then
+      otherargs="-socksize=$SOCKSIZE"
+  fi
   if test "$USERCC" = 1 ; then 
       (cd mpid/ch_p4/p4-1.4 ; \
-	./configure -p4arch=$P4_ARCH -p4make="$MAKE" -opt="$OPTFLAGS" -cc="$CC" )
+	./configure -p4arch=$P4_ARCH -p4make="$MAKE" -opt="$OPTFLAGS" -cc="$CC" $otherargs )
       if test $? != 0 ; then
           print_error "Configure of the p4 sub-system may have failed"
       fi
     else
       (cd mpid/ch_p4/p4-1.4 ; \
-	./configure -p4arch=$P4_ARCH -p4make="$MAKE" -opt="$OPTFLAGS" )
+	./configure -p4arch=$P4_ARCH -p4make="$MAKE" -opt="$OPTFLAGS" $otherargs )
       if test $? != 0 ; then
           print_error "Configure of the p4 sub-system may have failed"
       fi
   fi
+  echo "Done configuring the p4 subsystem"
   P4_MDEPLIBS=`$MAKE -f mpid/ch_p4/p4-1.4/lib/Makefile p4mdeplibs | grep -v make`
   LIB_LIST="$LIB_LIST $P4_MDEPLIBS"
   #
@@ -1866,6 +2537,56 @@ echo "Configuring p4 subsystem..."
 #   LIB_PATH="$LIB_PATH -L$lib/$ARCH/$COMM"
 #   LIB_LIST="$LIB_LIST -lp4";
   IS_HETERO=1
+  
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking that signals work correctly""... $ac_c" 1>&1
+cat >conftest.c <<EOF
+#include <signal.h>
+static int rc = 0, irc = 1, maxcnt=5;
+void handler( sig )
+int sig;
+{
+void (*oldsig)();
+oldsig = signal( SIGUSR1, handler );
+if (oldsig != handler) rc = 1;
+irc = 0;
+}
+int main(argc, argv)
+int argc;
+char **argv;
+{
+(void)signal( SIGUSR1, handler );
+kill( getpid(), SIGUSR1 );
+while (irc && maxcnt) { sleep(1); maxcnt--;}
+return rc;
+}
+EOF
+if eval $CC $CFLAGS -o conftest conftest.c > /dev/null 2>&1 ; then
+    if ./conftest ; then
+	echo "$ac_t""yes" 1>&1
+    else
+	echo "$ac_t""Signals reset when used!" 1>&1
+	print_error Signals reset when used!
+    fi
+else
+    echo "$ac_t""Could not compile test program!" 1>&1
+fi
+/bin/rm -f conftest conftest.c conftest.o
+
 fi
 
 if test -n "$arch_IRIX"; then
@@ -1925,8 +2646,12 @@ if test -n "$arch_intelnx"; then
       F77=if77
   fi
   GCC=""
-  CLINKER=$CC
-  FLINKER=$F77
+  if test -z "$USERCLINKER" ; then
+      CLINKER=$CC
+  fi
+  if test -z "$USERFLINKER" ; then
+      FLINKER=$F77
+  fi
   AR="ar860 crl"
   # Note that RANLIB may be set incorrectly if we are cross-compiling...
   RANLIB=true
@@ -1948,8 +2673,12 @@ if test -n "$arch_paragon"; then
       F77=if77
   fi
   GCC=""
-  CLINKER=$CC
-  FLINKER=$F77
+  if test -z "$USERCLINKER" ; then
+      CLINKER=$CC
+  fi
+  if test -z "$USERFLINKER" ; then
+      FLINKER=$F77
+  fi
   #OPTFLAGS="-O"
   AR="ar860 crl"
   # Note that RANLIB may be set incorrectly if we are cross-compiling...
@@ -2031,8 +2760,12 @@ if test -n "$arch_cray_t3d"; then
    F77GETARG="call pxfgetarg(i,s,1,ierr)"
 #   FLINKER="mppldr"
 #   CLINKER="mppldr"
-   FLINKER="$F77 -Ccray-t3d"
-   CLINKER="$CC -Tcray-t3d"
+   if test -z "$USERCLINKER" ; then
+       CLINKER="$CC -Tcray-t3d"
+   fi
+   if test -z "$USERFLINKER" ; then
+       FLINKER="$F77 -Ccray-t3d"
+   fi
    RANLIB=true
    # The CRAY cp doesn't even support -r (!!) but at least there 
    # is a version that does work.
@@ -2062,9 +2795,13 @@ if test -n "$arch_hpux" ; then
     if test -n "$device_ch_shmem" -o -n "$device_ch_spp" ; then
     ASMFILES_O="amem.o"
     fi
-    # Reset the CFLAGS only if gcc not selected
+    if test -n "$device_ch_shmem" -a -n "$comm_convex_spp" ; then
+       DEVCFILES="shmem1stbar.c mpscxdb.c cnxQuerySC.c cnxGlobalop.c cnxCopy.c"
+       DEVOFILES="shmem1stbar.o mpscxdb.o cnxQuerySC.o cnxGlobalop.o cnxCopy.o"
+    fi
+    # Reset the CFLAGS only if gcc not selected or if convex compiler used
     if test "`which ${CC-cc}`" = "/usr/convex/bin/cc" ; then 
-        CFLAGS="$CFLAGS -or none -U_REENTRANT -D_POSIX_SOURCE -D_HPUX_SOURCE"
+        CFLAGS="$CFLAGS -or none -U_REENTRANT -D_POSIX_SOURCE -D_HPUX_SOURCE -DMPI_cspp"
     elif test "$CC" != "gcc" ; then 
         CFLAGS="$CFLAGS -Aa -D_POSIX_SOURCE -D_HPUX_SOURCE"
 	# Alternate...
@@ -2077,7 +2814,30 @@ if test -n "$arch_hpux" ; then
 	#FLINKER=fort77
 	#FFLAGS="$FFLAGS +ppu"
 	# Try and see that this works
-	echo checking for Checking that HP compiler has ANSI option...
+	if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for Checking that HP compiler has ANSI option...""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 
@@ -2085,12 +2845,14 @@ int main() { exit(0); }
 int t() {  }
 EOF
 if eval $compile; then
+  echo "$ac_t""yes" 1>&1
   rm -rf conftest*
   hpux_ansi=1
 
 else
   rm -rf conftest*
   hpux_ansi=0
+    echo "$ac_t""no" 1>&1
 fi
 rm -f conftest*
 
@@ -2294,11 +3056,15 @@ done
 	 CC=$CCval
       fi
   fi
-  CLINKER=$CC
   if test -z "$USERF77" ; then
       F77=xlf
   fi
-  FLINKER=$F77
+  if test -z "$USERCLINKER" ; then
+      CLINKER=$CC
+  fi
+  if test -z "$USERFLINKER" ; then
+      FLINKER=$F77
+  fi
   GCC=""
 fi
 cross_compiling=0
@@ -2337,6 +3103,8 @@ if test -n "$MPE_DIR"; then
    # FIND_X doesn't always work correctly when cross compiling, so we
    # try to be more careful and conservative
    if test -z "$USERXLIB" ; then 
+    # The user has specified the libraries/include paths; pick them up 
+    # below....
     if test $cross_compiling = 0 ; then 
        # If we find X, set shell vars x_includes and x_libraries to the paths.
 no_x=true
@@ -2409,7 +3177,30 @@ rm -f conftest*
 LIBS_save="${LIBS}"
 LIBS="${LIBS} -lXt"
 have_lib=""
-echo checking for -lXt
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for -lXt""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 
@@ -2417,9 +3208,11 @@ int main() { exit(0); }
 int t() { main(); }
 EOF
 if eval $compile; then
+  echo "$ac_t""yes" 1>&1
   rm -rf conftest*
   have_lib="1"
 
+   else echo "$ac_t""no" 1>&1
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -2461,7 +3254,30 @@ fi
        # I didn't use HEADER_CHECK because I want to insist that the 
        # code try to compile with the header
        no_x=true
-       echo checking for X11 headers
+       if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for X11 headers""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 #include <X11/Xlib.h>
@@ -2469,9 +3285,11 @@ int main() { exit(0); }
 int t() {  }
 EOF
 if eval $compile; then
+  echo "$ac_t""yes" 1>&1
   rm -rf conftest*
   no_x=""
 
+   else echo "$ac_t""no" 1>&1
 fi
 rm -f conftest*
 
@@ -2480,7 +3298,30 @@ rm -f conftest*
           LIBS_save="${LIBS}"
 LIBS="${LIBS} -lX11"
 have_lib=""
-echo checking for -lX11
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for -lX11""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 
@@ -2488,9 +3329,11 @@ int main() { exit(0); }
 int t() { main(); }
 EOF
 if eval $compile; then
+  echo "$ac_t""yes" 1>&1
   rm -rf conftest*
   have_lib="1"
 
+   else echo "$ac_t""no" 1>&1
 fi
 rm -f conftest*
 LIBS="${LIBS_save}"
@@ -2508,6 +3351,14 @@ fi
          print_error " "
        fi
      fi
+   else
+	# Pick up the paths from the user if possible
+	if test -z "$x_includes" -a -n "$X11INC" ; then 
+	    x_includes="$X11INC"
+	fi
+	if test -z "$x_libraries" -a -n "$X11LIB" ; then 
+	    x_libraries="$X11LIB"
+	fi
    fi
   fi
   if test -n "$MPE_GRAPHICS" -a -z "$no_x" ; then
@@ -2612,6 +3463,7 @@ else
 fi;HAS_F77="$ac_cv_prog_HAS_F77"
 if test -n "$ac_prog_where" ; then
   echo "$ac_t""found $ac_prog_where ($HAS_F77)" 1>&1
+  
 else
   echo "$ac_t""no" 1>&1
 fi
@@ -2647,6 +3499,9 @@ elif test $HAS_F77 = 1 ; then
         HAS_FORTRAN=0
         CFLAGS="$CFLAGS -DMPID_NO_FORTRAN"
         MPI_FOBJECTS="" 
+   elif test -n "$FORTRANNAMES" ; then
+	WDEF="-D$FORTRANNAMES"
+        CFLAGS="$CFLAGS $WDEF"
    else
     # We have to be careful here, since the name may occur in several
     # forms.  We try to handle this by testing for several forms
@@ -2730,6 +3585,39 @@ elif test $HAS_F77 = 1 ; then
 #   esac
     fi
 fi
+if test $HAS_FORTRAN != 0 ; then
+    
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for Fortran include argument""... $ac_c" 1>&1
+cat > conftest.f <<EOF
+       program main
+       include 'mpif.h'
+       end
+EOF
+if $F77 $FFLAGS -c -Iinclude conftest.f > /dev/null 2>&1 ; then
+    FINC="-I@MPIR_HOME@/include"
+    echo "$ac_t""supports -I" 1>&1
+else
+    true
+    echo "$ac_t""does NOT support -I" 1>&1
+fi
+/bin/rm -f conftest.f
+
+fi
 #
 # Check for xdr available and properly installed (our FreeBSD machines
 # have incorrect xdr header files, for examples).  Currently, we just
@@ -2741,7 +3629,30 @@ fi
 # definitions that it requires!  rpc.h seems to be more reliable.
 #
 if test "$IS_HETERO" = 1 ; then
-    echo checking for "XDR includes and functions"
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for "XDR includes and functions"""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 #include <rpc/rpc.h>
@@ -2751,12 +3662,14 @@ int t() {
      }
 EOF
 if eval $compile; then
+  echo "$ac_t""yes" 1>&1
   rm -rf conftest*
   HAS_XDR=1
 
 else
   rm -rf conftest*
   HAS_XDR=0
+    echo "$ac_t""no" 1>&1
 fi
 rm -f conftest*
 
@@ -2780,7 +3693,30 @@ DEFS=""
 for func in getdomainname gethostname sysinfo uname
 do
 trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
-echo checking for ${func}
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for ${func}""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 #include <ctype.h>
@@ -2798,6 +3734,7 @@ extern char ${func}(); ${func}();
  }
 EOF
 if eval $compile; then
+  echo "$ac_t""yes" 1>&1
   rm -rf conftest*
   {
 test -n "$verbose" && \
@@ -2807,6 +3744,7 @@ DEFS="$DEFS -D${trfunc}=1"
 }
 
 
+   else echo "$ac_t""no" 1>&1
 fi
 rm -f conftest*
 done
@@ -2884,6 +3822,14 @@ fi
 
 fi
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 #include <$ac_hdr>
@@ -2891,12 +3837,14 @@ int main() { exit(0); }
 int t() { main(); }
 EOF
 if eval $compile; then
+  
   rm -rf conftest*
   eval "ac_cv_header_$ac_safe=yes"
 
 else
   rm -rf conftest*
   eval "ac_cv_header_$ac_safe=no"
+   
 fi
 rm -f conftest*
 if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
@@ -2931,6 +3879,14 @@ fi
 
 fi
 echo $ac_n "checking for malloc return type""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 #include <stdlib.h>
@@ -2938,12 +3894,14 @@ int main() { exit(0); }
 int t() { extern void *malloc(); }
 EOF
 if eval $compile; then
+  
   rm -rf conftest*
   eval "ac_cv_malloc=void"
 
 else
   rm -rf conftest*
   eval "ac_cv_malloc=char"
+   
 fi
 rm -f conftest*
 
@@ -2966,7 +3924,30 @@ DEFS="$SAVEDEFS $DEFS"
 for func in system
 do
 trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
-echo checking for ${func}
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for ${func}""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 #include <ctype.h>
@@ -2984,6 +3965,7 @@ extern char ${func}(); ${func}();
  }
 EOF
 if eval $compile; then
+  echo "$ac_t""yes" 1>&1
   rm -rf conftest*
   {
 test -n "$verbose" && \
@@ -2993,6 +3975,7 @@ DEFS="$DEFS -D${trfunc}=1"
 }
 
 
+   else echo "$ac_t""no" 1>&1
 fi
 rm -f conftest*
 done
@@ -3002,7 +3985,30 @@ done
 for func in nice
 do
 trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
-echo checking for ${func}
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for ${func}""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 #include <ctype.h>
@@ -3020,6 +4026,7 @@ extern char ${func}(); ${func}();
  }
 EOF
 if eval $compile; then
+  echo "$ac_t""yes" 1>&1
   rm -rf conftest*
   {
 test -n "$verbose" && \
@@ -3029,6 +4036,7 @@ DEFS="$DEFS -D${trfunc}=1"
 }
 
 
+   else echo "$ac_t""no" 1>&1
 fi
 rm -f conftest*
 done
@@ -3059,7 +4067,8 @@ if test $cross_compiling = 1 ; then
 fi
 # 
 # Should eventually use a file like $file.run to see if the program should
-# be run or just compiled.
+# be run or just compiled.  And eventually, this should be run EARLY,
+# before checking for things like functions and include files.
 #
 
 if test -z "$ac_echo_n" ; then
@@ -3078,6 +4087,14 @@ fi
 
 fi
 echo $ac_n "checking that the compiler $CC runs""... $ac_c" 1>&1
+if test ! -f confdefs.h ; then
+    echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
 cat > conftest.c <<EOF
 #include "confdefs.h"
 
@@ -3085,12 +4102,14 @@ int main() { exit(0); }
 int t() {  }
 EOF
 if eval $compile; then
+  
   rm -rf conftest*
   eval "ac_cv_ccworks=yes"
 
 else
   rm -rf conftest*
   eval "ac_cv_ccworks=no"
+   
 fi
 rm -f conftest*
 
@@ -3112,7 +4131,22 @@ if test -d ccbugs ; then
     if test -z "$TESTCC" ; then TESTCC="$CC" ; fi
     for file in ccbugs/ccfail*.c ; do
         CFILE=`basename $file .c`
-        echo `cat ccbugs/$CFILE.title`
+        if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking `cat ccbugs/$CFILE.title`""... $ac_c" 1>&1
         cp $file conftest.c
         broken=1
         if eval $TESTCC $CFLAGS -o conftest conftest.c $LIBS >/dev/null 2>&1 ; then
@@ -3121,7 +4155,10 @@ if test -d ccbugs ; then
 	    fi
         fi
         if test $broken = 1 ; then 
+	    echo "$ac_t""no" 1>&1
 	    cat ccbugs/$CFILE.txt | sed 's/^/\*\#/g' 
+	else
+	    echo "$ac_t""yes" 1>&1
         fi
 	/bin/rm -f conftest conftest.c conftest.o 
     done
@@ -3129,13 +4166,30 @@ if test -d ccbugs ; then
     # Now, try the warnings.  Note that this just does compiles, not runs
     for file in ccbugs/ccwarn*.c ; do
         CFILE=`basename $file .c`
-        echo `cat ccbugs/$CFILE.title`
+        if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking `cat ccbugs/$CFILE.title`""... $ac_c" 1>&1
         cp $file conftest.c
         if eval $CC $CFLAGS \
 	    -DCONFIGURE_ARGS_CLEAN="'"'"'-A -B'"'"'" -c \
 	    conftest.c $LIBS > /dev/null 2>&1 ; then
+	    echo "$ac_t""yes" 1>&1
 	    true 
 	else
+	    echo "$ac_t""no" 1>&1
 	    cat ccbugs/$CFILE.txt | sed 's/^/\*\#/g' 
 	    if test "$CFILE" = "ccwarn1" ; then
 	       CONFIGURE_ARGS_CLEAN="`echo $CONFIGURE_ARGS_CLEAN | tr ' ' '_'`"
@@ -3156,7 +4210,22 @@ fi
 #
 # See if ranlib really works.  We do this by creating a small object file
 # and a trial library, and then ranlib the result.
-echo "checking that ranlib works"
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking that ranlib works""... $ac_c" 1>&1
 cat <<EOF >conftest.c
 int a(){return 1;}
 EOF
@@ -3167,6 +4236,7 @@ else
     broken=1;
 fi
 if test $broken = 1 ; then
+    echo "$ac_t""no" 1>&1
     print_error "Error in creating test object for ranlib!"
 else
     arcmd='$AR foo.a conftest.o >/dev/null 2>&1'
@@ -3174,8 +4244,10 @@ else
     ranlibtest='$RANLIB foo.a >/dev/null 2>&1'
     if eval $ranlibtest ; then
         broken=0;
+	echo "$ac_t""yes" 1>&1
     else
         broken=1;
+	echo "$ac_t""no" 1>&1
     fi
     /bin/rm -f foo.a
     if test $broken = 1 ; then
@@ -3498,8 +4570,10 @@ for dir in \
     /usr/contrib/tcl7.0-tk3.3/bin \
     $HOME/tcl/bin \
     $HOME/tcl7.3/bin \
+    /opt/Tcl/bin \
     /opt/bin \
     /usr/unsupported \
+    /usr/unsupported/bin \
     /usr/bin \
     /bin \
     /local/encap/tcl-7.1/bin ; do
@@ -3559,6 +4633,7 @@ for dir in \
     /usr/contrib/tcl7.0-tk3.3 \
     $HOME/tcl \
     $HOME/tcl7.3 \
+    /opt/Tcl \
     /opt/local \
     /opt/local/tcl7.0 \
     /local/encap/tcl-7.1 ; do
@@ -3605,6 +4680,7 @@ for dir in \
     /usr/contrib/tcl7.0-tk3.3 \
     $HOME/tcl \
     $HOME/tcl7.3 \
+    /opt/Tcl \
     /opt/local \
     /opt/local/tk3.6 \
     /local/encap/tk-3.4 $TCL_DIR ; do
@@ -3643,11 +4719,68 @@ else
    FLIB_PATH="$LIB_PATH"
 fi
 #
+# Add any user libraries
+if test -n "$USERLIB" ; then
+    LIB_LIST="$LIB_LIST $USERLIB"
+fi
+#
+# mpirun needs sync to try and fix NFS problems on some machines.  Some
+# users may not have sync in their path, so we try to find it here.
+SYNCLOC=""
+# Extract the first word of "sync", so it can be a program name with args.
+set dummy sync; ac_word=$2
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+
+fi
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
+ac_prog_where=""
+if test -n "$SYNCFOUND"; then
+  ac_cv_prog_SYNCFOUND="$SYNCFOUND" # Let the user override the test.
+else
+  ac_first_char=`expr "sync" : "\(.\)"`
+  if test "$ac_first_char" = "/" -a -x "sync" ; then
+       ac_cv_prog_SYNCFOUND="1"
+       ac_prog_where=sync
+  else
+      IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
+      for ac_dir in $PATH; do
+        test -z "$ac_dir" && ac_dir=.
+        if test -f $ac_dir/$ac_word; then
+          ac_cv_prog_SYNCFOUND="1"
+          ac_prog_where=$ac_dir/$ac_word
+          break
+        fi
+      done
+      IFS="$ac_save_ifs"
+  fi
+fi;SYNCFOUND="$ac_cv_prog_SYNCFOUND"
+if test -n "$ac_prog_where" ; then
+  echo "$ac_t""found $ac_prog_where ($SYNCFOUND)" 1>&1
+   SYNCLOC=$ac_prog_where  
+else
+  echo "$ac_t""no" 1>&1
+fi
+
+if test -z "$SYNCLOC" ; then SYNCLOC=true ; fi
+#
+#
 # if the device uses the machines file and there is no machines.$ARCH, 
 # create one using hostname (or uname)
 #
 if test $DEVICE = ch_tcp -o $DEVICE = ch_p4 ; then
-    if test \! -s util/machines/machines.$ARCH ; then
+    if test ! -s util/machines/machines.$ARCH ; then
         HOST=""
         if test "$ARCH" = "ipsc860" ;  then
 	    HOST=`hostname`
@@ -3681,6 +4814,7 @@ chmod g+w configure > /dev/null 2>&1
 #
 # Substitute variables
 # Variables used in scripts only
+# FINC contains and @MPIR_HOME@, so it needs to come first
 # Variables defined ONLY for the doc/port file:
 # Variables used by Makefile.in's:
 # P4_MDEPCFLAGS now used only in doc/port.in
@@ -3728,7 +4862,7 @@ do
   esac
 done
 
-trap 'rm -f Makefile examples/Makefile examples/test/Makefile examples/test/pt2pt/Makefile examples/test/pt2pt/runtests examples/test/coll/Makefile examples/test/coll/runtests examples/test/topol/Makefile examples/test/topol/runtests examples/test/context/Makefile examples/test/context/runtests examples/test/env/Makefile examples/test/lederman/Makefile examples/contrib/usingmpi/Makefile examples/contrib/life/Makefile examples/contrib/nuclei/Makefile examples/contrib/C++/Makefile examples/contrib/mandel-pvm/Makefile examples/perftest/Makefile src/pt2pt/Makefile src/coll/Makefile src/context/Makefile src/dmpi/Makefile src/env/Makefile src/topol/Makefile src/profile/Makefile src/util/Makefile src/c++/Makefile mpe/Makefile mpe/Makefile_nompi examples/contrib/Makefile examples/basic/Makefile profiling/wrappergen/Makefile profiling/examples/Makefile profiling/nupshot/Makefile profiling/lib/Makefile mpe/contrib/mandel/Makefile mpe/contrib/mastermind/Makefile mpe/contrib/life/Makefile mpe/test/Makefile src/env/farg.f util/mpicc util/mpif77 ; exit 1' 1 3 15
+trap 'rm -f Makefile examples/Makefile examples/test/Makefile examples/test/pt2pt/Makefile examples/test/pt2pt/runtests examples/test/coll/Makefile examples/test/coll/runtests examples/test/topol/Makefile examples/test/topol/runtests examples/test/context/Makefile examples/test/context/runtests examples/test/env/Makefile examples/test/lederman/Makefile examples/contrib/usingmpi/Makefile examples/contrib/life/Makefile examples/contrib/nuclei/Makefile examples/contrib/C++/Makefile examples/contrib/mandel-pvm/Makefile examples/perftest/Makefile src/pt2pt/Makefile src/coll/Makefile src/context/Makefile src/dmpi/Makefile src/env/Makefile src/topol/Makefile src/profile/Makefile src/util/Makefile src/c++/Makefile mpe/Makefile mpe/Makefile_nompi examples/contrib/Makefile examples/basic/Makefile profiling/examples/Makefile profiling/lib/Makefile mpe/contrib/mandel/Makefile mpe/contrib/mastermind/Makefile mpe/contrib/life/Makefile mpe/test/Makefile src/env/farg.f util/mpicc util/mpif77 util/mpiinstall ; exit 1' 1 3 15
 CC='$CC'
 INSTALL='$INSTALL'
 INSTALL_PROGRAM='$INSTALL_PROGRAM'
@@ -3741,10 +4875,14 @@ FCval='$FCval'
 F77='$F77'
 RSH_COMMAND='$RSH_COMMAND'
 HAS_F77='$HAS_F77'
+SYNCFOUND='$SYNCFOUND'
+AUTOMOUNTFIX='$AUTOMOUNTFIX'
+FINC='$FINC'
 wishloc='$wishloc'
 TK_DIR='$TK_DIR'
 TCL_DIR='$TCL_DIR'
 BITMAP_DIR='$BITMAP_DIR'
+SYNCLOC='$SYNCLOC'
 COMPRESSEDPKT='$COMPRESSEDPKT'
 CONFIGURE_ARGS='$CONFIGURE_ARGS'
 CONFIGURE_ARGS_CLEAN='$CONFIGURE_ARGS_CLEAN'
@@ -3770,6 +4908,8 @@ CPP_DIR='$CPP_DIR'
 CPRP='$CPRP'
 DEFAULT_MACHINE='$DEFAULT_MACHINE'
 DEVCFLAGS='$DEVCFLAGS'
+DEVCFILES='$DEVCFILES'
+DEVOFILES='$DEVOFILES'
 DEV_DEFS='$DEV_DEFS'
 DEVICE='$DEVICE'
 DEVICE_MAKE_INCLUDE='$DEVICE_MAKE_INCLUDE'
@@ -3780,6 +4920,7 @@ FLIB_PATH_LEADER='$FLIB_PATH_LEADER'
 FLINKER='$FLINKER'
 GETNAME_DEFS='$GETNAME_DEFS'
 HAS_FORTRAN='$HAS_FORTRAN'
+ICCLIB='$ICCLIB'
 INCLUDE_PATH='$INCLUDE_PATH'
 LIB_LIST='$LIB_LIST'
 LIB_PATH='$LIB_PATH'
@@ -3824,7 +4965,7 @@ cat >> config.status <<\EOF
 
 top_srcdir=$srcdir
 
-CONFIG_FILES=${CONFIG_FILES-"Makefile examples/Makefile examples/test/Makefile examples/test/pt2pt/Makefile examples/test/pt2pt/runtests examples/test/coll/Makefile examples/test/coll/runtests examples/test/topol/Makefile examples/test/topol/runtests examples/test/context/Makefile examples/test/context/runtests examples/test/env/Makefile examples/test/lederman/Makefile examples/contrib/usingmpi/Makefile examples/contrib/life/Makefile examples/contrib/nuclei/Makefile examples/contrib/C++/Makefile examples/contrib/mandel-pvm/Makefile examples/perftest/Makefile src/pt2pt/Makefile src/coll/Makefile src/context/Makefile src/dmpi/Makefile src/env/Makefile src/topol/Makefile src/profile/Makefile src/util/Makefile src/c++/Makefile mpe/Makefile mpe/Makefile_nompi examples/contrib/Makefile examples/basic/Makefile profiling/wrappergen/Makefile profiling/examples/Makefile profiling/nupshot/Makefile profiling/lib/Makefile mpe/contrib/mandel/Makefile mpe/contrib/mastermind/Makefile mpe/contrib/life/Makefile mpe/test/Makefile src/env/farg.f util/mpicc util/mpif77 "}
+CONFIG_FILES=${CONFIG_FILES-"Makefile examples/Makefile examples/test/Makefile examples/test/pt2pt/Makefile examples/test/pt2pt/runtests examples/test/coll/Makefile examples/test/coll/runtests examples/test/topol/Makefile examples/test/topol/runtests examples/test/context/Makefile examples/test/context/runtests examples/test/env/Makefile examples/test/lederman/Makefile examples/contrib/usingmpi/Makefile examples/contrib/life/Makefile examples/contrib/nuclei/Makefile examples/contrib/C++/Makefile examples/contrib/mandel-pvm/Makefile examples/perftest/Makefile src/pt2pt/Makefile src/coll/Makefile src/context/Makefile src/dmpi/Makefile src/env/Makefile src/topol/Makefile src/profile/Makefile src/util/Makefile src/c++/Makefile mpe/Makefile mpe/Makefile_nompi examples/contrib/Makefile examples/basic/Makefile profiling/examples/Makefile profiling/lib/Makefile mpe/contrib/mandel/Makefile mpe/contrib/mastermind/Makefile mpe/contrib/life/Makefile mpe/test/Makefile src/env/farg.f util/mpicc util/mpif77 util/mpiinstall "}
 for file in .. ${CONFIG_FILES}; do if test "x$file" != x..; then
   srcdir=$top_srcdir
   # Remove last slash and all that follows it.  Not all systems have dirname.
@@ -3851,10 +4992,14 @@ s%@FCval@%$FCval%g
 s%@F77@%$F77%g
 s%@RSH_COMMAND@%$RSH_COMMAND%g
 s%@HAS_F77@%$HAS_F77%g
+s%@SYNCFOUND@%$SYNCFOUND%g
+s%@AUTOMOUNTFIX@%$AUTOMOUNTFIX%g
+s%@FINC@%$FINC%g
 s%@wishloc@%$wishloc%g
 s%@TK_DIR@%$TK_DIR%g
 s%@TCL_DIR@%$TCL_DIR%g
 s%@BITMAP_DIR@%$BITMAP_DIR%g
+s%@SYNCLOC@%$SYNCLOC%g
 s%@COMPRESSEDPKT@%$COMPRESSEDPKT%g
 s%@CONFIGURE_ARGS@%$CONFIGURE_ARGS%g
 s%@CONFIGURE_ARGS_CLEAN@%$CONFIGURE_ARGS_CLEAN%g
@@ -3880,6 +5025,8 @@ s%@CPP_DIR@%$CPP_DIR%g
 s%@CPRP@%$CPRP%g
 s%@DEFAULT_MACHINE@%$DEFAULT_MACHINE%g
 s%@DEVCFLAGS@%$DEVCFLAGS%g
+s%@DEVCFILES@%$DEVCFILES%g
+s%@DEVOFILES@%$DEVOFILES%g
 s%@DEV_DEFS@%$DEV_DEFS%g
 s%@DEVICE@%$DEVICE%g
 s%@DEVICE_MAKE_INCLUDE@%$DEVICE_MAKE_INCLUDE%g
@@ -3890,6 +5037,7 @@ s%@FLIB_PATH_LEADER@%$FLIB_PATH_LEADER%g
 s%@FLINKER@%$FLINKER%g
 s%@GETNAME_DEFS@%$GETNAME_DEFS%g
 s%@HAS_FORTRAN@%$HAS_FORTRAN%g
+s%@ICCLIB@%$ICCLIB%g
 s%@INCLUDE_PATH@%$INCLUDE_PATH%g
 s%@LIB_LIST@%$LIB_LIST%g
 s%@LIB_PATH@%$LIB_PATH%g
@@ -3945,7 +5093,20 @@ if test -n "$device_ch_tcp" ; then
 fi
 export CONFIG_FILES
 ./config.status
-CONFIG_FILES=
+CONFIG_FILES=""
+#
+# The programs that run on the front end need a different compiler
+if test $cross_compiling != 1 ; then
+    CONFIG_FILES="profiling/wrappergen/Makefile profiling/nupshot/Makefile"
+    export CONFIG_FILES
+    ./config.status
+    CONFIG_FILES=""
+else
+    print_error Not creating Makefiles in profiling/wrappergen and nupshot
+    print_error when cross-compiling for arch $ARCH and device $DEVICE.
+    print_error profiling/nupshot has its own print_error configure script.  
+    print_error One is being developed for profiling/wrappergen .
+fi
 #
 # Configure insists on adding a line to the TOP of the file, making it 
 # unsuited to modifying shell scripts.  Here we strip the first line from
@@ -3955,8 +5116,8 @@ for dir in pt2pt coll context topol ; do
  /bin/rm -f runtests ; /bin/mv .run1 runtests ; chmod a+x runtests )
 done
 #
-# mpicc and mpif77 scripts
-for src in mpicc mpif77 ; do 
+# Scripts in util: 
+for src in mpicc mpif77 mpiinstall ; do 
   (cd util ; /bin/rm -f .run1 ;  sed -e '1d' $src > .run1 ; \
   /bin/rm -f $src ; /bin/mv .run1 $src ; chmod a+x $src ; \
   cp $src ../lib/$ARCH/$COMM ) 
@@ -3978,7 +5139,7 @@ fi
 #
 # If the test suite is part of the directory, generate its makefiles
 if test -d tsuite ; then
-    CONFIG_FILES="tsuite/Makefile tsuite/coll/Makefile tsuite/pt2pt/Makefile"
+    CONFIG_FILES="tsuite/Makefile tsuite/coll/Makefile tsuite/pt2pt/Makefile tsuite/mpitc2/Makefile"
     export CONFIG_FILES
     ./config.status
 fi

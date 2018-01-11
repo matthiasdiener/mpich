@@ -13,6 +13,9 @@ struct p4_msg_queue {
 #define CONN_CUBE 		6
 #define CONN_TCMP 		7
 #define CONN_REMOTE_DYING       8
+/* REMOTE_CLOSED is used to indicate a normal close (i.e., EOF 
+   expected on this connection) */
+#define CONN_REMOTE_CLOSED      9   
 
 #define P4_MAX_MSGLEN (1<<26)  /* Used in free_p4_msg as sanity check
 				  increase as desired */

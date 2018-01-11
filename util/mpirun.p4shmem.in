@@ -5,16 +5,16 @@ fi
 if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
     MPIR_HOME=`pwd`/..
 fi
-MPIRUN_HOME=$MPIR_HOME/util
+MPIRUN_HOME=$MPIR_HOME/bin
 if [ "$argsset" = "" ] ; then
    . $MPIRUN_HOME/mpirun.args
    argsset=1
 fi
 
-if [ "$p4pgfile" = "" ] ; then
+if [ -z "$p4pgfile" ] ; then
     np=`expr $np - 1`
     p4pgfile="$PWD_TRIAL/PI$$"
-    $Show "local $np $progname" >  "$p4pgfile"
+    $Show echo "local $np $progname" >  "$p4pgfile"
     np=`expr $np + 1`
 fi
 $Show $progname $cmdLineArgs -p4pg "$p4pgfile"

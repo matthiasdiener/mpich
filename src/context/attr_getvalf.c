@@ -52,8 +52,10 @@ void *vval;
  */
 if (*__ierr || *found == 0)
     *attr_value = 0;
-else
-    *attr_value = (int)vval;
+else {
+    MPI_Aint lvval = (MPI_Aint)vval;
+    *attr_value = (int)lvval;
+    }
 
 *found = MPIR_TO_FLOG(*found);
 return;

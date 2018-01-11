@@ -1,6 +1,25 @@
 #include "p4.h"
 #include "p4_sys.h"
 
+/* This routine gies us a way to timeout a loop */
+#include <sys/time.h>
+#ifndef TIMEOUT_VALUE 
+#define TIMEOUT_VALUE 300
+#endif
+int p4_has_timedout( flag )
+int flag;
+{
+static time_t start_time;
+time_t curtime;
+curtime = time((time_t)0);
+if (flag) {
+    if (curtime - start_time > TIMEOUT_VALUE) return 1;
+    }
+else
+    start_time = curtime;
+return 0;
+}
+
 int establish_connection(dest_id)
 int dest_id;
 {
@@ -13,8 +32,13 @@ int dest_id;
     if (myid > dest_id)
     {
 	/* following should not spin long */
-	while (p4_local->conntab[dest_id].type == CONN_REMOTE_NON_EST)
+        p4_has_timedout( 0 );
+	while (p4_local->conntab[dest_id].type == CONN_REMOTE_NON_EST) {
 	    p4_dprintfl(70, "waiting for interrupt handler to do its job\n");
+	    if (p4_has_timedout( 1 )) {
+		p4_error( "Timeout in establishing connection to remote process", 0 );
+		}
+	    }
     }
     return (TRUE);
 }
@@ -69,8 +93,13 @@ int dest_id;
     p4_dprintfl(70, "enter loop to connect to dest listener %s\n",dest_host);
     /* Connect to dest listener */
     num_tries = 1;
-    while((dest_listener_con_fd = net_conn_to_listener(dest_host,dest_listener,1)) == -1)
+    p4_has_timedout( 0 );
+    while((dest_listener_con_fd = net_conn_to_listener(dest_host,dest_listener,1)) == -1) {
 	num_tries++;
+	if (p4_has_timedout( 1 )) {
+	    p4_error( "Timeout in establishing connection to remote process", 0 );
+	    }
+	}
     p4_dprintfl(70, "conn_to_proc_contd: connected after %d tries, dest_listener_con_fd=%d\n",num_tries, dest_listener_con_fd);
 
 
@@ -174,8 +203,13 @@ P4VOID handle_connection_interrupt()
 	    num_tries = 1;
 	    /* connect to the requesting process, who is listening */
 	    p4_dprintfl(70,"handling connection interrupt: connecting to %s\n",from_pi->host_name);
-	    while ((connection_fd = net_conn_to_listener(from_pi->host_name,lport,1)) == -1)
+	    p4_has_timedout( 0 );
+	    while ((connection_fd = net_conn_to_listener(from_pi->host_name,lport,1)) == -1) {
 		num_tries++;
+		if (p4_has_timedout( 1 )) {
+		    p4_error( "Timeout in establishing connection to remote process", 0 );
+		    }
+		}
 
 	    p4_dprintfl(70, "handling connection interrupt: connected after %d tries, connection_fd=%d host = %s\n",
 			num_tries, connection_fd, from_pi->host_name);
@@ -198,5 +232,17 @@ P4VOID handle_connection_interrupt()
     /* send msg to listener indicating I made the connection */
     net_send(listener_fd, &msg, sizeof(msg), FALSE);
     p4_dprintfl(70, "handle_connection_interrupt: exiting handling intr from %d\n",from);
+    
+    /* If the return from this is SIG_DFL, then there is a problem ... */
     SIGNAL_P4(LISTENER_ATTN_SIGNAL, handle_connection_interrupt);
+#ifdef NEED_SIGACTION
+#ifdef SA_RESETHAND
+    {
+    struct sigaction oldact;
+    sigaction( LISTENER_ATTN_SIGNAL, (struct sigaction *)0, &oldact );
+    oldact.sa_flags = oldact.sa_flags & ~(SA_RESETHAND);
+    sigaction( LISTENER_ATTN_SIGNAL, &oldact, (struct sigaction *)0 );
+    }
+#endif
+#endif
 }

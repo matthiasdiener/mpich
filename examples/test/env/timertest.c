@@ -24,7 +24,7 @@ char **argv;
 	fprintf( stderr, "%f seconds\n", t2 - t1 );
     } 
     tick = MPI_Wtick();
-    fprintf( stderr, "MPI_Wtick gave: (%f)\n", tick );
+    fprintf( stderr, "MPI_Wtick gave: (%10.8f)\n", tick );
 
     MPI_Finalize( );
 }

@@ -160,6 +160,8 @@ int conn_type;
 	return ("CONN_CUBE");
       case CONN_REMOTE_DYING:
 	return ("CONN_REMOTE_DYING");
+      case CONN_REMOTE_CLOSED:
+	return ("CONN_REMOTE_CLOSED");
       default:
 	sprintf(val, "invalid: %d  ", conn_type);
 	return (val);

@@ -1,12 +1,12 @@
 /*
- *  $Id: dmpipk.c,v 1.18 1995/07/31 14:37:46 gropp Exp $
+ *  $Id: dmpipk.c,v 1.21 1995/09/18 15:40:22 gropp Exp $
  *
  *  (C) 1994 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: dmpipk.c,v 1.18 1995/07/31 14:37:46 gropp Exp $";
+static char vcid[] = "$Id: dmpipk.c,v 1.21 1995/09/18 15:40:22 gropp Exp $";
 #endif
 
 #include "mpiimpl.h"
@@ -178,7 +178,21 @@ MPI_Request request;
 
   if (datatype->dte_type == MPIR_PACKED) {
       /* Data requires no further modification */
-      printf( "Packing packed data!\n" );
+      /* printf( "Packing packed data!\n" ); */
+      /* Mark this data appropriately and indicate that it is packed in the 
+         request 
+       */
+#ifdef MPID_HAS_HETERO
+      /* Hetero buffers should have a 4 byte, network byte order, header
+	 indicating type of representation */
+      if ((MPID_IS_HETERO == 1) &&
+	  MPIR_Comm_needs_conversion(request->chandle.comm))
+	  request->chandle.msgrep = MPIR_MSGREP_XDR;
+#endif
+      request->chandle.bufpos			   = 0;
+      request->shandle.dev_shandle.start           = buf;
+      request->shandle.dev_shandle.bytes_as_contig = count;
+      return MPI_SUCCESS;
       }
   /* Use the generic pack routine */
   MPIR_Pack_size( count, datatype, MPI_COMM_WORLD, &size );
@@ -246,6 +260,8 @@ return MPI_SUCCESS;
 
 /* 
    Set act_count only if changed (on input, is number of bytes) 
+   On output, it should be the number of bytes in OUTPUT (placed into
+   status.count field).
 */
 int MPIR_UnPackMessage( buf, count, datatype, source, request, act_count )
 char         *buf;
@@ -255,16 +271,23 @@ MPI_Request  request;
 int          *act_count;
 {
 int mpi_errno = MPI_SUCCESS;
+int dest_len;
 
 /* Use generic unpack */
 /* printf( "Using generic unpack\n" ); */
 /* Need to update act_count to bytes WRITTEN */
-if (mpi_errno = MPIR_Unpack( request->chandle.comm, 
-			    request->chandle.bufpos, *act_count, 
-			    count, datatype, request->rhandle.msgrep,
-			    buf, act_count )) 
-    return mpi_errno;
+if (datatype->dte_type == MPIR_PACKED) {
+    /* Data requires no further modification */
+    memcpy( buf, request->chandle.bufpos, *act_count );
+    }
+else {
+    mpi_errno = MPIR_Unpack( request->chandle.comm, 
+				request->chandle.bufpos, *act_count, 
+				count, datatype, request->rhandle.msgrep,
+			        buf, act_count, &dest_len );
+    *act_count = dest_len;
+    }
 FREE( request->chandle.bufpos );
-return MPI_SUCCESS;
+return mpi_errno;
 }
 

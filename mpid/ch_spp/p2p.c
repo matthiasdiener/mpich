@@ -12,6 +12,8 @@ void *xx_shmalloc();
 void xx_shfree();
 void xx_init_shmalloc();
 
+static int MPID_SPP_ppid = 0; 
+
 void p2p_init(memsize, numNodes)
 int memsize;
 unsigned int numNodes;
@@ -56,6 +58,81 @@ cnx_node_t
   return myNode;
 }
 
+/* 
+   The create_procs routine keeps track of the processes (stores the
+   rc from fork) and is prepared to kill the children if it
+   receives a SIGCHLD.  One problem is making sure that the kill code
+   isn't invoked during a normal shutdown.  This is handled by turning
+   off the signals while in the rundown part of the code; this introduces
+   a race condition in failures that I'm not prepared for yet.
+ */
+#ifndef MPID_MAX_PROCS
+#define MPID_MAX_PROCS 32
+#endif
+static int MPID_child_pid[MPID_MAX_PROCS];
+static int MPID_numprocs = 0;
+
+#include <sys/types.h>
+#include <signal.h>
+#include <sys/wait.h>
+/* Set SIGCHLD handler */
+static int MPID_child_status = 0;
+#ifndef RETSIGTYPE
+#define RETSIGTYPE void
+#endif
+/* Define standard signals if SysV version is loaded */
+#if !defined(SIGCHLD) && defined(SIGCLD)
+#define SIGCHLD SIGCLD
+#endif
+
+RETSIGTYPE MPID_handle_child( sig, code, scp )
+int               sig, code;
+struct sigcontext *scp;
+/* Some systems have an additional char *addr */
+{
+int prog_stat, pid;
+int i, j;
+
+/* Really need to block further signals until done ... */
+/* fprintf( stderr, "Got SIGCHLD...\n" ); */
+pid	   = waitpid( (pid_t)(-1), &prog_stat, WNOHANG );
+if (MPID_numprocs && pid && (WIFEXITED(prog_stat) || WIFSIGNALED(prog_stat))) {
+#ifdef MPID_DEBUG_ALL
+    if (MPID_DebugFlag) printf("Got signal for child %d (exited)... \n", pid );
+#endif
+    /* The child has stopped. Remove it from the jobs array */
+    for (i = 0; i<MPID_numprocs; i++) {
+	if (MPID_child_pid[i] == pid) {
+	    MPID_child_pid[i] = 0;
+	    if (WIFEXITED(prog_stat)) {
+		MPID_child_status |= WEXITSTATUS(prog_stat);
+		}
+	    /* If we're not exiting, cause an abort. */
+	    if (WIFSIGNALED(prog_stat)) {
+		p2p_error( "Child process died unexpectedly from signal", 
+			   WTERMSIG(prog_stat) );
+	        }
+	    else
+		p2p_error( "Child process exited unexpectedly", i );
+	    break;
+	    }
+	}
+    /* Child may already have been deleted by Leaf exit; we should
+       use conn->state to record it rather than zeroing it */
+    /* 
+    if (i == MPID_numprocs) {
+	fprintf( stderr, "Received signal from unknown child!\n" );
+	}
+	 */
+    }
+/* Re-enable signals */
+}
+
+void p2p_clear_signal()
+{
+(void)signal( SIGCHLD, SIG_IGN );
+}
+
 void p2p_create_procs(numprocs, procNode, procID)
 int numprocs;
 unsigned int procNode[];
@@ -63,6 +140,7 @@ int *procID;
 {
   int i, rc;
 
+  (void) signal( SIGCHLD, MPID_handle_child );
   *procID = 0;
   for (i = 1; i < numprocs; i++)
   {
@@ -70,9 +148,18 @@ int *procID;
       p2p_error("p2p_init: fork failed\n",(-1));
     else if (rc == 0)
     {
+      if(setpgid(0,MPID_SPP_ppid)) {
+          p2p_error("p2p_init: failure in setpgid\n",(-1));
+          exit(-1);
+      }
       *procID = i;
       return;
     }
+    else {
+	/* Save pid of child so that we can detect child exit */
+	MPID_child_pid[i-1] = rc;
+	MPID_numprocs       = i;
+	}
   }
 }
 
@@ -93,9 +180,21 @@ void p2p_shfree( char *ptr )
 }
 
 
-
+#include <signal.h>
+/* Cleanup is the NORMAL termination code; it may be called in abormal
+   termination as well */
 p2p_cleanup()
 {
+}
+
+void
+p2p_setpgrp()
+{
+   MPID_SPP_ppid = getpid();
+   if(setpgid(MPID_SPP_ppid,MPID_SPP_ppid)) {
+       perror("failure in p2p_setpgrp");
+       exit(-1);
+   }
 }
 
 /*****
@@ -145,6 +244,8 @@ int value;
   printf("%s %d\n",string, value);
   printf("p2p_error is not fully cleaning up at present\n");
   p2p_cleanup();
+  if (MPID_SPP_ppid) 
+      kill( -MPID_SPP_ppid, SIGKILL );
   exit(99);
 }
 #include <sys/time.h>
@@ -153,17 +254,10 @@ void p2p_wtime_init()
 {
 }
 
+#include <sys/cnx_ail.h>
 double p2p_wtime()
 {
-  double timeval;
-  struct timeval tp;
-
-  struct timezone tzp;
-
-  gettimeofday(&tp,&tzp);
-  timeval = (double) tp.tv_sec;
-  timeval = timeval + (double) ((double) .000001 * (double) tp.tv_usec);
-  return(timeval);
+  return toc_read() * 0.000001;
 }
 
 /*
@@ -171,6 +265,17 @@ double p2p_wtime()
  */
 void p2p_yield()
 {
+#if defined(MPI_IRIX)
+sginap(0);
+
+#else
+/* Use a short select as a way to suggest to the OS to deschedule the 
+   process */
+struct timeval tp;
+tp.tv_sec  = 0;
+tp.tv_usec = 10;
+select( 0, (void *)0, (void *)0, (void *)0, &tp );
+#endif
 }
 
 /*

@@ -4,7 +4,7 @@
 
 ARCH        = @ARCH@
 COMM        = @COMM@
-INSTALL_DIR = @INSTALL_DIR@
+INSTALL_DIR = @MPIR_HOME@
 CC          = @CC@
 F77         = @F77@
 CLINKER     = @CLINKER@
@@ -12,7 +12,7 @@ FLINKER     = @FLINKER@
 OPTFLAGS    = @OPTFLAGS@
 #
 LIB_PATH    = -L$(INSTALL_DIR)/lib/$(ARCH)/$(COMM)
-FLIB_PATH   = @FLIB_PATH_LEADER@$(INSTALL_DIR)/lib/$(ARCH)/$(COMM)
+FLIB_PATH   = @FLIB_PATH@
 LIB_LIST    = @LIB_LIST@
 #
 INCLUDE_DIR = @INCLUDE_PATH@ -I$(INSTALL_DIR)/include
@@ -23,7 +23,7 @@ CFLAGS  = @CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
 FFLAGS = @FFLAGS@ $(INCLUDE_DIR) $(OPTFLAGS)
 LIBS = $(LIB_PATH) $(LIB_LIST)
 FLIBS = $(FLIB_PATH) $(LIB_LIST)
-EXECS = pi3 cpi cpilog
+EXECS = pi3 cpi cpilog cpilog2
 
 default: cpi pi3
 
@@ -39,6 +39,15 @@ cpilog: cpilog.o $(INSTALL_DIR)/include/mpi.h $(INSTALL_DIR)/include/mpe.h
 
 pi3: pi3.o $(INSTALL_DIR)/include/mpif.h
 	$(FLINKER) $(OPTFLAGS) -o pi3 pi3.o $(FLIBS)
+
+alternate:
+	@echo "Use mpif77 and mpicc to build the programs"
+	@echo "Note the use of an explicit path for the mpif77 and mpicc"
+	@echo "commands; this allows multiple versions/devices to"
+	@echo "coexist."
+	$(INSTALL_DIR)/lib/$(ARCH)/$(COMM)/mpif77 -o pi3 pi3.f
+	$(INSTALL_DIR)/lib/$(ARCH)/$(COMM)/mpicc -o cpi cpi.c
+	$(INSTALL_DIR)/lib/$(ARCH)/$(COMM)/mpicc -o cpilog2 -mpitrace cpi.c
 
 
 clean:

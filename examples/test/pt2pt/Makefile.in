@@ -39,8 +39,9 @@ FLIBS = $(FLIB_PATH) $(LIB_LIST)
 LIBSPP = $(MPIPPLIB) $(LIBS)
 EXECS = overtake sendrecv isndrcv third fourth fifth sixth hvectest \
 	hvectest2 probe probe1 testtest1 testtypes ssendtest typetest\
-	secondf dtypelife issendtest relrank inull typeub irecvtest htmsg \
-	isendtest self sendrecv2 sendrecv3 sendrecv4 persistent waitall
+	dtypelife issendtest relrank inull typeub irecvtest htmsg \
+	isendtest self sendrecv2 sendrecv3 sendrecv4 persistent waitall \
+	pack bsendtest
 default: $(EXECS)
 
 #
@@ -52,7 +53,7 @@ linktest: overtake secondf clean
 
 all: testing
 
-fortran_tests: secondf allpair allpair2
+fortran_tests: secondf allpair allpair2 structf
 
 overtake: overtake.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o overtake overtake.o test.o $(LIBS)
@@ -132,6 +133,9 @@ probe: probe.o test.o $(MPILIB)
 nblock: nblock.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o nblock nblock.o $(LIBS)
 
+pack: pack.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o pack pack.o $(LIBS)
+
 probe1: probe1.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o probe1 probe1.o test.o $(LIBS)
 
@@ -159,6 +163,8 @@ allpair: mpif.h allpair.o
 	$(FLINKER) $(OPTFLAGS) -o allpair allpair.o $(FLIBS)
 allpair2: mpif.h allpair2.o
 	$(FLINKER) $(OPTFLAGS) -o allpair2 allpair2.o $(FLIBS)
+structf: mpif.h structf.o
+	$(FLINKER) $(OPTFLAGS) -o structf structf.o $(FLIBS)
 
 #
 # Some systems have no test for a symbolic link and return false for
@@ -173,7 +179,8 @@ mpif.h: $(MPIR_HOME)/include/mpif.h
 # Make sure that we remove executables for specific architectures
 clean:
 	/bin/rm -f *.o *~ PI* $(EXECS) *.out secondf allpair core systest \
-		systest1 allpair2 bsendtest pt2pt.diff nbtest nblock
+		systest1 allpair2 bsendtest pt2pt.diff nbtest nblock \
+	        structf
 	for file in $(EXECS) Makefile ; do \
 	   /bin/rm -f $$file.sun4 $$file.alpha $$file.IRIX $$file.freebsd ;\
 	done

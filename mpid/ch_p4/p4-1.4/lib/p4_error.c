@@ -3,7 +3,9 @@
 
 typedef long P4_Aint;
 
+#ifndef NEXT
 extern P4VOID exit();
+#endif
 
 static int interrupt_caught = 0; /* True if an interrupt was caught */
 

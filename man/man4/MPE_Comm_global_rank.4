@@ -1,0 +1,35 @@
+.TH MPE_Comm_global_rank 4 "9/9/1995" " " "MPE"
+.SH NAME
+MPE_Comm_global_rank \- Returns the rank in MPI_COMM_WORLD for a
+given (communicator,rank) pair
+
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B comm 
+- Communicator
+.PD 1
+.PD 0
+.TP
+.B rank 
+- Rank in comm
+.PD 1
+
+.SH OUTPUT PARAMETERS
+.PD 0
+.TP
+.B grank 
+- Rank in comm world
+.PD 1
+.SH SYNOPSIS
+.nf
+#include <stdio.h>
+#include "mpe.h"
+void MPE_Comm_global_rank( comm, rank, grank )
+MPI_Comm comm;
+int      rank, *grank;
+
+.fi
+
+.SH LOCATION
+ getgrank.c
